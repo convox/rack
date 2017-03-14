@@ -118,12 +118,15 @@ i-c7de605c  on     active  2 hours ago  0   0.00%  0.00%
 
 ## Build Image
 
-If you're working on the builder, you can set the [`BuildImage` Rack param](https://convox.com/docs/rack-parameters#buildimage) to a Docker image for the builder:
+If you're working on the builder, you can set the [`BuildImage` Rack param](https://convox.com/docs/rack-parameters#buildimage) to a Docker image for the builder. This is primarily used for development purposes only. General users should not set this parameter.
 
-```
-$ make builder
-$ convox rack params set BuildImage=convox/build:$(whoami)
-```
+A developer with access to the Convox DockerHub organization could run:
+
+`$ make builder`
+
+...which creates an image of the build script and uploads it to DockerHub. It can be set via:
+
+`$ convox rack params set BuildImage=convox/build:$(whoami)`
 
 ## Golang Unit Test Suite
 
