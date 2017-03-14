@@ -65,11 +65,15 @@ func cmdScale(c *cli.Context) error {
 			return stdcli.Error(fmt.Errorf("missing process name"))
 		}
 
-		displayFormation(c, app)
+		if err := displayFormation(c, app); err != nil {
+			return err
+		}
 		return nil
 	case 1:
 		if opts.Count == "" && opts.CPU == "" && opts.Memory == "" {
-			displayFormation(c, app)
+			if err := displayFormation(c, app); err != nil {
+				return err
+			}
 			return nil
 		}
 		// fall through to scale API call
@@ -80,14 +84,12 @@ func cmdScale(c *cli.Context) error {
 
 	process := c.Args()[0]
 
-	err = rackClient(c).SetFormation(app, process, opts)
-	if err != nil {
+	if err := rackClient(c).SetFormation(app, process, opts); err != nil {
 		return stdcli.Error(err)
 	}
 
-	err = displayFormation(c, app)
-	if err != nil {
-		return stdcli.Error(err)
+	if err := displayFormation(c, app); err != nil {
+		return err
 	}
 
 	if c.Bool("wait") {

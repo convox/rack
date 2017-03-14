@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -424,6 +425,9 @@ func copyAsync(dst io.Writer, src io.Reader, wg *sync.WaitGroup) {
 
 // Request wraps http.Request and sets some Convox-specific headers
 func (c *Client) Request(method, path string, body io.Reader) (*http.Request, error) {
+	if c == nil {
+		return nil, errors.New("couldn't initialize Rack client; please log in (`convox login`)")
+	}
 	req, err := http.NewRequest(method, fmt.Sprintf("https://%s%s", c.Host, path), body)
 
 	if err != nil {
