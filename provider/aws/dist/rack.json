@@ -64,17 +64,17 @@
       "ap-southeast-2": { "ThirdAvailabilityZone": "Yes" }
     },
     "RegionConfig": {
-      "us-east-1": { "Ami": "ami-d69c74c0" },
-      "us-east-2": { "Ami": "ami-64270201" },
-      "us-west-1": { "Ami": "ami-bc90c2dc" },
-      "us-west-2": { "Ami": "ami-8e7bc4ee" },
-      "eu-west-1": { "Ami": "ami-48f9a52e" },
-      "eu-west-2": { "Ami": "ami-62aea406" },
-      "eu-central-1": { "Ami": "ami-6b428d04" },
-      "ap-northeast-1": { "Ami": "ami-372f5450" },
-      "ap-southeast-1": { "Ami": "ami-69208a0a" },
-      "ap-southeast-2": { "Ami": "ami-307f7853" },
-      "ca-central-1": { "Ami": "ami-b2e65bd6" }
+      "us-east-1": { "Ami": "ami-b2df2ca4" },
+      "us-east-2": { "Ami": "ami-832b0ee6" },
+      "us-west-1": { "Ami": "ami-dd104dbd" },
+      "us-west-2": { "Ami": "ami-022b9262" },
+      "eu-west-1": { "Ami": "ami-a7f2acc1" },
+      "eu-west-2": { "Ami": "ami-3fb6bc5b" },
+      "eu-central-1": { "Ami": "ami-ec2be583" },
+      "ap-northeast-1": { "Ami": "ami-c393d6a4" },
+      "ap-southeast-1": { "Ami": "ami-a88530cb" },
+      "ap-southeast-2": { "Ami": "ami-8af8ffe9" },
+      "ca-central-1": { "Ami": "ami-ead5688e" }
     }
   },
   "Outputs": {
@@ -333,6 +333,11 @@
       "Type": "String",
       "Default": ""
     },
+    "HttpProxy": {
+      "Description": "Connect using an outbound HTTP proxy (for network-restricted Racks)",
+      "Type": "String",
+      "Default": ""
+    },
     "Internal": {
       "Type": "String",
       "Description": "Create applications that are only accessible inside the VPC",
@@ -462,6 +467,13 @@
         "KeyUsage": "ENCRYPT_DECRYPT"
       }
     },
+    "EncryptionKeyAlias": {
+      "Type": "AWS::KMS::Alias",
+      "Properties": {
+        "AliasName": { "Fn::Join": ["", ["alias/convox-", {"Ref":"AWS::StackName"} ]] },
+        "TargetKeyId": { "Ref": "EncryptionKey" }
+      }
+    },
     "LogGroup": {
       "Type": "AWS::Logs::LogGroup"
     },
@@ -523,6 +535,7 @@
             "};"
           ]]}
         },
+        "Description": "Function to support Convox logs filtering",
         "Handler": "index.handler",
         "MemorySize": "128",
         "Role": { "Fn::GetAtt": [ "LogSubscriptionFilterRole", "Arn" ] },
@@ -624,6 +637,7 @@
           "S3Bucket": { "Fn::Join": [ "-", [ "convox", { "Ref": "AWS::Region" } ] ] },
           "S3Key": { "Fn::Join": [ "", [ "release/", { "Ref": "Version" }, "/lambda/formation.zip" ] ] }
         },
+        "Description": "Convox handler for custom resources",
         "Handler": "index.external",
         "MemorySize": "128",
         "Role": { "Fn::GetAtt": [ "CustomTopicRole", "Arn" ] },
@@ -777,6 +791,7 @@
                       "kms:DeleteAlias",
                       "kms:GenerateDataKey",
                       "kms:GenerateRandom",
+                      "kms:CreateAlias",
                       "kms:ListAliases",
                       "lambda:CreateFunction",
                       "logs:CreateLogGroup",
@@ -977,6 +992,9 @@
       "Type": "AWS::EC2::InternetGateway",
       "Condition": "BlankExistingVpc",
       "Properties": {
+        "Tags": [
+          { "Key": "Name", "Value": { "Ref": "AWS::StackName" } }
+        ]
       }
     },
     "GatewayAttachment": {
@@ -1142,6 +1160,9 @@
       "Type": "AWS::EC2::RouteTable",
       "Condition": "NotExistingVpcAndBlankInternetGateway",
       "Properties": {
+        "Tags": [
+          { "Key": "Name", "Value": { "Ref": "AWS::StackName" } }
+        ],
         "VpcId": { "Fn::If": [ "BlankExistingVpc",
           { "Ref": "Vpc" },
           { "Ref": "ExistingVpc" }
@@ -1166,6 +1187,9 @@
       "DependsOn": [ "Nat0" ],
       "Type": "AWS::EC2::RouteTable",
       "Properties": {
+        "Tags": [
+          { "Key": "Name", "Value": { "Ref": "AWS::StackName" } }
+        ],
         "VpcId": { "Fn::If": [ "BlankExistingVpc",
           { "Ref": "Vpc" },
           { "Ref": "ExistingVpc" }
@@ -1177,6 +1201,9 @@
       "DependsOn": [ "Nat1" ],
       "Type": "AWS::EC2::RouteTable",
       "Properties": {
+        "Tags": [
+          { "Key": "Name", "Value": { "Ref": "AWS::StackName" } }
+        ],
         "VpcId": { "Fn::If": [ "BlankExistingVpc",
           { "Ref": "Vpc" },
           { "Ref": "ExistingVpc" }
@@ -1188,6 +1215,9 @@
       "DependsOn": [ "Nat2" ],
       "Type": "AWS::EC2::RouteTable",
       "Properties": {
+        "Tags": [
+          { "Key": "Name", "Value": { "Ref": "AWS::StackName" } }
+        ],
         "VpcId": { "Fn::If": [ "BlankExistingVpc",
           { "Ref": "Vpc" },
           { "Ref": "ExistingVpc" }
@@ -1285,6 +1315,9 @@
         "SecurityGroupIngress": [
           { "IpProtocol": "tcp", "FromPort": "0", "ToPort": "65535", "CidrIp": { "Ref": "VPCCIDR" } },
           { "IpProtocol": "udp", "FromPort": "0", "ToPort": "65535", "CidrIp": { "Ref": "VPCCIDR" } }
+        ],
+        "Tags": [
+          { "Key": "Name", "Value": { "Ref": "AWS::StackName" } }
         ],
         "VpcId": { "Fn::If": [ "BlankExistingVpc",
           { "Ref": "Vpc" },
@@ -1405,6 +1438,8 @@
             "  - [ cloud-init-per, instance, docker_storage_setup, /usr/bin/docker-storage-setup ]\n",
             "  - echo ECS_CLUSTER=", { "Ref": "BuildCluster" }, " >> /etc/ecs/ecs.config\n",
             "  - echo ECS_ENGINE_AUTH_TYPE=docker >> /etc/ecs/ecs.config\n",
+            "  - echo HTTP_PROXY=", { "Ref": "HttpProxy" }, " >> /etc/ecs/ecs.config\n",
+            "  - echo NO_PROXY=169.254.169.254,169.254.170.2,/var/run/docker.sock >> /etc/ecs/ecs.config\n",
             "  - head -n -1 /etc/sysconfig/docker >> /etc/sysconfig/docker-tmp\n",
             "  - mv /etc/sysconfig/docker-tmp /etc/sysconfig/docker\n",
             "  - echo 'OPTIONS=\"--default-ulimit nofile=1024000:1024000\"' >> /etc/sysconfig/docker\n",
@@ -1894,6 +1929,10 @@
           {
             "Key": "GatewayAttachment",
             "Value": { "Fn::If": [ "ExistingVpc", "existing", { "Ref": "GatewayAttachment" } ] }
+          },
+          {
+            "Key": "Name",
+            "Value": { "Ref": "AWS::StackName" }
           }
         ]
       },
@@ -1937,6 +1976,9 @@
             "FromPort": "443",
             "ToPort": "443"
           }
+        ],
+        "Tags": [
+          { "Key": "Name", "Value": { "Ref": "AWS::StackName" } }
         ],
         "VpcId": { "Fn::If": [ "BlankExistingVpc",
           { "Ref": "Vpc" },
@@ -2078,6 +2120,9 @@
         "SecurityGroupIngress": [
           { "IpProtocol": "tcp", "FromPort": "2049", "ToPort": "2049", "CidrIp": { "Ref": "VPCCIDR" } }
         ],
+        "Tags": [
+          { "Key": "Name", "Value": { "Ref": "AWS::StackName" } }
+        ],
         "VpcId": { "Fn::If": [ "BlankExistingVpc",
           { "Ref": "Vpc" },
           { "Ref": "ExistingVpc" }
@@ -2145,6 +2190,10 @@
             "Value": {
               "Ref": "AWS::StackName"
             }
+          },
+          {
+            "Key": "Name",
+            "Value": { "Ref": "AWS::StackName" }
           }
         ]
       },
@@ -2216,6 +2265,8 @@
               "DYNAMO_BUILDS": { "Ref": "DynamoBuilds" },
               "DYNAMO_RELEASES": { "Ref": "DynamoReleases" },
               "ENCRYPTION_KEY": { "Ref": "EncryptionKey" },
+              "HTTP_PROXY": { "Ref": "HttpProxy" },
+              "HTTPS_PROXY": { "Ref": "HttpProxy" },
               "INTERNAL": { "Ref": "Internal" },
               "LOG_GROUP": { "Ref": "LogGroup" },
               "NOTIFICATION_HOST": { "Fn::GetAtt": [ "Balancer", "DNSName" ] },
@@ -2292,6 +2343,8 @@
               "DYNAMO_BUILDS": { "Ref": "DynamoBuilds" },
               "DYNAMO_RELEASES": { "Ref": "DynamoReleases" },
               "ENCRYPTION_KEY": { "Ref": "EncryptionKey" },
+              "HTTP_PROXY": { "Ref": "HttpProxy" },
+              "HTTPS_PROXY": { "Ref": "HttpProxy" },
               "LOG_GROUP": { "Ref": "LogGroup" },
               "NOTIFICATION_HOST": { "Fn::GetAtt": [ "Balancer", "DNSName" ] },
               "NOTIFICATION_TOPIC": { "Ref": "NotificationTopic"},

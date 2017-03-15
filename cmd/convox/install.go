@@ -661,6 +661,8 @@ func FriendlyName(t string) string {
 		return "IAM User"
 	case "AWS::Kinesis::Stream":
 		return "Kinesis Stream"
+	case "AWS::KMS::Alias":
+		return "KMS Alias"
 	case "AWS::Lambda::Function":
 		return "Lambda Function"
 	case "AWS::Lambda::Permission":

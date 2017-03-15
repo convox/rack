@@ -104,8 +104,21 @@ func New() *cli.App {
 	}
 
 	app.Writer = DefaultWriter
+	app.Before = ValidatePreconditions(CliCheckEnv)
 
 	return app
+}
+
+// ValidatePreconditions runs one or more cli.BeforeFuncs where called in Command.Before
+func ValidatePreconditions(preconditions ...cli.BeforeFunc) cli.BeforeFunc {
+	return func(c *cli.Context) error {
+		for _, condition := range preconditions {
+			if err := condition(c); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
 }
 
 func Debug() bool {
@@ -113,6 +126,23 @@ func Debug() bool {
 		return true
 	}
 	return false
+}
+
+// RecoverFlag allows us to capture things like --app FOO which would otherwise be discarded by urfave/cli if passed in position 0
+func RecoverFlag(c *cli.Context, flagNames ...string) string {
+	for _, flagName := range flagNames {
+		f := c.String(flagName)
+		if f != "" {
+			return f
+		}
+
+		f = ParseOpts(os.Args)[flagName]
+		if f != "" {
+			// ParseOpts() includes everything after the flag, so discard everything after the first space
+			return strings.Split(f, " ")[0]
+		}
+	}
+	return ""
 }
 
 // If user specifies the app's name from command line, then use it;
@@ -124,7 +154,7 @@ func DirApp(c *cli.Context, wd string) (string, string, error) {
 	if err != nil {
 		return "", "", err
 	}
-	app := c.String("app")
+	app := RecoverFlag(c, "a", "app")
 
 	if app == "" {
 		app = ReadSetting("app")
@@ -292,9 +322,9 @@ func ParseOpts(args []string) map[string]string {
 	var key string
 
 	for _, token := range args {
-		isFlag := strings.HasPrefix(token, "--")
+		isFlag := strings.HasPrefix(token, "-")
 		if isFlag {
-			key = token[2:]
+			key = strings.TrimLeft(token, "-")
 			value := ""
 			if strings.Contains(key, "=") {
 				pivot := strings.Index(key, "=")
@@ -308,4 +338,35 @@ func ParseOpts(args []string) map[string]string {
 	}
 
 	return options
+}
+
+// CliCheckEnv takes cli.Context as an arg so it can be used as a BeforeFunc
+func CliCheckEnv(c *cli.Context) error {
+	return CheckEnv()
+}
+
+// CheckEnv validates that relevant envvars have acceptable values
+func CheckEnv() error {
+	vars := map[string][]string{
+		"CONVOX_DEBUG": []string{"true", "false", "1", "0", ""},
+		"CONVOX_WAIT":  []string{"true", "false", "1", "0", ""},
+		"RACK_PRIVATE": []string{"true", "false", "1", "0", ""},
+	}
+
+	for varName, okVals := range vars {
+		ev := strings.ToLower(os.Getenv(varName))
+		ok := false
+		for _, val := range okVals {
+			if ev == val {
+				ok = true
+				break
+			}
+		}
+		if !ok {
+			msg := fmt.Sprintf("'%s' is not a valid value for environment variable %s ", os.Getenv(varName), varName)
+			msg += fmt.Sprintf("(expected: %s)", okVals)
+			return Errorf(msg)
+		}
+	}
+	return nil
 }
