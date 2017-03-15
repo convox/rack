@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"regexp"
 	"sort"
 	"strings"
 
@@ -15,26 +16,6 @@ import (
 
 type Environment map[string]string
 
-// cleanEnvPair validates environment variable keypair format, trims spaces and surrounding single quotes.
-func cleanEnvPair(value string) (string, error) {
-	parts := strings.SplitN(value, "=", 2)
-	if len(parts) != 2 {
-		return "", fmt.Errorf("Environment variables should be defined in key=value format. You specified: " + value)
-	}
-
-	if key := strings.TrimSpace(parts[0]); key != "" {
-		val := parts[1]
-
-		// heroku env -s adds leading and trailing single quotes to val. Strip.
-		val = strings.Trim(val, "'")
-		val = strings.TrimSpace(val)
-
-		return fmt.Sprintf("%s=%s", key, val), nil
-	}
-
-	return "", fmt.Errorf("Unknown validation error")
-}
-
 // LoadEnvironment loads input into an Environment struct.
 func LoadEnvironment(data []byte) (Environment, error) {
 	env := Environment{}
@@ -43,13 +24,14 @@ func LoadEnvironment(data []byte) (Environment, error) {
 
 	for scanner.Scan() {
 
-		value, err := cleanEnvPair(scanner.Text())
+		key, value, err := ParseEnvLine(scanner.Text())
 		if err != nil {
 			return nil, err
 		}
 
-		parts := strings.SplitN(value, "=", 2)
-		env[parts[0]] = parts[1]
+		if key != "" {
+			env[key] = value
+		}
 	}
 
 	return env, nil
@@ -229,4 +211,32 @@ func (e Environment) Raw() string {
 	}
 
 	return strings.Join(lines, "\n")
+}
+
+// ParseEnvLine returns valid key, value pair, or an error if an invalid line
+func ParseEnvLine(line string) (string, string, error) {
+	// Deal with empty lines
+	if regexp.MustCompile(`^\s*$`).MatchString(line) {
+		return "", "", nil
+	}
+
+	// Deal with simple comment lines
+	if regexp.MustCompile(`^\s*#.*$`).MatchString(line) {
+		return "", "", nil
+	}
+
+	// check for invalid lines
+	re := regexp.MustCompile(`^([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*(.*)\s*$`)
+	if !re.MatchString(line) {
+		return "", "", fmt.Errorf("Invalid env format, expecting key=value: `%s`", line)
+	}
+
+	ms := re.FindStringSubmatch(line)
+	key := ms[1]
+
+	value := strings.TrimSpace(ms[2])
+	value = strings.Trim(value, "'") // heroku env -s adds leading and trailing single quotes so let's strip.
+	value = strings.TrimSpace(value)
+
+	return key, value, nil
 }
