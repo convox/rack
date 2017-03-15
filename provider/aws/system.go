@@ -16,17 +16,19 @@ import (
 )
 
 func (p *AWSProvider) SystemGet() (*structs.System, error) {
+	log := Logger.At("SystemGet").Start()
+
 	stacks, err := p.describeStacks(&cloudformation.DescribeStacksInput{
 		StackName: aws.String(p.Rack),
 	})
 	if ae, ok := err.(awserr.Error); ok && ae.Code() == "ValidationError" {
-		return nil, errorNotFound(fmt.Sprintf("%s not found", p.Rack))
+		return nil, log.Error(errorNotFound(fmt.Sprintf("%s not found", p.Rack)))
 	}
 	if err != nil {
-		return nil, err
+		return nil, log.Error(err)
 	}
 	if len(stacks) != 1 {
-		return nil, fmt.Errorf("could not load stack for app: %s", p.Rack)
+		return nil, log.Errorf("could not load stack for app: %s", p.Rack)
 	}
 
 	stack := stacks[0]
@@ -35,7 +37,7 @@ func (p *AWSProvider) SystemGet() (*structs.System, error) {
 
 	count, err := strconv.Atoi(params["InstanceCount"])
 	if err != nil {
-		return nil, err
+		return nil, log.Error(err)
 	}
 
 	// status precedence: (all other stack statues) > converging > running
@@ -46,7 +48,7 @@ func (p *AWSProvider) SystemGet() (*structs.System, error) {
 			StackName: aws.String(p.Rack),
 		})
 		if err != nil {
-			return nil, err
+			return nil, log.Error(err)
 		}
 
 		var asgName string
@@ -63,11 +65,11 @@ func (p *AWSProvider) SystemGet() (*structs.System, error) {
 			},
 		})
 		if err != nil {
-			return nil, err
+			return nil, log.Error(err)
 		}
 
 		if len(asgres.AutoScalingGroups) <= 0 {
-			return nil, fmt.Errorf("scaling group %s was not found", asgName)
+			return nil, log.Errorf("scaling group %s was not found", asgName)
 		}
 
 		for _, instance := range asgres.AutoScalingGroups[0].Instances {
@@ -88,7 +90,7 @@ func (p *AWSProvider) SystemGet() (*structs.System, error) {
 		for {
 			lres, err := p.ecs().ListServices(lreq)
 			if err != nil {
-				return nil, err
+				return nil, log.Error(err)
 			}
 
 			dres, err := p.ecs().DescribeServices(&ecs.DescribeServicesInput{
@@ -96,7 +98,7 @@ func (p *AWSProvider) SystemGet() (*structs.System, error) {
 				Services: lres.ServiceArns,
 			})
 			if err != nil {
-				return nil, err
+				return nil, log.Error(err)
 			}
 
 			for _, s := range dres.Services {
@@ -125,6 +127,7 @@ func (p *AWSProvider) SystemGet() (*structs.System, error) {
 		Version: params["Version"],
 	}
 
+	log.Success()
 	return r, nil
 }
 

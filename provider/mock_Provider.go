@@ -714,6 +714,29 @@ func (_m *MockProvider) ProcessExec(app string, pid string, command string, stre
 	return r0
 }
 
+// ProcessGet provides a mock function with given fields: app, pid
+func (_m *MockProvider) ProcessGet(app string, pid string) (*structs.Process, error) {
+	ret := _m.Called(app, pid)
+
+	var r0 *structs.Process
+	if rf, ok := ret.Get(0).(func(string, string) *structs.Process); ok {
+		r0 = rf(app, pid)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*structs.Process)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(string, string) error); ok {
+		r1 = rf(app, pid)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // ProcessList provides a mock function with given fields: app
 func (_m *MockProvider) ProcessList(app string) (structs.Processes, error) {
 	ret := _m.Called(app)
@@ -1177,5 +1200,3 @@ func (_m *MockProvider) SystemSave(system structs.System) error {
 
 	return r0
 }
-
-var _ Provider = (*MockProvider)(nil)
