@@ -333,6 +333,11 @@
       "Type": "String",
       "Default": ""
     },
+    "HttpProxy": {
+      "Description": "Connect using an outbound HTTP proxy (for network-restricted Racks)",
+      "Type": "String",
+      "Default": ""
+    },
     "Internal": {
       "Type": "String",
       "Description": "Create applications that are only accessible inside the VPC",
@@ -1433,6 +1438,8 @@
             "  - [ cloud-init-per, instance, docker_storage_setup, /usr/bin/docker-storage-setup ]\n",
             "  - echo ECS_CLUSTER=", { "Ref": "BuildCluster" }, " >> /etc/ecs/ecs.config\n",
             "  - echo ECS_ENGINE_AUTH_TYPE=docker >> /etc/ecs/ecs.config\n",
+            "  - echo HTTP_PROXY=", { "Ref": "HttpProxy" }, " >> /etc/ecs/ecs.config\n",
+            "  - echo NO_PROXY=169.254.169.254,169.254.170.2,/var/run/docker.sock >> /etc/ecs/ecs.config\n",
             "  - head -n -1 /etc/sysconfig/docker >> /etc/sysconfig/docker-tmp\n",
             "  - mv /etc/sysconfig/docker-tmp /etc/sysconfig/docker\n",
             "  - echo 'OPTIONS=\"--default-ulimit nofile=1024000:1024000\"' >> /etc/sysconfig/docker\n",
@@ -2258,6 +2265,8 @@
               "DYNAMO_BUILDS": { "Ref": "DynamoBuilds" },
               "DYNAMO_RELEASES": { "Ref": "DynamoReleases" },
               "ENCRYPTION_KEY": { "Ref": "EncryptionKey" },
+              "HTTP_PROXY": { "Ref": "HttpProxy" },
+              "HTTPS_PROXY": { "Ref": "HttpProxy" },
               "INTERNAL": { "Ref": "Internal" },
               "LOG_GROUP": { "Ref": "LogGroup" },
               "NOTIFICATION_HOST": { "Fn::GetAtt": [ "Balancer", "DNSName" ] },
@@ -2334,6 +2343,8 @@
               "DYNAMO_BUILDS": { "Ref": "DynamoBuilds" },
               "DYNAMO_RELEASES": { "Ref": "DynamoReleases" },
               "ENCRYPTION_KEY": { "Ref": "EncryptionKey" },
+              "HTTP_PROXY": { "Ref": "HttpProxy" },
+              "HTTPS_PROXY": { "Ref": "HttpProxy" },
               "LOG_GROUP": { "Ref": "LogGroup" },
               "NOTIFICATION_HOST": { "Fn::GetAtt": [ "Balancer", "DNSName" ] },
               "NOTIFICATION_TOPIC": { "Ref": "NotificationTopic"},
