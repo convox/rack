@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/convox/rack/cmd/convox/stdcli"
+	"github.com/convox/rack/test"
 	"github.com/stretchr/testify/assert"
 )
 
