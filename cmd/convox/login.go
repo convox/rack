@@ -256,15 +256,13 @@ func removeHost() error {
 
 func currentLogin() (string, string, error) {
 	host, err := currentHost()
-
 	if err != nil {
-		return "", "", fmt.Errorf("must log in first")
+		return "", "", err
 	}
 
 	password, err := currentPassword()
-
 	if err != nil {
-		return "", "", fmt.Errorf("must log in first")
+		return "", "", err
 	}
 
 	return host, password, nil
@@ -278,7 +276,7 @@ func currentHost() (string, error) {
 	config := filepath.Join(ConfigRoot, "host")
 
 	if !helpers.Exists(config) {
-		return "", fmt.Errorf("no host config")
+		return "", fmt.Errorf("no host config found")
 	}
 
 	data, err := ioutil.ReadFile(config)
@@ -298,7 +296,7 @@ func currentPassword() (string, error) {
 	config := filepath.Join(ConfigRoot, "auth")
 
 	if !helpers.Exists(config) {
-		return "", fmt.Errorf("no auth config")
+		return "", fmt.Errorf("no auth config found")
 	}
 
 	data, err := ioutil.ReadFile(config)
