@@ -15,6 +15,7 @@ var configlessEnv = map[string]string{
 	"HOME":                  "/tmp/probablyNoConfigFileHere",
 	"AWS_SECRET_ACCESS_KEY": "",
 	"AWS_ACCESS_KEY_ID":     "",
+	"CONVOX_HOST":           "",
 }
 
 func testServer(t *testing.T, stubs ...test.Http) *httptest.Server {
