@@ -43,4 +43,5 @@ func TestCheckEnvVars(t *testing.T) {
 			Stderr:  "ERROR: 'foo' is not a valid value for environment variable CONVOX_WAIT (expected: [true false 1 0 ])\n",
 		},
 	)
+	os.Unsetenv("RACK_PRIVATE")
 }
