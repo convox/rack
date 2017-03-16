@@ -1414,7 +1414,7 @@
           {
             "DeviceName": "/dev/xvdb",
             "Ebs": {
-              "Encrypted": { "Ref": "EncryptEbs" },
+              "Encrypted": { "Fn::If": [ "EncryptEbs", "true", "false" ] },
               "VolumeSize": { "Ref": "SwapSize" },
               "VolumeType":"gp2"
             }
@@ -1422,7 +1422,7 @@
           {
             "DeviceName": "/dev/xvdcz",
             "Ebs": {
-              "Encrypted": { "Ref": "EncryptEbs" },
+              "Encrypted": { "Fn::If": [ "EncryptEbs", "true", "false" ] },
               "VolumeSize": { "Ref": "VolumeSize" },
               "VolumeType":"gp2"
             }
@@ -1548,7 +1548,7 @@
           {
             "DeviceName": "/dev/xvdb",
             "Ebs": {
-              "Encrypted": { "Ref": "EncryptEbs" },
+              "Encrypted": { "Fn::If": [ "EncryptEbs", "true", "false" ] },
               "VolumeSize": { "Ref": "SwapSize" },
               "VolumeType":"gp2"
             }
@@ -1556,7 +1556,7 @@
           {
             "DeviceName": "/dev/xvdcz",
             "Ebs": {
-              "Encrypted": "true",
+              "Encrypted": { "Fn::If": [ "EncryptEbs", "true", "false" ] },
               "VolumeSize": { "Ref": "VolumeSize" },
               "VolumeType":"gp2"
             }
