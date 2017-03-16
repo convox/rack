@@ -101,13 +101,13 @@ __convox_value_of_option() {
 
     local counter=$((command_pos + 1))
     while [ $counter -lt $cword ]; do
-            case ${words[$counter]} in
-                    $option_extglob )
-                            echo ${words[$counter + 1]}
-                            break
-                            ;;
-            esac
-            (( counter++ ))
+        case ${words[$counter]} in
+            $option_extglob )
+                echo ${words[$counter + 1]}
+                break
+                ;;
+        esac
+        (( counter++ ))
     done
 }
 
@@ -229,7 +229,23 @@ __convox_complete_releases_all() {
 }
 
 __convox_builds() {
-    builds="$(__convox_q builds | grep -v STATUS | awk '{ print $1 }')"
+    local rack=$(__convox_value_of_option "--rack")
+    local rack_flag
+    if [[ $rack == "" ]]; then
+        rack_flag=""
+    else
+        rack_flag="--rack"
+    fi
+
+    local app=$(__convox_value_of_option "--app -a")
+    local app_flag
+    if [[ $app == "" ]]; then
+        app_flag=""
+    else
+        app_flag="--app"
+    fi
+
+    builds="$(__convox_q $rack_flag $rack $app_flag $app builds | grep -v STATUS | awk '{ print $1 }')"
     echo "$builds"
 }
 
