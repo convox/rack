@@ -81,18 +81,28 @@ func TestLoginFuncs(t *testing.T) {
 	oldHost := os.Getenv("CONVOX_HOST")
 	oldPassword := os.Getenv("CONVOX_PASSWORD")
 
+	/* test currentLogin() with dummy values */
 	os.Setenv("CONVOX_CONFIG", temp)
 	os.Setenv("CONVOX_HOST", "testHost")
 	os.Setenv("CONVOX_PASSWORD", "testPassword")
-
-	host, err := currentHost()
-	assert.NoError(t, err)
-	assert.Equal(t, "testHost", host)
 
 	host, password, err := currentLogin()
 	assert.NoError(t, err)
 	assert.Equal(t, "testHost", host)
 	assert.Equal(t, "testPassword", password)
+
+	/* Now try with an empty config */
+	// Note: Can't just export HOME here, because ConfigRoot has already been initialized
+	ConfigRoot = "/tmp/nothinghere"
+	assert.Equal(t, "/tmp/nothinghere", ConfigRoot)
+	os.Unsetenv("CONVOX_CONFIG")
+	os.Unsetenv("CONVOX_HOST")
+	os.Unsetenv("CONVOX_PASSWORD")
+
+	host, password, err = currentLogin()
+	assert.EqualError(t, err, "no host config found")
+	assert.Equal(t, "", host)
+	assert.Equal(t, "", password)
 
 	os.Setenv("CONVOX_CONFIG", oldConfig)
 	os.Setenv("CONVOX_HOST", oldHost)
