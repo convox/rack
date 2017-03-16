@@ -113,6 +113,7 @@ func rackClient(c *cli.Context) *client.Client {
 	host, password, err := currentLogin()
 	if err != nil {
 		stdcli.Errorf("%s, try `convox login`", err)
+		os.Exit(1)
 	}
 
 	cl := client.New(host, password, c.App.Version)

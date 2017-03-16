@@ -38,8 +38,8 @@ func TestVersion(t *testing.T) {
 	test.Runs(t, test.ExecRun{
 		Command: "convox -v",
 		Env:     configlessEnv,
-		Exit:    0,
+		Exit:    1,
 		Stdout:  "client: dev\n",
-		Stderr:  "ERROR: no host config found, try `convox login`\nERROR: Get https:///system: http: no Host in request URL\n",
+		Stderr:  "ERROR: no host config found, try `convox login`\n",
 	})
 }
