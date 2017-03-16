@@ -13,6 +13,7 @@ import (
 	"golang.org/x/net/websocket"
 )
 
+// ProcessExecAttached runs an attached command in an existing process
 func ProcessExecAttached(ws *websocket.Conn) *httperr.Error {
 	vars := mux.Vars(ws.Request())
 	header := ws.Request().Header
@@ -45,6 +46,7 @@ func ProcessExecAttached(ws *websocket.Conn) *httperr.Error {
 	return nil
 }
 
+// ProcessGet returns a process for an app
 func ProcessGet(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	app := mux.Vars(r)["app"]
 	process := mux.Vars(r)["process"]
@@ -60,6 +62,7 @@ func ProcessGet(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	return RenderJson(rw, ps)
 }
 
+// ProcessList returns a list of processes for an app
 func ProcessList(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	app := mux.Vars(r)["app"]
 
@@ -76,6 +79,7 @@ func ProcessList(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	return RenderJson(rw, ps)
 }
 
+// ProcessRunAttached runs an attached command in an new process
 func ProcessRunAttached(ws *websocket.Conn) *httperr.Error {
 	vars := mux.Vars(ws.Request())
 	header := ws.Request().Header
