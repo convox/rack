@@ -1,11 +1,16 @@
 #!/usr/bin/env bash
 #
 # bash completion file for core convox commands
+# Enhanced bash completion for Convox
+#
+# Very much inspired by docker's completion script:
+# https://github.com/docker/docker/blob/master/contrib/completion/bash/docker
 #
 # This script provides completion of:
 # - commands and their options
 # - racks and apps
 # - filepaths
+# - environment variables
 
 # To enable the completions either:
 #  - place this file in /etc/bash_completion.d
@@ -13,10 +18,6 @@
 #  - copy this file to e.g. ~/.convox-completion.sh and add the line
 #    below to your .bashrc after bash completion features are loaded
 #    . ~/.convox-completion.sh
-
-# Note: The -f option to complete specifies filenames, and -X the filter pattern.
-# http://tldp.org/LDP/abs/html/tabexpansion.html
-# https://brbsix.github.io/2015/11/29/accessing-tab-completion-programmatically-in-bash/
 
 export BASH_COMPLETION_DEBUG=true
 
