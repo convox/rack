@@ -1450,7 +1450,19 @@
             ] ] },
             "  - mkdir -p /etc/convox\n",
             "  - echo -e '/var/log/docker {\\n  rotate 7\\n  daily\\n  nocompress\\n  copytruncate\\n}' >> /etc/logrotate.d/docker\n",
+            { "Fn::If": [ "BlankInstanceBootCommand",
+              { "Ref": "AWS::NoValue" },
+              { "Fn::Join": [ "", [
+              "  - ", { "Ref": "InstanceBootCommand" }, "\n"
+              ] ] }
+            ] },
             "runcmd:\n",
+            { "Fn::If": [ "BlankInstanceRunCommand",
+              { "Ref": "AWS::NoValue" },
+              { "Fn::Join": [ "", [
+              "  - ", { "Ref": "InstanceRunCommand" }, "\n"
+              ] ] }
+            ] },
             "  - /opt/aws/bin/cfn-signal --stack ", { "Ref": "AWS::StackName" }, " --region ", { "Ref":"AWS::Region" }, " --resource BuildInstances\n"
           ] ] }
         }
@@ -1594,7 +1606,7 @@
             ] },
             "runcmd:\n",
             { "Fn::If": [ "BlankInstanceRunCommand",
-              "  - sleep 5\n",
+              { "Ref": "AWS::NoValue" },
               { "Fn::Join": [ "", [
               "  - ", { "Ref": "InstanceRunCommand" }, "\n"
               ] ] }
