@@ -157,7 +157,14 @@ __convox_complete_api_endpoints() {
     COMPREPLY=( $( compgen -W "$(__convox_api_endpoints)" -- "$cur" ) )
 }
 
+__convox_check_auth() {
+    [ -f ~/.convox/auth ] && return 1
+    COMPREPLY=( $( compgen -W "NO_AUTH_FOUND_PLEASE_LOG_IN" ) )
+}
+
 __convox_complete_apps_by_rack() {
+    __convox_check_auth && return
+
     local rack=$(__convox_value_of_option "--rack")
     local rack_flag
     if [[ $rack == "" ]]; then
@@ -262,6 +269,8 @@ __convox_complete_pids_by_app() {
 }
 
 __convox_complete_racks_all() {
+    __convox_check_auth && return
+
     local IFS=$'\n'
     local racks=( $(__convox_racks $1) )
     unset IFS
