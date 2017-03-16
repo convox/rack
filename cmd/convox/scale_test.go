@@ -13,7 +13,7 @@ func TestScaleCmd(t *testing.T) {
 			Command: "convox scale",
 			Env:     configlessEnv,
 			Exit:    1,
-			Stderr:  "ERROR: no host config found, try `convox login`\nERROR: Get https:///apps/convox/formation: http: no Host in request URL\n",
+			Stderr:  "ERROR: no host config found, try `convox login`\n",
 		},
 	}
 	for _, myTest := range tests {
