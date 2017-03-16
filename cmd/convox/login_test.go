@@ -3,10 +3,12 @@ package main
 import (
 	"fmt"
 	"io/ioutil"
+	"os"
 	"testing"
 
 	"github.com/convox/rack/client"
 	"github.com/convox/rack/test"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestInvalidLogin(t *testing.T) {
@@ -71,4 +73,28 @@ func TestLoginRack(t *testing.T) {
 			Stdout:  "Logged in successfully.\n",
 		},
 	)
+}
+
+func TestLoginFuncs(t *testing.T) {
+	temp, _ := ioutil.TempDir("", "convox-test")
+	oldConfig := os.Getenv("CONVOX_CONFIG")
+	oldHost := os.Getenv("CONVOX_HOST")
+	oldPassword := os.Getenv("CONVOX_PASSWORD")
+
+	os.Setenv("CONVOX_CONFIG", temp)
+	os.Setenv("CONVOX_HOST", "testHost")
+	os.Setenv("CONVOX_PASSWORD", "testPassword")
+
+	host, err := currentHost()
+	assert.NoError(t, err)
+	assert.Equal(t, "testHost", host)
+
+	host, password, err := currentLogin()
+	assert.NoError(t, err)
+	assert.Equal(t, "testHost", host)
+	assert.Equal(t, "testPassword", password)
+
+	os.Setenv("CONVOX_CONFIG", oldConfig)
+	os.Setenv("CONVOX_HOST", oldHost)
+	os.Setenv("CONVOX_PASSWORD", oldPassword)
 }
