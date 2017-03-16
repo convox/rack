@@ -12,8 +12,8 @@ func TestScaleCmd(t *testing.T) {
 			// Ensure we don't segfault if user is not logged in
 			Command: "convox scale",
 			Env:     configlessEnv,
-			Exit:    0,
-			Stderr:  "ERROR: no host config found, try `convox login`\n",
+			Exit:    1,
+			Stderr:  "ERROR: no host config found, try `convox login`\nERROR: Get https:///apps/convox/formation: http: no Host in request URL\n",
 		},
 	}
 	for _, myTest := range tests {
