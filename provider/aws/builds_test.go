@@ -274,7 +274,7 @@ func TestBuildImport(t *testing.T) {
 
 	n, err := tw.Write(data)
 	assert.NoError(t, err)
-	assert.Equal(t, 175, n)
+	assert.Equal(t, 177, n)
 
 	lbuf := &bytes.Buffer{}
 
