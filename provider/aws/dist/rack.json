@@ -14,6 +14,7 @@
     "BlankKey": { "Fn::Equals": [ { "Ref": "Key" }, "" ] },
     "DedicatedBuilder": { "Fn::Not": [ { "Fn::Equals": [ { "Ref": "BuildInstance" }, "" ] } ] },
     "Development": { "Fn::Equals": [ { "Ref": "Development" }, "Yes" ] },
+    "EncryptEbs" : { "Fn::Equals": [ { "Ref": "EncryptEbs" }, "Yes" ] },
     "ExistingVpc": { "Fn::Not": [ { "Fn::Equals": [ { "Ref": "ExistingVpc" }, "" ] } ] },
     "ExistingVpcAndBlankInternetGateway": {
       "Fn::And": [ { "Condition": "ExistingVpc" }, { "Condition": "BlankInternetGateway" } ]
@@ -319,6 +320,12 @@
     "Development": {
       "Type": "String",
       "Description": "Development mode",
+      "Default": "No",
+      "AllowedValues": [ "Yes", "No" ]
+    },
+    "EncryptEbs": {
+      "Type": "String",
+      "Description": "Enable encryption at rest for EBS volumes",
       "Default": "No",
       "AllowedValues": [ "Yes", "No" ]
     },
@@ -1402,7 +1409,7 @@
           {
             "DeviceName": "/dev/xvdb",
             "Ebs": {
-              "Encrypted": "true",
+              "Encrypted": { "Fn::If": [ "EncryptEbs", "true", "false" ] },
               "VolumeSize": { "Ref": "SwapSize" },
               "VolumeType":"gp2"
             }
@@ -1410,7 +1417,7 @@
           {
             "DeviceName": "/dev/xvdcz",
             "Ebs": {
-              "Encrypted": "true",
+              "Encrypted": { "Fn::If": [ "EncryptEbs", "true", "false" ] },
               "VolumeSize": { "Ref": "VolumeSize" },
               "VolumeType":"gp2"
             }
@@ -1524,7 +1531,7 @@
           {
             "DeviceName": "/dev/xvdb",
             "Ebs": {
-              "Encrypted": "true",
+              "Encrypted": { "Fn::If": [ "EncryptEbs", "true", "false" ] },
               "VolumeSize": { "Ref": "SwapSize" },
               "VolumeType":"gp2"
             }
@@ -1532,7 +1539,7 @@
           {
             "DeviceName": "/dev/xvdcz",
             "Ebs": {
-              "Encrypted": "true",
+              "Encrypted": { "Fn::If": [ "EncryptEbs", "true", "false" ] },
               "VolumeSize": { "Ref": "VolumeSize" },
               "VolumeType":"gp2"
             }
