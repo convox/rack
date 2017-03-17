@@ -339,6 +339,7 @@ func (p *AWSProvider) BuildImport(app string, r io.Reader) (*structs.Build, erro
 				log.Error(err)
 				return nil, err
 			}
+			targetBuild.Id = sourceBuild.Id
 		}
 
 		if strings.HasSuffix(header.Name, ".tar") {
