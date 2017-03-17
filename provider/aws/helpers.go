@@ -24,10 +24,16 @@ import (
 	"github.com/convox/rack/api/structs"
 )
 
-var regexpS3UrlStyle1 = regexp.MustCompile(`^https?://([^.]+).s3.amazonaws.com(/?$|/(.*))`)
-var regexpS3UrlStyle2 = regexp.MustCompile(`^https?://([^.]+).s3-([^.]+).amazonaws.com(/?$|/(.*))`)
-var regexpS3UrlStyle3 = regexp.MustCompile(`^https?://s3.amazonaws.com/([^\/]+)(/?$|/(.*))`)
-var regexpS3UrlStyle4 = regexp.MustCompile(`^https?://s3-([^.]+).amazonaws.com/([^\/]+)(/?$|/(.*))`)
+var (
+	// bucket, key, no region
+	regexpS3UrlStyle1 = regexp.MustCompile(`^https?://([^.]+).s3.amazonaws.com(/?$|/(.*))`)
+	// bucket, region, key
+	regexpS3UrlStyle2 = regexp.MustCompile(`^https?://([^.]+).s3-([^.]+).amazonaws.com(/?$|/(.*))`)
+	// bucket, key, no region
+	regexpS3UrlStyle3 = regexp.MustCompile(`^https?://s3.amazonaws.com/([^\/]+)(/?$|/(.*))`)
+	// region, bucket, key
+	regexpS3UrlStyle4 = regexp.MustCompile(`^https?://s3-([^.]+).amazonaws.com/([^\/]+)(/?$|/(.*))`)
+)
 
 type Template struct {
 	Parameters map[string]TemplateParameter
@@ -663,7 +669,7 @@ func ParseS3Url(url string) (string, string, string, error) {
 		return matches[2], matches[4], matches[1], nil
 	}
 
-	return "", "", "", errors.New("Not and s3 url")
+	return "", "", "", errors.New("not an s3 url")
 }
 
 // http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/instance-types.html

@@ -16,7 +16,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/convox/rack/api/crypt"
 	"github.com/convox/rack/api/models"
-	providertools "github.com/convox/rack/provider/aws"
+	provider "github.com/convox/rack/provider/aws"
 )
 
 // Parses as [host]:[container]/[protocol?], where [protocol] is optional
@@ -96,7 +96,7 @@ func ECSServiceDelete(req Request) (string, map[string]string, error) {
 }
 
 func GetS3EnvironmentFromUrl(req Request, url string) (models.Environment, error) {
-	bucket, key, _, err := providertools.ParseS3Url(url)
+	bucket, key, _, err := provider.ParseS3Url(url)
 	if err != nil {
 		return nil, err
 	}
