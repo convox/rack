@@ -111,7 +111,7 @@ func handle(r Record) error {
 		LogEvents: []*cloudwatchlogs.InputLogEvent{
 			{
 				Message: aws.String(fmt.Sprintf(
-					"CloudformationEvent resource=\"%s\" status=\"%s\" reason=\"%s\"",
+					"[CFM] resource=\"%s\" status=\"%s\" reason=\"%s\"",
 					m["LogicalResourceId"],
 					m["ResourceStatus"],
 					m["ResourceStatusReason"],

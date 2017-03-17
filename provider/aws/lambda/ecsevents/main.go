@@ -95,7 +95,7 @@ func handle(e Event) error {
 	}
 	task := split[1]
 
-	format := fmt.Sprintf("ECSEvent service=\"%s\" task=\"%s\" status=\"%s\"", service, task, e.Detail.LastStatus)
+	format := fmt.Sprintf("[ECS] service=\"%s\" task=\"%s\" status=\"%s\"", service, task, e.Detail.LastStatus)
 	messages := []string{}
 
 	for _, c := range e.Detail.Containers {
@@ -115,12 +115,12 @@ func handle(e Event) error {
 		} else {
 
 			for i, ee := range el {
-				if i > 5 {
+				if i >= 5 {
 					break // only get the last 5 events
 				}
 				m := strings.Replace(*ee.Message, "(", "", -1)
 				m = strings.Replace(m, ")", "", -1)
-				m = fmt.Sprintf("ECSEvent event=\"%s\"", m)
+				m = fmt.Sprintf("[ECS] event=\"%s\"", m)
 				messages = append(messages, m)
 			}
 		}
