@@ -151,6 +151,21 @@
                   {
                     "Effect": "Allow",
                     "Action": [
+                      "ecr:CreateRepository",
+                      "ecs:UpdateService",
+                      "ecs:DeleteService",
+                      "ecs:RegisterTaskDefinition",
+                      "kms:CreateKey",
+                      "kms:GenerateRandom",
+                      "logs:CreateLogGroup",
+                      "logs:CreateLogStream",
+                      "logs:PutLogEvents"
+                    ],
+                    "Resource": "*"
+                  },
+                  {
+                    "Effect": "Allow",
+                    "Action": [
                       "kms:ScheduleKeyDeletion",
                       "kms:DisableKey",
                       "kms:Decrypt",
@@ -180,21 +195,6 @@
                         "ec2:Region": { "Ref": "AWS::Region" }
                       }
                     }
-                  },
-                  {
-                    "Effect": "Allow",
-                    "Action": [
-                      "ecr:CreateRepository",
-                      "ecs:UpdateService",
-                      "ecs:DeleteService",
-                      "ecs:RegisterTaskDefinition",
-                      "kms:CreateKey",
-                      "kms:GenerateRandom",
-                      "logs:CreateLogGroup",
-                      "logs:CreateLogStream",
-                      "logs:PutLogEvents"
-                    ],
-                    "Resource": "*"
                   },
                   {
                     "Effect": "Allow",

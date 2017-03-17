@@ -618,7 +618,10 @@
                   "Effect": "Allow",
                   "Action": [
                     "ecs:RegisterTaskDefinition",
-                    "kms:CreateKey"
+                    "kms:CreateKey",
+                    "logs:CreateLogGroup",
+                    "logs:CreateLogStream",
+                    "logs:PutLogEvents"
                   ],
                   "Resource": "*"
                 },
