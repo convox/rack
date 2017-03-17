@@ -614,10 +614,17 @@
             "PolicyDocument": {
               "Version": "2012-10-17",
               "Statement": [
-                { 
-                  "Effect": "Allow", 
+                {
+                  "Effect": "Allow",
                   "Action": [
-                    "kms:CreateKey", 
+                    "ecs:RegisterTaskDefinition",
+                    "kms:CreateKey"
+                  ],
+                  "Resource": "*"
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
                     "kms:ScheduleKeyDeletion",
                     "kms:DisableKey"
                   ],
@@ -651,7 +658,6 @@
                   "Action": [
                     "ecs:UpdateService",
                     "ecs:DeleteService",
-                    "ecs:RegisterTaskDefinition",
                     "ecs:ListTasks"
                   ],
                   "Resource": { "Fn::Join": [ "", [ "arn:aws:ecs:", { "Ref": "AWS::Region" }, ":", { "Ref": "AWS::AccountId" }, ":*" ] ] }
