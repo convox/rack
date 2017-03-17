@@ -583,12 +583,10 @@
               "Statement": [
                 {
                   "Action": [
-                    "kms:CreateKey",
                     "kms:ScheduleKeyDeletion",
                     "kms:DisableKey",
                     "kms:Decrypt",
-                    "kms:GenerateDataKey",
-                    "kms:GenerateRandom"
+                    "kms:GenerateDataKey"
                   ],
                   "Effect": "Allow",
                   "Resource": {
@@ -650,9 +648,15 @@
                 },
                 {
                   "Action": [
+                    "ecr:CreateRepository",
                     "ecs:UpdateService",
                     "ecs:DeleteService",
-                    "ecs:RegisterTaskDefinition"
+                    "ecs:RegisterTaskDefinition",
+                    "kms:CreateKey",
+                    "kms:GenerateRandom",
+                    "logs:CreateLogGroup",
+                    "logs:CreateLogStream",
+                    "logs:PutLogEvents"
                   ],
                   "Effect": "Allow",
                   "Resource": "*"
@@ -689,7 +693,6 @@
                 },
                 {
                   "Action": [
-                    "ecr:CreateRepository",
                     "ecr:DeleteRepository"
                   ],
                   "Effect": "Allow",

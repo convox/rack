@@ -147,16 +147,14 @@
               "PolicyName": "LambdaCustomTopicPolicy",
               "PolicyDocument": {
                 "Version": "2012-10-17",
-                "Statement": [ 
-                  { 
-                    "Effect": "Allow", 
+                "Statement": [
+                  {
+                    "Effect": "Allow",
                     "Action": [
-                      "kms:CreateKey", 
                       "kms:ScheduleKeyDeletion",
                       "kms:DisableKey",
                       "kms:Decrypt",
-                      "kms:GenerateDataKey",
-                      "kms:GenerateRandom"
+                      "kms:GenerateDataKey"
                     ],
                     "Resource": { "Fn::Join": [ "", [ "arn:aws:kms:", { "Ref": "AWS::Region" }, ":", { "Ref": "AWS::AccountId" }, ":key/*" ] ] }
                   },
@@ -186,9 +184,15 @@
                   {
                     "Effect": "Allow",
                     "Action": [
+                      "ecr:CreateRepository",
                       "ecs:UpdateService",
                       "ecs:DeleteService",
-                      "ecs:RegisterTaskDefinition"
+                      "ecs:RegisterTaskDefinition",
+                      "kms:CreateKey",
+                      "kms:GenerateRandom",
+                      "logs:CreateLogGroup",
+                      "logs:CreateLogStream",
+                      "logs:PutLogEvents"
                     ],
                     "Resource": "*"
                   },
@@ -207,7 +211,6 @@
                   {
                     "Effect": "Allow",
                     "Action": [
-                      "ecr:CreateRepository",
                       "ecr:DeleteRepository"
                     ],
                     "Resource": { "Fn::Join": [ "", [ "arn:aws:ecr:", { "Ref": "AWS::Region" }, ":", { "Ref": "AWS::AccountId" }, ":*" ] ] }
