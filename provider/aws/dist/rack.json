@@ -326,7 +326,7 @@
     "EncryptEbs": {
       "Type": "String",
       "Description": "Enable encryption at rest for EBS volumes",
-      "Default": "Yes",
+      "Default": "No",
       "AllowedValues": [ "Yes", "No" ]
     },
     "Encryption": {
