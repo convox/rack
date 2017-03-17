@@ -252,7 +252,7 @@ func TestBuildImport(t *testing.T) {
 	defer d.Close()
 
 	build := &structs.Build{
-		Id:      "B123",
+		Id:      "B12345",
 		App:     "httpd",
 		Release: "R23456",
 	}
@@ -298,7 +298,7 @@ func TestBuildImport(t *testing.T) {
 
 	err = tw.WriteHeader(&tar.Header{
 		Typeflag: tar.TypeReg,
-		Name:     "web.B123.tar",
+		Name:     "web.B12345.tar",
 		Size:     int64(lbuf.Len()),
 	})
 	assert.NoError(t, err)
