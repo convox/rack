@@ -1,5 +1,7 @@
 package aws
 
+import "fmt"
+
 // errorNotFound means the requested item was not found
 type errorNotFound string
 
@@ -19,4 +21,12 @@ func ErrorNotFound(err error) bool {
 		return true
 	}
 	return false
+}
+
+// NoSuchBuild means the requested build id was not found
+type NoSuchBuild string
+
+// Error satisfies the Error interface and formats the return error goven id
+func (id NoSuchBuild) Error() string {
+	return fmt.Sprintf("no such build: %s", string(id))
 }
