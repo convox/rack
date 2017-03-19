@@ -253,7 +253,7 @@ func TestBuildImport(t *testing.T) {
 	defer d.Close()
 
 	build := &structs.Build{
-		Id:      "B12345",
+		Id:      "B54321",
 		App:     "httpd",
 		Release: "R23456",
 	}
@@ -299,7 +299,7 @@ func TestBuildImport(t *testing.T) {
 
 	err = tw.WriteHeader(&tar.Header{
 		Typeflag: tar.TypeReg,
-		Name:     "web.B12345.tar",
+		Name:     "web.B54321.tar",
 		Size:     int64(lbuf.Len()),
 	})
 	require.NoError(t, err)
@@ -316,7 +316,7 @@ func TestBuildImport(t *testing.T) {
 
 	build, err = provider.BuildImport("httpd", buf)
 	require.NoError(t, err)
-	assert.Equal(t, "B12345", build.Id)
+	assert.Equal(t, "B54321", build.Id)
 	assert.Equal(t, "httpd", build.App)
 	assert.Equal(t, "R23456", build.Release)
 }
