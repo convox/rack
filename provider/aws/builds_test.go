@@ -16,6 +16,7 @@ import (
 	"github.com/convox/rack/api/structs"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func init() {
@@ -258,7 +259,7 @@ func TestBuildImport(t *testing.T) {
 	}
 
 	data, err := json.Marshal(build)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	buf := &bytes.Buffer{}
 
@@ -270,10 +271,10 @@ func TestBuildImport(t *testing.T) {
 		Name:     "build.json",
 		Size:     int64(len(data)),
 	})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	n, err := tw.Write(data)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, 177, n)
 
 	lbuf := &bytes.Buffer{}
@@ -287,34 +288,34 @@ func TestBuildImport(t *testing.T) {
 		Name:     "manifest.json",
 		Size:     int64(len(data)),
 	})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	n, err = ltw.Write(data)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, 27, n)
 
 	err = ltw.Close()
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	err = tw.WriteHeader(&tar.Header{
 		Typeflag: tar.TypeReg,
 		Name:     "web.B12345.tar",
 		Size:     int64(lbuf.Len()),
 	})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	n, err = tw.Write(lbuf.Bytes())
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, 2048, n)
 
 	err = tw.Close()
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	err = gz.Close()
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	build, err = provider.BuildImport("httpd", buf)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, "B12345", build.Id)
 	assert.Equal(t, "httpd", build.App)
 	assert.Equal(t, "R23456", build.Release)
