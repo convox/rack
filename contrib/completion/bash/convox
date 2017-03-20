@@ -10,11 +10,6 @@
 # - racks and apps
 # - filepaths
 # - environment variables
-#
-# This script provides completion of:
-# - commands and their options
-# - racks and apps
-# - filepaths
 
 # To enable the completions either:
 #  - place this file in /etc/bash_completion.d
@@ -29,7 +24,7 @@
 
 export BASH_COMPLETION_DEBUG=true
 
-: ${PROG:=$(basename ${BASH_SOURCE})}
+PROG=${PROG:=$(basename "${BASH_SOURCE}")}
 
 _cli_bash_autocomplete() {
      local cur opts base
@@ -260,6 +255,10 @@ __convox_complete_instance_types() {
 __convox_complete_instance_types_as_param() {
     COMPREPLY=( $( __convox_instance_types -- "$cur" ) )
 }
+__convox_complete_build_instance_types_as_param() {
+    COMPREPLY=( $( __convox_build_instance_types -- "$cur" ) )
+}
+
 __convox_complete_instances_by_rack() {
     local rack=$(__convox_value_of_option "--rack")
     local rack_flag
@@ -514,11 +513,23 @@ __convox_instance_types() {
         r3.2xlarge
         r3.4xlarge
         r3.8xlarge
-        p2
-        g2
-        f1
-        i3
-        d2
+        p2.xlarge
+        p2.8xlarge
+        p2.16xlarge
+        g2.2xlarge
+        g2.8xlarge
+        f1.2xlarge
+        f1.16xlarge
+        i3.large
+        i3.xlarge
+        i3.2xlarge
+        i3.4xlarge
+        i3.8xlarge
+        i3.16xlarge
+        d2.xlarge
+        d2.2xlarge
+        d2.4xlarge
+        d2.8xlarge
     "
     compgen -W "$instance_types"
 }
@@ -2084,6 +2095,10 @@ _convox_rack_params_set() {
     case "$prev" in
         InstanceType)
             __convox_complete_instance_types_as_param
+            return
+            ;;
+        BuildInstance)
+            __convox_complete_build_instance_types_as_param
             return
             ;;
         Internal|Private|PrivateApi)
