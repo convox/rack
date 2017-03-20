@@ -7,7 +7,7 @@ import (
 	"github.com/convox/rack/cmd/convox/stdcli"
 	"github.com/convox/rack/test"
 	"github.com/stretchr/testify/assert"
-	"github.com/urfave/cli"
+	"gopkg.in/urfave/cli.v1"
 )
 
 func TestParseOptions(t *testing.T) {
