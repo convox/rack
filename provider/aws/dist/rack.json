@@ -684,6 +684,7 @@
                     "Sid": "LimitedGeneralPermissions",
                     "Effect": "Allow",
                     "Action": [
+                      "acm:DeleteCertificate",
                       "acm:DescribeCertificate",
                       "acm:ListCertificates",
                       "acm:RequestCertificate",
