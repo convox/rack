@@ -60,7 +60,13 @@ func init() {
 						Usage:       "NAME=VALUE [NAME=VALUE] ...",
 						ArgsUsage:   "NAME=VALUE",
 						Action:      cmdRackParamsSet,
-						Flags:       []cli.Flag{rackFlag},
+						Flags: []cli.Flag{rackFlag,
+							cli.BoolFlag{
+								Name:   "wait",
+								EnvVar: "CONVOX_WAIT",
+								Usage:  "wait for rack update to finish before returning",
+							},
+						},
 					},
 				},
 			},
@@ -216,7 +222,7 @@ func cmdRackParamsSet(c *cli.Context) error {
 		params[parts[0]] = parts[1]
 	}
 
-	fmt.Print("Updating parameters... ")
+	stdcli.Startf("Updating parameters")
 
 	err = rackClient(c).SetParameters(system.Name, params)
 	if err != nil {
@@ -226,7 +232,16 @@ func cmdRackParamsSet(c *cli.Context) error {
 		return stdcli.Error(err)
 	}
 
-	fmt.Println("OK")
+	if c.Bool("wait") {
+		// give the rack a few seconds to start updating
+		time.Sleep(5 * time.Second)
+
+		if err := waitForRackRunning(c); err != nil {
+			return stdcli.Error(err)
+		}
+	}
+
+	stdcli.Wait("OK")
 	return nil
 }
 
