@@ -47,9 +47,9 @@ func TestDebug(t *testing.T) {
 // TestCheckEnvVars ensures stdcli.CheckEnv() prints a warning if bool envvars aren't true/false/1/0
 func TestCheckEnvVars(t *testing.T) {
 	os.Setenv("RACK_PRIVATE", "foo")
-
 	err := stdcli.CheckEnv()
 	assert.Error(t, err)
+	os.Unsetenv("RACK_PRIVATE")
 
 	test.Runs(t,
 		test.ExecRun{
@@ -59,5 +59,4 @@ func TestCheckEnvVars(t *testing.T) {
 			Stderr:  "ERROR: 'foo' is not a valid value for environment variable CONVOX_WAIT (expected: [true false 1 0 ])\n",
 		},
 	)
-	os.Unsetenv("RACK_PRIVATE")
 }
