@@ -191,7 +191,11 @@ func (r *Release) Promote() error {
 	for _, entry := range m.Services {
 		scale := strings.Split(entry.DefaultParams(), ",")
 
-		if entry.Cpu > 0 {
+		// ECS Agent versions >= 1.2.0: Null, zero, and CPU values of 1 are passed to Docker as 2
+		// Default to 2 so that the task def is in sync with what docker uses
+		scale[1] = fmt.Sprintf("%d", 2)
+
+		if entry.Cpu > 2 {
 			scale[1] = fmt.Sprintf("%d", entry.Cpu)
 		}
 
