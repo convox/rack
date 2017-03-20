@@ -363,9 +363,7 @@ func CheckEnv() error {
 			}
 		}
 		if !ok {
-			msg := fmt.Sprintf("'%s' is not a valid value for environment variable %s ", os.Getenv(varName), varName)
-			msg += fmt.Sprintf("(expected: %s)", okVals)
-			return Errorf(msg)
+			return fmt.Errorf("'%s' is not a valid value for environment variable %s (expected: %s)", os.Getenv(varName), varName, okVals)
 		}
 	}
 	return nil

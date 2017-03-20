@@ -17,6 +17,46 @@ func init() {
 	models.PauseNotifications = true
 }
 
+func TestProcessGet(t *testing.T) {
+	models.Test(t, func() {
+
+		process := &structs.Process{
+			ID:       "foo",
+			App:      "myapp-staging",
+			Name:     "procname",
+			Release:  "R123",
+			Command:  "ls -la",
+			Host:     "127.0.0.1",
+			Image:    "image:tag",
+			Instance: "i-1234",
+			Ports:    []string{"80", "443"},
+			CPU:      0.345,
+			Memory:   0.456,
+			Started:  time.Unix(1473483567, 0).UTC(),
+		}
+
+		models.TestProvider.On("ProcessGet", "myapp-staging", "foo").Return(process, nil)
+
+		hf := test.NewHandlerFunc(controllers.HandlerFunc)
+
+		if assert.Nil(t, hf.Request("GET", "/apps/myapp-staging/processes/foo", nil)) {
+			hf.AssertCode(t, 200)
+			hf.AssertJSON(t, "{\"app\":\"myapp-staging\",\"command\":\"ls -la\",\"cpu\":0.345,\"host\":\"127.0.0.1\",\"id\":\"foo\",\"image\":\"image:tag\",\"instance\":\"i-1234\",\"memory\":0.456,\"name\":\"procname\",\"ports\":[\"80\",\"443\"],\"release\":\"R123\",\"started\":\"2016-09-10T04:59:27Z\"}")
+		}
+	})
+
+	models.Test(t, func() {
+		models.TestProvider.On("ProcessGet", "myapp-staging", "blah").Return(nil, test.ErrorNotFound("no such process: blah"))
+
+		hf := test.NewHandlerFunc(controllers.HandlerFunc)
+
+		if assert.Nil(t, hf.Request("GET", "/apps/myapp-staging/processes/blah", nil)) {
+			hf.AssertCode(t, 404)
+			hf.AssertError(t, "no such process: blah")
+		}
+	})
+}
+
 func TestProcessList(t *testing.T) {
 	models.Test(t, func() {
 		processes := structs.Processes{

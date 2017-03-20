@@ -16,6 +16,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/ecs"
+	"github.com/convox/rack/api/cache"
 	"github.com/convox/rack/api/structs"
 	"github.com/convox/rack/manifest"
 	"github.com/fsouza/go-dockerclient"
@@ -144,52 +145,43 @@ func (p *AWSProvider) ProcessExec(app, pid, command string, stream io.ReadWriter
 	return nil
 }
 
+// ProcessGet returns the specified process for an app
+func (p *AWSProvider) ProcessGet(app, pid string) (*structs.Process, error) {
+	log := Logger.At("ProcessGet").Namespace("app=%q pid=%s", app, pid).Start()
+
+	tasks, err := p.appTaskARNs(app)
+	if err != nil {
+		return nil, log.Error(err)
+	}
+
+	for _, t := range tasks {
+		if strings.HasSuffix(t, pid) {
+			pss, err := p.taskProcesses([]string{t})
+			if err != nil {
+				return nil, log.Error(err)
+			}
+
+			if len(pss) > 0 {
+				return &pss[0], nil
+			}
+		}
+	}
+
+	return nil, log.Error(errorNotFound(fmt.Sprintf("no such process: %s", pid)))
+}
+
 // ProcessList returns a list of processes for an app
 func (p *AWSProvider) ProcessList(app string) (structs.Processes, error) {
 	log := Logger.At("ProcessList").Namespace("app=%q", app).Start()
 
-	tasks, err := p.stackTasks(fmt.Sprintf("%s-%s", p.Rack, app))
-	if ae, ok := err.(awserr.Error); ok && ae.Code() == "ValidationError" {
-		log.Errorf("no such app: %s", app)
-		return nil, errorNotFound(fmt.Sprintf("no such app: %s", app))
-	}
+	tasks, err := p.appTaskARNs(app)
 	if err != nil {
-		return nil, err
-	}
-
-	// list one-off processes
-	ores, err := p.ecs().ListTasks(&ecs.ListTasksInput{
-		Cluster:   aws.String(p.Cluster),
-		StartedBy: aws.String(fmt.Sprintf("convox.%s", app)),
-	})
-	if err != nil {
-		log.Error(err)
-		return nil, err
-	}
-
-	for _, task := range ores.TaskArns {
-		tasks = append(tasks, *task)
-	}
-
-	// list build processes
-	if p.Cluster != p.BuildCluster {
-		ores, err := p.ecs().ListTasks(&ecs.ListTasksInput{
-			Cluster:   aws.String(p.BuildCluster),
-			StartedBy: aws.String(fmt.Sprintf("convox.%s", app)),
-		})
-		if err != nil {
-			log.Error(err)
-			return nil, err
-		}
-
-		for _, task := range ores.TaskArns {
-			tasks = append(tasks, *task)
-		}
+		return nil, log.Error(err)
 	}
 
 	ps, err := p.taskProcesses(tasks)
 	if err != nil {
-		return nil, err
+		return nil, log.Error(err)
 	}
 
 	for i := range ps {
@@ -243,10 +235,52 @@ func (p *AWSProvider) stackTasks(stack string) ([]string, error) {
 	return tasks, nil
 }
 
+// appTaskARNs retuns a list of ECS Task (aka process) ARNs that correspond to an app
+// This includes one-off processes, build tasks, etc.
+func (p *AWSProvider) appTaskARNs(app string) ([]string, error) {
+	tasks, err := p.stackTasks(fmt.Sprintf("%s-%s", p.Rack, app))
+	if ae, ok := err.(awserr.Error); ok && ae.Code() == "ValidationError" {
+		return nil, errorNotFound(fmt.Sprintf("no such app: %s", app))
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	// list one-off processes
+	ores, err := p.ecs().ListTasks(&ecs.ListTasksInput{
+		Cluster:   aws.String(p.Cluster),
+		StartedBy: aws.String(fmt.Sprintf("convox.%s", app)),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	for _, task := range ores.TaskArns {
+		tasks = append(tasks, *task)
+	}
+
+	// list build processes
+	if p.Cluster != p.BuildCluster {
+		ores, err := p.ecs().ListTasks(&ecs.ListTasksInput{
+			Cluster:   aws.String(p.BuildCluster),
+			StartedBy: aws.String(fmt.Sprintf("convox.%s", app)),
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		for _, task := range ores.TaskArns {
+			tasks = append(tasks, *task)
+		}
+	}
+
+	return tasks, nil
+}
+
 const describeTasksPageSize = 100
 
 func (p *AWSProvider) taskProcesses(tasks []string) (structs.Processes, error) {
-	log := Logger.At("serviceProcesses").Namespace("tasks=%q", tasks).Start()
+	log := Logger.At("taskProcesses").Namespace("tasks=%q", tasks).Start()
 
 	pss := structs.Processes{}
 
@@ -273,8 +307,6 @@ func (p *AWSProvider) taskProcesses(tasks []string) (structs.Processes, error) {
 			iptasks[i] = &ptasks[i]
 		}
 
-		tasks := []*ecs.Task{}
-
 		tres, err := p.ecs().DescribeTasks(&ecs.DescribeTasksInput{
 			Cluster: aws.String(p.Cluster),
 			Tasks:   iptasks,
@@ -284,9 +316,8 @@ func (p *AWSProvider) taskProcesses(tasks []string) (structs.Processes, error) {
 			return nil, err
 		}
 
-		for _, task := range tres.Tasks {
-			tasks = append(tasks, task)
-		}
+		ecsTasks := make([]*ecs.Task, len(tres.Tasks))
+		copy(ecsTasks, tres.Tasks)
 
 		// list tasks on build cluster too
 		if p.Cluster != p.BuildCluster {
@@ -300,13 +331,11 @@ func (p *AWSProvider) taskProcesses(tasks []string) (structs.Processes, error) {
 			}
 
 			for _, task := range tres.Tasks {
-				tasks = append(tasks, task)
+				ecsTasks = append(ecsTasks, task)
 			}
 		}
 
-		timeout := time.After(30 * time.Second)
-
-		for _, task := range tasks {
+		for _, task := range ecsTasks {
 			if p.IsTest() {
 				p.fetchProcess(task, psch, errch)
 			} else {
@@ -314,18 +343,14 @@ func (p *AWSProvider) taskProcesses(tasks []string) (structs.Processes, error) {
 			}
 		}
 
-		for {
+		for i := 0; i < len(ecsTasks); i++ {
 			select {
-			case <-timeout:
+			case <-time.After(30 * time.Second):
 				return nil, fmt.Errorf("timeout")
 			case err := <-errch:
 				return nil, err
 			case ps := <-psch:
 				psst = append(psst, ps)
-			}
-
-			if len(psst) == len(tasks) {
-				break
 			}
 		}
 
@@ -335,7 +360,6 @@ func (p *AWSProvider) taskProcesses(tasks []string) (structs.Processes, error) {
 	sort.Sort(pss)
 
 	log.Success()
-
 	return pss, nil
 }
 
@@ -444,6 +468,11 @@ func commandString(cs []string) string {
 }
 
 func (p *AWSProvider) containerDefinitionForTask(arn string) (*ecs.ContainerDefinition, error) {
+	cd, ok := cache.Get("containerDefinitionForTask", arn).(*ecs.ContainerDefinition)
+	if ok {
+		return cd, nil
+	}
+
 	res, err := p.ecs().DescribeTaskDefinition(&ecs.DescribeTaskDefinitionInput{
 		TaskDefinition: aws.String(arn),
 	})
@@ -454,10 +483,21 @@ func (p *AWSProvider) containerDefinitionForTask(arn string) (*ecs.ContainerDefi
 		return nil, fmt.Errorf("invalid container definitions for task: %s", arn)
 	}
 
+	if !p.SkipCache {
+		if err := cache.Set("containerDefinitionForTask", arn, res.TaskDefinition.ContainerDefinitions[0], 10*time.Second); err != nil {
+			return nil, err
+		}
+	}
+
 	return res.TaskDefinition.ContainerDefinitions[0], nil
 }
 
 func (p *AWSProvider) containerInstance(id string) (*ecs.ContainerInstance, error) {
+	ci, ok := cache.Get("containerInstance", id).(*ecs.ContainerInstance)
+	if ok {
+		return ci, nil
+	}
+
 	res, err := p.ecs().DescribeContainerInstances(&ecs.DescribeContainerInstancesInput{
 		Cluster:            aws.String(p.Cluster),
 		ContainerInstances: []*string{aws.String(id)},
@@ -479,10 +519,21 @@ func (p *AWSProvider) containerInstance(id string) (*ecs.ContainerInstance, erro
 		return nil, fmt.Errorf("could not find container instance: %s", id)
 	}
 
+	if !p.SkipCache {
+		if err := cache.Set("containerInstance", id, res.ContainerInstances[0], 10*time.Second); err != nil {
+			return nil, err
+		}
+	}
+
 	return res.ContainerInstances[0], nil
 }
 
 func (p *AWSProvider) describeInstance(id string) (*ec2.Instance, error) {
+	instance, ok := cache.Get("describeInstance", id).(*ec2.Instance)
+	if ok {
+		return instance, nil
+	}
+
 	res, err := p.ec2().DescribeInstances(&ec2.DescribeInstancesInput{
 		InstanceIds: []*string{aws.String(id)},
 	})
@@ -491,6 +542,12 @@ func (p *AWSProvider) describeInstance(id string) (*ec2.Instance, error) {
 	}
 	if len(res.Reservations) != 1 || len(res.Reservations[0].Instances) != 1 {
 		return nil, fmt.Errorf("could not find instance: %s", id)
+	}
+
+	if !p.SkipCache {
+		if err := cache.Set("describeInstance", id, res.Reservations[0].Instances[0], 10*time.Second); err != nil {
+			return nil, err
+		}
 	}
 
 	return res.Reservations[0].Instances[0], nil
@@ -627,22 +684,26 @@ func (p *AWSProvider) fetchProcess(task *ecs.Task, psch chan structs.Process, er
 	ps.Command = cmd
 
 	sch := make(chan *docker.Stats, 1)
-
 	err = dc.Stats(docker.StatsOptions{
 		ID:     cs[0].ID,
 		Stats:  sch,
 		Stream: false,
 	})
+	if err != nil {
+		fmt.Printf("docker stats error: %s", err)
+		psch <- ps
+	}
 
 	stat := <-sch
+	if stat != nil {
+		pcpu := stat.PreCPUStats.CPUUsage.TotalUsage
+		psys := stat.PreCPUStats.SystemCPUUsage
 
-	pcpu := stat.PreCPUStats.CPUUsage.TotalUsage
-	psys := stat.PreCPUStats.SystemCPUUsage
+		ps.CPU = truncate(calculateCPUPercent(pcpu, psys, stat), 4)
 
-	ps.CPU = truncate(calculateCPUPercent(pcpu, psys, stat), 4)
-
-	if stat.MemoryStats.Limit > 0 {
-		ps.Memory = truncate(float64(stat.MemoryStats.Usage)/float64(stat.MemoryStats.Limit), 4)
+		if stat.MemoryStats.Limit > 0 {
+			ps.Memory = truncate(float64(stat.MemoryStats.Usage)/float64(stat.MemoryStats.Limit), 4)
+		}
 	}
 
 	psch <- ps
