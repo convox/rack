@@ -649,6 +649,8 @@ func FriendlyName(t string) string {
 		return ""
 	case "AWS::ElasticLoadBalancing::LoadBalancer":
 		return "Elastic Load Balancer"
+	case "AWS::Events::Rule":
+		return ""
 	case "AWS::IAM::AccessKey":
 		return "Access Key"
 	case "AWS::IAM::InstanceProfile":
