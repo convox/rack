@@ -28,6 +28,22 @@ func TestParseOptions(t *testing.T) {
 	assert.Equal(t, true, ok)
 }
 
+func TestDebug(t *testing.T) {
+	orig := os.Getenv("CONVOX_DEBUG")
+
+	os.Setenv("CONVOX_DEBUG", "")
+	assert.Equal(t, stdcli.Debug(), false)
+
+	os.Setenv("CONVOX_DEBUG", "mraaaa")
+	assert.Equal(t, stdcli.Debug(), true)
+
+	os.Setenv("CONVOX_DEBUG", "true")
+	assert.Equal(t, stdcli.Debug(), true)
+
+	// restore original CONVOX_DEBUG value
+	os.Setenv("CONVOX_DEBUG", orig)
+}
+
 // TestCheckEnvVars ensures stdcli.CheckEnv() prints a warning if bool envvars aren't true/false/1/0
 func TestCheckEnvVars(t *testing.T) {
 	os.Setenv("RACK_PRIVATE", "foo")
