@@ -15,6 +15,12 @@
         "Default" : "app",
         "Description" : "Default database name"
       },
+      "Encryption": {
+        "Type": "String",
+        "Description": "Encrypt RDS storage volumes",
+        "Default": "false",
+        "AllowedValues": [ "true", "false" ]
+      },
       "InstanceType": {
         "Type" : "String",
         "Default" : "db.t2.micro",
@@ -101,6 +107,7 @@
           "MultiAZ": { "Ref": "MultiAZ" },
           "Port": "3306",
           "PubliclyAccessible": "false",
+          "StorageEncrypted": { "Ref": "Encryption" },
           "StorageType": "gp2",
           "VPCSecurityGroups": [ { "Ref": "SecurityGroup" } ]
         }
