@@ -113,7 +113,7 @@ func PutEnvironment(app string, env Environment) (string, error) {
 		}
 	}
 
-	err = S3Put(a.Outputs["Settings"], "env", []byte(e), true)
+	err = S3Put(a.Outputs["Settings"], "env", []byte(e), false)
 	if err != nil {
 		return "", err
 	}

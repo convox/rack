@@ -3,6 +3,7 @@ package aws
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"html/template"
 	"io/ioutil"
@@ -22,6 +23,11 @@ import (
 	"github.com/convox/rack/api/cache"
 	"github.com/convox/rack/api/structs"
 )
+
+var regexpS3UrlStyle1 = regexp.MustCompile(`^https?://([^.]+).s3.amazonaws.com(/?$|/(.*))`)
+var regexpS3UrlStyle2 = regexp.MustCompile(`^https?://([^.]+).s3-([^.]+).amazonaws.com(/?$|/(.*))`)
+var regexpS3UrlStyle3 = regexp.MustCompile(`^https?://s3.amazonaws.com/([^\/]+)(/?$|/(.*))`)
+var regexpS3UrlStyle4 = regexp.MustCompile(`^https?://s3-([^.]+).amazonaws.com/([^\/]+)(/?$|/(.*))`)
 
 type Template struct {
 	Parameters map[string]TemplateParameter
@@ -627,6 +633,37 @@ func (p *AWSProvider) updateStack(name string, template string, changes map[stri
 	cache.Clear("describeStacks", name)
 
 	return err
+}
+
+// ParseS3Url - Parse all styles of the s3 buckets so requests
+// can be made through the api.
+//
+// For Reference: http://docs.aws.amazon.com/AmazonS3/latest/dev/UsingBucket.html
+//
+// returns bucket, key, region
+func ParseS3Url(url string) (string, string, string, error) {
+	matches := regexpS3UrlStyle1.FindStringSubmatch(url)
+
+	if len(matches) > 0 {
+		return matches[1], matches[3], "", nil
+	}
+
+	matches = regexpS3UrlStyle2.FindStringSubmatch(url)
+	if len(matches) > 0 {
+		return matches[1], matches[4], matches[2], nil
+	}
+
+	matches = regexpS3UrlStyle3.FindStringSubmatch(url)
+	if len(matches) > 0 {
+		return matches[1], matches[3], "us-east-1", nil
+	}
+
+	matches = regexpS3UrlStyle4.FindStringSubmatch(url)
+	if len(matches) > 0 {
+		return matches[2], matches[4], matches[1], nil
+	}
+
+	return "", "", "", errors.New("Not and s3 url")
 }
 
 // http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/instance-types.html

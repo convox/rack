@@ -158,7 +158,6 @@ func (p *AWSProvider) ReleaseSave(r *structs.Release) error {
 	}
 
 	_, err = p.s3().PutObject(&s3.PutObjectInput{
-		ACL:           aws.String("public-read"),
 		Body:          bytes.NewReader(env),
 		Bucket:        aws.String(bucket),
 		ContentLength: aws.Int64(int64(len(env))),
