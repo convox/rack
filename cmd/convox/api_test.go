@@ -276,7 +276,7 @@ func TestApiGetNoArg(t *testing.T) {
 	)
 }
 
-// TestApiGet404 should ensure an error is returned when a user runs 'convox api get' with an invalid API endpoint.
+// TestApiTrailingSlash should ensure we fall back to /endpoint when user runs `convox api get /endpoint/`
 func TestApiTrailingSlash(t *testing.T) {
 	ts := testServer(t,
 		test.Http{Method: "GET", Path: "/apps", Code: 200, Response: client.Apps{
