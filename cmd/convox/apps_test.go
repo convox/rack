@@ -25,6 +25,22 @@ func TestApps(t *testing.T) {
 	)
 }
 
+func TestAppsNoAppsFound(t *testing.T) {
+	ts := testServer(t,
+		test.Http{Method: "GET", Path: "/apps", Code: 200, Response: client.Apps{}},
+	)
+
+	defer ts.Close()
+
+	test.Runs(t,
+		test.ExecRun{
+			Command: "convox apps",
+			Exit:    0,
+			Stdout:  "No apps found, try creating one via `convox apps create`",
+		},
+	)
+}
+
 func TestAppsCreate(t *testing.T) {
 	ts := testServer(t,
 		test.Http{Method: "POST", Path: "/apps", Body: "name=foobar", Code: 200, Response: client.App{}},

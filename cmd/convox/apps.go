@@ -87,6 +87,11 @@ func cmdApps(c *cli.Context) error {
 		return stdcli.Error(err)
 	}
 
+	if len(apps) == 0 {
+		stdcli.Writef("No apps found, try creating one via `convox apps create`")
+		return nil
+	}
+
 	t := stdcli.NewTable("APP", "STATUS")
 
 	for _, app := range apps {
