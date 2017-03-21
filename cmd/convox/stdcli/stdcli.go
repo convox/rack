@@ -122,7 +122,7 @@ func ValidatePreconditions(preconditions ...cli.BeforeFunc) cli.BeforeFunc {
 }
 
 func Debug() bool {
-	if debug := os.Getenv("DEBUG"); debug != "" {
+	if debug := os.Getenv("CONVOX_DEBUG"); debug != "" {
 		return true
 	}
 	return false
@@ -303,7 +303,7 @@ func runExecCommand(bin string, args ...string) error {
 	err := cmd.Run()
 
 	if Debug() {
-		fmt.Fprintf(os.Stderr, "DEBUG: exec: '%v', '%v', '%v'\n", bin, args, err)
+		fmt.Fprintf(os.Stderr, "CONVOX_DEBUG: exec: '%v', '%v', '%v'\n", bin, args, err)
 	}
 
 	return err
@@ -363,9 +363,7 @@ func CheckEnv() error {
 			}
 		}
 		if !ok {
-			msg := fmt.Sprintf("'%s' is not a valid value for environment variable %s ", os.Getenv(varName), varName)
-			msg += fmt.Sprintf("(expected: %s)", okVals)
-			return Errorf(msg)
+			return fmt.Errorf("'%s' is not a valid value for environment variable %s (expected: %s)", os.Getenv(varName), varName, okVals)
 		}
 	}
 	return nil
