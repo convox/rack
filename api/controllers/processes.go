@@ -13,22 +13,7 @@ import (
 	"golang.org/x/net/websocket"
 )
 
-func ProcessList(rw http.ResponseWriter, r *http.Request) *httperr.Error {
-	app := mux.Vars(r)["app"]
-
-	ps, err := models.Provider().ProcessList(app)
-	if provider.ErrorNotFound(err) {
-		return httperr.NotFound(err)
-	}
-	if err != nil {
-		return httperr.Server(err)
-	}
-
-	sort.Sort(ps)
-
-	return RenderJson(rw, ps)
-}
-
+// ProcessExecAttached runs an attached command in an existing process
 func ProcessExecAttached(ws *websocket.Conn) *httperr.Error {
 	vars := mux.Vars(ws.Request())
 	header := ws.Request().Header
@@ -61,6 +46,40 @@ func ProcessExecAttached(ws *websocket.Conn) *httperr.Error {
 	return nil
 }
 
+// ProcessGet returns a process for an app
+func ProcessGet(rw http.ResponseWriter, r *http.Request) *httperr.Error {
+	app := mux.Vars(r)["app"]
+	process := mux.Vars(r)["process"]
+
+	ps, err := models.Provider().ProcessGet(app, process)
+	if provider.ErrorNotFound(err) {
+		return httperr.NotFound(err)
+	}
+	if err != nil {
+		return httperr.Server(err)
+	}
+
+	return RenderJson(rw, ps)
+}
+
+// ProcessList returns a list of processes for an app
+func ProcessList(rw http.ResponseWriter, r *http.Request) *httperr.Error {
+	app := mux.Vars(r)["app"]
+
+	ps, err := models.Provider().ProcessList(app)
+	if provider.ErrorNotFound(err) {
+		return httperr.NotFound(err)
+	}
+	if err != nil {
+		return httperr.Server(err)
+	}
+
+	sort.Sort(ps)
+
+	return RenderJson(rw, ps)
+}
+
+// ProcessRunAttached runs an attached command in an new process
 func ProcessRunAttached(ws *websocket.Conn) *httperr.Error {
 	vars := mux.Vars(ws.Request())
 	header := ws.Request().Header

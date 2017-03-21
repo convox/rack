@@ -112,12 +112,11 @@ func currentRack(c *cli.Context) string {
 func rackClient(c *cli.Context) *client.Client {
 	host, password, err := currentLogin()
 	if err != nil {
-		stdcli.Error(err)
-		return nil
+		stdcli.Errorf("%s, try `convox login`", err)
+		os.Exit(1)
 	}
 
 	cl := client.New(host, password, c.App.Version)
-
 	cl.Rack = currentRack(c)
 
 	return cl
