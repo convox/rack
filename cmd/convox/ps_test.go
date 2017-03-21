@@ -47,20 +47,7 @@ func TestPs(t *testing.T) {
 
 /* HELP-USAGE CHECKS */
 
-var psUsageWithoutHelpFlag = `convox ps: list an app's processes
-
-Usage:
-  convox ps [subcommand] [args] [options]
-
-Subcommands: (convox ps <subcommand> --help)
-  info  show info for a process
-  stop  stop a process by its id
-
-Options:
-  --app value, -a value  app name inferred from current directory if not specified
-  --rack value           rack name
-  --stats                display process cpu/memory stats
-  `
+var psUsageWithoutHelpFlag = `convox ps: list an app's processes`
 
 var psUsage = `convox ps: list an app's processes`
 
