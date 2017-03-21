@@ -221,16 +221,21 @@ func cmdRackParamsSet(c *cli.Context) error {
 		return stdcli.Error(err)
 	}
 
+	stdcli.OK()
+
 	if c.Bool("wait") {
+		stdcli.Startf("Waiting for completion")
+
 		// give the rack a few seconds to start updating
 		time.Sleep(5 * time.Second)
 
 		if err := waitForRackRunning(c); err != nil {
 			return stdcli.Error(err)
 		}
+
+		stdcli.OK()
 	}
 
-	stdcli.Wait("OK")
 	return nil
 }
 
