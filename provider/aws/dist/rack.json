@@ -41,6 +41,14 @@
           { "Fn::Equals": [ { "Ref": "AWS::Region" }, "eu-west-1" ]}
         ]
     },
+    "RegionHasCustomTopicUpdate": {
+        "Fn::Or": [
+          { "Fn::Equals": [ { "Ref": "AWS::Region" }, "eu-central-1" ]},
+          { "Fn::Equals": [ { "Ref": "AWS::Region" }, "ap-northeast-1" ]},
+          { "Fn::Equals": [ { "Ref": "AWS::Region" }, "ap-southeast-1" ]},
+          { "Fn::Equals": [ { "Ref": "AWS::Region" }, "ap-southeast-2" ]}
+        ]
+    },
     "RegionHasEFSAndThirdAvailabilityZone": {
       "Fn::And": [ { "Condition": "RegionHasEFS" }, { "Condition": "ThirdAvailabilityZone" } ]
     },
@@ -652,7 +660,10 @@
         "Handler": "index.external",
         "MemorySize": "128",
         "Role": { "Fn::GetAtt": [ "CustomTopicRole", "Arn" ] },
-        "Runtime": { "Ref": "CustomTopicRuntime" },
+        "Runtime": { "Fn::If": [ "RegionHasCustomTopicUpdate",
+          "nodejs4.3",
+          { "Ref": "CustomTopicRuntime" }
+        ] },
         "Timeout": "300"
       }
     },
