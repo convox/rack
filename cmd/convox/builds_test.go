@@ -19,7 +19,7 @@ func TestBuildsPreventAgainstCreating(t *testing.T) {
 			Command: "convox build https://example.org --app foo",
 			Exit:    1,
 			Stdout:  "",
-			Stderr:  "ERROR: app is still creating: foo\n",
+			Stderr:  "ERROR: app foo is still being created, for more information try `convox apps info`\n",
 		},
 	)
 }
