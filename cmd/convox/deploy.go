@@ -51,11 +51,8 @@ func cmdDeploy(c *cli.Context) error {
 		return stdcli.Error(err)
 	}
 
-	switch a.Status {
-	case "creating":
-		return stdcli.Error(fmt.Errorf("app %s is still being created, check `convox apps info`", app))
-	case "updating":
-		return stdcli.Error(fmt.Errorf("app %s is still being updated, check `convox apps info`", app))
+	if a.Status != "running" {
+		return stdcli.Error(fmt.Errorf("unable to deploy %s in a non-running status: %s", app, a.Status))
 	}
 
 	if !helpers.Exists(c.String("file")) {
