@@ -188,12 +188,8 @@ func cmdBuildsCreate(c *cli.Context) error {
 		return stdcli.Error(err)
 	}
 
-	switch a.Status {
-	case "creating":
-		return stdcli.Error(fmt.Errorf("app is still creating: %s", app))
-	case "running", "updating":
-	default:
-		return stdcli.Error(fmt.Errorf("unable to build app: %s", app))
+	if a.Status == "creating" {
+		return stdcli.Error(fmt.Errorf("app %s is still being created, for more information try `convox apps info`", app))
 	}
 
 	if len(c.Args()) > 0 {
