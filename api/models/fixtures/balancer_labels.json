@@ -49,6 +49,42 @@
         },
         "Yes"
       ]
+    },
+    "RegionHasCustomTopicUpdate": {
+      "Fn::Or": [
+        {
+          "Fn::Equals": [
+            {
+              "Ref": "AWS::Region"
+            },
+            "eu-central-1"
+          ]
+        },
+        {
+          "Fn::Equals": [
+            {
+              "Ref": "AWS::Region"
+            },
+            "ap-northeast-1"
+          ]
+        },
+        {
+          "Fn::Equals": [
+            {
+              "Ref": "AWS::Region"
+            },
+            "ap-southeast-1"
+          ]
+        },
+        {
+          "Fn::Equals": [
+            {
+              "Ref": "AWS::Region"
+            },
+            "ap-southeast-2"
+          ]
+        }
+      ]
     }
   },
   "Mappings": {
@@ -441,7 +477,13 @@
           ]
         },
         "Runtime": {
-          "Ref": "CustomTopicRuntime"
+          "Fn::If": [
+            "RegionHasCustomTopicUpdate",
+            "nodejs4.3",
+            {
+              "Ref": "CustomTopicRuntime"
+            }
+          ]
         },
         "Timeout": "300"
       },
