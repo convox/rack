@@ -33,14 +33,10 @@
       "Fn::And": [ { "Condition": "Private" }, { "Condition": "ThirdAvailabilityZone" } ]
     },
     "PrivateApi": { "Fn::Equals": [ { "Ref": "PrivateApi" }, "Yes" ] },
-    "RegionHasEFS": {
-        "Fn::Or": [
-          { "Fn::Equals": [ { "Ref": "AWS::Region" }, "us-east-1" ]},
-          { "Fn::Equals": [ { "Ref": "AWS::Region" }, "us-east-2" ]},
-          { "Fn::Equals": [ { "Ref": "AWS::Region" }, "us-west-2" ]},
-          { "Fn::Equals": [ { "Ref": "AWS::Region" }, "eu-west-1" ]}
-        ]
-    },
+    "RegionHasEFS": { "Fn::Equals": [
+      { "Fn::FindInMap": [ "RegionConfig", { "Ref": "AWS::Region" }, "EFS" ] },
+      "Yes"
+    ] },
     "RegionHasCustomTopicUpdate": {
         "Fn::Or": [
           { "Fn::Equals": [ { "Ref": "AWS::Region" }, "eu-central-1" ]},
@@ -66,17 +62,17 @@
   },
   "Mappings": {
     "RegionConfig": {
-      "us-east-1": { "Ami": "ami-b2df2ca4", "EventRuleForECS": "Yes", "ThirdAvailabilityZone": "Yes" },
-      "us-east-2": { "Ami": "ami-832b0ee6", "EventRuleForECS": "Yes", "ThirdAvailabilityZone": "Yes" },
-      "us-west-1": { "Ami": "ami-dd104dbd", "EventRuleForECS": "Yes", "ThirdAvailabilityZone": "No" },
-      "us-west-2": { "Ami": "ami-022b9262", "EventRuleForECS": "Yes", "ThirdAvailabilityZone": "Yes" },
-      "eu-west-1": { "Ami": "ami-a7f2acc1", "EventRuleForECS": "Yes", "ThirdAvailabilityZone": "Yes" },
-      "eu-west-2": { "Ami": "ami-3fb6bc5b", "EventRuleForECS": "No", "ThirdAvailabilityZone": "No" },
-      "eu-central-1": { "Ami": "ami-ec2be583", "EventRuleForECS": "Yes", "ThirdAvailabilityZone": "No" },
-      "ap-northeast-1": { "Ami": "ami-c393d6a4", "EventRuleForECS": "Yes", "ThirdAvailabilityZone": "No" },
-      "ap-southeast-1": { "Ami": "ami-a88530cb", "EventRuleForECS": "Yes", "ThirdAvailabilityZone": "No" },
-      "ap-southeast-2": { "Ami": "ami-8af8ffe9", "EventRuleForECS": "Yes", "ThirdAvailabilityZone": "Yes" },
-      "ca-central-1": { "Ami": "ami-ead5688e", "EventRuleForECS": "No", "ThirdAvailabilityZone": "No" }
+      "us-east-1": { "Ami": "ami-b2df2ca4", "EFS": "Yes", "EventRuleForECS": "Yes", "ThirdAvailabilityZone": "Yes" },
+      "us-east-2": { "Ami": "ami-832b0ee6", "EFS": "Yes", "EventRuleForECS": "Yes", "ThirdAvailabilityZone": "Yes" },
+      "us-west-1": { "Ami": "ami-dd104dbd", "EFS": "Yes", "EventRuleForECS": "Yes", "ThirdAvailabilityZone": "No" },
+      "us-west-2": { "Ami": "ami-022b9262", "EFS": "No", "EventRuleForECS": "Yes", "ThirdAvailabilityZone": "Yes" },
+      "eu-west-1": { "Ami": "ami-a7f2acc1", "EFS": "Yes", "EventRuleForECS": "Yes", "ThirdAvailabilityZone": "Yes" },
+      "eu-west-2": { "Ami": "ami-3fb6bc5b", "EFS": "No", "EventRuleForECS": "No", "ThirdAvailabilityZone": "No" },
+      "eu-central-1": { "Ami": "ami-ec2be583", "EFS": "No", "EventRuleForECS": "Yes", "ThirdAvailabilityZone": "No" },
+      "ap-northeast-1": { "Ami": "ami-c393d6a4", "EFS": "No", "EventRuleForECS": "Yes", "ThirdAvailabilityZone": "No" },
+      "ap-southeast-1": { "Ami": "ami-a88530cb", "EFS": "No", "EventRuleForECS": "Yes", "ThirdAvailabilityZone": "No" },
+      "ap-southeast-2": { "Ami": "ami-8af8ffe9", "EFS": "No", "EventRuleForECS": "Yes", "ThirdAvailabilityZone": "Yes" },
+      "ca-central-1": { "Ami": "ami-ead5688e", "EFS": "No", "EventRuleForECS": "No", "ThirdAvailabilityZone": "No" }
     }
   },
   "Outputs": {
