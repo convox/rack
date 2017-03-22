@@ -2,7 +2,8 @@
   {
     "AWSTemplateFormatVersion" : "2010-09-09",
     "Conditions": {
-      "Private": { "Fn::Equals": [ { "Ref": "Private" }, "true" ] }
+      "Private": { "Fn::Equals": [ { "Ref": "Private" }, "true" ] },
+      "Encrypted": {"Fn::Equals" : [{"Ref" : "Encryption"}, "true"]}
     },
     "Parameters": {
       "AllocatedStorage": {
@@ -106,7 +107,10 @@
           "DBSubnetGroupName": { "Ref": "SubnetGroup" },
           "Engine": "mysql",
           "EngineVersion": "5.6.27",
-          "KmsKeyId": {"Ref": "EncryptionKey"},
+          "KmsKeyId": { "Fn::If" : [ "Encrypted",
+            { "Ref": "EncryptionKey" },
+            { "Ref" : "AWS::NoValue" }
+          ] },
           "MasterUsername": { "Ref": "Username" },
           "MasterUserPassword": { "Ref": "Password" },
           "MultiAZ": { "Ref": "MultiAZ" },

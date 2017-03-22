@@ -3,7 +3,8 @@
     "AWSTemplateFormatVersion": "2010-09-09",
     "Conditions": {
       "BlankMaxConnections": { "Fn::Equals": [ { "Ref": "MaxConnections" }, "" ] },
-      "Private": { "Fn::Equals": [ { "Ref": "Private" }, "true" ] }
+      "Private": { "Fn::Equals": [ { "Ref": "Private" }, "true" ] },
+      "Encrypted": {"Fn::Equals" : [{"Ref" : "Encryption"}, "true"]}
     },
     "Parameters": {
       "AllocatedStorage": {
@@ -123,7 +124,10 @@
           "DBSubnetGroupName": { "Ref": "SubnetGroup" },
           "Engine": "postgres",
           "EngineVersion": { "Ref": "Version" },
-          "KmsKeyId": {"Ref": "EncryptionKey"},
+          "KmsKeyId": { "Fn::If" : [ "Encrypted",
+            { "Ref": "EncryptionKey" },
+            { "Ref" : "AWS::NoValue" }
+          ] },
           "MasterUsername": { "Ref": "Username" },
           "MasterUserPassword": { "Ref": "Password" },
           "MultiAZ": { "Ref": "MultiAZ" },
