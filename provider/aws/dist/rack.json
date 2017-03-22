@@ -16,7 +16,7 @@
     "Development": { "Fn::Equals": [ { "Ref": "Development" }, "Yes" ] },
     "EncryptEbs" : { "Fn::Equals": [ { "Ref": "EncryptEbs" }, "Yes" ] },
     "EventRuleForECS": { "Fn::Equals": [
-      { "Fn::FindInMap": [ "AvailabilityZoneConfig", { "Ref": "AWS::Region" }, "EventRuleForECS" ] },
+      { "Fn::FindInMap": [ "RegionConfig", { "Ref": "AWS::Region" }, "EventRuleForECS" ] },
       "Yes"
     ] },
     "ExistingVpc": { "Fn::Not": [ { "Fn::Equals": [ { "Ref": "ExistingVpc" }, "" ] } ] },
@@ -54,7 +54,7 @@
       "Fn::And": [ { "Condition": "RegionHasEFS" }, { "Condition": "ThirdAvailabilityZone" } ]
     },
     "ThirdAvailabilityZone": { "Fn::Equals": [
-      { "Fn::FindInMap": [ "AvailabilityZoneConfig", { "Ref": "AWS::Region" }, "ThirdAvailabilityZone" ] },
+      { "Fn::FindInMap": [ "RegionConfig", { "Ref": "AWS::Region" }, "ThirdAvailabilityZone" ] },
       "Yes"
     ] },
     "ThirdAvailabilityZoneAndNotExistingVpcAndBlankInternetGateway": {
@@ -65,30 +65,18 @@
     }
   },
   "Mappings": {
-    "AvailabilityZoneConfig": {
-      "us-east-1": { "ThirdAvailabilityZone": "Yes", "EventRuleForECS": "Yes" },
-      "us-east-2": { "ThirdAvailabilityZone": "Yes", "EventRuleForECS": "Yes" },
-      "us-west-1": { "ThirdAvailabilityZone": "No", "EventRuleForECS": "Yes" },
-      "us-west-2": { "ThirdAvailabilityZone": "Yes", "EventRuleForECS": "Yes"},
-      "eu-west-1": { "ThirdAvailabilityZone": "Yes", "EventRuleForECS": "Yes" },
-      "eu-west-2": { "ThirdAvailabilityZone": "No", "EventRuleForECS": "No" },
-      "eu-central-1": { "ThirdAvailabilityZone": "No", "EventRuleForECS": "Yes" },
-      "ap-northeast-1": { "ThirdAvailabilityZone": "No", "EventRuleForECS": "Yes" },
-      "ap-southeast-1": { "ThirdAvailabilityZone": "No", "EventRuleForECS": "Yes" },
-      "ap-southeast-2": { "ThirdAvailabilityZone": "Yes", "EventRuleForECS": "Yes" }
-    },
     "RegionConfig": {
-      "us-east-1": { "Ami": "ami-b2df2ca4" },
-      "us-east-2": { "Ami": "ami-832b0ee6" },
-      "us-west-1": { "Ami": "ami-dd104dbd" },
-      "us-west-2": { "Ami": "ami-022b9262" },
-      "eu-west-1": { "Ami": "ami-a7f2acc1" },
-      "eu-west-2": { "Ami": "ami-3fb6bc5b" },
-      "eu-central-1": { "Ami": "ami-ec2be583" },
-      "ap-northeast-1": { "Ami": "ami-c393d6a4" },
-      "ap-southeast-1": { "Ami": "ami-a88530cb" },
-      "ap-southeast-2": { "Ami": "ami-8af8ffe9" },
-      "ca-central-1": { "Ami": "ami-ead5688e" }
+      "us-east-1": { "Ami": "ami-b2df2ca4", "EventRuleForECS": "Yes", "ThirdAvailabilityZone": "Yes" },
+      "us-east-2": { "Ami": "ami-832b0ee6", "EventRuleForECS": "Yes", "ThirdAvailabilityZone": "Yes" },
+      "us-west-1": { "Ami": "ami-dd104dbd", "EventRuleForECS": "Yes", "ThirdAvailabilityZone": "No" },
+      "us-west-2": { "Ami": "ami-022b9262", "EventRuleForECS": "Yes", "ThirdAvailabilityZone": "Yes" },
+      "eu-west-1": { "Ami": "ami-a7f2acc1", "EventRuleForECS": "Yes", "ThirdAvailabilityZone": "Yes" },
+      "eu-west-2": { "Ami": "ami-3fb6bc5b", "EventRuleForECS": "No", "ThirdAvailabilityZone": "No" },
+      "eu-central-1": { "Ami": "ami-ec2be583", "EventRuleForECS": "Yes", "ThirdAvailabilityZone": "No" },
+      "ap-northeast-1": { "Ami": "ami-c393d6a4", "EventRuleForECS": "Yes", "ThirdAvailabilityZone": "No" },
+      "ap-southeast-1": { "Ami": "ami-a88530cb", "EventRuleForECS": "Yes", "ThirdAvailabilityZone": "No" },
+      "ap-southeast-2": { "Ami": "ami-8af8ffe9", "EventRuleForECS": "Yes", "ThirdAvailabilityZone": "Yes" },
+      "ca-central-1": { "Ami": "ami-ead5688e", "EventRuleForECS": "No", "ThirdAvailabilityZone": "No" }
     }
   },
   "Outputs": {
