@@ -18,7 +18,7 @@ func init() {
 
 func cmdRacks(c *cli.Context) error {
 	if len(c.Args()) > 0 {
-		return stdcli.Error(fmt.Errorf("`convox racks` does not take arguments. Perhaps you meant `convox racks`?"))
+		return stdcli.Error(fmt.Errorf("`convox racks` does not take arguments. Perhaps you meant `convox rack`?"))
 	}
 
 	racks, err := rackClient(c).Racks()
