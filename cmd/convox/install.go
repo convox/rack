@@ -459,8 +459,6 @@ func addRackToConsoleMsg(c *cli.Context, host string, password string) {
 	fmt.Println("Your Rack has been installed. You should now add it as an existing Rack at console.convox.com (or your own private Console) with the following credentials (which have also been written to ~/.convox/auth):")
 	fmt.Printf(" 🢂  Hostname: %s\n", host)
 	fmt.Printf(" 🢂   API Key: %s\n", password)
-	fmt.Println("\nAdvanced: To log into this Rack directly instead, run:")
-	fmt.Printf("convox login %s --password %s\n", host, password)
 }
 
 /// validateUserAccess checks for the "AdministratorAccess" policy needed to create a rack.

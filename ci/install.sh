@@ -9,4 +9,6 @@ export $($(dirname $0)/region.sh ${CIRCLE_NODE_INDEX})
 
 convox install --no-autoscale | tee $CIRCLE_ARTIFACTS/convox-installer.log
 
+convox login "$(cat ~/.convox/auth | jq --raw-output 'to_entries[0] | .key')"
+
 convox instances
