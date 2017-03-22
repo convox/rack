@@ -41,3 +41,20 @@ func TestBuildsCreateReturnsNoBuild(t *testing.T) {
 		},
 	)
 }
+
+func TestBuildsCreateInvalidUrl(t *testing.T) {
+	ts := testServer(t,
+		test.Http{Method: "GET", Path: "/apps/site-git", Code: 200, Response: client.App{Name: "site-git", Status: "running"}},
+	)
+
+	defer ts.Close()
+
+	test.Runs(t,
+		test.ExecRun{
+			Command: "convox build git@github.com:convox/site.git",
+			Exit:    1,
+			Stdout:  "",
+			Stderr:  "ERROR: parse git@github.com:convox/site.git: first path segment in URL cannot contain colon\n",
+		},
+	)
+}
