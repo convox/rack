@@ -13,12 +13,12 @@ import (
 )
 
 func (p *AWSProvider) LogStream(app string, w io.Writer, opts structs.LogStreamOptions) error {
-	a, err := p.AppGet(app)
+	logGroup, err := p.stackResource(fmt.Sprintf("%s-%s", p.Rack, app), "LogGroup")
 	if err != nil {
 		return err
 	}
 
-	return p.subscribeLogs(w, a.Outputs["LogGroup"], opts)
+	return p.subscribeLogs(w, *logGroup.PhysicalResourceId, opts)
 }
 
 func (p *AWSProvider) subscribeLogs(w io.Writer, group string, opts structs.LogStreamOptions) error {
