@@ -88,7 +88,7 @@ func cmdApps(c *cli.Context) error {
 	}
 
 	if len(apps) == 0 {
-		stdcli.Writef("No apps found, try creating one via `convox apps create`")
+		stdcli.Writef("no apps found, try creating one via `convox apps create`")
 		return nil
 	}
 

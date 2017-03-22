@@ -36,7 +36,7 @@ func TestAppsNoAppsFound(t *testing.T) {
 		test.ExecRun{
 			Command: "convox apps",
 			Exit:    0,
-			Stdout:  "No apps found, try creating one via `convox apps create`",
+			Stdout:  "no apps found, try creating one via `convox apps create`",
 		},
 	)
 }
