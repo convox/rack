@@ -110,7 +110,7 @@ func init() {
 			},
 			{
 				Name:        "releases",
-				Description: "list rack releases",
+				Description: "list a Rack's version history",
 				Usage:       "",
 				Action:      cmdRackReleases,
 				Flags: []cli.Flag{

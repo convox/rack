@@ -14,6 +14,11 @@
     "BlankKey": { "Fn::Equals": [ { "Ref": "Key" }, "" ] },
     "DedicatedBuilder": { "Fn::Not": [ { "Fn::Equals": [ { "Ref": "BuildInstance" }, "" ] } ] },
     "Development": { "Fn::Equals": [ { "Ref": "Development" }, "Yes" ] },
+    "EncryptEbs" : { "Fn::Equals": [ { "Ref": "EncryptEbs" }, "Yes" ] },
+    "EventRuleForECS": { "Fn::Equals": [
+      { "Fn::FindInMap": [ "AvailabilityZoneConfig", { "Ref": "AWS::Region" }, "EventRuleForECS" ] },
+      "Yes"
+    ] },
     "ExistingVpc": { "Fn::Not": [ { "Fn::Equals": [ { "Ref": "ExistingVpc" }, "" ] } ] },
     "ExistingVpcAndBlankInternetGateway": {
       "Fn::And": [ { "Condition": "ExistingVpc" }, { "Condition": "BlankInternetGateway" } ]
@@ -52,16 +57,16 @@
   },
   "Mappings": {
     "AvailabilityZoneConfig": {
-      "us-east-1": { "ThirdAvailabilityZone": "Yes" },
-      "us-east-2": { "ThirdAvailabilityZone": "Yes" },
-      "us-west-1": { "ThirdAvailabilityZone": "No" },
-      "us-west-2": { "ThirdAvailabilityZone": "Yes" },
-      "eu-west-1": { "ThirdAvailabilityZone": "Yes" },
-      "eu-west-2": { "ThirdAvailabilityZone": "No" },
-      "eu-central-1": { "ThirdAvailabilityZone": "No" },
-      "ap-northeast-1": { "ThirdAvailabilityZone": "No" },
-      "ap-southeast-1": { "ThirdAvailabilityZone": "No" },
-      "ap-southeast-2": { "ThirdAvailabilityZone": "Yes" }
+      "us-east-1": { "ThirdAvailabilityZone": "Yes", "EventRuleForECS": "Yes" },
+      "us-east-2": { "ThirdAvailabilityZone": "Yes", "EventRuleForECS": "Yes" },
+      "us-west-1": { "ThirdAvailabilityZone": "No", "EventRuleForECS": "Yes" },
+      "us-west-2": { "ThirdAvailabilityZone": "Yes", "EventRuleForECS": "Yes"},
+      "eu-west-1": { "ThirdAvailabilityZone": "Yes", "EventRuleForECS": "Yes" },
+      "eu-west-2": { "ThirdAvailabilityZone": "No", "EventRuleForECS": "No" },
+      "eu-central-1": { "ThirdAvailabilityZone": "No", "EventRuleForECS": "Yes" },
+      "ap-northeast-1": { "ThirdAvailabilityZone": "No", "EventRuleForECS": "Yes" },
+      "ap-southeast-1": { "ThirdAvailabilityZone": "No", "EventRuleForECS": "Yes" },
+      "ap-southeast-2": { "ThirdAvailabilityZone": "Yes", "EventRuleForECS": "Yes" }
     },
     "RegionConfig": {
       "us-east-1": { "Ami": "ami-b2df2ca4" },
@@ -319,6 +324,12 @@
     "Development": {
       "Type": "String",
       "Description": "Development mode",
+      "Default": "No",
+      "AllowedValues": [ "Yes", "No" ]
+    },
+    "EncryptEbs": {
+      "Type": "String",
+      "Description": "Enable encryption at rest for EBS volumes",
       "Default": "No",
       "AllowedValues": [ "Yes", "No" ]
     },
@@ -680,6 +691,7 @@
                     "Sid": "LimitedGeneralPermissions",
                     "Effect": "Allow",
                     "Action": [
+                      "acm:DeleteCertificate",
                       "acm:DescribeCertificate",
                       "acm:ListCertificates",
                       "acm:RequestCertificate",
@@ -1402,7 +1414,7 @@
           {
             "DeviceName": "/dev/xvdb",
             "Ebs": {
-              "Encrypted": "true",
+              "Encrypted": { "Fn::If": [ "EncryptEbs", "true", "false" ] },
               "VolumeSize": { "Ref": "SwapSize" },
               "VolumeType":"gp2"
             }
@@ -1410,7 +1422,7 @@
           {
             "DeviceName": "/dev/xvdcz",
             "Ebs": {
-              "Encrypted": "true",
+              "Encrypted": { "Fn::If": [ "EncryptEbs", "true", "false" ] },
               "VolumeSize": { "Ref": "VolumeSize" },
               "VolumeType":"gp2"
             }
@@ -1450,7 +1462,19 @@
             ] ] },
             "  - mkdir -p /etc/convox\n",
             "  - echo -e '/var/log/docker {\\n  rotate 7\\n  daily\\n  nocompress\\n  copytruncate\\n}' >> /etc/logrotate.d/docker\n",
+            { "Fn::If": [ "BlankInstanceBootCommand",
+              { "Ref": "AWS::NoValue" },
+              { "Fn::Join": [ "", [
+              "  - ", { "Ref": "InstanceBootCommand" }, "\n"
+              ] ] }
+            ] },
             "runcmd:\n",
+            { "Fn::If": [ "BlankInstanceRunCommand",
+              { "Ref": "AWS::NoValue" },
+              { "Fn::Join": [ "", [
+              "  - ", { "Ref": "InstanceRunCommand" }, "\n"
+              ] ] }
+            ] },
             "  - /opt/aws/bin/cfn-signal --stack ", { "Ref": "AWS::StackName" }, " --region ", { "Ref":"AWS::Region" }, " --resource BuildInstances\n"
           ] ] }
         }
@@ -1524,7 +1548,7 @@
           {
             "DeviceName": "/dev/xvdb",
             "Ebs": {
-              "Encrypted": "true",
+              "Encrypted": { "Fn::If": [ "EncryptEbs", "true", "false" ] },
               "VolumeSize": { "Ref": "SwapSize" },
               "VolumeType":"gp2"
             }
@@ -1532,7 +1556,7 @@
           {
             "DeviceName": "/dev/xvdcz",
             "Ebs": {
-              "Encrypted": "true",
+              "Encrypted": { "Fn::If": [ "EncryptEbs", "true", "false" ] },
               "VolumeSize": { "Ref": "VolumeSize" },
               "VolumeType":"gp2"
             }
@@ -1594,7 +1618,7 @@
             ] },
             "runcmd:\n",
             { "Fn::If": [ "BlankInstanceRunCommand",
-              "  - sleep 5\n",
+              { "Ref": "AWS::NoValue" },
               { "Fn::Join": [ "", [
               "  - ", { "Ref": "InstanceRunCommand" }, "\n"
               ] ] }
@@ -1865,6 +1889,97 @@
             }
           }
         ]
+      }
+    },
+    "ECSEventHandlerRole": {
+      "Type": "AWS::IAM::Role",
+      "Condition": "EventRuleForECS",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": { "Service": [ "lambda.amazonaws.com" ] },
+              "Action": [ "sts:AssumeRole" ]
+            }
+          ]
+        },
+        "Path": "/convox/",
+        "Policies": [
+          {
+            "PolicyName": "ECSEventHandlerRole",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "cloudformation:DescribeStacks",
+                    "ecs:DescribeServices",
+                    "logs:CreateLogGroup",
+                    "logs:CreateLogStream",
+                    "logs:PutLogEvents"
+                  ],
+                  "Resource": "*"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "ECSEventHandler": {
+      "DependsOn": ["ECSEventHandlerRole"],
+      "Condition": "EventRuleForECS",
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Code": {
+          "S3Bucket": { "Fn::Join": [ "-", [ "convox", { "Ref": "AWS::Region" } ] ] },
+          "S3Key": { "Fn::Join": [ "", [ "release/", { "Ref": "Version" }, "/lambda/ecsevents.zip" ] ] }
+        },
+        "Description": "Handler for ECS events.",
+        "Handler": "index.external",
+        "MemorySize": "128",
+        "Role": { "Fn::GetAtt": [ "ECSEventHandlerRole", "Arn" ] },
+        "Runtime": "nodejs4.3",
+        "Timeout": "300"
+      }
+    },
+    "ECSEventRule":{
+      "Type" : "AWS::Events::Rule",
+      "DependsOn": ["ECSEventHandler"],
+      "Condition": "EventRuleForECS",
+      "Properties" : {
+        "Description" : "Fires ECS Task change events",
+        "EventPattern" : {
+          "source": [
+            "aws.ecs"
+          ],
+          "detail-type": [
+            "ECS Task State Change"
+          ],
+          "detail": {
+            "clusterArn": [
+              { "Fn::Join": [ "", ["arn:aws:ecs:", { "Ref": "AWS::Region" }, ":", { "Ref": "AWS::AccountId"}, ":cluster/", { "Ref": "Cluster" }] ] }
+            ]
+          }
+        },
+        "State" : "ENABLED",
+        "Targets" : [{
+          "Arn": { "Fn::GetAtt": [ "ECSEventHandler", "Arn" ] },
+          "Id": "ECSEventHandler"
+          }]
+      }
+    },
+    "ECSEventHandlerPermission": {
+      "Type": "AWS::Lambda::Permission",
+      "Condition": "EventRuleForECS",
+      "Properties": {
+        "FunctionName": { "Fn::GetAtt": [ "ECSEventHandler", "Arn" ] },
+        "Action": "lambda:InvokeFunction",
+        "Principal": "events.amazonaws.com",
+        "SourceArn": { "Fn::GetAtt": [ "ECSEventRule", "Arn" ] }
       }
     },
     "Balancer": {
