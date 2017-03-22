@@ -22,6 +22,10 @@
         "Default": "false",
         "AllowedValues": [ "true", "false" ]
       },
+      "EncryptionKey": {
+        "Type" : "String",
+        "Description" : "KMS Encryption Key"
+      },
       "InstanceType": {
         "Type": "String",
         "Default": "db.t2.micro",
@@ -119,6 +123,7 @@
           "DBSubnetGroupName": { "Ref": "SubnetGroup" },
           "Engine": "postgres",
           "EngineVersion": { "Ref": "Version" },
+          "KmsKeyId": {"Ref": "EncryptionKey"},
           "MasterUsername": { "Ref": "Username" },
           "MasterUserPassword": { "Ref": "Password" },
           "MultiAZ": { "Ref": "MultiAZ" },
