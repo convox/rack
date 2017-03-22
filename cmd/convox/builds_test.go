@@ -51,7 +51,7 @@ func TestBuildsCreateInvalidUrl(t *testing.T) {
 
 	test.Runs(t,
 		test.ExecRun{
-			Command: "convox build git@github.com:convox/site.git",
+			Command: "convox build -a site-git git@github.com:convox/site.git",
 			Exit:    1,
 			Stdout:  "",
 			Stderr:  "ERROR: parse git@github.com:convox/site.git: first path segment in URL cannot contain colon\n",
