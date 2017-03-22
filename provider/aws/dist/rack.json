@@ -59,7 +59,7 @@
     "RegionConfig": {
       "us-east-1": { "Ami": "ami-b2df2ca4", "EFS": "Yes", "EventRuleForECS": "Yes", "LambdaUpdate": "No", "ThirdAvailabilityZone": "Yes" },
       "us-east-2": { "Ami": "ami-832b0ee6", "EFS": "Yes", "EventRuleForECS": "Yes", "LambdaUpdate": "No", "ThirdAvailabilityZone": "Yes" },
-      "us-west-1": { "Ami": "ami-dd104dbd", "EFS": "Yes", "EventRuleForECS": "Yes", "LambdaUpdate": "No", "ThirdAvailabilityZone": "No" },
+      "us-west-1": { "Ami": "ami-dd104dbd", "EFS": "No", "EventRuleForECS": "Yes", "LambdaUpdate": "No", "ThirdAvailabilityZone": "No" },
       "us-west-2": { "Ami": "ami-022b9262", "EFS": "No", "EventRuleForECS": "Yes", "LambdaUpdate": "No", "ThirdAvailabilityZone": "Yes" },
       "eu-west-1": { "Ami": "ami-a7f2acc1", "EFS": "Yes", "EventRuleForECS": "Yes", "LambdaUpdate": "Yes", "ThirdAvailabilityZone": "Yes" },
       "eu-west-2": { "Ami": "ami-3fb6bc5b", "EFS": "No", "EventRuleForECS": "No", "LambdaUpdate": "No", "ThirdAvailabilityZone": "No" },
