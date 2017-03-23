@@ -925,6 +925,21 @@
               "Statement": [
                 {
                   "Action": [
+                    "ecr:CreateRepository",
+                    "ecs:UpdateService",
+                    "ecs:DeleteService",
+                    "ecs:RegisterTaskDefinition",
+                    "kms:CreateKey",
+                    "kms:GenerateRandom",
+                    "logs:CreateLogGroup",
+                    "logs:CreateLogStream",
+                    "logs:PutLogEvents"
+                  ],
+                  "Effect": "Allow",
+                  "Resource": "*"
+                },
+                {
+                  "Action": [
                     "kms:ScheduleKeyDeletion",
                     "kms:DisableKey",
                     "kms:Decrypt",
@@ -985,21 +1000,6 @@
                       }
                     }
                   },
-                  "Effect": "Allow",
-                  "Resource": "*"
-                },
-                {
-                  "Action": [
-                    "ecr:CreateRepository",
-                    "ecs:UpdateService",
-                    "ecs:DeleteService",
-                    "ecs:RegisterTaskDefinition",
-                    "kms:CreateKey",
-                    "kms:GenerateRandom",
-                    "logs:CreateLogGroup",
-                    "logs:CreateLogStream",
-                    "logs:PutLogEvents"
-                  ],
                   "Effect": "Allow",
                   "Resource": "*"
                 },

@@ -16,7 +16,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/convox/rack/api/crypt"
 	"github.com/convox/rack/api/models"
-	provider "github.com/convox/rack/provider/aws"
+	awshelp "github.com/convox/rack/provider/aws"
 )
 
 // Parses as [host]:[container]/[protocol?], where [protocol] is optional
@@ -95,8 +95,9 @@ func ECSServiceDelete(req Request) (string, map[string]string, error) {
 	return req.PhysicalResourceId, nil, err
 }
 
-func GetS3EnvironmentFromUrl(req Request, url string) (models.Environment, error) {
-	bucket, key, _, err := provider.ParseS3Url(url)
+// GetS3EnvironmentFromURL gets environment variables that are stored at the provided URL
+func GetS3EnvironmentFromURL(req Request, url string) (models.Environment, error) {
+	bucket, key, _, err := awshelp.ParseS3Url(url)
 	if err != nil {
 		return nil, err
 	}
@@ -152,7 +153,7 @@ func ECSTaskDefinitionCreate(req Request) (string, map[string]string, error) {
 
 	if envUrl, ok := req.ResourceProperties["Environment"].(string); ok && envUrl != "" {
 		var err error
-		env, err = GetS3EnvironmentFromUrl(req, envUrl)
+		env, err = GetS3EnvironmentFromURL(req, envUrl)
 		if err != nil {
 			return "invalid", nil, err
 		}
