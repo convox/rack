@@ -324,7 +324,7 @@
             "LoadBalancers": [
               {
                 "ContainerName": "{{ $e.Name }}",
-                "ContainerPort": "{{ (index $e.Ports 0).Container }}",
+                "ContainerPort": "{{ (index $e.TCPPorts 0).Container }}",
                 "LoadBalancerName": { "Ref": "{{ $manifest.BalancerResourceName $e.Name }}" }
               }
             ],
