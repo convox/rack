@@ -1561,6 +1561,7 @@
             "mounts:\n",
             "  - ['/dev/xvdb', 'none', 'swap', 'sw', '0', '0']\n",
             "bootcmd:\n",
+            "  - export HTTP_PROXY=", { "Ref": "HttpProxy" },
             "  - mkswap /dev/xvdb\n",
             "  - swapon /dev/xvdb\n",
             "  - until yum install -y aws-cli nfs-utils; do echo \"Waiting for network\"; done;\n",
