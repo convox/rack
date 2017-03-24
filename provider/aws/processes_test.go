@@ -253,6 +253,7 @@ func TestProcessRunAttached(t *testing.T) {
 		cycleProcessDescribeStacks,
 		cycleProcessDescribeStacks,
 		cycleProcessReleaseGetItem,
+		cycleProcessReleaseEnvironmentGet,
 		cycleProcessDescribeStackResources,
 		cycleProcessDescribeServices,
 		cycleProcessDescribeTaskDefinition1,
@@ -318,6 +319,7 @@ func TestProcessRunDetached(t *testing.T) {
 		cycleProcessDescribeStacks,
 		cycleProcessDescribeStacks,
 		cycleProcessReleaseGetItem,
+		cycleProcessReleaseEnvironmentGet,
 		cycleProcessDescribeStackResources,
 		cycleProcessDescribeServices,
 		cycleProcessDescribeTaskDefinition1,
@@ -1164,7 +1166,18 @@ var cycleProcessReleaseGetItem = awsutil.Cycle{
 	},
 	Response: awsutil.Response{
 		StatusCode: 200,
-		Body:       `{"Item":{"id":{"S":"RVFETUHHKKD"},"build":{"S":"BHINCLZYYVN"},"app":{"S":"myapp"},"manifest":{"S":"web:\n  image: myapp\n  ports:\n  - 80:80\n"},"env":{"S":"foo=bar"},"created":{"S":"20160404.143542.627770380"}}}`,
+		Body:       `{"Item":{"id":{"S":"RVFETUHHKKD"},"build":{"S":"BHINCLZYYVN"},"app":{"S":"myapp"},"manifest":{"S":"web:\n  image: myapp\n  ports:\n  - 80:80\n"},"created":{"S":"20160404.143542.627770380"}}}`,
+	},
+}
+
+var cycleProcessReleaseEnvironmentGet = awsutil.Cycle{
+	Request: awsutil.Request{
+		Method:     "GET",
+		RequestURI: "/releases/RVFETUHHKKD/env",
+	},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body:       "foo=bar",
 	},
 }
 
