@@ -17,7 +17,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/iam"
-	"github.com/convox/rack/api/crypt"
 	"github.com/convox/rack/api/structs"
 	"github.com/convox/rack/manifest"
 )
@@ -49,26 +48,19 @@ func GetRelease(app, id string) (*Release, error) {
 		return nil, fmt.Errorf("no release id")
 	}
 
-	req := &dynamodb.GetItemInput{
-		ConsistentRead: aws.Bool(true),
-		Key: map[string]*dynamodb.AttributeValue{
-			"id": {S: aws.String(id)},
-		},
-		TableName: aws.String(releasesTable(app)),
-	}
-
-	res, err := DynamoDB().GetItem(req)
-
+	r, err := Provider().ReleaseGet(app, id)
 	if err != nil {
 		return nil, err
 	}
 
-	if res.Item == nil {
-		return nil, fmt.Errorf("no such release: %s", id)
+	release := &Release{
+		App:      r.App,
+		Build:    r.Build,
+		Created:  r.Created,
+		Env:      r.Env,
+		Id:       r.Id,
+		Manifest: r.Manifest,
 	}
-
-	release := releaseFromItem(res.Item)
-
 	return release, nil
 }
 
@@ -81,54 +73,23 @@ func (r *Release) Save() error {
 		r.Created = time.Now()
 	}
 
-	req := &dynamodb.PutItemInput{
-		Item: map[string]*dynamodb.AttributeValue{
-			"id":      {S: aws.String(r.Id)},
-			"app":     {S: aws.String(r.App)},
-			"created": {S: aws.String(r.Created.Format(SortableTime))},
-		},
-		TableName: aws.String(releasesTable(r.App)),
+	rel := &structs.Release{
+		App:      r.App,
+		Build:    r.Build,
+		Created:  r.Created,
+		Env:      r.Env,
+		Id:       r.Id,
+		Manifest: r.Manifest,
 	}
 
-	if r.Build != "" {
-		req.Item["build"] = &dynamodb.AttributeValue{S: aws.String(r.Build)}
-	}
-
-	if r.Env != "" {
-		req.Item["env"] = &dynamodb.AttributeValue{S: aws.String(r.Env)}
-	}
-
-	if r.Manifest != "" {
-		req.Item["manifest"] = &dynamodb.AttributeValue{S: aws.String(r.Manifest)}
-	}
-
-	_, err := DynamoDB().PutItem(req)
-
+	err := Provider().ReleaseSave(rel)
 	if err != nil {
 		return err
-	}
-
-	app, err := GetApp(r.App)
-
-	if err != nil {
-		return err
-	}
-
-	env := []byte(r.Env)
-
-	if app.Parameters["Key"] != "" {
-		cr := crypt.New(os.Getenv("AWS_REGION"), os.Getenv("AWS_ACCESS"), os.Getenv("AWS_SECRET"))
-
-		env, err = cr.Encrypt(app.Parameters["Key"], []byte(env))
-
-		if err != nil {
-			return err
-		}
 	}
 
 	NotifySuccess("release:create", map[string]string{"id": r.Id, "app": r.App})
 
-	return S3Put(app.Outputs["Settings"], fmt.Sprintf("releases/%s/env", r.Id), env, true)
+	return nil
 }
 
 func (r *Release) Promote() error {
