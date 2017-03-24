@@ -766,6 +766,7 @@
                       "elasticache:DescribeReplicationGroups",
                       "elasticache:ModifyCacheCluster",
                       "elasticache:ModifyReplicationGroup",
+                      "elasticfilesystem:CreateFileSystem",
                       "elasticfilesystem:CreateMountTarget",
                       "elasticfilesystem:DeleteMountTarget",
                       "elasticfilesystem:DescribeMountTargets",
