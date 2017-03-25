@@ -37,6 +37,10 @@ func init() {
 			"[--automatic-failover-enabled] [--database=db-name] [--instance-type=cache.t2.micro] [--num-cache-clusters=1] [--private]",
 		},
 		{
+			"elasticsearch",
+      "[--domain-name=example] [--user-arn=arn:aws:iam::123456789101:user/es] [--whitelist-ip=127.0.0.1/0] [--version=5.1] [--dedicated-master=true] [--master-instance-type=m3.medium.elasticsearch] [--master-instance-count=3] [--instance-type=m3.medium.elasticsearch] [--instance-count=2] [--iops=0] [--volume-size=20]",
+		},
+		{
 			"s3",
 			"[--topic=sns-topic-name] [--versioning]",
 		},

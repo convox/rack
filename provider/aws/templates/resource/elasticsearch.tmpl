@@ -1,0 +1,155 @@
+{{ define "resource" }}
+{
+  "AWSTemplateFormatVersion" : "2010-09-09",
+    "Conditions": {
+    },
+    "Parameters": {
+      "DomainName": {
+        "Type": "String",
+        "Description": "DomaionName of elasticsearch domain"
+      },
+      "DedicatedMaster": {
+        "Type" : "String",
+        "Default" : "true",
+        "Description" : "Use a dedicated master"
+      },
+      "InstanceType": {
+        "Type" : "String",
+        "Default" : "m3.medium.elasticsearch",
+        "Description" : "Size of elasticsearch document"
+      },
+      "InstanceCount": {
+        "Type" : "Number",
+        "Default" : 2,
+        "Description" : "Instance Count"
+      },
+      "Iops": {
+        "Type" : "Number",
+        "Default" : 0,
+        "Description" : "Provisioned Iops"
+      },
+      "MasterInstanceType": {
+        "Type" : "String",
+        "Default" : "m3.medium.elasticsearch",
+        "Description" : "Size of elasticsearch document"
+      },
+      "MasterInstanceCount": {
+        "Type" : "Number",
+        "Default" : 3,
+        "Description" : "Master Instance Count"
+      },
+      "UserArn": {
+        "Type": "String",
+        "Description": "The ARN of the user which will sign requests"
+      },
+      "Version": {
+        "Type": "String",
+        "Default": "5.1",
+        "Description": "Version of elasticsearch instance"
+      },
+      "VolumeSize": {
+        "Type" : "Number",
+        "Default" : 20,
+        "Description" : "Volume Size"
+      },
+      "WhitelistIp": {
+        "Type": "String",
+        "Default": "127.0.0.1/0",
+        "Description": "IP to white-list for power users"
+      }
+    },
+    "Outputs": {
+      "DomainEndpoint": { "Value": { "Fn::GetAtt": [ "ElasticsearchDomain", "DomainEndpoint" ] } }
+    },
+    "Resources": {
+      "ElasticsearchDomain": {
+        "Type": "AWS::Elasticsearch::Domain",
+        "Properties": {
+          "DomainName": { "Ref": "DomainName" },
+          "ElasticsearchVersion": { "Ref": "Version" },
+          "ElasticsearchClusterConfig": {
+            "DedicatedMasterEnabled": { "Ref": "DedicatedMaster" },
+            "DedicatedMasterType": { "Ref": "MasterInstanceType" },
+            "DedicatedMasterCount": { "Ref": "MasterInstanceCount" },
+            "InstanceType": { "Ref": "InstanceType" },
+            "InstanceCount": { "Ref": "InstanceCount" },
+            "ZoneAwarenessEnabled": true
+          },
+          "EBSOptions": {
+            "EBSEnabled": true,
+            "Iops": { "Ref": "Iops" },
+            "VolumeSize": { "Ref": "VolumeSize" },
+            "VolumeType": "gp2"
+          },
+          "SnapshotOptions": {
+            "AutomatedSnapshotStartHour": "0"
+          },
+          "AccessPolicies": {
+            "Version": "2012-10-17",
+            "Statement": [
+              {
+                "Effect": "Allow",
+                "Principal": {
+                  "AWS": { "Ref": "UserArn" }
+                },
+                "Action": [
+                  "es:ESHttpHead",
+                  "es:ESHttpGet",
+                  "es:ESHttpPost",
+                  "es:ESHttpPut",
+                  "es:ESHttpDelete"
+                ],
+                "Resource": {
+                  "Fn::Join": [
+                     "",
+                      [
+                        "arn:aws:es:",
+                        { "Ref": "AWS::Region" },
+                        ":",
+                        { "Ref": "AWS::AccountId" },
+                        ":domain/",
+                        { "Ref": "DomainName" },
+                        "/*"
+                       ]
+                  ]
+                }
+              },
+              {
+                "Effect": "Allow",
+                "Principal": {
+                  "AWS": "*"
+                },
+                "Action": "es:*",
+                "Condition": {
+                  "IpAddress": {
+                    "aws:SourceIp": {
+                      "Ref": "WhitelistIp"
+                    }
+                  }
+                },
+                "Resource": {
+                  "Fn::Join": [
+                     "",
+                      [
+                        "arn:aws:es:",
+                        { "Ref": "AWS::Region" },
+                        ":",
+                        { "Ref": "AWS::AccountId" },
+                        ":domain/",
+                        { "Ref": "DomainName" },
+                        "/*"
+                       ]
+                  ]
+                }
+              }
+            ]
+          },
+          "AdvancedOptions": {
+            "rest.action.multi.allow_explicit_index": "true",
+            "indices.fielddata.cache.size": ""
+          }
+        }
+      }
+    }
+}
+{{ end }}

@@ -33,8 +33,10 @@ func (p *AWSProvider) ResourceCreate(name, kind string, params map[string]string
 
 	var req *cloudformation.CreateStackInput
 
+fmt.Print(s.Type)
+
 	switch s.Type {
-	case "memcached", "mysql", "postgres", "redis", "sqs":
+	case "elasticsearch", "memcached", "mysql", "postgres", "redis", "sqs":
 		req, err = p.createResource(s)
 	case "fluentd":
 		req, err = p.createResourceURL(s, "tcp")
@@ -186,7 +188,7 @@ func (p *AWSProvider) ResourceGet(name string) (*structs.Resource, error) {
 	}
 
 	switch s.Tags["Resource"] {
-	case "memcached":
+	case "elasticsearch", "memcached":
 		s.Exports["URL"] = fmt.Sprintf("%s:%s", s.Outputs["Port11211TcpAddr"], s.Outputs["Port11211TcpPort"])
 	case "mysql":
 		s.Exports["URL"] = fmt.Sprintf("mysql://%s:%s@%s:%s/%s", s.Outputs["EnvMysqlUsername"], s.Outputs["EnvMysqlPassword"], s.Outputs["Port3306TcpAddr"], s.Outputs["Port3306TcpPort"], s.Outputs["EnvMysqlDatabase"])
