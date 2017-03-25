@@ -20,6 +20,7 @@ func init() {
 				Name:        "create",
 				Description: "upload a certificate",
 				Usage:       "<cert.pub> <cert.key>",
+				ArgsUsage:   "<cert.pub> <cert.key>",
 				Action:      cmdCertsCreate,
 				Flags: []cli.Flag{
 					rackFlag,
@@ -32,7 +33,8 @@ func init() {
 			{
 				Name:        "delete",
 				Description: "delete a certificate",
-				Usage:       "<id>",
+				Usage:       "<cert id>",
+				ArgsUsage:   "<cert id>",
 				Action:      cmdCertsDelete,
 				Flags:       []cli.Flag{rackFlag},
 			},
@@ -40,6 +42,7 @@ func init() {
 				Name:        "generate",
 				Description: "generate a certificate",
 				Usage:       "<domain> [domain...]",
+				ArgsUsage:   "<domain> [domain...]",
 				Action:      cmdCertsGenerate,
 				Flags:       []cli.Flag{rackFlag},
 			},
@@ -48,14 +51,8 @@ func init() {
 }
 
 func cmdCertsList(c *cli.Context) error {
-	if len(c.Args()) > 0 {
-		return stdcli.Error(fmt.Errorf("`convox certs` does not take arguments. Perhaps you meant `convox certs generate`?"))
-	}
-
-	if c.Bool("help") {
-		stdcli.Usage(c, "")
-		return nil
-	}
+	stdcli.NeedHelp(c)
+	stdcli.NeedArg(c, 0)
 
 	certs, err := rackClient(c).ListCertificates()
 	if err != nil {
@@ -73,10 +70,8 @@ func cmdCertsList(c *cli.Context) error {
 }
 
 func cmdCertsCreate(c *cli.Context) error {
-	if len(c.Args()) < 2 {
-		stdcli.Usage(c, "create")
-		return nil
-	}
+	stdcli.NeedHelp(c)
+	stdcli.NeedArg(c, 2)
 
 	pub, err := ioutil.ReadFile(c.Args()[0])
 	if err != nil {
@@ -111,10 +106,8 @@ func cmdCertsCreate(c *cli.Context) error {
 }
 
 func cmdCertsDelete(c *cli.Context) error {
-	if len(c.Args()) < 1 {
-		stdcli.Usage(c, "delete")
-		return nil
-	}
+	stdcli.NeedHelp(c)
+	stdcli.NeedArg(c, 1)
 
 	fmt.Printf("Removing certificate... ")
 
@@ -128,10 +121,8 @@ func cmdCertsDelete(c *cli.Context) error {
 }
 
 func cmdCertsGenerate(c *cli.Context) error {
-	if len(c.Args()) < 1 {
-		stdcli.Usage(c, "generate")
-		return nil
-	}
+	stdcli.NeedHelp(c)
+	stdcli.NeedArg(c, 1)
 
 	fmt.Printf("Requesting certificate... ")
 

@@ -17,6 +17,7 @@ func init() {
 		Name:        "switch",
 		Description: "switch to another Convox rack",
 		Usage:       "[rack name]",
+		ArgsUsage:   "[rack name]",
 		Action:      cmdSwitch,
 	})
 }

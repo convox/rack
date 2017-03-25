@@ -15,14 +15,15 @@ func init() {
 	stdcli.RegisterCommand(cli.Command{
 		Name:        "releases",
 		Description: "list an app's releases",
-		Usage:       "",
+		Usage:       "[subcommand] [options]",
+		ArgsUsage:   "[subcommand]",
 		Action:      cmdReleases,
 		Flags: []cli.Flag{
 			appFlag,
 			rackFlag,
 			cli.IntFlag{
 				Name:  "limit",
-				Usage: "Number of releases to list.",
+				Usage: "number of releases to list",
 				Value: 20,
 			},
 		},
@@ -37,7 +38,8 @@ func init() {
 			{
 				Name:        "promote",
 				Description: "promote a release",
-				Usage:       "<release id>",
+				Usage:       "<release id> [options]",
+				ArgsUsage:   "<release id>",
 				Action:      cmdReleasePromote,
 				Flags: []cli.Flag{
 					appFlag,
@@ -54,18 +56,12 @@ func init() {
 }
 
 func cmdReleases(c *cli.Context) error {
+	stdcli.NeedHelp(c)
+	stdcli.NeedArg(c, 0)
+
 	_, app, err := stdcli.DirApp(c, ".")
 	if err != nil {
 		return stdcli.Error(err)
-	}
-
-	if len(c.Args()) > 0 {
-		return stdcli.Error(fmt.Errorf("`convox releases` does not take arguments. Perhaps you meant `convox releases help`?"))
-	}
-
-	if c.Bool("help") {
-		stdcli.Usage(c, "")
-		return nil
 	}
 
 	a, err := rackClient(c).GetApp(app)
@@ -100,10 +96,8 @@ func cmdReleases(c *cli.Context) error {
 }
 
 func cmdReleaseInfo(c *cli.Context) error {
-	if len(c.Args()) < 1 {
-		stdcli.Usage(c, "release info")
-		return nil
-	}
+	stdcli.NeedHelp(c)
+	stdcli.NeedArg(c, 1)
 
 	release := c.Args()[0]
 
@@ -127,10 +121,8 @@ func cmdReleaseInfo(c *cli.Context) error {
 }
 
 func cmdReleasePromote(c *cli.Context) error {
-	if len(c.Args()) < 1 {
-		stdcli.Usage(c, "releases promote")
-		return nil
-	}
+	stdcli.NeedHelp(c)
+	stdcli.NeedArg(c, 1)
 
 	release := c.Args()[0]
 

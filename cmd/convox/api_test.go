@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/convox/rack/client"
-	"github.com/convox/rack/cmd/convox/stdcli"
 	"github.com/convox/rack/test"
 	"github.com/stretchr/testify/assert"
 )
@@ -29,81 +28,42 @@ func TestApiGet(t *testing.T) {
 /* HELP CHECKS */
 // http://www.gnu.org/prep/standards/html_node/_002d_002dhelp.html
 
-var apiHelp = `convox api: 
-
-Usage:
-  convox api <command> [args...]
-
-Subcommands: (convox api help <subcommand>)
-  get      get an api endpoint
-  delete   delete an api endpoint
-  help, h  
-  
-Options:
+var apiUsages = []string{
+	`convox api: make a rest api call to a convox endpoint`,
+	`convox api <command> <endpoint> [options]`,
+	`Subcommands: (convox api <subcommand> --help)
+  get      make a GET request to an api endpoint
+  delete   make a DELETE request to an api endpoint
+  help, h`,
+	`Options:
   --rack value  rack name
-  --help, -h    show help
-  
+  --help, -h    show help`}
+
+var apiGetUsages = []string{
+	`convox api get: make a GET request to an api endpoint`,
+	`convox api get <endpoint> [options]`,
+	`Options:
+  --rack value  rack name`,
+}
+
+var endpointsUsage = `
+Valid endpoints:
+  /apps
+  /apps/<app-name>
+  /auth
+  /certificates
+  /index
+  /instances
+  /racks
+  /registries
+  /resources
+  /switch
+  /system`
+
+var apiMissingEndpoint = `ERROR: 1 argument is required: <endpoint>
 `
-
-var apiGetHelp = `convox api get: get an api endpoint
-
-Usage:
-  convox api get <endpoint>
-
-Options:
-   --rack value  rack name
-   
+var apiMissingSubcommand = `ERROR: Missing expected subcommand
 `
-
-var commandStrings = []string{
-	"convox %s api",
-	"convox api %s",
-}
-
-var commandGetStrings = []string{
-	"convox %s api get",
-	"convox %s api get /foo",
-	"convox api %s get",
-	"convox api %s get /foo",
-	"convox api get %s",
-	"convox api get %s /foo",
-}
-
-// TODO: These commands don't behave as expected
-var skipCommands = []string{
-	"convox api --help",          // treats '--help' as an argument
-	"convox api get help",        // treats 'help' as an argument
-	"convox api get help /foo",   // treats 'help' as an argument
-	"convox api get h",           // treats 'h' as an argument
-	"convox api get h /foo",      // treats 'h' as an argument
-	"convox api --help get",      // executes command, ignores --help
-	"convox api --help get /foo", // executes command, ignores --help
-	"convox api -h",              // executes command, ignores -h
-	"convox api -h get",          // executes command, ignores -h
-	"convox api -h get /foo",     // executes command, ignores -h
-	"convox help api",            // /!\ different output from 'convox api --help'
-	"convox help api get",        // outputs 'convox api' help
-	"convox help api get /foo",   // outputs 'convox api' help
-	"convox --help api get /foo", // Outputs 'convox' help
-	"convox -h api get /foo",     // outputs 'convox' help
-	"convox -h api get",          // outputs 'convox' help
-	"convox -h api",              // outputs 'convox' help
-	"convox h api",               // /!\ different output from 'convox api --help'
-	"convox h api get",           // outputs 'convox api' help
-	"convox h api get /foo",      // outputs 'convox api' help
-	"convox --help api get",      // outputs 'convox' help
-	"convox --help api",          // outputs 'convox' help
-}
-
-func shouldSkip(c string, skipCommands []string) bool {
-	// skip permutations that don't work as expected yet
-	for _, skipC := range skipCommands {
-		if c == skipC {
-			return true
-		}
-	}
-	return false
-}
 
 func TestApiHelpFlag(t *testing.T) {
 	ts := testServer(t,
@@ -117,47 +77,85 @@ func TestApiHelpFlag(t *testing.T) {
 	)
 	defer ts.Close()
 
-	// base 'api' command (without subcommands)
-	// these commands should output a help screen about 'convox api'
-	for _, cmd := range commandStrings {
-		for _, hf := range stdcli.HelpFlags {
-			c := fmt.Sprintf(cmd, hf)
+	tests := []test.ExecRun{
+		test.ExecRun{
+			Command:    "convox api",
+			OutMatches: apiUsages,
+			Stderr:     apiMissingSubcommand,
+		},
+		test.ExecRun{
+			Command:    "convox api h",
+			OutMatches: apiUsages,
+		},
+		test.ExecRun{
+			Command:    "convox api help",
+			OutMatches: apiUsages,
+		},
+		test.ExecRun{
+			Command:    "convox api -h",
+			OutMatches: apiUsages,
+		},
+		test.ExecRun{
+			Command:    "convox api --help",
+			OutMatches: apiUsages,
+		},
 
-			if shouldSkip(c, skipCommands) {
-				fmt.Println("SKIPPED: ", c)
-				continue
-			}
-			test.Runs(t,
-				test.ExecRun{
-					Command: c,
-					Exit:    0,
-					Stdout:  apiHelp,
-				},
-			)
-		}
+		// api get
+		test.ExecRun{
+			Command:    "convox api get",
+			OutMatches: apiGetUsages,
+			Stderr:     apiMissingEndpoint,
+			Exit:       129,
+		},
+		test.ExecRun{
+			Command:    "convox api get h",
+			OutMatches: apiGetUsages,
+		},
+		test.ExecRun{
+			Command:    "convox api get help",
+			OutMatches: apiGetUsages,
+		},
+		test.ExecRun{
+			Command:    "convox api get -h",
+			OutMatches: apiGetUsages,
+		},
+		test.ExecRun{
+			Command:    "convox api get --help",
+			OutMatches: apiGetUsages,
+		},
+		test.ExecRun{
+			Command:    "convox api h get",
+			OutMatches: apiGetUsages,
+		},
+		test.ExecRun{
+			Command:    "convox api help get",
+			OutMatches: apiGetUsages,
+		},
+
+		// undesired behavior
+		test.ExecRun{
+			Command:    "convox api -h get",
+			OutMatches: apiUsages,
+		},
+
+		// too many args
+		test.ExecRun{
+			Command:    "convox api get foo bar",
+			Env:        DebuglessEnv,
+			OutMatches: apiGetUsages,
+			Exit:       129,
+		},
+		test.ExecRun{
+			Command:    "convox api get foo bar",
+			Env:        DebugfulEnv,
+			Stderr:     "ERROR: expected 1 argument <endpoint>; got 2 arguments (foo bar).\n",
+			OutMatches: apiGetUsages,
+			Exit:       129,
+		},
 	}
 
-	assert.Equal(t, stdcli.HelpFlags, []string{"--help", "-h", "h", "help"})
-
-	// 'api get' subcommand
-	// these commands should output a help screen about 'convox api get'
-	for _, cmd := range commandGetStrings {
-		for _, hf := range stdcli.HelpFlags {
-			c := fmt.Sprintf(cmd, hf)
-
-			if shouldSkip(c, skipCommands) {
-				fmt.Println("SKIPPED: ", c)
-				continue
-			}
-
-			test.Runs(t,
-				test.ExecRun{
-					Command: c,
-					Exit:    0,
-					Stdout:  apiGetHelp,
-				},
-			)
-		}
+	for _, myTest := range tests {
+		test.Runs(t, myTest)
 	}
 }
 
@@ -269,9 +267,9 @@ func TestApiGetNoArg(t *testing.T) {
 
 	test.Runs(t,
 		test.ExecRun{
-			Command: "convox api get",
-			Exit:    129,
-			Stdout:  apiGetHelp,
+			Command:    "convox api get",
+			Exit:       129,
+			OutMatches: apiGetUsages,
 		},
 	)
 }

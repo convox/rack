@@ -39,10 +39,9 @@ func TestScaleCmd(t *testing.T) {
 			Stderr:  "ERROR: no host config found, try `convox login`\n",
 		},
 		test.ExecRun{
-			Command:  "convox scale --foo",
-			OutMatch: "Incorrect Usage: flag provided but not defined: -foo\n\n" + scaleUsage,
-			Stderr:   "ERROR: flag provided but not defined: -foo\n",
-			Exit:     1,
+			Command:  "convox scale foo bar",
+			OutMatch: scaleUsage,
+			Exit:     129,
 		},
 		test.ExecRun{
 			Command:  "convox scale --foo",

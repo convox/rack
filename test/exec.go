@@ -13,15 +13,16 @@ import (
 )
 
 type ExecRun struct {
-	Command  string
-	Env      map[string]string
-	Exit     int
-	Dir      string
-	Stdin    string
-	Stdout   string
-	OutMatch string
-	Stderr   string
-	Dump     bool
+	Command    string
+	Env        map[string]string
+	Exit       int
+	Dir        string
+	Stdin      string
+	Stdout     string
+	OutMatch   string
+	OutMatches []string
+	Stderr     string
+	Dump       bool
 }
 
 func (er ExecRun) Test(t *testing.T) {
