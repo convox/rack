@@ -12,34 +12,41 @@ func init() {
 		Name:        "registries",
 		Action:      cmdRegistryList,
 		Description: "manage private registries",
+		UsageText:   "(add|remove)",
+		Usage:       "(add|remove) <registry> [--username USERNAME] [--password PASSWORD]",
+		ArgsUsage:   "<subcommand>",
 		Flags:       []cli.Flag{rackFlag},
 		Subcommands: []cli.Command{
 			{
 				Name:        "add",
 				Description: "add a new registry",
-				Usage:       "[server]",
+				Usage:       "<server> [--username USERNAME] [--password PASSWORD]",
+				ArgsUsage:   "<server>",
+				UsageText:   "<server> [--username USERNAME] [--password PASSWORD]",
 				Action:      cmdRegistryAdd,
 				Flags: []cli.Flag{
 					rackFlag,
 					cli.StringFlag{
 						Name:  "email, e",
-						Usage: "Email for registry auth.",
+						Usage: "email for registry auth",
 					},
 					cli.StringFlag{
 						Name:  "username, u",
-						Usage: "Username for auth. If not specified, prompt for username.",
+						Usage: "username for auth. If not specified, prompt for username.",
 					},
 					cli.StringFlag{
 						EnvVar: "PASSWORD",
 						Name:   "password, p",
-						Usage:  "Password for auth. If not specified, prompt for password.",
+						Usage:  "password for auth. If not specified, prompt for password.",
 					},
 				},
 			},
 			{
 				Name:        "remove",
 				Description: "remove a registry",
-				Usage:       "[server]",
+				Usage:       "<server>",
+				ArgsUsage:   "<server>",
+				UsageText:   "<server> (see `convox registries`)",
 				Action:      cmdRegistryRemove,
 				Flags:       []cli.Flag{rackFlag},
 			},
@@ -48,10 +55,8 @@ func init() {
 }
 
 func cmdRegistryAdd(c *cli.Context) error {
-	if len(c.Args()) < 1 {
-		stdcli.Usage(c, "add")
-		return nil
-	}
+	stdcli.NeedHelp(c)
+	stdcli.NeedArg(c, 1)
 
 	server := c.Args()[0]
 	username := c.String("username")
@@ -76,14 +81,8 @@ func cmdRegistryAdd(c *cli.Context) error {
 }
 
 func cmdRegistryList(c *cli.Context) error {
-	if len(c.Args()) > 0 {
-		return stdcli.Error(fmt.Errorf("`convox registries` does not take arguments. Perhaps you meant `convox registries add`?"))
-	}
-
-	if c.Bool("help") {
-		stdcli.Usage(c, "")
-		return nil
-	}
+	stdcli.NeedHelp(c)
+	stdcli.NeedArg(c, 0)
 
 	registries, err := rackClient(c).ListRegistries()
 	if err != nil {
@@ -101,10 +100,8 @@ func cmdRegistryList(c *cli.Context) error {
 }
 
 func cmdRegistryRemove(c *cli.Context) error {
-	if len(c.Args()) < 1 {
-		stdcli.Usage(c, "remove")
-		return nil
-	}
+	stdcli.NeedHelp(c)
+	stdcli.NeedArg(c, 1)
 
 	server := c.Args()[0]
 

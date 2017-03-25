@@ -8,6 +8,17 @@ import (
 	"github.com/dustin/go-humanize"
 )
 
+// Coalesce returns the first non-empty string in a slice of strings
+func Coalesce(ss ...string) string {
+	for _, s := range ss {
+		if s != "" {
+			return s
+		}
+	}
+
+	return ""
+}
+
 // DetectComposeFile checks for COMPOSE_FILE envvar; falls back to docker-compose.yml
 func DetectComposeFile() string {
 	dcm := "docker-compose.yml"
@@ -69,4 +80,14 @@ func DetectDocker() string {
 		return osd
 	}
 	return "docker"
+}
+
+// In checks if a string is present in a slice of strings
+func In(item string, s []string) bool {
+	for _, sliceItem := range s {
+		if sliceItem == item {
+			return true
+		}
+	}
+	return false
 }

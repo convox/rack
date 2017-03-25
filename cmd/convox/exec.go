@@ -14,7 +14,8 @@ func init() {
 	stdcli.RegisterCommand(cli.Command{
 		Name:        "exec",
 		Description: "exec a command in a process in your Convox rack",
-		Usage:       "[pid] [command]",
+		Usage:       "<pid> <command> [options]",
+		ArgsUsage:   "<pid> <command>",
 		Action:      cmdExec,
 		Flags:       []cli.Flag{appFlag, rackFlag},
 	})
@@ -44,10 +45,8 @@ func cmdExec(c *cli.Context) error {
 		return stdcli.Error(err)
 	}
 
-	if len(c.Args()) < 2 {
-		stdcli.Usage(c, "exec")
-		return nil
-	}
+	stdcli.NeedHelp(c)
+	stdcli.NeedArg(c, -2)
 
 	ps := c.Args()[0]
 

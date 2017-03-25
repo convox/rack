@@ -17,21 +17,24 @@ func init() {
 	stdcli.RegisterCommand(cli.Command{
 		Name:        "instances",
 		Description: "list your Convox rack's instances",
-		Usage:       "",
+		Usage:       "[subcommand] [args] [options]",
+		ArgsUsage:   "",
 		Action:      cmdInstancesList,
 		Flags:       []cli.Flag{rackFlag},
 		Subcommands: []cli.Command{
 			{
 				Name:        "keyroll",
 				Description: "generate and replace the ec2 keypair used for SSH",
-				Usage:       "",
+				Usage:       "[options]",
+				ArgsUsage:   "",
 				Action:      cmdInstancesKeyroll,
 				Flags:       []cli.Flag{rackFlag},
 			},
 			{
 				Name:            "ssh",
 				Description:     "establish secure shell with EC2 instance",
-				Usage:           "<id> [command]",
+				Usage:           "<instance id> [command] [options]",
+				ArgsUsage:       "<intance id>",
 				Action:          cmdInstancesSSH,
 				Flags:           []cli.Flag{rackFlag},
 				SkipFlagParsing: true,
@@ -39,7 +42,8 @@ func init() {
 			{
 				Name:        "terminate",
 				Description: "terminate an EC2 instance",
-				Usage:       "<id>",
+				Usage:       "<instance id> [options]",
+				ArgsUsage:   "<instance id>",
 				Flags:       []cli.Flag{rackFlag},
 				Action:      cmdInstancesTerminate,
 			},
@@ -48,14 +52,8 @@ func init() {
 }
 
 func cmdInstancesList(c *cli.Context) error {
-	if len(c.Args()) > 0 {
-		return stdcli.Error(fmt.Errorf("`convox instances` does not take arguments. Perhaps you meant `convox instances ssh`?"))
-	}
-
-	if c.Bool("help") {
-		stdcli.Usage(c, "")
-		return nil
-	}
+	stdcli.NeedHelp(c)
+	stdcli.NeedArg(c, 0)
 
 	instances, err := rackClient(c).GetInstances()
 	if err != nil {
@@ -82,6 +80,9 @@ func cmdInstancesList(c *cli.Context) error {
 }
 
 func cmdInstancesKeyroll(c *cli.Context) error {
+	stdcli.NeedHelp(c)
+	stdcli.NeedArg(c, 0)
+
 	fmt.Print("Rolling SSH keys... ")
 
 	err := rackClient(c).InstanceKeyroll()
@@ -95,10 +96,8 @@ func cmdInstancesKeyroll(c *cli.Context) error {
 }
 
 func cmdInstancesTerminate(c *cli.Context) error {
-	if len(c.Args()) != 1 {
-		stdcli.Usage(c, "terminate")
-		return nil
-	}
+	stdcli.NeedHelp(c)
+	stdcli.NeedArg(c, 1)
 
 	id := c.Args()[0]
 
@@ -114,10 +113,8 @@ func cmdInstancesTerminate(c *cli.Context) error {
 }
 
 func cmdInstancesSSH(c *cli.Context) error {
-	if len(c.Args()) < 1 {
-		stdcli.Usage(c, "ssh")
-		return nil
-	}
+	stdcli.NeedHelp(c)
+	stdcli.NeedArg(c, -1)
 
 	id := c.Args()[0]
 	cmd := strings.Join(c.Args()[1:], " ")

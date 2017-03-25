@@ -18,52 +18,53 @@ type ResourceType struct {
 	name, args string
 }
 
+var resourceTypes = []ResourceType{
+	{
+		"fluentd",
+		"--url=tcp://fluentd-collector.example.com:24224",
+	},
+	{
+		"memcached",
+		"[--instance-type=db.t2.micro] [--num-cache-nodes=1] [--private]",
+	},
+	{
+		"mysql",
+		"[--allocated-storage=10] [--database=db-name] [--instance-type=db.t2.micro] [--multi-az] [--password=example] [--private] [--username=example]",
+	},
+	{
+		"postgres",
+		"[--allocated-storage=10] [--database=db-name] [--instance-type=db.t2.micro] [--max-connections={DBInstanceClassMemory/15000000}] [--multi-az] [--password=example] [--private] [--username=example] [--version=9.5.2]",
+	},
+	{
+		"redis",
+		"[--automatic-failover-enabled] [--database=db-name] [--instance-type=cache.t2.micro] [--num-cache-clusters=1] [--private]",
+	},
+	{
+		"s3",
+		"[--topic=sns-topic-name] [--versioning]",
+	},
+	{
+		"sns",
+		"[--queue=sqs-queue-name]",
+	},
+	{
+		"sqs",
+		"[--message-retention-period=345600] [--receive-message-wait-time=0] [--visibility-timeout=30]",
+	},
+	{
+		"syslog",
+		"--url=tcp+tls://logs1.papertrailapp.com:11235 [--private]",
+	},
+	{
+		"webhook",
+		"--url=https://console.convox.com/webhooks/1234",
+	},
+}
+
 func init() {
-	types := []ResourceType{
-		{
-			"memcached",
-			"[--instance-type=db.t2.micro] [--num-cache-nodes=1] [--private]",
-		},
-		{
-			"mysql",
-			"[--allocated-storage=10] [--database=db-name] [--instance-type=db.t2.micro] [--multi-az] [--password=example] [--private] [--username=example]",
-		},
-		{
-			"postgres",
-			"[--allocated-storage=10] [--database=db-name] [--instance-type=db.t2.micro] [--max-connections={DBInstanceClassMemory/15000000}] [--multi-az] [--password=example] [--private] [--username=example] [--version=9.5.2]",
-		},
-		{
-			"redis",
-			"[--automatic-failover-enabled] [--database=db-name] [--instance-type=cache.t2.micro] [--num-cache-clusters=1] [--private]",
-		},
-		{
-			"s3",
-			"[--topic=sns-topic-name] [--versioning]",
-		},
-		{
-			"sns",
-			"[--queue=sqs-queue-name]",
-		},
-		{
-			"sqs",
-			"[--message-retention-period=345600] [--receive-message-wait-time=0] [--visibility-timeout=30]",
-		},
-		{
-			"syslog",
-			"--url=tcp+tls://logs1.papertrailapp.com:11235 [--private]",
-		},
-		{
-			"fluentd",
-			"--url=tcp://fluentd-collector.example.com:24224",
-		},
-		{
-			"webhook",
-			"--url=https://console.convox.com/webhooks/1234",
-		},
-	}
 
 	usage := "Supported types / options:"
-	for _, t := range types {
+	for _, t := range resourceTypes {
 		usage += fmt.Sprintf("\n  %-10s  %s", t.name, t.args)
 	}
 
@@ -71,14 +72,16 @@ func init() {
 		Name:        "resources",
 		Aliases:     []string{"services"},
 		Description: "manage external resources [prev. services]",
-		Usage:       "",
+		Usage:       "<command> [subcommand] [options] [arguments]",
+		ArgsUsage:   "<command>",
 		Action:      cmdResources,
 		Flags:       []cli.Flag{rackFlag},
 		Subcommands: []cli.Command{
 			{
 				Name:            "create",
 				Description:     "create a new resource",
-				Usage:           "<type> [--name=value] [--option-name=value]\n\n" + usage,
+				Usage:           "<type> [--name=value] [--option-name=value] [options]\n\n" + usage,
+				ArgsUsage:       "<type>",
 				Action:          cmdResourceCreate,
 				Flags:           []cli.Flag{rackFlag},
 				SkipFlagParsing: true,
@@ -86,14 +89,17 @@ func init() {
 			{
 				Name:        "delete",
 				Description: "delete a resource",
-				Usage:       "<name>",
+				Usage:       "<name> [options]",
+				ArgsUsage:   "<name>",
 				Action:      cmdResourceDelete,
 				Flags:       []cli.Flag{rackFlag},
 			},
 			{
 				Name:            "update",
-				Description:     "update a resource\n\nWARNING: updates may cause resource downtime.",
+				Description:     "update a resource (may cause resource downtime)",
+				UsageText:       "update a resource\n\nWARNING: updates may cause resource downtime.",
 				Usage:           "<name> --option-name=value [--option-name=value]\n\n" + usage,
+				ArgsUsage:       "<name>",
 				Action:          cmdResourceUpdate,
 				Flags:           []cli.Flag{rackFlag},
 				SkipFlagParsing: true,
@@ -101,28 +107,32 @@ func init() {
 			{
 				Name:        "info",
 				Description: "info about a resource",
-				Usage:       "<name>",
+				Usage:       "<name> [options]",
+				ArgsUsage:   "<name>",
 				Action:      cmdResourceInfo,
 				Flags:       []cli.Flag{rackFlag},
 			},
 			{
 				Name:        "link",
 				Description: "create a link between a resource and an app",
-				Usage:       "<name>",
+				Usage:       "<name> [options]",
+				ArgsUsage:   "<name>",
 				Action:      cmdLinkCreate,
 				Flags:       []cli.Flag{appFlag, rackFlag},
 			},
 			{
 				Name:        "unlink",
 				Description: "delete a link between a resource and an app",
-				Usage:       "<name>",
+				Usage:       "<name> [options]",
+				ArgsUsage:   "<name>",
 				Action:      cmdLinkDelete,
 				Flags:       []cli.Flag{appFlag, rackFlag},
 			},
 			{
 				Name:        "url",
 				Description: "return url for the given resource",
-				Usage:       "<name>",
+				Usage:       "<name> [options]",
+				ArgsUsage:   "<name>",
 				Action:      cmdResourceURL,
 				Flags:       []cli.Flag{appFlag, rackFlag},
 			},
@@ -145,14 +155,8 @@ func init() {
 }
 
 func cmdResources(c *cli.Context) error {
-	if len(c.Args()) > 0 {
-		return stdcli.Error(fmt.Errorf("`convox resources` does not take arguments. Perhaps you meant `convox resources create`?"))
-	}
-
-	if c.Bool("help") {
-		stdcli.Usage(c, "")
-		return nil
-	}
+	stdcli.NeedHelp(c)
+	stdcli.NeedArg(c, 0)
 
 	resources, err := rackClient(c).GetResources()
 	if err != nil {
@@ -169,32 +173,28 @@ func cmdResources(c *cli.Context) error {
 	return nil
 }
 
-func cmdResourceCreate(c *cli.Context) error {
-	// ensure type included
-	if !(len(c.Args()) > 0) {
-		stdcli.Usage(c, "create")
-		return nil
-	}
-
-	// ensure everything after type is a flag
-	if len(c.Args()) > 1 && !strings.HasPrefix(c.Args()[1], "--") {
-		stdcli.Usage(c, "create")
-		return nil
-	}
-
-	t := c.Args()[0]
-
-	if t == "help" || t == "--help" || t == "-h" {
-		stdcli.Usage(c, "create")
-		return nil
-	}
-
-	options := stdcli.ParseOpts(c.Args()[1:])
-	for key, value := range options {
-		if value == "" {
-			options[key] = "true"
+func checkResourceType(t string) (string, error) {
+	for _, resourceType := range resourceTypes {
+		if resourceType.name == t {
+			return t, nil
 		}
 	}
+	return "", stdcli.Errorf("unsupported resource type %s; see 'convox resources create --help'", t)
+}
+
+func cmdResourceCreate(c *cli.Context) error {
+	stdcli.NeedHelp(c)
+	stdcli.NeedArg(c, -1)
+
+	t, err := checkResourceType(c.Args()[0])
+	if err != nil {
+		return stdcli.Error(err)
+	}
+	args := c.Args()[1:]
+
+	// ensure everything after type is a flag
+	stdcli.EnsureOnlyFlags(c, args)
+	options := stdcli.FlagsToOptions(c, args)
 
 	var optionsList []string
 	for key, val := range options {
@@ -222,7 +222,7 @@ func cmdResourceCreate(c *cli.Context) error {
 	}
 	fmt.Printf(")... ")
 
-	_, err := rackClient(c).CreateResource(t, options)
+	_, err = rackClient(c).CreateResource(t, options)
 	if err != nil {
 		return stdcli.Error(err)
 	}
@@ -232,26 +232,15 @@ func cmdResourceCreate(c *cli.Context) error {
 }
 
 func cmdResourceUpdate(c *cli.Context) error {
-	// ensure name included
-	if !(len(c.Args()) > 0) {
-		stdcli.Usage(c, "update")
-		return nil
-	}
+	stdcli.NeedHelp(c)
+	stdcli.NeedArg(c, -1)
 
 	name := c.Args()[0]
+	args := c.Args()[1:]
 
-	// ensure everything after type is a flag
-	if len(c.Args()) > 1 && !strings.HasPrefix(c.Args()[1], "--") {
-		stdcli.Usage(c, "update")
-		return nil
-	}
+	stdcli.EnsureOnlyFlags(c, args)
 
-	options := stdcli.ParseOpts(c.Args()[1:])
-	for key, value := range options {
-		if value == "" {
-			options[key] = "true"
-		}
-	}
+	options := stdcli.FlagsToOptions(c, args)
 
 	var optionsList []string
 	for key, val := range options {
@@ -259,7 +248,7 @@ func cmdResourceUpdate(c *cli.Context) error {
 	}
 
 	if len(optionsList) == 0 {
-		stdcli.Usage(c, "update")
+		stdcli.Usage(c)
 		return nil
 	}
 
@@ -275,10 +264,8 @@ func cmdResourceUpdate(c *cli.Context) error {
 }
 
 func cmdResourceDelete(c *cli.Context) error {
-	if len(c.Args()) != 1 {
-		stdcli.Usage(c, "delete")
-		return nil
-	}
+	stdcli.NeedHelp(c)
+	stdcli.NeedArg(c, 1)
 
 	name := c.Args()[0]
 
@@ -294,10 +281,8 @@ func cmdResourceDelete(c *cli.Context) error {
 }
 
 func cmdResourceInfo(c *cli.Context) error {
-	if len(c.Args()) != 1 {
-		stdcli.Usage(c, "info")
-		return nil
-	}
+	stdcli.NeedHelp(c)
+	stdcli.NeedArg(c, 1)
 
 	name := c.Args()[0]
 
@@ -328,10 +313,8 @@ func cmdResourceInfo(c *cli.Context) error {
 }
 
 func cmdResourceURL(c *cli.Context) error {
-	if len(c.Args()) != 1 {
-		stdcli.Usage(c, "url")
-		return nil
-	}
+	stdcli.NeedHelp(c)
+	stdcli.NeedArg(c, 1)
 
 	name := c.Args()[0]
 
@@ -354,14 +337,12 @@ func cmdResourceURL(c *cli.Context) error {
 }
 
 func cmdLinkCreate(c *cli.Context) error {
+	stdcli.NeedHelp(c)
+	stdcli.NeedArg(c, 1)
+
 	_, app, err := stdcli.DirApp(c, ".")
 	if err != nil {
 		return stdcli.Error(err)
-	}
-
-	if len(c.Args()) != 1 {
-		stdcli.Usage(c, "link")
-		return nil
 	}
 
 	name := c.Args()[0]
@@ -376,14 +357,12 @@ func cmdLinkCreate(c *cli.Context) error {
 }
 
 func cmdLinkDelete(c *cli.Context) error {
+	stdcli.NeedHelp(c)
+	stdcli.NeedArg(c, 1)
+
 	_, app, err := stdcli.DirApp(c, ".")
 	if err != nil {
 		return stdcli.Error(err)
-	}
-
-	if len(c.Args()) != 1 {
-		stdcli.Usage(c, "unlink")
-		return nil
 	}
 
 	name := c.Args()[0]
@@ -398,10 +377,8 @@ func cmdLinkDelete(c *cli.Context) error {
 }
 
 func cmdResourceProxy(c *cli.Context) error {
-	if len(c.Args()) != 1 {
-		stdcli.Usage(c, "proxy")
-		return nil
-	}
+	stdcli.NeedHelp(c)
+	stdcli.NeedArg(c, 1)
 
 	name := c.Args()[0]
 
