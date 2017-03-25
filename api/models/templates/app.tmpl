@@ -286,7 +286,11 @@
                     "{{ $key }}": {{ $value }},
                   {{ end }}
                   "LOG_GROUP": { "Ref": "LogGroup" },
-                  "PROCESS": "{{ $e.Name }}"
+                  "PROCESS": "{{ $e.Name }}",
+                  "PROCESS_GROUP": "{{ $group.Name }}"
+                },
+                "DockerLabels": {
+                  "convox.group": "{{ $group.Name }}"
                 },
                 "Volumes": [
                   {{ range $e.MountableVolumes }}

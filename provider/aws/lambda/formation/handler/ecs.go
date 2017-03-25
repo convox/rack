@@ -238,7 +238,7 @@ func ECSTaskDefinitionCreate(req Request) (string, map[string]string, error) {
 		} else {
 			fmt.Printf("Configuring for a normal environment\n")
 			// set Task environment from decrypted S3 URL body of key/values
-			// These key/values take precident over the above environment
+			// These key/values take precedent over the above environment
 			for key, val := range env {
 				r.ContainerDefinitions[i].Environment = append(r.ContainerDefinitions[i].Environment, &ecs.KeyValuePair{
 					Name:  aws.String(key),
@@ -261,6 +261,17 @@ func ECSTaskDefinitionCreate(req Request) (string, map[string]string, error) {
 
 			for j, link := range links {
 				r.ContainerDefinitions[i].Links[j] = aws.String(link.(string))
+			}
+		}
+
+		// Set any docker labels
+		fmt.Fprintln(os.Stderr, "DockerLabels start")
+		if dockerLabels, ok := task["DockerLabels"].(map[string]string); ok {
+			fmt.Fprintf(os.Stderr, "DockerLabels %s\n", dockerLabels)
+			r.ContainerDefinitions[i].DockerLabels = make(map[string]*string, len(dockerLabels))
+
+			for key, value := range dockerLabels {
+				r.ContainerDefinitions[i].DockerLabels[key] = aws.String(value)
 			}
 		}
 

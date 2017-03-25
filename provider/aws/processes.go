@@ -22,12 +22,75 @@ import (
 	"github.com/fsouza/go-dockerclient"
 )
 
+func lastSectionOfArn(arn string) string {
+	parts := strings.Split(arn, "-")
+	return parts[len(parts)-1]
+}
+
+type PID struct {
+	TaskId      string
+	ContainerId string
+}
+
+func (pid *PID) String() string {
+	return fmt.Sprintf("%s-%s", pid.TaskId, pid.ContainerId)
+}
+
+func (pid *PID) IsMatchingTask(taskArn string) bool {
+	return lastSectionOfArn(taskArn) == pid.TaskId
+}
+
+func (pid *PID) IsMatchingContainer(taskArn string, containerArn string) bool {
+	return lastSectionOfArn(taskArn) == pid.TaskId && lastSectionOfArn(containerArn) == pid.ContainerId
+}
+
+func (pid *PID) FindMatchingContainerInTask(task *ecs.Task) *ecs.Container {
+	for _, container := range task.Containers {
+		if pid.IsMatchingContainer(*task.TaskArn, *container.ContainerArn) {
+			return container
+		}
+	}
+	return nil
+}
+
+func ParsePID(pidStr string) *PID {
+	pidParts := strings.Split(pidStr, "-")
+	return &PID{
+		TaskId:      pidParts[0],
+		ContainerId: pidParts[1],
+	}
+}
+
+func PIDFromArns(taskArn string, containerArn string) *PID {
+	return &PID{
+		TaskId:      lastSectionOfArn(taskArn),
+		ContainerId: lastSectionOfArn(containerArn),
+	}
+}
+
+func PIDFromTask(task *ecs.Task, containerName string) (*PID, error) {
+	var containerArn string
+	for _, container := range task.Containers {
+		if *container.Name == containerName {
+			containerArn = *container.ContainerArn
+			break
+		}
+	}
+	if containerArn == "" {
+		return nil, fmt.Errorf("Cannot find container `%s` in task `%s`", containerName, *task.TaskDefinitionArn)
+	}
+	return PIDFromArns(*task.TaskArn, containerArn), nil
+}
+
 // StatusCodePrefix is sent to the client to let it know the exit code is coming next
 const StatusCodePrefix = "F1E49A85-0AD7-4AEF-A618-C249C6E6568D:"
 
 // ProcessExec runs a command in an existing Process
-func (p *AWSProvider) ProcessExec(app, pid, command string, stream io.ReadWriter, opts structs.ProcessExecOptions) error {
-	log := Logger.At("ProcessExec").Namespace("app=%q pid=%q command=%q", app, pid, command).Start()
+func (p *AWSProvider) ProcessExec(app, pidStr, command string, stream io.ReadWriter, opts structs.ProcessExecOptions) error {
+	log := Logger.At("ProcessExec").Namespace("app=%q pid=%q command=%q", app, pidStr, command).Start()
+	log.Logf("Hello")
+
+	pid := ParsePID(pidStr)
 
 	pss, err := p.ProcessList(app)
 	if err != nil {
@@ -35,9 +98,12 @@ func (p *AWSProvider) ProcessExec(app, pid, command string, stream io.ReadWriter
 		return err
 	}
 
+	log.Logf("PROCESS SEARCH = %s", pid)
+	log.Logf("PROCESS LIST = %s", pss)
+
 	pidFound := false
 	for _, p := range pss {
-		if p.ID == pid {
+		if p.ID == pid.String() {
 			pidFound = true
 			break
 		}
@@ -60,6 +126,10 @@ func (p *AWSProvider) ProcessExec(app, pid, command string, stream io.ReadWriter
 	}
 	if len(task.Containers) < 1 {
 		return log.Errorf("no running container for process: %s", pid)
+	}
+	targetContainer := pid.FindMatchingContainerInTask(task)
+	if targetContainer == nil {
+		return log.Errorf("could not find instance for process: %s", pid)
 	}
 
 	cires, err := p.ecs().DescribeContainerInstances(&ecs.DescribeContainerInstancesInput{
@@ -84,6 +154,7 @@ func (p *AWSProvider) ProcessExec(app, pid, command string, stream io.ReadWriter
 		All: true,
 		Filters: map[string][]string{
 			"label": {fmt.Sprintf("com.amazonaws.ecs.task-arn=%s", arn)},
+			"name":  {*targetContainer.Name},
 		},
 	})
 	if err != nil {
@@ -284,6 +355,9 @@ func (p *AWSProvider) taskProcesses(tasks []string) (structs.Processes, error) {
 
 	pss := structs.Processes{}
 
+	fmt.Println("what the asdfafafaa")
+	fmt.Println(tasks)
+
 	for i := 0; i < len(tasks); i += describeTasksPageSize {
 		ptasks := []string{}
 
@@ -311,6 +385,8 @@ func (p *AWSProvider) taskProcesses(tasks []string) (structs.Processes, error) {
 			Cluster: aws.String(p.Cluster),
 			Tasks:   iptasks,
 		})
+		fmt.Println("TASK")
+		fmt.Println(tres.Tasks)
 		if err != nil {
 			log.Error(err)
 			return nil, err
@@ -335,15 +411,18 @@ func (p *AWSProvider) taskProcesses(tasks []string) (structs.Processes, error) {
 			}
 		}
 
+		expectedContainerCount := 0
+
 		for _, task := range ecsTasks {
+			expectedContainerCount += len(task.Containers)
 			if p.IsTest() {
-				p.fetchProcess(task, psch, errch)
+				p.fetchProcesses(task, psch, errch)
 			} else {
-				go p.fetchProcess(task, psch, errch)
+				go p.fetchProcesses(task, psch, errch)
 			}
 		}
 
-		for i := 0; i < len(ecsTasks); i++ {
+		for i := 0; i < expectedContainerCount; i++ {
 			select {
 			case <-time.After(30 * time.Second):
 				return nil, fmt.Errorf("timeout")
@@ -406,12 +485,19 @@ func (p *AWSProvider) ProcessRun(app, process string, opts structs.ProcessRunOpt
 	}
 
 	log.Success()
-	return arnToPid(*task.TaskArn), nil
+
+	pid, err := PIDFromTask(task, process)
+	if err != nil {
+		return "", err
+	}
+	return pid.String(), nil
 }
 
 // ProcessStop stops a Process
-func (p *AWSProvider) ProcessStop(app, pid string) error {
-	log := Logger.At("ProcessStop").Namespace("app=%q pid=%q", app, pid).Start()
+func (p *AWSProvider) ProcessStop(app, pidStr string) error {
+	log := Logger.At("ProcessStop").Namespace("app=%q pid=%q", app, pidStr).Start()
+
+	pid := ParsePID(pidStr)
 
 	arn, err := p.taskArnFromPid(pid)
 	if err != nil {
@@ -432,6 +518,7 @@ func (p *AWSProvider) ProcessStop(app, pid string) error {
 	return nil
 }
 
+// arnToPid - Parses a task arn and returns the last 12 characters of the UUID
 func arnToPid(arn string) string {
 	parts := strings.Split(arn, "-")
 	return parts[len(parts)-1]
@@ -467,8 +554,8 @@ func commandString(cs []string) string {
 	return strings.Join(cmd, " ")
 }
 
-func (p *AWSProvider) containerDefinitionForTask(arn string) (*ecs.ContainerDefinition, error) {
-	cd, ok := cache.Get("containerDefinitionForTask", arn).(*ecs.ContainerDefinition)
+func (p *AWSProvider) containerDefinitionsForTask(arn string) ([]*ecs.ContainerDefinition, error) {
+	cd, ok := cache.Get("containerDefinitionsForTask", arn).([]*ecs.ContainerDefinition)
 	if ok {
 		return cd, nil
 	}
@@ -484,12 +571,12 @@ func (p *AWSProvider) containerDefinitionForTask(arn string) (*ecs.ContainerDefi
 	}
 
 	if !p.SkipCache {
-		if err := cache.Set("containerDefinitionForTask", arn, res.TaskDefinition.ContainerDefinitions[0], 10*time.Second); err != nil {
+		if err := cache.Set("containerDefinitionsForTask", arn, res.TaskDefinition.ContainerDefinitions, 10*time.Second); err != nil {
 			return nil, err
 		}
 	}
 
-	return res.TaskDefinition.ContainerDefinitions[0], nil
+	return res.TaskDefinition.ContainerDefinitions, nil
 }
 
 func (p *AWSProvider) containerInstance(id string) (*ecs.ContainerInstance, error) {
@@ -577,13 +664,13 @@ func (p *AWSProvider) describeTask(arn string) (*ecs.Task, error) {
 	return res.Tasks[0], nil
 }
 
-func (p *AWSProvider) fetchProcess(task *ecs.Task, psch chan structs.Process, errch chan error) {
+func (p *AWSProvider) fetchProcesses(task *ecs.Task, psch chan structs.Process, errch chan error) {
 	if len(task.Containers) < 1 {
 		errch <- fmt.Errorf("invalid task: %s", *task.TaskDefinitionArn)
 		return
 	}
 
-	cd, err := p.containerDefinitionForTask(*task.TaskDefinitionArn)
+	cds, err := p.containerDefinitionsForTask(*task.TaskDefinitionArn)
 	if err != nil {
 		errch <- err
 		return
@@ -601,44 +688,10 @@ func (p *AWSProvider) fetchProcess(task *ecs.Task, psch chan structs.Process, er
 		return
 	}
 
-	env := map[string]string{}
-	for _, e := range cd.Environment {
-		env[*e.Name] = *e.Value
-	}
-
-	for _, o := range task.Overrides.ContainerOverrides {
-		for _, p := range o.Environment {
-			env[*p.Name] = *p.Value
-		}
-	}
-
-	container := task.Containers[0]
-
-	ports := []string{}
-	for _, p := range container.NetworkBindings {
-		ports = append(ports, fmt.Sprintf("%d:%d", *p.HostPort, *p.ContainerPort))
-	}
-
 	dc, err := p.dockerInstance(*ci.Ec2InstanceId)
 	if err != nil {
 		errch <- err
 		return
-	}
-
-	ps := structs.Process{
-		ID:       arnToPid(*task.TaskArn),
-		Name:     *container.Name,
-		App:      env["APP"],
-		Release:  env["RELEASE"],
-		Host:     *host.PrivateIpAddress,
-		Image:    *cd.Image,
-		Instance: *ci.Ec2InstanceId,
-		Ports:    ports,
-	}
-
-	// guard for nil
-	if task.StartedAt != nil {
-		ps.Started = *task.StartedAt
 	}
 
 	cs, err := dc.ListContainers(docker.ListContainersOptions{
@@ -651,65 +704,131 @@ func (p *AWSProvider) fetchProcess(task *ecs.Task, psch chan structs.Process, er
 		errch <- err
 		return
 	}
-	if len(cs) < 1 {
-		// no running container yet
-		psch <- ps
-		return
-	}
 
-	ic, err := dc.InspectContainer(cs[0].ID)
-	if err != nil {
-		errch <- err
-		return
-	}
+	containerMap := map[string]*docker.Container{}
 
-	cmd := commandString(ic.Config.Cmd)
-
-	// fetch the interior process
-	if ic.Config.Labels["convox.process.type"] == "oneoff" {
-		tr, err := dc.TopContainer(cs[0].ID, "")
+	for _, apiContainer := range cs {
+		inspectContainer, err := dc.InspectContainer(apiContainer.ID)
 		if err != nil {
 			errch <- err
 			return
 		}
-
-		// if there's an exec process grab it minus the "sh -c "
-		if len(tr.Processes) >= 2 && len(tr.Processes[1]) == 8 {
-			cmd = strings.Replace(tr.Processes[1][7], "sh -c ", "", 1)
-		} else {
-			cmd = ""
-		}
+		// The label for com.amazonaws.ecs.container-name maps to the task[i].Container.Name
+		containerMap[inspectContainer.Config.Labels["com.amazonaws.ecs.container-name"]] = inspectContainer
 	}
 
-	ps.Command = cmd
+	for containerIndex, container := range task.Containers {
+		fmt.Println("------------------------- HERE A------------------")
+		fmt.Println(*task.TaskArn)
+		fmt.Println(*container.ContainerArn)
+		cd := cds[containerIndex]
 
-	sch := make(chan *docker.Stats, 1)
-	err = dc.Stats(docker.StatsOptions{
-		ID:     cs[0].ID,
-		Stats:  sch,
-		Stream: false,
-	})
-	if err != nil {
-		fmt.Printf("docker stats error: %s", err)
+		env := map[string]string{}
+		for _, e := range cd.Environment {
+			env[*e.Name] = *e.Value
+		}
+
+		for _, o := range task.Overrides.ContainerOverrides {
+			// Skip if the overrides are not relevant for this container
+			if container.Name != o.Name {
+				continue
+			}
+			for _, p := range o.Environment {
+				env[*p.Name] = *p.Value
+			}
+		}
+
+		ports := []string{}
+		for _, p := range container.NetworkBindings {
+			ports = append(ports, fmt.Sprintf("%d:%d", *p.HostPort, *p.ContainerPort))
+		}
+
+		pid := PIDFromArns(*task.TaskArn, *container.ContainerArn)
+
+		ps := structs.Process{
+			ID:       pid.String(),
+			Name:     *container.Name,
+			App:      env["APP"],
+			Release:  env["RELEASE"],
+			Host:     *host.PrivateIpAddress,
+			Image:    *cd.Image,
+			Instance: *ci.Ec2InstanceId,
+			Ports:    ports,
+		}
+
+		// guard for nil
+		if task.StartedAt != nil {
+			ps.Started = *task.StartedAt
+		}
+
+		if len(cs) < 1 {
+			// no running container yet
+			psch <- ps
+			continue
+		}
+
+		// Look up the inspected container from the container map
+		ic := containerMap[*container.Name]
+
+		cmd := commandString(ic.Config.Cmd)
+
+		// fetch the interior process
+		if ic.Config.Labels["convox.process.type"] == "oneoff" {
+			tr, err := dc.TopContainer(ic.ID, "")
+			if err != nil {
+				errch <- err
+				return
+			}
+
+			// if there's an exec process grab it minus the "sh -c "
+			if len(tr.Processes) >= 2 && len(tr.Processes[1]) == 8 {
+				cmd = strings.Replace(tr.Processes[1][7], "sh -c ", "", 1)
+			} else {
+				cmd = ""
+			}
+		}
+
+		ps.Command = cmd
+		ps.Group = env["PROCESS_GROUP"]
+
+		sch := make(chan *docker.Stats, 1)
+		err = dc.Stats(docker.StatsOptions{
+			ID:     ic.ID,
+			Stats:  sch,
+			Stream: false,
+		})
+		if err != nil {
+			fmt.Printf("docker stats error: %s", err)
+			psch <- ps
+		}
+
+		stat := <-sch
+		if stat != nil {
+			pcpu := stat.PreCPUStats.CPUUsage.TotalUsage
+			psys := stat.PreCPUStats.SystemCPUUsage
+
+			ps.CPU = truncate(calculateCPUPercent(pcpu, psys, stat), 4)
+
+			if stat.MemoryStats.Limit > 0 {
+				ps.Memory = truncate(float64(stat.MemoryStats.Usage)/float64(stat.MemoryStats.Limit), 4)
+			}
+		}
+
 		psch <- ps
 	}
-
-	stat := <-sch
-	if stat != nil {
-		pcpu := stat.PreCPUStats.CPUUsage.TotalUsage
-		psys := stat.PreCPUStats.SystemCPUUsage
-
-		ps.CPU = truncate(calculateCPUPercent(pcpu, psys, stat), 4)
-
-		if stat.MemoryStats.Limit > 0 {
-			ps.Memory = truncate(float64(stat.MemoryStats.Usage)/float64(stat.MemoryStats.Limit), 4)
-		}
-	}
-
-	psch <- ps
 }
 
-func (p *AWSProvider) generateTaskDefinition(app, process, release string) (*ecs.RegisterTaskDefinitionInput, error) {
+// Recursive function to traverse the link connections in a specific group
+// Warning... this does not protect against any cycles. This assumes that AWS does those checks
+func allLinkedContainerNamesInGroup(containerMap map[string]*ecs.ContainerDefinition, topLink *ecs.ContainerDefinition) []string {
+	var names []string
+	for _, linkName := range topLink.Links {
+		names = append(names, allLinkedContainerNamesInGroup(containerMap, containerMap[*linkName])...)
+	}
+	return names
+}
+
+func (p *AWSProvider) generateTaskDefinition(app, process, release string, noDeps bool) (*ecs.RegisterTaskDefinitionInput, error) {
 	a, err := p.AppGet(app)
 	if err != nil {
 		return nil, err
@@ -730,6 +849,11 @@ func (p *AWSProvider) generateTaskDefinition(app, process, release string) (*ecs
 		return nil, fmt.Errorf("no such process: %s", process)
 	}
 
+	group, err := m.GetGroupForServiceName(s.Name)
+	if err != nil {
+		return nil, err
+	}
+
 	rs, err := p.describeStackResources(&cloudformation.DescribeStackResourcesInput{
 		StackName: aws.String(fmt.Sprintf("%s-%s", p.Rack, app)),
 	})
@@ -738,7 +862,7 @@ func (p *AWSProvider) generateTaskDefinition(app, process, release string) (*ecs
 	}
 
 	sarn := ""
-	sn := fmt.Sprintf("Service%s", upperName(process))
+	sn := fmt.Sprintf("Service%s", upperName(group.Name))
 
 	for _, r := range rs.StackResources {
 		if *r.LogicalResourceId == sn {
@@ -766,116 +890,146 @@ func (p *AWSProvider) generateTaskDefinition(app, process, release string) (*ecs
 	if err != nil {
 		return nil, err
 	}
-	if len(tres.TaskDefinition.ContainerDefinitions) < 1 {
+
+	containerDefMap := map[string]*ecs.ContainerDefinition{}
+	for _, containerDef := range tres.TaskDefinition.ContainerDefinitions {
+		containerDefMap[*containerDef.Name] = containerDef
+	}
+
+	targetProcessContainerDef, ok := containerDefMap[process]
+	if !ok {
 		return nil, fmt.Errorf("could not find container definition for process: %s", process)
 	}
 
-	senv := map[string]string{}
-
-	for _, e := range tres.TaskDefinition.ContainerDefinitions[0].Environment {
-		senv[*e.Name] = *e.Value
+	requiredContainerNames := []string{*targetProcessContainerDef.Name}
+	if !noDeps {
+		requiredContainerNames = append(requiredContainerNames, allLinkedContainerNamesInGroup(containerDefMap, targetProcessContainerDef)...)
 	}
 
-	cd := &ecs.ContainerDefinition{
-		DockerLabels: map[string]*string{
-			"convox.process.type": aws.String("oneoff"),
-		},
-		Essential:         aws.Bool(true),
-		Image:             aws.String(fmt.Sprintf("%s.dkr.ecr.%s.amazonaws.com/%s:%s.%s", a.Outputs["RegistryId"], p.Region, a.Outputs["RegistryRepository"], process, r.Build)),
-		MemoryReservation: aws.Int64(512),
-		Name:              aws.String(process),
-	}
+	var volumes []*ecs.Volume
+	var containerDefs []*ecs.ContainerDefinition
 
-	if len(s.Command.Array) > 0 {
-		cd.Command = make([]*string, len(s.Command.Array))
-		for i, c := range s.Command.Array {
-			cd.Command[i] = aws.String(c)
+	fmt.Printf("NAMES = %s\n", requiredContainerNames)
+
+	for _, containerName := range requiredContainerNames {
+		currentExistingContainerDef := containerDefMap[containerName]
+		currentService := m.Services[containerName]
+
+		senv := map[string]string{}
+
+		for _, e := range currentExistingContainerDef.Environment {
+			senv[*e.Name] = *e.Value
 		}
-	} else if s.Command.String != "" {
-		cd.Command = []*string{aws.String("sh"), aws.String("-c"), aws.String(s.Command.String)}
-	}
 
-	env := map[string]string{}
-
-	base := map[string]string{
-		"APP":        app,
-		"AWS_REGION": p.Region,
-		"LOG_GROUP":  a.Outputs["LogGroup"],
-		"PROCESS":    process,
-		"RACK":       p.Rack,
-		"RELEASE":    release,
-	}
-
-	for k, v := range base {
-		env[k] = v
-	}
-
-	for _, e := range s.Environment {
-		env[e.Name] = e.Value
-	}
-
-	for _, e := range strings.Split(r.Env, "\n") {
-		p := strings.SplitN(e, "=", 2)
-		if len(p) == 2 {
-			env[p[0]] = p[1]
+		cd := &ecs.ContainerDefinition{
+			DockerLabels: map[string]*string{
+				"convox.process.type": aws.String("oneoff"),
+				"convox.group":        aws.String(group.Name),
+			},
+			Essential:         aws.Bool(true),
+			Image:             aws.String(fmt.Sprintf("%s.dkr.ecr.%s.amazonaws.com/%s:%s.%s", a.Outputs["RegistryId"], p.Region, a.Outputs["RegistryRepository"], process, r.Build)),
+			MemoryReservation: aws.Int64(512),
+			Name:              aws.String(process),
 		}
-	}
 
-	vars := []string{"SCHEME", "USERNAME", "PASSWORD", "HOST", "PORT", "PATH", "URL"}
+		if len(currentService.Command.Array) > 0 {
+			cd.Command = make([]*string, len(currentService.Command.Array))
+			for i, c := range currentService.Command.Array {
+				cd.Command[i] = aws.String(c)
+			}
+		} else if currentService.Command.String != "" {
+			cd.Command = []*string{aws.String("sh"), aws.String("-c"), aws.String(currentService.Command.String)}
+		}
 
-	for _, l := range s.Links {
-		prefix := strings.Replace(strings.ToUpper(l), "-", "_", -1)
+		env := map[string]string{}
 
-		for _, v := range vars {
-			k := fmt.Sprintf("%s_%s", prefix, v)
+		base := map[string]string{
+			"APP":           app,
+			"AWS_REGION":    p.Region,
+			"LOG_GROUP":     a.Outputs["LogGroup"],
+			"PROCESS":       process,
+			"PROCESS_GROUP": group.Name,
+			"RACK":          p.Rack,
+			"RELEASE":       release,
+		}
 
-			lv, ok := senv[k]
-			if !ok {
-				return nil, fmt.Errorf("could not find link var: %s", k)
+		for k, v := range base {
+			env[k] = v
+		}
+
+		for _, e := range s.Environment {
+			env[e.Name] = e.Value
+		}
+
+		for _, e := range strings.Split(r.Env, "\n") {
+			p := strings.SplitN(e, "=", 2)
+			if len(p) == 2 {
+				env[p[0]] = p[1]
+			}
+		}
+
+		vars := []string{"SCHEME", "USERNAME", "PASSWORD", "HOST", "PORT", "PATH", "URL"}
+
+		for _, l := range s.Links {
+			// Skip if the link is another container
+			if group.HasLink(currentService.Name, l) {
+				continue
 			}
 
-			env[k] = lv
+			prefix := strings.Replace(strings.ToUpper(l), "-", "_", -1)
+
+			for _, v := range vars {
+				k := fmt.Sprintf("%s_%s", prefix, v)
+
+				lv, ok := senv[k]
+				if !ok {
+					return nil, fmt.Errorf("could not find link var: %s", k)
+				}
+
+				env[k] = lv
+			}
 		}
-	}
 
-	keys := []string{}
+		keys := []string{}
 
-	for k := range env {
-		keys = append(keys, k)
-	}
+		for k := range env {
+			keys = append(keys, k)
+		}
 
-	sort.Strings(keys)
+		sort.Strings(keys)
 
-	for _, k := range keys {
-		cd.Environment = append(cd.Environment, &ecs.KeyValuePair{
-			Name:  aws.String(k),
-			Value: aws.String(env[k]),
-		})
+		for _, k := range keys {
+			cd.Environment = append(cd.Environment, &ecs.KeyValuePair{
+				Name:  aws.String(k),
+				Value: aws.String(env[k]),
+			})
+		}
+
+		for i, mv := range s.MountableVolumes() {
+			name := fmt.Sprintf("volume-%d", i)
+			host := fmt.Sprintf("/volumes/%s-%s/%s%s", p.Rack, app, process, mv.Host)
+
+			volumes = append(volumes, &ecs.Volume{
+				Name: aws.String(name),
+				Host: &ecs.HostVolumeProperties{
+					SourcePath: aws.String(host),
+				},
+			})
+
+			cd.MountPoints = append(cd.MountPoints, &ecs.MountPoint{
+				SourceVolume:  aws.String(name),
+				ContainerPath: aws.String(mv.Container),
+				ReadOnly:      aws.Bool(false),
+			})
+		}
+		containerDefs = append(containerDefs, cd)
 	}
 
 	req := &ecs.RegisterTaskDefinitionInput{
-		ContainerDefinitions: []*ecs.ContainerDefinition{cd},
-		Family:               aws.String(fmt.Sprintf("%s-%s-%s", p.Rack, app, process)),
+		ContainerDefinitions: containerDefs,
+		Family:               aws.String(fmt.Sprintf("%s-%s-%s", p.Rack, app, group.Name)),
 	}
-
-	for i, mv := range s.MountableVolumes() {
-		name := fmt.Sprintf("volume-%d", i)
-		host := fmt.Sprintf("/volumes/%s-%s/%s%s", p.Rack, app, process, mv.Host)
-
-		req.Volumes = append(req.Volumes, &ecs.Volume{
-			Name: aws.String(name),
-			Host: &ecs.HostVolumeProperties{
-				SourcePath: aws.String(host),
-			},
-		})
-
-		req.ContainerDefinitions[0].MountPoints = append(req.ContainerDefinitions[0].MountPoints, &ecs.MountPoint{
-			SourceVolume:  aws.String(name),
-			ContainerPath: aws.String(mv.Container),
-			ReadOnly:      aws.Bool(false),
-		})
-	}
-
+	req.Volumes = append(req.Volumes, volumes...)
 	return req, nil
 }
 
@@ -921,9 +1075,12 @@ func (p *AWSProvider) processRunAttached(app, process string, opts structs.Proce
 		return "", fmt.Errorf("error starting container")
 	}
 
-	pid := arnToPid(*task.TaskArn)
+	pid, err := PIDFromTask(task, process)
+	if err != nil {
+		return "", err
+	}
 
-	err = p.ProcessExec(app, pid, opts.Command, opts.Stream, structs.ProcessExecOptions{
+	err = p.ProcessExec(app, pid.String(), opts.Command, opts.Stream, structs.ProcessExecOptions{
 		Height: opts.Height,
 		Width:  opts.Width,
 	})
@@ -931,7 +1088,7 @@ func (p *AWSProvider) processRunAttached(app, process string, opts structs.Proce
 		return "", err
 	}
 
-	return pid, nil
+	return pid.String(), nil
 }
 
 func (p *AWSProvider) resolveRelease(app, release string) (string, error) {
@@ -977,7 +1134,7 @@ func (p *AWSProvider) stopTask(arn string) error {
 	return err
 }
 
-func (p *AWSProvider) taskArnFromPid(pid string) (string, error) {
+func (p *AWSProvider) taskArnFromPid(pid *PID) (string, error) {
 	token := ""
 
 	for {
@@ -994,7 +1151,7 @@ func (p *AWSProvider) taskArnFromPid(pid string) (string, error) {
 		}
 
 		for _, arn := range res.TaskArns {
-			if arnToPid(*arn) == pid {
+			if pid.IsMatchingTask(*arn) {
 				return *arn, nil
 			}
 		}
@@ -1051,7 +1208,7 @@ func (p *AWSProvider) taskDefinitionForRun(app, process, release string) (string
 		return task, nil
 	}
 
-	td, err := p.generateTaskDefinition(app, process, release)
+	td, err := p.generateTaskDefinition(app, process, release, false)
 	if err != nil {
 		return "", err
 	}

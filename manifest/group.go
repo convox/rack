@@ -71,6 +71,15 @@ func (g Group) Links(serviceName string) []string {
 	return filteredLinks
 }
 
+func (g *Group) HasLink(serviceName string, searchLink string) bool {
+	for _, link := range g.Links(serviceName) {
+		if link == searchLink {
+			return true
+		}
+	}
+	return false
+}
+
 func (g *Group) HasService(serviceName string) bool {
 	_, ok := g.ServiceMap[serviceName]
 	return ok
@@ -131,6 +140,18 @@ func (m Manifest) ServiceGroup(name string) *Group {
 		}
 	}
 	return &group
+}
+
+func (m *Manifest) GetGroupForServiceName(serviceName string) (*Group, error) {
+	service, ok := m.Services[serviceName]
+	if !ok {
+		return nil, fmt.Errorf("Service `%s` does not exist", serviceName)
+	}
+
+	if groupName, ok := service.Labels["convox.group"]; ok {
+		return m.ServiceGroup(groupName), nil
+	}
+	return m.ServiceGroup(serviceName), nil
 }
 
 func addOrUpdateGroup(groupName string, service Service, groupMap map[string]*Group, groups []*Group) []*Group {
