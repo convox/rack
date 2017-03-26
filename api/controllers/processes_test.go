@@ -23,6 +23,7 @@ func TestProcessGet(t *testing.T) {
 		process := &structs.Process{
 			ID:       "foo",
 			App:      "myapp-staging",
+			Group:    "group",
 			Name:     "procname",
 			Release:  "R123",
 			Command:  "ls -la",
@@ -41,7 +42,7 @@ func TestProcessGet(t *testing.T) {
 
 		if assert.Nil(t, hf.Request("GET", "/apps/myapp-staging/processes/foo", nil)) {
 			hf.AssertCode(t, 200)
-			hf.AssertJSON(t, "{\"app\":\"myapp-staging\",\"command\":\"ls -la\",\"cpu\":0.345,\"host\":\"127.0.0.1\",\"id\":\"foo\",\"image\":\"image:tag\",\"instance\":\"i-1234\",\"memory\":0.456,\"name\":\"procname\",\"ports\":[\"80\",\"443\"],\"release\":\"R123\",\"started\":\"2016-09-10T04:59:27Z\"}")
+			hf.AssertJSON(t, "{\"app\":\"myapp-staging\",\"command\":\"ls -la\",\"cpu\":0.345,\"group\":\"group\",\"host\":\"127.0.0.1\",\"id\":\"foo\",\"image\":\"image:tag\",\"instance\":\"i-1234\",\"memory\":0.456,\"name\":\"procname\",\"ports\":[\"80\",\"443\"],\"release\":\"R123\",\"started\":\"2016-09-10T04:59:27Z\"}")
 		}
 	})
 
@@ -63,6 +64,7 @@ func TestProcessList(t *testing.T) {
 			structs.Process{
 				ID:       "foo",
 				App:      "myapp-staging",
+				Group:    "group",
 				Name:     "procname",
 				Release:  "R123",
 				Command:  "ls -la",
@@ -82,7 +84,7 @@ func TestProcessList(t *testing.T) {
 
 		if assert.Nil(t, hf.Request("GET", "/apps/myapp-staging/processes", nil)) {
 			hf.AssertCode(t, 200)
-			hf.AssertJSON(t, "[{\"app\":\"myapp-staging\",\"command\":\"ls -la\",\"cpu\":0.345,\"host\":\"127.0.0.1\",\"id\":\"foo\",\"image\":\"image:tag\",\"instance\":\"i-1234\",\"memory\":0.456,\"name\":\"procname\",\"ports\":[\"80\",\"443\"],\"release\":\"R123\",\"started\":\"2016-09-10T04:59:27Z\"}]")
+			hf.AssertJSON(t, "[{\"app\":\"myapp-staging\",\"command\":\"ls -la\",\"cpu\":0.345,\"group\":\"group\",\"host\":\"127.0.0.1\",\"id\":\"foo\",\"image\":\"image:tag\",\"instance\":\"i-1234\",\"memory\":0.456,\"name\":\"procname\",\"ports\":[\"80\",\"443\"],\"release\":\"R123\",\"started\":\"2016-09-10T04:59:27Z\"}]")
 		}
 	})
 
