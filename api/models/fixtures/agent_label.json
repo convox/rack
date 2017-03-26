@@ -26,6 +26,18 @@
         }
       ]
     },
+    "EnabledAgent1Group": {
+      "Fn::Not": [
+        {
+          "Fn::Equals": [
+            {
+              "Ref": "Agent1GroupFormation"
+            },
+            "-1"
+          ]
+        }
+      ]
+    },
     "EnabledAgent2": {
       "Fn::Not": [
         {
@@ -43,6 +55,18 @@
         }
       ]
     },
+    "EnabledAgent2Group": {
+      "Fn::Not": [
+        {
+          "Fn::Equals": [
+            {
+              "Ref": "Agent2GroupFormation"
+            },
+            "-1"
+          ]
+        }
+      ]
+    },
     "EnabledNotagent": {
       "Fn::Not": [
         {
@@ -54,6 +78,18 @@
                   "Ref": "NotagentFormation"
                 }
               ]
+            },
+            "-1"
+          ]
+        }
+      ]
+    },
+    "EnabledNotagentGroup": {
+      "Fn::Not": [
+        {
+          "Fn::Equals": [
+            {
+              "Ref": "NotagentGroupFormation"
             },
             "-1"
           ]
@@ -181,10 +217,20 @@
       "Description": "Number of processes to run, CPU units to reserve, and MB of RAM to reserve",
       "Type": "CommaDelimitedList"
     },
+    "Agent1GroupFormation": {
+      "Default": "1",
+      "Description": "Number of processes to run",
+      "Type": "Number"
+    },
     "Agent2Formation": {
       "Default": "0,0,256",
       "Description": "Number of processes to run, CPU units to reserve, and MB of RAM to reserve",
       "Type": "CommaDelimitedList"
+    },
+    "Agent2GroupFormation": {
+      "Default": "1",
+      "Description": "Number of processes to run",
+      "Type": "Number"
     },
     "Cluster": {
       "Default": "",
@@ -229,6 +275,11 @@
       "Default": "1,0,256",
       "Description": "Number of processes to run, CPU units to reserve, and MB of RAM to reserve",
       "Type": "CommaDelimitedList"
+    },
+    "NotagentGroupFormation": {
+      "Default": "1",
+      "Description": "Number of processes to run",
+      "Type": "Number"
     },
     "Private": {
       "AllowedValues": [
@@ -286,7 +337,7 @@
     }
   },
   "Resources": {
-    "Agent1ECSTaskDefinition": {
+    "Agent1GroupECSTaskDefinition": {
       "DependsOn": [
         "CustomTopic",
         "ServiceRole"
@@ -331,6 +382,9 @@
                 }
               ]
             },
+            "DockerLabels": {
+              "convox.group": "agent1"
+            },
             "Environment": {
               "APP": "httpd",
               "AWS_REGION": "test",
@@ -338,6 +392,7 @@
                 "Ref": "LogGroup"
               },
               "PROCESS": "agent1",
+              "PROCESS_GROUP": "agent1",
               "RACK": "convox-test"
             },
             "ExtraHosts": [
@@ -346,6 +401,7 @@
               }
             ],
             "Image": "datadog/docker-dd-agent:latest",
+            "Links": [],
             "Memory": {
               "Fn::Select": [
                 2,
@@ -361,6 +417,7 @@
               }
             ],
             "Privileged": "true",
+            "SecureEnvironment": false,
             "Services": [
               {
                 "Ref": "AWS::NoValue"
@@ -447,7 +504,7 @@
       },
       "Type": "AWS::Events::Rule"
     },
-    "Agent2ECSTaskDefinition": {
+    "Agent2GroupECSTaskDefinition": {
       "DependsOn": [
         "CustomTopic",
         "ServiceRole"
@@ -492,6 +549,9 @@
                 }
               ]
             },
+            "DockerLabels": {
+              "convox.group": "agent2"
+            },
             "Environment": {
               "APP": "httpd",
               "AWS_REGION": "test",
@@ -499,6 +559,7 @@
                 "Ref": "LogGroup"
               },
               "PROCESS": "agent2",
+              "PROCESS_GROUP": "agent2",
               "RACK": "convox-test"
             },
             "ExtraHosts": [
@@ -507,6 +568,7 @@
               }
             ],
             "Image": "datadog/docker-dd-agent:latest",
+            "Links": [],
             "Memory": {
               "Fn::Select": [
                 2,
@@ -522,6 +584,7 @@
               }
             ],
             "Privileged": "true",
+            "SecureEnvironment": false,
             "Services": [
               {
                 "Ref": "AWS::NoValue"
@@ -940,7 +1003,7 @@
     "LogGroup": {
       "Type": "AWS::Logs::LogGroup"
     },
-    "NotagentECSTaskDefinition": {
+    "NotagentGroupECSTaskDefinition": {
       "DependsOn": [
         "CustomTopic",
         "ServiceRole"
@@ -985,6 +1048,9 @@
                 }
               ]
             },
+            "DockerLabels": {
+              "convox.group": "notagent"
+            },
             "Environment": {
               "APP": "httpd",
               "AWS_REGION": "test",
@@ -992,6 +1058,7 @@
                 "Ref": "LogGroup"
               },
               "PROCESS": "notagent",
+              "PROCESS_GROUP": "notagent",
               "RACK": "convox-test"
             },
             "ExtraHosts": [
@@ -1000,6 +1067,7 @@
               }
             ],
             "Image": "",
+            "Links": [],
             "Memory": {
               "Fn::Select": [
                 2,
@@ -1015,6 +1083,7 @@
               }
             ],
             "Privileged": "false",
+            "SecureEnvironment": false,
             "Services": [
               {
                 "Ref": "AWS::NoValue"
@@ -1047,7 +1116,7 @@
       "Version": "1.0"
     },
     "ServiceAgent1": {
-      "Condition": "EnabledAgent1",
+      "Condition": "EnabledAgent1Group",
       "DependsOn": [
         "CustomTopic",
         "ServiceRole"
@@ -1061,21 +1130,16 @@
           "MinimumHealthyPercent": "100"
         },
         "DesiredCount": {
-          "Fn::Select": [
-            0,
-            {
-              "Ref": "Agent1Formation"
-            }
-          ]
+          "Ref": "Agent1GroupFormation"
         },
         "TaskDefinition": {
-          "Ref": "Agent1ECSTaskDefinition"
+          "Ref": "Agent1GroupECSTaskDefinition"
         }
       },
       "Type": "AWS::ECS::Service"
     },
     "ServiceAgent2": {
-      "Condition": "EnabledAgent2",
+      "Condition": "EnabledAgent2Group",
       "DependsOn": [
         "CustomTopic",
         "ServiceRole"
@@ -1089,21 +1153,16 @@
           "MinimumHealthyPercent": "100"
         },
         "DesiredCount": {
-          "Fn::Select": [
-            0,
-            {
-              "Ref": "Agent2Formation"
-            }
-          ]
+          "Ref": "Agent2GroupFormation"
         },
         "TaskDefinition": {
-          "Ref": "Agent2ECSTaskDefinition"
+          "Ref": "Agent2GroupECSTaskDefinition"
         }
       },
       "Type": "AWS::ECS::Service"
     },
     "ServiceNotagent": {
-      "Condition": "EnabledNotagent",
+      "Condition": "EnabledNotagentGroup",
       "DependsOn": [
         "CustomTopic",
         "ServiceRole"
@@ -1117,15 +1176,10 @@
           "MinimumHealthyPercent": "100"
         },
         "DesiredCount": {
-          "Fn::Select": [
-            0,
-            {
-              "Ref": "NotagentFormation"
-            }
-          ]
+          "Ref": "NotagentGroupFormation"
         },
         "TaskDefinition": {
-          "Ref": "NotagentECSTaskDefinition"
+          "Ref": "NotagentGroupECSTaskDefinition"
         }
       },
       "Type": "AWS::ECS::Service"

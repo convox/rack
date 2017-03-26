@@ -393,6 +393,9 @@
                 }
               ]
             },
+            "DockerLabels": {
+              "convox.group": "main"
+            },
             "Environment": {
               "APP": "httpd",
               "AWS_REGION": "test",
@@ -402,6 +405,7 @@
                 "Ref": "LogGroup"
               },
               "PROCESS": "main",
+              "PROCESS_GROUP": "main",
               "RACK": "convox-test"
             },
             "ExtraHosts": [

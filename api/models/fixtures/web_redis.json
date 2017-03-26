@@ -831,6 +831,9 @@
                 }
               ]
             },
+            "DockerLabels": {
+              "convox.group": "redis"
+            },
             "Environment": {
               "APP": "httpd",
               "AWS_REGION": "test",
@@ -843,6 +846,7 @@
                 "Ref": "LogGroup"
               },
               "PROCESS": "redis",
+              "PROCESS_GROUP": "redis",
               "RACK": "convox-test"
             },
             "ExtraHosts": [
@@ -1096,6 +1100,9 @@
                 }
               ]
             },
+            "DockerLabels": {
+              "convox.group": "web"
+            },
             "Environment": {
               "APP": "httpd",
               "AWS_REGION": "test",
@@ -1103,6 +1110,7 @@
                 "Ref": "LogGroup"
               },
               "PROCESS": "web",
+              "PROCESS_GROUP": "web",
               "RACK": "convox-test"
             },
             "ExtraHosts": [

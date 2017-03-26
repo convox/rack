@@ -825,6 +825,9 @@
                 }
               ]
             },
+            "DockerLabels": {
+              "convox.group": "postgres"
+            },
             "Environment": {
               "APP": "httpd",
               "AWS_REGION": "test",
@@ -834,6 +837,7 @@
               "POSTGRES_PASSWORD": "password",
               "POSTGRES_USERNAME": "postgres",
               "PROCESS": "postgres",
+              "PROCESS_GROUP": "postgres",
               "RACK": "convox-test"
             },
             "ExtraHosts": [
@@ -1087,6 +1091,9 @@
                 }
               ]
             },
+            "DockerLabels": {
+              "convox.group": "web"
+            },
             "Environment": {
               "APP": "httpd",
               "AWS_REGION": "test",
@@ -1094,6 +1101,7 @@
                 "Ref": "LogGroup"
               },
               "PROCESS": "web",
+              "PROCESS_GROUP": "web",
               "RACK": "convox-test"
             },
             "ExtraHosts": [
