@@ -27,23 +27,27 @@ func lastSectionOfArn(arn string) string {
 	return parts[len(parts)-1]
 }
 
+// PID - Abstraction to deal with process ids when reference both a task and one of it's containers
 type PID struct {
-	TaskId      string
-	ContainerId string
+	TaskID      string
+	ContainerID string
 }
 
 func (pid *PID) String() string {
-	return fmt.Sprintf("%s-%s", pid.TaskId, pid.ContainerId)
+	return fmt.Sprintf("%s-%s", pid.TaskID, pid.ContainerID)
 }
 
+// IsMatchingTask - Tests if the ecs task matches this PID
 func (pid *PID) IsMatchingTask(taskArn string) bool {
-	return lastSectionOfArn(taskArn) == pid.TaskId
+	return lastSectionOfArn(taskArn) == pid.TaskID
 }
 
+// IsMatchingContainer - Tests if the container matches this PID
 func (pid *PID) IsMatchingContainer(taskArn string, containerArn string) bool {
-	return lastSectionOfArn(taskArn) == pid.TaskId && lastSectionOfArn(containerArn) == pid.ContainerId
+	return lastSectionOfArn(taskArn) == pid.TaskID && lastSectionOfArn(containerArn) == pid.ContainerID
 }
 
+// FindMatchingContainerInTask - Finds a matching container given the current ecs task
 func (pid *PID) FindMatchingContainerInTask(task *ecs.Task) *ecs.Container {
 	for _, container := range task.Containers {
 		if pid.IsMatchingContainer(*task.TaskArn, *container.ContainerArn) {
@@ -53,21 +57,24 @@ func (pid *PID) FindMatchingContainerInTask(task *ecs.Task) *ecs.Container {
 	return nil
 }
 
+// ParsePID - Parses a pid into it's constituent parts
 func ParsePID(pidStr string) *PID {
 	pidParts := strings.Split(pidStr, "-")
 	return &PID{
-		TaskId:      pidParts[0],
-		ContainerId: pidParts[1],
+		TaskID:      pidParts[0],
+		ContainerID: pidParts[1],
 	}
 }
 
+// PIDFromArns - Derives a pid from ecs task and container arns
 func PIDFromArns(taskArn string, containerArn string) *PID {
 	return &PID{
-		TaskId:      lastSectionOfArn(taskArn),
-		ContainerId: lastSectionOfArn(containerArn),
+		TaskID:      lastSectionOfArn(taskArn),
+		ContainerID: lastSectionOfArn(containerArn),
 	}
 }
 
+// PIDFromTask - Derives a pid from am ecs task and the target container name
 func PIDFromTask(task *ecs.Task, containerName string) (*PID, error) {
 	var containerArn string
 	for _, container := range task.Containers {
@@ -96,7 +103,6 @@ func (p *AWSProvider) ProcessExec(app, pidStr, command string, stream io.ReadWri
 		log.Error(err)
 		return err
 	}
-
 
 	pidFound := false
 	for _, p := range pss {

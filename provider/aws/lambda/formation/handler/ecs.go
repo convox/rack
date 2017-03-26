@@ -114,10 +114,10 @@ func ECSTaskDefinitionCreate(req Request) (string, map[string]string, error) {
 
 	var key string
 
-	envUrl, ok := req.ResourceProperties["Environment"].(string)
+	envURL, ok := req.ResourceProperties["Environment"].(string)
 
-	if ok && envUrl != "" {
-		res, err := http.Get(envUrl)
+	if ok && envURL != "" {
+		res, err := http.Get(envURL)
 
 		if err != nil {
 			return "invalid", nil, err
@@ -219,11 +219,11 @@ func ECSTaskDefinitionCreate(req Request) (string, map[string]string, error) {
 			}
 		}
 
-		if secureEnv && envUrl != "" {
+		if secureEnv && envURL != "" {
 			fmt.Printf("Configuring for a secure environment\n")
 			r.ContainerDefinitions[i].Environment = append(r.ContainerDefinitions[i].Environment, &ecs.KeyValuePair{
 				Name:  aws.String("SECURE_ENVIRONMENT_URL"),
-				Value: aws.String(envUrl),
+				Value: aws.String(envURL),
 			})
 
 			r.ContainerDefinitions[i].Environment = append(r.ContainerDefinitions[i].Environment, &ecs.KeyValuePair{
