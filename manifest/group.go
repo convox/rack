@@ -5,8 +5,6 @@ import (
 	"sort"
 )
 
-const ServiceMapSizeIncrement = 5
-
 // Group - A service group
 type Group struct {
 	Name           string
@@ -17,7 +15,7 @@ type Group struct {
 
 // NewGroup - Creates a new group
 func NewGroup(name string) Group {
-	serviceMap := make(map[string]*Service, ServiceMapSizeIncrement)
+	serviceMap := map[string]*Service{}
 	var services []*Service
 	return Group{
 		Name:       name,
@@ -30,15 +28,6 @@ func NewGroup(name string) Group {
 func (g *Group) AddService(service Service) {
 	g.Services = append(g.Services, &service)
 
-	// Add the service to the service map.
-	// If it's too big then grow the map
-	if len(g.Services)%ServiceMapSizeIncrement == 0 {
-		newServiceMap := make(map[string]*Service, g.serviceMapSize+ServiceMapSizeIncrement)
-		for serviceName, service := range g.ServiceMap {
-			newServiceMap[serviceName] = service
-		}
-		g.ServiceMap = newServiceMap
-	}
 	g.ServiceMap[service.Name] = &service
 }
 
