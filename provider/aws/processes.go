@@ -77,7 +77,7 @@ func PIDFromTask(task *ecs.Task, containerName string) (*PID, error) {
 		}
 	}
 	if containerArn == "" {
-		return nil, fmt.Errorf("Cannot find container `%s` in task `%s`", containerName, *task.TaskDefinitionArn)
+		return nil, fmt.Errorf("Cannot find container `%s` in task `%s`", containerName, *task.TaskArn)
 	}
 	return PIDFromArns(*task.TaskArn, containerArn), nil
 }
@@ -88,7 +88,6 @@ const StatusCodePrefix = "F1E49A85-0AD7-4AEF-A618-C249C6E6568D:"
 // ProcessExec runs a command in an existing Process
 func (p *AWSProvider) ProcessExec(app, pidStr, command string, stream io.ReadWriter, opts structs.ProcessExecOptions) error {
 	log := Logger.At("ProcessExec").Namespace("app=%q pid=%q command=%q", app, pidStr, command).Start()
-	log.Logf("Hello")
 
 	pid := ParsePID(pidStr)
 
@@ -98,8 +97,6 @@ func (p *AWSProvider) ProcessExec(app, pidStr, command string, stream io.ReadWri
 		return err
 	}
 
-	log.Logf("PROCESS SEARCH = %s", pid)
-	log.Logf("PROCESS LIST = %s", pss)
 
 	pidFound := false
 	for _, p := range pss {
