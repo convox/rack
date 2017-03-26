@@ -91,11 +91,16 @@ func (g Group) HasBalancer() bool {
 
 // DeploymentMinimum - Returns the deployment minimum of the current group
 func (g Group) DeploymentMinimum() string {
+	// FIXME. This and `DeploymentMaximum` are not well defined for groups.
+	// Where will that be defined for a group in a docker-compose file?
+	// Some ideas
+	// - If a group is named after a specific service, use
 	return "100"
 }
 
 // DeploymentMaximum - Returns the deployment maximum of the current group
 func (g Group) DeploymentMaximum() string {
+	// FIXME see `DeploymentMinimum`
 	return "200"
 }
 
