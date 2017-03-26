@@ -92,6 +92,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		io.WriteString(w, cycle.Response.Body)
 	} else {
 		fmt.Println("Request does not match next cycle.")
+		fmt.Printf("Remaining cycles: %d\n", len(h.cycles))
 		fmt.Println("CYCLE REQUEST:")
 		fmt.Println(cycle.Request.String())
 		fmt.Println("ACTUAL REQUEST:")
