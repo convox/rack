@@ -265,13 +265,11 @@ func ECSTaskDefinitionCreate(req Request) (string, map[string]string, error) {
 		}
 
 		// Set any docker labels
-		fmt.Fprintln(os.Stderr, "DockerLabels start")
-		if dockerLabels, ok := task["DockerLabels"].(map[string]string); ok {
-			fmt.Fprintf(os.Stderr, "DockerLabels %s\n", dockerLabels)
+		if dockerLabels, ok := task["DockerLabels"].(map[string]interface{}); ok {
 			r.ContainerDefinitions[i].DockerLabels = make(map[string]*string, len(dockerLabels))
 
 			for key, value := range dockerLabels {
-				r.ContainerDefinitions[i].DockerLabels[key] = aws.String(value)
+				r.ContainerDefinitions[i].DockerLabels[key] = aws.String(value.(string))
 			}
 		}
 

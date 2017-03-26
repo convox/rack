@@ -789,7 +789,7 @@ func (p *AWSProvider) fetchProcesses(task *ecs.Task, psch chan structs.Process, 
 		}
 
 		ps.Command = cmd
-		ps.Group = env["PROCESS_GROUP"]
+		ps.Group = ic.Config.Labels["convox.group"]
 
 		sch := make(chan *docker.Stats, 1)
 		err = dc.Stats(docker.StatsOptions{
