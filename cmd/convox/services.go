@@ -256,7 +256,7 @@ func cmdResourceCreate(c *cli.Context) error {
 	// give the rack a few seconds to start updating
 	time.Sleep(5 * time.Second)
 
-	if err := waitForService(c, options["name"]); err != nil {
+	if err := waitForResource(c, options["name"]); err != nil {
 		return stdcli.Error(err)
 	}
 
@@ -301,7 +301,7 @@ func cmdResourceUpdate(c *cli.Context) error {
 	// give the rack a few seconds to start updating
 	time.Sleep(5 * time.Second)
 
-	if err := waitForService(c, name); err != nil {
+	if err := waitForResource(c, name); err != nil {
 		return stdcli.Error(err)
 	}
 
@@ -331,7 +331,7 @@ func cmdResourceDelete(c *cli.Context) error {
 	// give the rack a few seconds to start updating
 	time.Sleep(5 * time.Second)
 
-	if err := waitForService(c, name); err != nil {
+	if err := waitForResource(c, name); err != nil {
 		return stdcli.Error(err)
 	}
 
@@ -489,7 +489,7 @@ func cmdResourceProxy(c *cli.Context) error {
 	return nil
 }
 
-func waitForService(c *cli.Context, n string) error {
+func waitForResource(c *cli.Context, n string) error {
 	timeout := time.After(30 * time.Minute)
 	tick := time.Tick(2 * time.Second)
 
