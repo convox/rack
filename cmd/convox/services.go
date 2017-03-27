@@ -84,13 +84,7 @@ func init() {
 				Usage:           "<type> [--name=value] [--option-name=value] [options]\n\n" + usage,
 				ArgsUsage:       "<type>",
 				Action:          cmdResourceCreate,
-				Flags: []cli.Flag{rackFlag,
-					cli.BoolFlag{
-						Name:   "wait",
-						EnvVar: "CONVOX_WAIT",
-						Usage:  "wait for resource update to finish before returning",
-					},
-				},
+				Flags:           []cli.Flag{rackFlag, waitFlag},
 				SkipFlagParsing: true,
 			},
 			{
@@ -99,13 +93,7 @@ func init() {
 				Usage:       "<name> [options]",
 				ArgsUsage:   "<name>",
 				Action:      cmdResourceDelete,
-				Flags: []cli.Flag{rackFlag,
-					cli.BoolFlag{
-						Name:   "wait",
-						EnvVar: "CONVOX_WAIT",
-						Usage:  "wait for resource update to finish before returning",
-					},
-				},
+				Flags:       []cli.Flag{rackFlag, waitFlag},
 			},
 			{
 				Name:            "update",
@@ -114,13 +102,7 @@ func init() {
 				Usage:           "<name> --option-name=value [--option-name=value]\n\n" + usage,
 				ArgsUsage:       "<name>",
 				Action:          cmdResourceUpdate,
-				Flags: []cli.Flag{rackFlag,
-					cli.BoolFlag{
-						Name:   "wait",
-						EnvVar: "CONVOX_WAIT",
-						Usage:  "wait for resource update to finish before returning",
-					},
-				},
+				Flags:           []cli.Flag{rackFlag, waitFlag},
 				SkipFlagParsing: true,
 			},
 			{
