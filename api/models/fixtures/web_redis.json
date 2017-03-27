@@ -67,6 +67,14 @@
         "Yes"
       ]
     },
+    "NativeLogging": {
+      "Fn::Equals": [
+        {
+          "Ref": "NativeLogging"
+        },
+        "Yes"
+      ]
+    },
     "Private": {
       "Fn::Equals": [
         {
@@ -274,6 +282,15 @@
     "Key": {
       "Default": "",
       "Description": "",
+      "Type": "String"
+    },
+    "NativeLogging": {
+      "AllowedValues": [
+        "Yes",
+        "No"
+      ],
+      "Default": "No",
+      "Description": "Use native ECS awslogs driver over convox/agent for logging",
       "Type": "String"
     },
     "Private": {
@@ -806,7 +823,15 @@
               "LINK_SCHEME": "redis",
               "LINK_USERNAME": "user",
               "LOG_GROUP": {
-                "Ref": "LogGroup"
+                "Fn::If": [
+                  "NativeLogging",
+                  {
+                    "Ref": "AWS::NoValue"
+                  },
+                  {
+                    "Ref": "LogGroup"
+                  }
+                ]
               },
               "PROCESS": "redis",
               "RACK": "convox-test"
@@ -817,6 +842,26 @@
               }
             ],
             "Image": "convox/redis",
+            "LogConfiguration": {
+              "Fn::If": [
+                "NativeLogging",
+                {
+                  "LogDriver": "awslogs",
+                  "Options": {
+                    "awslogs-group": {
+                      "Ref": "LogGroup"
+                    },
+                    "awslogs-region": {
+                      "Ref": "AWS::Region"
+                    },
+                    "awslogs-stream-prefix": "convox"
+                  }
+                },
+                {
+                  "Ref": "AWS::NoValue"
+                }
+              ]
+            },
             "Memory": {
               "Fn::Select": [
                 2,
@@ -1074,7 +1119,15 @@
               "APP": "httpd",
               "AWS_REGION": "test",
               "LOG_GROUP": {
-                "Ref": "LogGroup"
+                "Fn::If": [
+                  "NativeLogging",
+                  {
+                    "Ref": "AWS::NoValue"
+                  },
+                  {
+                    "Ref": "LogGroup"
+                  }
+                ]
               },
               "PROCESS": "web",
               "RACK": "convox-test"
@@ -1085,6 +1138,26 @@
               }
             ],
             "Image": "",
+            "LogConfiguration": {
+              "Fn::If": [
+                "NativeLogging",
+                {
+                  "LogDriver": "awslogs",
+                  "Options": {
+                    "awslogs-group": {
+                      "Ref": "LogGroup"
+                    },
+                    "awslogs-region": {
+                      "Ref": "AWS::Region"
+                    },
+                    "awslogs-stream-prefix": "convox"
+                  }
+                },
+                {
+                  "Ref": "AWS::NoValue"
+                }
+              ]
+            },
             "Memory": {
               "Fn::Select": [
                 2,
