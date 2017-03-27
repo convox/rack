@@ -228,7 +228,7 @@ func cmdResourceCreate(c *cli.Context) error {
 		return stdcli.Error(err)
 	}
 
-	if !c.Bool("wait") {
+	if !c.Bool("wait") && options["wait"] != "true" {
 		fmt.Println("CREATING")
 		return nil
 	}
@@ -273,7 +273,7 @@ func cmdResourceUpdate(c *cli.Context) error {
 		return stdcli.Error(err)
 	}
 
-	if !c.Bool("wait") {
+	if !c.Bool("wait") && options["wait"] != "true" {
 		fmt.Println("UPDATING")
 		return nil
 	}
