@@ -133,12 +133,12 @@ func (p *AWSProvider) SystemGet() (*structs.System, error) {
 
 // SystemLogs streams logs for the Rack
 func (p *AWSProvider) SystemLogs(w io.Writer, opts structs.LogStreamOptions) error {
-	system, err := p.describeStack(p.Rack)
+	logGroup, err := p.stackResource(p.Rack, "LogGroup")
 	if err != nil {
 		return err
 	}
 
-	return p.subscribeLogs(w, stackOutputs(system)["LogGroup"], opts)
+	return p.subscribeLogs(w, *logGroup.PhysicalResourceId, opts)
 }
 
 func (p *AWSProvider) SystemProcesses(opts structs.SystemProcessesOptions) (structs.Processes, error) {

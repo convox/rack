@@ -15,7 +15,8 @@ func init() {
 	stdcli.RegisterCommand(cli.Command{
 		Name:        "run",
 		Description: "run a one-off command in your Convox rack",
-		Usage:       "[process] [command]",
+		Usage:       "<process name> <command> [options]",
+		ArgsUsage:   "<process name> <command>",
 		Action:      cmdRun,
 		Flags: []cli.Flag{
 			appFlag,
@@ -26,13 +27,16 @@ func init() {
 			},
 			cli.StringFlag{
 				Name:  "release, r",
-				Usage: "Release Name. Defaults to current release.",
+				Usage: "release name (defaults to current release)",
 			},
 		},
 	})
 }
 
 func cmdRun(c *cli.Context) error {
+	stdcli.NeedHelp(c)
+	stdcli.NeedArg(c, -2)
+
 	if c.Bool("detach") {
 		return cmdRunDetached(c)
 	}
@@ -42,18 +46,13 @@ func cmdRun(c *cli.Context) error {
 		return stdcli.Error(err)
 	}
 
-	if len(c.Args()) < 2 {
-		stdcli.Usage(c, "run")
-		return nil
-	}
-
-	ps := c.Args()[0]
+	ps := c.Args().First()
 	err = validateProcessId(c, app, ps)
 	if err != nil {
 		return stdcli.Error(err)
 	}
 
-	args := strings.Join(c.Args()[1:], " ")
+	args := strings.Join(c.Args().Tail(), " ")
 
 	release := c.String("release")
 
@@ -66,29 +65,20 @@ func cmdRun(c *cli.Context) error {
 }
 
 func cmdRunDetached(c *cli.Context) error {
+	stdcli.NeedArg(c, -2)
+
 	_, app, err := stdcli.DirApp(c, ".")
 	if err != nil {
 		return err
 	}
 
-	if len(c.Args()) < 1 {
-		stdcli.Usage(c, "run")
-		return nil
-	}
-
-	ps := c.Args()[0]
+	ps := c.Args().First()
 	err = validateProcessId(c, app, ps)
 	if err != nil {
 		return stdcli.Error(err)
 	}
 
-	command := ""
-
-	if len(c.Args()) > 1 {
-		args := c.Args()[1:]
-		command = strings.Join(args, " ")
-	}
-
+	command := strings.Join(c.Args().Tail(), " ")
 	release := c.String("release")
 
 	fmt.Printf("Running `%s` on %s... ", command, ps)

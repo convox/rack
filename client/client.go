@@ -150,14 +150,28 @@ func (c *Client) PostMultipart(path string, opts PostMultipartOptions, out inter
 
 		var size int64
 		for _, file := range opts.Files {
-			if rs, ok := file.(io.ReadSeeker); ok {
-				s, err := io.Copy(ioutil.Discard, rs)
+			switch f := file.(type) {
+			// Seek() is illegal for pipded /dev/stdin so lets try to get the stat size first
+			case *os.File:
+				stat, err := f.Stat()
+				if err != nil {
+					return err
+				}
+
+				size += stat.Size()
+
+			case io.ReadSeeker:
+				s, err := io.Copy(ioutil.Discard, f)
 				if err != nil {
 					return err
 				}
 				size += s
-				rs.Seek(0, 0) // io.SeekStart == 0 in go1.7
-			} else {
+				_, err = f.Seek(0, 0) // io.SeekStart == 0 in go1.7
+				if err != nil {
+					return err
+				}
+
+			default:
 				size = 0 // if even one file isn't seekable, bail
 				break
 			}

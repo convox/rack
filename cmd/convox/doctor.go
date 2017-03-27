@@ -775,8 +775,8 @@ func checkMissingDockerFiles(m *manifest.Manifest) error {
 
 	for _, s := range m.Services {
 		if s.Image == "" {
-			dockerFile := coalesce(s.Dockerfile, "Dockerfile")
-			dockerFile = coalesce(s.Build.Dockerfile, dockerFile)
+			dockerFile := helpers.Coalesce(s.Dockerfile, "Dockerfile")
+			dockerFile = helpers.Coalesce(s.Build.Dockerfile, dockerFile)
 			if !helpers.Exists(fmt.Sprintf("%s/%s", s.Build.Context, dockerFile)) {
 				diagnose(Diagnosis{
 					Title:       title,

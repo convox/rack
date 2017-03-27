@@ -275,7 +275,7 @@ func (p *AWSProvider) BuildGet(app, id string) (*structs.Build, error) {
 	}
 
 	if res.Item == nil {
-		return nil, fmt.Errorf("no such build: %s", id)
+		return nil, NoSuchBuild(id)
 	}
 
 	build := p.buildFromItem(res.Item)
@@ -317,6 +317,8 @@ func (p *AWSProvider) BuildImport(app string, r io.Reader) (*structs.Build, erro
 
 	tr := tar.NewReader(gz)
 
+	psi := make(map[string]string)
+
 	for {
 		header, err := tr.Next()
 		if err == io.EOF {
@@ -332,13 +334,22 @@ func (p *AWSProvider) BuildImport(app string, r io.Reader) (*structs.Build, erro
 
 		if header.Name == "build.json" {
 			var buf bytes.Buffer
-
 			io.Copy(&buf, tr)
 
 			if err := json.Unmarshal(buf.Bytes(), &sourceBuild); err != nil {
 				log.Error(err)
 				return nil, err
 			}
+
+			_, err := p.BuildGet(app, sourceBuild.Id)
+			if _, ok := err.(NoSuchBuild); err != nil && !ok {
+				return nil, err
+			}
+			if err == nil {
+				return nil, fmt.Errorf("build id %s already exists", sourceBuild.Id)
+			}
+
+			targetBuild.Id = sourceBuild.Id
 		}
 
 		if strings.HasSuffix(header.Name, ".tar") {
@@ -381,17 +392,21 @@ func (p *AWSProvider) BuildImport(app string, r io.Reader) (*structs.Build, erro
 
 			image := manifest[0].RepoTags[0]
 			ps := strings.Split(header.Name, ".")[0]
-			target := fmt.Sprintf("%s:%s.%s", repo.URI, ps, targetBuild.Id)
+			psi[ps] = image
+		}
+	}
 
-			log.Step("tag").Logf("from=%q to=%q", image, target)
-			if out, err := exec.Command("docker", "tag", image, target).CombinedOutput(); err != nil {
-				return nil, log.Error(fmt.Errorf("%s: %s\n", lastline(out), err.Error()))
-			}
+	for ps, image := range psi {
+		target := fmt.Sprintf("%s:%s.%s", repo.URI, ps, targetBuild.Id)
 
-			log.Step("push").Logf("to=%q", target)
-			if out, err := exec.Command("docker", "push", target).CombinedOutput(); err != nil {
-				return nil, log.Error(fmt.Errorf("%s: %s\n", lastline(out), err.Error()))
-			}
+		log.Step("tag").Logf("from=%q to=%q", image, target)
+		if out, err := exec.Command("docker", "tag", image, target).CombinedOutput(); err != nil {
+			return nil, log.Error(fmt.Errorf("%s: %s\n", lastline(out), err.Error()))
+		}
+
+		log.Step("push").Logf("to=%q", target)
+		if out, err := exec.Command("docker", "push", target).CombinedOutput(); err != nil {
+			return nil, log.Error(fmt.Errorf("%s: %s\n", lastline(out), err.Error()))
 		}
 	}
 

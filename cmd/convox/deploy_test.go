@@ -7,7 +7,7 @@ import (
 	"github.com/convox/rack/test"
 )
 
-func TestDeployPreventAgainstCreating(t *testing.T) {
+func TestDeployPreventAgainstNonRunningStatus(t *testing.T) {
 	ts := testServer(t,
 		test.Http{Method: "GET", Path: "/apps/foo", Code: 200, Response: client.App{Name: "foo", Status: "creating"}},
 	)
@@ -19,7 +19,7 @@ func TestDeployPreventAgainstCreating(t *testing.T) {
 			Command: "convox deploy --app foo",
 			Exit:    1,
 			Stdout:  "",
-			Stderr:  "ERROR: app foo is still being created, check `convox apps info`\n",
+			Stderr:  "ERROR: unable to deploy foo in a non-running status: creating\n",
 		},
 	)
 }
