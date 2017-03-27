@@ -11,6 +11,7 @@ import (
 
 	"github.com/convox/rack/cmd/convox/stdcli"
 	"gopkg.in/urfave/cli.v1"
+	"time"
 )
 
 // ResourceType is the type of an external resource.
@@ -83,7 +84,13 @@ func init() {
 				Usage:           "<type> [--name=value] [--option-name=value] [options]\n\n" + usage,
 				ArgsUsage:       "<type>",
 				Action:          cmdResourceCreate,
-				Flags:           []cli.Flag{rackFlag},
+				Flags: []cli.Flag{rackFlag,
+					cli.BoolFlag{
+						Name:   "wait",
+						EnvVar: "CONVOX_WAIT",
+						Usage:  "wait for resource update to finish before returning",
+					},
+				},
 				SkipFlagParsing: true,
 			},
 			{
@@ -92,7 +99,13 @@ func init() {
 				Usage:       "<name> [options]",
 				ArgsUsage:   "<name>",
 				Action:      cmdResourceDelete,
-				Flags:       []cli.Flag{rackFlag},
+				Flags: []cli.Flag{rackFlag,
+					cli.BoolFlag{
+						Name:   "wait",
+						EnvVar: "CONVOX_WAIT",
+						Usage:  "wait for resource update to finish before returning",
+					},
+				},
 			},
 			{
 				Name:            "update",
@@ -101,7 +114,13 @@ func init() {
 				Usage:           "<name> --option-name=value [--option-name=value]\n\n" + usage,
 				ArgsUsage:       "<name>",
 				Action:          cmdResourceUpdate,
-				Flags:           []cli.Flag{rackFlag},
+				Flags: []cli.Flag{rackFlag,
+					cli.BoolFlag{
+						Name:   "wait",
+						EnvVar: "CONVOX_WAIT",
+						Usage:  "wait for resource update to finish before returning",
+					},
+				},
 				SkipFlagParsing: true,
 			},
 			{
@@ -227,7 +246,20 @@ func cmdResourceCreate(c *cli.Context) error {
 		return stdcli.Error(err)
 	}
 
-	fmt.Println("CREATING")
+	if !c.Bool("wait") {
+		fmt.Println("CREATING")
+		return nil
+	}
+
+	fmt.Println("Waiting for completion")
+
+	// give the rack a few seconds to start updating
+	time.Sleep(5 * time.Second)
+
+	if err := waitForService(c, options["name"]); err != nil {
+		return stdcli.Error(err)
+	}
+
 	return nil
 }
 
@@ -259,7 +291,20 @@ func cmdResourceUpdate(c *cli.Context) error {
 		return stdcli.Error(err)
 	}
 
-	fmt.Println("UPDATING")
+	if !c.Bool("wait") {
+		fmt.Println("UPDATING")
+		return nil
+	}
+
+	fmt.Println("Waiting for completion")
+
+	// give the rack a few seconds to start updating
+	time.Sleep(5 * time.Second)
+
+	if err := waitForService(c, name); err != nil {
+		return stdcli.Error(err)
+	}
+
 	return nil
 }
 
@@ -276,7 +321,20 @@ func cmdResourceDelete(c *cli.Context) error {
 		return stdcli.Error(err)
 	}
 
-	fmt.Println("DELETING")
+	if !c.Bool("wait") {
+		fmt.Println("DELETING")
+		return nil
+	}
+
+	fmt.Println("Waiting for completion")
+
+	// give the rack a few seconds to start updating
+	time.Sleep(5 * time.Second)
+
+	if err := waitForService(c, name); err != nil {
+		return stdcli.Error(err)
+	}
+
 	return nil
 }
 
@@ -428,5 +486,40 @@ func cmdResourceProxy(c *cli.Context) error {
 	}
 
 	proxy(localhost, lp, remotehost, rp, rackClient(c))
+	return nil
+}
+
+func waitForService(c *cli.Context, n string) error {
+	timeout := time.After(30 * time.Minute)
+	tick := time.Tick(2 * time.Second)
+
+	failed := false
+
+	for {
+		select {
+		case <-tick:
+			r, err := rackClient(c).GetResource(n)
+			if err != nil {
+				return err
+			}
+
+			switch r.Status {
+			case "running":
+				if failed {
+					fmt.Println("DONE")
+					return fmt.Errorf("Update rolled back")
+				}
+				return nil
+			case "rollback":
+				if !failed {
+					failed = true
+					fmt.Print("FAILED\nRolling back... ")
+				}
+			}
+		case <-timeout:
+			return fmt.Errorf("timeout")
+		}
+	}
+
 	return nil
 }
