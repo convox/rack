@@ -7,6 +7,7 @@
       {{ template "balancer-conditions" .Manifest }}
       {{ template "process-conditions" .Manifest }}
       "Internal": { "Fn::Equals": [ { "Ref": "Internal" }, "Yes" ] },
+      "NativeLogging": { "Fn::Equals": [ { "Ref": "NativeLogging" }, "Yes" ] },
       "Private": { "Fn::Equals": [ { "Ref": "Private" }, "Yes" ] },
       "RegionHasLambdaUpdate": { "Fn::Equals": [
         { "Fn::FindInMap": [ "RegionConfig", { "Ref": "AWS::Region" }, "LambdaUpdate" ] },
@@ -53,6 +54,12 @@
         "Type": "String",
         "Default": "",
         "Description": ""
+      },
+      "NativeLogging": {
+        "Type": "String",
+        "Description": "Use native ECS awslogs driver over convox/agent for logging",
+        "Default": "No",
+        "AllowedValues": [ "Yes", "No" ]
       },
       "Private": {
         "Type": "String",
@@ -256,6 +263,10 @@
                 "APP": "{{ $.App.Name }}",
                 "RACK": "{{ env "RACK" }}",
                 "AWS_REGION": "{{ env "AWS_REGION" }}",
+                "LOG_GROUP": { "Fn::If": [ "NativeLogging",
+                  { "Ref" : "AWS::NoValue" },
+                  { "Ref": "LogGroup" }
+                ] },
                 {{ range $e.Environment }}
                   {{ if ne .Value "" }}
                     "{{ .Name }}": {{ value .Value }},
@@ -264,7 +275,6 @@
                 {{ range $key, $value := .LinkVars }}
                   "{{ $key }}": {{ $value }},
                 {{ end }}
-                "LOG_GROUP": { "Ref": "LogGroup" },
                 "PROCESS": "{{ $e.Name }}"
               },
               "Volumes": [
@@ -302,7 +312,18 @@
                 {{ end }}
                 { "Ref" : "AWS::NoValue" }
               ],
-              "Privileged": "{{ $e.Privileged }}"
+              "Privileged": "{{ $e.Privileged }}",
+              "LogConfiguration": { "Fn::If": [ "NativeLogging",
+                {
+                  "LogDriver": "awslogs",
+                  "Options": {
+                    "awslogs-region": { "Ref": "AWS::Region" },
+                    "awslogs-group": { "Ref": "LogGroup" },
+                    "awslogs-stream-prefix": "convox"
+                  }
+                },
+                { "Ref" : "AWS::NoValue" }
+              ] }
             }
           ]
         }
