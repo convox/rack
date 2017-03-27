@@ -62,6 +62,19 @@ func TestSingleGroupRetrieval(t *testing.T) {
 	}
 }
 
+func TestGetGroupForServiceName(t *testing.T) {
+	m, err := manifestFixture("group")
+
+	if assert.NoError(t, err) {
+		group, err := m.GetGroupForServiceName("web")
+
+		if assert.NoError(t, err) {
+			assert.Equal(t, 2, len(group.Services), "Web group should have two services in it")
+			assertExpectedServiceNames(t, []string{"reverse-proxy", "web"}, group.Services)
+		}
+	}
+}
+
 func makeFakeService(name string, links []string) manifest.Service {
 	return manifest.Service{
 		Name:  name,
@@ -121,6 +134,20 @@ func TestGroupLinksMethod(t *testing.T) {
 	assert.Equal(t, []string{"service2", "service3"}, group.Links("service1"), "service1 should have expected links")
 	assert.Equal(t, []string{"service3"}, group.Links("service2"), "service2 should have expected links")
 	assert.Equal(t, 0, len(group.Links("service3")), "service3 should have expected links")
+}
+
+func TestGroupHasLinksMethod(t *testing.T) {
+	group := setupGroupForTest()
+
+	assert.True(t, group.HasLink("service2", "service3"))
+	assert.False(t, group.HasLink("service2", "service4"))
+}
+
+func TestGroupHasServiceMethod(t *testing.T) {
+	group := setupGroupForTest()
+
+	assert.True(t, group.HasService("service1"))
+	assert.False(t, group.HasService("service200"))
 }
 
 func TestGroupHasBalancer(t *testing.T) {
