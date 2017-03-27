@@ -73,8 +73,8 @@ func TestGetEnvNoVariableSpecified(t *testing.T) {
 	test.Runs(t,
 		test.ExecRun{
 			Command: "convox env get",
-			Exit:    1,
-			Stderr:  "No variable specified",
+			Exit:    129,
+			Stderr:  "ERROR: 1 argument is required: VARIABLE",
 		},
 	)
 }

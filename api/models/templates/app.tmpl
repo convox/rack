@@ -8,6 +8,10 @@
       {{ template "process-conditions" .Manifest }}
       "Internal": { "Fn::Equals": [ { "Ref": "Internal" }, "Yes" ] },
       "Private": { "Fn::Equals": [ { "Ref": "Private" }, "Yes" ] },
+      "RegionHasLambdaUpdate": { "Fn::Equals": [
+        { "Fn::FindInMap": [ "RegionConfig", { "Ref": "AWS::Region" }, "LambdaUpdate" ] },
+        "Yes"
+      ] },
       "BlankSecurityGroup" : {"Fn::Equals" : [{"Ref" : "SecurityGroup"}, ""]}
     },
     "Parameters" : {
@@ -108,6 +112,19 @@
         "https": { "ListenerProtocol": "HTTPS", "InstanceProtocol": "HTTP", "SecureInstanceProtocol": "HTTPS"  },
         "tcp": { "ListenerProtocol": "TCP", "InstanceProtocol": "TCP", "SecureInstanceProtocol": "SSL"  },
         "tls": { "ListenerProtocol": "SSL", "InstanceProtocol": "TCP", "SecureInstanceProtocol": "SSL"   }
+      },
+      "RegionConfig": {
+        "us-east-1": { "LambdaUpdate": "Yes" },
+        "us-east-2": { "LambdaUpdate": "No" },
+        "us-west-1": { "LambdaUpdate": "No" },
+        "us-west-2": { "LambdaUpdate": "Yes" },
+        "eu-west-1": { "LambdaUpdate": "Yes" },
+        "eu-west-2": { "LambdaUpdate": "No" },
+        "eu-central-1": { "LambdaUpdate": "Yes" },
+        "ap-northeast-1": { "LambdaUpdate": "Yes" },
+        "ap-southeast-1": { "LambdaUpdate": "Yes" },
+        "ap-southeast-2": { "LambdaUpdate": "Yes" },
+        "ca-central-1": { "LambdaUpdate": "No" }
       }
     },
     "Resources": {
@@ -146,7 +163,10 @@
           "Handler": "index.external",
           "MemorySize": "128",
           "Role": { "Fn::GetAtt": [ "CustomTopicRole", "Arn" ] },
-          "Runtime": { "Ref": "CustomTopicRuntime" },
+          "Runtime": { "Fn::If": [ "RegionHasLambdaUpdate",
+            "nodejs4.3",
+            { "Ref": "CustomTopicRuntime" }
+          ] },
           "Timeout": "300"
         }
       },

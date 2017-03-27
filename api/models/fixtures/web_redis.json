@@ -74,6 +74,20 @@
         },
         "Yes"
       ]
+    },
+    "RegionHasLambdaUpdate": {
+      "Fn::Equals": [
+        {
+          "Fn::FindInMap": [
+            "RegionConfig",
+            {
+              "Ref": "AWS::Region"
+            },
+            "LambdaUpdate"
+          ]
+        },
+        "Yes"
+      ]
     }
   },
   "Mappings": {
@@ -97,6 +111,41 @@
         "InstanceProtocol": "TCP",
         "ListenerProtocol": "SSL",
         "SecureInstanceProtocol": "SSL"
+      }
+    },
+    "RegionConfig": {
+      "ap-northeast-1": {
+        "LambdaUpdate": "Yes"
+      },
+      "ap-southeast-1": {
+        "LambdaUpdate": "Yes"
+      },
+      "ap-southeast-2": {
+        "LambdaUpdate": "Yes"
+      },
+      "ca-central-1": {
+        "LambdaUpdate": "No"
+      },
+      "eu-central-1": {
+        "LambdaUpdate": "Yes"
+      },
+      "eu-west-1": {
+        "LambdaUpdate": "Yes"
+      },
+      "eu-west-2": {
+        "LambdaUpdate": "No"
+      },
+      "us-east-1": {
+        "LambdaUpdate": "Yes"
+      },
+      "us-east-2": {
+        "LambdaUpdate": "No"
+      },
+      "us-west-1": {
+        "LambdaUpdate": "No"
+      },
+      "us-west-2": {
+        "LambdaUpdate": "Yes"
       }
     }
   },
@@ -651,7 +700,13 @@
           ]
         },
         "Runtime": {
-          "Ref": "CustomTopicRuntime"
+          "Fn::If": [
+            "RegionHasLambdaUpdate",
+            "nodejs4.3",
+            {
+              "Ref": "CustomTopicRuntime"
+            }
+          ]
         },
         "Timeout": "300"
       },

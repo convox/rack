@@ -2,32 +2,57 @@ package main
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/convox/rack/cmd/convox/stdcli"
 	"gopkg.in/urfave/cli.v1"
 )
 
+var endpoints = []string{
+	"/apps",
+	"/apps/<app-name>",
+	"/auth",
+	"/certificates",
+	"/index",
+	"/instances",
+	"/racks",
+	"/registries",
+	"/resources",
+	"/switch",
+	"/system",
+}
+
+var apiHelp = fmt.Sprintf(`Valid endpoints:
+  %s
+
+For more information, see https://convox.com/api`,
+	strings.Join(endpoints, "\n  "))
+
 func init() {
 	stdcli.RegisterCommand(cli.Command{
 		Name:        "api",
-		Description: "api endpoint",
-		Usage:       "",
+		Description: "make a rest api call to a convox endpoint",
+		Usage:       "<command> <endpoint> [options]",
+		ArgsUsage:   "<command> <endpoint>",
 		Action:      cmdApi,
 		Flags:       []cli.Flag{rackFlag},
 		Subcommands: []cli.Command{
 			{
 				Name:        "get",
-				Description: "get an api endpoint",
-				Usage:       "<endpoint>",
+				Description: "make a GET request to an api endpoint",
+				Usage:       "<endpoint> [options]",
+				UsageText:   apiHelp,
+				ArgsUsage:   "<endpoint>",
 				Action:      cmdApiGet,
 				Flags:       []cli.Flag{rackFlag},
 			},
 			{
 				Name:        "delete",
-				Description: "delete an api endpoint",
-				Usage:       "<endpoint>",
+				Description: "make a DELETE request to an api endpoint",
+				Usage:       "delete an api endpoint",
+				UsageText:   apiHelp,
+				ArgsUsage:   "<endpoint>",
 				Action:      cmdApiDelete,
 				Flags:       []cli.Flag{rackFlag},
 			},
@@ -36,23 +61,24 @@ func init() {
 }
 
 func cmdApi(c *cli.Context) error {
-	if len(c.Args()) > 0 {
-		return stdcli.Error(
-			errors.New("ERROR: `convox api` does not take arguments. Perhaps you meant `convox api get`?"),
-		)
-	}
+	stdcli.NeedHelp(c)
+	stdcli.NeedArg(c, 0)
 
-	stdcli.Usage(c, "")
+	// If we're here, it means the user has run 'convox api' without any subcommand or help flag
+	stdcli.Errorf("Missing expected subcommand")
+	cli.ShowCommandHelp(c, c.Command.Name)
+
+	// Also print the list of endpoints for good measure
+	fmt.Printf("\n%s\n", apiHelp)
 	return nil
 }
 
 func cmdApiGet(c *cli.Context) error {
-	if len(c.Args()) < 1 {
-		stdcli.Usage(c, "get")
-		return nil
-	}
+	stdcli.NeedHelp(c)
+	stdcli.NeedArg(c, 1)
 
 	path := c.Args()[0]
+	path = strings.TrimRight(path, "/")
 
 	var object interface{}
 
@@ -71,12 +97,11 @@ func cmdApiGet(c *cli.Context) error {
 }
 
 func cmdApiDelete(c *cli.Context) error {
-	if len(c.Args()) < 1 {
-		stdcli.Usage(c, "delete")
-		return nil
-	}
+	stdcli.NeedHelp(c)
+	stdcli.NeedArg(c, 1)
 
 	path := c.Args()[0]
+	path = strings.TrimRight(path, "/")
 
 	var object interface{}
 

@@ -59,28 +59,30 @@ func init() {
 	stdcli.RegisterCommand(cli.Command{
 		Name:        "build",
 		Description: "create a new build",
-		Usage:       "",
+		Usage:       "[directory] [options]",
 		Action:      cmdBuildsCreate,
 		Flags:       buildCreateFlags,
 	})
 	stdcli.RegisterCommand(cli.Command{
 		Name:        "builds",
 		Description: "manage an app's builds",
-		Usage:       "",
+		Usage:       "[subcommand] [options] [args...]",
 		Action:      cmdBuilds,
 		Flags:       []cli.Flag{appFlag, rackFlag},
 		Subcommands: []cli.Command{
 			{
 				Name:        "create",
 				Description: "create a new build",
-				Usage:       "",
+				Usage:       "[directory] [options]",
+				ArgsUsage:   "[directory]",
 				Action:      cmdBuildsCreate,
 				Flags:       buildCreateFlags,
 			},
 			{
 				Name:        "delete",
 				Description: "archive a build and its artifacts",
-				Usage:       "<id>",
+				Usage:       "<build id>",
+				ArgsUsage:   "<build id>",
 				Action:      cmdBuildsDelete,
 				Flags:       []cli.Flag{appFlag, rackFlag},
 			},
@@ -101,14 +103,15 @@ func init() {
 			{
 				Name:        "logs",
 				Description: "get logs for a build",
-				Usage:       "<id>",
+				Usage:       "<build id>",
+				ArgsUsage:   "<build id>",
 				Action:      cmdBuildsLogs,
 				Flags:       []cli.Flag{appFlag, rackFlag},
 			},
 			{
 				Name:        "import",
 				Description: "import a build artifact from stdin",
-				Usage:       "",
+				Usage:       "[options]",
 				Action:      cmdBuildsImport,
 				Flags: []cli.Flag{
 					appFlag,
@@ -126,7 +129,8 @@ func init() {
 			{
 				Name:        "info",
 				Description: "print output for a build",
-				Usage:       "<id>",
+				Usage:       "<build id>",
+				ArgsUsage:   "<build id>",
 				Action:      cmdBuildsInfo,
 				Flags:       []cli.Flag{appFlag, rackFlag},
 			},
@@ -135,18 +139,12 @@ func init() {
 }
 
 func cmdBuilds(c *cli.Context) error {
+	stdcli.NeedHelp(c)
+	stdcli.NeedArg(c, 0)
+
 	_, app, err := stdcli.DirApp(c, ".")
 	if err != nil {
 		return stdcli.Error(err)
-	}
-
-	if len(c.Args()) > 0 {
-		return stdcli.Error(fmt.Errorf("`convox builds` does not take arguments. Perhaps you meant `convox builds create`?"))
-	}
-
-	if c.Bool("help") {
-		stdcli.Usage(c, "")
-		return nil
 	}
 
 	builds, err := rackClient(c).GetBuilds(app)
@@ -172,9 +170,11 @@ func cmdBuilds(c *cli.Context) error {
 }
 
 func cmdBuildsCreate(c *cli.Context) error {
+	stdcli.NeedHelp(c)
 	wd := "."
 
 	if len(c.Args()) > 0 {
+		stdcli.NeedArg(c, 1)
 		wd = c.Args()[0]
 	}
 
@@ -188,12 +188,8 @@ func cmdBuildsCreate(c *cli.Context) error {
 		return stdcli.Error(err)
 	}
 
-	switch a.Status {
-	case "creating":
-		return stdcli.Error(fmt.Errorf("app is still creating: %s", app))
-	case "running", "updating":
-	default:
-		return stdcli.Error(fmt.Errorf("unable to build app: %s", app))
+	if a.Status == "creating" {
+		return stdcli.Error(fmt.Errorf("app %s is still being created, for more information try `convox apps info`", app))
 	}
 
 	if len(c.Args()) > 0 {
@@ -222,14 +218,12 @@ func cmdBuildsCreate(c *cli.Context) error {
 }
 
 func cmdBuildsDelete(c *cli.Context) error {
+	stdcli.NeedHelp(c)
+	stdcli.NeedArg(c, 1)
+
 	_, app, err := stdcli.DirApp(c, ".")
 	if err != nil {
 		return stdcli.Error(err)
-	}
-
-	if len(c.Args()) != 1 {
-		stdcli.Usage(c, "delete")
-		return nil
 	}
 
 	build := c.Args()[0]
@@ -244,14 +238,12 @@ func cmdBuildsDelete(c *cli.Context) error {
 }
 
 func cmdBuildsInfo(c *cli.Context) error {
+	stdcli.NeedHelp(c)
+	stdcli.NeedArg(c, 1)
+
 	_, app, err := stdcli.DirApp(c, ".")
 	if err != nil {
 		return stdcli.Error(err)
-	}
-
-	if len(c.Args()) != 1 {
-		stdcli.Usage(c, "info")
-		return nil
 	}
 
 	build := c.Args()[0]
@@ -272,6 +264,9 @@ func cmdBuildsInfo(c *cli.Context) error {
 }
 
 func cmdBuildsExport(c *cli.Context) error {
+	stdcli.NeedHelp(c)
+	stdcli.NeedArg(c, 1)
+
 	_, app, err := stdcli.DirApp(c, ".")
 	if err != nil {
 		return stdcli.Error(err)
@@ -279,11 +274,6 @@ func cmdBuildsExport(c *cli.Context) error {
 
 	if stdcli.IsTerminal(os.Stdout) && c.String("file") == "" {
 		return stdcli.Error(fmt.Errorf("please pipe the output of this command to a file or specify -f"))
-	}
-
-	if len(c.Args()) != 1 {
-		stdcli.Usage(c, "export")
-		return nil
 	}
 
 	build := c.Args()[0]
@@ -311,6 +301,7 @@ func cmdBuildsExport(c *cli.Context) error {
 }
 
 func cmdBuildsImport(c *cli.Context) error {
+	stdcli.NeedHelp(c)
 	_, app, err := stdcli.DirApp(c, ".")
 	if err != nil {
 		return stdcli.Error(err)
@@ -352,14 +343,12 @@ func cmdBuildsImport(c *cli.Context) error {
 }
 
 func cmdBuildsLogs(c *cli.Context) error {
+	stdcli.NeedHelp(c)
+	stdcli.NeedArg(c, 1)
+
 	_, app, err := stdcli.DirApp(c, ".")
 	if err != nil {
 		return stdcli.Error(err)
-	}
-
-	if len(c.Args()) != 1 {
-		stdcli.Usage(c, "info")
-		return nil
 	}
 
 	build := c.Args()[0]
@@ -774,7 +763,7 @@ func warnUnignoredEnv(dir string) error {
 		}
 	}
 	if warn {
-		fmt.Fprintf(os.Stderr, "WARNING: You have a .env file that is not in your .dockerignore, you may be leaking secrets\n")
+		stdcli.Warn("You have a .env file that is not in your .dockerignore, you may be leaking secrets")
 	}
 	return nil
 }
