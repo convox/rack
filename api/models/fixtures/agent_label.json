@@ -137,7 +137,7 @@
         "LambdaUpdate": "No"
       },
       "us-east-1": {
-        "LambdaUpdate": "No"
+        "LambdaUpdate": "Yes"
       },
       "us-east-2": {
         "LambdaUpdate": "No"
@@ -146,7 +146,7 @@
         "LambdaUpdate": "No"
       },
       "us-west-2": {
-        "LambdaUpdate": "No"
+        "LambdaUpdate": "Yes"
       }
     }
   },
