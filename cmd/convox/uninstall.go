@@ -19,20 +19,17 @@ import (
 )
 
 type Stacks struct {
-	Apps     []Stack
-	Rack     []Stack
-	Services []Stack
+	Apps      []Stack
+	Rack      []Stack
+	Resources []Stack
 }
 
 type Stack struct {
 	Name      string
+	Outputs   map[string]string
 	StackName string
 	Status    string
 	Type      string
-
-	Buckets []string
-	Events  map[string]string
-	Outputs map[string]string
 }
 
 func init() {
@@ -86,7 +83,7 @@ func cmdUninstall(c *cli.Context) error {
 	CF := cloudformation.New(session.New(), awsConfig(region, creds))
 	S3 := s3.New(session.New(), awsConfig(region, creds))
 
-	stacks, err := describeRackStacks(rackName, distinctId, CF)
+	stacks, err := describeRackStacks(rackName, CF)
 	if err != nil {
 		return stdcli.QOSEventSend("cli-uninstall", distinctId, stdcli.QOSEventProperties{Error: err})
 	}
@@ -98,10 +95,10 @@ func cmdUninstall(c *cli.Context) error {
 
 	fmt.Println("Resources to delete:\n")
 
-	// display all the services, apps, then rack
+	// display all the resources, apps, then rack
 	t := stdcli.NewTable("STACK", "TYPE", "STATUS")
 
-	for _, s := range stacks.Services {
+	for _, s := range stacks.Resources {
 		t.AddRow(s.Name, s.Type, s.Status)
 	}
 
@@ -141,8 +138,7 @@ func cmdUninstall(c *cli.Context) error {
 		}
 	}
 
-	fmt.Println("")
-
+	fmt.Println()
 	fmt.Println("Uninstalling Convox...")
 
 	// CF Stack Delete and Retry could take 30+ minutes. Periodically generate more progress output.
@@ -153,22 +149,40 @@ func cmdUninstall(c *cli.Context) error {
 		}
 	}()
 
+	// collect buckets before deleting the stacks
+	buckets := []string{}
+	for _, s := range stacks.all() {
+		stack := rackName
+		if s.Name != rackName {
+			stack = fmt.Sprintf("%s-%s", rackName, s.Name)
+		}
+
+		bs, err := describeStackBuckets(stack, CF)
+		if err != nil {
+			stdcli.Error(fmt.Errorf("Unable to gather buckets for %s, skipping", stack))
+			stdcli.QOSEventSend("cli-uninstall", distinctId, stdcli.QOSEventProperties{Error: err})
+			continue
+		}
+
+		buckets = append(buckets, bs...)
+	}
+
 	success := true
 
 	// Delete all Service, App and Rack stacks
-	err = deleteStacks("service", rackName, distinctId, CF)
+	err = deleteStacks("resource", rackName, CF)
 	if err != nil {
 		stdcli.QOSEventSend("cli-uninstall", distinctId, stdcli.QOSEventProperties{Error: err})
 		success = false
 	}
 
-	err = deleteStacks("app", rackName, distinctId, CF)
+	err = deleteStacks("app", rackName, CF)
 	if err != nil {
 		stdcli.QOSEventSend("cli-uninstall", distinctId, stdcli.QOSEventProperties{Error: err})
 		success = false
 	}
 
-	err = deleteStacks("rack", rackName, distinctId, CF)
+	err = deleteStacks("rack", rackName, CF)
 	if err != nil {
 		stdcli.QOSEventSend("cli-uninstall", distinctId, stdcli.QOSEventProperties{Error: err})
 		success = false
@@ -177,18 +191,9 @@ func cmdUninstall(c *cli.Context) error {
 	// Delete all S3 buckets
 	wg := new(sync.WaitGroup)
 
-	for _, s := range stacks.Apps {
-		for _, b := range s.Buckets {
-			wg.Add(1)
-			go deleteBucket(b, wg, S3)
-		}
-	}
-
-	for _, s := range stacks.Rack {
-		for _, b := range s.Buckets {
-			wg.Add(1)
-			go deleteBucket(b, wg, S3)
-		}
+	for _, b := range buckets {
+		wg.Add(1)
+		go deleteBucket(b, wg, S3)
 	}
 
 	wg.Wait()
@@ -325,7 +330,7 @@ func deleteObjects(bucket string, objs []Obj, wg *sync.WaitGroup, S3 *s3.S3) {
 
 var deleteAttempts = map[string]int{}
 
-func deleteStack(s Stack, distinctId string, CF *cloudformation.CloudFormation) error {
+func deleteStack(s Stack, CF *cloudformation.CloudFormation) error {
 	deleteAttempts[s.StackName] += 1
 	switch deleteAttempts[s.StackName] {
 	case 1:
@@ -340,9 +345,9 @@ func deleteStack(s Stack, distinctId string, CF *cloudformation.CloudFormation) 
 	return err
 }
 
-func deleteStacks(stackType, rackName, distinctId string, CF *cloudformation.CloudFormation) error {
+func deleteStacks(stackType, rackName string, CF *cloudformation.CloudFormation) error {
 	for {
-		stacks, err := describeRackStacks(rackName, distinctId, CF)
+		stacks, err := describeRackStacks(rackName, CF)
 		if err != nil {
 			return err
 		}
@@ -361,13 +366,22 @@ func deleteStacks(stackType, rackName, distinctId string, CF *cloudformation.Clo
 			} else {
 				switch s.Status {
 				case "CREATE_COMPLETE", "ROLLBACK_COMPLETE", "UPDATE_COMPLETE", "UPDATE_ROLLBACK_COMPLETE":
-					deleteStack(s, distinctId, CF)
+					deleteStack(s, CF)
 				case "CREATE_FAILED", "DELETE_FAILED", "ROLLBACK_FAILED", "UPDATE_ROLLBACK_FAILED":
-					for id, reason := range s.Events {
-						fmt.Printf("Failed: %s: %s\n", id, reason)
-						// TODO: report failed event?
+					eres, err := CF.DescribeStackEvents(&cloudformation.DescribeStackEventsInput{
+						StackName: aws.String(s.Name),
+					})
+					if err != nil {
+						return err
 					}
-					deleteStack(s, distinctId, CF)
+
+					for _, event := range eres.StackEvents {
+						if strings.HasSuffix(*event.ResourceStatus, "FAILED") {
+							fmt.Printf("Failed: %s: %s\n", *event.LogicalResourceId, *event.ResourceStatusReason)
+						}
+					}
+
+					deleteStack(s, CF)
 				case "DELETE_IN_PROGRESS":
 					displayProgress(s.StackName, CF, true)
 				default:
@@ -387,7 +401,7 @@ func deleteStacks(stackType, rackName, distinctId string, CF *cloudformation.Clo
 }
 
 // describeRackStacks uses credentials to describe CF service, app and rack stacks that belong to the rack name and region
-func describeRackStacks(rackName, distinctId string, CF *cloudformation.CloudFormation) (Stacks, error) {
+func describeRackStacks(rackName string, CF *cloudformation.CloudFormation) (Stacks, error) {
 	res, err := CF.DescribeStacks(&cloudformation.DescribeStacksInput{})
 	if err != nil {
 		return Stacks{}, err
@@ -395,10 +409,9 @@ func describeRackStacks(rackName, distinctId string, CF *cloudformation.CloudFor
 
 	apps := []Stack{}
 	rack := []Stack{}
-	services := []Stack{}
+	resources := []Stack{}
 
 	for _, stack := range res.Stacks {
-		events := map[string]string{}
 		outputs := map[string]string{}
 		tags := map[string]string{}
 
@@ -415,45 +428,12 @@ func describeRackStacks(rackName, distinctId string, CF *cloudformation.CloudFor
 			name = *stack.StackName
 		}
 
-		buckets := []string{}
-
-		rres, err := CF.DescribeStackResources(&cloudformation.DescribeStackResourcesInput{
-			StackName: stack.StackId,
-		})
-		if err != nil {
-			return Stacks{}, err
-		}
-
-		for _, resource := range rres.StackResources {
-			if *resource.ResourceType == "AWS::S3::Bucket" {
-				if resource.PhysicalResourceId != nil {
-					buckets = append(buckets, *resource.PhysicalResourceId)
-				}
-			}
-		}
-
-		eres, err := CF.DescribeStackEvents(&cloudformation.DescribeStackEventsInput{
-			StackName: stack.StackId,
-		})
-		if err != nil {
-			return Stacks{}, err
-		}
-
-		for _, event := range eres.StackEvents {
-			if strings.HasSuffix(*event.ResourceStatus, "FAILED") {
-				events[*event.LogicalResourceId] = *event.ResourceStatusReason
-			}
-		}
-
 		s := Stack{
 			Name:      name,
 			StackName: *stack.StackName,
 			Status:    *stack.StackStatus,
 			Type:      tags["Type"],
-
-			Buckets: buckets,
-			Events:  events,
-			Outputs: outputs,
+			Outputs:   outputs,
 		}
 
 		// collect stacks that are explicitly related to the rack
@@ -462,26 +442,51 @@ func describeRackStacks(rackName, distinctId string, CF *cloudformation.CloudFor
 			case "app":
 				apps = append(apps, s)
 			case "service":
-				services = append(services, s)
+				s.Type = "resource"
+				fallthrough
+			case "resource":
+				resources = append(resources, s)
 			}
 		}
 
 		// collect stack that is explicitly the rack
 		if *stack.StackName == rackName && outputs["Dashboard"] != "" {
+			s.Type = "rack"
 			rack = append(rack, s)
 		}
 	}
 
 	return Stacks{
-		Apps:     apps,
-		Rack:     rack,
-		Services: services,
+		Apps:      apps,
+		Rack:      rack,
+		Resources: resources,
 	}, nil
+}
+
+func describeStackBuckets(stack string, CF *cloudformation.CloudFormation) ([]string, error) {
+	buckets := []string{}
+
+	rres, err := CF.DescribeStackResources(&cloudformation.DescribeStackResourcesInput{
+		StackName: aws.String(stack),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	for _, resource := range rres.StackResources {
+		if *resource.ResourceType == "AWS::S3::Bucket" {
+			if resource.PhysicalResourceId != nil {
+				buckets = append(buckets, *resource.PhysicalResourceId)
+			}
+		}
+	}
+
+	return buckets, nil
 }
 
 func (stacks Stacks) all() []Stack {
 	s := []Stack{}
-	s = append(s, stacks.Services...)
+	s = append(s, stacks.Resources...)
 	s = append(s, stacks.Apps...)
 	s = append(s, stacks.Rack...)
 	return s
@@ -493,8 +498,8 @@ func (stacks Stacks) byType(t string) []Stack {
 		return stacks.Apps
 	case "rack":
 		return stacks.Rack
-	case "service":
-		return stacks.Services
+	case "resource", "service":
+		return stacks.Resources
 	default:
 		return []Stack{}
 	}
