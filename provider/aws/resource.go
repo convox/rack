@@ -34,7 +34,9 @@ func (p *AWSProvider) ResourceCreate(name, kind string, params map[string]string
 	var req *cloudformation.CreateStackInput
 
 	switch s.Type {
-	case "memcached", "mysql", "postgres", "redis", "sqs":
+	case "memcached", "redis", "sqs":
+		req, err = p.createResource(s)
+	case "mysql", "postgres":
 		s.Parameters["EncryptionKey"] = ""
 		if s.Parameters["Encryption"] == "true" {
 			stacks, err := p.describeStacks(&cloudformation.DescribeStacksInput{

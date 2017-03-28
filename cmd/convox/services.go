@@ -18,48 +18,48 @@ type ResourceType struct {
 	name, args string
 }
 
-types := []ResourceType{
-		{
-			"memcached",
-			"[--instance-type=db.t2.micro] [--num-cache-nodes=1] [--private]",
-		},
-		{
-			"mysql",
-			"[--allocated-storage=10] [--database=db-name] [--instance-type=db.t2.micro] [--multi-az] [--password=example] [--private] [--username=example] [--encryption]",
-		},
-		{
-			"postgres",
-			"[--allocated-storage=10] [--database=db-name] [--instance-type=db.t2.micro] [--max-connections={DBInstanceClassMemory/15000000}] [--multi-az] [--password=example] [--private] [--username=example] [--version=9.5.2] [--encryption]",
-		},
-		{
-			"redis",
-			"[--automatic-failover-enabled] [--database=db-name] [--instance-type=cache.t2.micro] [--num-cache-clusters=1] [--private]",
-		},
-		{
-			"s3",
-			"[--topic=sns-topic-name] [--versioning]",
-		},
-		{
-			"sns",
-			"[--queue=sqs-queue-name]",
-		},
-		{
-			"sqs",
-			"[--message-retention-period=345600] [--receive-message-wait-time=0] [--visibility-timeout=30]",
-		},
-		{
-			"syslog",
-			"--url=tcp+tls://logs1.papertrailapp.com:11235 [--private]",
-		},
-		{
-			"fluentd",
-			"--url=tcp://fluentd-collector.example.com:24224",
-		},
-		{
-			"webhook",
-			"--url=https://console.convox.com/webhooks/1234",
-		},
-	}
+var resourceTypes = []ResourceType{
+	{
+		"fluentd",
+		"--url=tcp://fluentd-collector.example.com:24224",
+	},
+	{
+		"memcached",
+		"[--instance-type=db.t2.micro] [--num-cache-nodes=1] [--private]",
+	},
+	{
+		"mysql",
+		"[--allocated-storage=10] [--database=db-name] [--instance-type=db.t2.micro] [--multi-az] [--password=example] [--private] [--username=example] [--encryption]",
+	},
+	{
+		"postgres",
+		"[--allocated-storage=10] [--database=db-name] [--instance-type=db.t2.micro] [--max-connections={DBInstanceClassMemory/15000000}] [--multi-az] [--password=example] [--private] [--username=example] [--version=9.5.2] [--encryption]",
+	},
+	{
+		"redis",
+		"[--automatic-failover-enabled] [--database=db-name] [--instance-type=cache.t2.micro] [--num-cache-clusters=1] [--private]",
+	},
+	{
+		"s3",
+		"[--topic=sns-topic-name] [--versioning]",
+	},
+	{
+		"sns",
+		"[--queue=sqs-queue-name]",
+	},
+	{
+		"sqs",
+		"[--message-retention-period=345600] [--receive-message-wait-time=0] [--visibility-timeout=30]",
+	},
+	{
+		"syslog",
+		"--url=tcp+tls://logs1.papertrailapp.com:11235 [--private]",
+	},
+	{
+		"webhook",
+		"--url=https://console.convox.com/webhooks/1234",
+	},
+}
 
 func init() {
 
