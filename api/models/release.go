@@ -222,6 +222,9 @@ func (r *Release) Promote() error {
 		}
 
 		app.Parameters[entry.ParamName("Formation")] = strings.Join(scale, ",")
+		if err := validateAppParam(entry.ParamName("Formation"), app.Parameters[entry.ParamName("Formation")]); err != nil {
+			return err
+		}
 
 		// backwards compatibility for rollbacks
 		app.Parameters[entry.ParamName("DesiredCount")] = scale[0]

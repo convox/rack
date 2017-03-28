@@ -1,10 +1,14 @@
 package models
 
 import (
+	"errors"
 	"fmt"
+	"math"
 	"os"
 	"regexp"
 	"sort"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/convox/rack/api/helpers"
@@ -241,6 +245,10 @@ func (a *App) UpdateParams(changes map[string]string) error {
 
 	for _, key := range keys {
 		if updatedValue, present := changes[key]; present {
+			if err := validateAppParam(key, updatedValue); err != nil {
+				return err
+			}
+
 			req.Parameters = append(req.Parameters, &cloudformation.Parameter{
 				ParameterKey:   aws.String(key),
 				ParameterValue: aws.String(updatedValue),
@@ -354,4 +362,31 @@ func (a App) CronJobs(m manifest.Manifest) []CronJob {
 		}
 	}
 	return cronjobs
+}
+
+func validateAppParam(key, value string) error {
+	switch {
+	case strings.HasSuffix(key, "Formation"):
+		capacity, err := Provider().CapacityGet()
+		if err != nil {
+			return err
+		}
+
+		formation := strings.Split(value, ",")
+		if len(formation) != 3 {
+			return fmt.Errorf("%s not in Count,Cpu,Memory format", key)
+		}
+
+		mem, err := strconv.Atoi(formation[2])
+		if err != nil {
+			return err
+		}
+
+		percent := math.Floor(float64(mem) / float64(capacity.InstanceMemory) * 100.0)
+		if percent > 90 {
+			return errors.New("app may not start using over 90%% instance memory")
+		}
+	}
+
+	return nil
 }
