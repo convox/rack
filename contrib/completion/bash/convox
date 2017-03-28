@@ -153,7 +153,8 @@ __convox_to_extglob() {
 ###########################
 
 __convox_apps() {
-    __convox_q apps <<< read $(__convox_rack_flag)
+    read -d " " rack_flag rack <<< $(__convox_rack_flag)
+    __convox_q apps $rack_flag $rack
 }
 
 __convox_complete_api_endpoints() {
@@ -163,6 +164,18 @@ __convox_complete_api_endpoints() {
 __convox_check_auth() {
     [ -f ~/.convox/auth ] && return 1
     COMPREPLY=( $( compgen -W "NO_AUTH_FOUND_PLEASE_LOG_IN" ) )
+}
+
+__convox_app_flag() {
+    local app=$(__convox_value_of_option "--app|-a")
+    local app_flag
+    if [[ $app == "" ]]; then
+        app_flag=""
+    else
+        app_flag="--app"
+    fi
+    echo "$app_flag"
+    echo "$app"
 }
 
 __convox_rack_flag() {
@@ -175,6 +188,11 @@ __convox_rack_flag() {
     fi
     echo "$rack_flag"
     echo "$rack"
+}
+
+__convox_rack_and_app_flags() {
+    __convox_rack_flag
+    __convox_app_flag
 }
 
 __convox_complete_apps() {
@@ -190,7 +208,7 @@ __convox_complete_app_params() {
     COMPREPLY=( $( compgen -S "=" -W "$(__convox_app_params)" -- "$cur" ) )
 }
 
-__convox_complete_builds_all() {
+__convox_complete_builds() {
     builds="$(__convox_builds)"
     COMPREPLY=( $(compgen -W "$builds" -- "$cur") )
 }
@@ -213,21 +231,7 @@ __convox_complete_env_vars() {
 }
 
 __convox_releases() {
-    local rack=$(__convox_value_of_option "--rack")
-    local rack_flag
-    if [[ $rack == "" ]]; then
-        rack_flag=""
-    else
-        rack_flag="--rack"
-    fi
-
-    local app=$(__convox_value_of_option "--app -a")
-    local app_flag
-    if [[ $app == "" ]]; then
-        app_flag=""
-    else
-        app_flag="--app"
-    fi
+    read -d " " rack_flag rack app_flag app <<< $(__convox_rack_and_app_flags)
     builds="$(__convox_q $rack_flag $rack $app_flag $app releases | grep -v STATUS | awk '{ print $1 }')"
     echo "$builds"
 }
@@ -238,22 +242,7 @@ __convox_complete_releases() {
 }
 
 __convox_builds() {
-    local rack=$(__convox_value_of_option "--rack")
-    local rack_flag
-    if [[ $rack == "" ]]; then
-        rack_flag=""
-    else
-        rack_flag="--rack"
-    fi
-
-    local app=$(__convox_value_of_option "--app -a")
-    local app_flag
-    if [[ $app == "" ]]; then
-        app_flag=""
-    else
-        app_flag="--app"
-    fi
-
+    read -d " " rack_flag rack app_flag app <<< $(__convox_rack_and_app_flags)
     builds="$(__convox_q $rack_flag $rack $app_flag $app builds | grep -v STATUS | awk '{ print $1 }')"
     echo "$builds"
 }
@@ -275,26 +264,22 @@ __convox_complete_build_instance_types_as_param() {
 }
 
 __convox_complete_instances_by_rack() {
-    local rack=$(__convox_value_of_option "--rack")
-    local rack_flag
-    if [[ $rack == "" ]]; then
-        rack_flag=""
-    else
-        rack_flag="--rack"
-    fi
+    read -d " " rack_flag rack <<< $(__convox_rack_flag)
 
     local IFS=$'\n'
     local instances=""
-    if [ "$1" ]; then
-        instances=( $(__convox_q instances $rack_flag $rack | grep "^$1" | grep -v AGENT | awk '{ print $1 }') )
-    else
-        instances=( $(__convox_q instances $rack_flag $rack | grep -v AGENT | awk '{ print $1 }') )
-    fi
+    instances=( $(__convox_q instances $rack_flag $rack | grep -v AGENT | awk '{ print $1 }') )
     unset IFS
     COMPREPLY=( $(compgen -W "${instances[*]}" -- "$cur") )
 }
-__convox_complete_pids_by_app() {
-    # TODO... maybe
+
+__convox_complete_pids() {
+    local IFS=$'\n'
+    local processes=""
+    read -d " " rack_flag rack app_flag app <<< $(__convox_rack_and_app_flags)
+    processes=( $(__convox_q ps $rack_flag $rack $app_flag $app | grep -v '^ID ' | awk '{ print $1 }') )
+    unset IFS
+    COMPREPLY=( $(compgen -W "${processes[*]}" -- "$cur") )
     return
 }
 
@@ -313,29 +298,10 @@ __convox_complete_racks() {
 }
 
 __convox_complete_rack_env() {
-    local rack=$(__convox_value_of_option "--rack")
-    local rack_flag
-    if [[ $rack == "" ]]; then
-        rack_flag=""
-    else
-        rack_flag="--rack"
-    fi
-
-    local app=$(__convox_value_of_option "--app -a")
-    local app_flag
-    if [[ $app == "" ]]; then
-        app_flag=""
-    else
-        app_flag="--app"
-    fi
-
+    read -d " " rack_flag rack app_flag app <<< $(__convox_rack_and_app_flags)
     local IFS=$'\n'
     local envvars=""
-    if [ "$1" ]; then
-        envvars=( $(__convox_q env $app_flag $app $rack_flag $rack | grep "^$1" | tr '=' ' ' | awk '{ print $1 }') )
-    else
-        envvars=( $(__convox_q env $app_flag $app $rack_flag $rack | tr '=' ' ' | awk '{ print $1 }') )
-    fi
+    envvars=( $(__convox_q env "$app_flag" "$app" "$rack_flag" "$rack" | tr '=' ' ' | awk '{ print $1 }') )
     unset IFS
     COMPREPLY=( $(compgen -W "${envvars[*]}" -- "$cur") )
 }
@@ -348,21 +314,13 @@ __convox_complete_rack_params() {
 __convox_complete_rack_versions() {
     local IFS=$'\n'
     local version=""
-    if [ "$1" ]; then
-        versions=( $(__convox_q rack releases | grep "^$1" | grep -v VERSION | awk '{ print $1 }') )
-    else
-        versions=( $(__convox_q rack releases | grep -v VERSION | awk '{ print $1 }') )
-    fi
+    versions=( $(__convox_q rack releases | grep -v VERSION | awk '{ print $1 }') )
     unset IFS
     COMPREPLY=( $(compgen -W "${versions[*]}" -- "$cur") )
 }
 
 __convox_registries() {
-    if [ "$1" ]; then
-        __convox_q registries | grep "^$1" | grep -v SERVER | awk '{ print $1 }'
-    else
-        __convox_q registries | grep -v SERVER | awk '{ print $1 }'
-    fi
+    __convox_q registries | grep -v SERVER | awk '{ print $1 }'
 }
 
 __convox_complete_registries() {
@@ -380,19 +338,16 @@ __convox_complete_resource_types() {
     COMPREPLY=( $( compgen -W "$(__convox_resource_types)" -- "$cur" ) )
 }
 
-__convox_complete_resources_all() {
+__convox_complete_resources() {
     local IFS=$'\n'
     local resources=( $(__convox_resources $1) )
     unset IFS
     COMPREPLY=( $(compgen -W "${resources[*]}" -- "$cur") )
 }
 
-__convox_complete_stacks_all() {
+__convox_complete_stacks() {
     local IFS=$'\n'
     local stacks=( $(__convox_q racks | grep -v RACK | awk '{ print $1 }' | tr '/' " " | awk '{ print $2 }') )
-    if [ "$1" ]; then
-        stacks=( $(__convox_q racks | grep "^$1" | grep -v RACK | awk '{ print $1 }' | tr '/' " " | awk '{ print $2 }') )
-    fi
     unset IFS
     COMPREPLY=( $(compgen -W "${stacks[*]}" -- "$cur") )
 }
@@ -457,15 +412,15 @@ _env_vars() {
 }
 
 __convox_stacks() {
-    __convox_q racks | grep -v RACK | awk '{ print $1 }' | tr '/' " " | awk '{ print $2 }'
+    __convox_q racks | grep -v ^RACK | awk '{ print $1 }' | tr '/' " " | awk '{ print $2 }'
 }
 
 __convox_resources() {
-    __convox_q resources | grep -v NAME | awk '{ print $1 }'
+    __convox_q resources | grep -v ^NAME | awk '{ print $1 }'
 }
 
 __convox_racks() {
-    __convox_q racks | grep -v RACK | awk '{ print $1 }'
+    __convox_q racks | grep -v ^RACK | awk '{ print $1 }'
 }
 
 ##################
@@ -1265,7 +1220,7 @@ _convox_builds_delete() {
             return
             ;;
         *)
-            __convox_complete_builds_all
+            __convox_complete_builds
             return
             ;;
     esac
@@ -1310,7 +1265,7 @@ _convox_builds_export() {
             # if this is the first non-flag argument, complete build IDs
             local counter=$( __convox_pos_first_nonflag $( __convox_to_alternatives "$options_with_args" ) )
             if [ $cword -eq $counter ]; then
-                __convox_complete_builds_all
+                __convox_complete_builds
             fi
             return
             ;;
@@ -1351,7 +1306,7 @@ _convox_builds_import() {
             # if this is the first non-flag argument, complete build IDs
             local counter=$( __convox_pos_first_nonflag $( __convox_to_alternatives "$options_with_args" ) )
             if [ $cword -eq $counter ]; then
-                __convox_complete_builds_all
+                __convox_complete_builds
             fi
             return
             ;;
@@ -1387,7 +1342,7 @@ _convox_builds_info() {
             # if this is the first non-flag argument, complete build IDs
             local counter=$( __convox_pos_first_nonflag $( __convox_to_alternatives "$options_with_args" ) )
             if [ $cword -eq $counter ]; then
-                __convox_complete_builds_all
+                __convox_complete_builds
             fi
             return
             ;;
@@ -1426,7 +1381,7 @@ _convox_builds_logs() {
             return
             ;;
         *)
-            __convox_complete_builds_all
+            __convox_complete_builds
             ;;
     esac
 }
@@ -1892,7 +1847,13 @@ _convox_login() {
             COMPREPLY=( $( compgen -W "$all_options" -- "$cur" ) )
             ;;
         *)
-            __convox_complete_hosts $cur
+            local counter=$( __convox_pos_first_nonflag $( __convox_to_alternatives "$options_with_args" ) + 1)
+            if [ $cword -eq $counter ]; then
+                __convox_complete_hosts $cur
+                return
+            else
+                COMPREPLY=( $( compgen -W "$all_options" -- "$cur" ) )
+            fi
             ;;
     esac
 }
@@ -1995,6 +1956,42 @@ _convox_ps() {
 }
 
 # TODO: convox ps info
+_convox_ps_info() {
+    local options_with_args="
+        --app -a
+        --rack
+    "
+    local boolean_options="
+        --help
+        --stats
+    "
+    local all_options="$options_with_args $boolean_options"
+
+    case "$prev" in
+        --app|-a)
+            __convox_complete_apps
+            return
+            ;;
+        --rack)
+            __convox_complete_racks
+            return
+            ;;
+    esac
+
+    case "$cur" in
+        -*)
+            COMPREPLY=( $( compgen -W "$all_options" -- "$cur" ) )
+            ;;
+        *)
+            local counter=$( __convox_pos_first_nonflag $( __convox_to_alternatives "$options_with_args" ) + 1)
+            if [ $cword -eq $counter ]; then
+                __convox_complete_pids
+                return
+            fi
+            return
+            ;;
+    esac
+}
 
 _convox_ps_stop() {
     local options_with_args="
@@ -2023,7 +2020,11 @@ _convox_ps_stop() {
             COMPREPLY=( $( compgen -W "$all_options" -- "$cur" ) )
             ;;
         *)
-            __convox_complete_pids_by_app
+            local counter=$( __convox_pos_first_nonflag $( __convox_to_alternatives "$options_with_args" ) + 1)
+            if [ $cword -eq $counter ]; then
+                __convox_complete_pids
+                return
+            fi
             return
             ;;
     esac
@@ -2397,7 +2398,11 @@ _convox_registries_remove() {
             COMPREPLY=( $( compgen -W "$all_options" -- "$cur" ) )
             ;;
         *)
-            __convox_complete_registries
+            local counter=$( __convox_pos_first_nonflag $( __convox_to_alternatives "$options_with_args" ) + 1)
+            if [ $cword -eq $counter ]; then
+                __convox_complete_registries
+                return
+            fi
             return
             ;;
     esac
@@ -2473,8 +2478,11 @@ _convox_releases_info() {
             COMPREPLY=( $( compgen -W "$all_options" -- "$cur" ) )
             ;;
         *)
-            __convox_complete_releases
-            return
+            local counter=$( __convox_pos_first_nonflag $( __convox_to_alternatives "$options_with_args" ) + 1)
+            if [ $cword -eq $counter ]; then
+                __convox_complete_releases
+                return
+            fi
             ;;
     esac
 }
@@ -2508,8 +2516,11 @@ _convox_releases_promote() {
             COMPREPLY=( $( compgen -W "$all_options" -- "$cur" ) )
             ;;
         *)
-            __convox_complete_releases
-            return
+            local counter=$( __convox_pos_first_nonflag $( __convox_to_alternatives "$options_with_args" ) + 1)
+            if [ $cword -eq $counter ]; then
+                __convox_complete_releases
+                return
+            fi
             ;;
     esac
 }
@@ -2570,7 +2581,7 @@ _convox_resources_delete() {
             COMPREPLY=( $( compgen -W "$all_options" -- "$cur" ) )
             ;;
         *)
-            __convox_complete_resources_all
+            __convox_complete_resources
             return
             ;;
     esac
@@ -2600,7 +2611,7 @@ _convox_resources_info() {
             COMPREPLY=( $( compgen -W "$all_options" -- "$cur" ) )
             ;;
         *)
-            __convox_complete_resources_all
+            __convox_complete_resources
             return
             ;;
     esac
@@ -2635,7 +2646,7 @@ _convox_resources_link() {
             COMPREPLY=( $( compgen -W "$all_options" -- "$cur" ) )
             ;;
         *)
-            __convox_complete_resources_all
+            __convox_complete_resources
             return
             ;;
     esac
@@ -2666,7 +2677,7 @@ _convox_resources_proxy() {
             COMPREPLY=( $( compgen -W "$all_options" -- "$cur" ) )
             ;;
         *)
-            __convox_complete_resources_all
+            __convox_complete_resources
             return
             ;;
     esac
@@ -2701,7 +2712,7 @@ _convox_resources_unlink() {
             COMPREPLY=( $( compgen -W "$all_options" -- "$cur" ) )
             ;;
         *)
-            __convox_complete_resources_all
+            __convox_complete_resources
             return
             ;;
     esac
@@ -2731,7 +2742,7 @@ _convox_resources_update() {
             COMPREPLY=( $( compgen -W "$all_options" -- "$cur" ) )
             ;;
         *)
-            __convox_complete_resources_all
+            __convox_complete_resources
             return
             ;;
     esac
@@ -2766,7 +2777,7 @@ _convox_resources_url() {
             COMPREPLY=( $( compgen -W "$all_options" -- "$cur" ) )
             ;;
         *)
-            __convox_complete_resources_all
+            __convox_complete_resources
             return
             ;;
     esac
@@ -3222,7 +3233,7 @@ _convox_uninstall() {
             local counter=$( __convox_pos_first_nonflag $( __convox_to_alternatives "$options_with_args" ) )
             # if this is the first non-flag argument, complete stacks
             if [ $cword -eq $counter ]; then
-                __convox_complete_stacks_all
+                __convox_complete_stacks
                 return
 
             # if this is the second non-flag argument, complete regions
