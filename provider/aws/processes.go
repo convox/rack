@@ -295,9 +295,6 @@ func (p *AWSProvider) taskProcesses(tasks []string) (structs.Processes, error) {
 
 	pss := structs.Processes{}
 
-	fmt.Println("what the asdfafafaa")
-	fmt.Println(tasks)
-
 	for i := 0; i < len(tasks); i += describeTasksPageSize {
 		ptasks := []string{}
 
@@ -325,8 +322,6 @@ func (p *AWSProvider) taskProcesses(tasks []string) (structs.Processes, error) {
 			Cluster: aws.String(p.Cluster),
 			Tasks:   iptasks,
 		})
-		fmt.Println("TASK")
-		fmt.Println(tres.Tasks)
 		if err != nil {
 			log.Error(err)
 			return nil, err
@@ -662,9 +657,6 @@ func (p *AWSProvider) fetchProcesses(task *ecs.Task, psch chan structs.Process, 
 	}
 
 	for containerIndex, container := range task.Containers {
-		fmt.Println("------------------------- HERE A------------------")
-		fmt.Println(*task.TaskArn)
-		fmt.Println(*container.ContainerArn)
 		cd := cds[containerIndex]
 
 		env := map[string]string{}
@@ -742,7 +734,6 @@ func (p *AWSProvider) fetchProcesses(task *ecs.Task, psch chan structs.Process, 
 			Stream: false,
 		})
 		if err != nil {
-			fmt.Printf("docker stats error: %s", err)
 			psch <- ps
 		}
 
@@ -852,8 +843,6 @@ func (p *AWSProvider) generateTaskDefinition(app, process, release string, noDep
 
 	var volumes []*ecs.Volume
 	var containerDefs []*ecs.ContainerDefinition
-
-	fmt.Printf("NAMES = %s\n", requiredContainerNames)
 
 	for _, containerName := range requiredContainerNames {
 		currentExistingContainerDef := containerDefMap[containerName]
