@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/convox/rack/client"
 	"github.com/convox/rack/cmd/convox/stdcli"
 	"gopkg.in/urfave/cli.v1"
 	"time"
@@ -61,6 +62,8 @@ var resourceTypes = []ResourceType{
 		"--url=https://console.convox.com/webhooks/1234",
 	},
 }
+
+var waitSecond = time.Second
 
 func init() {
 
@@ -228,21 +231,12 @@ func cmdResourceCreate(c *cli.Context) error {
 		return stdcli.Error(err)
 	}
 
-	if !c.Bool("wait") && options["wait"] != "true" {
-		fmt.Println("CREATING")
-		return nil
-	}
-
-	fmt.Println("Waiting for completion")
-
-	// give the rack a few seconds to start updating
-	time.Sleep(5 * time.Second)
-
-	if err := waitForResource(c, options["name"]); err != nil {
-		return stdcli.Error(err)
-	}
-
-	return nil
+	return waitForResource(
+		rackClient(c),
+		options["name"],
+		"CREATING",
+		c.Bool("wait") || options["wait"] == "true",
+	)
 }
 
 func cmdResourceUpdate(c *cli.Context) error {
@@ -273,21 +267,12 @@ func cmdResourceUpdate(c *cli.Context) error {
 		return stdcli.Error(err)
 	}
 
-	if !c.Bool("wait") && options["wait"] != "true" {
-		fmt.Println("UPDATING")
-		return nil
-	}
-
-	fmt.Println("Waiting for completion")
-
-	// give the rack a few seconds to start updating
-	time.Sleep(5 * time.Second)
-
-	if err := waitForResource(c, name); err != nil {
-		return stdcli.Error(err)
-	}
-
-	return nil
+	return waitForResource(
+		rackClient(c),
+		options["name"],
+		"UPDATING",
+		c.Bool("wait") || options["wait"] == "true",
+	)
 }
 
 func cmdResourceDelete(c *cli.Context) error {
@@ -303,21 +288,12 @@ func cmdResourceDelete(c *cli.Context) error {
 		return stdcli.Error(err)
 	}
 
-	if !c.Bool("wait") {
-		fmt.Println("DELETING")
-		return nil
-	}
-
-	fmt.Println("Waiting for completion")
-
-	// give the rack a few seconds to start updating
-	time.Sleep(5 * time.Second)
-
-	if err := waitForResource(c, name); err != nil {
-		return stdcli.Error(err)
-	}
-
-	return nil
+	return waitForResource(
+		rackClient(c),
+		name,
+		"DELETING",
+		c.Bool("wait"),
+	)
 }
 
 func cmdResourceInfo(c *cli.Context) error {
@@ -471,16 +447,26 @@ func cmdResourceProxy(c *cli.Context) error {
 	return nil
 }
 
-func waitForResource(c *cli.Context, n string) error {
-	timeout := time.After(30 * time.Minute)
-	tick := time.Tick(2 * time.Second)
+func waitForResource(c *client.Client, n string, t string, w bool) error {
+	timeout := time.After(30 * 60 * waitSecond)
+	tick := time.Tick(2 * waitSecond)
+
+	if !w {
+		fmt.Println(t)
+		return nil
+	}
+
+	fmt.Println("Waiting for completion")
+
+	// give the rack some time to start updating
+	time.Sleep(5 * waitSecond)
 
 	failed := false
 
 	for {
 		select {
 		case <-tick:
-			r, err := rackClient(c).GetResource(n)
+			r, err := c.GetResource(n)
 			if err != nil {
 				return err
 			}
