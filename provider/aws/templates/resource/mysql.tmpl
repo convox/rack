@@ -3,7 +3,7 @@
     "AWSTemplateFormatVersion" : "2010-09-09",
     "Conditions": {
       "Private": { "Fn::Equals": [ { "Ref": "Private" }, "true" ] },
-      "Encrypted": {"Fn::Equals" : [{"Ref" : "Encryption"}, "true"]}
+      "Encrypted": { "Fn::Equals" : [ { "Ref" : "Encryption" }, "true" ] }
     },
     "Parameters": {
       "AllocatedStorage": {
