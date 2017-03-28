@@ -734,6 +734,7 @@ func (p *AWSProvider) fetchProcesses(task *ecs.Task, psch chan structs.Process, 
 			Stream: false,
 		})
 		if err != nil {
+			fmt.Printf("docker stats error: %s", err)
 			psch <- ps
 		}
 
