@@ -4,7 +4,7 @@
     "Conditions": {
       "BlankMaxConnections": { "Fn::Equals": [ { "Ref": "MaxConnections" }, "" ] },
       "Private": { "Fn::Equals": [ { "Ref": "Private" }, "true" ] },
-      "Encrypted": {"Fn::Equals" : [{"Ref" : "Encryption"}, "true"]}
+      "Encrypted": { "Fn::Equals" : [ { "Ref" : "Encryption" }, "true" ] }
     },
     "Parameters": {
       "AllocatedStorage": {
