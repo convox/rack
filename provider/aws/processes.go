@@ -22,73 +22,6 @@ import (
 	"github.com/fsouza/go-dockerclient"
 )
 
-func lastSectionOfArn(arn string) string {
-	parts := strings.Split(arn, "-")
-	return parts[len(parts)-1]
-}
-
-// PID - Abstraction to deal with process ids when reference both a task and one of it's containers
-type PID struct {
-	TaskID      string
-	ContainerID string
-}
-
-func (pid *PID) String() string {
-	return fmt.Sprintf("%s-%s", pid.TaskID, pid.ContainerID)
-}
-
-// IsMatchingTask - Tests if the ecs task matches this PID
-func (pid *PID) IsMatchingTask(taskArn string) bool {
-	return lastSectionOfArn(taskArn) == pid.TaskID
-}
-
-// IsMatchingContainer - Tests if the container matches this PID
-func (pid *PID) IsMatchingContainer(taskArn string, containerArn string) bool {
-	return lastSectionOfArn(taskArn) == pid.TaskID && lastSectionOfArn(containerArn) == pid.ContainerID
-}
-
-// FindMatchingContainerInTask - Finds a matching container given the current ecs task
-func (pid *PID) FindMatchingContainerInTask(task *ecs.Task) *ecs.Container {
-	for _, container := range task.Containers {
-		if pid.IsMatchingContainer(*task.TaskArn, *container.ContainerArn) {
-			return container
-		}
-	}
-	return nil
-}
-
-// ParsePID - Parses a pid into it's constituent parts
-func ParsePID(pidStr string) *PID {
-	pidParts := strings.Split(pidStr, "-")
-	return &PID{
-		TaskID:      pidParts[0],
-		ContainerID: pidParts[1],
-	}
-}
-
-// PIDFromArns - Derives a pid from ecs task and container arns
-func PIDFromArns(taskArn string, containerArn string) *PID {
-	return &PID{
-		TaskID:      lastSectionOfArn(taskArn),
-		ContainerID: lastSectionOfArn(containerArn),
-	}
-}
-
-// PIDFromTask - Derives a pid from am ecs task and the target container name
-func PIDFromTask(task *ecs.Task, containerName string) (*PID, error) {
-	var containerArn string
-	for _, container := range task.Containers {
-		if *container.Name == containerName {
-			containerArn = *container.ContainerArn
-			break
-		}
-	}
-	if containerArn == "" {
-		return nil, fmt.Errorf("Cannot find container `%s` in task `%s`", containerName, *task.TaskArn)
-	}
-	return PIDFromArns(*task.TaskArn, containerArn), nil
-}
-
 // StatusCodePrefix is sent to the client to let it know the exit code is coming next
 const StatusCodePrefix = "F1E49A85-0AD7-4AEF-A618-C249C6E6568D:"
 
@@ -96,7 +29,11 @@ const StatusCodePrefix = "F1E49A85-0AD7-4AEF-A618-C249C6E6568D:"
 func (p *AWSProvider) ProcessExec(app, pidStr, command string, stream io.ReadWriter, opts structs.ProcessExecOptions) error {
 	log := Logger.At("ProcessExec").Namespace("app=%q pid=%q command=%q", app, pidStr, command).Start()
 
-	pid := ParsePID(pidStr)
+	pid, err := ParsePID(pidStr)
+	if err != nil {
+		log.Error(err)
+		return err
+	}
 
 	pss, err := p.ProcessList(app)
 	if err != nil {
@@ -500,7 +437,11 @@ func (p *AWSProvider) ProcessRun(app, process string, opts structs.ProcessRunOpt
 func (p *AWSProvider) ProcessStop(app, pidStr string) error {
 	log := Logger.At("ProcessStop").Namespace("app=%q pid=%q", app, pidStr).Start()
 
-	pid := ParsePID(pidStr)
+	pid, err := ParsePID(pidStr)
+	if err != nil {
+		log.Error(err)
+		return err
+	}
 
 	arn, err := p.taskArnFromPid(pid)
 	if err != nil {
