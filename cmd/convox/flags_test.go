@@ -7,8 +7,6 @@ import (
 	"github.com/convox/rack/cmd/convox/stdcli"
 	"github.com/convox/rack/test"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-	"gopkg.in/urfave/cli.v1"
 )
 
 /* HELP CHECKS */
