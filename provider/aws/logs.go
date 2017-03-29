@@ -3,12 +3,15 @@ package aws
 import (
 	"fmt"
 	"io"
+	"os"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
+	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/convox/rack/api/structs"
 )
 
@@ -99,6 +102,11 @@ func (p *AWSProvider) fetchLogs(w io.Writer, group, filter string, start int64) 
 	return end, nil
 }
 
+var (
+	releases        = make(map[string]string) // task definition to release id map
+	taskDefinitions = make(map[string]string) // task to task definition map
+)
+
 func (p *AWSProvider) writeLogEvents(w io.Writer, events []*cloudwatchlogs.FilteredLogEvent) (int64, error) {
 	if len(events) == 0 {
 		return 0, nil
@@ -116,10 +124,69 @@ func (p *AWSProvider) writeLogEvents(w io.Writer, events []*cloudwatchlogs.Filte
 			latest = *e.Timestamp
 		}
 
+		prefix := ""
+
+		// turn log stream with name `prefix-name/container-name/ecs-task-id`
+		// into a log line prefix like `web:RRQSKTNDULA/0b4127231289`
+		if strings.HasPrefix(*e.LogStreamName, "convox/") {
+			parts := strings.Split(*e.LogStreamName, "/")
+
+			if len(parts) == 3 {
+				name := parts[1]
+				taskID := parts[2]
+				shortID := strings.Replace(taskID, "-", "", -1)[0:12]
+
+				// if task has never been seen, get its task definition
+				if _, ok := taskDefinitions[taskID]; !ok {
+					t, err := p.ecs().DescribeTasks(&ecs.DescribeTasksInput{
+						Cluster: aws.String(os.Getenv("CLUSTER")),
+						Tasks:   []*string{aws.String(taskID)},
+					})
+					if err != nil {
+						return 0, err
+					}
+
+					if len(t.Tasks) > 0 {
+						taskDefinitions[taskID] = *t.Tasks[0].TaskDefinitionArn
+					}
+				}
+
+				// if task definition has never been seen, get its RELEASE env var
+				if tdARN, ok := taskDefinitions[taskID]; ok {
+					if _, ok := releases[tdARN]; !ok {
+						td, err := p.ecs().DescribeTaskDefinition(&ecs.DescribeTaskDefinitionInput{
+							TaskDefinition: aws.String(tdARN),
+						})
+						if err != nil {
+							return 0, err
+						}
+
+						if len(td.TaskDefinition.ContainerDefinitions) > 0 {
+							for _, e := range td.TaskDefinition.ContainerDefinitions[0].Environment {
+								if *e.Name == "RELEASE" {
+									releases[tdARN] = *e.Value
+								}
+							}
+						}
+					}
+				}
+
+				// lookup cached task definition and release
+				tdARN := taskDefinitions[taskID]
+				release := releases[tdARN]
+
+				if release == "" {
+					release = "RUNKNOWN"
+				}
+
+				prefix = fmt.Sprintf("%s:%s/%s ", name, release, shortID)
+			}
+		}
+
 		sec := *e.Timestamp / 1000
 		nsec := *e.Timestamp - (sec * 1000)
 		t := time.Unix(sec, nsec).UTC()
-		line := fmt.Sprintf("%s %s\n", t.Format(time.RFC3339), *e.Message)
+		line := fmt.Sprintf("%s %s%s\n", t.Format(time.RFC3339), prefix, *e.Message)
 
 		if _, err := w.Write([]byte(line)); err != nil {
 			log.Error(err)
