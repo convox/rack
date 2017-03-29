@@ -1,26 +1,26 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
   "Conditions": {
-    "BlankBalancerPostgresPort5432Certificate": {
+    "BlankBalancerBarPort9000Certificate": {
       "Fn::Equals": [
         {
-          "Ref": "PostgresPort5432Certificate"
+          "Ref": "BarPort9000Certificate"
         },
         ""
       ]
     },
-    "BlankBalancerWebPort443Certificate": {
+    "BlankBalancerFooPort443Certificate": {
       "Fn::Equals": [
         {
-          "Ref": "WebPort443Certificate"
+          "Ref": "FooPort443Certificate"
         },
         ""
       ]
     },
-    "BlankBalancerWebPort80Certificate": {
+    "BlankBalancerSslterminatorPort443Certificate": {
       "Fn::Equals": [
         {
-          "Ref": "WebPort80Certificate"
+          "Ref": "SslterminatorPort443Certificate"
         },
         ""
       ]
@@ -33,7 +33,7 @@
         ""
       ]
     },
-    "EnabledPostgres": {
+    "EnabledBar": {
       "Fn::Not": [
         {
           "Fn::Equals": [
@@ -41,7 +41,7 @@
               "Fn::Select": [
                 0,
                 {
-                  "Ref": "PostgresFormation"
+                  "Ref": "BarFormation"
                 }
               ]
             },
@@ -50,12 +50,46 @@
         }
       ]
     },
-    "EnabledPostgresGroup": {
+    "EnabledFoo": {
       "Fn::Not": [
         {
           "Fn::Equals": [
             {
-              "Ref": "PostgresGroupFormation"
+              "Fn::Select": [
+                0,
+                {
+                  "Ref": "FooFormation"
+                }
+              ]
+            },
+            "-1"
+          ]
+        }
+      ]
+    },
+    "EnabledFoobarGroup": {
+      "Fn::Not": [
+        {
+          "Fn::Equals": [
+            {
+              "Ref": "FoobarGroupFormation"
+            },
+            "-1"
+          ]
+        }
+      ]
+    },
+    "EnabledSslterminator": {
+      "Fn::Not": [
+        {
+          "Fn::Equals": [
+            {
+              "Fn::Select": [
+                0,
+                {
+                  "Ref": "SslterminatorFormation"
+                }
+              ]
             },
             "-1"
           ]
@@ -85,6 +119,35 @@
           "Fn::Equals": [
             {
               "Ref": "WebGroupFormation"
+            },
+            "-1"
+          ]
+        }
+      ]
+    },
+    "EnabledWorker": {
+      "Fn::Not": [
+        {
+          "Fn::Equals": [
+            {
+              "Fn::Select": [
+                0,
+                {
+                  "Ref": "WorkerFormation"
+                }
+              ]
+            },
+            "-1"
+          ]
+        }
+      ]
+    },
+    "EnabledWorkerGroup": {
+      "Fn::Not": [
+        {
+          "Fn::Equals": [
+            {
+              "Ref": "WorkerGroupFormation"
             },
             "-1"
           ]
@@ -182,35 +245,39 @@
     }
   },
   "Outputs": {
-    "BalancerPostgresHost": {
-      "Condition": "EnabledPostgres",
+    "BalancerBarHost": {
+      "Condition": "EnabledBar",
       "Value": {
         "Fn::GetAtt": [
-          "BalancerPostgresInternal",
+          "BalancerBar",
           "DNSName"
         ]
       }
     },
-    "BalancerWebHost": {
-      "Condition": "EnabledWeb",
+    "BalancerFooHost": {
+      "Condition": "EnabledFoo",
       "Value": {
         "Fn::GetAtt": [
-          "BalancerWeb",
+          "BalancerFoo",
           "DNSName"
         ]
       }
     },
-    "LogGroup": {
+    "BalancerSslterminatorHost": {
+      "Condition": "EnabledSslterminator",
       "Value": {
-        "Ref": "LogGroup"
+        "Fn::GetAtt": [
+          "BalancerSslterminator",
+          "DNSName"
+        ]
       }
     },
-    "PostgresPort5432Balancer": {
-      "Condition": "EnabledPostgres",
-      "Value": "5432"
+    "BarPort9000Balancer": {
+      "Condition": "EnabledBar",
+      "Value": "9000"
     },
-    "PostgresPort5432BalancerName": {
-      "Condition": "EnabledPostgres",
+    "BarPort9000BalancerName": {
+      "Condition": "EnabledBar",
       "Value": {
         "Fn::If": [
           "Internal",
@@ -218,13 +285,40 @@
             "Fn::Join": [
               "-",
               [
-                "httpd-postgres-OTLTE5J-i",
+                "httpd-bar-PX3ZPBB",
                 "n"
               ]
             ]
           },
-          "httpd-postgres-OTLTE5J-i"
+          "httpd-bar-PX3ZPBB"
         ]
+      }
+    },
+    "FooPort443Balancer": {
+      "Condition": "EnabledFoo",
+      "Value": "443"
+    },
+    "FooPort443BalancerName": {
+      "Condition": "EnabledFoo",
+      "Value": {
+        "Fn::If": [
+          "Internal",
+          {
+            "Fn::Join": [
+              "-",
+              [
+                "httpd-foo-I5T6O34",
+                "n"
+              ]
+            ]
+          },
+          "httpd-foo-I5T6O34"
+        ]
+      }
+    },
+    "LogGroup": {
+      "Value": {
+        "Ref": "LogGroup"
       }
     },
     "RegistryId": {
@@ -245,12 +339,12 @@
         "Ref": "Settings"
       }
     },
-    "WebPort443Balancer": {
-      "Condition": "EnabledWeb",
+    "SslterminatorPort443Balancer": {
+      "Condition": "EnabledSslterminator",
       "Value": "443"
     },
-    "WebPort443BalancerName": {
-      "Condition": "EnabledWeb",
+    "SslterminatorPort443BalancerName": {
+      "Condition": "EnabledSslterminator",
       "Value": {
         "Fn::If": [
           "Internal",
@@ -258,39 +352,32 @@
             "Fn::Join": [
               "-",
               [
-                "httpd-web-XHW5F4P",
+                "httpd-sslterminator-YIH5GRH",
                 "n"
               ]
             ]
           },
-          "httpd-web-XHW5F4P"
-        ]
-      }
-    },
-    "WebPort80Balancer": {
-      "Condition": "EnabledWeb",
-      "Value": "80"
-    },
-    "WebPort80BalancerName": {
-      "Condition": "EnabledWeb",
-      "Value": {
-        "Fn::If": [
-          "Internal",
-          {
-            "Fn::Join": [
-              "-",
-              [
-                "httpd-web-XHW5F4P",
-                "n"
-              ]
-            ]
-          },
-          "httpd-web-XHW5F4P"
+          "httpd-sslterminator-YIH5GRH"
         ]
       }
     }
   },
   "Parameters": {
+    "BarFormation": {
+      "Default": "1,0,256",
+      "Description": "Number of processes to run, CPU units to reserve, and MB of RAM to reserve",
+      "Type": "CommaDelimitedList"
+    },
+    "BarPort9000Certificate": {
+      "Default": "",
+      "Description": "",
+      "Type": "String"
+    },
+    "BarPort9000Host": {
+      "Default": "5000",
+      "Description": "",
+      "Type": "String"
+    },
     "Cluster": {
       "Default": "",
       "Description": "",
@@ -316,6 +403,26 @@
       "Description": "",
       "Type": "String"
     },
+    "FooFormation": {
+      "Default": "1,0,256",
+      "Description": "Number of processes to run, CPU units to reserve, and MB of RAM to reserve",
+      "Type": "CommaDelimitedList"
+    },
+    "FooPort443Certificate": {
+      "Default": "",
+      "Description": "",
+      "Type": "String"
+    },
+    "FooPort443Host": {
+      "Default": "5000",
+      "Description": "",
+      "Type": "String"
+    },
+    "FoobarGroupFormation": {
+      "Default": "1",
+      "Description": "Number of processes to run",
+      "Type": "Number"
+    },
     "Internal": {
       "AllowedValues": [
         "Yes",
@@ -327,26 +434,6 @@
     },
     "Key": {
       "Default": "",
-      "Description": "",
-      "Type": "String"
-    },
-    "PostgresFormation": {
-      "Default": "1,0,256",
-      "Description": "Number of processes to run, CPU units to reserve, and MB of RAM to reserve",
-      "Type": "CommaDelimitedList"
-    },
-    "PostgresGroupFormation": {
-      "Default": "1",
-      "Description": "Number of processes to run",
-      "Type": "Number"
-    },
-    "PostgresPort5432Certificate": {
-      "Default": "",
-      "Description": "",
-      "Type": "String"
-    },
-    "PostgresPort5432Host": {
-      "Default": "5000",
       "Description": "",
       "Type": "String"
     },
@@ -372,6 +459,21 @@
     "SecurityGroup": {
       "Default": "",
       "Description": "The Load balancer security group for this app",
+      "Type": "String"
+    },
+    "SslterminatorFormation": {
+      "Default": "1,0,256",
+      "Description": "Number of processes to run, CPU units to reserve, and MB of RAM to reserve",
+      "Type": "CommaDelimitedList"
+    },
+    "SslterminatorPort443Certificate": {
+      "Default": "",
+      "Description": "",
+      "Type": "String"
+    },
+    "SslterminatorPort443Host": {
+      "Default": "5000",
+      "Description": "",
       "Type": "String"
     },
     "Subnets": {
@@ -414,32 +516,22 @@
       "Description": "Number of processes to run",
       "Type": "Number"
     },
-    "WebPort443Certificate": {
-      "Default": "",
-      "Description": "",
-      "Type": "String"
+    "WorkerFormation": {
+      "Default": "1,0,256",
+      "Description": "Number of processes to run, CPU units to reserve, and MB of RAM to reserve",
+      "Type": "CommaDelimitedList"
     },
-    "WebPort443Host": {
-      "Default": "5001",
-      "Description": "",
-      "Type": "String"
-    },
-    "WebPort80Certificate": {
-      "Default": "",
-      "Description": "",
-      "Type": "String"
-    },
-    "WebPort80Host": {
-      "Default": "5000",
-      "Description": "",
-      "Type": "String"
+    "WorkerGroupFormation": {
+      "Default": "1",
+      "Description": "Number of processes to run",
+      "Type": "Number"
     }
   },
   "Resources": {
-    "BalancerPostgresInternal": {
-      "Condition": "EnabledPostgres",
+    "BalancerBar": {
+      "Condition": "EnabledBar",
       "DependsOn": [
-        "BalancerPostgresInternalSecurityGroup"
+        "BalancerBarSecurityGroup"
       ],
       "Properties": {
         "ConnectionDrainingPolicy": {
@@ -459,7 +551,7 @@
               [
                 "TCP:",
                 {
-                  "Ref": "PostgresPort5432Host"
+                  "Ref": "BarPort9000Host"
                 },
                 ""
               ]
@@ -476,25 +568,19 @@
         "Listeners": [
           {
             "InstancePort": {
-              "Ref": "PostgresPort5432Host"
+              "Ref": "BarPort9000Host"
             },
-            "InstanceProtocol": "TCP",
-            "LoadBalancerPort": "5432",
-            "Protocol": {
-              "Fn::If": [
-                "BlankBalancerPostgresPort5432Certificate",
-                "TCP",
-                "SSL"
-              ]
-            },
+            "InstanceProtocol": "HTTP",
+            "LoadBalancerPort": "9000",
+            "Protocol": "HTTP",
             "SSLCertificateId": {
               "Fn::If": [
-                "BlankBalancerPostgresPort5432Certificate",
+                "BlankBalancerBarPort9000Certificate",
                 {
                   "Ref": "AWS::NoValue"
                 },
                 {
-                  "Ref": "PostgresPort5432Certificate"
+                  "Ref": "BarPort9000Certificate"
                 }
               ]
             }
@@ -510,185 +596,12 @@
               "Fn::Join": [
                 "-",
                 [
-                  "httpd-postgres-OTLTE5J-i",
+                  "httpd-bar-PX3ZPBB",
                   "n"
                 ]
               ]
             },
-            "httpd-postgres-OTLTE5J-i"
-          ]
-        },
-        "Policies": [
-          {
-            "Ref": "AWS::NoValue"
-          }
-        ],
-        "Scheme": "internal",
-        "SecurityGroups": [
-          {
-            "Fn::If": [
-              "BlankSecurityGroup",
-              {
-                "Ref": "BalancerPostgresInternalSecurityGroup"
-              },
-              {
-                "Ref": "SecurityGroup"
-              }
-            ]
-          }
-        ],
-        "Subnets": {
-          "Fn::If": [
-            "Private",
-            {
-              "Ref": "SubnetsPrivate"
-            },
-            {
-              "Ref": "Subnets"
-            }
-          ]
-        }
-      },
-      "Type": "AWS::ElasticLoadBalancing::LoadBalancer"
-    },
-    "BalancerPostgresInternalSecurityGroup": {
-      "Condition": "EnabledPostgres",
-      "Properties": {
-        "GroupDescription": {
-          "Fn::Join": [
-            " ",
-            [
-              {
-                "Ref": "AWS::StackName"
-              },
-              "-balancer"
-            ]
-          ]
-        },
-        "SecurityGroupIngress": [
-          {
-            "CidrIp": {
-              "Ref": "VPCCIDR"
-            },
-            "FromPort": "5432",
-            "IpProtocol": "tcp",
-            "ToPort": "5432"
-          },
-          {
-            "Ref": "AWS::NoValue"
-          }
-        ],
-        "VpcId": {
-          "Ref": "VPC"
-        }
-      },
-      "Type": "AWS::EC2::SecurityGroup"
-    },
-    "BalancerWeb": {
-      "Condition": "EnabledWeb",
-      "DependsOn": [
-        "BalancerWebSecurityGroup"
-      ],
-      "Properties": {
-        "ConnectionDrainingPolicy": {
-          "Enabled": true,
-          "Timeout": "60"
-        },
-        "ConnectionSettings": {
-          "IdleTimeout": "3600"
-        },
-        "CrossZone": true,
-        "HealthCheck": {
-          "HealthyThreshold": "2",
-          "Interval": "5",
-          "Target": {
-            "Fn::Join": [
-              "",
-              [
-                "TCP:",
-                {
-                  "Ref": "WebPort80Host"
-                },
-                ""
-              ]
-            ]
-          },
-          "Timeout": "3",
-          "UnhealthyThreshold": "2"
-        },
-        "LBCookieStickinessPolicy": [
-          {
-            "PolicyName": "affinity"
-          }
-        ],
-        "Listeners": [
-          {
-            "InstancePort": {
-              "Ref": "WebPort80Host"
-            },
-            "InstanceProtocol": "TCP",
-            "LoadBalancerPort": "80",
-            "Protocol": {
-              "Fn::If": [
-                "BlankBalancerWebPort80Certificate",
-                "TCP",
-                "SSL"
-              ]
-            },
-            "SSLCertificateId": {
-              "Fn::If": [
-                "BlankBalancerWebPort80Certificate",
-                {
-                  "Ref": "AWS::NoValue"
-                },
-                {
-                  "Ref": "WebPort80Certificate"
-                }
-              ]
-            }
-          },
-          {
-            "InstancePort": {
-              "Ref": "WebPort443Host"
-            },
-            "InstanceProtocol": "TCP",
-            "LoadBalancerPort": "443",
-            "Protocol": {
-              "Fn::If": [
-                "BlankBalancerWebPort443Certificate",
-                "TCP",
-                "SSL"
-              ]
-            },
-            "SSLCertificateId": {
-              "Fn::If": [
-                "BlankBalancerWebPort443Certificate",
-                {
-                  "Ref": "AWS::NoValue"
-                },
-                {
-                  "Ref": "WebPort443Certificate"
-                }
-              ]
-            }
-          },
-          {
-            "Ref": "AWS::NoValue"
-          }
-        ],
-        "LoadBalancerName": {
-          "Fn::If": [
-            "Internal",
-            {
-              "Fn::Join": [
-                "-",
-                [
-                  "httpd-web-XHW5F4P",
-                  "n"
-                ]
-              ]
-            },
-            "httpd-web-XHW5F4P"
+            "httpd-bar-PX3ZPBB"
           ]
         },
         "Policies": [
@@ -710,7 +623,7 @@
             "Fn::If": [
               "BlankSecurityGroup",
               {
-                "Ref": "BalancerWebSecurityGroup"
+                "Ref": "BalancerBarSecurityGroup"
               },
               {
                 "Ref": "SecurityGroup"
@@ -732,8 +645,8 @@
       },
       "Type": "AWS::ElasticLoadBalancing::LoadBalancer"
     },
-    "BalancerWebSecurityGroup": {
-      "Condition": "EnabledWeb",
+    "BalancerBarSecurityGroup": {
+      "Condition": "EnabledBar",
       "Properties": {
         "GroupDescription": {
           "Fn::Join": [
@@ -749,10 +662,330 @@
         "SecurityGroupIngress": [
           {
             "CidrIp": "0.0.0.0/0",
-            "FromPort": "80",
+            "FromPort": "9000",
             "IpProtocol": "tcp",
-            "ToPort": "80"
+            "ToPort": "9000"
           },
+          {
+            "Ref": "AWS::NoValue"
+          }
+        ],
+        "VpcId": {
+          "Ref": "VPC"
+        }
+      },
+      "Type": "AWS::EC2::SecurityGroup"
+    },
+    "BalancerFoo": {
+      "Condition": "EnabledFoo",
+      "DependsOn": [
+        "BalancerFooSecurityGroup"
+      ],
+      "Properties": {
+        "ConnectionDrainingPolicy": {
+          "Enabled": true,
+          "Timeout": "60"
+        },
+        "ConnectionSettings": {
+          "IdleTimeout": "3600"
+        },
+        "CrossZone": true,
+        "HealthCheck": {
+          "HealthyThreshold": "2",
+          "Interval": "5",
+          "Target": {
+            "Fn::Join": [
+              "",
+              [
+                "SSL:",
+                {
+                  "Ref": "FooPort443Host"
+                },
+                ""
+              ]
+            ]
+          },
+          "Timeout": "3",
+          "UnhealthyThreshold": "2"
+        },
+        "LBCookieStickinessPolicy": [
+          {
+            "PolicyName": "affinity"
+          }
+        ],
+        "Listeners": [
+          {
+            "InstancePort": {
+              "Ref": "FooPort443Host"
+            },
+            "InstanceProtocol": "SSL",
+            "LoadBalancerPort": "443",
+            "Protocol": "SSL",
+            "SSLCertificateId": {
+              "Fn::If": [
+                "BlankBalancerFooPort443Certificate",
+                {
+                  "Ref": "AWS::NoValue"
+                },
+                {
+                  "Ref": "FooPort443Certificate"
+                }
+              ]
+            }
+          },
+          {
+            "Ref": "AWS::NoValue"
+          }
+        ],
+        "LoadBalancerName": {
+          "Fn::If": [
+            "Internal",
+            {
+              "Fn::Join": [
+                "-",
+                [
+                  "httpd-foo-I5T6O34",
+                  "n"
+                ]
+              ]
+            },
+            "httpd-foo-I5T6O34"
+          ]
+        },
+        "Policies": [
+          {
+            "Attributes": [
+              {
+                "Name": "ProxyProtocol",
+                "Value": "true"
+              }
+            ],
+            "InstancePorts": [
+              {
+                "Ref": "FooPort443Host"
+              }
+            ],
+            "PolicyName": "EnableProxyProtocol",
+            "PolicyType": "ProxyProtocolPolicyType"
+          },
+          {
+            "Ref": "AWS::NoValue"
+          }
+        ],
+        "Scheme": {
+          "Fn::If": [
+            "Internal",
+            "internal",
+            {
+              "Ref": "AWS::NoValue"
+            }
+          ]
+        },
+        "SecurityGroups": [
+          {
+            "Fn::If": [
+              "BlankSecurityGroup",
+              {
+                "Ref": "BalancerFooSecurityGroup"
+              },
+              {
+                "Ref": "SecurityGroup"
+              }
+            ]
+          }
+        ],
+        "Subnets": {
+          "Fn::If": [
+            "Internal",
+            {
+              "Ref": "SubnetsPrivate"
+            },
+            {
+              "Ref": "Subnets"
+            }
+          ]
+        }
+      },
+      "Type": "AWS::ElasticLoadBalancing::LoadBalancer"
+    },
+    "BalancerFooSecurityGroup": {
+      "Condition": "EnabledFoo",
+      "Properties": {
+        "GroupDescription": {
+          "Fn::Join": [
+            " ",
+            [
+              {
+                "Ref": "AWS::StackName"
+              },
+              "-balancer"
+            ]
+          ]
+        },
+        "SecurityGroupIngress": [
+          {
+            "CidrIp": "0.0.0.0/0",
+            "FromPort": "443",
+            "IpProtocol": "tcp",
+            "ToPort": "443"
+          },
+          {
+            "Ref": "AWS::NoValue"
+          }
+        ],
+        "VpcId": {
+          "Ref": "VPC"
+        }
+      },
+      "Type": "AWS::EC2::SecurityGroup"
+    },
+    "BalancerSslterminator": {
+      "Condition": "EnabledSslterminator",
+      "DependsOn": [
+        "BalancerSslterminatorSecurityGroup"
+      ],
+      "Properties": {
+        "ConnectionDrainingPolicy": {
+          "Enabled": true,
+          "Timeout": "60"
+        },
+        "ConnectionSettings": {
+          "IdleTimeout": "3600"
+        },
+        "CrossZone": true,
+        "HealthCheck": {
+          "HealthyThreshold": "2",
+          "Interval": "5",
+          "Target": {
+            "Fn::Join": [
+              "",
+              [
+                "SSL:",
+                {
+                  "Ref": "SslterminatorPort443Host"
+                },
+                ""
+              ]
+            ]
+          },
+          "Timeout": "3",
+          "UnhealthyThreshold": "2"
+        },
+        "LBCookieStickinessPolicy": [
+          {
+            "PolicyName": "affinity"
+          }
+        ],
+        "Listeners": [
+          {
+            "InstancePort": {
+              "Ref": "SslterminatorPort443Host"
+            },
+            "InstanceProtocol": "SSL",
+            "LoadBalancerPort": "443",
+            "Protocol": "SSL",
+            "SSLCertificateId": {
+              "Fn::If": [
+                "BlankBalancerSslterminatorPort443Certificate",
+                {
+                  "Ref": "AWS::NoValue"
+                },
+                {
+                  "Ref": "SslterminatorPort443Certificate"
+                }
+              ]
+            }
+          },
+          {
+            "Ref": "AWS::NoValue"
+          }
+        ],
+        "LoadBalancerName": {
+          "Fn::If": [
+            "Internal",
+            {
+              "Fn::Join": [
+                "-",
+                [
+                  "httpd-sslterminator-YIH5GRH",
+                  "n"
+                ]
+              ]
+            },
+            "httpd-sslterminator-YIH5GRH"
+          ]
+        },
+        "Policies": [
+          {
+            "Attributes": [
+              {
+                "Name": "ProxyProtocol",
+                "Value": "true"
+              }
+            ],
+            "InstancePorts": [
+              {
+                "Ref": "SslterminatorPort443Host"
+              }
+            ],
+            "PolicyName": "EnableProxyProtocol",
+            "PolicyType": "ProxyProtocolPolicyType"
+          },
+          {
+            "Ref": "AWS::NoValue"
+          }
+        ],
+        "Scheme": {
+          "Fn::If": [
+            "Internal",
+            "internal",
+            {
+              "Ref": "AWS::NoValue"
+            }
+          ]
+        },
+        "SecurityGroups": [
+          {
+            "Fn::If": [
+              "BlankSecurityGroup",
+              {
+                "Ref": "BalancerSslterminatorSecurityGroup"
+              },
+              {
+                "Ref": "SecurityGroup"
+              }
+            ]
+          }
+        ],
+        "Subnets": {
+          "Fn::If": [
+            "Internal",
+            {
+              "Ref": "SubnetsPrivate"
+            },
+            {
+              "Ref": "Subnets"
+            }
+          ]
+        }
+      },
+      "Type": "AWS::ElasticLoadBalancing::LoadBalancer"
+    },
+    "BalancerSslterminatorSecurityGroup": {
+      "Condition": "EnabledSslterminator",
+      "Properties": {
+        "GroupDescription": {
+          "Fn::Join": [
+            " ",
+            [
+              {
+                "Ref": "AWS::StackName"
+              },
+              "-balancer"
+            ]
+          ]
+        },
+        "SecurityGroupIngress": [
           {
             "CidrIp": "0.0.0.0/0",
             "FromPort": "443",
@@ -854,10 +1087,7 @@
       },
       "Type": "AWS::IAM::Role"
     },
-    "LogGroup": {
-      "Type": "AWS::Logs::LogGroup"
-    },
-    "PostgresGroupECSTaskDefinition": {
+    "FoobarGroupECSTaskDefinition": {
       "DependsOn": [
         "CustomTopic",
         "ServiceRole"
@@ -876,7 +1106,7 @@
               {
                 "Ref": "AWS::StackName"
               },
-              "postgres"
+              "foobar"
             ]
           ]
         },
@@ -894,16 +1124,17 @@
         },
         "Tasks": [
           {
+            "Command": "bin/web",
             "Cpu": {
               "Fn::Select": [
                 1,
                 {
-                  "Ref": "PostgresFormation"
+                  "Ref": "BarFormation"
                 }
               ]
             },
             "DockerLabels": {
-              "convox.group": "postgres"
+              "convox.group": "foobar"
             },
             "Environment": {
               "APP": "httpd",
@@ -911,10 +1142,8 @@
               "LOG_GROUP": {
                 "Ref": "LogGroup"
               },
-              "POSTGRES_PASSWORD": "password",
-              "POSTGRES_USERNAME": "postgres",
-              "PROCESS": "postgres",
-              "PROCESS_GROUP": "postgres",
+              "PROCESS": "bar",
+              "PROCESS_GROUP": "foobar",
               "RACK": "convox-test"
             },
             "ExtraHosts": [
@@ -922,26 +1151,98 @@
                 "Ref": "AWS::NoValue"
               }
             ],
-            "Image": "mdillon/postgis",
-            "Links": [],
+            "Image": "",
+            "Links": [
+              "foo"
+            ],
             "Memory": {
               "Fn::Select": [
                 2,
                 {
-                  "Ref": "PostgresFormation"
+                  "Ref": "BarFormation"
                 }
               ]
             },
-            "Name": "postgres",
+            "Name": "bar",
             "PortMappings": [
               {
                 "Fn::Join": [
                   ":",
                   [
                     {
-                      "Ref": "PostgresPort5432Host"
+                      "Ref": "BarPort9000Host"
                     },
-                    "5432/tcp"
+                    "9000/tcp"
+                  ]
+                ]
+              },
+              {
+                "Ref": "AWS::NoValue"
+              }
+            ],
+            "Privileged": "false",
+            "SecureEnvironment": false,
+            "Services": [
+              {
+                "Ref": "AWS::NoValue"
+              }
+            ],
+            "Volumes": [
+              {
+                "Ref": "AWS::NoValue"
+              }
+            ]
+          },
+          {
+            "Command": "bin/haproxy",
+            "Cpu": {
+              "Fn::Select": [
+                1,
+                {
+                  "Ref": "FooFormation"
+                }
+              ]
+            },
+            "DockerLabels": {
+              "convox.group": "foobar"
+            },
+            "Environment": {
+              "APP": "httpd",
+              "AWS_REGION": "test",
+              "LOG_GROUP": {
+                "Ref": "LogGroup"
+              },
+              "PROCESS": "foo",
+              "PROCESS_GROUP": "foobar",
+              "RACK": "convox-test"
+            },
+            "ExtraHosts": [
+              {
+                "Ref": "AWS::NoValue"
+              }
+            ],
+            "Image": "haproxy",
+            "Links": [
+              "bar"
+            ],
+            "Memory": {
+              "Fn::Select": [
+                2,
+                {
+                  "Ref": "FooFormation"
+                }
+              ]
+            },
+            "Name": "foo",
+            "PortMappings": [
+              {
+                "Fn::Join": [
+                  ":",
+                  [
+                    {
+                      "Ref": "FooPort443Host"
+                    },
+                    "5000/tcp"
                   ]
                 ]
               },
@@ -967,6 +1268,9 @@
       "Type": "Custom::ECSTaskDefinition",
       "Version": "1.0"
     },
+    "LogGroup": {
+      "Type": "AWS::Logs::LogGroup"
+    },
     "RegistryRepository": {
       "Properties": {
         "RepositoryName": {
@@ -982,10 +1286,11 @@
       "Type": "Custom::ECRRepository",
       "Version": "1.0"
     },
-    "ServicePostgres": {
-      "Condition": "EnabledPostgresGroup",
+    "ServiceFoobar": {
+      "Condition": "EnabledFoobarGroup",
       "DependsOn": [
-        "BalancerPostgresInternal",
+        "BalancerBar",
+        "BalancerFoo",
         "CustomTopic",
         "ServiceRole"
       ],
@@ -998,14 +1303,21 @@
           "MinimumHealthyPercent": "100"
         },
         "DesiredCount": {
-          "Ref": "PostgresGroupFormation"
+          "Ref": "FoobarGroupFormation"
         },
         "LoadBalancers": [
           {
-            "ContainerName": "postgres",
-            "ContainerPort": "5432",
+            "ContainerName": "bar",
+            "ContainerPort": "9000",
             "LoadBalancerName": {
-              "Ref": "BalancerPostgresInternal"
+              "Ref": "BalancerBar"
+            }
+          },
+          {
+            "ContainerName": "foo",
+            "ContainerPort": "5000",
+            "LoadBalancerName": {
+              "Ref": "BalancerFoo"
             }
           }
         ],
@@ -1016,7 +1328,7 @@
           ]
         },
         "TaskDefinition": {
-          "Ref": "PostgresGroupECSTaskDefinition"
+          "Ref": "FoobarGroupECSTaskDefinition"
         }
       },
       "Type": "AWS::ECS::Service"
@@ -1068,7 +1380,7 @@
     "ServiceWeb": {
       "Condition": "EnabledWebGroup",
       "DependsOn": [
-        "BalancerWeb",
+        "BalancerSslterminator",
         "CustomTopic",
         "ServiceRole"
       ],
@@ -1085,10 +1397,10 @@
         },
         "LoadBalancers": [
           {
-            "ContainerName": "web",
-            "ContainerPort": "3000",
+            "ContainerName": "sslterminator",
+            "ContainerPort": "5000",
             "LoadBalancerName": {
-              "Ref": "BalancerWeb"
+              "Ref": "BalancerSslterminator"
             }
           }
         ],
@@ -1100,6 +1412,29 @@
         },
         "TaskDefinition": {
           "Ref": "WebGroupECSTaskDefinition"
+        }
+      },
+      "Type": "AWS::ECS::Service"
+    },
+    "ServiceWorker": {
+      "Condition": "EnabledWorkerGroup",
+      "DependsOn": [
+        "CustomTopic",
+        "ServiceRole"
+      ],
+      "Properties": {
+        "Cluster": {
+          "Ref": "Cluster"
+        },
+        "DeploymentConfiguration": {
+          "MaximumPercent": "200",
+          "MinimumHealthyPercent": "100"
+        },
+        "DesiredCount": {
+          "Ref": "WorkerGroupFormation"
+        },
+        "TaskDefinition": {
+          "Ref": "WorkerGroupECSTaskDefinition"
         }
       },
       "Type": "AWS::ECS::Service"
@@ -1160,6 +1495,77 @@
         },
         "Tasks": [
           {
+            "Command": "bin/haproxy",
+            "Cpu": {
+              "Fn::Select": [
+                1,
+                {
+                  "Ref": "SslterminatorFormation"
+                }
+              ]
+            },
+            "DockerLabels": {
+              "convox.group": "web"
+            },
+            "Environment": {
+              "APP": "httpd",
+              "AWS_REGION": "test",
+              "LOG_GROUP": {
+                "Ref": "LogGroup"
+              },
+              "PROCESS": "sslterminator",
+              "PROCESS_GROUP": "web",
+              "RACK": "convox-test"
+            },
+            "ExtraHosts": [
+              {
+                "Ref": "AWS::NoValue"
+              }
+            ],
+            "Image": "haproxy",
+            "Links": [
+              "web"
+            ],
+            "Memory": {
+              "Fn::Select": [
+                2,
+                {
+                  "Ref": "SslterminatorFormation"
+                }
+              ]
+            },
+            "Name": "sslterminator",
+            "PortMappings": [
+              {
+                "Fn::Join": [
+                  ":",
+                  [
+                    {
+                      "Ref": "SslterminatorPort443Host"
+                    },
+                    "5000/tcp"
+                  ]
+                ]
+              },
+              {
+                "Ref": "AWS::NoValue"
+              }
+            ],
+            "Privileged": "false",
+            "SecureEnvironment": false,
+            "Services": [
+              {
+                "Ref": "AWS::NoValue"
+              }
+            ],
+            "Volumes": [
+              {
+                "Ref": "AWS::NoValue"
+              }
+            ]
+          },
+          {
+            "Command": "bin/web",
             "Cpu": {
               "Fn::Select": [
                 1,
@@ -1198,28 +1604,105 @@
             },
             "Name": "web",
             "PortMappings": [
+              "9000:9000/tcp",
               {
-                "Fn::Join": [
-                  ":",
-                  [
-                    {
-                      "Ref": "WebPort80Host"
-                    },
-                    "3000/tcp"
-                  ]
-                ]
-              },
+                "Ref": "AWS::NoValue"
+              }
+            ],
+            "Privileged": "false",
+            "SecureEnvironment": false,
+            "Services": [
               {
-                "Fn::Join": [
-                  ":",
-                  [
-                    {
-                      "Ref": "WebPort443Host"
-                    },
-                    "3001/tcp"
-                  ]
-                ]
+                "Ref": "AWS::NoValue"
+              }
+            ],
+            "Volumes": [
+              {
+                "Ref": "AWS::NoValue"
+              }
+            ]
+          }
+        ]
+      },
+      "Type": "Custom::ECSTaskDefinition",
+      "Version": "1.0"
+    },
+    "WorkerGroupECSTaskDefinition": {
+      "DependsOn": [
+        "CustomTopic",
+        "ServiceRole"
+      ],
+      "Properties": {
+        "Environment": {
+          "Ref": "Environment"
+        },
+        "Key": {
+          "Ref": "Key"
+        },
+        "Name": {
+          "Fn::Join": [
+            "-",
+            [
+              {
+                "Ref": "AWS::StackName"
               },
+              "worker"
+            ]
+          ]
+        },
+        "Release": {
+          "Ref": "Release"
+        },
+        "ServiceToken": {
+          "Fn::GetAtt": [
+            "CustomTopic",
+            "Arn"
+          ]
+        },
+        "TaskRole": {
+          "Ref": "TaskRole"
+        },
+        "Tasks": [
+          {
+            "Command": "bin/worker",
+            "Cpu": {
+              "Fn::Select": [
+                1,
+                {
+                  "Ref": "WorkerFormation"
+                }
+              ]
+            },
+            "DockerLabels": {
+              "convox.group": "worker"
+            },
+            "Environment": {
+              "APP": "httpd",
+              "AWS_REGION": "test",
+              "LOG_GROUP": {
+                "Ref": "LogGroup"
+              },
+              "PROCESS": "worker",
+              "PROCESS_GROUP": "worker",
+              "RACK": "convox-test"
+            },
+            "ExtraHosts": [
+              {
+                "Ref": "AWS::NoValue"
+              }
+            ],
+            "Image": "",
+            "Links": [],
+            "Memory": {
+              "Fn::Select": [
+                2,
+                {
+                  "Ref": "WorkerFormation"
+                }
+              ]
+            },
+            "Name": "worker",
+            "PortMappings": [
               {
                 "Ref": "AWS::NoValue"
               }

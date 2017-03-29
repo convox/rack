@@ -384,7 +384,6 @@
         },
         "Tasks": [
           {
-            "Command": "bin/eat",
             "Cpu": {
               "Fn::Select": [
                 1,
@@ -399,8 +398,6 @@
             "Environment": {
               "APP": "httpd",
               "AWS_REGION": "test",
-              "DRINK": "top \"o\" the mornin",
-              "FOOD": "pb\u0026j",
               "LOG_GROUP": {
                 "Ref": "LogGroup"
               },
@@ -430,7 +427,7 @@
               }
             ],
             "Privileged": "false",
-            "SecureEnvironment": false,
+            "SecureEnvironment": true,
             "Services": [
               {
                 "Ref": "AWS::NoValue"

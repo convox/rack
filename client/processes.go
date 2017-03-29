@@ -16,6 +16,7 @@ type Process struct {
 	App     string    `json:"app"`
 	Command string    `json:"command"`
 	Host    string    `json:"host"`
+	Group   string    `json:"group"`
 	Image   string    `json:"image"`
 	Name    string    `json:"name"`
 	Ports   []string  `json:"ports"`

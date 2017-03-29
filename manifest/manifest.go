@@ -127,13 +127,17 @@ func (m Manifest) Validate() []error {
 		}
 
 		for _, l := range entry.Links {
-			ls, ok := m.Services[l]
-			if !ok {
-				errors = append(errors, fmt.Errorf("%s links to service: %s which does not exist", entry.Name, l))
-			}
+			group := m.ServiceGroup(entry.GroupName())
 
-			if len(ls.Ports) == 0 {
-				errors = append(errors, fmt.Errorf("%s links to service: %s which does not expose any ports", entry.Name, l))
+			if !group.HasService(l) {
+				ls, ok := m.Services[l]
+				if !ok {
+					errors = append(errors, fmt.Errorf("%s links to service: %s which does not exist", entry.Name, l))
+				}
+
+				if len(ls.Ports) == 0 {
+					errors = append(errors, fmt.Errorf("%s links to service: %s which does not expose any ports", entry.Name, l))
+				}
 			}
 		}
 

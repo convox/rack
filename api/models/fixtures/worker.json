@@ -34,6 +34,18 @@
         }
       ]
     },
+    "EnabledPostgresGroup": {
+      "Fn::Not": [
+        {
+          "Fn::Equals": [
+            {
+              "Ref": "PostgresGroupFormation"
+            },
+            "-1"
+          ]
+        }
+      ]
+    },
     "EnabledWorker": {
       "Fn::Not": [
         {
@@ -45,6 +57,18 @@
                   "Ref": "WorkerFormation"
                 }
               ]
+            },
+            "-1"
+          ]
+        }
+      ]
+    },
+    "EnabledWorkerGroup": {
+      "Fn::Not": [
+        {
+          "Fn::Equals": [
+            {
+              "Ref": "WorkerGroupFormation"
             },
             "-1"
           ]
@@ -242,6 +266,11 @@
       "Description": "Number of processes to run, CPU units to reserve, and MB of RAM to reserve",
       "Type": "CommaDelimitedList"
     },
+    "PostgresGroupFormation": {
+      "Default": "1",
+      "Description": "Number of processes to run",
+      "Type": "Number"
+    },
     "PostgresPort5432Certificate": {
       "Default": "",
       "Description": "",
@@ -310,6 +339,11 @@
       "Default": "1,0,256",
       "Description": "Number of processes to run, CPU units to reserve, and MB of RAM to reserve",
       "Type": "CommaDelimitedList"
+    },
+    "WorkerGroupFormation": {
+      "Default": "1",
+      "Description": "Number of processes to run",
+      "Type": "Number"
     }
   },
   "Resources": {
@@ -549,7 +583,7 @@
     "LogGroup": {
       "Type": "AWS::Logs::LogGroup"
     },
-    "PostgresECSTaskDefinition": {
+    "PostgresGroupECSTaskDefinition": {
       "DependsOn": [
         "CustomTopic",
         "ServiceRole"
@@ -594,6 +628,9 @@
                 }
               ]
             },
+            "DockerLabels": {
+              "convox.group": "postgres"
+            },
             "Environment": {
               "APP": "httpd",
               "AWS_REGION": "test",
@@ -603,6 +640,7 @@
               "POSTGRES_PASSWORD": "password",
               "POSTGRES_USERNAME": "postgres",
               "PROCESS": "postgres",
+              "PROCESS_GROUP": "postgres",
               "RACK": "convox-test"
             },
             "ExtraHosts": [
@@ -611,6 +649,7 @@
               }
             ],
             "Image": "mdillon/postgis",
+            "Links": [],
             "Memory": {
               "Fn::Select": [
                 2,
@@ -637,6 +676,7 @@
               }
             ],
             "Privileged": "false",
+            "SecureEnvironment": false,
             "Services": [
               {
                 "Ref": "AWS::NoValue"
@@ -669,7 +709,7 @@
       "Version": "1.0"
     },
     "ServicePostgres": {
-      "Condition": "EnabledPostgres",
+      "Condition": "EnabledPostgresGroup",
       "DependsOn": [
         "BalancerPostgresInternal",
         "CustomTopic",
@@ -684,12 +724,7 @@
           "MinimumHealthyPercent": "100"
         },
         "DesiredCount": {
-          "Fn::Select": [
-            0,
-            {
-              "Ref": "PostgresFormation"
-            }
-          ]
+          "Ref": "PostgresGroupFormation"
         },
         "LoadBalancers": [
           {
@@ -707,7 +742,7 @@
           ]
         },
         "TaskDefinition": {
-          "Ref": "PostgresECSTaskDefinition"
+          "Ref": "PostgresGroupECSTaskDefinition"
         }
       },
       "Type": "AWS::ECS::Service"
@@ -757,7 +792,7 @@
       "Type": "AWS::IAM::Role"
     },
     "ServiceWorker": {
-      "Condition": "EnabledWorker",
+      "Condition": "EnabledWorkerGroup",
       "DependsOn": [
         "CustomTopic",
         "ServiceRole"
@@ -771,15 +806,10 @@
           "MinimumHealthyPercent": "100"
         },
         "DesiredCount": {
-          "Fn::Select": [
-            0,
-            {
-              "Ref": "WorkerFormation"
-            }
-          ]
+          "Ref": "WorkerGroupFormation"
         },
         "TaskDefinition": {
-          "Ref": "WorkerECSTaskDefinition"
+          "Ref": "WorkerGroupECSTaskDefinition"
         }
       },
       "Type": "AWS::ECS::Service"
@@ -803,7 +833,7 @@
       },
       "Type": "AWS::S3::Bucket"
     },
-    "WorkerECSTaskDefinition": {
+    "WorkerGroupECSTaskDefinition": {
       "DependsOn": [
         "CustomTopic",
         "ServiceRole"
@@ -849,6 +879,9 @@
                 }
               ]
             },
+            "DockerLabels": {
+              "convox.group": "worker"
+            },
             "Environment": {
               "APP": "httpd",
               "AWS_REGION": "test",
@@ -856,6 +889,7 @@
                 "Ref": "LogGroup"
               },
               "PROCESS": "worker",
+              "PROCESS_GROUP": "worker",
               "RACK": "convox-test"
             },
             "ExtraHosts": [
@@ -864,6 +898,7 @@
               }
             ],
             "Image": "",
+            "Links": [],
             "Memory": {
               "Fn::Select": [
                 2,
@@ -879,6 +914,7 @@
               }
             ],
             "Privileged": "true",
+            "SecureEnvironment": false,
             "Services": [
               {
                 "Ref": "AWS::NoValue"

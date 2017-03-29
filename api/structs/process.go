@@ -11,6 +11,7 @@ type Process struct {
 	ID      string `json:"id"`
 	App     string `json:"app"`
 	Name    string `json:"name"`
+	Group   string `json:"group"`
 	Release string `json:"release"`
 
 	Command  string   `json:"command"`

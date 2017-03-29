@@ -34,6 +34,18 @@
         }
       ]
     },
+    "EnabledMainGroup": {
+      "Fn::Not": [
+        {
+          "Fn::Equals": [
+            {
+              "Ref": "MainGroupFormation"
+            },
+            "-1"
+          ]
+        }
+      ]
+    },
     "EnabledReallyLongProcessTypeName": {
       "Fn::Not": [
         {
@@ -45,6 +57,18 @@
                   "Ref": "ReallyLongProcessTypeNameFormation"
                 }
               ]
+            },
+            "-1"
+          ]
+        }
+      ]
+    },
+    "EnabledReallyLongProcessTypeNameGroup": {
+      "Fn::Not": [
+        {
+          "Fn::Equals": [
+            {
+              "Ref": "ReallyLongProcessTypeNameGroupFormation"
             },
             "-1"
           ]
@@ -242,6 +266,11 @@
       "Description": "Number of processes to run, CPU units to reserve, and MB of RAM to reserve",
       "Type": "CommaDelimitedList"
     },
+    "MainGroupFormation": {
+      "Default": "1",
+      "Description": "Number of processes to run",
+      "Type": "Number"
+    },
     "MainPort443Certificate": {
       "Default": "",
       "Description": "",
@@ -265,6 +294,11 @@
       "Default": "1,0,256",
       "Description": "Number of processes to run, CPU units to reserve, and MB of RAM to reserve",
       "Type": "CommaDelimitedList"
+    },
+    "ReallyLongProcessTypeNameGroupFormation": {
+      "Default": "1",
+      "Description": "Number of processes to run",
+      "Type": "Number"
     },
     "Release": {
       "Default": "",
@@ -780,7 +814,7 @@
     "LogGroup": {
       "Type": "AWS::Logs::LogGroup"
     },
-    "MainECSTaskDefinition": {
+    "MainGroupECSTaskDefinition": {
       "DependsOn": [
         "CustomTopic",
         "ServiceRole"
@@ -825,6 +859,9 @@
                 }
               ]
             },
+            "DockerLabels": {
+              "convox.group": "main"
+            },
             "Environment": {
               "APP": "httpd",
               "AWS_REGION": "test",
@@ -832,6 +869,7 @@
                 "Ref": "LogGroup"
               },
               "PROCESS": "main",
+              "PROCESS_GROUP": "main",
               "RACK": "convox-test"
             },
             "ExtraHosts": [
@@ -840,6 +878,7 @@
               }
             ],
             "Image": "",
+            "Links": [],
             "Memory": {
               "Fn::Select": [
                 2,
@@ -866,6 +905,7 @@
               }
             ],
             "Privileged": "false",
+            "SecureEnvironment": false,
             "Services": [
               {
                 "Ref": "AWS::NoValue"
@@ -920,7 +960,7 @@
       },
       "Type": "AWS::Events::Rule"
     },
-    "ReallyLongProcessTypeNameECSTaskDefinition": {
+    "ReallyLongProcessTypeNameGroupECSTaskDefinition": {
       "DependsOn": [
         "CustomTopic",
         "ServiceRole"
@@ -965,6 +1005,9 @@
                 }
               ]
             },
+            "DockerLabels": {
+              "convox.group": "really-long-process-type-name"
+            },
             "Environment": {
               "APP": "httpd",
               "AWS_REGION": "test",
@@ -972,6 +1015,7 @@
                 "Ref": "LogGroup"
               },
               "PROCESS": "really-long-process-type-name",
+              "PROCESS_GROUP": "really-long-process-type-name",
               "RACK": "convox-test"
             },
             "ExtraHosts": [
@@ -980,6 +1024,7 @@
               }
             ],
             "Image": "",
+            "Links": [],
             "Memory": {
               "Fn::Select": [
                 2,
@@ -995,6 +1040,7 @@
               }
             ],
             "Privileged": "false",
+            "SecureEnvironment": false,
             "Services": [
               {
                 "Ref": "AWS::NoValue"
@@ -1065,7 +1111,7 @@
       "Version": "1.0"
     },
     "ServiceMain": {
-      "Condition": "EnabledMain",
+      "Condition": "EnabledMainGroup",
       "DependsOn": [
         "BalancerMain",
         "CustomTopic",
@@ -1080,12 +1126,7 @@
           "MinimumHealthyPercent": "100"
         },
         "DesiredCount": {
-          "Fn::Select": [
-            0,
-            {
-              "Ref": "MainFormation"
-            }
-          ]
+          "Ref": "MainGroupFormation"
         },
         "LoadBalancers": [
           {
@@ -1103,13 +1144,13 @@
           ]
         },
         "TaskDefinition": {
-          "Ref": "MainECSTaskDefinition"
+          "Ref": "MainGroupECSTaskDefinition"
         }
       },
       "Type": "AWS::ECS::Service"
     },
     "ServiceReallyLongProcessTypeName": {
-      "Condition": "EnabledReallyLongProcessTypeName",
+      "Condition": "EnabledReallyLongProcessTypeNameGroup",
       "DependsOn": [
         "CustomTopic",
         "ServiceRole"
@@ -1123,15 +1164,10 @@
           "MinimumHealthyPercent": "100"
         },
         "DesiredCount": {
-          "Fn::Select": [
-            0,
-            {
-              "Ref": "ReallyLongProcessTypeNameFormation"
-            }
-          ]
+          "Ref": "ReallyLongProcessTypeNameGroupFormation"
         },
         "TaskDefinition": {
-          "Ref": "ReallyLongProcessTypeNameECSTaskDefinition"
+          "Ref": "ReallyLongProcessTypeNameGroupECSTaskDefinition"
         }
       },
       "Type": "AWS::ECS::Service"

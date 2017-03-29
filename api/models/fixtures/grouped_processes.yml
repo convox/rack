@@ -1,0 +1,63 @@
+web:
+  build: .
+  command: bin/web
+  environment:
+    - AWS_ACCESS_KEY
+    - AWS_SECRET_ACCESS_KEY
+  ports:
+    - 9000:9000
+  labels:
+    - convox.group=web
+    - convox.balancer=false
+sslterminator:
+  image: haproxy
+  command: bin/haproxy
+  environment:
+    - FOO
+    - BAR
+  ports:
+    - 443:5000
+  links:
+    - web
+  labels:
+    - convox.group=web
+    - convox.port.443.protocol=tls
+    - convox.port.443.proxy=true
+    - convox.port.443.secure=true
+
+bar:
+  build: .
+  command: bin/web
+  environment:
+    - AWS_ACCESS_KEY
+    - AWS_SECRET_ACCESS_KEY
+  ports:
+    - 9000:9000
+  links:
+    - foo
+  labels:
+    - convox.group=foobar
+    - convox.port.9000.protocol=http
+foo:
+  image: haproxy
+  command: bin/haproxy
+  environment:
+    - FOO
+    - BAR
+  ports:
+    - 443:5000
+  links:
+    - bar
+  labels:
+    - convox.group=foobar
+    - convox.port.443.protocol=tls
+    - convox.port.443.proxy=true
+    - convox.port.443.secure=true
+
+
+worker:
+  build: .
+  command: bin/worker
+  environment:
+    - AWS_ACCESS_KEY
+    - AWS_SECRET_ACCESS_KEY
