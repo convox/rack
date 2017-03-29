@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"math/rand"
-	"net/http"
 	"os"
 	"regexp"
 	"strconv"
@@ -14,8 +13,10 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/ecs"
+	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/convox/rack/api/crypt"
 	"github.com/convox/rack/api/models"
+	awshelp "github.com/convox/rack/provider/aws"
 )
 
 // Parses as [host]:[container]/[protocol?], where [protocol] is optional
@@ -94,6 +95,44 @@ func ECSServiceDelete(req Request) (string, map[string]string, error) {
 	return req.PhysicalResourceId, nil, err
 }
 
+// GetS3EnvironmentFromURL gets environment variables that are stored at the provided URL
+func GetS3EnvironmentFromURL(req Request, url string) (models.Environment, error) {
+	bucket, key, _, err := awshelp.ParseS3Url(url)
+	if err != nil {
+		return nil, err
+	}
+
+	input := s3.GetObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(key),
+	}
+
+	output, err := S3(req).GetObject(&input)
+	if err != nil {
+		return nil, err
+	}
+
+	data, err := ioutil.ReadAll(output.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	if key, ok := req.ResourceProperties["Key"].(string); ok && key != "" {
+		cr := crypt.New(*Region(&req), os.Getenv("AWS_ACCESS_KEY_ID"), os.Getenv("AWS_SECRET_ACCESS_KEY"))
+		cr.AwsToken = os.Getenv("AWS_SESSION_TOKEN")
+
+		dec, err := cr.Decrypt(key, data)
+
+		if err != nil {
+			return nil, err
+		}
+
+		data = dec
+	}
+
+	return models.LoadEnvironment(data)
+}
+
 func ECSTaskDefinitionCreate(req Request) (string, map[string]string, error) {
 	// return "", fmt.Errorf("fail")
 
@@ -113,30 +152,8 @@ func ECSTaskDefinitionCreate(req Request) (string, map[string]string, error) {
 	}
 
 	if envUrl, ok := req.ResourceProperties["Environment"].(string); ok && envUrl != "" {
-		res, err := http.Get(envUrl)
-
-		if err != nil {
-			return "invalid", nil, err
-		}
-
-		defer res.Body.Close()
-
-		data, err := ioutil.ReadAll(res.Body)
-
-		if key, ok := req.ResourceProperties["Key"].(string); ok && key != "" {
-			cr := crypt.New(*Region(&req), os.Getenv("AWS_ACCESS_KEY_ID"), os.Getenv("AWS_SECRET_ACCESS_KEY"))
-			cr.AwsToken = os.Getenv("AWS_SESSION_TOKEN")
-
-			dec, err := cr.Decrypt(key, data)
-
-			if err != nil {
-				return "invalid", nil, err
-			}
-
-			data = dec
-		}
-
-		env, err = models.LoadEnvironment(data)
+		var err error
+		env, err = GetS3EnvironmentFromURL(req, envUrl)
 		if err != nil {
 			return "invalid", nil, err
 		}

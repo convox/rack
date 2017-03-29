@@ -128,7 +128,7 @@ func (r *Release) Save() error {
 
 	NotifySuccess("release:create", map[string]string{"id": r.Id, "app": r.App})
 
-	return S3Put(app.Outputs["Settings"], fmt.Sprintf("releases/%s/env", r.Id), env, true)
+	return S3Put(app.Outputs["Settings"], fmt.Sprintf("releases/%s/env", r.Id), env, false)
 }
 
 func (r *Release) Promote() error {
