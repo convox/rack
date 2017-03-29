@@ -333,35 +333,6 @@ func TestUrls(t *testing.T) {
 }
 
 func TestInstallCmd(t *testing.T) {
-	stackID := "arn:aws:cloudformation:us-east-1:123456789:stack/MyStack/aaf549a0-a413-11df-adb3-5081b3858e83"
-	cycles := []awsutil.Cycle{
-		{
-			awsutil.Request{"GET", "/", "", "/./"},
-			awsutil.Response{200, `<CreateStackResult><StackId>` + stackID + `</StackId></CreateStackResult>`},
-		},
-		{
-			awsutil.Request{"GET", "/", "", ""},
-			awsutil.Response{200, ""},
-		},
-	}
-
-	handler := awsutil.NewHandler(cycles)
-	s := httptest.NewServer(handler)
-	defer s.Close()
-
-	os.Setenv("AWS_ENDPOINT", s.URL)
-
-	ts := testServer(t,
-		test.Http{
-			Method:   "GET",
-			Path:     "/foo",
-			Code:     200,
-			Response: "bar",
-			Headers:  map[string]string{"Rack": "myorg/staging"},
-		},
-	)
-	defer ts.Close()
-
 	tests := []test.ExecRun{
 		// help flags
 		test.ExecRun{
@@ -372,10 +343,7 @@ func TestInstallCmd(t *testing.T) {
 		// no credentials
 		// FIXME: test suite doesn't handle standard input properly (Stdin behaves as if the input were piped to the command)
 		test.ExecRun{
-			Env: map[string]string{
-				"AWS_ACCESS_KEY_ID":     "",
-				"AWS_SECRET_ACCESS_KEY": "",
-			},
+			Env:      configlessEnv,
 			Command:  "convox install",
 			OutMatch: "This installer needs AWS credentials to install/uninstall the Convox platform",
 			Stderr:   "ERROR: EOF\n",
@@ -388,8 +356,14 @@ func TestInstallCmd(t *testing.T) {
 	}
 }
 
-func TestAwsCLICredentials(t *testing.T) {
+func TestAwsCLICredentialsNil(t *testing.T) {
+	home := os.Getenv("HOME")
+
+	os.Setenv("HOME", configlessEnv["HOME"])
+
 	creds, err := awsCLICredentials()
 	assert.Nil(t, creds)
 	assert.NoError(t, err)
+
+	os.Setenv("HOME", home)
 }
