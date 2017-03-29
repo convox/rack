@@ -154,7 +154,7 @@ func cmdRack(c *cli.Context) error {
 	fmt.Printf("Region			%s\n", system.Region)
 	fmt.Printf("Count			%d\n", system.Count)
 	fmt.Printf("Type			%s\n", system.Type)
-	fmt.Printf("BuildInstance		%s\n", system.BuildInstance)
+	fmt.Printf("BuildInstanceType	%s\n", system.BuildInstanceType)
 	return nil
 }
 

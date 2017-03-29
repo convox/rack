@@ -17,13 +17,13 @@ import (
 func TestSystemShow(t *testing.T) {
 	models.Test(t, func() {
 		system := &structs.System{
-			Count:         3,
-			Name:          "test",
-			Region:        "us-test-1",
-			Status:        "running",
-			Type:          "t2.small",
-			Version:       "dev",
-			BuildInstance: "t3.large",
+			Count:             3,
+			Name:              "test",
+			Region:            "us-test-1",
+			Status:            "running",
+			Type:              "t2.small",
+			Version:           "dev",
+			BuildInstanceType: "t3.large",
 		}
 
 		models.TestProvider.On("SystemGet").Return(system, nil)
@@ -53,22 +53,22 @@ func TestSystemShowRackFetchError(t *testing.T) {
 func TestSystemUpdate(t *testing.T) {
 	models.Test(t, func() {
 		before := &structs.System{
-			Count:         3,
-			Name:          "test",
-			Region:        "us-test-1",
-			Status:        "running",
-			Type:          "t2.small",
-			Version:       "dev",
-			BuildInstance: "t3.large",
+			Count:             3,
+			Name:              "test",
+			Region:            "us-test-1",
+			Status:            "running",
+			Type:              "t2.small",
+			Version:           "dev",
+			BuildInstanceType: "t3.large",
 		}
 		change := structs.System{
-			Count:         5,
-			Name:          "test",
-			Region:        "us-test-1",
-			Status:        "running",
-			Type:          "t2.test",
-			Version:       "latest",
-			BuildInstance: "t3.large",
+			Count:             5,
+			Name:              "test",
+			Region:            "us-test-1",
+			Status:            "running",
+			Type:              "t2.test",
+			Version:           "latest",
+			BuildInstanceType: "t3.large",
 		}
 
 		models.TestProvider.On("SystemGet").Return(before, nil)
@@ -104,22 +104,22 @@ func TestSystemUpdateRackFetchError(t *testing.T) {
 func TestSystemUpdateCountNoChange(t *testing.T) {
 	models.Test(t, func() {
 		before := &structs.System{
-			Count:         3,
-			Name:          "test",
-			Region:        "us-test-1",
-			Status:        "running",
-			Type:          "t2.small",
-			Version:       "dev",
-			BuildInstance: "t3.large",
+			Count:             3,
+			Name:              "test",
+			Region:            "us-test-1",
+			Status:            "running",
+			Type:              "t2.small",
+			Version:           "dev",
+			BuildInstanceType: "t3.large",
 		}
 		change := structs.System{
-			Count:         3,
-			Name:          "test",
-			Region:        "us-test-1",
-			Status:        "running",
-			Type:          "t2.small",
-			Version:       "latest",
-			BuildInstance: "t3.large",
+			Count:             3,
+			Name:              "test",
+			Region:            "us-test-1",
+			Status:            "running",
+			Type:              "t2.small",
+			Version:           "latest",
+			BuildInstanceType: "t3.large",
 		}
 
 		models.TestProvider.On("SystemGet").Return(before, nil)
@@ -145,13 +145,13 @@ func TestSystemUpdateAutoscaleCount(t *testing.T) {
 		defer os.Setenv("AUTOSCALE", as)
 
 		before := &structs.System{
-			Count:         3,
-			Name:          "test",
-			Region:        "us-test-1",
-			Status:        "running",
-			Type:          "t2.small",
-			Version:       "dev",
-			BuildInstance: "t3.large",
+			Count:             3,
+			Name:              "test",
+			Region:            "us-test-1",
+			Status:            "running",
+			Type:              "t2.small",
+			Version:           "dev",
+			BuildInstanceType: "t3.large",
 		}
 
 		models.TestProvider.On("SystemGet").Return(before, nil)
@@ -170,13 +170,13 @@ func TestSystemUpdateAutoscaleCount(t *testing.T) {
 func TestSystemUpdateBadCount(t *testing.T) {
 	models.Test(t, func() {
 		before := &structs.System{
-			Count:         3,
-			Name:          "test",
-			Region:        "us-test-1",
-			Status:        "running",
-			Type:          "t2.small",
-			Version:       "dev",
-			BuildInstance: "t3.large",
+			Count:             3,
+			Name:              "test",
+			Region:            "us-test-1",
+			Status:            "running",
+			Type:              "t2.small",
+			Version:           "dev",
+			BuildInstanceType: "t3.large",
 		}
 
 		models.TestProvider.On("SystemGet").Return(before, nil)
@@ -194,13 +194,13 @@ func TestSystemUpdateBadCount(t *testing.T) {
 
 	models.Test(t, func() {
 		before := &structs.System{
-			Count:         3,
-			Name:          "test",
-			Region:        "us-test-1",
-			Status:        "running",
-			Type:          "t2.small",
-			Version:       "dev",
-			BuildInstance: "t3.large",
+			Count:             3,
+			Name:              "test",
+			Region:            "us-test-1",
+			Status:            "running",
+			Type:              "t2.small",
+			Version:           "dev",
+			BuildInstanceType: "t3.large",
 		}
 
 		models.TestProvider.On("SystemGet").Return(before, nil)
@@ -218,13 +218,13 @@ func TestSystemUpdateBadCount(t *testing.T) {
 
 	models.Test(t, func() {
 		before := &structs.System{
-			Count:         3,
-			Name:          "test",
-			Region:        "us-test-1",
-			Status:        "running",
-			Type:          "t2.small",
-			Version:       "dev",
-			BuildInstance: "t3.large",
+			Count:             3,
+			Name:              "test",
+			Region:            "us-test-1",
+			Status:            "running",
+			Type:              "t2.small",
+			Version:           "dev",
+			BuildInstanceType: "t3.large",
 		}
 
 		models.TestProvider.On("SystemGet").Return(before, nil)
@@ -244,22 +244,22 @@ func TestSystemUpdateBadCount(t *testing.T) {
 func TestSystemUpdateSaveError(t *testing.T) {
 	models.Test(t, func() {
 		before := &structs.System{
-			Count:         3,
-			Name:          "test",
-			Region:        "us-test-1",
-			Status:        "running",
-			Type:          "t2.small",
-			Version:       "dev",
-			BuildInstance: "t3.large",
+			Count:             3,
+			Name:              "test",
+			Region:            "us-test-1",
+			Status:            "running",
+			Type:              "t2.small",
+			Version:           "dev",
+			BuildInstanceType: "t3.large",
 		}
 		change := structs.System{
-			Count:         4,
-			Name:          "test",
-			Region:        "us-test-1",
-			Status:        "running",
-			Type:          "t2.small",
-			Version:       "dev",
-			BuildInstance: "t3.large",
+			Count:             4,
+			Name:              "test",
+			Region:            "us-test-1",
+			Status:            "running",
+			Type:              "t2.small",
+			Version:           "dev",
+			BuildInstanceType: "t3.large",
 		}
 
 		models.TestProvider.On("SystemGet").Return(before, nil)
