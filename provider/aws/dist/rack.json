@@ -37,10 +37,6 @@
       { "Fn::FindInMap": [ "RegionConfig", { "Ref": "AWS::Region" }, "EFS" ] },
       "Yes"
     ] },
-    "RegionHasLambdaUpdate": { "Fn::Equals": [
-      { "Fn::FindInMap": [ "RegionConfig", { "Ref": "AWS::Region" }, "LambdaUpdate" ] },
-      "Yes"
-    ] },
     "RegionHasEFSAndThirdAvailabilityZone": {
       "Fn::And": [ { "Condition": "RegionHasEFS" }, { "Condition": "ThirdAvailabilityZone" } ]
     },
@@ -57,17 +53,17 @@
   },
   "Mappings": {
     "RegionConfig": {
-      "us-east-1": { "Ami": "ami-275ffe31", "EFS": "Yes", "EventRuleForECS": "Yes", "LambdaUpdate": "Yes", "ThirdAvailabilityZone": "Yes" },
-      "us-east-2": { "Ami": "ami-62745007", "EFS": "Yes", "EventRuleForECS": "Yes", "LambdaUpdate": "No", "ThirdAvailabilityZone": "Yes" },
-      "us-west-1": { "Ami": "ami-689bc208", "EFS": "No", "EventRuleForECS": "Yes", "LambdaUpdate": "No", "ThirdAvailabilityZone": "No" },
-      "us-west-2": { "Ami": "ami-62d35c02", "EFS": "Yes", "EventRuleForECS": "Yes", "LambdaUpdate": "Yes", "ThirdAvailabilityZone": "Yes" },
-      "eu-west-1": { "Ami": "ami-95f8d2f3", "EFS": "Yes", "EventRuleForECS": "Yes", "LambdaUpdate": "Yes", "ThirdAvailabilityZone": "Yes" },
-      "eu-west-2": { "Ami": "ami-bf9481db", "EFS": "No", "EventRuleForECS": "No", "LambdaUpdate": "No", "ThirdAvailabilityZone": "No" },
-      "eu-central-1": { "Ami": "ami-085e8a67", "EFS": "No", "EventRuleForECS": "Yes", "LambdaUpdate": "Yes", "ThirdAvailabilityZone": "No" },
-      "ap-northeast-1": { "Ami": "ami-f63f6f91", "EFS": "No", "EventRuleForECS": "Yes", "LambdaUpdate": "Yes", "ThirdAvailabilityZone": "No" },
-      "ap-southeast-1": { "Ami": "ami-b4ae1dd7", "EFS": "No", "EventRuleForECS": "Yes", "LambdaUpdate": "Yes", "ThirdAvailabilityZone": "No" },
-      "ap-southeast-2": { "Ami": "ami-fbe9eb98", "EFS": "No", "EventRuleForECS": "Yes", "LambdaUpdate": "Yes", "ThirdAvailabilityZone": "Yes" },
-      "ca-central-1": { "Ami": "ami-ee58e58a", "EFS": "No", "EventRuleForECS": "No", "LambdaUpdate": "No", "ThirdAvailabilityZone": "No" }
+      "us-east-1": { "Ami": "ami-275ffe31", "EFS": "Yes", "EventRuleForECS": "Yes", "ThirdAvailabilityZone": "Yes" },
+      "us-east-2": { "Ami": "ami-62745007", "EFS": "Yes", "EventRuleForECS": "Yes", "ThirdAvailabilityZone": "Yes" },
+      "us-west-1": { "Ami": "ami-689bc208", "EFS": "No", "EventRuleForECS": "Yes", "ThirdAvailabilityZone": "No" },
+      "us-west-2": { "Ami": "ami-62d35c02", "EFS": "Yes", "EventRuleForECS": "Yes", "ThirdAvailabilityZone": "Yes" },
+      "eu-west-1": { "Ami": "ami-95f8d2f3", "EFS": "Yes", "EventRuleForECS": "Yes", "ThirdAvailabilityZone": "Yes" },
+      "eu-west-2": { "Ami": "ami-bf9481db", "EFS": "No", "EventRuleForECS": "No", "ThirdAvailabilityZone": "No" },
+      "eu-central-1": { "Ami": "ami-085e8a67", "EFS": "No", "EventRuleForECS": "Yes", "ThirdAvailabilityZone": "No" },
+      "ap-northeast-1": { "Ami": "ami-f63f6f91", "EFS": "No", "EventRuleForECS": "Yes", "ThirdAvailabilityZone": "No" },
+      "ap-southeast-1": { "Ami": "ami-b4ae1dd7", "EFS": "No", "EventRuleForECS": "Yes", "ThirdAvailabilityZone": "No" },
+      "ap-southeast-2": { "Ami": "ami-fbe9eb98", "EFS": "No", "EventRuleForECS": "Yes", "ThirdAvailabilityZone": "Yes" },
+      "ca-central-1": { "Ami": "ami-ee58e58a", "EFS": "No", "EventRuleForECS": "No", "ThirdAvailabilityZone": "No" }
     }
   },
   "Outputs": {
@@ -303,11 +299,6 @@
       "Type": "Number",
       "Description": "Default container disk size in GB",
       "Default": "10"
-    },
-    "CustomTopicRuntime": {
-      "Type": "String",
-      "Default": "nodejs",
-      "Description": ""
     },
     "Development": {
       "Type": "String",
@@ -640,10 +631,7 @@
         "Handler": "index.external",
         "MemorySize": "128",
         "Role": { "Fn::GetAtt": [ "CustomTopicRole", "Arn" ] },
-        "Runtime": { "Fn::If": [ "RegionHasLambdaUpdate",
-          "nodejs4.3",
-          { "Ref": "CustomTopicRuntime" }
-        ] },
+        "Runtime": "nodejs4.3",
         "Timeout": "300"
       }
     },
