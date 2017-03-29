@@ -286,6 +286,28 @@ func ECSTaskDefinitionCreate(req Request) (string, map[string]string, error) {
 				}
 			}
 		}
+
+		// Set log configuration if present in request:
+		// LogConfiguration:map[Options:map[awslogs-stream-prefix:convox awslogs-group:dev-ice-api-LogGroup-76DD24TF8Z1 awslogs-region:us-east-1] LogDriver:awslogs]
+		if logConfig, ok := task["LogConfiguration"].(map[string]interface{}); ok {
+			c := &ecs.LogConfiguration{
+				Options: map[string]*string{},
+			}
+
+			if d, ok := logConfig["LogDriver"].(string); ok && d != "" {
+				c.LogDriver = aws.String(d)
+			}
+
+			if opts, ok := logConfig["Options"].(map[string]interface{}); ok && opts != nil {
+				for k, v := range opts {
+					if vs, ok := v.(string); ok && vs != "" {
+						c.Options[k] = aws.String(vs)
+					}
+				}
+			}
+
+			r.ContainerDefinitions[i].LogConfiguration = c
+		}
 	}
 
 	res, err := ECS(req).RegisterTaskDefinition(r)
