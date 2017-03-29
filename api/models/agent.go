@@ -74,9 +74,12 @@ func (a App) AgentFunctionCode() map[string]template.HTML {
 const aws = require('aws-sdk');
 const ecs = new aws.ECS({ maxRetries: 10 });
 
+const STARTED_BY = 'convox agent';
+const STOPPED_REASON = 'convox agent convergence';
+
 // arn:aws:ecs:<region>:<aws_account_id>:task-definition/<task name>:<task def revision>
-const taskDefinitions = [
-    /* TASK DEFINITIONS */
+const TASK_DEF_ARNS = [
+    /* TASK DEFINITION ARNs */
 ];
 
 // Task Definition ARN, minus revision
@@ -94,7 +97,7 @@ function startTask(event, desiredTD) {
         containerInstances: [event.detail.containerInstanceArn],
         taskDefinition: desiredTD,
         cluster: event.detail.clusterArn,
-        startedBy: 'convox agent'
+        startedBy: STARTED_BY
     };
 
     return ecs.startTask(options).promise()
@@ -109,25 +112,30 @@ function startTask(event, desiredTD) {
 }
 
 function stopTask(event, runningTask) {
-    if (runningTask.startedBy !== 'convox agent') {
+    if (runningTask.startedBy !== STARTED_BY) {
+        console.log('Warning: Non-agent task running (scale count > 0?)');
         return;
     }
 
     let options = {
         task: runningTask.taskArn,
         cluster: event.detail.clusterArn,
-        reason: 'convox agent convergence'
+        reason: STOPPED_REASON
     };
 
     return ecs.stopTask(options).promise()
     .then(data => {
         console.log('stopTask Data: ', data);
-        return data.tasks[0].taskArn;
+        return data.task.taskArn;
     });
 }
 
 exports.handler = (event, context, callback) => {
     console.log('Event: ', event);
+
+    if (event.detail.stoppedReason === STOPPED_REASON) {
+        return callback(null, 'Ignored');
+    }
 
     let options = {
         cluster: event.detail.clusterArn,
@@ -155,29 +163,31 @@ exports.handler = (event, context, callback) => {
     .then(data => {
         console.log('describeTasks Data: ', data);
 
-        let promises = [];
-        for (let desiredTD of taskDefinitions) {
+        let tasksToStop = [];
+        let tasksToStart = [];
+        for (let tdArn of TASK_DEF_ARNS) {
             let alreadyRunning = false;
+
             for (let task of data.tasks) {
-                if (desiredTD === task.taskDefinitionArn) {
-                    alreadyRunning = true;
+                if (tdName(tdArn) !== tdName(task.taskDefinitionArn)) {
                     continue;
                 }
 
-                // Stop old tasks
-                if (tdName(desiredTD) === tdName(task.taskDefinitionArn) &&
-                    tdRev(desiredTD) !== tdRev(task.taskDefinitionArn))
-                    promises.push(stopTask(event, task));
+                if (tdRev(tdArn) === tdRev(task.taskDefinitionArn)) {
+                    alreadyRunning = true;
+                } else {
+                    tasksToStop.push(task);
+                }
             }
 
-            // Start new tasks
             if (!alreadyRunning) {
-                promises.push(startTask(event, desiredTD));
+                tasksToStart.push(tdArn);
             }
         }
 
-        // Wait for tasks to start/stop
-        return Promise.all(promises);
+        // Stop all tasks, then start new ones (to try and avoid port conflicts)
+        return Promise.all(tasksToStop.map(t => stopTask(event, t)))
+        .then( () => Promise.all(tasksToStart.map(t => startTask(event, t))) );
     })
     .then(() => {
         console.log('Success');
@@ -191,7 +201,7 @@ exports.handler = (event, context, callback) => {
 `
 
 	// Format JS code for embedding in app.tmpl
-	halves := strings.Split(code, "/* TASK DEFINITIONS */")
+	halves := strings.Split(code, "/* TASK DEFINITION ARNs */")
 	for i := range halves {
 		oldLines := strings.Split(halves[i], "\n")
 		newLines := []string{}
