@@ -119,12 +119,13 @@ func (p *AWSProvider) SystemGet() (*structs.System, error) {
 	}
 
 	r := &structs.System{
-		Count:   count,
-		Name:    p.Rack,
-		Region:  p.Region,
-		Status:  status,
-		Type:    params["InstanceType"],
-		Version: params["Version"],
+		Count:             count,
+		Name:              p.Rack,
+		Region:            p.Region,
+		Status:            status,
+		Type:              params["InstanceType"],
+		Version:           params["Version"],
+		BuildInstanceType: params["BuildInstance"],
 	}
 
 	log.Success()
