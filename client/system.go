@@ -8,13 +8,13 @@ import (
 )
 
 type System struct {
-	Count         int    `json:"count"`
-	Name          string `json:"name"`
-	Region        string `json:"region"`
-	Status        string `json:"status"`
-	Type          string `json:"type"`
-	Version       string `json:"version"`
-	BuildInstance string `json:"buildinstance"`
+	Count             int    `json:"count"`
+	Name              string `json:"name"`
+	Region            string `json:"region"`
+	Status            string `json:"status"`
+	Type              string `json:"type"`
+	Version           string `json:"version"`
+	BuildInstanceType string `json:"buildinstance"`
 }
 
 type SystemCapacity struct {
@@ -49,7 +49,7 @@ func (c *Client) GetSystem() (*System, error) {
 		system.Count, _ = strconv.Atoi(sys.Parameters["InstanceCount"])
 		system.Type = sys.Parameters["InstanceType"]
 		system.Version = sys.Parameters["Version"]
-		system.BuildInstance = sys.Parameters["BuildInstance"]
+		system.BuildInstanceType = sys.Parameters["BuildInstance"]
 	}
 
 	return &system, nil
