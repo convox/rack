@@ -12,6 +12,18 @@ import (
 )
 
 func InstanceKeyroll() error {
+	system, err := Provider().SystemGet()
+	if err != nil {
+		return err
+	}
+
+	// only allow running and converging status through
+	switch system.Status {
+	case "running", "converging":
+	default:
+		return fmt.Errorf("unable to keyroll with rack status: %s", system.Status)
+	}
+
 	keyname := fmt.Sprintf("%s-keypair-%d", os.Getenv("RACK"), (rand.Intn(8999) + 1000))
 	keypair, err := EC2().CreateKeyPair(&ec2.CreateKeyPairInput{
 		KeyName: &keyname,
