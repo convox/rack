@@ -165,6 +165,7 @@ func cmdUninstall(c *cli.Context) error {
 		}
 
 		buckets = append(buckets, bs...)
+		time.Sleep(2 * time.Second)
 	}
 
 	success := true
