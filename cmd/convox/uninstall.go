@@ -169,24 +169,28 @@ func cmdUninstall(c *cli.Context) error {
 	}
 
 	success := true
+	var deleteErr error
 
 	// Delete all Service, App and Rack stacks
 	err = deleteStacks("resource", rackName, CF)
 	if err != nil {
 		stdcli.QOSEventSend("cli-uninstall", distinctId, stdcli.QOSEventProperties{Error: err})
 		success = false
+		deleteErr = err
 	}
 
 	err = deleteStacks("app", rackName, CF)
 	if err != nil {
 		stdcli.QOSEventSend("cli-uninstall", distinctId, stdcli.QOSEventProperties{Error: err})
 		success = false
+		deleteErr = err
 	}
 
 	err = deleteStacks("rack", rackName, CF)
 	if err != nil {
 		stdcli.QOSEventSend("cli-uninstall", distinctId, stdcli.QOSEventProperties{Error: err})
 		success = false
+		deleteErr = err
 	}
 
 	// Delete all S3 buckets
@@ -217,6 +221,7 @@ func cmdUninstall(c *cli.Context) error {
 	if success {
 		fmt.Println("Successfully uninstalled.")
 	} else {
+		stdcli.Error(deleteErr)
 		return stdcli.Error(fmt.Errorf("Uninstall encountered some errors, contact support@convox.com for assistance"))
 	}
 
