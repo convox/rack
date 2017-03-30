@@ -34,24 +34,18 @@
         "Yes"
       ]
     },
-    "Private": {
+    "NativeLogging": {
       "Fn::Equals": [
         {
-          "Ref": "Private"
+          "Ref": "NativeLogging"
         },
         "Yes"
       ]
     },
-    "RegionHasLambdaUpdate": {
+    "Private": {
       "Fn::Equals": [
         {
-          "Fn::FindInMap": [
-            "RegionConfig",
-            {
-              "Ref": "AWS::Region"
-            },
-            "LambdaUpdate"
-          ]
+          "Ref": "Private"
         },
         "Yes"
       ]
@@ -78,41 +72,6 @@
         "InstanceProtocol": "TCP",
         "ListenerProtocol": "SSL",
         "SecureInstanceProtocol": "SSL"
-      }
-    },
-    "RegionConfig": {
-      "ap-northeast-1": {
-        "LambdaUpdate": "Yes"
-      },
-      "ap-southeast-1": {
-        "LambdaUpdate": "Yes"
-      },
-      "ap-southeast-2": {
-        "LambdaUpdate": "Yes"
-      },
-      "ca-central-1": {
-        "LambdaUpdate": "No"
-      },
-      "eu-central-1": {
-        "LambdaUpdate": "Yes"
-      },
-      "eu-west-1": {
-        "LambdaUpdate": "Yes"
-      },
-      "eu-west-2": {
-        "LambdaUpdate": "No"
-      },
-      "us-east-1": {
-        "LambdaUpdate": "Yes"
-      },
-      "us-east-2": {
-        "LambdaUpdate": "No"
-      },
-      "us-west-1": {
-        "LambdaUpdate": "No"
-      },
-      "us-west-2": {
-        "LambdaUpdate": "Yes"
       }
     }
   },
@@ -144,11 +103,6 @@
   "Parameters": {
     "Cluster": {
       "Default": "",
-      "Description": "",
-      "Type": "String"
-    },
-    "CustomTopicRuntime": {
-      "Default": "nodejs",
       "Description": "",
       "Type": "String"
     },
@@ -185,6 +139,15 @@
       "Default": "1,0,256",
       "Description": "Number of processes to run, CPU units to reserve, and MB of RAM to reserve",
       "Type": "CommaDelimitedList"
+    },
+    "NativeLogging": {
+      "AllowedValues": [
+        "Yes",
+        "No"
+      ],
+      "Default": "No",
+      "Description": "Use native ECS awslogs driver over convox/agent for logging",
+      "Type": "String"
     },
     "Private": {
       "AllowedValues": [
@@ -277,15 +240,7 @@
             "Arn"
           ]
         },
-        "Runtime": {
-          "Fn::If": [
-            "RegionHasLambdaUpdate",
-            "nodejs4.3",
-            {
-              "Ref": "CustomTopicRuntime"
-            }
-          ]
-        },
+        "Runtime": "nodejs4.3",
         "Timeout": "300"
       },
       "Type": "AWS::Lambda::Function"
@@ -383,7 +338,15 @@
               "APP": "httpd",
               "AWS_REGION": "test",
               "LOG_GROUP": {
-                "Ref": "LogGroup"
+                "Fn::If": [
+                  "NativeLogging",
+                  {
+                    "Ref": "AWS::NoValue"
+                  },
+                  {
+                    "Ref": "LogGroup"
+                  }
+                ]
               },
               "PROCESS": "main",
               "RACK": "convox-test"
@@ -394,6 +357,26 @@
               }
             ],
             "Image": "",
+            "LogConfiguration": {
+              "Fn::If": [
+                "NativeLogging",
+                {
+                  "LogDriver": "awslogs",
+                  "Options": {
+                    "awslogs-group": {
+                      "Ref": "LogGroup"
+                    },
+                    "awslogs-region": {
+                      "Ref": "AWS::Region"
+                    },
+                    "awslogs-stream-prefix": "convox"
+                  }
+                },
+                {
+                  "Ref": "AWS::NoValue"
+                }
+              ]
+            },
             "Memory": {
               "Fn::Select": [
                 2,

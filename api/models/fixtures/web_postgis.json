@@ -75,24 +75,18 @@
         "Yes"
       ]
     },
-    "Private": {
+    "NativeLogging": {
       "Fn::Equals": [
         {
-          "Ref": "Private"
+          "Ref": "NativeLogging"
         },
         "Yes"
       ]
     },
-    "RegionHasLambdaUpdate": {
+    "Private": {
       "Fn::Equals": [
         {
-          "Fn::FindInMap": [
-            "RegionConfig",
-            {
-              "Ref": "AWS::Region"
-            },
-            "LambdaUpdate"
-          ]
+          "Ref": "Private"
         },
         "Yes"
       ]
@@ -119,41 +113,6 @@
         "InstanceProtocol": "TCP",
         "ListenerProtocol": "SSL",
         "SecureInstanceProtocol": "SSL"
-      }
-    },
-    "RegionConfig": {
-      "ap-northeast-1": {
-        "LambdaUpdate": "Yes"
-      },
-      "ap-southeast-1": {
-        "LambdaUpdate": "Yes"
-      },
-      "ap-southeast-2": {
-        "LambdaUpdate": "Yes"
-      },
-      "ca-central-1": {
-        "LambdaUpdate": "No"
-      },
-      "eu-central-1": {
-        "LambdaUpdate": "Yes"
-      },
-      "eu-west-1": {
-        "LambdaUpdate": "Yes"
-      },
-      "eu-west-2": {
-        "LambdaUpdate": "No"
-      },
-      "us-east-1": {
-        "LambdaUpdate": "Yes"
-      },
-      "us-east-2": {
-        "LambdaUpdate": "No"
-      },
-      "us-west-1": {
-        "LambdaUpdate": "No"
-      },
-      "us-west-2": {
-        "LambdaUpdate": "Yes"
       }
     }
   },
@@ -272,11 +231,6 @@
       "Description": "",
       "Type": "String"
     },
-    "CustomTopicRuntime": {
-      "Default": "nodejs",
-      "Description": "",
-      "Type": "String"
-    },
     "DeploymentMaximum": {
       "Default": "200",
       "Description": "Maximum percentage of processes to keep running while deploying",
@@ -304,6 +258,15 @@
     "Key": {
       "Default": "",
       "Description": "",
+      "Type": "String"
+    },
+    "NativeLogging": {
+      "AllowedValues": [
+        "Yes",
+        "No"
+      ],
+      "Default": "No",
+      "Description": "Use native ECS awslogs driver over convox/agent for logging",
       "Type": "String"
     },
     "PostgresFormation": {
@@ -770,15 +733,7 @@
             "Arn"
           ]
         },
-        "Runtime": {
-          "Fn::If": [
-            "RegionHasLambdaUpdate",
-            "nodejs4.3",
-            {
-              "Ref": "CustomTopicRuntime"
-            }
-          ]
-        },
+        "Runtime": "nodejs4.3",
         "Timeout": "300"
       },
       "Type": "AWS::Lambda::Function"
@@ -872,7 +827,15 @@
               "APP": "httpd",
               "AWS_REGION": "test",
               "LOG_GROUP": {
-                "Ref": "LogGroup"
+                "Fn::If": [
+                  "NativeLogging",
+                  {
+                    "Ref": "AWS::NoValue"
+                  },
+                  {
+                    "Ref": "LogGroup"
+                  }
+                ]
               },
               "POSTGRES_PASSWORD": "password",
               "POSTGRES_USERNAME": "postgres",
@@ -885,6 +848,26 @@
               }
             ],
             "Image": "mdillon/postgis",
+            "LogConfiguration": {
+              "Fn::If": [
+                "NativeLogging",
+                {
+                  "LogDriver": "awslogs",
+                  "Options": {
+                    "awslogs-group": {
+                      "Ref": "LogGroup"
+                    },
+                    "awslogs-region": {
+                      "Ref": "AWS::Region"
+                    },
+                    "awslogs-stream-prefix": "convox"
+                  }
+                },
+                {
+                  "Ref": "AWS::NoValue"
+                }
+              ]
+            },
             "Memory": {
               "Fn::Select": [
                 2,
@@ -1142,7 +1125,15 @@
               "APP": "httpd",
               "AWS_REGION": "test",
               "LOG_GROUP": {
-                "Ref": "LogGroup"
+                "Fn::If": [
+                  "NativeLogging",
+                  {
+                    "Ref": "AWS::NoValue"
+                  },
+                  {
+                    "Ref": "LogGroup"
+                  }
+                ]
               },
               "PROCESS": "web",
               "RACK": "convox-test"
@@ -1153,6 +1144,26 @@
               }
             ],
             "Image": "",
+            "LogConfiguration": {
+              "Fn::If": [
+                "NativeLogging",
+                {
+                  "LogDriver": "awslogs",
+                  "Options": {
+                    "awslogs-group": {
+                      "Ref": "LogGroup"
+                    },
+                    "awslogs-region": {
+                      "Ref": "AWS::Region"
+                    },
+                    "awslogs-stream-prefix": "convox"
+                  }
+                },
+                {
+                  "Ref": "AWS::NoValue"
+                }
+              ]
+            },
             "Memory": {
               "Fn::Select": [
                 2,

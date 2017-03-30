@@ -41,8 +41,9 @@ func (c *Client) Auth() (*Auth, error) {
 
 	auth := &Auth{}
 
-	//legacy racks used to return a plain text string 'OK\n'
-	if string(body) == "OK\n" {
+	// legacy racks return a body of "OK\n"
+	// legacy consoles return an empty body
+	if string(body) == "OK\n" || len(body) == 0 {
 		return auth, nil
 	}
 

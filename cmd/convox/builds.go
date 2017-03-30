@@ -361,7 +361,10 @@ func cmdBuildsLogs(c *cli.Context) error {
 }
 
 func executeBuild(c *cli.Context, source, app, manifest, description string, output io.WriteCloser) (string, string, error) {
-	u, _ := url.Parse(source)
+	u, err := url.Parse(source)
+	if err != nil {
+		return "", "", err
+	}
 
 	switch u.Scheme {
 	case "http", "https", "ssh":
