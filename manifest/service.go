@@ -105,6 +105,7 @@ func (s *Service) Process(app string, m Manifest) Process {
 	return NewProcess(app, *s, m)
 }
 
+// UseSecureEnvironment - Determines if the service intends to use a secure environment
 func (s Service) UseSecureEnvironment() bool {
 	if useSecureEnvironment, ok := s.Labels["convox.secure-env"]; useSecureEnvironment == "true" && ok {
 		return true
