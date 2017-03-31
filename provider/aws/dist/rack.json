@@ -2349,6 +2349,7 @@
             "Memory": { "Ref": "BuildMemory" },
             "Name": "build",
             "Volumes": [
+              "/etc/sysconfig/docker:/etc/sysconfig/docker",
               "/var/run/docker.sock:/var/run/docker.sock"
             ]
           }
