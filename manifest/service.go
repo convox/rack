@@ -105,6 +105,13 @@ func (s *Service) Process(app string, m Manifest) Process {
 	return NewProcess(app, *s, m)
 }
 
+func (s Service) UseSecureEnvironment() bool {
+	if useSecureEnvironment, ok := s.Labels["convox.secure-env"]; useSecureEnvironment == "true" && ok {
+		return true
+	}
+	return false
+}
+
 // HasBalancer returns false if the Service contains no public ports,
 // or if the `convox.balancer` label is set to false
 func (s Service) HasBalancer() bool {
