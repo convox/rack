@@ -238,7 +238,7 @@ func ECSTaskDefinitionCreate(req Request) (string, map[string]string, error) {
 		} else {
 			fmt.Printf("Configuring for a normal environment\n")
 			// set Task environment from decrypted S3 URL body of key/values
-			// These key/values take precident over the above environment
+			// These key/values take precedent over the above environment
 			for key, val := range env {
 				r.ContainerDefinitions[i].Environment = append(r.ContainerDefinitions[i].Environment, &ecs.KeyValuePair{
 					Name:  aws.String(key),
