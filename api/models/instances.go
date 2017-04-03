@@ -21,7 +21,7 @@ func InstanceKeyroll() error {
 	switch system.Status {
 	case "running", "converging":
 	default:
-		return fmt.Errorf("unable to keyroll with rack status: %s", system.Status)
+		return fmt.Errorf("unable to keyroll rack with current status: %s, status must be running or converging", system.Status)
 	}
 
 	keyname := fmt.Sprintf("%s-keypair-%d", os.Getenv("RACK"), (rand.Intn(8999) + 1000))
