@@ -222,6 +222,7 @@
             {
               "Name": "{{ $e.Name }}",
               "Image": "{{ $e.Image }}",
+              "SecureEnvironment": {{ if $e.UseSecureEnvironment }}true{{ else }}false{{ end }},
               {{if $e.Command.Array}}
                 "Command": [
                   {{ range $index, $element := $e.Command.Array}}
