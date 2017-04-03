@@ -23,7 +23,7 @@ case "$1" in
   4)
     echo AWS_DEFAULT_REGION=us-west-1
     echo AWS_REGION=us-west-1
-    echo RACK_BUILD_INSTANCE=m4.xlarge # different value for testing
+    echo RACK_BUILD_INSTANCE=t2.small
     ;;
   5)
     echo AWS_DEFAULT_REGION=eu-central-1
@@ -36,7 +36,7 @@ case "$1" in
   7)
     echo AWS_DEFAULT_REGION=ap-northeast-1
     echo AWS_REGION=ap-northeast-1
-    echo RACK_BUILD_INSTANCE=m4.large
+    echo RACK_BUILD_INSTANCE=t2.small
     ;;
   8)
     echo AWS_DEFAULT_REGION=ap-southeast-1
