@@ -442,25 +442,23 @@ func cmdInstall(c *cli.Context) error {
 		return stdcli.Error(err)
 	}
 
-	fmt.Println("")
-
-	fmt.Println("Logging in...")
-
 	err = addLogin(host, password)
 	if err != nil {
 		stdcli.QOSEventSend("cli-install", distinctID, stdcli.QOSEventProperties{Error: err})
 		return stdcli.Error(err)
 	}
 
-	err = switchHost(host)
-	if err != nil {
-		stdcli.QOSEventSend("cli-install", distinctID, stdcli.QOSEventProperties{Error: err})
-		return stdcli.Error(err)
-	}
-
-	fmt.Println("Success, try `convox apps`")
+	fmt.Println("")
+	addRackToConsoleMsg(c, host, password)
 
 	return stdcli.QOSEventSend("cli-install", distinctID, ep)
+}
+
+func addRackToConsoleMsg(c *cli.Context, host string, password string) {
+	fmt.Println("** Success! **")
+	fmt.Println("Your Rack has been installed. You should now add it as an existing Rack at console.convox.com (or your own private Console) with the following credentials (which have also been written to ~/.convox/auth):")
+	fmt.Printf(" 🢂  Hostname: %s\n", host)
+	fmt.Printf(" 🢂   API Key: %s\n", password)
 }
 
 /// validateUserAccess checks for the "AdministratorAccess" policy needed to create a rack.
