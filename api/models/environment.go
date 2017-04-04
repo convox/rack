@@ -81,12 +81,11 @@ func PutEnvironment(app string, env Environment) (string, error) {
 		return "", err
 	}
 
+	// only allow running and updating status through
 	switch a.Status {
-	case "creating":
-		return "", fmt.Errorf("app is still creating: %s", app)
 	case "running", "updating":
 	default:
-		return "", fmt.Errorf("unable to set environment on app: %s", app)
+		return "", fmt.Errorf("unable to set environment with current app status: %s, status must be running or updating", a.Status)
 	}
 
 	release, err := a.ForkRelease()
