@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"regexp"
 	"sort"
 	"strings"
 
@@ -23,15 +22,13 @@ func LoadEnvironment(data []byte) (Environment, error) {
 	scanner := bufio.NewScanner(bytes.NewReader(data))
 
 	for scanner.Scan() {
+		k, v := ParseEnvLine(scanner.Text())
 
-		key, value, err := ParseEnvLine(scanner.Text())
-		if err != nil {
-			return nil, err
+		if k == "" {
+			continue
 		}
 
-		if key != "" {
-			env[key] = value
-		}
+		env[k] = v
 	}
 
 	return env, nil
@@ -212,30 +209,23 @@ func (e Environment) Raw() string {
 	return strings.Join(lines, "\n")
 }
 
-// ParseEnvLine returns valid key, value pair, or an error if an invalid line
-func ParseEnvLine(line string) (string, string, error) {
-	// Deal with empty lines
-	if regexp.MustCompile(`^\s*$`).MatchString(line) {
-		return "", "", nil
+// ParseEnvLine returns a valid key, value pair or empty strings
+func ParseEnvLine(line string) (string, string) {
+	parts := strings.SplitN(line, "=", 2)
+
+	if len(parts) != 2 {
+		return "", ""
 	}
 
-	// Deal with simple comment lines
-	if regexp.MustCompile(`^\s*#.*$`).MatchString(line) {
-		return "", "", nil
+	k := strings.TrimSpace(parts[0])
+	v := strings.TrimSpace(parts[1])
+
+	if len(k) == 0 {
+		return "", ""
 	}
 
-	// check for invalid lines
-	re := regexp.MustCompile(`^([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*(.*)\s*$`)
-	if !re.MatchString(line) {
-		return "", "", fmt.Errorf("Invalid env format, expecting key=value: `%s`", line)
-	}
+	// strip leading/trailing ' if they exist
+	v = strings.Trim(v, "'")
 
-	ms := re.FindStringSubmatch(line)
-	key := ms[1]
-
-	value := strings.TrimSpace(ms[2])
-	value = strings.Trim(value, "'") // heroku env -s adds leading and trailing single quotes so let's strip.
-	value = strings.TrimSpace(value)
-
-	return key, value, nil
+	return k, v
 }
