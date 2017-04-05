@@ -148,13 +148,17 @@ func cmdRack(c *cli.Context) error {
 		return stdcli.Error(err)
 	}
 
-	fmt.Printf("Name			%s\n", system.Name)
-	fmt.Printf("Status			%s\n", system.Status)
-	fmt.Printf("Version			%s\n", system.Version)
-	fmt.Printf("Region			%s\n", system.Region)
-	fmt.Printf("Count			%d\n", system.Count)
-	fmt.Printf("Type			%s\n", system.Type)
-	fmt.Printf("BuildInstanceType	%s\n", system.BuildInstanceType)
+	info := stdcli.NewInfo()
+
+	info.Add("Name", system.Name)
+	info.Add("Status", system.Status)
+	info.Add("Version", system.Version)
+	info.Add("Region", system.Region)
+	info.Add("Count", fmt.Sprintf("%d", system.Count))
+	info.Add("Type", system.Type)
+
+	info.Print()
+
 	return nil
 }
 
