@@ -132,7 +132,7 @@ func TestProcessRunDetached(t *testing.T) {
 
 		if assert.Nil(t, hf.Request("POST", "/apps/myapp-staging/processes/web/run", v)) {
 			hf.AssertCode(t, 200)
-			hf.AssertJSON(t, `{"success":true}`)
+			hf.AssertJSON(t, `{"Pid":"pid","Success":true}`)
 		}
 	})
 
