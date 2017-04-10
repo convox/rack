@@ -15,7 +15,6 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
-	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/convox/rack/api/structs"
 	"github.com/convox/rack/manifest"
@@ -595,21 +594,6 @@ func primaryProcess(stackName string) (string, error) {
 
 func releasesTable(app string) string {
 	return os.Getenv("DYNAMO_RELEASES")
-}
-
-func releaseFromItem(item map[string]*dynamodb.AttributeValue) *Release {
-	created, _ := time.Parse(SortableTime, coalesce(item["created"], ""))
-
-	release := &Release{
-		Id:       coalesce(item["id"], ""),
-		App:      coalesce(item["app"], ""),
-		Build:    coalesce(item["build"], ""),
-		Env:      coalesce(item["env"], ""),
-		Manifest: coalesce(item["manifest"], ""),
-		Created:  created,
-	}
-
-	return release
 }
 
 func waitForTemplate(bucket string, id string) error {
