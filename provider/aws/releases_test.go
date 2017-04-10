@@ -14,6 +14,7 @@ func TestReleaseGet(t *testing.T) {
 	provider := StubAwsProvider(
 		cycleReleaseDescribeStacks,
 		cycleReleaseGetItem,
+		cycleReleaseEnvironmentGet,
 	)
 	defer provider.Close()
 
@@ -24,7 +25,7 @@ func TestReleaseGet(t *testing.T) {
 		Id:       "RVFETUHHKKD",
 		App:      "httpd",
 		Build:    "BHINCLZYYVN",
-		Env:      "foo=bar",
+		Env:      "BAZ=qux\nFOO=bar",
 		Manifest: "web:\n  image: httpd\n  ports:\n  - 80:80\n",
 		Created:  time.Unix(1459780542, 627770380).UTC(),
 	}, r)
@@ -46,7 +47,6 @@ func TestReleaseList(t *testing.T) {
 			Id:       "RVFETUHHKKD",
 			App:      "httpd",
 			Build:    "BHINCLZYYVN",
-			Env:      "foo=bar",
 			Manifest: "web:\n  image: httpd\n  ports:\n  - 80:80\n",
 			Created:  time.Unix(1459780542, 627770380).UTC(),
 		},
@@ -54,7 +54,6 @@ func TestReleaseList(t *testing.T) {
 			Id:       "RFVZFLKVTYO",
 			App:      "httpd",
 			Build:    "BNOARQMVHUO",
-			Env:      "foo=bar",
 			Manifest: "web:\n  image: httpd\n  ports:\n  - 80:80\n",
 			Created:  time.Unix(1459709199, 166694813).UTC(),
 		},
@@ -223,6 +222,17 @@ var cycleReleaseGetItem = awsutil.Cycle{
 	Response: awsutil.Response{
 		StatusCode: 200,
 		Body:       `{"Item":{"id":{"S":"RVFETUHHKKD"},"build":{"S":"BHINCLZYYVN"},"app":{"S":"httpd"},"manifest":{"S":"web:\n  image: httpd\n  ports:\n  - 80:80\n"},"env":{"S":"foo=bar"},"created":{"S":"20160404.143542.627770380"}}}`,
+	},
+}
+
+var cycleReleaseEnvironmentGet = awsutil.Cycle{
+	Request: awsutil.Request{
+		Method:     "GET",
+		RequestURI: "/convox-httpd-settings-139bidzalmbtu/releases/RVFETUHHKKD/env",
+	},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body:       "FOO=bar\nBAZ=qux",
 	},
 }
 
