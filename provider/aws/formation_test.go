@@ -15,6 +15,7 @@ func TestFormationList(t *testing.T) {
 		cycleFormationDescribeStacks,
 		cycleFormationDescribeStacks,
 		cycleReleaseGetItem,
+		cycleReleaseEnvironmentGet,
 	)
 	defer provider.Close()
 
@@ -78,6 +79,7 @@ func TestFormationListBadManifest(t *testing.T) {
 		cycleFormationDescribeStacks,
 		cycleFormationDescribeStacks,
 		cycleReleaseGetItemBadManifest,
+		cycleReleaseEnvironmentGet,
 	)
 	defer provider.Close()
 
@@ -92,6 +94,7 @@ func TestFormationListBadFormation(t *testing.T) {
 		cycleFormationDescribeStacksBadFormation,
 		cycleFormationDescribeStacksBadFormation,
 		cycleReleaseGetItem,
+		cycleReleaseEnvironmentGet,
 	)
 	defer provider.Close()
 
@@ -106,6 +109,7 @@ func TestFormationGet(t *testing.T) {
 		cycleFormationDescribeStacks,
 		cycleFormationDescribeStacks,
 		cycleReleaseGetItem,
+		cycleReleaseEnvironmentGet,
 	)
 	defer provider.Close()
 
@@ -167,6 +171,7 @@ func TestFormationGetBadManifest(t *testing.T) {
 		cycleFormationDescribeStacks,
 		cycleFormationDescribeStacks,
 		cycleReleaseGetItemBadManifest,
+		cycleReleaseEnvironmentGet,
 	)
 	defer provider.Close()
 
@@ -181,6 +186,7 @@ func TestFormationGetUnknownProcess(t *testing.T) {
 		cycleFormationDescribeStacks,
 		cycleFormationDescribeStacks,
 		cycleReleaseGetItem,
+		cycleReleaseEnvironmentGet,
 	)
 	defer provider.Close()
 

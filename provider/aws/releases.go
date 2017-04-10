@@ -35,7 +35,7 @@ func (p *AWSProvider) ReleaseGet(app, id string) (*structs.Release, error) {
 		return nil, fmt.Errorf("release id must not be empty")
 	}
 
-	_, err := p.AppGet(app)
+	a, err := p.AppGet(app)
 	if err != nil {
 		return nil, err
 	}
@@ -45,7 +45,30 @@ func (p *AWSProvider) ReleaseGet(app, id string) (*structs.Release, error) {
 		return nil, err
 	}
 
-	return releaseFromItem(item)
+	r, err := releaseFromItem(item)
+	if err != nil {
+		return nil, err
+	}
+
+	data, err := p.s3Get(a.Outputs["Settings"], fmt.Sprintf("releases/%s/env", r.Id))
+	if err != nil {
+		return nil, err
+	}
+
+	if a.Parameters["Key"] != "" {
+		cr := crypt.New(p.Region, p.Access, p.Secret)
+
+		if d, err := cr.Decrypt(a.Parameters["Key"], data); err == nil {
+			data = d
+		}
+	}
+
+	env := structs.Environment{}
+	env.LoadEnvironment(data)
+
+	r.Env = env.Raw()
+
+	return r, nil
 }
 
 // ReleaseList returns a list of the latest releases, with the length specified in limit
@@ -110,9 +133,6 @@ func (p *AWSProvider) ReleaseSave(r *structs.Release) error {
 		return err
 	}
 
-	bucket := a.Outputs["Settings"]
-	key := a.Parameters["Key"]
-
 	if r.Id == "" {
 		return fmt.Errorf("Id can not be blank")
 	}
@@ -138,16 +158,12 @@ func (p *AWSProvider) ReleaseSave(r *structs.Release) error {
 		req.Item["build"] = &dynamodb.AttributeValue{S: aws.String(r.Build)}
 	}
 
-	if r.Env != "" {
-		req.Item["env"] = &dynamodb.AttributeValue{S: aws.String(r.Env)}
-	}
-
 	if r.Manifest != "" {
 		req.Item["manifest"] = &dynamodb.AttributeValue{S: aws.String(r.Manifest)}
 	}
 
 	env := []byte(r.Env)
-
+	key := a.Parameters["Key"]
 	if key != "" {
 		cr := crypt.New(p.Region, p.Access, p.Secret)
 
@@ -160,7 +176,7 @@ func (p *AWSProvider) ReleaseSave(r *structs.Release) error {
 	_, err = p.s3().PutObject(&s3.PutObjectInput{
 		ACL:           aws.String("public-read"),
 		Body:          bytes.NewReader(env),
-		Bucket:        aws.String(bucket),
+		Bucket:        aws.String(a.Outputs["Settings"]),
 		ContentLength: aws.Int64(int64(len(env))),
 		Key:           aws.String(fmt.Sprintf("releases/%s/env", r.Id)),
 	})
@@ -203,7 +219,6 @@ func releaseFromItem(item map[string]*dynamodb.AttributeValue) (*structs.Release
 		Id:       coalesce(item["id"], ""),
 		App:      coalesce(item["app"], ""),
 		Build:    coalesce(item["build"], ""),
-		Env:      coalesce(item["env"], ""),
 		Manifest: coalesce(item["manifest"], ""),
 		Created:  created,
 	}
