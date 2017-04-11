@@ -148,6 +148,7 @@ func TestBuildDelete(t *testing.T) {
 		cycleBuildDescribeStacks,
 		cycleBuildDescribeStacks,
 		cycleReleaseGetItem,
+		cycleReleaseEnvironmentGet,
 		cycleBuildDeleteItem,
 		cycleBuildBatchDeleteImage,
 	)
@@ -1164,9 +1165,6 @@ var cycleBuildReleasePutItem = awsutil.Cycle{
 				},
 				"created": {
 					"S": "20160904.223813.000000000"
-				},
-				"env": {
-					"S": "BAZ=qux\nFOO=bar"
 				},
 				"id": {
 					"S": "R23456"
