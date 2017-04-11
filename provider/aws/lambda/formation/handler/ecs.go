@@ -127,11 +127,12 @@ func ECSTaskDefinitionCreate(req Request) (string, map[string]string, error) {
 
 		data, err := ioutil.ReadAll(res.Body)
 
-		if key, ok := req.ResourceProperties["Key"].(string); ok && key != "" {
+		if pkey, ok := req.ResourceProperties["Key"].(string); ok && pkey != "" {
+			key = pkey
 			cr := crypt.New(*Region(&req), os.Getenv("AWS_ACCESS_KEY_ID"), os.Getenv("AWS_SECRET_ACCESS_KEY"))
 			cr.AwsToken = os.Getenv("AWS_SESSION_TOKEN")
 
-			dec, err := cr.Decrypt(key, data)
+			dec, err := cr.Decrypt(pkey, data)
 
 			if err != nil {
 				return "invalid", nil, err
