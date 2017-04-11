@@ -3,7 +3,7 @@ services:
   secure:
     build: .
     labels:
-      - convox.secure-env=true
+      - convox.environment.secure=true
     expose:
       - 8080
   notsecure:
