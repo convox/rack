@@ -1521,7 +1521,7 @@
         "AutoScalingRollingUpdate": {
           "MaxBatchSize": { "Ref": "InstanceUpdateBatchSize" },
           "MinInstancesInService": "1",
-          "PauseTime" : "PT5M",
+          "PauseTime" : "PT15M",
           "SuspendProcesses": [
             "ScheduledActions"
           ],
@@ -1681,7 +1681,7 @@
         "AutoScalingRollingUpdate": {
           "MaxBatchSize": { "Ref": "InstanceUpdateBatchSize" },
           "MinInstancesInService": { "Ref": "InstanceCount" },
-          "PauseTime" : "PT5M",
+          "PauseTime" : "PT15M",
           "SuspendProcesses": [
             "ScheduledActions"
           ],
