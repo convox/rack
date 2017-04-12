@@ -1838,6 +1838,11 @@
           "S3Key": { "Fn::Join": [ "", [ "release/", { "Ref": "Version" }, "/lambda/cloudformationevents.zip" ] ] }
         },
         "Description": "Handler for Cloudformation events.",
+        "Environment": {
+          "Variables": {
+            "LOG_GROUP": { "Ref": "LogGroup" }
+          }
+        },
         "Handler": "index.external",
         "MemorySize": "128",
         "Role": { "Fn::GetAtt": [ "CloudformationEventsHandlerRole", "Arn" ] },
@@ -1938,6 +1943,11 @@
           "S3Key": { "Fn::Join": [ "", [ "release/", { "Ref": "Version" }, "/lambda/ecsevents.zip" ] ] }
         },
         "Description": "Handler for ECS events.",
+        "Environment": {
+          "Variables": {
+            "LOG_GROUP": { "Ref": "LogGroup" }
+          }
+        },
         "Handler": "index.external",
         "MemorySize": "128",
         "Role": { "Fn::GetAtt": [ "ECSEventHandlerRole", "Arn" ] },
