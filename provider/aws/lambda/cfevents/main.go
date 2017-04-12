@@ -60,7 +60,10 @@ func handle(r Record) error {
 		return err
 	}
 
-	logGroup := os.Getenv("LOG_GROUP")
+	logGroup, err := getLogGroup(m["StackName"])
+	if err != nil {
+		return err
+	}
 
 	_, err = cwl.CreateLogStream(&cloudwatchlogs.CreateLogStreamInput{
 		LogGroupName:  aws.String(logGroup),
@@ -129,4 +132,19 @@ func parseMessage(msg string) (Message, error) {
 	}
 
 	return m, nil
+}
+
+func getLogGroup(stack string) (string, error) {
+	res, err := cf.DescribeStackResources(&cloudformation.DescribeStackResourcesInput{
+		StackName:         aws.String(stack),
+		LogicalResourceId: aws.String("LogGroup"),
+	})
+	if err != nil {
+		return "", err
+	}
+	if len(res.StackResources) != 1 {
+		return "", fmt.Errorf("unable to find log group for stack: %s", stack)
+	}
+
+	return *res.StackResources[0].PhysicalResourceId, nil
 }

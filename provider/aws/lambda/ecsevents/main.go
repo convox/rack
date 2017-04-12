@@ -182,7 +182,18 @@ func getServiceEvents(service, cluster string) ([]*ecs.ServiceEvent, error) {
 }
 
 func getLogGroup(stack string) (string, error) {
-	return os.Getenv("LOG_GROUP"), nil
+	res, err := CF.DescribeStackResources(&cloudformation.DescribeStackResourcesInput{
+		StackName:         aws.String(stack),
+		LogicalResourceId: aws.String("LogGroup"),
+	})
+	if err != nil {
+		return "", err
+	}
+	if len(res.StackResources) != 1 {
+		return "", fmt.Errorf("unable to find log group for stack: %s", stack)
+	}
+
+	return *res.StackResources[0].PhysicalResourceId, nil
 }
 
 func die(err error) {
