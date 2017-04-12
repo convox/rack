@@ -182,31 +182,7 @@ func getServiceEvents(service, cluster string) ([]*ecs.ServiceEvent, error) {
 }
 
 func getLogGroup(stack string) (string, error) {
-	resp, err := CF.DescribeStacks(&cloudformation.DescribeStacksInput{
-		StackName: aws.String(stack),
-	})
-	if err != nil {
-		return "", err
-	}
-
-	if len(resp.Stacks) == 0 {
-		return "", fmt.Errorf("stack not found")
-	}
-
-	s := resp.Stacks[0]
-
-	var logGroup string
-	for _, output := range s.Outputs {
-		if *output.OutputKey == "LogGroup" {
-			logGroup = *output.OutputValue
-			break
-		}
-	}
-
-	if logGroup == "" {
-		return "", fmt.Errorf("log group for %s not found", *s.StackName)
-	}
-	return logGroup, nil
+	return os.Getenv("LOG_GROUP"), nil
 }
 
 func die(err error) {
