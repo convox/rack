@@ -829,6 +829,10 @@ func (p *AWSProvider) runBuild(build *structs.Build, method, url string, opts st
 							Value: aws.String(url),
 						},
 						{
+							Name:  aws.String("HTTP_PROXY"),
+							Value: aws.String(os.Getenv("HTTP_PROXY")),
+						},
+						{
 							Name:  aws.String("RELEASE"),
 							Value: aws.String(build.Id),
 						},

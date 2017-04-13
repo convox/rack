@@ -68,7 +68,6 @@ func TestBuildCreate(t *testing.T) {
 		cycleBuildDescribeTasks,
 		cycleBuildDescribeContainerInstances,
 		cycleBuildDescribeInstances,
-		cycleBuildNotificationPublish,
 		cycleBuildDescribeStacks,
 		cycleBuildQuery150,
 	)
@@ -114,7 +113,6 @@ func TestBuildCreateWithCluster(t *testing.T) {
 		cycleBuildDescribeTasks,
 		cycleBuildDescribeContainerInstances,
 		cycleBuildDescribeInstances,
-		cycleBuildNotificationPublish,
 		cycleBuildDescribeStacks,
 		cycleBuildQuery150,
 	)
@@ -1222,6 +1220,10 @@ var cycleBuildRunTask = awsutil.Cycle{
 								"value": "http://example.org/build.tgz"
 							},
 							{
+								"name": "HTTP_PROXY",
+								"value": ""
+							},
+							{
 								"name": "RELEASE",
 								"value": "B123"
 							}
@@ -1296,6 +1298,10 @@ var cycleBuildRunTaskCluster = awsutil.Cycle{
 							{
 								"name": "BUILD_URL",
 								"value": "http://example.org/build.tgz"
+							},
+							{
+								"name": "HTTP_PROXY",
+								"value": ""
 							},
 							{
 								"name": "RELEASE",
