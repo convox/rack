@@ -1877,7 +1877,7 @@
                 {
                   "Effect": "Allow",
                   "Action": [
-                    "cloudformation:DescribeStacks",
+                    "cloudformation:DescribeStackResources",
                     "logs:CreateLogGroup",
                     "logs:CreateLogStream",
                     "logs:PutLogEvents"
@@ -1914,7 +1914,7 @@
                 {
                   "Effect": "Allow",
                   "Action": [
-                    "cloudformation:DescribeStacks",
+                    "cloudformation:DescribeStackResources",
                     "ecs:DescribeServices",
                     "logs:CreateLogGroup",
                     "logs:CreateLogStream",
