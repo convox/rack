@@ -1397,7 +1397,7 @@
           {
             "DeviceName": "/dev/xvdb",
             "Ebs": {
-              "Encrypted": { "Fn::If": [ "EncryptEbs", "true", "false" ] },
+              "Encrypted": { "Fn::If": [ "EncryptEbs", "true", { "Ref": "AWS::NoValue" } ] },
               "VolumeSize": { "Ref": "SwapSize" },
               "VolumeType":"gp2"
             }
@@ -1405,7 +1405,7 @@
           {
             "DeviceName": "/dev/xvdcz",
             "Ebs": {
-              "Encrypted": { "Fn::If": [ "EncryptEbs", "true", "false" ] },
+              "Encrypted": { "Fn::If": [ "EncryptEbs", "true", { "Ref": "AWS::NoValue" } ] },
               "VolumeSize": { "Ref": "VolumeSize" },
               "VolumeType":"gp2"
             }
@@ -1538,7 +1538,7 @@
           {
             "DeviceName": "/dev/xvdb",
             "Ebs": {
-              "Encrypted": { "Fn::If": [ "EncryptEbs", "true", "false" ] },
+              "Encrypted": { "Fn::If": [ "EncryptEbs", "true", { "Ref": "AWS::NoValue" } ] },
               "VolumeSize": { "Ref": "SwapSize" },
               "VolumeType":"gp2"
             }
@@ -1546,7 +1546,7 @@
           {
             "DeviceName": "/dev/xvdcz",
             "Ebs": {
-              "Encrypted": { "Fn::If": [ "EncryptEbs", "true", "false" ] },
+              "Encrypted": { "Fn::If": [ "EncryptEbs", "true", { "Ref": "AWS::NoValue" } ] },
               "VolumeSize": { "Ref": "VolumeSize" },
               "VolumeType":"gp2"
             }
