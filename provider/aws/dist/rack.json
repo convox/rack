@@ -26,6 +26,7 @@
     "ExistingVpcAndInternetGateway": {
       "Fn::And": [ { "Condition": "ExistingVpc" }, { "Condition": "InternetGateway" } ]
     },
+    "HttpProxy": { "Fn::Not": [ { "Fn::Equals": [ { "Ref": "HttpProxy" }, "" ] } ] },
     "InternetGateway": { "Fn::Not": [ { "Fn::Equals": [ { "Ref": "InternetGateway" }, "" ] } ] },
     "NotExistingVpcAndBlankInternetGateway": { "Fn::Not": [ { "Condition": "ExistingVpcAndBlankInternetGateway" } ] },
     "Private": { "Fn::Equals": [ { "Ref": "Private" }, "Yes" ] },
@@ -1396,7 +1397,7 @@
           {
             "DeviceName": "/dev/xvdb",
             "Ebs": {
-              "Encrypted": { "Fn::If": [ "EncryptEbs", "true", "false" ] },
+              "Encrypted": { "Fn::If": [ "EncryptEbs", "true", { "Ref": "AWS::NoValue" } ] },
               "VolumeSize": { "Ref": "SwapSize" },
               "VolumeType":"gp2"
             }
@@ -1404,7 +1405,7 @@
           {
             "DeviceName": "/dev/xvdcz",
             "Ebs": {
-              "Encrypted": { "Fn::If": [ "EncryptEbs", "true", "false" ] },
+              "Encrypted": { "Fn::If": [ "EncryptEbs", "true", { "Ref": "AWS::NoValue" } ] },
               "VolumeSize": { "Ref": "VolumeSize" },
               "VolumeType":"gp2"
             }
@@ -1430,6 +1431,8 @@
             "  - mkswap /dev/xvdb\n",
             "  - swapon /dev/xvdb\n",
             "  - [ cloud-init-per, instance, docker_storage_setup, /usr/bin/docker-storage-setup ]\n",
+            "  - export HTTP_PROXY=", { "Ref": "HttpProxy" }, "\n",
+            "  - echo HTTP_PROXY=", { "Ref": "HttpProxy" }, " >> /etc/environment\n",
             "  - echo ECS_CLUSTER=", { "Ref": "BuildCluster" }, " >> /etc/ecs/ecs.config\n",
             "  - echo ECS_ENGINE_AUTH_TYPE=docker >> /etc/ecs/ecs.config\n",
             "  - echo HTTP_PROXY=", { "Ref": "HttpProxy" }, " >> /etc/ecs/ecs.config\n",
@@ -1442,6 +1445,11 @@
               "  - echo 'OPTIONS=\"${OPTIONS} --log-opt max-file=2 --log-opt max-size=50m --host=unix:///var/run/docker.sock --host=0.0.0.0:2376\"' >> /etc/sysconfig/docker\n",
               "  - echo 'ECS_ENGINE_AUTH_DATA={\"index.docker.io\":{\"username\":\"\",\"password\":\"\",\"email\":\"\"}' >> /etc/ecs/ecs.config\n"
             ] ] },
+            { "Fn::If": [ "HttpProxy",
+              { "Fn::Join": ["", ["  - echo \"export HTTP_PROXY=", { "Ref": "HttpProxy" }, "/\" >> /etc/sysconfig/docker\n"
+              ] ] },
+              { "Ref": "AWS::NoValue" }
+            ] },
             "  - mkdir -p /etc/convox\n",
             "  - echo -e '/var/log/docker {\\n  rotate 7\\n  daily\\n  nocompress\\n  copytruncate\\n}' >> /etc/logrotate.d/docker\n",
             { "Fn::If": [ "BlankInstanceBootCommand",
@@ -1530,7 +1538,7 @@
           {
             "DeviceName": "/dev/xvdb",
             "Ebs": {
-              "Encrypted": { "Fn::If": [ "EncryptEbs", "true", "false" ] },
+              "Encrypted": { "Fn::If": [ "EncryptEbs", "true", { "Ref": "AWS::NoValue" } ] },
               "VolumeSize": { "Ref": "SwapSize" },
               "VolumeType":"gp2"
             }
@@ -1538,7 +1546,7 @@
           {
             "DeviceName": "/dev/xvdcz",
             "Ebs": {
-              "Encrypted": { "Fn::If": [ "EncryptEbs", "true", "false" ] },
+              "Encrypted": { "Fn::If": [ "EncryptEbs", "true", { "Ref": "AWS::NoValue" } ] },
               "VolumeSize": { "Ref": "VolumeSize" },
               "VolumeType":"gp2"
             }
@@ -1563,6 +1571,8 @@
             "bootcmd:\n",
             "  - mkswap /dev/xvdb\n",
             "  - swapon /dev/xvdb\n",
+            "  - export HTTP_PROXY=", { "Ref": "HttpProxy" }, "\n",
+            "  - echo HTTP_PROXY=", { "Ref": "HttpProxy" }, " >> /etc/environment\n",
             "  - until yum install -y aws-cli nfs-utils; do echo \"Waiting for network\"; done;\n",
             "  - mkdir /volumes\n",
             { "Fn::If": [ "RegionHasEFS",
@@ -1578,6 +1588,8 @@
             "  - [ cloud-init-per, instance, docker_storage_setup, /usr/bin/docker-storage-setup ]\n",
             "  - echo ECS_CLUSTER=", { "Ref": "Cluster" }, " >> /etc/ecs/ecs.config\n",
             "  - echo ECS_ENGINE_AUTH_TYPE=docker >> /etc/ecs/ecs.config\n",
+            "  - echo HTTP_PROXY=", { "Ref": "HttpProxy" }, " >> /etc/ecs/ecs.config\n",
+            "  - echo NO_PROXY=169.254.169.254,169.254.170.2,/var/run/docker.sock >> /etc/ecs/ecs.config\n",
             "  - head -n -1 /etc/sysconfig/docker >> /etc/sysconfig/docker-tmp\n",
             "  - mv /etc/sysconfig/docker-tmp /etc/sysconfig/docker\n",
             "  - echo 'OPTIONS=\"--default-ulimit nofile=1024000:1024000\"' >> /etc/sysconfig/docker\n",
@@ -1586,6 +1598,11 @@
               "  - echo 'OPTIONS=\"${OPTIONS} --log-opt max-file=2 --log-opt max-size=50m --host=unix:///var/run/docker.sock --host=0.0.0.0:2376\"' >> /etc/sysconfig/docker\n",
               "  - echo 'ECS_ENGINE_AUTH_DATA={\"index.docker.io\":{\"username\":\"\",\"password\":\"\",\"email\":\"\"}' >> /etc/ecs/ecs.config\n"
             ] ] },
+            { "Fn::If": [ "HttpProxy",
+              { "Fn::Join": ["", ["  - echo \"export HTTP_PROXY=", { "Ref": "HttpProxy" }, "/\" >> /etc/sysconfig/docker\n"
+              ] ] },
+              { "Ref": "AWS::NoValue" }
+            ] },
             "  - mkdir -p /etc/convox\n",
             "  - echo \"", { "Ref": "AWS::Region" }, "\" > /etc/convox/region\n",
             "  - echo \"", { "Ref": "ClientId" }, "\" > /etc/convox/client_id\n",
@@ -1860,7 +1877,7 @@
                 {
                   "Effect": "Allow",
                   "Action": [
-                    "cloudformation:DescribeStacks",
+                    "cloudformation:DescribeStackResources",
                     "logs:CreateLogGroup",
                     "logs:CreateLogStream",
                     "logs:PutLogEvents"
@@ -1897,7 +1914,7 @@
                 {
                   "Effect": "Allow",
                   "Action": [
-                    "cloudformation:DescribeStacks",
+                    "cloudformation:DescribeStackResources",
                     "ecs:DescribeServices",
                     "logs:CreateLogGroup",
                     "logs:CreateLogStream",
@@ -2332,6 +2349,7 @@
             "Memory": { "Ref": "BuildMemory" },
             "Name": "build",
             "Volumes": [
+              "/etc/sysconfig/docker:/etc/sysconfig/docker",
               "/var/run/docker.sock:/var/run/docker.sock"
             ]
           }

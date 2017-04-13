@@ -568,8 +568,12 @@ func (p *AWSProvider) BuildRelease(b *structs.Build) (*structs.Release, error) {
 	r := structs.NewRelease(b.App)
 	newId := r.Id
 
+	// get the last release, including decrypted env not available in ReleaseList
 	if len(releases) > 0 {
-		r = &releases[0]
+		r, err = p.ReleaseGet(b.App, releases[0].Id)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	r.Id = newId
@@ -827,6 +831,10 @@ func (p *AWSProvider) runBuild(build *structs.Build, method, url string, opts st
 						{
 							Name:  aws.String("BUILD_URL"),
 							Value: aws.String(url),
+						},
+						{
+							Name:  aws.String("HTTP_PROXY"),
+							Value: aws.String(os.Getenv("HTTP_PROXY")),
 						},
 						{
 							Name:  aws.String("RELEASE"),

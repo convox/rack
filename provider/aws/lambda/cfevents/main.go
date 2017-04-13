@@ -59,33 +59,11 @@ func handle(r Record) error {
 	if err != nil {
 		return err
 	}
-	fmt.Printf("m = %+v\n", m)
 
-	resp, err := cf.DescribeStacks(&cloudformation.DescribeStacksInput{
-		StackName: aws.String(m["StackName"]),
-	})
+	logGroup, err := getLogGroup(m["StackName"])
 	if err != nil {
 		return err
 	}
-
-	if len(resp.Stacks) == 0 {
-		return fmt.Errorf("stack not found")
-	}
-
-	stack := resp.Stacks[0]
-
-	var logGroup string
-	for _, output := range stack.Outputs {
-		if *output.OutputKey == "LogGroup" {
-			logGroup = *output.OutputValue
-			break
-		}
-	}
-
-	if logGroup == "" {
-		return fmt.Errorf("log group for %s not found", *stack.StackName)
-	}
-	fmt.Printf("logGroup = %+v\n", logGroup)
 
 	_, err = cwl.CreateLogStream(&cloudwatchlogs.CreateLogStreamInput{
 		LogGroupName:  aws.String(logGroup),
@@ -154,4 +132,19 @@ func parseMessage(msg string) (Message, error) {
 	}
 
 	return m, nil
+}
+
+func getLogGroup(stack string) (string, error) {
+	res, err := cf.DescribeStackResources(&cloudformation.DescribeStackResourcesInput{
+		StackName:         aws.String(stack),
+		LogicalResourceId: aws.String("LogGroup"),
+	})
+	if err != nil {
+		return "", err
+	}
+	if len(res.StackResources) != 1 {
+		return "", fmt.Errorf("unable to find log group for stack: %s", stack)
+	}
+
+	return *res.StackResources[0].PhysicalResourceId, nil
 }
