@@ -311,6 +311,13 @@ func cmdBuildsImport(c *cli.Context) error {
 		return stdcli.Error(fmt.Errorf("please pipe a file into this command or specify -f"))
 	}
 
+	output := os.Stdout
+
+	if c.Bool("id") {
+		output = os.Stderr
+	}
+
+	o := client.ImportBuildOptions{}
 	in := os.Stdin
 	if file := c.String("file"); file != "" {
 		fd, err := os.Open(file)
@@ -319,15 +326,12 @@ func cmdBuildsImport(c *cli.Context) error {
 		}
 		defer fd.Close()
 		in = fd
+		o.Progress = progress("Uploading: ", "Importing build... ", output)
+	} else {
+		output.WriteString("Uploading Stream\n")
 	}
 
-	output := os.Stdout
-
-	if c.Bool("id") {
-		output = os.Stderr
-	}
-
-	build, err := rackClient(c).ImportBuild(app, in, client.ImportBuildOptions{Progress: progress("Uploading: ", "Importing build... ", output)})
+	build, err := rackClient(c).ImportBuild(app, in, o)
 	if err != nil {
 		return stdcli.Error(err)
 	}
