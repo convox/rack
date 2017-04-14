@@ -168,6 +168,7 @@
           "Path": "/",
           "Policies": [
             {
+              "PolicyName": "SecureEnvironmentPolicy",
               "PolicyDocument": {
                 "Version": "2012-10-17",
                 "Statement": {
@@ -184,7 +185,7 @@
             }
           ]
         }
-      }
+      },
       {{ template "balancer-resources" . }}
       {{ template "cronjob-resources" . }}
       {{ template "agent-resources" . }}
