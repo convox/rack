@@ -84,6 +84,38 @@ func coalesce(s *dynamodb.AttributeValue, def string) string {
 	}
 }
 
+func cb(b *bool, def bool) bool {
+	if b != nil {
+		return *b
+	} else {
+		return def
+	}
+}
+
+func ci(i *int64, def int64) int64 {
+	if i != nil {
+		return *i
+	} else {
+		return def
+	}
+}
+
+func cs(s *string, def string) string {
+	if s != nil {
+		return *s
+	} else {
+		return def
+	}
+}
+
+func ct(t *time.Time) time.Time {
+	if t != nil {
+		return *t
+	} else {
+		return time.Time{}
+	}
+}
+
 func buildTemplate(name, section string, data interface{}) (string, error) {
 	d, err := Asset(fmt.Sprintf("templates/%s.tmpl", name))
 	if err != nil {
