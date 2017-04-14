@@ -31,7 +31,7 @@ type event struct {
 	Account    string
 	DetailType string `json:"detail-type"`
 	Detail     interface{}
-	Id         string
+	ID         string
 	Region     string
 	Resources  []string
 	Source     string
@@ -58,6 +58,7 @@ type detailTaskStateChange struct {
 	UpdatedAt     time.Time
 }
 
+// StartEventQueue starts the event queue workers
 func StartEventQueue() {
 	go handleAccountEvents()
 	go handleCloudformationEvents()
@@ -140,6 +141,10 @@ func handleAccountEvents() {
 
 			if err := remarshal(e.Detail, &detail); err != nil {
 				return err
+			}
+
+			if !strings.HasPrefix(detail.Group, "service:") {
+				return nil
 			}
 
 			// fmt.Printf("%s: %s\n", detail.TaskArn, detail.LastStatus)
