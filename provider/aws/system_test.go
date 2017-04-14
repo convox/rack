@@ -151,19 +151,11 @@ func TestSystemProcessesList(t *testing.T) {
 		cycleSystemDescribeTasks,
 		cycleSystemDescribeTaskDefinition,
 		cycleSystemDescribeContainerInstances,
-		cycleSystemDescribeInstances,
-		cycleSystemDescribeInstances,
+		cycleSystemDescribeRackInstances,
 		cycleSystemDescribeTaskDefinition2,
 		cycleSystemDescribeContainerInstances,
 	)
 	defer provider.Close()
-
-	d := stubDocker(
-		cycleSystemDockerListContainers2,
-		cycleProcessDockerInspect,
-		cycleProcessDockerStats,
-	)
-	defer d.Close()
 
 	_, err := provider.SystemProcesses(structs.SystemProcessesOptions{
 		All: false,
@@ -178,19 +170,11 @@ func TestSystemProcessesListAll(t *testing.T) {
 		cycleSystemDescribeTasks,
 		cycleSystemDescribeTaskDefinition,
 		cycleSystemDescribeContainerInstances,
-		cycleSystemDescribeInstances,
-		cycleSystemDescribeInstances,
+		cycleSystemDescribeRackInstances,
 		cycleSystemDescribeTaskDefinition2,
 		cycleSystemDescribeContainerInstances,
 	)
 	defer provider.Close()
-
-	d := stubDocker(
-		cycleSystemDockerListContainers2,
-		cycleProcessDockerInspect,
-		cycleProcessDockerStats,
-	)
-	defer d.Close()
 
 	_, err := provider.SystemProcesses(structs.SystemProcessesOptions{
 		All: true,
@@ -899,11 +883,11 @@ var cycleSystemDescribeContainerInstances = awsutil.Cycle{
 	},
 }
 
-var cycleSystemDescribeInstances = awsutil.Cycle{
+var cycleSystemDescribeRackInstances = awsutil.Cycle{
 	Request: awsutil.Request{
 		RequestURI: "/",
 		Operation:  "",
-		Body:       `Action=DescribeInstances&InstanceId.1=i-5bc45dc2&Version=2016-11-15`,
+		Body:       `Action=DescribeInstances&Filter.1.Name=tag%3ARack&Filter.1.Value.1=convox&Version=2016-11-15`,
 	},
 	Response: awsutil.Response{
 		StatusCode: 200,
