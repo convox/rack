@@ -105,6 +105,7 @@ func SNS() *sns.SNS {
 	return sns.New(session.New(), awsConfig())
 }
 
+// SQS is a driver for SQS
 func SQS() *sqs.SQS {
 	return sqs.New(session.New(), awsConfig())
 }

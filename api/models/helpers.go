@@ -342,6 +342,7 @@ func stackResource(stack, resource string) (string, error) {
 	return *res.StackResources[0].PhysicalResourceId, nil
 }
 
+// AppLogGroup returns the cloudwatch log group for an app
 func AppLogGroup(app string) (string, error) {
 	if g, ok := cache.Get("appLogGroup", app).(string); ok {
 		return g, nil
