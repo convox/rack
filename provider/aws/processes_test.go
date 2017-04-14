@@ -26,12 +26,9 @@ func TestProcessExec(t *testing.T) {
 		cycleProcessDescribeTasksAll,
 		cycleProcessDescribeTaskDefinition1,
 		cycleProcessDescribeContainerInstances,
-		cycleProcessDescribeInstances,
-		cycleProcessDescribeInstances,
 		cycleProcessDescribeTaskDefinition1,
 		cycleProcessDescribeContainerInstances,
-		cycleProcessDescribeInstances,
-		cycleProcessDescribeInstances,
+		cycleProcessDescribeRackInstances,
 		cycleProcessListTasksAll,
 		cycleProcessDescribeTasks,
 		cycleProcessDescribeContainerInstances,
@@ -40,12 +37,6 @@ func TestProcessExec(t *testing.T) {
 	defer provider.Close()
 
 	d := stubDocker(
-		cycleProcessDockerListContainers2,
-		cycleProcessDockerInspect,
-		cycleProcessDockerStats,
-		cycleProcessDockerListContainers1,
-		cycleProcessDockerInspect,
-		cycleProcessDockerStats,
 		cycleProcessDockerListContainers1,
 		cycleProcessDockerCreateExec,
 		cycleProcessDockerStartExec,
@@ -75,24 +66,11 @@ func TestProcessList(t *testing.T) {
 		cycleProcessDescribeTasksAll,
 		cycleProcessDescribeTaskDefinition1,
 		cycleProcessDescribeContainerInstances,
-		cycleProcessDescribeInstances,
-		cycleProcessDescribeInstances,
 		cycleProcessDescribeTaskDefinition2,
 		cycleProcessDescribeContainerInstances,
-		cycleProcessDescribeInstances,
-		cycleProcessDescribeInstances,
+		cycleProcessDescribeRackInstances,
 	)
 	defer provider.Close()
-
-	d := stubDocker(
-		cycleProcessDockerListContainers2,
-		cycleProcessDockerInspect,
-		cycleProcessDockerStats,
-		cycleProcessDockerListContainers1,
-		cycleProcessDockerInspect,
-		cycleProcessDockerStats,
-	)
-	defer d.Close()
 
 	s, err := provider.ProcessList("myapp")
 
@@ -102,26 +80,26 @@ func TestProcessList(t *testing.T) {
 			App:      "myapp",
 			Name:     "web",
 			Release:  "R1234",
-			Command:  "ls -la",
+			Command:  "",
 			Host:     "10.0.1.244",
 			Image:    "778743527532.dkr.ecr.us-east-1.amazonaws.com/convox-myapp-nkdecwppkq:web.BMPBJLITPZT",
 			Instance: "i-5bc45dc2",
 			Ports:    []string{},
 			CPU:      0,
-			Memory:   0.0974,
+			Memory:   0,
 		},
 		structs.Process{
 			ID:       "5850760f0846",
 			App:      "myapp",
 			Name:     "web",
 			Release:  "R1234",
-			Command:  "ls -la",
+			Command:  "ls -la 'name space'",
 			Host:     "10.0.1.244",
 			Image:    "778743527532.dkr.ecr.us-east-1.amazonaws.com/convox-myapp-nkdecwppkq:web.BMPBJLITPZT",
 			Instance: "i-5bc45dc2",
 			Ports:    []string{},
 			CPU:      0,
-			Memory:   0.0974,
+			Memory:   0,
 		},
 	}
 
@@ -135,24 +113,9 @@ func TestProcessListEmpty(t *testing.T) {
 		cycleProcessListTasksByService1Empty,
 		cycleProcessListTasksByService2Empty,
 		cycleProcessListTasksByStartedEmpty,
-		cycleProcessDescribeTasks,
-		cycleProcessDescribeTaskDefinition1,
-		cycleProcessDescribeContainerInstances,
-		cycleProcessDescribeInstances,
-		cycleProcessDescribeInstances,
-		cycleProcessDescribeTaskDefinition2,
-		cycleProcessDescribeContainerInstances,
-		cycleProcessDescribeInstances,
-		cycleProcessDescribeInstances,
+		cycleProcessDescribeRackInstances,
 	)
 	defer provider.Close()
-
-	d := stubDocker(
-		cycleProcessDockerListContainers1,
-		cycleProcessDockerInspect,
-		cycleProcessDockerStats,
-	)
-	defer d.Close()
 
 	s, err := provider.ProcessList("myapp")
 
@@ -171,31 +134,13 @@ func TestProcessListWithBuildCluster(t *testing.T) {
 		cycleProcessDescribeTasksAllOnBuildCluster,
 		cycleProcessDescribeTaskDefinition1,
 		cycleProcessDescribeContainerInstances,
-		cycleProcessDescribeInstances,
-		cycleProcessDescribeInstances,
 		cycleProcessDescribeTaskDefinition2,
 		cycleProcessDescribeContainerInstances,
-		cycleProcessDescribeInstances,
-		cycleProcessDescribeInstances,
 		cycleProcessDescribeTaskDefinition2,
 		cycleProcessDescribeContainerInstances,
-		cycleProcessDescribeInstances,
-		cycleProcessDescribeInstances,
+		cycleProcessDescribeRackInstances,
 	)
 	defer provider.Close()
-
-	d := stubDocker(
-		cycleProcessDockerListContainers2,
-		cycleProcessDockerInspect,
-		cycleProcessDockerStats,
-		cycleProcessDockerListContainers1,
-		cycleProcessDockerInspect,
-		cycleProcessDockerStats,
-		cycleProcessDockerListContainers3,
-		cycleProcessDockerInspect,
-		cycleProcessDockerStats,
-	)
-	defer d.Close()
 
 	provider.BuildCluster = "cluster-build"
 
@@ -207,39 +152,39 @@ func TestProcessListWithBuildCluster(t *testing.T) {
 			App:      "myapp",
 			Name:     "web",
 			Release:  "R1234",
-			Command:  "ls -la",
+			Command:  "",
 			Host:     "10.0.1.244",
 			Image:    "778743527532.dkr.ecr.us-east-1.amazonaws.com/convox-myapp-nkdecwppkq:web.BMPBJLITPZT",
 			Instance: "i-5bc45dc2",
 			Ports:    []string{},
 			CPU:      0,
-			Memory:   0.0974,
+			Memory:   0,
 		},
 		structs.Process{
 			ID:       "5850760f0846",
 			App:      "myapp",
 			Name:     "web",
 			Release:  "R1234",
-			Command:  "ls -la",
+			Command:  "ls -la 'name space'",
 			Host:     "10.0.1.244",
 			Image:    "778743527532.dkr.ecr.us-east-1.amazonaws.com/convox-myapp-nkdecwppkq:web.BMPBJLITPZT",
 			Instance: "i-5bc45dc2",
 			Ports:    []string{},
 			CPU:      0,
-			Memory:   0.0974,
+			Memory:   0,
 		},
 		structs.Process{
 			ID:       "5850760f0848",
 			App:      "myapp",
 			Name:     "web",
 			Release:  "R1234",
-			Command:  "ls -la",
+			Command:  "",
 			Host:     "10.0.1.244",
 			Image:    "778743527532.dkr.ecr.us-east-1.amazonaws.com/convox-myapp-nkdecwppkq:web.BMPBJLITPZT",
 			Instance: "i-5bc45dc2",
 			Ports:    []string{},
 			CPU:      0,
-			Memory:   0.0974,
+			Memory:   0,
 		},
 	}
 
@@ -268,12 +213,9 @@ func TestProcessRunAttached(t *testing.T) {
 		cycleProcessDescribeTasksAll,
 		cycleProcessDescribeTaskDefinition1,
 		cycleProcessDescribeContainerInstances,
-		cycleProcessDescribeInstances,
-		cycleProcessDescribeInstances,
 		cycleProcessDescribeTaskDefinition1,
 		cycleProcessDescribeContainerInstances,
-		cycleProcessDescribeInstances,
-		cycleProcessDescribeInstances,
+		cycleProcessDescribeRackInstances,
 		cycleProcessListTasksAll,
 		cycleProcessDescribeTasks,
 		cycleProcessDescribeContainerInstances,
@@ -283,12 +225,6 @@ func TestProcessRunAttached(t *testing.T) {
 	defer provider.Close()
 
 	d := stubDocker(
-		cycleProcessDockerListContainers2,
-		cycleProcessDockerInspect,
-		cycleProcessDockerStats,
-		cycleProcessDockerListContainers1,
-		cycleProcessDockerInspect,
-		cycleProcessDockerStats,
 		cycleProcessDockerListContainers1,
 		cycleProcessDockerCreateExec,
 		cycleProcessDockerStartExec,
@@ -381,6 +317,35 @@ var cycleProcessDescribeInstances = awsutil.Cycle{
 		RequestURI: "/",
 		Operation:  "",
 		Body:       `Action=DescribeInstances&InstanceId.1=i-5bc45dc2&Version=2016-11-15`,
+	},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body: `
+			<?xml version="1.0" encoding="UTF-8"?>
+			<DescribeInstancesResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+				<reservationSet>
+					<item>
+						<reservationId>r-003ed1d7</reservationId>
+						<ownerId>778743527532</ownerId>
+						<groupSet/>
+						<instancesSet>
+							<item>
+								<instanceId>i-5bc45dc2</instanceId>
+								<privateIpAddress>10.0.1.244</privateIpAddress>
+							</item>
+						</instancesSet>
+					</item>
+				</reservationSet>
+			</DescribeInstancesRepsonse>
+		}`,
+	},
+}
+
+var cycleProcessDescribeRackInstances = awsutil.Cycle{
+	Request: awsutil.Request{
+		RequestURI: "/",
+		Operation:  "",
+		Body:       `Action=DescribeInstances&Filter.1.Name=tag%3ARack&Filter.1.Value.1=convox&Version=2016-11-15`,
 	},
 	Response: awsutil.Response{
 		StatusCode: 200,
@@ -781,6 +746,7 @@ var cycleProcessDescribeTaskDefinition1 = awsutil.Cycle{
 				"taskDefinitionArn": "arn:aws:ecs:us-east-1:778743527532:task-definition/convox-myapp-web:34",
 				"containerDefinitions": [
 					{
+						"command": [ "ls", "-la", "name space" ],
 						"environment": [
 							{
 								"name": "RELEASE",
