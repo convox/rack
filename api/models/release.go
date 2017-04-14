@@ -289,7 +289,7 @@ func (r *Release) Promote() error {
 		StackName:        aws.String(app.StackName()),
 		TemplateURL:      aws.String(url),
 		Parameters:       params,
-		NotificationARNs: []*string{aws.String(CloudformationEventsTopic)},
+		NotificationARNs: []*string{aws.String(CloudformationTopic)},
 	}
 
 	_, err = UpdateStack(req)
