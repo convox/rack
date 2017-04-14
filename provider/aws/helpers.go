@@ -79,41 +79,36 @@ func cfParams(source map[string]string) map[string]string {
 func coalesce(s *dynamodb.AttributeValue, def string) string {
 	if s != nil {
 		return *s.S
-	} else {
-		return def
 	}
+	return def
 }
 
 func cb(b *bool, def bool) bool {
 	if b != nil {
 		return *b
-	} else {
-		return def
 	}
+	return def
 }
 
 func ci(i *int64, def int64) int64 {
 	if i != nil {
 		return *i
-	} else {
-		return def
 	}
+	return def
 }
 
 func cs(s *string, def string) string {
 	if s != nil {
 		return *s
-	} else {
-		return def
 	}
+	return def
 }
 
 func ct(t *time.Time) time.Time {
 	if t != nil {
 		return *t
-	} else {
-		return time.Time{}
 	}
+	return time.Time{}
 }
 
 func buildTemplate(name, section string, data interface{}) (string, error) {
