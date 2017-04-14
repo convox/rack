@@ -6,6 +6,7 @@ import (
 	"io"
 	"io/ioutil"
 	"math"
+	"os"
 	"sort"
 	"strings"
 	"time"
@@ -20,6 +21,7 @@ import (
 	"github.com/convox/rack/api/structs"
 	"github.com/convox/rack/manifest"
 	"github.com/fsouza/go-dockerclient"
+	shellquote "github.com/kballard/go-shellquote"
 )
 
 // StatusCodePrefix is sent to the client to let it know the exit code is coming next
@@ -357,6 +359,18 @@ func (p *AWSProvider) taskProcesses(tasks []string) (structs.Processes, error) {
 		pss = append(pss, psst...)
 	}
 
+	instances, err := p.rackInstances()
+	if err != nil {
+		return nil, err
+	}
+
+	for i, ps := range pss {
+		if inst, ok := instances[ps.Instance]; ok {
+			ps.Host = *inst.PrivateIpAddress
+			pss[i] = ps
+		}
+	}
+
 	sort.Sort(pss)
 
 	log.Success()
@@ -595,12 +609,6 @@ func (p *AWSProvider) fetchProcess(task *ecs.Task, psch chan structs.Process, er
 		return
 	}
 
-	host, err := p.describeInstance(*ci.Ec2InstanceId)
-	if err != nil {
-		errch <- err
-		return
-	}
-
 	env := map[string]string{}
 	for _, e := range cd.Environment {
 		env[*e.Name] = *e.Value
@@ -619,18 +627,11 @@ func (p *AWSProvider) fetchProcess(task *ecs.Task, psch chan structs.Process, er
 		ports = append(ports, fmt.Sprintf("%d:%d", *p.HostPort, *p.ContainerPort))
 	}
 
-	dc, err := p.dockerInstance(*ci.Ec2InstanceId)
-	if err != nil {
-		errch <- err
-		return
-	}
-
 	ps := structs.Process{
 		ID:       arnToPid(*task.TaskArn),
 		Name:     *container.Name,
 		App:      env["APP"],
 		Release:  env["RELEASE"],
-		Host:     *host.PrivateIpAddress,
 		Image:    *cd.Image,
 		Instance: *ci.Ec2InstanceId,
 		Ports:    ports,
@@ -641,70 +642,46 @@ func (p *AWSProvider) fetchProcess(task *ecs.Task, psch chan structs.Process, er
 		ps.Started = *task.StartedAt
 	}
 
-	cs, err := dc.ListContainers(docker.ListContainersOptions{
-		All: true,
-		Filters: map[string][]string{
-			"label": {fmt.Sprintf("com.amazonaws.ecs.task-arn=%s", *task.TaskArn)},
-		},
-	})
-	if err != nil {
-		errch <- err
-		return
-	}
-	if len(cs) < 1 {
-		// no running container yet
-		psch <- ps
-		return
-	}
+	if len(cd.Command) > 0 {
+		p := make([]string, len(cd.Command))
 
-	ic, err := dc.InspectContainer(cs[0].ID)
-	if err != nil {
-		errch <- err
-		return
-	}
-
-	cmd := commandString(ic.Config.Cmd)
-
-	// fetch the interior process
-	if ic.Config.Labels["convox.process.type"] == "oneoff" {
-		tr, err := dc.TopContainer(cs[0].ID, "")
-		if err != nil {
-			errch <- err
-			return
+		for i, c := range cd.Command {
+			p[i] = *c
 		}
 
-		// if there's an exec process grab it minus the "sh -c "
-		if len(tr.Processes) >= 2 && len(tr.Processes[1]) == 8 {
-			cmd = strings.Replace(tr.Processes[1][7], "sh -c ", "", 1)
-		} else {
-			cmd = ""
-		}
+		ps.Command = shellquote.Join(p...)
 	}
 
-	ps.Command = cmd
+	// TODO: figure out a way to do this less expensively
 
-	sch := make(chan *docker.Stats, 1)
-	err = dc.Stats(docker.StatsOptions{
-		ID:     cs[0].ID,
-		Stats:  sch,
-		Stream: false,
-	})
-	if err != nil {
-		fmt.Printf("docker stats error: %s", err)
-		psch <- ps
-	}
+	// dc, err := p.dockerInstance(ps.Instance)
+	// if err != nil {
+	//   errch <- err
+	//   return
+	// }
 
-	stat := <-sch
-	if stat != nil {
-		pcpu := stat.PreCPUStats.CPUUsage.TotalUsage
-		psys := stat.PreCPUStats.SystemCPUUsage
+	// sch := make(chan *docker.Stats, 1)
+	// err = dc.Stats(docker.StatsOptions{
+	//   ID:     cs[0].ID,
+	//   Stats:  sch,
+	//   Stream: false,
+	// })
+	// if err != nil {
+	//   fmt.Printf("docker stats error: %s", err)
+	//   psch <- ps
+	// }
 
-		ps.CPU = truncate(calculateCPUPercent(pcpu, psys, stat), 4)
+	// stat := <-sch
+	// if stat != nil {
+	//   pcpu := stat.PreCPUStats.CPUUsage.TotalUsage
+	//   psys := stat.PreCPUStats.SystemCPUUsage
 
-		if stat.MemoryStats.Limit > 0 {
-			ps.Memory = truncate(float64(stat.MemoryStats.Usage)/float64(stat.MemoryStats.Limit), 4)
-		}
-	}
+	//   ps.CPU = truncate(calculateCPUPercent(pcpu, psys, stat), 4)
+
+	//   if stat.MemoryStats.Limit > 0 {
+	//     ps.Memory = truncate(float64(stat.MemoryStats.Usage)/float64(stat.MemoryStats.Limit), 4)
+	//   }
+	// }
 
 	psch <- ps
 }
@@ -932,6 +909,33 @@ func (p *AWSProvider) processRunAttached(app, process string, opts structs.Proce
 	}
 
 	return pid, nil
+}
+
+func (p *AWSProvider) rackInstances() (map[string]ec2.Instance, error) {
+	req := &ec2.DescribeInstancesInput{
+		Filters: []*ec2.Filter{
+			&ec2.Filter{
+				Name:   aws.String("tag:Rack"),
+				Values: []*string{aws.String(os.Getenv("RACK"))},
+			},
+		},
+	}
+
+	instances := map[string]ec2.Instance{}
+
+	err := p.ec2().DescribeInstancesPages(req, func(res *ec2.DescribeInstancesOutput, last bool) bool {
+		for _, r := range res.Reservations {
+			for _, i := range r.Instances {
+				instances[*i.InstanceId] = *i
+			}
+		}
+		return true
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return instances, nil
 }
 
 func (p *AWSProvider) resolveRelease(app, release string) (string, error) {
