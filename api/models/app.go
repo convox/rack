@@ -17,10 +17,9 @@ import (
 )
 
 var (
-	CustomTopic               = os.Getenv("CUSTOM_TOPIC")
-	CloudformationEventsTopic = os.Getenv("CLOUDFORMATION_EVENTS_TOPIC")
-
-	StatusCodePrefix = client.StatusCodePrefix
+	CustomTopic         = os.Getenv("CUSTOM_TOPIC")
+	CloudformationTopic = os.Getenv("CLOUDFORMATION_TOPIC")
+	StatusCodePrefix    = client.StatusCodePrefix
 )
 
 type App struct {
@@ -177,7 +176,7 @@ func (a *App) Create() error {
 		Capabilities:     []*string{aws.String("CAPABILITY_IAM")},
 		StackName:        aws.String(a.StackName()),
 		TemplateBody:     aws.String(formation),
-		NotificationARNs: []*string{aws.String(CloudformationEventsTopic)},
+		NotificationARNs: []*string{aws.String(CloudformationTopic)},
 	}
 
 	for key, value := range params {
@@ -228,7 +227,7 @@ func (a *App) UpdateParams(changes map[string]string) error {
 		StackName:           aws.String(a.StackName()),
 		Capabilities:        []*string{aws.String("CAPABILITY_IAM")},
 		UsePreviousTemplate: aws.Bool(true),
-		NotificationARNs:    []*string{aws.String(CloudformationEventsTopic)},
+		NotificationARNs:    []*string{aws.String(CloudformationTopic)},
 	}
 
 	// sort parameters by key name to make test requests stable

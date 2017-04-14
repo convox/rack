@@ -26,10 +26,9 @@ import (
 )
 
 var (
-	cloudformationEventsTopic = os.Getenv("CLOUDFORMATION_EVENTS_TOPIC")
-	customTopic               = os.Getenv("CUSTOM_TOPIC")
-	notificationTopic         = os.Getenv("NOTIFICATION_TOPIC")
-	sortableTime              = "20060102.150405.000000000"
+	customTopic       = os.Getenv("CUSTOM_TOPIC")
+	notificationTopic = os.Getenv("NOTIFICATION_TOPIC")
+	sortableTime      = "20060102.150405.000000000"
 )
 
 // Logger is a package-wide logger
@@ -42,24 +41,25 @@ type AWSProvider struct {
 	Secret   string
 	Token    string
 
-	BuildCluster      string
-	Cluster           string
-	Development       bool
-	DockerImageAPI    string
-	DynamoBuilds      string
-	DynamoReleases    string
-	EncryptionKey     string
-	NotificationHost  string
-	NotificationTopic string
-	Password          string
-	Rack              string
-	RegistryHost      string
-	SecurityGroup     string
-	SettingsBucket    string
-	Subnets           string
-	SubnetsPrivate    string
-	Vpc               string
-	VpcCidr           string
+	BuildCluster        string
+	CloudformationTopic string
+	Cluster             string
+	Development         bool
+	DockerImageAPI      string
+	DynamoBuilds        string
+	DynamoReleases      string
+	EncryptionKey       string
+	NotificationHost    string
+	NotificationTopic   string
+	Password            string
+	Rack                string
+	RegistryHost        string
+	SecurityGroup       string
+	SettingsBucket      string
+	Subnets             string
+	SubnetsPrivate      string
+	Vpc                 string
+	VpcCidr             string
 
 	SkipCache bool
 }
@@ -67,29 +67,30 @@ type AWSProvider struct {
 // NewProviderFromEnv returns a new AWS provider from env vars
 func FromEnv() *AWSProvider {
 	return &AWSProvider{
-		Region:            os.Getenv("AWS_REGION"),
-		Endpoint:          os.Getenv("AWS_ENDPOINT"),
-		Access:            os.Getenv("AWS_ACCESS"),
-		Secret:            os.Getenv("AWS_SECRET"),
-		Token:             os.Getenv("AWS_TOKEN"),
-		BuildCluster:      os.Getenv("BUILD_CLUSTER"),
-		Cluster:           os.Getenv("CLUSTER"),
-		Development:       os.Getenv("DEVELOPMENT") == "true",
-		DockerImageAPI:    os.Getenv("DOCKER_IMAGE_API"),
-		DynamoBuilds:      os.Getenv("DYNAMO_BUILDS"),
-		DynamoReleases:    os.Getenv("DYNAMO_RELEASES"),
-		EncryptionKey:     os.Getenv("ENCRYPTION_KEY"),
-		NotificationHost:  os.Getenv("NOTIFICATION_HOST"),
-		NotificationTopic: os.Getenv("NOTIFICATION_TOPIC"),
-		Password:          os.Getenv("PASSWORD"),
-		Rack:              os.Getenv("RACK"),
-		RegistryHost:      os.Getenv("REGISTRY_HOST"),
-		SecurityGroup:     os.Getenv("SECURITY_GROUP"),
-		SettingsBucket:    os.Getenv("SETTINGS_BUCKET"),
-		Subnets:           os.Getenv("SUBNETS"),
-		SubnetsPrivate:    os.Getenv("SUBNETS_PRIVATE"),
-		Vpc:               os.Getenv("VPC"),
-		VpcCidr:           os.Getenv("VPCCIDR"),
+		Region:              os.Getenv("AWS_REGION"),
+		Endpoint:            os.Getenv("AWS_ENDPOINT"),
+		Access:              os.Getenv("AWS_ACCESS"),
+		Secret:              os.Getenv("AWS_SECRET"),
+		Token:               os.Getenv("AWS_TOKEN"),
+		BuildCluster:        os.Getenv("BUILD_CLUSTER"),
+		CloudformationTopic: os.Getenv("CLOUDFORMATION_TOPIC"),
+		Cluster:             os.Getenv("CLUSTER"),
+		Development:         os.Getenv("DEVELOPMENT") == "true",
+		DockerImageAPI:      os.Getenv("DOCKER_IMAGE_API"),
+		DynamoBuilds:        os.Getenv("DYNAMO_BUILDS"),
+		DynamoReleases:      os.Getenv("DYNAMO_RELEASES"),
+		EncryptionKey:       os.Getenv("ENCRYPTION_KEY"),
+		NotificationHost:    os.Getenv("NOTIFICATION_HOST"),
+		NotificationTopic:   os.Getenv("NOTIFICATION_TOPIC"),
+		Password:            os.Getenv("PASSWORD"),
+		Rack:                os.Getenv("RACK"),
+		RegistryHost:        os.Getenv("REGISTRY_HOST"),
+		SecurityGroup:       os.Getenv("SECURITY_GROUP"),
+		SettingsBucket:      os.Getenv("SETTINGS_BUCKET"),
+		Subnets:             os.Getenv("SUBNETS"),
+		SubnetsPrivate:      os.Getenv("SUBNETS_PRIVATE"),
+		Vpc:                 os.Getenv("VPC"),
+		VpcCidr:             os.Getenv("VPCCIDR"),
 	}
 }
 

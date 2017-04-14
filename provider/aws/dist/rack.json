@@ -15,10 +15,6 @@
     "DedicatedBuilder": { "Fn::Not": [ { "Fn::Equals": [ { "Ref": "BuildInstance" }, "" ] } ] },
     "Development": { "Fn::Equals": [ { "Ref": "Development" }, "Yes" ] },
     "EncryptEbs" : { "Fn::Equals": [ { "Ref": "EncryptEbs" }, "Yes" ] },
-    "EventRuleForECS": { "Fn::Equals": [
-      { "Fn::FindInMap": [ "RegionConfig", { "Ref": "AWS::Region" }, "EventRuleForECS" ] },
-      "Yes"
-    ] },
     "ExistingVpc": { "Fn::Not": [ { "Fn::Equals": [ { "Ref": "ExistingVpc" }, "" ] } ] },
     "ExistingVpcAndBlankInternetGateway": {
       "Fn::And": [ { "Condition": "ExistingVpc" }, { "Condition": "BlankInternetGateway" } ]
@@ -54,17 +50,17 @@
   },
   "Mappings": {
     "RegionConfig": {
-      "us-east-1": { "Ami": "ami-275ffe31", "EFS": "Yes", "EventRuleForECS": "Yes", "ThirdAvailabilityZone": "Yes" },
-      "us-east-2": { "Ami": "ami-62745007", "EFS": "Yes", "EventRuleForECS": "Yes", "ThirdAvailabilityZone": "Yes" },
-      "us-west-1": { "Ami": "ami-689bc208", "EFS": "No", "EventRuleForECS": "Yes", "ThirdAvailabilityZone": "No" },
-      "us-west-2": { "Ami": "ami-62d35c02", "EFS": "Yes", "EventRuleForECS": "Yes", "ThirdAvailabilityZone": "Yes" },
-      "eu-west-1": { "Ami": "ami-95f8d2f3", "EFS": "Yes", "EventRuleForECS": "Yes", "ThirdAvailabilityZone": "Yes" },
-      "eu-west-2": { "Ami": "ami-bf9481db", "EFS": "No", "EventRuleForECS": "No", "ThirdAvailabilityZone": "No" },
-      "eu-central-1": { "Ami": "ami-085e8a67", "EFS": "No", "EventRuleForECS": "Yes", "ThirdAvailabilityZone": "No" },
-      "ap-northeast-1": { "Ami": "ami-f63f6f91", "EFS": "No", "EventRuleForECS": "Yes", "ThirdAvailabilityZone": "No" },
-      "ap-southeast-1": { "Ami": "ami-b4ae1dd7", "EFS": "No", "EventRuleForECS": "Yes", "ThirdAvailabilityZone": "No" },
-      "ap-southeast-2": { "Ami": "ami-fbe9eb98", "EFS": "No", "EventRuleForECS": "Yes", "ThirdAvailabilityZone": "Yes" },
-      "ca-central-1": { "Ami": "ami-ee58e58a", "EFS": "No", "EventRuleForECS": "No", "ThirdAvailabilityZone": "No" }
+      "us-east-1":      { "Ami": "ami-275ffe31", "EFS": "Yes", "ThirdAvailabilityZone": "Yes" },
+      "us-east-2":      { "Ami": "ami-62745007", "EFS": "Yes", "ThirdAvailabilityZone": "Yes" },
+      "us-west-1":      { "Ami": "ami-689bc208", "EFS": "No",  "ThirdAvailabilityZone": "No"  },
+      "us-west-2":      { "Ami": "ami-62d35c02", "EFS": "Yes", "ThirdAvailabilityZone": "Yes" },
+      "eu-west-1":      { "Ami": "ami-95f8d2f3", "EFS": "Yes", "ThirdAvailabilityZone": "Yes" },
+      "eu-west-2":      { "Ami": "ami-bf9481db", "EFS": "No",  "ThirdAvailabilityZone": "No"  },
+      "eu-central-1":   { "Ami": "ami-085e8a67", "EFS": "No",  "ThirdAvailabilityZone": "No"  },
+      "ap-northeast-1": { "Ami": "ami-f63f6f91", "EFS": "No",  "ThirdAvailabilityZone": "No"  },
+      "ap-southeast-1": { "Ami": "ami-b4ae1dd7", "EFS": "No",  "ThirdAvailabilityZone": "No"  },
+      "ap-southeast-2": { "Ami": "ami-fbe9eb98", "EFS": "No",  "ThirdAvailabilityZone": "Yes" },
+      "ca-central-1":   { "Ami": "ami-ee58e58a", "EFS": "No",  "ThirdAvailabilityZone": "No"  }
     }
   },
   "Outputs": {
@@ -94,8 +90,8 @@
     "BuildCluster": {
       "Value": { "Fn::If": [ "DedicatedBuilder", { "Ref": "BuildCluster" }, { "Ref": "Cluster" } ] }
     },
-    "CloudformationEventsTopic": {
-      "Value" : { "Ref": "CloudformationEventsTopic" }
+    "CloudformationTopic": {
+      "Value": { "Ref": "CloudformationTopic" }
     },
     "Cluster": {
       "Value": { "Ref": "Cluster" }
@@ -790,10 +786,12 @@
                       "kms:ListAliases",
                       "lambda:CreateFunction",
                       "logs:CreateLogGroup",
+                      "logs:CreateLogStream",
                       "logs:DeleteLogGroup",
                       "logs:DeleteSubscriptionFilter",
                       "logs:DescribeLogGroups",
                       "logs:FilterLogEvents",
+                      "logs:PutLogEvents",
                       "logs:PutSubscriptionFilter",
                       "rds:CreateDBInstance",
                       "rds:CreateDBParameterGroup",
@@ -814,8 +812,10 @@
                       "sns:Subscribe",
                       "sns:Unsubscribe",
                       "sqs:CreateQueue",
+                      "sqs:DeleteMessage",
                       "sqs:DeleteQueue",
                       "sqs:GetQueueAttributes",
+                      "sqs:ReceiveMessage",
                       "sqs:SetQueueAttributes"
                     ],
                     "Resource": "*"
@@ -1822,163 +1822,67 @@
         ]
       }
     },
-    "CloudformationEventsTopic": {
-      "Type": "AWS::SNS::Topic",
-      "Properties": {
-        "Subscription": [ { "Endpoint": { "Fn::GetAtt": [ "CloudformationEventsHandler", "Arn" ] }, "Protocol": "lambda" } ],
-        "TopicName" : { "Fn::Join": ["", [{"Ref":"AWS::StackName"}, "-cloudformationevents"]] }
-      }
+    "AccountEvents": {
+      "Type": "AWS::SQS::Queue"
     },
-    "CloudformationEventsHandler": {
-      "DependsOn": ["CloudformationEventsHandlerRole"],
-      "Type": "AWS::Lambda::Function",
+    "AccountEventsPolicy": {
+      "Type": "AWS::SQS::QueuePolicy",
       "Properties": {
-        "Code": {
-          "S3Bucket": { "Fn::Join": [ "-", [ "convox", { "Ref": "AWS::Region" } ] ] },
-          "S3Key": { "Fn::Join": [ "", [ "release/", { "Ref": "Version" }, "/lambda/cloudformationevents.zip" ] ] }
-        },
-        "Description": "Handler for Cloudformation events.",
-        "Handler": "index.external",
-        "MemorySize": "128",
-        "Role": { "Fn::GetAtt": [ "CloudformationEventsHandlerRole", "Arn" ] },
-        "Runtime": "nodejs4.3",
-        "Timeout": "300"
-      }
-    },
-    "CloudformationEventsHandlerPermission": {
-      "Type": "AWS::Lambda::Permission",
-      "Properties": {
-        "FunctionName": { "Fn::GetAtt": [ "CloudformationEventsHandler", "Arn" ] },
-        "Action": "lambda:InvokeFunction",
-        "Principal": "sns.amazonaws.com",
-        "SourceArn": { "Ref": "CloudformationEventsTopic" }
-      }
-    },
-    "CloudformationEventsHandlerRole": {
-      "Type": "AWS::IAM::Role",
-      "Properties": {
-        "AssumeRolePolicyDocument": {
+        "Queues": [ { "Ref": "AccountEvents" } ],
+        "PolicyDocument": {
           "Version": "2012-10-17",
           "Statement": [
             {
               "Effect": "Allow",
-              "Principal": { "Service": [ "lambda.amazonaws.com" ] },
-              "Action": [ "sts:AssumeRole" ]
+              "Principal": { "AWS": "*" },
+              "Action": "sqs:SendMessage",
+              "Resource": { "Fn::GetAtt": [ "AccountEvents", "Arn" ] },
+              "Condition": { "ArnEquals": { "aws:SourceArn": { "Fn::GetAtt": [ "AccountEventsRule", "Arn" ] } } }
             }
           ]
-        },
-        "Path": "/convox/",
-        "Policies": [
-          {
-            "PolicyName": "CloudformationEventsHandlerRole",
-            "PolicyDocument": {
-              "Version": "2012-10-17",
-              "Statement": [
-                {
-                  "Effect": "Allow",
-                  "Action": [
-                    "cloudformation:DescribeStackResources",
-                    "logs:CreateLogGroup",
-                    "logs:CreateLogStream",
-                    "logs:PutLogEvents"
-                  ],
-                  "Resource": "*"
-                }
-              ]
-            }
-          }
-        ]
+        }
       }
     },
-    "ECSEventHandlerRole": {
-      "Type": "AWS::IAM::Role",
-      "Condition": "EventRuleForECS",
-      "Properties": {
-        "AssumeRolePolicyDocument": {
-          "Version": "2012-10-17",
-          "Statement": [
-            {
-              "Effect": "Allow",
-              "Principal": { "Service": [ "lambda.amazonaws.com" ] },
-              "Action": [ "sts:AssumeRole" ]
-            }
-          ]
-        },
-        "Path": "/convox/",
-        "Policies": [
-          {
-            "PolicyName": "ECSEventHandlerRole",
-            "PolicyDocument": {
-              "Version": "2012-10-17",
-              "Statement": [
-                {
-                  "Effect": "Allow",
-                  "Action": [
-                    "cloudformation:DescribeStackResources",
-                    "ecs:DescribeServices",
-                    "logs:CreateLogGroup",
-                    "logs:CreateLogStream",
-                    "logs:PutLogEvents"
-                  ],
-                  "Resource": "*"
-                }
-              ]
-            }
-          }
-        ]
-      }
-    },
-    "ECSEventHandler": {
-      "DependsOn": ["ECSEventHandlerRole"],
-      "Condition": "EventRuleForECS",
-      "Type": "AWS::Lambda::Function",
-      "Properties": {
-        "Code": {
-          "S3Bucket": { "Fn::Join": [ "-", [ "convox", { "Ref": "AWS::Region" } ] ] },
-          "S3Key": { "Fn::Join": [ "", [ "release/", { "Ref": "Version" }, "/lambda/ecsevents.zip" ] ] }
-        },
-        "Description": "Handler for ECS events.",
-        "Handler": "index.external",
-        "MemorySize": "128",
-        "Role": { "Fn::GetAtt": [ "ECSEventHandlerRole", "Arn" ] },
-        "Runtime": "nodejs4.3",
-        "Timeout": "300"
-      }
-    },
-    "ECSEventRule":{
+    "AccountEventsRule": {
       "Type" : "AWS::Events::Rule",
-      "DependsOn": ["ECSEventHandler"],
-      "Condition": "EventRuleForECS",
       "Properties" : {
-        "Description" : "Fires ECS Task change events",
         "EventPattern" : {
-          "source": [
-            "aws.ecs"
-          ],
-          "detail-type": [
-            "ECS Task State Change"
-          ],
-          "detail": {
-            "clusterArn": [
-              { "Fn::Join": [ "", ["arn:aws:ecs:", { "Ref": "AWS::Region" }, ":", { "Ref": "AWS::AccountId"}, ":cluster/", { "Ref": "Cluster" }] ] }
-            ]
-          }
+          "account":  [ { "Ref": "AWS::AccountId" } ]
         },
         "State" : "ENABLED",
-        "Targets" : [{
-          "Arn": { "Fn::GetAtt": [ "ECSEventHandler", "Arn" ] },
-          "Id": "ECSEventHandler"
-          }]
+        "Targets" : [
+          { "Arn": { "Fn::GetAtt": [ "AccountEvents", "Arn" ] }, "Id": "Events" }
+        ]
       }
     },
-    "ECSEventHandlerPermission": {
-      "Type": "AWS::Lambda::Permission",
-      "Condition": "EventRuleForECS",
+    "CloudformationEvents": {
+      "Type": "AWS::SQS::Queue"
+    },
+    "CloudformationEventsPolicy": {
+      "Type": "AWS::SQS::QueuePolicy",
       "Properties": {
-        "FunctionName": { "Fn::GetAtt": [ "ECSEventHandler", "Arn" ] },
-        "Action": "lambda:InvokeFunction",
-        "Principal": "events.amazonaws.com",
-        "SourceArn": { "Fn::GetAtt": [ "ECSEventRule", "Arn" ] }
+        "Queues": [ { "Ref": "AccountEvents" } ],
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": { "AWS": "*" },
+              "Action": "sqs:SendMessage",
+              "Resource": { "Fn::GetAtt": [ "AccountEvents", "Arn" ] },
+              "Condition": { "ArnEquals": { "aws:SourceArn": { "Ref": "CloudformationTopic" } } }
+            }
+          ]
+        }
+      }
+    },
+    "CloudformationTopic": {
+      "Type": "AWS::SNS::Topic",
+      "Properties": {
+        "DisplayName": { "Fn::Sub": "${AWS::StackName}-events" },
+        "Subscription": [
+          { "Protocol": "sqs", "Endpoint": { "Fn::GetAtt": [ "CloudformationEvents", "Arn" ] } }
+        ]
       }
     },
     "Balancer": {
@@ -2373,7 +2277,7 @@
               "AWS_SECRET": { "Fn::GetAtt": [ "KernelAccess", "SecretAccessKey" ] },
               "BUILD_CLUSTER": { "Fn::If": [ "DedicatedBuilder", { "Ref": "BuildCluster" }, { "Ref": "Cluster" } ] },
               "CLIENT_ID": { "Ref": "ClientId" },
-              "CLOUDFORMATION_EVENTS_TOPIC": { "Ref": "CloudformationEventsTopic" },
+              "CLOUDFORMATION_TOPIC": { "Ref": "CloudformationTopic" },
               "CLUSTER": { "Ref": "Cluster" },
               "CUSTOM_TOPIC": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
               "DOCKER_IMAGE_API": { "Fn::Join": [ ":", [ "convox/api", { "Ref": "Version" } ] ] },
@@ -2451,7 +2355,7 @@
               "AWS_SECRET": { "Fn::GetAtt": [ "KernelAccess", "SecretAccessKey" ] },
               "BUILD_CLUSTER": { "Fn::If": [ "DedicatedBuilder", { "Ref": "BuildCluster" }, { "Ref": "Cluster" } ] },
               "CLIENT_ID": { "Ref": "ClientId" },
-              "CLOUDFORMATION_EVENTS_TOPIC": { "Ref": "CloudformationEventsTopic" },
+              "CLOUDFORMATION_TOPIC": { "Ref": "CloudformationTopic" },
               "CLUSTER": { "Ref": "Cluster" },
               "CUSTOM_TOPIC": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
               "DOCKER_IMAGE_API": { "Fn::Join": [ ":", [ "convox/api", { "Ref": "Version" } ] ] },
