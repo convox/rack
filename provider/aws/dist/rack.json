@@ -1861,7 +1861,7 @@
     "CloudformationEventsPolicy": {
       "Type": "AWS::SQS::QueuePolicy",
       "Properties": {
-        "Queues": [ { "Ref": "AccountEvents" } ],
+        "Queues": [ { "Ref": "CloudformationEvents" } ],
         "PolicyDocument": {
           "Version": "2012-10-17",
           "Statement": [
@@ -1869,7 +1869,7 @@
               "Effect": "Allow",
               "Principal": { "AWS": "*" },
               "Action": "sqs:SendMessage",
-              "Resource": { "Fn::GetAtt": [ "AccountEvents", "Arn" ] },
+              "Resource": { "Fn::GetAtt": [ "CloudformationEvents", "Arn" ] },
               "Condition": { "ArnEquals": { "aws:SourceArn": { "Ref": "CloudformationTopic" } } }
             }
           ]
