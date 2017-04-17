@@ -129,8 +129,6 @@ func handleAccountEvents() {
 	err := processQueue("AccountEvents", func(body string) error {
 		var e event
 
-		// fmt.Printf("body = %+v\n", body)
-
 		if err := json.Unmarshal([]byte(body), &e); err != nil {
 			return err
 		}
@@ -147,8 +145,6 @@ func handleAccountEvents() {
 				return nil
 			}
 
-			// fmt.Printf("%s: %s\n", detail.TaskArn, detail.LastStatus)
-
 			parts := strings.Split(detail.ClusterArn, "/")
 			cluster := parts[len(parts)-1]
 			service := strings.TrimPrefix(detail.Group, "service:")
@@ -162,6 +158,7 @@ func handleAccountEvents() {
 				if err != nil {
 					return err
 				}
+
 				if len(res.Services) < 1 {
 					return fmt.Errorf("could not find service: %s", service)
 				}
@@ -221,7 +218,7 @@ func handleAccountEvents() {
 }
 
 func getAppLogStream(app string) (appLogStream, error) {
-	group, err := models.AppLogGroup(app)
+	group, err := models.StackLogGroup(app)
 	if err != nil {
 		return appLogStream{}, err
 	}
