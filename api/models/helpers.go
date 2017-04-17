@@ -342,13 +342,18 @@ func stackResource(stack, resource string) (string, error) {
 	return *res.StackResources[0].PhysicalResourceId, nil
 }
 
-// AppLogGroup returns the cloudwatch log group for an app
-func AppLogGroup(app string) (string, error) {
+// StackLogGroup returns the cloudwatch log group for an app or rack
+func StackLogGroup(app string) (string, error) {
 	if g, ok := cache.Get("appLogGroup", app).(string); ok {
 		return g, nil
 	}
 
-	g, err := stackResource(fmt.Sprintf("%s-%s", os.Getenv("RACK"), app), "LogGroup")
+	stackName := os.Getenv("RACK")
+	if app != stackName {
+		stackName = fmt.Sprintf("%s-%s", os.Getenv("RACK"), app)
+	}
+
+	g, err := stackResource(stackName, "LogGroup")
 	if err != nil {
 		return "", err
 	}
