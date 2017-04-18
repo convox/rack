@@ -123,7 +123,7 @@ func (r *Release) Promote() error {
 	}
 
 	app.Parameters["Environment"] = r.EnvironmentUrl()
-	app.Parameters["Kernel"] = CustomTopic
+	app.Parameters["Kernel"] = customTopic
 	app.Parameters["Release"] = r.Id
 	app.Parameters["Version"] = os.Getenv("RELEASE")
 	app.Parameters["VPCCIDR"] = os.Getenv("VPCCIDR")
@@ -289,7 +289,7 @@ func (r *Release) Promote() error {
 		StackName:        aws.String(app.StackName()),
 		TemplateURL:      aws.String(url),
 		Parameters:       params,
-		NotificationARNs: []*string{aws.String(CloudformationEventsTopic)},
+		NotificationARNs: []*string{aws.String(cloudformationTopic)},
 	}
 
 	_, err = UpdateStack(req)

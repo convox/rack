@@ -26,6 +26,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/convox/rack/api/cache"
 	"github.com/convox/rack/provider"
 )
 
@@ -320,6 +321,49 @@ func stackTags(stack *cloudformation.Stack) map[string]string {
 	}
 
 	return tags
+}
+
+func rackResource(name string) (string, error) {
+	return stackResource(os.Getenv("RACK"), name)
+}
+
+func stackResource(stack, resource string) (string, error) {
+	res, err := CloudFormation().DescribeStackResources(&cloudformation.DescribeStackResourcesInput{
+		StackName:         aws.String(stack),
+		LogicalResourceId: aws.String(resource),
+	})
+	if err != nil {
+		return "", err
+	}
+	if len(res.StackResources) < 1 {
+		return "", fmt.Errorf("no stack resource for: %s", resource)
+	}
+
+	return *res.StackResources[0].PhysicalResourceId, nil
+}
+
+// StackLogGroup returns the cloudwatch log group for an app or rack
+func StackLogGroup(app string) (string, error) {
+	if g, ok := cache.Get("appLogGroup", app).(string); ok {
+		return g, nil
+	}
+
+	stackName := os.Getenv("RACK")
+	if app != stackName {
+		stackName = fmt.Sprintf("%s-%s", os.Getenv("RACK"), app)
+	}
+
+	g, err := stackResource(stackName, "LogGroup")
+	if err != nil {
+		return "", err
+	}
+
+	err = cache.Set("appLogGroup", app, g, 10*time.Minute)
+	if err != nil {
+		return "", err
+	}
+
+	return g, nil
 }
 
 func shortNameToStackName(appName string) string {

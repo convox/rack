@@ -4,7 +4,7 @@
 cd $(dirname ${0:-})/..
 
 if [ "$DEVELOPMENT" == "true" ]; then
-  $GOPATH/bin/rerun -build github.com/convox/rack/api/cmd/monitor
+  $GOPATH/bin/rerun -watch $GOPATH/src/github.com/convox/rack -build github.com/convox/rack/api/cmd/monitor
 else
   $GOPATH/bin/monitor
 fi

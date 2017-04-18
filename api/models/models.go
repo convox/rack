@@ -22,6 +22,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/sns"
+	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/convox/logger"
 )
 
@@ -102,6 +103,11 @@ func S3() *s3.S3 {
 
 func SNS() *sns.SNS {
 	return sns.New(session.New(), awsConfig())
+}
+
+// SQS is a driver for SQS
+func SQS() *sqs.SQS {
+	return sqs.New(session.New(), awsConfig())
 }
 
 func buildTemplate(name, section string, input interface{}) (string, error) {

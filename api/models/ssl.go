@@ -175,7 +175,7 @@ func UpdateSSL(app, process string, port int, id string) (*SSL, error) {
 		StackName:           aws.String(a.StackName()),
 		Capabilities:        []*string{aws.String("CAPABILITY_IAM")},
 		UsePreviousTemplate: aws.Bool(true),
-		NotificationARNs:    []*string{aws.String(CloudformationEventsTopic)},
+		NotificationARNs:    []*string{aws.String(cloudformationTopic)},
 	}
 
 	params := a.Parameters

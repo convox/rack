@@ -564,7 +564,7 @@ func (p *AWSProvider) updateStack(name string, template string, changes map[stri
 	req := &cloudformation.UpdateStackInput{
 		Capabilities:     []*string{aws.String("CAPABILITY_IAM")},
 		StackName:        aws.String(name),
-		NotificationARNs: []*string{aws.String(cloudformationEventsTopic)},
+		NotificationARNs: []*string{aws.String(p.CloudformationTopic)},
 	}
 
 	params := map[string]bool{}
