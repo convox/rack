@@ -648,268 +648,14 @@
       }
     },
     "KernelUser": {
-      "DependsOn": [ "KernelUserPolicy", "KernelUserIAMPolicy", "KernelUserGeneralPolicy" ],
+      "DependsOn":  "KernelUserIAMPolicy",
       "Type": "AWS::IAM::User",
       "Properties": {
         "Path": "/convox/",
         "ManagedPolicyArns": [
-          { "Ref": "KernelUserPolicy" },
-          { "Ref": "KernelUserIAMPolicy" },
-          { "Ref": "KernelUserGeneralPolicy" }
+          "arn:aws:iam::aws:policy/PowerUserAccess",
+          { "Ref": "KernelUserIAMPolicy" }
         ]
-      }
-    },
-    "KernelUserGeneralPolicy": {
-      "Type" : "AWS::IAM::ManagedPolicy",
-      "Properties" : {
-        "Path": "/convox/",
-        "Description" : "Limited general policy used by the KernelUser",
-        "PolicyDocument" : {
-            "Version": "2012-10-17",
-            "Statement": [
-                {
-                    "Sid": "LimitedGeneralPermissions",
-                    "Effect": "Allow",
-                    "Action": [
-                      "acm:DeleteCertificate",
-                      "acm:DescribeCertificate",
-                      "acm:ListCertificates",
-                      "acm:RequestCertificate",
-                      "autoscaling:CreateAutoScalingGroup",
-                      "autoscaling:CreateLaunchConfiguration",
-                      "autoscaling:DeleteAutoScalingGroup",
-                      "autoscaling:DeleteLaunchConfiguration",
-                      "autoscaling:DeleteLifecycleHook",
-                      "autoscaling:DescribeAutoScalingGroups",
-                      "autoscaling:DescribeAutoScalingInstances",
-                      "autoscaling:DescribeLaunchConfigurations",
-                      "autoscaling:DescribeScalingActivities",
-                      "autoscaling:DescribeScheduledActions",
-                      "autoscaling:DisableMetricsCollection",
-                      "autoscaling:EnableMetricsCollection",
-                      "autoscaling:PutLifecycleHook",
-                      "autoscaling:ResumeProcesses",
-                      "autoscaling:SetDesiredCapacity",
-                      "autoscaling:SetInstanceHealth",
-                      "autoscaling:SuspendProcesses",
-                      "autoscaling:TerminateInstanceInAutoScalingGroup",
-                      "autoscaling:UpdateAutoScalingGroup",
-                      "cloudformation:DescribeStacks",
-                      "cloudwatch:GetMetricStatistics",
-                      "ec2:AllocateAddress",
-                      "ec2:AssociateRouteTable",
-                      "ec2:AuthorizeSecurityGroupIngress",
-                      "ec2:CreateKeyPair",
-                      "ec2:CreateNatGateway",
-                      "ec2:CreateNetworkInterface",
-                      "ec2:CreateRoute",
-                      "ec2:CreateRouteTable",
-                      "ec2:CreateSecurityGroup",
-                      "ec2:CreateSubnet",
-                      "ec2:CreateTags",
-                      "ec2:CreateVpc",
-                      "ec2:DeleteNatGateway",
-                      "ec2:DeleteNetworkInterface",
-                      "ec2:DeleteRoute",
-                      "ec2:DeleteRouteTable",
-                      "ec2:DeleteSecurityGroup",
-                      "ec2:DeleteSubnet",
-                      "ec2:DeleteTags",
-                      "ec2:DeleteVpc",
-                      "ec2:DescribeAccountAttributes",
-                      "ec2:DescribeAddresses",
-                      "ec2:DescribeInstances",
-                      "ec2:DescribeNatGateways",
-                      "ec2:DescribeRouteTables",
-                      "ec2:DescribeSecurityGroups",
-                      "ec2:DescribeSubnets",
-                      "ec2:DescribeVpcs",
-                      "ec2:DisassociateAddress",
-                      "ec2:DisassociateRouteTable",
-                      "ec2:ModifyVpcAttribute",
-                      "ec2:ReleaseAddress",
-                      "ec2:RevokeSecurityGroupIngress",
-                      "ecs:CreateCluster",
-                      "ecs:CreateService",
-                      "ecs:DeleteService",
-                      "ecs:DescribeContainerInstances",
-                      "ecs:DescribeServices",
-                      "ecs:DescribeTaskDefinition",
-                      "ecs:DescribeTasks",
-                      "ecs:ListContainerInstances",
-                      "ecs:ListServices",
-                      "ecs:ListTaskDefinitions",
-                      "ecs:ListTasks",
-                      "ecs:RegisterTaskDefinition",
-                      "ecs:RunTask",
-                      "ecs:StopTask",
-                      "ecs:UpdateService",
-                      "elasticache:CreateCacheCluster",
-                      "elasticache:CreateCacheSubnetGroup",
-                      "elasticache:CreateReplicationGroup",
-                      "elasticache:DeleteCacheCluster",
-                      "elasticache:DeleteCacheSubnetGroup",
-                      "elasticache:DeleteReplicationGroup",
-                      "elasticache:DescribeCacheClusters",
-                      "elasticache:DescribeCacheSubnetGroups",
-                      "elasticache:DescribeReplicationGroups",
-                      "elasticache:ModifyCacheCluster",
-                      "elasticache:ModifyReplicationGroup",
-                      "elasticfilesystem:CreateFileSystem",
-                      "elasticfilesystem:CreateMountTarget",
-                      "elasticfilesystem:CreateTags",
-                      "elasticfilesystem:DeleteMountTarget",
-                      "elasticfilesystem:DescribeFileSystems",
-                      "elasticfilesystem:DescribeMountTargets",
-                      "elasticloadbalancing:ApplySecurityGroupsToLoadBalancer",
-                      "elasticloadbalancing:AttachLoadBalancerToSubnets",
-                      "elasticloadbalancing:ConfigureHealthCheck",
-                      "elasticloadbalancing:CreateLoadBalancer",
-                      "elasticloadbalancing:CreateLoadBalancerListeners",
-                      "elasticloadbalancing:CreateLoadBalancerPolicy",
-                      "elasticloadbalancing:DeleteLoadBalancer",
-                      "elasticloadbalancing:DeleteLoadBalancerListeners",
-                      "elasticloadbalancing:DeleteLoadBalancerPolicy",
-                      "elasticloadbalancing:DescribeLoadBalancers",
-                      "elasticloadbalancing:ModifyLoadBalancerAttributes",
-                      "elasticloadbalancing:SetLoadBalancerPoliciesForBackendServer",
-                      "elasticloadbalancing:SetLoadBalancerPoliciesOfListener",
-                      "events:DescribeRule",
-                      "iam:DeleteServerCertificate",
-                      "iam:GetPolicy",
-                      "iam:GetServerCertificate",
-                      "iam:ListServerCertificates",
-                      "iam:PassRole",
-                      "iam:UploadServerCertificate",
-                      "kms:CreateAlias",
-                      "kms:Decrypt",
-                      "kms:DeleteAlias",
-                      "kms:GenerateDataKey",
-                      "kms:GenerateRandom",
-                      "kms:CreateAlias",
-                      "kms:ListAliases",
-                      "lambda:CreateFunction",
-                      "logs:CreateLogGroup",
-                      "logs:DeleteLogGroup",
-                      "logs:DeleteSubscriptionFilter",
-                      "logs:DescribeLogGroups",
-                      "logs:FilterLogEvents",
-                      "logs:PutSubscriptionFilter",
-                      "rds:CreateDBInstance",
-                      "rds:CreateDBParameterGroup",
-                      "rds:CreateDBSubnetGroup",
-                      "rds:DescribeDBInstances",
-                      "rds:DescribeDBParameters",
-                      "rds:DescribeDBSubnetGroups",
-                      "s3:CreateBucket",
-                      "s3:GetObject",
-                      "sns:ConfirmSubscription",
-                      "sns:CreateTopic",
-                      "sns:DeleteTopic",
-                      "sns:GetTopicAttributes",
-                      "sns:ListTopics",
-                      "sns:ListSubscriptionsByTopic",
-                      "sns:Publish",
-                      "sns:SetTopicAttributes",
-                      "sns:Subscribe",
-                      "sns:Unsubscribe",
-                      "sqs:CreateQueue",
-                      "sqs:DeleteQueue",
-                      "sqs:GetQueueAttributes",
-                      "sqs:SetQueueAttributes"
-                    ],
-                    "Resource": "*"
-                }
-            ]
-        }
-      }
-    },
-    "KernelUserPolicy": {
-      "Type" : "AWS::IAM::ManagedPolicy",
-      "Properties" : {
-        "Path": "/convox/",
-        "Description" : "Policy used by the KernelUser",
-        "PolicyDocument" : {
-            "Version": "2012-10-17",
-            "Statement": [
-                {
-                  "Action": "ecs:DeleteCluster",
-                  "Resource": [
-                    { "Fn::Join": [ "", [ "arn:aws:ecs:*:*:cluster/", { "Ref": "AWS::StackName" }, "*" ] ] }
-                  ],
-                  "Effect": "Allow",
-                  "Sid": "LimitedECSAccess"
-                },
-                {
-                  "Sid": "LimitedDynamoDBAccess",
-                  "Action": "dynamodb:*",
-                  "Effect": "Allow",
-                  "Resource": [
-                      { "Fn::Join": [ "", [ "arn:aws:dynamodb:*:*:table/", { "Ref": "AWS::StackName" }, "-*" ] ] },
-                      { "Fn::Join": [ "", [ "arn:aws:dynamodb:*:*:table/", { "Ref": "AWS::StackName" }, "-*/index/*" ] ] }
-                  ]
-                }, {
-                  "Sid": "LimitedRDSAccess",
-                  "Action": "rds:*",
-                  "Effect": "Allow",
-                  "Resource": [
-                      { "Fn::Join": [ "", [ "arn:aws:rds:*:*:db:", { "Ref": "AWS::StackName" }, "-*"] ] },
-                      { "Fn::Join": [ "", [ "arn:aws:rds:*:*:pg:", { "Ref": "AWS::StackName" }, "-*"] ] },
-                      { "Fn::Join": [ "", [ "arn:aws:rds:*:*:subgrp:", { "Ref": "AWS::StackName" }, "-*"] ] }
-                  ]
-                }, {
-                  "Sid": "LimitedLambdaAccess",
-                  "Action": "lambda:*",
-                  "Effect": "Allow",
-                  "Resource": [
-                      { "Fn::Join": [ "", [ "arn:aws:lambda:*:*:function:", { "Ref": "AWS::StackName" }, "-*"] ] }
-                  ]
-                }, {
-                  "Sid": "LimitedCloudFlormationAccess",
-                  "Action": "cloudformation:*",
-                  "Effect": "Allow",
-                  "Resource": [
-                      { "Fn::Join": [ "", [ "arn:aws:cloudformation:*:*:stack/", { "Ref": "AWS::StackName" }, "*"] ] }
-                  ]
-                }, {
-                  "Sid": "LimitedECRAccess",
-                  "Action": "ecr:*",
-                  "Effect": "Allow",
-                  "Resource": [
-                      { "Fn::Join": [ "", [ "arn:aws:ecr:*:*:repository/", { "Ref": "AWS::StackName" }, "*"] ] }
-                  ]
-                }, {
-                  "Sid": "ReadOnlyECRAccess",
-                  "Action": [
-                    "ecr:GetAuthorizationToken",
-                    "ecr:BatchCheckLayerAvailability",
-                    "ecr:GetDownloadUrlForLayer",
-                    "ecr:GetRepositoryPolicy",
-                    "ecr:DescribeRepositories",
-                    "ecr:ListImages",
-                    "ecr:DescribeImages",
-                    "ecr:BatchGetImage"
-                  ],
-                  "Effect": "Allow",
-                  "Resource": "*"
-                }, {
-                  "Sid": "LimitedCloudWatchEventAccess",
-                  "Action": "events:*",
-                  "Effect": "Allow",
-                  "Resource": [
-                      { "Fn::Join": [ "", [ "arn:aws:events:*:*:rule/", { "Ref": "AWS::StackName" }, "*"] ] }
-                  ]
-                }, {
-                  "Sid": "LimitedS3Access",
-                  "Action": "s3:*",
-                  "Effect": "Allow",
-                  "Resource": [
-                      { "Fn::Join": [ "", [ "arn:aws:s3:::", { "Ref": "AWS::StackName" }, "-*"] ] },
-                      { "Fn::Join": [ "", [ "arn:aws:s3:::", { "Ref": "AWS::StackName" }, "-*/*"] ] }
-                  ]
-                }
-            ]
-        }
       }
     },
     "KernelUserIAMPolicy": {
@@ -949,11 +695,24 @@
                       "iam:RemoveRoleFromInstanceProfile"
                     ],
                     "Resource": [
-                      "arn:aws:iam::*:instance-profile/convox/*",
-                      "arn:aws:iam::*:policy/convox/*",
-                      "arn:aws:iam::*:role/convox/*",
-                      "arn:aws:iam::*:user/convox/*"
+                      { "Fn::Sub": "arn:aws:iam::${AWS::AccountId}:instance-profile/convox/*"},
+                      { "Fn::Sub": "arn:aws:iam::${AWS::AccountId}:policy/convox/*"},
+                      { "Fn::Sub": "arn:aws:iam::${AWS::AccountId}:role/convox/*"},
+                      { "Fn::Sub": "arn:aws:iam::${AWS::AccountId}:user/convox/*"}
                     ]
+                },
+                {
+                    "Sid": "GeneralIAMPermissions",
+                    "Effect": "Allow",
+                    "Action": [
+                      "iam:DeleteServerCertificate",
+                      "iam:GetPolicy",
+                      "iam:GetServerCertificate",
+                      "iam:ListServerCertificates",
+                      "iam:PassRole",
+                      "iam:UploadServerCertificate"
+                    ],
+                    "Resource": "*"
                 }
             ]
         }
