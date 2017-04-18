@@ -107,10 +107,7 @@ func (s *Service) Process(app string, m Manifest) Process {
 
 // UseSecureEnvironment - Determines if the service intends to use a secure environment
 func (s Service) UseSecureEnvironment() bool {
-	if useSecureEnvironment, ok := s.Labels["convox.environment.secure"]; useSecureEnvironment == "true" && ok {
-		return true
-	}
-	return false
+	return s.Labels["convox.environment.secure"] == "true"
 }
 
 // HasBalancer returns false if the Service contains no public ports,

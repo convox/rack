@@ -220,7 +220,7 @@ func ECSTaskDefinitionCreate(req Request) (string, map[string]string, error) {
 			}
 		}
 
-		if secureEnv && envURL != "" {
+		if secureEnv {
 			fmt.Printf("Configuring for a secure environment\n")
 			r.ContainerDefinitions[i].Environment = append(r.ContainerDefinitions[i].Environment, &ecs.KeyValuePair{
 				Name:  aws.String("SECURE_ENVIRONMENT_URL"),
