@@ -1,5 +1,6 @@
 .env
 .git
+/monitor
 docker-compose.yml
 api/models/fixtures/fixture
 cmd/changes/changes

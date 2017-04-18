@@ -676,6 +676,10 @@ func FriendlyName(t string) string {
 		return "S3 Bucket"
 	case "AWS::SNS::Topic":
 		return ""
+	case "AWS::SQS::Queue":
+		return "SQS Queue"
+	case "AWS::SQS::QueuePolicy":
+		return ""
 	case "Custom::EC2AvailabilityZones":
 		return ""
 	case "Custom::ECSService":
