@@ -262,6 +262,8 @@ func (l *Labels) UnmarshalYAML(unmarshal func(interface{}) error) error {
 				vs = t
 			case int:
 				vs = strconv.Itoa(t)
+			case bool:
+				vs = strconv.FormatBool(t)
 			default:
 				return fmt.Errorf("unknown type in label map: %v", k)
 			}
