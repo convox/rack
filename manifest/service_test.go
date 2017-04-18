@@ -6,6 +6,7 @@ import (
 
 	"github.com/convox/rack/manifest"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestTag(t *testing.T) {
@@ -95,9 +96,7 @@ func TestSyncPaths(t *testing.T) {
 
 func TestUseSecureEnvironment(t *testing.T) {
 	m, err := manifestFixture("secure-env")
-	if err != nil {
-		assert.FailNow(t, fmt.Sprintf("failed to read fixture: %s", err.Error()))
-	}
+	require.NoError(t, err)
 	secureService := m.Services["secure"]
 	notSecureService := m.Services["notsecure"]
 
