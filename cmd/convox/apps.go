@@ -155,7 +155,7 @@ func cmdAppCreate(c *cli.Context) error {
 		stdcli.Startf("Waiting for <app>%s</app>", app)
 
 		if err := waitForAppRunning(c, app); err != nil {
-			stdcli.Error(err)
+			return stdcli.Error(err)
 		}
 
 		stdcli.OK()
