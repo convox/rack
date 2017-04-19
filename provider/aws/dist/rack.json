@@ -665,7 +665,6 @@
               "Statement": {
                 "Effect": "Allow",
                 "Action": [
-                  "kms:Encrypt",
                   "kms:Decrypt"
                 ],
                 "Resource": [
@@ -809,7 +808,6 @@
                       "iam:GetPolicy",
                       "iam:GetServerCertificate",
                       "iam:ListServerCertificates",
-                      "iam:PassRole",
                       "iam:UploadServerCertificate",
                       "kms:CreateAlias",
                       "kms:Decrypt",
@@ -2258,7 +2256,7 @@
       "Properties": {
         "Name": { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" }, "build" ] ] },
         "ServiceToken": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
-        "TaskRole": { "Ref": "SecureEnvironmentRole" },
+        "TaskRole": { "Fn::GetAtt": [ "SecureEnvironmentRole", "Arn" ] },
         "Tasks": [
           {
             "Cpu": { "Ref": "BuildCpu" },
