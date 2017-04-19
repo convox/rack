@@ -66,6 +66,9 @@ func autoscaleRack() {
 		desired = c
 	}
 
+	// add one instance for some breathing room
+	instances++
+
 	// instance count cant be less than 2
 	if desired < 2 {
 		log = log.Replace("reason", "minimum")
