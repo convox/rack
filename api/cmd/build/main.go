@@ -227,6 +227,16 @@ func build(dir string) error {
 		return err
 	}
 
+	a, err := currentProvider.AppGet(flagApp)
+	if err != nil {
+		return err
+	}
+
+	env["SECURE_ENVIRONMENT_URL"] = a.Parameters["Environment"]
+	env["SECURE_ENVIRONMENT_TYPE"] = "envfile"
+	env["SECURE_ENVIRONMENT_KEY"] = a.Parameters["Key"]
+	env["AWS_REGION"] = os.Getenv("AWS_REGION")
+
 	err = m.Build(dir, flagApp, s, manifest.BuildOptions{
 		Environment: env,
 		Cache:       flagCache == "true",
