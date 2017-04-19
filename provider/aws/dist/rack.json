@@ -643,6 +643,40 @@
         ] }
       }
     },
+    "SecureEnvironmentRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": { "Service": [ "ecs-tasks.amazonaws.com" ] },
+              "Action": [ "sts:AssumeRole" ]
+            }
+          ]
+        },
+        "Path": "/",
+        "Policies": [
+          {
+            "PolicyName": "SecureEnvironmentPolicy",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": {
+                "Effect": "Allow",
+                "Action": [
+                  "kms:Encrypt",
+                  "kms:Decrypt"
+                ],
+                "Resource": [
+                  { "Ref": "EncryptionKey" }
+                ]
+              }
+            }
+          }
+        ]
+      }
+    },
     "KernelUser": {
       "DependsOn": [ "KernelUserPolicy", "KernelUserIAMPolicy", "KernelUserGeneralPolicy" ],
       "Type": "AWS::IAM::User",
@@ -2223,6 +2257,7 @@
       "Properties": {
         "Name": { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" }, "build" ] ] },
         "ServiceToken": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
+        "TaskRole": { "Ref": "SecureEnvironmentRole" },
         "Tasks": [
           {
             "Cpu": { "Ref": "BuildCpu" },
