@@ -148,7 +148,16 @@ func handleAccountEvents() {
 			parts := strings.Split(detail.ClusterArn, "/")
 			cluster := parts[len(parts)-1]
 			service := strings.TrimPrefix(detail.Group, "service:")
-			app := strings.Split(strings.TrimPrefix(service, fmt.Sprintf("%s-", os.Getenv("RACK"))), "-Service")[0]
+
+			var app string
+			switch {
+			case strings.Contains(service, "-Service"): // an app service
+				app = strings.Split(strings.TrimPrefix(service, fmt.Sprintf("%s-", os.Getenv("RACK"))), "-Service")[0]
+
+			case strings.Contains(service, "Service-"): // a rack service
+				app = os.Getenv("RACK")
+
+			}
 
 			if detail.LastStatus == "PENDING" {
 				res, err := models.ECS().DescribeServices(&ecs.DescribeServicesInput{
@@ -263,7 +272,7 @@ func processQueue(resource string, fn queueHandler) error {
 			AttributeNames:        []*string{aws.String("All")},
 			MessageAttributeNames: []*string{aws.String("All")},
 			MaxNumberOfMessages:   aws.Int64(10),
-			VisibilityTimeout:     aws.Int64(5),
+			VisibilityTimeout:     aws.Int64(20),
 			WaitTimeSeconds:       aws.Int64(10),
 		})
 		if err != nil {
@@ -272,8 +281,7 @@ func processQueue(resource string, fn queueHandler) error {
 
 		for _, m := range res.Messages {
 			if err := fn(*m.Body); err != nil {
-				fmt.Fprintf(os.Stderr, "processQueue handler error: %s\n", err)
-				continue
+				fmt.Fprintf(os.Stderr, "processQueue %s handler error: %s\n", resource, err)
 			}
 
 			_, err := models.SQS().DeleteMessage(&sqs.DeleteMessageInput{
