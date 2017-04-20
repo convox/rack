@@ -149,14 +149,9 @@ func handleAccountEvents() {
 			cluster := parts[len(parts)-1]
 			service := strings.TrimPrefix(detail.Group, "service:")
 
-			var app string
-			switch {
-			case strings.Contains(service, "-Service"): // an app service
-				app = strings.Split(strings.TrimPrefix(service, fmt.Sprintf("%s-", os.Getenv("RACK"))), "-Service")[0]
-
-			case strings.Contains(service, "Service-"): // a rack service
-				app = os.Getenv("RACK")
-
+			stack := os.Getenv("RACK")
+			if strings.Contains(service, "-Service") { // an app service
+				stack = strings.Split(strings.TrimPrefix(service, fmt.Sprintf("%s-", os.Getenv("RACK"))), "-Service")[0]
 			}
 
 			if detail.LastStatus == "PENDING" {
@@ -172,7 +167,7 @@ func handleAccountEvents() {
 					return fmt.Errorf("could not find service: %s", service)
 				}
 
-				stream, err := getAppLogStream(app)
+				stream, err := getAppLogStream(stack)
 				if err != nil {
 					return err
 				}
@@ -215,7 +210,7 @@ func handleAccountEvents() {
 				}
 
 				stream.SequenceToken = *pres.NextSequenceToken
-				appLogStreams[app] = stream
+				appLogStreams[stack] = stream
 			}
 		}
 
