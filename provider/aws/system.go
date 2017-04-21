@@ -216,19 +216,6 @@ func (p *AWSProvider) SystemReleases() (structs.Releases, error) {
 }
 
 func (p *AWSProvider) SystemSave(system structs.System) error {
-	typeValid := false
-	// Better search method could work here if needed
-	// sort.SearchString() return value doesn't indicate if string is not in slice
-	for _, itype := range instanceTypes {
-		if itype == system.Type {
-			typeValid = true
-			break
-		}
-	}
-	if !typeValid {
-		return fmt.Errorf("invalid instance type: %s", system.Type)
-	}
-
 	// FIXME
 	// mac, err := maxAppConcurrency()
 
