@@ -568,6 +568,48 @@
       "Type": "Custom::ECRRepository",
       "Version": "1.0"
     },
+    "SecureEnvironmentRole": {
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": [
+                "sts:AssumeRole"
+              ],
+              "Effect": "Allow",
+              "Principal": {
+                "Service": [
+                  "ecs-tasks.amazonaws.com"
+                ]
+              }
+            }
+          ],
+          "Version": "2012-10-17"
+        },
+        "Path": "/convox/",
+        "Policies": [
+          {
+            "PolicyDocument": {
+              "Statement": {
+                "Action": [
+                  "kms:Encrypt",
+                  "kms:Decrypt"
+                ],
+                "Effect": "Allow",
+                "Resource": [
+                  {
+                    "Ref": "Key"
+                  }
+                ]
+              },
+              "Version": "2012-10-17"
+            },
+            "PolicyName": "SecureEnvironmentPolicy"
+          }
+        ]
+      },
+      "Type": "AWS::IAM::Role"
+    },
     "ServiceRole": {
       "Properties": {
         "AssumeRolePolicyDocument": {
@@ -802,6 +844,7 @@
               }
             ],
             "Privileged": "false",
+            "SecureEnvironment": false,
             "Services": [
               {
                 "Ref": "AWS::NoValue"

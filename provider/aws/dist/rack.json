@@ -1057,6 +1057,39 @@
         "Domain": "vpc"
       }
     },
+    "SecureEnvironmentRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": { "Service": [ "ecs-tasks.amazonaws.com" ] },
+              "Action": [ "sts:AssumeRole" ]
+            }
+          ]
+        },
+        "Path": "/convox/",
+        "Policies": [
+          {
+            "PolicyName": "SecureEnvironmentPolicy",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": {
+                "Effect": "Allow",
+                "Action": [
+                  "kms:Decrypt"
+                ],
+                "Resource": [
+                  { "Ref": "EncryptionKey" }
+                ]
+              }
+            }
+          }
+        ]
+      }
+    },
     "Subnet0": {
       "DependsOn": [ "AvailabilityZones" ],
       "Type": "AWS::EC2::Subnet",
@@ -2223,6 +2256,7 @@
       "Properties": {
         "Name": { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" }, "build" ] ] },
         "ServiceToken": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
+        "TaskRole": { "Fn::GetAtt": [ "SecureEnvironmentRole", "Arn" ] },
         "Tasks": [
           {
             "Cpu": { "Ref": "BuildCpu" },

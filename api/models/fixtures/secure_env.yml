@@ -1,0 +1,4 @@
+main:
+  build: .
+  labels:
+    - convox.environment.secure=true

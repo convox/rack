@@ -6,6 +6,7 @@ import (
 
 	"github.com/convox/rack/manifest"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestTag(t *testing.T) {
@@ -91,4 +92,14 @@ func TestSyncPaths(t *testing.T) {
 			assert.EqualValues(t, expectedMap, sp)
 		}
 	}
+}
+
+func TestUseSecureEnvironment(t *testing.T) {
+	m, err := manifestFixture("secure-env")
+	require.NoError(t, err)
+	secureService := m.Services["secure"]
+	notSecureService := m.Services["notsecure"]
+
+	assert.True(t, secureService.UseSecureEnvironment())
+	assert.False(t, notSecureService.UseSecureEnvironment())
 }

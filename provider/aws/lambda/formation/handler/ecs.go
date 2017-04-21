@@ -112,8 +112,12 @@ func ECSTaskDefinitionCreate(req Request) (string, map[string]string, error) {
 		r.TaskRoleArn = &taskRole
 	}
 
-	if envUrl, ok := req.ResourceProperties["Environment"].(string); ok && envUrl != "" {
-		res, err := http.Get(envUrl)
+	var key string
+
+	envURL, ok := req.ResourceProperties["Environment"].(string)
+
+	if ok && envURL != "" {
+		res, err := http.Get(envURL)
 
 		if err != nil {
 			return "invalid", nil, err
@@ -123,11 +127,12 @@ func ECSTaskDefinitionCreate(req Request) (string, map[string]string, error) {
 
 		data, err := ioutil.ReadAll(res.Body)
 
-		if key, ok := req.ResourceProperties["Key"].(string); ok && key != "" {
+		if pkey, ok := req.ResourceProperties["Key"].(string); ok && pkey != "" {
+			key = pkey
 			cr := crypt.New(*Region(&req), os.Getenv("AWS_ACCESS_KEY_ID"), os.Getenv("AWS_SECRET_ACCESS_KEY"))
 			cr.AwsToken = os.Getenv("AWS_SESSION_TOKEN")
 
-			dec, err := cr.Decrypt(key, data)
+			dec, err := cr.Decrypt(pkey, data)
 
 			if err != nil {
 				return "invalid", nil, err
@@ -206,13 +211,41 @@ func ECSTaskDefinitionCreate(req Request) (string, map[string]string, error) {
 			}
 		}
 
-		// set Task environment from decrypted S3 URL body of key/values
-		// These key/values take precident over the above environment
-		for key, val := range env {
+		secureEnv := false
+
+		if rawSecureEnv, ok := task["SecureEnvironment"].(string); ok {
+			secureEnv, err = strconv.ParseBool(rawSecureEnv)
+			if err != nil {
+				return "invalid", nil, err
+			}
+		}
+
+		if secureEnv {
+			fmt.Printf("Configuring for a secure environment\n")
 			r.ContainerDefinitions[i].Environment = append(r.ContainerDefinitions[i].Environment, &ecs.KeyValuePair{
-				Name:  aws.String(key),
-				Value: aws.String(val),
+				Name:  aws.String("SECURE_ENVIRONMENT_URL"),
+				Value: aws.String(envURL),
 			})
+
+			r.ContainerDefinitions[i].Environment = append(r.ContainerDefinitions[i].Environment, &ecs.KeyValuePair{
+				Name:  aws.String("SECURE_ENVIRONMENT_TYPE"),
+				Value: aws.String("envfile"),
+			})
+
+			r.ContainerDefinitions[i].Environment = append(r.ContainerDefinitions[i].Environment, &ecs.KeyValuePair{
+				Name:  aws.String("SECURE_ENVIRONMENT_KEY"),
+				Value: aws.String(key),
+			})
+		} else {
+			fmt.Printf("Configuring for a normal environment\n")
+			// set Task environment from decrypted S3 URL body of key/values
+			// These key/values take precedent over the above environment
+			for key, val := range env {
+				r.ContainerDefinitions[i].Environment = append(r.ContainerDefinitions[i].Environment, &ecs.KeyValuePair{
+					Name:  aws.String(key),
+					Value: aws.String(val),
+				})
+			}
 		}
 
 		// set Release value in Task environment

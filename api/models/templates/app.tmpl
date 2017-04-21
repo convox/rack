@@ -152,6 +152,40 @@
           "Timeout": "300"
         }
       },
+      "SecureEnvironmentRole": {
+        "Type": "AWS::IAM::Role",
+        "Properties": {
+          "AssumeRolePolicyDocument": {
+            "Version": "2012-10-17",
+            "Statement": [
+              {
+                "Effect": "Allow",
+                "Principal": { "Service": [ "ecs-tasks.amazonaws.com" ] },
+                "Action": [ "sts:AssumeRole" ]
+              }
+            ]
+          },
+          "Path": "/convox/",
+          "Policies": [
+            {
+              "PolicyName": "SecureEnvironmentPolicy",
+              "PolicyDocument": {
+                "Version": "2012-10-17",
+                "Statement": {
+                  "Effect": "Allow",
+                  "Action": [
+                    "kms:Encrypt",
+                    "kms:Decrypt"
+                  ],
+                  "Resource": [
+                    { "Ref": "Key" }
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      },
       {{ template "balancer-resources" . }}
       {{ template "cronjob-resources" . }}
       {{ template "agent-resources" . }}
@@ -212,7 +246,11 @@
         "Type": "Custom::ECSTaskDefinition",
         "Version": "1.0",
         "Properties": {
-          "TaskRole": { "Ref": "TaskRole" },
+          {{ if $e.UseSecureEnvironment }}
+            "TaskRole": { "Fn::GetAtt": [ "SecureEnvironmentRole", "Arn" ] },
+          {{ else }}
+            "TaskRole": { "Ref": "TaskRole" },
+          {{ end }}
           "ServiceToken": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
           "Name": { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" }, "{{ $e.Name }}" ] ] },
           "Release": { "Ref": "Release" },
@@ -222,6 +260,7 @@
             {
               "Name": "{{ $e.Name }}",
               "Image": "{{ $e.Image }}",
+              "SecureEnvironment": {{ if $e.UseSecureEnvironment }}true{{ else }}false{{ end }},
               {{if $e.Command.Array}}
                 "Command": [
                   {{ range $index, $element := $e.Command.Array}}

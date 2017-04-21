@@ -1,22 +1,6 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
   "Conditions": {
-    "BlankBalancerMainPort80Certificate": {
-      "Fn::Equals": [
-        {
-          "Ref": "MainPort80Certificate"
-        },
-        ""
-      ]
-    },
-    "BlankBalancerMainPort81Certificate": {
-      "Fn::Equals": [
-        {
-          "Ref": "MainPort81Certificate"
-        },
-        ""
-      ]
-    },
     "BlankSecurityGroup": {
       "Fn::Equals": [
         {
@@ -92,62 +76,9 @@
     }
   },
   "Outputs": {
-    "BalancerMainHost": {
-      "Condition": "EnabledMain",
-      "Value": {
-        "Fn::GetAtt": [
-          "BalancerMain",
-          "DNSName"
-        ]
-      }
-    },
     "LogGroup": {
       "Value": {
         "Ref": "LogGroup"
-      }
-    },
-    "MainPort80Balancer": {
-      "Condition": "EnabledMain",
-      "Value": "80"
-    },
-    "MainPort80BalancerName": {
-      "Condition": "EnabledMain",
-      "Value": {
-        "Fn::If": [
-          "Internal",
-          {
-            "Fn::Join": [
-              "-",
-              [
-                "httpd-main-KQSNMIK",
-                "n"
-              ]
-            ]
-          },
-          "httpd-main-KQSNMIK"
-        ]
-      }
-    },
-    "MainPort81Balancer": {
-      "Condition": "EnabledMain",
-      "Value": "81"
-    },
-    "MainPort81BalancerName": {
-      "Condition": "EnabledMain",
-      "Value": {
-        "Fn::If": [
-          "Internal",
-          {
-            "Fn::Join": [
-              "-",
-              [
-                "httpd-main-KQSNMIK",
-                "n"
-              ]
-            ]
-          },
-          "httpd-main-KQSNMIK"
-        ]
       }
     },
     "RegistryId": {
@@ -208,26 +139,6 @@
       "Default": "1,0,256",
       "Description": "Number of processes to run, CPU units to reserve, and MB of RAM to reserve",
       "Type": "CommaDelimitedList"
-    },
-    "MainPort80Certificate": {
-      "Default": "",
-      "Description": "",
-      "Type": "String"
-    },
-    "MainPort80Host": {
-      "Default": "5000",
-      "Description": "",
-      "Type": "String"
-    },
-    "MainPort81Certificate": {
-      "Default": "",
-      "Description": "",
-      "Type": "String"
-    },
-    "MainPort81Host": {
-      "Default": "5001",
-      "Description": "",
-      "Type": "String"
     },
     "NativeLogging": {
       "AllowedValues": [
@@ -294,191 +205,6 @@
     }
   },
   "Resources": {
-    "BalancerMain": {
-      "Condition": "EnabledMain",
-      "DependsOn": [
-        "BalancerMainSecurityGroup"
-      ],
-      "Properties": {
-        "ConnectionDrainingPolicy": {
-          "Enabled": true,
-          "Timeout": "60"
-        },
-        "ConnectionSettings": {
-          "IdleTimeout": "3600"
-        },
-        "CrossZone": true,
-        "HealthCheck": {
-          "HealthyThreshold": "2",
-          "Interval": "62",
-          "Target": {
-            "Fn::Join": [
-              "",
-              [
-                "HTTPS:",
-                {
-                  "Ref": "MainPort81Host"
-                },
-                "/health_check"
-              ]
-            ]
-          },
-          "Timeout": "60",
-          "UnhealthyThreshold": "2"
-        },
-        "LBCookieStickinessPolicy": [
-          {
-            "PolicyName": "affinity"
-          }
-        ],
-        "Listeners": [
-          {
-            "InstancePort": {
-              "Ref": "MainPort80Host"
-            },
-            "InstanceProtocol": "TCP",
-            "LoadBalancerPort": "80",
-            "Protocol": {
-              "Fn::If": [
-                "BlankBalancerMainPort80Certificate",
-                "TCP",
-                "SSL"
-              ]
-            },
-            "SSLCertificateId": {
-              "Fn::If": [
-                "BlankBalancerMainPort80Certificate",
-                {
-                  "Ref": "AWS::NoValue"
-                },
-                {
-                  "Ref": "MainPort80Certificate"
-                }
-              ]
-            }
-          },
-          {
-            "InstancePort": {
-              "Ref": "MainPort81Host"
-            },
-            "InstanceProtocol": "TCP",
-            "LoadBalancerPort": "81",
-            "Protocol": {
-              "Fn::If": [
-                "BlankBalancerMainPort81Certificate",
-                "TCP",
-                "SSL"
-              ]
-            },
-            "SSLCertificateId": {
-              "Fn::If": [
-                "BlankBalancerMainPort81Certificate",
-                {
-                  "Ref": "AWS::NoValue"
-                },
-                {
-                  "Ref": "MainPort81Certificate"
-                }
-              ]
-            }
-          },
-          {
-            "Ref": "AWS::NoValue"
-          }
-        ],
-        "LoadBalancerName": {
-          "Fn::If": [
-            "Internal",
-            {
-              "Fn::Join": [
-                "-",
-                [
-                  "httpd-main-KQSNMIK",
-                  "n"
-                ]
-              ]
-            },
-            "httpd-main-KQSNMIK"
-          ]
-        },
-        "Policies": [
-          {
-            "Ref": "AWS::NoValue"
-          }
-        ],
-        "Scheme": {
-          "Fn::If": [
-            "Internal",
-            "internal",
-            {
-              "Ref": "AWS::NoValue"
-            }
-          ]
-        },
-        "SecurityGroups": [
-          {
-            "Fn::If": [
-              "BlankSecurityGroup",
-              {
-                "Ref": "BalancerMainSecurityGroup"
-              },
-              {
-                "Ref": "SecurityGroup"
-              }
-            ]
-          }
-        ],
-        "Subnets": {
-          "Fn::If": [
-            "Internal",
-            {
-              "Ref": "SubnetsPrivate"
-            },
-            {
-              "Ref": "Subnets"
-            }
-          ]
-        }
-      },
-      "Type": "AWS::ElasticLoadBalancing::LoadBalancer"
-    },
-    "BalancerMainSecurityGroup": {
-      "Condition": "EnabledMain",
-      "Properties": {
-        "GroupDescription": {
-          "Fn::Join": [
-            " ",
-            [
-              {
-                "Ref": "AWS::StackName"
-              },
-              "-balancer"
-            ]
-          ]
-        },
-        "SecurityGroupIngress": [
-          {
-            "CidrIp": "0.0.0.0/0",
-            "FromPort": "80",
-            "IpProtocol": "tcp",
-            "ToPort": "80"
-          },
-          {
-            "CidrIp": "0.0.0.0/0",
-            "FromPort": "81",
-            "IpProtocol": "tcp",
-            "ToPort": "81"
-          },
-          {
-            "Ref": "AWS::NoValue"
-          }
-        ],
-        "VpcId": {
-          "Ref": "VPC"
-        }
-      },
-      "Type": "AWS::EC2::SecurityGroup"
-    },
     "CustomTopic": {
       "Properties": {
         "Code": {
@@ -592,7 +318,10 @@
           ]
         },
         "TaskRole": {
-          "Ref": "TaskRole"
+          "Fn::GetAtt": [
+            "SecureEnvironmentRole",
+            "Arn"
+          ]
         },
         "Tasks": [
           {
@@ -658,33 +387,11 @@
             "Name": "main",
             "PortMappings": [
               {
-                "Fn::Join": [
-                  ":",
-                  [
-                    {
-                      "Ref": "MainPort80Host"
-                    },
-                    "3000/tcp"
-                  ]
-                ]
-              },
-              {
-                "Fn::Join": [
-                  ":",
-                  [
-                    {
-                      "Ref": "MainPort81Host"
-                    },
-                    "3001/tcp"
-                  ]
-                ]
-              },
-              {
                 "Ref": "AWS::NoValue"
               }
             ],
             "Privileged": "false",
-            "SecureEnvironment": false,
+            "SecureEnvironment": true,
             "Services": [
               {
                 "Ref": "AWS::NoValue"
@@ -761,7 +468,6 @@
     "ServiceMain": {
       "Condition": "EnabledMain",
       "DependsOn": [
-        "BalancerMain",
         "CustomTopic",
         "ServiceRole"
       ],
@@ -779,21 +485,6 @@
             {
               "Ref": "MainFormation"
             }
-          ]
-        },
-        "LoadBalancers": [
-          {
-            "ContainerName": "main",
-            "ContainerPort": "3000",
-            "LoadBalancerName": {
-              "Ref": "BalancerMain"
-            }
-          }
-        ],
-        "Role": {
-          "Fn::GetAtt": [
-            "ServiceRole",
-            "Arn"
           ]
         },
         "TaskDefinition": {
