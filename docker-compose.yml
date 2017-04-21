@@ -16,7 +16,6 @@ services:
       - CLOUDFORMATION_TOPIC
       - CLUSTER
       - CUSTOM_TOPIC
-      - DEBUG=false
       - DOCKER_IMAGE_API=rack/web
       - DYNAMO_BUILDS
       - DYNAMO_RELEASES
@@ -43,8 +42,6 @@ services:
     ports:
       - 80:3000
       - 443:4443
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
   monitor:
     build:
       context: .
@@ -61,7 +58,6 @@ services:
       - CLOUDFORMATION_TOPIC
       - CLUSTER
       - CUSTOM_TOPIC
-      - DEBUG=false
       - DOCKER_IMAGE_API=rack/web
       - DYNAMO_BUILDS
       - DYNAMO_RELEASES
@@ -82,5 +78,3 @@ services:
       - VPC
       - LOG_GROUP
       - PROCESS=monitor
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
