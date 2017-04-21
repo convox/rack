@@ -57,7 +57,7 @@ func (s *SourceGit) Fetch(out io.Writer) (string, error) {
 		return "", err
 	}
 
-	cmd = exec.Command("git", "submodule", "update", "--recursive")
+	cmd = exec.Command("git", "submodule", "update", "--init", "--recursive")
 
 	cmd.Dir = tmp
 	cmd.Stdout = out
