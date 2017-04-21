@@ -643,39 +643,6 @@
         ] }
       }
     },
-    "SecureEnvironmentRole": {
-      "Type": "AWS::IAM::Role",
-      "Properties": {
-        "AssumeRolePolicyDocument": {
-          "Version": "2012-10-17",
-          "Statement": [
-            {
-              "Effect": "Allow",
-              "Principal": { "Service": [ "ecs-tasks.amazonaws.com" ] },
-              "Action": [ "sts:AssumeRole" ]
-            }
-          ]
-        },
-        "Path": "/convox/",
-        "Policies": [
-          {
-            "PolicyName": "SecureEnvironmentPolicy",
-            "PolicyDocument": {
-              "Version": "2012-10-17",
-              "Statement": {
-                "Effect": "Allow",
-                "Action": [
-                  "kms:Decrypt"
-                ],
-                "Resource": [
-                  { "Ref": "EncryptionKey" }
-                ]
-              }
-            }
-          }
-        ]
-      }
-    },
     "KernelUser": {
       "DependsOn": [ "KernelUserPolicy", "KernelUserIAMPolicy", "KernelUserGeneralPolicy" ],
       "Type": "AWS::IAM::User",
@@ -1087,6 +1054,39 @@
       "Type": "AWS::EC2::EIP",
       "Properties": {
         "Domain": "vpc"
+      }
+    },
+    "SecureEnvironmentRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": { "Service": [ "ecs-tasks.amazonaws.com" ] },
+              "Action": [ "sts:AssumeRole" ]
+            }
+          ]
+        },
+        "Path": "/convox/",
+        "Policies": [
+          {
+            "PolicyName": "SecureEnvironmentPolicy",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": {
+                "Effect": "Allow",
+                "Action": [
+                  "kms:Decrypt"
+                ],
+                "Resource": [
+                  { "Ref": "EncryptionKey" }
+                ]
+              }
+            }
+          }
+        ]
       }
     },
     "Subnet0": {
