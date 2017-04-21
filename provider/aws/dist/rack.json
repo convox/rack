@@ -775,6 +775,7 @@
                       "iam:GetPolicy",
                       "iam:GetServerCertificate",
                       "iam:ListServerCertificates",
+                      "iam:PassRole",
                       "iam:UploadServerCertificate",
                       "kms:CreateAlias",
                       "kms:Decrypt",
