@@ -1,7 +1,6 @@
 package aws_test
 
 import (
-	"fmt"
 	"testing"
 	"time"
 
@@ -128,20 +127,6 @@ func TestSystemSaveNewParameter(t *testing.T) {
 	})
 
 	assert.NoError(t, err)
-}
-
-func TestSystemSaveWrongType(t *testing.T) {
-	sys := structs.System{
-		Name:    "name",
-		Version: "version",
-		Type:    "wrongtype",
-	}
-
-	provider := &aws.AWSProvider{}
-
-	err := provider.SystemSave(sys)
-
-	assert.Equal(t, err, fmt.Errorf("invalid instance type: wrongtype"))
 }
 
 func TestSystemProcessesList(t *testing.T) {
