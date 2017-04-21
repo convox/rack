@@ -94,6 +94,11 @@ for region in $(cat $base/REGIONS); do
     echo "deleting repository: $repo ($region)"
     aws ecr delete-repository --repository-name $repo --region $region --force >/dev/null
   done
+  
+  for eip in $(aws ec2 describe-addresses --region $region | jq -r '.Addresses[] | select(has("PrivateIpAddress") | not) | .AllocationId'); do
+      echo "deleting eip: $eip ($region)"
+      aws ec2 release-address --allocation-id $eip
+  done
 
   for group in $(aws logs describe-log-groups --region $region | jq -r ".logGroups[].logGroupName"); do
     echo "deleting log group: $group ($region)"
