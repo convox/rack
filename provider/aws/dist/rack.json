@@ -976,7 +976,6 @@
                       "iam:GetRole",
                       "iam:ListAccessKeys",
                       "iam:ListPolicyVersions",
-                      "iam:PassRole",
                       "iam:PutRolePolicy",
                       "iam:PutUserPolicy",
                       "iam:RemoveRoleFromInstanceProfile"
