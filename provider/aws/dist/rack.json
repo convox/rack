@@ -941,6 +941,7 @@
                       "iam:DeleteUser",
                       "iam:DeleteUserPolicy",
                       "iam:DetachUserPolicy",
+                      "iam:GetPolicy",
                       "iam:GetRole",
                       "iam:ListAccessKeys",
                       "iam:ListPolicyVersions",
