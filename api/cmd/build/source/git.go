@@ -48,18 +48,8 @@ func (s *SourceGit) Fetch(out io.Writer) (string, error) {
 		repo = r
 	}
 
-	cmd := exec.Command("git", "clone", "-b", ref, repo, tmp)
+	cmd := exec.Command("git", "clone", "--recursive", "-b", ref, repo, tmp)
 
-	cmd.Stdout = out
-	cmd.Stderr = out
-
-	if err := cmd.Run(); err != nil {
-		return "", err
-	}
-
-	cmd = exec.Command("git", "submodule", "update", "--init", "--recursive")
-
-	cmd.Dir = tmp
 	cmd.Stdout = out
 	cmd.Stderr = out
 
