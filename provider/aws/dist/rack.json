@@ -1879,8 +1879,20 @@
     "AccountEventsRule": {
       "Type" : "AWS::Events::Rule",
       "Properties" : {
+        "Description" : "Specified event changes",
         "EventPattern" : {
-          "account":  [ { "Ref": "AWS::AccountId" } ]
+          "account":  [ { "Ref": "AWS::AccountId" } ],
+          "source": [
+            "aws.ecs"
+          ],
+          "detail-type": [
+            "ECS Task State Change"
+          ],
+          "detail": {
+            "clusterArn": [
+              { "Fn::Sub": "arn:aws:ecs:${AWS::Region}:${AWS::AccountId}:cluster/${Cluster}" }
+            ]
+          }
         },
         "State" : "ENABLED",
         "Targets" : [
