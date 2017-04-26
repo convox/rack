@@ -343,6 +343,50 @@ func waitForServerCertificate(name string) error {
 	return fmt.Errorf("can't get here")
 }
 
+var (
+	serverCertificateWaitConfirmations = 3
+	serverCertificateWaitTick          = 5 * time.Second
+	serverCertificateWaitTimeout       = 2 * time.Minute
+)
+
+// wait for a few successful certificate refreshes in a row
+func waitForServerCertificate(name string) error {
+	confirmations := 0
+	done := time.Now().Add(serverCertificateWaitTimeout)
+
+	for {
+		if time.Now().After(done) {
+			return fmt.Errorf("timeout")
+		}
+
+		if confirmations >= serverCertificateWaitConfirmations {
+			return nil
+		}
+
+		time.Sleep(serverCertificateWaitTick)
+
+		res, err := IAM().GetServerCertificate(&iam.GetServerCertificateInput{
+			ServerCertificateName: &name,
+		})
+		if err != nil {
+			confirmations = 0
+			continue
+		}
+		if res.ServerCertificate == nil || res.ServerCertificate.ServerCertificateMetadata == nil || res.ServerCertificate.ServerCertificateMetadata.ServerCertificateName == nil {
+			confirmations = 0
+			continue
+		}
+		if *res.ServerCertificate.ServerCertificateMetadata.ServerCertificateName != name {
+			confirmations = 0
+			continue
+		}
+
+		confirmations++
+	}
+
+	return fmt.Errorf("can't get here")
+}
+
 func (r *Release) EnvironmentUrl() string {
 	app, err := GetApp(r.App)
 
