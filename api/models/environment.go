@@ -224,8 +224,10 @@ func ParseEnvLine(line string) (string, string) {
 		return "", ""
 	}
 
-	// strip leading/trailing ' if they exist
-	v = strings.Trim(v, "'")
+	// strip leading/trailing ' only if both exist
+	if len(v) > 1 && v[0] == '\'' && v[len(v)-1] == '\'' {
+		v = strings.Trim(v, "'")
+	}
 
 	return k, v
 }

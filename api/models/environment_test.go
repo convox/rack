@@ -28,8 +28,12 @@ func TestParseEnvLine(t *testing.T) {
 		{"An Invalid line", "", ""},
 
 		{"heroku='likes to put things in single quotes'", "heroku", "likes to put things in single quotes"},
+		{"leading='leading quote is kept", "leading", "'leading quote is kept"},
+		{"trailing=single quote at the end'", "trailing", "single quote at the end'"},
+		{"K='", "K", "'"},
 
 		{"K=V", "K", "V"},
+		{"K=", "K", ""},
 		{"Key =value", "Key", "value"},
 		{"KEY = 123", "KEY", "123"},
 		{"k  =  292929", "k", "292929"},
