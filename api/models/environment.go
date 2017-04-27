@@ -225,7 +225,7 @@ func ParseEnvLine(line string) (string, string) {
 	}
 
 	// strip leading/trailing ' only if both exist
-	if v[0] == '\'' && v[len(v)-1] == '\'' {
+	if len(v) > 1 && v[0] == '\'' && v[len(v)-1] == '\'' {
 		v = strings.Trim(v, "'")
 	}
 
