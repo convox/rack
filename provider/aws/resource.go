@@ -35,6 +35,22 @@ func (p *AWSProvider) ResourceCreate(name, kind string, params map[string]string
 
 	switch s.Type {
 	case "memcached", "mysql", "postgres", "redis", "sqs":
+		s.Parameters["EncryptionKey"] = ""
+		if s.Parameters["Encryption"] == "true" {
+			stacks, err := p.describeStacks(&cloudformation.DescribeStacksInput{
+				StackName: aws.String(p.Rack),
+			})
+			if err != nil {
+				return nil, err
+			}
+			if len(stacks) != 1 {
+				return nil, fmt.Errorf("could not load rack stack: %s", p.Rack)
+			}
+
+			rs := resourceFromStack(stacks[0])
+
+			s.Parameters["EncryptionKey"] = rs.Outputs["EncryptionKey"]
+		}
 		req, err = p.createResource(s)
 	case "fluentd":
 		req, err = p.createResourceURL(s, "tcp")

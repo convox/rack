@@ -2,7 +2,8 @@
   {
     "AWSTemplateFormatVersion" : "2010-09-09",
     "Conditions": {
-      "Private": { "Fn::Equals": [ { "Ref": "Private" }, "true" ] }
+      "Private": { "Fn::Equals": [ { "Ref": "Private" }, "true" ] },
+      "Encrypted": { "Fn::Equals" : [ { "Ref" : "Encryption" }, "true" ] }
     },
     "Parameters": {
       "AllocatedStorage": {
@@ -14,6 +15,16 @@
         "Type" : "String",
         "Default" : "app",
         "Description" : "Default database name"
+      },
+      "Encryption": {
+        "Type": "String",
+        "Description": "Encrypt RDS storage volumes",
+        "Default": "false",
+        "AllowedValues": [ "true", "false" ]
+      },
+      "EncryptionKey": {
+        "Type" : "String",
+        "Description" : "KMS Encryption Key"
       },
       "InstanceType": {
         "Type" : "String",
@@ -96,11 +107,16 @@
           "DBSubnetGroupName": { "Ref": "SubnetGroup" },
           "Engine": "mysql",
           "EngineVersion": "5.6.27",
+          "KmsKeyId": { "Fn::If" : [ "Encrypted",
+            { "Ref": "EncryptionKey" },
+            { "Ref" : "AWS::NoValue" }
+          ] },
           "MasterUsername": { "Ref": "Username" },
           "MasterUserPassword": { "Ref": "Password" },
           "MultiAZ": { "Ref": "MultiAZ" },
           "Port": "3306",
           "PubliclyAccessible": "false",
+          "StorageEncrypted": { "Ref": "Encryption" },
           "StorageType": "gp2",
           "VPCSecurityGroups": [ { "Ref": "SecurityGroup" } ]
         }
