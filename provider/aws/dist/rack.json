@@ -1,6 +1,7 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
   "Conditions": {
+    "Agent": { "Fn::Equals": [ { "Ref": "Agent" }, "Yes" ] },
     "Autoscale": { "Fn::Equals": [ { "Ref": "Autoscale" }, "Yes" ] },
     "BlankAmi": { "Fn::Equals": [ { "Ref": "Ami" }, "" ] },
     "BlankBuildImage": { "Fn::Equals": [ { "Ref": "BuildImage" }, "" ] },
@@ -246,6 +247,12 @@
     }
   },
   "Parameters": {
+    "Agent": {
+      "Type": "String",
+      "Description": "Run Convox agent on each instance",
+      "Default": "Yes",
+      "AllowedValues": [ "Yes", "No" ]
+    },
     "Ami": {
       "Type": "String",
       "Description": "Amazon Machine Image: http://docs.aws.amazon.com/AmazonECS/latest/developerguide/launch_container_instance.html",
@@ -1640,7 +1647,10 @@
             "  - echo \"", { "Ref": "AWS::Region" }, "\" > /etc/convox/region\n",
             "  - echo \"", { "Ref": "ClientId" }, "\" > /etc/convox/client_id\n",
             "  - echo \"", { "Ref": "LogGroup" }, "\" > /etc/convox/log_group\n",
-            "  - curl -s https://convox.s3.amazonaws.com/agent/0.71/convox.conf > /etc/init/convox.conf\n",
+            { "Fn::If": [ "Agent",
+              "  - curl -s https://convox.s3.amazonaws.com/agent/0.71/convox.conf > /etc/init/convox.conf\n",
+              ""
+            ] },
             "  - echo -e '/var/log/docker {\\n  rotate 7\\n  daily\\n  nocompress\\n  copytruncate\\n}' >> /etc/logrotate.d/docker\n",
             { "Fn::If": [ "BlankInstanceBootCommand",
               { "Ref": "AWS::NoValue" },
