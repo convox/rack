@@ -90,6 +90,10 @@ func (p *Process) GenerateArgs(opts *ArgOptions) []string {
 		args = append(args, "--add-host", v)
 	}
 
+	if p.service.Privileged {
+		args = append(args, "--privileged")
+	}
+
 	for _, n := range p.service.Networks {
 		for _, in := range n {
 			args = append(args, "--net", in.Name)
