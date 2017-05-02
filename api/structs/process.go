@@ -45,8 +45,8 @@ type ProcessRunOptions struct {
 
 // ProcessRunBody is the output response
 type ProcessRunBody struct {
-	Success bool
-	Pid     string
+	Success bool    `json:"success"`
+	Pid     string  `json:"pid"`
 }
 
 func (ps Processes) Len() int {
