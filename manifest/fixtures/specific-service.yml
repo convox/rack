@@ -32,5 +32,3 @@ services:
       convox.ccc: ddd
     ports:
       - 5432
-  extra:
-    build: ./extra

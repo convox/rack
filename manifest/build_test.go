@@ -40,11 +40,11 @@ func (te *TestExecer) AssertCommands(t *testing.T, commands TestCommands) {
 		actual := []string{}
 
 		if i < len(te.Commands) {
-			expected = te.Commands[i].Args
+			actual = te.Commands[i].Args
 		}
 
 		if i < len(commands) {
-			actual = commands[i]
+			expected = commands[i]
 		}
 
 		assert.Equal(t, expected, actual)
@@ -226,14 +226,14 @@ func TestBuildRepeatSimple(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
-	cmd1 := []string{"docker", "build", "--no-cache", "-f", "fixtures/Dockerfile", "-t", "web/monitor", "fixtures"}
+	cmd1 := []string{"docker", "build", "--no-cache", "-f", "fixtures/Dockerfile", "-t", "web/web", "fixtures"}
 	cmd2 := []string{"docker", "build", "--no-cache", "-f", "fixtures/other/Dockerfile", "-t", "web/other", "fixtures/other"}
-	cmd3 := []string{"docker", "tag", "web/monitor", "web/web"}
+	cmd3 := []string{"docker", "tag", "web/web", "web/monitor"}
 
 	if assert.Equal(t, len(te.Commands), 3) {
-		assert.Equal(t, te.Commands[0].Args, cmd1)
-		assert.Equal(t, te.Commands[1].Args, cmd2)
-		assert.Equal(t, te.Commands[2].Args, cmd3)
+		assert.Equal(t, cmd1, te.Commands[0].Args)
+		assert.Equal(t, cmd2, te.Commands[1].Args)
+		assert.Equal(t, cmd3, te.Commands[2].Args)
 	}
 }
 
@@ -260,13 +260,13 @@ func TestBuildRepeatImage(t *testing.T) {
 	assert.NoError(t, err)
 
 	cmd1 := []string{"docker", "pull", "convox/rails:latest"}
-	cmd2 := []string{"docker", "tag", "convox/rails:latest", "web/web1"}
-	cmd3 := []string{"docker", "tag", "convox/rails:latest", "web/web2"}
+	cmd2 := []string{"docker", "tag", "convox/rails:latest", "web/web2"}
+	cmd3 := []string{"docker", "tag", "convox/rails:latest", "web/web1"}
 
 	if assert.Equal(t, len(te.Commands), 3) {
-		assert.Equal(t, te.Commands[0].Args, cmd1)
-		assert.Equal(t, te.Commands[1].Args, cmd2)
-		assert.Equal(t, te.Commands[2].Args, cmd3)
+		assert.Equal(t, cmd1, te.Commands[0].Args)
+		assert.Equal(t, cmd2, te.Commands[1].Args)
+		assert.Equal(t, cmd3, te.Commands[2].Args)
 	}
 }
 
@@ -290,16 +290,16 @@ func TestBuildRepeatComplex(t *testing.T) {
 	assert.NoError(t, err)
 
 	te.AssertCommands(t, TestCommands{
-		[]string{"docker", "build", "--no-cache", "-f", "fixtures/Dockerfile", "-t", "web/first", "fixtures"},
-		[]string{"docker", "build", "--no-cache", "--build-arg", "foo=bar", "-f", "fixtures/Dockerfile", "-t", "web/monitor", "fixtures"},
-		[]string{"docker", "build", "--no-cache", "--build-arg", "foo=bar", "-f", "fixtures/other/Dockerfile", "-t", "web/othera", "fixtures/other"},
-		[]string{"docker", "build", "--no-cache", "--build-arg", "foo=baz", "-f", "fixtures/Dockerfile.other", "-t", "web/otherb", "fixtures"},
-		[]string{"docker", "build", "--no-cache", "--build-arg", "foo=other", "-f", "fixtures/Dockerfile", "-t", "web/otherc", "fixtures"},
+		[]string{"docker", "build", "--no-cache", "--build-arg", "foo=bar", "-f", "fixtures/Dockerfile", "-t", "web/web", "fixtures"},
+		[]string{"docker", "build", "--no-cache", "-f", "fixtures/Dockerfile.otherf", "-t", "web/otherg", "fixtures"},
+		[]string{"docker", "tag", "web/otherg", "web/otherf"},
+		[]string{"docker", "build", "--no-cache", "-f", "fixtures/Dockerfile", "-t", "web/othere", "fixtures"},
 		[]string{"docker", "build", "--no-cache", "-f", "fixtures/Dockerfile", "-t", "web/otherd", "fixtures"},
-		[]string{"docker", "tag", "web/first", "web/othere"},
-		[]string{"docker", "build", "--no-cache", "-f", "fixtures/Dockerfile.otherf", "-t", "web/otherf", "fixtures"},
-		[]string{"docker", "tag", "web/otherf", "web/otherg"},
-		[]string{"docker", "tag", "web/monitor", "web/web"},
+		[]string{"docker", "build", "--no-cache", "--build-arg", "foo=other", "-f", "fixtures/Dockerfile", "-t", "web/otherc", "fixtures"},
+		[]string{"docker", "build", "--no-cache", "--build-arg", "foo=baz", "-f", "fixtures/Dockerfile.other", "-t", "web/otherb", "fixtures"},
+		[]string{"docker", "build", "--no-cache", "--build-arg", "foo=bar", "-f", "fixtures/other/Dockerfile", "-t", "web/othera", "fixtures/other"},
+		[]string{"docker", "tag", "web/web", "web/monitor"},
+		[]string{"docker", "tag", "web/othere", "web/first"},
 	})
 }
 
