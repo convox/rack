@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/docker/go-units"
+	"github.com/twmb/algoimpl/go/graph"
 	"gopkg.in/yaml.v2"
 )
 
@@ -264,43 +265,54 @@ func (m *Manifest) getDeps(root, dep string, deps map[string]bool) error {
 
 // Return the Services of this Manifest in the order you should run them
 func (m *Manifest) runOrder(target string) (Services, error) {
-	deps := make(map[string]bool)
-	if target != "" {
-		err := m.getDeps(target, target, deps)
-		if err != nil {
-			return nil, err
-		}
-	}
-
 	services := Services{}
 
-	for _, service := range m.Services {
-		services = append(services, service)
+	// Make a directed acyclical graph
+	serviceGraph := graph.New(graph.Directed)
+
+	// Make a map of service names to graph nodes
+	nodes := make(map[string]graph.Node, 0)
+
+	// Make a map of service names to services
+	serviceMap := make(map[string]Service, 0)
+
+	sortedNames := make([]string, 0, len(m.Services))
+	for key := range m.Services {
+		sortedNames = append(sortedNames, key)
 	}
 
-	sort.Sort(services)
+	sort.Strings(sortedNames)
 
-	// classic bubble sort
-	for i := 0; i < len(services)-1; i++ {
-		for j := i + 1; j < len(services); j++ {
-			// swap if j is a dependency of i
-			for _, name := range services[i].Links {
-				if name == services[j].Name {
-					services[i], services[j] = services[j], services[i]
-					break
-				}
+	// Map the service names to services
+	for _, key := range sortedNames {
+		service := m.Services[key]
+		serviceMap[service.Name] = service
+		nodes[service.Name] = serviceGraph.MakeNode()
+	}
+
+	// Make references from nodes back to the service names
+	for key, node := range nodes {
+		*node.Value = key
+	}
+
+	// Connect the nodes
+	for serviceName, node := range nodes {
+		service := serviceMap[serviceName]
+		for _, link := range service.Links {
+			err := serviceGraph.MakeEdge(nodes[link], node)
+			if err != nil {
+				return nil, err
 			}
 		}
 	}
 
-	if len(deps) > 0 {
-		servicesFiltered := []Service{}
-		for _, s := range services {
-			if deps[s.Name] {
-				servicesFiltered = append(servicesFiltered, s)
-			}
-		}
-		return Services(servicesFiltered), nil
+	// Do a topological sort on the DAG
+	sorted := serviceGraph.TopologicalSort()
+
+	// Populate services from the service name
+	for _, node := range sorted {
+		name := *node.Value
+		services = append(services, serviceMap[name.(string)])
 	}
 
 	return services, nil
