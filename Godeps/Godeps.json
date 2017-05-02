@@ -521,6 +521,10 @@
 			"Rev": "bed131cf08ce5d7e7bc47a9bf9ee818a02458ce7"
 		},
 		{
+			"ImportPath": "github.com/twmb/algoimpl/go/graph",
+			"Rev": "716f8e78b563212cfefb120bedc265741f51d1a4"
+		},
+		{
 			"ImportPath": "github.com/xtgo/uuid",
 			"Rev": "a0b114877d4caeffbd7f87e3757c17fce570fea7"
 		},
