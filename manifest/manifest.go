@@ -276,17 +276,13 @@ func (m *Manifest) runOrder(target string) (Services, error) {
 	// Make a map of service names to services
 	serviceMap := make(map[string]Service, 0)
 
-	sortedNames := make([]string, 0, len(m.Services))
-	for key := range m.Services {
-		sortedNames = append(sortedNames, key)
+	// Map the service names to services
+	for _, service := range m.Services {
+		serviceMap[service.Name] = service
 	}
 
-	sort.Strings(sortedNames)
-
-	// Map the service names to services
-	for _, key := range sortedNames {
-		service := m.Services[key]
-		serviceMap[service.Name] = service
+	// Make the graph nodes
+	for _, service := range m.Services {
 		nodes[service.Name] = serviceGraph.MakeNode()
 	}
 
