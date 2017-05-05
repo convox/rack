@@ -1623,7 +1623,7 @@
             "  - mkdir /volumes\n",
             { "Fn::If": [ "RegionHasEFS",
               { "Fn::Join": [ "", [
-                "  - while true; do mount -t nfs -o nfsvers=4.1 $(curl -s http://169.254.169.254/latest/meta-data/placement/availability-zone).",
+                "  - while true; do mount -t nfs -o nfsvers=4.1 $(curl -s --noproxy 169.254.169.254 http://169.254.169.254/latest/meta-data/placement/availability-zone).",
                 { "Ref": "VolumeFilesystem" },
                 ".efs.",
                 { "Ref": "AWS::Region" },
@@ -1671,7 +1671,7 @@
               "  - ", { "Ref": "InstanceRunCommand" }, "\n"
               ] ] }
             ] },
-            "  - export INSTANCE_ID=$(curl -s http://169.254.169.254/latest/meta-data/instance-id)\n",
+            "  - export INSTANCE_ID=$(curl -s --noproxy 169.254.169.254 http://169.254.169.254/latest/meta-data/instance-id)\n",
             "  - export ASG_NAME=$(/usr/bin/aws autoscaling describe-auto-scaling-instances --instance-ids=$INSTANCE_ID --region ", {"Ref":"AWS::Region"}, " --output text --query 'AutoScalingInstances[0].AutoScalingGroupName')\n",
             "  - export LIFECYCLE_HOOK=$(/usr/bin/aws autoscaling describe-lifecycle-hooks --auto-scaling-group-name $ASG_NAME --region ", {"Ref":"AWS::Region"}, " --output text --query \"LifecycleHooks[?contains(LifecycleHookName, '", { "Ref": "AWS::StackName" }, "-InstancesLifecycleLaunching') == \\`true\\`].LifecycleHookName | [0]\")\n",
             "  - /usr/bin/aws autoscaling complete-lifecycle-action --region ", { "Ref": "AWS::Region" }, " --instance-id $INSTANCE_ID --lifecycle-hook-name $LIFECYCLE_HOOK --auto-scaling-group-name $ASG_NAME --lifecycle-action-result CONTINUE\n",
