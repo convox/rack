@@ -292,3 +292,22 @@ func TestApiTrailingSlash(t *testing.T) {
 		},
 	)
 }
+
+// TestApiTrailingSlash should ensure we fall back to /endpoint when user runs `convox api get /endpoint/`
+func TestApiTrailingSlash(t *testing.T) {
+	ts := testServer(t,
+		test.Http{Method: "GET", Path: "/apps", Code: 200, Response: client.Apps{
+			client.App{Name: "sinatra", Status: "running"},
+		}},
+	)
+
+	defer ts.Close()
+
+	test.Runs(t,
+		test.ExecRun{
+			Command: "convox api get /apps/",
+			Exit:    0,
+			Stdout:  "[\n  {\n    \"name\": \"sinatra\",\n    \"release\": \"\",\n    \"status\": \"running\"\n  }\n]\n",
+		},
+	)
+}
