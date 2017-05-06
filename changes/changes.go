@@ -1,6 +1,7 @@
 package changes
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"time"
@@ -33,11 +34,19 @@ func Watch(dir string, ch chan Change) error {
 	if err != nil {
 		return err
 	}
+	root, err := filepath.Abs(".")
+	if err != nil {
+		return err
+	}
+
+	rootignore, _ := readDockerIgnore(filepath.Join(root, ".dockerignore"))
 
 	ignore, err := readDockerIgnoreRecursive(abs)
 	if err != nil {
 		return err
 	}
+	ignore = append(ignore, rootignore...)
+	fmt.Println("Ignoring: ", ignore)
 
 	sym, err := filepath.EvalSymlinks(abs)
 	if err != nil {
@@ -98,6 +107,9 @@ func watchForChanges(dir string, ignore []string, ch chan Change) error {
 		return err
 	}
 
+	if os.Getenv("CONVOX_DEBUG") != "" {
+		fmt.Println("Scanning for changes: ", dir)
+	}
 	startScanner(dir)
 
 	for {
@@ -125,6 +137,8 @@ func notify(ch chan Change, from, to map[string]time.Time, base string, ignore [
 			send(ch, "remove", fk, base, ignore)
 		case ft.Before(tt):
 			send(ch, "add", fk, base, ignore)
+		default:
+			fmt.Println(from)
 		}
 	}
 
@@ -141,9 +155,21 @@ func send(ch chan Change, op, file, base string, ignore []string) {
 		return
 	}
 
-	if match, _ := fileutils.Matches(rel, ignore); match {
+	abs, err := filepath.Abs(".")
+	if err != nil {
+	}
+
+	// Convert relative paths to absolute paths
+	ignoreabs := []string{}
+	for _, x := range ignore {
+		ignoreabs = append(ignoreabs, filepath.Join(abs, x))
+	}
+
+	if match, _ := fileutils.Matches(file, ignoreabs); match {
+		fmt.Println("ignoring: ", file)
 		return
 	}
+	fmt.Println("not ignoring: ", file)
 
 	change := Change{
 		Operation: op,
