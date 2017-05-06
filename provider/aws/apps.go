@@ -31,7 +31,7 @@ func (p *AWSProvider) AppGet(name string) (*structs.App, error) {
 		StackName: aws.String(p.Rack + "-" + name),
 	})
 	if ae, ok := err.(awserr.Error); ok && ae.Code() == "ValidationError" {
-		return nil, errorNotFound(fmt.Sprintf("%s not found", name))
+		return nil, errorNotFound(fmt.Sprintf("<app>%s</app> not found", name))
 	}
 	if err != nil {
 		return nil, err
@@ -43,7 +43,7 @@ func (p *AWSProvider) AppGet(name string) (*structs.App, error) {
 	app := appFromStack(stacks[0])
 
 	if app.Tags["Rack"] != "" && app.Tags["Rack"] != p.Rack {
-		return nil, errorNotFound(fmt.Sprintf("%s not found", name))
+		return nil, errorNotFound(fmt.Sprintf("<app>%s</app> not found", name))
 	}
 
 	return &app, nil
