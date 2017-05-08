@@ -284,7 +284,7 @@ func (m *Manifest) runOrder(target string) (Services, error) {
 	// Make a map of service names to services
 	serviceMap := make(map[string]Service, 0)
 
-	// Sort the service nams alphabetically
+	// Sort the service names alphabetically
 	sortedNames := make([]string, 0, len(m.Services))
 	for key := range m.Services {
 		sortedNames = append(sortedNames, key)
