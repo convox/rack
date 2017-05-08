@@ -1474,8 +1474,8 @@
             "  - export http_proxy=", { "Ref": "HttpProxy" }, "\n",
             "  - echo http_proxy=", { "Ref": "HttpProxy" }, " >> /etc/environment\n",
             "  - export HTTP_PROXY=", { "Ref": "HttpProxy" }, "\n",
-            "  - export NO_PROXY=169.254.169.254\n",
             "  - echo HTTP_PROXY=", { "Ref": "HttpProxy" }, " >> /etc/environment\n",
+            "  - export NO_PROXY=169.254.169.254\n",
             "  - echo NO_PROXY=169.254.169.254 >> /etc/environment\n",
             "  - echo proxy=", { "Ref": "HttpProxy" }, " >> /etc/yum.conf\n",
             "  - echo ECS_CLUSTER=", { "Ref": "BuildCluster" }, " >> /etc/ecs/ecs.config\n",
@@ -1510,7 +1510,7 @@
               "  - ", { "Ref": "InstanceRunCommand" }, "\n"
               ] ] }
             ] },
-            "  - /opt/aws/bin/cfn-signal --http-proxy", { "Ref": "HttpProxy" }, "--stack ", { "Ref": "AWS::StackName" }, " --region ", { "Ref":"AWS::Region" }, " --resource BuildInstances\n"
+            "  - /opt/aws/bin/cfn-signal --http-proxy ", { "Ref": "HttpProxy" }, " --stack ", { "Ref": "AWS::StackName" }, " --region ", { "Ref":"AWS::Region" }, " --resource BuildInstances\n"
           ] ] }
         }
       }
@@ -1619,8 +1619,8 @@
             "  - export http_proxy=", { "Ref": "HttpProxy" }, "\n",
             "  - echo http_proxy=", { "Ref": "HttpProxy" }, " >> /etc/environment\n",
             "  - export HTTP_PROXY=", { "Ref": "HttpProxy" }, "\n",
-            "  - export NO_PROXY=169.254.169.254\n",
             "  - echo HTTP_PROXY=", { "Ref": "HttpProxy" }, " >> /etc/environment\n",
+            "  - export NO_PROXY=169.254.169.254\n",
             "  - echo NO_PROXY=169.254.169.254 >> /etc/environment\n",
             "  - echo proxy=", { "Ref": "HttpProxy" }, " >> /etc/yum.conf\n",
             "  - until yum install -y aws-cli nfs-utils; do echo \"Waiting for network\"; done;\n",
@@ -1679,7 +1679,7 @@
             "  - export ASG_NAME=$(/usr/bin/aws autoscaling describe-auto-scaling-instances --instance-ids=$INSTANCE_ID --region ", {"Ref":"AWS::Region"}, " --output text --query 'AutoScalingInstances[0].AutoScalingGroupName')\n",
             "  - export LIFECYCLE_HOOK=$(/usr/bin/aws autoscaling describe-lifecycle-hooks --auto-scaling-group-name $ASG_NAME --region ", {"Ref":"AWS::Region"}, " --output text --query \"LifecycleHooks[?contains(LifecycleHookName, '", { "Ref": "AWS::StackName" }, "-InstancesLifecycleLaunching') == \\`true\\`].LifecycleHookName | [0]\")\n",
             "  - /usr/bin/aws autoscaling complete-lifecycle-action --region ", { "Ref": "AWS::Region" }, " --instance-id $INSTANCE_ID --lifecycle-hook-name $LIFECYCLE_HOOK --auto-scaling-group-name $ASG_NAME --lifecycle-action-result CONTINUE\n",
-            "  - /opt/aws/bin/cfn-signal --http-proxy", { "Ref": "HttpProxy" }, " --stack ", { "Ref": "AWS::StackName" }, " --region ", { "Ref": "AWS::Region" }, " --resource Instances\n"
+            "  - /opt/aws/bin/cfn-signal --http-proxy ", { "Ref": "HttpProxy" }, " --stack ", { "Ref": "AWS::StackName" }, " --region ", { "Ref": "AWS::Region" }, " --resource Instances\n"
           ] ] }
         }
       }
