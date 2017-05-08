@@ -100,6 +100,11 @@ func init() {
 				Value: "",
 				Usage: "existing vpc id into which to install rack",
 			},
+			cli.StringFlag{
+				Name:  "http-proxy",
+				Value: "",
+				Usage: "an HTTP proxy URL that the rack should use for all outbound requests",
+			},
 			cli.IntFlag{
 				Name:  "instance-count",
 				Value: 3,
@@ -348,6 +353,8 @@ func cmdInstall(c *cli.Context) error {
 		password = randomString(30)
 	}
 
+	httpProxy := c.String("http-proxy")
+
 	CloudFormation := cloudformation.New(session.New(), awsConfig(region, creds))
 
 	req := &cloudformation.CreateStackInput{
@@ -356,6 +363,7 @@ func cmdInstall(c *cli.Context) error {
 			{ParameterKey: aws.String("Ami"), ParameterValue: aws.String(ami)},
 			{ParameterKey: aws.String("ClientId"), ParameterValue: aws.String(distinctID)},
 			{ParameterKey: aws.String("ExistingVpc"), ParameterValue: aws.String(existingVPC)},
+			{ParameterKey: aws.String("HttpProxy"), ParameterValue: aws.String(httpProxy)},
 			{ParameterKey: aws.String("InstanceCount"), ParameterValue: aws.String(instanceCount)},
 			{ParameterKey: aws.String("InstanceType"), ParameterValue: aws.String(instanceType)},
 			{ParameterKey: aws.String("InternetGateway"), ParameterValue: aws.String(internetGateway)},
