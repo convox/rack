@@ -265,9 +265,17 @@ func (m *Manifest) getDeps(root, dep string, deps map[string]bool) error {
 
 // Return the Services of this Manifest in the order you should run them
 func (m *Manifest) runOrder(target string) (Services, error) {
+	deps := make(map[string]bool)
+	if target != "" {
+		err := m.getDeps(target, target, deps)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	services := Services{}
 
-	// Make a directed acyclical graph
+	// Make a directed graph
 	serviceGraph := graph.New(graph.Directed)
 
 	// Make a map of service names to graph nodes
@@ -276,6 +284,7 @@ func (m *Manifest) runOrder(target string) (Services, error) {
 	// Make a map of service names to services
 	serviceMap := make(map[string]Service, 0)
 
+	// Sort the service nams alphabetically
 	sortedNames := make([]string, 0, len(m.Services))
 	for key := range m.Services {
 		sortedNames = append(sortedNames, key)
@@ -311,8 +320,15 @@ func (m *Manifest) runOrder(target string) (Services, error) {
 
 	// Populate services from the service name
 	for _, node := range sorted {
-		name := *node.Value
-		services = append(services, serviceMap[name.(string)])
+		name := (*node.Value).(string)
+		// Only include the target and its dependencies if a target was specified
+		if target != "" {
+			if deps[name] || (name == target) {
+				services = append(services, serviceMap[name])
+			}
+		} else {
+			services = append(services, serviceMap[name])
+		}
 	}
 
 	return services, nil
