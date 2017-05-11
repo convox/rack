@@ -1481,7 +1481,11 @@
             "  - echo HTTPS_PROXY=", { "Ref": "HttpProxy" }, " >> /etc/environment\n",
             "  - export NO_PROXY=169.254.169.254\n",
             "  - echo NO_PROXY=169.254.169.254 >> /etc/environment\n",
-            "  - echo proxy=", { "Ref": "HttpProxy" }, " >> /etc/yum.conf\n",
+            { "Fn::If": [ "HttpProxy",
+              { "Fn::Join": ["", ["  - echo \"proxy=", { "Ref": "HttpProxy" }, "/\" >> /etc/yum.conf\n"
+              ] ] },
+              { "Ref": "AWS::NoValue" }
+            ] },
             "  - echo ECS_CLUSTER=", { "Ref": "BuildCluster" }, " >> /etc/ecs/ecs.config\n",
             "  - echo ECS_ENGINE_AUTH_TYPE=docker >> /etc/ecs/ecs.config\n",
             "  - echo HTTP_PROXY=", { "Ref": "HttpProxy" }, " >> /etc/ecs/ecs.config\n",
@@ -1630,7 +1634,11 @@
             "  - echo HTTPS_PROXY=", { "Ref": "HttpProxy" }, " >> /etc/environment\n",
             "  - export NO_PROXY=169.254.169.254\n",
             "  - echo NO_PROXY=169.254.169.254 >> /etc/environment\n",
-            "  - echo proxy=", { "Ref": "HttpProxy" }, " >> /etc/yum.conf\n",
+            { "Fn::If": [ "HttpProxy",
+              { "Fn::Join": ["", ["  - echo \"proxy=", { "Ref": "HttpProxy" }, "/\" >> /etc/yum.conf\n"
+              ] ] },
+              { "Ref": "AWS::NoValue" }
+            ] },
             "  - until yum install -y aws-cli nfs-utils; do echo \"Waiting for network\"; done;\n",
             "  - mkdir /volumes\n",
             { "Fn::If": [ "RegionHasEFS",
