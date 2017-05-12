@@ -127,10 +127,8 @@ func ProcessRunDetached(rw http.ResponseWriter, r *http.Request) *httperr.Error 
 		return httperr.Server(err)
 	}
 
-	return RenderJson(rw, structs.ProcessRunBody{
-		Success: true,
-		Pid: pid,
-	})
+	data := map[string]interface{}{"success": true, "pid": pid}
+	return RenderJson(rw, data)
 }
 
 // ProcessStop stops a Process
