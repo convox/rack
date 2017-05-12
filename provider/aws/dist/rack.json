@@ -1518,7 +1518,7 @@
               "  - ", { "Ref": "InstanceRunCommand" }, "\n"
               ] ] }
             ] },
-            "  - /opt/aws/bin/cfn-signal --http-proxy ", { "Ref": "HttpProxy" }, " --stack ", { "Ref": "AWS::StackName" }, " --region ", { "Ref":"AWS::Region" }, " --resource BuildInstances\n"
+            "  - /opt/aws/bin/cfn-signal --http-proxy \"", { "Ref": "HttpProxy" }, "\" --stack ", { "Ref": "AWS::StackName" }, " --region ", { "Ref":"AWS::Region" }, " --resource BuildInstances\n"
           ] ] }
         }
       }
