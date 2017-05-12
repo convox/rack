@@ -97,8 +97,8 @@ func TestAppsCreateWithConvoxWaitEnvVar(t *testing.T) {
 	test.Runs(t,
 		test.ExecRun{
 			Command: "convox apps create waitforme",
-			Exit:    0,
-			Stdout:  "Creating app waitforme... CREATING\nWaiting for waitforme... OK\n",
+			Exit:    1,
+			Stdout:  "Creating app waitforme... CREATING\nWaiting for waitforme... ",
 			Env:     map[string]string{"CONVOX_WAIT": "true"},
 		},
 	)
