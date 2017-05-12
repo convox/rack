@@ -43,12 +43,6 @@ type ProcessRunOptions struct {
 	Stream  io.ReadWriter
 }
 
-// ProcessRunBody is the output response
-type ProcessRunBody struct {
-	Success bool    `json:"success"`
-	Pid     string  `json:"pid"`
-}
-
 func (ps Processes) Len() int {
 	return len(ps)
 }
