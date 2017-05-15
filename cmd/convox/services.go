@@ -29,7 +29,7 @@ var resourceTypes = []ResourceType{
 	},
 	{
 		"mysql",
-		"[--allocated-storage=10] [--database=db-name] [--instance-type=db.t2.micro] [--multi-az] [--password=example] [--private] [--username=example]",
+		"[--allocated-storage=10] [--database=db-name] [--instance-type=db.t2.micro] [--multi-az] [--password=example] [--private] [--username=example] [--version=5.5.53]",
 	},
 	{
 		"postgres",

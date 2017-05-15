@@ -49,6 +49,11 @@
         "Default" : "app",
         "Description" : "Server username"
       },
+      "Version": {
+        "Description": "Version of MySQL",
+        "Default": "5.7.16",
+        "Type": "String"
+      }
       "Vpc": {
         "Type": "AWS::EC2::VPC::Id",
         "Description": "VPC"
@@ -95,7 +100,7 @@
           "DBName": { "Ref": "Database" },
           "DBSubnetGroupName": { "Ref": "SubnetGroup" },
           "Engine": "mysql",
-          "EngineVersion": "5.6.27",
+          "EngineVersion": { "Ref": "Version" },
           "MasterUsername": { "Ref": "Username" },
           "MasterUserPassword": { "Ref": "Password" },
           "MultiAZ": { "Ref": "MultiAZ" },
