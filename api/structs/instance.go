@@ -51,3 +51,7 @@ func (i *Instance) DockerHost() string {
 func (i *Instance) DockerClient() (*docker.Client, error) {
 	return docker.NewClient(i.DockerHost())
 }
+
+func (ii Instances) Len() int           { return len(ii) }
+func (ii Instances) Less(i, j int) bool { return ii[i].Id < ii[j].Id }
+func (ii Instances) Swap(i, j int)      { ii[i], ii[j] = ii[j], ii[i] }
