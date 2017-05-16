@@ -204,7 +204,7 @@ func (p *AWSProvider) stackTasks(stack string) ([]string, error) {
 	})
 	if err != nil {
 		log.Error(err)
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 
 	services := []string{}
@@ -232,7 +232,7 @@ func (p *AWSProvider) stackTasks(stack string) ([]string, error) {
 		)
 		if err != nil {
 			log.Error(err)
-			return nil, err
+			return nil, errors.WithStack(err)
 		}
 	}
 
@@ -351,7 +351,7 @@ func (p *AWSProvider) taskProcesses(tasks []string) (structs.Processes, error) {
 		for i := 0; i < len(ecsTasks); i++ {
 			select {
 			case <-time.After(30 * time.Second):
-				return nil, fmt.Errorf("timeout")
+				return nil, errors.Errorf("timeout")
 			case err := <-errch:
 				return nil, errors.WithStack(err)
 			case ps := <-psch:
@@ -596,19 +596,19 @@ func (p *AWSProvider) describeTask(arn string) (*ecs.Task, error) {
 
 func (p *AWSProvider) fetchProcess(task *ecs.Task, psch chan structs.Process, errch chan error) {
 	if len(task.Containers) < 1 {
-		errch <- fmt.Errorf("invalid task: %s", *task.TaskDefinitionArn)
+		errch <- errors.Errorf("invalid task: %s", *task.TaskDefinitionArn)
 		return
 	}
 
 	cd, err := p.containerDefinitionForTask(*task.TaskDefinitionArn)
 	if err != nil {
-		errch <- err
+		errch <- errors.WithStack(err)
 		return
 	}
 
 	ci, err := p.containerInstance(*task.ContainerInstanceArn)
 	if err != nil {
-		errch <- err
+		errch <- errors.WithStack(err)
 		return
 	}
 
