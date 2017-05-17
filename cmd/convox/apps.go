@@ -6,8 +6,9 @@ import (
 	"strings"
 	"time"
 
+	cli "gopkg.in/urfave/cli.v1"
+
 	"github.com/convox/rack/cmd/convox/stdcli"
-	"gopkg.in/urfave/cli.v1"
 )
 
 func init() {
@@ -86,7 +87,7 @@ func cmdApps(c *cli.Context) error {
 	}
 
 	if len(apps) == 0 {
-		stdcli.Writef("no apps found, try creating one via `convox apps create`")
+		stdcli.Writef("no apps found, try creating one via `convox apps create`\n")
 		return nil
 	}
 
