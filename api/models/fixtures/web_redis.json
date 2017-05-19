@@ -87,9 +87,7 @@
   "Mappings": {
     "Constants": {
       "Values": {
-        "NoValue": {
-          "Ref": "AWS::NoValue"
-        },
+        "NoValue": "NoValue",
         "RedisPort6379Host": "5000",
         "WebPort80Host": "5000"
       }

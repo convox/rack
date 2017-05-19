@@ -80,9 +80,7 @@
     "Constants": {
       "Values": {
         "MainPort443Host": "5000",
-        "NoValue": {
-          "Ref": "AWS::NoValue"
-        }
+        "NoValue": "NoValue"
       }
     },
     "PortProtocol": {

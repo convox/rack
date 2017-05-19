@@ -79,9 +79,7 @@
   "Mappings": {
     "Constants": {
       "Values": {
-        "NoValue": {
-          "Ref": "AWS::NoValue"
-        },
+        "NoValue": "NoValue",
         "PostgresPort5432Host": "5000"
       }
     },

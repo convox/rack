@@ -72,9 +72,7 @@
       "Values": {
         "MainPort80Host": "5000",
         "MainPort81Host": "5001",
-        "NoValue": {
-          "Ref": "AWS::NoValue"
-        }
+        "NoValue": "NoValue"
       }
     },
     "PortProtocol": {

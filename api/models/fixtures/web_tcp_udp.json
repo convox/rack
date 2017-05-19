@@ -70,9 +70,7 @@
   "Mappings": {
     "Constants": {
       "Values": {
-        "NoValue": {
-          "Ref": "AWS::NoValue"
-        },
+        "NoValue": "NoValue",
         "WebPort3001Host": "5001",
         "WebPort80Host": "5000"
       }
