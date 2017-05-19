@@ -105,6 +105,17 @@
       }
     },
     "Mappings": {
+      "Constants": {
+        "Values": {
+          {{ range .Manifest.Balancers }}
+            {{ $balancer := . }}
+            {{ range .PortMappings }}
+              "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Host": "{{ index $balancer.Randoms (itoa .Balancer) }}",
+            {{ end }}
+          {{ end }}
+          "NoValue": { "Ref": "AWS::NoValue" }
+        }
+      },
       "PortProtocol": {
         "http": { "ListenerProtocol": "HTTP", "InstanceProtocol": "HTTP", "SecureInstanceProtocol": "HTTPS" },
         "https": { "ListenerProtocol": "HTTPS", "InstanceProtocol": "HTTP", "SecureInstanceProtocol": "HTTPS"  },
@@ -317,7 +328,7 @@
                 {{ range .Ports }}
                   {{ if and (eq .Protocol "tcp") ($e.HasBalancer) }}
                   { "Fn::Join": [ ":", [
-                    { "Ref": "{{ upper $e.Name }}Port{{ .Balancer }}Host" },
+                    { "Fn::FindInMap" : [ "Constants", "Values", "{{ upper $e.Name }}Port{{ .Balancer }}Host" ] },
                       "{{ .Container }}/{{ .Protocol }}"
                   ] ] },
                   {{ else }}
@@ -395,11 +406,6 @@
       "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Certificate": {
         "Type" : "String",
         "Default" : "",
-        "Description" : ""
-      },
-      "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Host": {
-        "Type" : "String",
-        "Default" : "{{ index $balancer.Randoms (itoa .Balancer) }}",
         "Description" : ""
       },
     {{ end }}
@@ -480,7 +486,7 @@
           "Interval": "{{ .HealthInterval }}",
           "Target": { "Fn::Join": [ "", [
             "{{ .HealthProtocol }}:",
-            { "Ref": "{{ upper .ProcessName }}Port{{ .HealthPort }}Host" },
+            { "Fn::FindInMap" : [ "Constants", "Values", "{{ upper .ProcessName }}Port{{ .HealthPort }}Host" ] },
             "{{ .HealthPath }}"
           ] ] },
           "Timeout": "{{ .HealthTimeout }}",
@@ -496,7 +502,7 @@
               {{ end }}
               "LoadBalancerPort": "{{ .Balancer }}",
               "InstanceProtocol": "{{ $balancer.InstanceProtocol . }}",
-              "InstancePort": { "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Host" },
+              "InstancePort": { "Fn::FindInMap" : [ "Constants", "Values", "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Host" ] },
               "SSLCertificateId": { "Fn::If": [ "BlankBalancer{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Certificate",
                 { "Ref": "AWS::NoValue" },
                 { "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Certificate" }
@@ -515,7 +521,7 @@
                     "Name": "ProxyProtocol",
                     "Value": "true"
                 }],
-                "InstancePorts": [{ "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Host" }]
+                "InstancePorts": [{ "Fn::FindInMap" : [ "Constants", "Values", "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Host" ] }]
               },
             {{ end }}
           {{ end }}
