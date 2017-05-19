@@ -113,7 +113,7 @@
               "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Host": "{{ index $balancer.Randoms (itoa .Balancer) }}",
             {{ end }}
           {{ end }}
-          "NoValue": { "Ref": "AWS::NoValue" }
+          "NoValue": "NoValue"
         }
       },
       "PortProtocol": {
