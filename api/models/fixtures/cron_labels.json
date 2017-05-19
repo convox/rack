@@ -77,6 +77,12 @@
     }
   },
   "Mappings": {
+    "Constants": {
+      "Values": {
+        "MainPort443Host": "5000",
+        "NoValue": "NoValue"
+      }
+    },
     "PortProtocol": {
       "http": {
         "InstanceProtocol": "HTTP",
@@ -201,11 +207,6 @@
       "Description": "",
       "Type": "String"
     },
-    "MainPort443Host": {
-      "Default": "5000",
-      "Description": "",
-      "Type": "String"
-    },
     "NativeLogging": {
       "AllowedValues": [
         "Yes",
@@ -299,7 +300,11 @@
               [
                 "TCP:",
                 {
-                  "Ref": "MainPort443Host"
+                  "Fn::FindInMap": [
+                    "Constants",
+                    "Values",
+                    "MainPort443Host"
+                  ]
                 },
                 ""
               ]
@@ -316,7 +321,11 @@
         "Listeners": [
           {
             "InstancePort": {
-              "Ref": "MainPort443Host"
+              "Fn::FindInMap": [
+                "Constants",
+                "Values",
+                "MainPort443Host"
+              ]
             },
             "InstanceProtocol": "TCP",
             "LoadBalancerPort": "443",
@@ -848,7 +857,11 @@
                   ":",
                   [
                     {
-                      "Ref": "MainPort443Host"
+                      "Fn::FindInMap": [
+                        "Constants",
+                        "Values",
+                        "MainPort443Host"
+                      ]
                     },
                     "5000/tcp"
                   ]

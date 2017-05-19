@@ -52,6 +52,11 @@
     }
   },
   "Mappings": {
+    "Constants": {
+      "Values": {
+        "NoValue": "NoValue"
+      }
+    },
     "PortProtocol": {
       "http": {
         "InstanceProtocol": "HTTP",
