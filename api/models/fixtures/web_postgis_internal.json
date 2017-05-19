@@ -85,6 +85,15 @@
     }
   },
   "Mappings": {
+    "Constants": {
+      "Values": {
+        "NoValue": {
+          "Ref": "AWS::NoValue"
+        },
+        "PostgresPort5432Host": "5000",
+        "WebPort3000Host": "5000"
+      }
+    },
     "PortProtocol": {
       "http": {
         "InstanceProtocol": "HTTP",
@@ -249,11 +258,6 @@
       "Description": "",
       "Type": "String"
     },
-    "PostgresPort5432Host": {
-      "Default": "5000",
-      "Description": "",
-      "Type": "String"
-    },
     "Private": {
       "AllowedValues": [
         "Yes",
@@ -317,11 +321,6 @@
       "Default": "",
       "Description": "",
       "Type": "String"
-    },
-    "WebPort3000Host": {
-      "Default": "5000",
-      "Description": "",
-      "Type": "String"
     }
   },
   "Resources": {
@@ -348,7 +347,11 @@
               [
                 "TCP:",
                 {
-                  "Ref": "PostgresPort5432Host"
+                  "Fn::FindInMap": [
+                    "Constants",
+                    "Values",
+                    "PostgresPort5432Host"
+                  ]
                 },
                 ""
               ]
@@ -365,7 +368,11 @@
         "Listeners": [
           {
             "InstancePort": {
-              "Ref": "PostgresPort5432Host"
+              "Fn::FindInMap": [
+                "Constants",
+                "Values",
+                "PostgresPort5432Host"
+              ]
             },
             "InstanceProtocol": "TCP",
             "LoadBalancerPort": "5432",
@@ -496,7 +503,11 @@
               [
                 "TCP:",
                 {
-                  "Ref": "WebPort3000Host"
+                  "Fn::FindInMap": [
+                    "Constants",
+                    "Values",
+                    "WebPort3000Host"
+                  ]
                 },
                 ""
               ]
@@ -513,7 +524,11 @@
         "Listeners": [
           {
             "InstancePort": {
-              "Ref": "WebPort3000Host"
+              "Fn::FindInMap": [
+                "Constants",
+                "Values",
+                "WebPort3000Host"
+              ]
             },
             "InstanceProtocol": "TCP",
             "LoadBalancerPort": "3000",
@@ -806,7 +821,11 @@
                   ":",
                   [
                     {
-                      "Ref": "PostgresPort5432Host"
+                      "Fn::FindInMap": [
+                        "Constants",
+                        "Values",
+                        "PostgresPort5432Host"
+                      ]
                     },
                     "5432/tcp"
                   ]
@@ -1145,7 +1164,11 @@
                   ":",
                   [
                     {
-                      "Ref": "WebPort3000Host"
+                      "Fn::FindInMap": [
+                        "Constants",
+                        "Values",
+                        "WebPort3000Host"
+                      ]
                     },
                     "3000/tcp"
                   ]

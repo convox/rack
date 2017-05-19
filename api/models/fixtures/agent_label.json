@@ -86,6 +86,13 @@
     }
   },
   "Mappings": {
+    "Constants": {
+      "Values": {
+        "NoValue": {
+          "Ref": "AWS::NoValue"
+        }
+      }
+    },
     "PortProtocol": {
       "http": {
         "InstanceProtocol": "HTTP",

@@ -77,6 +77,14 @@
     }
   },
   "Mappings": {
+    "Constants": {
+      "Values": {
+        "NoValue": {
+          "Ref": "AWS::NoValue"
+        },
+        "PostgresPort5432Host": "5000"
+      }
+    },
     "PortProtocol": {
       "http": {
         "InstanceProtocol": "HTTP",
@@ -210,11 +218,6 @@
       "Description": "",
       "Type": "String"
     },
-    "PostgresPort5432Host": {
-      "Default": "5000",
-      "Description": "",
-      "Type": "String"
-    },
     "Private": {
       "AllowedValues": [
         "Yes",
@@ -299,7 +302,11 @@
               [
                 "TCP:",
                 {
-                  "Ref": "PostgresPort5432Host"
+                  "Fn::FindInMap": [
+                    "Constants",
+                    "Values",
+                    "PostgresPort5432Host"
+                  ]
                 },
                 ""
               ]
@@ -316,7 +323,11 @@
         "Listeners": [
           {
             "InstancePort": {
-              "Ref": "PostgresPort5432Host"
+              "Fn::FindInMap": [
+                "Constants",
+                "Values",
+                "PostgresPort5432Host"
+              ]
             },
             "InstanceProtocol": "TCP",
             "LoadBalancerPort": "5432",
@@ -609,7 +620,11 @@
                   ":",
                   [
                     {
-                      "Ref": "PostgresPort5432Host"
+                      "Fn::FindInMap": [
+                        "Constants",
+                        "Values",
+                        "PostgresPort5432Host"
+                      ]
                     },
                     "5432/tcp"
                   ]

@@ -68,6 +68,15 @@
     }
   },
   "Mappings": {
+    "Constants": {
+      "Values": {
+        "MainPort80Host": "5000",
+        "MainPort81Host": "5001",
+        "NoValue": {
+          "Ref": "AWS::NoValue"
+        }
+      }
+    },
     "PortProtocol": {
       "http": {
         "InstanceProtocol": "HTTP",
@@ -214,18 +223,8 @@
       "Description": "",
       "Type": "String"
     },
-    "MainPort80Host": {
-      "Default": "5000",
-      "Description": "",
-      "Type": "String"
-    },
     "MainPort81Certificate": {
       "Default": "",
-      "Description": "",
-      "Type": "String"
-    },
-    "MainPort81Host": {
-      "Default": "5001",
       "Description": "",
       "Type": "String"
     },
@@ -317,7 +316,11 @@
               [
                 "HTTPS:",
                 {
-                  "Ref": "MainPort81Host"
+                  "Fn::FindInMap": [
+                    "Constants",
+                    "Values",
+                    "MainPort81Host"
+                  ]
                 },
                 "/health_check"
               ]
@@ -334,7 +337,11 @@
         "Listeners": [
           {
             "InstancePort": {
-              "Ref": "MainPort80Host"
+              "Fn::FindInMap": [
+                "Constants",
+                "Values",
+                "MainPort80Host"
+              ]
             },
             "InstanceProtocol": "TCP",
             "LoadBalancerPort": "80",
@@ -359,7 +366,11 @@
           },
           {
             "InstancePort": {
-              "Ref": "MainPort81Host"
+              "Fn::FindInMap": [
+                "Constants",
+                "Values",
+                "MainPort81Host"
+              ]
             },
             "InstanceProtocol": "TCP",
             "LoadBalancerPort": "81",
@@ -662,7 +673,11 @@
                   ":",
                   [
                     {
-                      "Ref": "MainPort80Host"
+                      "Fn::FindInMap": [
+                        "Constants",
+                        "Values",
+                        "MainPort80Host"
+                      ]
                     },
                     "3000/tcp"
                   ]
@@ -673,7 +688,11 @@
                   ":",
                   [
                     {
-                      "Ref": "MainPort81Host"
+                      "Fn::FindInMap": [
+                        "Constants",
+                        "Values",
+                        "MainPort81Host"
+                      ]
                     },
                     "3001/tcp"
                   ]

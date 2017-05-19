@@ -85,6 +85,15 @@
     }
   },
   "Mappings": {
+    "Constants": {
+      "Values": {
+        "NoValue": {
+          "Ref": "AWS::NoValue"
+        },
+        "RedisPort6379Host": "5000",
+        "WebPort80Host": "5000"
+      }
+    },
     "PortProtocol": {
       "http": {
         "InstanceProtocol": "HTTP",
@@ -258,11 +267,6 @@
       "Description": "",
       "Type": "String"
     },
-    "RedisPort6379Host": {
-      "Default": "5000",
-      "Description": "",
-      "Type": "String"
-    },
     "Release": {
       "Default": "",
       "Description": "",
@@ -317,11 +321,6 @@
       "Default": "",
       "Description": "",
       "Type": "String"
-    },
-    "WebPort80Host": {
-      "Default": "5000",
-      "Description": "",
-      "Type": "String"
     }
   },
   "Resources": {
@@ -348,7 +347,11 @@
               [
                 "TCP:",
                 {
-                  "Ref": "RedisPort6379Host"
+                  "Fn::FindInMap": [
+                    "Constants",
+                    "Values",
+                    "RedisPort6379Host"
+                  ]
                 },
                 ""
               ]
@@ -365,7 +368,11 @@
         "Listeners": [
           {
             "InstancePort": {
-              "Ref": "RedisPort6379Host"
+              "Fn::FindInMap": [
+                "Constants",
+                "Values",
+                "RedisPort6379Host"
+              ]
             },
             "InstanceProtocol": "TCP",
             "LoadBalancerPort": "6379",
@@ -496,7 +503,11 @@
               [
                 "TCP:",
                 {
-                  "Ref": "WebPort80Host"
+                  "Fn::FindInMap": [
+                    "Constants",
+                    "Values",
+                    "WebPort80Host"
+                  ]
                 },
                 ""
               ]
@@ -513,7 +524,11 @@
         "Listeners": [
           {
             "InstancePort": {
-              "Ref": "WebPort80Host"
+              "Fn::FindInMap": [
+                "Constants",
+                "Values",
+                "WebPort80Host"
+              ]
             },
             "InstanceProtocol": "TCP",
             "LoadBalancerPort": "80",
@@ -815,7 +830,11 @@
                   ":",
                   [
                     {
-                      "Ref": "RedisPort6379Host"
+                      "Fn::FindInMap": [
+                        "Constants",
+                        "Values",
+                        "RedisPort6379Host"
+                      ]
                     },
                     "6379/tcp"
                   ]
@@ -1154,7 +1173,11 @@
                   ":",
                   [
                     {
-                      "Ref": "WebPort80Host"
+                      "Fn::FindInMap": [
+                        "Constants",
+                        "Values",
+                        "WebPort80Host"
+                      ]
                     },
                     "3000/tcp"
                   ]

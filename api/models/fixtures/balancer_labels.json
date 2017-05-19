@@ -60,6 +60,14 @@
     }
   },
   "Mappings": {
+    "Constants": {
+      "Values": {
+        "MainPort443Host": "5000",
+        "NoValue": {
+          "Ref": "AWS::NoValue"
+        }
+      }
+    },
     "PortProtocol": {
       "http": {
         "InstanceProtocol": "HTTP",
@@ -184,11 +192,6 @@
       "Description": "",
       "Type": "String"
     },
-    "MainPort443Host": {
-      "Default": "5000",
-      "Description": "",
-      "Type": "String"
-    },
     "NativeLogging": {
       "AllowedValues": [
         "Yes",
@@ -277,7 +280,11 @@
               [
                 "SSL:",
                 {
-                  "Ref": "MainPort443Host"
+                  "Fn::FindInMap": [
+                    "Constants",
+                    "Values",
+                    "MainPort443Host"
+                  ]
                 },
                 ""
               ]
@@ -294,7 +301,11 @@
         "Listeners": [
           {
             "InstancePort": {
-              "Ref": "MainPort443Host"
+              "Fn::FindInMap": [
+                "Constants",
+                "Values",
+                "MainPort443Host"
+              ]
             },
             "InstanceProtocol": "SSL",
             "LoadBalancerPort": "443",
@@ -340,7 +351,11 @@
             ],
             "InstancePorts": [
               {
-                "Ref": "MainPort443Host"
+                "Fn::FindInMap": [
+                  "Constants",
+                  "Values",
+                  "MainPort443Host"
+                ]
               }
             ],
             "PolicyName": "EnableProxyProtocol",
@@ -600,7 +615,11 @@
                   ":",
                   [
                     {
-                      "Ref": "MainPort443Host"
+                      "Fn::FindInMap": [
+                        "Constants",
+                        "Values",
+                        "MainPort443Host"
+                      ]
                     },
                     "5000/tcp"
                   ]

@@ -85,6 +85,15 @@
     }
   },
   "Mappings": {
+    "Constants": {
+      "Values": {
+        "NoValue": {
+          "Ref": "AWS::NoValue"
+        },
+        "WebPort80Host": "5000",
+        "WorkerPort80Host": "5000"
+      }
+    },
     "PortProtocol": {
       "http": {
         "InstanceProtocol": "HTTP",
@@ -303,11 +312,6 @@
       "Description": "",
       "Type": "String"
     },
-    "WebPort80Host": {
-      "Default": "5000",
-      "Description": "",
-      "Type": "String"
-    },
     "WorkerFormation": {
       "Default": "1,0,256",
       "Description": "Number of processes to run, CPU units to reserve, and MB of RAM to reserve",
@@ -315,11 +319,6 @@
     },
     "WorkerPort80Certificate": {
       "Default": "",
-      "Description": "",
-      "Type": "String"
-    },
-    "WorkerPort80Host": {
-      "Default": "5000",
       "Description": "",
       "Type": "String"
     }
@@ -348,7 +347,11 @@
               [
                 "TCP:",
                 {
-                  "Ref": "WebPort80Host"
+                  "Fn::FindInMap": [
+                    "Constants",
+                    "Values",
+                    "WebPort80Host"
+                  ]
                 },
                 ""
               ]
@@ -365,7 +368,11 @@
         "Listeners": [
           {
             "InstancePort": {
-              "Ref": "WebPort80Host"
+              "Fn::FindInMap": [
+                "Constants",
+                "Values",
+                "WebPort80Host"
+              ]
             },
             "InstanceProtocol": "TCP",
             "LoadBalancerPort": "80",
@@ -502,7 +509,11 @@
               [
                 "TCP:",
                 {
-                  "Ref": "WorkerPort80Host"
+                  "Fn::FindInMap": [
+                    "Constants",
+                    "Values",
+                    "WorkerPort80Host"
+                  ]
                 },
                 ""
               ]
@@ -519,7 +530,11 @@
         "Listeners": [
           {
             "InstancePort": {
-              "Ref": "WorkerPort80Host"
+              "Fn::FindInMap": [
+                "Constants",
+                "Values",
+                "WorkerPort80Host"
+              ]
             },
             "InstanceProtocol": "TCP",
             "LoadBalancerPort": "80",
@@ -1025,7 +1040,11 @@
                   ":",
                   [
                     {
-                      "Ref": "WebPort80Host"
+                      "Fn::FindInMap": [
+                        "Constants",
+                        "Values",
+                        "WebPort80Host"
+                      ]
                     },
                     "3000/tcp"
                   ]
@@ -1157,7 +1176,11 @@
                   ":",
                   [
                     {
-                      "Ref": "WorkerPort80Host"
+                      "Fn::FindInMap": [
+                        "Constants",
+                        "Values",
+                        "WorkerPort80Host"
+                      ]
                     },
                     "3000/tcp"
                   ]

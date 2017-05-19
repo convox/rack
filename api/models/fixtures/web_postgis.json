@@ -93,6 +93,16 @@
     }
   },
   "Mappings": {
+    "Constants": {
+      "Values": {
+        "NoValue": {
+          "Ref": "AWS::NoValue"
+        },
+        "PostgresPort5432Host": "5000",
+        "WebPort443Host": "5001",
+        "WebPort80Host": "5000"
+      }
+    },
     "PortProtocol": {
       "http": {
         "InstanceProtocol": "HTTP",
@@ -279,11 +289,6 @@
       "Description": "",
       "Type": "String"
     },
-    "PostgresPort5432Host": {
-      "Default": "5000",
-      "Description": "",
-      "Type": "String"
-    },
     "Private": {
       "AllowedValues": [
         "Yes",
@@ -348,18 +353,8 @@
       "Description": "",
       "Type": "String"
     },
-    "WebPort443Host": {
-      "Default": "5001",
-      "Description": "",
-      "Type": "String"
-    },
     "WebPort80Certificate": {
       "Default": "",
-      "Description": "",
-      "Type": "String"
-    },
-    "WebPort80Host": {
-      "Default": "5000",
       "Description": "",
       "Type": "String"
     }
@@ -388,7 +383,11 @@
               [
                 "TCP:",
                 {
-                  "Ref": "PostgresPort5432Host"
+                  "Fn::FindInMap": [
+                    "Constants",
+                    "Values",
+                    "PostgresPort5432Host"
+                  ]
                 },
                 ""
               ]
@@ -405,7 +404,11 @@
         "Listeners": [
           {
             "InstancePort": {
-              "Ref": "PostgresPort5432Host"
+              "Fn::FindInMap": [
+                "Constants",
+                "Values",
+                "PostgresPort5432Host"
+              ]
             },
             "InstanceProtocol": "TCP",
             "LoadBalancerPort": "5432",
@@ -536,7 +539,11 @@
               [
                 "TCP:",
                 {
-                  "Ref": "WebPort80Host"
+                  "Fn::FindInMap": [
+                    "Constants",
+                    "Values",
+                    "WebPort80Host"
+                  ]
                 },
                 ""
               ]
@@ -553,7 +560,11 @@
         "Listeners": [
           {
             "InstancePort": {
-              "Ref": "WebPort80Host"
+              "Fn::FindInMap": [
+                "Constants",
+                "Values",
+                "WebPort80Host"
+              ]
             },
             "InstanceProtocol": "TCP",
             "LoadBalancerPort": "80",
@@ -578,7 +589,11 @@
           },
           {
             "InstancePort": {
-              "Ref": "WebPort443Host"
+              "Fn::FindInMap": [
+                "Constants",
+                "Values",
+                "WebPort443Host"
+              ]
             },
             "InstanceProtocol": "TCP",
             "LoadBalancerPort": "443",
@@ -883,7 +898,11 @@
                   ":",
                   [
                     {
-                      "Ref": "PostgresPort5432Host"
+                      "Fn::FindInMap": [
+                        "Constants",
+                        "Values",
+                        "PostgresPort5432Host"
+                      ]
                     },
                     "5432/tcp"
                   ]
@@ -1222,7 +1241,11 @@
                   ":",
                   [
                     {
-                      "Ref": "WebPort80Host"
+                      "Fn::FindInMap": [
+                        "Constants",
+                        "Values",
+                        "WebPort80Host"
+                      ]
                     },
                     "3000/tcp"
                   ]
@@ -1233,7 +1256,11 @@
                   ":",
                   [
                     {
-                      "Ref": "WebPort443Host"
+                      "Fn::FindInMap": [
+                        "Constants",
+                        "Values",
+                        "WebPort443Host"
+                      ]
                     },
                     "3001/tcp"
                   ]

@@ -68,6 +68,15 @@
     }
   },
   "Mappings": {
+    "Constants": {
+      "Values": {
+        "NoValue": {
+          "Ref": "AWS::NoValue"
+        },
+        "WebPort3001Host": "5001",
+        "WebPort80Host": "5000"
+      }
+    },
     "PortProtocol": {
       "http": {
         "InstanceProtocol": "HTTP",
@@ -277,18 +286,8 @@
       "Description": "",
       "Type": "String"
     },
-    "WebPort3001Host": {
-      "Default": "5001",
-      "Description": "",
-      "Type": "String"
-    },
     "WebPort80Certificate": {
       "Default": "",
-      "Description": "",
-      "Type": "String"
-    },
-    "WebPort80Host": {
-      "Default": "5000",
       "Description": "",
       "Type": "String"
     }
@@ -317,7 +316,11 @@
               [
                 "TCP:",
                 {
-                  "Ref": "WebPort80Host"
+                  "Fn::FindInMap": [
+                    "Constants",
+                    "Values",
+                    "WebPort80Host"
+                  ]
                 },
                 ""
               ]
@@ -334,7 +337,11 @@
         "Listeners": [
           {
             "InstancePort": {
-              "Ref": "WebPort80Host"
+              "Fn::FindInMap": [
+                "Constants",
+                "Values",
+                "WebPort80Host"
+              ]
             },
             "InstanceProtocol": "TCP",
             "LoadBalancerPort": "80",
@@ -359,7 +366,11 @@
           },
           {
             "InstancePort": {
-              "Ref": "WebPort3001Host"
+              "Fn::FindInMap": [
+                "Constants",
+                "Values",
+                "WebPort3001Host"
+              ]
             },
             "InstanceProtocol": "TCP",
             "LoadBalancerPort": "3001",
@@ -820,7 +831,11 @@
                   ":",
                   [
                     {
-                      "Ref": "WebPort80Host"
+                      "Fn::FindInMap": [
+                        "Constants",
+                        "Values",
+                        "WebPort80Host"
+                      ]
                     },
                     "3000/tcp"
                   ]
@@ -831,7 +846,11 @@
                   ":",
                   [
                     {
-                      "Ref": "WebPort3001Host"
+                      "Fn::FindInMap": [
+                        "Constants",
+                        "Values",
+                        "WebPort3001Host"
+                      ]
                     },
                     "3001/tcp"
                   ]
