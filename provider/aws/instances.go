@@ -142,7 +142,7 @@ func (p *AWSProvider) listAndDescribeContainerInstances() (*ecs.DescribeContaine
 			return nil, err
 		}
 
-		dres, err := p.ecs().DescribeContainerInstances(&ecs.DescribeContainerInstancesInput{
+		dres, err := p.describeContainerInstances(&ecs.DescribeContainerInstancesInput{
 			Cluster:            aws.String(p.Cluster),
 			ContainerInstances: res.ContainerInstanceArns,
 		})

@@ -64,7 +64,7 @@ func (p *AWSProvider) ProcessExec(app, pid, command string, stream io.ReadWriter
 		return log.Errorf("no running container for process: %s", pid)
 	}
 
-	cires, err := p.ecs().DescribeContainerInstances(&ecs.DescribeContainerInstancesInput{
+	cires, err := p.describeContainerInstances(&ecs.DescribeContainerInstancesInput{
 		Cluster:            aws.String(p.Cluster),
 		ContainerInstances: []*string{task.ContainerInstanceArn},
 	})
@@ -512,14 +512,14 @@ func (p *AWSProvider) containerInstance(id string) (*ecs.ContainerInstance, erro
 		return ci, nil
 	}
 
-	res, err := p.ecs().DescribeContainerInstances(&ecs.DescribeContainerInstancesInput{
+	res, err := p.describeContainerInstances(&ecs.DescribeContainerInstancesInput{
 		Cluster:            aws.String(p.Cluster),
 		ContainerInstances: []*string{aws.String(id)},
 	})
 	// check the build cluster too
 	for _, f := range res.Failures {
 		if f.Reason != nil && *f.Reason == "MISSING" && p.BuildCluster != p.Cluster {
-			res, err = p.ecs().DescribeContainerInstances(&ecs.DescribeContainerInstancesInput{
+			res, err = p.describeContainerInstances(&ecs.DescribeContainerInstancesInput{
 				Cluster:            aws.String(p.BuildCluster),
 				ContainerInstances: []*string{aws.String(id)},
 			})
