@@ -93,7 +93,7 @@ func (p *AWSProvider) SystemGet() (*structs.System, error) {
 				return nil, log.Error(err)
 			}
 
-			dres, err := p.ecs().DescribeServices(&ecs.DescribeServicesInput{
+			dres, err := p.describeServices(&ecs.DescribeServicesInput{
 				Cluster:  aws.String(p.Cluster),
 				Services: lres.ServiceArns,
 			})
