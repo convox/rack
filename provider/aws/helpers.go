@@ -499,6 +499,28 @@ func (p *AWSProvider) describeTaskDefinition(name string) (*ecs.TaskDefinition, 
 	return td, nil
 }
 
+func (p *AWSProvider) describeTasks(input *ecs.DescribeTasksInput) (*ecs.DescribeTasksOutput, error) {
+	res, ok := cache.Get("describeTasks", input).(*ecs.DescribeTasksOutput)
+
+	if ok {
+		return res, nil
+	}
+
+	res, err := p.ecs().DescribeTasks(input)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if !p.SkipCache {
+		if err := cache.Set("describeTasks", input, res, 10*time.Second); err != nil {
+			return nil, err
+		}
+	}
+
+	return res, nil
+}
+
 func (p *AWSProvider) listContainerInstances(input *ecs.ListContainerInstancesInput) (*ecs.ListContainerInstancesOutput, error) {
 	res, ok := cache.Get("listContainerInstances", input).(*ecs.ListContainerInstancesOutput)
 
