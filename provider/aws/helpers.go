@@ -472,31 +472,27 @@ func (p *AWSProvider) stackResource(stack, resource string) (*cloudformation.Sta
 	return nil, fmt.Errorf("resource not found: %s", resource)
 }
 
-func (p *AWSProvider) describeTaskDefinition(name string) (*ecs.TaskDefinition, error) {
-	td, ok := cache.Get("describeTaskDefinition", name).(*ecs.TaskDefinition)
+func (p *AWSProvider) describeTaskDefinition(input *ecs.DescribeTaskDefinitionInput) (*ecs.DescribeTaskDefinitionOutput, error) {
+	td, ok := cache.Get("describeTaskDefinition", input).(*ecs.DescribeTaskDefinitionOutput)
 	if ok {
 		return td, nil
 	}
 
-	res, err := p.ecs().DescribeTaskDefinition(&ecs.DescribeTaskDefinitionInput{
-		TaskDefinition: aws.String(name),
-	})
+	res, err := p.ecs().DescribeTaskDefinition(input)
 	if ae, ok := err.(awserr.Error); ok && ae.Code() == "ValidationError" {
-		return nil, errorNotFound(fmt.Sprintf("%s not found", name))
+		return nil, errorNotFound(fmt.Sprintf("%s not found", *input.TaskDefinition))
 	}
 	if err != nil {
 		return nil, err
 	}
 
-	td = res.TaskDefinition
-
 	if !p.SkipCache {
-		if err := cache.Set("describeTaskDefinition", name, td, 10*time.Second); err != nil {
+		if err := cache.Set("describeTaskDefinition", input, res, 24*time.Hour); err != nil {
 			return nil, err
 		}
 	}
 
-	return td, nil
+	return res, nil
 }
 
 func (p *AWSProvider) describeTasks(input *ecs.DescribeTasksInput) (*ecs.DescribeTasksOutput, error) {

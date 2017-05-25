@@ -48,7 +48,9 @@ func (p *AWSProvider) CapacityGet() (*structs.Capacity, error) {
 	for _, service := range services {
 		if len(service.LoadBalancers) > 0 {
 			for _, deployment := range service.Deployments {
-				td, err := p.describeTaskDefinition(*deployment.TaskDefinition)
+				res, err := p.describeTaskDefinition(&ecs.DescribeTaskDefinitionInput{
+					TaskDefinition: deployment.TaskDefinition,
+				})
 				if err != nil {
 					log.Error(err)
 					return nil, err
@@ -56,7 +58,7 @@ func (p *AWSProvider) CapacityGet() (*structs.Capacity, error) {
 
 				tdPorts := map[string]int64{}
 
-				for _, cd := range td.ContainerDefinitions {
+				for _, cd := range res.TaskDefinition.ContainerDefinitions {
 					for _, pm := range cd.PortMappings {
 						tdPorts[fmt.Sprintf("%s.%d", *cd.Name, *pm.ContainerPort)] = *pm.HostPort
 					}
@@ -70,7 +72,7 @@ func (p *AWSProvider) CapacityGet() (*structs.Capacity, error) {
 			}
 		}
 
-		res, err := p.ecs().DescribeTaskDefinition(&ecs.DescribeTaskDefinitionInput{
+		res, err := p.describeTaskDefinition(&ecs.DescribeTaskDefinitionInput{
 			TaskDefinition: service.TaskDefinition,
 		})
 		if err != nil {

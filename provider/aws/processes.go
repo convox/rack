@@ -487,7 +487,7 @@ func (p *AWSProvider) containerDefinitionForTask(arn string) (*ecs.ContainerDefi
 		return cd, nil
 	}
 
-	res, err := p.ecs().DescribeTaskDefinition(&ecs.DescribeTaskDefinitionInput{
+	res, err := p.describeTaskDefinition(&ecs.DescribeTaskDefinitionInput{
 		TaskDefinition: aws.String(arn),
 	})
 	if err != nil {
@@ -737,7 +737,7 @@ func (p *AWSProvider) generateTaskDefinition(app, process, release string) (*ecs
 		return nil, fmt.Errorf("could not look up service for process: %s", process)
 	}
 
-	tres, err := p.ecs().DescribeTaskDefinition(&ecs.DescribeTaskDefinitionInput{
+	tres, err := p.describeTaskDefinition(&ecs.DescribeTaskDefinitionInput{
 		TaskDefinition: sres.Services[0].TaskDefinition,
 	})
 	if err != nil {
