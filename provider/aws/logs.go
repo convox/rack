@@ -154,7 +154,7 @@ func (p *AWSProvider) writeLogEvents(w io.Writer, events []*cloudwatchlogs.Filte
 				// if task definition has never been seen, get its RELEASE env var
 				if tdARN, ok := taskDefinitions[taskID]; ok {
 					if _, ok := releases[tdARN]; !ok {
-						td, err := p.ecs().DescribeTaskDefinition(&ecs.DescribeTaskDefinitionInput{
+						td, err := p.describeTaskDefinition(&ecs.DescribeTaskDefinitionInput{
 							TaskDefinition: aws.String(tdARN),
 						})
 						if err != nil {
