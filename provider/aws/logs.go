@@ -138,7 +138,7 @@ func (p *AWSProvider) writeLogEvents(w io.Writer, events []*cloudwatchlogs.Filte
 
 				// if task has never been seen, get its task definition
 				if _, ok := taskDefinitions[taskID]; !ok {
-					t, err := p.ecs().DescribeTasks(&ecs.DescribeTasksInput{
+					t, err := p.describeTasks(&ecs.DescribeTasksInput{
 						Cluster: aws.String(os.Getenv("CLUSTER")),
 						Tasks:   []*string{aws.String(taskID)},
 					})
