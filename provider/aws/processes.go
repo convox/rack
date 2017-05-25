@@ -309,7 +309,7 @@ func (p *AWSProvider) taskProcesses(tasks []string) (structs.Processes, error) {
 			iptasks[i] = &ptasks[i]
 		}
 
-		tres, err := p.ecs().DescribeTasks(&ecs.DescribeTasksInput{
+		tres, err := p.describeTasks(&ecs.DescribeTasksInput{
 			Cluster: aws.String(p.Cluster),
 			Tasks:   iptasks,
 		})
@@ -323,7 +323,7 @@ func (p *AWSProvider) taskProcesses(tasks []string) (structs.Processes, error) {
 
 		// list tasks on build cluster too
 		if p.Cluster != p.BuildCluster {
-			tres, err := p.ecs().DescribeTasks(&ecs.DescribeTasksInput{
+			tres, err := p.describeTasks(&ecs.DescribeTasksInput{
 				Cluster: aws.String(p.BuildCluster),
 				Tasks:   iptasks,
 			})
@@ -568,14 +568,14 @@ func (p *AWSProvider) describeInstance(id string) (*ec2.Instance, error) {
 }
 
 func (p *AWSProvider) describeTask(arn string) (*ecs.Task, error) {
-	res, err := p.ecs().DescribeTasks(&ecs.DescribeTasksInput{
+	res, err := p.describeTasks(&ecs.DescribeTasksInput{
 		Cluster: aws.String(p.Cluster),
 		Tasks:   []*string{aws.String(arn)},
 	})
 	// check the build cluster too
 	for _, f := range res.Failures {
 		if f.Reason != nil && *f.Reason == "MISSING" && p.BuildCluster != p.Cluster {
-			res, err = p.ecs().DescribeTasks(&ecs.DescribeTasksInput{
+			res, err = p.describeTasks(&ecs.DescribeTasksInput{
 				Cluster: aws.String(p.BuildCluster),
 				Tasks:   []*string{aws.String(arn)},
 			})
