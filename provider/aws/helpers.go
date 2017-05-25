@@ -344,6 +344,28 @@ func (p *AWSProvider) dynamoBatchDeleteItems(wrs []*dynamodb.WriteRequest, table
 	return nil
 }
 
+func (p *AWSProvider) describeContainerInstances(input *ecs.DescribeContainerInstancesInput) (*ecs.DescribeContainerInstancesOutput, error) {
+	res, ok := cache.Get("describeContainerInstances", input).(*ecs.DescribeContainerInstancesOutput)
+
+	if ok {
+		return res, nil
+	}
+
+	res, err := p.ecs().DescribeContainerInstances(input)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if !p.SkipCache {
+		if err := cache.Set("describeContainerInstances", input, res, 5*time.Second); err != nil {
+			return nil, err
+		}
+	}
+
+	return res, nil
+}
+
 func (p *AWSProvider) describeServices(input *ecs.DescribeServicesInput) (*ecs.DescribeServicesOutput, error) {
 	res, ok := cache.Get("describeServices", input.Services).(*ecs.DescribeServicesOutput)
 
