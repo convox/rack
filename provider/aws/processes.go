@@ -726,7 +726,7 @@ func (p *AWSProvider) generateTaskDefinition(app, process, release string) (*ecs
 		return nil, fmt.Errorf("could not find service for process: %s", process)
 	}
 
-	sres, err := p.ecs().DescribeServices(&ecs.DescribeServicesInput{
+	sres, err := p.describeServices(&ecs.DescribeServicesInput{
 		Cluster:  aws.String(p.Cluster),
 		Services: []*string{aws.String(sarn)},
 	})

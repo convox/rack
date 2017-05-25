@@ -128,7 +128,7 @@ func (p *AWSProvider) clusterServices() (ECSServices, error) {
 			return nil, err
 		}
 
-		dres, err := p.ecs().DescribeServices(&ecs.DescribeServicesInput{
+		dres, err := p.describeServices(&ecs.DescribeServicesInput{
 			Cluster:  aws.String(p.Cluster),
 			Services: lres.ServiceArns,
 		})
