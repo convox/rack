@@ -14,7 +14,7 @@ func (p *AWSProvider) CapacityGet() (*structs.Capacity, error) {
 
 	capacity := &structs.Capacity{}
 
-	ires, err := p.describeContainerInstances()
+	ires, err := p.listAndDescribeContainerInstances()
 	if err != nil {
 		log.Error(err)
 		return nil, err
