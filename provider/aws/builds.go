@@ -382,7 +382,8 @@ func (p *AWSProvider) BuildImport(app string, r io.Reader) (*structs.Build, erro
 			}
 
 			if err := cmd.Wait(); err != nil {
-				return nil, log.Errorf("%s: %s\n", lastline(outb.Bytes()), err.Error())
+				out := strings.TrimSpace(outb.String())
+				return nil, log.Errorf("%s: %s\n", out, err.Error())
 			}
 
 			if len(manifest) != 1 || len(manifest[0].RepoTags) != 1 {
