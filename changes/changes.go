@@ -128,7 +128,7 @@ func syncUntilStable(dir string, ignore []string, ch chan Change, prev map[strin
 
 		changed := notify(ch, prev, snap, dir, ignore)
 
-		if Debugging() && changed && i > 0 {
+		if isDebugging() && changed && i > 0 {
 			fmt.Printf("syncUntilStable: multipass (%s) change: %s ... ", i, changed)
 		}
 

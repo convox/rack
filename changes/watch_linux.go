@@ -12,12 +12,12 @@ import (
 )
 
 var (
-	dirCreateFlags = inotify.IN_CREATE | inotify.IN_ISDIR
-	dirDeleteFlags = inotify.IN_DELETE | inotify.IN_ISDIR
-	watcher        *inotify.Watcher
-	lock           sync.Mutex
-	linuxTickTime  = linuxTickTimeInMillis()
-	touchTimes     = map[string](time.Time){}
+	dirCreateFlags       = inotify.IN_CREATE | inotify.IN_ISDIR
+	dirDeleteFlags       = inotify.IN_DELETE | inotify.IN_ISDIR
+	watcher              *inotify.Watcher
+	lock                 sync.Mutex
+	fallbackSyncTickTime = fallbackSyncTickTimeInMillis()
+	touchTimes           = map[string](time.Time){}
 )
 
 func init() {
@@ -40,7 +40,7 @@ func startScanner(dir string) {
 // watchForChanges ) will then Walk the dir and sync any file changes that it
 // detects.
 func waitForNextScan(dir string) {
-	tick := time.Tick(linuxTickTime)
+	tick := time.Tick(fallbackSyncTickTime)
 
 	for {
 		select {
@@ -72,13 +72,12 @@ func waitForNextScan(dir string) {
 func isHot(dir string) bool {
 	ttime := touchTimes[dir]
 	elapsedMillis := time.Since(ttime) / 1000000
-	hot := elapsedMillis < 600000 // 10 min
-	return hot
+	return (elapsedMillis < 600000)
 }
 
-func linuxTickTimeInMillis() time.Duration {
+func fallbackSyncTickTimeInMillis() time.Duration {
 	ttime := 2000
-	tickString := os.Getenv("LINUX_TICK")
+	tickString := os.Getenv("FALLBACK_SYNC_TICK")
 	if tickString != "" {
 		t, _ := strconv.ParseInt(tickString, 0, 32)
 		ttime = int(t)
@@ -86,6 +85,6 @@ func linuxTickTimeInMillis() time.Duration {
 	return (time.Duration(ttime) * time.Millisecond)
 }
 
-func Debugging() bool {
+func isDebugging() bool {
 	return os.Getenv("CONVOX_DEBUG") != ""
 }
