@@ -6,6 +6,6 @@ services:
     dockerfile: Dockerfile.dev
     entrypoint: /sbin/init
     labels:
-      - convox.health.unhealthy=11
+      - convox.health.threshold.unhealthy=11
       - convox.baz=4
 

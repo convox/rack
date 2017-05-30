@@ -6,7 +6,7 @@ services:
       - convox.health.port=5001
       - convox.health.path=/foo
       - convox.health.timeout=20
-      - convox.health.unhealthy=3
+      - convox.health.threshold.unhealthy=3
       - convox.port.443.protocol=https
     ports:
       - 80:5000

@@ -119,11 +119,11 @@ func (m Manifest) Validate() []error {
 			}
 		}
 
-		labels = entry.LabelsByPrefix("convox.health.unhealthy")
+		labels = entry.LabelsByPrefix("convox.health.threshold.unhealthy")
 		for _, v := range labels {
 			i, err := strconv.Atoi(v)
 			if err != nil || i < 2 || i > 10 {
-				errors = append(errors, fmt.Errorf("convox.health.unhealthy is invalid for %s, must be a number between 2 and 10", entry.Name))
+				errors = append(errors, fmt.Errorf("convox.health.threshold.unhealthy is invalid for %s, must be a number between 2 and 10", entry.Name))
 			}
 		}
 

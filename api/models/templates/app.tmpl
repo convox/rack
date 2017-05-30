@@ -484,7 +484,7 @@
             "{{ .HealthPath }}"
           ] ] },
           "Timeout": "{{ .HealthTimeout }}",
-          "UnhealthyThreshold": "{{ .UnhealthyThreshold }}"
+          "UnhealthyThreshold": "{{ .HealthThresholdUnhealthy }}"
         },
         "Listeners": [
           {{ range .PortMappings }}
