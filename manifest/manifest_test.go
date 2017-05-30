@@ -592,9 +592,9 @@ func TestManifestValidate(t *testing.T) {
 		return
 	}
 
-	uerr := m.Validate()
-	if assert.NotNil(t, uerr) {
-		assert.Equal(t, uerr[0].Error(), "convox.health.unhealthy is invalid for web, must be a number between 2 and 10")
+	tuerr := m.Validate()
+	if assert.NotNil(t, tuerr) {
+		assert.Equal(t, tuerr[0].Error(), "convox.health.threshold.unhealthy is invalid for web, must be a number between 2 and 10")
 	}
 }
 
