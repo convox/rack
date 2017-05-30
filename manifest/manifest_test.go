@@ -585,6 +585,17 @@ func TestManifestValidate(t *testing.T) {
 	if errs := m.Validate(); assert.NotNil(t, errs) {
 		assert.Equal(t, errs[0].Error(), "web service has convox.health.port set to a port it does not declare")
 	}
+
+	m, err = manifestFixture("invalid-health-unhealthy")
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
+
+	uerr := m.Validate()
+	if assert.NotNil(t, uerr) {
+		assert.Equal(t, uerr[0].Error(), "convox.health.unhealthy is invalid for web, must be a number between 2 and 10")
+	}
 }
 
 func manifestFixture(name string) (*manifest.Manifest, error) {
