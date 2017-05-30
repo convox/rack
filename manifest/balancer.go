@@ -292,6 +292,15 @@ func (mb ManifestBalancer) HealthInterval() (string, error) {
 	return interval, nil
 }
 
+// HealthThresholdHealthy The number of consecutive successful health checks
+// that must occur before declaring an EC2 instance healthy.
+func (mb ManifestBalancer) HealthThresholdHealthy() string {
+	if threshold := mb.Entry.Labels["convox.health.threshold.healthy"]; threshold != "" {
+		return threshold
+	}
+	return "2"
+}
+
 // HealthThresholdUnhealthy The number of consecutive failed health checks that
 // must occur before declaring an EC2 instance unhealthy
 func (mb ManifestBalancer) HealthThresholdUnhealthy() string {

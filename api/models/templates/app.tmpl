@@ -476,7 +476,7 @@
         "ConnectionSettings": { "IdleTimeout": "{{ .IdleTimeout }}" },
         "CrossZone": true,
         "HealthCheck": {
-          "HealthyThreshold": "2",
+          "HealthyThreshold": "{{ .HealthThresholdHealthy }}",
           "Interval": "{{ .HealthInterval }}",
           "Target": { "Fn::Join": [ "", [
             "{{ .HealthProtocol }}:",
