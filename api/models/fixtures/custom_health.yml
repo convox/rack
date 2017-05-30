@@ -7,3 +7,4 @@ main:
     - convox.health.port=3001
     - convox.health.path=/health_check
     - convox.health.timeout=60
+    - convox.health.unhealthy=3

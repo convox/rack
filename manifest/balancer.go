@@ -292,6 +292,15 @@ func (mb ManifestBalancer) HealthInterval() (string, error) {
 	return interval, nil
 }
 
+// UnhealthyThreshold The number of consecutive failed health checks that must
+// occur before declaring an EC2 instance unhealthy
+func (mb ManifestBalancer) UnhealthyThreshold() string {
+	if threshold := mb.Entry.Labels["convox.health.unhealthy"]; threshold != "" {
+		return threshold
+	}
+	return "2"
+}
+
 // IdleTimeout The amount of time to allow the balancer to keep idle connections open. This should be
 // greater than the keep-alive timeout on your back-end, so that the balancer is responsible for
 // closing connections
