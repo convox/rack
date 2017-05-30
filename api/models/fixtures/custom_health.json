@@ -324,7 +324,7 @@
             ]
           },
           "Timeout": "60",
-          "UnhealthyThreshold": "2"
+          "UnhealthyThreshold": "3"
         },
         "LBCookieStickinessPolicy": [
           {
