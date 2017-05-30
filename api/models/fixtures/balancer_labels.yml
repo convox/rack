@@ -4,5 +4,6 @@ main:
     - convox.port.443.protocol=tls
     - convox.port.443.proxy=true
     - convox.port.443.secure=true
+    - convox.health.threshold.unhealthy=3
   ports:
     - 443:5000

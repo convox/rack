@@ -32,7 +32,7 @@ func TestBalancerLabels(t *testing.T) {
 			assert.Equal(t, "443", balancer.HealthPort())
 			assert.Equal(t, "/foo", balancer.HealthPath())
 			assert.Equal(t, "20", balancer.HealthTimeout())
-			assert.Equal(t, "3", balancer.UnhealthyThreshold())
+			assert.Equal(t, "3", balancer.HealthThresholdUnhealthy())
 		}
 	}
 }
