@@ -309,7 +309,7 @@
         },
         "CrossZone": true,
         "HealthCheck": {
-          "HealthyThreshold": "2",
+          "HealthyThreshold": "4",
           "Interval": "62",
           "Target": {
             "Fn::Join": [
