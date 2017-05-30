@@ -8,3 +8,4 @@ main:
     - convox.health.path=/health_check
     - convox.health.timeout=60
     - convox.health.threshold.unhealthy=3
+    - convox.health.threshold.healthy=4
