@@ -86,7 +86,7 @@ func cmdApps(c *cli.Context) error {
 	}
 
 	if len(apps) == 0 {
-		stdcli.Writef("no apps found, try creating one via `convox apps create`")
+		stdcli.Writef("no apps found, try creating one via `convox apps create`\n")
 		return nil
 	}
 
@@ -155,7 +155,7 @@ func cmdAppCreate(c *cli.Context) error {
 		stdcli.Startf("Waiting for <app>%s</app>", app)
 
 		if err := waitForAppRunning(c, app); err != nil {
-			stdcli.Error(err)
+			return stdcli.Error(err)
 		}
 
 		stdcli.OK()

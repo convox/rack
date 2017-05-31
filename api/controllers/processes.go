@@ -116,7 +116,7 @@ func ProcessRunDetached(rw http.ResponseWriter, r *http.Request) *httperr.Error 
 	command := GetForm(r, "command")
 	release := GetForm(r, "release")
 
-	_, err := models.Provider().ProcessRun(app, process, structs.ProcessRunOptions{
+	pid, err := models.Provider().ProcessRun(app, process, structs.ProcessRunOptions{
 		Command: command,
 		Release: release,
 	})
@@ -127,7 +127,8 @@ func ProcessRunDetached(rw http.ResponseWriter, r *http.Request) *httperr.Error 
 		return httperr.Server(err)
 	}
 
-	return RenderSuccess(rw)
+	data := map[string]interface{}{"success": true, "pid": pid}
+	return RenderJson(rw, data)
 }
 
 // ProcessStop stops a Process
