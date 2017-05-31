@@ -269,7 +269,7 @@
         },
         "CrossZone": true,
         "HealthCheck": {
-          "HealthyThreshold": "2",
+          "HealthyThreshold": "4",
           "Interval": "5",
           "Target": {
             "Fn::Join": [
@@ -284,7 +284,7 @@
             ]
           },
           "Timeout": "3",
-          "UnhealthyThreshold": "2"
+          "UnhealthyThreshold": "3"
         },
         "LBCookieStickinessPolicy": [
           {
