@@ -2340,7 +2340,7 @@
             },
             "Image": { "Fn::If": [ "BlankBuildImage", { "Fn::Join": [ ":", [ "convox/api", { "Ref": "Version" } ] ] }, { "Ref": "BuildImage" } ] },
             "Links": [],
-            "Memory": { "Ref": "BuildMemory" },
+            "MemoryReservation": { "Ref": "BuildMemory" },
             "Name": "build",
             "Volumes": [
               "/etc/sysconfig/docker:/etc/sysconfig/docker",
