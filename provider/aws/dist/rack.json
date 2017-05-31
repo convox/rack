@@ -294,6 +294,11 @@
       "Description": "How much memory should be reserved by the builder",
       "Default": "1024"
     },
+    "BuildVolumeSize": {
+      "Type": "Number",
+      "Description": "Default build disk size in GB",
+      "Default": "50"
+    },
     "ClientId": {
       "Type": "String",
       "Description": "Anonymous identifier",
@@ -1449,7 +1454,7 @@
             "DeviceName": "/dev/xvdcz",
             "Ebs": {
               "Encrypted": { "Fn::If": [ "EncryptEbs", "true", { "Ref": "AWS::NoValue" } ] },
-              "VolumeSize": { "Ref": "VolumeSize" },
+              "VolumeSize": { "Ref": "BuildVolumeSize" },
               "VolumeType":"gp2"
             }
           }
