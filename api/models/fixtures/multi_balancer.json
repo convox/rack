@@ -348,7 +348,12 @@
               [
                 "TCP:",
                 {
-                  "Ref": "WebPort80Host"
+                  "Fn::Select": [
+                    0,
+                    {
+                      "Ref": "WebPort80Listener"
+                    }
+                  ]
                 },
                 ""
               ]
@@ -512,7 +517,12 @@
               [
                 "TCP:",
                 {
-                  "Ref": "WorkerPort80Host"
+                  "Fn::Select": [
+                    0,
+                    {
+                      "Ref": "WorkerPort80Listener"
+                    }
+                  ]
                 },
                 ""
               ]
@@ -1045,7 +1055,12 @@
                   ":",
                   [
                     {
-                      "Ref": "WebPort80Host"
+                      "Fn::Select": [
+                        0,
+                        {
+                          "Ref": "WebPort80Listener"
+                        }
+                      ]
                     },
                     "3000/tcp"
                   ]
@@ -1177,7 +1192,12 @@
                   ":",
                   [
                     {
-                      "Ref": "WorkerPort80Host"
+                      "Fn::Select": [
+                        0,
+                        {
+                          "Ref": "WorkerPort80Listener"
+                        }
+                      ]
                     },
                     "3000/tcp"
                   ]

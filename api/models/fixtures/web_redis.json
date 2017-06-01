@@ -348,7 +348,12 @@
               [
                 "TCP:",
                 {
-                  "Ref": "RedisPort6379Host"
+                  "Fn::Select": [
+                    0,
+                    {
+                      "Ref": "RedisPort6379Listener"
+                    }
+                  ]
                 },
                 ""
               ]
@@ -506,7 +511,12 @@
               [
                 "TCP:",
                 {
-                  "Ref": "WebPort80Host"
+                  "Fn::Select": [
+                    0,
+                    {
+                      "Ref": "WebPort80Listener"
+                    }
+                  ]
                 },
                 ""
               ]
@@ -835,7 +845,12 @@
                   ":",
                   [
                     {
-                      "Ref": "RedisPort6379Host"
+                      "Fn::Select": [
+                        0,
+                        {
+                          "Ref": "RedisPort6379Listener"
+                        }
+                      ]
                     },
                     "6379/tcp"
                   ]
@@ -1174,7 +1189,12 @@
                   ":",
                   [
                     {
-                      "Ref": "WebPort80Host"
+                      "Fn::Select": [
+                        0,
+                        {
+                          "Ref": "WebPort80Listener"
+                        }
+                      ]
                     },
                     "3000/tcp"
                   ]

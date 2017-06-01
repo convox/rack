@@ -348,7 +348,12 @@
               [
                 "TCP:",
                 {
-                  "Ref": "PostgresPort5432Host"
+                  "Fn::Select": [
+                    0,
+                    {
+                      "Ref": "PostgresPort5432Listener"
+                    }
+                  ]
                 },
                 ""
               ]
@@ -506,7 +511,12 @@
               [
                 "TCP:",
                 {
-                  "Ref": "WebPort3000Host"
+                  "Fn::Select": [
+                    0,
+                    {
+                      "Ref": "WebPort3000Listener"
+                    }
+                  ]
                 },
                 ""
               ]
@@ -826,7 +836,12 @@
                   ":",
                   [
                     {
-                      "Ref": "PostgresPort5432Host"
+                      "Fn::Select": [
+                        0,
+                        {
+                          "Ref": "PostgresPort5432Listener"
+                        }
+                      ]
                     },
                     "5432/tcp"
                   ]
@@ -1165,7 +1180,12 @@
                   ":",
                   [
                     {
-                      "Ref": "WebPort3000Host"
+                      "Fn::Select": [
+                        0,
+                        {
+                          "Ref": "WebPort3000Listener"
+                        }
+                      ]
                     },
                     "3000/tcp"
                   ]

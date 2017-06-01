@@ -317,7 +317,12 @@
               [
                 "TCP:",
                 {
-                  "Ref": "WebPort80Host"
+                  "Fn::Select": [
+                    0,
+                    {
+                      "Ref": "WebPort80Listener"
+                    }
+                  ]
                 },
                 ""
               ]
@@ -840,7 +845,12 @@
                   ":",
                   [
                     {
-                      "Ref": "WebPort80Host"
+                      "Fn::Select": [
+                        0,
+                        {
+                          "Ref": "WebPort80Listener"
+                        }
+                      ]
                     },
                     "3000/tcp"
                   ]
@@ -851,7 +861,12 @@
                   ":",
                   [
                     {
-                      "Ref": "WebPort3001Host"
+                      "Fn::Select": [
+                        0,
+                        {
+                          "Ref": "WebPort3001Listener"
+                        }
+                      ]
                     },
                     "3001/tcp"
                   ]
