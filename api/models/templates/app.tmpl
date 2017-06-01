@@ -382,7 +382,7 @@
     {{ $balancerPrefix := printf "Balancer%s" $processName }}
     {{ range .PortMappings }}
       "Blank{{ $balancerPrefix }}Port{{ .Balancer }}Certificate": {
-        "Fn::Equals": [ { "Ref": "{{ $processName }}Port{{ .Balancer }}Certificate" }, "" ]
+        "Fn::Equals": [ { "Fn::Select": [ 1, { "Ref": "{{ $processName }}Port{{ .Balancer }}Listener" } ] }, "" ]
       },
     {{ end }}
   {{ end }}
@@ -392,15 +392,10 @@
   {{ range .Balancers }}
     {{ $balancer := . }}
     {{ range .PortMappings }}
-      "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Certificate": {
-        "Type" : "String",
-        "Default" : "",
-        "Description" : ""
-      },
-      "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Host": {
-        "Type" : "String",
-        "Default" : "{{ index $balancer.Randoms (itoa .Balancer) }}",
-        "Description" : ""
+      "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Listener": {
+        "Type" : "CommaDelimitedList",
+        "Default" : "{{ index $balancer.Randoms (itoa .Balancer) }},",
+        "Description" : "Host port number, certificate ARN"
       },
     {{ end }}
   {{ end }}
@@ -496,10 +491,10 @@
               {{ end }}
               "LoadBalancerPort": "{{ .Balancer }}",
               "InstanceProtocol": "{{ $balancer.InstanceProtocol . }}",
-              "InstancePort": { "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Host" },
+              "InstancePort": { "Fn::Select": [ 0, { "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Listener" } ] },
               "SSLCertificateId": { "Fn::If": [ "BlankBalancer{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Certificate",
                 { "Ref": "AWS::NoValue" },
-                { "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Certificate" }
+                { "Fn::Select": [ 1, { "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Listener" } ] }
               ] }
             },
           {{ end }}
