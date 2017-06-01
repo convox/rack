@@ -190,9 +190,28 @@ func (r *Release) Promote() error {
 
 		for _, mapping := range entry.Ports {
 			certParam := fmt.Sprintf("%sPort%dCertificate", UpperName(entry.Name), mapping.Balancer)
+			listenerParam := fmt.Sprintf("%sPort%dListener", UpperName(entry.Name), mapping.Balancer)
+			portParam := fmt.Sprintf("%sPort%dHost", UpperName(entry.Name), mapping.Balancer)
 			protoParam := fmt.Sprintf("%sPort%dProtocol", UpperName(entry.Name), mapping.Balancer)
 			proxyParam := fmt.Sprintf("%sPort%dProxy", UpperName(entry.Name), mapping.Balancer)
 			secureParam := fmt.Sprintf("%sPort%dSecure", UpperName(entry.Name), mapping.Balancer)
+
+			listener := []string{"", ""} // port, cert pair
+
+			switch {
+			case app.Parameters[listenerParam] != "":
+				listener = strings.Split(app.Parameters[listenerParam], ",")
+				if len(listener) != 2 {
+					return fmt.Errorf("%s not in Port,Cert format", listenerParam)
+				}
+			case app.Parameters[portParam] != "":
+				if v, ok := app.Parameters[portParam]; ok {
+					listener[0] = v
+				}
+				if v, ok := app.Parameters[certParam]; ok {
+					listener[1] = v
+				}
+			}
 
 			proto := entry.Labels[fmt.Sprintf("convox.port.%d.protocol", mapping.Balancer)]
 
@@ -219,7 +238,7 @@ func (r *Release) Promote() error {
 
 			switch proto {
 			case "https", "tls":
-				if app.Parameters[certParam] == "" {
+				if listener[1] == "" {
 					// if rack already has a self-signed cert, reuse it
 					certs, err := IAM().ListServerCertificates(&iam.ListServerCertificatesInput{})
 					if err != nil {
@@ -228,13 +247,13 @@ func (r *Release) Promote() error {
 
 					for _, cert := range certs.ServerCertificateMetadataList {
 						if strings.Contains(*cert.Arn, fmt.Sprintf("cert-%s", os.Getenv("RACK"))) {
-							app.Parameters[certParam] = *cert.Arn
+							listener[1] = *cert.Arn
 							break
 						}
 					}
 
 					// if not, generate and upload a self-signed cert
-					if app.Parameters[certParam] == "" {
+					if listener[1] == "" {
 						name := fmt.Sprintf("cert-%s-%d-%05d", os.Getenv("RACK"), time.Now().Unix(), rand.Intn(100000))
 
 						body, key, err := generateSelfSignedCertificate("*.*.elb.amazonaws.com")
@@ -253,7 +272,7 @@ func (r *Release) Promote() error {
 							return err
 						}
 
-						app.Parameters[certParam] = *res.ServerCertificateMetadata.Arn
+						listener[1] = *res.ServerCertificateMetadata.Arn
 
 						if err := waitForServerCertificate(name); err != nil {
 							return err
@@ -261,6 +280,12 @@ func (r *Release) Promote() error {
 					}
 				}
 			}
+
+			app.Parameters[listenerParam] = strings.Join(listener, ",")
+
+			// backwards compatibility for rollbacks
+			app.Parameters[portParam] = listener[0]
+			app.Parameters[certParam] = listener[1]
 		}
 	}
 
