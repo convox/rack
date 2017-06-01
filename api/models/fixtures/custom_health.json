@@ -317,7 +317,12 @@
               [
                 "HTTPS:",
                 {
-                  "Ref": "MainPort81Host"
+                  "Fn::Select": [
+                    0,
+                    {
+                      "Ref": "MainPort81Listener"
+                    }
+                  ]
                 },
                 "/health_check"
               ]
@@ -682,7 +687,12 @@
                   ":",
                   [
                     {
-                      "Ref": "MainPort80Host"
+                      "Fn::Select": [
+                        0,
+                        {
+                          "Ref": "MainPort80Listener"
+                        }
+                      ]
                     },
                     "3000/tcp"
                   ]
@@ -693,7 +703,12 @@
                   ":",
                   [
                     {
-                      "Ref": "MainPort81Host"
+                      "Fn::Select": [
+                        0,
+                        {
+                          "Ref": "MainPort81Listener"
+                        }
+                      ]
                     },
                     "3001/tcp"
                   ]

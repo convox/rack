@@ -299,7 +299,12 @@
               [
                 "TCP:",
                 {
-                  "Ref": "MainPort443Host"
+                  "Fn::Select": [
+                    0,
+                    {
+                      "Ref": "MainPort443Listener"
+                    }
+                  ]
                 },
                 ""
               ]
@@ -858,7 +863,12 @@
                   ":",
                   [
                     {
-                      "Ref": "MainPort443Host"
+                      "Fn::Select": [
+                        0,
+                        {
+                          "Ref": "MainPort443Listener"
+                        }
+                      ]
                     },
                     "5000/tcp"
                   ]

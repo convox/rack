@@ -277,7 +277,12 @@
               [
                 "SSL:",
                 {
-                  "Ref": "MainPort443Host"
+                  "Fn::Select": [
+                    0,
+                    {
+                      "Ref": "MainPort443Listener"
+                    }
+                  ]
                 },
                 ""
               ]
@@ -350,7 +355,12 @@
             ],
             "InstancePorts": [
               {
-                "Ref": "MainPort443Host"
+                "Fn::Select": [
+                  0,
+                  {
+                    "Ref": "MainPort443Listener"
+                  }
+                ]
               }
             ],
             "PolicyName": "EnableProxyProtocol",
@@ -610,7 +620,12 @@
                   ":",
                   [
                     {
-                      "Ref": "MainPort443Host"
+                      "Fn::Select": [
+                        0,
+                        {
+                          "Ref": "MainPort443Listener"
+                        }
+                      ]
                     },
                     "5000/tcp"
                   ]

@@ -388,7 +388,12 @@
               [
                 "TCP:",
                 {
-                  "Ref": "PostgresPort5432Host"
+                  "Fn::Select": [
+                    0,
+                    {
+                      "Ref": "PostgresPort5432Listener"
+                    }
+                  ]
                 },
                 ""
               ]
@@ -546,7 +551,12 @@
               [
                 "TCP:",
                 {
-                  "Ref": "WebPort80Host"
+                  "Fn::Select": [
+                    0,
+                    {
+                      "Ref": "WebPort80Listener"
+                    }
+                  ]
                 },
                 ""
               ]
@@ -913,7 +923,12 @@
                   ":",
                   [
                     {
-                      "Ref": "PostgresPort5432Host"
+                      "Fn::Select": [
+                        0,
+                        {
+                          "Ref": "PostgresPort5432Listener"
+                        }
+                      ]
                     },
                     "5432/tcp"
                   ]
@@ -1252,7 +1267,12 @@
                   ":",
                   [
                     {
-                      "Ref": "WebPort80Host"
+                      "Fn::Select": [
+                        0,
+                        {
+                          "Ref": "WebPort80Listener"
+                        }
+                      ]
                     },
                     "3000/tcp"
                   ]
@@ -1263,7 +1283,12 @@
                   ":",
                   [
                     {
-                      "Ref": "WebPort443Host"
+                      "Fn::Select": [
+                        0,
+                        {
+                          "Ref": "WebPort443Listener"
+                        }
+                      ]
                     },
                     "3001/tcp"
                   ]
