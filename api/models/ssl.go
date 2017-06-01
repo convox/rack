@@ -37,14 +37,30 @@ func ListSSLs(a string) (SSLs, error) {
 
 	// Find stack Parameters like WebPort443Certificate with an ARN set for the value
 	// Get and decode corresponding certificate info
-	re := regexp.MustCompile(`(\w+)Port(\d+)Certificate`)
+	cRe := regexp.MustCompile(`(\w+)Port(\d+)Certificate`)
+	lRe := regexp.MustCompile(`(\w+)Port(\d+)Listener`)
 
 	for k, v := range app.Parameters {
 		if v == "" {
 			continue
 		}
 
-		if matches := re.FindStringSubmatch(k); len(matches) > 0 {
+		matches := []string{}
+		arn := ""
+
+		if ms := cRe.FindStringSubmatch(k); len(matches) > 0 {
+			matches = ms
+			arn = v
+		} else if ms := lRe.FindStringSubmatch(k); len(matches) > 0 {
+			matches = ms
+
+			parts := strings.Split(v, ",")
+			if len(parts) != 2 {
+				return nil, fmt.Errorf("%s not in Port,Cert format", k)
+			}
+		}
+
+		if len(matches) > 0 {
 			port, err := strconv.Atoi(matches[2])
 
 			if err != nil {
@@ -53,17 +69,17 @@ func ListSSLs(a string) (SSLs, error) {
 
 			secure := app.Parameters[fmt.Sprintf("%sPort%sSecure", matches[1], matches[2])] == "Yes"
 
-			switch prefix := v[8:11]; prefix {
+			switch prefix := arn[8:11]; prefix {
 			case "acm":
 				res, err := ACM().DescribeCertificate(&acm.DescribeCertificateInput{
-					CertificateArn: aws.String(v),
+					CertificateArn: aws.String(arn),
 				})
 
 				if err != nil {
 					return nil, err
 				}
 
-				parts := strings.Split(v, "-")
+				parts := strings.Split(arn, "-")
 				id := fmt.Sprintf("acm-%s", parts[len(parts)-1])
 
 				ssls = append(ssls, SSL{
