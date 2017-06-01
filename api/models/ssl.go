@@ -194,8 +194,20 @@ func UpdateSSL(app, process string, port int, id string) (*SSL, error) {
 		NotificationARNs:    []*string{aws.String(cloudformationTopic)},
 	}
 
+	certParam := fmt.Sprintf("%sPort%dCertificate", UpperName(process), port)
+	listenerParam := fmt.Sprintf("%sPort%dListener", UpperName(process), port)
+
 	params := a.Parameters
-	params[fmt.Sprintf("%sPort%dCertificate", UpperName(process), port)] = arn
+
+	if _, ok := params[certParam]; ok {
+		params[certParam] = arn
+	}
+
+	if v, ok := params[listenerParam]; ok {
+		parts := strings.Split(v, ",")
+		parts[1] = arn
+		params[listenerParam] = strings.Join(parts, ",")
+	}
 
 	for key, val := range params {
 		req.Parameters = append(req.Parameters, &cloudformation.Parameter{
@@ -222,16 +234,28 @@ func UpdateSSL(app, process string, port int, id string) (*SSL, error) {
 
 // fetch certificate from CF params and parse name from arn
 func certName(app, process string, port int) string {
-	key := fmt.Sprintf("%sPort%dCertificate", UpperName(process), port)
-
 	a, err := GetApp(app)
-
 	if err != nil {
 		fmt.Printf(err.Error())
 		return ""
 	}
 
-	arn := a.Parameters[key]
+	certParam := fmt.Sprintf("%sPort%dCertificate", UpperName(process), port)
+	listenerParam := fmt.Sprintf("%sPort%dListener", UpperName(process), port)
+
+	arn := ""
+
+	if v, ok := a.Parameters[certParam]; ok {
+		arn = v
+	}
+
+	if v, ok := a.Parameters[listenerParam]; ok {
+		parts := strings.Split(v, ",")
+		if len(parts) != 2 {
+			return ""
+		}
+		arn = parts[1]
+	}
 
 	slice := strings.Split(arn, "/")
 
