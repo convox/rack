@@ -4,7 +4,12 @@
     "BlankBalancerMainPort443Certificate": {
       "Fn::Equals": [
         {
-          "Ref": "MainPort443Certificate"
+          "Fn::Select": [
+            1,
+            {
+              "Ref": "MainPort443Listener"
+            }
+          ]
         },
         ""
       ]
@@ -179,15 +184,10 @@
       "Description": "Number of processes to run, CPU units to reserve, and MB of RAM to reserve",
       "Type": "CommaDelimitedList"
     },
-    "MainPort443Certificate": {
-      "Default": "",
-      "Description": "",
-      "Type": "String"
-    },
-    "MainPort443Host": {
-      "Default": "5000",
-      "Description": "",
-      "Type": "String"
+    "MainPort443Listener": {
+      "Default": "5000,",
+      "Description": "Host port number, certificate ARN",
+      "Type": "CommaDelimitedList"
     },
     "NativeLogging": {
       "AllowedValues": [
@@ -294,7 +294,12 @@
         "Listeners": [
           {
             "InstancePort": {
-              "Ref": "MainPort443Host"
+              "Fn::Select": [
+                0,
+                {
+                  "Ref": "MainPort443Listener"
+                }
+              ]
             },
             "InstanceProtocol": "SSL",
             "LoadBalancerPort": "443",
@@ -306,7 +311,12 @@
                   "Ref": "AWS::NoValue"
                 },
                 {
-                  "Ref": "MainPort443Certificate"
+                  "Fn::Select": [
+                    1,
+                    {
+                      "Ref": "MainPort443Listener"
+                    }
+                  ]
                 }
               ]
             }
