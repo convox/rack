@@ -16,6 +16,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -194,20 +195,45 @@ func (p *AWSProvider) BuildExport(app, id string, w io.Writer) error {
 
 	defer os.Remove(tmp)
 
+	errch := make(chan error, len(m.Services))
+	var wg sync.WaitGroup
+
+	for service := range m.Services {
+		wg.Add(1)
+
+		go func(svc string) {
+			defer wg.Done()
+
+			image := fmt.Sprintf("%s:%s.%s", repo.URI, svc, build.Id)
+
+			log.Step("pull").Logf("image=%q", image)
+			out, err := exec.Command("docker", "pull", image).CombinedOutput()
+			if err != nil {
+				errch <- fmt.Errorf("%s: %s\n", lastline(out), err.Error())
+				return
+			}
+
+			errch <- nil
+		}(service)
+	}
+
+	wg.Wait()
+	close(errch)
+
+	for err := range errch {
+		if err != nil {
+			return err
+		}
+	}
+
 	for service := range m.Services {
 		image := fmt.Sprintf("%s:%s.%s", repo.URI, service, build.Id)
 		file := filepath.Join(tmp, fmt.Sprintf("%s.%s.tar", service, build.Id))
 
-		log.Step("pull").Logf("image=%q", image)
-		out, err := exec.Command("docker", "pull", image).CombinedOutput()
-		if err != nil {
-			return log.Error(fmt.Errorf("%s: %s\n", lastline(out), err.Error()))
-		}
-
 		log.Step("save").Logf("image=%q file=%q", image, file)
-		out, err = exec.Command("docker", "save", "-o", file, image).CombinedOutput()
+		out, err := exec.Command("docker", "save", "-o", file, image).CombinedOutput()
 		if err != nil {
-			return log.Error(fmt.Errorf("%s: %s\n", lastline(out), err.Error()))
+			return fmt.Errorf("%s: %s\n", lastline(out), err.Error())
 		}
 
 		stat, err := os.Stat(file)
