@@ -317,7 +317,7 @@
                 {{ range .Ports }}
                   {{ if and (eq .Protocol "tcp") ($e.HasBalancer) }}
                   { "Fn::Join": [ ":", [
-                    { "Ref": "{{ upper $e.Name }}Port{{ .Balancer }}Host" },
+                    { "Fn::Select": [ 0, { "Ref": "{{ upper $e.Name }}Port{{ .Balancer }}Listener" } ] },
                       "{{ .Container }}/{{ .Protocol }}"
                   ] ] },
                   {{ else }}
@@ -475,7 +475,7 @@
           "Interval": "{{ .HealthInterval }}",
           "Target": { "Fn::Join": [ "", [
             "{{ .HealthProtocol }}:",
-            { "Ref": "{{ upper .ProcessName }}Port{{ .HealthPort }}Host" },
+            { "Fn::Select": [ 0, { "Ref": "{{ upper .ProcessName }}Port{{ .HealthPort }}Listener" } ] },
             "{{ .HealthPath }}"
           ] ] },
           "Timeout": "{{ .HealthTimeout }}",
@@ -510,7 +510,7 @@
                     "Name": "ProxyProtocol",
                     "Value": "true"
                 }],
-                "InstancePorts": [{ "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Host" }]
+                "InstancePorts": [{ "Fn::Select": [ 0, { "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Listener" } ] }]
               },
             {{ end }}
           {{ end }}
