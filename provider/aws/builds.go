@@ -16,7 +16,6 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -195,81 +194,77 @@ func (p *AWSProvider) BuildExport(app, id string, w io.Writer) error {
 
 	defer os.Remove(tmp)
 
-	errch := make(chan error, len(m.Services))
-	var wg sync.WaitGroup
+	images := []string{}
 
 	for service := range m.Services {
-		wg.Add(1)
+		images = append(images, fmt.Sprintf("%s:%s.%s", repo.URI, service, build.Id))
+	}
 
-		go func(svc string) {
-			defer wg.Done()
+	errch := make(chan error, len(images))
 
-			image := fmt.Sprintf("%s:%s.%s", repo.URI, svc, build.Id)
-
-			log.Step("pull").Logf("image=%q", image)
-			out, err := exec.Command("docker", "pull", image).CombinedOutput()
+	for _, image := range images {
+		go func(img string) {
+			log.Step("pull").Logf("image=%q", img)
+			out, err := exec.Command("docker", "pull", img).CombinedOutput()
 			if err != nil {
 				errch <- fmt.Errorf("%s: %s\n", lastline(out), err.Error())
 				return
 			}
 
 			errch <- nil
-		}(service)
+		}(image)
 	}
 
-	wg.Wait()
-	close(errch)
-
-	for err := range errch {
-		if err != nil {
+	for i := 0; i < len(images); i++ {
+		if err := <-errch; err != nil {
 			return err
 		}
 	}
 
-	for service := range m.Services {
-		image := fmt.Sprintf("%s:%s.%s", repo.URI, service, build.Id)
-		file := filepath.Join(tmp, fmt.Sprintf("%s.%s.tar", service, build.Id))
+	name := fmt.Sprintf("%s.%s.tar", app, build.Id)
+	file := filepath.Join(tmp, name)
+	args := []string{"save", "-o", file}
+	args = append(args, images...)
 
-		log.Step("save").Logf("image=%q file=%q", image, file)
-		out, err := exec.Command("docker", "save", "-o", file, image).CombinedOutput()
-		if err != nil {
-			return fmt.Errorf("%s: %s\n", lastline(out), err.Error())
-		}
+	log.Step("save").Logf("images=%q", images)
+	out, err := exec.Command("docker", args...).CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("%s: %s\n", lastline(out), err.Error())
+	}
 
-		stat, err := os.Stat(file)
-		if err != nil {
-			log.Error(err)
-			return err
-		}
+	stat, err := os.Stat(file)
+	if err != nil {
+		log.Error(err)
+		return err
+	}
 
-		header := &tar.Header{
-			Typeflag: tar.TypeReg,
-			Name:     fmt.Sprintf("%s.%s.tar", service, build.Id),
-			Mode:     0600,
-			Size:     stat.Size(),
-		}
+	header := &tar.Header{
+		Typeflag: tar.TypeReg,
+		Name:     name,
+		Mode:     0600,
+		Size:     stat.Size(),
+	}
 
-		if err := tw.WriteHeader(header); err != nil {
-			log.Error(err)
-			return err
-		}
+	if err := tw.WriteHeader(header); err != nil {
+		log.Error(err)
+		return err
+	}
 
-		fd, err := os.Open(file)
-		if err != nil {
-			log.Error(err)
-			return err
-		}
+	fd, err := os.Open(file)
+	if err != nil {
+		log.Error(err)
+		return err
+	}
 
-		log.Step("copy").Logf("file=%q", file)
-		if _, err := io.Copy(tw, fd); err != nil {
-			log.Error(err)
-			return err
-		}
+	log.Step("copy").Logf("file=%q", file)
+	if _, err := io.Copy(tw, fd); err != nil {
+		log.Error(err)
+		return err
+	}
 
-		if err := os.Remove(file); err != nil {
-			log.Error(err)
-			return err
-		}
+	if err := os.Remove(file); err != nil {
+		log.Error(err)
+		return err
 	}
 
 	if err := tw.Close(); err != nil {

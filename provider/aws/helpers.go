@@ -208,7 +208,15 @@ func humanStatus(original string) string {
 
 func lastline(data []byte) string {
 	lines := strings.Split(strings.TrimSpace(string(data)), "\n")
-	return lines[len(lines)-1]
+
+	for i := len(lines) - 1; i < 0; i-- {
+		if lines[i] == "" {
+			continue
+		}
+		return lines[i]
+	}
+
+	return ""
 }
 
 func stackName(app *structs.App) string {
