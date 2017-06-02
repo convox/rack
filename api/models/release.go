@@ -188,6 +188,7 @@ func (r *Release) Promote() error {
 		app.Parameters[entry.ParamName("Cpu")] = scale[1]
 		app.Parameters[entry.ParamName("Memory")] = scale[2]
 
+		// set default values for listener port, cert
 		for _, mapping := range entry.Ports {
 			certParam := fmt.Sprintf("%sPort%dCertificate", UpperName(entry.Name), mapping.Balancer)
 			listenerParam := fmt.Sprintf("%sPort%dListener", UpperName(entry.Name), mapping.Balancer)
@@ -196,23 +197,27 @@ func (r *Release) Promote() error {
 			proxyParam := fmt.Sprintf("%sPort%dProxy", UpperName(entry.Name), mapping.Balancer)
 			secureParam := fmt.Sprintf("%sPort%dSecure", UpperName(entry.Name), mapping.Balancer)
 
-			listener := []string{"", ""} // port, cert pair
+			// start with random port, no cert default
+			randomPort := entry.Randoms()[strconv.Itoa(mapping.Balancer)]
+			listener := []string{strconv.Itoa(randomPort), ""}
 
-			switch {
-			case app.Parameters[listenerParam] != "":
-				listener = strings.Split(app.Parameters[listenerParam], ",")
+			// copy values from existing parameters
+			if v, ok := app.Parameters[listenerParam]; ok {
+				listener = strings.Split(v, ",")
 				if len(listener) != 2 {
-					return fmt.Errorf("%s not in Port,Cert format", listenerParam)
-				}
-			case app.Parameters[portParam] != "":
-				if v, ok := app.Parameters[portParam]; ok {
-					listener[0] = v
-				}
-				if v, ok := app.Parameters[certParam]; ok {
-					listener[1] = v
+					return fmt.Errorf("%s not in Port, Cert format", listenerParam)
 				}
 			}
 
+			if v, ok := app.Parameters[portParam]; ok {
+				listener[0] = v
+			}
+
+			if v, ok := app.Parameters[certParam]; ok {
+				listener[1] = v
+			}
+
+			// validate protocol labels
 			proto := entry.Labels[fmt.Sprintf("convox.port.%d.protocol", mapping.Balancer)]
 
 			// if the proto param is set to a non-default value and doesnt match the label, error
@@ -236,6 +241,7 @@ func (r *Release) Promote() error {
 				}
 			}
 
+			// set a default cert if not defined in existing parameter
 			switch proto {
 			case "https", "tls":
 				if listener[1] == "" {
@@ -281,9 +287,8 @@ func (r *Release) Promote() error {
 				}
 			}
 
+			// set parameters with forwards and backwards compatibility
 			app.Parameters[listenerParam] = strings.Join(listener, ",")
-
-			// backwards compatibility for rollbacks
 			app.Parameters[portParam] = listener[0]
 			app.Parameters[certParam] = listener[1]
 		}
