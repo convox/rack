@@ -35,7 +35,7 @@ func ListSSLs(a string) (SSLs, error) {
 
 	ssls := make(SSLs, 0)
 
-	// Find stack Parameters like WebPort443Certificate with an ARN set for the value
+	// Find stack Parameters like WebPort443Listener or WebPort443Certificate with an ARN set for the value
 	// Get and decode corresponding certificate info
 	cRe := regexp.MustCompile(`(\w+)Port(\d+)Certificate`)
 	lRe := regexp.MustCompile(`(\w+)Port(\d+)Listener`)
