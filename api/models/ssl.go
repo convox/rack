@@ -41,28 +41,29 @@ func ListSSLs(a string) (SSLs, error) {
 	lRe := regexp.MustCompile(`(\w+)Port(\d+)Listener`)
 
 	for k, v := range app.Parameters {
-		if v == "" {
-			continue
-		}
-
 		matches := []string{}
 		arn := ""
 
-		if ms := cRe.FindStringSubmatch(k); len(matches) > 0 {
+		if ms := cRe.FindStringSubmatch(k); len(ms) > 0 {
 			matches = ms
 			arn = v
-		} else if ms := lRe.FindStringSubmatch(k); len(matches) > 0 {
+		} else if ms := lRe.FindStringSubmatch(k); len(ms) > 0 {
 			matches = ms
 
 			parts := strings.Split(v, ",")
 			if len(parts) != 2 {
 				return nil, fmt.Errorf("%s not in Port,Cert format", k)
 			}
+
+			arn = parts[1]
+		}
+
+		if arn == "" {
+			continue
 		}
 
 		if len(matches) > 0 {
 			port, err := strconv.Atoi(matches[2])
-
 			if err != nil {
 				return nil, err
 			}
