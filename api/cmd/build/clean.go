@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/csv"
 	"fmt"
-	"os"
 	"regexp"
 	"sort"
 	"time"
@@ -13,7 +12,7 @@ import (
 )
 
 // MaxBuilds is the number of most recent builds to retain
-const MaxBuilds = 3
+const MaxBuilds = 5
 
 // BuildRe is a regex that matches a build tag like web.BYDGVRTEDIW
 var BuildRe = regexp.MustCompile(`.*\.(B[A-Z]{10})`)
@@ -47,7 +46,7 @@ func clean() {
 	cmd := manifest.Docker("images", "--format", "{{.CreatedAt}},{{.ID}},{{.Tag}},{{.Repository}}")
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		fmt.Printf("ERROR: %s\n", err)
+		fmt.Printf("WARNING: %s\n", err)
 		return
 	}
 
@@ -124,8 +123,9 @@ func clean() {
 	for tag := range tags {
 		args := []string{"rmi", tag}
 		cmd = manifest.Docker(args...)
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-		cmd.Run()
+		_, err := cmd.CombinedOutput()
+		if err != nil {
+			fmt.Printf("WARNING: %s\n", err)
+		}
 	}
 }
