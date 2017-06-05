@@ -226,10 +226,10 @@ func (p *AWSProvider) BuildExport(app, id string, w io.Writer) error {
 	args := []string{"save", "-o", file}
 	args = append(args, images...)
 
-	log.Step("save").Logf("images=%q", images)
+	log.Step("save").Logf("file=%q images=%d", file, len(images))
 	out, err := exec.Command("docker", args...).CombinedOutput()
 	if err != nil {
-		return fmt.Errorf("%s: %s\n", lastline(out), err.Error())
+		return fmt.Errorf("%s: %s\n", strings.TrimSpace(string(out)), err.Error())
 	}
 
 	stat, err := os.Stat(file)
@@ -338,7 +338,7 @@ func (p *AWSProvider) BuildImport(app string, r io.Reader) (*structs.Build, erro
 
 	tr := tar.NewReader(gz)
 
-	psi := make(map[string]string)
+	var manifest imageManifest
 
 	for {
 		header, err := tr.Next()
@@ -391,7 +391,7 @@ func (p *AWSProvider) BuildImport(app string, r io.Reader) (*structs.Build, erro
 			}
 
 			log.Step("manifest").Logf("tar=%q", header.Name)
-			manifest, err := extractImageManifest(tee)
+			manifest, err = extractImageManifest(tee)
 			if err != nil {
 				log.Error(err)
 				return nil, err
@@ -407,18 +407,17 @@ func (p *AWSProvider) BuildImport(app string, r io.Reader) (*structs.Build, erro
 				return nil, log.Errorf("%s: %s\n", out, err.Error())
 			}
 
-			if len(manifest) != 1 || len(manifest[0].RepoTags) != 1 {
-				log.Errorf("invalid image manifest")
-				return nil, fmt.Errorf("invalid image manifest")
+			if len(manifest) == 0 {
+				log.Errorf("invalid image manifest: no data")
+				return nil, fmt.Errorf("invalid image manifest: no data")
 			}
-
-			image := manifest[0].RepoTags[0]
-			ps := strings.Split(header.Name, ".")[0]
-			psi[ps] = image
 		}
 	}
 
-	for ps, image := range psi {
+	for _, tags := range manifest {
+		image := tags.RepoTags[0]
+		fps := strings.Split(image, ":")[1]
+		ps := strings.Split(fps, ".")[0]
 		target := fmt.Sprintf("%s:%s.%s", repo.URI, ps, targetBuild.Id)
 
 		log.Step("tag").Logf("from=%q to=%q", image, target)
