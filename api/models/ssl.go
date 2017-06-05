@@ -35,35 +35,52 @@ func ListSSLs(a string) (SSLs, error) {
 
 	ssls := make(SSLs, 0)
 
-	// Find stack Parameters like WebPort443Certificate with an ARN set for the value
+	// Find stack Parameters like WebPort443Listener or WebPort443Certificate with an ARN set for the value
 	// Get and decode corresponding certificate info
-	re := regexp.MustCompile(`(\w+)Port(\d+)Certificate`)
+	cRe := regexp.MustCompile(`(\w+)Port(\d+)Certificate`)
+	lRe := regexp.MustCompile(`(\w+)Port(\d+)Listener`)
 
 	for k, v := range app.Parameters {
-		if v == "" {
+		matches := []string{}
+		arn := ""
+
+		if ms := cRe.FindStringSubmatch(k); len(ms) > 0 {
+			matches = ms
+			arn = v
+		} else if ms := lRe.FindStringSubmatch(k); len(ms) > 0 {
+			matches = ms
+
+			parts := strings.Split(v, ",")
+			if len(parts) != 2 {
+				return nil, fmt.Errorf("%s not in Port,Cert format", k)
+			}
+
+			arn = parts[1]
+		}
+
+		if arn == "" {
 			continue
 		}
 
-		if matches := re.FindStringSubmatch(k); len(matches) > 0 {
+		if len(matches) > 0 {
 			port, err := strconv.Atoi(matches[2])
-
 			if err != nil {
 				return nil, err
 			}
 
 			secure := app.Parameters[fmt.Sprintf("%sPort%sSecure", matches[1], matches[2])] == "Yes"
 
-			switch prefix := v[8:11]; prefix {
+			switch prefix := arn[8:11]; prefix {
 			case "acm":
 				res, err := ACM().DescribeCertificate(&acm.DescribeCertificateInput{
-					CertificateArn: aws.String(v),
+					CertificateArn: aws.String(arn),
 				})
 
 				if err != nil {
 					return nil, err
 				}
 
-				parts := strings.Split(v, "-")
+				parts := strings.Split(arn, "-")
 				id := fmt.Sprintf("acm-%s", parts[len(parts)-1])
 
 				ssls = append(ssls, SSL{
@@ -178,8 +195,20 @@ func UpdateSSL(app, process string, port int, id string) (*SSL, error) {
 		NotificationARNs:    []*string{aws.String(cloudformationTopic)},
 	}
 
+	certParam := fmt.Sprintf("%sPort%dCertificate", UpperName(process), port)
+	listenerParam := fmt.Sprintf("%sPort%dListener", UpperName(process), port)
+
 	params := a.Parameters
-	params[fmt.Sprintf("%sPort%dCertificate", UpperName(process), port)] = arn
+
+	if _, ok := params[certParam]; ok {
+		params[certParam] = arn
+	}
+
+	if v, ok := params[listenerParam]; ok {
+		parts := strings.Split(v, ",")
+		parts[1] = arn
+		params[listenerParam] = strings.Join(parts, ",")
+	}
 
 	for key, val := range params {
 		req.Parameters = append(req.Parameters, &cloudformation.Parameter{
@@ -206,16 +235,28 @@ func UpdateSSL(app, process string, port int, id string) (*SSL, error) {
 
 // fetch certificate from CF params and parse name from arn
 func certName(app, process string, port int) string {
-	key := fmt.Sprintf("%sPort%dCertificate", UpperName(process), port)
-
 	a, err := GetApp(app)
-
 	if err != nil {
 		fmt.Printf(err.Error())
 		return ""
 	}
 
-	arn := a.Parameters[key]
+	certParam := fmt.Sprintf("%sPort%dCertificate", UpperName(process), port)
+	listenerParam := fmt.Sprintf("%sPort%dListener", UpperName(process), port)
+
+	arn := ""
+
+	if v, ok := a.Parameters[certParam]; ok {
+		arn = v
+	}
+
+	if v, ok := a.Parameters[listenerParam]; ok {
+		parts := strings.Split(v, ",")
+		if len(parts) != 2 {
+			return ""
+		}
+		arn = parts[1]
+	}
 
 	slice := strings.Split(arn, "/")
 
