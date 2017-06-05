@@ -36,9 +36,6 @@ type AppBuilds map[string][]string
 // Builds is a map of build IDs to a list of images
 type Builds map[string]Images
 
-// ImageBuilds builds is a map of image IDs to build IDs
-type ImageBuilds map[string]string
-
 func (is Images) Len() int           { return len(is) }
 func (is Images) Swap(i, j int)      { is[i], is[j] = is[j], is[i] }
 func (is Images) Less(i, j int) bool { return is[i].CreatedAt.Before(is[j].CreatedAt) }
@@ -85,7 +82,6 @@ func clean() {
 
 	appBuilds := AppBuilds{}
 	builds := Builds{}
-	imageBuilds := ImageBuilds{}
 
 	for _, i := range images {
 		// if never seen app repo, initialize list of builds
@@ -99,16 +95,14 @@ func clean() {
 			appBuilds[i.Repository] = append(appBuilds[i.Repository], i.BuildID)
 		}
 
-		// if never seen image, append to list of images
-		if _, ok := imageBuilds[i.ID]; !ok {
-			imageBuilds[i.ID] = i.BuildID
-			builds[i.BuildID] = append(builds[i.BuildID], i)
-		}
+		// append to list of images
+		builds[i.BuildID] = append(builds[i.BuildID], i)
 	}
 
-	for repo, bids := range appBuilds {
-		if len(bids) < MaxBuilds {
-			fmt.Printf("Skipping %q with %d builds.\n", repo, len(bids))
+	// collect old builds and related repo:tags to remove
+	tags := map[string]bool{}
+	for _, bids := range appBuilds {
+		if len(bids) <= MaxBuilds {
 			continue
 		}
 
@@ -116,14 +110,22 @@ func clean() {
 			bid := bids[i]
 
 			for _, image := range builds[bid] {
-				fmt.Printf("Deleting %q %q %s\n", repo, bid, image.ID)
-				cmd := manifest.Docker("rmi", "-f", image.ID)
-				cmd.Stdout = os.Stdout
-				cmd.Stderr = os.Stderr
-				if err := cmd.Run(); err != nil {
-					fmt.Printf("ERROR: %s\n", err)
-				}
+				t := fmt.Sprintf("%s:%s", image.Repository, image.Tag)
+				tags[t] = true
 			}
 		}
+	}
+
+	if len(tags) == 0 {
+		return
+	}
+
+	// remove images
+	for tag := range tags {
+		args := []string{"rmi", tag}
+		cmd = manifest.Docker(args...)
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		cmd.Run()
 	}
 }
