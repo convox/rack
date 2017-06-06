@@ -434,6 +434,11 @@
       "Description": "Default swap volume size in GB",
       "Default": "5"
     },
+    "RootSize": {
+      "Type": "Number",
+      "Description": "Default root disk size in GB",
+      "Default": "8"
+    },
     "Version": {
       "Description": "(REQUIRED) Convox release version",
       "MinLength" : "1",
@@ -1596,6 +1601,14 @@
       "Properties": {
         "AssociatePublicIpAddress": { "Fn::If": [ "Private", false, true ] },
         "BlockDeviceMappings": [
+          {
+            "DeviceName": "/dev/xvda",
+            "Ebs": {
+              "Encrypted": { "Fn::If": [ "EncryptEbs", "true", { "Ref": "AWS::NoValue" } ] },
+              "VolumeSize": { "Ref": "RootSize" },
+              "VolumeType":"gp2"
+            }
+          },
           {
             "DeviceName": "/dev/xvdb",
             "Ebs": {
