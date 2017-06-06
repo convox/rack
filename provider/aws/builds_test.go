@@ -215,7 +215,7 @@ func TestBuildExport(t *testing.T) {
 
 	h, err = tr.Next()
 	assert.NoError(t, err)
-	assert.Equal(t, "web.BAFVEWUCAYT.tar", h.Name)
+	assert.Equal(t, "httpd.BAFVEWUCAYT.tar", h.Name)
 	assert.Equal(t, int64(13), h.Size)
 
 	h, err = tr.Next()
@@ -281,7 +281,7 @@ func TestBuildImport(t *testing.T) {
 
 	ltw := tar.NewWriter(lbuf)
 
-	data = []byte(`[{"RepoTags":["test-tag"]}]`)
+	data = []byte(`[{"RepoTags":["12345.dkr.ecr.us-east-1.amazonaws.com/convox-httpd-aaaaaaa:web.BRZMXKKHCMR"]}]`)
 
 	err = ltw.WriteHeader(&tar.Header{
 		Typeflag: tar.TypeReg,
@@ -292,14 +292,14 @@ func TestBuildImport(t *testing.T) {
 
 	n, err = ltw.Write(data)
 	require.NoError(t, err)
-	assert.Equal(t, 27, n)
+	assert.Equal(t, 93, n)
 
 	err = ltw.Close()
 	require.NoError(t, err)
 
 	err = tw.WriteHeader(&tar.Header{
 		Typeflag: tar.TypeReg,
-		Name:     "web.B12345.tar",
+		Name:     "httpd.B12345.tar",
 		Size:     int64(lbuf.Len()),
 	})
 	require.NoError(t, err)
@@ -1454,7 +1454,7 @@ var cycleBuildDockerSave = awsutil.Cycle{
 
 var cycleBuildDockerTag = awsutil.Cycle{
 	Request: awsutil.Request{
-		RequestURI: "/v1.24/images/test-tag/tag?repo=778743527532.dkr.ecr.us-east-1.amazonaws.com%2Fconvox-rails-sslibosttb&tag=web.B12345",
+		RequestURI: "/v1.24/images/12345.dkr.ecr.us-east-1.amazonaws.com/convox-httpd-aaaaaaa:web.BRZMXKKHCMR/tag?repo=778743527532.dkr.ecr.us-east-1.amazonaws.com%2Fconvox-rails-sslibosttb&tag=web.B12345",
 	},
 	Response: awsutil.Response{
 		StatusCode: 200,
