@@ -22,6 +22,7 @@ import (
 	"github.com/convox/rack/manifest"
 	"github.com/fsouza/go-dockerclient"
 	shellquote "github.com/kballard/go-shellquote"
+	"github.com/pkg/errors"
 )
 
 // StatusCodePrefix is sent to the client to let it know the exit code is coming next
@@ -178,11 +179,13 @@ func (p *AWSProvider) ProcessList(app string) (structs.Processes, error) {
 
 	tasks, err := p.appTaskARNs(app)
 	if err != nil {
+		fmt.Printf("appTaskARNs error %+v\n", err)
 		return nil, log.Error(err)
 	}
 
 	ps, err := p.taskProcesses(tasks)
 	if err != nil {
+		fmt.Printf("taskProcesses error %+v\n", err)
 		return nil, log.Error(err)
 	}
 
@@ -201,7 +204,7 @@ func (p *AWSProvider) stackTasks(stack string) ([]string, error) {
 	})
 	if err != nil {
 		log.Error(err)
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 
 	services := []string{}
@@ -229,7 +232,7 @@ func (p *AWSProvider) stackTasks(stack string) ([]string, error) {
 		)
 		if err != nil {
 			log.Error(err)
-			return nil, err
+			return nil, errors.WithStack(err)
 		}
 	}
 
@@ -245,7 +248,7 @@ func (p *AWSProvider) appTaskARNs(app string) ([]string, error) {
 		return nil, errorNotFound(fmt.Sprintf("no such app: %s", app))
 	}
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 
 	// list one-off processes
@@ -254,7 +257,7 @@ func (p *AWSProvider) appTaskARNs(app string) ([]string, error) {
 		StartedBy: aws.String(fmt.Sprintf("convox.%s", app)),
 	})
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 
 	for _, task := range ores.TaskArns {
@@ -268,7 +271,7 @@ func (p *AWSProvider) appTaskARNs(app string) ([]string, error) {
 			StartedBy: aws.String(fmt.Sprintf("convox.%s", app)),
 		})
 		if err != nil {
-			return nil, err
+			return nil, errors.WithStack(err)
 		}
 
 		for _, task := range ores.TaskArns {
@@ -315,7 +318,7 @@ func (p *AWSProvider) taskProcesses(tasks []string) (structs.Processes, error) {
 		})
 		if err != nil {
 			log.Error(err)
-			return nil, err
+			return nil, errors.WithStack(err)
 		}
 
 		ecsTasks := make([]*ecs.Task, len(tres.Tasks))
@@ -329,7 +332,7 @@ func (p *AWSProvider) taskProcesses(tasks []string) (structs.Processes, error) {
 			})
 			if err != nil {
 				log.Error(err)
-				return nil, err
+				return nil, errors.WithStack(err)
 			}
 
 			for _, task := range tres.Tasks {
@@ -348,9 +351,9 @@ func (p *AWSProvider) taskProcesses(tasks []string) (structs.Processes, error) {
 		for i := 0; i < len(ecsTasks); i++ {
 			select {
 			case <-time.After(30 * time.Second):
-				return nil, fmt.Errorf("timeout")
+				return nil, errors.Errorf("timeout")
 			case err := <-errch:
-				return nil, err
+				return nil, errors.WithStack(err)
 			case ps := <-psch:
 				psst = append(psst, ps)
 			}
@@ -361,7 +364,7 @@ func (p *AWSProvider) taskProcesses(tasks []string) (structs.Processes, error) {
 
 	instances, err := p.rackInstances()
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 
 	for i, ps := range pss {
@@ -593,19 +596,19 @@ func (p *AWSProvider) describeTask(arn string) (*ecs.Task, error) {
 
 func (p *AWSProvider) fetchProcess(task *ecs.Task, psch chan structs.Process, errch chan error) {
 	if len(task.Containers) < 1 {
-		errch <- fmt.Errorf("invalid task: %s", *task.TaskDefinitionArn)
+		errch <- errors.Errorf("invalid task: %s", *task.TaskDefinitionArn)
 		return
 	}
 
 	cd, err := p.containerDefinitionForTask(*task.TaskDefinitionArn)
 	if err != nil {
-		errch <- err
+		errch <- errors.WithStack(err)
 		return
 	}
 
 	ci, err := p.containerInstance(*task.ContainerInstanceArn)
 	if err != nil {
-		errch <- err
+		errch <- errors.WithStack(err)
 		return
 	}
 
@@ -932,7 +935,7 @@ func (p *AWSProvider) rackInstances() (map[string]ec2.Instance, error) {
 		return true
 	})
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 
 	return instances, nil
