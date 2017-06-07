@@ -1,10 +1,14 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
+	"os"
 	"sort"
 	"strings"
 	"time"
+
+	"golang.org/x/crypto/ssh/terminal"
 
 	"github.com/convox/rack/cmd/convox/stdcli"
 	"gopkg.in/urfave/cli.v1"
@@ -45,7 +49,13 @@ func init() {
 				Description: "delete an application",
 				Usage:       "<name>",
 				Action:      cmdAppDelete,
-				Flags:       []cli.Flag{rackFlag},
+				Flags: []cli.Flag{
+					rackFlag,
+					cli.BoolFlag{
+						Name:  "force",
+						Usage: "delete an app without verification prompt",
+					},
+				},
 			},
 			{
 				Name:        "info",
@@ -169,6 +179,24 @@ func cmdAppDelete(c *cli.Context) error {
 	stdcli.NeedArg(c, 1)
 
 	app := c.Args()[0]
+
+	if !c.Bool("force") {
+		if terminal.IsTerminal(int(os.Stdin.Fd())) {
+			reader := bufio.NewReader(os.Stdin)
+			fmt.Printf("Are you sure you want to delete %s? y/N: ", app)
+
+			confirm, err := reader.ReadString('\n')
+			if err != nil {
+				return stdcli.Error(err)
+			}
+
+			if strings.TrimSpace(confirm) != "y" {
+				return stdcli.Error(fmt.Errorf("Aborting app deletion."))
+			}
+		} else {
+			return stdcli.Error(fmt.Errorf("Aborting app deletion. Use the --force for non-interactive deletion."))
+		}
+	}
 
 	stdcli.Startf("Deleting <app>%s</app>", app)
 
