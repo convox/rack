@@ -195,11 +195,15 @@ func BuildExport(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 		return httperr.Server(err)
 	}
 
-	rw.Header().Set("Content-Type", "application/octet-stream")
+	rw.Header().Set("Content-Type", "application/gzip")
+	rw.Header().Set("Transfer-Encoding", "chunked")
+	rw.Header().Set("Trailer", "Done")
 
 	if err = models.Provider().BuildExport(app, b.Id, rw); err != nil {
 		return httperr.Server(err)
 	}
+
+	rw.Header().Set("Done", "OK")
 
 	return nil
 }

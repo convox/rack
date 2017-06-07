@@ -194,56 +194,77 @@ func (p *AWSProvider) BuildExport(app, id string, w io.Writer) error {
 
 	defer os.Remove(tmp)
 
+	images := []string{}
+
 	for service := range m.Services {
-		image := fmt.Sprintf("%s:%s.%s", repo.URI, service, build.Id)
-		file := filepath.Join(tmp, fmt.Sprintf("%s.%s.tar", service, build.Id))
+		images = append(images, fmt.Sprintf("%s:%s.%s", repo.URI, service, build.Id))
+	}
 
-		log.Step("pull").Logf("image=%q", image)
-		out, err := exec.Command("docker", "pull", image).CombinedOutput()
-		if err != nil {
-			return log.Error(fmt.Errorf("%s: %s\n", lastline(out), err.Error()))
-		}
+	errch := make(chan error, len(images))
 
-		log.Step("save").Logf("image=%q file=%q", image, file)
-		out, err = exec.Command("docker", "save", "-o", file, image).CombinedOutput()
-		if err != nil {
-			return log.Error(fmt.Errorf("%s: %s\n", lastline(out), err.Error()))
-		}
+	for _, image := range images {
+		go func(img string) {
+			log.Step("pull").Logf("image=%q", img)
+			out, err := exec.Command("docker", "pull", img).CombinedOutput()
+			if err != nil {
+				errch <- fmt.Errorf("%s: %s\n", lastline(out), err.Error())
+				return
+			}
 
-		stat, err := os.Stat(file)
-		if err != nil {
-			log.Error(err)
+			errch <- nil
+		}(image)
+	}
+
+	for i := 0; i < len(images); i++ {
+		if err := <-errch; err != nil {
 			return err
 		}
+	}
 
-		header := &tar.Header{
-			Typeflag: tar.TypeReg,
-			Name:     fmt.Sprintf("%s.%s.tar", service, build.Id),
-			Mode:     0600,
-			Size:     stat.Size(),
-		}
+	name := fmt.Sprintf("%s.%s.tar", app, build.Id)
+	file := filepath.Join(tmp, name)
+	args := []string{"save", "-o", file}
+	args = append(args, images...)
 
-		if err := tw.WriteHeader(header); err != nil {
-			log.Error(err)
-			return err
-		}
+	log.Step("save").Logf("file=%q images=%d", file, len(images))
+	out, err := exec.Command("docker", args...).CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("%s: %s\n", strings.TrimSpace(string(out)), err.Error())
+	}
 
-		fd, err := os.Open(file)
-		if err != nil {
-			log.Error(err)
-			return err
-		}
+	stat, err := os.Stat(file)
+	if err != nil {
+		log.Error(err)
+		return err
+	}
 
-		log.Step("copy").Logf("file=%q", file)
-		if _, err := io.Copy(tw, fd); err != nil {
-			log.Error(err)
-			return err
-		}
+	header := &tar.Header{
+		Typeflag: tar.TypeReg,
+		Name:     name,
+		Mode:     0600,
+		Size:     stat.Size(),
+	}
 
-		if err := os.Remove(file); err != nil {
-			log.Error(err)
-			return err
-		}
+	if err := tw.WriteHeader(header); err != nil {
+		log.Error(err)
+		return err
+	}
+
+	fd, err := os.Open(file)
+	if err != nil {
+		log.Error(err)
+		return err
+	}
+
+	log.Step("copy").Logf("file=%q", file)
+	if _, err := io.Copy(tw, fd); err != nil {
+		log.Error(err)
+		return err
+	}
+
+	if err := os.Remove(file); err != nil {
+		log.Error(err)
+		return err
 	}
 
 	if err := tw.Close(); err != nil {
@@ -317,7 +338,7 @@ func (p *AWSProvider) BuildImport(app string, r io.Reader) (*structs.Build, erro
 
 	tr := tar.NewReader(gz)
 
-	psi := make(map[string]string)
+	var manifest imageManifest
 
 	for {
 		header, err := tr.Next()
@@ -370,7 +391,7 @@ func (p *AWSProvider) BuildImport(app string, r io.Reader) (*structs.Build, erro
 			}
 
 			log.Step("manifest").Logf("tar=%q", header.Name)
-			manifest, err := extractImageManifest(tee)
+			manifest, err = extractImageManifest(tee)
 			if err != nil {
 				log.Error(err)
 				return nil, err
@@ -382,21 +403,21 @@ func (p *AWSProvider) BuildImport(app string, r io.Reader) (*structs.Build, erro
 			}
 
 			if err := cmd.Wait(); err != nil {
-				return nil, log.Errorf("%s: %s\n", lastline(outb.Bytes()), err.Error())
+				out := strings.TrimSpace(outb.String())
+				return nil, log.Errorf("%s: %s\n", out, err.Error())
 			}
 
-			if len(manifest) != 1 || len(manifest[0].RepoTags) != 1 {
-				log.Errorf("invalid image manifest")
-				return nil, fmt.Errorf("invalid image manifest")
+			if len(manifest) == 0 {
+				log.Errorf("invalid image manifest: no data")
+				return nil, fmt.Errorf("invalid image manifest: no data")
 			}
-
-			image := manifest[0].RepoTags[0]
-			ps := strings.Split(header.Name, ".")[0]
-			psi[ps] = image
 		}
 	}
 
-	for ps, image := range psi {
+	for _, tags := range manifest {
+		image := tags.RepoTags[0]
+		fps := strings.Split(image, ":")[1]
+		ps := strings.Split(fps, ".")[0]
 		target := fmt.Sprintf("%s:%s.%s", repo.URI, ps, targetBuild.Id)
 
 		log.Step("tag").Logf("from=%q to=%q", image, target)
