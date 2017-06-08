@@ -18,6 +18,16 @@ func init() {
 
 func TestBuildDelete(t *testing.T) {
 	models.Test(t, func() {
+		app := &structs.App{
+			Name:    "myapp",
+			Release: "R1234",
+			Status:  "running",
+		}
+		release := &structs.Release{
+			App:   "myapp",
+			Build: "B1235",
+			Id:    "R1234",
+		}
 		build := &structs.Build{
 			App:         "myapp",
 			Description: "desc",
@@ -31,14 +41,41 @@ func TestBuildDelete(t *testing.T) {
 			Status:      "complete",
 		}
 
-		models.TestProvider.On("ReleaseDelete", "example", "B1234").Return(nil)
-		models.TestProvider.On("BuildDelete", "example", "B1234").Return(build, nil)
+		models.TestProvider.On("AppGet", "myapp").Return(app, nil)
+		models.TestProvider.On("ReleaseGet", "myapp", "R1234").Return(release, nil)
+		models.TestProvider.On("ReleaseDelete", "myapp", "B1234").Return(nil)
+		models.TestProvider.On("BuildDelete", "myapp", "B1234").Return(build, nil)
 
 		hf := test.NewHandlerFunc(controllers.HandlerFunc)
 
-		if assert.Nil(t, hf.Request("DELETE", "/apps/example/builds/B1234", nil)) {
+		if assert.Nil(t, hf.Request("DELETE", "/apps/myapp/builds/B1234", nil)) {
 			hf.AssertCode(t, 200)
 			hf.AssertJSON(t, "{\"app\":\"myapp\",\"description\":\"desc\",\"ended\":\"2016-10-04T20:02:14Z\",\"id\":\"B1234\",\"logs\":\"\",\"manifest\":\"\",\"reason\":\"\",\"release\":\"R2345\",\"started\":\"2016-10-04T20:02:14Z\",\"status\":\"complete\"}")
+		}
+	})
+}
+
+func TestBuildDeleteActive(t *testing.T) {
+	models.Test(t, func() {
+		app := &structs.App{
+			Name:    "myapp",
+			Release: "R1234",
+			Status:  "running",
+		}
+		release := &structs.Release{
+			App:   "myapp",
+			Build: "B1234",
+			Id:    "R1234",
+		}
+
+		models.TestProvider.On("AppGet", "myapp").Return(app, nil)
+		models.TestProvider.On("ReleaseGet", "myapp", "R1234").Return(release, nil)
+
+		hf := test.NewHandlerFunc(controllers.HandlerFunc)
+
+		if assert.Nil(t, hf.Request("DELETE", "/apps/myapp/builds/B1234", nil)) {
+			hf.AssertCode(t, 400)
+			hf.AssertJSON(t, "{\"error\":\"cannot delete build of active release: B1234\"}")
 		}
 	})
 }
