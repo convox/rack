@@ -232,6 +232,12 @@ func (p *AWSProvider) BuildExport(app, id string, w io.Writer) error {
 		return fmt.Errorf("%s: %s\n", strings.TrimSpace(string(out)), err.Error())
 	}
 
+	defer func() {
+		if err := os.Remove(file); err != nil {
+			log.Error(err)
+		}
+	}()
+
 	stat, err := os.Stat(file)
 	if err != nil {
 		log.Error(err)
@@ -258,11 +264,6 @@ func (p *AWSProvider) BuildExport(app, id string, w io.Writer) error {
 
 	log.Step("copy").Logf("file=%q", file)
 	if _, err := io.Copy(tw, fd); err != nil {
-		log.Error(err)
-		return err
-	}
-
-	if err := os.Remove(file); err != nil {
 		log.Error(err)
 		return err
 	}
