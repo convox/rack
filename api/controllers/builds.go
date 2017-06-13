@@ -13,6 +13,7 @@ import (
 	"github.com/convox/rack/api/httperr"
 	"github.com/convox/rack/api/models"
 	"github.com/convox/rack/api/structs"
+	"github.com/convox/rack/provider"
 	"github.com/gorilla/mux"
 	"golang.org/x/net/websocket"
 )
@@ -165,12 +166,29 @@ func BuildDelete(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	appName := vars["app"]
 	buildID := vars["build"]
 
-	err := models.Provider().ReleaseDelete(appName, buildID)
+	app, err := models.Provider().AppGet(appName)
+	if err != nil {
+		if provider.ErrorNotFound(err) {
+			return httperr.Errorf(404, "no such app: %s", app)
+		}
+
+		return httperr.Server(err)
+	}
+
+	release, err := models.Provider().ReleaseGet(app.Name, app.Release)
 	if err != nil {
 		return httperr.Server(err)
 	}
 
-	build, err := models.Provider().BuildDelete(appName, buildID)
+	if release.Build == buildID {
+		return httperr.Errorf(400, "cannot delete build of active release: %s", buildID)
+	}
+
+	if err := models.Provider().ReleaseDelete(app.Name, buildID); err != nil {
+		return httperr.Server(err)
+	}
+
+	build, err := models.Provider().BuildDelete(app.Name, buildID)
 	if err != nil {
 		return httperr.Server(err)
 	}
