@@ -830,9 +830,12 @@ func (p *AWSProvider) generateTaskDefinition(app, process, release string) (*ecs
 		})
 	}
 
+	tr := a.Parameters["TaskRole"]
+
 	req := &ecs.RegisterTaskDefinitionInput{
 		ContainerDefinitions: []*ecs.ContainerDefinition{cd},
 		Family:               aws.String(fmt.Sprintf("%s-%s-%s", p.Rack, app, process)),
+		TaskRoleArn:          &tr,
 	}
 
 	for i, mv := range s.MountableVolumes() {
