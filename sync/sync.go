@@ -120,8 +120,8 @@ func (s *Sync) Start(st Stream) error {
 		case <-tick:
 			if len(incoming) > 0 {
 				a, r := changes.Partition(incoming)
-				s.syncIncomingAdds(a, st)
 				s.syncIncomingRemoves(r, st)
+				s.syncIncomingAdds(a, st)
 				incoming = []changes.Change{}
 			}
 			if len(outgoing) > 0 {

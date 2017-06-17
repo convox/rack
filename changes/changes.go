@@ -16,6 +16,8 @@ type Change struct {
 	Path      string
 }
 
+type Snapshot map[string]time.Time
+
 func Partition(changes []Change) (adds []Change, removes []Change) {
 	for _, c := range changes {
 		switch c.Operation {
@@ -119,7 +121,7 @@ func watchForChanges(dir string, ignore []string, ch chan Change) error {
 // before the sync. Repeat until dir contents dont change for at least 200ms
 // Give up on stabilizing dir after 100 syncs. Also see func comment for
 // watchForChanges. Return the final dir snapshot.
-func syncUntilStable(dir string, ignore []string, ch chan Change, prev map[string]time.Time) (map[string]time.Time, error) {
+func syncUntilStable(dir string, ignore []string, ch chan Change, prev Snapshot) (Snapshot, error) {
 	for i := 0; i < 10; i++ {
 		snap, err := snapshot(dir)
 		if err != nil {
@@ -145,7 +147,7 @@ func syncUntilStable(dir string, ignore []string, ch chan Change, prev map[strin
 	return prev, nil
 }
 
-func notify(ch chan Change, from, to map[string]time.Time, base string, ignore []string) bool {
+func notify(ch chan Change, from, to Snapshot, base string, ignore []string) bool {
 
 	changed := false
 
@@ -189,8 +191,8 @@ func send(ch chan Change, op, file, base string, ignore []string) bool {
 	return true
 }
 
-func snapshot(dir string) (map[string]time.Time, error) {
-	snap := map[string]time.Time{}
+func snapshot(dir string) (Snapshot, error) {
+	snap := Snapshot{}
 
 	err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
 		if info == nil || info.IsDir() {

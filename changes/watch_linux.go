@@ -57,6 +57,10 @@ func waitForNextScan(dir string) {
 					watcher.RemoveWatch(ev.Name)
 				}
 
+				// Force a brief wait, since many editors may send events in a burst of
+				// activity that is over w/in a few millis.
+				time.Sleep(100 * time.Millisecond)
+
 				return
 			}
 		case <-tick:
