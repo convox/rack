@@ -1007,7 +1007,8 @@ var cycleProcessRegisterTaskDefinition = awsutil.Cycle{
 					"name": "web"
 				}
 			],
-			"family": "convox-myapp-web"
+			"family": "convox-myapp-web",
+			"taskRoleArn": ""
 		}`,
 	},
 	Response: awsutil.Response{
