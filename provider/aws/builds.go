@@ -416,19 +416,20 @@ func (p *AWSProvider) BuildImport(app string, r io.Reader) (*structs.Build, erro
 	}
 
 	for _, tags := range manifest {
-		image := tags.RepoTags[0]
-		fps := strings.Split(image, ":")[1]
-		ps := strings.Split(fps, ".")[0]
-		target := fmt.Sprintf("%s:%s.%s", repo.URI, ps, targetBuild.Id)
+		for _, image := range tags.RepoTags {
+			fps := strings.Split(image, ":")[1]
+			ps := strings.Split(fps, ".")[0]
+			target := fmt.Sprintf("%s:%s.%s", repo.URI, ps, targetBuild.Id)
 
-		log.Step("tag").Logf("from=%q to=%q", image, target)
-		if out, err := exec.Command("docker", "tag", image, target).CombinedOutput(); err != nil {
-			return nil, log.Error(fmt.Errorf("%s: %s\n", lastline(out), err.Error()))
-		}
+			log.Step("tag").Logf("from=%q to=%q", image, target)
+			if out, err := exec.Command("docker", "tag", image, target).CombinedOutput(); err != nil {
+				return nil, log.Error(fmt.Errorf("%s: %s\n", lastline(out), err.Error()))
+			}
 
-		log.Step("push").Logf("to=%q", target)
-		if out, err := exec.Command("docker", "push", target).CombinedOutput(); err != nil {
-			return nil, log.Error(fmt.Errorf("%s: %s\n", lastline(out), err.Error()))
+			log.Step("push").Logf("to=%q", target)
+			if out, err := exec.Command("docker", "push", target).CombinedOutput(); err != nil {
+				return nil, log.Error(fmt.Errorf("%s: %s\n", lastline(out), err.Error()))
+			}
 		}
 	}
 
