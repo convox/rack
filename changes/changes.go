@@ -124,8 +124,6 @@ func watchForChanges(dir string, ignore []string, ch chan Change) error {
 func syncUntilStable(dir string, ignore []string, ch chan Change, prev Snapshot) (Snapshot, error) {
 	for i := 0; i < 10; i++ {
 
-		time.Sleep(50 * time.Millisecond) // brief pause between snapshots
-
 		snap, err := snapshot(dir)
 		if err != nil {
 			return prev, err
@@ -140,10 +138,12 @@ func syncUntilStable(dir string, ignore []string, ch chan Change, prev Snapshot)
 		prev = snap
 
 		if changed {
+			// wait a bit, then resnap to look for more changes
 			time.Sleep(200 * time.Millisecond)
 		} else {
 			return prev, nil
 		}
+
 	}
 
 	fmt.Printf("syncUntilStable: dir never stabilized %s", dir)

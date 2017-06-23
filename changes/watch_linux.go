@@ -1,6 +1,7 @@
 package changes
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -60,11 +61,13 @@ func waitForNextScan(dir string) {
 				// Force a brief wait, since many editors may send events in a burst of
 				// activity that is over w/in a few millis.
 				//time.Sleep(100 * time.Millisecond)
+				fmt.Printf("waitForNextScan Event: (%s) ", dir)
 
 				return
 			}
 		case <-tick:
-			// Force a resync on changed files on each tick if dir is hot
+			// Force a 'fallback' resync on changed files on each tick if dir is hot,
+			// in case FS event was missed
 			if isHot(dir) {
 				return
 			}
