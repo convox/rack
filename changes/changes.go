@@ -123,6 +123,9 @@ func watchForChanges(dir string, ignore []string, ch chan Change) error {
 // watchForChanges. Return the final dir snapshot.
 func syncUntilStable(dir string, ignore []string, ch chan Change, prev Snapshot) (Snapshot, error) {
 	for i := 0; i < 10; i++ {
+
+		time.Sleep(50 * time.Millisecond) // brief pause between snapshots
+
 		snap, err := snapshot(dir)
 		if err != nil {
 			return prev, err
