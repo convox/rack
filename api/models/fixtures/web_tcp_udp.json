@@ -4,7 +4,12 @@
     "BlankBalancerWebPort3001Certificate": {
       "Fn::Equals": [
         {
-          "Ref": "WebPort3001Certificate"
+          "Fn::Select": [
+            1,
+            {
+              "Ref": "WebPort3001Listener"
+            }
+          ]
         },
         ""
       ]
@@ -12,7 +17,12 @@
     "BlankBalancerWebPort80Certificate": {
       "Fn::Equals": [
         {
-          "Ref": "WebPort80Certificate"
+          "Fn::Select": [
+            1,
+            {
+              "Ref": "WebPort80Listener"
+            }
+          ]
         },
         ""
       ]
@@ -272,25 +282,15 @@
       "Description": "Number of processes to run, CPU units to reserve, and MB of RAM to reserve",
       "Type": "CommaDelimitedList"
     },
-    "WebPort3001Certificate": {
-      "Default": "",
-      "Description": "",
-      "Type": "String"
+    "WebPort3001Listener": {
+      "Default": "5001,",
+      "Description": "Host port number, certificate ARN",
+      "Type": "CommaDelimitedList"
     },
-    "WebPort3001Host": {
-      "Default": "5001",
-      "Description": "",
-      "Type": "String"
-    },
-    "WebPort80Certificate": {
-      "Default": "",
-      "Description": "",
-      "Type": "String"
-    },
-    "WebPort80Host": {
-      "Default": "5000",
-      "Description": "",
-      "Type": "String"
+    "WebPort80Listener": {
+      "Default": "5000,",
+      "Description": "Host port number, certificate ARN",
+      "Type": "CommaDelimitedList"
     }
   },
   "Resources": {
@@ -317,7 +317,12 @@
               [
                 "TCP:",
                 {
-                  "Ref": "WebPort80Host"
+                  "Fn::Select": [
+                    0,
+                    {
+                      "Ref": "WebPort80Listener"
+                    }
+                  ]
                 },
                 ""
               ]
@@ -334,7 +339,12 @@
         "Listeners": [
           {
             "InstancePort": {
-              "Ref": "WebPort80Host"
+              "Fn::Select": [
+                0,
+                {
+                  "Ref": "WebPort80Listener"
+                }
+              ]
             },
             "InstanceProtocol": "TCP",
             "LoadBalancerPort": "80",
@@ -352,14 +362,24 @@
                   "Ref": "AWS::NoValue"
                 },
                 {
-                  "Ref": "WebPort80Certificate"
+                  "Fn::Select": [
+                    1,
+                    {
+                      "Ref": "WebPort80Listener"
+                    }
+                  ]
                 }
               ]
             }
           },
           {
             "InstancePort": {
-              "Ref": "WebPort3001Host"
+              "Fn::Select": [
+                0,
+                {
+                  "Ref": "WebPort3001Listener"
+                }
+              ]
             },
             "InstanceProtocol": "TCP",
             "LoadBalancerPort": "3001",
@@ -377,7 +397,12 @@
                   "Ref": "AWS::NoValue"
                 },
                 {
-                  "Ref": "WebPort3001Certificate"
+                  "Fn::Select": [
+                    1,
+                    {
+                      "Ref": "WebPort3001Listener"
+                    }
+                  ]
                 }
               ]
             }
@@ -820,7 +845,12 @@
                   ":",
                   [
                     {
-                      "Ref": "WebPort80Host"
+                      "Fn::Select": [
+                        0,
+                        {
+                          "Ref": "WebPort80Listener"
+                        }
+                      ]
                     },
                     "3000/tcp"
                   ]
@@ -831,7 +861,12 @@
                   ":",
                   [
                     {
-                      "Ref": "WebPort3001Host"
+                      "Fn::Select": [
+                        0,
+                        {
+                          "Ref": "WebPort3001Listener"
+                        }
+                      ]
                     },
                     "3001/tcp"
                   ]

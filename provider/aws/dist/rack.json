@@ -51,17 +51,17 @@
   },
   "Mappings": {
     "RegionConfig": {
-      "us-east-1":      { "Ami": "ami-275ffe31", "EFS": "Yes", "ThirdAvailabilityZone": "Yes" },
-      "us-east-2":      { "Ami": "ami-62745007", "EFS": "Yes", "ThirdAvailabilityZone": "Yes" },
-      "us-west-1":      { "Ami": "ami-689bc208", "EFS": "No",  "ThirdAvailabilityZone": "No"  },
-      "us-west-2":      { "Ami": "ami-62d35c02", "EFS": "Yes", "ThirdAvailabilityZone": "Yes" },
-      "eu-west-1":      { "Ami": "ami-95f8d2f3", "EFS": "Yes", "ThirdAvailabilityZone": "Yes" },
-      "eu-west-2":      { "Ami": "ami-bf9481db", "EFS": "No",  "ThirdAvailabilityZone": "No"  },
-      "eu-central-1":   { "Ami": "ami-085e8a67", "EFS": "No",  "ThirdAvailabilityZone": "No"  },
-      "ap-northeast-1": { "Ami": "ami-f63f6f91", "EFS": "No",  "ThirdAvailabilityZone": "No"  },
-      "ap-southeast-1": { "Ami": "ami-b4ae1dd7", "EFS": "No",  "ThirdAvailabilityZone": "No"  },
-      "ap-southeast-2": { "Ami": "ami-fbe9eb98", "EFS": "No",  "ThirdAvailabilityZone": "Yes" },
-      "ca-central-1":   { "Ami": "ami-ee58e58a", "EFS": "No",  "ThirdAvailabilityZone": "No"  }
+      "us-east-1":      { "Ami": "ami-83af8395", "EFS": "Yes", "ThirdAvailabilityZone": "Yes" },
+      "us-east-2":      { "Ami": "ami-9f9cbafa", "EFS": "Yes", "ThirdAvailabilityZone": "Yes" },
+      "us-west-1":      { "Ami": "ami-c1c6eba1", "EFS": "No",  "ThirdAvailabilityZone": "No"  },
+      "us-west-2":      { "Ami": "ami-11120768", "EFS": "Yes", "ThirdAvailabilityZone": "Yes" },
+      "eu-west-1":      { "Ami": "ami-5f140c39", "EFS": "Yes", "ThirdAvailabilityZone": "Yes" },
+      "eu-west-2":      { "Ami": "ami-767e6812", "EFS": "No",  "ThirdAvailabilityZone": "No"  },
+      "eu-central-1":   { "Ami": "ami-e656f189", "EFS": "No",  "ThirdAvailabilityZone": "No"  },
+      "ap-northeast-1": { "Ami": "ami-fd10059a", "EFS": "No",  "ThirdAvailabilityZone": "No"  },
+      "ap-southeast-1": { "Ami": "ami-1926ab7a", "EFS": "No",  "ThirdAvailabilityZone": "No"  },
+      "ap-southeast-2": { "Ami": "ami-6b6c7c08", "EFS": "No",  "ThirdAvailabilityZone": "Yes" },
+      "ca-central-1":   { "Ami": "ami-ead8678e", "EFS": "No",  "ThirdAvailabilityZone": "No"  }
     }
   },
   "Outputs": {
@@ -294,6 +294,11 @@
       "Description": "How much memory should be reserved by the builder",
       "Default": "1024"
     },
+    "BuildVolumeSize": {
+      "Type": "Number",
+      "Description": "Default build disk size in GB",
+      "Default": "50"
+    },
     "ClientId": {
       "Type": "String",
       "Description": "Anonymous identifier",
@@ -428,6 +433,11 @@
       "Type": "Number",
       "Description": "Default swap volume size in GB",
       "Default": "5"
+    },
+    "RootSize": {
+      "Type": "Number",
+      "Description": "Default root disk size in GB",
+      "Default": "8"
     },
     "Version": {
       "Description": "(REQUIRED) Convox release version",
@@ -723,6 +733,7 @@
                       "ec2:DescribeAddresses",
                       "ec2:DescribeInstances",
                       "ec2:DescribeNatGateways",
+                      "ec2:DescribeNetworkInterfaces",
                       "ec2:DescribeRouteTables",
                       "ec2:DescribeSecurityGroups",
                       "ec2:DescribeSubnets",
@@ -1449,7 +1460,7 @@
             "DeviceName": "/dev/xvdcz",
             "Ebs": {
               "Encrypted": { "Fn::If": [ "EncryptEbs", "true", { "Ref": "AWS::NoValue" } ] },
-              "VolumeSize": { "Ref": "VolumeSize" },
+              "VolumeSize": { "Ref": "BuildVolumeSize" },
               "VolumeType":"gp2"
             }
           }
@@ -1591,6 +1602,14 @@
       "Properties": {
         "AssociatePublicIpAddress": { "Fn::If": [ "Private", false, true ] },
         "BlockDeviceMappings": [
+          {
+            "DeviceName": "/dev/xvda",
+            "Ebs": {
+              "Encrypted": { "Fn::If": [ "EncryptEbs", "true", { "Ref": "AWS::NoValue" } ] },
+              "VolumeSize": { "Ref": "RootSize" },
+              "VolumeType":"gp2"
+            }
+          },
           {
             "DeviceName": "/dev/xvdb",
             "Ebs": {
@@ -2335,7 +2354,7 @@
             },
             "Image": { "Fn::If": [ "BlankBuildImage", { "Fn::Join": [ ":", [ "convox/api", { "Ref": "Version" } ] ] }, { "Ref": "BuildImage" } ] },
             "Links": [],
-            "Memory": { "Ref": "BuildMemory" },
+            "MemoryReservation": { "Ref": "BuildMemory" },
             "Name": "build",
             "Volumes": [
               "/etc/sysconfig/docker:/etc/sysconfig/docker",

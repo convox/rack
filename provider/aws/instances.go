@@ -42,7 +42,7 @@ func (p *AWSProvider) InstanceList() (structs.Instances, error) {
 		return nil, err
 	}
 
-	cis, err := p.describeContainerInstances()
+	cis, err := p.listAndDescribeContainerInstances()
 	if err != nil {
 		return nil, err
 	}
@@ -124,9 +124,9 @@ func (p *AWSProvider) InstanceTerminate(id string) error {
 	return nil
 }
 
-// describeContainerInstances lists and describes all the ECS instances.
+// listAndDescribeContainerInstances lists and describes all the ECS instances.
 // It handles pagination for clusters > 100 instances.
-func (p *AWSProvider) describeContainerInstances() (*ecs.DescribeContainerInstancesOutput, error) {
+func (p *AWSProvider) listAndDescribeContainerInstances() (*ecs.DescribeContainerInstancesOutput, error) {
 	instances := []*ecs.ContainerInstance{}
 	var nextToken string
 
@@ -142,7 +142,7 @@ func (p *AWSProvider) describeContainerInstances() (*ecs.DescribeContainerInstan
 			return nil, err
 		}
 
-		dres, err := p.ecs().DescribeContainerInstances(&ecs.DescribeContainerInstancesInput{
+		dres, err := p.describeContainerInstances(&ecs.DescribeContainerInstancesInput{
 			Cluster:            aws.String(p.Cluster),
 			ContainerInstances: res.ContainerInstanceArns,
 		})

@@ -4,7 +4,12 @@
     "BlankBalancerPostgresPort5432Certificate": {
       "Fn::Equals": [
         {
-          "Ref": "PostgresPort5432Certificate"
+          "Fn::Select": [
+            1,
+            {
+              "Ref": "PostgresPort5432Listener"
+            }
+          ]
         },
         ""
       ]
@@ -12,7 +17,12 @@
     "BlankBalancerWebPort3000Certificate": {
       "Fn::Equals": [
         {
-          "Ref": "WebPort3000Certificate"
+          "Fn::Select": [
+            1,
+            {
+              "Ref": "WebPort3000Listener"
+            }
+          ]
         },
         ""
       ]
@@ -244,15 +254,10 @@
       "Description": "Number of processes to run, CPU units to reserve, and MB of RAM to reserve",
       "Type": "CommaDelimitedList"
     },
-    "PostgresPort5432Certificate": {
-      "Default": "",
-      "Description": "",
-      "Type": "String"
-    },
-    "PostgresPort5432Host": {
-      "Default": "5000",
-      "Description": "",
-      "Type": "String"
+    "PostgresPort5432Listener": {
+      "Default": "5000,",
+      "Description": "Host port number, certificate ARN",
+      "Type": "CommaDelimitedList"
     },
     "Private": {
       "AllowedValues": [
@@ -313,15 +318,10 @@
       "Description": "Number of processes to run, CPU units to reserve, and MB of RAM to reserve",
       "Type": "CommaDelimitedList"
     },
-    "WebPort3000Certificate": {
-      "Default": "",
-      "Description": "",
-      "Type": "String"
-    },
-    "WebPort3000Host": {
-      "Default": "5000",
-      "Description": "",
-      "Type": "String"
+    "WebPort3000Listener": {
+      "Default": "5000,",
+      "Description": "Host port number, certificate ARN",
+      "Type": "CommaDelimitedList"
     }
   },
   "Resources": {
@@ -348,7 +348,12 @@
               [
                 "TCP:",
                 {
-                  "Ref": "PostgresPort5432Host"
+                  "Fn::Select": [
+                    0,
+                    {
+                      "Ref": "PostgresPort5432Listener"
+                    }
+                  ]
                 },
                 ""
               ]
@@ -365,7 +370,12 @@
         "Listeners": [
           {
             "InstancePort": {
-              "Ref": "PostgresPort5432Host"
+              "Fn::Select": [
+                0,
+                {
+                  "Ref": "PostgresPort5432Listener"
+                }
+              ]
             },
             "InstanceProtocol": "TCP",
             "LoadBalancerPort": "5432",
@@ -383,7 +393,12 @@
                   "Ref": "AWS::NoValue"
                 },
                 {
-                  "Ref": "PostgresPort5432Certificate"
+                  "Fn::Select": [
+                    1,
+                    {
+                      "Ref": "PostgresPort5432Listener"
+                    }
+                  ]
                 }
               ]
             }
@@ -496,7 +511,12 @@
               [
                 "TCP:",
                 {
-                  "Ref": "WebPort3000Host"
+                  "Fn::Select": [
+                    0,
+                    {
+                      "Ref": "WebPort3000Listener"
+                    }
+                  ]
                 },
                 ""
               ]
@@ -513,7 +533,12 @@
         "Listeners": [
           {
             "InstancePort": {
-              "Ref": "WebPort3000Host"
+              "Fn::Select": [
+                0,
+                {
+                  "Ref": "WebPort3000Listener"
+                }
+              ]
             },
             "InstanceProtocol": "TCP",
             "LoadBalancerPort": "3000",
@@ -531,7 +556,12 @@
                   "Ref": "AWS::NoValue"
                 },
                 {
-                  "Ref": "WebPort3000Certificate"
+                  "Fn::Select": [
+                    1,
+                    {
+                      "Ref": "WebPort3000Listener"
+                    }
+                  ]
                 }
               ]
             }
@@ -806,7 +836,12 @@
                   ":",
                   [
                     {
-                      "Ref": "PostgresPort5432Host"
+                      "Fn::Select": [
+                        0,
+                        {
+                          "Ref": "PostgresPort5432Listener"
+                        }
+                      ]
                     },
                     "5432/tcp"
                   ]
@@ -1145,7 +1180,12 @@
                   ":",
                   [
                     {
-                      "Ref": "WebPort3000Host"
+                      "Fn::Select": [
+                        0,
+                        {
+                          "Ref": "WebPort3000Listener"
+                        }
+                      ]
                     },
                     "3000/tcp"
                   ]

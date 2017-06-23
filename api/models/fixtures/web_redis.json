@@ -4,7 +4,12 @@
     "BlankBalancerRedisPort6379Certificate": {
       "Fn::Equals": [
         {
-          "Ref": "RedisPort6379Certificate"
+          "Fn::Select": [
+            1,
+            {
+              "Ref": "RedisPort6379Listener"
+            }
+          ]
         },
         ""
       ]
@@ -12,7 +17,12 @@
     "BlankBalancerWebPort80Certificate": {
       "Fn::Equals": [
         {
-          "Ref": "WebPort80Certificate"
+          "Fn::Select": [
+            1,
+            {
+              "Ref": "WebPort80Listener"
+            }
+          ]
         },
         ""
       ]
@@ -253,15 +263,10 @@
       "Description": "Number of processes to run, CPU units to reserve, and MB of RAM to reserve",
       "Type": "CommaDelimitedList"
     },
-    "RedisPort6379Certificate": {
-      "Default": "",
-      "Description": "",
-      "Type": "String"
-    },
-    "RedisPort6379Host": {
-      "Default": "5000",
-      "Description": "",
-      "Type": "String"
+    "RedisPort6379Listener": {
+      "Default": "5000,",
+      "Description": "Host port number, certificate ARN",
+      "Type": "CommaDelimitedList"
     },
     "Release": {
       "Default": "",
@@ -313,15 +318,10 @@
       "Description": "Number of processes to run, CPU units to reserve, and MB of RAM to reserve",
       "Type": "CommaDelimitedList"
     },
-    "WebPort80Certificate": {
-      "Default": "",
-      "Description": "",
-      "Type": "String"
-    },
-    "WebPort80Host": {
-      "Default": "5000",
-      "Description": "",
-      "Type": "String"
+    "WebPort80Listener": {
+      "Default": "5000,",
+      "Description": "Host port number, certificate ARN",
+      "Type": "CommaDelimitedList"
     }
   },
   "Resources": {
@@ -348,7 +348,12 @@
               [
                 "TCP:",
                 {
-                  "Ref": "RedisPort6379Host"
+                  "Fn::Select": [
+                    0,
+                    {
+                      "Ref": "RedisPort6379Listener"
+                    }
+                  ]
                 },
                 ""
               ]
@@ -365,7 +370,12 @@
         "Listeners": [
           {
             "InstancePort": {
-              "Ref": "RedisPort6379Host"
+              "Fn::Select": [
+                0,
+                {
+                  "Ref": "RedisPort6379Listener"
+                }
+              ]
             },
             "InstanceProtocol": "TCP",
             "LoadBalancerPort": "6379",
@@ -383,7 +393,12 @@
                   "Ref": "AWS::NoValue"
                 },
                 {
-                  "Ref": "RedisPort6379Certificate"
+                  "Fn::Select": [
+                    1,
+                    {
+                      "Ref": "RedisPort6379Listener"
+                    }
+                  ]
                 }
               ]
             }
@@ -496,7 +511,12 @@
               [
                 "TCP:",
                 {
-                  "Ref": "WebPort80Host"
+                  "Fn::Select": [
+                    0,
+                    {
+                      "Ref": "WebPort80Listener"
+                    }
+                  ]
                 },
                 ""
               ]
@@ -513,7 +533,12 @@
         "Listeners": [
           {
             "InstancePort": {
-              "Ref": "WebPort80Host"
+              "Fn::Select": [
+                0,
+                {
+                  "Ref": "WebPort80Listener"
+                }
+              ]
             },
             "InstanceProtocol": "TCP",
             "LoadBalancerPort": "80",
@@ -531,7 +556,12 @@
                   "Ref": "AWS::NoValue"
                 },
                 {
-                  "Ref": "WebPort80Certificate"
+                  "Fn::Select": [
+                    1,
+                    {
+                      "Ref": "WebPort80Listener"
+                    }
+                  ]
                 }
               ]
             }
@@ -815,7 +845,12 @@
                   ":",
                   [
                     {
-                      "Ref": "RedisPort6379Host"
+                      "Fn::Select": [
+                        0,
+                        {
+                          "Ref": "RedisPort6379Listener"
+                        }
+                      ]
                     },
                     "6379/tcp"
                   ]
@@ -1154,7 +1189,12 @@
                   ":",
                   [
                     {
-                      "Ref": "WebPort80Host"
+                      "Fn::Select": [
+                        0,
+                        {
+                          "Ref": "WebPort80Listener"
+                        }
+                      ]
                     },
                     "3000/tcp"
                   ]
