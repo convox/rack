@@ -42,6 +42,6 @@ func fallbackSyncTickTimeInMillis() time.Duration {
 }
 
 func isFallbackSyncOn() bool {
-  return os.Getenv("FALLBACK_SYNC_TICK") != ""
+	return os.Getenv("FALLBACK_SYNC_TICK") != ""
 }
 

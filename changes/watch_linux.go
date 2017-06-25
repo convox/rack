@@ -12,10 +12,10 @@ import (
 )
 
 var (
-	dirCreateFlags       = inotify.IN_CREATE | inotify.IN_ISDIR
-	dirDeleteFlags       = inotify.IN_DELETE | inotify.IN_ISDIR
-	watcher              *inotify.Watcher
-	lock                 sync.Mutex
+	dirCreateFlags	= inotify.IN_CREATE | inotify.IN_ISDIR
+	dirDeleteFlags	= inotify.IN_DELETE | inotify.IN_ISDIR
+	watcher			*inotify.Watcher
+	lock			sync.Mutex
 )
 
 func init() {
@@ -38,11 +38,11 @@ func startScanner(dir string) {
 // detects.
 func waitForNextScan(dir string) {
 
-  var fallbackSyncTick <-chan time.Time
+	var fallbackSyncTick <-chan time.Time
 
-  if isFallbackSyncOn() {
-    fallbackSyncTick = time.Tick(fallbackSyncTickTime)
-  }
+	if isFallbackSyncOn() {
+		fallbackSyncTick = time.Tick(fallbackSyncTickTime)
+	}
 
 	for {
 		select {
@@ -59,12 +59,11 @@ func waitForNextScan(dir string) {
 					watcher.RemoveWatch(ev.Name)
 				}
 
-        if isDebugging() {
-          fmt.Printf("waitForNextScan Event: (%s) ", dir)
-        }
-
-				return
+			if isDebugging() {
+				fmt.Printf("waitForNextScan Event: (%s) ", dir)
 			}
+			return
+		}
 		case <-fallbackSyncTick:
 			if isHot(dir) {
 				return
