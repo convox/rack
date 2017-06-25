@@ -9,7 +9,7 @@ package changes
   * minutes somewhere under that directory.
   * 
   * Fallback sync does not appear to be necessary except in the cases where FS
-  * evnets can get lost. Eg. when convox is running on linux on a file
+  * events can get lost. Eg. when convox is running on linux on a file
   * system mounted over NFS or ssh fuse.
 */
 
@@ -41,7 +41,7 @@ func fallbackSyncTickTimeInMillis() time.Duration {
 	return (time.Duration(ttime) * time.Millisecond)
 }
 
-func isFallbackSyncIsOn() bool {
+func isFallbackSyncOn() bool {
   return os.Getenv("FALLBACK_SYNC_TICK") != ""
 }
 

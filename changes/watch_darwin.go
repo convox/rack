@@ -69,7 +69,7 @@ func waitForNextScan(dir string) {
 
   var fallbackSyncTick <-chan time.Time
 
-  if isFallbackSyncIsOn() {
+  if isFallbackSyncOn() {
     fallbackSyncTick = time.Tick(fallbackSyncTickTime)
   }
 
