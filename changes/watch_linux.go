@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -41,16 +40,8 @@ func waitForNextScan(dir string) {
 
   var fallbackSyncTick <-chan time.Time
 
-  /*
   if isFallbackSyncIsOn() {
     fallbackSyncTick = time.Tick(fallbackSyncTickTime)
-  }*/
-
-  if isFallbackSyncIsOn() {
-    fallbackSyncTick = time.Tick(fallbackSyncTickTime)
-    fmt.Printf("FALLBACK ON")
-  } else {
-    fmt.Printf("FALLBACK OFF")
   }
 
 	for {
