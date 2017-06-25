@@ -1,6 +1,7 @@
 package changes
 
 import (
+
 	"fmt"
 	"os"
 	"path/filepath"
@@ -209,4 +210,8 @@ func snapshot(dir string) (dirSnapshot, error) {
 	}
 
 	return snap, nil
+}
+
+func isDebugging() bool {
+	return os.Getenv("CONVOX_DEBUG") == "true"
 }

@@ -564,7 +564,10 @@ func tgzReader(s *Sync, r io.Reader, st Stream) {
 }
 
 func syncTickTimeInMillis() time.Duration {
-	ttime := 500
+  // millis. This tick time, annecdotally and subjectively, feels nearly
+  // instant, while leaving the CPU relatively unscathed.
+	ttime := 125
+
 	tickString := os.Getenv("SYNC_TICK")
 	if tickString != "" {
 		t, _ := strconv.ParseInt(tickString, 0, 32)

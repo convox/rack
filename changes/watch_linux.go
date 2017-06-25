@@ -17,15 +17,12 @@ var (
 	dirDeleteFlags       = inotify.IN_DELETE | inotify.IN_ISDIR
 	watcher              *inotify.Watcher
 	lock                 sync.Mutex
-	fallbackSyncTickTime = fallbackSyncTickTimeInMillis()
-	touchTimes           = map[string](time.Time){}
 )
 
 func init() {
 	watcher, _ = inotify.NewWatcher()
 }
 
-// TODO: pass ignore to this func
 func startScanner(dir string) {
 	filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
 		if info != nil && info.IsDir() {
@@ -41,7 +38,20 @@ func startScanner(dir string) {
 // watchForChanges ) will then Walk the dir and sync any file changes that it
 // detects.
 func waitForNextScan(dir string) {
-	tick := time.Tick(fallbackSyncTickTime)
+
+  var fallbackSyncTick <-chan time.Time
+
+  /*
+  if isFallbackSyncIsOn() {
+    fallbackSyncTick = time.Tick(fallbackSyncTickTime)
+  }*/
+
+  if isFallbackSyncIsOn() {
+    fallbackSyncTick = time.Tick(fallbackSyncTickTime)
+    fmt.Printf("FALLBACK ON")
+  } else {
+    fmt.Printf("FALLBACK OFF")
+  }
 
 	for {
 		select {
@@ -58,16 +68,13 @@ func waitForNextScan(dir string) {
 					watcher.RemoveWatch(ev.Name)
 				}
 
-				// Force a brief wait, since many editors may send events in a burst of
-				// activity that is over w/in a few millis.
-				//time.Sleep(100 * time.Millisecond)
-				fmt.Printf("waitForNextScan Event: (%s) ", dir)
+        if isDebugging() {
+          fmt.Printf("waitForNextScan Event: (%s) ", dir)
+        }
 
 				return
 			}
-		case <-tick:
-			// Force a 'fallback' resync on changed files on each tick if dir is hot,
-			// in case FS event was missed
+		case <-fallbackSyncTick:
 			if isHot(dir) {
 				return
 			}
@@ -75,23 +82,3 @@ func waitForNextScan(dir string) {
 	}
 }
 
-// Return whether dir has received any inotify events in last 10 minutes.
-func isHot(dir string) bool {
-	ttime := touchTimes[dir]
-	elapsedMillis := time.Since(ttime) / 1000000
-	return (elapsedMillis < 600000)
-}
-
-func fallbackSyncTickTimeInMillis() time.Duration {
-	ttime := 2000
-	tickString := os.Getenv("FALLBACK_SYNC_TICK")
-	if tickString != "" {
-		t, _ := strconv.ParseInt(tickString, 0, 32)
-		ttime = int(t)
-	}
-	return (time.Duration(ttime) * time.Millisecond)
-}
-
-func isDebugging() bool {
-	return os.Getenv("CONVOX_DEBUG") != ""
-}
