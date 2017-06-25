@@ -47,7 +47,6 @@ func waitForNextScan(dir string) {
 	for {
 		select {
 		case ev := <-watcher.Event:
-
 			if strings.HasPrefix(ev.Name, dir) {
 
 				touchTimes[dir] = time.Now()
@@ -55,15 +54,17 @@ func waitForNextScan(dir string) {
 				if ev.Mask|dirCreateFlags == dirCreateFlags {
 					startScanner(ev.Name)
 				}
+
 				if ev.Mask|dirDeleteFlags == dirDeleteFlags {
 					watcher.RemoveWatch(ev.Name)
 				}
 
-			if isDebugging() {
-				fmt.Printf("waitForNextScan Event: (%s) ", dir)
+				if isDebugging() {
+					fmt.Printf("waitForNextScan Event: (%s) ", dir)
+				}
+
+				return
 			}
-			return
-		}
 		case <-fallbackSyncTick:
 			if isHot(dir) {
 				return
