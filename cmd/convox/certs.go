@@ -122,7 +122,7 @@ func cmdCertsDelete(c *cli.Context) error {
 
 func cmdCertsGenerate(c *cli.Context) error {
 	stdcli.NeedHelp(c)
-	stdcli.NeedArg(c, 1)
+	stdcli.NeedArg(c, -1)
 
 	fmt.Printf("Requesting certificate... ")
 
