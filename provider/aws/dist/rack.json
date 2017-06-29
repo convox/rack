@@ -51,17 +51,17 @@
   },
   "Mappings": {
     "RegionConfig": {
-      "us-east-1":      { "Ami": "ami-83af8395", "EFS": "Yes", "ThirdAvailabilityZone": "Yes" },
-      "us-east-2":      { "Ami": "ami-9f9cbafa", "EFS": "Yes", "ThirdAvailabilityZone": "Yes" },
-      "us-west-1":      { "Ami": "ami-c1c6eba1", "EFS": "No",  "ThirdAvailabilityZone": "No"  },
-      "us-west-2":      { "Ami": "ami-11120768", "EFS": "Yes", "ThirdAvailabilityZone": "Yes" },
-      "eu-west-1":      { "Ami": "ami-5f140c39", "EFS": "Yes", "ThirdAvailabilityZone": "Yes" },
-      "eu-west-2":      { "Ami": "ami-767e6812", "EFS": "No",  "ThirdAvailabilityZone": "No"  },
-      "eu-central-1":   { "Ami": "ami-e656f189", "EFS": "No",  "ThirdAvailabilityZone": "No"  },
-      "ap-northeast-1": { "Ami": "ami-fd10059a", "EFS": "No",  "ThirdAvailabilityZone": "No"  },
-      "ap-southeast-1": { "Ami": "ami-1926ab7a", "EFS": "No",  "ThirdAvailabilityZone": "No"  },
-      "ap-southeast-2": { "Ami": "ami-6b6c7c08", "EFS": "No",  "ThirdAvailabilityZone": "Yes" },
-      "ca-central-1":   { "Ami": "ami-ead8678e", "EFS": "No",  "ThirdAvailabilityZone": "No"  }
+      "us-east-1":      { "Ami": "ami-04351e12", "EFS": "Yes", "ThirdAvailabilityZone": "Yes" },
+      "us-east-2":      { "Ami": "ami-207b5a45", "EFS": "Yes", "ThirdAvailabilityZone": "Yes" },
+      "us-west-1":      { "Ami": "ami-7d664a1d", "EFS": "No",  "ThirdAvailabilityZone": "No"  },
+      "us-west-2":      { "Ami": "ami-57d9cd2e", "EFS": "Yes", "ThirdAvailabilityZone": "Yes" },
+      "eu-west-1":      { "Ami": "ami-809f84e6", "EFS": "Yes", "ThirdAvailabilityZone": "Yes" },
+      "eu-west-2":      { "Ami": "ami-ff15039b", "EFS": "No",  "ThirdAvailabilityZone": "No"  },
+      "eu-central-1":   { "Ami": "ami-a3a006cc", "EFS": "No",  "ThirdAvailabilityZone": "No"  },
+      "ap-northeast-1": { "Ami": "ami-e4657283", "EFS": "No",  "ThirdAvailabilityZone": "No"  },
+      "ap-southeast-1": { "Ami": "ami-19f7787a", "EFS": "No",  "ThirdAvailabilityZone": "No"  },
+      "ap-southeast-2": { "Ami": "ami-42e9f921", "EFS": "No",  "ThirdAvailabilityZone": "Yes" },
+      "ca-central-1":   { "Ami": "ami-3da81759", "EFS": "No",  "ThirdAvailabilityZone": "No"  }
     }
   },
   "Outputs": {
