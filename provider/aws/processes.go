@@ -516,6 +516,9 @@ func (p *AWSProvider) containerInstance(id string) (*ecs.ContainerInstance, erro
 		Cluster:            aws.String(p.Cluster),
 		ContainerInstances: []*string{aws.String(id)},
 	})
+	if err != nil {
+		return nil, err
+	}
 	// check the build cluster too
 	for _, f := range res.Failures {
 		if f.Reason != nil && *f.Reason == "MISSING" && p.BuildCluster != p.Cluster {
@@ -526,9 +529,7 @@ func (p *AWSProvider) containerInstance(id string) (*ecs.ContainerInstance, erro
 			break
 		}
 	}
-	if err != nil {
-		return nil, err
-	}
+
 	if len(res.ContainerInstances) != 1 {
 		return nil, fmt.Errorf("could not find container instance: %s", id)
 	}
