@@ -65,6 +65,9 @@ func (sa *SimpleApp) GenerateManifest() ([]byte, error) {
 // Must be called before other Generate* methods
 func (sa *SimpleApp) Setup(dir string) error {
 	so, err := setup(dir)
+	if err != nil {
+		return err
+	}
 	sa.af = so.af
 	sa.pf = so.pf
 	sa.release = so.release

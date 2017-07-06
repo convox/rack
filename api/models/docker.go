@@ -62,6 +62,9 @@ func DockerHost() (string, error) {
 		},
 		MaxResults: aws.Int64(1000),
 	})
+	if err != nil {
+		return "", err
+	}
 
 	if len(ires.Reservations) != 1 || len(ires.Reservations[0].Instances) != 1 {
 		return "", fmt.Errorf("could not describe container instance")
