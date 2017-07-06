@@ -58,6 +58,7 @@ func clean() {
 	records, err := r.ReadAll()
 	if err != nil {
 		fmt.Printf("WARNING: %s\n", err)
+		return
 	}
 	for _, r := range records {
 		// Filter out non-build images
