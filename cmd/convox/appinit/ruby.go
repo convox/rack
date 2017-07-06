@@ -92,6 +92,9 @@ func (ra *RubyApp) GenerateManifest() ([]byte, error) {
 func (ra *RubyApp) Setup(dir string) error {
 
 	so, err := setup(dir)
+	if err != nil {
+		return err
+	}
 	ra.af = so.af
 	ra.pf = so.pf
 	ra.release = so.release
