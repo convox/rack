@@ -314,6 +314,9 @@ func currentPassword() (string, error) {
 	var auth ConfigAuth
 
 	err = json.Unmarshal(data, &auth)
+	if err != nil {
+		return "", err
+	}
 
 	return auth[host], nil
 }
