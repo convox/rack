@@ -56,6 +56,9 @@ func clean() {
 	r.FieldsPerRecord = 4
 
 	records, err := r.ReadAll()
+	if err != nil {
+		fmt.Printf("WARNING: %s\n", err)
+	}
 	for _, r := range records {
 		// Filter out non-build images
 		matches := BuildRe.FindStringSubmatch(r[2])
