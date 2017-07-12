@@ -612,6 +612,9 @@ func primaryProcess(stackName string) (string, error) {
 	}
 
 	data, err := json.Marshal(body)
+	if err != nil {
+		return "", err
+	}
 
 	process := regexpPrimaryProcess.FindStringSubmatch(string(data))
 

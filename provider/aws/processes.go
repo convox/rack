@@ -526,6 +526,9 @@ func (p *AWSProvider) containerInstance(id string) (*ecs.ContainerInstance, erro
 				Cluster:            aws.String(p.BuildCluster),
 				ContainerInstances: []*string{aws.String(id)},
 			})
+			if err != nil {
+				return nil, err
+			}
 			break
 		}
 	}

@@ -126,7 +126,9 @@ func ECSTaskDefinitionCreate(req Request) (string, map[string]string, error) {
 		defer res.Body.Close()
 
 		data, err := ioutil.ReadAll(res.Body)
-
+		if err != nil {
+			return "invalid", nil, err
+		}
 		if pkey, ok := req.ResourceProperties["Key"].(string); ok && pkey != "" {
 			key = pkey
 			cr := crypt.New(*Region(&req), os.Getenv("AWS_ACCESS_KEY_ID"), os.Getenv("AWS_SECRET_ACCESS_KEY"))
