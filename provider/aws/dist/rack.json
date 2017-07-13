@@ -399,6 +399,22 @@
       "Default": "No",
       "AllowedValues": [ "Yes", "No" ]
     },
+    "SpotInstanceBid": {
+      "Default": "0.01",
+      "Description": "Bid price for spot instances",
+      "Type": "String"
+    },
+    "SpotInstanceCount": {
+      "Default": 0,
+      "Description": "Count of spot instances to launch",
+      "MinValue": "0",
+      "Type": "Number"
+    },
+    "SpotInstanceType": {
+      "Default": "m4.large",
+      "Description": "The type of spot instances to launch",
+      "Type": "String"
+    },
     "Subnet0CIDR": {
       "Default": "10.0.1.0/24",
       "Description": "Public Subnet 0 CIDR Block",
@@ -1909,6 +1925,179 @@
                 }
               ]
             }
+          }
+        ]
+      }
+    },
+    "SpotLaunchConfiguration": {
+      "DependsOn": [ "Balancer", "Cluster", "InstanceProfile", "SecurityGroup", "LogGroup" ],
+      "Type": "AWS::AutoScaling::LaunchConfiguration",
+      "Properties": {
+        "AssociatePublicIpAddress": { "Fn::If": [ "Private", false, true ] },
+        "BlockDeviceMappings": [
+          {
+            "DeviceName": "/dev/xvda",
+            "Ebs": {
+              "Encrypted": { "Fn::If": [ "EncryptEbs", "true", { "Ref": "AWS::NoValue" } ] },
+              "VolumeSize": { "Ref": "RootSize" },
+              "VolumeType":"gp2"
+            }
+          },
+          {
+            "DeviceName": "/dev/xvdb",
+            "Ebs": {
+              "Encrypted": { "Fn::If": [ "EncryptEbs", "true", { "Ref": "AWS::NoValue" } ] },
+              "VolumeSize": { "Ref": "SwapSize" },
+              "VolumeType":"gp2"
+            }
+          },
+          {
+            "DeviceName": "/dev/xvdcz",
+            "Ebs": {
+              "Encrypted": { "Fn::If": [ "EncryptEbs", "true", { "Ref": "AWS::NoValue" } ] },
+              "VolumeSize": { "Ref": "VolumeSize" },
+              "VolumeType":"gp2"
+            }
+          }
+        ],
+        "IamInstanceProfile": { "Ref": "InstanceProfile" },
+        "ImageId": { "Fn::If": [ "BlankAmi", { "Fn::FindInMap": [ "RegionConfig", { "Ref": "AWS::Region" }, "Ami" ] }, { "Ref": "Ami" } ] },
+        "InstanceMonitoring": true,
+        "InstanceType": { "Ref": "SpotInstanceType" },
+        "KeyName": { "Fn::If": [ "BlankKey", { "Ref": "AWS::NoValue" }, { "Ref": "Key" } ] },
+        "SecurityGroups": [ { "Ref": "SecurityGroup" } ],
+        "SpotPrice": { "Ref": "SpotInstanceBid" },
+        "UserData": { "Fn::Base64":
+          { "Fn::Join": [ "", [
+            "#cloud-config\n",
+            "repo_upgrade_exclude:\n",
+            "  - kernel*\n",
+            "packages:\n",
+            "  - aws-cfn-bootstrap\n",
+            "mounts:\n",
+            "  - ['/dev/xvdb', 'none', 'swap', 'sw', '0', '0']\n",
+            "bootcmd:\n",
+            "  - mkswap /dev/xvdb\n",
+            "  - swapon /dev/xvdb\n",
+            "  - export http_proxy=", { "Ref": "HttpProxy" }, "\n",
+            "  - echo http_proxy=", { "Ref": "HttpProxy" }, " >> /etc/environment\n",
+            "  - export https_proxy=", { "Ref": "HttpProxy" }, "\n",
+            "  - echo https_proxy=", { "Ref": "HttpProxy" }, " >> /etc/environment\n",
+            "  - export HTTP_PROXY=", { "Ref": "HttpProxy" }, "\n",
+            "  - echo HTTP_PROXY=", { "Ref": "HttpProxy" }, " >> /etc/environment\n",
+            "  - export HTTPS_PROXY=", { "Ref": "HttpProxy" }, "\n",
+            "  - echo HTTPS_PROXY=", { "Ref": "HttpProxy" }, " >> /etc/environment\n",
+            "  - export NO_PROXY=169.254.169.254\n",
+            "  - echo NO_PROXY=169.254.169.254 >> /etc/environment\n",
+            { "Fn::If": [ "HttpProxy",
+              { "Fn::Join": ["", ["  - echo \"proxy=", { "Ref": "HttpProxy" }, "/\" >> /etc/yum.conf\n"
+              ] ] },
+              { "Ref": "AWS::NoValue" }
+            ] },
+            "  - until yum install -y aws-cli nfs-utils; do echo \"Waiting for network\"; done;\n",
+            "  - mkdir /volumes\n",
+            { "Fn::If": [ "RegionHasEFS",
+              { "Fn::Join": [ "", [
+                "  - while true; do mount -t nfs -o nfsvers=4.1 $(curl -s --noproxy 169.254.169.254 http://169.254.169.254/latest/meta-data/placement/availability-zone).",
+                { "Ref": "VolumeFilesystem" },
+                ".efs.",
+                { "Ref": "AWS::Region" },
+                ".amazonaws.com:/ /volumes && break; sleep 5; done\n"
+              ] ] },
+              ""
+            ] },
+            "  - [ cloud-init-per, instance, docker_storage_setup, /usr/bin/docker-storage-setup ]\n",
+            "  - echo ECS_CLUSTER=", { "Ref": "Cluster" }, " >> /etc/ecs/ecs.config\n",
+            "  - echo ECS_ENGINE_AUTH_TYPE=docker >> /etc/ecs/ecs.config\n",
+            "  - echo HTTP_PROXY=", { "Ref": "HttpProxy" }, " >> /etc/ecs/ecs.config\n",
+            "  - echo NO_PROXY=169.254.169.254,169.254.170.2,/var/run/docker.sock >> /etc/ecs/ecs.config\n",
+            "  - head -n -1 /etc/sysconfig/docker >> /etc/sysconfig/docker-tmp\n",
+            "  - mv /etc/sysconfig/docker-tmp /etc/sysconfig/docker\n",
+            "  - echo 'OPTIONS=\"--default-ulimit nofile=1024000:1024000\"' >> /etc/sysconfig/docker\n",
+            { "Fn::Join": [ "", [
+              "  - echo 'OPTIONS=\"${OPTIONS} --storage-opt dm.basesize=", { "Ref": "ContainerDisk" }, "G\"' >> /etc/sysconfig/docker\n",
+              "  - echo 'OPTIONS=\"${OPTIONS} --log-opt max-file=2 --log-opt max-size=50m --host=unix:///var/run/docker.sock --host=0.0.0.0:2376\"' >> /etc/sysconfig/docker\n",
+              "  - echo 'ECS_ENGINE_AUTH_DATA={\"index.docker.io\":{\"username\":\"\",\"password\":\"\",\"email\":\"\"}' >> /etc/ecs/ecs.config\n"
+            ] ] },
+            { "Fn::If": [ "HttpProxy",
+              { "Fn::Join": ["", ["  - echo \"export HTTP_PROXY=", { "Ref": "HttpProxy" }, "/\" >> /etc/sysconfig/docker\n"
+              ] ] },
+              { "Ref": "AWS::NoValue" }
+            ] },
+            "  - mkdir -p /etc/convox\n",
+            "  - echo \"", { "Ref": "AWS::Region" }, "\" > /etc/convox/region\n",
+            "  - echo \"", { "Ref": "ClientId" }, "\" > /etc/convox/client_id\n",
+            "  - echo \"", { "Ref": "LogGroup" }, "\" > /etc/convox/log_group\n",
+            { "Fn::If": [ "Agent",
+              "  - curl -s https://convox.s3.amazonaws.com/agent/0.71/convox.conf > /etc/init/convox.conf\n",
+              ""
+            ] },
+            "  - echo -e '/var/log/docker {\\n  rotate 7\\n  daily\\n  nocompress\\n  copytruncate\\n}' >> /etc/logrotate.d/docker\n",
+            { "Fn::If": [ "BlankInstanceBootCommand",
+              { "Ref": "AWS::NoValue" },
+              { "Fn::Join": [ "", [
+              "  - ", { "Ref": "InstanceBootCommand" }, "\n"
+              ] ] }
+            ] },
+            "runcmd:\n",
+            { "Fn::If": [ "BlankInstanceRunCommand",
+              { "Ref": "AWS::NoValue" },
+              { "Fn::Join": [ "", [
+              "  - ", { "Ref": "InstanceRunCommand" }, "\n"
+              ] ] }
+            ] },
+            "  - export INSTANCE_ID=$(curl -s --noproxy 169.254.169.254 http://169.254.169.254/latest/meta-data/instance-id)\n",
+            "  - export ASG_NAME=$(env $(cat /etc/environment) /usr/bin/aws autoscaling describe-auto-scaling-instances --instance-ids=$INSTANCE_ID --region ", {"Ref":"AWS::Region"}, " --output text --query 'AutoScalingInstances[0].AutoScalingGroupName')\n",
+            "  - export LIFECYCLE_HOOK=$(env $(cat /etc/environment) /usr/bin/aws autoscaling describe-lifecycle-hooks --auto-scaling-group-name $ASG_NAME --region ", {"Ref":"AWS::Region"}, " --output text --query \"LifecycleHooks[?contains(LifecycleHookName, '", { "Ref": "AWS::StackName" }, "-InstancesLifecycleLaunching') == \\`true\\`].LifecycleHookName | [0]\")\n",
+            "  - env $(cat /etc/environment) /usr/bin/aws autoscaling complete-lifecycle-action --region ", { "Ref": "AWS::Region" }, " --instance-id $INSTANCE_ID --lifecycle-hook-name $LIFECYCLE_HOOK --auto-scaling-group-name $ASG_NAME --lifecycle-action-result CONTINUE\n",
+            "  - env $(cat /etc/environment) /opt/aws/bin/cfn-signal --http-proxy \"", { "Ref": "HttpProxy" }, "\" --stack ", { "Ref": "AWS::StackName" }, " --region ", { "Ref": "AWS::Region" }, " --resource Instances\n"
+          ] ] }
+        }
+      }
+    },
+    "SpotInstances": {
+      "DependsOn": [ "AvailabilityZones", "Subnet0", "Subnet1" ],
+      "Type": "AWS::AutoScaling::AutoScalingGroup",
+      "Properties" : {
+        "LaunchConfigurationName" : { "Ref": "SpotLaunchConfiguration" },
+        "AvailabilityZones": [
+          { "Fn::GetAtt": [ "AvailabilityZones", "AvailabilityZone0" ] },
+          { "Fn::GetAtt": [ "AvailabilityZones", "AvailabilityZone1" ] },
+          { "Fn::If": [ "ThirdAvailabilityZone", { "Fn::GetAtt": [ "AvailabilityZones", "AvailabilityZone2" ] }, { "Ref": "AWS::NoValue" } ] }
+        ],
+        "VPCZoneIdentifier": {
+          "Fn::If": [ "Private", [
+            { "Ref": "SubnetPrivate0" },
+            { "Ref": "SubnetPrivate1" },
+            { "Fn::If": [ "ThirdAvailabilityZone", { "Ref": "SubnetPrivate2" }, { "Ref": "AWS::NoValue" } ] }
+          ], [
+            { "Ref": "Subnet0" },
+            { "Ref": "Subnet1" },
+            { "Fn::If": [ "ThirdAvailabilityZone", { "Ref": "Subnet2" }, { "Ref": "AWS::NoValue" } ] }
+          ] ]
+        },
+        "Cooldown": 5,
+        "DesiredCapacity": { "Ref": "SpotInstanceCount" },
+        "HealthCheckType": "EC2",
+        "HealthCheckGracePeriod": "120",
+        "MinSize" : { "Ref": "SpotInstanceCount" },
+        "MaxSize" : "1000",
+        "MetricsCollection": [ { "Granularity": "1Minute" } ],
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": { "Ref": "AWS::StackName" },
+            "PropagateAtLaunch": true
+          },
+          {
+            "Key": "Rack",
+            "Value": { "Ref": "AWS::StackName" },
+            "PropagateAtLaunch": true
+          },
+          {
+            "Key": "GatewayAttachment",
+            "Value": { "Fn::If": [ "ExistingVpc", "existing", { "Ref": "GatewayAttachment" } ] },
+            "PropagateAtLaunch": false
           }
         ]
       }
