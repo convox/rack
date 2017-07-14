@@ -405,7 +405,7 @@
       "Type": "String"
     },
     "SpotInstanceCount": {
-      "Default": 0,
+      "Default": "0",
       "Description": "Count of spot instances to launch",
       "MinValue": "0",
       "Type": "Number"
