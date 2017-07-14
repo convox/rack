@@ -20,7 +20,7 @@ func (p *AWSProvider) InstanceList() (structs.Instances, error) {
 	req := &ec2.DescribeInstancesInput{
 		Filters: []*ec2.Filter{
 			{Name: aws.String("tag:Rack"), Values: []*string{aws.String(os.Getenv("RACK"))}},
-			{Name: aws.String("tag:aws:cloudformation:logical-id"), Values: []*string{aws.String("Instances")}},
+			{Name: aws.String("tag:aws:cloudformation:logical-id"), Values: []*string{aws.String("Instances"), aws.String("SpotInstances")}},
 		},
 	}
 
