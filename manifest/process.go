@@ -48,7 +48,6 @@ func (p *Process) GenerateArgs(opts *ArgOptions) []string {
 	args := []string{}
 
 	args = append(args, "-i")
-	args = append(args, "--rm")
 
 	if opts == nil {
 		opts = &ArgOptions{}
