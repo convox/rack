@@ -350,9 +350,19 @@ func TestInstallCmd(t *testing.T) {
 			Exit:     1,
 		},
 	}
+	key := os.Getenv("AWS_ACCESS_KEY_ID")
+	secret := os.Getenv("AWS_SECRET_ACCESS_KEY")
+
+	os.Unsetenv("AWS_ACCESS_KEY_ID")
+	os.Unsetenv("AWS_SECRET_ACCESS_KEY")
 
 	for _, myTest := range tests {
 		test.Runs(t, myTest)
+	}
+
+	if key != "" && secret != "" {
+		os.Setenv("AWS_ACCESS_KEY_ID", key)
+		os.Setenv("AWS_SECRET_ACCESS_KEY", secret)
 	}
 }
 
