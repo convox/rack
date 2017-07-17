@@ -13,10 +13,8 @@ import (
 
 var configlessEnv = map[string]string{
 	// reset HOME to a location where there's not likely to be a convox config on the host
-	"HOME":                  "/tmp/probablyNoConfigFileHere",
-	"AWS_SECRET_ACCESS_KEY": "",
-	"AWS_ACCESS_KEY_ID":     "",
-	"CONVOX_HOST":           "",
+	"HOME":        "/tmp/probablyNoConfigFileHere",
+	"CONVOX_HOST": "",
 }
 var DebuglessEnv = map[string]string{"CONVOX_DEBUG": ""}
 var DebugfulEnv = map[string]string{"CONVOX_DEBUG": "true"}
