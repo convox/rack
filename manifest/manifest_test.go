@@ -221,7 +221,7 @@ func TestLoadEnvVar(t *testing.T) {
 
 	if assert.NoError(t, err) {
 		assert.Equal(t, m.Services["web"].Image, rando1)
-		assert.Equal(t, m.Services["web"].Entrypoint, fmt.Sprintf("%s/%s/%s", rando2, rando2, rando3))
+		assert.Equal(t, m.Services["web"].Entrypoint, fmt.Sprintf("%s/%s/%s/${REMAIN}", rando2, rando2, rando3))
 		assert.Equal(t, m.Services["web"].Build.Dockerfile, "$REMAIN")
 		assert.Equal(t, m.Services["web"].Dockerfile, "")
 		assert.Equal(t, m.Services["web"].Volumes[0], "${broken")
@@ -584,6 +584,28 @@ func TestManifestValidate(t *testing.T) {
 
 	if errs := m.Validate(); assert.NotNil(t, errs) {
 		assert.Equal(t, errs[0].Error(), "web service has convox.health.port set to a port it does not declare")
+	}
+
+	m, err = manifestFixture("invalid-health-healthy")
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
+
+	therr := m.Validate()
+	if assert.NotNil(t, therr) {
+		assert.Equal(t, therr[0].Error(), "convox.health.threshold.healthy is invalid for web, must be a number between 2 and 10")
+	}
+
+	m, err = manifestFixture("invalid-health-unhealthy")
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
+
+	tuerr := m.Validate()
+	if assert.NotNil(t, tuerr) {
+		assert.Equal(t, tuerr[0].Error(), "convox.health.threshold.unhealthy is invalid for web, must be a number between 2 and 10")
 	}
 }
 

@@ -126,7 +126,9 @@ func ECSTaskDefinitionCreate(req Request) (string, map[string]string, error) {
 		defer res.Body.Close()
 
 		data, err := ioutil.ReadAll(res.Body)
-
+		if err != nil {
+			return "invalid", nil, err
+		}
 		if pkey, ok := req.ResourceProperties["Key"].(string); ok && pkey != "" {
 			key = pkey
 			cr := crypt.New(*Region(&req), os.Getenv("AWS_ACCESS_KEY_ID"), os.Getenv("AWS_SECRET_ACCESS_KEY"))
@@ -162,11 +164,6 @@ func ECSTaskDefinitionCreate(req Request) (string, map[string]string, error) {
 			}
 		}
 
-		memory, err := strconv.Atoi(task["Memory"].(string))
-		if err != nil {
-			return "invalid", nil, err
-		}
-
 		privileged := false
 
 		if p, ok := task["Privileged"].(string); ok && p != "" {
@@ -181,8 +178,23 @@ func ECSTaskDefinitionCreate(req Request) (string, map[string]string, error) {
 			Essential:  aws.Bool(true),
 			Image:      aws.String(task["Image"].(string)),
 			Cpu:        aws.Int64(int64(cpu)),
-			Memory:     aws.Int64(int64(memory)),
 			Privileged: aws.Bool(privileged),
+		}
+
+		if m, ok := task["Memory"].(string); ok && m != "" {
+			memory, err := strconv.Atoi(m)
+			if err != nil {
+				return "invalid", nil, err
+			}
+			r.ContainerDefinitions[i].Memory = aws.Int64(int64(memory))
+		}
+
+		if m, ok := task["MemoryReservation"].(string); ok && m != "" {
+			memory, err := strconv.Atoi(m)
+			if err != nil {
+				return "invalid", nil, err
+			}
+			r.ContainerDefinitions[i].MemoryReservation = aws.Int64(int64(memory))
 		}
 
 		// set Command from either -

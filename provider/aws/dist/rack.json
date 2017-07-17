@@ -51,17 +51,17 @@
   },
   "Mappings": {
     "RegionConfig": {
-      "us-east-1":      { "Ami": "ami-275ffe31", "EFS": "Yes", "ThirdAvailabilityZone": "Yes" },
-      "us-east-2":      { "Ami": "ami-62745007", "EFS": "Yes", "ThirdAvailabilityZone": "Yes" },
-      "us-west-1":      { "Ami": "ami-689bc208", "EFS": "No",  "ThirdAvailabilityZone": "No"  },
-      "us-west-2":      { "Ami": "ami-62d35c02", "EFS": "Yes", "ThirdAvailabilityZone": "Yes" },
-      "eu-west-1":      { "Ami": "ami-95f8d2f3", "EFS": "Yes", "ThirdAvailabilityZone": "Yes" },
-      "eu-west-2":      { "Ami": "ami-bf9481db", "EFS": "No",  "ThirdAvailabilityZone": "No"  },
-      "eu-central-1":   { "Ami": "ami-085e8a67", "EFS": "No",  "ThirdAvailabilityZone": "No"  },
-      "ap-northeast-1": { "Ami": "ami-f63f6f91", "EFS": "No",  "ThirdAvailabilityZone": "No"  },
-      "ap-southeast-1": { "Ami": "ami-b4ae1dd7", "EFS": "No",  "ThirdAvailabilityZone": "No"  },
-      "ap-southeast-2": { "Ami": "ami-fbe9eb98", "EFS": "No",  "ThirdAvailabilityZone": "Yes" },
-      "ca-central-1":   { "Ami": "ami-ee58e58a", "EFS": "No",  "ThirdAvailabilityZone": "No"  }
+      "us-east-1":      { "Ami": "ami-04351e12", "EFS": "Yes", "ThirdAvailabilityZone": "Yes" },
+      "us-east-2":      { "Ami": "ami-207b5a45", "EFS": "Yes", "ThirdAvailabilityZone": "Yes" },
+      "us-west-1":      { "Ami": "ami-7d664a1d", "EFS": "No",  "ThirdAvailabilityZone": "No"  },
+      "us-west-2":      { "Ami": "ami-57d9cd2e", "EFS": "Yes", "ThirdAvailabilityZone": "Yes" },
+      "eu-west-1":      { "Ami": "ami-809f84e6", "EFS": "Yes", "ThirdAvailabilityZone": "Yes" },
+      "eu-west-2":      { "Ami": "ami-ff15039b", "EFS": "No",  "ThirdAvailabilityZone": "No"  },
+      "eu-central-1":   { "Ami": "ami-a3a006cc", "EFS": "No",  "ThirdAvailabilityZone": "No"  },
+      "ap-northeast-1": { "Ami": "ami-e4657283", "EFS": "No",  "ThirdAvailabilityZone": "No"  },
+      "ap-southeast-1": { "Ami": "ami-19f7787a", "EFS": "No",  "ThirdAvailabilityZone": "No"  },
+      "ap-southeast-2": { "Ami": "ami-42e9f921", "EFS": "No",  "ThirdAvailabilityZone": "Yes" },
+      "ca-central-1":   { "Ami": "ami-3da81759", "EFS": "No",  "ThirdAvailabilityZone": "No"  }
     }
   },
   "Outputs": {
@@ -294,6 +294,11 @@
       "Description": "How much memory should be reserved by the builder",
       "Default": "1024"
     },
+    "BuildVolumeSize": {
+      "Type": "Number",
+      "Description": "Default build disk size in GB",
+      "Default": "50"
+    },
     "ClientId": {
       "Type": "String",
       "Description": "Anonymous identifier",
@@ -428,6 +433,11 @@
       "Type": "Number",
       "Description": "Default swap volume size in GB",
       "Default": "5"
+    },
+    "RootSize": {
+      "Type": "Number",
+      "Description": "Default root disk size in GB",
+      "Default": "8"
     },
     "Version": {
       "Description": "(REQUIRED) Convox release version",
@@ -723,6 +733,7 @@
                       "ec2:DescribeAddresses",
                       "ec2:DescribeInstances",
                       "ec2:DescribeNatGateways",
+                      "ec2:DescribeNetworkInterfaces",
                       "ec2:DescribeRouteTables",
                       "ec2:DescribeSecurityGroups",
                       "ec2:DescribeSubnets",
@@ -792,6 +803,9 @@
                       "kms:CreateAlias",
                       "kms:ListAliases",
                       "lambda:CreateFunction",
+                      "lambda:ListTags",
+                      "lambda:TagResource",
+                      "lambda:UntagResource",
                       "logs:CreateLogGroup",
                       "logs:CreateLogStream",
                       "logs:DeleteLogGroup",
@@ -1446,7 +1460,7 @@
             "DeviceName": "/dev/xvdcz",
             "Ebs": {
               "Encrypted": { "Fn::If": [ "EncryptEbs", "true", { "Ref": "AWS::NoValue" } ] },
-              "VolumeSize": { "Ref": "VolumeSize" },
+              "VolumeSize": { "Ref": "BuildVolumeSize" },
               "VolumeType":"gp2"
             }
           }
@@ -1471,8 +1485,21 @@
             "  - mkswap /dev/xvdb\n",
             "  - swapon /dev/xvdb\n",
             "  - [ cloud-init-per, instance, docker_storage_setup, /usr/bin/docker-storage-setup ]\n",
+            "  - export http_proxy=", { "Ref": "HttpProxy" }, "\n",
+            "  - echo http_proxy=", { "Ref": "HttpProxy" }, " >> /etc/environment\n",
+            "  - export https_proxy=", { "Ref": "HttpProxy" }, "\n",
+            "  - echo https_proxy=", { "Ref": "HttpProxy" }, " >> /etc/environment\n",
             "  - export HTTP_PROXY=", { "Ref": "HttpProxy" }, "\n",
             "  - echo HTTP_PROXY=", { "Ref": "HttpProxy" }, " >> /etc/environment\n",
+            "  - export HTTPS_PROXY=", { "Ref": "HttpProxy" }, "\n",
+            "  - echo HTTPS_PROXY=", { "Ref": "HttpProxy" }, " >> /etc/environment\n",
+            "  - export NO_PROXY=169.254.169.254\n",
+            "  - echo NO_PROXY=169.254.169.254 >> /etc/environment\n",
+            { "Fn::If": [ "HttpProxy",
+              { "Fn::Join": ["", ["  - echo \"proxy=", { "Ref": "HttpProxy" }, "/\" >> /etc/yum.conf\n"
+              ] ] },
+              { "Ref": "AWS::NoValue" }
+            ] },
             "  - echo ECS_CLUSTER=", { "Ref": "BuildCluster" }, " >> /etc/ecs/ecs.config\n",
             "  - echo ECS_ENGINE_AUTH_TYPE=docker >> /etc/ecs/ecs.config\n",
             "  - echo HTTP_PROXY=", { "Ref": "HttpProxy" }, " >> /etc/ecs/ecs.config\n",
@@ -1505,7 +1532,7 @@
               "  - ", { "Ref": "InstanceRunCommand" }, "\n"
               ] ] }
             ] },
-            "  - /opt/aws/bin/cfn-signal --stack ", { "Ref": "AWS::StackName" }, " --region ", { "Ref":"AWS::Region" }, " --resource BuildInstances\n"
+            "  - /opt/aws/bin/cfn-signal --http-proxy \"", { "Ref": "HttpProxy" }, "\" --stack ", { "Ref": "AWS::StackName" }, " --region ", { "Ref":"AWS::Region" }, " --resource BuildInstances\n"
           ] ] }
         }
       }
@@ -1576,6 +1603,14 @@
         "AssociatePublicIpAddress": { "Fn::If": [ "Private", false, true ] },
         "BlockDeviceMappings": [
           {
+            "DeviceName": "/dev/xvda",
+            "Ebs": {
+              "Encrypted": { "Fn::If": [ "EncryptEbs", "true", { "Ref": "AWS::NoValue" } ] },
+              "VolumeSize": { "Ref": "RootSize" },
+              "VolumeType":"gp2"
+            }
+          },
+          {
             "DeviceName": "/dev/xvdb",
             "Ebs": {
               "Encrypted": { "Fn::If": [ "EncryptEbs", "true", { "Ref": "AWS::NoValue" } ] },
@@ -1611,13 +1646,26 @@
             "bootcmd:\n",
             "  - mkswap /dev/xvdb\n",
             "  - swapon /dev/xvdb\n",
+            "  - export http_proxy=", { "Ref": "HttpProxy" }, "\n",
+            "  - echo http_proxy=", { "Ref": "HttpProxy" }, " >> /etc/environment\n",
+            "  - export https_proxy=", { "Ref": "HttpProxy" }, "\n",
+            "  - echo https_proxy=", { "Ref": "HttpProxy" }, " >> /etc/environment\n",
             "  - export HTTP_PROXY=", { "Ref": "HttpProxy" }, "\n",
             "  - echo HTTP_PROXY=", { "Ref": "HttpProxy" }, " >> /etc/environment\n",
+            "  - export HTTPS_PROXY=", { "Ref": "HttpProxy" }, "\n",
+            "  - echo HTTPS_PROXY=", { "Ref": "HttpProxy" }, " >> /etc/environment\n",
+            "  - export NO_PROXY=169.254.169.254\n",
+            "  - echo NO_PROXY=169.254.169.254 >> /etc/environment\n",
+            { "Fn::If": [ "HttpProxy",
+              { "Fn::Join": ["", ["  - echo \"proxy=", { "Ref": "HttpProxy" }, "/\" >> /etc/yum.conf\n"
+              ] ] },
+              { "Ref": "AWS::NoValue" }
+            ] },
             "  - until yum install -y aws-cli nfs-utils; do echo \"Waiting for network\"; done;\n",
             "  - mkdir /volumes\n",
             { "Fn::If": [ "RegionHasEFS",
               { "Fn::Join": [ "", [
-                "  - while true; do mount -t nfs -o nfsvers=4.1 $(curl -s http://169.254.169.254/latest/meta-data/placement/availability-zone).",
+                "  - while true; do mount -t nfs -o nfsvers=4.1 $(curl -s --noproxy 169.254.169.254 http://169.254.169.254/latest/meta-data/placement/availability-zone).",
                 { "Ref": "VolumeFilesystem" },
                 ".efs.",
                 { "Ref": "AWS::Region" },
@@ -1665,11 +1713,11 @@
               "  - ", { "Ref": "InstanceRunCommand" }, "\n"
               ] ] }
             ] },
-            "  - export INSTANCE_ID=$(curl -s http://169.254.169.254/latest/meta-data/instance-id)\n",
-            "  - export ASG_NAME=$(/usr/bin/aws autoscaling describe-auto-scaling-instances --instance-ids=$INSTANCE_ID --region ", {"Ref":"AWS::Region"}, " --output text --query 'AutoScalingInstances[0].AutoScalingGroupName')\n",
-            "  - export LIFECYCLE_HOOK=$(/usr/bin/aws autoscaling describe-lifecycle-hooks --auto-scaling-group-name $ASG_NAME --region ", {"Ref":"AWS::Region"}, " --output text --query \"LifecycleHooks[?contains(LifecycleHookName, '", { "Ref": "AWS::StackName" }, "-InstancesLifecycleLaunching') == \\`true\\`].LifecycleHookName | [0]\")\n",
-            "  - /usr/bin/aws autoscaling complete-lifecycle-action --region ", { "Ref": "AWS::Region" }, " --instance-id $INSTANCE_ID --lifecycle-hook-name $LIFECYCLE_HOOK --auto-scaling-group-name $ASG_NAME --lifecycle-action-result CONTINUE\n",
-            "  - /opt/aws/bin/cfn-signal --stack ", { "Ref": "AWS::StackName" }, " --region ", { "Ref": "AWS::Region" }, " --resource Instances\n"
+            "  - export INSTANCE_ID=$(curl -s --noproxy 169.254.169.254 http://169.254.169.254/latest/meta-data/instance-id)\n",
+            "  - export ASG_NAME=$(env $(cat /etc/environment) /usr/bin/aws autoscaling describe-auto-scaling-instances --instance-ids=$INSTANCE_ID --region ", {"Ref":"AWS::Region"}, " --output text --query 'AutoScalingInstances[0].AutoScalingGroupName')\n",
+            "  - export LIFECYCLE_HOOK=$(env $(cat /etc/environment) /usr/bin/aws autoscaling describe-lifecycle-hooks --auto-scaling-group-name $ASG_NAME --region ", {"Ref":"AWS::Region"}, " --output text --query \"LifecycleHooks[?contains(LifecycleHookName, '", { "Ref": "AWS::StackName" }, "-InstancesLifecycleLaunching') == \\`true\\`].LifecycleHookName | [0]\")\n",
+            "  - env $(cat /etc/environment) /usr/bin/aws autoscaling complete-lifecycle-action --region ", { "Ref": "AWS::Region" }, " --instance-id $INSTANCE_ID --lifecycle-hook-name $LIFECYCLE_HOOK --auto-scaling-group-name $ASG_NAME --lifecycle-action-result CONTINUE\n",
+            "  - env $(cat /etc/environment) /opt/aws/bin/cfn-signal --http-proxy \"", { "Ref": "HttpProxy" }, "\" --stack ", { "Ref": "AWS::StackName" }, " --region ", { "Ref": "AWS::Region" }, " --resource Instances\n"
           ] ] }
         }
       }
@@ -2306,7 +2354,7 @@
             },
             "Image": { "Fn::If": [ "BlankBuildImage", { "Fn::Join": [ ":", [ "convox/api", { "Ref": "Version" } ] ] }, { "Ref": "BuildImage" } ] },
             "Links": [],
-            "Memory": { "Ref": "BuildMemory" },
+            "MemoryReservation": { "Ref": "BuildMemory" },
             "Name": "build",
             "Volumes": [
               "/etc/sysconfig/docker:/etc/sysconfig/docker",

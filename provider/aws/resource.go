@@ -476,7 +476,9 @@ func (p *AWSProvider) appendSystemParameters(s *structs.Resource) error {
 		return err
 	}
 
-	s.Parameters["Password"] = password
+	if s.Parameters["Password"] == "" {
+		s.Parameters["Password"] = password
+	}
 	s.Parameters["SecurityGroups"] = p.SecurityGroup
 	s.Parameters["Subnets"] = p.Subnets
 	s.Parameters["SubnetsPrivate"] = coalesceString(p.SubnetsPrivate, p.Subnets)

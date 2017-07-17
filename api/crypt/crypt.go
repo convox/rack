@@ -80,6 +80,10 @@ func NewIam(role string) (*Crypt, error) {
 
 	rd, err := ioutil.ReadAll(res.Body)
 
+	if err != nil {
+		return nil, err
+	}
+
 	var r Role
 
 	err = json.Unmarshal(rd, &r)

@@ -64,7 +64,7 @@ func (p *AWSProvider) ProcessExec(app, pid, command string, stream io.ReadWriter
 		return log.Errorf("no running container for process: %s", pid)
 	}
 
-	cires, err := p.ecs().DescribeContainerInstances(&ecs.DescribeContainerInstancesInput{
+	cires, err := p.describeContainerInstances(&ecs.DescribeContainerInstancesInput{
 		Cluster:            aws.String(p.Cluster),
 		ContainerInstances: []*string{task.ContainerInstanceArn},
 	})
@@ -309,7 +309,7 @@ func (p *AWSProvider) taskProcesses(tasks []string) (structs.Processes, error) {
 			iptasks[i] = &ptasks[i]
 		}
 
-		tres, err := p.ecs().DescribeTasks(&ecs.DescribeTasksInput{
+		tres, err := p.describeTasks(&ecs.DescribeTasksInput{
 			Cluster: aws.String(p.Cluster),
 			Tasks:   iptasks,
 		})
@@ -323,7 +323,7 @@ func (p *AWSProvider) taskProcesses(tasks []string) (structs.Processes, error) {
 
 		// list tasks on build cluster too
 		if p.Cluster != p.BuildCluster {
-			tres, err := p.ecs().DescribeTasks(&ecs.DescribeTasksInput{
+			tres, err := p.describeTasks(&ecs.DescribeTasksInput{
 				Cluster: aws.String(p.BuildCluster),
 				Tasks:   iptasks,
 			})
@@ -487,7 +487,7 @@ func (p *AWSProvider) containerDefinitionForTask(arn string) (*ecs.ContainerDefi
 		return cd, nil
 	}
 
-	res, err := p.ecs().DescribeTaskDefinition(&ecs.DescribeTaskDefinitionInput{
+	res, err := p.describeTaskDefinition(&ecs.DescribeTaskDefinitionInput{
 		TaskDefinition: aws.String(arn),
 	})
 	if err != nil {
@@ -512,23 +512,27 @@ func (p *AWSProvider) containerInstance(id string) (*ecs.ContainerInstance, erro
 		return ci, nil
 	}
 
-	res, err := p.ecs().DescribeContainerInstances(&ecs.DescribeContainerInstancesInput{
+	res, err := p.describeContainerInstances(&ecs.DescribeContainerInstancesInput{
 		Cluster:            aws.String(p.Cluster),
 		ContainerInstances: []*string{aws.String(id)},
 	})
-	// check the build cluster too
-	for _, f := range res.Failures {
-		if f.Reason != nil && *f.Reason == "MISSING" && p.BuildCluster != p.Cluster {
-			res, err = p.ecs().DescribeContainerInstances(&ecs.DescribeContainerInstancesInput{
-				Cluster:            aws.String(p.BuildCluster),
-				ContainerInstances: []*string{aws.String(id)},
-			})
-			break
-		}
-	}
 	if err != nil {
 		return nil, err
 	}
+	// check the build cluster too
+	for _, f := range res.Failures {
+		if f.Reason != nil && *f.Reason == "MISSING" && p.BuildCluster != p.Cluster {
+			res, err = p.describeContainerInstances(&ecs.DescribeContainerInstancesInput{
+				Cluster:            aws.String(p.BuildCluster),
+				ContainerInstances: []*string{aws.String(id)},
+			})
+			if err != nil {
+				return nil, err
+			}
+			break
+		}
+	}
+
 	if len(res.ContainerInstances) != 1 {
 		return nil, fmt.Errorf("could not find container instance: %s", id)
 	}
@@ -568,14 +572,14 @@ func (p *AWSProvider) describeInstance(id string) (*ec2.Instance, error) {
 }
 
 func (p *AWSProvider) describeTask(arn string) (*ecs.Task, error) {
-	res, err := p.ecs().DescribeTasks(&ecs.DescribeTasksInput{
+	res, err := p.describeTasks(&ecs.DescribeTasksInput{
 		Cluster: aws.String(p.Cluster),
 		Tasks:   []*string{aws.String(arn)},
 	})
 	// check the build cluster too
 	for _, f := range res.Failures {
 		if f.Reason != nil && *f.Reason == "MISSING" && p.BuildCluster != p.Cluster {
-			res, err = p.ecs().DescribeTasks(&ecs.DescribeTasksInput{
+			res, err = p.describeTasks(&ecs.DescribeTasksInput{
 				Cluster: aws.String(p.BuildCluster),
 				Tasks:   []*string{aws.String(arn)},
 			})
@@ -726,7 +730,7 @@ func (p *AWSProvider) generateTaskDefinition(app, process, release string) (*ecs
 		return nil, fmt.Errorf("could not find service for process: %s", process)
 	}
 
-	sres, err := p.ecs().DescribeServices(&ecs.DescribeServicesInput{
+	sres, err := p.describeServices(&ecs.DescribeServicesInput{
 		Cluster:  aws.String(p.Cluster),
 		Services: []*string{aws.String(sarn)},
 	})
@@ -737,7 +741,7 @@ func (p *AWSProvider) generateTaskDefinition(app, process, release string) (*ecs
 		return nil, fmt.Errorf("could not look up service for process: %s", process)
 	}
 
-	tres, err := p.ecs().DescribeTaskDefinition(&ecs.DescribeTaskDefinitionInput{
+	tres, err := p.describeTaskDefinition(&ecs.DescribeTaskDefinitionInput{
 		TaskDefinition: sres.Services[0].TaskDefinition,
 	})
 	if err != nil {
@@ -830,9 +834,12 @@ func (p *AWSProvider) generateTaskDefinition(app, process, release string) (*ecs
 		})
 	}
 
+	tr := a.Parameters["TaskRole"]
+
 	req := &ecs.RegisterTaskDefinitionInput{
 		ContainerDefinitions: []*ecs.ContainerDefinition{cd},
 		Family:               aws.String(fmt.Sprintf("%s-%s-%s", p.Rack, app, process)),
+		TaskRoleArn:          &tr,
 	}
 
 	for i, mv := range s.MountableVolumes() {

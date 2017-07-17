@@ -14,9 +14,9 @@ func TestInstancesList(t *testing.T) {
 	os.Setenv("CLUSTER", "convox-test-cluster")
 
 	provider := StubAwsProvider(
+		cycleInstanceDescribeInstances,
 		listContainerInstancesCycle("cluster-test"),
 		describeContainerInstancesCycle("cluster-test"),
-		describeInstancesCycle(),
 		// TODO: GetMetricStatistics x 3
 	)
 	defer provider.Close()
@@ -28,17 +28,6 @@ func TestInstancesList(t *testing.T) {
 		structs.Instance{
 			Agent:     true,
 			Cpu:       0,
-			Id:        "i-4a5513f4",
-			Memory:    0,
-			PrivateIp: "10.0.1.182",
-			Processes: 0,
-			PublicIp:  "54.208.61.75",
-			Status:    "active",
-			Started:   time.Unix(1448484072, 0).UTC(),
-		},
-		structs.Instance{
-			Agent:     true,
-			Cpu:       0,
 			Id:        "i-3963798e",
 			Memory:    0,
 			PrivateIp: "10.0.2.236",
@@ -46,6 +35,17 @@ func TestInstancesList(t *testing.T) {
 			PublicIp:  "54.85.115.31",
 			Status:    "active",
 			Started:   time.Unix(1448386549, 0).UTC(),
+		},
+		structs.Instance{
+			Agent:     true,
+			Cpu:       0,
+			Id:        "i-4a5513f4",
+			Memory:    0,
+			PrivateIp: "10.0.1.182",
+			Processes: 0,
+			PublicIp:  "54.208.61.75",
+			Status:    "active",
+			Started:   time.Unix(1448484072, 0).UTC(),
 		},
 		structs.Instance{
 			Agent:     true,
@@ -90,11 +90,9 @@ func describeContainerInstancesResponse() string {
 {"agentConnected":true,"containerInstanceArn":"arn:aws:ecs:us-east-1:901416387788:container-instance/e7c311ae-968f-4125-8886-f9b724860d4c","ec2InstanceId":"i-c6a72b76","pendingTasksCount":0,"registeredResources":[{"doubleValue":0.0,"integerValue":1024,"longValue":0,"name":"CPU","type":"INTEGER"},{"doubleValue":0.0,"integerValue":2004,"longValue":0,"name":"MEMORY","type":"INTEGER"},{"doubleValue":0.0,"integerValue":0,"longValue":0,"name":"PORTS","stringSetValue":["22","2376","2375","51678"],"type":"STRINGSET"},{"doubleValue":0.0,"integerValue":0,"longValue":0,"name":"PORTS_UDP","stringSetValue":[],"type":"STRINGSET"}],"remainingResources":[{"doubleValue":0.0,"integerValue":1024,"longValue":0,"name":"CPU","type":"INTEGER"},{"doubleValue":0.0,"integerValue":1620,"longValue":0,"name":"MEMORY","type":"INTEGER"},{"doubleValue":0.0,"integerValue":0,"longValue":0,"name":"PORTS","stringSetValue":["22","2376","2375","3101","3001","3100","51678","3000"],"type":"STRINGSET"},{"doubleValue":0.0,"integerValue":0,"longValue":0,"name":"PORTS_UDP","stringSetValue":[],"type":"STRINGSET"}],"runningTasksCount":1,"status":"ACTIVE","versionInfo":{"agentHash":"4ab1051","agentVersion":"1.4.0","dockerVersion":"DockerVersion: 1.7.1"}}],"failures":[]}`
 }
 
-func describeInstancesCycle() awsutil.Cycle {
-	return awsutil.Cycle{
-		awsutil.Request{"POST", "/", "", `Action=DescribeInstances&Filter.1.Name=instance-id&Filter.1.Value.1=i-4a5513f4&Filter.1.Value.2=i-3963798e&Filter.1.Value.3=i-c6a72b76&MaxResults=1000&Version=2016-11-15`},
-		awsutil.Response{200, describeInstancesResponse()},
-	}
+var cycleInstanceDescribeInstances = awsutil.Cycle{
+	awsutil.Request{"POST", "/", "", `Action=DescribeInstances&Filter.1.Name=tag%3ARack&Filter.1.Value.1=convox&Filter.2.Name=tag%3Aaws%3Acloudformation%3Alogical-id&Filter.2.Value.1=Instances&Version=2016-11-15`},
+	awsutil.Response{200, describeInstancesResponse()},
 }
 
 func describeInstancesResponse() string {

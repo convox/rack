@@ -9,14 +9,12 @@ import (
 	"os/exec"
 	"regexp"
 	"strings"
-	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/ecr"
-	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/convox/rack/api/structs"
 	"github.com/fsouza/go-dockerclient"
 )
@@ -64,6 +62,9 @@ func DockerHost() (string, error) {
 		},
 		MaxResults: aws.Int64(1000),
 	})
+	if err != nil {
+		return "", err
+	}
 
 	if len(ires.Reservations) != 1 || len(ires.Reservations[0].Instances) != 1 {
 		return "", fmt.Errorf("could not describe container instance")
@@ -154,74 +155,6 @@ func AppDockerLogin(app structs.App) (string, error) {
 		ServerAddress: fmt.Sprintf("%s.dkr.ecr.%s.amazonaws.com", app.Outputs["RegistryId"], os.Getenv("AWS_REGION")),
 		Username:      os.Getenv("AWS_ACCESS"),
 	})
-}
-
-func PullAppImages() {
-	log := Logger.At("PullAppImages").Start()
-
-	if os.Getenv("DEVELOPMENT") == "true" {
-		return
-	}
-
-	maxRetries := 5
-
-	apps, err := ListApps()
-
-	if err != nil {
-		log.Step("ListApps").Error(err)
-		return
-	}
-
-	for _, app := range apps {
-		a, err := Provider().AppGet(app.Name)
-		if err != nil {
-			log.Step("GetApp").Error(err)
-			continue
-		}
-
-		// retry login a few times in case v1 registry is not yet available
-		for i := 0; i < maxRetries; i++ {
-			_, err = AppDockerLogin(*a)
-
-			if err == nil {
-				break
-			}
-
-			log.Step("AppDockerLogin").Error(err)
-			time.Sleep(30 * time.Second)
-		}
-
-		resources, err := ListResources(a.Name)
-		if err != nil {
-			log.Step("Resources").Error(err)
-		}
-
-		for key, r := range resources {
-			if strings.HasSuffix(key, "TaskDefinition") {
-				td, err := ECS().DescribeTaskDefinition(&ecs.DescribeTaskDefinitionInput{
-					TaskDefinition: aws.String(r.Id),
-				})
-
-				if err != nil {
-					log.Step("DescribeTaskDefinition").Error(err)
-					continue
-				}
-
-				for _, cd := range td.TaskDefinition.ContainerDefinitions {
-					log = log.Namespace("image=%q", *cd.Image).Step("Pull")
-					_, err := exec.Command("docker", "pull", *cd.Image).CombinedOutput()
-
-					if err != nil {
-						log.Error(err)
-						fmt.Printf("ns=kernel cn=docker fn=PullAppImages at=exec.Command cmd=%q err=%q\n", fmt.Sprintf("docker pull %s", *cd.Image), err.Error())
-						continue
-					}
-
-					log.Success()
-				}
-			}
-		}
-	}
 }
 
 func GetPrivateRegistriesAuth() (Environment, docker.AuthConfigurations119, error) {

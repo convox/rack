@@ -41,7 +41,7 @@ func parseLine(line string) string {
 
 			//double dollar ignore
 			for x := i + 2; x < totalLength; {
-				if wordChar.Match([]byte{line[x]}) {
+				if wordChar.Match([]byte{line[x]}) || line[x] == '{' || line[x] == '}' {
 					tok.Value = append(tok.Value, line[x])
 					i = x
 				} else {

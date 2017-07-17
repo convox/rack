@@ -317,7 +317,7 @@
                 {{ range .Ports }}
                   {{ if and (eq .Protocol "tcp") ($e.HasBalancer) }}
                   { "Fn::Join": [ ":", [
-                    { "Ref": "{{ upper $e.Name }}Port{{ .Balancer }}Host" },
+                    { "Fn::Select": [ 0, { "Ref": "{{ upper $e.Name }}Port{{ .Balancer }}Listener" } ] },
                       "{{ .Container }}/{{ .Protocol }}"
                   ] ] },
                   {{ else }}
@@ -382,7 +382,7 @@
     {{ $balancerPrefix := printf "Balancer%s" $processName }}
     {{ range .PortMappings }}
       "Blank{{ $balancerPrefix }}Port{{ .Balancer }}Certificate": {
-        "Fn::Equals": [ { "Ref": "{{ $processName }}Port{{ .Balancer }}Certificate" }, "" ]
+        "Fn::Equals": [ { "Fn::Select": [ 1, { "Ref": "{{ $processName }}Port{{ .Balancer }}Listener" } ] }, "" ]
       },
     {{ end }}
   {{ end }}
@@ -392,15 +392,10 @@
   {{ range .Balancers }}
     {{ $balancer := . }}
     {{ range .PortMappings }}
-      "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Certificate": {
-        "Type" : "String",
-        "Default" : "",
-        "Description" : ""
-      },
-      "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Host": {
-        "Type" : "String",
-        "Default" : "{{ index $balancer.Randoms (itoa .Balancer) }}",
-        "Description" : ""
+      "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Listener": {
+        "Type" : "CommaDelimitedList",
+        "Default" : "{{ index $balancer.Randoms (itoa .Balancer) }},",
+        "Description" : "Host port number, certificate ARN"
       },
     {{ end }}
   {{ end }}
@@ -476,15 +471,15 @@
         "ConnectionSettings": { "IdleTimeout": "{{ .IdleTimeout }}" },
         "CrossZone": true,
         "HealthCheck": {
-          "HealthyThreshold": "2",
+          "HealthyThreshold": "{{ .HealthThresholdHealthy }}",
           "Interval": "{{ .HealthInterval }}",
           "Target": { "Fn::Join": [ "", [
             "{{ .HealthProtocol }}:",
-            { "Ref": "{{ upper .ProcessName }}Port{{ .HealthPort }}Host" },
+            { "Fn::Select": [ 0, { "Ref": "{{ upper .ProcessName }}Port{{ .HealthPort }}Listener" } ] },
             "{{ .HealthPath }}"
           ] ] },
           "Timeout": "{{ .HealthTimeout }}",
-          "UnhealthyThreshold": "2"
+          "UnhealthyThreshold": "{{ .HealthThresholdUnhealthy }}"
         },
         "Listeners": [
           {{ range .PortMappings }}
@@ -496,10 +491,10 @@
               {{ end }}
               "LoadBalancerPort": "{{ .Balancer }}",
               "InstanceProtocol": "{{ $balancer.InstanceProtocol . }}",
-              "InstancePort": { "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Host" },
+              "InstancePort": { "Fn::Select": [ 0, { "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Listener" } ] },
               "SSLCertificateId": { "Fn::If": [ "BlankBalancer{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Certificate",
                 { "Ref": "AWS::NoValue" },
-                { "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Certificate" }
+                { "Fn::Select": [ 1, { "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Listener" } ] }
               ] }
             },
           {{ end }}
@@ -515,7 +510,7 @@
                     "Name": "ProxyProtocol",
                     "Value": "true"
                 }],
-                "InstancePorts": [{ "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Host" }]
+                "InstancePorts": [{ "Fn::Select": [ 0, { "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Listener" } ] }]
               },
             {{ end }}
           {{ end }}
@@ -621,7 +616,7 @@
             {{ end }}
             "    '':''",
             "}",
-            "exports.handler = function(event, context) {",
+            "exports.handler = function(event, context, cb) {",
             "    var command = event.command.replace(/&#(\\d+);/g, function(match, dec) {",
             "      return String.fromCharCode(dec);",
             "    });",
@@ -637,10 +632,20 @@
             "        }",
             "    };",
             "    var skew = Math.floor(Math.random()*10000);",
-            "    log(event.process + ':' + release + '/cron skew=' + skew + 'ms command=' + event.command, function(err) {",
-            "        console.log('err2', err);",
-            "        setTimeout(function() { ecs.runTask(params, context.done) }, skew);",
-            "    });",
+            "    setTimeout(function() {",
+            "        ecs.runTask(params, function (err, res) {",
+            "            if (err) return cb(err);",
+            "            var message = event.process + ':' + release + '/cron skew=' + skew + 'ms command=' + event.command;",
+            "            if (res.failures.length)",
+            "                message += ' result=failure reason=' + res.failures[0].reason;",
+            "            else",
+            "                message += ' result=success task=' + res.tasks[0].taskArn;",
+            "            log(message, function(err) {",
+            "                console.log('err2', err);",
+            "                cb();",
+            "            });",
+            "        });",
+            "    }, skew);",
             "};",
             "function log(message, cb) {",
             "    var stream = 'cron-' + (new Date()).getTime();",

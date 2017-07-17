@@ -222,6 +222,9 @@ func dockerTest() error {
 	}
 
 	minDockerVersion, err := docker.NewAPIVersion("1.9")
+	if err != nil {
+		return err
+	}
 	e, err := dockerVersionTest.Version()
 	if err != nil {
 		return err

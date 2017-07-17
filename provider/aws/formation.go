@@ -201,12 +201,19 @@ func processFormation(a *structs.App, s manifest.Service) (*structs.ProcessForma
 		return nil, err
 	}
 
-	re := regexp.MustCompile(fmt.Sprintf(`%sPort(\d+)Host`, upperName(s.Name)))
+	hRe := regexp.MustCompile(fmt.Sprintf(`%sPort(\d+)Host`, upperName(s.Name)))
+	lRe := regexp.MustCompile(fmt.Sprintf(`%sPort(\d+)Listener`, upperName(s.Name)))
 
 	ports := []int{}
 
 	for key := range a.Parameters {
-		matches := re.FindStringSubmatch(key)
+		matches := []string{}
+
+		if ms := hRe.FindStringSubmatch(key); len(ms) > 0 {
+			matches = ms
+		} else if ms := lRe.FindStringSubmatch(key); len(ms) > 0 {
+			matches = ms
+		}
 
 		if len(matches) == 2 {
 			port, _ := strconv.Atoi(matches[1])

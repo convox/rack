@@ -431,6 +431,9 @@ func (s *Sync) watchIncoming(st Stream) {
 	err = s.docker.StartExec(res.ID, docker.StartExecOptions{
 		OutputStream: w,
 	})
+	if err != nil {
+		st <- fmt.Sprintf("error: %s", err)
+	}
 }
 
 func (s *Sync) watchOutgoing(st Stream) {

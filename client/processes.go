@@ -102,6 +102,8 @@ func (c *Client) RunProcessAttached(app, process, command, release string, heigh
 		return 0, err
 	}
 
+	w.Close()
+
 	code := <-ch
 
 	return code, nil

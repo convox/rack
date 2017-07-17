@@ -4,7 +4,12 @@
     "BlankBalancerWebPort80Certificate": {
       "Fn::Equals": [
         {
-          "Ref": "WebPort80Certificate"
+          "Fn::Select": [
+            1,
+            {
+              "Ref": "WebPort80Listener"
+            }
+          ]
         },
         ""
       ]
@@ -12,7 +17,12 @@
     "BlankBalancerWorkerPort80Certificate": {
       "Fn::Equals": [
         {
-          "Ref": "WorkerPort80Certificate"
+          "Fn::Select": [
+            1,
+            {
+              "Ref": "WorkerPort80Listener"
+            }
+          ]
         },
         ""
       ]
@@ -298,30 +308,20 @@
       "Description": "Number of processes to run, CPU units to reserve, and MB of RAM to reserve",
       "Type": "CommaDelimitedList"
     },
-    "WebPort80Certificate": {
-      "Default": "",
-      "Description": "",
-      "Type": "String"
-    },
-    "WebPort80Host": {
-      "Default": "5000",
-      "Description": "",
-      "Type": "String"
+    "WebPort80Listener": {
+      "Default": "5000,",
+      "Description": "Host port number, certificate ARN",
+      "Type": "CommaDelimitedList"
     },
     "WorkerFormation": {
       "Default": "1,0,256",
       "Description": "Number of processes to run, CPU units to reserve, and MB of RAM to reserve",
       "Type": "CommaDelimitedList"
     },
-    "WorkerPort80Certificate": {
-      "Default": "",
-      "Description": "",
-      "Type": "String"
-    },
-    "WorkerPort80Host": {
-      "Default": "5000",
-      "Description": "",
-      "Type": "String"
+    "WorkerPort80Listener": {
+      "Default": "5000,",
+      "Description": "Host port number, certificate ARN",
+      "Type": "CommaDelimitedList"
     }
   },
   "Resources": {
@@ -348,7 +348,12 @@
               [
                 "TCP:",
                 {
-                  "Ref": "WebPort80Host"
+                  "Fn::Select": [
+                    0,
+                    {
+                      "Ref": "WebPort80Listener"
+                    }
+                  ]
                 },
                 ""
               ]
@@ -365,7 +370,12 @@
         "Listeners": [
           {
             "InstancePort": {
-              "Ref": "WebPort80Host"
+              "Fn::Select": [
+                0,
+                {
+                  "Ref": "WebPort80Listener"
+                }
+              ]
             },
             "InstanceProtocol": "TCP",
             "LoadBalancerPort": "80",
@@ -383,7 +393,12 @@
                   "Ref": "AWS::NoValue"
                 },
                 {
-                  "Ref": "WebPort80Certificate"
+                  "Fn::Select": [
+                    1,
+                    {
+                      "Ref": "WebPort80Listener"
+                    }
+                  ]
                 }
               ]
             }
@@ -502,7 +517,12 @@
               [
                 "TCP:",
                 {
-                  "Ref": "WorkerPort80Host"
+                  "Fn::Select": [
+                    0,
+                    {
+                      "Ref": "WorkerPort80Listener"
+                    }
+                  ]
                 },
                 ""
               ]
@@ -519,7 +539,12 @@
         "Listeners": [
           {
             "InstancePort": {
-              "Ref": "WorkerPort80Host"
+              "Fn::Select": [
+                0,
+                {
+                  "Ref": "WorkerPort80Listener"
+                }
+              ]
             },
             "InstanceProtocol": "TCP",
             "LoadBalancerPort": "80",
@@ -537,7 +562,12 @@
                   "Ref": "AWS::NoValue"
                 },
                 {
-                  "Ref": "WorkerPort80Certificate"
+                  "Fn::Select": [
+                    1,
+                    {
+                      "Ref": "WorkerPort80Listener"
+                    }
+                  ]
                 }
               ]
             }
@@ -1025,7 +1055,12 @@
                   ":",
                   [
                     {
-                      "Ref": "WebPort80Host"
+                      "Fn::Select": [
+                        0,
+                        {
+                          "Ref": "WebPort80Listener"
+                        }
+                      ]
                     },
                     "3000/tcp"
                   ]
@@ -1157,7 +1192,12 @@
                   ":",
                   [
                     {
-                      "Ref": "WorkerPort80Host"
+                      "Fn::Select": [
+                        0,
+                        {
+                          "Ref": "WorkerPort80Listener"
+                        }
+                      ]
                     },
                     "3000/tcp"
                   ]

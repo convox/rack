@@ -26,6 +26,9 @@ type fluentURL struct {
 func main() {
 	lambda_proc.Run(func(context *lambda_proc.Context, eventJSON json.RawMessage) (interface{}, error) {
 		fluentURL, err := getfluentURL(context.FunctionName)
+		if err != nil {
+			return nil, err
+		}
 		fmt.Fprintf(os.Stderr, "fluentd connection config=%s %d\n", fluentURL.Host, fluentURL.Port)
 
 		logger, err := fluent.New(fluent.Config{FluentPort: fluentURL.Port, FluentHost: fluentURL.Host})

@@ -99,6 +99,9 @@ func StartCluster() {
 
 func (instances Instances) describeASG() error {
 	resources, err := models.ListResources(os.Getenv("RACK"))
+	if err != nil {
+		return err
+	}
 
 	res, err := models.AutoScaling().DescribeAutoScalingGroups(
 		&autoscaling.DescribeAutoScalingGroupsInput{

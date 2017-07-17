@@ -4,7 +4,12 @@
     "BlankBalancerMainPort80Certificate": {
       "Fn::Equals": [
         {
-          "Ref": "MainPort80Certificate"
+          "Fn::Select": [
+            1,
+            {
+              "Ref": "MainPort80Listener"
+            }
+          ]
         },
         ""
       ]
@@ -12,7 +17,12 @@
     "BlankBalancerMainPort81Certificate": {
       "Fn::Equals": [
         {
-          "Ref": "MainPort81Certificate"
+          "Fn::Select": [
+            1,
+            {
+              "Ref": "MainPort81Listener"
+            }
+          ]
         },
         ""
       ]
@@ -209,25 +219,15 @@
       "Description": "Number of processes to run, CPU units to reserve, and MB of RAM to reserve",
       "Type": "CommaDelimitedList"
     },
-    "MainPort80Certificate": {
-      "Default": "",
-      "Description": "",
-      "Type": "String"
+    "MainPort80Listener": {
+      "Default": "5000,",
+      "Description": "Host port number, certificate ARN",
+      "Type": "CommaDelimitedList"
     },
-    "MainPort80Host": {
-      "Default": "5000",
-      "Description": "",
-      "Type": "String"
-    },
-    "MainPort81Certificate": {
-      "Default": "",
-      "Description": "",
-      "Type": "String"
-    },
-    "MainPort81Host": {
-      "Default": "5001",
-      "Description": "",
-      "Type": "String"
+    "MainPort81Listener": {
+      "Default": "5001,",
+      "Description": "Host port number, certificate ARN",
+      "Type": "CommaDelimitedList"
     },
     "NativeLogging": {
       "AllowedValues": [
@@ -309,7 +309,7 @@
         },
         "CrossZone": true,
         "HealthCheck": {
-          "HealthyThreshold": "2",
+          "HealthyThreshold": "4",
           "Interval": "62",
           "Target": {
             "Fn::Join": [
@@ -317,14 +317,19 @@
               [
                 "HTTPS:",
                 {
-                  "Ref": "MainPort81Host"
+                  "Fn::Select": [
+                    0,
+                    {
+                      "Ref": "MainPort81Listener"
+                    }
+                  ]
                 },
                 "/health_check"
               ]
             ]
           },
           "Timeout": "60",
-          "UnhealthyThreshold": "2"
+          "UnhealthyThreshold": "3"
         },
         "LBCookieStickinessPolicy": [
           {
@@ -334,7 +339,12 @@
         "Listeners": [
           {
             "InstancePort": {
-              "Ref": "MainPort80Host"
+              "Fn::Select": [
+                0,
+                {
+                  "Ref": "MainPort80Listener"
+                }
+              ]
             },
             "InstanceProtocol": "TCP",
             "LoadBalancerPort": "80",
@@ -352,14 +362,24 @@
                   "Ref": "AWS::NoValue"
                 },
                 {
-                  "Ref": "MainPort80Certificate"
+                  "Fn::Select": [
+                    1,
+                    {
+                      "Ref": "MainPort80Listener"
+                    }
+                  ]
                 }
               ]
             }
           },
           {
             "InstancePort": {
-              "Ref": "MainPort81Host"
+              "Fn::Select": [
+                0,
+                {
+                  "Ref": "MainPort81Listener"
+                }
+              ]
             },
             "InstanceProtocol": "TCP",
             "LoadBalancerPort": "81",
@@ -377,7 +397,12 @@
                   "Ref": "AWS::NoValue"
                 },
                 {
-                  "Ref": "MainPort81Certificate"
+                  "Fn::Select": [
+                    1,
+                    {
+                      "Ref": "MainPort81Listener"
+                    }
+                  ]
                 }
               ]
             }
@@ -662,7 +687,12 @@
                   ":",
                   [
                     {
-                      "Ref": "MainPort80Host"
+                      "Fn::Select": [
+                        0,
+                        {
+                          "Ref": "MainPort80Listener"
+                        }
+                      ]
                     },
                     "3000/tcp"
                   ]
@@ -673,7 +703,12 @@
                   ":",
                   [
                     {
-                      "Ref": "MainPort81Host"
+                      "Fn::Select": [
+                        0,
+                        {
+                          "Ref": "MainPort81Listener"
+                        }
+                      ]
                     },
                     "3001/tcp"
                   ]

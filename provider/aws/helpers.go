@@ -79,9 +79,36 @@ func cfParams(source map[string]string) map[string]string {
 func coalesce(s *dynamodb.AttributeValue, def string) string {
 	if s != nil {
 		return *s.S
-	} else {
-		return def
 	}
+	return def
+}
+
+func cb(b *bool, def bool) bool {
+	if b != nil {
+		return *b
+	}
+	return def
+}
+
+func ci(i *int64, def int64) int64 {
+	if i != nil {
+		return *i
+	}
+	return def
+}
+
+func cs(s *string, def string) string {
+	if s != nil {
+		return *s
+	}
+	return def
+}
+
+func ct(t *time.Time) time.Time {
+	if t != nil {
+		return *t
+	}
+	return time.Time{}
 }
 
 func buildTemplate(name, section string, data interface{}) (string, error) {
@@ -317,6 +344,28 @@ func (p *AWSProvider) dynamoBatchDeleteItems(wrs []*dynamodb.WriteRequest, table
 	return nil
 }
 
+func (p *AWSProvider) describeContainerInstances(input *ecs.DescribeContainerInstancesInput) (*ecs.DescribeContainerInstancesOutput, error) {
+	res, ok := cache.Get("describeContainerInstances", input).(*ecs.DescribeContainerInstancesOutput)
+
+	if ok {
+		return res, nil
+	}
+
+	res, err := p.ecs().DescribeContainerInstances(input)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if !p.SkipCache {
+		if err := cache.Set("describeContainerInstances", input, res, 5*time.Second); err != nil {
+			return nil, err
+		}
+	}
+
+	return res, nil
+}
+
 func (p *AWSProvider) describeServices(input *ecs.DescribeServicesInput) (*ecs.DescribeServicesOutput, error) {
 	res, ok := cache.Get("describeServices", input.Services).(*ecs.DescribeServicesOutput)
 
@@ -445,31 +494,49 @@ func (p *AWSProvider) stackResource(stack, resource string) (*cloudformation.Sta
 	return nil, fmt.Errorf("resource not found: %s", resource)
 }
 
-func (p *AWSProvider) describeTaskDefinition(name string) (*ecs.TaskDefinition, error) {
-	td, ok := cache.Get("describeTaskDefinition", name).(*ecs.TaskDefinition)
+func (p *AWSProvider) describeTaskDefinition(input *ecs.DescribeTaskDefinitionInput) (*ecs.DescribeTaskDefinitionOutput, error) {
+	td, ok := cache.Get("describeTaskDefinition", input).(*ecs.DescribeTaskDefinitionOutput)
 	if ok {
 		return td, nil
 	}
 
-	res, err := p.ecs().DescribeTaskDefinition(&ecs.DescribeTaskDefinitionInput{
-		TaskDefinition: aws.String(name),
-	})
+	res, err := p.ecs().DescribeTaskDefinition(input)
 	if ae, ok := err.(awserr.Error); ok && ae.Code() == "ValidationError" {
-		return nil, errorNotFound(fmt.Sprintf("%s not found", name))
+		return nil, errorNotFound(fmt.Sprintf("%s not found", *input.TaskDefinition))
 	}
 	if err != nil {
 		return nil, err
 	}
 
-	td = res.TaskDefinition
-
 	if !p.SkipCache {
-		if err := cache.Set("describeTaskDefinition", name, td, 10*time.Second); err != nil {
+		if err := cache.Set("describeTaskDefinition", input, res, 24*time.Hour); err != nil {
 			return nil, err
 		}
 	}
 
-	return td, nil
+	return res, nil
+}
+
+func (p *AWSProvider) describeTasks(input *ecs.DescribeTasksInput) (*ecs.DescribeTasksOutput, error) {
+	res, ok := cache.Get("describeTasks", input).(*ecs.DescribeTasksOutput)
+
+	if ok {
+		return res, nil
+	}
+
+	res, err := p.ecs().DescribeTasks(input)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if !p.SkipCache {
+		if err := cache.Set("describeTasks", input, res, 10*time.Second); err != nil {
+			return nil, err
+		}
+	}
+
+	return res, nil
 }
 
 func (p *AWSProvider) listContainerInstances(input *ecs.ListContainerInstancesInput) (*ecs.ListContainerInstancesOutput, error) {
