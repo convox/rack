@@ -297,7 +297,7 @@
     "BuildVolumeSize": {
       "Type": "Number",
       "Description": "Default build disk size in GB",
-      "Default": "50"
+      "Default": "200"
     },
     "ClientId": {
       "Type": "String",
