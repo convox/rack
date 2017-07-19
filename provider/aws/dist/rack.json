@@ -38,6 +38,7 @@
     "RegionHasEFSAndThirdAvailabilityZone": {
       "Fn::And": [ { "Condition": "RegionHasEFS" }, { "Condition": "ThirdAvailabilityZone" } ]
     },
+    "SpotFleet": { "Fn::Not": [ { "Fn::Equals": [ { "Ref": "SpotInstanceBid" }, "" ] } ] },
     "ThirdAvailabilityZone": { "Fn::Equals": [
       { "Fn::FindInMap": [ "RegionConfig", { "Ref": "AWS::Region" }, "ThirdAvailabilityZone" ] },
       "Yes"
@@ -400,19 +401,8 @@
       "AllowedValues": [ "Yes", "No" ]
     },
     "SpotInstanceBid": {
-      "Default": "0.01",
+      "Default": "",
       "Description": "Bid price for spot instances",
-      "Type": "String"
-    },
-    "SpotInstanceCount": {
-      "Default": "0",
-      "Description": "Count of spot instances to launch",
-      "MinValue": "0",
-      "Type": "Number"
-    },
-    "SpotInstanceType": {
-      "Default": "m4.large",
-      "Description": "The type of spot instances to launch",
       "Type": "String"
     },
     "Subnet0CIDR": {
@@ -1930,6 +1920,7 @@
       }
     },
     "SpotLaunchConfiguration": {
+      "Condition": "SpotFleet",
       "DependsOn": [ "Balancer", "Cluster", "InstanceProfile", "SecurityGroup", "LogGroup" ],
       "Type": "AWS::AutoScaling::LaunchConfiguration",
       "Properties": {
@@ -1963,7 +1954,7 @@
         "IamInstanceProfile": { "Ref": "InstanceProfile" },
         "ImageId": { "Fn::If": [ "BlankAmi", { "Fn::FindInMap": [ "RegionConfig", { "Ref": "AWS::Region" }, "Ami" ] }, { "Ref": "Ami" } ] },
         "InstanceMonitoring": true,
-        "InstanceType": { "Ref": "SpotInstanceType" },
+        "InstanceType": { "Ref": "InstanceType" },
         "KeyName": { "Fn::If": [ "BlankKey", { "Ref": "AWS::NoValue" }, { "Ref": "Key" } ] },
         "SecurityGroups": [ { "Ref": "SecurityGroup" } ],
         "SpotPrice": { "Ref": "SpotInstanceBid" },
@@ -2056,6 +2047,7 @@
       }
     },
     "SpotInstances": {
+      "Condition": "SpotFleet",
       "DependsOn": [ "AvailabilityZones", "Subnet0", "Subnet1" ],
       "Type": "AWS::AutoScaling::AutoScalingGroup",
       "Properties" : {
@@ -2077,10 +2069,10 @@
           ] ]
         },
         "Cooldown": 5,
-        "DesiredCapacity": { "Ref": "SpotInstanceCount" },
+        "DesiredCapacity": "0",
         "HealthCheckType": "EC2",
         "HealthCheckGracePeriod": "120",
-        "MinSize" : { "Ref": "SpotInstanceCount" },
+        "MinSize" : "0",
         "MaxSize" : "1000",
         "MetricsCollection": [ { "Granularity": "1Minute" } ],
         "Tags": [
