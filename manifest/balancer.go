@@ -288,7 +288,6 @@ func (mb ManifestBalancer) HealthInterval() (string, error) {
 	}
 
 	timeout := mb.HealthTimeout()
-
 	timeoutInt, err := strconv.Atoi(timeout)
 	if err != nil {
 		return "", err
