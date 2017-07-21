@@ -12,7 +12,6 @@
     "BlankInstanceBootCommand": { "Fn::Equals": [ { "Ref": "InstanceBootCommand" }, "" ] },
     "BlankInstanceRunCommand": { "Fn::Equals": [ { "Ref": "InstanceRunCommand" }, "" ] },
     "BlankInternetGateway": { "Fn::Equals": [ { "Ref": "InternetGateway"}, "" ] },
-    "BlankSpotInstanceBid": { "Fn::Equals": [ { "Ref": "SpotInstanceBid"}, "" ] },
     "BlankKey": { "Fn::Equals": [ { "Ref": "Key" }, "" ] },
     "BlankKey": { "Fn::Equals": [ { "Ref": "Key" }, "" ] },
     "DedicatedBuilder": { "Fn::Not": [ { "Fn::Equals": [ { "Ref": "BuildInstance" }, "" ] } ] },
@@ -40,7 +39,7 @@
     "RegionHasEFSAndThirdAvailabilityZone": {
       "Fn::And": [ { "Condition": "RegionHasEFS" }, { "Condition": "ThirdAvailabilityZone" } ]
     },
-    "SpotFleet": { "Fn::Not": [ { "Fn::Equals": [ { "Ref": "SpotInstanceBid" }, "" ] } ] },
+    "SpotInstances": { "Fn::Not": [ { "Fn::Equals": [ { "Ref": "SpotInstanceBid"}, "" ] } ] },
     "ThirdAvailabilityZone": { "Fn::Equals": [
       { "Fn::FindInMap": [ "RegionConfig", { "Ref": "AWS::Region" }, "ThirdAvailabilityZone" ] },
       "Yes"
@@ -1922,7 +1921,7 @@
       }
     },
     "SpotLaunchConfiguration": {
-      "Condition": "SpotFleet",
+      "Condition": "SpotInstances",
       "DependsOn": [ "Balancer", "Cluster", "InstanceProfile", "SecurityGroup", "LogGroup" ],
       "Type": "AWS::AutoScaling::LaunchConfiguration",
       "Properties": {
@@ -2049,7 +2048,7 @@
       }
     },
     "SpotInstances": {
-      "Condition": "SpotFleet",
+      "Condition": "SpotInstances",
       "DependsOn": [ "AvailabilityZones", "Subnet0", "Subnet1" ],
       "Type": "AWS::AutoScaling::AutoScalingGroup",
       "Properties" : {
@@ -2662,7 +2661,7 @@
               "RELEASE": { "Ref": "Version" },
               "ROLLBAR_TOKEN": "f67f25b8a9024d5690f997bd86bf14b0",
               "SEGMENT_WRITE_KEY": "KLvwCXo6qcTmQHLpF69DEwGf9zh7lt9i",
-	      "SPOT_INSTANCES": { "Fn::If": [ "BlankSpotInstanceBid", "false", "true" ] },
+	      "SPOT_INSTANCES": { "Fn::If": [ "SpotInstances", "true", "false" ] },
               "STACK_ID": { "Ref": "AWS::StackId" },
               "SUBNETS": {
                 "Fn::Join": [ ",", [
