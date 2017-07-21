@@ -111,11 +111,11 @@ func (m Manifest) Validate() []error {
 			}
 		}
 
-		labels = entry.LabelsByPrefix("convox.interval.timeout")
+		labels = entry.LabelsByPrefix("convox.health.interval")
 		for _, v := range labels {
 			i, err := strconv.Atoi(v)
 			if err != nil || i < 5 || i > 300 {
-				errors = append(errors, fmt.Errorf("convox.interval.timeout is invalid for %s, must be a number between 5 and 300", entry.Name))
+				errors = append(errors, fmt.Errorf("convox.health.interval is invalid for %s, must be a number between 5 and 300", entry.Name))
 			}
 		}
 
