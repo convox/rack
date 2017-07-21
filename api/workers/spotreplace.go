@@ -15,6 +15,7 @@ var (
 	spotreplace = (os.Getenv("SPOT_INSTANCES") == "true")
 )
 
+// Main worker function
 func StartSpotReplace() {
 	spotReplace()
 
@@ -69,7 +70,7 @@ func spotReplace() {
 	for _, onDemandInstance := range odres.AutoScalingGroups[0].Instances {
 		if (*onDemandInstance.HealthStatus == "Healthy") &&
 			((*onDemandInstance.LifecycleState == "InService") || (*onDemandInstance.LifecycleState == "Pending")) {
-			onDemandCount += 1
+			onDemandCount++
 		}
 	}
 
@@ -91,7 +92,7 @@ func spotReplace() {
 	spotCount := 0
 	for _, spotInstance := range sres.AutoScalingGroups[0].Instances {
 		if (*spotInstance.HealthStatus == "Healthy") && (*spotInstance.LifecycleState == "InService") {
-			spotCount += 1
+			spotCount++
 		}
 	}
 
