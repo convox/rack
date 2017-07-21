@@ -769,7 +769,6 @@ func readCredentials(fileName string) (creds *AwsCredentials, err error) {
 
 	if creds.Access == "" || creds.Secret == "" {
 		awsCLICreds, err := awsCLICredentials()
-
 		if err != nil {
 			return nil, err
 		}
@@ -888,14 +887,14 @@ func awsCLICredentials() (*AwsCredentials, error) {
 
 	data, err = awsCLI("iam", "get-user")
 	if err != nil {
-		return nil, err
-	}
+		if strings.Contains(string(data), "Unable to locate credentials") {
+			fmt.Println("You appear to have the AWS CLI installed but have not configured credentials.")
+			fmt.Println("You can configure credentials by running `aws configure`.")
+			fmt.Println()
+			return nil, nil
+		}
 
-	if strings.Contains(string(data), "Unable to locate credentials") {
-		fmt.Println("You appear to have the AWS CLI installed but have not configured credentials.")
-		fmt.Println("You can configure credentials by running `aws configure`.")
-		fmt.Println()
-		return nil, nil
+		return nil, fmt.Errorf("%s: %s", strings.TrimSpace(string(data)), err)
 	}
 
 	creds := awsCLICredentialsStatic()
