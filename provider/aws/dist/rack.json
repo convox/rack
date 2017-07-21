@@ -2070,7 +2070,7 @@
           ] ]
         },
         "Cooldown": 5,
-        "DesiredCapacity": "0",
+        "DesiredCapacity": { "Ref": "InstanceCount" },
         "HealthCheckType": "EC2",
         "HealthCheckGracePeriod": "120",
         "MinSize" : "0",
