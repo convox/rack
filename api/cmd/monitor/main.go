@@ -11,6 +11,7 @@ func main() {
 	go workers.StartCluster()
 	go workers.StartHeartbeat()
 	go workers.StartEventQueue()
+	go workers.StartSpotReplace()
 
 	for {
 		time.Sleep(1 * time.Hour)
