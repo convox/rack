@@ -484,40 +484,13 @@
                     ]
                   ]
                 },
-                "var taskDefinitions = {",
-                {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "    'main': '",
-                      {
-                        "Ref": "MainECSTaskDefinition"
-                      },
-                      "',"
-                    ]
-                  ]
-                },
-                {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "    'really-long-process-type-name': '",
-                      {
-                        "Ref": "ReallyLongProcessTypeNameECSTaskDefinition"
-                      },
-                      "',"
-                    ]
-                  ]
-                },
-                "    '':''",
-                "}",
                 "exports.handler = function(event, context, cb) {",
                 "    var command = event.command.replace(/\u0026#(\\d+);/g, function(match, dec) {",
                 "      return String.fromCharCode(dec);",
                 "    });",
                 "    var params = {",
                 "        startedBy: 'cron',",
-                "        taskDefinition: taskDefinitions[event.process],",
+                "        taskDefinition: event.processArn,",
                 "        cluster: cluster,",
                 "        count: 1,",
                 "        overrides: {",
@@ -928,7 +901,18 @@
               ]
             },
             "Id": "convox-test-httpd-main-my-job-VZPBTBBTarget",
-            "Input": "{\"process\": \"main\", \"command\": \"bin/myjob\"}"
+            "Input": {
+              "Fn::Join": [
+                "",
+                [
+                  "{\"process\": \"main\", \"command\": \"bin/myjob\", \"processArn\": \"",
+                  {
+                    "Ref": "MainECSTaskDefinition"
+                  },
+                  "\"}"
+                ]
+              ]
+            }
           }
         ]
       },
@@ -1086,7 +1070,18 @@
               ]
             },
             "Id": "convox-test-httpd-really-long-process-type-name-BAZNKBZTarget",
-            "Input": "{\"process\": \"really-long-process-type-name\", \"command\": \"bin/myjob\"}"
+            "Input": {
+              "Fn::Join": [
+                "",
+                [
+                  "{\"process\": \"really-long-process-type-name\", \"command\": \"bin/myjob\", \"processArn\": \"",
+                  {
+                    "Ref": "ReallyLongProcessTypeNameECSTaskDefinition"
+                  },
+                  "\"}"
+                ]
+              ]
+            }
           }
         ]
       },
