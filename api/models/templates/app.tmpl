@@ -610,19 +610,13 @@
             "var cluster = '{{ env "CLUSTER" }}';",
             { "Fn::Join": [ "", [ "var logGroup = '", { "Ref": "LogGroup" }, "';" ] ] },
             { "Fn::Join": [ "", [ "var release = '", { "Ref": "Release" }, "';" ] ] },
-            "var taskDefinitions = {",
-            {{ range .Manifest.Services }}
-              { "Fn::Join": [ "", [ "    '{{ .Name }}': '", { "Ref": "{{ upper .Name }}ECSTaskDefinition" }, "'," ] ] },
-            {{ end }}
-            "    '':''",
-            "}",
             "exports.handler = function(event, context, cb) {",
             "    var command = event.command.replace(/&#(\\d+);/g, function(match, dec) {",
             "      return String.fromCharCode(dec);",
             "    });",
             "    var params = {",
             "        startedBy: 'cron',",
-            "        taskDefinition: taskDefinitions[event.process],",
+            "        taskDefinition: event.processArn,",
             "        cluster: cluster,",
             "        count: 1,",
             "        overrides: {",
@@ -680,7 +674,7 @@
         "Targets": [{
           "Arn": { "Fn::GetAtt": [ "CronFunction", "Arn" ] },
           "Id": "{{ .LongName }}Target",
-          "Input": "{\"process\": \"{{ .Process }}\", \"command\": \"{{ .Command }}\"}"
+	  "Input": { "Fn::Join" : [ "", [ "{\"process\": \"{{ .Process }}\", \"command\": \"{{ .Command }}\", \"processArn\": \"",  { "Ref": "{{ upper .Process }}ECSTaskDefinition" }, "\"}" ] ] }
         }]
       }
     },
