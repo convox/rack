@@ -15,7 +15,7 @@ test:
   pre:
     - ci/install.sh:
         parallel: true
-        timeout: 1200
+        timeout: 1800
   override:
     - ci/tests/example-app django:
         parallel: true
