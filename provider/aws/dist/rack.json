@@ -1759,7 +1759,7 @@
         "DesiredCapacity": { "Ref": "InstanceCount" },
         "HealthCheckType": "EC2",
         "HealthCheckGracePeriod": "120",
-        "MinSize" : { "Fn::If": [ "SpotInstanceBid", { "Ref": "OnDemandMinCount" }, { "Ref": "InstanceCount" } ] },
+        "MinSize" : { "Fn::If": [ "SpotInstances", { "Ref": "OnDemandMinCount" }, { "Ref": "InstanceCount" } ] },
         "MaxSize" : "1000",
         "MetricsCollection": [ { "Granularity": "1Minute" } ],
         "Tags": [
