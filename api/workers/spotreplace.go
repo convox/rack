@@ -3,6 +3,7 @@ package workers
 import (
 	"fmt"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -96,7 +97,31 @@ func spotReplace() {
 		}
 	}
 
+	spotDesiredCapacity := *sres.AutoScalingGroups[0].DesiredCapacity
 	totalInstances := onDemandCount + spotCount
+
+	// if total instances > than InstanceCount and there are too many spot instances, reduse spot count by 1
+	minOnDemandCount := 3
+	if os.Getenv("ON_DEMAND_MIN_COUNT") != "" {
+		minOnDemandCount, err = strconv.Atoi(os.Getenv("ON_DEMAND_MIN_COUNT"))
+		if err != nil {
+			fmt.Println(err)
+		}
+	}
+	if (totalInstances > system.Count) && ((system.Count - spotCount) < minOnDemandCount) {
+		newCapacity := int64(spotDesiredCapacity - 1)
+		_, err := models.AutoScaling().SetDesiredCapacity(
+			&autoscaling.SetDesiredCapacityInput{
+				AutoScalingGroupName: aws.String(resources["SpotInstances"].Id),
+				DesiredCapacity:      &newCapacity,
+			},
+		)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		return
+	}
 
 	// if total instances > than InstanceCount, reduce on-demand desired count by 1
 	if totalInstances > system.Count {
