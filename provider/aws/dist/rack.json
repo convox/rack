@@ -11,6 +11,7 @@
     },
     "BlankInstanceBootCommand": { "Fn::Equals": [ { "Ref": "InstanceBootCommand" }, "" ] },
     "BlankInstanceRunCommand": { "Fn::Equals": [ { "Ref": "InstanceRunCommand" }, "" ] },
+    "BlankInstanceSecurityGroup": { "Fn::Equals": [ {"Ref": "InstanceSecurityGroup" }, "" ]},
     "BlankInternetGateway": { "Fn::Equals": [ { "Ref": "InternetGateway"}, "" ] },
     "BlankKey": { "Fn::Equals": [ { "Ref": "Key" }, "" ] },
     "BlankKey": { "Fn::Equals": [ { "Ref": "Key" }, "" ] },
@@ -202,8 +203,8 @@
         ""
       ] }
     },
-    "SecurityGroup": {
-      "Value": { "Fn::GetAtt": [ "SecurityGroup", "GroupId" ] }
+    "SecurityGroupId": {
+      "Value": { "Fn::If": [ "BlankInstanceSecurityGroup", { "Fn::GetAtt": [ "DefaultInstanceSecurityGroup", "GroupId" ] }, { "Ref": "InstanceSecurityGroup" } ] }
     },
     "SettingsBucket": {
       "Value": { "Ref": "Settings" }
@@ -371,6 +372,11 @@
       "Description": "The number of instances to update in a batch",
       "MinValue": "1",
       "Type": "Number"
+    },
+    "InstanceSecurityGroup": {
+      "Default": "",
+      "Description": "The security group to assign to the ECS instances.  If blank, convox will create a security group open to all IPs in your VPC",
+      "Type": "String"
     },
     "InternetGateway": {
       "Description": "The InternetGatway to route to if an Existing VPC is specified",
@@ -1369,7 +1375,7 @@
         "RouteTableId": { "Ref": "RouteTablePrivate2" }
       }
     },
-    "SecurityGroup": {
+    "DefaultInstanceSecurityGroup": {
       "Type": "AWS::EC2::SecurityGroup",
       "Properties": {
         "GroupDescription": "Instances",
@@ -1454,7 +1460,7 @@
       "Type": "AWS::ECS::Cluster"
     },
     "BuildLaunchConfiguration": {
-      "DependsOn": [ "Balancer", "Cluster", "InstanceProfile", "SecurityGroup", "LogGroup" ],
+      "DependsOn": [ "Balancer", "Cluster", "InstanceProfile", "DefaultInstanceSecurityGroup", "LogGroup" ],
       "Condition": "DedicatedBuilder",
       "Type": "AWS::AutoScaling::LaunchConfiguration",
       "Properties": {
@@ -1483,7 +1489,7 @@
         "InstanceType": { "Ref": "BuildInstance" },
         "KeyName": { "Fn::If": [ "BlankKey", { "Ref": "AWS::NoValue" }, { "Ref": "Key" } ] },
         "PlacementTenancy" : { "Ref": "Tenancy" },
-        "SecurityGroups": [ { "Ref": "SecurityGroup" } ],
+        "SecurityGroups": [ { "Fn::If": [ "BlankInstanceSecurityGroup", { "Ref": "DefaultInstanceSecurityGroup" }, { "Ref": "InstanceSecurityGroup" } ] } ],
         "UserData": { "Fn::Base64":
           { "Fn::Join": [ "", [
             "#cloud-config\n",
@@ -1609,7 +1615,7 @@
       }
     },
     "LaunchConfiguration": {
-      "DependsOn": [ "Balancer", "Cluster", "InstanceProfile", "SecurityGroup", "LogGroup" ],
+      "DependsOn": [ "Balancer", "Cluster", "InstanceProfile", "DefaultInstanceSecurityGroup", "LogGroup" ],
       "Type": "AWS::AutoScaling::LaunchConfiguration",
       "Properties": {
         "AssociatePublicIpAddress": { "Fn::If": [ "Private", false, true ] },
@@ -1645,7 +1651,7 @@
         "InstanceType": { "Ref": "InstanceType" },
         "KeyName": { "Fn::If": [ "BlankKey", { "Ref": "AWS::NoValue" }, { "Ref": "Key" } ] },
         "PlacementTenancy" : { "Ref": "Tenancy" },
-        "SecurityGroups": [ { "Ref": "SecurityGroup" } ],
+        "SecurityGroups": [ { "Fn::If": [ "BlankInstanceSecurityGroup", { "Ref": "DefaultInstanceSecurityGroup" }, { "Ref": "InstanceSecurityGroup" } ] } ],
         "UserData": { "Fn::Base64":
           { "Fn::Join": [ "", [
             "#cloud-config\n",
@@ -2588,7 +2594,7 @@
               "RACK": { "Ref": "AWS::StackName" },
               "RELEASE": { "Ref": "Version" },
               "ROLLBAR_TOKEN": "f67f25b8a9024d5690f997bd86bf14b0",
-              "SECURITY_GROUP": { "Fn::GetAtt": [ "SecurityGroup", "GroupId" ] },
+              "SECURITY_GROUP": { "Fn::If": [ "BlankInstanceSecurityGroup", { "Ref": "DefaultInstanceSecurityGroup" }, { "Ref": "InstanceSecurityGroup" } ] },
               "SEGMENT_WRITE_KEY": "KLvwCXo6qcTmQHLpF69DEwGf9zh7lt9i",
               "SETTINGS_BUCKET": { "Ref": "Settings" },
               "STACK_ID": { "Ref": "AWS::StackId" },
