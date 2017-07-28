@@ -27,6 +27,7 @@
     "HttpProxy": { "Fn::Not": [ { "Fn::Equals": [ { "Ref": "HttpProxy" }, "" ] } ] },
     "InternetGateway": { "Fn::Not": [ { "Fn::Equals": [ { "Ref": "InternetGateway" }, "" ] } ] },
     "NotExistingVpcAndBlankInternetGateway": { "Fn::Not": [ { "Condition": "ExistingVpcAndBlankInternetGateway" } ] },
+    "OnDemandMinCount": { "Fn::Not": [ { "Fn::Equals": [ { "Ref": "OnDemandMinCount" }, "" ] } ] },
     "Private": { "Fn::Equals": [ { "Ref": "Private" }, "Yes" ] },
     "PrivateAndThirdAvailabilityZone": {
       "Fn::And": [ { "Condition": "Private" }, { "Condition": "ThirdAvailabilityZone" } ]
@@ -381,6 +382,11 @@
       "Default": "",
       "Description": "SSH key name for access to cluster instances",
       "Type": "String"
+    },
+    "OnDemandMinCount": {
+      "Default": "",
+      "Description": "The minimum number of on-demand instances in the runtime cluster",
+      "Type": "Number"
     },
     "Password": {
       "Description": "(REQUIRED) API HTTP password",
@@ -1754,7 +1760,7 @@
         "DesiredCapacity": { "Ref": "InstanceCount" },
         "HealthCheckType": "EC2",
         "HealthCheckGracePeriod": "120",
-        "MinSize" : { "Ref": "InstanceCount" },
+        "MinSize" : { "Fn::If": [ "OnDemandMinCount", { "Ref": "OnDemandMinCount" }, { "Ref": "InstanceCount" } ] },
         "MaxSize" : "1000",
         "MetricsCollection": [ { "Granularity": "1Minute" } ],
         "Tags": [
@@ -2653,6 +2659,7 @@
               "LOG_GROUP": { "Ref": "LogGroup" },
               "NOTIFICATION_HOST": { "Fn::GetAtt": [ "Balancer", "DNSName" ] },
               "NOTIFICATION_TOPIC": { "Ref": "NotificationTopic"},
+	       "ON_DEMAND_MIN_COUNT": { "Ref": "OnDemandMinCount"},
               "PASSWORD": { "Ref": "Password" },
               "PRIVATE": { "Ref": "Private" },
               "PROCESS": "web",
