@@ -21,6 +21,7 @@ func (p *AWSProvider) InstanceList() (structs.Instances, error) {
 		Filters: []*ec2.Filter{
 			{Name: aws.String("tag:Rack"), Values: []*string{aws.String(os.Getenv("RACK"))}},
 			{Name: aws.String("tag:aws:cloudformation:logical-id"), Values: []*string{aws.String("Instances"), aws.String("SpotInstances")}},
+			{Name: aws.String("instance-state-name"), Values: []*string{aws.String("pending"), aws.String("running"), aws.String("shutting-down"), aws.String("stopping")}},
 		},
 	}
 
