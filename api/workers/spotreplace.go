@@ -109,11 +109,10 @@ func spotReplace() {
 		}
 	}
 	if (totalInstances > system.Count) && ((system.Count - spotCount) < minOnDemandCount) {
-		newCapacity := int64(spotDesiredCapacity - 1)
 		_, err := models.AutoScaling().SetDesiredCapacity(
 			&autoscaling.SetDesiredCapacityInput{
 				AutoScalingGroupName: aws.String(resources["SpotInstances"].Id),
-				DesiredCapacity:      &newCapacity,
+				DesiredCapacity:      aws.Int64(spotDesiredCapacity - 1),
 			},
 		)
 		if err != nil {
