@@ -124,11 +124,10 @@ func spotReplace() {
 
 	// if total instances > than InstanceCount, reduce on-demand desired count by 1
 	if totalInstances > system.Count {
-		newCapacity := int64(onDemandDesiredCapacity - 1)
 		_, err := models.AutoScaling().SetDesiredCapacity(
 			&autoscaling.SetDesiredCapacityInput{
 				AutoScalingGroupName: aws.String(resources["Instances"].Id),
-				DesiredCapacity:      &newCapacity,
+				DesiredCapacity:      aws.Int64(onDemandDesiredCapacity - 1),
 			},
 		)
 		if err != nil {
@@ -140,11 +139,10 @@ func spotReplace() {
 	// if total instances < than InstanceCount, increase on-demand desired count by (InstanceCount - total instances)
 	if totalInstances < system.Count {
 		newInstancesNeeded := int64(system.Count - totalInstances)
-		newCapacity := onDemandDesiredCapacity + newInstancesNeeded
 		_, err := models.AutoScaling().SetDesiredCapacity(
 			&autoscaling.SetDesiredCapacityInput{
 				AutoScalingGroupName: aws.String(resources["Instances"].Id),
-				DesiredCapacity:      &newCapacity,
+				DesiredCapacity:      aws.Int64(onDemandDesiredCapacity + newInstancesNeeded),
 			},
 		)
 		if err != nil {
