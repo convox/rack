@@ -1,7 +1,6 @@
 package client
 
 import (
-	"bufio"
 	"crypto/tls"
 	"encoding/base64"
 	"encoding/json"
@@ -9,7 +8,6 @@ import (
 	"io"
 	"io/ioutil"
 	"mime/multipart"
-	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -17,7 +15,8 @@ import (
 	"sync"
 	"time"
 
-	"golang.org/x/net/websocket"
+	// "golang.org/x/net/websocket"
+	"github.com/gorilla/websocket"
 )
 
 //this just needs to be random enough to never show up again in a byte stream
@@ -336,70 +335,98 @@ func (c *Client) DeleteResponse(path string, out interface{}) (*http.Response, e
 }
 
 func (c *Client) Stream(path string, headers map[string]string, in io.Reader, out io.Writer) error {
-	origin := fmt.Sprintf("https://%s", c.Host)
 	endpoint := fmt.Sprintf("wss://%s%s", c.Host, path)
 
-	config, err := websocket.NewConfig(endpoint, origin)
-
-	if err != nil {
-		return err
+	dialer := websocket.Dialer{
+		Proxy: http.ProxyFromEnvironment,
 	}
 
-	config.TlsConfig = &tls.Config{
-		InsecureSkipVerify: true,
-	}
+	header := http.Header{}
 
 	if c.Rack != "" {
-		config.Header.Set("Rack", c.Rack)
+		header.Set("Rack", c.Rack)
 	}
 
-	config.Header.Set("Version", c.Version)
+	header.Set("Version", c.Version)
 
 	userpass := fmt.Sprintf("convox:%s", c.Password)
 	userpass_encoded := base64.StdEncoding.EncodeToString([]byte(userpass))
 
-	config.Header.Add("Authorization", fmt.Sprintf("Basic %s", userpass_encoded))
+	header.Set("Authorization", fmt.Sprintf("Basic %s", userpass_encoded))
 
 	for k, v := range headers {
-		config.Header.Add(k, v)
+		header.Add(k, v)
 	}
 
 	if c.requiresVerification() {
-		config.TlsConfig = &tls.Config{
+		dialer.TLSClientConfig = &tls.Config{
 			ServerName: c.Host,
 		}
 	} else {
-		config.TlsConfig = &tls.Config{
+		dialer.TLSClientConfig = &tls.Config{
 			InsecureSkipVerify: true,
 		}
 	}
 
-	var ws *websocket.Conn
-
-	if proxy := os.Getenv("HTTPS_PROXY"); proxy != "" {
-		ws, err = c.proxyWebsocket(config, proxy)
-	} else {
-		ws, err = websocket.DialConfig(config)
-	}
-
+	ws, _, err := dialer.Dial(endpoint, header)
 	if err != nil {
 		return err
 	}
-
 	defer ws.Close()
 
-	var wg sync.WaitGroup
+	go pingWebsocket(ws)
 
 	if in != nil {
-		go io.Copy(ws, in)
+		go writeToWebsocket(ws, in)
 	}
 
-	if out != nil {
-		wg.Add(1)
-		go copyAsync(out, ws, &wg)
+	if err := readFromWebsocket(out, ws); err != nil {
+		return err
 	}
 
-	wg.Wait()
+	return nil
+}
+
+func pingWebsocket(ws *websocket.Conn) {
+	tick := time.Tick(10 * time.Second)
+	data := []byte{}
+
+	for range tick {
+		ws.WriteMessage(websocket.PingMessage, data)
+	}
+}
+
+func readFromWebsocket(w io.Writer, ws *websocket.Conn) error {
+	for {
+		_, data, err := ws.ReadMessage()
+		if err != nil {
+			if _, ok := err.(*websocket.CloseError); ok {
+				return nil
+			}
+			return err
+		}
+
+		if _, err := w.Write(data); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func writeToWebsocket(ws *websocket.Conn, r io.Reader) error {
+	data := make([]byte, 1024)
+
+	for {
+		n, err := r.Read(data)
+		if err != nil {
+			return err
+		}
+
+		if err := ws.WriteMessage(websocket.BinaryMessage, data[0:n]); err != nil {
+			return err
+		}
+	}
 
 	return nil
 }
@@ -457,55 +484,55 @@ func (c *Client) Request(method, path string, body io.Reader) (*http.Request, er
 	return req, nil
 }
 
-func (c *Client) proxyWebsocket(config *websocket.Config, proxy string) (*websocket.Conn, error) {
-	u, err := url.Parse(proxy)
+// func (c *Client) proxyWebsocket(config *websocket.Config, proxy string) (*websocket.Conn, error) {
+//   u, err := url.Parse(proxy)
 
-	if err != nil {
-		return nil, err
-	}
+//   if err != nil {
+//     return nil, err
+//   }
 
-	host := u.Host
+//   host := u.Host
 
-	if !strings.Contains(host, ":") {
-		host += ":443"
-	}
+//   if !strings.Contains(host, ":") {
+//     host += ":443"
+//   }
 
-	conn, err := net.DialTimeout("tcp", u.Host, 3*time.Second)
+//   conn, err := net.DialTimeout("tcp", u.Host, 3*time.Second)
 
-	if err != nil {
-		return nil, err
-	}
+//   if err != nil {
+//     return nil, err
+//   }
 
-	if _, err = conn.Write([]byte(fmt.Sprintf("CONNECT %s:443 HTTP/1.1\r\n", c.Host))); err != nil {
-		return nil, err
-	}
+//   if _, err = conn.Write([]byte(fmt.Sprintf("CONNECT %s:443 HTTP/1.1\r\n", c.Host))); err != nil {
+//     return nil, err
+//   }
 
-	if _, err = conn.Write([]byte(fmt.Sprintf("Host: %s:443\r\n", c.Host))); err != nil {
-		return nil, err
-	}
+//   if _, err = conn.Write([]byte(fmt.Sprintf("Host: %s:443\r\n", c.Host))); err != nil {
+//     return nil, err
+//   }
 
-	if auth := u.User; auth != nil {
-		enc := base64.StdEncoding.EncodeToString([]byte(auth.String()))
+//   if auth := u.User; auth != nil {
+//     enc := base64.StdEncoding.EncodeToString([]byte(auth.String()))
 
-		if _, err = conn.Write([]byte(fmt.Sprintf("Proxy-Authorization: Basic %s\r\n", enc))); err != nil {
-			return nil, err
-		}
-	}
+//     if _, err = conn.Write([]byte(fmt.Sprintf("Proxy-Authorization: Basic %s\r\n", enc))); err != nil {
+//       return nil, err
+//     }
+//   }
 
-	if _, err = conn.Write([]byte("Proxy-Connection: Keep-Alive\r\n\r\n")); err != nil {
-		return nil, err
-	}
+//   if _, err = conn.Write([]byte("Proxy-Connection: Keep-Alive\r\n\r\n")); err != nil {
+//     return nil, err
+//   }
 
-	data, err := bufio.NewReader(conn).ReadString('\n')
+//   data, err := bufio.NewReader(conn).ReadString('\n')
 
-	if err != nil {
-		return nil, err
-	}
+//   if err != nil {
+//     return nil, err
+//   }
 
-	// need an http 200 response
-	if !strings.Contains(string(data), " 200 ") {
-		return nil, fmt.Errorf("proxy error: %s", strings.TrimSpace(string(data)))
-	}
+//   // need an http 200 response
+//   if !strings.Contains(string(data), " 200 ") {
+//     return nil, fmt.Errorf("proxy error: %s", strings.TrimSpace(string(data)))
+//   }
 
-	return websocket.NewClient(config, tls.Client(conn, config.TlsConfig))
-}
+//   return websocket.NewClient(config, tls.Client(conn, config.TlsConfig))
+// }
