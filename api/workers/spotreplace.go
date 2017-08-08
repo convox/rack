@@ -8,6 +8,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
+	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/convox/logger"
 	"github.com/convox/rack/api/models"
 )
@@ -100,7 +101,22 @@ func spotReplace() {
 	spotDesiredCapacity := *sres.AutoScalingGroups[0].DesiredCapacity
 	totalInstances := onDemandCount + spotCount
 
-	// if total instances > than InstanceCount and there are too many spot instances, reduse spot count by 1
+	// get the count of DRAINING instances
+	cres, err := models.ECS().ListContainerInstances(
+		&ecs.ListContainerInstancesInput{
+			Cluster: aws.String(resources["Cluster"].Id),
+			Status:  aws.String("DRAINING"),
+		},
+	)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	// Subtract the count of draining instances from the total count
+	totalInstances -= len(cres.ContainerInstanceArns)
+
+	// if total instances > than InstanceCount and there are too many spot instances, reduce spot count by 1
 	minOnDemandCount := 3
 	if os.Getenv("ON_DEMAND_MIN_COUNT") != "" {
 		minOnDemandCount, err = strconv.Atoi(os.Getenv("ON_DEMAND_MIN_COUNT"))
