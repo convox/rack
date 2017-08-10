@@ -46,7 +46,7 @@ func Load(data []byte) (*Manifest, error) {
 		if err := yaml.Unmarshal(data, &m.Services); err != nil {
 			return nil, fmt.Errorf("error loading manifest: %s", err)
 		}
-	case "2":
+	case "2", "2.0", "2.1", "2.2":
 		if err := yaml.Unmarshal(data, m); err != nil {
 			return nil, fmt.Errorf("error loading manifest: %s", err)
 		}
