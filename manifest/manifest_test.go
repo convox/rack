@@ -52,6 +52,41 @@ func TestLoadVersion2(t *testing.T) {
 	}
 }
 
+func TestLoadVersion2Minor(t *testing.T) {
+	m, err := manifestFixture("v2-0")
+
+	if assert.NoError(t, err) {
+		assert.Equal(t, m.Version, "2.0")
+		assert.Equal(t, len(m.Services), 1)
+
+		if web := m.Services["web"]; assert.NotNil(t, web) {
+			assert.Equal(t, web.Image, "test")
+		}
+	}
+
+	m, err = manifestFixture("v2-1")
+
+	if assert.NoError(t, err) {
+		assert.Equal(t, m.Version, "2.1")
+		assert.Equal(t, len(m.Services), 1)
+
+		if web := m.Services["web"]; assert.NotNil(t, web) {
+			assert.Equal(t, web.Image, "test")
+		}
+	}
+
+	m, err = manifestFixture("v2-2")
+
+	if assert.NoError(t, err) {
+		assert.Equal(t, m.Version, "2.2")
+		assert.Equal(t, len(m.Services), 1)
+
+		if web := m.Services["web"]; assert.NotNil(t, web) {
+			assert.Equal(t, web.Image, "test")
+		}
+	}
+}
+
 func TestLoadCommandString(t *testing.T) {
 	m, err := manifestFixture("command-string")
 
