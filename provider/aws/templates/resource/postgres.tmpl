@@ -3,6 +3,7 @@
     "AWSTemplateFormatVersion": "2010-09-09",
     "Conditions": {
       "BlankMaxConnections": { "Fn::Equals": [ { "Ref": "MaxConnections" }, "" ] },
+      "Encrypted": { "Fn::Not" : [ { "Fn::Equals" : [ { "Ref" : "EncryptionKey" }, "" ] } ] },
       "Private": { "Fn::Equals": [ { "Ref": "Private" }, "true" ] }
     },
     "Parameters": {
@@ -20,6 +21,11 @@
         "Type": "String",
         "Default": "db.t2.micro",
         "Description": "Instance class for database nodes"
+      },
+      "EncryptionKey": {
+        "Type": "String",
+        "Description": "KMS key used to encrypt RDS storage volumes",
+        "Default" : ""
       },
       "Family": {
         "Type": "String",
@@ -113,11 +119,16 @@
           "DBSubnetGroupName": { "Ref": "SubnetGroup" },
           "Engine": "postgres",
           "EngineVersion": { "Ref": "Version" },
+          "KmsKeyId": { "Fn::If" : [ "Encrypted",
+            { "Ref": "EncryptionKey" },
+            { "Ref" : "AWS::NoValue" }
+          ] },
           "MasterUsername": { "Ref": "Username" },
           "MasterUserPassword": { "Ref": "Password" },
           "MultiAZ": { "Ref": "MultiAZ" },
           "Port": "5432",
           "PubliclyAccessible": "false",
+          "StorageEncrypted": { "Fn::If" : [ "Encrypted", true, false ] },
           "StorageType": "gp2",
           "VPCSecurityGroups": [ { "Ref": "SecurityGroup" } ]
         }
