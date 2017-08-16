@@ -29,11 +29,11 @@ var resourceTypes = []ResourceType{
 	},
 	{
 		"mysql",
-		"[--allocated-storage=10] [--database=db-name] [--instance-type=db.t2.micro] [--multi-az] [--password=example] [--private] [--username=example] [--version=5.7.16] [--encryption-key]",
+		"[--allocated-storage=10] [--database=db-name] [--instance-type=db.t2.micro] [--multi-az] [--password=example] [--private] [--username=example] [--version=5.7.16] [--encryption-key[=key-id]]",
 	},
 	{
 		"postgres",
-		"[--allocated-storage=10] [--database=db-name] [--instance-type=db.t2.micro] [--max-connections={DBInstanceClassMemory/15000000}] [--multi-az] [--password=example] [--private] [--username=example] [--version=9.5.2] [--encryption-key]",
+		"[--allocated-storage=10] [--database=db-name] [--instance-type=db.t2.micro] [--max-connections={DBInstanceClassMemory/15000000}] [--multi-az] [--password=example] [--private] [--username=example] [--version=9.5.2] [--encryption-key[=key-id]]",
 	},
 	{
 		"redis",
