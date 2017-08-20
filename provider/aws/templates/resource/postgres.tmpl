@@ -21,6 +21,11 @@
         "Default": "db.t2.micro",
         "Description": "Instance class for database nodes"
       },
+      "DBSnapshotIdentifier": {
+        "Type": "String",
+        "Default": AWS::NoValue,
+        "Description": "ARN of database snapshot to restore"
+      },
       "Family": {
         "Type": "String",
         "Default": "postgres9.6",
@@ -109,6 +114,7 @@
           "DBInstanceClass": { "Ref": "InstanceType" },
           "DBInstanceIdentifier": { "Ref": "AWS::StackName" },
           "DBName": { "Ref": "Database" },
+          "DBSnapshotIdentifier": { "Ref": "DBSnapshotIdentifier" },
           "DBParameterGroupName": { "Ref": "ParameterGroup" },
           "DBSubnetGroupName": { "Ref": "SubnetGroup" },
           "Engine": "postgres",
