@@ -2,6 +2,7 @@
   {
     "AWSTemplateFormatVersion": "2010-09-09",
     "Conditions": {
+      "BlankDBSnapshotIdentifier": { "Fn::Equals": [ { "Ref": "DBSnapshotIdentifier"}, "" ] },
       "BlankMaxConnections": { "Fn::Equals": [ { "Ref": "MaxConnections" }, "" ] },
       "Private": { "Fn::Equals": [ { "Ref": "Private" }, "true" ] }
     },
@@ -28,7 +29,7 @@
       },
       "DBSnapshotIdentifier": {
         "Type": "String",
-        "Default": AWS::NoValue,
+        "Default": "",
         "Description": "ARN of database snapshot to restore"
       },
       "Family": {
@@ -118,8 +119,8 @@
           "AllocatedStorage": { "Ref": "AllocatedStorage" },
           "DBInstanceClass": { "Ref": "InstanceType" },
           "DBInstanceIdentifier": { "Ref": "AWS::StackName" },
-          "DBName": { "Ref": "Database" },
-          "DBSnapshotIdentifier": { "Ref": "DBSnapshotIdentifier" },
+          "DBName": { "Fn::If": [ "BlankDBSnapshotIdentifier", { "Ref": "Database" }, { "Ref": "AWS::NoValue" } ] },
+          "DBSnapshotIdentifier": { "Fn::If": [ "BlankDBSnapshotIdentifier", { "Ref": "AWS::NoValue" }, { "Ref": "DBSnapshotIdentifier" } ] },
           "DBParameterGroupName": { "Ref": "ParameterGroup" },
           "BackupRetentionPeriod":  { "Ref": "BackupRetentionPeriod" },
           "DBSubnetGroupName": { "Ref": "SubnetGroup" },
