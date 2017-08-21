@@ -16,6 +16,11 @@
         "Default": "app",
         "Description": "Default database name"
       },
+      "BackupRetentionPeriod": {
+        "Type": "String",
+        "Default": "1",
+        "Description": "The automatic RDS backup retention period, (default 1 day)"
+      },
       "InstanceType": {
         "Type": "String",
         "Default": "db.t2.micro",
@@ -110,6 +115,7 @@
           "DBInstanceIdentifier": { "Ref": "AWS::StackName" },
           "DBName": { "Ref": "Database" },
           "DBParameterGroupName": { "Ref": "ParameterGroup" },
+          "BackupRetentionPeriod":  { "Ref": "BackupRetentionPeriod" },
           "DBSubnetGroupName": { "Ref": "SubnetGroup" },
           "Engine": "postgres",
           "EngineVersion": { "Ref": "Version" },
