@@ -33,7 +33,7 @@ var resourceTypes = []ResourceType{
 	},
 	{
 		"postgres",
-		"[--allocated-storage=10] [--database=db-name] [--instance-type=db.t2.micro] [--max-connections={DBInstanceClassMemory/15000000}] [--multi-az] [--password=example] [--private] [--username=example] [--version=9.5.2]",
+		"[--allocated-storage=10] [--database=db-name] [--backup-retention-period] [--instance-type=db.t2.micro] [--max-connections={DBInstanceClassMemory/15000000}] [--multi-az] [--password=example] [--private] [--username=example] [--version=9.5.2]",
 	},
 	{
 		"redis",
