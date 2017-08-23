@@ -15,9 +15,9 @@ import (
 )
 
 var (
-	AutoScaling = autoscaling.New(session.New(), nil)
-	ECS         = ecs.New(session.New(), nil)
-	Lambda      = lambda.New(session.New(), nil)
+	AutoScaling = &autoscaling.AutoScaling{}
+	ECS         = &ecs.ECS{}
+	Lambda      = &lambda.Lambda{}
 )
 
 type Event struct {
@@ -46,6 +46,11 @@ type Metadata struct {
 func main() {
 	if len(os.Args) < 2 {
 		die(fmt.Errorf("must specify event as argument"))
+	}
+
+	err := populatePackageVars()
+	if err != nil {
+		die(err)
 	}
 
 	data := []byte(os.Args[1])
@@ -257,6 +262,29 @@ func containerInstance(cluster string, id string) (string, error) {
 	}
 
 	return "", fmt.Errorf("could not find cluster instance: %s", id)
+}
+
+func populatePackageVars() error {
+	errDesc := "could not create new AWS session: %v"
+	s, err := session.NewSession()
+	if err != nil {
+		return fmt.Errorf(errDesc, err)
+	}
+	AutoScaling = autoscaling.New(s, nil)
+
+	s, err = session.NewSession()
+	if err != nil {
+		return fmt.Errorf(errDesc, err)
+	}
+	ECS = ecs.New(s, nil)
+
+	s, err = session.NewSession()
+	if err != nil {
+		return fmt.Errorf(errDesc, err)
+	}
+	Lambda = lambda.New(s, nil)
+
+	return nil
 }
 
 func die(err error) {
