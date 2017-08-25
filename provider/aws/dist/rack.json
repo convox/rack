@@ -1520,7 +1520,7 @@
             ] },
             "  - echo ECS_CLUSTER=", { "Ref": "BuildCluster" }, " >> /etc/ecs/ecs.config\n",
             "  - echo ECS_ENGINE_AUTH_TYPE=docker >> /etc/ecs/ecs.config\n",
-            "  - echo ECS_INSTANCE_ATTRIBUTES={\"asg\": \"build\"} >> /etc/ecs/ecs.config\n",
+            "  - echo 'ECS_INSTANCE_ATTRIBUTES={\"asg\":\"build\"}' >> /etc/ecs/ecs.config\n",
             "  - echo HTTP_PROXY=", { "Ref": "HttpProxy" }, " >> /etc/ecs/ecs.config\n",
             "  - echo NO_PROXY=169.254.169.254,169.254.170.2,/var/run/docker.sock >> /etc/ecs/ecs.config\n",
             "  - head -n -1 /etc/sysconfig/docker >> /etc/sysconfig/docker-tmp\n",
@@ -1695,7 +1695,7 @@
             "  - [ cloud-init-per, instance, docker_storage_setup, /usr/bin/docker-storage-setup ]\n",
             "  - echo ECS_CLUSTER=", { "Ref": "Cluster" }, " >> /etc/ecs/ecs.config\n",
             "  - echo ECS_ENGINE_AUTH_TYPE=docker >> /etc/ecs/ecs.config\n",
-            "  - echo ECS_INSTANCE_ATTRIBUTES={\"asg\": \"primary\"} >> /etc/ecs/ecs.config\n",
+            "  - echo 'ECS_INSTANCE_ATTRIBUTES={\"asg\":\"primary\"}' >> /etc/ecs/ecs.config\n",
             "  - echo HTTP_PROXY=", { "Ref": "HttpProxy" }, " >> /etc/ecs/ecs.config\n",
             "  - echo NO_PROXY=169.254.169.254,169.254.170.2,/var/run/docker.sock >> /etc/ecs/ecs.config\n",
             "  - head -n -1 /etc/sysconfig/docker >> /etc/sysconfig/docker-tmp\n",
@@ -2014,7 +2014,7 @@
             "  - [ cloud-init-per, instance, docker_storage_setup, /usr/bin/docker-storage-setup ]\n",
             "  - echo ECS_CLUSTER=", { "Ref": "Cluster" }, " >> /etc/ecs/ecs.config\n",
             "  - echo ECS_ENGINE_AUTH_TYPE=docker >> /etc/ecs/ecs.config\n",
-            "  - echo ECS_INSTANCE_ATTRIBUTES={\"asg\": \"spot\"} >> /etc/ecs/ecs.config\n",
+            "  - echo 'ECS_INSTANCE_ATTRIBUTES={\"asg\":\"spot\"}' >> /etc/ecs/ecs.config\n",
             "  - echo HTTP_PROXY=", { "Ref": "HttpProxy" }, " >> /etc/ecs/ecs.config\n",
             "  - echo NO_PROXY=169.254.169.254,169.254.170.2,/var/run/docker.sock >> /etc/ecs/ecs.config\n",
             "  - head -n -1 /etc/sysconfig/docker >> /etc/sysconfig/docker-tmp\n",
@@ -2335,6 +2335,10 @@
           "MaximumPercent": "200"
         },
         "DesiredCount": "1",
+        "PlacementConstraints": [ {
+          "Type": "memberOf",
+          "Expression": "attribute:asg == primary"
+        } ],
         "TaskDefinition": { "Ref": "MonitorTasks" }
       }
     },
