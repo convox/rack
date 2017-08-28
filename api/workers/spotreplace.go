@@ -77,7 +77,7 @@ func spotReplace() error {
 		return err
 	}
 
-	log.Logf("instanceCount=%d onDemandCount=%d onDemandMin=%d spotCount=%d", ic, odc, odmin, spc)
+	log.Logf("instanceCount=%d onDemandMin=%d onDemandCount=%d spotCount=%d", ic, odmin, odc, spc)
 
 	spotDesired := ic - odmin
 	onDemandDesired := ic - spc
