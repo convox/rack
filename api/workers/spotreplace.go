@@ -8,7 +8,6 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
-	"github.com/cloudflare/cfssl/log"
 	"github.com/convox/logger"
 	"github.com/convox/rack/api/models"
 )
@@ -20,6 +19,8 @@ var (
 
 // Main worker function
 func StartSpotReplace() {
+	log := logger.New("ns=workers.spotreplace").At("spotReplace")
+
 	if !spotInstancesEnabled {
 		return
 	}
