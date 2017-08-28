@@ -14,7 +14,7 @@ import (
 
 var (
 	spotInstancesEnabled = (os.Getenv("SPOT_INSTANCES") == "true")
-	spotTick             = 5 * time.Second
+	spotTick             = 60 * time.Second
 )
 
 // Main worker function
