@@ -67,24 +67,35 @@ func spotReplace() error {
 		return err
 	}
 
+	odc, err := asgResourceInstanceCount("Instances")
+	if err != nil {
+		return err
+	}
+
 	spc, err := asgResourceInstanceCount("SpotInstances")
 	if err != nil {
 		return err
 	}
 
+	log.Logf("instanceCount=%d onDemandCount=%d onDemandMin=%d spotCount=%d", ic, odc, odmin, spc)
+
 	spotDesired := ic - odmin
 	onDemandDesired := ic - spc
 
-	log.Logf("stack=SpotInstances setDesiredCount=%d", spotDesired)
+	if spc != spotDesired {
+		log.Logf("stack=SpotInstances setDesiredCount=%d", spotDesired)
 
-	if err := setAsgResourceDesiredCount("SpotInstances", spotDesired); err != nil {
-		return err
+		if err := setAsgResourceDesiredCount("SpotInstances", spotDesired); err != nil {
+			return err
+		}
 	}
 
-	log.Logf("stack=Instances setDesiredCount=%d", onDemandDesired)
+	if odc != onDemandDesired {
+		log.Logf("stack=Instances setDesiredCount=%d", onDemandDesired)
 
-	if err := setAsgResourceDesiredCount("Instances", onDemandDesired); err != nil {
-		return err
+		if err := setAsgResourceDesiredCount("Instances", onDemandDesired); err != nil {
+			return err
+		}
 	}
 
 	return nil
