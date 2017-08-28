@@ -8,164 +8,145 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
-	"github.com/aws/aws-sdk-go/service/ecs"
+	"github.com/cloudflare/cfssl/log"
 	"github.com/convox/logger"
 	"github.com/convox/rack/api/models"
 )
 
 var (
-	spotreplace = (os.Getenv("SPOT_INSTANCES") == "true")
+	spotInstancesEnabled = (os.Getenv("SPOT_INSTANCES") == "true")
+	spotTick             = 5 * time.Second
 )
 
 // Main worker function
 func StartSpotReplace() {
-	spotReplace()
+	if !spotInstancesEnabled {
+		return
+	}
 
-	for range time.Tick(tick) {
-		spotReplace()
+	tick := time.Tick(spotTick)
+
+	for range tick {
+		if err := spotReplace(); err != nil {
+			fmt.Printf("err = %+v\n", err)
+			log.Error(err)
+		}
 	}
 }
 
-func spotReplace() {
+func spotReplace() error {
 	log := logger.New("ns=workers.spotreplace").At("spotReplace")
 
-	// do nothing unless autoscaling is on
-	if !spotreplace {
-		return
-	}
-
-	// get system
 	system, err := models.Provider().SystemGet()
 	if err != nil {
-		log.Error(err)
-		return
+		return err
 	}
 
 	log.Logf("status=%q", system.Status)
 
-	// only allow running and converging status through
+	// only modify spot instances when running or converging
 	switch system.Status {
 	case "running", "converging":
 	default:
-		return
+		return nil
 	}
 
-	resources, err := models.ListResources(os.Getenv("RACK"))
+	ics, err := stackParameter(os.Getenv("RACK"), "InstanceCount")
 	if err != nil {
-		return
+		return err
 	}
 
-	// get on-demand ASG
-	odres, err := models.AutoScaling().DescribeAutoScalingGroups(
-		&autoscaling.DescribeAutoScalingGroupsInput{
-			AutoScalingGroupNames: []*string{
-				aws.String(resources["Instances"].Id),
-			},
-		},
-	)
+	ic, err := strconv.Atoi(ics)
 	if err != nil {
-		return
+		return err
 	}
 
-	// count the Healthy, InService on-demand instances
-	onDemandCount := 0
-	for _, onDemandInstance := range odres.AutoScalingGroups[0].Instances {
-		if (*onDemandInstance.HealthStatus == "Healthy") &&
-			((*onDemandInstance.LifecycleState == "InService") || (*onDemandInstance.LifecycleState == "Pending")) {
-			onDemandCount++
-		}
-	}
-
-	onDemandDesiredCapacity := *odres.AutoScalingGroups[0].DesiredCapacity
-
-	// get spot ASG
-	sres, err := models.AutoScaling().DescribeAutoScalingGroups(
-		&autoscaling.DescribeAutoScalingGroupsInput{
-			AutoScalingGroupNames: []*string{
-				aws.String(resources["SpotInstances"].Id),
-			},
-		},
-	)
+	odmin, err := strconv.Atoi(os.Getenv("ON_DEMAND_MIN_COUNT"))
 	if err != nil {
-		return
+		return err
 	}
 
-	// count the Healthy, InService spot instances
-	spotCount := 0
-	for _, spotInstance := range sres.AutoScalingGroups[0].Instances {
-		if (*spotInstance.HealthStatus == "Healthy") && (*spotInstance.LifecycleState == "InService") {
-			spotCount++
-		}
-	}
-
-	spotDesiredCapacity := *sres.AutoScalingGroups[0].DesiredCapacity
-	totalInstances := onDemandCount + spotCount
-
-	// get the count of DRAINING instances
-	cres, err := models.ECS().ListContainerInstances(
-		&ecs.ListContainerInstancesInput{
-			Cluster: aws.String(resources["Cluster"].Id),
-			Status:  aws.String("DRAINING"),
-		},
-	)
+	spc, err := asgResourceInstanceCount("SpotInstances")
 	if err != nil {
-		fmt.Println(err)
-		return
+		return err
 	}
 
-	// Subtract the count of draining instances from the total count
-	totalInstances -= len(cres.ContainerInstanceArns)
+	spotDesired := ic - odmin
+	onDemandDesired := ic - spc
 
-	// if total instances > than InstanceCount and there are too many spot instances, reduce spot count by 1
-	minOnDemandCount := 3
-	if os.Getenv("ON_DEMAND_MIN_COUNT") != "" {
-		minOnDemandCount, err = strconv.Atoi(os.Getenv("ON_DEMAND_MIN_COUNT"))
-		if err != nil {
-			fmt.Println(err)
-		}
-	}
-	if (totalInstances > system.Count) && ((system.Count - spotCount) < minOnDemandCount) {
-		_, err := models.AutoScaling().SetDesiredCapacity(
-			&autoscaling.SetDesiredCapacityInput{
-				AutoScalingGroupName: aws.String(resources["SpotInstances"].Id),
-				DesiredCapacity:      aws.Int64(spotDesiredCapacity - 1),
-			},
-		)
-		if err != nil {
-			fmt.Println(err)
-			return
-		}
-		return
+	log.Logf("stack=SpotInstances setDesiredCount=%d", spotDesired)
+
+	if err := setAsgResourceDesiredCount("SpotInstances", spotDesired); err != nil {
+		return err
 	}
 
-	// if total instances > than InstanceCount, reduce on-demand desired count by 1
-	if totalInstances > system.Count {
-		_, err := models.AutoScaling().SetDesiredCapacity(
-			&autoscaling.SetDesiredCapacityInput{
-				AutoScalingGroupName: aws.String(resources["Instances"].Id),
-				DesiredCapacity:      aws.Int64(onDemandDesiredCapacity - 1),
-			},
-		)
-		if err != nil {
-			fmt.Println(err)
-			return
-		}
+	log.Logf("stack=Instances setDesiredCount=%d", onDemandDesired)
+
+	if err := setAsgResourceDesiredCount("Instances", onDemandDesired); err != nil {
+		return err
 	}
 
-	// if total instances < than InstanceCount, increase on-demand desired count by (InstanceCount - total instances)
-	if totalInstances < system.Count {
-		newInstancesNeeded := int64(system.Count - totalInstances)
-		_, err := models.AutoScaling().SetDesiredCapacity(
-			&autoscaling.SetDesiredCapacityInput{
-				AutoScalingGroupName: aws.String(resources["Instances"].Id),
-				DesiredCapacity:      aws.Int64(onDemandDesiredCapacity + newInstancesNeeded),
-			},
-		)
-		if err != nil {
-			fmt.Println(err)
-			return
+	return nil
+}
+
+func asgResourceInstanceCount(resource string) (int, error) {
+	rs, err := models.ListResources(os.Getenv("RACK"))
+	if err != nil {
+		return 0, err
+	}
+
+	res, err := models.AutoScaling().DescribeAutoScalingGroups(&autoscaling.DescribeAutoScalingGroupsInput{
+		AutoScalingGroupNames: []*string{aws.String(rs[resource].Id)},
+	})
+	if err != nil {
+		return 0, err
+	}
+	if len(res.AutoScalingGroups) < 1 {
+		return 0, fmt.Errorf("no such autoscaling resource: %s", resource)
+	}
+
+	count := 0
+
+	for _, ii := range res.AutoScalingGroups[0].Instances {
+		if *ii.LifecycleState == "InService" && *ii.HealthStatus == "Healthy" {
+			count++
 		}
 	}
 
-	return
+	return count, nil
+}
+
+func setAsgResourceDesiredCount(resource string, count int) error {
+	rs, err := models.ListResources(os.Getenv("RACK"))
+	if err != nil {
+		return err
+	}
+
+	_, err = models.AutoScaling().SetDesiredCapacity(&autoscaling.SetDesiredCapacityInput{
+		AutoScalingGroupName: aws.String(rs[resource].Id),
+		DesiredCapacity:      aws.Int64(int64(count)),
+	})
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func stackParameter(stack, param string) (string, error) {
+	res, err := models.DescribeStack(stack)
+	if err != nil {
+		return "", err
+	}
+	if len(res.Stacks) < 1 {
+		return "", fmt.Errorf("no such stack: %s", stack)
+	}
+
+	for _, p := range res.Stacks[0].Parameters {
+		if *p.ParameterKey == param {
+			return *p.ParameterValue, nil
+		}
+	}
+
+	return "", fmt.Errorf("no such parameter %s for stack: %s", param, stack)
 }
