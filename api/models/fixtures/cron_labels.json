@@ -1,6 +1,78 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
   "Conditions": {
+    "BalancerMainALB": {
+      "Fn::And": [
+        {
+          "Fn::Not": [
+            {
+              "Fn::Equals": [
+                {
+                  "Fn::Select": [
+                    0,
+                    {
+                      "Ref": "MainFormation"
+                    }
+                  ]
+                },
+                "-1"
+              ]
+            }
+          ]
+        },
+        {
+          "Fn::Equals": [
+            {
+              "Ref": "BalancerMainType"
+            },
+            "ALB"
+          ]
+        }
+      ]
+    },
+    "BalancerMainALBPort443Certificate": {
+      "Fn::And": [
+        {
+          "Condition": "BalancerMainALB"
+        },
+        {
+          "Fn::Not": [
+            {
+              "Condition": "BlankBalancerMainPort443Certificate"
+            }
+          ]
+        }
+      ]
+    },
+    "BalancerMainELB": {
+      "Fn::And": [
+        {
+          "Fn::Not": [
+            {
+              "Fn::Equals": [
+                {
+                  "Fn::Select": [
+                    0,
+                    {
+                      "Ref": "MainFormation"
+                    }
+                  ]
+                },
+                "-1"
+              ]
+            }
+          ]
+        },
+        {
+          "Fn::Equals": [
+            {
+              "Ref": "BalancerMainType"
+            },
+            "ELB"
+          ]
+        }
+      ]
+    },
     "BlankBalancerMainPort443Certificate": {
       "Fn::Equals": [
         {
@@ -109,9 +181,20 @@
     "BalancerMainHost": {
       "Condition": "EnabledMain",
       "Value": {
-        "Fn::GetAtt": [
-          "BalancerMain",
-          "DNSName"
+        "Fn::If": [
+          "BalancerMainELB",
+          {
+            "Fn::GetAtt": [
+              "BalancerMain",
+              "DNSName"
+            ]
+          },
+          {
+            "Fn::GetAtt": [
+              "BalancerMainALB",
+              "DNSName"
+            ]
+          }
         ]
       }
     },
@@ -162,6 +245,14 @@
     }
   },
   "Parameters": {
+    "BalancerMainType": {
+      "AllowedValues": [
+        "ALB",
+        "ELB"
+      ],
+      "Default": "ELB",
+      "Type": "String"
+    },
     "Cluster": {
       "Default": "",
       "Description": "",
@@ -277,7 +368,7 @@
   },
   "Resources": {
     "BalancerMain": {
-      "Condition": "EnabledMain",
+      "Condition": "BalancerMainELB",
       "DependsOn": [
         "BalancerMainSecurityGroup"
       ],
@@ -306,7 +397,7 @@
                     }
                   ]
                 },
-                ""
+                "/"
               ]
             ]
           },
@@ -414,6 +505,113 @@
       },
       "Type": "AWS::ElasticLoadBalancing::LoadBalancer"
     },
+    "BalancerMainALB": {
+      "Condition": "BalancerMainALB",
+      "DependsOn": [
+        "BalancerMainSecurityGroup"
+      ],
+      "Properties": {
+        "Name": {
+          "Fn::If": [
+            "Internal",
+            {
+              "Fn::Join": [
+                "-",
+                [
+                  "httpd-main-KQSNMIK",
+                  "n"
+                ]
+              ]
+            },
+            "httpd-main-KQSNMIK"
+          ]
+        },
+        "Scheme": {
+          "Fn::If": [
+            "Internal",
+            "internal",
+            {
+              "Ref": "AWS::NoValue"
+            }
+          ]
+        },
+        "SecurityGroups": [
+          {
+            "Fn::If": [
+              "BlankSecurityGroup",
+              {
+                "Ref": "BalancerMainSecurityGroup"
+              },
+              {
+                "Ref": "SecurityGroup"
+              }
+            ]
+          }
+        ],
+        "Subnets": {
+          "Fn::If": [
+            "Internal",
+            {
+              "Ref": "SubnetsPrivate"
+            },
+            {
+              "Ref": "Subnets"
+            }
+          ]
+        }
+      },
+      "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer"
+    },
+    "BalancerMainListener443": {
+      "Condition": "BalancerMainALBPort443Certificate",
+      "Properties": {
+        "Certificates": [
+          {
+            "CertificateArn": {
+              "Fn::Select": [
+                1,
+                {
+                  "Ref": "MainPort443Listener"
+                }
+              ]
+            }
+          }
+        ],
+        "DefaultActions": [
+          {
+            "TargetGroupArn": {
+              "Ref": "BalancerMainTargetGroup"
+            },
+            "Type": "forward"
+          }
+        ],
+        "LoadBalancerArn": {
+          "Ref": "BalancerMainALB"
+        },
+        "Port": "443",
+        "Protocol": "HTTPS"
+      },
+      "Type": "AWS::ElasticLoadBalancingV2::Listener"
+    },
+    "BalancerMainListener80": {
+      "Condition": "BalancerMainALB",
+      "Properties": {
+        "DefaultActions": [
+          {
+            "TargetGroupArn": {
+              "Ref": "BalancerMainTargetGroup"
+            },
+            "Type": "forward"
+          }
+        ],
+        "LoadBalancerArn": {
+          "Ref": "BalancerMainALB"
+        },
+        "Port": "80",
+        "Protocol": "HTTP"
+      },
+      "Type": "AWS::ElasticLoadBalancingV2::Listener"
+    },
     "BalancerMainSecurityGroup": {
       "Condition": "EnabledMain",
       "Properties": {
@@ -436,7 +634,32 @@
             "ToPort": "443"
           },
           {
-            "Ref": "AWS::NoValue"
+            "Fn::If": [
+              "BalancerMainALB",
+              {
+                "CidrIp": "0.0.0.0/0",
+                "FromPort": "80",
+                "IpProtocol": "TCP",
+                "ToPort": "80"
+              },
+              {
+                "Ref": "AWS::NoValue"
+              }
+            ]
+          },
+          {
+            "Fn::If": [
+              "BalancerMainALB",
+              {
+                "CidrIp": "0.0.0.0/0",
+                "FromPort": "443",
+                "IpProtocol": "TCP",
+                "ToPort": "443"
+              },
+              {
+                "Ref": "AWS::NoValue"
+              }
+            ]
           }
         ],
         "VpcId": {
@@ -444,6 +667,39 @@
         }
       },
       "Type": "AWS::EC2::SecurityGroup"
+    },
+    "BalancerMainTargetGroup": {
+      "Condition": "BalancerMainALB",
+      "DependsOn": "BalancerMainALB",
+      "Properties": {
+        "HealthCheckIntervalSeconds": 5,
+        "HealthCheckPath": "/",
+        "HealthCheckTimeoutSeconds": 3,
+        "Port": {
+          "Fn::Select": [
+            0,
+            {
+              "Ref": "MainPort443Listener"
+            }
+          ]
+        },
+        "Protocol": "TCP",
+        "TargetGroupAttributes": [
+          {
+            "Key": "deregistration_delay.timeout_seconds",
+            "Value": "60"
+          },
+          {
+            "Key": "stickiness.enabled",
+            "Value": "true"
+          }
+        ],
+        "UnhealthyThresholdCount": "2",
+        "VpcId": {
+          "Ref": "VPC"
+        }
+      },
+      "Type": "AWS::ElasticLoadBalancingV2::TargetGroup"
     },
     "CronFunction": {
       "DependsOn": [
@@ -1147,7 +1403,6 @@
     "ServiceMain": {
       "Condition": "EnabledMain",
       "DependsOn": [
-        "BalancerMain",
         "CustomTopic",
         "ServiceRole"
       ],
@@ -1172,7 +1427,26 @@
             "ContainerName": "main",
             "ContainerPort": "5000",
             "LoadBalancerName": {
-              "Ref": "BalancerMain"
+              "Fn::If": [
+                "BalancerMainELB",
+                {
+                  "Ref": "BalancerMain"
+                },
+                {
+                  "Ref": "AWS::NoValue"
+                }
+              ]
+            },
+            "TargetGroupArn": {
+              "Fn::If": [
+                "BalancerMainALB",
+                {
+                  "Ref": "BalancerMainTargetGroup"
+                },
+                {
+                  "Ref": "AWS::NoValue"
+                }
+              ]
             }
           }
         ],
@@ -1244,6 +1518,8 @@
                     "elasticloadbalancing:Describe*",
                     "elasticloadbalancing:DeregisterInstancesFromLoadBalancer",
                     "elasticloadbalancing:RegisterInstancesWithLoadBalancer",
+                    "elasticloadbalancing:DeregisterTargets",
+                    "elasticloadbalancing:RegisterTargets",
                     "ec2:Describe*",
                     "ec2:AuthorizeSecurityGroupIngress"
                   ],
