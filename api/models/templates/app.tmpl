@@ -477,14 +477,14 @@
               "ToPort": "{{ .Balancer }}"
             },
           {{ end }}
-					{ "Fn::If": [ "Balancer{{ upper $balancer.ProcessName }}ALB",
-					  { "CidrIp": {{ if .Public }} "0.0.0.0/0" {{ else }} { "Ref": "VPCCIDR" } {{ end }}, "IpProtocol": "TCP", "FromPort": "80", "ToPort": "80" },
-						{ "Ref": "AWS::NoValue" }
-					] },
-					{ "Fn::If": [ "Balancer{{ upper $balancer.ProcessName }}ALB",
-					  { "CidrIp": {{ if .Public }} "0.0.0.0/0" {{ else }} { "Ref": "VPCCIDR" } {{ end }}, "IpProtocol": "TCP", "FromPort": "443", "ToPort": "443" },
-						{ "Ref": "AWS::NoValue" }
-					] }
+          { "Fn::If": [ "Balancer{{ upper $balancer.ProcessName }}ALB",
+            { "CidrIp": {{ if .Public }} "0.0.0.0/0" {{ else }} { "Ref": "VPCCIDR" } {{ end }}, "IpProtocol": "TCP", "FromPort": "80", "ToPort": "80" },
+            { "Ref": "AWS::NoValue" }
+          ] },
+          { "Fn::If": [ "Balancer{{ upper $balancer.ProcessName }}ALB",
+            { "CidrIp": {{ if .Public }} "0.0.0.0/0" {{ else }} { "Ref": "VPCCIDR" } {{ end }}, "IpProtocol": "TCP", "FromPort": "443", "ToPort": "443" },
+            { "Ref": "AWS::NoValue" }
+          ] }
         ],
         "VpcId": { "Ref": "VPC" }
       }
@@ -599,9 +599,9 @@
         "HealthCheckIntervalSeconds": {{ .HealthInterval }},
         "HealthCheckTimeoutSeconds": {{ .HealthTimeout }},
         "UnhealthyThresholdCount": "{{ .HealthThresholdUnhealthy }}",
-        "HealthCheckPath": "/",
+        "HealthCheckPath": "{{ .HealthPath }}",
         "Port": { "Fn::Select": [ 0, { "Ref": "{{ upper .ProcessName }}Port{{ (index .PortMappings 0).Balancer }}Listener" } ] },
-        "Protocol": "HTTP",
+        "Protocol": "{{ $balancer.InstanceProtocol (index .PortMappings 0) }}",
         "TargetGroupAttributes": [
           { "Key": "deregistration_delay.timeout_seconds", "Value": "{{ .DrainingTimeout }}" },
           { "Key": "stickiness.enabled", "Value": "true" }
