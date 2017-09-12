@@ -1,6 +1,164 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
   "Conditions": {
+    "BalancerPostgresALB": {
+      "Fn::And": [
+        {
+          "Fn::Not": [
+            {
+              "Fn::Equals": [
+                {
+                  "Fn::Select": [
+                    0,
+                    {
+                      "Ref": "PostgresFormation"
+                    }
+                  ]
+                },
+                "-1"
+              ]
+            }
+          ]
+        },
+        {
+          "Fn::Equals": [
+            {
+              "Ref": "BalancerPostgresType"
+            },
+            "ALB"
+          ]
+        }
+      ]
+    },
+    "BalancerPostgresALBPort5432Certificate": {
+      "Fn::And": [
+        {
+          "Condition": "BalancerPostgresALB"
+        },
+        {
+          "Fn::Not": [
+            {
+              "Condition": "BlankBalancerPostgresPort5432Certificate"
+            }
+          ]
+        }
+      ]
+    },
+    "BalancerPostgresELB": {
+      "Fn::And": [
+        {
+          "Fn::Not": [
+            {
+              "Fn::Equals": [
+                {
+                  "Fn::Select": [
+                    0,
+                    {
+                      "Ref": "PostgresFormation"
+                    }
+                  ]
+                },
+                "-1"
+              ]
+            }
+          ]
+        },
+        {
+          "Fn::Equals": [
+            {
+              "Ref": "BalancerPostgresType"
+            },
+            "ELB"
+          ]
+        }
+      ]
+    },
+    "BalancerWebALB": {
+      "Fn::And": [
+        {
+          "Fn::Not": [
+            {
+              "Fn::Equals": [
+                {
+                  "Fn::Select": [
+                    0,
+                    {
+                      "Ref": "WebFormation"
+                    }
+                  ]
+                },
+                "-1"
+              ]
+            }
+          ]
+        },
+        {
+          "Fn::Equals": [
+            {
+              "Ref": "BalancerWebType"
+            },
+            "ALB"
+          ]
+        }
+      ]
+    },
+    "BalancerWebALBPort443Certificate": {
+      "Fn::And": [
+        {
+          "Condition": "BalancerWebALB"
+        },
+        {
+          "Fn::Not": [
+            {
+              "Condition": "BlankBalancerWebPort443Certificate"
+            }
+          ]
+        }
+      ]
+    },
+    "BalancerWebALBPort80Certificate": {
+      "Fn::And": [
+        {
+          "Condition": "BalancerWebALB"
+        },
+        {
+          "Fn::Not": [
+            {
+              "Condition": "BlankBalancerWebPort80Certificate"
+            }
+          ]
+        }
+      ]
+    },
+    "BalancerWebELB": {
+      "Fn::And": [
+        {
+          "Fn::Not": [
+            {
+              "Fn::Equals": [
+                {
+                  "Fn::Select": [
+                    0,
+                    {
+                      "Ref": "WebFormation"
+                    }
+                  ]
+                },
+                "-1"
+              ]
+            }
+          ]
+        },
+        {
+          "Fn::Equals": [
+            {
+              "Ref": "BalancerWebType"
+            },
+            "ELB"
+          ]
+        }
+      ]
+    },
     "BlankBalancerPostgresPort5432Certificate": {
       "Fn::Equals": [
         {
@@ -135,18 +293,40 @@
     "BalancerPostgresHost": {
       "Condition": "EnabledPostgres",
       "Value": {
-        "Fn::GetAtt": [
-          "BalancerPostgresInternal",
-          "DNSName"
+        "Fn::If": [
+          "BalancerPostgresInternalELB",
+          {
+            "Fn::GetAtt": [
+              "BalancerPostgresInternal",
+              "DNSName"
+            ]
+          },
+          {
+            "Fn::GetAtt": [
+              "BalancerPostgresInternalALB",
+              "DNSName"
+            ]
+          }
         ]
       }
     },
     "BalancerWebHost": {
       "Condition": "EnabledWeb",
       "Value": {
-        "Fn::GetAtt": [
-          "BalancerWeb",
-          "DNSName"
+        "Fn::If": [
+          "BalancerWebELB",
+          {
+            "Fn::GetAtt": [
+              "BalancerWeb",
+              "DNSName"
+            ]
+          },
+          {
+            "Fn::GetAtt": [
+              "BalancerWebALB",
+              "DNSName"
+            ]
+          }
         ]
       }
     },
@@ -241,6 +421,22 @@
     }
   },
   "Parameters": {
+    "BalancerPostgresType": {
+      "AllowedValues": [
+        "ALB",
+        "ELB"
+      ],
+      "Default": "ELB",
+      "Type": "String"
+    },
+    "BalancerWebType": {
+      "AllowedValues": [
+        "ALB",
+        "ELB"
+      ],
+      "Default": "ELB",
+      "Type": "String"
+    },
     "Cluster": {
       "Default": "",
       "Description": "",
@@ -366,7 +562,7 @@
   },
   "Resources": {
     "BalancerPostgresInternal": {
-      "Condition": "EnabledPostgres",
+      "Condition": "BalancerPostgresELB",
       "DependsOn": [
         "BalancerPostgresInternalSecurityGroup"
       ],
@@ -395,7 +591,7 @@
                     }
                   ]
                 },
-                ""
+                "/"
               ]
             ]
           },
@@ -495,6 +691,105 @@
       },
       "Type": "AWS::ElasticLoadBalancing::LoadBalancer"
     },
+    "BalancerPostgresInternalALB": {
+      "Condition": "BalancerPostgresALB",
+      "DependsOn": [
+        "BalancerPostgresInternalSecurityGroup"
+      ],
+      "Properties": {
+        "Name": {
+          "Fn::If": [
+            "Internal",
+            {
+              "Fn::Join": [
+                "-",
+                [
+                  "httpd-postgres-OTLTE5J-i",
+                  "n"
+                ]
+              ]
+            },
+            "httpd-postgres-OTLTE5J-i"
+          ]
+        },
+        "Scheme": "internal",
+        "SecurityGroups": [
+          {
+            "Fn::If": [
+              "BlankSecurityGroup",
+              {
+                "Ref": "BalancerPostgresInternalSecurityGroup"
+              },
+              {
+                "Ref": "SecurityGroup"
+              }
+            ]
+          }
+        ],
+        "Subnets": {
+          "Fn::If": [
+            "Private",
+            {
+              "Ref": "SubnetsPrivate"
+            },
+            {
+              "Ref": "Subnets"
+            }
+          ]
+        }
+      },
+      "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer"
+    },
+    "BalancerPostgresInternalListener443": {
+      "Condition": "BalancerPostgresALBPort5432Certificate",
+      "Properties": {
+        "Certificates": [
+          {
+            "CertificateArn": {
+              "Fn::Select": [
+                1,
+                {
+                  "Ref": "PostgresPort5432Listener"
+                }
+              ]
+            }
+          }
+        ],
+        "DefaultActions": [
+          {
+            "TargetGroupArn": {
+              "Ref": "BalancerPostgresInternalTargetGroup"
+            },
+            "Type": "forward"
+          }
+        ],
+        "LoadBalancerArn": {
+          "Ref": "BalancerPostgresInternalALB"
+        },
+        "Port": "443",
+        "Protocol": "HTTPS"
+      },
+      "Type": "AWS::ElasticLoadBalancingV2::Listener"
+    },
+    "BalancerPostgresInternalListener80": {
+      "Condition": "BalancerPostgresALB",
+      "Properties": {
+        "DefaultActions": [
+          {
+            "TargetGroupArn": {
+              "Ref": "BalancerPostgresInternalTargetGroup"
+            },
+            "Type": "forward"
+          }
+        ],
+        "LoadBalancerArn": {
+          "Ref": "BalancerPostgresInternalALB"
+        },
+        "Port": "80",
+        "Protocol": "HTTP"
+      },
+      "Type": "AWS::ElasticLoadBalancingV2::Listener"
+    },
     "BalancerPostgresInternalSecurityGroup": {
       "Condition": "EnabledPostgres",
       "Properties": {
@@ -519,7 +814,36 @@
             "ToPort": "5432"
           },
           {
-            "Ref": "AWS::NoValue"
+            "Fn::If": [
+              "BalancerPostgresALB",
+              {
+                "CidrIp": {
+                  "Ref": "VPCCIDR"
+                },
+                "FromPort": "80",
+                "IpProtocol": "TCP",
+                "ToPort": "80"
+              },
+              {
+                "Ref": "AWS::NoValue"
+              }
+            ]
+          },
+          {
+            "Fn::If": [
+              "BalancerPostgresALB",
+              {
+                "CidrIp": {
+                  "Ref": "VPCCIDR"
+                },
+                "FromPort": "443",
+                "IpProtocol": "TCP",
+                "ToPort": "443"
+              },
+              {
+                "Ref": "AWS::NoValue"
+              }
+            ]
           }
         ],
         "VpcId": {
@@ -528,8 +852,41 @@
       },
       "Type": "AWS::EC2::SecurityGroup"
     },
+    "BalancerPostgresInternalTargetGroup": {
+      "Condition": "BalancerPostgresALB",
+      "DependsOn": "BalancerPostgresInternalALB",
+      "Properties": {
+        "HealthCheckIntervalSeconds": 5,
+        "HealthCheckPath": "/",
+        "HealthCheckTimeoutSeconds": 3,
+        "Port": {
+          "Fn::Select": [
+            0,
+            {
+              "Ref": "PostgresPort5432Listener"
+            }
+          ]
+        },
+        "Protocol": "TCP",
+        "TargetGroupAttributes": [
+          {
+            "Key": "deregistration_delay.timeout_seconds",
+            "Value": "60"
+          },
+          {
+            "Key": "stickiness.enabled",
+            "Value": "true"
+          }
+        ],
+        "UnhealthyThresholdCount": "2",
+        "VpcId": {
+          "Ref": "VPC"
+        }
+      },
+      "Type": "AWS::ElasticLoadBalancingV2::TargetGroup"
+    },
     "BalancerWeb": {
-      "Condition": "EnabledWeb",
+      "Condition": "BalancerWebELB",
       "DependsOn": [
         "BalancerWebSecurityGroup"
       ],
@@ -558,7 +915,7 @@
                     }
                   ]
                 },
-                ""
+                "/"
               ]
             ]
           },
@@ -701,6 +1058,113 @@
       },
       "Type": "AWS::ElasticLoadBalancing::LoadBalancer"
     },
+    "BalancerWebALB": {
+      "Condition": "BalancerWebALB",
+      "DependsOn": [
+        "BalancerWebSecurityGroup"
+      ],
+      "Properties": {
+        "Name": {
+          "Fn::If": [
+            "Internal",
+            {
+              "Fn::Join": [
+                "-",
+                [
+                  "httpd-web-XHW5F4P",
+                  "n"
+                ]
+              ]
+            },
+            "httpd-web-XHW5F4P"
+          ]
+        },
+        "Scheme": {
+          "Fn::If": [
+            "Internal",
+            "internal",
+            {
+              "Ref": "AWS::NoValue"
+            }
+          ]
+        },
+        "SecurityGroups": [
+          {
+            "Fn::If": [
+              "BlankSecurityGroup",
+              {
+                "Ref": "BalancerWebSecurityGroup"
+              },
+              {
+                "Ref": "SecurityGroup"
+              }
+            ]
+          }
+        ],
+        "Subnets": {
+          "Fn::If": [
+            "Internal",
+            {
+              "Ref": "SubnetsPrivate"
+            },
+            {
+              "Ref": "Subnets"
+            }
+          ]
+        }
+      },
+      "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer"
+    },
+    "BalancerWebListener443": {
+      "Condition": "BalancerWebALBPort80Certificate",
+      "Properties": {
+        "Certificates": [
+          {
+            "CertificateArn": {
+              "Fn::Select": [
+                1,
+                {
+                  "Ref": "WebPort80Listener"
+                }
+              ]
+            }
+          }
+        ],
+        "DefaultActions": [
+          {
+            "TargetGroupArn": {
+              "Ref": "BalancerWebTargetGroup"
+            },
+            "Type": "forward"
+          }
+        ],
+        "LoadBalancerArn": {
+          "Ref": "BalancerWebALB"
+        },
+        "Port": "443",
+        "Protocol": "HTTPS"
+      },
+      "Type": "AWS::ElasticLoadBalancingV2::Listener"
+    },
+    "BalancerWebListener80": {
+      "Condition": "BalancerWebALB",
+      "Properties": {
+        "DefaultActions": [
+          {
+            "TargetGroupArn": {
+              "Ref": "BalancerWebTargetGroup"
+            },
+            "Type": "forward"
+          }
+        ],
+        "LoadBalancerArn": {
+          "Ref": "BalancerWebALB"
+        },
+        "Port": "80",
+        "Protocol": "HTTP"
+      },
+      "Type": "AWS::ElasticLoadBalancingV2::Listener"
+    },
     "BalancerWebSecurityGroup": {
       "Condition": "EnabledWeb",
       "Properties": {
@@ -729,7 +1193,32 @@
             "ToPort": "443"
           },
           {
-            "Ref": "AWS::NoValue"
+            "Fn::If": [
+              "BalancerWebALB",
+              {
+                "CidrIp": "0.0.0.0/0",
+                "FromPort": "80",
+                "IpProtocol": "TCP",
+                "ToPort": "80"
+              },
+              {
+                "Ref": "AWS::NoValue"
+              }
+            ]
+          },
+          {
+            "Fn::If": [
+              "BalancerWebALB",
+              {
+                "CidrIp": "0.0.0.0/0",
+                "FromPort": "443",
+                "IpProtocol": "TCP",
+                "ToPort": "443"
+              },
+              {
+                "Ref": "AWS::NoValue"
+              }
+            ]
           }
         ],
         "VpcId": {
@@ -737,6 +1226,39 @@
         }
       },
       "Type": "AWS::EC2::SecurityGroup"
+    },
+    "BalancerWebTargetGroup": {
+      "Condition": "BalancerWebALB",
+      "DependsOn": "BalancerWebALB",
+      "Properties": {
+        "HealthCheckIntervalSeconds": 5,
+        "HealthCheckPath": "/",
+        "HealthCheckTimeoutSeconds": 3,
+        "Port": {
+          "Fn::Select": [
+            0,
+            {
+              "Ref": "WebPort80Listener"
+            }
+          ]
+        },
+        "Protocol": "TCP",
+        "TargetGroupAttributes": [
+          {
+            "Key": "deregistration_delay.timeout_seconds",
+            "Value": "60"
+          },
+          {
+            "Key": "stickiness.enabled",
+            "Value": "true"
+          }
+        ],
+        "UnhealthyThresholdCount": "2",
+        "VpcId": {
+          "Ref": "VPC"
+        }
+      },
+      "Type": "AWS::ElasticLoadBalancingV2::TargetGroup"
     },
     "CustomTopic": {
       "Properties": {
@@ -1016,7 +1538,6 @@
     "ServicePostgres": {
       "Condition": "EnabledPostgres",
       "DependsOn": [
-        "BalancerPostgresInternal",
         "CustomTopic",
         "ServiceRole"
       ],
@@ -1041,7 +1562,26 @@
             "ContainerName": "postgres",
             "ContainerPort": "5432",
             "LoadBalancerName": {
-              "Ref": "BalancerPostgresInternal"
+              "Fn::If": [
+                "BalancerPostgresInternalELB",
+                {
+                  "Ref": "BalancerPostgresInternal"
+                },
+                {
+                  "Ref": "AWS::NoValue"
+                }
+              ]
+            },
+            "TargetGroupArn": {
+              "Fn::If": [
+                "BalancerPostgresInternalALB",
+                {
+                  "Ref": "BalancerPostgresInternalTargetGroup"
+                },
+                {
+                  "Ref": "AWS::NoValue"
+                }
+              ]
             }
           }
         ],
@@ -1085,6 +1625,8 @@
                     "elasticloadbalancing:Describe*",
                     "elasticloadbalancing:DeregisterInstancesFromLoadBalancer",
                     "elasticloadbalancing:RegisterInstancesWithLoadBalancer",
+                    "elasticloadbalancing:DeregisterTargets",
+                    "elasticloadbalancing:RegisterTargets",
                     "ec2:Describe*",
                     "ec2:AuthorizeSecurityGroupIngress"
                   ],
@@ -1104,7 +1646,6 @@
     "ServiceWeb": {
       "Condition": "EnabledWeb",
       "DependsOn": [
-        "BalancerWeb",
         "CustomTopic",
         "ServiceRole"
       ],
@@ -1129,7 +1670,26 @@
             "ContainerName": "web",
             "ContainerPort": "3000",
             "LoadBalancerName": {
-              "Ref": "BalancerWeb"
+              "Fn::If": [
+                "BalancerWebELB",
+                {
+                  "Ref": "BalancerWeb"
+                },
+                {
+                  "Ref": "AWS::NoValue"
+                }
+              ]
+            },
+            "TargetGroupArn": {
+              "Fn::If": [
+                "BalancerWebALB",
+                {
+                  "Ref": "BalancerWebTargetGroup"
+                },
+                {
+                  "Ref": "AWS::NoValue"
+                }
+              ]
             }
           }
         ],
