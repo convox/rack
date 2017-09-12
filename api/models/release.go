@@ -118,6 +118,11 @@ func (r *Release) Promote() error {
 	fmt.Printf("ns=kernel at=release.promote at=s3Get found=%t\n", err == nil)
 
 	existing, err := formationParameters(formation)
+	if je, ok := err.(*json.SyntaxError); ok {
+		ln, _, _ := jsonErrorLine(formation, int(je.Offset))
+		line := strings.Split(formation, "\n")[ln-1]
+		fmt.Printf("error parsing line: %s\n", line)
+	}
 	if err != nil {
 		return err
 	}
@@ -746,4 +751,27 @@ func waitForPromotion(r *Release) {
 			Provider().EventSend(event, fmt.Errorf("release %s failed - %s", r.Id, ee.Error()))
 		}
 	}
+}
+func jsonErrorLine(input string, offset int) (line int, character int, err error) {
+	lf := rune(0x0A)
+
+	if offset > len(input) || offset < 0 {
+		return 0, 0, fmt.Errorf("Couldn't find offset %d within the input.", offset)
+	}
+
+	// Humans tend to count from 1.
+	line = 1
+
+	for i, b := range input {
+		if b == lf {
+			line++
+			character = 0
+		}
+		character++
+		if i == offset {
+			break
+		}
+	}
+
+	return line, character, nil
 }
