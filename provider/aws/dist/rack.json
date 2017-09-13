@@ -261,6 +261,11 @@
       "Description": "Amazon Machine Image: http://docs.aws.amazon.com/AmazonECS/latest/developerguide/launch_container_instance.html",
       "Default": ""
     },
+    "ApiCount": {
+      "Type": "String",
+      "Description": "The number of api web processes to run",
+      "Default": "2"
+    },
     "ApiCpu": {
       "Type": "String",
       "Description": "How much cpu should be reserved by the api web process",
@@ -2310,7 +2315,7 @@
           "MinimumHealthyPercent": "50",
           "MaximumPercent": "200"
         },
-        "DesiredCount": "2",
+        "DesiredCount": { "Ref": "ApiCount" },
         "LoadBalancers": [
           {
             "ContainerName": "web",
