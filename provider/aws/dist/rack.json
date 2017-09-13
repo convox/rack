@@ -176,6 +176,9 @@
     "NotificationTopic": {
       "Value" : { "Ref": "NotificationTopic" }
     },
+    "OnDemandMinCount": {
+      "Value": { "Ref": "OnDemandMinCount" }
+    },
     "Password": {
       "Condition": "Development",
       "Value": { "Ref": "Password" }
@@ -203,11 +206,14 @@
         ""
       ] }
     },
-    "SecurityGroupId": {
-      "Value": { "Fn::If": [ "BlankInstanceSecurityGroup", { "Fn::GetAtt": [ "SecurityGroup", "GroupId" ] }, { "Ref": "InstanceSecurityGroup" } ] }
+    "SecurityGroup": {
+      "Value": { "Fn::If": [ "BlankInstanceSecurityGroup", { "Ref": "SecurityGroup" }, { "Ref": "InstanceSecurityGroup" } ] }
     },
     "SettingsBucket": {
       "Value": { "Ref": "Settings" }
+    },
+    "SpotInstances": {
+      "Value": { "Fn::If": [ "SpotInstances", "true", "false" ] }
     },
     "Subnets": {
       "Value": {
@@ -2089,7 +2095,7 @@
           ] ]
         },
         "Cooldown": 5,
-        "DesiredCapacity": { "Ref": "InstanceCount" },
+        "DesiredCapacity": "0",
         "HealthCheckType": "EC2",
         "HealthCheckGracePeriod": "120",
         "MinSize" : "0",
@@ -2676,7 +2682,7 @@
               "LOG_GROUP": { "Ref": "LogGroup" },
               "NOTIFICATION_HOST": { "Fn::GetAtt": [ "Balancer", "DNSName" ] },
               "NOTIFICATION_TOPIC": { "Ref": "NotificationTopic"},
-	       "ON_DEMAND_MIN_COUNT": { "Ref": "OnDemandMinCount"},
+              "ON_DEMAND_MIN_COUNT": { "Ref": "OnDemandMinCount"},
               "PASSWORD": { "Ref": "Password" },
               "PRIVATE": { "Ref": "Private" },
               "PROCESS": "web",
