@@ -434,7 +434,7 @@
     {{ $balancer := . }}
     "Balancer{{ upper .ProcessName }}Host": {
       "Condition": "Enabled{{ upper .ProcessName }}",
-      "Value": { "Fn::If": [ "{{ .ResourceName }}ELB",
+      "Value": { "Fn::If": [ "Balancer{{ uppper .ProcessName }}ELB",
         { "Fn::GetAtt": [ "{{ .ResourceName }}", "DNSName" ] },
         { "Fn::GetAtt": [ "{{ .ResourceName }}ALB", "DNSName" ] }
       ] }
