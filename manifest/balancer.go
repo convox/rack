@@ -231,13 +231,7 @@ func (mb ManifestBalancer) Randoms() map[string]int {
 
 // HealthPath The path to check for health. If unset, then implies TCP check
 func (mb ManifestBalancer) HealthPath() string {
-	path := mb.Entry.Labels["convox.health.path"]
-
-	if path == "" {
-		return "/"
-	}
-
-	return path
+	return mb.Entry.Labels["convox.health.path"]
 }
 
 // HealthPort The balancer port that maps to the container port specified in

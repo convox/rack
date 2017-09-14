@@ -192,7 +192,7 @@
       "Condition": "EnabledWeb",
       "Value": {
         "Fn::If": [
-          "BalancerWebInternalELB",
+          "BalancerWebELB",
           {
             "Fn::GetAtt": [
               "BalancerWebInternal",
@@ -429,7 +429,7 @@
                     }
                   ]
                 },
-                "/"
+                ""
               ]
             ]
           },
@@ -975,7 +975,7 @@
             "ContainerPort": "3000",
             "LoadBalancerName": {
               "Fn::If": [
-                "BalancerWebInternalELB",
+                "BalancerWebELB",
                 {
                   "Ref": "BalancerWebInternal"
                 },
@@ -986,7 +986,7 @@
             },
             "TargetGroupArn": {
               "Fn::If": [
-                "BalancerWebInternalALB",
+                "BalancerWebALB",
                 {
                   "Ref": "BalancerWebInternalTargetGroup"
                 },

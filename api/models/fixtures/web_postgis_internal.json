@@ -267,7 +267,7 @@
       "Condition": "EnabledPostgres",
       "Value": {
         "Fn::If": [
-          "BalancerPostgresInternalELB",
+          "BalancerPostgresELB",
           {
             "Fn::GetAtt": [
               "BalancerPostgresInternal",
@@ -287,7 +287,7 @@
       "Condition": "EnabledWeb",
       "Value": {
         "Fn::If": [
-          "BalancerWebInternalELB",
+          "BalancerWebELB",
           {
             "Fn::GetAtt": [
               "BalancerWebInternal",
@@ -537,7 +537,7 @@
                     }
                   ]
                 },
-                "/"
+                ""
               ]
             ]
           },
@@ -861,7 +861,7 @@
                     }
                   ]
                 },
-                "/"
+                ""
               ]
             ]
           },
@@ -1458,7 +1458,7 @@
             "ContainerPort": "5432",
             "LoadBalancerName": {
               "Fn::If": [
-                "BalancerPostgresInternalELB",
+                "BalancerPostgresELB",
                 {
                   "Ref": "BalancerPostgresInternal"
                 },
@@ -1469,7 +1469,7 @@
             },
             "TargetGroupArn": {
               "Fn::If": [
-                "BalancerPostgresInternalALB",
+                "BalancerPostgresALB",
                 {
                   "Ref": "BalancerPostgresInternalTargetGroup"
                 },
@@ -1566,7 +1566,7 @@
             "ContainerPort": "3000",
             "LoadBalancerName": {
               "Fn::If": [
-                "BalancerWebInternalELB",
+                "BalancerWebELB",
                 {
                   "Ref": "BalancerWebInternal"
                 },
@@ -1577,7 +1577,7 @@
             },
             "TargetGroupArn": {
               "Fn::If": [
-                "BalancerWebInternalALB",
+                "BalancerWebALB",
                 {
                   "Ref": "BalancerWebInternalTargetGroup"
                 },
