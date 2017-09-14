@@ -365,7 +365,7 @@
                   { "Ref": "{{ $manifest.BalancerResourceName $e.Name }}" },
                   { "Ref": "AWS::NoValue" }
                 ] },
-                "TargetGroupArn": { "Fn::If": [ "{{ $manifest.BalancerResourceName $e.Name }}ALB",
+                "TargetGroupArn": { "Fn::If": [ "Balancer{{ upper $e.Name }}ALB",
                   { "Ref": "{{ $manifest.BalancerResourceName $e.Name }}TargetGroup" },
                   { "Ref": "AWS::NoValue" }
                 ] }
