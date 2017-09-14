@@ -15,7 +15,7 @@ func TestBalancer(t *testing.T) {
 
 			assert.Equal(t, "TCP", balancer.HealthProtocol())
 			assert.Equal(t, "80", balancer.HealthPort())
-			assert.Equal(t, "/", balancer.HealthPath())
+			assert.Equal(t, "", balancer.HealthPath())
 			assert.Equal(t, "3", balancer.HealthTimeout())
 		}
 	}
