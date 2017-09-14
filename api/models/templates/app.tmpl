@@ -361,7 +361,7 @@
               {
                 "ContainerName": "{{ $e.Name }}",
                 "ContainerPort": "{{ (index $e.TCPPorts 0).Container }}",
-                "LoadBalancerName": { "Fn::If": [ "{{ $manifest.BalancerResourceName $e.Name }}ELB",
+                "LoadBalancerName": { "Fn::If": [ "Balancer{{ upper $e.Name }}ELB",
                   { "Ref": "{{ $manifest.BalancerResourceName $e.Name }}" },
                   { "Ref": "AWS::NoValue" }
                 ] },
