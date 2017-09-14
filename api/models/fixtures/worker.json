@@ -182,7 +182,7 @@
       "Condition": "EnabledPostgres",
       "Value": {
         "Fn::If": [
-          "BalancerPostgresInternalELB",
+          "BalancerPostgresELB",
           {
             "Fn::GetAtt": [
               "BalancerPostgresInternal",
@@ -397,7 +397,7 @@
                     }
                   ]
                 },
-                "/"
+                ""
               ]
             ]
           },
@@ -994,7 +994,7 @@
             "ContainerPort": "5432",
             "LoadBalancerName": {
               "Fn::If": [
-                "BalancerPostgresInternalELB",
+                "BalancerPostgresELB",
                 {
                   "Ref": "BalancerPostgresInternal"
                 },
@@ -1005,7 +1005,7 @@
             },
             "TargetGroupArn": {
               "Fn::If": [
-                "BalancerPostgresInternalALB",
+                "BalancerPostgresALB",
                 {
                   "Ref": "BalancerPostgresInternalTargetGroup"
                 },

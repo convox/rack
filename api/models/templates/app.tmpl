@@ -599,7 +599,7 @@
         "HealthCheckIntervalSeconds": {{ .HealthInterval }},
         "HealthCheckTimeoutSeconds": {{ .HealthTimeout }},
         "UnhealthyThresholdCount": "{{ .HealthThresholdUnhealthy }}",
-        "HealthCheckPath": "{{ .HealthPath }}",
+        "HealthCheckPath": "{{ coalesce .HealthPath "/" }}",
         "Port": { "Fn::Select": [ 0, { "Ref": "{{ upper .ProcessName }}Port{{ (index .PortMappings 0).Balancer }}Listener" } ] },
         "Protocol": "{{ $balancer.InstanceProtocol (index .PortMappings 0) }}",
         "TargetGroupAttributes": [

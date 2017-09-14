@@ -267,7 +267,7 @@
       "Condition": "EnabledRedis",
       "Value": {
         "Fn::If": [
-          "BalancerRedisInternalELB",
+          "BalancerRedisELB",
           {
             "Fn::GetAtt": [
               "BalancerRedisInternal",
@@ -537,7 +537,7 @@
                     }
                   ]
                 },
-                "/"
+                ""
               ]
             ]
           },
@@ -861,7 +861,7 @@
                     }
                   ]
                 },
-                "/"
+                ""
               ]
             ]
           },
@@ -1471,7 +1471,7 @@
             "ContainerPort": "6379",
             "LoadBalancerName": {
               "Fn::If": [
-                "BalancerRedisInternalELB",
+                "BalancerRedisELB",
                 {
                   "Ref": "BalancerRedisInternal"
                 },
@@ -1482,7 +1482,7 @@
             },
             "TargetGroupArn": {
               "Fn::If": [
-                "BalancerRedisInternalALB",
+                "BalancerRedisALB",
                 {
                   "Ref": "BalancerRedisInternalTargetGroup"
                 },
