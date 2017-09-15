@@ -1774,7 +1774,7 @@
             { "Fn::If": [ "ThirdAvailabilityZone", { "Ref": "Subnet2" }, { "Ref": "AWS::NoValue" } ] }
           ] ]
         },
-        "Cooldown": 6,
+        "Cooldown": 5,
         "HealthCheckType": "EC2",
         "HealthCheckGracePeriod": "120",
         "MinSize" : { "Fn::If": [ "SpotInstances", { "Ref": "OnDemandMinCount" }, { "Ref": "InstanceCount" } ] },
