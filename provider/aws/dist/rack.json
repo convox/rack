@@ -1775,7 +1775,6 @@
           ] ]
         },
         "Cooldown": 5,
-        "DesiredCapacity": { "Ref": "InstanceCount" },
         "HealthCheckType": "EC2",
         "HealthCheckGracePeriod": "120",
         "MinSize" : { "Fn::If": [ "SpotInstances", { "Ref": "OnDemandMinCount" }, { "Ref": "InstanceCount" } ] },
@@ -1802,7 +1801,7 @@
       "UpdatePolicy": {
         "AutoScalingRollingUpdate": {
           "MaxBatchSize": { "Ref": "InstanceUpdateBatchSize" },
-          "MinInstancesInService": { "Ref": "InstanceCount" },
+          "MinInstancesInService": { "Fn::If": [ "SpotInstances", { "Ref": "OnDemandMinCount" }, { "Ref": "InstanceCount" } ] },
           "PauseTime" : "PT15M",
           "SuspendProcesses": [
             "ScheduledActions"
