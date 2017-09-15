@@ -1774,12 +1774,11 @@
             { "Fn::If": [ "ThirdAvailabilityZone", { "Ref": "Subnet2" }, { "Ref": "AWS::NoValue" } ] }
           ] ]
         },
-        "Cooldown": 5,
-        "DesiredCapacity": { "Ref": "InstanceCount" },
+        "Cooldown": 6,
         "HealthCheckType": "EC2",
         "HealthCheckGracePeriod": "120",
         "MinSize" : { "Fn::If": [ "SpotInstances", { "Ref": "OnDemandMinCount" }, { "Ref": "InstanceCount" } ] },
-        "MaxSize" : "1000",
+        "MaxSize" : { "Ref": "InstanceCount" },
         "MetricsCollection": [ { "Granularity": "1Minute" } ],
         "Tags": [
           {
@@ -1802,7 +1801,7 @@
       "UpdatePolicy": {
         "AutoScalingRollingUpdate": {
           "MaxBatchSize": { "Ref": "InstanceUpdateBatchSize" },
-          "MinInstancesInService": { "Ref": "InstanceCount" },
+          "MinInstancesInService": { "Fn::If": [ "SpotInstances", { "Ref": "OnDemandMinCount" }, { "Ref": "InstanceCount" } ] },
           "PauseTime" : "PT15M",
           "SuspendProcesses": [
             "ScheduledActions"
