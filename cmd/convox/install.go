@@ -885,7 +885,7 @@ func awsCLICredentials() (*AwsCredentials, error) {
 
 	fmt.Println("Using AWS CLI for authentication...")
 
-	data, err = awsCLI("iam", "get-user")
+	data, err = awsCLI("iam", "get-account-summary")
 	if err != nil {
 		if strings.Contains(string(data), "Unable to locate credentials") {
 			fmt.Println("You appear to have the AWS CLI installed but have not configured credentials.")
