@@ -2115,6 +2115,11 @@
             "Key": "GatewayAttachment",
             "Value": { "Fn::If": [ "ExistingVpc", "existing", { "Ref": "GatewayAttachment" } ] },
             "PropagateAtLaunch": false
+          },
+          {
+            "Key": "InstanceCount",
+            "Value": { "Ref": "InstanceCount" },
+            "PropagateAtLaunch": false
           }
         ]
       }
