@@ -35,6 +35,15 @@ func (p *AWSProvider) ResourceCreate(name, kind string, params map[string]string
 
 	switch s.Type {
 	case "memcached", "mysql", "postgres", "redis", "sqs":
+		if key, ok := s.Parameters["EncryptionKey"]; ok && key == "true" {
+			sr, err := p.stackResource(p.Rack, "EncryptionKey")
+			if err != nil {
+				return nil, err
+			}
+
+			s.Parameters["EncryptionKey"] = *sr.PhysicalResourceId
+		}
+
 		req, err = p.createResource(s)
 	case "fluentd":
 		req, err = p.createResourceURL(s, "tcp")
