@@ -851,6 +851,7 @@
                       "rds:DescribeDBInstances",
                       "rds:DescribeDBParameters",
                       "rds:DescribeDBSubnetGroups",
+                      "rds:DescribeEngineDefaultParameters",
                       "s3:CreateBucket",
                       "s3:GetObject",
                       "sns:ConfirmSubscription",
