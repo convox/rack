@@ -2,6 +2,7 @@
   {
     "AWSTemplateFormatVersion": "2010-09-09",
     "Conditions": {
+      "BlankDBSnapshotIdentifier": { "Fn::Equals": [ { "Ref": "DBSnapshotIdentifier"}, "" ] },
       "BlankMaxConnections": { "Fn::Equals": [ { "Ref": "MaxConnections" }, "" ] },
       "Private": { "Fn::Equals": [ { "Ref": "Private" }, "true" ] }
     },
@@ -16,10 +17,20 @@
         "Default": "app",
         "Description": "Default database name"
       },
+      "BackupRetentionPeriod": {
+        "Type": "String",
+        "Default": "1",
+        "Description": "The automatic RDS backup retention period, (default 1 day)"
+      },
       "InstanceType": {
         "Type": "String",
         "Default": "db.t2.micro",
         "Description": "Instance class for database nodes"
+      },
+      "DBSnapshotIdentifier": {
+        "Type": "String",
+        "Default": "",
+        "Description": "ARN of database snapshot to restore"
       },
       "Family": {
         "Type": "String",
@@ -108,8 +119,10 @@
           "AllocatedStorage": { "Ref": "AllocatedStorage" },
           "DBInstanceClass": { "Ref": "InstanceType" },
           "DBInstanceIdentifier": { "Ref": "AWS::StackName" },
-          "DBName": { "Ref": "Database" },
+          "DBName": { "Fn::If": [ "BlankDBSnapshotIdentifier", { "Ref": "Database" }, { "Ref": "AWS::NoValue" } ] },
+          "DBSnapshotIdentifier": { "Fn::If": [ "BlankDBSnapshotIdentifier", { "Ref": "AWS::NoValue" }, { "Ref": "DBSnapshotIdentifier" } ] },
           "DBParameterGroupName": { "Ref": "ParameterGroup" },
+          "BackupRetentionPeriod":  { "Ref": "BackupRetentionPeriod" },
           "DBSubnetGroupName": { "Ref": "SubnetGroup" },
           "Engine": "postgres",
           "EngineVersion": { "Ref": "Version" },
