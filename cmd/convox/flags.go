@@ -11,3 +11,9 @@ var rackFlag = cli.StringFlag{
 	Name:  "rack",
 	Usage: "rack name",
 }
+
+var waitFlag = cli.BoolFlag{
+	Name:   "wait",
+	EnvVar: "CONVOX_WAIT",
+	Usage:  "wait for change to finish before returning",
+}
