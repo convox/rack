@@ -7,6 +7,8 @@ import (
 	"github.com/convox/rack/cmd/convox/stdcli"
 	"github.com/convox/rack/test"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"gopkg.in/urfave/cli.v1"
 )
 
 /* HELP CHECKS */
@@ -80,4 +82,11 @@ func TestHelpFlag(t *testing.T) {
 			},
 		)
 	}
+}
+
+func TestWaitFlag(t *testing.T) {
+	wf := waitFlag
+	require.IsType(t, cli.BoolFlag{}, wf)
+	assert.Equal(t, "CONVOX_WAIT", wf.EnvVar)
+	assert.Equal(t, "wait", wf.Name)
 }
