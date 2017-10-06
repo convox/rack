@@ -280,7 +280,7 @@
     "ApiMemory": {
       "Type": "String",
       "Description": "How much memory should be reserved by the api web process",
-      "Default": "128"
+      "Default": "256"
     },
     "Autoscale": {
       "Type": "String",
