@@ -164,8 +164,9 @@ func DirApp(c *cli.Context, wd string) (string, string, error) {
 	app := helpers.Coalesce(c.String("app"), c.GlobalString("app"), RecoverFlag(c, "a", "app"), ReadSetting("app"), filepath.Base(abs))
 	app = strings.ToLower(app)
 
-	// If there are dots in the directory name, replace them with hyphens instead
+	// If there are dots or underscores in the directory name, replace them with hyphens instead
 	app = strings.Replace(app, ".", "-", -1)
+	app = strings.Replace(app, "_", "-", -1)
 
 	return abs, app, nil
 }
