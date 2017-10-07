@@ -773,6 +773,7 @@ func (p *AWSProvider) generateTaskDefinition(app, process, release string) (*ecs
 		Image:             aws.String(fmt.Sprintf("%s.dkr.ecr.%s.amazonaws.com/%s:%s.%s", a.Outputs["RegistryId"], p.Region, a.Outputs["RegistryRepository"], process, r.Build)),
 		MemoryReservation: aws.Int64(512),
 		Name:              aws.String(process),
+		Privileged:        aws.Bool(s.Privileged),
 	}
 
 	if len(s.Command.Array) > 0 {
