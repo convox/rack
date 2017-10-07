@@ -721,13 +721,21 @@ func (p *AWSProvider) generateTaskDefinition(app, process, release string) (*ecs
 	sarn := ""
 	sn := fmt.Sprintf("Service%s", upperName(process))
 
+	secureEnvRoleName := ""
+
 	for _, r := range rs.StackResources {
 		if *r.LogicalResourceId == sn {
 			sarn = *r.PhysicalResourceId
 		}
+		if *r.LogicalResourceId == "SecureEnvironmentRole" {
+			secureEnvRoleName = *r.PhysicalResourceId
+		}
 	}
 	if sarn == "" {
 		return nil, fmt.Errorf("could not find service for process: %s", process)
+	}
+	if secureEnvRoleName == "" && s.UseSecureEnvironment() {
+		return nil, fmt.Errorf("cound not find secure environment role for process: %s", process)
 	}
 
 	sres, err := p.describeServices(&ecs.DescribeServicesInput{
@@ -795,10 +803,16 @@ func (p *AWSProvider) generateTaskDefinition(app, process, release string) (*ecs
 		env[e.Name] = e.Value
 	}
 
-	for _, e := range strings.Split(r.Env, "\n") {
-		p := strings.SplitN(e, "=", 2)
-		if len(p) == 2 {
-			env[p[0]] = p[1]
+	if s.UseSecureEnvironment() {
+		env["SECURE_ENVIRONMENT_URL"] = a.Parameters["Environment"]
+		env["SECURE_ENVIRONMENT_TYPE"] = "envfile"
+		env["SECURE_ENVIRONMENT_KEY"] = a.Parameters["Key"]
+	} else {
+		for _, e := range strings.Split(r.Env, "\n") {
+			p := strings.SplitN(e, "=", 2)
+			if len(p) == 2 {
+				env[p[0]] = p[1]
+			}
 		}
 	}
 
@@ -835,6 +849,10 @@ func (p *AWSProvider) generateTaskDefinition(app, process, release string) (*ecs
 	}
 
 	tr := a.Parameters["TaskRole"]
+
+	if secureEnvRoleName != "" && s.UseSecureEnvironment() {
+		tr = fmt.Sprintf("convox/%s", secureEnvRoleName)
+	}
 
 	req := &ecs.RegisterTaskDefinitionInput{
 		ContainerDefinitions: []*ecs.ContainerDefinition{cd},
