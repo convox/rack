@@ -1004,7 +1004,8 @@ var cycleProcessRegisterTaskDefinition = awsutil.Cycle{
 					"essential": true,
 					"image": "778743527532.dkr.ecr.us-test-1.amazonaws.com/convox-myapp-nkdecwppkq:web.BHINCLZYYVN",
 					"memoryReservation": 512,
-					"name": "web"
+					"name": "web",
+					"privileged": false
 				}
 			],
 			"family": "convox-myapp-web",
