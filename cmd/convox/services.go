@@ -13,6 +13,8 @@ import (
 	"github.com/convox/rack/cmd/convox/stdcli"
 	"gopkg.in/urfave/cli.v1"
 	"time"
+	"bufio"
+	"os"
 )
 
 // ResourceType is the type of an external resource.
@@ -281,9 +283,15 @@ func cmdResourceDelete(c *cli.Context) error {
 
 	name := c.Args()[0]
 
+	err := verifyDelete(name)
+
+	if err != nil {
+		return stdcli.Error(err)
+	}
+
 	fmt.Printf("Deleting %s... ", name)
 
-	_, err := rackClient(c).DeleteResource(name)
+	_, err = rackClient(c).DeleteResource(name)
 	if err != nil {
 		return stdcli.Error(err)
 	}
@@ -490,4 +498,17 @@ func waitForResource(c *client.Client, n string, t string, w bool) error {
 	}
 
 	return nil
+}
+
+func verifyDelete(name string) error {
+	reader := bufio.NewReader(os.Stdin)
+	fmt.Printf("Are you sure you want to delete %s? (N/y): ", name)
+	text, _ := reader.ReadString('\n')
+	lowerText := strings.TrimSpace(strings.ToLower(text))
+
+	if lowerText != "y" {
+		return fmt.Errorf("Aborting delete for: %s", name)
+	}
+
+	return  nil
 }
