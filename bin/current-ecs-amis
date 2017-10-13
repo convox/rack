@@ -9,6 +9,6 @@ die() {
 [ -x "$(which jq)" ] || die "needs jq"
 [ -x "$(which pup)" ] || die "needs pup"
 
-curl -s http://docs.aws.amazon.com/AmazonECS/latest/developerguide/launch_container_instance.html | pup 'table json{}' | jq -r '.[2].children[0].children[]|"      \"\(.children[0].children[0].text)\": { \"Ami\": \"\(.children[1].children[0].text)\" },"' | grep -v "null" 
+curl -s http://docs.aws.amazon.com/AmazonECS/latest/developerguide/launch_container_instance.html | pup 'table json{}' | jq -r '.[1].children[0].children[]|"      \"\(.children[0].children[0].text)\": { \"Ami\": \"\(.children[1].children[0].text)\" },"' | grep -v "null"
 
 echo
