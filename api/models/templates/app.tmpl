@@ -489,6 +489,9 @@
               {{ else }}
                 "Protocol": { "Fn::If": [ "BlankBalancer{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Certificate", "TCP", "SSL" ] },
               {{ end }}
+              {{ if $balancer.UseAppCookieStickiness . }}
+                "PolicyNames": [ "AppCookieStickinessPolicy{{ .Container }}" ],
+              {{ end }}
               "LoadBalancerPort": "{{ .Balancer }}",
               "InstanceProtocol": "{{ $balancer.InstanceProtocol . }}",
               "InstancePort": { "Fn::Select": [ 0, { "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Listener" } ] },
@@ -511,6 +514,17 @@
                     "Value": "true"
                 }],
                 "InstancePorts": [{ "Fn::Select": [ 0, { "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Listener" } ] }]
+              },
+            {{ end }}
+          {{ end }}
+          { "Ref": "AWS::NoValue" }
+        ],
+        "AppCookieStickinessPolicy": [
+          {{ range .PortMappings }}
+            {{ if $balancer.UseAppCookieStickiness . }}
+              {
+                "PolicyName": "AppCookieStickinessPolicy{{ .Container }}",
+                "CookieName": "{{ $balancer.AppCookieStickinessName . }}"
               },
             {{ end }}
           {{ end }}
