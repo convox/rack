@@ -345,9 +345,6 @@
       "Service{{ upper $e.Name }}": {
         "Condition": "Enabled{{ upper $e.Name }}",
         "DependsOn": [
-          {{ if $e.HasBalancer }}
-            "{{ $manifest.BalancerResourceName $e.Name }}",
-          {{ end }}
           "CustomTopic",
           "ServiceRole"
          ],
@@ -364,7 +361,14 @@
               {
                 "ContainerName": "{{ $e.Name }}",
                 "ContainerPort": "{{ (index $e.TCPPorts 0).Container }}",
-                "LoadBalancerName": { "Ref": "{{ $manifest.BalancerResourceName $e.Name }}" }
+                "LoadBalancerName": { "Fn::If": [ "Balancer{{ upper $e.Name }}ELB",
+                  { "Ref": "{{ $manifest.BalancerResourceName $e.Name }}" },
+                  { "Ref": "AWS::NoValue" }
+                ] },
+                "TargetGroupArn": { "Fn::If": [ "Balancer{{ upper $e.Name }}ALB",
+                  { "Ref": "{{ $manifest.BalancerResourceName $e.Name }}TargetGroup" },
+                  { "Ref": "AWS::NoValue" }
+                ] }
               }
             ],
             "Role": { "Fn::GetAtt": [ "ServiceRole", "Arn" ] },
@@ -380,7 +384,25 @@
   {{ range .Balancers }}
     {{ $processName := upper .ProcessName }}
     {{ $balancerPrefix := printf "Balancer%s" $processName }}
+    "{{ $balancerPrefix }}ALB": {
+      "Fn::And": [
+        { "Fn::Not": [{ "Fn::Equals": [ { "Fn::Select": [ 0, { "Ref": "{{ $processName }}Formation" } ] }, "-1" ] }] },
+        { "Fn::Equals": [ { "Ref": "{{ $balancerPrefix }}Type" }, "ALB" ] }
+      ]
+    },
+    "{{ $balancerPrefix }}ELB": {
+      "Fn::And": [
+        { "Fn::Not": [{ "Fn::Equals": [ { "Fn::Select": [ 0, { "Ref": "{{ $processName }}Formation" } ] }, "-1" ] }] },
+        { "Fn::Equals": [ { "Ref": "{{ $balancerPrefix }}Type" }, "ELB" ] }
+      ]
+    },
     {{ range .PortMappings }}
+      "{{ $balancerPrefix }}ALBPort{{ .Balancer }}Certificate": {
+        "Fn::And": [
+          { "Condition": "{{ $balancerPrefix }}ALB" },
+          { "Fn::Not": [ { "Condition": "Blank{{ $balancerPrefix }}Port{{ .Balancer }}Certificate" } ] }
+        ]
+      },
       "Blank{{ $balancerPrefix }}Port{{ .Balancer }}Certificate": {
         "Fn::Equals": [ { "Fn::Select": [ 1, { "Ref": "{{ $processName }}Port{{ .Balancer }}Listener" } ] }, "" ]
       },
@@ -391,6 +413,11 @@
 {{ define "balancer-params" }}
   {{ range .Balancers }}
     {{ $balancer := . }}
+    "Balancer{{ upper $balancer.ProcessName }}Type": {
+      "Type": "String",
+      "Default": "ELB",
+      "AllowedValues": [ "ALB", "ELB" ]
+    },
     {{ range .PortMappings }}
       "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Listener": {
         "Type" : "CommaDelimitedList",
@@ -407,7 +434,10 @@
     {{ $balancer := . }}
     "Balancer{{ upper .ProcessName }}Host": {
       "Condition": "Enabled{{ upper .ProcessName }}",
-      "Value": { "Fn::GetAtt": [ "{{ .ResourceName }}", "DNSName" ] }
+      "Value": { "Fn::If": [ "Balancer{{ upper .ProcessName }}ELB",
+        { "Fn::GetAtt": [ "{{ .ResourceName }}", "DNSName" ] },
+        { "Fn::GetAtt": [ "{{ .ResourceName }}ALB", "DNSName" ] }
+      ] }
     },
     {{ range .PortMappings }}
       "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Balancer": {
@@ -447,14 +477,21 @@
               "ToPort": "{{ .Balancer }}"
             },
           {{ end }}
-          { "Ref": "AWS::NoValue" }
+          { "Fn::If": [ "Balancer{{ upper $balancer.ProcessName }}ALB",
+            { "CidrIp": {{ if .Public }} "0.0.0.0/0" {{ else }} { "Ref": "VPCCIDR" } {{ end }}, "IpProtocol": "TCP", "FromPort": "80", "ToPort": "80" },
+            { "Ref": "AWS::NoValue" }
+          ] },
+          { "Fn::If": [ "Balancer{{ upper $balancer.ProcessName }}ALB",
+            { "CidrIp": {{ if .Public }} "0.0.0.0/0" {{ else }} { "Ref": "VPCCIDR" } {{ end }}, "IpProtocol": "TCP", "FromPort": "443", "ToPort": "443" },
+            { "Ref": "AWS::NoValue" }
+          ] }
         ],
         "VpcId": { "Ref": "VPC" }
       }
     },
     "{{ .ResourceName }}": {
       "Type": "AWS::ElasticLoadBalancing::LoadBalancer",
-      "Condition": "Enabled{{ upper .ProcessName }}",
+      "Condition": "Balancer{{ upper $balancer.ProcessName }}ELB",
       "DependsOn": [ "{{ .ResourceName }}SecurityGroup" ],
       "Properties": {
         {{ if eq .Scheme "internal" }}
@@ -526,6 +563,71 @@
           {"Ref" : "{{ .ResourceName }}SecurityGroup"},
           {"Ref" : "SecurityGroup"}
         ]}]
+      }
+    },
+    "{{ .ResourceName }}ALB": {
+      "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
+      "Condition": "Balancer{{ upper $balancer.ProcessName }}ALB",
+      "DependsOn": [ "{{ .ResourceName }}SecurityGroup" ],
+      "Properties": {
+        {{ if eq .Scheme "internal" }}
+          "Scheme": "internal",
+          "Subnets": { "Fn::If": [ "Private",
+            { "Ref": "SubnetsPrivate" },
+            { "Ref": "Subnets" }
+          ] },
+        {{ else }}
+          "Scheme": { "Fn::If": [ "Internal", "internal", { "Ref": "AWS::NoValue" } ] },
+          "Subnets": { "Fn::If": [ "Internal", { "Ref": "SubnetsPrivate" }, { "Ref": "Subnets" } ] },
+        {{ end }}
+        "Name": { "Fn::If": [ "Internal",
+          { "Fn::Join": [ "-", [ {{ .LoadBalancerName true $app.Name }}, "n" ] ] },
+          {{ .LoadBalancerName true $app.Name }}
+        ] },
+        "SecurityGroups" : [{ "Fn::If" : [
+          "BlankSecurityGroup",
+          {"Ref" : "{{ .ResourceName }}SecurityGroup"},
+          {"Ref" : "SecurityGroup"}
+        ]}]
+      }
+    },
+    "{{ .ResourceName }}TargetGroup": {
+      "DependsOn": "{{ .ResourceName }}ALB",
+      "Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
+      "Condition": "Balancer{{ upper .ProcessName }}ALB",
+      "Properties": {
+        "HealthCheckIntervalSeconds": {{ .HealthInterval }},
+        "HealthCheckTimeoutSeconds": {{ .HealthTimeout }},
+        "UnhealthyThresholdCount": "{{ .HealthThresholdUnhealthy }}",
+        "HealthCheckPath": "{{ coalesce .HealthPath "/" }}",
+        "Port": { "Fn::Select": [ 0, { "Ref": "{{ upper .ProcessName }}Port{{ (index .PortMappings 0).Balancer }}Listener" } ] },
+        "Protocol": "{{ $balancer.InstanceProtocol (index .PortMappings 0) }}",
+        "TargetGroupAttributes": [
+          { "Key": "deregistration_delay.timeout_seconds", "Value": "{{ .DrainingTimeout }}" },
+          { "Key": "stickiness.enabled", "Value": "true" }
+        ],
+        "VpcId": { "Ref": "VPC" }
+      }
+    },
+    "{{ .ResourceName }}Listener80": {
+      "Type": "AWS::ElasticLoadBalancingV2::Listener",
+      "Condition": "Balancer{{ upper .ProcessName }}ALB",
+      "Properties": {
+        "DefaultActions": [ { "Type": "forward", "TargetGroupArn": { "Ref": "{{ .ResourceName }}TargetGroup" } } ],
+        "LoadBalancerArn": { "Ref" : "{{ .ResourceName }}ALB" },
+        "Port": "80",
+        "Protocol": "HTTP"
+      }
+    },
+    "{{ .ResourceName }}Listener443": {
+      "Type": "AWS::ElasticLoadBalancingV2::Listener",
+      "Condition": "Balancer{{ upper .ProcessName }}ALBPort{{ (index .PortMappings 0).Balancer }}Certificate",
+      "Properties": {
+        "Certificates": [ { "CertificateArn": { "Fn::Select": [ 1, { "Ref": "{{ upper .ProcessName }}Port{{ (index .PortMappings 0).Balancer }}Listener" } ] } } ],
+        "DefaultActions": [ { "Type": "forward", "TargetGroupArn": { "Ref": "{{ .ResourceName }}TargetGroup" } } ],
+        "LoadBalancerArn": { "Ref" : "{{ .ResourceName }}ALB" },
+        "Port": "443",
+        "Protocol": "HTTPS"
       }
     },
   {{ end }}
@@ -674,7 +776,7 @@
         "Targets": [{
           "Arn": { "Fn::GetAtt": [ "CronFunction", "Arn" ] },
           "Id": "{{ .LongName }}Target",
-	  "Input": { "Fn::Join" : [ "", [ "{\"process\": \"{{ .Process }}\", \"command\": \"{{ .Command }}\", \"processArn\": \"",  { "Ref": "{{ upper .Process }}ECSTaskDefinition" }, "\"}" ] ] }
+    "Input": { "Fn::Join" : [ "", [ "{\"process\": \"{{ .Process }}\", \"command\": \"{{ .Command }}\", \"processArn\": \"",  { "Ref": "{{ upper .Process }}ECSTaskDefinition" }, "\"}" ] ] }
         }]
       }
     },
@@ -869,6 +971,8 @@
                   "elasticloadbalancing:Describe*",
                   "elasticloadbalancing:DeregisterInstancesFromLoadBalancer",
                   "elasticloadbalancing:RegisterInstancesWithLoadBalancer",
+                  "elasticloadbalancing:DeregisterTargets",
+                  "elasticloadbalancing:RegisterTargets",
                   "ec2:Describe*",
                   "ec2:AuthorizeSecurityGroupIngress"
                 ],
