@@ -978,6 +978,7 @@
                     "Effect": "Allow",
                     "Action": [
                       "iam:AddRoleToInstanceProfile",
+                      "iam:AttachRolePolicy",
                       "iam:AttachUserPolicy",
                       "iam:CreateAccessKey",
                       "iam:CreateInstanceProfile",
@@ -993,6 +994,7 @@
                       "iam:DeleteRolePolicy",
                       "iam:DeleteUser",
                       "iam:DeleteUserPolicy",
+                      "iam:DetachRolePolicy",
                       "iam:DetachUserPolicy",
                       "iam:GetRole",
                       "iam:ListAccessKeys",
