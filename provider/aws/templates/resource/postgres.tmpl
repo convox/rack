@@ -120,7 +120,7 @@
           "DBInstanceClass": { "Ref": "InstanceType" },
           "DBInstanceIdentifier": { "Ref": "AWS::StackName" },
           "DBName": { "Fn::If": [ "BlankDatabaseSnapshotIdentifier", { "Ref": "Database" }, { "Ref": "AWS::NoValue" } ] },
-          "DatabaseSnapshotIdentifier": { "Fn::If": [ "BlankDatabaseSnapshotIdentifier", { "Ref": "AWS::NoValue" }, { "Ref": "DatabaseSnapshotIdentifier" } ] },
+          "DBSnapshotIdentifier": { "Fn::If": [ "BlankDatabaseSnapshotIdentifier", { "Ref": "AWS::NoValue" }, { "Ref": "DatabaseSnapshotIdentifier" } ] },
           "DBParameterGroupName": { "Ref": "ParameterGroup" },
           "BackupRetentionPeriod":  { "Ref": "BackupRetentionPeriod" },
           "DBSubnetGroupName": { "Ref": "SubnetGroup" },
