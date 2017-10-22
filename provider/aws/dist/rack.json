@@ -826,6 +826,7 @@
                       "elasticloadbalancing:SetLoadBalancerPoliciesOfListener",
                       "elasticloadbalancing:CreateTargetGroup",
                       "elasticloadbalancing:DeleteTargetGroup",
+                      "elasticloadbalancing:DescribeTargetGroups",
                       "elasticloadbalancing:ModifyTargetGroupAttributes",
                       "elasticloadbalancing:CreateListener",
                       "elasticloadbalancing:DeleteListener",
