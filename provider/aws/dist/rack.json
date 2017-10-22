@@ -1407,6 +1407,7 @@
     },
     "SecurityGroup": {
       "Type": "AWS::EC2::SecurityGroup",
+      "DependsOn": "KernelUser",
       "Properties": {
         "GroupDescription": "Instances",
         "SecurityGroupIngress": [
@@ -2290,6 +2291,7 @@
       "Type": "AWS::ElasticLoadBalancing::LoadBalancer"
     },
     "BalancerSecurityGroup": {
+      "DependsOn": "KernelUser",
       "Properties": {
         "GroupDescription": {
           "Fn::Join": [
@@ -2469,6 +2471,7 @@
     },
     "VolumeSecurity": {
       "Type": "AWS::EC2::SecurityGroup",
+      "DependsOn": "KernelUser",
       "Condition": "RegionHasEFS",
       "Properties": {
         "GroupDescription": "volume security group",
