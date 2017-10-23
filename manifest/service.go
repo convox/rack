@@ -138,7 +138,7 @@ func (s Service) IsAgent() bool {
 // DefaultParams returns a string of comma-delimited Count, CPU, and Memory params
 func (s Service) DefaultParams() string {
 	count := 1
-	cpu := 0
+	cpu := 128
 	memory := 256
 
 	if s.IsAgent() {
