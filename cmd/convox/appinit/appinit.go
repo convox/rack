@@ -16,7 +16,7 @@ import (
 
 	"github.com/convox/rack/cmd/convox/appinit/templates"
 	"github.com/convox/rack/cmd/convox/helpers"
-	"github.com/convox/rack/manifest"
+	"github.com/convox/rack/manifest1"
 )
 
 var dockerBin = helpers.DetectDocker()
@@ -129,21 +129,21 @@ func ReadAppfile(path string) (Appfile, error) {
 }
 
 // GenerateManifest generates a Manifest from the union of a Procfile, Appfile and Release data
-func GenerateManifest(pf Procfile, af Appfile, r Release) manifest.Manifest {
+func GenerateManifest(pf Procfile, af Appfile, r Release) manifest1.Manifest {
 
-	m := manifest.Manifest{
-		Services: make(map[string]manifest.Service),
+	m := manifest1.Manifest{
+		Services: make(map[string]manifest1.Service),
 		Version:  "2",
 	}
 
 	// No Procfile, rely on default release data
 	if len(pf) == 0 {
 		for name, cmd := range r.ProcessTypes {
-			me := manifest.Service{
-				Build: manifest.Build{
+			me := manifest1.Service{
+				Build: manifest1.Build{
 					Context: ".",
 				},
-				Command: manifest.Command{
+				Command: manifest1.Command{
 					String: cmd,
 				},
 			}
@@ -152,22 +152,22 @@ func GenerateManifest(pf Procfile, af Appfile, r Release) manifest.Manifest {
 		}
 
 		if me, ok := m.Services["web"]; ok {
-			me.Ports = append(me.Ports, manifest.Port{
+			me.Ports = append(me.Ports, manifest1.Port{
 				Name:      "80",
 				Balancer:  80,
 				Container: 4001,
 				Public:    true,
-				Protocol:  manifest.TCP,
+				Protocol:  manifest1.TCP,
 			})
-			me.Ports = append(me.Ports, manifest.Port{
+			me.Ports = append(me.Ports, manifest1.Port{
 				Name:      "443",
 				Balancer:  443,
 				Container: 4001,
 				Public:    true,
-				Protocol:  manifest.TCP,
+				Protocol:  manifest1.TCP,
 			})
 
-			me.Environment = append(me.Environment, manifest.EnvironmentItem{
+			me.Environment = append(me.Environment, manifest1.EnvironmentItem{
 				Name:  "PORT",
 				Value: "4001",
 			})
@@ -177,16 +177,16 @@ func GenerateManifest(pf Procfile, af Appfile, r Release) manifest.Manifest {
 	}
 
 	for _, e := range pf {
-		me := manifest.Service{
-			Build: manifest.Build{
+		me := manifest1.Service{
+			Build: manifest1.Build{
 				Context: ".",
 			},
-			Command: manifest.Command{
+			Command: manifest1.Command{
 				String: e.Command,
 			},
-			Environment: manifest.Environment{},
-			Labels:      make(manifest.Labels),
-			Ports:       make(manifest.Ports, 0),
+			Environment: manifest1.Environment{},
+			Labels:      make(manifest1.Labels),
+			Ports:       make(manifest1.Ports, 0),
 		}
 
 		switch e.Name {
@@ -194,22 +194,22 @@ func GenerateManifest(pf Procfile, af Appfile, r Release) manifest.Manifest {
 			me.Name = "web"
 			me.Labels["convox.port.443.protocol"] = "tls"
 
-			me.Ports = append(me.Ports, manifest.Port{
+			me.Ports = append(me.Ports, manifest1.Port{
 				Name:      "80",
 				Balancer:  80,
 				Container: 4001,
 				Public:    true,
-				Protocol:  manifest.TCP,
+				Protocol:  manifest1.TCP,
 			})
-			me.Ports = append(me.Ports, manifest.Port{
+			me.Ports = append(me.Ports, manifest1.Port{
 				Name:      "443",
 				Balancer:  443,
 				Container: 4001,
 				Public:    true,
-				Protocol:  manifest.TCP,
+				Protocol:  manifest1.TCP,
 			})
 
-			me.Environment = append(me.Environment, manifest.EnvironmentItem{
+			me.Environment = append(me.Environment, manifest1.EnvironmentItem{
 				Name:  "PORT",
 				Value: "4001",
 			})
@@ -219,7 +219,7 @@ func GenerateManifest(pf Procfile, af Appfile, r Release) manifest.Manifest {
 
 	for k, v := range r.ConfigVars {
 		for name, s := range m.Services {
-			s.Environment = append(s.Environment, manifest.EnvironmentItem{
+			s.Environment = append(s.Environment, manifest1.EnvironmentItem{
 				Name:  k,
 				Value: v,
 			})
@@ -229,7 +229,7 @@ func GenerateManifest(pf Procfile, af Appfile, r Release) manifest.Manifest {
 
 	for k, v := range af.Env {
 		for name, s := range m.Services {
-			s.Environment = append(s.Environment, manifest.EnvironmentItem{
+			s.Environment = append(s.Environment, manifest1.EnvironmentItem{
 				Name:  k,
 				Value: v.Value,
 			})
@@ -284,10 +284,10 @@ func writeAsset(templateName string, input map[string]interface{}) ([]byte, erro
 }
 
 // AddonHandler is a func type to handle addons
-type AddonHandler func(m *manifest.Manifest)
+type AddonHandler func(m *manifest1.Manifest)
 
 // ParseAddons iterates through an apps addons and edits the manifest accordingly
-func ParseAddons(addons []string, m *manifest.Manifest) {
+func ParseAddons(addons []string, m *manifest1.Manifest) {
 	handlers := map[string]AddonHandler{
 		"heroku-postgresql": postgresAddon,
 	}
@@ -301,16 +301,16 @@ func ParseAddons(addons []string, m *manifest.Manifest) {
 }
 
 // postgresAddon configures a Manifest to have a postgres service
-func postgresAddon(m *manifest.Manifest) {
-	s := manifest.Service{
+func postgresAddon(m *manifest1.Manifest) {
+	s := manifest1.Service{
 		Image: "convox/postgres",
 		Name:  "database",
-		Ports: manifest.Ports{
+		Ports: manifest1.Ports{
 			{
 				Balancer:  5432,
 				Container: 5432,
 				Public:    false,
-				Protocol:  manifest.TCP,
+				Protocol:  manifest1.TCP,
 			},
 		},
 		Volumes: []string{

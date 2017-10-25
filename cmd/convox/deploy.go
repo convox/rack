@@ -9,7 +9,7 @@ import (
 
 	"github.com/convox/rack/cmd/convox/helpers"
 	"github.com/convox/rack/cmd/convox/stdcli"
-	"github.com/convox/rack/manifest"
+	"github.com/convox/rack/manifest1"
 )
 
 func init() {
@@ -60,7 +60,7 @@ func cmdDeploy(c *cli.Context) error {
 	}
 
 	// validate docker-compose
-	m, err := manifest.LoadFile(c.String("file"))
+	m, err := manifest1.LoadFile(c.String("file"))
 	if err != nil {
 		return stdcli.Error(fmt.Errorf("invalid %s: %s", c.String("file"), strings.TrimSpace(err.Error())))
 	}

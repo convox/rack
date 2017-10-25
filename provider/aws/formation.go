@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/convox/rack/api/structs"
-	"github.com/convox/rack/manifest"
+	"github.com/convox/rack/manifest1"
 )
 
 // FormationList lists the Formation
@@ -29,7 +29,7 @@ func (p *AWSProvider) FormationList(app string) (structs.Formation, error) {
 		return nil, err
 	}
 
-	manifest, err := manifest.Load([]byte(release.Manifest))
+	manifest, err := manifest1.Load([]byte(release.Manifest))
 	if err != nil {
 		return nil, fmt.Errorf("could not parse manifest for release: %s", release.Id)
 	}
@@ -65,7 +65,7 @@ func (p *AWSProvider) FormationGet(app, process string) (*structs.ProcessFormati
 		return nil, err
 	}
 
-	manifest, err := manifest.Load([]byte(release.Manifest))
+	manifest, err := manifest1.Load([]byte(release.Manifest))
 	if err != nil {
 		return nil, fmt.Errorf("could not parse manifest for release: %s", release.Id)
 	}
@@ -195,7 +195,7 @@ func parseFormationIndividual(app *structs.App, process string) (count, cpu, mem
 	return
 }
 
-func processFormation(a *structs.App, s manifest.Service) (*structs.ProcessFormation, error) {
+func processFormation(a *structs.App, s manifest1.Service) (*structs.ProcessFormation, error) {
 	count, cpu, memory, err := parseFormationParameters(a, s.Name)
 	if err != nil {
 		return nil, err

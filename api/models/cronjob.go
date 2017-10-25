@@ -7,14 +7,14 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/convox/rack/manifest"
+	"github.com/convox/rack/manifest1"
 )
 
 type CronJob struct {
 	Name     string `yaml:"name"`
 	Schedule string `yaml:"schedule"`
 	Command  string `yaml:"command"`
-	Service  *manifest.Service
+	Service  *manifest1.Service
 	App      *App
 }
 
