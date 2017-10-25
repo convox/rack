@@ -53,17 +53,18 @@
   },
   "Mappings": {
     "RegionConfig": {
-      "us-east-1":      { "Ami": "ami-ec33cc96", "EFS": "Yes", "ThirdAvailabilityZone": "Yes" },
-      "us-east-2":      { "Ami": "ami-34032e51", "EFS": "Yes", "ThirdAvailabilityZone": "Yes" },
-      "us-west-1":      { "Ami": "ami-d5d0e0b5", "EFS": "No",  "ThirdAvailabilityZone": "No"  },
-      "us-west-2":      { "Ami": "ami-29f80351", "EFS": "Yes", "ThirdAvailabilityZone": "Yes" },
-      "eu-west-1":      { "Ami": "ami-13f7226a", "EFS": "Yes", "ThirdAvailabilityZone": "Yes" },
-      "eu-west-2":      { "Ami": "ami-eb62708f", "EFS": "No",  "ThirdAvailabilityZone": "No"  },
-      "eu-central-1":   { "Ami": "ami-40d5672f", "EFS": "No",  "ThirdAvailabilityZone": "No"  },
-      "ap-northeast-1": { "Ami": "ami-21815747", "EFS": "No",  "ThirdAvailabilityZone": "No"  },
+      "ap-northeast-1": { "Ami": "ami-21815747", "EFS": "No",  "ThirdAvailabilityZone": "Yes" },
+      "ap-northeast-2": { "Ami": "ami-7ee13b10", "EFS": "No",  "ThirdAvailabilityZone": "No"  },
       "ap-southeast-1": { "Ami": "ami-99f588fa", "EFS": "No",  "ThirdAvailabilityZone": "No"  },
       "ap-southeast-2": { "Ami": "ami-4f08e82d", "EFS": "Yes", "ThirdAvailabilityZone": "Yes" },
-      "ca-central-1":   { "Ami": "ami-9b54edff", "EFS": "No",  "ThirdAvailabilityZone": "No"  }
+      "ca-central-1":   { "Ami": "ami-9b54edff", "EFS": "No",  "ThirdAvailabilityZone": "No"  },
+      "eu-central-1":   { "Ami": "ami-40d5672f", "EFS": "Yes", "ThirdAvailabilityZone": "Yes" },
+      "eu-west-1":      { "Ami": "ami-13f7226a", "EFS": "Yes", "ThirdAvailabilityZone": "Yes" },
+      "eu-west-2":      { "Ami": "ami-eb62708f", "EFS": "No",  "ThirdAvailabilityZone": "No"  },
+      "us-east-1":      { "Ami": "ami-ec33cc96", "EFS": "Yes", "ThirdAvailabilityZone": "Yes" },
+      "us-east-2":      { "Ami": "ami-34032e51", "EFS": "Yes", "ThirdAvailabilityZone": "Yes" },
+      "us-west-1":      { "Ami": "ami-d5d0e0b5", "EFS": "No",  "ThirdAvailabilityZone": "Yes" },
+      "us-west-2":      { "Ami": "ami-29f80351", "EFS": "Yes", "ThirdAvailabilityZone": "Yes" }
     }
   },
   "Outputs": {
