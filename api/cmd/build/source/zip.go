@@ -2,7 +2,6 @@ package source
 
 import (
 	"archive/zip"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
@@ -56,8 +55,6 @@ func (s *SourceZip) Fetch(out io.Writer) (string, error) {
 	}
 
 	for _, file := range zr.File {
-		fmt.Printf("file = %+v\n", file)
-
 		path := filepath.Join(tmp, file.Name)
 
 		if file.FileInfo().IsDir() {
@@ -87,8 +84,6 @@ func (s *SourceZip) Fetch(out io.Writer) (string, error) {
 			fd.Close()
 		}
 	}
-
-	fmt.Printf("tmp = %+v\n", tmp)
 
 	return tmp, nil
 }

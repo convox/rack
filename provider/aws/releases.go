@@ -50,15 +50,18 @@ func (p *AWSProvider) ReleaseGet(app, id string) (*structs.Release, error) {
 		return nil, err
 	}
 
-	data, err := p.s3Get(a.Outputs["Settings"], fmt.Sprintf("releases/%s/env", r.Id))
+	settings, err := p.appResource(app, "Settings")
+	if err != nil {
+		return nil, err
+	}
+
+	data, err := p.s3Get(settings, fmt.Sprintf("releases/%s/env", r.Id))
 	if err != nil {
 		return nil, err
 	}
 
 	if a.Parameters["Key"] != "" {
-		cr := crypt.New(p.Region, p.Access, p.Secret)
-
-		if d, err := cr.Decrypt(a.Parameters["Key"], data); err == nil {
+		if d, err := crypt.New().Decrypt(a.Parameters["Key"], data); err == nil {
 			data = d
 		}
 	}
@@ -165,18 +168,21 @@ func (p *AWSProvider) ReleaseSave(r *structs.Release) error {
 	env := []byte(r.Env)
 	key := a.Parameters["Key"]
 	if key != "" {
-		cr := crypt.New(p.Region, p.Access, p.Secret)
-
-		env, err = cr.Encrypt(key, []byte(env))
+		env, err = crypt.New().Encrypt(key, []byte(env))
 		if err != nil {
 			return err
 		}
 	}
 
+	settings, err := p.appResource(r.App, "Settings")
+	if err != nil {
+		return err
+	}
+
 	_, err = p.s3().PutObject(&s3.PutObjectInput{
 		ACL:           aws.String("public-read"),
 		Body:          bytes.NewReader(env),
-		Bucket:        aws.String(a.Outputs["Settings"]),
+		Bucket:        aws.String(settings),
 		ContentLength: aws.Int64(int64(len(env))),
 		Key:           aws.String(fmt.Sprintf("releases/%s/env", r.Id)),
 	})

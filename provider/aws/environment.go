@@ -18,7 +18,12 @@ func (p *AWSProvider) EnvironmentGet(app string) (structs.Environment, error) {
 		return nil, fmt.Errorf("app is still being created: %s", app)
 	}
 
-	data, err := p.s3Get(a.Outputs["Settings"], "env")
+	settings, err := p.appResource(app, "Settings")
+	if err != nil {
+		return nil, err
+	}
+
+	data, err := p.s3Get(settings, "env")
 	if err != nil {
 		// if we get a 404 from aws just return an empty environment
 		if awsError, ok := err.(awserr.RequestFailure); ok && awsError.StatusCode() == 404 {
@@ -29,9 +34,7 @@ func (p *AWSProvider) EnvironmentGet(app string) (structs.Environment, error) {
 	}
 
 	if a.Parameters["Key"] != "" {
-		cr := crypt.New(p.Region, p.Access, p.Secret)
-
-		if d, err := cr.Decrypt(a.Parameters["Key"], data); err == nil {
+		if d, err := crypt.New().Decrypt(a.Parameters["Key"], data); err == nil {
 			data = d
 		}
 	}

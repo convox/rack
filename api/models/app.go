@@ -261,7 +261,7 @@ func (a *App) Formation(m manifest.Manifest) (string, error) {
 		"App":      a,
 		"Manifest": m,
 	}
-	data, err := buildTemplate("app", "app", tmplData)
+	data, err := assetTemplate("app", "app", tmplData)
 	if err != nil {
 		return "", err
 	}

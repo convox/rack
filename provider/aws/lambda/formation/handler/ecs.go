@@ -5,7 +5,6 @@ import (
 	"io/ioutil"
 	"math/rand"
 	"net/http"
-	"os"
 	"regexp"
 	"strconv"
 	"strings"
@@ -131,10 +130,8 @@ func ECSTaskDefinitionCreate(req Request) (string, map[string]string, error) {
 		}
 		if pkey, ok := req.ResourceProperties["Key"].(string); ok && pkey != "" {
 			key = pkey
-			cr := crypt.New(*Region(&req), os.Getenv("AWS_ACCESS_KEY_ID"), os.Getenv("AWS_SECRET_ACCESS_KEY"))
-			cr.AwsToken = os.Getenv("AWS_SESSION_TOKEN")
 
-			dec, err := cr.Decrypt(pkey, data)
+			dec, err := crypt.New().Decrypt(pkey, data)
 
 			if err != nil {
 				return "invalid", nil, err

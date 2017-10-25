@@ -338,6 +338,9 @@ func stackResource(stack, resource string) (string, error) {
 	if len(res.StackResources) < 1 {
 		return "", fmt.Errorf("no stack resource for: %s", resource)
 	}
+	if res.StackResources[0].PhysicalResourceId == nil {
+		return "", fmt.Errorf("no stack resource for: %s", resource)
+	}
 
 	return *res.StackResources[0].PhysicalResourceId, nil
 }

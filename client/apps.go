@@ -26,9 +26,10 @@ func (c *Client) GetApps() (Apps, error) {
 	return apps, nil
 }
 
-func (c *Client) CreateApp(name string) (*App, error) {
+func (c *Client) CreateApp(name, generation string) (*App, error) {
 	params := Params{
-		"name": name,
+		"generation": generation,
+		"name":       name,
 	}
 
 	var app App

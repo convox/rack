@@ -5,6 +5,8 @@ import (
 	"io/ioutil"
 	"os"
 
+	"github.com/convox/rack/api/crypt"
+
 	"gopkg.in/urfave/cli.v1"
 )
 
@@ -38,13 +40,7 @@ func cmdDecrypt(c *cli.Context) {
 		panic(err)
 	}
 
-	cr, err := buildCrypt(c)
-
-	if err != nil {
-		panic(err)
-	}
-
-	dec, err := cr.Decrypt(key, data)
+	dec, err := crypt.New().Decrypt(key, data)
 
 	if err != nil {
 		panic(err)

@@ -9,7 +9,6 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/acm"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
@@ -23,6 +22,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/sns"
 	"github.com/aws/aws-sdk-go/service/sqs"
+	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/convox/logger"
 )
 
@@ -41,15 +41,11 @@ func awsError(err error) string {
 
 func awsConfig() *aws.Config {
 	config := &aws.Config{
-		Credentials: credentials.NewStaticCredentials(os.Getenv("AWS_ACCESS"), os.Getenv("AWS_SECRET"), ""),
+		Region: aws.String(os.Getenv("AWS_REGION")),
 	}
 
 	if e := os.Getenv("AWS_ENDPOINT"); e != "" {
 		config.Endpoint = aws.String(e)
-	}
-
-	if r := os.Getenv("AWS_REGION"); r != "" {
-		config.Region = aws.String(r)
 	}
 
 	if os.Getenv("DEBUG") == "true" {
@@ -105,12 +101,15 @@ func SNS() *sns.SNS {
 	return sns.New(session.New(), awsConfig())
 }
 
-// SQS is a driver for SQS
 func SQS() *sqs.SQS {
 	return sqs.New(session.New(), awsConfig())
 }
 
-func buildTemplate(name, section string, input interface{}) (string, error) {
+func STS() *sts.STS {
+	return sts.New(session.New(), awsConfig())
+}
+
+func assetTemplate(name, section string, input interface{}) (string, error) {
 	data, err := Asset(fmt.Sprintf("templates/%s.tmpl", name))
 	if err != nil {
 		return "", err
@@ -132,7 +131,6 @@ func buildTemplate(name, section string, input interface{}) (string, error) {
 }
 
 // truncat a float to a given precision
-// ex:  truncate(3.1459, 2) -> 3.14
 func truncate(f float64, precision int) float64 {
 	p := math.Pow10(precision)
 	return float64(int(f*p)) / p

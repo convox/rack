@@ -166,20 +166,12 @@ func HandleRequest(freq Request) error {
 	switch freq.ResourceType {
 	case "Custom::EC2AvailabilityZones":
 		physical, outputs, err = HandleEC2AvailabilityZones(freq)
-	case "Custom::EC2NatGateway":
-		physical, outputs, err = HandleEC2NatGateway(freq)
-	case "Custom::EC2Route":
-		physical, outputs, err = HandleEC2Route(freq)
-	case "Custom::ECRRepository":
-		physical, outputs, err = HandleECRRepository(freq)
 	case "Custom::ECSService":
 		physical, outputs, err = HandleECSService(freq)
 	case "Custom::ECSTaskDefinition":
 		physical, outputs, err = HandleECSTaskDefinition(freq)
 	case "Custom::KMSKey":
 		physical, outputs, err = HandleKMSKey(freq)
-	case "Custom::SNSSubscription":
-		physical, outputs, err = HandleSNSSubcription(freq)
 	default:
 		physical = ""
 		err = fmt.Errorf("unknown ResourceType: %s", freq.ResourceType)
