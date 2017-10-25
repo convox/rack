@@ -1810,7 +1810,9 @@
                 "Action": [
                   "iam:AddRoleToInstanceProfile",
                   "iam:CreateInstanceProfile",
-                  "iam:RemoveRoleFromInstanceProfile"
+                  "iam:ListServerCertificates",
+                  "iam:RemoveRoleFromInstanceProfile",
+                  "iam:UploadServerCertificate"
                 ],
                 "Resource": [ "*" ]
               }
