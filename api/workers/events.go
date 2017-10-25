@@ -227,7 +227,7 @@ func getAppLogStream(app string) (appLogStream, error) {
 		return appLogStream{}, err
 	}
 
-	stream := fmt.Sprintf("convox/worker/events/%d", time.Now().UnixNano())
+	stream := fmt.Sprintf("system/%d", time.Now().UnixNano())
 
 	if _, ok := appLogStreams[app]; !ok {
 		_, err := models.CloudWatchLogs().CreateLogStream(&cloudwatchlogs.CreateLogStreamInput{

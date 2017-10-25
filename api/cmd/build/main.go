@@ -238,9 +238,6 @@ func build(dir string) error {
 	env["SECURE_ENVIRONMENT_URL"] = a.Parameters["Environment"]
 	env["SECURE_ENVIRONMENT_TYPE"] = "envfile"
 	env["SECURE_ENVIRONMENT_KEY"] = a.Parameters["Key"]
-	env["AWS_REGION"] = os.Getenv("AWS_REGION")
-	env["AWS_ACCESS_KEY_ID"] = os.Getenv("AWS_ACCESS")
-	env["AWS_SECRET_ACCESS_KEY"] = os.Getenv("AWS_SECRET")
 
 	err = m.Build(dir, flagApp, s, manifest.BuildOptions{
 		Environment: env,

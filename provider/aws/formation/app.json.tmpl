@@ -1,0 +1,62 @@
+{{ $root := . }}
+
+{
+  "AWSTemplateFormatVersion" : "2010-09-09",
+  "Parameters" : {
+    {{ template "service-params" .Manifest }}
+
+    "Rack": {
+      "Type": "String",
+      "MinLength": "1"
+    }
+  },
+  "Resources": {
+    {{ template "balancer-resources" . }}
+    {{ template "service-resources" . }}
+    {{ template "state" }}
+
+    "LogGroup": {
+      "Type": "AWS::Logs::LogGroup"
+    },
+    "Registry": {
+      "Type": "AWS::ECR::Repository",
+      "DeletionPolicy": "Retain"
+    }
+  }
+}
+
+{{ define "balancer-resources" }}
+{{ end }}
+
+{{ define "service-params" }}
+  {{ range $e := .Services }}
+    "{{ upper $e.Name }}Formation": {
+      "Type": "CommaDelimitedList",
+      "Default": "{{ $e.DefaultParams }}",
+      "Description": "Count,CPU,Memory"
+    },
+  {{ end }}
+{{ end }}
+
+{{ define "service-resources" }}
+  {{ range .Manifest.Services }}
+    "{{ upper .Name }}TaskDefinition": {
+    },
+    "{{ upper .Name }}Service": {
+    },
+  {{ end }}
+{{ end }}
+
+{{ define "state" }}
+  "Settings": {
+    "Type": "AWS::S3::Bucket",
+    "DeletionPolicy": "Retain",
+    "Properties": {
+      "AccessControl": "Private",
+      "Tags": [
+        { "Key": "system", "Value": "convox" },
+        { "Key": "app", "Value": { "Ref": "AWS::StackName" } }
+      ]
+    }
+  },
+{{ end }}

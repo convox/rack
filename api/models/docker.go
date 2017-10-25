@@ -11,10 +11,10 @@ import (
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/ecr"
+	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/convox/rack/api/structs"
 	"github.com/fsouza/go-dockerclient"
 )
@@ -89,8 +89,7 @@ func DockerLogin(ac docker.AuthConfiguration) (string, error) {
 	// if ECR URL, try Username and Password as IAM keys to get auth token
 	if match := regexpECR.FindStringSubmatch(ac.ServerAddress); len(match) > 1 {
 		ECR := ecr.New(session.New(), &aws.Config{
-			Credentials: credentials.NewStaticCredentials(ac.Username, ac.Password, ""),
-			Region:      aws.String(match[2]),
+			Region: aws.String(match[2]),
 		})
 
 		res, err := ECR.GetAuthorizationToken(&ecr.GetAuthorizationTokenInput{
@@ -149,11 +148,14 @@ func DockerLogout(ac docker.AuthConfiguration) error {
 
 // Log into the appropriate registry for the given app
 func AppDockerLogin(app structs.App) (string, error) {
+	res, err := STS().GetCallerIdentity(&sts.GetCallerIdentityInput{})
+	if err != nil {
+		return "", err
+	}
+
 	return DockerLogin(docker.AuthConfiguration{
 		Email:         "user@convox.com",
-		Password:      os.Getenv("AWS_SECRET"),
-		ServerAddress: fmt.Sprintf("%s.dkr.ecr.%s.amazonaws.com", app.Outputs["RegistryId"], os.Getenv("AWS_REGION")),
-		Username:      os.Getenv("AWS_ACCESS"),
+		ServerAddress: fmt.Sprintf("%s.dkr.ecr.%s.amazonaws.com", *res.Account, os.Getenv("AWS_REGION")),
 	})
 }
 

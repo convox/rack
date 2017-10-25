@@ -241,7 +241,7 @@ func TestConvoxInstallFriendlyName(t *testing.T) {
 		}
 	}
 
-	data, err := ioutil.ReadFile("../../provider/aws/dist/rack.json")
+	data, err := ioutil.ReadFile("../../provider/aws/formation/rack.json")
 	assert.NoError(t, err)
 	assert.NotEmpty(t, data)
 

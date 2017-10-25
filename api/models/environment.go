@@ -57,9 +57,7 @@ func GetEnvironment(app string) (Environment, error) {
 	}
 
 	if a.Parameters["Key"] != "" {
-		cr := crypt.New(os.Getenv("AWS_REGION"), os.Getenv("AWS_ACCESS"), os.Getenv("AWS_SECRET"))
-
-		if d, err := cr.Decrypt(a.Parameters["Key"], data); err == nil {
+		if d, err := crypt.New().Decrypt(a.Parameters["Key"], data); err == nil {
 			data = d
 		}
 	}
@@ -100,9 +98,7 @@ func PutEnvironment(app string, env Environment) (string, error) {
 	e := []byte(env.Raw())
 
 	if a.Parameters["Key"] != "" {
-		cr := crypt.New(os.Getenv("AWS_REGION"), os.Getenv("AWS_ACCESS"), os.Getenv("AWS_SECRET"))
-
-		e, err = cr.Encrypt(a.Parameters["Key"], e)
+		e, err = crypt.New().Encrypt(a.Parameters["Key"], e)
 
 		if err != nil {
 			return "", err
@@ -135,9 +131,7 @@ func GetRackSettings() (Environment, error) {
 	}
 
 	if key != "" {
-		cr := crypt.New(os.Getenv("AWS_REGION"), os.Getenv("AWS_ACCESS"), os.Getenv("AWS_SECRET"))
-
-		if d, err := cr.Decrypt(key, data); err == nil {
+		if d, err := crypt.New().Decrypt(key, data); err == nil {
 			data = d
 		}
 	}
@@ -173,9 +167,7 @@ func PutRackSettings(env Environment) error {
 	}
 
 	if key != "" {
-		cr := crypt.New(os.Getenv("AWS_REGION"), os.Getenv("AWS_ACCESS"), os.Getenv("AWS_SECRET"))
-
-		e, err = cr.Encrypt(key, e)
+		e, err = crypt.New().Encrypt(key, e)
 
 		if err != nil {
 			return err

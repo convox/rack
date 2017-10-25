@@ -8,7 +8,7 @@ release:
 	make -C lambda/lifecycle release VERSION=$(VERSION)
 	mkdir -p /tmp/release/$(VERSION)
 	cd /tmp/release/$(VERSION)
-	jq '.Parameters.Version.Default |= "$(VERSION)"' dist/rack.json > formation.json
+	jq '.Parameters.Version.Default |= "$(VERSION)"' formation/rack.json > formation.json
 	aws s3 cp formation.json s3://convox/release/$(VERSION)/formation.json --acl public-read
 
 templates:

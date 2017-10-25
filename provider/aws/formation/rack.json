@@ -1,7 +1,6 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
   "Conditions": {
-    "Agent": { "Fn::Equals": [ { "Ref": "Agent" }, "Yes" ] },
     "Autoscale": { "Fn::Equals": [ { "Ref": "Autoscale" }, "Yes" ] },
     "BlankAmi": { "Fn::Equals": [ { "Ref": "Ami" }, "" ] },
     "BlankBuildImage": { "Fn::Equals": [ { "Ref": "BuildImage" }, "" ] },
@@ -74,22 +73,8 @@
     "AutoscalingGroup": {
       "Value": { "Ref": "Instances" }
     },
-    "AvailabilityZones": {
-      "Value": { "Ref": "AvailabilityZones" }
-    },
     "AwsRegion": {
       "Value": { "Ref": "AWS::Region" }
-    },
-    "AwsAccess": {
-      "Condition": "Development",
-      "Value": { "Ref": "KernelAccess" }
-    },
-    "AwsSecret": {
-      "Condition": "Development",
-      "Value": { "Fn::GetAtt": [ "KernelAccess", "SecretAccessKey" ] }
-    },
-    "BalancerSecurityGroup": {
-      "Value": { "Ref": "BalancerSecurityGroup" }
     },
     "BuildCluster": {
       "Value": { "Fn::If": [ "DedicatedBuilder", { "Ref": "BuildCluster" }, { "Ref": "Cluster" } ] }
@@ -125,12 +110,6 @@
     "GatewayAttachment": {
       "Condition": "BlankExistingVpc",
       "Value": { "Ref": "GatewayAttachment" }
-    },
-    "IamRole": {
-      "Value": { "Ref": "IamRole" }
-    },
-    "InstanceProfile": {
-      "Value": { "Ref": "InstanceProfile" }
     },
     "Internal": {
       "Value": { "Ref": "Internal" }
@@ -196,6 +175,14 @@
     "Release": {
       "Value": { "Ref": "Version" }
     },
+    "Router": {
+      "Value": { "Fn::Join": [ ".", [
+        "rack",
+        { "Fn::Select": [ 0, { "Fn::Split": [ ".", { "Fn::GetAtt": [ "Router", "DNSName" ] } ] } ] },
+        { "Fn::Select": [ 1, { "Fn::Split": [ ".", { "Fn::GetAtt": [ "Router", "DNSName" ] } ] } ] },
+        "rack.convox.io"
+      ] ] }
+    },
     "RouteTablePublic": {
       "Condition": "NotExistingVpcAndBlankInternetGateway",
       "Value": { "Ref": "Routes" }
@@ -207,7 +194,7 @@
       ] }
     },
     "SecurityGroup": {
-      "Value": { "Fn::If": [ "BlankInstanceSecurityGroup", { "Ref": "SecurityGroup" }, { "Ref": "InstanceSecurityGroup" } ] }
+      "Value": { "Fn::If": [ "BlankInstanceSecurityGroup", { "Ref": "InstancesSecurity" }, { "Ref": "InstanceSecurityGroup" } ] }
     },
     "SettingsBucket": {
       "Value": { "Ref": "Settings" }
@@ -256,12 +243,6 @@
     }
   },
   "Parameters": {
-    "Agent": {
-      "Type": "String",
-      "Description": "Run Convox agent on each instance",
-      "Default": "Yes",
-      "AllowedValues": [ "Yes", "No" ]
-    },
     "Ami": {
       "Type": "String",
       "Description": "Amazon Machine Image: http://docs.aws.amazon.com/AmazonECS/latest/developerguide/launch_container_instance.html",
@@ -271,11 +252,6 @@
       "Type": "String",
       "Description": "The number of api web processes to run",
       "Default": "2"
-    },
-    "ApiCpu": {
-      "Type": "String",
-      "Description": "How much cpu should be reserved by the api web process",
-      "Default": "128"
     },
     "ApiMemory": {
       "Type": "String",
@@ -491,8 +467,14 @@
     }
   },
   "Resources": {
+    "AvailabilityZones": {
+      "Type": "Custom::EC2AvailabilityZones",
+      "Properties": {
+        "ServiceToken": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
+        "Vpc": { "Fn::If": [ "BlankExistingVpc", { "Ref": "Vpc" }, { "Ref": "ExistingVpc" } ] }
+      }
+    },
     "EncryptionKey": {
-      "DependsOn": "CustomTopic",
       "Type": "Custom::KMSKey",
       "Properties": {
         "ServiceToken": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
@@ -509,124 +491,6 @@
     },
     "LogGroup": {
       "Type": "AWS::Logs::LogGroup"
-    },
-    "LogSubscriptionFilter": {
-      "DependsOn": [ "LogSubscriptionFilterPermission" ],
-      "Type" : "AWS::Logs::SubscriptionFilter",
-      "Properties" : {
-        "DestinationArn" : { "Fn::GetAtt": [ "LogSubscriptionFilterFunction", "Arn" ] },
-        "FilterPattern" : "",
-        "LogGroupName" : { "Ref": "LogGroup" }
-      }
-    },
-    "LogSubscriptionFilterFunction": {
-      "Type": "AWS::Lambda::Function",
-      "Properties": {
-        "Code": {
-          "ZipFile":  { "Fn::Join": ["\n", [
-            "var AWS = require('aws-sdk');",
-            "var zlib = require('zlib');",
-            "exports.handler = function(input, context) {",
-            "  var fn = process.env.AWS_LAMBDA_FUNCTION_NAME;",
-            "  var stack = fn.split('-').slice(0,-2).join('-');",
-            "  var cloudwatch = new AWS.CloudWatch();",
-            "  var payload = new Buffer(input.awslogs.data, 'base64');",
-            "  var dr = /(dim#)([^=]+)=(\\\")?([^ ]+)(\\\")?/g;",
-            "  var mr = /(count#|measure#|sample#)([\\w.]+)=(\\\")?([\\d.]+)([\\w/%\\/]+)?(\\\")?/g;",
-            "  var units = {'sec':'Seconds','s':'Seconds','us':'Microseconds','ms':'Milliseconds',",
-            "    'B':'Bytes','kB':'Kilobytes','mB':'Megabytes','gB':'Gigabytes','tB':'Terabytes',",
-            "    'b':'Bits','kb':'Kilobits','mb':'Megabits','gb':'Gigabits','tb':'Terabits',",
-            "    'B/s':'Bytes/Second','kB/s':'Kilobytes/Second','mB/s':'Megabytes/Second','gB/s':'Gigabytes/Second','tB/s':'Terabytes/Second',",
-            "    'b/s':'Bits/Second','kb/s':'Kilobits/Second','mb/s':'Megabits/Second','gb/s':'Gigabits/Second','tb/s':'Terabits/Second',",
-            "    '%':'Percent','count':'Count','count/s':'Count/Second'};",
-            "  zlib.gunzip(payload, function(e, r) {",
-            "    if (e) {",
-            "      context.fail(e);",
-            "    } else {",
-            "      data = [];",
-            "      r = JSON.parse(r.toString('ascii'));",
-            "      r.logEvents.forEach(function(e) {",
-            "        dims = [];",
-            "        e.message.replace(dr, function(match, p1, p2, p3, p4, p5, offset, string) {",
-            "          dims.push({Name: p2, Value: p4});",
-            "        });",
-            "        e.message.replace(mr, function(match, p1, p2, p3, p4, p5, p6, offset, string) {",
-            "          datum = {MetricName: p2, Dimensions: dims, Value: parseFloat(p4), Unit: units[p5] || 'None'};",
-            "          if (p1 == 'count#')",
-            "            datum.Unit = 'Count';",
-            "          data.push(datum);",
-            "        });",
-            "      });",
-            "      console.log('D:',data);",
-            "      var cb = function(err, d) { if (err) { console.log(err, err.stack); context.fail(err) } else console.log(d) };",
-            "      for (var i=0; i<data.length; i+=20) {",
-            "        cloudwatch.putMetricData({MetricData: data.slice(i, i+20), Namespace: stack}, cb);",
-            "      }",
-            "      context.succeed();",
-            "    }",
-            "  });",
-            "};"
-          ]]}
-        },
-        "Description": "Function to support Convox logs filtering",
-        "Handler": "index.handler",
-        "MemorySize": "128",
-        "Role": { "Fn::GetAtt": [ "LogSubscriptionFilterRole", "Arn" ] },
-        "Runtime": "nodejs4.3",
-        "Timeout": "30"
-      }
-    },
-    "LogSubscriptionFilterPermission": {
-      "Type": "AWS::Lambda::Permission",
-      "Properties" : {
-        "Action" : "lambda:InvokeFunction",
-        "FunctionName" : { "Ref": "LogSubscriptionFilterFunction" },
-        "Principal" : { "Fn::Join": [".", ["logs", { "Ref": "AWS::Region" }, "amazonaws.com"]] },
-        "SourceAccount" : { "Ref": "AWS::AccountId" },
-        "SourceArn" : { "Fn::GetAtt": [ "LogGroup", "Arn" ] }
-      }
-    },
-    "LogSubscriptionFilterRole": {
-      "Type": "AWS::IAM::Role",
-      "Properties": {
-        "AssumeRolePolicyDocument": {
-          "Version": "2012-10-17",
-          "Statement": [
-            {
-              "Effect": "Allow",
-              "Principal": { "Service": [ "lambda.amazonaws.com" ] },
-              "Action": [ "sts:AssumeRole" ]
-            }
-          ]
-        },
-        "Path": "/convox/",
-        "Policies": [
-          {
-            "PolicyName": "LogSubscriptionFilterRole",
-            "PolicyDocument": {
-              "Version": "2012-10-17",
-              "Statement": [
-                {
-                  "Effect": "Allow",
-                  "Action": [
-                    "logs:CreateLogGroup",
-                    "logs:CreateLogStream",
-                    "logs:PutLogEvents"
-                  ],
-                  "Resource": "arn:aws:logs:*:*:*"
-                },
-                {
-                  "Effect": "Allow",
-                  "Action": [
-                    "cloudwatch:PutMetricData"
-                  ],
-                  "Resource": "*"
-                }
-              ]
-            }
-          }
-        ]
-      }
     },
     "CustomTopicRole": {
       "Type": "AWS::IAM::Role",
@@ -663,7 +527,6 @@
       }
     },
     "CustomTopic": {
-      "DependsOn": ["CustomTopicRole"],
       "Type": "AWS::Lambda::Function",
       "Properties": {
         "Code": {
@@ -677,376 +540,6 @@
         "Runtime": "nodejs4.3",
         "Timeout": "300"
       }
-    },
-    "AvailabilityZones": {
-      "DependsOn": [ "CustomTopic" ],
-      "Type": "Custom::EC2AvailabilityZones",
-      "Properties": {
-        "ServiceToken": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
-        "Vpc": { "Fn::If": [ "BlankExistingVpc",
-          { "Ref": "Vpc" },
-          { "Ref": "ExistingVpc" }
-        ] }
-      }
-    },
-    "KernelUser": {
-      "DependsOn": [ "KernelUserPolicy", "KernelUserIAMPolicy", "KernelUserGeneralPolicy" ],
-      "Type": "AWS::IAM::User",
-      "Properties": {
-        "Path": "/convox/",
-        "ManagedPolicyArns": [
-          { "Ref": "KernelUserPolicy" },
-          { "Ref": "KernelUserIAMPolicy" },
-          { "Ref": "KernelUserGeneralPolicy" }
-        ]
-      }
-    },
-    "KernelUserGeneralPolicy": {
-      "Type" : "AWS::IAM::ManagedPolicy",
-      "Properties" : {
-        "Path": "/convox/",
-        "Description" : "Limited general policy used by the KernelUser",
-        "PolicyDocument" : {
-            "Version": "2012-10-17",
-            "Statement": [
-                {
-                    "Sid": "LimitedGeneralPermissions",
-                    "Effect": "Allow",
-                    "Action": [
-                      "acm:DeleteCertificate",
-                      "acm:DescribeCertificate",
-                      "acm:ListCertificates",
-                      "acm:RequestCertificate",
-                      "autoscaling:CreateAutoScalingGroup",
-                      "autoscaling:CreateLaunchConfiguration",
-                      "autoscaling:CreateOrUpdateTags",
-                      "autoscaling:DeleteAutoScalingGroup",
-                      "autoscaling:DeleteLaunchConfiguration",
-                      "autoscaling:DeleteLifecycleHook",
-                      "autoscaling:DeleteTags",
-                      "autoscaling:DescribeAutoScalingGroups",
-                      "autoscaling:DescribeAutoScalingInstances",
-                      "autoscaling:DescribeLaunchConfigurations",
-                      "autoscaling:DescribeScalingActivities",
-                      "autoscaling:DescribeScheduledActions",
-                      "autoscaling:DisableMetricsCollection",
-                      "autoscaling:EnableMetricsCollection",
-                      "autoscaling:PutLifecycleHook",
-                      "autoscaling:ResumeProcesses",
-                      "autoscaling:SetDesiredCapacity",
-                      "autoscaling:SetInstanceHealth",
-                      "autoscaling:SuspendProcesses",
-                      "autoscaling:TerminateInstanceInAutoScalingGroup",
-                      "autoscaling:UpdateAutoScalingGroup",
-                      "cloudformation:DescribeStacks",
-                      "cloudwatch:GetMetricStatistics",
-                      "ec2:AllocateAddress",
-                      "ec2:AssociateRouteTable",
-                      "ec2:AuthorizeSecurityGroupIngress",
-                      "ec2:CreateKeyPair",
-                      "ec2:CreateNatGateway",
-                      "ec2:CreateNetworkInterface",
-                      "ec2:CreateRoute",
-                      "ec2:CreateRouteTable",
-                      "ec2:CreateSecurityGroup",
-                      "ec2:CreateSubnet",
-                      "ec2:CreateTags",
-                      "ec2:CreateVpc",
-                      "ec2:DeleteNatGateway",
-                      "ec2:DeleteNetworkInterface",
-                      "ec2:DeleteRoute",
-                      "ec2:DeleteRouteTable",
-                      "ec2:DeleteSecurityGroup",
-                      "ec2:DeleteSubnet",
-                      "ec2:DeleteTags",
-                      "ec2:DeleteVpc",
-                      "ec2:DescribeAccountAttributes",
-                      "ec2:DescribeAddresses",
-                      "ec2:DescribeInstances",
-                      "ec2:DescribeNatGateways",
-                      "ec2:DescribeNetworkInterfaces",
-                      "ec2:DescribeRouteTables",
-                      "ec2:DescribeSecurityGroups",
-                      "ec2:DescribeSubnets",
-                      "ec2:DescribeVpcs",
-                      "ec2:DisassociateAddress",
-                      "ec2:DisassociateRouteTable",
-                      "ec2:ModifyNetworkInterfaceAttribute",
-                      "ec2:ModifyVpcAttribute",
-                      "ec2:ReleaseAddress",
-                      "ec2:RevokeSecurityGroupIngress",
-                      "ecs:CreateCluster",
-                      "ecs:CreateService",
-                      "ecs:DeleteService",
-                      "ecs:DeregisterTaskDefinition",
-                      "ecs:DescribeContainerInstances",
-                      "ecs:DescribeServices",
-                      "ecs:DescribeTaskDefinition",
-                      "ecs:DescribeTasks",
-                      "ecs:ListContainerInstances",
-                      "ecs:ListServices",
-                      "ecs:ListTaskDefinitions",
-                      "ecs:ListTasks",
-                      "ecs:RegisterTaskDefinition",
-                      "ecs:DeregisterTaskDefinition",
-                      "ecs:RunTask",
-                      "ecs:StopTask",
-                      "ecs:UpdateService",
-                      "elasticache:CreateCacheCluster",
-                      "elasticache:CreateCacheSubnetGroup",
-                      "elasticache:CreateReplicationGroup",
-                      "elasticache:DeleteCacheCluster",
-                      "elasticache:DeleteCacheSubnetGroup",
-                      "elasticache:DeleteReplicationGroup",
-                      "elasticache:DescribeCacheClusters",
-                      "elasticache:DescribeCacheSubnetGroups",
-                      "elasticache:DescribeReplicationGroups",
-                      "elasticache:ModifyCacheCluster",
-                      "elasticache:ModifyReplicationGroup",
-                      "elasticfilesystem:CreateFileSystem",
-                      "elasticfilesystem:CreateMountTarget",
-                      "elasticfilesystem:CreateTags",
-                      "elasticfilesystem:DeleteMountTarget",
-                      "elasticfilesystem:DescribeFileSystems",
-                      "elasticfilesystem:DescribeMountTargets",
-                      "elasticfilesystem:DescribeMountTargetSecurityGroups",
-                      "elasticfilesystem:ModifyMountTargetSecurityGroups",
-                      "elasticloadbalancing:ApplySecurityGroupsToLoadBalancer",
-                      "elasticloadbalancing:AttachLoadBalancerToSubnets",
-                      "elasticloadbalancing:ConfigureHealthCheck",
-                      "elasticloadbalancing:CreateLoadBalancer",
-                      "elasticloadbalancing:CreateLoadBalancerListeners",
-                      "elasticloadbalancing:CreateLoadBalancerPolicy",
-                      "elasticloadbalancing:DeleteLoadBalancer",
-                      "elasticloadbalancing:DeleteLoadBalancerListeners",
-                      "elasticloadbalancing:DeleteLoadBalancerPolicy",
-                      "elasticloadbalancing:DescribeLoadBalancers",
-                      "elasticloadbalancing:ModifyLoadBalancerAttributes",
-                      "elasticloadbalancing:SetLoadBalancerPoliciesForBackendServer",
-                      "elasticloadbalancing:SetLoadBalancerPoliciesOfListener",
-                      "elasticloadbalancing:CreateLoadBalancerListener",
-                      "elasticloadbalancing:CreateTargetGroup",
-                      "elasticloadbalancing:DeleteLoadBalancerListener",
-                      "elasticloadbalancing:DeleteTargetGroup",
-                      "elasticloadbalancing:DescribeTargetGroups",
-                      "elasticloadbalancing:ModifyTargetGroupAttributes",
-                      "elasticloadbalancing:AddTags",
-                      "elasticloadbalancing:RemoveTags",
-                      "elasticloadbalancing:CreateListener",
-                      "elasticloadbalancing:DeleteListener",
-                      "elasticloadbalancing:DescribeListeners",
-                      "elasticloadbalancing:RegisterTargets",
-                      "elasticloadbalancing:DeregisterTargets",
-                      "events:DescribeRule",
-                      "iam:DeleteServerCertificate",
-                      "iam:GetPolicy",
-                      "iam:GetServerCertificate",
-                      "iam:ListServerCertificates",
-                      "iam:PassRole",
-                      "iam:UploadServerCertificate",
-                      "kms:CreateAlias",
-                      "kms:Decrypt",
-                      "kms:DeleteAlias",
-                      "kms:GenerateDataKey",
-                      "kms:GenerateRandom",
-                      "kms:CreateAlias",
-                      "kms:ListAliases",
-                      "lambda:CreateFunction",
-                      "lambda:GetFunctionConfiguration",
-                      "lambda:ListTags",
-                      "lambda:TagResource",
-                      "lambda:UntagResource",
-                      "lambda:UpdateFunctionCode",
-                      "logs:CreateLogGroup",
-                      "logs:CreateLogStream",
-                      "logs:DeleteLogGroup",
-                      "logs:DeleteSubscriptionFilter",
-                      "logs:DescribeLogGroups",
-                      "logs:FilterLogEvents",
-                      "logs:PutLogEvents",
-                      "logs:PutSubscriptionFilter",
-                      "rds:CreateDBInstance",
-                      "rds:CreateDBParameterGroup",
-                      "rds:CreateDBSubnetGroup",
-                      "rds:DescribeDBInstances",
-                      "rds:DescribeDBParameters",
-                      "rds:DescribeDBSnapshots",
-                      "rds:DescribeDBSubnetGroups",
-                      "rds:DescribeEngineDefaultParameters",
-                      "rds:DescribeEvents",
-                      "rds:RestoreDBInstanceFromDBSnapshot",
-                      "s3:CreateBucket",
-                      "s3:GetObject",
-                      "sns:ConfirmSubscription",
-                      "sns:CreateTopic",
-                      "sns:DeleteTopic",
-                      "sns:GetTopicAttributes",
-                      "sns:ListTopics",
-                      "sns:ListSubscriptionsByTopic",
-                      "sns:Publish",
-                      "sns:SetTopicAttributes",
-                      "sns:Subscribe",
-                      "sns:Unsubscribe",
-                      "sqs:CreateQueue",
-                      "sqs:DeleteMessage",
-                      "sqs:DeleteQueue",
-                      "sqs:GetQueueAttributes",
-                      "sqs:ReceiveMessage",
-                      "sqs:SetQueueAttributes"
-                    ],
-                    "Resource": "*"
-                }
-            ]
-        }
-      }
-    },
-    "KernelUserPolicy": {
-      "Type" : "AWS::IAM::ManagedPolicy",
-      "Properties" : {
-        "Path": "/convox/",
-        "Description" : "Policy used by the KernelUser",
-        "PolicyDocument" : {
-            "Version": "2012-10-17",
-            "Statement": [
-                {
-                  "Action": "ecs:DeleteCluster",
-                  "Resource": [
-                    { "Fn::Join": [ "", [ "arn:aws:ecs:*:*:cluster/", { "Ref": "AWS::StackName" }, "*" ] ] }
-                  ],
-                  "Effect": "Allow",
-                  "Sid": "LimitedECSAccess"
-                },
-                {
-                  "Sid": "LimitedDynamoDBAccess",
-                  "Action": "dynamodb:*",
-                  "Effect": "Allow",
-                  "Resource": [
-                      { "Fn::Join": [ "", [ "arn:aws:dynamodb:*:*:table/", { "Ref": "AWS::StackName" }, "-*" ] ] },
-                      { "Fn::Join": [ "", [ "arn:aws:dynamodb:*:*:table/", { "Ref": "AWS::StackName" }, "-*/index/*" ] ] }
-                  ]
-                }, {
-                  "Sid": "LimitedRDSAccess",
-                  "Action": "rds:*",
-                  "Effect": "Allow",
-                  "Resource": [
-                      { "Fn::Join": [ "", [ "arn:aws:rds:*:*:db:", { "Ref": "AWS::StackName" }, "-*"] ] },
-                      { "Fn::Join": [ "", [ "arn:aws:rds:*:*:pg:", { "Ref": "AWS::StackName" }, "-*"] ] },
-                      { "Fn::Join": [ "", [ "arn:aws:rds:*:*:subgrp:", { "Ref": "AWS::StackName" }, "-*"] ] }
-                  ]
-                }, {
-                  "Sid": "LimitedLambdaAccess",
-                  "Action": "lambda:*",
-                  "Effect": "Allow",
-                  "Resource": [
-                      { "Fn::Join": [ "", [ "arn:aws:lambda:*:*:function:", { "Ref": "AWS::StackName" }, "-*"] ] }
-                  ]
-                }, {
-                  "Sid": "LimitedCloudFlormationAccess",
-                  "Action": "cloudformation:*",
-                  "Effect": "Allow",
-                  "Resource": [
-                      { "Fn::Join": [ "", [ "arn:aws:cloudformation:*:*:stack/", { "Ref": "AWS::StackName" }, "*"] ] }
-                  ]
-                }, {
-                  "Sid": "LimitedECRAccess",
-                  "Action": "ecr:*",
-                  "Effect": "Allow",
-                  "Resource": [
-                      { "Fn::Join": [ "", [ "arn:aws:ecr:*:*:repository/", { "Ref": "AWS::StackName" }, "*"] ] }
-                  ]
-                }, {
-                  "Sid": "ReadOnlyECRAccess",
-                  "Action": [
-                    "ecr:GetAuthorizationToken",
-                    "ecr:BatchCheckLayerAvailability",
-                    "ecr:GetDownloadUrlForLayer",
-                    "ecr:GetRepositoryPolicy",
-                    "ecr:DescribeRepositories",
-                    "ecr:ListImages",
-                    "ecr:DescribeImages",
-                    "ecr:BatchGetImage"
-                  ],
-                  "Effect": "Allow",
-                  "Resource": "*"
-                }, {
-                  "Sid": "LimitedCloudWatchEventAccess",
-                  "Action": "events:*",
-                  "Effect": "Allow",
-                  "Resource": [
-                      { "Fn::Join": [ "", [ "arn:aws:events:*:*:rule/", { "Ref": "AWS::StackName" }, "*"] ] }
-                  ]
-                }, {
-                  "Sid": "LimitedS3Access",
-                  "Action": "s3:*",
-                  "Effect": "Allow",
-                  "Resource": [
-                      { "Fn::Join": [ "", [ "arn:aws:s3:::", { "Ref": "AWS::StackName" }, "-*"] ] },
-                      { "Fn::Join": [ "", [ "arn:aws:s3:::", { "Ref": "AWS::StackName" }, "-*/*"] ] }
-                  ]
-                }
-            ]
-        }
-      }
-    },
-    "KernelUserIAMPolicy": {
-      "Type" : "AWS::IAM::ManagedPolicy",
-      "Properties" : {
-        "Path": "/convox/",
-        "Description" : "Limited IAM policy used by the KernelUser",
-        "PolicyDocument" : {
-            "Version": "2012-10-17",
-            "Statement": [
-                {
-                    "Sid": "LimitedIAMPermissions",
-                    "Effect": "Allow",
-                    "Action": [
-                      "iam:AddRoleToInstanceProfile",
-                      "iam:AttachRolePolicy",
-                      "iam:AttachUserPolicy",
-                      "iam:CreateAccessKey",
-                      "iam:CreateInstanceProfile",
-                      "iam:CreatePolicy",
-                      "iam:CreatePolicyVersion",
-                      "iam:CreateRole",
-                      "iam:CreateUser",
-                      "iam:DeleteAccessKey",
-                      "iam:DeleteInstanceProfile",
-                      "iam:DeletePolicy",
-                      "iam:DeletePolicyVersion",
-                      "iam:DeleteRole",
-                      "iam:DeleteRolePolicy",
-                      "iam:DeleteUser",
-                      "iam:DeleteUserPolicy",
-                      "iam:DetachRolePolicy",
-                      "iam:DetachUserPolicy",
-                      "iam:GetRole",
-                      "iam:ListAccessKeys",
-                      "iam:ListPolicyVersions",
-                      "iam:PutRolePolicy",
-                      "iam:PutUserPolicy",
-                      "iam:RemoveRoleFromInstanceProfile"
-                    ],
-                    "Resource": [
-                      "arn:aws:iam::*:instance-profile/convox/*",
-                      "arn:aws:iam::*:policy/convox/*",
-                      "arn:aws:iam::*:role/convox/*",
-                      "arn:aws:iam::*:user/convox/*"
-                    ]
-                }
-            ]
-        }
-      }
-    },
-    "KernelAccess": {
-      "Type": "AWS::IAM::AccessKey",
-      "Properties": {
-        "Serial": "1",
-        "Status": "Active",
-        "UserName": { "Ref": "KernelUser" }
-      }
-    },
-    "Cluster": {
-      "Type": "AWS::ECS::Cluster"
     },
     "Vpc": {
       "Type": "AWS::EC2::VPC",
@@ -1089,7 +582,6 @@
     },
     "Nat0": {
       "Condition": "Private",
-      "DependsOn": ["KernelAccess", "KernelUser"],
       "Type": "AWS::EC2::NatGateway",
       "Properties": {
         "AllocationId": { "Fn::GetAtt": [ "NatAddress0", "AllocationId" ] },
@@ -1098,7 +590,6 @@
     },
     "Nat1": {
       "Condition": "Private",
-      "DependsOn": ["KernelAccess", "KernelUser"],
       "Type": "AWS::EC2::NatGateway",
       "Properties": {
         "AllocationId": { "Fn::GetAtt": [ "NatAddress1", "AllocationId" ] },
@@ -1107,7 +598,6 @@
     },
     "Nat2": {
       "Condition": "PrivateAndThirdAvailabilityZone",
-      "DependsOn": ["KernelAccess", "KernelUser"],
       "Type": "AWS::EC2::NatGateway",
       "Properties": {
         "AllocationId": { "Fn::GetAtt": [ "NatAddress2", "AllocationId" ] },
@@ -1169,7 +659,6 @@
       }
     },
     "Subnet0": {
-      "DependsOn": [ "AvailabilityZones" ],
       "Type": "AWS::EC2::Subnet",
       "Properties": {
         "Tags": [
@@ -1184,7 +673,6 @@
       }
     },
     "Subnet1": {
-      "DependsOn": [ "AvailabilityZones" ],
       "Type": "AWS::EC2::Subnet",
       "Properties": {
         "Tags": [
@@ -1200,7 +688,6 @@
     },
     "Subnet2": {
       "Condition": "ThirdAvailabilityZone",
-      "DependsOn": [ "AvailabilityZones" ],
       "Type": "AWS::EC2::Subnet",
       "Properties": {
         "Tags": [
@@ -1216,12 +703,9 @@
     },
     "SubnetPrivate0": {
       "Condition": "Private",
-      "DependsOn": [ "AvailabilityZones" ],
       "Type": "AWS::EC2::Subnet",
       "Properties": {
-        "Tags": [
-          { "Key": "Name", "Value": { "Fn::Join": [ " ", [ { "Ref": "AWS::StackName" }, "private", "0" ] ] } }
-        ],
+        "Tags": [ { "Key": "Name", "Value": { "Fn::Join": [ " ", [ { "Ref": "AWS::StackName" }, "private", "0" ] ] } } ],
         "AvailabilityZone": { "Fn::GetAtt": [ "AvailabilityZones", "AvailabilityZone0" ] },
         "CidrBlock": { "Ref": "SubnetPrivate0CIDR" },
         "VpcId": { "Fn::If": [ "BlankExistingVpc",
@@ -1232,12 +716,9 @@
     },
     "SubnetPrivate1": {
       "Condition": "Private",
-      "DependsOn": [ "AvailabilityZones" ],
       "Type": "AWS::EC2::Subnet",
       "Properties": {
-        "Tags": [
-          { "Key": "Name", "Value": { "Fn::Join": [ " ", [ { "Ref": "AWS::StackName" }, "private", "1" ] ] } }
-        ],
+        "Tags": [ { "Key": "Name", "Value": { "Fn::Join": [ " ", [ { "Ref": "AWS::StackName" }, "private", "1" ] ] } } ],
         "AvailabilityZone": { "Fn::GetAtt": [ "AvailabilityZones", "AvailabilityZone1" ] },
         "CidrBlock": { "Ref": "SubnetPrivate1CIDR" },
         "VpcId": { "Fn::If": [ "BlankExistingVpc",
@@ -1248,12 +729,9 @@
     },
     "SubnetPrivate2": {
       "Condition": "PrivateAndThirdAvailabilityZone",
-      "DependsOn": [ "AvailabilityZones" ],
       "Type": "AWS::EC2::Subnet",
       "Properties": {
-        "Tags": [
-          { "Key": "Name", "Value": { "Fn::Join": [ " ", [ { "Ref": "AWS::StackName" }, "private", "2" ] ] } }
-        ],
+        "Tags": [ { "Key": "Name", "Value": { "Fn::Join": [ " ", [ { "Ref": "AWS::StackName" }, "private", "2" ] ] } } ],
         "AvailabilityZone": { "Fn::GetAtt": [ "AvailabilityZones", "AvailabilityZone2" ] },
         "CidrBlock": { "Ref": "SubnetPrivate2CIDR" },
         "VpcId": { "Fn::If": [ "BlankExistingVpc",
@@ -1276,7 +754,6 @@
       }
     },
     "RouteDefault": {
-      "DependsOn": [ "Routes" ],
       "Type": "AWS::EC2::Route",
       "Condition": "NotExistingVpcAndBlankInternetGateway",
       "Properties": {
@@ -1332,7 +809,6 @@
     },
     "RouteDefaultPrivate0": {
       "Condition": "Private",
-      "DependsOn": [ "Nat0", "RouteTablePrivate0" ],
       "Type": "AWS::EC2::Route",
       "Properties": {
         "DestinationCidrBlock": "0.0.0.0/0",
@@ -1342,7 +818,6 @@
     },
     "RouteDefaultPrivate1": {
       "Condition": "Private",
-      "DependsOn": [ "Nat1", "RouteTablePrivate1" ],
       "Type": "AWS::EC2::Route",
       "Properties": {
         "DestinationCidrBlock": "0.0.0.0/0",
@@ -1352,7 +827,6 @@
     },
     "RouteDefaultPrivate2": {
       "Condition": "PrivateAndThirdAvailabilityZone",
-      "DependsOn": [ "Nat2", "RouteTablePrivate2" ],
       "Type": "AWS::EC2::Route",
       "Properties": {
         "DestinationCidrBlock": "0.0.0.0/0",
@@ -1362,7 +836,6 @@
     },
     "Subnet0Routes": {
       "Condition": "NotExistingVpcAndBlankInternetGateway",
-      "DependsOn": [ "Subnet0", "Routes" ],
       "Type": "AWS::EC2::SubnetRouteTableAssociation",
       "Properties": {
         "SubnetId": { "Ref": "Subnet0" },
@@ -1371,7 +844,6 @@
     },
     "Subnet1Routes": {
       "Condition": "NotExistingVpcAndBlankInternetGateway",
-      "DependsOn": [ "Subnet1", "Routes" ],
       "Type": "AWS::EC2::SubnetRouteTableAssociation",
       "Properties": {
         "SubnetId": { "Ref": "Subnet1" },
@@ -1380,7 +852,6 @@
     },
     "Subnet2Routes": {
       "Condition": "ThirdAvailabilityZoneAndNotExistingVpcAndBlankInternetGateway",
-      "DependsOn": [ "Subnet2", "Routes" ],
       "Type": "AWS::EC2::SubnetRouteTableAssociation",
       "Properties": {
         "SubnetId": { "Ref": "Subnet2" },
@@ -1389,7 +860,6 @@
     },
     "SubnetPrivate0Routes": {
       "Condition": "Private",
-      "DependsOn": [ "SubnetPrivate0", "RouteTablePrivate0" ],
       "Type": "AWS::EC2::SubnetRouteTableAssociation",
       "Properties": {
         "SubnetId": { "Ref": "SubnetPrivate0" },
@@ -1398,7 +868,6 @@
     },
     "SubnetPrivate1Routes": {
       "Condition": "Private",
-      "DependsOn": [ "SubnetPrivate1", "RouteTablePrivate1" ],
       "Type": "AWS::EC2::SubnetRouteTableAssociation",
       "Properties": {
         "SubnetId": { "Ref": "SubnetPrivate1" },
@@ -1407,24 +876,23 @@
     },
     "SubnetPrivate2Routes": {
       "Condition": "PrivateAndThirdAvailabilityZone",
-      "DependsOn": [ "SubnetPrivate2", "RouteTablePrivate2" ],
       "Type": "AWS::EC2::SubnetRouteTableAssociation",
       "Properties": {
         "SubnetId": { "Ref": "SubnetPrivate2" },
         "RouteTableId": { "Ref": "RouteTablePrivate2" }
       }
     },
-    "SecurityGroup": {
+    "InstancesSecurity": {
+      "DependsOn": "ApiRole",
       "Type": "AWS::EC2::SecurityGroup",
-      "DependsOn": "KernelUser",
       "Properties": {
-        "GroupDescription": "Instances",
+        "GroupDescription": { "Fn::Sub": "${AWS::StackName} instances" },
         "SecurityGroupIngress": [
           { "IpProtocol": "tcp", "FromPort": "0", "ToPort": "65535", "CidrIp": { "Ref": "VPCCIDR" } },
           { "IpProtocol": "udp", "FromPort": "0", "ToPort": "65535", "CidrIp": { "Ref": "VPCCIDR" } }
         ],
         "Tags": [
-          { "Key": "Name", "Value": { "Ref": "AWS::StackName" } }
+          { "Key": "Name", "Value": { "Fn::Sub": "${AWS::StackName}-instances" } }
         ],
         "VpcId": { "Fn::If": [ "BlankExistingVpc",
           { "Ref": "Vpc" },
@@ -1432,67 +900,26 @@
         ] }
       }
     },
-    "IamRole": {
+    "InstancesRole": {
       "Type": "AWS::IAM::Role",
       "Properties": {
         "AssumeRolePolicyDocument": {
-          "Version": "2012-10-17",
-          "Statement": [
-            {
-              "Effect": "Allow",
-              "Principal": { "Service": [ "ec2.amazonaws.com" ] },
-              "Action": [ "sts:AssumeRole" ]
-            }
-          ]
+          "Statement": [ { "Effect": "Allow", "Principal": { "Service": [ "ec2.amazonaws.com" ] }, "Action": [ "sts:AssumeRole" ] } ],
+          "Version": "2012-10-17"
         },
         "Path": "/convox/",
-        "Policies": [
-          {
-            "PolicyName": "ClusterInstanceRole",
-            "PolicyDocument": {
-              "Version": "2012-10-17",
-              "Statement": [
-                {
-                  "Effect": "Allow",
-                  "Action": [
-                    "autoscaling:CompleteLifecycleAction",
-                    "autoscaling:DescribeAutoScalingInstances",
-                    "autoscaling:DescribeLifecycleHooks",
-                    "autoscaling:SetInstanceHealth",
-                    "ecr:GetAuthorizationToken",
-                    "ecr:GetDownloadUrlForLayer",
-                    "ecr:BatchGetImage",
-                    "ecr:BatchCheckLayerAvailability",
-                    "ec2:DescribeInstances",
-                    "ecs:CreateCluster",
-                    "ecs:DeregisterContainerInstance",
-                    "ecs:DiscoverPollEndpoint",
-                    "ecs:Poll",
-                    "ecs:RegisterContainerInstance",
-                    "ecs:StartTelemetrySession",
-                    "ecs:Submit*",
-                    "kinesis:PutRecord",
-                    "kinesis:PutRecords",
-                    "logs:CreateLogStream",
-                    "logs:DescribeLogStreams",
-                    "logs:PutLogEvents"
-                  ],
-                  "Resource": [
-                    "*"
-                  ]
-                }
-              ]
-            }
-          }
+        "ManagedPolicyArns": [
+          "arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceforEC2Role",
+          "arn:aws:iam::aws:policy/AutoScalingFullAccess"
         ]
       }
     },
-    "InstanceProfile": {
-      "DependsOn": "IamRole",
+    "InstancesProfile": {
+      "DependsOn": "ApiRole",
       "Type": "AWS::IAM::InstanceProfile",
       "Properties": {
         "Path": "/convox/",
-        "Roles": [ { "Ref": "IamRole" } ]
+        "Roles": [ { "Ref": "InstancesRole" } ]
       }
     },
     "BuildCluster": {
@@ -1500,7 +927,6 @@
       "Type": "AWS::ECS::Cluster"
     },
     "BuildLaunchConfiguration": {
-      "DependsOn": [ "Balancer", "Cluster", "InstanceProfile", "SecurityGroup", "LogGroup" ],
       "Condition": "DedicatedBuilder",
       "Type": "AWS::AutoScaling::LaunchConfiguration",
       "Properties": {
@@ -1523,13 +949,13 @@
             }
           }
         ],
-        "IamInstanceProfile": { "Ref": "InstanceProfile" },
+        "IamInstanceProfile": { "Ref": "InstancesProfile" },
         "ImageId": { "Fn::If": [ "BlankAmi", { "Fn::FindInMap": [ "RegionConfig", { "Ref": "AWS::Region" }, "Ami" ] }, { "Ref": "Ami" } ] },
         "InstanceMonitoring": true,
         "InstanceType": { "Ref": "BuildInstance" },
         "KeyName": { "Fn::If": [ "BlankKey", { "Ref": "AWS::NoValue" }, { "Ref": "Key" } ] },
         "PlacementTenancy" : { "Ref": "Tenancy" },
-        "SecurityGroups": [ { "Fn::If": [ "BlankInstanceSecurityGroup", { "Ref": "SecurityGroup" }, { "Ref": "InstanceSecurityGroup" } ] } ],
+        "SecurityGroups": [ { "Fn::If": [ "BlankInstanceSecurityGroup", { "Ref": "InstancesSecurity" }, { "Ref": "InstanceSecurityGroup" } ] } ],
         "UserData": { "Fn::Base64":
           { "Fn::Join": [ "", [
             "#cloud-config\n",
@@ -1576,7 +1002,6 @@
               ] ] },
               { "Ref": "AWS::NoValue" }
             ] },
-            "  - mkdir -p /etc/convox\n",
             "  - echo -e '/var/log/docker {\\n  rotate 7\\n  daily\\n  nocompress\\n  copytruncate\\n}' >> /etc/logrotate.d/docker\n",
             { "Fn::If": [ "BlankInstanceBootCommand",
               { "Ref": "AWS::NoValue" },
@@ -1597,16 +1022,10 @@
       }
     },
     "BuildInstances": {
-      "DependsOn": [ "AvailabilityZones", "Subnet0", "Subnet1" ],
       "Condition": "DedicatedBuilder",
       "Type": "AWS::AutoScaling::AutoScalingGroup",
       "Properties" : {
         "LaunchConfigurationName" : { "Ref": "BuildLaunchConfiguration" },
-        "AvailabilityZones": [
-          { "Fn::GetAtt": [ "AvailabilityZones", "AvailabilityZone0" ] },
-          { "Fn::GetAtt": [ "AvailabilityZones", "AvailabilityZone1" ] },
-          { "Fn::If": [ "ThirdAvailabilityZone", { "Fn::GetAtt": [ "AvailabilityZones", "AvailabilityZone2" ] }, { "Ref": "AWS::NoValue" } ] }
-        ],
         "VPCZoneIdentifier": {
           "Fn::If": [ "Private", [
             { "Ref": "SubnetPrivate0" },
@@ -1656,7 +1075,6 @@
       }
     },
     "LaunchConfiguration": {
-      "DependsOn": [ "Balancer", "Cluster", "InstanceProfile", "SecurityGroup", "LogGroup" ],
       "Type": "AWS::AutoScaling::LaunchConfiguration",
       "Properties": {
         "AssociatePublicIpAddress": { "Fn::If": [ "Private", false, true ] },
@@ -1686,13 +1104,13 @@
             }
           }
         ],
-        "IamInstanceProfile": { "Ref": "InstanceProfile" },
+        "IamInstanceProfile": { "Ref": "InstancesProfile" },
         "ImageId": { "Fn::If": [ "BlankAmi", { "Fn::FindInMap": [ "RegionConfig", { "Ref": "AWS::Region" }, "Ami" ] }, { "Ref": "Ami" } ] },
         "InstanceMonitoring": true,
         "InstanceType": { "Ref": "InstanceType" },
         "KeyName": { "Fn::If": [ "BlankKey", { "Ref": "AWS::NoValue" }, { "Ref": "Key" } ] },
         "PlacementTenancy" : { "Ref": "Tenancy" },
-        "SecurityGroups": [ { "Fn::If": [ "BlankInstanceSecurityGroup", { "Ref": "SecurityGroup" }, { "Ref": "InstanceSecurityGroup" } ] } ],
+        "SecurityGroups": [ { "Fn::If": [ "BlankInstanceSecurityGroup", { "Ref": "InstancesSecurity" }, { "Ref": "InstanceSecurityGroup" } ] } ],
         "UserData": { "Fn::Base64":
           { "Fn::Join": [ "", [
             "#cloud-config\n",
@@ -1751,14 +1169,6 @@
               ] ] },
               { "Ref": "AWS::NoValue" }
             ] },
-            "  - mkdir -p /etc/convox\n",
-            "  - echo \"", { "Ref": "AWS::Region" }, "\" > /etc/convox/region\n",
-            "  - echo \"", { "Ref": "ClientId" }, "\" > /etc/convox/client_id\n",
-            "  - echo \"", { "Ref": "LogGroup" }, "\" > /etc/convox/log_group\n",
-            { "Fn::If": [ "Agent",
-              "  - curl -s https://convox.s3.amazonaws.com/agent/0.73/convox.conf > /etc/init/convox.conf\n",
-              ""
-            ] },
             "  - echo -e '/var/log/docker {\\n  rotate 7\\n  daily\\n  nocompress\\n  copytruncate\\n}' >> /etc/logrotate.d/docker\n",
             { "Fn::If": [ "BlankInstanceBootCommand",
               { "Ref": "AWS::NoValue" },
@@ -1783,15 +1193,9 @@
       }
     },
     "Instances": {
-      "DependsOn": [ "AvailabilityZones", "Subnet0", "Subnet1" ],
       "Type": "AWS::AutoScaling::AutoScalingGroup",
       "Properties" : {
         "LaunchConfigurationName" : { "Ref": "LaunchConfiguration" },
-        "AvailabilityZones": [
-          { "Fn::GetAtt": [ "AvailabilityZones", "AvailabilityZone0" ] },
-          { "Fn::GetAtt": [ "AvailabilityZones", "AvailabilityZone1" ] },
-          { "Fn::If": [ "ThirdAvailabilityZone", { "Fn::GetAtt": [ "AvailabilityZones", "AvailabilityZone2" ] }, { "Ref": "AWS::NoValue" } ] }
-        ],
         "VPCZoneIdentifier": {
           "Fn::If": [ "Private", [
             { "Ref": "SubnetPrivate0" },
@@ -1903,7 +1307,6 @@
       }
     },
     "InstancesLifecycleHandler": {
-      "DependsOn": ["InstancesLifecycleHandlerRole"],
       "Type": "AWS::Lambda::Function",
       "Properties": {
         "Code": {
@@ -1975,7 +1378,6 @@
     },
     "SpotLaunchConfiguration": {
       "Condition": "SpotInstances",
-      "DependsOn": [ "Balancer", "Cluster", "InstanceProfile", "SecurityGroup", "LogGroup" ],
       "Type": "AWS::AutoScaling::LaunchConfiguration",
       "Properties": {
         "AssociatePublicIpAddress": { "Fn::If": [ "Private", false, true ] },
@@ -2005,12 +1407,12 @@
             }
           }
         ],
-        "IamInstanceProfile": { "Ref": "InstanceProfile" },
+        "IamInstanceProfile": { "Ref": "InstancesProfile" },
         "ImageId": { "Fn::If": [ "BlankAmi", { "Fn::FindInMap": [ "RegionConfig", { "Ref": "AWS::Region" }, "Ami" ] }, { "Ref": "Ami" } ] },
         "InstanceMonitoring": true,
         "InstanceType": { "Ref": "InstanceType" },
         "KeyName": { "Fn::If": [ "BlankKey", { "Ref": "AWS::NoValue" }, { "Ref": "Key" } ] },
-        "SecurityGroups": [ { "Ref": "SecurityGroup" } ],
+        "SecurityGroups": [ { "Ref": "InstancesSecurity" } ],
         "SpotPrice": { "Ref": "SpotInstanceBid" },
         "UserData": { "Fn::Base64":
           { "Fn::Join": [ "", [
@@ -2070,14 +1472,6 @@
               ] ] },
               { "Ref": "AWS::NoValue" }
             ] },
-            "  - mkdir -p /etc/convox\n",
-            "  - echo \"", { "Ref": "AWS::Region" }, "\" > /etc/convox/region\n",
-            "  - echo \"", { "Ref": "ClientId" }, "\" > /etc/convox/client_id\n",
-            "  - echo \"", { "Ref": "LogGroup" }, "\" > /etc/convox/log_group\n",
-            { "Fn::If": [ "Agent",
-              "  - curl -s https://convox.s3.amazonaws.com/agent/0.73/convox.conf > /etc/init/convox.conf\n",
-              ""
-            ] },
             "  - echo -e '/var/log/docker {\\n  rotate 7\\n  daily\\n  nocompress\\n  copytruncate\\n}' >> /etc/logrotate.d/docker\n",
             { "Fn::If": [ "BlankInstanceBootCommand",
               { "Ref": "AWS::NoValue" },
@@ -2103,15 +1497,9 @@
     },
     "SpotInstances": {
       "Condition": "SpotInstances",
-      "DependsOn": [ "AvailabilityZones", "Subnet0", "Subnet1" ],
       "Type": "AWS::AutoScaling::AutoScalingGroup",
       "Properties" : {
         "LaunchConfigurationName" : { "Ref": "SpotLaunchConfiguration" },
-        "AvailabilityZones": [
-          { "Fn::GetAtt": [ "AvailabilityZones", "AvailabilityZone0" ] },
-          { "Fn::GetAtt": [ "AvailabilityZones", "AvailabilityZone1" ] },
-          { "Fn::If": [ "ThirdAvailabilityZone", { "Fn::GetAtt": [ "AvailabilityZones", "AvailabilityZone2" ] }, { "Ref": "AWS::NoValue" } ] }
-        ],
         "VPCZoneIdentifier": {
           "Fn::If": [ "Private", [
             { "Ref": "SubnetPrivate0" },
@@ -2153,6 +1541,53 @@
         ]
       }
     },
+    "VolumeFilesystem": {
+      "Type": "AWS::EFS::FileSystem",
+      "Condition": "RegionHasEFS",
+      "Properties": {
+        "FileSystemTags": [
+          { "Key": "Name", "Value": { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" }, "shared-volumes" ] ] } }
+        ]
+      }
+    },
+    "VolumeSecurity": {
+      "DependsOn": "ApiRole",
+      "Type": "AWS::EC2::SecurityGroup",
+      "Condition": "RegionHasEFS",
+      "Properties": {
+        "GroupDescription": { "Fn::Sub": "${AWS::StackName} volumes" },
+        "SecurityGroupIngress": [ { "IpProtocol": "tcp", "FromPort": "2049", "ToPort": "2049", "CidrIp": { "Ref": "VPCCIDR" } } ],
+        "Tags": [ { "Key": "Name", "Value": { "Fn::Sub": "${AWS::StackName}-volumes" } } ],
+        "VpcId": { "Fn::If": [ "BlankExistingVpc", { "Ref": "Vpc" }, { "Ref": "ExistingVpc" } ] }
+      }
+    },
+    "VolumeTarget0": {
+      "Type": "AWS::EFS::MountTarget",
+      "Condition": "RegionHasEFS",
+      "Properties": {
+        "FileSystemId": { "Ref": "VolumeFilesystem" },
+        "SubnetId": { "Fn::If": [ "Private", { "Ref": "SubnetPrivate0" }, { "Ref": "Subnet0" } ] },
+        "SecurityGroups": [ { "Ref": "VolumeSecurity" } ]
+      }
+    },
+    "VolumeTarget1": {
+      "Type": "AWS::EFS::MountTarget",
+      "Condition": "RegionHasEFS",
+      "Properties": {
+        "FileSystemId": { "Ref": "VolumeFilesystem" },
+        "SubnetId": { "Fn::If": [ "Private", { "Ref": "SubnetPrivate1" }, { "Ref": "Subnet1" } ] },
+        "SecurityGroups": [ { "Ref": "VolumeSecurity" } ]
+      }
+    },
+    "VolumeTarget2": {
+      "Type": "AWS::EFS::MountTarget",
+      "Condition": "RegionHasEFSAndThirdAvailabilityZone",
+      "Properties": {
+        "FileSystemId": { "Ref": "VolumeFilesystem" },
+        "SubnetId": { "Fn::If": [ "Private", { "Ref": "SubnetPrivate2" }, { "Ref": "Subnet2" } ] },
+        "SecurityGroups": [ { "Ref": "VolumeSecurity" } ]
+      }
+    },
     "AccountEvents": {
       "Type": "AWS::SQS::Queue"
     },
@@ -2180,22 +1615,12 @@
         "Description" : "Specified event changes",
         "EventPattern" : {
           "account":  [ { "Ref": "AWS::AccountId" } ],
-          "source": [
-            "aws.ecs"
-          ],
-          "detail-type": [
-            "ECS Task State Change"
-          ],
-          "detail": {
-            "clusterArn": [
-              { "Fn::Sub": "arn:aws:ecs:${AWS::Region}:${AWS::AccountId}:cluster/${Cluster}" }
-            ]
-          }
+          "source": [ "aws.ecs" ],
+          "detail-type": [ "ECS Task State Change" ],
+          "detail": { "clusterArn": [ { "Fn::Sub": "arn:aws:ecs:${AWS::Region}:${AWS::AccountId}:cluster/${Cluster}" } ] }
         },
         "State" : "ENABLED",
-        "Targets" : [
-          { "Arn": { "Fn::GetAtt": [ "AccountEvents", "Arn" ] }, "Id": "Events" }
-        ]
+        "Targets" : [ { "Arn": { "Fn::GetAtt": [ "AccountEvents", "Arn" ] }, "Id": "Events" } ]
       }
     },
     "CloudformationEvents": {
@@ -2223,213 +1648,404 @@
       "Type": "AWS::SNS::Topic",
       "Properties": {
         "DisplayName": { "Fn::Sub": "${AWS::StackName}-events" },
-        "Subscription": [
-          { "Protocol": "sqs", "Endpoint": { "Fn::GetAtt": [ "CloudformationEvents", "Arn" ] } }
+        "Subscription": [ { "Protocol": "sqs", "Endpoint": { "Fn::GetAtt": [ "CloudformationEvents", "Arn" ] } } ]
+      }
+    },
+    "Router": {
+      "DependsOn": "ApiRole",
+      "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
+      "Properties": {
+        "Subnets": [
+          { "Ref": "Subnet0" },
+          { "Ref": "Subnet1" },
+          { "Fn::If": [ "ThirdAvailabilityZone", { "Ref": "Subnet2" }, { "Ref": "AWS::NoValue" } ] }
+        ],
+        "SecurityGroups": [ { "Ref": "RouterSecurity" } ]
+      }
+    },
+    "RouterSecurity": {
+      "DependsOn": "ApiRole",
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": { "Fn::Sub": "${AWS::StackName} router" },
+        "SecurityGroupIngress": [ { "CidrIp": "0.0.0.0/0", "IpProtocol": "tcp", "FromPort": "0", "ToPort": "65535" } ],
+        "Tags": [ { "Key": "Name", "Value": { "Fn::Sub": "${AWS::StackName}-router" } } ],
+        "VpcId": { "Ref": "Vpc" }
+      }
+    },
+    "RouterListener80": {
+      "Type": "AWS::ElasticLoadBalancingV2::Listener",
+      "Properties": {
+        "DefaultActions": [ { "Type": "forward", "TargetGroupArn": { "Ref": "RouterRackTargetGroup" } } ],
+        "LoadBalancerArn": { "Ref" : "Router" },
+        "Port": "80",
+        "Protocol": "HTTP"
+      }
+    },
+    "RouterListener443": {
+      "Type": "AWS::ElasticLoadBalancingV2::Listener",
+      "Properties": {
+        "Certificates": [ { "CertificateArn": { "Ref": "RouterRackCertificate" } } ],
+        "DefaultActions": [ { "Type": "forward", "TargetGroupArn": { "Ref": "RouterRackTargetGroup" } } ],
+        "LoadBalancerArn": { "Ref" : "Router" },
+        "Port": "443",
+        "Protocol": "HTTPS"
+      }
+    },
+    "RouterRackCertificate": {
+      "DependsOn": "RouterRackTargetGroup",
+      "Type": "AWS::CertificateManager::Certificate",
+      "Properties": {
+        "DomainName": { "Fn::Join": [ ".", [
+          "*",
+          { "Fn::Select": [ 0, { "Fn::Split": [ ".", { "Fn::GetAtt": [ "Router", "DNSName" ] } ] } ] },
+          { "Fn::Select": [ 1, { "Fn::Split": [ ".", { "Fn::GetAtt": [ "Router", "DNSName" ] } ] } ] },
+          "rack.convox.io"
+        ] ] },
+        "DomainValidationOptions": [
+          {
+            "DomainName": { "Fn::Join": [ ".", [
+              "*",
+              { "Fn::Select": [ 0, { "Fn::Split": [ ".", { "Fn::GetAtt": [ "Router", "DNSName" ] } ] } ] },
+              { "Fn::Select": [ 1, { "Fn::Split": [ ".", { "Fn::GetAtt": [ "Router", "DNSName" ] } ] } ] },
+              "rack.convox.io"
+            ] ] },
+            "ValidationDomain": "rack.convox.io"
+          }
         ]
+      }
+    },
+    "RouterRackTargetGroup": {
+      "Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
+      "DependsOn": "Router",
+      "Properties": {
+        "HealthCheckIntervalSeconds": "5",
+        "HealthCheckTimeoutSeconds": "3",
+        "UnhealthyThresholdCount": "2",
+        "HealthCheckPath": "/check",
+        "Port": "4443",
+        "Protocol": "HTTPS",
+        "TargetGroupAttributes": [
+          { "Key": "deregistration_delay.timeout_seconds", "Value": "30" },
+          { "Key": "stickiness.enabled", "Value": "true" }
+        ],
+        "VpcId": { "Ref": "Vpc" }
       }
     },
     "Balancer": {
-      "DependsOn": [ "BalancerSecurityGroup" ],
+      "Type": "AWS::ElasticLoadBalancing::LoadBalancer",
       "Properties": {
-        "ConnectionDrainingPolicy": {
-          "Enabled": true,
-          "Timeout": 60
-        },
-        "ConnectionSettings": {
-          "IdleTimeout": 3600
-        },
+        "ConnectionDrainingPolicy": { "Enabled": true, "Timeout": 60 },
+        "ConnectionSettings": { "IdleTimeout": 3600 },
         "CrossZone": true,
-        "HealthCheck": {
-          "HealthyThreshold": "2",
-          "Interval": 5,
-          "Target": "HTTP:3000/check",
-          "Timeout": 3,
-          "UnhealthyThreshold": "2"
-        },
-        "LBCookieStickinessPolicy": [
-          {
-            "PolicyName": "affinity"
-          }
-        ],
-        "Listeners": [
-          {
-            "Protocol": "TCP",
-            "LoadBalancerPort": "80",
-            "InstanceProtocol": "TCP",
-            "InstancePort": "3000"
-          },
-          {
-            "Protocol": "TCP",
-            "LoadBalancerPort": "443",
-            "InstanceProtocol": "TCP",
-            "InstancePort": "3001"
-          }
-        ],
-        "LoadBalancerName": { "Fn::If": [ "PrivateApi",
-          { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" }, "i" ] ] },
-          { "Ref": "AWS::StackName" }
-        ] },
+        "HealthCheck": { "HealthyThreshold": "2", "Interval": 5, "Target": "HTTPS:3001/check", "Timeout": 3, "UnhealthyThreshold": "2" },
+        "LBCookieStickinessPolicy": [ { "PolicyName": "affinity" } ],
+        "Listeners": [ { "Protocol": "TCP", "LoadBalancerPort": "443", "InstanceProtocol": "TCP", "InstancePort": "3001" } ],
+        "LoadBalancerName": { "Fn::If": [ "PrivateApi", { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" }, "i" ] ] }, { "Ref": "AWS::StackName" } ] },
         "Scheme": { "Fn::If": [ "PrivateApi", "internal", { "Ref": "AWS::NoValue" } ] },
-        "SecurityGroups": [
-          {
-            "Ref": "BalancerSecurityGroup"
-          }
-        ],
+        "SecurityGroups": [ { "Ref": "BalancerSecurity" } ],
         "Subnets": {
-          "Fn::If": [ "PrivateApi", [
-            { "Ref": "SubnetPrivate0" },
-            { "Ref": "SubnetPrivate1" },
-            { "Fn::If": [ "ThirdAvailabilityZone", { "Ref": "SubnetPrivate2" }, { "Ref": "AWS::NoValue" } ] }
-          ], [
-            { "Ref": "Subnet0" },
-            { "Ref": "Subnet1" },
-            { "Fn::If": [ "ThirdAvailabilityZone", { "Ref": "Subnet2" }, { "Ref": "AWS::NoValue" } ] }
-          ] ]
-        },
-        "Tags": [
-          {
-            "Key": "GatewayAttachment",
-            "Value": { "Fn::If": [ "ExistingVpc", "existing", { "Ref": "GatewayAttachment" } ] }
-          },
-          {
-            "Key": "Name",
-            "Value": { "Ref": "AWS::StackName" }
-          }
-        ]
-      },
-      "Type": "AWS::ElasticLoadBalancing::LoadBalancer"
-    },
-    "BalancerSecurityGroup": {
-      "DependsOn": "KernelUser",
-      "Properties": {
-        "GroupDescription": {
-          "Fn::Join": [
-            " ",
-            [
-              {
-                "Ref": "AWS::StackName"
-              },
-              "-balancer"
-            ]
+          "Fn::If": [ "PrivateApi",
+            [ { "Ref": "SubnetPrivate0" }, { "Ref": "SubnetPrivate1" }, { "Fn::If": [ "ThirdAvailabilityZone", { "Ref": "SubnetPrivate2" }, { "Ref": "AWS::NoValue" } ] } ],
+            [ { "Ref": "Subnet0" }, { "Ref": "Subnet1" }, { "Fn::If": [ "ThirdAvailabilityZone", { "Ref": "Subnet2" }, { "Ref": "AWS::NoValue" } ] } ]
           ]
         },
-        "SecurityGroupIngress": [
-          {
-            "CidrIp": {
-              "Fn::If" : [
-                "PrivateApi",
-                { "Ref": "VPCCIDR" },
-                "0.0.0.0/0"
-              ]
-            },
-            "IpProtocol": "tcp",
-            "FromPort": "80",
-            "ToPort": "80"
-          },
-          {
-            "CidrIp": {
-              "Fn::If" : [
-                "PrivateApi",
-                { "Ref": "VPCCIDR" },
-                "0.0.0.0/0"
-              ]
-            },
-            "IpProtocol": "tcp",
-            "FromPort": "443",
-            "ToPort": "443"
-          }
-        ],
         "Tags": [
+          { "Key": "GatewayAttachment", "Value": { "Fn::If": [ "ExistingVpc", "existing", { "Ref": "GatewayAttachment" } ] } },
           { "Key": "Name", "Value": { "Ref": "AWS::StackName" } }
-        ],
-        "VpcId": { "Fn::If": [ "BlankExistingVpc",
-          { "Ref": "Vpc" },
-          { "Ref": "ExistingVpc" }
-        ] }
-      },
-      "Type": "AWS::EC2::SecurityGroup"
-    },
-    "WebService": {
-      "DependsOn": [ "WebTasks", "Balancer", "Cluster", "CustomTopic", "Instances", "ServiceRole" ],
-      "Type": "AWS::ECS::Service",
-      "Properties": {
-        "Cluster": { "Ref": "Cluster" },
-        "DeploymentConfiguration": {
-          "MinimumHealthyPercent": "50",
-          "MaximumPercent": "200"
-        },
-        "DesiredCount": { "Ref": "ApiCount" },
-        "LoadBalancers": [
-          {
-            "ContainerName": "web",
-            "ContainerPort": "4443",
-            "LoadBalancerName": { "Ref": "Balancer" }
-          }
-        ],
-        "Role": { "Fn::GetAtt": [ "ServiceRole", "Arn" ] },
-        "TaskDefinition": { "Ref": "WebTasks" }
+        ]
       }
     },
-    "MonitorService": {
-      "DependsOn": [ "MonitorTasks", "Balancer", "Cluster", "CustomTopic", "Instances", "ServiceRole" ],
-      "Type": "AWS::ECS::Service",
+    "BalancerSecurity": {
+      "Type": "AWS::EC2::SecurityGroup",
       "Properties": {
-        "Cluster": { "Ref": "Cluster" },
-        "DeploymentConfiguration": {
-          "MinimumHealthyPercent": "100",
-          "MaximumPercent": "200"
-        },
-        "DesiredCount": "1",
-        "PlacementConstraints": [ {
-          "Type": "memberOf",
-          "Expression": "attribute:asg == primary"
-        } ],
-        "TaskDefinition": { "Ref": "MonitorTasks" }
+        "GroupDescription": { "Fn::Sub": "${AWS::StackName} balancer" },
+        "SecurityGroupIngress": [
+          { "CidrIp": { "Fn::If" : [ "PrivateApi", { "Ref": "VPCCIDR" }, "0.0.0.0/0" ] }, "IpProtocol": "tcp", "FromPort": "443", "ToPort": "443" }
+        ],
+        "Tags": [ { "Key": "Name", "Value": { "Fn::Sub": "${AWS::StackName}-balancer" } } ],
+        "VpcId": { "Fn::If": [ "BlankExistingVpc", { "Ref": "Vpc" }, { "Ref": "ExistingVpc" } ] }
       }
+    },
+    "Cluster": {
+      "Type": "AWS::ECS::Cluster"
     },
     "ServiceRole": {
+      "Type": "AWS::IAM::Role",
       "Properties": {
         "AssumeRolePolicyDocument": {
-          "Statement": [
-            {
-              "Action": [
-                "sts:AssumeRole"
-              ],
-              "Effect": "Allow",
-              "Principal": {
-                "Service": [
-                  "ecs.amazonaws.com"
-                ]
-              }
-            }
-          ],
+          "Statement": [ { "Effect": "Allow", "Principal": { "Service": [ "ecs.amazonaws.com" ] }, "Action": [ "sts:AssumeRole" ] } ],
           "Version": "2012-10-17"
         },
+        "ManagedPolicyArns": [ "arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceRole" ],
+        "Path": "/convox/"
+      }
+    },
+    "ApiRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [ { "Effect": "Allow", "Principal": { "Service": [ "ecs-tasks.amazonaws.com" ] }, "Action": [ "sts:AssumeRole" ] } ],
+          "Version": "2012-10-17"
+        },
+        "ManagedPolicyArns": [ "arn:aws:iam::aws:policy/PowerUserAccess" ],
         "Path": "/convox/",
-        "Policies": [
-          {
-            "PolicyDocument": {
-              "Statement": [
-                {
-                  "Action": [
-                    "elasticloadbalancing:Describe*",
-                    "elasticloadbalancing:DeregisterInstancesFromLoadBalancer",
-                    "elasticloadbalancing:RegisterInstancesWithLoadBalancer",
-                    "ec2:Describe*",
-                    "ec2:AuthorizeSecurityGroupIngress"
-                  ],
-                  "Effect": "Allow",
-                  "Resource": [
-                    "*"
-                  ]
-                }
-              ]
-            },
-            "PolicyName": "ServiceRole"
+        "Policies": [ {
+          "PolicyName": "iam-convox",
+          "PolicyDocument": {
+            "Version": "2012-10-17",
+            "Statement": [
+              {
+                "Effect": "Allow",
+                "Action": [ "iam:*" ],
+                "Resource": [
+                  "arn:aws:iam::*:instance-profile/convox/*",
+                  "arn:aws:iam::*:policy/convox/*",
+                  "arn:aws:iam::*:role/convox/*",
+                  "arn:aws:iam::*:user/convox/*"
+                ]
+              },
+              {
+                "Effect": "Allow",
+                "Action": [
+                  "iam:AddRoleToInstanceProfile",
+                  "iam:CreateInstanceProfile",
+                  "iam:RemoveRoleFromInstanceProfile"
+                ],
+                "Resource": [ "*" ]
+              }
+            ]
           }
+        } ]
+      }
+    },
+    "ApiMonitorService": {
+      "Type": "AWS::ECS::Service",
+      "DependsOn": [ "Instances" ],
+      "Properties": {
+        "Cluster": { "Ref": "Cluster" },
+        "DeploymentConfiguration": { "MinimumHealthyPercent": "100", "MaximumPercent": "200" },
+        "DesiredCount": "1",
+        "PlacementConstraints": [ { "Type": "memberOf", "Expression": "attribute:asg == primary" } ],
+        "TaskDefinition": { "Ref": "ApiMonitorTasks" }
+      }
+    },
+    "ApiWebService": {
+      "Type": "AWS::ECS::Service",
+      "DependsOn": [ "Instances" ],
+      "Properties": {
+        "Cluster": { "Ref": "Cluster" },
+        "DeploymentConfiguration": { "MinimumHealthyPercent": "50", "MaximumPercent": "200" },
+        "DesiredCount": { "Ref": "ApiCount" },
+        "LoadBalancers": [ { "ContainerName": "web", "ContainerPort": "4443", "LoadBalancerName": { "Ref": "Balancer" } } ],
+        "Role": { "Fn::GetAtt": [ "ServiceRole", "Arn" ] },
+        "TaskDefinition": { "Ref": "ApiWebTasks" }
+      }
+    },
+    "ApiBuildTasks": {
+      "Type": "AWS::ECS::TaskDefinition",
+      "Properties": {
+        "ContainerDefinitions": [
+          {
+            "Cpu": { "Ref": "BuildCpu" },
+            "DockerLabels": { "convox.release": { "Ref": "Version" } },
+            "Environment": [
+              { "Name": "AUTOSCALE", "Value": { "Fn::If": [ "Autoscale", "true", "false" ] } },
+              { "Name": "AWS_REGION", "Value": { "Ref": "AWS::Region" } },
+              { "Name": "BUILD_CLUSTER", "Value": { "Fn::If": [ "DedicatedBuilder", { "Ref": "BuildCluster" }, { "Ref": "Cluster" } ] } },
+              { "Name": "CLIENT_ID", "Value": { "Ref": "ClientId" } },
+              { "Name": "CLOUDFORMATION_TOPIC", "Value": { "Ref": "CloudformationTopic" } },
+              { "Name": "CLUSTER", "Value": { "Ref": "Cluster" } },
+              { "Name": "CUSTOM_TOPIC", "Value": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] } },
+              { "Name": "DOCKER_IMAGE_API", "Value": { "Fn::Sub": "convox/api:${Version}" } },
+              { "Name": "DYNAMO_BUILDS", "Value": { "Ref": "DynamoBuilds" } },
+              { "Name": "DYNAMO_RELEASES", "Value": { "Ref": "DynamoReleases" } },
+              { "Name": "ENCRYPTION_KEY", "Value": { "Ref": "EncryptionKey" } },
+              { "Name": "HTTP_PROXY", "Value": { "Ref": "HttpProxy" } },
+              { "Name": "HTTPS_PROXY", "Value": { "Ref": "HttpProxy" } },
+              { "Name": "INTERNAL", "Value": { "Ref": "Internal" } },
+              { "Name": "LOG_GROUP", "Value": { "Ref": "LogGroup" } },
+              { "Name": "NOTIFICATION_HOST", "Value": { "Fn::GetAtt": [ "Balancer", "DNSName" ] } },
+              { "Name": "NOTIFICATION_TOPIC", "Value": { "Ref": "NotificationTopic" } },
+              { "Name": "ON_DEMAND_MIN_COUNT", "Value": { "Ref": "OnDemandMinCount" } },
+              { "Name": "PASSWORD", "Value": { "Ref": "Password" } },
+              { "Name": "PRIVATE", "Value": { "Ref": "Private" } },
+              { "Name": "PROVIDER", "Value": "aws" },
+              { "Name": "RACK", "Value": { "Ref": "AWS::StackName" } },
+              { "Name": "RELEASE", "Value": { "Ref": "Version" } },
+              { "Name": "ROLLBAR_TOKEN", "Value": "f67f25b8a9024d5690f997bd86bf14b0" },
+              { "Name": "SECURITY_GROUP", "Value": { "Fn::If": [ "BlankInstanceSecurityGroup", { "Ref": "InstancesSecurity" }, { "Ref": "InstanceSecurityGroup" } ] } },
+              { "Name": "SEGMENT_WRITE_KEY", "Value": "KLvwCXo6qcTmQHLpF69DEwGf9zh7lt9i" },
+              { "Name": "SPOT_INSTANCES", "Value": { "Fn::If": [ "SpotInstances", "true", "false" ] } },
+              { "Name": "SETTINGS_BUCKET", "Value": { "Ref": "Settings" } },
+              { "Name": "STACK_ID", "Value": { "Ref": "AWS::StackId" } },
+              { "Name": "SUBNETS", "Value": { "Fn::Join": [ ",", [
+                { "Ref": "Subnet0" },
+                { "Ref": "Subnet1" },
+                { "Fn::If": [ "ThirdAvailabilityZone", { "Ref": "Subnet2" }, { "Ref": "AWS::NoValue" } ] }
+              ] ] } },
+              { "Name": "VPC", "Value": { "Fn::If": [ "BlankExistingVpc",
+                { "Ref": "Vpc" },
+                { "Ref": "ExistingVpc" }
+              ] } },
+              { "Name": "VPCCIDR", "Value": { "Ref": "VPCCIDR" } }
+            ],
+            "Image": { "Fn::If": [ "BlankBuildImage",
+              { "Fn::Sub": "convox/api:${Version}" },
+              { "Ref": "BuildImage" }
+            ] },
+            "Memory": { "Ref": "BuildMemory" },
+            "MountPoints": [
+              { "SourceVolume": "config", "ContainerPath": "/etc/sysconfig/docker" },
+              { "SourceVolume": "docker", "ContainerPath": "/var/run/docker.sock" }
+            ],
+            "Name": "build"
+          }
+        ],
+        "Family": { "Fn::Sub": "${AWS::StackName}-build" },
+        "TaskRoleArn": { "Fn::GetAtt": [ "ApiRole", "Arn" ] },
+        "Volumes": [
+          { "Name": "config", "Host": { "SourcePath": "/etc/sysconfig/docker" } },
+          { "Name": "docker", "Host": { "SourcePath": "/var/run/docker.sock" } }
         ]
-      },
-      "Type": "AWS::IAM::Role"
+      }
+    },
+    "ApiMonitorTasks": {
+      "Type": "AWS::ECS::TaskDefinition",
+      "Properties": {
+        "ContainerDefinitions": [
+          {
+            "Command": [ "api/bin/monitor" ],
+            "Cpu": "64",
+            "DockerLabels": { "convox.release": { "Ref": "Version" } },
+            "Environment": [
+              { "Name": "AUTOSCALE", "Value": { "Fn::If": [ "Autoscale", "true", "false" ] } },
+              { "Name": "AWS_REGION", "Value": { "Ref": "AWS::Region" } },
+              { "Name": "BUILD_CLUSTER", "Value": { "Fn::If": [ "DedicatedBuilder", { "Ref": "BuildCluster" }, { "Ref": "Cluster" } ] } },
+              { "Name": "CLIENT_ID", "Value": { "Ref": "ClientId" } },
+              { "Name": "CLOUDFORMATION_TOPIC", "Value": { "Ref": "CloudformationTopic" } },
+              { "Name": "CLUSTER", "Value": { "Ref": "Cluster" } },
+              { "Name": "CUSTOM_TOPIC", "Value": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] } },
+              { "Name": "DOCKER_IMAGE_API", "Value": { "Fn::Sub": "convox/api:${Version}" } },
+              { "Name": "DYNAMO_BUILDS", "Value": { "Ref": "DynamoBuilds" } },
+              { "Name": "DYNAMO_RELEASES", "Value": { "Ref": "DynamoReleases" } },
+              { "Name": "ENCRYPTION_KEY", "Value": { "Ref": "EncryptionKey" } },
+              { "Name": "HTTP_PROXY", "Value": { "Ref": "HttpProxy" } },
+              { "Name": "HTTPS_PROXY", "Value": { "Ref": "HttpProxy" } },
+              { "Name": "INTERNAL", "Value": { "Ref": "Internal" } },
+              { "Name": "LOG_GROUP", "Value": { "Ref": "LogGroup" } },
+              { "Name": "NOTIFICATION_HOST", "Value": { "Fn::GetAtt": [ "Balancer", "DNSName" ] } },
+              { "Name": "NOTIFICATION_TOPIC", "Value": { "Ref": "NotificationTopic" } },
+              { "Name": "ON_DEMAND_MIN_COUNT", "Value": { "Ref": "OnDemandMinCount" } },
+              { "Name": "PASSWORD", "Value": { "Ref": "Password" } },
+              { "Name": "PRIVATE", "Value": { "Ref": "Private" } },
+              { "Name": "PROVIDER", "Value": "aws" },
+              { "Name": "RACK", "Value": { "Ref": "AWS::StackName" } },
+              { "Name": "RELEASE", "Value": { "Ref": "Version" } },
+              { "Name": "ROLLBAR_TOKEN", "Value": "f67f25b8a9024d5690f997bd86bf14b0" },
+              { "Name": "SECURITY_GROUP", "Value": { "Fn::If": [ "BlankInstanceSecurityGroup", { "Ref": "InstancesSecurity" }, { "Ref": "InstanceSecurityGroup" } ] } },
+              { "Name": "SEGMENT_WRITE_KEY", "Value": "KLvwCXo6qcTmQHLpF69DEwGf9zh7lt9i" },
+              { "Name": "SPOT_INSTANCES", "Value": { "Fn::If": [ "SpotInstances", "true", "false" ] } },
+              { "Name": "SETTINGS_BUCKET", "Value": { "Ref": "Settings" } },
+              { "Name": "STACK_ID", "Value": { "Ref": "AWS::StackId" } },
+              { "Name": "SUBNETS", "Value": { "Fn::Join": [ ",", [
+                { "Ref": "Subnet0" },
+                { "Ref": "Subnet1" },
+                { "Fn::If": [ "ThirdAvailabilityZone", { "Ref": "Subnet2" }, { "Ref": "AWS::NoValue" } ] }
+              ] ] } },
+              { "Name": "VPC", "Value": { "Fn::If": [ "BlankExistingVpc",
+                { "Ref": "Vpc" },
+                { "Ref": "ExistingVpc" }
+              ] } },
+              { "Name": "VPCCIDR", "Value": { "Ref": "VPCCIDR" } }
+            ],
+            "Image": { "Fn::Sub": "convox/api:${Version}" },
+            "LogConfiguration": {
+              "LogDriver": "awslogs",
+              "Options": {
+                "awslogs-region": { "Ref": "AWS::Region" },
+                "awslogs-group": { "Ref": "LogGroup" },
+                "awslogs-stream-prefix": "service"
+              }
+            },
+            "Memory": "64",
+            "MountPoints": [ { "SourceVolume": "docker", "ContainerPath": "/var/run/docker.sock" } ],
+            "Name": "monitor"
+          }
+        ],
+        "Family": { "Fn::Sub": "${AWS::StackName}-monitor" },
+        "TaskRoleArn": { "Fn::GetAtt": [ "ApiRole", "Arn" ] },
+        "Volumes": [ { "Name": "docker", "Host": { "SourcePath": "/var/run/docker.sock" } } ]
+      }
+    },
+    "ApiWebTasks": {
+      "Type": "AWS::ECS::TaskDefinition",
+      "Properties": {
+        "ContainerDefinitions": [
+          {
+            "Command": [ "api/bin/web" ],
+            "Cpu": "128",
+            "DockerLabels": { "convox.release": { "Ref": "Version" } },
+            "Environment": [
+              { "Name": "AUTOSCALE", "Value": { "Fn::If": [ "Autoscale", "true", "false" ] } },
+              { "Name": "AWS_REGION", "Value": { "Ref": "AWS::Region" } },
+              { "Name": "BUILD_CLUSTER", "Value": { "Fn::If": [ "DedicatedBuilder", { "Ref": "BuildCluster" }, { "Ref": "Cluster" } ] } },
+              { "Name": "CLIENT_ID", "Value": { "Ref": "ClientId" } },
+              { "Name": "CLOUDFORMATION_TOPIC", "Value": { "Ref": "CloudformationTopic" } },
+              { "Name": "CLUSTER", "Value": { "Ref": "Cluster" } },
+              { "Name": "CUSTOM_TOPIC", "Value": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] } },
+              { "Name": "DOCKER_IMAGE_API", "Value": { "Fn::Sub": "convox/api:${Version}" } },
+              { "Name": "DYNAMO_BUILDS", "Value": { "Ref": "DynamoBuilds" } },
+              { "Name": "DYNAMO_RELEASES", "Value": { "Ref": "DynamoReleases" } },
+              { "Name": "ENCRYPTION_KEY", "Value": { "Ref": "EncryptionKey" } },
+              { "Name": "HTTP_PROXY", "Value": { "Ref": "HttpProxy" } },
+              { "Name": "HTTPS_PROXY", "Value": { "Ref": "HttpProxy" } },
+              { "Name": "INTERNAL", "Value": { "Ref": "Internal" } },
+              { "Name": "LOG_GROUP", "Value": { "Ref": "LogGroup" } },
+              { "Name": "NOTIFICATION_HOST", "Value": { "Fn::GetAtt": [ "Balancer", "DNSName" ] } },
+              { "Name": "NOTIFICATION_TOPIC", "Value": { "Ref": "NotificationTopic" } },
+              { "Name": "ON_DEMAND_MIN_COUNT", "Value": { "Ref": "OnDemandMinCount" } },
+              { "Name": "PASSWORD", "Value": { "Ref": "Password" } },
+              { "Name": "PRIVATE", "Value": { "Ref": "Private" } },
+              { "Name": "PROVIDER", "Value": "aws" },
+              { "Name": "RACK", "Value": { "Ref": "AWS::StackName" } },
+              { "Name": "RELEASE", "Value": { "Ref": "Version" } },
+              { "Name": "ROLLBAR_TOKEN", "Value": "f67f25b8a9024d5690f997bd86bf14b0" },
+              { "Name": "SECURITY_GROUP", "Value": { "Fn::If": [ "BlankInstanceSecurityGroup", { "Ref": "InstancesSecurity" }, { "Ref": "InstanceSecurityGroup" } ] } },
+              { "Name": "SEGMENT_WRITE_KEY", "Value": "KLvwCXo6qcTmQHLpF69DEwGf9zh7lt9i" },
+              { "Name": "SPOT_INSTANCES", "Value": { "Fn::If": [ "SpotInstances", "true", "false" ] } },
+              { "Name": "SETTINGS_BUCKET", "Value": { "Ref": "Settings" } },
+              { "Name": "STACK_ID", "Value": { "Ref": "AWS::StackId" } },
+              { "Name": "SUBNETS", "Value": { "Fn::Join": [ ",", [
+                { "Ref": "Subnet0" },
+                { "Ref": "Subnet1" },
+                { "Fn::If": [ "ThirdAvailabilityZone", { "Ref": "Subnet2" }, { "Ref": "AWS::NoValue" } ] }
+              ] ] } },
+              { "Name": "VPC", "Value": { "Fn::If": [ "BlankExistingVpc",
+                { "Ref": "Vpc" },
+                { "Ref": "ExistingVpc" }
+              ] } },
+              { "Name": "VPCCIDR", "Value": { "Ref": "VPCCIDR" } }
+            ],
+            "Image": { "Fn::Sub": "convox/api:${Version}" },
+            "LogConfiguration": {
+              "LogDriver": "awslogs",
+              "Options": {
+                "awslogs-region": { "Ref": "AWS::Region" },
+                "awslogs-group": { "Ref": "LogGroup" },
+                "awslogs-stream-prefix": "service"
+              }
+            },
+            "Memory": { "Ref": "ApiMemory" },
+            "MountPoints": [ { "SourceVolume": "docker", "ContainerPath": "/var/run/docker.sock" } ],
+            "Name": "web",
+            "PortMappings": [ { "HostPort": "3001", "ContainerPort": "4443", "Protocol": "tcp" } ]
+          }
+        ],
+        "Family": { "Fn::Sub": "${AWS::StackName}-web" },
+        "TaskRoleArn": { "Fn::GetAtt": [ "ApiRole", "Arn" ] },
+        "Volumes": [ { "Name": "docker", "Host": { "SourcePath": "/var/run/docker.sock" } } ]
+      }
     },
     "DynamoBuilds": {
       "Type": "AWS::DynamoDB::Table",
@@ -2469,297 +2085,17 @@
         "ProvisionedThroughput": { "ReadCapacityUnits": "5", "WriteCapacityUnits": "5" }
       }
     },
-    "VolumeFilesystem": {
-      "Type": "AWS::EFS::FileSystem",
-      "Condition": "RegionHasEFS",
-      "Properties": {
-        "FileSystemTags": [
-          { "Key": "Name", "Value": { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" }, "shared-volumes" ] ] } }
-        ]
-      }
-    },
-    "VolumeSecurity": {
-      "Type": "AWS::EC2::SecurityGroup",
-      "DependsOn": "KernelUser",
-      "Condition": "RegionHasEFS",
-      "Properties": {
-        "GroupDescription": "volume security group",
-        "SecurityGroupIngress": [
-          { "IpProtocol": "tcp", "FromPort": "2049", "ToPort": "2049", "CidrIp": { "Ref": "VPCCIDR" } }
-        ],
-        "Tags": [
-          { "Key": "Name", "Value": { "Ref": "AWS::StackName" } }
-        ],
-        "VpcId": { "Fn::If": [ "BlankExistingVpc",
-          { "Ref": "Vpc" },
-          { "Ref": "ExistingVpc" }
-        ] }
-      }
-    },
-    "VolumeTarget0": {
-      "Type": "AWS::EFS::MountTarget",
-      "Condition": "RegionHasEFS",
-      "DependsOn": "Subnet0",
-      "Properties": {
-        "FileSystemId": { "Ref": "VolumeFilesystem" },
-        "SubnetId": {
-          "Fn::If": [
-            "Private",
-            { "Ref": "SubnetPrivate0" },
-            { "Ref": "Subnet0" }
-          ]
-        },
-        "SecurityGroups": [ { "Ref": "VolumeSecurity" } ]
-      }
-    },
-    "VolumeTarget1": {
-      "Type": "AWS::EFS::MountTarget",
-      "Condition": "RegionHasEFS",
-      "DependsOn": "Subnet1",
-      "Properties": {
-        "FileSystemId": { "Ref": "VolumeFilesystem" },
-        "SubnetId": {
-          "Fn::If": [
-            "Private",
-            { "Ref": "SubnetPrivate1" },
-            { "Ref": "Subnet1" }
-          ]
-        },
-        "SecurityGroups": [ { "Ref": "VolumeSecurity" } ]
-      }
-    },
-    "VolumeTarget2": {
-      "Type": "AWS::EFS::MountTarget",
-      "Condition": "RegionHasEFSAndThirdAvailabilityZone",
-      "DependsOn": "Subnet2",
-      "Properties": {
-        "FileSystemId": { "Ref": "VolumeFilesystem" },
-        "SubnetId": {
-          "Fn::If": [
-            "Private",
-            { "Ref": "SubnetPrivate2" },
-            { "Ref": "Subnet2" }
-          ]
-        },
-        "SecurityGroups": [ { "Ref": "VolumeSecurity" } ]
-      }
-    },
     "Settings": {
       "Properties": {
         "AccessControl": "Private",
         "Tags": [
-          {
-            "Key": "system",
-            "Value": "convox"
-          },
-          {
-            "Key": "app",
-            "Value": {
-              "Ref": "AWS::StackName"
-            }
-          },
-          {
-            "Key": "Name",
-            "Value": { "Ref": "AWS::StackName" }
-          }
+          { "Key": "system", "Value": "convox" },
+          { "Key": "app", "Value": { "Ref": "AWS::StackName" } },
+          { "Key": "Name", "Value": { "Ref": "AWS::StackName" } }
         ]
       },
       "DeletionPolicy": "Retain",
       "Type": "AWS::S3::Bucket"
-    },
-    "RackBuildTasks": {
-      "DependsOn": [ "Balancer", "Cluster", "CustomTopic", "DynamoBuilds", "DynamoReleases", "KernelAccess", "LogGroup", "Subnet0", "Subnet1" ],
-      "Properties": {
-        "Name": { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" }, "build" ] ] },
-        "ServiceToken": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
-        "TaskRole": { "Fn::GetAtt": [ "SecureEnvironmentRole", "Arn" ] },
-        "Tasks": [
-          {
-            "Cpu": { "Ref": "BuildCpu" },
-            "Environment": {
-              "AWS_REGION": { "Ref": "AWS::Region" },
-              "AWS_ACCESS": { "Ref": "KernelAccess" },
-              "AWS_SECRET": { "Fn::GetAtt": [ "KernelAccess", "SecretAccessKey" ] },
-              "BUILD_CLUSTER": { "Fn::If": [ "DedicatedBuilder", { "Ref": "BuildCluster" }, { "Ref": "Cluster" } ] },
-              "CLIENT_ID": { "Ref": "ClientId" },
-              "CLUSTER": { "Ref": "Cluster" },
-              "DYNAMO_BUILDS": { "Ref": "DynamoBuilds" },
-              "DYNAMO_RELEASES": { "Ref": "DynamoReleases" },
-              "ENCRYPTION_KEY": { "Ref": "EncryptionKey" },
-              "LOG_GROUP": { "Ref": "LogGroup" },
-              "NOTIFICATION_HOST": { "Fn::GetAtt": [ "Balancer", "DNSName" ] },
-              "NOTIFICATION_TOPIC": { "Ref": "NotificationTopic"},
-              "PROCESS": "build",
-              "PROVIDER": "aws",
-              "RACK": { "Ref": "AWS::StackName" },
-              "RELEASE": { "Ref": "Version" },
-              "ROLLBAR_TOKEN": "f67f25b8a9024d5690f997bd86bf14b0",
-              "SEGMENT_WRITE_KEY": "KLvwCXo6qcTmQHLpF69DEwGf9zh7lt9i",
-              "SETTINGS_BUCKET": { "Ref": "Settings" },
-              "STACK_ID": { "Ref": "AWS::StackId" }
-            },
-            "Image": { "Fn::If": [ "BlankBuildImage", { "Fn::Join": [ ":", [ "convox/api", { "Ref": "Version" } ] ] }, { "Ref": "BuildImage" } ] },
-            "Links": [],
-            "MemoryReservation": { "Ref": "BuildMemory" },
-            "Name": "build",
-            "Volumes": [
-              "/etc/sysconfig/docker:/etc/sysconfig/docker",
-              "/var/run/docker.sock:/var/run/docker.sock"
-            ]
-          }
-        ]
-      },
-      "Type": "Custom::ECSTaskDefinition",
-      "Version": "1.0"
-    },
-    "WebTasks": {
-      "DependsOn": [ "Balancer", "Cluster", "CustomTopic", "DynamoBuilds", "DynamoReleases", "KernelAccess", "LogGroup", "Subnet0", "Subnet1" ],
-      "Properties": {
-        "Name": { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" }, "web" ] ] },
-        "ServiceToken": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
-        "Tasks": [
-          {
-            "Command": "api/bin/web",
-            "Cpu": { "Ref": "ApiCpu" },
-            "Environment": {
-              "AWS_REGION": { "Ref": "AWS::Region" },
-              "AWS_ACCESS": { "Ref": "KernelAccess" },
-              "AWS_SECRET": { "Fn::GetAtt": [ "KernelAccess", "SecretAccessKey" ] },
-              "BUILD_CLUSTER": { "Fn::If": [ "DedicatedBuilder", { "Ref": "BuildCluster" }, { "Ref": "Cluster" } ] },
-              "CLIENT_ID": { "Ref": "ClientId" },
-              "CLOUDFORMATION_TOPIC": { "Ref": "CloudformationTopic" },
-              "CLUSTER": { "Ref": "Cluster" },
-              "CUSTOM_TOPIC": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
-              "DOCKER_IMAGE_API": { "Fn::Join": [ ":", [ "convox/api", { "Ref": "Version" } ] ] },
-              "DYNAMO_BUILDS": { "Ref": "DynamoBuilds" },
-              "DYNAMO_RELEASES": { "Ref": "DynamoReleases" },
-              "ENCRYPTION_KEY": { "Ref": "EncryptionKey" },
-              "HTTP_PROXY": { "Ref": "HttpProxy" },
-              "HTTPS_PROXY": { "Ref": "HttpProxy" },
-              "INTERNAL": { "Ref": "Internal" },
-              "LOG_GROUP": { "Ref": "LogGroup" },
-              "NOTIFICATION_HOST": { "Fn::GetAtt": [ "Balancer", "DNSName" ] },
-              "NOTIFICATION_TOPIC": { "Ref": "NotificationTopic"},
-              "PASSWORD": { "Ref": "Password" },
-              "PRIVATE": { "Ref": "Private" },
-              "PROCESS": "web",
-              "PROVIDER": "aws",
-              "RACK": { "Ref": "AWS::StackName" },
-              "RELEASE": { "Ref": "Version" },
-              "ROLLBAR_TOKEN": "f67f25b8a9024d5690f997bd86bf14b0",
-              "SECURITY_GROUP": { "Fn::If": [ "BlankInstanceSecurityGroup", { "Ref": "SecurityGroup" }, { "Ref": "InstanceSecurityGroup" } ] },
-              "SEGMENT_WRITE_KEY": "KLvwCXo6qcTmQHLpF69DEwGf9zh7lt9i",
-              "SETTINGS_BUCKET": { "Ref": "Settings" },
-              "STACK_ID": { "Ref": "AWS::StackId" },
-              "SUBNETS": {
-                "Fn::Join": [ ",", [
-                  { "Ref": "Subnet0" },
-                  { "Ref": "Subnet1" },
-                  { "Fn::If": [ "ThirdAvailabilityZone", { "Ref": "Subnet2" }, { "Ref": "AWS::NoValue" } ] }
-                ] ]
-              },
-              "SUBNETS_PRIVATE": { "Fn::If": [ "Private",
-                { "Fn::Join": [ ",", [
-                  { "Ref": "SubnetPrivate0" },
-                  { "Ref": "SubnetPrivate1" },
-                  { "Fn::If": [ "ThirdAvailabilityZone", { "Ref": "SubnetPrivate2" }, { "Ref": "AWS::NoValue" } ] }
-                ] ] },
-                ""
-              ] },
-              "VPC": { "Fn::If": [ "BlankExistingVpc",
-                { "Ref": "Vpc" },
-                { "Ref": "ExistingVpc" }
-              ] },
-              "VPCCIDR": { "Ref": "VPCCIDR" }
-            },
-            "Image": { "Fn::Join": [ ":", [ "convox/api", { "Ref": "Version" } ] ] },
-            "Links": [],
-            "Memory": { "Ref": "ApiMemory" },
-            "Name": "web",
-            "PortMappings": [
-              "3000:3000/tcp",
-              "3001:4443/tcp"
-            ],
-            "Volumes": [
-              "/var/run/docker.sock:/var/run/docker.sock"
-            ]
-          }
-        ]
-      },
-      "Type": "Custom::ECSTaskDefinition",
-      "Version": "1.0"
-    },
-    "MonitorTasks": {
-      "DependsOn": [ "Balancer", "Cluster", "CustomTopic", "DynamoBuilds", "DynamoReleases", "KernelAccess", "LogGroup", "Subnet0", "Subnet1" ],
-      "Properties": {
-        "Name": { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" }, "monitor" ] ] },
-        "ServiceToken": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
-        "Tasks": [
-          {
-            "Command": "api/bin/monitor",
-            "CPU": "64",
-            "Environment": {
-              "AUTOSCALE": { "Fn::If": [ "Autoscale", "true", "false" ] },
-              "AWS_REGION": { "Ref": "AWS::Region" },
-              "AWS_ACCESS": { "Ref": "KernelAccess" },
-              "AWS_SECRET": { "Fn::GetAtt": [ "KernelAccess", "SecretAccessKey" ] },
-              "BUILD_CLUSTER": { "Fn::If": [ "DedicatedBuilder", { "Ref": "BuildCluster" }, { "Ref": "Cluster" } ] },
-              "CLIENT_ID": { "Ref": "ClientId" },
-              "CLOUDFORMATION_TOPIC": { "Ref": "CloudformationTopic" },
-              "CLUSTER": { "Ref": "Cluster" },
-              "CUSTOM_TOPIC": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
-              "DOCKER_IMAGE_API": { "Fn::Join": [ ":", [ "convox/api", { "Ref": "Version" } ] ] },
-              "DYNAMO_BUILDS": { "Ref": "DynamoBuilds" },
-              "DYNAMO_RELEASES": { "Ref": "DynamoReleases" },
-              "ENCRYPTION_KEY": { "Ref": "EncryptionKey" },
-              "HTTP_PROXY": { "Ref": "HttpProxy" },
-              "HTTPS_PROXY": { "Ref": "HttpProxy" },
-              "LOG_GROUP": { "Ref": "LogGroup" },
-              "NOTIFICATION_HOST": { "Fn::GetAtt": [ "Balancer", "DNSName" ] },
-              "NOTIFICATION_TOPIC": { "Ref": "NotificationTopic"},
-              "ON_DEMAND_MIN_COUNT": { "Ref": "OnDemandMinCount"},
-              "PASSWORD": { "Ref": "Password" },
-              "PRIVATE": { "Ref": "Private" },
-              "PROCESS": "web",
-              "PROVIDER": "aws",
-              "RACK": { "Ref": "AWS::StackName" },
-              "RELEASE": { "Ref": "Version" },
-              "ROLLBAR_TOKEN": "f67f25b8a9024d5690f997bd86bf14b0",
-              "SEGMENT_WRITE_KEY": "KLvwCXo6qcTmQHLpF69DEwGf9zh7lt9i",
-              "SPOT_INSTANCES": { "Fn::If": [ "SpotInstances", "true", "false" ] },
-              "STACK_ID": { "Ref": "AWS::StackId" },
-              "SUBNETS": {
-                "Fn::Join": [ ",", [
-                  { "Ref": "Subnet0" },
-                  { "Ref": "Subnet1" },
-                  { "Fn::If": [ "ThirdAvailabilityZone", { "Ref": "Subnet2" }, { "Ref": "AWS::NoValue" } ] }
-                ] ]
-              },
-              "SUBNETS_PRIVATE": { "Fn::If": [ "Private",
-                { "Fn::Join": [ ",", [
-                  { "Ref": "SubnetPrivate0" },
-                  { "Ref": "SubnetPrivate1" },
-                  { "Fn::If": [ "ThirdAvailabilityZone", { "Ref": "SubnetPrivate2" }, { "Ref": "AWS::NoValue" } ] }
-                ] ] },
-                ""
-              ] },
-              "VPC": { "Fn::If": [ "BlankExistingVpc",
-                { "Ref": "Vpc" },
-                { "Ref": "ExistingVpc" }
-              ] }
-            },
-            "Image": { "Fn::Join": [ ":", [ "convox/api", { "Ref": "Version" } ] ] },
-            "Links": [],
-            "Memory": "64",
-            "Name": "monitor",
-            "Volumes": [
-              "/var/run/docker.sock:/var/run/docker.sock"
-            ]
-          }
-        ]
-      },
-      "Type": "Custom::ECSTaskDefinition",
-      "Version": "1.0"
     }
   }
 }

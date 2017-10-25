@@ -727,12 +727,12 @@ func (p *AWSProvider) buildAuth(build *structs.Build) (string, error) {
 		}
 	}
 
-	a, err := p.AppGet(build.App)
+	aid, err := p.accountId()
 	if err != nil {
 		return "", err
 	}
 
-	host := fmt.Sprintf("%s.dkr.ecr.%s.amazonaws.com", a.Outputs["RegistryId"], p.Region)
+	host := fmt.Sprintf("%s.dkr.ecr.%s.amazonaws.com", aid, p.Region)
 
 	un, pw, err := p.authECR(host, "", "")
 	if err != nil {
@@ -796,14 +796,9 @@ func (p *AWSProvider) authECR(host, access, secret string) (string, string, erro
 func (p *AWSProvider) runBuild(build *structs.Build, method, url string, opts structs.BuildOptions) error {
 	log := Logger.At("runBuild").Namespace("method=%q url=%q", method, url).Start()
 
-	br, err := p.stackResource(p.Rack, "RackBuildTasks")
+	br, err := p.stackResource(p.Rack, "ApiBuildTasks")
 	if err != nil {
 		log.Error(err)
-		return err
-	}
-
-	a, err := p.AppGet(build.App)
-	if err != nil {
 		return err
 	}
 
@@ -814,7 +809,29 @@ func (p *AWSProvider) runBuild(build *structs.Build, method, url string, opts st
 		return err
 	}
 
-	push := fmt.Sprintf("%s.dkr.ecr.%s.amazonaws.com/%s:{service}.{build}", a.Outputs["RegistryId"], p.Region, a.Outputs["RegistryRepository"])
+	aid, err := p.accountId()
+	if err != nil {
+		return err
+	}
+
+	reg, err := p.appResource(build.App, "Registry")
+	if err != nil {
+		// handle generation 1
+		if strings.HasPrefix(err.Error(), "resource not found") {
+			app, err := p.AppGet(build.App)
+			if err != nil {
+				return err
+			}
+
+			reg = app.Outputs["RegistryRepository"]
+		} else {
+			return err
+		}
+	}
+
+	fmt.Printf("reg = %+v\n", reg)
+
+	push := fmt.Sprintf("%s.dkr.ecr.%s.amazonaws.com/%s:{service}.{build}", aid, p.Region, reg)
 
 	req := &ecs.RunTaskInput{
 		Cluster:        aws.String(p.BuildCluster),

@@ -8,9 +8,9 @@ services:
     environment:
       - AUTOSCALE=false
       - DEVELOPMENT=true
+      - AWS_ACCESS_KEY_ID
       - AWS_REGION
-      - AWS_ACCESS
-      - AWS_SECRET
+      - AWS_SECRET_ACCESS_KEY
       - BUILD_CLUSTER
       - CLIENT_ID=dev@convox.com
       - CLOUDFORMATION_TOPIC
@@ -53,9 +53,9 @@ services:
     environment:
       - DEVELOPMENT=true
       - AUTOSCALE=false
+      - AWS_ACCESS_KEY_ID
       - AWS_REGION
-      - AWS_ACCESS
-      - AWS_SECRET
+      - AWS_SECRET_ACCESS_KEY
       - BUILD_CLUSTER
       - CLIENT_ID=dev@convox.com
       - CLOUDFORMATION_TOPIC

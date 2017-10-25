@@ -4,8 +4,8 @@ machine:
   post:
     - sudo apt-get update; sudo apt-get install curl
     - sudo rm -rf /usr/local/go
-    - curl https://storage.googleapis.com/golang/go1.7.5.linux-amd64.tar.gz -O
-    - sudo tar -C /usr/local -xzf go1.7.5.linux-amd64.tar.gz
+    - curl https://storage.googleapis.com/golang/go1.9.1.linux-amd64.tar.gz -O
+    - sudo tar -C /usr/local -xzf go1.9.1.linux-amd64.tar.gz
 
 dependencies:
   pre:

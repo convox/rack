@@ -19,6 +19,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/convox/rack/api/cache"
 	"github.com/convox/rack/api/structs"
 )
@@ -32,6 +33,15 @@ type TemplateParameter struct {
 	Description string
 	NoEcho      bool
 	Type        string
+}
+
+func (p *AWSProvider) accountId() (string, error) {
+	res, err := p.sts().GetCallerIdentity(&sts.GetCallerIdentityInput{})
+	if err != nil {
+		return "", err
+	}
+
+	return *res.Account, nil
 }
 
 func awsError(err error) string {
@@ -112,7 +122,7 @@ func ct(t *time.Time) time.Time {
 }
 
 func buildTemplate(name, section string, data interface{}) (string, error) {
-	d, err := Asset(fmt.Sprintf("templates/%s.tmpl", name))
+	d, err := ioutil.ReadFile("provider/aws/templates/%s.tmpl")
 	if err != nil {
 		return "", err
 	}
@@ -477,6 +487,15 @@ func (p *AWSProvider) describeStackResources(input *cloudformation.DescribeStack
 	return res, nil
 }
 
+func (p *AWSProvider) appResource(app, resource string) (string, error) {
+	res, err := p.stackResource(fmt.Sprintf("%s-%s", p.Rack, app), resource)
+	if err != nil {
+		return "", err
+	}
+
+	return *res.PhysicalResourceId, nil
+}
+
 func (p *AWSProvider) stackResource(stack, resource string) (*cloudformation.StackResource, error) {
 	rs, err := p.describeStackResources(&cloudformation.DescribeStackResourcesInput{
 		StackName: aws.String(stack),
@@ -619,6 +638,61 @@ func (p *AWSProvider) s3Put(bucket, key string, data []byte, public bool) error 
 	_, err := p.s3().PutObject(req)
 
 	return err
+}
+
+func (p *AWSProvider) taskRelease(id string) (string, error) {
+	if release, ok := cache.Get("taskRelease", id).(string); ok {
+		return release, nil
+	}
+
+	t, err := p.describeTasks(&ecs.DescribeTasksInput{
+		Cluster: aws.String(os.Getenv("CLUSTER")),
+		Tasks:   []*string{aws.String(id)},
+	})
+	if err != nil {
+		return "", err
+	}
+	if len(t.Tasks) < 1 {
+		return "", fmt.Errorf("no such task: %s", id)
+	}
+
+	release, err := p.taskDefinitionRelease(*t.Tasks[0].TaskDefinitionArn)
+	if err != nil {
+		return "", err
+	}
+
+	if err := cache.Set("taskRelease", id, release, 24*time.Hour); err != nil {
+		return "", err
+	}
+
+	return release, nil
+}
+
+func (p *AWSProvider) taskDefinitionRelease(arn string) (string, error) {
+	if release, ok := cache.Get("taskDefinitionRelease", arn).(string); ok {
+		return release, nil
+	}
+
+	td, err := p.describeTaskDefinition(&ecs.DescribeTaskDefinitionInput{
+		TaskDefinition: aws.String(arn),
+	})
+	if err != nil {
+		return "", err
+	}
+	if len(td.TaskDefinition.ContainerDefinitions) < 0 {
+		return "", fmt.Errorf("no container definitions for task definition: %s", arn)
+	}
+
+	release, ok := td.TaskDefinition.ContainerDefinitions[0].DockerLabels["convox.release"]
+	if !ok || release == nil {
+		return "", fmt.Errorf("no convox.release label for task definition: %s", arn)
+	}
+
+	if err := cache.Set("taskDefinitionRelease", arn, *release, 24*time.Hour); err != nil {
+		return "", err
+	}
+
+	return *release, nil
 }
 
 // updateStack updates a stack
