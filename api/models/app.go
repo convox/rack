@@ -10,7 +10,7 @@ import (
 	"github.com/convox/rack/api/helpers"
 	"github.com/convox/rack/api/structs"
 	"github.com/convox/rack/client"
-	"github.com/convox/rack/manifest"
+	"github.com/convox/rack/manifest1"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
@@ -133,8 +133,8 @@ func (a *App) Create() error {
 		return fmt.Errorf("app name can contain only alphanumeric characters, dashes and must be between 4 and 30 characters")
 	}
 
-	m := manifest.Manifest{
-		Services: make(map[string]manifest.Service),
+	m := manifest1.Manifest{
+		Services: make(map[string]manifest1.Service),
 	}
 
 	formation, err := a.Formation(m)
@@ -256,7 +256,7 @@ func (a *App) UpdateParams(changes map[string]string) error {
 	return err
 }
 
-func (a *App) Formation(m manifest.Manifest) (string, error) {
+func (a *App) Formation(m manifest1.Manifest) (string, error) {
 	tmplData := map[string]interface{}{
 		"App":      a,
 		"Manifest": m,
@@ -338,7 +338,7 @@ func (s Apps) Swap(i, j int) {
 	s[i], s[j] = s[j], s[i]
 }
 
-func (a App) CronJobs(m manifest.Manifest) []CronJob {
+func (a App) CronJobs(m manifest1.Manifest) []CronJob {
 	cronjobs := []CronJob{}
 
 	for _, entry := range m.Services {

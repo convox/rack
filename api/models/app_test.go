@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/convox/rack/api/models"
-	"github.com/convox/rack/manifest"
+	"github.com/convox/rack/manifest1"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -50,18 +50,18 @@ func TestAppStackName(t *testing.T) {
 }
 
 func TestAppCronJobs(t *testing.T) {
-	m := manifest.Manifest{
+	m := manifest1.Manifest{
 		Version: "1",
-		Services: map[string]manifest.Service{
+		Services: map[string]manifest1.Service{
 			"one": {
 				Name: "one",
-				Labels: manifest.Labels{
+				Labels: manifest1.Labels{
 					"convox.cron.task1": "00 19 * * ? ls -la",
 				},
 			},
 			"two": {
 				Name: "two",
-				Labels: manifest.Labels{
+				Labels: manifest1.Labels{
 					"convox.cron.task2": "00 20 * * ? ls -la",
 					"convox.cron.task3": "00 21 * * ? ls -la",
 				},
@@ -92,12 +92,12 @@ func TestAppCronJobs(t *testing.T) {
 }
 
 func TestAppAgents(t *testing.T) {
-	m := manifest.Manifest{
+	m := manifest1.Manifest{
 		Version: "1",
-		Services: map[string]manifest.Service{
+		Services: map[string]manifest1.Service{
 			"one": {
 				Name: "one",
-				Labels: manifest.Labels{
+				Labels: manifest1.Labels{
 					"convox.agent": "true",
 				},
 			},

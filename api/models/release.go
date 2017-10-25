@@ -17,7 +17,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/convox/rack/api/structs"
-	"github.com/convox/rack/manifest"
+	"github.com/convox/rack/manifest1"
 )
 
 // set to false when testing for deterministic ports
@@ -146,7 +146,7 @@ func (r *Release) Promote() error {
 
 	app.Parameters["SubnetsPrivate"] = subnetsPrivate
 
-	m, err := manifest.Load([]byte(r.Manifest))
+	m, err := manifest1.Load([]byte(r.Manifest))
 	if err != nil {
 		return err
 	}
@@ -395,7 +395,7 @@ func (r *Release) Formation() (string, error) {
 		return "", err
 	}
 
-	manifest, err := manifest.Load([]byte(r.Manifest))
+	manifest, err := manifest1.Load([]byte(r.Manifest))
 	if err != nil {
 		return "", err
 	}
@@ -450,7 +450,7 @@ func (r *Release) Formation() (string, error) {
 	return app.Formation(*manifest)
 }
 
-func (r *Release) resolveLinks(app App, m *manifest.Manifest) (*manifest.Manifest, error) {
+func (r *Release) resolveLinks(app App, m *manifest1.Manifest) (*manifest1.Manifest, error) {
 	// HACK: need an app of type structs.App for docker login.
 	// Should be fixed/removed once proper logic is moved over to structs.App
 	// That includes moving Formation() around
@@ -545,7 +545,7 @@ func (r *Release) resolveLinks(app App, m *manifest.Manifest) (*manifest.Manifes
 				continue
 			}
 
-			var port manifest.Port
+			var port manifest1.Port
 			linkPort := other.Exports["LINK_PORT"]
 			if linkPort == "" {
 				port = other.Ports[0]

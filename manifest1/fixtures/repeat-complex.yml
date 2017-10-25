@@ -1,0 +1,52 @@
+version: "2"
+services:
+  first:
+    build:
+      context: .
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        foo: bar
+    command: bin/web
+  monitor:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        foo: bar
+    command: bin/monitor
+  othera:
+    build:
+      context: ./other
+      dockerfile: Dockerfile
+      args:
+        foo: bar
+    command: bin/other
+  otherb:
+    build:
+      context: .
+      dockerfile: Dockerfile.other
+      args:
+        foo: bar
+    command: bin/other
+  otherc:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        foo: other
+    command: bin/other
+  otherd:
+    build: .
+    dockerfile: Dockerfile
+  othere:
+    build: .
+  otherf:
+    build: .
+    dockerfile: Dockerfile.otherf
+  otherg:
+    build:
+      context: .
+    dockerfile: Dockerfile.otherf

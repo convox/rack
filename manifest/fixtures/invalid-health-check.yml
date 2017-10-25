@@ -1,8 +1,0 @@
-version: "2"
-services:
-  web:
-    image: httpd
-    labels:
-      - convox.health.port=80
-    ports:
-      - 3000

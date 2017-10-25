@@ -1,8 +1,0 @@
-web1:
-  image: convox/rails
-  ports:
-    - 80:8080
-web2:
-  image: convox/rails
-  ports:
-    - 80:8080

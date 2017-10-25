@@ -14,7 +14,7 @@ import (
 
 	"github.com/convox/rack/api/cmd/build/source"
 	"github.com/convox/rack/api/structs"
-	"github.com/convox/rack/manifest"
+	"github.com/convox/rack/manifest1"
 	"github.com/convox/rack/provider"
 )
 
@@ -205,7 +205,7 @@ func build(dir string) error {
 		return err
 	}
 
-	m, err := manifest.Load(data)
+	m, err := manifest1.Load(data)
 	if err != nil {
 		return err
 	}
@@ -239,7 +239,7 @@ func build(dir string) error {
 	env["SECURE_ENVIRONMENT_TYPE"] = "envfile"
 	env["SECURE_ENVIRONMENT_KEY"] = a.Parameters["Key"]
 
-	err = m.Build(dir, flagApp, s, manifest.BuildOptions{
+	err = m.Build(dir, flagApp, s, manifest1.BuildOptions{
 		Environment: env,
 		Cache:       flagCache == "true",
 		Verbose:     false,

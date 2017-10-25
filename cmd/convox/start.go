@@ -13,7 +13,7 @@ import (
 	"github.com/convox/rack/api/models"
 	"github.com/convox/rack/cmd/convox/helpers"
 	"github.com/convox/rack/cmd/convox/stdcli"
-	"github.com/convox/rack/manifest"
+	"github.com/convox/rack/manifest1"
 	"github.com/fsouza/go-dockerclient"
 	"github.com/robfig/cron"
 	"gopkg.in/urfave/cli.v1"
@@ -88,7 +88,7 @@ func cmdStart(c *cli.Context) error {
 
 	appType := helpers.DetectApplication(dir)
 
-	m, err := manifest.LoadFile(c.String("file"))
+	m, err := manifest1.LoadFile(c.String("file"))
 	if err != nil {
 		return stdcli.Error(err)
 	}
@@ -126,7 +126,7 @@ func cmdStart(c *cli.Context) error {
 		}
 	}
 
-	r := m.Run(dir, app, manifest.RunOptions{
+	r := m.Run(dir, app, manifest1.RunOptions{
 		Build:   !c.Bool("no-build"),
 		Cache:   !c.Bool("no-cache"),
 		Command: command,
@@ -171,18 +171,18 @@ func cmdStart(c *cli.Context) error {
 			c.AddFunc(trigger, func() {
 				cronProccesName := fmt.Sprintf("cron-%s-%04d", cronjob.Name, rand.Intn(9000))
 				// Replace args with cron specific ones
-				cronArgs := p.GenerateArgs(&manifest.ArgOptions{
+				cronArgs := p.GenerateArgs(&manifest1.ArgOptions{
 					Command:     cronjob.Command,
 					IgnorePorts: true,
 					Name:        cronProccesName,
 				})
 
 				done := make(chan error)
-				manifest.RunAsync(
+				manifest1.RunAsync(
 					r.Output.Stream(cronProccesName),
-					manifest.Docker(append([]string{"run"}, cronArgs...)...),
+					manifest1.Docker(append([]string{"run"}, cronArgs...)...),
 					done,
-					manifest.RunnerOptions{Verbose: true},
+					manifest1.RunnerOptions{Verbose: true},
 				)
 
 				err := <-done
@@ -200,7 +200,7 @@ func cmdStart(c *cli.Context) error {
 	return r.Wait()
 }
 
-func handleInterrupt(run manifest.Run) {
+func handleInterrupt(run manifest1.Run) {
 	ch := make(chan os.Signal, 1)
 	signal.Notify(ch, os.Interrupt, os.Kill)
 	<-ch

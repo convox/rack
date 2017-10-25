@@ -1,0 +1,12 @@
+version: "2"
+services:
+  secure:
+    build: .
+    labels:
+      - convox.environment.secure=true
+    expose:
+      - 8080
+  notsecure:
+    build: .
+    expose:
+      - 8080

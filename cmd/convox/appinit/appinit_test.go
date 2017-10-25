@@ -3,7 +3,7 @@ package appinit
 import (
 	"testing"
 
-	"github.com/convox/rack/manifest"
+	"github.com/convox/rack/manifest1"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -49,23 +49,23 @@ func TestGenerateManifest(t *testing.T) {
 		pf Procfile
 		af Appfile
 		r  Release
-		m  manifest.Manifest
+		m  manifest1.Manifest
 	}{
 		{ //
 			Procfile{},
 			Appfile{Env: map[string]EnvEntry{"SECRET": {"top secret"}}},
 			Release{Addons: []string{"heroku-postgres"}, ProcessTypes: map[string]string{"web": "gunicorn gettingstarted.wsgi --log-file -"}},
-			manifest.Manifest{
+			manifest1.Manifest{
 				Version: "2",
-				Services: map[string]manifest.Service{
+				Services: map[string]manifest1.Service{
 					"web": {
-						Build: manifest.Build{
+						Build: manifest1.Build{
 							Context: ".",
 						},
-						Command: manifest.Command{
+						Command: manifest1.Command{
 							String: "gunicorn gettingstarted.wsgi --log-file -",
 						},
-						Environment: manifest.Environment{
+						Environment: manifest1.Environment{
 							{
 								Name:  "PORT",
 								Value: "4001",
@@ -75,20 +75,20 @@ func TestGenerateManifest(t *testing.T) {
 								Value: "top secret",
 							},
 						},
-						Ports: manifest.Ports{
+						Ports: manifest1.Ports{
 							{
 								Name:      "80",
 								Balancer:  80,
 								Container: 4001,
 								Public:    true,
-								Protocol:  manifest.TCP,
+								Protocol:  manifest1.TCP,
 							},
 							{
 								Name:      "443",
 								Balancer:  443,
 								Container: 4001,
 								Public:    true,
-								Protocol:  manifest.TCP,
+								Protocol:  manifest1.TCP,
 							},
 						},
 					},
@@ -100,18 +100,18 @@ func TestGenerateManifest(t *testing.T) {
 			Procfile{{Name: "web", Command: "python server.py"}, {Name: "worker", Command: "python worker.py"}},
 			Appfile{Env: map[string]EnvEntry{"SECRET": {"top secret"}}},
 			Release{Addons: []string{"heroku-postgres"}, ProcessTypes: map[string]string{"web": "gunicorn gettingstarted.wsgi --log-file -"}},
-			manifest.Manifest{
+			manifest1.Manifest{
 				Version: "2",
-				Services: map[string]manifest.Service{
+				Services: map[string]manifest1.Service{
 					"web": {
 						Name: "web",
-						Build: manifest.Build{
+						Build: manifest1.Build{
 							Context: ".",
 						},
-						Command: manifest.Command{
+						Command: manifest1.Command{
 							String: "python server.py",
 						},
-						Environment: manifest.Environment{
+						Environment: manifest1.Environment{
 							{
 								Name:  "PORT",
 								Value: "4001",
@@ -121,41 +121,41 @@ func TestGenerateManifest(t *testing.T) {
 								Value: "top secret",
 							},
 						},
-						Labels: manifest.Labels{
+						Labels: manifest1.Labels{
 							"convox.port.443.protocol": "tls",
 						},
-						Ports: manifest.Ports{
+						Ports: manifest1.Ports{
 							{
 								Name:      "80",
 								Balancer:  80,
 								Container: 4001,
 								Public:    true,
-								Protocol:  manifest.TCP,
+								Protocol:  manifest1.TCP,
 							},
 							{
 								Name:      "443",
 								Balancer:  443,
 								Container: 4001,
 								Public:    true,
-								Protocol:  manifest.TCP,
+								Protocol:  manifest1.TCP,
 							},
 						},
 					},
 					"worker": {
-						Build: manifest.Build{
+						Build: manifest1.Build{
 							Context: ".",
 						},
-						Command: manifest.Command{
+						Command: manifest1.Command{
 							String: "python worker.py",
 						},
-						Environment: manifest.Environment{
+						Environment: manifest1.Environment{
 							{
 								Name:  "SECRET",
 								Value: "top secret",
 							},
 						},
-						Labels: manifest.Labels{},
-						Ports:  manifest.Ports{},
+						Labels: manifest1.Labels{},
+						Ports:  manifest1.Ports{},
 					},
 				},
 			},

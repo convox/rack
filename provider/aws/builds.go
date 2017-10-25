@@ -27,7 +27,7 @@ import (
 	docker "github.com/fsouza/go-dockerclient"
 
 	"github.com/convox/rack/api/structs"
-	"github.com/convox/rack/manifest"
+	"github.com/convox/rack/manifest1"
 )
 
 // ECR host is formatted like 123456789012.dkr.ecr.us-east-1.amazonaws.com
@@ -139,7 +139,7 @@ func (p *AWSProvider) BuildExport(app, id string, w io.Writer) error {
 		return err
 	}
 
-	m, err := manifest.Load([]byte(build.Manifest))
+	m, err := manifest1.Load([]byte(build.Manifest))
 	if err != nil {
 		log.Error(err)
 		return fmt.Errorf("manifest error: %s", err)
@@ -988,7 +988,7 @@ func (p *AWSProvider) buildFromItem(item map[string]*dynamodb.AttributeValue) *s
 // are not yet supported and return an error.
 func (p *AWSProvider) deleteImages(a *structs.App, b *structs.Build) error {
 
-	m, err := manifest.Load([]byte(b.Manifest))
+	m, err := manifest1.Load([]byte(b.Manifest))
 	if err != nil {
 		return err
 	}

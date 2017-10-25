@@ -1,0 +1,4 @@
+web_api:
+  image: httpd
+  ports:
+    - 80:80

@@ -8,7 +8,7 @@ import (
 	"sort"
 	"time"
 
-	"github.com/convox/rack/manifest"
+	"github.com/convox/rack/manifest1"
 )
 
 // MaxBuilds is the number of most recent builds to retain
@@ -43,7 +43,7 @@ func clean() {
 	// list image data in CSV format, e.g.:
 	// 2017-06-01 17:43:39 -0700 PDT,0c64199163c6,web.BYDGVRTEDIW,782231114432.dkr.ecr.us-west-2.amazonaws.com/convox-myapp-qxawtfsdxt
 	// 2017-06-01 17:36:04 -0700 PDT,7035bfa510e2,web.BBONMZTXNMA,782231114432.dkr.ecr.us-west-2.amazonaws.com/convox-myapp-qxawtfsdxt
-	cmd := manifest.Docker("images", "--format", "{{.CreatedAt}},{{.ID}},{{.Tag}},{{.Repository}}")
+	cmd := manifest1.Docker("images", "--format", "{{.CreatedAt}},{{.ID}},{{.Tag}},{{.Repository}}")
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		fmt.Printf("WARNING: %s\n", err)
@@ -126,7 +126,7 @@ func clean() {
 	// remove images
 	for tag := range tags {
 		args := []string{"rmi", tag}
-		cmd = manifest.Docker(args...)
+		cmd = manifest1.Docker(args...)
 		_, err := cmd.CombinedOutput()
 		if err != nil {
 			fmt.Printf("WARNING: %s\n", err)

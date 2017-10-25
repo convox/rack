@@ -1,5 +1,0 @@
-main:
-  ports:
-    - 80:3000
-  labels:
-    - convox.draining.timeout=9999

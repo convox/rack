@@ -1,6 +1,0 @@
-web:
-  ports:
-    - 1000/tcp
-    - 6514:1001/tcp
-    - 2000/udp
-    - 514:2001/udp # equivalent to 2001/udp

@@ -19,7 +19,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/convox/rack/api/cache"
 	"github.com/convox/rack/api/structs"
-	"github.com/convox/rack/manifest"
+	"github.com/convox/rack/manifest1"
 	"github.com/fsouza/go-dockerclient"
 	shellquote "github.com/kballard/go-shellquote"
 )
@@ -701,7 +701,7 @@ func (p *AWSProvider) generateTaskDefinition(app, process, release string) (*ecs
 		return nil, err
 	}
 
-	m, err := manifest.Load([]byte(r.Manifest))
+	m, err := manifest1.Load([]byte(r.Manifest))
 	if err != nil {
 		return nil, err
 	}

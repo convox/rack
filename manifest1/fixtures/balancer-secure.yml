@@ -1,0 +1,10 @@
+version: "2"
+services:
+  web:
+    labels:
+      - convox.health.port=5001
+      - convox.port.443.protocol=https
+      - convox.port.443.secure=true
+    ports:
+      - 80:5000
+      - 443:5001
