@@ -1811,6 +1811,7 @@
                 "Action": [
                   "iam:AddRoleToInstanceProfile",
                   "iam:CreateInstanceProfile",
+                  "iam:GetServerCertificate",
                   "iam:ListServerCertificates",
                   "iam:RemoveRoleFromInstanceProfile",
                   "iam:UploadServerCertificate"
