@@ -175,7 +175,7 @@ func (mb ManifestBalancer) ListenerProtocol(p Port) string {
 
 // AppCookieStickinessName returns cookieName, indicates that the balancer is using AppCookieStickinessPolicies
 func (mb ManifestBalancer) AppCookieStickinessName(p Port) string {
-	cookieName := mb.Entry.Labels[fmt.Sprintf("convox.port.%d.AppCookieStickiness", p.Balancer)]
+	cookieName := mb.Entry.Labels[fmt.Sprintf("convox.port.%d.sticky.cookie", p.Balancer)]
 
 	if (cookieName != "") {
 		switch mb.ListenerProtocol(p) {

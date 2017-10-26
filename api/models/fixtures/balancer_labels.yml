@@ -7,7 +7,7 @@ main:
     - convox.health.threshold.unhealthy=3
     - convox.health.threshold.healthy=4
     - convox.port.1234.protocol=https
-    - convox.port.1234.AppCookieStickiness=kevinTest
+    - convox.port.1234.sticky.cookie=kevinTest
   ports:
     - 443:5000
     - 1234:2345
