@@ -829,8 +829,6 @@ func (p *AWSProvider) runBuild(build *structs.Build, method, url string, opts st
 		}
 	}
 
-	fmt.Printf("reg = %+v\n", reg)
-
 	push := fmt.Sprintf("%s.dkr.ecr.%s.amazonaws.com/%s:{service}.{build}", aid, p.Region, reg)
 
 	req := &ecs.RunTaskInput{
