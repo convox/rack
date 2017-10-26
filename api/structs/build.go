@@ -18,7 +18,7 @@ type Build struct {
 	Started time.Time `json:"started"`
 	Ended   time.Time `json:"ended"`
 
-	Tags map[string]string `json:"-"`
+	Tags map[string]string `json:"tags"`
 }
 
 type Builds []Build

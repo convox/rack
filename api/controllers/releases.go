@@ -134,7 +134,31 @@ func releasePromoteGeneration1(rw http.ResponseWriter, r *http.Request) *httperr
 }
 
 func releasePromoteGeneration2(rw http.ResponseWriter, r *http.Request) *httperr.Error {
-	return nil
+	vars := mux.Vars(r)
+	app := vars["app"]
+	release := vars["release"]
+
+	event := &structs.Event{
+		Action: "release:promote",
+		Status: "start",
+		Data: map[string]string{
+			"app": app,
+			"id":  release,
+		},
+	}
+
+	rr, err := models.Provider().ReleaseGet(app, release)
+	if err != nil {
+		models.Provider().EventSend(event, err)
+		return httperr.Server(err)
+	}
+
+	if err := models.Provider().ReleasePromote(rr); err != nil {
+		models.Provider().EventSend(event, err)
+		return httperr.Server(err)
+	}
+
+	return RenderJson(rw, rr)
 }
 
 // ForkRelease creates a new release based on the app's release

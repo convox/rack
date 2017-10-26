@@ -829,7 +829,17 @@ func (p *AWSProvider) runBuild(build *structs.Build, method, url string, opts st
 		}
 	}
 
+	a, err := p.AppGet(build.App)
+	if err != nil {
+		return err
+	}
+
 	push := fmt.Sprintf("%s.dkr.ecr.%s.amazonaws.com/%s:{service}.{build}", aid, p.Region, reg)
+
+	switch a.Tags["Generation"] {
+	case "2":
+		push = fmt.Sprintf("%s.dkr.ecr.%s.amazonaws.com/%s", aid, p.Region, reg)
+	}
 
 	req := &ecs.RunTaskInput{
 		Cluster:        aws.String(p.BuildCluster),
@@ -857,6 +867,10 @@ func (p *AWSProvider) runBuild(build *structs.Build, method, url string, opts st
 						{
 							Name:  aws.String("BUILD_CONFIG"),
 							Value: aws.String(opts.Config),
+						},
+						{
+							Name:  aws.String("BUILD_GENERATION"),
+							Value: aws.String(a.Tags["Generation"]),
 						},
 						{
 							Name:  aws.String("BUILD_ID"),
