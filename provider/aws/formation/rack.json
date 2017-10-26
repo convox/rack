@@ -178,12 +178,17 @@
       "Value": { "Ref": "Version" }
     },
     "Router": {
+      "Export": { "Name": { "Fn::Sub": "${AWS::StackName}:Router" } },
       "Value": { "Fn::Join": [ ".", [
         "rack",
         { "Fn::Select": [ 0, { "Fn::Split": [ ".", { "Fn::GetAtt": [ "Router", "DNSName" ] } ] } ] },
         { "Fn::Select": [ 1, { "Fn::Split": [ ".", { "Fn::GetAtt": [ "Router", "DNSName" ] } ] } ] },
         "rack.convox.io"
       ] ] }
+    },
+    "RouterListener80": {
+      "Export": { "Name": { "Fn::Sub": "${AWS::StackName}:RouterListener80" } },
+      "Value": { "Ref": "RouterListener80" }
     },
     "RouteTablePublic": {
       "Condition": "NotExistingVpcAndBlankInternetGateway",
@@ -197,6 +202,10 @@
     },
     "SecurityGroup": {
       "Value": { "Fn::If": [ "BlankInstanceSecurityGroup", { "Ref": "InstancesSecurity" }, { "Ref": "InstanceSecurityGroup" } ] }
+    },
+    "ServiceRole": {
+      "Export": { "Name": { "Fn::Sub": "${AWS::StackName}:ServiceRole" } },
+      "Value": { "Fn::GetAtt": [ "ServiceRole", "Arn" ] }
     },
     "SettingsBucket": {
       "Value": { "Ref": "Settings" }
@@ -234,6 +243,7 @@
       "Value": { "Ref": "AWS::StackId" }
     },
     "Vpc": {
+      "Export": { "Name": { "Fn::Sub": "${AWS::StackName}:Vpc" } },
       "Value": { "Fn::If": [ "BlankExistingVpc",
         { "Ref": "Vpc" },
         { "Ref": "ExistingVpc" }

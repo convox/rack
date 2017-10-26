@@ -132,6 +132,7 @@ func (p *AWSProvider) ReleasePromote(r *structs.Release) error {
 	}
 
 	tp := map[string]interface{}{
+		"App":      r.App,
 		"Manifest": m,
 		"Release":  r,
 	}
