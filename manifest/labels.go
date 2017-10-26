@@ -10,6 +10,7 @@ var rePortShifters = []*regexp.Regexp{
 	regexp.MustCompile(`^convox.port.(\d+).protocol$`),
 	regexp.MustCompile(`^convox.port.(\d+).proxy$`),
 	regexp.MustCompile(`^convox.port.(\d+).secure$`),
+	regexp.MustCompile(`^convox.port.(\d+).sticky.cookie$`),
 }
 
 // Shift all ports referenced by labels by a given amount

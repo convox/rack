@@ -173,6 +173,30 @@ func (mb ManifestBalancer) ListenerProtocol(p Port) string {
 	return "TCP"
 }
 
+// AppCookieStickinessName returns cookieName, indicates that the balancer is using AppCookieStickinessPolicies
+func (mb ManifestBalancer) AppCookieStickinessName(p Port) string {
+	cookieName := mb.Entry.Labels[fmt.Sprintf("convox.port.%d.sticky.cookie", p.Balancer)]
+
+	if (cookieName != "") {
+		switch mb.ListenerProtocol(p) {
+		case "HTTPS":
+			return cookieName
+		case "HTTP":
+			return cookieName
+		}
+	}
+	return ""
+}
+
+// UseAppCookieStickiness
+func (mb ManifestBalancer) UseAppCookieStickiness(p Port) bool {
+	protocol := mb.ListenerProtocol(p)
+	if (protocol != "HTTPS" && protocol != "HTTP") {
+		return false
+	}
+	return mb.AppCookieStickinessName(p) != ""
+}
+
 // InstanceProtocol returns protocol the container is listening with
 func (mb ManifestBalancer) InstanceProtocol(p Port) string {
 	secure := mb.Entry.Labels[fmt.Sprintf("convox.port.%d.secure", p.Balancer)] == "true"

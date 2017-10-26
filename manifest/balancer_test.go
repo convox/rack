@@ -4,6 +4,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+//	"github.com/convox/rack/manifest"
+	"github.com/convox/rack/manifest"
 )
 
 func TestBalancer(t *testing.T) {
@@ -34,6 +36,8 @@ func TestBalancerLabels(t *testing.T) {
 			assert.Equal(t, "20", balancer.HealthTimeout())
 			assert.Equal(t, "3", balancer.HealthThresholdUnhealthy())
 			assert.Equal(t, "4", balancer.HealthThresholdHealthy())
+			assert.Equal(t, true, balancer.UseAppCookieStickiness(manifest.Port{Balancer: 2345}))
+			assert.Equal(t, "kevinTest", balancer.AppCookieStickinessName(manifest.Port{Balancer: 2345}))
 		}
 	}
 }

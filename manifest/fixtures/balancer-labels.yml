@@ -8,7 +8,9 @@ services:
       - convox.health.timeout=20
       - convox.health.threshold.healthy=4
       - convox.health.threshold.unhealthy=3
-      - convox.port.443.protocol=https
+      - convox.port.2345.protocol=https
+      - convox.port.2345.sticky.cookie=kevinTest
     ports:
       - 80:5000
       - 443:5001
+      - 1234:2345

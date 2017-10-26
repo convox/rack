@@ -300,6 +300,11 @@
         "BalancerWebInternalSecurityGroup"
       ],
       "Properties": {
+        "AppCookieStickinessPolicy": [
+          {
+            "Ref": "AWS::NoValue"
+          }
+        ],
         "ConnectionDrainingPolicy": {
           "Enabled": true,
           "Timeout": "60"

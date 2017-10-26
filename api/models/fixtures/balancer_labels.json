@@ -1,6 +1,19 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
   "Conditions": {
+    "BlankBalancerMainPort1234Certificate": {
+      "Fn::Equals": [
+        {
+          "Fn::Select": [
+            1,
+            {
+              "Ref": "MainPort1234Listener"
+            }
+          ]
+        },
+        ""
+      ]
+    },
     "BlankBalancerMainPort443Certificate": {
       "Fn::Equals": [
         {
@@ -103,6 +116,28 @@
         "Ref": "LogGroup"
       }
     },
+    "MainPort1234Balancer": {
+      "Condition": "EnabledMain",
+      "Value": "1234"
+    },
+    "MainPort1234BalancerName": {
+      "Condition": "EnabledMain",
+      "Value": {
+        "Fn::If": [
+          "Internal",
+          {
+            "Fn::Join": [
+              "-",
+              [
+                "httpd-main-KQSNMIK",
+                "n"
+              ]
+            ]
+          },
+          "httpd-main-KQSNMIK"
+        ]
+      }
+    },
     "MainPort443Balancer": {
       "Condition": "EnabledMain",
       "Value": "443"
@@ -184,6 +219,11 @@
       "Description": "Number of processes to run, CPU units to reserve, and MB of RAM to reserve",
       "Type": "CommaDelimitedList"
     },
+    "MainPort1234Listener": {
+      "Default": "5001,",
+      "Description": "Host port number, certificate ARN",
+      "Type": "CommaDelimitedList"
+    },
     "MainPort443Listener": {
       "Default": "5000,",
       "Description": "Host port number, certificate ARN",
@@ -260,6 +300,15 @@
         "BalancerMainSecurityGroup"
       ],
       "Properties": {
+        "AppCookieStickinessPolicy": [
+          {
+            "CookieName": "kevinTest",
+            "PolicyName": "AppCookieStickinessPolicy2345"
+          },
+          {
+            "Ref": "AWS::NoValue"
+          }
+        ],
         "ConnectionDrainingPolicy": {
           "Enabled": true,
           "Timeout": "60"
@@ -320,6 +369,38 @@
                     1,
                     {
                       "Ref": "MainPort443Listener"
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "InstancePort": {
+              "Fn::Select": [
+                0,
+                {
+                  "Ref": "MainPort1234Listener"
+                }
+              ]
+            },
+            "InstanceProtocol": "HTTP",
+            "LoadBalancerPort": "1234",
+            "PolicyNames": [
+              "AppCookieStickinessPolicy2345"
+            ],
+            "Protocol": "HTTPS",
+            "SSLCertificateId": {
+              "Fn::If": [
+                "BlankBalancerMainPort1234Certificate",
+                {
+                  "Ref": "AWS::NoValue"
+                },
+                {
+                  "Fn::Select": [
+                    1,
+                    {
+                      "Ref": "MainPort1234Listener"
                     }
                   ]
                 }
@@ -426,6 +507,12 @@
             "FromPort": "443",
             "IpProtocol": "tcp",
             "ToPort": "443"
+          },
+          {
+            "CidrIp": "0.0.0.0/0",
+            "FromPort": "1234",
+            "IpProtocol": "tcp",
+            "ToPort": "1234"
           },
           {
             "Ref": "AWS::NoValue"
@@ -628,6 +715,22 @@
                       ]
                     },
                     "5000/tcp"
+                  ]
+                ]
+              },
+              {
+                "Fn::Join": [
+                  ":",
+                  [
+                    {
+                      "Fn::Select": [
+                        0,
+                        {
+                          "Ref": "MainPort1234Listener"
+                        }
+                      ]
+                    },
+                    "2345/tcp"
                   ]
                 ]
               },
