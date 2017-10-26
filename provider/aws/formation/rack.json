@@ -772,6 +772,7 @@
     "RouteDefault": {
       "Type": "AWS::EC2::Route",
       "Condition": "NotExistingVpcAndBlankInternetGateway",
+      "DependsOn": "GatewayAttachment",
       "Properties": {
         "DestinationCidrBlock": "0.0.0.0/0",
         "GatewayId": { "Fn::If": [ "ExistingVpcAndInternetGateway",
