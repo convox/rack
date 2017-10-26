@@ -124,8 +124,6 @@ func (p *AWSProvider) ReleasePromote(r *structs.Release) error {
 
 	stack := fmt.Sprintf("%s-%s", p.Rack, r.App)
 
-	fmt.Printf("r = %+v\n", r)
-
 	m, err := manifest.Load([]byte(r.Manifest), manifest.Environment{})
 	if err != nil {
 		return err
@@ -149,11 +147,7 @@ func (p *AWSProvider) ReleasePromote(r *structs.Release) error {
 		return err
 	}
 
-	fmt.Printf("ou = %+v\n", ou)
-
 	updates := map[string]string{}
-
-	fmt.Printf("updates = %+v\n", updates)
 
 	if err := p.updateStack(stack, ou, updates); err != nil {
 		return err
