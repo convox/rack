@@ -4,13 +4,24 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"sort"
 	"strings"
 
 	"html/template"
+
+	"github.com/convox/rack/manifest"
 )
 
 func formationHelpers() template.FuncMap {
 	return template.FuncMap{
+		"services": func(m *manifest.Manifest) string {
+			ss := make([]string, len(m.Services))
+			for i, s := range m.Services {
+				ss[i] = s.Name
+			}
+			sort.Strings(ss)
+			return strings.Join(ss, ",")
+		},
 		"upper": func(s string) string {
 			return upperName(s)
 		},

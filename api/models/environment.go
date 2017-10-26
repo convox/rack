@@ -45,7 +45,12 @@ func GetEnvironment(app string) (Environment, error) {
 		return nil, fmt.Errorf("app is still being created: %s", app)
 	}
 
-	data, err := s3Get(a.Outputs["Settings"], "env")
+	settings, err := appResource(app, "Settings")
+	if err != nil {
+		return nil, err
+	}
+
+	data, err := s3Get(settings, "env")
 	if err != nil {
 
 		// if we get a 404 from aws just return an empty environment
@@ -105,7 +110,12 @@ func PutEnvironment(app string, env Environment) (string, error) {
 		}
 	}
 
-	err = S3Put(a.Outputs["Settings"], "env", []byte(e), true)
+	settings, err := appResource(app, "Settings")
+	if err != nil {
+		return "", err
+	}
+
+	err = S3Put(settings, "env", []byte(e), true)
 	if err != nil {
 		return "", err
 	}

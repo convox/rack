@@ -10,6 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/convox/rack/api/crypt"
 	"github.com/convox/rack/api/structs"
+	"github.com/convox/rack/manifest"
 )
 
 // ReleaseDelete will delete all releases that belong to app and buildID
@@ -117,16 +118,47 @@ func (p *AWSProvider) ReleaseList(app string, limit int64) (structs.Releases, er
 
 // ReleasePromote promotes a release
 func (p *AWSProvider) ReleasePromote(r *structs.Release) error {
-	app, err := p.AppGet(r.App)
+	if _, err := p.AppGet(r.App); err != nil {
+		return err
+	}
+
+	stack := fmt.Sprintf("%s-%s", p.Rack, r.App)
+
+	fmt.Printf("r = %+v\n", r)
+
+	m, err := manifest.Load([]byte(r.Manifest), manifest.Environment{})
 	if err != nil {
 		return err
 	}
 
-	if !app.IsBound() {
-		return fmt.Errorf("unbound apps are no longer supported for promotion")
+	tp := map[string]interface{}{
+		"Manifest": m,
+		"Release":  r,
 	}
 
-	return fmt.Errorf("promote not yet implemented for AWS provider")
+	data, err := formationTemplate("app", tp)
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("string(data) = %+v\n", string(data))
+
+	ou, err := p.ObjectStore("", bytes.NewReader(data), structs.ObjectOptions{})
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("ou = %+v\n", ou)
+
+	updates := map[string]string{}
+
+	fmt.Printf("updates = %+v\n", updates)
+
+	if err := p.updateStack(stack, ou, updates); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // ReleaseSave saves a Release

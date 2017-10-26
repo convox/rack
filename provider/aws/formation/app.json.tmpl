@@ -1,7 +1,13 @@
-{{ $root := . }}
-
 {
   "AWSTemplateFormatVersion" : "2010-09-09",
+  "Outputs": {
+    "Release": {
+      "Value": "{{ .Release.Id }}"
+    },
+    "Services": {
+      "Value": "{{ services .Manifest }}"
+    }
+  },
   "Parameters" : {
     {{ template "service-params" .Manifest }}
 
@@ -29,10 +35,10 @@
 {{ end }}
 
 {{ define "service-params" }}
-  {{ range $e := .Services }}
-    "{{ upper $e.Name }}Formation": {
+  {{ range .Services }}
+    "{{ upper .Name }}Formation": {
       "Type": "CommaDelimitedList",
-      "Default": "{{ $e.DefaultParams }}",
+      "Default": "0,128,256",
       "Description": "Count,CPU,Memory"
     },
   {{ end }}
@@ -40,9 +46,41 @@
 
 {{ define "service-resources" }}
   {{ range .Manifest.Services }}
-    "{{ upper .Name }}TaskDefinition": {
+    "{{ upper .Name }}Tasks": {
+      "Type": "AWS::ECS::TaskDefinition",
+      "Properties": {
+        "ContainerDefinitions": [
+          {
+            {{ with .Command }}
+              "Command": [ "sh", "-c", "{{.}}" ],
+            {{ end }}
+            "Cpu": { "Fn::Select": [ 1, { "Ref": "{{ upper .Name }}Formation" } ] },
+            "DockerLabels": { "convox.release": "{{$.Release.Id}}" },
+            "Environment": [],
+            "Image": { "Fn::Sub": "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${Registry}:{{.Name}}.{{$.Release.Build}}" },
+            "LogConfiguration": {
+              "LogDriver": "awslogs",
+              "Options": {
+                "awslogs-region": { "Ref": "AWS::Region" },
+                "awslogs-group": { "Ref": "LogGroup" },
+                "awslogs-stream-prefix": "service"
+              }
+            },
+            "Memory": { "Fn::Select": [ 2, { "Ref": "{{ upper .Name }}Formation" } ] },
+            "Name": "{{.Name}}"
+          }
+        ],
+        "Family": { "Fn::Sub": "${AWS::StackName}-{{.Name}}" }
+      }
     },
     "{{ upper .Name }}Service": {
+      "Type": "AWS::ECS::Service",
+      "Properties": {
+        "Cluster": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Cluster" } },
+        "DeploymentConfiguration": { "MinimumHealthyPercent": "100", "MaximumPercent": "200" },
+        "DesiredCount": { "Fn::Select": [ 0, { "Ref": "{{ upper .Name }}Formation" } ] },
+        "TaskDefinition": { "Ref": "{{ upper .Name }}Tasks" }
+      }
     },
   {{ end }}
 {{ end }}

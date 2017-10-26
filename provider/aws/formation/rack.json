@@ -84,6 +84,7 @@
       "Value": { "Ref": "CloudformationTopic" }
     },
     "Cluster": {
+      "Export": { "Name": { "Fn::Sub": "${AWS::StackName}:Cluster" } },
       "Value": { "Ref": "Cluster" }
     },
     "CustomTopic": {

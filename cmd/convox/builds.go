@@ -44,7 +44,6 @@ var (
 		cli.StringFlag{
 			Name:   "file, f",
 			EnvVar: "COMPOSE_FILE",
-			Value:  "docker-compose.yml",
 			Usage:  "path to an alternate docker compose manifest file",
 		},
 		cli.StringFlag{
@@ -692,6 +691,8 @@ func finishBuild(c *cli.Context, app string, build *client.Build, output io.Writ
 	if build.Id == "" {
 		return "", "", fmt.Errorf("unable to fetch build id")
 	}
+
+	fmt.Printf("build = %+v\n", build)
 
 	output.Write([]byte("OK\n"))
 

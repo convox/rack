@@ -7,6 +7,7 @@ import (
 	"html/template"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"os"
 	"regexp"
 	"sort"
@@ -93,6 +94,16 @@ func coalesce(s *dynamodb.AttributeValue, def string) string {
 	return def
 }
 
+func coalesces(ss ...string) string {
+	for _, s := range ss {
+		if s != "" {
+			return s
+		}
+	}
+
+	return ""
+}
+
 func cb(b *bool, def bool) bool {
 	if b != nil {
 		return *b
@@ -150,22 +161,10 @@ func (p *AWSProvider) createdTime() string {
 	return time.Now().Format(sortableTime)
 }
 
-func formationParameters(template string) (map[string]bool, error) {
-	res, err := http.Get(template)
-	if err != nil {
-		return nil, err
-	}
-
-	defer res.Body.Close()
-
-	formation, err := ioutil.ReadAll(res.Body)
-	if err != nil {
-		return nil, err
-	}
-
+func formationParameters(body []byte) (map[string]bool, error) {
 	var t Template
 
-	err = json.Unmarshal(formation, &t)
+	err := json.Unmarshal(body, &t)
 
 	if err != nil {
 		return nil, err
@@ -580,6 +579,19 @@ func (p *AWSProvider) listContainerInstances(input *ecs.ListContainerInstancesIn
 	return res, nil
 }
 
+func (p *AWSProvider) objectURL(ou string) (string, error) {
+	u, err := url.Parse(ou)
+	if err != nil {
+		return "", err
+	}
+
+	if u.Scheme != "object" {
+		return "", fmt.Errorf("only supports object:// urls")
+	}
+
+	return fmt.Sprintf("https://s3.%s.amazonaws.com/%s%s", p.Region, p.SettingsBucket, u.Path), nil
+}
+
 func (p *AWSProvider) s3Exists(bucket, key string) (bool, error) {
 	_, err := p.s3().HeadObject(&s3.HeadObjectInput{
 		Bucket: aws.String(bucket),
@@ -721,9 +733,47 @@ func (p *AWSProvider) updateStack(name string, template string, changes map[stri
 	}
 
 	if template != "" {
-		req.TemplateURL = aws.String(template)
+		var data []byte
+		var err error
 
-		fp, err := formationParameters(template)
+		if strings.HasPrefix(template, "object://") {
+			u, err := url.Parse(template)
+			if err != nil {
+				return err
+			}
+
+			r, err := p.ObjectFetch(u.Path)
+			if err != nil {
+				return err
+			}
+
+			data, err = ioutil.ReadAll(r)
+			if err != nil {
+				return err
+			}
+
+			ru, err := p.objectURL(template)
+			if err != nil {
+				return err
+			}
+
+			req.TemplateURL = aws.String(ru)
+		} else {
+			res, err := http.Get(template)
+			if err != nil {
+				return err
+			}
+			defer res.Body.Close()
+
+			data, err = ioutil.ReadAll(res.Body)
+			if err != nil {
+				return err
+			}
+
+			req.TemplateURL = aws.String(template)
+		}
+
+		fp, err := formationParameters(data)
 		if err != nil {
 			return err
 		}

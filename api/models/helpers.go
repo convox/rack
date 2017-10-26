@@ -323,6 +323,10 @@ func stackTags(stack *cloudformation.Stack) map[string]string {
 	return tags
 }
 
+func appResource(app, name string) (string, error) {
+	return stackResource(fmt.Sprintf("%s-%s", os.Getenv("RACK"), app), name)
+}
+
 func rackResource(name string) (string, error) {
 	return stackResource(os.Getenv("RACK"), name)
 }

@@ -106,8 +106,13 @@ func (r *Release) Promote() error {
 		return err
 	}
 
+	settings, err := appResource(r.App, "Settings")
+	if err != nil {
+		return err
+	}
+
 	// If release formation was saved in S3, get that instead
-	f, err := s3Get(app.Outputs["Settings"], fmt.Sprintf("templates/%s", r.Id))
+	f, err := s3Get(settings, fmt.Sprintf("templates/%s", r.Id))
 	if err != nil && awserrCode(err) != "NoSuchKey" {
 		return err
 	}
@@ -307,17 +312,17 @@ func (r *Release) Promote() error {
 		}
 	}
 
-	err = S3Put(app.Outputs["Settings"], fmt.Sprintf("templates/%s", r.Id), []byte(formation), false)
+	err = S3Put(settings, fmt.Sprintf("templates/%s", r.Id), []byte(formation), false)
 	if err != nil {
 		return err
 	}
 
 	// loop until we can find the template
-	if err := waitForTemplate(app.Outputs["Settings"], r.Id); err != nil {
+	if err := waitForTemplate(settings, r.Id); err != nil {
 		return fmt.Errorf("error waiting for template: %s", err)
 	}
 
-	url := fmt.Sprintf("https://s3.amazonaws.com/%s/templates/%s", app.Outputs["Settings"], r.Id)
+	url := fmt.Sprintf("https://s3.amazonaws.com/%s/templates/%s", settings, r.Id)
 
 	req := &cloudformation.UpdateStackInput{
 		Capabilities:     []*string{aws.String("CAPABILITY_IAM")},
@@ -379,14 +384,12 @@ func waitForServerCertificate(name string) error {
 }
 
 func (r *Release) EnvironmentUrl() string {
-	app, err := GetApp(r.App)
-
+	settings, err := appResource(r.App, "Settings")
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "error: %s\n", err)
 		return ""
 	}
 
-	return fmt.Sprintf("https://%s.s3.amazonaws.com/releases/%s/env", app.Outputs["Settings"], r.Id)
+	return fmt.Sprintf("https://%s.s3.amazonaws.com/releases/%s/env", settings, r.Id)
 }
 
 func (r *Release) Formation() (string, error) {
