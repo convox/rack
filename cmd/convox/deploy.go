@@ -7,9 +7,7 @@ import (
 
 	"gopkg.in/urfave/cli.v1"
 
-	"github.com/convox/rack/cmd/convox/helpers"
 	"github.com/convox/rack/cmd/convox/stdcli"
-	"github.com/convox/rack/manifest1"
 )
 
 func init() {
@@ -53,24 +51,6 @@ func cmdDeploy(c *cli.Context) error {
 
 	if a.Status != "running" {
 		return stdcli.Error(fmt.Errorf("unable to deploy %s in a non-running status: %s", app, a.Status))
-	}
-
-	if !helpers.Exists(c.String("file")) {
-		return stdcli.Error(fmt.Errorf("no docker-compose.yml found, try `convox init` to generate one"))
-	}
-
-	// validate docker-compose
-	m, err := manifest1.LoadFile(c.String("file"))
-	if err != nil {
-		return stdcli.Error(fmt.Errorf("invalid %s: %s", c.String("file"), strings.TrimSpace(err.Error())))
-	}
-
-	errs := m.Validate()
-	if len(errs) > 0 {
-		for _, e := range errs[1:] {
-			stdcli.Error(e)
-		}
-		return stdcli.Error(errs[0])
 	}
 
 	output := os.Stdout
