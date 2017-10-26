@@ -46,7 +46,7 @@
 {{ define "balancer-resources" }}
   {{ range .Manifest.Services }}
     {{ if .Port.Port }}
-      "{{ upper .Name }}ListenerRule": {
+      "{{ upper .Name }}ListenerRule80": {
         "Type": "AWS::ElasticLoadBalancingV2::ListenerRule",
         "Properties": {
           "Actions": [ { "Type": "forward", "TargetGroupArn": { "Ref": "{{ upper .Name }}TargetGroup" } } ],
@@ -59,9 +59,23 @@
           "Priority": "{{ priority $.App .Name }}"
         }
       },
+      "{{ upper .Name }}ListenerRule443": {
+        "Type": "AWS::ElasticLoadBalancingV2::ListenerRule",
+        "Properties": {
+          "Actions": [ { "Type": "forward", "TargetGroupArn": { "Ref": "{{ upper .Name }}TargetGroup" } } ],
+          "Conditions": [
+            { "Field": "host-header", "Values": [
+              { "Fn::Join": [ ".", [ "{{.Name}}", "{{$.App}}", { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Router" } } ] ] }
+            ] }
+          ],
+          "ListenerArn": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:RouterListener443" } },
+          "Priority": "{{ priority $.App .Name }}"
+        }
+      },
       "{{ upper .Name }}TargetGroup": {
         "Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
         "Properties": {
+          "Name": { "Fn::Sub": "${AWS::StackName}-{{.Name}}-{{.Port.Port}}" },
           "HealthCheckIntervalSeconds": "{{.Health.Interval}}",
           "HealthCheckTimeoutSeconds": "{{.Health.Timeout}}",
           "UnhealthyThresholdCount": "2",

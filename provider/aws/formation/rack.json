@@ -190,6 +190,10 @@
       "Export": { "Name": { "Fn::Sub": "${AWS::StackName}:RouterListener80" } },
       "Value": { "Ref": "RouterListener80" }
     },
+    "RouterListener443": {
+      "Export": { "Name": { "Fn::Sub": "${AWS::StackName}:RouterListener443" } },
+      "Value": { "Ref": "RouterListener443" }
+    },
     "RouteTablePublic": {
       "Condition": "NotExistingVpcAndBlankInternetGateway",
       "Value": { "Ref": "Routes" }
@@ -1688,7 +1692,7 @@
     "RouterListener80": {
       "Type": "AWS::ElasticLoadBalancingV2::Listener",
       "Properties": {
-        "DefaultActions": [ { "Type": "forward", "TargetGroupArn": { "Ref": "RouterRackTargetGroup" } } ],
+        "DefaultActions": [ { "Type": "forward", "TargetGroupArn": { "Ref": "RouterApiTargetGroup" } } ],
         "LoadBalancerArn": { "Ref" : "Router" },
         "Port": "80",
         "Protocol": "HTTP"
@@ -1697,15 +1701,15 @@
     "RouterListener443": {
       "Type": "AWS::ElasticLoadBalancingV2::Listener",
       "Properties": {
-        "Certificates": [ { "CertificateArn": { "Ref": "RouterRackCertificate" } } ],
-        "DefaultActions": [ { "Type": "forward", "TargetGroupArn": { "Ref": "RouterRackTargetGroup" } } ],
+        "Certificates": [ { "CertificateArn": { "Ref": "RouterApiCertificate" } } ],
+        "DefaultActions": [ { "Type": "forward", "TargetGroupArn": { "Ref": "RouterApiTargetGroup" } } ],
         "LoadBalancerArn": { "Ref" : "Router" },
         "Port": "443",
         "Protocol": "HTTPS"
       }
     },
-    "RouterRackCertificate": {
-      "DependsOn": "RouterRackTargetGroup",
+    "RouterApiCertificate": {
+      "DependsOn": "RouterApiTargetGroup",
       "Type": "AWS::CertificateManager::Certificate",
       "Properties": {
         "DomainName": { "Fn::Join": [ ".", [
@@ -1727,10 +1731,11 @@
         ]
       }
     },
-    "RouterRackTargetGroup": {
+    "RouterApiTargetGroup": {
       "Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
       "DependsOn": "Router",
       "Properties": {
+        "Name": { "Fn::Sub": "${AWS::StackName}-api" },
         "HealthCheckIntervalSeconds": "5",
         "HealthCheckTimeoutSeconds": "3",
         "UnhealthyThresholdCount": "2",
