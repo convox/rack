@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"hash/crc32"
 	"sort"
 	"strings"
 
@@ -14,6 +15,9 @@ import (
 
 func formationHelpers() template.FuncMap {
 	return template.FuncMap{
+		"priority": func(app, service string) uint32 {
+			return crc32.ChecksumIEEE([]byte(fmt.Sprintf("%s-%s", app, service))) % 50000
+		},
 		"services": func(m *manifest.Manifest) string {
 			ss := make([]string, len(m.Services))
 			for i, s := range m.Services {
@@ -21,6 +25,9 @@ func formationHelpers() template.FuncMap {
 			}
 			sort.Strings(ss)
 			return strings.Join(ss, ",")
+		},
+		"upcase": func(s string) string {
+			return strings.ToUpper(s)
 		},
 		"upper": func(s string) string {
 			return upperName(s)

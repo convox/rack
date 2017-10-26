@@ -1,6 +1,8 @@
 {
   "AWSTemplateFormatVersion" : "2010-09-09",
   "Outputs": {
+    {{ template "balancer-outputs" . }}
+
     "Release": {
       "Value": "{{ .Release.Id }}"
     },
@@ -31,7 +33,50 @@
   }
 }
 
+{{ define "balancer-outputs" }}
+  {{ range .Manifest.Services }}
+    {{ if .Port.Port }}
+      "{{ upper .Name }}Hostname": {
+        "Value": { "Fn::Join": [ ".", [ "{{.Name}}", "{{$.App}}", { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Router" } } ] ] }
+      },
+    {{ end }}
+  {{ end }}
+{{ end }}
+
 {{ define "balancer-resources" }}
+  {{ range .Manifest.Services }}
+    {{ if .Port.Port }}
+      "{{ upper .Name }}ListenerRule": {
+        "Type": "AWS::ElasticLoadBalancingV2::ListenerRule",
+        "Properties": {
+          "Actions": [ { "Type": "forward", "TargetGroupArn": { "Ref": "{{ upper .Name }}TargetGroup" } } ],
+          "Conditions": [
+            { "Field": "host-header", "Values": [
+              { "Fn::Join": [ ".", [ "{{.Name}}", "{{$.App}}", { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Router" } } ] ] }
+            ] }
+          ],
+          "ListenerArn": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:RouterListener80" } },
+          "Priority": "{{ priority $.App .Name }}"
+        }
+      },
+      "{{ upper .Name }}TargetGroup": {
+        "Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
+        "Properties": {
+          "HealthCheckIntervalSeconds": "{{.Health.Interval}}",
+          "HealthCheckTimeoutSeconds": "{{.Health.Timeout}}",
+          "UnhealthyThresholdCount": "2",
+          "HealthCheckPath": "{{.Health.Path}}",
+          "Port": "{{.Port.Port}}",
+          "Protocol": "{{ upcase .Port.Scheme }}",
+          "TargetGroupAttributes": [
+            { "Key": "deregistration_delay.timeout_seconds", "Value": "30" },
+            { "Key": "stickiness.enabled", "Value": "true" }
+          ],
+          "VpcId": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Vpc" } }
+        }
+      },
+    {{ end }}
+  {{ end }}
 {{ end }}
 
 {{ define "service-params" }}
@@ -46,6 +91,19 @@
 
 {{ define "service-resources" }}
   {{ range .Manifest.Services }}
+    "{{ upper .Name }}Service": {
+      "Type": "AWS::ECS::Service",
+      "Properties": {
+        "Cluster": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Cluster" } },
+        "DeploymentConfiguration": { "MinimumHealthyPercent": "100", "MaximumPercent": "200" },
+        "DesiredCount": { "Fn::Select": [ 0, { "Ref": "{{ upper .Name }}Formation" } ] },
+        {{ if .Port.Port }}
+          "LoadBalancers": [ { "ContainerName": "{{.Name}}", "ContainerPort": "{{.Port.Port}}", "TargetGroupArn": { "Ref": "{{ upper .Name }}TargetGroup" } } ],
+        {{ end }}
+        "Role": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:ServiceRole" } },
+        "TaskDefinition": { "Ref": "{{ upper .Name }}Tasks" }
+      }
+    },
     "{{ upper .Name }}Tasks": {
       "Type": "AWS::ECS::TaskDefinition",
       "Properties": {
@@ -67,19 +125,13 @@
               }
             },
             "Memory": { "Fn::Select": [ 2, { "Ref": "{{ upper .Name }}Formation" } ] },
+            {{ if .Port.Port }}
+              "PortMappings": [ { "ContainerPort": "{{.Port.Port}}" } ],
+            {{ end }}
             "Name": "{{.Name}}"
           }
         ],
         "Family": { "Fn::Sub": "${AWS::StackName}-{{.Name}}" }
-      }
-    },
-    "{{ upper .Name }}Service": {
-      "Type": "AWS::ECS::Service",
-      "Properties": {
-        "Cluster": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Cluster" } },
-        "DeploymentConfiguration": { "MinimumHealthyPercent": "100", "MaximumPercent": "200" },
-        "DesiredCount": { "Fn::Select": [ 0, { "Ref": "{{ upper .Name }}Formation" } ] },
-        "TaskDefinition": { "Ref": "{{ upper .Name }}Tasks" }
       }
     },
   {{ end }}
