@@ -59,6 +59,7 @@ func ReleasePromote(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	vars := mux.Vars(r)
 	app := vars["app"]
 	release := vars["release"]
+
 	event := &structs.Event{
 		Action: "release:promote",
 		Status: "start",
@@ -67,9 +68,10 @@ func ReleasePromote(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 			"id":  release,
 		},
 	}
+
 	models.Provider().EventSend(event, nil)
 
-	_, err := models.GetApp(app)
+	a, err := models.GetApp(app)
 	if err != nil {
 		if awsError(err) == "ValidationError" {
 			e := httperr.Errorf(404, "no such app: %s", app)
@@ -79,6 +81,30 @@ func ReleasePromote(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 
 		models.Provider().EventSend(event, err)
 		return httperr.Server(err)
+	}
+
+	switch a.Tags["Generation"] {
+	case "2":
+		return releasePromoteGeneration2(rw, r)
+	default:
+		return releasePromoteGeneration1(rw, r)
+	}
+
+	return httperr.Server(fmt.Errorf("unknown generation"))
+}
+
+func releasePromoteGeneration1(rw http.ResponseWriter, r *http.Request) *httperr.Error {
+	vars := mux.Vars(r)
+	app := vars["app"]
+	release := vars["release"]
+
+	event := &structs.Event{
+		Action: "release:promote",
+		Status: "start",
+		Data: map[string]string{
+			"app": app,
+			"id":  release,
+		},
 	}
 
 	rr, err := models.GetRelease(app, release)
@@ -105,6 +131,10 @@ func ReleasePromote(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	}
 
 	return RenderJson(rw, rr)
+}
+
+func releasePromoteGeneration2(rw http.ResponseWriter, r *http.Request) *httperr.Error {
+	return nil
 }
 
 // ForkRelease creates a new release based on the app's release
