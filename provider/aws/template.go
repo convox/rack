@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"hash/crc32"
+	"net"
 	"sort"
 	"strings"
 
@@ -15,6 +16,16 @@ import (
 
 func formationHelpers() template.FuncMap {
 	return template.FuncMap{
+		"apex": func(domain string) string {
+			parts := strings.Split(domain, ".")
+			for i := 0; i < len(parts)-1; i++ {
+				d := strings.Join(parts[i:], ".")
+				if mx, err := net.LookupMX(d); err == nil && len(mx) > 0 {
+					return d
+				}
+			}
+			return domain
+		},
 		"priority": func(app, service string) uint32 {
 			return crc32.ChecksumIEEE([]byte(fmt.Sprintf("%s-%s", app, service))) % 50000
 		},

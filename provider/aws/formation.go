@@ -168,6 +168,11 @@ func (p *AWSProvider) formationGet2(app, service string) (*structs.ProcessFormat
 		Memory: memory,
 	}
 
+	if endpoint, ok := a.Outputs[fmt.Sprintf("%sEndpoint", upperName(service))]; ok {
+		formation.Balancer = endpoint
+		formation.Ports = []int{80, 443}
+	}
+
 	return formation, nil
 }
 
