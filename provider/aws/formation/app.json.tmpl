@@ -128,7 +128,12 @@
             {{ end }}
             "Cpu": { "Fn::Select": [ 1, { "Ref": "{{ upper .Name }}Formation" } ] },
             "DockerLabels": { "convox.release": "{{$.Release.Id}}" },
-            "Environment": [],
+            "Environment": [
+              {{ range $k, $v := .ResolvedEnvironment $.Env }}
+                { "Name": "{{$k}}", "Value": "{{$v}}" },
+              {{ end }}
+              { "Ref": "AWS::NoValue" }
+            ],
             "Image": { "Fn::Sub": "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${Registry}:{{.Name}}.{{$.Release.Build}}" },
             "LogConfiguration": {
               "LogDriver": "awslogs",

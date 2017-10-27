@@ -3,6 +3,7 @@ package manifest
 import (
 	"crypto/sha1"
 	"fmt"
+	"strings"
 )
 
 type Service struct {
@@ -63,6 +64,23 @@ func (s Service) BuildHash() string {
 
 func (s Service) GetName() string {
 	return s.Name
+}
+
+func (s Service) ResolvedEnvironment(env map[string]string) map[string]string {
+	resolved := map[string]string{}
+
+	for _, e := range s.Environment {
+		parts := strings.Split(e, "=")
+
+		switch len(parts) {
+		case 1:
+			resolved[parts[0]] = env[parts[0]]
+		case 2:
+			resolved[parts[0]] = coalesce(env[parts[0]], parts[1])
+		}
+	}
+
+	return resolved
 }
 
 func (s *Service) SetDefaults() error {
