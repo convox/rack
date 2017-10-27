@@ -119,8 +119,8 @@ func (p *AWSProvider) writeLogEvents(w io.Writer, events []*cloudwatchlogs.Filte
 
 		prefix := ""
 
-		switch strings.Split(*e.LogStreamName, "/")[0] {
-		case "service":
+		switch name := strings.Split(*e.LogStreamName, "/")[0]; name {
+		case "service", "timer":
 			parts := strings.Split(*e.LogStreamName, "/")
 
 			if len(parts) >= 3 {
@@ -129,10 +129,10 @@ func (p *AWSProvider) writeLogEvents(w io.Writer, events []*cloudwatchlogs.Filte
 					return 0, err
 				}
 
-				prefix = fmt.Sprintf("%s:%s/%s ", parts[1], release, arnToPid(parts[2]))
+				prefix = fmt.Sprintf("%s/%s:%s/%s ", name, parts[1], release, arnToPid(parts[2]))
 			}
 		case "system":
-			prefix = fmt.Sprintf("system:%s ", os.Getenv("RELEASE"))
+			prefix = fmt.Sprintf("system:%s/", os.Getenv("RELEASE"))
 		}
 
 		sec := *e.Timestamp / 1000

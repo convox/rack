@@ -101,7 +101,7 @@ func handleCloudformationEvents() {
 			req.SequenceToken = aws.String(stream.SequenceToken)
 		}
 
-		log := fmt.Sprintf("AWS/CloudFormation %s %s %s", message["ResourceStatus"], message["LogicalResourceId"], message["ResourceStatusReason"])
+		log := fmt.Sprintf("aws/cloudformation %s %s %s", message["ResourceStatus"], message["LogicalResourceId"], message["ResourceStatusReason"])
 
 		req.LogEvents = []*cloudwatchlogs.InputLogEvent{
 			&cloudwatchlogs.InputLogEvent{
@@ -189,7 +189,7 @@ func handleAccountEvents() {
 
 				for _, e := range events {
 					req.LogEvents = append(req.LogEvents, &cloudwatchlogs.InputLogEvent{
-						Message:   aws.String(fmt.Sprintf("AWS/ECS %s", *e.Message)),
+						Message:   aws.String(fmt.Sprintf("aws/ecs %s", *e.Message)),
 						Timestamp: aws.Int64(e.CreatedAt.UnixNano() / 1000000),
 					})
 				}
