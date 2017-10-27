@@ -38,8 +38,8 @@
 {{ define "balancer-outputs" }}
   {{ range .Manifest.Services }}
     {{ if .Port.Port }}
-      "{{ upper .Name }}Hostname": {
-        "Value": { "Fn::Join": [ ".", [ "{{.Name}}", "{{$.App}}", { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Router" } } ] ] }
+      "{{ upper .Name }}Endpoint": {
+        "Value": { "Fn::Join": [ ".", [ "{{$.App}}-{{.Name}}", { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Domain" } } ] ] }
       },
     {{ end }}
   {{ end }}
@@ -54,7 +54,7 @@
           "Actions": [ { "Type": "forward", "TargetGroupArn": { "Ref": "Balancer{{ upper .Name }}TargetGroup" } } ],
           "Conditions": [
             { "Field": "host-header", "Values": [
-              { "Fn::Join": [ ".", [ "{{.Name}}", "{{$.App}}", { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Router" } } ] ] }
+              { "Fn::Join": [ ".", [ "{{$.App}}-{{.Name}}", { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Domain" } } ] ] }
             ] }
           ],
           "ListenerArn": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:RouterListener80" } },
@@ -67,7 +67,7 @@
           "Actions": [ { "Type": "forward", "TargetGroupArn": { "Ref": "Balancer{{ upper .Name }}TargetGroup" } } ],
           "Conditions": [
             { "Field": "host-header", "Values": [
-              { "Fn::Join": [ ".", [ "{{.Name}}", "{{$.App}}", { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Router" } } ] ] }
+              { "Fn::Join": [ ".", [ "{{$.App}}-{{.Name}}", { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Domain" } } ] ] }
             ] }
           ],
           "ListenerArn": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:RouterListener443" } },
@@ -77,7 +77,7 @@
       "Balancer{{ upper .Name }}TargetGroup": {
         "Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
         "Properties": {
-          "Name": { "Fn::Sub": "${AWS::StackName}-{{.Name}}-{{.Port.Port}}-2" },
+          "Name": { "Fn::Sub": "${AWS::StackName}-{{.Name}}-{{.Port.Port}}" },
           "HealthCheckIntervalSeconds": "{{.Health.Interval}}",
           "HealthCheckTimeoutSeconds": "{{.Health.Timeout}}",
           "UnhealthyThresholdCount": "2",
