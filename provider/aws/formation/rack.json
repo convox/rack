@@ -1894,8 +1894,8 @@
               { "Name": "ROLLBAR_TOKEN", "Value": "f67f25b8a9024d5690f997bd86bf14b0" },
               { "Name": "SECURITY_GROUP", "Value": { "Fn::If": [ "BlankInstanceSecurityGroup", { "Ref": "InstancesSecurity" }, { "Ref": "InstanceSecurityGroup" } ] } },
               { "Name": "SEGMENT_WRITE_KEY", "Value": "KLvwCXo6qcTmQHLpF69DEwGf9zh7lt9i" },
-              { "Name": "SPOT_INSTANCES", "Value": { "Fn::If": [ "SpotInstances", "true", "false" ] } },
               { "Name": "SETTINGS_BUCKET", "Value": { "Ref": "Settings" } },
+              { "Name": "SPOT_INSTANCES", "Value": { "Fn::If": [ "SpotInstances", "true", "false" ] } },
               { "Name": "STACK_ID", "Value": { "Ref": "AWS::StackId" } },
               { "Name": "SUBNETS", "Value": { "Fn::Join": [ ",", [
                 { "Ref": "Subnet0" },
