@@ -10,8 +10,8 @@ type Service struct {
 	Name string `yaml:"-"`
 
 	Build       ServiceBuild       `yaml:"build,omitempty"`
-	Certificate string             `yaml:"certificate,omitempty"`
 	Command     string             `yaml:"command,omitempty"`
+	Domain      string             `yaml:"domain,omitempty"`
 	Environment ServiceEnvironment `yaml:"environment,omitempty"`
 	Health      ServiceHealth      `yaml:"health,omitempty"`
 	Image       string             `yaml:"image,omitempty"`

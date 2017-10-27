@@ -52,11 +52,7 @@
         "Type": "AWS::ElasticLoadBalancingV2::ListenerRule",
         "Properties": {
           "Actions": [ { "Type": "forward", "TargetGroupArn": { "Ref": "Balancer{{ upper .Name }}TargetGroup" } } ],
-          "Conditions": [
-            { "Field": "host-header", "Values": [
-              { "Fn::Join": [ ".", [ "{{$.App}}-{{.Name}}", { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Domain" } } ] ] }
-            ] }
-          ],
+          "Conditions": [ { "Field": "host-header", "Values": [ { "Fn::Join": [ ".", [ "{{$.App}}-{{.Name}}", { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Domain" } } ] ] } ] } ],
           "ListenerArn": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:RouterListener80" } },
           "Priority": "{{ priority $.App .Name }}"
         }
@@ -65,15 +61,48 @@
         "Type": "AWS::ElasticLoadBalancingV2::ListenerRule",
         "Properties": {
           "Actions": [ { "Type": "forward", "TargetGroupArn": { "Ref": "Balancer{{ upper .Name }}TargetGroup" } } ],
-          "Conditions": [
-            { "Field": "host-header", "Values": [
-              { "Fn::Join": [ ".", [ "{{$.App}}-{{.Name}}", { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Domain" } } ] ] }
-            ] }
-          ],
+          "Conditions": [ { "Field": "host-header", "Values": [ { "Fn::Join": [ ".", [ "{{$.App}}-{{.Name}}", { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Domain" } } ] ] } ] } ],
           "ListenerArn": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:RouterListener443" } },
           "Priority": "{{ priority $.App .Name }}"
         }
       },
+      {{ if .Domain }}
+        "Balancer{{ upper .Name }}Certificate": {
+          "Type": "AWS::CertificateManager::Certificate",
+          "Properties": {
+            "DomainName": "{{ .Domain }}",
+            "DomainValidationOptions": [{
+              "DomainName": "{{ .Domain }}",
+              "ValidationDomain": "{{ apex .Domain }}"
+            }]
+          }
+        },
+        "Balancer{{ upper .Name }}ListenerCertificate": {
+          "Type": "AWS::ElasticLoadBalancingV2::ListenerCertificate",
+          "Properties": {
+            "Certificates": [ { "CertificateArn": { "Ref": "Balancer{{ upper .Name }}Certificate" } } ],
+            "ListenerArn": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:RouterListener443" } }
+          }
+        },
+        "Balancer{{ upper .Name }}ListenerRule80Domain": {
+          "Type": "AWS::ElasticLoadBalancingV2::ListenerRule",
+          "Properties": {
+            "Actions": [ { "Type": "forward", "TargetGroupArn": { "Ref": "Balancer{{ upper .Name }}TargetGroup" } } ],
+            "Conditions": [ { "Field": "host-header", "Values": [ "{{ .Domain }}" ] } ],
+            "ListenerArn": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:RouterListener80" } },
+            "Priority": "{{ priority $.App (print .Name "-Domain") }}"
+          }
+        },
+        "Balancer{{ upper .Name }}ListenerRule443Domain": {
+          "Type": "AWS::ElasticLoadBalancingV2::ListenerRule",
+          "Properties": {
+            "Actions": [ { "Type": "forward", "TargetGroupArn": { "Ref": "Balancer{{ upper .Name }}TargetGroup" } } ],
+            "Conditions": [ { "Field": "host-header", "Values": [ "{{ .Domain }}" ] } ],
+            "ListenerArn": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:RouterListener443" } },
+            "Priority": "{{ priority $.App (print .Name "-Domain") }}"
+          }
+        },
+      {{ end }}
       "Balancer{{ upper .Name }}TargetGroup": {
         "Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
         "Properties": {
