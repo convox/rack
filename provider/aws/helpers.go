@@ -281,6 +281,10 @@ func dashName(name string) string {
 }
 
 func upperName(name string) string {
+	if name == "" {
+		return ""
+	}
+
 	// myapp -> Myapp; my-app -> MyApp
 	us := strings.ToUpper(name[0:1]) + name[1:]
 

@@ -19,6 +19,9 @@ func formationHelpers() template.FuncMap {
 			return crc32.ChecksumIEEE([]byte(fmt.Sprintf("%s-%s", app, service))) % 50000
 		},
 		"services": func(m *manifest.Manifest) string {
+			if m == nil {
+				return ""
+			}
 			ss := make([]string, len(m.Services))
 			for i, s := range m.Services {
 				ss[i] = s.Name

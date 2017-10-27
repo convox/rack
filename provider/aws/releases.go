@@ -124,13 +124,17 @@ func (p *AWSProvider) ReleasePromote(r *structs.Release) error {
 
 	stack := fmt.Sprintf("%s-%s", p.Rack, r.App)
 
-	m, err := manifest.Load([]byte(r.Manifest), manifest.Environment{})
+	env := structs.Environment{}
+	env.LoadRaw(r.Env)
+
+	m, err := manifest.Load([]byte(r.Manifest), manifest.Environment(env))
 	if err != nil {
 		return err
 	}
 
 	tp := map[string]interface{}{
 		"App":      r.App,
+		"Env":      env,
 		"Manifest": m,
 		"Release":  r,
 	}
@@ -140,7 +144,7 @@ func (p *AWSProvider) ReleasePromote(r *structs.Release) error {
 		return err
 	}
 
-	fmt.Printf("string(data) = %+v\n", string(data))
+	// fmt.Printf("string(data) = %+v\n", string(data))
 
 	ou, err := p.ObjectStore("", bytes.NewReader(data), structs.ObjectOptions{})
 	if err != nil {
