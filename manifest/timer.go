@@ -13,3 +13,8 @@ type Timers []Timer
 func (t Timer) GetName() string {
 	return t.Name
 }
+
+func (t *Timer) SetName(name string) error {
+	t.Name = name
+	return nil
+}
