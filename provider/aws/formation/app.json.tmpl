@@ -21,6 +21,8 @@
   "Resources": {
     {{ template "balancer-resources" . }}
     {{ template "service-resources" . }}
+    {{ template "timer-resources" . }}
+
     {{ template "state" }}
 
     "LogGroup": {
@@ -152,6 +154,101 @@
             {{ end }}
             "Name": "{{.Name}}"
           }
+        ],
+        "Family": { "Fn::Sub": "${AWS::StackName}-{{.Name}}" }
+      }
+    },
+  {{ end }}
+{{ end }}
+
+{{ define "timer-resources" }}
+  {{ if .Manifest.Timers }}
+    "TimerRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": { "Service": [ "events.amazonaws.com" ] },
+              "Action": [ "sts:AssumeRole" ]
+            }
+          ]
+        },
+        "Path": "/convox/",
+        "Policies": [
+          {
+            "PolicyName": "TimerRole",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [ "ecs:RunTask" ],
+                  "Resource": "*",
+                  "Condition": {
+                    "ArnEquals": {
+                      "ecs:cluster": { "Fn::Join": [ "", [
+                        "arn:aws:ecs:", { "Ref": "AWS::Region" }, ":", { "Ref": "AWS::AccountId" }, ":cluster/", { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Cluster" } }
+                      ] ] }
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+  {{ end }}
+  {{ range $t := .Manifest.Timers }}
+    "{{ upper .Name }}Timer": {
+      "Type": "AWS::Events::Rule",
+      "Properties": {
+        "Name": { "Fn::Sub": "${AWS::StackName}-timer-{{.Name}}" },
+        "ScheduleExpression": "cron({{.Schedule}} *)",
+        "Targets": [ {
+          "Arn": { "Fn::Join": [ "", [
+            "arn:aws:ecs:", { "Ref": "AWS::Region" }, ":", { "Ref": "AWS::AccountId" }, ":cluster/", { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Cluster" } }
+          ] ] },
+          "EcsParameters": {
+            "TaskCount": "1",
+            "TaskDefinitionArn": { "Ref": "Timer{{ upper .Name }}Tasks" }
+          },
+          "Id": "{{.Name}}",
+          "RoleArn": { "Fn::GetAtt": [ "TimerRole", "Arn" ] }
+        } ]
+      }
+    },
+    "Timer{{ upper .Name }}Tasks": {
+      "Type": "AWS::ECS::TaskDefinition",
+      "Properties": {
+        "ContainerDefinitions": [
+          {{ with $.Manifest.Service .Service }}
+            {
+              "Command": [ "sh", "-c", "{{$t.Command}}" ],
+              "Cpu": { "Fn::Select": [ 1, { "Ref": "{{ upper .Name }}Formation" } ] },
+              "DockerLabels": { "convox.release": "{{$.Release.Id}}" },
+              "Environment": [
+                {{ range $k, $v := .ResolvedEnvironment $.Env }}
+                  { "Name": "{{$k}}", "Value": "{{$v}}" },
+                {{ end }}
+                { "Ref": "AWS::NoValue" }
+              ],
+              "Image": { "Fn::Sub": "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${Registry}:{{.Name}}.{{$.Release.Build}}" },
+              "LogConfiguration": {
+                "LogDriver": "awslogs",
+                "Options": {
+                  "awslogs-region": { "Ref": "AWS::Region" },
+                  "awslogs-group": { "Ref": "LogGroup" },
+                  "awslogs-stream-prefix": "timer"
+                }
+              },
+              "Memory": { "Fn::Select": [ 2, { "Ref": "{{ upper .Name }}Formation" } ] },
+              "Name": "{{$t.Name}}"
+            }
+          {{ end }}
         ],
         "Family": { "Fn::Sub": "${AWS::StackName}-{{.Name}}" }
       }
