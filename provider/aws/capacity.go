@@ -59,8 +59,10 @@ func (p *AWSProvider) CapacityGet() (*structs.Capacity, error) {
 				tdPorts := map[string]int64{}
 
 				for _, cd := range res.TaskDefinition.ContainerDefinitions {
-					for _, pm := range cd.PortMappings {
-						tdPorts[fmt.Sprintf("%s.%d", *cd.Name, *pm.ContainerPort)] = *pm.HostPort
+					if g := cd.DockerLabels["convox.generation"]; g == nil || *g != "2" {
+						for _, pm := range cd.PortMappings {
+							tdPorts[fmt.Sprintf("%s.%d", *cd.Name, *pm.ContainerPort)] = *pm.HostPort
+						}
 					}
 				}
 
