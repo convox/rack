@@ -184,7 +184,7 @@
             "Name": "{{.Name}}"
           }
         ],
-        "Family": { "Fn::Sub": "${AWS::StackName}-{{.Name}}" }
+        "Family": { "Fn::Sub": "${AWS::StackName}-service-{{.Name}}" }
       }
     },
   {{ end }}
@@ -279,7 +279,7 @@
             }
           {{ end }}
         ],
-        "Family": { "Fn::Sub": "${AWS::StackName}-{{.Name}}" }
+        "Family": { "Fn::Sub": "${AWS::StackName}-timer-{{.Name}}" }
       }
     },
   {{ end }}
