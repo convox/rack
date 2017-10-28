@@ -2,6 +2,7 @@ package aws
 
 import (
 	"fmt"
+	"math"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ecs"
@@ -46,6 +47,8 @@ func (p *AWSProvider) CapacityGet() (*structs.Capacity, error) {
 	portWidth := map[int64]int64{}
 
 	for _, service := range services {
+		servicePortWidth := map[int64]int64{}
+
 		if len(service.LoadBalancers) > 0 {
 			for _, deployment := range service.Deployments {
 				res, err := p.describeTaskDefinition(&ecs.DescribeTaskDefinitionInput{
@@ -68,10 +71,27 @@ func (p *AWSProvider) CapacityGet() (*structs.Capacity, error) {
 
 				for _, lb := range service.LoadBalancers {
 					if port, ok := tdPorts[fmt.Sprintf("%s.%d", *lb.ContainerName, *lb.ContainerPort)]; ok {
-						portWidth[port] += *deployment.DesiredCount
+						servicePortWidth[port] += *deployment.DesiredCount
 					}
 				}
 			}
+		}
+
+		// take deploymentconfiguration into account during deploys
+		if len(service.Deployments) > 1 {
+			if dc := service.DeploymentConfiguration; dc != nil {
+				if mp := dc.MinimumHealthyPercent; mp != nil {
+					mult := float64(*mp) / float64(100)
+
+					for port, width := range servicePortWidth {
+						servicePortWidth[port] = int64(math.Ceil(float64(width) * mult))
+					}
+				}
+			}
+		}
+
+		for port, width := range servicePortWidth {
+			portWidth[port] += width
 		}
 
 		res, err := p.describeTaskDefinition(&ecs.DescribeTaskDefinitionInput{
