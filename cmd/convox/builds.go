@@ -692,8 +692,6 @@ func finishBuild(c *cli.Context, app string, build *client.Build, output io.Writ
 		return "", "", fmt.Errorf("unable to fetch build id")
 	}
 
-	fmt.Printf("build = %+v\n", build)
-
 	output.Write([]byte("OK\n"))
 
 	err := rackClient(c).StreamBuildLogs(app, build.Id, output)
