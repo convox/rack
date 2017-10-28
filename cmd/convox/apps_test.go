@@ -43,7 +43,7 @@ func TestAppsNoAppsFound(t *testing.T) {
 
 func TestAppsCreate(t *testing.T) {
 	ts := testServer(t,
-		test.Http{Method: "POST", Path: "/apps", Body: "name=foobar", Code: 200, Response: client.App{}},
+		test.Http{Method: "POST", Path: "/apps", Body: "generation=&name=foobar", Code: 200, Response: client.App{}},
 	)
 
 	defer ts.Close()
@@ -62,7 +62,7 @@ func TestAppsCreateWithConvoxWaitEnvVar(t *testing.T) {
 		test.Http{
 			Method:   "POST",
 			Path:     "/apps",
-			Body:     "name=waitforme",
+			Body:     "generation=&name=waitforme",
 			Code:     200,
 			Response: client.App{},
 		},
@@ -109,7 +109,7 @@ func TestAppsCreateWithDotsInDirName(t *testing.T) {
 	ts := testServer(t,
 		test.Http{Method: "POST",
 			Path:     "/apps",
-			Body:     "name=foo-bar",
+			Body:     "generation=&name=foo-bar",
 			Code:     200,
 			Response: client.App{},
 		},
@@ -131,7 +131,7 @@ func TestAppsCreateWithDotsInName(t *testing.T) {
 	ts := testServer(t,
 		test.Http{Method: "POST",
 			Path: "/apps",
-			Body: "name=foo.bar",
+			Body: "generation=&name=foo.bar",
 			Code: 403,
 			Response: client.Error{Error: "app name can contain only " +
 				"alphanumeric characters, dashes and must be between " +

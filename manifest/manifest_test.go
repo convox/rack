@@ -31,8 +31,8 @@ func TestManifestLoad(t *testing.T) {
 				Build: manifest.ServiceBuild{
 					Path: "api",
 				},
-				Certificate: "foo.example.org",
-				Command:     "",
+				Domain:  "foo.example.org",
+				Command: "",
 				Environment: []string{
 					"DEVELOPMENT=false",
 					"SECRET",

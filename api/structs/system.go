@@ -8,7 +8,7 @@ type System struct {
 	Type    string `json:"type"`
 	Version string `json:"version"`
 
-	Outputs map[string]string `json:"outputs"`
+	Outputs map[string]string `json:"outputs,omitempty"`
 }
 
 type SystemProcessesOptions struct {
