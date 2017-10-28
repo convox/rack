@@ -17,13 +17,12 @@ import (
 func TestSystemShow(t *testing.T) {
 	models.Test(t, func() {
 		system := &structs.System{
-			Count:             3,
-			Name:              "test",
-			Region:            "us-test-1",
-			Status:            "running",
-			Type:              "t2.small",
-			Version:           "dev",
-			BuildInstanceType: "t3.large",
+			Count:   3,
+			Name:    "test",
+			Region:  "us-test-1",
+			Status:  "running",
+			Type:    "t2.small",
+			Version: "dev",
 		}
 
 		models.TestProvider.On("SystemGet").Return(system, nil)
@@ -32,7 +31,7 @@ func TestSystemShow(t *testing.T) {
 
 		if assert.Nil(t, hf.Request("GET", "/system", nil)) {
 			hf.AssertCode(t, 200)
-			hf.AssertJSON(t, `{"buildinstance": "t3.large", "count":3,"name":"test","region":"us-test-1","status":"running","type":"t2.small","version":"dev"}`)
+			hf.AssertJSON(t, `{"count":3,"name":"test","region":"us-test-1","status":"running","type":"t2.small","version":"dev"}`)
 		}
 	})
 }
@@ -53,22 +52,20 @@ func TestSystemShowRackFetchError(t *testing.T) {
 func TestSystemUpdate(t *testing.T) {
 	models.Test(t, func() {
 		before := &structs.System{
-			Count:             3,
-			Name:              "test",
-			Region:            "us-test-1",
-			Status:            "running",
-			Type:              "t2.small",
-			Version:           "dev",
-			BuildInstanceType: "t3.large",
+			Count:   3,
+			Name:    "test",
+			Region:  "us-test-1",
+			Status:  "running",
+			Type:    "t2.small",
+			Version: "dev",
 		}
 		change := structs.System{
-			Count:             5,
-			Name:              "test",
-			Region:            "us-test-1",
-			Status:            "running",
-			Type:              "t2.test",
-			Version:           "latest",
-			BuildInstanceType: "t3.large",
+			Count:   5,
+			Name:    "test",
+			Region:  "us-test-1",
+			Status:  "running",
+			Type:    "t2.test",
+			Version: "latest",
 		}
 
 		models.TestProvider.On("SystemGet").Return(before, nil)
@@ -83,7 +80,7 @@ func TestSystemUpdate(t *testing.T) {
 
 		if assert.Nil(t, hf.Request("PUT", "/system", v)) {
 			hf.AssertCode(t, 200)
-			hf.AssertJSON(t, `{"buildinstance":"t3.large","count":5,"name":"test","region":"us-test-1","status":"running","type":"t2.test","version":"latest"}`)
+			hf.AssertJSON(t, `{"count":5,"name":"test","region":"us-test-1","status":"running","type":"t2.test","version":"latest"}`)
 		}
 	})
 }
@@ -104,22 +101,20 @@ func TestSystemUpdateRackFetchError(t *testing.T) {
 func TestSystemUpdateCountNoChange(t *testing.T) {
 	models.Test(t, func() {
 		before := &structs.System{
-			Count:             3,
-			Name:              "test",
-			Region:            "us-test-1",
-			Status:            "running",
-			Type:              "t2.small",
-			Version:           "dev",
-			BuildInstanceType: "t3.large",
+			Count:   3,
+			Name:    "test",
+			Region:  "us-test-1",
+			Status:  "running",
+			Type:    "t2.small",
+			Version: "dev",
 		}
 		change := structs.System{
-			Count:             3,
-			Name:              "test",
-			Region:            "us-test-1",
-			Status:            "running",
-			Type:              "t2.small",
-			Version:           "latest",
-			BuildInstanceType: "t3.large",
+			Count:   3,
+			Name:    "test",
+			Region:  "us-test-1",
+			Status:  "running",
+			Type:    "t2.small",
+			Version: "latest",
 		}
 
 		models.TestProvider.On("SystemGet").Return(before, nil)
@@ -133,7 +128,7 @@ func TestSystemUpdateCountNoChange(t *testing.T) {
 
 		if assert.Nil(t, hf.Request("PUT", "/system", v)) {
 			hf.AssertCode(t, 200)
-			hf.AssertJSON(t, `{"buildinstance":"t3.large","count":3,"name":"test","region":"us-test-1","status":"running","type":"t2.small","version":"latest"}`)
+			hf.AssertJSON(t, `{"count":3,"name":"test","region":"us-test-1","status":"running","type":"t2.small","version":"latest"}`)
 		}
 	})
 }
@@ -145,13 +140,12 @@ func TestSystemUpdateAutoscaleCount(t *testing.T) {
 		defer os.Setenv("AUTOSCALE", as)
 
 		before := &structs.System{
-			Count:             3,
-			Name:              "test",
-			Region:            "us-test-1",
-			Status:            "running",
-			Type:              "t2.small",
-			Version:           "dev",
-			BuildInstanceType: "t3.large",
+			Count:   3,
+			Name:    "test",
+			Region:  "us-test-1",
+			Status:  "running",
+			Type:    "t2.small",
+			Version: "dev",
 		}
 
 		models.TestProvider.On("SystemGet").Return(before, nil)
@@ -170,13 +164,12 @@ func TestSystemUpdateAutoscaleCount(t *testing.T) {
 func TestSystemUpdateBadCount(t *testing.T) {
 	models.Test(t, func() {
 		before := &structs.System{
-			Count:             3,
-			Name:              "test",
-			Region:            "us-test-1",
-			Status:            "running",
-			Type:              "t2.small",
-			Version:           "dev",
-			BuildInstanceType: "t3.large",
+			Count:   3,
+			Name:    "test",
+			Region:  "us-test-1",
+			Status:  "running",
+			Type:    "t2.small",
+			Version: "dev",
 		}
 
 		models.TestProvider.On("SystemGet").Return(before, nil)
@@ -194,13 +187,12 @@ func TestSystemUpdateBadCount(t *testing.T) {
 
 	models.Test(t, func() {
 		before := &structs.System{
-			Count:             3,
-			Name:              "test",
-			Region:            "us-test-1",
-			Status:            "running",
-			Type:              "t2.small",
-			Version:           "dev",
-			BuildInstanceType: "t3.large",
+			Count:   3,
+			Name:    "test",
+			Region:  "us-test-1",
+			Status:  "running",
+			Type:    "t2.small",
+			Version: "dev",
 		}
 
 		models.TestProvider.On("SystemGet").Return(before, nil)
@@ -218,13 +210,12 @@ func TestSystemUpdateBadCount(t *testing.T) {
 
 	models.Test(t, func() {
 		before := &structs.System{
-			Count:             3,
-			Name:              "test",
-			Region:            "us-test-1",
-			Status:            "running",
-			Type:              "t2.small",
-			Version:           "dev",
-			BuildInstanceType: "t3.large",
+			Count:   3,
+			Name:    "test",
+			Region:  "us-test-1",
+			Status:  "running",
+			Type:    "t2.small",
+			Version: "dev",
 		}
 
 		models.TestProvider.On("SystemGet").Return(before, nil)
@@ -244,22 +235,20 @@ func TestSystemUpdateBadCount(t *testing.T) {
 func TestSystemUpdateSaveError(t *testing.T) {
 	models.Test(t, func() {
 		before := &structs.System{
-			Count:             3,
-			Name:              "test",
-			Region:            "us-test-1",
-			Status:            "running",
-			Type:              "t2.small",
-			Version:           "dev",
-			BuildInstanceType: "t3.large",
+			Count:   3,
+			Name:    "test",
+			Region:  "us-test-1",
+			Status:  "running",
+			Type:    "t2.small",
+			Version: "dev",
 		}
 		change := structs.System{
-			Count:             4,
-			Name:              "test",
-			Region:            "us-test-1",
-			Status:            "running",
-			Type:              "t2.small",
-			Version:           "dev",
-			BuildInstanceType: "t3.large",
+			Count:   4,
+			Name:    "test",
+			Region:  "us-test-1",
+			Status:  "running",
+			Type:    "t2.small",
+			Version: "dev",
 		}
 
 		models.TestProvider.On("SystemGet").Return(before, nil)

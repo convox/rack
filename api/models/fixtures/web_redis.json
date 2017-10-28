@@ -441,7 +441,7 @@
       "Type": "String"
     },
     "RedisFormation": {
-      "Default": "1,0,256",
+      "Default": "1,128,256",
       "Description": "Number of processes to run, CPU units to reserve, and MB of RAM to reserve",
       "Type": "CommaDelimitedList"
     },
@@ -496,7 +496,7 @@
       "Type": "String"
     },
     "WebFormation": {
-      "Default": "1,0,256",
+      "Default": "1,128,256",
       "Description": "Number of processes to run, CPU units to reserve, and MB of RAM to reserve",
       "Type": "CommaDelimitedList"
     },

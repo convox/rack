@@ -2,7 +2,6 @@ package aws
 
 import (
 	"fmt"
-	"math"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ecs"
@@ -88,12 +87,6 @@ func (p *AWSProvider) CapacityGet() (*structs.Capacity, error) {
 		}
 
 		minCount := *service.DesiredCount
-
-		if dc := service.DeploymentConfiguration; dc != nil {
-			if mp := dc.MinimumHealthyPercent; mp != nil {
-				minCount = int64(math.Ceil(float64(minCount) * (float64(*mp) / float64(100))))
-			}
-		}
 
 		for _, cd := range res.TaskDefinition.ContainerDefinitions {
 			capacity.ProcessCount += minCount

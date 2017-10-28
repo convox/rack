@@ -5,7 +5,7 @@ services:
   api:
     build:
       path: api
-    certificate: foo.example.org
+    domain: foo.example.org
     environment:
       - DEVELOPMENT=false
       - SECRET
