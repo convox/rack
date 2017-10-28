@@ -164,7 +164,7 @@
             "DockerLabels": { "convox.release": "{{$.Release.Id}}" },
             "Environment": [
               {{ range $k, $v := .ResolvedEnvironment $.Env }}
-                { "Name": "{{$k}}", "Value": "{{$v}}" },
+                { "Name": "{{$k}}", "Value": "{{ safe $v }}" },
               {{ end }}
               { "Ref": "AWS::NoValue" }
             ],
@@ -261,7 +261,7 @@
               "DockerLabels": { "convox.release": "{{$.Release.Id}}" },
               "Environment": [
                 {{ range $k, $v := .ResolvedEnvironment $.Env }}
-                  { "Name": "{{$k}}", "Value": "{{$v}}" },
+                  { "Name": "{{$k}}", "Value": "{{ safe $v }}" },
                 {{ end }}
                 { "Ref": "AWS::NoValue" }
               ],

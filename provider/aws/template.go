@@ -29,6 +29,9 @@ func formationHelpers() template.FuncMap {
 		"priority": func(app, service string) uint32 {
 			return crc32.ChecksumIEEE([]byte(fmt.Sprintf("%s-%s", app, service))) % 50000
 		},
+		"safe": func(s string) template.HTML {
+			return template.HTML(s)
+		},
 		"services": func(m *manifest.Manifest) string {
 			if m == nil {
 				return ""
