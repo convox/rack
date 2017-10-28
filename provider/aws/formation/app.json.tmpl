@@ -147,8 +147,8 @@
         "DesiredCount": { "Fn::Select": [ 0, { "Ref": "{{ upper .Name }}Formation" } ] },
         {{ if .Port.Port }}
           "LoadBalancers": [ { "ContainerName": "{{.Name}}", "ContainerPort": "{{.Port.Port}}", "TargetGroupArn": { "Ref": "Balancer{{ upper .Name }}TargetGroup" } } ],
+          "Role": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:ServiceRole" } },
         {{ end }}
-        "Role": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:ServiceRole" } },
         "TaskDefinition": { "Ref": "Service{{ upper .Name }}Tasks" }
       }
     },
