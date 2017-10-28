@@ -215,7 +215,7 @@
                 {
                   "Effect": "Allow",
                   "Action": [ "ecs:RunTask" ],
-                  "Resource": "*",
+                  "Resource": { "Fn::Sub": "arn:aws:ecs:${AWS::Region}:${AWS::AccountId}:task-definition/${AWS::StackName}-timer-*" },
                   "Condition": {
                     "ArnEquals": {
                       "ecs:cluster": { "Fn::Join": [ "", [
