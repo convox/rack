@@ -320,9 +320,10 @@ func build2(dir string) error {
 		}
 	}()
 
-	err = m.Build(dir, flagApp, flagID, manifest.BuildOptions{
+	err = m.Build(flagApp, flagID, manifest.BuildOptions{
 		Env:    manifest.Environment(env),
 		Push:   flagPush,
+		Root:   dir,
 		Stdout: w,
 		Stderr: w,
 	})

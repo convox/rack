@@ -13,7 +13,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/convox/rack/types"
 	"github.com/docker/docker/builder/dockerignore"
 )
 
@@ -32,7 +31,7 @@ type BuildSource struct {
 	Remote string
 }
 
-func (m *Manifest) Build(root, prefix string, tag string, opts BuildOptions) error {
+func (m *Manifest) Build(prefix string, tag string, opts BuildOptions) error {
 	builds := map[string]ServiceBuild{}
 	pulls := map[string]bool{}
 	pushes := map[string]string{}
@@ -56,46 +55,8 @@ func (m *Manifest) Build(root, prefix string, tag string, opts BuildOptions) err
 	}
 
 	for hash, b := range builds {
-		if opts.Cache != "" {
-			lcd := filepath.Join(opts.Root, b.Path, ".cache", "build")
-			rcd := filepath.Join(opts.Cache, hash)
-
-			exec.Command("mkdir", "-p", lcd).Run()
-
-			rls, err := ioutil.ReadDir(rcd)
-			if err != nil {
-				pe, ok := err.(*os.PathError)
-				if !ok {
-					return err
-				}
-
-				if pe.Err.Error() != "no such file or directory" {
-					return err
-				}
-			}
-
-			if len(rls) > 0 {
-				exec.Command("rm", "-rf", lcd).Run()
-			}
-
-			exec.Command("cp", "-a", rcd, lcd).Run()
-		}
-
 		if err := build(b, hash, opts); err != nil {
 			return err
-		}
-
-		if opts.Cache != "" {
-			exec.Command("rm", "-rf", filepath.Join(opts.Cache, "*")).Run()
-
-			name, err := types.Key(32)
-			if err != nil {
-				return err
-			}
-
-			opts.dockerq("create", "--name", name, hash)
-			opts.dockerq("cp", fmt.Sprintf("%s:/var/cache/build", name), filepath.Join(opts.Cache, hash))
-			opts.dockerq("rm", name)
 		}
 	}
 
