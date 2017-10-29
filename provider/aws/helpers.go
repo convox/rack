@@ -133,7 +133,7 @@ func ct(t *time.Time) time.Time {
 }
 
 func buildTemplate(name, section string, data interface{}) (string, error) {
-	d, err := ioutil.ReadFile("provider/aws/templates/%s.tmpl")
+	d, err := Asset(fmt.Sprintf("templates/%s.tmpl", name))
 	if err != nil {
 		return "", err
 	}

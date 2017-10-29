@@ -3,6 +3,7 @@ package aws_test
 import (
 	"bytes"
 	"net/http/httptest"
+	"os"
 
 	"github.com/convox/logger"
 	"github.com/convox/rack/api/awsutil"
@@ -29,12 +30,12 @@ func StubAwsProvider(cycles ...awsutil.Cycle) *AwsStub {
 	handler := awsutil.NewHandler(cycles)
 	s := httptest.NewServer(handler)
 
+	os.Setenv("AWS_ACCESS_KEY_ID", "test-access")
+	os.Setenv("AWS_SECRET_ACCESS_KEY", "test-secret")
+
 	p := &aws.AWSProvider{
 		Region:           "us-test-1",
 		Endpoint:         s.URL,
-		Access:           "test-access",
-		Secret:           "test-secret",
-		Token:            "test-token",
 		BuildCluster:     "cluster-test",
 		Cluster:          "cluster-test",
 		Development:      true,

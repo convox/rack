@@ -14,7 +14,9 @@ func TestFormationList(t *testing.T) {
 	provider := StubAwsProvider(
 		cycleFormationDescribeStacks,
 		cycleFormationDescribeStacks,
+		cycleFormationDescribeStacks,
 		cycleReleaseGetItem,
+		cycleReleaseDescribeStackResources,
 		cycleReleaseEnvironmentGet,
 	)
 	defer provider.Close()
@@ -50,6 +52,7 @@ func TestFormationListBadApp(t *testing.T) {
 func TestFormationListEmptyRelease(t *testing.T) {
 	provider := StubAwsProvider(
 		cycleFormationDescribeStacksEmptyRelease,
+		cycleFormationDescribeStacksEmptyRelease,
 	)
 	defer provider.Close()
 
@@ -61,6 +64,7 @@ func TestFormationListEmptyRelease(t *testing.T) {
 
 func TestFormationListBadRelease(t *testing.T) {
 	provider := StubAwsProvider(
+		cycleFormationDescribeStacks,
 		cycleFormationDescribeStacks,
 		cycleFormationDescribeStacks,
 		cycleReleaseGetItemNotFound,
@@ -78,7 +82,9 @@ func TestFormationListBadManifest(t *testing.T) {
 	provider := StubAwsProvider(
 		cycleFormationDescribeStacks,
 		cycleFormationDescribeStacks,
+		cycleFormationDescribeStacks,
 		cycleReleaseGetItemBadManifest,
+		cycleReleaseDescribeStackResources,
 		cycleReleaseEnvironmentGet,
 	)
 	defer provider.Close()
@@ -93,7 +99,9 @@ func TestFormationListBadFormation(t *testing.T) {
 	provider := StubAwsProvider(
 		cycleFormationDescribeStacksBadFormation,
 		cycleFormationDescribeStacksBadFormation,
+		cycleFormationDescribeStacksBadFormation,
 		cycleReleaseGetItem,
+		cycleReleaseDescribeStackResources,
 		cycleReleaseEnvironmentGet,
 	)
 	defer provider.Close()
@@ -108,7 +116,9 @@ func TestFormationGet(t *testing.T) {
 	provider := StubAwsProvider(
 		cycleFormationDescribeStacks,
 		cycleFormationDescribeStacks,
+		cycleFormationDescribeStacks,
 		cycleReleaseGetItem,
+		cycleReleaseDescribeStackResources,
 		cycleReleaseEnvironmentGet,
 	)
 	defer provider.Close()
@@ -141,6 +151,7 @@ func TestFormationGetBadApp(t *testing.T) {
 
 func TestFormationGetEmptyRelease(t *testing.T) {
 	provider := StubAwsProvider(
+		cycleFormationDescribeStacks,
 		cycleFormationDescribeStacksEmptyRelease,
 	)
 	defer provider.Close()
@@ -153,6 +164,7 @@ func TestFormationGetEmptyRelease(t *testing.T) {
 
 func TestFormationGetBadRelease(t *testing.T) {
 	provider := StubAwsProvider(
+		cycleFormationDescribeStacks,
 		cycleFormationDescribeStacks,
 		cycleFormationDescribeStacks,
 		cycleReleaseGetItemNotFound,
@@ -170,7 +182,9 @@ func TestFormationGetBadManifest(t *testing.T) {
 	provider := StubAwsProvider(
 		cycleFormationDescribeStacks,
 		cycleFormationDescribeStacks,
+		cycleFormationDescribeStacks,
 		cycleReleaseGetItemBadManifest,
+		cycleReleaseDescribeStackResources,
 		cycleReleaseEnvironmentGet,
 	)
 	defer provider.Close()
@@ -185,7 +199,9 @@ func TestFormationGetUnknownProcess(t *testing.T) {
 	provider := StubAwsProvider(
 		cycleFormationDescribeStacks,
 		cycleFormationDescribeStacks,
+		cycleFormationDescribeStacks,
 		cycleReleaseGetItem,
+		cycleReleaseDescribeStackResources,
 		cycleReleaseEnvironmentGet,
 	)
 	defer provider.Close()

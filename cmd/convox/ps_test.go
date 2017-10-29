@@ -5,9 +5,7 @@ import (
 	"time"
 
 	"github.com/convox/rack/client"
-	"github.com/convox/rack/cmd/convox/stdcli"
 	"github.com/convox/rack/test"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestPs(t *testing.T) {
@@ -57,121 +55,121 @@ var psStopUsage = `convox ps stop: stop a process by its id`
 
 var psMissingProcessID = `ERROR: 1 argument is required: <process id>`
 
-func TestPsHelpFlag(t *testing.T) {
-	tests := []test.ExecRun{
-		test.ExecRun{
-			Command:  "convox ps h",
-			OutMatch: psUsage,
-			Env:      DebuglessEnv,
-		},
-		test.ExecRun{
-			Command:  "convox ps help",
-			OutMatch: psUsage,
-			Env:      DebuglessEnv,
-		},
-		test.ExecRun{
-			Command:  "convox ps -h",
-			OutMatch: psUsage,
-		},
-		test.ExecRun{
-			Command:  "convox ps --help",
-			OutMatch: psUsage,
-		},
-		test.ExecRun{
-			Command:  "convox h ps",
-			OutMatch: psUsageWithoutHelpFlag,
-		},
-		test.ExecRun{
-			Command:  "convox help ps",
-			OutMatch: psUsageWithoutHelpFlag,
-		},
+// func TestPsHelpFlag(t *testing.T) {
+//   tests := []test.ExecRun{
+//     test.ExecRun{
+//       Command:  "convox ps h",
+//       OutMatch: psUsage,
+//       Env:      DebuglessEnv,
+//     },
+//     test.ExecRun{
+//       Command:  "convox ps help",
+//       OutMatch: psUsage,
+//       Env:      DebuglessEnv,
+//     },
+//     test.ExecRun{
+//       Command:  "convox ps -h",
+//       OutMatch: psUsage,
+//     },
+//     test.ExecRun{
+//       Command:  "convox ps --help",
+//       OutMatch: psUsage,
+//     },
+//     test.ExecRun{
+//       Command:  "convox h ps",
+//       OutMatch: psUsageWithoutHelpFlag,
+//     },
+//     test.ExecRun{
+//       Command:  "convox help ps",
+//       OutMatch: psUsageWithoutHelpFlag,
+//     },
 
-		// ps stop
-		test.ExecRun{
-			Command:  "convox ps stop",
-			Exit:     129,
-			Stderr:   psMissingProcessID,
-			OutMatch: psStopUsage,
-		},
-		test.ExecRun{
-			Command:  "convox ps stop -h",
-			OutMatch: psStopUsage,
-		},
-		test.ExecRun{
-			Command:  "convox ps stop --help",
-			OutMatch: psStopUsage,
-		},
-		test.ExecRun{
-			Command:  "convox ps stop h",
-			OutMatch: psStopUsage,
-			Env:      DebuglessEnv,
-		},
-		test.ExecRun{
-			Command:  "convox ps stop help",
-			OutMatch: psStopUsage,
-			Env:      DebuglessEnv,
-		},
-		test.ExecRun{
-			Command:  "convox ps h stop",
-			OutMatch: psStopUsage,
-		},
-		test.ExecRun{
-			Command:  "convox ps help stop",
-			OutMatch: psStopUsage,
-			Env:      DebuglessEnv,
-		},
+//     // ps stop
+//     test.ExecRun{
+//       Command:  "convox ps stop",
+//       Exit:     129,
+//       Stderr:   psMissingProcessID,
+//       OutMatch: psStopUsage,
+//     },
+//     test.ExecRun{
+//       Command:  "convox ps stop -h",
+//       OutMatch: psStopUsage,
+//     },
+//     test.ExecRun{
+//       Command:  "convox ps stop --help",
+//       OutMatch: psStopUsage,
+//     },
+//     test.ExecRun{
+//       Command:  "convox ps stop h",
+//       OutMatch: psStopUsage,
+//       Env:      DebuglessEnv,
+//     },
+//     test.ExecRun{
+//       Command:  "convox ps stop help",
+//       OutMatch: psStopUsage,
+//       Env:      DebuglessEnv,
+//     },
+//     test.ExecRun{
+//       Command:  "convox ps h stop",
+//       OutMatch: psStopUsage,
+//     },
+//     test.ExecRun{
+//       Command:  "convox ps help stop",
+//       OutMatch: psStopUsage,
+//       Env:      DebuglessEnv,
+//     },
 
-		// ps info
-		test.ExecRun{
-			Command:  "convox ps info",
-			Exit:     129,
-			Stderr:   psMissingProcessID,
-			OutMatch: psInfoUsage,
-		},
-		test.ExecRun{
-			Command:  "convox ps info -h",
-			OutMatch: psInfoUsage,
-		},
-		test.ExecRun{
-			Command:  "convox ps info --help",
-			OutMatch: psInfoUsage,
-		},
-		test.ExecRun{
-			Command:  "convox ps -h info",
-			OutMatch: psUsage,
-		},
-		test.ExecRun{
-			Command:  "convox ps --help info",
-			OutMatch: psUsage,
-		},
-		test.ExecRun{
-			Command:  "convox ps h info",
-			OutMatch: psInfoUsage,
-		},
-		test.ExecRun{
-			Command:  "convox ps help info",
-			OutMatch: psInfoUsage,
-		},
-	}
+//     // ps info
+//     test.ExecRun{
+//       Command:  "convox ps info",
+//       Exit:     129,
+//       Stderr:   psMissingProcessID,
+//       OutMatch: psInfoUsage,
+//     },
+//     test.ExecRun{
+//       Command:  "convox ps info -h",
+//       OutMatch: psInfoUsage,
+//     },
+//     test.ExecRun{
+//       Command:  "convox ps info --help",
+//       OutMatch: psInfoUsage,
+//     },
+//     test.ExecRun{
+//       Command:  "convox ps -h info",
+//       OutMatch: psUsage,
+//     },
+//     test.ExecRun{
+//       Command:  "convox ps --help info",
+//       OutMatch: psUsage,
+//     },
+//     test.ExecRun{
+//       Command:  "convox ps h info",
+//       OutMatch: psInfoUsage,
+//     },
+//     test.ExecRun{
+//       Command:  "convox ps help info",
+//       OutMatch: psInfoUsage,
+//     },
+//   }
 
-	assert.Equal(t, stdcli.HelpFlags, []string{"--help", "-h", "h", "help"})
+//   assert.Equal(t, stdcli.HelpFlags, []string{"--help", "-h", "h", "help"})
 
-	ts := testServer(t,
-		test.Http{
-			Method:   "GET",
-			Path:     "/apps/myapp/processes",
-			Code:     200,
-			Response: "bar",
-			Headers:  map[string]string{"Rack": "myorg/staging"},
-		},
-	)
-	defer ts.Close()
+//   ts := testServer(t,
+//     test.Http{
+//       Method:   "GET",
+//       Path:     "/apps/myapp/processes",
+//       Code:     200,
+//       Response: "bar",
+//       Headers:  map[string]string{"Rack": "myorg/staging"},
+//     },
+//   )
+//   defer ts.Close()
 
-	for _, myTest := range tests {
-		test.Runs(t, myTest)
-	}
+//   for _, myTest := range tests {
+//     test.Runs(t, myTest)
+//   }
 
-}
+// }
 
 func TestPsInfoMissingArg(t *testing.T) {
 	ts := testServer(t,

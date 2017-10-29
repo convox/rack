@@ -37,9 +37,6 @@ var Logger = logger.New("ns=provider.aws")
 type AWSProvider struct {
 	Region   string
 	Endpoint string
-	Access   string
-	Secret   string
-	Token    string
 
 	BuildCluster        string
 	CloudformationTopic string

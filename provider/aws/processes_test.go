@@ -198,6 +198,7 @@ func TestProcessRunAttached(t *testing.T) {
 		cycleProcessDescribeStacks,
 		cycleProcessDescribeStacks,
 		cycleProcessReleaseGetItem,
+		cycleProcessReleaseDescribeStackResources,
 		cycleProcessReleaseEnvironmentGet,
 		cycleProcessDescribeStackResources,
 		cycleProcessDescribeServices,
@@ -255,6 +256,7 @@ func TestProcessRunDetached(t *testing.T) {
 		cycleProcessDescribeStacks,
 		cycleProcessDescribeStacks,
 		cycleProcessReleaseGetItem,
+		cycleProcessReleaseDescribeStackResources,
 		cycleProcessReleaseEnvironmentGet,
 		cycleProcessDescribeStackResources,
 		cycleProcessDescribeServices,
@@ -1135,6 +1137,35 @@ var cycleProcessReleaseGetItem = awsutil.Cycle{
 	Response: awsutil.Response{
 		StatusCode: 200,
 		Body:       `{"Item":{"id":{"S":"RVFETUHHKKD"},"build":{"S":"BHINCLZYYVN"},"app":{"S":"myapp"},"manifest":{"S":"web:\n  image: myapp\n  ports:\n  - 80:80\n"},"created":{"S":"20160404.143542.627770380"}}}`,
+	},
+}
+
+var cycleProcessReleaseDescribeStackResources = awsutil.Cycle{
+	Request: awsutil.Request{
+		RequestURI: "/",
+		Operation:  "",
+		Body:       `Action=DescribeStackResources&StackName=convox-myapp&Version=2010-05-15`,
+	},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body: `
+			<DescribeStackResourcesResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
+  <DescribeStackResourcesResult>
+    <StackResources>
+    <member>
+      <PhysicalResourceId></PhysicalResourceId>
+      <ResourceStatus>UPDATE_COMPLETE</ResourceStatus>
+      <LogicalResourceId>Settings</LogicalResourceId>
+      <Timestamp>2016-10-22T02:53:23.817Z</Timestamp>
+      <ResourceType>AWS::Logs::LogGroup</ResourceType>
+    </member>
+    </StackResources>
+  </DescribeStackResourcesResult>
+  <ResponseMetadata>
+    <RequestId>50ce1445-9805-11e6-8ba2-2b306877d289</RequestId>
+  </ResponseMetadata>
+</DescribeStackResourcesResponse>
+		`,
 	},
 }
 
