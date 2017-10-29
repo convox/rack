@@ -2,13 +2,10 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
-	"net/http"
 	"net/http/httptest"
 	"os"
 	"testing"
-	"time"
 
 	"github.com/convox/rack/api/awsutil"
 	"github.com/convox/rack/test"
@@ -299,81 +296,81 @@ These URLs are printed in user-facing messages and have been gathered manually.
 Sources (mostly): cmd/convox/doctor.go, cmd/convox/install.go
 See also: bin/check-links
 */
-func TestUrls(t *testing.T) {
-	urls := []string{
-		"https://convox.com/docs/about-resources/",
-		"https://convox.com/docs/api-keys/",
-		"https://convox.com/docs/docker-compose-file/",
-		"https://convox.com/docs/dockerfile/",
-		"https://convox.com/docs/environment",
-		"https://convox.com/docs/one-off-commands/",
-		"https://convox.com/docs/troubleshooting/",
-		"https://docs.docker.com/engine/installation/",
-		"https://docs.docker.com/engine/reference/builder/",
-		"https://git-scm.com/docs/gitignore",
-		"https://github.com/convox/release",
-		"https://guides.github.com/introduction/flow/",
-		"http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/template-custom-resources.html",
-	}
+// func TestUrls(t *testing.T) {
+//   urls := []string{
+//     "https://convox.com/docs/about-resources/",
+//     "https://convox.com/docs/api-keys/",
+//     "https://convox.com/docs/docker-compose-file/",
+//     "https://convox.com/docs/dockerfile/",
+//     "https://convox.com/docs/environment",
+//     "https://convox.com/docs/one-off-commands/",
+//     "https://convox.com/docs/troubleshooting/",
+//     "https://docs.docker.com/engine/installation/",
+//     "https://docs.docker.com/engine/reference/builder/",
+//     "https://git-scm.com/docs/gitignore",
+//     "https://github.com/convox/release",
+//     "https://guides.github.com/introduction/flow/",
+//     "http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/template-custom-resources.html",
+//   }
 
-	tr := &http.Transport{
-		TLSHandshakeTimeout: 5 * time.Second,
-	}
+//   tr := &http.Transport{
+//     TLSHandshakeTimeout: 5 * time.Second,
+//   }
 
-	client := &http.Client{Transport: tr}
+//   client := &http.Client{Transport: tr}
 
-	for _, url := range urls {
-		resp, err := client.Get(url)
-		assert.NoError(t, err)
-		rc := resp.StatusCode
-		if rc != 200 {
-			assert.Fail(t, fmt.Sprintf("Got response code %d for URL %s", rc, url))
-		}
-	}
-}
+//   for _, url := range urls {
+//     resp, err := client.Get(url)
+//     assert.NoError(t, err)
+//     rc := resp.StatusCode
+//     if rc != 200 {
+//       assert.Fail(t, fmt.Sprintf("Got response code %d for URL %s", rc, url))
+//     }
+//   }
+// }
 
-func TestInstallCmd(t *testing.T) {
-	tests := []test.ExecRun{
-		// help flags
-		test.ExecRun{
-			Command:  "convox install -h",
-			OutMatch: "convox install: install convox into an aws account",
-		},
+// func TestInstallCmd(t *testing.T) {
+//   tests := []test.ExecRun{
+//     // help flags
+//     test.ExecRun{
+//       Command:  "convox install -h",
+//       OutMatch: "convox install: install convox into an aws account",
+//     },
 
-		// no credentials
-		// FIXME: test suite doesn't handle standard input properly (Stdin behaves as if the input were piped to the command)
-		test.ExecRun{
-			Env:      configlessEnv,
-			Command:  "convox install",
-			OutMatch: "This installer needs AWS credentials to install/uninstall the Convox platform",
-			Stderr:   "ERROR: EOF\n",
-			Exit:     1,
-		},
-	}
-	key := os.Getenv("AWS_ACCESS_KEY_ID")
-	secret := os.Getenv("AWS_SECRET_ACCESS_KEY")
+//     // no credentials
+//     // FIXME: test suite doesn't handle standard input properly (Stdin behaves as if the input were piped to the command)
+//     test.ExecRun{
+//       Env:      configlessEnv,
+//       Command:  "convox install",
+//       OutMatch: "This installer needs AWS credentials to install/uninstall the Convox platform",
+//       Stderr:   "ERROR: EOF\n",
+//       Exit:     1,
+//     },
+//   }
+//   key := os.Getenv("AWS_ACCESS_KEY_ID")
+//   secret := os.Getenv("AWS_SECRET_ACCESS_KEY")
 
-	os.Unsetenv("AWS_ACCESS_KEY_ID")
-	os.Unsetenv("AWS_SECRET_ACCESS_KEY")
+//   os.Unsetenv("AWS_ACCESS_KEY_ID")
+//   os.Unsetenv("AWS_SECRET_ACCESS_KEY")
 
-	for _, myTest := range tests {
-		test.Runs(t, myTest)
-	}
+//   for _, myTest := range tests {
+//     test.Runs(t, myTest)
+//   }
 
-	if key != "" && secret != "" {
-		os.Setenv("AWS_ACCESS_KEY_ID", key)
-		os.Setenv("AWS_SECRET_ACCESS_KEY", secret)
-	}
-}
+//   if key != "" && secret != "" {
+//     os.Setenv("AWS_ACCESS_KEY_ID", key)
+//     os.Setenv("AWS_SECRET_ACCESS_KEY", secret)
+//   }
+// }
 
-func TestAwsCLICredentialsNil(t *testing.T) {
-	home := os.Getenv("HOME")
+// func TestAwsCLICredentialsNil(t *testing.T) {
+//   home := os.Getenv("HOME")
 
-	os.Setenv("HOME", configlessEnv["HOME"])
+//   os.Setenv("HOME", configlessEnv["HOME"])
 
-	creds, err := awsCLICredentials()
-	assert.Nil(t, creds)
-	assert.NoError(t, err)
+//   creds, err := awsCLICredentials()
+//   assert.Nil(t, creds)
+//   assert.NoError(t, err)
 
-	os.Setenv("HOME", home)
-}
+//   os.Setenv("HOME", home)
+// }

@@ -30,6 +30,7 @@ func TestSystemGet(t *testing.T) {
 		Status:  "running",
 		Type:    "t2.small",
 		Version: "dev",
+		Outputs: map[string]string{},
 	}, s)
 }
 
@@ -51,6 +52,7 @@ func TestSystemGetConverging(t *testing.T) {
 		Status:  "converging",
 		Type:    "t2.small",
 		Version: "dev",
+		Outputs: map[string]string{},
 	}, s)
 }
 
@@ -385,7 +387,7 @@ var cycleReleasePutItem = awsutil.Cycle{
 var cycleSystemUpdateNotificationPublish = awsutil.Cycle{
 	Request: awsutil.Request{
 		RequestURI: "/",
-		Body:       `Action=Publish&Message=%7B%22action%22%3A%22rack%3Aupdate%22%2C%22status%22%3A%22success%22%2C%22data%22%3A%7B%22count%22%3A%225%22%2C%22version%22%3A%2220160820033210%22%7D%2C%22timestamp%22%3A%220001-01-01T00%3A00%3A00Z%22%7D&Subject=rack%3Aupdate&TargetArn=&Version=2010-03-31`,
+		Body:       `Action=Publish&Message=%7B%22action%22%3A%22rack%3Aupdate%22%2C%22status%22%3A%22success%22%2C%22data%22%3A%7B%22count%22%3A%225%22%2C%22rack%22%3A%22convox%22%2C%22version%22%3A%2220160820033210%22%7D%2C%22timestamp%22%3A%220001-01-01T00%3A00%3A00Z%22%7D&Subject=rack%3Aupdate&TargetArn=&Version=2010-03-31`,
 	},
 	Response: awsutil.Response{
 		StatusCode: 200,
