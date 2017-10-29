@@ -181,10 +181,22 @@
             {{ if .Port.Port }}
               "PortMappings": [ { "ContainerPort": "{{.Port.Port}}" } ],
             {{ end }}
+            "MountPoints": [
+              {{ range $i, $v := .Volumes }}
+                { "SourceVolume": "volume-{{$i}}", "ContainerPath": "{{ volumeTo $v }}" },
+              {{ end }}
+              { "Ref": "AWS::NoValue" }
+            ],
             "Name": "{{.Name}}"
           }
         ],
-        "Family": { "Fn::Sub": "${AWS::StackName}-service-{{.Name}}" }
+        "Family": { "Fn::Sub": "${AWS::StackName}-service-{{.Name}}" },
+        "Volumes": [
+          {{ range $i, $v := .Volumes }}
+            { "Name": "volume-{{$i}}", "Host": { "SourcePath": "{{ volumeFrom $.App $v }}" } },
+          {{ end }}
+          { "Ref": "AWS::NoValue" }
+        ]
       }
     },
   {{ end }}
@@ -275,11 +287,23 @@
                 }
               },
               "Memory": { "Fn::Select": [ 2, { "Ref": "{{ upper .Name }}Formation" } ] },
+              "MountPoints": [
+                {{ range $i, $v := .Volumes }}
+                  { "SourceVolume": "volume-{{$i}}", "ContainerPath": "{{ volumeTo $v }}" },
+                {{ end }}
+                { "Ref": "AWS::NoValue" }
+              ],
               "Name": "{{$t.Name}}"
             }
           {{ end }}
         ],
-        "Family": { "Fn::Sub": "${AWS::StackName}-timer-{{.Name}}" }
+        "Family": { "Fn::Sub": "${AWS::StackName}-timer-{{.Name}}" },
+        "Volumes": [
+          {{ range $i, $v := ($.Manifest.Service .Service).Volumes }}
+            { "Name": "volume-{{$i}}", "Host": { "SourcePath": "{{ volumeFrom $.App $v }}" } },
+          {{ end }}
+          { "Ref": "AWS::NoValue" }
+        ]
       }
     },
   {{ end }}
