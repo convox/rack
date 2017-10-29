@@ -305,7 +305,7 @@
     "BuildMemory": {
       "Type": "String",
       "Description": "How much memory should be reserved by the builder",
-      "Default": "1024"
+      "Default": "1000"
     },
     "BuildVolumeSize": {
       "Type": "Number",
