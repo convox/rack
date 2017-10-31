@@ -111,6 +111,7 @@
       "Value": { "Ref": "DynamoReleases" }
     },
     "EncryptionKey": {
+      "Export": { "Name": { "Fn::Sub": "${AWS::StackName}:EncryptionKey" } },
       "Value": { "Ref": "EncryptionKey" }
     },
     "Endpoint": {

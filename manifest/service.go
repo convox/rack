@@ -3,6 +3,7 @@ package manifest
 import (
 	"crypto/sha1"
 	"fmt"
+	"sort"
 	"strings"
 )
 
@@ -66,21 +67,29 @@ func (s Service) GetName() string {
 	return s.Name
 }
 
-func (s Service) ResolvedEnvironment(env map[string]string) map[string]string {
-	resolved := map[string]string{}
+func (s Service) EnvironmentDefaults() map[string]string {
+	defaults := map[string]string{}
 
 	for _, e := range s.Environment {
-		parts := strings.Split(e, "=")
-
-		switch len(parts) {
-		case 1:
-			resolved[parts[0]] = env[parts[0]]
+		switch parts := strings.Split(e, "="); len(parts) {
 		case 2:
-			resolved[parts[0]] = coalesce(env[parts[0]], parts[1])
+			defaults[parts[0]] = parts[1]
 		}
 	}
 
-	return resolved
+	return defaults
+}
+
+func (s Service) EnvironmentKeys() string {
+	keys := make([]string, len(s.Environment))
+
+	for i, e := range s.Environment {
+		keys[i] = strings.Split(e, "=")[0]
+	}
+
+	sort.Strings(keys)
+
+	return strings.Join(keys, ",")
 }
 
 func (s *Service) SetDefaults() error {
