@@ -36,11 +36,6 @@ func (p *AWSProvider) ReleaseGet(app, id string) (*structs.Release, error) {
 		return nil, fmt.Errorf("release id must not be empty")
 	}
 
-	a, err := p.AppGet(app)
-	if err != nil {
-		return nil, err
-	}
-
 	item, err := p.fetchRelease(app, id)
 	if err != nil {
 		return nil, err
@@ -61,8 +56,13 @@ func (p *AWSProvider) ReleaseGet(app, id string) (*structs.Release, error) {
 		return nil, err
 	}
 
-	if a.Parameters["Key"] != "" {
-		if d, err := crypt.New().Decrypt(a.Parameters["Key"], data); err == nil {
+	key, err := p.rackResource("EncryptionKey")
+	if err != nil {
+		return nil, err
+	}
+
+	if key != "" {
+		if d, err := crypt.New().Decrypt(key, data); err == nil {
 			data = d
 		}
 	}
@@ -162,11 +162,6 @@ func (p *AWSProvider) ReleasePromote(r *structs.Release) error {
 
 // ReleaseSave saves a Release
 func (p *AWSProvider) ReleaseSave(r *structs.Release) error {
-	a, err := p.AppGet(r.App)
-	if err != nil {
-		return err
-	}
-
 	if r.Id == "" {
 		return fmt.Errorf("Id can not be blank")
 	}
@@ -197,7 +192,12 @@ func (p *AWSProvider) ReleaseSave(r *structs.Release) error {
 	}
 
 	env := []byte(r.Env)
-	key := a.Parameters["Key"]
+
+	key, err := p.rackResource("EncryptionKey")
+	if err != nil {
+		return err
+	}
+
 	if key != "" {
 		env, err = crypt.New().Encrypt(key, []byte(env))
 		if err != nil {
@@ -211,7 +211,6 @@ func (p *AWSProvider) ReleaseSave(r *structs.Release) error {
 	}
 
 	_, err = p.s3().PutObject(&s3.PutObjectInput{
-		ACL:           aws.String("public-read"),
 		Body:          bytes.NewReader(env),
 		Bucket:        aws.String(settings),
 		ContentLength: aws.Int64(int64(len(env))),

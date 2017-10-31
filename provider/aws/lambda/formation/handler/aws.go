@@ -10,6 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ecr"
 	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/aws/aws-sdk-go/service/kms"
+	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/sns"
 	"github.com/aws/aws-sdk-go/service/sqs"
 )
@@ -64,6 +65,13 @@ func ECS(req Request) *ecs.ECS {
 
 func KMS(req Request) *kms.KMS {
 	return kms.New(session.New(), &aws.Config{
+		Credentials: Credentials(&req),
+		Region:      Region(&req),
+	})
+}
+
+func S3(req Request) *s3.S3 {
+	return s3.New(session.New(), &aws.Config{
 		Credentials: Credentials(&req),
 		Region:      Region(&req),
 	})

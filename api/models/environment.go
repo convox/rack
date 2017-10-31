@@ -61,8 +61,13 @@ func GetEnvironment(app string) (Environment, error) {
 		return nil, err
 	}
 
-	if a.Parameters["Key"] != "" {
-		if d, err := crypt.New().Decrypt(a.Parameters["Key"], data); err == nil {
+	key, err := rackResource("EncryptionKey")
+	if err != nil {
+		return nil, err
+	}
+
+	if key != "" {
+		if d, err := crypt.New().Decrypt(key, data); err == nil {
 			data = d
 		}
 	}
@@ -102,8 +107,13 @@ func PutEnvironment(app string, env Environment) (string, error) {
 
 	e := []byte(env.Raw())
 
-	if a.Parameters["Key"] != "" {
-		e, err = crypt.New().Encrypt(a.Parameters["Key"], e)
+	key, err := rackResource("EncryptionKey")
+	if err != nil {
+		return "", err
+	}
+
+	if key != "" {
+		e, err = crypt.New().Encrypt(key, e)
 
 		if err != nil {
 			return "", err
@@ -115,7 +125,7 @@ func PutEnvironment(app string, env Environment) (string, error) {
 		return "", err
 	}
 
-	err = S3Put(settings, "env", []byte(e), true)
+	err = S3Put(settings, "env", []byte(e), false)
 	if err != nil {
 		return "", err
 	}

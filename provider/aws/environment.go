@@ -33,8 +33,13 @@ func (p *AWSProvider) EnvironmentGet(app string) (structs.Environment, error) {
 		return nil, err
 	}
 
-	if a.Parameters["Key"] != "" {
-		if d, err := crypt.New().Decrypt(a.Parameters["Key"], data); err == nil {
+	key, err := p.rackResource("EncryptionKey")
+	if err != nil {
+		return nil, err
+	}
+
+	if key != "" {
+		if d, err := crypt.New().Decrypt(key, data); err == nil {
 			data = d
 		}
 	}
