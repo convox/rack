@@ -490,6 +490,15 @@ func (p *AWSProvider) describeStackResources(input *cloudformation.DescribeStack
 	return res, nil
 }
 
+func (p *AWSProvider) rackResource(resource string) (string, error) {
+	res, err := p.stackResource(p.Rack, resource)
+	if err != nil {
+		return "", err
+	}
+
+	return *res.PhysicalResourceId, nil
+}
+
 func (p *AWSProvider) appResource(app, resource string) (string, error) {
 	res, err := p.stackResource(fmt.Sprintf("%s-%s", p.Rack, app), resource)
 	if err != nil {

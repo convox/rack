@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"math/rand"
 	"net/http"
+	"net/url"
 	"regexp"
 	"strconv"
 	"strings"
@@ -13,6 +14,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/ecs"
+	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/convox/rack/api/crypt"
 	"github.com/convox/rack/api/models"
 )
@@ -116,18 +118,8 @@ func ECSTaskDefinitionCreate(req Request) (string, map[string]string, error) {
 	envURL, ok := req.ResourceProperties["Environment"].(string)
 
 	if ok && envURL != "" {
-		res, err := http.Get(envURL)
+		data, err := fetchEnvironment(req, envURL)
 
-		if err != nil {
-			return "invalid", nil, err
-		}
-
-		defer res.Body.Close()
-
-		data, err := ioutil.ReadAll(res.Body)
-		if err != nil {
-			return "invalid", nil, err
-		}
 		if pkey, ok := req.ResourceProperties["Key"].(string); ok && pkey != "" {
 			key = pkey
 
@@ -369,6 +361,43 @@ func ECSTaskDefinitionDelete(req Request) (string, map[string]string, error) {
 }
 
 var idAlphabet = []rune("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
+
+func fetchEnvironment(req Request, env string) ([]byte, error) {
+	u, err := url.Parse(env)
+	if err != nil {
+		return nil, err
+	}
+
+	if strings.HasSuffix(u.Host, "s3.amazonaws.com") {
+		return fetchEnvironmentS3(req, strings.Split(u.Host, ".")[0], u.Path)
+	}
+
+	res, err := http.Get(env)
+	if err != nil {
+		return nil, err
+	}
+	defer res.Body.Close()
+
+	data, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	return data, nil
+}
+
+func fetchEnvironmentS3(req Request, bucket, key string) ([]byte, error) {
+	res, err := S3(req).GetObject(&s3.GetObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(key),
+	})
+	if err != nil {
+		return nil, err
+	}
+	defer res.Body.Close()
+
+	return ioutil.ReadAll(res.Body)
+}
 
 func generateId(prefix string, size int) string {
 	b := make([]rune, size)
