@@ -163,10 +163,12 @@
             "Cpu": { "Fn::Select": [ 1, { "Ref": "{{ upper .Name }}Formation" } ] },
             "DockerLabels": { "convox.generation": "2", "convox.release": "{{$.Release.Id}}" },
             "Environment": [
-              {{ range $k, $v := .ResolvedEnvironment $.Env }}
+              {{ range $k, $v := .EnvironmentDefaults }}
                 { "Name": "{{$k}}", "Value": "{{ safe $v }}" },
               {{ end }}
-              { "Ref": "AWS::NoValue" }
+              { "Name": "CONVOX_ENV_KEY", "Value": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:EncryptionKey" } } },
+              { "Name": "CONVOX_ENV_URL", "Value": { "Fn::Sub": "https://${Settings.DomainName}/releases/{{$.Release.Id}}/env" } },
+              { "Name": "CONVOX_ENV_VARS", "Value": "{{.EnvironmentKeys}}" }
             ],
             "Image": { "Fn::Sub": "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${Registry}:{{.Name}}.{{$.Release.Build}}" },
             "LogConfiguration": {
@@ -272,10 +274,12 @@
               "Cpu": { "Fn::Select": [ 1, { "Ref": "{{ upper .Name }}Formation" } ] },
               "DockerLabels": { "convox.generation": "2", "convox.release": "{{$.Release.Id}}" },
               "Environment": [
-                {{ range $k, $v := .ResolvedEnvironment $.Env }}
+                {{ range $k, $v := .EnvironmentDefaults }}
                   { "Name": "{{$k}}", "Value": "{{ safe $v }}" },
                 {{ end }}
-                { "Ref": "AWS::NoValue" }
+                { "Name": "CONVOX_ENV_KEY", "Value": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:EncryptionKey" } } },
+                { "Name": "CONVOX_ENV_URL", "Value": { "Fn::Sub": "https://${Settings.DomainName}/releases/{{$.Release.Id}}/env" } },
+                { "Name": "CONVOX_ENV_VARS", "Value": "{{.EnvironmentKeys}}" }
               ],
               "Image": { "Fn::Sub": "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${Registry}:{{.Name}}.{{$.Release.Build}}" },
               "LogConfiguration": {
