@@ -174,6 +174,8 @@ func HandleRequest(freq Request) error {
 		physical, outputs, err = HandleECSTaskDefinition(freq)
 	case "Custom::KMSKey":
 		physical, outputs, err = HandleKMSKey(freq)
+	case "Custom::SNSSubscription":
+		physical, outputs, err = HandleSNSSubcription(freq)
 	default:
 		physical = ""
 		err = fmt.Errorf("unknown ResourceType: %s", freq.ResourceType)
