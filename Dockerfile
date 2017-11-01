@@ -1,17 +1,6 @@
 FROM golang:1.9-alpine
 
-RUN apk update && apk add \
-    build-base \
-    curl \
-    git \
-    haproxy \
-    openssh \
-    openssl \
-    python \
-    tar
-
-RUN curl -fsSLO https://get.docker.com/builds/Linux/x86_64/docker-1.13.0.tgz \
-    && tar --strip-components=1 -xvzf docker-1.13.0.tgz -C /usr/local/bin
+RUN apk update && apk add build-base curl docker git haproxy openssh openssl python tar
 
 RUN go get -u github.com/convox/rerun
 
