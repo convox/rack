@@ -32,6 +32,7 @@ func (p *AWSProvider) AppCreate(name string) (*structs.App, error) {
 	}
 
 	_, err = p.cloudformation().CreateStack(&cloudformation.CreateStackInput{
+		Capabilities: []*string{aws.String("CAPABILITY_IAM")},
 		Parameters: []*cloudformation.Parameter{
 			{ParameterKey: aws.String("Rack"), ParameterValue: aws.String(p.Rack)},
 		},
