@@ -1,0 +1,67 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Parameters": {
+    "Password": {
+      "MinLength": "8",
+      "NoEcho": true,
+      "Type": "String",
+    },
+    "Rack": {
+      "MinLength": "1",
+      "Type": "String"
+    }
+  },
+  "Outputs": {
+    "Url": { "Value": { "Fn::Sub": "postgres://app:${Password}@${Instance.Endpoint.Address}:${Instance.Endpoint.Port}/app" } }
+  },
+  "Resources": {
+    "SecurityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "postgres resource",
+        "SecurityGroupIngress": [
+          { "IpProtocol": "tcp", "FromPort": "5432", "ToPort": "5432", "CidrIp": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:VpcCidr" } } }
+        ],
+        "VpcId": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Vpc" } }
+      }
+    },
+    "SubnetGroup": {
+      "Type": "AWS::RDS::DBSubnetGroup",
+      "Properties": {
+        "DBSubnetGroupDescription": { "Fn::Sub": "${AWS::StackName} subnets" },
+        "SubnetIds": [
+          { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Subnet0" } },
+          { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Subnet1" } }
+        ]
+      }
+    },
+    "Instance": {
+      "Type": "AWS::RDS::DBInstance",
+      "DeletionPolicy": "Snapshot",
+      "Properties": {
+        "AllocatedStorage": "10",
+        "DBInstanceClass": "db.t2.micro",
+        "DBInstanceIdentifier": { "Ref": "AWS::StackName" },
+        "DBName": "app",
+        "DBParameterGroupName": { "Ref": "ParameterGroup" },
+        "DBSubnetGroupName": { "Ref": "SubnetGroup" },
+        "Engine": "postgres",
+        "EngineVersion": "9.6.1",
+        "MasterUsername": "app",
+        "MasterUserPassword": { "Ref": "Password" },
+        "MultiAZ": "false",
+        "Port": "5432",
+        "PubliclyAccessible": "false",
+        "StorageType": "gp2",
+        "VPCSecurityGroups": [ { "Ref": "SecurityGroup" } ]
+      }
+    },
+    "ParameterGroup": {
+      "Type": "AWS::RDS::DBParameterGroup",
+      "Properties": {
+        "Description": { "Fn::Sub": "${AWS::StackName} parameters" },
+        "Family": "postgres9.6"
+      }
+    }
+  }
+}

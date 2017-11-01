@@ -20,6 +20,7 @@
   },
   "Resources": {
     {{ template "balancer-resources" . }}
+    {{ template "resource-resources" . }}
     {{ template "service-resources" . }}
     {{ template "timer-resources" . }}
 
@@ -124,6 +125,21 @@
   {{ end }}
 {{ end }}
 
+{{ define "resource-resources" }}
+  {{ range .Manifest.Resources }}
+    "Resource{{ upper .Name }}": {
+      "Type": "AWS::CloudFormation::Stack",
+      "Properties": {
+        "Parameters": {
+          "Password": { "Fn::Base64": { "Fn::Select": [ 2, { "Fn::Split": [ "/", { "Ref": "AWS::StackId" } ] } ] } },
+          "Rack": { "Ref": "Rack" }
+        },
+        "TemplateURL": "https://convox.s3.amazonaws.com/release/{{$.Version}}/formation/resource/{{.Type}}.json"
+      }
+    },
+  {{ end }}
+{{ end }}
+
 {{ define "service-params" }}
   {{ range .Services }}
     "{{ upper .Name }}Formation": {
@@ -185,6 +201,9 @@
             "Environment": [
               {{ range $k, $v := .EnvironmentDefaults }}
                 { "Name": "{{$k}}", "Value": "{{ safe $v }}" },
+              {{ end }}
+              {{ range .Resources }}
+                { "Name": "{{ upcase . }}_URL", "Value": { "Fn::GetAtt": [ "Resource{{ upper . }}", "Outputs.Url" ] } },
               {{ end }}
               { "Name": "AWS_REGION", "Value": { "Ref": "AWS::Region" } },
               { "Name": "CONVOX_ENV_KEY", "Value": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:EncryptionKey" } } },
