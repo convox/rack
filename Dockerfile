@@ -1,6 +1,6 @@
 FROM golang:1.9-alpine
 
-RUN apk update && apk add build-base curl docker git haproxy openssh openssl python tar
+RUN apk add --update build-base curl docker git haproxy openssh openssl python tar
 
 RUN go get -u github.com/convox/rerun
 
