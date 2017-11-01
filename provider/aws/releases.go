@@ -137,6 +137,7 @@ func (p *AWSProvider) ReleasePromote(r *structs.Release) error {
 		"Env":      env,
 		"Manifest": m,
 		"Release":  r,
+		"Version":  p.Release,
 	}
 
 	data, err := formationTemplate("app", tp)

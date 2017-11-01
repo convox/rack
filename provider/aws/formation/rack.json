@@ -237,6 +237,19 @@
         ]
       }
     },
+    "Subnet0": {
+      "Export": { "Name": { "Fn::Sub": "${AWS::StackName}:Subnet0" } },
+      "Value": { "Ref": "Subnet0" }
+    },
+    "Subnet1": {
+      "Export": { "Name": { "Fn::Sub": "${AWS::StackName}:Subnet1" } },
+      "Value": { "Ref": "Subnet1" }
+    },
+    "Subnet2": {
+      "Condition": "ThirdAvailabilityZone",
+      "Export": { "Name": { "Fn::Sub": "${AWS::StackName}:Subnet2" } },
+      "Value": { "Ref": "Subnet2" }
+    },
     "SubnetsPrivate": {
       "Value": { "Fn::If":
         [ "Private",
@@ -262,7 +275,7 @@
       ] }
     },
     "Vpccidr": {
-      "Condition": "Development",
+      "Export": { "Name": { "Fn::Sub": "${AWS::StackName}:VpcCidr" } },
       "Value": { "Ref": "VPCCIDR" }
     }
   },

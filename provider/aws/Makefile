@@ -10,6 +10,8 @@ release:
 	cd /tmp/release/$(VERSION)
 	jq '.Parameters.Version.Default |= "$(VERSION)"' formation/rack.json > formation.json
 	aws s3 cp formation.json s3://convox/release/$(VERSION)/formation.json --acl public-read
+	aws s3 cp formation.json s3://convox/release/$(VERSION)/rack.json --acl public-read
+	aws s3 cp formation s3://convox/release/$(VERSION)/formation --recursive --acl public-read
 
 templates:
 	go-bindata -nometadata -pkg=aws -o templates.go ./templates/...
