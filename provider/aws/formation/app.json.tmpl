@@ -135,11 +135,31 @@
 {{ end }}
 
 {{ define "service-resources" }}
+  "ServiceRole": {
+    "Type": "AWS::IAM::Role",
+    "Properties": {
+      "AssumeRolePolicyDocument": {
+        "Statement": [ { "Effect": "Allow", "Principal": { "Service": [ "ecs-tasks.amazonaws.com" ] }, "Action": [ "sts:AssumeRole" ] } ],
+        "Version": "2012-10-17"
+      },
+      "Path": "/convox/",
+      "Policies": [ {
+        "PolicyName": "convox-env",
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            { "Effect": "Allow", "Action": "s3:GetObject", "Resource": { "Fn::Sub": "arn:aws:s3:::${Settings}/*" } },
+            { "Effect": "Allow", "Action": "kms:Decrypt", "Resource": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:EncryptionKey" } } }
+          ]
+        }
+      } ]
+    }
+  },
   {{ range .Manifest.Services }}
     "Service{{ upper .Name }}Service": {
       "Type": "AWS::ECS::Service",
       {{ if .Port.Port }}
-        "DependsOn": [ "Balancer{{upper .Name }}ListenerRule80" ],
+        "DependsOn": [ "Balancer{{ upper .Name }}ListenerRule80" ],
       {{ end }}
       "Properties": {
         "Cluster": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Cluster" } },
@@ -166,8 +186,9 @@
               {{ range $k, $v := .EnvironmentDefaults }}
                 { "Name": "{{$k}}", "Value": "{{ safe $v }}" },
               {{ end }}
+              { "Name": "AWS_REGION", "Value": { "Ref": "AWS::Region" } },
               { "Name": "CONVOX_ENV_KEY", "Value": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:EncryptionKey" } } },
-              { "Name": "CONVOX_ENV_URL", "Value": { "Fn::Sub": "https://${Settings.DomainName}/releases/{{$.Release.Id}}/env" } },
+              { "Name": "CONVOX_ENV_URL", "Value": { "Fn::Sub": "s3://${Settings}/releases/{{$.Release.Id}}/env" } },
               { "Name": "CONVOX_ENV_VARS", "Value": "{{.EnvironmentKeys}}" }
             ],
             "Image": { "Fn::Sub": "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${Registry}:{{.Name}}.{{$.Release.Build}}" },
@@ -193,6 +214,7 @@
           }
         ],
         "Family": { "Fn::Sub": "${AWS::StackName}-service-{{.Name}}" },
+        "TaskRoleArn": { "Fn::GetAtt": [ "ServiceRole", "Arn" ] },
         "Volumes": [
           {{ range $i, $v := .Volumes }}
             { "Name": "volume-{{$i}}", "Host": { "SourcePath": "{{ volumeFrom $.App $v }}" } },
@@ -277,8 +299,9 @@
                 {{ range $k, $v := .EnvironmentDefaults }}
                   { "Name": "{{$k}}", "Value": "{{ safe $v }}" },
                 {{ end }}
+                { "Name": "AWS_REGION", "Value": { "Ref": "AWS::Region" } },
                 { "Name": "CONVOX_ENV_KEY", "Value": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:EncryptionKey" } } },
-                { "Name": "CONVOX_ENV_URL", "Value": { "Fn::Sub": "https://${Settings.DomainName}/releases/{{$.Release.Id}}/env" } },
+                { "Name": "CONVOX_ENV_URL", "Value": { "Fn::Sub": "s3://${Settings}/releases/{{$.Release.Id}}/env" } },
                 { "Name": "CONVOX_ENV_VARS", "Value": "{{.EnvironmentKeys}}" }
               ],
               "Image": { "Fn::Sub": "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${Registry}:{{.Name}}.{{$.Release.Build}}" },
@@ -302,6 +325,7 @@
           {{ end }}
         ],
         "Family": { "Fn::Sub": "${AWS::StackName}-timer-{{.Name}}" },
+        "TaskRoleArn": { "Fn::GetAtt": [ "ServiceRole", "Arn" ] },
         "Volumes": [
           {{ range $i, $v := ($.Manifest.Service .Service).Volumes }}
             { "Name": "volume-{{$i}}", "Host": { "SourcePath": "{{ volumeFrom $.App $v }}" } },

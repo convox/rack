@@ -17,6 +17,7 @@ type Service struct {
 	Health      ServiceHealth      `yaml:"health,omitempty"`
 	Image       string             `yaml:"image,omitempty"`
 	Port        ServicePort        `yaml:"port,omitempty"`
+	Privileged  bool               `yaml:"privileged,omitempty"`
 	Resources   []string           `yaml:"resources,omitempty"`
 	Scale       ServiceScale       `yaml:"scale,omitempty"`
 	Test        string             `yaml:"test,omitempty"`

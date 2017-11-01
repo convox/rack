@@ -11,7 +11,7 @@ WORKDIR /go/src/github.com/convox/rack
 COPY . /go/src/github.com/convox/rack
 
 RUN go install ./api
-RUN go install ./api/cmd/build
-RUN go install ./api/cmd/monitor
+RUN go install ./api/cmd/...
+RUN env CGO_ENABLED=0 go install --ldflags '-extldflags "-static"' github.com/convox/rack/api/cmd/convox-env
 
 CMD ["api/bin/web"]
