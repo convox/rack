@@ -20,7 +20,7 @@ export STACK_NAME=convox-${CIRCLE_BUILD_NUM}
 git clone https://github.com/convox-examples/${EXAMPLE_NAME}.git
 cd ${EXAMPLE_NAME}
 
-if [[ "$APP_NAME" == "rails" ]]; then
+if [[ "$EXAMPLE_NAME" == "rails" ]]; then
   convox apps create $APP_NAME --wait --generation 2
 else
   convox apps create $APP_NAME --wait
