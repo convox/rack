@@ -325,7 +325,26 @@ func build(b ServiceBuild, tag string, opts BuildOptions) error {
 
 	message(opts.Stdout, "building: %s", b.Path)
 
-	return opts.docker(args...)
+	if err := opts.docker(args...); err != nil {
+		return err
+	}
+
+	if err := convoxEnvEntrypoint(tag, opts); err != nil {
+		return err
+	}
+
+	data, err := exec.Command("docker", "inspect", tag, "--format", "{{json .Config.Entrypoint}}").CombinedOutput()
+	if err != nil {
+		return err
+	}
+
+	var entrypoint []string
+
+	if err := json.Unmarshal(data, &entrypoint); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func buildArgs(dockerfile string, opts BuildOptions) ([]string, error) {
@@ -362,6 +381,65 @@ func buildArgs(dockerfile string, opts BuildOptions) ([]string, error) {
 	}
 
 	return args, nil
+}
+
+func convoxEnvEntrypoint(tag string, opts BuildOptions) error {
+	var cmd []string
+	var entrypoint []string
+
+	data, err := exec.Command("docker", "inspect", tag, "--format", "{{json .Config.Cmd}}").CombinedOutput()
+	if err != nil {
+		return err
+	}
+	if err := json.Unmarshal(data, &cmd); err != nil {
+		return err
+	}
+
+	data, err = exec.Command("docker", "inspect", tag, "--format", "{{json .Config.Entrypoint}}").CombinedOutput()
+	if err != nil {
+		return err
+	}
+	if err := json.Unmarshal(data, &entrypoint); err != nil {
+		return err
+	}
+
+	epb, err := json.Marshal(append([]string{"/convox-env"}, entrypoint...))
+	if err != nil {
+		return err
+	}
+
+	epdfs := fmt.Sprintf("FROM %s\nCOPY ./convox-env /convox-env\nENTRYPOINT %s\n", tag, epb)
+
+	if cmd != nil {
+		cmdb, err := json.Marshal(cmd)
+		if err != nil {
+			return err
+		}
+
+		epdfs += fmt.Sprintf("CMD %s\n", cmdb)
+	}
+
+	tmp, err := ioutil.TempDir("", "")
+	if err != nil {
+		return err
+	}
+
+	if err := exec.Command("cp", "/go/bin/convox-env", filepath.Join(tmp, "convox-env")).Run(); err != nil {
+		return err
+	}
+
+	epdf := filepath.Join(tmp, "Dockerfile")
+
+	if err := ioutil.WriteFile(epdf, []byte(epdfs), 0644); err != nil {
+		return err
+	}
+
+	data, err = exec.Command("docker", "build", "-t", tag, tmp).CombinedOutput()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func pull(image string, opts BuildOptions) error {
