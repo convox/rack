@@ -1777,9 +1777,9 @@
         "ConnectionDrainingPolicy": { "Enabled": true, "Timeout": 60 },
         "ConnectionSettings": { "IdleTimeout": 3600 },
         "CrossZone": true,
-        "HealthCheck": { "HealthyThreshold": "2", "Interval": 5, "Target": "HTTPS:3001/check", "Timeout": 3, "UnhealthyThreshold": "2" },
+        "HealthCheck": { "HealthyThreshold": "2", "Interval": 5, "Target": "HTTPS:3002/check", "Timeout": 3, "UnhealthyThreshold": "2" },
         "LBCookieStickinessPolicy": [ { "PolicyName": "affinity" } ],
-        "Listeners": [ { "Protocol": "TCP", "LoadBalancerPort": "443", "InstanceProtocol": "TCP", "InstancePort": "3001" } ],
+        "Listeners": [ { "Protocol": "TCP", "LoadBalancerPort": "443", "InstanceProtocol": "TCP", "InstancePort": "3002" } ],
         "LoadBalancerName": { "Fn::If": [ "PrivateApi", { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" }, "i" ] ] }, { "Ref": "AWS::StackName" } ] },
         "Scheme": { "Fn::If": [ "PrivateApi", "internal", { "Ref": "AWS::NoValue" } ] },
         "SecurityGroups": [ { "Ref": "BalancerSecurity" } ],
@@ -2078,7 +2078,7 @@
             "Memory": { "Ref": "ApiMemory" },
             "MountPoints": [ { "SourceVolume": "docker", "ContainerPath": "/var/run/docker.sock" } ],
             "Name": "web",
-            "PortMappings": [ { "HostPort": "3001", "ContainerPort": "4443", "Protocol": "tcp" } ]
+            "PortMappings": [ { "HostPort": "3002", "ContainerPort": "4443", "Protocol": "tcp" } ]
           }
         ],
         "Family": { "Fn::Sub": "${AWS::StackName}-web" },
