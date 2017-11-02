@@ -46,8 +46,8 @@ type ServiceHealth struct {
 }
 
 type ServicePort struct {
-	Port   int
-	Scheme string
+	Port   int    `yaml:"port,omitempty"`
+	Scheme string `yaml:"scheme,omitempty"`
 }
 
 type ServiceScale struct {

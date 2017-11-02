@@ -72,6 +72,14 @@ func (v *ServiceBuild) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	return nil
 }
 
+func (v ServiceBuild) MarshalYAML() (interface{}, error) {
+	if len(v.Args) == 0 {
+		return v.Path, nil
+	}
+
+	return v, nil
+}
+
 func (v *ServiceCommand) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	var w interface{}
 
@@ -216,6 +224,14 @@ func (v *ServicePort) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	return nil
 }
 
+func (v ServicePort) MarshalYAML() (interface{}, error) {
+	if v.Port == 0 {
+		return nil, nil
+	}
+
+	return v, nil
+}
+
 func (v *ServiceScale) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	var w interface{}
 
@@ -326,6 +342,14 @@ func (v *ServiceScaleCount) UnmarshalYAML(unmarshal func(interface{}) error) err
 	}
 
 	return nil
+}
+
+func (v ServiceScaleCount) MarshalYAML() (interface{}, error) {
+	if v.Min == v.Max {
+		return v.Min, nil
+	}
+
+	return v, nil
 }
 
 func (v Timers) MarshalYAML() (interface{}, error) {
