@@ -712,6 +712,15 @@ var cycleSystemDescribeStackResources = awsutil.Cycle{
 							<Timestamp>2016-09-10T04:35:11.280Z</Timestamp>
 							<ResourceType>AWS::ECS::Service</ResourceType>
 						</member>
+						<member>
+							<PhysicalResourceId>arn:kms::::::</PhysicalResourceId>
+							<ResourceStatus>UPDATE_COMPLETE</ResourceStatus>
+							<StackId>arn:aws:cloudformation:us-east-1:990037048036:stack/convox/b8423690-917d-1fe6-8737-50dseaf92cd2</StackId>
+							<StackName>convox</StackName>
+							<LogicalResourceId>EncryptionKey</LogicalResourceId>
+							<Timestamp>2016-10-22T02:53:23.817Z</Timestamp>
+							<ResourceType>AWS::AutoScaling::AutoScalingGroup</ResourceType>
+						</member>
 					</StackResources>
 				</DescribeStackResourcesResult>
 				<ResponseMetadata>

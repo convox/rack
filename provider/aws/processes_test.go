@@ -33,6 +33,7 @@ func TestProcessExec(t *testing.T) {
 		cycleProcessDescribeTasks,
 		cycleProcessDescribeContainerInstances,
 		cycleProcessDescribeInstances,
+		cycleProcessDescribeStacks,
 	)
 	defer provider.Close()
 
@@ -200,6 +201,7 @@ func TestProcessRunAttached(t *testing.T) {
 		cycleProcessReleaseGetItem,
 		cycleProcessReleaseDescribeStackResources,
 		cycleProcessReleaseEnvironmentGet,
+		cycleSystemDescribeStackResources,
 		cycleProcessDescribeStackResources,
 		cycleProcessDescribeServices,
 		cycleProcessDescribeTaskDefinition1,
@@ -221,6 +223,7 @@ func TestProcessRunAttached(t *testing.T) {
 		cycleProcessDescribeTasks,
 		cycleProcessDescribeContainerInstances,
 		cycleProcessDescribeInstances,
+		cycleProcessDescribeStacks,
 		cycleProcessStopTask,
 	)
 	defer provider.Close()
@@ -258,6 +261,7 @@ func TestProcessRunDetached(t *testing.T) {
 		cycleProcessReleaseGetItem,
 		cycleProcessReleaseDescribeStackResources,
 		cycleProcessReleaseEnvironmentGet,
+		cycleSystemDescribeStackResources,
 		cycleProcessDescribeStackResources,
 		cycleProcessDescribeServices,
 		cycleProcessDescribeTaskDefinition1,
