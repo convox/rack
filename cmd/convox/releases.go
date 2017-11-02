@@ -140,10 +140,6 @@ func cmdReleasePromote(c *cli.Context) error {
 		return stdcli.Error(fmt.Errorf("app %s is still being updated, check `convox apps info`", app))
 	}
 
-	if a.Release == release {
-		return stdcli.Error(fmt.Errorf("release %s is already active. Try `convox releases`", release))
-	}
-
 	fmt.Printf("Promoting %s... ", release)
 
 	_, err = rackClient(c).PromoteRelease(app, release)

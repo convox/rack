@@ -1,6 +1,150 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
   "Conditions": {
+    "BalancerWebALB": {
+      "Fn::And": [
+        {
+          "Fn::Not": [
+            {
+              "Fn::Equals": [
+                {
+                  "Fn::Select": [
+                    0,
+                    {
+                      "Ref": "WebFormation"
+                    }
+                  ]
+                },
+                "-1"
+              ]
+            }
+          ]
+        },
+        {
+          "Fn::Equals": [
+            {
+              "Ref": "BalancerWebType"
+            },
+            "ALB"
+          ]
+        }
+      ]
+    },
+    "BalancerWebALBPort80Certificate": {
+      "Fn::And": [
+        {
+          "Condition": "BalancerWebALB"
+        },
+        {
+          "Fn::Not": [
+            {
+              "Condition": "BlankBalancerWebPort80Certificate"
+            }
+          ]
+        }
+      ]
+    },
+    "BalancerWebELB": {
+      "Fn::And": [
+        {
+          "Fn::Not": [
+            {
+              "Fn::Equals": [
+                {
+                  "Fn::Select": [
+                    0,
+                    {
+                      "Ref": "WebFormation"
+                    }
+                  ]
+                },
+                "-1"
+              ]
+            }
+          ]
+        },
+        {
+          "Fn::Equals": [
+            {
+              "Ref": "BalancerWebType"
+            },
+            "ELB"
+          ]
+        }
+      ]
+    },
+    "BalancerWorkerALB": {
+      "Fn::And": [
+        {
+          "Fn::Not": [
+            {
+              "Fn::Equals": [
+                {
+                  "Fn::Select": [
+                    0,
+                    {
+                      "Ref": "WorkerFormation"
+                    }
+                  ]
+                },
+                "-1"
+              ]
+            }
+          ]
+        },
+        {
+          "Fn::Equals": [
+            {
+              "Ref": "BalancerWorkerType"
+            },
+            "ALB"
+          ]
+        }
+      ]
+    },
+    "BalancerWorkerALBPort80Certificate": {
+      "Fn::And": [
+        {
+          "Condition": "BalancerWorkerALB"
+        },
+        {
+          "Fn::Not": [
+            {
+              "Condition": "BlankBalancerWorkerPort80Certificate"
+            }
+          ]
+        }
+      ]
+    },
+    "BalancerWorkerELB": {
+      "Fn::And": [
+        {
+          "Fn::Not": [
+            {
+              "Fn::Equals": [
+                {
+                  "Fn::Select": [
+                    0,
+                    {
+                      "Ref": "WorkerFormation"
+                    }
+                  ]
+                },
+                "-1"
+              ]
+            }
+          ]
+        },
+        {
+          "Fn::Equals": [
+            {
+              "Ref": "BalancerWorkerType"
+            },
+            "ELB"
+          ]
+        }
+      ]
+    },
     "BlankBalancerWebPort80Certificate": {
       "Fn::Equals": [
         {
@@ -122,18 +266,40 @@
     "BalancerWebHost": {
       "Condition": "EnabledWeb",
       "Value": {
-        "Fn::GetAtt": [
-          "BalancerWeb",
-          "DNSName"
+        "Fn::If": [
+          "BalancerWebELB",
+          {
+            "Fn::GetAtt": [
+              "BalancerWeb",
+              "DNSName"
+            ]
+          },
+          {
+            "Fn::GetAtt": [
+              "BalancerWebALB",
+              "DNSName"
+            ]
+          }
         ]
       }
     },
     "BalancerWorkerHost": {
       "Condition": "EnabledWorker",
       "Value": {
-        "Fn::GetAtt": [
-          "BalancerWorker",
-          "DNSName"
+        "Fn::If": [
+          "BalancerWorkerELB",
+          {
+            "Fn::GetAtt": [
+              "BalancerWorker",
+              "DNSName"
+            ]
+          },
+          {
+            "Fn::GetAtt": [
+              "BalancerWorkerALB",
+              "DNSName"
+            ]
+          }
         ]
       }
     },
@@ -206,6 +372,22 @@
     }
   },
   "Parameters": {
+    "BalancerWebType": {
+      "AllowedValues": [
+        "ALB",
+        "ELB"
+      ],
+      "Default": "ELB",
+      "Type": "String"
+    },
+    "BalancerWorkerType": {
+      "AllowedValues": [
+        "ALB",
+        "ELB"
+      ],
+      "Default": "ELB",
+      "Type": "String"
+    },
     "Cluster": {
       "Default": "",
       "Description": "",
@@ -304,7 +486,7 @@
       "Type": "String"
     },
     "WebFormation": {
-      "Default": "1,0,256",
+      "Default": "1,128,256",
       "Description": "Number of processes to run, CPU units to reserve, and MB of RAM to reserve",
       "Type": "CommaDelimitedList"
     },
@@ -314,7 +496,7 @@
       "Type": "CommaDelimitedList"
     },
     "WorkerFormation": {
-      "Default": "1,0,256",
+      "Default": "1,128,256",
       "Description": "Number of processes to run, CPU units to reserve, and MB of RAM to reserve",
       "Type": "CommaDelimitedList"
     },
@@ -326,7 +508,7 @@
   },
   "Resources": {
     "BalancerWeb": {
-      "Condition": "EnabledWeb",
+      "Condition": "BalancerWebELB",
       "DependsOn": [
         "BalancerWebSecurityGroup"
       ],
@@ -463,6 +645,113 @@
       },
       "Type": "AWS::ElasticLoadBalancing::LoadBalancer"
     },
+    "BalancerWebALB": {
+      "Condition": "BalancerWebALB",
+      "DependsOn": [
+        "BalancerWebSecurityGroup"
+      ],
+      "Properties": {
+        "Name": {
+          "Fn::If": [
+            "Internal",
+            {
+              "Fn::Join": [
+                "-",
+                [
+                  "httpd-web-XHW5F4P",
+                  "n"
+                ]
+              ]
+            },
+            "httpd-web-XHW5F4P"
+          ]
+        },
+        "Scheme": {
+          "Fn::If": [
+            "Internal",
+            "internal",
+            {
+              "Ref": "AWS::NoValue"
+            }
+          ]
+        },
+        "SecurityGroups": [
+          {
+            "Fn::If": [
+              "BlankSecurityGroup",
+              {
+                "Ref": "BalancerWebSecurityGroup"
+              },
+              {
+                "Ref": "SecurityGroup"
+              }
+            ]
+          }
+        ],
+        "Subnets": {
+          "Fn::If": [
+            "Internal",
+            {
+              "Ref": "SubnetsPrivate"
+            },
+            {
+              "Ref": "Subnets"
+            }
+          ]
+        }
+      },
+      "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer"
+    },
+    "BalancerWebListener443": {
+      "Condition": "BalancerWebALBPort80Certificate",
+      "Properties": {
+        "Certificates": [
+          {
+            "CertificateArn": {
+              "Fn::Select": [
+                1,
+                {
+                  "Ref": "WebPort80Listener"
+                }
+              ]
+            }
+          }
+        ],
+        "DefaultActions": [
+          {
+            "TargetGroupArn": {
+              "Ref": "BalancerWebTargetGroup"
+            },
+            "Type": "forward"
+          }
+        ],
+        "LoadBalancerArn": {
+          "Ref": "BalancerWebALB"
+        },
+        "Port": "443",
+        "Protocol": "HTTPS"
+      },
+      "Type": "AWS::ElasticLoadBalancingV2::Listener"
+    },
+    "BalancerWebListener80": {
+      "Condition": "BalancerWebALB",
+      "Properties": {
+        "DefaultActions": [
+          {
+            "TargetGroupArn": {
+              "Ref": "BalancerWebTargetGroup"
+            },
+            "Type": "forward"
+          }
+        ],
+        "LoadBalancerArn": {
+          "Ref": "BalancerWebALB"
+        },
+        "Port": "80",
+        "Protocol": "HTTP"
+      },
+      "Type": "AWS::ElasticLoadBalancingV2::Listener"
+    },
     "BalancerWebSecurityGroup": {
       "Condition": "EnabledWeb",
       "Properties": {
@@ -485,7 +774,32 @@
             "ToPort": "80"
           },
           {
-            "Ref": "AWS::NoValue"
+            "Fn::If": [
+              "BalancerWebALB",
+              {
+                "CidrIp": "0.0.0.0/0",
+                "FromPort": "80",
+                "IpProtocol": "TCP",
+                "ToPort": "80"
+              },
+              {
+                "Ref": "AWS::NoValue"
+              }
+            ]
+          },
+          {
+            "Fn::If": [
+              "BalancerWebALB",
+              {
+                "CidrIp": "0.0.0.0/0",
+                "FromPort": "443",
+                "IpProtocol": "TCP",
+                "ToPort": "443"
+              },
+              {
+                "Ref": "AWS::NoValue"
+              }
+            ]
           }
         ],
         "VpcId": {
@@ -494,8 +808,41 @@
       },
       "Type": "AWS::EC2::SecurityGroup"
     },
+    "BalancerWebTargetGroup": {
+      "Condition": "BalancerWebALB",
+      "DependsOn": "BalancerWebALB",
+      "Properties": {
+        "HealthCheckIntervalSeconds": 5,
+        "HealthCheckPath": "/",
+        "HealthCheckTimeoutSeconds": 3,
+        "Port": {
+          "Fn::Select": [
+            0,
+            {
+              "Ref": "WebPort80Listener"
+            }
+          ]
+        },
+        "Protocol": "TCP",
+        "TargetGroupAttributes": [
+          {
+            "Key": "deregistration_delay.timeout_seconds",
+            "Value": "60"
+          },
+          {
+            "Key": "stickiness.enabled",
+            "Value": "true"
+          }
+        ],
+        "UnhealthyThresholdCount": "2",
+        "VpcId": {
+          "Ref": "VPC"
+        }
+      },
+      "Type": "AWS::ElasticLoadBalancingV2::TargetGroup"
+    },
     "BalancerWorker": {
-      "Condition": "EnabledWorker",
+      "Condition": "BalancerWorkerELB",
       "DependsOn": [
         "BalancerWorkerSecurityGroup"
       ],
@@ -632,6 +979,113 @@
       },
       "Type": "AWS::ElasticLoadBalancing::LoadBalancer"
     },
+    "BalancerWorkerALB": {
+      "Condition": "BalancerWorkerALB",
+      "DependsOn": [
+        "BalancerWorkerSecurityGroup"
+      ],
+      "Properties": {
+        "Name": {
+          "Fn::If": [
+            "Internal",
+            {
+              "Fn::Join": [
+                "-",
+                [
+                  "httpd-worker-3XM5YXK",
+                  "n"
+                ]
+              ]
+            },
+            "httpd-worker-3XM5YXK"
+          ]
+        },
+        "Scheme": {
+          "Fn::If": [
+            "Internal",
+            "internal",
+            {
+              "Ref": "AWS::NoValue"
+            }
+          ]
+        },
+        "SecurityGroups": [
+          {
+            "Fn::If": [
+              "BlankSecurityGroup",
+              {
+                "Ref": "BalancerWorkerSecurityGroup"
+              },
+              {
+                "Ref": "SecurityGroup"
+              }
+            ]
+          }
+        ],
+        "Subnets": {
+          "Fn::If": [
+            "Internal",
+            {
+              "Ref": "SubnetsPrivate"
+            },
+            {
+              "Ref": "Subnets"
+            }
+          ]
+        }
+      },
+      "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer"
+    },
+    "BalancerWorkerListener443": {
+      "Condition": "BalancerWorkerALBPort80Certificate",
+      "Properties": {
+        "Certificates": [
+          {
+            "CertificateArn": {
+              "Fn::Select": [
+                1,
+                {
+                  "Ref": "WorkerPort80Listener"
+                }
+              ]
+            }
+          }
+        ],
+        "DefaultActions": [
+          {
+            "TargetGroupArn": {
+              "Ref": "BalancerWorkerTargetGroup"
+            },
+            "Type": "forward"
+          }
+        ],
+        "LoadBalancerArn": {
+          "Ref": "BalancerWorkerALB"
+        },
+        "Port": "443",
+        "Protocol": "HTTPS"
+      },
+      "Type": "AWS::ElasticLoadBalancingV2::Listener"
+    },
+    "BalancerWorkerListener80": {
+      "Condition": "BalancerWorkerALB",
+      "Properties": {
+        "DefaultActions": [
+          {
+            "TargetGroupArn": {
+              "Ref": "BalancerWorkerTargetGroup"
+            },
+            "Type": "forward"
+          }
+        ],
+        "LoadBalancerArn": {
+          "Ref": "BalancerWorkerALB"
+        },
+        "Port": "80",
+        "Protocol": "HTTP"
+      },
+      "Type": "AWS::ElasticLoadBalancingV2::Listener"
+    },
     "BalancerWorkerSecurityGroup": {
       "Condition": "EnabledWorker",
       "Properties": {
@@ -654,7 +1108,32 @@
             "ToPort": "80"
           },
           {
-            "Ref": "AWS::NoValue"
+            "Fn::If": [
+              "BalancerWorkerALB",
+              {
+                "CidrIp": "0.0.0.0/0",
+                "FromPort": "80",
+                "IpProtocol": "TCP",
+                "ToPort": "80"
+              },
+              {
+                "Ref": "AWS::NoValue"
+              }
+            ]
+          },
+          {
+            "Fn::If": [
+              "BalancerWorkerALB",
+              {
+                "CidrIp": "0.0.0.0/0",
+                "FromPort": "443",
+                "IpProtocol": "TCP",
+                "ToPort": "443"
+              },
+              {
+                "Ref": "AWS::NoValue"
+              }
+            ]
           }
         ],
         "VpcId": {
@@ -662,6 +1141,39 @@
         }
       },
       "Type": "AWS::EC2::SecurityGroup"
+    },
+    "BalancerWorkerTargetGroup": {
+      "Condition": "BalancerWorkerALB",
+      "DependsOn": "BalancerWorkerALB",
+      "Properties": {
+        "HealthCheckIntervalSeconds": 5,
+        "HealthCheckPath": "/",
+        "HealthCheckTimeoutSeconds": 3,
+        "Port": {
+          "Fn::Select": [
+            0,
+            {
+              "Ref": "WorkerPort80Listener"
+            }
+          ]
+        },
+        "Protocol": "TCP",
+        "TargetGroupAttributes": [
+          {
+            "Key": "deregistration_delay.timeout_seconds",
+            "Value": "60"
+          },
+          {
+            "Key": "stickiness.enabled",
+            "Value": "true"
+          }
+        ],
+        "UnhealthyThresholdCount": "2",
+        "VpcId": {
+          "Ref": "VPC"
+        }
+      },
+      "Type": "AWS::ElasticLoadBalancingV2::TargetGroup"
     },
     "CustomTopic": {
       "Properties": {
@@ -828,6 +1340,8 @@
                     "elasticloadbalancing:Describe*",
                     "elasticloadbalancing:DeregisterInstancesFromLoadBalancer",
                     "elasticloadbalancing:RegisterInstancesWithLoadBalancer",
+                    "elasticloadbalancing:DeregisterTargets",
+                    "elasticloadbalancing:RegisterTargets",
                     "ec2:Describe*",
                     "ec2:AuthorizeSecurityGroupIngress"
                   ],
@@ -847,7 +1361,6 @@
     "ServiceWeb": {
       "Condition": "EnabledWeb",
       "DependsOn": [
-        "BalancerWeb",
         "CustomTopic",
         "ServiceRole"
       ],
@@ -872,7 +1385,26 @@
             "ContainerName": "web",
             "ContainerPort": "3000",
             "LoadBalancerName": {
-              "Ref": "BalancerWeb"
+              "Fn::If": [
+                "BalancerWebELB",
+                {
+                  "Ref": "BalancerWeb"
+                },
+                {
+                  "Ref": "AWS::NoValue"
+                }
+              ]
+            },
+            "TargetGroupArn": {
+              "Fn::If": [
+                "BalancerWebALB",
+                {
+                  "Ref": "BalancerWebTargetGroup"
+                },
+                {
+                  "Ref": "AWS::NoValue"
+                }
+              ]
             }
           }
         ],
@@ -891,7 +1423,6 @@
     "ServiceWorker": {
       "Condition": "EnabledWorker",
       "DependsOn": [
-        "BalancerWorker",
         "CustomTopic",
         "ServiceRole"
       ],
@@ -916,7 +1447,26 @@
             "ContainerName": "worker",
             "ContainerPort": "3000",
             "LoadBalancerName": {
-              "Ref": "BalancerWorker"
+              "Fn::If": [
+                "BalancerWorkerELB",
+                {
+                  "Ref": "BalancerWorker"
+                },
+                {
+                  "Ref": "AWS::NoValue"
+                }
+              ]
+            },
+            "TargetGroupArn": {
+              "Fn::If": [
+                "BalancerWorkerALB",
+                {
+                  "Ref": "BalancerWorkerTargetGroup"
+                },
+                {
+                  "Ref": "AWS::NoValue"
+                }
+              ]
             }
           }
         ],

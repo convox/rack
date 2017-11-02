@@ -45,7 +45,12 @@ func GetEnvironment(app string) (Environment, error) {
 		return nil, fmt.Errorf("app is still being created: %s", app)
 	}
 
-	data, err := s3Get(a.Outputs["Settings"], "env")
+	settings, err := appResource(app, "Settings")
+	if err != nil {
+		return nil, err
+	}
+
+	data, err := s3Get(settings, "env")
 	if err != nil {
 
 		// if we get a 404 from aws just return an empty environment
@@ -56,10 +61,13 @@ func GetEnvironment(app string) (Environment, error) {
 		return nil, err
 	}
 
-	if a.Parameters["Key"] != "" {
-		cr := crypt.New(os.Getenv("AWS_REGION"), os.Getenv("AWS_ACCESS"), os.Getenv("AWS_SECRET"))
+	key, err := rackResource("EncryptionKey")
+	if err != nil {
+		return nil, err
+	}
 
-		if d, err := cr.Decrypt(a.Parameters["Key"], data); err == nil {
+	if key != "" {
+		if d, err := crypt.New().Decrypt(key, data); err == nil {
 			data = d
 		}
 	}
@@ -99,17 +107,25 @@ func PutEnvironment(app string, env Environment) (string, error) {
 
 	e := []byte(env.Raw())
 
-	if a.Parameters["Key"] != "" {
-		cr := crypt.New(os.Getenv("AWS_REGION"), os.Getenv("AWS_ACCESS"), os.Getenv("AWS_SECRET"))
+	key, err := rackResource("EncryptionKey")
+	if err != nil {
+		return "", err
+	}
 
-		e, err = cr.Encrypt(a.Parameters["Key"], e)
+	if key != "" {
+		e, err = crypt.New().Encrypt(key, e)
 
 		if err != nil {
 			return "", err
 		}
 	}
 
-	err = S3Put(a.Outputs["Settings"], "env", []byte(e), true)
+	settings, err := appResource(app, "Settings")
+	if err != nil {
+		return "", err
+	}
+
+	err = S3Put(settings, "env", []byte(e), false)
 	if err != nil {
 		return "", err
 	}
@@ -135,9 +151,7 @@ func GetRackSettings() (Environment, error) {
 	}
 
 	if key != "" {
-		cr := crypt.New(os.Getenv("AWS_REGION"), os.Getenv("AWS_ACCESS"), os.Getenv("AWS_SECRET"))
-
-		if d, err := cr.Decrypt(key, data); err == nil {
+		if d, err := crypt.New().Decrypt(key, data); err == nil {
 			data = d
 		}
 	}
@@ -173,9 +187,7 @@ func PutRackSettings(env Environment) error {
 	}
 
 	if key != "" {
-		cr := crypt.New(os.Getenv("AWS_REGION"), os.Getenv("AWS_ACCESS"), os.Getenv("AWS_SECRET"))
-
-		e, err = cr.Encrypt(key, e)
+		e, err = crypt.New().Encrypt(key, e)
 
 		if err != nil {
 			return err

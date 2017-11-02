@@ -44,7 +44,6 @@ var (
 		cli.StringFlag{
 			Name:   "file, f",
 			EnvVar: "COMPOSE_FILE",
-			Value:  "docker-compose.yml",
 			Usage:  "path to an alternate docker compose manifest file",
 		},
 		cli.StringFlag{

@@ -622,6 +622,8 @@ func FriendlyName(t string) string {
 		return ""
 	case "AWS::AutoScaling::LifecycleHook":
 		return ""
+	case "AWS::CertificateManager::Certificate":
+		return "SSL Certificate"
 	case "AWS::CloudFormation::Stack":
 		return "CloudFormation Stack"
 	case "AWS::DynamoDB::Table":
@@ -648,12 +650,20 @@ func FriendlyName(t string) string {
 		return "ECS Cluster"
 	case "AWS::ECS::Service":
 		return "ECS Service"
+	case "AWS::ECS::TaskDefinition":
+		return "ECS TaskDefinition"
 	case "AWS::EFS::FileSystem":
 		return "EFS Filesystem"
 	case "AWS::EFS::MountTarget":
 		return ""
 	case "AWS::ElasticLoadBalancing::LoadBalancer":
 		return "Elastic Load Balancer"
+	case "AWS::ElasticLoadBalancingV2::Listener":
+		return ""
+	case "AWS::ElasticLoadBalancingV2::LoadBalancer":
+		return "Application Load Balancer"
+	case "AWS::ElasticLoadBalancingV2::TargetGroup":
+		return ""
 	case "AWS::Events::Rule":
 		return ""
 	case "AWS::IAM::AccessKey":

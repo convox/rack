@@ -33,6 +33,10 @@ func init() {
 				Action:      cmdAppCreate,
 				Flags: []cli.Flag{
 					rackFlag,
+					cli.StringFlag{
+						Name:  "generation",
+						Usage: "generation of app to create",
+					},
 					cli.BoolFlag{
 						Name:   "wait",
 						EnvVar: "CONVOX_WAIT",
@@ -142,9 +146,11 @@ func cmdAppCreate(c *cli.Context) error {
 		return stdcli.Error(fmt.Errorf("must specify an app name"))
 	}
 
+	generation := c.String("generation")
+
 	stdcli.Startf("Creating app <app>%s</app>", app)
 
-	_, err = rackClient(c).CreateApp(app)
+	_, err = rackClient(c).CreateApp(app, generation)
 	if err != nil {
 		return stdcli.Error(err)
 	}

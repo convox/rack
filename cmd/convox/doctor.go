@@ -14,7 +14,7 @@ import (
 
 	"github.com/convox/rack/cmd/convox/helpers"
 	"github.com/convox/rack/cmd/convox/stdcli"
-	"github.com/convox/rack/manifest"
+	"github.com/convox/rack/manifest1"
 	"github.com/docker/docker/pkg/fileutils"
 	"github.com/equinox-io/equinox"
 	docker "github.com/fsouza/go-dockerclient"
@@ -81,38 +81,38 @@ var (
 		checkBuildDocker,
 	}
 
-	buildServiceChecks = []func(*manifest.Manifest) error{
+	buildServiceChecks = []func(*manifest1.Manifest) error{
 		checkVersion2,
 		checkMissingDockerFiles,
 		checkValidServices,
 	}
 
-	buildEnvironmentChecks = []func(*manifest.Manifest) error{
+	buildEnvironmentChecks = []func(*manifest1.Manifest) error{
 		checkEnvFound,
 		checkEnvValid,
 		checkEnvIgnored,
 		checkMissingEnv,
 	}
 
-	runBalancerChecks = []func(*manifest.Manifest) error{
+	runBalancerChecks = []func(*manifest1.Manifest) error{
 		checkAppExposesPorts,
 	}
 
-	runDatabaseChecks = []func(*manifest.Manifest) error{
+	runDatabaseChecks = []func(*manifest1.Manifest) error{
 		checkAppDefinesDatabase,
 		checkValidDatabases,
 	}
 
-	runLinkChecks = []func(*manifest.Manifest) error{
+	runLinkChecks = []func(*manifest1.Manifest) error{
 		checkAppDefinesLink,
 		checkValidLinks,
 	}
 
-	runReloadingChecks = []func(*manifest.Manifest) error{
+	runReloadingChecks = []func(*manifest1.Manifest) error{
 		checkReloading,
 	}
 
-	runCommandChecks = []func(*manifest.Manifest) error{
+	runCommandChecks = []func(*manifest1.Manifest) error{
 		checkRunSh,
 	}
 )
@@ -165,7 +165,7 @@ func cmdDoctor(c *cli.Context) error {
 		})
 	}
 
-	m, err := manifest.LoadFile(dcm)
+	m, err := manifest1.LoadFile(dcm)
 	checkManifestValid(m, err)
 	for _, check := range buildServiceChecks {
 		if err := check(m); err != nil {
@@ -342,7 +342,7 @@ func checkCLIVersion() error {
 
 func checkDockerfile() error {
 	if df := filepath.Join(filepath.Dir(os.Args[0]), dcm); helpers.Exists(df) {
-		m, err := manifest.LoadFile(dcm)
+		m, err := manifest1.LoadFile(dcm)
 		if err != nil {
 			//This will get picked up later in the test suite
 			return nil
@@ -477,7 +477,7 @@ func checkBuildDocker() error {
 	title := "Image builds successfully"
 
 	if df := filepath.Join(filepath.Dir(os.Args[0]), dcm); helpers.Exists(df) {
-		m, err := manifest.LoadFile(df)
+		m, err := manifest1.LoadFile(df)
 		if err != nil {
 			//This will be handled later in the suite
 			return nil
@@ -500,7 +500,7 @@ func checkBuildDocker() error {
 			}
 		}()
 
-		err = m.Build(".", app, s, manifest.BuildOptions{
+		err = m.Build(".", app, s, manifest1.BuildOptions{
 			Cache: true,
 		})
 
@@ -547,7 +547,7 @@ func checkBuildDocker() error {
 	return nil
 }
 
-func checkManifestValid(m *manifest.Manifest, parseError error) error {
+func checkManifestValid(m *manifest1.Manifest, parseError error) error {
 	title := fmt.Sprintf("<file>%s</file> valid", dcm)
 	startCheck(title)
 
@@ -583,7 +583,7 @@ func checkManifestValid(m *manifest.Manifest, parseError error) error {
 	return nil
 }
 
-func checkVersion2(m *manifest.Manifest) error {
+func checkVersion2(m *manifest1.Manifest) error {
 	title := fmt.Sprintf("<file>%s</file> version 2", dcm)
 	startCheck(title)
 	if m.Version == "2" {
@@ -602,7 +602,7 @@ func checkVersion2(m *manifest.Manifest) error {
 	return nil
 }
 
-func checkEnvFound(m *manifest.Manifest) error {
+func checkEnvFound(m *manifest1.Manifest) error {
 	title := "<file>.env</file> found"
 	startCheck(title)
 
@@ -622,14 +622,14 @@ func checkEnvFound(m *manifest.Manifest) error {
 	return nil
 }
 
-func checkEnvValid(m *manifest.Manifest) error {
+func checkEnvValid(m *manifest1.Manifest) error {
 	//TODO
 	if denv := filepath.Join(filepath.Dir(os.Args[0]), ".env"); helpers.Exists(denv) {
 	}
 	return nil
 }
 
-func checkEnvIgnored(m *manifest.Manifest) error {
+func checkEnvIgnored(m *manifest1.Manifest) error {
 	//TODO
 	if denv := filepath.Join(filepath.Dir(os.Args[0]), ".env"); helpers.Exists(denv) {
 		title := "<file>.env</file> in <file>.gitignore</file> and <file>.dockerignore</file>"
@@ -695,7 +695,7 @@ func checkEnvIgnored(m *manifest.Manifest) error {
 	return nil
 }
 
-func checkMissingEnv(m *manifest.Manifest) error {
+func checkMissingEnv(m *manifest1.Manifest) error {
 	if denv := filepath.Join(filepath.Dir(os.Args[0]), ".env"); helpers.Exists(denv) {
 		data, err := ioutil.ReadFile(denv)
 		if err != nil {
@@ -773,7 +773,7 @@ func checkMissingEnv(m *manifest.Manifest) error {
 	return nil
 }
 
-func checkMissingDockerFiles(m *manifest.Manifest) error {
+func checkMissingDockerFiles(m *manifest1.Manifest) error {
 	title := "Dockerfiles found"
 	startCheck(title)
 
@@ -798,7 +798,7 @@ func checkMissingDockerFiles(m *manifest.Manifest) error {
 	return nil
 }
 
-func checkValidServices(m *manifest.Manifest) error {
+func checkValidServices(m *manifest1.Manifest) error {
 	_, app, err := stdcli.DirApp(docContext, ".")
 	if err != nil {
 		return err
@@ -842,7 +842,7 @@ func checkValidServices(m *manifest.Manifest) error {
 	return nil
 }
 
-func checkAppExposesPorts(m *manifest.Manifest) error {
+func checkAppExposesPorts(m *manifest1.Manifest) error {
 	title := "App exposes ports"
 	startCheck(title)
 
@@ -864,7 +864,7 @@ func checkAppExposesPorts(m *manifest.Manifest) error {
 	return nil
 }
 
-func checkAppDefinesDatabase(m *manifest.Manifest) error {
+func checkAppDefinesDatabase(m *manifest1.Manifest) error {
 	title := "App defines Database"
 	startCheck(title)
 
@@ -885,7 +885,7 @@ func checkAppDefinesDatabase(m *manifest.Manifest) error {
 	return nil
 }
 
-func checkValidDatabases(m *manifest.Manifest) error {
+func checkValidDatabases(m *manifest1.Manifest) error {
 	rs := manifestDatabases(m)
 
 	if len(rs) == 0 {
@@ -905,8 +905,8 @@ func checkValidDatabases(m *manifest.Manifest) error {
 	return nil
 }
 
-func manifestServices(m *manifest.Manifest) []manifest.Service {
-	services := []manifest.Service{}
+func manifestServices(m *manifest1.Manifest) []manifest1.Service {
+	services := []manifest1.Service{}
 
 	databases := manifestDatabases(m)
 	databaseNames := map[string]bool{}
@@ -925,8 +925,8 @@ func manifestServices(m *manifest.Manifest) []manifest.Service {
 	return services
 }
 
-func manifestDatabases(m *manifest.Manifest) []manifest.Service {
-	databases := []manifest.Service{}
+func manifestDatabases(m *manifest1.Manifest) []manifest1.Service {
+	databases := []manifest1.Service{}
 
 	for _, s := range m.Services {
 		prebuiltImage := strings.HasPrefix(s.Image, "convox/")
@@ -939,7 +939,7 @@ func manifestDatabases(m *manifest.Manifest) []manifest.Service {
 	return databases
 }
 
-func checkAppDefinesLink(m *manifest.Manifest) error {
+func checkAppDefinesLink(m *manifest1.Manifest) error {
 	title := "App defines Links"
 	startCheck(title)
 
@@ -962,7 +962,7 @@ func checkAppDefinesLink(m *manifest.Manifest) error {
 	return nil
 }
 
-func checkValidLinks(m *manifest.Manifest) error {
+func checkValidLinks(m *manifest1.Manifest) error {
 	resourceNames := map[string]bool{}
 
 	databases := manifestDatabases(m)
@@ -990,7 +990,7 @@ func checkValidLinks(m *manifest.Manifest) error {
 	return nil
 }
 
-func checkReloading(m *manifest.Manifest) error {
+func checkReloading(m *manifest1.Manifest) error {
 	title := "App reloading"
 	startCheck(title)
 
@@ -1018,7 +1018,7 @@ func checkReloading(m *manifest.Manifest) error {
 	return nil
 }
 
-func checkRunSh(m *manifest.Manifest) error {
+func checkRunSh(m *manifest1.Manifest) error {
 	_, app, err := stdcli.DirApp(docContext, ".")
 	if err != nil {
 		fmt.Printf("ERROR: %+v\n", err)
@@ -1028,7 +1028,7 @@ func checkRunSh(m *manifest.Manifest) error {
 		title := fmt.Sprintf("Service <service>%s</service> runs `sh`", s.Name)
 		startCheck(title)
 
-		r := m.Run(".", app, manifest.RunOptions{
+		r := m.Run(".", app, manifest1.RunOptions{
 			Service: s.Name,
 			Command: []string{"echo", "hello"},
 			Cache:   true,

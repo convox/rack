@@ -6,12 +6,10 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/ecr"
 	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/aws/aws-sdk-go/service/kms"
-	"github.com/aws/aws-sdk-go/service/lambda"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/sns"
 	"github.com/aws/aws-sdk-go/service/sqs"
@@ -42,20 +40,6 @@ func Region(req *Request) *string {
 	}
 
 	return aws.String(os.Getenv("AWS_REGION"))
-}
-
-func CloudFormation(req Request) *cloudformation.CloudFormation {
-	return cloudformation.New(session.New(), &aws.Config{
-		Credentials: Credentials(&req),
-		Region:      Region(&req),
-	})
-}
-
-func Lambda(req Request) *lambda.Lambda {
-	return lambda.New(session.New(), &aws.Config{
-		Credentials: Credentials(&req),
-		Region:      Region(&req),
-	})
 }
 
 func EC2(req Request) *ec2.EC2 {

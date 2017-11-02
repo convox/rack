@@ -13,7 +13,7 @@ type Provider interface {
 	Initialize(opts structs.ProviderOptions) error
 
 	AppCancel(name string) error
-
+	AppCreate(name string) (*structs.App, error)
 	AppGet(name string) (*structs.App, error)
 	AppDelete(name string) error
 

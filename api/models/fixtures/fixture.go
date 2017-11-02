@@ -6,11 +6,11 @@ import (
 	"os"
 
 	"github.com/convox/rack/api/models"
-	"github.com/convox/rack/manifest"
+	"github.com/convox/rack/manifest1"
 )
 
 func init() {
-	manifest.ManifestRandomPorts = false
+	manifest1.ManifestRandomPorts = false
 }
 
 func main() {
@@ -35,7 +35,7 @@ func main() {
 		},
 	}
 
-	m, err := manifest.Load(data)
+	m, err := manifest1.Load(data)
 	if err != nil {
 		die(err)
 	}

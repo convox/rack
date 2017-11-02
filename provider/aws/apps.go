@@ -25,6 +25,40 @@ func (p *AWSProvider) AppCancel(name string) error {
 	return nil
 }
 
+func (p *AWSProvider) AppCreate(name string) (*structs.App, error) {
+	data, err := formationTemplate("app", nil)
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = p.cloudformation().CreateStack(&cloudformation.CreateStackInput{
+		Capabilities: []*string{aws.String("CAPABILITY_IAM")},
+		Parameters: []*cloudformation.Parameter{
+			{ParameterKey: aws.String("Rack"), ParameterValue: aws.String(p.Rack)},
+		},
+		StackName: aws.String(fmt.Sprintf("%s-%s", p.Rack, name)),
+		Tags: []*cloudformation.Tag{
+			{Key: aws.String("Generation"), Value: aws.String("2")},
+			{Key: aws.String("Name"), Value: aws.String(name)},
+			{Key: aws.String("Rack"), Value: aws.String(p.Rack)},
+			{Key: aws.String("System"), Value: aws.String("convox")},
+			{Key: aws.String("Type"), Value: aws.String("app")},
+			{Key: aws.String("Version"), Value: aws.String(p.Release)},
+		},
+		TemplateBody: aws.String(string(data)),
+	})
+	if awsError(err) == "AlreadyExistsException" {
+		return nil, fmt.Errorf("app already exists: %s", name)
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	fmt.Printf("string(data) = %+v\n", string(data))
+
+	return nil, nil
+}
+
 // AppGet gets an app
 func (p *AWSProvider) AppGet(name string) (*structs.App, error) {
 	stacks, err := p.describeStacks(&cloudformation.DescribeStacksInput{
@@ -298,7 +332,7 @@ func appFromStack(stack *cloudformation.Stack) structs.App {
 
 	return structs.App{
 		Name:       name,
-		Release:    stackParameters(stack)["Release"],
+		Release:    coalesces(stackOutputs(stack)["Release"], stackParameters(stack)["Release"]),
 		Status:     humanStatus(*stack.StackStatus),
 		Outputs:    stackOutputs(stack),
 		Parameters: stackParameters(stack),

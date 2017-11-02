@@ -175,7 +175,7 @@ func TestEnvSetStdin(t *testing.T) {
 
 	test.Runs(t,
 		test.ExecRun{
-			Command: "cat ../../manifest/fixtures/env-test.env | convox env set -a myapp",
+			Command: "cat ../../manifest1/fixtures/env-test.env | convox env set -a myapp",
 			Exit:    0,
 			Stdout:  "Updating environment... OK\n",
 		},
@@ -203,7 +203,7 @@ func TestEnvSetStdinHerokuStyle(t *testing.T) {
 
 	test.Runs(t,
 		test.ExecRun{
-			Command: "cat ../../manifest/fixtures/env-test-heroku-style.env | convox env set -a myapp",
+			Command: "cat ../../manifest1/fixtures/env-test-heroku-style.env | convox env set -a myapp",
 			Exit:    0,
 			Stdout:  "Updating environment... OK\n",
 		},

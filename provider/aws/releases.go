@@ -10,6 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/convox/rack/api/crypt"
 	"github.com/convox/rack/api/structs"
+	"github.com/convox/rack/manifest"
 )
 
 // ReleaseDelete will delete all releases that belong to app and buildID
@@ -35,11 +36,6 @@ func (p *AWSProvider) ReleaseGet(app, id string) (*structs.Release, error) {
 		return nil, fmt.Errorf("release id must not be empty")
 	}
 
-	a, err := p.AppGet(app)
-	if err != nil {
-		return nil, err
-	}
-
 	item, err := p.fetchRelease(app, id)
 	if err != nil {
 		return nil, err
@@ -50,15 +46,23 @@ func (p *AWSProvider) ReleaseGet(app, id string) (*structs.Release, error) {
 		return nil, err
 	}
 
-	data, err := p.s3Get(a.Outputs["Settings"], fmt.Sprintf("releases/%s/env", r.Id))
+	settings, err := p.appResource(app, "Settings")
 	if err != nil {
 		return nil, err
 	}
 
-	if a.Parameters["Key"] != "" {
-		cr := crypt.New(p.Region, p.Access, p.Secret)
+	data, err := p.s3Get(settings, fmt.Sprintf("releases/%s/env", r.Id))
+	if err != nil {
+		return nil, err
+	}
 
-		if d, err := cr.Decrypt(a.Parameters["Key"], data); err == nil {
+	key, err := p.rackResource("EncryptionKey")
+	if err != nil {
+		return nil, err
+	}
+
+	if key != "" {
+		if d, err := crypt.New().Decrypt(key, data); err == nil {
 			data = d
 		}
 	}
@@ -114,25 +118,51 @@ func (p *AWSProvider) ReleaseList(app string, limit int64) (structs.Releases, er
 
 // ReleasePromote promotes a release
 func (p *AWSProvider) ReleasePromote(r *structs.Release) error {
-	app, err := p.AppGet(r.App)
+	if _, err := p.AppGet(r.App); err != nil {
+		return err
+	}
+
+	stack := fmt.Sprintf("%s-%s", p.Rack, r.App)
+
+	env := structs.Environment{}
+	env.LoadRaw(r.Env)
+
+	m, err := manifest.Load([]byte(r.Manifest), manifest.Environment(env))
 	if err != nil {
 		return err
 	}
 
-	if !app.IsBound() {
-		return fmt.Errorf("unbound apps are no longer supported for promotion")
+	tp := map[string]interface{}{
+		"App":      r.App,
+		"Env":      env,
+		"Manifest": m,
+		"Release":  r,
+		"Version":  p.Release,
 	}
 
-	return fmt.Errorf("promote not yet implemented for AWS provider")
+	data, err := formationTemplate("app", tp)
+	if err != nil {
+		return err
+	}
+
+	// fmt.Printf("string(data) = %+v\n", string(data))
+
+	ou, err := p.ObjectStore("", bytes.NewReader(data), structs.ObjectOptions{})
+	if err != nil {
+		return err
+	}
+
+	updates := map[string]string{}
+
+	if err := p.updateStack(stack, ou, updates); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // ReleaseSave saves a Release
 func (p *AWSProvider) ReleaseSave(r *structs.Release) error {
-	a, err := p.AppGet(r.App)
-	if err != nil {
-		return err
-	}
-
 	if r.Id == "" {
 		return fmt.Errorf("Id can not be blank")
 	}
@@ -163,20 +193,27 @@ func (p *AWSProvider) ReleaseSave(r *structs.Release) error {
 	}
 
 	env := []byte(r.Env)
-	key := a.Parameters["Key"]
-	if key != "" {
-		cr := crypt.New(p.Region, p.Access, p.Secret)
 
-		env, err = cr.Encrypt(key, []byte(env))
+	key, err := p.rackResource("EncryptionKey")
+	if err != nil {
+		return err
+	}
+
+	if key != "" {
+		env, err = crypt.New().Encrypt(key, []byte(env))
 		if err != nil {
 			return err
 		}
 	}
 
+	settings, err := p.appResource(r.App, "Settings")
+	if err != nil {
+		return err
+	}
+
 	_, err = p.s3().PutObject(&s3.PutObjectInput{
-		ACL:           aws.String("public-read"),
 		Body:          bytes.NewReader(env),
-		Bucket:        aws.String(a.Outputs["Settings"]),
+		Bucket:        aws.String(settings),
 		ContentLength: aws.Int64(int64(len(env))),
 		Key:           aws.String(fmt.Sprintf("releases/%s/env", r.Id)),
 	})

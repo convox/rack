@@ -10,7 +10,7 @@ import (
 
 	"github.com/aryann/difflib"
 	"github.com/convox/rack/api/models"
-	"github.com/convox/rack/manifest"
+	"github.com/convox/rack/manifest1"
 	"github.com/stretchr/testify/require"
 )
 
@@ -49,9 +49,9 @@ func availableFixtures() ([]string, error) {
 }
 
 func assertFixture(t *testing.T, name string) {
-	orig := manifest.ManifestRandomPorts
-	manifest.ManifestRandomPorts = false
-	defer func() { manifest.ManifestRandomPorts = orig }()
+	orig := manifest1.ManifestRandomPorts
+	manifest1.ManifestRandomPorts = false
+	defer func() { manifest1.ManifestRandomPorts = orig }()
 
 	app := models.App{
 		Name: "httpd",
@@ -66,7 +66,7 @@ func assertFixture(t *testing.T, name string) {
 	data, err := ioutil.ReadFile(fmt.Sprintf("fixtures/%s.yml", name))
 	require.NoError(t, err)
 
-	manifest, err := manifest.Load(data)
+	manifest, err := manifest1.Load(data)
 	require.NoError(t, err)
 
 	formation, err := app.Formation(*manifest)

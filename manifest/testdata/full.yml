@@ -1,0 +1,36 @@
+resources:
+  database:
+    type: postgres
+services:
+  api:
+    build:
+      path: api
+    domain: foo.example.org
+    environment:
+      - DEVELOPMENT=false
+      - SECRET
+    health:
+      interval: 10
+    resources:
+      - database
+    port: 1000
+    scale: 3-10
+    test: make ${BAR} test
+  proxy:
+    command: bash
+    image: ubuntu:16.04
+    environment:
+      - SECRET
+    health: /auth
+    port: https:2000
+    scale:
+      memory: 512
+  foo:
+    command: foo
+    health:
+      timeout: 3
+    port:
+      scheme: https
+      port: 3000
+    scale: 0
+  bar:

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -15,18 +16,20 @@ import (
 	"github.com/convox/rack/api/cmd/build/source"
 	"github.com/convox/rack/api/structs"
 	"github.com/convox/rack/manifest"
+	"github.com/convox/rack/manifest1"
 	"github.com/convox/rack/provider"
 )
 
 var (
-	flagApp    string
-	flagAuth   string
-	flagCache  string
-	flagID     string
-	flagConfig string
-	flagMethod string
-	flagPush   string
-	flagUrl    string
+	flagApp        string
+	flagAuth       string
+	flagCache      string
+	flagConfig     string
+	flagGeneration string
+	flagID         string
+	flagMethod     string
+	flagPush       string
+	flagUrl        string
 
 	currentBuild    *structs.Build
 	currentLogs     string
@@ -51,7 +54,8 @@ func main() {
 	fs.StringVar(&flagApp, "app", "example", "app name")
 	fs.StringVar(&flagAuth, "auth", "", "docker auth data (json)")
 	fs.StringVar(&flagCache, "cache", "true", "use docker cache")
-	fs.StringVar(&flagConfig, "config", "docker-compose.yml", "path to app config")
+	fs.StringVar(&flagConfig, "config", "", "path to app config")
+	fs.StringVar(&flagGeneration, "generation", "", "app generation")
 	fs.StringVar(&flagID, "id", "latest", "build id")
 	fs.StringVar(&flagMethod, "method", "", "source method")
 	fs.StringVar(&flagPush, "push", "", "push to registry")
@@ -73,6 +77,10 @@ func main() {
 		flagConfig = v
 	}
 
+	if v := os.Getenv("BUILD_GENERATION"); v != "" {
+		flagGeneration = v
+	}
+
 	if v := os.Getenv("BUILD_ID"); v != "" {
 		flagID = v
 	}
@@ -83,6 +91,15 @@ func main() {
 
 	if v := os.Getenv("BUILD_URL"); v != "" {
 		flagUrl = v
+	}
+
+	if flagConfig == "" {
+		switch flagGeneration {
+		case "2":
+			flagConfig = "convox.yml"
+		default:
+			flagConfig = "docker-compose.yml"
+		}
 	}
 
 	event = &structs.Event{
@@ -138,8 +155,15 @@ func execute() error {
 
 	currentBuild.Manifest = string(data)
 
-	if err := build(dir); err != nil {
-		return err
+	switch flagGeneration {
+	case "2":
+		if err := build2(dir); err != nil {
+			return err
+		}
+	default:
+		if err := build(dir); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -205,7 +229,7 @@ func build(dir string) error {
 		return err
 	}
 
-	m, err := manifest.Load(data)
+	m, err := manifest1.Load(data)
 	if err != nil {
 		return err
 	}
@@ -238,11 +262,8 @@ func build(dir string) error {
 	env["SECURE_ENVIRONMENT_URL"] = a.Parameters["Environment"]
 	env["SECURE_ENVIRONMENT_TYPE"] = "envfile"
 	env["SECURE_ENVIRONMENT_KEY"] = a.Parameters["Key"]
-	env["AWS_REGION"] = os.Getenv("AWS_REGION")
-	env["AWS_ACCESS_KEY_ID"] = os.Getenv("AWS_ACCESS")
-	env["AWS_SECRET_ACCESS_KEY"] = os.Getenv("AWS_SECRET")
 
-	err = m.Build(dir, flagApp, s, manifest.BuildOptions{
+	err = m.Build(dir, flagApp, s, manifest1.BuildOptions{
 		Environment: env,
 		Cache:       flagCache == "true",
 		Verbose:     false,
@@ -252,6 +273,61 @@ func build(dir string) error {
 	}
 
 	if err := m.Push(flagPush, flagApp, flagID, s); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func build2(dir string) error {
+	config := filepath.Join(dir, flagConfig)
+
+	if _, err := os.Stat(config); os.IsNotExist(err) {
+		return fmt.Errorf("no such file: %s", flagConfig)
+	}
+
+	data, err := ioutil.ReadFile(config)
+	if err != nil {
+		return err
+	}
+
+	env, err := currentProvider.EnvironmentGet(flagApp)
+	if err != nil {
+		return err
+	}
+
+	m, err := manifest.Load(data, manifest.Environment(env))
+	if err != nil {
+		return err
+	}
+
+	r, w := io.Pipe()
+
+	go func() {
+		buf := make([]byte, 1024)
+
+		for {
+			n, err := r.Read(buf)
+			if err != nil {
+				if err != io.EOF {
+					log(fmt.Sprintf("ERROR: %s\n", err))
+				}
+				return
+			}
+			line := string(buf[0:n])
+			currentLogs += line
+			fmt.Print(line)
+		}
+	}()
+
+	err = m.Build(flagApp, flagID, manifest.BuildOptions{
+		Env:    manifest.Environment(env),
+		Push:   flagPush,
+		Root:   dir,
+		Stdout: w,
+		Stderr: w,
+	})
+	if err != nil {
 		return err
 	}
 

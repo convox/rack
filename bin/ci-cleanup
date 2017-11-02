@@ -10,6 +10,8 @@ if [[ "$(aws iam list-account-aliases | jq -r '.AccountAliases[0]')" != "convox-
 fi
 
 for region in $(cat $base/REGIONS); do
+  echo "region: $region"
+
   for stack in $(aws cloudformation describe-stacks --region $region | jq -r '.Stacks[].StackName'); do
     echo "deleting stack: $stack ($region)"
     aws cloudformation delete-stack --stack-name $stack --region $region
@@ -22,9 +24,10 @@ for region in $(cat $base/REGIONS); do
 
   case $region in
   ap-northeast-1) ;;
+  ap-northeast-2) ;;
   ap-southeast-1) ;;
-  ap-southeast-2) ;;
-  eu-central-1) ;;
+  ca-central-1) ;;
+  eu-west-2) ;;
   us-west-1) ;;
   *)
     for efs in $(aws efs describe-file-systems --region $region | jq -r '.FileSystems[].FileSystemId'); do

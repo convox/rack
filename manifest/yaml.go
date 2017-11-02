@@ -2,365 +2,435 @@ package manifest
 
 import (
 	"fmt"
-	"regexp"
-	"sort"
+	"reflect"
 	"strconv"
 	"strings"
 
-	"github.com/docker/go-units"
+	yaml "gopkg.in/yaml.v2"
 )
 
-// Parses as [balancer?]:[container]/[protocol?], where [balancer] and [protocol] are optional
-var portMappingRegex = regexp.MustCompile(`(?i)^(?:(\d+):)?(\d+)(?:/(udp|tcp))?$`)
-
-// MarshalYAML implements the Marshaller interface for the Manifest type
-func (m Manifest) MarshalYAML() (interface{}, error) {
-	m.Version = "2"
-	return m, nil
+type DefaultsSetter interface {
+	SetDefaults() error
 }
 
-// MarshalYAML implements the Marshaller interface for the Port type
-func (p Port) MarshalYAML() (interface{}, error) {
-	return p.String(), nil
+type NameGetter interface {
+	GetName() string
 }
 
-// MarshalYAML implements the Marshaller interface for the Command type
-func (c Command) MarshalYAML() (interface{}, error) {
-
-	if c.String != "" {
-		return c.String, nil
-
-	} else if len(c.Array) > 0 {
-		return c.Array, nil
-	}
-
-	return nil, nil
+type NameSetter interface {
+	SetName(name string) error
 }
 
-// MarshalYAML implements the Marshaller interface for the Environment type
-func (ee Environment) MarshalYAML() (interface{}, error) {
-	res := []string{}
-
-	for _, e := range ee {
-		if e.Needed && e.Value == "" {
-			res = append(res, e.Name)
-		} else {
-			res = append(res, fmt.Sprintf("%s=%s", e.Name, e.Value))
-		}
-	}
-
-	return res, nil
+func (v Resources) MarshalYAML() (interface{}, error) {
+	return marshalMapSlice(v)
 }
 
-// UnmarshalYAML implements the Unmarshaller interface.
-func (b *Build) UnmarshalYAML(unmarshal func(interface{}) error) error {
-	var v interface{}
+func (v *Resources) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	return unmarshalMapSlice(unmarshal, v)
+}
 
-	if err := unmarshal(&v); err != nil {
+func (v *Resource) SetName(name string) error {
+	v.Name = name
+	return nil
+}
+
+func (v Services) MarshalYAML() (interface{}, error) {
+	return marshalMapSlice(v)
+}
+
+func (v *Services) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	return unmarshalMapSlice(unmarshal, v)
+}
+
+func (v *Service) SetName(name string) error {
+	v.Name = name
+	return nil
+}
+
+func (v *ServiceBuild) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	var w interface{}
+
+	if err := unmarshal(&w); err != nil {
 		return err
 	}
 
-	switch v.(type) {
-	case string:
-		b.Context = v.(string)
+	switch t := w.(type) {
 	case map[interface{}]interface{}:
-		for mapKey, mapValue := range v.(map[interface{}]interface{}) {
-			switch mapKey {
-			case "context":
-				b.Context = mapValue.(string)
-			case "dockerfile":
-				b.Dockerfile = mapValue.(string)
-			case "args":
-				args := map[string]string{}
-
-				switch t := mapValue.(type) {
-				case map[interface{}]interface{}:
-					for k, v := range t {
-						var ks, vs string
-
-						switch t := k.(type) {
-						case string:
-							ks = t
-						case int:
-							ks = strconv.Itoa(t)
-						default:
-							return fmt.Errorf("unknown type in environment map: %v", k)
-						}
-
-						switch t := v.(type) {
-						case string:
-							vs = t
-						case int:
-							vs = strconv.Itoa(t)
-						default:
-							return fmt.Errorf("unknown type in environment map: %v", k)
-						}
-
-						args[ks] = vs
-					}
-				case []interface{}:
-					for _, tt := range t {
-						s, ok := tt.(string)
-
-						if !ok {
-							return fmt.Errorf("unknown type in environment list: %v", t)
-						}
-
-						parts := strings.SplitN(s, "=", 2)
-
-						switch len(parts) {
-						case 1:
-							args[parts[0]] = ""
-						case 2:
-							args[parts[0]] = parts[1]
-						default:
-							return fmt.Errorf("cannot parse environment: %v", t)
-						}
-					}
-				default:
-					return fmt.Errorf("unknown type for args: %T", t)
-				}
-
-				b.Args = args
-			default:
-				// Ignore
-				// unknown
-				// keys
-				continue
-			}
-		}
-	default:
-		return fmt.Errorf("Failed to unmarshal Build: %#v", v)
-	}
-	return nil
-}
-
-func (c *Command) UnmarshalYAML(unmarshal func(interface{}) error) error {
-	var v interface{}
-
-	if err := unmarshal(&v); err != nil {
-		return err
-	}
-
-	switch t := v.(type) {
-	case string:
-		c.String = t
-	case []interface{}:
-		for _, tt := range t {
-			s, ok := tt.(string)
-
-			if !ok {
-				return fmt.Errorf("unknown type in command array: %v", t)
-			}
-
-			c.Array = append(c.Array, s)
-		}
-	default:
-		return fmt.Errorf("cannot parse command: %s", t)
-	}
-
-	return nil
-}
-
-func (e *Environment) UnmarshalYAML(unmarshal func(interface{}) error) error {
-	var v interface{}
-
-	if err := unmarshal(&v); err != nil {
-		return err
-	}
-
-	*e = make(Environment, 0)
-
-	switch t := v.(type) {
-	case map[interface{}]interface{}:
-		for k, v := range t {
-			var ks, vs string
-
-			switch t := k.(type) {
-			case string:
-				ks = t
-			case int:
-				ks = strconv.Itoa(t)
-			default:
-				return fmt.Errorf("unknown type in environment map: %v", k)
-			}
-
-			switch t := v.(type) {
-			case string:
-				vs = t
-			case int:
-				vs = strconv.Itoa(t)
-			default:
-				return fmt.Errorf("unknown type in environment map: %v", k)
-			}
-
-			*e = append(*e, EnvironmentItem{
-				Name:   ks,
-				Value:  vs,
-				Needed: false,
-			})
-		}
-	case []interface{}:
-		for _, tt := range t {
-			s, ok := tt.(string)
-
-			if !ok {
-				return fmt.Errorf("unknown type in environment list: %v", t)
-			}
-
-			parts := strings.SplitN(s, "=", 2)
-
-			switch len(parts) {
-			case 1:
-				*e = append(*e, EnvironmentItem{
-					Name:   parts[0],
-					Needed: true,
-				})
-			case 2:
-				*e = append(*e, EnvironmentItem{
-					Name:  parts[0],
-					Value: parts[1],
-				})
-			default:
-				return fmt.Errorf("cannot parse environment: %v", t)
-			}
-		}
-	default:
-		return fmt.Errorf("cannot parse environment: %v", t)
-	}
-
-	sort.Sort(*e)
-
-	return nil
-}
-
-func (l *Labels) UnmarshalYAML(unmarshal func(interface{}) error) error {
-	var v interface{}
-
-	if err := unmarshal(&v); err != nil {
-		return err
-	}
-
-	*l = make(Labels)
-
-	switch t := v.(type) {
-	case map[interface{}]interface{}:
-		for k, v := range t {
-			var ks, vs string
-
-			switch t := k.(type) {
-			case string:
-				ks = t
-			case int:
-				ks = strconv.Itoa(t)
-			default:
-				return fmt.Errorf("unknown type in label map: %v", k)
-			}
-
-			switch t := v.(type) {
-			case string:
-				vs = t
-			case int:
-				vs = strconv.Itoa(t)
-			case bool:
-				vs = strconv.FormatBool(t)
-			default:
-				return fmt.Errorf("unknown type in label map: %v", k)
-			}
-
-			(*l)[ks] = vs
-		}
-	case []interface{}:
-		for _, tt := range t {
-			s, ok := tt.(string)
-
-			if !ok {
-				return fmt.Errorf("unknown type in command array: %v", t)
-			}
-
-			parts := strings.SplitN(s, "=", 2)
-
-			switch len(parts) {
-			case 2:
-				if _, ok := (*l)[parts[0]]; ok {
-					return fmt.Errorf("duplicate cron label %v", parts[0])
-				}
-				(*l)[parts[0]] = parts[1]
-			default:
-				return fmt.Errorf("cannot parse label: %v", t)
-			}
-		}
-	default:
-		return fmt.Errorf("cannot parse labels: %v", t)
-	}
-
-	return nil
-}
-
-func (m *Memory) UnmarshalYAML(unmarshal func(interface{}) error) error {
-	var v interface{}
-
-	if err := unmarshal(&v); err != nil {
-		return err
-	}
-
-	switch t := v.(type) {
-	case string:
-		ram, err := units.RAMInBytes(t)
-		if err != nil {
+		type serviceBuild ServiceBuild
+		var r serviceBuild
+		if err := remarshal(w, &r); err != nil {
 			return err
 		}
-		*m = Memory(ram)
-	case int:
-		*m = Memory(t)
-	case float64:
-		*m = Memory(t)
+		v.Args = r.Args
+		v.Path = r.Path
+	case string:
+		v.Path = t
 	default:
-		return fmt.Errorf("could not parse mem_limit: %v", t)
+		return fmt.Errorf("unknown type for service build: %T", t)
 	}
 
 	return nil
 }
 
-func (pp *Ports) UnmarshalYAML(unmarshal func(interface{}) error) error {
-	var v []string
+func (v ServiceBuild) MarshalYAML() (interface{}, error) {
+	if len(v.Args) == 0 {
+		return v.Path, nil
+	}
 
-	if err := unmarshal(&v); err != nil {
+	return v, nil
+}
+
+func (v *ServiceCommand) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	var w interface{}
+
+	if err := unmarshal(&w); err != nil {
 		return err
 	}
 
-	*pp = make(Ports, len(v))
+	switch t := w.(type) {
+	case map[interface{}]interface{}:
+		if c, ok := t["development"].(string); ok {
+			v.Development = c
+		}
+		if c, ok := t["test"].(string); ok {
+			v.Test = c
+		}
+		if c, ok := t["production"].(string); ok {
+			v.Production = c
+		}
+	case string:
+		v.Development = t
+		v.Production = t
+	default:
+		return fmt.Errorf("unknown type for service command: %T", t)
+	}
 
-	for i, s := range v {
-		parts := portMappingRegex.FindStringSubmatch(s)
-		if len(parts) == 0 {
-			return fmt.Errorf("invalid portmapping %s", s)
+	return nil
+}
+
+func (v *ServiceEnvironment) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	var w interface{}
+
+	if err := unmarshal(&w); err != nil {
+		return err
+	}
+
+	switch t := w.(type) {
+	case []interface{}:
+		for _, s := range t {
+			switch st := s.(type) {
+			case []interface{}:
+				for _, stv := range st {
+					if sv, ok := stv.(string); ok {
+						*v = append(*v, sv)
+					}
+				}
+			case string:
+				*v = append(*v, st)
+			}
+		}
+	default:
+		return fmt.Errorf("unknown type for service environment: %T", t)
+	}
+
+	return nil
+}
+
+func (v *ServiceHealth) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	var w interface{}
+
+	if err := unmarshal(&w); err != nil {
+		return err
+	}
+
+	switch t := w.(type) {
+	case map[interface{}]interface{}:
+		if w, ok := t["path"].(string); ok {
+			v.Path = w
+		}
+		if w, ok := t["interval"].(int); ok {
+			v.Interval = w
+		}
+		if w, ok := t["timeout"].(int); ok {
+			v.Timeout = w
+		}
+	case string:
+		v.Path = t
+	default:
+		return fmt.Errorf("unknown type for service health: %T", t)
+	}
+
+	return nil
+}
+
+func (v *ServicePort) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	var w interface{}
+
+	if err := unmarshal(&w); err != nil {
+		return err
+	}
+
+	switch t := w.(type) {
+	case map[interface{}]interface{}:
+		if port := t["port"]; port != nil {
+			switch port.(type) {
+			case int:
+				v.Port = port.(int)
+			case string:
+				ports, err := strconv.Atoi(port.(string))
+				if err != nil {
+					return err
+				}
+				v.Port = ports
+			default:
+				return fmt.Errorf("invalid port: %v", w)
+			}
+		}
+		if scheme := t["scheme"]; (scheme == nil) || (scheme.(string) == "") {
+			v.Scheme = "http"
+		} else {
+			v.Scheme = scheme.(string)
+		}
+	case string:
+		parts := strings.Split(t, ":")
+
+		switch len(parts) {
+		case 1:
+			p, err := strconv.Atoi(parts[0])
+			if err != nil {
+				return err
+			}
+
+			v.Scheme = "http"
+			v.Port = p
+		case 2:
+			p, err := strconv.Atoi(parts[1])
+			if err != nil {
+				return err
+			}
+
+			v.Scheme = parts[0]
+			v.Port = p
+		default:
+			return fmt.Errorf("invalid port: %s", t)
+		}
+	case int:
+		v.Scheme = "http"
+		v.Port = t
+	default:
+		return fmt.Errorf("invalid port: %s", t)
+	}
+
+	return nil
+}
+
+func (v ServicePort) MarshalYAML() (interface{}, error) {
+	if v.Port == 0 {
+		return nil, nil
+	}
+
+	return v, nil
+}
+
+func (v *ServiceScale) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	var w interface{}
+
+	if err := unmarshal(&w); err != nil {
+		return err
+	}
+
+	switch t := w.(type) {
+	case int:
+		v.Count = &ServiceScaleCount{Min: t, Max: t}
+	case string:
+		var c ServiceScaleCount
+		if err := remarshal(w, &c); err != nil {
+			return err
+		}
+		v.Count = &c
+	case map[interface{}]interface{}:
+		if w, ok := t["count"].(interface{}); ok {
+			var c ServiceScaleCount
+			if err := remarshal(w, &c); err != nil {
+				return err
+			}
+			v.Count = &c
+		}
+		if w, ok := t["memory"].(int); ok {
+			v.Memory = w
+		}
+	default:
+		return fmt.Errorf("unknown type for service scale: %T", t)
+	}
+
+	return nil
+}
+
+func (v *ServiceScaleCount) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	var w interface{}
+
+	if err := unmarshal(&w); err != nil {
+		return err
+	}
+
+	switch t := w.(type) {
+	case int:
+		v.Min = t
+		v.Max = t
+	case string:
+		parts := strings.Split(t, "-")
+
+		switch len(parts) {
+		case 1:
+			i, err := strconv.Atoi(parts[0])
+			if err != nil {
+				return err
+			}
+
+			v.Min = i
+
+			if !strings.HasSuffix(parts[0], "+") {
+				v.Max = i
+			}
+		case 2:
+			i, err := strconv.Atoi(parts[0])
+			if err != nil {
+				return err
+			}
+
+			j, err := strconv.Atoi(parts[1])
+			if err != nil {
+				return err
+			}
+
+			v.Min = i
+			v.Max = j
+		default:
+			return fmt.Errorf("invalid scale: %v", w)
+		}
+	case map[interface{}]interface{}:
+		if min := t["min"]; min != nil {
+			switch min.(type) {
+			case int:
+				v.Min = min.(int)
+			case string:
+				mins, err := strconv.Atoi(min.(string))
+				if err != nil {
+					return err
+				}
+				v.Min = mins
+			default:
+				return fmt.Errorf("invalid scale: %v", w)
+			}
+		}
+		if max := t["max"]; max != nil {
+			switch max.(type) {
+			case int:
+				v.Max = max.(int)
+			case string:
+				maxs, err := strconv.Atoi(max.(string))
+				if err != nil {
+					return err
+				}
+				v.Max = maxs
+			default:
+				return fmt.Errorf("invalid scale: %v", w)
+			}
+		}
+	default:
+		return fmt.Errorf("invalid scale: %v", w)
+	}
+
+	return nil
+}
+
+func (v ServiceScaleCount) MarshalYAML() (interface{}, error) {
+	if v.Min == v.Max {
+		return v.Min, nil
+	}
+
+	return v, nil
+}
+
+func (v Timers) MarshalYAML() (interface{}, error) {
+	return marshalMapSlice(v)
+}
+
+func (v *Timers) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	return unmarshalMapSlice(unmarshal, v)
+}
+
+func remarshal(in, out interface{}) error {
+	data, err := yaml.Marshal(in)
+	if err != nil {
+		return err
+	}
+
+	return yaml.Unmarshal(data, out)
+}
+
+func marshalMapSlice(in interface{}) (interface{}, error) {
+	ms := yaml.MapSlice{}
+
+	iv := reflect.ValueOf(in)
+
+	if iv.Kind() != reflect.Slice {
+		return nil, fmt.Errorf("not a slice")
+	}
+
+	for i := 0; i < iv.Len(); i++ {
+		ii := iv.Index(i).Interface()
+
+		if iing, ok := ii.(NameGetter); ok {
+			ms = append(ms, yaml.MapItem{
+				Key:   iing.GetName(),
+				Value: ii,
+			})
+		}
+	}
+
+	return ms, nil
+}
+
+func unmarshalMapSlice(unmarshal func(interface{}) error, v interface{}) error {
+	rv := reflect.ValueOf(v).Elem()
+	vit := rv.Type().Elem()
+
+	var ms yaml.MapSlice
+
+	if err := unmarshal(&ms); err != nil {
+		return err
+	}
+
+	for _, msi := range ms {
+		item := reflect.New(vit).Interface()
+
+		if err := remarshal(msi.Value, item); err != nil {
+			return err
 		}
 
-		p := Port{}
-		p.Name = parts[1]
-
-		protocol := strings.ToLower(parts[3])
-		if protocol != string(TCP) && protocol != string(UDP) {
-			protocol = string(TCP) // default
-		}
-		p.Protocol = Protocol(protocol)
-
-		container, _ := strconv.Atoi(parts[2])
-		p.Container = container
-		p.Balancer = container
-
-		if parts[1] != "" {
-			balancer, _ := strconv.Atoi(parts[1])
-			p.Balancer = balancer
+		if ds, ok := item.(DefaultsSetter); ok {
+			if err := ds.SetDefaults(); err != nil {
+				return err
+			}
 		}
 
-		// Only TCP ports can be "public" (in the ELB sense) or have an ELB at all
-		if parts[1] != "" && p.Protocol == TCP {
-			p.Public = true
+		if ns, ok := item.(NameSetter); ok {
+			switch t := msi.Key.(type) {
+			case int:
+				if err := ns.SetName(fmt.Sprintf("%d", t)); err != nil {
+					return err
+				}
+			case string:
+				if err := ns.SetName(t); err != nil {
+					return err
+				}
+			default:
+				return fmt.Errorf("unknown key type: %T", t)
+			}
 		}
 
-		(*pp)[i] = p
+		rv.Set(reflect.Append(rv, reflect.ValueOf(item).Elem()))
 	}
 
 	return nil

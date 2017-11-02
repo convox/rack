@@ -1,0 +1,1 @@
+package stdcli_test

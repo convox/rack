@@ -1,0 +1,371 @@
+{
+  "AWSTemplateFormatVersion" : "2010-09-09",
+  "Outputs": {
+    {{ template "balancer-outputs" . }}
+
+    "Release": {
+      "Value": "{{ .Release.Id }}"
+    },
+    "Services": {
+      "Value": "{{ services .Manifest }}"
+    }
+  },
+  "Parameters" : {
+    {{ template "service-params" .Manifest }}
+
+    "Rack": {
+      "Type": "String",
+      "MinLength": "1"
+    }
+  },
+  "Resources": {
+    {{ template "balancer-resources" . }}
+    {{ template "resource-resources" . }}
+    {{ template "service-resources" . }}
+    {{ template "timer-resources" . }}
+
+    {{ template "state" }}
+
+    "LogGroup": {
+      "Type": "AWS::Logs::LogGroup"
+    },
+    "Registry": {
+      "Type": "AWS::ECR::Repository",
+      "DeletionPolicy": "Retain"
+    }
+  }
+}
+
+{{ define "balancer-outputs" }}
+  {{ range .Manifest.Services }}
+    {{ if .Port.Port }}
+      "{{ upper .Name }}Endpoint": {
+        "Value": { "Fn::Join": [ ".", [ "{{$.App}}-{{.Name}}", { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Domain" } } ] ] }
+      },
+    {{ end }}
+  {{ end }}
+{{ end }}
+
+{{ define "balancer-resources" }}
+  {{ range .Manifest.Services }}
+    {{ if .Port.Port }}
+      "Balancer{{ upper .Name }}ListenerRule80": {
+        "Type": "AWS::ElasticLoadBalancingV2::ListenerRule",
+        "Properties": {
+          "Actions": [ { "Type": "forward", "TargetGroupArn": { "Ref": "Balancer{{ upper .Name }}TargetGroup" } } ],
+          "Conditions": [ { "Field": "host-header", "Values": [ { "Fn::Join": [ ".", [ "{{$.App}}-{{.Name}}", { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Domain" } } ] ] } ] } ],
+          "ListenerArn": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:RouterListener80" } },
+          "Priority": "{{ priority $.App .Name }}"
+        }
+      },
+      "Balancer{{ upper .Name }}ListenerRule443": {
+        "Type": "AWS::ElasticLoadBalancingV2::ListenerRule",
+        "Properties": {
+          "Actions": [ { "Type": "forward", "TargetGroupArn": { "Ref": "Balancer{{ upper .Name }}TargetGroup" } } ],
+          "Conditions": [ { "Field": "host-header", "Values": [ { "Fn::Join": [ ".", [ "{{$.App}}-{{.Name}}", { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Domain" } } ] ] } ] } ],
+          "ListenerArn": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:RouterListener443" } },
+          "Priority": "{{ priority $.App .Name }}"
+        }
+      },
+      {{ if .Domain }}
+        "Balancer{{ upper .Name }}Certificate": {
+          "Type": "AWS::CertificateManager::Certificate",
+          "Properties": {
+            "DomainName": "{{ .Domain }}",
+            "DomainValidationOptions": [{
+              "DomainName": "{{ .Domain }}",
+              "ValidationDomain": "{{ apex .Domain }}"
+            }]
+          }
+        },
+        "Balancer{{ upper .Name }}ListenerCertificate": {
+          "Type": "AWS::ElasticLoadBalancingV2::ListenerCertificate",
+          "Properties": {
+            "Certificates": [ { "CertificateArn": { "Ref": "Balancer{{ upper .Name }}Certificate" } } ],
+            "ListenerArn": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:RouterListener443" } }
+          }
+        },
+        "Balancer{{ upper .Name }}ListenerRule80Domain": {
+          "Type": "AWS::ElasticLoadBalancingV2::ListenerRule",
+          "Properties": {
+            "Actions": [ { "Type": "forward", "TargetGroupArn": { "Ref": "Balancer{{ upper .Name }}TargetGroup" } } ],
+            "Conditions": [ { "Field": "host-header", "Values": [ "{{ .Domain }}" ] } ],
+            "ListenerArn": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:RouterListener80" } },
+            "Priority": "{{ priority $.App (print .Name "-Domain") }}"
+          }
+        },
+        "Balancer{{ upper .Name }}ListenerRule443Domain": {
+          "Type": "AWS::ElasticLoadBalancingV2::ListenerRule",
+          "Properties": {
+            "Actions": [ { "Type": "forward", "TargetGroupArn": { "Ref": "Balancer{{ upper .Name }}TargetGroup" } } ],
+            "Conditions": [ { "Field": "host-header", "Values": [ "{{ .Domain }}" ] } ],
+            "ListenerArn": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:RouterListener443" } },
+            "Priority": "{{ priority $.App (print .Name "-Domain") }}"
+          }
+        },
+      {{ end }}
+      "Balancer{{ upper .Name }}TargetGroup": {
+        "Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
+        "Properties": {
+          "Name": { "Fn::Sub": "${AWS::StackName}-{{.Name}}-{{.Port.Port}}" },
+          "HealthCheckIntervalSeconds": "{{.Health.Interval}}",
+          "HealthCheckTimeoutSeconds": "{{.Health.Timeout}}",
+          "UnhealthyThresholdCount": "2",
+          "HealthCheckPath": "{{.Health.Path}}",
+          "Port": "{{.Port.Port}}",
+          "Protocol": "{{ upcase .Port.Scheme }}",
+          "TargetGroupAttributes": [
+            { "Key": "deregistration_delay.timeout_seconds", "Value": "30" },
+            { "Key": "stickiness.enabled", "Value": "true" }
+          ],
+          "VpcId": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Vpc" } }
+        }
+      },
+    {{ end }}
+  {{ end }}
+{{ end }}
+
+{{ define "resource-resources" }}
+  {{ range .Manifest.Resources }}
+    "Resource{{ upper .Name }}": {
+      "Type": "AWS::CloudFormation::Stack",
+      "Properties": {
+        "Parameters": {
+          "Password": { "Fn::Base64": { "Fn::Select": [ 2, { "Fn::Split": [ "/", { "Ref": "AWS::StackId" } ] } ] } },
+          "Rack": { "Ref": "Rack" }
+        },
+        "TemplateURL": "https://convox.s3.amazonaws.com/release/{{$.Version}}/formation/resource/{{.Type}}.json"
+      }
+    },
+  {{ end }}
+{{ end }}
+
+{{ define "service-params" }}
+  {{ range .Services }}
+    "{{ upper .Name }}Formation": {
+      "Type": "CommaDelimitedList",
+      "Default": "0,128,256",
+      "Description": "Count,CPU,Memory"
+    },
+  {{ end }}
+{{ end }}
+
+{{ define "service-resources" }}
+  "ServiceRole": {
+    "Type": "AWS::IAM::Role",
+    "Properties": {
+      "AssumeRolePolicyDocument": {
+        "Statement": [ { "Effect": "Allow", "Principal": { "Service": [ "ecs-tasks.amazonaws.com" ] }, "Action": [ "sts:AssumeRole" ] } ],
+        "Version": "2012-10-17"
+      },
+      "Path": "/convox/",
+      "Policies": [ {
+        "PolicyName": "convox-env",
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            { "Effect": "Allow", "Action": "s3:GetObject", "Resource": { "Fn::Sub": "arn:aws:s3:::${Settings}/*" } },
+            { "Effect": "Allow", "Action": "kms:Decrypt", "Resource": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:EncryptionKey" } } }
+          ]
+        }
+      } ]
+    }
+  },
+  {{ range .Manifest.Services }}
+    "Service{{ upper .Name }}Service": {
+      "Type": "AWS::ECS::Service",
+      {{ if .Port.Port }}
+        "DependsOn": [ "Balancer{{ upper .Name }}ListenerRule80" ],
+      {{ end }}
+      "Properties": {
+        "Cluster": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Cluster" } },
+        "DeploymentConfiguration": { "MinimumHealthyPercent": "50", "MaximumPercent": "200" },
+        "DesiredCount": { "Fn::Select": [ 0, { "Ref": "{{ upper .Name }}Formation" } ] },
+        {{ if .Port.Port }}
+          "LoadBalancers": [ { "ContainerName": "{{.Name}}", "ContainerPort": "{{.Port.Port}}", "TargetGroupArn": { "Ref": "Balancer{{ upper .Name }}TargetGroup" } } ],
+          "Role": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:ServiceRole" } },
+        {{ end }}
+        "TaskDefinition": { "Ref": "Service{{ upper .Name }}Tasks" }
+      }
+    },
+    "Service{{ upper .Name }}Tasks": {
+      "Type": "AWS::ECS::TaskDefinition",
+      "Properties": {
+        "ContainerDefinitions": [
+          {
+            {{ with .Command }}
+              "Command": [ "sh", "-c", "{{.}}" ],
+            {{ end }}
+            "Cpu": { "Fn::Select": [ 1, { "Ref": "{{ upper .Name }}Formation" } ] },
+            "DockerLabels": { "convox.generation": "2", "convox.release": "{{$.Release.Id}}" },
+            "Environment": [
+              {{ range $k, $v := .EnvironmentDefaults }}
+                { "Name": "{{$k}}", "Value": "{{ safe $v }}" },
+              {{ end }}
+              {{ range .Resources }}
+                { "Name": "{{ upcase . }}_URL", "Value": { "Fn::GetAtt": [ "Resource{{ upper . }}", "Outputs.Url" ] } },
+              {{ end }}
+              { "Name": "AWS_REGION", "Value": { "Ref": "AWS::Region" } },
+              { "Name": "CONVOX_ENV_KEY", "Value": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:EncryptionKey" } } },
+              { "Name": "CONVOX_ENV_URL", "Value": { "Fn::Sub": "s3://${Settings}/releases/{{$.Release.Id}}/env" } },
+              { "Name": "CONVOX_ENV_VARS", "Value": "{{.EnvironmentKeys}}" }
+            ],
+            "Image": { "Fn::Sub": "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${Registry}:{{.Name}}.{{$.Release.Build}}" },
+            "LogConfiguration": {
+              "LogDriver": "awslogs",
+              "Options": {
+                "awslogs-region": { "Ref": "AWS::Region" },
+                "awslogs-group": { "Ref": "LogGroup" },
+                "awslogs-stream-prefix": "service"
+              }
+            },
+            "Memory": { "Fn::Select": [ 2, { "Ref": "{{ upper .Name }}Formation" } ] },
+            {{ if .Port.Port }}
+              "PortMappings": [ { "ContainerPort": "{{.Port.Port}}" } ],
+            {{ end }}
+            "MountPoints": [
+              {{ range $i, $v := .Volumes }}
+                { "SourceVolume": "volume-{{$i}}", "ContainerPath": "{{ volumeTo $v }}" },
+              {{ end }}
+              { "Ref": "AWS::NoValue" }
+            ],
+            "Name": "{{.Name}}"
+          }
+        ],
+        "Family": { "Fn::Sub": "${AWS::StackName}-service-{{.Name}}" },
+        "TaskRoleArn": { "Fn::GetAtt": [ "ServiceRole", "Arn" ] },
+        "Volumes": [
+          {{ range $i, $v := .Volumes }}
+            { "Name": "volume-{{$i}}", "Host": { "SourcePath": "{{ volumeFrom $.App $v }}" } },
+          {{ end }}
+          { "Ref": "AWS::NoValue" }
+        ]
+      }
+    },
+  {{ end }}
+{{ end }}
+
+{{ define "timer-resources" }}
+  {{ if .Manifest.Timers }}
+    "TimerRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": { "Service": [ "events.amazonaws.com" ] },
+              "Action": [ "sts:AssumeRole" ]
+            }
+          ]
+        },
+        "Path": "/convox/",
+        "Policies": [
+          {
+            "PolicyName": "TimerRole",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [ "ecs:RunTask" ],
+                  "Resource": { "Fn::Sub": "arn:aws:ecs:${AWS::Region}:${AWS::AccountId}:task-definition/${AWS::StackName}-timer-*" },
+                  "Condition": {
+                    "ArnEquals": {
+                      "ecs:cluster": { "Fn::Join": [ "", [
+                        "arn:aws:ecs:", { "Ref": "AWS::Region" }, ":", { "Ref": "AWS::AccountId" }, ":cluster/", { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Cluster" } }
+                      ] ] }
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+  {{ end }}
+  {{ range $t := .Manifest.Timers }}
+    "{{ upper .Name }}Timer": {
+      "Type": "AWS::Events::Rule",
+      "Properties": {
+        "Name": { "Fn::Sub": "${AWS::StackName}-timer-{{.Name}}" },
+        "ScheduleExpression": "cron({{.Schedule}} *)",
+        "Targets": [ {
+          "Arn": { "Fn::Join": [ "", [
+            "arn:aws:ecs:", { "Ref": "AWS::Region" }, ":", { "Ref": "AWS::AccountId" }, ":cluster/", { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Cluster" } }
+          ] ] },
+          "EcsParameters": {
+            "TaskCount": "1",
+            "TaskDefinitionArn": { "Ref": "Timer{{ upper .Name }}Tasks" }
+          },
+          "Id": "{{.Name}}",
+          "RoleArn": { "Fn::GetAtt": [ "TimerRole", "Arn" ] }
+        } ]
+      }
+    },
+    "Timer{{ upper .Name }}Tasks": {
+      "Type": "AWS::ECS::TaskDefinition",
+      "Properties": {
+        "ContainerDefinitions": [
+          {{ with $.Manifest.Service .Service }}
+            {
+              "Command": [ "sh", "-c", "{{$t.Command}}" ],
+              "Cpu": { "Fn::Select": [ 1, { "Ref": "{{ upper .Name }}Formation" } ] },
+              "DockerLabels": { "convox.generation": "2", "convox.release": "{{$.Release.Id}}" },
+              "Environment": [
+                {{ range $k, $v := .EnvironmentDefaults }}
+                  { "Name": "{{$k}}", "Value": "{{ safe $v }}" },
+                {{ end }}
+                { "Name": "AWS_REGION", "Value": { "Ref": "AWS::Region" } },
+                { "Name": "CONVOX_ENV_KEY", "Value": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:EncryptionKey" } } },
+                { "Name": "CONVOX_ENV_URL", "Value": { "Fn::Sub": "s3://${Settings}/releases/{{$.Release.Id}}/env" } },
+                { "Name": "CONVOX_ENV_VARS", "Value": "{{.EnvironmentKeys}}" }
+              ],
+              "Image": { "Fn::Sub": "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${Registry}:{{.Name}}.{{$.Release.Build}}" },
+              "LogConfiguration": {
+                "LogDriver": "awslogs",
+                "Options": {
+                  "awslogs-region": { "Ref": "AWS::Region" },
+                  "awslogs-group": { "Ref": "LogGroup" },
+                  "awslogs-stream-prefix": "timer"
+                }
+              },
+              "Memory": { "Fn::Select": [ 2, { "Ref": "{{ upper .Name }}Formation" } ] },
+              "MountPoints": [
+                {{ range $i, $v := .Volumes }}
+                  { "SourceVolume": "volume-{{$i}}", "ContainerPath": "{{ volumeTo $v }}" },
+                {{ end }}
+                { "Ref": "AWS::NoValue" }
+              ],
+              "Name": "{{$t.Name}}"
+            }
+          {{ end }}
+        ],
+        "Family": { "Fn::Sub": "${AWS::StackName}-timer-{{.Name}}" },
+        "TaskRoleArn": { "Fn::GetAtt": [ "ServiceRole", "Arn" ] },
+        "Volumes": [
+          {{ range $i, $v := ($.Manifest.Service .Service).Volumes }}
+            { "Name": "volume-{{$i}}", "Host": { "SourcePath": "{{ volumeFrom $.App $v }}" } },
+          {{ end }}
+          { "Ref": "AWS::NoValue" }
+        ]
+      }
+    },
+  {{ end }}
+{{ end }}
+
+{{ define "state" }}
+  "Settings": {
+    "Type": "AWS::S3::Bucket",
+    "DeletionPolicy": "Retain",
+    "Properties": {
+      "AccessControl": "Private",
+      "Tags": [
+        { "Key": "system", "Value": "convox" },
+        { "Key": "app", "Value": { "Ref": "AWS::StackName" } }
+      ]
+    }
+  },
+{{ end }}

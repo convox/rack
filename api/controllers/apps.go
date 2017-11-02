@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"fmt"
 	"net/http"
 	"os"
 	"sort"
@@ -65,33 +66,46 @@ func AppCancel(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 // AppCreate creates an application
 func AppCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	name := r.FormValue("name")
+
 	if name == os.Getenv("RACK") {
 		return httperr.Errorf(403, "application name cannot match rack name (%s). Please choose a different name for your app.", name)
 	}
 
-	// Early check for unbound app only.
-	if app, err := models.GetAppUnbound(name); err == nil {
-		return httperr.Errorf(403, "there is already a legacy app named %s (%s). We recommend you delete this app and create it again.", name, app.Status)
+	switch r.FormValue("generation") {
+	case "2":
+		return appCreateGeneration2(rw, r)
+	default:
+		return appCreateGeneration1(rw, r)
 	}
 
-	// If unbound check fails this will result in a bound app.
+	return httperr.Server(fmt.Errorf("unknown generation"))
+}
+
+func appCreateGeneration1(rw http.ResponseWriter, r *http.Request) *httperr.Error {
+	name := r.FormValue("name")
+
 	app := &models.App{Name: name}
+
 	err := app.Create()
-
 	if awsError(err) == "AlreadyExistsException" {
-		app, err := models.GetApp(name)
-		if err != nil {
-			return httperr.Server(err)
-		}
-
 		return httperr.Errorf(403, "there is already an app named %s (%s)", name, app.Status)
 	}
-
 	if err != nil {
 		return httperr.Server(err)
 	}
 
 	app, err = models.GetApp(name)
+	if err != nil {
+		return httperr.Server(err)
+	}
+
+	return RenderJson(rw, app)
+}
+
+func appCreateGeneration2(rw http.ResponseWriter, r *http.Request) *httperr.Error {
+	name := r.FormValue("name")
+
+	app, err := models.Provider().AppCreate(name)
 	if err != nil {
 		return httperr.Server(err)
 	}
