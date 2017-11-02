@@ -3,10 +3,10 @@ package crypt
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"net/http"
+	"os"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/kms"
 	"golang.org/x/crypto/nacl/secretbox"
 )
@@ -17,10 +17,7 @@ const (
 )
 
 type Crypt struct {
-	AwsRegion string
-	AwsAccess string
-	AwsSecret string
-	AwsToken  string
+	Region string
 }
 
 type Instance struct {
@@ -39,67 +36,14 @@ type Envelope struct {
 	Nonce        []byte `json:"n"`
 }
 
-func New(region, access, secret string) *Crypt {
-	return &Crypt{
-		AwsRegion: region,
-		AwsAccess: access,
-		AwsSecret: secret,
-	}
+func KMS(c *Crypt) *kms.KMS {
+	return kms.New(session.New(), &aws.Config{
+		Region: aws.String(c.Region),
+	})
 }
 
-func NewIam(role string) (*Crypt, error) {
-	res, err := http.Get("http://169.254.169.254/latest/dynamic/instance-identity/document")
-
-	if err != nil {
-		return nil, err
-	}
-
-	defer res.Body.Close()
-
-	id, err := ioutil.ReadAll(res.Body)
-
-	if err != nil {
-		return nil, err
-	}
-
-	var instance Instance
-
-	err = json.Unmarshal(id, &instance)
-
-	if err != nil {
-		return nil, err
-	}
-
-	res, err = http.Get(fmt.Sprintf("http://169.254.169.254/latest/meta-data/iam/security-credentials/%s", role))
-
-	if err != nil {
-		return nil, err
-	}
-
-	defer res.Body.Close()
-
-	rd, err := ioutil.ReadAll(res.Body)
-
-	if err != nil {
-		return nil, err
-	}
-
-	var r Role
-
-	err = json.Unmarshal(rd, &r)
-
-	if err != nil {
-		return nil, err
-	}
-
-	crypt := &Crypt{
-		AwsRegion: instance.Region,
-		AwsAccess: r.Access,
-		AwsSecret: r.Secret,
-		AwsToken:  r.Token,
-	}
-
-	return crypt, nil
+func New() *Crypt {
+	return &Crypt{Region: os.Getenv("AWS_REGION")}
 }
 
 func (c *Crypt) Encrypt(keyArn string, dec []byte) ([]byte, error) {

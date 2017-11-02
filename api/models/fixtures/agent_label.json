@@ -136,12 +136,12 @@
   },
   "Parameters": {
     "Agent1Formation": {
-      "Default": "0,0,256",
+      "Default": "0,128,256",
       "Description": "Number of processes to run, CPU units to reserve, and MB of RAM to reserve",
       "Type": "CommaDelimitedList"
     },
     "Agent2Formation": {
-      "Default": "0,0,256",
+      "Default": "0,128,256",
       "Description": "Number of processes to run, CPU units to reserve, and MB of RAM to reserve",
       "Type": "CommaDelimitedList"
     },
@@ -189,7 +189,7 @@
       "Type": "String"
     },
     "NotagentFormation": {
-      "Default": "1,0,256",
+      "Default": "1,128,256",
       "Description": "Number of processes to run, CPU units to reserve, and MB of RAM to reserve",
       "Type": "CommaDelimitedList"
     },
@@ -1253,6 +1253,8 @@
                     "elasticloadbalancing:Describe*",
                     "elasticloadbalancing:DeregisterInstancesFromLoadBalancer",
                     "elasticloadbalancing:RegisterInstancesWithLoadBalancer",
+                    "elasticloadbalancing:DeregisterTargets",
+                    "elasticloadbalancing:RegisterTargets",
                     "ec2:Describe*",
                     "ec2:AuthorizeSecurityGroupIngress"
                   ],

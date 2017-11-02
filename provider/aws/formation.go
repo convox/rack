@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/convox/rack/api/structs"
-	"github.com/convox/rack/manifest"
+	"github.com/convox/rack/manifest1"
 )
 
 // FormationList lists the Formation
@@ -19,6 +19,26 @@ func (p *AWSProvider) FormationList(app string) (structs.Formation, error) {
 		log.Error(err)
 		return nil, err
 	}
+
+	switch a.Tags["Generation"] {
+	case "2":
+		return p.formationList2(app)
+	default:
+		return p.formationList1(app)
+	}
+
+	return nil, fmt.Errorf("unknown generation for app: %s", app)
+}
+
+func (p *AWSProvider) formationList1(app string) (structs.Formation, error) {
+	log := Logger.At("formationList1").Start()
+
+	a, err := p.AppGet(app)
+	if err != nil {
+		log.Error(err)
+		return nil, err
+	}
+
 	if a.Release == "" {
 		return structs.Formation{}, nil
 	}
@@ -29,7 +49,7 @@ func (p *AWSProvider) FormationList(app string) (structs.Formation, error) {
 		return nil, err
 	}
 
-	manifest, err := manifest.Load([]byte(release.Manifest))
+	manifest, err := manifest1.Load([]byte(release.Manifest))
 	if err != nil {
 		return nil, fmt.Errorf("could not parse manifest for release: %s", release.Id)
 	}
@@ -37,7 +57,7 @@ func (p *AWSProvider) FormationList(app string) (structs.Formation, error) {
 	formation := structs.Formation{}
 
 	for _, s := range manifest.Services {
-		pf, err := processFormation(a, s)
+		pf, err := processFormation1(a, s)
 		if err != nil {
 			return nil, err
 		}
@@ -50,8 +70,45 @@ func (p *AWSProvider) FormationList(app string) (structs.Formation, error) {
 	return formation, nil
 }
 
+func (p *AWSProvider) formationList2(app string) (structs.Formation, error) {
+	a, err := p.AppGet(app)
+	if err != nil {
+		return nil, err
+	}
+
+	formation := structs.Formation{}
+	services := strings.Split(a.Outputs["Services"], ",")
+
+	for _, s := range services {
+		f, err := p.FormationGet(app, s)
+		if err != nil {
+			return nil, err
+		}
+
+		formation = append(formation, *f)
+	}
+
+	return formation, nil
+}
+
 // FormationGet gets a Formation
 func (p *AWSProvider) FormationGet(app, process string) (*structs.ProcessFormation, error) {
+	a, err := p.AppGet(app)
+	if err != nil {
+		return nil, err
+	}
+
+	switch a.Tags["Generation"] {
+	case "2":
+		return p.formationGet2(app, process)
+	default:
+		return p.formationGet1(app, process)
+	}
+
+	return nil, fmt.Errorf("unknown generation for app: %s", app)
+}
+
+func (p *AWSProvider) formationGet1(app, process string) (*structs.ProcessFormation, error) {
 	a, err := p.AppGet(app)
 	if err != nil {
 		return nil, err
@@ -65,7 +122,7 @@ func (p *AWSProvider) FormationGet(app, process string) (*structs.ProcessFormati
 		return nil, err
 	}
 
-	manifest, err := manifest.Load([]byte(release.Manifest))
+	manifest, err := manifest1.Load([]byte(release.Manifest))
 	if err != nil {
 		return nil, fmt.Errorf("could not parse manifest for release: %s", release.Id)
 	}
@@ -74,7 +131,49 @@ func (p *AWSProvider) FormationGet(app, process string) (*structs.ProcessFormati
 		return nil, fmt.Errorf("no such process: %s", process)
 	}
 
-	return processFormation(a, manifest.Services[process])
+	return processFormation1(a, manifest.Services[process])
+}
+
+func (p *AWSProvider) formationGet2(app, service string) (*structs.ProcessFormation, error) {
+	a, err := p.AppGet(app)
+	if err != nil {
+		return nil, err
+	}
+
+	parts := strings.Split(a.Parameters[fmt.Sprintf("%sFormation", upperName(service))], ",")
+
+	if len(parts) != 3 {
+		return nil, fmt.Errorf("invalid formation for service %s on app %s", service, app)
+	}
+
+	count, err := strconv.Atoi(parts[0])
+	if err != nil {
+		return nil, err
+	}
+
+	cpu, err := strconv.Atoi(parts[1])
+	if err != nil {
+		return nil, err
+	}
+
+	memory, err := strconv.Atoi(parts[2])
+	if err != nil {
+		return nil, err
+	}
+
+	formation := &structs.ProcessFormation{
+		Name:   service,
+		Count:  count,
+		CPU:    cpu,
+		Memory: memory,
+	}
+
+	if endpoint, ok := a.Outputs[fmt.Sprintf("%sEndpoint", upperName(service))]; ok {
+		formation.Balancer = endpoint
+		formation.Ports = []int{80, 443}
+	}
+
+	return formation, nil
 }
 
 // FormationSave saves a Formation
@@ -195,7 +294,7 @@ func parseFormationIndividual(app *structs.App, process string) (count, cpu, mem
 	return
 }
 
-func processFormation(a *structs.App, s manifest.Service) (*structs.ProcessFormation, error) {
+func processFormation1(a *structs.App, s manifest1.Service) (*structs.ProcessFormation, error) {
 	count, cpu, memory, err := parseFormationParameters(a, s.Name)
 	if err != nil {
 		return nil, err

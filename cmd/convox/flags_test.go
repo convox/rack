@@ -1,16 +1,5 @@
 package main
 
-import (
-	"fmt"
-	"testing"
-
-	"github.com/convox/rack/cmd/convox/stdcli"
-	"github.com/convox/rack/test"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-	"gopkg.in/urfave/cli.v1"
-)
-
 /* HELP CHECKS */
 // http://www.gnu.org/prep/standards/html_node/_002d_002dhelp.html
 
@@ -60,33 +49,33 @@ Options:
   --version, -v          print the version
   `
 
-func TestHelpFlag(t *testing.T) {
-	assert.Equal(t, stdcli.HelpFlags, []string{"--help", "-h", "h", "help"})
+// func TestHelpFlag(t *testing.T) {
+//   assert.Equal(t, stdcli.HelpFlags, []string{"--help", "-h", "h", "help"})
 
-	ts := testServer(t,
-		test.Http{
-			Method: "GET",
-			Path:   "/",
-			Code:   200,
-		},
-	)
+//   ts := testServer(t,
+//     test.Http{
+//       Method: "GET",
+//       Path:   "/",
+//       Code:   200,
+//     },
+//   )
 
-	defer ts.Close()
-	for _, hf := range stdcli.HelpFlags {
-		c := fmt.Sprintf("convox %s", hf)
-		test.Runs(t,
-			test.ExecRun{
-				Command: c,
-				Exit:    0,
-				Stdout:  convoxUsage,
-			},
-		)
-	}
-}
+//   defer ts.Close()
+//   for _, hf := range stdcli.HelpFlags {
+//     c := fmt.Sprintf("convox %s", hf)
+//     test.Runs(t,
+//       test.ExecRun{
+//         Command: c,
+//         Exit:    0,
+//         Stdout:  convoxUsage,
+//       },
+//     )
+//   }
+// }
 
-func TestWaitFlag(t *testing.T) {
-	wf := waitFlag
-	require.IsType(t, cli.BoolFlag{}, wf)
-	assert.Equal(t, "CONVOX_WAIT", wf.EnvVar)
-	assert.Equal(t, "wait", wf.Name)
-}
+// func TestWaitFlag(t *testing.T) {
+//   wf := waitFlag
+//   require.IsType(t, cli.BoolFlag{}, wf)
+//   assert.Equal(t, "CONVOX_WAIT", wf.EnvVar)
+//   assert.Equal(t, "wait", wf.Name)
+// }

@@ -15,7 +15,9 @@ func TestFormationList(t *testing.T) {
 		cycleFormationDescribeStacks,
 		cycleFormationDescribeStacks,
 		cycleReleaseGetItem,
+		cycleReleaseDescribeStackResources,
 		cycleReleaseEnvironmentGet,
+		cycleSystemDescribeStackResources,
 	)
 	defer provider.Close()
 
@@ -50,6 +52,7 @@ func TestFormationListBadApp(t *testing.T) {
 func TestFormationListEmptyRelease(t *testing.T) {
 	provider := StubAwsProvider(
 		cycleFormationDescribeStacksEmptyRelease,
+		cycleFormationDescribeStacksEmptyRelease,
 	)
 	defer provider.Close()
 
@@ -79,7 +82,9 @@ func TestFormationListBadManifest(t *testing.T) {
 		cycleFormationDescribeStacks,
 		cycleFormationDescribeStacks,
 		cycleReleaseGetItemBadManifest,
+		cycleReleaseDescribeStackResources,
 		cycleReleaseEnvironmentGet,
+		cycleSystemDescribeStackResources,
 	)
 	defer provider.Close()
 
@@ -94,7 +99,9 @@ func TestFormationListBadFormation(t *testing.T) {
 		cycleFormationDescribeStacksBadFormation,
 		cycleFormationDescribeStacksBadFormation,
 		cycleReleaseGetItem,
+		cycleReleaseDescribeStackResources,
 		cycleReleaseEnvironmentGet,
+		cycleSystemDescribeStackResources,
 	)
 	defer provider.Close()
 
@@ -109,7 +116,9 @@ func TestFormationGet(t *testing.T) {
 		cycleFormationDescribeStacks,
 		cycleFormationDescribeStacks,
 		cycleReleaseGetItem,
+		cycleReleaseDescribeStackResources,
 		cycleReleaseEnvironmentGet,
+		cycleSystemDescribeStackResources,
 	)
 	defer provider.Close()
 
@@ -141,6 +150,7 @@ func TestFormationGetBadApp(t *testing.T) {
 
 func TestFormationGetEmptyRelease(t *testing.T) {
 	provider := StubAwsProvider(
+		cycleFormationDescribeStacks,
 		cycleFormationDescribeStacksEmptyRelease,
 	)
 	defer provider.Close()
@@ -171,7 +181,9 @@ func TestFormationGetBadManifest(t *testing.T) {
 		cycleFormationDescribeStacks,
 		cycleFormationDescribeStacks,
 		cycleReleaseGetItemBadManifest,
+		cycleReleaseDescribeStackResources,
 		cycleReleaseEnvironmentGet,
+		cycleSystemDescribeStackResources,
 	)
 	defer provider.Close()
 
@@ -186,7 +198,9 @@ func TestFormationGetUnknownProcess(t *testing.T) {
 		cycleFormationDescribeStacks,
 		cycleFormationDescribeStacks,
 		cycleReleaseGetItem,
+		cycleReleaseDescribeStackResources,
 		cycleReleaseEnvironmentGet,
+		cycleSystemDescribeStackResources,
 	)
 	defer provider.Close()
 

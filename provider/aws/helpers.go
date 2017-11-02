@@ -7,6 +7,7 @@ import (
 	"html/template"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"os"
 	"regexp"
 	"sort"
@@ -19,6 +20,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/convox/rack/api/cache"
 	"github.com/convox/rack/api/structs"
 )
@@ -32,6 +34,15 @@ type TemplateParameter struct {
 	Description string
 	NoEcho      bool
 	Type        string
+}
+
+func (p *AWSProvider) accountId() (string, error) {
+	res, err := p.sts().GetCallerIdentity(&sts.GetCallerIdentityInput{})
+	if err != nil {
+		return "", err
+	}
+
+	return *res.Account, nil
 }
 
 func awsError(err error) string {
@@ -81,6 +92,16 @@ func coalesce(s *dynamodb.AttributeValue, def string) string {
 		return *s.S
 	}
 	return def
+}
+
+func coalesces(ss ...string) string {
+	for _, s := range ss {
+		if s != "" {
+			return s
+		}
+	}
+
+	return ""
 }
 
 func cb(b *bool, def bool) bool {
@@ -140,22 +161,10 @@ func (p *AWSProvider) createdTime() string {
 	return time.Now().Format(sortableTime)
 }
 
-func formationParameters(template string) (map[string]bool, error) {
-	res, err := http.Get(template)
-	if err != nil {
-		return nil, err
-	}
-
-	defer res.Body.Close()
-
-	formation, err := ioutil.ReadAll(res.Body)
-	if err != nil {
-		return nil, err
-	}
-
+func formationParameters(body []byte) (map[string]bool, error) {
 	var t Template
 
-	err = json.Unmarshal(formation, &t)
+	err := json.Unmarshal(body, &t)
 
 	if err != nil {
 		return nil, err
@@ -272,6 +281,10 @@ func dashName(name string) string {
 }
 
 func upperName(name string) string {
+	if name == "" {
+		return ""
+	}
+
 	// myapp -> Myapp; my-app -> MyApp
 	us := strings.ToUpper(name[0:1]) + name[1:]
 
@@ -477,6 +490,24 @@ func (p *AWSProvider) describeStackResources(input *cloudformation.DescribeStack
 	return res, nil
 }
 
+func (p *AWSProvider) rackResource(resource string) (string, error) {
+	res, err := p.stackResource(p.Rack, resource)
+	if err != nil {
+		return "", err
+	}
+
+	return *res.PhysicalResourceId, nil
+}
+
+func (p *AWSProvider) appResource(app, resource string) (string, error) {
+	res, err := p.stackResource(fmt.Sprintf("%s-%s", p.Rack, app), resource)
+	if err != nil {
+		return "", err
+	}
+
+	return *res.PhysicalResourceId, nil
+}
+
 func (p *AWSProvider) stackResource(stack, resource string) (*cloudformation.StackResource, error) {
 	rs, err := p.describeStackResources(&cloudformation.DescribeStackResourcesInput{
 		StackName: aws.String(stack),
@@ -561,6 +592,19 @@ func (p *AWSProvider) listContainerInstances(input *ecs.ListContainerInstancesIn
 	return res, nil
 }
 
+func (p *AWSProvider) objectURL(ou string) (string, error) {
+	u, err := url.Parse(ou)
+	if err != nil {
+		return "", err
+	}
+
+	if u.Scheme != "object" {
+		return "", fmt.Errorf("only supports object:// urls")
+	}
+
+	return fmt.Sprintf("https://s3.%s.amazonaws.com/%s%s", p.Region, p.SettingsBucket, u.Path), nil
+}
+
 func (p *AWSProvider) s3Exists(bucket, key string) (bool, error) {
 	_, err := p.s3().HeadObject(&s3.HeadObjectInput{
 		Bucket: aws.String(bucket),
@@ -621,6 +665,61 @@ func (p *AWSProvider) s3Put(bucket, key string, data []byte, public bool) error 
 	return err
 }
 
+func (p *AWSProvider) taskRelease(id string) (string, error) {
+	if release, ok := cache.Get("taskRelease", id).(string); ok {
+		return release, nil
+	}
+
+	t, err := p.describeTasks(&ecs.DescribeTasksInput{
+		Cluster: aws.String(os.Getenv("CLUSTER")),
+		Tasks:   []*string{aws.String(id)},
+	})
+	if err != nil {
+		return "", err
+	}
+	if len(t.Tasks) < 1 {
+		return "", fmt.Errorf("no such task: %s", id)
+	}
+
+	release, err := p.taskDefinitionRelease(*t.Tasks[0].TaskDefinitionArn)
+	if err != nil {
+		return "", err
+	}
+
+	if err := cache.Set("taskRelease", id, release, 24*time.Hour); err != nil {
+		return "", err
+	}
+
+	return release, nil
+}
+
+func (p *AWSProvider) taskDefinitionRelease(arn string) (string, error) {
+	if release, ok := cache.Get("taskDefinitionRelease", arn).(string); ok {
+		return release, nil
+	}
+
+	td, err := p.describeTaskDefinition(&ecs.DescribeTaskDefinitionInput{
+		TaskDefinition: aws.String(arn),
+	})
+	if err != nil {
+		return "", err
+	}
+	if len(td.TaskDefinition.ContainerDefinitions) < 0 {
+		return "", fmt.Errorf("no container definitions for task definition: %s", arn)
+	}
+
+	release, ok := td.TaskDefinition.ContainerDefinitions[0].DockerLabels["convox.release"]
+	if !ok || release == nil {
+		return "", fmt.Errorf("no convox.release label for task definition: %s", arn)
+	}
+
+	if err := cache.Set("taskDefinitionRelease", arn, *release, 24*time.Hour); err != nil {
+		return "", err
+	}
+
+	return *release, nil
+}
+
 // updateStack updates a stack
 //   template is url to a template or empty string to reuse previous
 //   changes is a list of parameter changes to make (does not need to include every param)
@@ -647,9 +746,47 @@ func (p *AWSProvider) updateStack(name string, template string, changes map[stri
 	}
 
 	if template != "" {
-		req.TemplateURL = aws.String(template)
+		var data []byte
+		var err error
 
-		fp, err := formationParameters(template)
+		if strings.HasPrefix(template, "object://") {
+			u, err := url.Parse(template)
+			if err != nil {
+				return err
+			}
+
+			r, err := p.ObjectFetch(u.Path)
+			if err != nil {
+				return err
+			}
+
+			data, err = ioutil.ReadAll(r)
+			if err != nil {
+				return err
+			}
+
+			ru, err := p.objectURL(template)
+			if err != nil {
+				return err
+			}
+
+			req.TemplateURL = aws.String(ru)
+		} else {
+			res, err := http.Get(template)
+			if err != nil {
+				return err
+			}
+			defer res.Body.Close()
+
+			data, err = ioutil.ReadAll(res.Body)
+			if err != nil {
+				return err
+			}
+
+			req.TemplateURL = aws.String(template)
+		}
+
+		fp, err := formationParameters(data)
 		if err != nil {
 			return err
 		}

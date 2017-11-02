@@ -1,21 +1,19 @@
 package main
 
 import (
-	"bufio"
-	"bytes"
 	"fmt"
 	"io/ioutil"
 	"os"
-	"os/exec"
-	"path"
-	"path/filepath"
+	"sort"
+	"strconv"
 	"strings"
-	"time"
 
-	"github.com/convox/rack/cmd/convox/appinit"
-	"github.com/convox/rack/cmd/convox/helpers"
 	"github.com/convox/rack/cmd/convox/stdcli"
+	"github.com/convox/rack/manifest"
+	"github.com/convox/rack/manifest1"
+	shellquote "github.com/kballard/go-shellquote"
 	"gopkg.in/urfave/cli.v1"
+	yaml "gopkg.in/yaml.v2"
 )
 
 func init() {
@@ -34,235 +32,311 @@ func init() {
 }
 
 func cmdInit(c *cli.Context) error {
-	ep := stdcli.QOSEventProperties{Start: time.Now()}
+	if _, err := os.Stat("convox.yml"); err == nil {
+		return fmt.Errorf("convox.yml already exists")
+	}
 
-	distinctID, err := currentId()
+	m, err := manifest1.LoadFile("docker-compose.yml")
 	if err != nil {
-		stdcli.QOSEventSend("cli-init", distinctID, stdcli.QOSEventProperties{Error: err})
+		return err
 	}
 
-	wd := "."
-
-	if len(c.Args()) > 0 {
-		wd = c.Args()[0]
-	}
-
-	dir, _, err := stdcli.DirApp(c, wd)
+	mNew, report, err := ManifestConvert(m)
 	if err != nil {
-		stdcli.QOSEventSend("cli-init", distinctID, stdcli.QOSEventProperties{Error: err})
-		return stdcli.Error(err)
+		return err
 	}
 
-	if helpers.Exists(path.Join(dir, "docker-compose.yml")) {
-		fmt.Println("found docker-compose.yml, try `convox start` instead")
-		return nil
-	}
-
-	appType, err := initApplication(dir, c)
+	ymNew, err := yaml.Marshal(mNew)
 	if err != nil {
-		stdcli.QOSEventSend("Dev Code Update Failed", distinctID, stdcli.QOSEventProperties{Error: err, AppType: appType})
-		stdcli.QOSEventSend("cli-init", distinctID, stdcli.QOSEventProperties{Error: err, AppType: appType})
-		return stdcli.Error(err)
+		return err
 	}
 
-	stdcli.QOSEventSend("Dev Code Updated", distinctID, stdcli.QOSEventProperties{AppType: appType})
-	stdcli.QOSEventSend("cli-init", distinctID, ep)
+	report.Print()
+
+	if report.Success {
+		err = ioutil.WriteFile("convox.yml", ymNew, 0644)
+		if err != nil {
+			return err
+		}
+		fmt.Printf("wrote manifest: convox.yml\n")
+	} else {
+		return fmt.Errorf("address FAIL messages and try again")
+	}
+
 	return nil
 }
 
-// appKind maps to the various buildpacks and their detect output
-var appKind = map[string]string{
-	"Clojure (Leiningen 2)": "clojure",
-	"Clojure":               "clojure",
-	"Go":                    "go",
-	"Gradle":                "gradle",
-	"Java":                  "java",
-	"Node.js":               "nodejs",
-	"PHP":                   "php",
-	"Python":                "python",
-	"Ruby":                  "ruby",
-	"Scala":                 "scala",
+type Report struct {
+	Success  bool
+	Messages []string
 }
 
-func initApplication(dir string, c *cli.Context) (string, error) {
-	prepURL := "https://convox.com/docs/preparing-an-application/"
-	args := []string{"run", "--rm", "-v", fmt.Sprintf("%s:/app", dir), "convox/init"}
+func (r *Report) Append(m string) {
+	r.Messages = append(r.Messages, m)
+}
 
-	stdcli.Spinner.Prefix = "Updating convox/init... "
-	stdcli.Spinner.Start()
-
-	if err := updateInit(); err != nil {
-		fmt.Printf("\x08\x08FAILED\n")
-	} else {
-		fmt.Printf("\x08\x08OK\n")
+func (r Report) Print() {
+	sw := *stdcli.DefaultWriter
+	for _, message := range r.Messages {
+		sw.Writef(message)
 	}
-	stdcli.Spinner.Stop()
+}
 
-	var kind = ""
-	if c.Bool("boilerplate") || emptyDir(dir) {
-		kind = "boilerplate"
-	} else {
-		k, err := exec.Command(dockerBin, append(args, "detect")...).Output()
-		if err != nil {
-			return "", fmt.Errorf("unable to detect app type: convox/init - %s", err)
-		}
+func ManifestConvert(mOld *manifest1.Manifest) (*manifest.Manifest, Report, error) {
+	report := Report{Success: true}
 
-		kd := strings.TrimSpace(string(k))
-		var ok bool
-		kind, ok = appKind[kd]
-		if !ok {
-			if kd == "" {
-				kd = "?"
+	resources := make(manifest.Resources, 0)
+	services := manifest.Services{}
+	timers := make(manifest.Timers, 0)
+
+	sk := make([]string, 0)
+	for k, _ := range mOld.Services {
+		sk = append(sk, k)
+	}
+	sort.Strings(sk)
+
+	for _, k := range sk {
+		service := mOld.Services[k]
+
+		// resources
+		serviceResources := []string{}
+		if resourceService(service) {
+			t := ""
+			switch service.Image {
+			case "convox/mysql":
+				t = "mysql"
+			case "convox/postgres":
+				t = "postgres"
+			case "convox/redis":
+				t = "redis"
+			case "convox/rabbitmq":
+				t = "rabbitmq"
+			case "convox/elasticsearch":
+				t = "elasticsearch"
+			default:
+				return nil, report, fmt.Errorf("%s is not a recognized resource image", service.Image)
 			}
-			return kind, fmt.Errorf("unknown app type: %s \nCheck out %s for more information", kd, prepURL)
-		}
-	}
+			r := manifest.Resource{
+				Name: service.Name,
+				Type: t,
+			}
+			resources = append(resources, r)
 
-	fmt.Printf("Initializing a %s app\n", kind)
-
-	var af appinit.AppFramework
-
-	switch kind {
-	case "ruby":
-		af = &appinit.RubyApp{}
-	case "boilerplate":
-		af = &appinit.Boilerplate{}
-	default:
-		af = &appinit.SimpleApp{
-			Kind: kind,
-		}
-	}
-
-	stdcli.Spinner.Prefix = "Building app metadata. This could take a while... "
-	stdcli.Spinner.Start()
-	if err := af.Setup(dir); err != nil {
-		fmt.Printf("\x08\x08FAILED\n")
-		stdcli.Spinner.Stop()
-		return kind, err
-	}
-	fmt.Printf("\x08\x08OK\n")
-	stdcli.Spinner.Stop()
-
-	m, err := af.GenerateManifest()
-	if err != nil {
-		return kind, err
-	}
-
-	if err := writeFile("docker-compose.yml", m, 0644); err != nil {
-		return kind, err
-	}
-
-	df, err := af.GenerateDockerfile()
-	if err != nil {
-		return kind, err
-	}
-
-	if err := writeFile("Dockerfile", df, 0644); err != nil {
-		return kind, err
-	}
-
-	di, err := af.GenerateDockerIgnore()
-	if err != nil {
-		return kind, err
-	}
-
-	if err := writeFile(".dockerignore", di, 0644); err != nil {
-		return kind, err
-	}
-
-	gi, err := af.GenerateGitIgnore()
-	if err != nil {
-		return kind, err
-	}
-
-	if err := writeFile(".gitignore", gi, 0644); err != nil {
-		return kind, err
-	}
-
-	env, err := af.GenerateLocalEnv()
-	if err != nil {
-		return kind, err
-	}
-
-	if err := writeFile(".env", env, 0644); err != nil {
-		return kind, err
-	}
-
-	cleanComposeFile()
-
-	fmt.Println()
-	fmt.Println("Try running `convox start`")
-	return kind, err
-}
-
-func updateInit() error {
-	cmd := exec.Command("docker", "pull", "convox/init")
-	return cmd.Run()
-}
-
-// cleanComposeFile removes known invalid fields from a docker-compose.yml file
-// due to limitations in the yaml pkg not applying `omitempty` to zero valued structs.
-func cleanComposeFile() error {
-	file, err := os.Open("docker-compose.yml")
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-
-	var buffer bytes.Buffer
-	scanner := bufio.NewScanner(file)
-	for scanner.Scan() {
-		switch strings.TrimSpace(scanner.Text()) {
-		case "build: {}", "command: null":
+			report.Append(fmt.Sprintf("INFO: service <service>%s</service> has been migrated to a resource\n", service.Name))
 			continue
-		default:
-			buffer.WriteString(scanner.Text() + "\n")
 		}
+
+		// build
+		b := manifest.ServiceBuild{
+			Path: service.Build.Context,
+		}
+
+		// build args
+		if len(service.Build.Args) > 0 {
+			report.Append(fmt.Sprintf("<fail>FAIL</fail>: <service>%s</service> build args not migrated to convox.yml, use ARG in your Dockerfile instead\n", service.Name))
+			report.Success = false
+		}
+
+		// build dockerfile
+		if service.Build.Dockerfile != "" {
+			report.Append(fmt.Sprintf("<fail>FAIL</fail>: <service>%s</service> \"dockerfile\" key is not supported in convox.yml, file must be named \"Dockerfile\"\n", service.Name))
+			report.Success = false
+		}
+
+		// command
+		var cmd string
+		if len(service.Command.Array) > 0 {
+			cmd = shellquote.Join(service.Command.Array...)
+		} else {
+			cmd = service.Command.String
+		}
+
+		// entrypoint
+		if service.Entrypoint != "" {
+			report.Append(fmt.Sprintf("<fail>FAIL</fail>: <service>%s</service> \"entrypoint\" key not supported in convox.yml, use ENTRYPOINT in Dockerfile instead\n", service.Name))
+			report.Success = false
+		}
+
+		// environment
+		env := []string{}
+		for _, eItem := range service.Environment {
+			if eItem.Needed {
+				env = append(env, eItem.Name)
+			} else {
+				env = append(env, fmt.Sprintf("%s=%s", eItem.Name, eItem.Value))
+			}
+		}
+
+		// convox.agent
+		if service.IsAgent() {
+			report.Append(fmt.Sprintf("INFO: <service>%s</service> - running as an agent is not supported\n", service.Name))
+		}
+
+		// convox.balancer
+		if (len(service.Ports) > 0) && !service.HasBalancer() {
+			report.Append(fmt.Sprintf("INFO: <service>%s</service> - disabling balancers is not supported\n", service.Name))
+		}
+
+		// convox.cron
+		for k, v := range service.LabelsByPrefix("convox.cron") {
+			timer := manifest.Timer{}
+			ks := strings.Split(k, ".")
+			tokens := strings.Fields(v)
+			timer.Name = ks[len(ks)-1]
+			timer.Command = strings.Join(tokens[5:], " ")
+			timer.Schedule = strings.Join(tokens[0:5], " ")
+			timer.Service = service.Name
+			timers = append(timers, timer)
+		}
+
+		// convox.draining.timeout
+		if len(service.LabelsByPrefix("convox.draining.timeout")) > 0 {
+			report.Append(fmt.Sprintf("INFO: <service>%s</service> - setting draning timeout is not supported\n", service.Name))
+		}
+
+		// convox.environment.secure
+		if len(service.LabelsByPrefix("convox.environment.secure")) > 0 {
+			report.Append(fmt.Sprintf("INFO: <service>%s</service> - setting secure environment is not necessary\n", service.Name))
+		}
+
+		// convox.health.path
+		// convox.health.timeout
+		health := manifest.ServiceHealth{}
+		if balancer := mOld.GetBalancer(service.Name); balancer != nil {
+			timeout, err := strconv.Atoi(balancer.HealthTimeout())
+			if err != nil {
+				return nil, report, err
+			}
+			health.Path = balancer.HealthPath()
+			health.Timeout = timeout
+		}
+
+		// convox.health.port
+		if len(service.LabelsByPrefix("convox.health.port")) > 0 {
+			report.Append(fmt.Sprintf("INFO: <service>%s</service> - setting health check port is not necessary\n", service.Name))
+		}
+
+		// convox.health.threshold.healthy
+		// convox.helath.threshold.unhealthy
+		if len(service.LabelsByPrefix("convox.health.threshold")) > 0 {
+			report.Append(fmt.Sprintf("INFO: <service>%s</service> - setting health check thresholds is not supported\n", service.Name))
+		}
+
+		// convox.idle.timeout
+		if len(service.LabelsByPrefix("convox.idle.timeout")) > 0 {
+			report.Append(fmt.Sprintf("INFO: <service>%s</service> - setting idle timeout is not supported\n", service.Name))
+		}
+
+		// convox.port..protocol
+		// convox.port..proxy
+		// convox.port..secure
+		if len(service.LabelsByPrefix("convox.idle.timeout")) > 0 {
+			report.Append(fmt.Sprintf("INFO: <service>%s</service> - configuring balancer via convox.port labels is not supported\n", service.Name))
+		}
+
+		// convox.start.shift
+		if len(service.LabelsByPrefix("convox.start.shift")) > 0 {
+			report.Append(fmt.Sprintf("<fail>FAIL</fail>: <service>%s</service> - port shifting is not supported, use internal hostnames instead\n", service.Name))
+			report.Success = false
+		}
+
+		// links
+		for _, link := range service.Links {
+			resource := false
+			for _, sOld := range mOld.Services {
+				if (sOld.Name == link) && resourceService(sOld) {
+					serviceResources = append(serviceResources, link)
+					resource = true
+					break
+				}
+			}
+			if !resource {
+				report.Append(fmt.Sprintf("INFO: <service>%s</service> - environment variables not generated for linked service <service>%s</service>, use internal URL https://%s.<app name>.convox instead\n", service.Name, link, link))
+			}
+		}
+
+		// mem_limit
+		mb := service.Memory / (1024 * 1024) // bytes to Megabytes
+		scale := manifest.ServiceScale{
+			Memory: int(mb),
+		}
+
+		// ports
+		p := manifest.ServicePort{}
+
+		for _, port := range service.Ports {
+			if port.Protocol == "udp" {
+				report.Append(fmt.Sprintf("INFO: <service>%s</service> - UDP ports are not supported\n", service.Name))
+				continue
+			}
+
+			switch port.Balancer {
+			case 80, 443:
+			default:
+				report.Append(fmt.Sprintf("INFO: <service>%s</service> - only HTTP ports supported\n", service.Name))
+				continue
+			}
+
+			p.Port = port.Container
+			p.Scheme = "http"
+
+			if service.Labels[fmt.Sprintf("convox.port.%d.secure", port.Balancer)] == "true" {
+				p.Scheme = "https"
+			}
+		}
+
+		// privileged
+		if service.Privileged {
+			report.Append(fmt.Sprintf("INFO: <service>%s</service> - privileged mode not supported\n", service.Name))
+		}
+
+		s := manifest.Service{
+			Name:        k,
+			Build:       b,
+			Command:     cmd,
+			Environment: env,
+			Health:      health,
+			Image:       service.Image,
+			Port:        p,
+			Resources:   serviceResources,
+			Scale:       scale,
+			Volumes:     service.Volumes,
+		}
+		services = append(services, s)
 	}
 
-	if err := scanner.Err(); err != nil {
-		return err
+	if mOld.Networks != nil {
+		report.Append(fmt.Sprintf("INFO: custom networks not supported, use service hostnames instead\n"))
 	}
 
-	return ioutil.WriteFile("docker-compose.yml", buffer.Bytes(), 0644)
+	m := manifest.Manifest{
+		Resources: resources,
+		Services:  services,
+		Timers:    timers,
+	}
+
+	err := m.ApplyDefaults()
+	if err != nil {
+		return nil, report, err
+	}
+
+	return &m, report, nil
 }
 
-// emptyDir checks if the directory is empty
-func emptyDir(dir string) bool {
-	files, err := ioutil.ReadDir(dir)
-	if err != nil {
-		return false
+func resourceService(service manifest1.Service) bool {
+	resourceImages := []string{
+		"convox/mysql",
+		"convox/postgres",
+		"convox/redis",
+		"convox/rabbitmq",
+		"convox/elasticsearch",
 	}
 
-	if len(files) == 0 {
-		return true
+	for _, image := range resourceImages {
+		if service.Image == image {
+			return true
+		}
 	}
 
 	return false
-}
-
-// writeFile is a helper function that writes a file
-func writeFile(path string, data []byte, mode os.FileMode) error {
-	if data == nil {
-		return nil
-	}
-
-	fmt.Printf("Writing %s... ", path)
-
-	if helpers.Exists(path) {
-		fmt.Println("EXISTS")
-		return nil
-	}
-
-	// make the containing directory
-	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
-		return err
-	}
-
-	if err := ioutil.WriteFile(path, data, mode); err != nil {
-		return err
-	}
-
-	fmt.Println("OK")
-	return nil
 }

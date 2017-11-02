@@ -1,0 +1,63 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Parameters": {
+    "InstanceSize": {
+      "Default": "cache.t2.micro",
+      "Type": "String"
+    },
+    "Password": {
+      "MinLength": "8",
+      "NoEcho": true,
+      "Type": "String"
+    },
+    "Rack": {
+      "MinLength": "1",
+      "Type": "String"
+    },
+    "Version": {
+      "Default": "2.8.24",
+      "MinLength": "1",
+      "Type": "String"
+    }
+  },
+  "Outputs": {
+    "Url": { "Value": { "Fn::Sub": "redis://${ReplicationGroup.PrimaryEndPoint.Address}:${ReplicationGroup.PrimaryEndPoint.Port}/0" } }
+  },
+  "Resources": {
+    "SecurityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "redis resource",
+        "SecurityGroupIngress": [
+          { "IpProtocol": "tcp", "FromPort": "6379", "ToPort": "6379", "CidrIp": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:VpcCidr" } } }
+        ],
+        "VpcId": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Vpc" } }
+      }
+    },
+    "SubnetGroup": {
+      "Type": "AWS::ElastiCache::SubnetGroup",
+      "Properties": {
+        "Description": { "Fn::Sub": "${AWS::StackName} subnets" },
+        "SubnetIds": [
+          { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Subnet0" } },
+          { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Subnet1" } }
+        ]
+      }
+    },
+    "ReplicationGroup": {
+      "Type": "AWS::ElastiCache::ReplicationGroup",
+      "Properties": {
+        "AutomaticFailoverEnabled": "false",
+        "AutoMinorVersionUpgrade": "true",
+        "CacheNodeType": { "Ref": "InstanceSize" },
+        "CacheSubnetGroupName": { "Ref": "SubnetGroup" },
+        "Engine": "redis",
+        "EngineVersion": { "Ref": "Version" },
+        "NumCacheClusters": "1",
+        "Port": "6379",
+        "ReplicationGroupDescription": { "Ref": "AWS::StackName" },
+        "SecurityGroupIds": [ { "Ref": "SecurityGroup" } ]
+      }
+    }
+  }
+}

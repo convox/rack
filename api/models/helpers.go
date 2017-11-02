@@ -323,6 +323,10 @@ func stackTags(stack *cloudformation.Stack) map[string]string {
 	return tags
 }
 
+func appResource(app, name string) (string, error) {
+	return stackResource(fmt.Sprintf("%s-%s", os.Getenv("RACK"), app), name)
+}
+
 func rackResource(name string) (string, error) {
 	return stackResource(os.Getenv("RACK"), name)
 }
@@ -336,6 +340,9 @@ func stackResource(stack, resource string) (string, error) {
 		return "", err
 	}
 	if len(res.StackResources) < 1 {
+		return "", fmt.Errorf("no stack resource for: %s", resource)
+	}
+	if res.StackResources[0].PhysicalResourceId == nil {
 		return "", fmt.Errorf("no stack resource for: %s", resource)
 	}
 
@@ -379,17 +386,26 @@ func shortNameToStackName(appName string) string {
 
 func templateHelpers() template.FuncMap {
 	return template.FuncMap{
+		"coalesce": func(ss ...string) string {
+			for _, s := range ss {
+				if s != "" {
+					return s
+				}
+			}
+
+			return ""
+		},
 		"env": func(s string) string {
 			return os.Getenv(s)
+		},
+		"itoa": func(i int) string {
+			return strconv.Itoa(i)
 		},
 		"upper": func(s string) string {
 			return UpperName(s)
 		},
 		"value": func(s string) template.HTML {
 			return template.HTML(fmt.Sprintf("%q", s))
-		},
-		"itoa": func(i int) string {
-			return strconv.Itoa(i)
 		},
 	}
 }

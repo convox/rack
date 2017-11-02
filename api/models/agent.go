@@ -9,12 +9,12 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/convox/rack/manifest"
+	"github.com/convox/rack/manifest1"
 )
 
 // Agent represents a Service which runs exactly once on every ECS agent
 type Agent struct {
-	Service *manifest.Service
+	Service *manifest1.Service
 	App     *App
 }
 
@@ -47,7 +47,7 @@ func (d *Agent) LongName() string {
 }
 
 // Agents returns any Agent Services defined in the given Manifest
-func (a App) Agents(m manifest.Manifest) []Agent {
+func (a App) Agents(m manifest1.Manifest) []Agent {
 	agents := Agents{}
 
 	for _, entry := range m.Services {

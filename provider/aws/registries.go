@@ -191,9 +191,7 @@ func (p *AWSProvider) migrateClassicAuth() error {
 		data = d
 
 		if p.EncryptionKey != "" {
-			cr := crypt.New(p.Region, p.Access, p.Secret)
-
-			if d, err := cr.Decrypt(p.EncryptionKey, data); err == nil {
+			if d, err := crypt.New().Decrypt(p.EncryptionKey, data); err == nil {
 				data = d
 			}
 		}

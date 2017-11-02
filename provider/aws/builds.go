@@ -27,7 +27,7 @@ import (
 	docker "github.com/fsouza/go-dockerclient"
 
 	"github.com/convox/rack/api/structs"
-	"github.com/convox/rack/manifest"
+	"github.com/convox/rack/manifest1"
 )
 
 // ECR host is formatted like 123456789012.dkr.ecr.us-east-1.amazonaws.com
@@ -139,7 +139,7 @@ func (p *AWSProvider) BuildExport(app, id string, w io.Writer) error {
 		return err
 	}
 
-	m, err := manifest.Load([]byte(build.Manifest))
+	m, err := manifest1.Load([]byte(build.Manifest))
 	if err != nil {
 		log.Error(err)
 		return fmt.Errorf("manifest error: %s", err)
@@ -727,12 +727,12 @@ func (p *AWSProvider) buildAuth(build *structs.Build) (string, error) {
 		}
 	}
 
-	a, err := p.AppGet(build.App)
+	aid, err := p.accountId()
 	if err != nil {
 		return "", err
 	}
 
-	host := fmt.Sprintf("%s.dkr.ecr.%s.amazonaws.com", a.Outputs["RegistryId"], p.Region)
+	host := fmt.Sprintf("%s.dkr.ecr.%s.amazonaws.com", aid, p.Region)
 
 	un, pw, err := p.authECR(host, "", "")
 	if err != nil {
@@ -796,14 +796,9 @@ func (p *AWSProvider) authECR(host, access, secret string) (string, string, erro
 func (p *AWSProvider) runBuild(build *structs.Build, method, url string, opts structs.BuildOptions) error {
 	log := Logger.At("runBuild").Namespace("method=%q url=%q", method, url).Start()
 
-	br, err := p.stackResource(p.Rack, "RackBuildTasks")
+	br, err := p.stackResource(p.Rack, "ApiBuildTasks")
 	if err != nil {
 		log.Error(err)
-		return err
-	}
-
-	a, err := p.AppGet(build.App)
-	if err != nil {
 		return err
 	}
 
@@ -814,7 +809,37 @@ func (p *AWSProvider) runBuild(build *structs.Build, method, url string, opts st
 		return err
 	}
 
-	push := fmt.Sprintf("%s.dkr.ecr.%s.amazonaws.com/%s:{service}.{build}", a.Outputs["RegistryId"], p.Region, a.Outputs["RegistryRepository"])
+	aid, err := p.accountId()
+	if err != nil {
+		return err
+	}
+
+	reg, err := p.appResource(build.App, "Registry")
+	if err != nil {
+		// handle generation 1
+		if strings.HasPrefix(err.Error(), "resource not found") {
+			app, err := p.AppGet(build.App)
+			if err != nil {
+				return err
+			}
+
+			reg = app.Outputs["RegistryRepository"]
+		} else {
+			return err
+		}
+	}
+
+	a, err := p.AppGet(build.App)
+	if err != nil {
+		return err
+	}
+
+	push := fmt.Sprintf("%s.dkr.ecr.%s.amazonaws.com/%s:{service}.{build}", aid, p.Region, reg)
+
+	switch a.Tags["Generation"] {
+	case "2":
+		push = fmt.Sprintf("%s.dkr.ecr.%s.amazonaws.com/%s", aid, p.Region, reg)
+	}
 
 	req := &ecs.RunTaskInput{
 		Cluster:        aws.String(p.BuildCluster),
@@ -842,6 +867,10 @@ func (p *AWSProvider) runBuild(build *structs.Build, method, url string, opts st
 						{
 							Name:  aws.String("BUILD_CONFIG"),
 							Value: aws.String(opts.Config),
+						},
+						{
+							Name:  aws.String("BUILD_GENERATION"),
+							Value: aws.String(a.Tags["Generation"]),
 						},
 						{
 							Name:  aws.String("BUILD_ID"),
@@ -971,7 +1000,7 @@ func (p *AWSProvider) buildFromItem(item map[string]*dynamodb.AttributeValue) *s
 // are not yet supported and return an error.
 func (p *AWSProvider) deleteImages(a *structs.App, b *structs.Build) error {
 
-	m, err := manifest.Load([]byte(b.Manifest))
+	m, err := manifest1.Load([]byte(b.Manifest))
 	if err != nil {
 		return err
 	}
