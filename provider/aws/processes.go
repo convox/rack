@@ -636,6 +636,11 @@ func (p *AWSProvider) fetchProcess(task *ecs.Task, psch chan structs.Process, er
 		}
 	}
 
+	labels := map[string]string{}
+	for k, v := range cd.DockerLabels {
+		labels[k] = *v
+	}
+
 	container := task.Containers[0]
 
 	ports := []string{}
@@ -646,8 +651,8 @@ func (p *AWSProvider) fetchProcess(task *ecs.Task, psch chan structs.Process, er
 	ps := structs.Process{
 		ID:       arnToPid(*task.TaskArn),
 		Name:     *container.Name,
-		App:      env["APP"],
-		Release:  env["RELEASE"],
+		App:      coalesces(labels["convox.app"], env["APP"]),
+		Release:  coalesces(labels["convox.release"], env["RELEASE"]),
 		Image:    *cd.Image,
 		Instance: *ci.Ec2InstanceId,
 		Ports:    ports,

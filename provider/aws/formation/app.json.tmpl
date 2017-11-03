@@ -201,7 +201,7 @@
               "Command": [ "sh", "-c", "{{.}}" ],
             {{ end }}
             "Cpu": { "Fn::Select": [ 1, { "Ref": "{{ upper .Name }}Formation" } ] },
-            "DockerLabels": { "convox.generation": "2", "convox.release": "{{$.Release.Id}}" },
+            "DockerLabels": { "convox.app": "{{$.App}}", "convox.generation": "2", "convox.release": "{{$.Release.Id}}" },
             "Environment": [
               {{ range $k, $v := .EnvironmentDefaults }}
                 { "Name": "{{$k}}", "Value": "{{ safe $v }}" },
@@ -317,7 +317,7 @@
             {
               "Command": [ "sh", "-c", "{{$t.Command}}" ],
               "Cpu": { "Fn::Select": [ 1, { "Ref": "{{ upper .Name }}Formation" } ] },
-              "DockerLabels": { "convox.generation": "2", "convox.release": "{{$.Release.Id}}" },
+              "DockerLabels": { "convox.app": "{{$.App}}", "convox.generation": "2", "convox.release": "{{$.Release.Id}}" },
               "Environment": [
                 {{ range $k, $v := .EnvironmentDefaults }}
                   { "Name": "{{$k}}", "Value": "{{ safe $v }}" },
