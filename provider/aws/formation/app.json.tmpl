@@ -107,7 +107,6 @@
       "Balancer{{ upper .Name }}TargetGroup": {
         "Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
         "Properties": {
-          "Name": { "Fn::Sub": "${AWS::StackName}-{{.Name}}-{{.Port.Port}}" },
           "HealthCheckIntervalSeconds": "{{.Health.Interval}}",
           "HealthCheckTimeoutSeconds": "{{.Health.Timeout}}",
           "UnhealthyThresholdCount": "2",
