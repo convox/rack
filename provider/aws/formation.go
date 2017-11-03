@@ -77,6 +77,11 @@ func (p *AWSProvider) formationList2(app string) (structs.Formation, error) {
 	}
 
 	formation := structs.Formation{}
+
+	if a.Outputs["Services"] == "" {
+		return formation, nil
+	}
+
 	services := strings.Split(a.Outputs["Services"], ",")
 
 	for _, s := range services {
