@@ -118,18 +118,21 @@ func (p *AWSProvider) SystemGet() (*structs.System, error) {
 		}
 	}
 
+	outputs := map[string]string{}
+
+	for _, out := range stack.Outputs {
+		outputs[*out.OutputKey] = *out.OutputValue
+	}
+
 	r := &structs.System{
 		Count:   count,
+		Domain:  outputs["Domain"],
 		Name:    p.Rack,
 		Region:  p.Region,
 		Status:  status,
 		Type:    params["InstanceType"],
 		Version: params["Version"],
-		Outputs: map[string]string{},
-	}
-
-	for _, out := range stack.Outputs {
-		r.Outputs[*out.OutputKey] = *out.OutputValue
+		Outputs: outputs,
 	}
 
 	log.Success()

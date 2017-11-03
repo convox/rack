@@ -2,6 +2,7 @@ package structs
 
 type System struct {
 	Count   int    `json:"count"`
+	Domain  string `json:"domain"`
 	Name    string `json:"name"`
 	Region  string `json:"region"`
 	Status  string `json:"status"`

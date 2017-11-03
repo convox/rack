@@ -153,8 +153,12 @@ func cmdRack(c *cli.Context) error {
 	info.Add("Name", system.Name)
 	info.Add("Status", system.Status)
 	info.Add("Version", system.Version)
-	info.Add("Region", system.Region)
+
 	info.Add("Count", fmt.Sprintf("%d", system.Count))
+	if system.Domain != "" {
+		info.Add("Domain", system.Domain)
+	}
+	info.Add("Region", system.Region)
 	info.Add("Type", system.Type)
 
 	info.Print()

@@ -18,6 +18,7 @@ func TestSystemShow(t *testing.T) {
 	models.Test(t, func() {
 		system := &structs.System{
 			Count:   3,
+			Domain:  "foo",
 			Name:    "test",
 			Region:  "us-test-1",
 			Status:  "running",
@@ -31,7 +32,7 @@ func TestSystemShow(t *testing.T) {
 
 		if assert.Nil(t, hf.Request("GET", "/system", nil)) {
 			hf.AssertCode(t, 200)
-			hf.AssertJSON(t, `{"count":3,"name":"test","region":"us-test-1","status":"running","type":"t2.small","version":"dev"}`)
+			hf.AssertJSON(t, `{"count":3,"domain":"foo","name":"test","region":"us-test-1","status":"running","type":"t2.small","version":"dev"}`)
 		}
 	})
 }
@@ -80,7 +81,7 @@ func TestSystemUpdate(t *testing.T) {
 
 		if assert.Nil(t, hf.Request("PUT", "/system", v)) {
 			hf.AssertCode(t, 200)
-			hf.AssertJSON(t, `{"count":5,"name":"test","region":"us-test-1","status":"running","type":"t2.test","version":"latest"}`)
+			hf.AssertJSON(t, `{"count":5,"domain":"","name":"test","region":"us-test-1","status":"running","type":"t2.test","version":"latest"}`)
 		}
 	})
 }
@@ -128,7 +129,7 @@ func TestSystemUpdateCountNoChange(t *testing.T) {
 
 		if assert.Nil(t, hf.Request("PUT", "/system", v)) {
 			hf.AssertCode(t, 200)
-			hf.AssertJSON(t, `{"count":3,"name":"test","region":"us-test-1","status":"running","type":"t2.small","version":"latest"}`)
+			hf.AssertJSON(t, `{"count":3,"domain":"","name":"test","region":"us-test-1","status":"running","type":"t2.small","version":"latest"}`)
 		}
 	})
 }
