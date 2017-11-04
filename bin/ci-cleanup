@@ -102,6 +102,11 @@ for region in $(cat $base/REGIONS); do
     echo "deleting log group: $group ($region)"
     aws logs delete-log-group --log-group-name $group --region $region
   done
+
+  for snapshot in $(aws rds describe-db-snapshots --region $region | jq -r '.DBSnapshots[].DBSnapshotIdentifier'); do
+    echo "deleting rds snapshot: $snapshot ($region)"
+    aws rds delete-db-snapshot --db-snapshot-identifier $snapshot --region $region >/dev/null
+  done
 done
 
 for bucket in $(aws s3api list-buckets | jq -r '.Buckets[].Name'); do
