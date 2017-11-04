@@ -36,6 +36,9 @@ func main() {
 		os.Exit(1)
 	}
 
+	// make it slightly harder to fetch these creds later
+	os.Unsetenv("AWS_CONTAINER_CREDENTIALS_RELATIVE_URI")
+
 	cmd.Env = append(os.Environ(), cenv...)
 
 	cmd.Stdin = os.Stdin
