@@ -20,6 +20,7 @@ services:
       - DYNAMO_RELEASES
       - ENCRYPTION_KEY
       - INTERNAL
+      - LOG_BUCKET
       - NOTIFICATION_HOST
       - NOTIFICATION_TOPIC
       - PASSWORD

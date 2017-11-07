@@ -6,9 +6,10 @@
     "Conditions": {
       {{ template "balancer-conditions" .Manifest }}
       {{ template "process-conditions" .Manifest }}
+      "BlankLogBucket": { "Fn::Equals": [ { "Ref": "LogBucket" }, "" ] },
+      "BlankSecurityGroup": { "Fn::Equals": [ { "Ref": "SecurityGroup" }, "" ] },
       "Internal": { "Fn::Equals": [ { "Ref": "Internal" }, "Yes" ] },
-      "Private": { "Fn::Equals": [ { "Ref": "Private" }, "Yes" ] },
-      "BlankSecurityGroup" : {"Fn::Equals" : [{"Ref" : "SecurityGroup"}, ""]}
+      "Private": { "Fn::Equals": [ { "Ref": "Private" }, "Yes" ] }
     },
     "Parameters" : {
       {{ template "balancer-params" .Manifest }}
@@ -44,6 +45,10 @@
         "Type": "String",
         "Default": "",
         "Description": ""
+      },
+      "LogBucket": {
+        "Type": "String",
+        "Default": ""
       },
       "Private": {
         "Type": "String",
@@ -980,6 +985,13 @@
     "DeletionPolicy": "Retain",
     "Properties": {
       "AccessControl": "Private",
+      "LoggingConfiguration": { "Fn::If": [ "BlankLogBucket",
+        { "Ref": "AWS::NoValue" },
+        {
+          "DestinationBucketName": { "Ref": "LogBucket" },
+          "LogFilePrefix": { "Fn::Sub": "convox/logs/${AWS::StackName}/s3" }
+        }
+      ] },
       "Tags": [
         { "Key": "system", "Value": "convox" },
         { "Key": "app", "Value": { "Ref": "AWS::StackName" } }

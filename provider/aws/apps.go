@@ -34,6 +34,7 @@ func (p *AWSProvider) AppCreate(name string) (*structs.App, error) {
 	_, err = p.cloudformation().CreateStack(&cloudformation.CreateStackInput{
 		Capabilities: []*string{aws.String("CAPABILITY_IAM")},
 		Parameters: []*cloudformation.Parameter{
+			{ParameterKey: aws.String("LogBucket"), ParameterValue: aws.String(p.LogBucket)},
 			{ParameterKey: aws.String("Rack"), ParameterValue: aws.String(p.Rack)},
 		},
 		StackName: aws.String(fmt.Sprintf("%s-%s", p.Rack, name)),

@@ -152,7 +152,9 @@ func (p *AWSProvider) ReleasePromote(r *structs.Release) error {
 		return err
 	}
 
-	updates := map[string]string{}
+	updates := map[string]string{
+		"LogBucket": p.LogBucket,
+	}
 
 	if err := p.updateStack(stack, ou, updates); err != nil {
 		return err
