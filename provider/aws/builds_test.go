@@ -170,6 +170,7 @@ func TestBuildExport(t *testing.T) {
 	provider := StubAwsProvider(
 		cycleBuildGetItem,
 		cycleBuildDescribeStacks,
+		cycleBuildDescribeStacks,
 		cycleBuildDescribeRepositories,
 		cycleBuildGetAuthorizationToken,
 	)
