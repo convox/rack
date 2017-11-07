@@ -46,6 +46,7 @@ type AWSProvider struct {
 	DynamoBuilds        string
 	DynamoReleases      string
 	EncryptionKey       string
+	LogBucket           string
 	NotificationHost    string
 	NotificationTopic   string
 	Password            string
@@ -64,7 +65,7 @@ type AWSProvider struct {
 
 // NewProviderFromEnv returns a new AWS provider from env vars
 func FromEnv() *AWSProvider {
-	return &AWSProvider{
+	p := &AWSProvider{
 		Region:              os.Getenv("AWS_REGION"),
 		Endpoint:            os.Getenv("AWS_ENDPOINT"),
 		BuildCluster:        os.Getenv("BUILD_CLUSTER"),
@@ -75,6 +76,7 @@ func FromEnv() *AWSProvider {
 		DynamoBuilds:        os.Getenv("DYNAMO_BUILDS"),
 		DynamoReleases:      os.Getenv("DYNAMO_RELEASES"),
 		EncryptionKey:       os.Getenv("ENCRYPTION_KEY"),
+		LogBucket:           os.Getenv("LOG_BUCKET"),
 		NotificationHost:    os.Getenv("NOTIFICATION_HOST"),
 		NotificationTopic:   os.Getenv("NOTIFICATION_TOPIC"),
 		Password:            os.Getenv("PASSWORD"),
@@ -88,6 +90,8 @@ func FromEnv() *AWSProvider {
 		Vpc:                 os.Getenv("VPC"),
 		VpcCidr:             os.Getenv("VPCCIDR"),
 	}
+
+	return p
 }
 
 func init() {

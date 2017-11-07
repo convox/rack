@@ -134,6 +134,7 @@ func (r *Release) Promote() error {
 
 	app.Parameters["Environment"] = r.EnvironmentUrl()
 	app.Parameters["Kernel"] = customTopic
+	app.Parameters["LogBucket"] = os.Getenv("LOG_BUCKET")
 	app.Parameters["Release"] = r.Id
 	app.Parameters["Version"] = os.Getenv("RELEASE")
 	app.Parameters["VPCCIDR"] = os.Getenv("VPCCIDR")

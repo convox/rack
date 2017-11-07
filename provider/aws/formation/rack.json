@@ -13,7 +13,7 @@
     "BlankInstanceSecurityGroup": { "Fn::Equals": [ {"Ref": "InstanceSecurityGroup" }, "" ]},
     "BlankInternetGateway": { "Fn::Equals": [ { "Ref": "InternetGateway"}, "" ] },
     "BlankKey": { "Fn::Equals": [ { "Ref": "Key" }, "" ] },
-    "BlankKey": { "Fn::Equals": [ { "Ref": "Key" }, "" ] },
+    "BlankLogBucket": { "Fn::Equals": [ { "Ref": "LogBucket" }, "" ] },
     "DedicatedBuilder": { "Fn::Not": [ { "Fn::Equals": [ { "Ref": "BuildInstance" }, "" ] } ] },
     "Development": { "Fn::Equals": [ { "Ref": "Development" }, "Yes" ] },
     "EncryptEbs" : { "Fn::Equals": [ { "Ref": "EncryptEbs" }, "Yes" ] },
@@ -53,18 +53,18 @@
   },
   "Mappings": {
     "RegionConfig": {
-      "ap-northeast-1": { "Ami": "ami-21815747", "EFS": "No",  "ThirdAvailabilityZone": "Yes" },
-      "ap-northeast-2": { "Ami": "ami-7ee13b10", "EFS": "No",  "ThirdAvailabilityZone": "No"  },
-      "ap-southeast-1": { "Ami": "ami-99f588fa", "EFS": "No",  "ThirdAvailabilityZone": "No"  },
-      "ap-southeast-2": { "Ami": "ami-4f08e82d", "EFS": "Yes", "ThirdAvailabilityZone": "Yes" },
-      "ca-central-1":   { "Ami": "ami-9b54edff", "EFS": "No",  "ThirdAvailabilityZone": "No"  },
-      "eu-central-1":   { "Ami": "ami-40d5672f", "EFS": "Yes", "ThirdAvailabilityZone": "Yes" },
-      "eu-west-1":      { "Ami": "ami-13f7226a", "EFS": "Yes", "ThirdAvailabilityZone": "Yes" },
-      "eu-west-2":      { "Ami": "ami-eb62708f", "EFS": "No",  "ThirdAvailabilityZone": "No"  },
-      "us-east-1":      { "Ami": "ami-ec33cc96", "EFS": "Yes", "ThirdAvailabilityZone": "Yes" },
-      "us-east-2":      { "Ami": "ami-34032e51", "EFS": "Yes", "ThirdAvailabilityZone": "Yes" },
-      "us-west-1":      { "Ami": "ami-d5d0e0b5", "EFS": "No",  "ThirdAvailabilityZone": "Yes" },
-      "us-west-2":      { "Ami": "ami-29f80351", "EFS": "Yes", "ThirdAvailabilityZone": "Yes" }
+      "ap-northeast-1": { "Ami": "ami-21815747", "EFS": "No",  "ThirdAvailabilityZone": "Yes", "ELBAccountId": "582318560864" },
+      "ap-northeast-2": { "Ami": "ami-7ee13b10", "EFS": "No",  "ThirdAvailabilityZone": "No",  "ELBAccountId": "600734575887" },
+      "ap-southeast-1": { "Ami": "ami-99f588fa", "EFS": "No",  "ThirdAvailabilityZone": "No",  "ELBAccountId": "114774131450" },
+      "ap-southeast-2": { "Ami": "ami-4f08e82d", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "783225319266" },
+      "ca-central-1":   { "Ami": "ami-9b54edff", "EFS": "No",  "ThirdAvailabilityZone": "No",  "ELBAccountId": "985666609251" },
+      "eu-central-1":   { "Ami": "ami-40d5672f", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "054676820928" },
+      "eu-west-1":      { "Ami": "ami-13f7226a", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "156460612806" },
+      "eu-west-2":      { "Ami": "ami-eb62708f", "EFS": "No",  "ThirdAvailabilityZone": "No",  "ELBAccountId": "652711504416" },
+      "us-east-1":      { "Ami": "ami-ec33cc96", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "127311923021" },
+      "us-east-2":      { "Ami": "ami-34032e51", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "033677994240" },
+      "us-west-1":      { "Ami": "ami-d5d0e0b5", "EFS": "No",  "ThirdAvailabilityZone": "Yes", "ELBAccountId": "027434742980" },
+      "us-west-2":      { "Ami": "ami-29f80351", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "797873946194" }
     }
   },
   "Outputs": {
@@ -128,6 +128,9 @@
     },
     "Internal": {
       "Value": { "Ref": "Internal" }
+    },
+    "LogBucket": {
+      "Value": { "Fn::If": [ "BlankLogBucket", { "Ref": "Logs" }, { "Ref": "LogBucket" } ] }
     },
     "LogGroup": {
       "Value": { "Ref": "LogGroup" }
@@ -422,6 +425,11 @@
     "Key": {
       "Default": "",
       "Description": "SSH key name for access to cluster instances",
+      "Type": "String"
+    },
+    "LogBucket": {
+      "Default": "",
+      "Description": "Bucket to receive S3 logs",
       "Type": "String"
     },
     "OnDemandMinCount": {
@@ -1706,6 +1714,9 @@
       "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
       "Properties": {
         "LoadBalancerAttributes": [
+          { "Key": "access_logs.s3.enabled", "Value": "true" },
+          { "Key": "access_logs.s3.bucket", "Value": { "Fn::If": [ "BlankLogBucket", { "Ref": "Logs" }, { "Ref": "LogBucket" } ] } },
+          { "Key": "access_logs.s3.prefix", "Value": { "Fn::Sub": "convox/logs/${AWS::StackName}/router" } },
           { "Key": "idle_timeout.timeout_seconds", "Value": "3600" }
         ],
         "Subnets": [
@@ -1918,6 +1929,7 @@
               { "Name": "HTTP_PROXY", "Value": { "Ref": "HttpProxy" } },
               { "Name": "HTTPS_PROXY", "Value": { "Ref": "HttpProxy" } },
               { "Name": "INTERNAL", "Value": { "Ref": "Internal" } },
+              { "Name": "LOG_BUCKET", "Value": { "Fn::If": [ "BlankLogBucket", { "Ref": "Logs" }, { "Ref": "LogBucket" } ] } },
               { "Name": "LOG_GROUP", "Value": { "Ref": "LogGroup" } },
               { "Name": "NOTIFICATION_HOST", "Value": { "Fn::GetAtt": [ "Balancer", "DNSName" ] } },
               { "Name": "NOTIFICATION_TOPIC", "Value": { "Ref": "NotificationTopic" } },
@@ -2143,17 +2155,50 @@
         "ProvisionedThroughput": { "ReadCapacityUnits": "5", "WriteCapacityUnits": "5" }
       }
     },
+    "Logs": {
+      "Type": "AWS::S3::Bucket",
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "AccessControl": "LogDeliveryWrite",
+        "Tags": [
+          { "Key": "System", "Value": "convox" },
+          { "Key": "Rack", "Value": { "Ref": "AWS::StackName" } }
+        ]
+      }
+    },
+    "LogsPolicy": {
+      "Type": "AWS::S3::BucketPolicy",
+      "Properties": {
+        "Bucket": { "Ref": "Logs" },
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": "ELB log delivery service",
+              "Effect": "Allow",
+              "Principal": { "AWS": { "Fn::FindInMap": [ "RegionConfig", { "Ref": "AWS::Region" }, "ELBAccountId" ] } },
+              "Action": "s3:PutObject",
+              "Resource": { "Fn::Sub": "arn:aws:s3:::${Logs}/*" }
+            }
+          ]
+        }
+      }
+    },
     "Settings": {
+      "Type": "AWS::S3::Bucket",
+      "DependsOn": "LogsPolicy",
+      "DeletionPolicy": "Retain",
       "Properties": {
         "AccessControl": "Private",
+        "LoggingConfiguration": {
+          "DestinationBucketName": { "Fn::If": [ "BlankLogBucket", { "Ref": "Logs" }, { "Ref": "LogBucket" } ] },
+          "LogFilePrefix": { "Fn::Sub": "convox/logs/${AWS::StackName}/s3" }
+        },
         "Tags": [
-          { "Key": "system", "Value": "convox" },
-          { "Key": "app", "Value": { "Ref": "AWS::StackName" } },
-          { "Key": "Name", "Value": { "Ref": "AWS::StackName" } }
+          { "Key": "System", "Value": "convox" },
+          { "Key": "Rack", "Value": { "Ref": "AWS::StackName" } }
         ]
-      },
-      "DeletionPolicy": "Retain",
-      "Type": "AWS::S3::Bucket"
-    }
+      }
+    },
   }
 }
