@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"html/template"
 	"io/ioutil"
+	"math/rand"
 	"net/http"
 	"net/url"
 	"os"
@@ -130,6 +131,16 @@ func ct(t *time.Time) time.Time {
 		return *t
 	}
 	return time.Time{}
+}
+
+var idAlphabet = []rune("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
+
+func generateId(prefix string, size int) string {
+	b := make([]rune, size)
+	for i := range b {
+		b[i] = idAlphabet[rand.Intn(len(idAlphabet))]
+	}
+	return prefix + string(b)
 }
 
 func buildTemplate(name, section string, data interface{}) (string, error) {

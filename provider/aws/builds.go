@@ -27,6 +27,7 @@ import (
 	docker "github.com/fsouza/go-dockerclient"
 
 	"github.com/convox/rack/api/structs"
+	"github.com/convox/rack/manifest"
 	"github.com/convox/rack/manifest1"
 )
 
@@ -139,13 +140,46 @@ func (p *AWSProvider) BuildExport(app, id string, w io.Writer) error {
 		return err
 	}
 
-	m, err := manifest1.Load([]byte(build.Manifest))
+	a, err := p.AppGet(app)
 	if err != nil {
-		log.Error(err)
-		return fmt.Errorf("manifest error: %s", err)
+		return err
 	}
 
-	if len(m.Services) < 1 {
+	services := []string{}
+
+	switch a.Tags["Generation"] {
+	case "2":
+		r, err := p.ReleaseGet(app, build.Release)
+		if err != nil {
+			log.Error(err)
+			return err
+		}
+
+		env := structs.Environment{}
+		env.LoadEnvironment([]byte(r.Env))
+
+		m, err := manifest.Load([]byte(build.Manifest), manifest.Environment(env))
+		if err != nil {
+			log.Error(err)
+			return err
+		}
+
+		for _, s := range m.Services {
+			services = append(services, s.Name)
+		}
+	default:
+		m, err := manifest1.Load([]byte(build.Manifest))
+		if err != nil {
+			log.Error(err)
+			return fmt.Errorf("manifest error: %s", err)
+		}
+
+		for name := range m.Services {
+			services = append(services, name)
+		}
+	}
+
+	if len(services) < 1 {
 		log.Errorf("no services found to export")
 		return fmt.Errorf("no services found to export")
 	}
@@ -196,7 +230,7 @@ func (p *AWSProvider) BuildExport(app, id string, w io.Writer) error {
 
 	images := []string{}
 
-	for service := range m.Services {
+	for _, service := range services {
 		images = append(images, fmt.Sprintf("%s:%s.%s", repo.URI, service, build.Id))
 	}
 
@@ -363,15 +397,16 @@ func (p *AWSProvider) BuildImport(app string, r io.Reader) (*structs.Build, erro
 				return nil, err
 			}
 
+			targetBuild.Id = sourceBuild.Id
+
 			_, err := p.BuildGet(app, sourceBuild.Id)
 			if _, ok := err.(NoSuchBuild); err != nil && !ok {
 				return nil, err
 			}
 			if err == nil {
-				return nil, fmt.Errorf("build id %s already exists", sourceBuild.Id)
+				// build id already exists
+				targetBuild.Id = generateId("B", 10)
 			}
-
-			targetBuild.Id = sourceBuild.Id
 		}
 
 		if strings.HasSuffix(header.Name, ".tar") {

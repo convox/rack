@@ -133,6 +133,10 @@ func (p *AWSProvider) appRepository(name string) (*appRepository, error) {
 		return nil, err
 	}
 
+	if app.Tags["Generation"] == "2" {
+		return p.appRepository2(name)
+	}
+
 	repoName := app.Outputs["RegistryRepository"]
 
 	params := &ecr.DescribeRepositoriesInput{
@@ -155,6 +159,26 @@ func (p *AWSProvider) appRepository(name string) (*appRepository, error) {
 	}
 
 	return nil, fmt.Errorf("no repo found")
+}
+
+func (p *AWSProvider) appRepository2(app string) (*appRepository, error) {
+	reg, err := p.appResource(app, "Registry")
+	if err != nil {
+		return nil, err
+	}
+
+	aid, err := p.accountId()
+	if err != nil {
+		return nil, err
+	}
+
+	repo := &appRepository{
+		ID:   aid,
+		Name: reg,
+		URI:  fmt.Sprintf("%s.dkr.ecr.%s.amazonaws.com/%s", aid, p.Region, reg),
+	}
+
+	return repo, nil
 }
 
 // cleanup deletes AWS resources that aren't handled by the CloudFormation during stack deletion.
