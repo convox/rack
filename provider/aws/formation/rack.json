@@ -786,6 +786,7 @@
       "Condition": "NotExistingVpcAndBlankInternetGateway",
       "Properties": {
         "Tags": [
+          { "Key": "GatewayAttachment", "Value": { "Fn::If": [ "BlankExistingVpc", { "Ref": "GatewayAttachment" }, "existing" ] } },
           { "Key": "Name", "Value": { "Ref": "AWS::StackName" } }
         ],
         "VpcId": { "Fn::If": [ "BlankExistingVpc",
@@ -797,7 +798,6 @@
     "RouteDefault": {
       "Type": "AWS::EC2::Route",
       "Condition": "NotExistingVpcAndBlankInternetGateway",
-      "DependsOn": "GatewayAttachment",
       "Properties": {
         "DestinationCidrBlock": "0.0.0.0/0",
         "GatewayId": { "Fn::If": [ "ExistingVpcAndInternetGateway",
@@ -1712,7 +1712,7 @@
         "GroupDescription": { "Fn::Sub": "${AWS::StackName} router" },
         "SecurityGroupIngress": [ { "CidrIp": "0.0.0.0/0", "IpProtocol": "tcp", "FromPort": "0", "ToPort": "65535" } ],
         "Tags": [ { "Key": "Name", "Value": { "Fn::Sub": "${AWS::StackName}-router" } } ],
-        "VpcId": { "Ref": "Vpc" }
+        "VpcId": { "Fn::If": [ "BlankExistingVpc", { "Ref": "Vpc" }, { "Ref": "ExistingVpc" } ] }
       }
     },
     "RouterListener80": {
@@ -1772,7 +1772,7 @@
           { "Key": "deregistration_delay.timeout_seconds", "Value": "30" },
           { "Key": "stickiness.enabled", "Value": "true" }
         ],
-        "VpcId": { "Ref": "Vpc" }
+        "VpcId": { "Fn::If": [ "BlankExistingVpc", { "Ref": "Vpc" }, { "Ref": "ExistingVpc" } ] }
       }
     },
     "Balancer": {
