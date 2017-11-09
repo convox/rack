@@ -7,7 +7,6 @@
       {{ template "balancer-conditions" .Manifest }}
       {{ template "process-conditions" .Manifest }}
       "Internal": { "Fn::Equals": [ { "Ref": "Internal" }, "Yes" ] },
-      "NativeLogging": { "Fn::Equals": [ { "Ref": "NativeLogging" }, "Yes" ] },
       "Private": { "Fn::Equals": [ { "Ref": "Private" }, "Yes" ] },
       "BlankSecurityGroup" : {"Fn::Equals" : [{"Ref" : "SecurityGroup"}, ""]}
     },
@@ -322,7 +321,8 @@
                 "Options": {
                   "awslogs-region": { "Ref": "AWS::Region" },
                   "awslogs-group": { "Ref": "LogGroup" },
-                  "awslogs-stream-prefix": "convox"
+                  "awslogs-stream-prefix": "service"
+                }
               }
             }
           ]
