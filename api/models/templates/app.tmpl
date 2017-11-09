@@ -46,12 +46,6 @@
         "Default": "",
         "Description": ""
       },
-      "NativeLogging": {
-        "Type": "String",
-        "Description": "Use native ECS awslogs driver over convox/agent for logging",
-        "Default": "No",
-        "AllowedValues": [ "Yes", "No" ]
-      },
       "Private": {
         "Type": "String",
         "Description": "Use SubnetsPrivate to specify VPC-side load balancer endpoints",
@@ -277,10 +271,6 @@
                 "APP": "{{ $.App.Name }}",
                 "RACK": "{{ env "RACK" }}",
                 "AWS_REGION": "{{ env "AWS_REGION" }}",
-                "LOG_GROUP": { "Fn::If": [ "NativeLogging",
-                  { "Ref" : "AWS::NoValue" },
-                  { "Ref": "LogGroup" }
-                ] },
                 {{ range $e.Environment }}
                   {{ if ne .Value "" }}
                     "{{ .Name }}": {{ value .Value }},
@@ -327,17 +317,13 @@
                 { "Ref" : "AWS::NoValue" }
               ],
               "Privileged": "{{ $e.Privileged }}",
-              "LogConfiguration": { "Fn::If": [ "NativeLogging",
-                {
-                  "LogDriver": "awslogs",
-                  "Options": {
-                    "awslogs-region": { "Ref": "AWS::Region" },
-                    "awslogs-group": { "Ref": "LogGroup" },
-                    "awslogs-stream-prefix": "convox"
-                  }
-                },
-                { "Ref" : "AWS::NoValue" }
-              ] }
+              "LogConfiguration": {
+                "LogDriver": "awslogs",
+                "Options": {
+                  "awslogs-region": { "Ref": "AWS::Region" },
+                  "awslogs-group": { "Ref": "LogGroup" },
+                  "awslogs-stream-prefix": "convox"
+              }
             }
           ]
         }
