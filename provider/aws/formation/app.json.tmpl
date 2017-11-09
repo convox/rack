@@ -214,9 +214,11 @@
                 { "Name": "{{ upcase . }}_URL", "Value": { "Fn::GetAtt": [ "Resource{{ upper . }}", "Outputs.Url" ] } },
               {{ end }}
               { "Name": "AWS_REGION", "Value": { "Ref": "AWS::Region" } },
+              { "Name": "APP", "Value": "{{$.App}}" },
+              { "Name": "RACK", "Value": { "Ref": "Rack" } },
               { "Name": "CONVOX_ENV_KEY", "Value": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:EncryptionKey" } } },
               { "Name": "CONVOX_ENV_URL", "Value": { "Fn::Sub": "s3://${Settings}/releases/{{$.Release.Id}}/env" } },
-              { "Name": "CONVOX_ENV_VARS", "Value": "{{.EnvironmentKeys}}" }
+              { "Name": "CONVOX_ENV_VARS", "Value": "{{.EnvironmentKeys}}" },
             ],
             "Image": { "Fn::Sub": "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${Registry}:{{.Name}}.{{$.Release.Build}}" },
             "LogConfiguration": {
@@ -327,6 +329,8 @@
                   { "Name": "{{$k}}", "Value": "{{ safe $v }}" },
                 {{ end }}
                 { "Name": "AWS_REGION", "Value": { "Ref": "AWS::Region" } },
+                { "Name": "APP", "Value": "{{$.App}}" },
+                { "Name": "RACK", "Value": { "Ref": "Rack" } },
                 { "Name": "CONVOX_ENV_KEY", "Value": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:EncryptionKey" } } },
                 { "Name": "CONVOX_ENV_URL", "Value": { "Fn::Sub": "s3://${Settings}/releases/{{$.Release.Id}}/env" } },
                 { "Name": "CONVOX_ENV_VARS", "Value": "{{.EnvironmentKeys}}" }

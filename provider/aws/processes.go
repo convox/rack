@@ -965,6 +965,8 @@ func (p *AWSProvider) generateTaskDefinition2(app, process, release string) (*ec
 	senv := s.EnvironmentDefaults()
 
 	senv["AWS_REGION"] = p.Region
+	senv["APP"] = app
+	senv["RACK"] = p.Rack
 	senv["CONVOX_ENV_KEY"] = p.EncryptionKey
 	senv["CONVOX_ENV_URL"] = fmt.Sprintf("s3://%s/releases/%s/env", settings, release)
 	senv["CONVOX_ENV_VARS"] = s.EnvironmentKeys()
