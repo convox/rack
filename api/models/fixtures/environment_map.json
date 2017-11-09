@@ -34,14 +34,6 @@
         "Yes"
       ]
     },
-    "NativeLogging": {
-      "Fn::Equals": [
-        {
-          "Ref": "NativeLogging"
-        },
-        "Yes"
-      ]
-    },
     "Private": {
       "Fn::Equals": [
         {
@@ -139,15 +131,6 @@
       "Default": "1,128,256",
       "Description": "Number of processes to run, CPU units to reserve, and MB of RAM to reserve",
       "Type": "CommaDelimitedList"
-    },
-    "NativeLogging": {
-      "AllowedValues": [
-        "Yes",
-        "No"
-      ],
-      "Default": "No",
-      "Description": "Use native ECS awslogs driver over convox/agent for logging",
-      "Type": "String"
     },
     "Private": {
       "AllowedValues": [
@@ -336,17 +319,6 @@
               "AWS_REGION": "test",
               "BAZ": "qux",
               "FOO": "bar",
-              "LOG_GROUP": {
-                "Fn::If": [
-                  "NativeLogging",
-                  {
-                    "Ref": "AWS::NoValue"
-                  },
-                  {
-                    "Ref": "LogGroup"
-                  }
-                ]
-              },
               "PROCESS": "main",
               "RACK": "convox-test"
             },
@@ -357,24 +329,16 @@
             ],
             "Image": "",
             "LogConfiguration": {
-              "Fn::If": [
-                "NativeLogging",
-                {
-                  "LogDriver": "awslogs",
-                  "Options": {
-                    "awslogs-group": {
-                      "Ref": "LogGroup"
-                    },
-                    "awslogs-region": {
-                      "Ref": "AWS::Region"
-                    },
-                    "awslogs-stream-prefix": "convox"
-                  }
+              "LogDriver": "awslogs",
+              "Options": {
+                "awslogs-group": {
+                  "Ref": "LogGroup"
                 },
-                {
-                  "Ref": "AWS::NoValue"
-                }
-              ]
+                "awslogs-region": {
+                  "Ref": "AWS::Region"
+                },
+                "awslogs-stream-prefix": "service"
+              }
             },
             "Memory": {
               "Fn::Select": [
