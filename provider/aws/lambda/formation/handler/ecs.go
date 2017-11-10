@@ -257,7 +257,9 @@ func ECSTaskDefinitionCreate(req Request) (string, map[string]string, error) {
 			})
 
 			if release != "" {
-				r.ContainerDefinitions[i].DockerLabels["convox.release"] = aws.String(release)
+				r.ContainerDefinitions[i].DockerLabels = map[string]*string{
+					"convox.release": aws.String(release),
+				}
 			}
 		}
 
