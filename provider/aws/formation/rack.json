@@ -1705,6 +1705,9 @@
       "DependsOn": "ApiRole",
       "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
       "Properties": {
+        "LoadBalancerAttributes": [
+          { "Key": "idle_timeout.timeout_seconds", "Value": "3600" }
+        ],
         "Subnets": [
           { "Ref": "Subnet0" },
           { "Ref": "Subnet1" },
