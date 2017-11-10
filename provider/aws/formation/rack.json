@@ -115,7 +115,7 @@
         "rack",
         { "Fn::Select": [ 0, { "Fn::Split": [ ".", { "Fn::GetAtt": [ "Router", "DNSName" ] } ] } ] },
         { "Fn::Select": [ 1, { "Fn::Split": [ ".", { "Fn::GetAtt": [ "Router", "DNSName" ] } ] } ] },
-        "rack.convox.io"
+        "convox.site"
       ] ] }
     },
     "Gateway": {
@@ -196,6 +196,14 @@
         { "Fn::Select": [ 0, { "Fn::Split": [ ".", { "Fn::GetAtt": [ "Router", "DNSName" ] } ] } ] },
         { "Fn::Select": [ 1, { "Fn::Split": [ ".", { "Fn::GetAtt": [ "Router", "DNSName" ] } ] } ] },
         "rack.convox.io"
+      ] ] }
+    },
+    "RouterHost": {
+      "Export": { "Name": { "Fn::Sub": "${AWS::StackName}:RouterHost" } },
+      "Value": { "Fn::Join": [ ".", [
+        { "Fn::Select": [ 0, { "Fn::Split": [ ".", { "Fn::GetAtt": [ "Router", "DNSName" ] } ] } ] },
+        { "Fn::Select": [ 1, { "Fn::Split": [ ".", { "Fn::GetAtt": [ "Router", "DNSName" ] } ] } ] },
+        "convox.site"
       ] ] }
     },
     "RouterListener80": {
@@ -333,7 +341,7 @@
     "ClientId": {
       "Type": "String",
       "Description": "Anonymous identifier",
-      "Default": "dev@convox.com"
+      "Default": ""
     },
     "ContainerDisk": {
       "Type": "Number",
@@ -1742,7 +1750,7 @@
           "*",
           { "Fn::Select": [ 0, { "Fn::Split": [ ".", { "Fn::GetAtt": [ "Router", "DNSName" ] } ] } ] },
           { "Fn::Select": [ 1, { "Fn::Split": [ ".", { "Fn::GetAtt": [ "Router", "DNSName" ] } ] } ] },
-          "rack.convox.io"
+          "convox.site"
         ] ] },
         "DomainValidationOptions": [
           {
@@ -1750,9 +1758,9 @@
               "*",
               { "Fn::Select": [ 0, { "Fn::Split": [ ".", { "Fn::GetAtt": [ "Router", "DNSName" ] } ] } ] },
               { "Fn::Select": [ 1, { "Fn::Split": [ ".", { "Fn::GetAtt": [ "Router", "DNSName" ] } ] } ] },
-              "rack.convox.io"
+              "convox.site"
             ] ] },
-            "ValidationDomain": "rack.convox.io"
+            "ValidationDomain": "convox.site"
           }
         ]
       }
