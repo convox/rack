@@ -329,8 +329,10 @@ func build(b ServiceBuild, tag string, opts BuildOptions) error {
 		return err
 	}
 
-	if err := convoxEnvEntrypoint(tag, opts); err != nil {
-		return err
+	if !opts.Development {
+		if err := convoxEnvEntrypoint(tag, opts); err != nil {
+			return err
+		}
 	}
 
 	data, err := exec.Command("docker", "inspect", tag, "--format", "{{json .Config.Entrypoint}}").CombinedOutput()

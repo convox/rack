@@ -3,19 +3,19 @@ package main
 import (
 	"errors"
 	"fmt"
-	"math/rand"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"os/signal"
 	"path/filepath"
 	"strings"
 
-	"github.com/convox/rack/api/models"
+	"github.com/convox/rack/api/structs"
 	"github.com/convox/rack/cmd/convox/helpers"
 	"github.com/convox/rack/cmd/convox/stdcli"
+	"github.com/convox/rack/manifest"
 	"github.com/convox/rack/manifest1"
 	"github.com/fsouza/go-dockerclient"
-	"github.com/robfig/cron"
 	"gopkg.in/urfave/cli.v1"
 )
 
@@ -27,14 +27,13 @@ func init() {
 		Action:      cmdStart,
 		Flags: []cli.Flag{
 			cli.StringFlag{
-				Name:   "file, f",
-				EnvVar: "COMPOSE_FILE",
-				Value:  "docker-compose.yml",
-				Usage:  "path to an alternate docker compose manifest file",
+				Name:  "file, f",
+				Value: "",
+				Usage: "path to manifest file",
 			},
-			cli.BoolFlag{
-				Name:  "no-build",
-				Usage: "do not build the app images",
+			cli.StringFlag{
+				Name:  "generation",
+				Usage: "generation of app",
 			},
 			cli.BoolFlag{
 				Name:  "no-cache",
@@ -44,163 +43,181 @@ func init() {
 				Name:  "shift",
 				Usage: "shift allocated port numbers by the given amount",
 			},
-			cli.BoolFlag{
-				Name:  "no-sync",
-				Usage: "do not synchronize local file changes into the running containers",
-			},
 		},
 	})
 }
 
 func cmdStart(c *cli.Context) error {
-	// go handleResize()
-	var service string
-	var command []string
+	if err := dockerTest(); err != nil {
+		return stdcli.Error(err)
+	}
+
+	opts := startOptions{}
 
 	if len(c.Args()) > 0 {
-		service = c.Args()[0]
+		opts.Service = c.Args()[0]
 	}
 
 	if len(c.Args()) > 1 {
-		command = c.Args()[1:]
+		opts.Command = c.Args()[1:]
 	}
 
-	id, err := currentId()
-	if err != nil {
-		stdcli.QOSEventSend("cli-start", id, stdcli.QOSEventProperties{Error: err})
+	opts.Cache = !c.Bool("no-cache")
+
+	if v := c.String("file"); v != "" {
+		opts.Config = v
 	}
 
-	if !helpers.Exists(c.String("file")) {
-		return stdcli.Error(fmt.Errorf("no docker-compose.yml found, try `convox init` to generate one"))
+	if v := c.Int("shift"); v > 0 {
+		opts.Shift = v
 	}
 
-	err = dockerTest()
-	if err != nil {
-		stdcli.QOSEventSend("cli-start", id, stdcli.QOSEventProperties{ValidationError: err})
-		return stdcli.Error(err)
-	}
+	opts.Id, _ = currentId()
 
-	dir, app, err := stdcli.DirApp(c, filepath.Dir(c.String("file")))
-	if err != nil {
-		stdcli.QOSEventSend("cli-start", id, stdcli.QOSEventProperties{ValidationError: err})
-		return stdcli.Error(err)
-	}
-
-	appType := helpers.DetectApplication(dir)
-
-	m, err := manifest1.LoadFile(c.String("file"))
-	if err != nil {
-		return stdcli.Error(err)
-	}
-
-	errs := m.Validate()
-	if len(errs) > 0 {
-		for _, e := range errs[1:] {
-			stdcli.Error(e)
+	if c.String("generation") == "2" || filepath.Base(opts.Config) == "convox.yml" {
+		if err := startGeneration2(opts); err != nil {
+			return stdcli.Error(err)
 		}
-		return stdcli.Error(errs[0])
-	}
-
-	if service != "" {
-		_, ok := m.Services[service]
-		if !ok {
-			return stdcli.Error(fmt.Errorf("Service %s not found in manifest", service))
-		}
-	}
-
-	if err := m.Shift(c.Int("shift")); err != nil {
-		return stdcli.Error(err)
-	}
-
-	// one-off commands don't need port validation
-	if len(command) == 0 {
-		if pcc, err := m.PortConflicts(); err != nil || len(pcc) > 0 {
-			if err == nil {
-				err = fmt.Errorf("ports in use: %v", pcc)
-			}
-			stdcli.QOSEventSend("cli-start", id, stdcli.QOSEventProperties{
-				ValidationError: err,
-				AppType:         appType,
-			})
+	} else {
+		if err := startGeneration1(opts); err != nil {
 			return stdcli.Error(err)
 		}
 	}
 
-	r := m.Run(dir, app, manifest1.RunOptions{
-		Build:   !c.Bool("no-build"),
-		Cache:   !c.Bool("no-cache"),
-		Command: command,
-		Service: service,
-		Sync:    !c.Bool("no-sync"),
+	return nil
+}
+
+type startOptions struct {
+	Cache   bool
+	Command []string
+	Id      string
+	Config  string
+	Service string
+	Shift   int
+}
+
+func startGeneration1(opts startOptions) error {
+	opts.Config = helpers.Coalesce(opts.Config, "docker-compose.yml")
+
+	if !helpers.Exists(opts.Config) {
+		return fmt.Errorf("manifest not found: %s", opts.Config)
+	}
+
+	app, err := stdcli.DefaultApp(opts.Config)
+	if err != nil {
+		return err
+	}
+
+	m, err := manifest1.LoadFile(opts.Config)
+	if err != nil {
+		return err
+	}
+
+	if errs := m.Validate(); len(errs) > 0 {
+		for _, e := range errs[1:] {
+			stdcli.Error(e)
+		}
+		return errs[0]
+	}
+
+	if s := opts.Service; s != "" {
+		if _, ok := m.Services[s]; !ok {
+			return fmt.Errorf("service %s not found in manifest", s)
+		}
+	}
+
+	if err := m.Shift(opts.Shift); err != nil {
+		return err
+	}
+
+	// one-off commands don't need port validation
+	if len(opts.Command) == 0 {
+		pcc, err := m.PortConflicts()
+		if err != nil {
+			return err
+		}
+		if len(pcc) > 0 {
+			return fmt.Errorf("ports in use: %v", pcc)
+		}
+	}
+
+	r := m.Run(filepath.Dir(opts.Config), app, manifest1.RunOptions{
+		Build:   true,
+		Cache:   opts.Cache,
+		Command: opts.Command,
+		Service: opts.Service,
+		Sync:    true,
 	})
 
-	stdcli.QOSEventSend("Dev App Create Started", id, stdcli.QOSEventProperties{AppType: appType})
 	err = r.Start()
 	if err != nil {
 		r.Stop()
-
-		stdcli.QOSEventSend("Dev App Create Failed", id, stdcli.QOSEventProperties{AppType: appType, Error: err})
-		stdcli.QOSEventSend("cli-start", id, stdcli.QOSEventProperties{
-			ValidationError: err,
-			AppType:         appType,
-		})
-		return stdcli.Error(err)
+		return err
 	}
 
-	stdcli.QOSEventSend("Dev App Created", id, stdcli.QOSEventProperties{AppType: appType})
-	stdcli.QOSEventSend("cli-start", id, stdcli.QOSEventProperties{
-		AppType: appType,
-	})
-
-	// Setup the local "cron jobs"
-	for _, entry := range m.Services {
-		labels := entry.LabelsByPrefix("convox.cron")
-		processName := fmt.Sprintf("%s-%s", app, entry.Name)
-		c := cron.New()
-
-		for key, value := range labels {
-			p, ok := r.Processes[processName]
-			if !ok {
-				continue
-			}
-			cronjob := models.NewCronJobFromLabel(key, value)
-
-			rs := strings.NewReplacer("cron(", "0 ", ")", "")                 // cron pkg first field is in seconds so set to 0
-			trigger := strings.TrimSuffix(rs.Replace(cronjob.Schedule), " *") // and doesn't recognize year so we trim it
-
-			c.AddFunc(trigger, func() {
-				cronProccesName := fmt.Sprintf("cron-%s-%04d", cronjob.Name, rand.Intn(9000))
-				// Replace args with cron specific ones
-				cronArgs := p.GenerateArgs(&manifest1.ArgOptions{
-					Command:     cronjob.Command,
-					IgnorePorts: true,
-					Name:        cronProccesName,
-				})
-
-				done := make(chan error)
-				manifest1.RunAsync(
-					r.Output.Stream(cronProccesName),
-					manifest1.Docker(append([]string{"run"}, cronArgs...)...),
-					done,
-					manifest1.RunnerOptions{Verbose: true},
-				)
-
-				err := <-done
-				if err != nil {
-					fmt.Printf("error running %s: %s\n", cronProccesName, err.Error())
-				}
-			})
-		}
-
-		c.Start()
-	}
-
-	go handleInterrupt(r)
+	go handleInterrupt1(r)
 
 	return r.Wait()
 }
 
-func handleInterrupt(run manifest1.Run) {
+func startGeneration2(opts startOptions) error {
+	opts.Config = helpers.Coalesce(opts.Config, "convox.yml")
+
+	if !helpers.Exists(opts.Config) {
+		return fmt.Errorf("manifest not found: %s", opts.Config)
+	}
+
+	app, err := stdcli.DefaultApp(opts.Config)
+	if err != nil {
+		return err
+	}
+
+	data, err := ioutil.ReadFile(opts.Config)
+	if err != nil {
+		return err
+	}
+
+	dir := filepath.Dir(app)
+
+	env := structs.Environment{}
+
+	if data, err := ioutil.ReadFile(filepath.Join(dir, ".env")); err == nil {
+		env.LoadEnvironment(data)
+	}
+
+	fmt.Printf("env = %+v\n", env)
+
+	m, err := manifest.Load(data, manifest.Environment(env))
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("m = %+v\n", m)
+
+	bopts := manifest.BuildOptions{
+		Development: true,
+		Stdout:      m.Writer("build", os.Stdout),
+		Stderr:      m.Writer("build", os.Stderr),
+	}
+
+	if err := m.Build(app, "latest", bopts); err != nil {
+		return err
+	}
+
+	ropts := manifest.RunOptions{
+		Bind:   true,
+		Stdout: os.Stdout,
+		Stderr: os.Stderr,
+	}
+
+	if err := m.Run(app, ropts); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func handleInterrupt1(run manifest1.Run) {
 	ch := make(chan os.Signal, 1)
 	signal.Notify(ch, os.Interrupt, os.Kill)
 	<-ch
