@@ -10,6 +10,7 @@ import (
 
 type RunOptions struct {
 	Bind   bool
+	Env    map[string]string
 	Stdout io.Writer
 	Stderr io.Writer
 }
@@ -32,6 +33,7 @@ func (m *Manifest) Run(app string, opts RunOptions) error {
 	for _, s := range m.Services {
 		go s.runAsync(ch, app, "", RunOptions{
 			Bind:   opts.Bind,
+			Env:    opts.Env,
 			Stdout: m.Writer(s.Name, opts.Stdout),
 			Stderr: m.Writer(s.Name, opts.Stderr),
 		})
@@ -53,6 +55,10 @@ func (s Service) run(ns string, command string, opts RunOptions) error {
 	args := []string{"run"}
 
 	container := fmt.Sprintf("%s-%s", ns, s.Name)
+
+	for _, k := range strings.Split(s.EnvironmentKeys(), ",") {
+		args = append(args, "-e", fmt.Sprintf("%s=%s", k, opts.Env[k]))
+	}
 
 	args = append(args, "--name", container)
 	args = append(args, fmt.Sprintf("%s/%s", ns, s.Name))
