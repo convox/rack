@@ -202,6 +202,7 @@ func startGeneration2(opts startOptions) error {
 
 	ropts := manifest.RunOptions{
 		Bind:   true,
+		Env:    env,
 		Stdout: os.Stdout,
 		Stderr: os.Stderr,
 	}
