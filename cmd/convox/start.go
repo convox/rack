@@ -185,14 +185,10 @@ func startGeneration2(opts startOptions) error {
 		env.LoadEnvironment(data)
 	}
 
-	fmt.Printf("env = %+v\n", env)
-
 	m, err := manifest.Load(data, manifest.Environment(env))
 	if err != nil {
 		return err
 	}
-
-	fmt.Printf("m = %+v\n", m)
 
 	bopts := manifest.BuildOptions{
 		Development: true,
