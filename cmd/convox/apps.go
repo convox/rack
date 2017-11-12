@@ -34,7 +34,7 @@ func init() {
 				Flags: []cli.Flag{
 					rackFlag,
 					cli.StringFlag{
-						Name:  "generation",
+						Name:  "generation, g",
 						Usage: "generation of app to create",
 					},
 					cli.BoolFlag{
