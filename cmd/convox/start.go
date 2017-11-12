@@ -74,7 +74,7 @@ func cmdStart(c *cli.Context) error {
 
 	opts.Id, _ = currentId()
 
-	if c.String("generation") == "2" || filepath.Base(opts.Config) == "convox.yml" {
+	if stdcli.ReadSetting("generation") == "2" || c.String("generation") == "2" || filepath.Base(opts.Config) == "convox.yml" {
 		if err := startGeneration2(opts); err != nil {
 			return stdcli.Error(err)
 		}
