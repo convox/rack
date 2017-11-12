@@ -32,7 +32,7 @@ func init() {
 				Usage: "path to manifest file",
 			},
 			cli.StringFlag{
-				Name:  "generation",
+				Name:  "generation, g",
 				Usage: "generation of app",
 			},
 			cli.BoolFlag{
