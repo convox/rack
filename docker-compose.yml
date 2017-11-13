@@ -1,9 +1,7 @@
 version: "2"
 services:
   web:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    build: .
     command: api/bin/web
     environment:
       - AUTOSCALE=false
@@ -46,9 +44,7 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
   monitor:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    build: .
     command: api/bin/monitor
     environment:
       - DEVELOPMENT=true

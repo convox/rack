@@ -94,10 +94,10 @@ func cmdApps(c *cli.Context) error {
 		return nil
 	}
 
-	t := stdcli.NewTable("APP", "STATUS")
+	t := stdcli.NewTable("APP", "STATUS", "GEN")
 
 	for _, app := range apps {
-		t.AddRow(app.Name, app.Status)
+		t.AddRow(app.Name, app.Status, app.Generation)
 	}
 
 	t.Print()
@@ -230,8 +230,9 @@ func cmdAppInfo(c *cli.Context) error {
 	info.Add("Name", a.Name)
 	info.Add("Status", a.Status)
 	info.Add("Release", stdcli.Default(a.Release, "(none)"))
+	info.Add("Generation", a.Generation)
 	info.Add("Processes", stdcli.Default(strings.Join(ps, " "), "(none)"))
-	info.Add("Endpoints", strings.Join(endpoints, "\n           "))
+	info.Add("Endpoints", strings.Join(endpoints, "\n            "))
 
 	info.Print()
 

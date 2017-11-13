@@ -356,6 +356,7 @@ func appFromStack(stack *cloudformation.Stack) structs.App {
 
 	return structs.App{
 		Name:       name,
+		Generation: coalesces(stackTags(stack)["Generation"], "1"),
 		Release:    coalesces(stackOutputs(stack)["Release"], stackParameters(stack)["Release"]),
 		Status:     humanStatus(*stack.StackStatus),
 		Outputs:    stackOutputs(stack),
