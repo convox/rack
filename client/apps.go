@@ -7,9 +7,10 @@ import (
 )
 
 type App struct {
-	Name    string `json:"name"`
-	Release string `json:"release"`
-	Status  string `json:"status"`
+	Generation string `json:"generation"`
+	Name       string `json:"name"`
+	Release    string `json:"release"`
+	Status     string `json:"status"`
 }
 
 type Apps []App
