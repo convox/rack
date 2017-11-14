@@ -3,9 +3,11 @@ package aws
 import (
 	"bytes"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/convox/rack/api/crypt"
@@ -160,6 +162,8 @@ func (p *AWSProvider) ReleasePromote(r *structs.Release) error {
 		return err
 	}
 
+	go p.waitForPromotion(r)
+
 	return nil
 }
 
@@ -311,4 +315,97 @@ func (p *AWSProvider) deleteReleaseItems(qi *dynamodb.QueryInput, tableName stri
 	}
 
 	return p.dynamoBatchDeleteItems(wrs, tableName)
+}
+
+func (p *AWSProvider) waitForPromotion(r *structs.Release) {
+	event := &structs.Event{
+		Action: "release:promote",
+		Data: map[string]string{
+			"app": r.App,
+			"id":  r.Id,
+		},
+	}
+	stackName := fmt.Sprintf("%s-%s", os.Getenv("RACK"), r.App)
+
+	waitch := make(chan error)
+	go func() {
+		var err error
+		//we have observed stack stabalization failures take up to 3 hours
+		for i := 0; i < 3; i++ {
+			err = p.cloudformation().WaitUntilStackUpdateComplete(&cloudformation.DescribeStacksInput{
+				StackName: aws.String(stackName),
+			})
+			if err != nil {
+				if err.Error() == "exceeded 120 wait attempts" {
+					continue
+				}
+			}
+			break
+		}
+		waitch <- err
+	}()
+
+	for {
+		select {
+		case err := <-waitch:
+			if err == nil {
+				event.Status = "success"
+				p.EventSend(event, nil)
+				return
+			}
+
+			if err != nil && err.Error() == "exceeded 120 wait attempts" {
+				p.EventSend(event, fmt.Errorf("couldn't determine promotion status, timed out"))
+				fmt.Println(fmt.Errorf("couldn't determine promotion status, timed out"))
+				return
+			}
+
+			resp, err := p.cloudformation().DescribeStacks(&cloudformation.DescribeStacksInput{
+				StackName: aws.String(stackName),
+			})
+			if err != nil {
+				p.EventSend(event, fmt.Errorf("unable to check stack status: %s", err))
+				fmt.Println(fmt.Errorf("unable to check stack status: %s", err))
+				return
+			}
+
+			if len(resp.Stacks) < 1 {
+				p.EventSend(event, fmt.Errorf("app stack was not found: %s", stackName))
+				fmt.Println(fmt.Errorf("app stack was not found: %s", stackName))
+				return
+			}
+
+			se, err := p.cloudformation().DescribeStackEvents(&cloudformation.DescribeStackEventsInput{
+				StackName: aws.String(stackName),
+			})
+			if err != nil {
+				p.EventSend(event, fmt.Errorf("unable to check stack events: %s", err))
+				fmt.Println(fmt.Errorf("unable to check stack events: %s", err))
+				return
+			}
+
+			var lastEvent *cloudformation.StackEvent
+
+			for _, e := range se.StackEvents {
+				switch *e.ResourceStatus {
+				case "UPDATE_FAILED", "DELETE_FAILED", "CREATE_FAILED":
+					lastEvent = e
+					break
+				}
+			}
+
+			ee := fmt.Errorf("unable to determine release error")
+			if lastEvent != nil {
+				ee = fmt.Errorf(
+					"[%s:%s] [%s]: %s",
+					*lastEvent.ResourceType,
+					*lastEvent.LogicalResourceId,
+					*lastEvent.ResourceStatus,
+					*lastEvent.ResourceStatusReason,
+				)
+			}
+
+			p.EventSend(event, fmt.Errorf("release %s failed - %s", r.Id, ee.Error()))
+		}
+	}
 }
