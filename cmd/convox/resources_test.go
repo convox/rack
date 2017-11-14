@@ -127,7 +127,17 @@ func TestResourcesDelete(t *testing.T) {
 		test.ExecRun{
 			Command: "convox resources delete syslog-1234",
 			Exit:    0,
-			Stdout:  "Deleting syslog-1234... DELETING\n",
+			Stdout:  "Are you sure you want to delete syslog-1234? (N/y): Deleting syslog-1234... DELETING\n",
+			Stdin: "y",
+		},
+	)
+
+	test.Runs(t,
+		test.ExecRun{
+			Command: "convox resources delete syslog-1234",
+			Exit:    1,
+			Stdout:  "Are you sure you want to delete syslog-1234? (N/y): ",
+			Stdin: "n",
 		},
 	)
 }
