@@ -2075,6 +2075,10 @@
                 { "Ref": "Subnet1" },
                 { "Fn::If": [ "ThirdAvailabilityZone", { "Ref": "Subnet2" }, { "Ref": "AWS::NoValue" } ] }
               ] ] } },
+              { "Name": "SUBNETS_PRIVATE", "Value": { "Fn::If": [ "Private",
+                { "Fn::Join": [ ",", [ { "Ref": "SubnetPrivate0" }, { "Ref": "SubnetPrivate1" }, { "Fn::If": [ "ThirdAvailabilityZone", { "Ref": "SubnetPrivate2" }, { "Ref": "AWS::NoValue" } ] } ] ] },
+                ""
+              ] } },
               { "Name": "VPC", "Value": { "Fn::If": [ "BlankExistingVpc",
                 { "Ref": "Vpc" },
                 { "Ref": "ExistingVpc" }
