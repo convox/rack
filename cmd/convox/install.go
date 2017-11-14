@@ -692,6 +692,8 @@ func FriendlyName(t string) string {
 		return "NAT Gateway"
 	case "AWS::S3::Bucket":
 		return "S3 Bucket"
+	case "AWS::S3::BucketPolicy":
+		return "S3 Bucket Policy"
 	case "AWS::SNS::Topic":
 		return ""
 	case "AWS::SQS::Queue":
