@@ -1805,7 +1805,10 @@
         "CrossZone": true,
         "HealthCheck": { "HealthyThreshold": "2", "Interval": 5, "Target": "HTTPS:3002/check", "Timeout": 3, "UnhealthyThreshold": "2" },
         "LBCookieStickinessPolicy": [ { "PolicyName": "affinity" } ],
-        "Listeners": [ { "Protocol": "TCP", "LoadBalancerPort": "443", "InstanceProtocol": "TCP", "InstancePort": "3002" } ],
+        "Listeners": [
+          { "Protocol": "TCP", "LoadBalancerPort": "80", "InstanceProtocol": "TCP", "InstancePort": "3001" },
+          { "Protocol": "TCP", "LoadBalancerPort": "443", "InstanceProtocol": "TCP", "InstancePort": "3002" }
+        ],
         "LoadBalancerName": { "Fn::If": [ "PrivateApi", { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" }, "i" ] ] }, { "Ref": "AWS::StackName" } ] },
         "Scheme": { "Fn::If": [ "PrivateApi", "internal", { "Ref": "AWS::NoValue" } ] },
         "SecurityGroups": [ { "Ref": "BalancerSecurity" } ],
@@ -1826,6 +1829,7 @@
       "Properties": {
         "GroupDescription": { "Fn::Sub": "${AWS::StackName} balancer" },
         "SecurityGroupIngress": [
+          { "CidrIp": { "Fn::If" : [ "PrivateApi", { "Ref": "VPCCIDR" }, "0.0.0.0/0" ] }, "IpProtocol": "tcp", "FromPort": "80", "ToPort": "80" },
           { "CidrIp": { "Fn::If" : [ "PrivateApi", { "Ref": "VPCCIDR" }, "0.0.0.0/0" ] }, "IpProtocol": "tcp", "FromPort": "443", "ToPort": "443" }
         ],
         "Tags": [ { "Key": "Name", "Value": { "Fn::Sub": "${AWS::StackName}-balancer" } } ],
@@ -2109,7 +2113,10 @@
             "Memory": { "Ref": "ApiMemory" },
             "MountPoints": [ { "SourceVolume": "docker", "ContainerPath": "/var/run/docker.sock" } ],
             "Name": "web",
-            "PortMappings": [ { "HostPort": "3002", "ContainerPort": "4443", "Protocol": "tcp" } ]
+            "PortMappings": [
+              { "HostPort": "3001", "ContainerPort": "3000", "Protocol": "tcp" },
+              { "HostPort": "3002", "ContainerPort": "4443", "Protocol": "tcp" }
+            ]
           }
         ],
         "Family": { "Fn::Sub": "${AWS::StackName}-web" },
