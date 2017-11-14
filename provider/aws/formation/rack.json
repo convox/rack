@@ -1710,7 +1710,7 @@
       }
     },
     "Router": {
-      "DependsOn": "ApiRole",
+      "DependsOn": [ "ApiRole", "LogsPolicy" ],
       "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
       "Properties": {
         "LoadBalancerAttributes": [
