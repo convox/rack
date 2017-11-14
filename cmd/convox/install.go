@@ -162,6 +162,11 @@ func init() {
 				Value: defaultSubnetCIDRs,
 				Usage: "subnet CIDRs",
 			},
+			cli.StringFlag{
+				Name:   "s3-template-url",
+				Value:  "",
+				Usage:  "specify an amazon s3 template url for rack",
+			},
 		},
 	})
 }
@@ -415,7 +420,9 @@ func cmdInstall(c *cli.Context) error {
 
 		req.TemplateURL = nil
 		req.TemplateBody = aws.String(t.String())
-	}
+	} else if c.String("s3-template-url") != "" {
+		req.TemplateURL = aws.String(c.String("s3-template-url"))
+        }
 
 	res, err := CloudFormation.CreateStack(req)
 	if err != nil {
