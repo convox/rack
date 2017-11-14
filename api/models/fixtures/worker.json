@@ -86,6 +86,14 @@
         ""
       ]
     },
+    "BlankLogBucket": {
+      "Fn::Equals": [
+        {
+          "Ref": "LogBucket"
+        },
+        ""
+      ]
+    },
     "BlankSecurityGroup": {
       "Fn::Equals": [
         {
@@ -277,6 +285,10 @@
     "Key": {
       "Default": "",
       "Description": "",
+      "Type": "String"
+    },
+    "LogBucket": {
+      "Default": "",
       "Type": "String"
     },
     "PostgresFormation": {
@@ -1070,6 +1082,22 @@
       "DeletionPolicy": "Retain",
       "Properties": {
         "AccessControl": "Private",
+        "LoggingConfiguration": {
+          "Fn::If": [
+            "BlankLogBucket",
+            {
+              "Ref": "AWS::NoValue"
+            },
+            {
+              "DestinationBucketName": {
+                "Ref": "LogBucket"
+              },
+              "LogFilePrefix": {
+                "Fn::Sub": "convox/logs/${AWS::StackName}/s3"
+              }
+            }
+          ]
+        },
         "Tags": [
           {
             "Key": "system",

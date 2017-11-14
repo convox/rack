@@ -2199,6 +2199,6 @@
           { "Key": "Rack", "Value": { "Ref": "AWS::StackName" } }
         ]
       }
-    },
+    }
   }
 }
