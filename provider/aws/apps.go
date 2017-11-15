@@ -55,7 +55,7 @@ func (p *AWSProvider) AppCreate(name string) (*structs.App, error) {
 		return nil, err
 	}
 
-	fmt.Printf("string(data) = %+v\n", string(data))
+	p.EventSend(&structs.Event{Action: "app:create", Data: map[string]string{"name": name}}, nil)
 
 	return nil, nil
 }
