@@ -121,7 +121,7 @@ func DockerLogin(ac docker.AuthConfiguration) (string, error) {
 
 	log = log.Namespace("host=%q user=%q", ac.ServerAddress, ac.Username)
 
-	args := []string{"login", "-e", ac.Email, "-u", ac.Username, "-p", ac.Password, ac.ServerAddress}
+	args := []string{"login", "-u", ac.Username, "-p", ac.Password, ac.ServerAddress}
 
 	if _, err := exec.Command("docker", args...).CombinedOutput(); err != nil {
 		log.Error(err)
