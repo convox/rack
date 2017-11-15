@@ -136,6 +136,8 @@ func (r *Release) Promote() error {
 	app.Parameters["Kernel"] = customTopic
 	app.Parameters["LogBucket"] = os.Getenv("LOG_BUCKET")
 	app.Parameters["Release"] = r.Id
+	app.Parameters["Subnets"] = os.Getenv("SUBNETS")
+	app.Parameters["SubnetsPrivate"] = first(os.Getenv("SUBNETS_PRIVATE"), os.Getenv("SUBNETS"))
 	app.Parameters["Version"] = os.Getenv("RELEASE")
 	app.Parameters["VPCCIDR"] = os.Getenv("VPCCIDR")
 
