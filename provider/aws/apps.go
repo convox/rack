@@ -2,6 +2,7 @@ package aws
 
 import (
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
@@ -184,9 +185,12 @@ func (p *AWSProvider) appRepository2(app string) (*appRepository, error) {
 
 // cleanup deletes AWS resources that aren't handled by the CloudFormation during stack deletion.
 func (p *AWSProvider) cleanup(app *structs.App) error {
-	err := p.deleteBucket(app.Outputs["Settings"])
+	settings, err := p.appResource(app.Name, "Settings")
 	if err != nil {
-		fmt.Printf("fn=cleanup level=error msg=\"%s\"", err)
+		return err
+	}
+
+	if err := p.deleteBucket(settings); err != nil {
 		return err
 	}
 
@@ -196,8 +200,23 @@ func (p *AWSProvider) cleanup(app *structs.App) error {
 		return err
 	}
 
+	reg, err := p.appResource(app.Name, "Registry")
+	if err != nil {
+		// handle generation 1
+		if strings.HasPrefix(err.Error(), "resource not found") {
+			app, err := p.AppGet(app.Name)
+			if err != nil {
+				return err
+			}
+
+			reg = app.Outputs["RegistryRepository"]
+		} else {
+			return err
+		}
+	}
+
 	_, err = p.ecr().DeleteRepository(&ecr.DeleteRepositoryInput{
-		RepositoryName: aws.String(app.Outputs["RegistryRepository"]),
+		RepositoryName: aws.String(reg),
 		Force:          aws.Bool(true),
 	})
 	if err != nil {
@@ -225,7 +244,7 @@ func (p *AWSProvider) cleanup(app *structs.App) error {
 			if ae.Code() == "ValidationError" { // Error indicates stack wasn't found, hence deleted.
 				helpers.TrackEvent("kernel-app-delete-success", nil)
 				// Last ditch effort to remove the empty bucket CF leaves behind.
-				_, err := p.s3().DeleteBucket(&s3.DeleteBucketInput{Bucket: aws.String(app.Outputs["Settings"])})
+				_, err := p.s3().DeleteBucket(&s3.DeleteBucketInput{Bucket: aws.String(settings)})
 				if err != nil {
 					fmt.Printf("last ditch effort bucket error: %s\n", err)
 				}
