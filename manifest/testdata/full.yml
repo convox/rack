@@ -18,6 +18,9 @@ services:
     test: make ${BAR} test
   proxy:
     command: bash
+    domain:
+      - bar.example.org
+      - "*.example.org"
     image: ubuntu:16.04
     environment:
       - SECRET
@@ -27,6 +30,7 @@ services:
       memory: 512
   foo:
     command: foo
+    domain: baz.example.org, qux.example.org
     health:
       timeout: 3
     port:
