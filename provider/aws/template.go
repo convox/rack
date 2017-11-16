@@ -27,8 +27,15 @@ func formationHelpers() template.FuncMap {
 			}
 			return domain
 		},
-		"priority": func(app, service string) uint32 {
-			return crc32.ChecksumIEEE([]byte(fmt.Sprintf("%s-%s", app, service))) % 50000
+		"dec": func(i int) int {
+			return i - 1
+		},
+		"priority": func(app, domain string) uint32 {
+			tier := uint32(1)
+			if strings.HasPrefix(domain, "*.") {
+				tier = 25000
+			}
+			return (crc32.ChecksumIEEE([]byte(fmt.Sprintf("%s-%s", app, domain))) % 25000) + tier
 		},
 		"safe": func(s string) template.HTML {
 			return template.HTML(s)
