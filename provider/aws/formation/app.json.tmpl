@@ -124,6 +124,7 @@
             { "Key": "deregistration_delay.timeout_seconds", "Value": "30" },
             { "Key": "stickiness.enabled", "Value": "true" }
           ],
+          "TargetType": "ip",
           "VpcId": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Vpc" } }
         }
       },
@@ -183,6 +184,19 @@
     }
   },
   {{ range .Manifest.Services }}
+    "Service{{ upper .Name }}SecurityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": { "Fn::Sub": "${AWS::StackName} service" },
+        "SecurityGroupIngress": [
+          {{ with .Port.Port }}
+            { "IpProtocol": "tcp", "FromPort": "{{.}}", "ToPort": "{{.}}", "CidrIp": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:VpcCidr" } } }
+          {{ end }}
+        ],
+        "VpcId": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Vpc" } }
+      }
+
+    },
     "Service{{ upper .Name }}Service": {
       "Type": "AWS::ECS::Service",
       {{ if .Port.Port }}
@@ -194,7 +208,15 @@
         "DesiredCount": { "Fn::Select": [ 0, { "Ref": "{{ upper .Name }}Formation" } ] },
         {{ if .Port.Port }}
           "LoadBalancers": [ { "ContainerName": "{{.Name}}", "ContainerPort": "{{.Port.Port}}", "TargetGroupArn": { "Ref": "Balancer{{ upper .Name }}TargetGroup" } } ],
-          "Role": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:ServiceRole" } },
+          "NetworkConfiguration": {
+            "AwsvpcConfiguration": {
+              "SecurityGroups": [ { "Ref": "Service{{ upper .Name }}SecurityGroup" } ],
+              "Subnets": [
+                { "Fn::ImportValue": { "Fn::Sub": "${Rack}:SubnetPrivate0" } },
+                { "Fn::ImportValue": { "Fn::Sub": "${Rack}:SubnetPrivate1" } }
+              ]
+            }
+          },
         {{ end }}
         "PlacementStrategies": [
           { "Type": "spread", "Field": "attribute:ecs.availability-zone" },
@@ -250,6 +272,7 @@
           }
         ],
         "Family": { "Fn::Sub": "${AWS::StackName}-service-{{.Name}}" },
+        "NetworkMode": "awsvpc",
         "TaskRoleArn": { "Fn::GetAtt": [ "ServiceRole", "Arn" ] },
         "Volumes": [
           {{ range $i, $v := .Volumes }}
