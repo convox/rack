@@ -986,6 +986,7 @@
     },
     "BuildLaunchConfiguration": {
       "Condition": "DedicatedBuilder",
+      "DependsOn": "LaunchConfiguration",
       "Type": "AWS::AutoScaling::LaunchConfiguration",
       "Properties": {
         "AssociatePublicIpAddress": { "Fn::If": [ "Private", false, true ] },
