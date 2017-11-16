@@ -195,7 +195,6 @@
         ],
         "VpcId": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Vpc" } }
       }
-
     },
     "Service{{ upper .Name }}Service": {
       "Type": "AWS::ECS::Service",
