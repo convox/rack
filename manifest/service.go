@@ -12,7 +12,7 @@ type Service struct {
 
 	Build       ServiceBuild       `yaml:"build,omitempty"`
 	Command     string             `yaml:"command,omitempty"`
-	Domain      string             `yaml:"domain,omitempty"`
+	Domains     ServiceDomains     `yaml:"domain,omitempty"`
 	Environment ServiceEnvironment `yaml:"environment,omitempty"`
 	Health      ServiceHealth      `yaml:"health,omitempty"`
 	Image       string             `yaml:"image,omitempty"`
@@ -36,6 +36,8 @@ type ServiceCommand struct {
 	Test        string
 	Production  string
 }
+
+type ServiceDomains []string
 
 type ServiceEnvironment []string
 
@@ -64,8 +66,12 @@ func (s Service) BuildHash() string {
 	return fmt.Sprintf("%x", sha1.Sum([]byte(fmt.Sprintf("build[path=%q, args=%v] image=%q", s.Build.Path, s.Build.Args, s.Image))))
 }
 
-func (s Service) GetName() string {
-	return s.Name
+func (s Service) Domain() string {
+	if len(s.Domains) < 1 {
+		return ""
+	}
+
+	return s.Domains[0]
 }
 
 func (s Service) EnvironmentDefaults() map[string]string {
@@ -91,6 +97,10 @@ func (s Service) EnvironmentKeys() string {
 	sort.Strings(keys)
 
 	return strings.Join(keys, ",")
+}
+
+func (s Service) GetName() string {
+	return s.Name
 }
 
 func (s *Service) SetDefaults() error {

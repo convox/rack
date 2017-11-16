@@ -31,7 +31,7 @@ func TestManifestLoad(t *testing.T) {
 				Build: manifest.ServiceBuild{
 					Path: "api",
 				},
-				Domain:  "foo.example.org",
+				Domains: []string{"foo.example.org"},
 				Command: "",
 				Environment: []string{
 					"DEVELOPMENT=false",
@@ -53,6 +53,7 @@ func TestManifestLoad(t *testing.T) {
 			manifest.Service{
 				Name:    "proxy",
 				Command: "bash",
+				Domains: []string{"bar.example.org", "*.example.org"},
 				Health: manifest.ServiceHealth{
 					Path:     "/auth",
 					Interval: 5,
@@ -74,6 +75,7 @@ func TestManifestLoad(t *testing.T) {
 					Path: ".",
 				},
 				Command: "foo",
+				Domains: []string{"baz.example.org", "qux.example.org"},
 				Health: manifest.ServiceHealth{
 					Interval: 5,
 					Path:     "/",
