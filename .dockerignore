@@ -1,6 +1,6 @@
 .env
 .git
-/monitor
+coverage.txt
 docker-compose.yml
 api/models/fixtures/fixture
 cmd/changes/changes
