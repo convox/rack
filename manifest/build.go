@@ -71,6 +71,12 @@ func (m *Manifest) Build(prefix string, tag string, opts BuildOptions) error {
 			if err := opts.docker("tag", from, to); err != nil {
 				return err
 			}
+
+			if !opts.Development {
+				if err := convoxEnvEntrypoint(to, opts); err != nil {
+					return err
+				}
+			}
 		}
 	}
 
@@ -327,12 +333,6 @@ func build(b ServiceBuild, tag string, opts BuildOptions) error {
 
 	if err := opts.docker(args...); err != nil {
 		return err
-	}
-
-	if !opts.Development {
-		if err := convoxEnvEntrypoint(tag, opts); err != nil {
-			return err
-		}
 	}
 
 	data, err := exec.Command("docker", "inspect", tag, "--format", "{{json .Config.Entrypoint}}").CombinedOutput()
