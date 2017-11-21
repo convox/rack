@@ -217,12 +217,25 @@ func (p *AWSProvider) ReleaseSave(r *structs.Release) error {
 		return err
 	}
 
-	_, err = p.s3().PutObject(&s3.PutObjectInput{
+	a, err := p.AppGet(r.App)
+	if err != nil {
+		return err
+	}
+
+	sreq := &s3.PutObjectInput{
 		Body:          bytes.NewReader(env),
 		Bucket:        aws.String(settings),
 		ContentLength: aws.Int64(int64(len(env))),
 		Key:           aws.String(fmt.Sprintf("releases/%s/env", r.Id)),
-	})
+	}
+
+	switch a.Tags["Generation"] {
+	case "2":
+	default:
+		sreq.ACL = aws.String("public-read")
+	}
+
+	_, err = p.s3().PutObject(sreq)
 	if err != nil {
 		return err
 	}
