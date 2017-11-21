@@ -315,7 +315,14 @@ func (r *Release) Promote() error {
 		}
 	}
 
-	err = S3Put(settings, fmt.Sprintf("templates/%s", r.Id), []byte(formation), false)
+	public := true
+
+	switch app.Tags["Generation"] {
+	case "2":
+		public = false
+	}
+
+	err = S3Put(settings, fmt.Sprintf("templates/%s", r.Id), []byte(formation), public)
 	if err != nil {
 		return err
 	}
