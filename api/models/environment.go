@@ -125,14 +125,7 @@ func PutEnvironment(app string, env Environment) (string, error) {
 		return "", err
 	}
 
-	public := true
-
-	switch a.Tags["Generation"] {
-	case "2":
-		public = false
-	}
-
-	err = S3Put(settings, "env", []byte(e), public)
+	err = S3Put(settings, "env", []byte(e), false)
 	if err != nil {
 		return "", err
 	}
