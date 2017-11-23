@@ -4,6 +4,7 @@
     "Conditions": {
       "BlankDatabaseSnapshotIdentifier": { "Fn::Equals": [ { "Ref": "DatabaseSnapshotIdentifier"}, "" ] },
       "BlankMaxConnections": { "Fn::Equals": [ { "Ref": "MaxConnections" }, "" ] },
+      "Encrypted": { "Fn::Equals": [ { "Ref": "Encrypted" }, "true" ] },
       "Private": { "Fn::Equals": [ { "Ref": "Private" }, "true" ] }
     },
     "Parameters": {
@@ -132,6 +133,7 @@
           "DBSubnetGroupName": { "Ref": "SubnetGroup" },
           "Engine": "postgres",
           "EngineVersion": { "Ref": "Version" },
+          "KmsKeyId": { "Fn::If": [ "Encrypted", { "Ref": "EncryptionKey" }, { "Ref": "AWS::NoValue" } ] },
           "MasterUsername": { "Ref": "Username" },
           "MasterUserPassword": { "Ref": "Password" },
           "MultiAZ": { "Ref": "MultiAZ" },
@@ -150,6 +152,33 @@
           "Parameters": {
             "max_connections": { "Fn::If": [ "BlankMaxConnections", { "Ref": "AWS::NoValue" }, { "Ref": "MaxConnections" } ] }
           }
+        }
+      },
+      "EncryptionKey": {
+        "Type": "AWS::KMS::Key",
+        "Condition": "Encrypted",
+        "Properties": {
+          "Description": { "Ref": "AWS::StackName" },
+          "KeyPolicy": {
+            "Version": "2012-10-17",
+            "Statement": [
+              {
+                "Sid": "Allow administration of the key",
+                "Effect": "Allow",
+                "Principal": { "AWS": { "Fn::Sub": "arn:aws:iam::${AWS::AccountId}:root" } },
+                "Action": [ "kms:*" ],
+                "Resource": "*"
+              }
+            ]
+          }
+        }
+      },
+      "EncryptionKeyAlias": {
+        "Type": "AWS::KMS::Alias",
+        "Condition": "Encrypted",
+        "Properties": {
+          "AliasName": { "Fn::Sub": "alias/${AWS::StackName}" },
+          "TargetKeyId": { "Ref": "EncryptionKey" }
         }
       }
     }
