@@ -8,11 +8,11 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/convox/rack/client"
 	"github.com/convox/rack/cmd/convox/stdcli"
 	"gopkg.in/urfave/cli.v1"
-	"time"
 )
 
 // ResourceType is the type of an external resource.
@@ -39,7 +39,7 @@ var resourceTypes = []ResourceType{
 	},
 	{
 		"redis",
-		"[--automatic-failover-enabled] [--database=db-name] [--instance-type=cache.t2.micro] [--num-cache-clusters=1] [--private]",
+		"[--automatic-failover-enabled] [--database=db-name] [--encrypted] [--instance-type=cache.t2.micro] [--num-cache-clusters=1] [--private] [--version=3.2.6]",
 	},
 	{
 		"s3",
