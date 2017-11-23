@@ -32,6 +32,12 @@
         "Default": "",
         "Description": "ARN of database snapshot to restore"
       },
+      "Encrypted": {
+        "Type": "String",
+        "Description": "Encrypt database with KMS",
+        "Default": "false",
+        "AllowedValues": [ "true", "false" ]
+      },
       "Family": {
         "Type": "String",
         "Default": "postgres9.6",
@@ -131,6 +137,7 @@
           "MultiAZ": { "Ref": "MultiAZ" },
           "Port": "5432",
           "PubliclyAccessible": "false",
+          "StorageEncrypted": { "Ref": "Encrypted" },
           "StorageType": "gp2",
           "VPCSecurityGroups": [ { "Ref": "SecurityGroup" } ]
         }
