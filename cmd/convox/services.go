@@ -8,11 +8,11 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/convox/rack/client"
 	"github.com/convox/rack/cmd/convox/stdcli"
 	"gopkg.in/urfave/cli.v1"
-	"time"
 )
 
 // ResourceType is the type of an external resource.
@@ -35,7 +35,7 @@ var resourceTypes = []ResourceType{
 	},
 	{
 		"postgres",
-		"[--allocated-storage=10] [--backup-retention-period=1] [--database=db-name] [--database-snapshot-identifier=db-snapshot-arn] [--instance-type=db.t2.micro] [--max-connections={DBInstanceClassMemory/15000000}] [--multi-az] [--password=example] [--private] [--username=example] [--version=9.5.2]",
+		"[--allocated-storage=10] [--backup-retention-period=1] [--database=db-name] [--database-snapshot-identifier=db-snapshot-arn] [--encrypted] [--instance-type=db.t2.micro] [--max-connections={DBInstanceClassMemory/15000000}] [--multi-az] [--password=example] [--private] [--username=example] [--version=9.5.2]",
 	},
 	{
 		"redis",
