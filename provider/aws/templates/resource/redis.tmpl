@@ -2,6 +2,7 @@
   {
     "AWSTemplateFormatVersion" : "2010-09-09",
     "Conditions": {
+      "Encrypted": { "Fn::Equals": [ { "Ref": "Encrypted" }, "true" ] },
       "Private": { "Fn::Equals": [ { "Ref": "Private" }, "true" ] }
     },
     "Parameters": {
@@ -14,6 +15,12 @@
         "Type" : "String",
         "Default" : "0",
         "Description" : "Default database index"
+      },
+      "Encrypted": {
+        "Type": "String",
+        "Description": "Encrypt at rest and in transit",
+        "Default": "false",
+        "AllowedValues": [ "true", "false" ]
       },
       "InstanceType": {
         "Type": "String",
@@ -82,6 +89,7 @@
       "ReplicationGroup": {
         "Type": "AWS::ElastiCache::ReplicationGroup",
         "Properties": {
+          "AtRestEncryptionEnabled": { "Fn::If": [ "Encrypted", "true", { "Ref": "AWS::NoValue" } ] },
           "AutomaticFailoverEnabled": { "Ref": "AutomaticFailoverEnabled" },
           "AutoMinorVersionUpgrade": true,
           "CacheNodeType": { "Ref": "InstanceType" },
@@ -91,7 +99,8 @@
           "NumCacheClusters": { "Ref": "NumCacheClusters" },
           "Port": "6379",
           "ReplicationGroupDescription": { "Ref": "AWS::StackName" },
-          "SecurityGroupIds": [ { "Ref": "SecurityGroup" } ]
+          "SecurityGroupIds": [ { "Ref": "SecurityGroup" } ],
+          "TransitEncryptionEnabled": { "Fn::If": [ "Encrypted", "true", { "Ref": "AWS::NoValue" } ] }
         }
       }
     }
