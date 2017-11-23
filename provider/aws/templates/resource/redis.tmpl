@@ -40,6 +40,10 @@
         "Default" : "",
         "Description" : "VPC private subnets"
       },
+      "Version": {
+        "Type": "String",
+        "Default": "3.2.6"
+      },
       "Vpc": {
         "Type": "AWS::EC2::VPC::Id",
         "Description": "VPC"
@@ -83,7 +87,7 @@
           "CacheNodeType": { "Ref": "InstanceType" },
           "CacheSubnetGroupName": { "Ref": "CacheSubnetGroup" },
           "Engine": "redis",
-          "EngineVersion": "2.8.24",
+          "EngineVersion": { "Ref": "Version" },
           "NumCacheClusters": { "Ref": "NumCacheClusters" },
           "Port": "6379",
           "ReplicationGroupDescription": { "Ref": "AWS::StackName" },
