@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 
@@ -115,19 +116,26 @@ func (p *Process) GenerateArgs(opts *ArgOptions) ([]string, error) {
 
 	for _, volume := range p.service.Volumes {
 		if !strings.Contains(volume, ":") {
-			home, err := homedir.Dir()
-			if err != nil {
-				return nil, err
-			}
+			var home string
 
-			abs, err := filepath.Abs(home)
-			if err != nil {
-				return nil, err
+			switch runtime.GOOS {
+			case "windows":
+				home = "/home/convox"
+			default:
+				h, err := homedir.Dir()
+				if err != nil {
+					return nil, err
+				}
+
+				home, err = filepath.Abs(h)
+				if err != nil {
+					return nil, err
+				}
 			}
 
 			volume = fmt.Sprintf(
 				"%s:%s",
-				fmt.Sprintf("%s/.convox/volumes/%s/%s/%s", abs, p.app, p.service.Name, volume),
+				fmt.Sprintf("%s/.convox/volumes/%s/%s/%s", home, p.app, p.service.Name, volume),
 				volume,
 			)
 		}
