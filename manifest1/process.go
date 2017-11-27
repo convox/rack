@@ -2,10 +2,8 @@ package manifest1
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strconv"
 	"strings"
 
@@ -37,14 +35,19 @@ func NewProcess(app string, s Service, m Manifest) Process {
 		service:  s,
 	}
 
-	p.Args = p.GenerateArgs(nil)
+	args, err := p.GenerateArgs(nil)
+	if err != nil {
+		panic(err)
+	}
+
+	p.Args = args
 
 	return p
 }
 
 // GenerateArgs generates the argument list based on a process property
 // Possible to optionally override certain fields via opts
-func (p *Process) GenerateArgs(opts *ArgOptions) []string {
+func (p *Process) GenerateArgs(opts *ArgOptions) ([]string, error) {
 	args := []string{}
 
 	args = append(args, "-i")
@@ -114,26 +117,23 @@ func (p *Process) GenerateArgs(opts *ArgOptions) []string {
 		if !strings.Contains(volume, ":") {
 			home := ""
 
-			switch runtime.GOOS {
-			case "windows":
-				home = "/home/convox" // prefix with container path to use Docker Volume
-			default:
-				d, err := homedir.Dir() // prefix with host path to use OS File Sharing
-				if err != nil {
-					log.Fatal(err)
-				}
-				home, err = filepath.Abs(d)
-				if err != nil {
-					log.Fatal(err)
-				}
+			home, err := homedir.Dir()
+			if err != nil {
+				return nil, err
+			}
+
+			abs, err := filepath.Abs(home)
+			if err != nil {
+				return nil, err
 			}
 
 			volume = fmt.Sprintf(
 				"%s:%s",
-				filepath.Clean(fmt.Sprintf("%s/.convox/volumes/%s/%s/%s", home, p.app, p.service.Name, volume)),
+				fmt.Sprintf("%s/.convox/volumes/%s/%s/%s", abs, p.app, p.service.Name, volume),
 				volume,
 			)
 		}
+
 		args = append(args, "-v", volume)
 	}
 
@@ -155,7 +155,7 @@ func (p *Process) GenerateArgs(opts *ArgOptions) []string {
 		args = append(args, p.service.Command.Array...)
 	}
 
-	return args
+	return args, nil
 }
 
 func (p *Process) Sync(local, remote string) (*sync.Sync, error) {
