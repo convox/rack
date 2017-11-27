@@ -3,12 +3,10 @@ package manifest1
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 	"strconv"
 	"strings"
 
 	"github.com/convox/rack/sync"
-	"github.com/mitchellh/go-homedir"
 )
 
 type Process struct {
@@ -115,21 +113,9 @@ func (p *Process) GenerateArgs(opts *ArgOptions) ([]string, error) {
 
 	for _, volume := range p.service.Volumes {
 		if !strings.Contains(volume, ":") {
-			home := ""
-
-			home, err := homedir.Dir()
-			if err != nil {
-				return nil, err
-			}
-
-			abs, err := filepath.Abs(home)
-			if err != nil {
-				return nil, err
-			}
-
 			volume = fmt.Sprintf(
 				"%s:%s",
-				fmt.Sprintf("%s/.convox/volumes/%s/%s/%s", abs, p.app, p.service.Name, volume),
+				fmt.Sprintf("/home/convox/.volumes/%s/%s/%s", p.app, p.service.Name, volume),
 				volume,
 			)
 		}
