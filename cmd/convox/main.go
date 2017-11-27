@@ -6,10 +6,13 @@ import (
 	"net/mail"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
+	"syscall"
 
 	"gopkg.in/urfave/cli.v1"
 
+	"github.com/Azure/go-ansiterm/winterm"
 	"github.com/convox/rack/client"
 	"github.com/convox/rack/cmd/convox/helpers"
 	"github.com/convox/rack/cmd/convox/stdcli"
@@ -66,6 +69,10 @@ func main() {
 	app := stdcli.New()
 	app.Flags = []cli.Flag{appFlag, rackFlag}
 	app.Version = Version
+
+	if runtime.GOOS == "windows" {
+		enableWindowsNativeTerminal()
+	}
 
 	err := app.Run(os.Args)
 
@@ -132,4 +139,25 @@ func rackClient(c *cli.Context) *client.Client {
 	cl.Rack = currentRack(c)
 
 	return cl
+}
+
+const enableVirtualTerminalProcessing = 0x0004
+
+func enableWindowsNativeTerminal() error {
+	hnd, err := syscall.GetStdHandle(syscall.STD_OUTPUT_HANDLE)
+	if err != nil {
+		return err
+	}
+
+	var mode uint32
+
+	if err := syscall.GetConsoleMode(hnd, &mode); err != nil {
+		return err
+	}
+
+	if err := winterm.SetConsoleMode(uintptr(hnd), mode|enableVirtualTerminalProcessing); err != nil {
+		return err
+	}
+
+	return nil
 }
