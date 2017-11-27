@@ -1,6 +1,10 @@
 package main
 
-import "syscall"
+import (
+	"syscall"
+
+	"github.com/Azure/go-ansiterm/winterm"
+)
 
 const enableVirtualTerminalProcessing = 0x0004
 
