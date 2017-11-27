@@ -5,7 +5,7 @@ VERSION=edge
 all: build
 
 build:
-	docker build -t convox/api .
+	docker build -t goodeggs/convox-api .
 
 templates:
 	go-bindata -nometadata -pkg=models -prefix=models -o=models/templates.go models/templates/...
