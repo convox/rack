@@ -13,5 +13,5 @@ main: *.go
 
 release: lambda.zip
 	for region in $(shell cat ../../../../REGIONS); do \
-		aws s3 cp lambda.zip s3://convox-$$region/release/$(VERSION)/lambda/formation.zip --acl public-read --region $$region; \
+		aws s3 cp lambda.zip s3://goodeggs-convox-$$region/release/$(VERSION)/lambda/formation.zip --acl public-read --region $$region; \
 	done
