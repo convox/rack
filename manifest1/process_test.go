@@ -35,7 +35,7 @@ func TestProcessNew(t *testing.T) {
 		"--name",
 		"api-foo",
 		"-v",
-		fmt.Sprintf("%s/.convox/volumes/api/foo/data/data:/data/data", dir),
+		fmt.Sprintf("%s/.convox/volumes/api/foo//data/data:/data/data", dir),
 		"-v",
 		"/foo:/data/data",
 		"api/foo",
@@ -69,20 +69,21 @@ func TestProcessGenerateArgs(t *testing.T) {
 	assert.Equal(t, p.Name, "api-foo")
 	assert.Equal(t, p.Args, expectedArgs)
 
-	p.Args = p.GenerateArgs(&manifest1.ArgOptions{
+	args, err := p.GenerateArgs(&manifest1.ArgOptions{
 		Command:     "foobar",
 		IgnorePorts: true,
 		Name:        "fake-name",
 	})
 
-	assert.Equal(t, []string{"-i", "--rm", "--name", "fake-name", "api/foo", "sh", "-c", "foobar"}, p.Args)
+	assert.NoError(t, err)
+	assert.Equal(t, []string{"-i", "--rm", "--name", "fake-name", "api/foo", "sh", "-c", "foobar"}, args)
 
-	p.Args = p.GenerateArgs(&manifest1.ArgOptions{
+	args, err = p.GenerateArgs(&manifest1.ArgOptions{
 		Command: "newcommand",
 	})
 
-	assert.Equal(t, []string{"-i", "--rm", "--name", "api-foo", "api/foo", "sh", "-c", "newcommand"}, p.Args)
-
+	assert.NoError(t, err)
+	assert.Equal(t, []string{"-i", "--rm", "--name", "api-foo", "api/foo", "sh", "-c", "newcommand"}, args)
 }
 
 func TestProcessCommandString(t *testing.T) {
