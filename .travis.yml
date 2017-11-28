@@ -32,6 +32,7 @@ script:
 - make test
 
 before_deploy:
+- sudo pip install awscli
 - curl -sSL https://github.com/goodeggs/travis-utils/raw/master/install-ci-tools.sh | CACHE_DIR=/tmp/ci-tools sh -s -- git-crypt
 - git-crypt-unlock
 - eval "$(envfile platform/secrets/travis.env)"
