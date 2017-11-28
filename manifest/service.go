@@ -21,19 +21,20 @@ var ManifestRandomPorts = true
 type Service struct {
 	Name string `yaml:"-"`
 
-	Build       Build       `yaml:"build,omitempty"`
-	Command     Command     `yaml:"command,omitempty"`
-	Dockerfile  string      `yaml:"dockerfile,omitempty"`
-	Entrypoint  string      `yaml:"entrypoint,omitempty"`
-	Environment Environment `yaml:"environment,omitempty"`
-	ExtraHosts  []string    `yaml:"extra_hosts,omitempty"`
-	Image       string      `yaml:"image,omitempty"`
-	Labels      Labels      `yaml:"labels,omitempty"`
-	Links       []string    `yaml:"links,omitempty"`
-	Networks    Networks    `yaml:"-"`
-	Ports       Ports       `yaml:"ports,omitempty"`
-	Privileged  bool        `yaml:"privileged,omitempty"`
-	Volumes     []string    `yaml:"volumes,omitempty"`
+	Build       Build                `yaml:"build,omitempty"`
+	Command     Command              `yaml:"command,omitempty"`
+	Dockerfile  string               `yaml:"dockerfile,omitempty"`
+	Entrypoint  string               `yaml:"entrypoint,omitempty"`
+	Environment Environment          `yaml:"environment,omitempty"`
+	ExtraHosts  []string             `yaml:"extra_hosts,omitempty"`
+	Image       string               `yaml:"image,omitempty"`
+	Labels      Labels               `yaml:"labels,omitempty"`
+	Links       []string             `yaml:"links,omitempty"`
+	Logging     LoggingConfiguration `yaml:"logging,omitempty"`
+	Networks    Networks             `yaml:"-"`
+	Ports       Ports                `yaml:"ports,omitempty"`
+	Privileged  bool                 `yaml:"privileged,omitempty"`
+	Volumes     []string             `yaml:"volumes,omitempty"`
 
 	Cpu    int64  `yaml:"cpu_shares,omitempty"`
 	Memory Memory `yaml:"mem_limit,omitempty"`
@@ -45,6 +46,11 @@ type Service struct {
 	Primary bool `yaml:"-"`
 
 	randoms map[string]int
+}
+
+type LoggingConfiguration struct {
+	Driver  string            `yaml:"driver,omitempty"`
+	Options map[string]string `yaml:"options,omitempty"`
 }
 
 // Services are a list of Services
@@ -514,6 +520,15 @@ func (s Service) ExtraHostsMap() map[string]string {
 		res[parts[0]] = parts[1]
 	}
 	return res
+}
+
+// LoggingOptionsArray returns an array of arrays of logging options
+func (s Service) LoggingOptionsArray() [][2]string {
+	var out [][2]string
+	for k, v := range s.Logging.Options {
+		out = append(out, [2]string {k, v})
+	}
+	return out
 }
 
 func (s *Service) Randoms() map[string]int {

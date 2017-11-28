@@ -327,17 +327,28 @@
                 { "Ref" : "AWS::NoValue" }
               ],
               "Privileged": "{{ $e.Privileged }}",
-              "LogConfiguration": { "Fn::If": [ "NativeLogging",
+              "LogConfiguration": {{ if ne $e.Logging.Driver "" }}
                 {
-                  "LogDriver": "awslogs",
+                  "LogDriver": "{{ $e.Logging.Driver }}",
                   "Options": {
-                    "awslogs-region": { "Ref": "AWS::Region" },
-                    "awslogs-group": { "Ref": "LogGroup" },
-                    "awslogs-stream-prefix": "convox"
+                    {{ range $index, $value := $e.LoggingOptionsArray }}
+                      {{if $index}},{{else}}{{end}}"{{ index $value 0 }}": "{{ index $value 1 }}"
+                    {{ end }}
                   }
-                },
-                { "Ref" : "AWS::NoValue" }
-              ] }
+                }
+              {{ else }}
+                { "Fn::If": [ "NativeLogging",
+                  {
+                    "LogDriver": "awslogs",
+                    "Options": {
+                      "awslogs-region": { "Ref": "AWS::Region" },
+                      "awslogs-group": { "Ref": "LogGroup" },
+                      "awslogs-stream-prefix": "convox"
+                    }
+                  },
+                  { "Ref" : "AWS::NoValue" }
+                ] }
+              {{ end }}
             }
           ]
         }

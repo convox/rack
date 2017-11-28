@@ -1,0 +1,9 @@
+version: "2"
+services:
+  secure:
+    build: .
+    logging:
+      driver: syslog
+      options:
+        foo: bar
+        hello: world
