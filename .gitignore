@@ -1,3 +1,4 @@
 .env
 coverage.txt
 profile.out
+.git-crypt.key

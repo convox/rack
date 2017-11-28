@@ -7,3 +7,4 @@ cmd/changes/changes
 cmd/convox/convox
 provider/aws/lambda/formation/main
 provider/aws/lambda/formation/lambda.zip
+.git-crypt.key

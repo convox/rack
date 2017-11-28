@@ -1,33 +1,24 @@
 sudo: required
-
 env:
   global:
-    - DOCKER_VERSION=17.03.1~ce-0~ubuntu-trusty
-
+  - DOCKER_VERSION=17.03.1~ce-0~ubuntu-trusty
+  - secure: a6jvNbjM5J62GrW+/HbOswlxK8v3jw1rm6lvS9cKuMSWTh443qpFDrQ3n/sFjfW7yIJuK/EvLyfubQx/5HQtPdbWLb4SQYq72nbyfIQ3SRPfw32PCPjTN0gYxdnQcgqKszlRWzHJBNQEpUxTbQBTNUTSQy1Xub1bFY+JT9AbR7gRPcvhqKyfGusZF73dr+ekanBZytvONz8Yp4y9iGnjlPqi0MFJts3bAUG97tElZ/82EWSkwWR+9hUenUa/KG9vbSdwVbL4Zo5jJ0lseaAYQatdg0qGKVyiN+6vULzAun4Sjv+6FVjExyxoySepk0h2dVmadteB47MwwTEV3aixoxiAQoKjvqaaHU9We0VBn9FZAsf9RL+nm/NZadq35FTzxfSeXY5gjUQ20iE1eDWfalUcNJkw22EdQ9nxHR8aElQzTtD8W67PdK40Tbttk/f/D9a4LxPciDUPBOUHb2bCwd7c2/oZew5fPKoIkLwf9dHxDqdm/J4KHTyArW/ViMC2gtl5WzMlnsELiPe9Y8W62nPSlI9658GBlR7EKOWpyQw9eJ8JfOH2EN1te4s1Sl/S1uwLOYSZKgE7x9tySeyP2FB90ySodPEFDjnkI3ghs+JKQMTIHDKopgZDVDe/d2LT3C4n2SoBWTPy1X7VzpELHAsjQjrd6f2l3yEcGw6j3nM=
 services:
-  - docker
-
+- docker
 branches:
   except:
-    - "/^\\d{14}/"
-
+  - /^\d{14}/
 language: go
-
 go:
-  - 1.7
-
+- 1.7
 before_install:
-  - source ./ci/correct-path.sh
-
-  # upgrade docker-ce to specific version
-  - sudo apt-get -o Dpkg::Options::="--force-confnew" install -y docker-ce=${DOCKER_VERSION}
-  - docker version
-
+- source ./ci/correct-path.sh
+- sudo apt-get -o Dpkg::Options::="--force-confnew" install -y docker-ce=${DOCKER_VERSION}
+- docker version
 script:
-  - ./ci/set-client-id.sh
-  - go get ./cmd/convox
-  - make test
-
+- ./ci/set-client-id.sh
+- go get ./cmd/convox
+- make test
 deploy:
   provider: script
   script: ci/deploy.sh
