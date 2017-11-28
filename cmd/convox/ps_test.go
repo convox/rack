@@ -40,7 +40,7 @@ func TestPs(t *testing.T) {
 		test.ExecRun{
 			Command: "convox ps --app myapp",
 			Exit:    0,
-			Stdout:  "ID     NAME     RELEASE     STARTED       COMMAND\nfooID  fooName  fooRelease  33 years ago  fooCommand\n",
+			Stdout:  "ID     NAME     RELEASE     STARTED       COMMAND\nfooID  fooName  fooRelease  34 years ago  fooCommand\n",
 		},
 	)
 }

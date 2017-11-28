@@ -2,7 +2,7 @@ sudo: required
 
 env:
   global:
-    - DOCKER_VERSION=1.13.0-0~ubuntu-trusty
+    - DOCKER_VERSION=17.03.1~ce-0~ubuntu-trusty
 
 services:
   - docker
@@ -19,8 +19,8 @@ go:
 before_install:
   - source ./ci/correct-path.sh
 
-  # upgrade docker-engine to specific version
-  - sudo apt-get -o Dpkg::Options::="--force-confnew" install -y docker-engine=${DOCKER_VERSION}
+  # upgrade docker-ce to specific version
+  - sudo apt-get -o Dpkg::Options::="--force-confnew" install -y docker-ce=${DOCKER_VERSION}
   - docker version
 
 script:
