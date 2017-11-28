@@ -27,3 +27,9 @@ script:
   - ./ci/set-client-id.sh
   - go get ./cmd/convox
   - make test
+
+deploy:
+  provider: script
+  script: ci/deploy.sh
+  on:
+    branch: goodeggs
