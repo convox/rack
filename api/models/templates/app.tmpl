@@ -349,6 +349,11 @@
                   { "Ref" : "AWS::NoValue" }
                 ] }
               {{ end }}
+              {{ if ne $e.Logging.Driver "" }}
+                ,"DockerLabels": {
+                  "tag": { "Ref": "LogGroup" }
+                }
+              {{ end }}
             }
           ]
         }

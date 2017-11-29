@@ -330,6 +330,11 @@
                 }
               ]
             },
+            "DockerLabels": {
+              "tag": {
+                "Ref": "LogGroup"
+              }
+            },
             "Environment": {
               "APP": "httpd",
               "AWS_REGION": "test",
