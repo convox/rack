@@ -171,7 +171,7 @@
   {{ range .Services }}
     "{{ upper .Name }}Formation": {
       "Type": "CommaDelimitedList",
-      "Default": "0,128,256",
+      "Default": "{{.Scale.Count.Min}},128,256",
       "Description": "Count,CPU,Memory"
     },
   {{ end }}
