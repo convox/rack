@@ -16,6 +16,8 @@ type Service struct {
 	Environment ServiceEnvironment `yaml:"environment,omitempty"`
 	Health      ServiceHealth      `yaml:"health,omitempty"`
 	Image       string             `yaml:"image,omitempty"`
+	Internal    bool               `yaml:"internal,omitempty"`
+	Links       []string           `yaml:"links,omitempty"`
 	Port        ServicePort        `yaml:"port,omitempty"`
 	Privileged  bool               `yaml:"privileged,omitempty"`
 	Resources   []string           `yaml:"resources,omitempty"`
