@@ -891,7 +891,7 @@
             "Fn::Join": [
               "-",
               [
-                "convox",
+                "goodeggs-convox",
                 {
                   "Ref": "AWS::Region"
                 }
