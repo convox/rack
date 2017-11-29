@@ -341,6 +341,11 @@ func ECSTaskDefinitionCreate(req Request) (string, map[string]string, error) {
 
 			r.ContainerDefinitions[i].LogConfiguration = c
 		}
+
+		// Set docker labels if present in request:
+		if dockerLabels, ok := task["DockerLabels"].(map[string]*string); ok {
+			r.ContainerDefinitions[i].SetDockerLabels(dockerLabels)
+    }
 	}
 
 	res, err := ECS(req).RegisterTaskDefinition(r)
