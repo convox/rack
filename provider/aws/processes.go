@@ -619,10 +619,18 @@ func (p *AWSProvider) fetchProcess(task *ecs.Task, psch chan structs.Process, er
 		return
 	}
 
-	ci, err := p.containerInstance(*task.ContainerInstanceArn)
-	if err != nil {
-		errch <- err
-		return
+	instance := ""
+
+	if task.ContainerInstanceArn != nil {
+		ci, err := p.containerInstance(*task.ContainerInstanceArn)
+		if err != nil {
+			errch <- err
+			return
+		}
+
+		if ci.Ec2InstanceId != nil {
+			instance = *ci.Ec2InstanceId
+		}
 	}
 
 	env := map[string]string{}
@@ -654,7 +662,7 @@ func (p *AWSProvider) fetchProcess(task *ecs.Task, psch chan structs.Process, er
 		App:      coalesces(labels["convox.app"], env["APP"]),
 		Release:  coalesces(labels["convox.release"], env["RELEASE"]),
 		Image:    *cd.Image,
-		Instance: *ci.Ec2InstanceId,
+		Instance: instance,
 		Ports:    ports,
 	}
 
