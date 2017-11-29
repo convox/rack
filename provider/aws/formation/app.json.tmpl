@@ -140,6 +140,7 @@
             { "Key": "deregistration_delay.timeout_seconds", "Value": "30" },
             { "Key": "stickiness.enabled", "Value": "true" }
           ],
+          "TargetType": "ip",
           "VpcId": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Vpc" } }
         }
       },
@@ -171,13 +172,24 @@
   {{ range .Services }}
     "{{ upper .Name }}Formation": {
       "Type": "CommaDelimitedList",
-      "Default": "{{.Scale.Count.Min}},128,256",
+      "Default": "0,256,512",
       "Description": "Count,CPU,Memory"
     },
   {{ end }}
 {{ end }}
 
 {{ define "service-resources" }}
+  "ExecutionRole": {
+    "Type": "AWS::IAM::Role",
+    "Properties": {
+      "AssumeRolePolicyDocument": {
+        "Statement": [ { "Effect": "Allow", "Principal": { "Service": [ "ecs-tasks.amazonaws.com" ] }, "Action": [ "sts:AssumeRole" ] } ],
+        "Version": "2012-10-17"
+      },
+      "ManagedPolicyArns": [ "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy" ],
+      "Path": "/convox/"
+    }
+  },
   "ServiceRole": {
     "Type": "AWS::IAM::Role",
     "Properties": {
@@ -199,6 +211,18 @@
     }
   },
   {{ range .Manifest.Services }}
+    "Service{{ upper .Name }}SecurityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": { "Fn::Sub": "${AWS::StackName} service" },
+        "SecurityGroupIngress": [
+          {{ with .Port.Port }}
+            { "IpProtocol": "tcp", "FromPort": "{{.}}", "ToPort": "{{.}}", "CidrIp": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:VpcCidr" } } }
+          {{ end }}
+        ],
+        "VpcId": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Vpc" } }
+      }
+    },
     "Service{{ upper .Name }}Service": {
       "Type": "AWS::ECS::Service",
       {{ if .Port.Port }}
@@ -209,13 +233,19 @@
         "DeploymentConfiguration": { "MinimumHealthyPercent": "50", "MaximumPercent": "200" },
         "DesiredCount": { "Fn::Select": [ 0, { "Ref": "{{ upper .Name }}Formation" } ] },
         {{ if .Port.Port }}
-          "LoadBalancers": [ { "ContainerName": "{{.Name}}", "ContainerPort": "{{.Port.Port}}", "TargetGroupArn": { "Ref": "Balancer{{ upper .Name }}TargetGroup{{ if .Internal }}Internal{{ end }}" } } ],
-          "Role": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:ServiceRole" } },
+          "LoadBalancers": [ { "ContainerName": "{{.Name}}", "ContainerPort": "{{.Port.Port}}", "TargetGroupArn": { "Ref": "Balancer{{ upper .Name }}TargetGroup" } } ],
         {{ end }}
-        "PlacementStrategies": [
-          { "Type": "spread", "Field": "attribute:ecs.availability-zone" },
-          { "Type": "spread", "Field": "instanceId" }
-        ],
+        "LaunchType": "FARGATE",
+        "NetworkConfiguration": {
+          "AwsvpcConfiguration": {
+            "AssignPublicIp": "ENABLED",
+            "SecurityGroups": [ { "Ref": "Service{{ upper .Name }}SecurityGroup" } ],
+            "Subnets": [
+              { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Subnet0" } },
+              { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Subnet1" } }
+            ]
+          }
+        },
         "TaskDefinition": { "Ref": "Service{{ upper .Name }}Tasks" }
       }
     },
@@ -227,7 +257,6 @@
             {{ with .Command }}
               "Command": [ "sh", "-c", "{{.}}" ],
             {{ end }}
-            "Cpu": { "Fn::Select": [ 1, { "Ref": "{{ upper .Name }}Formation" } ] },
             "DockerLabels": { "convox.app": "{{$.App}}", "convox.generation": "2", "convox.release": "{{$.Release.Id}}" },
             "Environment": [
               {{ range $k, $v := .EnvironmentDefaults }}
@@ -257,20 +286,24 @@
                 "awslogs-stream-prefix": "service"
               }
             },
-            "Memory": { "Fn::Select": [ 2, { "Ref": "{{ upper .Name }}Formation" } ] },
-            {{ if .Port.Port }}
-              "PortMappings": [ { "ContainerPort": "{{.Port.Port}}" } ],
-            {{ end }}
             "MountPoints": [
               {{ range $i, $v := .Volumes }}
                 { "SourceVolume": "volume-{{$i}}", "ContainerPath": "{{ volumeTo $v }}" },
               {{ end }}
               { "Ref": "AWS::NoValue" }
             ],
+            {{ if .Port.Port }}
+              "PortMappings": [ { "ContainerPort": "{{.Port.Port}}" } ],
+            {{ end }}
             "Name": "{{.Name}}"
           }
         ],
+        "Cpu": { "Fn::Select": [ 1, { "Ref": "{{ upper .Name }}Formation" } ] },
+        "Memory": { "Fn::Select": [ 2, { "Ref": "{{ upper .Name }}Formation" } ] },
+        "ExecutionRoleArn": { "Fn::GetAtt": [ "ExecutionRole", "Arn" ] },
         "Family": { "Fn::Sub": "${AWS::StackName}-service-{{.Name}}" },
+        "NetworkMode": "awsvpc",
+        "RequiresCompatibilities": [ "FARGATE" ],
         "TaskRoleArn": { "Fn::GetAtt": [ "ServiceRole", "Arn" ] },
         "Volumes": [
           {{ range $i, $v := .Volumes }}
