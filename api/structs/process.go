@@ -16,11 +16,12 @@ type Process struct {
 	Command  string   `json:"command"`
 	Host     string   `json:"host"`
 	Image    string   `json:"image"`
-	Instance string   `json:"instance"`
+	Instance string   `json:"instance,omitempty"`
+	IP       string   `json:"ip,omitempty"`
 	Ports    []string `json:"ports"`
 
-	CPU    float64 `json:"cpu"`
-	Memory float64 `json:"memory"`
+	CPU    float64 `json:"cpu,omitempty"`
+	Memory float64 `json:"memory,omitempty"`
 
 	Started time.Time `json:"started"`
 }
