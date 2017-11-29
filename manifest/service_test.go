@@ -103,3 +103,19 @@ func TestUseSecureEnvironment(t *testing.T) {
 	assert.True(t, secureService.UseSecureEnvironment())
 	assert.False(t, notSecureService.UseSecureEnvironment())
 }
+
+func TestLoggingOptionsArray(t *testing.T) {
+	m, err := manifestFixture("logging-options")
+	if err != nil {
+		assert.FailNow(t, fmt.Sprintf("failed to read fixture: %s", err.Error()))
+	}
+
+	var expectedArray [][2]string
+	expectedArray = append(expectedArray, [2]string{"foo", "bar"})
+	expectedArray = append(expectedArray, [2]string{"hello", "world"})
+
+	for _, s := range m.Services {
+		ar := s.LoggingOptionsArray()
+		assert.EqualValues(t, expectedArray, ar)
+	}
+}
