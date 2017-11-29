@@ -134,6 +134,12 @@ func (p *AWSProvider) ReleasePromote(r *structs.Release) error {
 		return err
 	}
 
+	for _, s := range m.Services {
+		if s.Internal && !p.Internal {
+			return fmt.Errorf("rack does not support internal services")
+		}
+	}
+
 	tp := map[string]interface{}{
 		"App":      r.App,
 		"Env":      env,
