@@ -37,6 +37,16 @@ func formationHelpers() template.FuncMap {
 			}
 			return (crc32.ChecksumIEEE([]byte(fmt.Sprintf("%s-%s", app, domain))) % 25000) + tier
 		},
+		"router": func(service string, m *manifest.Manifest) (string, error) {
+			s, err := m.Service(service)
+			if err != nil {
+				return "", err
+			}
+			if s.Internal {
+				return "RouterInternal", nil
+			}
+			return "Router", nil
+		},
 		"safe": func(s string) template.HTML {
 			return template.HTML(s)
 		},
