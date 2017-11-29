@@ -235,7 +235,7 @@
               {{ end }}
               {{ range .Links }}
                 { "Name": "{{ upcase . }}_URL", "Value": { "Fn::Join": [ ".", [
-                  "{{$.App}}-{{.}}", { "Fn::ImportValue": { "Fn::Sub": "${Rack}:{{ router . $.Manifest }}Host" } }
+                  "https://{{$.App}}-{{.}}", { "Fn::ImportValue": { "Fn::Sub": "${Rack}:{{ router . $.Manifest }}Host" } }
                 ] ] } },
               {{ end }}
               {{ range .Resources }}
