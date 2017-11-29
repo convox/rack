@@ -25,6 +25,7 @@
       "Fn::And": [ { "Condition": "ExistingVpc" }, { "Condition": "InternetGateway" } ]
     },
     "HttpProxy": { "Fn::Not": [ { "Fn::Equals": [ { "Ref": "HttpProxy" }, "" ] } ] },
+    "Internal": { "Fn::Equals": [ { "Ref": "Internal" }, "Yes" ] },
     "InternetGateway": { "Fn::Not": [ { "Fn::Equals": [ { "Ref": "InternetGateway" }, "" ] } ] },
     "NotExistingVpcAndBlankInternetGateway": { "Fn::Not": [ { "Condition": "ExistingVpcAndBlankInternetGateway" } ] },
     "Private": { "Fn::Equals": [ { "Ref": "Private" }, "Yes" ] },
@@ -193,14 +194,6 @@
     "Release": {
       "Value": { "Ref": "Version" }
     },
-    "Router": {
-      "Export": { "Name": { "Fn::Sub": "${AWS::StackName}:Router" } },
-      "Value": { "Fn::Join": [ ".", [
-        { "Fn::Select": [ 0, { "Fn::Split": [ ".", { "Fn::GetAtt": [ "Router", "DNSName" ] } ] } ] },
-        { "Fn::Select": [ 1, { "Fn::Split": [ ".", { "Fn::GetAtt": [ "Router", "DNSName" ] } ] } ] },
-        "rack.convox.io"
-      ] ] }
-    },
     "RouterHost": {
       "Export": { "Name": { "Fn::Sub": "${AWS::StackName}:RouterHost" } },
       "Value": { "Fn::Join": [ ".", [
@@ -216,6 +209,25 @@
     "RouterListener443": {
       "Export": { "Name": { "Fn::Sub": "${AWS::StackName}:RouterListener443" } },
       "Value": { "Ref": "RouterListener443" }
+    },
+    "RouterInternalHost": {
+      "Condition": "Internal",
+      "Export": { "Name": { "Fn::Sub": "${AWS::StackName}:RouterInternalHost" } },
+      "Value": { "Fn::Join": [ ".", [
+        { "Fn::Select": [ 0, { "Fn::Split": [ ".", { "Fn::GetAtt": [ "RouterInternal", "DNSName" ] } ] } ] },
+        { "Fn::Select": [ 1, { "Fn::Split": [ ".", { "Fn::GetAtt": [ "RouterInternal", "DNSName" ] } ] } ] },
+        "convox.site"
+      ] ] }
+    },
+    "RouterInternalListener80": {
+      "Condition": "Internal",
+      "Export": { "Name": { "Fn::Sub": "${AWS::StackName}:RouterInternalListener80" } },
+      "Value": { "Ref": "RouterInternalListener80" }
+    },
+    "RouterInternalListener443": {
+      "Condition": "Internal",
+      "Export": { "Name": { "Fn::Sub": "${AWS::StackName}:RouterInternalListener443" } },
+      "Value": { "Ref": "RouterInternalListener443" }
     },
     "RouteTablePublic": {
       "Condition": "NotExistingVpcAndBlankInternetGateway",
@@ -381,7 +393,7 @@
     },
     "Internal": {
       "Type": "String",
-      "Description": "Create applications that are only accessible inside the VPC",
+      "Description": "Support applications that are only accessible inside the VPC",
       "Default": "No",
       "AllowedValues": [ "Yes", "No" ]
     },
@@ -1728,8 +1740,8 @@
       }
     },
     "RouterSecurity": {
-      "DependsOn": "ApiRole",
       "Type": "AWS::EC2::SecurityGroup",
+      "DependsOn": "ApiRole",
       "Properties": {
         "GroupDescription": { "Fn::Sub": "${AWS::StackName} router" },
         "SecurityGroupIngress": [ { "CidrIp": "0.0.0.0/0", "IpProtocol": "tcp", "FromPort": "0", "ToPort": "65535" } ],
@@ -1757,8 +1769,8 @@
       }
     },
     "RouterApiCertificate": {
-      "DependsOn": "RouterApiTargetGroup",
       "Type": "AWS::CertificateManager::Certificate",
+      "DependsOn": "RouterApiTargetGroup",
       "Properties": {
         "DomainName": { "Fn::Join": [ ".", [
           "*",
@@ -1784,6 +1796,102 @@
       "DependsOn": "Router",
       "Properties": {
         "Name": { "Fn::Sub": "${AWS::StackName}-api" },
+        "HealthCheckIntervalSeconds": "5",
+        "HealthCheckTimeoutSeconds": "3",
+        "UnhealthyThresholdCount": "2",
+        "HealthCheckPath": "/check",
+        "Port": "4443",
+        "Protocol": "HTTPS",
+        "TargetGroupAttributes": [
+          { "Key": "deregistration_delay.timeout_seconds", "Value": "30" },
+          { "Key": "stickiness.enabled", "Value": "true" }
+        ],
+        "VpcId": { "Fn::If": [ "BlankExistingVpc", { "Ref": "Vpc" }, { "Ref": "ExistingVpc" } ] }
+      }
+    },
+    "RouterInternal": {
+      "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
+      "Condition": "Internal",
+      "DependsOn": [ "ApiRole", "LogsPolicy" ],
+      "Properties": {
+        "LoadBalancerAttributes": [
+          { "Key": "access_logs.s3.enabled", "Value": "true" },
+          { "Key": "access_logs.s3.bucket", "Value": { "Fn::If": [ "BlankLogBucket", { "Ref": "Logs" }, { "Ref": "LogBucket" } ] } },
+          { "Key": "access_logs.s3.prefix", "Value": { "Fn::Sub": "convox/logs/${AWS::StackName}/alb" } },
+          { "Key": "idle_timeout.timeout_seconds", "Value": "3600" }
+        ],
+        "Name": { "Fn::Sub": "${AWS::StackName}-rti" },
+        "Scheme": "internal",
+        "Subnets": [
+          { "Ref": "Subnet0" },
+          { "Ref": "Subnet1" },
+          { "Fn::If": [ "ThirdAvailabilityZone", { "Ref": "Subnet2" }, { "Ref": "AWS::NoValue" } ] }
+        ],
+        "SecurityGroups": [ { "Ref": "RouterSecurity" } ]
+      }
+    },
+    "RouterInternalSecurity": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Condition": "Internal",
+      "DependsOn": "ApiRole",
+      "Properties": {
+        "GroupDescription": { "Fn::Sub": "${AWS::StackName} internal router" },
+        "SecurityGroupIngress": [ { "CidrIp": { "Ref": "VPCCIDR" }, "IpProtocol": "tcp", "FromPort": "0", "ToPort": "65535" } ],
+        "Tags": [ { "Key": "Name", "Value": { "Fn::Sub": "${AWS::StackName}-router-internal" } } ],
+        "VpcId": { "Fn::If": [ "BlankExistingVpc", { "Ref": "Vpc" }, { "Ref": "ExistingVpc" } ] }
+      }
+    },
+    "RouterInternalListener80": {
+      "Type": "AWS::ElasticLoadBalancingV2::Listener",
+      "Condition": "Internal",
+      "Properties": {
+        "DefaultActions": [ { "Type": "forward", "TargetGroupArn": { "Ref": "RouterInternalApiTargetGroup" } } ],
+        "LoadBalancerArn": { "Ref" : "RouterInternal" },
+        "Port": "80",
+        "Protocol": "HTTP"
+      }
+    },
+    "RouterInternalListener443": {
+      "Type": "AWS::ElasticLoadBalancingV2::Listener",
+      "Condition": "Internal",
+      "Properties": {
+        "Certificates": [ { "CertificateArn": { "Ref": "RouterInternalCertificate" } } ],
+        "DefaultActions": [ { "Type": "forward", "TargetGroupArn": { "Ref": "RouterInternalApiTargetGroup" } } ],
+        "LoadBalancerArn": { "Ref" : "RouterInternal" },
+        "Port": "443",
+        "Protocol": "HTTPS"
+      }
+    },
+    "RouterInternalCertificate": {
+      "Type": "AWS::CertificateManager::Certificate",
+      "Condition": "Internal",
+      "DependsOn": "RouterInternalApiTargetGroup",
+      "Properties": {
+        "DomainName": { "Fn::Join": [ ".", [
+          "*",
+          { "Fn::Select": [ 0, { "Fn::Split": [ ".", { "Fn::GetAtt": [ "RouterInternal", "DNSName" ] } ] } ] },
+          { "Fn::Select": [ 1, { "Fn::Split": [ ".", { "Fn::GetAtt": [ "RouterInternal", "DNSName" ] } ] } ] },
+          "convox.site"
+        ] ] },
+        "DomainValidationOptions": [
+          {
+            "DomainName": { "Fn::Join": [ ".", [
+              "*",
+              { "Fn::Select": [ 0, { "Fn::Split": [ ".", { "Fn::GetAtt": [ "RouterInternal", "DNSName" ] } ] } ] },
+              { "Fn::Select": [ 1, { "Fn::Split": [ ".", { "Fn::GetAtt": [ "RouterInternal", "DNSName" ] } ] } ] },
+              "convox.site"
+            ] ] },
+            "ValidationDomain": "convox.site"
+          }
+        ]
+      }
+    },
+    "RouterInternalApiTargetGroup": {
+      "Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
+      "Condition": "Internal",
+      "DependsOn": "RouterInternal",
+      "Properties": {
+        "Name": { "Fn::Sub": "${AWS::StackName}-api-internal" },
         "HealthCheckIntervalSeconds": "5",
         "HealthCheckTimeoutSeconds": "3",
         "UnhealthyThresholdCount": "2",
