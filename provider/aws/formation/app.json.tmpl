@@ -233,6 +233,11 @@
               {{ range $k, $v := .EnvironmentDefaults }}
                 { "Name": "{{$k}}", "Value": "{{ safe $v }}" },
               {{ end }}
+              {{ range .Links }}
+                { "Name": "{{ upcase . }}_URL", "Value": { "Fn::Join": [ ".", [
+                  "{{$.App}}-{{.}}", { "Fn::ImportValue": { "Fn::Sub": "${Rack}:RouterHost" } }
+                ] ] } },
+              {{ end }}
               {{ range .Resources }}
                 { "Name": "{{ upcase . }}_URL", "Value": { "Fn::GetAtt": [ "Resource{{ upper . }}", "Outputs.Url" ] } },
               {{ end }}
