@@ -944,7 +944,9 @@ func (p *AWSProvider) generateTaskDefinition2(app, process, release string) (*ec
 		return nil, fmt.Errorf("could not find container definition for process: %s", process)
 	}
 
-	labels := tres.TaskDefinition.ContainerDefinitions[0].DockerLabels
+	ocd := tres.TaskDefinition.ContainerDefinitions[0]
+
+	labels := ocd.DockerLabels
 	labels["convox.process.type"] = aws.String("oneoff")
 
 	aid, err := p.accountId()
@@ -964,12 +966,11 @@ func (p *AWSProvider) generateTaskDefinition2(app, process, release string) (*ec
 
 	senv := s.EnvironmentDefaults()
 
-	senv["AWS_REGION"] = p.Region
-	senv["APP"] = app
-	senv["RACK"] = p.Rack
-	senv["CONVOX_ENV_KEY"] = p.EncryptionKey
+	for _, e := range ocd.Environment {
+		senv[*e.Name] = *e.Value
+	}
+
 	senv["CONVOX_ENV_URL"] = fmt.Sprintf("s3://%s/releases/%s/env", settings, release)
-	senv["CONVOX_ENV_VARS"] = s.EnvironmentKeys()
 
 	cenv := []*ecs.KeyValuePair{}
 
