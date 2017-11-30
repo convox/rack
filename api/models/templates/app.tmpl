@@ -199,6 +199,9 @@
       {{ template "process-outputs" .Manifest }}
       {{ template "registry-outputs" .Manifest }}
 
+      "Internal": {
+        "Value": { "Ref": "Internal" }
+      },
       "Settings": {
         "Value": { "Ref": "Settings" }
       }

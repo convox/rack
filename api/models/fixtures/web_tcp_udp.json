@@ -208,6 +208,11 @@
         ]
       }
     },
+    "Internal": {
+      "Value": {
+        "Ref": "Internal"
+      }
+    },
     "LogGroup": {
       "Value": {
         "Ref": "LogGroup"
