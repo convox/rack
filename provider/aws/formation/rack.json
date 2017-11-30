@@ -2224,7 +2224,7 @@
                 "awslogs-stream-prefix": "service"
               }
             },
-            "Memory": { "Ref": "ApiMemory" },
+            "MemoryReservation": { "Ref": "ApiMemory" },
             "MountPoints": [ { "SourceVolume": "docker", "ContainerPath": "/var/run/docker.sock" } ],
             "Name": "web",
             "PortMappings": { "Fn::If": [ "PrivateApi",
