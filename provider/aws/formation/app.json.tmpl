@@ -121,7 +121,7 @@
             "Properties": {
             "Actions": [ { "Type": "forward", "TargetGroupArn": { "Ref": "Balancer{{ upper $service.Name }}TargetGroup{{ if $service.Internal }}Internal{{ end }}" } } ],
               "Conditions": [ { "Field": "host-header", "Values": [ "{{$domain}}" ] } ],
-              "ListenerArn": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:{{ router .Name $.Manifest }}Listener443" } },
+              "ListenerArn": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:{{ router $service.Name $.Manifest }}Listener443" } },
               "Priority": "{{ priority $.App $domain }}"
             }
           },
