@@ -1914,7 +1914,7 @@
         "HealthCheck": {
           "HealthyThreshold": "2",
           "Interval": 5,
-          "Target": { "Fn::If": [ "PrivateApi", [ "HTTPS:3004/check", "HTTPS:3002/check" ] ] },
+          "Target": { "Fn::If": [ "PrivateApi", "HTTPS:3004/check", "HTTPS:3002/check" ] },
           "Timeout": 3,
           "UnhealthyThreshold": "2"
         },
