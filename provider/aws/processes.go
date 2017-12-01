@@ -619,10 +619,26 @@ func (p *AWSProvider) fetchProcess(task *ecs.Task, psch chan structs.Process, er
 		return
 	}
 
-	ci, err := p.containerInstance(*task.ContainerInstanceArn)
-	if err != nil {
-		errch <- err
-		return
+	fmt.Printf("task = %+v\n", task)
+
+	instance := ""
+
+	if task.ContainerInstanceArn != nil {
+		ci, err := p.containerInstance(*task.ContainerInstanceArn)
+		if err != nil {
+			errch <- err
+			return
+		}
+
+		if ci.Ec2InstanceId != nil {
+			instance = *ci.Ec2InstanceId
+		}
+	}
+
+	ip := ""
+
+	if len(task.Containers[0].NetworkInterfaces) > 0 {
+		ip = *task.Containers[0].NetworkInterfaces[0].PrivateIpv4Address
 	}
 
 	env := map[string]string{}
@@ -654,7 +670,8 @@ func (p *AWSProvider) fetchProcess(task *ecs.Task, psch chan structs.Process, er
 		App:      coalesces(labels["convox.app"], env["APP"]),
 		Release:  coalesces(labels["convox.release"], env["RELEASE"]),
 		Image:    *cd.Image,
-		Instance: *ci.Ec2InstanceId,
+		Instance: instance,
+		IP:       ip,
 		Ports:    ports,
 	}
 
