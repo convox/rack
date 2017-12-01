@@ -1911,7 +1911,13 @@
         "ConnectionDrainingPolicy": { "Enabled": true, "Timeout": 60 },
         "ConnectionSettings": { "IdleTimeout": 3600 },
         "CrossZone": true,
-        "HealthCheck": { "HealthyThreshold": "2", "Interval": 5, "Target": "HTTPS:3002/check", "Timeout": 3, "UnhealthyThreshold": "2" },
+        "HealthCheck": {
+          "HealthyThreshold": "2",
+          "Interval": 5,
+          "Target": { "Fn::If": [ "PrivateApi", "HTTPS:3004/check", "HTTPS:3002/check" ] },
+          "Timeout": 3,
+          "UnhealthyThreshold": "2"
+        },
         "LBCookieStickinessPolicy": [ { "PolicyName": "affinity" } ],
         "Listeners": { "Fn::If": [ "PrivateApi",
           [
