@@ -1,6 +1,0 @@
-main:
-  build: .
-  labels:
-    - convox.balancer=false
-  ports:
-    - 443:5000

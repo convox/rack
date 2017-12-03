@@ -12,7 +12,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
-	"github.com/convox/rack/api/structs"
+	"github.com/convox/rack/structs"
 )
 
 // ResourceCreate creates a new resource.

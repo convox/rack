@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/convox/rack/api/structs"
+	"github.com/convox/rack/structs"
 )
 
 type System struct {

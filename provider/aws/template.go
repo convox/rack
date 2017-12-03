@@ -6,8 +6,11 @@ import (
 	"fmt"
 	"hash/crc32"
 	"net"
+	"os"
 	"path"
+	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 
 	"html/template"
@@ -87,15 +90,33 @@ func formationHelpers() template.FuncMap {
 			}
 			return fmt.Sprintf("invalid volume %q", s)
 		},
+		// generation 1
+		"coalesce": func(ss ...string) string {
+			for _, s := range ss {
+				if s != "" {
+					return s
+				}
+			}
+			return ""
+		},
+		"env": func(s string) string {
+			return os.Getenv(s)
+		},
+		"itoa": func(i int) string {
+			return strconv.Itoa(i)
+		},
+		"value": func(s string) template.HTML {
+			return template.HTML(fmt.Sprintf("%q", s))
+		},
 	}
 }
 func formationTemplate(name string, data interface{}) ([]byte, error) {
 	var buf bytes.Buffer
 
-	tn := fmt.Sprintf("%s.json.tmpl", name)
-	tf := fmt.Sprintf("../provider/aws/formation/%s", tn)
+	path := fmt.Sprintf("../provider/aws/formation/%s.json.tmpl", name)
+	file := filepath.Base(path)
 
-	t, err := template.New(tn).Funcs(formationHelpers()).ParseFiles(tf)
+	t, err := template.New(file).Funcs(formationHelpers()).ParseFiles(path)
 	if err != nil {
 		return nil, err
 	}

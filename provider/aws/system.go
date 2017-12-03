@@ -12,7 +12,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/ecs"
-	"github.com/convox/rack/api/structs"
+	"github.com/convox/rack/structs"
 )
 
 func (p *AWSProvider) SystemGet() (*structs.System, error) {
@@ -125,14 +125,15 @@ func (p *AWSProvider) SystemGet() (*structs.System, error) {
 	}
 
 	r := &structs.System{
-		Count:   count,
-		Domain:  outputs["Domain"],
-		Name:    p.Rack,
-		Region:  p.Region,
-		Status:  status,
-		Type:    params["InstanceType"],
-		Version: params["Version"],
-		Outputs: outputs,
+		Count:      count,
+		Domain:     outputs["Domain"],
+		Name:       p.Rack,
+		Outputs:    outputs,
+		Parameters: params,
+		Region:     p.Region,
+		Status:     status,
+		Type:       params["InstanceType"],
+		Version:    params["Version"],
 	}
 
 	log.Success()
@@ -295,4 +296,10 @@ func (p *AWSProvider) SystemSave(system structs.System) error {
 	}, nil)
 
 	return err
+}
+
+func (p *AWSProvider) SystemUpdate(opts structs.SystemUpdateOptions) error {
+	params := opts.Parameters
+
+	return p.updateStack(p.Rack, "", params)
 }

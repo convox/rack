@@ -10,7 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/convox/rack/api/crypt"
+	"github.com/convox/rack/crypt"
 	"github.com/convox/rack/structs"
 	"github.com/convox/rack/manifest"
 )

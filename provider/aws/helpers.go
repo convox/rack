@@ -22,7 +22,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/sts"
-	"github.com/convox/rack/api/cache"
+	"github.com/convox/rack/cache"
 	"github.com/convox/rack/structs"
 )
 

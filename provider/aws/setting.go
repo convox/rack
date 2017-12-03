@@ -3,7 +3,7 @@ package aws
 import (
 	"fmt"
 
-	"github.com/convox/rack/api/crypt"
+	"github.com/convox/rack/crypt"
 )
 
 func (p *AWSProvider) SettingGet(name string) (string, error) {

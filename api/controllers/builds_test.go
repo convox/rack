@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/convox/rack/api/controllers"
-	"github.com/convox/rack/api/models"
-	"github.com/convox/rack/api/structs"
+	"github.com/convox/rack/structs"
+	"github.com/convox/rack/provider"
 	"github.com/convox/rack/test"
 	"github.com/stretchr/testify/assert"
 )
@@ -17,7 +17,7 @@ func init() {
 }
 
 func TestBuildDelete(t *testing.T) {
-	models.Test(t, func() {
+	Mock(func(p *provider.MockProvider) {
 		app := &structs.App{
 			Name:    "myapp",
 			Release: "R1234",
@@ -41,10 +41,10 @@ func TestBuildDelete(t *testing.T) {
 			Status:      "complete",
 		}
 
-		models.TestProvider.On("AppGet", "myapp").Return(app, nil)
-		models.TestProvider.On("ReleaseGet", "myapp", "R1234").Return(release, nil)
-		models.TestProvider.On("ReleaseDelete", "myapp", "B1234").Return(nil)
-		models.TestProvider.On("BuildDelete", "myapp", "B1234").Return(build, nil)
+		p.On("AppGet", "myapp").Return(app, nil)
+		p.On("ReleaseGet", "myapp", "R1234").Return(release, nil)
+		p.On("ReleaseDelete", "myapp", "B1234").Return(nil)
+		p.On("BuildDelete", "myapp", "B1234").Return(build, nil)
 
 		hf := test.NewHandlerFunc(controllers.HandlerFunc)
 
@@ -56,7 +56,7 @@ func TestBuildDelete(t *testing.T) {
 }
 
 func TestBuildDeleteActive(t *testing.T) {
-	models.Test(t, func() {
+	Mock(func(p *provider.MockProvider) {
 		app := &structs.App{
 			Name:    "myapp",
 			Release: "R1234",
@@ -68,8 +68,8 @@ func TestBuildDeleteActive(t *testing.T) {
 			Id:    "R1234",
 		}
 
-		models.TestProvider.On("AppGet", "myapp").Return(app, nil)
-		models.TestProvider.On("ReleaseGet", "myapp", "R1234").Return(release, nil)
+		p.On("AppGet", "myapp").Return(app, nil)
+		p.On("ReleaseGet", "myapp", "R1234").Return(release, nil)
 
 		hf := test.NewHandlerFunc(controllers.HandlerFunc)
 

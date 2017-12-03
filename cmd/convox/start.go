@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/convox/rack/api/structs"
+	"github.com/convox/rack/structs"
 	"github.com/convox/rack/cmd/convox/helpers"
 	"github.com/convox/rack/cmd/convox/stdcli"
 	"github.com/convox/rack/manifest"
@@ -182,7 +182,9 @@ func startGeneration2(opts startOptions) error {
 	env := structs.Environment{}
 
 	if data, err := ioutil.ReadFile(filepath.Join(dir, ".env")); err == nil {
-		env.LoadEnvironment(data)
+		if err := env.Load(data); err != nil {
+			return err
+		}
 	}
 
 	m, err := manifest.Load(data, manifest.Environment(env))
