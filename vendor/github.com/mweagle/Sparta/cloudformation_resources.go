@@ -11,7 +11,7 @@ import (
 	_ "github.com/mweagle/cloudformationresources"
 
 	"github.com/Sirupsen/logrus"
-	gocf "github.com/crewjam/go-cloudformation"
+	gocf "github.com/mweagle/go-cloudformation"
 )
 
 // See http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/pseudo-parameter-reference.html
@@ -57,7 +57,7 @@ func outputsForResource(template *gocf.Template,
 		return nil, nil
 	}
 
-	outputs := make(map[string]interface{}, 0)
+	outputs := make(map[string]interface{})
 	attrs, exists := cloudformationTypeMapDiscoveryOutputs[item.Properties.CfnResourceType()]
 	if exists {
 		outputs["Ref"] = gocf.Ref(logicalResourceName).String()
@@ -92,7 +92,7 @@ func safeAppendDependency(resource *gocf.Resource, dependencyName string) {
 }
 func safeMetadataInsert(resource *gocf.Resource, key string, value interface{}) {
 	if nil == resource.Metadata {
-		resource.Metadata = make(map[string]interface{}, 0)
+		resource.Metadata = make(map[string]interface{})
 	}
 	resource.Metadata[key] = value
 }
@@ -110,6 +110,18 @@ func safeMergeTemplates(sourceTemplate *gocf.Template, destTemplate *gocf.Templa
 			destTemplate.Resources[eachKey] = eachLambdaResource
 		}
 	}
+
+	// Append the custom Mappings
+	for eachKey, eachMapping := range sourceTemplate.Mappings {
+		_, exists := destTemplate.Mappings[eachKey]
+		if exists {
+			errorMsg := fmt.Sprintf("Duplicate CloudFormation Mapping name: %s", eachKey)
+			mergeErrors = append(mergeErrors, errorMsg)
+		} else {
+			destTemplate.Mappings[eachKey] = eachMapping
+		}
+	}
+
 	// Append the custom outputs
 	for eachKey, eachLambdaOutput := range sourceTemplate.Outputs {
 		_, exists := destTemplate.Outputs[eachKey]

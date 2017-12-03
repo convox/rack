@@ -1,5 +1,13 @@
 # CHANGELOG
 
+## 1.2.1
+* Fix a bug not to reconnect to destination twice or more
+* Fix to connect on background goroutine in async mode
+
+## 1.2.0
+* Add `MarshalAsJSON` feature for `message` objects which can be marshaled as JSON
+* Fix a bug to panic for destination system outage
+
 ## 1.1.0
  * Add support for unix domain socket
  * Add asynchronous client creation

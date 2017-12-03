@@ -1,7 +1,10 @@
 package analytics
 
 import (
+	"fmt"
+	"io/ioutil"
 	"os"
+	"sync"
 
 	"bytes"
 	"encoding/json"
@@ -11,11 +14,12 @@ import (
 	"time"
 
 	"github.com/jehiah/go-strftime"
+	"github.com/segmentio/backo-go"
 	"github.com/xtgo/uuid"
 )
 
 // Version of the client.
-const Version = "2.0.0"
+const Version = "2.1.0"
 
 // Endpoint for the Segment API.
 const Endpoint = "https://api.segment.io"
@@ -28,16 +32,13 @@ var DefaultContext = map[string]interface{}{
 	},
 }
 
+// Backoff policy.
+var Backo = backo.DefaultBacko()
+
 // Message interface.
 type message interface {
 	setMessageId(string)
 	setTimestamp(string)
-}
-
-// Response from API.
-type response struct {
-	Message string `json:"message"`
-	Code    string `json:"code"`
 }
 
 // Message fields common to all.
@@ -57,41 +58,45 @@ type Batch struct {
 
 // Identify message.
 type Identify struct {
-	Context     map[string]interface{} `json:"context,omitempty"`
-	Traits      map[string]interface{} `json:"traits,omitempty"`
-	AnonymousId string                 `json:"anonymousId,omitempty"`
-	UserId      string                 `json:"userId,omitempty"`
+	Context      map[string]interface{} `json:"context,omitempty"`
+	Integrations map[string]interface{} `json:"integrations,omitempty"`
+	Traits       map[string]interface{} `json:"traits,omitempty"`
+	AnonymousId  string                 `json:"anonymousId,omitempty"`
+	UserId       string                 `json:"userId,omitempty"`
 	Message
 }
 
 // Group message.
 type Group struct {
-	Context     map[string]interface{} `json:"context,omitempty"`
-	Traits      map[string]interface{} `json:"traits,omitempty"`
-	AnonymousId string                 `json:"anonymousId,omitempty"`
-	UserId      string                 `json:"userId,omitempty"`
-	GroupId     string                 `json:"groupId"`
+	Context      map[string]interface{} `json:"context,omitempty"`
+	Integrations map[string]interface{} `json:"integrations,omitempty"`
+	Traits       map[string]interface{} `json:"traits,omitempty"`
+	AnonymousId  string                 `json:"anonymousId,omitempty"`
+	UserId       string                 `json:"userId,omitempty"`
+	GroupId      string                 `json:"groupId"`
 	Message
 }
 
 // Track message.
 type Track struct {
-	Context     map[string]interface{} `json:"context,omitempty"`
-	Properties  map[string]interface{} `json:"properties,omitempty"`
-	AnonymousId string                 `json:"anonymousId,omitempty"`
-	UserId      string                 `json:"userId,omitempty"`
-	Event       string                 `json:"event"`
+	Context      map[string]interface{} `json:"context,omitempty"`
+	Integrations map[string]interface{} `json:"integrations,omitempty"`
+	Properties   map[string]interface{} `json:"properties,omitempty"`
+	AnonymousId  string                 `json:"anonymousId,omitempty"`
+	UserId       string                 `json:"userId,omitempty"`
+	Event        string                 `json:"event"`
 	Message
 }
 
 // Page message.
 type Page struct {
-	Context     map[string]interface{} `json:"context,omitempty"`
-	Traits      map[string]interface{} `json:"properties,omitempty"`
-	AnonymousId string                 `json:"anonymousId,omitempty"`
-	UserId      string                 `json:"userId,omitempty"`
-	Category    string                 `json:"category,omitempty"`
-	Name        string                 `json:"name,omitempty"`
+	Context      map[string]interface{} `json:"context,omitempty"`
+	Integrations map[string]interface{} `json:"integrations,omitempty"`
+	Traits       map[string]interface{} `json:"properties,omitempty"`
+	AnonymousId  string                 `json:"anonymousId,omitempty"`
+	UserId       string                 `json:"userId,omitempty"`
+	Category     string                 `json:"category,omitempty"`
+	Name         string                 `json:"name,omitempty"`
 	Message
 }
 
@@ -107,6 +112,8 @@ type Alias struct {
 // logging output.
 type Client struct {
 	Endpoint string
+	// Interval represents the duration at which messages are flushed. It may be
+	// configured only before any messages are enqueued.
 	Interval time.Duration
 	Size     int
 	Logger   *log.Logger
@@ -114,9 +121,18 @@ type Client struct {
 	Client   http.Client
 	key      string
 	msgs     chan interface{}
-	quit     chan bool
+	quit     chan struct{}
+	shutdown chan struct{}
 	uid      func() string
 	now      func() time.Time
+	once     sync.Once
+	wg       sync.WaitGroup
+
+	// These synchronization primitives are used to control how many goroutines
+	// are spawned by the client for uploads.
+	upmtx   sync.Mutex
+	upcond  sync.Cond
+	upcount int
 }
 
 // New client with write key.
@@ -130,13 +146,13 @@ func New(key string) *Client {
 		Client:   *http.DefaultClient,
 		key:      key,
 		msgs:     make(chan interface{}, 100),
-		quit:     make(chan bool),
+		quit:     make(chan struct{}),
+		shutdown: make(chan struct{}),
 		now:      time.Now,
 		uid:      uid,
 	}
 
-	go c.loop()
-
+	c.upcond.L = &c.upmtx
 	return c
 }
 
@@ -212,8 +228,13 @@ func (c *Client) Track(msg *Track) error {
 	return nil
 }
 
+func (c *Client) startLoop() {
+	go c.loop()
+}
+
 // Queue message.
 func (c *Client) queue(msg message) {
+	c.once.Do(c.startLoop)
 	msg.setMessageId(c.uid())
 	msg.setTimestamp(timestamp(c.now()))
 	c.msgs <- msg
@@ -221,16 +242,38 @@ func (c *Client) queue(msg message) {
 
 // Close and flush metrics.
 func (c *Client) Close() error {
-	c.quit <- true
+	c.once.Do(c.startLoop)
+	c.quit <- struct{}{}
 	close(c.msgs)
-	<-c.quit
+	<-c.shutdown
 	return nil
 }
 
+func (c *Client) sendAsync(msgs []interface{}) {
+	c.upmtx.Lock()
+	for c.upcount == 1000 {
+		c.upcond.Wait()
+	}
+	c.upcount++
+	c.upmtx.Unlock()
+	c.wg.Add(1)
+	go func() {
+		err := c.send(msgs)
+		if err != nil {
+			c.logf(err.Error())
+		}
+		c.upmtx.Lock()
+		c.upcount--
+		c.upcond.Signal()
+		c.upmtx.Unlock()
+		c.wg.Done()
+	}()
+}
+
 // Send batch request.
-func (c *Client) send(msgs []interface{}) {
+func (c *Client) send(msgs []interface{}) error {
 	if len(msgs) == 0 {
-		return
+		return nil
 	}
 
 	batch := new(Batch)
@@ -241,15 +284,25 @@ func (c *Client) send(msgs []interface{}) {
 
 	b, err := json.Marshal(batch)
 	if err != nil {
-		c.log("error marshalling msgs: %s", err)
-		return
+		return fmt.Errorf("error marshalling msgs: %s", err)
 	}
 
+	for i := 0; i < 10; i++ {
+		if err = c.upload(b); err == nil {
+			return nil
+		}
+		Backo.Sleep(i)
+	}
+
+	return err
+}
+
+// Upload serialized batch message.
+func (c *Client) upload(b []byte) error {
 	url := c.Endpoint + "/v1/batch"
 	req, err := http.NewRequest("POST", url, bytes.NewReader(b))
 	if err != nil {
-		c.log("error creating request: %s", err)
-		return
+		return fmt.Errorf("error creating request: %s", err)
 	}
 
 	req.Header.Add("User-Agent", "analytics-go (version: "+Version+")")
@@ -259,29 +312,21 @@ func (c *Client) send(msgs []interface{}) {
 
 	res, err := c.Client.Do(req)
 	if err != nil {
-		c.log("error sending request: %s", err)
-		return
+		return fmt.Errorf("error sending request: %s", err)
 	}
 	defer res.Body.Close()
 
-	c.report(res)
-}
-
-// Report on response body.
-func (c *Client) report(res *http.Response) {
 	if res.StatusCode < 400 {
 		c.verbose("response %s", res.Status)
-		return
+		return nil
 	}
 
-	msg := new(response)
-	err := json.NewDecoder(res.Body).Decode(msg)
+	body, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		c.log("error reading response: %s", err)
-		return
+		return fmt.Errorf("error reading response body: %s", err)
 	}
 
-	c.log("response %s: %s – %s", res.Status, msg.Code, msg.Message)
+	return fmt.Errorf("response %s: %d – %s", res.Status, res.StatusCode, string(body))
 }
 
 // Batch loop.
@@ -296,22 +341,30 @@ func (c *Client) loop() {
 			msgs = append(msgs, msg)
 			if len(msgs) == c.Size {
 				c.verbose("exceeded %d messages – flushing", c.Size)
-				c.send(msgs)
-				msgs = nil
+				c.sendAsync(msgs)
+				msgs = make([]interface{}, 0, c.Size)
 			}
 		case <-tick.C:
 			if len(msgs) > 0 {
 				c.verbose("interval reached - flushing %d", len(msgs))
-				c.send(msgs)
-				msgs = nil
+				c.sendAsync(msgs)
+				msgs = make([]interface{}, 0, c.Size)
 			} else {
 				c.verbose("interval reached – nothing to send")
 			}
 		case <-c.quit:
+			tick.Stop()
+			c.verbose("exit requested – draining msgs")
+			// drain the msg channel.
+			for msg := range c.msgs {
+				c.verbose("buffer (%d/%d) %v", len(msgs), c.Size, msg)
+				msgs = append(msgs, msg)
+			}
 			c.verbose("exit requested – flushing %d", len(msgs))
-			c.send(msgs)
+			c.sendAsync(msgs)
+			c.wg.Wait()
 			c.verbose("exit")
-			c.quit <- true
+			c.shutdown <- struct{}{}
 			return
 		}
 	}
@@ -325,7 +378,7 @@ func (c *Client) verbose(msg string, args ...interface{}) {
 }
 
 // Unconditional log.
-func (c *Client) log(msg string, args ...interface{}) {
+func (c *Client) logf(msg string, args ...interface{}) {
 	c.Logger.Printf(msg, args...)
 }
 
@@ -338,7 +391,9 @@ func (m *Message) setTimestamp(s string) {
 
 // Set message id.
 func (m *Message) setMessageId(s string) {
-	m.MessageId = s
+	if m.MessageId == "" {
+		m.MessageId = s
+	}
 }
 
 // Return formatted timestamp.

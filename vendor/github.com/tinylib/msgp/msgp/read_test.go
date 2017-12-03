@@ -59,7 +59,13 @@ func TestReadIntf(t *testing.T) {
 		if err != nil {
 			t.Errorf("Test case: %d: %s", i, err)
 		}
-		if !reflect.DeepEqual(v, ts) {
+
+		/* for time, use time.Equal instead of reflect.DeepEqual */
+		if tm, ok := v.(time.Time); ok {
+			if !tm.Equal(v.(time.Time)) {
+				t.Errorf("%v != %v", ts, v)
+			}
+		} else if !reflect.DeepEqual(v, ts) {
 			t.Errorf("%v in; %v out", ts, v)
 		}
 	}
@@ -633,11 +639,6 @@ func TestTime(t *testing.T) {
 	if !now.Equal(out) {
 		t.Fatalf("%s in; %s out", now, out)
 	}
-
-	// check for time.Local zone
-	if now != out {
-		t.Error("returned time.Time not set to time.Local")
-	}
 }
 
 func BenchmarkReadTime(b *testing.B) {
@@ -720,5 +721,50 @@ func BenchmarkSkip(b *testing.B) {
 		if err != nil {
 			b.Fatal(err)
 		}
+	}
+}
+
+func TestCopyNext(t *testing.T) {
+	var buf bytes.Buffer
+	en := NewWriter(&buf)
+
+	en.WriteMapHeader(6)
+
+	en.WriteString("thing_one")
+	en.WriteString("value_one")
+
+	en.WriteString("thing_two")
+	en.WriteFloat64(3.14159)
+
+	en.WriteString("some_bytes")
+	en.WriteBytes([]byte("nkl4321rqw908vxzpojnlk2314rqew098-s09123rdscasd"))
+
+	en.WriteString("the_time")
+	en.WriteTime(time.Now())
+
+	en.WriteString("what?")
+	en.WriteBool(true)
+
+	en.WriteString("ext")
+	en.WriteExtension(&RawExtension{Type: 55, Data: []byte("raw data!!!")})
+
+	en.Flush()
+
+	// Read from a copy of the original buf.
+	de := NewReader(bytes.NewReader(buf.Bytes()))
+
+	w := new(bytes.Buffer)
+
+	n, err := de.CopyNext(w)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if n != int64(buf.Len()) {
+		t.Fatalf("CopyNext returned the wrong value (%d != %d)",
+			n, buf.Len())
+	}
+
+	if !bytes.Equal(buf.Bytes(), w.Bytes()) {
+		t.Fatalf("not equal! %v, %v", buf.Bytes(), w.Bytes())
 	}
 }

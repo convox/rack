@@ -1,3 +1,5 @@
+[![GoDoc](https://godoc.org/github.com/aryann/difflib?status.svg)](http://godoc.org/github.com/aryann/difflib)
+
 difflib
 =======
 

@@ -126,6 +126,11 @@ func TestFlattenValues(t *testing.T) {
 	}
 }
 
+func TestBuildError(t *testing.T) {
+	buildError(ERR, nil, BuildStack(0))
+	// this should not panic
+}
+
 func TestCustomField(t *testing.T) {
 	body := buildError(ERR, errors.New("test-custom"), BuildStack(0), &Field{
 		Name: "custom",
@@ -162,4 +167,33 @@ func TestCustomField(t *testing.T) {
 	if val != "VALUE1" {
 		t.Error("should be VALUE1")
 	}
+}
+
+func TestErrorRead(t *testing.T) {
+	Token = os.Getenv("TOKEN")
+	Environment = "test"
+
+	bckBuffer, bckEP := Buffer, Endpoint
+	defer func() {
+		Buffer, Endpoint = bckBuffer, bckEP
+	}()
+
+	Buffer = 2
+	Endpoint = "https://does.not.exsist/foo/bar"
+
+	go func() {
+		errCount := 0
+		for err := range PostErrors() {
+			t.Log(err)
+			errCount++
+		}
+		if errCount != 2 {
+			t.Fatal("didn't receive the right number of errors", errCount)
+		}
+	}()
+
+	post(nil)
+	post(nil)
+
+	Wait()
 }

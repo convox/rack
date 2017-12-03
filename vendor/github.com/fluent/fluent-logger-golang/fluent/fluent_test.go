@@ -221,6 +221,33 @@ func TestJsonConfig(t *testing.T) {
 	}
 }
 
+func TestAsyncConnect(t *testing.T) {
+	type result struct {
+		f   *Fluent
+		err error
+	}
+	ch := make(chan result, 1)
+	go func() {
+		config := Config{
+			FluentPort:   8888,
+			AsyncConnect: true,
+		}
+		f, err := New(config)
+		ch <- result{f: f, err: err}
+	}()
+
+	select {
+	case res := <-ch:
+		if res.err != nil {
+			t.Errorf("fluent.New() failed with %#v", res.err)
+			return
+		}
+		res.f.Close()
+	case <-time.After(time.Millisecond * 500):
+		t.Error("AsyncConnect must not block")
+	}
+}
+
 func Benchmark_PostWithShortMessage(b *testing.B) {
 	b.StopTimer()
 	f, err := New(Config{})

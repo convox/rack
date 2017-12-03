@@ -1,4 +1,4 @@
-// Copyright 2013 go-dockerclient authors. All rights reserved.
+// Copyright 2015 go-dockerclient authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -15,14 +15,13 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"os"
-	"path/filepath"
 	"reflect"
 	"strconv"
 	"strings"
 	"testing"
 	"time"
 
-	"github.com/hashicorp/go-cleanhttp"
+	"github.com/fsouza/go-dockerclient/external/github.com/hashicorp/go-cleanhttp"
 )
 
 func TestStateString(t *testing.T) {
@@ -813,33 +812,6 @@ func TestStartContainer(t *testing.T) {
 	expectedContentType := "application/json"
 	if contentType := req.Header.Get("Content-Type"); contentType != expectedContentType {
 		t.Errorf("StartContainer(%q): Wrong content-type in request. Want %q. Got %q.", id, expectedContentType, contentType)
-	}
-}
-
-func TestStartContainerHostConfigAPI124(t *testing.T) {
-	fakeRT := &FakeRoundTripper{message: "", status: http.StatusOK}
-	client := newTestClient(fakeRT)
-	client.serverAPIVersion = apiVersion124
-	id := "4fa6e0f0c6786287e131c3852c58a2e01cc697a68231826813597e4994f1d6e2"
-	err := client.StartContainer(id, &HostConfig{})
-	if err != nil {
-		t.Fatal(err)
-	}
-	req := fakeRT.requests[0]
-	if req.Method != "POST" {
-		t.Errorf("StartContainer(%q): wrong HTTP method. Want %q. Got %q.", id, "POST", req.Method)
-	}
-	expectedURL, _ := url.Parse(client.getURL("/containers/" + id + "/start"))
-	if gotPath := req.URL.Path; gotPath != expectedURL.Path {
-		t.Errorf("StartContainer(%q): Wrong path in request. Want %q. Got %q.", id, expectedURL.Path, gotPath)
-	}
-	notAcceptedContentType := "application/json"
-	if contentType := req.Header.Get("Content-Type"); contentType == notAcceptedContentType {
-		t.Errorf("StartContainer(%q): Unepected %q Content-Type in request.", id, contentType)
-	}
-	if req.Body != nil {
-		data, _ := ioutil.ReadAll(req.Body)
-		t.Errorf("StartContainer(%q): Unexpected data sent: %s", id, data)
 	}
 }
 
@@ -1859,22 +1831,6 @@ func TestCopyFromContainerEmptyContainer(t *testing.T) {
 	}
 }
 
-func TestCopyFromContainerDockerAPI124(t *testing.T) {
-	client := newTestClient(&FakeRoundTripper{status: http.StatusOK})
-	client.serverAPIVersion = apiVersion124
-	opts := CopyFromContainerOptions{
-		Container: "a123456",
-	}
-	err := client.CopyFromContainer(opts)
-	if err == nil {
-		t.Fatal("got unexpected <nil> error")
-	}
-	expectedMsg := "go-dockerclient: CopyFromContainer is no longer available in Docker >= 1.12, use DownloadFromContainer instead"
-	if err.Error() != expectedMsg {
-		t.Errorf("wrong error message\nWant %q\nGot  %q", expectedMsg, err.Error())
-	}
-}
-
 func TestPassingNameOptToCreateContainerReturnsItInContainer(t *testing.T) {
 	jsonContainer := `{
              "Id": "4fa6e0f0c6786287e131c3852c58a2e01cc697a68231826813597e4994f1d6e2",
@@ -1911,16 +1867,6 @@ func TestRestartOnFailure(t *testing.T) {
 	}
 	if policy.MaximumRetryCount != retry {
 		t.Errorf("RestartOnFailure(%d): wrong MaximumRetryCount. Want %d. Got %d", retry, retry, policy.MaximumRetryCount)
-	}
-}
-
-func TestRestartUnlessStopped(t *testing.T) {
-	policy := RestartUnlessStopped()
-	if policy.Name != "unless-stopped" {
-		t.Errorf("RestartUnlessStopped(): wrong policy name. Want %q. Got %q", "unless-stopped", policy.Name)
-	}
-	if policy.MaximumRetryCount != 0 {
-		t.Errorf("RestartUnlessStopped(): wrong MaximumRetryCount. Want 0. Got %d", policy.MaximumRetryCount)
 	}
 }
 
@@ -2017,14 +1963,7 @@ func TestTopContainerWithPsArgs(t *testing.T) {
 }
 
 func TestStatsTimeout(t *testing.T) {
-	tmpdir, err := ioutil.TempDir("", "socket")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer os.RemoveAll(tmpdir)
-	socketPath := filepath.Join(tmpdir, "docker_test.sock")
-	t.Logf("socketPath=%s", socketPath)
-	l, err := net.Listen("unix", socketPath)
+	l, err := net.Listen("unix", "/tmp/docker_test.sock")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -2049,20 +1988,20 @@ func TestStatsTimeout(t *testing.T) {
 		received <- true
 		time.Sleep(2 * time.Second)
 	}()
-	client, _ := NewClient("unix://" + socketPath)
+	client, _ := NewClient("unix:///tmp/docker_test.sock")
 	client.SkipServerVersionCheck = true
 	errC := make(chan error, 1)
 	statsC := make(chan *Stats)
 	done := make(chan bool)
 	defer close(done)
 	go func() {
-		errC <- client.Stats(StatsOptions{ID: "c", Stats: statsC, Stream: true, Done: done, Timeout: time.Millisecond})
+		errC <- client.Stats(StatsOptions{ID: "c", Stats: statsC, Stream: true, Done: done, Timeout: time.Millisecond * 100})
 		close(errC)
 	}()
 	err = <-errC
 	e, ok := err.(net.Error)
 	if !ok || !e.Timeout() {
-		t.Errorf("Failed to receive timeout error, got %#v", err)
+		t.Error("Failed to receive timeout exception")
 	}
 	recvTimeout := 2 * time.Second
 	select {

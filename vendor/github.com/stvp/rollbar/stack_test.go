@@ -1,53 +1,36 @@
 package rollbar
 
 import (
+	"runtime"
 	"testing"
 )
 
 func TestBuildStack(t *testing.T) {
 	frame := BuildStack(1)[0]
 	if frame.Filename != "github.com/stvp/rollbar/stack_test.go" {
-		t.Errorf("got: %s", frame.Filename)
+		t.Errorf("got filename: %s", frame.Filename)
 	}
 	if frame.Method != "rollbar.TestBuildStack" {
-		t.Errorf("got: %s", frame.Method)
+		t.Errorf("got method: %s", frame.Method)
 	}
-	if frame.Line != 8 {
-		t.Errorf("got: %d", frame.Line)
+	if frame.Line != 9 {
+		t.Errorf("got line: %d", frame.Line)
 	}
 }
 
-func TestStackFingerprint(t *testing.T) {
-	tests := []struct {
-		Fingerprint string
-		Stack       Stack
-	}{
-		{
-			"9344290d",
-			Stack{
-				Frame{"foo.go", "Oops", 1},
-			},
-		},
-		{
-			"a4d78b7",
-			Stack{
-				Frame{"foo.go", "Oops", 2},
-			},
-		},
-		{
-			"50e0fcb3",
-			Stack{
-				Frame{"foo.go", "Oops", 1},
-				Frame{"foo.go", "Oops", 2},
-			},
-		},
-	}
+func TestBuildStackWithCallers(t *testing.T) {
+	callers := make([]uintptr, 2)
+	runtime.Callers(1, callers)
 
-	for i, test := range tests {
-		fingerprint := test.Stack.Fingerprint()
-		if fingerprint != test.Fingerprint {
-			t.Errorf("tests[%d]: got %s", i, fingerprint)
-		}
+	frame := BuildStackWithCallers(callers)[0]
+	if frame.Filename != "github.com/stvp/rollbar/stack_test.go" {
+		t.Errorf("got filename: %s", frame.Filename)
+	}
+	if frame.Method != "rollbar.TestBuildStackWithCallers" {
+		t.Errorf("got method: %s", frame.Method)
+	}
+	if frame.Line != 22 {
+		t.Errorf("got line: %d", frame.Line)
 	}
 }
 

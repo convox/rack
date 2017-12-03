@@ -10,114 +10,90 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package spinner is a simple package to add a spinner/progress indicator to your application.
+// Package spinner is a simple package to add a spinner / progress indicator to any terminal application.
 package spinner
 
 import (
 	"errors"
 	"fmt"
 	"io"
-	"os"
 	"strconv"
+	"sync"
 	"time"
 	"unicode/utf8"
 
 	"github.com/fatih/color"
 )
 
-// CharSets contains the available character sets
-var CharSets = [][]string{
-	{"←", "↖", "↑", "↗", "→", "↘", "↓", "↙"},
-	{"▁", "▃", "▄", "▅", "▆", "▇", "█", "▇", "▆", "▅", "▄", "▃", "▁"},
-	{"▖", "▘", "▝", "▗"},
-	{"┤", "┘", "┴", "└", "├", "┌", "┬", "┐"},
-	{"◢", "◣", "◤", "◥"},
-	{"◰", "◳", "◲", "◱"},
-	{"◴", "◷", "◶", "◵"},
-	{"◐", "◓", "◑", "◒"},
-	{".", "o", "O", "@", "*"},
-	{"|", "/", "-", "\\"},
-	{"◡◡", "⊙⊙", "◠◠"},
-	{"⣾", "⣽", "⣻", "⢿", "⡿", "⣟", "⣯", "⣷"},
-	{">))'>", " >))'>", "  >))'>", "   >))'>", "    >))'>", "   <'((<", "  <'((<", " <'((<"},
-	{"⠁", "⠂", "⠄", "⡀", "⢀", "⠠", "⠐", "⠈"},
-	{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"},
-	{"a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z"},
-	{"▉", "▊", "▋", "▌", "▍", "▎", "▏", "▎", "▍", "▌", "▋", "▊", "▉"},
-	{"■", "□", "▪", "▫"},
-	{"←", "↑", "→", "↓"},
-	{"╫", "╪"},
-	{"⇐", "⇖", "⇑", "⇗", "⇒", "⇘", "⇓", "⇙"},
-	{"⠁", "⠁", "⠉", "⠙", "⠚", "⠒", "⠂", "⠂", "⠒", "⠲", "⠴", "⠤", "⠄", "⠄", "⠤", "⠠", "⠠", "⠤", "⠦", "⠖", "⠒", "⠐", "⠐", "⠒", "⠓", "⠋", "⠉", "⠈", "⠈"},
-	{"⠈", "⠉", "⠋", "⠓", "⠒", "⠐", "⠐", "⠒", "⠖", "⠦", "⠤", "⠠", "⠠", "⠤", "⠦", "⠖", "⠒", "⠐", "⠐", "⠒", "⠓", "⠋", "⠉", "⠈"},
-	{"⠁", "⠉", "⠙", "⠚", "⠒", "⠂", "⠂", "⠒", "⠲", "⠴", "⠤", "⠄", "⠄", "⠤", "⠴", "⠲", "⠒", "⠂", "⠂", "⠒", "⠚", "⠙", "⠉", "⠁"},
-	{"⠋", "⠙", "⠚", "⠒", "⠂", "⠂", "⠒", "⠲", "⠴", "⠦", "⠖", "⠒", "⠐", "⠐", "⠒", "⠓", "⠋"},
-	{"ｦ", "ｧ", "ｨ", "ｩ", "ｪ", "ｫ", "ｬ", "ｭ", "ｮ", "ｯ", "ｱ", "ｲ", "ｳ", "ｴ", "ｵ", "ｶ", "ｷ", "ｸ", "ｹ", "ｺ", "ｻ", "ｼ", "ｽ", "ｾ", "ｿ", "ﾀ", "ﾁ", "ﾂ", "ﾃ", "ﾄ", "ﾅ", "ﾆ", "ﾇ", "ﾈ", "ﾉ", "ﾊ", "ﾋ", "ﾌ", "ﾍ", "ﾎ", "ﾏ", "ﾐ", "ﾑ", "ﾒ", "ﾓ", "ﾔ", "ﾕ", "ﾖ", "ﾗ", "ﾘ", "ﾙ", "ﾚ", "ﾛ", "ﾜ", "ﾝ"},
-	{".", "..", "..."},
-	{"▁", "▂", "▃", "▄", "▅", "▆", "▇", "█", "▉", "▊", "▋", "▌", "▍", "▎", "▏", "▏", "▎", "▍", "▌", "▋", "▊", "▉", "█", "▇", "▆", "▅", "▄", "▃", "▂", "▁"},
-	{".", "o", "O", "°", "O", "o", "."},
-	{"+", "x"},
-	{"v", "<", "^", ">"},
-	{">>--->", " >>--->", "  >>--->", "   >>--->", "    >>--->", "    <---<<", "   <---<<", "  <---<<", " <---<<", "<---<<"},
-	{"|", "||", "|||", "||||", "|||||", "|||||||", "||||||||", "|||||||", "||||||", "|||||", "||||", "|||", "||", "|"},
-	{"[          ]", "[=         ]", "[==        ]", "[===       ]", "[====      ]", "[=====     ]", "[======    ]", "[=======   ]", "[========  ]", "[========= ]", "[==========]"},
-	{"(*---------)", "(-*--------)", "(--*-------)", "(---*------)", "(----*-----)", "(-----*----)", "(------*---)", "(-------*--)", "(--------*-)", "(---------*)"},
-	{"█▒▒▒▒▒▒▒▒▒", "███▒▒▒▒▒▒▒", "█████▒▒▒▒▒", "███████▒▒▒", "██████████"},
-}
-
-// state is a type for the spinner status
-type state uint8
-
-// Spinner struct to hold the provided options
-type Spinner struct {
-	chars      []string                      // chosen character set
-	Delay      time.Duration                 // speed of the spinner
-	Prefix     string                        // Text preppended to the spinner
-	Suffix     string                        // Text appended to the spinner
-	stopChan   chan bool                     // channel used to stop the spinner
-	ST         state                         // spinner status
-	w          io.Writer                     // to make testing better
-	color      func(a ...interface{}) string // default color is white
-	lastOutput string                        // last character(set) written
-}
-
-//go:generate stringer -type=state
-const (
-	stopped state = iota
-	running
-)
+// errInvalidColor is returned when attempting to set an invalid color
+var errInvalidColor = errors.New("invalid color")
 
 // validColors holds an array of the only colors allowed
-var validColors = []string{"red", "green", "yellow", "blue", "magenta", "cyan", "white"}
+var validColors = map[string]bool{
+	"red":     true,
+	"green":   true,
+	"yellow":  true,
+	"blue":    true,
+	"magenta": true,
+	"cyan":    true,
+	"white":   true,
+}
+
+// returns a valid color's foreground text color attribute
+var colorAttributeMap = map[string]color.Attribute{
+	"red":     color.FgRed,
+	"green":   color.FgGreen,
+	"yellow":  color.FgYellow,
+	"blue":    color.FgBlue,
+	"magenta": color.FgMagenta,
+	"cyan":    color.FgCyan,
+	"white":   color.FgWhite,
+}
 
 // validColor will make sure the given color is actually allowed
 func validColor(c string) bool {
-	for _, i := range validColors {
-		if c == i {
-			return true
-		}
+	valid := false
+	if validColors[c] {
+		valid = true
 	}
-	return false
+	return valid
+}
+
+// Spinner struct to hold the provided options
+type Spinner struct {
+	Delay      time.Duration                 // Delay is the speed of the indicator
+	chars      []string                      // chars holds the chosen character set
+	Prefix     string                        // Prefix is the text preppended to the indicator
+	Suffix     string                        // Suffix is the text appended to the indicator
+	FinalMSG   string                        // string displayed after Stop() is called
+	lastOutput string                        // last character(set) written
+	color      func(a ...interface{}) string // default color is white
+	lock       *sync.RWMutex                 //
+	Writer     io.Writer                     // to make testing better, exported so users have access
+	active     bool                          // active holds the state of the spinner
+	stopChan   chan struct{}                 // stopChan is a channel used to stop the indicator
 }
 
 // New provides a pointer to an instance of Spinner with the supplied options
-func New(c []string, t time.Duration) *Spinner {
-	s := &Spinner{
-		Delay:    t,
-		stopChan: make(chan bool, 1),
+func New(cs []string, d time.Duration) *Spinner {
+	return &Spinner{
+		Delay:    d,
+		chars:    cs,
 		color:    color.New(color.FgWhite).SprintFunc(),
-		w:        os.Stdout,
+		lock:     &sync.RWMutex{},
+		Writer:   color.Output,
+		active:   false,
+		stopChan: make(chan struct{}, 1),
 	}
-	s.UpdateCharSet(c)
-	return s
 }
 
-// Start will start the spinner
+// Start will start the indicator
 func (s *Spinner) Start() {
-	if s.ST == running {
+	if s.active {
 		return
 	}
-	s.ST = running
+	s.active = true
+
 	go func() {
 		for {
 			for i := 0; i < len(s.chars); i++ {
@@ -125,100 +101,94 @@ func (s *Spinner) Start() {
 				case <-s.stopChan:
 					return
 				default:
-					out := fmt.Sprintf("%s%s%s ", s.Prefix, s.color(s.chars[i]), s.Suffix)
-					fmt.Fprint(s.w, out)
-					s.lastOutput = out
-					time.Sleep(s.Delay)
-					erase(s.w, out)
+					s.lock.Lock()
+					s.erase()
+					outColor := fmt.Sprintf("%s%s%s ", s.Prefix, s.color(s.chars[i]), s.Suffix)
+					outPlain := fmt.Sprintf("%s%s%s ", s.Prefix, s.chars[i], s.Suffix)
+					fmt.Fprint(s.Writer, outColor)
+					s.lastOutput = outPlain
+					delay := s.Delay
+					s.lock.Unlock()
+
+					time.Sleep(delay)
 				}
 			}
 		}
 	}()
 }
 
-// erase deletes written characters
-func erase(w io.Writer, a string) {
-	n := utf8.RuneCountInString(a)
-	for i := 0; i < n; i++ {
-		fmt.Fprintf(w, "\b")
-	}
-}
-
-// Color will set the struct field for the given color to be used
-func (s *Spinner) Color(c string) error {
-	if validColor(c) {
-		switch c {
-		case "red":
-			s.color = color.New(color.FgRed).SprintFunc()
-			s.Restart()
-		case "yellow":
-			s.color = color.New(color.FgYellow).SprintFunc()
-			s.Restart()
-		case "green":
-			s.color = color.New(color.FgGreen).SprintFunc()
-			s.Restart()
-		case "magenta":
-			s.color = color.New(color.FgMagenta).SprintFunc()
-			s.Restart()
-		case "blue":
-			s.color = color.New(color.FgBlue).SprintFunc()
-			s.Restart()
-		case "cyan":
-			s.color = color.New(color.FgCyan).SprintFunc()
-			s.Restart()
-		case "white":
-			s.color = color.New(color.FgWhite).SprintFunc()
-			s.Restart()
-		default:
-			return errors.New("invalid color")
-		}
-	}
-	return nil
-}
-
-// Stop stops the spinner
+// Stop stops the indicator
 func (s *Spinner) Stop() {
-	if s.ST == running {
-		s.stopChan <- true
-		s.ST = stopped
-		erase(s.w, s.lastOutput)
+	s.lock.Lock()
+	defer s.lock.Unlock()
+	if s.active {
+		s.active = false
+		s.erase()
+		if s.FinalMSG != "" {
+			fmt.Fprintf(s.Writer, s.FinalMSG)
+		}
+		s.stopChan <- struct{}{}
 	}
 }
 
-// Restart will stop and start the spinner
+// Restart will stop and start the indicator
 func (s *Spinner) Restart() {
 	s.Stop()
 	s.Start()
 }
 
-// Reverse will reverse the order of the slice assigned to that spinner
+// Reverse will reverse the order of the slice assigned to the indicator
 func (s *Spinner) Reverse() {
+	s.lock.Lock()
+	defer s.lock.Unlock()
 	for i, j := 0, len(s.chars)-1; i < j; i, j = i+1, j-1 {
 		s.chars[i], s.chars[j] = s.chars[j], s.chars[i]
 	}
 }
 
-// UpdateSpeed is a convenience function to not have to make you
-//create a new instance of the Spinner
-func (s *Spinner) UpdateSpeed(delay time.Duration) { s.Delay = delay }
+// Color will set the struct field for the given color to be used
+func (s *Spinner) Color(c string) error {
+	if !validColor(c) {
+		return errInvalidColor
+	}
+	s.color = color.New(colorAttributeMap[c]).SprintFunc()
+	s.Restart()
+	return nil
+}
 
-// UpdateCharSet will change the previously select character set to
-// the provided one
-func (s *Spinner) UpdateCharSet(chars []string) {
-	// so that changes to the slice outside of the spinner don't change it
-	// unexpectedly, create an internal copy
-	n := make([]string, len(chars))
-	copy(n, chars)
-	s.chars = n
+// UpdateSpeed will set the indicator delay to the given value
+func (s *Spinner) UpdateSpeed(d time.Duration) {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+	s.Delay = d
+}
+
+// UpdateCharSet will change the current character set to the given one
+func (s *Spinner) UpdateCharSet(cs []string) {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+	s.chars = cs
+}
+
+// erase deletes written characters
+//
+// Caller must already hold s.lock.
+func (s *Spinner) erase() {
+	n := utf8.RuneCountInString(s.lastOutput)
+	for _, c := range []string{"\b", " ", "\b"} {
+		for i := 0; i < n; i++ {
+			fmt.Fprintf(s.Writer, c)
+		}
+	}
+	s.lastOutput = ""
 }
 
 // GenerateNumberSequence will generate a slice of integers at the
 // provided length and convert them each to a string
 func GenerateNumberSequence(length int) []string {
-	//numSeq := make([]string, 0)
-	var numSeq []string
+	numSeq := make([]string, length)
 	for i := 0; i < length; i++ {
-		numSeq = append(numSeq, strconv.Itoa(i))
+		numSeq[i] = strconv.Itoa(i)
 	}
 	return numSeq
 }
