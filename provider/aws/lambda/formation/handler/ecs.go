@@ -16,7 +16,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/convox/rack/api/crypt"
-	"github.com/convox/rack/api/models"
+	"github.com/convox/rack/structs"
 )
 
 // Parses as [host]:[container]/[protocol?], where [protocol] is optional
@@ -107,7 +107,7 @@ func ECSTaskDefinitionCreate(req Request) (string, map[string]string, error) {
 	// get environment from S3 URL
 	// 'Environment' is a CloudFormation Template Property that references 'Environment' CF Parameter with S3 URL
 	// S3 body may be encrypted with KMS key
-	var env models.Environment
+	env := structs.Environment{}
 
 	if taskRole, ok := req.ResourceProperties["TaskRole"].(string); ok && taskRole != "" {
 		r.TaskRoleArn = &taskRole
@@ -119,6 +119,9 @@ func ECSTaskDefinitionCreate(req Request) (string, map[string]string, error) {
 
 	if ok && envURL != "" {
 		data, err := fetchEnvironment(req, envURL)
+		if err != nil {
+			return "invalid", nil, err
+		}
 
 		if pkey, ok := req.ResourceProperties["Key"].(string); ok && pkey != "" {
 			key = pkey
@@ -132,8 +135,7 @@ func ECSTaskDefinitionCreate(req Request) (string, map[string]string, error) {
 			data = dec
 		}
 
-		env, err = models.LoadEnvironment(data)
-		if err != nil {
+		if err := env.Load(data); err != nil {
 			return "invalid", nil, err
 		}
 	}

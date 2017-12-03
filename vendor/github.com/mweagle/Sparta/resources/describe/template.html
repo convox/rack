@@ -1,0 +1,242 @@
+<!doctype html>
+<html>
+  <head>
+    <title>{{ .ServiceName }}</title>
+
+    <style>
+      {{ .BootstrapCSS }}
+    </style>
+
+  	<style>
+  	{{ .MermaidCSS }}
+  	</style>
+
+    <style>
+      {{ .HighlightsCSS }}
+    </style>
+
+    <style>
+      body {
+        padding-top: 50px;
+        margin-bottom: 60px;
+        background-color: #F5F5F5;
+      }
+
+      .spartaLayout {
+        font-family: "Tahoma", "Verdana", "Consolas", "Source Code Pro", "Inconsolata", "Courier New", "Menlo";
+        font-size: 12px;
+      }
+    </style>
+  	<script>
+  	{{ .MermaidJS}}
+
+  	mermaid.initialize({startOnLoad:true,
+  										htmlLabels: true,
+  									  flowchart:{
+  									     useMaxWidth: true
+  									  }
+  										});
+
+
+  	</script>
+    <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
+    <script charset="UTF-8">
+
+     {{ .JQueryJS }}
+
+    </script>
+    <!-- Include all compiled plugins (below), or include individual files as needed -->
+    <script>
+
+      {{ .BootstrapJS }}
+
+    </script>
+
+    <script>
+
+      {{ .HighlightsJS }}
+
+    </script>
+
+    <script>
+    var SERVICE_NAME = "{{ .ServiceName }}";
+    var golangFunctionName = function(cloudFormationResourceName, cloudFormationResources) {
+    var res = cloudFormationResources[cloudFormationResourceName] || {};
+    var metadata = res.Metadata || {};
+    return metadata.golangFunc || "N/A";
+  };
+
+  var accumulateResources = function(node, pathPart, cloudFormationResources, accumulator)
+  {
+    accumulator = accumulator || {};
+    var pathPart = pathPart || ""
+    var apiResources = node.APIResources || {};
+    var apiKeys = Object.keys(apiResources);
+    apiKeys.forEach(function (eachKey) {
+      var apiDef = apiResources[eachKey];
+      var golangName = golangFunctionName(eachKey, cloudFormationResources);
+      var resourcePath = pathPart;
+      var divPanel = $("<div />" , {"class": "panel panel-default"});
+      accumulator[resourcePath] = divPanel;
+
+      // Create the heading
+      var divPanelHeading = $("<div />", {"class":"panel-heading"});
+      divPanelHeading.appendTo(divPanel);
+      var panelHeadingText = resourcePath + " (" +  golangName + ")";
+      var row = $("<div />", {"class" : "row"});
+      row.appendTo(divPanelHeading);
+      $("<div />" ,{"text" : resourcePath, "class" : "col-md-4 text-left"}).appendTo(row);
+      var golangDiv = $("<div />" ,{"class" : "col-md-8 text-right"});
+      golangDiv.appendTo(row);
+      $("<em />", {"text" : golangName}).appendTo(golangDiv);
+
+      // Create the body
+      var divPanelBody = $("<div />", {"class" : "panel-body"});
+      divPanelBody.appendTo(divPanel);
+
+      // Create the method table that will list the METHOD->overview
+      var methodTable = $("<table />", {
+        "class" : "table table-bordered table-condensed"
+      });
+      methodTable.appendTo(divPanelBody);
+
+      // Create rows for each method
+      var tbody = $("<tbody />");
+      tbody.appendTo(methodTable);
+
+      var methods = apiDef.Methods || {};
+      var methodKeys = Object.keys(methods);
+      methodKeys.forEach(function (eachMethod) {
+        var methodDef = methods[eachMethod];
+
+        var methodRow = $("<tr />");
+        methodRow.appendTo(tbody);
+
+        // Method
+        var methodColumn = $( "<td/>", {
+            });
+        methodColumn.appendTo(methodRow);
+        var methodName = $( "<strong/>", {
+            text: eachMethod
+            });
+        methodName.appendTo(methodColumn);
+        // Data
+        var dataColumn = $( "<td/>", {
+                        });
+        dataColumn.appendTo(methodRow);
+        var preElement = $( "<pre/>", {});
+        preElement.appendTo(dataColumn);
+        var codeColumn = $( "<code/>", {
+                          "class": "JSON",
+                          text: JSON.stringify(methodDef, null, ' ')
+                        });
+        codeColumn.appendTo(preElement);
+      });
+    });
+    // Descend into children
+    var children = node.Children || {};
+    var childKeys = Object.keys(children);
+    childKeys.forEach(function (eachKey) {
+      var eachChild = (children[eachKey]);
+      accumulateResources(eachChild, pathPart + "/" + eachChild.PathComponent, cloudFormationResources, accumulator);
+    });
+  }
+
+  var buildAPIGatewayRepresentation = function(template) {
+    // For now see if we can find an API node...
+    var data = {};
+    resourceKeys = Object.keys(template.Resources);
+    resourceKeys.forEach(function (eachKey) {
+      var eachDefinition = template.Resources[eachKey];
+      if (eachDefinition.Type === 'AWS::CloudFormation::CustomResource' &&
+          eachDefinition.Properties &&
+          eachDefinition.Properties.API) {
+            data = eachDefinition.Properties.API;
+          }
+    });
+    var apiGatewayNode = $("#apigateway");
+    if (data && data.Name)
+    {
+      $("#apiGatewayContentTitle").text(data.Name + " API Gateway")
+      var nodes = {};
+      accumulateResources(data.Resources, "", template.Resources, nodes);
+      var nodeKeys = Object.keys(nodes);
+      nodeKeys.forEach(function (eachPath) {
+        nodes[eachPath].appendTo(apiGatewayNode);
+      });
+    }
+    else
+    {
+      // Remove the div
+      apiGatewayNode.remove();
+      // And the tab
+      $("#apiGatewayTab").remove();
+    }
+  };
+
+    $( document ).ready(function() {
+        var CLOUDFORMATION_TEMPLATE = null;
+        try {
+          CLOUDFORMATION_TEMPLATE = JSON.parse({{ .CloudFormationTemplate }});
+        }
+        catch (e)
+        {
+          console.log('Failed to parse template: ' + e.toString());
+          CLOUDFORMATION_TEMPLATE = {
+            ERROR: e.toString()
+          };
+        }
+        buildAPIGatewayRepresentation(CLOUDFORMATION_TEMPLATE);
+        $("#rawTemplateContent").text(JSON.stringify(CLOUDFORMATION_TEMPLATE, null, ' '));
+        hljs.initHighlightingOnLoad();
+    });
+    </script>
+  </head>
+  <body>
+
+    <div>
+      <nav class="navbar navbar-inverse navbar-fixed-top">
+        <div class="container">
+          <div class="navbar-header">
+            <a class="navbar-brand" href="#">{{ .ServiceName }}</a>
+          </div>
+          <div id="navbar" class="collapse navbar-collapse">
+            <ul class="nav navbar-nav">
+              <li class="active"><a href="#lambda" aria-controls="lambda" role="tab" data-toggle="tab">Lambdas</a></li>
+              <li><a href="#apigateway" aria-controls="apigateway" role="tab" data-toggle="tab" id="apiGatewayTab">API Gateway</a></li>
+              <li><a href="#cloudformationTemplate" aria-controls="cloudformationTemplate" role="tab" data-toggle="tab">Template</a></li>
+            </ul>
+            <ul class="nav navbar-nav navbar-right">
+              <li><a href="http://gosparta.io" target="_blank">Sparta (v.{{.SpartaVersion}})</a></li>
+            </ul>
+          </div>
+        </div>
+      </nav>
+
+      <div class="tab-content container-fluid">
+        <div role="tabpanel" class="tab-pane active" id="lambda">
+          <div class="mermaid spartaLayout" id="mermaidGraph">
+%% Sparta Graph
+graph RL
+
+{{ .MermaidData}}
+        	</div>
+        </div>
+        <div role="tabpanel" class="tab-pane" id="apigateway">
+          <div class="panel-heading">
+            <h2 class="panel-title" id="apiGatewayContentTitle">API Gateway</h2>
+          </div>
+        </div>
+        <div role="tabpanel" class="tab-pane" id="cloudformationTemplate">
+          <div class="panel-heading">
+            <h2 class="panel-title">CloudFormation Template</h2>
+          </div>
+          <pre>
+            <code class="JSON" id="rawTemplateContent">
+            </code>
+          </pre>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

@@ -23,7 +23,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/convox/rack/api/cache"
-	"github.com/convox/rack/api/structs"
+	"github.com/convox/rack/structs"
 )
 
 type Template struct {
@@ -67,6 +67,31 @@ func camelize(dasherized string) string {
 	}
 
 	return strings.Join(tokens, "")
+}
+
+func certificateFriendlyId(arn string) string {
+	ap := strings.Split(arn, ":")
+
+	if len(ap) < 6 {
+		return ""
+	}
+
+	switch ap[2] {
+	case "acm":
+		np := strings.Split(ap[5], "-")
+
+		return fmt.Sprintf("acm-%s", np[len(np)-1])
+	case "iam":
+		np := strings.SplitN(ap[5], "/", 2)
+
+		if len(np) < 2 {
+			return ""
+		}
+
+		return np[1]
+	}
+
+	return ""
 }
 
 func cfParams(source map[string]string) map[string]string {
@@ -231,12 +256,28 @@ func lastline(data []byte) string {
 	return lines[len(lines)-1]
 }
 
+func recoverWith(f func(err error)) {
+	if r := recover(); r != nil {
+		// coerce r to error type
+		err, ok := r.(error)
+		if !ok {
+			err = fmt.Errorf("%v", r)
+		}
+
+		f(err)
+	}
+}
+
 func stackName(app *structs.App) string {
 	if _, ok := app.Tags["Rack"]; ok {
 		return fmt.Sprintf("%s-%s", app.Tags["Rack"], app.Name)
 	}
 
 	return app.Name
+}
+
+func (p *AWSProvider) rackStack(name string) string {
+	return fmt.Sprintf("%s-%s", p.Rack, name)
 }
 
 func stackParameters(stack *cloudformation.Stack) map[string]string {
@@ -326,6 +367,36 @@ func upperName(name string) string {
  * AWS API HELPERS
  ****************************************************************************/
 
+func (p *AWSProvider) createStack(name string, body []byte, params map[string]string, tags map[string]string) error {
+	req := &cloudformation.CreateStackInput{
+		Capabilities:     []*string{aws.String("CAPABILITY_IAM")},
+		StackName:        aws.String(name),
+		TemplateBody:     aws.String(string(body)),
+		NotificationARNs: []*string{aws.String(p.CloudformationTopic)},
+	}
+
+	for key, value := range params {
+		req.Parameters = append(req.Parameters, &cloudformation.Parameter{
+			ParameterKey:   aws.String(key),
+			ParameterValue: aws.String(value),
+		})
+	}
+
+	for key, value := range tags {
+		req.Tags = append(req.Tags, &cloudformation.Tag{
+			Key:   aws.String(key),
+			Value: aws.String(value),
+		})
+	}
+
+	_, err := p.cloudformation().CreateStack(req)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (p *AWSProvider) dynamoBatchDeleteItems(wrs []*dynamodb.WriteRequest, tableName string) error {
 
 	if len(wrs) > 0 {
@@ -368,9 +439,50 @@ func (p *AWSProvider) dynamoBatchDeleteItems(wrs []*dynamodb.WriteRequest, table
 	return nil
 }
 
+// listAndDescribeContainerInstances lists and describes all the ECS instances.
+// It handles pagination for clusters > 100 instances.
+func (p *AWSProvider) listAndDescribeContainerInstances() (*ecs.DescribeContainerInstancesOutput, error) {
+	instances := []*ecs.ContainerInstance{}
+	var nextToken string
+
+	for {
+		res, err := p.listContainerInstances(&ecs.ListContainerInstancesInput{
+			Cluster:   aws.String(p.Cluster),
+			NextToken: &nextToken,
+		})
+		if ae, ok := err.(awserr.Error); ok && ae.Code() == "ClusterNotFoundException" {
+			return nil, errorNotFound(fmt.Sprintf("cluster not found: %s", p.Cluster))
+		}
+		if err != nil {
+			return nil, err
+		}
+
+		ci, err := p.describeContainerInstances(&ecs.DescribeContainerInstancesInput{
+			Cluster:            aws.String(p.Cluster),
+			ContainerInstances: res.ContainerInstanceArns,
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		instances = append(instances, ci.ContainerInstances...)
+
+		// No more container results
+		if res.NextToken == nil {
+			break
+		}
+
+		// set the nextToken to be used for the next iteration
+		nextToken = *res.NextToken
+	}
+
+	return &ecs.DescribeContainerInstancesOutput{
+		ContainerInstances: instances,
+	}, nil
+}
+
 func (p *AWSProvider) describeContainerInstances(input *ecs.DescribeContainerInstancesInput) (*ecs.DescribeContainerInstancesOutput, error) {
 	res, ok := cache.Get("describeContainerInstances", input).(*ecs.DescribeContainerInstancesOutput)
-
 	if ok {
 		return res, nil
 	}
@@ -534,6 +646,21 @@ func (p *AWSProvider) stackResource(stack, resource string) (*cloudformation.Sta
 	}
 
 	return nil, fmt.Errorf("resource not found: %s", resource)
+}
+
+func (p *AWSProvider) stackParameter(stack, param string) (string, error) {
+	res, err := p.describeStack(stack)
+	if err != nil {
+		return "", err
+	}
+
+	for _, p := range res.Parameters {
+		if *p.ParameterKey == param {
+			return *p.ParameterValue, nil
+		}
+	}
+
+	return "", fmt.Errorf("parameter not found")
 }
 
 func (p *AWSProvider) describeTaskDefinition(input *ecs.DescribeTaskDefinitionInput) (*ecs.DescribeTaskDefinitionOutput, error) {
