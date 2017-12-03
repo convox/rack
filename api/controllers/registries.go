@@ -4,11 +4,10 @@ import (
 	"net/http"
 
 	"github.com/convox/rack/api/httperr"
-	"github.com/convox/rack/api/models"
 )
 
 func RegistryList(rw http.ResponseWriter, r *http.Request) *httperr.Error {
-	registries, err := models.Provider().RegistryList()
+	registries, err := Provider.RegistryList()
 	if err != nil {
 		return httperr.Server(err)
 	}
@@ -21,7 +20,7 @@ func RegistryCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	username := GetForm(r, "username")
 	password := GetForm(r, "password")
 
-	registry, err := models.Provider().RegistryAdd(server, username, password)
+	registry, err := Provider.RegistryAdd(server, username, password)
 	if err != nil {
 		return httperr.Server(err)
 	}
@@ -32,7 +31,7 @@ func RegistryCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 func RegistryDelete(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	server := r.FormValue("server")
 
-	if err := models.Provider().RegistryDelete(server); err != nil {
+	if err := Provider.RegistryDelete(server); err != nil {
 		return httperr.Server(err)
 	}
 

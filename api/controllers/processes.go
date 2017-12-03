@@ -6,8 +6,7 @@ import (
 	"strconv"
 
 	"github.com/convox/rack/api/httperr"
-	"github.com/convox/rack/api/models"
-	"github.com/convox/rack/api/structs"
+	"github.com/convox/rack/structs"
 	"github.com/convox/rack/provider"
 	"github.com/gorilla/mux"
 	"golang.org/x/net/websocket"
@@ -19,7 +18,7 @@ func ProcessExecAttached(ws *websocket.Conn) *httperr.Error {
 	header := ws.Request().Header
 
 	app := vars["app"]
-	_, err := models.Provider().AppGet(app)
+	_, err := Provider.AppGet(app)
 	if err != nil {
 		if provider.ErrorNotFound(err) {
 			return httperr.New(404, err)
@@ -32,7 +31,7 @@ func ProcessExecAttached(ws *websocket.Conn) *httperr.Error {
 	height, _ := strconv.Atoi(header.Get("Height"))
 	width, _ := strconv.Atoi(header.Get("Width"))
 
-	err = models.Provider().ProcessExec(app, pid, command, ws, structs.ProcessExecOptions{
+	err = Provider.ProcessExec(app, pid, command, ws, structs.ProcessExecOptions{
 		Height: height,
 		Width:  width,
 	})
@@ -51,7 +50,7 @@ func ProcessGet(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	app := mux.Vars(r)["app"]
 	process := mux.Vars(r)["process"]
 
-	ps, err := models.Provider().ProcessGet(app, process)
+	ps, err := Provider.ProcessGet(app, process)
 	if provider.ErrorNotFound(err) {
 		return httperr.NotFound(err)
 	}
@@ -66,7 +65,7 @@ func ProcessGet(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 func ProcessList(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	app := mux.Vars(r)["app"]
 
-	ps, err := models.Provider().ProcessList(app)
+	ps, err := Provider.ProcessList(app)
 	if provider.ErrorNotFound(err) {
 		return httperr.NotFound(err)
 	}
@@ -91,7 +90,7 @@ func ProcessRunAttached(ws *websocket.Conn) *httperr.Error {
 	height, _ := strconv.Atoi(header.Get("Height"))
 	width, _ := strconv.Atoi(header.Get("Width"))
 
-	_, err := models.Provider().ProcessRun(app, process, structs.ProcessRunOptions{
+	_, err := Provider.ProcessRun(app, process, structs.ProcessRunOptions{
 		Command: command,
 		Height:  height,
 		Width:   width,
@@ -116,7 +115,7 @@ func ProcessRunDetached(rw http.ResponseWriter, r *http.Request) *httperr.Error 
 	command := GetForm(r, "command")
 	release := GetForm(r, "release")
 
-	pid, err := models.Provider().ProcessRun(app, process, structs.ProcessRunOptions{
+	pid, err := Provider.ProcessRun(app, process, structs.ProcessRunOptions{
 		Command: command,
 		Release: release,
 	})
@@ -137,7 +136,7 @@ func ProcessStop(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	app := vars["app"]
 	process := vars["process"]
 
-	err := models.Provider().ProcessStop(app, process)
+	err := Provider.ProcessStop(app, process)
 	if provider.ErrorNotFound(err) {
 		return httperr.New(404, err)
 	}

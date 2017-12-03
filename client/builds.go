@@ -6,7 +6,7 @@ import (
 	"io"
 	"time"
 
-	"github.com/convox/rack/api/structs"
+	"github.com/convox/rack/structs"
 )
 
 type Build struct {

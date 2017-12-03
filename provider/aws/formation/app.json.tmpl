@@ -46,7 +46,10 @@
 {{ define "balancer-outputs" }}
   {{ range .Manifest.Services }}
     {{ if .Port.Port }}
-      "{{ upper .Name }}Endpoint": {
+      "Service{{ upper .Name }}Certificate": {
+        "Value": {{ if .Domain }} { "Ref": "Balancer{{ upper .Name }}Certificate" } {{ else }} { "Fn::ImportValue": { "Fn::Sub": "${Rack}:RouterCertificate" } } {{ end }}
+      },
+      "Service{{ upper .Name }}Endpoint": {
         "Value": { "Fn::Join": [ ".", [ "{{$.App}}-{{.Name}}", { "Fn::ImportValue": { "Fn::Sub": "${Rack}:{{ router .Name $.Manifest }}Host" } } ] ] }
       },
     {{ end }}
