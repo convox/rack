@@ -2,218 +2,134 @@ package pb
 
 import (
 	"bytes"
-	"errors"
-	"fmt"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
-	"gopkg.in/fatih/color.v1"
+	"github.com/fatih/color"
+	"github.com/mattn/go-colorable"
 )
 
-func TestPBBasic(t *testing.T) {
-	bar := new(ProgressBar)
-	var a, e int64
-	if a, e = bar.Total(), 0; a != e {
-		t.Errorf("Unexpected total: actual: %v; expected: %v", a, e)
+func Test_IncrementAddsOne(t *testing.T) {
+	count := 5000
+	bar := New(count)
+	expected := 1
+	actual := bar.Increment()
+
+	if actual != expected {
+		t.Errorf("Expected {%d} was {%d}", expected, actual)
 	}
-	if a, e = bar.Current(), 0; a != e {
-		t.Errorf("Unexpected current: actual: %v; expected: %v", a, e)
+}
+
+func Test_Width(t *testing.T) {
+	count := 5000
+	bar := New(count)
+	width := 100
+	bar.SetWidth(100).Callback = func(out string) {
+		if len(out) != width {
+			t.Errorf("Bar width expected {%d} was {%d}", len(out), width)
+		}
 	}
-	bar.SetCurrent(10).SetTotal(20)
-	if a, e = bar.Total(), 20; a != e {
-		t.Errorf("Unexpected total: actual: %v; expected: %v", a, e)
-	}
-	if a, e = bar.Current(), 10; a != e {
-		t.Errorf("Unexpected current: actual: %v; expected: %v", a, e)
-	}
-	bar.Add(5)
-	if a, e = bar.Current(), 15; a != e {
-		t.Errorf("Unexpected current: actual: %v; expected: %v", a, e)
-	}
+	bar.Start()
 	bar.Increment()
-	if a, e = bar.Current(), 16; a != e {
-		t.Errorf("Unexpected current: actual: %v; expected: %v", a, e)
+	bar.Finish()
+}
+
+func Test_MultipleFinish(t *testing.T) {
+	bar := New(5000)
+	bar.Add(2000)
+	bar.Finish()
+	bar.Finish()
+}
+
+func TestWriteRace(t *testing.T) {
+	outBuffer := &bytes.Buffer{}
+	totalCount := 20
+	bar := New(totalCount)
+	bar.Output = outBuffer
+	bar.Start()
+	var wg sync.WaitGroup
+	for i := 0; i < totalCount; i++ {
+		wg.Add(1)
+		go func() {
+			bar.Increment()
+			time.Sleep(250 * time.Millisecond)
+			wg.Done()
+		}()
+	}
+	wg.Wait()
+	bar.Finish()
+}
+
+func Test_Format(t *testing.T) {
+	bar := New(5000).Format(strings.Join([]string{
+		color.GreenString("["),
+		color.New(color.BgGreen).SprintFunc()("o"),
+		color.New(color.BgHiGreen).SprintFunc()("o"),
+		color.New(color.BgRed).SprintFunc()("o"),
+		color.GreenString("]"),
+	}, "\x00"))
+	w := colorable.NewColorableStdout()
+	bar.Callback = func(out string) {
+		w.Write([]byte(out))
+	}
+	bar.Add(2000)
+	bar.Finish()
+	bar.Finish()
+}
+
+func Test_MultiCharacter(t *testing.T) {
+	bar := New(5).Format(strings.Join([]string{"[[[", "---", ">>", "....", "]]"}, "\x00"))
+	bar.Start()
+	for i := 0; i < 5; i++ {
+		time.Sleep(500 * time.Millisecond)
+		bar.Increment()
+	}
+
+	time.Sleep(500 * time.Millisecond)
+	bar.Finish()
+}
+
+func Test_AutoStat(t *testing.T) {
+	bar := New(5)
+	bar.AutoStat = true
+	bar.Start()
+	time.Sleep(2 * time.Second)
+	//real start work
+	for i := 0; i < 5; i++ {
+		time.Sleep(500 * time.Millisecond)
+		bar.Increment()
+	}
+	//real finish work
+	time.Sleep(2 * time.Second)
+	bar.Finish()
+}
+
+func Test_Finish_PrintNewline(t *testing.T) {
+	bar := New(5)
+	buf := &bytes.Buffer{}
+	bar.Output = buf
+	bar.Finish()
+
+	expected := "\n"
+	actual := buf.String()
+	//Finish should write newline to bar.Output
+	if !strings.HasSuffix(actual, expected) {
+		t.Errorf("Expected %q to have suffix %q", expected, actual)
 	}
 }
 
-func TestPBWidth(t *testing.T) {
-	terminalWidth = func() (int, error) {
-		return 50, nil
-	}
-	// terminal width
-	bar := new(ProgressBar)
-	if a, e := bar.Width(), 50; a != e {
-		t.Errorf("Unexpected width: actual: %v; expected: %v", a, e)
-	}
-	// terminal width error
-	terminalWidth = func() (int, error) {
-		return 0, errors.New("test error")
-	}
-	if a, e := bar.Width(), defaultBarWidth; a != e {
-		t.Errorf("Unexpected width: actual: %v; expected: %v", a, e)
-	}
-	// terminal width panic
-	terminalWidth = func() (int, error) {
-		panic("test")
-		return 0, nil
-	}
-	if a, e := bar.Width(), defaultBarWidth; a != e {
-		t.Errorf("Unexpected width: actual: %v; expected: %v", a, e)
-	}
-	// set negative terminal width
-	bar.SetWidth(-42)
-	if a, e := bar.Width(), defaultBarWidth; a != e {
-		t.Errorf("Unexpected width: actual: %v; expected: %v", a, e)
-	}
-	// set terminal width
-	bar.SetWidth(42)
-	if a, e := bar.Width(), 42; a != e {
-		t.Errorf("Unexpected width: actual: %v; expected: %v", a, e)
-	}
-}
+func Test_FinishPrint(t *testing.T) {
+	bar := New(5)
+	buf := &bytes.Buffer{}
+	bar.Output = buf
+	bar.FinishPrint("foo")
 
-func TestPBTemplate(t *testing.T) {
-	bar := new(ProgressBar)
-	result := bar.SetTotal(100).SetCurrent(50).SetWidth(40).String()
-	expected := "50 / 100 [------->________] 50.00% ? p/s"
-	if result != expected {
-		t.Errorf("Unexpected result: (actual/expected)\n%s\n%s", result, expected)
-	}
-
-	// check strip
-	result = bar.SetWidth(8).String()
-	expected = "50 / 100"
-	if result != expected {
-		t.Errorf("Unexpected result: (actual/expected)\n%s\n%s", result, expected)
-	}
-
-	// invalid template
-	for _, invalidTemplate := range []string{
-		`{{invalid template`, `{{speed}}`,
-	} {
-		bar.SetTemplateString(invalidTemplate)
-		result = bar.String()
-		expected = ""
-		if result != expected {
-			t.Errorf("Unexpected result: (actual/expected)\n%s\n%s", result, expected)
-		}
-		if err := bar.Err(); err == nil {
-			t.Errorf("Must be error")
-		}
-	}
-
-	// simple template without adaptive elemnts
-	bar.SetTemplateString(`{{counters . }}`)
-	result = bar.String()
-	expected = "50 / 100"
-	if result != expected {
-		t.Errorf("Unexpected result: (actual/expected)\n%s\n%s", result, expected)
-	}
-}
-
-func TestPBStartFinish(t *testing.T) {
-	bar := ProgressBarTemplate(`{{counters . }}`).New(0)
-	for i := int64(0); i < 2; i++ {
-		if bar.IsStarted() {
-			t.Error("Must be false")
-		}
-		var buf = bytes.NewBuffer(nil)
-		bar.SetTotal(100).
-			SetCurrent(int64(i)).
-			SetWidth(7).
-			Set(Terminal, true).
-			SetWriter(buf).
-			SetRefreshRate(time.Millisecond * 20).
-			Start()
-		if !bar.IsStarted() {
-			t.Error("Must be true")
-		}
-		time.Sleep(time.Millisecond * 100)
-		bar.Finish()
-		if buf.Len() == 0 {
-			t.Error("no writes")
-		}
-		var resultsString = strings.TrimPrefix(buf.String(), "\r")
-		if !strings.HasSuffix(resultsString, "\n") {
-			t.Error("No end \\n symb")
-		} else {
-			resultsString = resultsString[:len(resultsString)-1]
-		}
-		var results = strings.Split(resultsString, "\r")
-		if len(results) < 3 {
-			t.Errorf("Unexpected writes count: %v", len(results))
-		}
-		exp := fmt.Sprintf("%d / 100", i)
-		for i, res := range results {
-			if res != exp {
-				t.Errorf("Unexpected result[%d]: '%v'", i, res)
-			}
-		}
-		// test second finish call
-		bar.Finish()
-	}
-}
-
-func TestPBFlags(t *testing.T) {
-	// Static
-	color.NoColor = false
-	buf := bytes.NewBuffer(nil)
-	bar := ProgressBarTemplate(`{{counters . | red}}`).New(100)
-	bar.Set(Static, true).SetCurrent(50).SetWidth(10).SetWriter(buf).Start()
-	if bar.IsStarted() {
-		t.Error("Must be false")
-	}
-	bar.Write()
-	result := buf.String()
-	expected := "50 / 100"
-	if result != expected {
-		t.Errorf("Unexpected result: (actual/expected)\n'%s'\n'%s'", result, expected)
-	}
-	if !bar.state.IsFirst() {
-		t.Error("must be true")
-	}
-	// Color
-	bar.Set(Color, true)
-	buf.Reset()
-	bar.Write()
-	result = buf.String()
-	expected = color.RedString("50 / 100")
-	if result != expected {
-		t.Errorf("Unexpected result: (actual/expected)\n'%s'\n'%s'", result, expected)
-	}
-	if bar.state.IsFirst() {
-		t.Error("must be false")
-	}
-	// Terminal
-	bar.Set(Terminal, true).SetWriter(buf)
-	buf.Reset()
-	bar.Write()
-	result = buf.String()
-	expected = "\r" + color.RedString("50 / 100") + "  "
-	if result != expected {
-		t.Errorf("Unexpected result: (actual/expected)\n'%s'\n'%s'", result, expected)
-	}
-}
-
-func BenchmarkRender(b *testing.B) {
-	var formats = []string{
-		string(Simple),
-		string(Default),
-		string(Full),
-		`{{string . "prefix" | red}}{{counters . | green}} {{bar . | yellow}} {{percent . | cyan}} {{speed . | cyan}}{{string . "suffix" | cyan}}`,
-	}
-	var names = []string{
-		"Simple", "Default", "Full", "Color",
-	}
-	for i, tmpl := range formats {
-		bar := new(ProgressBar)
-		bar.SetTemplateString(tmpl).SetWidth(100)
-		b.Run(names[i], func(b *testing.B) {
-			b.ReportAllocs()
-			for i := 0; i < b.N; i++ {
-				bar.String()
-			}
-		})
+	expected := "foo\n"
+	actual := buf.String()
+	//FinishPrint should write to bar.Output
+	if !strings.HasSuffix(actual, expected) {
+		t.Errorf("Expected %q to have suffix %q", expected, actual)
 	}
 }
