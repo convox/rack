@@ -13,7 +13,7 @@ import (
 )
 
 // Dynamically assigned discover function that is set by Main
-var discoverImpl func() (*DiscoveryInfo, error)
+var discoverImpl func(name string) (*DiscoveryInfo, error)
 
 var discoveryCache map[string]*DiscoveryInfo
 
@@ -32,8 +32,8 @@ type DiscoveryResource struct {
 func newDiscoveryResource(resourceID string, props map[string]interface{}) (DiscoveryResource, error) {
 	resource := DiscoveryResource{}
 	resource.ResourceID = resourceID
-	resource.Properties = make(map[string]string, 0)
-	resource.Tags = make(map[string]string, 0)
+	resource.Properties = make(map[string]string)
+	resource.Tags = make(map[string]string)
 
 	for eachProp, eachValue := range props {
 		if eachProp != "Tags" {
@@ -95,7 +95,7 @@ func (discoveryInfo *DiscoveryInfo) UnmarshalJSON(data []byte) error {
 	if err := json.Unmarshal(data, &discoveryData); err != nil {
 		return err
 	}
-	discoveryInfo.Resources = make(map[string]DiscoveryResource, 0)
+	discoveryInfo.Resources = make(map[string]DiscoveryResource)
 	for eachKey, eachValue := range discoveryData {
 		typeAssertOk := true
 
@@ -134,34 +134,42 @@ func (discoveryInfo *DiscoveryInfo) UnmarshalJSON(data []byte) error {
 ////////////////////////////////////////////////////////////////////////////////
 
 // Discover returns metadata information for resources upon which
-// the current golang lambda function depends.
+// the current golang lambda function depends. It's a reflection-based
+// pass-through to DiscoverByName
 func Discover() (*DiscoveryInfo, error) {
+	// The actual caller is sparta.Discover()
+	pc := make([]uintptr, 1)
+	entriesWritten := runtime.Callers(1, pc)
+	if entriesWritten != 1 {
+		return nil, fmt.Errorf("Unsupported call site for sparta.Discover()")
+	}
+	f := runtime.FuncForPC(pc[0])
+	golangFuncName := f.Name()
+	fmt.Printf("Checking for go function: %s\n", golangFuncName)
+	return DiscoverByName(golangFuncName)
+}
+
+// DiscoverByName returns the discovery information for the associated
+// lambda function. Typically relevant when LambdaAWSInfoSpartaOptions.Name
+// is defined by a caller.
+func DiscoverByName(name string) (*DiscoveryInfo, error) {
 	if nil == discoverImpl {
 		return nil, fmt.Errorf("Discovery service has not been initialized")
 	}
-	return discoverImpl()
+	return discoverImpl(name)
 }
 
 // TODO cache the data somewhere other than querying CF
 func initializeDiscovery(serviceName string, lambdaAWSInfos []*LambdaAWSInfo, logger *logrus.Logger) {
 	// Setup the discoveryImpl reference
-	discoveryCache = make(map[string]*DiscoveryInfo, 0)
-	discoverImpl = func() (*DiscoveryInfo, error) {
-		pc := make([]uintptr, 2)
-		entriesWritten := runtime.Callers(2, pc)
-		if entriesWritten != 2 {
-			return nil, fmt.Errorf("Unsupported call site for sparta.Discover()")
-		}
-
-		// The actual caller is sparta.Discover()
-		f := runtime.FuncForPC(pc[1])
-		golangFuncName := f.Name()
+	discoveryCache = make(map[string]*DiscoveryInfo)
+	discoverImpl = func(golangFuncName string) (*DiscoveryInfo, error) {
 
 		// Find the LambdaAWSInfo that has this golang function
 		// as its target
 		lambdaCFResource := ""
 		for _, eachLambda := range lambdaAWSInfos {
-			if eachLambda.lambdaFnName == golangFuncName {
+			if eachLambda.lambdaFunctionName() == golangFuncName {
 				lambdaCFResource = eachLambda.logicalName()
 			}
 		}

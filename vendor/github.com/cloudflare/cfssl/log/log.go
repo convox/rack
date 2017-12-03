@@ -6,43 +6,103 @@
 package log
 
 import (
+	"flag"
 	"fmt"
-	golog "log"
+	"log"
 	"os"
 )
 
 // The following constants represent logging levels in increasing levels of seriousness.
 const (
+	// LevelDebug is the log level for Debug statements.
 	LevelDebug = iota
+	// LevelInfo is the log level for Info statements.
 	LevelInfo
+	// LevelWarning is the log level for Warning statements.
 	LevelWarning
+	// LevelError is the log level for Error statements.
 	LevelError
+	// LevelCritical is the log level for Critical statements.
 	LevelCritical
+	// LevelFatal is the log level for Fatal statements.
 	LevelFatal
 )
 
 var levelPrefix = [...]string{
-	LevelDebug:    "[DEBUG] ",
-	LevelInfo:     "[INFO] ",
-	LevelWarning:  "[WARNING] ",
-	LevelError:    "[ERROR] ",
-	LevelCritical: "[CRITICAL] ",
-	LevelFatal:    "[FATAL] ",
+	LevelDebug:    "DEBUG",
+	LevelInfo:     "INFO",
+	LevelWarning:  "WARNING",
+	LevelError:    "ERROR",
+	LevelCritical: "CRITICAL",
+	LevelFatal:    "FATAL",
 }
 
 // Level stores the current logging level.
-var Level = LevelDebug
+var Level = LevelInfo
 
-func outputf(l int, format string, v []interface{}) {
-	if l >= Level {
-		golog.Printf(fmt.Sprint(levelPrefix[l], format), v...)
+// SyslogWriter specifies the necessary methods for an alternate output
+// destination passed in via SetLogger.
+//
+// SyslogWriter is satisfied by *syslog.Writer.
+type SyslogWriter interface {
+	Debug(string) error
+	Info(string) error
+	Warning(string) error
+	Err(string) error
+	Crit(string) error
+	Emerg(string) error
+}
+
+// syslogWriter stores the SetLogger() parameter.
+var syslogWriter SyslogWriter
+
+// SetLogger sets the output used for output by this package.
+// A *syslog.Writer is a good choice for the logger parameter.
+// Call with a nil parameter to revert to default behavior.
+func SetLogger(logger SyslogWriter) {
+	syslogWriter = logger
+}
+
+func init() {
+	// Only define loglevel flag once.
+	if flag.Lookup("loglevel") == nil {
+		flag.IntVar(&Level, "loglevel", LevelInfo, "Log level (0 = DEBUG, 5 = FATAL)")
 	}
 }
 
-func output(l int, v []interface{}) {
+func print(l int, msg string) {
 	if l >= Level {
-		golog.Print(levelPrefix[l], fmt.Sprint(v...))
+		if syslogWriter != nil {
+			var err error
+			switch l {
+			case LevelDebug:
+				err = syslogWriter.Debug(msg)
+			case LevelInfo:
+				err = syslogWriter.Info(msg)
+			case LevelWarning:
+				err = syslogWriter.Warning(msg)
+			case LevelError:
+				err = syslogWriter.Err(msg)
+			case LevelCritical:
+				err = syslogWriter.Crit(msg)
+			case LevelFatal:
+				err = syslogWriter.Emerg(msg)
+			}
+			if err != nil {
+				log.Printf("Unable to write syslog: %v for msg: %s\n", err, msg)
+			}
+		} else {
+			log.Printf("[%s] %s", levelPrefix[l], msg)
+		}
 	}
+}
+
+func outputf(l int, format string, v []interface{}) {
+	print(l, fmt.Sprintf(format, v...))
+}
+
+func output(l int, v []interface{}) {
+	print(l, fmt.Sprint(v...))
 }
 
 // Fatalf logs a formatted message at the "fatal" level and then exits. The

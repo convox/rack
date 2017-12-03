@@ -1,5 +1,4 @@
 .vscode/*
-vendor/*
 graph.html
 tags
 .atom-build.json
@@ -29,3 +28,6 @@ _testmain.go
 *.exe
 *.test
 *.prof
+
+
+.sparta/

@@ -1,14 +1,25 @@
 package sparta
 
 import (
+	"bytes"
+	"context"
 	"encoding/json"
+	"expvar"
 	"fmt"
-	"github.com/mweagle/cloudformationresources"
+	"io/ioutil"
 	"net/http"
-
+	"net/http/httptest"
+	"net/http/pprof"
+	"runtime/debug"
 	"strings"
+	"sync"
 
 	"github.com/Sirupsen/logrus"
+	"github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/golang/protobuf/jsonpb"
+	"github.com/golang/protobuf/proto"
+	"github.com/mweagle/Sparta/proxy"
+	"github.com/mweagle/cloudformationresources"
 )
 
 // Dispatch map for user defined CloudFormation CustomResources to
@@ -17,6 +28,32 @@ type dispatchMap map[string]*LambdaAWSInfo
 
 // Dispatch map for normal AWS Lambda to user defined Sparta lambda functions
 type customResourceDispatchMap map[string]*customResourceInfo
+
+var pprofDispatchMap = map[string]http.HandlerFunc{}
+
+func init() {
+	pprofDispatchMap["/debug/pprof"] = http.HandlerFunc(pprof.Index)
+	pprofDispatchMap["/debug/pprof/cmdline"] = http.HandlerFunc(pprof.Cmdline)
+	pprofDispatchMap["/debug/pprof/profile"] = http.HandlerFunc(pprof.Profile)
+	pprofDispatchMap["/debug/pprof/symbol"] = http.HandlerFunc(pprof.Symbol)
+	pprofDispatchMap["/debug/pprof/trace"] = http.HandlerFunc(pprof.Trace)
+}
+
+// This is a copy of the expvarHandler implementation from
+// https://golang.org/src/expvar/expvar.go
+func expvarHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	fmt.Fprintf(w, "{\n")
+	first := true
+	expvar.Do(func(kv expvar.KeyValue) {
+		if !first {
+			fmt.Fprintf(w, ",\n")
+		}
+		first = false
+		fmt.Fprintf(w, "%q: %s", kv.Key, kv.Value)
+	})
+	fmt.Fprintf(w, "\n}\n")
+}
 
 func userDefinedCustomResourceForwarder(customResource *customResourceInfo,
 	event *json.RawMessage,
@@ -80,7 +117,8 @@ func userDefinedCustomResourceForwarder(customResource *customResourceInfo,
 }
 
 // Extract the fields and forward the event to the resource
-func spartaCustomResourceForwarder(event *json.RawMessage,
+func spartaCustomResourceForwarder(creds credentials.Value,
+	event *json.RawMessage,
 	context *LambdaContext,
 	w http.ResponseWriter,
 	logger *logrus.Logger) {
@@ -117,7 +155,7 @@ func spartaCustomResourceForwarder(event *json.RawMessage,
 		customResourceRequest.PhysicalResourceID = fmt.Sprintf("LogStreamName: %s", context.LogStreamName)
 	}
 
-	requestErr := cloudformationresources.Handle(customResourceRequest, logger)
+	requestErr := cloudformationresources.Handle(customResourceRequest, creds, logger)
 	if requestErr != nil {
 		http.Error(w, requestErr.Error(), http.StatusInternalServerError)
 	} else {
@@ -125,54 +163,127 @@ func spartaCustomResourceForwarder(event *json.RawMessage,
 	}
 }
 
-// LambdaHTTPHandler is an HTTP compliant handler that implements
+// ServeMuxLambda is an HTTP compliant handler that implements
 // ServeHTTP
-type LambdaHTTPHandler struct {
-	lambdaDispatchMap         dispatchMap
+type ServeMuxLambda struct {
+	LambdaDispatchMap         dispatchMap
+	muValue                   sync.Mutex
+	customCreds               credentials.Value
 	customResourceDispatchMap customResourceDispatchMap
 	logger                    *logrus.Logger
 }
 
-func (handler *LambdaHTTPHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	// Remove the leading slash and dispatch it to the golang handler
-	lambdaFunc := strings.TrimLeft(req.URL.Path, "/")
-	decoder := json.NewDecoder(req.Body)
-	var request lambdaRequest
+// Credentials allows the user to supply a custom Credentials value
+// object for any internal calls
+func (handler *ServeMuxLambda) Credentials(creds credentials.Value) {
+	handler.muValue.Lock()
+	defer handler.muValue.Unlock()
+	handler.customCreds = creds
+}
+
+func (handler *ServeMuxLambda) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	// Handle panics
 	defer func() {
 		if r := recover(); r != nil {
 			err, ok := r.(error)
 			if !ok {
 				err = fmt.Errorf("%v", r)
 			}
+			stackTrace := debug.Stack()
+			handler.logger.WithFields(logrus.Fields{
+				"Stack": string(stackTrace),
+			}).Error("PANIC")
 			errorString := fmt.Sprintf("Lambda handler panic: %#v", err)
 			http.Error(w, errorString, http.StatusBadRequest)
 		}
 	}()
 
-	err := decoder.Decode(&request)
-	if nil != err {
-		errorString := fmt.Sprintf("Failed to decode proxy request: %s", err.Error())
+	// If this is the expvar handler then skip it
+	if "/golang/expvar" == req.URL.Path {
+		expvarHandler(w, req)
+		return
+	}
+	pprofHandler := pprofDispatchMap[req.URL.Path]
+	if pprofHandler != nil {
+		pprofHandler(w, req)
+		return
+	}
+
+	// Read the request and unmarshal the right version
+	defer req.Body.Close()
+	bodyData, bodyDataErr := ioutil.ReadAll(req.Body)
+	if bodyDataErr != nil {
+		errorString := fmt.Sprintf("Failed to read proxy request: %s",
+			bodyDataErr.Error())
 		http.Error(w, errorString, http.StatusBadRequest)
 		return
 	}
+
+	var proxyRequest proxy.AWSProxyRequest
+	var unmarshalErr error
+	switch req.Header.Get("Content-Type") {
+	case "application/x-protobuf":
+		unmarshalErr = proto.Unmarshal(bodyData, &proxyRequest)
+	case "application/json":
+		unmarshalErr = jsonpb.Unmarshal(bytes.NewReader(bodyData), &proxyRequest)
+	default:
+		unmarshalErr = fmt.Errorf("Unsupported proxy request Content-Type: %s",
+			req.Header.Get("Content-Type"))
+	}
+	if unmarshalErr != nil {
+		http.Error(w, unmarshalErr.Error(), http.StatusBadRequest)
+		return
+	}
+	// Remove the leading slash and dispatch it to the golang handler
+	lambdaFunc := strings.TrimLeft(req.URL.Path, "/")
 	handler.logger.WithFields(logrus.Fields{
-		"Request":    request,
-		"LookupName": lambdaFunc,
+		"LookupName":   lambdaFunc,
+		"ProtoMessage": true,
 	}).Debug("Dispatching")
 
-	lambdaAWSInfo := handler.lambdaDispatchMap[lambdaFunc]
-	var lambdaFn LambdaFunction
+	proxyContext := proxyRequest.GetContext()
+	request := lambdaRequest{
+		Context: LambdaContext{
+			AWSRequestID:       proxyContext.GetAwsRequestId(),
+			LogGroupName:       proxyContext.GetLogGroupName(),
+			LogStreamName:      proxyContext.GetLogStreamName(),
+			FunctionName:       proxyContext.GetFunctionName(),
+			MemoryLimitInMB:    proxyContext.GetMemoryLimitInMb(),
+			FunctionVersion:    proxyContext.GetFunctionVersion(),
+			InvokedFunctionARN: proxyContext.GetInvokedFunctionArn(),
+		},
+		Event: proxyRequest.GetEvent(),
+	}
+	lambdaAWSInfo := handler.LambdaDispatchMap[lambdaFunc]
 	if nil != lambdaAWSInfo {
-		lambdaFn = lambdaAWSInfo.lambdaFn
+		if lambdaAWSInfo.httpHandler != nil {
+
+			// Setup the request
+			reqBody := bytes.NewReader(proxyRequest.GetEvent())
+			spartaReq := httptest.NewRequest(req.Method,
+				req.URL.Path,
+				reqBody)
+			spartaReqContext := context.WithValue(req.Context(),
+				ContextKeyLogger,
+				handler.logger)
+			spartaReqContext = context.WithValue(spartaReqContext,
+				ContextKeyLambdaContext,
+				&request.Context)
+
+			// Call the normal HTTP handler
+			lambdaAWSInfo.httpHandler.ServeHTTP(w, spartaReq.WithContext(spartaReqContext))
+		} else {
+			lambdaAWSInfo.lambdaFn(&request.Event, &request.Context, w, handler.logger)
+		}
 	} else if strings.Contains(lambdaFunc, "::") {
 		// Not the most exhaustive guard, but the CloudFormation custom resources
 		// all have "::" delimiters in their type field.  Even if there is a false
 		// positive, the spartaCustomResourceForwarder will simply error out.
-		lambdaFn = spartaCustomResourceForwarder
-	}
-
-	if nil != lambdaFn {
-		lambdaFn(&request.Event, &request.Context, w, handler.logger)
+		spartaCustomResourceForwarder(handler.customCreds,
+			&request.Event,
+			&request.Context,
+			w,
+			handler.logger)
 	} else {
 		// Final check for user-defined resource
 		customResource, exists := handler.customResourceDispatchMap[lambdaFunc]
@@ -193,18 +304,19 @@ func (handler *LambdaHTTPHandler) ServeHTTP(w http.ResponseWriter, req *http.Req
 	}
 }
 
-// NewLambdaHTTPHandler returns an initialized LambdaHTTPHandler instance.  The returned value
+// NewServeMuxLambda returns an initialized ServeMuxLambda instance.  The returned value
 // can be provided to https://golang.org/pkg/net/http/httptest/#NewServer to perform
 // localhost testing.
-func NewLambdaHTTPHandler(lambdaAWSInfos []*LambdaAWSInfo, logger *logrus.Logger) *LambdaHTTPHandler {
-	lookupMap := make(dispatchMap, 0)
-	customResourceMap := make(customResourceDispatchMap, 0)
+func NewServeMuxLambda(lambdaAWSInfos []*LambdaAWSInfo,
+	logger *logrus.Logger) *ServeMuxLambda {
+	lookupMap := make(dispatchMap)
+	customResourceMap := make(customResourceDispatchMap)
 	for _, eachLambdaInfo := range lambdaAWSInfos {
 		logger.WithFields(logrus.Fields{
-			"Path": eachLambdaInfo.lambdaFnName,
+			"Path": eachLambdaInfo.lambdaFunctionName(),
 		}).Debug("Registering lambda URL")
 
-		lookupMap[eachLambdaInfo.lambdaFnName] = eachLambdaInfo
+		lookupMap[eachLambdaInfo.lambdaFunctionName()] = eachLambdaInfo
 		// Build up the customResourceDispatchMap
 		for _, eachCustomResource := range eachLambdaInfo.customResources {
 			logger.WithFields(logrus.Fields{
@@ -214,8 +326,8 @@ func NewLambdaHTTPHandler(lambdaAWSInfos []*LambdaAWSInfo, logger *logrus.Logger
 		}
 	}
 
-	return &LambdaHTTPHandler{
-		lambdaDispatchMap:         lookupMap,
+	return &ServeMuxLambda{
+		LambdaDispatchMap:         lookupMap,
 		customResourceDispatchMap: customResourceMap,
 		logger: logger,
 	}

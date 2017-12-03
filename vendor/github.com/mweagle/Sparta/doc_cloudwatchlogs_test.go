@@ -1,23 +1,26 @@
 package sparta
 
 import (
-	"encoding/json"
 	"net/http"
 
 	"github.com/Sirupsen/logrus"
 )
 
-func cloudWatchLogsProcessor(event *json.RawMessage, context *LambdaContext, w http.ResponseWriter, logger *logrus.Logger) {
+func cloudWatchLogsProcessor(w http.ResponseWriter, r *http.Request) {
+	logger, _ := r.Context().Value(ContextKeyLogger).(*logrus.Logger)
+	lambdaContext, _ := r.Context().Value(ContextKeyLambdaContext).(*LambdaContext)
 	logger.WithFields(logrus.Fields{
-		"RequestID": context.AWSRequestID,
+		"RequestID": lambdaContext.AWSRequestID,
 	}).Info("CloudWatch log event")
-	logger.Info("CloudWatch Log event data: ", string(*event))
+	logger.Info("CloudWatch Log event received")
 }
 
 func ExampleCloudWatchLogsPermission() {
 	var lambdaFunctions []*LambdaAWSInfo
 
-	cloudWatchLogsLambda := NewLambda(IAMRoleDefinition{}, cloudWatchLogsProcessor, nil)
+	cloudWatchLogsLambda := HandleAWSLambda(LambdaName(cloudWatchLogsProcessor),
+		http.HandlerFunc(cloudWatchLogsProcessor),
+		IAMRoleDefinition{})
 
 	cloudWatchLogsPermission := CloudWatchLogsPermission{}
 	cloudWatchLogsPermission.Filters = make(map[string]CloudWatchLogsSubscriptionFilter, 1)

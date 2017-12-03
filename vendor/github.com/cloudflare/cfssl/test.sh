@@ -22,14 +22,20 @@ do
     fgt golint ${package}
 done
 
+# check go fmt
+for package in $PACKAGES
+do
+    test -z "$(gofmt -s -l $GOPATH/src/$package/ | tee /dev/stderr)"
+done
+
 # Build and install cfssl executable in PATH
-go install github.com/cloudflare/cfssl/cmd/cfssl
+go install -tags "$BUILD_TAGS" github.com/cloudflare/cfssl/cmd/cfssl
 
 COVPROFILES=""
 for package in $(go list -f '{{if len .TestGoFiles}}{{.ImportPath}}{{end}}' $PACKAGES)
 do
     profile="$GOPATH/src/$package/.coverprofile"
-    go test $BUILD_FLAGS --coverprofile=$profile $package
+    go test -tags "$BUILD_TAGS" --coverprofile=$profile $package
     [ -s $profile ] && COVPROFILES="$COVPROFILES $profile"
 done
 cat $COVPROFILES > coverprofile.txt

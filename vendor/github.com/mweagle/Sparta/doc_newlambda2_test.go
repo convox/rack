@@ -1,14 +1,11 @@
 package sparta
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
-
-	"github.com/Sirupsen/logrus"
 )
 
-func lambdaHelloWorld2(event *json.RawMessage, context *LambdaContext, w http.ResponseWriter, logger *logrus.Logger) {
+func lambdaHelloWorld2(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Hello World!")
 }
 
@@ -19,7 +16,9 @@ func ExampleNewLambda_iAMRoleDefinition() {
 			"s3:PutObject"},
 		Resource: "arn:aws:s3:::*",
 	})
-	helloWorldLambda := NewLambda(IAMRoleDefinition{}, lambdaHelloWorld2, nil)
+	helloWorldLambda := HandleAWSLambda(LambdaName(lambdaHelloWorld2),
+		http.HandlerFunc(lambdaHelloWorld2),
+		IAMRoleDefinition{})
 	if nil != helloWorldLambda {
 		fmt.Printf("Failed to create new Lambda function")
 	}

@@ -1,70 +1,65 @@
 .DEFAULT_GOAL=build
-.PHONY: build test get run tags clean reset
 
-clean:
-	go clean .
-	go env
+GO_LINT := $(GOPATH)/bin/golint
 
-get: clean
-	rm -rf $(GOPATH)/src/github.com/aws/aws-sdk-go
-	git clone --depth=1 https://github.com/aws/aws-sdk-go $(GOPATH)/src/github.com/aws/aws-sdk-go
-
-	rm -rf $(GOPATH)/src/github.com/go-ini/ini
-	git clone --depth=1 https://github.com/go-ini/ini $(GOPATH)/src/github.com/go-ini/ini
-
-	rm -rf $(GOPATH)/src/github.com/jmespath/go-jmespath
-	git clone --depth=1 https://github.com/jmespath/go-jmespath $(GOPATH)/src/github.com/jmespath/go-jmespath
-
-	rm -rf $(GOPATH)/src/github.com/Sirupsen/logrus
-	git clone --depth=1 https://github.com/Sirupsen/logrus $(GOPATH)/src/github.com/Sirupsen/logrus
-
-	rm -rf $(GOPATH)/src/github.com/mjibson/esc
-	git clone --depth=1 https://github.com/mjibson/esc $(GOPATH)/src/github.com/mjibson/esc
-
-	rm -rf $(GOPATH)/src/github.com/crewjam/go-cloudformation
-	git clone --depth=1 https://github.com/crewjam/go-cloudformation $(GOPATH)/src/github.com/crewjam/go-cloudformation
-
-	rm -rf $(GOPATH)/src/github.com/spf13/cobra
-	git clone --depth=1 https://github.com/spf13/cobra $(GOPATH)/src/github.com/spf13/cobra
-
-	rm -rf $(GOPATH)/src/github.com/spf13/pflag
-	git clone --depth=1 https://github.com/spf13/pflag $(GOPATH)/src/github.com/spf13/pflag
-
-	rm -rf $(GOPATH)/src/github.com/asaskevich/govalidator
-	git clone --depth=1 https://github.com/asaskevich/govalidator $(GOPATH)/src/github.com/asaskevich/govalidator
-	
-	rm -rf $(GOPATH)/src/github.com/fzipp/gocyclo
-	git clone --depth=1 https://github.com/fzipp/gocyclo $(GOPATH)/src/github.com/fzipp/gocyclo
-
-travisget: 
-	rm -rf $(GOPATH)/src/github.com/mweagle/cloudformationresources
-	git clone --depth=1 https://github.com/mweagle/cloudformationresources $(GOPATH)/src/github.com/mweagle/cloudformationresources
-	
+################################################################################
+# Meta
+################################################################################
 reset:
 		git reset --hard
 		git clean -f -d
 
-generate: 
-	go generate -x
+################################################################################
+# Code generation
+################################################################################
+generate:
+	go generate -x . ./proxy
+	./stamp.sh
+	./embed.sh
 	@echo "Generate complete: `date`"
 
-validate: 
-	go run $(GOPATH)/src/github.com/fzipp/gocyclo/gocyclo.go -over 15 .
-	# Disable composites until https://github.com/golang/go/issues/9171 is resolved.  Currently
-	# failing due to gocf.IAMPoliciesList literal initialization
-	go tool vet -composites=false *.go
-	go tool vet -composites=false ./explore
-	go tool vet -composites=false ./aws/
-	
-format:
-	go fmt .
+################################################################################
+# Hygiene checks
+################################################################################
 
-travisci: get travisget generate validate
-	go build .
+GO_SOURCE_FILES := find . -type f -name '*.go' \
+	! -path './vendor/*' \
 
-build: format generate validate
-	go build .
-	@echo "Build complete"
+install_requirements:
+	go get -u honnef.co/go/tools/cmd/megacheck
+	go get -u honnef.co/go/tools/cmd/gosimple
+	go get -u honnef.co/go/tools/cmd/unused
+	go get -u honnef.co/go/tools/cmd/staticcheck
+	go get -u golang.org/x/tools/cmd/goimports
+	go get -u github.com/fzipp/gocyclo
+	go get -u github.com/golang/lint/golint
+	go get -u github.com/mjibson/esc
+
+
+.PHONY: vet
+vet: install_requirements
+	for file in $(shell $(GO_SOURCE_FILES)); do \
+		go tool vet "$${file}" || exit 1 ;\
+	done
+
+.PHONY: lint
+lint: install_requirements
+	for file in $(shell $(GO_SOURCE_FILES)); do \
+		$(GO_LINT) "$${file}" || exit 1 ;\
+	done
+
+.PHONY: fmt
+fmt: install_requirements
+	$(GO_SOURCE_FILES) -exec goimports -w {} \;
+
+.PHONY: fmtcheck
+fmtcheck:install_requirements
+	@ export output="$$($(GO_SOURCE_FILES) -exec goimports -d {} \;)"; \
+		test -z "$${output}" || (echo "$${output}" && exit 1)
+
+.PHONY: validate
+validate: install_requirements vet lint fmtcheck
+	megacheck -ignore github.com/mweagle/Sparta/CONSTANTS.go:*
 
 docs:
 	@echo ""
@@ -72,16 +67,23 @@ docs:
 	@echo
 	godoc -v -http=:8090 -index=true
 
-test: build
-	go test -v .
-	go test -v ./aws/...
+################################################################################
+# Travis
+################################################################################
+travis-depends: install_requirements
+	go get -u github.com/golang/dep/...
+	dep ensure
+	# Move everything in the ./vendor directory to the $(GOPATH)/src directory
+	rsync -a --quiet --remove-source-files ./vendor/ $(GOPATH)/src
 
-run: build
-	./sparta
 
-tags:
-	gotags -tag-relative=true -R=true -sort=true -f="tags" -fields=+l .
+.PHONY: travis-ci-test
+travis-ci-test: travis-depends test build
+	go test -v -cover ./...
 
+################################################################################
+# Sparta commands
+################################################################################
 provision: build
 	go run ./applications/hello_world.go --level info provision --s3Bucket $(S3_BUCKET)
 
@@ -91,3 +93,28 @@ execute: build
 describe: build
 	rm -rf ./graph.html
 	go test -v -run TestDescribe
+
+################################################################################
+# ALM commands
+################################################################################
+.PHONY: clean
+clean:
+	go clean .
+	go env
+
+.PHONY: test
+test: build
+	go test -v -cover ./...
+
+.PHONY: build
+build: validate
+	go build .
+	@echo "Build complete"
+
+.PHONY: publish
+publish:
+	$(info Checking Git tree status)
+	git diff --exit-code
+	$(MAKE) generate
+	git commit -a -m "Publishing latest autogenerated updates"
+	git push origin

@@ -24,6 +24,7 @@ import (
 
 const protocolVersion = "1"
 const defaultCheckURL = "https://update.equinox.io/check"
+const userAgent = "EquinoxSDK/1.0"
 
 var NotAvailableErr = errors.New("No update available")
 
@@ -154,6 +155,7 @@ func Check(appID string, opts Options) (Response, error) {
 	if opts.HTTPClient == nil {
 		opts.HTTPClient = new(http.Client)
 	}
+	opts.HTTPClient.Transport = newUserAgentTransport(userAgent, opts.HTTPClient.Transport)
 
 	checksum := computeChecksum(opts.TargetPath)
 
@@ -251,12 +253,53 @@ func (r Response) Apply() error {
 		return err
 	}
 
-	// fetch the update
-	resp, err := r.opts.HTTPClient.Get(r.downloadURL)
+	req, err := http.NewRequest("GET", r.downloadURL, nil)
 	if err != nil {
 		return err
 	}
+
+	// fetch the update
+	resp, err := r.opts.HTTPClient.Do(req)
+	if err != nil {
+		return err
+	}
+
 	defer resp.Body.Close()
 
+	// check that we got a patch
+	if resp.StatusCode >= 400 {
+		msg := "error downloading patch"
+
+		id := resp.Header.Get("Request-Id")
+		if id != "" {
+			msg += ", request " + id
+		}
+
+		blob, err := ioutil.ReadAll(resp.Body)
+		if err == nil {
+			msg += ": " + string(bytes.TrimSpace(blob))
+		}
+		return fmt.Errorf(msg)
+	}
+
 	return update.Apply(resp.Body, opts)
+}
+
+type userAgentTransport struct {
+	userAgent string
+	http.RoundTripper
+}
+
+func newUserAgentTransport(userAgent string, rt http.RoundTripper) *userAgentTransport {
+	if rt == nil {
+		rt = http.DefaultTransport
+	}
+	return &userAgentTransport{userAgent, rt}
+}
+
+func (t *userAgentTransport) RoundTrip(r *http.Request) (*http.Response, error) {
+	if r.Header.Get("User-Agent") == "" {
+		r.Header.Set("User-Agent", t.userAgent)
+	}
+	return t.RoundTripper.RoundTrip(r)
 }

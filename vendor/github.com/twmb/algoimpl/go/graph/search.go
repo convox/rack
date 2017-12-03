@@ -19,6 +19,7 @@ func (g *Graph) DijkstraSearch(start Node) []Path {
 	for i := range nodesBase {
 		nodesBase[i].state = 1<<31 - 1
 		nodesBase[i].data = i
+		nodesBase[i].parent = nil
 	}
 	start.node.state = 0 // make it so 'start' sorts to the top of the heap
 	nodes := &nodesBase

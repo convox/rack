@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"hash/adler32"
+	"io"
 	"net/http"
 	"net/url"
 	"os"
@@ -17,53 +18,76 @@ import (
 )
 
 const (
-	NAME    = "go-rollbar"
-	VERSION = "0.3.1"
+	// NAME is the name of this notifier library as reported to the Rollbar API.
+	NAME = "go-rollbar"
 
-	// Severity levels
-	CRIT  = "critical"
-	ERR   = "error"
-	WARN  = "warning"
-	INFO  = "info"
+	// VERSION is the version number of this notifier library as reported to the
+	// Rollbar API.
+	VERSION = "0.4.0"
+
+	// CRIT is the critical Rollbar severity level as reported to the Rollbar
+	// API.
+	CRIT = "critical"
+
+	// ERR is the error Rollbar severity level as reported to the Rollbar API.
+	ERR = "error"
+
+	// WARN is the warning Rollbar severity level as reported to the Rollbar API.
+	WARN = "warning"
+
+	// INFO is the info Rollbar severity level as reported to the Rollbar API.
+	INFO = "info"
+
+	// DEBUG is the debug Rollbar severity level as reported to the Rollbar API.
 	DEBUG = "debug"
 
+	// FILTERED is the text that replaces all sensitive values in items sent to
+	// the Rollbar API.
 	FILTERED = "[FILTERED]"
 )
 
 var (
-	// Rollbar access token. If this is blank, no errors will be reported to
-	// Rollbar.
+	// Token is the Rollbar access token under which all items will be reported.
+	// If Token is blank, no errors will be reported to Rollbar.
 	Token = ""
 
-	// All errors and messages will be submitted under this environment.
+	// Environment is the environment under which all items will be reported.
 	Environment = "development"
 
-	// Platform, default to OS, but could be change ('client' for instance)
+	// Platform is the platform reported for all Rollbar items. The default is
+	// the running operating system (darwin, freebsd, linux, etc.) but it can
+	// also be application specific (client, heroku, etc.).
 	Platform = runtime.GOOS
 
-	// API endpoint for Rollbar.
+	// Endpoint is the URL destination for all Rollbar item POST requests.
 	Endpoint = "https://api.rollbar.com/api/1/item/"
 
-	// Maximum number of errors allowed in the sending queue before we start
-	// dropping new errors on the floor.
+	// Buffer is the maximum number of errors that will be queued for sending.
+	// When the buffer is full, new errors are dropped on the floor until the API
+	// can catch up.
 	Buffer = 1000
 
-	// Filter GET and POST parameters from being sent to Rollbar.
+	// FilterFields is a regular expression that matches field names that should
+	// not be sent to Rollbar. Values for these fields are replaced with
+	// "[FILTERED]".
 	FilterFields = regexp.MustCompile("password|secret|token")
 
-	// Output of error, by default stderr
-	ErrorWriter = os.Stderr
+	// ErrorWriter is the destination for errors encountered while POSTing items
+	// to Rollbar. By default, this is stderr. This can be nil.
+	ErrorWriter io.Writer = os.Stderr
 
-	// All errors and messages will be submitted under this code
-	// version. If this is blank no value will be sent
+	// CodeVersion is the optional code version reported to the Rollbar API for
+	// all items.
 	CodeVersion = ""
 
-	// Queue of messages to be sent.
 	bodyChannel chan map[string]interface{}
 	waitGroup   sync.WaitGroup
+	postErrors  chan error
+	nilErrTitle = "<nil>"
 )
 
-// Fields can be used to pass arbitrary data to the Rollbar API.
+// Field is a custom data field used to report arbitrary data to the Rollbar
+// API.
 type Field struct {
 	Name string
 	Data interface{}
@@ -73,16 +97,29 @@ type Field struct {
 
 func init() {
 	bodyChannel = make(chan map[string]interface{}, Buffer)
+	postErrors = make(chan error, Buffer)
 
 	go func() {
+		var err error
 		for body := range bodyChannel {
-			post(body)
+			err = post(body)
+			if err != nil {
+				if len(postErrors) == cap(postErrors) {
+					<-postErrors
+				}
+				postErrors <- err
+			}
 			waitGroup.Done()
 		}
+		close(postErrors)
 	}()
 }
 
 // -- Error reporting
+
+func Errorf(level string, format string, args ...interface{}) {
+	ErrorWithStackSkip(level, fmt.Errorf(format, args...), 1)
+}
 
 // Error asynchronously sends an error to Rollbar with the given severity
 // level. You can pass, optionally, custom Fields to be passed on to Rollbar.
@@ -125,15 +162,19 @@ func RequestErrorWithStackSkip(level string, r *http.Request, err error, skip in
 // http.Request, and a custom Stack. You You can pass, optionally, custom
 // Fields to be passed on to Rollbar.
 func RequestErrorWithStack(level string, r *http.Request, err error, stack Stack, fields ...*Field) {
-	buildAndPushError(level, err, stack, &Field{Name: "request", Data: errorRequest(r)})
+	buildAndPushError(level, err, stack, append(fields, &Field{Name: "request", Data: errorRequest(r)})...)
 }
 
 func buildError(level string, err error, stack Stack, fields ...*Field) map[string]interface{} {
-	body := buildBody(level, err.Error())
+	title := nilErrTitle
+	if err != nil {
+		title = err.Error()
+	}
+
+	body := buildBody(level, title)
 	data := body["data"].(map[string]interface{})
-	errBody, fingerprint := errorBody(err, stack)
+	errBody := errorBody(err, stack)
 	data["body"] = errBody
-	data["fingerprint"] = fingerprint
 
 	for _, field := range fields {
 		data[field.Name] = field.Data
@@ -159,6 +200,12 @@ func Message(level string, msg string) {
 }
 
 // -- Misc.
+
+// PostErrors returns a channel that receives all errors encountered while
+// POSTing items to the Rollbar API.
+func PostErrors() <-chan error {
+	return postErrors
+}
 
 // Wait will block until the queue of errors / messages is empty. This allows
 // you to ensure that errors / messages are sent to Rollbar before exiting an
@@ -199,18 +246,22 @@ func buildBody(level, title string) map[string]interface{} {
 }
 
 // errorBody generates a Rollbar error body with a given stack trace.
-func errorBody(err error, stack Stack) (map[string]interface{}, string) {
-	fingerprint := stack.Fingerprint()
+func errorBody(err error, stack Stack) map[string]interface{} {
+	message := nilErrTitle
+	if err != nil {
+		message = err.Error()
+	}
+
 	errBody := map[string]interface{}{
 		"trace": map[string]interface{}{
 			"frames": stack,
 			"exception": map[string]interface{}{
 				"class":   errorClass(err),
-				"message": err.Error(),
+				"message": message,
 			},
 		},
 	}
-	return errBody, fingerprint
+	return errBody
 }
 
 // errorRequest extracts details from a Request in a format that Rollbar
@@ -228,14 +279,15 @@ func errorRequest(r *http.Request) map[string]interface{} {
 		"GET":          flattenValues(cleanQuery),
 
 		// POST / PUT params
-		"POST": flattenValues(filterParams(r.Form)),
+		"POST":    flattenValues(filterParams(r.Form)),
+		"user_ip": r.RemoteAddr,
 	}
 }
 
 // filterParams filters sensitive information like passwords from being sent to
 // Rollbar.
 func filterParams(values map[string][]string) map[string][]string {
-	for key, _ := range values {
+	for key := range values {
 		if FilterFields.Match([]byte(key)) {
 			values[key] = []string{FILTERED}
 		}
@@ -268,6 +320,10 @@ func messageBody(s string) map[string]interface{} {
 }
 
 func errorClass(err error) string {
+	if err == nil {
+		return nilErrTitle
+	}
+
 	class := reflect.TypeOf(err).String()
 	if class == "" {
 		return "panic"
@@ -292,27 +348,31 @@ func push(body map[string]interface{}) {
 }
 
 // POST the given JSON body to Rollbar synchronously.
-func post(body map[string]interface{}) {
+func post(body map[string]interface{}) error {
 	if len(Token) == 0 {
 		stderr("empty token")
-		return
+		return nil
 	}
 
 	jsonBody, err := json.Marshal(body)
 	if err != nil {
 		stderr("failed to encode payload: %s", err.Error())
-		return
+		return err
 	}
 
 	resp, err := http.Post(Endpoint, "application/json", bytes.NewReader(jsonBody))
 	if err != nil {
 		stderr("POST failed: %s", err.Error())
-	} else if resp.StatusCode != 200 {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
 		stderr("received response: %s", resp.Status)
+		return ErrHTTPError(resp.StatusCode)
 	}
-	if resp != nil {
-		resp.Body.Close()
-	}
+
+	return nil
 }
 
 // -- stderr
