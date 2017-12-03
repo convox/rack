@@ -11,8 +11,9 @@ import (
 )
 
 var (
-	changeLogURL            = "https://github.com/urfave/cli/blob/master/CHANGELOG.md"
-	appActionDeprecationURL = fmt.Sprintf("%s#deprecated-cli-app-action-signature", changeLogURL)
+	changeLogURL                    = "https://github.com/urfave/cli/blob/master/CHANGELOG.md"
+	appActionDeprecationURL         = fmt.Sprintf("%s#deprecated-cli-app-action-signature", changeLogURL)
+	runAndExitOnErrorDeprecationURL = fmt.Sprintf("%s#deprecated-cli-app-runandexitonerror", changeLogURL)
 
 	contactSysadmin = "This is an error in the application.  Please contact the distributor of this application if this is not you."
 
@@ -263,9 +264,9 @@ func (a *App) Run(arguments []string) (err error) {
 
 // RunAndExitOnError calls .Run() and exits non-zero if an error was returned
 //
-// This is provided as a convenience function, but you should consider
-// returning an error that fulfills cli.ExitCoder to cli.App.Run. This will
-// cause the application to exit with the given eror code in the cli.ExitCoder
+// Deprecated: instead you should return an error that fulfills cli.ExitCoder
+// to cli.App.Run. This will cause the application to exit with the given eror
+// code in the cli.ExitCoder
 func (a *App) RunAndExitOnError() {
 	if err := a.Run(os.Args); err != nil {
 		fmt.Fprintln(a.errWriter(), err)
