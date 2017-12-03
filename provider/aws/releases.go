@@ -11,7 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/convox/rack/api/crypt"
-	"github.com/convox/rack/api/structs"
+	"github.com/convox/rack/structs"
 	"github.com/convox/rack/manifest"
 )
 
@@ -70,9 +70,12 @@ func (p *AWSProvider) ReleaseGet(app, id string) (*structs.Release, error) {
 	}
 
 	env := structs.Environment{}
-	env.LoadEnvironment(data)
 
-	r.Env = env.Raw()
+	if err := env.Load(data); err != nil {
+		return nil, err
+	}
+
+	r.Env = env.String()
 
 	return r, nil
 }
@@ -124,10 +127,11 @@ func (p *AWSProvider) ReleasePromote(r *structs.Release) error {
 		return err
 	}
 
-	stack := fmt.Sprintf("%s-%s", p.Rack, r.App)
-
 	env := structs.Environment{}
-	env.LoadRaw(r.Env)
+
+	if err := env.Load([]byte(r.Env)); err != nil {
+		return err
+	}
 
 	m, err := manifest.Load([]byte(r.Manifest), manifest.Environment(env))
 	if err != nil {
@@ -164,7 +168,7 @@ func (p *AWSProvider) ReleasePromote(r *structs.Release) error {
 		"LogBucket": p.LogBucket,
 	}
 
-	if err := p.updateStack(stack, ou, updates); err != nil {
+	if err := p.updateStack(p.rackStack(r.App), ou, updates); err != nil {
 		return err
 	}
 
