@@ -11,7 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
-	"github.com/convox/rack/api/structs"
+	"github.com/convox/rack/structs"
 )
 
 func (p *AWSProvider) LogStream(app string, w io.Writer, opts structs.LogStreamOptions) error {

@@ -5,14 +5,14 @@ import (
 	"time"
 
 	"github.com/convox/rack/api/controllers"
-	"github.com/convox/rack/api/models"
-	"github.com/convox/rack/api/structs"
+	"github.com/convox/rack/structs"
+	"github.com/convox/rack/provider"
 	"github.com/convox/rack/test"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestReleaseList(t *testing.T) {
-	models.Test(t, func() {
+	Mock(func(p *provider.MockProvider) {
 		releases := structs.Releases{
 			structs.Release{
 				Id:       "RVFETUHHKKD",
@@ -32,7 +32,7 @@ func TestReleaseList(t *testing.T) {
 			},
 		}
 
-		models.TestProvider.On("ReleaseList", "example", int64(20)).Return(releases, nil)
+		p.On("ReleaseList", "example", int64(20)).Return(releases, nil)
 
 		hf := test.NewHandlerFunc(controllers.HandlerFunc)
 

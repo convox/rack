@@ -12,8 +12,7 @@ import (
 	"net/http"
 
 	"github.com/convox/rack/api/httperr"
-	"github.com/convox/rack/api/models"
-	"github.com/convox/rack/api/structs"
+	"github.com/convox/rack/structs"
 )
 
 func IndexDiff(rw http.ResponseWriter, r *http.Request) *httperr.Error {
@@ -24,7 +23,7 @@ func IndexDiff(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 		return httperr.Server(err)
 	}
 
-	missing, err := models.Provider().IndexDiff(&index)
+	missing, err := Provider.IndexDiff(&index)
 	if err != nil {
 		return httperr.Server(err)
 	}
@@ -66,7 +65,7 @@ func IndexUpdate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 				return httperr.New(403, fmt.Errorf("invalid hash"))
 			}
 
-			if err := models.Provider().IndexUpload(header.Name, buf.Bytes()); err != nil {
+			if err := Provider.IndexUpload(header.Name, buf.Bytes()); err != nil {
 				return httperr.Server(err)
 			}
 		}

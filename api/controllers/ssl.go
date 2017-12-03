@@ -3,23 +3,52 @@ package controllers
 import (
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/convox/rack/api/httperr"
-	"github.com/convox/rack/api/models"
+	"github.com/convox/rack/structs"
 	"github.com/gorilla/mux"
 )
 
+type SSL struct {
+	Certificate string    `json:"certificate"`
+	Domain      string    `json:"domain"`
+	Expiration  time.Time `json:"expiration"`
+	Process     string    `json:"process"`
+	Port        int       `json:"port"`
+}
+
+type SSLs []SSL
+
 func SSLList(rw http.ResponseWriter, r *http.Request) *httperr.Error {
-	a := mux.Vars(r)["app"]
+	app := mux.Vars(r)["app"]
 
-	ssls, err := models.ListSSLs(a)
-
-	if awsError(err) == "ValidationError" {
-		return httperr.Errorf(404, "no such app: %s", a)
-	}
-
+	ss, err := Provider.ServiceList(app)
 	if err != nil {
 		return httperr.Server(err)
+	}
+
+	certs, err := Provider.CertificateList()
+	if err != nil {
+		return httperr.Server(err)
+	}
+
+	ssls := SSLs{}
+
+	for _, s := range ss {
+		for _, sp := range s.Ports {
+			for _, c := range certs {
+				if c.Id == sp.Certificate {
+					ssls = append(ssls, SSL{
+						Certificate: c.Id,
+						Domain:      c.Domain,
+						Expiration:  c.Expiration,
+						Process:     s.Name,
+						Port:        sp.Balancer,
+					})
+				}
+			}
+		}
 	}
 
 	return RenderJson(rw, ssls)
@@ -27,30 +56,19 @@ func SSLList(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 
 func SSLUpdate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	vars := mux.Vars(r)
-	a := vars["app"]
+	app := vars["app"]
 	process := vars["process"]
 	port := vars["port"]
-	id := GetForm(r, "id")
+	cert := GetForm(r, "id")
 
-	if process == "" {
-		return httperr.Errorf(403, "must specify a process")
-	}
-
-	portn, err := strconv.Atoi(port)
-
+	porti, err := strconv.Atoi(port)
 	if err != nil {
 		return httperr.Errorf(403, "port must be numeric")
 	}
 
-	ssl, err := models.UpdateSSL(a, process, portn, id)
-
-	if awsError(err) == "ValidationError" {
-		return httperr.Errorf(404, "%s", err)
-	}
-
-	if err != nil {
+	if err := Provider.ServiceUpdate(app, process, porti, structs.ServiceUpdateOptions{Certificate: cert}); err != nil {
 		return httperr.Server(err)
 	}
 
-	return RenderJson(rw, ssl)
+	return RenderSuccess(rw)
 }

@@ -8,7 +8,8 @@ import (
 
 	"github.com/convox/rack/api/controllers"
 	"github.com/convox/rack/api/models"
-	"github.com/convox/rack/api/structs"
+	"github.com/convox/rack/structs"
+	"github.com/convox/rack/provider"
 	"github.com/convox/rack/test"
 	"github.com/stretchr/testify/assert"
 )
@@ -18,7 +19,7 @@ func init() {
 }
 
 func TestProcessGet(t *testing.T) {
-	models.Test(t, func() {
+	Mock(func(p *provider.MockProvider) {
 
 		process := &structs.Process{
 			ID:       "foo",
@@ -35,7 +36,7 @@ func TestProcessGet(t *testing.T) {
 			Started:  time.Unix(1473483567, 0).UTC(),
 		}
 
-		models.TestProvider.On("ProcessGet", "myapp-staging", "foo").Return(process, nil)
+		p.On("ProcessGet", "myapp-staging", "foo").Return(process, nil)
 
 		hf := test.NewHandlerFunc(controllers.HandlerFunc)
 
@@ -45,8 +46,8 @@ func TestProcessGet(t *testing.T) {
 		}
 	})
 
-	models.Test(t, func() {
-		models.TestProvider.On("ProcessGet", "myapp-staging", "blah").Return(nil, test.ErrorNotFound("no such process: blah"))
+	Mock(func(p *provider.MockProvider) {
+		p.On("ProcessGet", "myapp-staging", "blah").Return(nil, test.ErrorNotFound("no such process: blah"))
 
 		hf := test.NewHandlerFunc(controllers.HandlerFunc)
 
@@ -58,7 +59,7 @@ func TestProcessGet(t *testing.T) {
 }
 
 func TestProcessList(t *testing.T) {
-	models.Test(t, func() {
+	Mock(func(p *provider.MockProvider) {
 		processes := structs.Processes{
 			structs.Process{
 				ID:       "foo",
@@ -76,7 +77,7 @@ func TestProcessList(t *testing.T) {
 			},
 		}
 
-		models.TestProvider.On("ProcessList", "myapp-staging").Return(processes, nil)
+		p.On("ProcessList", "myapp-staging").Return(processes, nil)
 
 		hf := test.NewHandlerFunc(controllers.HandlerFunc)
 
@@ -86,8 +87,8 @@ func TestProcessList(t *testing.T) {
 		}
 	})
 
-	models.Test(t, func() {
-		models.TestProvider.On("ProcessList", "myapp-staging").Return(nil, test.ErrorNotFound("no such process"))
+	Mock(func(p *provider.MockProvider) {
+		p.On("ProcessList", "myapp-staging").Return(nil, test.ErrorNotFound("no such process"))
 
 		hf := test.NewHandlerFunc(controllers.HandlerFunc)
 
@@ -97,8 +98,8 @@ func TestProcessList(t *testing.T) {
 		}
 	})
 
-	models.Test(t, func() {
-		models.TestProvider.On("ProcessList", "myapp-staging").Return(nil, fmt.Errorf("unknown error"))
+	Mock(func(p *provider.MockProvider) {
+		p.On("ProcessList", "myapp-staging").Return(nil, fmt.Errorf("unknown error"))
 
 		hf := test.NewHandlerFunc(controllers.HandlerFunc)
 
@@ -125,8 +126,8 @@ func TestProcessRunDetached(t *testing.T) {
 	v.Add("command", "test-command")
 	v.Add("release", "R1234")
 
-	models.Test(t, func() {
-		models.TestProvider.On("ProcessRun", "myapp-staging", "web", opts).Return("pid", nil)
+	Mock(func(p *provider.MockProvider) {
+		p.On("ProcessRun", "myapp-staging", "web", opts).Return("pid", nil)
 
 		hf := test.NewHandlerFunc(controllers.HandlerFunc)
 
@@ -136,8 +137,8 @@ func TestProcessRunDetached(t *testing.T) {
 		}
 	})
 
-	models.Test(t, func() {
-		models.TestProvider.On("ProcessRun", "myapp-staging", "web", opts).Return("", test.ErrorNotFound("no such process"))
+	Mock(func(p *provider.MockProvider) {
+		p.On("ProcessRun", "myapp-staging", "web", opts).Return("", test.ErrorNotFound("no such process"))
 
 		hf := test.NewHandlerFunc(controllers.HandlerFunc)
 
@@ -147,8 +148,8 @@ func TestProcessRunDetached(t *testing.T) {
 		}
 	})
 
-	models.Test(t, func() {
-		models.TestProvider.On("ProcessRun", "myapp-staging", "web", opts).Return("", fmt.Errorf("unknown error"))
+	Mock(func(p *provider.MockProvider) {
+		p.On("ProcessRun", "myapp-staging", "web", opts).Return("", fmt.Errorf("unknown error"))
 
 		hf := test.NewHandlerFunc(controllers.HandlerFunc)
 
@@ -160,8 +161,8 @@ func TestProcessRunDetached(t *testing.T) {
 }
 
 func TestProcessStop(t *testing.T) {
-	models.Test(t, func() {
-		models.TestProvider.On("ProcessStop", "myapp-staging", "p1234").Return(nil)
+	Mock(func(p *provider.MockProvider) {
+		p.On("ProcessStop", "myapp-staging", "p1234").Return(nil)
 
 		hf := test.NewHandlerFunc(controllers.HandlerFunc)
 
@@ -171,8 +172,8 @@ func TestProcessStop(t *testing.T) {
 		}
 	})
 
-	models.Test(t, func() {
-		models.TestProvider.On("ProcessStop", "myapp-staging", "p1234").Return(test.ErrorNotFound("no such process"))
+	Mock(func(p *provider.MockProvider) {
+		p.On("ProcessStop", "myapp-staging", "p1234").Return(test.ErrorNotFound("no such process"))
 
 		hf := test.NewHandlerFunc(controllers.HandlerFunc)
 
@@ -182,8 +183,8 @@ func TestProcessStop(t *testing.T) {
 		}
 	})
 
-	models.Test(t, func() {
-		models.TestProvider.On("ProcessStop", "myapp-staging", "p1234").Return(fmt.Errorf("unknown error"))
+	Mock(func(p *provider.MockProvider) {
+		p.On("ProcessStop", "myapp-staging", "p1234").Return(fmt.Errorf("unknown error"))
 
 		hf := test.NewHandlerFunc(controllers.HandlerFunc)
 

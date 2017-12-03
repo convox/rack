@@ -5,14 +5,13 @@ import (
 	"strconv"
 
 	"github.com/convox/rack/api/httperr"
-	"github.com/convox/rack/api/models"
 	"github.com/gorilla/mux"
 )
 
 func FormationList(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	app := mux.Vars(r)["app"]
 
-	formation, err := models.Provider().FormationList(app)
+	formation, err := Provider.FormationList(app)
 	if err != nil {
 		return httperr.Server(err)
 	}
@@ -25,7 +24,7 @@ func FormationSet(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	app := vars["app"]
 	process := vars["process"]
 
-	pf, err := models.Provider().FormationGet(app, process)
+	pf, err := Provider.FormationGet(app, process)
 	if err != nil {
 		return httperr.Server(err)
 	}
@@ -76,7 +75,7 @@ func FormationSet(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 		}
 	}
 
-	err = models.Provider().FormationSave(app, pf)
+	err = Provider.FormationSave(app, pf)
 	if err != nil {
 		return httperr.Server(err)
 	}

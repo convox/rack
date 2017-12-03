@@ -20,9 +20,10 @@ import (
 	"github.com/aws/aws-sdk-go/service/kms"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/sns"
+	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/convox/logger"
-	"github.com/convox/rack/api/structs"
+	"github.com/convox/rack/structs"
 )
 
 var (
@@ -176,6 +177,10 @@ func (p *AWSProvider) s3() *s3.S3 {
 
 func (p *AWSProvider) sns() *sns.SNS {
 	return sns.New(session.New(), p.config())
+}
+
+func (p *AWSProvider) sqs() *sqs.SQS {
+	return sqs.New(session.New(), p.config())
 }
 
 func (p *AWSProvider) sts() *sts.STS {

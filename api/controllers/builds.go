@@ -11,8 +11,7 @@ import (
 	"time"
 
 	"github.com/convox/rack/api/httperr"
-	"github.com/convox/rack/api/models"
-	"github.com/convox/rack/api/structs"
+	"github.com/convox/rack/structs"
 	"github.com/convox/rack/provider"
 	"github.com/gorilla/mux"
 	"golang.org/x/net/websocket"
@@ -44,68 +43,68 @@ func BuildCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 
 	image, _, err := r.FormFile("image")
 	if err != nil && err != http.ErrMissingFile && err != http.ErrNotMultipart {
-		models.Provider().EventSend(event, err)
+		Provider.EventSend(event, err)
 		return httperr.Server(err)
 	}
 	if image != nil {
-		build, err := models.Provider().BuildImport(app, image)
+		build, err := Provider.BuildImport(app, image)
 		if err != nil {
-			models.Provider().EventSend(event, err)
+			Provider.EventSend(event, err)
 			return httperr.Server(err)
 		}
 
 		event.Data["id"] = build.Id
 		event.Data["from"] = "image"
-		models.Provider().EventSend(event, nil)
+		Provider.EventSend(event, nil)
 
 		event.Status = "success"
 		event.Data["timestamp"] = time.Now().Format(time.RFC3339)
-		models.Provider().EventSend(event, nil)
+		Provider.EventSend(event, nil)
 		return RenderJson(rw, build)
 	}
 
 	source, _, err := r.FormFile("source")
 	if err != nil && err != http.ErrMissingFile && err != http.ErrNotMultipart {
-		models.Provider().EventSend(event, err)
+		Provider.EventSend(event, err)
 		return httperr.Server(err)
 	}
 	if source != nil {
 		event.Data["from"] = "source"
 
-		url, err := models.Provider().ObjectStore("", source, structs.ObjectOptions{})
+		url, err := Provider.ObjectStore("", source, structs.ObjectOptions{})
 		if err != nil {
-			models.Provider().EventSend(event, err)
+			Provider.EventSend(event, err)
 			return httperr.Server(err)
 		}
 
-		build, err := models.Provider().BuildCreate(app, "tgz", url, opts)
+		build, err := Provider.BuildCreate(app, "tgz", url, opts)
 		if err != nil {
-			models.Provider().EventSend(event, err)
+			Provider.EventSend(event, err)
 			return httperr.Server(err)
 		}
 
 		event.Data["id"] = build.Id
-		models.Provider().EventSend(event, nil)
+		Provider.EventSend(event, nil)
 		return RenderJson(rw, build)
 	}
 
 	if index := r.FormValue("index"); index != "" {
 		event.Data["from"] = "index"
 
-		url, err := models.Provider().ObjectStore("", bytes.NewReader([]byte(index)), structs.ObjectOptions{})
+		url, err := Provider.ObjectStore("", bytes.NewReader([]byte(index)), structs.ObjectOptions{})
 		if err != nil {
-			models.Provider().EventSend(event, err)
+			Provider.EventSend(event, err)
 			return httperr.Server(err)
 		}
 
-		build, err := models.Provider().BuildCreate(app, "index", url, opts)
+		build, err := Provider.BuildCreate(app, "index", url, opts)
 		if err != nil {
-			models.Provider().EventSend(event, err)
+			Provider.EventSend(event, err)
 			return httperr.Server(err)
 		}
 
 		event.Data["id"] = build.Id
-		models.Provider().EventSend(event, nil)
+		Provider.EventSend(event, nil)
 		return RenderJson(rw, build)
 	}
 
@@ -120,7 +119,7 @@ func BuildCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 
 		u, err := url.Parse(surl)
 		if err != nil {
-			models.Provider().EventSend(event, err)
+			Provider.EventSend(event, err)
 			return httperr.Server(err)
 		}
 
@@ -136,27 +135,27 @@ func BuildCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 			method = "zip"
 		case "":
 			err := httperr.Errorf(403, "building from url requires an extension such as .git")
-			models.Provider().EventSend(event, err)
+			Provider.EventSend(event, err)
 			return err
 		default:
 			err := httperr.Errorf(403, "unknown extension: %s", ext)
-			models.Provider().EventSend(event, err)
+			Provider.EventSend(event, err)
 			return err
 		}
 
-		build, err := models.Provider().BuildCreate(app, method, surl, opts)
+		build, err := Provider.BuildCreate(app, method, surl, opts)
 		if err != nil {
-			models.Provider().EventSend(event, err)
+			Provider.EventSend(event, err)
 			return httperr.Server(err)
 		}
 
 		event.Data["id"] = build.Id
-		models.Provider().EventSend(event, nil)
+		Provider.EventSend(event, nil)
 		return RenderJson(rw, build)
 	}
 
 	err = httperr.Errorf(403, "no build source found")
-	models.Provider().EventSend(event, err)
+	Provider.EventSend(event, err)
 	return httperr.Server(err)
 }
 
@@ -166,7 +165,7 @@ func BuildDelete(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	appName := vars["app"]
 	buildID := vars["build"]
 
-	app, err := models.Provider().AppGet(appName)
+	app, err := Provider.AppGet(appName)
 	if err != nil {
 		if provider.ErrorNotFound(err) {
 			return httperr.Errorf(404, "no such app: %s", app)
@@ -175,7 +174,7 @@ func BuildDelete(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 		return httperr.Server(err)
 	}
 
-	release, err := models.Provider().ReleaseGet(app.Name, app.Release)
+	release, err := Provider.ReleaseGet(app.Name, app.Release)
 	if err != nil {
 		return httperr.Server(err)
 	}
@@ -184,11 +183,11 @@ func BuildDelete(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 		return httperr.Errorf(400, "cannot delete build of active release: %s", buildID)
 	}
 
-	if err := models.Provider().ReleaseDelete(app.Name, buildID); err != nil {
+	if err := Provider.ReleaseDelete(app.Name, buildID); err != nil {
 		return httperr.Server(err)
 	}
 
-	build, err := models.Provider().BuildDelete(app.Name, buildID)
+	build, err := Provider.BuildDelete(app.Name, buildID)
 	if err != nil {
 		return httperr.Server(err)
 	}
@@ -202,7 +201,7 @@ func BuildExport(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	app := vars["app"]
 	build := vars["build"]
 
-	b, err := models.Provider().BuildGet(app, build)
+	b, err := Provider.BuildGet(app, build)
 	if awsError(err) == "ValidationError" {
 		return httperr.Errorf(404, "no such app: %s", app)
 	}
@@ -217,7 +216,7 @@ func BuildExport(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	rw.Header().Set("Transfer-Encoding", "chunked")
 	rw.Header().Set("Trailer", "Done")
 
-	if err = models.Provider().BuildExport(app, b.Id, rw); err != nil {
+	if err = Provider.BuildExport(app, b.Id, rw); err != nil {
 		return httperr.Server(err)
 	}
 
@@ -231,7 +230,7 @@ func BuildGet(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	app := vars["app"]
 	build := vars["build"]
 
-	b, err := models.Provider().BuildGet(app, build)
+	b, err := Provider.BuildGet(app, build)
 	if awsError(err) == "ValidationError" {
 		return httperr.Errorf(404, "no such app: %s", app)
 	}
@@ -262,7 +261,7 @@ func BuildList(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 		}
 	}
 
-	builds, err := models.Provider().BuildList(app, int64(limit))
+	builds, err := Provider.BuildList(app, int64(limit))
 	if awsError(err) == "ValidationError" {
 		return httperr.Errorf(404, "no such app: %s", app)
 	}
@@ -279,7 +278,7 @@ func BuildLogs(ws *websocket.Conn) *httperr.Error {
 	app := vars["app"]
 	build := vars["build"]
 
-	if err := models.Provider().BuildLogs(app, build, ws); err != nil {
+	if err := Provider.BuildLogs(app, build, ws); err != nil {
 		return httperr.Server(err)
 	}
 
