@@ -5,13 +5,12 @@ import (
 	"strings"
 
 	"github.com/convox/rack/api/httperr"
-	"github.com/convox/rack/api/models"
 	"github.com/gorilla/mux"
 )
 
 // ResourceList lists resources.
 func ResourceList(rw http.ResponseWriter, r *http.Request) *httperr.Error {
-	resources, err := models.Provider().ResourceList()
+	resources, err := Provider.ResourceList()
 
 	if err != nil {
 		return httperr.Server(err)
@@ -24,7 +23,7 @@ func ResourceList(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 func ResourceShow(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	resource := mux.Vars(r)["resource"]
 
-	sv, err := models.Provider().ResourceGet(resource)
+	sv, err := Provider.ResourceGet(resource)
 	if awsError(err) == "ValidationError" {
 		return httperr.Errorf(404, "no such resource: %s", resource)
 	}
@@ -45,7 +44,7 @@ func ResourceCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	delete(params, "name")
 	delete(params, "type")
 
-	s, err := models.Provider().ResourceCreate(r.Form.Get("name"), r.Form.Get("type"), params)
+	s, err := Provider.ResourceCreate(r.Form.Get("name"), r.Form.Get("type"), params)
 	if err != nil {
 		return httperr.Server(err)
 	}
@@ -57,7 +56,7 @@ func ResourceCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 func ResourceDelete(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	resource := mux.Vars(r)["resource"]
 
-	s, err := models.Provider().ResourceGet(resource)
+	s, err := Provider.ResourceGet(resource)
 	if awsError(err) == "ValidationError" {
 		return httperr.Errorf(404, "no such resource: %s", resource)
 	}
@@ -65,7 +64,7 @@ func ResourceDelete(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 		return httperr.Server(err)
 	}
 
-	s, err = models.Provider().ResourceDelete(resource)
+	s, err = Provider.ResourceDelete(resource)
 	if err != nil {
 		return httperr.Server(err)
 	}
@@ -82,7 +81,7 @@ func ResourceUpdate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 		return httperr.Server(err)
 	}
 
-	s, err := models.Provider().ResourceUpdate(resource, params)
+	s, err := Provider.ResourceUpdate(resource, params)
 	if err != nil {
 		return httperr.Server(err)
 	}

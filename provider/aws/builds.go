@@ -26,7 +26,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ecs"
 	docker "github.com/fsouza/go-dockerclient"
 
-	"github.com/convox/rack/api/structs"
+	"github.com/convox/rack/structs"
 	"github.com/convox/rack/manifest"
 	"github.com/convox/rack/manifest1"
 )
@@ -156,7 +156,11 @@ func (p *AWSProvider) BuildExport(app, id string, w io.Writer) error {
 		}
 
 		env := structs.Environment{}
-		env.LoadEnvironment([]byte(r.Env))
+
+		if err := env.Load([]byte(r.Env)); err != nil {
+			log.Error(err)
+			return err
+		}
 
 		m, err := manifest.Load([]byte(build.Manifest), manifest.Environment(env))
 		if err != nil {
@@ -491,7 +495,7 @@ func (p *AWSProvider) BuildImport(app string, r io.Reader) (*structs.Build, erro
 		return nil, err
 	}
 
-	release.Env = env.Raw()
+	release.Env = env.String()
 	release.Build = targetBuild.Id
 	release.Manifest = targetBuild.Manifest
 

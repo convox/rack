@@ -11,7 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/convox/rack/api/structs"
+	"github.com/convox/rack/structs"
 )
 
 func (p *AWSProvider) ObjectDelete(key string) error {

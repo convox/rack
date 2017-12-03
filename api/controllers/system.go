@@ -10,13 +10,12 @@ import (
 	"golang.org/x/net/websocket"
 
 	"github.com/convox/rack/api/httperr"
-	"github.com/convox/rack/api/models"
-	"github.com/convox/rack/api/structs"
+	"github.com/convox/rack/structs"
 	"github.com/convox/rack/provider"
 )
 
 func SystemShow(rw http.ResponseWriter, r *http.Request) *httperr.Error {
-	rack, err := models.Provider().SystemGet()
+	rack, err := Provider.SystemGet()
 	if err != nil {
 		return httperr.Server(err)
 	}
@@ -27,7 +26,7 @@ func SystemShow(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 func SystemProcesses(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	all := r.URL.Query().Get("all")
 
-	ps, err := models.Provider().SystemProcesses(structs.SystemProcessesOptions{
+	ps, err := Provider.SystemProcesses(structs.SystemProcessesOptions{
 		All: (all == "true"),
 	})
 	if provider.ErrorNotFound(err) {
@@ -43,7 +42,7 @@ func SystemProcesses(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 }
 
 func SystemUpdate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
-	rack, err := models.Provider().SystemGet()
+	rack, err := Provider.SystemGet()
 	if err != nil {
 		return httperr.Server(err)
 	}
@@ -75,7 +74,7 @@ func SystemUpdate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 		rack.Version = v
 	}
 
-	err = models.Provider().SystemSave(*rack)
+	err = Provider.SystemSave(*rack)
 	if err != nil {
 		return httperr.Server(err)
 	}
@@ -84,7 +83,7 @@ func SystemUpdate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 }
 
 func SystemCapacity(rw http.ResponseWriter, r *http.Request) *httperr.Error {
-	capacity, err := models.Provider().CapacityGet()
+	capacity, err := Provider.CapacityGet()
 	if err != nil {
 		return httperr.Server(err)
 	}
@@ -111,7 +110,7 @@ func SystemLogs(ws *websocket.Conn) *httperr.Error {
 		}
 	}
 
-	err = models.Provider().SystemLogs(ws, structs.LogStreamOptions{
+	err = Provider.SystemLogs(ws, structs.LogStreamOptions{
 		Filter: header.Get("Filter"),
 		Follow: follow,
 		Since:  time.Now().Add(-1 * since),
@@ -125,7 +124,7 @@ func SystemLogs(ws *websocket.Conn) *httperr.Error {
 
 // SystemReleases lists the latest releases of the rack
 func SystemReleases(rw http.ResponseWriter, r *http.Request) *httperr.Error {
-	releases, err := models.Provider().SystemReleases()
+	releases, err := Provider.SystemReleases()
 	if err != nil {
 		return httperr.Server(err)
 	}

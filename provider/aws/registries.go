@@ -8,7 +8,7 @@ import (
 	"io/ioutil"
 	"sort"
 
-	"github.com/convox/rack/api/crypt"
+	"github.com/convox/rack/crypt"
 	"github.com/convox/rack/structs"
 	docker "github.com/fsouza/go-dockerclient"
 )

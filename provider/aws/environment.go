@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/convox/rack/api/crypt"
+	"github.com/convox/rack/crypt"
 	"github.com/convox/rack/structs"
 )
 

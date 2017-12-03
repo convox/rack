@@ -1,5 +1,0 @@
-worker:
-  build: .
-  ports:
-    - 4000/udp
-    - 4001:4002/udp

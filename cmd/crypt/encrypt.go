@@ -5,7 +5,7 @@ import (
 	"io/ioutil"
 	"os"
 
-	"github.com/convox/rack/api/crypt"
+	"github.com/convox/rack/crypt"
 
 	"gopkg.in/urfave/cli.v1"
 )

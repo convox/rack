@@ -15,7 +15,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/convox/rack/api/crypt"
+	"github.com/convox/rack/crypt"
 	"github.com/convox/rack/structs"
 )
 

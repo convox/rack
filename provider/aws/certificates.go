@@ -10,7 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/acm"
 	"github.com/aws/aws-sdk-go/service/iam"
-	"github.com/convox/rack/api/structs"
+	"github.com/convox/rack/structs"
 )
 
 func (p *AWSProvider) CertificateCreate(pub, key, chain string) (*structs.Certificate, error) {
@@ -146,6 +146,7 @@ func (p *AWSProvider) CertificateList() (structs.Certificates, error) {
 		}
 
 		certs = append(certs, structs.Certificate{
+			Arn:        *cert.Arn,
 			Id:         *cert.ServerCertificateName,
 			Domain:     c.Subject.CommonName,
 			Expiration: *cert.Expiration,
@@ -162,6 +163,7 @@ func (p *AWSProvider) CertificateList() (structs.Certificates, error) {
 		id := fmt.Sprintf("acm-%s", parts[len(parts)-1])
 
 		c := structs.Certificate{
+			Arn:    *cert.CertificateArn,
 			Id:     id,
 			Domain: *cert.DomainName,
 		}

@@ -6,20 +6,20 @@ import (
 	"testing"
 
 	"github.com/convox/rack/api/controllers"
-	"github.com/convox/rack/api/models"
-	"github.com/convox/rack/api/structs"
+	"github.com/convox/rack/structs"
+	"github.com/convox/rack/provider"
 	"github.com/convox/rack/test"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestFormationList(t *testing.T) {
-	models.Test(t, func() {
+	Mock(func(p *provider.MockProvider) {
 		formation := structs.Formation{
 			structs.ProcessFormation{Name: "web", Count: 2, CPU: 128, Memory: 1024, Ports: []int{3000, 3001}},
 			structs.ProcessFormation{Name: "worker", Count: 3, CPU: 129, Memory: 1025, Ports: []int{4000, 4001}},
 		}
 
-		models.TestProvider.On("FormationList", "myapp").Return(formation, nil)
+		p.On("FormationList", "myapp").Return(formation, nil)
 
 		hf := test.NewHandlerFunc(controllers.HandlerFunc)
 
@@ -32,8 +32,8 @@ func TestFormationList(t *testing.T) {
 		}
 	})
 
-	models.Test(t, func() {
-		models.TestProvider.On("FormationList", "myapp").Return(nil, fmt.Errorf("some error"))
+	Mock(func(p *provider.MockProvider) {
+		p.On("FormationList", "myapp").Return(nil, fmt.Errorf("some error"))
 
 		hf := test.NewHandlerFunc(controllers.HandlerFunc)
 
@@ -45,12 +45,12 @@ func TestFormationList(t *testing.T) {
 }
 
 func TestFormationSetAll(t *testing.T) {
-	models.Test(t, func() {
+	Mock(func(p *provider.MockProvider) {
 		before := &structs.ProcessFormation{Name: "web", Count: 2, CPU: 128, Memory: 1024, Ports: []int{3000, 3001}}
 		after := &structs.ProcessFormation{Name: "web", Count: 4, CPU: 200, Memory: 300, Ports: []int{3000, 3001}}
 
-		models.TestProvider.On("FormationGet", "myapp", "web").Return(before, nil)
-		models.TestProvider.On("FormationSave", "myapp", after).Return(nil)
+		p.On("FormationGet", "myapp", "web").Return(before, nil)
+		p.On("FormationSave", "myapp", after).Return(nil)
 
 		hf := test.NewHandlerFunc(controllers.HandlerFunc)
 
@@ -67,12 +67,12 @@ func TestFormationSetAll(t *testing.T) {
 }
 
 func TestFormationSetOne(t *testing.T) {
-	models.Test(t, func() {
+	Mock(func(p *provider.MockProvider) {
 		before := &structs.ProcessFormation{Name: "web", Count: 2, CPU: 128, Memory: 1024, Ports: []int{3000, 3001}}
 		after := &structs.ProcessFormation{Name: "web", Count: 2, CPU: 200, Memory: 1024, Ports: []int{3000, 3001}}
 
-		models.TestProvider.On("FormationGet", "myapp", "web").Return(before, nil)
-		models.TestProvider.On("FormationSave", "myapp", after).Return(nil)
+		p.On("FormationGet", "myapp", "web").Return(before, nil)
+		p.On("FormationSave", "myapp", after).Return(nil)
 
 		hf := test.NewHandlerFunc(controllers.HandlerFunc)
 
@@ -87,8 +87,8 @@ func TestFormationSetOne(t *testing.T) {
 }
 
 func TestFormationSetFailedGet(t *testing.T) {
-	models.Test(t, func() {
-		models.TestProvider.On("FormationGet", "myapp", "web").Return(nil, fmt.Errorf("could not fetch"))
+	Mock(func(p *provider.MockProvider) {
+		p.On("FormationGet", "myapp", "web").Return(nil, fmt.Errorf("could not fetch"))
 
 		hf := test.NewHandlerFunc(controllers.HandlerFunc)
 
@@ -105,12 +105,12 @@ func TestFormationSetFailedGet(t *testing.T) {
 }
 
 func TestFormationSetFailedSave(t *testing.T) {
-	models.Test(t, func() {
+	Mock(func(p *provider.MockProvider) {
 		before := &structs.ProcessFormation{Name: "web", Count: 2, CPU: 128, Memory: 1024, Ports: []int{3000, 3001}}
 		after := &structs.ProcessFormation{Name: "web", Count: 4, CPU: 200, Memory: 300, Ports: []int{3000, 3001}}
 
-		models.TestProvider.On("FormationGet", "myapp", "web").Return(before, nil)
-		models.TestProvider.On("FormationSave", "myapp", after).Return(fmt.Errorf("could not save"))
+		p.On("FormationGet", "myapp", "web").Return(before, nil)
+		p.On("FormationSave", "myapp", after).Return(fmt.Errorf("could not save"))
 
 		hf := test.NewHandlerFunc(controllers.HandlerFunc)
 
@@ -129,12 +129,12 @@ func TestFormationSetFailedSave(t *testing.T) {
 func TestFormationSetEdgeCases(t *testing.T) {
 
 	// count=-1 with older rack versions means no change
-	models.Test(t, func() {
+	Mock(func(p *provider.MockProvider) {
 		before := &structs.ProcessFormation{Name: "web", Count: 2, CPU: 128, Memory: 1024, Ports: []int{3000, 3001}}
 		after := &structs.ProcessFormation{Name: "web", Count: 2, CPU: 200, Memory: 1024, Ports: []int{3000, 3001}}
 
-		models.TestProvider.On("FormationGet", "myapp", "web").Return(before, nil)
-		models.TestProvider.On("FormationSave", "myapp", after).Return(nil)
+		p.On("FormationGet", "myapp", "web").Return(before, nil)
+		p.On("FormationSave", "myapp", after).Return(nil)
 
 		hf := test.NewHandlerFunc(controllers.HandlerFunc)
 		hf.SetVersion("20160602213112")
@@ -150,12 +150,12 @@ func TestFormationSetEdgeCases(t *testing.T) {
 	})
 
 	// count=-2 means no change
-	models.Test(t, func() {
+	Mock(func(p *provider.MockProvider) {
 		before := &structs.ProcessFormation{Name: "web", Count: 2, CPU: 128, Memory: 1024, Ports: []int{3000, 3001}}
 		after := &structs.ProcessFormation{Name: "web", Count: 2, CPU: 200, Memory: 1024, Ports: []int{3000, 3001}}
 
-		models.TestProvider.On("FormationGet", "myapp", "web").Return(before, nil)
-		models.TestProvider.On("FormationSave", "myapp", after).Return(nil)
+		p.On("FormationGet", "myapp", "web").Return(before, nil)
+		p.On("FormationSave", "myapp", after).Return(nil)
 
 		hf := test.NewHandlerFunc(controllers.HandlerFunc)
 
@@ -170,12 +170,12 @@ func TestFormationSetEdgeCases(t *testing.T) {
 	})
 
 	// cpu=-1 means no change
-	models.Test(t, func() {
+	Mock(func(p *provider.MockProvider) {
 		before := &structs.ProcessFormation{Name: "web", Count: 2, CPU: 128, Memory: 1024, Ports: []int{3000, 3001}}
 		after := &structs.ProcessFormation{Name: "web", Count: 4, CPU: 128, Memory: 1024, Ports: []int{3000, 3001}}
 
-		models.TestProvider.On("FormationGet", "myapp", "web").Return(before, nil)
-		models.TestProvider.On("FormationSave", "myapp", after).Return(nil)
+		p.On("FormationGet", "myapp", "web").Return(before, nil)
+		p.On("FormationSave", "myapp", after).Return(nil)
 
 		hf := test.NewHandlerFunc(controllers.HandlerFunc)
 
@@ -190,12 +190,12 @@ func TestFormationSetEdgeCases(t *testing.T) {
 	})
 
 	// memory=0 means no change
-	models.Test(t, func() {
+	Mock(func(p *provider.MockProvider) {
 		before := &structs.ProcessFormation{Name: "web", Count: 2, CPU: 128, Memory: 1024, Ports: []int{3000, 3001}}
 		after := &structs.ProcessFormation{Name: "web", Count: 4, CPU: 128, Memory: 1024, Ports: []int{3000, 3001}}
 
-		models.TestProvider.On("FormationGet", "myapp", "web").Return(before, nil)
-		models.TestProvider.On("FormationSave", "myapp", after).Return(nil)
+		p.On("FormationGet", "myapp", "web").Return(before, nil)
+		p.On("FormationSave", "myapp", after).Return(nil)
 
 		hf := test.NewHandlerFunc(controllers.HandlerFunc)
 
@@ -210,12 +210,12 @@ func TestFormationSetEdgeCases(t *testing.T) {
 	})
 
 	// memory=-1 means no change
-	models.Test(t, func() {
+	Mock(func(p *provider.MockProvider) {
 		before := &structs.ProcessFormation{Name: "web", Count: 2, CPU: 128, Memory: 1024, Ports: []int{3000, 3001}}
 		after := &structs.ProcessFormation{Name: "web", Count: 4, CPU: 128, Memory: 1024, Ports: []int{3000, 3001}}
 
-		models.TestProvider.On("FormationGet", "myapp", "web").Return(before, nil)
-		models.TestProvider.On("FormationSave", "myapp", after).Return(nil)
+		p.On("FormationGet", "myapp", "web").Return(before, nil)
+		p.On("FormationSave", "myapp", after).Return(nil)
 
 		hf := test.NewHandlerFunc(controllers.HandlerFunc)
 
@@ -231,10 +231,10 @@ func TestFormationSetEdgeCases(t *testing.T) {
 }
 
 func TestFormationSetNonNumeric(t *testing.T) {
-	models.Test(t, func() {
+	Mock(func(p *provider.MockProvider) {
 		before := &structs.ProcessFormation{Name: "web", Count: 2, CPU: 128, Memory: 1024, Ports: []int{3000, 3001}}
 
-		models.TestProvider.On("FormationGet", "myapp", "web").Return(before, nil)
+		p.On("FormationGet", "myapp", "web").Return(before, nil)
 
 		hf := test.NewHandlerFunc(controllers.HandlerFunc)
 
@@ -247,10 +247,10 @@ func TestFormationSetNonNumeric(t *testing.T) {
 		}
 	})
 
-	models.Test(t, func() {
+	Mock(func(p *provider.MockProvider) {
 		before := &structs.ProcessFormation{Name: "web", Count: 2, CPU: 128, Memory: 1024, Ports: []int{3000, 3001}}
 
-		models.TestProvider.On("FormationGet", "myapp", "web").Return(before, nil)
+		p.On("FormationGet", "myapp", "web").Return(before, nil)
 
 		hf := test.NewHandlerFunc(controllers.HandlerFunc)
 
@@ -263,10 +263,10 @@ func TestFormationSetNonNumeric(t *testing.T) {
 		}
 	})
 
-	models.Test(t, func() {
+	Mock(func(p *provider.MockProvider) {
 		before := &structs.ProcessFormation{Name: "web", Count: 2, CPU: 128, Memory: 1024, Ports: []int{3000, 3001}}
 
-		models.TestProvider.On("FormationGet", "myapp", "web").Return(before, nil)
+		p.On("FormationGet", "myapp", "web").Return(before, nil)
 
 		hf := test.NewHandlerFunc(controllers.HandlerFunc)
 

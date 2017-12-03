@@ -194,6 +194,10 @@
     "Release": {
       "Value": { "Ref": "Version" }
     },
+    "RouterCertificate": {
+      "Export": { "Name": { "Fn::Sub": "${AWS::StackName}:RouterCertificate" } },
+      "Value": { "Ref": "RouterApiCertificate" }
+    },
     "RouterHost": {
       "Export": { "Name": { "Fn::Sub": "${AWS::StackName}:RouterHost" } },
       "Value": { "Fn::Join": [ ".", [
@@ -2106,7 +2110,7 @@
       "Properties": {
         "ContainerDefinitions": [
           {
-            "Command": [ "api/bin/monitor" ],
+            "Command": [ "bin/monitor" ],
             "Cpu": "64",
             "DockerLabels": { "convox.release": { "Ref": "Version" } },
             "Environment": [
@@ -2174,7 +2178,7 @@
       "Properties": {
         "ContainerDefinitions": [
           {
-            "Command": [ "api/bin/web" ],
+            "Command": [ "bin/web" ],
             "Cpu": "128",
             "DockerLabels": { "convox.release": { "Ref": "Version" } },
             "Environment": [
