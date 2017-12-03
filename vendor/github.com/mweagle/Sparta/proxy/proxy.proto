@@ -1,0 +1,57 @@
+syntax = "proto3";
+
+package proxy;
+
+// AWSCognitoIdentity is the identity information from a Cognito auth
+// See http://docs.aws.amazon.com/lambda/latest/dg/nodejs-prog-model-context.html
+message AWSCognitoIdentity {
+  string cognito_identity_id      = 1;
+  string cognito_identity_pool_id = 2;
+}
+
+// AWSClientContextEnv is set form the AWS Mobile SDK
+message AWSClientContextEnv {
+  string platform_version   = 1;
+  string platform           = 2;
+  string make               = 3;
+  string model              = 4;
+  string locale             = 5;
+}
+
+// AWSClientContext is set from the AWS Mobile SDK
+message AWSClientContext {
+  string installation_id        = 1;
+  string app_title              = 2;
+  string app_version_name       = 3;
+  string app_version_code       = 4;
+  string app_package_name       = 5;
+  AWSClientContextEnv env       = 6;
+}
+
+// AWSLambdaContext defines the AWS Lambda Context object provided by the AWS Lambda runtime.
+// See http://docs.aws.amazon.com/lambda/latest/dg/nodejs-prog-model-context.html
+// for more information on field values.  Note that the golang version doesn't functions
+// defined on the Context object.
+message AWSLambdaContext  {
+  string function_name              = 1;
+  string function_version           = 2;
+  string invoked_function_arn       = 3;
+  string memory_limit_in_mb         = 4;
+  string aws_request_id             = 5;
+  string log_group_name             = 6;
+  string log_stream_name            = 7;
+  AWSCognitoIdentity identity       = 8;
+  AWSClientContext client_context   = 9;
+}
+
+// ProxyRequest is the request made by the NodeJS layer to the
+// golang process
+message AWSProxyRequest {
+  AWSLambdaContext  context = 1;
+  bytes             event   = 2;
+}
+
+// ProxyResponse is what the Go process sends back
+message ProxyResponse {
+  bytes body = 1;
+}
