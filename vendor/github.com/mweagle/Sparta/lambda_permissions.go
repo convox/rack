@@ -7,7 +7,7 @@ import (
 
 	"github.com/mweagle/cloudformationresources"
 
-	gocf "github.com/crewjam/go-cloudformation"
+	gocf "github.com/mweagle/go-cloudformation"
 
 	"github.com/Sirupsen/logrus"
 	"github.com/aws/aws-sdk-go/service/s3"
@@ -44,6 +44,7 @@ type LambdaPermissionExporter interface {
 	// interface represents the Fn::GetAtt "Arn" JSON value
 	// of the parent Lambda target
 	export(serviceName string,
+		useCGO bool,
 		lambdaFunctionDisplayName string,
 		lambdaLogicalCFResourceName string,
 		template *gocf.Template,
@@ -150,11 +151,6 @@ func (perm BasePermission) export(principal *gocf.StringExpr,
 ////////////////////////////////////////////////////////////////////////////////
 // START - LambdaPermission
 //
-var lambdaSourceArnParts = []gocf.Stringable{
-	gocf.String("arn:aws:lambda:"),
-	gocf.Ref("AWS::Region"),
-	gocf.String(":function:"),
-}
 
 // LambdaPermission type that creates a Lambda::Permission entry
 // in the generated template, but does NOT automatically register the lambda
@@ -166,6 +162,7 @@ type LambdaPermission struct {
 	Principal string
 }
 
+/*
 func (perm LambdaPermission) export(serviceName string,
 	lambdaFunctionDisplayName string,
 	lambdaLogicalCFResourceName string,
@@ -183,7 +180,8 @@ func (perm LambdaPermission) export(serviceName string,
 		S3Key,
 		logger)
 }
-
+*/
+/*
 func (perm LambdaPermission) descriptionInfo() ([]descriptionNode, error) {
 	nodes := []descriptionNode{
 		{
@@ -193,7 +191,7 @@ func (perm LambdaPermission) descriptionInfo() ([]descriptionNode, error) {
 	}
 	return nodes, nil
 }
-
+*/
 //
 // END - LambdaPermission
 ////////////////////////////////////////////////////////////////////////////////
@@ -222,6 +220,7 @@ type S3Permission struct {
 }
 
 func (perm S3Permission) export(serviceName string,
+	useCGO bool,
 	lambdaFunctionDisplayName string,
 	lambdaLogicalCFResourceName string,
 	template *gocf.Template,
@@ -245,6 +244,7 @@ func (perm S3Permission) export(serviceName string,
 	// Make sure the custom lambda that manages s3 notifications is provisioned.
 	sourceArnExpression := perm.BasePermission.sourceArnExpr(s3SourceArnParts...)
 	configuratorResName, err := ensureCustomResourceHandler(serviceName,
+		useCGO,
 		cloudformationresources.S3LambdaEventSource,
 		sourceArnExpression,
 		[]string{},
@@ -316,6 +316,7 @@ type SNSPermission struct {
 }
 
 func (perm SNSPermission) export(serviceName string,
+	useCGO bool,
 	lambdaFunctionDisplayName string,
 	lambdaLogicalCFResourceName string,
 	template *gocf.Template,
@@ -338,6 +339,7 @@ func (perm SNSPermission) export(serviceName string,
 
 	// Make sure the custom lambda that manages s3 notifications is provisioned.
 	configuratorResName, err := ensureCustomResourceHandler(serviceName,
+		useCGO,
 		cloudformationresources.SNSLambdaEventSource,
 		sourceArnExpression,
 		[]string{},
@@ -453,8 +455,8 @@ func (storage *MessageBodyStorage) export(serviceName string,
 
 	if "" != storage.cloudFormationS3BucketResourceName {
 		s3Bucket := &gocf.S3Bucket{
-			Tags: []gocf.ResourceTag{
-				{
+			Tags: &gocf.TagList{
+				gocf.Tag{
 					Key:   gocf.String("sparta:logicalBucketName"),
 					Value: gocf.String(storage.logicalBucketName),
 				},
@@ -463,8 +465,8 @@ func (storage *MessageBodyStorage) export(serviceName string,
 		cfResource := template.AddResource(storage.cloudFormationS3BucketResourceName, s3Bucket)
 		cfResource.DeletionPolicy = "Retain"
 
-		lambdaResource, _ := template.Resources[lambdaLogicalCFResourceName]
-		if nil != lambdaResource {
+		lambdaResource, lambdaResourceExists := template.Resources[lambdaLogicalCFResourceName]
+		if !lambdaResourceExists {
 			safeAppendDependency(lambdaResource, storage.cloudFormationS3BucketResourceName)
 		}
 
@@ -642,6 +644,7 @@ func (perm *SESPermission) NewMessageBodyStorageReference(prexistingBucketName s
 }
 
 func (perm SESPermission) export(serviceName string,
+	useCGO bool,
 	lambdaFunctionDisplayName string,
 	lambdaLogicalCFResourceName string,
 	template *gocf.Template,
@@ -683,6 +686,7 @@ func (perm SESPermission) export(serviceName string,
 
 	// Make sure the custom lambda that manages SNS notifications is provisioned.
 	configuratorResName, err := ensureCustomResourceHandler(serviceName,
+		useCGO,
 		cloudformationresources.SESLambdaEventSource,
 		sourceArnExpression,
 		dependsOn,
@@ -837,6 +841,7 @@ type CloudWatchEventsPermission struct {
 }
 
 func (perm CloudWatchEventsPermission) export(serviceName string,
+	useCGO bool,
 	lambdaFunctionDisplayName string,
 	lambdaLogicalCFResourceName string,
 	template *gocf.Template,
@@ -868,11 +873,11 @@ func (perm CloudWatchEventsPermission) export(serviceName string,
 	}
 
 	// Add the permission to invoke the lambda function
-	uniqueRuleNameMap := make(map[string]int, 0)
+	uniqueRuleNameMap := make(map[string]int)
 	for eachRuleName, eachRuleDefinition := range perm.Rules {
 
 		// We need a stable unique name s.t. the permission is properly configured...
-		uniqueRuleName := fmt.Sprintf("%s-%s-%s", serviceName, lambdaFunctionDisplayName, eachRuleName)
+		uniqueRuleName := CloudFormationResourceName(eachRuleName, lambdaFunctionDisplayName, serviceName)
 		uniqueRuleNameMap[uniqueRuleName]++
 
 		// Add the permission
@@ -892,11 +897,11 @@ func (perm CloudWatchEventsPermission) export(serviceName string,
 			return "", exportErr
 		}
 
-		cwEventsRuleTargetList := gocf.CloudWatchEventsRuleTargetList{}
+		cwEventsRuleTargetList := gocf.EventsRuleTargetList{}
 		cwEventsRuleTargetList = append(cwEventsRuleTargetList,
-			gocf.CloudWatchEventsRuleTarget{
+			gocf.EventsRuleTarget{
 				Arn: gocf.GetAtt(lambdaLogicalCFResourceName, "Arn"),
-				Id:  gocf.String(uniqueRuleName),
+				ID:  gocf.String(uniqueRuleName),
 			},
 		)
 
@@ -912,7 +917,7 @@ func (perm CloudWatchEventsPermission) export(serviceName string,
 		if nil != eachRuleDefinition.EventPattern {
 			eventsRule.EventPattern = eachRuleDefinition.EventPattern
 		} else if "" != eachRuleDefinition.ScheduleExpression {
-			eventsRule.ScheduleExpression = eachRuleDefinition.ScheduleExpression
+			eventsRule.ScheduleExpression = gocf.String(eachRuleDefinition.ScheduleExpression)
 		}
 		cloudWatchLogsEventResName := CloudFormationResourceName(fmt.Sprintf("%s-CloudWatchEventsRule", eachRuleName),
 			lambdaLogicalCFResourceName,
@@ -979,6 +984,7 @@ type CloudWatchLogsPermission struct {
 }
 
 func (perm CloudWatchLogsPermission) export(serviceName string,
+	useCGO bool,
 	lambdaFunctionDisplayName string,
 	lambdaLogicalCFResourceName string,
 	template *gocf.Template,
@@ -1021,7 +1027,7 @@ func (perm CloudWatchLogsPermission) export(serviceName string,
 
 	// Then we need to uniqueify the rule names s.t. we prevent
 	// collisions with other stacks.
-	configurationResourceNames := make(map[string]int, 0)
+	configurationResourceNames := make(map[string]int)
 	// Store the last name.  We'll do a uniqueness check when exiting the loop,
 	// and if that passes, the last name will also be the unique one.
 	var configurationResourceName string
@@ -1043,6 +1049,7 @@ func (perm CloudWatchLogsPermission) export(serviceName string,
 			gocf.String(":log-stream:*"))
 
 		lastConfigurationResourceName, ensureCustomHandlerError := ensureCustomResourceHandler(serviceName,
+			useCGO,
 			cloudformationresources.CloudWatchLogsLambdaEventSource,
 			cloudWatchLogsArn,
 			[]string{},

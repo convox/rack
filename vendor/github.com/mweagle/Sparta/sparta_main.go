@@ -1,14 +1,18 @@
 package sparta
 
 import (
+	"crypto/rand"
+	"crypto/sha1"
+	"encoding/hex"
 	"fmt"
-	"github.com/Sirupsen/logrus"
-	"github.com/asaskevich/govalidator"
-	"github.com/spf13/cobra"
 	"os"
 	"path"
 	"runtime"
 	"time"
+
+	"github.com/Sirupsen/logrus"
+	"github.com/asaskevich/govalidator"
+	"github.com/spf13/cobra"
 )
 
 // CommandLineOptions defines the commands available via the Sparta command
@@ -23,15 +27,21 @@ var CommandLineOptions = struct {
 	Execute   *cobra.Command
 	Describe  *cobra.Command
 	Explore   *cobra.Command
+	Profile   *cobra.Command
 }{}
 
 /******************************************************************************/
 // Global options
 type optionsGlobalStruct struct {
-	Noop     bool           `valid:"-"`
-	LogLevel string         `valid:"matches(panic|fatal|error|warn|info|debug)"`
-	Logger   *logrus.Logger `valid:"-"`
-	Command  string         `valid:"-"`
+	ServiceName        string         `valid:"required"`
+	ServiceDescription string         `valid:"-"`
+	Noop               bool           `valid:"-"`
+	LogLevel           string         `valid:"matches(panic|fatal|error|warn|info|debug)"`
+	LogFormat          string         `valid:"matches(txt|text|json)"`
+	Logger             *logrus.Logger `valid:"-"`
+	Command            string         `valid:"-"`
+	BuildTags          string         `valid:"-"`
+	LinkerFlags        string         `valid:"-"` // no requirements
 }
 
 // OptionsGlobal stores the global command line options
@@ -41,10 +51,28 @@ var OptionsGlobal optionsGlobalStruct
 // Provision options
 // Ref: http://docs.aws.amazon.com/AmazonS3/latest/dev/BucketRestrictions.html
 type optionsProvisionStruct struct {
-	S3Bucket string `valid:"required,matches(\\w+)"`
+	S3Bucket        string `valid:"required,matches(\\w+)"`
+	BuildID         string `valid:"matches(\\S+)"` // non-whitespace
+	PipelineTrigger string `valid:"-"`
+	InPlace         bool   `valid:"-"`
 }
 
 var optionsProvision optionsProvisionStruct
+
+func provisionBuildID(userSuppliedValue string) (string, error) {
+	buildID := userSuppliedValue
+	if "" == buildID {
+		hash := sha1.New()
+		randomBytes := make([]byte, 256)
+		_, err := rand.Read(randomBytes)
+		if err != nil {
+			return "", err
+		}
+		hash.Write(randomBytes)
+		buildID = hex.EncodeToString(hash.Sum(nil))
+	}
+	return buildID, nil
+}
 
 /******************************************************************************/
 // Execute options
@@ -59,6 +87,7 @@ var optionsExecute optionsExecuteStruct
 // Describe options
 type optionsDescribeStruct struct {
 	OutputFile string `valid:"required"`
+	S3Bucket   string `valid:"required,matches(\\w+)"`
 }
 
 var optionsDescribe optionsDescribeStruct
@@ -70,6 +99,15 @@ type optionsExploreStruct struct {
 }
 
 var optionsExplore optionsExploreStruct
+
+/******************************************************************************/
+// Profile options
+type optionsProfileStruct struct {
+	S3Bucket string `valid:"required,matches(\\w+)"`
+	Port     int    `valid:"-"`
+}
+
+var optionsProfile optionsProfileStruct
 
 /******************************************************************************/
 // Initialization
@@ -90,6 +128,22 @@ func init() {
 		"l",
 		"info",
 		"Log level [panic, fatal, error, warn, info, debug]")
+	CommandLineOptions.Root.PersistentFlags().StringVarP(&OptionsGlobal.LogFormat,
+		"format",
+		"f",
+		"text",
+		"Log format [text, json]")
+	CommandLineOptions.Root.PersistentFlags().StringVarP(&OptionsGlobal.BuildTags,
+		"tags",
+		"t",
+		"",
+		"Optional build tags for conditional compilation")
+	// Make sure there's a place to put any linker flags
+	CommandLineOptions.Root.PersistentFlags().StringVar(&OptionsGlobal.LinkerFlags,
+		"ldflags",
+		"",
+		"Go linker string definition flags (https://golang.org/cmd/link/)")
+
 	// Version
 	CommandLineOptions.Version = &cobra.Command{
 		Use:   "version",
@@ -110,6 +164,21 @@ func init() {
 		"s",
 		"",
 		"S3 Bucket to use for Lambda source")
+	CommandLineOptions.Provision.Flags().StringVarP(&optionsProvision.BuildID,
+		"buildID",
+		"i",
+		"",
+		"Optional BuildID to use")
+	CommandLineOptions.Provision.Flags().StringVarP(&optionsProvision.PipelineTrigger,
+		"codePipelinePackage",
+		"p",
+		"",
+		"Name of CodePipelin package that includes cloduformation.json Template and ZIP config files")
+	CommandLineOptions.Provision.Flags().BoolVarP(&optionsProvision.InPlace,
+		"inplace",
+		"c",
+		false,
+		"If the provision operation results in *only* function updates, bypass CloudFormation")
 
 	// Delete
 	CommandLineOptions.Delete = &cobra.Command{
@@ -141,12 +210,16 @@ func init() {
 		Short: "Describe service",
 		Long:  `Produce an HTML report of the service`,
 	}
-
 	CommandLineOptions.Describe.Flags().StringVarP(&optionsDescribe.OutputFile,
 		"out",
 		"o",
 		"",
 		"Output file for HTML description")
+	CommandLineOptions.Describe.Flags().StringVarP(&optionsDescribe.S3Bucket,
+		"s3Bucket",
+		"s",
+		"",
+		"S3 Bucket to use for Lambda source")
 
 	// Explore
 	CommandLineOptions.Explore = &cobra.Command{
@@ -154,11 +227,29 @@ func init() {
 		Short: "Interactively explore service",
 		Long:  `Startup a localhost HTTP server to explore the exported Go functions`,
 	}
+
 	CommandLineOptions.Explore.Flags().IntVarP(&optionsExplore.Port,
 		"port",
 		"p",
 		9999,
 		"Alternative port for HTTP binding (default=9999)")
+
+	// Profile
+	CommandLineOptions.Profile = &cobra.Command{
+		Use:   "profile",
+		Short: "Interactively examine service pprof output",
+		Long:  `Startup a local pprof webserver to interrogate profiles snapshots on S3`,
+	}
+	CommandLineOptions.Profile.Flags().StringVarP(&optionsProfile.S3Bucket,
+		"s3Bucket",
+		"s",
+		"",
+		"S3 Bucket that stores lambda profile snapshots")
+	CommandLineOptions.Profile.Flags().IntVarP(&optionsProfile.Port,
+		"port",
+		"p",
+		8080,
+		"Alternative port for HTTP binding (default=8080)")
 }
 
 // CommandLineOptionsHook allows embedding applications the ability
@@ -168,9 +259,6 @@ type CommandLineOptionsHook func(command *cobra.Command) error
 
 // ParseOptions the command line options
 func ParseOptions(handler CommandLineOptionsHook) error {
-	var noop bool
-	var level string
-
 	// First up, create a dummy Root command for the parse...
 	var parseCmdRoot = &cobra.Command{
 		Use:           CommandLineOptions.Root.Use,
@@ -181,16 +269,25 @@ func ParseOptions(handler CommandLineOptionsHook) error {
 			return nil
 		},
 	}
-
-	parseCmdRoot.PersistentFlags().BoolVarP(&noop, "noop",
+	parseCmdRoot.PersistentFlags().BoolVarP(&OptionsGlobal.Noop, "noop",
 		"n",
 		false,
 		"Dry-run behavior only (do not perform mutations)")
-	parseCmdRoot.PersistentFlags().StringVarP(&level,
+	parseCmdRoot.PersistentFlags().StringVarP(&OptionsGlobal.LogLevel,
 		"level",
 		"l",
 		"info",
 		"Log level [panic, fatal, error, warn, info, debug]")
+	parseCmdRoot.PersistentFlags().StringVarP(&OptionsGlobal.LogFormat,
+		"format",
+		"f",
+		"text",
+		"Log format [text, json]")
+	parseCmdRoot.PersistentFlags().StringVarP(&OptionsGlobal.BuildTags,
+		"tags",
+		"t",
+		"",
+		"Optional build tags for conditional compilation")
 
 	// Now, for any user-attached commands, add them to the temporary Parse
 	// root command.
@@ -204,7 +301,15 @@ func ParseOptions(handler CommandLineOptionsHook) error {
 			if nil != validateErr {
 				return validateErr
 			}
-			logger, loggerErr := NewLogger(OptionsGlobal.LogLevel)
+			// Format?
+			var formatter logrus.Formatter
+			switch OptionsGlobal.LogFormat {
+			case "text", "txt":
+				formatter = &logrus.TextFormatter{}
+			case "json":
+				formatter = &logrus.JSONFormatter{}
+			}
+			logger, loggerErr := NewLoggerWithFormatter(OptionsGlobal.LogLevel, formatter)
 			if nil != loggerErr {
 				return loggerErr
 			}
@@ -221,7 +326,6 @@ func ParseOptions(handler CommandLineOptionsHook) error {
 
 	//////////////////////////////////////////////////////////////////////////////
 	// Then add the standard Sparta ones...
-
 	spartaCommands := []*cobra.Command{
 		CommandLineOptions.Version,
 		CommandLineOptions.Provision,
@@ -229,6 +333,7 @@ func ParseOptions(handler CommandLineOptionsHook) error {
 		CommandLineOptions.Execute,
 		CommandLineOptions.Describe,
 		CommandLineOptions.Explore,
+		CommandLineOptions.Profile,
 	}
 	CommandLineOptions.Version.PreRunE = func(cmd *cobra.Command, args []string) error {
 		if handler != nil {
@@ -278,6 +383,14 @@ func ParseOptions(handler CommandLineOptionsHook) error {
 	}
 	parseCmdRoot.AddCommand(CommandLineOptions.Explore)
 
+	CommandLineOptions.Profile.PreRunE = func(cmd *cobra.Command, args []string) error {
+		if handler != nil {
+			return handler(CommandLineOptions.Profile)
+		}
+		return nil
+	}
+	parseCmdRoot.AddCommand(CommandLineOptions.Profile)
+
 	// Assign each command an empty RunE func s.t.
 	// Cobra doesn't print out the command info
 	for _, eachCommand := range parseCmdRoot.Commands() {
@@ -314,28 +427,92 @@ func ParseOptions(handler CommandLineOptionsHook) error {
 // See http://docs.aws.amazon.com/sdk-for-go/api/aws/defaults.html#DefaultChainCredentials-constant
 // for more information.
 func Main(serviceName string, serviceDescription string, lambdaAWSInfos []*LambdaAWSInfo, api *API, site *S3Site) error {
+	return MainEx(serviceName,
+		serviceDescription,
+		lambdaAWSInfos,
+		api,
+		site,
+		nil,
+		false)
+}
+
+// MainEx provides an "extended" Main that supports customizing the standard Sparta
+// workflow via the `workflowHooks` parameter.
+func MainEx(serviceName string,
+	serviceDescription string,
+	lambdaAWSInfos []*LambdaAWSInfo,
+	api *API,
+	site *S3Site,
+	workflowHooks *WorkflowHooks,
+	useCGO bool) error {
 	//////////////////////////////////////////////////////////////////////////////
 	// cmdRoot defines the root, non-executable command
-	CommandLineOptions.Root.Short = fmt.Sprintf("%s - Sparta powered AWS Lambda Microservice", serviceName)
+	CommandLineOptions.Root.Short = fmt.Sprintf("%s - Sparta v.%s powered AWS Lambda Microservice", serviceName, SpartaVersion)
 	CommandLineOptions.Root.Long = serviceDescription
 	CommandLineOptions.Root.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {
+		// Save the ServiceName in case a custom command wants it
+		OptionsGlobal.ServiceName = serviceName
+		OptionsGlobal.ServiceDescription = serviceDescription
 
 		_, validateErr := govalidator.ValidateStruct(OptionsGlobal)
 		if nil != validateErr {
 			return validateErr
 		}
-		logger, loggerErr := NewLogger(OptionsGlobal.LogLevel)
+		// Format?
+		// If we're running in AWS, then pick some sensible defaults
+		// per http://docs.aws.amazon.com/lambda/latest/dg/current-supported-versions.html
+		runningInLambda := ("" != os.Getenv("LAMBDA_TASK_ROOT"))
+		prettyHeader := false
+		var formatter logrus.Formatter
+		if !runningInLambda {
+			switch OptionsGlobal.LogFormat {
+			case "text", "txt":
+				formatter = &logrus.TextFormatter{}
+				prettyHeader = true
+			case "json":
+				formatter = &logrus.JSONFormatter{}
+			}
+		} else {
+			formatter = &logrus.JSONFormatter{}
+		}
+
+		logger, loggerErr := NewLoggerWithFormatter(OptionsGlobal.LogLevel, formatter)
 		if nil != loggerErr {
 			return loggerErr
 		}
 		OptionsGlobal.Logger = logger
 
-		logger.WithFields(logrus.Fields{
-			"Option":        cmd.Name(),
-			"SpartaVersion": SpartaVersion,
-			"Go":            runtime.Version(),
-			"UTC":           (time.Now().UTC().Format(time.RFC3339)),
-		}).Info("Welcome to " + serviceName)
+		welcomeMessage := fmt.Sprintf("Service: %s", serviceName)
+
+		if prettyHeader {
+			logger.Info(headerDivider)
+			logger.Info(fmt.Sprintf(`   _______  ___   ___  _________ `))
+			logger.Info(fmt.Sprintf(`  / __/ _ \/ _ | / _ \/_  __/ _ |     Version : %s`, SpartaVersion))
+			logger.Info(fmt.Sprintf(` _\ \/ ___/ __ |/ , _/ / / / __ |     SHA     : %s`, SpartaGitHash[0:7]))
+			logger.Info(fmt.Sprintf(`/___/_/  /_/ |_/_/|_| /_/ /_/ |_|     Go      : %s`, runtime.Version()))
+			logger.Info(headerDivider)
+			logger.WithFields(logrus.Fields{
+				"Option":    cmd.Name(),
+				"UTC":       (time.Now().UTC().Format(time.RFC3339)),
+				"LinkFlags": OptionsGlobal.LinkerFlags,
+			}).Info(welcomeMessage)
+			logger.Info(headerDivider)
+		} else {
+			if !runningInLambda {
+				logger.Info(headerDivider)
+			}
+			logger.WithFields(logrus.Fields{
+				"Option":        cmd.Name(),
+				"SpartaVersion": SpartaVersion,
+				"SpartaSHA":     SpartaGitHash[0:7],
+				"Go Version":    runtime.Version(),
+				"UTC":           (time.Now().UTC().Format(time.RFC3339)),
+				"LinkFlags":     OptionsGlobal.LinkerFlags,
+			}).Info(welcomeMessage)
+			if !runningInLambda {
+				logger.Info(headerDivider)
+			}
+		}
 		return nil
 	}
 
@@ -352,12 +529,16 @@ func Main(serviceName string, serviceDescription string, lambdaAWSInfos []*Lambd
 			"validationResults": validationResults,
 			"validateErr":       validateErr,
 			"optionsProvision":  optionsProvision,
-		}).Debug("Provision Validation")
+		}).Debug("Provision validation results")
 		return validateErr
 	}
 
 	if nil == CommandLineOptions.Provision.RunE {
 		CommandLineOptions.Provision.RunE = func(cmd *cobra.Command, args []string) error {
+			buildID, buildIDErr := provisionBuildID(optionsProvision.BuildID)
+			if nil != buildIDErr {
+				return buildIDErr
+			}
 			return Provision(OptionsGlobal.Noop,
 				serviceName,
 				serviceDescription,
@@ -365,7 +546,14 @@ func Main(serviceName string, serviceDescription string, lambdaAWSInfos []*Lambd
 				api,
 				site,
 				optionsProvision.S3Bucket,
+				useCGO,
+				optionsProvision.InPlace,
+				buildID,
+				optionsProvision.PipelineTrigger,
+				OptionsGlobal.BuildTags,
+				OptionsGlobal.LinkerFlags,
 				nil,
+				workflowHooks,
 				OptionsGlobal.Logger)
 		}
 	}
@@ -389,6 +577,9 @@ func Main(serviceName string, serviceDescription string, lambdaAWSInfos []*Lambd
 			}
 
 			OptionsGlobal.Logger.Formatter = new(logrus.JSONFormatter)
+			// Ensure the discovery service is initialized
+			initializeDiscovery(serviceName, lambdaAWSInfos, OptionsGlobal.Logger)
+
 			return Execute(lambdaAWSInfos,
 				optionsExecute.Port,
 				optionsExecute.SignalParentPID,
@@ -411,7 +602,18 @@ func Main(serviceName string, serviceDescription string, lambdaAWSInfos []*Lambd
 				return fileWriterErr
 			}
 			defer fileWriter.Close()
-			describeErr := Describe(serviceName, serviceDescription, lambdaAWSInfos, api, site, fileWriter, OptionsGlobal.Logger)
+			describeErr := Describe(serviceName,
+				serviceDescription,
+				lambdaAWSInfos,
+				api,
+				site,
+				optionsDescribe.S3Bucket,
+				OptionsGlobal.BuildTags,
+				OptionsGlobal.LinkerFlags,
+				fileWriter,
+				workflowHooks,
+				OptionsGlobal.Logger)
+
 			if describeErr == nil {
 				describeErr = fileWriter.Sync()
 			}
@@ -433,7 +635,24 @@ func Main(serviceName string, serviceDescription string, lambdaAWSInfos []*Lambd
 	}
 	CommandLineOptions.Root.AddCommand(CommandLineOptions.Explore)
 
+	//////////////////////////////////////////////////////////////////////////////
+	// Profile
+	if nil == CommandLineOptions.Profile.RunE {
+		CommandLineOptions.Profile.RunE = func(cmd *cobra.Command, args []string) error {
+			_, validateErr := govalidator.ValidateStruct(optionsProfile)
+			if nil != validateErr {
+				return validateErr
+			}
+			return Profile(serviceName,
+				serviceDescription,
+				optionsProfile.S3Bucket,
+				optionsProfile.Port,
+				OptionsGlobal.Logger)
+		}
+	}
+	CommandLineOptions.Root.AddCommand(CommandLineOptions.Profile)
 	// Run it!
+
 	executeErr := CommandLineOptions.Root.Execute()
 	if nil != OptionsGlobal.Logger && nil != executeErr {
 		OptionsGlobal.Logger.Error(executeErr)

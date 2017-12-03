@@ -12,6 +12,7 @@ const teststring = "asdf123"
 func TestOutputf(t *testing.T) {
 	buf := new(bytes.Buffer)
 	log.SetOutput(buf)
+	Level = LevelDebug
 	outputf(LevelDebug, teststring, nil)
 
 	// outputf correctly prints string
@@ -24,6 +25,7 @@ func TestOutputf(t *testing.T) {
 func TestOutput(t *testing.T) {
 	buf := new(bytes.Buffer)
 	log.SetOutput(buf)
+	Level = LevelDebug
 	output(LevelDebug, nil)
 
 	// outputf correctly prints string with proper Debug prefix
@@ -111,6 +113,7 @@ func TestInfo(t *testing.T) {
 func TestDebugf(t *testing.T) {
 	buf := new(bytes.Buffer)
 	log.SetOutput(buf)
+	Level = LevelDebug
 	Debugf(teststring, nil)
 
 	// outputf correctly prints string
@@ -124,11 +127,66 @@ func TestDebugf(t *testing.T) {
 func TestDebug(t *testing.T) {
 	buf := new(bytes.Buffer)
 	log.SetOutput(buf)
+	Level = LevelDebug
 	Debug(nil)
 
 	// outputf correctly prints string
 	if !strings.Contains(buf.String(), levelPrefix[LevelDebug]) {
 		t.Fail()
 	}
+	return
+}
+
+type testSyslogger struct {
+	*bytes.Buffer
+}
+
+func (l testSyslogger) Debug(s string) error {
+	l.WriteString("[DEBUG] ")
+	_, err := l.WriteString(s)
+	return err
+}
+
+func (l testSyslogger) Info(s string) error {
+	l.WriteString("[INFO] ")
+	_, err := l.WriteString(s)
+	return err
+}
+
+func (l testSyslogger) Warning(s string) error {
+	l.WriteString("[WARN] ")
+	_, err := l.WriteString(s)
+	return err
+}
+
+func (l testSyslogger) Err(s string) error {
+	l.WriteString("[ERROR] ")
+	_, err := l.WriteString(s)
+	return err
+}
+
+func (l testSyslogger) Crit(s string) error {
+	l.WriteString("[CRIT] ")
+	_, err := l.WriteString(s)
+	return err
+}
+
+func (l testSyslogger) Emerg(s string) error {
+	l.WriteString("[FATAL] ")
+	_, err := l.WriteString(s)
+	return err
+}
+
+func TestSetLogger(t *testing.T) {
+	buf := new(bytes.Buffer)
+	SetLogger(testSyslogger{buf})
+	Level = LevelDebug
+	outputf(LevelDebug, teststring, nil)
+
+	// outputf correctly prints string
+	if !strings.Contains(buf.String(), teststring) {
+		t.Fail()
+	}
+	SetLogger(nil)
 	return
 }

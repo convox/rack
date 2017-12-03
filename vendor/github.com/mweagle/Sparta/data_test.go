@@ -1,11 +1,8 @@
 package sparta
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
-
-	"github.com/Sirupsen/logrus"
 )
 
 const LambdaExecuteARN = "LambdaExecutor"
@@ -13,15 +10,15 @@ const s3BucketSourceArn = "arn:aws:s3:::sampleBucket"
 const snsTopicSourceArn = "arn:aws:sns:us-west-2:000000000000:someTopic"
 const dynamoDBTableArn = "arn:aws:dynamodb:us-west-2:000000000000:table/sampleTable"
 
-func mockLambda1(event *json.RawMessage, context *LambdaContext, w http.ResponseWriter, logger *logrus.Logger) {
+func mockLambda1(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "mockLambda1!")
 }
 
-func mockLambda2(event *json.RawMessage, context *LambdaContext, w http.ResponseWriter, logger *logrus.Logger) {
+func mockLambda2(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "mockLambda2!")
 }
 
-func mockLambda3(event *json.RawMessage, context *LambdaContext, w http.ResponseWriter, logger *logrus.Logger) {
+func mockLambda3(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "mockLambda3!")
 }
 
@@ -30,7 +27,9 @@ func testLambdaData() []*LambdaAWSInfo {
 
 	//////////////////////////////////////////////////////////////////////////////
 	// Lambda function 1
-	lambdaFn := NewLambda(LambdaExecuteARN, mockLambda1, nil)
+	lambdaFn := HandleAWSLambda(LambdaName(mockLambda1),
+		http.HandlerFunc(mockLambda1),
+		LambdaExecuteARN)
 	lambdaFn.Permissions = append(lambdaFn.Permissions, S3Permission{
 		BasePermission: BasePermission{
 			SourceArn: s3BucketSourceArn,
@@ -56,12 +55,15 @@ func testLambdaData() []*LambdaAWSInfo {
 
 	//////////////////////////////////////////////////////////////////////////////
 	// Lambda function 2
-	lambdaFunctions = append(lambdaFunctions, NewLambda(LambdaExecuteARN, mockLambda2, nil))
-
+	lambdaFunctions = append(lambdaFunctions, HandleAWSLambda(LambdaName(mockLambda2),
+		http.HandlerFunc(mockLambda2),
+		LambdaExecuteARN))
 	//////////////////////////////////////////////////////////////////////////////
 	// Lambda function 3
 	// https://github.com/mweagle/Sparta/pull/1
-	lambdaFn3 := NewLambda(LambdaExecuteARN, mockLambda3, nil)
+	lambdaFn3 := HandleAWSLambda(LambdaName(mockLambda3),
+		http.HandlerFunc(mockLambda3),
+		LambdaExecuteARN)
 	lambdaFn3.Permissions = append(lambdaFn3.Permissions, SNSPermission{
 		BasePermission: BasePermission{
 			SourceArn: snsTopicSourceArn,

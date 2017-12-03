@@ -2,9 +2,10 @@ package sparta
 
 import (
 	"fmt"
+	"os"
+
 	"github.com/asaskevich/govalidator"
 	"github.com/spf13/cobra"
-	"os"
 )
 
 // NOTE: your application MUST use `package main` and define a `main()` function.  The

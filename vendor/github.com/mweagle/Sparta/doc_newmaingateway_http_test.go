@@ -2,7 +2,6 @@ package sparta
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 
 	"github.com/Sirupsen/logrus"
@@ -11,24 +10,23 @@ import (
 // NOTE: your application MUST use `package main` and define a `main()` function.  The
 // example text is to make the documentation compatible with godoc.
 
-func echoAPIGatewayHTTPEvent(event *json.RawMessage,
-	context *LambdaContext,
-	w http.ResponseWriter,
-	logger *logrus.Logger) {
-
+func echoAPIGatewayHTTPEvent(w http.ResponseWriter, r *http.Request) {
+	logger, _ := r.Context().Value(ContextKeyLogger).(*logrus.Logger)
+	decoder := json.NewDecoder(r.Body)
+	defer r.Body.Close()
 	var lambdaEvent APIGatewayLambdaJSONEvent
-	err := json.Unmarshal([]byte(*event), &lambdaEvent)
+	err := decoder.Decode(&lambdaEvent)
 	if err != nil {
 		logger.Error("Failed to unmarshal event data: ", err.Error())
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-
 	responseBody, err := json.Marshal(lambdaEvent)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	} else {
-		fmt.Fprint(w, string(responseBody))
+		w.Header().Add("Content-Type", "application/json")
+		w.Write(responseBody)
 	}
 }
 
@@ -41,13 +39,15 @@ func ExampleMain_apiGatewayHTTPSEvent() {
 	apiGateway := NewAPIGateway("MyEchoHTTPAPI", stage)
 
 	// Create a lambda function
-	echoAPIGatewayLambdaFn := NewLambda(IAMRoleDefinition{}, echoAPIGatewayEvent, nil)
+	echoAPIGatewayLambdaFn := HandleAWSLambda(LambdaName(echoAPIGatewayHTTPEvent),
+		http.HandlerFunc(echoAPIGatewayHTTPEvent),
+		IAMRoleDefinition{})
 
 	// Associate a URL path component with the Lambda function
 	apiGatewayResource, _ := apiGateway.NewResource("/echoHelloWorld", echoAPIGatewayLambdaFn)
 
 	// Associate 1 or more HTTP methods with the Resource.
-	method, err := apiGatewayResource.NewMethod("GET")
+	method, err := apiGatewayResource.NewMethod("GET", http.StatusOK)
 	if err != nil {
 		panic("Failed to create NewMethod")
 	}

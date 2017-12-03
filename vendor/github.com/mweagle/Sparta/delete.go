@@ -6,6 +6,8 @@ import (
 	"github.com/Sirupsen/logrus"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
+	spartaCF "github.com/mweagle/Sparta/aws/cloudformation"
+
 	spartaAWS "github.com/mweagle/Sparta/aws"
 )
 
@@ -15,7 +17,7 @@ func Delete(serviceName string, logger *logrus.Logger) error {
 	session := spartaAWS.NewSession(logger)
 	awsCloudFormation := cloudformation.New(session)
 
-	exists, err := stackExists(serviceName, awsCloudFormation, logger)
+	exists, err := spartaCF.StackExists(serviceName, session, logger)
 	if nil != err {
 		return err
 	}

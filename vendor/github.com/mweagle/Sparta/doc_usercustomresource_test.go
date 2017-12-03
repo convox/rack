@@ -1,23 +1,18 @@
 package sparta
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 
-	gocf "github.com/crewjam/go-cloudformation"
+	gocf "github.com/mweagle/go-cloudformation"
 
 	"github.com/Sirupsen/logrus"
 )
 
 // Standard AWS λ function
-func helloWorld(event *json.RawMessage,
-	context *LambdaContext,
-	w http.ResponseWriter,
-	logger *logrus.Logger) {
-
+func helloWorld(w http.ResponseWriter, r *http.Request) {
+	logger, _ := r.Context().Value(ContextKeyLogger).(*logrus.Logger)
 	configuration, _ := Discover()
-
 	logger.WithFields(logrus.Fields{
 		"Discovery": configuration,
 	}).Info("Custom resource request")
@@ -39,9 +34,9 @@ func userDefinedCustomResource(requestType string,
 
 func ExampleLambdaAWSInfo_RequireCustomResource() {
 
-	lambdaFn := NewLambda(IAMRoleDefinition{},
-		helloWorld,
-		nil)
+	lambdaFn := HandleAWSLambda(LambdaName(helloWorld),
+		http.HandlerFunc(helloWorld),
+		IAMRoleDefinition{})
 
 	cfResName, _ := lambdaFn.RequireCustomResource(IAMRoleDefinition{},
 		userDefinedCustomResource,
@@ -54,7 +49,9 @@ func ExampleLambdaAWSInfo_RequireCustomResource() {
 		resourceMetadata map[string]interface{},
 		S3Bucket string,
 		S3Key string,
-		template *gocf.Template,
+		buildID string,
+		cfTemplate *gocf.Template,
+		context map[string]interface{},
 		logger *logrus.Logger) error {
 
 		// Pass CustomResource outputs to the λ function
