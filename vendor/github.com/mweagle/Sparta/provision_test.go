@@ -4,7 +4,9 @@ import (
 	"bytes"
 	"testing"
 
-	gocf "github.com/crewjam/go-cloudformation"
+	gocf "github.com/mweagle/go-cloudformation"
+
+	"os"
 
 	"github.com/Sirupsen/logrus"
 )
@@ -31,10 +33,24 @@ func init() {
 }
 
 func TestProvision(t *testing.T) {
-
-	logger, err := NewLogger("info")
+	logger, _ := NewLogger("info")
 	var templateWriter bytes.Buffer
-	err = Provision(true, "SampleProvision", "", testLambdaData(), nil, nil, "S3Bucket", &templateWriter, logger)
+	err := Provision(true,
+		"SampleProvision",
+		"",
+		testLambdaData(),
+		nil,
+		nil,
+		os.Getenv("S3_BUCKET"),
+		false,
+		false,
+		"testBuildID",
+		"",
+		"",
+		"",
+		&templateWriter,
+		nil,
+		logger)
 	if nil != err {
 		t.Fatal(err.Error())
 	}
@@ -46,7 +62,9 @@ func templateDecorator(serviceName string,
 	resourceMetadata map[string]interface{},
 	S3Bucket string,
 	S3Key string,
-	template *gocf.Template,
+	buildID string,
+	cfTemplate *gocf.Template,
+	context map[string]interface{},
 	logger *logrus.Logger) error {
 
 	// Add an empty resource
@@ -57,10 +75,10 @@ func templateDecorator(serviceName string,
 	customResource := newResource.(*cloudFormationProvisionTestResource)
 	customResource.ServiceToken = "arn:aws:sns:us-east-1:84969EXAMPLE:CRTest"
 	customResource.TestKey = "Hello World"
-	template.AddResource("ProvisionTestResource", customResource)
+	cfTemplate.AddResource("ProvisionTestResource", customResource)
 
 	// Add an output
-	template.Outputs["OutputDecorationTest"] = &gocf.Output{
+	cfTemplate.Outputs["OutputDecorationTest"] = &gocf.Output{
 		Description: "Information about the value",
 		Value:       gocf.String("My key"),
 	}
@@ -72,9 +90,24 @@ func TestDecorateProvision(t *testing.T) {
 	lambdas := testLambdaData()
 	lambdas[0].Decorator = templateDecorator
 
-	logger, err := NewLogger("info")
+	logger, _ := NewLogger("info")
 	var templateWriter bytes.Buffer
-	err = Provision(true, "SampleProvision", "", lambdas, nil, nil, "S3Bucket", &templateWriter, logger)
+	err := Provision(true,
+		"SampleProvision",
+		"",
+		lambdas,
+		nil,
+		nil,
+		os.Getenv("S3_BUCKET"),
+		false,
+		false,
+		"testBuildID",
+		"",
+		"",
+		"",
+		&templateWriter,
+		nil,
+		logger)
 	if nil != err {
 		t.Fatal(err.Error())
 	}

@@ -4,7 +4,7 @@
 
 # Sparta <p align="center">
 
-[![Build Status](https://travis-ci.org/mweagle/Sparta.svg?branch=master)](https://travis-ci.org/mweagle/Sparta) [![GoDoc](https://godoc.org/github.com/mweagle/Sparta?status.svg)](https://godoc.org/github.com/mweagle/Sparta)
+[![Build Status](https://travis-ci.org/mweagle/Sparta.svg?branch=master)](https://travis-ci.org/mweagle/Sparta) [![GoDoc](https://godoc.org/github.com/mweagle/Sparta?status.svg)](https://godoc.org/github.com/mweagle/Sparta) [![Sourcegraph](https://sourcegraph.com/github.com/mweagle/Sparta/-/badge.svg)](https://sourcegraph.com/github.com/mweagle/Sparta?badge)[![Go Report Card](https://goreportcard.com/badge/github.com/mweagle/Sparta)](https://goreportcard.com/report/github.com/mweagle/Sparta)
 
 Visit [gosparta.io](http://gosparta.io) for complete documentation.
 
@@ -15,10 +15,12 @@ Sparta takes a set of _golang_ functions and automatically provisions them in
 
 Functions must implement
 
-    type LambdaFunction func(*json.RawMessage,
-                              *LambdaContext,
-                              http.ResponseWriter,
-                              *logrus.Logger)
+```go
+type LambdaFunction func(*json.RawMessage,
+                          *LambdaContext,
+                          http.ResponseWriter,
+                          *logrus.Logger)
+```
 
 where
 
@@ -36,7 +38,7 @@ Given a set of registered _golang_ functions, Sparta will:
   * Optionally:
     * Register with S3 and SNS for push source configuration
     * Provision an [API Gateway](https://aws.amazon.com/api-gateway/) service to make your functions publicly available
-    * Provision an [S3 static website](http://docs.aws.amazon.com/AmazonS3/latest/dev/WebsiteHosting.html)  
+    * Provision an [S3 static website](http://docs.aws.amazon.com/AmazonS3/latest/dev/WebsiteHosting.html)
 
 Note that Lambda updates may be performed with [no interruption](http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-lambda-function.html)
 in service.
@@ -47,8 +49,15 @@ Visit [gosparta.io](http://gosparta.io) for complete documentation.
 
 See the [Limitations](http://gosparta.io/docs/limitations/) page for the most up-to-date information.
 
-## Outstanding
-  - Eliminate NodeJS CustomResources
-  - Implement APIGateway graph
-  - Support APIGateway inline Model definition
-  - Support custom domains
+## Contributors
+
+_Thanks to all Sparta contributors (alphabetical)_
+
+  - **Kyle Anderson**
+  - [James Brook](https://github.com/jbrook)
+  - [Ryan Brown](https://github.com/ryansb)
+  - [sdbeard](https://github.com/sdbeard)
+  - [Scott Raine](https://github.com/nylar)
+  - [Paul Seiffert](https://github.com/seiffert)
+  - [Thom Shutt](https://github.com/thomshutt)
+

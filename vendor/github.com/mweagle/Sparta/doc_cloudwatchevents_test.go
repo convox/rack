@@ -1,29 +1,28 @@
 package sparta
 
 import (
-	"encoding/json"
 	"net/http"
 
 	"github.com/Sirupsen/logrus"
 )
 
-func cloudWatchEventProcessor(event *json.RawMessage,
-	context *LambdaContext,
-	w http.ResponseWriter,
-	logger *logrus.Logger) {
-
+func cloudWatchEventProcessor(w http.ResponseWriter, r *http.Request) {
+	logger, _ := r.Context().Value(ContextKeyLogger).(*logrus.Logger)
+	lambdaContext, _ := r.Context().Value(ContextKeyLambdaContext).(*LambdaContext)
 	logger.WithFields(logrus.Fields{
-		"RequestID": context.AWSRequestID,
+		"RequestID": lambdaContext.AWSRequestID,
 	}).Info("Request received")
 
-	logger.Info("CloudWatch Event data: ", string(*event))
+	logger.Info("CloudWatch Event received")
 }
 
 func ExampleCloudWatchEventsPermission() {
-	cloudWatchEventsLambda := NewLambda(IAMRoleDefinition{}, cloudWatchEventProcessor, nil)
+	cloudWatchEventsLambda := HandleAWSLambda(LambdaName(cloudWatchEventProcessor),
+		http.HandlerFunc(cloudWatchEventProcessor),
+		IAMRoleDefinition{})
 
 	cloudWatchEventsPermission := CloudWatchEventsPermission{}
-	cloudWatchEventsPermission.Rules = make(map[string]CloudWatchEventsRule, 0)
+	cloudWatchEventsPermission.Rules = make(map[string]CloudWatchEventsRule)
 	cloudWatchEventsPermission.Rules["Rate5Mins"] = CloudWatchEventsRule{
 		ScheduleExpression: "rate(5 minutes)",
 	}

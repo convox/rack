@@ -138,7 +138,7 @@ three
 			{"", Common},
 		},
 		`<tr><td class="line-num">1</td><td><pre>one</pre></td><td><pre>one</pre></td><td class="line-num">1</td></tr>
-<tr><td class="line-num">2</td><td class="deleted"><pre>two</pre></td><td></td><td></td></tr>
+<tr><td class="line-num">2</td><td class="deleted"><pre>two</pre></td><td></td><td class="line-num"></td></tr>
 <tr><td class="line-num"></td><td></td><td class="added"><pre>five</pre></td><td class="line-num">2</td></tr>
 <tr><td class="line-num">3</td><td><pre>three</pre></td><td><pre>three</pre></td><td class="line-num">3</td></tr>
 <tr><td class="line-num">4</td><td><pre></pre></td><td><pre></pre></td><td class="line-num">4</td></tr>
@@ -171,7 +171,7 @@ Wagner
 		},
 		`<tr><td class="line-num">1</td><td><pre>Beethoven</pre></td><td><pre>Beethoven</pre></td><td class="line-num">1</td></tr>
 <tr><td class="line-num">2</td><td><pre>Bach</pre></td><td><pre>Bach</pre></td><td class="line-num">2</td></tr>
-<tr><td class="line-num">3</td><td class="deleted"><pre>Mozart</pre></td><td></td><td></td></tr>
+<tr><td class="line-num">3</td><td class="deleted"><pre>Mozart</pre></td><td></td><td class="line-num"></td></tr>
 <tr><td class="line-num"></td><td></td><td class="added"><pre>Brahms</pre></td><td class="line-num">3</td></tr>
 <tr><td class="line-num">4</td><td><pre>Chopin</pre></td><td><pre>Chopin</pre></td><td class="line-num">4</td></tr>
 <tr><td class="line-num"></td><td></td><td class="added"><pre>Liszt</pre></td><td class="line-num">5</td></tr>
@@ -207,13 +207,13 @@ allegro
 			{"allegro", RightOnly},
 			{"", Common},
 		},
-		`<tr><td class="line-num">1</td><td class="deleted"><pre>adagio</pre></td><td></td><td></td></tr>
-<tr><td class="line-num">2</td><td class="deleted"><pre>vivace</pre></td><td></td><td></td></tr>
+		`<tr><td class="line-num">1</td><td class="deleted"><pre>adagio</pre></td><td></td><td class="line-num"></td></tr>
+<tr><td class="line-num">2</td><td class="deleted"><pre>vivace</pre></td><td></td><td class="line-num"></td></tr>
 <tr><td class="line-num"></td><td></td><td class="added"><pre>adagio adagio</pre></td><td class="line-num">1</td></tr>
 <tr><td class="line-num"></td><td></td><td class="added"><pre>staccato</pre></td><td class="line-num">2</td></tr>
 <tr><td class="line-num">3</td><td><pre>staccato legato</pre></td><td><pre>staccato legato</pre></td><td class="line-num">3</td></tr>
-<tr><td class="line-num">4</td><td class="deleted"><pre>presto</pre></td><td></td><td></td></tr>
-<tr><td class="line-num">5</td><td class="deleted"><pre>lento</pre></td><td></td><td></td></tr>
+<tr><td class="line-num">4</td><td class="deleted"><pre>presto</pre></td><td></td><td class="line-num"></td></tr>
+<tr><td class="line-num">5</td><td class="deleted"><pre>lento</pre></td><td></td><td class="line-num"></td></tr>
 <tr><td class="line-num"></td><td></td><td class="added"><pre>staccato</pre></td><td class="line-num">4</td></tr>
 <tr><td class="line-num"></td><td></td><td class="added"><pre>legato</pre></td><td class="line-num">5</td></tr>
 <tr><td class="line-num"></td><td></td><td class="added"><pre>allegro</pre></td><td class="line-num">6</td></tr>
