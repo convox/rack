@@ -111,6 +111,9 @@ func formationHelpers() template.FuncMap {
 			return template.HTML(fmt.Sprintf("%q", s))
 		},
 		"agents": func(m *manifest1.Manifest) string {
+			if m == nil {
+				return ""
+			}
 			as := []string{}
 			for _, s := range m.Services {
 				if s.IsAgent() {
