@@ -30,6 +30,7 @@ func (p *AWSProvider) ResourceCreate(name, kind string, params map[string]string
 	}
 	s.Parameters["CustomTopic"] = customTopic
 	s.Parameters["NotificationTopic"] = notificationTopic
+	s.Parameters["Release"] = p.Release
 
 	var req *cloudformation.CreateStackInput
 
@@ -359,6 +360,8 @@ func (p *AWSProvider) ResourceUpdate(name string, params map[string]string) (*st
 	for key, value := range cfParams(params) {
 		s.Parameters[key] = value
 	}
+
+	s.Parameters["Release"] = p.Release
 
 	err = p.updateResource(s)
 
