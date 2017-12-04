@@ -12,7 +12,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/ecr"
 	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/convox/rack/api/helpers"
+	"github.com/convox/rack/helpers"
 	"github.com/convox/rack/structs"
 )
 
@@ -29,9 +29,9 @@ func (p *AWSProvider) AppCancel(name string) error {
 
 func (p *AWSProvider) AppCreate(name string, opts structs.AppCreateOptions) (*structs.App, error) {
 	switch opts.Generation {
-	case "1":
+	case "1", "":
 		return p.appCreateGeneration1(name)
-	case "2", "":
+	case "2":
 	default:
 		return nil, fmt.Errorf("unknown generation: %s", opts.Generation)
 	}

@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/convox/rack/api/awsutil"
+	"github.com/convox/rack/test/awsutil"
 	"github.com/convox/rack/structs"
 
 	"github.com/stretchr/testify/assert"

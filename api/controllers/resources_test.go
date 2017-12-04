@@ -6,16 +6,15 @@ import (
 	"testing"
 
 	"github.com/convox/rack/api/controllers"
-	"github.com/convox/rack/api/models"
-	"github.com/convox/rack/structs"
 	"github.com/convox/rack/provider"
+	"github.com/convox/rack/structs"
 	"github.com/convox/rack/test"
 	"github.com/stretchr/testify/assert"
 )
 
-func init() {
-	models.PauseNotifications = true
-}
+// func init() {
+//   models.PauseNotifications = true
+// }
 
 func TestResourceList(t *testing.T) {
 	Mock(func(p *provider.MockProvider) {

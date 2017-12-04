@@ -6,7 +6,7 @@ import (
 
 	"github.com/cloudflare/cfssl/log"
 	"github.com/convox/logger"
-	"github.com/convox/rack/api/helpers"
+	"github.com/convox/rack/helpers"
 )
 
 func (p *AWSProvider) workerHeartbeat() {
