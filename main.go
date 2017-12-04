@@ -9,7 +9,7 @@ import (
 	"github.com/convox/logger"
 	"github.com/convox/nlogger"
 	"github.com/convox/rack/api/controllers"
-	"github.com/convox/rack/api/helpers"
+	"github.com/convox/rack/helpers"
 )
 
 var port string = "5000"

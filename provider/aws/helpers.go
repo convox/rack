@@ -2,10 +2,17 @@ package aws
 
 import (
 	"bytes"
+	"crypto/rsa"
+	"crypto/sha256"
+	"crypto/x509"
+	"crypto/x509/pkix"
+	"encoding/base32"
 	"encoding/json"
+	"encoding/pem"
 	"fmt"
 	"html/template"
 	"io/ioutil"
+	"math/big"
 	"math/rand"
 	"net/http"
 	"net/url"
@@ -15,14 +22,18 @@ import (
 	"strings"
 	"time"
 
+	crand "crypto/rand"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/ecs"
+	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/convox/rack/cache"
+	"github.com/convox/rack/manifest1"
 	"github.com/convox/rack/structs"
 )
 
@@ -969,4 +980,381 @@ func (p *AWSProvider) updateStack(name string, template string, changes map[stri
 	cache.Clear("describeStacks", name)
 
 	return err
+}
+
+var (
+	serverCertificateWaitConfirmations = 3
+	serverCertificateWaitTick          = 5 * time.Second
+	serverCertificateWaitTimeout       = 2 * time.Minute
+)
+
+// wait for a few successful certificate refreshes in a row
+func (p *AWSProvider) waitForServerCertificate(name string) error {
+	confirmations := 0
+	done := time.Now().Add(serverCertificateWaitTimeout)
+
+	for {
+		if time.Now().After(done) {
+			return fmt.Errorf("timeout")
+		}
+
+		if confirmations >= serverCertificateWaitConfirmations {
+			return nil
+		}
+
+		time.Sleep(serverCertificateWaitTick)
+
+		res, err := p.iam().GetServerCertificate(&iam.GetServerCertificateInput{
+			ServerCertificateName: &name,
+		})
+		if err != nil {
+			confirmations = 0
+			continue
+		}
+		if res.ServerCertificate == nil || res.ServerCertificate.ServerCertificateMetadata == nil || res.ServerCertificate.ServerCertificateMetadata.ServerCertificateName == nil {
+			confirmations = 0
+			continue
+		}
+		if *res.ServerCertificate.ServerCertificateMetadata.ServerCertificateName != name {
+			confirmations = 0
+			continue
+		}
+
+		confirmations++
+	}
+
+	return fmt.Errorf("can't get here")
+}
+
+func generateSelfSignedCertificate(host string) ([]byte, []byte, error) {
+	rkey, err := rsa.GenerateKey(crand.Reader, 2048)
+
+	if err != nil {
+		return nil, nil, err
+	}
+
+	serial, err := crand.Int(crand.Reader, new(big.Int).Lsh(big.NewInt(1), 128))
+
+	if err != nil {
+		return nil, nil, err
+	}
+
+	template := x509.Certificate{
+		SerialNumber: serial,
+		Subject: pkix.Name{
+			CommonName:   host,
+			Organization: []string{"convox"},
+		},
+		NotBefore:             time.Now(),
+		NotAfter:              time.Now().Add(365 * 24 * time.Hour),
+		KeyUsage:              x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
+		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
+		BasicConstraintsValid: true,
+		DNSNames:              []string{host},
+	}
+
+	data, err := x509.CreateCertificate(crand.Reader, &template, &template, &rkey.PublicKey, rkey)
+
+	if err != nil {
+		return nil, nil, err
+	}
+
+	pub := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: data})
+	key := pem.EncodeToMemory(&pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(rkey)})
+
+	return pub, key, nil
+}
+
+type CronJob struct {
+	Name     string `yaml:"name"`
+	Schedule string `yaml:"schedule"`
+	Command  string `yaml:"command"`
+	Service  *manifest1.Service
+	App      *structs.App
+}
+
+type CronJobs []CronJob
+
+func appCronJobs(a *structs.App, m *manifest1.Manifest) CronJobs {
+	cronjobs := []CronJob{}
+
+	if m == nil {
+		return cronjobs
+	}
+
+	for _, entry := range m.Services {
+		labels := entry.LabelsByPrefix("convox.cron")
+		for key, value := range labels {
+			cronjob := NewCronJobFromLabel(key, value)
+			e := entry
+			cronjob.Service = &e
+			cronjob.App = a
+			cronjobs = append(cronjobs, cronjob)
+		}
+	}
+
+	return cronjobs
+}
+
+func (a CronJobs) Len() int           { return len(a) }
+func (a CronJobs) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+func (a CronJobs) Less(i, j int) bool { return a[i].Name < a[j].Name }
+
+func NewCronJobFromLabel(key, value string) CronJob {
+	keySlice := strings.Split(key, ".")
+	name := keySlice[len(keySlice)-1]
+	tokens := strings.Fields(value)
+	cronjob := CronJob{
+		Name:     name,
+		Schedule: fmt.Sprintf("cron(%s *)", strings.Join(tokens[0:5], " ")),
+		Command:  strings.Join(tokens[5:], " "),
+	}
+	return cronjob
+}
+
+func (cr *CronJob) AppName() string {
+	return cr.App.Name
+}
+
+func (cr *CronJob) Process() string {
+	return cr.Service.Name
+}
+
+func (cr *CronJob) ShortName() string {
+	shortName := fmt.Sprintf("%s%s", strings.Title(cr.Service.Name), strings.Title(cr.Name))
+
+	reg, err := regexp.Compile("[^A-Za-z0-9]+")
+	if err != nil {
+		panic(err)
+	}
+
+	return reg.ReplaceAllString(shortName, "")
+}
+
+func (cr *CronJob) LongName() string {
+	prefix := fmt.Sprintf("%s-%s-%s-%s", os.Getenv("RACK"), cr.App.Name, cr.Process(), cr.Name)
+	hash := sha256.Sum256([]byte(prefix))
+	suffix := "-" + base32.StdEncoding.EncodeToString(hash[:])[:7]
+
+	// $prefix-$suffix-schedule" needs to be <= 64 characters
+	if len(prefix) > 55-len(suffix) {
+		prefix = prefix[:55-len(suffix)]
+	}
+	return prefix + suffix
+}
+
+// Agent represents a Service which runs exactly once on every ECS agent
+type Agent struct {
+	Service *manifest1.Service
+	App     *structs.App
+}
+
+//Agents is a wrapper for sorting
+type Agents []Agent
+
+func (a Agents) Len() int           { return len(a) }
+func (a Agents) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+func (a Agents) Less(i, j int) bool { return a[i].Service.Name < a[j].Service.Name }
+
+var shortNameRegex = regexp.MustCompile("[^A-Za-z0-9]+")
+
+// ShortName returns the name of the Agent Service, sans any invalid characters
+func (d *Agent) ShortName() string {
+	shortName := strings.Title(d.Service.Name)
+	return shortNameRegex.ReplaceAllString(shortName, "")
+}
+
+// LongName returns the name of the Agent Service in [stack name]-[service name]-[hash] format
+func (d *Agent) LongName() string {
+	prefix := fmt.Sprintf("%s-%s-%s", os.Getenv("RACK"), d.App.Name, d.Service.Name)
+	hash := sha256.Sum256([]byte(prefix))
+	suffix := "-" + base32.StdEncoding.EncodeToString(hash[:])[:7]
+
+	// $prefix-$suffix-change" needs to be <= 64 characters
+	if len(prefix) > 57-len(suffix) {
+		prefix = prefix[:57-len(suffix)]
+	}
+	return prefix + suffix
+}
+
+// Agents returns any Agent Services defined in the given Manifest
+func appAgents(a *structs.App, m *manifest1.Manifest) Agents {
+	agents := Agents{}
+
+	for _, entry := range m.Services {
+		if !entry.IsAgent() {
+			continue
+		}
+
+		e := entry
+		agent := Agent{
+			Service: &e,
+			App:     a,
+		}
+		agents = append(agents, agent)
+	}
+	sort.Sort(agents)
+	return agents
+}
+
+// AgentFunctionCode returns the Node.js code used by the AgentFunction lambda
+func agentFunctionCode() map[string]template.HTML {
+	code := `
+'use strict';
+
+const aws = require('aws-sdk');
+const ecs = new aws.ECS({ maxRetries: 10 });
+
+const STARTED_BY = 'convox agent';
+const STOPPED_REASON = 'convox agent convergence';
+
+// arn:aws:ecs:<region>:<aws_account_id>:task-definition/<task name>:<task def revision>
+const TASK_DEF_ARNS = [
+		/* TASK DEFINITION ARNs */
+];
+
+// Task Definition ARN, minus revision
+function tdName(td) {
+		return td.split(':').slice(0, -1).join(':');
+}
+
+// Only the revision
+function tdRev(td) {
+		return parseInt(td.split(':').slice(-1)[0]);
+}
+
+function startTask(event, desiredTD) {
+		let options = {
+				containerInstances: [event.detail.containerInstanceArn],
+				taskDefinition: desiredTD,
+				cluster: event.detail.clusterArn,
+				startedBy: STARTED_BY
+		};
+
+		return ecs.startTask(options).promise()
+		.then(data => {
+				if (data.tasks.length === 0) {
+						throw new Error('Task not started');
+				}
+
+				console.log('startTask Data: ', data);
+				return data.tasks[0].taskArn;
+		});
+}
+
+function stopTask(event, runningTask) {
+		if (runningTask.startedBy !== STARTED_BY) {
+				console.log('Warning: Non-agent task running (scale count > 0?)');
+				return;
+		}
+
+		let options = {
+				task: runningTask.taskArn,
+				cluster: event.detail.clusterArn,
+				reason: STOPPED_REASON
+		};
+
+		return ecs.stopTask(options).promise()
+		.then(data => {
+				console.log('stopTask Data: ', data);
+				return data.task.taskArn;
+		});
+}
+
+exports.handler = (event, context, callback) => {
+		console.log('Event: ', event);
+
+		if (event.detail.stoppedReason === STOPPED_REASON) {
+				return callback(null, 'Ignored');
+		}
+
+		let options = {
+				cluster: event.detail.clusterArn,
+				containerInstance: event.detail.containerInstanceArn
+		};
+
+		ecs.listTasks(options).promise()
+		.then(data => {
+				console.log('listTasks Data: ', data);
+
+				// Can't call ecs.describeTasks if data.taskArns is empty
+				if (!data.taskArns || !data.taskArns.length) {
+						return {
+								tasks: []
+						};
+				}
+
+				let options = {
+						cluster: event.detail.clusterArn,
+						tasks: data.taskArns
+				};
+
+				return ecs.describeTasks(options).promise();
+		})
+		.then(data => {
+				console.log('describeTasks Data: ', data);
+
+				let tasksToStop = [];
+				let tasksToStart = [];
+				for (let tdArn of TASK_DEF_ARNS) {
+						let alreadyRunning = false;
+
+						for (let task of data.tasks) {
+								if (tdName(tdArn) !== tdName(task.taskDefinitionArn)) {
+										continue;
+								}
+
+								if (tdRev(tdArn) === tdRev(task.taskDefinitionArn)) {
+										alreadyRunning = true;
+								} else {
+										tasksToStop.push(task);
+								}
+						}
+
+						if (!alreadyRunning) {
+								tasksToStart.push(tdArn);
+						}
+				}
+
+				// Stop all tasks, then start new ones (to try and avoid port conflicts)
+				return Promise.all(tasksToStop.map(t => stopTask(event, t)))
+				.then( () => Promise.all(tasksToStart.map(t => startTask(event, t))) );
+		})
+		.then(() => {
+				console.log('Success');
+				return callback(null, 'Success');
+		})
+		.catch(err => {
+				console.log('Error: ', err);
+				return callback(err);
+		});
+};
+`
+
+	// Format JS code for embedding in app.tmpl
+	halves := strings.Split(code, "/* TASK DEFINITION ARNs */")
+	for i := range halves {
+		oldLines := strings.Split(halves[i], "\n")
+		newLines := []string{}
+
+		for _, v := range oldLines {
+			// Skip empty/comment lines (inline lambda code is limited to 4096 chars)
+			t := strings.TrimSpace(v)
+			if t == "" || strings.HasPrefix(t, "//") {
+				continue
+			}
+
+			newLines = append(newLines, fmt.Sprintf(`"%s",`, v))
+		}
+
+		halves[i] = strings.Join(newLines, "\n")
+	}
+
+	// Remove trailing comma
+	halves[1] = strings.TrimSuffix(halves[1], ",")
+
+	return map[string]template.HTML{
+		"head": template.HTML(halves[0]),
+		"body": template.HTML(halves[1]),
+	}
 }
