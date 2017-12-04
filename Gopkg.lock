@@ -14,16 +14,16 @@
   version = "v0.4.5"
 
 [[projects]]
+  branch = "master"
+  name = "github.com/RackSec/srslog"
+  packages = ["."]
+  revision = "4d2c753a4ee12647a5a279ee6e6e767861509706"
+
+[[projects]]
   name = "github.com/Sirupsen/logrus"
   packages = ["."]
   revision = "f006c2ac4710855cf0f916dd6b77acf6b048dc6e"
   version = "v1.0.3"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/aryann/difflib"
-  packages = ["."]
-  revision = "e206f873d14a916d3d26c40ab667bca123f365a3"
 
 [[projects]]
   name = "github.com/aws/aws-sdk-go"
@@ -297,6 +297,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "a3170eb87614e6324cc63e4544219e5e16c883e264cf5f88a21398f6b721266e"
+  inputs-digest = "e72af2a8af69d218c74749962db448ac48ff945a6d69bb912feee102032f0130"
   solver-name = "gps-cdcl"
   solver-version = 1
