@@ -3,22 +3,20 @@ package controllers_test
 import (
 	"fmt"
 	"net/url"
-	"os"
 	"testing"
 
 	"github.com/convox/rack/api/controllers"
-	"github.com/convox/rack/api/models"
-	"github.com/convox/rack/structs"
 	"github.com/convox/rack/provider"
+	"github.com/convox/rack/structs"
 	"github.com/convox/rack/test"
 	"github.com/stretchr/testify/assert"
 )
 
-func init() {
-	os.Setenv("RACK", "convox-test")
-	models.PauseNotifications = true
-	test.HandlerFunc = controllers.HandlerFunc
-}
+// func init() {
+//   os.Setenv("RACK", "convox-test")
+//   models.PauseNotifications = true
+//   test.HandlerFunc = controllers.HandlerFunc
+// }
 
 func TestAppList(t *testing.T) {
 	Mock(func(p *provider.MockProvider) {
