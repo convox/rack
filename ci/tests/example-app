@@ -1,18 +1,13 @@
 #!/bin/bash
 set -ex -o pipefail
 
-# Running locally:
-#
-#   export CIRCLE_ARTIFACTS=/tmp/
-#   export CIRCLE_BUILD_NUM=0
-#   ./ci/tests/example-app <repo from convox-examples>
-
 # HACK: example-apps `parallel` wrapper, and its different stdin behavior for first process
 [[ $1 == null ]] && exit 0
 
 export EXAMPLE_NAME=$1
 
 # inferred
+export CIRCLE_ARTIFACTS=${CIRCLE_ARTIFACTS:-/tmp/artifacts}
 export CIRCLE_BUILD_NUM=${CIRCLE_BUILD_NUM:-0}
 export APP_NAME=${EXAMPLE_NAME}-${CIRCLE_BUILD_NUM}
 export STACK_NAME=convox-${CIRCLE_BUILD_NUM}
@@ -49,4 +44,4 @@ convox ps --stats --app $APP_NAME
 
 convox run --app $APP_NAME web 'bin/test || true'
 
-convox logs --app $APP_NAME --follow=false --since=25m > $CIRCLE_ARTIFACTS/$APP_NAME.log
+convox logs --app $APP_NAME --follow=false --since=25m
