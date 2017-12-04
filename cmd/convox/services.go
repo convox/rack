@@ -245,9 +245,6 @@ func cmdResourceUpdate(c *cli.Context) error {
 	name := c.Args()[0]
 	args := c.Args()[1:]
 
-	fmt.Printf("name = %+v\n", name)
-	fmt.Printf("args = %+v\n", args)
-
 	stdcli.EnsureOnlyFlags(c, args)
 
 	options := stdcli.FlagsToOptions(c, args)
