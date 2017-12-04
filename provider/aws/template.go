@@ -110,8 +110,15 @@ func formationHelpers() template.FuncMap {
 		"value": func(s string) template.HTML {
 			return template.HTML(fmt.Sprintf("%q", s))
 		},
-		"agents": func(a *structs.App, m *manifest1.Manifest) Agents {
-			return appAgents(a, m)
+		"agents": func(m *manifest1.Manifest) string {
+			as := []string{}
+			for _, s := range m.Services {
+				if s.IsAgent() {
+					as = append(as, s.Name)
+				}
+			}
+			sort.Strings(as)
+			return strings.Join(as, ",")
 		},
 		"cronjobs": func(a *structs.App, m *manifest1.Manifest) CronJobs {
 			return appCronJobs(a, m)
