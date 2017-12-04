@@ -241,7 +241,6 @@ func cmdResourceCreate(c *cli.Context) error {
 
 func cmdResourceUpdate(c *cli.Context) error {
 	stdcli.NeedHelp(c)
-	stdcli.NeedArg(c, -1)
 
 	name := c.Args()[0]
 	args := c.Args()[1:]
@@ -255,12 +254,12 @@ func cmdResourceUpdate(c *cli.Context) error {
 		optionsList = append(optionsList, fmt.Sprintf("%s=%q", key, val))
 	}
 
-	if len(optionsList) == 0 {
-		stdcli.Usage(c)
-		return nil
+	optionsSuffix := ""
+	if len(optionsList) > 0 {
+		optionsSuffix = fmt.Sprintf(" (%s)", strings.Join(optionsList, " "))
 	}
 
-	fmt.Printf("Updating %s (%s)...", name, strings.Join(optionsList, " "))
+	fmt.Printf("Updating %s%s...", name, optionsSuffix)
 
 	_, err := rackClient(c).UpdateResource(name, options)
 	if err != nil {
