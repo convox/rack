@@ -13,7 +13,7 @@ func (p *AWSProvider) workerAgent() {
 	log := logger.New("ns=workers.agent")
 
 	for {
-		time.Sleep(5 * time.Second)
+		time.Sleep(1 * time.Minute)
 
 		if err := p.scaleAgents(); err != nil {
 			log.Error(err)
