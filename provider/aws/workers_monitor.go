@@ -29,7 +29,7 @@ type instances map[string]instance
 var lastASGActivity = time.Now()
 
 func (p *AWSProvider) workerMonitor() {
-	var log = logger.New("ns=cluster_monitor")
+	var log = logger.New("ns=workers.monitor")
 
 	defer recoverWith(func(err error) {
 		helpers.Error(log, err)

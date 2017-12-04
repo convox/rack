@@ -10,7 +10,7 @@ import (
 )
 
 func (p *AWSProvider) workerHeartbeat() {
-	log := logger.New("ns=heartbeat")
+	log := logger.New("ns=workers.heartbeat")
 
 	defer recoverWith(func(err error) {
 		helpers.Error(log, err)
