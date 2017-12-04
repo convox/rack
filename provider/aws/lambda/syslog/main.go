@@ -90,7 +90,7 @@ func contentFormatter(group string) syslog.Formatter {
 			if err == nil {
 				sec := i / 1000
 				nsec := i - (sec * 1000)
-				timestamp = time.Unix(sec, nsec)
+				timestamp = time.Unix(sec, nsec).UTC()
 			}
 
 			content = parts[2]
