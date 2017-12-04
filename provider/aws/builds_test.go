@@ -11,9 +11,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/convox/rack/api/awsutil"
-	"github.com/convox/rack/api/models"
-	"github.com/convox/rack/api/structs"
+	"github.com/convox/rack/test/awsutil"
+	"github.com/convox/rack/structs"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -22,7 +21,7 @@ func init() {
 	os.Setenv("RACK", "convox")
 	os.Setenv("DYNAMO_BUILDS", "convox-builds")
 	os.Setenv("DYNAMO_RELEASES", "convox-releases")
-	models.PauseNotifications = true
+	// models.PauseNotifications = true
 }
 
 func TestBuildGet(t *testing.T) {
@@ -486,7 +485,7 @@ var cycleBuildDescribeInstances = awsutil.Cycle{
 						</instancesSet>
 					</item>
 				</reservationSet>
-			</DescribeInstancesRepsonse>
+			</DescribeInstancesResponse>
 		}`,
 	},
 }

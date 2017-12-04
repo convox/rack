@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/convox/rack/api/httperr"
-	"github.com/convox/rack/api/models"
 	"github.com/gorilla/mux"
 )
 
@@ -15,7 +14,7 @@ func CertificateCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	key := r.FormValue("private")
 	chain := r.FormValue("chain")
 
-	cert, err := models.Provider().CertificateCreate(pub, key, chain)
+	cert, err := Provider.CertificateCreate(pub, key, chain)
 	if err != nil {
 		return httperr.Server(err)
 	}
@@ -26,7 +25,7 @@ func CertificateCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 func CertificateDelete(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	id := mux.Vars(r)["id"]
 
-	err := models.Provider().CertificateDelete(id)
+	err := Provider.CertificateDelete(id)
 
 	if err != nil {
 		return httperr.Server(err)
@@ -38,7 +37,7 @@ func CertificateDelete(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 func CertificateGenerate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	domains := strings.Split(r.FormValue("domains"), ",")
 
-	cert, err := models.Provider().CertificateGenerate(domains)
+	cert, err := Provider.CertificateGenerate(domains)
 
 	if err != nil {
 		return httperr.Server(err)
@@ -48,7 +47,7 @@ func CertificateGenerate(rw http.ResponseWriter, r *http.Request) *httperr.Error
 }
 
 func CertificateList(rw http.ResponseWriter, r *http.Request) *httperr.Error {
-	certs, err := models.Provider().CertificateList()
+	certs, err := Provider.CertificateList()
 
 	if err != nil {
 		return httperr.Server(err)

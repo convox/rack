@@ -6,18 +6,18 @@ import (
 	"testing"
 
 	"github.com/convox/rack/api/controllers"
-	"github.com/convox/rack/api/models"
-	"github.com/convox/rack/api/structs"
+	"github.com/convox/rack/provider"
+	"github.com/convox/rack/structs"
 	"github.com/convox/rack/test"
 	"github.com/stretchr/testify/assert"
 )
 
-func init() {
-	models.PauseNotifications = true
-}
+// func init() {
+//   models.PauseNotifications = true
+// }
 
 func TestResourceList(t *testing.T) {
-	models.Test(t, func() {
+	Mock(func(p *provider.MockProvider) {
 		resources := structs.Resources{
 			structs.Resource{
 				Name:         "memcached-1234",
@@ -33,7 +33,7 @@ func TestResourceList(t *testing.T) {
 			},
 		}
 
-		models.TestProvider.On("ResourceList").Return(resources, nil)
+		p.On("ResourceList").Return(resources, nil)
 
 		hf := test.NewHandlerFunc(controllers.HandlerFunc)
 
@@ -43,8 +43,8 @@ func TestResourceList(t *testing.T) {
 		}
 	})
 
-	models.Test(t, func() {
-		models.TestProvider.On("ResourceList").Return(nil, fmt.Errorf("unknown error"))
+	Mock(func(p *provider.MockProvider) {
+		p.On("ResourceList").Return(nil, fmt.Errorf("unknown error"))
 		hf := test.NewHandlerFunc(controllers.HandlerFunc)
 		if assert.Nil(t, hf.Request("GET", "/resources", nil)) {
 			hf.AssertCode(t, 500)
@@ -54,8 +54,8 @@ func TestResourceList(t *testing.T) {
 }
 
 func TestResourceGet(t *testing.T) {
-	models.Test(t, func() {
-		models.TestProvider.On("ResourceGet", "nonexistent-resource-1234").Return(nil, test.ErrorNotFound("no such resource"))
+	Mock(func(p *provider.MockProvider) {
+		p.On("ResourceGet", "nonexistent-resource-1234").Return(nil, test.ErrorNotFound("no such resource"))
 		hf := test.NewHandlerFunc(controllers.HandlerFunc)
 		if assert.Nil(t, hf.Request("GET", "/resources/nonexistent-resource-1234", nil)) {
 			hf.AssertCode(t, 500)
@@ -63,7 +63,7 @@ func TestResourceGet(t *testing.T) {
 		}
 	})
 
-	models.Test(t, func() {
+	Mock(func(p *provider.MockProvider) {
 		resource := structs.Resource{
 			Name:         "memcached-1234",
 			Stack:        "-",
@@ -77,7 +77,7 @@ func TestResourceGet(t *testing.T) {
 			Tags:         map[string]string{},
 		}
 
-		models.TestProvider.On("ResourceGet", "memcached-1234").Return(&resource, nil)
+		p.On("ResourceGet", "memcached-1234").Return(&resource, nil)
 		hf := test.NewHandlerFunc(controllers.HandlerFunc)
 
 		if assert.Nil(t, hf.Request("GET", "/resources/memcached-1234", nil)) {
@@ -93,7 +93,7 @@ func TestResourceCreate(t *testing.T) {
 	v.Add("name", "memcached-1234")
 	v.Add("type", "memcached")
 
-	models.Test(t, func() {
+	Mock(func(p *provider.MockProvider) {
 		resource := structs.Resource{
 			Name:         "memcached-1234",
 			Stack:        "-",
@@ -106,7 +106,7 @@ func TestResourceCreate(t *testing.T) {
 			Parameters:   map[string]string{},
 			Tags:         map[string]string{},
 		}
-		models.TestProvider.On("ResourceCreate", "memcached-1234", "memcached", map[string]string{}).Return(&resource, nil)
+		p.On("ResourceCreate", "memcached-1234", "memcached", map[string]string{}).Return(&resource, nil)
 
 		hf := test.NewHandlerFunc(controllers.HandlerFunc)
 		if assert.Nil(t, hf.Request("POST", "/resources", v)) {
@@ -117,7 +117,7 @@ func TestResourceCreate(t *testing.T) {
 }
 
 func TestResourceDelete(t *testing.T) {
-	models.Test(t, func() {
+	Mock(func(p *provider.MockProvider) {
 		resource := structs.Resource{
 			Name:         "memcached-1234",
 			Stack:        "-",
@@ -129,8 +129,8 @@ func TestResourceDelete(t *testing.T) {
 			Parameters:   map[string]string{},
 			Tags:         map[string]string{},
 		}
-		models.TestProvider.On("ResourceGet", "memcached-1234").Return(&resource, nil)
-		models.TestProvider.On("ResourceDelete", "memcached-1234").Return(&resource, nil)
+		p.On("ResourceGet", "memcached-1234").Return(&resource, nil)
+		p.On("ResourceDelete", "memcached-1234").Return(&resource, nil)
 		hf := test.NewHandlerFunc(controllers.HandlerFunc)
 
 		if assert.Nil(t, hf.Request("DELETE", "/resources/memcached-1234", nil)) {
@@ -142,7 +142,7 @@ func TestResourceDelete(t *testing.T) {
 
 // TestResourceShow ensures a resource can be shown
 func TestResourceShow(t *testing.T) {
-	models.Test(t, func() {
+	Mock(func(p *provider.MockProvider) {
 		services := structs.Resources{
 			structs.Resource{
 				Name:         "memcached-1234",
@@ -157,7 +157,7 @@ func TestResourceShow(t *testing.T) {
 				Tags:         map[string]string{},
 			},
 		}
-		models.TestProvider.On("ResourceGet", "memcached-1234").Return(&services[0], nil)
+		p.On("ResourceGet", "memcached-1234").Return(&services[0], nil)
 		hf := test.NewHandlerFunc(controllers.HandlerFunc)
 
 		if assert.Nil(t, hf.Request("GET", "/resources/memcached-1234", nil)) {

@@ -17,8 +17,8 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/ecs"
-	"github.com/convox/rack/api/cache"
-	"github.com/convox/rack/api/structs"
+	"github.com/convox/rack/cache"
+	"github.com/convox/rack/structs"
 	"github.com/convox/rack/manifest"
 	"github.com/convox/rack/manifest1"
 	"github.com/fsouza/go-dockerclient"
@@ -906,7 +906,10 @@ func (p *AWSProvider) generateTaskDefinition2(app, process, release string) (*ec
 	}
 
 	env := structs.Environment{}
-	env.LoadEnvironment([]byte(r.Env))
+
+	if err := env.Load([]byte(r.Env)); err != nil {
+		return nil, err
+	}
 
 	m, err := manifest.Load([]byte(r.Manifest), manifest.Environment(env))
 	if err != nil {

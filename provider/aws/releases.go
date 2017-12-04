@@ -2,17 +2,25 @@ package aws
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
+	"html/template"
+	"math/rand"
 	"os"
+	"os/exec"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
+	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/convox/rack/api/crypt"
-	"github.com/convox/rack/api/structs"
+	"github.com/convox/rack/crypt"
 	"github.com/convox/rack/manifest"
+	"github.com/convox/rack/manifest1"
+	"github.com/convox/rack/structs"
 )
 
 // ReleaseDelete will delete all releases that belong to app and buildID
@@ -70,9 +78,12 @@ func (p *AWSProvider) ReleaseGet(app, id string) (*structs.Release, error) {
 	}
 
 	env := structs.Environment{}
-	env.LoadEnvironment(data)
 
-	r.Env = env.Raw()
+	if err := env.Load(data); err != nil {
+		return nil, err
+	}
+
+	r.Env = env.String()
 
 	return r, nil
 }
@@ -120,14 +131,24 @@ func (p *AWSProvider) ReleaseList(app string, limit int64) (structs.Releases, er
 
 // ReleasePromote promotes a release
 func (p *AWSProvider) ReleasePromote(r *structs.Release) error {
-	if _, err := p.AppGet(r.App); err != nil {
+	a, err := p.AppGet(r.App)
+	if err != nil {
 		return err
 	}
 
-	stack := fmt.Sprintf("%s-%s", p.Rack, r.App)
+	switch a.Tags["Generation"] {
+	case "", "1":
+		return p.releasePromoteGeneration1(a, r)
+	case "2":
+	default:
+		return fmt.Errorf("unknown generation for app: %s", a.Name)
+	}
 
 	env := structs.Environment{}
-	env.LoadRaw(r.Env)
+
+	if err := env.Load([]byte(r.Env)); err != nil {
+		return err
+	}
 
 	m, err := manifest.Load([]byte(r.Manifest), manifest.Environment(env))
 	if err != nil {
@@ -164,13 +185,152 @@ func (p *AWSProvider) ReleasePromote(r *structs.Release) error {
 		"LogBucket": p.LogBucket,
 	}
 
-	if err := p.updateStack(stack, ou, updates); err != nil {
+	if err := p.updateStack(p.rackStack(r.App), ou, updates); err != nil {
 		return err
 	}
 
 	go p.waitForPromotion(r)
 
 	return nil
+}
+
+func (p *AWSProvider) releasePromoteGeneration1(a *structs.App, r *structs.Release) error {
+	m, err := manifest1.Load([]byte(r.Manifest))
+	if err != nil {
+		return err
+	}
+
+	// set the image
+	for i, entry := range m.Services {
+		s := m.Services[i]
+		s.Image = entry.RegistryImage(a.Name, r.Build, a.Outputs)
+		m.Services[i] = s
+	}
+
+	m, err = p.resolveLinks(a, m, r)
+	if err != nil {
+		return err
+	}
+
+	tp := map[string]interface{}{
+		"App":      a,
+		"Manifest": m,
+	}
+
+	data, err := formationTemplate("g1/app", tp)
+	if err != nil {
+		return err
+	}
+
+	settings, err := p.appResource(r.App, "Settings")
+	if err != nil {
+		return err
+	}
+
+	// If release formation was saved in S3, get that instead
+	f, err := p.s3Get(settings, fmt.Sprintf("templates/%s", r.Id))
+	if err != nil && awsError(err) != "NoSuchKey" {
+		return err
+	}
+	if err == nil {
+		data = f
+	}
+
+	fmt.Printf("ns=kernel at=release.promote at=s3Get found=%t\n", err == nil)
+
+	params := map[string]string{}
+
+	params["Environment"] = fmt.Sprintf("https://%s.s3.amazonaws.com/releases/%s/env", settings, r.Id)
+	params["LogBucket"] = p.LogBucket
+	params["Release"] = r.Id
+	params["SubnetsPrivate"] = coalesces(p.SubnetsPrivate, p.Subnets)
+	params["Version"] = p.Release
+
+	for _, entry := range m.Services {
+		for _, mapping := range entry.Ports {
+			listenerParam := fmt.Sprintf("%sPort%dListener", upperName(entry.Name), mapping.Balancer)
+
+			randomPort := entry.Randoms()[strconv.Itoa(mapping.Balancer)]
+			listener := []string{strconv.Itoa(randomPort), ""}
+
+			// copy values from existing parameters
+			if v, ok := params[listenerParam]; ok {
+				listener = strings.Split(v, ",")
+				if len(listener) != 2 {
+					return fmt.Errorf("%s not in port,cert format", listenerParam)
+				}
+			}
+
+			// validate protocol labels
+			proto := entry.Labels[fmt.Sprintf("convox.port.%d.protocol", mapping.Balancer)]
+
+			// set a default cert if not defined in existing parameter
+			switch proto {
+			case "https", "tls":
+				if listener[1] == "" {
+					// if rack already has a self-signed cert, reuse it
+					certs, err := p.iam().ListServerCertificates(&iam.ListServerCertificatesInput{})
+					if err != nil {
+						return err
+					}
+
+					for _, cert := range certs.ServerCertificateMetadataList {
+						if strings.Contains(*cert.Arn, fmt.Sprintf("cert-%s", os.Getenv("RACK"))) {
+							listener[1] = *cert.Arn
+							break
+						}
+					}
+
+					// if not, generate and upload a self-signed cert
+					if listener[1] == "" {
+						name := fmt.Sprintf("cert-%s-%d-%05d", os.Getenv("RACK"), time.Now().Unix(), rand.Intn(100000))
+
+						body, key, err := generateSelfSignedCertificate("*.*.elb.amazonaws.com")
+						if err != nil {
+							return err
+						}
+
+						input := &iam.UploadServerCertificateInput{
+							CertificateBody:       aws.String(string(body)),
+							PrivateKey:            aws.String(string(key)),
+							ServerCertificateName: aws.String(name),
+						}
+
+						res, err := p.iam().UploadServerCertificate(input)
+						if err != nil {
+							return err
+						}
+
+						listener[1] = *res.ServerCertificateMetadata.Arn
+
+						if err := p.waitForServerCertificate(name); err != nil {
+							return err
+						}
+					}
+				}
+			}
+
+			params[listenerParam] = strings.Join(listener, ",")
+		}
+	}
+
+	// cache the template
+	if err := p.s3Put(settings, fmt.Sprintf("templates/%s", r.Id), data, false); err != nil {
+		return err
+	}
+
+	url, err := p.ObjectStore("", bytes.NewReader(data), structs.ObjectOptions{Public: true})
+	if err != nil {
+		return err
+	}
+
+	if err := p.updateStack(p.rackStack(a.Name), url, params); err != nil {
+		return err
+	}
+
+	go p.waitForPromotion(r)
+
+	return err
 }
 
 // ReleaseSave saves a Release
@@ -334,6 +494,154 @@ func (p *AWSProvider) deleteReleaseItems(qi *dynamodb.QueryInput, tableName stri
 	}
 
 	return p.dynamoBatchDeleteItems(wrs, tableName)
+}
+
+func (p *AWSProvider) resolveLinks(a *structs.App, m *manifest1.Manifest, r *structs.Release) (*manifest1.Manifest, error) {
+	var registries map[string]struct {
+		Username string
+		Password string
+	}
+
+	data, err := p.buildAuth(nil)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := json.Unmarshal([]byte(data), &registries); err != nil {
+		return nil, err
+	}
+
+	for server, creds := range registries {
+		if err := exec.Command("docker", "login", "-u", creds.Username, "-p", creds.Password, server).Run(); err != nil {
+			return nil, err
+		}
+	}
+
+	for i, entry := range m.Services {
+		var inspect []struct {
+			Config struct {
+				Env []string
+			}
+		}
+
+		imageName := entry.Image
+
+		cmd := exec.Command("docker", "pull", imageName)
+		out, err := cmd.CombinedOutput()
+		fmt.Printf("ns=kernel at=release.formation at=entry.pull imageName=%q out=%q err=%q\n", imageName, string(out), err)
+		if err != nil {
+			return m, fmt.Errorf("could not pull %q", imageName)
+		}
+
+		cmd = exec.Command("docker", "inspect", imageName)
+		out, err = cmd.CombinedOutput()
+		// fmt.Printf("ns=kernel at=release.formation at=entry.inspect imageName=%q out=%q err=%q\n", imageName, string(out), err)
+		if err != nil {
+			return m, fmt.Errorf("could not inspect %q", imageName)
+		}
+
+		err = json.Unmarshal(out, &inspect)
+		if err != nil {
+			fmt.Printf("ns=kernel at=release.formation at=entry.unmarshal err=%q\n", err)
+			return m, fmt.Errorf("could not inspect %q", imageName)
+		}
+
+		entry.Exports = make(map[string]string)
+		linkableEnvs := make([]string, len(entry.Environment))
+		for k, v := range entry.Environment {
+			val := fmt.Sprintf("%s=%s", k, v)
+			linkableEnvs = append(linkableEnvs, val)
+		}
+
+		if len(inspect) == 1 {
+			linkableEnvs = append(linkableEnvs, inspect[0].Config.Env...)
+		}
+
+		for _, val := range linkableEnvs {
+			if strings.HasPrefix(val, "LINK_") {
+				parts := strings.SplitN(val, "=", 2)
+				if len(parts) == 2 {
+					entry.Exports[parts[0]] = parts[1]
+					m.Services[i] = entry
+				}
+			}
+		}
+	}
+
+	for i, entry := range m.Services {
+		entry.LinkVars = make(map[string]template.HTML)
+		for _, link := range entry.Links {
+			other, ok := m.Services[link]
+			if !ok {
+				return m, fmt.Errorf("Cannot find link %q", link)
+			}
+
+			scheme := other.Exports["LINK_SCHEME"]
+			if scheme == "" {
+				scheme = "tcp"
+			}
+
+			mb := m.GetBalancer(link)
+			if mb == nil {
+				// commented out to be less strict, just don't create the link
+				//return m, fmt.Errorf("Cannot discover balancer for link %q", link)
+				continue
+			}
+			host := fmt.Sprintf(`{ "Fn::If" : [ "Enabled%s", { "Fn::GetAtt" : [ "%s", "DNSName" ] }, "DISABLED" ] }`, upperName(other.Name), mb.ResourceName())
+
+			if len(other.Ports) == 0 {
+				// commented out to be less strict, just don't create the link
+				// return m, fmt.Errorf("Cannot link to %q because it does not expose ports in the manifest", link)
+				continue
+			}
+
+			var port manifest1.Port
+			linkPort := other.Exports["LINK_PORT"]
+			if linkPort == "" {
+				port = other.Ports[0]
+			} else {
+				i, err := strconv.Atoi(linkPort)
+				if err != nil {
+					return nil, err
+				}
+
+				var matchedPort = false
+				for _, p := range other.Ports {
+					if i == p.Container {
+						port = p
+						matchedPort = true
+					}
+				}
+
+				if !matchedPort {
+					return nil, fmt.Errorf("No Port matching %s found", linkPort)
+				}
+			}
+
+			path := other.Exports["LINK_PATH"]
+
+			var userInfo string
+			if other.Exports["LINK_USERNAME"] != "" || other.Exports["LINK_PASSWORD"] != "" {
+				userInfo = fmt.Sprintf("%s:%s@", other.Exports["LINK_USERNAME"], other.Exports["LINK_PASSWORD"])
+			}
+
+			html := fmt.Sprintf(`{ "Fn::Join": [ "", [ "%s", "://", "%s", %s, ":", "%d", "%s" ] ] }`,
+				scheme, userInfo, host, port.Balancer, path)
+
+			prefix := strings.ToUpper(link) + "_"
+			prefix = strings.Replace(prefix, "-", "_", -1)
+			entry.LinkVars[prefix+"HOST"] = template.HTML(host)
+			entry.LinkVars[prefix+"SCHEME"] = template.HTML(fmt.Sprintf("%q", scheme))
+			entry.LinkVars[prefix+"PORT"] = template.HTML(fmt.Sprintf("%d", port.Balancer))
+			entry.LinkVars[prefix+"PASSWORD"] = template.HTML(fmt.Sprintf("%q", other.Exports["LINK_PASSWORD"]))
+			entry.LinkVars[prefix+"USERNAME"] = template.HTML(fmt.Sprintf("%q", other.Exports["LINK_USERNAME"]))
+			entry.LinkVars[prefix+"PATH"] = template.HTML(fmt.Sprintf("%q", path))
+			entry.LinkVars[prefix+"URL"] = template.HTML(html)
+			m.Services[i] = entry
+		}
+	}
+
+	return m, nil
 }
 
 func (p *AWSProvider) waitForPromotion(r *structs.Release) {

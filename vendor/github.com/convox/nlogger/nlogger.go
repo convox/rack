@@ -19,6 +19,12 @@ func (rw *logResponseWriter) WriteHeader(status int) {
 	rw.ResponseWriter.WriteHeader(status)
 }
 
+func (rw *logResponseWriter) Flush() {
+	if rf, ok := rw.ResponseWriter.(http.Flusher); ok {
+		rf.Flush()
+	}
+}
+
 func (rw *logResponseWriter) Status() int {
 	return rw.status
 }
@@ -31,12 +37,6 @@ func (rw *logResponseWriter) Hijack() (rwc net.Conn, buf *bufio.ReadWriter, err 
 	}
 
 	return hj.Hijack()
-}
-
-func Log(rw http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
-}
-
-func logRequest(rw http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
 }
 
 type Nlogger struct {

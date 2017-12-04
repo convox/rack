@@ -6,10 +6,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/sns"
-	"github.com/convox/rack/api/models"
-	"github.com/ddollar/logger"
+	"github.com/convox/logger"
 )
 
 func SNSConfirm(w http.ResponseWriter, r *http.Request) {
@@ -33,20 +30,13 @@ func SNSConfirm(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	params := &sns.ConfirmSubscriptionInput{
-		Token:    aws.String(payload["Token"]),
-		TopicArn: aws.String(payload["TopicArn"]),
-	}
-	resp, err := models.SNS().ConfirmSubscription(params)
-
-	if err != nil {
+	if _, err := http.Get(payload["SubscribeURL"]); err != nil {
 		log.Error(err)
 		http.Error(w, err.Error(), 500)
 		return
 	}
 
-	log.Log("confirmed=true subscriptionArn=%q", *resp.SubscriptionArn)
-	w.Write([]byte("ok"))
+	RenderSuccess(w)
 }
 
 func SNSProxy(w http.ResponseWriter, r *http.Request) {
@@ -78,6 +68,6 @@ func SNSProxy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Log("proxied=true status=%s", resp.Status)
+	log.Logf("proxied=true status=%s", resp.Status)
 	w.Write([]byte("ok"))
 }

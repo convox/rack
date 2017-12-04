@@ -117,7 +117,7 @@ func HTMLDiff(seq1, seq2 []string) string {
 			}
 			fmt.Fprintf(buf, `><pre>%s</pre></td><td class="line-num">%d`, d.Payload, j)
 		} else {
-			buf.WriteString("></td><td>")
+			buf.WriteString(`></td><td class="line-num">`)
 		}
 		buf.WriteString("</td></tr>\n")
 	}

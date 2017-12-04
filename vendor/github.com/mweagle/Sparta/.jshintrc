@@ -1,0 +1,19 @@
+{
+  "undef": true,
+  "maxlen": 150,
+  "trailing": true,
+  "curly": true,
+  "node": true,
+  "unused": true,
+  "eqeqeq": true,
+  "strict": false,
+  "predef": [
+    "describe", "it",
+    "xdescribe", "xit",
+    "before", "beforeEach",
+    "after", "afterEach",
+    "test",
+    "setImmediate",
+    "clearImmediate"
+  ]
+}

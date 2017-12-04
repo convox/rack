@@ -5,19 +5,17 @@ import (
 	"net/http"
 
 	"github.com/convox/rack/api/httperr"
-	"github.com/convox/rack/api/models"
+	"github.com/convox/rack/structs"
 	"github.com/gorilla/mux"
 )
 
-func EnvironmentList(rw http.ResponseWriter, r *http.Request) *httperr.Error {
+func EnvironmentGet(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	app := mux.Vars(r)["app"]
 
-	env, err := models.GetEnvironment(app)
-
+	env, err := Provider.EnvironmentGet(app)
 	if awsError(err) == "ValidationError" {
 		return httperr.Errorf(404, "no such app: %s", app)
 	}
-
 	if err != nil {
 		return httperr.Server(err)
 	}
@@ -26,10 +24,9 @@ func EnvironmentList(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 }
 
 func EnvironmentSet(rw http.ResponseWriter, r *http.Request) *httperr.Error {
-	vars := mux.Vars(r)
-	app := vars["app"]
+	app := mux.Vars(r)["app"]
 
-	_, err := models.GetEnvironment(app)
+	_, err := Provider.EnvironmentGet(app)
 	if awsError(err) == "ValidationError" {
 		return httperr.Errorf(404, "no such app: %s", app)
 	}
@@ -39,19 +36,20 @@ func EnvironmentSet(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 		return httperr.Server(err)
 	}
 
-	loadedEnv, err := models.LoadEnvironment(body)
+	env := structs.Environment{}
+
+	if err := env.Load(body); err != nil {
+		return httperr.Server(err)
+	}
+
+	release, err := Provider.EnvironmentPut(app, env)
 	if err != nil {
 		return httperr.Server(err)
 	}
 
-	releaseID, err := models.PutEnvironment(app, loadedEnv)
-	if err != nil {
-		return httperr.Server(err)
-	}
+	rw.Header().Set("Release-Id", release)
 
-	rw.Header().Set("Release-Id", releaseID)
-
-	env, err := models.GetEnvironment(app)
+	env, err = Provider.EnvironmentGet(app)
 	if err != nil {
 		return httperr.Server(err)
 	}
@@ -64,28 +62,24 @@ func EnvironmentDelete(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	app := vars["app"]
 	name := vars["name"]
 
-	env, err := models.GetEnvironment(app)
-
+	env, err := Provider.EnvironmentGet(app)
 	if awsError(err) == "ValidationError" {
 		return httperr.Errorf(404, "no such app: %s", app)
 	}
-
 	if err != nil {
 		return httperr.Server(err)
 	}
 
 	delete(env, name)
 
-	releaseID, err := models.PutEnvironment(app, env)
-
+	release, err := Provider.EnvironmentPut(app, env)
 	if err != nil {
 		return httperr.Server(err)
 	}
 
-	rw.Header().Set("Release-Id", releaseID)
+	rw.Header().Set("Release-Id", release)
 
-	env, err = models.GetEnvironment(app)
-
+	env, err = Provider.EnvironmentGet(app)
 	if err != nil {
 		return httperr.Server(err)
 	}

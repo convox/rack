@@ -1,12 +1,27 @@
 rollbar
 -------
 
-`rollbar` is a Golang Rollbar client that makes it easy to report errors to
-Rollbar with full stacktraces. Errors are sent to Rollbar asynchronously in a
-background goroutine.
+`rollbar` is a Go Rollbar client that makes it easy to report errors to Rollbar
+with stacktraces. Errors are sent to Rollbar asynchronously in a background
+goroutine.
 
 Because Go's `error` type doesn't include stack information from when it was set
-or allocated, we use the stack information from where the error was reported.
+or allocated, `rollbar` uses the stack information from where the error was
+reported.
+
+You may also want to look at:
+
+* [stvp/roll](https://github.com/stvp/roll) - Simpler, synchronous (no
+  background goroutine) with a nicer API.
+
+Installation
+=============
+
+Standard installation to your GOPATH via go get:
+
+```
+go get github.com/stvp/rollbar
+```
 
 Documentation
 =============
@@ -29,11 +44,15 @@ func main() {
 
   result, err := DoSomething()
   if err != nil {
+    // Error reporting
     rollbar.Error(rollbar.ERR, err)
   }
 
+  // Message reporting
   rollbar.Message("info", "Message body goes here")
 
+  // Block until all queued messages are sent to Rollbar.
+  // You can do this in a defer() if needed.
   rollbar.Wait()
 }
 ```
@@ -48,12 +67,32 @@ variable to `go test`:
 
 And verify the reported errors manually in the Rollbar dashboard.
 
+Other Resources
+===============
+
+For best practices and more information on how to handle errors in Go, these are
+some great places to get started:
+
+* [Error Handling in Go](https://blog.golang.org/error-handling-and-go)
+* [Why does Go not have exceptions?](https://golang.org/doc/faq#exceptions)
+* [Defer, Panic and Recover](https://blog.golang.org/defer-panic-and-recover)
+* [pkg/errors](https://github.com/pkg/errors)
+
 Contributors
 ============
 
-A big thank you to everyone who has contributed pull requests and bug reports:
+Thanks, all!
 
 * @kjk
-* @Soulou
+* @nazwa
+* @ossareh
 * @paulmach
+* @Soulou
+* @tike
+* @tysonmote
+* @marcelgruber
+* @karlpatr
+* @sumeet
+* @dfuentes77
+* @seriousben
 

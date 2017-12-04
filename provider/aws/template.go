@@ -6,13 +6,18 @@ import (
 	"fmt"
 	"hash/crc32"
 	"net"
+	"os"
 	"path"
+	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 
 	"html/template"
 
 	"github.com/convox/rack/manifest"
+	"github.com/convox/rack/manifest1"
+	"github.com/convox/rack/structs"
 )
 
 func formationHelpers() template.FuncMap {
@@ -87,15 +92,49 @@ func formationHelpers() template.FuncMap {
 			}
 			return fmt.Sprintf("invalid volume %q", s)
 		},
+		// generation 1
+		"coalesce": func(ss ...string) string {
+			for _, s := range ss {
+				if s != "" {
+					return s
+				}
+			}
+			return ""
+		},
+		"env": func(s string) string {
+			return os.Getenv(s)
+		},
+		"itoa": func(i int) string {
+			return strconv.Itoa(i)
+		},
+		"value": func(s string) template.HTML {
+			return template.HTML(fmt.Sprintf("%q", s))
+		},
+		"agents": func(m *manifest1.Manifest) string {
+			if m == nil {
+				return ""
+			}
+			as := []string{}
+			for _, s := range m.Services {
+				if s.IsAgent() {
+					as = append(as, s.Name)
+				}
+			}
+			sort.Strings(as)
+			return strings.Join(as, ",")
+		},
+		"cronjobs": func(a *structs.App, m *manifest1.Manifest) CronJobs {
+			return appCronJobs(a, m)
+		},
 	}
 }
 func formationTemplate(name string, data interface{}) ([]byte, error) {
 	var buf bytes.Buffer
 
-	tn := fmt.Sprintf("%s.json.tmpl", name)
-	tf := fmt.Sprintf("../provider/aws/formation/%s", tn)
+	path := fmt.Sprintf("provider/aws/formation/%s.json.tmpl", name)
+	file := filepath.Base(path)
 
-	t, err := template.New(tn).Funcs(formationHelpers()).ParseFiles(tf)
+	t, err := template.New(file).Funcs(formationHelpers()).ParseFiles(path)
 	if err != nil {
 		return nil, err
 	}
