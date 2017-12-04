@@ -3,6 +3,9 @@ set -ex -o pipefail
 
 VERSION=${VERSION:-ci}
 
+# make artifacts dir
+mkdir -p /tmp/artifacts
+
 # install utilities
 sudo apt-get install python-pip
 curl -O http://stedolan.github.io/jq/download/linux64/jq && chmod +x jq && sudo mv jq /usr/local/bin
