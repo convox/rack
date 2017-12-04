@@ -361,6 +361,8 @@ func (p *AWSProvider) ResourceUpdate(name string, params map[string]string) (*st
 		s.Parameters[key] = value
 	}
 
+	s.Parameters["Release"] = p.Release
+
 	err = p.updateResource(s)
 
 	return s, err
