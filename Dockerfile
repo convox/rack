@@ -13,9 +13,8 @@ ENV PORT 3000
 WORKDIR /go/src/github.com/convox/rack
 COPY . /go/src/github.com/convox/rack
 
-RUN go install ./api
-RUN go install ./api/cmd/...
+RUN go install ./...
 
-RUN env CGO_ENABLED=0 go install --ldflags '-extldflags "-static"' github.com/convox/rack/api/cmd/convox-env
+RUN env CGO_ENABLED=0 go install --ldflags '-extldflags "-static"' github.com/convox/rack/cmd/convox-env
 
-CMD ["api/bin/web"]
+CMD ["bin/web"]

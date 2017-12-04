@@ -6,9 +6,9 @@ import (
 	"io"
 	"testing"
 
-	"github.com/convox/rack/api/awsutil"
-	"github.com/convox/rack/api/structs"
+	"github.com/convox/rack/test/awsutil"
 	"github.com/convox/rack/provider/aws"
+	"github.com/convox/rack/structs"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -342,7 +342,7 @@ var cycleProcessDescribeInstances = awsutil.Cycle{
 						</instancesSet>
 					</item>
 				</reservationSet>
-			</DescribeInstancesRepsonse>
+			</DescribeInstancesResponse>
 		}`,
 	},
 }
@@ -371,7 +371,7 @@ var cycleProcessDescribeRackInstances = awsutil.Cycle{
 						</instancesSet>
 					</item>
 				</reservationSet>
-			</DescribeInstancesRepsonse>
+			</DescribeInstancesResponse>
 		}`,
 	},
 }

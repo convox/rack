@@ -1,21 +1,22 @@
 package provider
 
 import (
-	"fmt"
 	"io"
 	"os"
 
-	"github.com/convox/rack/api/structs"
 	"github.com/convox/rack/provider/aws"
+	"github.com/convox/rack/structs"
 )
 
 type Provider interface {
 	Initialize(opts structs.ProviderOptions) error
 
 	AppCancel(name string) error
-	AppCreate(name string) (*structs.App, error)
+	AppCreate(name string, opts structs.AppCreateOptions) (*structs.App, error)
 	AppGet(name string) (*structs.App, error)
 	AppDelete(name string) error
+	AppList() (structs.Apps, error)
+	AppUpdate(app string, opts structs.AppUpdateOptions) error
 
 	BuildCreate(app, method, source string, opts structs.BuildOptions) (*structs.Build, error)
 	BuildDelete(app, id string) (*structs.Build, error)
@@ -34,12 +35,13 @@ type Provider interface {
 	CertificateGenerate(domains []string) (*structs.Certificate, error)
 	CertificateList() (structs.Certificates, error)
 
+	EnvironmentGet(app string) (structs.Environment, error)
+	EnvironmentPut(app string, env structs.Environment) (string, error)
+
 	EventSend(*structs.Event, error) error
 
 	KeyDecrypt(data []byte) ([]byte, error)
 	KeyEncrypt(data []byte) ([]byte, error)
-
-	EnvironmentGet(app string) (structs.Environment, error)
 
 	FormationList(app string) (structs.Formation, error)
 	FormationGet(app, process string) (*structs.ProcessFormation, error)
@@ -49,7 +51,9 @@ type Provider interface {
 	IndexDownload(*structs.Index, string) error
 	IndexUpload(string, []byte) error
 
+	InstanceKeyroll() error
 	InstanceList() (structs.Instances, error)
+	InstanceShell(id string, rw io.ReadWriter, opts structs.InstanceShellOptions) error
 	InstanceTerminate(id string) error
 
 	LogStream(app string, w io.Writer, opts structs.LogStreamOptions) error
@@ -84,11 +88,20 @@ type Provider interface {
 	ResourceUnlink(name, app, process string) (*structs.Resource, error)
 	ResourceUpdate(name string, params map[string]string) (*structs.Resource, error)
 
+	ServiceList(app string) (structs.Services, error)
+	ServiceUpdate(app, name string, port int, opts structs.ServiceUpdateOptions) error
+
+	SettingGet(name string) (string, error)
+	SettingPut(name, value string) error
+
 	SystemGet() (*structs.System, error)
 	SystemLogs(w io.Writer, opts structs.LogStreamOptions) error
 	SystemProcesses(opts structs.SystemProcessesOptions) (structs.Processes, error)
 	SystemReleases() (structs.Releases, error)
 	SystemSave(system structs.System) error
+	SystemUpdate(opts structs.SystemUpdateOptions) error
+
+	Workers() error
 }
 
 // FromEnv returns a new Provider from env vars
@@ -96,9 +109,7 @@ func FromEnv() Provider {
 	switch os.Getenv("PROVIDER") {
 	case "aws":
 		return aws.FromEnv()
-	case "test":
-		return &MockProvider{}
 	default:
-		panic(fmt.Errorf("must set PROVIDER to one of (aws, test)"))
+		return &MockProvider{}
 	}
 }

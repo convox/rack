@@ -20,9 +20,10 @@ import (
 	"github.com/aws/aws-sdk-go/service/kms"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/sns"
+	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/convox/logger"
-	"github.com/convox/rack/api/structs"
+	"github.com/convox/rack/structs"
 )
 
 var (
@@ -41,6 +42,7 @@ type AWSProvider struct {
 	BuildCluster        string
 	CloudformationTopic string
 	Cluster             string
+	CustomTopic         string
 	Development         bool
 	DockerImageAPI      string
 	DynamoBuilds        string
@@ -72,6 +74,7 @@ func FromEnv() *AWSProvider {
 		BuildCluster:        os.Getenv("BUILD_CLUSTER"),
 		CloudformationTopic: os.Getenv("CLOUDFORMATION_TOPIC"),
 		Cluster:             os.Getenv("CLUSTER"),
+		CustomTopic:         os.Getenv("CUSTOM_TOPIC"),
 		Development:         os.Getenv("DEVELOPMENT") == "true",
 		DockerImageAPI:      os.Getenv("DOCKER_IMAGE_API"),
 		DynamoBuilds:        os.Getenv("DYNAMO_BUILDS"),
@@ -176,6 +179,10 @@ func (p *AWSProvider) s3() *s3.S3 {
 
 func (p *AWSProvider) sns() *sns.SNS {
 	return sns.New(session.New(), p.config())
+}
+
+func (p *AWSProvider) sqs() *sqs.SQS {
+	return sqs.New(session.New(), p.config())
 }
 
 func (p *AWSProvider) sts() *sts.STS {

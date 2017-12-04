@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/convox/rack/api/structs"
+	"github.com/convox/rack/structs"
 	"github.com/convox/rack/manifest1"
 )
 
@@ -173,7 +173,7 @@ func (p *AWSProvider) formationGet2(app, service string) (*structs.ProcessFormat
 		Memory: memory,
 	}
 
-	if endpoint, ok := a.Outputs[fmt.Sprintf("%sEndpoint", upperName(service))]; ok {
+	if endpoint, ok := a.Outputs[fmt.Sprintf("Service%sEndpoint", upperName(service))]; ok {
 		formation.Balancer = endpoint
 		formation.Ports = []int{80, 443}
 	}

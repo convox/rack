@@ -8,8 +8,8 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/sns"
-	"github.com/convox/rack/api/helpers"
-	"github.com/convox/rack/api/structs"
+	"github.com/convox/rack/helpers"
+	"github.com/convox/rack/structs"
 )
 
 // EventSend publishes an important message out to the world.

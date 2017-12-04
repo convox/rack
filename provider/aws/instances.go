@@ -2,17 +2,39 @@ package aws
 
 import (
 	"fmt"
+	"io"
+	"math/rand"
 	"os"
 	"sort"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/aws/aws-sdk-go/service/ec2"
-	"github.com/aws/aws-sdk-go/service/ecs"
-	"github.com/convox/rack/api/structs"
+	"github.com/convox/rack/structs"
+	"golang.org/x/crypto/ssh"
 )
+
+func (p *AWSProvider) InstanceKeyroll() error {
+	key := fmt.Sprintf("%s-keypair-%d", os.Getenv("RACK"), (rand.Intn(8999) + 1000))
+
+	res, err := p.ec2().CreateKeyPair(&ec2.CreateKeyPairInput{
+		KeyName: aws.String(key),
+	})
+	if err != nil {
+		return err
+	}
+
+	if err := p.SettingPut("instance-key", *res.KeyMaterial); err != nil {
+		return err
+	}
+
+	if err := p.updateStack(p.Rack, "", map[string]string{"Key": key}); err != nil {
+		return err
+	}
+
+	return nil
+}
 
 func (p *AWSProvider) InstanceList() (structs.Instances, error) {
 	ihash := map[string]structs.Instance{}
@@ -95,6 +117,96 @@ func (p *AWSProvider) InstanceList() (structs.Instances, error) {
 	return instances, nil
 }
 
+func (p *AWSProvider) InstanceShell(id string, rw io.ReadWriter, opts structs.InstanceShellOptions) error {
+	res, err := p.ec2().DescribeInstances(&ec2.DescribeInstancesInput{
+		Filters: []*ec2.Filter{
+			{Name: aws.String("instance-id"), Values: []*string{aws.String(id)}},
+		},
+		MaxResults: aws.Int64(1000),
+	})
+	if err != nil {
+		return err
+	}
+	if len(res.Reservations) < 1 {
+		return fmt.Errorf("instance not found")
+	}
+
+	instance := res.Reservations[0].Instances[0]
+
+	key, err := p.SettingGet("instance-key")
+	if err != nil {
+		return fmt.Errorf("no instance key found")
+	}
+
+	// configure SSH client
+	signer, err := ssh.ParsePrivateKey([]byte(key))
+	if err != nil {
+		return err
+	}
+
+	config := &ssh.ClientConfig{
+		User: "ec2-user",
+		Auth: []ssh.AuthMethod{ssh.PublicKeys(signer)},
+	}
+
+	ip := *instance.PrivateIpAddress
+	if os.Getenv("DEVELOPMENT") == "true" {
+		ip = *instance.PublicIpAddress
+	}
+
+	conn, err := ssh.Dial("tcp", fmt.Sprintf("%s:22", ip), config)
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+
+	session, err := conn.NewSession()
+	if err != nil {
+		return err
+	}
+	defer session.Close()
+
+	// Setup I/O
+	session.Stdout = rw
+	session.Stdin = rw
+	session.Stderr = rw
+
+	if opts.Terminal != "" {
+		modes := ssh.TerminalModes{
+			ssh.ECHOCTL:       0,
+			ssh.TTY_OP_ISPEED: 56000, // input speed = 56kbaud
+			ssh.TTY_OP_OSPEED: 56000, // output speed = 56kbaud
+		}
+		if err := session.RequestPty(opts.Terminal, opts.Width, opts.Height, modes); err != nil {
+			return err
+		}
+	}
+
+	code := 0
+
+	if opts.Command != "" {
+		if err := session.Start(opts.Command); err != nil {
+			return err
+		}
+	} else {
+		if err := session.Shell(); err != nil {
+			return err
+		}
+	}
+
+	if err := session.Wait(); err != nil {
+		if ee, ok := err.(*ssh.ExitError); ok {
+			code = ee.Waitmsg.ExitStatus()
+		}
+	}
+
+	if _, err := rw.Write([]byte(fmt.Sprintf("%s%d\n", StatusCodePrefix, code))); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (p *AWSProvider) InstanceTerminate(id string) error {
 	instances, err := p.InstanceList()
 	if err != nil {
@@ -123,46 +235,4 @@ func (p *AWSProvider) InstanceTerminate(id string) error {
 	}
 
 	return nil
-}
-
-// listAndDescribeContainerInstances lists and describes all the ECS instances.
-// It handles pagination for clusters > 100 instances.
-func (p *AWSProvider) listAndDescribeContainerInstances() (*ecs.DescribeContainerInstancesOutput, error) {
-	instances := []*ecs.ContainerInstance{}
-	var nextToken string
-
-	for {
-		res, err := p.listContainerInstances(&ecs.ListContainerInstancesInput{
-			Cluster:   aws.String(p.Cluster),
-			NextToken: &nextToken,
-		})
-		if ae, ok := err.(awserr.Error); ok && ae.Code() == "ClusterNotFoundException" {
-			return nil, errorNotFound(fmt.Sprintf("cluster not found: %s", p.Cluster))
-		}
-		if err != nil {
-			return nil, err
-		}
-
-		dres, err := p.describeContainerInstances(&ecs.DescribeContainerInstancesInput{
-			Cluster:            aws.String(p.Cluster),
-			ContainerInstances: res.ContainerInstanceArns,
-		})
-		if err != nil {
-			return nil, err
-		}
-
-		instances = append(instances, dres.ContainerInstances...)
-
-		// No more container results
-		if res.NextToken == nil {
-			break
-		}
-
-		// set the nextToken to be used for the next iteration
-		nextToken = *res.NextToken
-	}
-
-	return &ecs.DescribeContainerInstancesOutput{
-		ContainerInstances: instances,
-	}, nil
 }

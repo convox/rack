@@ -2,6 +2,7 @@ package aws
 
 import (
 	"fmt"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -11,13 +12,13 @@ import (
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/ecr"
 	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/convox/rack/api/helpers"
-	"github.com/convox/rack/api/structs"
+	"github.com/convox/rack/helpers"
+	"github.com/convox/rack/structs"
 )
 
 func (p *AWSProvider) AppCancel(name string) error {
 	_, err := p.cloudformation().CancelUpdateStack(&cloudformation.CancelUpdateStackInput{
-		StackName: aws.String(fmt.Sprintf("%s-%s", p.Rack, name)),
+		StackName: aws.String(p.rackStack(name)),
 	})
 	if err != nil {
 		return err
@@ -26,39 +27,83 @@ func (p *AWSProvider) AppCancel(name string) error {
 	return nil
 }
 
-func (p *AWSProvider) AppCreate(name string) (*structs.App, error) {
+func (p *AWSProvider) AppCreate(name string, opts structs.AppCreateOptions) (*structs.App, error) {
+	switch opts.Generation {
+	case "1", "":
+		return p.appCreateGeneration1(name)
+	case "2":
+	default:
+		return nil, fmt.Errorf("unknown generation: %s", opts.Generation)
+	}
+
 	data, err := formationTemplate("app", nil)
 	if err != nil {
 		return nil, err
 	}
 
-	_, err = p.cloudformation().CreateStack(&cloudformation.CreateStackInput{
-		Capabilities: []*string{aws.String("CAPABILITY_IAM")},
-		Parameters: []*cloudformation.Parameter{
-			{ParameterKey: aws.String("LogBucket"), ParameterValue: aws.String(p.LogBucket)},
-			{ParameterKey: aws.String("Rack"), ParameterValue: aws.String(p.Rack)},
-		},
-		StackName: aws.String(fmt.Sprintf("%s-%s", p.Rack, name)),
-		Tags: []*cloudformation.Tag{
-			{Key: aws.String("Generation"), Value: aws.String("2")},
-			{Key: aws.String("Name"), Value: aws.String(name)},
-			{Key: aws.String("Rack"), Value: aws.String(p.Rack)},
-			{Key: aws.String("System"), Value: aws.String("convox")},
-			{Key: aws.String("Type"), Value: aws.String("app")},
-			{Key: aws.String("Version"), Value: aws.String(p.Release)},
-		},
-		TemplateBody: aws.String(string(data)),
-	})
-	if awsError(err) == "AlreadyExistsException" {
-		return nil, fmt.Errorf("app already exists: %s", name)
+	params := map[string]string{
+		"LogBucket": p.LogBucket,
+		"Rack":      p.Rack,
 	}
-	if err != nil {
+
+	tags := map[string]string{
+		"Generation": "2",
+		"System":     "convox",
+		"Rack":       os.Getenv("RACK"),
+		"Version":    p.Release,
+		"Type":       "app",
+		"Name":       name,
+	}
+
+	if err := p.createStack(p.rackStack(name), data, params, tags); err != nil {
+		if awsError(err) == "AlreadyExistsException" {
+			return nil, fmt.Errorf("app already exists: %s", name)
+		}
 		return nil, err
 	}
 
 	p.EventSend(&structs.Event{Action: "app:create", Data: map[string]string{"name": name}}, nil)
 
-	return nil, nil
+	return p.AppGet(name)
+}
+
+func (p *AWSProvider) appCreateGeneration1(name string) (*structs.App, error) {
+	data, err := formationTemplate("g1/app", nil)
+	if err != nil {
+		return nil, err
+	}
+
+	params := map[string]string{
+		"Cluster":        os.Getenv("CLUSTER"),
+		"Key":            os.Getenv("ENCRYPTION_KEY"),
+		"LogBucket":      os.Getenv("LOG_BUCKET"),
+		"Private":        os.Getenv("PRIVATE"),
+		"Subnets":        os.Getenv("SUBNETS"),
+		"SubnetsPrivate": coalesces(os.Getenv("SUBNETS_PRIVATE"), os.Getenv("SUBNETS")),
+		"Version":        os.Getenv("RELEASE"),
+		"VPC":            os.Getenv("VPC"),
+		"VPCCIDR":        os.Getenv("VPCCIDR"),
+	}
+
+	tags := map[string]string{
+		"Generation": "1",
+		"System":     "convox",
+		"Rack":       os.Getenv("RACK"),
+		"Version":    p.Release,
+		"Type":       "app",
+		"Name":       name,
+	}
+
+	if err := p.createStack(p.rackStack(name), data, params, tags); err != nil {
+		if awsError(err) == "AlreadyExistsException" {
+			return nil, fmt.Errorf("app already exists: %s", name)
+		}
+		return nil, err
+	}
+
+	p.EventSend(&structs.Event{Action: "app:create", Data: map[string]string{"name": name}}, nil)
+
+	return p.AppGet(name)
 }
 
 // AppGet gets an app
@@ -110,7 +155,7 @@ func (p *AWSProvider) AppDelete(name string) error {
 		}
 	}
 
-	_, err = p.cloudformation().DeleteStack(&cloudformation.DeleteStackInput{StackName: aws.String(app.StackName())})
+	_, err = p.cloudformation().DeleteStack(&cloudformation.DeleteStackInput{StackName: aws.String(p.rackStack(app.Name))})
 	if err != nil {
 		helpers.TrackEvent("kernel-app-delete-error", nil)
 		return err
@@ -119,6 +164,29 @@ func (p *AWSProvider) AppDelete(name string) error {
 	go p.cleanup(app)
 
 	return nil
+}
+
+func (p *AWSProvider) AppList() (structs.Apps, error) {
+	stacks, err := p.describeStacks(&cloudformation.DescribeStacksInput{})
+	if err != nil {
+		return nil, err
+	}
+
+	apps := make(structs.Apps, 0)
+
+	for _, stack := range stacks {
+		tags := stackTags(stack)
+
+		if tags["System"] == "convox" && tags["Type"] == "app" && tags["Rack"] == p.Rack {
+			apps = append(apps, appFromStack(stack))
+		}
+	}
+
+	return apps, nil
+}
+
+func (p *AWSProvider) AppUpdate(app string, opts structs.AppUpdateOptions) error {
+	return p.updateStack(p.rackStack(app), "", opts.Parameters)
 }
 
 // appRepository defines an image repository for an App
@@ -236,7 +304,7 @@ func (p *AWSProvider) cleanup(app *structs.App) error {
 
 	for i := 0; i < 60; i++ {
 		res, err := p.cloudformation().DescribeStacks(&cloudformation.DescribeStacksInput{
-			StackName: aws.String(app.StackName()),
+			StackName: aws.String(p.rackStack(app.Name)),
 		})
 
 		// return when stack is not found indicating successful delete
@@ -258,8 +326,7 @@ func (p *AWSProvider) cleanup(app *structs.App) error {
 			if *s.StackStatus == "DELETE_FAILED" {
 				helpers.TrackEvent("kernel-app-delete-retry", nil)
 
-				_, err := p.cloudformation().DeleteStack(&cloudformation.DeleteStackInput{StackName: aws.String(app.StackName())})
-
+				_, err := p.cloudformation().DeleteStack(&cloudformation.DeleteStackInput{StackName: aws.String(p.rackStack(app.Name))})
 				if err != nil {
 					helpers.TrackEvent("kernel-app-delete-retry-error", nil)
 				} else {

@@ -2,7 +2,7 @@ version: "2"
 services:
   web:
     build: .
-    command: api/bin/web
+    command: bin/web
     environment:
       - AUTOSCALE=false
       - DEVELOPMENT=true
@@ -46,7 +46,7 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
   monitor:
     build: .
-    command: api/bin/monitor
+    command: bin/monitor
     environment:
       - DEVELOPMENT=true
       - AUTOSCALE=false
