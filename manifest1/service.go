@@ -293,7 +293,7 @@ func (v MountableVolume) IsSystem() bool {
 
 // DeploymentMinimum returns the min percent of containers that are allowed during deployment
 func (s Service) DeploymentMinimum() string {
-	return s.LabelDefault("convox.deployment.minimum", "100")
+	return s.LabelDefault("convox.deployment.minimum", "50")
 }
 
 // DeploymentMaximum returns the max percent of containers that are allowed during deployment
