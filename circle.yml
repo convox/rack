@@ -14,3 +14,4 @@ jobs:
       - run: ci/report.sh
       - run: ci/uninstall.sh
       - run: ci/cleanup.sh
+      - store_artifacts: path: /tmp/artifacts
