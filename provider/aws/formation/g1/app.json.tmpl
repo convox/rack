@@ -609,7 +609,7 @@
 {{ end }}
 
 {{ define "cronjob-resources" }}
-  {{ if .App.CronJobs .Manifest }}
+  {{ with $jobs := cronjobs .App .Manifest }}
     "CronRole": {
       "Type": "AWS::IAM::Role",
       "Properties": {
@@ -741,34 +741,34 @@
         }
       }
     },
-  {{ end }}
-  {{ range .App.CronJobs .Manifest }}
-    "{{ .ShortName }}Rule": {
-      "Type": "AWS::Events::Rule",
-      "Properties": {
-        "Name": "{{ .LongName }}-schedule",
-        "ScheduleExpression": "{{ .Schedule }}",
-        "Targets": [{
-          "Arn": { "Fn::GetAtt": [ "CronFunction", "Arn" ] },
-          "Id": "{{ .LongName }}Target",
-    "Input": { "Fn::Join" : [ "", [ "{\"process\": \"{{ .Process }}\", \"command\": \"{{ .Command }}\", \"processArn\": \"",  { "Ref": "{{ upper .Process }}ECSTaskDefinition" }, "\"}" ] ] }
-        }]
-      }
-    },
-    "{{ .ShortName }}LambdaPermission": {
-      "Type" : "AWS::Lambda::Permission",
-      "Properties" : {
-        "Action" : "lambda:InvokeFunction",
-        "FunctionName" : { "Fn::GetAtt": [ "CronFunction", "Arn" ] },
-        "Principal" : "events.amazonaws.com",
-        "SourceArn" : { "Fn::GetAtt": [ "{{ .ShortName }}Rule", "Arn" ] }
-      }
-    },
+    {{ range $jobs }}
+      "{{ .ShortName }}Rule": {
+        "Type": "AWS::Events::Rule",
+        "Properties": {
+          "Name": "{{ .LongName }}-schedule",
+          "ScheduleExpression": "{{ .Schedule }}",
+          "Targets": [{
+            "Arn": { "Fn::GetAtt": [ "CronFunction", "Arn" ] },
+            "Id": "{{ .LongName }}Target",
+      "Input": { "Fn::Join" : [ "", [ "{\"process\": \"{{ .Process }}\", \"command\": \"{{ .Command }}\", \"processArn\": \"",  { "Ref": "{{ upper .Process }}ECSTaskDefinition" }, "\"}" ] ] }
+          }]
+        }
+      },
+      "{{ .ShortName }}LambdaPermission": {
+        "Type" : "AWS::Lambda::Permission",
+        "Properties" : {
+          "Action" : "lambda:InvokeFunction",
+          "FunctionName" : { "Fn::GetAtt": [ "CronFunction", "Arn" ] },
+          "Principal" : "events.amazonaws.com",
+          "SourceArn" : { "Fn::GetAtt": [ "{{ .ShortName }}Rule", "Arn" ] }
+        }
+      },
+    {{ end }}
   {{ end }}
 {{ end }}
 
 {{ define "agent-resources" }}
-  {{ if .App.Agents .Manifest }}
+  {{ with $agents := agents .App .Manifest }}
     "AgentRole": {
       "Type": "AWS::IAM::Role",
       "Properties": {
@@ -849,48 +849,48 @@
         }
       }
     },
-  {{ end }}
-  {{ range .App.Agents .Manifest }}
-    "{{ .ShortName }}Rule": {
-      "Type": "AWS::Events::Rule",
-      "Properties": {
-        "Name": "{{ .LongName }}-change",
-        "EventPattern": {
-          "source": [
-            "aws.ecs"
-          ],
-          "detail-type": [
-            "ECS Container Instance State Change",
-            "ECS Task State Change"
-          ],
-          "detail": {
-            "clusterArn": [
-              { "Fn::Join": [ "", [
-                "arn:aws:ecs:",
-                { "Ref": "AWS::Region" },
-                ":",
-                { "Ref": "AWS::AccountId" },
-                ":cluster/",
-                { "Ref": "Cluster" }
-              ] ] }
-            ]
-          }
-        },
-        "Targets": [{
-          "Arn": { "Fn::GetAtt": [ "AgentFunction", "Arn" ] },
-          "Id": "{{ .LongName }}Target"
-        }]
-      }
-    },
-    "{{ .ShortName }}LambdaPermission": {
-      "Type" : "AWS::Lambda::Permission",
-      "Properties" : {
-        "Action" : "lambda:InvokeFunction",
-        "FunctionName" : { "Fn::GetAtt": [ "AgentFunction", "Arn" ] },
-        "Principal" : "events.amazonaws.com",
-        "SourceArn" : { "Fn::GetAtt": [ "{{ .ShortName }}Rule", "Arn" ] }
-      }
-    },
+    {{ range $agents }}
+      "{{ .ShortName }}Rule": {
+        "Type": "AWS::Events::Rule",
+        "Properties": {
+          "Name": "{{ .LongName }}-change",
+          "EventPattern": {
+            "source": [
+              "aws.ecs"
+            ],
+            "detail-type": [
+              "ECS Container Instance State Change",
+              "ECS Task State Change"
+            ],
+            "detail": {
+              "clusterArn": [
+                { "Fn::Join": [ "", [
+                  "arn:aws:ecs:",
+                  { "Ref": "AWS::Region" },
+                  ":",
+                  { "Ref": "AWS::AccountId" },
+                  ":cluster/",
+                  { "Ref": "Cluster" }
+                ] ] }
+              ]
+            }
+          },
+          "Targets": [{
+            "Arn": { "Fn::GetAtt": [ "AgentFunction", "Arn" ] },
+            "Id": "{{ .LongName }}Target"
+          }]
+        }
+      },
+      "{{ .ShortName }}LambdaPermission": {
+        "Type" : "AWS::Lambda::Permission",
+        "Properties" : {
+          "Action" : "lambda:InvokeFunction",
+          "FunctionName" : { "Fn::GetAtt": [ "AgentFunction", "Arn" ] },
+          "Principal" : "events.amazonaws.com",
+          "SourceArn" : { "Fn::GetAtt": [ "{{ .ShortName }}Rule", "Arn" ] }
+        }
+      },
+    {{ end }}
   {{ end }}
 {{ end }}
 

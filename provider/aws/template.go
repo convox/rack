@@ -16,6 +16,8 @@ import (
 	"html/template"
 
 	"github.com/convox/rack/manifest"
+	"github.com/convox/rack/manifest1"
+	"github.com/convox/rack/structs"
 )
 
 func formationHelpers() template.FuncMap {
@@ -108,12 +110,18 @@ func formationHelpers() template.FuncMap {
 		"value": func(s string) template.HTML {
 			return template.HTML(fmt.Sprintf("%q", s))
 		},
+		"agents": func(a *structs.App, m *manifest1.Manifest) Agents {
+			return appAgents(a, m)
+		},
+		"cronjobs": func(a *structs.App, m *manifest1.Manifest) CronJobs {
+			return appCronJobs(a, m)
+		},
 	}
 }
 func formationTemplate(name string, data interface{}) ([]byte, error) {
 	var buf bytes.Buffer
 
-	path := fmt.Sprintf("../provider/aws/formation/%s.json.tmpl", name)
+	path := fmt.Sprintf("provider/aws/formation/%s.json.tmpl", name)
 	file := filepath.Base(path)
 
 	t, err := template.New(file).Funcs(formationHelpers()).ParseFiles(path)
