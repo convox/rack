@@ -54,18 +54,18 @@
   },
   "Mappings": {
     "RegionConfig": {
-      "ap-northeast-1": { "Ami": "ami-3405af52", "EFS": "No",  "ThirdAvailabilityZone": "Yes", "ELBAccountId": "582318560864" },
-      "ap-northeast-2": { "Ami": "ami-502c883e", "EFS": "No",  "ThirdAvailabilityZone": "No",  "ELBAccountId": "600734575887" },
-      "ap-southeast-1": { "Ami": "ami-134e0670", "EFS": "No",  "ThirdAvailabilityZone": "No",  "ELBAccountId": "114774131450" },
-      "ap-southeast-2": { "Ami": "ami-2ab95148", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "783225319266" },
-      "ca-central-1":   { "Ami": "ami-c802baac", "EFS": "No",  "ThirdAvailabilityZone": "No",  "ELBAccountId": "985666609251" },
-      "eu-central-1":   { "Ami": "ami-4255d32d", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "054676820928" },
-      "eu-west-1":      { "Ami": "ami-014ae578", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "156460612806" },
-      "eu-west-2":      { "Ami": "ami-4f8d912b", "EFS": "No",  "ThirdAvailabilityZone": "No",  "ELBAccountId": "652711504416" },
-      "us-east-1":      { "Ami": "ami-71ef560b", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "127311923021" },
-      "us-east-2":      { "Ami": "ami-1b8ca37e", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "033677994240" },
-      "us-west-1":      { "Ami": "ami-e5cdf385", "EFS": "No",  "ThirdAvailabilityZone": "No",  "ELBAccountId": "027434742980" },
-      "us-west-2":      { "Ami": "ami-a64d9ade", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "797873946194" }
+      "ap-northeast-1": { "Ami": "ami-56bd0030", "EFS": "No",  "ThirdAvailabilityZone": "Yes", "ELBAccountId": "582318560864" },
+      "ap-northeast-2": { "Ami": "ami-7267c01c", "EFS": "No",  "ThirdAvailabilityZone": "No",  "ELBAccountId": "600734575887" },
+      "ap-southeast-1": { "Ami": "ami-1bdc8b78", "EFS": "No",  "ThirdAvailabilityZone": "No",  "ELBAccountId": "114774131450" },
+      "ap-southeast-2": { "Ami": "ami-14b55f76", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "783225319266" },
+      "ca-central-1":   { "Ami": "ami-918b30f5", "EFS": "No",  "ThirdAvailabilityZone": "No",  "ELBAccountId": "985666609251" },
+      "eu-central-1":   { "Ami": "ami-05991b6a", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "054676820928" },
+      "eu-west-1":      { "Ami": "ami-4cbe0935", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "156460612806" },
+      "eu-west-2":      { "Ami": "ami-dbfee1bf", "EFS": "No",  "ThirdAvailabilityZone": "No",  "ELBAccountId": "652711504416" },
+      "us-east-1":      { "Ami": "ami-fad25980", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "127311923021" },
+      "us-east-2":      { "Ami": "ami-58f5db3d", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "033677994240" },
+      "us-west-1":      { "Ami": "ami-62e0d802", "EFS": "No",  "ThirdAvailabilityZone": "No",  "ELBAccountId": "027434742980" },
+      "us-west-2":      { "Ami": "ami-7114c909", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "797873946194" }
     }
   },
   "Outputs": {
@@ -1156,7 +1156,6 @@
           {
             "DeviceName": "/dev/xvda",
             "Ebs": {
-              "Encrypted": { "Fn::If": [ "EncryptEbs", "true", { "Ref": "AWS::NoValue" } ] },
               "VolumeSize": { "Ref": "RootSize" },
               "VolumeType":"gp2"
             }
