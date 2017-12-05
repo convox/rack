@@ -6,6 +6,9 @@
   "Outputs": {
     {{ template "balancer-outputs" . }}
 
+    "Agents": {
+      "Value": "{{ join .Manifest.Agents "," }}"
+    },
     "Release": {
       "Value": "{{ .Release.Id }}"
     },
@@ -219,10 +222,16 @@
           "LoadBalancers": [ { "ContainerName": "{{.Name}}", "ContainerPort": "{{.Port.Port}}", "TargetGroupArn": { "Ref": "Balancer{{ upper .Name }}TargetGroup{{ if .Internal }}Internal{{ end }}" } } ],
           "Role": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:ServiceRole" } },
         {{ end }}
-        "PlacementStrategies": [
-          { "Type": "spread", "Field": "attribute:ecs.availability-zone" },
-          { "Type": "spread", "Field": "instanceId" }
-        ],
+        {{ if .Agent }}
+          "PlacementConstraints": [
+            { "Type": "distinctInstance" }
+          ],
+        {{ else }}
+          "PlacementStrategies": [
+            { "Type": "spread", "Field": "attribute:ecs.availability-zone" },
+            { "Type": "spread", "Field": "instanceId" }
+          ],
+        {{ end }}
         "TaskDefinition": { "Ref": "Service{{ upper .Name }}Tasks" }
       }
     },

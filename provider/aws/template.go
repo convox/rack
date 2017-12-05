@@ -35,6 +35,9 @@ func formationHelpers() template.FuncMap {
 		"dec": func(i int) int {
 			return i - 1
 		},
+		"join": func(ss []string, j string) string {
+			return strings.Join(ss, j)
+		},
 		"priority": func(app, domain string) uint32 {
 			tier := uint32(1)
 			if strings.HasPrefix(domain, "*.") {
