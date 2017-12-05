@@ -10,6 +10,7 @@ import (
 type Service struct {
 	Name string `yaml:"-"`
 
+	Agent       bool               `yaml:"agent,omitempty"`
 	Build       ServiceBuild       `yaml:"build,omitempty"`
 	Command     string             `yaml:"command,omitempty"`
 	Domains     ServiceDomains     `yaml:"domain,omitempty"`
