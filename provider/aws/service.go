@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/convox/rack/structs"
 	"github.com/convox/rack/manifest"
 	"github.com/convox/rack/manifest1"
+	"github.com/convox/rack/structs"
 )
 
 func (p *AWSProvider) ServiceList(app string) (structs.Services, error) {
@@ -109,8 +109,6 @@ func (p *AWSProvider) serviceListGeneration1(a *structs.App) (structs.Services, 
 
 		ss = append(ss, s)
 	}
-
-	fmt.Printf("ss = %+v\n", ss)
 
 	return ss, nil
 }
