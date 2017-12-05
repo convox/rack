@@ -254,7 +254,7 @@ func (p *AWSProvider) releasePromoteGeneration1(a *structs.App, r *structs.Relea
 			listener := []string{strconv.Itoa(randomPort), ""}
 
 			// copy values from existing parameters
-			if v, ok := params[listenerParam]; ok {
+			if v, ok := a.Parameters[listenerParam]; ok {
 				listener = strings.Split(v, ",")
 				if len(listener) != 2 {
 					return fmt.Errorf("%s not in port,cert format", listenerParam)
@@ -275,7 +275,7 @@ func (p *AWSProvider) releasePromoteGeneration1(a *structs.App, r *structs.Relea
 					}
 
 					for _, cert := range certs.ServerCertificateMetadataList {
-						if strings.Contains(*cert.Arn, fmt.Sprintf("cert-%s", os.Getenv("RACK"))) {
+						if strings.Contains(*cert.Arn, fmt.Sprintf("server-certificate/cert-%s-", os.Getenv("RACK"))) {
 							listener[1] = *cert.Arn
 							break
 						}
@@ -307,10 +307,10 @@ func (p *AWSProvider) releasePromoteGeneration1(a *structs.App, r *structs.Relea
 							return err
 						}
 					}
+
+					params[listenerParam] = strings.Join(listener, ",")
 				}
 			}
-
-			params[listenerParam] = strings.Join(listener, ",")
 		}
 	}
 
