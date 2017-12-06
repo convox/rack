@@ -127,6 +127,10 @@
       "Condition": "BlankExistingVpc",
       "Value": { "Ref": "GatewayAttachment" }
     },
+    "HostedZone": {
+      "Export": { "Name": { "Fn::Sub": "${AWS::StackName}:HostedZone" } },
+      "Value": { "Ref": "HostedZone" }
+    },
     "Internal": {
       "Value": { "Ref": "Internal" }
     },
@@ -954,6 +958,23 @@
       "Properties": {
         "SubnetId": { "Ref": "SubnetPrivate2" },
         "RouteTableId": { "Ref": "RouteTablePrivate2" }
+      }
+    },
+    "HostedZone": {
+      "Type": "AWS::Route53::HostedZone",
+      "Properties": {
+        "Name": "convox",
+        "VPCs": [ { "VPCId": { "Fn::If": [ "BlankExistingVpc", { "Ref": "Vpc" }, { "Ref": "ExistingVpc" } ] }, "VPCRegion": { "Ref": "AWS::Region" } } ]
+      }
+    },
+    "RecordSetRack": {
+      "Type": "AWS::Route53::RecordSet",
+      "Properties": {
+        "HostedZoneId": { "Ref": "HostedZone" },
+        "Name": "rack.convox.",
+        "Type": "CNAME",
+        "TTL": "3600",
+        "ResourceRecords": [ { "Fn::GetAtt": [ "Balancer", "DNSName" ] } ]
       }
     },
     "InstancesSecurity": {
