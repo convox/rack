@@ -91,7 +91,7 @@
           "Name": "{{.Name}}.{{$.App}}.convox.",
           "Type": "CNAME",
           "TTL": "3600",
-          "ResourceRecords": [ { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Domain" } } ]
+          "ResourceRecords": [ { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Domain{{ if .Internal }}Internal{{ end }}" } } ]
         }
       },
       "Balancer{{ upper .Name }}ListenerRule80Internal": {
