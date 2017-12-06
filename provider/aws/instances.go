@@ -145,8 +145,9 @@ func (p *AWSProvider) InstanceShell(id string, rw io.ReadWriter, opts structs.In
 	}
 
 	config := &ssh.ClientConfig{
-		User: "ec2-user",
-		Auth: []ssh.AuthMethod{ssh.PublicKeys(signer)},
+		User:            "ec2-user",
+		Auth:            []ssh.AuthMethod{ssh.PublicKeys(signer)},
+		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 	}
 
 	ip := *instance.PrivateIpAddress
