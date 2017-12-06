@@ -265,7 +265,7 @@ func (p *AWSProvider) ResourceList() (structs.Resources, error) {
 		tags := stackTags(stack)
 
 		// if it's a resource and the Rack tag is either the current rack or blank
-		if tags["System"] == "convox" && (tags["Type"] == "resource" || tags["Type"] == "service") {
+		if tags["System"] == "convox" && (tags["Type"] == "resource" || tags["Type"] == "service") && tags["App"] == "" {
 			if tags["Rack"] == p.Rack || tags["Rack"] == "" {
 				resources = append(resources, resourceFromStack(stack))
 			}
