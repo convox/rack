@@ -632,6 +632,8 @@ func FriendlyName(t string) string {
 		return "NAT Elastic IP"
 	case "AWS::EC2::InternetGateway":
 		return "VPC Internet Gateway"
+	case "AWS::EC2::NatGateway":
+		return "NAT Gateway"
 	case "AWS::EC2::Route":
 		return ""
 	case "AWS::EC2::RouteTable":
@@ -688,8 +690,10 @@ func FriendlyName(t string) string {
 		return "CloudWatch Log Group"
 	case "AWS::Logs::SubscriptionFilter":
 		return ""
-	case "AWS::EC2::NatGateway":
-		return "NAT Gateway"
+	case "AWS::Route53::HostedZone":
+		return "Hosted Zone"
+	case "AWS::Route53::RecordSet":
+		return ""
 	case "AWS::S3::Bucket":
 		return "S3 Bucket"
 	case "AWS::S3::BucketPolicy":
