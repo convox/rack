@@ -79,7 +79,7 @@ func init() {
 			},
 			{
 				Name:        "delete",
-				Description: "archive a build and its artifacts",
+				Description: "delete a build and its artifacts",
 				Usage:       "<build id>",
 				ArgsUsage:   "<build id>",
 				Action:      cmdBuildsDelete,
