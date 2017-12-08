@@ -101,11 +101,6 @@
       "Export": { "Name": { "Fn::Sub": "${AWS::StackName}:Domain" } },
       "Value": { "Fn::GetAtt": [ "Router", "DNSName" ] }
     },
-    "DomainInternal": {
-      "Condition": "Internal",
-      "Export": { "Name": { "Fn::Sub": "${AWS::StackName}:DomainInternal" } },
-      "Value": { "Fn::GetAtt": [ "RouterInternal", "DNSName" ] }
-    },
     "DynamoBuilds": {
       "Value": { "Ref": "DynamoBuilds" }
     },
