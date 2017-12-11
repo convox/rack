@@ -257,7 +257,6 @@
       "Value": { "Fn::If": [ "SpotInstances", "true", "false" ] }
     },
     "Subnets": {
-      "Export": { "Name": { "Fn::Sub": "${AWS::StackName}:Subnets" } },
       "Value": {
         "Fn::Join": [
           ",",
