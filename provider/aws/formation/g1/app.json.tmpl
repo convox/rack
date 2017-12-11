@@ -12,10 +12,9 @@
     {{ template "balancer-params" .Manifest }}
     {{ template "process-params" .Manifest }}
 
-    "Cluster": {
-      "Type" : "String",
-      "Default" : "",
-      "Description" : ""
+    "Rack": {
+      "Type": "String",
+      "MinLength": "1"
     },
     "Environment": {
       "Type": "String",
@@ -27,11 +26,6 @@
       "Description": "Only allow access to this app from inside the VPC",
       "Default": "No",
       "AllowedValues": [ "Yes", "No" ]
-    },
-    "Key": {
-      "Type": "String",
-      "Default": "",
-      "Description": ""
     },
     "LogBucket": {
       "Type": "String",
@@ -72,16 +66,6 @@
       "Description": "(REQUIRED) Lambda CustomTopic Handler Release Version",
       "MinLength" : "1",
       "Type": "String"
-    },
-    "VPC": {
-      "Type" : "AWS::EC2::VPC::Id",
-      "Default" : "",
-      "Description" : "VPC for this app"
-    },
-    "VPCCIDR": {
-      "Type" : "String",
-      "Default" : "",
-      "Description" : "VPC CIDR for this app"
     }
   },
   "Mappings": {
@@ -157,9 +141,7 @@
                   "kms:Encrypt",
                   "kms:Decrypt"
                 ],
-                "Resource": [
-                  { "Ref": "Key" }
-                ]
+                "Resource": [ { "Fn::ImportValue": { "Fn::Sub": "${Rack}:EncryptionKey" } } ]
               }
             }
           }
@@ -239,7 +221,7 @@
           "Name": { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" }, "{{ $e.Name }}" ] ] },
           "Release": { "Ref": "Release" },
           "Environment": { "Ref": "Environment" },
-          "Key": { "Ref": "Key" },
+          "Key": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:EncryptionKey" } },
           "Tasks": [
             {
               "Name": "{{ $e.Name }}",
@@ -327,7 +309,7 @@
          ],
         "Type": "AWS::ECS::Service",
         "Properties": {
-          "Cluster": { "Ref": "Cluster" },
+          "Cluster": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Cluster" } },
           "DeploymentConfiguration": {
             "MinimumHealthyPercent": "{{ $e.DeploymentMinimum }}",
             "MaximumPercent": "{{ $e.DeploymentMaximum }}"
@@ -455,9 +437,9 @@
           {{ range .PortMappings }}
             {
               {{ if .Public }}
-              "CidrIp": "0.0.0.0/0",
+                "CidrIp": "0.0.0.0/0",
               {{ else }}
-              "CidrIp": { "Ref": "VPCCIDR" },
+                "CidrIp": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:VpcCidr" } },
               {{ end }}
               "IpProtocol": "{{ .Protocol }}",
               "FromPort": "{{ .Balancer }}",
@@ -465,15 +447,15 @@
             },
           {{ end }}
           { "Fn::If": [ "Balancer{{ upper $balancer.ProcessName }}ALB",
-            { "CidrIp": {{ if .Public }} "0.0.0.0/0" {{ else }} { "Ref": "VPCCIDR" } {{ end }}, "IpProtocol": "TCP", "FromPort": "80", "ToPort": "80" },
+            { "CidrIp": {{ if .Public }} "0.0.0.0/0" {{ else }} { "Fn::ImportValue": { "Fn::Sub": "${Rack}:VpcCidr" } } {{ end }}, "IpProtocol": "TCP", "FromPort": "80", "ToPort": "80" },
             { "Ref": "AWS::NoValue" }
           ] },
           { "Fn::If": [ "Balancer{{ upper $balancer.ProcessName }}ALB",
-            { "CidrIp": {{ if .Public }} "0.0.0.0/0" {{ else }} { "Ref": "VPCCIDR" } {{ end }}, "IpProtocol": "TCP", "FromPort": "443", "ToPort": "443" },
+            { "CidrIp": {{ if .Public }} "0.0.0.0/0" {{ else }} { "Fn::ImportValue": { "Fn::Sub": "${Rack}:VpcCidr" } } {{ end }}, "IpProtocol": "TCP", "FromPort": "443", "ToPort": "443" },
             { "Ref": "AWS::NoValue" }
           ] }
         ],
-        "VpcId": { "Ref": "VPC" }
+        "VpcId": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Vpc" } }
       }
     },
     "{{ .ResourceName }}": {
@@ -489,7 +471,10 @@
           ] },
         {{ else }}
           "Scheme": { "Fn::If": [ "Internal", "internal", { "Ref": "AWS::NoValue" } ] },
-          "Subnets": { "Fn::If": [ "Internal", { "Ref": "SubnetsPrivate" }, { "Ref": "Subnets" } ] },
+          "Subnets": { "Fn::If": [ "Internal",
+            { "Ref": "SubnetsPrivate" },
+            { "Ref": "Subnets" }
+          ] },
         {{ end }}
         "ConnectionDrainingPolicy": { "Enabled": true, "Timeout": "{{ .DrainingTimeout }}" },
         "ConnectionSettings": { "IdleTimeout": "{{ .IdleTimeout }}" },
@@ -565,7 +550,10 @@
           ] },
         {{ else }}
           "Scheme": { "Fn::If": [ "Internal", "internal", { "Ref": "AWS::NoValue" } ] },
-          "Subnets": { "Fn::If": [ "Internal", { "Ref": "SubnetsPrivate" }, { "Ref": "Subnets" } ] },
+          "Subnets": { "Fn::If": [ "Internal",
+            { "Ref": "SubnetsPrivate" },
+            { "Ref": "Subnets" }
+          ] },
         {{ end }}
         "Name": { "Fn::If": [ "Internal",
           { "Fn::Join": [ "-", [ {{ .LoadBalancerName true $app.Name }}, "n" ] ] },
@@ -593,7 +581,7 @@
           { "Key": "deregistration_delay.timeout_seconds", "Value": "{{ .DrainingTimeout }}" },
           { "Key": "stickiness.enabled", "Value": "true" }
         ],
-        "VpcId": { "Ref": "VPC" }
+        "VpcId": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Vpc" } }
       }
     },
     "{{ .ResourceName }}Listener80": {
