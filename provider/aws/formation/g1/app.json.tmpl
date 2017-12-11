@@ -439,7 +439,7 @@
               {{ if .Public }}
                 "CidrIp": "0.0.0.0/0",
               {{ else }}
-                "CidrIp": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:VpcCidr" } }
+                "CidrIp": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:VpcCidr" } },
               {{ end }}
               "IpProtocol": "{{ .Protocol }}",
               "FromPort": "{{ .Balancer }}",
