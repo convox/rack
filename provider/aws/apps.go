@@ -74,15 +74,12 @@ func (p *AWSProvider) appCreateGeneration1(name string) (*structs.App, error) {
 	}
 
 	params := map[string]string{
-		"Cluster":        os.Getenv("CLUSTER"),
-		"Key":            os.Getenv("ENCRYPTION_KEY"),
 		"LogBucket":      os.Getenv("LOG_BUCKET"),
 		"Private":        os.Getenv("PRIVATE"),
+		"Rack":           p.Rack,
 		"Subnets":        os.Getenv("SUBNETS"),
 		"SubnetsPrivate": coalesces(os.Getenv("SUBNETS_PRIVATE"), os.Getenv("SUBNETS")),
 		"Version":        os.Getenv("RELEASE"),
-		"VPC":            os.Getenv("VPC"),
-		"VPCCIDR":        os.Getenv("VPCCIDR"),
 	}
 
 	tags := map[string]string{
