@@ -2,6 +2,7 @@ package aws
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/convox/rack/crypt"
@@ -78,6 +79,7 @@ func (p *AWSProvider) EnvironmentPut(app string, env structs.Environment) (strin
 
 	release.Id = generateId("R", 10)
 	release.Env = env.String()
+	release.Created = time.Now()
 
 	if err := p.ReleaseSave(release); err != nil {
 		return "", err
