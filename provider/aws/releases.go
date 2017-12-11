@@ -244,6 +244,7 @@ func (p *AWSProvider) releasePromoteGeneration1(a *structs.App, r *structs.Relea
 	params["LogBucket"] = p.LogBucket
 	params["Rack"] = p.Rack
 	params["Release"] = r.Id
+	params["Subnets"] = p.Subnets
 	params["SubnetsPrivate"] = coalesces(p.SubnetsPrivate, p.Subnets)
 	params["Version"] = p.Release
 

@@ -77,6 +77,7 @@ func (p *AWSProvider) appCreateGeneration1(name string) (*structs.App, error) {
 		"LogBucket":      os.Getenv("LOG_BUCKET"),
 		"Private":        os.Getenv("PRIVATE"),
 		"Rack":           p.Rack,
+		"Subnets":        os.Getenv("SUBNETS"),
 		"SubnetsPrivate": coalesces(os.Getenv("SUBNETS_PRIVATE"), os.Getenv("SUBNETS")),
 		"Version":        os.Getenv("RELEASE"),
 	}
