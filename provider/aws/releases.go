@@ -242,6 +242,7 @@ func (p *AWSProvider) releasePromoteGeneration1(a *structs.App, r *structs.Relea
 
 	params["Environment"] = fmt.Sprintf("https://%s.s3.amazonaws.com/releases/%s/env", settings, r.Id)
 	params["LogBucket"] = p.LogBucket
+	params["Rack"] = p.Rack
 	params["Release"] = r.Id
 	params["SubnetsPrivate"] = coalesces(p.SubnetsPrivate, p.Subnets)
 	params["Version"] = p.Release
