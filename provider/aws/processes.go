@@ -104,6 +104,13 @@ func (p *AWSProvider) ProcessExec(app, pid, command string, stream io.ReadWriter
 		return err
 	}
 
+	c, err := dc.InspectContainer(cs[0].ID)
+	if err != nil {
+		return err
+	}
+
+	cmd = append(c.Config.Entrypoint, cmd...)
+
 	if a.Tags["Generation"] == "2" {
 		cmd = append([]string{"/convox-env"}, cmd...)
 	}
