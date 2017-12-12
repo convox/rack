@@ -18,9 +18,9 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/convox/rack/cache"
-	"github.com/convox/rack/structs"
 	"github.com/convox/rack/manifest"
 	"github.com/convox/rack/manifest1"
+	"github.com/convox/rack/structs"
 	"github.com/fsouza/go-dockerclient"
 	shellquote "github.com/kballard/go-shellquote"
 )
@@ -824,7 +824,7 @@ func (p *AWSProvider) generateTaskDefinition1(app, process, release string) (*ec
 	if s.UseSecureEnvironment() {
 		env["SECURE_ENVIRONMENT_URL"] = a.Parameters["Environment"]
 		env["SECURE_ENVIRONMENT_TYPE"] = "envfile"
-		env["SECURE_ENVIRONMENT_KEY"] = a.Parameters["Key"]
+		env["SECURE_ENVIRONMENT_KEY"] = p.EncryptionKey
 	} else {
 		for _, e := range strings.Split(r.Env, "\n") {
 			p := strings.SplitN(e, "=", 2)
