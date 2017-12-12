@@ -30,8 +30,9 @@ type Processes []Process
 
 // ProcessExecOptions are options for ProcessExec
 type ProcessExecOptions struct {
-	Height int
-	Width  int
+	Entrypoint bool
+	Height     int
+	Width      int
 }
 
 // ProcessRunOptions are options for ProcessRun

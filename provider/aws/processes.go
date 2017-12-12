@@ -99,20 +99,22 @@ func (p *AWSProvider) ProcessExec(app, pid, command string, stream io.ReadWriter
 
 	cmd := []string{"sh", "-c", command}
 
-	a, err := p.AppGet(app)
-	if err != nil {
-		return err
-	}
+	if opts.Entrypoint {
+		c, err := dc.InspectContainer(cs[0].ID)
+		if err != nil {
+			return err
+		}
 
-	c, err := dc.InspectContainer(cs[0].ID)
-	if err != nil {
-		return err
-	}
+		cmd = append(c.Config.Entrypoint, cmd...)
+	} else {
+		a, err := p.AppGet(app)
+		if err != nil {
+			return err
+		}
 
-	cmd = append(c.Config.Entrypoint, cmd...)
-
-	if a.Tags["Generation"] == "2" {
-		cmd = append([]string{"/convox-env"}, cmd...)
+		if a.Tags["Generation"] == "2" {
+			cmd = append([]string{"/convox-env"}, cmd...)
+		}
 	}
 
 	eres, err := dc.CreateExec(docker.CreateExecOptions{
@@ -1055,8 +1057,9 @@ func (p *AWSProvider) processRunAttached(app, process string, opts structs.Proce
 	pid := arnToPid(*task.TaskArn)
 
 	err = p.ProcessExec(app, pid, opts.Command, opts.Stream, structs.ProcessExecOptions{
-		Height: opts.Height,
-		Width:  opts.Width,
+		Entrypoint: true,
+		Height:     opts.Height,
+		Width:      opts.Width,
 	})
 	if err != nil && !strings.Contains(err.Error(), "use of closed network") {
 		return "", err
