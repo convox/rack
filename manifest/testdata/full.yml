@@ -4,6 +4,7 @@ resources:
 services:
   api:
     build:
+      manifest: Dockerfile2
       path: api
     domain: foo.example.org
     environment:

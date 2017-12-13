@@ -131,6 +131,10 @@ func (m *Manifest) ApplyDefaults() error {
 			m.Services[i].Build.Path = "."
 		}
 
+		if m.Services[i].Build.Path != "" && s.Build.Manifest == "" {
+			m.Services[i].Build.Manifest = "Dockerfile"
+		}
+
 		if s.Scale.Count == nil {
 			m.Services[i].Scale.Count = &ServiceScaleCount{Min: 1, Max: 1}
 		}
