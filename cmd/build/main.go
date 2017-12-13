@@ -259,9 +259,14 @@ func build(dir string) error {
 		return err
 	}
 
+	sys, err := currentProvider.SystemGet()
+	if err != nil {
+		return err
+	}
+
 	env["SECURE_ENVIRONMENT_URL"] = a.Parameters["Environment"]
 	env["SECURE_ENVIRONMENT_TYPE"] = "envfile"
-	env["SECURE_ENVIRONMENT_KEY"] = a.Parameters["Key"]
+	env["SECURE_ENVIRONMENT_KEY"] = sys.Outputs["EncryptionKey"]
 
 	err = m.Build(dir, flagApp, s, manifest1.BuildOptions{
 		Environment: env,

@@ -18,9 +18,9 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/convox/rack/cache"
-	"github.com/convox/rack/structs"
 	"github.com/convox/rack/manifest"
 	"github.com/convox/rack/manifest1"
+	"github.com/convox/rack/structs"
 	"github.com/fsouza/go-dockerclient"
 	shellquote "github.com/kballard/go-shellquote"
 )
@@ -99,13 +99,22 @@ func (p *AWSProvider) ProcessExec(app, pid, command string, stream io.ReadWriter
 
 	cmd := []string{"sh", "-c", command}
 
-	a, err := p.AppGet(app)
-	if err != nil {
-		return err
-	}
+	if opts.Entrypoint {
+		c, err := dc.InspectContainer(cs[0].ID)
+		if err != nil {
+			return err
+		}
 
-	if a.Tags["Generation"] == "2" {
-		cmd = append([]string{"/convox-env"}, cmd...)
+		cmd = append(c.Config.Entrypoint, cmd...)
+	} else {
+		a, err := p.AppGet(app)
+		if err != nil {
+			return err
+		}
+
+		if a.Tags["Generation"] == "2" {
+			cmd = append([]string{"/convox-env"}, cmd...)
+		}
 	}
 
 	eres, err := dc.CreateExec(docker.CreateExecOptions{
@@ -824,7 +833,7 @@ func (p *AWSProvider) generateTaskDefinition1(app, process, release string) (*ec
 	if s.UseSecureEnvironment() {
 		env["SECURE_ENVIRONMENT_URL"] = a.Parameters["Environment"]
 		env["SECURE_ENVIRONMENT_TYPE"] = "envfile"
-		env["SECURE_ENVIRONMENT_KEY"] = a.Parameters["Key"]
+		env["SECURE_ENVIRONMENT_KEY"] = p.EncryptionKey
 	} else {
 		for _, e := range strings.Split(r.Env, "\n") {
 			p := strings.SplitN(e, "=", 2)
@@ -1048,8 +1057,9 @@ func (p *AWSProvider) processRunAttached(app, process string, opts structs.Proce
 	pid := arnToPid(*task.TaskArn)
 
 	err = p.ProcessExec(app, pid, opts.Command, opts.Stream, structs.ProcessExecOptions{
-		Height: opts.Height,
-		Width:  opts.Width,
+		Entrypoint: true,
+		Height:     opts.Height,
+		Width:      opts.Width,
 	})
 	if err != nil && !strings.Contains(err.Error(), "use of closed network") {
 		return "", err
