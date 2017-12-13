@@ -29,7 +29,8 @@ func TestManifestLoad(t *testing.T) {
 			manifest.Service{
 				Name: "api",
 				Build: manifest.ServiceBuild{
-					Path: "api",
+					Manifest: "Dockerfile2",
+					Path:     "api",
 				},
 				Domains: []string{"foo.example.org"},
 				Command: "",
@@ -72,7 +73,8 @@ func TestManifestLoad(t *testing.T) {
 			manifest.Service{
 				Name: "foo",
 				Build: manifest.ServiceBuild{
-					Path: ".",
+					Manifest: "Dockerfile",
+					Path:     ".",
 				},
 				Command: "foo",
 				Domains: []string{"baz.example.org", "qux.example.org"},
@@ -90,7 +92,8 @@ func TestManifestLoad(t *testing.T) {
 			manifest.Service{
 				Name: "bar",
 				Build: manifest.ServiceBuild{
-					Path: ".",
+					Manifest: "Dockerfile",
+					Path:     ".",
 				},
 				Command: "",
 				Health: manifest.ServiceHealth{
