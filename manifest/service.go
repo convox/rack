@@ -30,8 +30,9 @@ type Service struct {
 type Services []Service
 
 type ServiceBuild struct {
-	Args []string `yaml:"args,omitempty"`
-	Path string   `yaml:"path,omitempty"`
+	Args     []string `yaml:"args,omitempty"`
+	Manifest string   `yaml:"manifest,omitempty"`
+	Path     string   `yaml:"path,omitempty"`
 }
 
 type ServiceCommand struct {
@@ -107,6 +108,10 @@ func (s Service) GetName() string {
 }
 
 func (s *Service) SetDefaults() error {
+	if s.Build.Manifest == "" {
+		s.Build.Manifest = "Dockerfile"
+	}
+
 	if s.Scale.Count == nil {
 		s.Scale.Count = &ServiceScaleCount{Min: 1, Max: 1}
 	}
