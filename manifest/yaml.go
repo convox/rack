@@ -62,6 +62,7 @@ func (v *ServiceBuild) UnmarshalYAML(unmarshal func(interface{}) error) error {
 			return err
 		}
 		v.Args = r.Args
+		v.Manifest = r.Manifest
 		v.Path = r.Path
 	case string:
 		v.Path = t
