@@ -147,13 +147,13 @@ func (m *Manifest) BuildDockerfile(root, service string) ([]byte, error) {
 		return nil, nil
 	}
 
-	path, err := filepath.Abs(filepath.Join(root, s.Build.Path, "Dockerfile"))
+	path, err := filepath.Abs(filepath.Join(root, s.Build.Path, s.Build.Manifest))
 	if err != nil {
 		return nil, err
 	}
 
 	if _, err := os.Stat(path); os.IsNotExist(err) {
-		return nil, fmt.Errorf("no such file: %s", filepath.Join(s.Build.Path, "Dockerfile"))
+		return nil, fmt.Errorf("no such file: %s", filepath.Join(s.Build.Path, s.Build.Manifest))
 	}
 
 	return ioutil.ReadFile(path)
@@ -296,29 +296,17 @@ func build(b ServiceBuild, tag string, opts BuildOptions) error {
 		return fmt.Errorf("must have path to build")
 	}
 
-	args := []string{"build"}
-
-	args = append(args, "-t", tag)
-
 	path, err := filepath.Abs(filepath.Join(opts.Root, b.Path))
 	if err != nil {
 		return err
 	}
 
-	df := filepath.Join(path, "Dockerfile")
+	df := filepath.Join(path, b.Manifest)
 
-	if opts.Development {
-		data, err := ioutil.ReadFile(df)
-		if err != nil {
-			return err
-		}
+	args := []string{"build"}
 
-		dev := bytes.SplitN(data, []byte("## convox:production"), 2)
-
-		if err := ioutil.WriteFile(df, dev[0], 0644); err != nil {
-			return err
-		}
-	}
+	args = append(args, "-t", tag)
+	args = append(args, "-f", df)
 
 	ba, err := buildArgs(df, opts)
 	if err != nil {
