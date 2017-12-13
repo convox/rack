@@ -6,9 +6,9 @@ import (
 	"io"
 	"testing"
 
-	"github.com/convox/rack/test/awsutil"
 	"github.com/convox/rack/provider/aws"
 	"github.com/convox/rack/structs"
+	"github.com/convox/rack/test/awsutil"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -223,13 +223,13 @@ func TestProcessRunAttached(t *testing.T) {
 		cycleProcessDescribeTasks,
 		cycleProcessDescribeContainerInstances,
 		cycleProcessDescribeInstances,
-		cycleProcessDescribeStacks,
 		cycleProcessStopTask,
 	)
 	defer provider.Close()
 
 	d := stubDocker(
 		cycleProcessDockerListContainers1,
+		cycleProcessDockerInspect,
 		cycleProcessDockerCreateExec,
 		cycleProcessDockerStartExec,
 		cycleProcessDockerResizeExec,
