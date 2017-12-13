@@ -18,7 +18,7 @@ go:
 
 before_install:
   - source ./ci/correct-path.sh
-  - sudo apt-get -o Dpkg::Options::="--force-confnew" install -y docker-ce=${DOCKER_VERSION}
+  - sudo apt-get -o Dpkg::Options::="--force-confnew" install -y --allow-downgrades docker-ce=${DOCKER_VERSION}
   - docker version
 
 script:
