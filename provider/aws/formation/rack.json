@@ -72,6 +72,9 @@
     "Autoscale": {
       "Value": { "Fn::If": [ "Autoscale", "true", "false" ] }
     },
+    "AutoscaleExtra": {
+      "Value": { "Ref": "AutoscaleExtra" }
+    },
     "AutoscalingGroup": {
       "Value": { "Ref": "Instances" }
     },
@@ -331,6 +334,11 @@
       "Description": "Autoscale rack instances",
       "Default": "Yes",
       "AllowedValues": [ "Yes", "No" ]
+    },
+    "AutoscaleExtra": {
+      "Type": "Number",
+      "Description": "The number of instances of extra capacity that autoscale should keep running",
+      "Default": "1"
     },
     "BuildCpu": {
       "Type": "String",
@@ -2114,6 +2122,7 @@
             "DockerLabels": { "convox.release": { "Ref": "Version" } },
             "Environment": [
               { "Name": "AUTOSCALE", "Value": { "Fn::If": [ "Autoscale", "true", "false" ] } },
+              { "Name": "AUTOSCALE_EXTRA", "Value": { "Ref": "AutoscaleExtra" } },
               { "Name": "AWS_REGION", "Value": { "Ref": "AWS::Region" } },
               { "Name": "BUILD_CLUSTER", "Value": { "Fn::If": [ "DedicatedBuilder", { "Ref": "BuildCluster" }, { "Ref": "Cluster" } ] } },
               { "Name": "CLIENT_ID", "Value": { "Ref": "ClientId" } },
