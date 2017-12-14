@@ -22,7 +22,7 @@ func ReleaseList(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 		}
 	}
 
-	releases, err := Provider.ReleaseList(app, int64(limit))
+	releases, err := Provider.ReleaseList(app, structs.ReleaseListOptions{Count: limit})
 	if awsError(err) == "ValidationError" {
 		return httperr.Errorf(404, "no such app: %s", app)
 	}
@@ -65,11 +65,6 @@ func ReleasePromote(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 		return httperr.Server(err)
 	}
 
-	rr, err := Provider.ReleaseGet(app, release)
-	if err != nil {
-		return httperr.Server(err)
-	}
-
 	event := &structs.Event{
 		Action: "release:promote",
 		Status: "start",
@@ -78,8 +73,13 @@ func ReleasePromote(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 
 	Provider.EventSend(event, nil)
 
-	if err := Provider.ReleasePromote(rr); err != nil {
+	if err := Provider.ReleasePromote(app, release); err != nil {
 		Provider.EventSend(event, err)
+		return httperr.Server(err)
+	}
+
+	rr, err := Provider.ReleaseGet(app, release)
+	if err != nil {
 		return httperr.Server(err)
 	}
 

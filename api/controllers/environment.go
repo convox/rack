@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/convox/rack/api/httperr"
+	"github.com/convox/rack/helpers"
 	"github.com/convox/rack/structs"
 	"github.com/gorilla/mux"
 )
@@ -12,7 +13,7 @@ import (
 func EnvironmentGet(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	app := mux.Vars(r)["app"]
 
-	env, err := Provider.EnvironmentGet(app)
+	env, err := helpers.AppEnvironment(Provider, app)
 	if awsError(err) == "ValidationError" {
 		return httperr.Errorf(404, "no such app: %s", app)
 	}
@@ -26,7 +27,7 @@ func EnvironmentGet(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 func EnvironmentSet(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	app := mux.Vars(r)["app"]
 
-	_, err := Provider.EnvironmentGet(app)
+	_, err := helpers.AppEnvironment(Provider, app)
 	if awsError(err) == "ValidationError" {
 		return httperr.Errorf(404, "no such app: %s", app)
 	}
@@ -42,14 +43,14 @@ func EnvironmentSet(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 		return httperr.Server(err)
 	}
 
-	release, err := Provider.EnvironmentPut(app, env)
+	rr, err := Provider.ReleaseCreate(app, structs.ReleaseCreateOptions{Env: env.String()})
 	if err != nil {
 		return httperr.Server(err)
 	}
 
-	rw.Header().Set("Release-Id", release)
+	rw.Header().Set("Release-Id", rr.Id)
 
-	env, err = Provider.EnvironmentGet(app)
+	env, err = helpers.AppEnvironment(Provider, app)
 	if err != nil {
 		return httperr.Server(err)
 	}
@@ -62,7 +63,7 @@ func EnvironmentDelete(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	app := vars["app"]
 	name := vars["name"]
 
-	env, err := Provider.EnvironmentGet(app)
+	env, err := helpers.AppEnvironment(Provider, app)
 	if awsError(err) == "ValidationError" {
 		return httperr.Errorf(404, "no such app: %s", app)
 	}
@@ -72,14 +73,14 @@ func EnvironmentDelete(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 
 	delete(env, name)
 
-	release, err := Provider.EnvironmentPut(app, env)
+	rr, err := Provider.ReleaseCreate(app, structs.ReleaseCreateOptions{Env: env.String()})
 	if err != nil {
 		return httperr.Server(err)
 	}
 
-	rw.Header().Set("Release-Id", release)
+	rw.Header().Set("Release-Id", rr.Id)
 
-	env, err = Provider.EnvironmentGet(app)
+	env, err = helpers.AppEnvironment(Provider, app)
 	if err != nil {
 		return httperr.Server(err)
 	}

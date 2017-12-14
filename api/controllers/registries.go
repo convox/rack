@@ -15,7 +15,7 @@ func RegistryList(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	return RenderJson(rw, registries)
 }
 
-func RegistryCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
+func RegistryAdd(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	server := GetForm(r, "server")
 	username := GetForm(r, "username")
 	password := GetForm(r, "password")
@@ -28,10 +28,10 @@ func RegistryCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	return RenderJson(rw, registry)
 }
 
-func RegistryDelete(rw http.ResponseWriter, r *http.Request) *httperr.Error {
+func RegistryRemove(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	server := r.FormValue("server")
 
-	if err := Provider.RegistryDelete(server); err != nil {
+	if err := Provider.RegistryRemove(server); err != nil {
 		return httperr.Server(err)
 	}
 
