@@ -10,7 +10,8 @@ fixtures:
 	make -C api/models/fixtures
 
 mocks:
-	make -C provider mocks
+	go get -u github.com/vektra/mockery/.../
+	make -C structs mocks
 
 release:
 	make -C provider release VERSION=$(VERSION)

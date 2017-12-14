@@ -17,7 +17,7 @@ import (
 
 // ResourceCreate creates a new resource.
 // Note: see also createResource() below.
-func (p *AWSProvider) ResourceCreate(name, kind string, params map[string]string) (*structs.Resource, error) {
+func (p *AWSProvider) ResourceCreate(name, kind string, opts structs.ResourceCreateOptions) (*structs.Resource, error) {
 	_, err := p.ResourceGet(name)
 	if awsError(err) != "ValidationError" {
 		return nil, fmt.Errorf("resource named %s already exists", name)
@@ -25,7 +25,7 @@ func (p *AWSProvider) ResourceCreate(name, kind string, params map[string]string
 
 	s := &structs.Resource{
 		Name:       name,
-		Parameters: cfParams(params),
+		Parameters: cfParams(opts.Parameters),
 		Type:       kind,
 	}
 	s.Parameters["CustomTopic"] = customTopic
@@ -128,7 +128,7 @@ func (p *AWSProvider) ResourceDelete(name string) (*structs.Resource, error) {
 	}
 
 	_, err = p.cloudformation().DeleteStack(&cloudformation.DeleteStackInput{
-		StackName: aws.String(s.Stack),
+		StackName: aws.String(p.rackStack(s.Name)),
 	})
 
 	p.EventSend(&structs.Event{
@@ -145,9 +145,8 @@ func (p *AWSProvider) ResourceDelete(name string) (*structs.Resource, error) {
 // ResourceGet retrieves a resource.
 func (p *AWSProvider) ResourceGet(name string) (*structs.Resource, error) {
 	stacks, err := p.describeStacks(&cloudformation.DescribeStacksInput{
-		StackName: aws.String(p.Rack + "-" + name),
+		StackName: aws.String(p.rackStack(name)),
 	})
-
 	if err != nil {
 		return nil, err
 	}
@@ -155,79 +154,71 @@ func (p *AWSProvider) ResourceGet(name string) (*structs.Resource, error) {
 		return nil, fmt.Errorf("could not load stack for resource: %s", name)
 	}
 
+	outputs := stackOutputs(stacks[0])
+	tags := stackTags(stacks[0])
+
 	s := resourceFromStack(stacks[0])
 
-	if s.Tags["Rack"] != "" && s.Tags["Rack"] != p.Rack {
+	if tags["Rack"] != "" && tags["Rack"] != p.Rack {
 		return nil, fmt.Errorf("no such stack on this rack: %s", name)
 	}
 
-	if s.Status == "failed" {
-		eres, err := p.describeStackEvents(&cloudformation.DescribeStackEventsInput{
-			StackName: aws.String(*stacks[0].StackName),
-		})
-		if err != nil {
-			return &s, err
-		}
-
-		for _, event := range eres.StackEvents {
-			if *event.ResourceStatus == cloudformation.ResourceStatusCreateFailed {
-				s.StatusReason = *event.ResourceStatusReason
-				break
-			}
-		}
-	}
-
-	if len(s.Tags["Service"]) > 0 && s.Tags["Resource"] != s.Tags["Service"] {
-		s.Tags["Resource"] = s.Tags["Service"]
-	}
-
-	if s.Tags["Type"] == "service" {
-		s.Tags["Type"] = "resource"
-	}
-
-	switch s.Tags["Resource"] {
+	switch tags["Resource"] {
 	case "memcached":
-		s.Exports["URL"] = fmt.Sprintf("%s:%s", s.Outputs["Port11211TcpAddr"], s.Outputs["Port11211TcpPort"])
+		s.Url = fmt.Sprintf("%s:%s", outputs["Port11211TcpAddr"], outputs["Port11211TcpPort"])
 	case "mysql":
-		s.Exports["URL"] = fmt.Sprintf("mysql://%s:%s@%s:%s/%s", s.Outputs["EnvMysqlUsername"], s.Outputs["EnvMysqlPassword"], s.Outputs["Port3306TcpAddr"], s.Outputs["Port3306TcpPort"], s.Outputs["EnvMysqlDatabase"])
+		s.Url = fmt.Sprintf("mysql://%s:%s@%s:%s/%s", outputs["EnvMysqlUsername"], outputs["EnvMysqlPassword"], outputs["Port3306TcpAddr"], outputs["Port3306TcpPort"], outputs["EnvMysqlDatabase"])
 	case "papertrail":
-		s.Exports["URL"] = s.Parameters["Url"]
+		s.Url = s.Parameters["Url"]
 	case "postgres":
-		s.Exports["URL"] = fmt.Sprintf("postgres://%s:%s@%s:%s/%s", s.Outputs["EnvPostgresUsername"], s.Outputs["EnvPostgresPassword"], s.Outputs["Port5432TcpAddr"], s.Outputs["Port5432TcpPort"], s.Outputs["EnvPostgresDatabase"])
+		s.Url = fmt.Sprintf("postgres://%s:%s@%s:%s/%s", outputs["EnvPostgresUsername"], outputs["EnvPostgresPassword"], outputs["Port5432TcpAddr"], outputs["Port5432TcpPort"], outputs["EnvPostgresDatabase"])
 	case "redis":
-		s.Exports["URL"] = fmt.Sprintf("redis://%s:%s/%s", s.Outputs["Port6379TcpAddr"], s.Outputs["Port6379TcpPort"], s.Outputs["EnvRedisDatabase"])
+		s.Url = fmt.Sprintf("redis://%s:%s/%s", outputs["Port6379TcpAddr"], outputs["Port6379TcpPort"], outputs["EnvRedisDatabase"])
 	case "s3":
-		s.Exports["URL"] = fmt.Sprintf("s3://%s:%s@%s", s.Outputs["AccessKey"], s.Outputs["SecretAccessKey"], s.Outputs["Bucket"])
+		s.Url = fmt.Sprintf("s3://%s:%s@%s", outputs["AccessKey"], outputs["SecretAccessKey"], outputs["Bucket"])
 	case "sns":
-		s.Exports["URL"] = fmt.Sprintf("sns://%s:%s@%s", s.Outputs["AccessKey"], s.Outputs["SecretAccessKey"], s.Outputs["Topic"])
+		s.Url = fmt.Sprintf("sns://%s:%s@%s", outputs["AccessKey"], outputs["SecretAccessKey"], outputs["Topic"])
 	case "sqs":
-		if u, err := url.Parse(s.Outputs["Queue"]); err == nil {
+		if u, err := url.Parse(outputs["Queue"]); err == nil {
 			u.Scheme = "sqs"
-			u.User = url.UserPassword(s.Outputs["AccessKey"], s.Outputs["SecretAccessKey"])
-			s.Exports["URL"] = u.String()
+			u.User = url.UserPassword(outputs["AccessKey"], outputs["SecretAccessKey"])
+			s.Url = u.String()
 		}
 	case "webhook":
 		if parsedURL, err := url.Parse(s.Parameters["Url"]); err == nil {
-			s.Exports["URL"] = parsedURL.Query().Get("endpoint")
+			s.Url = parsedURL.Query().Get("endpoint")
 		}
 	}
 
+	// TODO reimplement
 	// Populate linked apps
-	apps, err := p.resourceApps(s)
-	if err != nil {
-		return nil, err
-	}
+	// apps, err := p.resourceApps(s)
+	// if err != nil {
+	//   return nil, err
+	// }
 
-	s.Apps = apps
+	// s.Apps = apps
 
 	return &s, nil
 }
 
 //resourceApps returns the apps that have been linked with a resource (ignoring apps that have been delete out of band)
 func (p *AWSProvider) resourceApps(s structs.Resource) (structs.Apps, error) {
+	stacks, err := p.describeStacks(&cloudformation.DescribeStacksInput{
+		StackName: aws.String(p.rackStack(s.Name)),
+	})
+	if err != nil {
+		return nil, err
+	}
+	if len(stacks) != 1 {
+		return nil, fmt.Errorf("could not load stack for resource: %s", s.Name)
+	}
+
+	outputs := stackOutputs(stacks[0])
+
 	apps := structs.Apps(make([]structs.App, 0))
 
-	for key, value := range s.Outputs {
+	for key, value := range outputs {
 		if strings.HasSuffix(key, "Link") {
 			// Extract app name from log group
 			index := strings.Index(value, "-LogGroup")
@@ -272,13 +263,14 @@ func (p *AWSProvider) ResourceList() (structs.Resources, error) {
 		}
 	}
 
-	for _, s := range resources {
-		apps, err := p.resourceApps(s)
-		if err != nil {
-			return nil, err
-		}
-		s.Apps = apps
-	}
+	// TODO reimplement
+	// for _, s := range resources {
+	//   apps, err := p.resourceApps(s)
+	//   if err != nil {
+	//     return nil, err
+	//   }
+	//   s.Apps = apps
+	// }
 
 	return resources, nil
 }
@@ -296,7 +288,12 @@ func (p *AWSProvider) ResourceLink(name, app, process string) (*structs.Resource
 	}
 
 	// already linked
-	for _, linkedApp := range s.Apps {
+	apps, err := p.resourceApps(*s)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, linkedApp := range apps {
 		if a.Name == linkedApp.Name {
 			return nil, fmt.Errorf("resource %s is already linked to app %s", s.Name, a.Name)
 		}
@@ -325,9 +322,14 @@ func (p *AWSProvider) ResourceUnlink(name, app, process string) (*structs.Resour
 		return nil, err
 	}
 
+	apps, err := p.resourceApps(*s)
+	if err != nil {
+		return nil, err
+	}
+
 	// already linked
 	linked := false
-	for _, linkedApp := range s.Apps {
+	for _, linkedApp := range apps {
 		if a.Name == linkedApp.Name {
 			linked = true
 			break
@@ -433,7 +435,7 @@ func (p *AWSProvider) updateResource(s *structs.Resource) error {
 
 	req := &cloudformation.UpdateStackInput{
 		Capabilities: []*string{aws.String("CAPABILITY_IAM")},
-		StackName:    aws.String(s.Stack),
+		StackName:    aws.String(p.rackStack(s.Name)),
 		TemplateBody: aws.String(formation),
 	}
 
@@ -451,21 +453,21 @@ func (p *AWSProvider) updateResource(s *structs.Resource) error {
 
 // add to links
 func (p *AWSProvider) linkResource(a *structs.App, s *structs.Resource) error {
-	s.Apps = append(s.Apps, *a)
-
+	// TODO reimplement
 	return p.updateResource(s)
 }
 
 // delete from links
 func (p *AWSProvider) unlinkResource(a *structs.App, s *structs.Resource) error {
-	apps := structs.Apps{}
-	for _, linkedApp := range s.Apps {
-		if a.Name != linkedApp.Name {
-			apps = append(apps, linkedApp)
-		}
-	}
+	// TODO reimplement
+	// apps := structs.Apps{}
+	// for _, linkedApp := range s.Apps {
+	//   if a.Name != linkedApp.Name {
+	//     apps = append(apps, linkedApp)
+	//   }
+	// }
 
-	s.Apps = apps
+	// s.Apps = apps
 
 	return p.updateResource(s)
 }
@@ -556,12 +558,8 @@ func resourceFromStack(stack *cloudformation.Stack) structs.Resource {
 
 	return structs.Resource{
 		Name:       name,
-		Stack:      *stack.StackName,
+		Parameters: params,
 		Type:       rtype,
 		Status:     humanStatus(*stack.StackStatus),
-		Outputs:    stackOutputs(stack),
-		Parameters: params,
-		Tags:       tags,
-		Exports:    exports,
 	}
 }

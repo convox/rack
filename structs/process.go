@@ -6,57 +6,58 @@ import (
 	"time"
 )
 
-// Process represents a running Process
 type Process struct {
-	ID      string `json:"id"`
-	App     string `json:"app"`
-	Name    string `json:"name"`
-	Release string `json:"release"`
+	Id string `json:"id"`
 
+	App      string   `json:"app"`
 	Command  string   `json:"command"`
+	Cpu      float64  `json:"cpu"`
 	Host     string   `json:"host"`
 	Image    string   `json:"image"`
 	Instance string   `json:"instance"`
+	Memory   float64  `json:"memory"`
+	Name     string   `json:"name"`
 	Ports    []string `json:"ports"`
-
-	CPU    float64 `json:"cpu"`
-	Memory float64 `json:"memory"`
+	Release  string   `json:"release"`
 
 	Started time.Time `json:"started"`
 }
 
-// Processes are a list of Processes
 type Processes []Process
 
-// ProcessExecOptions are options for ProcessExec
 type ProcessExecOptions struct {
 	Entrypoint bool
 	Height     int
+	Stream     io.ReadWriter
 	Width      int
 }
 
-// ProcessRunOptions are options for ProcessRun
+type ProcessListOptions struct {
+	Service string
+}
+
 type ProcessRunOptions struct {
-	Command string
-	Height  int
-	Width   int
-	Release string
-	Stream  io.ReadWriter
+	Command     string
+	Environment map[string]string
+	Height      int
+	Image       string
+	Input       io.Reader
+	Links       []string
+	Memory      int64
+	Name        string
+	Output      io.Writer
+	Ports       map[string]string
+	Release     string
+	Service     string
+	Stream      io.ReadWriter
+	Volumes     map[string]string
+	Width       int
 }
 
-func (ps Processes) Len() int {
-	return len(ps)
+func (p *Process) SortKey() string {
+	return fmt.Sprintf("%s-%s", p.Name, p.Id)
 }
 
-// Sort processes by name and id
-// Processes with a 'pending' id will naturally come last by design
 func (ps Processes) Less(i, j int) bool {
-	psi := fmt.Sprintf("%s-%s", ps[i].Name, ps[i].ID)
-	psj := fmt.Sprintf("%s-%s", ps[j].Name, ps[j].ID)
-
-	return psi < psj
-}
-
-func (ps Processes) Swap(i, j int) {
-	ps[i], ps[j] = ps[j], ps[i]
+	return ps[i].SortKey() < ps[j].SortKey()
 }

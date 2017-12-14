@@ -2,6 +2,7 @@ package aws
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"strings"
 	"sync"
@@ -140,12 +141,12 @@ func (p *AWSProvider) AppDelete(name string) error {
 	}
 
 	for _, s := range resources {
-		s.Apps, err = p.resourceApps(s)
+		apps, err := p.resourceApps(s)
 		if err != nil {
 			return err
 		}
 
-		for _, a := range s.Apps {
+		for _, a := range apps {
 			if a.Name == name {
 				return fmt.Errorf("app is linked to %s resource", s.Name)
 			}
@@ -180,6 +181,15 @@ func (p *AWSProvider) AppList() (structs.Apps, error) {
 	}
 
 	return apps, nil
+}
+
+func (p *AWSProvider) AppLogs(app string, opts structs.LogsOptions) (io.ReadCloser, error) {
+	logGroup, err := p.stackResource(fmt.Sprintf("%s-%s", p.Rack, app), "LogGroup")
+	if err != nil {
+		return nil, err
+	}
+
+	return p.subscribeLogs(*logGroup.PhysicalResourceId, opts)
 }
 
 func (p *AWSProvider) AppUpdate(app string, opts structs.AppUpdateOptions) error {

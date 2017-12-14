@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strings"
 	"sync"
 	"time"
 )
@@ -86,6 +87,19 @@ func Clear(collection string, key interface{}) error {
 
 	if cache[collection] != nil && cache[collection][hash] != nil {
 		delete(cache[collection], hash)
+	}
+
+	return nil
+}
+
+func ClearPrefix(collection string, prefix string) error {
+	lock.Lock()
+	defer lock.Unlock()
+
+	for k := range cache[collection] {
+		if strings.HasPrefix(k, prefix) {
+			delete(cache[collection], k)
+		}
 	}
 
 	return nil

@@ -14,23 +14,21 @@ import (
 	"github.com/convox/rack/structs"
 )
 
-func (p *AWSProvider) LogStream(app string, w io.Writer, opts structs.LogStreamOptions) error {
-	logGroup, err := p.stackResource(fmt.Sprintf("%s-%s", p.Rack, app), "LogGroup")
-	if err != nil {
-		return err
-	}
+func (p *AWSProvider) subscribeLogs(group string, opts structs.LogsOptions) (io.ReadCloser, error) {
+	r, w := io.Pipe()
 
-	return p.subscribeLogs(w, *logGroup.PhysicalResourceId, opts)
+	go p.streamLogs(w, group, opts)
+
+	return r, nil
 }
 
-func (p *AWSProvider) subscribeLogs(w io.Writer, group string, opts structs.LogStreamOptions) error {
+func (p *AWSProvider) streamLogs(w io.Writer, group string, opts structs.LogsOptions) error {
 	since := opts.Since
 
 	if since.IsZero() {
 		since = time.Now().Add(10 * time.Minute)
 	}
 
-	// number of milliseconds since Jan 1, 1970 00:00:00 UTC
 	start := since.UnixNano() / int64(time.Millisecond)
 
 	for {
