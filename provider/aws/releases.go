@@ -240,13 +240,17 @@ func (p *AWSProvider) releasePromoteGeneration1(a *structs.App, r *structs.Relea
 
 	params := map[string]string{}
 
+	params["Cluster"] = p.Cluster
 	params["Environment"] = fmt.Sprintf("https://%s.s3.amazonaws.com/releases/%s/env", settings, r.Id)
+	params["Key"] = p.EncryptionKey
 	params["LogBucket"] = p.LogBucket
 	params["Rack"] = p.Rack
 	params["Release"] = r.Id
 	params["Subnets"] = p.Subnets
 	params["SubnetsPrivate"] = coalesces(p.SubnetsPrivate, p.Subnets)
 	params["Version"] = p.Release
+	params["VPC"] = p.Vpc
+	params["VPCCIDR"] = p.VpcCidr
 
 	for _, entry := range m.Services {
 		for _, mapping := range entry.Ports {
