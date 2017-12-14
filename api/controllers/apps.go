@@ -1,14 +1,14 @@
 package controllers
 
 import (
+	"io"
 	"net/http"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/convox/rack/api/httperr"
-	"github.com/convox/rack/structs"
 	"github.com/convox/rack/provider"
+	"github.com/convox/rack/structs"
 	"github.com/gorilla/mux"
 	"golang.org/x/net/websocket"
 )
@@ -120,16 +120,16 @@ func AppLogs(ws *websocket.Conn) *httperr.Error {
 		}
 	}
 
-	err = Provider.LogStream(app, ws, structs.LogStreamOptions{
+	r, err := Provider.AppLogs(app, structs.LogsOptions{
 		Filter: header.Get("Filter"),
 		Follow: follow,
 		Since:  time.Now().Add(-1 * since),
 	})
 	if err != nil {
-		if strings.HasSuffix(err.Error(), "write: broken pipe") {
-			return nil
-		}
 		return httperr.Server(err)
 	}
+
+	io.Copy(ws, r)
+
 	return nil
 }

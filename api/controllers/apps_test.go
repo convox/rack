@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/convox/rack/api/controllers"
-	"github.com/convox/rack/provider"
 	"github.com/convox/rack/structs"
 	"github.com/convox/rack/test"
 	"github.com/stretchr/testify/assert"
@@ -19,7 +18,7 @@ import (
 // }
 
 func TestAppList(t *testing.T) {
-	Mock(func(p *provider.MockProvider) {
+	Mock(func(p *structs.MockProvider) {
 		apps := structs.Apps{
 			structs.App{
 				Name:    "myapp",
@@ -40,7 +39,7 @@ func TestAppList(t *testing.T) {
 }
 
 func TestAppGet(t *testing.T) {
-	Mock(func(p *provider.MockProvider) {
+	Mock(func(p *structs.MockProvider) {
 		app := &structs.App{
 			Name:    "myapp",
 			Release: "R1234",
@@ -59,7 +58,7 @@ func TestAppGet(t *testing.T) {
 }
 
 func TestAppGetWithAppNotFound(t *testing.T) {
-	Mock(func(p *provider.MockProvider) {
+	Mock(func(p *structs.MockProvider) {
 		p.On("AppGet", "myapp").Return(nil, errorNotFound(fmt.Sprintf("no such app: myapp")))
 
 		hf := test.NewHandlerFunc(controllers.HandlerFunc)
@@ -72,7 +71,7 @@ func TestAppGetWithAppNotFound(t *testing.T) {
 }
 
 func TestAppCreate(t *testing.T) {
-	Mock(func(p *provider.MockProvider) {
+	Mock(func(p *structs.MockProvider) {
 		app := &structs.App{
 			Name:    "myapp",
 			Release: "R1234",

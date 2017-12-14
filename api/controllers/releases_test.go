@@ -6,13 +6,12 @@ import (
 
 	"github.com/convox/rack/api/controllers"
 	"github.com/convox/rack/structs"
-	"github.com/convox/rack/provider"
 	"github.com/convox/rack/test"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestReleaseList(t *testing.T) {
-	Mock(func(p *provider.MockProvider) {
+	Mock(func(p *structs.MockProvider) {
 		releases := structs.Releases{
 			structs.Release{
 				Id:       "RVFETUHHKKD",
@@ -32,13 +31,13 @@ func TestReleaseList(t *testing.T) {
 			},
 		}
 
-		p.On("ReleaseList", "example", int64(20)).Return(releases, nil)
+		p.On("ReleaseList", "example", structs.ReleaseListOptions{Count: 20}).Return(releases, nil)
 
 		hf := test.NewHandlerFunc(controllers.HandlerFunc)
 
 		if assert.Nil(t, hf.Request("GET", "/apps/example/releases", nil)) {
 			hf.AssertCode(t, 200)
-			hf.AssertJSON(t, "[{\"app\":\"httpd\",\"build\":\"BHINCLZYYVN\",\"created\":\"2016-04-04T14:35:42.62777038Z\",\"env\":\"foo=bar\",\"id\":\"RVFETUHHKKD\",\"manifest\":\"web:\\n  image: httpd\\n  ports:\\n  - 80:80\\n\"},{\"app\":\"httpd\",\"build\":\"BNOARQMVHUO\",\"created\":\"2016-04-03T18:46:39.166694813Z\",\"env\":\"foo=bar\",\"id\":\"RFVZFLKVTYO\",\"manifest\":\"web:\\n  image: httpd\\n  ports:\\n  - 80:80\\n\"}]")
+			hf.AssertJSON(t, "[{\"app\":\"httpd\",\"build\":\"BHINCLZYYVN\",\"created\":\"2016-04-04T14:35:42.62777038Z\",\"env\":\"foo=bar\",\"id\":\"RVFETUHHKKD\",\"manifest\":\"web:\\n  image: httpd\\n  ports:\\n  - 80:80\\n\",\"status\":\"\"},{\"app\":\"httpd\",\"build\":\"BNOARQMVHUO\",\"created\":\"2016-04-03T18:46:39.166694813Z\",\"env\":\"foo=bar\",\"id\":\"RFVZFLKVTYO\",\"manifest\":\"web:\\n  image: httpd\\n  ports:\\n  - 80:80\\n\",\"status\":\"\"}]")
 		}
 	})
 }

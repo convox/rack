@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/convox/rack/api/controllers"
-	"github.com/convox/rack/provider"
 	"github.com/convox/rack/structs"
 	"github.com/convox/rack/test"
 	"github.com/stretchr/testify/assert"
@@ -18,7 +17,7 @@ import (
 // }
 
 func TestInstanceList(t *testing.T) {
-	Mock(func(p *provider.MockProvider) {
+	Mock(func(p *structs.MockProvider) {
 		instances := structs.Instances{
 			structs.Instance{
 				Agent:     true,
@@ -45,7 +44,7 @@ func TestInstanceList(t *testing.T) {
 }
 
 func TestInstanceTerminate(t *testing.T) {
-	Mock(func(p *provider.MockProvider) {
+	Mock(func(p *structs.MockProvider) {
 		p.On("InstanceTerminate", "i-1234").Return(nil)
 
 		hf := test.NewHandlerFunc(controllers.HandlerFunc)
@@ -56,7 +55,7 @@ func TestInstanceTerminate(t *testing.T) {
 		}
 	})
 
-	Mock(func(p *provider.MockProvider) {
+	Mock(func(p *structs.MockProvider) {
 		p.On("InstanceTerminate", "i-1234").Return(fmt.Errorf("broken"))
 
 		hf := test.NewHandlerFunc(controllers.HandlerFunc)

@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/convox/rack/api/controllers"
-	"github.com/convox/rack/provider"
 	"github.com/convox/rack/structs"
 	"github.com/convox/rack/test"
 	"github.com/stretchr/testify/assert"
@@ -18,10 +17,10 @@ import (
 // }
 
 func TestProcessGet(t *testing.T) {
-	Mock(func(p *provider.MockProvider) {
+	Mock(func(p *structs.MockProvider) {
 
 		process := &structs.Process{
-			ID:       "foo",
+			Id:       "foo",
 			App:      "myapp-staging",
 			Name:     "procname",
 			Release:  "R123",
@@ -30,7 +29,7 @@ func TestProcessGet(t *testing.T) {
 			Image:    "image:tag",
 			Instance: "i-1234",
 			Ports:    []string{"80", "443"},
-			CPU:      0.345,
+			Cpu:      0.345,
 			Memory:   0.456,
 			Started:  time.Unix(1473483567, 0).UTC(),
 		}
@@ -45,7 +44,7 @@ func TestProcessGet(t *testing.T) {
 		}
 	})
 
-	Mock(func(p *provider.MockProvider) {
+	Mock(func(p *structs.MockProvider) {
 		p.On("ProcessGet", "myapp-staging", "blah").Return(nil, test.ErrorNotFound("no such process: blah"))
 
 		hf := test.NewHandlerFunc(controllers.HandlerFunc)
@@ -58,10 +57,10 @@ func TestProcessGet(t *testing.T) {
 }
 
 func TestProcessList(t *testing.T) {
-	Mock(func(p *provider.MockProvider) {
+	Mock(func(p *structs.MockProvider) {
 		processes := structs.Processes{
 			structs.Process{
-				ID:       "foo",
+				Id:       "foo",
 				App:      "myapp-staging",
 				Name:     "procname",
 				Release:  "R123",
@@ -70,13 +69,13 @@ func TestProcessList(t *testing.T) {
 				Image:    "image:tag",
 				Instance: "i-1234",
 				Ports:    []string{"80", "443"},
-				CPU:      0.345,
+				Cpu:      0.345,
 				Memory:   0.456,
 				Started:  time.Unix(1473483567, 0).UTC(),
 			},
 		}
 
-		p.On("ProcessList", "myapp-staging").Return(processes, nil)
+		p.On("ProcessList", "myapp-staging", structs.ProcessListOptions{}).Return(processes, nil)
 
 		hf := test.NewHandlerFunc(controllers.HandlerFunc)
 
@@ -86,8 +85,8 @@ func TestProcessList(t *testing.T) {
 		}
 	})
 
-	Mock(func(p *provider.MockProvider) {
-		p.On("ProcessList", "myapp-staging").Return(nil, test.ErrorNotFound("no such process"))
+	Mock(func(p *structs.MockProvider) {
+		p.On("ProcessList", "myapp-staging", structs.ProcessListOptions{}).Return(nil, test.ErrorNotFound("no such process"))
 
 		hf := test.NewHandlerFunc(controllers.HandlerFunc)
 
@@ -97,8 +96,8 @@ func TestProcessList(t *testing.T) {
 		}
 	})
 
-	Mock(func(p *provider.MockProvider) {
-		p.On("ProcessList", "myapp-staging").Return(nil, fmt.Errorf("unknown error"))
+	Mock(func(p *structs.MockProvider) {
+		p.On("ProcessList", "myapp-staging", structs.ProcessListOptions{}).Return(nil, fmt.Errorf("unknown error"))
 
 		hf := test.NewHandlerFunc(controllers.HandlerFunc)
 
@@ -119,14 +118,15 @@ func TestProcessRunDetached(t *testing.T) {
 	opts := structs.ProcessRunOptions{
 		Command: "test-command",
 		Release: "R1234",
+		Service: "web",
 	}
 
 	v := url.Values{}
 	v.Add("command", "test-command")
 	v.Add("release", "R1234")
 
-	Mock(func(p *provider.MockProvider) {
-		p.On("ProcessRun", "myapp-staging", "web", opts).Return("pid", nil)
+	Mock(func(p *structs.MockProvider) {
+		p.On("ProcessRun", "myapp-staging", opts).Return("pid", nil)
 
 		hf := test.NewHandlerFunc(controllers.HandlerFunc)
 
@@ -136,8 +136,8 @@ func TestProcessRunDetached(t *testing.T) {
 		}
 	})
 
-	Mock(func(p *provider.MockProvider) {
-		p.On("ProcessRun", "myapp-staging", "web", opts).Return("", test.ErrorNotFound("no such process"))
+	Mock(func(p *structs.MockProvider) {
+		p.On("ProcessRun", "myapp-staging", opts).Return("", test.ErrorNotFound("no such process"))
 
 		hf := test.NewHandlerFunc(controllers.HandlerFunc)
 
@@ -147,8 +147,8 @@ func TestProcessRunDetached(t *testing.T) {
 		}
 	})
 
-	Mock(func(p *provider.MockProvider) {
-		p.On("ProcessRun", "myapp-staging", "web", opts).Return("", fmt.Errorf("unknown error"))
+	Mock(func(p *structs.MockProvider) {
+		p.On("ProcessRun", "myapp-staging", opts).Return("", fmt.Errorf("unknown error"))
 
 		hf := test.NewHandlerFunc(controllers.HandlerFunc)
 
@@ -160,7 +160,7 @@ func TestProcessRunDetached(t *testing.T) {
 }
 
 func TestProcessStop(t *testing.T) {
-	Mock(func(p *provider.MockProvider) {
+	Mock(func(p *structs.MockProvider) {
 		p.On("ProcessStop", "myapp-staging", "p1234").Return(nil)
 
 		hf := test.NewHandlerFunc(controllers.HandlerFunc)
@@ -171,7 +171,7 @@ func TestProcessStop(t *testing.T) {
 		}
 	})
 
-	Mock(func(p *provider.MockProvider) {
+	Mock(func(p *structs.MockProvider) {
 		p.On("ProcessStop", "myapp-staging", "p1234").Return(test.ErrorNotFound("no such process"))
 
 		hf := test.NewHandlerFunc(controllers.HandlerFunc)
@@ -182,7 +182,7 @@ func TestProcessStop(t *testing.T) {
 		}
 	})
 
-	Mock(func(p *provider.MockProvider) {
+	Mock(func(p *structs.MockProvider) {
 		p.On("ProcessStop", "myapp-staging", "p1234").Return(fmt.Errorf("unknown error"))
 
 		hf := test.NewHandlerFunc(controllers.HandlerFunc)
