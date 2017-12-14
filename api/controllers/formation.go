@@ -5,46 +5,54 @@ import (
 	"strconv"
 
 	"github.com/convox/rack/api/httperr"
+	"github.com/convox/rack/structs"
 	"github.com/gorilla/mux"
 )
 
 func FormationList(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	app := mux.Vars(r)["app"]
 
-	formation, err := Provider.FormationList(app)
+	ss, err := Provider.ServiceList(app)
 	if err != nil {
 		return httperr.Server(err)
 	}
 
-	return RenderJson(rw, formation)
+	f := structs.Formation{}
+
+	for _, s := range ss {
+		pf := structs.ProcessFormation{
+			Balancer: s.Domain,
+			Count:    s.Count,
+			CPU:      s.Cpu,
+			Memory:   s.Memory,
+			Name:     s.Name,
+			Ports:    []int{},
+		}
+
+		for _, p := range s.Ports {
+			pf.Ports = append(pf.Ports, p.Balancer)
+		}
+
+		f = append(f, pf)
+	}
+
+	return RenderJson(rw, f)
 }
 
 func FormationSet(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	vars := mux.Vars(r)
 	app := vars["app"]
-	process := vars["process"]
+	service := vars["process"]
 
-	pf, err := Provider.FormationGet(app, process)
-	if err != nil {
-		return httperr.Server(err)
-	}
+	opts := structs.ServiceUpdateOptions{}
 
-	// update based on form input
 	if cc := GetForm(r, "count"); cc != "" {
 		c, err := strconv.Atoi(cc)
 		if err != nil {
 			return httperr.Errorf(403, "count must be numeric")
 		}
 
-		switch {
-		// critical fix: old clients default to count=-1 for "no change"
-		// assert a minimum client version before setting count=-1 which now deletes a service / ELB
-		case r.Header.Get("Version") < "20160602213113" && c == -1:
-		// backwards compatibility: other old clients use count=-2 for "no change"
-		case c == -2:
-		default:
-			pf.Count = c
-		}
+		opts.Count = &c
 	}
 
 	if cc := GetForm(r, "cpu"); cc != "" {
@@ -53,30 +61,19 @@ func FormationSet(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 			return httperr.Errorf(403, "cpu must be numeric")
 		}
 
-		switch {
-		// backwards compatibility: other old clients use cpu=-1 for "no change"
-		case c == -1:
-		default:
-			pf.CPU = c
-		}
+		opts.Cpu = &c
 	}
 
-	if mm := GetForm(r, "memory"); mm != "" {
-		m, err := strconv.Atoi(mm)
+	if cc := GetForm(r, "memory"); cc != "" {
+		c, err := strconv.Atoi(cc)
 		if err != nil {
 			return httperr.Errorf(403, "memory must be numeric")
 		}
 
-		switch {
-		// backwards compatibility: other old clients use memory=-1 or memory=0 for "no change"
-		case m == -1 || m == 0:
-		default:
-			pf.Memory = m
-		}
+		opts.Memory = &c
 	}
 
-	err = Provider.FormationSave(app, pf)
-	if err != nil {
+	if err := Provider.ServiceUpdate(app, service, opts); err != nil {
 		return httperr.Server(err)
 	}
 

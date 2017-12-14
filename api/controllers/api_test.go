@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/convox/rack/api/controllers"
-	"github.com/convox/rack/provider"
+	"github.com/convox/rack/structs"
 	"github.com/convox/rack/test"
 	"github.com/stretchr/testify/assert"
 )
@@ -16,7 +16,7 @@ import (
 //       client can connect
 
 func TestNoPassword(t *testing.T) {
-	Mock(func(p *provider.MockProvider) {
+	Mock(func(p *structs.MockProvider) {
 		p.On("SystemGet").Return(nil, nil)
 
 		aws := test.StubAws(test.DescribeConvoxStackCycle("convox-test"))
@@ -30,7 +30,7 @@ func TestNoPassword(t *testing.T) {
 }
 
 func TestBasicAuth(t *testing.T) {
-	Mock(func(p *provider.MockProvider) {
+	Mock(func(p *structs.MockProvider) {
 		p.On("SystemGet").Return(nil, nil)
 
 		assert := assert.New(t)

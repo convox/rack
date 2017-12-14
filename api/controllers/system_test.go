@@ -5,17 +5,15 @@ import (
 	"net/url"
 	"os"
 	"testing"
-	"time"
 
 	"github.com/convox/rack/api/controllers"
 	"github.com/convox/rack/structs"
-	"github.com/convox/rack/provider"
 	"github.com/convox/rack/test"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestSystemShow(t *testing.T) {
-	Mock(func(p *provider.MockProvider) {
+	Mock(func(p *structs.MockProvider) {
 		system := &structs.System{
 			Count:   3,
 			Domain:  "foo",
@@ -32,13 +30,13 @@ func TestSystemShow(t *testing.T) {
 
 		if assert.Nil(t, hf.Request("GET", "/system", nil)) {
 			hf.AssertCode(t, 200)
-			hf.AssertJSON(t, `{"count":3,"domain":"foo","name":"test","region":"us-test-1","status":"running","type":"t2.small","version":"dev"}`)
+			hf.AssertJSON(t, "{\"count\":3,\"domain\":\"foo\",\"image\":\"\",\"name\":\"test\",\"region\":\"us-test-1\",\"status\":\"running\",\"type\":\"t2.small\",\"version\":\"dev\"}")
 		}
 	})
 }
 
 func TestSystemShowRackFetchError(t *testing.T) {
-	Mock(func(p *provider.MockProvider) {
+	Mock(func(p *structs.MockProvider) {
 		p.On("SystemGet").Return(nil, fmt.Errorf("some error"))
 
 		hf := test.NewHandlerFunc(controllers.HandlerFunc)
@@ -51,7 +49,7 @@ func TestSystemShowRackFetchError(t *testing.T) {
 }
 
 func TestSystemUpdate(t *testing.T) {
-	Mock(func(p *provider.MockProvider) {
+	Mock(func(p *structs.MockProvider) {
 		before := &structs.System{
 			Count:   3,
 			Name:    "test",
@@ -60,17 +58,15 @@ func TestSystemUpdate(t *testing.T) {
 			Type:    "t2.small",
 			Version: "dev",
 		}
-		change := structs.System{
-			Count:   5,
-			Name:    "test",
-			Region:  "us-test-1",
-			Status:  "running",
-			Type:    "t2.test",
-			Version: "latest",
+
+		opts := structs.SystemUpdateOptions{
+			InstanceCount: 5,
+			InstanceType:  "t2.test",
+			Version:       "latest",
 		}
 
+		p.On("SystemUpdate", opts).Return(nil)
 		p.On("SystemGet").Return(before, nil)
-		p.On("SystemSave", change).Return(nil)
 
 		hf := test.NewHandlerFunc(controllers.HandlerFunc)
 
@@ -81,61 +77,13 @@ func TestSystemUpdate(t *testing.T) {
 
 		if assert.Nil(t, hf.Request("PUT", "/system", v)) {
 			hf.AssertCode(t, 200)
-			hf.AssertJSON(t, `{"count":5,"domain":"","name":"test","region":"us-test-1","status":"running","type":"t2.test","version":"latest"}`)
-		}
-	})
-}
-
-func TestSystemUpdateRackFetchError(t *testing.T) {
-	Mock(func(p *provider.MockProvider) {
-		p.On("SystemGet").Return(nil, fmt.Errorf("some error"))
-
-		hf := test.NewHandlerFunc(controllers.HandlerFunc)
-
-		if assert.Nil(t, hf.Request("PUT", "/system", nil)) {
-			hf.AssertCode(t, 500)
-			hf.AssertError(t, "some error")
-		}
-	})
-}
-
-func TestSystemUpdateCountNoChange(t *testing.T) {
-	Mock(func(p *provider.MockProvider) {
-		before := &structs.System{
-			Count:   3,
-			Name:    "test",
-			Region:  "us-test-1",
-			Status:  "running",
-			Type:    "t2.small",
-			Version: "dev",
-		}
-		change := structs.System{
-			Count:   3,
-			Name:    "test",
-			Region:  "us-test-1",
-			Status:  "running",
-			Type:    "t2.small",
-			Version: "latest",
-		}
-
-		p.On("SystemGet").Return(before, nil)
-		p.On("SystemSave", change).Return(nil)
-
-		hf := test.NewHandlerFunc(controllers.HandlerFunc)
-
-		v := url.Values{}
-		v.Add("count", "-1")
-		v.Add("version", "latest")
-
-		if assert.Nil(t, hf.Request("PUT", "/system", v)) {
-			hf.AssertCode(t, 200)
-			hf.AssertJSON(t, `{"count":3,"domain":"","name":"test","region":"us-test-1","status":"running","type":"t2.small","version":"latest"}`)
+			hf.AssertJSON(t, "{\"count\":3,\"domain\":\"\",\"image\":\"\",\"name\":\"test\",\"region\":\"us-test-1\",\"status\":\"running\",\"type\":\"t2.small\",\"version\":\"dev\"}")
 		}
 	})
 }
 
 func TestSystemUpdateAutoscaleCount(t *testing.T) {
-	Mock(func(p *provider.MockProvider) {
+	Mock(func(p *structs.MockProvider) {
 		as := os.Getenv("AUTOSCALE")
 		os.Setenv("AUTOSCALE", "true")
 		defer os.Setenv("AUTOSCALE", as)
@@ -163,7 +111,7 @@ func TestSystemUpdateAutoscaleCount(t *testing.T) {
 	})
 }
 func TestSystemUpdateBadCount(t *testing.T) {
-	Mock(func(p *provider.MockProvider) {
+	Mock(func(p *structs.MockProvider) {
 		before := &structs.System{
 			Count:   3,
 			Name:    "test",
@@ -186,7 +134,7 @@ func TestSystemUpdateBadCount(t *testing.T) {
 		}
 	})
 
-	Mock(func(p *provider.MockProvider) {
+	Mock(func(p *structs.MockProvider) {
 		before := &structs.System{
 			Count:   3,
 			Name:    "test",
@@ -209,7 +157,7 @@ func TestSystemUpdateBadCount(t *testing.T) {
 		}
 	})
 
-	Mock(func(p *provider.MockProvider) {
+	Mock(func(p *structs.MockProvider) {
 		before := &structs.System{
 			Count:   3,
 			Name:    "test",
@@ -233,42 +181,8 @@ func TestSystemUpdateBadCount(t *testing.T) {
 	})
 }
 
-func TestSystemUpdateSaveError(t *testing.T) {
-	Mock(func(p *provider.MockProvider) {
-		before := &structs.System{
-			Count:   3,
-			Name:    "test",
-			Region:  "us-test-1",
-			Status:  "running",
-			Type:    "t2.small",
-			Version: "dev",
-		}
-		change := structs.System{
-			Count:   4,
-			Name:    "test",
-			Region:  "us-test-1",
-			Status:  "running",
-			Type:    "t2.small",
-			Version: "dev",
-		}
-
-		p.On("SystemGet").Return(before, nil)
-		p.On("SystemSave", change).Return(fmt.Errorf("bad save"))
-
-		hf := test.NewHandlerFunc(controllers.HandlerFunc)
-
-		v := url.Values{}
-		v.Add("count", "4")
-
-		if assert.Nil(t, hf.Request("PUT", "/system", v)) {
-			hf.AssertCode(t, 500)
-			hf.AssertError(t, "bad save")
-		}
-	})
-}
-
 func TestSystemCapacity(t *testing.T) {
-	Mock(func(p *provider.MockProvider) {
+	Mock(func(p *structs.MockProvider) {
 		capacity := &structs.Capacity{
 			ClusterCPU:     200,
 			ClusterMemory:  2048,
@@ -292,46 +206,12 @@ func TestSystemCapacity(t *testing.T) {
 }
 
 func TestSystemCapacityError(t *testing.T) {
-	Mock(func(p *provider.MockProvider) {
+	Mock(func(p *structs.MockProvider) {
 		p.On("CapacityGet").Return(nil, fmt.Errorf("some error"))
 
 		hf := test.NewHandlerFunc(controllers.HandlerFunc)
 
 		if assert.Nil(t, hf.Request("GET", "/system/capacity", nil)) {
-			hf.AssertCode(t, 500)
-			hf.AssertError(t, "some error")
-		}
-	})
-}
-
-func TestSystemReleases(t *testing.T) {
-	Mock(func(p *provider.MockProvider) {
-		releases := structs.Releases{
-			structs.Release{Id: "R0000001", App: "test", Build: "B0000001", Created: time.Date(2016, 3, 4, 5, 6, 7, 12, time.UTC)},
-			structs.Release{Id: "R0000002", App: "test", Build: "B0000002", Created: time.Date(2016, 3, 4, 9, 6, 7, 14, time.UTC)},
-		}
-
-		p.On("SystemReleases").Return(releases, nil)
-
-		hf := test.NewHandlerFunc(controllers.HandlerFunc)
-
-		if assert.Nil(t, hf.Request("GET", "/system/releases", nil)) {
-			hf.AssertCode(t, 200)
-			hf.AssertJSON(t, `[
-				{"app":"test","build":"B0000001","created":"2016-03-04T05:06:07.000000012Z","env":"","id":"R0000001","manifest":""},
-				{"app":"test","build":"B0000002","created":"2016-03-04T09:06:07.000000014Z","env":"","id":"R0000002","manifest":""}
-			]`)
-		}
-	})
-}
-
-func TestSystemReleasesError(t *testing.T) {
-	Mock(func(p *provider.MockProvider) {
-		p.On("SystemReleases").Return(nil, fmt.Errorf("some error"))
-
-		hf := test.NewHandlerFunc(controllers.HandlerFunc)
-
-		if assert.Nil(t, hf.Request("GET", "/system/releases", nil)) {
 			hf.AssertCode(t, 500)
 			hf.AssertError(t, "some error")
 		}
