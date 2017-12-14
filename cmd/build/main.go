@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/convox/rack/cmd/build/source"
+	"github.com/convox/rack/helpers"
 	"github.com/convox/rack/manifest"
 	"github.com/convox/rack/manifest1"
 	"github.com/convox/rack/provider"
@@ -34,7 +35,7 @@ var (
 	currentBuild    *structs.Build
 	currentLogs     string
 	currentManifest string
-	currentProvider provider.Provider
+	currentProvider structs.Provider
 
 	event *structs.Event
 )
@@ -44,9 +45,7 @@ func init() {
 
 	var buf bytes.Buffer
 
-	currentProvider.Initialize(structs.ProviderOptions{
-		LogOutput: &buf,
-	})
+	currentProvider.Initialize(structs.ProviderOptions{Logs: &buf})
 }
 
 func main() {
@@ -175,8 +174,6 @@ func fetch() (string, error) {
 	switch flagMethod {
 	case "git":
 		s = &source.SourceGit{flagUrl}
-	case "index":
-		s = &source.SourceIndex{flagUrl}
 	case "tgz":
 		s = &source.SourceTgz{flagUrl}
 	case "zip":
@@ -249,7 +246,7 @@ func build(dir string) error {
 
 	defer close(s)
 
-	env, err := currentProvider.EnvironmentGet(flagApp)
+	env, err := helpers.AppEnvironment(currentProvider, flagApp)
 	if err != nil {
 		return err
 	}
@@ -296,7 +293,7 @@ func build2(dir string) error {
 		return err
 	}
 
-	env, err := currentProvider.EnvironmentGet(flagApp)
+	env, err := helpers.AppEnvironment(currentProvider, flagApp)
 	if err != nil {
 		return err
 	}
@@ -340,21 +337,31 @@ func build2(dir string) error {
 }
 
 func success() error {
-	_, err := currentProvider.BuildRelease(currentBuild)
+	logs, err := currentProvider.ObjectStore(flagApp, fmt.Sprintf("build/%s/logs", currentBuild.Id), bytes.NewReader([]byte(currentLogs)), structs.ObjectStoreOptions{})
 	if err != nil {
 		return err
 	}
 
-	url, err := currentProvider.ObjectStore(fmt.Sprintf("build/%s/logs", currentBuild.Id), bytes.NewReader([]byte(currentLogs)), structs.ObjectOptions{})
+	now := time.Now()
+	status := "complete"
+
+	opts := structs.BuildUpdateOptions{
+		Ended:    &now,
+		Logs:     &logs.Url,
+		Manifest: &currentBuild.Manifest,
+		Status:   &status,
+	}
+
+	if _, err := currentProvider.BuildUpdate(flagApp, currentBuild.Id, opts); err != nil {
+		return err
+	}
+
+	r, err := currentProvider.ReleaseCreate(flagApp, structs.ReleaseCreateOptions{Build: currentBuild.Id})
 	if err != nil {
 		return err
 	}
 
-	currentBuild.Ended = time.Now()
-	currentBuild.Logs = url
-	currentBuild.Status = "complete"
-
-	if err := currentProvider.BuildSave(currentBuild); err != nil {
+	if _, err := currentProvider.BuildUpdate(flagApp, currentBuild.Id, structs.BuildUpdateOptions{Release: &r.Id}); err != nil {
 		return err
 	}
 
@@ -367,14 +374,18 @@ func fail(err error) {
 		fmt.Fprintf(os.Stderr, "ERROR: %s\n", e)
 	}
 
-	url, _ := currentProvider.ObjectStore(fmt.Sprintf("build/%s/logs", currentBuild.Id), bytes.NewReader([]byte(currentLogs)), structs.ObjectOptions{})
+	logs, _ := currentProvider.ObjectStore(flagApp, fmt.Sprintf("build/%s/logs", currentBuild.Id), bytes.NewReader([]byte(currentLogs)), structs.ObjectStoreOptions{})
 
-	currentBuild.Ended = time.Now()
-	currentBuild.Logs = url
-	currentBuild.Reason = err.Error()
-	currentBuild.Status = "failed"
+	now := time.Now()
+	status := "failed"
 
-	if err := currentProvider.BuildSave(currentBuild); err != nil {
+	opts := structs.BuildUpdateOptions{
+		Ended:  &now,
+		Logs:   &logs.Url,
+		Status: &status,
+	}
+
+	if _, err := currentProvider.BuildUpdate(flagApp, currentBuild.Id, opts); err != nil {
 		fmt.Fprintf(os.Stderr, "ERROR: %s\n", err)
 	}
 
