@@ -2,8 +2,10 @@ package aws
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
+	"github.com/convox/rack/helpers"
 	"github.com/convox/rack/manifest"
 	"github.com/convox/rack/manifest1"
 	"github.com/convox/rack/structs"
@@ -28,7 +30,7 @@ func (p *AWSProvider) ServiceList(app string) (structs.Services, error) {
 		return nil, err
 	}
 
-	env, err := p.EnvironmentGet(app)
+	env, err := helpers.AppEnvironment(p, app)
 	if err != nil {
 		return nil, err
 	}
@@ -64,6 +66,27 @@ func (p *AWSProvider) ServiceList(app string) (structs.Services, error) {
 			},
 		}
 
+		parts := strings.SplitN(a.Parameters[fmt.Sprintf("%sFormation", upperName(ms.Name))], ",", 3)
+
+		if len(parts) != 3 {
+			return nil, fmt.Errorf("could not read formation for service: %s", ms.Name)
+		}
+
+		s.Count, err = strconv.Atoi(parts[0])
+		if err != nil {
+			return nil, err
+		}
+
+		s.Cpu, err = strconv.Atoi(parts[1])
+		if err != nil {
+			return nil, err
+		}
+
+		s.Memory, err = strconv.Atoi(parts[2])
+		if err != nil {
+			return nil, err
+		}
+
 		ss = append(ss, s)
 	}
 
@@ -94,6 +117,27 @@ func (p *AWSProvider) serviceListGeneration1(a *structs.App) (structs.Services, 
 			Ports:  []structs.ServicePort{},
 		}
 
+		parts := strings.SplitN(a.Parameters[fmt.Sprintf("%sFormation", upperName(ms.Name))], ",", 3)
+
+		if len(parts) != 3 {
+			return nil, fmt.Errorf("could not read formation for service: %s", ms.Name)
+		}
+
+		s.Count, err = strconv.Atoi(parts[0])
+		if err != nil {
+			return nil, err
+		}
+
+		s.Cpu, err = strconv.Atoi(parts[1])
+		if err != nil {
+			return nil, err
+		}
+
+		s.Memory, err = strconv.Atoi(parts[2])
+		if err != nil {
+			return nil, err
+		}
+
 		for _, msp := range ms.Ports {
 			p := structs.ServicePort{
 				Balancer:  msp.Balancer,
@@ -113,42 +157,35 @@ func (p *AWSProvider) serviceListGeneration1(a *structs.App) (structs.Services, 
 	return ss, nil
 }
 
-func (p *AWSProvider) ServiceUpdate(app, name string, port int, opts structs.ServiceUpdateOptions) error {
+func (p *AWSProvider) ServiceUpdate(app, name string, opts structs.ServiceUpdateOptions) error {
 	a, err := p.AppGet(app)
 	if err != nil {
 		return err
 	}
 
-	switch a.Tags["Generation"] {
-	case "", "1":
-		return p.serviceUpdateGeneration1(a, name, port, opts)
-	case "2":
-	default:
-		return fmt.Errorf("unknown generation for app: %s", app)
+	param := fmt.Sprintf("%sFormation", upperName(name))
+
+	parts := strings.SplitN(a.Parameters[param], ",", 3)
+
+	if len(parts) != 3 {
+		return fmt.Errorf("could not read formation for service: %s", name)
 	}
 
-	return fmt.Errorf("not yet supported for generation 2")
+	if opts.Count != nil {
+		parts[0] = strconv.Itoa(*opts.Count)
+	}
+
+	if opts.Cpu != nil {
+		parts[1] = strconv.Itoa(*opts.Cpu)
+	}
+
+	if opts.Memory != nil {
+		parts[2] = strconv.Itoa(*opts.Memory)
+	}
+
+	if err := p.updateStack(p.rackStack(a.Name), "", map[string]string{param: strings.Join(parts, ",")}); err != nil {
+		return err
+	}
 
 	return nil
-}
-
-func (p AWSProvider) serviceUpdateGeneration1(a *structs.App, name string, port int, opts structs.ServiceUpdateOptions) error {
-	params := map[string]string{}
-
-	if opts.Certificate != "" {
-		cs, err := p.CertificateList()
-		if err != nil {
-			return err
-		}
-
-		for _, c := range cs {
-			if c.Id == opts.Certificate {
-				param := fmt.Sprintf("%sPort%dListener", upperName(name), port)
-				fp := strings.Split(a.Parameters[param], ",")
-				params[param] = fmt.Sprintf("%s,%s", fp[0], c.Arn)
-			}
-		}
-	}
-
-	return p.updateStack(p.rackStack(a.Name), "", params)
 }

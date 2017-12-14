@@ -26,9 +26,9 @@ import (
 	"github.com/aws/aws-sdk-go/service/ecs"
 	docker "github.com/fsouza/go-dockerclient"
 
-	"github.com/convox/rack/structs"
 	"github.com/convox/rack/manifest"
 	"github.com/convox/rack/manifest1"
+	"github.com/convox/rack/structs"
 )
 
 // ECR host is formatted like 123456789012.dkr.ecr.us-east-1.amazonaws.com
@@ -38,7 +38,7 @@ var regexpECRImage = regexp.MustCompile(`(\d+)\.dkr\.ecr\.([^.]+)\.amazonaws\.co
 // StackID is formatted like arn:aws:cloudformation:us-east-1:332653055745:stack/dev/d164aa20-ba89-11e6-b65c-50d5ca632656
 var regexpStackID = regexp.MustCompile(`arn:aws:cloudformation:([^.]+):(\d+):stack/([^.]+)/([^.]+)`)
 
-func (p *AWSProvider) BuildCreate(app, method, url string, opts structs.BuildOptions) (*structs.Build, error) {
+func (p *AWSProvider) BuildCreate(app, method, url string, opts structs.BuildCreateOptions) (*structs.Build, error) {
 	log := Logger.At("BuildCreate").Namespace("app=%q method=%q url=%q", app, method, url).Start()
 
 	_, err := p.AppGet(app)
@@ -58,7 +58,7 @@ func (p *AWSProvider) BuildCreate(app, method, url string, opts structs.BuildOpt
 		b.Ended = time.Unix(1473028892, 0).UTC()
 	}
 
-	if err := p.BuildSave(b); err != nil {
+	if err := p.buildSave(b); err != nil {
 		log.Error(err)
 		return nil, err
 	}
@@ -71,7 +71,7 @@ func (p *AWSProvider) BuildCreate(app, method, url string, opts structs.BuildOpt
 	// AWS currently has a limit of 1000 images in ECR
 	// This is a "hopefully temporary" and brute force means
 	// to prevent hitting limits during deployment
-	bs, err := p.BuildList(app, 150)
+	bs, err := p.BuildList(app, structs.BuildListOptions{Count: 150})
 	if err != nil {
 		fmt.Printf("Error listing builds for cleanup: %s\n", err.Error())
 	} else {
@@ -472,67 +472,55 @@ func (p *AWSProvider) BuildImport(app string, r io.Reader) (*structs.Build, erro
 		}
 	}
 
-	env, err := p.EnvironmentGet(app)
-	if err != nil {
-		log.Error(err)
-		return nil, err
-	}
-
-	release := structs.NewRelease(app)
-
-	if p.IsTest() {
-		release.Id = "R23456"
-	}
-
 	targetBuild.Description = sourceBuild.Description
 	targetBuild.Ended = time.Now()
 	targetBuild.Logs = sourceBuild.Logs
 	targetBuild.Manifest = sourceBuild.Manifest
-	targetBuild.Release = release.Id
 
-	if err := p.BuildSave(targetBuild); err != nil {
+	if err := p.buildSave(targetBuild); err != nil {
 		log.Error(err)
 		return nil, err
 	}
 
-	release.Env = env.String()
-	release.Build = targetBuild.Id
-	release.Manifest = targetBuild.Manifest
+	rr, err := p.ReleaseCreate(app, structs.ReleaseCreateOptions{Build: targetBuild.Id})
+	if err != nil {
+		return nil, log.Error(err)
+	}
 
-	if err := p.ReleaseSave(release); err != nil {
+	targetBuild.Release = rr.Id
+
+	if err := p.buildSave(targetBuild); err != nil {
 		log.Error(err)
 		return nil, err
 	}
 
-	log.Successf("build=%q release=%q", targetBuild.Id, release.Id)
+	log.Successf("build=%q release=%q", targetBuild.Id, rr.Id)
 
 	return targetBuild, nil
 }
 
 // BuildLogs streams the logs for a Build to an io.Writer
-func (p *AWSProvider) BuildLogs(app, id string, w io.Writer) error {
-	log := Logger.At("BuildLogs").Namespace("app=%q id=%q", app, id).Start()
-
+func (p *AWSProvider) BuildLogs(app, id string, opts structs.LogsOptions) (io.ReadCloser, error) {
 	b, err := p.BuildGet(app, id)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	switch b.Status {
 	case "running":
 		task, err := p.describeTask(b.Tags["task"])
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		ci, err := p.containerInstance(*task.ContainerInstanceArn)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		dc, err := p.dockerInstance(*ci.Ec2InstanceId)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		cs, err := dc.ListContainers(docker.ListContainersOptions{
@@ -542,56 +530,54 @@ func (p *AWSProvider) BuildLogs(app, id string, w io.Writer) error {
 			},
 		})
 		if err != nil {
-			return err
+			return nil, err
 		}
 		if len(cs) != 1 {
-			return fmt.Errorf("could not find container for task: %s", *task.TaskArn)
+			return nil, fmt.Errorf("could not find container for task: %s", *task.TaskArn)
 		}
 
-		err = dc.Logs(docker.LogsOptions{
-			Container:         cs[0].ID,
-			OutputStream:      w,
-			ErrorStream:       w,
-			InactivityTimeout: 20 * time.Minute,
-			Follow:            true,
-			Stdout:            true,
-			Stderr:            true,
-		})
-		if err != nil {
-			return err
-		}
+		r, w := io.Pipe()
+
+		go func() {
+			defer w.Close()
+			dc.Logs(docker.LogsOptions{
+				Container:         cs[0].ID,
+				OutputStream:      w,
+				ErrorStream:       w,
+				InactivityTimeout: 20 * time.Minute,
+				Follow:            true,
+				Stdout:            true,
+				Stderr:            true,
+			})
+		}()
+
+		return r, nil
 	default:
 		u, err := url.Parse(b.Logs)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		switch u.Scheme {
 		case "object":
-			r, err := p.ObjectFetch(u.Path)
-			if err != nil {
-				return err
-			}
-
-			if _, err := io.Copy(w, r); err != nil {
-				return err
-			}
+			return p.ObjectFetch(app, u.Path)
 		default:
-			if _, err := w.Write([]byte(b.Logs)); err != nil {
-				return err
-			}
+			return ioutil.NopCloser(strings.NewReader(b.Logs)), nil
 		}
 	}
 
-	log.Success()
-	return nil
+	return nil, fmt.Errorf("unreachable")
 }
 
 // BuildList returns a list of the latest builds, with the length specified in limit
-func (p *AWSProvider) BuildList(app string, limit int64) (structs.Builds, error) {
+func (p *AWSProvider) BuildList(app string, opts structs.BuildListOptions) (structs.Builds, error) {
 	a, err := p.AppGet(app)
 	if err != nil {
 		return nil, err
+	}
+
+	if opts.Count == 0 {
+		opts.Count = 10
 	}
 
 	req := &dynamodb.QueryInput{
@@ -602,7 +588,7 @@ func (p *AWSProvider) BuildList(app string, limit int64) (structs.Builds, error)
 			},
 		},
 		IndexName:        aws.String("app.created"),
-		Limit:            aws.Int64(limit),
+		Limit:            aws.Int64(int64(opts.Count)),
 		ScanIndexForward: aws.Bool(false),
 		TableName:        aws.String(p.DynamoBuilds),
 	}
@@ -621,52 +607,44 @@ func (p *AWSProvider) BuildList(app string, limit int64) (structs.Builds, error)
 	return builds, nil
 }
 
-func (p *AWSProvider) BuildRelease(b *structs.Build) (*structs.Release, error) {
-	releases, err := p.ReleaseList(b.App, 20)
+func (p *AWSProvider) BuildUpdate(app, id string, opts structs.BuildUpdateOptions) (*structs.Build, error) {
+	b, err := p.BuildGet(app, id)
 	if err != nil {
 		return nil, err
 	}
 
-	r := structs.NewRelease(b.App)
-	newId := r.Id
-
-	// get the last release, including decrypted env not available in ReleaseList
-	if len(releases) > 0 {
-		r, err = p.ReleaseGet(b.App, releases[0].Id)
-		if err != nil {
-			return nil, err
-		}
+	if opts.Ended != nil {
+		b.Ended = *opts.Ended
 	}
 
-	r.Id = newId
-	r.Created = time.Time{}
-	r.Build = b.Id
-	r.Manifest = b.Manifest
-
-	err = p.ReleaseSave(r)
-	if err != nil {
-		return r, err
+	if opts.Logs != nil {
+		b.Logs = *opts.Logs
 	}
 
-	b.Release = r.Id
-	err = p.BuildSave(b)
-
-	if err == nil {
-		p.EventSend(&structs.Event{
-			Action: "release:create",
-			Data: map[string]string{
-				"app": r.App,
-				"id":  r.Id,
-			},
-		}, nil)
+	if opts.Manifest != nil {
+		b.Manifest = *opts.Manifest
 	}
 
-	return r, err
+	if opts.Release != nil {
+		b.Release = *opts.Release
+	}
+
+	if opts.Started != nil {
+		b.Started = *opts.Started
+	}
+
+	if opts.Status != nil {
+		b.Status = *opts.Status
+	}
+
+	if err := p.buildSave(b); err != nil {
+		return nil, err
+	}
+
+	return b, nil
 }
 
-// BuildSave creates or updates a build item in DynamoDB. It takes an optional
-// bucket argument, which if set indicates to PUT Log data into S3
-func (p *AWSProvider) BuildSave(b *structs.Build) error {
+func (p *AWSProvider) buildSave(b *structs.Build) error {
 	_, err := p.AppGet(b.App)
 	if err != nil {
 		return err
@@ -832,7 +810,7 @@ func (p *AWSProvider) authECR(host, access, secret string) (string, string, erro
 	return parts[0], parts[1], nil
 }
 
-func (p *AWSProvider) runBuild(build *structs.Build, method, url string, opts structs.BuildOptions) error {
+func (p *AWSProvider) runBuild(build *structs.Build, method, url string, opts structs.BuildCreateOptions) error {
 	log := Logger.At("runBuild").Namespace("method=%q url=%q", method, url).Start()
 
 	br, err := p.stackResource(p.Rack, "ApiBuildTasks")
@@ -952,7 +930,7 @@ func (p *AWSProvider) runBuild(build *structs.Build, method, url string, opts st
 
 	b.Tags["task"] = *task.TaskArn
 
-	if err := p.BuildSave(b); err != nil {
+	if err := p.buildSave(b); err != nil {
 		return err
 	}
 

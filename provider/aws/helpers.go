@@ -904,7 +904,7 @@ func (p *AWSProvider) updateStack(name string, template string, changes map[stri
 				return err
 			}
 
-			r, err := p.ObjectFetch(u.Path)
+			r, err := p.ObjectFetch(u.Host, u.Path)
 			if err != nil {
 				return err
 			}

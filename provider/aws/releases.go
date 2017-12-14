@@ -18,26 +18,47 @@ import (
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/convox/rack/crypt"
+	"github.com/convox/rack/helpers"
 	"github.com/convox/rack/manifest"
 	"github.com/convox/rack/manifest1"
 	"github.com/convox/rack/structs"
 )
 
-// ReleaseDelete will delete all releases that belong to app and buildID
-// This could includes the active release which implies this should be called with caution.
-func (p *AWSProvider) ReleaseDelete(app, buildID string) error {
-	qi := &dynamodb.QueryInput{
-		KeyConditionExpression: aws.String("app = :app"),
-		FilterExpression:       aws.String("build = :build"),
-		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
-			":app":   {S: aws.String(app)},
-			":build": {S: aws.String(buildID)},
-		},
-		IndexName: aws.String("app.created"),
-		TableName: aws.String(p.DynamoReleases),
+func (p *AWSProvider) ReleaseCreate(app string, opts structs.ReleaseCreateOptions) (*structs.Release, error) {
+	r := structs.NewRelease(app)
+
+	cr, err := helpers.ReleaseLatest(p, app)
+	if err != nil {
+		return nil, err
 	}
 
-	return p.deleteReleaseItems(qi, p.DynamoReleases)
+	if cr != nil {
+		r.Build = cr.Build
+		r.Env = cr.Env
+	}
+
+	if opts.Build != "" {
+		r.Build = opts.Build
+	}
+
+	if opts.Env != "" {
+		r.Env = opts.Env
+	}
+
+	if r.Build != "" {
+		b, err := p.BuildGet(app, r.Build)
+		if err != nil {
+			return nil, err
+		}
+
+		r.Manifest = b.Manifest
+	}
+
+	if err := p.releaseSave(r); err != nil {
+		return nil, err
+	}
+
+	return r, nil
 }
 
 // ReleaseGet returns a release
@@ -89,10 +110,14 @@ func (p *AWSProvider) ReleaseGet(app, id string) (*structs.Release, error) {
 }
 
 // ReleaseList returns a list of the latest releases, with the length specified in limit
-func (p *AWSProvider) ReleaseList(app string, limit int64) (structs.Releases, error) {
+func (p *AWSProvider) ReleaseList(app string, opts structs.ReleaseListOptions) (structs.Releases, error) {
 	a, err := p.AppGet(app)
 	if err != nil {
 		return nil, err
+	}
+
+	if opts.Count == 0 {
+		opts.Count = 10
 	}
 
 	req := &dynamodb.QueryInput{
@@ -105,7 +130,7 @@ func (p *AWSProvider) ReleaseList(app string, limit int64) (structs.Releases, er
 			},
 		},
 		IndexName:        aws.String("app.created"),
-		Limit:            aws.Int64(limit),
+		Limit:            aws.Int64(int64(opts.Count)),
 		ScanIndexForward: aws.Bool(false),
 		TableName:        aws.String(p.DynamoReleases),
 	}
@@ -130,8 +155,13 @@ func (p *AWSProvider) ReleaseList(app string, limit int64) (structs.Releases, er
 }
 
 // ReleasePromote promotes a release
-func (p *AWSProvider) ReleasePromote(r *structs.Release) error {
-	a, err := p.AppGet(r.App)
+func (p *AWSProvider) ReleasePromote(app, id string) error {
+	a, err := p.AppGet(app)
+	if err != nil {
+		return err
+	}
+
+	r, err := p.ReleaseGet(app, id)
 	if err != nil {
 		return err
 	}
@@ -176,7 +206,7 @@ func (p *AWSProvider) ReleasePromote(r *structs.Release) error {
 
 	// fmt.Printf("string(data) = %+v\n", string(data))
 
-	ou, err := p.ObjectStore("", bytes.NewReader(data), structs.ObjectOptions{})
+	ou, err := p.ObjectStore(app, "", bytes.NewReader(data), structs.ObjectStoreOptions{Public: true})
 	if err != nil {
 		return err
 	}
@@ -185,7 +215,7 @@ func (p *AWSProvider) ReleasePromote(r *structs.Release) error {
 		"LogBucket": p.LogBucket,
 	}
 
-	if err := p.updateStack(p.rackStack(r.App), ou, updates); err != nil {
+	if err := p.updateStack(p.rackStack(r.App), ou.Url, updates); err != nil {
 		return err
 	}
 
@@ -325,12 +355,12 @@ func (p *AWSProvider) releasePromoteGeneration1(a *structs.App, r *structs.Relea
 		return err
 	}
 
-	url, err := p.ObjectStore("", bytes.NewReader(data), structs.ObjectOptions{Public: true})
+	ou, err := p.ObjectStore(a.Name, "", bytes.NewReader(data), structs.ObjectStoreOptions{Public: true})
 	if err != nil {
 		return err
 	}
 
-	if err := p.updateStack(p.rackStack(a.Name), url, params); err != nil {
+	if err := p.updateStack(p.rackStack(a.Name), ou.Url, params); err != nil {
 		return err
 	}
 
@@ -340,7 +370,7 @@ func (p *AWSProvider) releasePromoteGeneration1(a *structs.App, r *structs.Relea
 }
 
 // ReleaseSave saves a Release
-func (p *AWSProvider) ReleaseSave(r *structs.Release) error {
+func (p *AWSProvider) releaseSave(r *structs.Release) error {
 	if r.Id == "" {
 		return fmt.Errorf("Id can not be blank")
 	}

@@ -1,6 +1,7 @@
 package aws
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"strconv"
@@ -12,9 +13,93 @@ import (
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/ecs"
+	"github.com/aws/aws-sdk-go/service/kms"
 	"github.com/convox/rack/structs"
+	"golang.org/x/crypto/nacl/secretbox"
 )
 
+const (
+	keyLength   = 32
+	nonceLength = 24
+)
+
+type envelope struct {
+	Ciphertext   []byte `json:"c"`
+	EncryptedKey []byte `json:"k"`
+	Nonce        []byte `json:"n"`
+}
+
+func (p *AWSProvider) SystemDecrypt(data []byte) ([]byte, error) {
+	var e *envelope
+
+	err := json.Unmarshal(data, &e)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(e.EncryptedKey) == 0 {
+		return nil, fmt.Errorf("invalid ciphertext")
+	}
+
+	res, err := p.kms().Decrypt(&kms.DecryptInput{
+		CiphertextBlob: e.EncryptedKey,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	var key [keyLength]byte
+	copy(key[:], res.Plaintext[0:keyLength])
+
+	var nonce [nonceLength]byte
+	copy(nonce[:], e.Nonce[0:nonceLength])
+
+	var dec []byte
+
+	dec, ok := secretbox.Open(dec, e.Ciphertext, &nonce, &key)
+	if !ok {
+		return nil, fmt.Errorf("failed decryption")
+	}
+
+	return dec, nil
+}
+
+func (p *AWSProvider) SystemEncrypt(data []byte) ([]byte, error) {
+	req := &kms.GenerateDataKeyInput{
+		KeyId:         aws.String(p.EncryptionKey),
+		NumberOfBytes: aws.Int64(keyLength),
+	}
+
+	res, err := p.kms().GenerateDataKey(req)
+	if err != nil {
+		return nil, err
+	}
+
+	var key [keyLength]byte
+	copy(key[:], res.Plaintext[0:keyLength])
+
+	nres, err := p.kms().GenerateRandom(&kms.GenerateRandomInput{
+		NumberOfBytes: aws.Int64(nonceLength),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	var nonce [nonceLength]byte
+	copy(nonce[:], nres.Plaintext[0:nonceLength])
+
+	var enc []byte
+
+	enc = secretbox.Seal(enc, data, &nonce, &key)
+
+	e := &envelope{
+		Ciphertext:   enc,
+		EncryptedKey: res.CiphertextBlob,
+		Nonce:        nonce[:],
+	}
+
+	return json.Marshal(e)
+}
 func (p *AWSProvider) SystemGet() (*structs.System, error) {
 	log := Logger.At("SystemGet").Start()
 
@@ -141,13 +226,13 @@ func (p *AWSProvider) SystemGet() (*structs.System, error) {
 }
 
 // SystemLogs streams logs for the Rack
-func (p *AWSProvider) SystemLogs(w io.Writer, opts structs.LogStreamOptions) error {
+func (p *AWSProvider) SystemLogs(opts structs.LogsOptions) (io.ReadCloser, error) {
 	logGroup, err := p.stackResource(p.Rack, "LogGroup")
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return p.subscribeLogs(w, *logGroup.PhysicalResourceId, opts)
+	return p.subscribeLogs(*logGroup.PhysicalResourceId, opts)
 }
 
 func (p *AWSProvider) SystemProcesses(opts structs.SystemProcessesOptions) (structs.Processes, error) {
