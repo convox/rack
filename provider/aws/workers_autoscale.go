@@ -1,8 +1,10 @@
 package aws
 
 import (
+	"fmt"
 	"math"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/convox/logger"
@@ -50,35 +52,42 @@ func (p *AWSProvider) autoscaleRack() {
 		return
 	}
 
-	// start with the current count
-	desired := 0
+	// extra capacity for autoscale
+	extra := 1
+	if v := os.Getenv("AUTOSCALE_EXTRA"); v != "" {
+		i, err := strconv.Atoi(v)
+		if err != nil {
+			log.Error(err)
+			return
+		}
+		extra = i
+	}
+	log = log.Replace("extra", fmt.Sprintf("%d", extra))
 
-	// calculate instances required to statisfy cpu reservations plus one for breathing room
-	if c := int(math.Ceil(float64(capacity.ProcessCPU)/float64(capacity.InstanceCPU))) + 1; c > desired {
+	// need minimum 3 instances
+	desired := 3
+
+	// instance count must be at least max concurrency plus extra
+	if c := int(capacity.ProcessWidth) + extra; c > desired {
+		log = log.Replace("reason", "width")
+		desired = c
+	}
+
+	// calculate instances required to statisfy cpu reservations plus extra
+	if c := int(math.Ceil(float64(capacity.ProcessCPU)/float64(capacity.InstanceCPU))) + extra; c > desired {
 		log = log.Replace("reason", "cpu")
 		desired = c
 	}
 
-	// calculate instances required to statisfy memory reservations plus one for breathing room
-	if c := int(math.Ceil(float64(capacity.ProcessMemory)/float64(capacity.InstanceMemory))) + 1; c > desired {
+	// calculate instances required to statisfy memory reservations plus extra
+	if c := int(math.Ceil(float64(capacity.ProcessMemory)/float64(capacity.InstanceMemory))) + extra; c > desired {
 		log = log.Replace("reason", "memory")
-		desired = c
-	}
-
-	// instance count cant be less than 2
-	if desired < 2 {
-		log = log.Replace("reason", "minimum")
-		desired = 2
-	}
-
-	// instance count must be at least maxconcurrency+1
-	if c := int(capacity.ProcessWidth) + 1; c > desired {
-		log = log.Replace("reason", "width")
 		desired = c
 	}
 
 	// if no change then exit
 	if system.Count == desired {
+		log.Logf("change=0")
 		return
 	}
 
