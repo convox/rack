@@ -73,7 +73,9 @@ func TestProcessList(t *testing.T) {
 	)
 	defer provider.Close()
 
-	s, err := provider.ProcessList("myapp")
+	s, err := provider.ProcessList("myapp", structs.ProcessListOptions{})
+
+	fmt.Printf("s = %+v\n", s)
 
 	ps := structs.Processes{
 		structs.Process{

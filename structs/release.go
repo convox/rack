@@ -3,17 +3,28 @@ package structs
 import "time"
 
 type Release struct {
-	Id       string    `json:"id"`
-	App      string    `json:"app"`
-	Build    string    `json:"build"`
-	Env      string    `json:"env"`
-	Manifest string    `json:"manifest"`
-	Created  time.Time `json:"created"`
+	Id string `json:"id"`
+
+	App      string `json:"app"`
+	Build    string `json:"build"`
+	Env      string `json:"env"`
+	Manifest string `json:"manifest"`
+	Status   string `json:"status"`
+
+	Created time.Time `json:"created"`
 }
 
 type Releases []Release
 
-// NewRelease creates a new release
+type ReleaseCreateOptions struct {
+	Build string
+	Env   string
+}
+
+type ReleaseListOptions struct {
+	Count int
+}
+
 func NewRelease(app string) *Release {
 	return &Release{
 		App:     app,

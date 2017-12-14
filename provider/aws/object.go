@@ -14,13 +14,23 @@ import (
 	"github.com/convox/rack/structs"
 )
 
-func (p *AWSProvider) ObjectDelete(key string) error {
-	if !p.ObjectExists(key) {
+func (p *AWSProvider) ObjectDelete(app, key string) error {
+	exists, err := p.ObjectExists(app, key)
+	if err != nil {
+		return err
+	}
+
+	if !exists {
 		return fmt.Errorf("no such object: %s", key)
 	}
 
-	_, err := p.s3().DeleteObject(&s3.DeleteObjectInput{
-		Bucket: aws.String(p.SettingsBucket),
+	bucket, err := p.appResource(app, "Settings")
+	if err != nil {
+		return err
+	}
+
+	_, err = p.s3().DeleteObject(&s3.DeleteObjectInput{
+		Bucket: aws.String(bucket),
 		Key:    aws.String(key),
 	})
 	if err != nil {
@@ -30,27 +40,40 @@ func (p *AWSProvider) ObjectDelete(key string) error {
 	return nil
 }
 
-func (p *AWSProvider) ObjectExists(key string) bool {
-	_, err := p.s3().HeadObject(&s3.HeadObjectInput{
-		Bucket: aws.String(p.SettingsBucket),
+func (p *AWSProvider) ObjectExists(app, key string) (bool, error) {
+	bucket, err := p.appResource(app, "Settings")
+	if err != nil {
+		return false, err
+	}
+
+	_, err = p.s3().HeadObject(&s3.HeadObjectInput{
+		Bucket: aws.String(bucket),
 		Key:    aws.String(key),
 	})
 	if err, ok := err.(awserr.Error); ok && err.Code() == "NotFound" {
-		return false
+		return false, nil
 	}
-	return true
+	if err != nil {
+		return false, err
+	}
+
+	return true, nil
 }
 
 // ObjectFetch fetches an Object
-func (p *AWSProvider) ObjectFetch(key string) (io.ReadCloser, error) {
+func (p *AWSProvider) ObjectFetch(app, key string) (io.ReadCloser, error) {
+	bucket, err := p.appResource(app, "Settings")
+	if err != nil {
+		return nil, err
+	}
+
 	res, err := p.s3().GetObject(&s3.GetObjectInput{
-		Bucket: aws.String(p.SettingsBucket),
+		Bucket: aws.String(bucket),
 		Key:    aws.String(key),
 	})
 	if ae, ok := err.(awserr.Error); ok && ae.Code() == "NoSuchKey" {
 		return nil, errorNotFound(fmt.Sprintf("no such key: %s", key))
 	}
-
 	if err != nil {
 		return nil, err
 	}
@@ -58,11 +81,16 @@ func (p *AWSProvider) ObjectFetch(key string) (io.ReadCloser, error) {
 	return res.Body, nil
 }
 
-func (p *AWSProvider) ObjectList(prefix string) ([]string, error) {
+func (p *AWSProvider) ObjectList(app, prefix string) ([]string, error) {
 	log := Logger.At("ObjectList").Namespace("prefix=%q", prefix).Start()
 
+	bucket, err := p.appResource(app, "Settings")
+	if err != nil {
+		return nil, err
+	}
+
 	res, err := p.s3().ListObjectsV2(&s3.ListObjectsV2Input{
-		Bucket:    aws.String(p.SettingsBucket),
+		Bucket:    aws.String(bucket),
 		Delimiter: aws.String("/"),
 		Prefix:    aws.String(prefix),
 	})
@@ -81,22 +109,26 @@ func (p *AWSProvider) ObjectList(prefix string) ([]string, error) {
 }
 
 // ObjectStore stores an Object
-func (p *AWSProvider) ObjectStore(key string, r io.Reader, opts structs.ObjectOptions) (string, error) {
-	log := Logger.At("ObjectStore").Namespace("key=%q public=%t", key, opts.Public).Start()
+func (p *AWSProvider) ObjectStore(app, key string, r io.Reader, opts structs.ObjectStoreOptions) (*structs.Object, error) {
+	log := Logger.At("ObjectStore").Namespace("app=%q key=%q public=%t", app, key, opts.Public).Start()
 
 	if key == "" {
 		k, err := generateTempKey()
 		if err != nil {
-			log.Error(err)
-			return "", err
+			return nil, log.Error(err)
 		}
 		key = k
 	}
 
 	log = log.Replace("key", key)
 
+	bucket, err := p.appResource(app, "Settings")
+	if err != nil {
+		return nil, err
+	}
+
 	mreq := &s3.CreateMultipartUploadInput{
-		Bucket: aws.String(p.SettingsBucket),
+		Bucket: aws.String(bucket),
 		Key:    aws.String(key),
 	}
 
@@ -107,7 +139,7 @@ func (p *AWSProvider) ObjectStore(key string, r io.Reader, opts structs.ObjectOp
 	mres, err := p.s3().CreateMultipartUpload(mreq)
 	if err != nil {
 		log.Error(err)
-		return "", err
+		return nil, err
 	}
 
 	// buf := make([]byte, 5*1024*1024)
@@ -122,12 +154,12 @@ func (p *AWSProvider) ObjectStore(key string, r io.Reader, opts structs.ObjectOp
 		}
 		if err != nil {
 			log.Error(err)
-			return "", err
+			return nil, err
 		}
 
 		res, err := p.s3().UploadPart(&s3.UploadPartInput{
 			Body:          bytes.NewReader(buf[0:n]),
-			Bucket:        aws.String(p.SettingsBucket),
+			Bucket:        aws.String(bucket),
 			ContentLength: aws.Int64(int64(n)),
 			Key:           aws.String(key),
 			PartNumber:    aws.Int64(int64(i)),
@@ -135,7 +167,7 @@ func (p *AWSProvider) ObjectStore(key string, r io.Reader, opts structs.ObjectOp
 		})
 		if err != nil {
 			log.Error(err)
-			return "", err
+			return nil, err
 		}
 
 		parts = append(parts, &s3.CompletedPart{
@@ -147,7 +179,7 @@ func (p *AWSProvider) ObjectStore(key string, r io.Reader, opts structs.ObjectOp
 	}
 
 	res, err := p.s3().CompleteMultipartUpload(&s3.CompleteMultipartUploadInput{
-		Bucket: aws.String(p.SettingsBucket),
+		Bucket: aws.String(bucket),
 		Key:    aws.String(key),
 		MultipartUpload: &s3.CompletedMultipartUpload{
 			Parts: parts,
@@ -156,18 +188,20 @@ func (p *AWSProvider) ObjectStore(key string, r io.Reader, opts structs.ObjectOp
 	})
 	if err != nil {
 		log.Error(err)
-		return "", err
+		return nil, err
 	}
 
 	log.Success()
 
-	url := fmt.Sprintf("object:///%s", key)
+	url := fmt.Sprintf("object://%s/%s", app, key)
 
 	if opts.Public {
 		url = *res.Location
 	}
 
-	return url, nil
+	o := &structs.Object{Url: url}
+
+	return o, nil
 }
 
 func generateTempKey() (string, error) {

@@ -13,6 +13,42 @@ import (
 	"github.com/convox/rack/structs"
 )
 
+func (p *AWSProvider) CertificateApply(app, service string, port int, id string) error {
+	a, err := p.AppGet(app)
+	if err != nil {
+		return err
+	}
+
+	switch a.Tags["Generation"] {
+	case "", "1":
+		return p.certificateApplyGeneration1(a, service, port, id)
+	case "2":
+	default:
+		return fmt.Errorf("unknown generation for app: %s", app)
+	}
+
+	return fmt.Errorf("not yet implemented on generation 2")
+}
+
+func (p *AWSProvider) certificateApplyGeneration1(a *structs.App, service string, port int, id string) error {
+	params := map[string]string{}
+
+	cs, err := p.CertificateList()
+	if err != nil {
+		return err
+	}
+
+	for _, c := range cs {
+		if c.Id == id {
+			param := fmt.Sprintf("%sPort%dListener", upperName(service), port)
+			fp := strings.Split(a.Parameters[param], ",")
+			params[param] = fmt.Sprintf("%s,%s", fp[0], c.Arn)
+		}
+	}
+
+	return p.updateStack(p.rackStack(a.Name), "", params)
+}
+
 func (p *AWSProvider) CertificateCreate(pub, key, chain string) (*structs.Certificate, error) {
 	end, _ := pem.Decode([]byte(pub))
 	pub = string(pem.EncodeToMemory(end))
