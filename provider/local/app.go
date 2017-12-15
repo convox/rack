@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"sort"
+	"strings"
 	"sync"
 	"time"
 
@@ -70,6 +71,9 @@ func (p *Provider) AppGet(name string) (*structs.App, error) {
 	var app structs.App
 
 	if err := p.storageLoad(fmt.Sprintf("apps/%s/app.json", name), &app, AppCacheDuration); err != nil {
+		if strings.HasPrefix(err.Error(), "no such key:") {
+			return nil, fmt.Errorf("no such app: %s", name)
+		}
 		return nil, errors.WithStack(log.Error(err))
 	}
 

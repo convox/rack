@@ -3,6 +3,7 @@ package local_test
 import (
 	"testing"
 
+	"github.com/convox/rack/structs"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -11,7 +12,7 @@ func TestAppCreate(t *testing.T) {
 	assert.NoError(t, err)
 	defer testProviderCleanup(local)
 
-	app, err := local.AppCreate("test")
+	app, err := local.AppCreate("test", structs.AppCreateOptions{})
 	assert.NoError(t, err)
 	assert.Equal(t, "test", app.Name)
 }
@@ -21,10 +22,10 @@ func TestAppCreateAlreadyExists(t *testing.T) {
 	assert.NoError(t, err)
 	defer testProviderCleanup(local)
 
-	_, err = local.AppCreate("test")
+	_, err = local.AppCreate("test", structs.AppCreateOptions{})
 	assert.NoError(t, err)
 
-	_, err = local.AppCreate("test")
+	_, err = local.AppCreate("test", structs.AppCreateOptions{})
 	assert.EqualError(t, err, "app already exists: test")
 }
 
@@ -33,7 +34,7 @@ func TestAppDelete(t *testing.T) {
 	assert.NoError(t, err)
 	defer testProviderCleanup(local)
 
-	_, err = local.AppCreate("test")
+	_, err = local.AppCreate("test", structs.AppCreateOptions{})
 	assert.NoError(t, err)
 
 	_, err = local.AppGet("test")
@@ -63,7 +64,7 @@ func TestAppGet(t *testing.T) {
 	_, err = local.AppGet("test")
 	assert.EqualError(t, err, "no such app: test")
 
-	_, err = local.AppCreate("test")
+	_, err = local.AppCreate("test", structs.AppCreateOptions{})
 	assert.NoError(t, err)
 
 	app, err := local.AppGet("test")
@@ -89,9 +90,9 @@ func TestAppList(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, 0, len(apps))
 
-	local.AppCreate("test1")
-	local.AppCreate("test3")
-	local.AppCreate("test2")
+	local.AppCreate("test1", structs.AppCreateOptions{})
+	local.AppCreate("test3", structs.AppCreateOptions{})
+	local.AppCreate("test2", structs.AppCreateOptions{})
 
 	apps, err = local.AppList()
 	assert.NoError(t, err)
