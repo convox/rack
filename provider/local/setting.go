@@ -10,6 +10,10 @@ func (p *Provider) SettingDelete(name string) error {
 	return fmt.Errorf("unimplemented")
 }
 
+func (p *Provider) SettingExists(name string) (bool, error) {
+	return false, fmt.Errorf("unimplemented")
+}
+
 func (p *Provider) SettingGet(name string) (string, error) {
 	return "", fmt.Errorf("unimplemented")
 }

@@ -5,12 +5,15 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/convox/rack/crypt"
 	"github.com/convox/rack/structs"
 )
 
 func (p *AWSProvider) SettingDelete(name string) error {
 	return p.s3Delete(p.SettingsBucket, name)
+}
+
+func (p *AWSProvider) SettingExists(name string) (bool, error) {
+	return p.s3Exists(p.SettingsBucket, name)
 }
 
 func (p *AWSProvider) SettingGet(name string) (string, error) {
@@ -28,7 +31,7 @@ func (p *AWSProvider) SettingGet(name string) (string, error) {
 		return "", err
 	}
 
-	dec, err := crypt.New().Decrypt(p.EncryptionKey, data)
+	dec, err := p.SystemDecrypt(data)
 	if err != nil {
 		return "", err
 	}
@@ -58,7 +61,7 @@ func (p *AWSProvider) SettingList(opts structs.SettingListOptions) ([]string, er
 }
 
 func (p *AWSProvider) SettingPut(name, value string) error {
-	enc, err := crypt.New().Encrypt(p.EncryptionKey, []byte(value))
+	enc, err := p.SystemEncrypt([]byte(value))
 	if err != nil {
 		return err
 	}

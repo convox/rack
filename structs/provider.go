@@ -85,6 +85,7 @@ type Provider interface {
 	ServiceUpdate(app, name string, opts ServiceUpdateOptions) error
 
 	SettingDelete(name string) error
+	SettingExists(name string) (bool, error)
 	SettingGet(name string) (string, error)
 	SettingList(opts SettingListOptions) ([]string, error)
 	SettingPut(name, value string) error
