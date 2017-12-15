@@ -14,11 +14,11 @@ func TestObjectStoreFetch(t *testing.T) {
 	assert.NoError(t, err)
 	defer testProviderCleanup(p)
 
-	_, err = p.AppCreate("app")
+	_, err = p.AppCreate("app", structs.AppCreateOptions{})
 	assert.NoError(t, err)
 
 	data := bytes.NewBuffer([]byte("object to store"))
-	expect := &structs.Object{Key: "mykey"}
+	expect := &structs.Object{Url: "object://app/mykey"}
 
 	obj, err := p.ObjectStore("app", "mykey", data, structs.ObjectStoreOptions{})
 	assert.NoError(t, err)
