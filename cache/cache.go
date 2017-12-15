@@ -1,9 +1,7 @@
 package cache
 
 import (
-	"crypto/sha256"
 	"encoding/json"
-	"fmt"
 	"os"
 	"strings"
 	"sync"
@@ -97,7 +95,12 @@ func ClearPrefix(collection string, prefix string) error {
 	defer lock.Unlock()
 
 	for k := range cache[collection] {
-		if strings.HasPrefix(k, prefix) {
+		match, err := hashPrefix(k, prefix)
+		if err != nil {
+			return err
+		}
+
+		if match {
 			delete(cache[collection], k)
 		}
 	}
@@ -107,10 +110,25 @@ func ClearPrefix(collection string, prefix string) error {
 
 func hashKey(key interface{}) (string, error) {
 	data, err := json.Marshal(key)
-
 	if err != nil {
 		return "", err
 	}
 
-	return fmt.Sprintf("%x", sha256.Sum256(data))[0:32], nil
+	return string(data), nil
+}
+
+func hashPrefix(hash string, prefix string) (bool, error) {
+	var w interface{}
+
+	if err := json.Unmarshal([]byte(hash), &w); err != nil {
+		return false, err
+	}
+
+	if s, ok := w.(string); ok {
+		if strings.HasPrefix(s, prefix) {
+			return true, nil
+		}
+	}
+
+	return false, nil
 }

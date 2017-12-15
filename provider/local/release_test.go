@@ -12,7 +12,7 @@ func TestReleaseCreateGet(t *testing.T) {
 	assert.NoError(t, err)
 	defer testProviderCleanup(p)
 
-	_, err = p.AppCreate("app")
+	_, err = p.AppCreate("app", structs.AppCreateOptions{})
 	assert.NoError(t, err)
 
 	opts := structs.ReleaseCreateOptions{
@@ -20,7 +20,7 @@ func TestReleaseCreateGet(t *testing.T) {
 		Env: structs.Environment{
 			"APP": "app",
 			"FOO": "bar",
-		},
+		}.String(),
 	}
 	rel, err := p.ReleaseCreate("app", opts)
 	assert.NoError(t, err)
@@ -38,32 +38,32 @@ func TestReleaseList(t *testing.T) {
 	assert.NoError(t, err)
 	defer testProviderCleanup(p)
 
-	_, err = p.AppCreate("app")
+	_, err = p.AppCreate("app", structs.AppCreateOptions{})
 	if !assert.NoError(t, err) {
 		return
 	}
 
 	p.ReleaseCreate("app", structs.ReleaseCreateOptions{Build: "B1"})
-	p.ReleaseCreate("app", structs.ReleaseCreateOptions{Env: structs.Environment{"FOO": "bar"}})
+	p.ReleaseCreate("app", structs.ReleaseCreateOptions{Env: structs.Environment{"FOO": "bar"}.String()})
 	p.ReleaseCreate("app", structs.ReleaseCreateOptions{Build: "B2"})
 	p.ReleaseCreate("app", structs.ReleaseCreateOptions{Build: "B3"})
-	p.ReleaseCreate("app", structs.ReleaseCreateOptions{Env: structs.Environment{"FOO": "baz"}})
+	p.ReleaseCreate("app", structs.ReleaseCreateOptions{Env: structs.Environment{"FOO": "baz"}.String()})
 	p.ReleaseCreate("app", structs.ReleaseCreateOptions{Build: "B4"})
 
 	rs, err := p.ReleaseList("app", structs.ReleaseListOptions{})
 
 	if assert.NoError(t, err) && assert.Len(t, rs, 6) {
 		assert.Equal(t, "B4", rs[0].Build)
-		assert.Equal(t, structs.Environment{"FOO": "baz"}, rs[0].Env)
+		assert.Equal(t, structs.Environment{"FOO": "baz"}.String(), rs[0].Env)
 		assert.Equal(t, "B3", rs[1].Build)
-		assert.Equal(t, structs.Environment{"FOO": "baz"}, rs[1].Env)
+		assert.Equal(t, structs.Environment{"FOO": "baz"}.String(), rs[1].Env)
 		assert.Equal(t, "B3", rs[2].Build)
-		assert.Equal(t, structs.Environment{"FOO": "bar"}, rs[2].Env)
+		assert.Equal(t, structs.Environment{"FOO": "bar"}.String(), rs[2].Env)
 		assert.Equal(t, "B2", rs[3].Build)
-		assert.Equal(t, structs.Environment{"FOO": "bar"}, rs[3].Env)
+		assert.Equal(t, structs.Environment{"FOO": "bar"}.String(), rs[3].Env)
 		assert.Equal(t, "B1", rs[4].Build)
-		assert.Equal(t, structs.Environment{"FOO": "bar"}, rs[4].Env)
+		assert.Equal(t, structs.Environment{"FOO": "bar"}.String(), rs[4].Env)
 		assert.Equal(t, "B1", rs[5].Build)
-		assert.Equal(t, structs.Environment{}, rs[5].Env)
+		assert.Equal(t, structs.Environment{}.String(), rs[5].Env)
 	}
 }

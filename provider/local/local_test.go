@@ -5,10 +5,11 @@ import (
 	"os"
 
 	"github.com/convox/rack/provider/local"
+	"github.com/convox/rack/structs"
 )
 
 func testProvider() (*local.Provider, error) {
-	tmp, err := ioutil.TempDir("", "praxis")
+	tmp, err := ioutil.TempDir("", "rack")
 	if err != nil {
 		return nil, err
 	}
@@ -19,7 +20,7 @@ func testProvider() (*local.Provider, error) {
 		Test:   true,
 	}
 
-	if err := p.Init(); err != nil {
+	if err := p.Initialize(structs.ProviderOptions{}); err != nil {
 		return nil, err
 	}
 
