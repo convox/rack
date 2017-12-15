@@ -7,6 +7,7 @@ import (
 	"math"
 	"os"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -663,6 +664,22 @@ func (p *AWSProvider) fetchProcess(task *ecs.Task, psch chan structs.Process, er
 		ps.Command = shellquote.Join(p...)
 	}
 
+	if task.StartedBy != nil && *task.StartedBy == fmt.Sprintf("convox.%s", env["APP"]) {
+		ps.Command = ""
+	}
+
+	if task.Overrides != nil && len(task.Overrides.ContainerOverrides) > 0 {
+		for _, co := range task.Overrides.ContainerOverrides {
+			if co.Name != nil && *co.Name == *container.Name && co.Command != nil && len(co.Command) == 3 {
+				ps.Command = *co.Command[2]
+			}
+		}
+	}
+
+	if env["COMMAND"] != "" {
+		ps.Command = env["COMMAND"]
+	}
+
 	// TODO: figure out a way to do this less expensively
 
 	// dc, err := p.dockerInstance(ps.Instance)
@@ -977,7 +994,6 @@ func (p *AWSProvider) generateTaskDefinition2(app, process, release string) (*ec
 	}
 
 	cd := &ecs.ContainerDefinition{
-		Command:           []*string{aws.String("sh"), aws.String("-c"), aws.String(s.Command)},
 		DockerLabels:      labels,
 		Environment:       cenv,
 		Essential:         aws.Bool(true),
@@ -986,6 +1002,10 @@ func (p *AWSProvider) generateTaskDefinition2(app, process, release string) (*ec
 		MountPoints:       tres.TaskDefinition.ContainerDefinitions[0].MountPoints,
 		Name:              aws.String(process),
 		Privileged:        aws.Bool(s.Privileged),
+	}
+
+	if s.Command != "" {
+		cd.Command = []*string{aws.String("sh"), aws.String("-c"), aws.String(s.Command)}
 	}
 
 	req := &ecs.RegisterTaskDefinitionInput{
@@ -1015,8 +1035,14 @@ func (p *AWSProvider) processRunAttached(app, process string, opts structs.Proce
 		req.Overrides = &ecs.TaskOverride{
 			ContainerOverrides: []*ecs.ContainerOverride{
 				{
-					Name:    aws.String(process),
-					Command: []*string{aws.String("sh"), aws.String("-c"), aws.String(opts.Command)},
+					Name: aws.String(process),
+					Command: []*string{
+						aws.String("sleep"),
+						aws.String("3600"),
+					},
+					Environment: []*ecs.KeyValuePair{
+						&ecs.KeyValuePair{Name: aws.String("COMMAND"), Value: aws.String(opts.Command)},
+					},
 				},
 			},
 		}
@@ -1035,7 +1061,23 @@ func (p *AWSProvider) processRunAttached(app, process string, opts structs.Proce
 		return "", fmt.Errorf("error starting container")
 	}
 
-	return arnToPid(*task.TaskArn), nil
+	pid := arnToPid(*task.TaskArn)
+
+	if opts.Command != "" {
+		code, err := p.ProcessExec(app, pid, opts.Command, structs.ProcessExecOptions{
+			Entrypoint: true,
+			Height:     opts.Height,
+			Stream:     opts.Stream,
+			Width:      opts.Width,
+		})
+		if err != nil && !strings.Contains(err.Error(), "use of closed network") {
+			return "", err
+		}
+
+		p.stopTask(*task.TaskArn, fmt.Sprintf("exit:%d", code))
+	}
+
+	return pid, nil
 }
 
 func (p *AWSProvider) ProcessWait(app, pid string) (int, error) {
@@ -1047,6 +1089,18 @@ func (p *AWSProvider) ProcessWait(app, pid string) (int, error) {
 	task, err := p.describeTask(arn)
 	if err != nil {
 		return -1, err
+	}
+
+	if task.StoppedReason != nil && strings.HasPrefix(*task.StoppedReason, "exit:") {
+		p := strings.Split(*task.StoppedReason, ":")
+		if len(p) != 2 {
+			return -1, fmt.Errorf("invalid exit code")
+		}
+		code, err := strconv.Atoi(p[1])
+		if err != nil {
+			return -1, fmt.Errorf("invalid exit code")
+		}
+		return code, nil
 	}
 
 	if len(task.Containers) < 1 {
@@ -1119,45 +1173,80 @@ func (p *AWSProvider) runTask(req *ecs.RunTaskInput) (*ecs.Task, error) {
 	return res.Tasks[0], nil
 }
 
-func (p *AWSProvider) stopTask(arn string) error {
+func (p *AWSProvider) stopTask(arn string, reason string) error {
 	_, err := p.ecs().StopTask(&ecs.StopTaskInput{
 		Cluster: aws.String(p.Cluster),
+		Reason:  aws.String(reason),
 		Task:    aws.String(arn),
 	})
+	if err != nil {
+		return err
+	}
 
-	return err
+	for {
+		res, err := p.describeTask(arn)
+		if err != nil {
+			return err
+		}
+
+		if res.StoppedReason != nil || (res.DesiredStatus != nil && *res.DesiredStatus == "STOPPED") {
+			break
+		}
+
+		time.Sleep(250 * time.Millisecond)
+	}
+
+	return nil
 }
 
 func (p *AWSProvider) taskArnFromPid(pid string) (string, error) {
-	token := ""
+	running, err := p.tasksByStatus("RUNNING")
+	if err != nil {
+		return "", err
+	}
+
+	stopped, err := p.tasksByStatus("STOPPED")
+	if err != nil {
+		return "", err
+	}
+
+	tasks := append(running, stopped...)
+
+	for _, arn := range tasks {
+		if arnToPid(arn) == pid {
+			return arn, nil
+		}
+	}
+
+	return "", fmt.Errorf("could not find process")
+}
+
+func (p *AWSProvider) tasksByStatus(status string) ([]string, error) {
+	req := &ecs.ListTasksInput{
+		Cluster:       aws.String(p.Cluster),
+		DesiredStatus: aws.String(status),
+	}
+
+	tasks := []string{}
 
 	for {
-		req := &ecs.ListTasksInput{
-			Cluster: aws.String(p.Cluster),
-		}
-		if token != "" {
-			req.NextToken = aws.String(token)
-		}
-
 		res, err := p.ecs().ListTasks(req)
 		if err != nil {
-			return "", err
+			return nil, err
 		}
 
 		for _, arn := range res.TaskArns {
-			if arnToPid(*arn) == pid {
-				return *arn, nil
-			}
+			tasks = append(tasks, *arn)
 		}
 
 		if res.NextToken == nil {
 			break
 		}
 
-		token = *res.NextToken
+		req.NextToken = res.NextToken
 	}
 
-	return "", fmt.Errorf("could not find process")
+	return tasks, nil
 }
 
 func (p *AWSProvider) taskDefinitionsForPrefix(prefix string) ([]string, error) {

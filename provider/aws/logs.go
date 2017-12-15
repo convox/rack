@@ -22,7 +22,9 @@ func (p *AWSProvider) subscribeLogs(group string, opts structs.LogsOptions) (io.
 	return r, nil
 }
 
-func (p *AWSProvider) streamLogs(w io.Writer, group string, opts structs.LogsOptions) error {
+func (p *AWSProvider) streamLogs(w io.WriteCloser, group string, opts structs.LogsOptions) error {
+	defer w.Close()
+
 	since := opts.Since
 
 	if since.IsZero() {

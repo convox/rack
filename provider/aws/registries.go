@@ -75,12 +75,7 @@ func (p *AWSProvider) RegistryAdd(server, username, password string) (*structs.R
 
 	id := fmt.Sprintf("%x", sha256.New().Sum([]byte(server)))
 
-	enc, err := p.SystemEncrypt(data)
-	if err != nil {
-		return nil, log.Error(err)
-	}
-
-	if err := p.SettingPut(fmt.Sprintf("system/registries/%s", id), string(enc)); err != nil {
+	if err := p.SettingPut(fmt.Sprintf("system/registries/%s", id), string(data)); err != nil {
 		return nil, log.Error(err)
 	}
 
@@ -98,7 +93,7 @@ func (p *AWSProvider) RegistryRemove(server string) error {
 
 	key := fmt.Sprintf("system/registries/%x", sha256.New().Sum([]byte(server)))
 
-	if _, err := p.SettingGet(key); err != nil {
+	if _, err := p.SettingExists(key); err != nil {
 		return log.Error(fmt.Errorf("no such registry: %s", server))
 	}
 
@@ -120,19 +115,14 @@ func (p *AWSProvider) RegistryList() (structs.Registries, error) {
 	registries := structs.Registries{}
 
 	for _, o := range objects {
-		enc, err := p.SettingGet(o)
+		data, err := p.SettingGet(o)
 		if err != nil {
 			return nil, log.Error(err)
 		}
 
-		dec, err := p.SystemDecrypt([]byte(enc))
-		if err != nil {
-			return nil, err
-		}
-
 		var reg structs.Registry
 
-		if err := json.Unmarshal(dec, &reg); err != nil {
+		if err := json.Unmarshal([]byte(data), &reg); err != nil {
 			return nil, log.Error(err)
 		}
 
