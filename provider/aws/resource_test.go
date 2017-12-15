@@ -3,8 +3,8 @@ package aws_test
 import (
 	"testing"
 
-	"github.com/convox/rack/test/awsutil"
 	"github.com/convox/rack/structs"
+	"github.com/convox/rack/test/awsutil"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -21,7 +21,7 @@ func TestResourceWebhookURL(t *testing.T) {
 	}
 
 	url := "http://notifications.example.org/sns?endpoint=https%3A%2F%2Fwww.example.com"
-	s, err := provider.ResourceCreate("mywebhook", "webhook", params)
+	s, err := provider.ResourceCreate("mywebhook", "webhook", structs.ResourceCreateOptions{Parameters: params})
 
 	if assert.NoError(t, err) {
 		assert.Equal(t, url, s.Parameters["Url"])
@@ -37,25 +37,10 @@ func TestResourceList(t *testing.T) {
 
 	expected := structs.Resources{
 		structs.Resource{
-			Name:         "syslog",
-			Stack:        "syslog",
-			Status:       "running",
-			StatusReason: "",
-			Type:         "",
-			Apps:         structs.Apps(nil),
-			Exports:      map[string]string{},
-			Outputs: map[string]string{
-				"Httpd2Link": "",
-				"Url":        "tcp+tls://logs1.example.com:11235",
-				"HttpdLink":  "convox-httpd-LogGroup-12345678",
-			},
+			Name:       "syslog",
+			Status:     "running",
+			Type:       "",
 			Parameters: map[string]string{},
-			Tags: map[string]string{
-				"Rack":   "convox",
-				"Type":   "service",
-				"Name":   "syslog",
-				"System": "convox",
-			},
 		},
 	}
 
@@ -74,64 +59,8 @@ func TestResourceGet(t *testing.T) {
 	defer provider.Close()
 
 	expected := &structs.Resource{
-		Name:   "syslog",
-		Stack:  "syslog",
-		Status: "running",
-		Apps: structs.Apps{
-			structs.App{
-				Generation: "1",
-				Name:       "httpd",
-				Release:    "RVFETUHHKKD",
-				Status:     "running",
-				Outputs: map[string]string{
-					"BalancerWebHost":       "httpd-web-7E5UPCM-1241527783.us-east-1.elb.amazonaws.com",
-					"Kinesis":               "convox-httpd-Kinesis-1MAP0GJ6RITJF",
-					"LogGroup":              "convox-httpd-LogGroup-L4V203L35WRM",
-					"RegistryId":            "132866487567",
-					"RegistryRepository":    "convox-httpd-hqvvfosgxt",
-					"Settings":              "convox-httpd-settings-139bidzalmbtu",
-					"WebPort80Balancer":     "80",
-					"WebPort80BalancerName": "httpd-web-7E5UPCM",
-				},
-				Parameters: map[string]string{
-					"WebMemory":              "256",
-					"WebCpu":                 "256",
-					"Release":                "RVFETUHHKKD",
-					"Subnets":                "subnet-13de3139,subnet-b5578fc3,subnet-21c13379",
-					"Private":                "Yes",
-					"WebPort80ProxyProtocol": "No",
-					"VPC":                  "vpc-f8006b9c",
-					"Cluster":              "convox-Cluster-1E4XJ0PQWNAYS",
-					"Key":                  "arn:aws:kms:us-east-1:132866487567:key/d9f38426-9017-4931-84f8-604ad1524920",
-					"Repository":           "",
-					"WebPort80Balancer":    "80",
-					"SubnetsPrivate":       "subnet-d4e85cfe,subnet-103d5a66,subnet-57952a0f",
-					"Environment":          "https://convox-httpd-settings-139bidzalmbtu.s3.amazonaws.com/releases/RVFETUHHKKD/env",
-					"WebPort80Certificate": "",
-					"WebPort80Host":        "56694",
-					"WebDesiredCount":      "1",
-					"WebPort80Secure":      "No",
-					"Version":              "20160330143438-command-exec-form",
-				},
-				Tags: map[string]string{
-					"Name":   "httpd",
-					"Type":   "app",
-					"System": "convox",
-					"Rack":   "convox",
-				},
-			},
-		},
-		Tags: map[string]string{
-			"Type":   "resource",
-			"Name":   "syslog",
-			"System": "convox",
-			"Rack":   "convox",
-		},
-		Outputs: map[string]string{
-			"Url":       "tcp+tls://logs1.example.com:11235",
-			"HttpdLink": "convox-httpd-LogGroup-12345678",
-		},
-		Exports:    map[string]string{},
+		Name:       "syslog",
+		Status:     "running",
 		Parameters: map[string]string{},
 	}
 

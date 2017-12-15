@@ -3,8 +3,8 @@ package aws_test
 import (
 	"testing"
 
-	"github.com/convox/rack/test/awsutil"
 	"github.com/convox/rack/structs"
+	"github.com/convox/rack/test/awsutil"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -45,23 +45,22 @@ func TestRegistryAddBlankUser(t *testing.T) {
 	assert.EqualError(t, err, "username must not be blank", "an error is expected")
 }
 
-func TestRegistryDelete(t *testing.T) {
+func TestRegistryRemove(t *testing.T) {
 	provider := StubAwsProvider(
-		cycleRegistryHeadRegistry,
 		cycleRegistryHeadRegistry,
 		cycleRegistryDeleteRegistry,
 	)
 	defer provider.Close()
 
-	err := provider.RegistryDelete("r.example.org")
+	err := provider.RegistryRemove("r.example.org")
 
 	assert.NoError(t, err)
 }
 
 func TestRegistryList(t *testing.T) {
 	provider := StubAwsProvider(
-		cycleRegistryGetRackEnv,
 		cycleRegistryListRegistries,
+		cycleRegistryHeadRegistry,
 		cycleRegistryGetRegistry,
 		cycleRegistryDecrypt,
 	)
@@ -83,17 +82,6 @@ var cycleRegistryAddRegistry = awsutil.Cycle{
 	awsutil.Request{
 		Method:     "POST",
 		RequestURI: "/registries",
-	},
-	awsutil.Response{
-		StatusCode: 200,
-		Body:       "{}",
-	},
-}
-
-var cycleRegistryGetRackEnv = awsutil.Cycle{
-	awsutil.Request{
-		Method:     "GET",
-		RequestURI: "/convox-settings/env",
 	},
 	awsutil.Response{
 		StatusCode: 200,
