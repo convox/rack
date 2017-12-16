@@ -81,11 +81,11 @@
     "AwsRegion": {
       "Value": { "Ref": "AWS::Region" }
     },
-    "BuildCluster": {
-      "Value": { "Fn::If": [ "DedicatedBuilder", { "Ref": "BuildCluster" }, { "Ref": "Cluster" } ] }
-    },
     "BuildAutoscalingGroup": {
       "Value": { "Fn::If": [ "DedicatedBuilder", { "Ref": "BuildInstances" }, { "Ref": "Instances" } ] }
+    },
+    "BuildCluster": {
+      "Value": { "Fn::If": [ "DedicatedBuilder", { "Ref": "BuildCluster" }, { "Ref": "Cluster" } ] }
     },
     "CloudformationTopic": {
       "Value": { "Ref": "CloudformationTopic" }
