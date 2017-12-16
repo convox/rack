@@ -84,6 +84,9 @@
     "BuildCluster": {
       "Value": { "Fn::If": [ "DedicatedBuilder", { "Ref": "BuildCluster" }, { "Ref": "Cluster" } ] }
     },
+    "BuildAutoscalingGroup": {
+      "Value": { "Fn::If": [ "DedicatedBuilder", { "Ref": "BuildInstances" }, { "Ref": "Instances" } ] }
+    },
     "CloudformationTopic": {
       "Value": { "Ref": "CloudformationTopic" }
     },
