@@ -78,14 +78,6 @@ func init() {
 				Flags:       buildCreateFlags,
 			},
 			{
-				Name:        "delete",
-				Description: "delete a build and its artifacts",
-				Usage:       "<build id>",
-				ArgsUsage:   "<build id>",
-				Action:      cmdBuildsDelete,
-				Flags:       []cli.Flag{appFlag, rackFlag},
-			},
-			{
 				Name:        "export",
 				Description: "export a build artifact to stdout",
 				Usage:       "<id>",
@@ -213,26 +205,6 @@ func cmdBuildsCreate(c *cli.Context) error {
 		output.Write([]byte("\n"))
 	}
 
-	return nil
-}
-
-func cmdBuildsDelete(c *cli.Context) error {
-	stdcli.NeedHelp(c)
-	stdcli.NeedArg(c, 1)
-
-	_, app, err := stdcli.DirApp(c, ".")
-	if err != nil {
-		return stdcli.Error(err)
-	}
-
-	build := c.Args()[0]
-
-	fmt.Printf("Deleting %s... ", build)
-	if _, err := rackClient(c).DeleteBuild(app, build); err != nil {
-		return stdcli.Error(err)
-	}
-
-	fmt.Println("OK")
 	return nil
 }
 
