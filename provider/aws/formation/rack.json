@@ -62,6 +62,7 @@
       "eu-central-1":   { "Ami": "ami-05991b6a", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "054676820928" },
       "eu-west-1":      { "Ami": "ami-4cbe0935", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "156460612806" },
       "eu-west-2":      { "Ami": "ami-dbfee1bf", "EFS": "No",  "ThirdAvailabilityZone": "No",  "ELBAccountId": "652711504416" },
+      "eu-west-3":      { "Ami": "ami-d179ceac", "EFS": "No",  "ThirdAvailabilityZone": "Yes", "ELBAccountId": "009996457667" },
       "us-east-1":      { "Ami": "ami-fad25980", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "127311923021" },
       "us-east-2":      { "Ami": "ami-58f5db3d", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "033677994240" },
       "us-west-1":      { "Ami": "ami-62e0d802", "EFS": "No",  "ThirdAvailabilityZone": "No",  "ELBAccountId": "027434742980" },
