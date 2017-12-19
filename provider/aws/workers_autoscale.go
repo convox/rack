@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/convox/logger"
+	"github.com/convox/rack/structs"
 )
 
 var (
@@ -85,32 +86,21 @@ func (p *AWSProvider) autoscaleRack() {
 		desired = c
 	}
 
-	// if no change then exit
-	if system.Count == desired {
-		log.Logf("change=0")
-		return
+	target := desired
+
+	// only stop one instance at a time
+	if target < system.Count {
+		target = system.Count - 1
 	}
 
-	oldCount := system.Count
+	log.Logf("desired=%d target=%d change=%d", desired, target, (target - system.Count))
 
-	// ok to start multiple instances in one pass
-	// when shutting down go one at a time but only if current status is "running"
-	if desired < system.Count {
-		if system.Status == "running" {
-			system.Count--
-		}
-	} else {
-		system.Count = desired
-	}
-
-	log.Logf("change=%d", (system.Count - oldCount))
 	// nothing changed, return
-	if system.Count == oldCount {
+	if target == system.Count {
 		return
 	}
 
-	err = p.SystemSave(*system)
-	if err != nil {
+	if err := p.SystemUpdate(structs.SystemUpdateOptions{InstanceCount: target}); err != nil {
 		log.Error(err)
 		return
 	}

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"strconv"
-	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -308,40 +307,29 @@ func (p *AWSProvider) SystemReleases() (structs.Releases, error) {
 	return releases, nil
 }
 
-func (p *AWSProvider) SystemSave(system structs.System) error {
-	// FIXME
-	// mac, err := maxAppConcurrency()
-
-	// // dont scale the rack below the max concurrency plus one
-	// // see formation.go for more details
-	// if err == nil && r.Count < (mac+1) {
-	//   return fmt.Errorf("max process concurrency is %d, can't scale rack below %d instances", mac, mac+1)
-	// }
-
-	template := fmt.Sprintf("https://convox.s3.amazonaws.com/release/%s/formation.json", system.Version)
-
-	params := map[string]string{
-		"InstanceCount": strconv.Itoa(system.Count),
-		"InstanceType":  system.Type,
-		"Version":       system.Version,
-	}
-
-	stack, err := p.describeStack(p.Rack)
-	if err != nil {
-		return err
-	}
-
-	// build a list of changes for the notification
-	sp := stackParameters(stack)
+func (p *AWSProvider) SystemUpdate(opts structs.SystemUpdateOptions) error {
 	changes := map[string]string{}
-	if sp["InstanceCount"] != strconv.Itoa(system.Count) {
-		changes["count"] = strconv.Itoa(system.Count)
+	params := opts.Parameters
+	template := ""
+
+	if params == nil {
+		params = map[string]string{}
 	}
-	if sp["InstanceType"] != system.Type {
-		changes["type"] = system.Type
+
+	if opts.InstanceCount > 0 {
+		params["InstanceCount"] = strconv.Itoa(opts.InstanceCount)
+		changes["count"] = strconv.Itoa(opts.InstanceCount)
 	}
-	if sp["Version"] != system.Version {
-		changes["version"] = system.Version
+
+	if opts.InstanceType != "" {
+		params["InstanceType"] = opts.InstanceType
+		changes["type"] = opts.InstanceType
+	}
+
+	if opts.Version != "" {
+		template = fmt.Sprintf("https://convox.s3.amazonaws.com/release/%s/rack.json", opts.Version)
+		params["Version"] = opts.Version
+		changes["version"] = opts.Version
 	}
 
 	// if there is a version update then record it
@@ -359,32 +347,12 @@ func (p *AWSProvider) SystemSave(system structs.System) error {
 		}
 	}
 
-	// update the stack
-	err = p.updateStack(p.Rack, template, params)
-	if err != nil {
-		if awsError(err) == "ValidationError" {
-			switch {
-			case strings.Contains(err.Error(), "No updates are to be performed"):
-				return fmt.Errorf("no system updates are to be performed")
-			case strings.Contains(err.Error(), "can not be updated"):
-				return fmt.Errorf("system is already updating")
-			}
-		}
-
+	if err := p.updateStack(p.Rack, template, params); err != nil {
 		return err
 	}
 
 	// notify about the update
-	p.EventSend(&structs.Event{
-		Action: "rack:update",
-		Data:   changes,
-	}, nil)
+	p.EventSend(&structs.Event{Action: "rack:update", Data: changes}, nil)
 
-	return err
-}
-
-func (p *AWSProvider) SystemUpdate(opts structs.SystemUpdateOptions) error {
-	params := opts.Parameters
-
-	return p.updateStack(p.Rack, "", params)
+	return nil
 }
