@@ -95,6 +95,7 @@ type Provider interface {
 	SystemGet() (*System, error)
 	SystemLogs(opts LogsOptions) (io.ReadCloser, error)
 	SystemProcesses(opts SystemProcessesOptions) (Processes, error)
+	SystemReleases() (Releases, error)
 	SystemUpdate(opts SystemUpdateOptions) error
 
 	Workers() error

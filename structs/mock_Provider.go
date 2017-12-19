@@ -1284,6 +1284,29 @@ func (_m *MockProvider) SystemProcesses(opts SystemProcessesOptions) (Processes,
 	return r0, r1
 }
 
+// SystemReleases provides a mock function with given fields:
+func (_m *MockProvider) SystemReleases() (Releases, error) {
+	ret := _m.Called()
+
+	var r0 Releases
+	if rf, ok := ret.Get(0).(func() Releases); ok {
+		r0 = rf()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(Releases)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func() error); ok {
+		r1 = rf()
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // SystemUpdate provides a mock function with given fields: opts
 func (_m *MockProvider) SystemUpdate(opts SystemUpdateOptions) error {
 	ret := _m.Called(opts)
