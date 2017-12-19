@@ -68,6 +68,13 @@ func NewRouter() (router *mux.Router) {
 	// deprecated
 	router.HandleFunc("/apps/{app}/formation", api("formation.list", FormationList)).Methods("GET")
 	router.HandleFunc("/apps/{app}/formation/{process}", api("formation.set", FormationSet)).Methods("POST")
+	router.HandleFunc("/services", api("resource.list", ResourceList)).Methods("GET")
+	router.HandleFunc("/services", api("resource.create", ResourceCreate)).Methods("POST")
+	router.HandleFunc("/services/{resource}", api("resource.show", ResourceShow)).Methods("GET")
+	router.HandleFunc("/services/{resource}", api("resource.update", ResourceUpdate)).Methods("PUT")
+	router.HandleFunc("/services/{resource}", api("resource.delete", ResourceDelete)).Methods("DELETE")
+	router.HandleFunc("/services/{resource}/links", api("link.create", LinkCreate)).Methods("POST")
+	router.HandleFunc("/services/{resource}/links/{app}", api("link.delete", LinkDelete)).Methods("DELETE")
 
 	// websockets
 	router.Handle("/apps/{app}/logs", ws("app.logs", AppLogs)).Methods("GET")
