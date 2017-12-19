@@ -14,7 +14,7 @@ func TestServices(t *testing.T) {
 	ts := testServer(t,
 		test.Http{
 			Method: "GET",
-			Path:   "/services",
+			Path:   "/resources",
 			Code:   200,
 			Response: client.Resources{
 				client.Resource{
@@ -42,7 +42,7 @@ func TestServicesGet(t *testing.T) {
 	ts := testServer(t,
 		test.Http{
 			Method: "GET",
-			Path:   "/services/syslog-1234",
+			Path:   "/resources/syslog-1234",
 			Code:   200,
 			Response: client.Resource{
 				Name:   "syslog-1234",
@@ -68,7 +68,7 @@ func TestServicesCreate(t *testing.T) {
 	ts := testServer(t,
 		test.Http{
 			Method:   "POST",
-			Path:     "/services",
+			Path:     "/resources",
 			Body:     "name=syslog-1234&type=syslog&url=tcp%2Btls%3A%2F%2Flogs1.example.com%3A12345",
 			Code:     200,
 			Response: client.Resource{},
@@ -91,7 +91,7 @@ func TestServicesUpdate(t *testing.T) {
 	tr := testServer(t,
 		test.Http{
 			Method: "PUT",
-			Path:   "/services/syslog-1234",
+			Path:   "/resources/syslog-1234",
 			Body:   "url=tcp%2Btls%3A%2F%2Flogs1.example.net%3A12345",
 			Code:   200,
 			Response: client.Resource{
@@ -117,7 +117,7 @@ func TestServicesDelete(t *testing.T) {
 	tsd := testServer(t,
 		test.Http{
 			Method:   "DELETE",
-			Path:     "/services/syslog-1234",
+			Path:     "/resources/syslog-1234",
 			Code:     200,
 			Response: client.Resource{},
 		},
@@ -152,7 +152,7 @@ func testWaitForResource(t *testing.T, s string, w bool) error {
 	ts := testServer(t,
 		test.Http{
 			Method: "GET",
-			Path:   "/services/mysql-db",
+			Path:   "/resources/mysql-db",
 			Code:   200,
 			Response: client.Resource{
 				Name:   "mysql-db",
