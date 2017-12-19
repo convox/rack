@@ -213,6 +213,10 @@ func (p *Provider) SystemProxy(host string, port int, in io.Reader) (io.ReadClos
 	return cn, log.Success()
 }
 
+func (p *Provider) SystemReleases() (structs.Releases, error) {
+	return nil, fmt.Errorf("unimplemented")
+}
+
 func (p *Provider) SystemUninstall(name string, opts structs.SystemInstallOptions) error {
 	launcherRemove("convox.frontend")
 	launcherRemove("convox.rack")

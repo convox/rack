@@ -125,3 +125,12 @@ func SystemLogs(ws *websocket.Conn) *httperr.Error {
 
 	return nil
 }
+
+func SystemReleases(rw http.ResponseWriter, r *http.Request) *httperr.Error {
+	releases, err := Provider.SystemReleases()
+	if err != nil {
+		return httperr.Server(err)
+	}
+
+	return RenderJson(rw, releases)
+}
