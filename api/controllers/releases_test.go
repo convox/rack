@@ -31,7 +31,7 @@ func TestReleaseList(t *testing.T) {
 			},
 		}
 
-		p.On("ReleaseList", "example", structs.ReleaseListOptions{Count: 20}).Return(releases, nil)
+		p.On("ReleaseList", "example", structs.ReleaseListOptions{}).Return(releases, nil)
 
 		hf := test.NewHandlerFunc(controllers.HandlerFunc)
 

@@ -169,6 +169,18 @@ func ct(t *time.Time) time.Time {
 	return time.Time{}
 }
 
+func generation(g *string) string {
+	if g == nil {
+		return "1"
+	}
+
+	if *g == "" {
+		return "1"
+	}
+
+	return *g
+}
+
 var idAlphabet = []rune("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
 
 func generateId(prefix string, size int) string {

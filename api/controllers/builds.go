@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/convox/rack/api/httperr"
+	"github.com/convox/rack/options"
 	"github.com/convox/rack/structs"
 	"github.com/gorilla/mux"
 	"golang.org/x/net/websocket"
@@ -22,9 +23,9 @@ func BuildCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	app := vars["app"]
 
 	opts := structs.BuildCreateOptions{
-		Cache:       !(r.FormValue("cache") == "false"),
-		Config:      r.FormValue("config"),
-		Description: r.FormValue("description"),
+		Cache:       options.Bool(!(r.FormValue("cache") == "false")),
+		Config:      options.String(r.FormValue("config")),
+		Description: options.String(r.FormValue("description")),
 	}
 
 	if r.FormValue("import") != "" {
@@ -225,7 +226,7 @@ func BuildList(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 		}
 	}
 
-	builds, err := Provider.BuildList(app, structs.BuildListOptions{Count: limit})
+	builds, err := Provider.BuildList(app, structs.BuildListOptions{Count: options.Int(limit)})
 	if awsError(err) == "ValidationError" {
 		return httperr.Errorf(404, "no such app: %s", app)
 	}

@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/convox/rack/api/controllers"
+	"github.com/convox/rack/options"
 	"github.com/convox/rack/structs"
 	"github.com/convox/rack/test"
 	"github.com/stretchr/testify/assert"
@@ -60,9 +61,9 @@ func TestSystemUpdate(t *testing.T) {
 		}
 
 		opts := structs.SystemUpdateOptions{
-			InstanceCount: 5,
-			InstanceType:  "t2.test",
-			Version:       "latest",
+			InstanceCount: options.Int(5),
+			InstanceType:  options.String("t2.test"),
+			Version:       options.String("latest"),
 		}
 
 		p.On("SystemUpdate", opts).Return(nil)

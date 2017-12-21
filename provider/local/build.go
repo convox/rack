@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/convox/rack/options"
 	"github.com/convox/rack/structs"
 	"github.com/pkg/errors"
 )
@@ -53,17 +54,17 @@ func (p *Provider) BuildCreate(app, method, url string, opts structs.BuildCreate
 	defer buildUpdateLock.Unlock()
 
 	pid, err := p.ProcessStart(app, structs.ProcessRunOptions{
-		Command: fmt.Sprintf("build -id %s -url %s", b.Id, url),
+		Command: options.String(fmt.Sprintf("build -id %s -url %s", b.Id, url)),
 		Environment: map[string]string{
 			"BUILD_APP":         app,
 			"BUILD_AUTH":        base64.StdEncoding.EncodeToString(auth),
 			"BUILD_DEVELOPMENT": fmt.Sprintf("%t", opts.Development),
 			"BUILD_PREFIX":      fmt.Sprintf("%s/%s", p.Name, app),
 		},
-		Name:    fmt.Sprintf("%s-build-%s", app, b.Id),
-		Image:   sys.Image,
-		Release: a.Release,
-		Service: "build",
+		Name:    options.String(fmt.Sprintf("%s-build-%s", app, b.Id)),
+		Image:   options.String(sys.Image),
+		Release: options.String(a.Release),
+		Service: options.String("build"),
 		Volumes: map[string]string{
 			"/var/run/docker.sock": "/var/run/docker.sock",
 		},
@@ -131,8 +132,8 @@ func (p *Provider) BuildList(app string, opts structs.BuildListOptions) (structs
 
 	sort.Slice(builds, func(i, j int) bool { return builds[i].Created.Before(builds[j].Created) })
 
-	if len(builds) > opts.Count {
-		builds = builds[0:opts.Count]
+	if opts.Count != nil && len(builds) > *opts.Count {
+		builds = builds[0:(*opts.Count)]
 	}
 
 	return builds, log.Success()

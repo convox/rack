@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/convox/rack/options"
 	"github.com/convox/rack/provider/aws"
 	"github.com/convox/rack/structs"
 	"github.com/convox/rack/test/awsutil"
@@ -105,9 +106,9 @@ func TestSystemUpdate(t *testing.T) {
 	defer provider.Close()
 
 	err := provider.SystemUpdate(structs.SystemUpdateOptions{
-		InstanceCount: 5,
-		InstanceType:  "t2.small",
-		Version:       "20171214220445",
+		InstanceCount: options.Int(5),
+		InstanceType:  options.String("t2.small"),
+		Version:       options.String("20171214220445"),
 	})
 
 	assert.NoError(t, err)
@@ -123,9 +124,9 @@ func TestSystemUpdateNewParameter(t *testing.T) {
 	defer provider.Close()
 
 	err := provider.SystemUpdate(structs.SystemUpdateOptions{
-		InstanceCount: 5,
-		InstanceType:  "t2.small",
-		Version:       "20171214220445",
+		InstanceCount: options.Int(5),
+		InstanceType:  options.String("t2.small"),
+		Version:       options.String("20171214220445"),
 	})
 
 	assert.NoError(t, err)
@@ -144,9 +145,7 @@ func TestSystemProcessesList(t *testing.T) {
 	)
 	defer provider.Close()
 
-	_, err := provider.SystemProcesses(structs.SystemProcessesOptions{
-		All: false,
-	})
+	_, err := provider.SystemProcesses(structs.SystemProcessesOptions{})
 
 	assert.NoError(t, err)
 }
@@ -164,7 +163,7 @@ func TestSystemProcessesListAll(t *testing.T) {
 	defer provider.Close()
 
 	_, err := provider.SystemProcesses(structs.SystemProcessesOptions{
-		All: true,
+		All: options.Bool(true),
 	})
 
 	assert.NoError(t, err)

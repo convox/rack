@@ -50,7 +50,10 @@ func (p *AWSProvider) BuildCreate(app, method, url string, opts structs.BuildCre
 
 	b := structs.NewBuild(app)
 
-	b.Description = opts.Description
+	if opts.Description != nil {
+		b.Description = *opts.Description
+	}
+
 	b.Started = time.Now()
 
 	if p.IsTest() {
@@ -72,7 +75,7 @@ func (p *AWSProvider) BuildCreate(app, method, url string, opts structs.BuildCre
 	// AWS currently has a limit of 1000 images in ECR
 	// This is a "hopefully temporary" and brute force means
 	// to prevent hitting limits during deployment
-	bs, err := p.BuildList(app, structs.BuildListOptions{Count: 150})
+	bs, err := p.BuildList(app, structs.BuildListOptions{Count: aws.Int(150)})
 	if err != nil {
 		fmt.Printf("Error listing builds for cleanup: %s\n", err.Error())
 	} else {
@@ -577,8 +580,8 @@ func (p *AWSProvider) BuildList(app string, opts structs.BuildListOptions) (stru
 		return nil, err
 	}
 
-	if opts.Count == 0 {
-		opts.Count = 10
+	if opts.Count == nil {
+		opts.Count = aws.Int(10)
 	}
 
 	req := &dynamodb.QueryInput{
@@ -589,7 +592,7 @@ func (p *AWSProvider) BuildList(app string, opts structs.BuildListOptions) (stru
 			},
 		},
 		IndexName:        aws.String("app.created"),
-		Limit:            aws.Int64(int64(opts.Count)),
+		Limit:            aws.Int64(int64(*opts.Count)),
 		ScanIndexForward: aws.Bool(false),
 		TableName:        aws.String(p.DynamoBuilds),
 	}
@@ -859,6 +862,13 @@ func (p *AWSProvider) runBuild(build *structs.Build, method, url string, opts st
 		push = fmt.Sprintf("%s.dkr.ecr.%s.amazonaws.com/%s", aid, p.Region, reg)
 	}
 
+	config := ""
+
+	if opts.Config != nil {
+		config = *opts.Config
+
+	}
+
 	req := &ecs.RunTaskInput{
 		Cluster:        aws.String(p.BuildCluster),
 		Count:          aws.Int64(1),
@@ -884,7 +894,7 @@ func (p *AWSProvider) runBuild(build *structs.Build, method, url string, opts st
 						},
 						{
 							Name:  aws.String("BUILD_CONFIG"),
-							Value: aws.String(opts.Config),
+							Value: aws.String(config),
 						},
 						{
 							Name:  aws.String("BUILD_GENERATION"),

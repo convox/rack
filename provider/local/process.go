@@ -16,6 +16,7 @@ import (
 
 	"github.com/convox/rack/helpers"
 	"github.com/convox/rack/manifest"
+	"github.com/convox/rack/options"
 	"github.com/convox/rack/structs"
 	"github.com/kr/pty"
 	"github.com/pkg/errors"
@@ -186,8 +187,8 @@ func (p *Provider) ProcessProxy(app, pid string, port int, in io.Reader) (io.Rea
 func (p *Provider) ProcessRun(app string, opts structs.ProcessRunOptions) (string, error) {
 	log := p.logger("ProcessRun").Append("app=%q", app)
 
-	if opts.Name != "" {
-		exec.Command("docker", "rm", "-f", opts.Name).Run()
+	if opts.Name != nil {
+		exec.Command("docker", "rm", "-f", *opts.Name).Run()
 	}
 
 	oargs, err := p.argsFromOpts(app, opts)
@@ -227,17 +228,17 @@ func (p *Provider) ProcessRun(app string, opts structs.ProcessRunOptions) (strin
 func (p *Provider) ProcessStart(app string, opts structs.ProcessRunOptions) (string, error) {
 	log := p.logger("ProcessStart").Append("app=%q", app)
 
-	if opts.Name != "" {
-		exec.Command("docker", "rm", "-f", opts.Name).Run()
+	if opts.Name != nil {
+		exec.Command("docker", "rm", "-f", *opts.Name).Run()
 	}
 
-	if opts.Name == "" {
+	if opts.Name == nil {
 		rs, err := helpers.RandomString(6)
 		if err != nil {
 			return "", errors.WithStack(log.Error(err))
 		}
 
-		opts.Name = fmt.Sprintf("%s.%s.process.%s.%s", p.Name, app, opts.Service, rs)
+		opts.Name = options.String(fmt.Sprintf("%s.%s.process.%s.%s", p.Name, app, *opts.Service, rs))
 	}
 
 	oargs, err := p.argsFromOpts(app, opts)
@@ -299,13 +300,13 @@ func (p *Provider) argsFromOpts(app string, opts structs.ProcessRunOptions) ([]s
 	}
 
 	// if no release specified, use current release
-	if opts.Release == "" {
+	if opts.Release == nil {
 		a, err := p.AppGet(app)
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
 
-		opts.Release = a.Release
+		opts.Release = options.String(a.Release)
 	}
 
 	// get release and manifest for initial environment and volumes
@@ -314,14 +315,14 @@ func (p *Provider) argsFromOpts(app string, opts structs.ProcessRunOptions) ([]s
 	var service *manifest.Service
 	var err error
 
-	if opts.Release != "" {
-		m, release, err = helpers.ReleaseManifest(p, app, opts.Release)
+	if opts.Release != nil {
+		m, release, err = helpers.ReleaseManifest(p, app, *opts.Release)
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
 
 		// if service is not defined in manifest, i.e. "build", carry on
-		service, err = m.Service(opts.Service)
+		service, err = m.Service(*opts.Service)
 		if err != nil && !strings.Contains(err.Error(), "no such service") {
 			return nil, errors.WithStack(err)
 		}
@@ -365,9 +366,12 @@ func (p *Provider) argsFromOpts(app string, opts structs.ProcessRunOptions) ([]s
 		}
 	}
 
-	image := opts.Image
-	if image == "" {
-		image = fmt.Sprintf("%s/%s/%s:%s", p.Name, app, opts.Service, release.Build)
+	image := ""
+
+	if opts.Image != nil {
+		image = *opts.Image
+	} else {
+		image = fmt.Sprintf("%s/%s/%s:%s", p.Name, app, *opts.Service, release.Build)
 	}
 
 	// FIXME try letting docker daemon pass through dns
@@ -384,12 +388,12 @@ func (p *Provider) argsFromOpts(app string, opts structs.ProcessRunOptions) ([]s
 		args = append(args, "--link", l)
 	}
 
-	if opts.Memory > 0 {
-		args = append(args, "--memory", fmt.Sprintf("%dM", opts.Memory))
+	if opts.Memory != nil {
+		args = append(args, "--memory", fmt.Sprintf("%dM", *opts.Memory))
 	}
 
-	if opts.Name != "" {
-		args = append(args, "--name", opts.Name)
+	if opts.Name != nil {
+		args = append(args, "--name", *opts.Name)
 	}
 
 	for from, to := range opts.Ports {
@@ -419,8 +423,8 @@ func (p *Provider) argsFromOpts(app string, opts structs.ProcessRunOptions) ([]s
 
 	args = append(args, image)
 
-	if opts.Command != "" {
-		args = append(args, "sh", "-c", opts.Command)
+	if opts.Command != nil {
+		args = append(args, "sh", "-c", *opts.Command)
 	}
 
 	return args, nil
