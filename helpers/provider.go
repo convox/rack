@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/convox/rack/manifest"
+	"github.com/convox/rack/options"
 	"github.com/convox/rack/structs"
 	"github.com/pkg/errors"
 )
@@ -40,7 +41,7 @@ func AppManifest(p structs.Provider, app string) (*manifest.Manifest, *structs.R
 }
 
 func ReleaseLatest(p structs.Provider, app string) (*structs.Release, error) {
-	rs, err := p.ReleaseList(app, structs.ReleaseListOptions{Count: 1})
+	rs, err := p.ReleaseList(app, structs.ReleaseListOptions{Count: options.Int(1)})
 	if err != nil {
 		return nil, err
 	}

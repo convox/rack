@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/convox/logger"
+	"github.com/convox/rack/options"
 	"github.com/convox/rack/structs"
 )
 
@@ -100,7 +101,7 @@ func (p *AWSProvider) autoscaleRack() {
 		return
 	}
 
-	if err := p.SystemUpdate(structs.SystemUpdateOptions{InstanceCount: target}); err != nil {
+	if err := p.SystemUpdate(structs.SystemUpdateOptions{InstanceCount: options.Int(target)}); err != nil {
 		log.Error(err)
 		return
 	}

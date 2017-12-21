@@ -5,6 +5,7 @@ import (
 	"io"
 	"testing"
 
+	"github.com/convox/rack/options"
 	"github.com/convox/rack/structs"
 	"github.com/convox/rack/test/awsutil"
 	"github.com/stretchr/testify/assert"
@@ -49,9 +50,9 @@ func TestProcessExec(t *testing.T) {
 	out := &bytes.Buffer{}
 
 	code, err := provider.ProcessExec("myapp", "5850760f0845", "ls -la", structs.ProcessExecOptions{
-		Height: 10,
+		Height: options.Int(10),
 		Stream: streamTester{in, out},
-		Width:  20,
+		Width:  options.Int(20),
 	})
 
 	assert.NoError(t, err)
@@ -245,12 +246,12 @@ func TestProcessRunAttached(t *testing.T) {
 	out := &bytes.Buffer{}
 
 	pid, err := provider.ProcessRun("myapp", structs.ProcessRunOptions{
-		Command: "ls -la",
-		Release: "RVFETUHHKKD",
-		Service: "web",
+		Command: options.String("ls -la"),
+		Release: options.String("RVFETUHHKKD"),
+		Service: options.String("web"),
 		Stream:  streamTester{in, out},
-		Height:  10,
-		Width:   20,
+		Height:  options.Int(10),
+		Width:   options.Int(20),
 	})
 
 	assert.NoError(t, err)
@@ -278,11 +279,9 @@ func TestProcessRunDetached(t *testing.T) {
 	defer provider.Close()
 
 	pid, err := provider.ProcessRun("myapp", structs.ProcessRunOptions{
-		Command: "ls test",
-		Release: "RVFETUHHKKD",
-		Service: "web",
-		Height:  0,
-		Width:   0,
+		Command: options.String("ls test"),
+		Release: options.String("RVFETUHHKKD"),
+		Service: options.String("web"),
 	})
 
 	assert.NoError(t, err)

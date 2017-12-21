@@ -1,10 +1,13 @@
 package controllers
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/convox/rack/api/httperr"
+	"github.com/convox/rack/options"
 	"github.com/convox/rack/structs"
 	"github.com/gorilla/mux"
 	"golang.org/x/net/websocket"
@@ -37,20 +40,30 @@ func InstanceSSH(ws *websocket.Conn) *httperr.Error {
 
 	opts := structs.InstanceShellOptions{}
 
-	opts.Command = ws.Request().Header.Get("Command")
-	opts.Terminal = ws.Request().Header.Get("Terminal")
+	h := ws.Request().Header
 
-	var err error
+	if v := h.Get("Command"); v != "" {
+		opts.Command = options.String(v)
+	}
 
-	if opts.Terminal != "" {
-		opts.Height, err = strconv.Atoi(ws.Request().Header.Get("Height"))
+	if v := h.Get("Terminal"); v != "" {
+		opts.Terminal = options.String(v)
+	}
+
+	if v := h.Get("Height"); v != "" {
+		i, err := strconv.Atoi(v)
 		if err != nil {
-			return httperr.Server(err)
+			return httperr.Server(fmt.Errorf("height must be numeric"))
 		}
-		opts.Width, err = strconv.Atoi(ws.Request().Header.Get("Width"))
+		opts.Height = aws.Int(i)
+	}
+
+	if v := h.Get("Width"); v != "" {
+		i, err := strconv.Atoi(v)
 		if err != nil {
-			return httperr.Server(err)
+			return httperr.Server(fmt.Errorf("width must be numeric"))
 		}
+		opts.Width = aws.Int(i)
 	}
 
 	if err := Provider.InstanceShell(id, ws, opts); err != nil {

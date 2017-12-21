@@ -21,6 +21,7 @@ import (
 	"github.com/convox/rack/helpers"
 	"github.com/convox/rack/manifest"
 	"github.com/convox/rack/manifest1"
+	"github.com/convox/rack/options"
 	"github.com/convox/rack/structs"
 )
 
@@ -118,8 +119,8 @@ func (p *AWSProvider) ReleaseList(app string, opts structs.ReleaseListOptions) (
 		return nil, err
 	}
 
-	if opts.Count == 0 {
-		opts.Count = 10
+	if opts.Count == nil {
+		opts.Count = options.Int(10)
 	}
 
 	req := &dynamodb.QueryInput{
@@ -132,7 +133,7 @@ func (p *AWSProvider) ReleaseList(app string, opts structs.ReleaseListOptions) (
 			},
 		},
 		IndexName:        aws.String("app.created"),
-		Limit:            aws.Int64(int64(opts.Count)),
+		Limit:            aws.Int64(int64(*opts.Count)),
 		ScanIndexForward: aws.Bool(false),
 		TableName:        aws.String(p.DynamoReleases),
 	}
@@ -208,7 +209,7 @@ func (p *AWSProvider) ReleasePromote(app, id string) error {
 
 	// fmt.Printf("string(data) = %+v\n", string(data))
 
-	ou, err := p.ObjectStore(app, "", bytes.NewReader(data), structs.ObjectStoreOptions{Public: true})
+	ou, err := p.ObjectStore(app, "", bytes.NewReader(data), structs.ObjectStoreOptions{Public: options.Bool(true)})
 	if err != nil {
 		return err
 	}
@@ -357,7 +358,7 @@ func (p *AWSProvider) releasePromoteGeneration1(a *structs.App, r *structs.Relea
 		return err
 	}
 
-	ou, err := p.ObjectStore(a.Name, "", bytes.NewReader(data), structs.ObjectStoreOptions{Public: true})
+	ou, err := p.ObjectStore(a.Name, "", bytes.NewReader(data), structs.ObjectStoreOptions{Public: options.Bool(true)})
 	if err != nil {
 		return err
 	}

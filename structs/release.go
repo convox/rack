@@ -22,29 +22,13 @@ type ReleaseCreateOptions struct {
 }
 
 type ReleaseListOptions struct {
-	Count int
+	Count *int
 }
 
 func NewRelease(app string) *Release {
 	return &Release{
 		App:     app,
 		Created: time.Now(),
-		Id:      generateId("R", 10),
+		Id:      id("R", 10),
 	}
-}
-
-// Latest returns the latest release determined by the date created.
-func (rs Releases) Latest() *Release {
-	if len(rs) == 0 {
-		return nil
-	}
-
-	latest := rs[0]
-	for _, r := range rs {
-		if latest.Created.Before(r.Created) {
-			latest = r
-		}
-	}
-
-	return &latest
 }

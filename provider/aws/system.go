@@ -238,7 +238,7 @@ func (p *AWSProvider) SystemProcesses(opts structs.SystemProcessesOptions) (stru
 	var tasks []string
 	var err error
 
-	if opts.All {
+	if opts.All != nil && *opts.All {
 		err := p.ecs().ListTasksPages(&ecs.ListTasksInput{
 			Cluster: aws.String(p.Cluster),
 		}, func(page *ecs.ListTasksOutput, lastPage bool) bool {
@@ -316,20 +316,20 @@ func (p *AWSProvider) SystemUpdate(opts structs.SystemUpdateOptions) error {
 		params = map[string]string{}
 	}
 
-	if opts.InstanceCount > 0 {
-		params["InstanceCount"] = strconv.Itoa(opts.InstanceCount)
-		changes["count"] = strconv.Itoa(opts.InstanceCount)
+	if opts.InstanceCount != nil {
+		params["InstanceCount"] = strconv.Itoa(*opts.InstanceCount)
+		changes["count"] = strconv.Itoa(*opts.InstanceCount)
 	}
 
-	if opts.InstanceType != "" {
-		params["InstanceType"] = opts.InstanceType
-		changes["type"] = opts.InstanceType
+	if opts.InstanceType != nil {
+		params["InstanceType"] = *opts.InstanceType
+		changes["type"] = *opts.InstanceType
 	}
 
-	if opts.Version != "" {
-		template = fmt.Sprintf("https://convox.s3.amazonaws.com/release/%s/rack.json", opts.Version)
-		params["Version"] = opts.Version
-		changes["version"] = opts.Version
+	if opts.Version != nil {
+		template = fmt.Sprintf("https://convox.s3.amazonaws.com/release/%s/rack.json", *opts.Version)
+		params["Version"] = *opts.Version
+		changes["version"] = *opts.Version
 	}
 
 	// if there is a version update then record it

@@ -114,6 +114,10 @@ func (p *Provider) SystemInstall(name string, opts structs.SystemInstallOptions)
 		fmt.Fprintf(opts.Output, "pulling: convox/rack:%s\n", opts.Version)
 	}
 
+	if opts.Version == nil {
+		return "", fmt.Errorf("must specify a version")
+	}
+
 	vf := "/var/convox/version"
 
 	switch runtime.GOOS {
@@ -121,11 +125,11 @@ func (p *Provider) SystemInstall(name string, opts structs.SystemInstallOptions)
 		vf = "/Users/Shared/convox/version"
 	}
 
-	if err := ioutil.WriteFile(vf, []byte(opts.Version), 0644); err != nil {
+	if err := ioutil.WriteFile(vf, []byte(*opts.Version), 0644); err != nil {
 		return "", err
 	}
 
-	cmd := exec.Command("docker", "pull", fmt.Sprintf("convox/rack:%s", opts.Version))
+	cmd := exec.Command("docker", "pull", fmt.Sprintf("convox/rack:%s", *opts.Version))
 
 	if opts.Output != nil {
 		cmd.Stdout = text.NewIndentWriter(opts.Output, []byte("  "))
@@ -237,7 +241,9 @@ func (p *Provider) SystemUpdate(opts structs.SystemUpdateOptions) error {
 		w = ioutil.Discard
 	}
 
-	if v := opts.Version; v != "" {
+	if opts.Version != nil {
+		v := *opts.Version
+
 		w.Write([]byte("Restarting... OK\n"))
 
 		if err := ioutil.WriteFile("/var/convox/version", []byte(v), 0644); err != nil {

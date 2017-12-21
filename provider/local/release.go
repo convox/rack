@@ -10,6 +10,7 @@ import (
 
 	"github.com/convox/rack/cache"
 	"github.com/convox/rack/helpers"
+	"github.com/convox/rack/options"
 	"github.com/convox/rack/structs"
 	"github.com/pkg/errors"
 )
@@ -97,7 +98,11 @@ func (p *Provider) ReleaseList(app string, opts structs.ReleaseListOptions) (str
 
 	sort.Slice(releases, func(i, j int) bool { return releases[j].Created.Before(releases[i].Created) })
 
-	limit := coalescei(opts.Count, 10)
+	limit := 10
+
+	if opts.Count != nil {
+		limit = *opts.Count
+	}
 
 	if len(releases) > limit {
 		releases = releases[0:limit]
@@ -212,7 +217,7 @@ func (p *Provider) releaseFork(app string) (*structs.Release, error) {
 		Created: time.Now().UTC(),
 	}
 
-	rs, err := p.ReleaseList(app, structs.ReleaseListOptions{Count: 1})
+	rs, err := p.ReleaseList(app, structs.ReleaseListOptions{Count: options.Int(1)})
 	if err != nil {
 		return nil, err
 	}
