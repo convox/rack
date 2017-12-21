@@ -183,7 +183,14 @@ func (r *Run) Start() error {
 
 			for local, remote := range sp {
 				if remote == "." || strings.HasSuffix(remote, "/") {
-					remote = filepath.Join(remote, filepath.Base(local))
+					stat, err := os.Stat(filepath.Join(s.Build.Context, local))
+					if err != nil {
+						return err
+					}
+
+					if !stat.IsDir() {
+						remote = filepath.Join(remote, filepath.Base(local))
+					}
 				}
 
 				if !filepath.IsAbs(remote) {
