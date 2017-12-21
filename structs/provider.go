@@ -31,18 +31,7 @@ type Provider interface {
 	CertificateGenerate(domains []string) (*Certificate, error)
 	CertificateList() (Certificates, error)
 
-	// EnvironmentGet(app string) (Environment, error)
-	// EnvironmentPut(app string, env Environment) (string, error)
-
 	EventSend(*Event, error) error
-
-	// FormationGet(app, process string) (*ProcessFormation, error)
-	// FormationList(app string) (Formation, error)
-	// FormationSave(app string, pf *ProcessFormation) error
-
-	// IndexDiff(*Index) ([]string, error)
-	// IndexDownload(*Index, string) error
-	// IndexUpload(string, []byte) error
 
 	InstanceKeyroll() error
 	InstanceList() (Instances, error)
@@ -66,12 +55,10 @@ type Provider interface {
 	RegistryList() (Registries, error)
 	RegistryRemove(server string) error
 
-	// ReleaseDelete(app, buildID string) error
 	ReleaseCreate(app string, opts ReleaseCreateOptions) (*Release, error)
 	ReleaseGet(app, id string) (*Release, error)
 	ReleaseList(app string, opts ReleaseListOptions) (Releases, error)
 	ReleasePromote(app, id string) error
-	// ReleaseSave(*Release) error
 
 	ResourceCreate(name, kind string, opts ResourceCreateOptions) (*Resource, error)
 	ResourceDelete(name string) (*Resource, error)
