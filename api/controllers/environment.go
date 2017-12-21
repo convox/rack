@@ -6,6 +6,7 @@ import (
 
 	"github.com/convox/rack/api/httperr"
 	"github.com/convox/rack/helpers"
+	"github.com/convox/rack/options"
 	"github.com/convox/rack/structs"
 	"github.com/gorilla/mux"
 )
@@ -43,7 +44,7 @@ func EnvironmentSet(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 		return httperr.Server(err)
 	}
 
-	rr, err := Provider.ReleaseCreate(app, structs.ReleaseCreateOptions{Env: env.String()})
+	rr, err := Provider.ReleaseCreate(app, structs.ReleaseCreateOptions{Env: options.String(env.String())})
 	if err != nil {
 		return httperr.Server(err)
 	}
@@ -73,7 +74,7 @@ func EnvironmentDelete(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 
 	delete(env, name)
 
-	rr, err := Provider.ReleaseCreate(app, structs.ReleaseCreateOptions{Env: env.String()})
+	rr, err := Provider.ReleaseCreate(app, structs.ReleaseCreateOptions{Env: options.String(env.String())})
 	if err != nil {
 		return httperr.Server(err)
 	}

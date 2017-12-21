@@ -3,6 +3,7 @@ package local_test
 import (
 	"testing"
 
+	"github.com/convox/rack/options"
 	"github.com/convox/rack/structs"
 	"github.com/stretchr/testify/assert"
 )
@@ -15,12 +16,14 @@ func TestReleaseCreateGet(t *testing.T) {
 	_, err = p.AppCreate("app", structs.AppCreateOptions{})
 	assert.NoError(t, err)
 
+	env := structs.Environment{
+		"APP": "app",
+		"FOO": "bar",
+	}
+
 	opts := structs.ReleaseCreateOptions{
-		Build: "BTEST",
-		Env: structs.Environment{
-			"APP": "app",
-			"FOO": "bar",
-		}.String(),
+		Build: options.String("BTEST"),
+		Env:   options.String(env.String()),
 	}
 	rel, err := p.ReleaseCreate("app", opts)
 	assert.NoError(t, err)
@@ -43,12 +46,12 @@ func TestReleaseList(t *testing.T) {
 		return
 	}
 
-	p.ReleaseCreate("app", structs.ReleaseCreateOptions{Build: "B1"})
-	p.ReleaseCreate("app", structs.ReleaseCreateOptions{Env: structs.Environment{"FOO": "bar"}.String()})
-	p.ReleaseCreate("app", structs.ReleaseCreateOptions{Build: "B2"})
-	p.ReleaseCreate("app", structs.ReleaseCreateOptions{Build: "B3"})
-	p.ReleaseCreate("app", structs.ReleaseCreateOptions{Env: structs.Environment{"FOO": "baz"}.String()})
-	p.ReleaseCreate("app", structs.ReleaseCreateOptions{Build: "B4"})
+	p.ReleaseCreate("app", structs.ReleaseCreateOptions{Build: options.String("B1")})
+	p.ReleaseCreate("app", structs.ReleaseCreateOptions{Env: options.String(structs.Environment{"FOO": "bar"}.String())})
+	p.ReleaseCreate("app", structs.ReleaseCreateOptions{Build: options.String("B2")})
+	p.ReleaseCreate("app", structs.ReleaseCreateOptions{Build: options.String("B3")})
+	p.ReleaseCreate("app", structs.ReleaseCreateOptions{Env: options.String(structs.Environment{"FOO": "baz"}.String())})
+	p.ReleaseCreate("app", structs.ReleaseCreateOptions{Build: options.String("B4")})
 
 	rs, err := p.ReleaseList("app", structs.ReleaseListOptions{})
 
