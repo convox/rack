@@ -11,6 +11,7 @@ import (
 	"golang.org/x/net/websocket"
 
 	"github.com/convox/rack/api/httperr"
+	"github.com/convox/rack/options"
 	"github.com/convox/rack/provider"
 	"github.com/convox/rack/structs"
 )
@@ -28,7 +29,7 @@ func SystemProcesses(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	all := r.URL.Query().Get("all")
 
 	ps, err := Provider.SystemProcesses(structs.SystemProcessesOptions{
-		All: (all == "true"),
+		All: options.Bool(all == "true"),
 	})
 	if provider.ErrorNotFound(err) {
 		return httperr.NotFound(err)
@@ -60,16 +61,16 @@ func SystemUpdate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 		case c <= 2:
 			return httperr.Errorf(403, "count must be greater than 2")
 		default:
-			opts.InstanceCount = c
+			opts.InstanceCount = options.Int(c)
 		}
 	}
 
 	if t := GetForm(r, "type"); t != "" {
-		opts.InstanceType = t
+		opts.InstanceType = options.String(t)
 	}
 
 	if v := GetForm(r, "version"); v != "" {
-		opts.Version = v
+		opts.Version = options.String(v)
 	}
 
 	if err := Provider.SystemUpdate(opts); err != nil {

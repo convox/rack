@@ -26,10 +26,10 @@ type Process struct {
 type Processes []Process
 
 type ProcessExecOptions struct {
-	Entrypoint bool
-	Height     int
+	Entrypoint *bool
+	Height     *int
 	Stream     io.ReadWriter
-	Width      int
+	Width      *int
 }
 
 type ProcessListOptions struct {
@@ -37,27 +37,27 @@ type ProcessListOptions struct {
 }
 
 type ProcessRunOptions struct {
-	Command     string
+	Command     *string
 	Environment map[string]string
-	Height      int
-	Image       string
+	Height      *int
+	Image       *string
 	Input       io.Reader
 	Links       []string
-	Memory      int64
-	Name        string
+	Memory      *int64
+	Name        *string
 	Output      io.Writer
 	Ports       map[string]string
-	Release     string
-	Service     string
+	Release     *string
+	Service     *string
 	Stream      io.ReadWriter
 	Volumes     map[string]string
-	Width       int
+	Width       *int
 }
 
-func (p *Process) SortKey() string {
+func (p *Process) sortKey() string {
 	return fmt.Sprintf("%s-%s", p.Name, p.Id)
 }
 
 func (ps Processes) Less(i, j int) bool {
-	return ps[i].SortKey() < ps[j].SortKey()
+	return ps[i].sortKey() < ps[j].sortKey()
 }

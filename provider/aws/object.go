@@ -132,7 +132,7 @@ func (p *AWSProvider) ObjectStore(app, key string, r io.Reader, opts structs.Obj
 		Key:    aws.String(key),
 	}
 
-	if opts.Public {
+	if opts.Public != nil && *opts.Public {
 		mreq.ACL = aws.String("public-read")
 	}
 
@@ -195,7 +195,7 @@ func (p *AWSProvider) ObjectStore(app, key string, r io.Reader, opts structs.Obj
 
 	url := fmt.Sprintf("object://%s/%s", app, key)
 
-	if opts.Public {
+	if opts.Public != nil && *opts.Public {
 		url = *res.Location
 	}
 

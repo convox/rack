@@ -15,22 +15,22 @@ type System struct {
 	Version    string            `json:"version"`
 }
 
-type SystemProcessesOptions struct {
-	All bool
+type SystemInstallOptions struct {
+	Color    *bool
+	Output   io.Writer
+	Password *string
+	Version  *string
 }
 
-type SystemInstallOptions struct {
-	Color    bool
-	Output   io.Writer
-	Password string
-	Version  string
+type SystemProcessesOptions struct {
+	All *bool
 }
 
 type SystemUpdateOptions struct {
-	InstanceCount int
-	InstanceType  string
+	InstanceCount *int
+	InstanceType  *string
 	Output        io.Writer
 	Parameters    map[string]string
-	Password      string
-	Version       string
+	Password      *string
+	Version       *string
 }

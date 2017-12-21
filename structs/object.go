@@ -5,5 +5,5 @@ type Object struct {
 }
 
 type ObjectStoreOptions struct {
-	Public bool
+	Public *bool
 }

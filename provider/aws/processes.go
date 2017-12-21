@@ -20,6 +20,7 @@ import (
 	"github.com/convox/rack/cache"
 	"github.com/convox/rack/manifest"
 	"github.com/convox/rack/manifest1"
+	"github.com/convox/rack/options"
 	"github.com/convox/rack/structs"
 	"github.com/fsouza/go-dockerclient"
 	shellquote "github.com/kballard/go-shellquote"
@@ -93,7 +94,7 @@ func (p *AWSProvider) ProcessExec(app, pid, command string, opts structs.Process
 
 	cmd := []string{"sh", "-c", command}
 
-	if opts.Entrypoint {
+	if opts.Entrypoint != nil && *opts.Entrypoint {
 		c, err := dc.InspectContainer(cs[0].ID)
 		if err != nil {
 			return -1, err
@@ -127,7 +128,9 @@ func (p *AWSProvider) ProcessExec(app, pid, command string, opts structs.Process
 
 	go func() {
 		<-success
-		dc.ResizeExecTTY(eres.ID, opts.Height, opts.Width)
+		if opts.Height != nil && opts.Width != nil {
+			dc.ResizeExecTTY(eres.ID, *opts.Height, *opts.Width)
+		}
 		success <- struct{}{}
 	}()
 
@@ -387,11 +390,21 @@ func (p *AWSProvider) taskProcesses(tasks []string) (structs.Processes, error) {
 func (p *AWSProvider) ProcessRun(app string, opts structs.ProcessRunOptions) (string, error) {
 	log := Logger.At("ProcessRun").Namespace("app=%q service=%q", app, opts.Service).Start()
 
-	if opts.Stream != nil {
-		return p.processRunAttached(app, opts.Service, opts)
+	if opts.Service == nil {
+		return "", fmt.Errorf("must specify a service")
 	}
 
-	td, err := p.taskDefinitionForRun(app, opts.Service, opts.Release)
+	if opts.Stream != nil {
+		return p.processRunAttached(app, *opts.Service, opts)
+	}
+
+	release := ""
+
+	if opts.Release != nil {
+		release = *opts.Release
+	}
+
+	td, err := p.taskDefinitionForRun(app, *opts.Service, release)
 	if err != nil {
 		return "", log.Error(err)
 	}
@@ -403,15 +416,15 @@ func (p *AWSProvider) ProcessRun(app string, opts structs.ProcessRunOptions) (st
 		TaskDefinition: aws.String(td),
 	}
 
-	if opts.Command != "" {
+	if opts.Command != nil {
 		req.Overrides = &ecs.TaskOverride{
 			ContainerOverrides: []*ecs.ContainerOverride{
 				{
-					Name: aws.String(opts.Service),
+					Name: aws.String(*opts.Service),
 					Command: []*string{
 						aws.String("sh"),
 						aws.String("-c"),
-						aws.String(opts.Command),
+						aws.String(*opts.Command),
 					},
 				},
 			},
@@ -1019,7 +1032,13 @@ func (p *AWSProvider) generateTaskDefinition2(app, process, release string) (*ec
 }
 
 func (p *AWSProvider) processRunAttached(app, process string, opts structs.ProcessRunOptions) (string, error) {
-	td, err := p.taskDefinitionForRun(app, process, opts.Release)
+	release := ""
+
+	if opts.Release != nil {
+		release = *opts.Release
+	}
+
+	td, err := p.taskDefinitionForRun(app, process, release)
 	if err != nil {
 		return "", err
 	}
@@ -1031,7 +1050,7 @@ func (p *AWSProvider) processRunAttached(app, process string, opts structs.Proce
 		TaskDefinition: aws.String(td),
 	}
 
-	if opts.Command != "" {
+	if opts.Command != nil {
 		req.Overrides = &ecs.TaskOverride{
 			ContainerOverrides: []*ecs.ContainerOverride{
 				{
@@ -1041,7 +1060,7 @@ func (p *AWSProvider) processRunAttached(app, process string, opts structs.Proce
 						aws.String("3600"),
 					},
 					Environment: []*ecs.KeyValuePair{
-						&ecs.KeyValuePair{Name: aws.String("COMMAND"), Value: aws.String(opts.Command)},
+						&ecs.KeyValuePair{Name: aws.String("COMMAND"), Value: aws.String(*opts.Command)},
 					},
 				},
 			},
@@ -1063,9 +1082,9 @@ func (p *AWSProvider) processRunAttached(app, process string, opts structs.Proce
 
 	pid := arnToPid(*task.TaskArn)
 
-	if opts.Command != "" {
-		code, err := p.ProcessExec(app, pid, opts.Command, structs.ProcessExecOptions{
-			Entrypoint: true,
+	if opts.Command != nil {
+		code, err := p.ProcessExec(app, pid, *opts.Command, structs.ProcessExecOptions{
+			Entrypoint: options.Bool(true),
 			Height:     opts.Height,
 			Stream:     opts.Stream,
 			Width:      opts.Width,

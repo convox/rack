@@ -22,21 +22,11 @@ type Instance struct {
 
 type Instances []Instance
 
-type InstanceResource struct {
-	Total int `json:"total"`
-	Free  int `json:"free"`
-	Used  int `json:"used"`
-}
-
 type InstanceShellOptions struct {
-	Command  string
-	Terminal string
-	Height   int
-	Width    int
-}
-
-func (ir InstanceResource) PercentUsed() float64 {
-	return float64(ir.Used) / float64(ir.Total)
+	Command  *string
+	Terminal *string
+	Height   *int
+	Width    *int
 }
 
 func (i *Instance) Ip() string {

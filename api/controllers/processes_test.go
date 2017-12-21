@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/convox/rack/api/controllers"
+	"github.com/convox/rack/options"
 	"github.com/convox/rack/structs"
 	"github.com/convox/rack/test"
 	"github.com/stretchr/testify/assert"
@@ -116,9 +117,9 @@ func TestProcessRunAttached(t *testing.T) {
 
 func TestProcessRunDetached(t *testing.T) {
 	opts := structs.ProcessRunOptions{
-		Command: "test-command",
-		Release: "R1234",
-		Service: "web",
+		Command: options.String("test-command"),
+		Release: options.String("R1234"),
+		Service: options.String("web"),
 	}
 
 	v := url.Values{}

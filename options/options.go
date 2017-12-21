@@ -2,6 +2,11 @@ package options
 
 import "time"
 
+func Bool(value bool) *bool {
+	v := value
+	return &v
+}
+
 func Int(value int) *int {
 	v := value
 	return &v

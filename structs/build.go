@@ -1,7 +1,6 @@
 package structs
 
 import (
-	"math/rand"
 	"time"
 )
 
@@ -26,15 +25,15 @@ type Build struct {
 type Builds []Build
 
 type BuildListOptions struct {
-	Count int
+	Count *int
 }
 
 type BuildCreateOptions struct {
-	Cache       bool
-	Config      string
-	Description string
-	Development bool
-	Manifest    string
+	Cache       *bool
+	Config      *string
+	Description *string
+	Development *bool
+	Manifest    *string
 }
 
 type BuildUpdateOptions struct {
@@ -49,18 +48,8 @@ type BuildUpdateOptions struct {
 func NewBuild(app string) *Build {
 	return &Build{
 		App:    app,
-		Id:     generateId("B", 10),
+		Id:     id("B", 10),
 		Status: "created",
 		Tags:   map[string]string{},
 	}
-}
-
-var idAlphabet = []rune("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
-
-func generateId(prefix string, size int) string {
-	b := make([]rune, size)
-	for i := range b {
-		b[i] = idAlphabet[rand.Intn(len(idAlphabet))]
-	}
-	return prefix + string(b)
 }

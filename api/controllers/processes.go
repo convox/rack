@@ -6,7 +6,9 @@ import (
 	"sort"
 	"strconv"
 
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/convox/rack/api/httperr"
+	"github.com/convox/rack/options"
 	"github.com/convox/rack/provider"
 	"github.com/convox/rack/structs"
 	"github.com/gorilla/mux"
@@ -18,7 +20,6 @@ const StatusCodePrefix = "F1E49A85-0AD7-4AEF-A618-C249C6E6568D:"
 // ProcessExecAttached runs an attached command in an existing process
 func ProcessExecAttached(ws *websocket.Conn) *httperr.Error {
 	vars := mux.Vars(ws.Request())
-	header := ws.Request().Header
 
 	app := vars["app"]
 	_, err := Provider.AppGet(app)
@@ -29,16 +30,32 @@ func ProcessExecAttached(ws *websocket.Conn) *httperr.Error {
 		return httperr.Server(err)
 	}
 
-	pid := vars["pid"]
-	command := header.Get("Command")
-	height, _ := strconv.Atoi(header.Get("Height"))
-	width, _ := strconv.Atoi(header.Get("Width"))
+	h := ws.Request().Header
 
-	code, err := Provider.ProcessExec(app, pid, command, structs.ProcessExecOptions{
-		Height: height,
+	pid := vars["pid"]
+	command := h.Get("Command")
+
+	opts := structs.ProcessExecOptions{
 		Stream: ws,
-		Width:  width,
-	})
+	}
+
+	if v := h.Get("Height"); v != "" {
+		i, err := strconv.Atoi(v)
+		if err != nil {
+			return httperr.Server(fmt.Errorf("height must be numeric"))
+		}
+		opts.Height = aws.Int(i)
+	}
+
+	if v := h.Get("Width"); v != "" {
+		i, err := strconv.Atoi(v)
+		if err != nil {
+			return httperr.Server(fmt.Errorf("width must be numeric"))
+		}
+		opts.Width = aws.Int(i)
+	}
+
+	code, err := Provider.ProcessExec(app, pid, command, opts)
 	if provider.ErrorNotFound(err) {
 		return httperr.New(404, err)
 	}
@@ -89,23 +106,40 @@ func ProcessList(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 // ProcessRunAttached runs an attached command in an new process
 func ProcessRunAttached(ws *websocket.Conn) *httperr.Error {
 	vars := mux.Vars(ws.Request())
-	header := ws.Request().Header
+	h := ws.Request().Header
 
 	app := vars["app"]
-	process := vars["process"]
-	command := header.Get("Command")
-	release := header.Get("Release")
-	height, _ := strconv.Atoi(header.Get("Height"))
-	width, _ := strconv.Atoi(header.Get("Width"))
 
-	pid, err := Provider.ProcessRun(app, structs.ProcessRunOptions{
-		Command: command,
-		Height:  height,
-		Width:   width,
-		Release: release,
-		Service: process,
+	opts := structs.ProcessRunOptions{
+		Service: options.String(vars["process"]),
 		Stream:  ws,
-	})
+	}
+
+	if v := h.Get("Command"); v != "" {
+		opts.Command = options.String(v)
+	}
+
+	if v := h.Get("Release"); v != "" {
+		opts.Release = options.String(v)
+	}
+
+	if v := h.Get("Height"); v != "" {
+		i, err := strconv.Atoi(v)
+		if err != nil {
+			return httperr.Server(fmt.Errorf("height must be numeric"))
+		}
+		opts.Height = aws.Int(i)
+	}
+
+	if v := h.Get("Width"); v != "" {
+		i, err := strconv.Atoi(v)
+		if err != nil {
+			return httperr.Server(fmt.Errorf("width must be numeric"))
+		}
+		opts.Width = aws.Int(i)
+	}
+
+	pid, err := Provider.ProcessRun(app, opts)
 	if provider.ErrorNotFound(err) {
 		return httperr.New(404, err)
 	}
@@ -129,15 +163,20 @@ func ProcessRunAttached(ws *websocket.Conn) *httperr.Error {
 func ProcessRunDetached(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	vars := mux.Vars(r)
 	app := vars["app"]
-	process := vars["process"]
-	command := GetForm(r, "command")
-	release := GetForm(r, "release")
 
-	pid, err := Provider.ProcessRun(app, structs.ProcessRunOptions{
-		Command: command,
-		Release: release,
-		Service: process,
-	})
+	opts := structs.ProcessRunOptions{
+		Service: options.String(vars["process"]),
+	}
+
+	if v := GetForm(r, "command"); v != "" {
+		opts.Command = options.String(v)
+	}
+
+	if v := GetForm(r, "release"); v != "" {
+		opts.Release = options.String(v)
+	}
+
+	pid, err := Provider.ProcessRun(app, opts)
 	if provider.ErrorNotFound(err) {
 		return httperr.New(404, err)
 	}

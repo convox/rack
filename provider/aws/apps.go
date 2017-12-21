@@ -29,8 +29,8 @@ func (p *AWSProvider) AppCancel(name string) error {
 }
 
 func (p *AWSProvider) AppCreate(name string, opts structs.AppCreateOptions) (*structs.App, error) {
-	switch opts.Generation {
-	case "1", "":
+	switch generation(opts.Generation) {
+	case "1":
 		return p.appCreateGeneration1(name)
 	case "2":
 	default:
