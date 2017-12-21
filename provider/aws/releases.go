@@ -37,12 +37,12 @@ func (p *AWSProvider) ReleaseCreate(app string, opts structs.ReleaseCreateOption
 		r.Env = cr.Env
 	}
 
-	if opts.Build != "" {
-		r.Build = opts.Build
+	if opts.Build != nil {
+		r.Build = *opts.Build
 	}
 
-	if opts.Env != "" {
-		r.Env = opts.Env
+	if opts.Env != nil {
+		r.Env = *opts.Env
 	}
 
 	if r.Build != "" {
@@ -53,6 +53,8 @@ func (p *AWSProvider) ReleaseCreate(app string, opts structs.ReleaseCreateOption
 
 		r.Manifest = b.Manifest
 	}
+
+	fmt.Printf("r = %+v\n", r)
 
 	if err := p.releaseSave(r); err != nil {
 		return nil, err

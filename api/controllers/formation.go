@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"github.com/convox/rack/api/httperr"
+	"github.com/convox/rack/options"
 	"github.com/convox/rack/structs"
 	"github.com/gorilla/mux"
 )
@@ -52,7 +53,7 @@ func FormationSet(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 			return httperr.Errorf(403, "count must be numeric")
 		}
 
-		opts.Count = &c
+		opts.Count = options.Int(c)
 	}
 
 	if cc := GetForm(r, "cpu"); cc != "" {
@@ -61,7 +62,7 @@ func FormationSet(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 			return httperr.Errorf(403, "cpu must be numeric")
 		}
 
-		opts.Cpu = &c
+		opts.Cpu = options.Int(c)
 	}
 
 	if cc := GetForm(r, "memory"); cc != "" {
@@ -70,7 +71,7 @@ func FormationSet(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 			return httperr.Errorf(403, "memory must be numeric")
 		}
 
-		opts.Memory = &c
+		opts.Memory = options.Int(c)
 	}
 
 	if err := Provider.ServiceUpdate(app, service, opts); err != nil {

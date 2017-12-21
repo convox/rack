@@ -28,6 +28,7 @@ import (
 
 	"github.com/convox/rack/manifest"
 	"github.com/convox/rack/manifest1"
+	"github.com/convox/rack/options"
 	"github.com/convox/rack/structs"
 )
 
@@ -482,7 +483,7 @@ func (p *AWSProvider) BuildImport(app string, r io.Reader) (*structs.Build, erro
 		return nil, err
 	}
 
-	rr, err := p.ReleaseCreate(app, structs.ReleaseCreateOptions{Build: targetBuild.Id})
+	rr, err := p.ReleaseCreate(app, structs.ReleaseCreateOptions{Build: options.String(targetBuild.Id)})
 	if err != nil {
 		return nil, log.Error(err)
 	}

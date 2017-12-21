@@ -17,6 +17,7 @@ import (
 	"github.com/convox/rack/helpers"
 	"github.com/convox/rack/manifest"
 	"github.com/convox/rack/manifest1"
+	"github.com/convox/rack/options"
 	"github.com/convox/rack/provider"
 	"github.com/convox/rack/structs"
 )
@@ -346,22 +347,22 @@ func success() error {
 	status := "complete"
 
 	opts := structs.BuildUpdateOptions{
-		Ended:    &now,
-		Logs:     &logs.Url,
-		Manifest: &currentBuild.Manifest,
-		Status:   &status,
+		Ended:    options.Time(now),
+		Logs:     options.String(logs.Url),
+		Manifest: options.String(currentBuild.Manifest),
+		Status:   options.String(status),
 	}
 
 	if _, err := currentProvider.BuildUpdate(flagApp, currentBuild.Id, opts); err != nil {
 		return err
 	}
 
-	r, err := currentProvider.ReleaseCreate(flagApp, structs.ReleaseCreateOptions{Build: currentBuild.Id})
+	r, err := currentProvider.ReleaseCreate(flagApp, structs.ReleaseCreateOptions{Build: options.String(currentBuild.Id)})
 	if err != nil {
 		return err
 	}
 
-	if _, err := currentProvider.BuildUpdate(flagApp, currentBuild.Id, structs.BuildUpdateOptions{Release: &r.Id}); err != nil {
+	if _, err := currentProvider.BuildUpdate(flagApp, currentBuild.Id, structs.BuildUpdateOptions{Release: options.String(r.Id)}); err != nil {
 		return err
 	}
 
@@ -380,9 +381,9 @@ func fail(err error) {
 	status := "failed"
 
 	opts := structs.BuildUpdateOptions{
-		Ended:  &now,
-		Logs:   &logs.Url,
-		Status: &status,
+		Ended:  options.Time(now),
+		Logs:   options.String(logs.Url),
+		Status: options.String(status),
 	}
 
 	if _, err := currentProvider.BuildUpdate(flagApp, currentBuild.Id, opts); err != nil {
