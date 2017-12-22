@@ -6,6 +6,8 @@ type Resource struct {
 	Status     string            `json:"status"`
 	Type       string            `json:"type"`
 	Url        string            `json:"url"`
+
+	Apps Apps `json:"-"`
 }
 
 type Resources []Resource
