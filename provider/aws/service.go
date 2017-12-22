@@ -60,10 +60,13 @@ func (p *AWSProvider) ServiceList(app string) (structs.Services, error) {
 		s := structs.Service{
 			Name:   ms.Name,
 			Domain: a.Outputs[fmt.Sprintf("Service%sEndpoint", upperName(ms.Name))],
-			Ports: []structs.ServicePort{
+		}
+
+		if s.Domain != "" {
+			s.Ports = []structs.ServicePort{
 				{Balancer: 80, Container: ms.Port.Port},
 				{Balancer: 443, Container: ms.Port.Port, Certificate: cid},
-			},
+			}
 		}
 
 		parts := strings.SplitN(a.Parameters[fmt.Sprintf("%sFormation", upperName(ms.Name))], ",", 3)
