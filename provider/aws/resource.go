@@ -190,14 +190,13 @@ func (p *AWSProvider) ResourceGet(name string) (*structs.Resource, error) {
 		}
 	}
 
-	// TODO reimplement
 	// Populate linked apps
-	// apps, err := p.resourceApps(s)
-	// if err != nil {
-	//   return nil, err
-	// }
+	apps, err := p.resourceApps(s)
+	if err != nil {
+		return nil, err
+	}
 
-	// s.Apps = apps
+	s.Apps = apps
 
 	return &s, nil
 }
@@ -263,14 +262,13 @@ func (p *AWSProvider) ResourceList() (structs.Resources, error) {
 		}
 	}
 
-	// TODO reimplement
-	// for _, s := range resources {
-	//   apps, err := p.resourceApps(s)
-	//   if err != nil {
-	//     return nil, err
-	//   }
-	//   s.Apps = apps
-	// }
+	for _, s := range resources {
+		apps, err := p.resourceApps(s)
+		if err != nil {
+			return nil, err
+		}
+		s.Apps = apps
+	}
 
 	return resources, nil
 }
@@ -453,21 +451,28 @@ func (p *AWSProvider) updateResource(s *structs.Resource) error {
 
 // add to links
 func (p *AWSProvider) linkResource(a *structs.App, s *structs.Resource) error {
-	// TODO reimplement
+	for _, app := range s.Apps {
+		if a.Name == app.Name {
+			return fmt.Errorf("app already linked")
+		}
+	}
+
+	s.Apps = append(s.Apps, *a)
+
 	return p.updateResource(s)
 }
 
 // delete from links
 func (p *AWSProvider) unlinkResource(a *structs.App, s *structs.Resource) error {
-	// TODO reimplement
-	// apps := structs.Apps{}
-	// for _, linkedApp := range s.Apps {
-	//   if a.Name != linkedApp.Name {
-	//     apps = append(apps, linkedApp)
-	//   }
-	// }
+	apps := structs.Apps{}
 
-	// s.Apps = apps
+	for _, app := range s.Apps {
+		if a.Name != app.Name {
+			apps = append(apps, app)
+		}
+	}
+
+	s.Apps = apps
 
 	return p.updateResource(s)
 }
