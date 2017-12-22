@@ -402,12 +402,11 @@ func cmdResourceProxy(c *cli.Context) error {
 		return stdcli.Error(err)
 	}
 
-	export, ok := resource.Exports["URL"]
-	if !ok {
+	if resource.URL == "" {
 		return stdcli.Error(fmt.Errorf("%s does not expose a URL", name))
 	}
 
-	u, err := url.Parse(export)
+	u, err := url.Parse(resource.URL)
 	if err != nil {
 		return stdcli.Error(err)
 	}
