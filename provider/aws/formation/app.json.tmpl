@@ -9,6 +9,9 @@
     "Agents": {
       "Value": "{{ join .Manifest.Agents "," }}"
     },
+    "LogGroup": {
+      "Value": { "Ref": "LogGroup" }
+    },
     "Release": {
       "Value": "{{ .Release.Id }}"
     },
