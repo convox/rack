@@ -10,7 +10,11 @@ import (
 
 // FromEnv returns a new Provider from env vars
 func FromEnv() structs.Provider {
-	switch os.Getenv("PROVIDER") {
+	return FromName(os.Getenv("PROVIDER"))
+}
+
+func FromName(name string) structs.Provider {
+	switch name {
 	case "aws":
 		return aws.FromEnv()
 	case "local":
