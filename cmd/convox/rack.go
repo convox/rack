@@ -10,6 +10,7 @@ import (
 	"github.com/convox/rack/cmd/convox/helpers"
 	"github.com/convox/rack/cmd/convox/stdcli"
 	"github.com/convox/rack/options"
+	"github.com/convox/rack/server"
 	"github.com/convox/rack/structs"
 	"github.com/convox/version"
 	"gopkg.in/urfave/cli.v1"
@@ -104,6 +105,20 @@ func init() {
 					cli.StringFlag{
 						Name:  "type",
 						Usage: "vertically scale the instance type, e.g. t2.small or c3.xlarge",
+					},
+				},
+			},
+			{
+				Name:        "start",
+				Description: "start rack api server",
+				Usage:       "[type] [options]",
+				ArgsUsage:   "",
+				Action:      cmdRackStart,
+				Flags: []cli.Flag{
+					rackFlag,
+					cli.StringFlag{
+						Name:  "root",
+						Usage: "set provider root directory",
 					},
 				},
 			},
@@ -392,6 +407,22 @@ func cmdRackScale(c *cli.Context) error {
 
 	displaySystem(c)
 	return nil
+}
+
+func cmdRackStart(c *cli.Context) error {
+	stdcli.NeedHelp(c)
+
+	if root := c.String("root"); root != "" {
+		os.Setenv("PROVIDER_ROOT", root)
+	}
+
+	name := "local"
+
+	if len(c.Args()) > 0 {
+		name = c.Args()[0]
+	}
+
+	return server.Listen(name, ":5443")
 }
 
 func cmdRackReleases(c *cli.Context) error {

@@ -17,6 +17,7 @@ import (
 	"github.com/boltdb/bolt"
 	"github.com/convox/logger"
 	"github.com/convox/rack/structs"
+	homedir "github.com/mitchellh/go-homedir"
 )
 
 var (
@@ -43,9 +44,24 @@ type Provider struct {
 }
 
 func FromEnv() *Provider {
+	root := os.Getenv("PROVIDER_ROOT")
+
+	if root == "" {
+		home, err := homedir.Dir()
+		if err != nil {
+			panic(err)
+		}
+
+		root = filepath.Join(home, ".convox", "local")
+
+		if err := os.MkdirAll(root, 0700); err != nil {
+			panic(err)
+		}
+	}
+
 	return &Provider{
 		Name:    coalesce(os.Getenv("NAME"), "convox"),
-		Root:    coalesce(os.Getenv("PROVIDER_ROOT"), "/var/convox"),
+		Root:    root,
 		Router:  coalesce(os.Getenv("PROVIDER_ROUTER"), "10.42.0.0"),
 		Test:    os.Getenv("TEST") == "true",
 		Version: coalesce(os.Getenv("VERSION"), "latest"),
