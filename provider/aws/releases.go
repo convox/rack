@@ -212,17 +212,18 @@ func (p *AWSProvider) releasePromoteGeneration1(a *structs.App, r *structs.Relea
 		return err
 	}
 
-	tp := map[string]interface{}{
-		"App":      a,
-		"Manifest": m,
-	}
-
-	data, err := formationTemplate("g1/app", tp)
+	settings, err := p.appResource(r.App, "Settings")
 	if err != nil {
 		return err
 	}
 
-	settings, err := p.appResource(r.App, "Settings")
+	tp := map[string]interface{}{
+		"App":         a,
+		"Environment": fmt.Sprintf("https://%s.s3.amazonaws.com/releases/%s/env", settings, r.Id),
+		"Manifest":    m,
+	}
+
+	data, err := formationTemplate("g1/app", tp)
 	if err != nil {
 		return err
 	}
@@ -241,7 +242,6 @@ func (p *AWSProvider) releasePromoteGeneration1(a *structs.App, r *structs.Relea
 	params := map[string]string{}
 
 	params["Cluster"] = p.Cluster
-	params["Environment"] = fmt.Sprintf("https://%s.s3.amazonaws.com/releases/%s/env", settings, r.Id)
 	params["Key"] = p.EncryptionKey
 	params["LogBucket"] = p.LogBucket
 	params["Rack"] = p.Rack
