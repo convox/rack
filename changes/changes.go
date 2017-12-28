@@ -1,6 +1,8 @@
 package changes
 
 import (
+
+	"fmt"
 	"os"
 	"path/filepath"
 	"time"
@@ -14,6 +16,8 @@ type Change struct {
 	Base      string
 	Path      string
 }
+
+type dirSnapshot map[string]time.Time
 
 func Partition(changes []Change) (adds []Change, removes []Change) {
 	for _, c := range changes {
@@ -93,7 +97,7 @@ func readDockerIgnore(file string) ([]string, error) {
 }
 
 func watchForChanges(dir string, ignore []string, ch chan Change) error {
-	cur, err := snapshot(dir)
+	prev, err := snapshot(dir)
 	if err != nil {
 		return err
 	}
@@ -101,48 +105,84 @@ func watchForChanges(dir string, ignore []string, ch chan Change) error {
 	startScanner(dir)
 
 	for {
-		snap, err := snapshot(dir)
+
+		prev, err = syncUntilStable(dir, ignore, ch, prev)
 		if err != nil {
 			return err
 		}
 
-		notify(ch, cur, snap, dir, ignore)
-
-		cur = snap
-
 		waitForNextScan(dir)
+
 	}
 
 	return nil
 }
 
-func notify(ch chan Change, from, to map[string]time.Time, base string, ignore []string) {
+// Do a code-sync (notify), then compare the dir contents to the contents from
+// before the sync. Repeat until dir contents dont change for at least 200ms
+// Give up on stabilizing dir after 100 syncs. Also see func comment for
+// watchForChanges. Return the final dir snapshot.
+func syncUntilStable(dir string, ignore []string, ch chan Change, prev dirSnapshot) (dirSnapshot, error) {
+	for i := 0; i < 10; i++ {
+
+		snap, err := snapshot(dir)
+		if err != nil {
+			return prev, err
+		}
+
+		changed := notify(ch, prev, snap, dir, ignore)
+
+		if isDebugging() && changed && i > 0 {
+			fmt.Printf("syncUntilStable: multipass (%s) change: %s ... ", i, changed)
+		}
+
+		prev = snap
+
+		if changed {
+			// wait a bit, then resnap to look for more changes
+			time.Sleep(200 * time.Millisecond)
+		} else {
+			return prev, nil
+		}
+
+	}
+
+	fmt.Printf("syncUntilStable: dir never stabilized %s", dir)
+	return prev, nil
+}
+
+func notify(ch chan Change, from, to dirSnapshot, base string, ignore []string) bool {
+
+	changed := false
+
 	for fk, ft := range from {
 		tt, ok := to[fk]
 
 		switch {
 		case !ok:
-			send(ch, "remove", fk, base, ignore)
+			changed = send(ch, "remove", fk, base, ignore) || changed
 		case ft.Before(tt):
-			send(ch, "add", fk, base, ignore)
+			changed = send(ch, "add", fk, base, ignore) || changed
 		}
 	}
 
 	for tk := range to {
 		if _, ok := from[tk]; !ok {
-			send(ch, "add", tk, base, ignore)
+			changed = send(ch, "add", tk, base, ignore) || changed
 		}
 	}
+
+	return changed
 }
 
-func send(ch chan Change, op, file, base string, ignore []string) {
+func send(ch chan Change, op, file, base string, ignore []string) bool {
 	rel, err := filepath.Rel(base, file)
 	if err != nil {
-		return
+		return false
 	}
 
 	if match, _ := fileutils.Matches(rel, ignore); match {
-		return
+		return false
 	}
 
 	change := Change{
@@ -152,10 +192,11 @@ func send(ch chan Change, op, file, base string, ignore []string) {
 	}
 
 	ch <- change
+	return true
 }
 
-func snapshot(dir string) (map[string]time.Time, error) {
-	snap := map[string]time.Time{}
+func snapshot(dir string) (dirSnapshot, error) {
+	snap := dirSnapshot{}
 
 	err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
 		if info == nil || info.IsDir() {
@@ -169,4 +210,8 @@ func snapshot(dir string) (map[string]time.Time, error) {
 	}
 
 	return snap, nil
+}
+
+func isDebugging() bool {
+	return os.Getenv("CONVOX_DEBUG") == "true"
 }

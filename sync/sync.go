@@ -9,12 +9,17 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/convox/rack/changes"
 	"github.com/fsouza/go-dockerclient"
+)
+
+var (
+	syncTickTime = syncTickTimeInMillis()
 )
 
 type Stream chan string
@@ -104,7 +109,7 @@ func (s *Sync) Start(st Stream) error {
 	incoming := []changes.Change{}
 	outgoing := []changes.Change{}
 
-	tick := time.Tick(1 * time.Second)
+	tick := time.Tick(syncTickTime)
 
 	for {
 		select {
@@ -115,8 +120,8 @@ func (s *Sync) Start(st Stream) error {
 		case <-tick:
 			if len(incoming) > 0 {
 				a, r := changes.Partition(incoming)
-				s.syncIncomingAdds(a, st)
 				s.syncIncomingRemoves(r, st)
+				s.syncIncomingAdds(a, st)
 				incoming = []changes.Change{}
 			}
 			if len(outgoing) > 0 {
@@ -286,7 +291,7 @@ func (s *Sync) syncOutgoingAdds(adds []changes.Change, st Stream) {
 
 	if os.Getenv("CONVOX_DEBUG") != "" {
 		for _, a := range adds {
-			st <- fmt.Sprintf("-> %s", filepath.Join(a.Base, a.Path))
+			st <- fmt.Sprintf("-> add %s", filepath.Join(a.Base, a.Path))
 		}
 	}
 
@@ -333,6 +338,12 @@ func (s *Sync) syncOutgoingRemoves(removes []changes.Change, st Stream) {
 	}
 
 	st <- fmt.Sprintf("%d files removed", len(removes))
+
+	if os.Getenv("CONVOX_DEBUG") != "" {
+		for _, a := range removes {
+			st <- fmt.Sprintf("-> rm %s", filepath.Join(a.Base, a.Path))
+		}
+	}
 }
 
 func (s *Sync) uploadChangesDaemon(st Stream) {
@@ -553,4 +564,17 @@ func tgzReader(s *Sync, r io.Reader, st Stream) {
 			}
 		}
 	}
+}
+
+func syncTickTimeInMillis() time.Duration {
+  // millis. This tick time, annecdotally and subjectively, feels nearly
+  // instant, while leaving the CPU relatively unscathed.
+	ttime := 125
+
+	tickString := os.Getenv("SYNC_TICK")
+	if tickString != "" {
+		t, _ := strconv.ParseInt(tickString, 0, 32)
+		ttime = int(t)
+	}
+	return (time.Duration(ttime) * time.Millisecond)
 }

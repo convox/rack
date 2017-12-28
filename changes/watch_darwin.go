@@ -66,8 +66,12 @@ func startScanner(dir string) {
 }
 
 func waitForNextScan(dir string) {
-	tick := time.Tick(900 * time.Millisecond)
-	fired := false
+
+	var fallbackSyncTick <-chan time.Time
+
+	if isFallbackSyncOn() {
+		fallbackSyncTick = time.Tick(fallbackSyncTickTime)
+	}
 
 	for {
 		lock.Lock()
@@ -80,9 +84,9 @@ func waitForNextScan(dir string) {
 
 		select {
 		case <-ch:
-			fired = true
-		case <-tick:
-			if fired {
+			return
+		case <-fallbackSyncTick:
+			if isHot(dir) {
 				return
 			}
 		}
@@ -98,6 +102,7 @@ func callback(stream C.FSEventStreamRef, info unsafe.Pointer, count C.size_t, pa
 	lock.Unlock()
 
 	if ok {
+		touchTimes[dir] = time.Now()
 		ch <- ""
 	}
 }
