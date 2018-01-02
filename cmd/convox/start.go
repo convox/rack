@@ -27,9 +27,10 @@ func init() {
 		Action:      cmdStart,
 		Flags: []cli.Flag{
 			cli.StringFlag{
-				Name:  "file, f",
-				Value: "",
-				Usage: "path to manifest file",
+				Name:   "file, f",
+				EnvVar: "COMPOSE_FILE",
+				Value:  "",
+				Usage:  "path to manifest file",
 			},
 			cli.StringFlag{
 				Name:  "generation, g",
