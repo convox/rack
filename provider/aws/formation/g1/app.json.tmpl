@@ -16,11 +16,6 @@
       "Type": "String",
       "MinLength": "1"
     },
-    "Environment": {
-      "Type": "String",
-      "Default": "",
-      "Description": ""
-    },
     "Internal": {
       "Type": "String",
       "Description": "Only allow access to this app from inside the VPC",
@@ -220,7 +215,7 @@
           "ServiceToken": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
           "Name": { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" }, "{{ $e.Name }}" ] ] },
           "Release": { "Ref": "Release" },
-          "Environment": { "Ref": "Environment" },
+          "Environment": "{{ $.Environment }}",
           "Key": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:EncryptionKey" } },
           "Tasks": [
             {
