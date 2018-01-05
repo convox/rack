@@ -264,7 +264,7 @@ func build(dir string) error {
 		return err
 	}
 
-	env["SECURE_ENVIRONMENT_URL"] = a.Parameters["Environment"]
+	env["SECURE_ENVIRONMENT_URL"] = a.Outputs["Environment"]
 	env["SECURE_ENVIRONMENT_TYPE"] = "envfile"
 	env["SECURE_ENVIRONMENT_KEY"] = sys.Outputs["EncryptionKey"]
 
