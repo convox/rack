@@ -84,6 +84,34 @@
           "Priority": "{{ priority $.App .Name }}"
         }
       },
+      "RecordSet{{ upper .Name }}Internal": {
+        "Type": "AWS::Route53::RecordSet",
+        "Properties": {
+          "HostedZoneId": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:HostedZone" } },
+          "Name": { "Fn::Sub": "{{.Name}}.{{$.App}}.${Rack}.convox." },
+          "Type": "CNAME",
+          "TTL": "3600",
+          "ResourceRecords": [ { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Domain{{ if .Internal }}Internal{{ end }}" } } ]
+        }
+      },
+      "Balancer{{ upper .Name }}ListenerRule80Internal": {
+        "Type": "AWS::ElasticLoadBalancingV2::ListenerRule",
+        "Properties": {
+        "Actions": [ { "Type": "forward", "TargetGroupArn": { "Ref": "Balancer{{ upper .Name }}TargetGroup{{ if .Internal }}Internal{{ end }}" } } ],
+          "Conditions": [ { "Field": "host-header", "Values": [ { "Fn::Sub": "{{.Name}}.{{$.App}}.${Rack}.convox" } ] } ],
+          "ListenerArn": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:{{ router .Name $.Manifest }}Listener80" } },
+          "Priority": "{{ priority $.App (print .Name "-i") }}"
+        }
+      },
+      "Balancer{{ upper .Name }}ListenerRule443Internal": {
+        "Type": "AWS::ElasticLoadBalancingV2::ListenerRule",
+        "Properties": {
+        "Actions": [ { "Type": "forward", "TargetGroupArn": { "Ref": "Balancer{{ upper .Name }}TargetGroup{{ if .Internal }}Internal{{ end }}" } } ],
+          "Conditions": [ { "Field": "host-header", "Values": [ { "Fn::Sub": "{{.Name}}.{{$.App}}.${Rack}.convox" } ] } ],
+          "ListenerArn": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:{{ router .Name $.Manifest }}Listener443" } },
+          "Priority": "{{ priority $.App (print .Name "-i") }}"
+        }
+      },
       {{ if .Domain }}
         "Balancer{{ upper .Name }}Certificate": {
           "Type": "AWS::CertificateManager::Certificate",
