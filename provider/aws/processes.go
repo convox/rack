@@ -830,8 +830,13 @@ func (p *AWSProvider) generateTaskDefinition1(app, process, release string) (*ec
 		env[e.Name] = e.Value
 	}
 
+	settings, err := p.appResource(r.App, "Settings")
+	if err != nil {
+		return nil, err
+	}
+
 	if s.UseSecureEnvironment() {
-		env["SECURE_ENVIRONMENT_URL"] = a.Outputs["Environment"]
+		env["SECURE_ENVIRONMENT_URL"] = fmt.Sprintf("https://%s.s3.amazonaws.com/releases/%s/env", settings, release)
 		env["SECURE_ENVIRONMENT_TYPE"] = "envfile"
 		env["SECURE_ENVIRONMENT_KEY"] = p.EncryptionKey
 	} else {
