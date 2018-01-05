@@ -205,6 +205,7 @@ func TestProcessRunAttached(t *testing.T) {
 		cycleProcessDescribeStackResources,
 		cycleProcessDescribeServices,
 		cycleProcessDescribeTaskDefinition1,
+		cycleProcessDescribeStackResources,
 		cycleProcessRegisterTaskDefinition,
 		cycleProcessReleaseUpdateItem,
 		cycleProcessRunTaskAttached,
@@ -265,6 +266,7 @@ func TestProcessRunDetached(t *testing.T) {
 		cycleProcessDescribeStackResources,
 		cycleProcessDescribeServices,
 		cycleProcessDescribeTaskDefinition1,
+		cycleProcessDescribeStackResources,
 		cycleProcessRegisterTaskDefinition,
 		cycleProcessReleaseUpdateItem,
 		cycleProcessRunTaskDetached,
@@ -508,6 +510,15 @@ var cycleProcessDescribeStackResources = awsutil.Cycle{
 			<DescribeStackResourcesResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
 				<DescribeStackResourcesResult>
 					<StackResources>
+						<member>
+							<PhysicalResourceId>settings</PhysicalResourceId>
+							<ResourceStatus>UPDATE_COMPLETE</ResourceStatus>
+							<StackId>arn:aws:cloudformation:us-east-1:778743527532:stack/convox-myapp/5c05e0c0-6e10-11e6-8a4e-50fae98a10d2</StackId>
+							<StackName>convox-myapp</StackName>
+							<LogicalResourceId>Settings</LogicalResourceId>
+							<Timestamp>2016-09-10T04:35:11.280Z</Timestamp>
+							<ResourceType>AWS::S3::Bucket</ResourceType>
+						</member>
 						<member>
 							<PhysicalResourceId>arn:aws:ecs:us-east-1:778743527532:service/convox-myapp-ServiceDatabase-1I2PTXAZ5ECRD</PhysicalResourceId>
 							<ResourceStatus>UPDATE_COMPLETE</ResourceStatus>
