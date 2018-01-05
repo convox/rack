@@ -10,11 +10,11 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/convox/rack/structs"
 	"github.com/convox/rack/cmd/convox/helpers"
 	"github.com/convox/rack/cmd/convox/stdcli"
 	"github.com/convox/rack/manifest"
 	"github.com/convox/rack/manifest1"
+	"github.com/convox/rack/structs"
 	"github.com/fsouza/go-dockerclient"
 	"gopkg.in/urfave/cli.v1"
 )
@@ -40,6 +40,10 @@ func init() {
 				Name:  "no-cache",
 				Usage: "pull fresh image dependencies",
 			},
+			cli.BoolFlag{
+				Name:  "no-sync",
+				Usage: "do not synchronize local file changes into the running containers",
+			},
 			cli.IntFlag{
 				Name:  "shift",
 				Usage: "shift allocated port numbers by the given amount",
@@ -64,6 +68,7 @@ func cmdStart(c *cli.Context) error {
 	}
 
 	opts.Cache = !c.Bool("no-cache")
+	opts.Sync = !c.Bool("no-sync")
 
 	if v := c.String("file"); v != "" {
 		opts.Config = v
@@ -95,6 +100,7 @@ type startOptions struct {
 	Config  string
 	Service string
 	Shift   int
+	Sync    bool
 }
 
 func startGeneration1(opts startOptions) error {
@@ -147,7 +153,7 @@ func startGeneration1(opts startOptions) error {
 		Cache:   opts.Cache,
 		Command: opts.Command,
 		Service: opts.Service,
-		Sync:    true,
+		Sync:    opts.Sync,
 	})
 
 	err = r.Start()
