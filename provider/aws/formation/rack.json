@@ -990,7 +990,7 @@
       "Type": "AWS::Route53::RecordSet",
       "Properties": {
         "HostedZoneId": { "Ref": "HostedZone" },
-        "Name": "rack.convox.",
+        "Name": { "Fn::Sub": "rack.${AWS::StackName}.convox." },
         "Type": "CNAME",
         "TTL": "3600",
         "ResourceRecords": [ { "Fn::GetAtt": [ "Balancer", "DNSName" ] } ]
