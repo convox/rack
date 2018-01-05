@@ -14,6 +14,12 @@
   version = "v0.4.5"
 
 [[projects]]
+  name = "github.com/PuerkitoBio/goquery"
+  packages = ["."]
+  revision = "e1271ee34c6a305e38566ecd27ae374944907ee9"
+  version = "v1.1.0"
+
+[[projects]]
   branch = "master"
   name = "github.com/RackSec/srslog"
   packages = ["."]
@@ -24,6 +30,12 @@
   packages = ["."]
   revision = "f006c2ac4710855cf0f916dd6b77acf6b048dc6e"
   version = "v1.0.3"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/andybalholm/cascadia"
+  packages = ["."]
+  revision = "349dd0209470eabd9514242c688c403c0926d266"
 
 [[projects]]
   name = "github.com/aws/aws-sdk-go"
@@ -144,6 +156,12 @@
   packages = ["."]
   revision = "7f08801859139f86dfafd1c296e2cba9a80d292e"
   version = "v1.6.0"
+
+[[projects]]
+  name = "github.com/headzoo/surf"
+  packages = [".","agent","browser","errors","jar","util"]
+  revision = "60198774ccce43e1d26c80e961497b7d262460b3"
+  version = "v1.0.0"
 
 [[projects]]
   branch = "master"
@@ -273,7 +291,7 @@
 [[projects]]
   branch = "master"
   name = "golang.org/x/net"
-  packages = ["context","websocket"]
+  packages = ["context","html","html/atom","websocket"]
   revision = "a8b9294777976932365dabb6640cf1468d95c70f"
 
 [[projects]]
@@ -297,6 +315,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "e72af2a8af69d218c74749962db448ac48ff945a6d69bb912feee102032f0130"
+  inputs-digest = "943a197e9fff3aa63a316558cb60f5d8e32ef6ebecd06444b80bcdd078fd7a9c"
   solver-name = "gps-cdcl"
   solver-version = 1
