@@ -104,8 +104,8 @@ func init() {
 }
 
 func (p *AWSProvider) Initialize(opts structs.ProviderOptions) error {
-	if opts.LogOutput != nil {
-		Logger = logger.NewWriter("ns=provider.aws", opts.LogOutput)
+	if opts.Logs != nil {
+		Logger = logger.NewWriter("ns=provider.aws", opts.Logs)
 	}
 
 	return nil

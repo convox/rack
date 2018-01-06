@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/convox/rack/api/controllers"
-	"github.com/convox/rack/provider"
 	"github.com/convox/rack/structs"
 	"github.com/convox/rack/test"
 	"github.com/stretchr/testify/assert"
@@ -17,19 +16,13 @@ import (
 // }
 
 func TestResourceList(t *testing.T) {
-	Mock(func(p *provider.MockProvider) {
+	Mock(func(p *structs.MockProvider) {
 		resources := structs.Resources{
 			structs.Resource{
-				Name:         "memcached-1234",
-				Stack:        "-",
-				Status:       "running",
-				StatusReason: "",
-				Type:         "memcached",
-				Apps:         nil,
-				Exports:      map[string]string{"foo": "bar"},
-				Outputs:      map[string]string{},
-				Parameters:   map[string]string{},
-				Tags:         map[string]string{},
+				Name:       "memcached-1234",
+				Status:     "running",
+				Type:       "memcached",
+				Parameters: map[string]string{},
 			},
 		}
 
@@ -39,11 +32,11 @@ func TestResourceList(t *testing.T) {
 
 		if assert.Nil(t, hf.Request("GET", "/resources", nil)) {
 			hf.AssertCode(t, 200)
-			hf.AssertJSON(t, "[{\"apps\":null,\"exports\":{\"foo\":\"bar\"},\"name\":\"memcached-1234\",\"status\":\"running\",\"status-reason\":\"\",\"type\":\"memcached\"}]")
+			hf.AssertJSON(t, "[{\"name\":\"memcached-1234\",\"parameters\":{},\"status\":\"running\",\"type\":\"memcached\",\"url\":\"\"}]")
 		}
 	})
 
-	Mock(func(p *provider.MockProvider) {
+	Mock(func(p *structs.MockProvider) {
 		p.On("ResourceList").Return(nil, fmt.Errorf("unknown error"))
 		hf := test.NewHandlerFunc(controllers.HandlerFunc)
 		if assert.Nil(t, hf.Request("GET", "/resources", nil)) {
@@ -54,7 +47,7 @@ func TestResourceList(t *testing.T) {
 }
 
 func TestResourceGet(t *testing.T) {
-	Mock(func(p *provider.MockProvider) {
+	Mock(func(p *structs.MockProvider) {
 		p.On("ResourceGet", "nonexistent-resource-1234").Return(nil, test.ErrorNotFound("no such resource"))
 		hf := test.NewHandlerFunc(controllers.HandlerFunc)
 		if assert.Nil(t, hf.Request("GET", "/resources/nonexistent-resource-1234", nil)) {
@@ -63,18 +56,12 @@ func TestResourceGet(t *testing.T) {
 		}
 	})
 
-	Mock(func(p *provider.MockProvider) {
+	Mock(func(p *structs.MockProvider) {
 		resource := structs.Resource{
-			Name:         "memcached-1234",
-			Stack:        "-",
-			Status:       "running",
-			StatusReason: "",
-			Type:         "memcached",
-			Apps:         nil,
-			Exports:      map[string]string{"foo": "bar"},
-			Outputs:      map[string]string{},
-			Parameters:   map[string]string{},
-			Tags:         map[string]string{},
+			Name:       "memcached-1234",
+			Status:     "running",
+			Type:       "memcached",
+			Parameters: map[string]string{},
 		}
 
 		p.On("ResourceGet", "memcached-1234").Return(&resource, nil)
@@ -82,7 +69,7 @@ func TestResourceGet(t *testing.T) {
 
 		if assert.Nil(t, hf.Request("GET", "/resources/memcached-1234", nil)) {
 			hf.AssertCode(t, 200)
-			hf.AssertJSON(t, "{\"apps\":null,\"exports\":{\"foo\":\"bar\"},\"name\":\"memcached-1234\",\"status\":\"running\",\"status-reason\":\"\",\"type\":\"memcached\"}")
+			hf.AssertJSON(t, "{\"name\":\"memcached-1234\",\"parameters\":{},\"status\":\"running\",\"type\":\"memcached\",\"url\":\"\"}")
 		}
 	})
 }
@@ -93,41 +80,30 @@ func TestResourceCreate(t *testing.T) {
 	v.Add("name", "memcached-1234")
 	v.Add("type", "memcached")
 
-	Mock(func(p *provider.MockProvider) {
+	Mock(func(p *structs.MockProvider) {
 		resource := structs.Resource{
-			Name:         "memcached-1234",
-			Stack:        "-",
-			Status:       "running",
-			StatusReason: "",
-			Type:         "memcached",
-			Apps:         nil,
-			Exports:      map[string]string{"foo": "bar"},
-			Outputs:      map[string]string{},
-			Parameters:   map[string]string{},
-			Tags:         map[string]string{},
+			Name:       "memcached-1234",
+			Status:     "running",
+			Type:       "memcached",
+			Parameters: map[string]string{},
 		}
-		p.On("ResourceCreate", "memcached-1234", "memcached", map[string]string{}).Return(&resource, nil)
+		p.On("ResourceCreate", "memcached-1234", "memcached", structs.ResourceCreateOptions{Parameters: map[string]string{}}).Return(&resource, nil)
 
 		hf := test.NewHandlerFunc(controllers.HandlerFunc)
 		if assert.Nil(t, hf.Request("POST", "/resources", v)) {
 			hf.AssertCode(t, 200)
-			hf.AssertJSON(t, "{\"apps\":null,\"exports\":{\"foo\":\"bar\"},\"name\":\"memcached-1234\",\"status\":\"running\",\"status-reason\":\"\",\"type\":\"memcached\"}")
+			hf.AssertJSON(t, "{\"name\":\"memcached-1234\",\"parameters\":{},\"status\":\"running\",\"type\":\"memcached\",\"url\":\"\"}")
 		}
 	})
 }
 
 func TestResourceDelete(t *testing.T) {
-	Mock(func(p *provider.MockProvider) {
+	Mock(func(p *structs.MockProvider) {
 		resource := structs.Resource{
-			Name:         "memcached-1234",
-			Stack:        "-",
-			Status:       "running",
-			StatusReason: "",
-			Type:         "memcached",
-			Apps:         nil,
-			Outputs:      map[string]string{},
-			Parameters:   map[string]string{},
-			Tags:         map[string]string{},
+			Name:       "memcached-1234",
+			Status:     "running",
+			Type:       "memcached",
+			Parameters: map[string]string{},
 		}
 		p.On("ResourceGet", "memcached-1234").Return(&resource, nil)
 		p.On("ResourceDelete", "memcached-1234").Return(&resource, nil)
@@ -135,26 +111,20 @@ func TestResourceDelete(t *testing.T) {
 
 		if assert.Nil(t, hf.Request("DELETE", "/resources/memcached-1234", nil)) {
 			hf.AssertCode(t, 200)
-			hf.AssertJSON(t, "{\"apps\":null,\"exports\":null,\"name\":\"memcached-1234\",\"status\":\"running\",\"status-reason\":\"\",\"type\":\"memcached\"}")
+			hf.AssertJSON(t, "{\"name\":\"memcached-1234\",\"parameters\":{},\"status\":\"running\",\"type\":\"memcached\",\"url\":\"\"}")
 		}
 	})
 }
 
 // TestResourceShow ensures a resource can be shown
 func TestResourceShow(t *testing.T) {
-	Mock(func(p *provider.MockProvider) {
+	Mock(func(p *structs.MockProvider) {
 		services := structs.Resources{
 			structs.Resource{
-				Name:         "memcached-1234",
-				Stack:        "-",
-				Status:       "running",
-				StatusReason: "",
-				Type:         "memcached",
-				Apps:         nil,
-				Exports:      map[string]string{"foo": "bar"},
-				Outputs:      map[string]string{},
-				Parameters:   map[string]string{},
-				Tags:         map[string]string{},
+				Name:       "memcached-1234",
+				Status:     "running",
+				Type:       "memcached",
+				Parameters: map[string]string{},
 			},
 		}
 		p.On("ResourceGet", "memcached-1234").Return(&services[0], nil)
@@ -162,7 +132,7 @@ func TestResourceShow(t *testing.T) {
 
 		if assert.Nil(t, hf.Request("GET", "/resources/memcached-1234", nil)) {
 			hf.AssertCode(t, 200)
-			hf.AssertJSON(t, "{\"apps\":null,\"exports\":{\"foo\":\"bar\"},\"name\":\"memcached-1234\",\"status\":\"running\",\"status-reason\":\"\",\"type\":\"memcached\"}")
+			hf.AssertJSON(t, "{\"name\":\"memcached-1234\",\"parameters\":{},\"status\":\"running\",\"type\":\"memcached\",\"url\":\"\"}")
 		}
 	})
 }

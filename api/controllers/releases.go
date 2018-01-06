@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/convox/rack/api/httperr"
+	"github.com/convox/rack/options"
 	"github.com/convox/rack/structs"
 	"github.com/gorilla/mux"
 )
@@ -13,16 +14,17 @@ import (
 func ReleaseList(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	app := mux.Vars(r)["app"]
 
-	var err error
-	var limit = 20
-	if l := r.URL.Query().Get("limit"); l != "" {
-		limit, err = strconv.Atoi(l)
+	opts := structs.ReleaseListOptions{}
+
+	if v := r.URL.Query().Get("limit"); v != "" {
+		i, err := strconv.Atoi(v)
 		if err != nil {
 			return httperr.Errorf(400, "limit must be numeric")
 		}
+		opts.Count = options.Int(i)
 	}
 
-	releases, err := Provider.ReleaseList(app, int64(limit))
+	releases, err := Provider.ReleaseList(app, opts)
 	if awsError(err) == "ValidationError" {
 		return httperr.Errorf(404, "no such app: %s", app)
 	}
@@ -65,11 +67,6 @@ func ReleasePromote(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 		return httperr.Server(err)
 	}
 
-	rr, err := Provider.ReleaseGet(app, release)
-	if err != nil {
-		return httperr.Server(err)
-	}
-
 	event := &structs.Event{
 		Action: "release:promote",
 		Status: "start",
@@ -78,8 +75,13 @@ func ReleasePromote(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 
 	Provider.EventSend(event, nil)
 
-	if err := Provider.ReleasePromote(rr); err != nil {
+	if err := Provider.ReleasePromote(app, release); err != nil {
 		Provider.EventSend(event, err)
+		return httperr.Server(err)
+	}
+
+	rr, err := Provider.ReleaseGet(app, release)
+	if err != nil {
 		return httperr.Server(err)
 	}
 

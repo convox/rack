@@ -78,7 +78,7 @@ func (p *AWSProvider) InstanceList() (structs.Instances, error) {
 		i.Processes = int(ci(cci.RunningTasksCount, 0))
 		i.Status = strings.ToLower(cs(cci.Status, "unknown"))
 
-		var cpu, memory structs.InstanceResource
+		var cpu, memory instanceResource
 
 		for _, r := range cci.RegisteredResources {
 			switch *r.Name {
@@ -172,21 +172,32 @@ func (p *AWSProvider) InstanceShell(id string, rw io.ReadWriter, opts structs.In
 	session.Stdin = rw
 	session.Stderr = rw
 
-	if opts.Terminal != "" {
+	if opts.Terminal != nil {
+		width := 0
+		height := 0
+
+		if opts.Width != nil {
+			width = *opts.Width
+		}
+
+		if opts.Height != nil {
+			height = *opts.Height
+		}
+
 		modes := ssh.TerminalModes{
 			ssh.ECHOCTL:       0,
 			ssh.TTY_OP_ISPEED: 56000, // input speed = 56kbaud
 			ssh.TTY_OP_OSPEED: 56000, // output speed = 56kbaud
 		}
-		if err := session.RequestPty(opts.Terminal, opts.Width, opts.Height, modes); err != nil {
+		if err := session.RequestPty(*opts.Terminal, width, height, modes); err != nil {
 			return err
 		}
 	}
 
 	code := 0
 
-	if opts.Command != "" {
-		if err := session.Start(opts.Command); err != nil {
+	if opts.Command != nil {
+		if err := session.Start(*opts.Command); err != nil {
 			return err
 		}
 	} else {
@@ -236,4 +247,14 @@ func (p *AWSProvider) InstanceTerminate(id string) error {
 	}
 
 	return nil
+}
+
+type instanceResource struct {
+	Total int `json:"total"`
+	Free  int `json:"free"`
+	Used  int `json:"used"`
+}
+
+func (ir instanceResource) PercentUsed() float64 {
+	return float64(ir.Used) / float64(ir.Total)
 }

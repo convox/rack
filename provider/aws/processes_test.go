@@ -2,11 +2,10 @@ package aws_test
 
 import (
 	"bytes"
-	"fmt"
 	"io"
 	"testing"
 
-	"github.com/convox/rack/provider/aws"
+	"github.com/convox/rack/options"
 	"github.com/convox/rack/structs"
 	"github.com/convox/rack/test/awsutil"
 	"github.com/stretchr/testify/assert"
@@ -29,7 +28,8 @@ func TestProcessExec(t *testing.T) {
 		cycleProcessDescribeTaskDefinition1,
 		cycleProcessDescribeContainerInstances,
 		cycleProcessDescribeRackInstances,
-		cycleProcessListTasksAll,
+		cycleProcessListTasksRunning,
+		cycleProcessListTasksStopped,
 		cycleProcessDescribeTasks,
 		cycleProcessDescribeContainerInstances,
 		cycleProcessDescribeInstances,
@@ -49,13 +49,15 @@ func TestProcessExec(t *testing.T) {
 	in := &bytes.Buffer{}
 	out := &bytes.Buffer{}
 
-	err := provider.ProcessExec("myapp", "5850760f0845", "ls -la", streamTester{in, out}, structs.ProcessExecOptions{
-		Height: 10,
-		Width:  20,
+	code, err := provider.ProcessExec("myapp", "5850760f0845", "ls -la", structs.ProcessExecOptions{
+		Height: options.Int(10),
+		Stream: streamTester{in, out},
+		Width:  options.Int(20),
 	})
 
 	assert.NoError(t, err)
-	assert.Equal(t, []byte(fmt.Sprintf("foo%s%d\n", aws.StatusCodePrefix, 0)), out.Bytes())
+	assert.Equal(t, []byte("foo"), out.Bytes())
+	assert.Equal(t, 0, code)
 }
 
 func TestProcessList(t *testing.T) {
@@ -73,11 +75,11 @@ func TestProcessList(t *testing.T) {
 	)
 	defer provider.Close()
 
-	s, err := provider.ProcessList("myapp")
+	s, err := provider.ProcessList("myapp", structs.ProcessListOptions{})
 
 	ps := structs.Processes{
 		structs.Process{
-			ID:       "5850760f0845",
+			Id:       "5850760f0845",
 			App:      "myapp",
 			Name:     "web",
 			Release:  "R1234",
@@ -86,11 +88,11 @@ func TestProcessList(t *testing.T) {
 			Image:    "778743527532.dkr.ecr.us-east-1.amazonaws.com/convox-myapp-nkdecwppkq:web.BMPBJLITPZT",
 			Instance: "i-5bc45dc2",
 			Ports:    []string{},
-			CPU:      0,
+			Cpu:      0,
 			Memory:   0,
 		},
 		structs.Process{
-			ID:       "5850760f0846",
+			Id:       "5850760f0846",
 			App:      "myapp",
 			Name:     "web",
 			Release:  "R1234",
@@ -99,7 +101,7 @@ func TestProcessList(t *testing.T) {
 			Image:    "778743527532.dkr.ecr.us-east-1.amazonaws.com/convox-myapp-nkdecwppkq:web.BMPBJLITPZT",
 			Instance: "i-5bc45dc2",
 			Ports:    []string{},
-			CPU:      0,
+			Cpu:      0,
 			Memory:   0,
 		},
 	}
@@ -118,7 +120,7 @@ func TestProcessListEmpty(t *testing.T) {
 	)
 	defer provider.Close()
 
-	s, err := provider.ProcessList("myapp")
+	s, err := provider.ProcessList("myapp", structs.ProcessListOptions{})
 
 	assert.NoError(t, err)
 	assert.EqualValues(t, structs.Processes{}, s)
@@ -145,11 +147,11 @@ func TestProcessListWithBuildCluster(t *testing.T) {
 
 	provider.BuildCluster = "cluster-build"
 
-	s, err := provider.ProcessList("myapp")
+	s, err := provider.ProcessList("myapp", structs.ProcessListOptions{})
 
 	ps := structs.Processes{
 		structs.Process{
-			ID:       "5850760f0845",
+			Id:       "5850760f0845",
 			App:      "myapp",
 			Name:     "web",
 			Release:  "R1234",
@@ -158,11 +160,11 @@ func TestProcessListWithBuildCluster(t *testing.T) {
 			Image:    "778743527532.dkr.ecr.us-east-1.amazonaws.com/convox-myapp-nkdecwppkq:web.BMPBJLITPZT",
 			Instance: "i-5bc45dc2",
 			Ports:    []string{},
-			CPU:      0,
+			Cpu:      0,
 			Memory:   0,
 		},
 		structs.Process{
-			ID:       "5850760f0846",
+			Id:       "5850760f0846",
 			App:      "myapp",
 			Name:     "web",
 			Release:  "R1234",
@@ -171,11 +173,11 @@ func TestProcessListWithBuildCluster(t *testing.T) {
 			Image:    "778743527532.dkr.ecr.us-east-1.amazonaws.com/convox-myapp-nkdecwppkq:web.BMPBJLITPZT",
 			Instance: "i-5bc45dc2",
 			Ports:    []string{},
-			CPU:      0,
+			Cpu:      0,
 			Memory:   0,
 		},
 		structs.Process{
-			ID:       "5850760f0848",
+			Id:       "5850760f0848",
 			App:      "myapp",
 			Name:     "web",
 			Release:  "R1234",
@@ -184,7 +186,7 @@ func TestProcessListWithBuildCluster(t *testing.T) {
 			Image:    "778743527532.dkr.ecr.us-east-1.amazonaws.com/convox-myapp-nkdecwppkq:web.BMPBJLITPZT",
 			Instance: "i-5bc45dc2",
 			Ports:    []string{},
-			CPU:      0,
+			Cpu:      0,
 			Memory:   0,
 		},
 	}
@@ -220,11 +222,13 @@ func TestProcessRunAttached(t *testing.T) {
 		cycleProcessDescribeTaskDefinition1,
 		cycleProcessDescribeContainerInstances,
 		cycleProcessDescribeRackInstances,
-		cycleProcessListTasksAll,
+		cycleProcessListTasksRunning,
+		cycleProcessListTasksStopped,
 		cycleProcessDescribeTasks,
 		cycleProcessDescribeContainerInstances,
 		cycleProcessDescribeInstances,
-		cycleProcessStopTask,
+		cycleProcessStopTaskReason,
+		cycleProcessDescribeTasksStopped,
 	)
 	defer provider.Close()
 
@@ -241,17 +245,18 @@ func TestProcessRunAttached(t *testing.T) {
 	in := &bytes.Buffer{}
 	out := &bytes.Buffer{}
 
-	pid, err := provider.ProcessRun("myapp", "web", structs.ProcessRunOptions{
-		Command: "ls -la",
-		Release: "RVFETUHHKKD",
+	pid, err := provider.ProcessRun("myapp", structs.ProcessRunOptions{
+		Command: options.String("ls -la"),
+		Release: options.String("RVFETUHHKKD"),
+		Service: options.String("web"),
 		Stream:  streamTester{in, out},
-		Height:  10,
-		Width:   20,
+		Height:  options.Int(10),
+		Width:   options.Int(20),
 	})
 
 	assert.NoError(t, err)
 	assert.Equal(t, "5850760f0845", pid)
-	assert.Equal(t, []byte(fmt.Sprintf("foo%s%d\n", aws.StatusCodePrefix, 0)), out.Bytes())
+	assert.Equal(t, []byte("foo"), out.Bytes())
 }
 
 func TestProcessRunDetached(t *testing.T) {
@@ -273,11 +278,10 @@ func TestProcessRunDetached(t *testing.T) {
 	)
 	defer provider.Close()
 
-	pid, err := provider.ProcessRun("myapp", "web", structs.ProcessRunOptions{
-		Command: "ls test",
-		Release: "RVFETUHHKKD",
-		Height:  0,
-		Width:   0,
+	pid, err := provider.ProcessRun("myapp", structs.ProcessRunOptions{
+		Command: options.String("ls test"),
+		Release: options.String("RVFETUHHKKD"),
+		Service: options.String("web"),
 	})
 
 	assert.NoError(t, err)
@@ -286,7 +290,8 @@ func TestProcessRunDetached(t *testing.T) {
 
 func TestProcessStop(t *testing.T) {
 	provider := StubAwsProvider(
-		cycleProcessListTasksAll,
+		cycleProcessListTasksRunning,
+		cycleProcessListTasksStopped,
 		cycleProcessStopTask,
 	)
 	defer provider.Close()
@@ -587,6 +592,47 @@ var cycleProcessDescribeTasks = awsutil.Cycle{
 	},
 }
 
+var cycleProcessDescribeTasksStopped = awsutil.Cycle{
+	Request: awsutil.Request{
+		RequestURI: "/",
+		Operation:  "AmazonEC2ContainerServiceV20141113.DescribeTasks",
+		Body: `{
+			"cluster": "cluster-test",
+			"tasks": [
+				"arn:aws:ecs:us-east-1:778743527532:task/50b8de99-f94f-4ecd-a98f-5850760f0845"
+			]
+		}`,
+	},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body: `{
+			"failures": [],
+			"tasks": [
+				{
+					"taskArn": "arn:aws:ecs:us-east-1:778743527532:task/50b8de99-f94f-4ecd-a98f-5850760f0845",
+					"overrides": {
+						"containerOverrides": [
+							{
+								"command": ["sh", "-c", "foo"]
+							}
+						]
+					},
+					"lastStatus": "STOPPED",
+					"stoppedReason": "exit:3",
+					"taskDefinitionArn": "arn:aws:ecs:us-east-1:778743527532:task-definition/convox-myapp-web:34",
+					"containerInstanceArn": "arn:aws:ecs:us-east-1:778743527532:container-instance/e126c67d-fa95-4b09-8b4a-3723932cd2aa",
+					"containers": [
+						{
+							"name": "web",
+							"containerArn": "arn:aws:ecs:us-east-1:778743527532:container/3ab3b8c5-aa5c-4b54-89f8-5f1193aff5f9"
+						}
+					]
+				}
+			]
+		}`,
+	},
+}
+
 var cycleProcessDescribeTasksAll = awsutil.Cycle{
 	Request: awsutil.Request{
 		RequestURI: "/",
@@ -851,6 +897,44 @@ var cycleProcessListTasksAll = awsutil.Cycle{
 	},
 }
 
+var cycleProcessListTasksRunning = awsutil.Cycle{
+	Request: awsutil.Request{
+		RequestURI: "/",
+		Operation:  "AmazonEC2ContainerServiceV20141113.ListTasks",
+		Body: `{
+			"cluster": "cluster-test",
+			"desiredStatus": "RUNNING"
+		}`,
+	},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body: `{
+			"taskArns": [
+				"arn:aws:ecs:us-east-1:778743527532:task/50b8de99-f94f-4ecd-a98f-5850760f0845"
+			]
+		}`,
+	},
+}
+
+var cycleProcessListTasksStopped = awsutil.Cycle{
+	Request: awsutil.Request{
+		RequestURI: "/",
+		Operation:  "AmazonEC2ContainerServiceV20141113.ListTasks",
+		Body: `{
+			"cluster": "cluster-test",
+			"desiredStatus": "STOPPED"
+		}`,
+	},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body: `{
+			"taskArns": [
+				"arn:aws:ecs:us-east-1:778743527532:task/50b8de99-f94f-4ecd-a98f-5850760f0845"
+			]
+		}`,
+	},
+}
+
 var cycleProcessListTasksByService1 = awsutil.Cycle{
 	Request: awsutil.Request{
 		RequestURI: "/",
@@ -1053,6 +1137,12 @@ var cycleProcessRunTaskAttached = awsutil.Cycle{
 							"sleep",
 							"3600"
 						],
+						"environment": [
+						  {
+								"name": "COMMAND",
+								"value": "ls -la"
+							}
+						],
 						"name": "web"
 					}
 				]
@@ -1130,6 +1220,26 @@ var cycleProcessStopTask = awsutil.Cycle{
 		Operation:  "AmazonEC2ContainerServiceV20141113.StopTask",
 		Body: `{
 			"cluster": "cluster-test",
+			"task": "arn:aws:ecs:us-east-1:778743527532:task/50b8de99-f94f-4ecd-a98f-5850760f0845"
+		}`,
+	},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body: `{
+			"task": {
+				"taskArn": "arn:aws:ecs:us-east-1:778743527532:task/014b7e61-cc23-47e8-9dc6-0f51f03ff369"
+			}
+		}`,
+	},
+}
+
+var cycleProcessStopTaskReason = awsutil.Cycle{
+	Request: awsutil.Request{
+		RequestURI: "/",
+		Operation:  "AmazonEC2ContainerServiceV20141113.StopTask",
+		Body: `{
+			"cluster": "cluster-test",
+			"reason": "exit:0",
 			"task": "arn:aws:ecs:us-east-1:778743527532:task/50b8de99-f94f-4ecd-a98f-5850760f0845"
 		}`,
 	},
@@ -1233,7 +1343,7 @@ var cycleProcessDockerListContainers1 = awsutil.Cycle{
 				"Id": "8dfafdbc3a40",
 				"Names":["/boring_feynman"],
 				"Image": "ubuntu:latest",
-				"ImageID": "d74508fb6632491cea586a1fd7d748dfc5274cd6fdfedee309ecdcbc2bf5cb82",
+				"ImageId": "d74508fb6632491cea586a1fd7d748dfc5274cd6fdfedee309ecdcbc2bf5cb82",
 				"Command": "echo 1",
 				"Created": 1367854155,
 				"State": "Exited",
@@ -1257,7 +1367,7 @@ var cycleProcessDockerListContainers2 = awsutil.Cycle{
 				"Id": "8dfafdbc3a40",
 				"Names":["/boring_feynman"],
 				"Image": "ubuntu:latest",
-				"ImageID": "d74508fb6632491cea586a1fd7d748dfc5274cd6fdfedee309ecdcbc2bf5cb82",
+				"ImageId": "d74508fb6632491cea586a1fd7d748dfc5274cd6fdfedee309ecdcbc2bf5cb82",
 				"Command": "echo 1",
 				"Created": 1367854155,
 				"State": "Exited",
@@ -1281,7 +1391,7 @@ var cycleProcessDockerListContainers3 = awsutil.Cycle{
 				"Id": "8dfafdbc3a40",
 				"Names":["/boring_feynman"],
 				"Image": "ubuntu:latest",
-				"ImageID": "d74508fb6632491cea586a1fd7d748dfc5274cd6fdfedee309ecdcbc2bf5cb82",
+				"ImageId": "d74508fb6632491cea586a1fd7d748dfc5274cd6fdfedee309ecdcbc2bf5cb82",
 				"Command": "echo 1",
 				"Created": 1367854155,
 				"State": "Exited",

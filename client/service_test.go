@@ -10,7 +10,7 @@ import (
 
 func TestGetService(t *testing.T) {
 	ts := testServer(t,
-		test.Http{Method: "GET", Path: "/services/convox-events", Code: 200, Response: Resource{
+		test.Http{Method: "GET", Path: "/resources/convox-events", Code: 200, Response: Resource{
 			Name:   "convox-events",
 			Status: "running",
 			Type:   "type",
@@ -32,7 +32,7 @@ func TestGetService(t *testing.T) {
 
 func TestGetServiceFailure(t *testing.T) {
 	ts := testServer(t,
-		test.Http{Method: "GET", Path: "/services/nonexistent", Code: 503, Response: Error{
+		test.Http{Method: "GET", Path: "/resources/nonexistent", Code: 503, Response: Error{
 			Error: "invalid resource",
 		}},
 	)

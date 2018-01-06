@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/convox/rack/api/httperr"
-	"github.com/convox/rack/structs"
 	"github.com/gorilla/mux"
 )
 
@@ -57,7 +56,7 @@ func SSLList(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 func SSLUpdate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	vars := mux.Vars(r)
 	app := vars["app"]
-	process := vars["process"]
+	service := vars["process"]
 	port := vars["port"]
 	cert := GetForm(r, "id")
 
@@ -66,7 +65,7 @@ func SSLUpdate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 		return httperr.Errorf(403, "port must be numeric")
 	}
 
-	if err := Provider.ServiceUpdate(app, process, porti, structs.ServiceUpdateOptions{Certificate: cert}); err != nil {
+	if err := Provider.CertificateApply(app, service, porti, cert); err != nil {
 		return httperr.Server(err)
 	}
 
