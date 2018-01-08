@@ -27,7 +27,7 @@ func urlReader(url_ string) (io.ReadCloser, error) {
 		}
 		return fd, nil
 	case "object":
-		return provider.FromEnv().ObjectFetch(u.Path)
+		return provider.FromEnv().ObjectFetch(u.Host, u.Path)
 	}
 
 	req, err := http.Get(url_)

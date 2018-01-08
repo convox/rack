@@ -1838,12 +1838,11 @@
       "Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
       "DependsOn": "Router",
       "Properties": {
-        "Name": { "Fn::Sub": "${AWS::StackName}-api" },
         "HealthCheckIntervalSeconds": "5",
         "HealthCheckTimeoutSeconds": "3",
         "UnhealthyThresholdCount": "2",
         "HealthCheckPath": "/check",
-        "Port": "4443",
+        "Port": "5443",
         "Protocol": "HTTPS",
         "TargetGroupAttributes": [
           { "Key": "deregistration_delay.timeout_seconds", "Value": "30" },
@@ -1934,12 +1933,11 @@
       "Condition": "Internal",
       "DependsOn": "RouterInternal",
       "Properties": {
-        "Name": { "Fn::Sub": "${AWS::StackName}-api-internal" },
         "HealthCheckIntervalSeconds": "5",
         "HealthCheckTimeoutSeconds": "3",
         "UnhealthyThresholdCount": "2",
         "HealthCheckPath": "/check",
-        "Port": "4443",
+        "Port": "5443",
         "Protocol": "HTTPS",
         "TargetGroupAttributes": [
           { "Key": "deregistration_delay.timeout_seconds", "Value": "30" },
@@ -1957,19 +1955,19 @@
         "HealthCheck": {
           "HealthyThreshold": "2",
           "Interval": 5,
-          "Target": { "Fn::If": [ "PrivateApi", "HTTPS:3004/check", "HTTPS:3002/check" ] },
+          "Target": { "Fn::If": [ "PrivateApi", "HTTPS:3101/check", "HTTPS:3001/check" ] },
           "Timeout": 3,
           "UnhealthyThreshold": "2"
         },
         "LBCookieStickinessPolicy": [ { "PolicyName": "affinity" } ],
         "Listeners": { "Fn::If": [ "PrivateApi",
           [
-            { "Protocol": "TCP", "LoadBalancerPort": "80", "InstanceProtocol": "TCP", "InstancePort": "3003" },
-            { "Protocol": "TCP", "LoadBalancerPort": "443", "InstanceProtocol": "TCP", "InstancePort": "3004" }
+            { "Protocol": "TCP", "LoadBalancerPort": "80", "InstanceProtocol": "TCP", "InstancePort": "3100" },
+            { "Protocol": "TCP", "LoadBalancerPort": "443", "InstanceProtocol": "TCP", "InstancePort": "3101" }
           ],
           [
-            { "Protocol": "TCP", "LoadBalancerPort": "80", "InstanceProtocol": "TCP", "InstancePort": "3001" },
-            { "Protocol": "TCP", "LoadBalancerPort": "443", "InstanceProtocol": "TCP", "InstancePort": "3002" }
+            { "Protocol": "TCP", "LoadBalancerPort": "80", "InstanceProtocol": "TCP", "InstancePort": "3000" },
+            { "Protocol": "TCP", "LoadBalancerPort": "443", "InstanceProtocol": "TCP", "InstancePort": "3001" }
           ]
         ] },
         "LoadBalancerName": { "Fn::If": [ "PrivateApi", { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" }, "i" ] ] }, { "Ref": "AWS::StackName" } ] },
@@ -2040,6 +2038,7 @@
               {
                 "Effect": "Allow",
                 "Action": [
+                  "iam:DeleteServerCertificate",
                   "iam:GetServerCertificate",
                   "iam:ListServerCertificates",
                   "iam:PassRole",
@@ -2070,7 +2069,7 @@
         "Cluster": { "Ref": "Cluster" },
         "DeploymentConfiguration": { "MinimumHealthyPercent": "50", "MaximumPercent": "200" },
         "DesiredCount": { "Ref": "ApiCount" },
-        "LoadBalancers": [ { "ContainerName": "web", "ContainerPort": "4443", "LoadBalancerName": { "Ref": "Balancer" } } ],
+        "LoadBalancers": [ { "ContainerName": "web", "ContainerPort": "5443", "LoadBalancerName": { "Ref": "Balancer" } } ],
         "Role": { "Fn::GetAtt": [ "ServiceRole", "Arn" ] },
         "TaskDefinition": { "Ref": "ApiWebTasks" }
       }
@@ -2280,12 +2279,12 @@
             "Name": "web",
             "PortMappings": { "Fn::If": [ "PrivateApi",
               [
-                { "HostPort": "3003", "ContainerPort": "3000", "Protocol": "tcp" },
-                { "HostPort": "3004", "ContainerPort": "4443", "Protocol": "tcp" }
+                { "HostPort": "3100", "ContainerPort": "5442", "Protocol": "tcp" },
+                { "HostPort": "3101", "ContainerPort": "5443", "Protocol": "tcp" }
               ],
               [
-                { "HostPort": "3001", "ContainerPort": "3000", "Protocol": "tcp" },
-                { "HostPort": "3002", "ContainerPort": "4443", "Protocol": "tcp" }
+                { "HostPort": "3000", "ContainerPort": "5442", "Protocol": "tcp" },
+                { "HostPort": "3001", "ContainerPort": "5443", "Protocol": "tcp" }
               ]
             ] }
           }

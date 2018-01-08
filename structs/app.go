@@ -14,7 +14,7 @@ type App struct {
 type Apps []App
 
 type AppCreateOptions struct {
-	Generation string
+	Generation *string
 }
 
 type AppUpdateOptions struct {

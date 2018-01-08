@@ -5,7 +5,7 @@ import (
 
 	"github.com/convox/logger"
 	"github.com/convox/rack/api/controllers"
-	"github.com/convox/rack/provider"
+	"github.com/convox/rack/structs"
 )
 
 type errorNotFound string
@@ -23,10 +23,10 @@ func init() {
 	logger.Output = &buf
 }
 
-func Mock(fn func(*provider.MockProvider)) {
+func Mock(fn func(*structs.MockProvider)) {
 	p := controllers.Provider
 	defer func() { controllers.Provider = p }()
-	m := &provider.MockProvider{}
+	m := &structs.MockProvider{}
 	controllers.Provider = m
 	fn(m)
 }

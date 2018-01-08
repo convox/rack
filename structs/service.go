@@ -1,9 +1,12 @@
 package structs
 
 type Service struct {
+	Count  int           `json:"count"`
+	Cpu    int           `json:"cpu"`
 	Domain string        `json:"domain"`
-	Ports  []ServicePort `json:"ports"`
+	Memory int           `json:"memory"`
 	Name   string        `json:"name"`
+	Ports  []ServicePort `json:"ports"`
 }
 
 type Services []Service
@@ -15,5 +18,7 @@ type ServicePort struct {
 }
 
 type ServiceUpdateOptions struct {
-	Certificate string
+	Count  *int
+	Cpu    *int
+	Memory *int
 }

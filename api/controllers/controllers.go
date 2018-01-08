@@ -10,7 +10,9 @@ import (
 	"github.com/convox/rack/provider"
 )
 
-var Provider = provider.FromEnv()
+var (
+	Provider = provider.FromEnv()
+)
 
 func awsError(err error) string {
 	if ae, ok := err.(awserr.Error); ok {

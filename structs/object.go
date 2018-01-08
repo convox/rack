@@ -1,5 +1,9 @@
 package structs
 
-type ObjectOptions struct {
-	Public bool
+type Object struct {
+	Url string
+}
+
+type ObjectStoreOptions struct {
+	Public *bool
 }

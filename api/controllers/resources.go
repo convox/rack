@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/convox/rack/api/httperr"
+	"github.com/convox/rack/structs"
 	"github.com/gorilla/mux"
 )
 
@@ -44,7 +45,7 @@ func ResourceCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	delete(params, "name")
 	delete(params, "type")
 
-	s, err := Provider.ResourceCreate(r.Form.Get("name"), r.Form.Get("type"), params)
+	s, err := Provider.ResourceCreate(r.Form.Get("name"), r.Form.Get("type"), structs.ResourceCreateOptions{Parameters: params})
 	if err != nil {
 		return httperr.Server(err)
 	}

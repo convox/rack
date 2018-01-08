@@ -1,10 +1,10 @@
 package aws
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"strconv"
-	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -12,9 +12,93 @@ import (
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/ecs"
+	"github.com/aws/aws-sdk-go/service/kms"
 	"github.com/convox/rack/structs"
+	"golang.org/x/crypto/nacl/secretbox"
 )
 
+const (
+	keyLength   = 32
+	nonceLength = 24
+)
+
+type envelope struct {
+	Ciphertext   []byte `json:"c"`
+	EncryptedKey []byte `json:"k"`
+	Nonce        []byte `json:"n"`
+}
+
+func (p *AWSProvider) SystemDecrypt(data []byte) ([]byte, error) {
+	var e *envelope
+
+	err := json.Unmarshal(data, &e)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(e.EncryptedKey) == 0 {
+		return nil, fmt.Errorf("invalid ciphertext")
+	}
+
+	res, err := p.kms().Decrypt(&kms.DecryptInput{
+		CiphertextBlob: e.EncryptedKey,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	var key [keyLength]byte
+	copy(key[:], res.Plaintext[0:keyLength])
+
+	var nonce [nonceLength]byte
+	copy(nonce[:], e.Nonce[0:nonceLength])
+
+	var dec []byte
+
+	dec, ok := secretbox.Open(dec, e.Ciphertext, &nonce, &key)
+	if !ok {
+		return nil, fmt.Errorf("failed decryption")
+	}
+
+	return dec, nil
+}
+
+func (p *AWSProvider) SystemEncrypt(data []byte) ([]byte, error) {
+	req := &kms.GenerateDataKeyInput{
+		KeyId:         aws.String(p.EncryptionKey),
+		NumberOfBytes: aws.Int64(keyLength),
+	}
+
+	res, err := p.kms().GenerateDataKey(req)
+	if err != nil {
+		return nil, err
+	}
+
+	var key [keyLength]byte
+	copy(key[:], res.Plaintext[0:keyLength])
+
+	nres, err := p.kms().GenerateRandom(&kms.GenerateRandomInput{
+		NumberOfBytes: aws.Int64(nonceLength),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	var nonce [nonceLength]byte
+	copy(nonce[:], nres.Plaintext[0:nonceLength])
+
+	var enc []byte
+
+	enc = secretbox.Seal(enc, data, &nonce, &key)
+
+	e := &envelope{
+		Ciphertext:   enc,
+		EncryptedKey: res.CiphertextBlob,
+		Nonce:        nonce[:],
+	}
+
+	return json.Marshal(e)
+}
 func (p *AWSProvider) SystemGet() (*structs.System, error) {
 	log := Logger.At("SystemGet").Start()
 
@@ -141,20 +225,20 @@ func (p *AWSProvider) SystemGet() (*structs.System, error) {
 }
 
 // SystemLogs streams logs for the Rack
-func (p *AWSProvider) SystemLogs(w io.Writer, opts structs.LogStreamOptions) error {
+func (p *AWSProvider) SystemLogs(opts structs.LogsOptions) (io.ReadCloser, error) {
 	logGroup, err := p.stackResource(p.Rack, "LogGroup")
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return p.subscribeLogs(w, *logGroup.PhysicalResourceId, opts)
+	return p.subscribeLogs(*logGroup.PhysicalResourceId, opts)
 }
 
 func (p *AWSProvider) SystemProcesses(opts structs.SystemProcessesOptions) (structs.Processes, error) {
 	var tasks []string
 	var err error
 
-	if opts.All {
+	if opts.All != nil && *opts.All {
 		err := p.ecs().ListTasksPages(&ecs.ListTasksInput{
 			Cluster: aws.String(p.Cluster),
 		}, func(page *ecs.ListTasksOutput, lastPage bool) bool {
@@ -223,40 +307,29 @@ func (p *AWSProvider) SystemReleases() (structs.Releases, error) {
 	return releases, nil
 }
 
-func (p *AWSProvider) SystemSave(system structs.System) error {
-	// FIXME
-	// mac, err := maxAppConcurrency()
-
-	// // dont scale the rack below the max concurrency plus one
-	// // see formation.go for more details
-	// if err == nil && r.Count < (mac+1) {
-	//   return fmt.Errorf("max process concurrency is %d, can't scale rack below %d instances", mac, mac+1)
-	// }
-
-	template := fmt.Sprintf("https://convox.s3.amazonaws.com/release/%s/formation.json", system.Version)
-
-	params := map[string]string{
-		"InstanceCount": strconv.Itoa(system.Count),
-		"InstanceType":  system.Type,
-		"Version":       system.Version,
-	}
-
-	stack, err := p.describeStack(p.Rack)
-	if err != nil {
-		return err
-	}
-
-	// build a list of changes for the notification
-	sp := stackParameters(stack)
+func (p *AWSProvider) SystemUpdate(opts structs.SystemUpdateOptions) error {
 	changes := map[string]string{}
-	if sp["InstanceCount"] != strconv.Itoa(system.Count) {
-		changes["count"] = strconv.Itoa(system.Count)
+	params := opts.Parameters
+	template := ""
+
+	if params == nil {
+		params = map[string]string{}
 	}
-	if sp["InstanceType"] != system.Type {
-		changes["type"] = system.Type
+
+	if opts.InstanceCount != nil {
+		params["InstanceCount"] = strconv.Itoa(*opts.InstanceCount)
+		changes["count"] = strconv.Itoa(*opts.InstanceCount)
 	}
-	if sp["Version"] != system.Version {
-		changes["version"] = system.Version
+
+	if opts.InstanceType != nil {
+		params["InstanceType"] = *opts.InstanceType
+		changes["type"] = *opts.InstanceType
+	}
+
+	if opts.Version != nil {
+		template = fmt.Sprintf("https://convox.s3.amazonaws.com/release/%s/rack.json", *opts.Version)
+		params["Version"] = *opts.Version
+		changes["version"] = *opts.Version
 	}
 
 	// if there is a version update then record it
@@ -274,32 +347,12 @@ func (p *AWSProvider) SystemSave(system structs.System) error {
 		}
 	}
 
-	// update the stack
-	err = p.updateStack(p.Rack, template, params)
-	if err != nil {
-		if awsError(err) == "ValidationError" {
-			switch {
-			case strings.Contains(err.Error(), "No updates are to be performed"):
-				return fmt.Errorf("no system updates are to be performed")
-			case strings.Contains(err.Error(), "can not be updated"):
-				return fmt.Errorf("system is already updating")
-			}
-		}
-
+	if err := p.updateStack(p.Rack, template, params); err != nil {
 		return err
 	}
 
 	// notify about the update
-	p.EventSend(&structs.Event{
-		Action: "rack:update",
-		Data:   changes,
-	}, nil)
+	p.EventSend(&structs.Event{Action: "rack:update", Data: changes}, nil)
 
-	return err
-}
-
-func (p *AWSProvider) SystemUpdate(opts structs.SystemUpdateOptions) error {
-	params := opts.Parameters
-
-	return p.updateStack(p.Rack, "", params)
+	return nil
 }
