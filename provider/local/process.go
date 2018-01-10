@@ -18,31 +18,11 @@ import (
 	"github.com/convox/rack/manifest"
 	"github.com/convox/rack/options"
 	"github.com/convox/rack/structs"
-	"github.com/kr/pty"
 	"github.com/pkg/errors"
 )
 
 func (p *Provider) ProcessExec(app, pid, command string, opts structs.ProcessExecOptions) (int, error) {
-	log := p.logger("ProcessExec").Append("app=%q pid=%q command=%q", app, pid, command)
-
-	if _, err := p.AppGet(app); err != nil {
-		return 0, log.Error(err)
-	}
-
-	cmd := exec.Command("docker", "exec", "-it", pid, "sh", "-c", command)
-
-	fd, err := pty.Start(cmd)
-	if err != nil {
-		return 0, errors.WithStack(log.Error(err))
-	}
-
-	go helpers.Pipe(fd, opts.Stream)
-
-	if err := cmd.Wait(); err != nil {
-		return 0, errors.WithStack(log.Error(err))
-	}
-
-	return 0, log.Success()
+	return p.processExec(app, pid, command, opts)
 }
 
 func (p *Provider) ProcessGet(app, pid string) (*structs.Process, error) {
@@ -185,44 +165,7 @@ func (p *Provider) ProcessProxy(app, pid string, port int, in io.Reader) (io.Rea
 }
 
 func (p *Provider) ProcessRun(app string, opts structs.ProcessRunOptions) (string, error) {
-	log := p.logger("ProcessRun").Append("app=%q", app)
-
-	if opts.Name != nil {
-		exec.Command("docker", "rm", "-f", *opts.Name).Run()
-	}
-
-	oargs, err := p.argsFromOpts(app, opts)
-	if err != nil {
-		return "", errors.WithStack(log.Error(err))
-	}
-
-	cmd := exec.Command("docker", oargs...)
-
-	if opts.Input != nil {
-		rw, err := pty.Start(cmd)
-		if err != nil {
-			return "", errors.WithStack(log.Error(err))
-		}
-		defer rw.Close()
-
-		go io.Copy(rw, opts.Input)
-		go io.Copy(opts.Output, rw)
-	} else {
-		cmd.Stdout = opts.Output
-		cmd.Stderr = opts.Output
-
-		if err := cmd.Start(); err != nil {
-			return "", errors.WithStack(log.Error(err))
-		}
-	}
-
-	if err := cmd.Start(); err != nil {
-		return "", errors.WithStack(log.Error(err))
-	}
-
-	return fmt.Sprintf("%d", cmd.Process.Pid), nil
-
-	return "", log.Success()
+	return p.processRun(app, opts)
 }
 
 func (p *Provider) ProcessStart(app string, opts structs.ProcessRunOptions) (string, error) {
