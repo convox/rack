@@ -1538,9 +1538,9 @@
             ] },
             "  - export INSTANCE_ID=$(curl -s --noproxy 169.254.169.254 http://169.254.169.254/latest/meta-data/instance-id)\n",
             "  - export ASG_NAME=$(env $(cat /etc/environment) /usr/bin/aws autoscaling describe-auto-scaling-instances --instance-ids=$INSTANCE_ID --region ", {"Ref":"AWS::Region"}, " --output text --query 'AutoScalingInstances[0].AutoScalingGroupName')\n",
-            "  - export LIFECYCLE_HOOK=$(env $(cat /etc/environment) /usr/bin/aws autoscaling describe-lifecycle-hooks --auto-scaling-group-name $ASG_NAME --region ", {"Ref":"AWS::Region"}, " --output text --query \"LifecycleHooks[?contains(LifecycleHookName, '", { "Ref": "AWS::StackName" }, "-InstancesLifecycleLaunching') == \\`true\\`].LifecycleHookName | [0]\")\n",
+            "  - export LIFECYCLE_HOOK=$(env $(cat /etc/environment) /usr/bin/aws autoscaling describe-lifecycle-hooks --auto-scaling-group-name $ASG_NAME --region ", {"Ref":"AWS::Region"}, " --output text --query \"LifecycleHooks[?contains(LifecycleHookName, '", { "Ref": "AWS::StackName" }, "-SpotInstancesLifecycleLaunching') == \\`true\\`].LifecycleHookName | [0]\")\n",
             "  - env $(cat /etc/environment) /usr/bin/aws autoscaling complete-lifecycle-action --region ", { "Ref": "AWS::Region" }, " --instance-id $INSTANCE_ID --lifecycle-hook-name $LIFECYCLE_HOOK --auto-scaling-group-name $ASG_NAME --lifecycle-action-result CONTINUE\n",
-            "  - env $(cat /etc/environment) /opt/aws/bin/cfn-signal --http-proxy \"", { "Ref": "HttpProxy" }, "\" --stack ", { "Ref": "AWS::StackName" }, " --region ", { "Ref": "AWS::Region" }, " --resource Instances\n"
+            "  - env $(cat /etc/environment) /opt/aws/bin/cfn-signal --http-proxy \"", { "Ref": "HttpProxy" }, "\" --stack ", { "Ref": "AWS::StackName" }, " --region ", { "Ref": "AWS::Region" }, " --resource SpotInstances\n"
           ] ] }
         }
       }
@@ -1589,6 +1589,61 @@
             "PropagateAtLaunch": false
           }
         ]
+      },
+      "UpdatePolicy": {
+        "AutoScalingRollingUpdate": {
+          "MaxBatchSize": {
+            "Ref": "InstanceUpdateBatchSize"
+          },
+          "MinInstancesInService": "0",
+          "PauseTime": "PT15M",
+          "SuspendProcesses": [
+            "ScheduledActions"
+          ],
+          "WaitOnResourceSignals": "true"
+        }
+      }
+    },
+    "SpotInstancesLifecycleLaunching": {
+      "Condition": "SpotInstances",
+      "Type": "AWS::AutoScaling::LifecycleHook",
+      "Properties": {
+        "AutoScalingGroupName": {
+          "Ref": "SpotInstances"
+        },
+        "DefaultResult": "CONTINUE",
+        "HeartbeatTimeout": "600",
+        "LifecycleTransition": "autoscaling:EC2_INSTANCE_LAUNCHING",
+        "NotificationTargetARN": {
+          "Ref": "InstancesLifecycleTopic"
+        },
+        "RoleARN": {
+          "Fn::GetAtt": [
+            "InstancesLifecycleRole",
+            "Arn"
+          ]
+        }
+      }
+    },
+    "SpotInstancesLifecycleTerminating": {
+      "Condition": "SpotInstances",
+      "Type": "AWS::AutoScaling::LifecycleHook",
+      "Properties": {
+        "AutoScalingGroupName": {
+          "Ref": "SpotInstances"
+        },
+        "DefaultResult": "CONTINUE",
+        "HeartbeatTimeout": "300",
+        "LifecycleTransition": "autoscaling:EC2_INSTANCE_TERMINATING",
+        "NotificationTargetARN": {
+          "Ref": "InstancesLifecycleTopic"
+        },
+        "RoleARN": {
+          "Fn::GetAtt": [
+            "InstancesLifecycleRole",
+            "Arn"
+          ]
+        }
       }
     },
     "VolumeFilesystem": {
