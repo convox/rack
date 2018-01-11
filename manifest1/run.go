@@ -184,6 +184,9 @@ func (r *Run) Start() error {
 			for local, remote := range sp {
 				if remote == "." || strings.HasSuffix(remote, "/") {
 					stat, err := os.Stat(filepath.Join(s.Build.Context, local))
+					if os.IsNotExist(err) {
+						continue
+					}
 					if err != nil {
 						return err
 					}
