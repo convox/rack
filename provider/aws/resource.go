@@ -163,7 +163,7 @@ func (p *AWSProvider) ResourceGet(name string) (*structs.Resource, error) {
 		return nil, fmt.Errorf("no such stack on this rack: %s", name)
 	}
 
-	switch tags["Resource"] {
+	switch coalesces(tags["Resource"], tags["Service"]) {
 	case "memcached":
 		s.Url = fmt.Sprintf("%s:%s", outputs["Port11211TcpAddr"], outputs["Port11211TcpPort"])
 	case "mysql":
