@@ -55,8 +55,6 @@ func (p *AWSProvider) ReleaseCreate(app string, opts structs.ReleaseCreateOption
 		r.Manifest = b.Manifest
 	}
 
-	fmt.Printf("r = %+v\n", r)
-
 	if err := p.releaseSave(r); err != nil {
 		return nil, err
 	}
