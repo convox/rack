@@ -38,7 +38,7 @@
 
 {{ define "balancer-outputs" }}
   {{ range .Manifest.Services }}
-    {{ if .Port.Port }}
+    {{ if (and (.Port.Port) (not .Domain)) }}
       "{{ upper .Name }}Endpoint": {
         "Value": { "Fn::Join": [ ".", [ "{{$.App}}-{{.Name}}", { "Fn::ImportValue": { "Fn::Sub": "${Rack}:RouterHost" } } ] ] }
       },
@@ -49,24 +49,26 @@
 {{ define "balancer-resources" }}
   {{ range .Manifest.Services }}
     {{ if .Port.Port }}
-      "Balancer{{ upper .Name }}ListenerRule80": {
-        "Type": "AWS::ElasticLoadBalancingV2::ListenerRule",
-        "Properties": {
-          "Actions": [ { "Type": "forward", "TargetGroupArn": { "Ref": "Balancer{{ upper .Name }}TargetGroup" } } ],
-          "Conditions": [ { "Field": "host-header", "Values": [ { "Fn::Join": [ ".", [ "{{$.App}}-{{.Name}}", { "Fn::ImportValue": { "Fn::Sub": "${Rack}:RouterHost" } } ] ] } ] } ],
-          "ListenerArn": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:RouterListener80" } },
-          "Priority": "{{ priority $.App .Name }}"
-        }
-      },
-      "Balancer{{ upper .Name }}ListenerRule443": {
-        "Type": "AWS::ElasticLoadBalancingV2::ListenerRule",
-        "Properties": {
-          "Actions": [ { "Type": "forward", "TargetGroupArn": { "Ref": "Balancer{{ upper .Name }}TargetGroup" } } ],
-          "Conditions": [ { "Field": "host-header", "Values": [ { "Fn::Join": [ ".", [ "{{$.App}}-{{.Name}}", { "Fn::ImportValue": { "Fn::Sub": "${Rack}:RouterHost" } } ] ] } ] } ],
-          "ListenerArn": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:RouterListener443" } },
-          "Priority": "{{ priority $.App .Name }}"
-        }
-      },
+      {{ if not .Domain }}
+        "Balancer{{ upper .Name }}ListenerRule80": {
+          "Type": "AWS::ElasticLoadBalancingV2::ListenerRule",
+          "Properties": {
+            "Actions": [ { "Type": "forward", "TargetGroupArn": { "Ref": "Balancer{{ upper .Name }}TargetGroup" } } ],
+            "Conditions": [ { "Field": "host-header", "Values": [ { "Fn::Join": [ ".", [ "{{$.App}}-{{.Name}}", { "Fn::ImportValue": { "Fn::Sub": "${Rack}:RouterHost" } } ] ] } ] } ],
+            "ListenerArn": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:RouterListener80" } },
+            "Priority": "{{ priority $.App .Name }}"
+          }
+        },
+        "Balancer{{ upper .Name }}ListenerRule443": {
+          "Type": "AWS::ElasticLoadBalancingV2::ListenerRule",
+          "Properties": {
+            "Actions": [ { "Type": "forward", "TargetGroupArn": { "Ref": "Balancer{{ upper .Name }}TargetGroup" } } ],
+            "Conditions": [ { "Field": "host-header", "Values": [ { "Fn::Join": [ ".", [ "{{$.App}}-{{.Name}}", { "Fn::ImportValue": { "Fn::Sub": "${Rack}:RouterHost" } } ] ] } ] } ],
+            "ListenerArn": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:RouterListener443" } },
+            "Priority": "{{ priority $.App .Name }}"
+          }
+        },
+      {{ end }}
       {{ if .Domain }}
         "Balancer{{ upper .Name }}Certificate": {
           "Type": "AWS::CertificateManager::Certificate",
@@ -178,8 +180,10 @@
   {{ range .Manifest.Services }}
     "Service{{ upper .Name }}Service": {
       "Type": "AWS::ECS::Service",
-      {{ if .Port.Port }}
+      {{ if (and (.Port.Port) (not .Domain)) }}
         "DependsOn": [ "Balancer{{ upper .Name }}ListenerRule80" ],
+      {{ else if (and (.Port.Port) (.Domain)) }}
+        "DependsOn": [ "Balancer{{ upper .Name }}ListenerRule80Domain0" ],
       {{ end }}
       "Properties": {
         "Cluster": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Cluster" } },
