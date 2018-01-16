@@ -1,8 +1,8 @@
 {
   "AWSTemplateFormatVersion" : "2010-09-09",
   "Conditions": {
-    "BlankLogBucket": { "Fn::Equals": [ { "Ref": "LogBucket" }, "" ] },
-    "BlankIamPolicy": { "Fn::Equals": [ { "Ref": "IamPolicy" }, "" ] }
+    "BlankIamPolicy": { "Fn::Equals": [ { "Ref": "IamPolicy" }, "" ] },
+    "BlankLogBucket": { "Fn::Equals": [ { "Ref": "LogBucket" }, "" ] }
   },
   "Outputs": {
     {{ template "balancer-outputs" . }}
