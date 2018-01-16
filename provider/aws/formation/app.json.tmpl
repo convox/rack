@@ -1,7 +1,8 @@
 {
   "AWSTemplateFormatVersion" : "2010-09-09",
   "Conditions": {
-    "BlankLogBucket": { "Fn::Equals": [ { "Ref": "LogBucket" }, "" ] }
+    "BlankLogBucket": { "Fn::Equals": [ { "Ref": "LogBucket" }, "" ] },
+    "BlankIamPolicy": { "Fn::Equals": [ { "Ref": "IamPolicy" }, "" ] }
   },
   "Outputs": {
     {{ template "balancer-outputs" . }}
@@ -26,6 +27,10 @@
   "Parameters" : {
     {{ template "service-params" .Manifest }}
 
+    "IamPolicy": {
+      "Type": "String",
+      "Default": ""
+    },
     "LogBucket": {
       "Type": "String",
       "Default": ""
@@ -226,6 +231,7 @@
         "Statement": [ { "Effect": "Allow", "Principal": { "Service": [ "ecs-tasks.amazonaws.com" ] }, "Action": [ "sts:AssumeRole" ] } ],
         "Version": "2012-10-17"
       },
+      "ManagedPolicyArns": [ { "Fn::If": [ "BlankIamPolicy", { "Ref": "AWS::NoValue" }, { "Ref": "IamPolicy" } ] } ],
       "Path": "/convox/",
       "Policies": [ {
         "PolicyName": "convox-env",
