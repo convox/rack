@@ -135,14 +135,14 @@
               ]
             }
           },
+          "Balancer{{ upper .Name }}ListenerCertificate": {
+            "Type": "AWS::ElasticLoadBalancingV2::ListenerCertificate",
+            "Properties": {
+              "Certificates": [ { "CertificateArn": { "Ref": "Balancer{{ upper .Name }}Certificate" } } ],
+              "ListenerArn": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:{{ router .Name $.Manifest }}Listener443" } }
+            }
+          },
         {{ end }}
-        "Balancer{{ upper .Name }}ListenerCertificate": {
-          "Type": "AWS::ElasticLoadBalancingV2::ListenerCertificate",
-          "Properties": {
-            "Certificates": [ { "CertificateArn": { "Ref": "Balancer{{ upper .Name }}Certificate" } } ],
-            "ListenerArn": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:{{ router .Name $.Manifest }}Listener443" } }
-          }
-        },
         {{ range $i, $domain := .Domains }}
           "Balancer{{ upper $service.Name }}ListenerRule80Domain{{$i}}": {
             "Type": "AWS::ElasticLoadBalancingV2::ListenerRule",
