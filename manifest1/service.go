@@ -197,10 +197,19 @@ func (s *Service) SyncPaths() (map[string]string, error) {
 	scanner := bufio.NewScanner(bytes.NewReader(data))
 
 	for scanner.Scan() {
-		parts := strings.Fields(scanner.Text())
+		rparts := strings.Fields(scanner.Text())
 
-		if len(parts) < 1 {
+		if len(rparts) < 1 {
 			continue
+		}
+
+		parts := []string{}
+
+		// skip the --options to ADD/COPY
+		for _, p := range rparts {
+			if !strings.HasPrefix(p, "--") {
+				parts = append(parts, p)
+			}
 		}
 
 		switch parts[0] {
