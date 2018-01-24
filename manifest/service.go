@@ -46,6 +46,7 @@ type ServiceDomains []string
 type ServiceEnvironment []string
 
 type ServiceHealth struct {
+	Grace    int
 	Interval int
 	Path     string
 	Timeout  int
