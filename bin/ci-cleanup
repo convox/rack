@@ -26,6 +26,7 @@ for region in $(cat $base/REGIONS); do
     case $region in
     ap-northeast-1) ;;
     ap-northeast-2) ;;
+    ap-south-1) ;;
     ap-southeast-1) ;;
     ca-central-1) ;;
     eu-west-2) ;;
@@ -111,8 +112,13 @@ for region in $(cat $base/REGIONS); do
     done
 
     for key in $(aws kms list-keys --region $region | jq -r '.Keys[].KeyId'); do
-      echo "deleting key: $key ($region)"
-      aws kms schedule-key-deletion --key-id $key --pending-window-in-days 7 2>/dev/null
+      data=$(aws kms describe-key --region $region --key-id $key)
+      state=$(echo $data | jq -r '.KeyMetadata.KeyState')
+      manager=$(echo $data | jq -r '.KeyMetadata.KeyManager')
+      if [[ "$state" != "PendingDeletion" && "$manager" != "AWS" ]]; then
+        echo "deleting key: $key ($region)"
+        aws kms schedule-key-deletion --key-id $key --pending-window-in-days 7 --region $region >/dev/null
+      fi
     done
   fi
 done
