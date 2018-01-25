@@ -13,7 +13,6 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/ecs"
@@ -205,9 +204,7 @@ func (p *AWSProvider) ProcessList(app string, opts structs.ProcessListOptions) (
 func (p *AWSProvider) stackTasks(stack string) ([]string, error) {
 	log := Logger.At("stackTasks").Namespace("stack=%q", stack).Start()
 
-	rres, err := p.describeStackResources(&cloudformation.DescribeStackResourcesInput{
-		StackName: aws.String(stack),
-	})
+	srs, err := p.listStackResources(stack)
 	if err != nil {
 		log.Error(err)
 		return nil, err
@@ -215,10 +212,10 @@ func (p *AWSProvider) stackTasks(stack string) ([]string, error) {
 
 	services := []string{}
 
-	for _, r := range rres.StackResources {
-		switch *r.ResourceType {
+	for _, sr := range srs {
+		switch *sr.ResourceType {
 		case "AWS::ECS::Service", "Custom::ECSService":
-			services = append(services, *r.PhysicalResourceId)
+			services = append(services, *sr.PhysicalResourceId)
 		}
 	}
 
@@ -748,9 +745,7 @@ func (p *AWSProvider) generateTaskDefinition1(app, process, release string) (*ec
 		return nil, fmt.Errorf("no such process: %s", process)
 	}
 
-	rs, err := p.describeStackResources(&cloudformation.DescribeStackResourcesInput{
-		StackName: aws.String(fmt.Sprintf("%s-%s", p.Rack, app)),
-	})
+	srs, err := p.listStackResources(fmt.Sprintf("%s-%s", p.Rack, app))
 	if err != nil {
 		return nil, err
 	}
@@ -760,12 +755,12 @@ func (p *AWSProvider) generateTaskDefinition1(app, process, release string) (*ec
 
 	secureEnvRoleName := ""
 
-	for _, r := range rs.StackResources {
-		if *r.LogicalResourceId == sn {
-			sarn = *r.PhysicalResourceId
+	for _, sr := range srs {
+		if *sr.LogicalResourceId == sn {
+			sarn = *sr.PhysicalResourceId
 		}
-		if *r.LogicalResourceId == "SecureEnvironmentRole" {
-			secureEnvRoleName = *r.PhysicalResourceId
+		if *sr.LogicalResourceId == "SecureEnvironmentRole" {
+			secureEnvRoleName = *sr.PhysicalResourceId
 		}
 	}
 	if sarn == "" {
