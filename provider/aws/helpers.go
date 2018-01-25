@@ -683,7 +683,7 @@ func (p *AWSProvider) stackResource(stack, resource string) (*cloudformation.Sta
 		LogicalResourceId: aws.String(resource),
 	})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("resource not found: %s", resource)
 	}
 
 	return res.StackResourceDetail, nil
