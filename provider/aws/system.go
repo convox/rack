@@ -99,6 +99,7 @@ func (p *AWSProvider) SystemEncrypt(data []byte) ([]byte, error) {
 
 	return json.Marshal(e)
 }
+
 func (p *AWSProvider) SystemGet() (*structs.System, error) {
 	log := Logger.At("SystemGet").Start()
 
@@ -127,18 +128,15 @@ func (p *AWSProvider) SystemGet() (*structs.System, error) {
 	// status precedence: (all other stack statues) > converging > running
 	// check if the autoscale group is shuffling instances
 	if status == "running" {
-
-		rres, err := p.cloudformation().DescribeStackResources(&cloudformation.DescribeStackResourcesInput{
-			StackName: aws.String(p.Rack),
-		})
+		srs, err := p.listStackResources(p.Rack)
 		if err != nil {
 			return nil, log.Error(err)
 		}
 
 		var asgName string
-		for _, r := range rres.StackResources {
-			if *r.LogicalResourceId == "Instances" {
-				asgName = *r.PhysicalResourceId
+		for _, sr := range srs {
+			if *sr.LogicalResourceId == "Instances" {
+				asgName = *sr.PhysicalResourceId
 				break
 			}
 		}

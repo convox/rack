@@ -881,7 +881,7 @@ func (p *AWSProvider) runBuild(build *structs.Build, method, url string, opts st
 					Command: []*string{
 						aws.String("build"),
 						aws.String("-method"), aws.String(method),
-						aws.String("-cache"), aws.String(fmt.Sprintf("%t", opts.Cache)),
+						aws.String("-cache"), aws.String(fmt.Sprintf("%t", *opts.Cache)),
 					},
 					Environment: []*ecs.KeyValuePair{
 						{
