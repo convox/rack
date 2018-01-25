@@ -18,7 +18,7 @@ type streamTester struct {
 
 func TestProcessExec(t *testing.T) {
 	provider := StubAwsProvider(
-		cycleProcessDescribeStackResources,
+		cycleProcessListStackResources,
 		cycleProcessListTasksByService1,
 		cycleProcessListTasksByService2,
 		cycleProcessListTasksByStarted,
@@ -62,7 +62,7 @@ func TestProcessExec(t *testing.T) {
 
 func TestProcessList(t *testing.T) {
 	provider := StubAwsProvider(
-		cycleProcessDescribeStackResources,
+		cycleProcessListStackResources,
 		cycleProcessListTasksByService1,
 		cycleProcessListTasksByService2,
 		cycleProcessListTasksByStarted,
@@ -112,7 +112,7 @@ func TestProcessList(t *testing.T) {
 
 func TestProcessListEmpty(t *testing.T) {
 	provider := StubAwsProvider(
-		cycleProcessDescribeStackResources,
+		cycleProcessListStackResources,
 		cycleProcessListTasksByService1Empty,
 		cycleProcessListTasksByService2Empty,
 		cycleProcessListTasksByStartedEmpty,
@@ -128,7 +128,7 @@ func TestProcessListEmpty(t *testing.T) {
 
 func TestProcessListWithBuildCluster(t *testing.T) {
 	provider := StubAwsProvider(
-		cycleProcessDescribeStackResources,
+		cycleProcessListStackResources,
 		cycleProcessListTasksByService1,
 		cycleProcessListTasksByService2,
 		cycleProcessListTasksByStarted,
@@ -201,18 +201,18 @@ func TestProcessRunAttached(t *testing.T) {
 		cycleProcessDescribeStacks,
 		cycleProcessDescribeStacks,
 		cycleProcessReleaseGetItem,
-		cycleProcessReleaseDescribeStackResources,
+		cycleProcessReleaseListStackResources,
 		cycleProcessReleaseEnvironmentGet,
-		cycleSystemDescribeStackResources,
-		cycleProcessDescribeStackResources,
+		cycleSystemListStackResources,
+		cycleProcessListStackResources,
 		cycleProcessDescribeServices,
 		cycleProcessDescribeTaskDefinition1,
-		cycleProcessDescribeStackResources,
+		cycleProcessListStackResources,
 		cycleProcessRegisterTaskDefinition,
 		cycleProcessReleaseUpdateItem,
 		cycleProcessRunTaskAttached,
 		cycleProcessDescribeTasks,
-		cycleProcessDescribeStackResources,
+		cycleProcessListStackResources,
 		cycleProcessListTasksByService1,
 		cycleProcessListTasksByService2,
 		cycleProcessListTasksByStarted,
@@ -265,13 +265,13 @@ func TestProcessRunDetached(t *testing.T) {
 		cycleProcessDescribeStacks,
 		cycleProcessDescribeStacks,
 		cycleProcessReleaseGetItem,
-		cycleProcessReleaseDescribeStackResources,
+		cycleProcessReleaseListStackResources,
 		cycleProcessReleaseEnvironmentGet,
-		cycleSystemDescribeStackResources,
-		cycleProcessDescribeStackResources,
+		cycleSystemListStackResources,
+		cycleProcessListStackResources,
 		cycleProcessDescribeServices,
 		cycleProcessDescribeTaskDefinition1,
-		cycleProcessDescribeStackResources,
+		cycleProcessListStackResources,
 		cycleProcessRegisterTaskDefinition,
 		cycleProcessReleaseUpdateItem,
 		cycleProcessRunTaskDetached,
@@ -499,6 +499,55 @@ var cycleProcessDescribeStacks = awsutil.Cycle{
 					<RequestId>9627285a-7903-11e6-a36d-77452275e1ca</RequestId>
 				</ResponseMetadata>
 			</DescribeStacksResponse>
+		`,
+	},
+}
+
+var cycleProcessListStackResources = awsutil.Cycle{
+	Request: awsutil.Request{
+		RequestURI: "/",
+		Operation:  "",
+		Body:       `Action=ListStackResources&StackName=convox-myapp&Version=2010-05-15`,
+	},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body: `
+			<ListStackResourcesResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
+				<ListStackResourcesResult>
+					<StackResourceSummaries>
+						<member>
+							<PhysicalResourceId>settings</PhysicalResourceId>
+							<ResourceStatus>UPDATE_COMPLETE</ResourceStatus>
+							<StackId>arn:aws:cloudformation:us-east-1:778743527532:stack/convox-myapp/5c05e0c0-6e10-11e6-8a4e-50fae98a10d2</StackId>
+							<StackName>convox-myapp</StackName>
+							<LogicalResourceId>Settings</LogicalResourceId>
+							<Timestamp>2016-09-10T04:35:11.280Z</Timestamp>
+							<ResourceType>AWS::S3::Bucket</ResourceType>
+						</member>
+						<member>
+							<PhysicalResourceId>arn:aws:ecs:us-east-1:778743527532:service/convox-myapp-ServiceDatabase-1I2PTXAZ5ECRD</PhysicalResourceId>
+							<ResourceStatus>UPDATE_COMPLETE</ResourceStatus>
+							<StackId>arn:aws:cloudformation:us-east-1:778743527532:stack/convox-myapp/5c05e0c0-6e10-11e6-8a4e-50fae98a10d2</StackId>
+							<StackName>convox-myapp</StackName>
+							<LogicalResourceId>ServiceDatabase</LogicalResourceId>
+							<Timestamp>2016-09-10T04:35:11.280Z</Timestamp>
+							<ResourceType>AWS::ECS::Service</ResourceType>
+						</member>
+						<member>
+							<PhysicalResourceId>arn:aws:ecs:us-east-1:778743527532:service/convox-myapp-ServiceWeb-1I2PTXAZ5ECRD</PhysicalResourceId>
+							<ResourceStatus>UPDATE_COMPLETE</ResourceStatus>
+							<StackId>arn:aws:cloudformation:us-east-1:778743527532:stack/convox-myapp/5c05e0c0-6e10-11e6-8a4e-50fae98a10d2</StackId>
+							<StackName>convox-myapp</StackName>
+							<LogicalResourceId>ServiceWeb</LogicalResourceId>
+							<Timestamp>2016-09-10T04:35:11.280Z</Timestamp>
+							<ResourceType>AWS::ECS::Service</ResourceType>
+						</member>
+					</StackResourceSummaries>
+				</ListStackResourcesResult>
+				<ResponseMetadata>
+					<RequestId>8be86de9-7760-11e6-b2f2-6b253bb2c005</RequestId>
+				</ResponseMetadata>
+			</ListStackResourcesResponse>
 		`,
 	},
 }
@@ -1262,6 +1311,35 @@ var cycleProcessReleaseGetItem = awsutil.Cycle{
 	Response: awsutil.Response{
 		StatusCode: 200,
 		Body:       `{"Item":{"id":{"S":"RVFETUHHKKD"},"build":{"S":"BHINCLZYYVN"},"app":{"S":"myapp"},"manifest":{"S":"web:\n  image: myapp\n  ports:\n  - 80:80\n"},"created":{"S":"20160404.143542.627770380"}}}`,
+	},
+}
+
+var cycleProcessReleaseListStackResources = awsutil.Cycle{
+	Request: awsutil.Request{
+		RequestURI: "/",
+		Operation:  "",
+		Body:       `Action=ListStackResources&StackName=convox-myapp&Version=2010-05-15`,
+	},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body: `
+			<ListStackResourcesResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
+  <ListStackResourcesResult>
+    <StackResourceSummaries>
+    <member>
+      <PhysicalResourceId></PhysicalResourceId>
+      <ResourceStatus>UPDATE_COMPLETE</ResourceStatus>
+      <LogicalResourceId>Settings</LogicalResourceId>
+      <Timestamp>2016-10-22T02:53:23.817Z</Timestamp>
+      <ResourceType>AWS::Logs::LogGroup</ResourceType>
+    </member>
+    </StackResourceSummaries>
+  </ListStackResourcesResult>
+  <ResponseMetadata>
+    <RequestId>50ce1445-9805-11e6-8ba2-2b306877d289</RequestId>
+  </ResponseMetadata>
+</ListStackResourcesResponse>
+		`,
 	},
 }
 
