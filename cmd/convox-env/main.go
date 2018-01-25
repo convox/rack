@@ -11,9 +11,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"os/exec"
 	"strings"
-	"syscall"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -28,32 +26,17 @@ func main() {
 		os.Exit(1)
 	}
 
-	cmd := exec.Command(os.Args[1], os.Args[2:]...)
-
 	cenv, err := fetchConvoxEnv()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "ERROR: could not fetch convox env: %s\n", err)
 		os.Exit(1)
 	}
 
-	cmd.Env = append(os.Environ(), cenv...)
+	env := append(os.Environ(), cenv...)
 
-	cmd.Stdin = os.Stdin
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
+	err = exec(os.Args[1], os.Args[2:], env)
 
-	err = cmd.Run()
-
-	switch t := err.(type) {
-	case *exec.ExitError:
-		if ws, ok := t.Sys().(syscall.WaitStatus); ok {
-			os.Exit(ws.ExitStatus())
-		} else {
-			os.Exit(1)
-		}
-	case nil:
-		os.Exit(0)
-	default:
+	if err != nil {
 		fmt.Fprintf(os.Stderr, "ERROR: %s\n", err)
 		os.Exit(1)
 	}
