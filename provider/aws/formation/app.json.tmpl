@@ -255,8 +255,8 @@
         "Cluster": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Cluster" } },
         "DeploymentConfiguration": { "MinimumHealthyPercent": "50", "MaximumPercent": "200" },
         "DesiredCount": { "Fn::Select": [ 0, { "Ref": "{{ upper .Name }}Formation" } ] },
-        "HealthCheckGracePeriodSeconds": "{{.Health.Grace}}",
         {{ if .Port.Port }}
+          "HealthCheckGracePeriodSeconds": "{{.Health.Grace}}",
           "LoadBalancers": [ { "ContainerName": "{{.Name}}", "ContainerPort": "{{.Port.Port}}", "TargetGroupArn": { "Ref": "Balancer{{ upper .Name }}TargetGroup{{ if .Internal }}Internal{{ end }}" } } ],
           "Role": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:ServiceRole" } },
         {{ end }}
