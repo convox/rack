@@ -14,7 +14,7 @@ import (
 func TestSystemGet(t *testing.T) {
 	provider := StubAwsProvider(
 		cycleSystemDescribeStacks,
-		cycleDescribeRackStackResources,
+		cycleListRackStackResources,
 		cycleDescribeAutoscalingGroups,
 		cycleECSListServices,
 		cycleECSDescribeServices,
@@ -39,7 +39,7 @@ func TestSystemGet(t *testing.T) {
 func TestSystemGetConverging(t *testing.T) {
 	provider := StubAwsProvider(
 		cycleSystemDescribeStacks,
-		cycleDescribeRackStackResources,
+		cycleListRackStackResources,
 		cycleDescribeAutoscalingGroupsInstanceTerminating,
 	)
 	defer provider.Close()
@@ -134,7 +134,7 @@ func TestSystemUpdateNewParameter(t *testing.T) {
 
 func TestSystemProcessesList(t *testing.T) {
 	provider := StubAwsProvider(
-		cycleSystemDescribeStackResources,
+		cycleSystemListStackResources,
 		cycleSystemListTasks,
 		cycleSystemDescribeTasks,
 		cycleSystemDescribeTaskDefinition,
@@ -443,6 +443,37 @@ var cycleSystemUpdateStackNewParameter = awsutil.Cycle{
 	},
 }
 
+var cycleListRackStackResources = awsutil.Cycle{
+	Request: awsutil.Request{
+		RequestURI: "/",
+		Operation:  "",
+		Body:       `Action=ListStackResources&StackName=convox&Version=2010-05-15`,
+	},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body: `
+			<ListStackResourcesResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
+  <ListStackResourcesResult>
+    <StackResourceSummaries>
+    <member>
+      <PhysicalResourceId>convox-Instances-1UEIK1IO8W9K3</PhysicalResourceId>
+      <ResourceStatus>UPDATE_COMPLETE</ResourceStatus>
+      <StackId>arn:aws:cloudformation:us-east-1:990037048036:stack/convox/b8423690-917d-1fe6-8737-50dseaf92cd2</StackId>
+      <StackName>convox</StackName>
+      <LogicalResourceId>Instances</LogicalResourceId>
+      <Timestamp>2016-10-22T02:53:23.817Z</Timestamp>
+      <ResourceType>AWS::AutoScaling::AutoScalingGroup</ResourceType>
+    </member>
+    </StackResourceSummaries>
+  </ListStackResourcesResult>
+  <ResponseMetadata>
+    <RequestId>50ce1445-9805-11e6-8ba2-2b306877d289</RequestId>
+  </ResponseMetadata>
+</ListStackResourcesResponse>
+		`,
+	},
+}
+
 var cycleDescribeRackStackResources = awsutil.Cycle{
 	Request: awsutil.Request{
 		RequestURI: "/",
@@ -687,6 +718,46 @@ var cycleDescribeAutoscalingGroupsInstanceTerminating = awsutil.Cycle{
         <RequestId>62487f00-9807-11e6-a11e-1336240b2ac0</RequestId>
     </ResponseMetadata>
 </DescribeAutoScalingGroupsResponse>		`,
+	},
+}
+
+var cycleSystemListStackResources = awsutil.Cycle{
+	Request: awsutil.Request{
+		RequestURI: "/",
+		Operation:  "",
+		Body:       `Action=ListStackResources&StackName=convox&Version=2010-05-15`,
+	},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body: `
+			<ListStackResourcesResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
+				<ListStackResourcesResult>
+					<StackResourceSummaries>
+						<member>
+							<PhysicalResourceId>arn:aws:ecs:us-east-1:778743527532:service/convox-myapp-ServiceDatabase-1I2PTXAZ5ECRD</PhysicalResourceId>
+							<ResourceStatus>UPDATE_COMPLETE</ResourceStatus>
+							<StackId>arn:aws:cloudformation:us-east-1:778743527532:stack/convox-myapp/5c05e0c0-6e10-11e6-8a4e-50fae98a10d2</StackId>
+							<StackName>convox-myapp</StackName>
+							<LogicalResourceId>ServiceDatabase</LogicalResourceId>
+							<Timestamp>2016-09-10T04:35:11.280Z</Timestamp>
+							<ResourceType>AWS::ECS::Service</ResourceType>
+						</member>
+						<member>
+							<PhysicalResourceId>arn:kms::::::</PhysicalResourceId>
+							<ResourceStatus>UPDATE_COMPLETE</ResourceStatus>
+							<StackId>arn:aws:cloudformation:us-east-1:990037048036:stack/convox/b8423690-917d-1fe6-8737-50dseaf92cd2</StackId>
+							<StackName>convox</StackName>
+							<LogicalResourceId>EncryptionKey</LogicalResourceId>
+							<Timestamp>2016-10-22T02:53:23.817Z</Timestamp>
+							<ResourceType>AWS::AutoScaling::AutoScalingGroup</ResourceType>
+						</member>
+					</StackResourceSummaries>
+				</ListStackResourcesResult>
+				<ResponseMetadata>
+					<RequestId>8be86de9-7760-11e6-b2f2-6b253bb2c005</RequestId>
+				</ResponseMetadata>
+			</ListStackResourcesResponse>
+		`,
 	},
 }
 
