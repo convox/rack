@@ -141,9 +141,9 @@ func TestBuildDelete(t *testing.T) {
 		cycleBuildGetItem,
 		cycleBuildDescribeStacks,
 		cycleReleaseGetItem,
-		cycleReleaseDescribeStackResources,
+		cycleReleaseListStackResources,
 		cycleReleaseEnvironmentGet,
-		cycleSystemDescribeStackResources,
+		cycleSystemListStackResources,
 		cycleBuildDeleteItem,
 		cycleBuildBatchDeleteImage,
 	)
@@ -388,7 +388,7 @@ func TestBuildLogsRunning(t *testing.T) {
 func TestBuildLogsNotRunning(t *testing.T) {
 	provider := StubAwsProvider(
 		cycleBuildGetItem,
-		cycleObjectDescribeStackResources,
+		cycleObjectListStackResources,
 		cycleBuildFetchLogs,
 	)
 	defer provider.Close()
