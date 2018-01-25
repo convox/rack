@@ -615,6 +615,29 @@ func (p *AWSProvider) describeStackEvents(input *cloudformation.DescribeStackEve
 	return res, nil
 }
 
+func (p *AWSProvider) describeStackResource(input *cloudformation.DescribeStackResourceInput) (*cloudformation.DescribeStackResourceOutput, error) {
+	key := fmt.Sprintf("%s.%s", input.StackName, input.LogicalResourceId)
+
+	res, ok := cache.Get("describeStackResource", key).(*cloudformation.DescribeStackResourceOutput)
+
+	if ok {
+		return res, nil
+	}
+
+	res, err := p.cloudformation().DescribeStackResource(input)
+	if err != nil {
+		return nil, err
+	}
+
+	if !p.SkipCache {
+		if err := cache.Set("describeStackResource", key, res, 5*time.Second); err != nil {
+			return nil, err
+		}
+	}
+
+	return res, nil
+}
+
 func (p *AWSProvider) describeStackResources(input *cloudformation.DescribeStackResourcesInput) (*cloudformation.DescribeStackResourcesOutput, error) {
 	res, ok := cache.Get("describeStackResources", input.StackName).(*cloudformation.DescribeStackResourcesOutput)
 
@@ -654,21 +677,16 @@ func (p *AWSProvider) appResource(app, resource string) (string, error) {
 	return *res.PhysicalResourceId, nil
 }
 
-func (p *AWSProvider) stackResource(stack, resource string) (*cloudformation.StackResource, error) {
-	rs, err := p.describeStackResources(&cloudformation.DescribeStackResourcesInput{
-		StackName: aws.String(stack),
+func (p *AWSProvider) stackResource(stack, resource string) (*cloudformation.StackResourceDetail, error) {
+	res, err := p.describeStackResource(&cloudformation.DescribeStackResourceInput{
+		StackName:         aws.String(stack),
+		LogicalResourceId: aws.String(resource),
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	for _, r := range rs.StackResources {
-		if *r.LogicalResourceId == resource {
-			return r, nil
-		}
-	}
-
-	return nil, fmt.Errorf("resource not found: %s", resource)
+	return res.StackResourceDetail, nil
 }
 
 func (p *AWSProvider) stackParameter(stack, param string) (string, error) {
