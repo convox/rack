@@ -2,6 +2,35 @@ package aws_test
 
 import "github.com/convox/rack/test/awsutil"
 
+var cycleObjectListStackResources = awsutil.Cycle{
+	Request: awsutil.Request{
+		RequestURI: "/",
+		Operation:  "",
+		Body:       `Action=ListStackResources&StackName=convox-httpd&Version=2010-05-15`,
+	},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body: `
+			<ListStackResourcesResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
+  <ListStackResourcesResult>
+    <StackResourceSummaries>
+    <member>
+      <PhysicalResourceId>convox-httpd-settings-139bidzalmbtu</PhysicalResourceId>
+      <ResourceStatus>UPDATE_COMPLETE</ResourceStatus>
+      <LogicalResourceId>Settings</LogicalResourceId>
+      <Timestamp>2016-10-22T02:53:23.817Z</Timestamp>
+      <ResourceType>AWS::Logs::LogGroup</ResourceType>
+    </member>
+    </StackResourceSummaries>
+  </ListStackResourcesResult>
+  <ResponseMetadata>
+    <RequestId>50ce1445-9805-11e6-8ba2-2b306877d289</RequestId>
+  </ResponseMetadata>
+</ListStackResourcesResponse>
+		`,
+	},
+}
+
 var cycleObjectDescribeStackResources = awsutil.Cycle{
 	Request: awsutil.Request{
 		RequestURI: "/",

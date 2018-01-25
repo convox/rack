@@ -83,7 +83,7 @@ func TestAppGet(t *testing.T) {
 
 func TestAppLogs(t *testing.T) {
 	provider := StubAwsProvider(
-		cycleDescribeAppStackResources,
+		cycleListAppStackResources,
 		cycleLogFilterLogEvents1,
 		cycleLogFilterLogEvents2,
 	)
@@ -371,6 +371,35 @@ var cycleLogFilterLogEvents2 = awsutil.Cycle{
 				}
 			]
 		}`,
+	},
+}
+
+var cycleListAppStackResources = awsutil.Cycle{
+	Request: awsutil.Request{
+		RequestURI: "/",
+		Operation:  "",
+		Body:       `Action=ListStackResources&StackName=convox-httpd&Version=2010-05-15`,
+	},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body: `
+			<ListStackResourcesResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
+  <ListStackResourcesResult>
+    <StackResourceSummaries>
+    <member>
+      <PhysicalResourceId>convox-httpd-LogGroup-L4V203L35WRM</PhysicalResourceId>
+      <ResourceStatus>UPDATE_COMPLETE</ResourceStatus>
+      <LogicalResourceId>LogGroup</LogicalResourceId>
+      <Timestamp>2016-10-22T02:53:23.817Z</Timestamp>
+      <ResourceType>AWS::Logs::LogGroup</ResourceType>
+    </member>
+    </StackResourceSummaries>
+  </ListStackResourcesResult>
+  <ResponseMetadata>
+    <RequestId>50ce1445-9805-11e6-8ba2-2b306877d289</RequestId>
+  </ResponseMetadata>
+</ListStackResourcesResponse>
+		`,
 	},
 }
 
