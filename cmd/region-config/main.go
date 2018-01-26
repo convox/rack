@@ -107,7 +107,7 @@ func fetchAmis(regions Regions) error {
 		return err
 	}
 
-	rows := b.Find("table#w524aac17c15c15c11 tr")
+	rows := b.Find("#main-content .table-contents table:nth-child(1) tr")
 
 	if rows.Length() < 1 {
 		return fmt.Errorf("no amis found")
@@ -161,7 +161,7 @@ func fetchEFS(regions Regions) error {
 		return err
 	}
 
-	rows := b.Find("table#w114aab7d111b3 tr")
+	rows := b.Find("h2#elasticfilesystem-region+.table .table-contents table tr")
 
 	if rows.Length() < 1 {
 		return fmt.Errorf("no efs entries found")
@@ -189,7 +189,7 @@ func fetchELBAccountIds(regions Regions) error {
 		return err
 	}
 
-	rows := b.Find("table#w377aac17b9c15b9c12b3b5b3 tr")
+	rows := b.Find("table#w377aac17b9c17b9c12b3b5b3 tr")
 
 	if rows.Length() < 1 {
 		return fmt.Errorf("no elb account ids found")
@@ -209,11 +209,6 @@ func fetchELBAccountIds(regions Regions) error {
 			regions[name] = region
 		}
 	})
-
-	// temp fix until aws fixes docs
-	region := regions["eu-west-3"]
-	region.ELBAccountId = "009996457667"
-	regions["eu-west-3"] = region
 
 	return nil
 }
