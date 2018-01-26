@@ -121,31 +121,33 @@
         }
       },
       {{ if .Domain }}
-        "Balancer{{ upper .Name }}Certificate": {
-          "Type": "AWS::CertificateManager::Certificate",
-          "Properties": {
-            "DomainName": "{{ .Domain }}",
-            "DomainValidationOptions": [
-              {{ range .Domains }}
-                { "DomainName": "{{ . }}", "ValidationDomain": "{{ apex . }}" },
-              {{ end }}
-              { "Ref": "AWS::NoValue" }
-            ],
-            "SubjectAlternativeNames": [
-              {{ range .Domains }}
-                "{{.}}",
-              {{ end }}
-              { "Ref": "AWS::NoValue" }
-            ]
-          }
-        },
-        "Balancer{{ upper .Name }}ListenerCertificate": {
-          "Type": "AWS::ElasticLoadBalancingV2::ListenerCertificate",
-          "Properties": {
-            "Certificates": [ { "CertificateArn": { "Ref": "Balancer{{ upper .Name }}Certificate" } } ],
-            "ListenerArn": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:{{ router .Name $.Manifest }}Listener443" } }
-          }
-        },
+        {{ if .Certificate }}
+          "Balancer{{ upper .Name }}Certificate": {
+            "Type": "AWS::CertificateManager::Certificate",
+            "Properties": {
+              "DomainName": "{{ .Domain }}",
+              "DomainValidationOptions": [
+                {{ range .Domains }}
+                  { "DomainName": "{{ . }}", "ValidationDomain": "{{ apex . }}" },
+                {{ end }}
+                { "Ref": "AWS::NoValue" }
+              ],
+              "SubjectAlternativeNames": [
+                {{ range .Domains }}
+                  "{{.}}",
+                {{ end }}
+                { "Ref": "AWS::NoValue" }
+              ]
+            }
+          },
+          "Balancer{{ upper .Name }}ListenerCertificate": {
+            "Type": "AWS::ElasticLoadBalancingV2::ListenerCertificate",
+            "Properties": {
+              "Certificates": [ { "CertificateArn": { "Ref": "Balancer{{ upper .Name }}Certificate" } } ],
+              "ListenerArn": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:{{ router .Name $.Manifest }}Listener443" } }
+            }
+          },
+        {{ end }}
         {{ range $i, $domain := .Domains }}
           "Balancer{{ upper $service.Name }}ListenerRule80Domain{{$i}}": {
             "Type": "AWS::ElasticLoadBalancingV2::ListenerRule",

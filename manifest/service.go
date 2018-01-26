@@ -13,6 +13,7 @@ type Service struct {
 	Agent       bool               `yaml:"agent,omitempty"`
 	Build       ServiceBuild       `yaml:"build,omitempty"`
 	Command     string             `yaml:"command,omitempty"`
+	Certificate bool               `yaml:"certificate,omitempty"`
 	Domains     ServiceDomains     `yaml:"domain,omitempty"`
 	Environment ServiceEnvironment `yaml:"environment,omitempty"`
 	Health      ServiceHealth      `yaml:"health,omitempty"`
