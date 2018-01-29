@@ -7,6 +7,11 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/convox/rack/api/httperr"
+	"github.com/convox/rack/provider"
+)
+
+var (
+	Provider = provider.FromEnv()
 )
 
 func awsError(err error) string {

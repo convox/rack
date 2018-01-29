@@ -1,0 +1,9 @@
+#!/bin/sh
+
+cd $(dirname ${0:-})/..
+
+if [ "$DEVELOPMENT" == "true" ]; then
+  $GOPATH/bin/rerun -watch $GOPATH/src/github.com/convox/rack -build github.com/convox/rack/cmd/monitor
+else
+  $GOPATH/bin/monitor
+fi

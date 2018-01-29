@@ -1,43 +1,20 @@
-machine:
-  environment:
-    INSTALL_DIR: /home/ubuntu/.go_workspace/src/github.com/convox/rack
-  post:
-    - sudo apt-get update; sudo apt-get install curl
-    - sudo rm -rf /usr/local/go
-    - curl https://storage.googleapis.com/golang/go1.9.1.linux-amd64.tar.gz -O
-    - sudo tar -C /usr/local -xzf go1.9.1.linux-amd64.tar.gz
-
-dependencies:
-  pre:
-    - ci/dependencies-pre.sh
-
-test:
-  pre:
-    - ci/install.sh:
-        parallel: true
-        timeout: 1200
-  override:
-    - ci/tests/example-app django:
-        parallel: true
-    - ci/tests/example-app node-workers:
-        parallel: true
-    - ci/tests/example-app rails:
-        parallel: true
-        timeout: 1200
-  post:
-    - ci/report.sh:
-        parallel: true
-    - ci/uninstall.sh:
-        parallel: true
-    - ci/cleanup.sh:
-        parallel: true
-
-deployment:
-  release:
-    branch: master
-    commands:
-      - ci/release.sh
-
-notify:
-  webhooks:
-    - url: https://release.convox.com/circleci/build/rack
+version: 2
+jobs:
+  build:
+    parallelism: 3
+    docker:
+      - image: circleci/golang:1.9.2
+    steps:
+      - checkout
+      - run: ci/dependencies-pre.sh
+      - run: ci/install.sh
+      - run: ci/tests/example-app django
+      - run: ci/tests/example-app node-workers
+      - run:
+          command: ci/tests/example-app rails
+          no_output_timeout: 20m
+      - run: ci/report.sh
+      - run: ci/uninstall.sh
+      - run: ci/cleanup.sh
+      - store_artifacts:
+          path: /tmp/artifacts

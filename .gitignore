@@ -1,3 +1,5 @@
 .env
 coverage.txt
 profile.out
+/monitor
+/rack

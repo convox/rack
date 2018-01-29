@@ -6,7 +6,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ecs"
-	"github.com/convox/rack/api/structs"
+	"github.com/convox/rack/structs"
 )
 
 // CapacityGet returns individual server and total rack resources

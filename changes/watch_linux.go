@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"golang.org/x/exp/inotify"
+	"github.com/convox/inotify"
 )
 
 var (

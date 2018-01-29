@@ -1,4 +1,4 @@
-// Copyright 2014 go-dockerclient authors. All rights reserved.
+// Copyright 2015 go-dockerclient authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -13,8 +13,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/docker/docker/pkg/archive"
-	"github.com/docker/docker/pkg/fileutils"
+	"github.com/fsouza/go-dockerclient/external/github.com/docker/docker/pkg/archive"
+	"github.com/fsouza/go-dockerclient/external/github.com/docker/docker/pkg/fileutils"
 )
 
 func createTarStream(srcPath, dockerfilePath string) (io.ReadCloser, error) {

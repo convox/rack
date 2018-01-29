@@ -2,46 +2,51 @@ package controllers_test
 
 import (
 	"fmt"
-	"os"
+	"net/url"
 	"testing"
 
 	"github.com/convox/rack/api/controllers"
-	"github.com/convox/rack/api/models"
-	"github.com/convox/rack/api/structs"
+	"github.com/convox/rack/structs"
 	"github.com/convox/rack/test"
 	"github.com/stretchr/testify/assert"
 )
 
-func init() {
-	os.Setenv("RACK", "convox-test")
-	models.PauseNotifications = true
-	test.HandlerFunc = controllers.HandlerFunc
-}
-
-// func TestAppList(t *testing.T) {
-//   aws := test.StubAws(test.DescribeStackCycleWithoutQuery("convox-test-bar"))
-//   defer aws.Close()
-
-//   body := test.HTTPBody("GET", "http://convox/apps", nil, nil)
-
-//   var resp models.Apps
-//   err := json.Unmarshal([]byte(body), &resp)
-
-//   if assert.NoError(t, err) {
-//     assert.Equal(t, "bar", resp[0].Name)
-//     assert.Equal(t, "running", resp[0].Status)
-//   }
+// func init() {
+//   os.Setenv("RACK", "convox-test")
+//   models.PauseNotifications = true
+//   test.HandlerFunc = controllers.HandlerFunc
 // }
 
+func TestAppList(t *testing.T) {
+	Mock(func(p *structs.MockProvider) {
+		apps := structs.Apps{
+			structs.App{
+				Name:    "myapp",
+				Release: "R1234",
+				Status:  "running",
+			},
+		}
+
+		p.On("AppList").Return(apps, nil)
+
+		hf := test.NewHandlerFunc(controllers.HandlerFunc)
+
+		if assert.Nil(t, hf.Request("GET", "/apps", nil)) {
+			hf.AssertCode(t, 200)
+			hf.AssertJSON(t, "[{\"name\":\"myapp\",\"release\":\"R1234\",\"status\":\"running\"}]")
+		}
+	})
+}
+
 func TestAppGet(t *testing.T) {
-	models.Test(t, func() {
+	Mock(func(p *structs.MockProvider) {
 		app := &structs.App{
 			Name:    "myapp",
 			Release: "R1234",
 			Status:  "running",
 		}
 
-		models.TestProvider.On("AppGet", "myapp").Return(app, nil)
+		p.On("AppGet", "myapp").Return(app, nil)
 
 		hf := test.NewHandlerFunc(controllers.HandlerFunc)
 
@@ -53,8 +58,8 @@ func TestAppGet(t *testing.T) {
 }
 
 func TestAppGetWithAppNotFound(t *testing.T) {
-	models.Test(t, func() {
-		models.TestProvider.On("AppGet", "myapp").Return(nil, errorNotFound(fmt.Sprintf("no such app: myapp")))
+	Mock(func(p *structs.MockProvider) {
+		p.On("AppGet", "myapp").Return(nil, errorNotFound(fmt.Sprintf("no such app: myapp")))
 
 		hf := test.NewHandlerFunc(controllers.HandlerFunc)
 
@@ -65,33 +70,27 @@ func TestAppGetWithAppNotFound(t *testing.T) {
 	})
 }
 
-// Test the primary path: creating an app on a `convox` rack
-// Return to testing against a `convox-test` rack afterwards
-// func TestAppCreate(t *testing.T) {
-//   r := os.Getenv("RACK")
-//   os.Setenv("RACK", "convox")
-//   defer os.Setenv("RACK", r)
+func TestAppCreate(t *testing.T) {
+	Mock(func(p *structs.MockProvider) {
+		app := &structs.App{
+			Name:    "myapp",
+			Release: "R1234",
+			Status:  "running",
+		}
 
-//   aws := test.StubAws(
-//     test.DescribeStackNotFound("application"),
-//     test.CreateAppStackCycle("convox-application"),
-//     test.DescribeAppStackCycle("convox-application"),
-//   )
-//   defer aws.Close()
+		p.On("AppCreate", "myapp", structs.AppCreateOptions{}).Return(app, nil)
 
-//   val := url.Values{"name": []string{"application"}}
-//   body := test.HTTPBody("POST", "http://convox/apps", val, nil)
+		hf := test.NewHandlerFunc(controllers.HandlerFunc)
 
-//   if assert.NotEqual(t, "", body) {
-//     var resp map[string]string
-//     err := json.Unmarshal([]byte(body), &resp)
+		v := url.Values{}
+		v.Add("name", "myapp")
 
-//     if assert.NoError(t, err) {
-//       assert.Equal(t, "application", resp["name"])
-//       assert.Equal(t, "running", resp["status"])
-//     }
-//   }
-// }
+		if assert.Nil(t, hf.Request("POST", "/apps", v)) {
+			hf.AssertCode(t, 200)
+			hf.AssertJSON(t, "{\"name\":\"myapp\",\"release\":\"R1234\",\"status\":\"running\"}")
+		}
+	})
+}
 
 // func TestAppCreateWithAlreadyExists(t *testing.T) {
 //   aws := test.StubAws(
@@ -140,7 +139,7 @@ bucket name to the ephermeral host, so you get `app-XXX.127.0.0.1`
 //   defer aws.Close()
 
 //   // setup expectations on current provider
-//   models.TestProvider.On("AppDelete", "bar").Return(nil)
+//   p.On("AppDelete", "bar").Return(nil)
 
 //   body := test.HTTPBody("DELETE", "http://convox/apps/bar", nil, nil)
 

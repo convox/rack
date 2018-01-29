@@ -2,7 +2,7 @@ version: "2"
 services:
   web:
     build: .
-    command: api/bin/web
+    command: bin/web
     environment:
       - AUTOSCALE=false
       - DEVELOPMENT=true
@@ -20,6 +20,7 @@ services:
       - DYNAMO_RELEASES
       - ENCRYPTION_KEY
       - INTERNAL
+      - LOG_BUCKET
       - NOTIFICATION_HOST
       - NOTIFICATION_TOPIC
       - PASSWORD
@@ -39,16 +40,17 @@ services:
       - LOG_GROUP
       - PROCESS=web
     ports:
-      - 80:3000
-      - 443:4443
+      - 80:5442
+      - 443:5443
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
   monitor:
     build: .
-    command: api/bin/monitor
+    command: bin/monitor
     environment:
       - DEVELOPMENT=true
       - AUTOSCALE=false
+      - AUTOSCALE_EXTRA
       - AWS_ACCESS_KEY_ID
       - AWS_REGION
       - AWS_SECRET_ACCESS_KEY

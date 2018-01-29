@@ -62,6 +62,7 @@ func (v *ServiceBuild) UnmarshalYAML(unmarshal func(interface{}) error) error {
 			return err
 		}
 		v.Args = r.Args
+		v.Manifest = r.Manifest
 		v.Path = r.Path
 	case string:
 		v.Path = t
@@ -108,6 +109,34 @@ func (v *ServiceCommand) UnmarshalYAML(unmarshal func(interface{}) error) error 
 	return nil
 }
 
+func (v *ServiceDomains) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	var w interface{}
+
+	if err := unmarshal(&w); err != nil {
+		return err
+	}
+
+	switch t := w.(type) {
+	case []interface{}:
+		for _, s := range t {
+			switch st := s.(type) {
+			case string:
+				*v = append(*v, st)
+			default:
+				return fmt.Errorf("unknown type for service domain: %T", s)
+			}
+		}
+	case string:
+		for _, d := range strings.Split(t, ",") {
+			*v = append(*v, strings.TrimSpace(d))
+		}
+	default:
+		return fmt.Errorf("unknown type for service domain: %T", t)
+	}
+
+	return nil
+}
+
 func (v *ServiceEnvironment) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	var w interface{}
 
@@ -145,6 +174,9 @@ func (v *ServiceHealth) UnmarshalYAML(unmarshal func(interface{}) error) error {
 
 	switch t := w.(type) {
 	case map[interface{}]interface{}:
+		if w, ok := t["grace"].(int); ok {
+			v.Grace = w
+		}
 		if w, ok := t["path"].(string); ok {
 			v.Path = w
 		}

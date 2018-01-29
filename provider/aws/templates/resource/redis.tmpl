@@ -2,6 +2,7 @@
   {
     "AWSTemplateFormatVersion" : "2010-09-09",
     "Conditions": {
+      "Encrypted": { "Fn::Equals": [ { "Ref": "Encrypted" }, "true" ] },
       "Private": { "Fn::Equals": [ { "Ref": "Private" }, "true" ] }
     },
     "Parameters": {
@@ -14,6 +15,12 @@
         "Type" : "String",
         "Default" : "0",
         "Description" : "Default database index"
+      },
+      "Encrypted": {
+        "Type": "String",
+        "Description": "Encrypt at rest and in transit",
+        "Default": "false",
+        "AllowedValues": [ "true", "false" ]
       },
       "InstanceType": {
         "Type": "String",
@@ -39,6 +46,10 @@
         "Type" : "List<AWS::EC2::Subnet::Id>",
         "Default" : "",
         "Description" : "VPC private subnets"
+      },
+      "Version": {
+        "Type": "String",
+        "Default": "3.2.6"
       },
       "Vpc": {
         "Type": "AWS::EC2::VPC::Id",
@@ -78,16 +89,18 @@
       "ReplicationGroup": {
         "Type": "AWS::ElastiCache::ReplicationGroup",
         "Properties": {
+          "AtRestEncryptionEnabled": { "Fn::If": [ "Encrypted", "true", { "Ref": "AWS::NoValue" } ] },
           "AutomaticFailoverEnabled": { "Ref": "AutomaticFailoverEnabled" },
           "AutoMinorVersionUpgrade": true,
           "CacheNodeType": { "Ref": "InstanceType" },
           "CacheSubnetGroupName": { "Ref": "CacheSubnetGroup" },
           "Engine": "redis",
-          "EngineVersion": "2.8.24",
+          "EngineVersion": { "Ref": "Version" },
           "NumCacheClusters": { "Ref": "NumCacheClusters" },
           "Port": "6379",
           "ReplicationGroupDescription": { "Ref": "AWS::StackName" },
-          "SecurityGroupIds": [ { "Ref": "SecurityGroup" } ]
+          "SecurityGroupIds": [ { "Ref": "SecurityGroup" } ],
+          "TransitEncryptionEnabled": { "Fn::If": [ "Encrypted", "true", { "Ref": "AWS::NoValue" } ] }
         }
       }
     }

@@ -1,6 +1,0 @@
-main:
-  build: .
-  command: bin/eat
-  environment:
-    FOO: bar
-    BAZ: qux

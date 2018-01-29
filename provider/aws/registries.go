@@ -1,15 +1,12 @@
 package aws
 
 import (
-	"bytes"
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"sort"
 
-	"github.com/convox/rack/api/crypt"
-	"github.com/convox/rack/api/structs"
+	"github.com/convox/rack/structs"
 	docker "github.com/fsouza/go-dockerclient"
 )
 
@@ -78,12 +75,7 @@ func (p *AWSProvider) RegistryAdd(server, username, password string) (*structs.R
 
 	id := fmt.Sprintf("%x", sha256.New().Sum([]byte(server)))
 
-	enc, err := p.KeyEncrypt(data)
-	if err != nil {
-		return nil, log.Error(err)
-	}
-
-	if _, err := p.ObjectStore(fmt.Sprintf("system/registries/%s", id), bytes.NewReader(enc), structs.ObjectOptions{Public: false}); err != nil {
+	if err := p.SettingPut(fmt.Sprintf("system/registries/%s", id), string(data)); err != nil {
 		return nil, log.Error(err)
 	}
 
@@ -93,35 +85,29 @@ func (p *AWSProvider) RegistryAdd(server, username, password string) (*structs.R
 		Password: password,
 	}
 
-	log.Success()
-	return registry, nil
+	return registry, log.Success()
 }
 
-func (p *AWSProvider) RegistryDelete(server string) error {
-	log := Logger.At("RegistryDelete").Namespace("server=%q", server).Start()
+func (p *AWSProvider) RegistryRemove(server string) error {
+	log := Logger.At("RegistryRemove").Namespace("server=%q", server).Start()
 
 	key := fmt.Sprintf("system/registries/%x", sha256.New().Sum([]byte(server)))
 
-	if !p.ObjectExists(key) {
+	if _, err := p.SettingExists(key); err != nil {
 		return log.Error(fmt.Errorf("no such registry: %s", server))
 	}
 
-	if err := p.ObjectDelete(key); err != nil {
+	if err := p.SettingDelete(key); err != nil {
 		return log.Error(err)
 	}
 
-	log.Success()
-	return nil
+	return log.Success()
 }
 
 func (p *AWSProvider) RegistryList() (structs.Registries, error) {
-	log := Logger.At("RegistryDelete").Start()
+	log := Logger.At("RegistryList").Start()
 
-	if err := p.migrateClassicAuth(); err != nil {
-		return nil, log.Error(err)
-	}
-
-	objects, err := p.ObjectList("system/registries/")
+	objects, err := p.SettingList(structs.SettingListOptions{Prefix: "system/registries/"})
 	if err != nil {
 		return nil, log.Error(err)
 	}
@@ -129,39 +115,15 @@ func (p *AWSProvider) RegistryList() (structs.Registries, error) {
 	registries := structs.Registries{}
 
 	for _, o := range objects {
-		r, err := p.ObjectFetch(o)
+		data, err := p.SettingGet(o)
 		if err != nil {
 			return nil, log.Error(err)
-		}
-
-		defer r.Close()
-
-		data, err := ioutil.ReadAll(r)
-		if err != nil {
-			return nil, log.Error(err)
-		}
-
-		dec, err := p.KeyDecrypt(data)
-		if err != nil {
-			if err.Error() != "invalid ciphertext" {
-				return nil, err
-			}
-
-			dec = data
 		}
 
 		var reg structs.Registry
 
-		err = json.Unmarshal(dec, &reg)
-		if err != nil {
+		if err := json.Unmarshal([]byte(data), &reg); err != nil {
 			return nil, log.Error(err)
-		}
-
-		// if the registry is unencrypted, encrypt it
-		if bytes.Compare(data, dec) == 0 {
-			if _, err := p.RegistryAdd(reg.Server, reg.Username, reg.Password); err != nil {
-				return nil, err
-			}
 		}
 
 		registries = append(registries, reg)
@@ -169,74 +131,5 @@ func (p *AWSProvider) RegistryList() (structs.Registries, error) {
 
 	sort.Sort(registries)
 
-	log.Success()
-	return registries, nil
-}
-
-func (p *AWSProvider) migrateClassicAuth() error {
-	r, err := p.ObjectFetch("env")
-	if err != nil && !ErrorNotFound(err) {
-		return err
-	}
-
-	data := []byte("{}")
-
-	if r != nil {
-		defer r.Close()
-
-		d, err := ioutil.ReadAll(r)
-		if err != nil {
-			return err
-		}
-		data = d
-
-		if p.EncryptionKey != "" {
-			if d, err := crypt.New().Decrypt(p.EncryptionKey, data); err == nil {
-				data = d
-			}
-		}
-	}
-
-	var env map[string]string
-	err = json.Unmarshal(data, &env)
-	if err != nil {
-		return err
-	}
-
-	type authEntry struct {
-		Username string
-		Password string
-	}
-
-	auth := map[string]authEntry{}
-
-	if ea, ok := env["DOCKER_AUTH_DATA"]; ok {
-		if err := json.Unmarshal([]byte(ea), &auth); err != nil {
-			return err
-		}
-	}
-
-	if len(auth) == 0 {
-		return nil
-	}
-
-	for server, entry := range auth {
-		if _, err := p.RegistryAdd(server, entry.Username, entry.Password); err != nil {
-			return err
-		}
-	}
-
-	delete(env, "DOCKER_AUTH_DATA")
-
-	data, err = json.Marshal(env)
-	if err != nil {
-		return err
-	}
-
-	_, err = p.ObjectStore("env", bytes.NewReader(data), structs.ObjectOptions{Public: false})
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return registries, log.Success()
 }

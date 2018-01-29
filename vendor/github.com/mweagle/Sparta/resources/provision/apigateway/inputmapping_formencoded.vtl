@@ -1,0 +1,102 @@
+## convert HTML POST data or HTTP GET query string to JSON
+## Ref: https://gist.github.com/ryanray/668022ad2432e38493df
+
+## get the raw post data from the AWS built-in variable and give it a nicer name
+#if ($context.httpMethod == "POST")
+ #set($rawAPIData = $input.path('$'))
+#elseif ($context.httpMethod == "GET")
+ #set($rawAPIData = $input.params().querystring)
+ #set($rawAPIData = $rawAPIData.toString())
+ #set($rawAPIDataLength = $rawAPIData.length() - 1)
+ #set($rawAPIData = $rawAPIData.substring(1, $rawAPIDataLength))
+ #set($rawAPIData = $rawAPIData.replace(", ", "&"))
+#else
+ #set($rawAPIData = "")
+#end
+
+## first we get the number of "&" in the string, this tells us if there is more than one key value pair
+#set($countAmpersands = $rawAPIData.length() - $rawAPIData.replace("&", "").length())
+
+## if there are no "&" at all then we have only one key value pair.
+## we append an ampersand to the string so that we can tokenise it the same way as multiple kv pairs.
+## the "empty" kv pair to the right of the ampersand will be ignored anyway.
+#if ($countAmpersands == 0)
+ #set($rawPostData = $rawAPIData + "&")
+#end
+
+## now we tokenise using the ampersand(s)
+#set($tokenisedAmpersand = $rawAPIData.split("&"))
+
+## we set up a variable to hold the valid key value pairs
+#set($tokenisedEquals = [])
+
+## now we set up a loop to find the valid key value pairs, which must contain only one "="
+#foreach( $kvPair in $tokenisedAmpersand )
+ #set($countEquals = $kvPair.length() - $kvPair.replace("=", "").length())
+ #if ($countEquals == 1)
+  #set($kvTokenised = $kvPair.split("="))
+  #if($kvTokenised.size() > 1 && $kvTokenised[1].length() > 0)
+   ## we found a valid key value pair. add it to the list.
+   #set($devNull = $tokenisedEquals.add($kvPair))
+  #end
+ #end
+#end
+
+#*
+Provide an automatic pass through template that transforms all inputs
+into the JSON payload sent to a golang function. The default behavior passes the 'body'
+key as raw string.
+
+See
+  https://forums.aws.amazon.com/thread.jspa?threadID=220274&tstart=0
+  http://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-mapping-template-reference.html
+*#
+{
+  "method": "$context.httpMethod",
+  "body" : {
+    #foreach( $kvPair in $tokenisedEquals )
+      ## finally we output the JSON for this pair and append a comma if this isn't the last pair
+      #set($kvTokenised = $kvPair.split("="))
+      "$util.urlDecode($kvTokenised[0])" : #if($kvTokenised[1].length() > 0)"$util.urlDecode($kvTokenised[1])"#{else}""#end#if( $foreach.hasNext ),#end
+    #end
+  },
+  "headers": {
+    #foreach($param in $input.params().header.keySet())
+    "$param": "$util.escapeJavaScript($input.params().header.get($param))" #if($foreach.hasNext),#end
+    #end
+  },
+  "queryParams": {
+    #foreach($param in $input.params().querystring.keySet())
+    "$param": "$util.escapeJavaScript($input.params().querystring.get($param))" #if($foreach.hasNext),#end
+
+    #end
+  },
+  "pathParams": {
+    #foreach($param in $input.params().path.keySet())
+    "$param": "$util.escapeJavaScript($input.params().path.get($param))" #if($foreach.hasNext),#end
+
+    #end
+  },
+  "context" : {
+    "apiId" : "$util.escapeJavaScript($context.apiId)",
+    "method" : "$util.escapeJavaScript($context.httpMethod)",
+    "requestId" : "$util.escapeJavaScript($context.requestId)",
+    "resourceId" : "$util.escapeJavaScript($context.resourceId)",
+    "resourcePath" : "$util.escapeJavaScript($context.resourcePath)",
+    "stage" : "$util.escapeJavaScript($context.stage)",
+    "identity" : {
+      "accountId" : "$util.escapeJavaScript($context.identity.accountId)",
+      "apiKey" : "$util.escapeJavaScript($context.identity.apiKey)",
+      "caller" : "$util.escapeJavaScript($context.identity.caller)",
+      "cognitoAuthenticationProvider" : "$util.escapeJavaScript($context.identity.cognitoAuthenticationProvider)",
+      "cognitoAuthenticationType" : "$util.escapeJavaScript($context.identity.cognitoAuthenticationType)",
+      "cognitoIdentityId" : "$util.escapeJavaScript($context.identity.cognitoIdentityId)",
+      "cognitoIdentityPoolId" : "$util.escapeJavaScript($context.identity.cognitoIdentityPoolId)",
+      "sourceIp" : "$util.escapeJavaScript($context.identity.sourceIp)",
+      "user" : "$util.escapeJavaScript($context.identity.user)",
+      "userAgent" : "$util.escapeJavaScript($context.identity.userAgent)",
+      "userArn" : "$util.escapeJavaScript($context.identity.userArn)"
+    }
+  }
+}
+

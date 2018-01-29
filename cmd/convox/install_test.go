@@ -7,7 +7,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/convox/rack/api/awsutil"
+	"github.com/convox/rack/test/awsutil"
 	"github.com/convox/rack/test"
 	"github.com/convox/version"
 	"github.com/stretchr/testify/assert"
