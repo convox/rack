@@ -7,8 +7,8 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/convox/rack/api/cache"
-	"github.com/convox/rack/api/structs"
+	"github.com/convox/rack/cache"
+	"github.com/convox/rack/structs"
 )
 
 var (

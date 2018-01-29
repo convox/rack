@@ -10,11 +10,11 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/convox/rack/api/structs"
 	"github.com/convox/rack/cmd/convox/helpers"
 	"github.com/convox/rack/cmd/convox/stdcli"
 	"github.com/convox/rack/manifest"
 	"github.com/convox/rack/manifest1"
+	"github.com/convox/rack/structs"
 	"github.com/fsouza/go-dockerclient"
 	"gopkg.in/urfave/cli.v1"
 )
@@ -27,9 +27,10 @@ func init() {
 		Action:      cmdStart,
 		Flags: []cli.Flag{
 			cli.StringFlag{
-				Name:  "file, f",
-				Value: "",
-				Usage: "path to manifest file",
+				Name:   "file, f",
+				EnvVar: "COMPOSE_FILE",
+				Value:  "",
+				Usage:  "path to manifest file",
 			},
 			cli.StringFlag{
 				Name:  "generation, g",
@@ -38,6 +39,10 @@ func init() {
 			cli.BoolFlag{
 				Name:  "no-cache",
 				Usage: "pull fresh image dependencies",
+			},
+			cli.BoolFlag{
+				Name:  "no-sync",
+				Usage: "do not synchronize local file changes into the running containers",
 			},
 			cli.IntFlag{
 				Name:  "shift",
@@ -63,6 +68,7 @@ func cmdStart(c *cli.Context) error {
 	}
 
 	opts.Cache = !c.Bool("no-cache")
+	opts.Sync = !c.Bool("no-sync")
 
 	if v := c.String("file"); v != "" {
 		opts.Config = v
@@ -94,6 +100,7 @@ type startOptions struct {
 	Config  string
 	Service string
 	Shift   int
+	Sync    bool
 }
 
 func startGeneration1(opts startOptions) error {
@@ -146,7 +153,7 @@ func startGeneration1(opts startOptions) error {
 		Cache:   opts.Cache,
 		Command: opts.Command,
 		Service: opts.Service,
-		Sync:    true,
+		Sync:    opts.Sync,
 	})
 
 	err = r.Start()
@@ -182,7 +189,9 @@ func startGeneration2(opts startOptions) error {
 	env := structs.Environment{}
 
 	if data, err := ioutil.ReadFile(filepath.Join(dir, ".env")); err == nil {
-		env.LoadEnvironment(data)
+		if err := env.Load(data); err != nil {
+			return err
+		}
 	}
 
 	m, err := manifest.Load(data, manifest.Environment(env))

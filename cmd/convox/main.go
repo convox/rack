@@ -67,6 +67,8 @@ func main() {
 	app.Flags = []cli.Flag{appFlag, rackFlag}
 	app.Version = Version
 
+	terminalSetup()
+
 	err := app.Run(os.Args)
 
 	if err != nil {

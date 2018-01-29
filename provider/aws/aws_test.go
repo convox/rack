@@ -6,7 +6,7 @@ import (
 	"os"
 
 	"github.com/convox/logger"
-	"github.com/convox/rack/api/awsutil"
+	"github.com/convox/rack/test/awsutil"
 	"github.com/convox/rack/provider/aws"
 )
 

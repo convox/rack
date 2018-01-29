@@ -10,12 +10,15 @@ import (
 type Service struct {
 	Name string `yaml:"-"`
 
+	Agent       bool               `yaml:"agent,omitempty"`
 	Build       ServiceBuild       `yaml:"build,omitempty"`
 	Command     string             `yaml:"command,omitempty"`
-	Domain      string             `yaml:"domain,omitempty"`
+	Domains     ServiceDomains     `yaml:"domain,omitempty"`
 	Environment ServiceEnvironment `yaml:"environment,omitempty"`
 	Health      ServiceHealth      `yaml:"health,omitempty"`
 	Image       string             `yaml:"image,omitempty"`
+	Internal    bool               `yaml:"internal,omitempty"`
+	Links       []string           `yaml:"links,omitempty"`
 	Port        ServicePort        `yaml:"port,omitempty"`
 	Privileged  bool               `yaml:"privileged,omitempty"`
 	Resources   []string           `yaml:"resources,omitempty"`
@@ -27,8 +30,9 @@ type Service struct {
 type Services []Service
 
 type ServiceBuild struct {
-	Args []string `yaml:"args,omitempty"`
-	Path string   `yaml:"path,omitempty"`
+	Args     []string `yaml:"args,omitempty"`
+	Manifest string   `yaml:"manifest,omitempty"`
+	Path     string   `yaml:"path,omitempty"`
 }
 
 type ServiceCommand struct {
@@ -37,9 +41,12 @@ type ServiceCommand struct {
 	Production  string
 }
 
+type ServiceDomains []string
+
 type ServiceEnvironment []string
 
 type ServiceHealth struct {
+	Grace    int
 	Interval int
 	Path     string
 	Timeout  int
@@ -61,11 +68,15 @@ type ServiceScaleCount struct {
 }
 
 func (s Service) BuildHash() string {
-	return fmt.Sprintf("%x", sha1.Sum([]byte(fmt.Sprintf("build[path=%q, args=%v] image=%q", s.Build.Path, s.Build.Args, s.Image))))
+	return fmt.Sprintf("%x", sha1.Sum([]byte(fmt.Sprintf("build[path=%q, manifest=%q, args=%v] image=%q", s.Build.Path, s.Build.Manifest, s.Build.Args, s.Image))))
 }
 
-func (s Service) GetName() string {
-	return s.Name
+func (s Service) Domain() string {
+	if len(s.Domains) < 1 {
+		return ""
+	}
+
+	return s.Domains[0]
 }
 
 func (s Service) EnvironmentDefaults() map[string]string {
@@ -91,6 +102,10 @@ func (s Service) EnvironmentKeys() string {
 	sort.Strings(keys)
 
 	return strings.Join(keys, ",")
+}
+
+func (s Service) GetName() string {
+	return s.Name
 }
 
 func (s *Service) SetDefaults() error {

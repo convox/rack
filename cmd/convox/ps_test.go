@@ -26,7 +26,7 @@ func TestPs(t *testing.T) {
 					Release: "fooRelease",
 					Cpu:     256,
 					Memory:  256,
-					Started: time.Date(1984, 05, 20, 0, 0, 0, 0, time.UTC),
+					Started: time.Now(),
 				},
 			},
 		},
@@ -38,7 +38,7 @@ func TestPs(t *testing.T) {
 		test.ExecRun{
 			Command: "convox ps --app myapp",
 			Exit:    0,
-			Stdout:  "ID     NAME     RELEASE     STARTED       COMMAND\nfooID  fooName  fooRelease  33 years ago  fooCommand\n",
+			Stdout:  "ID     NAME     RELEASE     STARTED  COMMAND\nfooID  fooName  fooRelease  now      fooCommand\n",
 		},
 	)
 }

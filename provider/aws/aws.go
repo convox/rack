@@ -20,9 +20,10 @@ import (
 	"github.com/aws/aws-sdk-go/service/kms"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/sns"
+	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/convox/logger"
-	"github.com/convox/rack/api/structs"
+	"github.com/convox/rack/structs"
 )
 
 var (
@@ -41,11 +42,14 @@ type AWSProvider struct {
 	BuildCluster        string
 	CloudformationTopic string
 	Cluster             string
+	CustomTopic         string
 	Development         bool
 	DockerImageAPI      string
 	DynamoBuilds        string
 	DynamoReleases      string
 	EncryptionKey       string
+	Internal            bool
+	LogBucket           string
 	NotificationHost    string
 	NotificationTopic   string
 	Password            string
@@ -64,17 +68,20 @@ type AWSProvider struct {
 
 // NewProviderFromEnv returns a new AWS provider from env vars
 func FromEnv() *AWSProvider {
-	return &AWSProvider{
+	p := &AWSProvider{
 		Region:              os.Getenv("AWS_REGION"),
 		Endpoint:            os.Getenv("AWS_ENDPOINT"),
 		BuildCluster:        os.Getenv("BUILD_CLUSTER"),
 		CloudformationTopic: os.Getenv("CLOUDFORMATION_TOPIC"),
 		Cluster:             os.Getenv("CLUSTER"),
+		CustomTopic:         os.Getenv("CUSTOM_TOPIC"),
 		Development:         os.Getenv("DEVELOPMENT") == "true",
 		DockerImageAPI:      os.Getenv("DOCKER_IMAGE_API"),
 		DynamoBuilds:        os.Getenv("DYNAMO_BUILDS"),
 		DynamoReleases:      os.Getenv("DYNAMO_RELEASES"),
 		EncryptionKey:       os.Getenv("ENCRYPTION_KEY"),
+		Internal:            os.Getenv("INTERNAL") == "Yes",
+		LogBucket:           os.Getenv("LOG_BUCKET"),
 		NotificationHost:    os.Getenv("NOTIFICATION_HOST"),
 		NotificationTopic:   os.Getenv("NOTIFICATION_TOPIC"),
 		Password:            os.Getenv("PASSWORD"),
@@ -88,6 +95,8 @@ func FromEnv() *AWSProvider {
 		Vpc:                 os.Getenv("VPC"),
 		VpcCidr:             os.Getenv("VPCCIDR"),
 	}
+
+	return p
 }
 
 func init() {
@@ -95,8 +104,8 @@ func init() {
 }
 
 func (p *AWSProvider) Initialize(opts structs.ProviderOptions) error {
-	if opts.LogOutput != nil {
-		Logger = logger.NewWriter("ns=provider.aws", opts.LogOutput)
+	if opts.Logs != nil {
+		Logger = logger.NewWriter("ns=provider.aws", opts.Logs)
 	}
 
 	return nil
@@ -170,6 +179,10 @@ func (p *AWSProvider) s3() *s3.S3 {
 
 func (p *AWSProvider) sns() *sns.SNS {
 	return sns.New(session.New(), p.config())
+}
+
+func (p *AWSProvider) sqs() *sqs.SQS {
+	return sqs.New(session.New(), p.config())
 }
 
 func (p *AWSProvider) sts() *sts.STS {

@@ -1,18 +1,40 @@
 {
   "AWSTemplateFormatVersion" : "2010-09-09",
+  "Conditions": {
+    "BlankIamPolicy": { "Fn::Equals": [ { "Ref": "IamPolicy" }, "" ] },
+    "BlankLogBucket": { "Fn::Equals": [ { "Ref": "LogBucket" }, "" ] }
+  },
   "Outputs": {
     {{ template "balancer-outputs" . }}
 
+    "Agents": {
+      "Value": "{{ join .Manifest.Agents "," }}"
+    },
+    "LogGroup": {
+      "Value": { "Ref": "LogGroup" }
+    },
     "Release": {
       "Value": "{{ .Release.Id }}"
     },
     "Services": {
       "Value": "{{ services .Manifest }}"
+    },
+    "ServiceRole": {
+      "Export": { "Name": { "Fn::Sub": "${AWS::StackName}:ServiceRole" } },
+      "Value": { "Fn::GetAtt": [ "ServiceRole", "Arn" ] }
     }
   },
   "Parameters" : {
     {{ template "service-params" .Manifest }}
 
+    "IamPolicy": {
+      "Type": "String",
+      "Default": ""
+    },
+    "LogBucket": {
+      "Type": "String",
+      "Default": ""
+    },
     "Rack": {
       "Type": "String",
       "MinLength": "1"
@@ -38,75 +60,120 @@
 
 {{ define "balancer-outputs" }}
   {{ range .Manifest.Services }}
-    {{ if (and (.Port.Port) (not .Domain)) }}
-      "{{ upper .Name }}Endpoint": {
-        "Value": { "Fn::Join": [ ".", [ "{{$.App}}-{{.Name}}", { "Fn::ImportValue": { "Fn::Sub": "${Rack}:RouterHost" } } ] ] }
+    {{ if .Port.Port }}
+      "Service{{ upper .Name }}Certificate": {
+        "Value": {{ if .Domain }} { "Ref": "Balancer{{ upper .Name }}Certificate" } {{ else }} { "Fn::ImportValue": { "Fn::Sub": "${Rack}:RouterCertificate" } } {{ end }}
+      },
+      "Service{{ upper .Name }}Endpoint": {
+        "Value": { "Fn::Join": [ ".", [ "{{$.App}}-{{.Name}}", { "Fn::ImportValue": { "Fn::Sub": "${Rack}:{{ router .Name $.Manifest }}Host" } } ] ] }
       },
     {{ end }}
   {{ end }}
 {{ end }}
 
 {{ define "balancer-resources" }}
-  {{ range .Manifest.Services }}
+  {{ range $service := .Manifest.Services }}
     {{ if .Port.Port }}
-      {{ if not .Domain }}
-        "Balancer{{ upper .Name }}ListenerRule80": {
-          "Type": "AWS::ElasticLoadBalancingV2::ListenerRule",
-          "Properties": {
-            "Actions": [ { "Type": "forward", "TargetGroupArn": { "Ref": "Balancer{{ upper .Name }}TargetGroup" } } ],
-            "Conditions": [ { "Field": "host-header", "Values": [ { "Fn::Join": [ ".", [ "{{$.App}}-{{.Name}}", { "Fn::ImportValue": { "Fn::Sub": "${Rack}:RouterHost" } } ] ] } ] } ],
-            "ListenerArn": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:RouterListener80" } },
-            "Priority": "{{ priority $.App .Name }}"
-          }
-        },
-        "Balancer{{ upper .Name }}ListenerRule443": {
-          "Type": "AWS::ElasticLoadBalancingV2::ListenerRule",
-          "Properties": {
-            "Actions": [ { "Type": "forward", "TargetGroupArn": { "Ref": "Balancer{{ upper .Name }}TargetGroup" } } ],
-            "Conditions": [ { "Field": "host-header", "Values": [ { "Fn::Join": [ ".", [ "{{$.App}}-{{.Name}}", { "Fn::ImportValue": { "Fn::Sub": "${Rack}:RouterHost" } } ] ] } ] } ],
-            "ListenerArn": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:RouterListener443" } },
-            "Priority": "{{ priority $.App .Name }}"
-          }
-        },
-      {{ end }}
+      "Balancer{{ upper .Name }}ListenerRule80": {
+        "Type": "AWS::ElasticLoadBalancingV2::ListenerRule",
+        "Properties": {
+        "Actions": [ { "Type": "forward", "TargetGroupArn": { "Ref": "Balancer{{ upper .Name }}TargetGroup{{ if .Internal }}Internal{{ end }}" } } ],
+          "Conditions": [ { "Field": "host-header", "Values": [ { "Fn::Join": [ ".", [ "{{$.App}}-{{.Name}}", { "Fn::ImportValue": { "Fn::Sub": "${Rack}:{{ router .Name $.Manifest }}Host" } } ] ] } ] } ],
+          "ListenerArn": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:{{ router .Name $.Manifest }}Listener80" } },
+          "Priority": "{{ priority $.App .Name }}"
+        }
+      },
+      "Balancer{{ upper .Name }}ListenerRule443": {
+        "Type": "AWS::ElasticLoadBalancingV2::ListenerRule",
+        "Properties": {
+        "Actions": [ { "Type": "forward", "TargetGroupArn": { "Ref": "Balancer{{ upper .Name }}TargetGroup{{ if .Internal }}Internal{{ end }}" } } ],
+          "Conditions": [ { "Field": "host-header", "Values": [ { "Fn::Join": [ ".", [ "{{$.App}}-{{.Name}}", { "Fn::ImportValue": { "Fn::Sub": "${Rack}:{{ router .Name $.Manifest }}Host" } } ] ] } ] } ],
+          "ListenerArn": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:{{ router .Name $.Manifest }}Listener443" } },
+          "Priority": "{{ priority $.App .Name }}"
+        }
+      },
+      "RecordSet{{ upper .Name }}Internal": {
+        "Type": "AWS::Route53::RecordSet",
+        "Properties": {
+          "HostedZoneId": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:HostedZone" } },
+          "Name": { "Fn::Sub": "{{.Name}}.{{$.App}}.${Rack}.convox." },
+          "Type": "CNAME",
+          "TTL": "3600",
+          "ResourceRecords": [ { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Domain{{ if .Internal }}Internal{{ end }}" } } ]
+        }
+      },
+      "Balancer{{ upper .Name }}ListenerRule80Internal": {
+        "Type": "AWS::ElasticLoadBalancingV2::ListenerRule",
+        "Properties": {
+        "Actions": [ { "Type": "forward", "TargetGroupArn": { "Ref": "Balancer{{ upper .Name }}TargetGroup{{ if .Internal }}Internal{{ end }}" } } ],
+          "Conditions": [ { "Field": "host-header", "Values": [ { "Fn::Sub": "{{.Name}}.{{$.App}}.${Rack}.convox" } ] } ],
+          "ListenerArn": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:{{ router .Name $.Manifest }}Listener80" } },
+          "Priority": "{{ priority $.App (print .Name "-i") }}"
+        }
+      },
+      "Balancer{{ upper .Name }}ListenerRule443Internal": {
+        "Type": "AWS::ElasticLoadBalancingV2::ListenerRule",
+        "Properties": {
+        "Actions": [ { "Type": "forward", "TargetGroupArn": { "Ref": "Balancer{{ upper .Name }}TargetGroup{{ if .Internal }}Internal{{ end }}" } } ],
+          "Conditions": [ { "Field": "host-header", "Values": [ { "Fn::Sub": "{{.Name}}.{{$.App}}.${Rack}.convox" } ] } ],
+          "ListenerArn": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:{{ router .Name $.Manifest }}Listener443" } },
+          "Priority": "{{ priority $.App (print .Name "-i") }}"
+        }
+      },
       {{ if .Domain }}
         "Balancer{{ upper .Name }}Certificate": {
           "Type": "AWS::CertificateManager::Certificate",
           "Properties": {
             "DomainName": "{{ .Domain }}",
-            "DomainValidationOptions": [{
-              "DomainName": "{{ .Domain }}",
-              "ValidationDomain": "{{ apex .Domain }}"
-            }]
+            "DomainValidationOptions": [
+              {{ range .Domains }}
+                { "DomainName": "{{ . }}", "ValidationDomain": "{{ apex . }}" },
+              {{ end }}
+              { "Ref": "AWS::NoValue" }
+            ],
+            "SubjectAlternativeNames": [
+              {{ range .Domains }}
+                "{{.}}",
+              {{ end }}
+              { "Ref": "AWS::NoValue" }
+            ]
           }
         },
         "Balancer{{ upper .Name }}ListenerCertificate": {
           "Type": "AWS::ElasticLoadBalancingV2::ListenerCertificate",
           "Properties": {
             "Certificates": [ { "CertificateArn": { "Ref": "Balancer{{ upper .Name }}Certificate" } } ],
-            "ListenerArn": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:RouterListener443" } }
+            "ListenerArn": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:{{ router .Name $.Manifest }}Listener443" } }
           }
         },
-        "Balancer{{ upper .Name }}ListenerRule80Domain": {
-          "Type": "AWS::ElasticLoadBalancingV2::ListenerRule",
-          "Properties": {
-            "Actions": [ { "Type": "forward", "TargetGroupArn": { "Ref": "Balancer{{ upper .Name }}TargetGroup" } } ],
-            "Conditions": [ { "Field": "host-header", "Values": [ "{{ .Domain }}" ] } ],
-            "ListenerArn": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:RouterListener80" } },
-            "Priority": "{{ priority $.App (print .Name "-Domain") }}"
-          }
-        },
-        "Balancer{{ upper .Name }}ListenerRule443Domain": {
-          "Type": "AWS::ElasticLoadBalancingV2::ListenerRule",
-          "Properties": {
-            "Actions": [ { "Type": "forward", "TargetGroupArn": { "Ref": "Balancer{{ upper .Name }}TargetGroup" } } ],
-            "Conditions": [ { "Field": "host-header", "Values": [ "{{ .Domain }}" ] } ],
-            "ListenerArn": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:RouterListener443" } },
-            "Priority": "{{ priority $.App (print .Name "-Domain") }}"
-          }
-        },
+        {{ range $i, $domain := .Domains }}
+          "Balancer{{ upper $service.Name }}ListenerRule80Domain{{$i}}": {
+            "Type": "AWS::ElasticLoadBalancingV2::ListenerRule",
+            {{ if gt $i 0 }}
+              "DependsOn": "Balancer{{ upper $service.Name }}ListenerRule80Domain{{ dec $i }}",
+            {{ end }}
+            "Properties": {
+            "Actions": [ { "Type": "forward", "TargetGroupArn": { "Ref": "Balancer{{ upper $service.Name }}TargetGroup{{ if $service.Internal }}Internal{{ end }}" } } ],
+              "Conditions": [ { "Field": "host-header", "Values": [ "{{$domain}}" ] } ],
+              "ListenerArn": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:{{ router $service.Name $.Manifest }}Listener80" } },
+              "Priority": "{{ priority $.App $domain }}"
+            }
+          },
+          "Balancer{{ upper $service.Name }}ListenerRule443Domain{{$i}}": {
+            "Type": "AWS::ElasticLoadBalancingV2::ListenerRule",
+            {{ if gt $i 0 }}
+              "DependsOn": "Balancer{{ upper $service.Name }}ListenerRule443Domain{{ dec $i }}",
+            {{ end }}
+            "Properties": {
+            "Actions": [ { "Type": "forward", "TargetGroupArn": { "Ref": "Balancer{{ upper $service.Name }}TargetGroup{{ if $service.Internal }}Internal{{ end }}" } } ],
+              "Conditions": [ { "Field": "host-header", "Values": [ "{{$domain}}" ] } ],
+              "ListenerArn": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:{{ router $service.Name $.Manifest }}Listener443" } },
+              "Priority": "{{ priority $.App $domain }}"
+            }
+          },
+        {{ end }}
       {{ end }}
-      "Balancer{{ upper .Name }}TargetGroup": {
+      "Balancer{{ upper .Name }}TargetGroup{{ if .Internal }}Internal{{ end }}": {
         "Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
         "Properties": {
           "HealthCheckIntervalSeconds": "{{.Health.Interval}}",
@@ -150,7 +217,7 @@
   {{ range .Services }}
     "{{ upper .Name }}Formation": {
       "Type": "CommaDelimitedList",
-      "Default": "0,128,256",
+      "Default": "{{.Scale.Count.Min}},128,256",
       "Description": "Count,CPU,Memory"
     },
   {{ end }}
@@ -164,6 +231,7 @@
         "Statement": [ { "Effect": "Allow", "Principal": { "Service": [ "ecs-tasks.amazonaws.com" ] }, "Action": [ "sts:AssumeRole" ] } ],
         "Version": "2012-10-17"
       },
+      "ManagedPolicyArns": [ { "Fn::If": [ "BlankIamPolicy", { "Ref": "AWS::NoValue" }, { "Ref": "IamPolicy" } ] } ],
       "Path": "/convox/",
       "Policies": [ {
         "PolicyName": "convox-env",
@@ -180,23 +248,28 @@
   {{ range .Manifest.Services }}
     "Service{{ upper .Name }}Service": {
       "Type": "AWS::ECS::Service",
-      {{ if (and (.Port.Port) (not .Domain)) }}
+      {{ if .Port.Port }}
         "DependsOn": [ "Balancer{{ upper .Name }}ListenerRule80" ],
-      {{ else if (and (.Port.Port) (.Domain)) }}
-        "DependsOn": [ "Balancer{{ upper .Name }}ListenerRule80Domain0" ],
       {{ end }}
       "Properties": {
         "Cluster": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Cluster" } },
         "DeploymentConfiguration": { "MinimumHealthyPercent": "50", "MaximumPercent": "200" },
         "DesiredCount": { "Fn::Select": [ 0, { "Ref": "{{ upper .Name }}Formation" } ] },
         {{ if .Port.Port }}
-          "LoadBalancers": [ { "ContainerName": "{{.Name}}", "ContainerPort": "{{.Port.Port}}", "TargetGroupArn": { "Ref": "Balancer{{ upper .Name }}TargetGroup" } } ],
+          "HealthCheckGracePeriodSeconds": "{{.Health.Grace}}",
+          "LoadBalancers": [ { "ContainerName": "{{.Name}}", "ContainerPort": "{{.Port.Port}}", "TargetGroupArn": { "Ref": "Balancer{{ upper .Name }}TargetGroup{{ if .Internal }}Internal{{ end }}" } } ],
           "Role": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:ServiceRole" } },
         {{ end }}
-        "PlacementStrategies": [
-          { "Type": "spread", "Field": "attribute:ecs.availability-zone" },
-          { "Type": "spread", "Field": "instanceId" }
-        ],
+        {{ if .Agent }}
+          "PlacementConstraints": [
+            { "Type": "distinctInstance" }
+          ],
+        {{ else }}
+          "PlacementStrategies": [
+            { "Type": "spread", "Field": "attribute:ecs.availability-zone" },
+            { "Type": "spread", "Field": "instanceId" }
+          ],
+        {{ end }}
         "TaskDefinition": { "Ref": "Service{{ upper .Name }}Tasks" }
       }
     },
@@ -214,11 +287,17 @@
               {{ range $k, $v := .EnvironmentDefaults }}
                 { "Name": "{{$k}}", "Value": "{{ safe $v }}" },
               {{ end }}
+              {{ range .Links }}
+                { "Name": "{{ upcase . }}_URL", "Value": { "Fn::Join": [ ".", [
+                  "https://{{$.App}}-{{.}}", { "Fn::ImportValue": { "Fn::Sub": "${Rack}:{{ router . $.Manifest }}Host" } }
+                ] ] } },
+              {{ end }}
               {{ range .Resources }}
                 { "Name": "{{ upcase . }}_URL", "Value": { "Fn::GetAtt": [ "Resource{{ upper . }}", "Outputs.Url" ] } },
               {{ end }}
               { "Name": "AWS_REGION", "Value": { "Ref": "AWS::Region" } },
               { "Name": "APP", "Value": "{{$.App}}" },
+              { "Name": "RELEASE", "Value": "{{$.Release.Id}}" },
               { "Name": "RACK", "Value": { "Ref": "Rack" } },
               { "Name": "CONVOX_ENV_KEY", "Value": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:EncryptionKey" } } },
               { "Name": "CONVOX_ENV_URL", "Value": { "Fn::Sub": "s3://${Settings}/releases/{{$.Release.Id}}/env" } },
@@ -334,6 +413,7 @@
                 {{ end }}
                 { "Name": "AWS_REGION", "Value": { "Ref": "AWS::Region" } },
                 { "Name": "APP", "Value": "{{$.App}}" },
+                { "Name": "RELEASE", "Value": "{{$.Release.Id}}" },
                 { "Name": "RACK", "Value": { "Ref": "Rack" } },
                 { "Name": "CONVOX_ENV_KEY", "Value": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:EncryptionKey" } } },
                 { "Name": "CONVOX_ENV_URL", "Value": { "Fn::Sub": "s3://${Settings}/releases/{{$.Release.Id}}/env" } },
@@ -378,6 +458,13 @@
     "DeletionPolicy": "Retain",
     "Properties": {
       "AccessControl": "Private",
+      "LoggingConfiguration": { "Fn::If": [ "BlankLogBucket",
+        { "Ref": "AWS::NoValue" },
+        {
+          "DestinationBucketName": { "Ref": "LogBucket" },
+          "LogFilePrefix": { "Fn::Sub": "convox/logs/${AWS::StackName}/s3" }
+        }
+      ] },
       "Tags": [
         { "Key": "system", "Value": "convox" },
         { "Key": "app", "Value": { "Ref": "AWS::StackName" } }

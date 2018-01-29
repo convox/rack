@@ -6,19 +6,18 @@ import (
 	"time"
 
 	"github.com/convox/rack/api/controllers"
-	"github.com/convox/rack/api/models"
-	"github.com/convox/rack/api/structs"
+	"github.com/convox/rack/structs"
 	"github.com/convox/rack/test"
 	"github.com/stretchr/testify/assert"
 )
 
-func init() {
-	models.PauseNotifications = true
-	test.HandlerFunc = controllers.HandlerFunc
-}
+// func init() {
+//   models.PauseNotifications = true
+//   test.HandlerFunc = controllers.HandlerFunc
+// }
 
 func TestInstanceList(t *testing.T) {
-	models.Test(t, func() {
+	Mock(func(p *structs.MockProvider) {
 		instances := structs.Instances{
 			structs.Instance{
 				Agent:     true,
@@ -33,7 +32,7 @@ func TestInstanceList(t *testing.T) {
 			},
 		}
 
-		models.TestProvider.On("InstanceList").Return(instances, nil)
+		p.On("InstanceList").Return(instances, nil)
 
 		hf := test.NewHandlerFunc(controllers.HandlerFunc)
 
@@ -45,8 +44,8 @@ func TestInstanceList(t *testing.T) {
 }
 
 func TestInstanceTerminate(t *testing.T) {
-	models.Test(t, func() {
-		models.TestProvider.On("InstanceTerminate", "i-1234").Return(nil)
+	Mock(func(p *structs.MockProvider) {
+		p.On("InstanceTerminate", "i-1234").Return(nil)
 
 		hf := test.NewHandlerFunc(controllers.HandlerFunc)
 
@@ -56,8 +55,8 @@ func TestInstanceTerminate(t *testing.T) {
 		}
 	})
 
-	models.Test(t, func() {
-		models.TestProvider.On("InstanceTerminate", "i-1234").Return(fmt.Errorf("broken"))
+	Mock(func(p *structs.MockProvider) {
+		p.On("InstanceTerminate", "i-1234").Return(fmt.Errorf("broken"))
 
 		hf := test.NewHandlerFunc(controllers.HandlerFunc)
 

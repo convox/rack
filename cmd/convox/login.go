@@ -128,7 +128,6 @@ func cmdLogin(c *cli.Context) error {
 		return stdcli.Error(err)
 	}
 
-	stdcli.QOSEventSend("Client Created", distinctID, stdcli.QOSEventProperties{})
 	fmt.Println("Logged in successfully.")
 	return nil
 }

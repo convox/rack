@@ -167,12 +167,33 @@ func (r *Run) Start() error {
 			return err
 		}
 
+		wdb, err := Docker("inspect", "-f", "{{.Config.WorkingDir}}", s.Tag(r.App)).CombinedOutput()
+		if err != nil {
+			return err
+		}
+
+		wd := strings.TrimSpace(string(wdb))
+
+		if wd == "" {
+			wd = "/"
+		}
+
 		if r.Opts.Sync {
 			syncs := []sync.Sync{}
 
 			for local, remote := range sp {
-				s, err := p.Sync(local, remote)
+				if remote == "." || strings.HasSuffix(remote, "/") {
+					stat, err := os.Stat(local)
+					if err == nil && !stat.IsDir() {
+						remote = filepath.Join(remote, filepath.Base(local))
+					}
+				}
 
+				if !filepath.IsAbs(remote) {
+					remote = filepath.Join(wd, remote)
+				}
+
+				s, err := p.Sync(local, remote)
 				if err != nil {
 					return err
 				}
@@ -182,6 +203,12 @@ func (r *Run) Start() error {
 
 			// remove redundant syncs
 			syncs = pruneSyncs(syncs)
+
+			if os.Getenv("CONVOX_DEBUG") == "true" {
+				for _, sync := range syncs {
+					system <- fmt.Sprintf("sync: %s <-> %s:%s", sync.Local, s.Name, sync.Remote)
+				}
+			}
 
 			for _, s := range syncs {
 				go func(s sync.Sync) {

@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"io"
 	"net/http"
 	"os"
 	"sort"
@@ -10,13 +11,13 @@ import (
 	"golang.org/x/net/websocket"
 
 	"github.com/convox/rack/api/httperr"
-	"github.com/convox/rack/api/models"
-	"github.com/convox/rack/api/structs"
+	"github.com/convox/rack/options"
 	"github.com/convox/rack/provider"
+	"github.com/convox/rack/structs"
 )
 
 func SystemShow(rw http.ResponseWriter, r *http.Request) *httperr.Error {
-	rack, err := models.Provider().SystemGet()
+	rack, err := Provider.SystemGet()
 	if err != nil {
 		return httperr.Server(err)
 	}
@@ -27,8 +28,8 @@ func SystemShow(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 func SystemProcesses(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	all := r.URL.Query().Get("all")
 
-	ps, err := models.Provider().SystemProcesses(structs.SystemProcessesOptions{
-		All: (all == "true"),
+	ps, err := Provider.SystemProcesses(structs.SystemProcessesOptions{
+		All: options.Bool(all == "true"),
 	})
 	if provider.ErrorNotFound(err) {
 		return httperr.NotFound(err)
@@ -37,16 +38,13 @@ func SystemProcesses(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 		return httperr.Server(err)
 	}
 
-	sort.Sort(ps)
+	sort.Slice(ps, ps.Less)
 
 	return RenderJson(rw, ps)
 }
 
 func SystemUpdate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
-	rack, err := models.Provider().SystemGet()
-	if err != nil {
-		return httperr.Server(err)
-	}
+	opts := structs.SystemUpdateOptions{}
 
 	// update based on form input
 	if cc := GetForm(r, "count"); cc != "" {
@@ -63,28 +61,32 @@ func SystemUpdate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 		case c <= 2:
 			return httperr.Errorf(403, "count must be greater than 2")
 		default:
-			rack.Count = c
+			opts.InstanceCount = options.Int(c)
 		}
 	}
 
 	if t := GetForm(r, "type"); t != "" {
-		rack.Type = t
+		opts.InstanceType = options.String(t)
 	}
 
 	if v := GetForm(r, "version"); v != "" {
-		rack.Version = v
+		opts.Version = options.String(v)
 	}
 
-	err = models.Provider().SystemSave(*rack)
+	if err := Provider.SystemUpdate(opts); err != nil {
+		return httperr.Server(err)
+	}
+
+	s, err := Provider.SystemGet()
 	if err != nil {
 		return httperr.Server(err)
 	}
 
-	return RenderJson(rw, rack)
+	return RenderJson(rw, s)
 }
 
 func SystemCapacity(rw http.ResponseWriter, r *http.Request) *httperr.Error {
-	capacity, err := models.Provider().CapacityGet()
+	capacity, err := Provider.CapacityGet()
 	if err != nil {
 		return httperr.Server(err)
 	}
@@ -111,7 +113,7 @@ func SystemLogs(ws *websocket.Conn) *httperr.Error {
 		}
 	}
 
-	err = models.Provider().SystemLogs(ws, structs.LogStreamOptions{
+	r, err := Provider.SystemLogs(structs.LogsOptions{
 		Filter: header.Get("Filter"),
 		Follow: follow,
 		Since:  time.Now().Add(-1 * since),
@@ -120,12 +122,13 @@ func SystemLogs(ws *websocket.Conn) *httperr.Error {
 		return httperr.Server(err)
 	}
 
+	io.Copy(ws, r)
+
 	return nil
 }
 
-// SystemReleases lists the latest releases of the rack
 func SystemReleases(rw http.ResponseWriter, r *http.Request) *httperr.Error {
-	releases, err := models.Provider().SystemReleases()
+	releases, err := Provider.SystemReleases()
 	if err != nil {
 		return httperr.Server(err)
 	}

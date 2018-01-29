@@ -41,6 +41,18 @@ func Load(data []byte, env Environment) (*Manifest, error) {
 	return &m, nil
 }
 
+func (m *Manifest) Agents() []string {
+	a := []string{}
+
+	for _, s := range m.Services {
+		if s.Agent {
+			a = append(a, s.Name)
+		}
+	}
+
+	return a
+}
+
 func (m *Manifest) Service(name string) (*Service, error) {
 	for _, s := range m.Services {
 		if s.Name == name {
@@ -117,6 +129,10 @@ func (m *Manifest) ApplyDefaults() error {
 	for i, s := range m.Services {
 		if s.Build.Path == "" && s.Image == "" {
 			m.Services[i].Build.Path = "."
+		}
+
+		if m.Services[i].Build.Path != "" && s.Build.Manifest == "" {
+			m.Services[i].Build.Manifest = "Dockerfile"
 		}
 
 		if s.Scale.Count == nil {

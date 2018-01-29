@@ -1,13 +1,17 @@
-.PHONY: all templates test test-deps vendor
+.PHONY: all builder fixtures mocks release templates test vendor
 
 all: templates
 
 builder:
-	docker build -t convox/build:$(USER) -f api/cmd/build/Dockerfile .
+	docker build -t convox/build:$(USER) -f cmd/build/Dockerfile .
 	docker push convox/build:$(USER)
 
 fixtures:
 	make -C api/models/fixtures
+
+mocks:
+	go get -u github.com/vektra/mockery/.../
+	make -C structs mocks
 
 release:
 	make -C provider release VERSION=$(VERSION)

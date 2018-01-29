@@ -2,7 +2,6 @@ package manifest1
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -10,7 +9,7 @@ import (
 	"strings"
 
 	"github.com/convox/rack/sync"
-	"github.com/mitchellh/go-homedir"
+	homedir "github.com/mitchellh/go-homedir"
 )
 
 type Process struct {
@@ -37,14 +36,19 @@ func NewProcess(app string, s Service, m Manifest) Process {
 		service:  s,
 	}
 
-	p.Args = p.GenerateArgs(nil)
+	args, err := p.GenerateArgs(nil)
+	if err != nil {
+		panic(err)
+	}
+
+	p.Args = args
 
 	return p
 }
 
 // GenerateArgs generates the argument list based on a process property
 // Possible to optionally override certain fields via opts
-func (p *Process) GenerateArgs(opts *ArgOptions) []string {
+func (p *Process) GenerateArgs(opts *ArgOptions) ([]string, error) {
 	args := []string{}
 
 	args = append(args, "-i")
@@ -112,28 +116,30 @@ func (p *Process) GenerateArgs(opts *ArgOptions) []string {
 
 	for _, volume := range p.service.Volumes {
 		if !strings.Contains(volume, ":") {
-			home := ""
+			var home string
 
 			switch runtime.GOOS {
 			case "windows":
-				home = "/home/convox" // prefix with container path to use Docker Volume
+				home = "/home/convox"
 			default:
-				d, err := homedir.Dir() // prefix with host path to use OS File Sharing
+				h, err := homedir.Dir()
 				if err != nil {
-					log.Fatal(err)
+					return nil, err
 				}
-				home, err = filepath.Abs(d)
+
+				home, err = filepath.Abs(h)
 				if err != nil {
-					log.Fatal(err)
+					return nil, err
 				}
 			}
 
 			volume = fmt.Sprintf(
 				"%s:%s",
-				filepath.Clean(fmt.Sprintf("%s/.convox/volumes/%s/%s/%s", home, p.app, p.service.Name, volume)),
+				fmt.Sprintf("%s/.convox/volumes/%s/%s/%s", home, p.app, p.service.Name, volume),
 				volume,
 			)
 		}
+
 		args = append(args, "-v", volume)
 	}
 
@@ -155,7 +161,7 @@ func (p *Process) GenerateArgs(opts *ArgOptions) []string {
 		args = append(args, p.service.Command.Array...)
 	}
 
-	return args
+	return args, nil
 }
 
 func (p *Process) Sync(local, remote string) (*sync.Sync, error) {

@@ -1,6 +1,0 @@
-main:
-  build: .
-  command: bin/eat
-  extra_hosts:
-    - "foo:20.20.20.20"
-    - "bar:30.30.30.30"

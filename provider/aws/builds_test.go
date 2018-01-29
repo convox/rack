@@ -11,9 +11,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/convox/rack/api/awsutil"
-	"github.com/convox/rack/api/models"
-	"github.com/convox/rack/api/structs"
+	"github.com/convox/rack/structs"
+	"github.com/convox/rack/test/awsutil"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -22,7 +21,7 @@ func init() {
 	os.Setenv("RACK", "convox")
 	os.Setenv("DYNAMO_BUILDS", "convox-builds")
 	os.Setenv("DYNAMO_RELEASES", "convox-releases")
-	models.PauseNotifications = true
+	// models.PauseNotifications = true
 }
 
 func TestBuildGet(t *testing.T) {
@@ -142,9 +141,9 @@ func TestBuildDelete(t *testing.T) {
 		cycleBuildGetItem,
 		cycleBuildDescribeStacks,
 		cycleReleaseGetItem,
-		cycleReleaseDescribeStackResources,
+		cycleReleaseListStackResources,
 		cycleReleaseEnvironmentGet,
-		cycleSystemDescribeStackResources,
+		cycleSystemListStackResources,
 		cycleBuildDeleteItem,
 		cycleBuildBatchDeleteImage,
 	)
@@ -200,7 +199,7 @@ func TestBuildExport(t *testing.T) {
 	h, err := tr.Next()
 	assert.NoError(t, err)
 	assert.Equal(t, "build.json", h.Name)
-	assert.Equal(t, int64(400), h.Size)
+	assert.Equal(t, int64(454), h.Size)
 
 	data, err := ioutil.ReadAll(tr)
 	assert.NoError(t, err)
@@ -378,7 +377,9 @@ func TestBuildLogsRunning(t *testing.T) {
 
 	buf := &bytes.Buffer{}
 
-	err := provider.BuildLogs("httpd", "B123", buf)
+	r, err := provider.BuildLogs("httpd", "B123", structs.LogsOptions{})
+
+	io.Copy(buf, r)
 
 	assert.NoError(t, err)
 	assert.Equal(t, "RUNNING: docker pull httpd", buf.String())
@@ -387,13 +388,16 @@ func TestBuildLogsRunning(t *testing.T) {
 func TestBuildLogsNotRunning(t *testing.T) {
 	provider := StubAwsProvider(
 		cycleBuildGetItem,
+		cycleObjectListStackResources,
 		cycleBuildFetchLogs,
 	)
 	defer provider.Close()
 
 	buf := &bytes.Buffer{}
 
-	err := provider.BuildLogs("httpd", "B123", buf)
+	r, err := provider.BuildLogs("httpd", "B123", structs.LogsOptions{})
+
+	io.Copy(buf, r)
 
 	assert.NoError(t, err)
 	assert.Equal(t, "RUNNING: docker pull httpd", buf.String())
@@ -486,7 +490,7 @@ var cycleBuildDescribeInstances = awsutil.Cycle{
 						</instancesSet>
 					</item>
 				</reservationSet>
-			</DescribeInstancesRepsonse>
+			</DescribeInstancesResponse>
 		}`,
 	},
 }
@@ -943,7 +947,7 @@ var cycleBuildGetItemRunning = awsutil.Cycle{
 var cycleBuildFetchLogs = awsutil.Cycle{
 	Request: awsutil.Request{
 		Method:     "GET",
-		RequestURI: "/convox-settings/test/foo",
+		RequestURI: "/convox-httpd-settings-139bidzalmbtu/test/foo",
 	},
 	Response: awsutil.Response{
 		StatusCode: 200,
