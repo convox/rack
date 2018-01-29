@@ -23,9 +23,10 @@ var (
 )
 
 type App struct {
-	Name    string `json:"name"`
-	Release string `json:"release"`
-	Status  string `json:"status"`
+	Generation string `json:"generation,omitempty"`
+	Name       string `json:"name"`
+	Release    string `json:"release"`
+	Status     string `json:"status"`
 
 	Outputs    map[string]string `json:"-"`
 	Parameters map[string]string `json:"-"`
@@ -318,6 +319,7 @@ func appFromStack(stack *cloudformation.Stack) *App {
 	}
 	return &App{
 		Name:       name,
+		Generation: first(stackTags(stack)["Generation"], "1"),
 		Release:    first(stackOutputs(stack)["Release"], stackParameters(stack)["Release"]),
 		Status:     humanStatus(*stack.StackStatus),
 		Outputs:    stackOutputs(stack),

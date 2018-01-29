@@ -115,7 +115,7 @@
         "rack",
         { "Fn::Select": [ 0, { "Fn::Split": [ ".", { "Fn::GetAtt": [ "Router", "DNSName" ] } ] } ] },
         { "Fn::Select": [ 1, { "Fn::Split": [ ".", { "Fn::GetAtt": [ "Router", "DNSName" ] } ] } ] },
-        "rack.convox.io"
+        "convox.site"
       ] ] }
     },
     "Gateway": {
@@ -196,6 +196,14 @@
         { "Fn::Select": [ 0, { "Fn::Split": [ ".", { "Fn::GetAtt": [ "Router", "DNSName" ] } ] } ] },
         { "Fn::Select": [ 1, { "Fn::Split": [ ".", { "Fn::GetAtt": [ "Router", "DNSName" ] } ] } ] },
         "rack.convox.io"
+      ] ] }
+    },
+    "RouterHost": {
+      "Export": { "Name": { "Fn::Sub": "${AWS::StackName}:RouterHost" } },
+      "Value": { "Fn::Join": [ ".", [
+        { "Fn::Select": [ 0, { "Fn::Split": [ ".", { "Fn::GetAtt": [ "Router", "DNSName" ] } ] } ] },
+        { "Fn::Select": [ 1, { "Fn::Split": [ ".", { "Fn::GetAtt": [ "Router", "DNSName" ] } ] } ] },
+        "convox.site"
       ] ] }
     },
     "RouterListener80": {
@@ -333,7 +341,7 @@
     "ClientId": {
       "Type": "String",
       "Description": "Anonymous identifier",
-      "Default": "dev@convox.com"
+      "Default": ""
     },
     "ContainerDisk": {
       "Type": "Number",
@@ -1697,6 +1705,9 @@
       "DependsOn": "ApiRole",
       "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
       "Properties": {
+        "LoadBalancerAttributes": [
+          { "Key": "idle_timeout.timeout_seconds", "Value": "3600" }
+        ],
         "Subnets": [
           { "Ref": "Subnet0" },
           { "Ref": "Subnet1" },
@@ -1742,7 +1753,7 @@
           "*",
           { "Fn::Select": [ 0, { "Fn::Split": [ ".", { "Fn::GetAtt": [ "Router", "DNSName" ] } ] } ] },
           { "Fn::Select": [ 1, { "Fn::Split": [ ".", { "Fn::GetAtt": [ "Router", "DNSName" ] } ] } ] },
-          "rack.convox.io"
+          "convox.site"
         ] ] },
         "DomainValidationOptions": [
           {
@@ -1750,9 +1761,9 @@
               "*",
               { "Fn::Select": [ 0, { "Fn::Split": [ ".", { "Fn::GetAtt": [ "Router", "DNSName" ] } ] } ] },
               { "Fn::Select": [ 1, { "Fn::Split": [ ".", { "Fn::GetAtt": [ "Router", "DNSName" ] } ] } ] },
-              "rack.convox.io"
+              "convox.site"
             ] ] },
-            "ValidationDomain": "rack.convox.io"
+            "ValidationDomain": "convox.site"
           }
         ]
       }
@@ -2064,6 +2075,10 @@
                 { "Ref": "Subnet1" },
                 { "Fn::If": [ "ThirdAvailabilityZone", { "Ref": "Subnet2" }, { "Ref": "AWS::NoValue" } ] }
               ] ] } },
+              { "Name": "SUBNETS_PRIVATE", "Value": { "Fn::If": [ "Private",
+                { "Fn::Join": [ ",", [ { "Ref": "SubnetPrivate0" }, { "Ref": "SubnetPrivate1" }, { "Fn::If": [ "ThirdAvailabilityZone", { "Ref": "SubnetPrivate2" }, { "Ref": "AWS::NoValue" } ] } ] ] },
+                ""
+              ] } },
               { "Name": "VPC", "Value": { "Fn::If": [ "BlankExistingVpc",
                 { "Ref": "Vpc" },
                 { "Ref": "ExistingVpc" }

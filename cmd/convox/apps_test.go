@@ -10,7 +10,7 @@ import (
 func TestApps(t *testing.T) {
 	ts := testServer(t,
 		test.Http{Method: "GET", Path: "/apps", Code: 200, Response: client.Apps{
-			client.App{Name: "sinatra", Status: "running"},
+			client.App{Generation: "2", Name: "sinatra", Status: "running"},
 		}},
 	)
 
@@ -20,7 +20,7 @@ func TestApps(t *testing.T) {
 		test.ExecRun{
 			Command: "convox apps",
 			Exit:    0,
-			Stdout:  "APP      STATUS\nsinatra  running\n",
+			Stdout:  "APP      STATUS   GEN\nsinatra  running  2\n",
 		},
 	)
 }
