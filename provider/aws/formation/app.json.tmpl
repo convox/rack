@@ -1,6 +1,7 @@
 {
   "AWSTemplateFormatVersion" : "2010-09-09",
   "Conditions": {
+    {{ template "domain-condition" .Manifest }}
     "BlankIamPolicy": { "Fn::Equals": [ { "Ref": "IamPolicy" }, "" ] },
     "BlankLogBucket": { "Fn::Equals": [ { "Ref": "LogBucket" }, "" ] }
   },
@@ -25,6 +26,8 @@
     }
   },
   "Parameters" : {
+    {{ template "domain-params" .Manifest }}
+
     {{ template "service-params" .Manifest }}
 
     "IamPolicy": {
@@ -65,7 +68,7 @@
         "Value": {{ if .Domain }} { "Ref": "Balancer{{ upper .Name }}Certificate" } {{ else }} { "Fn::ImportValue": { "Fn::Sub": "${Rack}:RouterCertificate" } } {{ end }}
       },
       "Service{{ upper .Name }}Endpoint": {
-        "Value": { "Fn::Join": [ ".", [ "{{$.App}}-{{.Name}}", { "Fn::ImportValue": { "Fn::Sub": "${Rack}:{{ router .Name $.Manifest }}Host" } } ] ] }
+        "Value": { "Fn::If": [ "{{ upper .Name }}DefaultDomain", { "Fn::Join": [ ".", [ "{{$.App}}-{{.Name}}", { "Fn::ImportValue": { "Fn::Sub": "${Rack}:{{ router .Name $.Manifest }}Host" } } ] ] }, "" ] }
       },
     {{ end }}
   {{ end }}
@@ -75,6 +78,7 @@
   {{ range $service := .Manifest.Services }}
     {{ if .Port.Port }}
       "Balancer{{ upper .Name }}ListenerRule80": {
+        "Condition": "{{ upper .Name }}DefaultDomain",
         "Type": "AWS::ElasticLoadBalancingV2::ListenerRule",
         "Properties": {
         "Actions": [ { "Type": "forward", "TargetGroupArn": { "Ref": "Balancer{{ upper .Name }}TargetGroup{{ if .Internal }}Internal{{ end }}" } } ],
@@ -84,6 +88,7 @@
         }
       },
       "Balancer{{ upper .Name }}ListenerRule443": {
+        "Condition": "{{ upper .Name }}DefaultDomain",
         "Type": "AWS::ElasticLoadBalancingV2::ListenerRule",
         "Properties": {
         "Actions": [ { "Type": "forward", "TargetGroupArn": { "Ref": "Balancer{{ upper .Name }}TargetGroup{{ if .Internal }}Internal{{ end }}" } } ],
@@ -103,6 +108,7 @@
         }
       },
       "Balancer{{ upper .Name }}ListenerRule80Internal": {
+        "Condition": "{{ upper .Name }}DefaultDomain",
         "Type": "AWS::ElasticLoadBalancingV2::ListenerRule",
         "Properties": {
         "Actions": [ { "Type": "forward", "TargetGroupArn": { "Ref": "Balancer{{ upper .Name }}TargetGroup{{ if .Internal }}Internal{{ end }}" } } ],
@@ -112,6 +118,7 @@
         }
       },
       "Balancer{{ upper .Name }}ListenerRule443Internal": {
+        "Condition": "{{ upper .Name }}DefaultDomain",
         "Type": "AWS::ElasticLoadBalancingV2::ListenerRule",
         "Properties": {
         "Actions": [ { "Type": "forward", "TargetGroupArn": { "Ref": "Balancer{{ upper .Name }}TargetGroup{{ if .Internal }}Internal{{ end }}" } } ],
@@ -213,6 +220,26 @@
   {{ end }}
 {{ end }}
 
+{{ define "domain-condition" }}
+  {{ range .Services }}
+    "{{ upper .Name }}DefaultDomain": { "Fn::Equals": [ { "Ref": "{{ upper .Name }}DefaultDomain" }, "Yes" ] },
+  {{ end }}
+{{ end }}
+
+{{ define "domain-params" }}
+  {{ range .Services }}
+    "{{ upper .Name }}DefaultDomain": {
+      "Type": "String",
+      "Description": "Create Default Domain",
+      "Default": "Yes",
+      "AllowedValues": [
+        "Yes",
+        "No"
+      ]
+    },
+  {{ end }}
+{{ end }}
+
 {{ define "service-params" }}
   {{ range .Services }}
     "{{ upper .Name }}Formation": {
@@ -248,7 +275,10 @@
   {{ range .Manifest.Services }}
     "Service{{ upper .Name }}Service": {
       "Type": "AWS::ECS::Service",
-      {{ if .Port.Port }}
+      {{ if (and (.Port.Port) (.Domain)) }}
+        "DependsOn": [ "Balancer{{ upper .Name }}ListenerRule80Domain0" ],
+      {{ else if .Port.Port }}
+        "Condition": "{{ upper .Name }}DefaultDomain",
         "DependsOn": [ "Balancer{{ upper .Name }}ListenerRule80" ],
       {{ end }}
       "Properties": {
