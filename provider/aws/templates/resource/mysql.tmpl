@@ -119,7 +119,7 @@
           "VPCSecurityGroups": [ { "Ref": "SecurityGroup" } ]
         }
       },
-            "EncryptionKey": {
+      "EncryptionKey": {
         "Type": "AWS::KMS::Key",
         "Condition": "Encrypted",
         "Properties": {
