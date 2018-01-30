@@ -103,9 +103,6 @@
     "Dashboard": {
       "Value": { "Fn::GetAtt": [ "Balancer", "DNSName" ] }
     },
-    "DockerImageApi": {
-      "Value": { "Fn::Join": [ ":", [ "convox/api", { "Ref": "Version" } ] ] }
-    },
     "Domain": {
       "Export": { "Name": { "Fn::Sub": "${AWS::StackName}:Domain" } },
       "Value": { "Fn::GetAtt": [ "Router", "DNSName" ] }
@@ -2155,7 +2152,6 @@
               { "Name": "CLOUDFORMATION_TOPIC", "Value": { "Ref": "CloudformationTopic" } },
               { "Name": "CLUSTER", "Value": { "Ref": "Cluster" } },
               { "Name": "CUSTOM_TOPIC", "Value": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] } },
-              { "Name": "DOCKER_IMAGE_API", "Value": { "Fn::Sub": "convox/api:${Version}" } },
               { "Name": "DYNAMO_BUILDS", "Value": { "Ref": "DynamoBuilds" } },
               { "Name": "DYNAMO_RELEASES", "Value": { "Ref": "DynamoReleases" } },
               { "Name": "ENCRYPTION_KEY", "Value": { "Ref": "EncryptionKey" } },
@@ -2226,7 +2222,6 @@
               { "Name": "CLOUDFORMATION_TOPIC", "Value": { "Ref": "CloudformationTopic" } },
               { "Name": "CLUSTER", "Value": { "Ref": "Cluster" } },
               { "Name": "CUSTOM_TOPIC", "Value": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] } },
-              { "Name": "DOCKER_IMAGE_API", "Value": { "Fn::Sub": "convox/api:${Version}" } },
               { "Name": "DYNAMO_BUILDS", "Value": { "Ref": "DynamoBuilds" } },
               { "Name": "DYNAMO_RELEASES", "Value": { "Ref": "DynamoReleases" } },
               { "Name": "ENCRYPTION_KEY", "Value": { "Ref": "EncryptionKey" } },
@@ -2294,7 +2289,6 @@
               { "Name": "CLOUDFORMATION_TOPIC", "Value": { "Ref": "CloudformationTopic" } },
               { "Name": "CLUSTER", "Value": { "Ref": "Cluster" } },
               { "Name": "CUSTOM_TOPIC", "Value": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] } },
-              { "Name": "DOCKER_IMAGE_API", "Value": { "Fn::Sub": "convox/api:${Version}" } },
               { "Name": "DYNAMO_BUILDS", "Value": { "Ref": "DynamoBuilds" } },
               { "Name": "DYNAMO_RELEASES", "Value": { "Ref": "DynamoReleases" } },
               { "Name": "ENCRYPTION_KEY", "Value": { "Ref": "EncryptionKey" } },
