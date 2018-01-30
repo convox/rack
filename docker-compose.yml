@@ -15,7 +15,6 @@ services:
       - CLUSTER
       - CUSTOM_TOPIC
       - DEBUG=false
-      - DOCKER_IMAGE_API=rack/web
       - DYNAMO_BUILDS
       - DYNAMO_RELEASES
       - ENCRYPTION_KEY
@@ -60,7 +59,6 @@ services:
       - CLUSTER
       - CUSTOM_TOPIC
       - DEBUG=false
-      - DOCKER_IMAGE_API=rack/web
       - DYNAMO_BUILDS
       - DYNAMO_RELEASES
       - ENCRYPTION_KEY
