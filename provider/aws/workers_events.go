@@ -26,7 +26,7 @@ type appLogStream struct {
 
 type queueHandler func(body string) error
 
-type event struct {
+type ecsEvent struct {
 	Account    string
 	DetailType string `json:"detail-type"`
 	Detail     interface{}
@@ -126,7 +126,7 @@ func (p *AWSProvider) handleCloudformationEvents() {
 
 func (p *AWSProvider) handleAccountEvents() {
 	err := p.processQueue("AccountEvents", func(body string) error {
-		var e event
+		var e ecsEvent
 
 		if err := json.Unmarshal([]byte(body), &e); err != nil {
 			return err

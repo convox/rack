@@ -350,7 +350,7 @@ func (p *AWSProvider) SystemUpdate(opts structs.SystemUpdateOptions) error {
 	}
 
 	// notify about the update
-	p.EventSend(&structs.Event{Action: "rack:update", Data: changes}, nil)
+	p.EventSend("rack:update", structs.EventSendOptions{Data: changes})
 
 	return nil
 }

@@ -38,7 +38,6 @@ var (
 	currentManifest string
 	currentProvider structs.Provider
 
-	event *structs.Event
 )
 
 func init() {
@@ -102,12 +101,6 @@ func main() {
 		}
 	}
 
-	event = &structs.Event{
-		Action: "build:create",
-		Data: map[string]string{
-			"app": flagApp,
-			"id":  flagID,
-		},
 	}
 
 	if err := execute(); err != nil {
@@ -118,11 +111,7 @@ func main() {
 		fail(err)
 	}
 
-	event.Status = "success"
-	event.Data["release_id"] = currentBuild.Release
-	if err := currentProvider.EventSend(event, nil); err != nil {
-		fmt.Fprintf(os.Stderr, "ERROR: %s\n", err)
-	}
+	rack.EventSend("build:create", structs.EventSendOptions{Data: map[string]string{"app": flagApp, "id": flagID, "release_id": currentBuild.Release}})
 
 	clean()
 
@@ -371,11 +360,10 @@ func success() error {
 
 func fail(err error) {
 	log(fmt.Sprintf("ERROR: %s", err))
-	if e := currentProvider.EventSend(event, err); e != nil {
-		fmt.Fprintf(os.Stderr, "ERROR: %s\n", e)
-	}
 
 	logs, _ := currentProvider.ObjectStore(flagApp, fmt.Sprintf("build/%s/logs", currentBuild.Id), bytes.NewReader([]byte(currentLogs)), structs.ObjectStoreOptions{})
+	rack.EventSend("build:create", structs.EventSendOptions{Data: map[string]string{"app": flagApp, "id": flagID, "release_id": currentBuild.Release}, Error: err.Error()})
+
 
 	now := time.Now()
 	status := "failed"
