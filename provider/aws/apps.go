@@ -135,6 +135,10 @@ func (p *AWSProvider) AppDelete(name string) error {
 		return err
 	}
 
+	if app.Tags["Type"] != "app" || app.Tags["System"] != "convox" || app.Tags["Rack"] != os.Getenv("RACK") {
+		return fmt.Errorf("invalid app: %s", name)
+	}
+
 	resources, err := p.ResourceList()
 	if err != nil {
 		return err

@@ -87,16 +87,12 @@ func AppCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 func AppDelete(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	name := mux.Vars(r)["app"]
 
-	app, err := Provider.AppGet(name)
+	_, err := Provider.AppGet(name)
 	if awsError(err) == "ValidationError" {
 		return httperr.Errorf(404, "no such app: %s", name)
 	}
 	if err != nil {
 		return httperr.Server(err)
-	}
-
-	if app.Tags["Type"] != "app" || app.Tags["System"] != "convox" || app.Tags["Rack"] != os.Getenv("RACK") {
-		return httperr.Errorf(404, "invalid app: %s", name)
 	}
 
 	if err := Provider.AppDelete(name); err != nil {
