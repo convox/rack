@@ -1,31 +1,67 @@
 package api
 
 import (
+	"crypto/tls"
+	"net"
 	"net/http"
 
-	"github.com/codegangsta/negroni"
+	"github.com/convox/logger"
 )
 
 type Server struct {
-	*negroni.Negroni
-	log *Logger
+	Hostname   string
+	Logger     *logger.Logger
+	Router     *Router
+	middleware []Middleware
 }
 
-func NewServer() Server {
-	server := Server{
-		Negroni: negroni.New(),
-		log:     NewLogger(),
+func (s *Server) Listen(proto, addr string) error {
+	s.Logger.At("listen").Logf("hostname=%q proto=%q addr=%q", s.Hostname, proto, addr)
+
+	l, err := net.Listen("tcp", addr)
+	if err != nil {
+		return err
 	}
 
-	server.Use(server.log)
+	switch proto {
+	case "h2", "https", "tls":
+		config := &tls.Config{
+			NextProtos: []string{"h2"},
+		}
 
-	return server
+		cert, err := generateSelfSignedCertificate(s.Hostname)
+		if err != nil {
+			return err
+		}
+
+		config.Certificates = append(config.Certificates, cert)
+
+		l = tls.NewListener(l, config)
+	}
+
+	return http.Serve(l, s)
 }
 
-func (s *Server) Listen(addr string) {
-	s.log.Logf("listen=%q", addr)
+func (s *Server) Route(method, path string, fn HandlerFunc) {
+	s.Router.Route(method, path, fn)
+}
 
-	if err := http.ListenAndServe(addr, s.Negroni); err != nil {
-		s.log.Error(err)
+func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	s.Router.ServeHTTP(w, r)
+}
+
+func (s *Server) Subrouter(prefix string) Router {
+	return Router{
+		Parent: s.Router,
+		Router: s.Router.PathPrefix(prefix).Subrouter(),
+		Server: s,
 	}
+}
+
+func (s *Server) Use(mw Middleware) {
+	s.Router.Use(mw)
+}
+
+func (s *Server) UseHandlerFunc(fn http.HandlerFunc) {
+	s.Router.UseHandlerFunc(fn)
 }

@@ -77,7 +77,7 @@
   branch = "master"
   name = "github.com/convox/api"
   packages = ["."]
-  revision = "de014b01994be12384421e508cebfac4fb55f491"
+  revision = "acaf978c873d388307ffc1422064daca528ab146"
 
 [[projects]]
   branch = "master"
