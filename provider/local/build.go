@@ -1,7 +1,6 @@
 package local
 
 import (
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -16,7 +15,7 @@ import (
 )
 
 const (
-	BuildCacheDuration = 5 * time.Minute
+	BuildCacheDuration = 1 * time.Second
 )
 
 var buildUpdateLock sync.Mutex
@@ -31,16 +30,13 @@ func (p *Provider) BuildCreate(app, method, url string, opts structs.BuildCreate
 
 	b := structs.NewBuild(app)
 
+	b.Started = time.Now()
+
 	if err := p.storageStore(fmt.Sprintf("apps/%s/builds/%s", app, b.Id), b); err != nil {
 		return nil, errors.WithStack(log.Error(err))
 	}
 
-	registries, err := p.RegistryList()
-	if err != nil {
-		return nil, errors.WithStack(log.Error(err))
-	}
-
-	auth, err := json.Marshal(registries)
+	auth, err := p.buildAuth()
 	if err != nil {
 		return nil, errors.WithStack(log.Error(err))
 	}
@@ -53,19 +49,28 @@ func (p *Provider) BuildCreate(app, method, url string, opts structs.BuildCreate
 	buildUpdateLock.Lock()
 	defer buildUpdateLock.Unlock()
 
+	cache := true
+
+	if opts.Cache != nil {
+		cache = *opts.Cache
+	}
+
 	pid, err := p.ProcessStart(app, structs.ProcessRunOptions{
-		Command: options.String(fmt.Sprintf("build -id %s -url %s", b.Id, url)),
+		Command: options.String(fmt.Sprintf("build -method %s -cache %t", method, cache)),
 		Environment: map[string]string{
-			"BUILD_APP":         app,
-			"BUILD_AUTH":        base64.StdEncoding.EncodeToString(auth),
-			"BUILD_DEVELOPMENT": fmt.Sprintf("%t", opts.Development),
-			"BUILD_PREFIX":      fmt.Sprintf("%s/%s", p.Name, app),
+			"BUILD_APP":        app,
+			"BUILD_AUTH":       string(auth),
+			"BUILD_GENERATION": "2",
+			"BUILD_ID":         b.Id,
+			"BUILD_URL":        url,
+			"PROVIDER":         "local",
 		},
 		Name:    options.String(fmt.Sprintf("%s-build-%s", app, b.Id)),
 		Image:   options.String(sys.Image),
 		Release: options.String(a.Release),
 		Service: options.String("build"),
 		Volumes: map[string]string{
+			"/Users/Shared/convox": "/var/convox",
 			"/var/run/docker.sock": "/var/run/docker.sock",
 		},
 	})
@@ -130,7 +135,7 @@ func (p *Provider) BuildList(app string, opts structs.BuildListOptions) (structs
 		builds[i] = *build
 	}
 
-	sort.Slice(builds, func(i, j int) bool { return builds[i].Created.Before(builds[j].Created) })
+	sort.Slice(builds, func(i, j int) bool { return builds[i].Started.After(builds[j].Started) })
 
 	if opts.Count != nil && len(builds) > *opts.Count {
 		builds = builds[0:(*opts.Count)]
@@ -147,13 +152,17 @@ func (p *Provider) BuildLogs(app, id string, opts structs.LogsOptions) (io.ReadC
 		return nil, log.Error(err)
 	}
 
+	fmt.Printf("build = %+v\n", build)
+
 	switch build.Status {
-	case "running":
+	case "created", "running":
+		fmt.Println("a")
 		log.Success()
 		return p.ProcessLogs(app, build.Process, structs.LogsOptions{Follow: true, Prefix: false})
 	default:
+		fmt.Println("b")
 		log.Success()
-		return p.ObjectFetch(app, fmt.Sprintf("convox/builds/%s/log", id))
+		return p.ObjectFetch(app, fmt.Sprintf("build/%s/logs", id))
 	}
 }
 
@@ -197,4 +206,32 @@ func (p *Provider) BuildUpdate(app, id string, opts structs.BuildUpdateOptions) 
 	}
 
 	return b, log.Success()
+}
+
+func (p *Provider) buildAuth() (string, error) {
+	type authEntry struct {
+		Username string
+		Password string
+	}
+
+	auth := map[string]authEntry{}
+
+	registries, err := p.RegistryList()
+	if err != nil {
+		return "", err
+	}
+
+	for _, r := range registries {
+		auth[r.Server] = authEntry{
+			Username: r.Username,
+			Password: r.Password,
+		}
+	}
+
+	data, err := json.Marshal(auth)
+	if err != nil {
+		return "", err
+	}
+
+	return string(data), nil
 }
