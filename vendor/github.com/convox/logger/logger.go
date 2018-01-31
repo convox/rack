@@ -43,21 +43,6 @@ func (l *Logger) Step(step string) *Logger {
 	return l.Replace("step", step)
 }
 
-func (l *Logger) Append(format string, args ...interface{}) *Logger {
-	return &Logger{
-		namespace: fmt.Sprintf("%s %s", l.namespace, fmt.Sprintf(format, args...)),
-		started:   l.started,
-		writer:    l.writer,
-	}
-}
-
-func (l *Logger) Prepend(format string, args ...interface{}) *Logger {
-	return &Logger{
-		namespace: fmt.Sprintf("%s %s", fmt.Sprintf(format, args...), l.namespace),
-		started:   l.started,
-		writer:    l.writer,
-	}
-}
 func (l *Logger) Error(err error) error {
 	if _, file, line, ok := runtime.Caller(1); ok {
 		l.Logf("state=error error=%q location=%q", strings.Replace(err.Error(), "\n", " ", -1), fmt.Sprintf("%s:%d", file, line))
@@ -128,14 +113,12 @@ func (l *Logger) Start() *Logger {
 	}
 }
 
-func (l *Logger) Success() error {
+func (l *Logger) Success() {
 	l.Logf("state=success")
-	return nil
 }
 
-func (l *Logger) Successf(format string, args ...interface{}) error {
+func (l *Logger) Successf(format string, args ...interface{}) {
 	l.Logf("state=success %s", fmt.Sprintf(format, args...))
-	return nil
 }
 
 func (l *Logger) Writer() io.Writer {
