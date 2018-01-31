@@ -1,9 +1,9 @@
 {
   "AWSTemplateFormatVersion" : "2010-09-09",
   "Conditions": {
-    {{ template "domain-condition" .Manifest }}
     "BlankIamPolicy": { "Fn::Equals": [ { "Ref": "IamPolicy" }, "" ] },
-    "BlankLogBucket": { "Fn::Equals": [ { "Ref": "LogBucket" }, "" ] }
+    "BlankLogBucket": { "Fn::Equals": [ { "Ref": "LogBucket" }, "" ] },
+    "DefaultDomain": { "Fn::Equals": [ { "Ref": "DefaultDomain" }, "Yes" ] }
   },
   "Outputs": {
     {{ template "balancer-outputs" . }}
@@ -26,10 +26,17 @@
     }
   },
   "Parameters" : {
-    {{ template "domain-params" .Manifest }}
-
     {{ template "service-params" .Manifest }}
 
+    "DefaultDomain": {
+      "Type": "String",
+      "Description": "Create Default Domain",
+      "Default": "Yes",
+      "AllowedValues": [
+        "Yes",
+        "No"
+      ]
+    },
     "IamPolicy": {
       "Type": "String",
       "Default": ""
@@ -68,7 +75,7 @@
         "Value": {{ if .Domain }} { "Ref": "Balancer{{ upper .Name }}Certificate" } {{ else }} { "Fn::ImportValue": { "Fn::Sub": "${Rack}:RouterCertificate" } } {{ end }}
       },
       "Service{{ upper .Name }}Endpoint": {
-        "Value": { "Fn::If": [ "{{ upper .Name }}DefaultDomain", { "Fn::Join": [ ".", [ "{{$.App}}-{{.Name}}", { "Fn::ImportValue": { "Fn::Sub": "${Rack}:{{ router .Name $.Manifest }}Host" } } ] ] }, "" ] }
+        "Value": { "Fn::If": [ "DefaultDomain", { "Fn::Join": [ ".", [ "{{$.App}}-{{.Name}}", { "Fn::ImportValue": { "Fn::Sub": "${Rack}:{{ router .Name $.Manifest }}Host" } } ] ] }, "" ] }
       },
     {{ end }}
   {{ end }}
@@ -78,7 +85,7 @@
   {{ range $service := .Manifest.Services }}
     {{ if .Port.Port }}
       "Balancer{{ upper .Name }}ListenerRule80": {
-        "Condition": "{{ upper .Name }}DefaultDomain",
+        "Condition": "DefaultDomain",
         "Type": "AWS::ElasticLoadBalancingV2::ListenerRule",
         "Properties": {
         "Actions": [ { "Type": "forward", "TargetGroupArn": { "Ref": "Balancer{{ upper .Name }}TargetGroup{{ if .Internal }}Internal{{ end }}" } } ],
@@ -88,7 +95,7 @@
         }
       },
       "Balancer{{ upper .Name }}ListenerRule443": {
-        "Condition": "{{ upper .Name }}DefaultDomain",
+        "Condition": "DefaultDomain",
         "Type": "AWS::ElasticLoadBalancingV2::ListenerRule",
         "Properties": {
         "Actions": [ { "Type": "forward", "TargetGroupArn": { "Ref": "Balancer{{ upper .Name }}TargetGroup{{ if .Internal }}Internal{{ end }}" } } ],
@@ -98,6 +105,7 @@
         }
       },
       "RecordSet{{ upper .Name }}Internal": {
+        "Condition": "DefaultDomain",
         "Type": "AWS::Route53::RecordSet",
         "Properties": {
           "HostedZoneId": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:HostedZone" } },
@@ -108,7 +116,7 @@
         }
       },
       "Balancer{{ upper .Name }}ListenerRule80Internal": {
-        "Condition": "{{ upper .Name }}DefaultDomain",
+        "Condition": "DefaultDomain",
         "Type": "AWS::ElasticLoadBalancingV2::ListenerRule",
         "Properties": {
         "Actions": [ { "Type": "forward", "TargetGroupArn": { "Ref": "Balancer{{ upper .Name }}TargetGroup{{ if .Internal }}Internal{{ end }}" } } ],
@@ -118,7 +126,7 @@
         }
       },
       "Balancer{{ upper .Name }}ListenerRule443Internal": {
-        "Condition": "{{ upper .Name }}DefaultDomain",
+        "Condition": "DefaultDomain",
         "Type": "AWS::ElasticLoadBalancingV2::ListenerRule",
         "Properties": {
         "Actions": [ { "Type": "forward", "TargetGroupArn": { "Ref": "Balancer{{ upper .Name }}TargetGroup{{ if .Internal }}Internal{{ end }}" } } ],
@@ -220,26 +228,6 @@
   {{ end }}
 {{ end }}
 
-{{ define "domain-condition" }}
-  {{ range .Services }}
-    "{{ upper .Name }}DefaultDomain": { "Fn::Equals": [ { "Ref": "{{ upper .Name }}DefaultDomain" }, "Yes" ] },
-  {{ end }}
-{{ end }}
-
-{{ define "domain-params" }}
-  {{ range .Services }}
-    "{{ upper .Name }}DefaultDomain": {
-      "Type": "String",
-      "Description": "Create Default Domain",
-      "Default": "Yes",
-      "AllowedValues": [
-        "Yes",
-        "No"
-      ]
-    },
-  {{ end }}
-{{ end }}
-
 {{ define "service-params" }}
   {{ range .Services }}
     "{{ upper .Name }}Formation": {
@@ -278,7 +266,7 @@
       {{ if (and (.Port.Port) (.Domain)) }}
         "DependsOn": [ "Balancer{{ upper .Name }}ListenerRule80Domain0" ],
       {{ else if .Port.Port }}
-        "Condition": "{{ upper .Name }}DefaultDomain",
+        "Condition": "DefaultDomain",
         "DependsOn": [ "Balancer{{ upper .Name }}ListenerRule80" ],
       {{ end }}
       "Properties": {
