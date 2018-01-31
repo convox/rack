@@ -11,6 +11,42 @@ import (
 	"github.com/gorilla/mux"
 )
 
+func ReleaseCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
+	app := mux.Vars(r)["app"]
+
+	var opts structs.ReleaseCreateOptions
+
+	if err := unmarshalOptions(r, &opts); err != nil {
+		return httperr.Server(err)
+	}
+
+	rl, err := Provider.ReleaseCreate(app, opts)
+	if err != nil {
+		return httperr.Server(err)
+	}
+
+	return RenderJson(rw, rl)
+}
+
+func ReleaseGet(rw http.ResponseWriter, req *http.Request) *httperr.Error {
+	vars := mux.Vars(req)
+	app := vars["app"]
+	release := vars["release"]
+
+	r, err := Provider.ReleaseGet(app, release)
+	if awsError(err) == "ValidationError" {
+		return httperr.Errorf(404, "no such app: %s", app)
+	}
+	if err != nil && strings.HasPrefix(err.Error(), "no such release") {
+		return httperr.Errorf(404, err.Error())
+	}
+	if err != nil {
+		return httperr.Server(err)
+	}
+
+	return RenderJson(rw, r)
+}
+
 func ReleaseList(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	app := mux.Vars(r)["app"]
 
@@ -35,25 +71,6 @@ func ReleaseList(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	return RenderJson(rw, releases)
 }
 
-func ReleaseGet(rw http.ResponseWriter, req *http.Request) *httperr.Error {
-	vars := mux.Vars(req)
-	app := vars["app"]
-	release := vars["release"]
-
-	r, err := Provider.ReleaseGet(app, release)
-	if awsError(err) == "ValidationError" {
-		return httperr.Errorf(404, "no such app: %s", app)
-	}
-	if err != nil && strings.HasPrefix(err.Error(), "no such release") {
-		return httperr.Errorf(404, err.Error())
-	}
-	if err != nil {
-		return httperr.Server(err)
-	}
-
-	return RenderJson(rw, r)
-}
-
 func ReleasePromote(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	vars := mux.Vars(r)
 	app := vars["app"]
@@ -67,18 +84,12 @@ func ReleasePromote(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 		return httperr.Server(err)
 	}
 
-	event := &structs.Event{
-		Action: "release:promote",
-		Status: "start",
-		Data:   map[string]string{"app": app, "id": release},
-	}
-
-	Provider.EventSend(event, nil)
-
 	if err := Provider.ReleasePromote(app, release); err != nil {
-		Provider.EventSend(event, err)
+		Provider.EventSend("release:promote", structs.EventSendOptions{Status: "start", Data: map[string]string{"app": app, "id": release}, Error: err.Error()})
 		return httperr.Server(err)
 	}
+
+	Provider.EventSend("release:promote", structs.EventSendOptions{Status: "start", Data: map[string]string{"app": app, "id": release}})
 
 	rr, err := Provider.ReleaseGet(app, release)
 	if err != nil {

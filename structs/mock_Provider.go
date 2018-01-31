@@ -415,13 +415,13 @@ func (_m *MockProvider) CertificateList() (Certificates, error) {
 	return r0, r1
 }
 
-// EventSend provides a mock function with given fields: _a0, _a1
-func (_m *MockProvider) EventSend(_a0 *Event, _a1 error) error {
-	ret := _m.Called(_a0, _a1)
+// EventSend provides a mock function with given fields: action, opts
+func (_m *MockProvider) EventSend(action string, opts EventSendOptions) error {
+	ret := _m.Called(action, opts)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(*Event, error) error); ok {
-		r0 = rf(_a0, _a1)
+	if rf, ok := ret.Get(0).(func(string, EventSendOptions) error); ok {
+		r0 = rf(action, opts)
 	} else {
 		r0 = ret.Error(0)
 	}

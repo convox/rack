@@ -682,13 +682,6 @@ func (p *AWSProvider) resolveLinks(a *structs.App, m *manifest1.Manifest, r *str
 }
 
 func (p *AWSProvider) waitForPromotion(r *structs.Release) {
-	event := &structs.Event{
-		Action: "release:promote",
-		Data: map[string]string{
-			"app": r.App,
-			"id":  r.Id,
-		},
-	}
 	stackName := fmt.Sprintf("%s-%s", os.Getenv("RACK"), r.App)
 
 	waitch := make(chan error)
@@ -713,13 +706,12 @@ func (p *AWSProvider) waitForPromotion(r *structs.Release) {
 		select {
 		case err := <-waitch:
 			if err == nil {
-				event.Status = "success"
-				p.EventSend(event, nil)
+				p.EventSend("release:promote", structs.EventSendOptions{Data: map[string]string{"app": r.App, "id": r.Id}})
 				return
 			}
 
 			if err != nil && err.Error() == "exceeded 120 wait attempts" {
-				p.EventSend(event, fmt.Errorf("couldn't determine promotion status, timed out"))
+				p.EventSend("release:promote", structs.EventSendOptions{Data: map[string]string{"app": r.App, "id": r.Id}, Error: "timeout"})
 				fmt.Println(fmt.Errorf("couldn't determine promotion status, timed out"))
 				return
 			}
@@ -728,13 +720,13 @@ func (p *AWSProvider) waitForPromotion(r *structs.Release) {
 				StackName: aws.String(stackName),
 			})
 			if err != nil {
-				p.EventSend(event, fmt.Errorf("unable to check stack status: %s", err))
+				p.EventSend("release:promote", structs.EventSendOptions{Data: map[string]string{"app": r.App, "id": r.Id}, Error: "unable to check status"})
 				fmt.Println(fmt.Errorf("unable to check stack status: %s", err))
 				return
 			}
 
 			if len(resp.Stacks) < 1 {
-				p.EventSend(event, fmt.Errorf("app stack was not found: %s", stackName))
+				p.EventSend("release:promote", structs.EventSendOptions{Data: map[string]string{"app": r.App, "id": r.Id}, Error: "app stack not found"})
 				fmt.Println(fmt.Errorf("app stack was not found: %s", stackName))
 				return
 			}
@@ -743,7 +735,7 @@ func (p *AWSProvider) waitForPromotion(r *structs.Release) {
 				StackName: aws.String(stackName),
 			})
 			if err != nil {
-				p.EventSend(event, fmt.Errorf("unable to check stack events: %s", err))
+				p.EventSend("release:promote", structs.EventSendOptions{Data: map[string]string{"app": r.App, "id": r.Id}, Error: "unable to check stack events"})
 				fmt.Println(fmt.Errorf("unable to check stack events: %s", err))
 				return
 			}
@@ -769,7 +761,7 @@ func (p *AWSProvider) waitForPromotion(r *structs.Release) {
 				)
 			}
 
-			p.EventSend(event, fmt.Errorf("release %s failed - %s", r.Id, ee.Error()))
+			p.EventSend("release:promote", structs.EventSendOptions{Data: map[string]string{"app": r.App, "id": r.Id}, Error: ee.Error()})
 		}
 	}
 }

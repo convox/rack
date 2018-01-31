@@ -31,7 +31,7 @@ type Provider interface {
 	CertificateGenerate(domains []string) (*Certificate, error)
 	CertificateList() (Certificates, error)
 
-	EventSend(*Event, error) error
+	EventSend(action string, opts EventSendOptions) error
 
 	InstanceKeyroll() error
 	InstanceList() (Instances, error)
