@@ -17,58 +17,44 @@ import (
 	"github.com/boltdb/bolt"
 	"github.com/convox/logger"
 	"github.com/convox/rack/structs"
-	homedir "github.com/mitchellh/go-homedir"
 )
-
-var (
-	customTopic       = os.Getenv("CUSTOM_TOPIC")
-	notificationTopic = os.Getenv("NOTIFICATION_TOPIC")
-)
-
-// Logger is a package-wide logger
-var Logger = logger.New("ns=p.local")
 
 func init() {
 	rand.Seed(time.Now().UTC().UnixNano())
 }
 
 type Provider struct {
+	Image   string
 	Name    string
 	Root    string
 	Router  string
 	Test    bool
 	Version string
 
-	ctx context.Context
-	db  *bolt.DB
+	ctx  context.Context
+	db   *bolt.DB
+	logs *logger.Logger
 }
 
 func FromEnv() *Provider {
-	root := os.Getenv("PROVIDER_ROOT")
-
-	if root == "" {
-		home, err := homedir.Dir()
-		if err != nil {
-			panic(err)
-		}
-
-		root = filepath.Join(home, ".convox", "local")
-
-		if err := os.MkdirAll(root, 0700); err != nil {
-			panic(err)
-		}
-	}
-
 	return &Provider{
+		Image:   coalesce(os.Getenv("IMAGE"), "convox/rack"),
 		Name:    coalesce(os.Getenv("NAME"), "convox"),
-		Root:    root,
+		Root:    coalesce(os.Getenv("PROVIDER_ROOT"), "/var/convox"),
 		Router:  coalesce(os.Getenv("PROVIDER_ROUTER"), "10.42.0.0"),
 		Test:    os.Getenv("TEST") == "true",
 		Version: coalesce(os.Getenv("VERSION"), "latest"),
+		logs:    logger.NewWriter("", ioutil.Discard),
 	}
 }
 
 func (p *Provider) Initialize(opts structs.ProviderOptions) error {
+	if opts.Logs != nil {
+		p.logs = logger.NewWriter("ns=provider.local", opts.Logs)
+	} else {
+		p.logs = logger.New("ns=provider.local")
+	}
+
 	if err := os.MkdirAll(p.Root, 0700); err != nil {
 		return err
 	}
@@ -96,13 +82,7 @@ func (p *Provider) logger(at string) *logger.Logger {
 		return logger.NewWriter("", ioutil.Discard)
 	}
 
-	log := logger.New("ns=local")
-
-	// if id := p.Context().Value("request.id"); id != nil {
-	//   log = log.Prepend("id=%s", id)
-	// }
-
-	return log.At(at).Start()
+	return p.logs.At(at).Start()
 }
 
 // shutdown cleans up any running resources and exit

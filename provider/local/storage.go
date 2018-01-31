@@ -145,20 +145,22 @@ func (p *Provider) storageRead(key string) ([]byte, error) {
 		return nil, err
 	}
 
-	var data []byte
+	var dcp []byte
 
 	err = p.storageBucket(path, func(bucket *bolt.Bucket) error {
-		data = bucket.Get([]byte(name))
+		data := bucket.Get([]byte(name))
 		if data == nil {
 			return fmt.Errorf("no such key: %s", key)
 		}
+		dcp = make([]byte, len(data))
+		copy(dcp, data)
 		return nil
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	return data, nil
+	return dcp, nil
 }
 
 func (p *Provider) storageStore(key string, v interface{}) error {

@@ -39,7 +39,7 @@ func (m *Manifest) Build(prefix string, tag string, opts BuildOptions) error {
 
 	for _, s := range m.Services {
 		hash := s.BuildHash()
-		to := fmt.Sprintf("%s/%s:%s", prefix, s.Name, tag)
+		to := fmt.Sprintf("convox/%s/%s:%s", prefix, s.Name, tag)
 
 		if s.Image != "" {
 			pulls[s.Image] = true

@@ -86,7 +86,7 @@ func (p *Provider) SystemGet() (*structs.System, error) {
 	log := p.logger("SystemGet")
 
 	system := &structs.System{
-		Image:   fmt.Sprintf("convox/rack:%s", p.Version),
+		Image:   fmt.Sprintf("%s:%s", p.Image, p.Version),
 		Name:    p.Name,
 		Status:  "running",
 		Version: p.Version,
