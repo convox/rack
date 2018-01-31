@@ -1,108 +1,95 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
-	"strings"
 
 	"github.com/convox/logger"
 	"github.com/gorilla/mux"
 )
 
 type Context struct {
-	r    *http.Request
-	w    http.ResponseWriter
-	log  *logger.Logger
-	tags []string
+	context context.Context
+	id      string
+	logger  *logger.Logger
+	request *http.Request
+	writer  io.Writer
 }
 
-func NewContext(w http.ResponseWriter, r *http.Request, log *logger.Logger) Context {
-	return Context{
-		r:    r,
-		w:    w,
-		log:  log,
-		tags: []string{},
-	}
+func (c *Context) Context() context.Context {
+	return c.context
 }
 
-// Fetch the request body as a byte slice.
-//   data, err := c.Body()
-func (c *Context) Body() ([]byte, *Error) {
-	data, err := ioutil.ReadAll(c.r.Body)
+func (c *Context) Error(err error) error {
+	c.logger.Error(err)
 
-	if err != nil {
-		return nil, Errorf(403, "could not read request body")
+	w, ok := c.writer.(http.ResponseWriter)
+	if !ok {
+		fmt.Fprintf(w, "error: %s\n", err)
+		return err
 	}
 
-	return data, nil
+	switch t := err.(type) {
+	case Error:
+		http.Error(w, t.Error(), t.Code)
+	case causer:
+		http.Error(w, t.Cause().Error(), http.StatusInternalServerError)
+	case error:
+		http.Error(w, t.Error(), http.StatusForbidden)
+	}
+
+	return err
 }
 
 func (c *Context) Form(name string) string {
-	c.r.ParseMultipartForm(2048)
-
-	return c.r.FormValue(name)
+	return c.request.FormValue(name)
 }
 
-// Output a line to the logs.
-//   c.Logf("count=%d success=%t", 10, true)
-//   => count=10 success=true
-func (c *Context) Logf(format string, a ...interface{}) {
-	if len(c.tags) > 0 {
-		format = strings.Join(c.tags, " ") + " " + format
-	}
-
-	c.log.Logf(format, a...)
+func (c *Context) Header(name string) string {
+	return c.request.Header.Get(name)
 }
 
-// Store data to be added to future log lines.
-//   c.Tagf("foo=bar test=%d", 5)
-//   c.Logf("baz=qux")
-//   => foo=bar test=5 baz=qux
-func (c *Context) Tagf(format string, a ...interface{}) {
-	c.tags = append(c.tags, fmt.Sprintf(format, a...))
+func (c *Context) Logf(format string, args ...interface{}) {
+	c.logger.Logf(format, args...)
 }
 
-// Unmarshal request body into an object based on the Content-Type header.
-//   err := c.UnmarshalBody(&obj)
-func (c *Context) UnmarshalBody(v interface{}) *Error {
-	data, err := c.Body()
+func (c *Context) Query(name string) string {
+	return c.request.URL.Query().Get(name)
+}
 
+func (c *Context) RenderJSON(v interface{}) error {
+	data, err := json.MarshalIndent(v, "", "  ")
 	if err != nil {
 		return err
 	}
 
-	switch c.r.Header.Get("Content-Type") {
-	case "application/json":
-		if err := json.Unmarshal(data, v); err != nil {
-			return Errorf(403, "invalid json")
-		}
-
-		return nil
-	}
-
-	return Errorf(403, "invalid request type")
-}
-
-// Get a variable from the request path.
-//   id := c.Var("id")
-func (c *Context) Var(name string) string {
-	return mux.Vars(c.r)[name]
-}
-
-func (c *Context) WriteJSON(v interface{}) *Error {
-	data, err := json.Marshal(v)
-
-	if err != nil {
-		return ServerError(err)
-	}
-
-	_, err = c.w.Write(data)
-
-	if err != nil {
-		return ServerError(err)
+	if _, err := c.writer.Write(data); err != nil {
+		return err
 	}
 
 	return nil
+}
+
+func (c *Context) RenderOK() error {
+	fmt.Fprintf(c.writer, "ok\n")
+	return nil
+}
+
+func (c *Context) Request() *http.Request {
+	return c.request
+}
+
+func (c *Context) Tag(format string, args ...interface{}) {
+	c.logger = c.logger.Append(format, args...)
+}
+
+func (c *Context) Var(name string) string {
+	return mux.Vars(c.request)[name]
+}
+
+type causer interface {
+	Cause() error
 }

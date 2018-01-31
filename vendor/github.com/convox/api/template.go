@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	"html/template"
 	"net/http"
 	"os"
@@ -13,6 +14,10 @@ var (
 
 func LoadTemplates(dir string, helpers map[string]interface{}) error {
 	return filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
 		if !info.IsDir() {
 			files := []string{}
 
@@ -39,15 +44,15 @@ func LoadTemplates(dir string, helpers map[string]interface{}) error {
 	})
 }
 
-func RenderTemplate(w http.ResponseWriter, path string, params interface{}) *Error {
+func RenderTemplate(w http.ResponseWriter, path string, params interface{}) error {
 	t, ok := Templates[path]
 
 	if !ok {
-		return ServerErrorf("no such template: %s", path)
+		return fmt.Errorf("no such template: %s", path)
 	}
 
 	if err := t.Execute(w, params); err != nil {
-		return ServerError(err)
+		return err
 	}
 
 	return nil
