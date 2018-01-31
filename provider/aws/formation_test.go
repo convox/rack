@@ -997,7 +997,7 @@ func cycleDescribeStacksNotFound(name string) awsutil.Cycle {
 var cycleNotificationPublish = awsutil.Cycle{
 	Request: awsutil.Request{
 		RequestURI: "/",
-		Body:       `Action=Publish&Message=%7B%22action%22%3A%22release%3Ascale%22%2C%22status%22%3A%22success%22%2C%22data%22%3A%7B%22app%22%3A%22httpd%22%2C%22id%22%3A%22RVFETUHHKKD%22%2C%22rack%22%3A%22convox%22%7D%2C%22timestamp%22%3A%220001-01-01T00%3A00%3A00Z%22%7D&Subject=release%3Ascale&TargetArn=&Version=2010-03-31`,
+		Body:       `Action=Publish&Message=%7B%22action%22%3A%22release%3Ascale%22%2C%22data%22%3A%7B%22app%22%3A%22httpd%22%2C%22id%22%3A%22RVFETUHHKKD%22%2C%22rack%22%3A%22convox%22%7D%2C%22status%22%3A%22success%22%2C%22timestamp%22%3A%220001-01-01T00%3A00%3A00Z%22%7D&Subject=release%3Ascale&TargetArn=&Version=2010-03-31`,
 	},
 	Response: awsutil.Response{
 		StatusCode: 200,
