@@ -37,6 +37,10 @@ func init() {
 				Usage: "generation of app",
 			},
 			cli.BoolFlag{
+				Name:  "no-build",
+				Usage: "dont run the build process",
+			},
+			cli.BoolFlag{
 				Name:  "no-cache",
 				Usage: "pull fresh image dependencies",
 			},
@@ -67,6 +71,7 @@ func cmdStart(c *cli.Context) error {
 		opts.Command = c.Args()[1:]
 	}
 
+	opts.Build = !c.Bool("no-build")
 	opts.Cache = !c.Bool("no-cache")
 	opts.Sync = !c.Bool("no-sync")
 
@@ -94,6 +99,7 @@ func cmdStart(c *cli.Context) error {
 }
 
 type startOptions struct {
+	Build   bool
 	Cache   bool
 	Command []string
 	Id      string
@@ -149,7 +155,7 @@ func startGeneration1(opts startOptions) error {
 	}
 
 	r := m.Run(filepath.Dir(opts.Config), app, manifest1.RunOptions{
-		Build:   true,
+		Build:   opts.Build,
 		Cache:   opts.Cache,
 		Command: opts.Command,
 		Service: opts.Service,
