@@ -14,11 +14,10 @@ import (
 	"time"
 
 	"github.com/convox/rack/cmd/build/source"
-	"github.com/convox/rack/helpers"
 	"github.com/convox/rack/manifest"
 	"github.com/convox/rack/manifest1"
 	"github.com/convox/rack/options"
-	"github.com/convox/rack/provider"
+	"github.com/convox/rack/sdk"
 	"github.com/convox/rack/structs"
 )
 
@@ -36,17 +35,9 @@ var (
 	currentBuild    *structs.Build
 	currentLogs     string
 	currentManifest string
-	currentProvider structs.Provider
 
+	rack *sdk.Client
 )
-
-func init() {
-	currentProvider = provider.FromEnv()
-
-	var buf bytes.Buffer
-
-	currentProvider.Initialize(structs.ProviderOptions{Logs: &buf})
-}
 
 func main() {
 	fs := flag.NewFlagSet(os.Args[0], flag.ContinueOnError)
@@ -101,6 +92,11 @@ func main() {
 		}
 	}
 
+	var err error
+
+	rack, err = sdk.NewFromEnv()
+	if err != nil {
+		fail(err)
 	}
 
 	if err := execute(); err != nil {
@@ -119,7 +115,7 @@ func main() {
 }
 
 func execute() error {
-	b, err := currentProvider.BuildGet(flagApp, flagID)
+	b, err := rack.BuildGet(flagApp, flagID)
 	if err != nil {
 		return err
 	}
@@ -236,24 +232,24 @@ func build(dir string) error {
 
 	defer close(s)
 
-	env, err := helpers.AppEnvironment(currentProvider, flagApp)
+	env, err := rack.EnvironmentGet(flagApp)
 	if err != nil {
 		return err
 	}
 
-	a, err := currentProvider.AppGet(flagApp)
-	if err != nil {
-		return err
-	}
+	// a, err := currentProvider.AppGet(flagApp)
+	// if err != nil {
+	//   return err
+	// }
 
-	sys, err := currentProvider.SystemGet()
-	if err != nil {
-		return err
-	}
+	// sys, err := currentProvider.SystemGet()
+	// if err != nil {
+	//   return err
+	// }
 
-	env["SECURE_ENVIRONMENT_URL"] = a.Outputs["Environment"]
-	env["SECURE_ENVIRONMENT_TYPE"] = "envfile"
-	env["SECURE_ENVIRONMENT_KEY"] = sys.Outputs["EncryptionKey"]
+	// env["SECURE_ENVIRONMENT_URL"] = a.Outputs["Environment"]
+	// env["SECURE_ENVIRONMENT_TYPE"] = "envfile"
+	// env["SECURE_ENVIRONMENT_KEY"] = sys.Outputs["EncryptionKey"]
 
 	err = m.Build(dir, flagApp, s, manifest1.BuildOptions{
 		Environment: env,
@@ -283,7 +279,7 @@ func build2(dir string) error {
 		return err
 	}
 
-	env, err := helpers.AppEnvironment(currentProvider, flagApp)
+	env, err := rack.EnvironmentGet(flagApp)
 	if err != nil {
 		return err
 	}
@@ -327,7 +323,7 @@ func build2(dir string) error {
 }
 
 func success() error {
-	logs, err := currentProvider.ObjectStore(flagApp, fmt.Sprintf("build/%s/logs", currentBuild.Id), bytes.NewReader([]byte(currentLogs)), structs.ObjectStoreOptions{})
+	logs, err := rack.ObjectStore(flagApp, fmt.Sprintf("build/%s/logs", currentBuild.Id), bytes.NewReader([]byte(currentLogs)), structs.ObjectStoreOptions{})
 	if err != nil {
 		return err
 	}
@@ -342,16 +338,16 @@ func success() error {
 		Status:   options.String(status),
 	}
 
-	if _, err := currentProvider.BuildUpdate(flagApp, currentBuild.Id, opts); err != nil {
+	if _, err := rack.BuildUpdate(flagApp, currentBuild.Id, opts); err != nil {
 		return err
 	}
 
-	r, err := currentProvider.ReleaseCreate(flagApp, structs.ReleaseCreateOptions{Build: options.String(currentBuild.Id)})
+	r, err := rack.ReleaseCreate(flagApp, structs.ReleaseCreateOptions{Build: options.String(currentBuild.Id)})
 	if err != nil {
 		return err
 	}
 
-	if _, err := currentProvider.BuildUpdate(flagApp, currentBuild.Id, structs.BuildUpdateOptions{Release: options.String(r.Id)}); err != nil {
+	if _, err := rack.BuildUpdate(flagApp, currentBuild.Id, structs.BuildUpdateOptions{Release: options.String(r.Id)}); err != nil {
 		return err
 	}
 
@@ -361,9 +357,9 @@ func success() error {
 func fail(err error) {
 	log(fmt.Sprintf("ERROR: %s", err))
 
-	logs, _ := currentProvider.ObjectStore(flagApp, fmt.Sprintf("build/%s/logs", currentBuild.Id), bytes.NewReader([]byte(currentLogs)), structs.ObjectStoreOptions{})
 	rack.EventSend("build:create", structs.EventSendOptions{Data: map[string]string{"app": flagApp, "id": flagID, "release_id": currentBuild.Release}, Error: err.Error()})
 
+	logs, _ := rack.ObjectStore(flagApp, fmt.Sprintf("build/%s/logs", currentBuild.Id), bytes.NewReader([]byte(currentLogs)), structs.ObjectStoreOptions{})
 
 	now := time.Now()
 	status := "failed"
@@ -374,7 +370,7 @@ func fail(err error) {
 		Status: options.String(status),
 	}
 
-	if _, err := currentProvider.BuildUpdate(flagApp, currentBuild.Id, opts); err != nil {
+	if _, err := rack.BuildUpdate(flagApp, currentBuild.Id, opts); err != nil {
 		fmt.Fprintf(os.Stderr, "ERROR: %s\n", err)
 	}
 
