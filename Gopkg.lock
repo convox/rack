@@ -89,7 +89,7 @@
   branch = "master"
   name = "github.com/convox/logger"
   packages = ["."]
-  revision = "ebae2557e3b133bcd3088869d078a5af39eac834"
+  revision = "0533ce640ccd3a1d543da3bd56efcc4204d0abdf"
 
 [[projects]]
   branch = "master"
