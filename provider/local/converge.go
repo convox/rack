@@ -333,6 +333,7 @@ func (p *Provider) serviceContainers(services manifest.Services, app, release st
 				Env:     e,
 				Memory:  s.Scale.Memory,
 				Volumes: s.Volumes,
+				Port:    s.Port.Port,
 				Labels: map[string]string{
 					"convox.rack":     p.Name,
 					"convox.version":  p.Version,

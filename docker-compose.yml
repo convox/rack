@@ -5,80 +5,80 @@ services:
     command: bin/web
     environment:
       - AUTOSCALE=false
-      - DEVELOPMENT=true
-      - AWS_ACCESS_KEY_ID
-      - AWS_REGION
-      - AWS_SECRET_ACCESS_KEY
-      - BUILD_CLUSTER
+      - AWS_ACCESS_KEY_ID=
+      - AWS_REGION=
+      - AWS_SECRET_ACCESS_KEY=
+      - BUILD_CLUSTER=
       - CLIENT_ID=dev@convox.com
-      - CLOUDFORMATION_TOPIC
-      - CLUSTER
-      - CUSTOM_TOPIC
+      - CLOUDFORMATION_TOPIC=
+      - CLUSTER=
+      - CUSTOM_TOPIC=
       - DEBUG=false
-      - DYNAMO_BUILDS
-      - DYNAMO_RELEASES
-      - ENCRYPTION_KEY
-      - INTERNAL
-      - LOG_BUCKET
-      - NOTIFICATION_HOST
-      - NOTIFICATION_TOPIC
+      - DEVELOPMENT=true
+      - DYNAMO_BUILDS=
+      - DYNAMO_RELEASES=
+      - ENCRYPTION_KEY=
+      - IMAGE=
+      - INTERNAL=
+      - LOG_BUCKET=
+      - LOG_GROUP=
+      - NOTIFICATION_HOST=
+      - NOTIFICATION_TOPIC=
       - PASSWORD
-      - PRIVATE
+      - PRIVATE=
       - PROVIDER
       - RACK
-      - RELEASE
+      - RELEASE=
       - ROLLBAR_TOKEN=f67f25b8a9024d5690f997bd86bf14b0
-      - SECURITY_GROUP
+      - SECURITY_GROUP=
       - SEGMENT_WRITE_KEY=KLvwCXo6qcTmQHLpF69DEwGf9zh7lt9i
-      - SETTINGS_BUCKET
-      - STACK_ID
-      - SUBNETS
-      - SUBNETS_PRIVATE
-      - VPC
-      - VPCCIDR
-      - LOG_GROUP
-      - PROCESS=web
+      - SETTINGS_BUCKET=
+      - STACK_ID=
+      - SUBNETS=
+      - SUBNETS_PRIVATE=
+      - VPC=
+      - VPCCIDR=
     ports:
-      - 80:5442
-      - 443:5443
+      - 5443:5443
     volumes:
+      - /Users/Shared/convox:/var/convox
       - /var/run/docker.sock:/var/run/docker.sock
   monitor:
     build: .
     command: bin/monitor
     environment:
-      - DEVELOPMENT=true
       - AUTOSCALE=false
-      - AUTOSCALE_EXTRA
-      - AWS_ACCESS_KEY_ID
-      - AWS_REGION
-      - AWS_SECRET_ACCESS_KEY
-      - BUILD_CLUSTER
+      - AUTOSCALE_EXTRA=
+      - AWS_ACCESS_KEY_ID=
+      - AWS_REGION=
+      - AWS_SECRET_ACCESS_KEY=
+      - BUILD_CLUSTER=
       - CLIENT_ID=dev@convox.com
-      - CLOUDFORMATION_TOPIC
-      - CLUSTER
-      - CUSTOM_TOPIC
+      - CLOUDFORMATION_TOPIC=
+      - CLUSTER=
+      - CUSTOM_TOPIC=
       - DEBUG=false
-      - DYNAMO_BUILDS
-      - DYNAMO_RELEASES
-      - ENCRYPTION_KEY
-      - NOTIFICATION_HOST
-      - NOTIFICATION_TOPIC
-      - ON_DEMAND_MIN_COUNT
+      - DEVELOPMENT=true
+      - DYNAMO_BUILDS=
+      - DYNAMO_RELEASES=
+      - ENCRYPTION_KEY=
+      - LOG_GROUP=
+      - NOTIFICATION_HOST=
+      - NOTIFICATION_TOPIC=
+      - ON_DEMAND_MIN_COUNT=
       - PASSWORD
-      - PRIVATE
+      - PRIVATE=
       - PROVIDER
       - RACK
-      - RELEASE
+      - RELEASE=
       - ROLLBAR_TOKEN=f67f25b8a9024d5690f997bd86bf14b0
-      - SECURITY_GROUP
+      - SECURITY_GROUP=
       - SEGMENT_WRITE_KEY=KLvwCXo6qcTmQHLpF69DEwGf9zh7lt9i
-      - SPOT_INSTANCES
-      - STACK_ID
-      - SUBNETS
-      - SUBNETS_PRIVATE
-      - VPC
-      - LOG_GROUP
-      - PROCESS=monitor
+      - SPOT_INSTANCES=
+      - STACK_ID=
+      - SUBNETS=
+      - SUBNETS_PRIVATE=
+      - VPC=
     volumes:
+      - /Users/Shared/convox:/var/convox
       - /var/run/docker.sock:/var/run/docker.sock

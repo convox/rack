@@ -258,7 +258,7 @@ func (p *Provider) argsFromOpts(app string, opts structs.ProcessRunOptions) ([]s
 	var service *manifest.Service
 	var err error
 
-	if opts.Release != nil {
+	if opts.Release == nil || *opts.Release != "" {
 		m, release, err = helpers.ReleaseManifest(p, app, *opts.Release)
 		if err != nil {
 			return nil, errors.WithStack(err)
@@ -349,7 +349,7 @@ func (p *Provider) argsFromOpts(app string, opts structs.ProcessRunOptions) ([]s
 	}
 
 	args = append(args, "-e", fmt.Sprintf("APP=%s", app))
-	args = append(args, "-e", fmt.Sprintf("RACK_URL=https://%s:3000", hostname))
+	args = append(args, "-e", fmt.Sprintf("RACK_URL=https://%s:5443", hostname))
 	args = append(args, "-e", fmt.Sprintf("RELEASE=%s", opts.Release))
 
 	args = append(args, "--link", hostname)
@@ -391,7 +391,7 @@ func processList(filters []string, all bool) (structs.Processes, error) {
 		return nil, err
 	}
 
-	ps := structs.Processes{}
+	pss := structs.Processes{}
 
 	jd := json.NewDecoder(bytes.NewReader(data))
 
@@ -401,6 +401,7 @@ func processList(filters []string, all bool) (structs.Processes, error) {
 			Command   string
 			ID        string
 			Labels    string
+			Ports     string
 		}
 
 		if err := jd.Decode(&dps); err != nil {
@@ -426,15 +427,24 @@ func processList(filters []string, all bool) (structs.Processes, error) {
 			return nil, err
 		}
 
-		ps = append(ps, structs.Process{
+		ps := structs.Process{
 			Id:      dps.ID,
 			App:     labels["convox.app"],
 			Command: strings.Trim(dps.Command, `"`),
 			Name:    labels["convox.service"],
 			Release: labels["convox.release"],
 			Started: started,
-		})
+			Ports:   []string{},
+		}
+
+		if parts := strings.Split(dps.Ports, "-\u003e"); len(parts) == 2 {
+			host := strings.Split(parts[0], ":")[1]
+			container := strings.Split(parts[1], "/")[0]
+			ps.Ports = append(ps.Ports, fmt.Sprintf("%s:%s", host, container))
+		}
+
+		pss = append(pss, ps)
 	}
 
-	return ps, nil
+	return pss, nil
 }

@@ -1,8 +1,11 @@
 package local
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"io"
+	"math/rand"
 	"os"
 	"path/filepath"
 
@@ -72,7 +75,11 @@ func (p *Provider) ObjectStore(app, key string, r io.Reader, opts structs.Object
 	}
 
 	if key == "" {
-		return nil, log.Error(fmt.Errorf("key must not be blank"))
+		k, err := generateTempKey()
+		if err != nil {
+			return nil, log.Error(err)
+		}
+		key = k
 	}
 
 	fn := filepath.Join(p.Root, "apps", app, "objects", key)
@@ -97,4 +104,16 @@ func (p *Provider) ObjectStore(app, key string, r io.Reader, opts structs.Object
 	url := fmt.Sprintf("object://%s/%s", app, key)
 
 	return &structs.Object{Url: url}, log.Success()
+}
+
+func generateTempKey() (string, error) {
+	data := make([]byte, 1024)
+
+	if _, err := rand.Read(data); err != nil {
+		return "", err
+	}
+
+	hash := sha256.Sum256(data)
+
+	return fmt.Sprintf("tmp/%s", hex.EncodeToString(hash[:])[0:30]), nil
 }
