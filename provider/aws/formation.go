@@ -6,8 +6,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/convox/rack/structs"
 	"github.com/convox/rack/manifest1"
+	"github.com/convox/rack/structs"
 )
 
 // FormationList lists the Formation

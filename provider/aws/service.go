@@ -17,6 +17,10 @@ func (p *AWSProvider) ServiceList(app string) (structs.Services, error) {
 		return nil, err
 	}
 
+	if a.Release == "" {
+		return structs.Services{}, nil
+	}
+
 	switch a.Tags["Generation"] {
 	case "", "1":
 		return p.serviceListGeneration1(a)
