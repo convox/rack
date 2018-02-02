@@ -309,19 +309,20 @@ func cmdResourceInfo(c *cli.Context) error {
 	fmt.Printf("Name    %s\n", resource.Name)
 	fmt.Printf("Status  %s\n", resource.Status)
 
-	if resource.Status == "failed" {
-		fmt.Printf("Reason  %s\n", resource.StatusReason)
+	if resource.Url != "" {
+		fmt.Printf("URL     %s\n", resource.Url)
 	}
 
-	if len(resource.Exports) > 0 {
-		fmt.Printf("Exports\n")
+	apps := []string{}
 
-		for key, value := range resource.Exports {
-			fmt.Printf("  %s: %s\n", key, value)
-		}
-	} else if resource.URL != "" {
-		// NOTE: this branch is deprecated
-		fmt.Printf("URL     %s\n", resource.URL)
+	for _, a := range resource.Apps {
+		apps = append(apps, a.Name)
+	}
+
+	sort.Strings(apps)
+
+	if len(apps) > 0 {
+		fmt.Printf("Apps    %s\n", strings.Join(apps, " "))
 	}
 
 	return nil
@@ -338,15 +339,11 @@ func cmdResourceURL(c *cli.Context) error {
 		return stdcli.Error(err)
 	}
 
-	if resource.Status == "failed" {
-		return stdcli.Error(fmt.Errorf("Resource failure for %s", resource.StatusReason))
-	}
-
-	if resource.URL == "" {
+	if resource.Url == "" {
 		return stdcli.Error(fmt.Errorf("URL does not exist for %s", resource.Name))
 	}
 
-	fmt.Printf("%s\n", resource.URL)
+	fmt.Printf("%s\n", resource.Url)
 
 	return nil
 }
@@ -402,11 +399,11 @@ func cmdResourceProxy(c *cli.Context) error {
 		return stdcli.Error(err)
 	}
 
-	if resource.URL == "" {
+	if resource.Url == "" {
 		return stdcli.Error(fmt.Errorf("%s does not expose a URL", name))
 	}
 
-	u, err := url.Parse(resource.URL)
+	u, err := url.Parse(resource.Url)
 	if err != nil {
 		return stdcli.Error(err)
 	}
