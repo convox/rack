@@ -7,7 +7,7 @@ type Resource struct {
 	Type       string            `json:"type"`
 	Url        string            `json:"url"`
 
-	Apps Apps `json:"-"`
+	Apps Apps `json:"apps,omitempty"`
 }
 
 type Resources []Resource
