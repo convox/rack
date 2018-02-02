@@ -159,7 +159,7 @@ func (p *AWSProvider) ResourceGet(name string) (*structs.Resource, error) {
 
 	s := resourceFromStack(stacks[0])
 
-	if tags["Rack"] != "" && tags["Rack"] != p.Rack {
+	if tags["Rack"] != p.Rack {
 		return nil, fmt.Errorf("no such stack on this rack: %s", name)
 	}
 
@@ -255,10 +255,8 @@ func (p *AWSProvider) ResourceList() (structs.Resources, error) {
 		tags := stackTags(stack)
 
 		// if it's a resource and the Rack tag is either the current rack or blank
-		if tags["System"] == "convox" && (tags["Type"] == "resource" || tags["Type"] == "service") && tags["App"] == "" {
-			if tags["Rack"] == p.Rack || tags["Rack"] == "" {
-				resources = append(resources, resourceFromStack(stack))
-			}
+		if tags["System"] == "convox" && (tags["Type"] == "resource" || tags["Type"] == "service") && tags["App"] == "" && tags["Rack"] == p.Rack {
+			resources = append(resources, resourceFromStack(stack))
 		}
 	}
 
@@ -548,7 +546,6 @@ func resourceFormation(kind string, data interface{}) (string, error) {
 func resourceFromStack(stack *cloudformation.Stack) structs.Resource {
 	params := stackParameters(stack)
 	tags := stackTags(stack)
-	name := coalesceString(tags["Name"], *stack.StackName)
 
 	exports := map[string]string{}
 
@@ -562,7 +559,7 @@ func resourceFromStack(stack *cloudformation.Stack) structs.Resource {
 	}
 
 	return structs.Resource{
-		Name:       name,
+		Name:       tags["Name"],
 		Parameters: params,
 		Type:       rtype,
 		Status:     humanStatus(*stack.StackStatus),
