@@ -1,24 +1,13 @@
 package client
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/convox/rack/structs"
+)
 
 // Resource is an external resource.
-type Resource struct {
-	Name         string            `json:"name"`
-	Status       string            `json:"status"`
-	StatusReason string            `json:"status-reason"`
-	Type         string            `json:"type"`
-	Exports      map[string]string `json:"exports"`
-	// DEPRECATED: should inject any data in Exports
-	// we only set this on the outgoing response for old clients
-	URL string `json:"url"`
-
-	Outputs    map[string]string `json:"-"`
-	Parameters map[string]string `json:"-"`
-	Tags       map[string]string `json:"-"`
-}
-
-// Resources is a list of resources.
+type Resource structs.Resource
 type Resources []Resource
 
 // GetResources retrieves a list of resources.
