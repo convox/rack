@@ -295,6 +295,8 @@ func (p *AWSProvider) ResourceLink(name, app, process string) (*structs.Resource
 		}
 	}
 
+	s.Apps = apps
+
 	// Update Resource and/or App stacks
 	switch s.Type {
 	case "fluentd", "syslog":
@@ -335,6 +337,8 @@ func (p *AWSProvider) ResourceUnlink(name, app, process string) (*structs.Resour
 	if !linked {
 		return nil, fmt.Errorf("resource %s is not linked to app %s", s.Name, a.Name)
 	}
+
+	s.Apps = apps
 
 	// Update Resource and/or App stacks
 	switch s.Type {
