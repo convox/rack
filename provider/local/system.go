@@ -96,7 +96,7 @@ func (p *Provider) SystemGet() (*structs.System, error) {
 }
 
 func (p *Provider) SystemInstall(name string, opts structs.SystemInstallOptions) (string, error) {
-	cx, err := os.Executable()
+	exe, err := os.Executable()
 	if err != nil {
 		return "", err
 	}
@@ -140,11 +140,11 @@ func (p *Provider) SystemInstall(name string, opts structs.SystemInstallOptions)
 		return "", err
 	}
 
-	if err := launcherInstall("convox.router", opts, cx, "router"); err != nil {
+	if err := launcherInstall("convox.router", opts, exe, "router"); err != nil {
 		return "", err
 	}
 
-	if err := launcherInstall("convox.rack", opts, cx, "rack", "start"); err != nil {
+	if err := launcherInstall("convox.rack", opts, exe, "rack", "start"); err != nil {
 		return "", err
 	}
 

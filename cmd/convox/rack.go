@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"os"
+	"os/exec"
+	"runtime"
 	"sort"
 	"strings"
 	"time"
@@ -10,7 +12,6 @@ import (
 	"github.com/convox/rack/cmd/convox/helpers"
 	"github.com/convox/rack/cmd/convox/stdcli"
 	"github.com/convox/rack/options"
-	"github.com/convox/rack/server"
 	"github.com/convox/rack/structs"
 	"github.com/convox/version"
 	"gopkg.in/urfave/cli.v1"
@@ -108,17 +109,15 @@ func init() {
 					},
 				},
 			},
-			{
+			cli.Command{
 				Name:        "start",
-				Description: "start rack api server",
-				Usage:       "[type] [options]",
-				ArgsUsage:   "",
+				Description: "start a local rack",
 				Action:      cmdRackStart,
 				Flags: []cli.Flag{
-					rackFlag,
 					cli.StringFlag{
-						Name:  "root",
-						Usage: "set provider root directory",
+						Name:  "router",
+						Usage: "local router",
+						Value: "10.42.0.0",
 					},
 				},
 			},
@@ -409,22 +408,6 @@ func cmdRackScale(c *cli.Context) error {
 	return nil
 }
 
-func cmdRackStart(c *cli.Context) error {
-	stdcli.NeedHelp(c)
-
-	if root := c.String("root"); root != "" {
-		os.Setenv("PROVIDER_ROOT", root)
-	}
-
-	name := "local"
-
-	if len(c.Args()) > 0 {
-		name = c.Args()[0]
-	}
-
-	return server.Listen(name, ":5443")
-}
-
 func cmdRackReleases(c *cli.Context) error {
 	stdcli.NeedHelp(c)
 	stdcli.NeedArg(c, 0)
@@ -474,6 +457,18 @@ func cmdRackReleases(c *cli.Context) error {
 	return nil
 }
 
+func cmdRackStart(c *cli.Context) error {
+	cmd, err := rackCommand("latest", c.String("router"))
+	if err != nil {
+		return err
+	}
+
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	return cmd.Run()
+}
+
 func displaySystem(c *cli.Context) {
 	system, err := rackClient(c).GetSystem()
 	if err != nil {
@@ -521,4 +516,30 @@ func waitForRackRunning(c *cli.Context) error {
 	}
 
 	return nil
+}
+
+func rackCommand(version string, router string) (*exec.Cmd, error) {
+	name := "convox"
+
+	config := "/var/convox"
+
+	switch runtime.GOOS {
+	case "darwin":
+		config = "/Users/Shared/convox"
+	}
+
+	exec.Command("docker", "rm", "-f", name).Run()
+
+	args := []string{"run", "--rm"}
+	args = append(args, "-m", "256m")
+	args = append(args, "-i", fmt.Sprintf("--name=%s", name))
+	args = append(args, "-e", "PROVIDER=local")
+	args = append(args, "-e", fmt.Sprintf("PROVIDER_ROUTER=%s", router))
+	args = append(args, "-e", fmt.Sprintf("VERSION=%s", version))
+	args = append(args, "-p", "5443:3000")
+	args = append(args, "-v", fmt.Sprintf("%s:/var/convox", config))
+	args = append(args, "-v", "/var/run/docker.sock:/var/run/docker.sock")
+	args = append(args, fmt.Sprintf("convox/rack:%s", version))
+
+	return exec.Command("docker", args...), nil
 }
