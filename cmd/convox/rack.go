@@ -533,10 +533,11 @@ func rackCommand(version string, router string) (*exec.Cmd, error) {
 	args := []string{"run", "--rm"}
 	args = append(args, "-m", "256m")
 	args = append(args, "-i", fmt.Sprintf("--name=%s", name))
+	args = append(args, "-e", "COMBINED=true")
 	args = append(args, "-e", "PROVIDER=local")
 	args = append(args, "-e", fmt.Sprintf("PROVIDER_ROUTER=%s", router))
 	args = append(args, "-e", fmt.Sprintf("VERSION=%s", version))
-	args = append(args, "-p", "5443:3000")
+	args = append(args, "-p", "5443:5443")
 	args = append(args, "-v", fmt.Sprintf("%s:/var/convox", config))
 	args = append(args, "-v", "/var/run/docker.sock:/var/run/docker.sock")
 	args = append(args, fmt.Sprintf("convox/rack:%s", version))

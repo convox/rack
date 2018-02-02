@@ -24,12 +24,13 @@ func init() {
 }
 
 type Provider struct {
-	Image   string
-	Name    string
-	Root    string
-	Router  string
-	Test    bool
-	Version string
+	Combined bool
+	Image    string
+	Name     string
+	Root     string
+	Router   string
+	Test     bool
+	Version  string
 
 	ctx  context.Context
 	db   *bolt.DB
@@ -38,13 +39,14 @@ type Provider struct {
 
 func FromEnv() *Provider {
 	return &Provider{
-		Image:   coalesce(os.Getenv("IMAGE"), "convox/rack"),
-		Name:    coalesce(os.Getenv("NAME"), "convox"),
-		Root:    coalesce(os.Getenv("PROVIDER_ROOT"), "/var/convox"),
-		Router:  coalesce(os.Getenv("PROVIDER_ROUTER"), "10.42.0.0"),
-		Test:    os.Getenv("TEST") == "true",
-		Version: coalesce(os.Getenv("VERSION"), "latest"),
-		logs:    logger.NewWriter("", ioutil.Discard),
+		Combined: os.Getenv("COMBINED") == "true",
+		Image:    coalesce(os.Getenv("IMAGE"), "convox/rack"),
+		Name:     coalesce(os.Getenv("NAME"), "convox"),
+		Root:     coalesce(os.Getenv("PROVIDER_ROOT"), "/var/convox"),
+		Router:   coalesce(os.Getenv("PROVIDER_ROUTER"), "10.42.0.0"),
+		Test:     os.Getenv("TEST") == "true",
+		Version:  coalesce(os.Getenv("VERSION"), "latest"),
+		logs:     logger.NewWriter("", ioutil.Discard),
 	}
 }
 
@@ -72,6 +74,10 @@ func (p *Provider) Initialize(opts structs.ProviderOptions) error {
 
 	if err := p.checkRouter(); err != nil {
 		return err
+	}
+
+	if p.Combined {
+		go p.Workers()
 	}
 
 	return nil
