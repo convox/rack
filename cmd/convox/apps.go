@@ -229,10 +229,16 @@ func cmdAppInfo(c *cli.Context) error {
 
 	info.Add("Name", a.Name)
 	info.Add("Status", a.Status)
-	info.Add("Release", stdcli.Default(a.Release, "(none)"))
 	info.Add("Generation", a.Generation)
-	info.Add("Processes", stdcli.Default(strings.Join(ps, " "), "(none)"))
-	info.Add("Endpoints", strings.Join(endpoints, "\n            "))
+	info.Add("Release", a.Release)
+
+	if len(ps) > 0 {
+		info.Add("Processes", strings.Join(ps, " "))
+	}
+
+	if len(endpoints) > 0 {
+		info.Add("Endpoints", strings.Join(endpoints, "\n            "))
+	}
 
 	info.Print()
 
