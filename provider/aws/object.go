@@ -1,7 +1,6 @@
 package aws
 
 import (
-	"bytes"
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
@@ -11,6 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"github.com/convox/rack/structs"
 )
 
@@ -110,7 +110,7 @@ func (p *AWSProvider) ObjectList(app, prefix string) ([]string, error) {
 
 // ObjectStore stores an Object
 func (p *AWSProvider) ObjectStore(app, key string, r io.Reader, opts structs.ObjectStoreOptions) (*structs.Object, error) {
-	log := Logger.At("ObjectStore").Namespace("app=%q key=%q public=%t", app, key, opts.Public).Start()
+	log := Logger.At("ObjectStore").Namespace("app=%q key=%q", app, key).Start()
 
 	if key == "" {
 		k, err := generateTempKey()
@@ -124,84 +124,35 @@ func (p *AWSProvider) ObjectStore(app, key string, r io.Reader, opts structs.Obj
 
 	bucket, err := p.appResource(app, "Settings")
 	if err != nil {
-		return nil, err
+		return nil, log.Error(err)
 	}
 
-	mreq := &s3.CreateMultipartUploadInput{
+	up := s3manager.NewUploaderWithClient(p.s3())
+
+	req := &s3manager.UploadInput{
 		Bucket: aws.String(bucket),
 		Key:    aws.String(key),
+		Body:   r,
 	}
 
 	if opts.Public != nil && *opts.Public {
-		mreq.ACL = aws.String("public-read")
+		req.ACL = aws.String("public-read")
 	}
 
-	mres, err := p.s3().CreateMultipartUpload(mreq)
+	res, err := up.Upload(req)
 	if err != nil {
-		log.Error(err)
-		return nil, err
+		return nil, log.Error(err)
 	}
-
-	// buf := make([]byte, 5*1024*1024)
-	buf := make([]byte, 10*1024*1024)
-	i := 1
-	parts := []*s3.CompletedPart{}
-
-	for {
-		n, err := r.Read(buf)
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			log.Error(err)
-			return nil, err
-		}
-
-		res, err := p.s3().UploadPart(&s3.UploadPartInput{
-			Body:          bytes.NewReader(buf[0:n]),
-			Bucket:        aws.String(bucket),
-			ContentLength: aws.Int64(int64(n)),
-			Key:           aws.String(key),
-			PartNumber:    aws.Int64(int64(i)),
-			UploadId:      mres.UploadId,
-		})
-		if err != nil {
-			log.Error(err)
-			return nil, err
-		}
-
-		parts = append(parts, &s3.CompletedPart{
-			ETag:       res.ETag,
-			PartNumber: aws.Int64(int64(i)),
-		})
-
-		i++
-	}
-
-	res, err := p.s3().CompleteMultipartUpload(&s3.CompleteMultipartUploadInput{
-		Bucket: aws.String(bucket),
-		Key:    aws.String(key),
-		MultipartUpload: &s3.CompletedMultipartUpload{
-			Parts: parts,
-		},
-		UploadId: mres.UploadId,
-	})
-	if err != nil {
-		log.Error(err)
-		return nil, err
-	}
-
-	log.Success()
 
 	url := fmt.Sprintf("object://%s/%s", app, key)
 
 	if opts.Public != nil && *opts.Public {
-		url = *res.Location
+		url = res.Location
 	}
 
 	o := &structs.Object{Url: url}
 
-	return o, nil
+	return o, log.Success()
 }
 
 func generateTempKey() (string, error) {
