@@ -873,7 +873,7 @@ func (p *AWSProvider) runBuild(build *structs.Build, method, url string, opts st
 		return err
 	}
 
-	rackUrl := fmt.Sprintf("https://:%s@%s", p.Password, stackOutputs(rk)["Dashboard"])
+	rackUrl := fmt.Sprintf("https://%s@%s", p.Password, stackOutputs(rk)["Dashboard"])
 
 	req := &ecs.RunTaskInput{
 		Cluster:        aws.String(p.BuildCluster),
