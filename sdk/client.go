@@ -309,7 +309,7 @@ func (c *Client) Request(method, path string, opts RequestOptions) (*http.Reques
 	}
 
 	if c.Endpoint.User != nil {
-		req.SetBasicAuth(c.Endpoint.User.Username(), "")
+		req.SetBasicAuth("convox", c.Endpoint.User.Username())
 	}
 
 	return req, nil
