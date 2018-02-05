@@ -2186,7 +2186,7 @@
               { "Name": "VPCCIDR", "Value": { "Ref": "VPCCIDR" } }
             ],
             "Image": { "Fn::If": [ "BlankBuildImage",
-              { "Fn::Sub": "convox/api:${Version}" },
+              { "Fn::Sub": "convox/rack:${Version}" },
               { "Ref": "BuildImage" }
             ] },
             "Memory": { "Ref": "BuildMemory" },
@@ -2254,7 +2254,7 @@
               ] } },
               { "Name": "VPCCIDR", "Value": { "Ref": "VPCCIDR" } }
             ],
-            "Image": { "Fn::Sub": "convox/api:${Version}" },
+            "Image": { "Fn::Sub": "convox/rack:${Version}" },
             "LogConfiguration": {
               "LogDriver": "awslogs",
               "Options": {
@@ -2325,7 +2325,7 @@
               ] } },
               { "Name": "VPCCIDR", "Value": { "Ref": "VPCCIDR" } }
             ],
-            "Image": { "Fn::Sub": "convox/api:${Version}" },
+            "Image": { "Fn::Sub": "convox/rack:${Version}" },
             "LogConfiguration": {
               "LogDriver": "awslogs",
               "Options": {

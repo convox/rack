@@ -17,7 +17,6 @@ import (
 	"time"
 
 	"github.com/convox/rack/structs"
-	"github.com/kr/text"
 	"github.com/pkg/errors"
 )
 
@@ -111,7 +110,7 @@ func (p *Provider) SystemInstall(name string, opts structs.SystemInstallOptions)
 	}
 
 	if opts.Output != nil {
-		fmt.Fprintf(opts.Output, "pulling: convox/rack:%s\n", opts.Version)
+		fmt.Fprintf(opts.Output, "pulling: convox/rack:%s\n", *opts.Version)
 	}
 
 	if opts.Version == nil {
@@ -129,16 +128,16 @@ func (p *Provider) SystemInstall(name string, opts structs.SystemInstallOptions)
 		return "", err
 	}
 
-	cmd := exec.Command("docker", "pull", fmt.Sprintf("convox/rack:%s", *opts.Version))
+	// cmd := exec.Command("docker", "pull", fmt.Sprintf("convox/rack:%s", *opts.Version))
 
-	if opts.Output != nil {
-		cmd.Stdout = text.NewIndentWriter(opts.Output, []byte("  "))
-		cmd.Stderr = text.NewIndentWriter(opts.Output, []byte("  "))
-	}
+	// if opts.Output != nil {
+	//   cmd.Stdout = text.NewIndentWriter(opts.Output, []byte("  "))
+	//   cmd.Stderr = text.NewIndentWriter(opts.Output, []byte("  "))
+	// }
 
-	if err := cmd.Run(); err != nil {
-		return "", err
-	}
+	// if err := cmd.Run(); err != nil {
+	//   return "", err
+	// }
 
 	if err := launcherInstall("convox.router", opts, exe, "router"); err != nil {
 		return "", err

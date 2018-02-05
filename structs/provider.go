@@ -80,6 +80,7 @@ type Provider interface {
 	SystemDecrypt(data []byte) ([]byte, error)
 	SystemEncrypt(data []byte) ([]byte, error)
 	SystemGet() (*System, error)
+	SystemInstall(name string, opts SystemInstallOptions) (string, error)
 	SystemLogs(opts LogsOptions) (io.ReadCloser, error)
 	SystemProcesses(opts SystemProcessesOptions) (Processes, error)
 	SystemReleases() (Releases, error)

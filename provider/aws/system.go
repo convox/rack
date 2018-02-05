@@ -222,6 +222,10 @@ func (p *AWSProvider) SystemGet() (*structs.System, error) {
 	return r, nil
 }
 
+func (p *AWSProvider) SystemInstall(name string, opts structs.SystemInstallOptions) (string, error) {
+	return "", fmt.Errorf("unimplemented")
+}
+
 // SystemLogs streams logs for the Rack
 func (p *AWSProvider) SystemLogs(opts structs.LogsOptions) (io.ReadCloser, error) {
 	logGroup, err := p.stackResource(p.Rack, "LogGroup")
