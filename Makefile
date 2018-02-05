@@ -15,8 +15,8 @@ mocks:
 
 release:
 	make -C provider release VERSION=$(VERSION)
-	docker build -t convox/api:$(VERSION) .
-	docker push convox/api:$(VERSION)
+	docker build -t convox/rack:$(VERSION) .
+	docker push convox/rack:$(VERSION)
 
 templates:
 	go get -u github.com/jteeuwen/go-bindata/...

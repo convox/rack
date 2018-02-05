@@ -1,7 +1,10 @@
 package main
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
+	"net/url"
 	"os"
 	"os/exec"
 	"runtime"
@@ -12,6 +15,7 @@ import (
 	"github.com/convox/rack/cmd/convox/helpers"
 	"github.com/convox/rack/cmd/convox/stdcli"
 	"github.com/convox/rack/options"
+	"github.com/convox/rack/provider"
 	"github.com/convox/rack/structs"
 	"github.com/convox/version"
 	"gopkg.in/urfave/cli.v1"
@@ -26,6 +30,25 @@ func init() {
 		Action:      cmdRack,
 		Flags:       []cli.Flag{rackFlag},
 		Subcommands: []cli.Command{
+			{
+				Name:        "install",
+				Description: "install a rack",
+				Action:      cmdRackInstall,
+				Usage:       "<provider>",
+				Flags: []cli.Flag{
+					cli.StringFlag{
+						Name:  "name",
+						Usage: "rack name",
+						Value: "convox",
+					},
+					cli.StringFlag{
+						Name:  "version",
+						Usage: "rack version",
+						Value: "",
+					},
+				},
+			},
+
 			{
 				Name:        "logs",
 				Description: "stream the rack logs",
@@ -177,6 +200,61 @@ func cmdRack(c *cli.Context) error {
 	info.Add("Type", system.Type)
 
 	info.Print()
+
+	return nil
+}
+
+func cmdRackInstall(c *cli.Context) error {
+	ptype := c.Args()[0]
+	name := c.String("name")
+
+	password, err := helpers.Key(32)
+	if err != nil {
+		return err
+	}
+
+	switch ptype {
+	case "aws":
+		if err := fetchCredentialsAWS(); err != nil {
+			return err
+		}
+	}
+
+	p := provider.FromName(ptype)
+
+	version := c.String("version")
+
+	if version == "" {
+		v, err := latestVersion()
+		if err != nil {
+			return err
+		}
+
+		version = v
+	}
+
+	endpoint, err := p.SystemInstall(name, structs.SystemInstallOptions{
+		Color:    options.Bool(true),
+		Output:   os.Stdout,
+		Password: options.String(password),
+		Version:  options.String(version),
+	})
+	if err != nil {
+		return err
+	}
+
+	u, err := url.Parse(endpoint)
+	if err != nil {
+		return err
+	}
+
+	u.User = url.UserPassword(password, "")
+
+	switch ptype {
+	case "local":
+	default:
+		fmt.Printf("RACK_URL=%s\n", u.String())
+	}
 
 	return nil
 }
@@ -458,7 +536,12 @@ func cmdRackReleases(c *cli.Context) error {
 }
 
 func cmdRackStart(c *cli.Context) error {
-	cmd, err := rackCommand("latest", c.String("router"))
+	v, err := latestVersion()
+	if err != nil {
+		return err
+	}
+
+	cmd, err := rackCommand(v, c.String("router"))
 	if err != nil {
 		return err
 	}
@@ -467,6 +550,21 @@ func cmdRackStart(c *cli.Context) error {
 	cmd.Stderr = os.Stderr
 
 	return cmd.Run()
+}
+
+func awsCmd(args ...string) ([]byte, error) {
+	var buf bytes.Buffer
+
+	cmd := exec.Command("aws", args...)
+
+	cmd.Stdout = &buf
+	cmd.Stderr = os.Stderr
+
+	if err := cmd.Run(); err != nil {
+		return nil, err
+	}
+
+	return buf.Bytes(), nil
 }
 
 func displaySystem(c *cli.Context) {
@@ -481,6 +579,80 @@ func displaySystem(c *cli.Context) {
 	fmt.Printf("Version  %s\n", system.Version)
 	fmt.Printf("Count    %d\n", system.Count)
 	fmt.Printf("Type     %s\n", system.Type)
+}
+
+func fetchCredentialsAWS() error {
+	data, err := awsCmd("configure", "get", "region")
+	if err != nil || len(data) == 0 {
+		return fmt.Errorf("aws cli must be configured, try `aws configure`")
+	}
+
+	os.Setenv("AWS_REGION", strings.TrimSpace(string(data)))
+
+	data, err = awsCmd("configure", "get", "role_arn")
+	if err == nil && len(data) > 0 {
+		return fetchCredentialsAWSRole(strings.TrimSpace(string(data)))
+	}
+
+	data, err = awsCmd("configure", "get", "aws_access_key_id")
+	if err != nil || len(data) == 0 {
+		return fmt.Errorf("aws cli must be configured, try `aws configure`")
+	}
+
+	os.Setenv("AWS_ACCESS_KEY_ID", strings.TrimSpace(string(data)))
+
+	data, err = awsCmd("configure", "get", "aws_secret_access_key")
+	if err != nil || len(data) == 0 {
+		return fmt.Errorf("aws cli must be configured, try `aws configure`")
+	}
+
+	os.Setenv("AWS_SECRET_ACCESS_KEY", strings.TrimSpace(string(data)))
+
+	data, _ = awsCmd("configure", "get", "aws_session_token")
+	if len(data) > 0 {
+		os.Setenv("AWS_SESSION_TOKEN", strings.TrimSpace(string(data)))
+	}
+
+	return nil
+}
+
+func fetchCredentialsAWSRole(role string) error {
+	data, err := awsCmd("sts", "assume-role", "--role-arn", role, "--role-session-name", "convox-cli")
+	if err != nil {
+		return err
+	}
+
+	var auth struct {
+		Credentials struct {
+			AccessKeyId     string
+			SecretAccessKey string
+			SessionToken    string
+		}
+	}
+
+	if err := json.Unmarshal(data, &auth); err != nil {
+		return err
+	}
+
+	os.Setenv("AWS_ACCESS_KEY_ID", auth.Credentials.AccessKeyId)
+	os.Setenv("AWS_SECRET_ACCESS_KEY", auth.Credentials.SecretAccessKey)
+	os.Setenv("AWS_SESSION_TOKEN", auth.Credentials.SessionToken)
+
+	return nil
+}
+
+func latestVersion() (string, error) {
+	versions, err := version.All()
+	if err != nil {
+		return "", stdcli.Error(err)
+	}
+
+	version, err := versions.Resolve("latest")
+	if err != nil {
+		return "", stdcli.Error(err)
+	}
+
+	return version.Version, nil
 }
 
 func waitForRackRunning(c *cli.Context) error {
