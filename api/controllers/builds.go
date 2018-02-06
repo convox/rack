@@ -113,9 +113,7 @@ func BuildCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 		case ".zip":
 			method = "zip"
 		case "":
-			err := httperr.Errorf(403, "building from url requires an extension such as .git")
-			Provider.EventSend("build:create", structs.EventSendOptions{Data: map[string]string{"app": app, "from": "url"}, Error: err.Error()})
-			return err
+			method = r.FormValue("method")
 		default:
 			err := httperr.Errorf(403, "unknown extension: %s", ext)
 			Provider.EventSend("build:create", structs.EventSendOptions{Data: map[string]string{"app": app, "from": "url"}, Error: err.Error()})

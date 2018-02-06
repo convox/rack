@@ -1,19 +1,22 @@
 package main
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"os/exec"
 	"os/signal"
 	"path/filepath"
 	"strings"
+	"syscall"
+	"time"
 
 	"github.com/convox/rack/cmd/convox/helpers"
 	"github.com/convox/rack/cmd/convox/stdcli"
-	"github.com/convox/rack/manifest"
 	"github.com/convox/rack/manifest1"
+	"github.com/convox/rack/sdk"
 	"github.com/convox/rack/structs"
 	"github.com/fsouza/go-dockerclient"
 	"gopkg.in/urfave/cli.v1"
@@ -102,8 +105,8 @@ type startOptions struct {
 	Build   bool
 	Cache   bool
 	Command []string
-	Id      string
 	Config  string
+	Id      string
 	Service string
 	Shift   int
 	Sync    bool
@@ -174,60 +177,157 @@ func startGeneration1(opts startOptions) error {
 }
 
 func startGeneration2(opts startOptions) error {
-	opts.Config = helpers.Coalesce(opts.Config, "convox.yml")
-
-	if !helpers.Exists(opts.Config) {
-		return fmt.Errorf("manifest not found: %s", opts.Config)
-	}
-
 	app, err := stdcli.DefaultApp(opts.Config)
 	if err != nil {
 		return err
 	}
 
-	data, err := ioutil.ReadFile(opts.Config)
+	rack, err := sdk.New("https://localhost:5443")
 	if err != nil {
 		return err
 	}
 
-	dir := filepath.Dir(app)
-
-	env := structs.Environment{}
-
-	if data, err := ioutil.ReadFile(filepath.Join(dir, ".env")); err == nil {
-		if err := env.Load(data); err != nil {
-			return err
-		}
+	if _, err := rack.AppGet(app); err != nil {
+		return err
 	}
 
-	m, err := manifest.Load(data, manifest.Environment(env))
+	tar, err := createTarball(".")
 	if err != nil {
 		return err
 	}
 
-	bopts := manifest.BuildOptions{
-		Development: true,
-		Stdout:      m.Writer("build", os.Stdout),
-		Stderr:      m.Writer("build", os.Stderr),
-	}
-
-	if err := m.Build(app, "latest", bopts); err != nil {
+	o, err := rack.ObjectStore(app, "", bytes.NewReader(tar), structs.ObjectStoreOptions{})
+	if err != nil {
 		return err
 	}
 
-	ropts := manifest.RunOptions{
-		Bind:   true,
-		Env:    env,
-		Stdout: os.Stdout,
-		Stderr: os.Stderr,
+	b, err := rack.BuildCreate(app, "tgz", o.Url, structs.BuildCreateOptions{})
+	if err != nil {
+		return err
 	}
 
-	if err := m.Run(app, ropts); err != nil {
+	if err := waitForBuildGeneration2(rack, app, b.Id); err != nil {
+		return err
+	}
+
+	logs, err := rack.BuildLogs(app, b.Id, structs.LogsOptions{})
+	if err != nil {
+		return err
+	}
+
+	if _, err := io.Copy(os.Stdout, logs); err != nil {
+		return err
+	}
+
+	b, err = rack.BuildGet(app, b.Id)
+	if err != nil {
+		return err
+	}
+
+	switch b.Status {
+	case "created", "running", "complete":
+	case "failed":
+		return fmt.Errorf("build failed")
+	default:
+		return fmt.Errorf("unknown build status: %s", b.Status)
+	}
+
+	if err := rack.ReleasePromote(app, b.Release); err != nil {
+		return err
+	}
+
+	r, err := rack.ReleaseGet(app, b.Release)
+	if err != nil {
+		return err
+	}
+
+	switch r.Status {
+	case "created", "promoting", "promoted", "active":
+	case "failed":
+		return fmt.Errorf("release failed")
+	default:
+		return fmt.Errorf("unknown release status: %s", r.Status)
+	}
+
+	sig := make(chan os.Signal, 1)
+	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
+
+	// wd, err := os.Getwd()
+	// if err != nil {
+	//   return err
+	// }
+
+	// for _, s := range m.Services {
+	//   go watchChanges(Rack(c), wd, m, app, s.Name, errch)
+	// }
+
+	logs, err = rack.AppLogs(app, structs.LogsOptions{Follow: true, Prefix: true})
+	if err != nil {
+		return err
+	}
+
+	if _, err := io.Copy(os.Stdout, logs); err != nil {
 		return err
 	}
 
 	return nil
 }
+
+// func startGeneration2(opts startOptions) error {
+//   opts.Config = helpers.Coalesce(opts.Config, "convox.yml")
+
+//   if !helpers.Exists(opts.Config) {
+//     return fmt.Errorf("manifest not found: %s", opts.Config)
+//   }
+
+//   app, err := stdcli.DefaultApp(opts.Config)
+//   if err != nil {
+//     return err
+//   }
+
+//   data, err := ioutil.ReadFile(opts.Config)
+//   if err != nil {
+//     return err
+//   }
+
+//   dir := filepath.Dir(app)
+
+//   env := structs.Environment{}
+
+//   if data, err := ioutil.ReadFile(filepath.Join(dir, ".env")); err == nil {
+//     if err := env.Load(data); err != nil {
+//       return err
+//     }
+//   }
+
+//   m, err := manifest.Load(data, manifest.Environment(env))
+//   if err != nil {
+//     return err
+//   }
+
+//   bopts := manifest.BuildOptions{
+//     Development: true,
+//     Stdout:      m.Writer("build", os.Stdout),
+//     Stderr:      m.Writer("build", os.Stderr),
+//   }
+
+//   if err := m.Build(app, "latest", bopts); err != nil {
+//     return err
+//   }
+
+//   ropts := manifest.RunOptions{
+//     Bind:   true,
+//     Env:    env,
+//     Stdout: os.Stdout,
+//     Stderr: os.Stderr,
+//   }
+
+//   if err := m.Run(app, ropts); err != nil {
+//     return err
+//   }
+
+//   return nil
+// }
 
 func handleInterrupt1(run manifest1.Run) {
 	ch := make(chan os.Signal, 1)
@@ -269,4 +369,26 @@ func dockerTest() error {
 		return errors.New("Your version of docker is out of date (min: 1.9)")
 	}
 	return nil
+}
+
+func waitForBuildGeneration2(rack *sdk.Client, app, id string) error {
+	for {
+		time.Sleep(1 * time.Second)
+
+		b, err := rack.BuildGet(app, id)
+		if err != nil {
+			return err
+		}
+
+		switch b.Status {
+		case "created":
+			break
+		case "running", "complete":
+			return nil
+		case "failed":
+			return fmt.Errorf("build failed")
+		default:
+			return fmt.Errorf("unknown build status: %s", b.Status)
+		}
+	}
 }

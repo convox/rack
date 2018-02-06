@@ -14,6 +14,8 @@ import (
 	"reflect"
 	"strings"
 	"time"
+
+	"golang.org/x/net/websocket"
 )
 
 type Client struct {
@@ -84,6 +86,31 @@ func (o *RequestOptions) ContentType() string {
 	}
 
 	return "application/octet-stream"
+}
+
+func (c *Client) Websocket(path string, opts RequestOptions) (io.ReadCloser, error) {
+	var u url.URL
+
+	u = *c.Endpoint
+
+	u.Scheme = "wss"
+	u.Path += path
+
+	cfg, err := websocket.NewConfig(u.String(), c.Endpoint.String())
+	if err != nil {
+		return nil, err
+	}
+
+	cfg.TlsConfig = &tls.Config{
+		InsecureSkipVerify: true,
+	}
+
+	ws, err := websocket.DialConfig(cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	return ws, nil
 }
 
 // func (c *Client) Stream(path string, opts RequestOptions) (io.ReadCloser, error) {
