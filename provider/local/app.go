@@ -108,6 +108,8 @@ func (p *Provider) AppList() (structs.Apps, error) {
 func (p *Provider) AppLogs(app string, opts structs.LogsOptions) (io.ReadCloser, error) {
 	log := p.logger("AppLogs").Append("app=%q", app)
 
+	opts.Prefix = true
+
 	if _, err := p.AppGet(app); err != nil {
 		return nil, log.Error(err)
 	}
