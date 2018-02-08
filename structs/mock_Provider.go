@@ -429,6 +429,34 @@ func (_m *MockProvider) EventSend(action string, opts EventSendOptions) error {
 	return r0
 }
 
+// FilesDelete provides a mock function with given fields: app, pid, files
+func (_m *MockProvider) FilesDelete(app string, pid string, files []string) error {
+	ret := _m.Called(app, pid, files)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(string, string, []string) error); ok {
+		r0 = rf(app, pid, files)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// FilesUpload provides a mock function with given fields: app, pid, r
+func (_m *MockProvider) FilesUpload(app string, pid string, r io.Reader) error {
+	ret := _m.Called(app, pid, r)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(string, string, io.Reader) error); ok {
+		r0 = rf(app, pid, r)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // Initialize provides a mock function with given fields: opts
 func (_m *MockProvider) Initialize(opts ProviderOptions) error {
 	ret := _m.Called(opts)

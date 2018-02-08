@@ -168,6 +168,11 @@ func (m *Manifest) BuildSources(root, service string) ([]BuildSource, error) {
 		return []BuildSource{}, nil
 	}
 
+	svc, err := m.Service(service)
+	if err != nil {
+		return nil, err
+	}
+
 	bs := []BuildSource{}
 	env := map[string]string{}
 	wd := ""
@@ -193,12 +198,12 @@ func (m *Manifest) BuildSources(root, service string) ([]BuildSource, error) {
 				case "http", "https":
 					// do nothing
 				default:
-					local := parts[1]
+					local := filepath.Join(svc.Build.Path, parts[1])
 					remote := replaceEnv(parts[2], env)
 
-					if remote == "." || strings.HasSuffix(remote, "/") {
-						remote = filepath.Join(remote, filepath.Base(local))
-					}
+					// if remote == "." || strings.HasSuffix(remote, "/") {
+					//   remote = filepath.Join(remote, filepath.Base(local))
+					// }
 
 					if wd != "" {
 						remote = filepath.Join(wd, remote)

@@ -27,6 +27,8 @@ func NewRouter() (router *mux.Router) {
 	router.HandleFunc("/apps/{app}/environment", api("environment.list", EnvironmentGet)).Methods("GET")
 	router.HandleFunc("/apps/{app}/environment", api("environment.set", EnvironmentSet)).Methods("POST")
 	router.HandleFunc("/apps/{app}/environment/{name}", api("environment.delete", EnvironmentDelete)).Methods("DELETE")
+	router.HandleFunc("/apps/{app}/processes/{process}/files", api("files.delete", FilesDelete)).Methods("DELETE")
+	router.HandleFunc("/apps/{app}/processes/{process}/files", api("files.upload", FilesUpload)).Methods("POST")
 	router.HandleFunc("/apps/{app}/objects/{key:.*}", api("object.fetch", ObjectFetch)).Methods("GET")
 	router.HandleFunc("/apps/{app}/objects/{key:.*}", api("object.store", ObjectStore)).Methods("POST")
 	router.HandleFunc("/apps/{app}/parameters", api("parameters.list", ParametersList)).Methods("GET")
