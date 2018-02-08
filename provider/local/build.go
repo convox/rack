@@ -84,6 +84,7 @@ func (p *Provider) BuildCreate(app, method, url string, opts structs.BuildCreate
 	}
 
 	b.Process = pid
+	b.Status = "running"
 
 	if err := p.storageStore(fmt.Sprintf("apps/%s/builds/%s", app, b.Id), b); err != nil {
 		return nil, errors.WithStack(log.Error(err))

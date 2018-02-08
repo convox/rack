@@ -27,9 +27,9 @@ func (p *Provider) Workers() error {
 			for {
 				time.Sleep(10 * time.Second)
 
-				if err := p.workerConverge(); err != nil {
-					log.Error(errors.WithStack(err))
-				}
+				// if err := p.workerConverge(); err != nil {
+				//   log.Error(errors.WithStack(err))
+				// }
 			}
 		}()
 	}

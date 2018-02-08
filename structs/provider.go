@@ -33,6 +33,9 @@ type Provider interface {
 
 	EventSend(action string, opts EventSendOptions) error
 
+	FilesDelete(app, pid string, files []string) error
+	FilesUpload(app, pid string, r io.Reader) error
+
 	InstanceKeyroll() error
 	InstanceList() (Instances, error)
 	InstanceShell(id string, rw io.ReadWriter, opts InstanceShellOptions) error
