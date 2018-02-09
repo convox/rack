@@ -126,10 +126,10 @@ func (p *AWSProvider) writeLogEvents(w io.Writer, events []*cloudwatchlogs.Filte
 			if len(parts) >= 3 {
 				release, err := p.taskRelease(parts[2])
 				if err != nil {
-					return 0, err
+					prefix = fmt.Sprintf("%s/%s:%s ", name, parts[1], arnToPid(parts[2]))
+				} else {
+					prefix = fmt.Sprintf("%s/%s:%s/%s ", name, parts[1], release, arnToPid(parts[2]))
 				}
-
-				prefix = fmt.Sprintf("%s/%s:%s/%s ", name, parts[1], release, arnToPid(parts[2]))
 			}
 		case "system":
 			prefix = fmt.Sprintf("system:%s/", os.Getenv("RELEASE"))
