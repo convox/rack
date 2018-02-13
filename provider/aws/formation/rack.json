@@ -145,6 +145,9 @@
       "Export": { "Name": { "Fn::Sub": "${AWS::StackName}:HostedZone" } },
       "Value": { "Ref": "HostedZone" }
     },
+    "InstancesRole": {
+      "Value": { "Fn::GetAtt": [ "InstancesRole", "Arn" ] }
+    },
     "Internal": {
       "Value": { "Ref": "Internal" }
     },
