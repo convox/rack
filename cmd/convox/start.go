@@ -2,6 +2,7 @@ package main
 
 import (
 	"archive/tar"
+	"bufio"
 	"bytes"
 	"compress/gzip"
 	"errors"
@@ -12,6 +13,7 @@ import (
 	"os/exec"
 	"os/signal"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"sync"
 	"syscall"
@@ -22,10 +24,15 @@ import (
 	"github.com/convox/rack/cmd/convox/stdcli"
 	"github.com/convox/rack/manifest"
 	"github.com/convox/rack/manifest1"
+	"github.com/convox/rack/options"
 	"github.com/convox/rack/sdk"
 	"github.com/convox/rack/structs"
 	"github.com/fsouza/go-dockerclient"
 	"gopkg.in/urfave/cli.v1"
+)
+
+var (
+	reAppLog = regexp.MustCompile(`^(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2}:\d{2}) ([^/]+)/([^/]+)/([^ ]+) (.*)$`)
 )
 
 func init() {
@@ -183,6 +190,11 @@ func startGeneration1(opts startOptions) error {
 }
 
 func startGeneration2(opts startOptions) error {
+	data, err := ioutil.ReadFile("convox.yml")
+	if err != nil {
+		return err
+	}
+
 	app, err := stdcli.DefaultApp(opts.Config)
 	if err != nil {
 		return err
@@ -193,8 +205,20 @@ func startGeneration2(opts startOptions) error {
 		return err
 	}
 
-	if _, err := rack.AppGet(app); err != nil {
+	env, err := rack.EnvironmentGet(app)
+	if err != nil {
 		return err
+	}
+
+	m, err := manifest.Load(data, manifest.Environment(env))
+	if err != nil {
+		return err
+	}
+
+	if _, err := rack.AppGet(app); err != nil {
+		if _, err := rack.AppCreate(app, structs.AppCreateOptions{Generation: options.String("2")}); err != nil {
+			return err
+		}
 	}
 
 	tar, err := createTarball(".")
@@ -221,7 +245,9 @@ func startGeneration2(opts startOptions) error {
 		return err
 	}
 
-	if _, err := io.Copy(os.Stdout, logs); err != nil {
+	bo := m.Writer("build", os.Stdout)
+
+	if _, err := io.Copy(bo, logs); err != nil {
 		return err
 	}
 
@@ -259,24 +285,9 @@ func startGeneration2(opts startOptions) error {
 
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
-	go handleSignals(rack, app, sig, errch)
+	go handleSignals(rack, m, app, sig, errch)
 
 	wd, err := os.Getwd()
-	if err != nil {
-		return err
-	}
-
-	data, err := ioutil.ReadFile("convox.yml")
-	if err != nil {
-		return err
-	}
-
-	env, err := rack.EnvironmentGet(app)
-	if err != nil {
-		return err
-	}
-
-	m, err := manifest.Load(data, manifest.Environment(env))
 	if err != nil {
 		return err
 	}
@@ -292,9 +303,21 @@ func startGeneration2(opts startOptions) error {
 		return err
 	}
 
-	if _, err := io.Copy(os.Stdout, logs); err != nil {
-		return err
-	}
+	ls := bufio.NewScanner(logs)
+
+	go func() {
+		for ls.Scan() {
+			match := reAppLog.FindStringSubmatch(ls.Text())
+
+			if len(match) == 7 {
+				m.Writef(match[4], "%s\n", match[6])
+			}
+		}
+	}()
+
+	// if _, err := io.Copy(os.Stdout, logs); err != nil {
+	//   return err
+	// }
 
 	return <-errch
 }
@@ -364,7 +387,7 @@ func handleInterrupt1(run manifest1.Run) {
 	os.Exit(0)
 }
 
-func handleSignals(rack *sdk.Client, app string, ch chan os.Signal, errch chan error) {
+func handleSignals(rack *sdk.Client, m *manifest.Manifest, app string, ch chan os.Signal, errch chan error) {
 	sig := <-ch
 
 	if sig == syscall.SIGINT {
@@ -382,7 +405,7 @@ func handleSignals(rack *sdk.Client, app string, ch chan os.Signal, errch chan e
 	wg.Add(len(ps))
 
 	for _, p := range ps {
-		fmt.Printf("stopping %s\n", p.Id)
+		m.Writef("convox", "stopping %s\n", p.Id)
 
 		go func(id string) {
 			defer wg.Done()
@@ -464,12 +487,14 @@ func watchChanges(rack *sdk.Client, m *manifest.Manifest, app, service, root str
 	}
 
 	for _, bs := range bss {
-		go watchPath(rack, app, service, root, bs, ignores, ch)
+		go watchPath(rack, m, app, service, root, bs, ignores, ch)
 	}
 }
 
-func watchPath(rack *sdk.Client, app, service, root string, bs manifest.BuildSource, ignores []string, ch chan error) {
+func watchPath(rack *sdk.Client, m *manifest.Manifest, app, service, root string, bs manifest.BuildSource, ignores []string, ch chan error) {
 	cch := make(chan changes.Change, 1)
+
+	w := m.Writer("convox", os.Stdout)
 
 	abs, err := filepath.Abs(bs.Local)
 	if err != nil {
@@ -477,19 +502,19 @@ func watchPath(rack *sdk.Client, app, service, root string, bs manifest.BuildSou
 		return
 	}
 
-	// wd, err := os.Getwd()
-	// if err != nil {
-	//   ch <- err
-	//   return
-	// }
+	wd, err := os.Getwd()
+	if err != nil {
+		ch <- err
+		return
+	}
 
-	// rel, err := filepath.Rel(wd, bs.Local)
-	// if err != nil {
-	//   ch <- err
-	//   return
-	// }
+	rel, err := filepath.Rel(wd, bs.Local)
+	if err != nil {
+		ch <- err
+		return
+	}
 
-	// m.Writef(service, "syncing: <dir>%s</dir> to <dir>%s</dir>\n", rel, bs.Remote)
+	m.Writef("convox", "syncing: <dir>%s</dir> to <dir>%s:%s</dir>\n", rel, service, bs.Remote)
 
 	go changes.Watch(abs, cch, changes.WatchOptions{
 		Ignores: ignores,
@@ -509,7 +534,7 @@ func watchPath(rack *sdk.Client, app, service, root string, bs manifest.BuildSou
 
 			pss, err := rack.ProcessList(app, structs.ProcessListOptions{Service: service})
 			if err != nil {
-				// w.Writef("sync error: %s\n", err)
+				w.Writef("sync error: %s\n", err)
 				continue
 			}
 
@@ -518,24 +543,28 @@ func watchPath(rack *sdk.Client, app, service, root string, bs manifest.BuildSou
 			for _, ps := range pss {
 				switch {
 				case len(adds) > 3:
-					// w.Writef("sync: %d files to %s\n", len(adds), ps.Service)
+					w.Writef("sync: %d files to <dir>%s:%s</dir>\n", len(adds), service, bs.Remote)
 				case len(adds) > 0:
-					// w.Writef("sync: %s to %s\n", strings.Join(changes.Files(adds), ", "), ps.Service)
+					for _, a := range adds {
+						w.Writef("sync: <dir>%s</dir> to <dir>%s:%s</dir>\n", a.Path, service, bs.Remote)
+					}
 				}
 
 				if err := handleAdds(rack, app, ps.Id, bs.Remote, adds); err != nil {
-					// w.Writef("sync add error: %s\n", err)
+					w.Writef("sync add error: %s\n", err)
 				}
 
 				switch {
 				case len(removes) > 3:
-					// w.Writef("remove: %d files to %s\n", len(removes), ps.Service)
+					w.Writef("remove: %d files from <dir>%s:%s</dir>\n", len(removes), service, bs.Remote)
 				case len(removes) > 0:
-					// w.Writef("remove: %s to %s\n", strings.Join(changes.Files(removes), ", "), ps.Service)
+					for _, r := range removes {
+						w.Writef("remove: <dir>%s</dir> from <dir>%s:%s</dir>\n", r.Path, service, bs.Remote)
+					}
 				}
 
 				if err := handleRemoves(rack, app, ps.Id, removes); err != nil {
-					// w.Writef("sync remove error: %s\n", err)
+					w.Writef("sync remove error: %s\n", err)
 				}
 			}
 
