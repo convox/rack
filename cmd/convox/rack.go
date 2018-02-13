@@ -536,7 +536,16 @@ func cmdRackReleases(c *cli.Context) error {
 }
 
 func cmdRackStart(c *cli.Context) error {
-	cmd, err := rackCommand(Version, c.String("router"))
+	v, err := latestVersion()
+	if err != nil {
+		return err
+	}
+
+	if Version == "dev" {
+		v = "dev"
+	}
+
+	cmd, err := rackCommand(v, c.String("router"))
 	if err != nil {
 		return err
 	}
