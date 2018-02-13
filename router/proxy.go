@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"os/exec"
 	"strconv"
 	"strings"
 
@@ -189,14 +190,7 @@ func proxyRackTCP(cn net.Conn, target *url.URL) error {
 
 	switch kind {
 	case "resource":
-		fmt.Printf("app = %+v\n", app)
-		fmt.Printf("resource = %+v\n", resource)
-		return fmt.Errorf("unimplemented")
-		// rc, err := rack.ResourceProxy(app, resource, cn)
-		// if err != nil {
-		//   return err
-		// }
-		// pr = rc
+		return resourceProxy(app, resource, rp[1], cn)
 	default:
 		return fmt.Errorf("unknown proxy type: %s", kind)
 	}
@@ -274,15 +268,11 @@ func serviceTransport(app, service string, port int) http.RoundTripper {
 			}
 		}
 
-		fmt.Printf("ps = %+v\n", ps)
-
 		if len(ps) < 1 {
 			return nil, fmt.Errorf("no processes available for service: %s", service)
 		}
 
 		p := ps[mrand.Intn(len(ps))]
-
-		fmt.Printf("p = %+v\n", p)
 
 		a, b := net.Pipe()
 
@@ -334,6 +324,36 @@ func serviceProxy(app, pid string, port int, rw io.ReadWriteCloser) error {
 	// }
 
 	return nil
+}
+
+func resourceProxy(app, resource, port string, rw io.ReadWriteCloser) error {
+	defer rw.Close()
+
+	var ports map[string][]struct {
+		HostPort string
+	}
+
+	data, err := exec.Command("docker", "inspect", "--format", "{{json .NetworkSettings.Ports}}", fmt.Sprintf("convox.%s.resource.%s", app, resource)).CombinedOutput()
+	if err != nil {
+		return err
+	}
+
+	if err := json.Unmarshal(data, &ports); err != nil {
+		return err
+	}
+
+	for host, maps := range ports {
+		if host == fmt.Sprintf("%s/tcp", port) && len(maps) > 0 {
+			cn, err := net.Dial("tcp", fmt.Sprintf("localhost:%s", maps[0].HostPort))
+			if err != nil {
+				return err
+			}
+
+			return helpers.Pipe(rw, cn)
+		}
+	}
+
+	return fmt.Errorf("unable to find map for resource")
 }
 
 var upgrader = websocket.Upgrader{

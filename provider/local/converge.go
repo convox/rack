@@ -259,6 +259,7 @@ func (p *Provider) resourceContainers(resources manifest.Resources, app, release
 			},
 			Image:   fmt.Sprintf("convox/%s", r.Type),
 			Volumes: vs,
+			Port:    rp,
 			Labels: map[string]string{
 				"convox.rack":     p.Name,
 				"convox.version":  p.Version,
