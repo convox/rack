@@ -61,7 +61,7 @@ func (p *Provider) Initialize(opts structs.ProviderOptions) error {
 		return err
 	}
 
-	db, err := bolt.Open(filepath.Join(p.Root, "rack.db"), 0600, nil)
+	db, err := bolt.Open(filepath.Join(p.Root, "convox.db"), 0600, nil)
 	if err != nil {
 		return err
 	}
