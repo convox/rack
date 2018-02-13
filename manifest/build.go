@@ -205,7 +205,7 @@ func (m *Manifest) BuildSources(root, service string) ([]BuildSource, error) {
 					//   remote = filepath.Join(remote, filepath.Base(local))
 					// }
 
-					if wd != "" {
+					if wd != "" && !filepath.IsAbs(remote) {
 						remote = filepath.Join(wd, remote)
 					}
 
@@ -236,6 +236,13 @@ func (m *Manifest) BuildSources(root, service string) ([]BuildSource, error) {
 						env[parts[0]] = parts[1]
 					}
 				}
+
+				data, err = exec.Command("docker", "inspect", parts[1], "--format", "{{.Config.WorkingDir}}").CombinedOutput()
+				if err != nil {
+					return nil, err
+				}
+
+				wd = strings.TrimSpace(string(data))
 			}
 		case "WORKDIR":
 			if len(parts) > 1 {
@@ -250,7 +257,20 @@ func (m *Manifest) BuildSources(root, service string) ([]BuildSource, error) {
 			return nil, err
 		}
 
+		stat, err := os.Stat(abs)
+		if err != nil {
+			return nil, err
+		}
+
+		if stat.IsDir() && !strings.HasSuffix(abs, "/") {
+			abs = abs + "/"
+		}
+
 		bs[i].Local = abs
+
+		if bs[i].Remote == "." {
+			bs[i].Remote = wd
+		}
 	}
 
 	bss := []BuildSource{}
@@ -260,6 +280,11 @@ func (m *Manifest) BuildSources(root, service string) ([]BuildSource, error) {
 
 		for j := i + 1; j < len(bs); j++ {
 			if strings.HasPrefix(bs[i].Local, bs[j].Local) {
+				if bs[i].Remote == bs[j].Remote {
+					contained = true
+					break
+				}
+
 				rl, err := filepath.Rel(bs[j].Local, bs[i].Local)
 				if err != nil {
 					return nil, err
@@ -281,8 +306,6 @@ func (m *Manifest) BuildSources(root, service string) ([]BuildSource, error) {
 			bss = append(bss, bs[i])
 		}
 	}
-
-	// return nil, fmt.Errorf("stop")
 
 	return bss, nil
 }
