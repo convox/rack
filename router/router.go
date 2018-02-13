@@ -19,7 +19,7 @@ import (
 
 const (
 	cleanupInterval = 5 * time.Second
-	cleanupAge      = 60 * time.Second
+	cleanupAge      = 24 * time.Hour
 )
 
 type Endpoint struct {
