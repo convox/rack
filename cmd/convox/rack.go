@@ -697,11 +697,11 @@ func waitForRackRunning(c *cli.Context) error {
 func rackCommand(version string, router string) (*exec.Cmd, error) {
 	name := "convox"
 
-	config := "/var/convox"
+	vol := "/var/convox"
 
 	switch runtime.GOOS {
 	case "darwin":
-		config = "/Users/Shared/convox"
+		vol = "/Users/Shared/convox"
 	}
 
 	exec.Command("docker", "rm", "-f", name).Run()
@@ -712,9 +712,10 @@ func rackCommand(version string, router string) (*exec.Cmd, error) {
 	args = append(args, "-e", "COMBINED=true")
 	args = append(args, "-e", "PROVIDER=local")
 	args = append(args, "-e", fmt.Sprintf("PROVIDER_ROUTER=%s", router))
+	args = append(args, "-e", fmt.Sprintf("PROVIDER_VOLUME=%s", vol))
 	args = append(args, "-e", fmt.Sprintf("VERSION=%s", version))
 	args = append(args, "-p", "5443:5443")
-	args = append(args, "-v", fmt.Sprintf("%s:/var/convox", config))
+	args = append(args, "-v", fmt.Sprintf("%s:/var/convox", vol))
 	args = append(args, "-v", "/var/run/docker.sock:/var/run/docker.sock")
 	args = append(args, fmt.Sprintf("convox/rack:%s", version))
 

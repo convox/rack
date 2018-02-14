@@ -31,6 +31,7 @@ type Provider struct {
 	Router   string
 	Test     bool
 	Version  string
+	Volume   string
 
 	ctx  context.Context
 	db   *bolt.DB
@@ -46,6 +47,7 @@ func FromEnv() *Provider {
 		Router:   coalesce(os.Getenv("PROVIDER_ROUTER"), "10.42.0.0"),
 		Test:     os.Getenv("TEST") == "true",
 		Version:  coalesce(os.Getenv("VERSION"), "latest"),
+		Volume:   coalesce(os.Getenv("PROVIDER_VOLUME"), "/var/convox"),
 		logs:     logger.NewWriter("", ioutil.Discard),
 	}
 }
