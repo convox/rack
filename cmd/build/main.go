@@ -171,7 +171,7 @@ func fetch() (string, error) {
 	var buf bytes.Buffer
 
 	dir, err := s.Fetch(&buf)
-	log(strings.TrimSpace(buf.String()))
+	logf(buf.String())
 	if err != nil {
 		return "", err
 	}
@@ -378,6 +378,11 @@ func fail(err error) {
 }
 
 func log(line string) {
-	currentLogs += fmt.Sprintf("%s\n", line)
-	fmt.Println(line)
+	logf("%s\n", line)
+}
+
+func logf(f string, args ...interface{}) {
+	s := fmt.Sprintf(f, args...)
+	currentLogs += s
+	fmt.Print(s)
 }
