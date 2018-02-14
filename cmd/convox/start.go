@@ -190,6 +190,10 @@ func startGeneration1(opts startOptions) error {
 }
 
 func startGeneration2(opts startOptions) error {
+	if err := exec.Command("docker", "inspect", "convox").Run(); err != nil {
+		return fmt.Errorf("local rack not found, try `sudo convox rack install local`")
+	}
+
 	data, err := ioutil.ReadFile("convox.yml")
 	if err != nil {
 		return err
