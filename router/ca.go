@@ -15,12 +15,7 @@ import (
 )
 
 func caCertificate() (tls.Certificate, error) {
-	cert, err := tls.LoadX509KeyPair("/Users/Shared/convox/ca.crt", "/Users/Shared/convox/ca.key")
-	if err != nil {
-		return generateCACertificate()
-	}
-
-	cert, err = tls.LoadX509KeyPair("/etc/convox/ca.crt", "/etc/convox/ca.key")
+	cert, err := tls.LoadX509KeyPair("/etc/convox/ca.crt", "/etc/convox/ca.key")
 	if err != nil {
 		return generateCACertificate()
 	}
