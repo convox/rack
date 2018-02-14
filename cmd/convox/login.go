@@ -37,7 +37,6 @@ func init() {
 
 	home, err := homedir.Dir()
 	if err != nil {
-		stdcli.Error(err)
 		return
 	}
 
