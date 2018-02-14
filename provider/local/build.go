@@ -70,7 +70,7 @@ func (p *Provider) BuildCreate(app, method, url string, opts structs.BuildCreate
 		Release: options.String(a.Release),
 		Service: options.String("build"),
 		Volumes: map[string]string{
-			"/Users/Shared/convox": "/var/convox",
+			p.Volume:               "/var/convox",
 			"/var/run/docker.sock": "/var/run/docker.sock",
 		},
 	})

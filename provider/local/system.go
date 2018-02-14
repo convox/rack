@@ -12,7 +12,7 @@ import (
 	"os"
 	"os/exec"
 	"os/user"
-	"runtime"
+	"path/filepath"
 	"text/template"
 	"time"
 
@@ -117,12 +117,7 @@ func (p *Provider) SystemInstall(name string, opts structs.SystemInstallOptions)
 		return "", fmt.Errorf("must specify a version")
 	}
 
-	vf := "/var/convox/version"
-
-	switch runtime.GOOS {
-	case "darwin":
-		vf = "/Users/Shared/convox/version"
-	}
+	vf := filepath.Join(p.Volume, "version")
 
 	if err := ioutil.WriteFile(vf, []byte(*opts.Version), 0644); err != nil {
 		return "", err
