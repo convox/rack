@@ -1047,6 +1047,14 @@
         "AssociatePublicIpAddress": { "Fn::If": [ "Private", false, true ] },
         "BlockDeviceMappings": [
           {
+            "DeviceName": "/dev/xvda",
+            "Ebs": {
+              "Encrypted": { "Fn::If": [ "EncryptEbs", "true", { "Ref": "AWS::NoValue" } ] },
+              "VolumeSize": { "Ref": "RootSize" },
+              "VolumeType":"gp2"
+            }
+          },
+          {
             "DeviceName": "/dev/xvdb",
             "Ebs": {
               "Encrypted": { "Fn::If": [ "EncryptEbs", "true", { "Ref": "AWS::NoValue" } ] },
