@@ -67,13 +67,11 @@ func (s *Sync) Contains(t Sync) bool {
 	}
 
 	lr, err := filepath.Rel(s.Local, t.Local)
-
 	if err != nil {
 		return false
 	}
 
 	rr, err := filepath.Rel(s.Remote, t.Remote)
-
 	if err != nil {
 		return false
 	}

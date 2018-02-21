@@ -1,8 +1,13 @@
 package main
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
+	"net/url"
 	"os"
+	"os/exec"
+	"runtime"
 	"sort"
 	"strings"
 	"time"
@@ -10,7 +15,7 @@ import (
 	"github.com/convox/rack/cmd/convox/helpers"
 	"github.com/convox/rack/cmd/convox/stdcli"
 	"github.com/convox/rack/options"
-	"github.com/convox/rack/server"
+	"github.com/convox/rack/provider"
 	"github.com/convox/rack/structs"
 	"github.com/convox/version"
 	"gopkg.in/urfave/cli.v1"
@@ -25,6 +30,25 @@ func init() {
 		Action:      cmdRack,
 		Flags:       []cli.Flag{rackFlag},
 		Subcommands: []cli.Command{
+			{
+				Name:        "install",
+				Description: "install a rack",
+				Action:      cmdRackInstall,
+				Usage:       "<provider>",
+				Flags: []cli.Flag{
+					cli.StringFlag{
+						Name:  "name",
+						Usage: "rack name",
+						Value: "convox",
+					},
+					cli.StringFlag{
+						Name:  "version",
+						Usage: "rack version",
+						Value: "",
+					},
+				},
+			},
+
 			{
 				Name:        "logs",
 				Description: "stream the rack logs",
@@ -108,17 +132,15 @@ func init() {
 					},
 				},
 			},
-			{
+			cli.Command{
 				Name:        "start",
-				Description: "start rack api server",
-				Usage:       "[type] [options]",
-				ArgsUsage:   "",
+				Description: "start a local rack",
 				Action:      cmdRackStart,
 				Flags: []cli.Flag{
-					rackFlag,
 					cli.StringFlag{
-						Name:  "root",
-						Usage: "set provider root directory",
+						Name:  "router",
+						Usage: "local router",
+						Value: "10.42.0.0",
 					},
 				},
 			},
@@ -178,6 +200,61 @@ func cmdRack(c *cli.Context) error {
 	info.Add("Type", system.Type)
 
 	info.Print()
+
+	return nil
+}
+
+func cmdRackInstall(c *cli.Context) error {
+	ptype := c.Args()[0]
+	name := c.String("name")
+
+	password, err := helpers.Key(32)
+	if err != nil {
+		return err
+	}
+
+	switch ptype {
+	case "aws":
+		if err := fetchCredentialsAWS(); err != nil {
+			return err
+		}
+	}
+
+	p := provider.FromName(ptype)
+
+	version := c.String("version")
+
+	if version == "" {
+		v, err := latestVersion()
+		if err != nil {
+			return err
+		}
+
+		version = v
+	}
+
+	endpoint, err := p.SystemInstall(name, structs.SystemInstallOptions{
+		Color:    options.Bool(true),
+		Output:   os.Stdout,
+		Password: options.String(password),
+		Version:  options.String(version),
+	})
+	if err != nil {
+		return err
+	}
+
+	u, err := url.Parse(endpoint)
+	if err != nil {
+		return err
+	}
+
+	u.User = url.UserPassword(password, "")
+
+	switch ptype {
+	case "local":
+	default:
+		fmt.Printf("RACK_URL=%s\n", u.String())
+	}
 
 	return nil
 }
@@ -409,22 +486,6 @@ func cmdRackScale(c *cli.Context) error {
 	return nil
 }
 
-func cmdRackStart(c *cli.Context) error {
-	stdcli.NeedHelp(c)
-
-	if root := c.String("root"); root != "" {
-		os.Setenv("PROVIDER_ROOT", root)
-	}
-
-	name := "local"
-
-	if len(c.Args()) > 0 {
-		name = c.Args()[0]
-	}
-
-	return server.Listen(name, ":5443")
-}
-
 func cmdRackReleases(c *cli.Context) error {
 	stdcli.NeedHelp(c)
 	stdcli.NeedArg(c, 0)
@@ -474,6 +535,42 @@ func cmdRackReleases(c *cli.Context) error {
 	return nil
 }
 
+func cmdRackStart(c *cli.Context) error {
+	v, err := latestVersion()
+	if err != nil {
+		return err
+	}
+
+	if Version == "dev" {
+		v = "dev"
+	}
+
+	cmd, err := rackCommand(v, c.String("router"))
+	if err != nil {
+		return err
+	}
+
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	return cmd.Run()
+}
+
+func awsCmd(args ...string) ([]byte, error) {
+	var buf bytes.Buffer
+
+	cmd := exec.Command("aws", args...)
+
+	cmd.Stdout = &buf
+	cmd.Stderr = os.Stderr
+
+	if err := cmd.Run(); err != nil {
+		return nil, err
+	}
+
+	return buf.Bytes(), nil
+}
+
 func displaySystem(c *cli.Context) {
 	system, err := rackClient(c).GetSystem()
 	if err != nil {
@@ -486,6 +583,80 @@ func displaySystem(c *cli.Context) {
 	fmt.Printf("Version  %s\n", system.Version)
 	fmt.Printf("Count    %d\n", system.Count)
 	fmt.Printf("Type     %s\n", system.Type)
+}
+
+func fetchCredentialsAWS() error {
+	data, err := awsCmd("configure", "get", "region")
+	if err != nil || len(data) == 0 {
+		return fmt.Errorf("aws cli must be configured, try `aws configure`")
+	}
+
+	os.Setenv("AWS_REGION", strings.TrimSpace(string(data)))
+
+	data, err = awsCmd("configure", "get", "role_arn")
+	if err == nil && len(data) > 0 {
+		return fetchCredentialsAWSRole(strings.TrimSpace(string(data)))
+	}
+
+	data, err = awsCmd("configure", "get", "aws_access_key_id")
+	if err != nil || len(data) == 0 {
+		return fmt.Errorf("aws cli must be configured, try `aws configure`")
+	}
+
+	os.Setenv("AWS_ACCESS_KEY_ID", strings.TrimSpace(string(data)))
+
+	data, err = awsCmd("configure", "get", "aws_secret_access_key")
+	if err != nil || len(data) == 0 {
+		return fmt.Errorf("aws cli must be configured, try `aws configure`")
+	}
+
+	os.Setenv("AWS_SECRET_ACCESS_KEY", strings.TrimSpace(string(data)))
+
+	data, _ = awsCmd("configure", "get", "aws_session_token")
+	if len(data) > 0 {
+		os.Setenv("AWS_SESSION_TOKEN", strings.TrimSpace(string(data)))
+	}
+
+	return nil
+}
+
+func fetchCredentialsAWSRole(role string) error {
+	data, err := awsCmd("sts", "assume-role", "--role-arn", role, "--role-session-name", "convox-cli")
+	if err != nil {
+		return err
+	}
+
+	var auth struct {
+		Credentials struct {
+			AccessKeyId     string
+			SecretAccessKey string
+			SessionToken    string
+		}
+	}
+
+	if err := json.Unmarshal(data, &auth); err != nil {
+		return err
+	}
+
+	os.Setenv("AWS_ACCESS_KEY_ID", auth.Credentials.AccessKeyId)
+	os.Setenv("AWS_SECRET_ACCESS_KEY", auth.Credentials.SecretAccessKey)
+	os.Setenv("AWS_SESSION_TOKEN", auth.Credentials.SessionToken)
+
+	return nil
+}
+
+func latestVersion() (string, error) {
+	versions, err := version.All()
+	if err != nil {
+		return "", stdcli.Error(err)
+	}
+
+	version, err := versions.Resolve("latest")
+	if err != nil {
+		return "", stdcli.Error(err)
+	}
+
+	return version.Version, nil
 }
 
 func waitForRackRunning(c *cli.Context) error {
@@ -521,4 +692,32 @@ func waitForRackRunning(c *cli.Context) error {
 	}
 
 	return nil
+}
+
+func rackCommand(version string, router string) (*exec.Cmd, error) {
+	name := "convox"
+
+	vol := "/var/convox"
+
+	switch runtime.GOOS {
+	case "darwin":
+		vol = "/Users/Shared/convox"
+	}
+
+	exec.Command("docker", "rm", "-f", name).Run()
+
+	args := []string{"run", "--rm"}
+	args = append(args, "-m", "256m")
+	args = append(args, "-i", fmt.Sprintf("--name=%s", name))
+	args = append(args, "-e", "COMBINED=true")
+	args = append(args, "-e", "PROVIDER=local")
+	args = append(args, "-e", fmt.Sprintf("PROVIDER_ROUTER=%s", router))
+	args = append(args, "-e", fmt.Sprintf("PROVIDER_VOLUME=%s", vol))
+	args = append(args, "-e", fmt.Sprintf("VERSION=%s", version))
+	args = append(args, "-p", "5443:5443")
+	args = append(args, "-v", fmt.Sprintf("%s:/var/convox", vol))
+	args = append(args, "-v", "/var/run/docker.sock:/var/run/docker.sock")
+	args = append(args, fmt.Sprintf("convox/rack:%s", version))
+
+	return exec.Command("docker", args...), nil
 }

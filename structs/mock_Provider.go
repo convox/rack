@@ -415,13 +415,41 @@ func (_m *MockProvider) CertificateList() (Certificates, error) {
 	return r0, r1
 }
 
-// EventSend provides a mock function with given fields: _a0, _a1
-func (_m *MockProvider) EventSend(_a0 *Event, _a1 error) error {
-	ret := _m.Called(_a0, _a1)
+// EventSend provides a mock function with given fields: action, opts
+func (_m *MockProvider) EventSend(action string, opts EventSendOptions) error {
+	ret := _m.Called(action, opts)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(*Event, error) error); ok {
-		r0 = rf(_a0, _a1)
+	if rf, ok := ret.Get(0).(func(string, EventSendOptions) error); ok {
+		r0 = rf(action, opts)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// FilesDelete provides a mock function with given fields: app, pid, files
+func (_m *MockProvider) FilesDelete(app string, pid string, files []string) error {
+	ret := _m.Called(app, pid, files)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(string, string, []string) error); ok {
+		r0 = rf(app, pid, files)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// FilesUpload provides a mock function with given fields: app, pid, r
+func (_m *MockProvider) FilesUpload(app string, pid string, r io.Reader) error {
+	ret := _m.Called(app, pid, r)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(string, string, io.Reader) error); ok {
+		r0 = rf(app, pid, r)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -1231,6 +1259,27 @@ func (_m *MockProvider) SystemGet() (*System, error) {
 	var r1 error
 	if rf, ok := ret.Get(1).(func() error); ok {
 		r1 = rf()
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// SystemInstall provides a mock function with given fields: name, opts
+func (_m *MockProvider) SystemInstall(name string, opts SystemInstallOptions) (string, error) {
+	ret := _m.Called(name, opts)
+
+	var r0 string
+	if rf, ok := ret.Get(0).(func(string, SystemInstallOptions) string); ok {
+		r0 = rf(name, opts)
+	} else {
+		r0 = ret.Get(0).(string)
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(string, SystemInstallOptions) error); ok {
+		r1 = rf(name, opts)
 	} else {
 		r1 = ret.Error(1)
 	}

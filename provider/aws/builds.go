@@ -866,8 +866,14 @@ func (p *AWSProvider) runBuild(build *structs.Build, method, url string, opts st
 
 	if opts.Config != nil {
 		config = *opts.Config
-
 	}
+
+	rk, err := p.describeStack(p.Rack)
+	if err != nil {
+		return err
+	}
+
+	rackUrl := fmt.Sprintf("https://%s@%s", p.Password, stackOutputs(rk)["Dashboard"])
 
 	req := &ecs.RunTaskInput{
 		Cluster:        aws.String(p.BuildCluster),
@@ -915,6 +921,10 @@ func (p *AWSProvider) runBuild(build *structs.Build, method, url string, opts st
 						{
 							Name:  aws.String("HTTP_PROXY"),
 							Value: aws.String(os.Getenv("HTTP_PROXY")),
+						},
+						{
+							Name:  aws.String("RACK_URL"),
+							Value: aws.String(rackUrl),
 						},
 						{
 							Name:  aws.String("RELEASE"),

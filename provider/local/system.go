@@ -12,12 +12,11 @@ import (
 	"os"
 	"os/exec"
 	"os/user"
-	"runtime"
+	"path/filepath"
 	"text/template"
 	"time"
 
 	"github.com/convox/rack/structs"
-	"github.com/kr/text"
 	"github.com/pkg/errors"
 )
 
@@ -86,7 +85,7 @@ func (p *Provider) SystemGet() (*structs.System, error) {
 	log := p.logger("SystemGet")
 
 	system := &structs.System{
-		Image:   fmt.Sprintf("convox/rack:%s", p.Version),
+		Image:   fmt.Sprintf("%s:%s", p.Image, p.Version),
 		Name:    p.Name,
 		Status:  "running",
 		Version: p.Version,
@@ -96,7 +95,7 @@ func (p *Provider) SystemGet() (*structs.System, error) {
 }
 
 func (p *Provider) SystemInstall(name string, opts structs.SystemInstallOptions) (string, error) {
-	cx, err := os.Executable()
+	exe, err := os.Executable()
 	if err != nil {
 		return "", err
 	}
@@ -111,40 +110,35 @@ func (p *Provider) SystemInstall(name string, opts structs.SystemInstallOptions)
 	}
 
 	if opts.Output != nil {
-		fmt.Fprintf(opts.Output, "pulling: convox/rack:%s\n", opts.Version)
+		fmt.Fprintf(opts.Output, "pulling: convox/rack:%s\n", *opts.Version)
 	}
 
 	if opts.Version == nil {
 		return "", fmt.Errorf("must specify a version")
 	}
 
-	vf := "/var/convox/version"
-
-	switch runtime.GOOS {
-	case "darwin":
-		vf = "/Users/Shared/convox/version"
-	}
+	vf := filepath.Join(p.Volume, "version")
 
 	if err := ioutil.WriteFile(vf, []byte(*opts.Version), 0644); err != nil {
 		return "", err
 	}
 
-	cmd := exec.Command("docker", "pull", fmt.Sprintf("convox/rack:%s", *opts.Version))
+	// cmd := exec.Command("docker", "pull", fmt.Sprintf("convox/rack:%s", *opts.Version))
 
-	if opts.Output != nil {
-		cmd.Stdout = text.NewIndentWriter(opts.Output, []byte("  "))
-		cmd.Stderr = text.NewIndentWriter(opts.Output, []byte("  "))
-	}
+	// if opts.Output != nil {
+	//   cmd.Stdout = text.NewIndentWriter(opts.Output, []byte("  "))
+	//   cmd.Stderr = text.NewIndentWriter(opts.Output, []byte("  "))
+	// }
 
-	if err := cmd.Run(); err != nil {
+	// if err := cmd.Run(); err != nil {
+	//   return "", err
+	// }
+
+	if err := launcherInstall("convox.router", opts, exe, "router"); err != nil {
 		return "", err
 	}
 
-	if err := launcherInstall("convox.router", opts, cx, "router"); err != nil {
-		return "", err
-	}
-
-	if err := launcherInstall("convox.rack", opts, cx, "rack", "start"); err != nil {
+	if err := launcherInstall("convox.rack", opts, exe, "rack", "start"); err != nil {
 		return "", err
 	}
 

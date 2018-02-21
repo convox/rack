@@ -9,7 +9,6 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/convox/rack/api/httperr"
 	"github.com/convox/rack/options"
@@ -32,80 +31,61 @@ func BuildCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 		return httperr.Errorf(403, "endpoint deprecated, please update your client")
 	}
 
-	event := &structs.Event{
-		Action: "build:create",
-		Status: "start",
-		Data: map[string]string{
-			"app":       app,
-			"id":        "n/a",
-			"timestamp": time.Now().Format(time.RFC3339),
-		},
-	}
-
 	image, _, err := r.FormFile("image")
 	if err != nil && err != http.ErrMissingFile && err != http.ErrNotMultipart {
-		Provider.EventSend(event, err)
+		Provider.EventSend("build:create", structs.EventSendOptions{Data: map[string]string{"app": app, "from": "image"}, Error: err.Error()})
 		return httperr.Server(err)
 	}
 	if image != nil {
 		build, err := Provider.BuildImport(app, image)
 		if err != nil {
-			Provider.EventSend(event, err)
+			Provider.EventSend("build:create", structs.EventSendOptions{Data: map[string]string{"app": app, "id": build.Id, "from": "image"}, Error: err.Error()})
 			return httperr.Server(err)
 		}
 
-		event.Data["id"] = build.Id
-		event.Data["from"] = "image"
-		Provider.EventSend(event, nil)
+		Provider.EventSend("build:create", structs.EventSendOptions{Data: map[string]string{"app": app, "id": build.Id, "from": "image"}})
 
-		event.Status = "success"
-		event.Data["timestamp"] = time.Now().Format(time.RFC3339)
-		Provider.EventSend(event, nil)
 		return RenderJson(rw, build)
 	}
 
 	source, _, err := r.FormFile("source")
 	if err != nil && err != http.ErrMissingFile && err != http.ErrNotMultipart {
-		Provider.EventSend(event, err)
+		Provider.EventSend("build:create", structs.EventSendOptions{Data: map[string]string{"app": app, "from": "source"}, Error: err.Error()})
 		return httperr.Server(err)
 	}
 	if source != nil {
-		event.Data["from"] = "source"
-
 		o, err := Provider.ObjectStore(app, "", source, structs.ObjectStoreOptions{})
 		if err != nil {
-			Provider.EventSend(event, err)
+			Provider.EventSend("build:create", structs.EventSendOptions{Data: map[string]string{"app": app, "from": "source"}, Error: err.Error()})
 			return httperr.Server(err)
 		}
 
 		build, err := Provider.BuildCreate(app, "tgz", o.Url, opts)
 		if err != nil {
-			Provider.EventSend(event, err)
+			Provider.EventSend("build:create", structs.EventSendOptions{Data: map[string]string{"app": app, "id": build.Id, "from": "source"}, Error: err.Error()})
 			return httperr.Server(err)
 		}
 
-		event.Data["id"] = build.Id
-		Provider.EventSend(event, nil)
+		Provider.EventSend("build:create", structs.EventSendOptions{Data: map[string]string{"app": app, "id": build.Id, "from": "source"}})
+
 		return RenderJson(rw, build)
 	}
 
 	if index := r.FormValue("index"); index != "" {
-		event.Data["from"] = "index"
-
 		o, err := Provider.ObjectStore(app, "", bytes.NewReader([]byte(index)), structs.ObjectStoreOptions{})
 		if err != nil {
-			Provider.EventSend(event, err)
+			Provider.EventSend("build:create", structs.EventSendOptions{Data: map[string]string{"app": app, "from": "index"}, Error: err.Error()})
 			return httperr.Server(err)
 		}
 
 		build, err := Provider.BuildCreate(app, "index", o.Url, opts)
 		if err != nil {
-			Provider.EventSend(event, err)
+			Provider.EventSend("build:create", structs.EventSendOptions{Data: map[string]string{"app": app, "id": build.Id, "from": "index"}, Error: err.Error()})
 			return httperr.Server(err)
 		}
 
-		event.Data["id"] = build.Id
-		Provider.EventSend(event, nil)
+		Provider.EventSend("build:create", structs.EventSendOptions{Data: map[string]string{"app": app, "id": build.Id, "from": "index"}})
+
 		return RenderJson(rw, build)
 	}
 
@@ -116,11 +96,9 @@ func BuildCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	}
 
 	if surl := r.FormValue("url"); surl != "" {
-		event.Data["from"] = "url"
-
 		u, err := url.Parse(surl)
 		if err != nil {
-			Provider.EventSend(event, err)
+			Provider.EventSend("build:create", structs.EventSendOptions{Data: map[string]string{"app": app, "from": "url"}, Error: err.Error()})
 			return httperr.Server(err)
 		}
 
@@ -135,28 +113,28 @@ func BuildCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 		case ".zip":
 			method = "zip"
 		case "":
-			err := httperr.Errorf(403, "building from url requires an extension such as .git")
-			Provider.EventSend(event, err)
-			return err
+			method = r.FormValue("method")
 		default:
 			err := httperr.Errorf(403, "unknown extension: %s", ext)
-			Provider.EventSend(event, err)
+			Provider.EventSend("build:create", structs.EventSendOptions{Data: map[string]string{"app": app, "from": "url"}, Error: err.Error()})
 			return err
 		}
 
 		build, err := Provider.BuildCreate(app, method, surl, opts)
 		if err != nil {
-			Provider.EventSend(event, err)
+			Provider.EventSend("build:create", structs.EventSendOptions{Data: map[string]string{"app": app, "id": build.Id, "from": "url"}})
 			return httperr.Server(err)
 		}
 
-		event.Data["id"] = build.Id
-		Provider.EventSend(event, nil)
+		Provider.EventSend("build:create", structs.EventSendOptions{Data: map[string]string{"app": app, "id": build.Id, "from": "url"}})
+
 		return RenderJson(rw, build)
 	}
 
 	err = httperr.Errorf(403, "no build source found")
-	Provider.EventSend(event, err)
+
+	Provider.EventSend("build:create", structs.EventSendOptions{Data: map[string]string{"app": app}, Error: err.Error()})
+
 	return httperr.Server(err)
 }
 
@@ -251,4 +229,24 @@ func BuildLogs(ws *websocket.Conn) *httperr.Error {
 	io.Copy(ws, r)
 
 	return nil
+}
+
+func BuildUpdate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
+	v := mux.Vars(r)
+
+	app := v["app"]
+	build := v["build"]
+
+	var opts structs.BuildUpdateOptions
+
+	if err := unmarshalOptions(r, &opts); err != nil {
+		return httperr.Server(err)
+	}
+
+	b, err := Provider.BuildUpdate(app, build, opts)
+	if err != nil {
+		return httperr.Server(err)
+	}
+
+	return RenderJson(rw, b)
 }

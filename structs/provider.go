@@ -31,7 +31,10 @@ type Provider interface {
 	CertificateGenerate(domains []string) (*Certificate, error)
 	CertificateList() (Certificates, error)
 
-	EventSend(*Event, error) error
+	EventSend(action string, opts EventSendOptions) error
+
+	FilesDelete(app, pid string, files []string) error
+	FilesUpload(app, pid string, r io.Reader) error
 
 	InstanceKeyroll() error
 	InstanceList() (Instances, error)
@@ -80,6 +83,7 @@ type Provider interface {
 	SystemDecrypt(data []byte) ([]byte, error)
 	SystemEncrypt(data []byte) ([]byte, error)
 	SystemGet() (*System, error)
+	SystemInstall(name string, opts SystemInstallOptions) (string, error)
 	SystemLogs(opts LogsOptions) (io.ReadCloser, error)
 	SystemProcesses(opts SystemProcessesOptions) (Processes, error)
 	SystemReleases() (Releases, error)
