@@ -63,7 +63,7 @@ func (p *AWSProvider) AppCreate(name string, opts structs.AppCreateOptions) (*st
 		return nil, err
 	}
 
-	p.EventSend(&structs.Event{Action: "app:create", Data: map[string]string{"name": name}}, nil)
+	p.EventSend("app:create", structs.EventSendOptions{Data: map[string]string{"name": name}})
 
 	return p.AppGet(name)
 }
@@ -99,7 +99,7 @@ func (p *AWSProvider) appCreateGeneration1(name string) (*structs.App, error) {
 		return nil, err
 	}
 
-	p.EventSend(&structs.Event{Action: "app:create", Data: map[string]string{"name": name}}, nil)
+	p.EventSend("app:create", structs.EventSendOptions{Data: map[string]string{"name": name}})
 
 	return p.AppGet(name)
 }
@@ -133,6 +133,10 @@ func (p *AWSProvider) AppDelete(name string) error {
 	app, err := p.AppGet(name)
 	if err != nil {
 		return err
+	}
+
+	if app.Tags["Type"] != "app" || app.Tags["System"] != "convox" || app.Tags["Rack"] != os.Getenv("RACK") {
+		return fmt.Errorf("invalid app: %s", name)
 	}
 
 	resources, err := p.ResourceList()

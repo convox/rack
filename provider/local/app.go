@@ -18,7 +18,7 @@ const (
 )
 
 func (p *Provider) AppCancel(name string) error {
-	return fmt.Errorf("unimplemented")
+	return fmt.Errorf("cannot cancel deploys on a local rack")
 }
 
 func (p *Provider) AppCreate(name string, opts structs.AppCreateOptions) (*structs.App, error) {
@@ -29,8 +29,9 @@ func (p *Provider) AppCreate(name string, opts structs.AppCreateOptions) (*struc
 	}
 
 	app := &structs.App{
-		Name:   name,
-		Status: "running",
+		Name:       name,
+		Generation: "2",
+		Status:     "running",
 	}
 
 	if err := p.storageStore(fmt.Sprintf("apps/%s/app.json", app.Name), app); err != nil {
@@ -107,6 +108,8 @@ func (p *Provider) AppList() (structs.Apps, error) {
 func (p *Provider) AppLogs(app string, opts structs.LogsOptions) (io.ReadCloser, error) {
 	log := p.logger("AppLogs").Append("app=%q", app)
 
+	opts.Prefix = true
+
 	if _, err := p.AppGet(app); err != nil {
 		return nil, log.Error(err)
 	}
@@ -155,5 +158,5 @@ func (p *Provider) AppRegistry(app string) (*structs.Registry, error) {
 }
 
 func (p *Provider) AppUpdate(app string, opts structs.AppUpdateOptions) error {
-	return fmt.Errorf("unimplemented")
+	return fmt.Errorf("cannot set parameters on a local rack")
 }

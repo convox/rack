@@ -99,14 +99,12 @@ func (p *AWSProvider) ResourceCreate(name, kind string, opts structs.ResourceCre
 	}
 
 	_, err = p.cloudformation().CreateStack(req)
+	if err != nil {
+		p.EventSend("resource:create", structs.EventSendOptions{Data: map[string]string{"name": s.Name, "type": s.Type}, Error: err.Error()})
+		return nil, err
+	}
 
-	p.EventSend(&structs.Event{
-		Action: "resource:create",
-		Data: map[string]string{
-			"name": s.Name,
-			"type": s.Type,
-		},
-	}, err)
+	p.EventSend("resource:create", structs.EventSendOptions{Data: map[string]string{"name": s.Name, "type": s.Type}})
 
 	return s, err
 }
@@ -130,14 +128,12 @@ func (p *AWSProvider) ResourceDelete(name string) (*structs.Resource, error) {
 	_, err = p.cloudformation().DeleteStack(&cloudformation.DeleteStackInput{
 		StackName: aws.String(p.rackStack(s.Name)),
 	})
+	if err != nil {
+		p.EventSend("resource:delete", structs.EventSendOptions{Data: map[string]string{"name": s.Name, "type": s.Type}, Error: err.Error()})
+		return nil, err
+	}
 
-	p.EventSend(&structs.Event{
-		Action: "resource:delete",
-		Data: map[string]string{
-			"name": s.Name,
-			"type": s.Type,
-		},
-	}, err)
+	p.EventSend("resource:delete", structs.EventSendOptions{Data: map[string]string{"name": s.Name, "type": s.Type}})
 
 	return s, err
 }

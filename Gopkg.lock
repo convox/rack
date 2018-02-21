@@ -75,6 +75,12 @@
 
 [[projects]]
   branch = "master"
+  name = "github.com/convox/api"
+  packages = ["."]
+  revision = "acaf978c873d388307ffc1422064daca528ab146"
+
+[[projects]]
+  branch = "master"
   name = "github.com/convox/inotify"
   packages = ["."]
   revision = "b56f5149b5c6d28fe492a393ae54221bb3b5fbc2"
@@ -83,7 +89,7 @@
   branch = "master"
   name = "github.com/convox/logger"
   packages = ["."]
-  revision = "ebae2557e3b133bcd3088869d078a5af39eac834"
+  revision = "0533ce640ccd3a1d543da3bd56efcc4204d0abdf"
 
 [[projects]]
   branch = "master"
@@ -164,6 +170,12 @@
   version = "v1.6.0"
 
 [[projects]]
+  name = "github.com/gorilla/websocket"
+  packages = ["."]
+  revision = "ea4d1f681babbce9545c9c5f3d5194a789c89f5b"
+  version = "v1.2.0"
+
+[[projects]]
   name = "github.com/headzoo/surf"
   packages = [".","agent","browser","errors","jar","util"]
   revision = "60198774ccce43e1d26c80e961497b7d262460b3"
@@ -221,6 +233,12 @@
   packages = ["."]
   revision = "9e777a8366cce605130a531d2cd6363d07ad7317"
   version = "v0.0.2"
+
+[[projects]]
+  name = "github.com/miekg/dns"
+  packages = ["."]
+  revision = "5364553f1ee9cddc7ac8b62dce148309c386695b"
+  version = "v1.0.4"
 
 [[projects]]
   branch = "master"
@@ -315,7 +333,7 @@
 [[projects]]
   branch = "master"
   name = "golang.org/x/net"
-  packages = ["context","html","html/atom","websocket"]
+  packages = ["bpf","context","html","html/atom","internal/iana","internal/socket","ipv4","ipv6","websocket"]
   revision = "a8b9294777976932365dabb6640cf1468d95c70f"
 
 [[projects]]
@@ -339,6 +357,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "0aa7abec3f75e316d13d739a8c62a4a891d00c3e00d7468a6d2e57212e736126"
+  inputs-digest = "2f50656868cfbf09625951cb96a549cf5f8d6a6f013ffdd83b08d70ca3b9c2f5"
   solver-name = "gps-cdcl"
   solver-version = 1

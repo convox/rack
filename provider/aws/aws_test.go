@@ -6,8 +6,8 @@ import (
 	"os"
 
 	"github.com/convox/logger"
-	"github.com/convox/rack/test/awsutil"
 	"github.com/convox/rack/provider/aws"
+	"github.com/convox/rack/test/awsutil"
 )
 
 func init() {
@@ -39,7 +39,6 @@ func StubAwsProvider(cycles ...awsutil.Cycle) *AwsStub {
 		BuildCluster:     "cluster-test",
 		Cluster:          "cluster-test",
 		Development:      true,
-		DockerImageAPI:   "rack/web",
 		DynamoBuilds:     "convox-builds",
 		DynamoReleases:   "convox-releases",
 		NotificationHost: "notifications.example.org",

@@ -17,8 +17,8 @@ type Release struct {
 type Releases []Release
 
 type ReleaseCreateOptions struct {
-	Build *string
-	Env   *string
+	Build *string `param:"build"`
+	Env   *string `param:"env"`
 }
 
 type ReleaseListOptions struct {

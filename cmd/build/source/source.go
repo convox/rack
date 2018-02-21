@@ -6,7 +6,7 @@ import (
 	"net/url"
 	"os"
 
-	"github.com/convox/rack/provider"
+	"github.com/convox/rack/sdk"
 )
 
 type Source interface {
@@ -27,7 +27,12 @@ func urlReader(url_ string) (io.ReadCloser, error) {
 		}
 		return fd, nil
 	case "object":
-		return provider.FromEnv().ObjectFetch(u.Host, u.Path)
+		rack, err := sdk.NewFromEnv()
+		if err != nil {
+			return nil, err
+		}
+
+		return rack.ObjectFetch(u.Host, u.Path)
 	}
 
 	req, err := http.Get(url_)

@@ -31,6 +31,7 @@ for region in $(cat $base/REGIONS); do
     ca-central-1) ;;
     eu-west-2) ;;
     eu-west-3) ;;
+    sa-east-1) ;;
     us-west-1) ;;
     *)
       for efs in $(aws efs describe-file-systems --region $region | jq -r '.FileSystems[].FileSystemId'); do

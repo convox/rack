@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"os"
 	"os/exec"
+	"strconv"
 	"strings"
 	"sync"
 )
@@ -22,6 +23,7 @@ type container struct {
 	Id       string
 	Memory   int
 	Name     string
+	Port     int
 	Targets  []containerTarget
 	Volumes  []string
 }
@@ -121,8 +123,14 @@ func (p *Provider) containerStart(c container, app, release string) (string, err
 	args = append(args, "-e", fmt.Sprintf("RELEASE=%s", release))
 	args = append(args, "--link", hostname)
 
+	if c.Port != 0 {
+		args = append(args, "-p", strconv.Itoa(c.Port))
+	}
+
 	args = append(args, c.Image)
 	args = append(args, c.Command...)
+
+	fmt.Printf("args = %+v\n", args)
 
 	exec.Command("docker", "rm", "-f", c.Name).Run()
 

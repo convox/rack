@@ -15,7 +15,6 @@ type Build struct {
 	Reason      string `json:"reason"`
 	Status      string `json:"status"`
 
-	Created time.Time `json:"created"`
 	Started time.Time `json:"started"`
 	Ended   time.Time `json:"ended"`
 
@@ -37,12 +36,12 @@ type BuildCreateOptions struct {
 }
 
 type BuildUpdateOptions struct {
-	Ended    *time.Time
-	Logs     *string
-	Manifest *string
-	Release  *string
-	Started  *time.Time
-	Status   *string
+	Ended    *time.Time `param:"ended"`
+	Logs     *string    `param:"logs"`
+	Manifest *string    `param:"manifest"`
+	Release  *string    `param:"release"`
+	Started  *time.Time `param:"started"`
+	Status   *string    `param:"status"`
 }
 
 func NewBuild(app string) *Build {

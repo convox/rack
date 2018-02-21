@@ -44,7 +44,6 @@ type AWSProvider struct {
 	Cluster             string
 	CustomTopic         string
 	Development         bool
-	DockerImageAPI      string
 	DynamoBuilds        string
 	DynamoReleases      string
 	EncryptionKey       string
@@ -76,7 +75,6 @@ func FromEnv() *AWSProvider {
 		Cluster:             os.Getenv("CLUSTER"),
 		CustomTopic:         os.Getenv("CUSTOM_TOPIC"),
 		Development:         os.Getenv("DEVELOPMENT") == "true",
-		DockerImageAPI:      os.Getenv("DOCKER_IMAGE_API"),
 		DynamoBuilds:        os.Getenv("DYNAMO_BUILDS"),
 		DynamoReleases:      os.Getenv("DYNAMO_RELEASES"),
 		EncryptionKey:       os.Getenv("ENCRYPTION_KEY"),
