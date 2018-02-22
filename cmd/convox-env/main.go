@@ -93,7 +93,7 @@ func fetchConvoxEnv() ([]string, error) {
 
 	for sc.Scan() {
 		if s := sc.Text(); s != "" {
-			if len(allowed) == 0 || allowed[strings.Split(s, "=")[0]] {
+			if allowed["*"] || allowed[strings.Split(s, "=")[0]] {
 				env = append(env, s)
 			}
 		}

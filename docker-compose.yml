@@ -39,7 +39,7 @@ services:
       - VPC=
       - VPCCIDR=
     ports:
-      - 5443:5443
+      - 443:5443
     volumes:
       - /Users/Shared/convox:/var/convox
       - /var/run/docker.sock:/var/run/docker.sock
