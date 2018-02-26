@@ -12,7 +12,6 @@ import (
 	"os"
 	"os/exec"
 	"os/user"
-	"path/filepath"
 	"text/template"
 	"time"
 
@@ -117,11 +116,11 @@ func (p *Provider) SystemInstall(name string, opts structs.SystemInstallOptions)
 		return "", fmt.Errorf("must specify a version")
 	}
 
-	vf := filepath.Join(p.Volume, "version")
+	// vf := filepath.Join(p.Volume, "version")
 
-	if err := ioutil.WriteFile(vf, []byte(*opts.Version), 0644); err != nil {
-		return "", err
-	}
+	// if err := ioutil.WriteFile(vf, []byte(*opts.Version), 0644); err != nil {
+	//   return "", err
+	// }
 
 	// cmd := exec.Command("docker", "pull", fmt.Sprintf("convox/rack:%s", *opts.Version))
 
