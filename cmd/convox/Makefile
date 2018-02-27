@@ -9,7 +9,7 @@ clean:
 	rm -f pkg/convox-*
 
 release: clean
-	# equinox release --config=.equinox.yaml --version=$(VERSION) .
+	equinox release --config=.equinox.yaml --version=$(VERSION) .
 	xgo -branch $(shell git rev-parse HEAD) -out pkg/convox -targets 'darwin/amd64,linux/amd64,windows/amd64' -ldflags "-X main.Version=$(VERSION)" .
 	aws s3 cp pkg/convox-darwin-10.6-amd64 s3://convox/release/$(VERSION)/cli/darwin/convox --acl public-read
 	aws s3 cp s3://convox/release/$(VERSION)/cli/darwin/convox s3://convox/cli/darwin/convox --acl public-read
