@@ -19,7 +19,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/convox/praxis/changes"
+	"github.com/convox/changes"
 	"github.com/convox/rack/cmd/convox/helpers"
 	"github.com/convox/rack/cmd/convox/stdcli"
 	"github.com/convox/rack/manifest"
