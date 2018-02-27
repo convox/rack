@@ -9,6 +9,7 @@ clean:
 	rm -f pkg/convox-*
 
 release: clean
+	tar czv $(GOPATH) | docker run -v $(GOPATH):/gopath -i ubuntu tar xzv -C /gopath
 	go get -u github.com/karalabe/xgo
 	$(GOPATH)/bin/xgo -x -v -branch $(shell git rev-parse HEAD) -out pkg/convox -targets 'darwin/amd64,linux/amd64,windows/amd64' -ldflags "-X main.Version=$(VERSION)" .
 	aws s3 cp pkg/convox-darwin-10.6-amd64 s3://convox/release/$(VERSION)/cli/darwin/convox --acl public-read
