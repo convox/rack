@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 
+	"github.com/convox/rack/client"
 	"github.com/convox/rack/cmd/convox/stdcli"
 	"gopkg.in/urfave/cli.v1"
 )
@@ -21,12 +22,18 @@ func cmdRacks(c *cli.Context) error {
 		return stdcli.Error(fmt.Errorf("`convox racks` does not take arguments. Perhaps you meant `convox rack`?"))
 	}
 
-	racks, err := rackClient(c).Racks()
+	racks, err := rackClientWithoutLocal(c).Racks()
 	if err != nil {
 		return stdcli.Error(err)
 	}
 
 	t := stdcli.NewTable("RACK", "STATUS")
+
+	// has a local rack?
+	if localRackRunning() {
+		racks = append([]client.Rack{{Name: "local", Status: "running"}}, racks...)
+	}
+
 	for _, rack := range racks {
 		name := rack.Name
 		if rack.Organization != nil {
@@ -34,6 +41,8 @@ func cmdRacks(c *cli.Context) error {
 		}
 		t.AddRow(name, rack.Status)
 	}
+
 	t.Print()
+
 	return nil
 }
