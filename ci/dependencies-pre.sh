@@ -13,6 +13,7 @@ sudo pip install awscli --upgrade
 
 # download appropriate cli version
 curl -o $GOPATH/bin/convox https://convox.s3.amazonaws.com/release/$VERSION/cli/linux/convox
+chmod +x $GOPATH/bin/convox
 
 # configure client id if on CircleCI
 if [ ! -d "~/.convox/" ]; then
