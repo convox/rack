@@ -14,6 +14,7 @@ mocks:
 	make -C structs mocks
 
 release:
+	make -C cmd/convox release VERSION=$(VERSION)
 	make -C provider release VERSION=$(VERSION)
 	docker build -t convox/rack:$(VERSION) .
 	docker push convox/rack:$(VERSION)
