@@ -36,13 +36,17 @@ func cmdSwitch(c *cli.Context) error {
 		return nil
 	}
 
-	racks, err := rackClient(c).Racks()
+	racks, err := rackClientWithoutLocal(c).Racks()
 	if err != nil {
 		return stdcli.Error(err)
 	}
 
 	rackName := c.Args()[0]
 	orgName := ""
+
+	if localRackRunning() && rackName == "local" {
+		return switchRack("local")
+	}
 
 	parts := strings.Split(rackName, "/")
 	if len(parts) == 2 {
@@ -75,6 +79,7 @@ func cmdSwitch(c *cli.Context) error {
 		if len(all) > 0 {
 			errMessages = append(errMessages, ("Try one of the following:\n" + strings.Join(all, "\n")))
 		}
+
 		return stdcli.Error(fmt.Errorf(strings.Join(errMessages, " ")))
 	}
 
@@ -82,9 +87,12 @@ func cmdSwitch(c *cli.Context) error {
 		return stdcli.Error(fmt.Errorf("You have access to multiple racks with that name, try one of the following:\n" + strings.Join(matched, "\n")))
 	}
 
-	rack := matched[0]
+	return switchRack(matched[0])
+}
+
+func switchRack(rack string) error {
 	if err := ioutil.WriteFile(filepath.Join(ConfigRoot, "rack"), []byte(rack), 0644); err != nil {
-		return stdcli.Error(err)
+		return err
 	}
 
 	fmt.Printf("Switched to %s\n", rack)

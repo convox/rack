@@ -190,7 +190,7 @@ func startGeneration1(opts startOptions) error {
 }
 
 func startGeneration2(opts startOptions) error {
-	if err := exec.Command("docker", "inspect", "convox").Run(); err != nil {
+	if !localRackRunning() {
 		return fmt.Errorf("local rack not found, try `sudo convox rack install local`")
 	}
 
@@ -209,6 +209,12 @@ func startGeneration2(opts startOptions) error {
 		return err
 	}
 
+	if _, err := rack.AppGet(app); err != nil {
+		if _, err := rack.AppCreate(app, structs.AppCreateOptions{Generation: options.String("2")}); err != nil {
+			return err
+		}
+	}
+
 	env, err := rack.EnvironmentGet(app)
 	if err != nil {
 		return err
@@ -217,12 +223,6 @@ func startGeneration2(opts startOptions) error {
 	m, err := manifest.Load(data, manifest.Environment(env))
 	if err != nil {
 		return err
-	}
-
-	if _, err := rack.AppGet(app); err != nil {
-		if _, err := rack.AppCreate(app, structs.AppCreateOptions{Generation: options.String("2")}); err != nil {
-			return err
-		}
 	}
 
 	tar, err := createTarball(".")
