@@ -12,7 +12,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/equinox-io/equinox/internal/go-update/internal/osext"
+	"github.com/inconshreveable/go-update/internal/osext"
 )
 
 var (
