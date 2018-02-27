@@ -41,9 +41,9 @@
       "Fn::And": [ { "Condition": "RegionHasEFS" }, { "Condition": "ThirdAvailabilityZone" } ]
     },
     "SpotInstances": { "Fn::Not": [ { "Fn::Equals": [ { "Ref": "SpotInstanceBid"}, "" ] } ] },
-    "ThirdAvailabilityZone": { "Fn::Equals": [
-      { "Fn::FindInMap": [ "RegionConfig", { "Ref": "AWS::Region" }, "ThirdAvailabilityZone" ] },
-      "Yes"
+    "ThirdAvailabilityZone": { "Fn::And": [
+      { "Fn::Equals": [ { "Fn::FindInMap": [ "RegionConfig", { "Ref": "AWS::Region" }, "ThirdAvailabilityZone" ] }, "Yes" ] },
+      { "Fn::Equals": [ { "Ref": "MaxAvailabilityZones" }, "3" ] }
     ] },
     "ThirdAvailabilityZoneAndNotExistingVpcAndBlankInternetGateway": {
       "Fn::And": [
@@ -470,6 +470,11 @@
       "Default": "",
       "Description": "Bucket to receive S3 logs",
       "Type": "String"
+    },
+    "MaxAvailabilityZones": {
+      "Type": "Number",
+      "Default": "3",
+      "AllowedValues": [ "2", "3" ]
     },
     "OnDemandMinCount": {
       "Default": "3",
