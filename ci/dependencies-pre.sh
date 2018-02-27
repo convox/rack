@@ -12,7 +12,7 @@ curl -O http://stedolan.github.io/jq/download/linux64/jq && chmod +x jq && sudo 
 sudo pip install awscli --upgrade
 
 # download appropriate cli version
-curl -O $GOPATH/bin/convox https://convox.s3.amazonaws.com/release/$VERSION/cli/linux/convox
+curl -o $GOPATH/bin/convox https://convox.s3.amazonaws.com/release/$VERSION/cli/linux/convox
 
 # configure client id if on CircleCI
 if [ ! -d "~/.convox/" ]; then
