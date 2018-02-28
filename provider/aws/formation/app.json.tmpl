@@ -279,7 +279,7 @@
         "ContainerDefinitions": [
           {
             {{ with .Command }}
-              "Command": [ "sh", "-c", "{{.}}" ],
+              "Command": [ "sh", "-c", {{ safe . }} ],
             {{ end }}
             "Cpu": { "Fn::Select": [ 1, { "Ref": "{{ upper .Name }}Formation" } ] },
             "DockerLabels": { "convox.app": "{{$.App}}", "convox.generation": "2", "convox.release": "{{$.Release.Id}}" },
@@ -404,7 +404,7 @@
         "ContainerDefinitions": [
           {{ with $.Manifest.Service .Service }}
             {
-              "Command": [ "sh", "-c", "{{$t.Command}}" ],
+              "Command": [ "sh", "-c", {{ safe $t.Command }} ],
               "Cpu": { "Fn::Select": [ 1, { "Ref": "{{ upper .Name }}Formation" } ] },
               "DockerLabels": { "convox.app": "{{$.App}}", "convox.generation": "2", "convox.release": "{{$.Release.Id}}" },
               "Environment": [
