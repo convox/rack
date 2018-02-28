@@ -721,3 +721,7 @@ func rackCommand(version string, router string) (*exec.Cmd, error) {
 
 	return exec.Command("docker", args...), nil
 }
+
+func localRackRunning() bool {
+	return exec.Command("docker", "inspect", "convox").Run() == nil
+}
