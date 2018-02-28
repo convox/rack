@@ -56,7 +56,7 @@ func formationHelpers() template.FuncMap {
 			return "Router", nil
 		},
 		"safe": func(s string) template.HTML {
-			return template.HTML(s)
+			return template.HTML(fmt.Sprintf("%q", s))
 		},
 		"services": func(m *manifest.Manifest) string {
 			if m == nil {
