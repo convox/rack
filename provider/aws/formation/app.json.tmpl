@@ -285,7 +285,7 @@
             "DockerLabels": { "convox.app": "{{$.App}}", "convox.generation": "2", "convox.release": "{{$.Release.Id}}" },
             "Environment": [
               {{ range $k, $v := .EnvironmentDefaults }}
-                { "Name": "{{$k}}", "Value": "{{ safe $v }}" },
+                { "Name": "{{$k}}", "Value": {{ safe $v }} },
               {{ end }}
               {{ range .Links }}
                 { "Name": "{{ upcase . }}_URL", "Value": { "Fn::Join": [ ".", [
@@ -409,7 +409,7 @@
               "DockerLabels": { "convox.app": "{{$.App}}", "convox.generation": "2", "convox.release": "{{$.Release.Id}}" },
               "Environment": [
                 {{ range $k, $v := .EnvironmentDefaults }}
-                  { "Name": "{{$k}}", "Value": "{{ safe $v }}" },
+                  { "Name": "{{$k}}", "Value": {{ safe $v }} },
                 {{ end }}
                 { "Name": "AWS_REGION", "Value": { "Ref": "AWS::Region" } },
                 { "Name": "APP", "Value": "{{$.App}}" },
