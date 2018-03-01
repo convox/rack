@@ -48,29 +48,19 @@ func (p *Provider) processRun(app string, opts structs.ProcessRunOptions) (strin
 
 	cmd := exec.Command("docker", oargs...)
 
-	if opts.Input != nil {
+	if opts.Stream != nil {
 		rw, err := pty.Start(cmd)
 		if err != nil {
 			return "", errors.WithStack(log.Error(err))
 		}
-		defer rw.Close()
 
-		go io.Copy(rw, opts.Input)
-		go io.Copy(opts.Output, rw)
+		go io.Copy(rw, opts.Stream)
+		go io.Copy(opts.Stream, rw)
 	} else {
-		cmd.Stdout = opts.Output
-		cmd.Stderr = opts.Output
-
 		if err := cmd.Start(); err != nil {
-			return "", errors.WithStack(log.Error(err))
+			return "", err
 		}
 	}
 
-	if err := cmd.Start(); err != nil {
-		return "", errors.WithStack(log.Error(err))
-	}
-
 	return fmt.Sprintf("%d", cmd.Process.Pid), nil
-
-	return "", log.Success()
 }
