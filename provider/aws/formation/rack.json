@@ -171,6 +171,7 @@
       }
     },
     "NatIPs": {
+      "Export": { "Name": { "Fn::Sub": "${AWS::StackName}:NatIPs" } },
       "Value": {
         "Fn::If": [
           "Private",
