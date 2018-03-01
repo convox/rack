@@ -41,11 +41,9 @@ type ProcessRunOptions struct {
 	Environment map[string]string
 	Height      *int
 	Image       *string
-	Input       io.Reader
 	Links       []string
 	Memory      *int64
 	Name        *string
-	Output      io.Writer
 	Ports       map[string]string
 	Release     *string
 	Service     *string
