@@ -189,7 +189,7 @@ func fetchELBAccountIds(regions Regions) error {
 		return err
 	}
 
-	rows := b.Find("table#w377aac17b9c17b9c12b3b5b3 tr")
+	rows := b.Find("table#w338aac17b9c17b9c12b3b5b3 tr")
 
 	if rows.Length() < 1 {
 		return fmt.Errorf("no elb account ids found")
