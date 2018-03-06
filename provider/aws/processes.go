@@ -1345,8 +1345,6 @@ func (p *AWSProvider) taskDefinitionForRun(app string, opts structs.ProcessRunOp
 		}
 	}
 
-	fmt.Printf("opts = %+v\n", opts)
-
 	if opts.Stream == nil {
 		group, err := p.stackResource(p.rackStack(app), "LogGroup")
 		if err != nil {
