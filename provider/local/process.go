@@ -336,7 +336,7 @@ func (p *Provider) argsFromOpts(app string, opts structs.ProcessRunOptions) ([]s
 	}
 
 	for from, to := range opts.Ports {
-		args = append(args, "-p", fmt.Sprintf("%d:%d", from, to))
+		args = append(args, "-p", fmt.Sprintf("%s:%s", from, to))
 	}
 
 	hostname, err := os.Hostname()
@@ -346,7 +346,10 @@ func (p *Provider) argsFromOpts(app string, opts structs.ProcessRunOptions) ([]s
 
 	args = append(args, "-e", fmt.Sprintf("APP=%s", app))
 	args = append(args, "-e", fmt.Sprintf("RACK_URL=https://%s:5443", hostname))
-	args = append(args, "-e", fmt.Sprintf("RELEASE=%s", opts.Release))
+
+	if opts.Release != nil {
+		args = append(args, "-e", fmt.Sprintf("RELEASE=%s", *opts.Release))
+	}
 
 	args = append(args, "--link", hostname)
 

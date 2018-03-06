@@ -93,7 +93,7 @@ func cmdUninstall(c *cli.Context) error {
 		return stdcli.Error(fmt.Errorf("can not find rack named %s\nAre you authenticating with the correct AWS account?\nSee AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, and ~/.aws/credentials", rackName))
 	}
 
-	fmt.Println("Resources to delete:\n")
+	fmt.Println("Resources to delete:")
 
 	// display all the resources, apps, then rack
 	t := stdcli.NewTable("STACK", "TYPE", "STATUS")
