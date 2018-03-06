@@ -422,7 +422,7 @@ func (s *Sync) watchIncoming(st Stream) {
 		}
 
 		if err := scanner.Err(); err != nil {
-			st <- fmt.Sprintf("error: ", err)
+			st <- fmt.Sprintf("error: %s", err)
 		}
 	}()
 
