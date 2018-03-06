@@ -1038,6 +1038,12 @@ func (p *AWSProvider) processRunAttached(app, process string, opts structs.Proce
 		return "", err
 	}
 
+	timeout := "3600"
+
+	if opts.Timeout != nil {
+		timeout = strconv.Itoa(*opts.Timeout)
+	}
+
 	req := &ecs.RunTaskInput{
 		Cluster:        aws.String(p.Cluster),
 		Count:          aws.Int64(1),
@@ -1052,7 +1058,7 @@ func (p *AWSProvider) processRunAttached(app, process string, opts structs.Proce
 					Name: aws.String(process),
 					Command: []*string{
 						aws.String("sleep"),
-						aws.String("3600"),
+						aws.String(timeout),
 					},
 					Environment: []*ecs.KeyValuePair{
 						&ecs.KeyValuePair{Name: aws.String("COMMAND"), Value: aws.String(*opts.Command)},

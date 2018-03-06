@@ -27,7 +27,12 @@ func init() {
 			},
 			cli.StringFlag{
 				Name:  "release, r",
-				Usage: "release name (defaults to current release)",
+				Usage: "release id",
+			},
+			cli.IntFlag{
+				Name:  "timeout, t",
+				Usage: "timeout for attached process",
+				Value: 3600,
 			},
 		},
 	})
@@ -56,7 +61,9 @@ func cmdRun(c *cli.Context) error {
 
 	release := c.String("release")
 
-	code, err := runAttached(c, app, ps, args, release)
+	timeout := c.Int("timeout")
+
+	code, err := runAttached(c, app, ps, args, release, timeout)
 	if err != nil {
 		return stdcli.Error(err)
 	}
@@ -92,7 +99,7 @@ func cmdRunDetached(c *cli.Context) error {
 	return nil
 }
 
-func runAttached(c *cli.Context, app, ps, args, release string) (int, error) {
+func runAttached(c *cli.Context, app, ps, args, release string, timeout int) (int, error) {
 	fd := os.Stdin.Fd()
 
 	var w, h int
@@ -111,7 +118,7 @@ func runAttached(c *cli.Context, app, ps, args, release string) (int, error) {
 		}
 	}
 
-	code, err := rackClient(c).RunProcessAttached(app, ps, args, release, h, w, os.Stdin, os.Stdout)
+	code, err := rackClient(c).RunProcessAttached(app, ps, args, release, h, w, timeout, os.Stdin, os.Stdout)
 	if err != nil {
 		return -1, err
 	}
