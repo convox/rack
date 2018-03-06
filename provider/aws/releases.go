@@ -585,9 +585,8 @@ func (p *AWSProvider) resolveLinks(a *structs.App, m *manifest1.Manifest, r *str
 
 		entry.Exports = make(map[string]string)
 		linkableEnvs := make([]string, len(entry.Environment))
-		for k, v := range entry.Environment {
-			val := fmt.Sprintf("%s=%s", k, v)
-			linkableEnvs = append(linkableEnvs, val)
+		for _, env := range entry.Environment {
+			linkableEnvs = append(linkableEnvs, fmt.Sprintf("%s=%s", env.Name, env.Value))
 		}
 
 		if len(inspect) == 1 {
