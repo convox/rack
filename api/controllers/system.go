@@ -54,10 +54,10 @@ func SystemUpdate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 		}
 
 		switch {
-		case os.Getenv("AUTOSCALE") == "true":
-			return httperr.Errorf(403, "scaling count prohibited when autoscale enabled")
 		case c == -1:
 			// -1 indicates no change
+		case os.Getenv("AUTOSCALE") == "true":
+			return httperr.Errorf(403, "scaling count prohibited when autoscale enabled")
 		case c <= 2:
 			return httperr.Errorf(403, "count must be greater than 2")
 		default:
