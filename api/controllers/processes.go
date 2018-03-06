@@ -119,16 +119,24 @@ func ProcessRunAttached(ws *websocket.Conn) *httperr.Error {
 		opts.Command = options.String(v)
 	}
 
-	if v := h.Get("Release"); v != "" {
-		opts.Release = options.String(v)
-	}
-
 	if v := h.Get("Height"); v != "" {
 		i, err := strconv.Atoi(v)
 		if err != nil {
 			return httperr.Server(fmt.Errorf("height must be numeric"))
 		}
 		opts.Height = aws.Int(i)
+	}
+
+	if v := h.Get("Release"); v != "" {
+		opts.Release = options.String(v)
+	}
+
+	if v := h.Get("Timeout"); v != "" {
+		i, err := strconv.Atoi(v)
+		if err != nil {
+			return httperr.Server(fmt.Errorf("timeout must be numeric"))
+		}
+		opts.Timeout = aws.Int(i)
 	}
 
 	if v := h.Get("Width"); v != "" {
