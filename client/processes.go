@@ -80,7 +80,7 @@ func (c *Client) ExecProcessAttached(app, pid, command string, in io.Reader, out
 	return code, nil
 }
 
-func (c *Client) RunProcessAttached(app, process, command, release string, height, width int, in io.Reader, out io.WriteCloser) (int, error) {
+func (c *Client) RunProcessAttached(app, process, command, release string, height, width, timeout int, in io.Reader, out io.WriteCloser) (int, error) {
 	r, w := io.Pipe()
 
 	defer r.Close()
@@ -94,6 +94,7 @@ func (c *Client) RunProcessAttached(app, process, command, release string, heigh
 		"Command": command,
 		"Release": release,
 		"Height":  strconv.Itoa(height),
+		"Timeout": strconv.Itoa(timeout),
 		"Width":   strconv.Itoa(width),
 	}
 

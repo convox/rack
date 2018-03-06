@@ -1,6 +1,7 @@
 .env
 .git
 coverage.txt
+profile.out
 docker-compose.yml
 cmd/changes/changes
 cmd/convox/convox
