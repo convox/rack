@@ -69,7 +69,13 @@ func (c *Client) GetSystemCapacity() (*SystemCapacity, error) {
 func (c *Client) GetSystemProcesses(opts structs.SystemProcessesOptions) (Processes, error) {
 	var processes Processes
 
-	err := c.Get(fmt.Sprintf("/system/processes?all=%t", opts.All), &processes)
+	all := false
+
+	if opts.All != nil && *opts.All {
+		all = true
+	}
+
+	err := c.Get(fmt.Sprintf("/system/processes?all=%t", all), &processes)
 	if err != nil {
 		return nil, err
 	}
