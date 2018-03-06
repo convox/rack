@@ -70,7 +70,7 @@ func TestClientGetErrors(t *testing.T) {
 	err := client.Get("", nil)
 
 	assert.NotNil(t, err)
-	assert.Equal(t, "Get https://: http: no Host in request URL", err.Error())
+	assert.Contains(t, err.Error(), "http: no Host in request URL")
 
 	err = client.Get("/%", nil)
 

@@ -34,7 +34,7 @@ func (p *AWSProvider) AppCreate(name string, opts structs.AppCreateOptions) (*st
 		return p.appCreateGeneration1(name)
 	case "2":
 	default:
-		return nil, fmt.Errorf("unknown generation: %s", opts.Generation)
+		return nil, fmt.Errorf("unknown generation")
 	}
 
 	data, err := formationTemplate("app", nil)

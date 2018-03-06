@@ -616,7 +616,7 @@ func (p *AWSProvider) describeStackEvents(input *cloudformation.DescribeStackEve
 }
 
 func (p *AWSProvider) describeStackResource(input *cloudformation.DescribeStackResourceInput) (*cloudformation.DescribeStackResourceOutput, error) {
-	key := fmt.Sprintf("%s.%s", input.StackName, input.LogicalResourceId)
+	key := fmt.Sprintf("%s.%s", *input.StackName, *input.LogicalResourceId)
 
 	res, ok := cache.Get("describeStackResource", key).(*cloudformation.DescribeStackResourceOutput)
 
