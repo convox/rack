@@ -1321,9 +1321,9 @@ func (p *AWSProvider) taskDefinitionForRun(app string, opts structs.ProcessRunOp
 		return "", err
 	}
 
-	// if task, ok := tasks[fmt.Sprintf("%s.run", service)]; ok {
-	//   return task, nil
-	// }
+	if task, ok := tasks[fmt.Sprintf("%s.run", service)]; ok {
+		return task, nil
+	}
 
 	a, err := p.AppGet(app)
 	if err != nil {
