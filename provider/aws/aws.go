@@ -47,6 +47,7 @@ type AWSProvider struct {
 	DynamoBuilds        string
 	DynamoReleases      string
 	EncryptionKey       string
+	Fargate             bool
 	Internal            bool
 	LogBucket           string
 	NotificationHost    string
@@ -78,6 +79,7 @@ func FromEnv() *AWSProvider {
 		DynamoBuilds:        os.Getenv("DYNAMO_BUILDS"),
 		DynamoReleases:      os.Getenv("DYNAMO_RELEASES"),
 		EncryptionKey:       os.Getenv("ENCRYPTION_KEY"),
+		Fargate:             os.Getenv("FARGATE") == "Yes",
 		Internal:            os.Getenv("INTERNAL") == "Yes",
 		LogBucket:           os.Getenv("LOG_BUCKET"),
 		NotificationHost:    os.Getenv("NOTIFICATION_HOST"),
