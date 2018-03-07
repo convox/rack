@@ -48,6 +48,7 @@ type ProcessRunOptions struct {
 	Release     *string
 	Service     *string
 	Stream      io.ReadWriter
+	Timeout     *int
 	Volumes     map[string]string
 	Width       *int
 }
