@@ -1054,7 +1054,6 @@
           {
             "DeviceName": "/dev/xvda",
             "Ebs": {
-              "Encrypted": { "Fn::If": [ "EncryptEbs", "true", { "Ref": "AWS::NoValue" } ] },
               "VolumeSize": { "Ref": "RootSize" },
               "VolumeType":"gp2"
             }
@@ -1511,7 +1510,6 @@
           {
             "DeviceName": "/dev/xvda",
             "Ebs": {
-              "Encrypted": { "Fn::If": [ "EncryptEbs", "true", { "Ref": "AWS::NoValue" } ] },
               "VolumeSize": { "Ref": "RootSize" },
               "VolumeType":"gp2"
             }
