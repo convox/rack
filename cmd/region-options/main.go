@@ -17,6 +17,7 @@ type Region struct {
 	AvailabilityZones []string
 	EFS               bool
 	ELBAccountId      string
+	Fargate           bool
 }
 
 type Regions map[string]Region
@@ -42,6 +43,10 @@ func run() error {
 		return err
 	}
 
+	if err := fetchFargate(regions); err != nil {
+		return err
+	}
+
 	if err := fetchELBAccountIds(regions); err != nil {
 		return err
 	}
@@ -59,30 +64,17 @@ func run() error {
 	efss := make([]string, len(names))
 	tazs := make([]string, len(names))
 	elbs := make([]string, len(names))
+	fargates := make([]string, len(names))
 
 	for i, name := range names {
 		region := regions[name]
 
-		taz := "No"
-		if len(region.AvailabilityZones) > 2 {
-			taz = "Yes"
-		}
-
-		// not all accounts have 3 azs in us-west-1
-		if name == "us-west-1" {
-			taz = "No"
-		}
-
-		efs := "No"
-		if region.EFS {
-			efs = "Yes"
-		}
-
 		rns[i] = fmt.Sprintf("%q:", name)
 		amis[i] = fmt.Sprintf(`"Ami": %q,`, region.Ami)
-		efss[i] = fmt.Sprintf(`"EFS": %q,`, efs)
-		tazs[i] = fmt.Sprintf(`"ThirdAvailabilityZone": %q,`, taz)
-		elbs[i] = fmt.Sprintf(`"ELBAccountId": %q`, region.ELBAccountId)
+		efss[i] = fmt.Sprintf(`"EFS": %q,`, yn(region.EFS))
+		tazs[i] = fmt.Sprintf(`"ThirdAvailabilityZone": %q,`, yn(len(region.AvailabilityZones) > 2))
+		elbs[i] = fmt.Sprintf(`"ELBAccountId": %q,`, region.ELBAccountId)
+		fargates[i] = fmt.Sprintf(`"Fargate": %q`, yn(region.Fargate))
 	}
 
 	rnMax := max(rns)
@@ -90,10 +82,15 @@ func run() error {
 	efsMax := max(efss)
 	tazMax := max(tazs)
 	elbMax := max(elbs)
+	fargateMax := max(fargates)
 
 	for i := range names {
-		f := fmt.Sprintf(`      %%-%ds { %%-%ds %%-%ds %%-%ds %%-%ds },`, rnMax, amiMax, efsMax, tazMax, elbMax)
-		fmt.Printf(f, rns[i], amis[i], efss[i], tazs[i], elbs[i])
+		if regions[names[i]].Ami == "" {
+			continue
+		}
+
+		f := fmt.Sprintf(`      %%-%ds { %%-%ds %%-%ds %%-%ds %%-%ds %%-%ds },`, rnMax, amiMax, efsMax, tazMax, elbMax, fargateMax)
+		fmt.Printf(f, rns[i], amis[i], efss[i], tazs[i], elbs[i], fargates[i])
 		fmt.Println()
 	}
 
@@ -213,6 +210,36 @@ func fetchELBAccountIds(regions Regions) error {
 	return nil
 }
 
+func fetchFargate(regions Regions) error {
+	b := surf.NewBrowser()
+
+	if err := b.Open("https://docs.aws.amazon.com/AmazonECS/latest/developerguide/AWS_Fargate.html"); err != nil {
+		return err
+	}
+
+	rows := b.Find("table#w296aac15c11 tr")
+
+	if rows.Length() < 1 {
+		return fmt.Errorf("no fargate regions found")
+	}
+
+	rows.Each(func(i int, s *goquery.Selection) {
+		if i == 0 {
+			return
+		}
+
+		name := strings.TrimSpace(s.Find("td:nth-child(2)").Text())
+
+		if !strings.HasSuffix(name, "*") {
+			region := regions[name]
+			region.Fargate = true
+			regions[name] = region
+		}
+	})
+
+	return nil
+}
+
 func max(ss []string) int {
 	m := 0
 
@@ -223,4 +250,11 @@ func max(ss []string) int {
 	}
 
 	return m
+}
+
+func yn(v bool) string {
+	if v {
+		return "Yes"
+	}
+	return "No"
 }
