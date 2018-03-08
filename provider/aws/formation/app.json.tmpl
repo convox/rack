@@ -2,7 +2,8 @@
   "AWSTemplateFormatVersion" : "2010-09-09",
   "Conditions": {
     "BlankIamPolicy": { "Fn::Equals": [ { "Ref": "IamPolicy" }, "" ] },
-    "BlankLogBucket": { "Fn::Equals": [ { "Ref": "LogBucket" }, "" ] }
+    "BlankLogBucket": { "Fn::Equals": [ { "Ref": "LogBucket" }, "" ] },
+    "FargateTimers": { "Fn::Equals": [ { "Ref": "FargateTimers" }, "Yes" ] }
   },
   "Outputs": {
     {{ template "balancer-outputs" . }}
@@ -27,6 +28,11 @@
   "Parameters" : {
     {{ template "service-params" .Manifest }}
 
+    "FargateTimers": {
+      "Type": "String",
+      "Default": "No",
+      "AllowedValues": [ "Yes", "No" ]
+    },
     "IamPolicy": {
       "Type": "String",
       "Default": ""
@@ -48,6 +54,17 @@
 
     {{ template "state" }}
 
+    "ExecutionRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [ { "Effect": "Allow", "Principal": { "Service": [ "ecs-tasks.amazonaws.com" ] }, "Action": [ "sts:AssumeRole" ] } ],
+          "Version": "2012-10-17"
+        },
+        "ManagedPolicyArns": [ "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy" ],
+        "Path": "/convox/"
+      }
+    },
     "LogGroup": {
       "Type": "AWS::Logs::LogGroup"
     },
@@ -340,17 +357,52 @@
 
 {{ define "timer-resources" }}
   {{ if .Manifest.Timers }}
+    "TimerLauncher": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Handler": "index.handler",
+        "Role": { "Fn::GetAtt": [ "TimerRole", "Arn" ] },
+        "Runtime": "nodejs4.3",
+        "Timeout": 60,
+        "Code": {
+          "ZipFile": { "Fn::Join": [ "\n", [
+            "exports.handler = function(event, context, cb) {",
+            "  console.log('event', event);",
+            "  var params = {",
+            "    cluster: event.cluster,",
+            "    taskDefinition: event.taskDefinition,",
+            "    count: 1,",
+            "    launchType: 'FARGATE',",
+            "    networkConfiguration: {",
+            "      awsvpcConfiguration: {",
+            "        assignPublicIp: 'ENABLED',",
+            "        subnets: [",
+            { "Fn::Join": [ "", [ "          '", { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Subnet0" } }, "'," ] ] },
+            { "Fn::Join": [ "", [ "          '", { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Subnet1" } }, "'" ] ] },
+            "        ]",
+            "      }",
+            "    }",
+            "  };",
+            "  var aws = require('aws-sdk');",
+            "  var ecs = new aws.ECS({maxRetries:10});",
+            "  ecs.runTask(params, function (err, res) {",
+            "    console.log('err', err);",
+            "    console.log('res', res);",
+            "    cb(err);",
+            "  });",
+            "};"
+          ] ] }
+        }
+      }
+    },
     "TimerRole": {
       "Type": "AWS::IAM::Role",
       "Properties": {
         "AssumeRolePolicyDocument": {
           "Version": "2012-10-17",
           "Statement": [
-            {
-              "Effect": "Allow",
-              "Principal": { "Service": [ "events.amazonaws.com" ] },
-              "Action": [ "sts:AssumeRole" ]
-            }
+            { "Effect": "Allow", "Action": [ "sts:AssumeRole" ], "Principal": { "Service": [ "events.amazonaws.com" ] } },
+            { "Effect": "Allow", "Action": [ "sts:AssumeRole" ], "Principal": { "Service": [ "lambda.amazonaws.com" ] } }
           ]
         },
         "Path": "/convox/",
@@ -371,6 +423,14 @@
                       ] ] }
                     }
                   }
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [ "iam:PassRole" ],
+                  "Resource": [
+                    { "Fn::GetAtt": [ "ExecutionRole", "Arn" ] },
+                    { "Fn::GetAtt": [ "ServiceRole", "Arn" ] }
+                  ]
                 }
               ]
             }
@@ -386,16 +446,33 @@
         "Name": { "Fn::Sub": "${AWS::StackName}-timer-{{.Name}}" },
         "ScheduleExpression": "cron({{.Schedule}} *)",
         "Targets": [ {
-          "Arn": { "Fn::Join": [ "", [
-            "arn:aws:ecs:", { "Ref": "AWS::Region" }, ":", { "Ref": "AWS::AccountId" }, ":cluster/", { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Cluster" } }
-          ] ] },
-          "EcsParameters": {
-            "TaskCount": "1",
-            "TaskDefinitionArn": { "Ref": "Timer{{ upper .Name }}Tasks" }
-          },
+          "Arn": { "Fn::If": [ "FargateTimers",
+            { "Fn::GetAtt": [ "TimerLauncher", "Arn" ] },
+            { "Fn::Join": [ "", [ "arn:aws:ecs:", { "Ref": "AWS::Region" }, ":", { "Ref": "AWS::AccountId" }, ":cluster/", { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Cluster" } } ] ] }
+          ] },
+          "EcsParameters": { "Fn::If": [ "FargateTimers",
+            { "Ref": "AWS::NoValue" },
+            { "TaskCount": "1", "TaskDefinitionArn": { "Ref": "Timer{{ upper .Name }}Tasks" } }
+          ] },
           "Id": "{{.Name}}",
-          "RoleArn": { "Fn::GetAtt": [ "TimerRole", "Arn" ] }
+          "Input": { "Fn::If": [ "FargateTimers",
+            { "Fn::Join": [ "", [ "{ \"cluster\": \"", { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Cluster" } }, "\", \"taskDefinition\": \"", { "Ref": "Timer{{ upper .Name }}Tasks" }, "\" }" ] ] },
+            { "Ref": "AWS::NoValue" }
+          ] },
+          "RoleArn": { "Fn::If": [ "FargateTimers",
+            { "Ref": "AWS::NoValue" },
+            { "Fn::GetAtt": [ "TimerRole", "Arn" ] }
+          ] }
         } ]
+      }
+    },
+    "{{ upper .Name }}TimerLauncherPermission": {
+      "Type" : "AWS::Lambda::Permission",
+      "Properties" : {
+        "Action" : "lambda:InvokeFunction",
+        "FunctionName" : { "Fn::GetAtt": [ "TimerLauncher", "Arn" ] },
+        "Principal" : "events.amazonaws.com",
+        "SourceArn" : { "Fn::GetAtt": [ "{{ upper .Name }}Timer", "Arn" ] }
       }
     },
     "Timer{{ upper .Name }}Tasks": {
@@ -439,7 +516,12 @@
             }
           {{ end }}
         ],
+        "Cpu": { "Fn::Select": [ 1, { "Ref": "{{ upper ($.Manifest.Service .Service).Name }}Formation" } ] },
+        "ExecutionRoleArn": { "Fn::GetAtt": [ "ExecutionRole", "Arn" ] },
         "Family": { "Fn::Sub": "${AWS::StackName}-timer-{{.Name}}" },
+        "Memory": { "Fn::Select": [ 2, { "Ref": "{{ upper ($.Manifest.Service .Service).Name }}Formation" } ] },
+        "NetworkMode": { "Fn::If": [ "FargateTimers", "awsvpc", { "Ref": "AWS::NoValue" } ] },
+        "RequiresCompatibilities": [ { "Fn::If": [ "FargateTimers", "FARGATE", { "Ref": "AWS::NoValue" } ] } ],
         "TaskRoleArn": { "Fn::GetAtt": [ "ServiceRole", "Arn" ] },
         "Volumes": [
           {{ range $i, $v := ($.Manifest.Service .Service).Volumes }}
