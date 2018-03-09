@@ -348,7 +348,7 @@ func success() error {
 		Status:  options.String("complete"),
 	}
 
-	if _, err := rack.BuildUpdate(flagApp, currentBuild.Id, structs.BuildUpdateOptions{Release: options.String(r.Id)}); err != nil {
+	if _, err := rack.BuildUpdate(flagApp, currentBuild.Id, opts); err != nil {
 		return err
 	}
 
