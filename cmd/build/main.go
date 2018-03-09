@@ -328,23 +328,27 @@ func success() error {
 		return err
 	}
 
-	now := time.Now()
-	status := "complete"
+	opts := structs.BuildUpdateOptions{
+		Ended:    options.Time(time.Now()),
+		Logs:     options.String(logs.Url),
+		Manifest: options.String(currentBuild.Manifest),
+	}
+
+	if _, err := rack.BuildUpdate(flagApp, currentBuild.Id, opts); err != nil {
+		return err
+	}
 
 	r, err := rack.ReleaseCreate(flagApp, structs.ReleaseCreateOptions{Build: options.String(currentBuild.Id)})
 	if err != nil {
 		return err
 	}
 
-	opts := structs.BuildUpdateOptions{
-		Ended:    options.Time(now),
-		Logs:     options.String(logs.Url),
-		Manifest: options.String(currentBuild.Manifest),
-		Release:  options.String(r.Id),
-		Status:   options.String(status),
+	opts = structs.BuildUpdateOptions{
+		Release: options.String(r.Id),
+		Status:  options.String("complete"),
 	}
 
-	if _, err := rack.BuildUpdate(flagApp, currentBuild.Id, opts); err != nil {
+	if _, err := rack.BuildUpdate(flagApp, currentBuild.Id, structs.BuildUpdateOptions{Release: options.String(r.Id)}); err != nil {
 		return err
 	}
 
