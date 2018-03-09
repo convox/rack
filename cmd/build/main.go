@@ -328,14 +328,10 @@ func success() error {
 		return err
 	}
 
-	now := time.Now()
-	status := "complete"
-
 	opts := structs.BuildUpdateOptions{
-		Ended:    options.Time(now),
+		Ended:    options.Time(time.Now()),
 		Logs:     options.String(logs.Url),
 		Manifest: options.String(currentBuild.Manifest),
-		Status:   options.String(status),
 	}
 
 	if _, err := rack.BuildUpdate(flagApp, currentBuild.Id, opts); err != nil {
@@ -347,7 +343,12 @@ func success() error {
 		return err
 	}
 
-	if _, err := rack.BuildUpdate(flagApp, currentBuild.Id, structs.BuildUpdateOptions{Release: options.String(r.Id)}); err != nil {
+	opts = structs.BuildUpdateOptions{
+		Release: options.String(r.Id),
+		Status:  options.String("complete"),
+	}
+
+	if _, err := rack.BuildUpdate(flagApp, currentBuild.Id, opts); err != nil {
 		return err
 	}
 
