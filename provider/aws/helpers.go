@@ -291,6 +291,15 @@ func recoverWith(f func(err error)) {
 	}
 }
 
+func remarshal(v interface{}, w interface{}) error {
+	data, err := json.MarshalIndent(v, "", "  ")
+	if err != nil {
+		return err
+	}
+
+	return json.Unmarshal(data, &w)
+}
+
 func stackName(app *structs.App) string {
 	if _, ok := app.Tags["Rack"]; ok {
 		return fmt.Sprintf("%s-%s", app.Tags["Rack"], app.Name)
