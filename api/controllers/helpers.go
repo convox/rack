@@ -12,17 +12,21 @@ import (
 	"golang.org/x/net/websocket"
 )
 
-func readChannel(r io.Reader, ch chan []byte) {
+func readChannel(r io.Reader, datach chan []byte, donech chan error) {
 	buf := make([]byte, 10*1024)
 
 	for {
 		n, err := r.Read(buf)
 		if err != nil {
-			ch <- nil
+			if err == io.EOF {
+				donech <- nil
+			} else {
+				donech <- err
+			}
 			return
 		}
 
-		ch <- buf[0:n]
+		datach <- buf[0:n]
 	}
 }
 
@@ -37,10 +41,11 @@ func sortSlice(s sortableSlice) {
 func streamWebsocket(ws *websocket.Conn, r io.ReadCloser) error {
 	defer r.Close()
 
-	ch := make(chan []byte)
+	datach := make(chan []byte)
+	donech := make(chan error)
 	tick := time.Tick(1 * time.Second)
 
-	go readChannel(r, ch)
+	go readChannel(r, datach, donech)
 
 	for {
 		select {
@@ -49,8 +54,10 @@ func streamWebsocket(ws *websocket.Conn, r io.ReadCloser) error {
 			if _, err := ws.Write([]byte{}); err != nil {
 				return nil
 			}
-		case data := <-ch:
+		case data := <-datach:
 			ws.Write(data)
+		case err := <-donech:
+			return err
 		}
 	}
 
