@@ -41,12 +41,6 @@ func (p *AWSProvider) streamLogs(w io.WriteCloser, group string, opts structs.Lo
 		req.StartTime = aws.Int64(start)
 	}
 
-	if !opts.Follow {
-		end := time.Now().UTC().UnixNano() / int64(time.Millisecond)
-		log = log.Namespace("end=%d", end)
-		req.EndTime = aws.Int64(end)
-	}
-
 	for {
 		// check for closed connection
 		if _, err := w.Write([]byte{}); err != nil {
