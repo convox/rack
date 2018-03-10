@@ -228,12 +228,12 @@ func (p *AWSProvider) SystemInstall(name string, opts structs.SystemInstallOptio
 
 // SystemLogs streams logs for the Rack
 func (p *AWSProvider) SystemLogs(opts structs.LogsOptions) (io.ReadCloser, error) {
-	logGroup, err := p.stackResource(p.Rack, "LogGroup")
+	group, err := p.rackResource("LogGroup")
 	if err != nil {
 		return nil, err
 	}
 
-	return p.subscribeLogs(*logGroup.PhysicalResourceId, opts)
+	return p.subscribeLogs(group, opts)
 }
 
 func (p *AWSProvider) SystemProcesses(opts structs.SystemProcessesOptions) (structs.Processes, error) {

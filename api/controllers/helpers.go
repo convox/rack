@@ -2,13 +2,29 @@ package controllers
 
 import (
 	"fmt"
+	"io"
 	"net/http"
 	"reflect"
 	"sort"
 	"time"
 
 	"github.com/convox/rack/helpers"
+	"golang.org/x/net/websocket"
 )
+
+func readChannel(r io.Reader, ch chan []byte) {
+	buf := make([]byte, 10*1024)
+
+	for {
+		n, err := r.Read(buf)
+		if err != nil {
+			ch <- nil
+			return
+		}
+
+		ch <- buf[0:n]
+	}
+}
 
 type sortableSlice interface {
 	Less(int, int) bool
@@ -16,6 +32,29 @@ type sortableSlice interface {
 
 func sortSlice(s sortableSlice) {
 	sort.Slice(s, s.Less)
+}
+
+func streamWebsocket(ws *websocket.Conn, r io.ReadCloser) error {
+	defer r.Close()
+
+	ch := make(chan []byte)
+	tick := time.Tick(1 * time.Second)
+
+	go readChannel(r, ch)
+
+	for {
+		select {
+		case <-tick:
+			// check for closed connection
+			if _, err := ws.Write([]byte{}); err != nil {
+				return nil
+			}
+		case data := <-ch:
+			ws.Write(data)
+		}
+	}
+
+	return nil
 }
 
 func unmarshalOptions(r *http.Request, opts interface{}) error {
