@@ -61,6 +61,12 @@ func (p *AWSProvider) streamLogs(w io.WriteCloser, group string, opts structs.Lo
 
 		log.Success()
 
+		if latest > 0 {
+			start := latest + 1
+			log = log.Replace("start", fmt.Sprintf("%d", start))
+			req.StartTime = aws.Int64(start)
+		}
+
 		if res.NextToken != nil {
 			req.NextToken = res.NextToken
 			continue
@@ -70,12 +76,6 @@ func (p *AWSProvider) streamLogs(w io.WriteCloser, group string, opts structs.Lo
 
 		if !opts.Follow {
 			break
-		}
-
-		if latest > 0 {
-			start := latest + 1
-			log = log.Replace("start", fmt.Sprintf("%d", start))
-			req.StartTime = aws.Int64(start)
 		}
 	}
 
