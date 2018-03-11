@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 	"github.com/convox/rack/structs"
 )
@@ -49,9 +50,12 @@ func (p *AWSProvider) streamLogs(w io.WriteCloser, group string, opts structs.Lo
 			break
 		}
 
-		time.Sleep(1 * time.Second)
-
 		res, err := p.cloudwatchlogs().FilterLogEvents(req)
+		if ae, ok := err.(awserr.Error); ok && ae.Code() == "ThrottlingException" {
+			log.Errorf("backoff")
+			time.Sleep(1 * time.Second)
+			continue
+		}
 		if err != nil {
 			return err
 		}
@@ -69,6 +73,7 @@ func (p *AWSProvider) streamLogs(w io.WriteCloser, group string, opts structs.Lo
 
 		if res.NextToken != nil {
 			req.NextToken = res.NextToken
+			time.Sleep(200 * time.Millisecond)
 			continue
 		}
 
@@ -81,6 +86,7 @@ func (p *AWSProvider) streamLogs(w io.WriteCloser, group string, opts structs.Lo
 		if start > 0 {
 			log = log.Replace("start", fmt.Sprintf("%d", start))
 			req.StartTime = aws.Int64(start)
+			time.Sleep(1 * time.Second)
 		}
 	}
 
