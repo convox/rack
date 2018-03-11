@@ -338,7 +338,7 @@ var cycleLogFilterLogEvents2 = awsutil.Cycle{
 			"interleaved": true,
 			"logGroupName": "convox-httpd-LogGroup-L4V203L35WRM",
 			"nextToken": "ZNUEPl7FcQuXbIH4Swk9D9eFu2XBg-ijZIZlvzz4ea9zZRjw-MMtQtvcoMdmq4T29K7Q6Y1e_KvyfpcT_f_tUw",
-			"startTime": 1.472946223e+12
+			"startTime": 1396035378990
 		}`,
 	},
 	Response: awsutil.Response{
