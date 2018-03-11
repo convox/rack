@@ -35,8 +35,10 @@ func (p *AWSProvider) streamLogs(w io.WriteCloser, group string, opts structs.Lo
 		req.FilterPattern = aws.String(opts.Filter)
 	}
 
+	var start int64
+
 	if !opts.Since.IsZero() {
-		start := opts.Since.UnixNano() / int64(time.Millisecond)
+		start = opts.Since.UnixNano() / int64(time.Millisecond)
 		log = log.Namespace("start=%d", start)
 		req.StartTime = aws.Int64(start)
 	}
@@ -59,13 +61,11 @@ func (p *AWSProvider) streamLogs(w io.WriteCloser, group string, opts structs.Lo
 			return nil
 		}
 
-		log.Success()
-
-		if latest > 0 {
-			start := latest + 1
-			log = log.Replace("start", fmt.Sprintf("%d", start))
-			req.StartTime = aws.Int64(start)
+		if latest > start {
+			start = latest + 1
 		}
+
+		log.Success()
 
 		if res.NextToken != nil {
 			req.NextToken = res.NextToken
@@ -76,6 +76,11 @@ func (p *AWSProvider) streamLogs(w io.WriteCloser, group string, opts structs.Lo
 
 		if !opts.Follow {
 			break
+		}
+
+		if start > 0 {
+			log = log.Replace("start", fmt.Sprintf("%d", start))
+			req.StartTime = aws.Int64(start)
 		}
 	}
 
