@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	"io"
 	"net/http"
 	"os"
 	"sort"
@@ -116,13 +115,15 @@ func SystemLogs(ws *websocket.Conn) *httperr.Error {
 	r, err := Provider.SystemLogs(structs.LogsOptions{
 		Filter: header.Get("Filter"),
 		Follow: follow,
-		Since:  time.Now().Add(-1 * since),
+		Since:  time.Now().UTC().Add(-1 * since),
 	})
 	if err != nil {
 		return httperr.Server(err)
 	}
 
-	io.Copy(ws, r)
+	if err := streamWebsocket(ws, r); err != nil {
+		return httperr.Server(err)
+	}
 
 	return nil
 }
