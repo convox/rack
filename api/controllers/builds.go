@@ -39,7 +39,7 @@ func BuildCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	if image != nil {
 		build, err := Provider.BuildImport(app, image)
 		if err != nil {
-			Provider.EventSend("build:create", structs.EventSendOptions{Data: map[string]string{"app": app, "id": build.Id, "from": "image"}, Error: err.Error()})
+			Provider.EventSend("build:create", structs.EventSendOptions{Data: map[string]string{"app": app, "from": "image"}, Error: err.Error()})
 			return httperr.Server(err)
 		}
 
@@ -62,7 +62,7 @@ func BuildCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 
 		build, err := Provider.BuildCreate(app, "tgz", o.Url, opts)
 		if err != nil {
-			Provider.EventSend("build:create", structs.EventSendOptions{Data: map[string]string{"app": app, "id": build.Id, "from": "source"}, Error: err.Error()})
+			Provider.EventSend("build:create", structs.EventSendOptions{Data: map[string]string{"app": app, "from": "source"}, Error: err.Error()})
 			return httperr.Server(err)
 		}
 
@@ -80,7 +80,7 @@ func BuildCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 
 		build, err := Provider.BuildCreate(app, "index", o.Url, opts)
 		if err != nil {
-			Provider.EventSend("build:create", structs.EventSendOptions{Data: map[string]string{"app": app, "id": build.Id, "from": "index"}, Error: err.Error()})
+			Provider.EventSend("build:create", structs.EventSendOptions{Data: map[string]string{"app": app, "from": "index"}, Error: err.Error()})
 			return httperr.Server(err)
 		}
 
@@ -122,7 +122,7 @@ func BuildCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 
 		build, err := Provider.BuildCreate(app, method, surl, opts)
 		if err != nil {
-			Provider.EventSend("build:create", structs.EventSendOptions{Data: map[string]string{"app": app, "id": build.Id, "from": "url"}})
+			Provider.EventSend("build:create", structs.EventSendOptions{Data: map[string]string{"app": app, "from": "url"}})
 			return httperr.Server(err)
 		}
 
