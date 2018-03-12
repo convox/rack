@@ -62,7 +62,7 @@ func BuildCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 
 		build, err := Provider.BuildCreate(app, "tgz", o.Url, opts)
 		if err != nil {
-			Provider.EventSend("build:create", structs.EventSendOptions{Data: map[string]string{"app": app, "source"}, Error: err.Error()})
+			Provider.EventSend("build:create", structs.EventSendOptions{Data: map[string]string{"app": app, "from": "source"}, Error: err.Error()})
 			return httperr.Server(err)
 		}
 
