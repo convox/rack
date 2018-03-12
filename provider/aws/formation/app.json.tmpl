@@ -516,10 +516,10 @@
             }
           {{ end }}
         ],
-        "Cpu": { "Fn::Select": [ 1, { "Ref": "{{ upper ($.Manifest.Service .Service).Name }}Formation" } ] },
+        "Cpu": { "Fn::If": [ "FargateTimers", { "Fn::Select": [ 1, { "Ref": "{{ upper ($.Manifest.Service .Service).Name }}Formation" } ] }, { "Ref": "AWS::NoValue" } ] },
         "ExecutionRoleArn": { "Fn::GetAtt": [ "ExecutionRole", "Arn" ] },
         "Family": { "Fn::Sub": "${AWS::StackName}-timer-{{.Name}}" },
-        "Memory": { "Fn::Select": [ 2, { "Ref": "{{ upper ($.Manifest.Service .Service).Name }}Formation" } ] },
+        "Memory": { "Fn::If": [ "FargateTimers", { "Fn::Select": [ 2, { "Ref": "{{ upper ($.Manifest.Service .Service).Name }}Formation" } ] }, { "Ref": "AWS::NoValue" } ] },
         "NetworkMode": { "Fn::If": [ "FargateTimers", "awsvpc", { "Ref": "AWS::NoValue" } ] },
         "RequiresCompatibilities": [ { "Fn::If": [ "FargateTimers", "FARGATE", { "Ref": "AWS::NoValue" } ] } ],
         "TaskRoleArn": { "Fn::GetAtt": [ "ServiceRole", "Arn" ] },
