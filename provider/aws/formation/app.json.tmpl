@@ -3,7 +3,8 @@
   "Conditions": {
     "BlankIamPolicy": { "Fn::Equals": [ { "Ref": "IamPolicy" }, "" ] },
     "BlankLogBucket": { "Fn::Equals": [ { "Ref": "LogBucket" }, "" ] },
-    "FargateTimers": { "Fn::Equals": [ { "Ref": "FargateTimers" }, "Yes" ] }
+    "FargateTimers": { "Fn::Equals": [ { "Ref": "FargateTimers" }, "Yes" ] },
+    "InternalDomains": { "Fn::Equals": [ { "Ref": "InternalDomains" }, "Yes" ] }
   },
   "Outputs": {
     {{ template "balancer-outputs" . }}
@@ -36,6 +37,11 @@
     "IamPolicy": {
       "Type": "String",
       "Default": ""
+    },
+    "InternalDomains": {
+      "Type": "String",
+      "Default": "Yes",
+      "AllowedValues": [ "Yes", "No" ]
     },
     "LogBucket": {
       "Type": "String",
@@ -111,6 +117,7 @@
       },
       "RecordSet{{ upper .Name }}Internal": {
         "Type": "AWS::Route53::RecordSet",
+        "Condition": "InternalDomains",
         "Properties": {
           "HostedZoneId": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:HostedZone" } },
           "Name": { "Fn::Sub": "{{.Name}}.{{$.App}}.${Rack}.convox." },
@@ -121,6 +128,7 @@
       },
       "Balancer{{ upper .Name }}ListenerRule80Internal": {
         "Type": "AWS::ElasticLoadBalancingV2::ListenerRule",
+        "Condition": "InternalDomains",
         "Properties": {
         "Actions": [ { "Type": "forward", "TargetGroupArn": { "Ref": "Balancer{{ upper .Name }}TargetGroup{{ if .Internal }}Internal{{ end }}" } } ],
           "Conditions": [ { "Field": "host-header", "Values": [ { "Fn::Sub": "{{.Name}}.{{$.App}}.${Rack}.convox" } ] } ],
@@ -130,6 +138,7 @@
       },
       "Balancer{{ upper .Name }}ListenerRule443Internal": {
         "Type": "AWS::ElasticLoadBalancingV2::ListenerRule",
+        "Condition": "InternalDomains",
         "Properties": {
         "Actions": [ { "Type": "forward", "TargetGroupArn": { "Ref": "Balancer{{ upper .Name }}TargetGroup{{ if .Internal }}Internal{{ end }}" } } ],
           "Conditions": [ { "Field": "host-header", "Values": [ { "Fn::Sub": "{{.Name}}.{{$.App}}.${Rack}.convox" } ] } ],
