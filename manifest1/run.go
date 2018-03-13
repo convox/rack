@@ -202,7 +202,10 @@ func (r *Run) Start() error {
 			}
 
 			// remove redundant syncs
-			syncs = pruneSyncs(syncs)
+			syncs, err = pruneSyncs(syncs)
+			if err != nil {
+				return err
+			}
 
 			if os.Getenv("CONVOX_DEBUG") == "true" {
 				for _, sync := range syncs {
@@ -253,29 +256,42 @@ func (r *Run) Stop() {
 	Docker(args...).Run()
 }
 
-func pruneSyncs(syncs []sync.Sync) []sync.Sync {
+func pruneSyncs(syncs []sync.Sync) ([]sync.Sync, error) {
 	pruned := []sync.Sync{}
 
-	for i := 0; i < len(syncs); i++ {
-		root := true
+	for i := range syncs {
+		contained := false
 
-		for j := 0; j < len(syncs); j++ {
-			if i == j {
-				continue
-			}
+		for j := i + 1; j < len(syncs); j++ {
+			if strings.HasPrefix(syncs[i].Local, syncs[j].Local) {
+				if syncs[i].Remote == syncs[j].Remote {
+					contained = true
+					break
+				}
 
-			if syncs[j].Contains(syncs[i]) {
-				root = false
-				break
+				rl, err := filepath.Rel(syncs[j].Local, syncs[i].Local)
+				if err != nil {
+					return nil, err
+				}
+
+				rr, err := filepath.Rel(syncs[j].Remote, syncs[i].Remote)
+				if err != nil {
+					return nil, err
+				}
+
+				if rl == rr {
+					contained = true
+					break
+				}
 			}
 		}
 
-		if root {
+		if !contained {
 			pruned = append(pruned, syncs[i])
 		}
 	}
 
-	return pruned
+	return pruned, nil
 }
 
 func waitForContainer(container string, service Service) error {
