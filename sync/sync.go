@@ -284,7 +284,7 @@ func (s *Sync) syncOutgoingAdds(adds []changes.Change, st Stream) {
 
 	if os.Getenv("CONVOX_DEBUG") != "" {
 		for _, a := range adds {
-			st <- fmt.Sprintf("-> %s", filepath.Join(a.Base, a.Path))
+			st <- fmt.Sprintf("%s -> %s:%s", filepath.Join(a.Base, a.Path), s.Container, filepath.Join(s.Remote, a.Path))
 		}
 	}
 
