@@ -536,7 +536,7 @@ func watchPath(rack *sdk.Client, m *manifest.Manifest, app, service, root string
 				continue
 			}
 
-			pss, err := rack.ProcessList(app, structs.ProcessListOptions{Service: service})
+			pss, err := rack.ProcessList(app, structs.ProcessListOptions{Service: options.String(service)})
 			if err != nil {
 				w.Writef("sync error: %s\n", err)
 				continue
