@@ -70,26 +70,40 @@ func unmarshalOptions(r *http.Request, opts interface{}) error {
 
 	for i := 0; i < t.NumField(); i++ {
 		f := t.Field(i)
-		n := f.Tag.Get("param")
+		u := v.Field(i)
 
-		if n != "" {
-			if fv := r.FormValue(n); fv != "" {
-				u := v.Field(i)
-
-				switch u.Interface().(type) {
-				case *string:
-					u.Set(reflect.ValueOf(&fv))
-				case *time.Time:
-					t, err := time.Parse(helpers.SortableTime, fv)
-					if err != nil {
-						return err
-					}
-					u.Set(reflect.ValueOf(&t))
-				default:
-					return fmt.Errorf("unknown param type: %T", t)
+		if n := f.Tag.Get("param"); n != "" {
+			if v := r.FormValue(n); v != "" {
+				if err := unmarshalValue(r, n, u, v); err != nil {
+					return err
 				}
 			}
 		}
+
+		if n := f.Tag.Get("query"); n != "" {
+			if v := r.URL.Query().Get(n); v != "" {
+				if err := unmarshalValue(r, n, u, v); err != nil {
+					return err
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
+func unmarshalValue(r *http.Request, param string, u reflect.Value, v string) error {
+	switch t := u.Interface().(type) {
+	case *string:
+		u.Set(reflect.ValueOf(&v))
+	case *time.Time:
+		tv, err := time.Parse(helpers.SortableTime, v)
+		if err != nil {
+			return err
+		}
+		u.Set(reflect.ValueOf(&tv))
+	default:
+		return fmt.Errorf("unknown param type: %T", t)
 	}
 
 	return nil
