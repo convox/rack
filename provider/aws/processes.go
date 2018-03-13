@@ -194,6 +194,18 @@ func (p *AWSProvider) ProcessList(app string, opts structs.ProcessListOptions) (
 		return nil, log.Error(err)
 	}
 
+	if opts.Service != nil {
+		pss := structs.Processes{}
+
+		for _, p := range ps {
+			if p.Name == *opts.Service {
+				pss = append(pss, p)
+			}
+		}
+
+		ps = pss
+	}
+
 	for i := range ps {
 		ps[i].App = app
 	}

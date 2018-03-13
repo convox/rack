@@ -90,7 +90,13 @@ func ProcessGet(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 func ProcessList(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	app := mux.Vars(r)["app"]
 
-	ps, err := Provider.ProcessList(app, structs.ProcessListOptions{})
+	var opts structs.ProcessListOptions
+
+	if err := unmarshalOptions(r, &opts); err != nil {
+		return httperr.Server(err)
+	}
+
+	ps, err := Provider.ProcessList(app, opts)
 	if provider.ErrorNotFound(err) {
 		return httperr.NotFound(err)
 	}

@@ -73,9 +73,9 @@ func (p *Provider) ProcessList(app string, opts structs.ProcessListOptions) (str
 		fmt.Sprintf("label=convox.rack=%s", p.Name),
 	}
 
-	if opts.Service != "" {
+	if opts.Service != nil {
 		filters = append(filters, fmt.Sprintf("label=convox.type=service"))
-		filters = append(filters, fmt.Sprintf("label=convox.service=%s", opts.Service))
+		filters = append(filters, fmt.Sprintf("label=convox.service=%s", *opts.Service))
 	}
 
 	pss, err := processList(filters, false)
