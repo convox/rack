@@ -33,7 +33,7 @@ type ProcessExecOptions struct {
 }
 
 type ProcessListOptions struct {
-	Service string
+	Service *string `query:"service"`
 }
 
 type ProcessRunOptions struct {
