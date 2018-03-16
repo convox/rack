@@ -243,7 +243,7 @@
   {{ range .Services }}
     "{{ upper .Name }}Formation": {
       "Type": "CommaDelimitedList",
-      "Default": "{{.Scale.Count.Min}},128,256",
+      "Default": "{{.Scale.Count.Min}},{{.Scale.Cpu}},{{.Scale.Memory}}",
       "Description": "Count,CPU,Memory"
     },
   {{ end }}

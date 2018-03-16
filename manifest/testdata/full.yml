@@ -28,6 +28,7 @@ services:
     health: /auth
     port: https:2000
     scale:
+      cpu: 256
       memory: 512
   foo:
     command: foo
