@@ -47,6 +47,7 @@ func TestManifestLoad(t *testing.T) {
 				Resources: []string{"database"},
 				Scale: manifest.ServiceScale{
 					Count:  &manifest.ServiceScaleCount{Min: 3, Max: 10},
+					Cpu:    128,
 					Memory: 256,
 				},
 				Test: "make  test",
@@ -67,6 +68,7 @@ func TestManifestLoad(t *testing.T) {
 				Port: manifest.ServicePort{Port: 2000, Scheme: "https"},
 				Scale: manifest.ServiceScale{
 					Count:  &manifest.ServiceScaleCount{Min: 1, Max: 1},
+					Cpu:    256,
 					Memory: 512,
 				},
 			},
@@ -86,6 +88,7 @@ func TestManifestLoad(t *testing.T) {
 				Port: manifest.ServicePort{Port: 3000, Scheme: "https"},
 				Scale: manifest.ServiceScale{
 					Count:  &manifest.ServiceScaleCount{Min: 0, Max: 0},
+					Cpu:    128,
 					Memory: 256,
 				},
 			},
@@ -103,6 +106,7 @@ func TestManifestLoad(t *testing.T) {
 				},
 				Scale: manifest.ServiceScale{
 					Count:  &manifest.ServiceScaleCount{Min: 1, Max: 1},
+					Cpu:    128,
 					Memory: 256,
 				},
 			},
