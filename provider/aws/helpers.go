@@ -731,7 +731,7 @@ func (p *AWSProvider) stackResource(stack, resource string) (*cloudformation.Sta
 	}
 
 	for _, sr := range srs {
-		if *sr.LogicalResourceId == resource {
+		if *sr.LogicalResourceId == resource && sr.PhysicalResourceId != nil {
 			return sr, log.Successf("physical=%s", *sr.PhysicalResourceId)
 		}
 	}
