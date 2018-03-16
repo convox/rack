@@ -453,7 +453,7 @@
       "Type": "AWS::Events::Rule",
       "Properties": {
         "Name": { "Fn::Sub": "${AWS::StackName}-timer-{{.Name}}" },
-        "ScheduleExpression": "cron({{.Schedule}} *)",
+        "ScheduleExpression": "cron({{.Cron}})",
         "Targets": [ {
           "Arn": { "Fn::If": [ "FargateTimers",
             { "Fn::GetAtt": [ "TimerLauncher", "Arn" ] },
