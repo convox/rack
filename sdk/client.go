@@ -22,6 +22,7 @@ type Client struct {
 	Debug    bool
 	Endpoint *url.URL
 	Key      string
+	Rack     string
 	Socket   string
 	Version  string
 }
@@ -120,70 +121,6 @@ func (c *Client) Websocket(path string, opts RequestOptions) (io.ReadCloser, err
 
 	return ws, nil
 }
-
-// func (c *Client) Stream(path string, opts RequestOptions) (io.ReadCloser, error) {
-//   so, err := c.SystemOptions()
-//   if err != nil {
-//     return nil, err
-//   }
-
-//   switch so["streaming"] {
-//   case "websocket":
-//     u, err := url.Parse(fmt.Sprintf("wss://%s%s%s?%s", c.Endpoint.Host, c.Endpoint.Path, path, opts.Querystring()))
-//     if err != nil {
-//       return nil, err
-//     }
-
-//     r, err := opts.Reader()
-//     if err != nil {
-//       return nil, err
-//     }
-
-//     header := http.Header{}
-//     for k, v := range opts.Headers {
-//       header.Add(k, v)
-//     }
-
-//     if c.Endpoint.User != nil {
-//       creds := base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%s:", c.Endpoint.User.Username())))
-//       header.Add("Authorization", fmt.Sprintf("Basic %s", creds))
-//     }
-
-//     config := &websocket.Config{
-//       Header:   header,
-//       Location: u,
-//       Origin:   u,
-//       Version:  websocket.ProtocolVersionHybi13,
-//       TlsConfig: &tls.Config{
-//         InsecureSkipVerify: true,
-//       },
-//     }
-
-//     for k, v := range opts.Headers {
-//       config.Header.Set(k, v)
-//     }
-
-//     ws, err := websocket.DialConfig(config)
-//     if err != nil {
-//       return nil, err
-//     }
-
-//     if r != nil {
-//       go io.Copy(ws, r)
-//     }
-
-//     return ws, nil
-//   case "http2":
-//     res, err := c.PostStream(path, opts)
-//     if err != nil {
-//       return nil, err
-//     }
-
-//     return res.Body, nil
-//   default:
-//     return nil, fmt.Errorf("unknown streaming type: %s", so["streaming"])
-//   }
-// }
 
 func (c *Client) Head(path string, opts RequestOptions) error {
 	req, err := c.Request("HEAD", path, opts)
@@ -342,6 +279,10 @@ func (c *Client) Request(method, path string, opts RequestOptions) (*http.Reques
 	req.Header.Set("User-Agent", fmt.Sprintf("convox.go/%s", c.Version))
 	req.Header.Set("Version", c.Version)
 
+	if c.Rack != "" {
+		req.Header.Set("Rack", c.Rack)
+	}
+
 	for k, v := range opts.Headers {
 		req.Header.Set(k, v)
 	}
@@ -380,6 +321,14 @@ func responseError(res *http.Response) error {
 	data, err := ioutil.ReadAll(res.Body)
 	if err != nil {
 		return err
+	}
+
+	var e struct {
+		Error string
+	}
+
+	if err := json.Unmarshal(data, &e); err == nil && e.Error != "" {
+		return fmt.Errorf(e.Error)
 	}
 
 	msg := strings.TrimSpace(string(data))
