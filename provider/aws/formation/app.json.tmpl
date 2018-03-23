@@ -88,7 +88,10 @@
         "Value": {{ if .Domain }} { "Ref": "Balancer{{ upper .Name }}Certificate" } {{ else }} { "Fn::ImportValue": { "Fn::Sub": "${Rack}:RouterCertificate" } } {{ end }}
       },
       "Service{{ upper .Name }}Endpoint": {
-        "Value": { "Fn::Join": [ ".", [ "{{$.App}}-{{.Name}}", { "Fn::ImportValue": { "Fn::Sub": "${Rack}:{{ router .Name $.Manifest }}Host" } } ] ] }
+        "Value": { "Fn::If": [ "InternalDomains",
+          { "Fn::Join": [ ".", [ "{{$.App}}-{{.Name}}", { "Fn::ImportValue": { "Fn::Sub": "${Rack}:{{ router .Name $.Manifest }}Host" } } ] ] },
+          {{ if .Domain }} "{{.Domain}}" {{ else }} { "Fn::Join": [ ".", [ "{{$.App}}-{{.Name}}", { "Fn::ImportValue": { "Fn::Sub": "${Rack}:{{ router .Name $.Manifest }}Host" } } ] ] } {{ end }}
+        ] }
       },
     {{ end }}
   {{ end }}
@@ -99,6 +102,7 @@
     {{ if .Port.Port }}
       "Balancer{{ upper .Name }}ListenerRule80": {
         "Type": "AWS::ElasticLoadBalancingV2::ListenerRule",
+        {{ if .Domain }} "Condition": "InternalDomains", {{ end }}
         "Properties": {
         "Actions": [ { "Type": "forward", "TargetGroupArn": { "Ref": "Balancer{{ upper .Name }}TargetGroup{{ if .Internal }}Internal{{ end }}" } } ],
           "Conditions": [ { "Field": "host-header", "Values": [ { "Fn::Join": [ ".", [ "{{$.App}}-{{.Name}}", { "Fn::ImportValue": { "Fn::Sub": "${Rack}:{{ router .Name $.Manifest }}Host" } } ] ] } ] } ],
@@ -108,6 +112,7 @@
       },
       "Balancer{{ upper .Name }}ListenerRule443": {
         "Type": "AWS::ElasticLoadBalancingV2::ListenerRule",
+        {{ if .Domain }} "Condition": "InternalDomains", {{ end }}
         "Properties": {
         "Actions": [ { "Type": "forward", "TargetGroupArn": { "Ref": "Balancer{{ upper .Name }}TargetGroup{{ if .Internal }}Internal{{ end }}" } } ],
           "Conditions": [ { "Field": "host-header", "Values": [ { "Fn::Join": [ ".", [ "{{$.App}}-{{.Name}}", { "Fn::ImportValue": { "Fn::Sub": "${Rack}:{{ router .Name $.Manifest }}Host" } } ] ] } ] } ],
@@ -274,9 +279,6 @@
   {{ range .Manifest.Services }}
     "Service{{ upper .Name }}Service": {
       "Type": "AWS::ECS::Service",
-      {{ if .Port.Port }}
-        "DependsOn": [ "Balancer{{ upper .Name }}ListenerRule80" ],
-      {{ end }}
       "Properties": {
         "Cluster": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Cluster" } },
         "DeploymentConfiguration": { "MinimumHealthyPercent": "50", "MaximumPercent": "200" },
