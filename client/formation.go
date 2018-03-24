@@ -4,10 +4,11 @@ import "fmt"
 
 type FormationEntry struct {
 	Balancer string `json:"balancer"`
-	Name     string `json:"name"`
 	Count    int    `json:"count"`
-	Memory   int    `json:"memory"`
 	CPU      int    `json:"cpu"`
+	Hostname string `json:"hostname"`
+	Memory   int    `json:"memory"`
+	Name     string `json:"name"`
 	Ports    []int  `json:"ports"`
 }
 

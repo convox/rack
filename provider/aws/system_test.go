@@ -721,6 +721,23 @@ var cycleDescribeAutoscalingGroupsInstanceTerminating = awsutil.Cycle{
 	},
 }
 
+func cycleDescribeStacksNotFound(name string) awsutil.Cycle {
+	return awsutil.Cycle{
+		awsutil.Request{"POST", "/", "", `Action=DescribeStacks&StackName=` + name + `&Version=2010-05-15`},
+		awsutil.Response{
+			400,
+			`<ErrorResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
+				<Error>
+					<Type>Sender</Type>
+					<Code>ValidationError</Code>
+					<Message>Stack with id ` + name + ` does not exist</Message>
+				</Error>
+				<RequestId>bc91dc86-5803-11e5-a24f-85fde26a90fa</RequestId>
+			</ErrorResponse>`,
+		},
+	}
+}
+
 var cycleSystemListStackResources = awsutil.Cycle{
 	Request: awsutil.Request{
 		RequestURI: "/",

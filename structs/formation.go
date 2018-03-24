@@ -2,11 +2,11 @@ package structs
 
 // ProcessFormation represents the formation for a Process
 type ProcessFormation struct {
-	Balancer string `json:"balancer"`
-	Name     string `json:"name"`
 	Count    int    `json:"count"`
-	Memory   int    `json:"memory"`
 	CPU      int    `json:"cpu"`
+	Hostname string `json:"hostname"`
+	Name     string `json:"name"`
+	Memory   int    `json:"memory"`
 	Ports    []int  `json:"ports"`
 }
 
