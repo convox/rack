@@ -27,13 +27,13 @@ convox apps info --app $APP_NAME
 
 convox scale web --count 2 --memory 128 --app $APP_NAME --wait
 
-balancer=$(convox api get /apps/$APP_NAME/formation | jq -r '.[] | select(.name == "web" and .ports[] == 443) | .balancer')
+hostname=$(convox api get /apps/$APP_NAME/formation | jq -r '.[] | select(.name == "web" and .ports[] == 443) | .hostname')
 
 # While the following curl call would work:
-# curl -vi -m2 --retry 60 --retry-delay 20 -k https://$balancer
+# curl -vi -m2 --retry 60 --retry-delay 20 -k https://$hostname
 # ran into an issue where curl would return "curl: (52) Empty reply from server" with no easy way to retry
 c=0
-while ! curl -m2 $balancer; do
+while ! curl -m2 $hostname; do
   let c=c+1
   [ $c -gt 60 ] && exit 1
 
