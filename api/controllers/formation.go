@@ -22,9 +22,9 @@ func FormationList(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 
 	for _, s := range ss {
 		pf := structs.ProcessFormation{
-			Balancer: s.Domain,
 			Count:    s.Count,
 			CPU:      s.Cpu,
+			Hostname: s.Domain,
 			Memory:   s.Memory,
 			Name:     s.Name,
 			Ports:    []int{},
