@@ -49,6 +49,10 @@ func (p *AWSProvider) CapacityGet() (*structs.Capacity, error) {
 	for _, service := range services {
 		servicePortWidth := map[int64]int64{}
 
+		if service.LaunchType != nil && *service.LaunchType != "EC2" {
+			continue
+		}
+
 		if len(service.LoadBalancers) > 0 {
 			for _, deployment := range service.Deployments {
 				res, err := p.describeTaskDefinition(&ecs.DescribeTaskDefinitionInput{
