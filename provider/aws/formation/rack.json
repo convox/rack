@@ -316,6 +316,21 @@
         ]
       }
     },
+    "SubnetPrivate0": {
+      "Condition": "Private",
+      "Export": { "Name": { "Fn::Sub": "${AWS::StackName}:SubnetPrivate0" } },
+      "Value": { "Ref": "SubnetPrivate0" }
+    },
+    "SubnetPrivate1": {
+      "Condition": "Private",
+      "Export": { "Name": { "Fn::Sub": "${AWS::StackName}:SubnetPrivate1" } },
+      "Value": { "Ref": "SubnetPrivate1" }
+    },
+    "SubnetPrivate2": {
+      "Condition": "PrivateAndThirdAvailabilityZone",
+      "Export": { "Name": { "Fn::Sub": "${AWS::StackName}:SubnetPrivate2" } },
+      "Value": { "Ref": "SubnetPrivate2" }
+    },
     "StackId": {
       "Value": { "Ref": "AWS::StackId" }
     },
