@@ -62,6 +62,10 @@ func (p *AWSProvider) ProcessExec(app, pid, command string, opts structs.Process
 		return -1, log.Errorf("no running container for process: %s", pid)
 	}
 
+	if task.ContainerInstanceArn == nil {
+		return -1, fmt.Errorf("could not find instance for process: %s", pid)
+	}
+
 	cires, err := p.describeContainerInstances(&ecs.DescribeContainerInstancesInput{
 		Cluster:            aws.String(p.Cluster),
 		ContainerInstances: []*string{task.ContainerInstanceArn},
@@ -626,12 +630,6 @@ func (p *AWSProvider) fetchProcess(task *ecs.Task, psch chan structs.Process, er
 		return
 	}
 
-	ci, err := p.containerInstance(*task.ContainerInstanceArn)
-	if err != nil {
-		errch <- err
-		return
-	}
-
 	env := map[string]string{}
 	for _, e := range cd.Environment {
 		env[*e.Name] = *e.Value
@@ -656,13 +654,22 @@ func (p *AWSProvider) fetchProcess(task *ecs.Task, psch chan structs.Process, er
 	}
 
 	ps := structs.Process{
-		Id:       arnToPid(*task.TaskArn),
-		Name:     *container.Name,
-		App:      coalesces(labels["convox.app"], env["APP"]),
-		Release:  coalesces(labels["convox.release"], env["RELEASE"]),
-		Image:    *cd.Image,
-		Instance: *ci.Ec2InstanceId,
-		Ports:    ports,
+		Id:      arnToPid(*task.TaskArn),
+		Name:    *container.Name,
+		App:     coalesces(labels["convox.app"], env["APP"]),
+		Release: coalesces(labels["convox.release"], env["RELEASE"]),
+		Image:   *cd.Image,
+		Ports:   ports,
+	}
+
+	if task.ContainerInstanceArn != nil {
+		ci, err := p.containerInstance(*task.ContainerInstanceArn)
+		if err != nil {
+			errch <- err
+			return
+		}
+
+		ps.Instance = *ci.Ec2InstanceId
 	}
 
 	// guard for nil
