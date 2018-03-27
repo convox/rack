@@ -3,8 +3,10 @@
   "Conditions": {
     "BlankIamPolicy": { "Fn::Equals": [ { "Ref": "IamPolicy" }, "" ] },
     "BlankLogBucket": { "Fn::Equals": [ { "Ref": "LogBucket" }, "" ] },
+    "FargateServices": { "Fn::Equals": [ { "Ref": "FargateServices" }, "Yes" ] },
     "FargateTimers": { "Fn::Equals": [ { "Ref": "FargateTimers" }, "Yes" ] },
-    "InternalDomains": { "Fn::Equals": [ { "Ref": "InternalDomains" }, "Yes" ] }
+    "InternalDomains": { "Fn::Equals": [ { "Ref": "InternalDomains" }, "Yes" ] },
+    "Private": { "Fn::Equals": [ { "Ref": "Private" }, "Yes" ] }
   },
   "Outputs": {
     {{ template "balancer-outputs" . }}
@@ -29,6 +31,11 @@
   "Parameters" : {
     {{ template "service-params" .Manifest }}
 
+    "FargateServices": {
+      "Type": "String",
+      "Default": "No",
+      "AllowedValues": [ "Yes", "No" ]
+    },
     "FargateTimers": {
       "Type": "String",
       "Default": "No",
@@ -46,6 +53,11 @@
     "LogBucket": {
       "Type": "String",
       "Default": ""
+    },
+    "Private": {
+      "Type": "String",
+      "Default": "No",
+      "AllowedValues": [ "Yes", "No" ]
     },
     "Rack": {
       "Type": "String",
@@ -104,7 +116,7 @@
         "Type": "AWS::ElasticLoadBalancingV2::ListenerRule",
         {{ if .Domain }} "Condition": "InternalDomains", {{ end }}
         "Properties": {
-        "Actions": [ { "Type": "forward", "TargetGroupArn": { "Ref": "Balancer{{ upper .Name }}TargetGroup{{ if .Internal }}Internal{{ end }}" } } ],
+          "Actions": [ { "Type": "forward", "TargetGroupArn": { "Ref": "Balancer{{ upper .Name }}TargetGroup{{ if .Internal }}Internal{{ end }}" } } ],
           "Conditions": [ { "Field": "host-header", "Values": [ { "Fn::Join": [ ".", [ "{{$.App}}-{{.Name}}", { "Fn::ImportValue": { "Fn::Sub": "${Rack}:{{ router .Name $.Manifest }}Host" } } ] ] } ] } ],
           "ListenerArn": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:{{ router .Name $.Manifest }}Listener80" } },
           "Priority": "{{ priority $.App .Name }}"
@@ -114,7 +126,7 @@
         "Type": "AWS::ElasticLoadBalancingV2::ListenerRule",
         {{ if .Domain }} "Condition": "InternalDomains", {{ end }}
         "Properties": {
-        "Actions": [ { "Type": "forward", "TargetGroupArn": { "Ref": "Balancer{{ upper .Name }}TargetGroup{{ if .Internal }}Internal{{ end }}" } } ],
+          "Actions": [ { "Type": "forward", "TargetGroupArn": { "Ref": "Balancer{{ upper .Name }}TargetGroup{{ if .Internal }}Internal{{ end }}" } } ],
           "Conditions": [ { "Field": "host-header", "Values": [ { "Fn::Join": [ ".", [ "{{$.App}}-{{.Name}}", { "Fn::ImportValue": { "Fn::Sub": "${Rack}:{{ router .Name $.Manifest }}Host" } } ] ] } ] } ],
           "ListenerArn": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:{{ router .Name $.Manifest }}Listener443" } },
           "Priority": "{{ priority $.App .Name }}"
@@ -135,7 +147,7 @@
         "Type": "AWS::ElasticLoadBalancingV2::ListenerRule",
         "Condition": "InternalDomains",
         "Properties": {
-        "Actions": [ { "Type": "forward", "TargetGroupArn": { "Ref": "Balancer{{ upper .Name }}TargetGroup{{ if .Internal }}Internal{{ end }}" } } ],
+          "Actions": [ { "Type": "forward", "TargetGroupArn": { "Ref": "Balancer{{ upper .Name }}TargetGroup{{ if .Internal }}Internal{{ end }}" } } ],
           "Conditions": [ { "Field": "host-header", "Values": [ { "Fn::Sub": "{{.Name}}.{{$.App}}.${Rack}.convox" } ] } ],
           "ListenerArn": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:{{ router .Name $.Manifest }}Listener80" } },
           "Priority": "{{ priority $.App (print .Name "-i") }}"
@@ -145,7 +157,7 @@
         "Type": "AWS::ElasticLoadBalancingV2::ListenerRule",
         "Condition": "InternalDomains",
         "Properties": {
-        "Actions": [ { "Type": "forward", "TargetGroupArn": { "Ref": "Balancer{{ upper .Name }}TargetGroup{{ if .Internal }}Internal{{ end }}" } } ],
+          "Actions": [ { "Type": "forward", "TargetGroupArn": { "Ref": "Balancer{{ upper .Name }}TargetGroup{{ if .Internal }}Internal{{ end }}" } } ],
           "Conditions": [ { "Field": "host-header", "Values": [ { "Fn::Sub": "{{.Name}}.{{$.App}}.${Rack}.convox" } ] } ],
           "ListenerArn": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:{{ router .Name $.Manifest }}Listener443" } },
           "Priority": "{{ priority $.App (print .Name "-i") }}"
@@ -217,6 +229,7 @@
             { "Key": "deregistration_delay.timeout_seconds", "Value": "30" },
             { "Key": "stickiness.enabled", "Value": "true" }
           ],
+          "TargetType": { "Fn::If": [ "FargateServices", "ip", "instance" ] },
           "VpcId": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Vpc" } }
         }
       },
@@ -277,26 +290,60 @@
     }
   },
   {{ range .Manifest.Services }}
+    "Service{{ upper .Name }}Security": {
+      "Condition": "FargateServices",
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": { "Fn::Sub": "${AWS::StackName} service" },
+        "SecurityGroupIngress": [
+          {{ if .Port.Port }}
+            { "IpProtocol": "tcp", "FromPort": "{{.Port.Port}}", "ToPort": "{{.Port.Port}}", "CidrIp": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:VpcCidr" } } }
+          {{ end }}
+        ],
+        "Tags": [ { "Key": "Name", "Value": { "Fn::Sub": "${AWS::StackName}-service" } } ],
+        "VpcId": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Vpc" } }
+      }
+    },
     "Service{{ upper .Name }}Service": {
       "Type": "AWS::ECS::Service",
+      {{ if .Port.Port }}
+        "DependsOn": "Balancer{{ upper .Name }}ListenerRule80{{ if .Domain }}Domain0{{ end }}",
+      {{ end }}
       "Properties": {
         "Cluster": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Cluster" } },
         "DeploymentConfiguration": { "MinimumHealthyPercent": "50", "MaximumPercent": "200" },
         "DesiredCount": { "Fn::Select": [ 0, { "Ref": "{{ upper .Name }}Formation" } ] },
+        "LaunchType": { "Fn::If": [ "FargateServices", "FARGATE", { "Ref": "AWS::NoValue" } ] },
+        "NetworkConfiguration": { "Fn::If": [ "FargateServices", 
+          {
+            "AwsvpcConfiguration": {
+              "AssignPublicIp": { "Fn::If": [ "Private", "DISABLED", "ENABLED" ] },
+              "SecurityGroups": [ { "Ref": "Service{{ upper .Name }}Security" } ],
+              "Subnets": { "Fn::If": [ "Private",
+                [ { "Fn::ImportValue": { "Fn::Sub": "${Rack}:SubnetPrivate0" } }, { "Fn::ImportValue": { "Fn::Sub": "${Rack}:SubnetPrivate1" } } ],
+                [ { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Subnet0" } }, { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Subnet1" } } ]
+              ] }
+            }
+          },
+          { "Ref": "AWS::NoValue" }
+        ] },
         {{ if .Port.Port }}
           "HealthCheckGracePeriodSeconds": "{{.Health.Grace}}",
           "LoadBalancers": [ { "ContainerName": "{{.Name}}", "ContainerPort": "{{.Port.Port}}", "TargetGroupArn": { "Ref": "Balancer{{ upper .Name }}TargetGroup{{ if .Internal }}Internal{{ end }}" } } ],
-          "Role": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:ServiceRole" } },
+          "Role": { "Fn::If": [ "FargateServices", { "Ref": "AWS::NoValue" }, { "Fn::ImportValue": { "Fn::Sub": "${Rack}:ServiceRole" } } ] },
         {{ end }}
         {{ if .Agent }}
           "PlacementConstraints": [
             { "Type": "distinctInstance" }
           ],
         {{ else }}
-          "PlacementStrategies": [
-            { "Type": "spread", "Field": "attribute:ecs.availability-zone" },
-            { "Type": "spread", "Field": "instanceId" }
-          ],
+          "PlacementStrategies": { "Fn::If": [ "FargateServices",
+            { "Ref": "AWS::NoValue" },
+            [
+              { "Type": "spread", "Field": "attribute:ecs.availability-zone" },
+              { "Type": "spread", "Field": "instanceId" }
+            ]
+          ] },
         {{ end }}
         "TaskDefinition": { "Ref": "Service{{ upper .Name }}Tasks" }
       }
@@ -353,7 +400,12 @@
             "Name": "{{.Name}}"
           }
         ],
+        "Cpu": { "Fn::If": [ "FargateServices", { "Fn::Select": [ 1, { "Ref": "{{ upper .Name }}Formation" } ] }, { "Ref": "AWS::NoValue" } ] },
+        "ExecutionRoleArn": { "Fn::GetAtt": [ "ExecutionRole", "Arn" ] },
         "Family": { "Fn::Sub": "${AWS::StackName}-service-{{.Name}}" },
+        "Memory": { "Fn::If": [ "FargateServices", { "Fn::Select": [ 2, { "Ref": "{{ upper .Name }}Formation" } ] }, { "Ref": "AWS::NoValue" } ] },
+        "NetworkMode": { "Fn::If": [ "FargateServices", "awsvpc", { "Ref": "AWS::NoValue" } ] },
+        "RequiresCompatibilities": [ { "Fn::If": [ "FargateServices", "FARGATE", { "Ref": "AWS::NoValue" } ] } ],
         "TaskRoleArn": { "Fn::GetAtt": [ "ServiceRole", "Arn" ] },
         "Volumes": [
           {{ range $i, $v := .Volumes }}
