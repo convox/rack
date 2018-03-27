@@ -1188,6 +1188,19 @@
             "Key": "GatewayAttachment",
             "Value": { "Fn::If": [ "ExistingVpc", "existing", { "Ref": "GatewayAttachment" } ] },
             "PropagateAtLaunch": false
+          },
+          {
+            "Key": "NatGateways",
+            "PropagateAtLaunch": false,
+            "Value": { "Fn::If": [
+              "Private",
+              { "Fn::Join": [ ",", [
+                { "Ref": "Nat0" },
+                { "Ref": "Nat1" },
+                { "Fn::If": [ "ThirdAvailabilityZone", { "Ref": "Nat2" }, { "Ref": "AWS::NoValue" } ] }
+              ] ] },
+              ""
+            ] }
           }
         ]
       },
@@ -1357,6 +1370,19 @@
             "Key": "GatewayAttachment",
             "Value": { "Fn::If": [ "ExistingVpc", "existing", { "Ref": "GatewayAttachment" } ] },
             "PropagateAtLaunch": false
+          },
+          {
+            "Key": "NatGateways",
+            "PropagateAtLaunch": false,
+            "Value": { "Fn::If": [
+              "Private",
+              { "Fn::Join": [ ",", [
+                { "Ref": "Nat0" },
+                { "Ref": "Nat1" },
+                { "Fn::If": [ "ThirdAvailabilityZone", { "Ref": "Nat2" }, { "Ref": "AWS::NoValue" } ] }
+              ] ] },
+              ""
+            ] }
           }
         ]
       },
