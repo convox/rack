@@ -369,6 +369,9 @@ func upperName(name string) string {
 		return ""
 	}
 
+	// replace underscores with dashes
+	name = strings.Replace(name, "_", "-", -1)
+
 	// myapp -> Myapp; my-app -> MyApp
 	us := strings.ToUpper(name[0:1]) + name[1:]
 
