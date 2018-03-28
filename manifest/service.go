@@ -115,11 +115,11 @@ func (s *Service) SetDefaults() error {
 	}
 
 	if s.Scale.Cpu == 0 {
-		s.Scale.Cpu = 128
+		s.Scale.Cpu = 256
 	}
 
 	if s.Scale.Memory == 0 {
-		s.Scale.Memory = 256
+		s.Scale.Memory = 512
 	}
 
 	return nil

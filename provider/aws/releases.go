@@ -212,8 +212,14 @@ func (p *AWSProvider) ReleasePromote(app, id string) error {
 		return err
 	}
 
+	private, err := p.stackParameter(p.Rack, "Private")
+	if err != nil {
+		return err
+	}
+
 	updates := map[string]string{
 		"LogBucket": p.LogBucket,
+		"Private":   private,
 	}
 
 	if err := p.updateStack(p.rackStack(r.App), ou.Url, updates); err != nil {
