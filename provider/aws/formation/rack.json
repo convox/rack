@@ -14,6 +14,7 @@
     "BlankInternetGateway": { "Fn::Equals": [ { "Ref": "InternetGateway"}, "" ] },
     "BlankKey": { "Fn::Equals": [ { "Ref": "Key" }, "" ] },
     "BlankLogBucket": { "Fn::Equals": [ { "Ref": "LogBucket" }, "" ] },
+    "BlankRouterSecurityGroup": { "Fn::Equals": [ {"Ref": "RouterSecurityGroup" }, "" ]},
     "DedicatedBuilder": { "Fn::Not": [ { "Fn::Equals": [ { "Ref": "BuildInstance" }, "" ] } ] },
     "Development": { "Fn::Equals": [ { "Ref": "Development" }, "Yes" ] },
     "EncryptEbs" : { "Fn::Equals": [ { "Ref": "EncryptEbs" }, "Yes" ] },
@@ -517,6 +518,11 @@
       "Description": "Put Rack API Load Balancer in private network",
       "Default": "No",
       "AllowedValues": [ "Yes", "No" ]
+    },
+    "RouterSecurityGroup": {
+      "Default": "",
+      "Description": "The security group to assign to the rack router.",
+      "Type": "String"
     },
     "SpotInstanceBid": {
       "Default": "",
@@ -1889,12 +1895,13 @@
           { "Ref": "Subnet1" },
           { "Fn::If": [ "ThirdAvailabilityZone", { "Ref": "Subnet2" }, { "Ref": "AWS::NoValue" } ] }
         ],
-        "SecurityGroups": [ { "Ref": "RouterSecurity" } ]
+        "SecurityGroups": [ { "Fn::If": [ "BlankRouterSecurityGroup", { "Ref": "RouterSecurity" }, { "Ref": "RouterSecurityGroup" } ] } ]
       }
     },
     "RouterSecurity": {
       "Type": "AWS::EC2::SecurityGroup",
       "DependsOn": "ApiRole",
+      "Condition": "BlankRouterSecurityGroup",
       "Properties": {
         "GroupDescription": { "Fn::Sub": "${AWS::StackName} router" },
         "SecurityGroupIngress": [ { "CidrIp": "0.0.0.0/0", "IpProtocol": "tcp", "FromPort": "0", "ToPort": "65535" } ],
