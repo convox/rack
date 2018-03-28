@@ -1901,7 +1901,6 @@
     "RouterSecurity": {
       "Type": "AWS::EC2::SecurityGroup",
       "DependsOn": "ApiRole",
-      "Condition": "BlankRouterSecurityGroup",
       "Properties": {
         "GroupDescription": { "Fn::Sub": "${AWS::StackName} router" },
         "SecurityGroupIngress": [ { "CidrIp": "0.0.0.0/0", "IpProtocol": "tcp", "FromPort": "0", "ToPort": "65535" } ],
