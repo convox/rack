@@ -171,11 +171,11 @@ func ct(t *time.Time) time.Time {
 
 func generation(g *string) string {
 	if g == nil {
-		return "1"
+		return "2"
 	}
 
 	if *g == "" {
-		return "1"
+		return "2"
 	}
 
 	return *g
