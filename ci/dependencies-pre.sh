@@ -7,6 +7,7 @@ VERSION=${VERSION:-ci}
 mkdir -p /tmp/artifacts
 
 # install utilities
+sudo apt-get update
 sudo apt-get install python-pip
 curl -O http://stedolan.github.io/jq/download/linux64/jq && chmod +x jq && sudo mv jq /usr/local/bin
 sudo pip install awscli --upgrade
