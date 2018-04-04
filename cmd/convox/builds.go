@@ -383,13 +383,9 @@ func cmdBuildsRelease(c *cli.Context) error {
 		fmt.Println("OK")
 
 		if c.Bool("wait") {
-			fmt.Print("Waiting for stabilization... ")
-
-			if err := waitForReleasePromotion(c, app, r.Id); err != nil {
+			if err := waitForReleasePromotion(os.Stdout, c, app, r.Id); err != nil {
 				return stdcli.Error(err)
 			}
-
-			fmt.Println("OK")
 		}
 	} else {
 		fmt.Printf("To deploy these changes run `convox releases promote %s`\n", r.Id)
