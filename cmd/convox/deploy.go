@@ -88,13 +88,9 @@ func cmdDeploy(c *cli.Context) error {
 	output.Write([]byte("UPDATING\n"))
 
 	if c.Bool("wait") {
-		output.Write([]byte(fmt.Sprintf("Waiting for %s... ", release)))
-
-		if err := waitForReleasePromotion(c, app, release); err != nil {
+		if err := waitForReleasePromotion(output, c, app, release); err != nil {
 			return stdcli.Error(err)
 		}
-
-		output.Write([]byte("OK\n"))
 	}
 
 	return nil
