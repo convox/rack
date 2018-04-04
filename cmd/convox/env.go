@@ -198,13 +198,9 @@ func cmdEnvSet(c *cli.Context) error {
 			output.Write([]byte("OK\n"))
 
 			if c.Bool("wait") {
-				output.Write([]byte(fmt.Sprintf("Waiting for stabilization... ")))
-
-				if err := waitForReleasePromotion(c, app, release); err != nil {
+				if err := waitForReleasePromotion(output, c, app, release); err != nil {
 					return stdcli.Error(err)
 				}
-
-				output.Write([]byte("OK\n"))
 			}
 		} else {
 			output.Write([]byte(fmt.Sprintf("To deploy these changes run `convox releases promote %s`\n", release)))
@@ -255,13 +251,9 @@ func cmdEnvUnset(c *cli.Context) error {
 			output.Write([]byte("OK\n"))
 
 			if c.Bool("wait") {
-				output.Write([]byte(fmt.Sprintf("Waiting for stabilization... ")))
-
-				if err := waitForReleasePromotion(c, app, release); err != nil {
+				if err := waitForReleasePromotion(output, c, app, release); err != nil {
 					return stdcli.Error(err)
 				}
-
-				output.Write([]byte("OK\n"))
 			}
 		} else {
 			output.Write([]byte(fmt.Sprintf("To deploy these changes run `convox releases promote %s`\n", release)))
