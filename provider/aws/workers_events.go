@@ -104,6 +104,11 @@ func (p *AWSProvider) handleCloudformationEvents() {
 			}
 		}
 
+		// ignore rack events for now
+		if message["StackName"] == os.Getenv("RACK") {
+			return nil
+		}
+
 		app := strings.TrimPrefix(message["StackName"], fmt.Sprintf("%s-", os.Getenv("RACK")))
 
 		stream, err := p.getAppLogStream(app)
