@@ -372,6 +372,7 @@
               {{ end }}
               { "Name": "AWS_REGION", "Value": { "Ref": "AWS::Region" } },
               { "Name": "APP", "Value": "{{$.App}}" },
+              { "Name": "BUILD", "Value": "{{$.Release.Build}}" },
               { "Name": "RELEASE", "Value": "{{$.Release.Id}}" },
               { "Name": "RACK", "Value": { "Ref": "Rack" } },
               { "Name": "CONVOX_ENV_KEY", "Value": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:EncryptionKey" } } },
