@@ -101,12 +101,12 @@ func cmdStart(c *cli.Context) error {
 
 	opts.Id, _ = currentId()
 
-	if stdcli.ReadSetting("generation") == "2" || c.String("generation") == "2" || filepath.Base(opts.Config) == "convox.yml" {
-		if err := startGeneration2(opts); err != nil {
+	if stdcli.ReadSetting("generation") == "1" || c.String("generation") == "1" || filepath.Base(opts.Config) == "docker-compose.yml" {
+		if err := startGeneration1(opts); err != nil {
 			return stdcli.Error(err)
 		}
 	} else {
-		if err := startGeneration1(opts); err != nil {
+		if err := startGeneration2(opts); err != nil {
 			return stdcli.Error(err)
 		}
 	}
