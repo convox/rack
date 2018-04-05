@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"sort"
 	"strings"
 	"time"
 
@@ -15,7 +16,10 @@ import (
 )
 
 var (
+	appLogGroups  = map[string]string{}
 	appLogStreams = map[string]appLogStream{}
+	ecsEvents     = map[string]bool{}
+	started       = time.Now().UTC()
 )
 
 type appLogStream struct {
@@ -61,6 +65,22 @@ type detailTaskStateChange struct {
 func (p *AWSProvider) workerEvents() {
 	go p.handleAccountEvents()
 	go p.handleCloudformationEvents()
+	go p.handleECSEvents()
+}
+
+func (p *AWSProvider) handleAccountEvents() {
+	err := p.processQueue("AccountEvents", func(body string) error {
+		var e ecsEvent
+
+		if err := json.Unmarshal([]byte(body), &e); err != nil {
+			return err
+		}
+
+		return nil
+	})
+	if err != nil {
+		panic(err)
+	}
 }
 
 func (p *AWSProvider) handleCloudformationEvents() {
@@ -84,6 +104,11 @@ func (p *AWSProvider) handleCloudformationEvents() {
 			}
 		}
 
+		// ignore rack events for now
+		if message["StackName"] == os.Getenv("RACK") {
+			return nil
+		}
+
 		app := strings.TrimPrefix(message["StackName"], fmt.Sprintf("%s-", os.Getenv("RACK")))
 
 		stream, err := p.getAppLogStream(app)
@@ -100,12 +125,12 @@ func (p *AWSProvider) handleCloudformationEvents() {
 			req.SequenceToken = aws.String(stream.SequenceToken)
 		}
 
-		log := fmt.Sprintf("aws/cloudformation %s %s %s", message["ResourceStatus"], message["LogicalResourceId"], message["ResourceStatusReason"])
+		log := fmt.Sprintf("aws/cfm %s %s %s", message["ResourceStatus"], message["LogicalResourceId"], message["ResourceStatusReason"])
 
 		req.LogEvents = []*cloudwatchlogs.InputLogEvent{
 			&cloudwatchlogs.InputLogEvent{
 				Message:   aws.String(log),
-				Timestamp: aws.Int64(time.Now().UnixNano() / 1000000),
+				Timestamp: aws.Int64(time.Now().UnixNano() / int64(time.Millisecond)),
 			},
 		}
 
@@ -124,57 +149,47 @@ func (p *AWSProvider) handleCloudformationEvents() {
 	}
 }
 
-func (p *AWSProvider) handleAccountEvents() {
-	err := p.processQueue("AccountEvents", func(body string) error {
-		var e ecsEvent
+func (p *AWSProvider) handleECSEvents() {
+	log := Logger.At("handleECSEvents")
 
-		if err := json.Unmarshal([]byte(body), &e); err != nil {
-			return err
+	prefix := fmt.Sprintf("%s-", p.Rack)
+
+	for {
+		time.Sleep(1 * time.Second)
+
+		lreq := &ecs.ListServicesInput{
+			Cluster: aws.String(p.Cluster),
 		}
 
-		switch e.DetailType {
-		case "ECS Task State Change":
-			var detail detailTaskStateChange
-
-			if err := remarshal(e.Detail, &detail); err != nil {
-				return err
+		for {
+			lres, err := p.ecs().ListServices(lreq)
+			if err != nil {
+				log.Error(err)
+				break
 			}
 
-			if !strings.HasPrefix(detail.Group, "service:") {
-				return nil
+			sres, err := p.ecs().DescribeServices(&ecs.DescribeServicesInput{
+				Cluster:  aws.String(p.Cluster),
+				Services: lres.ServiceArns,
+			})
+			if err != nil {
+				log.Error(err)
+				break
 			}
 
-			parts := strings.Split(detail.ClusterArn, "/")
-			cluster := parts[len(parts)-1]
-			service := strings.TrimPrefix(detail.Group, "service:")
+			for _, s := range sres.Services {
+				name := *s.ServiceName
 
-			stack := os.Getenv("RACK")
-			if strings.Contains(service, "-Service") { // an app service
-				stack = strings.Split(strings.TrimPrefix(service, fmt.Sprintf("%s-", os.Getenv("RACK"))), "-Service")[0]
-			}
+				if !strings.HasPrefix(name, prefix) || !strings.Contains(name, "-Service") {
+					continue
+				}
 
-			if detail.LastStatus == "PENDING" {
-				res, err := p.ecs().DescribeServices(&ecs.DescribeServicesInput{
-					Cluster:  aws.String(cluster),
-					Services: []*string{aws.String(service)},
-				})
+				app := strings.Split(strings.TrimPrefix(name, prefix), "-Service")[0]
+
+				stream, err := p.getAppLogStream(app)
 				if err != nil {
-					return err
-				}
-
-				if len(res.Services) < 1 {
-					return fmt.Errorf("could not find service: %s", service)
-				}
-
-				stream, err := p.getAppLogStream(stack)
-				if err != nil {
-					return err
-				}
-
-				events := res.Services[0].Events
-
-				if len(events) > 5 {
-					events = events[0:5]
+					log.Error(err)
+					continue
 				}
 
 				req := &cloudwatchlogs.PutLogEventsInput{
@@ -186,44 +201,56 @@ func (p *AWSProvider) handleAccountEvents() {
 					req.SequenceToken = aws.String(stream.SequenceToken)
 				}
 
-				for _, e := range events {
-					req.LogEvents = append(req.LogEvents, &cloudwatchlogs.InputLogEvent{
-						Message:   aws.String(fmt.Sprintf("aws/ecs %s", *e.Message)),
-						Timestamp: aws.Int64(e.CreatedAt.UnixNano() / 1000000),
-					})
-				}
-
-				// havent done this in a while
-				// TODO use sort.Slice once we upgrade to 1.8
-				for i := 0; i < len(req.LogEvents)-1; i++ {
-					for j := i + 1; j < len(req.LogEvents); j++ {
-						if *req.LogEvents[i].Timestamp > *req.LogEvents[j].Timestamp {
-							req.LogEvents[i], req.LogEvents[j] = req.LogEvents[j], req.LogEvents[i]
+				for _, e := range s.Events {
+					if _, ok := ecsEvents[*e.Id]; !ok {
+						if e.CreatedAt.After(started) {
+							req.LogEvents = append(req.LogEvents, &cloudwatchlogs.InputLogEvent{
+								Message:   aws.String(fmt.Sprintf("aws/ecs %s", *e.Message)),
+								Timestamp: aws.Int64(time.Now().UTC().UnixNano() / int64(time.Millisecond)),
+							})
 						}
+						ecsEvents[*e.Id] = true
 					}
 				}
 
+				if len(req.LogEvents) == 0 {
+					continue
+				}
+
+				sort.Slice(req.LogEvents, func(i, j int) bool {
+					return *req.LogEvents[i].Timestamp < *req.LogEvents[j].Timestamp
+				})
+
 				pres, err := p.cloudwatchlogs().PutLogEvents(req)
 				if err != nil {
-					return err
+					log.Error(err)
+					continue
 				}
 
 				stream.SequenceToken = *pres.NextSequenceToken
-				appLogStreams[stack] = stream
+				appLogStreams[app] = stream
 			}
-		}
 
-		return nil
-	})
-	if err != nil {
-		panic(err)
+			// fmt.Printf("sres = %+v\n", sres)
+
+			if lres.NextToken == nil {
+				break
+			}
+
+			lreq.NextToken = lres.NextToken
+		}
 	}
 }
 
 func (p *AWSProvider) getAppLogStream(app string) (appLogStream, error) {
-	group, err := p.rackResource("LogGroup")
-	if err != nil {
-		return appLogStream{}, err
+	group, ok := appLogGroups[app]
+	if !ok {
+		g, err := p.appResource(app, "LogGroup")
+		if err != nil {
+			return appLogStream{}, err
+		}
+		group = g
+		appLogGroups[app] = group
 	}
 
 	stream := fmt.Sprintf("system/%d", time.Now().UnixNano())
@@ -288,13 +315,4 @@ func (p *AWSProvider) processQueue(resource string, fn queueHandler) error {
 		}
 	}
 	return nil
-}
-
-func remarshal(v interface{}, w interface{}) error {
-	data, err := json.MarshalIndent(v, "", "  ")
-	if err != nil {
-		return err
-	}
-
-	return json.Unmarshal(data, &w)
 }

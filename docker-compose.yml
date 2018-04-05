@@ -18,6 +18,7 @@ services:
       - DYNAMO_BUILDS=
       - DYNAMO_RELEASES=
       - ENCRYPTION_KEY=
+      - FARGATE=
       - IMAGE=
       - INTERNAL=
       - LOG_BUCKET=

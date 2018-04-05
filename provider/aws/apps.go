@@ -34,7 +34,7 @@ func (p *AWSProvider) AppCreate(name string, opts structs.AppCreateOptions) (*st
 		return p.appCreateGeneration1(name)
 	case "2":
 	default:
-		return nil, fmt.Errorf("unknown generation: %s", opts.Generation)
+		return nil, fmt.Errorf("unknown generation")
 	}
 
 	data, err := formationTemplate("app", nil)
@@ -188,12 +188,12 @@ func (p *AWSProvider) AppList() (structs.Apps, error) {
 }
 
 func (p *AWSProvider) AppLogs(app string, opts structs.LogsOptions) (io.ReadCloser, error) {
-	logGroup, err := p.stackResource(fmt.Sprintf("%s-%s", p.Rack, app), "LogGroup")
+	group, err := p.appResource(app, "LogGroup")
 	if err != nil {
 		return nil, err
 	}
 
-	return p.subscribeLogs(*logGroup.PhysicalResourceId, opts)
+	return p.subscribeLogs(group, opts)
 }
 
 func (p *AWSProvider) AppUpdate(app string, opts structs.AppUpdateOptions) error {

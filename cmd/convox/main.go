@@ -13,6 +13,7 @@ import (
 	"github.com/convox/rack/client"
 	"github.com/convox/rack/cmd/convox/helpers"
 	"github.com/convox/rack/cmd/convox/stdcli"
+	"github.com/convox/rack/sdk"
 )
 
 var Version = "dev"
@@ -121,6 +122,41 @@ func currentRack(c *cli.Context) string {
 	rackFlag := stdcli.RecoverFlag(c, "rack")
 
 	return helpers.Coalesce(rackFlag, os.Getenv("CONVOX_RACK"), stdcli.ReadSetting("rack"), strings.TrimSpace(string(cr)))
+}
+
+func rack(c *cli.Context) *sdk.Client {
+	cr := currentRack(c)
+
+	if cr == "local" {
+		if !localRackRunning() {
+			stdcli.Errorf("local rack is not running")
+			os.Exit(1)
+		}
+
+		cl, err := sdk.New("https://localhost:5443")
+		if err != nil {
+			stdcli.Error(err)
+			os.Exit(1)
+		}
+
+		return cl
+	}
+
+	host, password, err := currentLogin()
+	if err != nil {
+		stdcli.Errorf("%s, try `convox login`", err)
+		os.Exit(1)
+	}
+
+	cl, err := sdk.New(fmt.Sprintf("https://%s@%s", password, host))
+	if err != nil {
+		stdcli.Error(err)
+		os.Exit(1)
+	}
+
+	cl.Rack = cr
+
+	return cl
 }
 
 func rackClient(c *cli.Context) *client.Client {

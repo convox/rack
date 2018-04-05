@@ -288,6 +288,9 @@ func (v *ServiceScale) UnmarshalYAML(unmarshal func(interface{}) error) error {
 			}
 			v.Count = &c
 		}
+		if w, ok := t["cpu"].(int); ok {
+			v.Cpu = w
+		}
 		if w, ok := t["memory"].(int); ok {
 			v.Memory = w
 		}

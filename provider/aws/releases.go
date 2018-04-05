@@ -192,8 +192,14 @@ func (p *AWSProvider) ReleasePromote(app, id string) error {
 		}
 	}
 
+	b, err := p.BuildGet(app, r.Build)
+	if err != nil {
+		return err
+	}
+
 	tp := map[string]interface{}{
 		"App":      r.App,
+		"Build":    b,
 		"Env":      env,
 		"Manifest": m,
 		"Release":  r,
@@ -212,8 +218,14 @@ func (p *AWSProvider) ReleasePromote(app, id string) error {
 		return err
 	}
 
+	private, err := p.stackParameter(p.Rack, "Private")
+	if err != nil {
+		return err
+	}
+
 	updates := map[string]string{
 		"LogBucket": p.LogBucket,
+		"Private":   private,
 	}
 
 	if err := p.updateStack(p.rackStack(r.App), ou.Url, updates); err != nil {
@@ -585,9 +597,8 @@ func (p *AWSProvider) resolveLinks(a *structs.App, m *manifest1.Manifest, r *str
 
 		entry.Exports = make(map[string]string)
 		linkableEnvs := make([]string, len(entry.Environment))
-		for k, v := range entry.Environment {
-			val := fmt.Sprintf("%s=%s", k, v)
-			linkableEnvs = append(linkableEnvs, val)
+		for _, env := range entry.Environment {
+			linkableEnvs = append(linkableEnvs, fmt.Sprintf("%s=%s", env.Name, env.Value))
 		}
 
 		if len(inspect) == 1 {

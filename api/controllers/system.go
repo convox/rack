@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	"io"
 	"net/http"
 	"os"
 	"sort"
@@ -54,10 +53,10 @@ func SystemUpdate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 		}
 
 		switch {
-		case os.Getenv("AUTOSCALE") == "true":
-			return httperr.Errorf(403, "scaling count prohibited when autoscale enabled")
 		case c == -1:
 			// -1 indicates no change
+		case os.Getenv("AUTOSCALE") == "true":
+			return httperr.Errorf(403, "scaling count prohibited when autoscale enabled")
 		case c <= 2:
 			return httperr.Errorf(403, "count must be greater than 2")
 		default:
@@ -116,13 +115,15 @@ func SystemLogs(ws *websocket.Conn) *httperr.Error {
 	r, err := Provider.SystemLogs(structs.LogsOptions{
 		Filter: header.Get("Filter"),
 		Follow: follow,
-		Since:  time.Now().Add(-1 * since),
+		Since:  time.Now().UTC().Add(-1 * since),
 	})
 	if err != nil {
 		return httperr.Server(err)
 	}
 
-	io.Copy(ws, r)
+	if err := streamWebsocket(ws, r); err != nil {
+		return httperr.Server(err)
+	}
 
 	return nil
 }

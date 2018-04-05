@@ -171,11 +171,11 @@ func ct(t *time.Time) time.Time {
 
 func generation(g *string) string {
 	if g == nil {
-		return "1"
+		return "2"
 	}
 
 	if *g == "" {
-		return "1"
+		return "2"
 	}
 
 	return *g
@@ -291,6 +291,15 @@ func recoverWith(f func(err error)) {
 	}
 }
 
+func remarshal(v interface{}, w interface{}) error {
+	data, err := json.MarshalIndent(v, "", "  ")
+	if err != nil {
+		return err
+	}
+
+	return json.Unmarshal(data, &w)
+}
+
 func stackName(app *structs.App) string {
 	if _, ok := app.Tags["Rack"]; ok {
 		return fmt.Sprintf("%s-%s", app.Tags["Rack"], app.Name)
@@ -359,6 +368,9 @@ func upperName(name string) string {
 	if name == "" {
 		return ""
 	}
+
+	// replace underscores with dashes
+	name = strings.Replace(name, "_", "-", -1)
 
 	// myapp -> Myapp; my-app -> MyApp
 	us := strings.ToUpper(name[0:1]) + name[1:]
@@ -616,7 +628,7 @@ func (p *AWSProvider) describeStackEvents(input *cloudformation.DescribeStackEve
 }
 
 func (p *AWSProvider) describeStackResource(input *cloudformation.DescribeStackResourceInput) (*cloudformation.DescribeStackResourceOutput, error) {
-	key := fmt.Sprintf("%s.%s", input.StackName, input.LogicalResourceId)
+	key := fmt.Sprintf("%s.%s", *input.StackName, *input.LogicalResourceId)
 
 	res, ok := cache.Get("describeStackResource", key).(*cloudformation.DescribeStackResourceOutput)
 
@@ -722,7 +734,7 @@ func (p *AWSProvider) stackResource(stack, resource string) (*cloudformation.Sta
 	}
 
 	for _, sr := range srs {
-		if *sr.LogicalResourceId == resource {
+		if *sr.LogicalResourceId == resource && sr.PhysicalResourceId != nil {
 			return sr, log.Successf("physical=%s", *sr.PhysicalResourceId)
 		}
 	}

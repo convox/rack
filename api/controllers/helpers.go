@@ -2,13 +2,33 @@ package controllers
 
 import (
 	"fmt"
+	"io"
 	"net/http"
 	"reflect"
 	"sort"
 	"time"
 
 	"github.com/convox/rack/helpers"
+	"golang.org/x/net/websocket"
 )
+
+func readChannel(r io.Reader, datach chan []byte, donech chan error) {
+	buf := make([]byte, 10*1024)
+
+	for {
+		n, err := r.Read(buf)
+		if err != nil {
+			if err == io.EOF {
+				donech <- nil
+			} else {
+				donech <- err
+			}
+			return
+		}
+
+		datach <- buf[0:n]
+	}
+}
 
 type sortableSlice interface {
 	Less(int, int) bool
@@ -18,32 +38,72 @@ func sortSlice(s sortableSlice) {
 	sort.Slice(s, s.Less)
 }
 
+func streamWebsocket(ws *websocket.Conn, r io.ReadCloser) error {
+	defer r.Close()
+
+	datach := make(chan []byte)
+	donech := make(chan error)
+	tick := time.Tick(1 * time.Second)
+
+	go readChannel(r, datach, donech)
+
+	for {
+		select {
+		case <-tick:
+			// check for closed connection
+			if _, err := ws.Write([]byte{}); err != nil {
+				return nil
+			}
+		case data := <-datach:
+			ws.Write(data)
+		case err := <-donech:
+			return err
+		}
+	}
+
+	return nil
+}
+
 func unmarshalOptions(r *http.Request, opts interface{}) error {
 	v := reflect.ValueOf(opts).Elem()
 	t := v.Type()
 
 	for i := 0; i < t.NumField(); i++ {
 		f := t.Field(i)
-		n := f.Tag.Get("param")
+		u := v.Field(i)
 
-		if n != "" {
-			if fv := r.FormValue(n); fv != "" {
-				u := v.Field(i)
-
-				switch u.Interface().(type) {
-				case *string:
-					u.Set(reflect.ValueOf(&fv))
-				case *time.Time:
-					t, err := time.Parse(helpers.SortableTime, fv)
-					if err != nil {
-						return err
-					}
-					u.Set(reflect.ValueOf(&t))
-				default:
-					return fmt.Errorf("unknown param type: %T", t)
+		if n := f.Tag.Get("param"); n != "" {
+			if v := r.FormValue(n); v != "" {
+				if err := unmarshalValue(r, n, u, v); err != nil {
+					return err
 				}
 			}
 		}
+
+		if n := f.Tag.Get("query"); n != "" {
+			if v := r.URL.Query().Get(n); v != "" {
+				if err := unmarshalValue(r, n, u, v); err != nil {
+					return err
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
+func unmarshalValue(r *http.Request, param string, u reflect.Value, v string) error {
+	switch t := u.Interface().(type) {
+	case *string:
+		u.Set(reflect.ValueOf(&v))
+	case *time.Time:
+		tv, err := time.Parse(helpers.SortableTime, v)
+		if err != nil {
+			return err
+		}
+		u.Set(reflect.ValueOf(&tv))
+	default:
+		return fmt.Errorf("unknown param type: %T", t)
 	}
 
 	return nil

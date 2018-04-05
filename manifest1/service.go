@@ -212,6 +212,10 @@ func (s *Service) SyncPaths() (map[string]string, error) {
 			}
 		}
 
+		if len(parts) < 1 {
+			continue
+		}
+
 		switch parts[0] {
 		case "ENV":
 			if len(parts) >= 3 {

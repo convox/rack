@@ -73,9 +73,9 @@ func (p *Provider) ProcessList(app string, opts structs.ProcessListOptions) (str
 		fmt.Sprintf("label=convox.rack=%s", p.Name),
 	}
 
-	if opts.Service != "" {
+	if opts.Service != nil {
 		filters = append(filters, fmt.Sprintf("label=convox.type=service"))
-		filters = append(filters, fmt.Sprintf("label=convox.service=%s", opts.Service))
+		filters = append(filters, fmt.Sprintf("label=convox.service=%s", *opts.Service))
 	}
 
 	pss, err := processList(filters, false)
@@ -236,11 +236,7 @@ func (p *Provider) ProcessWait(app, pid string) (int, error) {
 }
 
 func (p *Provider) argsFromOpts(app string, opts structs.ProcessRunOptions) ([]string, error) {
-	args := []string{"run", "--rm", "-i"}
-
-	if opts.Input != nil {
-		args = append(args, "-t")
-	}
+	args := []string{"run", "--rm", "-it"}
 
 	// if no release specified, use current release
 	if opts.Release == nil {
@@ -340,7 +336,7 @@ func (p *Provider) argsFromOpts(app string, opts structs.ProcessRunOptions) ([]s
 	}
 
 	for from, to := range opts.Ports {
-		args = append(args, "-p", fmt.Sprintf("%d:%d", from, to))
+		args = append(args, "-p", fmt.Sprintf("%s:%s", from, to))
 	}
 
 	hostname, err := os.Hostname()
@@ -350,15 +346,24 @@ func (p *Provider) argsFromOpts(app string, opts structs.ProcessRunOptions) ([]s
 
 	args = append(args, "-e", fmt.Sprintf("APP=%s", app))
 	args = append(args, "-e", fmt.Sprintf("RACK_URL=https://%s:5443", hostname))
-	args = append(args, "-e", fmt.Sprintf("RELEASE=%s", opts.Release))
+
+	if opts.Release != nil {
+		args = append(args, "-e", fmt.Sprintf("RELEASE=%s", *opts.Release))
+	}
 
 	args = append(args, "--link", hostname)
 
 	args = append(args, "--label", fmt.Sprintf("convox.app=%s", app))
 	args = append(args, "--label", fmt.Sprintf("convox.rack=%s", p.Name))
-	args = append(args, "--label", fmt.Sprintf("convox.release=%s", opts.Release))
-	args = append(args, "--label", fmt.Sprintf("convox.service=%s", opts.Service))
 	args = append(args, "--label", fmt.Sprintf("convox.type=%s", "process"))
+
+	if opts.Release != nil {
+		args = append(args, "--label", fmt.Sprintf("convox.release=%s", *opts.Release))
+	}
+
+	if opts.Service != nil {
+		args = append(args, "--label", fmt.Sprintf("convox.service=%s", *opts.Service))
+	}
 
 	for from, to := range opts.Volumes {
 		args = append(args, "-v", fmt.Sprintf("%s:%s", from, to))

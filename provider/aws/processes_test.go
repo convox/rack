@@ -208,7 +208,7 @@ func TestProcessRunAttached(t *testing.T) {
 		cycleProcessDescribeServices,
 		cycleProcessDescribeTaskDefinition1,
 		cycleProcessListStackResources,
-		cycleProcessRegisterTaskDefinition,
+		cycleProcessRegisterTaskDefinitionAttached,
 		cycleProcessReleaseUpdateItem,
 		cycleProcessRunTaskAttached,
 		cycleProcessDescribeTasks,
@@ -272,7 +272,8 @@ func TestProcessRunDetached(t *testing.T) {
 		cycleProcessDescribeServices,
 		cycleProcessDescribeTaskDefinition1,
 		cycleProcessListStackResources,
-		cycleProcessRegisterTaskDefinition,
+		cycleProcessListStackResources,
+		cycleProcessRegisterTaskDefinitionDetached,
 		cycleProcessReleaseUpdateItem,
 		cycleProcessRunTaskDetached,
 	)
@@ -515,6 +516,15 @@ var cycleProcessListStackResources = awsutil.Cycle{
 			<ListStackResourcesResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
 				<ListStackResourcesResult>
 					<StackResourceSummaries>
+						<member>
+							<PhysicalResourceId>loggroup-test</PhysicalResourceId>
+							<ResourceStatus>UPDATE_COMPLETE</ResourceStatus>
+							<StackId>arn:aws:cloudformation:us-east-1:778743527532:stack/convox-myapp/5c05e0c0-6e10-11e6-8a4e-50fae98a10d2</StackId>
+							<StackName>convox-myapp</StackName>
+							<LogicalResourceId>LogGroup</LogicalResourceId>
+							<Timestamp>2016-09-10T04:35:11.280Z</Timestamp>
+							<ResourceType>AWS::Logs::LogGroup</ResourceType>
+						</member>
 						<member>
 							<PhysicalResourceId>settings</PhysicalResourceId>
 							<ResourceStatus>UPDATE_COMPLETE</ResourceStatus>
@@ -1111,7 +1121,7 @@ var cycleProcessListTasksBuildCluster = awsutil.Cycle{
 	},
 }
 
-var cycleProcessRegisterTaskDefinition = awsutil.Cycle{
+var cycleProcessRegisterTaskDefinitionAttached = awsutil.Cycle{
 	Request: awsutil.Request{
 		RequestURI: "/",
 		Operation:  "AmazonEC2ContainerServiceV20141113.RegisterTaskDefinition",
@@ -1153,6 +1163,75 @@ var cycleProcessRegisterTaskDefinition = awsutil.Cycle{
 					],
 					"essential": true,
 					"image": "778743527532.dkr.ecr.us-test-1.amazonaws.com/convox-myapp-nkdecwppkq:web.BHINCLZYYVN",
+					"memoryReservation": 512,
+					"name": "web",
+					"privileged": false
+				}
+			],
+			"family": "convox-myapp-web",
+			"taskRoleArn": ""
+		}`,
+	},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body: `{
+			"taskDefinition": {
+				"taskDefinitionArn": "arn:aws:ecs:us-east-1:012345678910:task-definition/hello_world:4"
+			}
+		}`,
+	},
+}
+
+var cycleProcessRegisterTaskDefinitionDetached = awsutil.Cycle{
+	Request: awsutil.Request{
+		RequestURI: "/",
+		Operation:  "AmazonEC2ContainerServiceV20141113.RegisterTaskDefinition",
+		Body: `{
+			"containerDefinitions": [
+				{
+					"dockerLabels": {
+						"convox.process.type": "oneoff"
+					},
+					"environment": [
+						{
+							"name": "APP",
+							"value": "myapp"
+						},
+						{
+							"name": "AWS_REGION",
+							"value": "us-test-1"
+						},
+						{
+							"name": "LOG_GROUP",
+							"value": ""
+						},
+						{
+							"name": "PROCESS",
+							"value": "web"
+						},
+						{
+							"name": "RACK",
+							"value": "convox"
+						},
+						{
+							"name": "RELEASE",
+							"value": "RVFETUHHKKD"
+						},
+						{
+							"name": "foo",
+							"value": "bar"
+						}
+					],
+					"essential": true,
+					"image": "778743527532.dkr.ecr.us-test-1.amazonaws.com/convox-myapp-nkdecwppkq:web.BHINCLZYYVN",
+					"logConfiguration": {
+						"logDriver": "awslogs",
+						"options": {
+							"awslogs-group": "loggroup-test",
+							"awslogs-region": "us-test-1",
+							"awslogs-stream-prefix": "service"
+						}
+					},
 					"memoryReservation": 512,
 					"name": "web",
 					"privileged": false

@@ -28,7 +28,8 @@ services:
     health: /auth
     port: https:2000
     scale:
-      memory: 512
+      cpu: 512
+      memory: 1024
   foo:
     command: foo
     domain: baz.example.org, qux.example.org

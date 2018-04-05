@@ -59,6 +59,7 @@ type ServicePort struct {
 
 type ServiceScale struct {
 	Count  *ServiceScaleCount
+	Cpu    int
 	Memory int
 }
 
@@ -111,6 +112,14 @@ func (s Service) GetName() string {
 func (s *Service) SetDefaults() error {
 	if s.Scale.Count == nil {
 		s.Scale.Count = &ServiceScaleCount{Min: 1, Max: 1}
+	}
+
+	if s.Scale.Cpu == 0 {
+		s.Scale.Cpu = 256
+	}
+
+	if s.Scale.Memory == 0 {
+		s.Scale.Memory = 512
 	}
 
 	return nil

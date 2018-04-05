@@ -22,13 +22,14 @@ type Client struct {
 	Debug    bool
 	Endpoint *url.URL
 	Key      string
+	Rack     string
 	Socket   string
 	Version  string
 }
 
 type Headers map[string]string
 type Params map[string]interface{}
-type Query map[string]string
+type Query map[string]interface{}
 
 type RequestOptions struct {
 	Body    io.Reader
@@ -37,14 +38,13 @@ type RequestOptions struct {
 	Query   Query
 }
 
-func (o *RequestOptions) Querystring() string {
-	uv := url.Values{}
-
-	for k, v := range o.Query {
-		uv.Add(k, v)
+func (o *RequestOptions) Querystring() (string, error) {
+	u, err := marshalValues(o.Query)
+	if err != nil {
+		return "", err
 	}
 
-	return uv.Encode()
+	return u.Encode(), nil
 }
 
 func (o *RequestOptions) Reader() (io.Reader, error) {
@@ -60,9 +60,26 @@ func (o *RequestOptions) Reader() (io.Reader, error) {
 		return o.Body, nil
 	}
 
+	u, err := marshalValues(o.Params)
+	if err != nil {
+		return nil, err
+	}
+
+	return bytes.NewReader([]byte(u.Encode())), nil
+}
+
+func (o *RequestOptions) ContentType() string {
+	if o.Body == nil {
+		return "application/x-www-form-urlencoded"
+	}
+
+	return "application/octet-stream"
+}
+
+func marshalValues(vv map[string]interface{}) (url.Values, error) {
 	u := url.Values{}
 
-	for k, v := range o.Params {
+	for k, v := range vv {
 		switch t := v.(type) {
 		case string:
 			u.Set(k, t)
@@ -77,15 +94,7 @@ func (o *RequestOptions) Reader() (io.Reader, error) {
 		}
 	}
 
-	return bytes.NewReader([]byte(u.Encode())), nil
-}
-
-func (o *RequestOptions) ContentType() string {
-	if o.Body == nil {
-		return "application/x-www-form-urlencoded"
-	}
-
-	return "application/octet-stream"
+	return u, nil
 }
 
 func (c *Client) Websocket(path string, opts RequestOptions) (io.ReadCloser, error) {
@@ -112,70 +121,6 @@ func (c *Client) Websocket(path string, opts RequestOptions) (io.ReadCloser, err
 
 	return ws, nil
 }
-
-// func (c *Client) Stream(path string, opts RequestOptions) (io.ReadCloser, error) {
-//   so, err := c.SystemOptions()
-//   if err != nil {
-//     return nil, err
-//   }
-
-//   switch so["streaming"] {
-//   case "websocket":
-//     u, err := url.Parse(fmt.Sprintf("wss://%s%s%s?%s", c.Endpoint.Host, c.Endpoint.Path, path, opts.Querystring()))
-//     if err != nil {
-//       return nil, err
-//     }
-
-//     r, err := opts.Reader()
-//     if err != nil {
-//       return nil, err
-//     }
-
-//     header := http.Header{}
-//     for k, v := range opts.Headers {
-//       header.Add(k, v)
-//     }
-
-//     if c.Endpoint.User != nil {
-//       creds := base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%s:", c.Endpoint.User.Username())))
-//       header.Add("Authorization", fmt.Sprintf("Basic %s", creds))
-//     }
-
-//     config := &websocket.Config{
-//       Header:   header,
-//       Location: u,
-//       Origin:   u,
-//       Version:  websocket.ProtocolVersionHybi13,
-//       TlsConfig: &tls.Config{
-//         InsecureSkipVerify: true,
-//       },
-//     }
-
-//     for k, v := range opts.Headers {
-//       config.Header.Set(k, v)
-//     }
-
-//     ws, err := websocket.DialConfig(config)
-//     if err != nil {
-//       return nil, err
-//     }
-
-//     if r != nil {
-//       go io.Copy(ws, r)
-//     }
-
-//     return ws, nil
-//   case "http2":
-//     res, err := c.PostStream(path, opts)
-//     if err != nil {
-//       return nil, err
-//     }
-
-//     return res.Body, nil
-//   default:
-//     return nil, fmt.Errorf("unknown streaming type: %s", so["streaming"])
-//   }
-// }
 
 func (c *Client) Head(path string, opts RequestOptions) error {
 	req, err := c.Request("HEAD", path, opts)
@@ -312,7 +257,10 @@ func (c *Client) Client() *http.Client {
 }
 
 func (c *Client) Request(method, path string, opts RequestOptions) (*http.Request, error) {
-	qs := opts.Querystring()
+	qs, err := opts.Querystring()
+	if err != nil {
+		return nil, err
+	}
 
 	r, err := opts.Reader()
 	if err != nil {
@@ -330,6 +278,10 @@ func (c *Client) Request(method, path string, opts RequestOptions) (*http.Reques
 	req.Header.Set("Content-Type", opts.ContentType())
 	req.Header.Set("User-Agent", fmt.Sprintf("convox.go/%s", c.Version))
 	req.Header.Set("Version", c.Version)
+
+	if c.Rack != "" {
+		req.Header.Set("Rack", c.Rack)
+	}
 
 	for k, v := range opts.Headers {
 		req.Header.Set(k, v)
@@ -371,6 +323,14 @@ func responseError(res *http.Response) error {
 		return err
 	}
 
+	var e struct {
+		Error string
+	}
+
+	if err := json.Unmarshal(data, &e); err == nil && e.Error != "" {
+		return fmt.Errorf(e.Error)
+	}
+
 	msg := strings.TrimSpace(string(data))
 
 	if len(msg) > 0 {
@@ -398,6 +358,7 @@ func unmarshalReader(r io.ReadCloser, out interface{}) error {
 func marshalOptions(opts interface{}) (RequestOptions, error) {
 	ro := RequestOptions{
 		Params: map[string]interface{}{},
+		Query:  map[string]interface{}{},
 	}
 
 	v := reflect.ValueOf(opts)
@@ -405,18 +366,31 @@ func marshalOptions(opts interface{}) (RequestOptions, error) {
 
 	for i := 0; i < t.NumField(); i++ {
 		f := t.Field(i)
-		n := f.Tag.Get("param")
 
-		if n != "" {
-			if !v.Field(i).IsNil() {
-				if v.Field(i).Kind() == reflect.Ptr {
-					ro.Params[n] = v.Field(i).Elem().Interface()
-				} else {
-					ro.Params[n] = v.Field(i).Interface()
-				}
+		if n := f.Tag.Get("param"); n != "" {
+			if u := marshalValue(v.Field(i)); u != nil {
+				ro.Params[n] = u
+			}
+		}
+
+		if n := f.Tag.Get("query"); n != "" {
+			if u := marshalValue(v.Field(i)); u != nil {
+				ro.Query[n] = u
 			}
 		}
 	}
 
 	return ro, nil
+}
+
+func marshalValue(f reflect.Value) interface{} {
+	if f.IsNil() {
+		return nil
+	}
+
+	if f.Kind() == reflect.Ptr {
+		return f.Elem().Interface()
+	}
+
+	return f.Interface()
 }

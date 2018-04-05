@@ -20,6 +20,8 @@ import (
 	"github.com/convox/rack/client"
 	"github.com/convox/rack/cmd/convox/helpers"
 	"github.com/convox/rack/cmd/convox/stdcli"
+	"github.com/convox/rack/options"
+	"github.com/convox/rack/structs"
 	"github.com/docker/docker/builder/dockerignore"
 	"github.com/docker/docker/pkg/archive"
 	"github.com/docker/docker/pkg/fileutils"
@@ -124,6 +126,26 @@ func init() {
 				ArgsUsage:   "<build id>",
 				Action:      cmdBuildsInfo,
 				Flags:       []cli.Flag{appFlag, rackFlag},
+			},
+			{
+				Name:        "release",
+				Description: "create a new release from a build",
+				Usage:       "<build id>",
+				ArgsUsage:   "<build id>",
+				Action:      cmdBuildsRelease,
+				Flags: []cli.Flag{
+					appFlag,
+					rackFlag,
+					cli.BoolFlag{
+						Name:  "promote",
+						Usage: "promote the release after env change",
+					},
+					cli.BoolFlag{
+						Name:   "wait",
+						EnvVar: "CONVOX_WAIT",
+						Usage:  "wait for release to finish promoting before returning",
+					},
+				},
 			},
 		},
 	})
@@ -326,6 +348,47 @@ func cmdBuildsLogs(c *cli.Context) error {
 
 	if err := rackClient(c).StreamBuildLogs(app, build, os.Stdout); err != nil {
 		return stdcli.Error(err)
+	}
+
+	return nil
+}
+
+func cmdBuildsRelease(c *cli.Context) error {
+	stdcli.NeedHelp(c)
+	stdcli.NeedArg(c, 1)
+
+	build := c.Args()[0]
+
+	_, app, err := stdcli.DirApp(c, ".")
+	if err != nil {
+		return stdcli.Error(err)
+	}
+
+	fmt.Print("Creating release... ")
+
+	r, err := rack(c).ReleaseCreate(app, structs.ReleaseCreateOptions{Build: options.String(build)})
+	if err != nil {
+		return stdcli.Error(err)
+	}
+
+	fmt.Printf("OK, %s\n", r.Id)
+
+	if c.Bool("promote") {
+		fmt.Printf("Promoting %s... ", r.Id)
+
+		if err := rack(c).ReleasePromote(app, r.Id); err != nil {
+			return stdcli.Error(err)
+		}
+
+		fmt.Println("OK")
+
+		if c.Bool("wait") {
+			if err := waitForReleasePromotion(os.Stdout, c, app, r.Id); err != nil {
+				return stdcli.Error(err)
+			}
+		}
+	} else {
+		fmt.Printf("To deploy these changes run `convox releases promote %s`\n", r.Id)
 	}
 
 	return nil

@@ -90,7 +90,13 @@ func ProcessGet(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 func ProcessList(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	app := mux.Vars(r)["app"]
 
-	ps, err := Provider.ProcessList(app, structs.ProcessListOptions{})
+	var opts structs.ProcessListOptions
+
+	if err := unmarshalOptions(r, &opts); err != nil {
+		return httperr.Server(err)
+	}
+
+	ps, err := Provider.ProcessList(app, opts)
 	if provider.ErrorNotFound(err) {
 		return httperr.NotFound(err)
 	}
@@ -119,16 +125,24 @@ func ProcessRunAttached(ws *websocket.Conn) *httperr.Error {
 		opts.Command = options.String(v)
 	}
 
-	if v := h.Get("Release"); v != "" {
-		opts.Release = options.String(v)
-	}
-
 	if v := h.Get("Height"); v != "" {
 		i, err := strconv.Atoi(v)
 		if err != nil {
 			return httperr.Server(fmt.Errorf("height must be numeric"))
 		}
 		opts.Height = aws.Int(i)
+	}
+
+	if v := h.Get("Release"); v != "" {
+		opts.Release = options.String(v)
+	}
+
+	if v := h.Get("Timeout"); v != "" {
+		i, err := strconv.Atoi(v)
+		if err != nil {
+			return httperr.Server(fmt.Errorf("timeout must be numeric"))
+		}
+		opts.Timeout = aws.Int(i)
 	}
 
 	if v := h.Get("Width"); v != "" {
