@@ -192,8 +192,14 @@ func (p *AWSProvider) ReleasePromote(app, id string) error {
 		}
 	}
 
+	b, err := p.BuildGet(app, r.Build)
+	if err != nil {
+		return err
+	}
+
 	tp := map[string]interface{}{
 		"App":      r.App,
+		"Build":    b,
 		"Env":      env,
 		"Manifest": m,
 		"Release":  r,

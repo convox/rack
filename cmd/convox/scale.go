@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/convox/rack/client"
 	"github.com/convox/rack/cmd/convox/stdcli"
@@ -89,18 +90,14 @@ func cmdScale(c *cli.Context) error {
 	}
 
 	if c.Bool("wait") {
-		fmt.Printf("Waiting for stabilization... ")
-
 		a, err := rackClient(c).GetApp(app)
 		if err != nil {
 			return stdcli.Error(err)
 		}
 
-		if err := waitForReleasePromotion(c, app, a.Release); err != nil {
+		if err := waitForReleasePromotion(os.Stdout, c, app, a.Release); err != nil {
 			return stdcli.Error(err)
 		}
-
-		fmt.Println("OK")
 	}
 
 	return nil
