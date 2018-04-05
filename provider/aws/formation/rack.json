@@ -14,7 +14,7 @@
     "BlankInternetGateway": { "Fn::Equals": [ { "Ref": "InternetGateway"}, "" ] },
     "BlankKey": { "Fn::Equals": [ { "Ref": "Key" }, "" ] },
     "BlankLogBucket": { "Fn::Equals": [ { "Ref": "LogBucket" }, "" ] },
-    "BlankRouterSecurityGroup": { "Fn::Equals": [ {"Ref": "RouterSecurityGroup" }, "" ]},
+    "BlankRouterSecurityGroup": { "Fn::Equals": [ { "Fn::Join": [ ",", {"Ref": "RouterSecurityGroup" } ] }, "" ]},
     "DedicatedBuilder": { "Fn::Not": [ { "Fn::Equals": [ { "Ref": "BuildInstance" }, "" ] } ] },
     "Development": { "Fn::Equals": [ { "Ref": "Development" }, "Yes" ] },
     "EncryptEbs" : { "Fn::Equals": [ { "Ref": "EncryptEbs" }, "Yes" ] },
@@ -521,8 +521,8 @@
     },
     "RouterSecurityGroup": {
       "Default": "",
-      "Description": "The security group to assign to the rack router.",
-      "Type": "String"
+      "Description": "The security groups (comma delimited) to assign to the rack router.",
+      "Type": "CommaDelimitedList"
     },
     "SpotInstanceBid": {
       "Default": "",
@@ -1895,7 +1895,7 @@
           { "Ref": "Subnet1" },
           { "Fn::If": [ "ThirdAvailabilityZone", { "Ref": "Subnet2" }, { "Ref": "AWS::NoValue" } ] }
         ],
-        "SecurityGroups": [ { "Fn::If": [ "BlankRouterSecurityGroup", { "Ref": "RouterSecurity" }, { "Ref": "RouterSecurityGroup" } ] } ]
+        "SecurityGroups": { "Fn::If": [ "BlankRouterSecurityGroup", [ { "Ref": "RouterSecurity" } ], { "Ref": "RouterSecurityGroup" } ] }
       }
     },
     "RouterSecurity": {
