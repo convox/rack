@@ -126,6 +126,8 @@ func (p *AWSProvider) config() *aws.Config {
 		config.WithLogLevel(aws.LogDebugWithHTTPBody)
 	}
 
+	config.MaxRetries = aws.Int(7)
+
 	return config
 }
 
