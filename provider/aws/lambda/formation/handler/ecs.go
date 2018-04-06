@@ -265,6 +265,20 @@ func ECSTaskDefinitionCreate(req Request) (string, map[string]string, error) {
 			}
 		}
 
+		// set build metadata
+		if v, ok := req.ResourceProperties["Build"].(string); ok {
+			r.ContainerDefinitions[i].Environment = append(r.ContainerDefinitions[i].Environment, &ecs.KeyValuePair{
+				Name:  aws.String("BUILD"),
+				Value: aws.String(v),
+			})
+		}
+		if v, ok := req.ResourceProperties["BuildDescription"].(string); ok {
+			r.ContainerDefinitions[i].Environment = append(r.ContainerDefinitions[i].Environment, &ecs.KeyValuePair{
+				Name:  aws.String("BUILD_DESCRIPTION"),
+				Value: aws.String(v),
+			})
+		}
+
 		// set links
 		if links, ok := task["Links"].([]interface{}); ok {
 			r.ContainerDefinitions[i].Links = make([]*string, len(links))
