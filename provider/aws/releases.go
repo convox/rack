@@ -260,8 +260,14 @@ func (p *AWSProvider) releasePromoteGeneration1(a *structs.App, r *structs.Relea
 		return err
 	}
 
+	b, err := p.BuildGet(a.Name, r.Build)
+	if err != nil {
+		return err
+	}
+
 	tp := map[string]interface{}{
 		"App":         a,
+		"Build":       b,
 		"Environment": fmt.Sprintf("https://%s.s3.amazonaws.com/releases/%s/env", settings, r.Id),
 		"Manifest":    m,
 	}

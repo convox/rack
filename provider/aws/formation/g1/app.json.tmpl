@@ -218,6 +218,8 @@
           "ServiceToken": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
           "Name": { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" }, "{{ $e.Name }}" ] ] },
           "Release": { "Ref": "Release" },
+          "Build": "{{$.Build.Id}}",
+          "BuildDescription": {{ safe $.Build.Description }},
           "Environment": "{{ $.Environment }}",
           "Key": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:EncryptionKey" } },
           "Tasks": [
