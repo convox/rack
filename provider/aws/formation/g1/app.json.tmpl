@@ -416,8 +416,8 @@
       "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}BalancerName": {
         "Condition": "Enabled{{ upper $balancer.ProcessName }}",
         "Value": { "Fn::If": [ "Internal",
-          { "Fn::Join": [ "-", [ {{ $balancer.LoadBalancerName true $app.Name }}, "n" ] ] },
-          {{ $balancer.LoadBalancerName true $app.Name }}
+          { "Fn::Join": [ "-", [ "{{ $balancer.LoadBalancerName $app.Name }}", "n" ] ] },
+          "{{ $balancer.LoadBalancerName $app.Name }}"
         ] }
       },
     {{ end }}
@@ -527,8 +527,8 @@
         ],
         "LBCookieStickinessPolicy": [{ "PolicyName": "affinity" }],
         "LoadBalancerName": { "Fn::If": [ "Internal",
-          { "Fn::Join": [ "-", [ {{ .LoadBalancerName true $app.Name }}, "n" ] ] },
-          {{ .LoadBalancerName true $app.Name }}
+          { "Fn::Join": [ "-", [ "{{ .LoadBalancerName $app.Name }}", "n" ] ] },
+          "{{ .LoadBalancerName $app.Name }}"
         ] },
         "SecurityGroups" : { "Fn::If" : [
           "BlankSecurityGroup",
@@ -556,8 +556,8 @@
           ] },
         {{ end }}
         "Name": { "Fn::If": [ "Internal",
-          { "Fn::Join": [ "-", [ {{ .LoadBalancerName true $app.Name }}, "n" ] ] },
-          {{ .LoadBalancerName true $app.Name }}
+          { "Fn::Join": [ "-", [ "{{ .LoadBalancerName $app.Name }}", "n" ] ] },
+          "{{ .LoadBalancerName $app.Name }}"
         ] },
         "SecurityGroups" : { "Fn::If" : [
           "BlankSecurityGroup",

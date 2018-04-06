@@ -4,7 +4,6 @@ import (
 	"crypto/sha256"
 	"encoding/base32"
 	"fmt"
-	"html/template"
 	"os"
 	"strconv"
 	"strings"
@@ -45,34 +44,26 @@ func (m Manifest) HasProcesses() bool {
 	return len(m.Services) > 0
 }
 
-func (mb ManifestBalancer) LoadBalancerName(bound bool, appName string) template.HTML {
-	// Bound apps do not use the StackName directly and ignore Entry.primary
-	// and use AppName-EntryName-RackAppEntryHash format
-	if bound {
-		hash := sha256.Sum256([]byte(fmt.Sprintf("%s:%s:%s", os.Getenv("RACK"), appName, mb.Entry.Name)))
-		prefix := fmt.Sprintf("%s-%s", appName, mb.Entry.Name)
-		suffix := "-" + base32.StdEncoding.EncodeToString(hash[:])[:7]
-		if !mb.Public {
-			suffix += "-i"
-		}
-		// ELB name must be 32 chars or less
-		if len(prefix) > 32-len(suffix) {
-			prefix = prefix[:32-len(suffix)]
-		}
-		return template.HTML(`"` + prefix + suffix + `"`)
+func (mb ManifestBalancer) LoadBalancerName(app string) string {
+	// allow name override
+	if name, ok := mb.Entry.Labels["convox.balancer.name"]; ok {
+		return name
 	}
 
-	//Unbound apps use legacy StackName or StackName-ProcessName format
-	//TODO I'm not sure this will be set at the time of calling
-	if mb.Entry.Primary {
-		return template.HTML(`{ "Ref": "AWS::StackName" }`)
+	hash := sha256.Sum256([]byte(fmt.Sprintf("%s:%s:%s", os.Getenv("RACK"), app, mb.Entry.Name)))
+	prefix := fmt.Sprintf("%s-%s", app, mb.Entry.Name)
+	suffix := "-" + base32.StdEncoding.EncodeToString(hash[:])[:7]
+
+	if !mb.Public {
+		suffix += "-i"
 	}
 
-	if mb.Public {
-		return template.HTML(fmt.Sprintf(`{ "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" }, "%s" ] ] }`, mb.ProcessName()))
+	// ELB name must be 32 chars or less
+	if len(prefix) > 32-len(suffix) {
+		prefix = prefix[:32-len(suffix)]
 	}
 
-	return template.HTML(fmt.Sprintf(`{ "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" }, "%s", "i" ] ] }`, mb.ProcessName()))
+	return prefix + suffix
 }
 
 // HasExternalPorts returns true if the Manifest's Services have external ports
