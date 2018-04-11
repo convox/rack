@@ -223,6 +223,7 @@
           "HealthCheckTimeoutSeconds": "{{.Health.Timeout}}",
           "UnhealthyThresholdCount": "2",
           "HealthCheckPath": "{{.Health.Path}}",
+          "Matcher": { "HttpCode": "200-399" },
           "Port": "{{.Port.Port}}",
           "Protocol": "{{ upcase .Port.Scheme }}",
           "TargetGroupAttributes": [
