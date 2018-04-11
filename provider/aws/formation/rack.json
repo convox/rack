@@ -1586,7 +1586,7 @@
         "InstanceMonitoring": true,
         "InstanceType": { "Ref": "InstanceType" },
         "KeyName": { "Fn::If": [ "BlankKey", { "Ref": "AWS::NoValue" }, { "Ref": "Key" } ] },
-        "SecurityGroups": [ { "Ref": "InstancesSecurity" } ],
+        "SecurityGroups": [ { "Fn::If": [ "BlankInstanceSecurityGroup", { "Ref": "InstancesSecurity" }, { "Ref": "InstanceSecurityGroup" } ] } ],
         "SpotPrice": { "Ref": "SpotInstanceBid" },
         "UserData": { "Fn::Base64":
           { "Fn::Join": [ "", [
