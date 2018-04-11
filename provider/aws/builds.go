@@ -356,7 +356,6 @@ func (p *AWSProvider) BuildImport(app string, r io.Reader) (*structs.Build, erro
 	// set up the new build
 	targetBuild := structs.NewBuild(app)
 	targetBuild.Started = time.Now()
-	targetBuild.Status = "complete"
 
 	if p.IsTest() {
 		targetBuild.Id = "B12345"
@@ -491,6 +490,7 @@ func (p *AWSProvider) BuildImport(app string, r io.Reader) (*structs.Build, erro
 		return nil, log.Error(err)
 	}
 
+	targetBuild.Status = "complete"
 	targetBuild.Release = rr.Id
 
 	if err := p.buildSave(targetBuild); err != nil {
