@@ -313,6 +313,10 @@ func startGeneration2(opts startOptions) error {
 		for ls.Scan() {
 			match := reAppLog.FindStringSubmatch(ls.Text())
 
+			if match[4] == "build" {
+				continue
+			}
+
 			if len(match) == 7 {
 				m.Writef(match[4], "%s\n", match[6])
 			}
