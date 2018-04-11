@@ -62,13 +62,13 @@ func cmdDeploy(c *cli.Context) error {
 	output.Write([]byte(fmt.Sprintf("Deploying %s\n", app)))
 
 	// build
-	_, release, err := executeBuild(c, dir, app, c.String("file"), c.String("description"), output)
+	build, release, err := executeBuild(c, dir, app, c.String("file"), c.String("description"), output)
 	if err != nil {
 		return stdcli.Error(err)
 	}
 
 	if release == "" {
-		return nil
+		return stdcli.Error(fmt.Errorf("build %s is completed but missing release information", build))
 	}
 
 	output.Write([]byte(fmt.Sprintf("Release: %s\n", release)))
