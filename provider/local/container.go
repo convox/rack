@@ -93,7 +93,7 @@ func (p *Provider) containerStart(c container, app, release string) (string, err
 		return "", fmt.Errorf("name required")
 	}
 
-	args := []string{"run", "--detach"}
+	args := []string{"run", "--detach", "-t"}
 
 	args = append(args, "--name", c.Name)
 
