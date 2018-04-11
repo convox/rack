@@ -19,16 +19,17 @@ func (p *Provider) ServiceList(app string) (structs.Services, error) {
 	ss := structs.Services{}
 
 	for _, s := range m.Services {
-		domain := ""
+		svc := structs.Service{Name: s.Name}
 
 		if s.Port.Port > 0 {
-			domain = fmt.Sprintf("%s.%s.%s", s.Name, app, p.Name)
+			svc.Domain = fmt.Sprintf("%s.%s.%s", s.Name, app, p.Name)
+			svc.Ports = []structs.ServicePort{
+				{Balancer: 80, Container: s.Port.Port},
+				{Balancer: 443, Container: s.Port.Port},
+			}
 		}
 
-		ss = append(ss, structs.Service{
-			Name:   s.Name,
-			Domain: domain,
-		})
+		ss = append(ss, svc)
 	}
 
 	return ss, log.Success()
