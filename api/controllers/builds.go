@@ -23,7 +23,7 @@ func BuildCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 
 	opts := structs.BuildCreateOptions{
 		Cache:       options.Bool(!(r.FormValue("cache") == "false")),
-		Config:      options.String(r.FormValue("config")),
+		Manifest:    options.String(coalesce(r.FormValue("manifest"), r.FormValue("config"))),
 		Description: options.String(r.FormValue("description")),
 	}
 

@@ -12,6 +12,16 @@ import (
 	"golang.org/x/net/websocket"
 )
 
+func coalesce(ss ...string) string {
+	for _, s := range ss {
+		if s != "" {
+			return s
+		}
+	}
+
+	return ""
+}
+
 func readChannel(r io.Reader, datach chan []byte, donech chan error) {
 	buf := make([]byte, 10*1024)
 

@@ -25,9 +25,9 @@ var (
 	flagApp        string
 	flagAuth       string
 	flagCache      string
-	flagConfig     string
 	flagGeneration string
 	flagID         string
+	flagManifest   string
 	flagMethod     string
 	flagPush       string
 	flagUrl        string
@@ -44,9 +44,9 @@ func main() {
 	fs.StringVar(&flagApp, "app", "example", "app name")
 	fs.StringVar(&flagAuth, "auth", "", "docker auth data (json)")
 	fs.StringVar(&flagCache, "cache", "true", "use docker cache")
-	fs.StringVar(&flagConfig, "config", "", "path to app config")
 	fs.StringVar(&flagGeneration, "generation", "", "app generation")
 	fs.StringVar(&flagID, "id", "latest", "build id")
+	fs.StringVar(&flagManifest, "manifest", "", "path to app manifest")
 	fs.StringVar(&flagMethod, "method", "", "source method")
 	fs.StringVar(&flagPush, "push", "", "push to registry")
 	fs.StringVar(&flagUrl, "url", "", "source url")
@@ -63,16 +63,16 @@ func main() {
 		flagAuth = v
 	}
 
-	if v := os.Getenv("BUILD_CONFIG"); v != "" {
-		flagConfig = v
-	}
-
 	if v := os.Getenv("BUILD_GENERATION"); v != "" {
 		flagGeneration = v
 	}
 
 	if v := os.Getenv("BUILD_ID"); v != "" {
 		flagID = v
+	}
+
+	if v := os.Getenv("BUILD_MANIFEST"); v != "" {
+		flagManifest = v
 	}
 
 	if v := os.Getenv("BUILD_PUSH"); v != "" {
@@ -83,12 +83,12 @@ func main() {
 		flagUrl = v
 	}
 
-	if flagConfig == "" {
+	if flagManifest == "" {
 		switch flagGeneration {
 		case "2":
-			flagConfig = "convox.yml"
+			flagManifest = "convox.yml"
 		default:
-			flagConfig = "docker-compose.yml"
+			flagManifest = "docker-compose.yml"
 		}
 	}
 
@@ -133,7 +133,7 @@ func execute() error {
 
 	defer os.RemoveAll(dir)
 
-	data, err := ioutil.ReadFile(filepath.Join(dir, flagConfig))
+	data, err := ioutil.ReadFile(filepath.Join(dir, flagManifest))
 	if err != nil {
 		return err
 	}
@@ -201,10 +201,10 @@ func login() error {
 }
 
 func build(dir string) error {
-	dcy := filepath.Join(dir, flagConfig)
+	dcy := filepath.Join(dir, flagManifest)
 
 	if _, err := os.Stat(dcy); os.IsNotExist(err) {
-		return fmt.Errorf("no such file: %s", flagConfig)
+		return fmt.Errorf("no such file: %s", flagManifest)
 	}
 
 	data, err := ioutil.ReadFile(dcy)
@@ -268,10 +268,10 @@ func build(dir string) error {
 }
 
 func build2(dir string) error {
-	config := filepath.Join(dir, flagConfig)
+	config := filepath.Join(dir, flagManifest)
 
 	if _, err := os.Stat(config); os.IsNotExist(err) {
-		return fmt.Errorf("no such file: %s", flagConfig)
+		return fmt.Errorf("no such file: %s", flagManifest)
 	}
 
 	data, err := ioutil.ReadFile(config)

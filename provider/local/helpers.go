@@ -20,6 +20,13 @@ func coalescei(ints ...int) int {
 	return 0
 }
 
+func cs(s *string, def string) string {
+	if s != nil {
+		return *s
+	}
+	return def
+}
+
 func diff(all []string, remove []string) []string {
 	f := []string{}
 
