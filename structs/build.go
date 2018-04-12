@@ -23,16 +23,14 @@ type Build struct {
 
 type Builds []Build
 
-type BuildListOptions struct {
-	Count *int
+type BuildCreateOptions struct {
+	Cache       *bool   `param:"cache"`
+	Description *string `param:"description"`
+	Manifest    *string `param:"manifest"`
 }
 
-type BuildCreateOptions struct {
-	Cache       *bool
-	Config      *string
-	Description *string
-	Development *bool
-	Manifest    *string
+type BuildListOptions struct {
+	Count *int `param:"count"`
 }
 
 type BuildUpdateOptions struct {

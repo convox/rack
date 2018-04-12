@@ -62,6 +62,7 @@ func (p *Provider) BuildCreate(app, method, url string, opts structs.BuildCreate
 			"BUILD_AUTH":       string(auth),
 			"BUILD_GENERATION": "2",
 			"BUILD_ID":         b.Id,
+			"BUILD_MANIFEST":   cs(opts.Manifest, "convox.yml"),
 			"BUILD_URL":        url,
 			"PROVIDER":         "local",
 		},
@@ -152,8 +153,6 @@ func (p *Provider) BuildLogs(app, id string, opts structs.LogsOptions) (io.ReadC
 	if err != nil {
 		return nil, log.Error(err)
 	}
-
-	fmt.Printf("build = %+v\n", build)
 
 	switch build.Status {
 	case "created", "running":
