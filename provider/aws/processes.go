@@ -599,6 +599,10 @@ func (p *AWSProvider) describeTask(arn string) (*ecs.Task, error) {
 		Cluster: aws.String(p.Cluster),
 		Tasks:   []*string{aws.String(arn)},
 	})
+	if err != nil {
+		return nil, err
+	}
+
 	// check the build cluster too
 	for _, f := range res.Failures {
 		if f.Reason != nil && *f.Reason == "MISSING" && p.BuildCluster != p.Cluster {
