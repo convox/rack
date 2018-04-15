@@ -377,7 +377,7 @@
     "BuildCpu": {
       "Type": "String",
       "Description": "How much cpu should be reserved by the builder",
-      "Default": "0"
+      "Default": "256"
     },
     "BuildImage": {
       "Type": "String",
@@ -387,7 +387,7 @@
     "BuildInstance": {
       "Type": "String",
       "Description": "Instance type for a dedicated build cluster",
-      "Default": ""
+      "Default": "t2.small"
     },
     "BuildMemory": {
       "Type": "String",
