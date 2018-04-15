@@ -119,7 +119,7 @@
           "Actions": [ { "Type": "forward", "TargetGroupArn": { "Ref": "Balancer{{ upper .Name }}TargetGroup{{ if .Internal }}Internal{{ end }}" } } ],
           "Conditions": [ { "Field": "host-header", "Values": [ { "Fn::Join": [ ".", [ "{{$.App}}-{{.Name}}", { "Fn::ImportValue": { "Fn::Sub": "${Rack}:{{ router .Name $.Manifest }}Host" } } ] ] } ] } ],
           "ListenerArn": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:{{ router .Name $.Manifest }}Listener80" } },
-          "Priority": "{{ priority $.App .Name }}"
+          "Priority": "{{ priority $.App .Name "default" }}"
         }
       },
       "Balancer{{ upper .Name }}ListenerRule443": {
@@ -129,7 +129,7 @@
           "Actions": [ { "Type": "forward", "TargetGroupArn": { "Ref": "Balancer{{ upper .Name }}TargetGroup{{ if .Internal }}Internal{{ end }}" } } ],
           "Conditions": [ { "Field": "host-header", "Values": [ { "Fn::Join": [ ".", [ "{{$.App}}-{{.Name}}", { "Fn::ImportValue": { "Fn::Sub": "${Rack}:{{ router .Name $.Manifest }}Host" } } ] ] } ] } ],
           "ListenerArn": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:{{ router .Name $.Manifest }}Listener443" } },
-          "Priority": "{{ priority $.App .Name }}"
+          "Priority": "{{ priority $.App .Name "default" }}"
         }
       },
       "RecordSet{{ upper .Name }}Internal": {
@@ -150,7 +150,7 @@
           "Actions": [ { "Type": "forward", "TargetGroupArn": { "Ref": "Balancer{{ upper .Name }}TargetGroup{{ if .Internal }}Internal{{ end }}" } } ],
           "Conditions": [ { "Field": "host-header", "Values": [ { "Fn::Sub": "{{.Name}}.{{$.App}}.${Rack}.convox" } ] } ],
           "ListenerArn": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:{{ router .Name $.Manifest }}Listener80" } },
-          "Priority": "{{ priority $.App (print .Name "-i") }}"
+          "Priority": "{{ priority $.App .Name "internal" }}"
         }
       },
       "Balancer{{ upper .Name }}ListenerRule443Internal": {
@@ -160,7 +160,7 @@
           "Actions": [ { "Type": "forward", "TargetGroupArn": { "Ref": "Balancer{{ upper .Name }}TargetGroup{{ if .Internal }}Internal{{ end }}" } } ],
           "Conditions": [ { "Field": "host-header", "Values": [ { "Fn::Sub": "{{.Name}}.{{$.App}}.${Rack}.convox" } ] } ],
           "ListenerArn": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:{{ router .Name $.Manifest }}Listener443" } },
-          "Priority": "{{ priority $.App (print .Name "-i") }}"
+          "Priority": "{{ priority $.App .Name "internal" }}"
         }
       },
       {{ if .Domain }}
@@ -199,7 +199,7 @@
             "Actions": [ { "Type": "forward", "TargetGroupArn": { "Ref": "Balancer{{ upper $service.Name }}TargetGroup{{ if $service.Internal }}Internal{{ end }}" } } ],
               "Conditions": [ { "Field": "host-header", "Values": [ "{{$domain}}" ] } ],
               "ListenerArn": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:{{ router $service.Name $.Manifest }}Listener80" } },
-              "Priority": "{{ priority $.App (print $service.Name $domain) }}"
+              "Priority": "{{ priority $.App $service.Name $domain }}"
             }
           },
           "Balancer{{ upper $service.Name }}ListenerRule443Domain{{$i}}": {
@@ -211,7 +211,7 @@
             "Actions": [ { "Type": "forward", "TargetGroupArn": { "Ref": "Balancer{{ upper $service.Name }}TargetGroup{{ if $service.Internal }}Internal{{ end }}" } } ],
               "Conditions": [ { "Field": "host-header", "Values": [ "{{$domain}}" ] } ],
               "ListenerArn": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:{{ router $service.Name $.Manifest }}Listener443" } },
-              "Priority": "{{ priority $.App (print $service.Name $domain) }}"
+              "Priority": "{{ priority $.App $service.Name $domain }}"
             }
           },
         {{ end }}
