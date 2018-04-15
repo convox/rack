@@ -48,7 +48,7 @@ func (c *Client) GetBuildsWithLimit(app string, limit int) (Builds, error) {
 	return builds, nil
 }
 
-func (c *Client) CreateBuildIndex(app string, index Index, cache bool, config string, description string) (*Build, error) {
+func (c *Client) CreateBuildIndex(app string, index Index, cache bool, manifest string, description string) (*Build, error) {
 	var build Build
 
 	data, err := json.Marshal(index)
@@ -58,9 +58,9 @@ func (c *Client) CreateBuildIndex(app string, index Index, cache bool, config st
 
 	params := map[string]string{
 		"cache":       fmt.Sprintf("%t", cache),
-		"config":      config,
 		"description": description,
 		"index":       string(data),
+		"manifest":    manifest,
 	}
 
 	system, err := c.GetSystem()

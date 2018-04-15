@@ -92,7 +92,7 @@ func cmdStart(c *cli.Context) error {
 	opts.Sync = !c.Bool("no-sync")
 
 	if v := c.String("file"); v != "" {
-		opts.Config = v
+		opts.Manifest = v
 	}
 
 	if v := c.Int("shift"); v > 0 {
@@ -101,7 +101,7 @@ func cmdStart(c *cli.Context) error {
 
 	opts.Id, _ = currentId()
 
-	if stdcli.ReadSetting("generation") == "1" || c.String("generation") == "1" || filepath.Base(opts.Config) == "docker-compose.yml" {
+	if stdcli.ReadSetting("generation") == "1" || c.String("generation") == "1" || filepath.Base(opts.Manifest) == "docker-compose.yml" {
 		if err := startGeneration1(opts); err != nil {
 			return stdcli.Error(err)
 		}
@@ -115,29 +115,29 @@ func cmdStart(c *cli.Context) error {
 }
 
 type startOptions struct {
-	Build   bool
-	Cache   bool
-	Command []string
-	Config  string
-	Id      string
-	Service string
-	Shift   int
-	Sync    bool
+	Build    bool
+	Cache    bool
+	Command  []string
+	Id       string
+	Manifest string
+	Service  string
+	Shift    int
+	Sync     bool
 }
 
 func startGeneration1(opts startOptions) error {
-	opts.Config = helpers.Coalesce(opts.Config, "docker-compose.yml")
+	opts.Manifest = helpers.Coalesce(opts.Manifest, "docker-compose.yml")
 
-	if !helpers.Exists(opts.Config) {
-		return fmt.Errorf("manifest not found: %s", opts.Config)
+	if !helpers.Exists(opts.Manifest) {
+		return fmt.Errorf("manifest not found: %s", opts.Manifest)
 	}
 
-	app, err := stdcli.DefaultApp(opts.Config)
+	app, err := stdcli.DefaultApp(opts.Manifest)
 	if err != nil {
 		return err
 	}
 
-	m, err := manifest1.LoadFile(opts.Config)
+	m, err := manifest1.LoadFile(opts.Manifest)
 	if err != nil {
 		return err
 	}
@@ -170,7 +170,7 @@ func startGeneration1(opts startOptions) error {
 		}
 	}
 
-	r := m.Run(filepath.Dir(opts.Config), app, manifest1.RunOptions{
+	r := m.Run(filepath.Dir(opts.Manifest), app, manifest1.RunOptions{
 		Build:   opts.Build,
 		Cache:   opts.Cache,
 		Command: opts.Command,
@@ -194,12 +194,14 @@ func startGeneration2(opts startOptions) error {
 		return fmt.Errorf("local rack not found, try `sudo convox rack install local`")
 	}
 
-	data, err := ioutil.ReadFile("convox.yml")
+	mf := helpers.Coalesce(opts.Manifest, "convox.yml")
+
+	data, err := ioutil.ReadFile(mf)
 	if err != nil {
 		return err
 	}
 
-	app, err := stdcli.DefaultApp(opts.Config)
+	app, err := stdcli.DefaultApp(mf)
 	if err != nil {
 		return err
 	}
@@ -235,7 +237,7 @@ func startGeneration2(opts startOptions) error {
 		return err
 	}
 
-	b, err := rack.BuildCreate(app, "tgz", o.Url, structs.BuildCreateOptions{})
+	b, err := rack.BuildCreate(app, "tgz", o.Url, structs.BuildCreateOptions{Manifest: options.String(mf)})
 	if err != nil {
 		return err
 	}
@@ -323,68 +325,8 @@ func startGeneration2(opts startOptions) error {
 		}
 	}()
 
-	// if _, err := io.Copy(os.Stdout, logs); err != nil {
-	//   return err
-	// }
-
 	return <-errch
 }
-
-// func startGeneration2(opts startOptions) error {
-//   opts.Config = helpers.Coalesce(opts.Config, "convox.yml")
-
-//   if !helpers.Exists(opts.Config) {
-//     return fmt.Errorf("manifest not found: %s", opts.Config)
-//   }
-
-//   app, err := stdcli.DefaultApp(opts.Config)
-//   if err != nil {
-//     return err
-//   }
-
-//   data, err := ioutil.ReadFile(opts.Config)
-//   if err != nil {
-//     return err
-//   }
-
-//   dir := filepath.Dir(app)
-
-//   env := structs.Environment{}
-
-//   if data, err := ioutil.ReadFile(filepath.Join(dir, ".env")); err == nil {
-//     if err := env.Load(data); err != nil {
-//       return err
-//     }
-//   }
-
-//   m, err := manifest.Load(data, manifest.Environment(env))
-//   if err != nil {
-//     return err
-//   }
-
-//   bopts := manifest.BuildOptions{
-//     Development: true,
-//     Stdout:      m.Writer("build", os.Stdout),
-//     Stderr:      m.Writer("build", os.Stderr),
-//   }
-
-//   if err := m.Build(app, "latest", bopts); err != nil {
-//     return err
-//   }
-
-//   ropts := manifest.RunOptions{
-//     Bind:   true,
-//     Env:    env,
-//     Stdout: os.Stdout,
-//     Stderr: os.Stderr,
-//   }
-
-//   if err := m.Run(app, ropts); err != nil {
-//     return err
-//   }
-
-//   return nil
-// }
 
 func handleInterrupt1(run manifest1.Run) {
 	ch := make(chan os.Signal, 1)

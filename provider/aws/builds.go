@@ -862,12 +862,6 @@ func (p *AWSProvider) runBuild(build *structs.Build, method, url string, opts st
 		push = fmt.Sprintf("%s.dkr.ecr.%s.amazonaws.com/%s", aid, p.Region, reg)
 	}
 
-	config := ""
-
-	if opts.Config != nil {
-		config = *opts.Config
-	}
-
 	rk, err := p.describeStack(p.Rack)
 	if err != nil {
 		return err
@@ -899,16 +893,16 @@ func (p *AWSProvider) runBuild(build *structs.Build, method, url string, opts st
 							Value: aws.String(auth),
 						},
 						{
-							Name:  aws.String("BUILD_CONFIG"),
-							Value: aws.String(config),
-						},
-						{
 							Name:  aws.String("BUILD_GENERATION"),
 							Value: aws.String(a.Tags["Generation"]),
 						},
 						{
 							Name:  aws.String("BUILD_ID"),
 							Value: aws.String(build.Id),
+						},
+						{
+							Name:  aws.String("BUILD_MANIFEST"),
+							Value: aws.String(cs(opts.Manifest, "")),
 						},
 						{
 							Name:  aws.String("BUILD_PUSH"),
