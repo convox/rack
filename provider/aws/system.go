@@ -162,44 +162,6 @@ func (p *AWSProvider) SystemGet() (*structs.System, error) {
 		}
 	}
 
-	// Check if ECS is rescheduling services
-	if status == "running" {
-		lreq := &ecs.ListServicesInput{
-			Cluster:    aws.String(p.Cluster),
-			MaxResults: aws.Int64(10),
-		}
-	Loop:
-		for {
-			lres, err := p.ecs().ListServices(lreq)
-			if err != nil {
-				return nil, log.Error(err)
-			}
-
-			dres, err := p.describeServices(&ecs.DescribeServicesInput{
-				Cluster:  aws.String(p.Cluster),
-				Services: lres.ServiceArns,
-			})
-			if err != nil {
-				return nil, log.Error(err)
-			}
-
-			for _, s := range dres.Services {
-				for _, d := range s.Deployments {
-					if *d.RunningCount != *d.DesiredCount {
-						status = "converging"
-						break Loop
-					}
-				}
-			}
-
-			if lres.NextToken == nil {
-				break
-			}
-
-			lreq.NextToken = lres.NextToken
-		}
-	}
-
 	outputs := map[string]string{}
 
 	for _, out := range stack.Outputs {
