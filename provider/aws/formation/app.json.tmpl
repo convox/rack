@@ -221,6 +221,7 @@
         "Properties": {
           "HealthCheckIntervalSeconds": "{{.Health.Interval}}",
           "HealthCheckTimeoutSeconds": "{{.Health.Timeout}}",
+          "HealthyThresholdCount": "2",
           "UnhealthyThresholdCount": "2",
           "HealthCheckPath": "{{.Health.Path}}",
           "Matcher": { "HttpCode": "200-399" },
