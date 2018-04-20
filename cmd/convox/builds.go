@@ -305,6 +305,7 @@ func cmdBuildsImport(c *cli.Context) error {
 	}
 
 	in := os.Stdin
+
 	if file := c.String("file"); file != "" {
 		fd, err := os.Open(file)
 		if err != nil {
@@ -314,22 +315,66 @@ func cmdBuildsImport(c *cli.Context) error {
 		in = fd
 	}
 
-	output := os.Stdout
+	out := os.Stdout
 
 	if c.Bool("id") {
-		output = os.Stderr
+		out = os.Stderr
 	}
 
-	build, err := rackClient(c).ImportBuild(app, in, client.ImportBuildOptions{Progress: progress("Uploading: ", "Importing build... ", output)})
+	system, err := rackClient(c).GetSystem()
 	if err != nil {
 		return stdcli.Error(err)
 	}
 
-	output.Write([]byte(fmt.Sprintf("Release: %s\n", build.Release)))
+	if system.Version <= "20180416200237" {
+		if err := importBuildMultipart(c, app, in, out); err != nil {
+			return stdcli.Error(err)
+		}
+		return nil
+	}
+
+	size, err := helpers.ReaderSize(in)
+	if err != nil {
+		return stdcli.Error(err)
+	}
+
+	p := progress("Uploading: ", "Importing build... ", out)
+	p.Start(size)
+
+	pr := client.NewProgressReader(in, p.Progress)
+
+	o, err := rack(c).ObjectStore(app, "", pr, structs.ObjectStoreOptions{})
+	if err != nil {
+		return stdcli.Error(err)
+	}
+
+	p.Finish()
+
+	b, err := rack(c).BuildImport(app, o.Url)
+	if err != nil {
+		return stdcli.Error(err)
+	}
+
+	out.Write([]byte(fmt.Sprintf("OK, %s\n", b.Release)))
+
+	if c.Bool("id") {
+		os.Stdout.Write([]byte(b.Release))
+	}
+
+	return nil
+}
+
+func importBuildMultipart(c *cli.Context, app string, in io.Reader, out io.Writer) error {
+	build, err := rackClient(c).ImportBuild(app, in, client.ImportBuildOptions{Progress: progress("Uploading: ", "Importing build... ", out)})
+	if err != nil {
+		return err
+	}
+
+	out.Write([]byte(fmt.Sprintf("OK, %s\n", build.Release)))
 
 	if c.Bool("id") {
 		os.Stdout.Write([]byte(build.Release))
-		output.Write([]byte("\n"))
+		out.Write([]byte("\n"))
 	}
 
 	return nil
