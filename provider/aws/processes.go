@@ -595,12 +595,10 @@ func (p *AWSProvider) describeInstance(id string) (*ec2.Instance, error) {
 }
 
 func (p *AWSProvider) describeTaskInner(arn string) (*ecs.Task, error) {
-	input := &ecs.DescribeTasksInput{
+    res, err := p.describeTasks(&ecs.DescribeTasksInput{
 		Cluster: aws.String(p.Cluster),
 		Tasks:   []*string{aws.String(arn)},
-	}
-
-    res, err := p.describeTasks(input)
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -608,12 +606,10 @@ func (p *AWSProvider) describeTaskInner(arn string) (*ecs.Task, error) {
 	// check the build cluster too
 	for _, f := range res.Failures {
 		if f.Reason != nil && *f.Reason == "MISSING" && p.BuildCluster != p.Cluster {
-			buildInput := &ecs.DescribeTasksInput{
+			res, err = p.describeTasks(&ecs.DescribeTasksInput{
 				Cluster: aws.String(p.BuildCluster),
 				Tasks:   []*string{aws.String(arn)},
-			}
-
-			res, err = p.describeTasks(buildInput)
+			})
 			break
 		}
 	}
