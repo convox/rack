@@ -300,7 +300,12 @@ func (p *Provider) argsFromOpts(app string, opts structs.ProcessRunOptions) ([]s
 			return nil, errors.WithStack(err)
 		}
 
-		for _, v := range s.Volumes {
+		vv, err := p.serviceVolumes(app, s.Volumes)
+		if err != nil {
+			return nil, errors.WithStack(err)
+		}
+
+		for _, v := range vv {
 			args = append(args, "-v", v)
 		}
 	}
