@@ -1895,7 +1895,10 @@
           { "Ref": "Subnet1" },
           { "Fn::If": [ "ThirdAvailabilityZone", { "Ref": "Subnet2" }, { "Ref": "AWS::NoValue" } ] }
         ],
-        "SecurityGroups": { "Fn::If": [ "BlankRouterSecurityGroup", [ { "Ref": "RouterSecurity" } ], { "Ref": "RouterSecurityGroup" } ] }
+        "SecurityGroups": { "Fn::If": [ "BlankRouterSecurityGroup", [ { "Ref": "RouterSecurity" } ], { "Ref": "RouterSecurityGroup" } ] },
+        "Tags": [
+          { "Key": "Rack", "Value": { "Ref": "AWS::StackName" } }
+        ]
       }
     },
     "RouterSecurity": {
