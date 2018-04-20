@@ -317,6 +317,11 @@ func (p *Provider) serviceContainers(services manifest.Services, app, release st
 			}
 		}
 
+		vv, err := p.serviceVolumes(app, s.Volumes)
+		if err != nil {
+			return nil, err
+		}
+
 		st := fmt.Sprintf("%s://rack/%s/service/%s:%d", s.Port.Scheme, app, s.Name, s.Port.Port)
 
 		hostname := fmt.Sprintf("%s.%s.%s", s.Name, app, p.Name)
@@ -333,7 +338,7 @@ func (p *Provider) serviceContainers(services manifest.Services, app, release st
 				Command: cmd,
 				Env:     e,
 				Memory:  s.Scale.Memory,
-				Volumes: s.Volumes,
+				Volumes: vv,
 				Port:    s.Port.Port,
 				Labels: map[string]string{
 					"convox.rack":     p.Name,
