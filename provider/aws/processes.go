@@ -598,7 +598,7 @@ func (p *AWSProvider) describeTaskInner(arn string) (*ecs.Task, error) {
 	input := &ecs.DescribeTasksInput{
 		Cluster: aws.String(p.Cluster),
 		Tasks:   []*string{aws.String(arn)},
-	})
+	}
 
     res, err := p.describeTasks(input)
 	if err != nil {
