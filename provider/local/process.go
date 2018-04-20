@@ -278,11 +278,18 @@ func (p *Provider) argsFromOpts(app string, opts structs.ProcessRunOptions) ([]s
 			args = append(args, "-e", fmt.Sprintf("%s=%s", k, v))
 		}
 
-		// TODO reimplement
-		// for _, resource := range s.Resources {
-		//   k := strings.ToUpper(fmt.Sprintf("%s_URL", r.Name))
-		//   args = append(args, "-e", fmt.Sprintf("%s=%s", k, r.Url))
-		// }
+		for _, sr := range service.Resources {
+			for _, r := range m.Resources {
+				if r.Name == sr {
+					u, err := resourceURL(app, r.Type, r.Name)
+					if err != nil {
+						return nil, err
+					}
+
+					args = append(args, "-e", fmt.Sprintf("%s=%s", fmt.Sprintf("%s_URL", strings.ToUpper(sr)), u))
+				}
+			}
+		}
 
 		// app environment
 		menv, err := helpers.AppEnvironment(p, app)
