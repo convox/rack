@@ -145,10 +145,6 @@ func resourcePort(kind string) (int, error) {
 		return 5432, nil
 	case "redis":
 		return 6379, nil
-	case "rabbitmq":
-		return 5672, nil
-	case "elasticsearch":
-		return 9200, nil
 	}
 
 	return 0, fmt.Errorf("unknown resource type: %s", kind)
@@ -162,27 +158,19 @@ func resourceURL(app, kind, name string) (string, error) {
 		return fmt.Sprintf("postgres://postgres:password@%s.resource.%s.convox:5432/app?sslmode=disable", name, app), nil
 	case "redis":
 		return fmt.Sprintf("redis://%s.resource.%s.convox:6379/0", name, app), nil
-	case "rabbitmq":
-		return fmt.Sprintf("amqp://guest:guest@%s.resource.%s.convox:5672", name, app), nil
-	case "elasticsearch":
-		return fmt.Sprintf("https://%s.resource.%s.convox:9200", name, app), nil
 	}
 
 	return "", fmt.Errorf("unknown resource type: %s", kind)
 }
 
-func resourceVolumes(app, kind, name string) ([]string, error) {
+func (p *Provider) resourceVolumes(app, kind, name string) ([]string, error) {
 	switch kind {
 	case "mysql":
-		return []string{fmt.Sprintf("/var/convox/%s/resource/%s:/var/lib/mysql", app, name)}, nil
+		return []string{fmt.Sprintf("%s/%s/resource/%s:/var/lib/mysql", p.Volume, app, name)}, nil
 	case "postgres":
-		return []string{fmt.Sprintf("/var/convox/%s/resource/%s:/var/lib/postgresql/data", app, name)}, nil
+		return []string{fmt.Sprintf("%s/%s/resource/%s:/var/lib/postgresql/data", p.Volume, app, name)}, nil
 	case "redis":
 		return []string{}, nil
-	case "rabbitmq":
-		return []string{fmt.Sprintf("/var/convox/%s/resource/%s:/var/lib/rabbitmq/data", app, name)}, nil
-	case "elasticsearch":
-		return []string{fmt.Sprintf("/var/convox/%s/resource/%s:/usr/share/elasticsearch/data", app, name)}, nil
 	}
 
 	return []string{}, fmt.Errorf("unknown resource type: %s", kind)
@@ -244,7 +232,7 @@ func (p *Provider) resourceContainers(resources manifest.Resources, app, release
 			return nil, err
 		}
 
-		vs, err := resourceVolumes(app, r.Type, r.Name)
+		vs, err := p.resourceVolumes(app, r.Type, r.Name)
 		if err != nil {
 			return nil, err
 		}
@@ -317,6 +305,11 @@ func (p *Provider) serviceContainers(services manifest.Services, app, release st
 			}
 		}
 
+		vv, err := p.serviceVolumes(app, s.Volumes)
+		if err != nil {
+			return nil, err
+		}
+
 		st := fmt.Sprintf("%s://rack/%s/service/%s:%d", s.Port.Scheme, app, s.Name, s.Port.Port)
 
 		hostname := fmt.Sprintf("%s.%s.%s", s.Name, app, p.Name)
@@ -333,7 +326,7 @@ func (p *Provider) serviceContainers(services manifest.Services, app, release st
 				Command: cmd,
 				Env:     e,
 				Memory:  s.Scale.Memory,
-				Volumes: s.Volumes,
+				Volumes: vv,
 				Port:    s.Port.Port,
 				Labels: map[string]string{
 					"convox.rack":     p.Name,
