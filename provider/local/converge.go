@@ -163,18 +163,14 @@ func resourceURL(app, kind, name string) (string, error) {
 	return "", fmt.Errorf("unknown resource type: %s", kind)
 }
 
-func resourceVolumes(app, kind, name string) ([]string, error) {
+func (p *Provider) resourceVolumes(app, kind, name string) ([]string, error) {
 	switch kind {
 	case "mysql":
-		return []string{fmt.Sprintf("/var/convox/%s/resource/%s:/var/lib/mysql", app, name)}, nil
+		return []string{fmt.Sprintf("%s/%s/resource/%s:/var/lib/mysql", p.Volume, app, name)}, nil
 	case "postgres":
-		return []string{fmt.Sprintf("/var/convox/%s/resource/%s:/var/lib/postgresql/data", app, name)}, nil
+		return []string{fmt.Sprintf("%s/%s/resource/%s:/var/lib/postgresql/data", p.Volume, app, name)}, nil
 	case "redis":
 		return []string{}, nil
-	case "rabbitmq":
-		return []string{fmt.Sprintf("/var/convox/%s/resource/%s:/var/lib/rabbitmq/data", app, name)}, nil
-	case "elasticsearch":
-		return []string{fmt.Sprintf("/var/convox/%s/resource/%s:/usr/share/elasticsearch/data", app, name)}, nil
 	}
 
 	return []string{}, fmt.Errorf("unknown resource type: %s", kind)
@@ -236,7 +232,7 @@ func (p *Provider) resourceContainers(resources manifest.Resources, app, release
 			return nil, err
 		}
 
-		vs, err := resourceVolumes(app, r.Type, r.Name)
+		vs, err := p.resourceVolumes(app, r.Type, r.Name)
 		if err != nil {
 			return nil, err
 		}
