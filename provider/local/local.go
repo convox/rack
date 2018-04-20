@@ -175,3 +175,20 @@ func (p *Provider) checkRouter() error {
 
 	return nil
 }
+
+func (p *Provider) serviceVolumes(app string, volumes []string) ([]string, error) {
+	vv := []string{}
+
+	for _, v := range volumes {
+		parts := strings.SplitN(v, ":", 2)
+
+		switch len(parts) {
+		case 1:
+			vv = append(vv, fmt.Sprintf("%s/%s/volumes/%s:%s", p.Volume, app, parts[0], parts[0]))
+		case 2:
+			vv = append(vv, fmt.Sprintf("%s/%s/volumes/%s:%s", p.Volume, app, parts[0], parts[1]))
+		}
+	}
+
+	return vv, nil
+}
