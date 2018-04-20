@@ -187,6 +187,32 @@ func BuildGet(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	return RenderJson(rw, b)
 }
 
+func BuildImport(rw http.ResponseWriter, r *http.Request) *httperr.Error {
+	app := mux.Vars(r)["app"]
+	us := r.FormValue("url")
+
+	if us == "" {
+		return httperr.Errorf(403, "must specify url")
+	}
+
+	u, err := url.Parse(us)
+	if u.Scheme != "object" {
+		return httperr.Errorf(403, "only object:// urls are supported")
+	}
+
+	or, err := Provider.ObjectFetch(app, u.Path)
+	if err != nil {
+		return httperr.Server(err)
+	}
+
+	b, err := Provider.BuildImport(app, or)
+	if err != nil {
+		return httperr.Server(err)
+	}
+
+	return RenderJson(rw, b)
+}
+
 func BuildList(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	app := mux.Vars(r)["app"]
 

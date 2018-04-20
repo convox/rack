@@ -1,6 +1,9 @@
 package helpers
 
 import (
+	"fmt"
+	"io"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"time"
@@ -90,4 +93,30 @@ func In(item string, s []string) bool {
 		}
 	}
 	return false
+}
+
+func ReaderSize(r io.Reader) (int64, error) {
+	switch t := r.(type) {
+	// Seek() is illegal for pipded /dev/stdin so lets try to get the stat size first
+	case *os.File:
+		stat, err := t.Stat()
+		if err != nil {
+			return 0, err
+		}
+
+		return stat.Size(), nil
+	case io.ReadSeeker:
+		s, err := io.Copy(ioutil.Discard, t)
+		if err != nil {
+			return 0, err
+		}
+
+		if _, err = t.Seek(0, io.SeekStart); err != nil {
+			return 0, err
+		}
+
+		return s, nil
+	default:
+		return 0, fmt.Errorf("unable to read size of type: %T", t)
+	}
 }

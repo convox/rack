@@ -35,6 +35,22 @@ func (c *Client) BuildGet(app, id string) (*structs.Build, error) {
 	return &build, nil
 }
 
+func (c *Client) BuildImport(app, url string) (*structs.Build, error) {
+	ro := RequestOptions{
+		Params: Params{
+			"url": url,
+		},
+	}
+
+	var build structs.Build
+
+	if err := c.Post(fmt.Sprintf("/apps/%s/builds/import", app), ro, &build); err != nil {
+		return nil, err
+	}
+
+	return &build, nil
+}
+
 func (c *Client) BuildLogs(app, id string, opts structs.LogsOptions) (io.ReadCloser, error) {
 	return c.Websocket(fmt.Sprintf("/apps/%s/builds/%s/logs", app, id), RequestOptions{})
 }
