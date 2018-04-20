@@ -595,7 +595,7 @@ func (p *AWSProvider) describeInstance(id string) (*ec2.Instance, error) {
 }
 
 func (p *AWSProvider) describeTaskInner(arn string) (*ecs.Task, error) {
-    res, err := p.describeTasks(&ecs.DescribeTasksInput{
+	res, err := p.describeTasks(&ecs.DescribeTasksInput{
 		Cluster: aws.String(p.Cluster),
 		Tasks:   []*string{aws.String(arn)},
 	})
