@@ -599,7 +599,6 @@ func (p *AWSProvider) describeTaskInner(arn string) (*ecs.Task, error) {
 		Cluster: aws.String(p.Cluster),
 		Tasks:   []*string{aws.String(arn)},
 	})
-	cache.Clear("describeTasks", input)
 
     res, err := p.describeTasks(input)
 	if err != nil {
@@ -613,18 +612,20 @@ func (p *AWSProvider) describeTaskInner(arn string) (*ecs.Task, error) {
 				Cluster: aws.String(p.BuildCluster),
 				Tasks:   []*string{aws.String(arn)},
 			}
-			cache.Clear("describeTasks", buildInput)
 
 			res, err = p.describeTasks(buildInput)
 			break
 		}
 	}
+
 	if err != nil {
 		return nil, err
 	}
+
 	if len(res.Tasks) != 1 {
 		return nil, fmt.Errorf("could not fetch process status")
 	}
+
 	return res.Tasks[0], nil
 }
 
