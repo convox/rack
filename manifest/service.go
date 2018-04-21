@@ -58,14 +58,21 @@ type ServicePort struct {
 }
 
 type ServiceScale struct {
-	Count  *ServiceScaleCount
-	Cpu    int
-	Memory int
+	Count   *ServiceScaleCount
+	Cpu     int
+	Memory  int
+	Targets ServiceScaleTargets
 }
 
 type ServiceScaleCount struct {
 	Min int
 	Max int
+}
+
+type ServiceScaleTargets struct {
+	Cpu      int
+	Memory   int
+	Requests int
 }
 
 func (s Service) BuildHash() string {
