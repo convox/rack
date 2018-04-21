@@ -110,6 +110,29 @@ func TestManifestLoad(t *testing.T) {
 					Memory: 512,
 				},
 			},
+			manifest.Service{
+				Name: "scaler",
+				Build: manifest.ServiceBuild{
+					Manifest: "Dockerfile",
+					Path:     ".",
+				},
+				Command: "",
+				Health: manifest.ServiceHealth{
+					Interval: 5,
+					Path:     "/",
+					Timeout:  4,
+				},
+				Scale: manifest.ServiceScale{
+					Count:  &manifest.ServiceScaleCount{Min: 1, Max: 5},
+					Cpu:    256,
+					Memory: 512,
+					Targets: manifest.ServiceScaleTargets{
+						Cpu:      50,
+						Memory:   75,
+						Requests: 200,
+					},
+				},
+			},
 		},
 	}
 
