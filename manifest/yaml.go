@@ -294,6 +294,13 @@ func (v *ServiceScale) UnmarshalYAML(unmarshal func(interface{}) error) error {
 		if w, ok := t["memory"].(int); ok {
 			v.Memory = w
 		}
+		if w, ok := t["targets"].(interface{}); ok {
+			var t ServiceScaleTargets
+			if err := remarshal(w, &t); err != nil {
+				return err
+			}
+			v.Targets = t
+		}
 	default:
 		return fmt.Errorf("unknown type for service scale: %T", t)
 	}
