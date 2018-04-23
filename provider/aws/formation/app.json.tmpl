@@ -270,6 +270,42 @@
 {{ end }}
 
 {{ define "service-resources" }}
+  "AutoscalingRole": {
+    "Type": "AWS::IAM::Role",
+    "Properties": {
+      "AssumeRolePolicyDocument": {
+        "Statement": [ { "Effect": "Allow", "Principal": { "Service": [ "application-autoscaling.amazonaws.com" ] }, "Action": [ "sts:AssumeRole" ] } ],
+        "Version": "2012-10-17"
+      },
+      "Path": "/convox/",
+      "Policies": [ {
+        "PolicyName": "autoscaling",
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Action": [
+                "ecs:UpdateService",
+                "ecs:DescribeServices",
+                "application-autoscaling:*",
+                "cloudwatch:DescribeAlarms",
+                "cloudwatch:GetMetricStatistics"
+              ],
+              "Resource": "*",
+              "Condition": {
+                "ArnEquals": {
+                  "ecs:cluster": { "Fn::Join": [ "", [
+                    "arn:aws:ecs:", { "Ref": "AWS::Region" }, ":", { "Ref": "AWS::AccountId" }, ":cluster/", { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Cluster" } }
+                  ] ] }
+                }
+              }
+            }
+          ]
+        }
+      } ]
+    }
+  },
   "ServiceRole": {
     "Type": "AWS::IAM::Role",
     "Properties": {
@@ -291,7 +327,99 @@
       } ]
     }
   },
-  {{ range .Manifest.Services }}
+  {{ range $s := .Manifest.Services }}
+    {{ if .Scale.Targets.Cpu }}
+      "Service{{ upper .Name }}AutoscalingPolicyCpu": {
+        "Type": "AWS::ApplicationAutoScaling::ScalingPolicy",
+        "Properties": {
+          "PolicyName": "{{ .Name }} autoscaling cpu",
+          "PolicyType": "TargetTrackingScaling",
+          "ScalingTargetId": { "Ref": "Service{{ upper .Name }}AutoscalingTarget" },
+          "TargetTrackingScalingPolicyConfiguration": {
+            "PredefinedMetricSpecification": {
+              "PredefinedMetricType": "ECSServiceAverageCPUUtilization"
+            },
+            "ScaleInCooldown": "60",
+            "ScaleOutCooldown": "60",
+            "TargetValue": "{{ .Scale.Targets.Cpu }}"
+          }
+        }
+      },
+    {{ end }}
+    {{ if .Scale.Targets.Memory }}
+      "Service{{ upper .Name }}AutoscalingPolicyMemory": {
+        "Type": "AWS::ApplicationAutoScaling::ScalingPolicy",
+        "Properties": {
+          "PolicyName": "{{ .Name }} autoscaling memory",
+          "PolicyType": "TargetTrackingScaling",
+          "ScalingTargetId": { "Ref": "Service{{ upper .Name }}AutoscalingTarget" },
+          "TargetTrackingScalingPolicyConfiguration": {
+            "PredefinedMetricSpecification": {
+              "PredefinedMetricType": "ECSServiceAverageMemoryUtilization"
+            },
+            "ScaleInCooldown": "60",
+            "ScaleOutCooldown": "60",
+            "TargetValue": "{{ .Scale.Targets.Memory }}"
+          }
+        }
+      },
+    {{ end }}
+    {{ if .Scale.Targets.Requests }}
+      "Service{{ upper .Name }}AutoscalingPolicyRequests": {
+        "Type": "AWS::ApplicationAutoScaling::ScalingPolicy",
+        "Properties": {
+          "PolicyName": "{{ .Name }} autoscaling requests",
+          "PolicyType": "TargetTrackingScaling",
+          "ScalingTargetId": { "Ref": "Service{{ upper .Name }}AutoscalingTarget" },
+          "TargetTrackingScalingPolicyConfiguration": {
+            "PredefinedMetricSpecification": {
+              "PredefinedMetricType": "ALBRequestCountPerTarget",
+              "ResourceLabel": { "Fn::Sub": [ "${Balancer}/${Balancer{{ upper .Name }}TargetGroup{{ if .Internal }}Internal{{ end }}.TargetGroupFullName}", { "Balancer": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:RouterName" } } } ] }
+            },
+            "ScaleInCooldown": "60",
+            "ScaleOutCooldown": "60",
+            "TargetValue": "{{ .Scale.Targets.Requests }}"
+          }
+        }
+      },
+    {{ end }}
+    {{ range $i, $t := .Scale.Targets.Custom }}
+      "Service{{ upper $s.Name }}AutoscalingPolicyRequests": {
+        "Type": "AWS::ApplicationAutoScaling::ScalingPolicy",
+        "Properties": {
+          "PolicyName": "{{ $s.Name }} autoscaling {{ $t.Namespace }}/{{ $t.Name }}",
+          "PolicyType": "TargetTrackingScaling",
+          "ScalingTargetId": { "Ref": "Service{{ upper $s.Name }}AutoscalingTarget" },
+          "TargetTrackingScalingPolicyConfiguration": {
+            "CustomizedMetricSpecification": {
+              "Dimensions": [
+                {{ range $k, $v := $t.Dimensions }}
+                  { "Name": "{{$k}}", "Value": "{{$v}}" },
+                {{ end }}
+                { "Ref": "AWS::NoValue" }
+              ],
+              "MetricName": "{{ $t.Name }}",
+              "Namespace": "{{ $t.Namespace }}",
+              "Statistic": "{{ statistic $t.Aggregate }}"
+            },
+            "ScaleInCooldown": "60",
+            "ScaleOutCooldown": "60",
+            "TargetValue": "{{ $t.Value }}"
+          }
+        }
+      },
+    {{ end }}
+    "Service{{ upper .Name }}AutoscalingTarget": {
+      "Type": "AWS::ApplicationAutoScaling::ScalableTarget",
+      "Properties": {
+        "MaxCapacity": "5",
+        "MinCapacity": "1",
+        "ResourceId": { "Fn::Sub": [ "service/${Cluster}/${Service{{ upper .Name }}Service.Name}", { "Cluster": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Cluster" } } } ] },
+        "RoleARN": { "Fn::GetAtt": [ "AutoscalingRole", "Arn" ] },
+        "ScalableDimension": "ecs:service:DesiredCount",
+        "ServiceNamespace": "ecs"
+      }
+    },
     "Service{{ upper .Name }}Security": {
       "Condition": "FargateServices",
       "Type": "AWS::EC2::SecurityGroup",
