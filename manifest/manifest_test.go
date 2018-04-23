@@ -130,6 +130,15 @@ func TestManifestLoad(t *testing.T) {
 						Cpu:      50,
 						Memory:   75,
 						Requests: 200,
+						Custom: manifest.ServiceScaleMetrics{
+							{
+								Aggregate:  "max",
+								Dimensions: map[string]string{"QueueName": "testqueue"},
+								Namespace:  "AWS/SQS",
+								Name:       "ApproximateNumberOfMessagesVisible",
+								Value:      float64(200),
+							},
+						},
 					},
 				},
 			},
