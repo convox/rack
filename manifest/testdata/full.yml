@@ -40,3 +40,16 @@ services:
       port: 3000
     scale: 0
   bar:
+  scaler:
+    scale:
+      count: 1-5
+      targets:
+        cpu: 50
+        memory: 75
+        requests: 200
+        custom:
+          AWS/SQS/ApproximateNumberOfMessagesVisible:
+            aggregate: max
+            value: 200
+            dimensions:
+              QueueName: testqueue

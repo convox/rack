@@ -294,8 +294,34 @@ func (v *ServiceScale) UnmarshalYAML(unmarshal func(interface{}) error) error {
 		if w, ok := t["memory"].(int); ok {
 			v.Memory = w
 		}
+		if w, ok := t["targets"].(interface{}); ok {
+			var t ServiceScaleTargets
+			if err := remarshal(w, &t); err != nil {
+				return err
+			}
+			v.Targets = t
+		}
 	default:
 		return fmt.Errorf("unknown type for service scale: %T", t)
+	}
+
+	return nil
+}
+
+func (v *ServiceScaleMetrics) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	var w map[string]ServiceScaleMetric
+
+	if err := unmarshal(&w); err != nil {
+		return err
+	}
+
+	*v = ServiceScaleMetrics{}
+
+	for wk, wv := range w {
+		parts := strings.Split(wk, "/")
+		wv.Namespace = strings.Join(parts[0:len(parts)-1], "/")
+		wv.Name = parts[len(parts)-1]
+		*v = append(*v, wv)
 	}
 
 	return nil
