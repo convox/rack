@@ -594,7 +594,7 @@ func (p *AWSProvider) describeInstance(id string) (*ec2.Instance, error) {
 	return res.Reservations[0].Instances[0], nil
 }
 
-func (p *AWSProvider) describeTask(arn string) (*ecs.Task, error) {
+func (p *AWSProvider) describeTaskInner(arn string) (*ecs.Task, error) {
 	res, err := p.describeTasks(&ecs.DescribeTasksInput{
 		Cluster: aws.String(p.Cluster),
 		Tasks:   []*string{aws.String(arn)},
@@ -613,13 +613,29 @@ func (p *AWSProvider) describeTask(arn string) (*ecs.Task, error) {
 			break
 		}
 	}
+
 	if err != nil {
 		return nil, err
 	}
+
 	if len(res.Tasks) != 1 {
 		return nil, fmt.Errorf("could not fetch process status")
 	}
+
 	return res.Tasks[0], nil
+}
+
+func (p *AWSProvider) describeTask(arn string) (*ecs.Task, error) {
+	var err error
+	for attempt := 0; attempt < 3; attempt++ {
+		task, err := p.describeTaskInner(arn)
+		if err != nil {
+			time.Sleep((1 << uint(attempt)) * time.Second)
+		} else {
+			return task, nil
+		}
+	}
+	return nil, err
 }
 
 func (p *AWSProvider) fetchProcess(task *ecs.Task, psch chan structs.Process, errch chan error) {

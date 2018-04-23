@@ -793,7 +793,7 @@ func (p *AWSProvider) describeTasks(input *ecs.DescribeTasksInput) (*ecs.Describ
 		return nil, err
 	}
 
-	if !p.SkipCache {
+	if !p.SkipCache && len(res.Failures) == 0 {
 		if err := cache.Set("describeTasks", input, res, 10*time.Second); err != nil {
 			return nil, err
 		}
