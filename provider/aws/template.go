@@ -69,6 +69,19 @@ func formationHelpers() template.FuncMap {
 			sort.Strings(ss)
 			return strings.Join(ss, ",")
 		},
+		"statistic": func(s string) (string, error) {
+			switch strings.ToLower(s) {
+			case "avg":
+				return "Average", nil
+			case "max":
+				return "Maximum", nil
+			case "min":
+				return "Minimum", nil
+			case "sum":
+				return "Sum", nil
+			}
+			return "", fmt.Errorf("unknown metric statistic: %s", s)
+		},
 		"upcase": func(s string) string {
 			return strings.ToUpper(s)
 		},

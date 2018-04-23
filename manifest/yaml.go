@@ -308,6 +308,25 @@ func (v *ServiceScale) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	return nil
 }
 
+func (v *ServiceScaleMetrics) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	var w map[string]ServiceScaleMetric
+
+	if err := unmarshal(&w); err != nil {
+		return err
+	}
+
+	*v = ServiceScaleMetrics{}
+
+	for wk, wv := range w {
+		parts := strings.Split(wk, "/")
+		wv.Namespace = strings.Join(parts[0:len(parts)-1], "/")
+		wv.Name = parts[len(parts)-1]
+		*v = append(*v, wv)
+	}
+
+	return nil
+}
+
 func (v *ServiceScaleCount) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	var w interface{}
 

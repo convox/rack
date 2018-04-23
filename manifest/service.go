@@ -69,8 +69,19 @@ type ServiceScaleCount struct {
 	Max int
 }
 
+type ServiceScaleMetric struct {
+	Aggregate  string
+	Dimensions map[string]string
+	Namespace  string
+	Name       string
+	Value      float64
+}
+
+type ServiceScaleMetrics []ServiceScaleMetric
+
 type ServiceScaleTargets struct {
 	Cpu      int
+	Custom   ServiceScaleMetrics
 	Memory   int
 	Requests int
 }

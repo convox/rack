@@ -327,7 +327,7 @@
       } ]
     }
   },
-  {{ range .Manifest.Services }}
+  {{ range $s := .Manifest.Services }}
     {{ if .Scale.Targets.Cpu }}
       "Service{{ upper .Name }}AutoscalingPolicyCpu": {
         "Type": "AWS::ApplicationAutoScaling::ScalingPolicy",
@@ -379,6 +379,32 @@
             "ScaleInCooldown": "60",
             "ScaleOutCooldown": "60",
             "TargetValue": "{{ .Scale.Targets.Requests }}"
+          }
+        }
+      },
+    {{ end }}
+    {{ range $i, $t := .Scale.Targets.Custom }}
+      "Service{{ upper $s.Name }}AutoscalingPolicyRequests": {
+        "Type": "AWS::ApplicationAutoScaling::ScalingPolicy",
+        "Properties": {
+          "PolicyName": "{{ $s.Name }} autoscaling {{ $t.Namespace }}/{{ $t.Name }}",
+          "PolicyType": "TargetTrackingScaling",
+          "ScalingTargetId": { "Ref": "Service{{ upper $s.Name }}AutoscalingTarget" },
+          "TargetTrackingScalingPolicyConfiguration": {
+            "CustomizedMetricSpecification": {
+              "Dimensions": [
+                {{ range $k, $v := $t.Dimensions }}
+                  { "Name": "{{$k}}", "Value": "{{$v}}" },
+                {{ end }}
+                { "Ref": "AWS::NoValue" }
+              ],
+              "MetricName": "{{ $t.Name }}",
+              "Namespace": "{{ $t.Namespace }}",
+              "Statistic": "{{ statistic $t.Aggregate }}"
+            },
+            "ScaleInCooldown": "60",
+            "ScaleOutCooldown": "60",
+            "TargetValue": "{{ $t.Value }}"
           }
         }
       },
