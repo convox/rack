@@ -106,7 +106,7 @@ web      | [negroni] listening on :3000
 $ convox login ($docker-machine ip default)
 ```
 
-See the [Development Guide](Development.md) for more instructions to develop, contribute and release changes for Rack and related components.
+See the [Development Guide](DEVELOPMENT.md) for more instructions to develop, contribute and release changes for Rack and related components.
 
 ## Contributing
 
