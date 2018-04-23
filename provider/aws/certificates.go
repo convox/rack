@@ -27,7 +27,7 @@ func (p *AWSProvider) CertificateApply(app, service string, port int, id string)
 		return fmt.Errorf("unknown generation for app: %s", app)
 	}
 
-	return fmt.Errorf("not yet implemented on generation 2")
+	return fmt.Errorf("generation 2 apps use the domain: attribute on services in convox.yml")
 }
 
 func (p *AWSProvider) certificateApplyGeneration1(a *structs.App, service string, port int, id string) error {
