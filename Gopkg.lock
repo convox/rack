@@ -126,7 +126,7 @@
   branch = "master"
   name = "github.com/convox/api"
   packages = ["."]
-  revision = "acaf978c873d388307ffc1422064daca528ab146"
+  revision = "47e28fed5250d307c738224dae963ba00ca09dbb"
 
 [[projects]]
   branch = "master"
@@ -246,6 +246,18 @@
   packages = ["."]
   revision = "7f08801859139f86dfafd1c296e2cba9a80d292e"
   version = "v1.6.0"
+
+[[projects]]
+  name = "github.com/gorilla/securecookie"
+  packages = ["."]
+  revision = "e59506cc896acb7f7bf732d4fdf5e25f7ccd8983"
+  version = "v1.1.1"
+
+[[projects]]
+  name = "github.com/gorilla/sessions"
+  packages = ["."]
+  revision = "ca9ada44574153444b00d3fd9c8559e4cc95f896"
+  version = "v1.1"
 
 [[projects]]
   name = "github.com/gorilla/websocket"
@@ -478,6 +490,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "05c02713558f5e580192c61604e859e052487d9f224cb0a40b0230ef8bdd52a9"
+  inputs-digest = "f66371953cefecccab2cd5cef6723f45694b47379c73db9c285b74ea94ff8c10"
   solver-name = "gps-cdcl"
   solver-version = 1

@@ -133,7 +133,7 @@ func rack(c *cli.Context) *sdk.Client {
 			os.Exit(1)
 		}
 
-		cl, err := sdk.New("https://localhost:5443")
+		cl, err := sdk.New("https://rack.convox")
 		if err != nil {
 			stdcli.Error(err)
 			os.Exit(1)
@@ -168,7 +168,7 @@ func rackClient(c *cli.Context) *client.Client {
 			os.Exit(1)
 		}
 
-		return client.New("localhost:5443", "", c.App.Version)
+		return client.New("rack.convox", "", c.App.Version)
 	}
 
 	host, password, err := currentLogin()

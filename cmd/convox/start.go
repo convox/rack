@@ -206,7 +206,7 @@ func startGeneration2(opts startOptions) error {
 		return err
 	}
 
-	rack, err := sdk.New("https://localhost:5443")
+	rack, err := sdk.New("https://rack.convox")
 	if err != nil {
 		return err
 	}
