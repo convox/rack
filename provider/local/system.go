@@ -141,7 +141,7 @@ func (p *Provider) SystemInstall(name string, opts structs.SystemInstallOptions)
 		return "", err
 	}
 
-	return "https://localhost:5443", nil
+	return "https://rack.convox", nil
 }
 
 func (p *Provider) SystemLogs(opts structs.LogsOptions) (io.ReadCloser, error) {

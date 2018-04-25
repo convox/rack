@@ -86,15 +86,19 @@ func (p *Provider) converge(app string) error {
 
 		c.Id = id
 
-		if err := p.containerRegister(c); err != nil {
-			return errors.WithStack(log.Error(err))
-		}
+		// if err := p.containerRegister(c); err != nil {
+		//   return errors.WithStack(log.Error(err))
+		// }
 	}
 
-	for _, c := range current {
-		if err := p.containerRegister(c); err != nil {
-			return errors.WithStack(log.Error(err))
-		}
+	// for _, c := range current {
+	//   if err := p.containerRegister(c); err != nil {
+	//     return errors.WithStack(log.Error(err))
+	//   }
+	// }
+
+	if err := p.routeContainers(desired); err != nil {
+		return errors.WithStack(log.Error(err))
 	}
 
 	return log.Success()
@@ -237,13 +241,13 @@ func (p *Provider) resourceContainers(resources manifest.Resources, app, release
 			return nil, err
 		}
 
-		hostname := fmt.Sprintf("%s.resource.%s.%s", r.Name, app, p.Name)
+		hostname := fmt.Sprintf("%s.resource.%s", r.Name, app)
 
 		cs = append(cs, container{
 			Name:     fmt.Sprintf("%s.%s.resource.%s", p.Name, app, r.Name),
 			Hostname: hostname,
 			Targets: []containerTarget{
-				containerTarget{Scheme: "tcp", Port: rp, Target: fmt.Sprintf("tcp://rack/%s/resource/%s:%d", app, r.Name, rp)},
+				containerTarget{FromScheme: "tcp", FromPort: rp, ToScheme: "tcp", ToPort: rp},
 			},
 			Image:   fmt.Sprintf("convox/%s", r.Type),
 			Volumes: vs,
@@ -310,24 +314,25 @@ func (p *Provider) serviceContainers(services manifest.Services, app, release st
 			return nil, err
 		}
 
-		st := fmt.Sprintf("%s://rack/%s/service/%s:%d", s.Port.Scheme, app, s.Name, s.Port.Port)
+		scheme := "tcp"
 
-		hostname := fmt.Sprintf("%s.%s.%s", s.Name, app, p.Name)
+		switch s.Port.Scheme {
+		case "https":
+			scheme = "tls"
+		}
+
+		hostname := fmt.Sprintf("%s.%s", s.Name, app)
 
 		for i := 1; i <= s.Scale.Count.Min; i++ {
-			cs = append(cs, container{
+			c := container{
 				Hostname: hostname,
-				Targets: []containerTarget{
-					containerTarget{Scheme: "http", Port: 80, Target: st},
-					containerTarget{Scheme: "https", Port: 443, Target: st},
-				},
-				Name:    fmt.Sprintf("%s.%s.service.%s.%d", p.Name, app, s.Name, i),
-				Image:   fmt.Sprintf("%s/%s/%s:%s", p.Name, app, s.Name, r.Build),
-				Command: cmd,
-				Env:     e,
-				Memory:  s.Scale.Memory,
-				Volumes: vv,
-				Port:    s.Port.Port,
+				Name:     fmt.Sprintf("%s.%s.service.%s.%d", p.Name, app, s.Name, i),
+				Image:    fmt.Sprintf("%s/%s/%s:%s", p.Name, app, s.Name, r.Build),
+				Command:  cmd,
+				Env:      e,
+				Memory:   s.Scale.Memory,
+				Volumes:  vv,
+				Port:     s.Port.Port,
 				Labels: map[string]string{
 					"convox.rack":     p.Name,
 					"convox.version":  p.Version,
@@ -341,7 +346,16 @@ func (p *Provider) serviceContainers(services manifest.Services, app, release st
 					"convox.port":     strconv.Itoa(s.Port.Port),
 					"convox.scheme":   s.Port.Scheme,
 				},
-			})
+			}
+
+			if c.Port != 0 {
+				c.Targets = []containerTarget{
+					containerTarget{FromScheme: "tcp", FromPort: 80, ToScheme: scheme, ToPort: s.Port.Port},
+					containerTarget{FromScheme: "tls", FromPort: 443, ToScheme: scheme, ToPort: s.Port.Port},
+				}
+			}
+
+			cs = append(cs, c)
 		}
 	}
 

@@ -44,7 +44,7 @@ func runRouter(c *cli.Context) error {
 		return fmt.Errorf("must run as root")
 	}
 
-	r, err := router.New(Version, c.String("domain"), c.String("interface"), c.String("subnet"))
+	r, err := router.New(c.String("interface"), c.String("subnet"), Version)
 	if err != nil {
 		return err
 	}

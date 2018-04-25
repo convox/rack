@@ -16,6 +16,10 @@ type streamTester struct {
 	io.Writer
 }
 
+func (st streamTester) Close() error {
+	return nil
+}
+
 func TestProcessExec(t *testing.T) {
 	provider := StubAwsProvider(
 		cycleProcessListStackResources,

@@ -28,7 +28,7 @@ type Processes []Process
 type ProcessExecOptions struct {
 	Entrypoint *bool
 	Height     *int
-	Stream     io.ReadWriter
+	Stream     io.ReadWriteCloser
 	Width      *int
 }
 
@@ -47,7 +47,7 @@ type ProcessRunOptions struct {
 	Ports       map[string]string
 	Release     *string
 	Service     *string
-	Stream      io.ReadWriter
+	Stream      io.ReadWriteCloser
 	Timeout     *int
 	Volumes     map[string]string
 	Width       *int

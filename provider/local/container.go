@@ -2,11 +2,8 @@ package local
 
 import (
 	"bytes"
-	"crypto/tls"
 	"encoding/json"
 	"fmt"
-	"net/http"
-	"net/url"
 	"os"
 	"os/exec"
 	"strconv"
@@ -34,58 +31,120 @@ type containerPort struct {
 }
 
 type containerTarget struct {
-	Port   int
-	Scheme string
-	Target string
+	FromScheme string
+	FromPort   int
+	ToScheme   string
+	ToPort     int
 }
 
-func (p *Provider) containerRegister(c container) error {
-	if p.Router == "none" || c.Hostname == "" {
+type host struct {
+	endpoints map[int]endpoint
+}
+
+type endpoint struct {
+	protocol string
+	targets  []string
+}
+
+func (p *Provider) routeContainers(cc []container) error {
+	if p.router == nil {
 		return nil
 	}
 
-	// TODO: remove
-	dt := http.DefaultTransport.(*http.Transport)
-	dt.TLSClientConfig = &tls.Config{
-		InsecureSkipVerify: true,
-	}
-
-	hc := http.Client{Transport: dt}
-
-	req, err := http.NewRequest("POST", fmt.Sprintf("https://%s/endpoints/%s", p.Router, c.Hostname), nil)
-	if err != nil {
-		return err
-	}
-
-	res, err := hc.Do(req)
-	if err != nil {
-		return err
-	}
-
-	defer res.Body.Close()
-
-	for _, t := range c.Targets {
-		uv := url.Values{}
-
-		uv.Add("scheme", t.Scheme)
-		uv.Add("target", t.Target)
-
-		req, err := http.NewRequest("POST", fmt.Sprintf("https://%s/endpoints/%s/proxies/%d", p.Router, c.Hostname, t.Port), bytes.NewReader([]byte(uv.Encode())))
-		if err != nil {
+	if _, err := p.router.RackGet(p.Name); err != nil {
+		if err := p.routerRegister(); err != nil {
 			return err
 		}
+	}
 
-		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	hosts := map[string]host{}
 
-		res, err := hc.Do(req)
-		if err != nil {
-			return err
+	for _, c := range cc {
+		if c.Targets == nil || len(c.Targets) == 0 {
+			continue
 		}
 
-		defer res.Body.Close()
+		h := hosts[c.Hostname]
+
+		if h.endpoints == nil {
+			h.endpoints = map[int]endpoint{}
+		}
+
+		for _, t := range c.Targets {
+			e := h.endpoints[t.FromPort]
+
+			if e.targets == nil {
+				e.targets = []string{}
+			}
+
+			e.protocol = t.FromScheme
+
+			out, err := exec.Command("docker", "inspect", "-f", fmt.Sprintf(`{{index (index (index .NetworkSettings.Ports "%d/tcp") 0) "HostPort"}}`, t.ToPort), c.Name).CombinedOutput()
+			if err != nil {
+				return err
+			}
+
+			e.targets = append(e.targets, fmt.Sprintf("%s://127.0.0.1:%s", t.ToScheme, strings.TrimSpace(string(out))))
+
+			h.endpoints[t.FromPort] = e
+		}
+
+		hosts[c.Hostname] = h
+	}
+
+	for hostname, h := range hosts {
+		if _, err := p.router.HostGet(p.Name, hostname); err != nil {
+			if err := p.router.HostCreate(p.Name, hostname); err != nil {
+				return err
+			}
+		}
+
+		for port, e := range h.endpoints {
+			if _, err := p.router.EndpointGet(p.Name, hostname, port); err != nil {
+				if err := p.router.EndpointCreate(p.Name, hostname, e.protocol, port); err != nil {
+					return err
+				}
+			}
+
+			et, err := p.router.TargetList(p.Name, hostname, port)
+			if err != nil {
+				return err
+			}
+
+			for _, t := range missing(et, e.targets) {
+				if err := p.router.TargetRemove(p.Name, hostname, port, t); err != nil {
+					return err
+				}
+			}
+
+			for _, t := range missing(e.targets, et) {
+				if err := p.router.TargetAdd(p.Name, hostname, port, t); err != nil {
+					return err
+				}
+			}
+		}
 	}
 
 	return nil
+}
+
+func missing(master, check []string) []string {
+	r := []string{}
+
+	for _, m := range master {
+		found := false
+		for _, c := range check {
+			if m == c {
+				found = true
+				break
+			}
+		}
+		if !found {
+			r = append(r, m)
+		}
+	}
+
+	return r
 }
 
 func (p *Provider) containerStart(c container, app, release string) (string, error) {
@@ -129,8 +188,6 @@ func (p *Provider) containerStart(c container, app, release string) (string, err
 
 	args = append(args, c.Image)
 	args = append(args, c.Command...)
-
-	fmt.Printf("args = %+v\n", args)
 
 	exec.Command("docker", "rm", "-f", c.Name).Run()
 
@@ -265,11 +322,14 @@ func containerList(args ...string) ([]container, error) {
 		port := c.Config.Labels["convox.port"]
 
 		if app != "" && service != "" && scheme != "" && port != "" {
-			st := fmt.Sprintf("%s://rack/%s/service/%s:%s", scheme, app, service, port)
+			pi, err := strconv.Atoi(port)
+			if err != nil {
+				return nil, err
+			}
 
 			cc.Targets = []containerTarget{
-				containerTarget{Scheme: "http", Port: 80, Target: st},
-				containerTarget{Scheme: "https", Port: 443, Target: st},
+				containerTarget{FromScheme: "tcp", FromPort: 80, ToScheme: scheme, ToPort: pi},
+				containerTarget{FromScheme: "tls", FromPort: 443, ToScheme: scheme, ToPort: pi},
 			}
 		}
 

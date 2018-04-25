@@ -3,62 +3,38 @@ package router
 import (
 	"crypto/tls"
 	"fmt"
-	"io/ioutil"
 	"net"
-	"net/url"
 	"os"
-	"os/exec"
-	"path/filepath"
-	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/convox/api"
 )
 
-const (
-	cleanupInterval = 5 * time.Second
-	cleanupAge      = 24 * time.Hour
-)
-
-type Endpoint struct {
-	Expires time.Time     `json:"expires"`
-	Host    string        `json:"host"`
-	IP      net.IP        `json:"ip"`
-	Proxies map[int]Proxy `json:"proxies"`
-
-	router *Router
-}
-
 type Router struct {
-	Domain    string
-	Interface string
-	Subnet    string
-	Version   string
-
-	ca        tls.Certificate
-	dns       *DNS
-	endpoints map[string]Endpoint
-	lock      sync.Mutex
-	ip        net.IP
-	net       *net.IPNet
+	base    net.IP
+	ca      tls.Certificate
+	dns     *DNS
+	iface   string
+	subnet  string
+	net     *net.IPNet
+	racks   Racks
+	version string
 }
 
-func New(version, domain, iface, subnet string) (*Router, error) {
+func New(iface, subnet, version string) (*Router, error) {
 	ip, net, err := net.ParseCIDR(subnet)
 	if err != nil {
 		return nil, err
 	}
 
 	r := &Router{
-		Domain:    domain,
-		Interface: iface,
-		Subnet:    subnet,
-		Version:   version,
-		endpoints: map[string]Endpoint{},
-		ip:        ip,
-		net:       net,
+		base:    ip.To4(),
+		iface:   iface,
+		net:     net,
+		racks:   Racks{},
+		subnet:  subnet,
+		version: version,
 	}
 
 	ca, err := caCertificate()
@@ -68,238 +44,105 @@ func New(version, domain, iface, subnet string) (*Router, error) {
 
 	r.ca = ca
 
-	d, err := r.NewDNS()
-	if err != nil {
-		return nil, err
-	}
-
-	r.dns = d
-
-	fmt.Printf("ns=convox.router at=new version=%q domain=%q iface=%q subnet=%q\n", r.Version, r.Domain, r.Interface, r.Subnet)
-
-	go r.cleanupTick()
-
 	return r, nil
 }
 
-func (r *Router) Serve() error {
-	destroyInterface(r.Interface)
+func (rt *Router) Lookup(host string) net.IP {
+	parts := strings.Split(host, ".")
 
-	if err := createInterface(r.Interface, r.ip.String()); err != nil {
+	if len(parts) < 2 {
+		return nil
+	}
+
+	r, err := rt.Rack(parts[len(parts)-1])
+	if err != nil {
+		return nil
+	}
+
+	h, err := r.Host(strings.Join(parts[0:len(parts)-1], "."))
+	if err != nil {
+		return nil
+	}
+
+	return h.IP
+}
+
+func (rt *Router) Rack(name string) (*Rack, error) {
+	for i := range rt.racks {
+		if rt.racks[i].Name == name {
+			return rt.racks[i], nil
+		}
+	}
+
+	return nil, fmt.Errorf("no such rack: %s", name)
+}
+
+func (rt *Router) Serve() error {
+	destroyInterface(rt.iface)
+
+	if err := createInterface(rt.iface, rt.base.String()); err != nil {
 		return err
 	}
 
-	defer destroyInterface(r.Interface)
+	defer destroyInterface(rt.iface)
 
-	// reserve one ip for router
-	r.endpoints[fmt.Sprintf("router.%s", r.Domain)] = Endpoint{IP: r.ip}
+	if err := createAlias(rt.iface, rt.base.String()); err != nil {
+		return err
+	}
 
-	rh := fmt.Sprintf("rack.%s", r.Domain)
-
-	ep, err := r.createEndpoint(rh, true)
+	d, err := NewDNS(rt.base, rt.Lookup)
 	if err != nil {
 		return err
 	}
 
-	if _, err := r.createProxy(rh, fmt.Sprintf("https://%s:443", ep.IP), "https://localhost:5443"); err != nil {
-		return err
-	}
+	rt.dns = d
 
-	go func() {
-		logError(r.dns.Serve())
-	}()
+	go rt.dns.Serve()
 
-	a := api.New("convox.router", fmt.Sprintf("router.%s", r.Domain))
+	a := api.New("convox.router", "router")
 
-	a.Route("GET", "/endpoints", r.EndpointList)
-	a.Route("POST", "/endpoints/{host}", r.EndpointCreate)
-	a.Route("DELETE", "/endpoints/{host}", r.EndpointDelete)
-	a.Route("POST", "/endpoints/{host}/proxies/{port}", r.ProxyCreate)
-	a.Route("POST", "/terminate", r.Terminate)
-	a.Route("GET", "/version", r.VersionGet)
+	a.Route("GET", "/", rt.RackList)
+	a.Route("POST", "/racks", rt.RackCreate)
+	a.Route("GET", "/racks/{rack}", rt.RackGet)
+	a.Route("GET", "/racks", rt.RackList)
+	a.Route("POST", "/racks/{rack}/hosts", rt.HostCreate)
+	a.Route("GET", "/racks/{rack}/hosts/{host}", rt.HostGet)
+	a.Route("GET", "/racks/{rack}/hosts", rt.HostList)
+	a.Route("POST", "/racks/{rack}/hosts/{host}/endpoints", rt.EndpointCreate)
+	a.Route("GET", "/racks/{rack}/hosts/{host}/endpoints/{port}", rt.EndpointGet)
+	a.Route("POST", "/racks/{rack}/hosts/{host}/endpoints/{port}/targets/add", rt.TargetAdd)
+	a.Route("GET", "/racks/{rack}/hosts/{host}/endpoints/{port}/targets", rt.TargetList)
+	a.Route("POST", "/racks/{rack}/hosts/{host}/endpoints/{port}/targets/delete", rt.TargetDelete)
+	a.Route("POST", "/terminate", rt.Terminate)
+	a.Route("GET", "/version", rt.Version)
 
-	if err := a.Listen("https", fmt.Sprintf("%s:443", r.ip)); err != nil {
+	// a.Route("GET", "/endpoints", r.HostList)
+	// a.Route("POST", "/endpoints/{host}", r.HostCreate)
+	// a.Route("DELETE", "/endpoints/{host}", r.HostDelete)
+	// a.Route("POST", "/endpoints/{host}/proxies/{port}", r.ProxyCreate)
+	// a.Route("POST", "/terminate", r.Terminate)
+	// a.Route("GET", "/version", r.VersionGet)
+
+	if err := a.Listen("https", fmt.Sprintf("%s:443", rt.base)); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (r *Router) cleanupTick() {
-	tick := time.Tick(cleanupInterval)
+func (rt *Router) Terminate(c *api.Context) error {
+	go func() {
+		time.Sleep(1 * time.Second)
+		os.Exit(0)
+	}()
 
-	for range tick {
-		for host, ep := range r.endpoints {
-			if ep.Expires.IsZero() {
-				continue
-			}
-
-			if ep.Expires.Before(time.Now()) {
-				fmt.Printf("ns=convox.router at=cleanup endpoint=%q\n", host)
-
-				if err := r.destroyEndpoint(host); err != nil {
-					logError(err)
-				}
-			}
-		}
-	}
+	return nil
 }
 
-func (r *Router) createEndpoint(host string, system bool) (*Endpoint, error) {
-	r.lock.Lock()
-	defer r.lock.Unlock()
-
-	if ep, ok := r.endpoints[host]; ok {
-		ep.Expires = time.Now().Add(cleanupAge).UTC()
-		r.endpoints[host] = ep
-		return &ep, nil
+func (rt *Router) Version(c *api.Context) error {
+	v := map[string]string{
+		"version": rt.version,
 	}
 
-	ip, err := r.nextIP()
-	if err != nil {
-		return nil, err
-	}
-
-	if err := createAlias(r.Interface, ip.String()); err != nil {
-		return nil, err
-	}
-
-	e := Endpoint{
-		Host:    host,
-		IP:      ip,
-		Proxies: map[int]Proxy{},
-		router:  r,
-	}
-
-	if !system {
-		e.Expires = time.Now().Add(cleanupAge).UTC()
-	}
-
-	r.endpoints[host] = e
-
-	return &e, nil
-}
-
-func (r *Router) destroyEndpoint(host string) error {
-	if ep, ok := r.endpoints[host]; ok {
-		for _, p := range ep.Proxies {
-			if err := p.Terminate(); err != nil {
-				logError(err)
-			}
-		}
-		delete(r.endpoints, host)
-		return nil
-	}
-
-	return fmt.Errorf("no such endpoint: %s", host)
-}
-
-func (r *Router) matchEndpoint(host string) (*Endpoint, error) {
-	if ep, ok := r.endpoints[host]; ok {
-		return &ep, nil
-	}
-
-	parts := strings.Split(host, ".")
-
-	if len(parts) < 3 {
-		return nil, fmt.Errorf("no such endpoint: %s", host)
-	}
-
-	base := strings.Join(parts[len(parts)-3:len(parts)], ".")
-	ep := r.endpoints[base]
-
-	return &ep, nil
-}
-
-func (r *Router) createProxy(host, listen, target string) (*Proxy, error) {
-	r.lock.Lock()
-	defer r.lock.Unlock()
-
-	ep, ok := r.endpoints[host]
-	if !ok {
-		return nil, fmt.Errorf("no such endpoint: %s", host)
-	}
-
-	ul, err := url.Parse(listen)
-	if err != nil {
-		return nil, err
-	}
-
-	ut, err := url.Parse(target)
-	if err != nil {
-		return nil, err
-	}
-
-	pi, err := strconv.Atoi(ul.Port())
-	if err != nil {
-		return nil, err
-	}
-
-	if p, ok := r.endpoints[host].Proxies[pi]; ok {
-		return &p, nil
-	}
-
-	p, err := ep.NewProxy(host, ul, ut)
-	if err != nil {
-		return nil, err
-	}
-
-	r.endpoints[host].Proxies[pi] = *p
-
-	go p.Serve()
-
-	return p, nil
-}
-
-func (r *Router) hasIP(ip net.IP) bool {
-	for _, e := range r.endpoints {
-		if e.IP.Equal(ip) {
-			return true
-		}
-	}
-
-	return false
-}
-
-func (r *Router) nextIP() (net.IP, error) {
-	ip := make(net.IP, len(r.ip))
-	copy(ip, r.ip)
-
-	for {
-		if !r.hasIP(ip) {
-			break
-		}
-
-		ip = incrementIP(ip)
-	}
-
-	return ip, nil
-}
-
-func incrementIP(ip net.IP) net.IP {
-	for i := len(ip) - 1; i >= 0; i-- {
-		ip[i]++
-		if ip[i] != 0 {
-			break
-		}
-	}
-
-	return ip
-}
-
-func execute(command string, args ...string) error {
-	cmd := exec.Command(command, args...)
-
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-
-	return cmd.Run()
-}
-
-func writeFile(path string, data []byte) error {
-	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
-		return err
-	}
-
-	return ioutil.WriteFile(path, data, 0644)
+	return c.RenderJSON(v)
 }
