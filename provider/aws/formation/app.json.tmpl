@@ -412,8 +412,8 @@
     "Service{{ upper .Name }}AutoscalingTarget": {
       "Type": "AWS::ApplicationAutoScaling::ScalableTarget",
       "Properties": {
-        "MaxCapacity": "5",
-        "MinCapacity": "1",
+        "MaxCapacity": "{{.Scale.Count.Max}}",
+        "MinCapacity": "{{.Scale.Count.Min}}",
         "ResourceId": { "Fn::Sub": [ "service/${Cluster}/${Service{{ upper .Name }}Service.Name}", { "Cluster": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Cluster" } } } ] },
         "RoleARN": { "Fn::GetAtt": [ "AutoscalingRole", "Arn" ] },
         "ScalableDimension": "ecs:service:DesiredCount",
