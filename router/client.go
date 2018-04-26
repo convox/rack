@@ -200,6 +200,7 @@ func (c *Client) request(method, path string, opts RequestOptions) (*http.Reques
 	}
 
 	req.Header.Add("Accept", "*/*")
+	req.Header.Set("Connection", "close")
 	req.Header.Set("Content-Type", opts.ContentType())
 
 	for k, v := range opts.Headers {
@@ -247,6 +248,8 @@ func responseError(res *http.Response) error {
 	if res.StatusCode < 400 {
 		return nil
 	}
+
+	defer res.Body.Close()
 
 	data, err := ioutil.ReadAll(res.Body)
 	if err != nil {

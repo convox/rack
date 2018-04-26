@@ -85,17 +85,7 @@ func (p *Provider) converge(app string) error {
 		}
 
 		c.Id = id
-
-		// if err := p.containerRegister(c); err != nil {
-		//   return errors.WithStack(log.Error(err))
-		// }
 	}
-
-	// for _, c := range current {
-	//   if err := p.containerRegister(c); err != nil {
-	//     return errors.WithStack(log.Error(err))
-	//   }
-	// }
 
 	if err := p.routeContainers(desired); err != nil {
 		return errors.WithStack(log.Error(err))
