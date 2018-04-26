@@ -276,6 +276,7 @@ func (c *Client) Request(method, path string, opts RequestOptions) (*http.Reques
 
 	req.Header.Add("Accept", "*/*")
 	req.Header.Set("Content-Type", opts.ContentType())
+	req.Header.Set("Connection", "close")
 	req.Header.Set("User-Agent", fmt.Sprintf("convox.go/%s", c.Version))
 	req.Header.Set("Version", c.Version)
 
