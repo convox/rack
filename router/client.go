@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -169,16 +170,21 @@ func (c *Client) post(path string, opts RequestOptions, out interface{}) error {
 	return unmarshalReader(res.Body, out)
 }
 
-func (c *Client) client() *http.Client {
-	t := &http.Transport{
+var client = &http.Client{
+	Timeout: 5 * time.Second,
+	Transport: &http.Transport{
+		DialContext: (&net.Dialer{
+			Timeout:   30 * time.Second,
+			KeepAlive: 10 * time.Second,
+		}).DialContext,
+		MaxIdleConns:          100,
+		IdleConnTimeout:       90 * time.Second,
+		TLSHandshakeTimeout:   10 * time.Second,
+		ExpectContinueTimeout: 1 * time.Second,
 		TLSClientConfig: &tls.Config{
 			InsecureSkipVerify: true,
 		},
-	}
-
-	return &http.Client{
-		Transport: t,
-	}
+	},
 }
 
 func (c *Client) request(method, path string, opts RequestOptions) (*http.Request, error) {
@@ -200,7 +206,6 @@ func (c *Client) request(method, path string, opts RequestOptions) (*http.Reques
 	}
 
 	req.Header.Add("Accept", "*/*")
-	req.Header.Set("Connection", "close")
 	req.Header.Set("Content-Type", opts.ContentType())
 
 	for k, v := range opts.Headers {
@@ -211,7 +216,7 @@ func (c *Client) request(method, path string, opts RequestOptions) (*http.Reques
 }
 
 func (c *Client) handleRequest(req *http.Request) (*http.Response, error) {
-	res, err := c.client().Do(req)
+	res, err := client.Do(req)
 	if err != nil {
 		return nil, err
 	}
