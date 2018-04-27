@@ -304,13 +304,6 @@ func (p *Provider) serviceContainers(services manifest.Services, app, release st
 			return nil, err
 		}
 
-		scheme := "tcp"
-
-		switch s.Port.Scheme {
-		case "https":
-			scheme = "tls"
-		}
-
 		hostname := fmt.Sprintf("%s.%s", s.Name, app)
 
 		for i := 1; i <= s.Scale.Count.Min; i++ {
@@ -340,8 +333,8 @@ func (p *Provider) serviceContainers(services manifest.Services, app, release st
 
 			if c.Port != 0 {
 				c.Targets = []containerTarget{
-					containerTarget{FromScheme: "tcp", FromPort: 80, ToScheme: scheme, ToPort: s.Port.Port},
-					containerTarget{FromScheme: "tls", FromPort: 443, ToScheme: scheme, ToPort: s.Port.Port},
+					containerTarget{FromScheme: "http", FromPort: 80, ToScheme: s.Port.Scheme, ToPort: s.Port.Port},
+					containerTarget{FromScheme: "https", FromPort: 443, ToScheme: s.Port.Scheme, ToPort: s.Port.Port},
 				}
 			}
 

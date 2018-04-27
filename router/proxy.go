@@ -3,8 +3,10 @@ package router
 import (
 	"crypto/tls"
 	"fmt"
+	"io"
 	"math/rand"
 	"net"
+	"net/http"
 	"net/url"
 	"time"
 
@@ -72,6 +74,10 @@ func (p *Proxy) Serve() error {
 	p.listener = ln
 
 	switch p.Listen.Scheme {
+	case "http", "https":
+		if err := p.proxyHTTP(ln); err != nil {
+			return err
+		}
 	case "tcp", "tls":
 		if err := p.proxyTCP(ln); err != nil {
 			return err
@@ -89,6 +95,51 @@ func (p *Proxy) Terminate() error {
 	}
 
 	return nil
+}
+
+func (p *Proxy) proxyHTTP(ln net.Listener) error {
+	s := &http.Server{}
+	s.Handler = p
+	return s.Serve(ln)
+}
+
+func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	c := &http.Client{}
+
+	target, err := p.tfn()
+	if err != nil {
+		http.Error(w, err.Error(), 502)
+		return
+	}
+
+	req, err := http.NewRequest(r.Method, target.String(), r.Body)
+	if err != nil {
+		http.Error(w, err.Error(), 502)
+		return
+	}
+
+	for k, vv := range r.Header {
+		for _, v := range vv {
+			req.Header.Add(k, v)
+		}
+	}
+
+	req.Header.Add("X-Forwarded-For", r.RemoteAddr)
+	req.Header.Set("X-Forwarded-Port", p.Listen.Port())
+	req.Header.Set("X-Forwarded-Proto", p.Listen.Scheme)
+
+	res, err := c.Do(req)
+	if err != nil {
+		http.Error(w, err.Error(), 502)
+		return
+	}
+
+	defer res.Body.Close()
+
+	if _, err := io.Copy(w, res.Body); err != nil {
+		http.Error(w, err.Error(), 502)
+		return
+	}
 }
 
 func (p *Proxy) proxyTCP(listener net.Listener) error {
