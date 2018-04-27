@@ -12,17 +12,17 @@ import (
 )
 
 type container struct {
-	Command  []string
-	Env      map[string]string
-	Hostname string
-	Image    string
-	Labels   map[string]string
-	Id       string
-	Memory   int
-	Name     string
-	Port     int
-	Targets  []containerTarget
-	Volumes  []string
+	Command   []string
+	Env       map[string]string
+	Hostname  string
+	Image     string
+	Labels    map[string]string
+	Listeners map[int]string
+	Id        string
+	Memory    int
+	Name      string
+	Port      int
+	Volumes   []string
 }
 
 type containerPort struct {
@@ -46,106 +46,106 @@ type endpoint struct {
 	targets  []string
 }
 
-func (p *Provider) routeContainers(cc []container) error {
-	if p.router == nil {
-		return nil
-	}
+// func (p *Provider) routeContainers(cc []container) error {
+//   if p.router == nil {
+//     return nil
+//   }
 
-	if _, err := p.router.RackGet(p.Name); err != nil {
-		if err := p.routerRegister(); err != nil {
-			return err
-		}
-	}
+//   if _, err := p.router.RackGet(p.Name); err != nil {
+//     if err := p.routerRegister(); err != nil {
+//       return err
+//     }
+//   }
 
-	hosts := map[string]host{}
+//   hosts := map[string]host{}
 
-	for _, c := range cc {
-		if c.Targets == nil || len(c.Targets) == 0 {
-			continue
-		}
+//   for _, c := range cc {
+//     if c.Targets == nil || len(c.Targets) == 0 {
+//       continue
+//     }
 
-		h := hosts[c.Hostname]
+//     h := hosts[c.Hostname]
 
-		if h.endpoints == nil {
-			h.endpoints = map[int]endpoint{}
-		}
+//     if h.endpoints == nil {
+//       h.endpoints = map[int]endpoint{}
+//     }
 
-		for _, t := range c.Targets {
-			e := h.endpoints[t.FromPort]
+//     for _, t := range c.Targets {
+//       e := h.endpoints[t.FromPort]
 
-			if e.targets == nil {
-				e.targets = []string{}
-			}
+//       if e.targets == nil {
+//         e.targets = []string{}
+//       }
 
-			e.protocol = t.FromScheme
+//       e.protocol = t.FromScheme
 
-			out, err := exec.Command("docker", "inspect", "-f", fmt.Sprintf(`{{index (index (index .NetworkSettings.Ports "%d/tcp") 0) "HostPort"}}`, t.ToPort), c.Name).CombinedOutput()
-			if err != nil {
-				return err
-			}
+//       out, err := exec.Command("docker", "inspect", "-f", fmt.Sprintf(`{{index (index (index .NetworkSettings.Ports "%d/tcp") 0) "HostPort"}}`, t.ToPort), c.Name).CombinedOutput()
+//       if err != nil {
+//         return err
+//       }
 
-			e.targets = append(e.targets, fmt.Sprintf("%s://127.0.0.1:%s", t.ToScheme, strings.TrimSpace(string(out))))
+//       e.targets = append(e.targets, fmt.Sprintf("%s://127.0.0.1:%s", t.ToScheme, strings.TrimSpace(string(out))))
 
-			h.endpoints[t.FromPort] = e
-		}
+//       h.endpoints[t.FromPort] = e
+//     }
 
-		hosts[c.Hostname] = h
-	}
+//     hosts[c.Hostname] = h
+//   }
 
-	for hostname, h := range hosts {
-		if _, err := p.router.HostGet(p.Name, hostname); err != nil {
-			if err := p.router.HostCreate(p.Name, hostname); err != nil {
-				return err
-			}
-		}
+//   for hostname, h := range hosts {
+//     if _, err := p.router.HostGet(p.Name, hostname); err != nil {
+//       if err := p.router.HostCreate(p.Name, hostname); err != nil {
+//         return err
+//       }
+//     }
 
-		for port, e := range h.endpoints {
-			if _, err := p.router.EndpointGet(p.Name, hostname, port); err != nil {
-				if err := p.router.EndpointCreate(p.Name, hostname, e.protocol, port); err != nil {
-					return err
-				}
-			}
+//     for port, e := range h.endpoints {
+//       if _, err := p.router.EndpointGet(p.Name, hostname, port); err != nil {
+//         if err := p.router.EndpointCreate(p.Name, hostname, e.protocol, port); err != nil {
+//           return err
+//         }
+//       }
 
-			et, err := p.router.TargetList(p.Name, hostname, port)
-			if err != nil {
-				return err
-			}
+//       et, err := p.router.TargetList(p.Name, hostname, port)
+//       if err != nil {
+//         return err
+//       }
 
-			for _, t := range missing(et, e.targets) {
-				if err := p.router.TargetRemove(p.Name, hostname, port, t); err != nil {
-					return err
-				}
-			}
+//       for _, t := range missing(et, e.targets) {
+//         if err := p.router.TargetRemove(p.Name, hostname, port, t); err != nil {
+//           return err
+//         }
+//       }
 
-			for _, t := range missing(e.targets, et) {
-				if err := p.router.TargetAdd(p.Name, hostname, port, t); err != nil {
-					return err
-				}
-			}
-		}
-	}
+//       for _, t := range missing(e.targets, et) {
+//         if err := p.router.TargetAdd(p.Name, hostname, port, t); err != nil {
+//           return err
+//         }
+//       }
+//     }
+//   }
 
-	return nil
-}
+//   return nil
+// }
 
-func missing(master, check []string) []string {
-	r := []string{}
+// func missing(master, check []string) []string {
+//   r := []string{}
 
-	for _, m := range master {
-		found := false
-		for _, c := range check {
-			if m == c {
-				found = true
-				break
-			}
-		}
-		if !found {
-			r = append(r, m)
-		}
-	}
+//   for _, m := range master {
+//     found := false
+//     for _, c := range check {
+//       if m == c {
+//         found = true
+//         break
+//       }
+//     }
+//     if !found {
+//       r = append(r, m)
+//     }
+//   }
 
-	return r
-}
+//   return r
+// }
 
 func (p *Provider) containerStart(c container, app, release string) (string, error) {
 	if c.Name == "" {
@@ -293,16 +293,16 @@ func containerList(args ...string) ([]container, error) {
 	for d.More() {
 		var c struct {
 			Id     string
+			Name   string
 			Config struct {
 				Labels map[string]string
 			}
-			HostConfig struct {
-				PortBindings map[string][]struct {
+			NetworkSettings struct {
+				Ports map[string][]struct {
 					HostIp   string
 					HostPort string
 				}
 			}
-			Name string
 		}
 
 		if err := d.Decode(&c); err != nil {
@@ -310,26 +310,28 @@ func containerList(args ...string) ([]container, error) {
 		}
 
 		cc := container{
-			Id:       c.Id,
-			Labels:   c.Config.Labels,
-			Name:     c.Name[1:],
-			Hostname: c.Config.Labels["convox.hostname"],
+			Id:        c.Id,
+			Labels:    c.Config.Labels,
+			Listeners: map[int]string{},
+			Name:      c.Name[1:],
+			Hostname:  c.Config.Labels["convox.hostname"],
 		}
 
-		app := c.Config.Labels["convox.app"]
-		service := c.Config.Labels["convox.service"]
-		scheme := c.Config.Labels["convox.scheme"]
-		port := c.Config.Labels["convox.port"]
+		pi, err := strconv.Atoi(c.Config.Labels["convox.port"])
+		if err != nil {
+			return nil, err
+		}
 
-		if app != "" && service != "" && scheme != "" && port != "" {
-			pi, err := strconv.Atoi(port)
+		cc.Port = pi
+
+		for host, cp := range c.NetworkSettings.Ports {
+			hpi, err := strconv.Atoi(strings.Split(host, "/")[0])
 			if err != nil {
 				return nil, err
 			}
 
-			cc.Targets = []containerTarget{
-				containerTarget{FromScheme: "tcp", FromPort: 80, ToScheme: scheme, ToPort: pi},
-				containerTarget{FromScheme: "tls", FromPort: 443, ToScheme: scheme, ToPort: pi},
+			if len(cp) == 1 {
+				cc.Listeners[hpi] = fmt.Sprintf("127.0.0.1:%s", cp[0].HostPort)
 			}
 		}
 

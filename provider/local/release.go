@@ -39,6 +39,15 @@ func (p *Provider) ReleaseCreate(app string, opts structs.ReleaseCreateOptions) 
 		r.Env = *opts.Env
 	}
 
+	if r.Build != "" {
+		b, err := p.BuildGet(app, r.Build)
+		if err != nil {
+			return nil, err
+		}
+
+		r.Manifest = b.Manifest
+	}
+
 	if err := p.storageStore(fmt.Sprintf("apps/%s/releases/%s/release.json", app, r.Id), r); err != nil {
 		return nil, errors.WithStack(log.Error(err))
 	}

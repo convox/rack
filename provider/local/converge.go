@@ -2,14 +2,16 @@ package local
 
 import (
 	"fmt"
-	"os/exec"
 	"reflect"
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/convox/rack/helpers"
 	"github.com/convox/rack/manifest"
+	"github.com/convox/rack/options"
+	"github.com/convox/rack/structs"
 	"github.com/pkg/errors"
 )
 
@@ -28,28 +30,28 @@ func (p *Provider) converge(app string) error {
 
 	desired := []container{}
 
-	var c []container
-
-	// c, err = p.balancerContainers(m.Balancers, app, r.Id)
-	// if err != nil {
-	//   return errors.WithStack(log.Error(err))
-	// }
-
-	// desired = append(desired, c...)
-
-	c, err = p.resourceContainers(m.Resources, app, r.Id)
+	a, err := p.AppGet(app)
 	if err != nil {
-		return errors.WithStack(log.Error(err))
+		return err
 	}
 
-	desired = append(desired, c...)
+	if !a.Sleep {
+		var c []container
 
-	c, err = p.serviceContainers(m.Services, app, r.Id)
-	if err != nil {
-		return errors.WithStack(log.Error(err))
+		c, err = p.resourceContainers(m.Resources, app, r.Id)
+		if err != nil {
+			return errors.WithStack(log.Error(err))
+		}
+
+		desired = append(desired, c...)
+
+		c, err = p.serviceContainers(m.Services, app, r.Id)
+		if err != nil {
+			return errors.WithStack(log.Error(err))
+		}
+
+		desired = append(desired, c...)
 	}
-
-	desired = append(desired, c...)
 
 	current, err := containersByLabels(map[string]string{
 		"convox.rack": p.Name,
@@ -59,76 +61,160 @@ func (p *Provider) converge(app string) error {
 		return errors.WithStack(log.Error(err))
 	}
 
-	needed := []container{}
+	extra := diffContainers(current, desired)
+	needed := diffContainers(desired, current)
 
-	for _, c := range desired {
-		found := false
-
-		for _, d := range current {
-			if reflect.DeepEqual(c.Labels, d.Labels) {
-				found = true
-				break
-			}
-		}
-
-		if !found {
-			needed = append(needed, c)
+	for _, c := range extra {
+		if err := p.containerStop(c.Id); err != nil {
+			return errors.WithStack(log.Error(err))
 		}
 	}
 
 	for _, c := range needed {
-		p.storageLogWrite(fmt.Sprintf("apps/%s/releases/%s/log", app, r.Id), []byte(fmt.Sprintf("starting: %s\n", c.Name)))
-
-		id, err := p.containerStart(c, app, r.Id)
-		if err != nil {
+		if _, err := p.containerStart(c, app, r.Id); err != nil {
 			return errors.WithStack(log.Error(err))
 		}
-
-		c.Id = id
 	}
 
-	if err := p.routeContainers(desired); err != nil {
+	if err := p.route(app); err != nil {
 		return errors.WithStack(log.Error(err))
 	}
+
+	// if err := p.routeContainers(desired); err != nil {
+	//   return errors.WithStack(log.Error(err))
+	// }
 
 	return log.Success()
 }
 
-func (p *Provider) prune() error {
-	convergeLock.Lock()
-	defer convergeLock.Unlock()
+func (p *Provider) idle() error {
+	log := p.logger("idle")
 
-	log := p.logger("prune")
-
-	apps, err := p.AppList()
+	r, err := p.router.RackGet(p.Name)
 	if err != nil {
-		return errors.WithStack(log.Error(err))
+		return err
 	}
 
-	all, err := containersByLabels(map[string]string{
-		"convox.rack": p.Name,
-	})
-	if err != nil {
-		return errors.WithStack(log.Error(err))
+	activity := map[string]time.Time{}
+
+	for _, h := range r.Hosts {
+		parts := strings.Split(h.Hostname, ".")
+
+		if len(parts) < 2 {
+			continue
+		}
+
+		app := parts[len(parts)-1]
+
+		if h.Activity.After(activity[app]) {
+			activity[app] = h.Activity
+		}
 	}
 
-	for _, c := range all {
+	for app, latest := range activity {
+		log.Logf("app=%s latest=%s", app, latest)
+
+		if latest.Before(time.Now().UTC().Add(-60 * time.Minute)) {
+			if err := p.AppUpdate(app, structs.AppUpdateOptions{Sleep: options.Bool(true)}); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+var serviceEndpoints = map[string]int{
+	"http":  80,
+	"https": 443,
+}
+
+func (p *Provider) route(app string) error {
+	m, _, err := helpers.AppManifest(p, app)
+	if err != nil {
+		return err
+	}
+
+	// create host stubs for every app if they dont exist
+	for _, s := range m.Services {
+		host := fmt.Sprintf("%s.%s", s.Name, app)
+
+		if err := p.router.HostCreate(p.Name, host); err != nil {
+			return err
+		}
+
+		if s.Port.Port == 0 {
+			continue
+		}
+
+		tc, err := containersByLabels(map[string]string{
+			"convox.rack":    p.Name,
+			"convox.app":     app,
+			"convox.service": s.Name,
+		})
+		if err != nil {
+			return err
+		}
+
+		targets := map[int][]string{}
+
+		for _, c := range tc {
+			for p, t := range c.Listeners {
+				if targets[p] == nil {
+					targets[p] = []string{}
+				}
+				targets[p] = append(targets[p], fmt.Sprintf("%s://%s", s.Port.Scheme, t))
+			}
+		}
+
+		for proto, port := range serviceEndpoints {
+			e, err := p.router.EndpointGet(p.Name, host, port)
+			if err != nil {
+				e, err = p.router.EndpointCreate(p.Name, host, proto, port)
+				if err != nil {
+					return err
+				}
+			}
+
+			missing := diff(targets[s.Port.Port], e.Targets)
+			extra := diff(e.Targets, targets[s.Port.Port])
+
+			for _, t := range missing {
+				if err := p.router.TargetAdd(p.Name, host, port, t); err != nil {
+					return err
+				}
+			}
+
+			for _, t := range extra {
+				if err := p.router.TargetRemove(p.Name, host, port, t); err != nil {
+					return err
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
+func diffContainers(a, b []container) []container {
+	diff := []container{}
+
+	for _, aa := range a {
 		found := false
 
-		for _, a := range apps {
-			if a.Name == c.Labels["convox.app"] {
+		for _, cc := range b {
+			if reflect.DeepEqual(aa.Labels, cc.Labels) {
 				found = true
 				break
 			}
 		}
 
 		if !found {
-			log.Successf("action=kill id=%s", c.Id)
-			exec.Command("docker", "stop", c.Id).Run()
+			diff = append(diff, aa)
 		}
 	}
 
-	return log.Success()
+	return diff
 }
 
 func resourcePort(kind string) (int, error) {
@@ -170,53 +256,6 @@ func (p *Provider) resourceVolumes(app, kind, name string) ([]string, error) {
 	return []string{}, fmt.Errorf("unknown resource type: %s", kind)
 }
 
-// func (p *Provider) balancerContainers(balancers manifest.Balancers, app, release string) ([]container, error) {
-//   cs := []container{}
-
-//   sys, err := p.SystemGet()
-//   if err != nil {
-//     return nil, err
-//   }
-
-//   for _, b := range balancers {
-//     for _, e := range b.Endpoints {
-//       command := []string{}
-
-//       switch {
-//       case e.Redirect != "":
-//         command = []string{"balancer", e.Protocol, "redirect", e.Redirect}
-//       case e.Target != "":
-//         command = []string{"balancer", e.Protocol, "target", e.Target}
-//       default:
-//         return nil, fmt.Errorf("invalid balancer endpoint: %s:%s", b.Name, e.Port)
-//       }
-
-//       cs = append(cs, container{
-//         Name:     fmt.Sprintf("%s.%s.balancer.%s", p.Name, app, b.Name),
-//         Hostname: fmt.Sprintf("%s.balancer.%s.%s", b.Name, app, p.Name),
-//         Port: containerPort{
-//           Host:      443,
-//           Container: 3000,
-//         },
-//         Memory:  64,
-//         Image:   sys.Image,
-//         Command: command,
-//         Labels: map[string]string{
-//           "convox.rack":    p.Name,
-//           "convox.version": p.Version,
-//           "convox.app":     app,
-//           "convox.release": release,
-//           "convox.type":    "balancer",
-//           "convox.name":    b.Name,
-//           "convox.port":    e.Port,
-//         },
-//       })
-//     }
-//   }
-
-//   return cs, nil
-// }
-
 func (p *Provider) resourceContainers(resources manifest.Resources, app, release string) ([]container, error) {
 	cs := []container{}
 
@@ -236,9 +275,9 @@ func (p *Provider) resourceContainers(resources manifest.Resources, app, release
 		cs = append(cs, container{
 			Name:     fmt.Sprintf("%s.%s.resource.%s", p.Name, app, r.Name),
 			Hostname: hostname,
-			Targets: []containerTarget{
-				containerTarget{FromScheme: "tcp", FromPort: rp, ToScheme: "tcp", ToPort: rp},
-			},
+			// Targets: []containerTarget{
+			//   containerTarget{FromScheme: "tcp", FromPort: rp, ToScheme: "tcp", ToPort: rp},
+			// },
 			Image:   fmt.Sprintf("convox/%s", r.Type),
 			Volumes: vs,
 			Port:    rp,
@@ -331,12 +370,12 @@ func (p *Provider) serviceContainers(services manifest.Services, app, release st
 				},
 			}
 
-			if c.Port != 0 {
-				c.Targets = []containerTarget{
-					containerTarget{FromScheme: "http", FromPort: 80, ToScheme: s.Port.Scheme, ToPort: s.Port.Port},
-					containerTarget{FromScheme: "https", FromPort: 443, ToScheme: s.Port.Scheme, ToPort: s.Port.Port},
-				}
-			}
+			// if c.Port != 0 {
+			//   c.Targets = []containerTarget{
+			//     containerTarget{FromScheme: "http", FromPort: 80, ToScheme: s.Port.Scheme, ToPort: s.Port.Port},
+			//     containerTarget{FromScheme: "https", FromPort: 443, ToScheme: s.Port.Scheme, ToPort: s.Port.Port},
+			//   }
+			// }
 
 			cs = append(cs, c)
 		}

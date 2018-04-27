@@ -42,6 +42,7 @@ func init() {
 		Usage:       "[service] [command]",
 		Action:      cmdStart,
 		Flags: []cli.Flag{
+			appFlag,
 			cli.StringFlag{
 				Name:   "file, f",
 				EnvVar: "COMPOSE_FILE",
@@ -87,6 +88,7 @@ func cmdStart(c *cli.Context) error {
 		opts.Command = c.Args()[1:]
 	}
 
+	opts.App = c.String("app")
 	opts.Build = !c.Bool("no-build")
 	opts.Cache = !c.Bool("no-cache")
 	opts.Sync = !c.Bool("no-sync")
@@ -115,6 +117,7 @@ func cmdStart(c *cli.Context) error {
 }
 
 type startOptions struct {
+	App      string
 	Build    bool
 	Cache    bool
 	Command  []string
@@ -204,6 +207,10 @@ func startGeneration2(opts startOptions) error {
 	app, err := stdcli.DefaultApp(mf)
 	if err != nil {
 		return err
+	}
+
+	if opts.App != "" {
+		app = opts.App
 	}
 
 	rack, err := sdk.New("https://rack.convox")

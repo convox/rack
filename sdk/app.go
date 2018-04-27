@@ -37,3 +37,16 @@ func (c *Client) AppGet(name string) (*structs.App, error) {
 func (c *Client) AppLogs(app string, opts structs.LogsOptions) (io.ReadCloser, error) {
 	return c.Websocket(fmt.Sprintf("/apps/%s/logs", app), RequestOptions{})
 }
+
+func (c *Client) AppUpdate(app string, opts structs.AppUpdateOptions) error {
+	ro, err := marshalOptions(opts)
+	if err != nil {
+		return err
+	}
+
+	if err := c.Put(fmt.Sprintf("/apps/%s", app), ro, nil); err != nil {
+		return err
+	}
+
+	return nil
+}

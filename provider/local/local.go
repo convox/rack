@@ -42,7 +42,7 @@ func FromEnv() *Provider {
 	return &Provider{
 		Combined: os.Getenv("COMBINED") == "true",
 		Image:    coalesce(os.Getenv("IMAGE"), "convox/rack"),
-		Name:     coalesce(os.Getenv("NAME"), "convox"),
+		Name:     coalesce(os.Getenv("RACK"), "convox"),
 		Root:     coalesce(os.Getenv("PROVIDER_ROOT"), "/var/convox"),
 		Router:   coalesce(os.Getenv("PROVIDER_ROUTER"), "10.42.0.0"),
 		Test:     os.Getenv("TEST") == "true",
@@ -169,17 +169,32 @@ func (p *Provider) routerRegister() error {
 	return p.router.RackCreate(p.Name, fmt.Sprintf("tls://127.0.0.1:%s", strings.TrimSpace(string(port))))
 }
 
+func systemVolume(volume string) bool {
+	switch volume {
+	case "/var/run/docker.sock":
+		return true
+	}
+
+	return false
+}
+
 func (p *Provider) serviceVolumes(app string, volumes []string) ([]string, error) {
 	vv := []string{}
 
 	for _, v := range volumes {
 		parts := strings.SplitN(v, ":", 2)
 
+		from := parts[0]
+
+		if !systemVolume(from) {
+			from = fmt.Sprintf("%s/%s/volumes/%s", p.Volume, app, from)
+		}
+
 		switch len(parts) {
 		case 1:
-			vv = append(vv, fmt.Sprintf("%s/%s/volumes/%s:%s", p.Volume, app, parts[0], parts[0]))
+			vv = append(vv, fmt.Sprintf("%s:%s", from, parts[0]))
 		case 2:
-			vv = append(vv, fmt.Sprintf("%s/%s/volumes/%s:%s", p.Volume, app, parts[0], parts[1]))
+			vv = append(vv, fmt.Sprintf("%s:%s", from, parts[1]))
 		}
 	}
 
