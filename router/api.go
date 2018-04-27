@@ -2,6 +2,7 @@ package router
 
 import (
 	"strconv"
+	"time"
 
 	"github.com/convox/api"
 )
@@ -72,6 +73,12 @@ func (rt *Router) HostCreate(c *api.Context) error {
 	}
 
 	hostname := c.Form("hostname")
+
+	for _, h := range r.Hosts {
+		if h.Hostname == hostname {
+			return c.RenderJSON(h)
+		}
+	}
 
 	t, err := r.NewHost(hostname)
 	if err != nil {
@@ -164,6 +171,8 @@ func (rt *Router) TargetAdd(c *api.Context) error {
 		return err
 	}
 
+	h.Activity = time.Now().UTC()
+
 	return c.RenderOK()
 }
 
@@ -191,7 +200,7 @@ func (rt *Router) TargetList(c *api.Context) error {
 	return c.RenderJSON(e.Targets)
 }
 
-func (rt *Router) TargetDelete(c *api.Context) error {
+func (rt *Router) TargetRemove(c *api.Context) error {
 	r, err := rt.Rack(c.Var("rack"))
 	if err != nil {
 		return err

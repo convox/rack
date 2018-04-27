@@ -42,8 +42,8 @@ func init() {
 			{
 				Name:        "promote",
 				Description: "promote a release",
-				Usage:       "<release id> [options]",
-				ArgsUsage:   "<release id>",
+				Usage:       "[release] [options]",
+				ArgsUsage:   "[release]",
 				Action:      cmdReleasePromote,
 				Flags: []cli.Flag{
 					appFlag,
@@ -126,13 +126,28 @@ func cmdReleaseInfo(c *cli.Context) error {
 
 func cmdReleasePromote(c *cli.Context) error {
 	stdcli.NeedHelp(c)
-	stdcli.NeedArg(c, 1)
-
-	release := c.Args()[0]
+	stdcli.NeedArg(c, 0)
 
 	_, app, err := stdcli.DirApp(c, ".")
 	if err != nil {
 		return stdcli.Error(err)
+	}
+
+	var release string
+
+	if len(c.Args()) > 0 {
+		release = c.Args()[0]
+	} else {
+		rr, err := rackClient(c).GetReleases(app)
+		if err != nil {
+			return stdcli.Error(err)
+		}
+
+		if len(rr) < 1 {
+			return stdcli.Error(fmt.Errorf("no releases for app: %s", app))
+		}
+
+		release = rr[0].Id
 	}
 
 	a, err := rackClient(c).GetApp(app)

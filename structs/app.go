@@ -4,6 +4,7 @@ type App struct {
 	Generation string `json:"generation,omitempty"`
 	Name       string `json:"name"`
 	Release    string `json:"release"`
+	Sleep      bool   `json:"sleep"`
 	Status     string `json:"status"`
 
 	Outputs    map[string]string `json:"-"`
@@ -18,7 +19,8 @@ type AppCreateOptions struct {
 }
 
 type AppUpdateOptions struct {
-	Parameters map[string]string
+	Parameters map[string]string `param:"parameters"`
+	Sleep      *bool             `param:"sleep"`
 }
 
 func (a Apps) Less(i, j int) bool {

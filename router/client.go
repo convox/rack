@@ -30,7 +30,7 @@ func NewClient(host string) *Client {
 	}
 }
 
-func (c *Client) EndpointCreate(rack, hostname, protocol string, port int) error {
+func (c *Client) EndpointCreate(rack, hostname, protocol string, port int) (*Endpoint, error) {
 	ro := RequestOptions{
 		Params: Params{
 			"port":     strconv.Itoa(port),
@@ -38,7 +38,13 @@ func (c *Client) EndpointCreate(rack, hostname, protocol string, port int) error
 		},
 	}
 
-	return c.post(fmt.Sprintf("/racks/%s/hosts/%s/endpoints", rack, hostname), ro, nil)
+	var e Endpoint
+
+	if err := c.post(fmt.Sprintf("/racks/%s/hosts/%s/endpoints", rack, hostname), ro, &e); err != nil {
+		return nil, err
+	}
+
+	return &e, nil
 }
 
 func (c *Client) EndpointGet(rack, hostname string, port int) (*Endpoint, error) {

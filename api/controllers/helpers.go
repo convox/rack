@@ -104,6 +104,9 @@ func unmarshalOptions(r *http.Request, opts interface{}) error {
 
 func unmarshalValue(r *http.Request, param string, u reflect.Value, v string) error {
 	switch t := u.Interface().(type) {
+	case *bool:
+		b := v == "true"
+		u.Set(reflect.ValueOf(&b))
 	case *string:
 		u.Set(reflect.ValueOf(&v))
 	case *time.Time:

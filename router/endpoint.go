@@ -4,6 +4,11 @@ import (
 	"fmt"
 	"math/rand"
 	"net/url"
+	"strings"
+
+	"github.com/convox/rack/options"
+	"github.com/convox/rack/sdk"
+	"github.com/convox/rack/structs"
 )
 
 type Endpoint struct {
@@ -81,6 +86,33 @@ func (e *Endpoint) Close() error {
 }
 
 func (e *Endpoint) randomTarget() (*url.URL, error) {
+	parts := strings.Split(e.host.Hostname, ".")
+
+	if len(parts) > 1 {
+		app := parts[len(parts)-1]
+
+		rh, err := e.host.rack.Host("rack")
+		if err != nil {
+			return nil, err
+		}
+
+		rack, err := sdk.New(fmt.Sprintf("https://%s", rh.IP.String()))
+		if err != nil {
+			return nil, err
+		}
+
+		a, err := rack.AppGet(app)
+		if err != nil {
+			return nil, err
+		}
+
+		if a.Sleep == true {
+			if err := rack.AppUpdate(app, structs.AppUpdateOptions{Sleep: options.Bool(false)}); err != nil {
+				return nil, err
+			}
+		}
+	}
+
 	if len(e.Targets) == 0 {
 		return nil, fmt.Errorf("no targets for endpoint: %s:%d", e.host.Hostname, e.Port)
 	}

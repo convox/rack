@@ -112,7 +112,7 @@ func (rt *Router) Serve() error {
 	a.Route("GET", "/racks/{rack}/hosts/{host}/endpoints/{port}", rt.EndpointGet)
 	a.Route("POST", "/racks/{rack}/hosts/{host}/endpoints/{port}/targets/add", rt.TargetAdd)
 	a.Route("GET", "/racks/{rack}/hosts/{host}/endpoints/{port}/targets", rt.TargetList)
-	a.Route("POST", "/racks/{rack}/hosts/{host}/endpoints/{port}/targets/delete", rt.TargetDelete)
+	a.Route("POST", "/racks/{rack}/hosts/{host}/endpoints/{port}/targets/delete", rt.TargetRemove)
 	a.Route("POST", "/terminate", rt.Terminate)
 	a.Route("GET", "/version", rt.Version)
 

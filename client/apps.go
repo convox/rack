@@ -10,6 +10,7 @@ type App struct {
 	Generation string `json:"generation"`
 	Name       string `json:"name"`
 	Release    string `json:"release"`
+	Sleep      bool   `json:"sleep"`
 	Status     string `json:"status"`
 }
 
