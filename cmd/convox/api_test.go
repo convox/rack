@@ -229,7 +229,7 @@ func TestApiGetApps(t *testing.T) {
 		test.ExecRun{
 			Command: "convox api get /apps",
 			Exit:    0,
-			Stdout:  "[\n  {\n    \"generation\": \"\",\n    \"name\": \"sinatra\",\n    \"release\": \"\",\n    \"status\": \"running\"\n  }\n]\n",
+			Stdout:  "[\n  {\n    \"generation\": \"\",\n    \"name\": \"sinatra\",\n    \"release\": \"\",\n    \"sleep\": false,\n    \"status\": \"running\"\n  }\n]\n",
 		},
 	)
 }
@@ -288,7 +288,7 @@ func TestApiTrailingSlash(t *testing.T) {
 		test.ExecRun{
 			Command: "convox api get /apps/",
 			Exit:    0,
-			Stdout:  "[\n  {\n    \"generation\": \"\",\n    \"name\": \"sinatra\",\n    \"release\": \"\",\n    \"status\": \"running\"\n  }\n]\n",
+			Stdout:  "[\n  {\n    \"generation\": \"\",\n    \"name\": \"sinatra\",\n    \"release\": \"\",\n    \"sleep\": false,\n    \"status\": \"running\"\n  }\n]\n",
 		},
 	)
 }
