@@ -204,7 +204,7 @@ func (c *Client) request(method, path string, opts RequestOptions) (*http.Reques
 		return nil, err
 	}
 
-	endpoint := fmt.Sprintf("https://%s%s%s?%s", c.Host, path, qs)
+	endpoint := fmt.Sprintf("https://%s%s?%s", c.Host, path, qs)
 
 	req, err := http.NewRequest(method, endpoint, r)
 	if err != nil {

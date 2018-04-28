@@ -33,7 +33,7 @@ func TestAppList(t *testing.T) {
 
 		if assert.Nil(t, hf.Request("GET", "/apps", nil)) {
 			hf.AssertCode(t, 200)
-			hf.AssertJSON(t, "[{\"name\":\"myapp\",\"release\":\"R1234\",\"status\":\"running\"}]")
+			hf.AssertJSON(t, "[{\"name\":\"myapp\",\"release\":\"R1234\",\"sleep\":false,\"status\":\"running\"}]")
 		}
 	})
 }
@@ -52,7 +52,7 @@ func TestAppGet(t *testing.T) {
 
 		if assert.Nil(t, hf.Request("GET", "/apps/myapp", nil)) {
 			hf.AssertCode(t, 200)
-			hf.AssertJSON(t, "{\"name\":\"myapp\",\"release\":\"R1234\",\"status\":\"running\"}")
+			hf.AssertJSON(t, "{\"name\":\"myapp\",\"release\":\"R1234\",\"sleep\":false,\"status\":\"running\"}")
 		}
 	})
 }
@@ -87,7 +87,7 @@ func TestAppCreate(t *testing.T) {
 
 		if assert.Nil(t, hf.Request("POST", "/apps", v)) {
 			hf.AssertCode(t, 200)
-			hf.AssertJSON(t, "{\"name\":\"myapp\",\"release\":\"R1234\",\"status\":\"running\"}")
+			hf.AssertJSON(t, "{\"name\":\"myapp\",\"release\":\"R1234\",\"sleep\":false,\"status\":\"running\"}")
 		}
 	})
 }

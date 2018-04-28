@@ -80,10 +80,6 @@ func (p *Provider) converge(app string) error {
 		return errors.WithStack(log.Error(err))
 	}
 
-	// if err := p.routeContainers(desired); err != nil {
-	//   return errors.WithStack(log.Error(err))
-	// }
-
 	return log.Success()
 }
 
@@ -369,13 +365,6 @@ func (p *Provider) serviceContainers(services manifest.Services, app, release st
 					"convox.scheme":   s.Port.Scheme,
 				},
 			}
-
-			// if c.Port != 0 {
-			//   c.Targets = []containerTarget{
-			//     containerTarget{FromScheme: "http", FromPort: 80, ToScheme: s.Port.Scheme, ToPort: s.Port.Port},
-			//     containerTarget{FromScheme: "https", FromPort: 443, ToScheme: s.Port.Scheme, ToPort: s.Port.Port},
-			//   }
-			// }
 
 			cs = append(cs, c)
 		}

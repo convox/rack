@@ -126,7 +126,6 @@ func cmdReleaseInfo(c *cli.Context) error {
 
 func cmdReleasePromote(c *cli.Context) error {
 	stdcli.NeedHelp(c)
-	stdcli.NeedArg(c, 0)
 
 	_, app, err := stdcli.DirApp(c, ".")
 	if err != nil {
