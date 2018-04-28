@@ -103,9 +103,23 @@ func (p *Proxy) proxyHTTP(ln net.Listener) error {
 	return s.Serve(ln)
 }
 
-func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	c := &http.Client{}
+var hc = &http.Client{
+	Transport: &http.Transport{
+		DialContext: (&net.Dialer{
+			Timeout:   30 * time.Second,
+			KeepAlive: 10 * time.Second,
+		}).DialContext,
+		MaxIdleConns:          100,
+		IdleConnTimeout:       90 * time.Second,
+		TLSHandshakeTimeout:   10 * time.Second,
+		ExpectContinueTimeout: 1 * time.Second,
+		TLSClientConfig: &tls.Config{
+			InsecureSkipVerify: true,
+		},
+	},
+}
 
+func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	target, err := p.tfn()
 	if err != nil {
 		http.Error(w, err.Error(), 502)
@@ -128,7 +142,7 @@ func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	req.Header.Set("X-Forwarded-Port", p.Listen.Port())
 	req.Header.Set("X-Forwarded-Proto", p.Listen.Scheme)
 
-	res, err := c.Do(req)
+	res, err := hc.Do(req)
 	if err != nil {
 		http.Error(w, err.Error(), 502)
 		return
