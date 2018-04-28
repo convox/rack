@@ -208,6 +208,11 @@ func containerList(args ...string) ([]container, error) {
 			return nil, err
 		}
 
+		// dont list build processes
+		if c.Config.Labels["convox.service"] == "build" {
+			continue
+		}
+
 		cc := container{
 			Id:        c.Id,
 			Labels:    c.Config.Labels,
@@ -216,12 +221,14 @@ func containerList(args ...string) ([]container, error) {
 			Hostname:  c.Config.Labels["convox.hostname"],
 		}
 
-		pi, err := strconv.Atoi(c.Config.Labels["convox.port"])
-		if err != nil {
-			return nil, err
-		}
+		if c.Config.Labels["convox.port"] != "" {
+			pi, err := strconv.Atoi(c.Config.Labels["convox.port"])
+			if err != nil {
+				return nil, err
+			}
 
-		cc.Port = pi
+			cc.Port = pi
+		}
 
 		for host, cp := range c.NetworkSettings.Ports {
 			hpi, err := strconv.Atoi(strings.Split(host, "/")[0])
