@@ -126,7 +126,7 @@ func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	req, err := http.NewRequest(r.Method, target.String(), r.Body)
+	req, err := http.NewRequest(r.Method, fmt.Sprintf("%s%s", target.String(), r.URL.Path), r.Body)
 	if err != nil {
 		http.Error(w, err.Error(), 502)
 		return
@@ -149,6 +149,14 @@ func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	defer res.Body.Close()
+
+	for k, vv := range res.Header {
+		for _, v := range vv {
+			w.Header().Add(k, v)
+		}
+	}
+
+	w.WriteHeader(res.StatusCode)
 
 	if _, err := io.Copy(w, res.Body); err != nil {
 		http.Error(w, err.Error(), 502)

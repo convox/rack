@@ -64,6 +64,7 @@ func (p *Provider) BuildCreate(app, method, url string, opts structs.BuildCreate
 				"BUILD_GENERATION": "2",
 				"BUILD_ID":         b.Id,
 				"BUILD_MANIFEST":   cs(opts.Manifest, "convox.yml"),
+				"BUILD_RACK":       p.Name,
 				"BUILD_URL":        url,
 				"PROVIDER":         "local",
 			},
