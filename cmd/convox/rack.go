@@ -7,9 +7,11 @@ import (
 	"net/url"
 	"os"
 	"os/exec"
+	"os/signal"
 	"runtime"
 	"sort"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/convox/rack/cmd/convox/helpers"
@@ -138,6 +140,11 @@ func init() {
 				Action:      cmdRackStart,
 				Flags: []cli.Flag{
 					cli.StringFlag{
+						Name:  "name",
+						Usage: "rack name",
+						Value: "convox",
+					},
+					cli.StringFlag{
 						Name:  "router",
 						Usage: "local router",
 						Value: "10.42.0.0",
@@ -192,12 +199,21 @@ func cmdRack(c *cli.Context) error {
 	info.Add("Status", system.Status)
 	info.Add("Version", system.Version)
 
-	info.Add("Count", fmt.Sprintf("%d", system.Count))
+	if system.Count > 0 {
+		info.Add("Count", fmt.Sprintf("%d", system.Count))
+	}
+
 	if system.Domain != "" {
 		info.Add("Domain", system.Domain)
 	}
-	info.Add("Region", system.Region)
-	info.Add("Type", system.Type)
+
+	if system.Region != "" {
+		info.Add("Region", system.Region)
+	}
+
+	if system.Type != "" {
+		info.Add("Type", system.Type)
+	}
 
 	info.Print()
 
@@ -545,7 +561,7 @@ func cmdRackStart(c *cli.Context) error {
 		v = "dev"
 	}
 
-	cmd, err := rackCommand(v, c.String("router"))
+	cmd, err := rackCommand(c.String("name"), v, c.String("router"))
 	if err != nil {
 		return err
 	}
@@ -553,7 +569,20 @@ func cmdRackStart(c *cli.Context) error {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
+	go handleSignalTermination(c.String("name"))
+
 	return cmd.Run()
+}
+
+func handleSignalTermination(name string) {
+	sigs := make(chan os.Signal)
+
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+
+	for range sigs {
+		fmt.Printf("\nstopping: %s\n", name)
+		exec.Command("docker", "stop", name).Run()
+	}
 }
 
 func awsCmd(args ...string) ([]byte, error) {
@@ -694,9 +723,7 @@ func waitForRackRunning(c *cli.Context) error {
 	return nil
 }
 
-func rackCommand(version string, router string) (*exec.Cmd, error) {
-	name := "convox"
-
+func rackCommand(name string, version string, router string) (*exec.Cmd, error) {
 	vol := "/var/convox"
 
 	switch runtime.GOOS {
@@ -707,14 +734,17 @@ func rackCommand(version string, router string) (*exec.Cmd, error) {
 	exec.Command("docker", "rm", "-f", name).Run()
 
 	args := []string{"run", "--rm"}
-	args = append(args, "-m", "256m")
-	args = append(args, "-i")
-	args = append(args, "--name", name)
 	args = append(args, "-e", "COMBINED=true")
 	args = append(args, "-e", "PROVIDER=local")
 	args = append(args, "-e", fmt.Sprintf("PROVIDER_ROUTER=%s", router))
 	args = append(args, "-e", fmt.Sprintf("PROVIDER_VOLUME=%s", vol))
+	args = append(args, "-e", fmt.Sprintf("RACK=%s", name))
 	args = append(args, "-e", fmt.Sprintf("VERSION=%s", version))
+	args = append(args, "-i")
+	args = append(args, "--label", fmt.Sprintf("convox.rack=%s", name))
+	args = append(args, "--label", "convox.type=rack")
+	args = append(args, "-m", "256m")
+	args = append(args, "--name", name)
 	args = append(args, "-p", "5443")
 	args = append(args, "-v", fmt.Sprintf("%s:/var/convox", vol))
 	args = append(args, "-v", "/var/run/docker.sock:/var/run/docker.sock")

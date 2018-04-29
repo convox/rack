@@ -24,6 +24,12 @@ func testServer(t *testing.T, stubs ...test.Http) *httptest.Server {
 		Version: "latest",
 	}})
 
+	stubs = append(stubs, test.Http{Method: "GET", Path: "/racks", Code: 200, Response: []client.Rack{
+		client.Rack{
+			Name: "test",
+		},
+	}})
+
 	server := test.Server(t, stubs...)
 
 	u, _ := url.Parse(server.URL)

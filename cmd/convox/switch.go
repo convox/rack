@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"io/ioutil"
-	"os"
 	"path/filepath"
 	"strings"
 
@@ -24,70 +23,33 @@ func init() {
 
 func cmdSwitch(c *cli.Context) error {
 	if len(c.Args()) < 1 {
-		rack := currentRack(c)
-
-		if rack == "" {
-			fmt.Println("Use `convox racks` to list your available racks and `convox switch <rack>` to select one.")
-			os.Exit(1)
-		} else {
-			fmt.Println(rack)
-		}
-
+		fmt.Println(currentRack(c))
 		return nil
 	}
 
-	racks, err := rackClientWithoutLocal(c).Racks()
-	if err != nil {
-		return stdcli.Error(err)
-	}
-
-	rackName := c.Args()[0]
-	orgName := ""
-
-	if localRackRunning() && rackName == "local" {
-		return switchRack("local")
-	}
-
-	parts := strings.Split(rackName, "/")
-	if len(parts) == 2 {
-		orgName = parts[0]
-		rackName = parts[1]
-	}
-
-	all := []string{}
-	matched := []string{}
+	name := c.Args()[0]
+	racks := rackList()
+	matches := Racks{}
 
 	for _, r := range racks {
-		rn := fmt.Sprintf("%s/%s", r.Organization.Name, r.Name)
-		all = append(all, rn)
+		if r.Name == name {
+			return switchRack(r.Name)
+		}
 
-		// if no org was specified, collect all the rack name matches
-		if orgName == "" {
-			if r.Name == rackName {
-				matched = append(matched, rn)
-			}
-		} else {
-			if fmt.Sprintf("%s/%s", orgName, rackName) == rn {
-				matched = append(matched, rn)
-			}
+		if strings.Index(r.Name, name) != -1 {
+			matches = append(matches, r)
 		}
 	}
 
-	if len(matched) == 0 {
-		errMessages := []string{"Rack not found."}
-
-		if len(all) > 0 {
-			errMessages = append(errMessages, ("Try one of the following:\n" + strings.Join(all, "\n")))
-		}
-
-		return stdcli.Error(fmt.Errorf(strings.Join(errMessages, " ")))
+	if len(matches) > 1 {
+		return stdcli.Errorf("ambiguous name: %s", name)
 	}
 
-	if len(matched) > 1 {
-		return stdcli.Error(fmt.Errorf("You have access to multiple racks with that name, try one of the following:\n" + strings.Join(matched, "\n")))
+	if len(matches) == 1 {
+		return switchRack(matches[0].Name)
 	}
 
-	return switchRack(matched[0])
+	return stdcli.Errorf("could not find rack: %s", name)
 }
 
 func switchRack(rack string) error {

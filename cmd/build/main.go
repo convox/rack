@@ -30,6 +30,7 @@ var (
 	flagManifest   string
 	flagMethod     string
 	flagPush       string
+	flagRack       string
 	flagUrl        string
 
 	currentBuild    *structs.Build
@@ -49,6 +50,7 @@ func main() {
 	fs.StringVar(&flagManifest, "manifest", "", "path to app manifest")
 	fs.StringVar(&flagMethod, "method", "", "source method")
 	fs.StringVar(&flagPush, "push", "", "push to registry")
+	fs.StringVar(&flagRack, "rack", "convox", "rack name")
 	fs.StringVar(&flagUrl, "url", "", "source url")
 
 	if err := fs.Parse(os.Args[1:]); err != nil {
@@ -77,6 +79,10 @@ func main() {
 
 	if v := os.Getenv("BUILD_PUSH"); v != "" {
 		flagPush = v
+	}
+
+	if v := os.Getenv("BUILD_RACK"); v != "" {
+		flagRack = v
 	}
 
 	if v := os.Getenv("BUILD_URL"); v != "" {
@@ -237,20 +243,6 @@ func build(dir string) error {
 		return err
 	}
 
-	// a, err := currentProvider.AppGet(flagApp)
-	// if err != nil {
-	//   return err
-	// }
-
-	// sys, err := currentProvider.SystemGet()
-	// if err != nil {
-	//   return err
-	// }
-
-	// env["SECURE_ENVIRONMENT_URL"] = a.Outputs["Environment"]
-	// env["SECURE_ENVIRONMENT_TYPE"] = "envfile"
-	// env["SECURE_ENVIRONMENT_KEY"] = sys.Outputs["EncryptionKey"]
-
 	err = m.Build(dir, flagApp, s, manifest1.BuildOptions{
 		Environment: env,
 		Cache:       flagCache == "true",
@@ -308,7 +300,9 @@ func build2(dir string) error {
 		}
 	}()
 
-	err = m.Build(flagApp, flagID, manifest.BuildOptions{
+	prefix := fmt.Sprintf("%s/%s", flagRack, flagApp)
+
+	err = m.Build(prefix, flagID, manifest.BuildOptions{
 		Env:    manifest.Environment(env),
 		Push:   flagPush,
 		Root:   dir,
