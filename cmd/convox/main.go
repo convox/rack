@@ -123,6 +123,30 @@ type Rack struct {
 
 type Racks []Rack
 
+func currentCredentials(c *cli.Context) (string, string, string, error) {
+	if os.Getenv("CONVOX_HOST") != "" {
+		return "", os.Getenv("CONVOX_HOST"), os.Getenv("CONVOX_PASSWORD"), nil
+	}
+
+	name := currentRack(c)
+
+	if name == "" {
+		return "", "", "", fmt.Errorf("no host config found, try `convox login`")
+	}
+
+	rack, err := rackGet(name)
+	if err != nil {
+		return "", "", "", fmt.Errorf("could not get rack: %s", name)
+	}
+
+	password, err := getLogin(rack.Host)
+	if err != nil {
+		return "", "", "", err
+	}
+
+	return name, rack.Host, password, nil
+}
+
 func currentRack(c *cli.Context) string {
 	cr, err := ioutil.ReadFile(filepath.Join(ConfigRoot, "rack"))
 	if err != nil && !os.IsNotExist(err) {
@@ -135,26 +159,9 @@ func currentRack(c *cli.Context) string {
 }
 
 func rack(c *cli.Context) *sdk.Client {
-	cr := currentRack(c)
-
-	if cr == "local" {
-		if !localRackRunning() {
-			stdcli.Errorf("local rack is not running")
-			os.Exit(1)
-		}
-
-		cl, err := sdk.New("https://rack.convox")
-		if err != nil {
-			stdcli.Error(err)
-			os.Exit(1)
-		}
-
-		return cl
-	}
-
-	host, password, err := currentLogin()
+	name, host, password, err := currentCredentials(c)
 	if err != nil {
-		stdcli.Errorf("%s, try `convox login`", err)
+		stdcli.Error(err)
 		os.Exit(1)
 	}
 
@@ -164,37 +171,21 @@ func rack(c *cli.Context) *sdk.Client {
 		os.Exit(1)
 	}
 
-	cl.Rack = cr
+	cl.Rack = name
 
 	return cl
 }
 
 func rackClient(c *cli.Context) *client.Client {
-	if os.Getenv("CONVOX_HOST") != "" {
-		return client.New(os.Getenv("CONVOX_HOST"), os.Getenv("CONVOX_PASSWORD"), c.App.Version)
-	}
-
-	name := currentRack(c)
-
-	if c.String("rack") != "" {
-		name = c.String("rack")
-	}
-
-	if name == "" {
-		stdcli.Errorf("no host config found, try `convox login`")
-		os.Exit(1)
-	}
-
-	rack, err := rackGet(currentRack(c))
+	name, host, password, err := currentCredentials(c)
 	if err != nil {
-		stdcli.Errorf("could not get rack: %s", currentRack(c))
+		stdcli.Error(err)
 		os.Exit(1)
 	}
 
-	password, _ := getLogin(rack.Host)
+	cl := client.New(host, password, Version)
 
-	cl := client.New(rack.Host, password, c.App.Version)
-	cl.Rack = rack.Name
+	cl.Rack = name
 
 	return cl
 }
