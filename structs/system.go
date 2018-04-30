@@ -26,6 +26,11 @@ type SystemProcessesOptions struct {
 	All *bool
 }
 
+type SystemUninstallOptions struct {
+	Color  *bool
+	Output io.Writer
+}
+
 type SystemUpdateOptions struct {
 	InstanceCount *int
 	InstanceType  *string

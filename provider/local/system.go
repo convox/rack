@@ -197,7 +197,16 @@ func (p *Provider) SystemReleases() (structs.Releases, error) {
 	return nil, fmt.Errorf("unimplemented")
 }
 
-func (p *Provider) SystemUninstall(name string, opts structs.SystemInstallOptions) error {
+func (p *Provider) SystemUninstall(name string, opts structs.SystemUninstallOptions) error {
+	u, err := user.Current()
+	if err != nil {
+		return err
+	}
+
+	if u.Uid != "0" {
+		return fmt.Errorf("must be root to uninstall a local rack")
+	}
+
 	launcherRemove(fmt.Sprintf("convox.rack.%s", name))
 
 	exec.Command("launchctl", "remove", fmt.Sprintf("convox.rack.%s", name)).Run()

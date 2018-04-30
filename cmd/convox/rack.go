@@ -152,6 +152,12 @@ func init() {
 				},
 			},
 			{
+				Name:        "uninstall",
+				Description: "uninstall a rack",
+				Action:      cmdRackUninstall,
+				Usage:       "<provider> <name>",
+			},
+			{
 				Name:        "update",
 				Description: "update rack to the given version",
 				Usage:       "[version] [options]",
@@ -572,6 +578,26 @@ func cmdRackStart(c *cli.Context) error {
 	go handleSignalTermination(c.String("name"))
 
 	return cmd.Run()
+}
+
+func cmdRackUninstall(c *cli.Context) error {
+	stdcli.NeedHelp(c)
+	stdcli.NeedArg(c, 2)
+
+	ptype := c.Args()[0]
+	name := c.Args()[1]
+
+	p := provider.FromName(ptype)
+
+	err := p.SystemUninstall(name, structs.SystemUninstallOptions{
+		Color:  options.Bool(true),
+		Output: os.Stdout,
+	})
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func handleSignalTermination(name string) {

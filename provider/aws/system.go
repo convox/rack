@@ -271,6 +271,10 @@ func (p *AWSProvider) SystemReleases() (structs.Releases, error) {
 	return releases, nil
 }
 
+func (p *AWSProvider) SystemUninstall(name string, opts structs.SystemUninstallOptions) error {
+	return fmt.Errorf("unimplemented")
+}
+
 func (p *AWSProvider) SystemUpdate(opts structs.SystemUpdateOptions) error {
 	changes := map[string]string{}
 	params := opts.Parameters
