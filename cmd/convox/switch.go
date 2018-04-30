@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"path/filepath"
@@ -33,7 +34,7 @@ func cmdSwitch(c *cli.Context) error {
 
 	for _, r := range racks {
 		if r.Name == name {
-			return switchRack(r.Name)
+			return switchRack(r)
 		}
 
 		if strings.Index(r.Name, name) != -1 {
@@ -46,18 +47,27 @@ func cmdSwitch(c *cli.Context) error {
 	}
 
 	if len(matches) == 1 {
-		return switchRack(matches[0].Name)
+		return switchRack(matches[0])
 	}
 
 	return stdcli.Errorf("could not find rack: %s", name)
 }
 
-func switchRack(rack string) error {
-	if err := ioutil.WriteFile(filepath.Join(ConfigRoot, "rack"), []byte(rack), 0644); err != nil {
+func switchRack(rack Rack) error {
+	if err := ioutil.WriteFile(filepath.Join(ConfigRoot, "rack"), []byte(rack.Name), 0644); err != nil {
 		return err
 	}
 
-	fmt.Printf("Switched to %s\n", rack)
+	data, err := json.Marshal(rack)
+	if err != nil {
+		return err
+	}
+
+	if err := ioutil.WriteFile(filepath.Join(ConfigRoot, "switch"), data, 0644); err != nil {
+		return err
+	}
+
+	fmt.Printf("Switched to %s\n", rack.Name)
 
 	return nil
 }
