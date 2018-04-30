@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/mail"
@@ -126,6 +127,25 @@ type Racks []Rack
 func currentCredentials(c *cli.Context) (string, string, string, error) {
 	if os.Getenv("CONVOX_HOST") != "" {
 		return "", os.Getenv("CONVOX_HOST"), os.Getenv("CONVOX_PASSWORD"), nil
+	}
+
+	drs, err := ioutil.ReadFile(filepath.Join(ConfigRoot, "switch"))
+
+	if len(drs) > 0 && err == nil {
+		var rs Rack
+
+		if err := json.Unmarshal(drs, &rs); err != nil {
+			return "", "", "", fmt.Errorf("error reading current rack switch setting")
+		}
+
+		if rs.Name == currentRack(c) {
+			password, err := getLogin(rs.Host)
+			if err != nil {
+				return "", "", "", err
+			}
+
+			return rs.Name, rs.Host, password, nil
+		}
 	}
 
 	name := currentRack(c)
