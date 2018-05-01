@@ -980,6 +980,11 @@ func (p *AWSProvider) generateTaskDefinition2(app string, opts structs.ProcessRu
 		return nil, err
 	}
 
+	b, err := p.BuildGet(app, r.Build)
+	if err != nil {
+		return nil, err
+	}
+
 	env := structs.Environment{}
 
 	if err := env.Load([]byte(r.Env)); err != nil {
@@ -1048,7 +1053,11 @@ func (p *AWSProvider) generateTaskDefinition2(app string, opts structs.ProcessRu
 		senv[*e.Name] = *e.Value
 	}
 
+	senv["BUILD"] = b.Id
+	senv["BUILD_DESCRIPTION"] = b.Description
+	senv["RELEASE"] = r.Id
 	senv["CONVOX_ENV_URL"] = fmt.Sprintf("s3://%s/releases/%s/env", settings, release)
+	senv["CONVOX_ENV_VARS"] = s.EnvironmentKeys()
 
 	cenv := []*ecs.KeyValuePair{}
 
