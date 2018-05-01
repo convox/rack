@@ -91,6 +91,7 @@ func cmdStart(c *cli.Context) error {
 	opts.App = c.String("app")
 	opts.Build = !c.Bool("no-build")
 	opts.Cache = !c.Bool("no-cache")
+	opts.Context = c
 	opts.Sync = !c.Bool("no-sync")
 
 	if v := c.String("file"); v != "" {
@@ -121,6 +122,7 @@ type startOptions struct {
 	Build    bool
 	Cache    bool
 	Command  []string
+	Context  *cli.Context
 	Id       string
 	Manifest string
 	Service  string
@@ -213,18 +215,15 @@ func startGeneration2(opts startOptions) error {
 		app = opts.App
 	}
 
-	rack, err := sdk.New("https://rack.convox")
-	if err != nil {
-		return err
-	}
+	rk := rack(opts.Context)
 
-	if _, err := rack.AppGet(app); err != nil {
-		if _, err := rack.AppCreate(app, structs.AppCreateOptions{Generation: options.String("2")}); err != nil {
+	if _, err := rk.AppGet(app); err != nil {
+		if _, err := rk.AppCreate(app, structs.AppCreateOptions{Generation: options.String("2")}); err != nil {
 			return err
 		}
 	}
 
-	env, err := rack.EnvironmentGet(app)
+	env, err := rk.EnvironmentGet(app)
 	if err != nil {
 		return err
 	}
@@ -239,21 +238,21 @@ func startGeneration2(opts startOptions) error {
 		return err
 	}
 
-	o, err := rack.ObjectStore(app, "", bytes.NewReader(tar), structs.ObjectStoreOptions{})
+	o, err := rk.ObjectStore(app, "", bytes.NewReader(tar), structs.ObjectStoreOptions{})
 	if err != nil {
 		return err
 	}
 
-	b, err := rack.BuildCreate(app, "tgz", o.Url, structs.BuildCreateOptions{Manifest: options.String(mf)})
+	b, err := rk.BuildCreate(app, "tgz", o.Url, structs.BuildCreateOptions{Manifest: options.String(mf)})
 	if err != nil {
 		return err
 	}
 
-	if err := waitForBuildGeneration2(rack, app, b.Id); err != nil {
+	if err := waitForBuildGeneration2(rk, app, b.Id); err != nil {
 		return err
 	}
 
-	logs, err := rack.BuildLogs(app, b.Id, structs.LogsOptions{})
+	logs, err := rk.BuildLogs(app, b.Id, structs.LogsOptions{})
 	if err != nil {
 		return err
 	}
@@ -264,7 +263,7 @@ func startGeneration2(opts startOptions) error {
 		return err
 	}
 
-	b, err = rack.BuildGet(app, b.Id)
+	b, err = rk.BuildGet(app, b.Id)
 	if err != nil {
 		return err
 	}
@@ -277,11 +276,11 @@ func startGeneration2(opts startOptions) error {
 		return fmt.Errorf("unknown build status: %s", b.Status)
 	}
 
-	if err := rack.ReleasePromote(app, b.Release); err != nil {
+	if err := rk.ReleasePromote(app, b.Release); err != nil {
 		return err
 	}
 
-	r, err := rack.ReleaseGet(app, b.Release)
+	r, err := rk.ReleaseGet(app, b.Release)
 	if err != nil {
 		return err
 	}
@@ -298,7 +297,7 @@ func startGeneration2(opts startOptions) error {
 
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
-	go handleSignals(rack, m, app, sig, errch)
+	go handleSignals(rk, m, app, sig, errch)
 
 	wd, err := os.Getwd()
 	if err != nil {
@@ -307,11 +306,11 @@ func startGeneration2(opts startOptions) error {
 
 	for _, s := range m.Services {
 		if s.Build.Path != "" {
-			go watchChanges(rack, m, app, s.Name, wd, errch)
+			go watchChanges(rk, m, app, s.Name, wd, errch)
 		}
 	}
 
-	logs, err = rack.AppLogs(app, structs.LogsOptions{Follow: true, Prefix: true})
+	logs, err = rk.AppLogs(app, structs.LogsOptions{Follow: true, Prefix: true})
 	if err != nil {
 		return err
 	}
@@ -320,6 +319,9 @@ func startGeneration2(opts startOptions) error {
 
 	go func() {
 		for ls.Scan() {
+			t := ls.Text()
+			fmt.Printf("t = %+v\n", t)
+
 			match := reAppLog.FindStringSubmatch(ls.Text())
 
 			if len(match) != 7 {
