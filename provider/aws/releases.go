@@ -55,6 +55,10 @@ func (p *AWSProvider) ReleaseCreate(app string, opts structs.ReleaseCreateOption
 		r.Manifest = b.Manifest
 	}
 
+	if opts.Manifest != nil {
+		r.Manifest = *opts.Manifest
+	}
+
 	if err := p.releaseSave(r); err != nil {
 		return nil, err
 	}
@@ -192,7 +196,47 @@ func (p *AWSProvider) ReleasePromote(app, id string) error {
 		}
 	}
 
-	cs, err := p.CertificateList()
+	scaleerrs := []string{}
+
+	as, err := p.describeStack(p.rackStack(app))
+	if err != nil {
+		return err
+	}
+
+	for _, s := range m.Services {
+		param := fmt.Sprintf("%sFormation", upperName(s.Name))
+
+		if scale := stackParameters(as)[param]; scale != "" {
+			parts := strings.Split(scale, ",")
+
+			if len(parts) != 3 {
+				scaleerrs = append(scaleerrs, fmt.Sprintf("invalid value for formation param %s: %s", param, scale))
+			}
+
+			if parts[0] != strconv.Itoa(s.Scale.Count.Min) || parts[1] != strconv.Itoa(s.Scale.Cpu) || parts[2] != strconv.Itoa(s.Scale.Memory) {
+				scaleerrs = append(scaleerrs, fmt.Sprintf("  %s:\n    scale:\n      count: %s\n      cpu: %s\n      memory: %s", s.Name, parts[0], parts[1], parts[2]))
+			}
+		}
+	}
+
+	if len(scaleerrs) > 0 {
+		return fmt.Errorf("scale settings are moving exclusively to the manifest, please update with the following and redeploy:\nservices:\n%s", strings.Join(scaleerrs, "\n"))
+	}
+
+	first := map[string]bool{}
+
+	rs, err := p.appResources(app)
+	if err != nil {
+		return err
+	}
+
+	for _, s := range m.Services {
+		if _, ok := rs[fmt.Sprintf("Service%sService", upperName(s.Name))]; !ok {
+			first[s.Name] = true
+		}
+	}
+
+	b, err := p.BuildGet(app, r.Build)
 	if err != nil {
 		return err
 	}

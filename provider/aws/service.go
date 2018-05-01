@@ -170,6 +170,11 @@ func (p *AWSProvider) ServiceUpdate(app, name string, opts structs.ServiceUpdate
 		return err
 	}
 
+	switch a.Generation {
+	case "2":
+		return fmt.Errorf("scaling adjustments for generation 2 apps must be made in convox.yml")
+	}
+
 	param := fmt.Sprintf("%sFormation", upperName(name))
 
 	parts := strings.SplitN(a.Parameters[param], ",", 3)

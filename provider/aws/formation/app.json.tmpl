@@ -30,8 +30,6 @@
     }
   },
   "Parameters" : {
-    {{ template "service-params" .Manifest }}
-
     "FargateServices": {
       "Type": "String",
       "Default": "No",
@@ -283,16 +281,6 @@
   {{ end }}
 {{ end }}
 
-{{ define "service-params" }}
-  {{ range .Services }}
-    "{{ upper .Name }}Formation": {
-      "Type": "CommaDelimitedList",
-      "Default": "{{.Scale.Count.Min}},{{.Scale.Cpu}},{{.Scale.Memory}}",
-      "Description": "Count,CPU,Memory"
-    },
-  {{ end }}
-{{ end }}
-
 {{ define "service-resources" }}
   "AutoscalingRole": {
     "Type": "AWS::IAM::Role",
@@ -468,12 +456,8 @@
       "Properties": {
         "Cluster": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Cluster" } },
         "DeploymentConfiguration": { "MinimumHealthyPercent": "50", "MaximumPercent": "200" },
-        {{ if .Scale.Autoscale }}
-          {{ if index $.First .Name }}
-            "DesiredCount": "{{.Scale.Count.Min}}",
-          {{ end }}
-        {{ else }}
-          "DesiredCount": { "Fn::Select": [ 0, { "Ref": "{{ upper .Name }}Formation" } ] },
+        {{ if index $.First .Name }}
+          "DesiredCount": "{{.Scale.Count.Min}}",
         {{ end }}
         "LaunchType": { "Fn::If": [ "FargateServices", "FARGATE", { "Ref": "AWS::NoValue" } ] },
         "NetworkConfiguration": { "Fn::If": [ "FargateServices",
@@ -518,7 +502,7 @@
             {{ with .Command }}
               "Command": [ "sh", "-c", {{ safe . }} ],
             {{ end }}
-            "Cpu": { "Fn::Select": [ 1, { "Ref": "{{ upper .Name }}Formation" } ] },
+            "Cpu": "{{.Scale.Cpu}}",
             "DockerLabels": { "convox.app": "{{$.App}}", "convox.generation": "2", "convox.release": "{{$.Release.Id}}" },
             "Environment": [
               {{ range $k, $v := .EnvironmentDefaults }}
@@ -551,7 +535,7 @@
                 "awslogs-stream-prefix": "service"
               }
             },
-            "Memory": { "Fn::Select": [ 2, { "Ref": "{{ upper .Name }}Formation" } ] },
+            "Memory": "{{.Scale.Memory}}",
             {{ if .Port.Port }}
               "PortMappings": [ { "ContainerPort": "{{.Port.Port}}" } ],
             {{ end }}
@@ -564,10 +548,10 @@
             "Name": "{{.Name}}"
           }
         ],
-        "Cpu": { "Fn::If": [ "FargateServices", { "Fn::Select": [ 1, { "Ref": "{{ upper .Name }}Formation" } ] }, { "Ref": "AWS::NoValue" } ] },
+        "Cpu": { "Fn::If": [ "FargateServices", "{{.Scale.Cpu}}", { "Ref": "AWS::NoValue" } ] },
         "ExecutionRoleArn": { "Fn::GetAtt": [ "ExecutionRole", "Arn" ] },
         "Family": { "Fn::Sub": "${AWS::StackName}-service-{{.Name}}" },
-        "Memory": { "Fn::If": [ "FargateServices", { "Fn::Select": [ 2, { "Ref": "{{ upper .Name }}Formation" } ] }, { "Ref": "AWS::NoValue" } ] },
+        "Memory": { "Fn::If": [ "FargateServices", "{{.Scale.Memory}}", { "Ref": "AWS::NoValue" } ] },
         "NetworkMode": { "Fn::If": [ "FargateServices", "awsvpc", { "Ref": "AWS::NoValue" } ] },
         "RequiresCompatibilities": [ { "Fn::If": [ "FargateServices", "FARGATE", { "Ref": "AWS::NoValue" } ] } ],
         "TaskRoleArn": { "Fn::GetAtt": [ "ServiceRole", "Arn" ] },
@@ -706,7 +690,7 @@
           {{ with $.Manifest.Service .Service }}
             {
               "Command": [ "sh", "-c", {{ safe $t.Command }} ],
-              "Cpu": { "Fn::Select": [ 1, { "Ref": "{{ upper .Name }}Formation" } ] },
+              "Cpu": "{{.Scale.Cpu}}",
               "DockerLabels": { "convox.app": "{{$.App}}", "convox.generation": "2", "convox.release": "{{$.Release.Id}}" },
               "Environment": [
                 {{ range $k, $v := .EnvironmentDefaults }}
@@ -729,7 +713,7 @@
                   "awslogs-stream-prefix": "timer"
                 }
               },
-              "Memory": { "Fn::Select": [ 2, { "Ref": "{{ upper .Name }}Formation" } ] },
+              "Memory": "{{.Scale.Memory}}",
               "MountPoints": [
                 {{ range $i, $v := .Volumes }}
                   { "SourceVolume": "volume-{{$i}}", "ContainerPath": "{{ volumeTo $v }}" },
@@ -740,10 +724,10 @@
             }
           {{ end }}
         ],
-        "Cpu": { "Fn::If": [ "FargateTimers", { "Fn::Select": [ 1, { "Ref": "{{ upper ($.Manifest.Service .Service).Name }}Formation" } ] }, { "Ref": "AWS::NoValue" } ] },
+        "Cpu": { "Fn::If": [ "FargateTimers", "{{ ($.Manifest.Service .Service).Scale.Cpu }}", { "Ref": "AWS::NoValue" } ] },
         "ExecutionRoleArn": { "Fn::GetAtt": [ "ExecutionRole", "Arn" ] },
         "Family": { "Fn::Sub": "${AWS::StackName}-timer-{{.Name}}" },
-        "Memory": { "Fn::If": [ "FargateTimers", { "Fn::Select": [ 2, { "Ref": "{{ upper ($.Manifest.Service .Service).Name }}Formation" } ] }, { "Ref": "AWS::NoValue" } ] },
+        "Memory": { "Fn::If": [ "FargateTimers", "{{ ($.Manifest.Service .Service).Scale.Memory }}", { "Ref": "AWS::NoValue" } ] },
         "NetworkMode": { "Fn::If": [ "FargateTimers", "awsvpc", { "Ref": "AWS::NoValue" } ] },
         "RequiresCompatibilities": [ { "Fn::If": [ "FargateTimers", "FARGATE", { "Ref": "AWS::NoValue" } ] } ],
         "TaskRoleArn": { "Fn::GetAtt": [ "ServiceRole", "Arn" ] },

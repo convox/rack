@@ -759,6 +759,10 @@ func (p *AWSProvider) appResources(app string) (map[string]string, error) {
 	return rs, nil
 }
 
+func (p *AWSProvider) appParameter(app, param string) (string, error) {
+	return p.stackParameter(p.rackStack(app), param)
+}
+
 func (p *AWSProvider) stackParameter(stack, param string) (string, error) {
 	res, err := p.describeStack(stack)
 	if err != nil {
