@@ -8,9 +8,11 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/convox/rack/helpers"
+	"golang.org/x/net/websocket"
 )
 
 type Proxy struct {
@@ -126,6 +128,11 @@ func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if strings.ToLower(r.Header.Get("Connection")) == "upgrade" {
+		websocket.Handler(p.serveWebsocket(r, target)).ServeHTTP(w, r)
+		return
+	}
+
 	req, err := http.NewRequest(r.Method, fmt.Sprintf("%s%s", target.String(), r.URL.Path), r.Body)
 	if err != nil {
 		http.Error(w, err.Error(), 502)
@@ -161,6 +168,49 @@ func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if _, err := io.Copy(w, res.Body); err != nil {
 		http.Error(w, err.Error(), 502)
 		return
+	}
+
+	if p.rfn != nil {
+		p.rfn(p, target)
+	}
+}
+
+func (p *Proxy) serveWebsocket(r *http.Request, target *url.URL) websocket.Handler {
+	return func(ws *websocket.Conn) {
+		wst, err := url.Parse(target.String())
+		if err != nil {
+			return
+		}
+
+		switch target.Scheme {
+		case "https":
+			wst.Scheme = "wss"
+		default:
+			wst.Scheme = "ws"
+		}
+
+		wst.Path = r.URL.Path
+
+		cn, err := websocket.DialConfig(&websocket.Config{
+			Header:   r.Header,
+			Location: wst,
+			Origin:   target,
+			TlsConfig: &tls.Config{
+				InsecureSkipVerify: true,
+			},
+			Version: websocket.ProtocolVersionHybi13,
+		})
+		if err != nil {
+			return
+		}
+
+		if p.rfn != nil {
+			p.rfn(p, target)
+		}
+
+		if err := helpers.Pipe(ws, cn); err != nil {
+			return
+		}
 	}
 }
 
