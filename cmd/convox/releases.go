@@ -52,6 +52,10 @@ func init() {
 						Usage: "manifest file",
 					},
 					cli.BoolFlag{
+						Name:  "promote",
+						Usage: "promote the release after env change",
+					},
+					cli.BoolFlag{
 						Name:   "wait",
 						EnvVar: "CONVOX_WAIT",
 						Usage:  "wait for release to finish promoting before returning",
@@ -171,6 +175,22 @@ func cmdReleaseCreate(c *cli.Context) error {
 	}
 
 	stdcli.Writef("<ok>OK</ok>, <release>%s</release>\n", r.Id)
+
+	if c.Bool("promote") {
+		stdcli.Startf("Promoting <release>%s</release>", r.Id)
+
+		if err := rack(c).ReleasePromote(app, r.Id); err != nil {
+			return stdcli.Error(err)
+		}
+
+		stdcli.OK()
+
+		if c.Bool("wait") {
+			if err := waitForReleasePromotion(os.Stdout, c, app, r.Id); err != nil {
+				return stdcli.Error(err)
+			}
+		}
+	}
 
 	return nil
 }
