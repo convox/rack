@@ -319,9 +319,6 @@ func startGeneration2(opts startOptions) error {
 
 	go func() {
 		for ls.Scan() {
-			t := ls.Text()
-			fmt.Printf("t = %+v\n", t)
-
 			match := reAppLog.FindStringSubmatch(ls.Text())
 
 			if len(match) != 7 {
