@@ -157,8 +157,12 @@ func (m *Manifest) ApplyDefaults() error {
 			m.Services[i].Health.Timeout = m.Services[i].Health.Interval - 1
 		}
 
-		if s.Scale.Memory == 0 {
+		if s.Scale.Cpu == 0 {
 			m.Services[i].Scale.Memory = 256
+		}
+
+		if s.Scale.Memory == 0 {
+			m.Services[i].Scale.Memory = 512
 		}
 	}
 

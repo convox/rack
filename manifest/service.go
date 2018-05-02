@@ -61,7 +61,7 @@ type ServiceScale struct {
 	Count   *ServiceScaleCount
 	Cpu     int
 	Memory  int
-	Targets ServiceScaleTargets
+	Targets ServiceScaleTargets `yaml:"targets,omitempty"`
 }
 
 type ServiceScaleCount struct {
