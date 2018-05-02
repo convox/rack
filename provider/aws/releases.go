@@ -241,19 +241,6 @@ func (p *AWSProvider) ReleasePromote(app, id string) error {
 		return err
 	}
 
-	first := map[string]bool{}
-
-	rs, err := p.appResources(app)
-	if err != nil {
-		return err
-	}
-
-	for _, s := range m.Services {
-		if _, ok := rs[fmt.Sprintf("Service%sService", upperName(s.Name))]; !ok {
-			first[s.Name] = true
-		}
-	}
-
 	tp := map[string]interface{}{
 		"App":          r.App,
 		"Certificates": cs,
