@@ -35,6 +35,11 @@ services:
     - SUBNETS_PRIVATE
     - VPC
     - VPCCIDR
+    health:
+      grace: 20
+      interval: 30
+      path: /check
+      timeout: 3
     port: https:5443
     volumes:
     - /Users/Shared/convox:/var/convox
