@@ -16,8 +16,7 @@ func TestManifestLoad(t *testing.T) {
 
 	n := &manifest.Manifest{
 		Environment: manifest.Environment{
-			"DEVELOPMENT": "false",
-			"SECRET":      "shh",
+			"SECRET": "shh",
 		},
 		Resources: manifest.Resources{
 			manifest.Resource{
@@ -36,6 +35,7 @@ func TestManifestLoad(t *testing.T) {
 				Command: "",
 				Environment: []string{
 					"DEVELOPMENT=false",
+					"MIN_SCALE=3",
 					"SECRET",
 				},
 				Health: manifest.ServiceHealth{
