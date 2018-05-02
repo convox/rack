@@ -142,3 +142,18 @@ func (s *Service) SetDefaults() error {
 
 	return nil
 }
+
+func (s ServiceScale) Autoscale() bool {
+	switch {
+	case s.Targets.Cpu > 0:
+		return true
+	case len(s.Targets.Custom) > 0:
+		return true
+	case s.Targets.Memory > 0:
+		return true
+	case s.Targets.Requests > 0:
+		return true
+	}
+
+	return false
+}

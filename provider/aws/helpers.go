@@ -742,6 +742,23 @@ func (p *AWSProvider) stackResource(stack, resource string) (*cloudformation.Sta
 	return nil, log.Error(fmt.Errorf("resource not found: %s", resource))
 }
 
+func (p *AWSProvider) appResources(app string) (map[string]string, error) {
+	srs, err := p.listStackResources(p.rackStack(app))
+	if err != nil {
+		return nil, err
+	}
+
+	rs := map[string]string{}
+
+	for _, sr := range srs {
+		if sr.LogicalResourceId != nil && sr.PhysicalResourceId != nil {
+			rs[*sr.LogicalResourceId] = *sr.PhysicalResourceId
+		}
+	}
+
+	return rs, nil
+}
+
 func (p *AWSProvider) stackParameter(stack, param string) (string, error) {
 	res, err := p.describeStack(stack)
 	if err != nil {
