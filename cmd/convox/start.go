@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -310,6 +311,10 @@ func startGeneration2(opts startOptions) error {
 		if s.Build.Path != "" {
 			go watchChanges(rk, m, app, s.Name, wd, errch)
 		}
+
+		if s.Port.Port > 0 {
+			go healthCheck(rk, m, app, s, errch)
+		}
 	}
 
 	logs, err := rk.AppLogs(app, structs.LogsOptions{Follow: true, Prefix: true})
@@ -376,6 +381,53 @@ func handleSignals(rack *sdk.Client, m *manifest.Manifest, app string, ch chan o
 	wg.Wait()
 
 	os.Exit(0)
+}
+
+func healthCheck(r *sdk.Client, m *manifest.Manifest, app string, s manifest.Service, errch chan error) {
+	rss, err := r.ServiceList(app)
+	if err != nil {
+		errch <- err
+		return
+	}
+
+	hostname := ""
+
+	for _, rs := range rss {
+		if rs.Name == s.Name {
+			fmt.Printf("rs = %+v\n", rs)
+			hostname = rs.Domain
+		}
+	}
+
+	if hostname == "" {
+		errch <- fmt.Errorf("could not find hostname for service: %s", s.Name)
+		return
+	}
+
+	m.Writef("convox", "starting health check for <service>%s</service> on path <setting>%s</setting> with <setting>%d</setting>s interval, <setting>%d</setting>s grace\n", s.Name, s.Health.Path, s.Health.Interval, s.Health.Grace)
+
+	hcu := fmt.Sprintf("https://%s%s", hostname, s.Health.Path)
+
+	fmt.Printf("hcu = %+v\n", hcu)
+
+	time.Sleep(time.Duration(s.Health.Grace) * time.Second)
+
+	c := &http.Client{Timeout: time.Duration(s.Health.Timeout) * time.Second}
+
+	for range time.Tick(time.Duration(s.Health.Interval) * time.Second) {
+		res, err := c.Get(hcu)
+		if err != nil {
+			m.Writef("convox", "health check <service>%s</service>: <fail>%s</fail>\n", s.Name, err.Error())
+			continue
+		}
+
+		if res.StatusCode < 200 || res.StatusCode > 399 {
+			m.Writef("convox", "health check <service>%s</service>: <fail>%d</fail>\n", s.Name, res.StatusCode)
+			continue
+		}
+
+		m.Writef("convox", "health check <service>%s</service>: <ok>%d</ok>\n", s.Name, res.StatusCode)
+	}
 }
 
 func dockerTest() error {

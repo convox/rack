@@ -86,6 +86,16 @@ func LoadFile(path string) (*Manifest, error) {
 	return Load(data)
 }
 
+func (m Manifest) Service(name string) (*Service, error) {
+	for _, s := range m.Services {
+		if s.Name == name {
+			return &s, nil
+		}
+	}
+
+	return nil, fmt.Errorf("no such service: %s", name)
+}
+
 func (m Manifest) Validate() []error {
 	regexValidCronLabel := regexp.MustCompile(`\A[a-zA-Z][-a-zA-Z0-9]{3,29}\z`)
 	errors := []error{}
