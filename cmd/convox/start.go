@@ -233,64 +233,66 @@ func startGeneration2(opts startOptions) error {
 		return err
 	}
 
-	tar, err := createTarball(".")
-	if err != nil {
-		return err
-	}
+	if opts.Build {
+		tar, err := createTarball(".")
+		if err != nil {
+			return err
+		}
 
-	o, err := rk.ObjectStore(app, "", bytes.NewReader(tar), structs.ObjectStoreOptions{})
-	if err != nil {
-		return err
-	}
+		o, err := rk.ObjectStore(app, "", bytes.NewReader(tar), structs.ObjectStoreOptions{})
+		if err != nil {
+			return err
+		}
 
-	b, err := rk.BuildCreate(app, "tgz", o.Url, structs.BuildCreateOptions{Manifest: options.String(mf)})
-	if err != nil {
-		return err
-	}
+		b, err := rk.BuildCreate(app, "tgz", o.Url, structs.BuildCreateOptions{Manifest: options.String(mf)})
+		if err != nil {
+			return err
+		}
 
-	if err := waitForBuildGeneration2(rk, app, b.Id); err != nil {
-		return err
-	}
+		if err := waitForBuildGeneration2(rk, app, b.Id); err != nil {
+			return err
+		}
 
-	logs, err := rk.BuildLogs(app, b.Id, structs.LogsOptions{})
-	if err != nil {
-		return err
-	}
+		logs, err := rk.BuildLogs(app, b.Id, structs.LogsOptions{})
+		if err != nil {
+			return err
+		}
 
-	bo := m.Writer("build", os.Stdout)
+		bo := m.Writer("build", os.Stdout)
 
-	if _, err := io.Copy(bo, logs); err != nil {
-		return err
-	}
+		if _, err := io.Copy(bo, logs); err != nil {
+			return err
+		}
 
-	b, err = rk.BuildGet(app, b.Id)
-	if err != nil {
-		return err
-	}
+		b, err = rk.BuildGet(app, b.Id)
+		if err != nil {
+			return err
+		}
 
-	switch b.Status {
-	case "created", "running", "complete":
-	case "failed":
-		return fmt.Errorf("build failed")
-	default:
-		return fmt.Errorf("unknown build status: %s", b.Status)
-	}
+		switch b.Status {
+		case "created", "running", "complete":
+		case "failed":
+			return fmt.Errorf("build failed")
+		default:
+			return fmt.Errorf("unknown build status: %s", b.Status)
+		}
 
-	if err := rk.ReleasePromote(app, b.Release); err != nil {
-		return err
-	}
+		if err := rk.ReleasePromote(app, b.Release); err != nil {
+			return err
+		}
 
-	r, err := rk.ReleaseGet(app, b.Release)
-	if err != nil {
-		return err
-	}
+		r, err := rk.ReleaseGet(app, b.Release)
+		if err != nil {
+			return err
+		}
 
-	switch r.Status {
-	case "created", "promoting", "promoted", "active":
-	case "failed":
-		return fmt.Errorf("release failed")
-	default:
-		return fmt.Errorf("unknown release status: %s", r.Status)
+		switch r.Status {
+		case "created", "promoting", "promoted", "active":
+		case "failed":
+			return fmt.Errorf("release failed")
+		default:
+			return fmt.Errorf("unknown release status: %s", r.Status)
+		}
 	}
 
 	errch := make(chan error)
@@ -310,7 +312,7 @@ func startGeneration2(opts startOptions) error {
 		}
 	}
 
-	logs, err = rk.AppLogs(app, structs.LogsOptions{Follow: true, Prefix: true})
+	logs, err := rk.AppLogs(app, structs.LogsOptions{Follow: true, Prefix: true})
 	if err != nil {
 		return err
 	}
