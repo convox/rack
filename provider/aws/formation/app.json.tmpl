@@ -3,6 +3,7 @@
   "Conditions": {
     "BlankIamPolicy": { "Fn::Equals": [ { "Ref": "IamPolicy" }, "" ] },
     "BlankLogBucket": { "Fn::Equals": [ { "Ref": "LogBucket" }, "" ] },
+    "BlankLogRetention": { "Fn::Equals": [ { "Ref": "LogRetention" }, "" ] },
     "FargateServices": { "Fn::Equals": [ { "Ref": "FargateServices" }, "Yes" ] },
     "FargateTimers": { "Fn::Equals": [ { "Ref": "FargateTimers" }, "Yes" ] },
     "InternalDomains": { "Fn::Equals": [ { "Ref": "InternalDomains" }, "Yes" ] },
@@ -54,6 +55,11 @@
       "Type": "String",
       "Default": ""
     },
+    "LogRetention": {
+      "Default": "",
+      "Description": "Number of days to keep logs (blank for unlimited)",
+      "Type": "String"
+    },
     "Private": {
       "Type": "String",
       "Default": "No",
@@ -84,7 +90,10 @@
       }
     },
     "LogGroup": {
-      "Type": "AWS::Logs::LogGroup"
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {
+        "RetentionInDays": { "Fn::If": [ "BlankLogRetention", { "Ref": "AWS::NoValue" }, { "Ref": "LogRetention" } ] }
+      }
     },
     "Registry": {
       "Type": "AWS::ECR::Repository",
