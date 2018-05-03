@@ -5,7 +5,7 @@
     {{ template "process-conditions" .Manifest }}
     "BlankLogBucket": { "Fn::Equals": [ { "Ref": "LogBucket" }, "" ] },
     "BlankSecurityGroup": { "Fn::Equals": [ { "Fn::Join": [ ",", { "Ref": "SecurityGroup" } ] }, "" ] },
-    "BlankSslNegotiationPolicy": { "Fn::Equals": [ { "Ref": "SslNegotiationPolicy" }, "" ] },
+    "BlankSslPolicy": { "Fn::Equals": [ { "Ref": "SslPolicy" }, "" ] },
     "Internal": { "Fn::Equals": [ { "Ref": "Internal" }, "Yes" ] },
     "Private": { "Fn::Equals": [ { "Ref": "Private" }, "Yes" ] }
   },
@@ -43,7 +43,7 @@
       "Default" : "",
       "Description" : "The Load balancer security groups (comma delimited) for this app"
     },
-    "SslNegotiationPolicy": {
+    "SslPolicy": {
       "Type": "String",
       "Default": "",
       "Description": "Override the default SSL negotiation policy of the load balancer"
@@ -509,7 +509,7 @@
               "InstancePort": { "Fn::Select": [ 0, { "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Listener" } ] },
               "PolicyNames": [ { "Fn::If": [ "BlankBalancer{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Certificate",
                 { "Ref": "AWS::NoValue" },
-                { "Fn::If": [ "BlankSslNegotiationPolicy", { "Ref": "AWS::NoValue" }, "NegotiationPolicy" ] }
+                { "Fn::If": [ "BlankSslPolicy", { "Ref": "AWS::NoValue" }, "SslPolicy" ] }
               ] } ],
               "SSLCertificateId": { "Fn::If": [ "BlankBalancer{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Certificate",
                 { "Ref": "AWS::NoValue" },
@@ -520,12 +520,12 @@
           { "Ref": "AWS::NoValue" }
         ],
         "Policies": [
-          { "Fn::If": [ "BlankSslNegotiationPolicy",
+          { "Fn::If": [ "BlankSslPolicy",
             { "Ref": "AWS::NoValue" },
             {
-              "PolicyName": "NegotiationPolicy",
+              "PolicyName": "SslPolicy",
               "PolicyType": "SSLNegotiationPolicyType",
-              "Attributes": [ { "Name": "Reference-Security-Policy", "Value": { "Ref": "SslNegotiationPolicy" } } ]
+              "Attributes": [ { "Name": "Reference-Security-Policy", "Value": { "Ref": "SslPolicy" } } ]
             }
           ] },
           {{ range .PortMappings }}
