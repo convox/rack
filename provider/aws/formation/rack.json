@@ -14,6 +14,7 @@
     "BlankInternetGateway": { "Fn::Equals": [ { "Ref": "InternetGateway"}, "" ] },
     "BlankKey": { "Fn::Equals": [ { "Ref": "Key" }, "" ] },
     "BlankLogBucket": { "Fn::Equals": [ { "Ref": "LogBucket" }, "" ] },
+    "BlankLogRetention": { "Fn::Equals": [ { "Ref": "LogRetention" }, "" ] },
     "BlankRouterSecurityGroup": { "Fn::Equals": [ { "Fn::Join": [ ",", {"Ref": "RouterSecurityGroup" } ] }, "" ]},
     "DedicatedBuilder": { "Fn::Not": [ { "Fn::Equals": [ { "Ref": "BuildInstance" }, "" ] } ] },
     "Development": { "Fn::Equals": [ { "Ref": "Development" }, "Yes" ] },
@@ -494,6 +495,11 @@
       "Description": "Bucket to receive S3 logs",
       "Type": "String"
     },
+    "LogRetention": {
+      "Default": "",
+      "Description": "Number of days to keep logs (blank for unlimited)",
+      "Type": "String"
+    },
     "MaxAvailabilityZones": {
       "Type": "Number",
       "Default": "3",
@@ -619,7 +625,10 @@
       }
     },
     "LogGroup": {
-      "Type": "AWS::Logs::LogGroup"
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {
+        "RetentionInDays": { "Fn::If": [ "BlankLogRetention", { "Ref": "AWS::NoValue" }, { "Ref": "LogRetention" } ] }
+      }
     },
     "CustomTopicRole": {
       "Type": "AWS::IAM::Role",
