@@ -17,7 +17,7 @@ services:
     port: 1000
     scale: 3-10
     test: make ${BAR} test
-  proxy:
+  proxy: &proxy
     command: bash
     domain:
       - bar.example.org
@@ -53,3 +53,6 @@ services:
             value: 200
             dimensions:
               QueueName: testqueue
+  inherit:
+    "<<": *proxy
+    command: inherit
