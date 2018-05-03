@@ -142,6 +142,26 @@ func TestManifestLoad(t *testing.T) {
 					},
 				},
 			},
+			manifest.Service{
+				Name:    "inherit",
+				Command: "inherit",
+				Domains: []string{"bar.example.org", "*.example.org"},
+				Health: manifest.ServiceHealth{
+					Path:     "/auth",
+					Interval: 5,
+					Timeout:  4,
+				},
+				Image: "ubuntu:16.04",
+				Environment: []string{
+					"SECRET",
+				},
+				Port: manifest.ServicePort{Port: 2000, Scheme: "https"},
+				Scale: manifest.ServiceScale{
+					Count:  &manifest.ServiceScaleCount{Min: 1, Max: 1},
+					Cpu:    512,
+					Memory: 1024,
+				},
+			},
 		},
 	}
 
