@@ -44,6 +44,7 @@ func init() {
 		Action:      cmdStart,
 		Flags: []cli.Flag{
 			appFlag,
+			rackFlag,
 			cli.StringFlag{
 				Name:   "file, f",
 				EnvVar: "COMPOSE_FILE",
