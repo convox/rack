@@ -237,6 +237,10 @@ func (p *AWSProvider) stackTasks(stack string) ([]string, error) {
 
 	tasks := []string{}
 
+	// THROTTLING: stackTasks
+	// Calling this in a loop over services, could we instead
+	// make a single call and filter for only the services
+	// we care about in memory?
 	for _, s := range services {
 		err := p.ecs().ListTasksPages(&ecs.ListTasksInput{
 			Cluster:     aws.String(p.Cluster),
@@ -308,6 +312,10 @@ func (p *AWSProvider) taskProcesses(tasks []string) (structs.Processes, error) {
 
 	pss := structs.Processes{}
 
+	// THROTTLING: taskProcesses
+	// This one looks hairy, but if we could find some way
+	// to consolidate into a single API call rather than
+	// one for each task, we might get some gains here.
 	for i := 0; i < len(tasks); i += describeTasksPageSize {
 		ptasks := []string{}
 
@@ -1287,6 +1295,10 @@ func (p *AWSProvider) taskArnFromPid(pid string) (string, error) {
 		return "", err
 	}
 
+	// THROTTLING: tasksByStatus
+	// This endpoint ends up being called a few times because of pagination.
+	// There are a ton of STOPPED tasks over the history of the cluster,
+	// maybe we could add a date filter here or something?
 	stopped, err := p.tasksByStatus("STOPPED")
 	if err != nil {
 		return "", err
