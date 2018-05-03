@@ -16,6 +16,7 @@
     "BlankLogBucket": { "Fn::Equals": [ { "Ref": "LogBucket" }, "" ] },
     "BlankLogRetention": { "Fn::Equals": [ { "Ref": "LogRetention" }, "" ] },
     "BlankRouterSecurityGroup": { "Fn::Equals": [ { "Fn::Join": [ ",", {"Ref": "RouterSecurityGroup" } ] }, "" ]},
+    "BlankSslPolicy": { "Fn::Equals": [ { "Ref": "SslPolicy" }, "" ] },
     "DedicatedBuilder": { "Fn::Not": [ { "Fn::Equals": [ { "Ref": "BuildInstance" }, "" ] } ] },
     "Development": { "Fn::Equals": [ { "Ref": "Development" }, "Yes" ] },
     "EncryptEbs" : { "Fn::Equals": [ { "Ref": "EncryptEbs" }, "Yes" ] },
@@ -537,6 +538,11 @@
     "SpotInstanceBid": {
       "Default": "",
       "Description": "Bid price for spot instances",
+      "Type": "String"
+    },
+    "SslPolicy": {
+      "Default": "",
+      "Description": "SSL policy for rack load balancer",
       "Type": "String"
     },
     "Subnet0CIDR": {
@@ -1940,7 +1946,8 @@
         "DefaultActions": [ { "Type": "forward", "TargetGroupArn": { "Ref": "RouterApiTargetGroup" } } ],
         "LoadBalancerArn": { "Ref" : "Router" },
         "Port": "443",
-        "Protocol": "HTTPS"
+        "Protocol": "HTTPS",
+        "SslPolicy": { "Fn::If": [ "BlankSslPolicy", { "Ref": "AWS::NoValue" }, { "Ref": "SslPolicy" } ] }
       }
     },
     "RouterApiCertificate": {
@@ -2033,7 +2040,8 @@
         "DefaultActions": [ { "Type": "forward", "TargetGroupArn": { "Ref": "RouterInternalApiTargetGroup" } } ],
         "LoadBalancerArn": { "Ref" : "RouterInternal" },
         "Port": "443",
-        "Protocol": "HTTPS"
+        "Protocol": "HTTPS",
+        "SslPolicy": { "Fn::If": [ "BlankSslPolicy", { "Ref": "AWS::NoValue" }, { "Ref": "SslPolicy" } ] }
       }
     },
     "RouterInternalCertificate": {
