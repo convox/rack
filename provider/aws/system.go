@@ -174,6 +174,7 @@ func (p *AWSProvider) SystemGet() (*structs.System, error) {
 		Name:       p.Rack,
 		Outputs:    outputs,
 		Parameters: params,
+		Provider:   "aws",
 		Region:     p.Region,
 		Status:     status,
 		Type:       params["InstanceType"],

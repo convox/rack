@@ -84,10 +84,11 @@ func (p *Provider) SystemGet() (*structs.System, error) {
 	log := p.logger("SystemGet")
 
 	system := &structs.System{
-		Image:   fmt.Sprintf("%s:%s", p.Image, p.Version),
-		Name:    p.Name,
-		Status:  "running",
-		Version: p.Version,
+		Image:    fmt.Sprintf("%s:%s", p.Image, p.Version),
+		Name:     p.Name,
+		Provider: "local",
+		Status:   "running",
+		Version:  p.Version,
 	}
 
 	return system, log.Success()

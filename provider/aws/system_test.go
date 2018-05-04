@@ -27,6 +27,7 @@ func TestSystemGet(t *testing.T) {
 	assert.EqualValues(t, &structs.System{
 		Count:      3,
 		Name:       "convox",
+		Provider:   "aws",
 		Region:     "us-test-1",
 		Status:     "running",
 		Type:       "t2.small",
@@ -50,6 +51,7 @@ func TestSystemGetConverging(t *testing.T) {
 	assert.EqualValues(t, &structs.System{
 		Count:      3,
 		Name:       "convox",
+		Provider:   "aws",
 		Region:     "us-test-1",
 		Status:     "converging",
 		Type:       "t2.small",

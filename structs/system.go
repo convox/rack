@@ -9,6 +9,7 @@ type System struct {
 	Image      string            `json:"image"`
 	Outputs    map[string]string `json:"outputs,omitempty"`
 	Parameters map[string]string `json:"parameters,omitempty"`
+	Provider   string            `json:"provider"`
 	Region     string            `json:"region"`
 	Status     string            `json:"status"`
 	Type       string            `json:"type"`
