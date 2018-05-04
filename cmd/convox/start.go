@@ -76,8 +76,18 @@ func init() {
 }
 
 func cmdStart(c *cli.Context) error {
-	if err := dockerTest(); err != nil {
+	s, err := rack(c).SystemGet()
+	if err != nil {
 		return stdcli.Error(err)
+	}
+
+	if s.Provider != "local" {
+		r, err := matchRack("local")
+		if err != nil {
+			return stdcli.Error(err)
+		}
+
+		c.Set("rack", r.Name)
 	}
 
 	opts := startOptions{}
