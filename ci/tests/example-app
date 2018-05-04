@@ -40,7 +40,7 @@ while ! curl -m2 $hostname; do
   sleep 20
 done
 
-convox ps --stats --app $APP_NAME
+convox ps --app $APP_NAME
 
 convox run --app $APP_NAME web 'bin/test || true'
 
