@@ -59,6 +59,10 @@ func (p *Provider) workerConverge() error {
 	}
 
 	for _, a := range apps {
+		if a.Sleep {
+			continue
+		}
+
 		if err := p.converge(a.Name); err != nil {
 			log.At("converge").Append("app=%s", a.Name).Error(err)
 			continue
