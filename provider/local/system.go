@@ -208,6 +208,7 @@ func (p *Provider) SystemUninstall(name string, opts structs.SystemUninstallOpti
 		return fmt.Errorf("must be root to uninstall a local rack")
 	}
 
+	launcherRemove("convox.rack")
 	launcherRemove(fmt.Sprintf("convox.rack.%s", name))
 
 	exec.Command("launchctl", "remove", fmt.Sprintf("convox.rack.%s", name)).Run()
