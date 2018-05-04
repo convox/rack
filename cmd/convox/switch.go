@@ -29,12 +29,22 @@ func cmdSwitch(c *cli.Context) error {
 	}
 
 	name := c.Args()[0]
+
+	r, err := matchRack(name)
+	if err != nil {
+		return stdcli.Error(err)
+	}
+
+	return switchRack(*r)
+}
+
+func matchRack(name string) (*Rack, error) {
 	racks := rackList()
 	matches := Racks{}
 
 	for _, r := range racks {
 		if r.Name == name {
-			return switchRack(r)
+			return &r, nil
 		}
 
 		if strings.Index(r.Name, name) != -1 {
@@ -43,14 +53,14 @@ func cmdSwitch(c *cli.Context) error {
 	}
 
 	if len(matches) > 1 {
-		return stdcli.Errorf("ambiguous name: %s", name)
+		return nil, fmt.Errorf("ambiguous rack name: %s", name)
 	}
 
 	if len(matches) == 1 {
-		return switchRack(matches[0])
+		return &matches[0], nil
 	}
 
-	return stdcli.Errorf("could not find rack: %s", name)
+	return nil, fmt.Errorf("could not find rack: %s", name)
 }
 
 func switchRack(rack Rack) error {
