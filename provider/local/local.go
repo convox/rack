@@ -2,13 +2,11 @@ package local
 
 import (
 	"context"
-	"crypto/tls"
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"math/rand"
-	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -16,6 +14,7 @@ import (
 
 	"github.com/boltdb/bolt"
 	"github.com/convox/logger"
+	"github.com/convox/rack/router"
 	"github.com/convox/rack/structs"
 )
 
@@ -33,16 +32,17 @@ type Provider struct {
 	Version  string
 	Volume   string
 
-	ctx  context.Context
-	db   *bolt.DB
-	logs *logger.Logger
+	ctx    context.Context
+	db     *bolt.DB
+	logs   *logger.Logger
+	router *router.Client
 }
 
 func FromEnv() *Provider {
 	return &Provider{
 		Combined: os.Getenv("COMBINED") == "true",
 		Image:    coalesce(os.Getenv("IMAGE"), "convox/rack"),
-		Name:     coalesce(os.Getenv("NAME"), "convox"),
+		Name:     coalesce(os.Getenv("RACK"), "convox"),
 		Root:     coalesce(os.Getenv("PROVIDER_ROOT"), "/var/convox"),
 		Router:   coalesce(os.Getenv("PROVIDER_ROUTER"), "10.42.0.0"),
 		Test:     os.Getenv("TEST") == "true",
@@ -63,7 +63,7 @@ func (p *Provider) Initialize(opts structs.ProviderOptions) error {
 		return err
 	}
 
-	db, err := bolt.Open(filepath.Join(p.Root, "convox.db"), 0600, nil)
+	db, err := bolt.Open(filepath.Join(p.Root, fmt.Sprintf("%s.db", p.Name)), 0600, nil)
 	if err != nil {
 		return err
 	}
@@ -74,8 +74,16 @@ func (p *Provider) Initialize(opts structs.ProviderOptions) error {
 		return err
 	}
 
-	if err := p.checkRouter(); err != nil {
-		return err
+	if p.Router != "none" {
+		p.router = router.NewClient(coalesce(os.Getenv("PROVIDER_ROUTER"), "10.42.0.0"))
+
+		if err := p.routerCheck(); err != nil {
+			return err
+		}
+
+		if err := p.routerRegister(); err != nil {
+			return err
+		}
 	}
 
 	if p.Combined {
@@ -135,45 +143,39 @@ func (p *Provider) createRootBucket(name string) (*bolt.Bucket, error) {
 	return bucket, err
 }
 
-func (p *Provider) checkRouter() error {
-	if p.Router == "none" {
-		return nil
-	}
-
-	c := http.Client{
-		Timeout: 2 * time.Second,
-		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{
-				InsecureSkipVerify: true,
-			},
-		},
-	}
-
-	res, err := c.Get(fmt.Sprintf("https://%s/version", p.Router))
-	if err != nil {
-		return fmt.Errorf("unable to register with router")
-	}
-
-	defer res.Body.Close()
-
-	data, err := ioutil.ReadAll(res.Body)
+func (p *Provider) routerCheck() error {
+	v, err := p.router.Version()
 	if err != nil {
 		return err
 	}
 
-	var v struct {
-		Version string
-	}
+	if v != "dev" && strings.Compare(v, p.Version) < 0 {
+		if err := p.router.Terminate(); err != nil {
+			return err
+		}
 
-	if err := json.Unmarshal(data, &v); err != nil {
-		return err
-	}
-
-	if v.Version != "dev" && strings.Compare(v.Version, p.Version) < 0 {
-		c.PostForm(fmt.Sprintf("https://%s/terminate", p.Router), nil)
+		time.Sleep(3 * time.Second)
 	}
 
 	return nil
+}
+
+func (p *Provider) routerRegister() error {
+	port, err := exec.Command("docker", "inspect", "-f", `{{(index (index .NetworkSettings.Ports "5443/tcp") 0).HostPort}}`, p.Name).CombinedOutput()
+	if err != nil {
+		return err
+	}
+
+	return p.router.RackCreate(p.Name, fmt.Sprintf("tls://127.0.0.1:%s", strings.TrimSpace(string(port))))
+}
+
+func systemVolume(volume string) bool {
+	switch volume {
+	case "/var/run/docker.sock":
+		return true
+	}
+
+	return false
 }
 
 func (p *Provider) serviceVolumes(app string, volumes []string) ([]string, error) {
@@ -182,11 +184,17 @@ func (p *Provider) serviceVolumes(app string, volumes []string) ([]string, error
 	for _, v := range volumes {
 		parts := strings.SplitN(v, ":", 2)
 
+		from := parts[0]
+
+		if !systemVolume(from) {
+			from = fmt.Sprintf("%s/%s/volumes/%s", p.Volume, app, from)
+		}
+
 		switch len(parts) {
 		case 1:
-			vv = append(vv, fmt.Sprintf("%s/%s/volumes/%s:%s", p.Volume, app, parts[0], parts[0]))
+			vv = append(vv, fmt.Sprintf("%s:%s", from, parts[0]))
 		case 2:
-			vv = append(vv, fmt.Sprintf("%s/%s/volumes/%s:%s", p.Volume, app, parts[0], parts[1]))
+			vv = append(vv, fmt.Sprintf("%s:%s", from, parts[1]))
 		}
 	}
 

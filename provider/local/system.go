@@ -84,10 +84,11 @@ func (p *Provider) SystemGet() (*structs.System, error) {
 	log := p.logger("SystemGet")
 
 	system := &structs.System{
-		Image:   fmt.Sprintf("%s:%s", p.Image, p.Version),
-		Name:    p.Name,
-		Status:  "running",
-		Version: p.Version,
+		Image:    fmt.Sprintf("%s:%s", p.Image, p.Version),
+		Name:     p.Name,
+		Provider: "local",
+		Status:   "running",
+		Version:  p.Version,
 	}
 
 	return system, log.Success()
@@ -116,32 +117,15 @@ func (p *Provider) SystemInstall(name string, opts structs.SystemInstallOptions)
 		return "", fmt.Errorf("must specify a version")
 	}
 
-	// vf := filepath.Join(p.Volume, "version")
-
-	// if err := ioutil.WriteFile(vf, []byte(*opts.Version), 0644); err != nil {
-	//   return "", err
-	// }
-
-	// cmd := exec.Command("docker", "pull", fmt.Sprintf("convox/rack:%s", *opts.Version))
-
-	// if opts.Output != nil {
-	//   cmd.Stdout = text.NewIndentWriter(opts.Output, []byte("  "))
-	//   cmd.Stderr = text.NewIndentWriter(opts.Output, []byte("  "))
-	// }
-
-	// if err := cmd.Run(); err != nil {
-	//   return "", err
-	// }
-
-	if err := launcherInstall("convox.router", opts, exe, "router"); err != nil {
+	if err := launcherInstall("router", opts, exe, "router"); err != nil {
 		return "", err
 	}
 
-	if err := launcherInstall("convox.rack", opts, exe, "rack", "start"); err != nil {
+	if err := launcherInstall(fmt.Sprintf("rack.%s", name), opts, exe, "rack", "start", "--name", name); err != nil {
 		return "", err
 	}
 
-	return "https://localhost:5443", nil
+	return fmt.Sprintf("https://rack.%s", name), nil
 }
 
 func (p *Provider) SystemLogs(opts structs.LogsOptions) (io.ReadCloser, error) {
@@ -214,14 +198,20 @@ func (p *Provider) SystemReleases() (structs.Releases, error) {
 	return nil, fmt.Errorf("unimplemented")
 }
 
-func (p *Provider) SystemUninstall(name string, opts structs.SystemInstallOptions) error {
-	launcherRemove("convox.frontend")
-	launcherRemove("convox.rack")
-	launcherRemove("convox.router")
+func (p *Provider) SystemUninstall(name string, opts structs.SystemUninstallOptions) error {
+	u, err := user.Current()
+	if err != nil {
+		return err
+	}
 
-	exec.Command("launchctl", "remove", "convox.frontend").Run()
-	exec.Command("launchctl", "remove", "convox.rack").Run()
-	exec.Command("launchctl", "remove", "convox.router").Run()
+	if u.Uid != "0" {
+		return fmt.Errorf("must be root to uninstall a local rack")
+	}
+
+	launcherRemove("convox.rack")
+	launcherRemove(fmt.Sprintf("convox.rack.%s", name))
+
+	exec.Command("launchctl", "remove", fmt.Sprintf("convox.rack.%s", name)).Run()
 
 	return nil
 }
@@ -263,7 +253,7 @@ func launcherInstall(name string, opts structs.SystemInstallOptions, command str
 		"Name":    name,
 		"Command": command,
 		"Args":    args,
-		"Logs":    fmt.Sprintf("/var/log/%s.log", name),
+		"Logs":    fmt.Sprintf("/var/log/convox/%s.log", name),
 	}
 
 	if err := launcher.Execute(&buf, params); err != nil {

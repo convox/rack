@@ -5,11 +5,12 @@ import (
 
 	"github.com/convox/rack/structs"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestAppCreate(t *testing.T) {
 	local, err := testProvider()
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	defer testProviderCleanup(local)
 
 	app, err := local.AppCreate("test", structs.AppCreateOptions{})

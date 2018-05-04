@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -42,6 +43,8 @@ func init() {
 		Usage:       "[service] [command]",
 		Action:      cmdStart,
 		Flags: []cli.Flag{
+			appFlag,
+			rackFlag,
 			cli.StringFlag{
 				Name:   "file, f",
 				EnvVar: "COMPOSE_FILE",
@@ -73,8 +76,18 @@ func init() {
 }
 
 func cmdStart(c *cli.Context) error {
-	if err := dockerTest(); err != nil {
+	s, err := rack(c).SystemGet()
+	if err != nil {
 		return stdcli.Error(err)
+	}
+
+	if s.Provider != "local" {
+		r, err := matchRack("local")
+		if err != nil {
+			return stdcli.Error(err)
+		}
+
+		c.Set("rack", r.Name)
 	}
 
 	opts := startOptions{}
@@ -87,8 +100,10 @@ func cmdStart(c *cli.Context) error {
 		opts.Command = c.Args()[1:]
 	}
 
+	opts.App = c.String("app")
 	opts.Build = !c.Bool("no-build")
 	opts.Cache = !c.Bool("no-cache")
+	opts.Context = c
 	opts.Sync = !c.Bool("no-sync")
 
 	if v := c.String("file"); v != "" {
@@ -115,9 +130,11 @@ func cmdStart(c *cli.Context) error {
 }
 
 type startOptions struct {
+	App      string
 	Build    bool
 	Cache    bool
 	Command  []string
+	Context  *cli.Context
 	Id       string
 	Manifest string
 	Service  string
@@ -206,18 +223,19 @@ func startGeneration2(opts startOptions) error {
 		return err
 	}
 
-	rack, err := sdk.New("https://localhost:5443")
-	if err != nil {
-		return err
+	if opts.App != "" {
+		app = opts.App
 	}
 
-	if _, err := rack.AppGet(app); err != nil {
-		if _, err := rack.AppCreate(app, structs.AppCreateOptions{Generation: options.String("2")}); err != nil {
+	rk := rack(opts.Context)
+
+	if _, err := rk.AppGet(app); err != nil {
+		if _, err := rk.AppCreate(app, structs.AppCreateOptions{Generation: options.String("2")}); err != nil {
 			return err
 		}
 	}
 
-	env, err := rack.EnvironmentGet(app)
+	env, err := rk.EnvironmentGet(app)
 	if err != nil {
 		return err
 	}
@@ -227,71 +245,73 @@ func startGeneration2(opts startOptions) error {
 		return err
 	}
 
-	tar, err := createTarball(".")
-	if err != nil {
-		return err
-	}
+	if opts.Build {
+		tar, err := createTarball(".")
+		if err != nil {
+			return err
+		}
 
-	o, err := rack.ObjectStore(app, "", bytes.NewReader(tar), structs.ObjectStoreOptions{})
-	if err != nil {
-		return err
-	}
+		o, err := rk.ObjectStore(app, "", bytes.NewReader(tar), structs.ObjectStoreOptions{})
+		if err != nil {
+			return err
+		}
 
-	b, err := rack.BuildCreate(app, "tgz", o.Url, structs.BuildCreateOptions{Manifest: options.String(mf)})
-	if err != nil {
-		return err
-	}
+		b, err := rk.BuildCreate(app, "tgz", o.Url, structs.BuildCreateOptions{Manifest: options.String(mf)})
+		if err != nil {
+			return err
+		}
 
-	if err := waitForBuildGeneration2(rack, app, b.Id); err != nil {
-		return err
-	}
+		if err := waitForBuildGeneration2(rk, app, b.Id); err != nil {
+			return err
+		}
 
-	logs, err := rack.BuildLogs(app, b.Id, structs.LogsOptions{})
-	if err != nil {
-		return err
-	}
+		logs, err := rk.BuildLogs(app, b.Id, structs.LogsOptions{})
+		if err != nil {
+			return err
+		}
 
-	bo := m.Writer("build", os.Stdout)
+		bo := m.Writer("build", os.Stdout)
 
-	if _, err := io.Copy(bo, logs); err != nil {
-		return err
-	}
+		if _, err := io.Copy(bo, logs); err != nil {
+			return err
+		}
 
-	b, err = rack.BuildGet(app, b.Id)
-	if err != nil {
-		return err
-	}
+		b, err = rk.BuildGet(app, b.Id)
+		if err != nil {
+			return err
+		}
 
-	switch b.Status {
-	case "created", "running", "complete":
-	case "failed":
-		return fmt.Errorf("build failed")
-	default:
-		return fmt.Errorf("unknown build status: %s", b.Status)
-	}
+		switch b.Status {
+		case "created", "running", "complete":
+		case "failed":
+			return fmt.Errorf("build failed")
+		default:
+			return fmt.Errorf("unknown build status: %s", b.Status)
+		}
 
-	if err := rack.ReleasePromote(app, b.Release); err != nil {
-		return err
-	}
+		if err := rk.ReleasePromote(app, b.Release); err != nil {
+			return err
+		}
 
-	r, err := rack.ReleaseGet(app, b.Release)
-	if err != nil {
-		return err
-	}
+		r, err := rk.ReleaseGet(app, b.Release)
+		if err != nil {
+			return err
+		}
 
-	switch r.Status {
-	case "created", "promoting", "promoted", "active":
-	case "failed":
-		return fmt.Errorf("release failed")
-	default:
-		return fmt.Errorf("unknown release status: %s", r.Status)
+		switch r.Status {
+		case "created", "promoting", "promoted", "active":
+		case "failed":
+			return fmt.Errorf("release failed")
+		default:
+			return fmt.Errorf("unknown release status: %s", r.Status)
+		}
 	}
 
 	errch := make(chan error)
 
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
-	go handleSignals(rack, m, app, sig, errch)
+	go handleSignals(rk, m, app, sig, errch)
 
 	wd, err := os.Getwd()
 	if err != nil {
@@ -300,11 +320,15 @@ func startGeneration2(opts startOptions) error {
 
 	for _, s := range m.Services {
 		if s.Build.Path != "" {
-			go watchChanges(rack, m, app, s.Name, wd, errch)
+			go watchChanges(rk, m, app, s.Name, wd, errch)
+		}
+
+		if s.Port.Port > 0 {
+			go healthCheck(rk, m, app, s, errch)
 		}
 	}
 
-	logs, err = rack.AppLogs(app, structs.LogsOptions{Follow: true, Prefix: true})
+	logs, err := rk.AppLogs(app, structs.LogsOptions{Follow: true, Prefix: true})
 	if err != nil {
 		return err
 	}
@@ -368,6 +392,53 @@ func handleSignals(rack *sdk.Client, m *manifest.Manifest, app string, ch chan o
 	wg.Wait()
 
 	os.Exit(0)
+}
+
+func healthCheck(r *sdk.Client, m *manifest.Manifest, app string, s manifest.Service, errch chan error) {
+	rss, err := r.ServiceList(app)
+	if err != nil {
+		errch <- err
+		return
+	}
+
+	hostname := ""
+
+	for _, rs := range rss {
+		if rs.Name == s.Name {
+			fmt.Printf("rs = %+v\n", rs)
+			hostname = rs.Domain
+		}
+	}
+
+	if hostname == "" {
+		errch <- fmt.Errorf("could not find hostname for service: %s", s.Name)
+		return
+	}
+
+	m.Writef("convox", "starting health check for <service>%s</service> on path <setting>%s</setting> with <setting>%d</setting>s interval, <setting>%d</setting>s grace\n", s.Name, s.Health.Path, s.Health.Interval, s.Health.Grace)
+
+	hcu := fmt.Sprintf("https://%s%s", hostname, s.Health.Path)
+
+	fmt.Printf("hcu = %+v\n", hcu)
+
+	time.Sleep(time.Duration(s.Health.Grace) * time.Second)
+
+	c := &http.Client{Timeout: time.Duration(s.Health.Timeout) * time.Second}
+
+	for range time.Tick(time.Duration(s.Health.Interval) * time.Second) {
+		res, err := c.Get(hcu)
+		if err != nil {
+			m.Writef("convox", "health check <service>%s</service>: <fail>%s</fail>\n", s.Name, err.Error())
+			continue
+		}
+
+		if res.StatusCode < 200 || res.StatusCode > 399 {
+			m.Writef("convox", "health check <service>%s</service>: <fail>%d</fail>\n", s.Name, res.StatusCode)
+			continue
+		}
+
+		m.Writef("convox", "health check <service>%s</service>: <ok>%d</ok>\n", s.Name, res.StatusCode)
+	}
 }
 
 func dockerTest() error {

@@ -7,7 +7,7 @@ import (
 )
 
 func launcherPath(name string) string {
-	return filepath.Join("/Library/LaunchDaemons", fmt.Sprintf("%s.plist", name))
+	return filepath.Join("/Library/LaunchDaemons", fmt.Sprintf("convox.%s.plist", name))
 }
 
 func launcherStart(name string) error {
@@ -15,7 +15,7 @@ func launcherStart(name string) error {
 }
 
 func launcherStop(name string) error {
-	return exec.Command("launchctl", "remove", name).Run()
+	return exec.Command("launchctl", "remove", fmt.Sprintf("convox.%s", name)).Run()
 }
 
 func launcherTemplate() string {
@@ -24,7 +24,7 @@ func launcherTemplate() string {
 	<plist version="1.0">
 		<dict>
 			<key>Label</key>
-			<string>{{ .Name }}</string>
+			<string>convox.{{ .Name }}</string>
 			<key>ProgramArguments</key>
 			<array>
 				<string>{{ .Command }}</string>

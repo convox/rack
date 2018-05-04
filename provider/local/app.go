@@ -158,5 +158,24 @@ func (p *Provider) AppRegistry(app string) (*structs.Registry, error) {
 }
 
 func (p *Provider) AppUpdate(app string, opts structs.AppUpdateOptions) error {
-	return fmt.Errorf("cannot set parameters on a local rack")
+	log := p.logger("AppUpdate").Append("app=%q", app)
+
+	if opts.Sleep != nil {
+		a, err := p.AppGet(app)
+		if err != nil {
+			return errors.WithStack(log.Error(err))
+		}
+
+		a.Sleep = *opts.Sleep
+
+		if err := p.storageStore(fmt.Sprintf("apps/%s/app.json", app), a); err != nil {
+			return errors.WithStack(log.Error(err))
+		}
+
+		if err := p.converge(app); err != nil {
+			return errors.WithStack(log.Error(err))
+		}
+	}
+
+	return log.Success()
 }

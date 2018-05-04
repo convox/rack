@@ -8,6 +8,8 @@ import (
 
 	"github.com/convox/rack/cmd/convox/helpers"
 	"github.com/convox/rack/cmd/convox/stdcli"
+	"github.com/convox/rack/options"
+	"github.com/convox/rack/structs"
 	"gopkg.in/urfave/cli.v1"
 )
 
@@ -77,6 +79,22 @@ func init() {
 					},
 				},
 			},
+			{
+				Name:        "sleep",
+				Description: "spin down all services for an app",
+				Usage:       "",
+				ArgsUsage:   "",
+				Action:      cmdAppSleep,
+				Flags:       []cli.Flag{appFlag, rackFlag},
+			},
+			{
+				Name:        "wake",
+				Description: "resume all services for an pp",
+				Usage:       "",
+				ArgsUsage:   "",
+				Action:      cmdAppWake,
+				Flags:       []cli.Flag{appFlag, rackFlag},
+			},
 		},
 	})
 }
@@ -98,7 +116,13 @@ func cmdApps(c *cli.Context) error {
 	t := stdcli.NewTable("APP", "GEN", "STATUS")
 
 	for _, app := range apps {
-		t.AddRow(app.Name, app.Generation, app.Status)
+		status := app.Status
+
+		if app.Sleep {
+			status = "sleeping"
+		}
+
+		t.AddRow(app.Name, app.Generation, status)
 	}
 
 	t.Print()
@@ -226,10 +250,16 @@ func cmdAppInfo(c *cli.Context) error {
 
 	sort.Strings(ps)
 
+	status := a.Status
+
+	if a.Sleep {
+		status = "sleeping"
+	}
+
 	info := stdcli.NewInfo()
 
 	info.Add("Name", a.Name)
-	info.Add("Status", a.Status)
+	info.Add("Status", status)
 	info.Add("Generation", a.Generation)
 	info.Add("Release", a.Release)
 
@@ -308,6 +338,52 @@ func cmdAppParamsSet(c *cli.Context) error {
 			return stdcli.Error(fmt.Errorf("No updates are to be performed"))
 		}
 		return stdcli.Error(err)
+	}
+
+	stdcli.OK()
+
+	return nil
+}
+
+func cmdAppSleep(c *cli.Context) error {
+	stdcli.NeedHelp(c)
+
+	_, app, err := stdcli.DirApp(c, ".")
+	if err != nil {
+		return stdcli.Error(err)
+	}
+
+	if len(c.Args()) > 0 {
+		app = c.Args()[0]
+	}
+
+	stdcli.Startf("Sleeping <app>%s</app>", app)
+
+	if err := rack(c).AppUpdate(app, structs.AppUpdateOptions{Sleep: options.Bool(true)}); err != nil {
+		return err
+	}
+
+	stdcli.OK()
+
+	return nil
+}
+
+func cmdAppWake(c *cli.Context) error {
+	stdcli.NeedHelp(c)
+
+	_, app, err := stdcli.DirApp(c, ".")
+	if err != nil {
+		return stdcli.Error(err)
+	}
+
+	if len(c.Args()) > 0 {
+		app = c.Args()[0]
+	}
+
+	stdcli.Startf("Waking <app>%s</app>", app)
+
+	if err := rack(c).AppUpdate(app, structs.AppUpdateOptions{Sleep: options.Bool(false)}); err != nil {
+		return err
 	}
 
 	stdcli.OK()

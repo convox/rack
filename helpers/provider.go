@@ -59,22 +59,13 @@ func ReleaseManifest(p structs.Provider, app, release string) (*manifest.Manifes
 		return nil, nil, err
 	}
 
-	if r.Build == "" {
-		return nil, nil, errors.WithStack(fmt.Errorf("no builds for app: %s", app))
-	}
-
-	b, err := p.BuildGet(app, r.Build)
-	if err != nil {
-		return nil, nil, err
-	}
-
 	env := structs.Environment{}
 
 	if err := env.Load([]byte(r.Env)); err != nil {
 		return nil, nil, err
 	}
 
-	m, err := manifest.Load([]byte(b.Manifest), manifest.Environment(env))
+	m, err := manifest.Load([]byte(r.Manifest), manifest.Environment(env))
 	if err != nil {
 		return nil, nil, err
 	}
