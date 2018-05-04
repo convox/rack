@@ -32,13 +32,6 @@ func TestScaleCmd(t *testing.T) {
 
 	tests := []test.ExecRun{
 		test.ExecRun{
-			// Ensure we don't segfault if user is not logged in
-			Command: "convox scale",
-			Env:     configlessEnv,
-			Exit:    1,
-			Stderr:  "ERROR: no host config found, try `convox login`\n",
-		},
-		test.ExecRun{
 			Command:  "convox scale foo bar",
 			OutMatch: scaleUsage,
 			Exit:     129,

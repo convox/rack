@@ -8,7 +8,6 @@ import (
 
 	"github.com/convox/rack/client"
 	"github.com/convox/rack/test"
-	"github.com/stretchr/testify/assert"
 )
 
 var configlessEnv = map[string]string{
@@ -38,17 +37,4 @@ func testServer(t *testing.T, stubs ...test.Http) *httptest.Server {
 	os.Setenv("CONVOX_PASSWORD", "test")
 
 	return server
-}
-
-func TestVersion(t *testing.T) {
-	// Ensure we don't segfault if user is not logged in
-	test.Runs(t, test.ExecRun{
-		Command: "convox -v",
-		Env:     configlessEnv,
-		Exit:    1,
-		Stdout:  "client: dev\n",
-		Stderr:  "ERROR: no host config found, try `convox login`\n",
-	})
-	v := Version
-	assert.Equal(t, v, "dev")
 }
