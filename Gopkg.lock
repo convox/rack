@@ -479,14 +479,15 @@
   version = "v1.20.0"
 
 [[projects]]
-  branch = "v2"
+  branch = "merge-map-slice"
   name = "gopkg.in/yaml.v2"
   packages = ["."]
-  revision = "287cf08546ab5e7e37d55a84f7ed3fd1db036de5"
+  revision = "3fb95e32dd8a54d6a2e0daec4151b6a41c2e64f4"
+  source = "https://github.com/ddollar/yaml"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "2f986b773492440c167c67d06fe38a2a9906319cdd9e534ed0d0827dc9136ddb"
+  inputs-digest = "e165fe521acdf1e4647c8d426659642d356efdbd9f5bfe31d439ba010dc8be48"
   solver-name = "gps-cdcl"
   solver-version = 1

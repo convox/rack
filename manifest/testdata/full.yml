@@ -58,5 +58,5 @@ services:
             dimensions:
               QueueName: testqueue
   inherit:
-    "<<": *proxy
+    <<: *proxy
     command: inherit
