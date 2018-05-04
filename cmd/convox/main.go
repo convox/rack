@@ -151,7 +151,17 @@ func currentCredentials(c *cli.Context) (string, string, string, error) {
 	name := currentRack(c)
 
 	if name == "" {
-		return "", "", "", fmt.Errorf("no host config found, try `convox login`")
+		racks := rackList()
+
+		if len(racks) < 1 {
+			return "", "", "", fmt.Errorf("no host config found, try `convox login`")
+		}
+
+		if len(racks) > 1 {
+			return "", "", "", fmt.Errorf("please switch to a rack with `convox switch`")
+		}
+
+		name = racks[0].Name
 	}
 
 	rack, err := rackGet(name)
