@@ -125,67 +125,125 @@ var serviceEndpoints = map[string]int{
 	"https": 443,
 }
 
+func routeParts(route string) (string, int, error) {
+	parts := strings.SplitN(route, ":", 2)
+
+	if len(parts) != 2 {
+		return "", 0, fmt.Errorf("invalid route: %s", route)
+	}
+
+	pi, err := strconv.Atoi(parts[1])
+	if err != nil {
+		return "", 0, err
+	}
+
+	return parts[0], pi, nil
+}
+
+func (p *Provider) routeContainers(host string, routes map[string]string, labels map[string]string) error {
+	cs, err := containersByLabels(labels)
+	if err != nil {
+		return err
+	}
+
+	if err := p.router.HostCreate(p.Name, host); err != nil {
+		return err
+	}
+
+	for source, destination := range routes {
+		sproto, sport, err := routeParts(source)
+		if err != nil {
+			return err
+		}
+
+		dproto, dport, err := routeParts(destination)
+		if err != nil {
+			return err
+		}
+
+		e, err := p.router.EndpointGet(p.Name, host, sport)
+		if err != nil {
+			e, err = p.router.EndpointCreate(p.Name, host, sproto, sport)
+			if err != nil {
+				return err
+			}
+		}
+
+		targets := map[int][]string{}
+
+		for _, c := range cs {
+			for p, t := range c.Listeners {
+				if targets[p] == nil {
+					targets[p] = []string{}
+				}
+				targets[p] = append(targets[p], fmt.Sprintf("%s://%s", dproto, t))
+			}
+		}
+
+		missing := diff(targets[dport], e.Targets)
+		extra := diff(e.Targets, targets[dport])
+
+		for _, t := range missing {
+			if err := p.router.TargetAdd(p.Name, host, sport, t); err != nil {
+				return err
+			}
+		}
+
+		for _, t := range extra {
+			if err := p.router.TargetRemove(p.Name, host, sport, t); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
 func (p *Provider) route(app string) error {
 	m, _, err := helpers.AppManifest(p, app)
 	if err != nil {
 		return err
 	}
 
-	// create host stubs for every app if they dont exist
-	for _, s := range m.Services {
-		host := fmt.Sprintf("%s.%s", s.Name, app)
-
-		if err := p.router.HostCreate(p.Name, host); err != nil {
-			return err
-		}
-
-		if s.Port.Port == 0 {
-			continue
-		}
-
-		tc, err := containersByLabels(map[string]string{
-			"convox.rack":    p.Name,
-			"convox.app":     app,
-			"convox.service": s.Name,
-		})
+	for _, r := range m.Resources {
+		rp, err := resourcePort(r.Type)
 		if err != nil {
 			return err
 		}
 
-		targets := map[int][]string{}
+		host := fmt.Sprintf("%s.resource.%s", r.Name, app)
 
-		for _, c := range tc {
-			for p, t := range c.Listeners {
-				if targets[p] == nil {
-					targets[p] = []string{}
-				}
-				targets[p] = append(targets[p], fmt.Sprintf("%s://%s", s.Port.Scheme, t))
-			}
+		routes := map[string]string{
+			fmt.Sprintf("tcp:%d", rp): fmt.Sprintf("tcp:%d", rp),
 		}
 
-		for proto, port := range serviceEndpoints {
-			e, err := p.router.EndpointGet(p.Name, host, port)
-			if err != nil {
-				e, err = p.router.EndpointCreate(p.Name, host, proto, port)
-				if err != nil {
-					return err
-				}
-			}
+		err = p.routeContainers(host, routes, map[string]string{
+			"convox.rack": p.Name,
+			"convox.app":  app,
+			"convox.type": "resource",
+			"convox.name": r.Name,
+		})
+		if err != nil {
+			return err
+		}
+	}
 
-			missing := diff(targets[s.Port.Port], e.Targets)
-			extra := diff(e.Targets, targets[s.Port.Port])
+	for _, s := range m.Services {
+		host := fmt.Sprintf("%s.%s", s.Name, app)
 
-			for _, t := range missing {
-				if err := p.router.TargetAdd(p.Name, host, port, t); err != nil {
-					return err
-				}
-			}
+		routes := map[string]string{
+			"http:80":   fmt.Sprintf("%s:%d", s.Port.Scheme, s.Port.Port),
+			"https:443": fmt.Sprintf("%s:%d", s.Port.Scheme, s.Port.Port),
+		}
 
-			for _, t := range extra {
-				if err := p.router.TargetRemove(p.Name, host, port, t); err != nil {
-					return err
-				}
-			}
+		err = p.routeContainers(host, routes, map[string]string{
+			"convox.rack": p.Name,
+			"convox.app":  app,
+			"convox.type": "service",
+			"convox.name": s.Name,
+		})
+		if err != nil {
+			return err
 		}
 	}
 
