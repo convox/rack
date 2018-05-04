@@ -2,11 +2,8 @@ package local
 
 import (
 	"bytes"
-	"crypto/tls"
 	"encoding/json"
 	"fmt"
-	"net/http"
-	"net/url"
 	"os"
 	"os/exec"
 	"strconv"
@@ -15,17 +12,17 @@ import (
 )
 
 type container struct {
-	Command  []string
-	Env      map[string]string
-	Hostname string
-	Image    string
-	Labels   map[string]string
-	Id       string
-	Memory   int
-	Name     string
-	Port     int
-	Targets  []containerTarget
-	Volumes  []string
+	Command   []string
+	Env       map[string]string
+	Hostname  string
+	Image     string
+	Labels    map[string]string
+	Listeners map[int]string
+	Id        string
+	Memory    int
+	Name      string
+	Port      int
+	Volumes   []string
 }
 
 type containerPort struct {
@@ -34,58 +31,19 @@ type containerPort struct {
 }
 
 type containerTarget struct {
-	Port   int
-	Scheme string
-	Target string
+	FromScheme string
+	FromPort   int
+	ToScheme   string
+	ToPort     int
 }
 
-func (p *Provider) containerRegister(c container) error {
-	if p.Router == "none" || c.Hostname == "" {
-		return nil
-	}
+type host struct {
+	endpoints map[int]endpoint
+}
 
-	// TODO: remove
-	dt := http.DefaultTransport.(*http.Transport)
-	dt.TLSClientConfig = &tls.Config{
-		InsecureSkipVerify: true,
-	}
-
-	hc := http.Client{Transport: dt}
-
-	req, err := http.NewRequest("POST", fmt.Sprintf("https://%s/endpoints/%s", p.Router, c.Hostname), nil)
-	if err != nil {
-		return err
-	}
-
-	res, err := hc.Do(req)
-	if err != nil {
-		return err
-	}
-
-	defer res.Body.Close()
-
-	for _, t := range c.Targets {
-		uv := url.Values{}
-
-		uv.Add("scheme", t.Scheme)
-		uv.Add("target", t.Target)
-
-		req, err := http.NewRequest("POST", fmt.Sprintf("https://%s/endpoints/%s/proxies/%d", p.Router, c.Hostname, t.Port), bytes.NewReader([]byte(uv.Encode())))
-		if err != nil {
-			return err
-		}
-
-		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-
-		res, err := hc.Do(req)
-		if err != nil {
-			return err
-		}
-
-		defer res.Body.Close()
-	}
-
-	return nil
+type endpoint struct {
+	protocol string
+	targets  []string
 }
 
 func (p *Provider) containerStart(c container, app, release string) (string, error) {
@@ -129,8 +87,6 @@ func (p *Provider) containerStart(c container, app, release string) (string, err
 
 	args = append(args, c.Image)
 	args = append(args, c.Command...)
-
-	fmt.Printf("args = %+v\n", args)
 
 	exec.Command("docker", "rm", "-f", c.Name).Run()
 
@@ -236,40 +192,52 @@ func containerList(args ...string) ([]container, error) {
 	for d.More() {
 		var c struct {
 			Id     string
+			Name   string
 			Config struct {
 				Labels map[string]string
 			}
-			HostConfig struct {
-				PortBindings map[string][]struct {
+			NetworkSettings struct {
+				Ports map[string][]struct {
 					HostIp   string
 					HostPort string
 				}
 			}
-			Name string
 		}
 
 		if err := d.Decode(&c); err != nil {
 			return nil, err
 		}
 
-		cc := container{
-			Id:       c.Id,
-			Labels:   c.Config.Labels,
-			Name:     c.Name[1:],
-			Hostname: c.Config.Labels["convox.hostname"],
+		// dont list build processes
+		if c.Config.Labels["convox.service"] == "build" {
+			continue
 		}
 
-		app := c.Config.Labels["convox.app"]
-		service := c.Config.Labels["convox.service"]
-		scheme := c.Config.Labels["convox.scheme"]
-		port := c.Config.Labels["convox.port"]
+		cc := container{
+			Id:        c.Id,
+			Labels:    c.Config.Labels,
+			Listeners: map[int]string{},
+			Name:      c.Name[1:],
+			Hostname:  c.Config.Labels["convox.hostname"],
+		}
 
-		if app != "" && service != "" && scheme != "" && port != "" {
-			st := fmt.Sprintf("%s://rack/%s/service/%s:%s", scheme, app, service, port)
+		if c.Config.Labels["convox.port"] != "" {
+			pi, err := strconv.Atoi(c.Config.Labels["convox.port"])
+			if err != nil {
+				return nil, err
+			}
 
-			cc.Targets = []containerTarget{
-				containerTarget{Scheme: "http", Port: 80, Target: st},
-				containerTarget{Scheme: "https", Port: 443, Target: st},
+			cc.Port = pi
+		}
+
+		for host, cp := range c.NetworkSettings.Ports {
+			hpi, err := strconv.Atoi(strings.Split(host, "/")[0])
+			if err != nil {
+				return nil, err
+			}
+
+			if len(cp) == 1 {
+				cc.Listeners[hpi] = fmt.Sprintf("127.0.0.1:%s", cp[0].HostPort)
 			}
 		}
 

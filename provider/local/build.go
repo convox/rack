@@ -55,40 +55,43 @@ func (p *Provider) BuildCreate(app, method, url string, opts structs.BuildCreate
 		cache = *opts.Cache
 	}
 
-	pid, err := p.ProcessStart(app, structs.ProcessRunOptions{
-		Command: options.String(fmt.Sprintf("build -method %s -cache %t", method, cache)),
-		Environment: map[string]string{
-			"BUILD_APP":        app,
-			"BUILD_AUTH":       string(auth),
-			"BUILD_GENERATION": "2",
-			"BUILD_ID":         b.Id,
-			"BUILD_MANIFEST":   cs(opts.Manifest, "convox.yml"),
-			"BUILD_URL":        url,
-			"PROVIDER":         "local",
-		},
-		Name:    options.String(fmt.Sprintf("%s-build-%s", app, b.Id)),
-		Image:   options.String(sys.Image),
-		Release: options.String(a.Release),
-		Service: options.String("build"),
-		Volumes: map[string]string{
-			p.Volume:               "/var/convox",
-			"/var/run/docker.sock": "/var/run/docker.sock",
-		},
-	})
-	if err != nil {
-		return nil, errors.WithStack(log.Error(err))
-	}
+	if !p.Test {
+		pid, err := p.ProcessStart(app, structs.ProcessRunOptions{
+			Command: options.String(fmt.Sprintf("build -method %s -cache %t", method, cache)),
+			Environment: map[string]string{
+				"BUILD_APP":        app,
+				"BUILD_AUTH":       string(auth),
+				"BUILD_GENERATION": "2",
+				"BUILD_ID":         b.Id,
+				"BUILD_MANIFEST":   cs(opts.Manifest, "convox.yml"),
+				"BUILD_RACK":       p.Name,
+				"BUILD_URL":        url,
+				"PROVIDER":         "local",
+			},
+			Name:    options.String(fmt.Sprintf("%s-build-%s", app, b.Id)),
+			Image:   options.String(sys.Image),
+			Release: options.String(a.Release),
+			Service: options.String("build"),
+			Volumes: map[string]string{
+				p.Volume:               "/var/convox",
+				"/var/run/docker.sock": "/var/run/docker.sock",
+			},
+		})
+		if err != nil {
+			return nil, errors.WithStack(log.Error(err))
+		}
 
-	b, err = p.BuildGet(app, b.Id)
-	if err != nil {
-		return nil, errors.WithStack(log.Error(err))
-	}
+		b, err = p.BuildGet(app, b.Id)
+		if err != nil {
+			return nil, errors.WithStack(log.Error(err))
+		}
 
-	b.Process = pid
-	b.Status = "running"
+		b.Process = pid
+		b.Status = "running"
 
-	if err := p.storageStore(fmt.Sprintf("apps/%s/builds/%s", app, b.Id), b); err != nil {
-		return nil, errors.WithStack(log.Error(err))
+		if err := p.storageStore(fmt.Sprintf("apps/%s/builds/%s", app, b.Id), b); err != nil {
+			return nil, errors.WithStack(log.Error(err))
+		}
 	}
 
 	return b, log.Successf("id=%s", b.Id)

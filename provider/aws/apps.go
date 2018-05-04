@@ -197,6 +197,22 @@ func (p *AWSProvider) AppLogs(app string, opts structs.LogsOptions) (io.ReadClos
 }
 
 func (p *AWSProvider) AppUpdate(app string, opts structs.AppUpdateOptions) error {
+	params := opts.Parameters
+
+	if params == nil {
+		params = map[string]string{}
+	}
+
+	if opts.Sleep != nil {
+		return fmt.Errorf("sleeping not yet supported on aws racks")
+
+		if *opts.Sleep {
+			params["Sleep"] = "Yes"
+		} else {
+			params["Sleep"] = "No"
+		}
+	}
+
 	return p.updateStack(p.rackStack(app), "", opts.Parameters)
 }
 

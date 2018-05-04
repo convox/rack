@@ -10,7 +10,7 @@ const (
 )
 
 func New(endpoint string) (*Client, error) {
-	u, err := url.Parse(coalesce(endpoint, "https://localhost:5443"))
+	u, err := url.Parse(coalesce(endpoint, "https://rack.convox"))
 	if err != nil {
 		return nil, err
 	}

@@ -174,6 +174,7 @@ func (p *AWSProvider) SystemGet() (*structs.System, error) {
 		Name:       p.Rack,
 		Outputs:    outputs,
 		Parameters: params,
+		Provider:   "aws",
 		Region:     p.Region,
 		Status:     status,
 		Type:       params["InstanceType"],
@@ -269,6 +270,10 @@ func (p *AWSProvider) SystemReleases() (structs.Releases, error) {
 	}
 
 	return releases, nil
+}
+
+func (p *AWSProvider) SystemUninstall(name string, opts structs.SystemUninstallOptions) error {
+	return fmt.Errorf("unimplemented")
 }
 
 func (p *AWSProvider) SystemUpdate(opts structs.SystemUpdateOptions) error {

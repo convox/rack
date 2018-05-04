@@ -1,11 +1,14 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/mail"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"gopkg.in/urfave/cli.v1"
@@ -113,6 +116,67 @@ func main() {
 	}
 }
 
+type Rack struct {
+	Host   string
+	Name   string
+	Status string
+}
+
+type Racks []Rack
+
+func currentCredentials(c *cli.Context) (string, string, string, error) {
+	if os.Getenv("CONVOX_HOST") != "" {
+		return "", os.Getenv("CONVOX_HOST"), os.Getenv("CONVOX_PASSWORD"), nil
+	}
+
+	drs, err := ioutil.ReadFile(filepath.Join(ConfigRoot, "switch"))
+
+	if len(drs) > 0 && err == nil {
+		var rs Rack
+
+		if err := json.Unmarshal(drs, &rs); err != nil {
+			return "", "", "", fmt.Errorf("error reading current rack switch setting")
+		}
+
+		if rs.Name == currentRack(c) {
+			password, err := getLogin(rs.Host)
+			if err != nil {
+				return "", "", "", err
+			}
+
+			return rs.Name, rs.Host, password, nil
+		}
+	}
+
+	name := currentRack(c)
+
+	if name == "" {
+		racks := rackList()
+
+		if len(racks) < 1 {
+			return "", "", "", fmt.Errorf("no host config found, try `convox login`")
+		}
+
+		if len(racks) > 1 {
+			return "", "", "", fmt.Errorf("please switch to a rack with `convox switch`")
+		}
+
+		name = racks[0].Name
+	}
+
+	rack, err := rackGet(name)
+	if err != nil {
+		return "", "", "", fmt.Errorf("could not get rack: %s", name)
+	}
+
+	password, err := getLogin(rack.Host)
+	if err != nil {
+		return "", "", "", err
+	}
+
+	return name, rack.Host, password, nil
+}
+
 func currentRack(c *cli.Context) string {
 	cr, err := ioutil.ReadFile(filepath.Join(ConfigRoot, "rack"))
 	if err != nil && !os.IsNotExist(err) {
@@ -125,26 +189,9 @@ func currentRack(c *cli.Context) string {
 }
 
 func rack(c *cli.Context) *sdk.Client {
-	cr := currentRack(c)
-
-	if cr == "local" {
-		if !localRackRunning() {
-			stdcli.Errorf("local rack is not running")
-			os.Exit(1)
-		}
-
-		cl, err := sdk.New("https://localhost:5443")
-		if err != nil {
-			stdcli.Error(err)
-			os.Exit(1)
-		}
-
-		return cl
-	}
-
-	host, password, err := currentLogin()
+	name, host, password, err := currentCredentials(c)
 	if err != nil {
-		stdcli.Errorf("%s, try `convox login`", err)
+		stdcli.Error(err)
 		os.Exit(1)
 	}
 
@@ -154,46 +201,106 @@ func rack(c *cli.Context) *sdk.Client {
 		os.Exit(1)
 	}
 
-	cl.Rack = cr
+	cl.Rack = name
 
 	return cl
 }
 
 func rackClient(c *cli.Context) *client.Client {
-	rack := currentRack(c)
-
-	if rack == "local" {
-		if !localRackRunning() {
-			stdcli.Errorf("local rack is not running")
-			os.Exit(1)
-		}
-
-		return client.New("localhost:5443", "", c.App.Version)
-	}
-
-	host, password, err := currentLogin()
+	name, host, password, err := currentCredentials(c)
 	if err != nil {
-		stdcli.Errorf("%s, try `convox login`", err)
+		stdcli.Error(err)
 		os.Exit(1)
 	}
 
-	cl := client.New(host, password, c.App.Version)
-	cl.Rack = rack
+	cl := client.New(host, password, Version)
+
+	cl.Rack = name
 
 	return cl
 }
 
-func rackClientWithoutLocal(c *cli.Context) *client.Client {
-	rack := currentRack(c)
+func rackGet(name string) (*Rack, error) {
+	racks := rackList()
 
-	host, password, err := currentLogin()
-	if err != nil {
-		stdcli.Errorf("%s, try `convox login`", err)
-		os.Exit(1)
+	for _, r := range racks {
+		if r.Name == name {
+			return &r, nil
+		}
 	}
 
-	cl := client.New(host, password, c.App.Version)
-	cl.Rack = rack
+	return nil, fmt.Errorf("no such rack: %s", name)
+}
 
-	return cl
+func rackList() Racks {
+	racks := Racks{}
+
+	rrs, err := remoteRacks()
+	if err == nil {
+		racks = append(racks, rrs...)
+	}
+
+	lrs, err := localRacks()
+	if err == nil {
+		racks = append(racks, lrs...)
+	}
+
+	sort.Slice(racks, func(i, j int) bool {
+		return racks[i].Name < racks[j].Name
+	})
+
+	return racks
+}
+
+func remoteRacks() (Racks, error) {
+	host, password, err := currentLogin()
+	if err != nil {
+		return nil, err
+	}
+
+	c := client.New(host, password, Version)
+
+	rs, err := c.Racks()
+	if err != nil {
+		return nil, err
+	}
+
+	racks := make(Racks, len(rs))
+
+	for i, r := range rs {
+		name := r.Name
+
+		if r.Organization.Name != "" {
+			name = fmt.Sprintf("%s/%s", r.Organization.Name, r.Name)
+		}
+
+		racks[i] = Rack{
+			Host:   host,
+			Name:   name,
+			Status: r.Status,
+		}
+	}
+
+	return racks, nil
+}
+
+func localRacks() (Racks, error) {
+	data, err := exec.Command("docker", "ps", "--filter", "label=convox.type=rack", "--format", "{{.Names}}").CombinedOutput()
+	if err != nil {
+		return nil, err
+	}
+
+	names := strings.Split(strings.TrimSpace(string(data)), "\n")
+
+	racks := make(Racks, len(names))
+
+	for i, name := range names {
+		racks[i] = Rack{
+			Host:   fmt.Sprintf("rack.%s", name),
+			Name:   fmt.Sprintf("local/%s", name),
+			Status: "running",
+		}
+	}
+
+	return racks, nil
 }

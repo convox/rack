@@ -2,7 +2,6 @@ package sdk
 
 import (
 	"bytes"
-	"context"
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
@@ -81,6 +80,8 @@ func marshalValues(vv map[string]interface{}) (url.Values, error) {
 
 	for k, v := range vv {
 		switch t := v.(type) {
+		case bool:
+			u.Set(k, fmt.Sprintf("%t", t))
 		case string:
 			u.Set(k, t)
 		case []string:
@@ -226,34 +227,20 @@ func (c *Client) Delete(path string, opts RequestOptions, out interface{}) error
 	return unmarshalReader(res.Body, out)
 }
 
-func (c *Client) Client() *http.Client {
-	dialer := &net.Dialer{
-		Timeout:   10 * time.Second,
-		KeepAlive: 2 * time.Second,
-	}
-
-	t := &http.Transport{
-		DialContext: func(ctx context.Context, proto, addr string) (net.Conn, error) {
-			if c.Socket != "" {
-				proto = "unix"
-				addr = c.Socket
-			}
-			return dialer.DialContext(ctx, proto, addr)
-		},
+var client = &http.Client{
+	Transport: &http.Transport{
+		DialContext: (&net.Dialer{
+			Timeout:   30 * time.Second,
+			KeepAlive: 10 * time.Second,
+		}).DialContext,
+		MaxIdleConns:          100,
+		IdleConnTimeout:       90 * time.Second,
+		TLSHandshakeTimeout:   10 * time.Second,
+		ExpectContinueTimeout: 1 * time.Second,
 		TLSClientConfig: &tls.Config{
 			InsecureSkipVerify: true,
 		},
-	}
-
-	// disabled because HTTP2 over ALB doesn't work yet
-
-	// if err := http2.ConfigureTransport(t); err != nil {
-	//   panic(err)
-	// }
-
-	return &http.Client{
-		Transport: t,
-	}
+	},
 }
 
 func (c *Client) Request(method, path string, opts RequestOptions) (*http.Request, error) {
@@ -295,7 +282,7 @@ func (c *Client) Request(method, path string, opts RequestOptions) (*http.Reques
 }
 
 func (c *Client) handleRequest(req *http.Request) (*http.Response, error) {
-	res, err := c.Client().Do(req)
+	res, err := client.Do(req)
 	if err != nil {
 		return nil, err
 	}

@@ -1,11 +1,15 @@
 package api
 
 import (
+	"bytes"
 	"fmt"
 	"html/template"
+	"io"
 	"net/http"
 	"os"
 	"path/filepath"
+
+	"github.com/pkg/errors"
 )
 
 var (
@@ -26,13 +30,11 @@ func LoadTemplates(dir string, helpers map[string]interface{}) error {
 			files = append(files, path)
 
 			t, err := template.New("main").Funcs(helpers).ParseFiles(files...)
-
 			if err != nil {
 				return err
 			}
 
 			rel, err := filepath.Rel(dir, path)
-
 			if err != nil {
 				return err
 			}
@@ -45,13 +47,19 @@ func LoadTemplates(dir string, helpers map[string]interface{}) error {
 }
 
 func RenderTemplate(w http.ResponseWriter, path string, params interface{}) error {
-	t, ok := Templates[path]
+	t, ok := Templates[fmt.Sprintf("%s.tmpl", path)]
 
 	if !ok {
 		return fmt.Errorf("no such template: %s", path)
 	}
 
-	if err := t.Execute(w, params); err != nil {
+	var buf bytes.Buffer
+
+	if err := t.Execute(&buf, params); err != nil {
+		return errors.WithStack(err)
+	}
+
+	if _, err := io.Copy(w, &buf); err != nil {
 		return err
 	}
 

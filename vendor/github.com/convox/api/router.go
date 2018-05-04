@@ -2,17 +2,15 @@ package api
 
 import (
 	"context"
-	"fmt"
-	"io"
 	"net/http"
-	"reflect"
-	"runtime"
-	"strings"
-
-	"golang.org/x/net/websocket"
 
 	"github.com/gorilla/mux"
+	"github.com/gorilla/websocket"
 )
+
+type HandlerFunc func(c *Context) error
+
+type Middleware func(fn HandlerFunc) HandlerFunc
 
 type Router struct {
 	*mux.Router
@@ -21,12 +19,25 @@ type Router struct {
 	Server     *Server
 }
 
-func (rt *Router) Route(method, path string, fn HandlerFunc) {
-	sig := runtime.FuncForPC(reflect.ValueOf(fn).Pointer()).Name()
-	parts := strings.Split(sig, ".")
-	name := parts[len(parts)-1]
+func (rt *Router) Redirect(method, path string, code int, target string) {
+	rt.Handle(path, Redirect(code, target)).Methods(method)
+}
 
-	rt.Handle(path, rt.api(name, fn)).Methods(method)
+func (rt *Router) Route(method, path string, fn HandlerFunc) {
+	rt.Handle(path, rt.http(fn)).Methods(method)
+	rt.Handle(path, rt.websocket(fn)).Methods(method).Headers("Upgrade", "websocket")
+}
+
+func (rt *Router) Static(prefix, path string) {
+	rt.PathPrefix(prefix).Handler(http.StripPrefix(prefix, http.FileServer(http.Dir(path))))
+}
+
+func (r *Router) Subrouter(prefix string) Router {
+	return Router{
+		Parent: r,
+		Router: r.PathPrefix(prefix).Subrouter(),
+		Server: r.Server,
+	}
 }
 
 func (rt *Router) Use(mw Middleware) {
@@ -35,75 +46,93 @@ func (rt *Router) Use(mw Middleware) {
 
 func (rt *Router) UseHandlerFunc(fn http.HandlerFunc) {
 	rt.Middleware = append(rt.Middleware, func(gn HandlerFunc) HandlerFunc {
-		return func(w http.ResponseWriter, r *http.Request, c *Context) error {
-			fn(w, r)
-			return gn(w, r, c)
+		return func(c *Context) error {
+			fn(c.response, c.request)
+			return gn(c)
 		}
 	})
 }
 
-func (rt *Router) streamWebsocket(at string, fn StreamFunc) websocket.Handler {
-	return func(ws *websocket.Conn) {
-		c, err := rt.context(at, ws, ws.Request())
-		if err != nil {
-			fmt.Printf("err = %+v\n", err)
-			return
-		}
-
-		if err := fn(ws, c); err != nil {
-			fmt.Printf("err = %+v\n", err)
-			return
-		}
-	}
-}
-
-func (rt *Router) api(at string, fn HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		lw := responseWriter{ResponseWriter: w, code: 200}
-
-		c, err := rt.context(at, &lw, r)
-		if err != nil {
-			c.Error(err)
-			return
-		}
-
-		lw.Header().Add("Request-Id", c.id)
-
-		c.logger.Logf("method=%q path=%q agent=%q", r.Method, r.URL.Path, r.UserAgent())
-
-		c.logger = c.logger.Start()
-
-		mw := []Middleware{}
-
-		if rt.Parent != nil {
-			mw = append(mw, rt.Parent.Middleware...)
-		}
-
-		mw = append(mw, rt.Middleware...)
-
-		fnmw := rt.wrap(fn, mw...)
-
-		if err := fnmw(&lw, r, c); err != nil {
-			c.Error(err)
-		}
-
-		c.logger.Logf("code=%d bytes=%d", lw.code, lw.bytes)
-	}
-}
-
-func (rt *Router) context(name string, w io.Writer, r *http.Request) (*Context, error) {
-	id, err := Key(12)
+func (rt *Router) context(name string, w http.ResponseWriter, r *http.Request, conn *websocket.Conn) (*Context, error) {
+	id, err := generateId(12)
 	if err != nil {
 		return nil, err
 	}
 
-	return &Context{
-		context: context.WithValue(r.Context(), "request.id", id),
-		id:      id,
-		logger:  rt.Server.Logger.Prepend("id=%s", id).At(name),
-		request: r,
-		writer:  w,
-	}, nil
+	w.Header().Add("Request-Id", id)
+
+	c := NewContext(w, r)
+
+	c.context = context.WithValue(r.Context(), "request.id", id)
+	c.id = id
+	c.logger = rt.Server.Logger.Append("id=%s cn=%s", id, name)
+	c.ws = conn
+
+	return c, nil
+}
+
+func (rt *Router) handle(fn HandlerFunc, c *Context) error {
+	c.logger.At("start").Logf("method=%q path=%q", c.request.Method, c.request.URL.Path)
+	c.logger = c.logger.Start()
+
+	rw := &responseWriter{ResponseWriter: c.response, code: 200}
+	c.response = rw
+
+	mw := []Middleware{}
+
+	if rt.Parent != nil {
+		mw = append(mw, rt.Parent.Middleware...)
+	}
+
+	mw = append(mw, rt.Middleware...)
+
+	fnmw := rt.wrap(fn, mw...)
+
+	if err := fnmw(c); err != nil {
+		c.Error(err)
+	}
+
+	c.logger.At("end").Logf("code=%d", rw.code)
+
+	return nil
+}
+
+func (rt *Router) http(fn HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		c, err := rt.context(functionName(fn), w, r, nil)
+		if err != nil {
+			http.Error(w, err.Error(), 500)
+			return
+		}
+
+		if err := rt.handle(fn, c); err != nil {
+			http.Error(w, err.Error(), 500)
+			return
+		}
+	}
+}
+
+var upgrader = websocket.Upgrader{ReadBufferSize: 1024, WriteBufferSize: 1024}
+
+func (rt *Router) websocket(fn HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		conn, err := upgrader.Upgrade(w, r, nil)
+		if err != nil {
+			http.Error(w, err.Error(), 500)
+			return
+		}
+
+		c, err := rt.context(functionName(fn), w, r, conn)
+		if err != nil {
+			http.Error(w, err.Error(), 500)
+			return
+		}
+
+		if err := rt.handle(fn, c); err != nil {
+			http.Error(w, err.Error(), 500)
+			return
+		}
+	}
 }
 
 func (rt *Router) wrap(fn HandlerFunc, m ...Middleware) HandlerFunc {

@@ -9,6 +9,7 @@ type System struct {
 	Image      string            `json:"image"`
 	Outputs    map[string]string `json:"outputs,omitempty"`
 	Parameters map[string]string `json:"parameters,omitempty"`
+	Provider   string            `json:"provider"`
 	Region     string            `json:"region"`
 	Status     string            `json:"status"`
 	Type       string            `json:"type"`
@@ -24,6 +25,11 @@ type SystemInstallOptions struct {
 
 type SystemProcessesOptions struct {
 	All *bool
+}
+
+type SystemUninstallOptions struct {
+	Color  *bool
+	Output io.Writer
 }
 
 type SystemUpdateOptions struct {

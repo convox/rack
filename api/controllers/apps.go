@@ -136,3 +136,19 @@ func AppLogs(ws *websocket.Conn) *httperr.Error {
 
 	return nil
 }
+
+func AppUpdate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
+	app := mux.Vars(r)["app"]
+
+	var opts structs.AppUpdateOptions
+
+	if err := unmarshalOptions(r, &opts); err != nil {
+		return httperr.Server(err)
+	}
+
+	if err := Provider.AppUpdate(app, opts); err != nil {
+		return httperr.Server(err)
+	}
+
+	return RenderSuccess(rw)
+}
