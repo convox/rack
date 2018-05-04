@@ -20,10 +20,6 @@ func init() {
 		Flags: []cli.Flag{
 			appFlag,
 			rackFlag,
-			cli.BoolFlag{
-				Name:  "stats",
-				Usage: "display process cpu/memory stats",
-			},
 		},
 		Subcommands: []cli.Command{
 			{
