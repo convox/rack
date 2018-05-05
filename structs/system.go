@@ -24,7 +24,7 @@ type SystemInstallOptions struct {
 }
 
 type SystemProcessesOptions struct {
-	All *bool
+	All *bool `flag:"all,a" query:"all"`
 }
 
 type SystemUninstallOptions struct {
@@ -33,10 +33,8 @@ type SystemUninstallOptions struct {
 }
 
 type SystemUpdateOptions struct {
-	InstanceCount *int
-	InstanceType  *string
-	Output        io.Writer
-	Parameters    map[string]string
-	Password      *string
-	Version       *string
+	Count      *int              `param:"count"`
+	Parameters map[string]string `param:"parameters"`
+	Type       *string           `param:"type"`
+	Version    *string           `param:"version"`
 }

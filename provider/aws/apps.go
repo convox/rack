@@ -109,7 +109,7 @@ func (p *AWSProvider) AppGet(name string) (*structs.App, error) {
 		StackName: aws.String(p.Rack + "-" + name),
 	})
 	if ae, ok := err.(awserr.Error); ok && ae.Code() == "ValidationError" {
-		return nil, errorNotFound(fmt.Sprintf("%s not found", name))
+		return nil, errorNotFound(fmt.Sprintf("app not found: %s", name))
 	}
 	if err != nil {
 		return nil, err
@@ -168,9 +168,11 @@ func (p *AWSProvider) AppDelete(name string) error {
 }
 
 func (p *AWSProvider) AppList() (structs.Apps, error) {
+	log := p.logger("AppList")
+
 	stacks, err := p.describeStacks(&cloudformation.DescribeStacksInput{})
 	if err != nil {
-		return nil, err
+		return nil, log.Error(err)
 	}
 
 	apps := make(structs.Apps, 0)
@@ -183,10 +185,10 @@ func (p *AWSProvider) AppList() (structs.Apps, error) {
 		}
 	}
 
-	return apps, nil
+	return apps, log.Success()
 }
 
-func (p *AWSProvider) AppLogs(app string, opts structs.LogsOptions) (io.ReadCloser, error) {
+func (p *AWSProvider) AppLogs(app string, opts structs.LogsOptions) (io.Reader, error) {
 	group, err := p.appResource(app, "LogGroup")
 	if err != nil {
 		return nil, err
@@ -204,12 +206,6 @@ func (p *AWSProvider) AppUpdate(app string, opts structs.AppUpdateOptions) error
 
 	if opts.Sleep != nil {
 		return fmt.Errorf("sleeping not yet supported on aws racks")
-
-		if *opts.Sleep {
-			params["Sleep"] = "Yes"
-		} else {
-			params["Sleep"] = "No"
-		}
 	}
 
 	return p.updateStack(p.rackStack(app), "", opts.Parameters)

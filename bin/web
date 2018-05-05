@@ -2,10 +2,6 @@
 
 cd $(dirname ${0:-})/..
 
-./bin/gen-cert
-
-haproxy -f /etc/haproxy/haproxy.cfg &
-
 if [ "$DEVELOPMENT" == "true" ]; then
   exec watchexec -e go -r -s SIGTERM "set -x && go install . && $GOPATH/bin/rack"
 else

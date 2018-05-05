@@ -17,7 +17,7 @@ import (
 )
 
 type BuildOptions struct {
-	Cache       string
+	Cache       bool
 	Development bool
 	Env         map[string]string
 	Push        string
@@ -332,6 +332,10 @@ func build(b ServiceBuild, tag string, opts BuildOptions) error {
 	df := filepath.Join(path, b.Manifest)
 
 	args := []string{"build"}
+
+	if !opts.Cache {
+		args = append(args, "--no-cache")
+	}
 
 	args = append(args, "-t", tag)
 	args = append(args, "-f", df)

@@ -127,18 +127,6 @@
   version = "1.2.0"
 
 [[projects]]
-  name = "github.com/codegangsta/negroni"
-  packages = ["."]
-  revision = "5dbbc83f748fc3ad38585842b0aedab546d0ea1e"
-  version = "v0.3.0"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/convox/api"
-  packages = ["."]
-  revision = "47e28fed5250d307c738224dae963ba00ca09dbb"
-
-[[projects]]
   branch = "master"
   name = "github.com/convox/changes"
   packages = ["."]
@@ -154,13 +142,25 @@
   branch = "master"
   name = "github.com/convox/logger"
   packages = ["."]
-  revision = "0533ce640ccd3a1d543da3bd56efcc4204d0abdf"
+  revision = "0bfb9db0c9cf66580243389f7a785192d653f630"
 
 [[projects]]
   branch = "master"
-  name = "github.com/convox/nlogger"
+  name = "github.com/convox/stdapi"
   packages = ["."]
-  revision = "f8bc892c8cebc50723dc5c981ab931d8b85bdb75"
+  revision = "f85e7da97cec7d8d834efab6d41b623424447ccd"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/convox/stdcli"
+  packages = ["."]
+  revision = "c613d58ec2be618c24eda837c91d507e4b9ed196"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/convox/stdsdk"
+  packages = ["."]
+  revision = "8ecf01ba026d11f7e3f67237f51624340d3a51b4"
 
 [[projects]]
   branch = "master"
@@ -367,6 +367,15 @@
   revision = "b8bc1bf767474819792c23f32d8286a45736f1c6"
 
 [[projects]]
+  name = "github.com/moby/moby"
+  packages = [
+    "builder/dockerignore",
+    "pkg/archive"
+  ]
+  revision = "092cba3727bb9b4a2f0e922cd6c0f93ea270e363"
+  version = "v1.13.1"
+
+[[projects]]
   name = "github.com/mweagle/Sparta"
   packages = ["aws/cloudwatchlogs"]
   revision = "ead2872585dc0da81f222577a898707c6a486ab1"
@@ -404,6 +413,12 @@
   name = "github.com/segmentio/backo-go"
   packages = ["."]
   revision = "204274ad699c0983a70203a566887f17a717fef4"
+
+[[projects]]
+  name = "github.com/spf13/pflag"
+  packages = ["."]
+  revision = "583c0c0531f06d5278b7d917446061adc344b5cd"
+  version = "v1.0.1"
 
 [[projects]]
   branch = "master"
@@ -497,6 +512,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "d6ee7d89e5653d98da36c72eff2bd24edad215251375fa888dcc63d3a8f4cdb0"
+  inputs-digest = "f79702cf293092a94b476fb1c2610ea1ccd576c3ef7f462a0772c08d7d405795"
   solver-name = "gps-cdcl"
   solver-version = 1

@@ -2,7 +2,6 @@ package structs
 
 import (
 	"fmt"
-	"io"
 	"time"
 )
 
@@ -26,30 +25,21 @@ type Process struct {
 type Processes []Process
 
 type ProcessExecOptions struct {
-	Entrypoint *bool
-	Height     *int
-	Stream     io.ReadWriteCloser
-	Width      *int
+	Entrypoint *bool `header:"Entrypoint"`
+	Height     *int  `header:"Height"`
+	Width      *int  `header:"Width"`
 }
 
 type ProcessListOptions struct {
-	Service *string `query:"service"`
+	Service *string `flag:"service,s" query:"service"`
 }
 
 type ProcessRunOptions struct {
 	Command     *string
 	Environment map[string]string
 	Height      *int
-	Image       *string
-	Links       []string
 	Memory      *int64
-	Name        *string
-	Ports       map[string]string
 	Release     *string
-	Service     *string
-	Stream      io.ReadWriteCloser
-	Timeout     *int
-	Volumes     map[string]string
 	Width       *int
 }
 

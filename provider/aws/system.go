@@ -190,7 +190,7 @@ func (p *AWSProvider) SystemInstall(name string, opts structs.SystemInstallOptio
 }
 
 // SystemLogs streams logs for the Rack
-func (p *AWSProvider) SystemLogs(opts structs.LogsOptions) (io.ReadCloser, error) {
+func (p *AWSProvider) SystemLogs(opts structs.LogsOptions) (io.Reader, error) {
 	group, err := p.rackResource("LogGroup")
 	if err != nil {
 		return nil, err
@@ -285,14 +285,14 @@ func (p *AWSProvider) SystemUpdate(opts structs.SystemUpdateOptions) error {
 		params = map[string]string{}
 	}
 
-	if opts.InstanceCount != nil {
-		params["InstanceCount"] = strconv.Itoa(*opts.InstanceCount)
-		changes["count"] = strconv.Itoa(*opts.InstanceCount)
+	if opts.Count != nil {
+		params["InstanceCount"] = strconv.Itoa(*opts.Count)
+		changes["count"] = strconv.Itoa(*opts.Count)
 	}
 
-	if opts.InstanceType != nil {
-		params["InstanceType"] = *opts.InstanceType
-		changes["type"] = *opts.InstanceType
+	if opts.Type != nil {
+		params["InstanceType"] = *opts.Type
+		changes["type"] = *opts.Type
 	}
 
 	if opts.Version != nil {

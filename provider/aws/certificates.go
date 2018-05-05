@@ -49,7 +49,7 @@ func (p *AWSProvider) certificateApplyGeneration1(a *structs.App, service string
 	return p.updateStack(p.rackStack(a.Name), "", params)
 }
 
-func (p *AWSProvider) CertificateCreate(pub, key, chain string) (*structs.Certificate, error) {
+func (p *AWSProvider) CertificateCreate(pub, key string, opts structs.CertificateCreateOptions) (*structs.Certificate, error) {
 	end, _ := pem.Decode([]byte(pub))
 	pub = string(pem.EncodeToMemory(end))
 
@@ -64,8 +64,8 @@ func (p *AWSProvider) CertificateCreate(pub, key, chain string) (*structs.Certif
 		ServerCertificateName: aws.String(fmt.Sprintf("cert-%d", time.Now().Unix())),
 	}
 
-	if chain != "" {
-		req.CertificateChain = aws.String(chain)
+	if opts.Chain != nil {
+		req.CertificateChain = aws.String(*opts.Chain)
 	}
 
 	res, err := p.iam().UploadServerCertificate(req)
