@@ -8,14 +8,14 @@ type App struct {
 	Status     string `json:"status"`
 
 	Outputs    map[string]string `json:"-"`
-	Parameters map[string]string `json:"-"`
+	Parameters map[string]string `json:"parameters"`
 	Tags       map[string]string `json:"-"`
 }
 
 type Apps []App
 
 type AppCreateOptions struct {
-	Generation *string
+	Generation *string `default:"2" flag:"generation,g" param:"generation"`
 }
 
 type AppUpdateOptions struct {

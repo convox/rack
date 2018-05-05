@@ -24,13 +24,13 @@ type Build struct {
 type Builds []Build
 
 type BuildCreateOptions struct {
-	Cache       *bool   `param:"cache"`
-	Description *string `param:"description"`
-	Manifest    *string `param:"manifest"`
+	Description *string `flag:"description,d" param:"description"`
+	Manifest    *string `flag:"manifest,m" param:"manifest"`
+	NoCache     *bool   `flag:"no-cache" param:"no-cache"`
 }
 
 type BuildListOptions struct {
-	Count *int `param:"count"`
+	Limit *int `flag:"limit,l" query:"limit"`
 }
 
 type BuildUpdateOptions struct {

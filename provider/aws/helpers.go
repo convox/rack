@@ -192,7 +192,7 @@ func generateId(prefix string, size int) string {
 }
 
 func buildTemplate(name, section string, data interface{}) (string, error) {
-	d, err := Asset(fmt.Sprintf("templates/%s.tmpl", name))
+	d, err := ioutil.ReadFile(fmt.Sprintf("provider/aws/templates/%s.tmpl", name))
 	if err != nil {
 		return "", err
 	}
@@ -486,7 +486,7 @@ func (p *AWSProvider) listAndDescribeContainerInstances() (*ecs.DescribeContaine
 			NextToken: &nextToken,
 		})
 		if ae, ok := err.(awserr.Error); ok && ae.Code() == "ClusterNotFoundException" {
-			return nil, errorNotFound(fmt.Sprintf("cluster not found: %s", p.Cluster))
+			return nil, fmt.Errorf("cluster not found: %s", p.Cluster)
 		}
 		if err != nil {
 			return nil, err
@@ -594,7 +594,7 @@ func (p *AWSProvider) describeStack(name string) (*cloudformation.Stack, error) 
 		StackName: aws.String(name),
 	})
 	if ae, ok := err.(awserr.Error); ok && ae.Code() == "ValidationError" {
-		return nil, errorNotFound(fmt.Sprintf("%s not found", name))
+		return nil, fmt.Errorf("stack not found: %s", name)
 	}
 	if err != nil {
 		return nil, err
@@ -771,7 +771,7 @@ func (p *AWSProvider) stackParameter(stack, param string) (string, error) {
 		}
 	}
 
-	return "", fmt.Errorf("parameter not found")
+	return "", fmt.Errorf("parameter not found: %s", param)
 }
 
 func (p *AWSProvider) describeTaskDefinition(input *ecs.DescribeTaskDefinitionInput) (*ecs.DescribeTaskDefinitionOutput, error) {
@@ -782,7 +782,7 @@ func (p *AWSProvider) describeTaskDefinition(input *ecs.DescribeTaskDefinitionIn
 
 	res, err := p.ecs().DescribeTaskDefinition(input)
 	if ae, ok := err.(awserr.Error); ok && ae.Code() == "ValidationError" {
-		return nil, errorNotFound(fmt.Sprintf("%s not found", *input.TaskDefinition))
+		return nil, fmt.Errorf("task definition not found: %s", *input.TaskDefinition)
 	}
 	if err != nil {
 		return nil, err
@@ -927,7 +927,7 @@ func (p *AWSProvider) taskRelease(id string) (string, error) {
 		return "", err
 	}
 	if len(t.Tasks) < 1 {
-		return "", fmt.Errorf("no such task: %s", id)
+		return "", fmt.Errorf("task not found: %s", id)
 	}
 
 	release, err := p.taskDefinitionRelease(*t.Tasks[0].TaskDefinitionArn)

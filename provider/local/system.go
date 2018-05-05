@@ -128,7 +128,7 @@ func (p *Provider) SystemInstall(name string, opts structs.SystemInstallOptions)
 	return fmt.Sprintf("https://rack.%s", name), nil
 }
 
-func (p *Provider) SystemLogs(opts structs.LogsOptions) (io.ReadCloser, error) {
+func (p *Provider) SystemLogs(opts structs.LogsOptions) (io.Reader, error) {
 	log := p.logger("SystemLogs")
 
 	r, w := io.Pipe()
@@ -140,12 +140,12 @@ func (p *Provider) SystemLogs(opts structs.LogsOptions) (io.ReadCloser, error) {
 
 	args := []string{"logs"}
 
-	if opts.Follow {
+	if opts.Follow != nil && *opts.Follow {
 		args = append(args, "-f")
 	}
 
-	if !opts.Since.IsZero() {
-		args = append(args, "--since", opts.Since.Format(time.RFC3339))
+	if opts.Since != nil {
+		args = append(args, "--since", time.Now().UTC().Add((*opts.Since)*-1).Format(time.RFC3339))
 	}
 
 	args = append(args, hostname)
@@ -217,15 +217,8 @@ func (p *Provider) SystemUninstall(name string, opts structs.SystemUninstallOpti
 func (p *Provider) SystemUpdate(opts structs.SystemUpdateOptions) error {
 	log := p.logger("SystemUpdate").Append("version=%q", opts.Version)
 
-	w := opts.Output
-	if w == nil {
-		w = ioutil.Discard
-	}
-
 	if opts.Version != nil {
 		v := *opts.Version
-
-		w.Write([]byte("Restarting... OK\n"))
 
 		if err := ioutil.WriteFile("/var/convox/version", []byte(v), 0644); err != nil {
 			return errors.WithStack(log.Error(err))

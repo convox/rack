@@ -38,8 +38,8 @@ var regexpECRImage = regexp.MustCompile(`(\d+)\.dkr\.ecr\.([^.]+)\.amazonaws\.co
 // StackID is formatted like arn:aws:cloudformation:us-east-1:332653055745:stack/dev/d164aa20-ba89-11e6-b65c-50d5ca632656
 var regexpStackID = regexp.MustCompile(`arn:aws:cloudformation:([^.]+):(\d+):stack/([^.]+)/([^.]+)`)
 
-func (p *AWSProvider) BuildCreate(app, method, url string, opts structs.BuildCreateOptions) (*structs.Build, error) {
-	log := Logger.At("BuildCreate").Namespace("app=%q method=%q url=%q", app, method, url).Start()
+func (p *AWSProvider) BuildCreate(app, url string, opts structs.BuildCreateOptions) (*structs.Build, error) {
+	log := Logger.At("BuildCreate").Namespace("app=%q url=%q", app, url).Start()
 
 	_, err := p.AppGet(app)
 	if err != nil {
@@ -53,7 +53,7 @@ func (p *AWSProvider) BuildCreate(app, method, url string, opts structs.BuildCre
 		b.Description = *opts.Description
 	}
 
-	b.Started = time.Now()
+	b.Started = time.Now().UTC()
 
 	if p.IsTest() {
 		b.Id = "B123"
@@ -66,7 +66,7 @@ func (p *AWSProvider) BuildCreate(app, method, url string, opts structs.BuildCre
 		return nil, err
 	}
 
-	if err := p.runBuild(b, method, url, opts); err != nil {
+	if err := p.runBuild(b, url, opts); err != nil {
 		log.Error(err)
 		return nil, err
 	}
@@ -279,7 +279,7 @@ func (p *AWSProvider) BuildGet(app, id string) (*structs.Build, error) {
 	}
 
 	if res.Item == nil {
-		return nil, NoSuchBuild(id)
+		return nil, errorNotFound(fmt.Sprintf("build not found: %s", id))
 	}
 
 	build := p.buildFromItem(res.Item)
@@ -295,7 +295,7 @@ func (p *AWSProvider) BuildImport(app string, r io.Reader) (*structs.Build, erro
 
 	// set up the new build
 	targetBuild := structs.NewBuild(app)
-	targetBuild.Started = time.Now()
+	targetBuild.Started = time.Now().UTC()
 
 	if p.IsTest() {
 		targetBuild.Id = "B12345"
@@ -344,16 +344,7 @@ func (p *AWSProvider) BuildImport(app string, r io.Reader) (*structs.Build, erro
 				return nil, err
 			}
 
-			targetBuild.Id = sourceBuild.Id
-
-			_, err := p.BuildGet(app, sourceBuild.Id)
-			if _, ok := err.(NoSuchBuild); err != nil && !ok {
-				return nil, err
-			}
-			if err == nil {
-				// build id already exists
-				targetBuild.Id = generateId("B", 10)
-			}
+			targetBuild.Id = generateId("B", 10)
 		}
 
 		if strings.HasSuffix(header.Name, ".tar") {
@@ -416,7 +407,7 @@ func (p *AWSProvider) BuildImport(app string, r io.Reader) (*structs.Build, erro
 	}
 
 	targetBuild.Description = sourceBuild.Description
-	targetBuild.Ended = time.Now()
+	targetBuild.Ended = time.Now().UTC()
 	targetBuild.Logs = sourceBuild.Logs
 	targetBuild.Manifest = sourceBuild.Manifest
 
@@ -520,8 +511,9 @@ func (p *AWSProvider) BuildList(app string, opts structs.BuildListOptions) (stru
 		return nil, err
 	}
 
-	if opts.Count == nil {
-		opts.Count = aws.Int(10)
+	limit := 10
+	if opts.Limit != nil {
+		limit = *opts.Limit
 	}
 
 	req := &dynamodb.QueryInput{
@@ -532,7 +524,7 @@ func (p *AWSProvider) BuildList(app string, opts structs.BuildListOptions) (stru
 			},
 		},
 		IndexName:        aws.String("app.created"),
-		Limit:            aws.Int64(int64(*opts.Count)),
+		Limit:            aws.Int64(int64(limit)),
 		ScanIndexForward: aws.Bool(false),
 		TableName:        aws.String(p.DynamoBuilds),
 	}
@@ -754,8 +746,8 @@ func (p *AWSProvider) authECR(host, access, secret string) (string, string, erro
 	return parts[0], parts[1], nil
 }
 
-func (p *AWSProvider) runBuild(build *structs.Build, method, url string, opts structs.BuildCreateOptions) error {
-	log := Logger.At("runBuild").Namespace("method=%q url=%q", method, url).Start()
+func (p *AWSProvider) runBuild(build *structs.Build, url string, opts structs.BuildCreateOptions) error {
+	log := Logger.At("runBuild").Namespace("url=%q", url).Start()
 
 	br, err := p.stackResource(p.Rack, "ApiBuildTasks")
 	if err != nil {
@@ -807,7 +799,12 @@ func (p *AWSProvider) runBuild(build *structs.Build, method, url string, opts st
 		return err
 	}
 
-	rackUrl := fmt.Sprintf("https://%s@%s", p.Password, stackOutputs(rk)["Dashboard"])
+	rackUrl := fmt.Sprintf("https://convox:%s@%s", p.Password, stackOutputs(rk)["Dashboard"])
+
+	cache := true
+	if opts.NoCache != nil && *opts.NoCache {
+		cache = false
+	}
 
 	req := &ecs.RunTaskInput{
 		Cluster:        aws.String(p.BuildCluster),
@@ -820,8 +817,8 @@ func (p *AWSProvider) runBuild(build *structs.Build, method, url string, opts st
 					Name: aws.String("build"),
 					Command: []*string{
 						aws.String("build"),
-						aws.String("-method"), aws.String(method),
-						aws.String("-cache"), aws.String(fmt.Sprintf("%t", *opts.Cache)),
+						aws.String("-method"), aws.String("tgz"),
+						aws.String("-cache"), aws.String(fmt.Sprintf("%t", cache)),
 					},
 					Environment: []*ecs.KeyValuePair{
 						{

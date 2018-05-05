@@ -23,10 +23,9 @@ type Instance struct {
 type Instances []Instance
 
 type InstanceShellOptions struct {
-	Command  *string
-	Terminal *string
-	Height   *int
-	Width    *int
+	Command *string `header:"Command"`
+	Height  *int    `header:"Height"`
+	Width   *int    `header:"Width"`
 }
 
 func (i *Instance) Ip() string {

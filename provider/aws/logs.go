@@ -13,7 +13,7 @@ import (
 	"github.com/convox/rack/structs"
 )
 
-func (p *AWSProvider) subscribeLogs(group string, opts structs.LogsOptions) (io.ReadCloser, error) {
+func (p *AWSProvider) subscribeLogs(group string, opts structs.LogsOptions) (io.Reader, error) {
 	r, w := io.Pipe()
 
 	go p.streamLogs(w, group, opts)
@@ -31,15 +31,15 @@ func (p *AWSProvider) streamLogs(w io.WriteCloser, group string, opts structs.Lo
 		LogGroupName: aws.String(group),
 	}
 
-	if opts.Filter != "" {
-		log = log.Namespace("filter=%s", opts.Filter)
-		req.FilterPattern = aws.String(opts.Filter)
+	if opts.Filter != nil {
+		log = log.Namespace("filter=%s", *opts.Filter)
+		req.FilterPattern = aws.String(*opts.Filter)
 	}
 
 	var start int64
 
-	if !opts.Since.IsZero() {
-		start = opts.Since.UnixNano() / int64(time.Millisecond)
+	if opts.Since != nil {
+		start = time.Now().UTC().Add((*opts.Since)*-1).UnixNano() / int64(time.Millisecond)
 		log = log.Namespace("start=%d", start)
 		req.StartTime = aws.Int64(start)
 	}
@@ -79,7 +79,7 @@ func (p *AWSProvider) streamLogs(w io.WriteCloser, group string, opts structs.Lo
 
 		req.NextToken = nil
 
-		if !opts.Follow {
+		if opts.Follow != nil && !*opts.Follow {
 			break
 		}
 

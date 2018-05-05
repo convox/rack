@@ -5,7 +5,12 @@ import (
 	"net/http"
 )
 
-func Pipe(a, b io.ReadWriteCloser) error {
+type ReadWriter struct {
+	io.Reader
+	io.Writer
+}
+
+func Pipe(a, b io.ReadWriter) error {
 	ch := make(chan error)
 
 	go halfPipe(a, b, ch)
@@ -22,9 +27,12 @@ func Pipe(a, b io.ReadWriteCloser) error {
 	return nil
 }
 
-func halfPipe(w io.WriteCloser, r io.Reader, ch chan error) {
+func halfPipe(w io.Writer, r io.Reader, ch chan error) {
 	ch <- Stream(w, r)
-	w.Close()
+
+	if c, ok := w.(io.Closer); ok {
+		c.Close()
+	}
 }
 
 func Stream(w io.Writer, r io.Reader) error {

@@ -16,13 +16,12 @@ import (
 
 	"github.com/convox/rack/helpers"
 	"github.com/convox/rack/manifest"
-	"github.com/convox/rack/options"
 	"github.com/convox/rack/structs"
 	"github.com/pkg/errors"
 )
 
-func (p *Provider) ProcessExec(app, pid, command string, opts structs.ProcessExecOptions) (int, error) {
-	return p.processExec(app, pid, command, opts)
+func (p *Provider) ProcessExec(app, pid, command string, rw io.ReadWriter, opts structs.ProcessExecOptions) (int, error) {
+	return p.processExec(app, pid, command, rw, opts)
 }
 
 func (p *Provider) ProcessGet(app, pid string) (*structs.Process, error) {
@@ -35,6 +34,8 @@ func (p *Provider) ProcessGet(app, pid string) (*structs.Process, error) {
 	if strings.TrimSpace(pid) == "" {
 		return nil, fmt.Errorf("pid cannot be blank")
 	}
+
+	fmt.Printf("pid = %+v\n", pid)
 
 	data, err := exec.Command("docker", "inspect", pid, "--format", "{{.ID}}").CombinedOutput()
 	if err != nil {
@@ -103,8 +104,12 @@ func (p *Provider) ProcessLogs(app, pid string, opts structs.LogsOptions) (io.Re
 
 	args := []string{"logs"}
 
-	if opts.Follow {
+	if opts.Follow != nil && *opts.Follow {
 		args = append(args, "-f")
+	}
+
+	if opts.Since != nil {
+		args = append(args, "--since", time.Now().UTC().Add((*opts.Since)*-1).Format(time.RFC3339))
 	}
 
 	args = append(args, pid)
@@ -125,7 +130,7 @@ func (p *Provider) ProcessLogs(app, pid string, opts structs.LogsOptions) (io.Re
 	go func() {
 		defer rw.Close()
 		for s.Scan() {
-			if opts.Prefix {
+			if opts.Prefix != nil && *opts.Prefix {
 				fmt.Fprintf(rw, "%s %s/%s/%s %s\n", time.Now().Format(helpers.PrintableTime), ps.App, ps.Name, ps.Id, s.Text())
 			} else {
 				fmt.Fprintf(rw, "%s\n", s.Text())
@@ -164,40 +169,20 @@ func (p *Provider) ProcessProxy(app, pid string, port int, in io.Reader) (io.Rea
 	return cn, nil
 }
 
-func (p *Provider) ProcessRun(app string, opts structs.ProcessRunOptions) (string, error) {
-	return p.processRun(app, opts)
-}
-
-func (p *Provider) ProcessStart(app string, opts structs.ProcessRunOptions) (string, error) {
-	log := p.logger("ProcessStart").Append("app=%q", app)
-
-	if opts.Name != nil {
-		exec.Command("docker", "rm", "-f", *opts.Name).Run()
+func (p *Provider) ProcessRun(app, service string, opts structs.ProcessRunOptions) (*structs.Process, error) {
+	ropts := processStartOptions{
+		Command:     cs(opts.Command, ""),
+		Environment: opts.Environment,
+		Memory:      ci(opts.Memory, 0),
+		Release:     cs(opts.Release, ""),
 	}
 
-	if opts.Name == nil {
-		rs, err := helpers.RandomString(6)
-		if err != nil {
-			return "", errors.WithStack(log.Error(err))
-		}
-
-		opts.Name = options.String(fmt.Sprintf("%s.%s.process.%s.%s", p.Name, app, *opts.Service, rs))
-	}
-
-	oargs, err := p.argsFromOpts(app, opts)
+	pid, err := p.processRun(app, service, ropts)
 	if err != nil {
-		return "", errors.WithStack(log.Error(err))
+		return nil, err
 	}
 
-	args := append(oargs[0:1], "--detach")
-	args = append(args, oargs[1:]...)
-
-	data, err := exec.Command("docker", args...).CombinedOutput()
-	if err != nil {
-		return "", errors.WithStack(log.Error(err))
-	}
-
-	return strings.TrimSpace(string(data)), log.Success()
+	return p.ProcessGet(app, pid)
 }
 
 func (p *Provider) ProcessStop(app, pid string) error {
@@ -235,41 +220,54 @@ func (p *Provider) ProcessWait(app, pid string) (int, error) {
 	return 0, log.Success()
 }
 
-func (p *Provider) argsFromOpts(app string, opts structs.ProcessRunOptions) ([]string, error) {
-	args := []string{"run", "--rm", "-it"}
+type processStartOptions struct {
+	Command     string
+	Environment map[string]string
+	Image       string
+	Links       []string
+	Memory      int64
+	Name        string
+	Ports       map[string]string
+	Release     string
+	Volumes     map[string]string
+}
 
-	// if no release specified, use current release
-	if opts.Release == nil {
+func (p *Provider) argsFromOpts(app, service string, opts processStartOptions) ([]string, error) {
+	args := []string{"run", "--rm", "-it", "-d"}
+
+	release := opts.Release
+
+	if release == "" {
 		a, err := p.AppGet(app)
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
 
-		opts.Release = options.String(a.Release)
+		release = a.Release
 	}
 
 	// get release and manifest for initial environment and volumes
 	var m *manifest.Manifest
-	var release *structs.Release
-	var service *manifest.Service
+	var r *structs.Release
+	var s *manifest.Service
 	var err error
 
-	if opts.Release == nil || *opts.Release != "" {
-		m, release, err = helpers.ReleaseManifest(p, app, *opts.Release)
+	if opts.Release != "" {
+		m, r, err = helpers.ReleaseManifest(p, app, opts.Release)
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
 
 		// if service is not defined in manifest, i.e. "build", carry on
-		service, err = m.Service(*opts.Service)
+		s, err = m.Service(service)
 		if err != nil && !strings.Contains(err.Error(), "no such service") {
 			return nil, errors.WithStack(err)
 		}
 	}
 
-	if service != nil {
+	if s != nil {
 		// manifest environment
-		env, err := m.ServiceEnvironment(service.Name)
+		env, err := m.ServiceEnvironment(s.Name)
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
@@ -278,7 +276,7 @@ func (p *Provider) argsFromOpts(app string, opts structs.ProcessRunOptions) ([]s
 			args = append(args, "-e", fmt.Sprintf("%s=%s", k, v))
 		}
 
-		for _, sr := range service.Resources {
+		for _, sr := range s.Resources {
 			for _, r := range m.Resources {
 				if r.Name == sr {
 					u, err := p.resourceURL(app, r.Type, r.Name)
@@ -302,7 +300,7 @@ func (p *Provider) argsFromOpts(app string, opts structs.ProcessRunOptions) ([]s
 		}
 
 		// volumes
-		s, err := m.Service(service.Name)
+		s, err := m.Service(s.Name)
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
@@ -319,10 +317,10 @@ func (p *Provider) argsFromOpts(app string, opts structs.ProcessRunOptions) ([]s
 
 	image := ""
 
-	if opts.Image != nil {
-		image = *opts.Image
+	if opts.Image != "" {
+		image = opts.Image
 	} else {
-		image = fmt.Sprintf("%s/%s/%s:%s", p.Name, app, *opts.Service, release.Build)
+		image = fmt.Sprintf("%s/%s/%s:%s", p.Name, app, service, r.Build)
 	}
 
 	// FIXME try letting docker daemon pass through dns
@@ -339,12 +337,12 @@ func (p *Provider) argsFromOpts(app string, opts structs.ProcessRunOptions) ([]s
 		args = append(args, "--link", l)
 	}
 
-	if opts.Memory != nil {
-		args = append(args, "--memory", fmt.Sprintf("%dM", *opts.Memory))
+	if opts.Memory != 0 {
+		args = append(args, "--memory", fmt.Sprintf("%dM", opts.Memory))
 	}
 
-	if opts.Name != nil {
-		args = append(args, "--name", *opts.Name)
+	if opts.Name != "" {
+		args = append(args, "--name", opts.Name)
 	}
 
 	for from, to := range opts.Ports {
@@ -359,8 +357,8 @@ func (p *Provider) argsFromOpts(app string, opts structs.ProcessRunOptions) ([]s
 	args = append(args, "-e", fmt.Sprintf("APP=%s", app))
 	args = append(args, "-e", fmt.Sprintf("RACK_URL=https://%s:5443", hostname))
 
-	if opts.Release != nil {
-		args = append(args, "-e", fmt.Sprintf("RELEASE=%s", *opts.Release))
+	if opts.Release != "" {
+		args = append(args, "-e", fmt.Sprintf("RELEASE=%s", opts.Release))
 	}
 
 	args = append(args, "--link", hostname)
@@ -369,13 +367,11 @@ func (p *Provider) argsFromOpts(app string, opts structs.ProcessRunOptions) ([]s
 	args = append(args, "--label", fmt.Sprintf("convox.rack=%s", p.Name))
 	args = append(args, "--label", fmt.Sprintf("convox.type=%s", "process"))
 
-	if opts.Release != nil {
-		args = append(args, "--label", fmt.Sprintf("convox.release=%s", *opts.Release))
+	if opts.Release != "" {
+		args = append(args, "--label", fmt.Sprintf("convox.release=%s", opts.Release))
 	}
 
-	if opts.Service != nil {
-		args = append(args, "--label", fmt.Sprintf("convox.service=%s", *opts.Service))
-	}
+	args = append(args, "--label", fmt.Sprintf("convox.service=%s", service))
 
 	for from, to := range opts.Volumes {
 		args = append(args, "-v", fmt.Sprintf("%s:%s", from, to))
@@ -383,8 +379,8 @@ func (p *Provider) argsFromOpts(app string, opts structs.ProcessRunOptions) ([]s
 
 	args = append(args, image)
 
-	if opts.Command != nil {
-		args = append(args, "sh", "-c", *opts.Command)
+	if opts.Command != "" {
+		args = append(args, "sh", "-c", opts.Command)
 	}
 
 	return args, nil
@@ -465,3 +461,35 @@ func processList(filters []string, all bool) (structs.Processes, error) {
 
 	return pss, nil
 }
+
+// func (p *Provider) processStart(app, service, command string, opts processStartOptions) (string, error) {
+//   log := p.logger("processStart").Append("app=%q service=%q command=%q", app, service, command)
+
+//   if opts.Name != "" {
+//     exec.Command("docker", "rm", "-f", opts.Name).Run()
+//   }
+
+//   if opts.Name == "" {
+//     rs, err := helpers.RandomString(6)
+//     if err != nil {
+//       return "", errors.WithStack(log.Error(err))
+//     }
+
+//     opts.Name = fmt.Sprintf("%s.%s.process.%s.%s", p.Name, app, service, rs)
+//   }
+
+//   oargs, err := p.argsFromOpts(app, service, command, opts)
+//   if err != nil {
+//     return "", errors.WithStack(log.Error(err))
+//   }
+
+//   args := append(oargs[0:1], "--detach")
+//   args = append(args, oargs[1:]...)
+
+//   data, err := exec.Command("docker", args...).CombinedOutput()
+//   if err != nil {
+//     return "", errors.WithStack(log.Error(err))
+//   }
+
+//   return strings.TrimSpace(string(data)), log.Success()
+// }

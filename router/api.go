@@ -4,10 +4,10 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/convox/api"
+	"github.com/convox/stdapi"
 )
 
-func (rt *Router) EndpointCreate(c *api.Context) error {
+func (rt *Router) EndpointCreate(c *stdapi.Context) error {
 	r, err := rt.Rack(c.Var("rack"))
 	if err != nil {
 		return err
@@ -42,7 +42,7 @@ func (rt *Router) EndpointCreate(c *api.Context) error {
 	return c.RenderJSON(e)
 }
 
-func (rt *Router) EndpointGet(c *api.Context) error {
+func (rt *Router) EndpointGet(c *stdapi.Context) error {
 	r, err := rt.Rack(c.Var("rack"))
 	if err != nil {
 		return err
@@ -66,7 +66,7 @@ func (rt *Router) EndpointGet(c *api.Context) error {
 	return c.RenderJSON(e)
 }
 
-func (rt *Router) HostCreate(c *api.Context) error {
+func (rt *Router) HostCreate(c *stdapi.Context) error {
 	r, err := rt.Rack(c.Var("rack"))
 	if err != nil {
 		return err
@@ -88,7 +88,7 @@ func (rt *Router) HostCreate(c *api.Context) error {
 	return c.RenderJSON(t)
 }
 
-func (rt *Router) HostGet(c *api.Context) error {
+func (rt *Router) HostGet(c *stdapi.Context) error {
 	r, err := rt.Rack(c.Var("rack"))
 	if err != nil {
 		return err
@@ -102,7 +102,7 @@ func (rt *Router) HostGet(c *api.Context) error {
 	return c.RenderJSON(h)
 }
 
-func (rt *Router) HostList(c *api.Context) error {
+func (rt *Router) HostList(c *stdapi.Context) error {
 	r, err := rt.Rack(c.Var("rack"))
 	if err != nil {
 		return err
@@ -111,7 +111,7 @@ func (rt *Router) HostList(c *api.Context) error {
 	return c.RenderJSON(r.Hosts)
 }
 
-func (rt *Router) RackCreate(c *api.Context) error {
+func (rt *Router) RackCreate(c *stdapi.Context) error {
 	endpoint := c.Form("endpoint")
 	name := c.Form("name")
 
@@ -131,7 +131,7 @@ func (rt *Router) RackCreate(c *api.Context) error {
 	return c.RenderJSON(r)
 }
 
-func (rt *Router) RackGet(c *api.Context) error {
+func (rt *Router) RackGet(c *stdapi.Context) error {
 	r, err := rt.Rack(c.Var("rack"))
 	if err != nil {
 		return err
@@ -140,11 +140,11 @@ func (rt *Router) RackGet(c *api.Context) error {
 	return c.RenderJSON(r)
 }
 
-func (rt *Router) RackList(c *api.Context) error {
+func (rt *Router) RackList(c *stdapi.Context) error {
 	return c.RenderJSON(rt.racks)
 }
 
-func (rt *Router) TargetAdd(c *api.Context) error {
+func (rt *Router) TargetAdd(c *stdapi.Context) error {
 	r, err := rt.Rack(c.Var("rack"))
 	if err != nil {
 		return err
@@ -176,7 +176,7 @@ func (rt *Router) TargetAdd(c *api.Context) error {
 	return c.RenderOK()
 }
 
-func (rt *Router) TargetList(c *api.Context) error {
+func (rt *Router) TargetList(c *stdapi.Context) error {
 	r, err := rt.Rack(c.Var("rack"))
 	if err != nil {
 		return err
@@ -200,7 +200,7 @@ func (rt *Router) TargetList(c *api.Context) error {
 	return c.RenderJSON(e.Targets)
 }
 
-func (rt *Router) TargetRemove(c *api.Context) error {
+func (rt *Router) TargetRemove(c *stdapi.Context) error {
 	r, err := rt.Rack(c.Var("rack"))
 	if err != nil {
 		return err
