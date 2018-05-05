@@ -38,6 +38,8 @@ func (p *Provider) Workers() error {
 }
 
 func (p *Provider) workerConverge() error {
+	return nil
+
 	log := p.logger("workerConverge")
 
 	if _, err := p.router.RackGet(p.Name); err != nil {

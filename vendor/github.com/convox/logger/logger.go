@@ -7,6 +7,7 @@ import (
 	"io"
 	"math/rand"
 	"os"
+	"path/filepath"
 	"regexp"
 	"runtime"
 	"runtime/debug"
@@ -60,6 +61,9 @@ func (l *Logger) Prepend(format string, args ...interface{}) *Logger {
 }
 func (l *Logger) Error(err error) error {
 	if _, file, line, ok := runtime.Caller(1); ok {
+		if f, err := stripGoPath(file); err == nil {
+			file = f
+		}
 		l.Logf("state=error error=%q location=%q", strings.Replace(err.Error(), "\n", " ", -1), fmt.Sprintf("%s:%d", file, line))
 	} else {
 		l.Logf("state=error error=%q", err)
@@ -144,4 +148,8 @@ func (l *Logger) Writer() io.Writer {
 	}
 
 	return l.writer
+}
+
+func stripGoPath(file string) (string, error) {
+	return filepath.Rel(filepath.Join(os.Getenv("GOPATH"), "src"), file)
 }

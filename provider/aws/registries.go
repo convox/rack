@@ -94,7 +94,7 @@ func (p *AWSProvider) RegistryRemove(server string) error {
 	key := fmt.Sprintf("system/registries/%x", sha256.New().Sum([]byte(server)))
 
 	if _, err := p.SettingExists(key); err != nil {
-		return log.Error(fmt.Errorf("no such registry: %s", server))
+		return log.Error(errorNotFound(fmt.Sprintf("registry not found: %s", server)))
 	}
 
 	if err := p.SettingDelete(key); err != nil {

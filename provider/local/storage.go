@@ -26,6 +26,8 @@ func (p *Provider) storageBucket(key string, fn BucketFunc) error {
 	}
 	defer tx.Rollback()
 
+	fmt.Printf("key = %+v\n", key)
+
 	cur := tx.Bucket([]byte("rack"))
 
 	for _, kp := range strings.Split(key, "/") {

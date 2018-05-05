@@ -1,9 +1,9 @@
-.PHONY: all release templates
+.PHONY: all build release
 
-all: templates
+all: build
+
+build:
+	go install ./...
 
 release:
 	make -C aws release VERSION=$(VERSION)
-
-templates:
-	make -C aws templates

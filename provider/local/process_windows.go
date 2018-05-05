@@ -10,6 +10,6 @@ func (p *Provider) processExec(app, pid, command string, opts structs.ProcessExe
 	return -1, fmt.Errorf("unimplemented")
 }
 
-func (p *Provider) processRun(app string, opts structs.ProcessRunOptions) (string, error) {
+func (p *Provider) processRun(app, service string, opts structs.ProcessRunOptions) (string, error) {
 	return "", fmt.Errorf("unimplemented")
 }

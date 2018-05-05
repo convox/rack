@@ -1,6 +1,7 @@
 package aws
 
 import (
+	"context"
 	"math/rand"
 	"os"
 	"strconv"
@@ -28,13 +29,8 @@ import (
 )
 
 const (
-	maxBuilds = 50
-)
-
-var (
-	customTopic       = os.Getenv("CUSTOM_TOPIC")
-	notificationTopic = os.Getenv("NOTIFICATION_TOPIC")
-	sortableTime      = "20060102.150405.000000000"
+	maxBuilds    = 50
+	sortableTime = "20060102.150405.000000000"
 )
 
 // Logger is a package-wide logger
@@ -70,6 +66,9 @@ type AWSProvider struct {
 	VpcCidr             string
 
 	SkipCache bool
+
+	ctx context.Context
+	log *logger.Logger
 }
 
 // NewProviderFromEnv returns a new AWS provider from env vars
@@ -100,6 +99,8 @@ func FromEnv() *AWSProvider {
 		SubnetsPrivate:      os.Getenv("SUBNETS_PRIVATE"),
 		Vpc:                 os.Getenv("VPC"),
 		VpcCidr:             os.Getenv("VPCCIDR"),
+		ctx:                 context.Background(),
+		log:                 logger.New("ns=aws"),
 	}
 
 	if i, err := strconv.Atoi(os.Getenv("ECS_POLL_INTERVAL")); err != nil {
@@ -117,7 +118,7 @@ func init() {
 
 func (p *AWSProvider) Initialize(opts structs.ProviderOptions) error {
 	if opts.Logs != nil {
-		Logger = logger.NewWriter("ns=provider.aws", opts.Logs)
+		Logger = logger.NewWriter("ns=aws", opts.Logs)
 	}
 
 	return nil
@@ -141,6 +142,16 @@ func (p *AWSProvider) config() *aws.Config {
 	config.MaxRetries = aws.Int(7)
 
 	return config
+}
+
+func (p *AWSProvider) logger(at string) *logger.Logger {
+	log := p.log
+
+	if id := p.ctx.Value("request.id"); id != nil {
+		log = log.Prepend("id=%s", id)
+	}
+
+	return log.At(at).Start()
 }
 
 func (p *AWSProvider) acm() *acm.ACM {

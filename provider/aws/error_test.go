@@ -1,9 +1,10 @@
 package aws_test
 
 import (
+	"testing"
+
 	"github.com/convox/rack/provider/aws"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 type errorNotFound string
@@ -18,5 +19,5 @@ func (e errorNotFound) NotFound() bool {
 
 func TestNoSuchBuild_Error(t *testing.T) {
 	err := aws.NoSuchBuild("B12345")
-	assert.EqualError(t, err, "no such build: B12345")
+	assert.EqualError(t, err, "build not found: B12345")
 }
