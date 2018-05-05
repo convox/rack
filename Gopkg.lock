@@ -126,7 +126,7 @@
   branch = "master"
   name = "github.com/convox/api"
   packages = ["."]
-  revision = "47e28fed5250d307c738224dae963ba00ca09dbb"
+  revision = "b69a99ad70fa621544702b23dc7be121c7f35bf4"
 
 [[projects]]
   branch = "master"
@@ -488,6 +488,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "e165fe521acdf1e4647c8d426659642d356efdbd9f5bfe31d439ba010dc8be48"
+  inputs-digest = "edbe8f8f6e2cb55cb4a2dbd53fa066fdb91c5cce0031c8b9e0d89eb04809ec85"
   solver-name = "gps-cdcl"
   solver-version = 1
