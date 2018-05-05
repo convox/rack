@@ -5,6 +5,7 @@ import (
 	"bufio"
 	"bytes"
 	"compress/gzip"
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"io"
@@ -405,7 +406,6 @@ func healthCheck(r *sdk.Client, m *manifest.Manifest, app string, s manifest.Ser
 
 	for _, rs := range rss {
 		if rs.Name == s.Name {
-			fmt.Printf("rs = %+v\n", rs)
 			hostname = rs.Domain
 		}
 	}
@@ -419,11 +419,16 @@ func healthCheck(r *sdk.Client, m *manifest.Manifest, app string, s manifest.Ser
 
 	hcu := fmt.Sprintf("https://%s%s", hostname, s.Health.Path)
 
-	fmt.Printf("hcu = %+v\n", hcu)
-
 	time.Sleep(time.Duration(s.Health.Grace) * time.Second)
 
-	c := &http.Client{Timeout: time.Duration(s.Health.Timeout) * time.Second}
+	c := &http.Client{
+		Timeout: time.Duration(s.Health.Timeout) * time.Second,
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: true,
+			},
+		},
+	}
 
 	for range time.Tick(time.Duration(s.Health.Interval) * time.Second) {
 		res, err := c.Get(hcu)
