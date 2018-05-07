@@ -262,6 +262,13 @@ func remoteRacks() (Racks, error) {
 
 	rs, err := c.Racks()
 	if err != nil {
+		if strings.Index(err.Error(), "pointing directly at a Rack") > -1 {
+			s, err := c.GetSystem()
+			if err != nil {
+				return nil, err
+			}
+			return Racks{Rack{Name: s.Name, Host: host, Status: s.Status}}, nil
+		}
 		return nil, err
 	}
 
