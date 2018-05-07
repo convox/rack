@@ -117,6 +117,9 @@ func cmdLogin(c *cli.Context) error {
 		updateID(auth.ID)
 	}
 
+	os.Remove(filepath.Join(ConfigRoot, "rack"))
+	os.Remove(filepath.Join(ConfigRoot, "switch"))
+
 	err = switchHost(host)
 	if err != nil {
 		return stdcli.Error(err)
