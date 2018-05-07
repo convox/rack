@@ -148,7 +148,12 @@ func currentCredentials(c *cli.Context) (string, string, string, error) {
 		}
 	}
 
-	name := currentRack(c)
+	cr, err := matchRack(currentRack(c))
+	if err != nil {
+		return "", "", "", err
+	}
+
+	name := cr.Name
 
 	if name == "" {
 		racks := rackList()
