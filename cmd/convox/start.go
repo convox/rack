@@ -77,20 +77,6 @@ func init() {
 }
 
 func cmdStart(c *cli.Context) error {
-	s, err := rack(c).SystemGet()
-	if err != nil {
-		return stdcli.Error(err)
-	}
-
-	if s.Provider != "local" {
-		r, err := matchRack("local")
-		if err != nil {
-			return stdcli.Error(err)
-		}
-
-		c.Set("rack", r.Name)
-	}
-
 	opts := startOptions{}
 
 	if len(c.Args()) > 0 {
@@ -210,6 +196,20 @@ func startGeneration1(opts startOptions) error {
 func startGeneration2(opts startOptions) error {
 	if !localRackRunning() {
 		return fmt.Errorf("local rack not found, try `sudo convox rack install local`")
+	}
+
+	s, err := rack(opts.Context).SystemGet()
+	if err != nil {
+		return stdcli.Error(err)
+	}
+
+	if s.Provider != "local" {
+		r, err := matchRack("local")
+		if err != nil {
+			return stdcli.Error(err)
+		}
+
+		opts.Context.Set("rack", r.Name)
 	}
 
 	mf := helpers.Coalesce(opts.Manifest, "convox.yml")
