@@ -3,14 +3,12 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/convox/rack/client"
-	"github.com/convox/rack/cmd/convox/helpers"
 	"github.com/convox/rack/cmd/convox/stdcli"
 	homedir "github.com/mitchellh/go-homedir"
 	"golang.org/x/crypto/ssh/terminal"
@@ -44,20 +42,6 @@ func init() {
 
 	if root := os.Getenv("CONVOX_CONFIG"); root != "" {
 		ConfigRoot = root
-	}
-
-	stat, err := os.Stat(ConfigRoot)
-	if err != nil && !os.IsNotExist(err) {
-		stdcli.Error(err)
-		return
-	}
-
-	if stat != nil && !stat.IsDir() {
-		err := upgradeConfig()
-		if err != nil {
-			stdcli.Error(err)
-			return
-		}
 	}
 }
 
@@ -117,8 +101,8 @@ func cmdLogin(c *cli.Context) error {
 		updateID(auth.ID)
 	}
 
-	os.Remove(filepath.Join(ConfigRoot, "rack"))
-	os.Remove(filepath.Join(ConfigRoot, "switch"))
+	removeConfig("rack")
+	removeConfig("switch")
 
 	err = switchHost(host)
 	if err != nil {
@@ -134,50 +118,32 @@ func cmdLogin(c *cli.Context) error {
 	return nil
 }
 
-func upgradeConfig() error {
-	data, err := ioutil.ReadFile(ConfigRoot)
-
-	if err != nil {
-		return err
-	}
-
-	parts := strings.Split(string(data), "\n")
-
-	if len(parts) < 2 {
-		return fmt.Errorf("invalid .convox file")
-	}
-
-	err = os.Remove(ConfigRoot)
-
-	if err != nil {
-		return err
-	}
-
-	err = os.MkdirAll(ConfigRoot, 0700)
-
-	if err != nil {
-		return err
-	}
-
-	err = addLogin(parts[0], parts[1])
-
-	if err != nil {
-		return err
-	}
-
-	return switchHost(parts[0])
-}
-
-func getLogin(host string) (string, error) {
-	config := filepath.Join(ConfigRoot, "auth")
-	data, _ := ioutil.ReadFile(filepath.Join(config))
-	if data == nil {
-		data = []byte("{}")
+func readAuth() (ConfigAuth, error) {
+	data := readConfig("auth")
+	if data == "" {
+		return ConfigAuth{}, nil
 	}
 
 	var auth ConfigAuth
-	err := json.Unmarshal(data, &auth)
 
+	if err := json.Unmarshal([]byte(data), &auth); err != nil {
+		return nil, err
+	}
+
+	return auth, nil
+}
+
+func writeAuth(auth ConfigAuth) error {
+	data, err := json.MarshalIndent(auth, "", "  ")
+	if err != nil {
+		return err
+	}
+
+	return writeConfig("auth", string(data))
+}
+
+func getLogin(host string) (string, error) {
+	auth, err := readAuth()
 	if err != nil {
 		return "", err
 	}
@@ -186,73 +152,41 @@ func getLogin(host string) (string, error) {
 }
 
 func addLogin(host, password string) error {
-	config := filepath.Join(ConfigRoot, "auth")
-
-	data, _ := ioutil.ReadFile(filepath.Join(config))
-
-	if data == nil {
-		data = []byte("{}")
-	}
-
-	var auth ConfigAuth
-
-	err := json.Unmarshal(data, &auth)
-
+	auth, err := readAuth()
 	if err != nil {
 		return err
 	}
 
 	auth[host] = password
 
-	data, err = json.MarshalIndent(auth, "", "  ")
-
-	if err != nil {
+	if err := writeAuth(auth); err != nil {
 		return err
 	}
 
-	err = os.MkdirAll(ConfigRoot, 0755)
-
-	if err != nil {
-		return err
-	}
-
-	return ioutil.WriteFile(config, data, 0600)
+	return nil
 }
 
 func removeLogin(host string) error {
-	config := filepath.Join(ConfigRoot, "auth")
-
-	data, _ := ioutil.ReadFile(filepath.Join(config))
-
-	if data == nil {
-		data = []byte("{}")
-	}
-
-	var auth ConfigAuth
-
-	err := json.Unmarshal(data, &auth)
-
+	auth, err := readAuth()
 	if err != nil {
 		return err
 	}
 
 	delete(auth, host)
 
-	data, err = json.Marshal(auth)
-
-	if err != nil {
+	if err := writeAuth(auth); err != nil {
 		return err
 	}
 
-	return ioutil.WriteFile(config, data, 0600)
+	return nil
 }
 
 func switchHost(host string) error {
-	return ioutil.WriteFile(filepath.Join(ConfigRoot, "host"), []byte(host), 0600)
+	return writeConfig("host", host)
 }
 
 func removeHost() error {
-	return os.Remove(filepath.Join(ConfigRoot, "host"))
+	return removeConfig("host")
 }
 
 func currentLogin() (string, string, error) {
@@ -274,19 +208,13 @@ func currentHost() (string, error) {
 		return host, nil
 	}
 
-	config := filepath.Join(ConfigRoot, "host")
+	host := strings.TrimSpace(readConfig("host"))
 
-	if !helpers.Exists(config) {
+	if host == "" {
 		return "", fmt.Errorf("no host config found")
 	}
 
-	data, err := ioutil.ReadFile(config)
-
-	if err != nil {
-		return "", err
-	}
-
-	return strings.TrimSpace(string(data)), nil
+	return host, nil
 }
 
 func currentPassword() (string, error) {
@@ -294,65 +222,35 @@ func currentPassword() (string, error) {
 		return password, nil
 	}
 
-	config := filepath.Join(ConfigRoot, "auth")
-
-	if !helpers.Exists(config) {
-		return "", fmt.Errorf("no auth config found")
-	}
-
-	data, err := ioutil.ReadFile(config)
-
-	if err != nil {
-		return "", err
-	}
-
 	host, err := currentHost()
-
 	if err != nil {
 		return "", err
 	}
 
-	var auth ConfigAuth
-
-	err = json.Unmarshal(data, &auth)
+	password, err := getLogin(host)
 	if err != nil {
 		return "", err
 	}
 
-	return auth[host], nil
+	return password, nil
 }
 
 func currentId() (string, error) {
-	config := filepath.Join(ConfigRoot, "id")
+	id := readConfig("id")
 
-	if !helpers.Exists(config) {
-		err := os.MkdirAll(ConfigRoot, 0700)
-		if err != nil {
+	if id == "" {
+		id = randomString(20)
+
+		if err := writeConfig("id", id); err != nil {
 			return "", err
 		}
-
-		id := randomString(20)
-
-		err = ioutil.WriteFile(config, []byte(id), 0600)
-		if err != nil {
-			return "", err
-		}
-
-		return id, nil
 	}
 
-	data, err := ioutil.ReadFile(config)
-	if err != nil {
-		return "", err
-	}
-
-	return strings.TrimSpace(string(data)), nil
+	return strings.TrimSpace(id), nil
 }
 
 func updateID(id string) error {
-	config := filepath.Join(ConfigRoot, "id")
-
-	return ioutil.WriteFile(config, []byte(id), 0600)
+	return writeConfig("id", strings.TrimSpace(id))
 }
 
 func testLogin(host, password, version string) (*client.Auth, error) {

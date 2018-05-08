@@ -3,8 +3,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"path/filepath"
 	"strings"
 
 	"gopkg.in/urfave/cli.v1"
@@ -24,7 +22,14 @@ func init() {
 
 func cmdSwitch(c *cli.Context) error {
 	if len(c.Args()) < 1 {
-		fmt.Println(currentRack(c))
+		rack := currentRack(c)
+
+		if rack == "" {
+			return stdcli.Errorf("no rack selected, see a list with `convox racks` then switch to one with `convox switch <rack>`")
+		}
+
+		fmt.Println(rack)
+
 		return nil
 	}
 
@@ -64,7 +69,7 @@ func matchRack(name string) (*Rack, error) {
 }
 
 func switchRack(rack Rack) error {
-	if err := ioutil.WriteFile(filepath.Join(ConfigRoot, "rack"), []byte(rack.Name), 0644); err != nil {
+	if err := writeConfig("rack", rack.Name); err != nil {
 		return err
 	}
 
@@ -73,7 +78,7 @@ func switchRack(rack Rack) error {
 		return err
 	}
 
-	if err := ioutil.WriteFile(filepath.Join(ConfigRoot, "switch"), data, 0644); err != nil {
+	if err := writeConfig("switch", string(data)); err != nil {
 		return err
 	}
 
