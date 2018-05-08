@@ -25,6 +25,11 @@ func init() {
 	stdcli.VersionPrinter(func(c *cli.Context) {
 		fmt.Printf("client: %s\n", c.App.Version)
 
+		// dont show the server version if not logged in
+		if _, _, _, err := currentCredentials(c); err != nil {
+			return
+		}
+
 		rc := rackClient(c)
 		if rc == nil {
 			return
@@ -129,12 +134,12 @@ func currentCredentials(c *cli.Context) (string, string, string, error) {
 		return "", os.Getenv("CONVOX_HOST"), os.Getenv("CONVOX_PASSWORD"), nil
 	}
 
-	drs, err := ioutil.ReadFile(filepath.Join(ConfigRoot, "switch"))
+	drs := readConfig("switch")
 
-	if len(drs) > 0 && err == nil {
+	if drs != "" {
 		var rs Rack
 
-		if err := json.Unmarshal(drs, &rs); err != nil {
+		if err := json.Unmarshal([]byte(drs), &rs); err != nil {
 			return "", "", "", fmt.Errorf("error reading current rack switch setting")
 		}
 
@@ -148,18 +153,13 @@ func currentCredentials(c *cli.Context) (string, string, string, error) {
 		}
 	}
 
-	cr, err := matchRack(currentRack(c))
-	if err != nil {
-		return "", "", "", err
-	}
-
-	name := cr.Name
+	name := currentRack(c)
 
 	if name == "" {
 		racks := rackList()
 
 		if len(racks) < 1 {
-			return "", "", "", fmt.Errorf("no host config found, try `convox login`")
+			return "", "", "", fmt.Errorf("please login with `convox login`")
 		}
 
 		if len(racks) > 1 {
@@ -167,6 +167,13 @@ func currentCredentials(c *cli.Context) (string, string, string, error) {
 		}
 
 		name = racks[0].Name
+	} else {
+		cr, err := matchRack(currentRack(c))
+		if err != nil {
+			return "", "", "", err
+		}
+
+		name = cr.Name
 	}
 
 	rack, err := rackGet(name)
@@ -183,11 +190,7 @@ func currentCredentials(c *cli.Context) (string, string, string, error) {
 }
 
 func currentRack(c *cli.Context) string {
-	cr, err := ioutil.ReadFile(filepath.Join(ConfigRoot, "rack"))
-	if err != nil && !os.IsNotExist(err) {
-		stdcli.Error(err)
-	}
-
+	cr := readConfig("rack")
 	rackFlag := stdcli.RecoverFlag(c, "rack")
 
 	return helpers.Coalesce(rackFlag, os.Getenv("CONVOX_RACK"), stdcli.ReadSetting("rack"), strings.TrimSpace(string(cr)))
@@ -315,4 +318,21 @@ func localRacks() (Racks, error) {
 	}
 
 	return racks, nil
+}
+
+func readConfig(name string) string {
+	data, _ := ioutil.ReadFile(filepath.Join(ConfigRoot, name))
+	return string(data)
+}
+
+func writeConfig(name, value string) error {
+	if err := os.MkdirAll(ConfigRoot, 0700); err != nil {
+		return err
+	}
+
+	return ioutil.WriteFile(filepath.Join(ConfigRoot, name), []byte(value), 0600)
+}
+
+func removeConfig(name string) error {
+	return os.Remove(filepath.Join(ConfigRoot, name))
 }
