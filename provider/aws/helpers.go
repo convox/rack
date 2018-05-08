@@ -34,6 +34,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/convox/rack/cache"
 	"github.com/convox/rack/manifest1"
+	"github.com/convox/rack/options"
 	"github.com/convox/rack/structs"
 )
 
@@ -772,6 +773,101 @@ func (p *AWSProvider) stackParameter(stack, param string) (string, error) {
 	}
 
 	return "", fmt.Errorf("parameter not found")
+}
+
+func (p *AWSProvider) appStackReplacements(app string, template []byte, changes map[string]string) (map[string]bool, error) {
+	o, err := p.ObjectStore(app, "", bytes.NewReader(template), structs.ObjectStoreOptions{Public: options.Bool(true)})
+	if err != nil {
+		return nil, err
+	}
+
+	req := &cloudformation.CreateChangeSetInput{
+		Capabilities:  []*string{aws.String("CAPABILITY_IAM")},
+		ChangeSetName: aws.String(generateId("C", 20)),
+		Parameters:    []*cloudformation.Parameter{},
+		StackName:     aws.String(p.rackStack(app)),
+		TemplateURL:   aws.String(o.Url),
+	}
+
+	params := map[string]bool{}
+	pexisting := map[string]bool{}
+
+	fp, err := formationParameters(template)
+	if err != nil {
+		return nil, err
+	}
+
+	for p := range fp {
+		params[p] = true
+	}
+
+	stack, err := p.describeStack(p.rackStack(app))
+	if err != nil {
+		return nil, err
+	}
+
+	for _, p := range stack.Parameters {
+		pexisting[*p.ParameterKey] = true
+	}
+
+	sorted := []string{}
+
+	for param := range params {
+		sorted = append(sorted, param)
+	}
+
+	// sort params for easier testing
+	sort.Strings(sorted)
+
+	for _, param := range sorted {
+		if value, ok := changes[param]; ok {
+			req.Parameters = append(req.Parameters, &cloudformation.Parameter{
+				ParameterKey:   aws.String(param),
+				ParameterValue: aws.String(value),
+			})
+		} else if pexisting[param] {
+			req.Parameters = append(req.Parameters, &cloudformation.Parameter{
+				ParameterKey:     aws.String(param),
+				UsePreviousValue: aws.Bool(true),
+			})
+		}
+	}
+
+	res, err := p.cloudformation().CreateChangeSet(req)
+	if err != nil {
+		return nil, err
+	}
+
+	for {
+		dres, err := p.cloudformation().DescribeChangeSet(&cloudformation.DescribeChangeSetInput{
+			ChangeSetName: res.Id,
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		switch *dres.Status {
+		case "CREATE_PENDING", "CREATE_IN_PROGRESS":
+		default:
+			replacements := map[string]bool{}
+
+			for _, c := range dres.Changes {
+				if *c.Type == "Resource" && c.ResourceChange.Action != nil && *c.ResourceChange.Action == "Add" {
+					replacements[*c.ResourceChange.LogicalResourceId] = true
+				}
+
+				if *c.Type == "Resource" && c.ResourceChange.Replacement != nil && *c.ResourceChange.Replacement == "True" {
+					replacements[*c.ResourceChange.LogicalResourceId] = true
+				}
+			}
+
+			return replacements, nil
+		}
+
+		time.Sleep(1 * time.Second)
+	}
+
+	return nil, nil
 }
 
 func (p *AWSProvider) describeTaskDefinition(input *ecs.DescribeTaskDefinitionInput) (*ecs.DescribeTaskDefinitionOutput, error) {

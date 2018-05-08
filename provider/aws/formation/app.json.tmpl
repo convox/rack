@@ -452,7 +452,7 @@
         "Cluster": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Cluster" } },
         "DeploymentConfiguration": { "MinimumHealthyPercent": "50", "MaximumPercent": "200" },
         {{ if .Scale.Autoscale }}
-          {{ if index $.First .Name }}
+          {{ if index $.First (print "Service" (upper .Name) "Service") }}
             "DesiredCount": "{{.Scale.Count.Min}}",
           {{ end }}
         {{ else }}
