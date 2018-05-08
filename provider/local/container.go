@@ -215,10 +215,16 @@ func containerList(args ...string) ([]container, error) {
 
 		cc := container{
 			Id:        c.Id,
-			Labels:    c.Config.Labels,
+			Labels:    map[string]string{},
 			Listeners: map[int]string{},
 			Name:      c.Name[1:],
 			Hostname:  c.Config.Labels["convox.hostname"],
+		}
+
+		for k, v := range c.Config.Labels {
+			if strings.HasPrefix(k, "convox.") {
+				cc.Labels[k] = v
+			}
 		}
 
 		if c.Config.Labels["convox.port"] != "" {
