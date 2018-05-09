@@ -114,6 +114,15 @@ func cmdLogin(c *cli.Context) error {
 		return stdcli.Error(err)
 	}
 
+	rrs, err := remoteRacks()
+	if err != nil {
+		return stdcli.Error(err)
+	}
+
+	if len(rrs) == 1 {
+		switchRack(rrs[0])
+	}
+
 	fmt.Println("Logged in successfully.")
 	return nil
 }
