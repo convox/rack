@@ -144,7 +144,8 @@ func (p *AWSProvider) cloudformation() *cloudformation.CloudFormation {
 }
 
 func (p *AWSProvider) cloudwatch() *cloudwatch.CloudWatch {
-	return cloudwatch.New(session.New(), p.config())
+	config := p.config().WithLogLevel(aws.LogOff)
+	return cloudwatch.New(session.New(), config)
 }
 
 func (p *AWSProvider) cloudwatchlogs() *cloudwatchlogs.CloudWatchLogs {
