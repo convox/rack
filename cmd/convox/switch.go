@@ -40,7 +40,13 @@ func cmdSwitch(c *cli.Context) error {
 		return stdcli.Error(err)
 	}
 
-	return switchRack(*r)
+	if err := switchRack(*r); err != nil {
+		return stdcli.Error(err)
+	}
+
+	fmt.Printf("Switched to %s\n", r.Name)
+
+	return nil
 }
 
 func matchRack(name string) (*Rack, error) {
@@ -81,8 +87,6 @@ func switchRack(rack Rack) error {
 	if err := writeConfig("switch", string(data)); err != nil {
 		return err
 	}
-
-	fmt.Printf("Switched to %s\n", rack.Name)
 
 	return nil
 }
