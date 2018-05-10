@@ -27,6 +27,10 @@
     "ServiceRole": {
       "Export": { "Name": { "Fn::Sub": "${AWS::StackName}:ServiceRole" } },
       "Value": { "Fn::GetAtt": [ "ServiceRole", "Arn" ] }
+    },
+    "ServiceRoleName": {
+      "Export": { "Name": { "Fn::Sub": "${AWS::StackName}:ServiceRole" } },
+      "Value": { "Ref": "ServiceRole" }
     }
   },
   "Parameters" : {
