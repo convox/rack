@@ -240,6 +240,9 @@
             { "Key": "deregistration_delay.timeout_seconds", "Value": "30" },
             { "Key": "stickiness.enabled", "Value": "true" }
           ],
+          "Tags": [
+            { "Key": "ProcessName", "Value": "{{ upper .Name }}" }
+          ],
           "TargetType": { "Fn::If": [ "FargateServices", "ip", "instance" ] },
           "VpcId": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Vpc" } }
         }
@@ -459,7 +462,7 @@
           "DesiredCount": { "Fn::Select": [ 0, { "Ref": "{{ upper .Name }}Formation" } ] },
         {{ end }}
         "LaunchType": { "Fn::If": [ "FargateServices", "FARGATE", { "Ref": "AWS::NoValue" } ] },
-        "NetworkConfiguration": { "Fn::If": [ "FargateServices", 
+        "NetworkConfiguration": { "Fn::If": [ "FargateServices",
           {
             "AwsvpcConfiguration": {
               "AssignPublicIp": { "Fn::If": [ "Private", "DISABLED", "ENABLED" ] },
