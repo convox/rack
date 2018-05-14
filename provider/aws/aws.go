@@ -148,7 +148,7 @@ func (p *AWSProvider) cloudwatch() *cloudwatch.CloudWatch {
 }
 
 func (p *AWSProvider) cloudwatchlogs() *cloudwatchlogs.CloudWatchLogs {
-	return cloudwatchlogs.New(session.New(), p.config())
+	return cloudwatchlogs.New(session.New(), p.config().WithLogLevel(aws.LogOff))
 }
 
 func (p *AWSProvider) dynamodb() *dynamodb.DynamoDB {
