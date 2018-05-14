@@ -241,7 +241,8 @@
             { "Key": "stickiness.enabled", "Value": "true" }
           ],
           "Tags": [
-            { "Key": "ProcessName", "Value": "{{ upper .Name }}" }
+            { "Key": "App", "Value": "{{$.App}}" },
+            { "Key": "Service", "Value": "{{.Name}}" }
           ],
           "TargetType": { "Fn::If": [ "FargateServices", "ip", "instance" ] },
           "VpcId": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Vpc" } }
