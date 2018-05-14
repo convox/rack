@@ -13,6 +13,8 @@ import (
 	"github.com/convox/rack/client"
 	"github.com/convox/rack/cmd/convox/helpers"
 	"github.com/convox/rack/cmd/convox/stdcli"
+	"github.com/convox/rack/options"
+	"github.com/convox/rack/structs"
 )
 
 func init() {
@@ -45,6 +47,22 @@ func init() {
 				Usage:       "[release] [options]",
 				ArgsUsage:   "[release]",
 				Action:      cmdReleasePromote,
+				Flags: []cli.Flag{
+					appFlag,
+					rackFlag,
+					cli.BoolFlag{
+						Name:   "wait",
+						EnvVar: "CONVOX_WAIT",
+						Usage:  "wait for release to finish promoting before returning",
+					},
+				},
+			},
+			{
+				Name:        "rollback",
+				Description: "create a new release from an old release and promote it",
+				Usage:       "<release> [options]",
+				ArgsUsage:   "<release>",
+				Action:      cmdReleaseRollback,
 				Flags: []cli.Flag{
 					appFlag,
 					rackFlag,
@@ -169,6 +187,60 @@ func cmdReleasePromote(c *cli.Context) error {
 
 	if c.Bool("wait") {
 		if err := waitForReleasePromotion(os.Stdout, c, app, release); err != nil {
+			return stdcli.Error(err)
+		}
+	}
+
+	return nil
+}
+
+func cmdReleaseRollback(c *cli.Context) error {
+	stdcli.NeedHelp(c)
+	stdcli.NeedArg(c, 1)
+
+	_, app, err := stdcli.DirApp(c, ".")
+	if err != nil {
+		return stdcli.Error(err)
+	}
+
+	a, err := rackClient(c).GetApp(app)
+	if err != nil {
+		return stdcli.Error(err)
+	}
+
+	if a.Status != "running" {
+		return stdcli.Error(fmt.Errorf("%s is currently being updated", app))
+	}
+
+	id := c.Args()[0]
+
+	ro, err := rack(c).ReleaseGet(app, id)
+	if err != nil {
+		return stdcli.Error(err)
+	}
+
+	stdcli.Startf("Copying release <release>%s</release>", ro.Id)
+
+	rn, err := rack(c).ReleaseCreate(app, structs.ReleaseCreateOptions{
+		Build: options.String(ro.Build),
+		Env:   options.String(ro.Env),
+	})
+	if err != nil {
+		return stdcli.Error(err)
+	}
+
+	stdcli.Writef("<ok>OK</ok>, <release>%s</release>\n", rn.Id)
+
+	stdcli.Startf("Promoting <release>%s</release>", rn.Id)
+
+	if err := rack(c).ReleasePromote(app, rn.Id); err != nil {
+		return stdcli.Error(err)
+	}
+
+	stdcli.OK()
+
+	if c.Bool("wait") {
+		if err := waitForReleasePromotion(os.Stdout, c, app, rn.Id); err != nil {
 			return stdcli.Error(err)
 		}
 	}
