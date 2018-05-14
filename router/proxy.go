@@ -106,6 +106,9 @@ func (p *Proxy) proxyHTTP(ln net.Listener) error {
 }
 
 var hc = &http.Client{
+	CheckRedirect: func(r *http.Request, via []*http.Request) error {
+		return http.ErrUseLastResponse
+	},
 	Transport: &http.Transport{
 		DialContext: (&net.Dialer{
 			Timeout:   30 * time.Second,
