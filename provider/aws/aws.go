@@ -144,12 +144,11 @@ func (p *AWSProvider) cloudformation() *cloudformation.CloudFormation {
 }
 
 func (p *AWSProvider) cloudwatch() *cloudwatch.CloudWatch {
-	config := p.config().WithLogLevel(aws.LogOff)
-	return cloudwatch.New(session.New(), config)
+	return cloudwatch.New(session.New(), p.config())
 }
 
 func (p *AWSProvider) cloudwatchlogs() *cloudwatchlogs.CloudWatchLogs {
-	return cloudwatchlogs.New(session.New(), p.config())
+	return cloudwatchlogs.New(session.New(), p.config().WithLogLevel(aws.LogOff))
 }
 
 func (p *AWSProvider) dynamodb() *dynamodb.DynamoDB {
