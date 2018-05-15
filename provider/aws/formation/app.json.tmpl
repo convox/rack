@@ -422,17 +422,19 @@
         }
       },
     {{ end }}
-    "Service{{ upper .Name }}AutoscalingTarget": {
-      "Type": "AWS::ApplicationAutoScaling::ScalableTarget",
-      "Properties": {
-        "MaxCapacity": "{{.Scale.Count.Max}}",
-        "MinCapacity": "{{.Scale.Count.Min}}",
-        "ResourceId": { "Fn::Sub": [ "service/${Cluster}/${Service{{ upper .Name }}Service.Name}", { "Cluster": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Cluster" } } } ] },
-        "RoleARN": { "Fn::GetAtt": [ "AutoscalingRole", "Arn" ] },
-        "ScalableDimension": "ecs:service:DesiredCount",
-        "ServiceNamespace": "ecs"
-      }
-    },
+    {{ if .Scale.Autoscale }}
+      "Service{{ upper .Name }}AutoscalingTarget": {
+        "Type": "AWS::ApplicationAutoScaling::ScalableTarget",
+        "Properties": {
+          "MaxCapacity": "{{.Scale.Count.Max}}",
+          "MinCapacity": "{{.Scale.Count.Min}}",
+          "ResourceId": { "Fn::Sub": [ "service/${Cluster}/${Service{{ upper .Name }}Service.Name}", { "Cluster": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Cluster" } } } ] },
+          "RoleARN": { "Fn::GetAtt": [ "AutoscalingRole", "Arn" ] },
+          "ScalableDimension": "ecs:service:DesiredCount",
+          "ServiceNamespace": "ecs"
+        }
+      },
+    {{ end }}
     "Service{{ upper .Name }}Security": {
       "Condition": "FargateServices",
       "Type": "AWS::EC2::SecurityGroup",
