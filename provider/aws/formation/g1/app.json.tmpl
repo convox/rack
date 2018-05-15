@@ -797,8 +797,10 @@
     "Version": "1.0",
     "Properties": {
       "ServiceToken": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
-      "RepositoryName": { "Ref": "AWS::StackName" },
-      "Lifecycle": {{ safe .Lifecycle }}
+      {{ with .Lifecycle }}
+        "Lifecycle": {{ safe . }},
+      {{ end }}
+      "RepositoryName": { "Ref": "AWS::StackName" }
     }
   },
 {{ end }}
