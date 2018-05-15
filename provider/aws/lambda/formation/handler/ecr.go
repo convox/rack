@@ -37,11 +37,14 @@ func ECRRepositoryCreate(req Request) (string, map[string]string, error) {
 	}
 
 	if lc, ok := req.ResourceProperties["Lifecycle"].(string); ok {
-		res, err := ECR(req).PutLifecyclePolicy(&ecr.PutLifecyclePolicyInput{
+		_, err := ECR(req).PutLifecyclePolicy(&ecr.PutLifecyclePolicyInput{
 			RegistryId:          res.Repository.RegistryId,
 			RepositoryName:      res.Repository.RepositoryName,
 			LifecyclePolicyText: aws.String(lc),
 		})
+		if err != nil {
+			return "", nil, err
+		}
 	}
 
 	outputs := map[string]string{
