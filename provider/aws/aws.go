@@ -26,6 +26,10 @@ import (
 	"github.com/convox/rack/structs"
 )
 
+const (
+	maxBuilds = 10
+)
+
 var (
 	customTopic       = os.Getenv("CUSTOM_TOPIC")
 	notificationTopic = os.Getenv("NOTIFICATION_TOPIC")

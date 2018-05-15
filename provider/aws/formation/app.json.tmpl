@@ -97,7 +97,14 @@
     },
     "Registry": {
       "Type": "AWS::ECR::Repository",
-      "DeletionPolicy": "Retain"
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        {{ with .Lifecycle }}
+          "LifecyclePolicy": {
+            "LifecyclePolicyText": {{ safe . }}
+          }
+        {{ end }}
+      }
     }
   }
 }
