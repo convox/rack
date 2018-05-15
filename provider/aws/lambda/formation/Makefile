@@ -1,4 +1,4 @@
-.PHONY: all build clean release
+.PHONY: all build clean main release
 
 all: lambda.zip
 
