@@ -192,11 +192,6 @@ func (p *AWSProvider) ReleasePromote(app, id string) error {
 		}
 	}
 
-	b, err := p.BuildGet(app, r.Build)
-	if err != nil {
-		return err
-	}
-
 	first := map[string]bool{}
 
 	rs, err := p.appResources(app)
@@ -212,12 +207,20 @@ func (p *AWSProvider) ReleasePromote(app, id string) error {
 
 	tp := map[string]interface{}{
 		"App":      r.App,
-		"Build":    b,
 		"Env":      env,
 		"First":    first,
 		"Manifest": m,
 		"Release":  r,
 		"Version":  p.Release,
+	}
+
+	if r.Build != "" {
+		b, err := p.BuildGet(app, r.Build)
+		if err != nil {
+			return err
+		}
+
+		tp["Build"] = b
 	}
 
 	data, err := formationTemplate("app", tp)
@@ -274,16 +277,19 @@ func (p *AWSProvider) releasePromoteGeneration1(a *structs.App, r *structs.Relea
 		return err
 	}
 
-	b, err := p.BuildGet(a.Name, r.Build)
-	if err != nil {
-		return err
-	}
-
 	tp := map[string]interface{}{
 		"App":         a,
-		"Build":       b,
 		"Environment": fmt.Sprintf("https://%s.s3.amazonaws.com/releases/%s/env", settings, r.Id),
 		"Manifest":    m,
+	}
+
+	if r.Build != "" {
+		b, err := p.BuildGet(a.Name, r.Build)
+		if err != nil {
+			return err
+		}
+
+		tp["Build"] = b
 	}
 
 	data, err := formationTemplate("g1/app", tp)
