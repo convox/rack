@@ -136,35 +136,6 @@ func TestBuildGet(t *testing.T) {
 //   }, b)
 // }
 
-func TestBuildDelete(t *testing.T) {
-	provider := StubAwsProvider(
-		cycleBuildGetItem,
-		cycleBuildDescribeStacks,
-		cycleReleaseGetItem,
-		cycleReleaseListStackResources,
-		cycleReleaseEnvironmentGet,
-		cycleSystemListStackResources,
-		cycleBuildDeleteItem,
-		cycleBuildBatchDeleteImage,
-	)
-	defer provider.Close()
-
-	b, err := provider.BuildDelete("httpd", "B123")
-
-	assert.NoError(t, err)
-	assert.EqualValues(t, &structs.Build{
-		Id:       "BAFVEWUCAYT",
-		App:      "httpd",
-		Logs:     "object:///test/foo",
-		Manifest: "version: \"2\"\nnetworks: {}\nservices:\n  web:\n    build: {}\n    command: null\n    image: httpd\n    ports:\n    - 80:80\n",
-		Release:  "RVWOJNKRAXU",
-		Status:   "complete",
-		Started:  time.Unix(1459780456, 178278576).UTC(),
-		Ended:    time.Unix(1459780542, 440881687).UTC(),
-		Tags:     map[string]string{},
-	}, b)
-}
-
 func TestBuildExport(t *testing.T) {
 	provider := StubAwsProvider(
 		cycleBuildGetItem,
@@ -415,25 +386,6 @@ var cycleBuildBatchDeleteImage = awsutil.Cycle{
 			],
 			"registryId": "132866487567",
 			"repositoryName": "convox-httpd-hqvvfosgxt"
-		}`,
-	},
-	awsutil.Response{
-		StatusCode: 200,
-		Body:       `{}`,
-	},
-}
-
-var cycleBuildDeleteItem = awsutil.Cycle{
-	awsutil.Request{
-		RequestURI: "/",
-		Operation:  "DynamoDB_20120810.DeleteItem",
-		Body: `{
-			"Key": {
-				"id": {
-					"S": "B123"
-				}
-			},
-			"TableName": "convox-builds"
 		}`,
 	},
 	awsutil.Response{

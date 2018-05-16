@@ -153,7 +153,7 @@
     {{ template "cronjob-resources" . }}
     {{ template "process-resources" .Manifest }}
     {{ template "process-services" . }}
-    {{ template "registry-resources" .Manifest }}
+    {{ template "registry-resources" . }}
 
     {{ template "security" }}
     {{ template "state" }}
