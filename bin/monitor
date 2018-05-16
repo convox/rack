@@ -1,9 +1,9 @@
-#!/bin/sh
+#!/bin/bash
 
 cd $(dirname ${0:-})/..
 
 if [ "$DEVELOPMENT" == "true" ]; then
-  $GOPATH/bin/rerun -watch $GOPATH/src/github.com/convox/rack -build github.com/convox/rack/cmd/monitor
+  exec watchexec -e go -r -s SIGTERM "set -x && go install ./cmd/monitor && $GOPATH/bin/monitor"
 else
-  $GOPATH/bin/monitor
+  exec $GOPATH/bin/monitor
 fi
