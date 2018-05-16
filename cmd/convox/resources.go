@@ -22,10 +22,6 @@ type ResourceType struct {
 
 var resourceTypes = []ResourceType{
 	{
-		"fluentd",
-		"--url=tcp://fluentd-collector.example.com:24224",
-	},
-	{
 		"memcached",
 		"[--instance-type=db.t2.micro] [--num-cache-nodes=1] [--private]",
 	},

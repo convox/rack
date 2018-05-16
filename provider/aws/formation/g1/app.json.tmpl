@@ -113,7 +113,7 @@
         "Handler": "index.external",
         "MemorySize": "128",
         "Role": { "Fn::GetAtt": [ "CustomTopicRole", "Arn" ] },
-        "Runtime": "nodejs4.3",
+        "Runtime": "nodejs8.10",
         "Timeout": "300"
       }
     },
@@ -694,7 +694,7 @@
       "Properties": {
         "Handler": "index.handler",
         "Role": { "Fn::GetAtt": [ "CronRole", "Arn" ] },
-        "Runtime": "nodejs4.3",
+        "Runtime": "nodejs8.10",
         "Timeout": 50,
         "Code": {
           "ZipFile": { "Fn::Join": ["\n", [
