@@ -578,12 +578,11 @@
       "Properties": {
         "Handler": "index.handler",
         "Role": { "Fn::GetAtt": [ "TimerRole", "Arn" ] },
-        "Runtime": "nodejs4.3",
+        "Runtime": "nodejs8.10",
         "Timeout": 60,
         "Code": {
           "ZipFile": { "Fn::Join": [ "\n", [
             "exports.handler = function(event, context, cb) {",
-            "  console.log('event', event);",
             "  var params = {",
             "    cluster: event.cluster,",
             "    taskDefinition: event.taskDefinition,",
@@ -602,8 +601,6 @@
             "  var aws = require('aws-sdk');",
             "  var ecs = new aws.ECS({maxRetries:10});",
             "  ecs.runTask(params, function (err, res) {",
-            "    console.log('err', err);",
-            "    console.log('res', res);",
             "    cb(err);",
             "  });",
             "};"

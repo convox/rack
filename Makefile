@@ -21,7 +21,6 @@ release:
 
 templates:
 	go get -u github.com/jteeuwen/go-bindata/...
-	make -C cmd templates
 	make -C provider templates
 	make -C sync templates
 
