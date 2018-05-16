@@ -41,6 +41,9 @@ services:
       path: /check
       timeout: 3
     port: https:5443
+    scale:
+      cpu: 2048
+      memory: 256
     volumes:
     - /Users/Shared/convox:/var/convox
     - /var/run/docker.sock:/var/run/docker.sock
@@ -78,6 +81,9 @@ services:
     - SUBNETS
     - SUBNETS_PRIVATE
     - VPC
+    scale:
+      cpu: 2048
+      memory: 256
     volumes:
     - /Users/Shared/convox:/var/convox
     - /var/run/docker.sock:/var/run/docker.sock

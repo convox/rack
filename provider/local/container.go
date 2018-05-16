@@ -13,6 +13,7 @@ import (
 
 type container struct {
 	Command   []string
+	Cpu       int
 	Env       map[string]string
 	Hostname  string
 	Image     string
@@ -61,6 +62,10 @@ func (p *Provider) containerStart(c container, app, release string) (string, err
 
 	for k, v := range c.Env {
 		args = append(args, "-e", fmt.Sprintf("%s=%s", k, v))
+	}
+
+	if v := c.Cpu; v > 0 {
+		args = append(args, "--cpu-shares", fmt.Sprintf("%d", v))
 	}
 
 	if m := c.Memory; m > 0 {
