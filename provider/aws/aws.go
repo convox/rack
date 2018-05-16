@@ -27,7 +27,7 @@ import (
 )
 
 const (
-	maxBuilds = 10
+	maxBuilds = 50
 )
 
 var (
