@@ -36,8 +36,6 @@ func (p *AWSProvider) ResourceCreate(name, kind string, opts structs.ResourceCre
 	switch s.Type {
 	case "memcached", "mysql", "postgres", "redis", "sqs":
 		req, err = p.createResource(s)
-	case "fluentd":
-		req, err = p.createResourceURL(s, "tcp")
 	case "s3":
 		if s.Parameters["Topic"] != "" {
 			s.Parameters["Topic"] = fmt.Sprintf("%s-%s", p.Rack, s.Parameters["Topic"])
@@ -295,7 +293,7 @@ func (p *AWSProvider) ResourceLink(name, app, process string) (*structs.Resource
 
 	// Update Resource and/or App stacks
 	switch s.Type {
-	case "fluentd", "syslog":
+	case "syslog":
 		err = p.linkResource(a, s) // Update resource to know about App
 	default:
 		err = fmt.Errorf("resource type %s does not have a link strategy", s.Type)
@@ -338,7 +336,7 @@ func (p *AWSProvider) ResourceUnlink(name, app, process string) (*structs.Resour
 
 	// Update Resource and/or App stacks
 	switch s.Type {
-	case "fluentd", "syslog":
+	case "syslog":
 		err = p.unlinkResource(a, s) // Update resource to forget about App
 	default:
 		err = fmt.Errorf("resource type %s does not have an unlink strategy", s.Type)
