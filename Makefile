@@ -1,13 +1,13 @@
-.PHONY: all builder fixtures mocks release templates test vendor
+.PHONY: all build builder mocks release templates test
 
-all: templates
+all: build
+
+build:
+	go install .
 
 builder:
 	docker build -t convox/build:$(USER) -f cmd/build/Dockerfile .
 	docker push convox/build:$(USER)
-
-fixtures:
-	make -C api/models/fixtures
 
 mocks:
 	go get -u github.com/vektra/mockery/.../
@@ -26,7 +26,4 @@ templates:
 	make -C sync templates
 
 test:
-	env PROVIDER=test CONVOX_WAIT= bin/test
-
-vendor:
-	godep save ./...
+	env PROVIDER=test bin/test
