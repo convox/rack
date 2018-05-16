@@ -210,20 +210,14 @@ func (p *AWSProvider) ReleasePromote(app, id string) error {
 		}
 	}
 
-	lcp, err := p.registryLifecyclePolicy(app)
-	if err != nil {
-		return err
-	}
-
 	tp := map[string]interface{}{
-		"App":       r.App,
-		"Build":     b,
-		"Env":       env,
-		"First":     first,
-		"Manifest":  m,
-		"Lifecycle": lcp,
-		"Release":   r,
-		"Version":   p.Release,
+		"App":      r.App,
+		"Build":    b,
+		"Env":      env,
+		"First":    first,
+		"Manifest": m,
+		"Release":  r,
+		"Version":  p.Release,
 	}
 
 	data, err := formationTemplate("app", tp)
@@ -285,16 +279,10 @@ func (p *AWSProvider) releasePromoteGeneration1(a *structs.App, r *structs.Relea
 		return err
 	}
 
-	lcp, err := p.registryLifecyclePolicy(a.Name)
-	if err != nil {
-		return err
-	}
-
 	tp := map[string]interface{}{
 		"App":         a,
 		"Build":       b,
 		"Environment": fmt.Sprintf("https://%s.s3.amazonaws.com/releases/%s/env", settings, r.Id),
-		"Lifecycle":   lcp,
 		"Manifest":    m,
 	}
 

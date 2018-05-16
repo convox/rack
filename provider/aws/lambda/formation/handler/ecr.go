@@ -36,17 +36,6 @@ func ECRRepositoryCreate(req Request) (string, map[string]string, error) {
 		return "", nil, err
 	}
 
-	if lc, ok := req.ResourceProperties["Lifecycle"].(string); ok {
-		_, err := ECR(req).PutLifecyclePolicy(&ecr.PutLifecyclePolicyInput{
-			RegistryId:          res.Repository.RegistryId,
-			RepositoryName:      res.Repository.RepositoryName,
-			LifecyclePolicyText: aws.String(lc),
-		})
-		if err != nil {
-			return "", nil, err
-		}
-	}
-
 	outputs := map[string]string{
 		"RegistryId":     *res.Repository.RegistryId,
 		"RepositoryName": *res.Repository.RepositoryName,
@@ -58,17 +47,6 @@ func ECRRepositoryCreate(req Request) (string, map[string]string, error) {
 func ECRRepositoryUpdate(req Request) (string, map[string]string, error) {
 	reg := strings.Split(req.PhysicalResourceId, ":")[4]
 	repo := strings.Split(req.PhysicalResourceId, "/")[1]
-
-	if lc, ok := req.ResourceProperties["Lifecycle"].(string); ok {
-		_, err := ECR(req).PutLifecyclePolicy(&ecr.PutLifecyclePolicyInput{
-			RegistryId:          aws.String(reg),
-			RepositoryName:      aws.String(repo),
-			LifecyclePolicyText: aws.String(lc),
-		})
-		if err != nil {
-			return "", nil, err
-		}
-	}
 
 	outputs := map[string]string{
 		"RegistryId":     reg,
