@@ -28,7 +28,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
-	"github.com/aws/aws-sdk-go/service/ecr"
 	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/s3"
@@ -853,83 +852,6 @@ func (p *AWSProvider) objectURL(ou string) (string, error) {
 	}
 
 	return fmt.Sprintf("https://s3.%s.amazonaws.com/%s%s", p.Region, p.SettingsBucket, u.Path), nil
-}
-
-func (p *AWSProvider) registryLifecyclePolicy(app string) (string, error) {
-	ss, err := p.registryServices(app)
-	if err != nil {
-		return "", err
-	}
-
-	rules := []string{}
-
-	for i, s := range ss {
-		rules = append(rules, fmt.Sprintf(`{
-			"rulePriority": %d,
-			"description": "clean up expired builds: %s",
-			"action": { "type": "expire" },
-			"selection": {
-				"tagStatus": "tagged",
-				"countType": "imageCountMoreThan",
-				"countNumber": %d,
-				"tagPrefixList": [ "%s." ]
-			}
-		}`, 800+i, s, maxBuilds, s))
-	}
-
-	return fmt.Sprintf(`{"rules":[%s]}`, strings.Join(rules, ",")), nil
-}
-
-func (p *AWSProvider) registryServices(app string) ([]string, error) {
-	repo := ""
-
-	a, err := p.AppGet(app)
-	if err != nil {
-		return nil, err
-	}
-
-	switch a.Generation {
-	case "1":
-		repo = a.Outputs["RegistryRepository"]
-	case "2":
-		r, err := p.appResource(app, "Registry")
-		if err != nil {
-			return nil, err
-		}
-		repo = r
-	default:
-		return nil, fmt.Errorf("unknown generation: %s", a.Generation)
-	}
-
-	tags := map[string]int{}
-
-	req := &ecr.ListImagesInput{
-		RepositoryName: aws.String(repo),
-	}
-
-	err = p.ecr().ListImagesPages(req, func(page *ecr.ListImagesOutput, last bool) bool {
-		for _, i := range page.ImageIds {
-			if i.ImageTag != nil && *i.ImageTag != "" {
-				tags[strings.Split(*i.ImageTag, ".")[0]] += 1
-			}
-		}
-		return true
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	ts := []string{}
-
-	for tag := range tags {
-		ts = append(ts, tag)
-	}
-
-	sort.Slice(ts, func(i, j int) bool {
-		return tags[ts[i]] > tags[ts[j]]
-	})
-
-	return ts, nil
 }
 
 func (p *AWSProvider) s3Exists(bucket, key string) (bool, error) {
