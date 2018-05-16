@@ -406,6 +406,7 @@ func (p *Provider) serviceContainers(services manifest.Services, app, release st
 				Image:    fmt.Sprintf("%s/%s/%s:%s", p.Name, app, s.Name, r.Build),
 				Command:  cmd,
 				Env:      e,
+				Cpu:      s.Scale.Cpu,
 				Memory:   s.Scale.Memory,
 				Volumes:  vv,
 				Port:     s.Port.Port,
