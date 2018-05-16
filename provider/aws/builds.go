@@ -6,7 +6,6 @@ import (
 	"compress/gzip"
 	"encoding/base64"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -72,66 +71,7 @@ func (p *AWSProvider) BuildCreate(app, method, url string, opts structs.BuildCre
 		return nil, err
 	}
 
-	// AWS currently has a limit of 1000 images in ECR
-	// This is a "hopefully temporary" and brute force means
-	// to prevent hitting limits during deployment
-	bs, err := p.BuildList(app, structs.BuildListOptions{Count: aws.Int(150)})
-	if err != nil {
-		fmt.Printf("Error listing builds for cleanup: %s\n", err.Error())
-	} else {
-		if len(bs) >= 50 {
-			go func() {
-				for _, b := range bs[50:] {
-					_, err := p.BuildDelete(app, b.Id)
-					if err != nil {
-						fmt.Printf("Error cleaning up build %s: %s\n", b.Id, err.Error())
-					}
-					time.Sleep(1 * time.Second)
-				}
-			}()
-		}
-	}
-
-	log.Success()
-	return b, nil
-}
-
-// BuildDelete deletes the build specified by id belonging to app
-// Care should be taken as this could delete the build used by the active release
-func (p *AWSProvider) BuildDelete(app, id string) (*structs.Build, error) {
-	b, err := p.BuildGet(app, id)
-	if err != nil {
-		return nil, err
-	}
-
-	a, err := p.AppGet(app)
-	if err != nil {
-		return nil, err
-	}
-
-	r, err := p.ReleaseGet(app, a.Release)
-	if err != nil {
-		return nil, err
-	}
-
-	if r.Build == id {
-		return nil, fmt.Errorf("build is currently active")
-	}
-
-	// delete build item
-	_, err = p.dynamodb().DeleteItem(&dynamodb.DeleteItemInput{
-		Key: map[string]*dynamodb.AttributeValue{
-			"id": {S: aws.String(id)},
-		},
-		TableName: aws.String(p.DynamoBuilds),
-	})
-	if err != nil {
-		return b, err
-	}
-
-	// delete ECR images
-	err = p.deleteImages(a, b)
-	return b, err
+	return b, log.Success()
 }
 
 // BuildExport exports a build artifact
@@ -1022,56 +962,6 @@ func (p *AWSProvider) buildFromItem(item map[string]*dynamodb.AttributeValue) *s
 		Ended:       ended,
 		Tags:        tags,
 	}
-}
-
-// deleteImages generates a list of fully qualified URLs for images for every process type
-// in the build manifest then deletes them.
-// Image URLs that point to ECR, e.g. 826133048.dkr.ecr.us-east-1.amazonaws.com/myapp-zridvyqapp:web.BSUSBFCUCSA,
-// are deleted with the ECR BatchDeleteImage API.
-// Image URLs that point to the convox-hosted registry, e.g. convox-826133048.us-east-1.elb.amazonaws.com:5000/myapp-web:BSUSBFCUCSA,
-// are not yet supported and return an error.
-func (p *AWSProvider) deleteImages(a *structs.App, b *structs.Build) error {
-
-	m, err := manifest1.Load([]byte(b.Manifest))
-	if err != nil {
-		return err
-	}
-
-	// failed builds could have an empty manifest
-	if len(m.Services) == 0 {
-		return nil
-	}
-
-	urls := []string{}
-
-	for name := range m.Services {
-		urls = append(urls, p.registryTag(a, name, b.Id))
-	}
-
-	imageIds := []*ecr.ImageIdentifier{}
-	registryId := ""
-	repositoryName := ""
-
-	for _, url := range urls {
-		if match := regexpECRImage.FindStringSubmatch(url); match != nil {
-			registryId = match[1]
-			repositoryName = match[3]
-
-			imageIds = append(imageIds, &ecr.ImageIdentifier{
-				ImageTag: aws.String(match[4]),
-			})
-		} else {
-			return errors.New("URL not valid ECR")
-		}
-	}
-
-	_, err = p.ecr().BatchDeleteImage(&ecr.BatchDeleteImageInput{
-		ImageIds:       imageIds,
-		RegistryId:     aws.String(registryId),
-		RepositoryName: aws.String(repositoryName),
-	})
-
-	return err
 }
 
 func (p *AWSProvider) dockerLogin() error {
