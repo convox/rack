@@ -21,8 +21,6 @@ func (p *AWSProvider) workerCleanup() {
 		helpers.Error(log, err)
 	})
 
-	p.cleanupBuilds(log)
-
 	for range time.Tick(1 * time.Hour) {
 		p.cleanupBuilds(log)
 	}
