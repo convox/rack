@@ -204,6 +204,23 @@ func (p *AWSProvider) CertificateList() (structs.Certificates, error) {
 			Domain: *cert.DomainName,
 		}
 
+		tags := map[string]string{}
+
+		tres, err := p.acm().ListTagsForCertificate(&acm.ListTagsForCertificateInput{
+			CertificateArn: cert.CertificateArn,
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		for _, t := range tres.Tags {
+			tags[*t.Key] = *t.Value
+		}
+
+		if tags["System"] == "convox" && tags["Type"] == "app" {
+			continue
+		}
+
 		res, err := p.acm().DescribeCertificate(&acm.DescribeCertificateInput{
 			CertificateArn: cert.CertificateArn,
 		})
@@ -213,6 +230,12 @@ func (p *AWSProvider) CertificateList() (structs.Certificates, error) {
 
 		if res.Certificate.NotAfter != nil {
 			c.Expiration = *res.Certificate.NotAfter
+		}
+
+		c.Domains = make([]string, len(res.Certificate.SubjectAlternativeNames))
+
+		for i, san := range res.Certificate.SubjectAlternativeNames {
+			c.Domains[i] = *san
 		}
 
 		certs = append(certs, c)

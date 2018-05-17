@@ -192,6 +192,11 @@ func (p *AWSProvider) ReleasePromote(app, id string) error {
 		}
 	}
 
+	cs, err := p.CertificateList()
+	if err != nil {
+		return err
+	}
+
 	first := map[string]bool{}
 
 	rs, err := p.appResources(app)
@@ -206,12 +211,13 @@ func (p *AWSProvider) ReleasePromote(app, id string) error {
 	}
 
 	tp := map[string]interface{}{
-		"App":      r.App,
-		"Env":      env,
-		"First":    first,
-		"Manifest": m,
-		"Release":  r,
-		"Version":  p.Release,
+		"App":          r.App,
+		"Certificates": cs,
+		"Env":          env,
+		"First":        first,
+		"Manifest":     m,
+		"Release":      r,
+		"Version":      p.Release,
 	}
 
 	if r.Build != "" {
@@ -227,8 +233,6 @@ func (p *AWSProvider) ReleasePromote(app, id string) error {
 	if err != nil {
 		return err
 	}
-
-	// fmt.Printf("string(data) = %+v\n", string(data))
 
 	ou, err := p.ObjectStore(app, "", bytes.NewReader(data), structs.ObjectStoreOptions{Public: options.Bool(true)})
 	if err != nil {

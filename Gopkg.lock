@@ -199,12 +199,6 @@
   version = "v1.5.0"
 
 [[projects]]
-  name = "github.com/fluent/fluent-logger-golang"
-  packages = ["fluent"]
-  revision = "28bdb662295c1b7aca09c1a4edbf9430010775a9"
-  version = "v1.2.1"
-
-[[projects]]
   name = "github.com/fsouza/go-dockerclient"
   packages = [
     ".",
@@ -234,6 +228,21 @@
   packages = ["."]
   revision = "32e4c1e6bc4e7d0d8451aa6b75200d19e37a536a"
   version = "v1.32.0"
+
+[[projects]]
+  name = "github.com/gobwas/glob"
+  packages = [
+    ".",
+    "compiler",
+    "match",
+    "syntax",
+    "syntax/ast",
+    "syntax/lexer",
+    "util/runes",
+    "util/strings"
+  ]
+  revision = "5ccd90ef52e1e632236f7326478d4faa74f99438"
+  version = "v0.2.3"
 
 [[projects]]
   name = "github.com/gorilla/context"
@@ -363,12 +372,6 @@
   version = "v0.1.1"
 
 [[projects]]
-  branch = "master"
-  name = "github.com/philhofer/fwd"
-  packages = ["."]
-  revision = "bb6d471dc95d4fe11e432687f8b70ff496cf3136"
-
-[[projects]]
   name = "github.com/pkg/errors"
   packages = ["."]
   revision = "645ef00459ed84a119197bfb8d8205042c6df63d"
@@ -413,12 +416,6 @@
   packages = ["."]
   revision = "b20261800d8cda3be14dcef0d1a8320779bba61a"
   version = "v0.5.1"
-
-[[projects]]
-  name = "github.com/tinylib/msgp"
-  packages = ["msgp"]
-  revision = "b2b6a672cf1e5b90748f79b8b81fc8c5cf0571a1"
-  version = "1.0.2"
 
 [[projects]]
   branch = "master"
@@ -490,6 +487,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "f66371953cefecccab2cd5cef6723f45694b47379c73db9c285b74ea94ff8c10"
+  inputs-digest = "2f986b773492440c167c67d06fe38a2a9906319cdd9e534ed0d0827dc9136ddb"
   solver-name = "gps-cdcl"
   solver-version = 1
