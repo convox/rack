@@ -106,7 +106,15 @@
   {{ range .Manifest.Services }}
     {{ if .Port.Port }}
       "Service{{ upper .Name }}Certificate": {
-        "Value": {{ if .Domain }} { "Ref": "Balancer{{ upper .Name }}Certificate" } {{ else }} { "Fn::ImportValue": { "Fn::Sub": "${Rack}:RouterCertificate" } } {{ end }}
+        "Value": {{ if .Domain }}
+          {{ with certificate $.Certificates .Domains }}
+            "{{.}}"
+          {{ else }}
+            { "Ref": "Balancer{{ upper .Name }}Certificate" }
+          {{ end }}
+        {{ else }}
+          { "Fn::ImportValue": { "Fn::Sub": "${Rack}:RouterCertificate" } }
+        {{ end }}
       },
       "Service{{ upper .Name }}Endpoint": {
         "Value": { "Fn::If": [ "InternalDomains",
@@ -173,28 +181,31 @@
         }
       },
       {{ if .Domain }}
-        "Balancer{{ upper .Name }}Certificate": {
-          "Type": "AWS::CertificateManager::Certificate",
-          "Properties": {
-            "DomainName": "{{ .Domain }}",
-            "DomainValidationOptions": [
-              {{ range .Domains }}
-                { "DomainName": "{{ . }}", "ValidationDomain": "{{ apex . }}" },
-              {{ end }}
-              { "Ref": "AWS::NoValue" }
-            ],
-            "SubjectAlternativeNames": [
-              {{ range .Domains }}
-                "{{.}}",
-              {{ end }}
-              { "Ref": "AWS::NoValue" }
-            ]
-          }
-        },
+        {{ $existing := certificate $.Certificates .Domains }}
+        {{ if not $existing }}
+          "Balancer{{ upper .Name }}Certificate": {
+            "Type": "AWS::CertificateManager::Certificate",
+            "Properties": {
+              "DomainName": "{{ .Domain }}",
+              "DomainValidationOptions": [
+                {{ range .Domains }}
+                  { "DomainName": "{{ . }}", "ValidationDomain": "{{ apex . }}" },
+                {{ end }}
+                { "Ref": "AWS::NoValue" }
+              ],
+              "SubjectAlternativeNames": [
+                {{ range .Domains }}
+                  "{{.}}",
+                {{ end }}
+                { "Ref": "AWS::NoValue" }
+              ]
+            }
+          },
+        {{ end }}
         "Balancer{{ upper .Name }}ListenerCertificate": {
           "Type": "AWS::ElasticLoadBalancingV2::ListenerCertificate",
           "Properties": {
-            "Certificates": [ { "CertificateArn": { "Ref": "Balancer{{ upper .Name }}Certificate" } } ],
+            "Certificates": [ { "CertificateArn": {{ with $existing }} "{{.}}" {{ else }} { "Ref": "Balancer{{ upper .Name }}Certificate" } {{ end }} } ],
             "ListenerArn": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:{{ router .Name $.Manifest }}Listener443" } }
           }
         },
