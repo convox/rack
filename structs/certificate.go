@@ -23,7 +23,7 @@ func (c Certificates) Swap(i, j int)      { c[i], c[j] = c[j], c[i] }
 
 func (c *Certificate) Match(domain string) (bool, error) {
 	for _, d := range c.Domains {
-		g, err := glob.Compile(d)
+		g, err := glob.Compile(d, '.')
 		if err != nil {
 			return false, err
 		}
