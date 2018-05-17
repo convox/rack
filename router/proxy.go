@@ -136,13 +136,7 @@ func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tu := fmt.Sprintf("%s%s", target.String(), r.URL.Path)
-
-	if r.URL.RawQuery != "" {
-		tu += fmt.Sprintf("?%s", r.URL.RawQuery)
-	}
-
-	req, err := http.NewRequest(r.Method, tu, r.Body)
+	req, err := http.NewRequest(r.Method, fmt.Sprintf("%s%s", target.String(), r.RequestURI), r.Body)
 	if err != nil {
 		http.Error(w, err.Error(), 502)
 		return
