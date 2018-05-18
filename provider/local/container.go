@@ -213,11 +213,6 @@ func containerList(args ...string) ([]container, error) {
 			return nil, err
 		}
 
-		// dont list build processes
-		if c.Config.Labels["convox.service"] == "build" {
-			continue
-		}
-
 		cc := container{
 			Id:        c.Id,
 			Labels:    map[string]string{},
