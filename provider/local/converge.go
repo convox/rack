@@ -53,13 +53,25 @@ func (p *Provider) converge(app string) error {
 		desired = append(desired, c...)
 	}
 
-	current, err := containersByLabels(map[string]string{
+	rc, err := containersByLabels(map[string]string{
 		"convox.rack": p.Name,
 		"convox.app":  app,
+		"convox.type": "resource",
 	})
 	if err != nil {
 		return errors.WithStack(log.Error(err))
 	}
+
+	sc, err := containersByLabels(map[string]string{
+		"convox.rack": p.Name,
+		"convox.app":  app,
+		"convox.type": "service",
+	})
+	if err != nil {
+		return errors.WithStack(log.Error(err))
+	}
+
+	current := append(sc, rc...)
 
 	extra := diffContainers(current, desired)
 	needed := diffContainers(desired, current)
