@@ -22,7 +22,7 @@ func coalesce(ss ...string) string {
 	return ""
 }
 
-func readChannel(r io.Reader, datach chan []byte, donech chan error) {
+func readChannel(r io.Reader, datach chan string, donech chan error) {
 	buf := make([]byte, 10*1024)
 
 	for {
@@ -36,7 +36,7 @@ func readChannel(r io.Reader, datach chan []byte, donech chan error) {
 			return
 		}
 
-		datach <- buf[0:n]
+		datach <- string(buf[0:n])
 	}
 }
 
@@ -51,7 +51,7 @@ func sortSlice(s sortableSlice) {
 func streamWebsocket(ws *websocket.Conn, r io.ReadCloser) error {
 	defer r.Close()
 
-	datach := make(chan []byte)
+	datach := make(chan string)
 	donech := make(chan error)
 	tick := time.Tick(1 * time.Second)
 
@@ -65,7 +65,7 @@ func streamWebsocket(ws *websocket.Conn, r io.ReadCloser) error {
 				return nil
 			}
 		case data := <-datach:
-			ws.Write(data)
+			ws.Write([]byte(data))
 		case err := <-donech:
 			return err
 		}
