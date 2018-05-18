@@ -32,6 +32,25 @@ func formationHelpers() template.FuncMap {
 			}
 			return domain
 		},
+		"certificate": func(certs structs.Certificates, domains []string) (string, error) {
+			for _, c := range certs {
+				found := true
+				for _, d := range domains {
+					m, err := c.Match(d)
+					if err != nil {
+						return "", err
+					}
+					if !m {
+						found = false
+						break
+					}
+				}
+				if found {
+					return c.Arn, nil
+				}
+			}
+			return "", nil
+		},
 		"dec": func(i int) int {
 			return i - 1
 		},
