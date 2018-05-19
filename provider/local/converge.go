@@ -296,14 +296,14 @@ func resourcePort(kind string) (int, error) {
 	return 0, fmt.Errorf("unknown resource type: %s", kind)
 }
 
-func resourceURL(app, kind, name string) (string, error) {
+func (p *Provider) resourceURL(app, kind, name string) (string, error) {
 	switch kind {
 	case "mysql":
-		return fmt.Sprintf("mysql://mysql:password@%s.resource.%s.convox:3306/app", name, app), nil
+		return fmt.Sprintf("mysql://mysql:password@%s.resource.%s.%s:3306/app", name, app, p.Name), nil
 	case "postgres":
-		return fmt.Sprintf("postgres://postgres:password@%s.resource.%s.convox:5432/app?sslmode=disable", name, app), nil
+		return fmt.Sprintf("postgres://postgres:password@%s.resource.%s.%s:5432/app?sslmode=disable", name, app, p.Name), nil
 	case "redis":
-		return fmt.Sprintf("redis://%s.resource.%s.convox:6379/0", name, app), nil
+		return fmt.Sprintf("redis://%s.resource.%s.%s:6379/0", name, app, p.Name), nil
 	}
 
 	return "", fmt.Errorf("unknown resource type: %s", kind)
@@ -351,7 +351,6 @@ func (p *Provider) resourceContainers(resources manifest.Resources, app, release
 				"convox.rack":     p.Name,
 				"convox.version":  p.Version,
 				"convox.app":      app,
-				"convox.release":  release,
 				"convox.type":     "resource",
 				"convox.name":     r.Name,
 				"convox.hostname": hostname,
@@ -394,7 +393,7 @@ func (p *Provider) serviceContainers(services manifest.Services, app, release st
 		for _, sr := range s.Resources {
 			for _, r := range m.Resources {
 				if r.Name == sr {
-					u, err := resourceURL(app, r.Type, r.Name)
+					u, err := p.resourceURL(app, r.Type, r.Name)
 					if err != nil {
 						return nil, err
 					}
