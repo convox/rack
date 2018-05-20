@@ -228,6 +228,10 @@ func (p *AWSProvider) CertificateList() (structs.Certificates, error) {
 			return nil, err
 		}
 
+		if *res.Certificate.Status != "ISSUED" {
+			continue
+		}
+
 		if res.Certificate.NotAfter != nil {
 			c.Expiration = *res.Certificate.NotAfter
 		}
