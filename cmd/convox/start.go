@@ -80,7 +80,7 @@ func cmdStart(c *cli.Context) error {
 	opts := startOptions{}
 
 	if len(c.Args()) > 0 {
-		opts.Service = c.Args()[0]
+		opts.Services = c.Args()
 	}
 
 	if len(c.Args()) > 1 {
@@ -124,7 +124,7 @@ type startOptions struct {
 	Context  *cli.Context
 	Id       string
 	Manifest string
-	Service  string
+	Services []string
 	Shift    int
 	Sync     bool
 }
@@ -153,9 +153,12 @@ func startGeneration1(opts startOptions) error {
 		return errs[0]
 	}
 
-	if s := opts.Service; s != "" {
-		if _, ok := m.Services[s]; !ok {
-			return fmt.Errorf("service %s not found in manifest", s)
+	service := ""
+
+	if opts.Services != nil {
+		service = opts.Services[0]
+		if _, ok := m.Services[service]; !ok {
+			return fmt.Errorf("service not found in manifest: %s", service)
 		}
 	}
 
@@ -178,7 +181,7 @@ func startGeneration1(opts startOptions) error {
 		Build:   opts.Build,
 		Cache:   opts.Cache,
 		Command: opts.Command,
-		Service: opts.Service,
+		Service: service,
 		Sync:    opts.Sync,
 	})
 
@@ -244,6 +247,21 @@ func startGeneration2(opts startOptions) error {
 	m, err := manifest.Load(data, manifest.Environment(env))
 	if err != nil {
 		return err
+	}
+
+	services := map[string]bool{}
+
+	if opts.Services == nil {
+		for _, s := range m.Services {
+			services[s.Name] = true
+		}
+	} else {
+		for _, s := range opts.Services {
+			if _, err := m.Service(s); err != nil {
+				return err
+			}
+			services[s] = true
+		}
 	}
 
 	if opts.Build {
@@ -320,6 +338,10 @@ func startGeneration2(opts startOptions) error {
 	}
 
 	for _, s := range m.Services {
+		if !services[s.Name] {
+			continue
+		}
+
 		if s.Build.Path != "" {
 			go watchChanges(rk, m, app, s.Name, wd, errch)
 		}
@@ -344,7 +366,7 @@ func startGeneration2(opts startOptions) error {
 				continue
 			}
 
-			if match[4] == "build" {
+			if !services[match[4]] {
 				continue
 			}
 
