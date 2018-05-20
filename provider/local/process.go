@@ -281,7 +281,7 @@ func (p *Provider) argsFromOpts(app string, opts structs.ProcessRunOptions) ([]s
 		for _, sr := range service.Resources {
 			for _, r := range m.Resources {
 				if r.Name == sr {
-					u, err := resourceURL(app, r.Type, r.Name)
+					u, err := p.resourceURL(app, r.Type, r.Name)
 					if err != nil {
 						return nil, err
 					}
