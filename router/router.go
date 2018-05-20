@@ -67,6 +67,23 @@ func (rt *Router) Lookup(host string) net.IP {
 	return h.IP
 }
 
+func (rt *Router) NextIP() (net.IP, error) {
+	for i := uint32(1); i < 255; i++ {
+		ip := incrementIP(rt.base, (i * 256))
+		found := false
+		for _, r := range rt.racks {
+			if r.IP.Equal(ip) {
+				found = true
+				break
+			}
+		}
+		if !found {
+			return ip, nil
+		}
+	}
+	return net.IP{}, fmt.Errorf("ip exhaustion")
+}
+
 func (rt *Router) Rack(name string) (*Rack, error) {
 	for i := range rt.racks {
 		if rt.racks[i].Name == name {

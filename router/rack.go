@@ -16,10 +16,15 @@ type Rack struct {
 type Racks []*Rack
 
 func (rt *Router) NewRack(endpoint, name string) (*Rack, error) {
+	ip, err := rt.NextIP()
+	if err != nil {
+		return nil, err
+	}
+
 	r := &Rack{
 		Name:   name,
 		Hosts:  Hosts{},
-		IP:     incrementIP(rt.base, uint32((len(rt.racks)+1)*256)),
+		IP:     ip,
 		router: rt,
 	}
 
