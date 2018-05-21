@@ -19,7 +19,7 @@ type Manifest struct {
 func Load(data []byte, env Environment) (*Manifest, error) {
 	var m Manifest
 
-	p, err := interpolate(data, env)
+	p, err := interpolateManifest(data, env)
 	if err != nil {
 		return nil, err
 	}
@@ -126,7 +126,11 @@ func (m *Manifest) ValidateEnv() error {
 		}
 	}
 
-	m.Environment = whitelist
+	for k := range m.Environment {
+		if _, ok := whitelist[k]; !ok {
+			delete(m.Environment, k)
+		}
+	}
 
 	return nil
 }

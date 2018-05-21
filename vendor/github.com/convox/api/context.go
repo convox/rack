@@ -139,6 +139,11 @@ func (c *Context) RenderTemplate(path string, params interface{}) error {
 	return RenderTemplate(c.response, path, params)
 }
 
+func (c *Context) RenderText(t string) error {
+	_, err := c.response.Write([]byte(t))
+	return err
+}
+
 func (c *Context) Request() *http.Request {
 	return c.request
 }

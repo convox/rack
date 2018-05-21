@@ -4,17 +4,6 @@
   unused-packages = true
 
 [[constraint]]
-  name = "github.com/cheggaaa/pb"
-  version = "1.0.18"
-
-[[constraint]]
-  name = "github.com/docker/go-units"
-  version = "0.3.0"
-
-[[constraint]]
-  name = "github.com/stretchr/testify"
-  version = "1.1.3"
-
-[[constraint]]
-  name = "gopkg.in/urfave/cli.v1"
-  version = "1.19.1"
+  name = "gopkg.in/yaml.v2"
+  source = "https://github.com/ddollar/yaml"
+  branch = "merge-map-slice"

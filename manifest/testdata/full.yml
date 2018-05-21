@@ -9,13 +9,17 @@ services:
     domain: foo.example.org
     environment:
       - DEVELOPMENT=false
+      - MIN_SCALE=3
       - SECRET
     health:
       interval: 10
     resources:
       - database
     port: 1000
-    scale: 3-10
+    scale:
+      count:
+        min: ${MIN_SCALE}
+        max: 10
     test: make ${BAR} test
   proxy: &proxy
     command: bash
@@ -54,5 +58,5 @@ services:
             dimensions:
               QueueName: testqueue
   inherit:
-    "<<": *proxy
+    <<: *proxy
     command: inherit

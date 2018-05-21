@@ -126,7 +126,7 @@
   branch = "master"
   name = "github.com/convox/api"
   packages = ["."]
-  revision = "47e28fed5250d307c738224dae963ba00ca09dbb"
+  revision = "b69a99ad70fa621544702b23dc7be121c7f35bf4"
 
 [[projects]]
   branch = "master"
@@ -479,14 +479,15 @@
   version = "v1.20.0"
 
 [[projects]]
-  branch = "v2"
+  branch = "merge-map-slice"
   name = "gopkg.in/yaml.v2"
   packages = ["."]
-  revision = "287cf08546ab5e7e37d55a84f7ed3fd1db036de5"
+  revision = "3fb95e32dd8a54d6a2e0daec4151b6a41c2e64f4"
+  source = "https://github.com/ddollar/yaml"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "2f986b773492440c167c67d06fe38a2a9906319cdd9e534ed0d0827dc9136ddb"
+  inputs-digest = "edbe8f8f6e2cb55cb4a2dbd53fa066fdb91c5cce0031c8b9e0d89eb04809ec85"
   solver-name = "gps-cdcl"
   solver-version = 1
