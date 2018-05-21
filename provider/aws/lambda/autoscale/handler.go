@@ -116,8 +116,8 @@ func clusterMetrics() (*Metrics, *Metrics, error) {
 					largest.Width = width
 				}
 
-				total.Cpu += cpu
-				total.Memory += mem
+				total.Cpu += (cpu * *s.DesiredCount)
+				total.Memory += (mem * *s.DesiredCount)
 			}
 		}
 	}
@@ -173,6 +173,9 @@ func desiredCapacity(largest, total *Metrics) (int64, error) {
 			}
 		}
 	}
+
+	fmt.Printf("capacity = %+v\n", capacity)
+	fmt.Printf("single = %+v\n", single)
 
 	capcpu := int64(math.Floor((float64(capacity["CPU"]) - float64(total.Cpu)) / float64(single["CPU"])))
 	capmem := int64(math.Floor((float64(capacity["MEMORY"]) - float64(total.Memory)) / float64(single["MEMORY"])))
