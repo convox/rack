@@ -1440,6 +1440,7 @@
     },
     "InstancesAutoscaler": {
       "Type": "AWS::Lambda::Function",
+      "Condition": "Autoscale",
       "Properties": {
         "Code": {
           "S3Bucket": { "Fn::Sub": "convox-${AWS::Region}" },
@@ -1461,6 +1462,7 @@
     },
     "InstancesAutoscalerPermission": {
       "Type": "AWS::Lambda::Permission",
+      "Condition": "Autoscale",
       "Properties": {
         "Action": "lambda:InvokeFunction",
         "FunctionName": { "Fn::GetAtt": [ "InstancesAutoscaler", "Arn" ] },
@@ -1470,6 +1472,7 @@
     },
     "InstancesAutoscalerEvent": {
       "Type": "AWS::Events::Rule",
+      "Condition": "Autoscale",
       "Properties": {
         "ScheduleExpression": "cron(*/1 * * * ? *)",
         "Targets": [ { "Id": "InstancesAutoscaler", "Arn": { "Fn::GetAtt": [ "InstancesAutoscaler", "Arn" ] } } ]
@@ -1477,6 +1480,7 @@
     },
     "InstancesAutoscalerRole": {
       "Type": "AWS::IAM::Role",
+      "Condition": "Autoscale",
       "Properties": {
         "AssumeRolePolicyDocument": {
           "Version": "2012-10-17",
