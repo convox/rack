@@ -1491,6 +1491,7 @@
           }
         },
         "ManagedPolicyArns": [ "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole" ],
+        "Path": "/convox/",
         "Policies": [ {
           "PolicyName": "autoscale",
           "PolicyDocument": {
