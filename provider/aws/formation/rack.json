@@ -1438,6 +1438,70 @@
         }
       }
     },
+    "InstancesAutoscaler": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Code": {
+          "S3Bucket": { "Fn::Sub": "convox-${AWS::Region}" },
+          "S3Key": { "Fn::Sub": "release/${Version}/lambda/autoscale.zip" }
+        },
+        "Handler": "handler",
+        "MemorySize": "128",
+        "Role": { "Fn::GetAtt": [ "InstancesAutoscalerRole", "Arn" ] },
+        "Runtime": "go1.x",
+        "Timeout": "60"
+      }
+    },
+    "InstanceAutoscalerPermission": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties": {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": { "Fn::GetAtt": [ "InstanceAutoscaler", "Arn" ] },
+        "Principal": "events.amazonaws.com",
+        "SourceArn": { "Fn::GetAtt": [ "InstanceAutoscalerEvent", "Arn" ] }
+      }
+    },
+    "InstancesAutoscalerEvent": {
+      "Type": "AWS::Events::Rule",
+      "Properties": {
+        "ScheduleExpression": "cron(*/1 * * * ? *)",
+        "Targets": [ { "Id": "InstancesAutoscaler", "Arn": { "Fn::GetAtt": [ "InstancesAutoscaler", "Arn" ] } } ]
+      }
+    },
+    "InstancesAutoscalerRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "ManagedPolicyARNs": [ "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole" ],
+        "Policies": {
+          "PolicyName": "autoscale",
+          "PolicyDocument": {
+            "Version": "2012-10-17",
+            "Statement": [
+              {
+                "Effect": "Allow",
+                "Action": [ "autoscaling:SetDesiredCapacity" ],
+                "Resource": { "Fn::GetAtt": [ "Instances", "Arn" ] }
+              },
+              {
+                "Effect": "Allow",
+                "Action": [ "ecs:DescribeTaskDefinition" ],
+                "Resource": "*"
+              },
+              {
+                "Effect": "Allow",
+                "Action": [
+                  "ecs:DescribeContainerInstances",
+                  "ecs:DescribeServices",
+                  "ecs:ListContainerInstances",
+                  "ecs:ListServices"
+                ],
+                "Resource": { "Fn::GetAtt": [ "Cluster", "Arn" ] }
+              }
+            ]
+          }
+        }
+      }
+    },
     "InstancesLifecycleLaunching": {
       "Type": "AWS::AutoScaling::LifecycleHook",
       "Properties": {
@@ -2222,7 +2286,6 @@
             "Cpu": { "Ref": "BuildCpu" },
             "DockerLabels": { "convox.release": { "Ref": "Version" } },
             "Environment": [
-              { "Name": "AUTOSCALE", "Value": { "Fn::If": [ "Autoscale", "true", "false" ] } },
               { "Name": "AWS_REGION", "Value": { "Ref": "AWS::Region" } },
               { "Name": "BUILD_CLUSTER", "Value": { "Fn::If": [ "DedicatedBuilder", { "Ref": "BuildCluster" }, { "Ref": "Cluster" } ] } },
               { "Name": "CLIENT_ID", "Value": { "Ref": "ClientId" } },
@@ -2291,8 +2354,6 @@
             "Cpu": "64",
             "DockerLabels": { "convox.release": { "Ref": "Version" } },
             "Environment": [
-              { "Name": "AUTOSCALE", "Value": { "Fn::If": [ "Autoscale", "true", "false" ] } },
-              { "Name": "AUTOSCALE_EXTRA", "Value": { "Ref": "AutoscaleExtra" } },
               { "Name": "AWS_REGION", "Value": { "Ref": "AWS::Region" } },
               { "Name": "BUILD_CLUSTER", "Value": { "Fn::If": [ "DedicatedBuilder", { "Ref": "BuildCluster" }, { "Ref": "Cluster" } ] } },
               { "Name": "CLIENT_ID", "Value": { "Ref": "ClientId" } },
@@ -2359,7 +2420,6 @@
             "Cpu": "128",
             "DockerLabels": { "convox.release": { "Ref": "Version" } },
             "Environment": [
-              { "Name": "AUTOSCALE", "Value": { "Fn::If": [ "Autoscale", "true", "false" ] } },
               { "Name": "AWS_REGION", "Value": { "Ref": "AWS::Region" } },
               { "Name": "BUILD_CLUSTER", "Value": { "Fn::If": [ "DedicatedBuilder", { "Ref": "BuildCluster" }, { "Ref": "Cluster" } ] } },
               { "Name": "CLIENT_ID", "Value": { "Ref": "ClientId" } },
