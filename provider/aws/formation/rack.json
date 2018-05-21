@@ -1445,6 +1445,13 @@
           "S3Bucket": { "Fn::Sub": "convox-${AWS::Region}" },
           "S3Key": { "Fn::Sub": "release/${Version}/lambda/autoscale.zip" }
         },
+        "Environment": {
+          "Variables": {
+            "ASG": { "Ref": "Instances" },
+            "CLUSTER": { "Ref": "Cluster" },
+            "EXTRA": { "Ref": "AutoscaleExtra" }
+          }
+        },
         "Handler": "handler",
         "MemorySize": "128",
         "Role": { "Fn::GetAtt": [ "InstancesAutoscalerRole", "Arn" ] },
