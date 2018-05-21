@@ -1459,13 +1459,13 @@
         "Timeout": "60"
       }
     },
-    "InstanceAutoscalerPermission": {
+    "InstancesAutoscalerPermission": {
       "Type": "AWS::Lambda::Permission",
       "Properties": {
         "Action": "lambda:InvokeFunction",
-        "FunctionName": { "Fn::GetAtt": [ "InstanceAutoscaler", "Arn" ] },
+        "FunctionName": { "Fn::GetAtt": [ "InstancesAutoscaler", "Arn" ] },
         "Principal": "events.amazonaws.com",
-        "SourceArn": { "Fn::GetAtt": [ "InstanceAutoscalerEvent", "Arn" ] }
+        "SourceArn": { "Fn::GetAtt": [ "InstancesAutoscalerEvent", "Arn" ] }
       }
     },
     "InstancesAutoscalerEvent": {
@@ -1478,8 +1478,16 @@
     "InstancesAutoscalerRole": {
       "Type": "AWS::IAM::Role",
       "Properties": {
-        "ManagedPolicyARNs": [ "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole" ],
-        "Policies": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": {
+            "Effect": "Allow",
+            "Principal": { "Service": [ "lambda.amazonaws.com" ] },
+            "Action": [ "sts:AssumeRole" ]
+          }
+        },
+        "ManagedPolicyArns": [ "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole" ],
+        "Policies": [ {
           "PolicyName": "autoscale",
           "PolicyDocument": {
             "Version": "2012-10-17",
@@ -1487,26 +1495,22 @@
               {
                 "Effect": "Allow",
                 "Action": [ "autoscaling:SetDesiredCapacity" ],
-                "Resource": { "Fn::GetAtt": [ "Instances", "Arn" ] }
-              },
-              {
-                "Effect": "Allow",
-                "Action": [ "ecs:DescribeTaskDefinition" ],
-                "Resource": "*"
+                "Resource": { "Fn::Sub": "arn:aws:autoscaling:${AWS::Region}:${AWS::AccountId}:autoScalingGroup:*:autoScalingGroupName/${Instances}" }
               },
               {
                 "Effect": "Allow",
                 "Action": [
                   "ecs:DescribeContainerInstances",
                   "ecs:DescribeServices",
+                  "ecs:DescribeTaskDefinition",
                   "ecs:ListContainerInstances",
                   "ecs:ListServices"
                 ],
-                "Resource": { "Fn::GetAtt": [ "Cluster", "Arn" ] }
+                "Resource": "*"
               }
             ]
           }
-        }
+        } ]
       }
     },
     "InstancesLifecycleLaunching": {
