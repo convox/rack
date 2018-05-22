@@ -5,10 +5,6 @@ func createInterface(name, ip string) error {
 		return err
 	}
 
-	// if err := execute("ifconfig", name, ip, "netmask", "255.255.0.0", "up"); err != nil {
-	//   return err
-	// }
-
 	return nil
 }
 
