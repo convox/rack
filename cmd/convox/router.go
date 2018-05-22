@@ -16,11 +16,6 @@ func init() {
 		Action:      runRouter,
 		Flags: []cli.Flag{
 			cli.StringFlag{
-				Name:  "domain, d",
-				Usage: "domain name",
-				Value: "convox",
-			},
-			cli.StringFlag{
 				Name:  "interface, i",
 				Usage: "interface name",
 				Value: "vlan2",
