@@ -5,10 +5,6 @@ func createInterface(name, ip string) error {
 		return err
 	}
 
-	if err := execute("ip", "addr", "add", ip, "dev", name); err != nil {
-		return err
-	}
-
 	return nil
 }
 
