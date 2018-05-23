@@ -10,21 +10,21 @@ import (
 type Service struct {
 	Name string `yaml:"-"`
 
-	Agent       bool               `yaml:"agent,omitempty"`
-	Build       ServiceBuild       `yaml:"build,omitempty"`
-	Command     string             `yaml:"command,omitempty"`
-	Domains     ServiceDomains     `yaml:"domain,omitempty"`
-	Environment ServiceEnvironment `yaml:"environment,omitempty"`
-	Health      ServiceHealth      `yaml:"health,omitempty"`
-	Image       string             `yaml:"image,omitempty"`
-	Internal    bool               `yaml:"internal,omitempty"`
-	Links       []string           `yaml:"links,omitempty"`
-	Port        ServicePort        `yaml:"port,omitempty"`
-	Privileged  bool               `yaml:"privileged,omitempty"`
-	Resources   []string           `yaml:"resources,omitempty"`
-	Scale       ServiceScale       `yaml:"scale,omitempty"`
-	Test        string             `yaml:"test,omitempty"`
-	Volumes     []string           `yaml:"volumes,omitempty"`
+	Agent       bool           `yaml:"agent,omitempty"`
+	Build       ServiceBuild   `yaml:"build,omitempty"`
+	Command     string         `yaml:"command,omitempty"`
+	Domains     ServiceDomains `yaml:"domain,omitempty"`
+	Environment Environment    `yaml:"environment,omitempty"`
+	Health      ServiceHealth  `yaml:"health,omitempty"`
+	Image       string         `yaml:"image,omitempty"`
+	Internal    bool           `yaml:"internal,omitempty"`
+	Links       []string       `yaml:"links,omitempty"`
+	Port        ServicePort    `yaml:"port,omitempty"`
+	Privileged  bool           `yaml:"privileged,omitempty"`
+	Resources   []string       `yaml:"resources,omitempty"`
+	Scale       ServiceScale   `yaml:"scale,omitempty"`
+	Test        string         `yaml:"test,omitempty"`
+	Volumes     []string       `yaml:"volumes,omitempty"`
 }
 
 type Services []Service
@@ -43,7 +43,7 @@ type ServiceCommand struct {
 
 type ServiceDomains []string
 
-type ServiceEnvironment []string
+// type ServiceEnvironment []string
 
 type ServiceHealth struct {
 	Grace    int

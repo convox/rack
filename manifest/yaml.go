@@ -21,6 +21,34 @@ type NameSetter interface {
 	SetName(name string) error
 }
 
+func (v *Environment) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	var w interface{}
+
+	if err := unmarshal(&w); err != nil {
+		return err
+	}
+
+	switch t := w.(type) {
+	case []interface{}:
+		for _, s := range t {
+			switch st := s.(type) {
+			case []interface{}:
+				for _, stv := range st {
+					if sv, ok := stv.(string); ok {
+						*v = append(*v, sv)
+					}
+				}
+			case string:
+				*v = append(*v, st)
+			}
+		}
+	default:
+		return fmt.Errorf("unknown type for service environment: %T", t)
+	}
+
+	return nil
+}
+
 func (v Resources) MarshalYAML() (interface{}, error) {
 	return marshalMapSlice(v)
 }
@@ -132,34 +160,6 @@ func (v *ServiceDomains) UnmarshalYAML(unmarshal func(interface{}) error) error 
 		}
 	default:
 		return fmt.Errorf("unknown type for service domain: %T", t)
-	}
-
-	return nil
-}
-
-func (v *ServiceEnvironment) UnmarshalYAML(unmarshal func(interface{}) error) error {
-	var w interface{}
-
-	if err := unmarshal(&w); err != nil {
-		return err
-	}
-
-	switch t := w.(type) {
-	case []interface{}:
-		for _, s := range t {
-			switch st := s.(type) {
-			case []interface{}:
-				for _, stv := range st {
-					if sv, ok := stv.(string); ok {
-						*v = append(*v, sv)
-					}
-				}
-			case string:
-				*v = append(*v, st)
-			}
-		}
-	default:
-		return fmt.Errorf("unknown type for service environment: %T", t)
 	}
 
 	return nil

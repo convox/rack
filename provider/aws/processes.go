@@ -991,7 +991,7 @@ func (p *AWSProvider) generateTaskDefinition2(app string, opts structs.ProcessRu
 		return nil, err
 	}
 
-	m, err := manifest.Load([]byte(r.Manifest), manifest.Environment(env))
+	m, err := manifest.Load([]byte(r.Manifest), env)
 	if err != nil {
 		return nil, err
 	}
