@@ -60,10 +60,6 @@ func (p *Provider) containerStart(c container, app, release string) (string, err
 		args = append(args, "--label", fmt.Sprintf("%s=%s", k, v))
 	}
 
-	for k, v := range c.Env {
-		args = append(args, "-e", fmt.Sprintf("%s=%s", k, v))
-	}
-
 	if v := c.Cpu; v > 0 {
 		args = append(args, "--cpu-shares", fmt.Sprintf("%d", v))
 	}
@@ -72,8 +68,10 @@ func (p *Provider) containerStart(c container, app, release string) (string, err
 		args = append(args, "--memory-reservation", fmt.Sprintf("%dm", m))
 	}
 
-	for _, v := range c.Volumes {
-		args = append(args, "-v", v)
+	args = append(args, "--dns", p.router.Host)
+
+	for k, v := range c.Env {
+		args = append(args, "-e", fmt.Sprintf("%s=%s", k, v))
 	}
 
 	hostname, err := os.Hostname()
@@ -84,10 +82,15 @@ func (p *Provider) containerStart(c container, app, release string) (string, err
 	args = append(args, "-e", fmt.Sprintf("APP=%s", app))
 	args = append(args, "-e", fmt.Sprintf("RACK_URL=https://%s:3000", hostname))
 	args = append(args, "-e", fmt.Sprintf("RELEASE=%s", release))
+
 	args = append(args, "--link", hostname)
 
 	if c.Port != 0 {
 		args = append(args, "-p", strconv.Itoa(c.Port))
+	}
+
+	for _, v := range c.Volumes {
+		args = append(args, "-v", v)
 	}
 
 	args = append(args, c.Image)
