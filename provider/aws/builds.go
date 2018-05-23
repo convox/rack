@@ -106,7 +106,7 @@ func (p *AWSProvider) BuildExport(app, id string, w io.Writer) error {
 			return err
 		}
 
-		m, err := manifest.Load([]byte(build.Manifest), manifest.Environment(env))
+		m, err := manifest.Load([]byte(build.Manifest), env)
 		if err != nil {
 			log.Error(err)
 			return err

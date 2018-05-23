@@ -19,7 +19,7 @@ import (
 type BuildOptions struct {
 	Cache       string
 	Development bool
-	Env         Environment
+	Env         map[string]string
 	Push        string
 	Root        string
 	Stdout      io.Writer
