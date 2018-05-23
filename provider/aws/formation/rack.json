@@ -1440,6 +1440,7 @@
     },
     "InstancesAutoscaler": {
       "Type": "AWS::Lambda::Function",
+      "DependsOn": "ApiRole",
       "Condition": "Autoscale",
       "Properties": {
         "Code": {
