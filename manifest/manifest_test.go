@@ -5,19 +5,14 @@ import (
 
 	"github.com/convox/rack/helpers"
 	"github.com/convox/rack/manifest"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestManifestLoad(t *testing.T) {
-	m, err := testdataManifest("full", manifest.Environment{"FOO": "bar", "SECRET": "shh"})
-	if !assert.NoError(t, err) {
-		return
-	}
-
 	n := &manifest.Manifest{
 		Environment: manifest.Environment{
-			"DEVELOPMENT": "false",
-			"SECRET":      "shh",
+			"GLOBAL=true",
+			"OTHERGLOBAL",
 		},
 		Resources: manifest.Resources{
 			manifest.Resource{
@@ -165,20 +160,32 @@ func TestManifestLoad(t *testing.T) {
 		},
 	}
 
-	assert.Equal(t, n, m)
+	n.SetEnv(map[string]string{"DEVELOPMENT": "false", "GLOBAL": "true", "OTHERGLOBAL": "test", "SECRET": "shh"})
+
+	m, err := testdataManifest("full", map[string]string{"FOO": "bar", "SECRET": "shh", "OTHERGLOBAL": "test"})
+	require.NoError(t, err)
+	require.Equal(t, n, m)
+
+	env, err := m.ServiceEnvironment("inherit")
+	require.NoError(t, err)
+	require.Equal(t, map[string]string{"GLOBAL": "true", "OTHERGLOBAL": "test", "SECRET": "shh"}, env)
 }
 
 func TestManifestLoadInvalid(t *testing.T) {
-	m, err := testdataManifest("invalid.1", manifest.Environment{})
-	assert.Nil(t, m)
-	assert.Error(t, err, "yaml: line 2: did not find expected comment or line break")
+	m, err := testdataManifest("full", map[string]string{})
+	require.Nil(t, m)
+	require.Error(t, err, "required env: OTHERGLOBAL, SECRET")
 
-	m, err = testdataManifest("invalid.2", manifest.Environment{})
-	assert.NotNil(t, m)
-	assert.Len(t, m.Services, 0)
+	m, err = testdataManifest("invalid.1", map[string]string{})
+	require.Nil(t, m)
+	require.Error(t, err, "yaml: line 2: did not find expected comment or line break")
+
+	m, err = testdataManifest("invalid.2", map[string]string{})
+	require.NotNil(t, m)
+	require.Len(t, m.Services, 0)
 }
 
-func testdataManifest(name string, env manifest.Environment) (*manifest.Manifest, error) {
+func testdataManifest(name string, env map[string]string) (*manifest.Manifest, error) {
 	data, err := helpers.Testdata(name)
 	if err != nil {
 		return nil, err

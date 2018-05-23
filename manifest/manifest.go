@@ -14,9 +14,11 @@ type Manifest struct {
 	Resources   Resources   `yaml:"resources,omitempty"`
 	Services    Services    `yaml:"services,omitempty"`
 	Timers      Timers      `yaml:"timers,omitempty"`
+
+	env map[string]string
 }
 
-func Load(data []byte, env Environment) (*Manifest, error) {
+func Load(data []byte, env map[string]string) (*Manifest, error) {
 	var m Manifest
 
 	p, err := interpolate(data, env)
@@ -28,7 +30,7 @@ func Load(data []byte, env Environment) (*Manifest, error) {
 		return nil, err
 	}
 
-	m.Environment = env
+	m.env = env
 
 	if err := m.ApplyDefaults(); err != nil {
 		return nil, err
@@ -53,6 +55,15 @@ func (m *Manifest) Agents() []string {
 	return a
 }
 
+func (m *Manifest) Env() map[string]string {
+	return m.env
+}
+
+// used only for tests
+func (m *Manifest) SetEnv(env map[string]string) {
+	m.env = env
+}
+
 func (m *Manifest) Service(name string) (*Service, error) {
 	for _, s := range m.Services {
 		if s.Name == name {
@@ -63,34 +74,34 @@ func (m *Manifest) Service(name string) (*Service, error) {
 	return nil, fmt.Errorf("no such service: %s", name)
 }
 
-func (m *Manifest) ServiceEnvironment(service string) (Environment, error) {
+func (m *Manifest) ServiceEnvironment(service string) (map[string]string, error) {
 	s, err := m.Service(service)
 	if err != nil {
 		return nil, err
 	}
 
-	env := Environment{}
+	env := map[string]string{}
 
 	missing := []string{}
 
-	for _, e := range s.Environment {
+	for _, e := range append(m.Environment, s.Environment...) {
 		parts := strings.SplitN(e, "=", 2)
 
 		switch len(parts) {
 		case 1:
 			if parts[0] == "*" {
-				for k, v := range m.Environment {
+				for k, v := range m.env {
 					env[k] = v
 				}
 			} else {
-				v, ok := m.Environment[parts[0]]
+				v, ok := m.env[parts[0]]
 				if !ok {
 					missing = append(missing, parts[0])
 				}
 				env[parts[0]] = v
 			}
 		case 2:
-			v, ok := m.Environment[parts[0]]
+			v, ok := m.env[parts[0]]
 			if ok {
 				env[parts[0]] = v
 			} else {
@@ -111,7 +122,7 @@ func (m *Manifest) ServiceEnvironment(service string) (Environment, error) {
 }
 
 // ValidateEnv returns an error if required env vars for a service are not available
-// It also filters m.Environment to the union of all service env vars defined in the manifest
+// It also filters m.env to the union of all service env vars defined in the manifest
 func (m *Manifest) ValidateEnv() error {
 	whitelist := map[string]string{}
 
@@ -126,7 +137,7 @@ func (m *Manifest) ValidateEnv() error {
 		}
 	}
 
-	m.Environment = whitelist
+	m.env = whitelist
 
 	return nil
 }

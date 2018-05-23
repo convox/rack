@@ -244,7 +244,7 @@ func startGeneration2(opts startOptions) error {
 		return err
 	}
 
-	m, err := manifest.Load(data, manifest.Environment(env))
+	m, err := manifest.Load(data, env)
 	if err != nil {
 		return err
 	}
