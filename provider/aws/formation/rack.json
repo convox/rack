@@ -2259,6 +2259,7 @@
                 "Effect": "Allow",
                 "Action": [
                   "iam:DeleteServerCertificate",
+                  "iam:GetRole",
                   "iam:GetServerCertificate",
                   "iam:ListServerCertificates",
                   "iam:PassRole",
