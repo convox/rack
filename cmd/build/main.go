@@ -276,7 +276,7 @@ func build2(dir string) error {
 		return err
 	}
 
-	m, err := manifest.Load(data, manifest.Environment(env))
+	m, err := manifest.Load(data, env)
 	if err != nil {
 		return err
 	}
@@ -303,7 +303,7 @@ func build2(dir string) error {
 	prefix := fmt.Sprintf("%s/%s", flagRack, flagApp)
 
 	err = m.Build(prefix, flagID, manifest.BuildOptions{
-		Env:    manifest.Environment(env),
+		Env:    env,
 		Push:   flagPush,
 		Root:   dir,
 		Stdout: w,

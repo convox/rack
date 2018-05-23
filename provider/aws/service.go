@@ -39,7 +39,7 @@ func (p *AWSProvider) ServiceList(app string) (structs.Services, error) {
 		return nil, err
 	}
 
-	m, err := manifest.Load([]byte(r.Manifest), manifest.Environment(env))
+	m, err := manifest.Load([]byte(r.Manifest), env)
 	if err != nil {
 		return nil, err
 	}
