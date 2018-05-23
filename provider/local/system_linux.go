@@ -7,15 +7,15 @@ import (
 )
 
 func launcherPath(name string) string {
-	return filepath.Join("/lib/systemd/system", fmt.Sprintf("%s.service", name))
+	return filepath.Join("/lib/systemd/system", fmt.Sprintf("convox.%s.service", name))
 }
 
 func launcherStart(name string) error {
-	return exec.Command("systemctl", "start", name).Run()
+	return exec.Command("systemctl", "start", fmt.Sprintf("convox.%s", name)).Run()
 }
 
 func launcherStop(name string) error {
-	return exec.Command("systemctl", "stop", name).Run()
+	return exec.Command("systemctl", "stop", fmt.Sprintf("convox.%s", name)).Run()
 }
 
 func launcherTemplate() string {
