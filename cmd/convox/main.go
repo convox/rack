@@ -307,14 +307,18 @@ func localRacks() (Racks, error) {
 
 	names := strings.Split(strings.TrimSpace(string(data)), "\n")
 
-	racks := make(Racks, len(names))
+	racks := Racks{}
 
 	for i, name := range names {
-		racks[i] = Rack{
+		if name == "" {
+			continue
+		}
+
+		racks = append(racks, Rack{
 			Host:   fmt.Sprintf("rack.%s", name),
 			Name:   fmt.Sprintf("local/%s", name),
 			Status: "running",
-		}
+		})
 	}
 
 	return racks, nil
