@@ -1438,6 +1438,48 @@
         }
       }
     },
+    "InstancesAutoscaler": {
+      "Type": "AWS::Lambda::Function",
+      "DependsOn": "ApiRole",
+      "Condition": "Autoscale",
+      "Properties": {
+        "Code": {
+          "S3Bucket": { "Fn::Sub": "convox-${AWS::Region}" },
+          "S3Key": { "Fn::Sub": "release/${Version}/lambda/autoscale.zip" }
+        },
+        "Environment": {
+          "Variables": {
+            "ASG": { "Ref": "Instances" },
+            "CLUSTER": { "Ref": "Cluster" },
+            "EXTRA": { "Ref": "AutoscaleExtra" },
+            "STACK": { "Ref": "AWS::StackName" }
+          }
+        },
+        "Handler": "handler",
+        "MemorySize": "128",
+        "Role": { "Fn::GetAtt": [ "ApiRole", "Arn" ] },
+        "Runtime": "go1.x",
+        "Timeout": "60"
+      }
+    },
+    "InstancesAutoscalerPermission": {
+      "Type": "AWS::Lambda::Permission",
+      "Condition": "Autoscale",
+      "Properties": {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": { "Fn::GetAtt": [ "InstancesAutoscaler", "Arn" ] },
+        "Principal": "events.amazonaws.com",
+        "SourceArn": { "Fn::GetAtt": [ "InstancesAutoscalerEvent", "Arn" ] }
+      }
+    },
+    "InstancesAutoscalerEvent": {
+      "Type": "AWS::Events::Rule",
+      "Condition": "Autoscale",
+      "Properties": {
+        "ScheduleExpression": "cron(*/1 * * * ? *)",
+        "Targets": [ { "Id": "InstancesAutoscaler", "Arn": { "Fn::GetAtt": [ "InstancesAutoscaler", "Arn" ] } } ]
+      }
+    },
     "InstancesLifecycleLaunching": {
       "Type": "AWS::AutoScaling::LifecycleHook",
       "Properties": {
@@ -2155,7 +2197,10 @@
       "Type": "AWS::IAM::Role",
       "Properties": {
         "AssumeRolePolicyDocument": {
-          "Statement": [ { "Effect": "Allow", "Principal": { "Service": [ "ecs-tasks.amazonaws.com" ] }, "Action": [ "sts:AssumeRole" ] } ],
+          "Statement": [
+            { "Effect": "Allow", "Principal": { "Service": [ "ecs-tasks.amazonaws.com" ] }, "Action": [ "sts:AssumeRole" ] },
+            { "Effect": "Allow", "Principal": { "Service": [ "lambda.amazonaws.com" ] }, "Action": [ "sts:AssumeRole" ] }
+          ],
           "Version": "2012-10-17"
         },
         "ManagedPolicyArns": [ "arn:aws:iam::aws:policy/PowerUserAccess" ],
@@ -2179,6 +2224,7 @@
                 "Effect": "Allow",
                 "Action": [
                   "iam:DeleteServerCertificate",
+                  "iam:GetRole",
                   "iam:GetServerCertificate",
                   "iam:ListServerCertificates",
                   "iam:PassRole",
@@ -2222,7 +2268,6 @@
             "Cpu": { "Ref": "BuildCpu" },
             "DockerLabels": { "convox.release": { "Ref": "Version" } },
             "Environment": [
-              { "Name": "AUTOSCALE", "Value": { "Fn::If": [ "Autoscale", "true", "false" ] } },
               { "Name": "AWS_REGION", "Value": { "Ref": "AWS::Region" } },
               { "Name": "BUILD_CLUSTER", "Value": { "Fn::If": [ "DedicatedBuilder", { "Ref": "BuildCluster" }, { "Ref": "Cluster" } ] } },
               { "Name": "CLIENT_ID", "Value": { "Ref": "ClientId" } },
@@ -2291,8 +2336,6 @@
             "Cpu": "64",
             "DockerLabels": { "convox.release": { "Ref": "Version" } },
             "Environment": [
-              { "Name": "AUTOSCALE", "Value": { "Fn::If": [ "Autoscale", "true", "false" ] } },
-              { "Name": "AUTOSCALE_EXTRA", "Value": { "Ref": "AutoscaleExtra" } },
               { "Name": "AWS_REGION", "Value": { "Ref": "AWS::Region" } },
               { "Name": "BUILD_CLUSTER", "Value": { "Fn::If": [ "DedicatedBuilder", { "Ref": "BuildCluster" }, { "Ref": "Cluster" } ] } },
               { "Name": "CLIENT_ID", "Value": { "Ref": "ClientId" } },
@@ -2359,7 +2402,6 @@
             "Cpu": "128",
             "DockerLabels": { "convox.release": { "Ref": "Version" } },
             "Environment": [
-              { "Name": "AUTOSCALE", "Value": { "Fn::If": [ "Autoscale", "true", "false" ] } },
               { "Name": "AWS_REGION", "Value": { "Ref": "AWS::Region" } },
               { "Name": "BUILD_CLUSTER", "Value": { "Fn::If": [ "DedicatedBuilder", { "Ref": "BuildCluster" }, { "Ref": "Cluster" } ] } },
               { "Name": "CLIENT_ID", "Value": { "Ref": "ClientId" } },
