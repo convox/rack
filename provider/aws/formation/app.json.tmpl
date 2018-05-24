@@ -398,7 +398,7 @@
           "TargetTrackingScalingPolicyConfiguration": {
             "PredefinedMetricSpecification": {
               "PredefinedMetricType": "ALBRequestCountPerTarget",
-              "ResourceLabel": { "Fn::Sub": [ "${Balancer}/${Balancer{{ upper .Name }}TargetGroup{{ if .Internal }}Internal{{ end }}.TargetGroupFullName}", { "Balancer": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:RouterName" } } } ] }
+              "ResourceLabel": { "Fn::Sub": [ "${Balancer}/${Balancer{{ upper .Name }}TargetGroup{{ if .Internal }}Internal{{ end }}.TargetGroupFullName}", { "Balancer": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Router{{ if .Internal }}Internal{{ end }}Name" } } } ] }
             },
             "ScaleInCooldown": "60",
             "ScaleOutCooldown": "60",
