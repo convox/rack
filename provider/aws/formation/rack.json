@@ -1450,6 +1450,7 @@
         "Environment": {
           "Variables": {
             "ASG": { "Ref": "Instances" },
+            "ASG_SPOT": { "Fn::If": [ "SpotInstances", { "Ref": "SpotInstances" }, "" ] },
             "CLUSTER": { "Ref": "Cluster" },
             "EXTRA": { "Ref": "AutoscaleExtra" }
           }
@@ -1506,6 +1507,7 @@
               {
                 "Effect": "Allow",
                 "Action": [
+                  "autoscaling:DescribeAutoScalingGroups",
                   "ecs:DescribeContainerInstances",
                   "ecs:DescribeServices",
                   "ecs:DescribeTaskDefinition",

@@ -49,6 +49,26 @@ func Handler(ctx context.Context) error {
 func autoscale(desired int64) error {
 	fmt.Printf("desired = %+v\n", desired)
 
+	if spot := os.Getenv("ASG_SPOT"); spot != "" {
+		fmt.Printf("spot = %+v\n", spot)
+
+		res, err := AutoScaling.DescribeAutoScalingGroups(&autoscaling.DescribeAutoScalingGroupsInput{
+			AutoScalingGroupNames: []*string{aws.String(spot)},
+		})
+		if err != nil {
+			return err
+		}
+
+		if len(res.AutoScalingGroups) < 1 {
+			return fmt.Errorf("could not find spot autoscalinggroup")
+		}
+
+		// reduce desired standard capacity by the number of spot instances
+		desired = desired - int64(len(res.AutoScalingGroups[0].Instances))
+
+		fmt.Printf("desired = %+v\n", desired)
+	}
+
 	_, err := AutoScaling.SetDesiredCapacity(&autoscaling.SetDesiredCapacityInput{
 		AutoScalingGroupName: aws.String(os.Getenv("ASG")),
 		DesiredCapacity:      aws.Int64(desired),
