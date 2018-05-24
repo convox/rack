@@ -11,12 +11,14 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
+	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/ecs"
 )
 
 var (
-	AutoScaling = autoscaling.New(session.New(), nil)
-	ECS         = ecs.New(session.New(), nil)
+	AutoScaling    = autoscaling.New(session.New(), nil)
+	CloudFormation = cloudformation.New(session.New(), nil)
+	ECS            = ecs.New(session.New(), nil)
 )
 
 type Metrics struct {
@@ -47,33 +49,55 @@ func Handler(ctx context.Context) error {
 }
 
 func autoscale(desired int64) error {
+	stack := os.Getenv("STACK")
+
 	fmt.Printf("desired = %+v\n", desired)
+	fmt.Printf("stack = %+v\n", stack)
 
-	if spot := os.Getenv("ASG_SPOT"); spot != "" {
-		fmt.Printf("spot = %+v\n", spot)
+	ds := fmt.Sprintf("%d", desired)
 
-		res, err := AutoScaling.DescribeAutoScalingGroups(&autoscaling.DescribeAutoScalingGroupsInput{
-			AutoScalingGroupNames: []*string{aws.String(spot)},
-		})
-		if err != nil {
-			return err
-		}
-
-		if len(res.AutoScalingGroups) < 1 {
-			return fmt.Errorf("could not find spot autoscalinggroup")
-		}
-
-		// reduce desired standard capacity by the number of spot instances
-		desired = desired - int64(len(res.AutoScalingGroups[0].Instances))
-
-		fmt.Printf("desired = %+v\n", desired)
-	}
-
-	_, err := AutoScaling.SetDesiredCapacity(&autoscaling.SetDesiredCapacityInput{
-		AutoScalingGroupName: aws.String(os.Getenv("ASG")),
-		DesiredCapacity:      aws.Int64(desired),
+	res, err := CloudFormation.DescribeStacks(&cloudformation.DescribeStacksInput{
+		StackName: aws.String(stack),
 	})
 	if err != nil {
+		return err
+	}
+
+	if len(res.Stacks) < 1 {
+		return fmt.Errorf("could not find stack: %s", stack)
+	}
+
+	req := &cloudformation.UpdateStackInput{
+		Capabilities:        []*string{aws.String("CAPABILITY_IAM")},
+		Parameters:          []*cloudformation.Parameter{},
+		StackName:           aws.String(stack),
+		UsePreviousTemplate: aws.Bool(true),
+	}
+
+	for _, p := range res.Stacks[0].Parameters {
+		switch *p.ParameterKey {
+		case "InstanceCount":
+			fmt.Printf("ds = %+v\n", ds)
+			fmt.Printf("*p.ParameterValue = %+v\n", *p.ParameterValue)
+
+			if ds == *p.ParameterValue {
+				fmt.Println("no change")
+				return nil
+			}
+
+			req.Parameters = append(req.Parameters, &cloudformation.Parameter{
+				ParameterKey:   p.ParameterKey,
+				ParameterValue: aws.String(ds),
+			})
+		default:
+			req.Parameters = append(req.Parameters, &cloudformation.Parameter{
+				ParameterKey:     p.ParameterKey,
+				UsePreviousValue: aws.Bool(true),
+			})
+		}
+	}
+
+	if _, err := CloudFormation.UpdateStack(req); err != nil {
 		return err
 	}
 
