@@ -222,10 +222,6 @@
       "Export": { "Name": { "Fn::Sub": "${AWS::StackName}:RouterCertificate" } },
       "Value": { "Ref": "RouterApiCertificate" }
     },
-    "RouterName": {
-      "Export": { "Name": { "Fn::Sub": "${AWS::StackName}:RouterName" } },
-      "Value": { "Fn::GetAtt": [ "Router", "LoadBalancerFullName" ] }
-    },
     "RouterHost": {
       "Export": { "Name": { "Fn::Sub": "${AWS::StackName}:RouterHost" } },
       "Value": { "Fn::Join": [ ".", [
@@ -241,6 +237,10 @@
     "RouterListener443": {
       "Export": { "Name": { "Fn::Sub": "${AWS::StackName}:RouterListener443" } },
       "Value": { "Ref": "RouterListener443" }
+    },
+    "RouterName": {
+      "Export": { "Name": { "Fn::Sub": "${AWS::StackName}:RouterName" } },
+      "Value": { "Fn::GetAtt": [ "Router", "LoadBalancerFullName" ] }
     },
     "RouterInternalHost": {
       "Condition": "Internal",
@@ -260,6 +260,11 @@
       "Condition": "Internal",
       "Export": { "Name": { "Fn::Sub": "${AWS::StackName}:RouterInternalListener443" } },
       "Value": { "Ref": "RouterInternalListener443" }
+    },
+    "RouterInternalName": {
+      "Condition": "Internal",
+      "Export": { "Name": { "Fn::Sub": "${AWS::StackName}:RouterInternalName" } },
+      "Value": { "Fn::GetAtt": [ "RouterInternal", "LoadBalancerFullName" ] }
     },
     "RouteTablePublic": {
       "Condition": "NotExistingVpcAndBlankInternetGateway",
