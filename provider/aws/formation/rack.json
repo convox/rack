@@ -2475,6 +2475,10 @@
       "DeletionPolicy": "Retain",
       "Properties": {
         "AccessControl": "LogDeliveryWrite",
+        "LifecycleConfiguration": { "Fn::If": [ "BlankLogRetention",
+          { "Ref": "AWS::NoValue" },
+          { "Rules": [ { "ExpirationInDays": { "Ref": "LogRetention" }, "Status": "Enabled" } ] }
+        ] },
         "Tags": [
           { "Key": "System", "Value": "convox" },
           { "Key": "Rack", "Value": { "Ref": "AWS::StackName" } }
