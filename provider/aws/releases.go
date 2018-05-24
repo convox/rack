@@ -181,7 +181,7 @@ func (p *AWSProvider) ReleasePromote(app, id string) error {
 		return err
 	}
 
-	m, err := manifest.Load([]byte(r.Manifest), manifest.Environment(env))
+	m, err := manifest.Load([]byte(r.Manifest), env)
 	if err != nil {
 		return err
 	}

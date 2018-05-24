@@ -65,7 +65,7 @@ func ReleaseManifest(p structs.Provider, app, release string) (*manifest.Manifes
 		return nil, nil, err
 	}
 
-	m, err := manifest.Load([]byte(r.Manifest), manifest.Environment(env))
+	m, err := manifest.Load([]byte(r.Manifest), env)
 	if err != nil {
 		return nil, nil, err
 	}
