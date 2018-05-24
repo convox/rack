@@ -1450,14 +1450,14 @@
         "Environment": {
           "Variables": {
             "ASG": { "Ref": "Instances" },
-            "ASG_SPOT": { "Fn::If": [ "SpotInstances", { "Ref": "SpotInstances" }, "" ] },
             "CLUSTER": { "Ref": "Cluster" },
-            "EXTRA": { "Ref": "AutoscaleExtra" }
+            "EXTRA": { "Ref": "AutoscaleExtra" },
+            "STACK": { "Ref": "AWS::StackName" }
           }
         },
         "Handler": "handler",
         "MemorySize": "128",
-        "Role": { "Fn::GetAtt": [ "InstancesAutoscalerRole", "Arn" ] },
+        "Role": { "Fn::GetAtt": [ "ApiRole", "Arn" ] },
         "Runtime": "go1.x",
         "Timeout": "60"
       }
@@ -1478,47 +1478,6 @@
       "Properties": {
         "ScheduleExpression": "cron(*/1 * * * ? *)",
         "Targets": [ { "Id": "InstancesAutoscaler", "Arn": { "Fn::GetAtt": [ "InstancesAutoscaler", "Arn" ] } } ]
-      }
-    },
-    "InstancesAutoscalerRole": {
-      "Type": "AWS::IAM::Role",
-      "Condition": "Autoscale",
-      "Properties": {
-        "AssumeRolePolicyDocument": {
-          "Version": "2012-10-17",
-          "Statement": {
-            "Effect": "Allow",
-            "Principal": { "Service": [ "lambda.amazonaws.com" ] },
-            "Action": [ "sts:AssumeRole" ]
-          }
-        },
-        "ManagedPolicyArns": [ "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole" ],
-        "Path": "/convox/",
-        "Policies": [ {
-          "PolicyName": "autoscale",
-          "PolicyDocument": {
-            "Version": "2012-10-17",
-            "Statement": [
-              {
-                "Effect": "Allow",
-                "Action": [ "autoscaling:SetDesiredCapacity" ],
-                "Resource": { "Fn::Sub": "arn:aws:autoscaling:${AWS::Region}:${AWS::AccountId}:autoScalingGroup:*:autoScalingGroupName/${Instances}" }
-              },
-              {
-                "Effect": "Allow",
-                "Action": [
-                  "autoscaling:DescribeAutoScalingGroups",
-                  "ecs:DescribeContainerInstances",
-                  "ecs:DescribeServices",
-                  "ecs:DescribeTaskDefinition",
-                  "ecs:ListContainerInstances",
-                  "ecs:ListServices"
-                ],
-                "Resource": "*"
-              }
-            ]
-          }
-        } ]
       }
     },
     "InstancesLifecycleLaunching": {
@@ -2238,7 +2197,10 @@
       "Type": "AWS::IAM::Role",
       "Properties": {
         "AssumeRolePolicyDocument": {
-          "Statement": [ { "Effect": "Allow", "Principal": { "Service": [ "ecs-tasks.amazonaws.com" ] }, "Action": [ "sts:AssumeRole" ] } ],
+          "Statement": [
+            { "Effect": "Allow", "Principal": { "Service": [ "ecs-tasks.amazonaws.com" ] }, "Action": [ "sts:AssumeRole" ] },
+            { "Effect": "Allow", "Principal": { "Service": [ "lambda.amazonaws.com" ] }, "Action": [ "sts:AssumeRole" ] }
+          ],
           "Version": "2012-10-17"
         },
         "ManagedPolicyArns": [ "arn:aws:iam::aws:policy/PowerUserAccess" ],
