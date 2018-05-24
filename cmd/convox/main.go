@@ -309,7 +309,7 @@ func localRacks() (Racks, error) {
 
 	racks := Racks{}
 
-	for i, name := range names {
+	for _, name := range names {
 		if name == "" {
 			continue
 		}
