@@ -3,6 +3,7 @@
 all: templates
 
 release:
+	make -C lambda/autoscale release VERSION=$(VERSION)
 	make -C lambda/formation release VERSION=$(VERSION)
 	make -C lambda/lifecycle release VERSION=$(VERSION)
 	make -C lambda/syslog release VERSION=$(VERSION)
