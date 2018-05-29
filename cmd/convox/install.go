@@ -87,7 +87,7 @@ func init() {
 			},
 			cli.StringFlag{
 				Name:   "build-instance",
-				Value:  "",
+				Value:  "t2.small",
 				Usage:  "instance type for a dedicated build cluster",
 				EnvVar: "RACK_BUILD_INSTANCE",
 			},
