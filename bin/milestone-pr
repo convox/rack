@@ -49,6 +49,7 @@ pr_create() {
   local data="{\"title\":\"[RELEASE] $milestone\",\"head\":\"$milestone\",\"base\":\"master\",\"body\":\"$body\"}"
 
   echo "creating pr for milestone: $milestone"
+  posthub /repos/convox/rack/pulls "$data" ""
   local num=$(posthub /repos/convox/rack/pulls "$data" ".number")
   echo "https://github.com/convox/rack/pulls/$num"
 }
