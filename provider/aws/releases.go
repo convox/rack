@@ -285,6 +285,7 @@ func (p *AWSProvider) releasePromoteGeneration1(a *structs.App, r *structs.Relea
 		"App":         a,
 		"Environment": fmt.Sprintf("https://%s.s3.amazonaws.com/releases/%s/env", settings, r.Id),
 		"Manifest":    m,
+		"Version":     p.Release,
 	}
 
 	if r.Build != "" {
@@ -321,7 +322,6 @@ func (p *AWSProvider) releasePromoteGeneration1(a *structs.App, r *structs.Relea
 	params["Release"] = r.Id
 	params["Subnets"] = p.Subnets
 	params["SubnetsPrivate"] = coalesces(p.SubnetsPrivate, p.Subnets)
-	params["Version"] = p.Release
 	params["VPC"] = p.Vpc
 	params["VPCCIDR"] = p.VpcCidr
 
