@@ -86,6 +86,7 @@ func TestManifestLoad(t *testing.T) {
 					Cpu:    256,
 					Memory: 512,
 				},
+				Sticky: true,
 			},
 			manifest.Service{
 				Name: "bar",
