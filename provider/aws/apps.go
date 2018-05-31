@@ -69,7 +69,7 @@ func (p *AWSProvider) AppCreate(name string, opts structs.AppCreateOptions) (*st
 }
 
 func (p *AWSProvider) appCreateGeneration1(name string) (*structs.App, error) {
-	data, err := formationTemplate("g1/app", nil)
+	data, err := formationTemplate("g1/app", map[string]interface{}{"Version": p.Release})
 	if err != nil {
 		return nil, err
 	}
@@ -80,7 +80,6 @@ func (p *AWSProvider) appCreateGeneration1(name string) (*structs.App, error) {
 		"Rack":           p.Rack,
 		"Subnets":        os.Getenv("SUBNETS"),
 		"SubnetsPrivate": coalesces(os.Getenv("SUBNETS_PRIVATE"), os.Getenv("SUBNETS")),
-		"Version":        os.Getenv("RELEASE"),
 	}
 
 	tags := map[string]string{
