@@ -127,6 +127,8 @@ func clusterMetrics() (*Metrics, *Metrics, error) {
 		}
 
 		for _, s := range res.Services {
+			fmt.Printf("*s.ServiceName = %+v\n", *s.ServiceName)
+
 			for _, d := range s.Deployments {
 				res, err := ECS.DescribeTaskDefinition(&ecs.DescribeTaskDefinitionInput{
 					TaskDefinition: d.TaskDefinition,
@@ -144,7 +146,22 @@ func clusterMetrics() (*Metrics, *Metrics, error) {
 					mem += max(ci(cd.Memory), ci(cd.MemoryReservation))
 
 					if g := cd.DockerLabels["convox.generation"]; g == nil || *g != "2" {
-						width = *s.DesiredCount
+						agent := false
+
+						for _, pc := range s.PlacementConstraints {
+							if pc.Type != nil && *pc.Type == "distinctInstance" {
+								agent = true
+								break
+							}
+						}
+
+						fmt.Printf("agent = %+v\n", agent)
+						fmt.Printf("len(cd.PortMappings) = %+v\n", len(cd.PortMappings))
+						fmt.Printf("*s.DesiredCount = %+v\n", *s.DesiredCount)
+
+						if len(cd.PortMappings) > 0 && !agent {
+							width = *s.DesiredCount
+						}
 					}
 				}
 
@@ -159,6 +176,11 @@ func clusterMetrics() (*Metrics, *Metrics, error) {
 				if width > largest.Width {
 					largest.Width = width
 				}
+
+				fmt.Printf("cpu = %+v\n", cpu)
+				fmt.Printf("mem = %+v\n", mem)
+				fmt.Printf("width = %+v\n", width)
+				fmt.Printf("largest = %+v\n", largest)
 
 				total.Cpu += (cpu * *s.DesiredCount)
 				total.Memory += (mem * *s.DesiredCount)
