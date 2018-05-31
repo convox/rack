@@ -23,6 +23,7 @@ type Service struct {
 	Privileged  bool           `yaml:"privileged,omitempty"`
 	Resources   []string       `yaml:"resources,omitempty"`
 	Scale       ServiceScale   `yaml:"scale,omitempty"`
+	Sticky      bool           `yaml:"sticky,omitempty"`
 	Test        string         `yaml:"test,omitempty"`
 	Volumes     []string       `yaml:"volumes,omitempty"`
 }
