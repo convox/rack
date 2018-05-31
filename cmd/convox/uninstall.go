@@ -141,14 +141,6 @@ func cmdUninstall(c *cli.Context) error {
 	fmt.Println()
 	fmt.Println("Uninstalling Convox...")
 
-	// CF Stack Delete and Retry could take 30+ minutes. Periodically generate more progress output.
-	go func() {
-		t := time.Tick(2 * time.Minute)
-		for range t {
-			fmt.Println("Uninstalling Convox...")
-		}
-	}()
-
 	// collect buckets before deleting the stacks
 	buckets := []string{}
 	for _, s := range stacks.all() {
