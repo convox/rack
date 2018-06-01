@@ -11,6 +11,7 @@ import (
 func TestManifestLoad(t *testing.T) {
 	n := &manifest.Manifest{
 		Environment: manifest.Environment{
+			"DEVELOPMENT=true",
 			"GLOBAL=true",
 			"OTHERGLOBAL",
 		},
@@ -30,6 +31,7 @@ func TestManifestLoad(t *testing.T) {
 				Domains: []string{"foo.example.org"},
 				Command: "",
 				Environment: []string{
+					"DEFAULT=test",
 					"DEVELOPMENT=false",
 					"SECRET",
 				},
@@ -160,15 +162,31 @@ func TestManifestLoad(t *testing.T) {
 		},
 	}
 
-	n.SetEnv(map[string]string{"DEVELOPMENT": "false", "GLOBAL": "true", "OTHERGLOBAL": "test", "SECRET": "shh"})
+	env := map[string]string{"FOO": "bar", "SECRET": "shh", "OTHERGLOBAL": "test"}
 
-	m, err := testdataManifest("full", map[string]string{"FOO": "bar", "SECRET": "shh", "OTHERGLOBAL": "test"})
+	n.SetEnv(env)
+
+	// env processing that normally happens as part of load
+	require.NoError(t, n.CombineEnv())
+	require.NoError(t, n.ValidateEnv())
+
+	m, err := testdataManifest("full", env)
 	require.NoError(t, err)
 	require.Equal(t, n, m)
 
-	env, err := m.ServiceEnvironment("inherit")
+	senv, err := m.ServiceEnvironment("api")
 	require.NoError(t, err)
-	require.Equal(t, map[string]string{"GLOBAL": "true", "OTHERGLOBAL": "test", "SECRET": "shh"}, env)
+	require.Equal(t, map[string]string{"DEFAULT": "test", "DEVELOPMENT": "false", "GLOBAL": "true", "OTHERGLOBAL": "test", "SECRET": "shh"}, senv)
+
+	s1, err := m.Service("api")
+	require.NoError(t, err)
+	require.Equal(t, map[string]string{"DEFAULT": "test", "DEVELOPMENT": "false", "GLOBAL": "true"}, s1.EnvironmentDefaults())
+	require.Equal(t, "DEFAULT,DEVELOPMENT,GLOBAL,OTHERGLOBAL,SECRET", s1.EnvironmentKeys())
+
+	s2, err := m.Service("proxy")
+	require.NoError(t, err)
+	require.Equal(t, map[string]string{"DEVELOPMENT": "true", "GLOBAL": "true"}, s2.EnvironmentDefaults())
+	require.Equal(t, "DEVELOPMENT,GLOBAL,OTHERGLOBAL,SECRET", s2.EnvironmentKeys())
 }
 
 func TestManifestLoadInvalid(t *testing.T) {

@@ -1,4 +1,5 @@
 environment:
+  - DEVELOPMENT=true
   - GLOBAL=true
   - OTHERGLOBAL
 resources:
@@ -11,6 +12,7 @@ services:
       path: api
     domain: foo.example.org
     environment:
+      - DEFAULT=test
       - DEVELOPMENT=false
       - SECRET
     health:

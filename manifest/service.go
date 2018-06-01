@@ -112,10 +112,16 @@ func (s Service) EnvironmentDefaults() map[string]string {
 }
 
 func (s Service) EnvironmentKeys() string {
-	keys := make([]string, len(s.Environment))
+	kh := map[string]bool{}
 
-	for i, e := range s.Environment {
-		keys[i] = strings.Split(e, "=")[0]
+	for _, e := range s.Environment {
+		kh[strings.Split(e, "=")[0]] = true
+	}
+
+	keys := []string{}
+
+	for k := range kh {
+		keys = append(keys, k)
 	}
 
 	sort.Strings(keys)
