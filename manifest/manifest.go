@@ -36,6 +36,10 @@ func Load(data []byte, env map[string]string) (*Manifest, error) {
 		return nil, err
 	}
 
+	if err := m.CombineEnv(); err != nil {
+		return nil, err
+	}
+
 	if err := m.ValidateEnv(); err != nil {
 		return nil, err
 	}
@@ -64,6 +68,14 @@ func (m *Manifest) SetEnv(env map[string]string) {
 	m.env = env
 }
 
+func (m *Manifest) CombineEnv() error {
+	for i, s := range m.Services {
+		m.Services[i].Environment = append(m.Environment, s.Environment...)
+	}
+
+	return nil
+}
+
 func (m *Manifest) Service(name string) (*Service, error) {
 	for _, s := range m.Services {
 		if s.Name == name {
@@ -84,7 +96,7 @@ func (m *Manifest) ServiceEnvironment(service string) (map[string]string, error)
 
 	missing := []string{}
 
-	for _, e := range append(m.Environment, s.Environment...) {
+	for _, e := range s.Environment {
 		parts := strings.SplitN(e, "=", 2)
 
 		switch len(parts) {
@@ -124,7 +136,7 @@ func (m *Manifest) ServiceEnvironment(service string) (map[string]string, error)
 // ValidateEnv returns an error if required env vars for a service are not available
 // It also filters m.env to the union of all service env vars defined in the manifest
 func (m *Manifest) ValidateEnv() error {
-	whitelist := map[string]string{}
+	keys := map[string]bool{}
 
 	for _, s := range m.Services {
 		env, err := m.ServiceEnvironment(s.Name)
@@ -132,12 +144,16 @@ func (m *Manifest) ValidateEnv() error {
 			return err
 		}
 
-		for k, v := range env {
-			whitelist[k] = v
+		for k := range env {
+			keys[k] = true
 		}
 	}
 
-	m.env = whitelist
+	for k := range m.env {
+		if !keys[k] {
+			delete(m.env, k)
+		}
+	}
 
 	return nil
 }
