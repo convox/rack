@@ -189,6 +189,55 @@ func TestManifestLoad(t *testing.T) {
 	require.Equal(t, "DEVELOPMENT,GLOBAL,OTHERGLOBAL,SECRET", s2.EnvironmentKeys())
 }
 
+func TestManifestLoadSimple(t *testing.T) {
+	_, err := testdataManifest("simple", map[string]string{})
+	require.EqualError(t, err, "required env: REQUIRED")
+
+	n := &manifest.Manifest{
+		Services: manifest.Services{
+			manifest.Service{
+				Build: manifest.ServiceBuild{
+					Manifest: "Dockerfile",
+					Path:     ".",
+				},
+				Environment: manifest.Environment{
+					"REQUIRED",
+					"DEFAULT=true",
+				},
+				Health: manifest.ServiceHealth{
+					Interval: 5,
+					Path:     "/",
+					Timeout:  4,
+				},
+				Scale: manifest.ServiceScale{
+					Count:  &manifest.ServiceScaleCount{Min: 1, Max: 1},
+					Cpu:    256,
+					Memory: 512,
+				},
+				Name: "web",
+			},
+		},
+	}
+
+	n.SetEnv(map[string]string{"REQUIRED": "test"})
+
+	// env processing that normally happens as part of load
+	require.NoError(t, n.CombineEnv())
+	require.NoError(t, n.ValidateEnv())
+
+	m, err := testdataManifest("simple", map[string]string{"REQUIRED": "test"})
+	require.NoError(t, err)
+	require.Equal(t, n, m)
+}
+
+func TestManifestLoadClobberEnv(t *testing.T) {
+	env := map[string]string{"FOO": "bar", "REQUIRED": "false"}
+
+	_, err := testdataManifest("simple", env)
+	require.NoError(t, err)
+	require.Equal(t, map[string]string{"FOO": "bar", "REQUIRED": "false"}, env)
+}
+
 func TestManifestLoadInvalid(t *testing.T) {
 	m, err := testdataManifest("full", map[string]string{})
 	require.Nil(t, m)

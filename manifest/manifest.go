@@ -30,7 +30,11 @@ func Load(data []byte, env map[string]string) (*Manifest, error) {
 		return nil, err
 	}
 
-	m.env = env
+	m.env = map[string]string{}
+
+	for k, v := range env {
+		m.env[k] = v
+	}
 
 	if err := m.ApplyDefaults(); err != nil {
 		return nil, err
@@ -127,7 +131,7 @@ func (m *Manifest) ServiceEnvironment(service string) (map[string]string, error)
 	if len(missing) > 0 {
 		sort.Strings(missing)
 
-		return nil, fmt.Errorf("required env: %s\n", strings.Join(missing, ", "))
+		return nil, fmt.Errorf("required env: %s", strings.Join(missing, ", "))
 	}
 
 	return env, nil
