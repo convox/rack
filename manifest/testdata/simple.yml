@@ -1,0 +1,6 @@
+services:
+  web:
+    build: .
+    environment:
+      - REQUIRED
+      - DEFAULT=true
