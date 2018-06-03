@@ -11,7 +11,7 @@ gethub() {
 
 posthub() {
   local path=$1 data=$2 filter=$3
-  curl -X POST -s -u :$token -d "$data" "https://api.github.com$path" | tr -d '\t\r'# | jq -r "$filter"
+  curl -X POST -s -u :$token -d "$data" "https://api.github.com$path" | tr -d '\t\r' | jq -r "$filter"
 }
 
 merge() {
