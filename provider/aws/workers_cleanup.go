@@ -224,7 +224,7 @@ func chunk(ss []string, count int) [][]string {
 	chunks := [][]string{}
 
 	for {
-		if len(ss) < count {
+		if len(ss) <= count {
 			return append(chunks, ss)
 		}
 
