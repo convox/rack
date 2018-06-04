@@ -264,7 +264,7 @@ func chunk(ss []*string, size int) [][]*string {
 	sss := [][]*string{}
 
 	for {
-		if len(ss) < size {
+		if len(ss) <= size {
 			return append(sss, ss)
 		}
 
