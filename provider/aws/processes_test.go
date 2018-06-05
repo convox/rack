@@ -208,6 +208,7 @@ func TestProcessRunAttached(t *testing.T) {
 		cycleProcessReleaseListStackResources,
 		cycleProcessReleaseEnvironmentGet,
 		cycleSystemListStackResources,
+		cycleProcessBuildGetItem,
 		cycleProcessListStackResources,
 		cycleProcessDescribeServices,
 		cycleProcessDescribeTaskDefinition1,
@@ -272,6 +273,7 @@ func TestProcessRunDetached(t *testing.T) {
 		cycleProcessReleaseListStackResources,
 		cycleProcessReleaseEnvironmentGet,
 		cycleSystemListStackResources,
+		cycleProcessBuildGetItem,
 		cycleProcessListStackResources,
 		cycleProcessDescribeServices,
 		cycleProcessDescribeTaskDefinition1,
@@ -1145,6 +1147,14 @@ var cycleProcessRegisterTaskDefinitionAttached = awsutil.Cycle{
 							"value": "us-test-1"
 						},
 						{
+							"name": "BUILD",
+							"value": "BHINCLZYYVN"
+						},
+						{
+							"name": "BUILD_DESCRIPTION",
+							"value": "test desc"
+						},
+						{
 							"name": "LOG_GROUP",
 							"value": ""
 						},
@@ -1204,6 +1214,14 @@ var cycleProcessRegisterTaskDefinitionDetached = awsutil.Cycle{
 						{
 							"name": "AWS_REGION",
 							"value": "us-test-1"
+						},
+						{
+							"name": "BUILD",
+							"value": "BHINCLZYYVN"
+						},
+						{
+							"name": "BUILD_DESCRIPTION",
+							"value": "test desc"
 						},
 						{
 							"name": "LOG_GROUP",
@@ -1382,6 +1400,18 @@ var cycleProcessStopTaskReason = awsutil.Cycle{
 				"taskArn": "arn:aws:ecs:us-east-1:778743527532:task/014b7e61-cc23-47e8-9dc6-0f51f03ff369"
 			}
 		}`,
+	},
+}
+
+var cycleProcessBuildGetItem = awsutil.Cycle{
+	Request: awsutil.Request{
+		RequestURI: "/",
+		Operation:  "DynamoDB_20120810.GetItem",
+		Body:       `{"ConsistentRead":true,"Key":{"id":{"S":"BHINCLZYYVN"}},"TableName":"convox-builds"}`,
+	},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body:       `{"Item":{"id":{"S":"BHINCLZYYVN"},"description":{"S":"test desc"}}}`,
 	},
 }
 
