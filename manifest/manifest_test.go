@@ -43,11 +43,12 @@ func TestManifestLoad(t *testing.T) {
 				Port:      manifest.ServicePort{Port: 1000, Scheme: "http"},
 				Resources: []string{"database"},
 				Scale: manifest.ServiceScale{
-					Count:  &manifest.ServiceScaleCount{Min: 3, Max: 10},
+					Count:  manifest.ServiceScaleCount{Min: 3, Max: 10},
 					Cpu:    256,
 					Memory: 512,
 				},
-				Test: "make  test",
+				Sticky: true,
+				Test:   "make  test",
 			},
 			manifest.Service{
 				Name:    "proxy",
@@ -64,10 +65,11 @@ func TestManifestLoad(t *testing.T) {
 				},
 				Port: manifest.ServicePort{Port: 2000, Scheme: "https"},
 				Scale: manifest.ServiceScale{
-					Count:  &manifest.ServiceScaleCount{Min: 1, Max: 1},
+					Count:  manifest.ServiceScaleCount{Min: 1, Max: 1},
 					Cpu:    512,
 					Memory: 1024,
 				},
+				Sticky: true,
 			},
 			manifest.Service{
 				Name: "foo",
@@ -84,11 +86,11 @@ func TestManifestLoad(t *testing.T) {
 				},
 				Port: manifest.ServicePort{Port: 3000, Scheme: "https"},
 				Scale: manifest.ServiceScale{
-					Count:  &manifest.ServiceScaleCount{Min: 0, Max: 0},
+					Count:  manifest.ServiceScaleCount{Min: 0, Max: 0},
 					Cpu:    256,
 					Memory: 512,
 				},
-				Sticky: true,
+				Sticky: false,
 			},
 			manifest.Service{
 				Name: "bar",
@@ -103,10 +105,11 @@ func TestManifestLoad(t *testing.T) {
 					Timeout:  4,
 				},
 				Scale: manifest.ServiceScale{
-					Count:  &manifest.ServiceScaleCount{Min: 1, Max: 1},
+					Count:  manifest.ServiceScaleCount{Min: 1, Max: 1},
 					Cpu:    256,
 					Memory: 512,
 				},
+				Sticky: true,
 			},
 			manifest.Service{
 				Name: "scaler",
@@ -121,7 +124,7 @@ func TestManifestLoad(t *testing.T) {
 					Timeout:  4,
 				},
 				Scale: manifest.ServiceScale{
-					Count:  &manifest.ServiceScaleCount{Min: 1, Max: 5},
+					Count:  manifest.ServiceScaleCount{Min: 1, Max: 5},
 					Cpu:    256,
 					Memory: 512,
 					Targets: manifest.ServiceScaleTargets{
@@ -139,6 +142,7 @@ func TestManifestLoad(t *testing.T) {
 						},
 					},
 				},
+				Sticky: true,
 			},
 			manifest.Service{
 				Name:    "inherit",
@@ -155,16 +159,19 @@ func TestManifestLoad(t *testing.T) {
 				},
 				Port: manifest.ServicePort{Port: 2000, Scheme: "https"},
 				Scale: manifest.ServiceScale{
-					Count:  &manifest.ServiceScaleCount{Min: 1, Max: 1},
+					Count:  manifest.ServiceScaleCount{Min: 1, Max: 1},
 					Cpu:    512,
 					Memory: 1024,
 				},
+				Sticky: true,
 			},
 		},
 	}
 
+	attrs := []string{"services.proxy.environment", "services.proxy.port", "services", "services.api.build", "services.inherit.health", "services.scaler.scale.targets.custom.AWS/SQS/ApproximateNumberOfMessagesVisible.dimensions", "environment", "services.inherit.image", "services.scaler.scale.targets.requests", "services.foo.health", "services.inherit.scale.cpu", "services.inherit.environment", "services.foo.port.port", "services.scaler.scale.targets", "services.scaler.scale.targets.custom", "services.api.domain", "services.foo.scale", "services.proxy", "services.api.test", "resources.database", "services.scaler.scale.targets.memory", "services.api.build.path", "services.api.scale", "services.foo.command", "services.inherit.port", "services.inherit", "services.inherit.scale", "services.proxy.scale.cpu", "services.api.resources", "services.api.health.interval", "services.proxy.scale.memory", "services.proxy.image", "services.api.port", "services.api.health", "services.scaler.scale.count", "services.inherit.command", "services.api", "services.foo", "resources.database.type", "services.proxy.health", "services.inherit.scale.memory", "services.scaler.scale.targets.custom.AWS/SQS/ApproximateNumberOfMessagesVisible.aggregate", "services.foo.health.timeout", "services.scaler.scale.targets.custom.AWS/SQS/ApproximateNumberOfMessagesVisible.dimensions.QueueName", "services.api.environment", "services.api.build.manifest", "services.inherit.domain", "services.scaler.scale", "services.scaler", "services.foo.port", "services.proxy.domain", "services.foo.domain", "services.foo.port.scheme", "services.foo.sticky", "services.proxy.command", "services.scaler.scale.targets.custom.AWS/SQS/ApproximateNumberOfMessagesVisible", "services.bar", "resources", "services.proxy.scale", "services.scaler.scale.targets.custom.AWS/SQS/ApproximateNumberOfMessagesVisible.value", "services.scaler.scale.targets.cpu"}
 	env := map[string]string{"FOO": "bar", "SECRET": "shh", "OTHERGLOBAL": "test"}
 
+	n.SetAttributes(attrs)
 	n.SetEnv(env)
 
 	// env processing that normally happens as part of load
@@ -197,6 +204,7 @@ func TestManifestLoadSimple(t *testing.T) {
 	n := &manifest.Manifest{
 		Services: manifest.Services{
 			manifest.Service{
+				Name: "web",
 				Build: manifest.ServiceBuild{
 					Manifest: "Dockerfile",
 					Path:     ".",
@@ -211,15 +219,16 @@ func TestManifestLoadSimple(t *testing.T) {
 					Timeout:  4,
 				},
 				Scale: manifest.ServiceScale{
-					Count:  &manifest.ServiceScaleCount{Min: 1, Max: 1},
+					Count:  manifest.ServiceScaleCount{Min: 1, Max: 1},
 					Cpu:    256,
 					Memory: 512,
 				},
-				Name: "web",
+				Sticky: true,
 			},
 		},
 	}
 
+	n.SetAttributes([]string{"services", "services.web", "services.web.build", "services.web.environment"})
 	n.SetEnv(map[string]string{"REQUIRED": "test"})
 
 	// env processing that normally happens as part of load

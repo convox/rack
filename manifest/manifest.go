@@ -15,7 +15,8 @@ type Manifest struct {
 	Services    Services    `yaml:"services,omitempty"`
 	Timers      Timers      `yaml:"timers,omitempty"`
 
-	env map[string]string
+	attributes map[string]bool
+	env        map[string]string
 }
 
 func Load(data []byte, env map[string]string) (*Manifest, error) {
@@ -27,6 +28,11 @@ func Load(data []byte, env map[string]string) (*Manifest, error) {
 	}
 
 	if err := yaml.Unmarshal(p, &m); err != nil {
+		return nil, err
+	}
+
+	m.attributes, err = yamlAttributes(p)
+	if err != nil {
 		return nil, err
 	}
 
@@ -63,8 +69,45 @@ func (m *Manifest) Agents() []string {
 	return a
 }
 
+func (m *Manifest) Attributes() []string {
+	attrs := []string{}
+
+	for k := range m.attributes {
+		attrs = append(attrs, k)
+	}
+
+	sort.Strings(attrs)
+
+	return attrs
+}
+
+func (m *Manifest) AttributesByPrefix(prefix string) []string {
+	attrs := []string{}
+
+	for _, a := range m.Attributes() {
+		if strings.HasPrefix(a, prefix) {
+			attrs = append(attrs, a)
+		}
+	}
+
+	return attrs
+}
+
+func (m *Manifest) AttributeSet(name string) bool {
+	return m.attributes[name]
+}
+
 func (m *Manifest) Env() map[string]string {
 	return m.env
+}
+
+// used only for tests
+func (m *Manifest) SetAttributes(attrs []string) {
+	m.attributes = map[string]bool{}
+
+	for _, a := range attrs {
+		m.attributes[a] = true
+	}
 }
 
 // used only for tests
@@ -172,8 +215,24 @@ func (m *Manifest) ApplyDefaults() error {
 			m.Services[i].Build.Manifest = "Dockerfile"
 		}
 
-		if s.Scale.Count == nil {
-			m.Services[i].Scale.Count = &ServiceScaleCount{Min: 1, Max: 1}
+		cp := fmt.Sprintf("services.%s.scale", s.Name)
+
+		// if no scale attributes set
+		if len(m.AttributesByPrefix(cp)) == 0 {
+			m.Services[i].Scale.Count = ServiceScaleCount{Min: 1, Max: 1}
+		}
+
+		// if no explicit count attribute set and has multiple attributes (covers "scale: 5" case)
+		if !m.AttributeSet(fmt.Sprintf("%s.count", cp)) && len(m.AttributesByPrefix(cp)) > 1 {
+			m.Services[i].Scale.Count = ServiceScaleCount{Min: 1, Max: 1}
+		}
+
+		if m.Services[i].Scale.Cpu == 0 {
+			m.Services[i].Scale.Cpu = 256
+		}
+
+		if m.Services[i].Scale.Memory == 0 {
+			m.Services[i].Scale.Memory = 512
 		}
 
 		if s.Health.Path == "" {
@@ -194,6 +253,10 @@ func (m *Manifest) ApplyDefaults() error {
 
 		if s.Scale.Memory == 0 {
 			m.Services[i].Scale.Memory = 512
+		}
+
+		if !m.AttributeSet(fmt.Sprintf("services.%s.sticky", s.Name)) {
+			m.Services[i].Sticky = true
 		}
 	}
 
