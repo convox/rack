@@ -207,10 +207,16 @@ func desiredCapacity(largest, total *Metrics) (int64, error) {
 		Status:  aws.String("ACTIVE"),
 	}
 
+	// the total number of instances
 	totalCount := int64(0)
+
+	// the number of instances that can fit the largest container
 	extraFit := int64(0)
 
+	// the attributes of a single instance
 	single := map[string]int64{}
+
+	// the total capacity of the cluster
 	capacity := map[string]int64{}
 
 	for {
@@ -262,22 +268,28 @@ func desiredCapacity(largest, total *Metrics) (int64, error) {
 		req.NextToken = res.NextToken
 	}
 
+	// calculate the amount of extra capacity available in the cluster as a number of instances
 	capcpu := int64(math.Floor((float64(capacity["CPU"]) - float64(total.Cpu)) / float64(single["CPU"])))
 	capmem := int64(math.Floor((float64(capacity["MEMORY"]) - float64(total.Memory)) / float64(single["MEMORY"])))
 
+	// the extra aggregate instance capacity is the smaller of extra cpu and extra memory values
 	extraCapacity := min(capcpu, capmem)
+
+	// the number of instances over the amount required to fit the widest service (gen1 loadbalancer-facing)
 	extraWidth := totalCount - largest.Width
 
 	fmt.Printf("extraCapacity = %+v\n", extraCapacity)
 	fmt.Printf("extraFit = %+v\n", extraFit)
 	fmt.Printf("extraWidth = %+v\n", extraWidth)
 
+	// comes from AutoscaleExtra
 	extra, err := strconv.ParseInt(os.Getenv("EXTRA"), 10, 64)
 	if err != nil {
 		return 0, err
 	}
 
-	desired := totalCount - (min(extraCapacity, extraFit, extraWidth) - extra)
+	// total desired count is the current instance count minus the smallest calculated extra type plus the number of desired extra instances
+	desired := totalCount - min(extraCapacity, extraFit, extraWidth) + extra
 
 	fmt.Printf("desired = %+v\n", desired)
 
