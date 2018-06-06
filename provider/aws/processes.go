@@ -779,6 +779,11 @@ func (p *AWSProvider) generateTaskDefinition1(app string, opts structs.ProcessRu
 		return nil, err
 	}
 
+	b, err := p.BuildGet(app, r.Build)
+	if err != nil {
+		return nil, err
+	}
+
 	m, err := manifest1.Load([]byte(r.Manifest))
 	if err != nil {
 		return nil, err
@@ -864,12 +869,14 @@ func (p *AWSProvider) generateTaskDefinition1(app string, opts structs.ProcessRu
 	env := map[string]string{}
 
 	base := map[string]string{
-		"APP":        app,
-		"AWS_REGION": p.Region,
-		"LOG_GROUP":  a.Outputs["LogGroup"],
-		"PROCESS":    service,
-		"RACK":       p.Rack,
-		"RELEASE":    release,
+		"APP":               app,
+		"AWS_REGION":        p.Region,
+		"BUILD":             b.Id,
+		"BUILD_DESCRIPTION": b.Description,
+		"LOG_GROUP":         a.Outputs["LogGroup"],
+		"PROCESS":           service,
+		"RACK":              p.Rack,
+		"RELEASE":           release,
 	}
 
 	for k, v := range base {
