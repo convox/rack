@@ -20,10 +20,15 @@ type Host struct {
 type Hosts []*Host
 
 func (r *Rack) NewHost(hostname string) (*Host, error) {
+	ip, err := r.NextIP()
+	if err != nil {
+		return nil, err
+	}
+
 	h := &Host{
 		Activity:  time.Now().UTC(),
 		Hostname:  hostname,
-		IP:        incrementIP(r.IP, uint32(len(r.Hosts)+1)),
+		IP:        ip,
 		Endpoints: Endpoints{},
 		rack:      r,
 	}
