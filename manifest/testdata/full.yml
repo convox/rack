@@ -44,7 +44,7 @@ services:
       scheme: https
       port: 3000
     scale: 0
-    sticky: true
+    sticky: false
   bar:
   scaler:
     scale:
