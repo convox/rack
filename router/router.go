@@ -6,6 +6,7 @@ import (
 	"net"
 	"os"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/convox/api"
@@ -67,7 +68,12 @@ func (rt *Router) Lookup(host string) net.IP {
 	return h.IP
 }
 
+var ipLock sync.Mutex
+
 func (rt *Router) NextIP() (net.IP, error) {
+	ipLock.Lock()
+	defer ipLock.Unlock()
+
 	for i := uint32(1); i < 255; i++ {
 		ip := incrementIP(rt.base, (i * 256))
 		found := false
