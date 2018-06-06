@@ -109,24 +109,28 @@ func clusterMetrics() (*Metrics, *Metrics, error) {
 	largest := &Metrics{Cpu: 128, Memory: 512}
 	total := &Metrics{Cpu: 128, Memory: 512}
 
-	res, err := ECS.ListServices(&ecs.ListServicesInput{
+	req := &ecs.ListServicesInput{
 		Cluster:    aws.String(os.Getenv("CLUSTER")),
 		LaunchType: aws.String("EC2"),
-	})
-	if err != nil {
-		return nil, nil, err
 	}
 
-	for _, c := range chunk(res.ServiceArns, 10) {
-		res, err := ECS.DescribeServices(&ecs.DescribeServicesInput{
+	for {
+		res, err := ECS.ListServices(req)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		fmt.Printf("ListServices page: %d\n", len(res.ServiceArns))
+
+		dres, err := ECS.DescribeServices(&ecs.DescribeServicesInput{
 			Cluster:  aws.String(os.Getenv("CLUSTER")),
-			Services: c,
+			Services: res.ServiceArns,
 		})
 		if err != nil {
 			return nil, nil, err
 		}
 
-		for _, s := range res.Services {
+		for _, s := range dres.Services {
 			fmt.Printf("*s.ServiceName = %+v\n", *s.ServiceName)
 
 			for _, d := range s.Deployments {
@@ -186,40 +190,49 @@ func clusterMetrics() (*Metrics, *Metrics, error) {
 				total.Memory += (mem * *s.DesiredCount)
 			}
 		}
+
+		if res.NextToken == nil {
+			break
+		}
+
+		req.NextToken = res.NextToken
 	}
 
 	return largest, total, nil
 }
 
 func desiredCapacity(largest, total *Metrics) (int64, error) {
-	res, err := ECS.ListContainerInstances(&ecs.ListContainerInstancesInput{
+	req := &ecs.ListContainerInstancesInput{
 		Cluster: aws.String(os.Getenv("CLUSTER")),
 		Status:  aws.String("ACTIVE"),
-	})
-	if err != nil {
-		return 0, err
 	}
 
-	extraCapacity := int64(0)
+	totalCount := int64(0)
 	extraFit := int64(0)
-	extraWidth := int64(len(res.ContainerInstanceArns)) - largest.Width
 
 	single := map[string]int64{}
 	capacity := map[string]int64{}
-	num := int64(0)
 
-	for _, c := range chunk(res.ContainerInstanceArns, 100) {
-		res, err := ECS.DescribeContainerInstances(&ecs.DescribeContainerInstancesInput{
+	for {
+		res, err := ECS.ListContainerInstances(req)
+		if err != nil {
+			return 0, err
+		}
+
+		fmt.Printf("ListContainerInstances page: %d\n", len(res.ContainerInstanceArns))
+
+		totalCount += int64(len(res.ContainerInstanceArns))
+
+		dres, err := ECS.DescribeContainerInstances(&ecs.DescribeContainerInstancesInput{
 			Cluster:            aws.String(os.Getenv("CLUSTER")),
-			ContainerInstances: c,
+			ContainerInstances: res.ContainerInstanceArns,
 		})
 		if err != nil {
 			return 0, err
 		}
 
-		for _, ci := range res.ContainerInstances {
+		for _, ci := range dres.ContainerInstances {
 			remaining := map[string]int64{}
-			num += 1
 
 			for _, rr := range ci.RegisteredResources {
 				if *rr.Type == "INTEGER" {
@@ -238,15 +251,22 @@ func desiredCapacity(largest, total *Metrics) (int64, error) {
 				extraFit += 1
 			}
 		}
-	}
 
-	fmt.Printf("capacity = %+v\n", capacity)
-	fmt.Printf("single = %+v\n", single)
+		fmt.Printf("capacity = %+v\n", capacity)
+		fmt.Printf("single = %+v\n", single)
+
+		if res.NextToken == nil {
+			break
+		}
+
+		req.NextToken = res.NextToken
+	}
 
 	capcpu := int64(math.Floor((float64(capacity["CPU"]) - float64(total.Cpu)) / float64(single["CPU"])))
 	capmem := int64(math.Floor((float64(capacity["MEMORY"]) - float64(total.Memory)) / float64(single["MEMORY"])))
 
-	extraCapacity = min(capcpu, capmem)
+	extraCapacity := min(capcpu, capmem)
+	extraWidth := totalCount - largest.Width
 
 	fmt.Printf("extraCapacity = %+v\n", extraCapacity)
 	fmt.Printf("extraFit = %+v\n", extraFit)
@@ -257,20 +277,16 @@ func desiredCapacity(largest, total *Metrics) (int64, error) {
 		return 0, err
 	}
 
-	return num - (min(extraCapacity, extraFit, extraWidth) - extra), nil
-}
+	desired := totalCount - (min(extraCapacity, extraFit, extraWidth) - extra)
 
-func chunk(ss []*string, size int) [][]*string {
-	sss := [][]*string{}
+	fmt.Printf("desired = %+v\n", desired)
 
-	for {
-		if len(ss) <= size {
-			return append(sss, ss)
-		}
-
-		sss = append(sss, ss[0:size])
-		ss = ss[size:]
+	// minimum instance count is 3
+	if desired < 3 {
+		desired = 3
 	}
+
+	return desired, nil
 }
 
 func ci(ii ...*int64) int64 {
