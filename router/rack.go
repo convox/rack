@@ -3,6 +3,7 @@ package router
 import (
 	"fmt"
 	"net"
+	"sync"
 )
 
 type Rack struct {
@@ -83,4 +84,26 @@ func (r *Rack) Host(hostname string) (*Host, error) {
 	}
 
 	return nil, fmt.Errorf("no such host: %s", hostname)
+}
+
+var rackIPLock sync.Mutex
+
+func (r *Rack) NextIP() (net.IP, error) {
+	rackIPLock.Lock()
+	defer rackIPLock.Unlock()
+
+	for i := uint32(1); i < 255; i++ {
+		ip := incrementIP(r.IP, i)
+		found := false
+		for _, h := range r.Hosts {
+			if h.IP.Equal(ip) {
+				found = true
+				break
+			}
+		}
+		if !found {
+			return ip, nil
+		}
+	}
+	return net.IP{}, fmt.Errorf("ip exhaustion")
 }
