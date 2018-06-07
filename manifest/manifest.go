@@ -217,6 +217,22 @@ func (m *Manifest) ApplyDefaults() error {
 
 		cp := fmt.Sprintf("services.%s.scale", s.Name)
 
+		if s.Health.Path == "" {
+			m.Services[i].Health.Path = "/"
+		}
+
+		if s.Health.Interval == 0 {
+			m.Services[i].Health.Interval = 5
+		}
+
+		if s.Health.Grace == 0 {
+			m.Services[i].Health.Grace = m.Services[i].Health.Interval
+		}
+
+		if s.Health.Timeout == 0 {
+			m.Services[i].Health.Timeout = m.Services[i].Health.Interval - 1
+		}
+
 		// if no scale attributes set
 		if len(m.AttributesByPrefix(cp)) == 0 {
 			m.Services[i].Scale.Count = ServiceScaleCount{Min: 1, Max: 1}
@@ -232,26 +248,6 @@ func (m *Manifest) ApplyDefaults() error {
 		}
 
 		if m.Services[i].Scale.Memory == 0 {
-			m.Services[i].Scale.Memory = 512
-		}
-
-		if s.Health.Path == "" {
-			m.Services[i].Health.Path = "/"
-		}
-
-		if s.Health.Interval == 0 {
-			m.Services[i].Health.Interval = 5
-		}
-
-		if s.Health.Timeout == 0 {
-			m.Services[i].Health.Timeout = m.Services[i].Health.Interval - 1
-		}
-
-		if s.Scale.Cpu == 0 {
-			m.Services[i].Scale.Memory = 256
-		}
-
-		if s.Scale.Memory == 0 {
 			m.Services[i].Scale.Memory = 512
 		}
 
