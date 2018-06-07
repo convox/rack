@@ -23,6 +23,7 @@ type Service struct {
 	Privileged  bool           `yaml:"privileged,omitempty"`
 	Resources   []string       `yaml:"resources,omitempty"`
 	Scale       ServiceScale   `yaml:"scale,omitempty"`
+	Sticky      bool           `yaml:"sticky,omitempty"`
 	Test        string         `yaml:"test,omitempty"`
 	Volumes     []string       `yaml:"volumes,omitempty"`
 }
@@ -58,7 +59,7 @@ type ServicePort struct {
 }
 
 type ServiceScale struct {
-	Count   *ServiceScaleCount
+	Count   ServiceScaleCount
 	Cpu     int
 	Memory  int
 	Targets ServiceScaleTargets `yaml:"targets,omitempty"`
@@ -131,22 +132,6 @@ func (s Service) EnvironmentKeys() string {
 
 func (s Service) GetName() string {
 	return s.Name
-}
-
-func (s *Service) SetDefaults() error {
-	if s.Scale.Count == nil {
-		s.Scale.Count = &ServiceScaleCount{Min: 1, Max: 1}
-	}
-
-	if s.Scale.Cpu == 0 {
-		s.Scale.Cpu = 256
-	}
-
-	if s.Scale.Memory == 0 {
-		s.Scale.Memory = 512
-	}
-
-	return nil
 }
 
 func (s ServiceScale) Autoscale() bool {

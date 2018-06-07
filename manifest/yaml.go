@@ -273,20 +273,20 @@ func (v *ServiceScale) UnmarshalYAML(unmarshal func(interface{}) error) error {
 
 	switch t := w.(type) {
 	case int:
-		v.Count = &ServiceScaleCount{Min: t, Max: t}
+		v.Count = ServiceScaleCount{Min: t, Max: t}
 	case string:
 		var c ServiceScaleCount
 		if err := remarshal(w, &c); err != nil {
 			return err
 		}
-		v.Count = &c
+		v.Count = c
 	case map[interface{}]interface{}:
 		if w, ok := t["count"].(interface{}); ok {
 			var c ServiceScaleCount
 			if err := remarshal(w, &c); err != nil {
 				return err
 			}
-			v.Count = &c
+			v.Count = c
 		}
 		if w, ok := t["cpu"].(int); ok {
 			v.Cpu = w
@@ -495,4 +495,44 @@ func unmarshalMapSlice(unmarshal func(interface{}) error, v interface{}) error {
 	}
 
 	return nil
+}
+
+func yamlAttributes(data []byte) (map[string]bool, error) {
+	attrs := map[string]bool{}
+
+	var v interface{}
+
+	if err := yaml.Unmarshal(data, &v); err != nil {
+		return nil, err
+	}
+
+	m, ok := v.(map[interface{}]interface{})
+	if !ok {
+		return attrs, nil
+	}
+
+	for ki, v := range m {
+		k, ok := ki.(string)
+		if !ok {
+			continue
+		}
+
+		attrs[k] = true
+
+		vdata, err := yaml.Marshal(v)
+		if err != nil {
+			return nil, err
+		}
+
+		vattrs, err := yamlAttributes(vdata)
+		if err != nil {
+			return nil, err
+		}
+
+		for vk := range vattrs {
+			attrs[fmt.Sprintf("%s.%s", k, vk)] = true
+		}
+	}
+
+	return attrs, nil
 }

@@ -248,9 +248,10 @@
           "Port": "{{.Port.Port}}",
           "Protocol": "{{ upcase .Port.Scheme }}",
           "TargetGroupAttributes": [
-            { "Key": "deregistration_delay.timeout_seconds", "Value": "30" },
-            { "Key": "stickiness.enabled", "Value": "true" },
-            { "Key": "stickiness.lb_cookie.duration_seconds", "Value": "15" }
+            {{ if .Sticky }}
+              { "Key": "stickiness.enabled", "Value": "true" },
+            {{ end }}
+            { "Key": "deregistration_delay.timeout_seconds", "Value": "30" }
           ],
           "Tags": [
             { "Key": "App", "Value": "{{$.App}}" },
