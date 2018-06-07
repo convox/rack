@@ -39,6 +39,7 @@ services:
     command: foo
     domain: baz.example.org, qux.example.org
     health:
+      grace: 2
       timeout: 3
     port:
       scheme: https
