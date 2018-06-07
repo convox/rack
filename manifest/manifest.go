@@ -215,8 +215,6 @@ func (m *Manifest) ApplyDefaults() error {
 			m.Services[i].Build.Manifest = "Dockerfile"
 		}
 
-		cp := fmt.Sprintf("services.%s.scale", s.Name)
-
 		if s.Health.Path == "" {
 			m.Services[i].Health.Path = "/"
 		}
@@ -233,13 +231,15 @@ func (m *Manifest) ApplyDefaults() error {
 			m.Services[i].Health.Timeout = m.Services[i].Health.Interval - 1
 		}
 
+		sp := fmt.Sprintf("services.%s.scale", s.Name)
+
 		// if no scale attributes set
-		if len(m.AttributesByPrefix(cp)) == 0 {
+		if len(m.AttributesByPrefix(sp)) == 0 {
 			m.Services[i].Scale.Count = ServiceScaleCount{Min: 1, Max: 1}
 		}
 
-		// if no explicit count attribute set and has multiple attributes (covers "scale: 5" case)
-		if !m.AttributeSet(fmt.Sprintf("%s.count", cp)) && len(m.AttributesByPrefix(cp)) > 1 {
+		// if no explicit count attribute set yet has multiple scale attributes other than count
+		if !m.AttributeSet(fmt.Sprintf("%s.count", sp)) && len(m.AttributesByPrefix(sp)) > 1 {
 			m.Services[i].Scale.Count = ServiceScaleCount{Min: 1, Max: 1}
 		}
 
