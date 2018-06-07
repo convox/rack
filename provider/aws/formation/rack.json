@@ -398,7 +398,7 @@
     "BuildInstance": {
       "Type": "String",
       "Description": "Instance type for a dedicated build cluster",
-      "Default": "t2.small"
+      "Default": ""
     },
     "BuildMemory": {
       "Type": "String",
