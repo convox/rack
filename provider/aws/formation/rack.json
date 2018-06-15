@@ -2558,7 +2558,7 @@
         "AccessControl": "Private",
         "LoggingConfiguration": {
           "DestinationBucketName": { "Fn::If": [ "BlankLogBucket", { "Ref": "Logs" }, { "Ref": "LogBucket" } ] },
-          "LogFilePrefix": { "Fn::Sub": "convox/logs/${AWS::StackName}/s3" }
+          "LogFilePrefix": { "Fn::Sub": "convox/logs/${AWS::StackName}/s3/" }
         },
         "Tags": [
           { "Key": "System", "Value": "convox" },
