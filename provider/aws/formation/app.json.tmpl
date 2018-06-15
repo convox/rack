@@ -769,7 +769,7 @@
         { "Ref": "AWS::NoValue" },
         {
           "DestinationBucketName": { "Ref": "LogBucket" },
-          "LogFilePrefix": { "Fn::Sub": "convox/logs/${AWS::StackName}/s3" }
+          "LogFilePrefix": { "Fn::Sub": "convox/logs/${AWS::StackName}/s3/" }
         }
       ] },
       "Tags": [
