@@ -400,58 +400,62 @@ func deleteStacks(stackType, rackName string, CF *cloudformation.CloudFormation)
 
 // describeRackStacks uses credentials to describe CF service, app and rack stacks that belong to the rack name and region
 func describeRackStacks(rackName string, CF *cloudformation.CloudFormation) (Stacks, error) {
-	res, err := CF.DescribeStacks(&cloudformation.DescribeStacksInput{})
-	if err != nil {
-		return Stacks{}, err
-	}
-
 	apps := []Stack{}
 	rack := []Stack{}
 	resources := []Stack{}
 
-	for _, stack := range res.Stacks {
-		outputs := map[string]string{}
-		tags := map[string]string{}
+	err := CF.DescribeStacksPages(&cloudformation.DescribeStacksInput{},
+		func(page *cloudformation.DescribeStacksOutput, lastPage bool) bool {
+			for _, stack := range page.Stacks {
+				outputs := map[string]string{}
+				tags := map[string]string{}
 
-		for _, output := range stack.Outputs {
-			outputs[*output.OutputKey] = *output.OutputValue
-		}
+				for _, output := range stack.Outputs {
+					outputs[*output.OutputKey] = *output.OutputValue
+				}
 
-		for _, tag := range stack.Tags {
-			tags[*tag.Key] = *tag.Value
-		}
+				for _, tag := range stack.Tags {
+					tags[*tag.Key] = *tag.Value
+				}
 
-		name := tags["Name"]
-		if name == "" {
-			name = *stack.StackName
-		}
+				name := tags["Name"]
+				if name == "" {
+					name = *stack.StackName
+				}
 
-		s := Stack{
-			Name:      name,
-			StackName: *stack.StackName,
-			Status:    *stack.StackStatus,
-			Type:      tags["Type"],
-			Outputs:   outputs,
-		}
+				s := Stack{
+					Name:      name,
+					StackName: *stack.StackName,
+					Status:    *stack.StackStatus,
+					Type:      tags["Type"],
+					Outputs:   outputs,
+				}
 
-		// collect stacks that are explicitly related to the rack
-		if tags["Rack"] == rackName {
-			switch tags["Type"] {
-			case "app":
-				apps = append(apps, s)
-			case "service":
-				s.Type = "resource"
-				fallthrough
-			case "resource":
-				resources = append(resources, s)
+				// collect stacks that are explicitly related to the rack
+				if tags["Rack"] == rackName {
+					switch tags["Type"] {
+					case "app":
+						apps = append(apps, s)
+					case "service":
+						s.Type = "resource"
+						fallthrough
+					case "resource":
+						resources = append(resources, s)
+					}
+				}
+
+				// collect stack that is explicitly the rack
+				if *stack.StackName == rackName && outputs["Dashboard"] != "" {
+					s.Type = "rack"
+					rack = append(rack, s)
+				}
 			}
-		}
 
-		// collect stack that is explicitly the rack
-		if *stack.StackName == rackName && outputs["Dashboard"] != "" {
-			s.Type = "rack"
-			rack = append(rack, s)
-		}
+			return true
+		})
+
+	if err != nil {
+		return Stacks{}, err
 	}
 
 	return Stacks{
