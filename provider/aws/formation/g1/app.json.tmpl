@@ -328,15 +328,6 @@
                 "TargetGroupArn": { "Fn::If": [ "Balancer{{ upper $e.Name }}ALB",
                   { "Ref": "{{ $manifest.BalancerResourceName $e.Name }}TargetGroup" },
                   { "Ref": "AWS::NoValue" }
-                ] },
-                "AccessLoggingPolicy": { "Fn::If": [ "BlankLogBucket",
-                  { "Ref": "AWS::NoValue" },
-                  {
-                    "EmitInterval": 5,
-                    "Enabled": true,
-                    "S3BucketName": { "Ref": "LogBucket" },
-                    "S3BucketPrefix": { "Fn::Sub": "convox/logs/${AWS::StackName}/elb/" }
-                  }
                 ] }
               }
             ],
@@ -551,6 +542,15 @@
         "LoadBalancerName": { "Fn::If": [ "Internal",
           { "Fn::Join": [ "-", [ "{{ .LoadBalancerName $app.Name }}", "n" ] ] },
           "{{ .LoadBalancerName $app.Name }}"
+        ] },
+        "AccessLoggingPolicy": { "Fn::If": [ "BlankLogBucket",
+          { "Ref": "AWS::NoValue" },
+          {
+            "EmitInterval": 5,
+            "Enabled": true,
+            "S3BucketName": { "Ref": "LogBucket" },
+            "S3BucketPrefix": { "Fn::Sub": "convox/logs/${AWS::StackName}/elb/{{ .LoadBalancerName $app.Name }}/" }
+          }
         ] },
         "SecurityGroups" : { "Fn::If" : [
           "BlankSecurityGroup",
