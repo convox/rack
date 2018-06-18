@@ -543,6 +543,15 @@
           { "Fn::Join": [ "-", [ "{{ .LoadBalancerName $app.Name }}", "n" ] ] },
           "{{ .LoadBalancerName $app.Name }}"
         ] },
+        "AccessLoggingPolicy": { "Fn::If": [ "BlankLogBucket",
+          { "Ref": "AWS::NoValue" },
+          {
+            "EmitInterval": 5,
+            "Enabled": true,
+            "S3BucketName": { "Ref": "LogBucket" },
+            "S3BucketPrefix": { "Fn::Sub": "convox/logs/${AWS::StackName}/elb/{{ .LoadBalancerName $app.Name }}/" }
+          }
+        ] },
         "SecurityGroups" : { "Fn::If" : [
           "BlankSecurityGroup",
           [ {"Ref" : "{{ .ResourceName }}SecurityGroup"} ],
