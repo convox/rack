@@ -90,8 +90,6 @@ func (p *AWSProvider) ProcessExec(app, pid, command string, rw io.ReadWriter, op
 		tries += 1
 		time.Sleep(1 * time.Second)
 
-		fmt.Printf("arn = %+v\n", arn)
-
 		cs, err = dc.ListContainers(docker.ListContainersOptions{
 			All: true,
 			Filters: map[string][]string{

@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/convox/rack/options"
-	"github.com/convox/rack/provider/aws"
 	"github.com/convox/rack/structs"
 	"github.com/convox/rack/test/awsutil"
 	"github.com/stretchr/testify/assert"
@@ -70,8 +69,7 @@ func TestSystemGetBadStack(t *testing.T) {
 	r, err := provider.SystemGet()
 
 	assert.Nil(t, r)
-	assert.True(t, aws.ErrorNotFound(err))
-	assert.Equal(t, "convox not found", err.Error())
+	assert.EqualError(t, err, "convox not found")
 }
 
 func TestSystemReleases(t *testing.T) {
@@ -108,9 +106,9 @@ func TestSystemUpdate(t *testing.T) {
 	defer provider.Close()
 
 	err := provider.SystemUpdate(structs.SystemUpdateOptions{
-		InstanceCount: options.Int(5),
-		InstanceType:  options.String("t2.small"),
-		Version:       options.String("20171214220445"),
+		Count:   options.Int(5),
+		Type:    options.String("t2.small"),
+		Version: options.String("20171214220445"),
 	})
 
 	assert.NoError(t, err)
@@ -126,9 +124,9 @@ func TestSystemUpdateNewParameter(t *testing.T) {
 	defer provider.Close()
 
 	err := provider.SystemUpdate(structs.SystemUpdateOptions{
-		InstanceCount: options.Int(5),
-		InstanceType:  options.String("t2.small"),
-		Version:       options.String("20171214220445"),
+		Count:   options.Int(5),
+		Type:    options.String("t2.small"),
+		Version: options.String("20171214220445"),
 	})
 
 	assert.NoError(t, err)

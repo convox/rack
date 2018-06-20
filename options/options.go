@@ -7,6 +7,11 @@ func Bool(value bool) *bool {
 	return &v
 }
 
+func Duration(value time.Duration) *time.Duration {
+	v := value
+	return &v
+}
+
 func Int(value int) *int {
 	v := value
 	return &v

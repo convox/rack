@@ -46,13 +46,13 @@ func TestReleaseList(t *testing.T) {
 		return
 	}
 
-	b1, err := p.BuildCreate("app", "", "", structs.BuildCreateOptions{})
+	b1, err := p.BuildCreate("app", "", structs.BuildCreateOptions{})
 	require.NoError(t, err)
-	b2, err := p.BuildCreate("app", "", "", structs.BuildCreateOptions{})
+	b2, err := p.BuildCreate("app", "", structs.BuildCreateOptions{})
 	require.NoError(t, err)
-	b3, err := p.BuildCreate("app", "", "", structs.BuildCreateOptions{})
+	b3, err := p.BuildCreate("app", "", structs.BuildCreateOptions{})
 	require.NoError(t, err)
-	b4, err := p.BuildCreate("app", "", "", structs.BuildCreateOptions{})
+	b4, err := p.BuildCreate("app", "", structs.BuildCreateOptions{})
 	require.NoError(t, err)
 
 	p.ReleaseCreate("app", structs.ReleaseCreateOptions{Build: options.String(b1.Id)})

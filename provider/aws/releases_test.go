@@ -40,7 +40,7 @@ func TestReleaseList(t *testing.T) {
 	)
 	defer provider.Close()
 
-	r, err := provider.ReleaseList("httpd", structs.ReleaseListOptions{Count: options.Int(20)})
+	r, err := provider.ReleaseList("httpd", structs.ReleaseListOptions{Limit: options.Int(20)})
 
 	assert.NoError(t, err)
 
