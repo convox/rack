@@ -727,21 +727,11 @@ func createTarball(base string) ([]byte, error) {
 		}
 	}
 
-	// If .dockerignore mentions .dockerignore or the Dockerfile
-	// then make sure we send both files over to the daemon
-	// because Dockerfile is, obviously, needed no matter what, and
-	// .dockerignore is needed to know if either one needs to be
-	// removed.  The deamon will remove them for us, if needed, after it
-	// parses the Dockerfile.
-	keepThem1, _ := fileutils.Matches(".dockerignore", excludes)
-	keepThem2, _ := fileutils.Matches("Dockerfile", excludes)
-	if keepThem1 || keepThem2 {
-		includes = append(includes, ".dockerignore", "Dockerfile")
+	// If .dockerignore metions itself, include it anyway so that the
+	// inner docker build can use it
+	if m, err := fileutils.Matches(".dockerignore", excludes); m && err == nil {
+		includes = append(includes, ".dockerignore")
 	}
-
-	// if err := builder.ValidateContextDirectory(contextDirectory, excludes); err != nil {
-	// 	return nil, fmt.Errorf("Error checking context is accessible: '%s'. Please check permissions and try again.", err)
-	// }
 
 	options := &archive.TarOptions{
 		Compression:     archive.Gzip,
