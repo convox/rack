@@ -169,16 +169,18 @@ func clusterMetrics() (*Metrics, *Metrics, error) {
 					}
 				}
 
-				if cpu > largest.Cpu {
-					largest.Cpu = cpu
-				}
+				if *s.DesiredCount > 0 {
+					if cpu > largest.Cpu {
+						largest.Cpu = cpu
+					}
 
-				if mem > largest.Memory {
-					largest.Memory = mem
-				}
+					if mem > largest.Memory {
+						largest.Memory = mem
+					}
 
-				if width > largest.Width {
-					largest.Width = width
+					if width > largest.Width {
+						largest.Width = width
+					}
 				}
 
 				fmt.Printf("cpu = %+v\n", cpu)
@@ -266,6 +268,10 @@ func desiredCapacity(largest, total *Metrics) (int64, error) {
 		}
 
 		req.NextToken = res.NextToken
+	}
+
+	if largest.Memory > single["MEMORY"] || largest.Cpu > single["CPU"] {
+		return 0, fmt.Errorf("largest container is bigger than a single instance")
 	}
 
 	// calculate the amount of extra capacity available in the cluster as a number of instances
