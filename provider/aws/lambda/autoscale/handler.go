@@ -268,6 +268,10 @@ func desiredCapacity(largest, total *Metrics) (int64, error) {
 		req.NextToken = res.NextToken
 	}
 
+	if largest.Memory > single["MEMORY"] || largest.Cpu > single["CPU"] {
+		return 0, fmt.Errorf("largest container is bigger than a single instance")
+	}
+
 	// calculate the amount of extra capacity available in the cluster as a number of instances
 	capcpu := int64(math.Floor((float64(capacity["CPU"]) - float64(total.Cpu)) / float64(single["CPU"])))
 	capmem := int64(math.Floor((float64(capacity["MEMORY"]) - float64(total.Memory)) / float64(single["MEMORY"])))
