@@ -8,26 +8,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestResourceWebhookURL(t *testing.T) {
-	provider := StubAwsProvider(
-		cycleDescribeStacksNotFound("convox-mywebhook"),
-		cycleResourceCreateWebhook,
-		cycleResourceCreateNotificationPublish,
-	)
-	defer provider.Close()
-
-	params := map[string]string{
-		"url": "https://www.example.com",
-	}
-
-	url := "http://notifications.example.org/sns?endpoint=https%3A%2F%2Fwww.example.com"
-	s, err := provider.ResourceCreate("mywebhook", "webhook", structs.ResourceCreateOptions{Parameters: params})
-
-	if assert.NoError(t, err) {
-		assert.Equal(t, url, s.Parameters["Url"])
-	}
-}
-
 func TestResourceList(t *testing.T) {
 	provider := StubAwsProvider(
 		cycleServiceDescribeStacksList,

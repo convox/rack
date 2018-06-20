@@ -42,7 +42,6 @@ func (p *Provider) BuildCreate(app, url string, opts structs.BuildCreateOptions)
 	}
 
 	sys, err := p.SystemGet()
-	fmt.Printf("sys = %+v\n", sys)
 	if err != nil {
 		return nil, errors.WithStack(log.Error(err))
 	}
