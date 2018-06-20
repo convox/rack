@@ -727,7 +727,7 @@ func createTarball(base string) ([]byte, error) {
 		}
 	}
 
-	// If .dockerignore metions itself, include it anyway so that the
+	// If .dockerignore mentions itself, include it anyway so that the
 	// inner docker build can use it
 	if m, err := fileutils.Matches(".dockerignore", excludes); m && err == nil {
 		includes = append(includes, ".dockerignore")
