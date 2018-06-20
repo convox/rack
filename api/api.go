@@ -15,8 +15,10 @@ type Server struct {
 }
 
 func New() *Server {
-	p := provider.FromEnv()
+	return NewWithProvider(provider.FromEnv())
+}
 
+func NewWithProvider(p structs.Provider) *Server {
 	if err := p.Initialize(structs.ProviderOptions{}); err != nil {
 		panic(err)
 	}

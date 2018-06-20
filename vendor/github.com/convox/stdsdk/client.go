@@ -48,7 +48,11 @@ func New(endpoint string) (*Client, error) {
 		return nil, err
 	}
 
-	return &Client{Endpoint: u}, nil
+	c := &Client{Endpoint: u}
+
+	c.Headers = func() http.Header { return http.Header{} }
+
+	return c, nil
 }
 
 func (c *Client) Head(path string, opts RequestOptions, out *bool) error {

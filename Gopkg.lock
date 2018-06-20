@@ -121,7 +121,7 @@
   branch = "master"
   name = "github.com/convox/logger"
   packages = ["."]
-  revision = "0bfb9db0c9cf66580243389f7a785192d653f630"
+  revision = "e39179955b5204aa8288932fa09fa17e5525c55f"
 
 [[projects]]
   branch = "master"
@@ -139,7 +139,7 @@
   branch = "master"
   name = "github.com/convox/stdsdk"
   packages = ["."]
-  revision = "38ec227453ec84cd13693ec25099e335f3e832fc"
+  revision = "fb4ab2691ace511600e1c4a4bbb0efeffb9190ba"
 
 [[projects]]
   branch = "master"
