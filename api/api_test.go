@@ -14,15 +14,14 @@ import (
 )
 
 func testServer(t *testing.T, fn func(*stdsdk.Client, *structs.MockProvider)) {
-	s := api.New()
+	p := &structs.MockProvider{}
+	p.On("Initialize", mock.Anything).Return(nil)
+
+	s := api.NewWithProvider(p)
 	s.Logger = logger.Discard
 	s.Server.Recover = func(err error) {
 		require.NoError(t, err, "httptest server panic")
 	}
-
-	p := &structs.MockProvider{}
-	p.On("WithContext", mock.MatchedBy(requestContextMatcher)).Return(p)
-	s.Provider = p
 
 	ht := httptest.NewServer(s)
 	defer ht.Close()

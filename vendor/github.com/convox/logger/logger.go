@@ -5,19 +5,23 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"math/rand"
 	"os"
 	"path/filepath"
 	"regexp"
-	"runtime"
 	"runtime/debug"
 	"strings"
 	"time"
+
+	"github.com/pkg/errors"
 )
 
 func init() {
 	rand.Seed(time.Now().UTC().UnixNano())
 }
+
+var Discard = NewWriter("", ioutil.Discard)
 
 type Logger struct {
 	namespace string
@@ -59,14 +63,27 @@ func (l *Logger) Prepend(format string, args ...interface{}) *Logger {
 		writer:    l.writer,
 	}
 }
+
+type tracer interface {
+	StackTrace() errors.StackTrace
+}
+
 func (l *Logger) Error(err error) error {
-	if _, file, line, ok := runtime.Caller(1); ok {
+	if err == nil {
+		return nil
+	}
+
+	message := strings.Replace(err.Error(), "\n", " ", -1)
+
+	switch t := err.(type) {
+	case tracer:
+		file := strings.Split(fmt.Sprintf("%+s", t.StackTrace()[0]), "\n\t")[1]
 		if f, err := stripGoPath(file); err == nil {
 			file = f
 		}
-		l.Logf("state=error error=%q location=%q", strings.Replace(err.Error(), "\n", " ", -1), fmt.Sprintf("%s:%d", file, line))
-	} else {
-		l.Logf("state=error error=%q", err)
+		l.Logf("error=%q location=%q", message, fmt.Sprintf("%s:%d", file, t.StackTrace()[0]))
+	case error:
+		l.Logf("error=%q", message)
 	}
 
 	return err

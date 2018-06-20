@@ -143,13 +143,13 @@ func (_m *MockProvider) AppUpdate(name string, opts AppUpdateOptions) error {
 	return r0
 }
 
-// BuildCreate provides a mock function with given fields: app, source, opts
-func (_m *MockProvider) BuildCreate(app string, source string, opts BuildCreateOptions) (*Build, error) {
-	ret := _m.Called(app, source, opts)
+// BuildCreate provides a mock function with given fields: app, url, opts
+func (_m *MockProvider) BuildCreate(app string, url string, opts BuildCreateOptions) (*Build, error) {
+	ret := _m.Called(app, url, opts)
 
 	var r0 *Build
 	if rf, ok := ret.Get(0).(func(string, string, BuildCreateOptions) *Build); ok {
-		r0 = rf(app, source, opts)
+		r0 = rf(app, url, opts)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*Build)
@@ -158,7 +158,7 @@ func (_m *MockProvider) BuildCreate(app string, source string, opts BuildCreateO
 
 	var r1 error
 	if rf, ok := ret.Get(1).(func(string, string, BuildCreateOptions) error); ok {
-		r1 = rf(app, source, opts)
+		r1 = rf(app, url, opts)
 	} else {
 		r1 = ret.Error(1)
 	}
