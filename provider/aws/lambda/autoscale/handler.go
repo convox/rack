@@ -169,16 +169,18 @@ func clusterMetrics() (*Metrics, *Metrics, error) {
 					}
 				}
 
-				if cpu > largest.Cpu {
-					largest.Cpu = cpu
-				}
+				if *s.DesiredCount > 0 {
+					if cpu > largest.Cpu {
+						largest.Cpu = cpu
+					}
 
-				if mem > largest.Memory {
-					largest.Memory = mem
-				}
+					if mem > largest.Memory {
+						largest.Memory = mem
+					}
 
-				if width > largest.Width {
-					largest.Width = width
+					if width > largest.Width {
+						largest.Width = width
+					}
 				}
 
 				fmt.Printf("cpu = %+v\n", cpu)
