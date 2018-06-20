@@ -469,7 +469,13 @@
       {{ end }}
       "Properties": {
         "Cluster": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Cluster" } },
-        "DeploymentConfiguration": { "MinimumHealthyPercent": "50", "MaximumPercent": "200" },
+        "DeploymentConfiguration": {
+          {{ if .Singleton }}
+            "MinimumHealthyPercent": "0", "MaximumPercent": "100"
+          {{ else }}
+            "MinimumHealthyPercent": "50", "MaximumPercent": "200"
+          {{ end }}
+        },
         {{ if .Scale.Autoscale }}
           {{ if index $.First .Name }}
             "DesiredCount": "{{.Scale.Count.Min}}",
