@@ -506,6 +506,11 @@
       "Description": "Number of days to keep logs (blank for unlimited)",
       "Type": "String"
     },
+    "LogServiceEventsIntervalSeconds": {
+      "Type": "Number",
+      "Default": "1",
+      "Description": "How often to poll ECS for service events. Longer intervals may alleviate rate limiting / throttling from ECS."
+    },
     "MaxAvailabilityZones": {
       "Type": "Number",
       "Default": "3",
@@ -2354,6 +2359,7 @@
               { "Name": "HTTPS_PROXY", "Value": { "Ref": "HttpProxy" } },
               { "Name": "INTERNAL", "Value": { "Ref": "Internal" } },
               { "Name": "LOG_GROUP", "Value": { "Ref": "LogGroup" } },
+              { "Name": "LOG_SERVICE_EVENTS_INTERVAL_SECONDS", "Value": { "Ref": "LogServiceEventsIntervalSeconds" } },
               { "Name": "NOTIFICATION_HOST", "Value": { "Fn::GetAtt": [ "Balancer", "DNSName" ] } },
               { "Name": "NOTIFICATION_TOPIC", "Value": { "Ref": "NotificationTopic" } },
               { "Name": "ON_DEMAND_MIN_COUNT", "Value": { "Ref": "OnDemandMinCount" } },
