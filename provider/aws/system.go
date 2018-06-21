@@ -446,7 +446,7 @@ func (p *AWSProvider) SystemUninstall(name string, opts structs.SystemUninstallO
 		}
 	}
 
-	return fmt.Errorf("unimplemented")
+	return nil
 }
 
 func (p *AWSProvider) SystemUpdate(opts structs.SystemUpdateOptions) error {
