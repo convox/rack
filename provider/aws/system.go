@@ -1,20 +1,32 @@
 package aws
 
 import (
+	"bufio"
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
+	"net/http"
+	"os"
+	"os/exec"
+	"sort"
 	"strconv"
+	"strings"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/aws/aws-sdk-go/service/kms"
 	"github.com/convox/rack/structs"
+	"github.com/fatih/color"
 	"golang.org/x/crypto/nacl/secretbox"
+
+	cv "github.com/convox/version"
 )
 
 const (
@@ -191,8 +203,98 @@ func (p *AWSProvider) SystemGet() (*structs.System, error) {
 	return r, nil
 }
 
-func (p *AWSProvider) SystemInstall(name string, opts structs.SystemInstallOptions) (string, error) {
-	return "", fmt.Errorf("unimplemented")
+func (p *AWSProvider) SystemInstall(opts structs.SystemInstallOptions) (string, error) {
+	name := cs(opts.Name, "convox")
+
+	var version string
+
+	if opts.Version != nil {
+		version = *opts.Version
+	} else {
+		v, err := cv.Latest()
+		if err != nil {
+			return "", err
+		}
+		version = v
+	}
+
+	if err := setupCredentials(); err != nil {
+		return "", err
+	}
+
+	template := fmt.Sprintf("https://convox.s3.amazonaws.com/release/%s/rack.json", version)
+
+	tres, err := http.Get(template)
+	if err != nil {
+		return "", err
+	}
+
+	defer tres.Body.Close()
+
+	tdata, err := ioutil.ReadAll(tres.Body)
+	if err != nil {
+		return "", err
+	}
+
+	password := randomString(30)
+
+	params := map[string]string{
+		"Password": password,
+		"Version":  version,
+	}
+
+	if opts.Parameters != nil {
+		for k, v := range opts.Parameters {
+			params[k] = v
+		}
+	}
+
+	cf := cloudformation.New(session.New(&aws.Config{}))
+
+	token := randomString(20)
+
+	req := &cloudformation.CreateStackInput{
+		Capabilities:       []*string{aws.String("CAPABILITY_IAM")},
+		ClientRequestToken: aws.String(token),
+		Parameters:         []*cloudformation.Parameter{},
+		StackName:          aws.String(name),
+		TemplateURL:        aws.String(template),
+	}
+
+	for k, v := range params {
+		req.Parameters = append(req.Parameters, &cloudformation.Parameter{
+			ParameterKey:   aws.String(k),
+			ParameterValue: aws.String(v),
+		})
+	}
+
+	if _, err := cf.CreateStack(req); err != nil {
+		return "", err
+	}
+
+	if err := cloudformationProgress(name, token, tdata, opts.Output); err != nil {
+		return "", err
+	}
+
+	dres, err := cf.DescribeStacks(&cloudformation.DescribeStacksInput{
+		StackName: aws.String(name),
+	})
+	if err != nil {
+		return "", err
+	}
+	if len(dres.Stacks) < 1 {
+		return "", fmt.Errorf("could not find stack: %s", name)
+	}
+
+	outputs := map[string]string{}
+
+	for _, o := range dres.Stacks[0].Outputs {
+		outputs[*o.OutputKey] = *o.OutputValue
+	}
+
+	ep := fmt.Sprintf("https://convox:%s@%s", password, outputs["Dashboard"])
+
+	return ep, nil
 }
 
 // SystemLogs streams logs for the Rack
@@ -279,6 +381,71 @@ func (p *AWSProvider) SystemReleases() (structs.Releases, error) {
 }
 
 func (p *AWSProvider) SystemUninstall(name string, opts structs.SystemUninstallOptions) error {
+	if err := setupCredentials(); err != nil {
+		return err
+	}
+
+	cf := cloudformation.New(session.New(&aws.Config{}))
+
+	dres, err := cf.DescribeStacks(&cloudformation.DescribeStacksInput{StackName: aws.String(name)})
+	if err != nil {
+		return err
+	}
+	if len(dres.Stacks) < 1 {
+		return fmt.Errorf("could not find rack: %s", name)
+	}
+
+	deps, err := rackDependencies(name)
+	if err != nil {
+		return err
+	}
+
+	if opts.Output != nil {
+		fmt.Fprintf(opts.Output, "The following stacks will be deleted:\n")
+
+		for _, d := range deps {
+			fmt.Fprintf(opts.Output, "  %s\n", d)
+		}
+
+		if opts.Input != nil && !opts.Force {
+			fmt.Fprintf(opts.Output, "Delete everything? [y/N]: ")
+
+			answer, err := bufio.NewReader(opts.Input).ReadString('\n')
+			if err != nil {
+				return err
+			}
+
+			if strings.ToLower(strings.TrimSpace(answer)) != "y" {
+				return fmt.Errorf("aborting")
+			}
+		}
+	}
+
+	for _, d := range deps {
+		tres, err := cf.GetTemplate(&cloudformation.GetTemplateInput{StackName: aws.String(d)})
+		if err != nil {
+			return err
+		}
+
+		if opts.Output != nil {
+			fmt.Fprintf(opts.Output, color.HiBlueString("Deleting stack: %s\n"), d)
+		}
+
+		token := randomString(20)
+
+		_, err = cf.DeleteStack(&cloudformation.DeleteStackInput{
+			ClientRequestToken: aws.String(token),
+			StackName:          aws.String(d),
+		})
+		if err != nil {
+			return err
+		}
+
+		if err := cloudformationProgress(d, token, []byte(*tres.TemplateBody), opts.Output); err != nil {
+			return err
+		}
+	}
+
 	return fmt.Errorf("unimplemented")
 }
 
@@ -330,4 +497,234 @@ func (p *AWSProvider) SystemUpdate(opts structs.SystemUpdateOptions) error {
 	p.EventSend("rack:update", structs.EventSendOptions{Data: changes})
 
 	return nil
+}
+
+func awscli(args ...string) ([]byte, error) {
+	return exec.Command("aws", args...).CombinedOutput()
+}
+
+func cloudformationProgress(stack, token string, template []byte, w io.Writer) error {
+	var formation struct {
+		Resources map[string]interface{}
+	}
+
+	if err := json.Unmarshal(template, &formation); err != nil {
+		return err
+	}
+
+	longest := 0
+
+	for k := range formation.Resources {
+		if l := len(k); l > longest {
+			longest = l
+		}
+	}
+
+	cf := cloudformation.New(session.New(&aws.Config{}))
+
+	if w == nil {
+		w = ioutil.Discard
+	}
+
+	events := map[string]cloudformation.StackEvent{}
+
+	for {
+		eres, err := cf.DescribeStackEvents(&cloudformation.DescribeStackEventsInput{
+			StackName: aws.String(stack),
+		})
+		if err != nil {
+			return nil // stack is gone, we're done
+		}
+
+		sort.Slice(eres.StackEvents, func(i, j int) bool { return eres.StackEvents[i].Timestamp.Before(*eres.StackEvents[j].Timestamp) })
+
+		for _, e := range eres.StackEvents {
+			if e.ClientRequestToken == nil || *e.ClientRequestToken != token {
+				continue
+			}
+
+			if _, ok := events[*e.EventId]; !ok {
+				line := fmt.Sprintf(fmt.Sprintf("%%-20s  %%-%ds  %%s", longest), *e.ResourceStatus, *e.LogicalResourceId, *e.ResourceType)
+
+				switch *e.ResourceStatus {
+				case "CREATE_IN_PROGRESS":
+					fmt.Fprintf(w, "%s\n", color.YellowString(line))
+				case "CREATE_COMPLETE":
+					fmt.Fprintf(w, "%s\n", color.GreenString(line))
+				case "CREATE_FAILED":
+					fmt.Fprintf(w, "%s\n  ERROR: %s\n", color.RedString(line), *e.ResourceStatusReason)
+				case "DELETE_IN_PROGRESS", "DELETE_COMPLETE", "ROLLBACK_IN_PROGRESS", "ROLLBACK_COMPLETE":
+					fmt.Fprintf(w, "%s\n", color.RedString(line))
+				default:
+					fmt.Fprintf(w, "%s\n", line)
+				}
+
+				events[*e.EventId] = *e
+			}
+		}
+
+		dres, err := cf.DescribeStacks(&cloudformation.DescribeStacksInput{
+			StackName: aws.String(stack),
+		})
+		if err != nil {
+			return err
+		}
+		if len(dres.Stacks) < 1 {
+			return fmt.Errorf("could not find stack: %s", stack)
+		}
+
+		stack := dres.Stacks[0]
+
+		switch *stack.StackStatus {
+		case "CREATE_COMPLETE":
+			return nil
+		case "ROLLBACK_COMPLETE":
+			return fmt.Errorf("installation failed")
+		}
+
+		time.Sleep(2 * time.Second)
+	}
+}
+
+func rackDependencies(name string) ([]string, error) {
+	cf := cloudformation.New(session.New(&aws.Config{}))
+
+	stacks := []string{}
+
+	req := &cloudformation.DescribeStacksInput{}
+
+	for {
+		res, err := cf.DescribeStacks(req)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, s := range res.Stacks {
+			for _, t := range s.Tags {
+				if *t.Key == "Rack" && *t.Value == name {
+					stacks = append(stacks, *s.StackName)
+					break
+				}
+			}
+		}
+
+		if res.NextToken == nil {
+			break
+		}
+
+		req.NextToken = res.NextToken
+	}
+
+	stacks = append(stacks, name)
+
+	return stacks, nil
+}
+
+func setupCredentials() error {
+	if os.Getenv("AWS_ACCESS_KEY_ID") == "" {
+		if err := exec.Command("which", "aws").Run(); err != nil {
+			return fmt.Errorf("unable to find aws executable in path")
+		}
+
+		data, err := awscli("iam", "get-account-summary")
+		if err != nil {
+			lines := strings.Split(strings.TrimSpace(string(data)), "\n")
+			return fmt.Errorf("aws cli error: %s", lines[len(lines)-1])
+		}
+
+		env, err := setupCredentialsStatic()
+		if err != nil {
+			return err
+		}
+
+		if env["AWS_ACCESS_KEY_ID"] == "" {
+			env, err = setupCredentialsRole()
+			if err != nil {
+				return err
+			}
+		}
+
+		if env["AWS_ACCESS_KEY_ID"] == "" {
+			return fmt.Errorf("unable to load credentials from aws cli")
+		}
+
+		for k, v := range env {
+			os.Setenv(k, v)
+		}
+	}
+
+	if os.Getenv("AWS_REGION") == "" {
+		os.Setenv("AWS_REGION", "us-east-1")
+	}
+
+	return nil
+}
+
+func setupCredentialsStatic() (map[string]string, error) {
+	rb, err := awscli("configure", "get", "region")
+	if err != nil {
+		return map[string]string{}, nil
+	}
+
+	ab, err := awscli("configure", "get", "aws_access_key_id")
+	if err != nil {
+		return map[string]string{}, nil
+	}
+
+	sb, err := awscli("configure", "get", "aws_secret_access_key")
+	if err != nil {
+		return map[string]string{}, nil
+	}
+
+	env := map[string]string{
+		"AWS_REGION":            strings.TrimSpace(string(rb)),
+		"AWS_ACCESS_KEY_ID":     strings.TrimSpace(string(ab)),
+		"AWS_SECRET_ACCESS_KEY": strings.TrimSpace(string(sb)),
+	}
+
+	return env, nil
+}
+
+func setupCredentialsRole() (map[string]string, error) {
+	rb, err := awscli("configure", "get", "role_arn")
+	if err != nil {
+		return nil, err
+	}
+
+	role := strings.TrimSpace(string(rb))
+
+	if role == "" {
+		return map[string]string{}, nil
+	}
+
+	data, err := awscli("sts", "assume-role", "--role-arn", role, "--role-session-name", "convox-cli")
+	if err != nil {
+		return nil, err
+	}
+
+	var creds struct {
+		Credentials struct {
+			AccessKeyID     string `json:"AccessKeyId"`
+			SecretAccessKey string
+			SessionToken    string
+		}
+	}
+
+	if err := json.Unmarshal(data, &creds); err != nil {
+		return nil, err
+	}
+
+	rgb, err := awscli("configure", "get", "region")
+	if err != nil {
+		return map[string]string{}, nil
+	}
+
+	env := map[string]string{
+		"AWS_REGION":            strings.TrimSpace(string(rgb)),
+		"AWS_ACCESS_KEY_ID":     creds.Credentials.AccessKeyID,
+		"AWS_SECRET_ACCESS_KEY": creds.Credentials.SecretAccessKey,
+		"AWS_SESSION_TOKEN":     creds.Credentials.SessionToken,
+	}
+
+	return env, nil
 }

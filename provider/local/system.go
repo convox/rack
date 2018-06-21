@@ -17,6 +17,8 @@ import (
 
 	"github.com/convox/rack/structs"
 	"github.com/pkg/errors"
+
+	cv "github.com/convox/version"
 )
 
 const (
@@ -94,7 +96,21 @@ func (p *Provider) SystemGet() (*structs.System, error) {
 	return system, log.Success()
 }
 
-func (p *Provider) SystemInstall(name string, opts structs.SystemInstallOptions) (string, error) {
+func (p *Provider) SystemInstall(opts structs.SystemInstallOptions) (string, error) {
+	name := cs(opts.Name, "convox")
+
+	var version string
+
+	if opts.Version != nil {
+		version = *opts.Version
+	} else {
+		v, err := cv.Latest()
+		if err != nil {
+			return "", err
+		}
+		version = v
+	}
+
 	exe, err := os.Executable()
 	if err != nil {
 		return "", err
@@ -110,11 +126,7 @@ func (p *Provider) SystemInstall(name string, opts structs.SystemInstallOptions)
 	}
 
 	if opts.Output != nil {
-		fmt.Fprintf(opts.Output, "pulling: convox/rack:%s\n", *opts.Version)
-	}
-
-	if opts.Version == nil {
-		return "", fmt.Errorf("must specify a version")
+		fmt.Fprintf(opts.Output, "pulling: convox/rack:%s\n", version)
 	}
 
 	if err := launcherInstall("router", opts, exe, "router"); err != nil {

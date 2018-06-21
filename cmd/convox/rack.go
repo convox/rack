@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"io"
+	"net/url"
 	"os"
 	"sort"
 	"strings"
@@ -12,6 +13,7 @@ import (
 	"github.com/convox/rack/structs"
 	"github.com/convox/stdcli"
 
+	pv "github.com/convox/rack/provider"
 	cv "github.com/convox/version"
 )
 
@@ -19,6 +21,12 @@ func init() {
 	CLI.Command("rack", "get information about the rack", Rack, stdcli.CommandOptions{
 		Flags:    []stdcli.Flag{flagRack},
 		Validate: stdcli.Args(0),
+	})
+
+	CLI.Command("rack install", "install a rack", RackInstall, stdcli.CommandOptions{
+		Flags:    append(stdcli.OptionFlags(structs.SystemInstallOptions{})),
+		Usage:    "<type> [Parameter=Value]...",
+		Validate: stdcli.ArgsMin(1),
 	})
 
 	CLI.Command("rack logs", "get logs for the rack", RackLogs, stdcli.CommandOptions{
@@ -64,6 +72,12 @@ func init() {
 		Validate: stdcli.Args(0),
 	})
 
+	CLI.Command("rack uninstall", "uninstall a rack", RackUninstall, stdcli.CommandOptions{
+		Flags:    append(stdcli.OptionFlags(structs.SystemUninstallOptions{}), flagForce),
+		Usage:    "<type> <name>",
+		Validate: stdcli.Args(2),
+	})
+
 	CLI.Command("rack update", "update the rack", RackUpdate, stdcli.CommandOptions{
 		Flags:    []stdcli.Flag{flagRack, flagWait},
 		Validate: stdcli.ArgsMax(1),
@@ -85,6 +99,53 @@ func Rack(c *stdcli.Context) error {
 	i.Add("Router", s.Domain)
 
 	return i.Print()
+}
+
+func RackInstall(c *stdcli.Context) error {
+	var opts structs.SystemInstallOptions
+
+	if err := c.Options(&opts); err != nil {
+		return err
+	}
+
+	opts.Output = c.Writer()
+	opts.Parameters = map[string]string{}
+
+	for _, arg := range c.Args[1:] {
+		parts := strings.SplitN(arg, "=", 2)
+
+		if len(parts) != 2 {
+			return fmt.Errorf("Key=Value expected: %s", arg)
+		}
+
+		opts.Parameters[parts[0]] = parts[1]
+	}
+
+	p := pv.FromName(c.Arg(0))
+
+	ep, err := p.SystemInstall(opts)
+	if err != nil {
+		return err
+	}
+
+	u, err := url.Parse(ep)
+	if err != nil {
+		return err
+	}
+
+	password := ""
+
+	if u.User != nil {
+		if pw, ok := u.User.Password(); ok {
+			password = pw
+		}
+	}
+
+	if err := login(c, u.Host, password); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func RackLogs(c *stdcli.Context) error {
@@ -251,6 +312,33 @@ func RackStart(c *stdcli.Context) error {
 	go handleSignalTermination(name)
 
 	return cmd.Run()
+}
+
+func RackUninstall(c *stdcli.Context) error {
+	var opts structs.SystemUninstallOptions
+
+	if err := c.Options(&opts); err != nil {
+		return err
+	}
+
+	opts.Force = c.Bool("force")
+	opts.Output = c.Writer()
+
+	if c.Reader().IsTerminal() {
+		opts.Input = c.Reader()
+	} else {
+		if !c.Bool("force") {
+			return fmt.Errorf("must use --force for non-interactive uninstall")
+		}
+	}
+
+	p := pv.FromName(c.Arg(0))
+
+	if err := p.SystemUninstall(c.Arg(1), opts); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func RackUpdate(c *stdcli.Context) error {

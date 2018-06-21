@@ -279,6 +279,16 @@ func lastline(data []byte) string {
 	return lines[len(lines)-1]
 }
 
+var randomAlphabet = []rune("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz")
+
+func randomString(size int) string {
+	b := make([]rune, size)
+	for i := range b {
+		b[i] = randomAlphabet[rand.Intn(len(randomAlphabet))]
+	}
+	return string(b)
+}
+
 func recoverWith(f func(err error)) {
 	if r := recover(); r != nil {
 		// coerce r to error type
