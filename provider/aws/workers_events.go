@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -153,9 +154,10 @@ func (p *AWSProvider) handleECSEvents() {
 	log := Logger.At("handleECSEvents")
 
 	prefix := fmt.Sprintf("%s-", p.Rack)
+	logInterval := strconv.Atoi(os.Getenv("LOG_SERVICE_EVENTS_INTERVAL_SECONDS"))
 
 	for {
-		time.Sleep(1 * time.Second)
+		time.Sleep(logInterval * time.Second)
 
 		lreq := &ecs.ListServicesInput{
 			Cluster: aws.String(p.Cluster),
