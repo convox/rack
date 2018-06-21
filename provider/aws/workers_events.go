@@ -154,7 +154,11 @@ func (p *AWSProvider) handleECSEvents() {
 	log := Logger.At("handleECSEvents")
 
 	prefix := fmt.Sprintf("%s-", p.Rack)
-	logInterval := strconv.Atoi(os.Getenv("LOG_SERVICE_EVENTS_INTERVAL_SECONDS"))
+	logInterval, err := strconv.Atoi(os.Getenv("LOG_SERVICE_EVENTS_INTERVAL_SECONDS"))
+	if err != nil {
+		log.Logf("Invalid int value for environment variable LOG_SERVICE_EVENTS_INTERVAL_SECONDS, defaulting to 1")
+		logInterval = 1
+	}
 
 	for {
 		time.Sleep(logInterval * time.Second)
