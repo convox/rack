@@ -23,11 +23,7 @@ func Update(c *stdcli.Context) error {
 		return err
 	}
 
-	fmt.Printf("target = %+v\n", target)
-
 	url := fmt.Sprintf("https://s3.amazonaws.com/convox/release/%s/cli/%s/%s", target, runtime.GOOS, executableName())
-
-	fmt.Printf("url = %+v\n", url)
 
 	res, err := http.Get(url)
 	if err != nil {

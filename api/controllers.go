@@ -1,7 +1,6 @@
 package api
 
 import (
-	"fmt"
 	"io"
 	"sort"
 	"strconv"
@@ -1327,11 +1326,6 @@ func (s *Server) SystemLogs(c *stdapi.Context) error {
 		return err
 	}
 
-	fmt.Printf("opts = %+v\n", opts)
-	if opts.Follow != nil {
-		fmt.Printf("opts.Follow = %+v\n", *opts.Follow)
-	}
-
 	v, err := s.provider(c).SystemLogs(opts)
 	if err != nil {
 		if ae, ok := s.provider(c).(ApiErrorer); ok {
@@ -1424,3 +1418,4 @@ func (s *Server) SystemUpdate(c *stdapi.Context) error {
 func (s *Server) Workers(c *stdapi.Context) error {
 	return stdapi.Errorf(404, "not available via api")
 }
+
