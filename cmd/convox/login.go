@@ -39,6 +39,14 @@ func Login(c *stdcli.Context) error {
 		c.Writef("\n")
 	}
 
+	if err := login(c, hostname, password); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func login(c *stdcli.Context, hostname, password string) error {
 	c.Startf("Authenticating with <info>%s</info>", hostname)
 
 	cl, err := sdk.New(fmt.Sprintf("https://convox:%s@%s", password, hostname))

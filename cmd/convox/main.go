@@ -16,6 +16,7 @@ var (
 
 var (
 	flagApp      = stdcli.StringFlag("app", "a", "app name")
+	flagForce    = stdcli.BoolFlag("force", "", "proceed without confirmation")
 	flagId       = stdcli.BoolFlag("id", "", "put logs on stderr, release id on stdout")
 	flagNoFollow = stdcli.BoolFlag("no-follow", "", "do not follow logs")
 	flagRack     = stdcli.StringFlag("rack", "r", "rack name")

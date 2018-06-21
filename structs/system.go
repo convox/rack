@@ -17,10 +17,10 @@ type System struct {
 }
 
 type SystemInstallOptions struct {
-	Color    *bool
-	Output   io.Writer
-	Password *string
-	Version  *string
+	Name       *string `flag:"name,n"`
+	Output     io.Writer
+	Parameters map[string]string
+	Version    *string `flag:"version,v"`
 }
 
 type SystemProcessesOptions struct {
@@ -28,7 +28,8 @@ type SystemProcessesOptions struct {
 }
 
 type SystemUninstallOptions struct {
-	Color  *bool
+	Force  bool
+	Input  io.Reader
 	Output io.Writer
 }
 
