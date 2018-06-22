@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"reflect"
 	"strings"
 	"time"
@@ -172,6 +173,12 @@ func (c *Context) SettingRead(name string) (string, error) {
 func (c *Context) SettingWrite(name, value string) error {
 	file, err := c.engine.settingFile(name)
 	if err != nil {
+		return err
+	}
+
+	dir := filepath.Dir(file)
+
+	if err := os.MkdirAll(dir, 0700); err != nil {
 		return err
 	}
 

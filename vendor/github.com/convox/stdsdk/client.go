@@ -61,7 +61,7 @@ func (c *Client) Head(path string, opts RequestOptions, out *bool) error {
 		return err
 	}
 
-	res, err := c.handleRequest(req)
+	res, err := c.HandleRequest(req)
 	if err != nil {
 		return err
 	}
@@ -82,7 +82,7 @@ func (c *Client) Options(path string, opts RequestOptions, out interface{}) erro
 		return err
 	}
 
-	res, err := c.handleRequest(req)
+	res, err := c.HandleRequest(req)
 	if err != nil {
 		return err
 	}
@@ -96,7 +96,7 @@ func (c *Client) GetStream(path string, opts RequestOptions) (*http.Response, er
 		return nil, err
 	}
 
-	return c.handleRequest(req)
+	return c.HandleRequest(req)
 }
 
 func (c *Client) Get(path string, opts RequestOptions, out interface{}) error {
@@ -116,7 +116,7 @@ func (c *Client) PostStream(path string, opts RequestOptions) (*http.Response, e
 		return nil, err
 	}
 
-	res, err := c.handleRequest(req)
+	res, err := c.HandleRequest(req)
 	if err != nil {
 		return nil, err
 	}
@@ -141,7 +141,7 @@ func (c *Client) PutStream(path string, opts RequestOptions) (*http.Response, er
 		return nil, err
 	}
 
-	return c.handleRequest(req)
+	return c.HandleRequest(req)
 }
 
 func (c *Client) Put(path string, opts RequestOptions, out interface{}) error {
@@ -161,7 +161,7 @@ func (c *Client) Delete(path string, opts RequestOptions, out interface{}) error
 		return err
 	}
 
-	res, err := c.handleRequest(req)
+	res, err := c.HandleRequest(req)
 	if err != nil {
 		return err
 	}
@@ -288,7 +288,7 @@ func (c *Client) Request(method, path string, opts RequestOptions) (*http.Reques
 	return req, nil
 }
 
-func (c *Client) handleRequest(req *http.Request) (*http.Response, error) {
+func (c *Client) HandleRequest(req *http.Request) (*http.Response, error) {
 	res, err := DefaultClient.Do(req)
 	if err != nil {
 		return nil, err
