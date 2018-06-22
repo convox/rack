@@ -133,13 +133,13 @@
   branch = "master"
   name = "github.com/convox/stdcli"
   packages = ["."]
-  revision = "00ee0dedbeac22305394ee520e58e865e4a9e358"
+  revision = "543495cb19908f6d14d9b63d2476c85843119ef7"
 
 [[projects]]
   branch = "master"
   name = "github.com/convox/stdsdk"
   packages = ["."]
-  revision = "fb4ab2691ace511600e1c4a4bbb0efeffb9190ba"
+  revision = "d37108339029baf9cd30c12502b085a6e6f53eda"
 
 [[projects]]
   branch = "master"
@@ -485,6 +485,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "cbbf6afd44d07fd80d59dec05ee07ba97ef28e29f10f2b41a64900b5cea8b24a"
+  inputs-digest = "73235aba4c312d843ce74c5fed3b93c7b6ff55762dcbeb634081ce1750cb816b"
   solver-name = "gps-cdcl"
   solver-version = 1

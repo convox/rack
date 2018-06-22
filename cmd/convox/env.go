@@ -146,9 +146,26 @@ func EnvUnset(c *stdcli.Context) error {
 
 	c.Startf(fmt.Sprintf("Unsetting %s", strings.Join(keys, ", ")))
 
-	r, err := provider(c).ReleaseCreate(app(c), structs.ReleaseCreateOptions{Env: options.String(env.String())})
+	s, err := provider(c).SystemGet()
 	if err != nil {
 		return err
+	}
+
+	var r *structs.Release
+
+	// TODO version
+	if s.Version < "dev" {
+		for _, e := range c.Args {
+			r, err = provider(c).EnvironmentUnset(app(c), e)
+			if err != nil {
+				return err
+			}
+		}
+	} else {
+		r, err = provider(c).ReleaseCreate(app(c), structs.ReleaseCreateOptions{Env: options.String(env.String())})
+		if err != nil {
+			return err
+		}
 	}
 
 	c.OK()

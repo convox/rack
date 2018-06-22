@@ -52,6 +52,27 @@ func (c *Client) BuildImportUrl(app string, r io.Reader) (*structs.Build, error)
 	return b, nil
 }
 
+func (c *Client) EnvironmentUnset(app string, key string) (*structs.Release, error) {
+	req, err := c.Request("DELETE", fmt.Sprintf("/apps/%s/environment/%s", app, key), stdsdk.RequestOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := c.HandleRequest(req)
+	if err != nil {
+		return nil, err
+	}
+
+	id := res.Header.Get("Release-Id")
+
+	r, err := c.ReleaseGet(app, id)
+	if err != nil {
+		return nil, err
+	}
+
+	return r, nil
+}
+
 func (c *Client) ProcessRunAttached(app, service string, rw io.ReadWriter, opts structs.ProcessRunOptions) (int, error) {
 	ro, err := stdsdk.MarshalOptions(opts)
 	if err != nil {
