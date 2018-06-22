@@ -125,7 +125,19 @@ func ResourcesCreate(c *stdcli.Context) error {
 
 	c.Startf("Creating resource")
 
-	r, err := provider(c).ResourceCreate(c.Arg(0), opts)
+	s, err := provider(c).SystemGet()
+	if err != nil {
+		return err
+	}
+
+	var r *structs.Resource
+
+	// TODO version
+	if s.Version < "dev" {
+		r, err = provider(c).ResourceCreateClassic(c.Arg(0), opts)
+	} else {
+		r, err = provider(c).ResourceCreate(c.Arg(0), opts)
+	}
 	if err != nil {
 		return err
 	}
@@ -334,10 +346,22 @@ func ResourcesUpdate(c *stdcli.Context) error {
 
 	c.Startf("Updating resource")
 
+	s, err := provider(c).SystemGet()
+	if err != nil {
+		return err
+	}
+
 	resource := c.Arg(0)
 
-	if _, err := provider(c).ResourceUpdate(resource, opts); err != nil {
-		return err
+	// TODO version
+	if s.Version < "dev" {
+		if _, err := provider(c).ResourceUpdateClassic(resource, opts); err != nil {
+			return err
+		}
+	} else {
+		if _, err := provider(c).ResourceUpdate(resource, opts); err != nil {
+			return err
+		}
 	}
 
 	if c.Bool("wait") {

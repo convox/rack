@@ -54,7 +54,7 @@ func (s *Server) setupRoutes(r stdapi.Router) {
 	r.Route("DELETE", "/resources/{name}", s.ResourceDelete)
 	r.Route("GET", "/resources/{name}", s.ResourceGet)
 	r.Route("POST", "/resources/{name}/links", s.ResourceLink)
-	r.Route("GET", "/resources/", s.ResourceList)
+	r.Route("GET", "/resources", s.ResourceList)
 	r.Route("OPTIONS", "/resources", s.ResourceTypes)
 	r.Route("DELETE", "/resources/{name}/links/{app}", s.ResourceUnlink)
 	r.Route("PUT", "/resources/{name}", s.ResourceUpdate)

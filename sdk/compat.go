@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"math/rand"
 
 	"github.com/convox/rack/structs"
 	"github.com/convox/stdsdk"
@@ -65,4 +66,52 @@ func (c *Client) ProcessRunAttached(app, service string, rw io.ReadWriter, opts 
 	}
 
 	return code, nil
+}
+
+func (c *Client) ResourceCreateClassic(kind string, opts structs.ResourceCreateOptions) (*structs.Resource, error) {
+	ro := stdsdk.RequestOptions{
+		Params: stdsdk.Params{
+			"type": kind,
+		},
+	}
+
+	if opts.Name != nil {
+		ro.Params["name"] = *opts.Name
+	} else {
+		ro.Params["name"] = fmt.Sprintf("%s-%d", kind, (rand.Intn(8999) + 1000))
+	}
+
+	if opts.Parameters != nil {
+		for k, v := range opts.Parameters {
+			ro.Params[k] = v
+		}
+	}
+
+	var r *structs.Resource
+
+	if err := c.Post("/resources", ro, &r); err != nil {
+		return nil, err
+	}
+
+	return r, nil
+}
+
+func (c *Client) ResourceUpdateClassic(name string, opts structs.ResourceUpdateOptions) (*structs.Resource, error) {
+	ro := stdsdk.RequestOptions{
+		Params: stdsdk.Params{},
+	}
+
+	if opts.Parameters != nil {
+		for k, v := range opts.Parameters {
+			ro.Params[k] = v
+		}
+	}
+
+	var r *structs.Resource
+
+	if err := c.Put(fmt.Sprintf("/resources/%s", name), ro, &r); err != nil {
+		return nil, err
+	}
+
+	return r, nil
 }

@@ -52,7 +52,7 @@ var routes = map[string]string{
 	"ResourceDelete":      "DELETE /resources/{name}",
 	"ResourceGet":         "GET /resources/{name}",
 	"ResourceLink":        "POST /resources/{name}/links",
-	"ResourceList":        "GET /resources/",
+	"ResourceList":        "GET /resources",
 	"ResourceTypes":       "OPTIONS /resources",
 	"ResourceUnlink":      "DELETE /resources/{name}/links/{app}",
 	"ResourceUpdate":      "PUT /resources/{name}",
