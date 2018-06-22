@@ -703,7 +703,7 @@ func (c *Client) ResourceList() (structs.Resources, error) {
 
 	var v structs.Resources
 
-	err = c.Get(fmt.Sprintf("/resources/"), ro, &v)
+	err = c.Get(fmt.Sprintf("/resources"), ro, &v)
 
 	return v, err
 }

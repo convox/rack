@@ -4,10 +4,12 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io"
+	"math/rand"
 	"net/http"
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/convox/rack/structs"
 	"github.com/convox/stdsdk"
@@ -30,6 +32,10 @@ type Client struct {
 
 // ensure interface parity
 var _ structs.Provider = &Client{}
+
+func init() {
+	rand.Seed(time.Now().UTC().UnixNano())
+}
 
 func New(endpoint string) (*Client, error) {
 	s, err := stdsdk.New(coalesce(endpoint, "https://rack.convox"))
