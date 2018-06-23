@@ -155,7 +155,7 @@ func (p *AWSProvider) handleECSEvents() {
 	prefix := fmt.Sprintf("%s-", p.Rack)
 
 	for {
-		time.Sleep(1 * time.Second)
+		time.Sleep(time.Duration(p.EcsPollInterval) * time.Second)
 
 		lreq := &ecs.ListServicesInput{
 			Cluster: aws.String(p.Cluster),
