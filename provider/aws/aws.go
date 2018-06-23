@@ -3,6 +3,7 @@ package aws
 import (
 	"math/rand"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -50,6 +51,7 @@ type AWSProvider struct {
 	Development         bool
 	DynamoBuilds        string
 	DynamoReleases      string
+	EcsPollInterval     int
 	EncryptionKey       string
 	Fargate             bool
 	Internal            bool
@@ -98,6 +100,12 @@ func FromEnv() *AWSProvider {
 		SubnetsPrivate:      os.Getenv("SUBNETS_PRIVATE"),
 		Vpc:                 os.Getenv("VPC"),
 		VpcCidr:             os.Getenv("VPCCIDR"),
+	}
+
+	if i, err := strconv.Atoi(os.Getenv("ECS_POLL_INTERVAL")); err != nil {
+		p.EcsPollInterval = 1
+	} else {
+		p.EcsPollInterval = i
 	}
 
 	return p

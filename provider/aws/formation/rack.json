@@ -426,6 +426,11 @@
       "Default": "No",
       "AllowedValues": [ "Yes", "No" ]
     },
+    "EcsPollInterval": {
+      "Type": "Number",
+      "Default": "1",
+      "Description": "How often to poll ECS for service events in seconds. Longer intervals may alleviate rate limiting / throttling from ECS."
+    },
     "EncryptEbs": {
       "Type": "String",
       "Description": "Enable encryption at rest for EBS volumes",
@@ -505,11 +510,6 @@
       "Default": "",
       "Description": "Number of days to keep logs (blank for unlimited)",
       "Type": "String"
-    },
-    "LogServiceEventsIntervalSeconds": {
-      "Type": "Number",
-      "Default": "1",
-      "Description": "How often to poll ECS for service events. Longer intervals may alleviate rate limiting / throttling from ECS."
     },
     "MaxAvailabilityZones": {
       "Type": "Number",
@@ -2354,12 +2354,12 @@
               { "Name": "CUSTOM_TOPIC", "Value": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] } },
               { "Name": "DYNAMO_BUILDS", "Value": { "Ref": "DynamoBuilds" } },
               { "Name": "DYNAMO_RELEASES", "Value": { "Ref": "DynamoReleases" } },
+              { "Name": "ECS_POLL_INTERVAL", "Value": { "Ref": "EcsPollInterval" } },
               { "Name": "ENCRYPTION_KEY", "Value": { "Ref": "EncryptionKey" } },
               { "Name": "HTTP_PROXY", "Value": { "Ref": "HttpProxy" } },
               { "Name": "HTTPS_PROXY", "Value": { "Ref": "HttpProxy" } },
               { "Name": "INTERNAL", "Value": { "Ref": "Internal" } },
               { "Name": "LOG_GROUP", "Value": { "Ref": "LogGroup" } },
-              { "Name": "LOG_SERVICE_EVENTS_INTERVAL_SECONDS", "Value": { "Ref": "LogServiceEventsIntervalSeconds" } },
               { "Name": "NOTIFICATION_HOST", "Value": { "Fn::GetAtt": [ "Balancer", "DNSName" ] } },
               { "Name": "NOTIFICATION_TOPIC", "Value": { "Ref": "NotificationTopic" } },
               { "Name": "ON_DEMAND_MIN_COUNT", "Value": { "Ref": "OnDemandMinCount" } },
