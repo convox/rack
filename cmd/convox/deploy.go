@@ -19,8 +19,6 @@ func Deploy(c *stdcli.Context) error {
 		return err
 	}
 
-	c.Startf("Promoting <release>%s</release>", b.Release)
-
 	if err := releasePromote(c, app(c), b.Release); err != nil {
 		return err
 	}
