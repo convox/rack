@@ -88,8 +88,8 @@ type ServiceScaleTargets struct {
 	Requests int
 }
 
-func (s Service) BuildHash() string {
-	return fmt.Sprintf("%x", sha1.Sum([]byte(fmt.Sprintf("build[path=%q, manifest=%q, args=%v] image=%q", s.Build.Path, s.Build.Manifest, s.Build.Args, s.Image))))
+func (s Service) BuildHash(prefix string) string {
+	return fmt.Sprintf("%x", sha1.Sum([]byte(fmt.Sprintf("prefix=%q build[path=%q, manifest=%q, args=%v] image=%q", prefix, s.Build.Path, s.Build.Manifest, s.Build.Args, s.Image))))
 }
 
 func (s Service) Domain() string {

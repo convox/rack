@@ -38,7 +38,7 @@ func (m *Manifest) Build(prefix string, tag string, opts BuildOptions) error {
 	tags := map[string][]string{}
 
 	for _, s := range m.Services {
-		hash := s.BuildHash()
+		hash := s.BuildHash(prefix)
 		to := fmt.Sprintf("%s/%s:%s", prefix, s.Name, tag)
 
 		if s.Image != "" {
