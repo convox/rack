@@ -3,8 +3,10 @@ package manifest
 import (
 	"fmt"
 	"io"
+	"math/rand"
 	"sort"
 	"strings"
+	"time"
 
 	yaml "gopkg.in/yaml.v2"
 )
@@ -17,6 +19,10 @@ type Manifest struct {
 
 	attributes map[string]bool
 	env        map[string]string
+}
+
+func init() {
+	rand.Seed(time.Now().UnixNano())
 }
 
 func Load(data []byte, env map[string]string) (*Manifest, error) {
