@@ -8,7 +8,6 @@ set -ex
 mkdir -p /etc/ssl/convox
 
 PASSWORD=$(openssl rand -hex 16)
-
 openssl genrsa -des3 -passout pass:${PASSWORD} -out /etc/ssl/convox/server.pass.key 2048
 openssl rsa -passin pass:${PASSWORD} -in /etc/ssl/convox/server.pass.key -out /etc/ssl/convox/server.key
 
