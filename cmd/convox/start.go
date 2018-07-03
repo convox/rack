@@ -51,7 +51,7 @@ func Start(c *stdcli.Context) error {
 		opts.Shift = v
 	}
 
-	if c.String("generation") == "1" || filepath.Base(opts.Manifest) == "docker-compose.yml" {
+	if c.String("generation") == "1" || c.LocalSetting("generation") == "1" || filepath.Base(opts.Manifest) == "docker-compose.yml" {
 		return start.Start1(opts)
 	}
 

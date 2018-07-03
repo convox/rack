@@ -153,6 +153,21 @@ func (c *Context) SettingDelete(name string) error {
 	return nil
 }
 
+func (c *Context) LocalSetting(name string) string {
+	file := filepath.Join(c.engine.localSettingDir(), name)
+
+	if _, err := os.Stat(file); os.IsNotExist(err) {
+		return ""
+	}
+
+	data, err := ioutil.ReadFile(file)
+	if err != nil {
+		return ""
+	}
+
+	return strings.TrimSpace(string(data))
+}
+
 func (c *Context) SettingRead(name string) (string, error) {
 	file, err := c.engine.settingFile(name)
 	if err != nil {

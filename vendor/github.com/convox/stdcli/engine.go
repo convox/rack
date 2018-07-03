@@ -81,3 +81,7 @@ func (e *Engine) settingFile(name string) (string, error) {
 
 	return filepath.Join(home, fmt.Sprintf(".%s", e.Name), name), nil
 }
+
+func (e *Engine) localSettingDir() string {
+	return fmt.Sprintf(".%s", e.Name)
+}

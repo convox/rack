@@ -29,7 +29,7 @@ func app(c *stdcli.Context) string {
 		panic(err)
 	}
 
-	return coalesce(c.String("app"), filepath.Base(wd))
+	return coalesce(c.String("app"), c.LocalSetting("app"), filepath.Base(wd))
 }
 
 func coalesce(ss ...string) string {
@@ -96,6 +96,10 @@ func currentRack(c *stdcli.Context) (string, error) {
 	r, err := c.SettingRead("rack")
 	if err != nil {
 		return "", err
+	}
+
+	if r := c.LocalSetting("rack"); r != "" {
+		return r, nil
 	}
 
 	if r == "" {
