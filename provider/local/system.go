@@ -152,7 +152,7 @@ func (p *Provider) SystemLogs(opts structs.LogsOptions) (io.Reader, error) {
 
 	args := []string{"logs"}
 
-	if opts.Follow != nil && *opts.Follow {
+	if opts.Follow == nil || *opts.Follow {
 		args = append(args, "-f")
 	}
 
