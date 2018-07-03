@@ -7,7 +7,7 @@ export CONVOX_EMAIL=ci@convox.com
 export STACK_NAME=convox-${CIRCLE_BUILD_NUM}
 export $($(dirname $0)/region.sh ${CIRCLE_NODE_INDEX})
 
-convox install --no-autoscale | tee $CIRCLE_ARTIFACTS/convox-installer.log
+convox install | tee $CIRCLE_ARTIFACTS/convox-installer.log
 
 convox login "$(cat ~/.convox/auth | jq --raw-output 'to_entries[0] | .key')"
 
