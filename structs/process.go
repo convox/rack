@@ -39,8 +39,8 @@ type ProcessRunOptions struct {
 	Environment map[string]string
 	Height      *int `header:"Height"`
 	Memory      *int64
-	Release     *string
-	Width       *int `header:"Width"`
+	Release     *string `flag:"release" header:"Release"`
+	Width       *int    `header:"Width"`
 }
 
 func (p *Process) sortKey() string {
