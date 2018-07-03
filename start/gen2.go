@@ -103,6 +103,11 @@ func Start2(opts Options) error {
 			return err
 		}
 
+		b, err = opts.Provider.BuildGet(app, b.Id)
+		if err != nil {
+			return err
+		}
+
 		if err := opts.Provider.ReleasePromote(app, b.Release); err != nil {
 			return err
 		}
