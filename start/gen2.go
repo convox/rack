@@ -88,10 +88,6 @@ func Start2(opts Options) error {
 			return err
 		}
 
-		if err := waitForBuild(opts.Provider, app, b.Id); err != nil {
-			return err
-		}
-
 		logs, err := opts.Provider.BuildLogs(app, b.Id, structs.LogsOptions{})
 		if err != nil {
 			return err
@@ -103,17 +99,8 @@ func Start2(opts Options) error {
 			return err
 		}
 
-		b, err = opts.Provider.BuildGet(app, b.Id)
-		if err != nil {
+		if err := waitForBuild(opts.Provider, app, b.Id); err != nil {
 			return err
-		}
-
-		switch b.Status {
-		case "created", "running", "complete":
-		case "failed":
-			return fmt.Errorf("build failed")
-		default:
-			return fmt.Errorf("unknown build status: %s", b.Status)
 		}
 
 		if err := opts.Provider.ReleasePromote(app, b.Release); err != nil {

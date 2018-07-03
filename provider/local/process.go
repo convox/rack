@@ -104,7 +104,7 @@ func (p *Provider) ProcessLogs(app, pid string, opts structs.LogsOptions) (io.Re
 
 	args := []string{"logs"}
 
-	if opts.Follow != nil && *opts.Follow {
+	if opts.Follow == nil || *opts.Follow {
 		args = append(args, "-f")
 	}
 
