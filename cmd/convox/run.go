@@ -10,7 +10,7 @@ import (
 
 func init() {
 	CLI.Command("run", "execute a command in a new process", Run, stdcli.CommandOptions{
-		Flags:    []stdcli.Flag{flagRack, flagApp},
+		Flags:    append(stdcli.OptionFlags(structs.ProcessRunOptions{}), flagRack, flagApp),
 		Usage:    "<service> <command>",
 		Validate: stdcli.ArgsMin(2),
 	})
@@ -35,13 +35,17 @@ func Run(c *stdcli.Context) error {
 
 	defer c.TerminalRestore()
 
+	var opts structs.ProcessRunOptions
+
+	if err := c.Options(&opts); err != nil {
+		return err
+	}
+
 	// TODO version
 	if s.Version < "dev" {
-		opts := structs.ProcessRunOptions{
-			Command: options.String(strings.Join(c.Args[1:], " ")),
-			Height:  options.Int(h),
-			Width:   options.Int(w),
-		}
+		opts.Command = options.String(strings.Join(c.Args[1:], " "))
+		opts.Height = options.Int(h)
+		opts.Width = options.Int(w)
 
 		code, err := provider(c).ProcessRunAttached(app(c), service, c, opts)
 		if err != nil {
@@ -51,11 +55,9 @@ func Run(c *stdcli.Context) error {
 		return stdcli.Exit(code)
 	}
 
-	ropts := structs.ProcessRunOptions{
-		Command: options.String("sleep 3600"),
-	}
+	opts.Command = options.String("sleep 3600")
 
-	ps, err := provider(c).ProcessRun(app(c), c.Arg(0), ropts)
+	ps, err := provider(c).ProcessRun(app(c), c.Arg(0), opts)
 	if err != nil {
 		return err
 	}
@@ -64,12 +66,12 @@ func Run(c *stdcli.Context) error {
 
 	command := strings.Join(c.Args[1:], " ")
 
-	opts := structs.ProcessExecOptions{
+	eopts := structs.ProcessExecOptions{
 		Height: options.Int(h),
 		Width:  options.Int(w),
 	}
 
-	code, err := provider(c).ProcessExec(app(c), ps.Id, command, c, opts)
+	code, err := provider(c).ProcessExec(app(c), ps.Id, command, c, eopts)
 	if err != nil {
 		return err
 	}
