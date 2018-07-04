@@ -9,25 +9,24 @@ export EXAMPLE_NAME=$1
 # inferred
 export CIRCLE_ARTIFACTS=${CIRCLE_ARTIFACTS:-/tmp/artifacts}
 export CIRCLE_BUILD_NUM=${CIRCLE_BUILD_NUM:-0}
-export APP_NAME=${EXAMPLE_NAME}-${CIRCLE_BUILD_NUM}
-export STACK_NAME=convox-${CIRCLE_BUILD_NUM}
+export APP=${EXAMPLE_NAME}-${CIRCLE_BUILD_NUM}
 
 git clone https://github.com/convox-examples/${EXAMPLE_NAME}.git
 cd ${EXAMPLE_NAME}
 
 if [[ "$EXAMPLE_NAME" != "rails" ]]; then
-  convox apps create $APP_NAME --wait --generation 1
+  convox apps create $APP --wait --generation 1
 else
-  convox apps create $APP_NAME --wait
+  convox apps create $APP --wait
 fi
 
-convox deploy --app $APP_NAME --wait
+convox deploy --app $APP --wait
 
-convox apps info --app $APP_NAME
+convox apps info --app $APP
 
-convox scale web --count 2 --memory 128 --app $APP_NAME --wait
+convox scale web --count 2 --memory 128 --app $APP --wait
 
-hostname=$(convox api get /apps/$APP_NAME/formation | jq -r '.[] | select(.name == "web" and .ports[] == 443) | .hostname')
+hostname=$(convox api get /apps/$APP/formation | jq -r '.[] | select(.name == "web" and .ports[] == 443) | .hostname')
 
 # While the following curl call would work:
 # curl -vi -m2 --retry 60 --retry-delay 20 -k https://$hostname
@@ -40,8 +39,8 @@ while ! curl -m2 $hostname; do
   sleep 20
 done
 
-convox ps --app $APP_NAME
+convox ps --app $APP
 
-convox run --app $APP_NAME web 'bin/test || true'
+convox run --app $APP web 'bin/test || true'
 
-convox logs --app $APP_NAME --follow=false --since=25m
+convox logs --app $APP --follow=false --since=25m
