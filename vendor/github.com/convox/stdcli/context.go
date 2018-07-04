@@ -146,6 +146,10 @@ func (c *Context) SettingDelete(name string) error {
 		return err
 	}
 
+	if _, err := os.Stat(file); os.IsNotExist(err) {
+		return nil
+	}
+
 	if err := os.Remove(file); err != nil {
 		return err
 	}
