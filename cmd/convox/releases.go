@@ -12,7 +12,7 @@ import (
 )
 
 func init() {
-	CLI.Command("releases", "list releases", Releases, stdcli.CommandOptions{
+	CLI.Command("releases", "list releases for an app", Releases, stdcli.CommandOptions{
 		Flags:    append(stdcli.OptionFlags(structs.ReleaseListOptions{}), flagRack, flagApp),
 		Validate: stdcli.Args(0),
 	})
