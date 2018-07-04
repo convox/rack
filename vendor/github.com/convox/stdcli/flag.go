@@ -90,7 +90,7 @@ func (f *Flag) Type() string {
 func (f *Flag) Usage(v string) string {
 	switch f.Type() {
 	case "bool":
-		return v
+		return fmt.Sprintf("%s <u><info></info></u>", v)
 	case "duration", "int", "string":
 		return fmt.Sprintf("%s <u><info>%s</info></u>", v, f.Name)
 	default:

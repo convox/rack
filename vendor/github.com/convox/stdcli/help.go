@@ -68,7 +68,6 @@ func helpCommand(e *Engine, cmd *Command) {
 	}
 
 	for _, f := range fs {
-		// e.Writer.Writef(fmt.Sprintf(fmt.Sprintf("  %%-%ds  %%-%ds   <header>%%s</h1>\n", ll, ls), f.UsageLong(), f.UsageShort(), f.Description))
 		e.Writer.Writef(fmt.Sprintf(fmt.Sprintf("  %%-%ds  %%-%ds\n", ll, ls), f.UsageLong(), f.UsageShort()))
 	}
 }
