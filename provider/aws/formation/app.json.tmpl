@@ -244,7 +244,7 @@
           "HealthyThresholdCount": "2",
           "UnhealthyThresholdCount": "2",
           "HealthCheckPath": "{{.Health.Path}}",
-          "Matcher": { "HttpCode": "200-399" },
+          "Matcher": { "HttpCode": "200-499" },
           "Port": "{{.Port.Port}}",
           "Protocol": "{{ upcase .Port.Scheme }}",
           "TargetGroupAttributes": [
