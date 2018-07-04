@@ -66,5 +66,9 @@ func login(c *stdcli.Context, hostname, password string) error {
 		return err
 	}
 
+	if err := c.SettingDelete("rack"); err != nil {
+		return err
+	}
+
 	return c.OK()
 }
