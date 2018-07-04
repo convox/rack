@@ -26,7 +26,7 @@ convox apps info --app $APP
 
 convox scale web --count 2 --memory 128 --app $APP --wait
 
-hostname=$(convox api get /apps/$APP/formation | jq -r '.[] | select(.name == "web" and .ports[] == 443) | .hostname')
+hostname=$(convox api get /apps/$APP/services | jq -r '.[] | select(.name == "web") | .domain')
 
 # While the following curl call would work:
 # curl -vi -m2 --retry 60 --retry-delay 20 -k https://$hostname
@@ -43,4 +43,4 @@ convox ps --app $APP
 
 convox run --app $APP web 'bin/test || true'
 
-convox logs --app $APP --follow=false --since=25m
+convox logs --app $APP --no-follow --since=25m
