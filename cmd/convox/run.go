@@ -42,7 +42,7 @@ func Run(c *stdcli.Context) error {
 	}
 
 	// TODO version
-	if s.Version < "dev" {
+	if s.Version <= "20180625222015" {
 		opts.Command = options.String(strings.Join(c.Args[1:], " "))
 		opts.Height = options.Int(h)
 		opts.Width = options.Int(w)

@@ -133,7 +133,7 @@ func ResourcesCreate(c *stdcli.Context) error {
 	var r *structs.Resource
 
 	// TODO version
-	if s.Version < "dev" {
+	if s.Version <= "20180625222015" {
 		r, err = provider(c).ResourceCreateClassic(c.Arg(0), opts)
 	} else {
 		r, err = provider(c).ResourceCreate(c.Arg(0), opts)
@@ -354,7 +354,7 @@ func ResourcesUpdate(c *stdcli.Context) error {
 	resource := c.Arg(0)
 
 	// TODO version
-	if s.Version < "dev" {
+	if s.Version <= "20180625222015" {
 		if _, err := provider(c).ResourceUpdateClassic(resource, opts); err != nil {
 			return err
 		}

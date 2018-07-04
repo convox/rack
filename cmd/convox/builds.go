@@ -231,10 +231,9 @@ func BuildsImport(c *stdcli.Context) error {
 
 	var b *structs.Build
 
-	// TODO version
 	if s.Version <= "20180416200237" {
 		b, err = provider(c).BuildImportMultipart(app(c), r)
-	} else if s.Version < "dev" {
+	} else if s.Version <= "20180625222015" { // TODO version
 		b, err = provider(c).BuildImportUrl(app(c), r)
 	} else {
 		b, err = provider(c).BuildImport(app(c), r)
