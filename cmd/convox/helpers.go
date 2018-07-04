@@ -102,9 +102,9 @@ func currentRack(c *stdcli.Context) (string, error) {
 		return r, nil
 	}
 
-	if r == "" {
-		return "", fmt.Errorf("no current rack, try `convox switch <rack>`")
-	}
+	// if r == "" {
+	//   return "", fmt.Errorf("no current rack, try `convox switch <rack>`")
+	// }
 
 	return r, nil
 }
