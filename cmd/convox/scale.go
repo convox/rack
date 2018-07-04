@@ -8,8 +8,8 @@ import (
 )
 
 func init() {
-	CLI.Command("scale", "scale an rack", Scale, stdcli.CommandOptions{
-		Flags: append(stdcli.OptionFlags(structs.ServiceUpdateOptions{}), flagApp, flagRack),
+	CLI.Command("scale", "scale an app", Scale, stdcli.CommandOptions{
+		Flags: append(stdcli.OptionFlags(structs.ServiceUpdateOptions{}), flagApp, flagRack, flagWait),
 		Validate: func(c *stdcli.Context) error {
 			if c.Value("count") != nil || c.Value("cpu") != nil || c.Value("memory") != nil {
 				if len(c.Args) < 1 {
@@ -38,6 +38,12 @@ func Scale(c *stdcli.Context) error {
 
 		if err := provider(c).ServiceUpdate(app(c), service, opts); err != nil {
 			return err
+		}
+
+		if c.Bool("wait") {
+			if err := waitForAppWithLogs(c, app(c)); err != nil {
+				return err
+			}
 		}
 
 		return c.OK()
