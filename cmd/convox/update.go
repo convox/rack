@@ -18,9 +18,16 @@ func init() {
 }
 
 func Update(c *stdcli.Context) error {
-	target, err := cv.Latest()
-	if err != nil {
-		return err
+	target := c.Arg(0)
+
+	// if no version specified, find the latest version
+	if target == "" {
+		v, err := cv.Latest()
+		if err != nil {
+			return err
+		}
+
+		target = v
 	}
 
 	url := fmt.Sprintf("https://s3.amazonaws.com/convox/release/%s/cli/%s/%s", target, runtime.GOOS, executableName())
