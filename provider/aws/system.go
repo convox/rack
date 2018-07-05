@@ -566,6 +566,9 @@ func cloudformationProgress(stack, token string, template []byte, w io.Writer) e
 		dres, err := cf.DescribeStacks(&cloudformation.DescribeStacksInput{
 			StackName: aws.String(stack),
 		})
+		if awsError(err) == "ValidationError" {
+			return nil // stack is gone
+		}
 		if err != nil {
 			return err
 		}
