@@ -23,5 +23,5 @@ func Deploy(c *stdcli.Context) error {
 		return err
 	}
 
-	return c.OK()
+	return nil
 }
