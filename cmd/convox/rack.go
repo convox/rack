@@ -342,18 +342,20 @@ func RackUninstall(c *stdcli.Context) error {
 }
 
 func RackUpdate(c *stdcli.Context) error {
-	s, err := provider(c).SystemGet()
-	if err != nil {
-		return err
-	}
+	target := c.Arg(0)
 
-	// get next available version taking required releases into account
-	target, err := cv.Next(s.Version)
-	if err != nil {
-		return err
-	}
+	// if no version specified, find the next version
+	if target == "" {
+		s, err := provider(c).SystemGet()
+		if err != nil {
+			return err
+		}
 
-	if v := c.Arg(0); v != "" && v < target {
+		v, err := cv.Next(s.Version)
+		if err != nil {
+			return err
+		}
+
 		target = v
 	}
 
