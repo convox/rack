@@ -602,13 +602,17 @@ func rackDependencies(name string) ([]string, error) {
 			return nil, err
 		}
 
+		tags := map[string]string{}
+
 		for _, s := range res.Stacks {
 			for _, t := range s.Tags {
-				if *t.Key == "Rack" && *t.Value == name {
-					stacks = append(stacks, *s.StackName)
-					break
-				}
+				tags[*t.Key] = *t.Value
 			}
+		}
+
+		// if the stack belongs to the rack and is not a resource that belongs to an app
+		if tags["Rack"] == name && !(tags["Type"] == "resource" && tags["App"] != "") {
+			stacks = append(stacks, *s.StackName)
 		}
 
 		if res.NextToken == nil {
