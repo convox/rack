@@ -14,7 +14,8 @@ func init() {
 			stdcli.StringFlag("interface", "i", "interface name"),
 			stdcli.StringFlag("subnet", "s", "subnet cidr"),
 		},
-		Validate: stdcli.Args(0),
+		Invisible: true,
+		Validate:  stdcli.Args(0),
 	})
 }
 

@@ -13,6 +13,7 @@ type Command struct {
 	Command     []string
 	Description string
 	Flags       []Flag
+	Invisible   bool
 	Handler     HandlerFunc
 	Usage       string
 	Validate    Validator
@@ -21,9 +22,10 @@ type Command struct {
 }
 
 type CommandOptions struct {
-	Flags    []Flag
-	Usage    string
-	Validate Validator
+	Flags     []Flag
+	Invisible bool
+	Usage     string
+	Validate  Validator
 }
 
 type HandlerFunc func(*Context) error

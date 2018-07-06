@@ -69,7 +69,8 @@ func init() {
 			stdcli.StringFlag("name", "n", "rack name"),
 			stdcli.StringFlag("router", "r", "router host"),
 		},
-		Validate: stdcli.Args(0),
+		Invisible: true,
+		Validate:  stdcli.Args(0),
 	})
 
 	CLI.Command("rack uninstall", "uninstall a rack", RackUninstall, stdcli.CommandOptions{
