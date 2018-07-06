@@ -53,6 +53,11 @@ func InstancesKeyroll(c *stdcli.Context) error {
 }
 
 func InstancesSsh(c *stdcli.Context) error {
+	s, err := provider(c).SystemGet()
+	if err != nil {
+		return err
+	}
+
 	w, h, err := c.TerminalSize()
 	if err != nil {
 		return err
@@ -67,6 +72,19 @@ func InstancesSsh(c *stdcli.Context) error {
 
 	if command != "" {
 		opts.Command = options.String(command)
+	}
+
+	if s.Version <= "20180705140223" {
+		opts.Command = options.String(strings.Join(c.Args[1:], " "))
+		opts.Height = options.Int(h)
+		opts.Width = options.Int(w)
+
+		code, err := provider(c).InstanceShellClassic(c.Arg(0), c, opts)
+		if err != nil {
+			return err
+		}
+
+		return stdcli.Exit(code)
 	}
 
 	if err := c.TerminalRaw(); err != nil {

@@ -73,6 +73,31 @@ func (c *Client) EnvironmentUnset(app string, key string) (*structs.Release, err
 	return r, nil
 }
 
+func (c *Client) InstanceShellClassic(id string, rw io.ReadWriter, opts structs.InstanceShellOptions) (int, error) {
+	var err error
+
+	// bug in old rack switched these
+	opts.Height, opts.Width = opts.Width, opts.Height
+
+	ro, err := stdsdk.MarshalOptions(opts)
+	if err != nil {
+		return 0, err
+	}
+
+	ro.Headers["Terminal"] = "xterm"
+
+	ro.Body = rw
+
+	var v int
+
+	v, err = c.WebsocketExit(fmt.Sprintf("/instances/%s/ssh", id), ro, rw)
+	if err != nil {
+		return 0, err
+	}
+
+	return v, err
+}
+
 func (c *Client) ProcessRunAttached(app, service string, rw io.ReadWriter, opts structs.ProcessRunOptions) (int, error) {
 	ro, err := stdsdk.MarshalOptions(opts)
 	if err != nil {
