@@ -93,6 +93,7 @@ func TestProcessList(t *testing.T) {
 			Ports:    []string{},
 			Cpu:      0,
 			Memory:   0,
+			Status:   "running",
 		},
 		structs.Process{
 			Id:       "5850760f0846",
@@ -106,6 +107,7 @@ func TestProcessList(t *testing.T) {
 			Ports:    []string{},
 			Cpu:      0,
 			Memory:   0,
+			Status:   "pending",
 		},
 	}
 
@@ -165,6 +167,7 @@ func TestProcessListWithBuildCluster(t *testing.T) {
 			Ports:    []string{},
 			Cpu:      0,
 			Memory:   0,
+			Status:   "running",
 		},
 		structs.Process{
 			Id:       "5850760f0846",
@@ -178,6 +181,7 @@ func TestProcessListWithBuildCluster(t *testing.T) {
 			Ports:    []string{},
 			Cpu:      0,
 			Memory:   0,
+			Status:   "running",
 		},
 		structs.Process{
 			Id:       "5850760f0848",
@@ -191,6 +195,7 @@ func TestProcessListWithBuildCluster(t *testing.T) {
 			Ports:    []string{},
 			Cpu:      0,
 			Memory:   0,
+			Status:   "running",
 		},
 	}
 
@@ -232,7 +237,7 @@ func TestProcessRunDetached(t *testing.T) {
 		Release: options.String("RVFETUHHKKD"),
 	})
 
-	pse := &structs.Process{Id: "5850760f0845", App: "", Command: "ls -la 'name space'", Cpu: 0, Host: "10.0.1.244", Image: "778743527532.dkr.ecr.us-east-1.amazonaws.com/convox-myapp-nkdecwppkq:web.BMPBJLITPZT", Instance: "i-5bc45dc2", Memory: 0, Name: "web", Ports: []string{}, Release: "R1234"}
+	pse := &structs.Process{Id: "5850760f0845", App: "", Command: "ls -la 'name space'", Cpu: 0, Host: "10.0.1.244", Image: "778743527532.dkr.ecr.us-east-1.amazonaws.com/convox-myapp-nkdecwppkq:web.BMPBJLITPZT", Instance: "i-5bc45dc2", Memory: 0, Name: "web", Ports: []string{}, Release: "R1234", Status: "running"}
 
 	assert.NoError(t, err)
 	assert.Equal(t, pse, psa)
@@ -665,6 +670,7 @@ var cycleProcessDescribeTasksAll = awsutil.Cycle{
 						"containerOverrides": []
 					},
 					"taskDefinitionArn": "arn:aws:ecs:us-east-1:778743527532:task-definition/convox-myapp-web:34",
+					"lastStatus": "PENDING",
 					"containerInstanceArn": "arn:aws:ecs:us-east-1:778743527532:container-instance/e126c67d-fa95-4b09-8b4a-3723932cd2aa",
 					"containers": [
 						{
@@ -683,6 +689,7 @@ var cycleProcessDescribeTasksAll = awsutil.Cycle{
 						]
 					},
 					"taskDefinitionArn": "arn:aws:ecs:us-east-1:778743527532:task-definition/convox-myapp-web:34",
+					"lastStatus": "RUNNING",
 					"containerInstanceArn": "arn:aws:ecs:us-east-1:778743527532:container-instance/e126c67d-fa95-4b09-8b4a-3723932cd2aa",
 					"containers": [
 						{
@@ -721,6 +728,7 @@ var cycleProcessDescribeTasksAllWithBuildCluster = awsutil.Cycle{
 						"containerOverrides": []
 					},
 					"taskDefinitionArn": "arn:aws:ecs:us-east-1:778743527532:task-definition/convox-myapp-web:34",
+					"lastStatus": "RUNNING",
 					"containerInstanceArn": "arn:aws:ecs:us-east-1:778743527532:container-instance/e126c67d-fa95-4b09-8b4a-3723932cd2aa",
 					"containers": [
 						{
@@ -739,6 +747,7 @@ var cycleProcessDescribeTasksAllWithBuildCluster = awsutil.Cycle{
 						]
 					},
 					"taskDefinitionArn": "arn:aws:ecs:us-east-1:778743527532:task-definition/convox-myapp-web:34",
+					"lastStatus": "RUNNING",
 					"containerInstanceArn": "arn:aws:ecs:us-east-1:778743527532:container-instance/e126c67d-fa95-4b09-8b4a-3723932cd2aa",
 					"containers": [
 						{
@@ -781,6 +790,7 @@ var cycleProcessDescribeTasksAllOnBuildCluster = awsutil.Cycle{
 						]
 					},
 					"taskDefinitionArn": "arn:aws:ecs:us-east-1:778743527532:task-definition/convox-myapp-web:34",
+					"lastStatus": "RUNNING",
 					"containerInstanceArn": "arn:aws:ecs:us-east-1:778743527532:container-instance/e126c67d-fa95-4b09-8b4a-3723932cd2aa",
 					"containers": [
 						{
