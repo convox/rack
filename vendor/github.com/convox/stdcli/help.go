@@ -14,6 +14,10 @@ func helpGlobal(e *Engine) {
 	cs := []Command{}
 
 	for _, cmd := range e.Commands {
+		if cmd.Invisible {
+			continue
+		}
+
 		cs = append(cs, cmd)
 	}
 
