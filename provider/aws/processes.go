@@ -451,7 +451,12 @@ func (p *AWSProvider) ProcessRun(app, service string, opts structs.ProcessRunOpt
 
 	pid := arnToPid(*task.TaskArn)
 
-	ps, err := p.ProcessGet(app, pid)
+	var ps *structs.Process
+
+	err = retry(5, 1*time.Second, func() error {
+		ps, err = p.ProcessGet(app, pid)
+		return err
+	})
 	if err != nil {
 		return nil, log.Error(err)
 	}

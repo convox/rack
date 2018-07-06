@@ -310,6 +310,26 @@ func remarshal(v interface{}, w interface{}) error {
 	return json.Unmarshal(data, &w)
 }
 
+func retry(times int, interval time.Duration, fn func() error) error {
+	i := 0
+
+	for {
+		err := fn()
+		if err == nil {
+			return nil
+		}
+
+		// add 20% jitter
+		time.Sleep(interval + time.Duration(rand.Intn(int(interval/20))))
+
+		i++
+
+		if i > times {
+			return err
+		}
+	}
+}
+
 func stackName(app *structs.App) string {
 	if _, ok := app.Tags["Rack"]; ok {
 		return fmt.Sprintf("%s-%s", app.Tags["Rack"], app.Name)
