@@ -311,6 +311,17 @@ func waitForAppWithLogs(c *stdcli.Context, app string) error {
 	return nil
 }
 
+func waitForProcessRunning(c *stdcli.Context, app, pid string) error {
+	return wait(1*time.Second, 5*time.Minute, 2, func() (bool, error) {
+		ps, err := provider(c).ProcessGet(app, pid)
+		if err != nil {
+			return false, err
+		}
+
+		return ps.Status == "running", nil
+	})
+}
+
 func waitForRackRunning(c *stdcli.Context) error {
 	return wait(2*time.Second, 30*time.Minute, 3, func() (bool, error) {
 		s, err := provider(c).SystemGet()
