@@ -63,6 +63,10 @@ func Run(c *stdcli.Context) error {
 
 	defer provider(c).ProcessStop(app(c), ps.Id)
 
+	if err := waitForProcessRunning(c, app(c), ps.Id); err != nil {
+		return err
+	}
+
 	command := strings.Join(c.Args[1:], " ")
 
 	eopts := structs.ProcessExecOptions{

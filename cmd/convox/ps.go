@@ -35,10 +35,10 @@ func Ps(c *stdcli.Context) error {
 		return err
 	}
 
-	t := c.Table("ID", "NAME", "RELEASE", "STARTED", "COMMAND")
+	t := c.Table("ID", "SERVICE", "STATUS", "RELEASE", "STARTED", "COMMAND")
 
 	for _, p := range ps {
-		t.AddRow(p.Id, p.Name, p.Release, helpers.Ago(p.Started), p.Command)
+		t.AddRow(p.Id, p.Name, p.Status, p.Release, helpers.Ago(p.Started), p.Command)
 	}
 
 	return t.Print()
@@ -59,6 +59,7 @@ func PsInfo(c *stdcli.Context) error {
 	i.Add("Release", ps.Release)
 	i.Add("Service", ps.Name)
 	i.Add("Started", helpers.Ago(ps.Started))
+	i.Add("Status", ps.Status)
 
 	return i.Print()
 }

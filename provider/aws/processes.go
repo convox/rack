@@ -698,6 +698,7 @@ func (p *AWSProvider) fetchProcess(task *ecs.Task, psch chan structs.Process, er
 		Release: coalesces(labels["convox.release"], env["RELEASE"]),
 		Image:   *cd.Image,
 		Ports:   ports,
+		Status:  taskStatus(*task.LastStatus),
 	}
 
 	if task.ContainerInstanceArn != nil {

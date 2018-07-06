@@ -274,6 +274,10 @@ func humanStatus(original string) string {
 	}
 }
 
+func taskStatus(original string) string {
+	return strings.ToLower(original)
+}
+
 func lastline(data []byte) string {
 	lines := strings.Split(strings.TrimSpace(string(data)), "\n")
 	return lines[len(lines)-1]

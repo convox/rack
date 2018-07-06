@@ -8,18 +8,18 @@ import (
 type Process struct {
 	Id string `json:"id"`
 
-	App      string   `json:"app"`
-	Command  string   `json:"command"`
-	Cpu      float64  `json:"cpu"`
-	Host     string   `json:"host"`
-	Image    string   `json:"image"`
-	Instance string   `json:"instance"`
-	Memory   float64  `json:"memory"`
-	Name     string   `json:"name"`
-	Ports    []string `json:"ports"`
-	Release  string   `json:"release"`
-
-	Started time.Time `json:"started"`
+	App      string    `json:"app"`
+	Command  string    `json:"command"`
+	Cpu      float64   `json:"cpu"`
+	Host     string    `json:"host"`
+	Image    string    `json:"image"`
+	Instance string    `json:"instance"`
+	Memory   float64   `json:"memory"`
+	Name     string    `json:"name"`
+	Ports    []string  `json:"ports"`
+	Release  string    `json:"release"`
+	Started  time.Time `json:"started"`
+	Status   string    `json:"status"`
 }
 
 type Processes []Process
