@@ -27,6 +27,7 @@ func init() {
 	CLI.Writer.Tags["app"] = stdcli.RenderColors(39)
 	CLI.Writer.Tags["build"] = stdcli.RenderColors(23)
 	CLI.Writer.Tags["rack"] = stdcli.RenderColors(26)
+	CLI.Writer.Tags["process"] = stdcli.RenderColors(27)
 	CLI.Writer.Tags["release"] = stdcli.RenderColors(24)
 	CLI.Writer.Tags["service"] = stdcli.RenderColors(25)
 }
