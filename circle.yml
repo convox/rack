@@ -14,7 +14,9 @@ jobs:
           command: ci/tests/example-app rails
           no_output_timeout: 20m
       - run: ci/report.sh
-      - run: ci/uninstall.sh
+      - run:
+          command: ci/uninstall.sh
+          no_output_timeout: 20m
       - run: ci/cleanup.sh
       - store_artifacts:
           path: /tmp/artifacts
