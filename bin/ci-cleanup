@@ -17,6 +17,16 @@ for region in $(cat $base/REGIONS); do
     aws cloudformation delete-stack --stack-name $stack --region $region
   done
 
+  for snapshot in $(aws rds describe-db-snapshots --region $region | jq -r '.DBSnapshots[].DBSnapshotIdentifier'); do
+    echo "deleting rds snapshot: $snapshot ($region)"
+    aws rds delete-db-snapshot --db-snapshot-identifier $snapshot --region $region >/dev/null
+  done
+
+  for repo in $(aws ecr describe-repositories --region $region | jq -r '.repositories[].repositoryName'); do
+    echo "deleting repository: $repo ($region)"
+    aws ecr delete-repository --repository-name $repo --region $region --force >/dev/null
+  done
+
   if [ "${1}" == "all" ]; then
     for eip in $(aws ec2 describe-addresses --region $region | jq -r '.Addresses[] | select(has("PrivateIpAddress") | not) | .AllocationId'); do
       echo "deleting eip: $eip ($region)"
@@ -97,19 +107,9 @@ for region in $(cat $base/REGIONS); do
     #   aws lambda delete-function --function-name $func --region $region
     # done
 
-    for repo in $(aws ecr describe-repositories --region $region | jq -r '.repositories[].repositoryName'); do
-      echo "deleting repository: $repo ($region)"
-      aws ecr delete-repository --repository-name $repo --region $region --force >/dev/null
-    done
-
     for group in $(aws logs describe-log-groups --region $region | jq -r ".logGroups[].logGroupName"); do
       echo "deleting log group: $group ($region)"
       aws logs delete-log-group --log-group-name $group --region $region
-    done
-
-    for snapshot in $(aws rds describe-db-snapshots --region $region | jq -r '.DBSnapshots[].DBSnapshotIdentifier'); do
-      echo "deleting rds snapshot: $snapshot ($region)"
-      aws rds delete-db-snapshot --db-snapshot-identifier $snapshot --region $region >/dev/null
     done
 
     for key in $(aws kms list-keys --region $region | jq -r '.Keys[].KeyId'); do
