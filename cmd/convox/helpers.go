@@ -285,7 +285,9 @@ func wait(interval time.Duration, timeout time.Duration, times int, fn func() (b
 }
 
 func waitForAppRunning(c *stdcli.Context, app string) error {
-	return wait(2*time.Second, 30*time.Minute, 3, func() (bool, error) {
+	time.Sleep(5 * time.Second) // give the stack time to start updating
+
+	return wait(5*time.Second, 30*time.Minute, 2, func() (bool, error) {
 		a, err := provider(c).AppGet(app)
 		if err != nil {
 			return false, err
