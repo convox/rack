@@ -127,7 +127,7 @@
   branch = "master"
   name = "github.com/convox/stdapi"
   packages = ["."]
-  revision = "22d8b398c6b051ddb0c271460d3335600e9b5a32"
+  revision = "f8dd26607bafee868b1bf3857aa86932dd8676a6"
 
 [[projects]]
   branch = "master"
