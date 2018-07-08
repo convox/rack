@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"strings"
 	"time"
 
@@ -33,7 +34,7 @@ func init() {
 	})
 
 	CLI.Command("releases rollback", "copy an old release forward and promote it", ReleasesRollback, stdcli.CommandOptions{
-		Flags:    []stdcli.Flag{flagApp, flagRack},
+		Flags:    []stdcli.Flag{flagApp, flagId, flagRack, flagWait},
 		Validate: stdcli.Args(1),
 	})
 }
@@ -144,6 +145,13 @@ func releasePromote(c *stdcli.Context, app, id string) error {
 }
 
 func ReleasesRollback(c *stdcli.Context) error {
+	var stdout io.Writer
+
+	if c.Bool("id") {
+		stdout = c.Writer().Stdout
+		c.Writer().Stdout = c.Writer().Stderr
+	}
+
 	release := c.Arg(0)
 
 	c.Startf("Rolling back to <release>%s</release>", release)
@@ -167,6 +175,16 @@ func ReleasesRollback(c *stdcli.Context) error {
 
 	if err := provider(c).ReleasePromote(app(c), rn.Id); err != nil {
 		return err
+	}
+
+	if c.Bool("wait") {
+		if err := waitForAppWithLogs(c, app(c)); err != nil {
+			return err
+		}
+	}
+
+	if c.Bool("id") {
+		fmt.Fprintf(stdout, rn.Id)
 	}
 
 	return c.OK()
