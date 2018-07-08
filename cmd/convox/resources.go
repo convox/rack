@@ -29,7 +29,7 @@ func init() {
 	})
 
 	CLI.Command("resources delete", "delete a resource", ResourcesDelete, stdcli.CommandOptions{
-		Flags:    []stdcli.Flag{flagRack},
+		Flags:    []stdcli.Flag{flagRack, flagWait},
 		Usage:    "<name>",
 		Validate: stdcli.Args(1),
 	})
@@ -155,6 +155,12 @@ func ResourcesDelete(c *stdcli.Context) error {
 
 	if err := provider(c).ResourceDelete(c.Arg(0)); err != nil {
 		return err
+	}
+
+	if c.Bool("wait") {
+		if err := waitForResourceDeleted(c, c.Arg(0)); err != nil {
+			return err
+		}
 	}
 
 	return c.OK()

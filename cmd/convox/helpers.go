@@ -325,7 +325,9 @@ func waitForProcessRunning(c *stdcli.Context, app, pid string) error {
 }
 
 func waitForRackRunning(c *stdcli.Context) error {
-	return wait(2*time.Second, 30*time.Minute, 3, func() (bool, error) {
+	time.Sleep(5 * time.Second) // give the stack time to start updating
+
+	return wait(5*time.Second, 30*time.Minute, 2, func() (bool, error) {
 		s, err := provider(c).SystemGet()
 		if err != nil {
 			return false, err
@@ -335,8 +337,25 @@ func waitForRackRunning(c *stdcli.Context) error {
 	})
 }
 
+func waitForResourceDeleted(c *stdcli.Context, resource string) error {
+	time.Sleep(5 * time.Second) // give the stack time to start updating
+
+	return wait(5*time.Second, 30*time.Minute, 2, func() (bool, error) {
+		_, err := provider(c).ResourceGet(resource)
+		if err == nil {
+			return false, nil
+		}
+		if strings.Contains(err.Error(), "does not exist") {
+			return true, nil
+		}
+		return false, err
+	})
+}
+
 func waitForResourceRunning(c *stdcli.Context, resource string) error {
-	return wait(2*time.Second, 30*time.Minute, 3, func() (bool, error) {
+	time.Sleep(5 * time.Second) // give the stack time to start updating
+
+	return wait(5*time.Second, 30*time.Minute, 2, func() (bool, error) {
 		r, err := provider(c).ResourceGet(resource)
 		if err != nil {
 			return false, err

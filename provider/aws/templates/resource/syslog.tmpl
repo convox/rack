@@ -22,14 +22,6 @@
       "Default": "false",
       "Type": "String"
     },
-    "Release": {
-      "Description": "Rack release version",
-      "Type": "String"
-    },
-    "Url": {
-      "Description": "Syslog URL, e.g. 'tcp+tls://logs1.papertrailapp.com:11235'",
-      "Type": "String"
-    },
     "SecurityGroups": {
       "Description": "VpcConfig security groups",
       "Type": "CommaDelimitedList"
@@ -37,6 +29,14 @@
     "SubnetsPrivate": {
       "Description": "VpcConfig private subnets",
       "Type": "CommaDelimitedList"
+    },
+    "Url": {
+      "Description": "Syslog URL, e.g. 'tcp+tls://logs1.papertrailapp.com:11235'",
+      "Type": "String"
+    },
+    "Version": {
+      "Description": "Rack release version",
+      "Type": "String"
     }
   },
   "Resources": {
@@ -66,7 +66,7 @@
       "Properties": {
         "Code": {
           "S3Bucket": { "Fn::Sub": "convox-${AWS::Region}" },
-          "S3Key": { "Fn::Sub": "release/${Release}/lambda/syslog.zip" }
+          "S3Key": { "Fn::Sub": "release/${Version}/lambda/syslog.zip" }
         },
         "Description": { "Ref": "Url" },
         "Handler": "index.handler",

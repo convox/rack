@@ -24,7 +24,7 @@ var resourceSystemParameters = map[string]bool{
 	"SecurityGroups":    true,
 	"Subnets":           true,
 	"SubnetsPrivate":    true,
-	"Url":               true,
+	"Version":           true,
 	"Vpc":               true,
 	"VpcCidr":           true,
 }
@@ -583,6 +583,7 @@ func (p *AWSProvider) appendSystemParameters(s *structs.Resource) error {
 	s.Parameters["SecurityGroups"] = p.SecurityGroup
 	s.Parameters["Subnets"] = p.Subnets
 	s.Parameters["SubnetsPrivate"] = coalesceString(p.SubnetsPrivate, p.Subnets)
+	s.Parameters["Version"] = p.Release
 	s.Parameters["Vpc"] = p.Vpc
 	s.Parameters["VpcCidr"] = p.VpcCidr
 
