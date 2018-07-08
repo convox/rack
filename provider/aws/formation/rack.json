@@ -2299,7 +2299,6 @@
               { "Name": "PRIVATE", "Value": { "Ref": "Private" } },
               { "Name": "PROVIDER", "Value": "aws" },
               { "Name": "RACK", "Value": { "Ref": "AWS::StackName" } },
-              { "Name": "RELEASE", "Value": { "Ref": "Version" } },
               { "Name": "ROLLBAR_TOKEN", "Value": "f67f25b8a9024d5690f997bd86bf14b0" },
               { "Name": "SECURITY_GROUP", "Value": { "Fn::If": [ "BlankInstanceSecurityGroup", { "Ref": "InstancesSecurity" }, { "Ref": "InstanceSecurityGroup" } ] } },
               { "Name": "SEGMENT_WRITE_KEY", "Value": "KLvwCXo6qcTmQHLpF69DEwGf9zh7lt9i" },
@@ -2311,6 +2310,7 @@
                 { "Ref": "Subnet1" },
                 { "Fn::If": [ "ThirdAvailabilityZone", { "Ref": "Subnet2" }, { "Ref": "AWS::NoValue" } ] }
               ] ] } },
+              { "Name": "VERSION", "Value": { "Ref": "Version" } },
               { "Name": "VPC", "Value": { "Fn::If": [ "BlankExistingVpc",
                 { "Ref": "Vpc" },
                 { "Ref": "ExistingVpc" }
@@ -2367,7 +2367,6 @@
               { "Name": "PRIVATE", "Value": { "Ref": "Private" } },
               { "Name": "PROVIDER", "Value": "aws" },
               { "Name": "RACK", "Value": { "Ref": "AWS::StackName" } },
-              { "Name": "RELEASE", "Value": { "Ref": "Version" } },
               { "Name": "ROLLBAR_TOKEN", "Value": "f67f25b8a9024d5690f997bd86bf14b0" },
               { "Name": "SECURITY_GROUP", "Value": { "Fn::If": [ "BlankInstanceSecurityGroup", { "Ref": "InstancesSecurity" }, { "Ref": "InstanceSecurityGroup" } ] } },
               { "Name": "SEGMENT_WRITE_KEY", "Value": "KLvwCXo6qcTmQHLpF69DEwGf9zh7lt9i" },
@@ -2379,6 +2378,7 @@
                 { "Ref": "Subnet1" },
                 { "Fn::If": [ "ThirdAvailabilityZone", { "Ref": "Subnet2" }, { "Ref": "AWS::NoValue" } ] }
               ] ] } },
+              { "Name": "VERSION", "Value": { "Ref": "Version" } },
               { "Name": "VPC", "Value": { "Fn::If": [ "BlankExistingVpc",
                 { "Ref": "Vpc" },
                 { "Ref": "ExistingVpc" }
@@ -2434,7 +2434,6 @@
               { "Name": "PRIVATE", "Value": { "Ref": "Private" } },
               { "Name": "PROVIDER", "Value": "aws" },
               { "Name": "RACK", "Value": { "Ref": "AWS::StackName" } },
-              { "Name": "RELEASE", "Value": { "Ref": "Version" } },
               { "Name": "ROLLBAR_TOKEN", "Value": "f67f25b8a9024d5690f997bd86bf14b0" },
               { "Name": "SECURITY_GROUP", "Value": { "Fn::If": [ "BlankInstanceSecurityGroup", { "Ref": "InstancesSecurity" }, { "Ref": "InstanceSecurityGroup" } ] } },
               { "Name": "SEGMENT_WRITE_KEY", "Value": "KLvwCXo6qcTmQHLpF69DEwGf9zh7lt9i" },
@@ -2450,6 +2449,7 @@
                 { "Fn::Join": [ ",", [ { "Ref": "SubnetPrivate0" }, { "Ref": "SubnetPrivate1" }, { "Fn::If": [ "ThirdAvailabilityZone", { "Ref": "SubnetPrivate2" }, { "Ref": "AWS::NoValue" } ] } ] ] },
                 ""
               ] } },
+              { "Name": "VERSION", "Value": { "Ref": "Version" } },
               { "Name": "VPC", "Value": { "Fn::If": [ "BlankExistingVpc",
                 { "Ref": "Vpc" },
                 { "Ref": "ExistingVpc" }
