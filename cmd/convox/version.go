@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"net/url"
 
 	"github.com/convox/stdcli"
@@ -18,14 +17,11 @@ func Version(c *stdcli.Context) error {
 	c.Writef("client: <info>%s</info>\n", version)
 
 	r, err := currentRack(c)
-	fmt.Printf("r = %+v\n", r)
-	fmt.Printf("err = %+v\n", err)
 	if err != nil {
 		c.Writef("server: <info>none</info>\n")
 		return nil
 	}
 
-	fmt.Printf("provider(c) = %+v\n", provider(c).Client)
 	s, err := provider(c).SystemGet()
 	if err != nil {
 		return err
