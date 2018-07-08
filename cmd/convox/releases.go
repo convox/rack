@@ -113,12 +113,16 @@ func ReleasesPromote(c *stdcli.Context) error {
 	release := c.Arg(0)
 
 	if release == "" {
-		a, err := provider(c).AppGet(app(c))
+		rs, err := provider(c).ReleaseList(app(c), structs.ReleaseListOptions{Limit: options.Int(1)})
 		if err != nil {
 			return err
 		}
 
-		release = a.Release
+		if len(rs) == 0 {
+			return fmt.Errorf("no releases to promote")
+		}
+
+		release = rs[0].Id
 	}
 
 	return releasePromote(c, app(c), release)
