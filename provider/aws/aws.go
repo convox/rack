@@ -92,7 +92,7 @@ func FromEnv() *AWSProvider {
 		Password:            os.Getenv("PASSWORD"),
 		Rack:                os.Getenv("RACK"),
 		RegistryHost:        os.Getenv("REGISTRY_HOST"),
-		Release:             os.Getenv("RELEASE"),
+		Release:             os.Getenv("VERSION"),
 		SecurityGroup:       os.Getenv("SECURITY_GROUP"),
 		SettingsBucket:      os.Getenv("SETTINGS_BUCKET"),
 		Subnets:             os.Getenv("SUBNETS"),
