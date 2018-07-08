@@ -242,7 +242,7 @@ func saveAuth(c *stdcli.Context, host, password string) error {
 }
 
 func streamAppSystemLogs(c *stdcli.Context, app string, done chan bool) {
-	r, err := provider(c).AppLogs(app, structs.LogsOptions{Prefix: options.Bool(true)})
+	r, err := provider(c).AppLogs(app, structs.LogsOptions{Prefix: options.Bool(true), Since: options.Duration(0)})
 	if err != nil {
 		return
 	}
