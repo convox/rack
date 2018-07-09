@@ -93,6 +93,10 @@ func currentRack(c *stdcli.Context) (string, error) {
 		return r, nil
 	}
 
+	if r := os.Getenv("CONVOX_RACK"); r != "" {
+		return r, nil
+	}
+
 	r, err := c.SettingRead("rack")
 	if err != nil {
 		return "", err
