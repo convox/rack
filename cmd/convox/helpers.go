@@ -364,6 +364,9 @@ func waitForResourceDeleted(c *stdcli.Context, resource string) error {
 		if err == nil {
 			return false, nil
 		}
+		if strings.Contains(err.Error(), "no such resource") {
+			return true, nil
+		}
 		if strings.Contains(err.Error(), "does not exist") {
 			return true, nil
 		}

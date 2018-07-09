@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+	"io"
 	"io/ioutil"
 
 	"github.com/convox/rack/helpers"
@@ -22,13 +24,14 @@ func init() {
 	})
 
 	CLI.Command("certs generate", "generate a certificate", CertsGenerate, stdcli.CommandOptions{
-		Flags:    []stdcli.Flag{flagRack},
+		Flags:    []stdcli.Flag{flagId, flagRack},
 		Usage:    "<domain> [domain...]",
 		Validate: stdcli.ArgsMin(1),
 	})
 
 	CLI.Command("certs import", "import a certificate", CertsImport, stdcli.CommandOptions{
 		Flags: []stdcli.Flag{
+			flagId,
 			flagRack,
 			stdcli.StringFlag("chain", "", "intermediate certificate chain"),
 		},
@@ -65,6 +68,13 @@ func CertsDelete(c *stdcli.Context) error {
 }
 
 func CertsGenerate(c *stdcli.Context) error {
+	var stdout io.Writer
+
+	if c.Bool("id") {
+		stdout = c.Writer().Stdout
+		c.Writer().Stdout = c.Writer().Stderr
+	}
+
 	c.Startf("Generating certificate")
 
 	cr, err := provider(c).CertificateGenerate(c.Args)
@@ -72,10 +82,28 @@ func CertsGenerate(c *stdcli.Context) error {
 		return err
 	}
 
-	return c.OK(cr.Id)
+	c.OK(cr.Id)
+
+	if c.Bool("id") {
+		fmt.Fprintf(stdout, cr.Id)
+	}
+
+	return nil
 }
 
 func CertsImport(c *stdcli.Context) error {
+	var stdout io.Writer
+
+	if c.Bool("id") {
+		stdout = c.Writer().Stdout
+		c.Writer().Stdout = c.Writer().Stderr
+	}
+
+	s, err := provider(c).SystemGet()
+	if err != nil {
+		return err
+	}
+
 	pub, err := ioutil.ReadFile(c.Arg(0))
 	if err != nil {
 		return err
@@ -99,10 +127,25 @@ func CertsImport(c *stdcli.Context) error {
 
 	c.Startf("Importing certificate")
 
-	cr, err := provider(c).CertificateCreate(string(pub), string(key), opts)
-	if err != nil {
-		return err
+	var cr *structs.Certificate
+
+	if s.Version <= "20180708231844" {
+		cr, err = provider(c).CertificateCreateClassic(string(pub), string(key), opts)
+		if err != nil {
+			return err
+		}
+	} else {
+		cr, err = provider(c).CertificateCreate(string(pub), string(key), opts)
+		if err != nil {
+			return err
+		}
 	}
 
-	return c.OK(cr.Id)
+	c.OK(cr.Id)
+
+	if c.Bool("id") {
+		fmt.Fprintf(stdout, cr.Id)
+	}
+
+	return nil
 }

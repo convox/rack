@@ -52,6 +52,24 @@ func (c *Client) BuildImportUrl(app string, r io.Reader) (*structs.Build, error)
 	return b, nil
 }
 
+func (c *Client) CertificateCreateClassic(pub string, key string, opts structs.CertificateCreateOptions) (*structs.Certificate, error) {
+	var err error
+
+	ro, err := stdsdk.MarshalOptions(opts)
+	if err != nil {
+		return nil, err
+	}
+
+	ro.Params["public"] = pub
+	ro.Params["private"] = key
+
+	var v *structs.Certificate
+
+	err = c.Post(fmt.Sprintf("/certificates"), ro, &v)
+
+	return v, err
+}
+
 func (c *Client) EnvironmentUnset(app string, key string) (*structs.Release, error) {
 	req, err := c.Request("DELETE", fmt.Sprintf("/apps/%s/environment/%s", app, key), stdsdk.RequestOptions{})
 	if err != nil {
@@ -71,6 +89,19 @@ func (c *Client) EnvironmentUnset(app string, key string) (*structs.Release, err
 	}
 
 	return r, nil
+}
+
+func (c *Client) FormationUpdate(app string, service string, opts structs.ServiceUpdateOptions) error {
+	ro, err := stdsdk.MarshalOptions(opts)
+	if err != nil {
+		return err
+	}
+
+	if err := c.Post(fmt.Sprintf("/apps/%s/formation/%s", app, service), ro, nil); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (c *Client) InstanceShellClassic(id string, rw io.ReadWriter, opts structs.InstanceShellOptions) (int, error) {

@@ -25,6 +25,11 @@ func init() {
 }
 
 func Scale(c *stdcli.Context) error {
+	s, err := provider(c).SystemGet()
+	if err != nil {
+		return err
+	}
+
 	var opts structs.ServiceUpdateOptions
 
 	if err := c.Options(&opts); err != nil {
@@ -36,8 +41,14 @@ func Scale(c *stdcli.Context) error {
 
 		c.Startf("Scaling <service>%s</service>", service)
 
-		if err := provider(c).ServiceUpdate(app(c), service, opts); err != nil {
-			return err
+		if s.Version < "20180708231844" {
+			if err := provider(c).FormationUpdate(app(c), service, opts); err != nil {
+				return err
+			}
+		} else {
+			if err := provider(c).ServiceUpdate(app(c), service, opts); err != nil {
+				return err
+			}
 		}
 
 		if c.Bool("wait") {
