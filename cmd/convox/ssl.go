@@ -17,7 +17,7 @@ func init() {
 	})
 
 	CLI.Command("ssl update", "update certificate for an app", SslUpdate, stdcli.CommandOptions{
-		Flags:    []stdcli.Flag{flagRack, flagApp},
+		Flags:    []stdcli.Flag{flagRack, flagApp, flagWait},
 		Usage:    "<process:port> <certificate>",
 		Validate: stdcli.Args(2),
 	})
@@ -78,6 +78,12 @@ func SslUpdate(c *stdcli.Context) error {
 
 	if err := provider(c).CertificateApply(app(c), parts[0], port, c.Arg(1)); err != nil {
 		return err
+	}
+
+	if c.Bool("wait") {
+		if err := waitForAppRunning(c, app(c)); err != nil {
+			return err
+		}
 	}
 
 	return c.OK()

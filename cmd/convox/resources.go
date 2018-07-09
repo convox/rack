@@ -383,6 +383,18 @@ func ResourcesUrl(c *stdcli.Context) error {
 		return err
 	}
 
+	s, err := provider(c).SystemGet()
+	if err != nil {
+		return err
+	}
+
+	if s.Version <= "20180708231844" {
+		if u := r.Parameters["Url"]; u != "" {
+			fmt.Fprintf(c, "%s\n", u)
+			return nil
+		}
+	}
+
 	if r.Url == "" {
 		return fmt.Errorf("no url for resource: %s", r.Name)
 	}
