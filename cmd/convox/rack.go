@@ -194,6 +194,11 @@ func RackParams(c *stdcli.Context) error {
 }
 
 func RackParamsSet(c *stdcli.Context) error {
+	s, err := provider(c).SystemGet()
+	if err != nil {
+		return err
+	}
+
 	opts := structs.SystemUpdateOptions{
 		Parameters: map[string]string{},
 	}
@@ -210,8 +215,14 @@ func RackParamsSet(c *stdcli.Context) error {
 
 	c.Startf("Updating parameters")
 
-	if err := provider(c).SystemUpdate(opts); err != nil {
-		return err
+	if s.Version < "20180708231844" {
+		if err := provider(c).AppParametersSet(s.Name, opts.Parameters); err != nil {
+			return err
+		}
+	} else {
+		if err := provider(c).SystemUpdate(opts); err != nil {
+			return err
+		}
 	}
 
 	if c.Bool("wait") {

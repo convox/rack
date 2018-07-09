@@ -10,6 +10,32 @@ import (
 	"github.com/convox/stdsdk"
 )
 
+func (c *Client) AppParametersGet(name string) (map[string]string, error) {
+	var params map[string]string
+
+	if err := c.Get(fmt.Sprintf("/apps/%s/parameters", name), stdsdk.RequestOptions{}, &params); err != nil {
+		return nil, err
+	}
+
+	return params, nil
+}
+
+func (c *Client) AppParametersSet(name string, params map[string]string) error {
+	ro := stdsdk.RequestOptions{
+		Params: stdsdk.Params{},
+	}
+
+	for k, v := range params {
+		ro.Params[k] = v
+	}
+
+	if err := c.Post(fmt.Sprintf("/apps/%s/parameters", name), ro, nil); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (c *Client) BuildImportMultipart(app string, r io.Reader) (*structs.Build, error) {
 	data, err := ioutil.ReadAll(r)
 	if err != nil {
