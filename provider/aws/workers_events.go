@@ -13,13 +13,12 @@ import (
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/aws/aws-sdk-go/service/sqs"
+	"github.com/convox/rack/cache"
 )
 
 var (
-	appLogGroups  = map[string]string{}
-	appLogStreams = map[string]appLogStream{}
-	ecsEvents     = map[string]bool{}
-	started       = time.Now().UTC()
+	ecsEvents = map[string]bool{}
+	started   = time.Now().UTC()
 )
 
 type appLogStream struct {
@@ -140,7 +139,8 @@ func (p *AWSProvider) handleCloudformationEvents() {
 		}
 
 		stream.SequenceToken = *pres.NextSequenceToken
-		appLogStreams[app] = stream
+
+		cache.Set("appLogStreams", app, stream, 5*time.Minute)
 
 		return nil
 	})
@@ -223,12 +223,13 @@ func (p *AWSProvider) handleECSEvents() {
 
 				pres, err := p.cloudwatchlogs().PutLogEvents(req)
 				if err != nil {
-					log.Error(err)
+					// log.Error(err)
 					continue
 				}
 
 				stream.SequenceToken = *pres.NextSequenceToken
-				appLogStreams[app] = stream
+
+				cache.Set("appLogStreams", app, stream, 5*time.Minute)
 			}
 
 			// fmt.Printf("sres = %+v\n", sres)
@@ -243,34 +244,37 @@ func (p *AWSProvider) handleECSEvents() {
 }
 
 func (p *AWSProvider) getAppLogStream(app string) (appLogStream, error) {
-	group, ok := appLogGroups[app]
+	group, ok := cache.Get("appLogGroups", app).(string)
 	if !ok {
 		g, err := p.appResource(app, "LogGroup")
 		if err != nil {
 			return appLogStream{}, err
 		}
 		group = g
-		appLogGroups[app] = group
+		cache.Set("appLogGroups", app, group, 5*time.Minute)
 	}
 
-	stream := fmt.Sprintf("system/%d", time.Now().UnixNano())
+	name := fmt.Sprintf("system/%d", time.Now().UnixNano())
 
-	if _, ok := appLogStreams[app]; !ok {
+	stream, ok := cache.Get("appLogStreams", app).(appLogStream)
+	if !ok {
 		_, err := p.cloudwatchlogs().CreateLogStream(&cloudwatchlogs.CreateLogStreamInput{
 			LogGroupName:  aws.String(group),
-			LogStreamName: aws.String(stream),
+			LogStreamName: aws.String(name),
 		})
 		if err != nil {
 			return appLogStream{}, err
 		}
 
-		appLogStreams[app] = appLogStream{
+		stream = appLogStream{
 			LogGroup:  group,
-			LogStream: stream,
+			LogStream: name,
 		}
+
+		cache.Set("appLogStreams", app, stream, 5*time.Minute)
 	}
 
-	return appLogStreams[app], nil
+	return stream, nil
 }
 
 func (p *AWSProvider) processQueue(resource string, fn queueHandler) error {
