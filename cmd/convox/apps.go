@@ -29,7 +29,7 @@ func init() {
 	})
 
 	CLI.Command("apps delete", "delete an app", AppsDelete, stdcli.CommandOptions{
-		Flags:    []stdcli.Flag{flagRack},
+		Flags:    []stdcli.Flag{flagRack, flagWait},
 		Usage:    "<app>",
 		Validate: stdcli.Args(1),
 	})
@@ -121,6 +121,12 @@ func AppsDelete(c *stdcli.Context) error {
 
 	if err := provider(c).AppDelete(app); err != nil {
 		return err
+	}
+
+	if c.Bool("wait") {
+		if err := waitForAppDeleted(c, app); err != nil {
+			return err
+		}
 	}
 
 	return c.OK()
