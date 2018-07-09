@@ -64,7 +64,17 @@ func currentEndpoint(c *stdcli.Context, rack string) (string, error) {
 	}
 
 	if h := os.Getenv("CONVOX_HOST"); h != "" {
-		return fmt.Sprintf("https://convox:%s@%s", os.Getenv("CONVOX_PASSWORD"), h), nil
+		pw := os.Getenv("CONVOX_PASSWORD")
+
+		if pw == "" {
+			pwa, err := hostAuth(c, h)
+			if err != nil {
+				return "", err
+			}
+			pw = pwa
+		}
+
+		return fmt.Sprintf("https://convox:%s@%s", pw, h), nil
 	}
 
 	if strings.HasPrefix(rack, "local/") {
