@@ -80,7 +80,7 @@ func InstancesSsh(c *stdcli.Context) error {
 		opts.Command = options.String(command)
 	}
 
-	if s.Version <= "20180705140223" {
+	if s.Version <= "20180708231844" {
 		opts.Command = options.String(strings.Join(c.Args[1:], " "))
 		opts.Height = options.Int(h)
 		opts.Width = options.Int(w)

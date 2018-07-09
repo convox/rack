@@ -153,7 +153,7 @@ func EnvUnset(c *stdcli.Context) error {
 
 	var r *structs.Release
 
-	if s.Version <= "20180705140223" {
+	if s.Version <= "20180708231844" {
 		for _, e := range c.Args {
 			r, err = provider(c).EnvironmentUnset(app(c), e)
 			if err != nil {

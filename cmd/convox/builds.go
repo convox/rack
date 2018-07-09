@@ -233,7 +233,7 @@ func BuildsImport(c *stdcli.Context) error {
 
 	if s.Version <= "20180416200237" {
 		b, err = provider(c).BuildImportMultipart(app(c), r)
-	} else if s.Version <= "20180705140223" {
+	} else if s.Version <= "20180708231844" {
 		b, err = provider(c).BuildImportUrl(app(c), r)
 	} else {
 		b, err = provider(c).BuildImport(app(c), r)
