@@ -149,14 +149,31 @@ func AppsInfo(c *stdcli.Context) error {
 }
 
 func AppsParams(c *stdcli.Context) error {
-	a, err := provider(c).AppGet(coalesce(c.Arg(0), app(c)))
+	s, err := provider(c).SystemGet()
 	if err != nil {
 		return err
 	}
 
+	var params map[string]string
+
+	app := coalesce(c.Arg(0), app(c))
+
+	if s.Version <= "20180708231844" {
+		params, err = provider(c).AppParametersGet(app)
+		if err != nil {
+			return err
+		}
+	} else {
+		a, err := provider(c).AppGet(app)
+		if err != nil {
+			return err
+		}
+		params = a.Parameters
+	}
+
 	keys := []string{}
 
-	for k := range a.Parameters {
+	for k := range params {
 		keys = append(keys, k)
 	}
 
@@ -165,13 +182,18 @@ func AppsParams(c *stdcli.Context) error {
 	i := c.Info()
 
 	for _, k := range keys {
-		i.Add(k, a.Parameters[k])
+		i.Add(k, params[k])
 	}
 
 	return i.Print()
 }
 
 func AppsParamsSet(c *stdcli.Context) error {
+	s, err := provider(c).SystemGet()
+	if err != nil {
+		return err
+	}
+
 	opts := structs.AppUpdateOptions{
 		Parameters: map[string]string{},
 	}
@@ -188,8 +210,14 @@ func AppsParamsSet(c *stdcli.Context) error {
 
 	c.Startf("Updating parameters")
 
-	if err := provider(c).AppUpdate(app(c), opts); err != nil {
-		return err
+	if s.Version <= "20180708231844" {
+		if err := provider(c).AppParametersSet(app(c), opts.Parameters); err != nil {
+			return err
+		}
+	} else {
+		if err := provider(c).AppUpdate(app(c), opts); err != nil {
+			return err
+		}
 	}
 
 	if c.Bool("wait") {
