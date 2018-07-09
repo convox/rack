@@ -107,6 +107,7 @@ cert=$(convox certs generate example.org --id)
 convox certs | grep -v $cert
 convox certs delete $cert
 cert=$(convox certs import example.org.crt example.org.key --id)
+sleep 30
 convox certs | grep $cert
 certo=$(convox api get /apps/ci1/services | jq -r '.[] | select(.name == "web") | .ports[] | select (.balancer == 443) | .certificate')
 convox ssl -a ci1 | grep web:443 | grep $certo
