@@ -8,7 +8,9 @@ jobs:
       - checkout
       - run: ci/dependencies.sh
       - run: ci/install.sh
-      - run: ci/test.sh
+      - run:
+          command: ci/test.sh
+          no_output_timeout: 20m
       - run: ci/report.sh
       - run: ci/uninstall.sh
       - run: ci/cleanup.sh
