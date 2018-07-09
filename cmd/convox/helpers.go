@@ -296,6 +296,9 @@ func waitForAppDeleted(c *stdcli.Context, app string) error {
 		if err == nil {
 			return false, nil
 		}
+		if strings.Contains(err.Error(), "no such app") {
+			return true, nil
+		}
 		if strings.Contains(err.Error(), "app not found") {
 			return true, nil
 		}
