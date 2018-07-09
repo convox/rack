@@ -36,6 +36,11 @@ convox rack | grep elb.amazonaws.com
 convox rack logs --no-follow | grep service/web
 convox rack ps | grep bin/web
 convox rack releases
+convox rack params | grep LogRetention
+convox rack params set LogRetention=14 --wait
+convox rack params | grep LogRetention | grep 14
+convox rack params set LogRetention= --wait
+convox rack params | grep LogRetention | grep -v 14
 
 # gen2
 cd $root/examples/httpd
@@ -64,6 +69,8 @@ convox releases -a ci2 | grep $releasee
 convox releases info $releasee -a ci2 | grep FOO
 convox releases manifest $releasee -a ci2 | grep "image: httpd"
 convox releases promote $release -a ci2 --wait
+endpoint=$(convox api get /apps/ci2/services | jq -r '.[] | select(.name == "web") | .domain')
+fetch https://$endpoint | grep "It works"
 convox logs -a ci2 --no-follow | grep service/web
 releaser=$(convox releases rollback $release -a ci2 --wait --id)
 convox ps -a ci2 | grep $releaser
@@ -79,13 +86,35 @@ ps=$(convox api get /apps/ci2/processes | jq -r '.[0].id')
 convox exec $ps "ls -la" -a ci2 | grep htdocs
 convox ps stop $ps
 convox deploy -a ci2 --wait
+convox apps params -a ci2 | grep LogRetention
+convox apps params set LogRetention=14 -a ci2 --wait
+convox apps params -a ci2 | grep LogRetention | grep 14
+convox apps params set LogRetention= -a ci2 --wait
+convox apps params -a ci2 | grep LogRetention | grep -v 14
 
 # gen1
+cd $root/examples/httpd
 convox apps create ci1 -g 1 --wait
 convox deploy -a ci1 --wait
 convox services -a ci1 | grep web | grep elb.amazonaws.com | grep 443:80
 endpoint=$(convox api get /apps/ci1/services | jq -r '.[] | select(.name == "web") | .domain')
 fetch https://$endpoint | grep "It works"
+
+# certs
+cd $root/ci/assets
+convox certs
+cert=$(convox certs generate example.org --id)
+convox certs | grep -v $cert
+convox certs delete $cert
+cert=$(convox certs import example.org.crt example.org.key --id)
+convox certs | grep $cert
+certo=$(convox api get /apps/ci1/services | jq -r '.[] | select(.name == "web") | .ports[] | select (.balancer == 443) | .certificate')
+convox ssl -a ci1 | grep web:443 | grep $certo
+convox ssl update web:443 $cert -a ci1 --wait
+convox ssl -a ci1 | grep web:443 | grep $cert
+convox ssl update web:443 $certo -a ci1 --wait
+convox ssl -a ci1 | grep web:443 | grep $certo
+convox certs delete $cert
 
 # resources
 convox resources create syslog Url=tcp://syslog.convox.com --name cilog --wait
