@@ -14,6 +14,11 @@ import (
 )
 
 func (p *AWSProvider) CertificateApply(app, service string, port int, id string) error {
+	fmt.Printf("app = %+v\n", app)
+	fmt.Printf("service = %+v\n", service)
+	fmt.Printf("port = %+v\n", port)
+	fmt.Printf("id = %+v\n", id)
+
 	a, err := p.AppGet(app)
 	if err != nil {
 		return err
@@ -50,40 +55,26 @@ func (p *AWSProvider) certificateApplyGeneration1(a *structs.App, service string
 }
 
 func (p *AWSProvider) CertificateCreate(pub, key string, opts structs.CertificateCreateOptions) (*structs.Certificate, error) {
-	end, _ := pem.Decode([]byte(pub))
-	pub = string(pem.EncodeToMemory(end))
-
-	c, err := x509.ParseCertificate(end.Bytes)
-	if err != nil {
-		return nil, err
-	}
-
-	req := &iam.UploadServerCertificateInput{
-		CertificateBody:       aws.String(pub),
-		PrivateKey:            aws.String(key),
-		ServerCertificateName: aws.String(fmt.Sprintf("cert-%d", time.Now().Unix())),
+	req := &acm.ImportCertificateInput{
+		Certificate: []byte(pub),
+		PrivateKey:  []byte(key),
 	}
 
 	if opts.Chain != nil {
-		req.CertificateChain = aws.String(*opts.Chain)
+		req.CertificateChain = []byte(*opts.Chain)
 	}
 
-	res, err := p.iam().UploadServerCertificate(req)
-
+	res, err := p.acm().ImportCertificate(req)
 	if err != nil {
 		return nil, err
 	}
 
-	parts := strings.Split(*res.ServerCertificateMetadata.Arn, "/")
-	id := parts[len(parts)-1]
-
-	cert := structs.Certificate{
-		Id:         id,
-		Domain:     c.Subject.CommonName,
-		Expiration: *res.ServerCertificateMetadata.Expiration,
+	c, err := p.acmCertificate(*res.CertificateArn)
+	if err != nil {
+		return nil, err
 	}
 
-	return &cert, nil
+	return c, nil
 }
 
 func (p *AWSProvider) CertificateDelete(id string) error {
@@ -209,15 +200,6 @@ func (p *AWSProvider) CertificateList() (structs.Certificates, error) {
 	}
 
 	for _, cert := range ares {
-		parts := strings.Split(*cert.CertificateArn, "-")
-		id := fmt.Sprintf("acm-%s", parts[len(parts)-1])
-
-		c := structs.Certificate{
-			Arn:    *cert.CertificateArn,
-			Id:     id,
-			Domain: *cert.DomainName,
-		}
-
 		tags := map[string]string{}
 
 		tres, err := p.acm().ListTagsForCertificate(&acm.ListTagsForCertificateInput{
@@ -235,28 +217,14 @@ func (p *AWSProvider) CertificateList() (structs.Certificates, error) {
 			continue
 		}
 
-		res, err := p.acm().DescribeCertificate(&acm.DescribeCertificateInput{
-			CertificateArn: cert.CertificateArn,
-		})
+		c, err := p.acmCertificate(*cert.CertificateArn)
 		if err != nil {
 			return nil, err
 		}
 
-		if *res.Certificate.Status != "ISSUED" {
-			continue
+		if c != nil {
+			certs = append(certs, *c)
 		}
-
-		if res.Certificate.NotAfter != nil {
-			c.Expiration = *res.Certificate.NotAfter
-		}
-
-		c.Domains = make([]string, len(res.Certificate.SubjectAlternativeNames))
-
-		for i, san := range res.Certificate.SubjectAlternativeNames {
-			c.Domains[i] = *san
-		}
-
-		certs = append(certs, c)
 	}
 
 	return certs, nil
@@ -273,6 +241,40 @@ type CfsslError struct {
 
 func (e CfsslError) Error() string {
 	return e.Message
+}
+
+func (p *AWSProvider) acmCertificate(arn string) (*structs.Certificate, error) {
+	parts := strings.Split(arn, "-")
+	id := fmt.Sprintf("acm-%s", parts[len(parts)-1])
+
+	c := &structs.Certificate{
+		Arn: arn,
+		Id:  id,
+	}
+
+	res, err := p.acm().DescribeCertificate(&acm.DescribeCertificateInput{
+		CertificateArn: aws.String(arn),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if *res.Certificate.Status != "ISSUED" {
+		return nil, nil
+	}
+
+	if res.Certificate.NotAfter != nil {
+		c.Expiration = *res.Certificate.NotAfter
+	}
+
+	c.Domain = *res.Certificate.DomainName
+	c.Domains = make([]string, len(res.Certificate.SubjectAlternativeNames))
+
+	for i, san := range res.Certificate.SubjectAlternativeNames {
+		c.Domains[i] = *san
+	}
+
+	return c, nil
 }
 
 func (p *AWSProvider) certificateListACM() ([]*acm.CertificateSummary, error) {
