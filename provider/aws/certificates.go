@@ -155,38 +155,52 @@ func (p *AWSProvider) CertificateGenerate(domains []string) (*structs.Certificat
 }
 
 func (p *AWSProvider) CertificateList() (structs.Certificates, error) {
-	res, err := p.iam().ListServerCertificates(nil)
-
-	if err != nil {
-		return nil, err
-	}
-
 	certs := structs.Certificates{}
 
-	for _, cert := range res.ServerCertificateMetadataList {
-		res, err := p.iam().GetServerCertificate(&iam.GetServerCertificateInput{
-			ServerCertificateName: cert.ServerCertificateName,
-		})
+	req := &iam.ListServerCertificatesInput{}
+
+	for {
+		res, err := p.iam().ListServerCertificates(req)
 		if err != nil {
 			return nil, err
 		}
 
-		pem, _ := pem.Decode([]byte(*res.ServerCertificate.CertificateBody))
-		if err != nil {
-			return nil, err
+		for _, cert := range res.ServerCertificateMetadataList {
+			var res *iam.GetServerCertificateOutput
+
+			err = retry(5, 2*time.Second, func() error {
+				res, err = p.iam().GetServerCertificate(&iam.GetServerCertificateInput{
+					ServerCertificateName: cert.ServerCertificateName,
+				})
+				return err
+			})
+			if err != nil {
+				return nil, err
+			}
+
+			pem, _ := pem.Decode([]byte(*res.ServerCertificate.CertificateBody))
+			if err != nil {
+				return nil, err
+			}
+
+			c, err := x509.ParseCertificate(pem.Bytes)
+			if err != nil {
+				return nil, err
+			}
+
+			certs = append(certs, structs.Certificate{
+				Arn:        *cert.Arn,
+				Id:         *cert.ServerCertificateName,
+				Domain:     c.Subject.CommonName,
+				Expiration: *cert.Expiration,
+			})
 		}
 
-		c, err := x509.ParseCertificate(pem.Bytes)
-		if err != nil {
-			return nil, err
+		if res.Marker == nil {
+			break
 		}
 
-		certs = append(certs, structs.Certificate{
-			Arn:        *cert.Arn,
-			Id:         *cert.ServerCertificateName,
-			Domain:     c.Subject.CommonName,
-			Expiration: *cert.Expiration,
-		})
+		req.Marker = res.Marker
 	}
 
 	ares, err := p.certificateListACM()
@@ -263,20 +277,23 @@ func (e CfsslError) Error() string {
 
 func (p *AWSProvider) certificateListACM() ([]*acm.CertificateSummary, error) {
 	certs := []*acm.CertificateSummary{}
-	input := &acm.ListCertificatesInput{}
+
+	req := &acm.ListCertificatesInput{}
 
 	for {
-		ares, err := p.acm().ListCertificates(input)
+		res, err := p.acm().ListCertificates(req)
 		if err != nil {
 			return nil, err
 		}
 
-		certs = append(certs, ares.CertificateSummaryList...)
+		certs = append(certs, res.CertificateSummaryList...)
 
-		if ares.NextToken == nil {
-			return certs, nil
+		if res.NextToken == nil {
+			break
 		}
 
-		input.NextToken = ares.NextToken
+		req.NextToken = res.NextToken
 	}
+
+	return certs, nil
 }
