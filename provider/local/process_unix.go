@@ -21,7 +21,19 @@ func (p *Provider) processExec(app, pid, command string, rw io.ReadWriter, opts 
 		return 0, log.Error(err)
 	}
 
-	cmd := exec.Command("docker", "exec", "-it", pid, "sh", "-c", command)
+	args := []string{"exec", "-it"}
+
+	if opts.Height != nil {
+		args = append(args, "-e", fmt.Sprintf("ROWS=%d", *opts.Height))
+	}
+
+	if opts.Width != nil {
+		args = append(args, "-e", fmt.Sprintf("COLUMNS=%d", *opts.Width))
+	}
+
+	args = append(args, pid, "sh", "-c", command)
+
+	cmd := exec.Command("docker", args...)
 
 	fd, err := pty.Start(cmd)
 	if err != nil {
@@ -48,8 +60,6 @@ func (p *Provider) processRun(app, service string, opts processStartOptions) (st
 	if err != nil {
 		return "", errors.WithStack(log.Error(err))
 	}
-
-	fmt.Printf("oargs = %+v\n", oargs)
 
 	pid, err := exec.Command("docker", oargs...).CombinedOutput()
 	if err != nil {
