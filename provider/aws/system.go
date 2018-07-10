@@ -2,6 +2,7 @@ package aws
 
 import (
 	"bufio"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -293,6 +294,14 @@ func (p *AWSProvider) SystemInstall(opts structs.SystemInstallOptions) (string, 
 	}
 
 	ep := fmt.Sprintf("https://convox:%s@%s", password, outputs["Dashboard"])
+
+	fmt.Fprintf(opts.Output, "Waiting for load balancer... ")
+
+	if err := waitForAvailability(ep); err != nil {
+		return "", err
+	}
+
+	fmt.Fprintf(opts.Output, "OK\n")
 
 	return ep, nil
 }
@@ -738,4 +747,29 @@ func setupCredentialsRole() (map[string]string, error) {
 	}
 
 	return env, nil
+}
+
+func waitForAvailability(url string) error {
+	tick := time.Tick(5 * time.Second)
+	timeout := time.After(20 * time.Minute)
+
+	c := &http.Client{
+		Timeout: 2 * time.Second,
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: true,
+			},
+		},
+	}
+
+	for {
+		select {
+		case <-tick:
+			if _, err := c.Get(url); err == nil {
+				return nil
+			}
+		case <-timeout:
+			return fmt.Errorf("timeout")
+		}
+	}
 }
