@@ -12,6 +12,7 @@ function fetch {
     [ $c -gt 60 ] && exit 1
     sleep 20
   done
+  sleep 10
   curl -ks https://$endpoint
 }
 
@@ -115,6 +116,7 @@ convox ssl update web:443 $cert -a ci1 --wait
 convox ssl -a ci1 | grep web:443 | grep $cert
 convox ssl update web:443 $certo -a ci1 --wait
 convox ssl -a ci1 | grep web:443 | grep $certo
+sleep 30
 convox certs delete $cert
 
 # resources

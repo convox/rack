@@ -69,7 +69,7 @@ func (p *AWSProvider) CertificateCreate(pub, key string, opts structs.Certificat
 		return nil, err
 	}
 
-	c, err := p.acmCertificate(*res.CertificateArn)
+	c, err := p.certificateGetACM(*res.CertificateArn)
 	if err != nil {
 		return nil, err
 	}
@@ -217,7 +217,7 @@ func (p *AWSProvider) CertificateList() (structs.Certificates, error) {
 			continue
 		}
 
-		c, err := p.acmCertificate(*cert.CertificateArn)
+		c, err := p.certificateGetACM(*cert.CertificateArn)
 		if err != nil {
 			return nil, err
 		}
@@ -243,7 +243,7 @@ func (e CfsslError) Error() string {
 	return e.Message
 }
 
-func (p *AWSProvider) acmCertificate(arn string) (*structs.Certificate, error) {
+func (p *AWSProvider) certificateGetACM(arn string) (*structs.Certificate, error) {
 	parts := strings.Split(arn, "-")
 	id := fmt.Sprintf("acm-%s", parts[len(parts)-1])
 
@@ -252,8 +252,14 @@ func (p *AWSProvider) acmCertificate(arn string) (*structs.Certificate, error) {
 		Id:  id,
 	}
 
-	res, err := p.acm().DescribeCertificate(&acm.DescribeCertificateInput{
-		CertificateArn: aws.String(arn),
+	var res *acm.DescribeCertificateOutput
+	var err error
+
+	err = retry(5, 2*time.Second, func() error {
+		res, err = p.acm().DescribeCertificate(&acm.DescribeCertificateInput{
+			CertificateArn: aws.String(arn),
+		})
+		return err
 	})
 	if err != nil {
 		return nil, err
