@@ -4,32 +4,22 @@ import (
 	"fmt"
 	"os/user"
 
-	"github.com/convox/rack/cmd/convox/stdcli"
 	"github.com/convox/rack/router"
-	"gopkg.in/urfave/cli.v1"
+	"github.com/convox/stdcli"
 )
 
 func init() {
-	stdcli.RegisterCommand(cli.Command{
-		Name:        "router",
-		Description: "start a local router",
-		Action:      runRouter,
-		Flags: []cli.Flag{
-			cli.StringFlag{
-				Name:  "interface, i",
-				Usage: "interface name",
-				Value: "vlan2",
-			},
-			cli.StringFlag{
-				Name:  "subnet, s",
-				Usage: "subnet",
-				Value: "10.42.0.0/16",
-			},
+	CLI.Command("router", "start local router", Router, stdcli.CommandOptions{
+		Flags: []stdcli.Flag{
+			stdcli.StringFlag("interface", "i", "interface name"),
+			stdcli.StringFlag("subnet", "s", "subnet cidr"),
 		},
+		Invisible: true,
+		Validate:  stdcli.Args(0),
 	})
 }
 
-func runRouter(c *cli.Context) error {
+func Router(c *stdcli.Context) error {
 	u, err := user.Current()
 	if err != nil {
 		return err
@@ -39,7 +29,10 @@ func runRouter(c *cli.Context) error {
 		return fmt.Errorf("must run as root")
 	}
 
-	r, err := router.New(c.String("interface"), c.String("subnet"), Version)
+	iface := coalesce(c.String("interface"), "vlan2")
+	subnet := coalesce(c.String("subnet"), "10.42.0.0/16")
+
+	r, err := router.New(iface, subnet, version)
 	if err != nil {
 		return err
 	}

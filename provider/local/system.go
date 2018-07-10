@@ -17,6 +17,8 @@ import (
 
 	"github.com/convox/rack/structs"
 	"github.com/pkg/errors"
+
+	cv "github.com/convox/version"
 )
 
 const (
@@ -85,8 +87,10 @@ func (p *Provider) SystemGet() (*structs.System, error) {
 
 	system := &structs.System{
 		Image:    fmt.Sprintf("%s:%s", p.Image, p.Version),
+		Domain:   fmt.Sprintf("rack.%s", p.Name),
 		Name:     p.Name,
 		Provider: "local",
+		Region:   "local",
 		Status:   "running",
 		Version:  p.Version,
 	}
@@ -94,7 +98,21 @@ func (p *Provider) SystemGet() (*structs.System, error) {
 	return system, log.Success()
 }
 
-func (p *Provider) SystemInstall(name string, opts structs.SystemInstallOptions) (string, error) {
+func (p *Provider) SystemInstall(opts structs.SystemInstallOptions) (string, error) {
+	name := cs(opts.Name, "convox")
+
+	var version string
+
+	if opts.Version != nil {
+		version = *opts.Version
+	} else {
+		v, err := cv.Latest()
+		if err != nil {
+			return "", err
+		}
+		version = v
+	}
+
 	exe, err := os.Executable()
 	if err != nil {
 		return "", err
@@ -110,11 +128,7 @@ func (p *Provider) SystemInstall(name string, opts structs.SystemInstallOptions)
 	}
 
 	if opts.Output != nil {
-		fmt.Fprintf(opts.Output, "pulling: convox/rack:%s\n", *opts.Version)
-	}
-
-	if opts.Version == nil {
-		return "", fmt.Errorf("must specify a version")
+		fmt.Fprintf(opts.Output, "pulling: convox/rack:%s\n", version)
 	}
 
 	if err := launcherInstall("router", opts, exe, "router"); err != nil {
@@ -128,7 +142,7 @@ func (p *Provider) SystemInstall(name string, opts structs.SystemInstallOptions)
 	return fmt.Sprintf("https://rack.%s", name), nil
 }
 
-func (p *Provider) SystemLogs(opts structs.LogsOptions) (io.ReadCloser, error) {
+func (p *Provider) SystemLogs(opts structs.LogsOptions) (io.Reader, error) {
 	log := p.logger("SystemLogs")
 
 	r, w := io.Pipe()
@@ -140,12 +154,12 @@ func (p *Provider) SystemLogs(opts structs.LogsOptions) (io.ReadCloser, error) {
 
 	args := []string{"logs"}
 
-	if opts.Follow {
+	if opts.Follow == nil || *opts.Follow {
 		args = append(args, "-f")
 	}
 
-	if !opts.Since.IsZero() {
-		args = append(args, "--since", opts.Since.Format(time.RFC3339))
+	if opts.Since != nil {
+		args = append(args, "--since", time.Now().UTC().Add((*opts.Since)*-1).Format(time.RFC3339))
 	}
 
 	args = append(args, hostname)
@@ -217,15 +231,8 @@ func (p *Provider) SystemUninstall(name string, opts structs.SystemUninstallOpti
 func (p *Provider) SystemUpdate(opts structs.SystemUpdateOptions) error {
 	log := p.logger("SystemUpdate").Append("version=%q", opts.Version)
 
-	w := opts.Output
-	if w == nil {
-		w = ioutil.Discard
-	}
-
 	if opts.Version != nil {
 		v := *opts.Version
-
-		w.Write([]byte("Restarting... OK\n"))
 
 		if err := ioutil.WriteFile("/var/convox/version", []byte(v), 0644); err != nil {
 			return errors.WithStack(log.Error(err))

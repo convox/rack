@@ -2,15 +2,6 @@
 
 
 [[projects]]
-  branch = "master"
-  name = "github.com/Azure/go-ansiterm"
-  packages = [
-    ".",
-    "winterm"
-  ]
-  revision = "d6e3b3328b783f23731bc4d058875b0371ff8109"
-
-[[projects]]
   name = "github.com/Microsoft/go-winio"
   packages = ["."]
   revision = "78439966b38d69bf38227fbf57ac8a6fee70f69a"
@@ -109,34 +100,10 @@
   version = "v1.3.1"
 
 [[projects]]
-  name = "github.com/briandowns/spinner"
-  packages = ["."]
-  revision = "48dbb65d7bd5c74ab50d53d04c949f20e3d14944"
-  version = "1.0"
-
-[[projects]]
-  name = "github.com/cheggaaa/pb"
-  packages = ["."]
-  revision = "657164d0228d6bebe316fdf725c69f131a50fb10"
-  version = "v1.0.18"
-
-[[projects]]
   name = "github.com/cloudflare/cfssl"
   packages = ["log"]
   revision = "db0d0650b6496bfe8061ec56a92edd32d8e75c30"
   version = "1.2.0"
-
-[[projects]]
-  name = "github.com/codegangsta/negroni"
-  packages = ["."]
-  revision = "5dbbc83f748fc3ad38585842b0aedab546d0ea1e"
-  version = "v0.3.0"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/convox/api"
-  packages = ["."]
-  revision = "47e28fed5250d307c738224dae963ba00ca09dbb"
 
 [[projects]]
   branch = "master"
@@ -154,13 +121,25 @@
   branch = "master"
   name = "github.com/convox/logger"
   packages = ["."]
-  revision = "0533ce640ccd3a1d543da3bd56efcc4204d0abdf"
+  revision = "e39179955b5204aa8288932fa09fa17e5525c55f"
 
 [[projects]]
   branch = "master"
-  name = "github.com/convox/nlogger"
+  name = "github.com/convox/stdapi"
   packages = ["."]
-  revision = "f8bc892c8cebc50723dc5c981ab931d8b85bdb75"
+  revision = "f8dd26607bafee868b1bf3857aa86932dd8676a6"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/convox/stdcli"
+  packages = ["."]
+  revision = "21a1c374761e067ed11a62d8631e40d9ad3ff426"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/convox/stdsdk"
+  packages = ["."]
+  revision = "d37108339029baf9cd30c12502b085a6e6f53eda"
 
 [[projects]]
   branch = "master"
@@ -349,12 +328,6 @@
   version = "v0.0.3"
 
 [[projects]]
-  name = "github.com/mattn/go-runewidth"
-  packages = ["."]
-  revision = "9e777a8366cce605130a531d2cd6363d07ad7317"
-  version = "v0.0.2"
-
-[[projects]]
   name = "github.com/miekg/dns"
   packages = ["."]
   revision = "5364553f1ee9cddc7ac8b62dce148309c386695b"
@@ -365,6 +338,15 @@
   name = "github.com/mitchellh/go-homedir"
   packages = ["."]
   revision = "b8bc1bf767474819792c23f32d8286a45736f1c6"
+
+[[projects]]
+  name = "github.com/moby/moby"
+  packages = [
+    "builder/dockerignore",
+    "pkg/archive"
+  ]
+  revision = "092cba3727bb9b4a2f0e922cd6c0f93ea270e363"
+  version = "v1.13.1"
 
 [[projects]]
   name = "github.com/mweagle/Sparta"
@@ -404,6 +386,12 @@
   name = "github.com/segmentio/backo-go"
   packages = ["."]
   revision = "204274ad699c0983a70203a566887f17a717fef4"
+
+[[projects]]
+  name = "github.com/spf13/pflag"
+  packages = ["."]
+  revision = "583c0c0531f06d5278b7d917446061adc344b5cd"
+  version = "v1.0.1"
 
 [[projects]]
   branch = "master"
@@ -497,6 +485,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "d6ee7d89e5653d98da36c72eff2bd24edad215251375fa888dcc63d3a8f4cdb0"
+  inputs-digest = "73235aba4c312d843ce74c5fed3b93c7b6ff55762dcbeb634081ce1750cb816b"
   solver-name = "gps-cdcl"
   solver-version = 1

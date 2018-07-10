@@ -1,0 +1,4 @@
+services:
+  web:
+    build: .
+    port: 80

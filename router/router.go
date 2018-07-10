@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/convox/api"
+	"github.com/convox/stdapi"
 )
 
 type Router struct {
@@ -122,7 +122,7 @@ func (rt *Router) Serve() error {
 
 	go rt.dns.Serve()
 
-	a := api.New("convox.router", "router")
+	a := stdapi.New("convox.router", "router")
 
 	a.Route("GET", "/", rt.RackList)
 	a.Route("POST", "/racks", rt.RackCreate)
@@ -153,7 +153,7 @@ func (rt *Router) Serve() error {
 	return nil
 }
 
-func (rt *Router) Terminate(c *api.Context) error {
+func (rt *Router) Terminate(c *stdapi.Context) error {
 	go func() {
 		time.Sleep(1 * time.Second)
 		os.Exit(0)
@@ -162,7 +162,7 @@ func (rt *Router) Terminate(c *api.Context) error {
 	return nil
 }
 
-func (rt *Router) Version(c *api.Context) error {
+func (rt *Router) Version(c *stdapi.Context) error {
 	v := map[string]string{
 		"version": rt.version,
 	}

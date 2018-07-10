@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/convox/rack/cmd/build/source"
+	"github.com/convox/rack/helpers"
 	"github.com/convox/rack/manifest"
 	"github.com/convox/rack/manifest1"
 	"github.com/convox/rack/options"
@@ -238,7 +239,7 @@ func build(dir string) error {
 
 	defer close(s)
 
-	env, err := rack.EnvironmentGet(flagApp)
+	env, err := helpers.AppEnvironment(rack, flagApp)
 	if err != nil {
 		return err
 	}
@@ -271,7 +272,7 @@ func build2(dir string) error {
 		return err
 	}
 
-	env, err := rack.EnvironmentGet(flagApp)
+	env, err := helpers.AppEnvironment(rack, flagApp)
 	if err != nil {
 		return err
 	}
@@ -303,6 +304,7 @@ func build2(dir string) error {
 	prefix := fmt.Sprintf("%s/%s", flagRack, flagApp)
 
 	err = m.Build(prefix, flagID, manifest.BuildOptions{
+		Cache:  flagCache == "true",
 		Env:    env,
 		Push:   flagPush,
 		Root:   dir,

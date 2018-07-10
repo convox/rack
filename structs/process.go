@@ -2,55 +2,45 @@ package structs
 
 import (
 	"fmt"
-	"io"
 	"time"
 )
 
 type Process struct {
 	Id string `json:"id"`
 
-	App      string   `json:"app"`
-	Command  string   `json:"command"`
-	Cpu      float64  `json:"cpu"`
-	Host     string   `json:"host"`
-	Image    string   `json:"image"`
-	Instance string   `json:"instance"`
-	Memory   float64  `json:"memory"`
-	Name     string   `json:"name"`
-	Ports    []string `json:"ports"`
-	Release  string   `json:"release"`
-
-	Started time.Time `json:"started"`
+	App      string    `json:"app"`
+	Command  string    `json:"command"`
+	Cpu      float64   `json:"cpu"`
+	Host     string    `json:"host"`
+	Image    string    `json:"image"`
+	Instance string    `json:"instance"`
+	Memory   float64   `json:"memory"`
+	Name     string    `json:"name"`
+	Ports    []string  `json:"ports"`
+	Release  string    `json:"release"`
+	Started  time.Time `json:"started"`
+	Status   string    `json:"status"`
 }
 
 type Processes []Process
 
 type ProcessExecOptions struct {
-	Entrypoint *bool
-	Height     *int
-	Stream     io.ReadWriteCloser
-	Width      *int
+	Entrypoint *bool `header:"Entrypoint"`
+	Height     *int  `header:"Height"`
+	Width      *int  `header:"Width"`
 }
 
 type ProcessListOptions struct {
-	Service *string `query:"service"`
+	Service *string `flag:"service,s" query:"service"`
 }
 
 type ProcessRunOptions struct {
-	Command     *string
+	Command     *string `header:"Command"`
 	Environment map[string]string
-	Height      *int
-	Image       *string
-	Links       []string
+	Height      *int `header:"Height"`
 	Memory      *int64
-	Name        *string
-	Ports       map[string]string
-	Release     *string
-	Service     *string
-	Stream      io.ReadWriteCloser
-	Timeout     *int
-	Volumes     map[string]string
-	Width       *int
+	Release     *string `flag:"release" header:"Release"`
+	Width       *int    `header:"Width"`
 }
 
 func (p *Process) sortKey() string {

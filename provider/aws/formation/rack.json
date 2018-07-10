@@ -2149,19 +2149,17 @@
         "HealthCheck": {
           "HealthyThreshold": "2",
           "Interval": 5,
-          "Target": { "Fn::If": [ "PrivateApi", "HTTPS:3101/check", "HTTPS:3001/check" ] },
+          "Target": { "Fn::If": [ "PrivateApi", "HTTPS:3100/check", "HTTPS:3000/check" ] },
           "Timeout": 3,
           "UnhealthyThreshold": "2"
         },
         "LBCookieStickinessPolicy": [ { "PolicyName": "affinity" } ],
         "Listeners": { "Fn::If": [ "PrivateApi",
           [
-            { "Protocol": "TCP", "LoadBalancerPort": "80", "InstanceProtocol": "TCP", "InstancePort": "3100" },
-            { "Protocol": "TCP", "LoadBalancerPort": "443", "InstanceProtocol": "TCP", "InstancePort": "3101" }
+            { "Protocol": "TCP", "LoadBalancerPort": "443", "InstanceProtocol": "TCP", "InstancePort": "3100" }
           ],
           [
-            { "Protocol": "TCP", "LoadBalancerPort": "80", "InstanceProtocol": "TCP", "InstancePort": "3000" },
-            { "Protocol": "TCP", "LoadBalancerPort": "443", "InstanceProtocol": "TCP", "InstancePort": "3001" }
+            { "Protocol": "TCP", "LoadBalancerPort": "443", "InstanceProtocol": "TCP", "InstancePort": "3000" }
           ]
         ] },
         "LoadBalancerName": { "Fn::If": [ "PrivateApi", { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" }, "i" ] ] }, { "Ref": "AWS::StackName" } ] },
@@ -2301,7 +2299,6 @@
               { "Name": "PRIVATE", "Value": { "Ref": "Private" } },
               { "Name": "PROVIDER", "Value": "aws" },
               { "Name": "RACK", "Value": { "Ref": "AWS::StackName" } },
-              { "Name": "RELEASE", "Value": { "Ref": "Version" } },
               { "Name": "ROLLBAR_TOKEN", "Value": "f67f25b8a9024d5690f997bd86bf14b0" },
               { "Name": "SECURITY_GROUP", "Value": { "Fn::If": [ "BlankInstanceSecurityGroup", { "Ref": "InstancesSecurity" }, { "Ref": "InstanceSecurityGroup" } ] } },
               { "Name": "SEGMENT_WRITE_KEY", "Value": "KLvwCXo6qcTmQHLpF69DEwGf9zh7lt9i" },
@@ -2313,6 +2310,7 @@
                 { "Ref": "Subnet1" },
                 { "Fn::If": [ "ThirdAvailabilityZone", { "Ref": "Subnet2" }, { "Ref": "AWS::NoValue" } ] }
               ] ] } },
+              { "Name": "VERSION", "Value": { "Ref": "Version" } },
               { "Name": "VPC", "Value": { "Fn::If": [ "BlankExistingVpc",
                 { "Ref": "Vpc" },
                 { "Ref": "ExistingVpc" }
@@ -2369,7 +2367,6 @@
               { "Name": "PRIVATE", "Value": { "Ref": "Private" } },
               { "Name": "PROVIDER", "Value": "aws" },
               { "Name": "RACK", "Value": { "Ref": "AWS::StackName" } },
-              { "Name": "RELEASE", "Value": { "Ref": "Version" } },
               { "Name": "ROLLBAR_TOKEN", "Value": "f67f25b8a9024d5690f997bd86bf14b0" },
               { "Name": "SECURITY_GROUP", "Value": { "Fn::If": [ "BlankInstanceSecurityGroup", { "Ref": "InstancesSecurity" }, { "Ref": "InstanceSecurityGroup" } ] } },
               { "Name": "SEGMENT_WRITE_KEY", "Value": "KLvwCXo6qcTmQHLpF69DEwGf9zh7lt9i" },
@@ -2381,6 +2378,7 @@
                 { "Ref": "Subnet1" },
                 { "Fn::If": [ "ThirdAvailabilityZone", { "Ref": "Subnet2" }, { "Ref": "AWS::NoValue" } ] }
               ] ] } },
+              { "Name": "VERSION", "Value": { "Ref": "Version" } },
               { "Name": "VPC", "Value": { "Fn::If": [ "BlankExistingVpc",
                 { "Ref": "Vpc" },
                 { "Ref": "ExistingVpc" }
@@ -2436,7 +2434,6 @@
               { "Name": "PRIVATE", "Value": { "Ref": "Private" } },
               { "Name": "PROVIDER", "Value": "aws" },
               { "Name": "RACK", "Value": { "Ref": "AWS::StackName" } },
-              { "Name": "RELEASE", "Value": { "Ref": "Version" } },
               { "Name": "ROLLBAR_TOKEN", "Value": "f67f25b8a9024d5690f997bd86bf14b0" },
               { "Name": "SECURITY_GROUP", "Value": { "Fn::If": [ "BlankInstanceSecurityGroup", { "Ref": "InstancesSecurity" }, { "Ref": "InstanceSecurityGroup" } ] } },
               { "Name": "SEGMENT_WRITE_KEY", "Value": "KLvwCXo6qcTmQHLpF69DEwGf9zh7lt9i" },
@@ -2452,6 +2449,7 @@
                 { "Fn::Join": [ ",", [ { "Ref": "SubnetPrivate0" }, { "Ref": "SubnetPrivate1" }, { "Fn::If": [ "ThirdAvailabilityZone", { "Ref": "SubnetPrivate2" }, { "Ref": "AWS::NoValue" } ] } ] ] },
                 ""
               ] } },
+              { "Name": "VERSION", "Value": { "Ref": "Version" } },
               { "Name": "VPC", "Value": { "Fn::If": [ "BlankExistingVpc",
                 { "Ref": "Vpc" },
                 { "Ref": "ExistingVpc" }
@@ -2472,12 +2470,10 @@
             "Name": "web",
             "PortMappings": { "Fn::If": [ "PrivateApi",
               [
-                { "HostPort": "3100", "ContainerPort": "5442", "Protocol": "tcp" },
-                { "HostPort": "3101", "ContainerPort": "5443", "Protocol": "tcp" }
+                { "HostPort": "3100", "ContainerPort": "5443", "Protocol": "tcp" }
               ],
               [
-                { "HostPort": "3000", "ContainerPort": "5442", "Protocol": "tcp" },
-                { "HostPort": "3001", "ContainerPort": "5443", "Protocol": "tcp" }
+                { "HostPort": "3000", "ContainerPort": "5443", "Protocol": "tcp" }
               ]
             ] }
           }

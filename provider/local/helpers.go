@@ -20,6 +20,13 @@ func coalescei(ints ...int) int {
 	return 0
 }
 
+func ci(i *int64, def int64) int64 {
+	if i != nil {
+		return *i
+	}
+	return def
+}
+
 func cs(s *string, def string) string {
 	if s != nil {
 		return *s

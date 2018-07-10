@@ -23,7 +23,7 @@ func (p *AWSProvider) SettingGet(name string) (string, error) {
 	}
 
 	if !exists {
-		return "", fmt.Errorf("no such setting: %s", name)
+		return "", errorNotFound(fmt.Sprintf("setting not found: %s", name))
 	}
 
 	data, err := p.s3Get(p.SettingsBucket, name)

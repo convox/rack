@@ -5,56 +5,45 @@ import (
 	"net/http"
 	"runtime"
 
-	"github.com/convox/rack/cmd/convox/stdcli"
+	"github.com/convox/stdcli"
+	cv "github.com/convox/version"
 	update "github.com/inconshreveable/go-update"
-	"gopkg.in/urfave/cli.v1"
 )
 
 func init() {
-	stdcli.RegisterCommand(cli.Command{
-		Name:        "update",
-		Description: "update the cli",
-		Usage:       "[version]",
-		Action:      cmdUpdate,
-		Flags:       []cli.Flag{rackFlag},
+	CLI.Command("update", "update the cli", Update, stdcli.CommandOptions{
+		Flags:    []stdcli.Flag{flagRack},
+		Validate: stdcli.ArgsMax(1),
 	})
 }
 
-func cmdUpdate(c *cli.Context) error {
-	version, err := latestVersion()
+func Update(c *stdcli.Context) error {
+	target := c.Arg(0)
+
+	// if no version specified, find the latest version
+	if target == "" {
+		v, err := cv.Latest()
+		if err != nil {
+			return err
+		}
+
+		target = v
+	}
+
+	url := fmt.Sprintf("https://s3.amazonaws.com/convox/release/%s/cli/%s/%s", target, runtime.GOOS, executableName())
+
+	res, err := http.Get(url)
 	if err != nil {
 		return err
 	}
 
-	if len(c.Args()) > 0 {
-		version = c.Args()[0]
-	}
-
-	stdcli.Spinner.Prefix = fmt.Sprintf("Updating convox to %s: ", version)
-	stdcli.Spinner.Start()
-
-	exe := "convox"
-
-	if runtime.GOOS == "windows" {
-		exe = "convox.exe"
-	}
-
-	url := fmt.Sprintf("https://s3.amazonaws.com/convox/release/%s/cli/%s/%s", version, runtime.GOOS, exe)
-
-	res, err := http.Get(url)
-	if err != nil {
-		return stdcli.Error(err)
-	}
-
 	defer res.Body.Close()
 
+	c.Startf("Updating to <release>%s</release>", target)
+
 	if err := update.Apply(res.Body, update.Options{}); err != nil {
-		return stdcli.Error(err)
+		return err
 	}
 
-	fmt.Printf("\x08\x08OK\n")
-
-	stdcli.Spinner.Stop()
-
-	return nil
+	return c.OK()
 }

@@ -1,142 +1,83 @@
 package main
 
 import (
-	"fmt"
-	"os"
 	"strings"
 
-	"golang.org/x/crypto/ssh/terminal"
-
-	"github.com/convox/rack/cmd/convox/stdcli"
-	"gopkg.in/urfave/cli.v1"
+	"github.com/convox/rack/options"
+	"github.com/convox/rack/structs"
+	"github.com/convox/stdcli"
 )
 
 func init() {
-	stdcli.RegisterCommand(cli.Command{
-		Name:        "run",
-		Description: "run a one-off command in your Convox rack",
-		Usage:       "<process name> <command> [options]",
-		ArgsUsage:   "<process name> <command>",
-		Action:      cmdRun,
-		Flags: []cli.Flag{
-			appFlag,
-			rackFlag,
-			cli.BoolFlag{
-				Name:  "detach",
-				Usage: "run in the background",
-			},
-			cli.StringFlag{
-				Name:  "release, r",
-				Usage: "release id",
-			},
-			cli.IntFlag{
-				Name:  "timeout, t",
-				Usage: "timeout for attached process",
-				Value: 3600,
-			},
-		},
+	CLI.Command("run", "execute a command in a new process", Run, stdcli.CommandOptions{
+		Flags:    append(stdcli.OptionFlags(structs.ProcessRunOptions{}), flagRack, flagApp),
+		Usage:    "<service> <command>",
+		Validate: stdcli.ArgsMin(2),
 	})
 }
 
-func cmdRun(c *cli.Context) error {
-	stdcli.NeedHelp(c)
-	stdcli.NeedArg(c, -2)
-
-	if c.Bool("detach") {
-		return cmdRunDetached(c)
-	}
-
-	_, app, err := stdcli.DirApp(c, ".")
-	if err != nil {
-		return stdcli.Error(err)
-	}
-
-	ps := c.Args().First()
-	err = validateProcessId(c, app, ps)
-	if err != nil {
-		return stdcli.Error(err)
-	}
-
-	args := strings.Join(c.Args().Tail(), " ")
-
-	release := c.String("release")
-
-	timeout := c.Int("timeout")
-
-	code, err := runAttached(c, app, ps, args, release, timeout)
-	if err != nil {
-		return stdcli.Error(err)
-	}
-
-	return cli.NewExitError("", code)
-}
-
-func cmdRunDetached(c *cli.Context) error {
-	stdcli.NeedArg(c, -2)
-
-	_, app, err := stdcli.DirApp(c, ".")
+func Run(c *stdcli.Context) error {
+	s, err := provider(c).SystemGet()
 	if err != nil {
 		return err
 	}
 
-	ps := c.Args().First()
-	err = validateProcessId(c, app, ps)
-	if err != nil {
-		return stdcli.Error(err)
-	}
+	service := c.Arg(0)
 
-	command := strings.Join(c.Args().Tail(), " ")
-	release := c.String("release")
-
-	fmt.Printf("Running `%s` on %s... ", command, ps)
-
-	err = rackClient(c).RunProcessDetached(app, ps, command, release)
-	if err != nil {
-		return stdcli.Error(err)
-	}
-
-	fmt.Println("OK")
-	return nil
-}
-
-func runAttached(c *cli.Context, app, ps, args, release string, timeout int) (int, error) {
-	fd := os.Stdin.Fd()
-
-	var w, h int
-
-	if terminal.IsTerminal(int(fd)) {
-		stdinState, err := terminal.GetState(int(fd))
-		if err != nil {
-			return -1, err
-		}
-
-		defer terminal.Restore(int(fd), stdinState)
-
-		w, h, err = terminal.GetSize(int(fd))
-		if err != nil {
-			return -1, err
-		}
-	}
-
-	code, err := rackClient(c).RunProcessAttached(app, ps, args, release, h, w, timeout, os.Stdin, os.Stdout)
-	if err != nil {
-		return -1, err
-	}
-
-	return code, nil
-}
-
-func validateProcessId(c *cli.Context, app, ps string) error {
-	formation, err := rackClient(c).ListFormation(app)
+	w, h, err := c.TerminalSize()
 	if err != nil {
 		return err
 	}
 
-	for _, f := range formation {
-		if ps == f.Name {
-			return nil
-		}
+	if err := c.TerminalRaw(); err != nil {
+		return err
 	}
 
-	return fmt.Errorf("Unknown process name: %s", ps)
+	defer c.TerminalRestore()
+
+	var opts structs.ProcessRunOptions
+
+	if err := c.Options(&opts); err != nil {
+		return err
+	}
+
+	if s.Version <= "20180708231844" {
+		opts.Command = options.String(strings.Join(c.Args[1:], " "))
+		opts.Height = options.Int(h)
+		opts.Width = options.Int(w)
+
+		code, err := provider(c).ProcessRunAttached(app(c), service, c, opts)
+		if err != nil {
+			return err
+		}
+
+		return stdcli.Exit(code)
+	}
+
+	opts.Command = options.String("sleep 3600")
+
+	ps, err := provider(c).ProcessRun(app(c), c.Arg(0), opts)
+	if err != nil {
+		return err
+	}
+
+	defer provider(c).ProcessStop(app(c), ps.Id)
+
+	if err := waitForProcessRunning(c, app(c), ps.Id); err != nil {
+		return err
+	}
+
+	command := strings.Join(c.Args[1:], " ")
+
+	eopts := structs.ProcessExecOptions{
+		Height: options.Int(h),
+		Width:  options.Int(w),
+	}
+
+	code, err := provider(c).ProcessExec(app(c), ps.Id, command, c, eopts)
+	if err != nil {
+		return err
+	}
+
+	return stdcli.Exit(code)
 }

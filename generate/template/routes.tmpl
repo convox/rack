@@ -1,0 +1,7 @@
+package api
+
+func (s *Server) setupRoutes(r stdapi.Router) {
+	{{ range .Methods }}
+		r.Route("{{ .Route.Method }}", "{{.Route.Path}}", s.{{.Name}})
+	{{ end }}
+}

@@ -1,7 +1,0 @@
-#!/bin/bash
-set -ex -o pipefail
-
-export CIRCLE_ARTIFACTS=${CIRCLE_ARTIFACTS:-/tmp/artifacts}
-export CIRCLE_BUILD_NUM=${CIRCLE_BUILD_NUM:-0}
-
-parallel --joblog $CIRCLE_ARTIFACTS/parallel.log --line-buffer --results $CIRCLE_ARTIFACTS --tag ./ci/tests/example-app {} ::: null rails django node-workers

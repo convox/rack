@@ -1,841 +1,287 @@
 package main
 
 import (
-	"archive/tar"
 	"bytes"
-	"compress/gzip"
-	"crypto/sha256"
-	"encoding/hex"
 	"fmt"
 	"io"
 	"io/ioutil"
-	"net/url"
 	"os"
-	"path"
-	"path/filepath"
 	"time"
 
-	"gopkg.in/urfave/cli.v1"
-
-	"github.com/convox/rack/client"
-	"github.com/convox/rack/cmd/convox/helpers"
-	"github.com/convox/rack/cmd/convox/stdcli"
-	"github.com/convox/rack/options"
+	"github.com/convox/rack/helpers"
 	"github.com/convox/rack/structs"
-	"github.com/docker/docker/builder/dockerignore"
-	"github.com/docker/docker/pkg/archive"
-	"github.com/docker/docker/pkg/fileutils"
-)
-
-var (
-	buildCreateFlags = []cli.Flag{
-		appFlag,
-		rackFlag,
-		cli.BoolFlag{
-			Name:  "no-cache",
-			Usage: "pull fresh image dependencies",
-		},
-		cli.BoolFlag{
-			Name:  "id",
-			Usage: "send build logs to stderr, send release id to stdout (useful for scripting)",
-		},
-		cli.BoolFlag{
-			Name:  "incremental",
-			Usage: "use incremental build",
-		},
-		cli.StringFlag{
-			Name:   "file, f",
-			EnvVar: "COMPOSE_FILE",
-			Usage:  "path to an alternate docker compose manifest file",
-		},
-		cli.StringFlag{
-			Name:  "description, d",
-			Value: "",
-			Usage: "description of the build",
-		},
-	}
+	"github.com/convox/stdcli"
 )
 
 func init() {
-	stdcli.RegisterCommand(cli.Command{
-		Name:        "build",
-		Description: "create a new build",
-		Usage:       "[directory] [options]",
-		Action:      cmdBuildsCreate,
-		Flags:       buildCreateFlags,
+	CLI.Command("build", "create a build", Build, stdcli.CommandOptions{
+		Flags:    append(stdcli.OptionFlags(structs.BuildCreateOptions{}), flagRack, flagApp, flagId),
+		Usage:    "[dir]",
+		Validate: stdcli.ArgsMax(1),
 	})
-	stdcli.RegisterCommand(cli.Command{
-		Name:        "builds",
-		Description: "manage an app's builds",
-		Usage:       "[subcommand] [options] [args...]",
-		Action:      cmdBuilds,
-		Flags:       []cli.Flag{appFlag, rackFlag},
-		Subcommands: []cli.Command{
-			{
-				Name:        "create",
-				Description: "create a new build",
-				Usage:       "[directory] [options]",
-				ArgsUsage:   "[directory]",
-				Action:      cmdBuildsCreate,
-				Flags:       buildCreateFlags,
-			},
-			{
-				Name:        "export",
-				Description: "export a build artifact to stdout",
-				Usage:       "<id>",
-				Action:      cmdBuildsExport,
-				Flags: []cli.Flag{
-					appFlag,
-					rackFlag,
-					cli.StringFlag{
-						Name:  "file, f",
-						Usage: "export to file",
-					},
-				},
-			},
-			{
-				Name:        "logs",
-				Description: "get logs for a build",
-				Usage:       "<build id>",
-				ArgsUsage:   "<build id>",
-				Action:      cmdBuildsLogs,
-				Flags:       []cli.Flag{appFlag, rackFlag},
-			},
-			{
-				Name:        "import",
-				Description: "import a build artifact from stdin",
-				Usage:       "[options]",
-				Action:      cmdBuildsImport,
-				Flags: []cli.Flag{
-					appFlag,
-					rackFlag,
-					cli.StringFlag{
-						Name:  "file, f",
-						Usage: "import from file",
-					},
-					cli.BoolFlag{
-						Name:  "id",
-						Usage: "send import logs to stderr, send release id to stdout (useful for scripting)",
-					},
-				},
-			},
-			{
-				Name:        "info",
-				Description: "print output for a build",
-				Usage:       "<build id>",
-				ArgsUsage:   "<build id>",
-				Action:      cmdBuildsInfo,
-				Flags:       []cli.Flag{appFlag, rackFlag},
-			},
-			{
-				Name:        "release",
-				Description: "create a new release from a build",
-				Usage:       "<build id>",
-				ArgsUsage:   "<build id>",
-				Action:      cmdBuildsRelease,
-				Flags: []cli.Flag{
-					appFlag,
-					rackFlag,
-					cli.BoolFlag{
-						Name:  "promote",
-						Usage: "promote the release after env change",
-					},
-					cli.BoolFlag{
-						Name:   "wait",
-						EnvVar: "CONVOX_WAIT",
-						Usage:  "wait for release to finish promoting before returning",
-					},
-				},
-			},
+
+	CLI.Command("builds", "list builds", Builds, stdcli.CommandOptions{
+		Flags:    append(stdcli.OptionFlags(structs.BuildListOptions{}), flagRack, flagApp),
+		Validate: stdcli.Args(0),
+	})
+
+	CLI.Command("builds export", "export a build", BuildsExport, stdcli.CommandOptions{
+		Flags: []stdcli.Flag{
+			flagRack,
+			flagApp,
+			flagId,
+			stdcli.StringFlag("file", "f", "import from file"),
 		},
+		Usage:    "<build>",
+		Validate: stdcli.Args(1),
+	})
+
+	CLI.Command("builds import", "import a build", BuildsImport, stdcli.CommandOptions{
+		Flags: []stdcli.Flag{
+			flagRack,
+			flagApp,
+			flagId,
+			stdcli.StringFlag("file", "f", "export to file"),
+		},
+		Validate: stdcli.Args(0),
+	})
+
+	CLI.Command("builds info", "get information about a build", BuildsInfo, stdcli.CommandOptions{
+		Flags:    []stdcli.Flag{flagRack, flagApp},
+		Usage:    "<build>",
+		Validate: stdcli.Args(1),
+	})
+
+	CLI.Command("builds logs", "get logs for a build", BuildsLogs, stdcli.CommandOptions{
+		Flags:    []stdcli.Flag{flagRack, flagApp},
+		Usage:    "<build>",
+		Validate: stdcli.Args(1),
 	})
 }
 
-func cmdBuilds(c *cli.Context) error {
-	stdcli.NeedHelp(c)
-	stdcli.NeedArg(c, 0)
-
-	_, app, err := stdcli.DirApp(c, ".")
-	if err != nil {
-		return stdcli.Error(err)
-	}
-
-	builds, err := rackClient(c).GetBuilds(app)
-	if err != nil {
-		return stdcli.Error(err)
-	}
-
-	t := stdcli.NewTable("ID", "STATUS", "RELEASE", "STARTED", "ELAPSED", "DESC")
-
-	for _, build := range builds {
-		started := helpers.HumanizeTime(build.Started)
-		elapsed := stdcli.Duration(build.Started, build.Ended)
-
-		if build.Ended.IsZero() {
-			elapsed = ""
-		}
-
-		t.AddRow(build.Id, build.Status, build.Release, started, elapsed, build.Description)
-	}
-
-	t.Print()
-	return nil
-}
-
-func cmdBuildsCreate(c *cli.Context) error {
-	stdcli.NeedHelp(c)
-	wd := "."
-
-	if len(c.Args()) > 0 {
-		stdcli.NeedArg(c, 1)
-		wd = c.Args()[0]
-	}
-
-	dir, app, err := stdcli.DirApp(c, wd)
-	if err != nil {
-		return stdcli.Error(err)
-	}
-
-	a, err := rackClient(c).GetApp(app)
-	if err != nil {
-		return stdcli.Error(err)
-	}
-
-	if a.Status == "creating" {
-		return stdcli.Error(fmt.Errorf("app %s is still being created, for more information try `convox apps info`", app))
-	}
-
-	if len(c.Args()) > 0 {
-		dir = c.Args()[0]
-	}
-
-	output := os.Stdout
+func Build(c *stdcli.Context) error {
+	var stdout io.Writer
 
 	if c.Bool("id") {
-		output = os.Stderr
+		stdout = c.Writer().Stdout
+		c.Writer().Stdout = c.Writer().Stderr
 	}
 
-	_, release, err := executeBuild(c, dir, app, c.String("file"), c.String("description"), output)
-	if err != nil {
-		return stdcli.Error(err)
-	}
-
-	output.Write([]byte(fmt.Sprintf("Release: %s\n", release)))
-
-	if c.Bool("id") {
-		os.Stdout.Write([]byte(release))
-		output.Write([]byte("\n"))
-	}
-
-	return nil
-}
-
-func cmdBuildsInfo(c *cli.Context) error {
-	stdcli.NeedHelp(c)
-	stdcli.NeedArg(c, 1)
-
-	_, app, err := stdcli.DirApp(c, ".")
-	if err != nil {
-		return stdcli.Error(err)
-	}
-
-	build := c.Args()[0]
-
-	b, err := rackClient(c).GetBuild(app, build)
-	if err != nil {
-		return stdcli.Error(err)
-	}
-
-	fmt.Printf("Build        %s\n", b.Id)
-	fmt.Printf("Status       %s\n", b.Status)
-	fmt.Printf("Release      %s\n", b.Release)
-	fmt.Printf("Description  %s\n", b.Description)
-	fmt.Printf("Started      %s\n", helpers.HumanizeTime(b.Started))
-	fmt.Printf("Elapsed      %s\n", stdcli.Duration(b.Started, b.Ended))
-
-	return nil
-}
-
-func cmdBuildsExport(c *cli.Context) error {
-	stdcli.NeedHelp(c)
-	stdcli.NeedArg(c, 1)
-
-	_, app, err := stdcli.DirApp(c, ".")
-	if err != nil {
-		return stdcli.Error(err)
-	}
-
-	if stdcli.IsTerminal(os.Stdout) && c.String("file") == "" {
-		return stdcli.Error(fmt.Errorf("please pipe the output of this command to a file or specify -f"))
-	}
-
-	build := c.Args()[0]
-
-	fmt.Fprintf(os.Stderr, "Exporting %s... ", build)
-
-	out := os.Stdout
-
-	if file := c.String("file"); file != "" {
-		fd, err := os.OpenFile(file, os.O_CREATE|os.O_WRONLY, 0644)
-		if err != nil {
-			return stdcli.Error(err)
-		}
-		defer fd.Close()
-		out = fd
-	}
-
-	if err := rackClient(c).ExportBuild(app, build, out); err != nil {
-		return stdcli.Error(err)
-	}
-
-	fmt.Fprintf(os.Stderr, "OK\n")
-
-	return nil
-}
-
-func cmdBuildsImport(c *cli.Context) error {
-	stdcli.NeedHelp(c)
-	_, app, err := stdcli.DirApp(c, ".")
-	if err != nil {
-		return stdcli.Error(err)
-	}
-
-	if stdcli.IsTerminal(os.Stdin) && c.String("file") == "" {
-		return stdcli.Error(fmt.Errorf("please pipe a file into this command or specify -f"))
-	}
-
-	in := os.Stdin
-
-	if file := c.String("file"); file != "" {
-		fd, err := os.Open(file)
-		if err != nil {
-			return stdcli.Error(err)
-		}
-		defer fd.Close()
-		in = fd
-	}
-
-	out := os.Stdout
-
-	if c.Bool("id") {
-		out = os.Stderr
-	}
-
-	system, err := rackClient(c).GetSystem()
-	if err != nil {
-		return stdcli.Error(err)
-	}
-
-	if system.Version <= "20180416200237" {
-		if err := importBuildMultipart(c, app, in, out); err != nil {
-			return stdcli.Error(err)
-		}
-		return nil
-	}
-
-	size, err := helpers.ReaderSize(in)
-	if err != nil {
-		return stdcli.Error(err)
-	}
-
-	p := progress("Uploading: ", "Importing build... ", out)
-	p.Start(size)
-
-	pr := client.NewProgressReader(in, p.Progress)
-
-	o, err := rack(c).ObjectStore(app, "", pr, structs.ObjectStoreOptions{})
-	if err != nil {
-		return stdcli.Error(err)
-	}
-
-	p.Finish()
-
-	b, err := rack(c).BuildImport(app, o.Url)
-	if err != nil {
-		return stdcli.Error(err)
-	}
-
-	out.Write([]byte(fmt.Sprintf("OK, %s\n", b.Release)))
-
-	if c.Bool("id") {
-		os.Stdout.Write([]byte(b.Release))
-	}
-
-	return nil
-}
-
-func importBuildMultipart(c *cli.Context, app string, in io.Reader, out io.Writer) error {
-	build, err := rackClient(c).ImportBuild(app, in, client.ImportBuildOptions{Progress: progress("Uploading: ", "Importing build... ", out)})
+	b, err := build(c)
 	if err != nil {
 		return err
 	}
 
-	out.Write([]byte(fmt.Sprintf("OK, %s\n", build.Release)))
+	c.Writef("Build:   <build>%s</build>\n", b.Id)
+	c.Writef("Release: <release>%s</release>\n", b.Release)
 
 	if c.Bool("id") {
-		os.Stdout.Write([]byte(build.Release))
-		out.Write([]byte("\n"))
+		fmt.Fprintf(stdout, b.Release)
 	}
 
 	return nil
 }
 
-func cmdBuildsLogs(c *cli.Context) error {
-	stdcli.NeedHelp(c)
-	stdcli.NeedArg(c, 1)
+func build(c *stdcli.Context) (*structs.Build, error) {
+	var opts structs.BuildCreateOptions
 
-	_, app, err := stdcli.DirApp(c, ".")
-	if err != nil {
-		return stdcli.Error(err)
+	if err := c.Options(&opts); err != nil {
+		return nil, err
 	}
 
-	build := c.Args()[0]
+	c.Startf("Uploading source")
 
-	if err := rackClient(c).StreamBuildLogs(app, build, os.Stdout); err != nil {
-		return stdcli.Error(err)
-	}
-
-	return nil
-}
-
-func cmdBuildsRelease(c *cli.Context) error {
-	stdcli.NeedHelp(c)
-	stdcli.NeedArg(c, 1)
-
-	build := c.Args()[0]
-
-	_, app, err := stdcli.DirApp(c, ".")
-	if err != nil {
-		return stdcli.Error(err)
-	}
-
-	fmt.Print("Creating release... ")
-
-	r, err := rack(c).ReleaseCreate(app, structs.ReleaseCreateOptions{Build: options.String(build)})
-	if err != nil {
-		return stdcli.Error(err)
-	}
-
-	fmt.Printf("OK, %s\n", r.Id)
-
-	if c.Bool("promote") {
-		fmt.Printf("Promoting %s... ", r.Id)
-
-		if err := rack(c).ReleasePromote(app, r.Id); err != nil {
-			return stdcli.Error(err)
-		}
-
-		fmt.Println("OK")
-
-		if c.Bool("wait") {
-			if err := waitForReleasePromotion(os.Stdout, c, app, r.Id); err != nil {
-				return stdcli.Error(err)
-			}
-		}
-	} else {
-		fmt.Printf("To deploy these changes run `convox releases promote %s`\n", r.Id)
-	}
-
-	return nil
-}
-
-func executeBuild(c *cli.Context, source, app, manifest, description string, output io.WriteCloser) (string, string, error) {
-	u, err := url.Parse(source)
-	if err != nil {
-		return "", "", err
-	}
-
-	switch u.Scheme {
-	case "http", "https", "ssh":
-		return executeBuildURL(c, source, app, manifest, description, output)
-	default:
-		if c.Bool("incremental") {
-			return executeBuildDirIncremental(c, source, app, manifest, description, output)
-		} else {
-			return executeBuildDir(c, source, app, manifest, description, output)
-		}
-	}
-
-	return "", "", fmt.Errorf("unreachable")
-}
-
-func createIndex(dir string) (client.Index, error) {
-	index := client.Index{}
-
-	err := warnUnignoredEnv(dir)
+	data, err := helpers.Tarball(coalesce(c.Arg(0), "."))
 	if err != nil {
 		return nil, err
 	}
 
-	ignore, err := readDockerIgnore(dir)
+	tmp, err := generateTempKey()
 	if err != nil {
 		return nil, err
 	}
 
-	resolved, err := filepath.EvalSymlinks(dir)
+	tmp += ".tgz"
+
+	o, err := provider(c).ObjectStore(app(c), tmp, bytes.NewReader(data), structs.ObjectStoreOptions{})
 	if err != nil {
 		return nil, err
 	}
 
-	err = filepath.Walk(resolved, indexWalker(resolved, index, ignore))
+	c.OK()
+
+	c.Startf("Starting build")
+
+	b, err := provider(c).BuildCreate(app(c), o.Url, opts)
 	if err != nil {
 		return nil, err
 	}
 
-	return index, nil
-}
+	c.OK()
 
-func indexWalker(root string, index client.Index, ignore []string) filepath.WalkFunc {
-	return func(path string, info os.FileInfo, err error) error {
-		rel, err := filepath.Rel(root, path)
-
-		if err != nil {
-			return err
-		}
-
-		if info.IsDir() {
-			return nil
-		}
-
-		match, err := fileutils.Matches(rel, ignore)
-		if err != nil {
-			return err
-		}
-
-		if match {
-			return nil
-		}
-
-		data, err := ioutil.ReadFile(path)
-		if err != nil {
-			return err
-		}
-
-		sum := sha256.Sum256(data)
-		hash := hex.EncodeToString([]byte(sum[:]))
-
-		index[hash] = client.IndexItem{
-			Name:    rel,
-			Mode:    info.Mode(),
-			ModTime: info.ModTime(),
-			Size:    len(data),
-		}
-
-		return nil
-	}
-}
-
-func readDockerIgnore(dir string) ([]string, error) {
-	fd, err := os.Open(filepath.Join(dir, ".dockerignore"))
-
-	if os.IsNotExist(err) {
-		return []string{}, nil
-	}
+	r, err := provider(c).BuildLogs(app(c), b.Id, structs.LogsOptions{})
 	if err != nil {
 		return nil, err
 	}
 
-	ignore, err := dockerignore.ReadAll(fd)
-	if err != nil {
-		return nil, err
-	}
+	io.Copy(c, r)
 
-	return ignore, nil
-}
-
-func uploadIndex(c *cli.Context, index client.Index, output io.WriteCloser) error {
-	missing, err := rackClient(c).IndexMissing(index)
-	if err != nil {
-		return err
-	}
-
-	output.Write([]byte("Identifying changes... "))
-
-	if len(missing) == 0 {
-		output.Write([]byte("NONE\n"))
-		return nil
-	}
-
-	output.Write([]byte(fmt.Sprintf("%d files\n", len(missing))))
-
-	buf := &bytes.Buffer{}
-
-	gz := gzip.NewWriter(buf)
-
-	tw := tar.NewWriter(gz)
-
-	for _, m := range missing {
-		data, err := ioutil.ReadFile(index[m].Name)
-		if err != nil {
-			return err
-		}
-
-		header := &tar.Header{
-			Typeflag: tar.TypeReg,
-			Name:     m,
-			Mode:     0600,
-			Size:     int64(len(data)),
-		}
-
-		if err := tw.WriteHeader(header); err != nil {
-			return err
-		}
-
-		if _, err := tw.Write(data); err != nil {
-			return err
-		}
-	}
-
-	if err := tw.Close(); err != nil {
-		return err
-	}
-
-	if err := gz.Close(); err != nil {
-		return err
-	}
-
-	if err := rackClient(c).IndexUpdate(buf, client.IndexUpdateOptions{Progress: progress("Uploading: ", "Storing changes... ", output)}); err != nil {
-		return err
-	}
-
-	output.Write([]byte("OK\n"))
-
-	return nil
-}
-
-func executeBuildDirIncremental(c *cli.Context, dir, app, manifest, description string, output io.WriteCloser) (string, string, error) {
-	system, err := rackClient(c).GetSystem()
-	if err != nil {
-		return "", "", err
-	}
-
-	// if the rack doesnt support incremental builds then fall back
-	if system.Version < "20160226234213" {
-		return executeBuildDir(c, dir, app, manifest, description, output)
-	}
-
-	cache := !c.Bool("no-cache")
-
-	dir, err = filepath.Abs(dir)
-	if err != nil {
-		return "", "", err
-	}
-
-	output.Write([]byte("Analyzing source... "))
-
-	index, err := createIndex(dir)
-	if err != nil {
-		return "", "", err
-	}
-
-	output.Write([]byte("OK\n"))
-
-	err = uploadIndex(c, index, output)
-	if err != nil {
-		return "", "", err
-	}
-
-	output.Write([]byte("Starting build... "))
-
-	build, err := rackClient(c).CreateBuildIndex(app, index, cache, manifest, description)
-	if err != nil {
-		return "", "", err
-	}
-
-	return finishBuild(c, app, build, output)
-}
-
-func executeBuildDir(c *cli.Context, dir, app, manifest, description string, output io.WriteCloser) (string, string, error) {
-	err := warnUnignoredEnv(dir)
-	if err != nil {
-		return "", "", err
-	}
-
-	dir, err = filepath.Abs(dir)
-	if err != nil {
-		return "", "", err
-	}
-
-	output.Write([]byte("Creating tarball... "))
-
-	tar, err := createTarball(dir)
-	if err != nil {
-		return "", "", err
-	}
-
-	output.Write([]byte("OK\n"))
-
-	opts := client.CreateBuildSourceOptions{
-		Cache:       !c.Bool("no-cache"),
-		Config:      manifest,
-		Description: description,
-		Progress:    progress("Uploading: ", "Starting build... ", output),
-	}
-
-	build, err := rackClient(c).CreateBuildSource(app, bytes.NewReader(tar), opts)
-	if err != nil {
-		return "", "", err
-	}
-
-	return finishBuild(c, app, build, output)
-}
-
-func executeBuildURL(c *cli.Context, url, app, manifest, description string, output io.WriteCloser) (string, string, error) {
-	cache := !c.Bool("no-cache")
-
-	output.Write([]byte("Starting build... "))
-
-	build, err := rackClient(c).CreateBuildUrl(app, url, cache, manifest, description)
-	if err != nil {
-		return "", "", err
-	}
-
-	return finishBuild(c, app, build, output)
-}
-
-func createTarball(base string) ([]byte, error) {
-	cwd, err := os.Getwd()
-	if err != nil {
-		return nil, err
-	}
-
-	sym, err := filepath.EvalSymlinks(base)
-	if err != nil {
-		return nil, err
-	}
-
-	err = os.Chdir(sym)
-	if err != nil {
-		return nil, err
-	}
-
-	var includes = []string{"."}
-	var excludes []string
-
-	dockerIgnorePath := path.Join(sym, ".dockerignore")
-	dockerIgnore, err := os.Open(dockerIgnorePath)
-	if err != nil {
-		if !os.IsNotExist(err) {
-			return nil, err
-		}
-		//There is no docker ignore
-		excludes = make([]string, 0)
-	} else {
-		excludes, err = dockerignore.ReadAll(dockerIgnore)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	// If .dockerignore mentions itself, include it anyway so that the
-	// inner docker build can use it
-	if m, err := fileutils.Matches(".dockerignore", excludes); m && err == nil {
-		includes = append(includes, ".dockerignore")
-	}
-
-	options := &archive.TarOptions{
-		Compression:     archive.Gzip,
-		ExcludePatterns: excludes,
-		IncludeFiles:    includes,
-	}
-
-	out, err := archive.TarWithOptions(sym, options)
-	if err != nil {
-		return nil, err
-	}
-
-	bytes, err := ioutil.ReadAll(out)
-	if err != nil {
-		return nil, err
-	}
-
-	err = os.Chdir(cwd)
-	if err != nil {
-		return nil, err
-	}
-
-	return bytes, nil
-}
-
-func finishBuild(c *cli.Context, app string, build *client.Build, output io.WriteCloser) (string, string, error) {
-	if build.Id == "" {
-		return "", "", fmt.Errorf("unable to fetch build id")
-	}
-
-	output.Write([]byte("OK\n"))
-
-	err := rackClient(c).StreamBuildLogs(app, build.Id, output)
-	if err != nil {
-		return "", "", err
-	}
-
-	release, err := waitForBuild(c, app, build.Id)
-	if err != nil {
-		return "", "", err
-	}
-
-	return build.Id, release, nil
-}
-
-func waitForBuild(c *cli.Context, app, id string) (string, error) {
 	for {
-		build, err := rackClient(c).GetBuild(app, id)
+		b, err = provider(c).BuildGet(app(c), b.Id)
 		if err != nil {
-			return "", err
+			return nil, err
 		}
 
-		switch build.Status {
-		case "complete":
-			return build.Release, nil
-		case "error":
-			return "", fmt.Errorf("%s build failed", app)
-		case "failed":
-			return "", fmt.Errorf("%s build failed", app)
-		case "timeout":
-			return "", fmt.Errorf("%s build timed out", app)
+		if b.Status == "failed" {
+			return nil, fmt.Errorf("build failed")
+		}
+
+		if b.Status != "running" {
+			break
 		}
 
 		time.Sleep(1 * time.Second)
 	}
 
-	return "", fmt.Errorf("can't get here")
+	return b, nil
 }
 
-func warnUnignoredEnv(dir string) error {
-	hasDockerIgnore := false
-	hasDotEnv := false
-	warn := false
+func Builds(c *stdcli.Context) error {
+	var opts structs.BuildListOptions
 
-	if _, err := os.Stat(".env"); err == nil {
-		hasDotEnv = true
+	if err := c.Options(&opts); err != nil {
+		return err
 	}
 
-	if _, err := os.Stat(".dockerignore"); err == nil {
-		hasDockerIgnore = true
+	bs, err := provider(c).BuildList(app(c), opts)
+	if err != nil {
+		return err
 	}
 
-	if !hasDockerIgnore && hasDotEnv {
-		warn = true
-	} else if hasDockerIgnore && hasDotEnv {
-		lines, err := readDockerIgnore(dir)
+	t := c.Table("ID", "STATUS", "RELEASE", "STARTED", "ELAPSED", "DESCRIPTION")
+
+	for _, b := range bs {
+		started := helpers.Ago(b.Started)
+		elapsed := helpers.Duration(b.Started, b.Ended)
+
+		t.AddRow(b.Id, b.Status, b.Release, started, elapsed, b.Description)
+	}
+
+	return t.Print()
+}
+
+func BuildsExport(c *stdcli.Context) error {
+	var w io.Writer
+
+	if file := c.String("file"); file != "" {
+		f, err := os.Create(file)
 		if err != nil {
 			return err
 		}
-
-		if len(lines) == 0 {
-			warn = true
-		} else {
-			warn = true
-			for _, line := range lines {
-				if line == ".env" {
-					warn = false
-					break
-				}
-			}
+		defer f.Close()
+		w = f
+	} else {
+		if c.Writer().IsTerminal() {
+			return fmt.Errorf("pipe this command into a file or specify --file")
 		}
+		w = c.Writer().Stdout
+		c.Writer().Stdout = c.Writer().Stderr
 	}
-	if warn {
-		stdcli.Warn("You have a .env file that is not in your .dockerignore, you may be leaking secrets")
+
+	c.Startf("Exporting build")
+
+	if err := provider(c).BuildExport(app(c), c.Arg(0), w); err != nil {
+		return err
 	}
+
+	return c.OK()
+}
+
+func BuildsImport(c *stdcli.Context) error {
+	var stdout io.Writer
+
+	if c.Bool("id") {
+		stdout = c.Writer().Stdout
+		c.Writer().Stdout = c.Writer().Stderr
+	}
+
+	var r io.ReadCloser
+
+	if file := c.String("file"); file != "" {
+		f, err := os.Open(file)
+		if err != nil {
+			return err
+		}
+		r = f
+	} else {
+		if c.Reader().IsTerminal() {
+			return fmt.Errorf("pipe a file into this command or specify --file")
+		}
+		r = ioutil.NopCloser(c.Reader().File)
+	}
+
+	defer r.Close()
+
+	s, err := provider(c).SystemGet()
+	if err != nil {
+		return err
+	}
+
+	c.Startf("Importing build")
+
+	var b *structs.Build
+
+	if s.Version <= "20180416200237" {
+		b, err = provider(c).BuildImportMultipart(app(c), r)
+	} else if s.Version <= "20180708231844" {
+		b, err = provider(c).BuildImportUrl(app(c), r)
+	} else {
+		b, err = provider(c).BuildImport(app(c), r)
+	}
+	if err != nil {
+		return err
+	}
+
+	c.OK(b.Release)
+
+	if c.Bool("id") {
+		fmt.Fprintf(stdout, b.Release)
+	}
+
+	return nil
+}
+
+func BuildsInfo(c *stdcli.Context) error {
+	b, err := provider(c).BuildGet(app(c), c.Arg(0))
+	if err != nil {
+		return err
+	}
+
+	i := c.Info()
+
+	i.Add("Id", b.Id)
+	i.Add("Status", b.Status)
+	i.Add("Release", b.Release)
+	i.Add("Description", b.Description)
+	i.Add("Started", helpers.Ago(b.Started))
+	i.Add("Elapsed", helpers.Duration(b.Started, b.Ended))
+
+	return i.Print()
+}
+
+func BuildsLogs(c *stdcli.Context) error {
+	var opts structs.LogsOptions
+
+	if err := c.Options(&opts); err != nil {
+		return err
+	}
+
+	r, err := provider(c).BuildLogs(app(c), c.Arg(0), opts)
+	if err != nil {
+		return err
+	}
+
+	io.Copy(c, r)
+
 	return nil
 }

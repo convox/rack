@@ -1,61 +1,45 @@
 package main
 
 import (
-	"os"
 	"strings"
 
-	"golang.org/x/crypto/ssh/terminal"
-
-	"github.com/convox/rack/cmd/convox/stdcli"
-	"gopkg.in/urfave/cli.v1"
+	"github.com/convox/rack/options"
+	"github.com/convox/rack/structs"
+	"github.com/convox/stdcli"
 )
 
 func init() {
-	stdcli.RegisterCommand(cli.Command{
-		Name:        "exec",
-		Description: "exec a command in a process in your Convox rack",
-		Usage:       "<pid> <command> [options]",
-		ArgsUsage:   "<pid> <command>",
-		Action:      cmdExec,
-		Flags:       []cli.Flag{appFlag, rackFlag},
+	CLI.Command("exec", "execute a command in a running process", Exec, stdcli.CommandOptions{
+		Flags:    []stdcli.Flag{flagRack, flagApp},
+		Usage:    "<pid> <command>",
+		Validate: stdcli.ArgsMin(2),
 	})
 }
 
-func cmdExec(c *cli.Context) error {
-	fd := os.Stdin.Fd()
+func Exec(c *stdcli.Context) error {
+	pid := c.Arg(0)
+	command := strings.Join(c.Args[1:], " ")
 
-	var h, w int
-
-	if terminal.IsTerminal(int(fd)) {
-		stdinState, err := terminal.GetState(int(fd))
-		if err != nil {
-			return stdcli.Error(err)
-		}
-
-		defer terminal.Restore(int(fd), stdinState)
-
-		w, h, err = terminal.GetSize(int(fd))
-		if err != nil {
-			return stdcli.Error(err)
-		}
-	}
-
-	_, app, err := stdcli.DirApp(c, ".")
+	w, h, err := c.TerminalSize()
 	if err != nil {
-		return stdcli.Error(err)
+		return err
 	}
 
-	stdcli.NeedHelp(c)
-	stdcli.NeedArg(c, -2)
+	opts := structs.ProcessExecOptions{
+		Height: options.Int(h),
+		Width:  options.Int(w),
+	}
 
-	ps := c.Args()[0]
+	if err := c.TerminalRaw(); err != nil {
+		return err
+	}
 
-	code, err := rackClient(c).ExecProcessAttached(app, ps, strings.Join(c.Args()[1:], " "), os.Stdin, os.Stdout, h, w)
+	defer c.TerminalRestore()
+
+	code, err := provider(c).ProcessExec(app(c), pid, command, c, opts)
 	if err != nil {
-		return stdcli.Error(err)
+		return err
 	}
 
-	os.Exit(code)
-
-	return nil
+	return stdcli.Exit(code)
 }

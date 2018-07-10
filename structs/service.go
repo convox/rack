@@ -18,7 +18,7 @@ type ServicePort struct {
 }
 
 type ServiceUpdateOptions struct {
-	Count  *int
-	Cpu    *int
-	Memory *int
+	Count  *int `flag:"count" param:"count"`
+	Cpu    *int `flag:"cpu" param:"cpu"`
+	Memory *int `flag:"memory" param:"memory"`
 }

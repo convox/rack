@@ -2,263 +2,174 @@ package main
 
 import (
 	"bufio"
-	"bytes"
 	"fmt"
-	"io/ioutil"
-	"os"
+	"io"
 	"sort"
 	"strings"
 
-	"github.com/convox/rack/cmd/convox/stdcli"
-	"gopkg.in/urfave/cli.v1"
+	"github.com/convox/rack/helpers"
+	"github.com/convox/rack/options"
+	"github.com/convox/rack/structs"
+	"github.com/convox/stdcli"
 )
 
 func init() {
-	stdcli.RegisterCommand(cli.Command{
-		Name:        "env",
-		Description: "manage an app's environment variables",
-		Usage:       "",
-		Action:      cmdEnvList,
-		Flags:       []cli.Flag{appFlag, rackFlag},
-		Subcommands: []cli.Command{
-			{
-				Name:        "get",
-				Description: "get an environment variable",
-				Usage:       "VARIABLE [options]",
-				ArgsUsage:   "VARIABLE",
-				Action:      cmdEnvGet,
-				Flags:       []cli.Flag{appFlag, rackFlag},
-			},
-			{
-				Name:        "set",
-				Description: "set an environment variable",
-				Usage:       "VARIABLE=VALUE [VARIABLE=VALUE ...] [options]",
-				ArgsUsage:   "VARIABLE=VALUE",
-				Action:      cmdEnvSet,
-				Flags: []cli.Flag{
-					appFlag,
-					rackFlag,
-					cli.BoolFlag{
-						Name:  "promote",
-						Usage: "promote the release after env change",
-					},
-					cli.BoolFlag{
-						Name:  "id",
-						Usage: "send 'env set' logs to stderr, send release id to stdout (useful for scripting)",
-					},
-					cli.BoolFlag{
-						Name:   "wait",
-						EnvVar: "CONVOX_WAIT",
-						Usage:  "wait for release to finish promoting before returning",
-					},
-				},
-			},
-			{
-				Name:        "unset",
-				Description: "delete an environment varible",
-				Usage:       "VARIABLE [options]",
-				ArgsUsage:   "VARIABLE",
-				Action:      cmdEnvUnset,
-				Flags: []cli.Flag{
-					appFlag,
-					rackFlag,
-					cli.BoolFlag{
-						Name:  "promote",
-						Usage: "promote the release after env change",
-					},
-					cli.BoolFlag{
-						Name:  "id",
-						Usage: "send 'env unset' logs to stderr, send release id to stdout (useful for scripting)",
-					},
-					cli.BoolFlag{
-						Name:   "wait",
-						EnvVar: "CONVOX_WAIT",
-						Usage:  "wait for release to finish promoting before returning",
-					},
-				},
-			},
+	CLI.Command("env", "list env vars", Env, stdcli.CommandOptions{
+		Flags:    []stdcli.Flag{flagRack, flagApp},
+		Validate: stdcli.Args(0),
+	})
+
+	CLI.Command("env get", "get an env var", EnvGet, stdcli.CommandOptions{
+		Flags:    []stdcli.Flag{flagRack, flagApp},
+		Usage:    "<var>",
+		Validate: stdcli.Args(1),
+	})
+
+	CLI.Command("env set", "set env var(s)", EnvSet, stdcli.CommandOptions{
+		Flags: []stdcli.Flag{
+			flagApp,
+			flagId,
+			flagRack,
+			flagWait,
+			stdcli.BoolFlag("promote", "p", "promote the release"),
 		},
+		Usage: "<key=value> [key=value]...",
+	})
+
+	CLI.Command("env unset", "unset env var(s)", EnvUnset, stdcli.CommandOptions{
+		Flags:    []stdcli.Flag{flagRack, flagApp},
+		Usage:    "<key> [key]...",
+		Validate: stdcli.ArgsMin(1),
 	})
 }
 
-func cmdEnvList(c *cli.Context) error {
-	stdcli.NeedHelp(c)
-	stdcli.NeedArg(c, 0)
-
-	_, app, err := stdcli.DirApp(c, ".")
+func Env(c *stdcli.Context) error {
+	env, err := helpers.AppEnvironment(provider(c), app(c))
 	if err != nil {
-		return stdcli.Error(err)
+		return err
 	}
 
-	env, err := rackClient(c).GetEnvironment(app)
+	c.Writef("%s\n", env.String())
+
+	return nil
+}
+
+func EnvGet(c *stdcli.Context) error {
+	env, err := helpers.AppEnvironment(provider(c), app(c))
 	if err != nil {
-		return stdcli.Error(err)
+		return err
 	}
 
+	k := c.Arg(0)
+
+	v, ok := env[k]
+	if !ok {
+		return fmt.Errorf("env not found: %s", k)
+	}
+
+	c.Writef("%s\n", v)
+
+	return nil
+}
+
+func EnvSet(c *stdcli.Context) error {
+	var stdout io.Writer
+
+	if c.Bool("id") {
+		stdout = c.Writer().Stdout
+		c.Writer().Stdout = c.Writer().Stderr
+	}
+
+	env, err := helpers.AppEnvironment(provider(c), app(c))
+	if err != nil {
+		return err
+	}
+
+	args := []string(c.Args)
 	keys := []string{}
 
-	for key := range env {
-		keys = append(keys, key)
+	if !c.Reader().IsTerminal() {
+		s := bufio.NewScanner(c.Reader())
+		for s.Scan() {
+			args = append(args, s.Text())
+		}
+	}
+
+	for _, arg := range args {
+		parts := strings.SplitN(arg, "=", 2)
+		if len(parts) == 2 {
+			keys = append(keys, fmt.Sprintf("<info>%s</info>", parts[0]))
+			env[parts[0]] = parts[1]
+		}
 	}
 
 	sort.Strings(keys)
 
-	for _, key := range keys {
-		fmt.Printf("%s=%s\n", key, env[key])
+	c.Startf(fmt.Sprintf("Setting %s", strings.Join(keys, ", ")))
+
+	r, err := provider(c).ReleaseCreate(app(c), structs.ReleaseCreateOptions{Env: options.String(env.String())})
+	if err != nil {
+		return err
+	}
+
+	c.OK()
+
+	c.Writef("Release: <release>%s</release>\n", r.Id)
+
+	if c.Bool("promote") {
+		if err := releasePromote(c, app(c), r.Id); err != nil {
+			return err
+		}
+	}
+
+	if c.Bool("id") {
+		fmt.Fprintf(stdout, r.Id)
 	}
 
 	return nil
 }
 
-func cmdEnvGet(c *cli.Context) error {
-	stdcli.NeedHelp(c)
-	stdcli.NeedArg(c, 1)
-
-	_, app, err := stdcli.DirApp(c, ".")
+func EnvUnset(c *stdcli.Context) error {
+	env, err := helpers.AppEnvironment(provider(c), app(c))
 	if err != nil {
-		return stdcli.Error(err)
+		return err
 	}
 
-	variable := c.Args()[0]
+	keys := []string{}
 
-	env, err := rackClient(c).GetEnvironment(app)
+	for _, arg := range c.Args {
+		keys = append(keys, fmt.Sprintf("<info>%s</info>", arg))
+		delete(env, arg)
+	}
+
+	sort.Strings(keys)
+
+	c.Startf(fmt.Sprintf("Unsetting %s", strings.Join(keys, ", ")))
+
+	s, err := provider(c).SystemGet()
 	if err != nil {
-		return stdcli.Error(err)
+		return err
 	}
 
-	fmt.Println(env[variable])
-	return nil
-}
+	var r *structs.Release
 
-func cmdEnvSet(c *cli.Context) error {
-	stdcli.NeedHelp(c)
-
-	_, app, err := stdcli.DirApp(c, ".")
-	if err != nil {
-		return stdcli.Error(err)
-	}
-
-	// get current app environment
-	env, err := rackClient(c).GetEnvironment(app)
-	if err != nil {
-		return stdcli.Error(err)
-	}
-
-	data := ""
-
-	for key, value := range env {
-		data += fmt.Sprintf("%s=%s\n", key, value)
-	}
-
-	// handle data from stdin
-	if !stdcli.IsTerminal(os.Stdin) {
-		in, err := ioutil.ReadAll(os.Stdin)
+	if s.Version <= "20180708231844" {
+		for _, e := range c.Args {
+			r, err = provider(c).EnvironmentUnset(app(c), e)
+			if err != nil {
+				return err
+			}
+		}
+	} else {
+		r, err = provider(c).ReleaseCreate(app(c), structs.ReleaseCreateOptions{Env: options.String(env.String())})
 		if err != nil {
-			return stdcli.Error(err)
-		}
-
-		scanner := bufio.NewScanner(bytes.NewReader(in))
-		for scanner.Scan() {
-			data += fmt.Sprintf("%s\n", scanner.Text())
+			return err
 		}
 	}
 
-	// handle args
-	for _, value := range c.Args() {
-		data += fmt.Sprintf("%s\n", value)
-	}
+	c.OK()
 
-	output := os.Stdout
-	if c.Bool("id") {
-		output = os.Stderr
-	}
-
-	output.Write([]byte("Updating environment... "))
-
-	_, release, err := rackClient(c).SetEnvironment(app, strings.NewReader(data))
-	if err != nil {
-		return stdcli.Error(err)
-	}
-
-	output.Write([]byte("OK\n"))
-
-	if release != "" {
-		if c.Bool("id") {
-			os.Stdout.Write([]byte(fmt.Sprintf("%s\n", release)))
-		}
-
-		if c.Bool("promote") {
-			output.Write([]byte(fmt.Sprintf("Promoting %s... ", release)))
-
-			_, err = rackClient(c).PromoteRelease(app, release)
-			if err != nil {
-				return stdcli.Error(err)
-			}
-
-			output.Write([]byte("OK\n"))
-
-			if c.Bool("wait") {
-				if err := waitForReleasePromotion(output, c, app, release); err != nil {
-					return stdcli.Error(err)
-				}
-			}
-		} else {
-			output.Write([]byte(fmt.Sprintf("To deploy these changes run `convox releases promote %s`\n", release)))
-		}
-	}
-
-	return nil
-}
-
-func cmdEnvUnset(c *cli.Context) error {
-	stdcli.NeedHelp(c)
-	stdcli.NeedArg(c, 1)
-
-	_, app, err := stdcli.DirApp(c, ".")
-	if err != nil {
-		return stdcli.Error(err)
-	}
-
-	key := c.Args()[0]
-
-	output := os.Stdout
-	if c.Bool("id") {
-		output = os.Stderr
-	}
-
-	output.Write([]byte("Updating environment... "))
-
-	_, release, err := rackClient(c).DeleteEnvironment(app, key)
-	if err != nil {
-		return stdcli.Error(err)
-	}
-
-	output.Write([]byte("OK\n"))
-
-	if release != "" {
-		if c.Bool("id") {
-			os.Stdout.Write([]byte(fmt.Sprintf("%s\n", release)))
-		}
-
-		if c.Bool("promote") {
-			output.Write([]byte(fmt.Sprintf("Promoting %s... ", release)))
-
-			_, err = rackClient(c).PromoteRelease(app, release)
-			if err != nil {
-				return stdcli.Error(err)
-			}
-
-			output.Write([]byte("OK\n"))
-
-			if c.Bool("wait") {
-				if err := waitForReleasePromotion(output, c, app, release); err != nil {
-					return stdcli.Error(err)
-				}
-			}
-		} else {
-			output.Write([]byte(fmt.Sprintf("To deploy these changes run `convox releases promote %s`\n", release)))
-		}
-	}
+	c.Writef("Release: <release>%s</release>\n", r.Id)
 
 	return nil
 }

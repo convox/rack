@@ -27,12 +27,12 @@ services:
     - PRIVATE
     - PROVIDER
     - RACK
-    - RELEASE=dev
     - SECURITY_GROUP
     - SETTINGS_BUCKET
     - STACK_ID
     - SUBNETS
     - SUBNETS_PRIVATE
+    - VERSION=dev
     - VPC
     - VPCCIDR
     health:
@@ -75,12 +75,12 @@ services:
     - PRIVATE
     - PROVIDER
     - RACK
-    - RELEASE=dev
     - SECURITY_GROUP
     - SPOT_INSTANCES
     - STACK_ID
     - SUBNETS
     - SUBNETS_PRIVATE
+    - VERSION=dev
     - VPC
     scale:
       cpu: 2048
