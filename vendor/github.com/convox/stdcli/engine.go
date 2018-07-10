@@ -13,6 +13,7 @@ type Engine struct {
 	Commands []Command
 	Name     string
 	Reader   *Reader
+	Settings string
 	Version  string
 	Writer   *Writer
 }
@@ -75,6 +76,10 @@ func (e *Engine) Execute(args []string) int {
 }
 
 func (e *Engine) settingFile(name string) (string, error) {
+	if dir := e.Settings; dir != "" {
+		return filepath.Join(dir, name), nil
+	}
+
 	home, err := homedir.Dir()
 	if err != nil {
 		return "", err
