@@ -30,6 +30,10 @@ func init() {
 	CLI.Writer.Tags["process"] = stdcli.RenderColors(27)
 	CLI.Writer.Tags["release"] = stdcli.RenderColors(24)
 	CLI.Writer.Tags["service"] = stdcli.RenderColors(25)
+
+	if dir := os.Getenv("CONVOX_CONFIG"); dir != "" {
+		CLI.Settings = dir
+	}
 }
 
 func main() {
