@@ -4,7 +4,7 @@
     "Password": {
       "MinLength": "8",
       "NoEcho": true,
-      "Type": "String",
+      "Type": "String"
     },
     "Rack": {
       "MinLength": "1",

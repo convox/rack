@@ -113,7 +113,7 @@ func (p *AWSProvider) asgResourceInstanceCount(resource string) (int, error) {
 		return 0, err
 	}
 	if len(res.AutoScalingGroups) < 1 {
-		return 0, fmt.Errorf("no such autoscaling resource: %s", resource)
+		return 0, fmt.Errorf("resource not found: %s", resource)
 	}
 
 	count := 0
@@ -143,21 +143,3 @@ func (p *AWSProvider) setAsgResourceDesiredCount(resource string, count int) err
 
 	return nil
 }
-
-// func stackParameter(stack, param string) (string, error) {
-//   res, err := models.DescribeStack(stack)
-//   if err != nil {
-//     return "", err
-//   }
-//   if len(res.Stacks) < 1 {
-//     return "", fmt.Errorf("no such stack: %s", stack)
-//   }
-
-//   for _, p := range res.Stacks[0].Parameters {
-//     if *p.ParameterKey == param {
-//       return *p.ParameterValue, nil
-//     }
-//   }
-
-//   return "", fmt.Errorf("no such parameter %s for stack: %s", param, stack)
-// }

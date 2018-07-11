@@ -2,483 +2,404 @@ package main
 
 import (
 	"fmt"
-	"math/rand"
-	"net"
 	"net/url"
 	"sort"
 	"strconv"
 	"strings"
-	"time"
 
-	"github.com/convox/rack/client"
-	"github.com/convox/rack/cmd/convox/stdcli"
-	"gopkg.in/urfave/cli.v1"
+	"github.com/convox/rack/options"
+	"github.com/convox/rack/structs"
+	"github.com/convox/stdcli"
 )
 
-// ResourceType is the type of an external resource.
-type ResourceType struct {
-	name, args string
-}
-
-var resourceTypes = []ResourceType{
-	{
-		"memcached",
-		"[--instance-type=db.t2.micro] [--num-cache-nodes=1] [--private]",
-	},
-	{
-		"mysql",
-		"[--allocated-storage=10] [--database=db-name] [--encrypted] [--instance-type=db.t2.micro] [--multi-az] [--password=example] [--private] [--username=example] [--version=5.7.16]",
-	},
-	{
-		"postgres",
-		"[--allocated-storage=10] [--backup-retention-period=1] [--database=db-name] [--database-snapshot-identifier=db-snapshot-arn] [--encrypted] [--instance-type=db.t2.micro] [--max-connections={DBInstanceClassMemory/15000000}] [--multi-az] [--password=example] [--private] [--username=example] [--version=9.5.2]",
-	},
-	{
-		"redis",
-		"[--automatic-failover-enabled] [--database=db-name] [--encrypted] [--instance-type=cache.t2.micro] [--num-cache-clusters=1] [--private] [--version=3.2.6]",
-	},
-	{
-		"s3",
-		"[--topic=sns-topic-name] [--versioning]",
-	},
-	{
-		"sns",
-		"[--queue=sqs-queue-name]",
-	},
-	{
-		"sqs",
-		"[--message-retention-period=345600] [--receive-message-wait-time=0] [--visibility-timeout=30]",
-	},
-	{
-		"syslog",
-		"--url=tcp+tls://logs1.papertrailapp.com:11235 [--private]",
-	},
-	{
-		"webhook",
-		"--url=https://console.convox.com/webhooks/1234",
-	},
-}
-
-var waitSecond = time.Second
-
 func init() {
+	CLI.Command("resources", "list resources", Resources, stdcli.CommandOptions{
+		Flags:    []stdcli.Flag{flagRack},
+		Validate: stdcli.Args(0),
+	})
 
-	usage := "Supported types / options:"
-	for _, t := range resourceTypes {
-		usage += fmt.Sprintf("\n  %-10s  %s", t.name, t.args)
-	}
-
-	stdcli.RegisterCommand(cli.Command{
-		Name:        "resources",
-		Aliases:     []string{"services"},
-		Description: "manage external resources [prev. services]",
-		Usage:       "<command> [subcommand] [options] [arguments]",
-		ArgsUsage:   "<command>",
-		Action:      cmdResources,
-		Flags:       []cli.Flag{rackFlag},
-		Subcommands: []cli.Command{
-			{
-				Name:            "create",
-				Description:     "create a new resource",
-				Usage:           "<type> [--name=value] [--option-name=value] [options]\n\n" + usage,
-				ArgsUsage:       "<type>",
-				Action:          cmdResourceCreate,
-				Flags:           []cli.Flag{rackFlag, waitFlag},
-				SkipFlagParsing: true,
-			},
-			{
-				Name:        "delete",
-				Description: "delete a resource",
-				Usage:       "<name> [options]",
-				ArgsUsage:   "<name>",
-				Action:      cmdResourceDelete,
-				Flags:       []cli.Flag{rackFlag, waitFlag},
-			},
-			{
-				Name:            "update",
-				Description:     "update a resource (may cause resource downtime)",
-				UsageText:       "update a resource\n\nWARNING: updates may cause resource downtime.",
-				Usage:           "<name> --option-name=value [--option-name=value]\n\n" + usage,
-				ArgsUsage:       "<name>",
-				Action:          cmdResourceUpdate,
-				Flags:           []cli.Flag{rackFlag, waitFlag},
-				SkipFlagParsing: true,
-			},
-			{
-				Name:        "info",
-				Description: "info about a resource",
-				Usage:       "<name> [options]",
-				ArgsUsage:   "<name>",
-				Action:      cmdResourceInfo,
-				Flags:       []cli.Flag{rackFlag},
-			},
-			{
-				Name:        "link",
-				Description: "create a link between a resource and an app",
-				Usage:       "<name> [options]",
-				ArgsUsage:   "<name>",
-				Action:      cmdLinkCreate,
-				Flags:       []cli.Flag{appFlag, rackFlag},
-			},
-			{
-				Name:        "unlink",
-				Description: "delete a link between a resource and an app",
-				Usage:       "<name> [options]",
-				ArgsUsage:   "<name>",
-				Action:      cmdLinkDelete,
-				Flags:       []cli.Flag{appFlag, rackFlag},
-			},
-			{
-				Name:        "url",
-				Description: "return url for the given resource",
-				Usage:       "<name> [options]",
-				ArgsUsage:   "<name>",
-				Action:      cmdResourceURL,
-				Flags:       []cli.Flag{appFlag, rackFlag},
-			},
-			{
-				Name:        "proxy",
-				Description: "proxy ports from localhost to connect to a resource",
-				Usage:       "<name>",
-				Action:      cmdResourceProxy,
-				Flags: []cli.Flag{
-					rackFlag,
-					cli.StringFlag{
-						Name:  "listen, l",
-						Value: "",
-						Usage: "[[addr:]port]",
-					},
-				},
-			},
+	CLI.Command("resources create", "create a resource", ResourcesCreate, stdcli.CommandOptions{
+		Flags: []stdcli.Flag{
+			flagRack,
+			flagWait,
+			stdcli.StringFlag("name", "n", "resource name"),
 		},
+		Usage:    "<type> [Option=Value]...",
+		Validate: stdcli.ArgsMin(1),
+	})
+
+	CLI.Command("resources delete", "delete a resource", ResourcesDelete, stdcli.CommandOptions{
+		Flags:    []stdcli.Flag{flagRack, flagWait},
+		Usage:    "<name>",
+		Validate: stdcli.Args(1),
+	})
+
+	CLI.Command("resources info", "get information about a resource", ResourcesInfo, stdcli.CommandOptions{
+		Flags:    []stdcli.Flag{flagRack},
+		Usage:    "<resource>",
+		Validate: stdcli.Args(1),
+	})
+
+	CLI.Command("resources link", "link a resource to an app", ResourcesLink, stdcli.CommandOptions{
+		Flags:    []stdcli.Flag{flagApp, flagRack, flagWait},
+		Usage:    "<resource>",
+		Validate: stdcli.Args(1),
+	})
+
+	CLI.Command("resources options", "list options for a resource type", ResourcesOptions, stdcli.CommandOptions{
+		Flags:    []stdcli.Flag{flagRack},
+		Usage:    "<resource>",
+		Validate: stdcli.Args(1),
+	})
+
+	CLI.Command("resources proxy", "get information about a resource", ResourcesProxy, stdcli.CommandOptions{
+		Flags: []stdcli.Flag{
+			flagRack,
+			stdcli.IntFlag("port", "p", "local port"),
+		},
+		Usage:    "<resource>",
+		Validate: stdcli.Args(1),
+	})
+
+	CLI.Command("resources types", "list resource types", ResourcesTypes, stdcli.CommandOptions{
+		Flags:    []stdcli.Flag{flagRack},
+		Validate: stdcli.Args(0),
+	})
+
+	CLI.Command("resources update", "update resource options", ResourcesUpdate, stdcli.CommandOptions{
+		Flags:    []stdcli.Flag{flagRack, flagWait},
+		Usage:    "<name> [Option=Value]...",
+		Validate: stdcli.ArgsMin(1),
+	})
+
+	CLI.Command("resources unlink", "unlink a resource from an app", ResourcesUnlink, stdcli.CommandOptions{
+		Flags:    []stdcli.Flag{flagApp, flagRack, flagWait},
+		Usage:    "<resource>",
+		Validate: stdcli.Args(1),
+	})
+
+	CLI.Command("resources url", "get url for a resource", ResourcesUrl, stdcli.CommandOptions{
+		Flags:    []stdcli.Flag{flagRack},
+		Usage:    "<resource>",
+		Validate: stdcli.Args(1),
 	})
 }
 
-func cmdResources(c *cli.Context) error {
-	stdcli.NeedHelp(c)
-	stdcli.NeedArg(c, 0)
-
-	resources, err := rackClient(c).GetResources()
+func Resources(c *stdcli.Context) error {
+	rs, err := provider(c).ResourceList()
 	if err != nil {
-		return stdcli.Error(err)
+		return err
 	}
 
-	t := stdcli.NewTable("NAME", "TYPE", "STATUS")
+	t := c.Table("NAME", "TYPE", "STATUS")
 
-	for _, resource := range resources {
-		t.AddRow(resource.Name, resource.Type, resource.Status)
+	for _, r := range rs {
+		t.AddRow(r.Name, r.Type, r.Status)
 	}
 
-	t.Print()
-	return nil
+	return t.Print()
 }
 
-func checkResourceType(t string) (string, error) {
-	for _, resourceType := range resourceTypes {
-		if resourceType.name == t {
-			return t, nil
+func ResourcesCreate(c *stdcli.Context) error {
+	var opts structs.ResourceCreateOptions
+
+	if err := c.Options(&opts); err != nil {
+		return err
+	}
+
+	if v := c.String("name"); v != "" {
+		opts.Name = options.String(v)
+	}
+
+	opts.Parameters = map[string]string{}
+
+	for _, arg := range c.Args[1:] {
+		parts := strings.SplitN(arg, "=", 2)
+
+		if len(parts) != 2 {
+			return fmt.Errorf("Name=Value expected: %s", arg)
+		}
+
+		opts.Parameters[parts[0]] = parts[1]
+	}
+
+	c.Startf("Creating resource")
+
+	s, err := provider(c).SystemGet()
+	if err != nil {
+		return err
+	}
+
+	var r *structs.Resource
+
+	if s.Version <= "20180708231844" {
+		r, err = provider(c).ResourceCreateClassic(c.Arg(0), opts)
+	} else {
+		r, err = provider(c).ResourceCreate(c.Arg(0), opts)
+	}
+	if err != nil {
+		return err
+	}
+
+	if c.Bool("wait") {
+		if err := waitForResourceRunning(c, r.Name); err != nil {
+			return err
 		}
 	}
-	return "", stdcli.Errorf("unsupported resource type %s; see 'convox resources create --help'", t)
+
+	return c.OK(r.Name)
 }
 
-func cmdResourceCreate(c *cli.Context) error {
-	stdcli.NeedHelp(c)
-	stdcli.NeedArg(c, -1)
+func ResourcesDelete(c *stdcli.Context) error {
+	c.Startf("Deleting resource")
 
-	t, err := checkResourceType(c.Args()[0])
-	if err != nil {
-		return stdcli.Error(err)
-	}
-	args := c.Args()[1:]
-
-	// ensure everything after type is a flag
-	stdcli.EnsureOnlyFlags(c, args)
-	options := stdcli.FlagsToOptions(c, args)
-
-	var optionsList []string
-	for key, val := range options {
-		optionsList = append(optionsList, fmt.Sprintf("%s=%q", key, val))
+	if err := provider(c).ResourceDelete(c.Arg(0)); err != nil {
+		return err
 	}
 
-	if options["name"] == "" {
-		options["name"] = fmt.Sprintf("%s-%d", t, (rand.Intn(8999) + 1000))
-	}
-
-	// special cases
-	switch {
-	case t == "postgres" && options["version"] != "":
-		parts := strings.Split(options["version"], ".")
-		if len(parts) < 3 {
-			return stdcli.Error(fmt.Errorf("invalid version: %s", options["version"]))
+	if c.Bool("wait") {
+		if err := waitForResourceDeleted(c, c.Arg(0)); err != nil {
+			return err
 		}
-		options["family"] = fmt.Sprintf("postgres%s.%s", parts[0], parts[1])
 	}
 
-	fmt.Printf("Creating %s (%s", options["name"], t)
-	if len(optionsList) > 0 {
-		sort.Strings(optionsList)
-		fmt.Printf(": %s", strings.Join(optionsList, " "))
-	}
-	fmt.Printf(")... ")
-
-	_, err = rackClient(c).CreateResource(t, options)
-	if err != nil {
-		return stdcli.Error(err)
-	}
-
-	return waitForResource(
-		rackClient(c),
-		options["name"],
-		"CREATING",
-		c.Bool("wait") || options["wait"] == "true",
-	)
+	return c.OK()
 }
 
-func cmdResourceUpdate(c *cli.Context) error {
-	stdcli.NeedHelp(c)
-
-	name := c.Args()[0]
-	args := c.Args()[1:]
-
-	stdcli.EnsureOnlyFlags(c, args)
-
-	options := stdcli.FlagsToOptions(c, args)
-
-	var optionsList []string
-	for key, val := range options {
-		optionsList = append(optionsList, fmt.Sprintf("%s=%q", key, val))
-	}
-
-	optionsSuffix := ""
-	if len(optionsList) > 0 {
-		optionsSuffix = fmt.Sprintf(" (%s)", strings.Join(optionsList, " "))
-	}
-
-	fmt.Printf("Updating %s%s...", name, optionsSuffix)
-
-	_, err := rackClient(c).UpdateResource(name, options)
+func ResourcesInfo(c *stdcli.Context) error {
+	r, err := provider(c).ResourceGet(c.Arg(0))
 	if err != nil {
-		return stdcli.Error(err)
+		return err
 	}
 
-	return waitForResource(
-		rackClient(c),
-		options["name"],
-		"UPDATING",
-		c.Bool("wait") || options["wait"] == "true",
-	)
-}
+	// fmt.Printf("r = %+v\n", r)
 
-func cmdResourceDelete(c *cli.Context) error {
-	stdcli.NeedHelp(c)
-	stdcli.NeedArg(c, 1)
-
-	name := c.Args()[0]
-
-	fmt.Printf("Deleting %s... ", name)
-
-	_, err := rackClient(c).DeleteResource(name)
-	if err != nil {
-		return stdcli.Error(err)
-	}
-
-	return waitForResource(
-		rackClient(c),
-		name,
-		"DELETING",
-		c.Bool("wait"),
-	)
-}
-
-func cmdResourceInfo(c *cli.Context) error {
-	stdcli.NeedHelp(c)
-	stdcli.NeedArg(c, 1)
-
-	name := c.Args()[0]
-
-	resource, err := rackClient(c).GetResource(name)
-	if err != nil {
-		return stdcli.Error(err)
-	}
-
-	fmt.Printf("Name    %s\n", resource.Name)
-	fmt.Printf("Status  %s\n", resource.Status)
-
-	if resource.Url != "" {
-		fmt.Printf("URL     %s\n", resource.Url)
-	}
+	i := c.Info()
 
 	apps := []string{}
 
-	for _, a := range resource.Apps {
+	for _, a := range r.Apps {
 		apps = append(apps, a.Name)
 	}
 
 	sort.Strings(apps)
 
+	options := []string{}
+
+	for k, v := range r.Parameters {
+		options = append(options, fmt.Sprintf("%s=%s", k, v))
+	}
+
+	sort.Strings(options)
+
+	i.Add("Name", r.Name)
+	i.Add("Type", r.Type)
+	i.Add("Status", r.Status)
+	i.Add("Options", strings.Join(options, "\n"))
+
+	if r.Url != "" {
+		i.Add("URL", r.Url)
+	}
+
 	if len(apps) > 0 {
-		fmt.Printf("Apps    %s\n", strings.Join(apps, " "))
+		i.Add("Apps", strings.Join(apps, ", "))
 	}
 
-	return nil
+	return i.Print()
 }
 
-func cmdResourceURL(c *cli.Context) error {
-	stdcli.NeedHelp(c)
-	stdcli.NeedArg(c, 1)
+func ResourcesLink(c *stdcli.Context) error {
+	c.Startf("Linking to <app>%s</app>", app(c))
 
-	name := c.Args()[0]
+	resource := c.Arg(0)
 
-	resource, err := rackClient(c).GetResource(name)
-	if err != nil {
-		return stdcli.Error(err)
+	if _, err := provider(c).ResourceLink(resource, app(c)); err != nil {
+		return err
 	}
 
-	if resource.Url == "" {
-		return stdcli.Error(fmt.Errorf("URL does not exist for %s", resource.Name))
-	}
-
-	fmt.Printf("%s\n", resource.Url)
-
-	return nil
-}
-
-func cmdLinkCreate(c *cli.Context) error {
-	stdcli.NeedHelp(c)
-	stdcli.NeedArg(c, 1)
-
-	_, app, err := stdcli.DirApp(c, ".")
-	if err != nil {
-		return stdcli.Error(err)
-	}
-
-	name := c.Args()[0]
-
-	_, err = rackClient(c).CreateLink(app, name)
-	if err != nil {
-		return stdcli.Error(err)
-	}
-
-	fmt.Printf("Linked %s to %s\n", name, app)
-	return nil
-}
-
-func cmdLinkDelete(c *cli.Context) error {
-	stdcli.NeedHelp(c)
-	stdcli.NeedArg(c, 1)
-
-	_, app, err := stdcli.DirApp(c, ".")
-	if err != nil {
-		return stdcli.Error(err)
-	}
-
-	name := c.Args()[0]
-
-	_, err = rackClient(c).DeleteLink(app, name)
-	if err != nil {
-		return stdcli.Error(err)
-	}
-
-	fmt.Printf("Unlinked %s from %s\n", name, app)
-	return nil
-}
-
-func cmdResourceProxy(c *cli.Context) error {
-	stdcli.NeedHelp(c)
-	stdcli.NeedArg(c, 1)
-
-	name := c.Args()[0]
-
-	resource, err := rackClient(c).GetResource(name)
-	if err != nil {
-		return stdcli.Error(err)
-	}
-
-	if resource.Url == "" {
-		return stdcli.Error(fmt.Errorf("%s does not expose a URL", name))
-	}
-
-	u, err := url.Parse(resource.Url)
-	if err != nil {
-		return stdcli.Error(err)
-	}
-
-	remotehost, remoteport, err := net.SplitHostPort(u.Host)
-	if err != nil {
-		return stdcli.Error(err)
-	}
-
-	localhost := "127.0.0.1"
-	localport := remoteport
-
-	if listen := c.String("listen"); listen != "" {
-		parts := strings.Split(listen, ":")
-
-		switch len(parts) {
-		case 1:
-			localport = parts[0]
-		case 2:
-			localhost = parts[0]
-			localport = parts[1]
+	if c.Bool("wait") {
+		if err := waitForResourceRunning(c, resource); err != nil {
+			return err
 		}
 	}
 
-	lp, err := strconv.Atoi(localport)
-	if err != nil {
-		return stdcli.Error(err)
-	}
-
-	rp, err := strconv.Atoi(remoteport)
-	if err != nil {
-		return stdcli.Error(err)
-	}
-
-	proxy(localhost, lp, remotehost, rp, rackClient(c))
-	return nil
+	return c.OK()
 }
 
-func waitForResource(c *client.Client, n string, t string, w bool) error {
-	timeout := time.After(30 * 60 * waitSecond)
-	tick := time.Tick(2 * waitSecond)
-
-	if !w {
-		fmt.Println(t)
-		return nil
+func ResourcesOptions(c *stdcli.Context) error {
+	rts, err := provider(c).ResourceTypes()
+	if err != nil {
+		return err
 	}
 
-	fmt.Println("Waiting for completion")
+	var rt *structs.ResourceType
 
-	// give the rack some time to start updating
-	time.Sleep(5 * waitSecond)
-
-	failed := false
-
-	for {
-		select {
-		case <-tick:
-			r, err := c.GetResource(n)
-			if err != nil {
-				return err
-			}
-
-			switch r.Status {
-			case "running":
-				if failed {
-					fmt.Println("DONE")
-					return fmt.Errorf("Update rolled back")
-				}
-				return nil
-			case "rollback":
-				if !failed {
-					failed = true
-					fmt.Print("FAILED\nRolling back... ")
-				}
-			}
-		case <-timeout:
-			return fmt.Errorf("timeout")
+	for _, t := range rts {
+		if t.Name == c.Arg(0) {
+			rt = &t
+			break
 		}
 	}
+
+	if rt == nil {
+		return fmt.Errorf("no such resource type: %s", c.Arg(0))
+	}
+
+	t := c.Table("NAME", "DEFAULT", "DESCRIPTION")
+
+	sort.Slice(rt.Parameters, rt.Parameters.Less)
+
+	for _, p := range rt.Parameters {
+		t.AddRow(p.Name, p.Default, p.Description)
+	}
+
+	return t.Print()
+}
+
+func ResourcesProxy(c *stdcli.Context) error {
+	r, err := provider(c).ResourceGet(c.Arg(0))
+	if err != nil {
+		return err
+	}
+
+	if r.Url == "" {
+		return fmt.Errorf("no url for resource: %s", r.Name)
+	}
+
+	u, err := url.Parse(r.Url)
+	if err != nil {
+		return err
+	}
+
+	remotehost := u.Hostname()
+	remoteport := u.Port()
+
+	if remoteport == "" {
+		switch u.Scheme {
+		case "http":
+			remoteport = "80"
+		case "https":
+			remoteport = "443"
+		default:
+			return fmt.Errorf("unknown port for url: %s", r.Url)
+		}
+	}
+
+	rpi, err := strconv.Atoi(remoteport)
+	if err != nil {
+		return err
+	}
+
+	port := rpi
+
+	if p := c.Int("port"); p != 0 {
+		port = p
+	}
+
+	go proxy(c, port, remotehost, rpi)
+
+	select {}
+}
+
+func ResourcesTypes(c *stdcli.Context) error {
+	rts, err := provider(c).ResourceTypes()
+	if err != nil {
+		return err
+	}
+
+	t := c.Table("TYPE")
+
+	for _, rt := range rts {
+		t.AddRow(rt.Name)
+	}
+
+	return t.Print()
+}
+
+func ResourcesUnlink(c *stdcli.Context) error {
+	c.Startf("Unlinking from <app>%s</app>", app(c))
+
+	resource := c.Arg(0)
+
+	if _, err := provider(c).ResourceUnlink(resource, app(c)); err != nil {
+		return err
+	}
+
+	if c.Bool("wait") {
+		if err := waitForResourceRunning(c, resource); err != nil {
+			return err
+		}
+	}
+
+	return c.OK()
+}
+
+func ResourcesUpdate(c *stdcli.Context) error {
+	opts := structs.ResourceUpdateOptions{
+		Parameters: map[string]string{},
+	}
+
+	for _, arg := range c.Args[1:] {
+		parts := strings.SplitN(arg, "=", 2)
+
+		if len(parts) != 2 {
+			return fmt.Errorf("Key=Value expected: %s", arg)
+		}
+
+		opts.Parameters[parts[0]] = parts[1]
+	}
+
+	c.Startf("Updating resource")
+
+	s, err := provider(c).SystemGet()
+	if err != nil {
+		return err
+	}
+
+	resource := c.Arg(0)
+
+	if s.Version <= "20180708231844" {
+		if _, err := provider(c).ResourceUpdateClassic(resource, opts); err != nil {
+			return err
+		}
+	} else {
+		if _, err := provider(c).ResourceUpdate(resource, opts); err != nil {
+			return err
+		}
+	}
+
+	if c.Bool("wait") {
+		if err := waitForResourceRunning(c, resource); err != nil {
+			return err
+		}
+	}
+
+	return c.OK()
+}
+
+func ResourcesUrl(c *stdcli.Context) error {
+	r, err := provider(c).ResourceGet(c.Arg(0))
+	if err != nil {
+		return err
+	}
+
+	s, err := provider(c).SystemGet()
+	if err != nil {
+		return err
+	}
+
+	if s.Version <= "20180708231844" {
+		if u := r.Parameters["Url"]; u != "" {
+			fmt.Fprintf(c, "%s\n", u)
+			return nil
+		}
+	}
+
+	if r.Url == "" {
+		return fmt.Errorf("no url for resource: %s", r.Name)
+	}
+
+	fmt.Fprintf(c, "%s\n", r.Url)
 
 	return nil
 }

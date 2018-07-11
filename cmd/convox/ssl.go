@@ -2,86 +2,89 @@ package main
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
-	"github.com/convox/rack/cmd/convox/helpers"
-	"github.com/convox/rack/cmd/convox/stdcli"
-	"gopkg.in/urfave/cli.v1"
+	"github.com/convox/rack/helpers"
+	"github.com/convox/rack/structs"
+	"github.com/convox/stdcli"
 )
 
 func init() {
-	stdcli.RegisterCommand(cli.Command{
-		Name:        "ssl",
-		Action:      cmdSSLList,
-		Description: "manage ssl certificates",
-		Flags: []cli.Flag{
-			appFlag,
-			rackFlag,
-		},
-		Subcommands: []cli.Command{
-			{
-				Name:        "update",
-				Description: "update the certificate associated with an endpoint",
-				Usage:       "<process:port> <certificate-id> [options]",
-				ArgsUsage:   "<process:port> <certificate-id>",
-				Action:      cmdSSLUpdate,
-				Flags: []cli.Flag{
-					appFlag,
-					rackFlag,
-				},
-			},
-		},
+	CLI.Command("ssl", "list certificate associates for an app", Ssl, stdcli.CommandOptions{
+		Flags:    []stdcli.Flag{flagRack, flagApp},
+		Validate: stdcli.Args(0),
+	})
+
+	CLI.Command("ssl update", "update certificate for an app", SslUpdate, stdcli.CommandOptions{
+		Flags:    []stdcli.Flag{flagRack, flagApp, flagWait},
+		Usage:    "<process:port> <certificate>",
+		Validate: stdcli.Args(2),
 	})
 }
 
-func cmdSSLList(c *cli.Context) error {
-	stdcli.NeedHelp(c)
-	stdcli.NeedArg(c, 0)
-
-	_, app, err := stdcli.DirApp(c, ".")
+func Ssl(c *stdcli.Context) error {
+	ss, err := provider(c).ServiceList(app(c))
 	if err != nil {
-		return stdcli.Error(err)
+		return err
 	}
 
-	ssls, err := rackClient(c).ListSSL(app)
+	t := c.Table("ENDPOINT", "CERTIFICATE", "DOMAIN", "EXPIRES")
+
+	certs := map[string]structs.Certificate{}
+
+	cs, err := provider(c).CertificateList()
 	if err != nil {
-		return stdcli.Error(err)
+		return err
 	}
 
-	t := stdcli.NewTable("TARGET", "CERTIFICATE", "DOMAIN", "EXPIRES")
-
-	for _, ssl := range *ssls {
-		t.AddRow(fmt.Sprintf("%s:%d", ssl.Process, ssl.Port), ssl.Certificate, ssl.Domain, helpers.HumanizeTime(ssl.Expiration))
+	for _, c := range cs {
+		certs[c.Id] = c
 	}
 
-	t.Print()
-	return nil
+	for _, s := range ss {
+		for _, p := range s.Ports {
+			if p.Certificate != "" {
+				t.AddRow(fmt.Sprintf("%s:%d", s.Name, p.Balancer), p.Certificate, certs[p.Certificate].Domain, helpers.Ago(certs[p.Certificate].Expiration))
+			}
+		}
+	}
+
+	return t.Print()
 }
 
-func cmdSSLUpdate(c *cli.Context) error {
-	stdcli.NeedHelp(c)
-	stdcli.NeedArg(c, -2)
-
-	_, app, err := stdcli.DirApp(c, ".")
+func SslUpdate(c *stdcli.Context) error {
+	a, err := provider(c).AppGet(app(c))
 	if err != nil {
-		return stdcli.Error(err)
+		return err
 	}
 
-	target := c.Args()[0]
+	if a.Generation == "2" {
+		return fmt.Errorf("command not valid for generation 2 applications")
+	}
 
-	parts := strings.Split(target, ":")
+	parts := strings.SplitN(c.Arg(0), ":", 2)
 
 	if len(parts) != 2 {
-		return stdcli.Error(fmt.Errorf("endpoint must be process:port"))
+		return fmt.Errorf("process:port required as first argument")
 	}
 
-	fmt.Printf("Updating certificate... ")
-
-	_, err = rackClient(c).UpdateSSL(app, parts[0], parts[1], c.Args()[1])
+	port, err := strconv.Atoi(parts[1])
 	if err != nil {
-		return stdcli.Error(err)
+		return err
 	}
 
-	fmt.Println("OK")
-	return nil
+	c.Startf("Updating certificate")
+
+	if err := provider(c).CertificateApply(app(c), parts[0], port, c.Arg(1)); err != nil {
+		return err
+	}
+
+	if c.Bool("wait") {
+		if err := waitForAppRunning(c, app(c)); err != nil {
+			return err
+		}
+	}
+
+	return c.OK()
 }

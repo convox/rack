@@ -117,7 +117,7 @@ func (p *AWSProvider) InstanceList() (structs.Instances, error) {
 	return instances, nil
 }
 
-func (p *AWSProvider) InstanceShell(id string, rw io.ReadWriter, opts structs.InstanceShellOptions) error {
+func (p *AWSProvider) InstanceShell(id string, rw io.ReadWriter, opts structs.InstanceShellOptions) (int, error) {
 	res, err := p.ec2().DescribeInstances(&ec2.DescribeInstancesInput{
 		Filters: []*ec2.Filter{
 			{Name: aws.String("instance-id"), Values: []*string{aws.String(id)}},
@@ -125,23 +125,23 @@ func (p *AWSProvider) InstanceShell(id string, rw io.ReadWriter, opts structs.In
 		MaxResults: aws.Int64(1000),
 	})
 	if err != nil {
-		return err
+		return 0, err
 	}
 	if len(res.Reservations) < 1 {
-		return fmt.Errorf("instance not found")
+		return 0, errorNotFound(fmt.Sprintf("instance not found: %s", id))
 	}
 
 	instance := res.Reservations[0].Instances[0]
 
 	key, err := p.SettingGet("instance-key")
 	if err != nil {
-		return fmt.Errorf("no instance key found")
+		return 0, fmt.Errorf("no instance key found")
 	}
 
 	// configure SSH client
 	signer, err := ssh.ParsePrivateKey([]byte(key))
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	config := &ssh.ClientConfig{
@@ -157,13 +157,13 @@ func (p *AWSProvider) InstanceShell(id string, rw io.ReadWriter, opts structs.In
 
 	conn, err := ssh.Dial("tcp", fmt.Sprintf("%s:22", ip), config)
 	if err != nil {
-		return err
+		return 0, err
 	}
 	defer conn.Close()
 
 	session, err := conn.NewSession()
 	if err != nil {
-		return err
+		return 0, err
 	}
 	defer session.Close()
 
@@ -172,37 +172,30 @@ func (p *AWSProvider) InstanceShell(id string, rw io.ReadWriter, opts structs.In
 	session.Stdin = rw
 	session.Stderr = rw
 
-	if opts.Terminal != nil {
-		width := 0
-		height := 0
+	width := 0
+	height := 0
 
-		if opts.Width != nil {
-			width = *opts.Width
-		}
+	if opts.Width != nil {
+		width = *opts.Width
+	}
 
-		if opts.Height != nil {
-			height = *opts.Height
-		}
+	if opts.Height != nil {
+		height = *opts.Height
+	}
 
-		modes := ssh.TerminalModes{
-			ssh.ECHOCTL:       0,
-			ssh.TTY_OP_ISPEED: 56000, // input speed = 56kbaud
-			ssh.TTY_OP_OSPEED: 56000, // output speed = 56kbaud
-		}
-		if err := session.RequestPty(*opts.Terminal, width, height, modes); err != nil {
-			return err
-		}
+	if err := session.RequestPty("xterm", height, width, ssh.TerminalModes{}); err != nil {
+		return 0, err
 	}
 
 	code := 0
 
 	if opts.Command != nil {
 		if err := session.Start(*opts.Command); err != nil {
-			return err
+			return 0, err
 		}
 	} else {
 		if err := session.Shell(); err != nil {
-			return err
+			return 0, err
 		}
 	}
 
@@ -212,11 +205,7 @@ func (p *AWSProvider) InstanceShell(id string, rw io.ReadWriter, opts structs.In
 		}
 	}
 
-	if _, err := rw.Write([]byte(fmt.Sprintf("%s%d\n", StatusCodePrefix, code))); err != nil {
-		return err
-	}
-
-	return nil
+	return code, nil
 }
 
 func (p *AWSProvider) InstanceTerminate(id string) error {
@@ -235,7 +224,7 @@ func (p *AWSProvider) InstanceTerminate(id string) error {
 	}
 
 	if !found {
-		return fmt.Errorf("no such instance: %s", id)
+		return errorNotFound(fmt.Sprintf("instance not found: %s", id))
 	}
 
 	_, err = p.autoscaling().TerminateInstanceInAutoScalingGroup(&autoscaling.TerminateInstanceInAutoScalingGroupInput{

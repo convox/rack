@@ -1,6 +1,7 @@
-FROM golang:1.9-alpine
+FROM golang:1.10
 
-RUN apk update && apk add docker openssh
+RUN curl -s https://download.docker.com/linux/static/stable/x86_64/docker-18.03.1-ce.tgz | \
+    tar -C /usr/bin --strip-components 1 -xz
 
 COPY . $GOPATH/src/github.com/convox/rack
 

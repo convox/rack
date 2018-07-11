@@ -4,425 +4,251 @@ import (
 	"fmt"
 	"sort"
 	"strings"
-	"time"
 
-	"github.com/convox/rack/cmd/convox/helpers"
-	"github.com/convox/rack/cmd/convox/stdcli"
 	"github.com/convox/rack/options"
 	"github.com/convox/rack/structs"
-	"gopkg.in/urfave/cli.v1"
+	"github.com/convox/stdcli"
 )
 
 func init() {
-	stdcli.RegisterCommand(cli.Command{
-		Name:        "apps",
-		Action:      cmdApps,
-		Description: "list deployed apps",
-		Flags:       []cli.Flag{rackFlag},
-		Subcommands: []cli.Command{
-			{
-				Name:        "cancel",
-				Description: "cancel an update",
-				Usage:       "[options]",
-				ArgsUsage:   "",
-				Action:      cmdAppCancel,
-				Flags:       []cli.Flag{appFlag, rackFlag},
-			},
-			{
-				Name:        "create",
-				Description: "create a new application",
-				Usage:       "[name] [options]",
-				ArgsUsage:   "[name] (inferred from current directory if not specified)",
-				Action:      cmdAppCreate,
-				Flags: []cli.Flag{
-					rackFlag,
-					cli.StringFlag{
-						Name:  "generation, g",
-						Usage: "generation of app to create",
-					},
-					cli.BoolFlag{
-						Name:   "wait",
-						EnvVar: "CONVOX_WAIT",
-						Usage:  "wait for app to finish creating before returning",
-					},
-				},
-			},
-			{
-				Name:        "delete",
-				Description: "delete an application",
-				Usage:       "<name>",
-				Action:      cmdAppDelete,
-				Flags:       []cli.Flag{rackFlag},
-			},
-			{
-				Name:        "info",
-				Description: "see info about an app",
-				Usage:       "[name]",
-				Action:      cmdAppInfo,
-				Flags:       []cli.Flag{appFlag, rackFlag},
-			},
-			{
-				Name:        "params",
-				Description: "list advanced parameters for an app",
-				Usage:       "[name]",
-				ArgsUsage:   "",
-				Action:      cmdAppParams,
-				Flags:       []cli.Flag{appFlag, rackFlag},
-				Subcommands: []cli.Command{
-					{
-						Name:        "set",
-						Description: "update advanced parameters for an app",
-						Usage:       "NAME=VALUE [NAME=VALUE] ... [options]",
-						ArgsUsage:   "NAME=VALUE",
-						Action:      cmdAppParamsSet,
-						Flags:       []cli.Flag{appFlag, rackFlag},
-					},
-				},
-			},
-			{
-				Name:        "sleep",
-				Description: "spin down all services for an app",
-				Usage:       "",
-				ArgsUsage:   "",
-				Action:      cmdAppSleep,
-				Flags:       []cli.Flag{appFlag, rackFlag},
-			},
-			{
-				Name:        "wake",
-				Description: "resume all services for an pp",
-				Usage:       "",
-				ArgsUsage:   "",
-				Action:      cmdAppWake,
-				Flags:       []cli.Flag{appFlag, rackFlag},
-			},
-		},
+	CLI.Command("apps", "list apps", Apps, stdcli.CommandOptions{
+		Flags:    []stdcli.Flag{flagRack},
+		Validate: stdcli.Args(0),
+	})
+
+	CLI.Command("apps cancel", "cancel an app update", AppsCancel, stdcli.CommandOptions{
+		Flags:    []stdcli.Flag{flagRack, flagApp},
+		Usage:    "[app]",
+		Validate: stdcli.ArgsMax(1),
+	})
+
+	CLI.Command("apps create", "create an app", AppsCreate, stdcli.CommandOptions{
+		Flags:    append(stdcli.OptionFlags(structs.AppCreateOptions{}), flagRack, flagWait),
+		Usage:    "<app>",
+		Validate: stdcli.Args(1),
+	})
+
+	CLI.Command("apps delete", "delete an app", AppsDelete, stdcli.CommandOptions{
+		Flags:    []stdcli.Flag{flagRack, flagWait},
+		Usage:    "<app>",
+		Validate: stdcli.Args(1),
+	})
+
+	CLI.Command("apps info", "get information about an app", AppsInfo, stdcli.CommandOptions{
+		Flags:    []stdcli.Flag{flagApp, flagRack},
+		Usage:    "[app]",
+		Validate: stdcli.ArgsMax(1),
+	})
+
+	CLI.Command("apps params", "display app parameters", AppsParams, stdcli.CommandOptions{
+		Flags:    []stdcli.Flag{flagApp, flagRack},
+		Usage:    "[app]",
+		Validate: stdcli.ArgsMax(1),
+	})
+
+	CLI.Command("apps params set", "set app parameters", AppsParamsSet, stdcli.CommandOptions{
+		Flags:    []stdcli.Flag{flagApp, flagRack, flagWait},
+		Usage:    "<Key=Value> [Key=Value]...",
+		Validate: stdcli.ArgsMin(1),
+	})
+
+	CLI.Command("apps sleep", "sleep an app", AppsSleep, stdcli.CommandOptions{
+		Flags:    []stdcli.Flag{flagApp, flagRack},
+		Usage:    "[app]",
+		Validate: stdcli.ArgsMax(1),
+	})
+
+	CLI.Command("apps wake", "wake an app", AppsWake, stdcli.CommandOptions{
+		Flags:    []stdcli.Flag{flagApp, flagRack},
+		Usage:    "[app]",
+		Validate: stdcli.ArgsMax(1),
 	})
 }
 
-func cmdApps(c *cli.Context) error {
-	stdcli.NeedHelp(c)
-	stdcli.NeedArg(c, 0)
-
-	apps, err := rackClient(c).GetApps()
+func Apps(c *stdcli.Context) error {
+	as, err := provider(c).AppList()
 	if err != nil {
-		return stdcli.Error(err)
+		return err
 	}
 
-	if len(apps) == 0 {
-		stdcli.Writef("no apps found, try creating one via `convox apps create`\n")
-		return nil
+	t := c.Table("APP", "STATUS", "GEN", "RELEASE")
+
+	for _, a := range as {
+		t.AddRow(a.Name, a.Status, a.Generation, a.Release)
 	}
 
-	t := stdcli.NewTable("APP", "GEN", "STATUS")
-
-	for _, app := range apps {
-		status := app.Status
-
-		if app.Sleep {
-			status = "sleeping"
-		}
-
-		t.AddRow(app.Name, app.Generation, status)
-	}
-
-	t.Print()
-	return nil
+	return t.Print()
 }
 
-func cmdAppCancel(c *cli.Context) error {
-	stdcli.NeedHelp(c)
-	stdcli.NeedArg(c, 0)
+func AppsCancel(c *stdcli.Context) error {
+	c.Startf("Cancelling <app>%s</app>", app(c))
 
-	_, app, err := stdcli.DirApp(c, ".")
-	if err != nil {
-		return stdcli.Error(err)
+	if err := provider(c).AppCancel(app(c)); err != nil {
+		return err
 	}
 
-	if app == "" {
-		return stdcli.Error(fmt.Errorf("must specify an app name"))
-	}
-
-	stdcli.Startf("Cancelling update for <app>%s</app>", app)
-
-	if err := rackClient(c).CancelApp(app); err != nil {
-		return stdcli.Error(err)
-	}
-
-	stdcli.Wait("CANCELLED")
-
-	return nil
+	return c.OK()
 }
 
-func cmdAppCreate(c *cli.Context) error {
-	stdcli.NeedHelp(c)
+func AppsCreate(c *stdcli.Context) error {
+	app := c.Args[0]
 
-	_, app, err := stdcli.DirApp(c, ".")
-	if err != nil {
-		return stdcli.Error(err)
+	var opts structs.AppCreateOptions
+
+	if err := c.Options(&opts); err != nil {
+		return err
 	}
 
-	if len(c.Args()) > 0 {
-		// accept no more than 1 argument
-		stdcli.NeedArg(c, 1)
-		app = c.Args()[0]
+	c.Startf("Creating <app>%s</app>", app)
+
+	if _, err := provider(c).AppCreate(app, opts); err != nil {
+		return err
 	}
-
-	if app == "" {
-		return stdcli.Error(fmt.Errorf("must specify an app name"))
-	}
-
-	generation := c.String("generation")
-
-	stdcli.Startf("Creating app <app>%s</app>", app)
-
-	_, err = rackClient(c).CreateApp(app, generation)
-	if err != nil {
-		return stdcli.Error(err)
-	}
-
-	stdcli.Wait("CREATING")
 
 	if c.Bool("wait") {
-		stdcli.Startf("Waiting for <app>%s</app>", app)
-
 		if err := waitForAppRunning(c, app); err != nil {
-			return stdcli.Error(err)
-		}
-
-		stdcli.OK()
-	}
-
-	return nil
-}
-
-func cmdAppDelete(c *cli.Context) error {
-	stdcli.NeedHelp(c)
-	stdcli.NeedArg(c, 1)
-
-	app := c.Args()[0]
-
-	stdcli.Startf("Deleting <app>%s</app>", app)
-
-	_, err := rackClient(c).DeleteApp(app)
-	if err != nil {
-		return stdcli.Error(err)
-	}
-
-	stdcli.Wait("DELETING")
-
-	return nil
-}
-
-func cmdAppInfo(c *cli.Context) error {
-	stdcli.NeedHelp(c)
-
-	_, app, err := stdcli.DirApp(c, ".")
-	if err != nil {
-		return stdcli.Error(err)
-	}
-
-	// FIXME: we should accept only --app (i.e. as a flag) to be consistent with other commands
-	if len(c.Args()) > 0 {
-		stdcli.NeedArg(c, 1)
-		app = c.Args()[0]
-	}
-
-	a, err := rackClient(c).GetApp(app)
-	if err != nil {
-		return stdcli.Error(err)
-	}
-
-	formation, err := rackClient(c).ListFormation(app)
-	if err != nil {
-		return stdcli.Error(err)
-	}
-
-	ps := make([]string, len(formation))
-	endpoints := []string{}
-
-	for i, f := range formation {
-		ps[i] = f.Name
-
-		for _, port := range f.Ports {
-			endpoints = append(endpoints, fmt.Sprintf("%s:%d (%s)", helpers.Coalesce(f.Hostname, f.Balancer), port, f.Name))
+			return err
 		}
 	}
 
-	sort.Strings(ps)
-
-	status := a.Status
-
-	if a.Sleep {
-		status = "sleeping"
-	}
-
-	info := stdcli.NewInfo()
-
-	info.Add("Name", a.Name)
-	info.Add("Status", status)
-	info.Add("Generation", a.Generation)
-	info.Add("Release", a.Release)
-
-	if len(ps) > 0 {
-		info.Add("Processes", strings.Join(ps, " "))
-	}
-
-	if len(endpoints) > 0 {
-		info.Add("Endpoints", strings.Join(endpoints, "\n            "))
-	}
-
-	info.Print()
-
-	return nil
+	return c.OK()
 }
 
-func cmdAppParams(c *cli.Context) error {
-	stdcli.NeedHelp(c)
-	stdcli.NeedArg(c, 0)
+func AppsDelete(c *stdcli.Context) error {
+	app := c.Args[0]
 
-	_, app, err := stdcli.DirApp(c, ".")
-	if err != nil {
-		return stdcli.Error(err)
+	c.Startf("Deleting <app>%s</app>", app)
+
+	if err := provider(c).AppDelete(app); err != nil {
+		return err
 	}
 
-	params, err := rackClient(c).ListParameters(app)
+	if c.Bool("wait") {
+		if err := waitForAppDeleted(c, app); err != nil {
+			return err
+		}
+	}
+
+	return c.OK()
+}
+
+func AppsInfo(c *stdcli.Context) error {
+	a, err := provider(c).AppGet(coalesce(c.Arg(0), app(c)))
 	if err != nil {
-		return stdcli.Error(err)
+		return err
+	}
+
+	i := c.Info()
+
+	i.Add("Name", a.Name)
+	i.Add("Status", a.Status)
+	i.Add("Gen", a.Generation)
+	i.Add("Release", a.Release)
+
+	return i.Print()
+}
+
+func AppsParams(c *stdcli.Context) error {
+	s, err := provider(c).SystemGet()
+	if err != nil {
+		return err
+	}
+
+	var params map[string]string
+
+	app := coalesce(c.Arg(0), app(c))
+
+	if s.Version <= "20180708231844" {
+		params, err = provider(c).AppParametersGet(app)
+		if err != nil {
+			return err
+		}
+	} else {
+		a, err := provider(c).AppGet(app)
+		if err != nil {
+			return err
+		}
+		params = a.Parameters
 	}
 
 	keys := []string{}
 
-	for key := range params {
-		keys = append(keys, key)
+	for k := range params {
+		keys = append(keys, k)
 	}
 
 	sort.Strings(keys)
 
-	t := stdcli.NewTable("NAME", "VALUE")
+	i := c.Info()
 
-	for _, key := range keys {
-		t.AddRow(key, params[key])
+	for _, k := range keys {
+		i.Add(k, params[k])
 	}
 
-	t.Print()
-	return nil
+	return i.Print()
 }
 
-func cmdAppParamsSet(c *cli.Context) error {
-	stdcli.NeedHelp(c)
-	// need at least one argument
-	stdcli.NeedArg(c, -1)
-
-	_, app, err := stdcli.DirApp(c, ".")
+func AppsParamsSet(c *stdcli.Context) error {
+	s, err := provider(c).SystemGet()
 	if err != nil {
-		return stdcli.Error(err)
+		return err
 	}
 
-	params := map[string]string{}
+	opts := structs.AppUpdateOptions{
+		Parameters: map[string]string{},
+	}
 
-	for _, arg := range c.Args() {
+	for _, arg := range c.Args {
 		parts := strings.SplitN(arg, "=", 2)
 
 		if len(parts) != 2 {
-			return stdcli.Error(fmt.Errorf("invalid argument: %s", arg))
+			return fmt.Errorf("Key=Value expected: %s", arg)
 		}
 
-		params[parts[0]] = parts[1]
+		opts.Parameters[parts[0]] = parts[1]
 	}
 
-	stdcli.Startf("Updating parameters")
+	c.Startf("Updating parameters")
 
-	err = rackClient(c).SetParameters(app, params)
-	if err != nil {
-		if strings.Contains(err.Error(), "No updates are to be performed") {
-			return stdcli.Error(fmt.Errorf("No updates are to be performed"))
+	if s.Version <= "20180708231844" {
+		if err := provider(c).AppParametersSet(app(c), opts.Parameters); err != nil {
+			return err
 		}
-		return stdcli.Error(err)
+	} else {
+		if err := provider(c).AppUpdate(app(c), opts); err != nil {
+			return err
+		}
 	}
 
-	stdcli.OK()
+	if c.Bool("wait") {
+		if err := waitForAppWithLogs(c, app(c)); err != nil {
+			return err
+		}
+	}
 
-	return nil
+	return c.OK()
 }
 
-func cmdAppSleep(c *cli.Context) error {
-	stdcli.NeedHelp(c)
+func AppsSleep(c *stdcli.Context) error {
+	app := coalesce(c.Arg(0), app(c))
 
-	_, app, err := stdcli.DirApp(c, ".")
-	if err != nil {
-		return stdcli.Error(err)
-	}
+	c.Startf("Sleeping <app>%s</app>", app)
 
-	if len(c.Args()) > 0 {
-		app = c.Args()[0]
-	}
-
-	stdcli.Startf("Sleeping <app>%s</app>", app)
-
-	if err := rack(c).AppUpdate(app, structs.AppUpdateOptions{Sleep: options.Bool(true)}); err != nil {
+	if err := provider(c).AppUpdate(app, structs.AppUpdateOptions{Sleep: options.Bool(true)}); err != nil {
 		return err
 	}
 
-	stdcli.OK()
-
-	return nil
+	return c.OK()
 }
 
-func cmdAppWake(c *cli.Context) error {
-	stdcli.NeedHelp(c)
+func AppsWake(c *stdcli.Context) error {
+	app := coalesce(c.Arg(0), app(c))
 
-	_, app, err := stdcli.DirApp(c, ".")
-	if err != nil {
-		return stdcli.Error(err)
-	}
+	c.Startf("Sleeping <app>%s</app>", app)
 
-	if len(c.Args()) > 0 {
-		app = c.Args()[0]
-	}
-
-	stdcli.Startf("Waking <app>%s</app>", app)
-
-	if err := rack(c).AppUpdate(app, structs.AppUpdateOptions{Sleep: options.Bool(false)}); err != nil {
+	if err := provider(c).AppUpdate(app, structs.AppUpdateOptions{Sleep: options.Bool(false)}); err != nil {
 		return err
 	}
 
-	stdcli.OK()
-
-	return nil
-}
-
-func waitForAppRunning(c *cli.Context, app string) error {
-	timeout := time.After(30 * time.Minute)
-	tick := time.Tick(5 * time.Second)
-
-	failed := false
-
-	for {
-		select {
-		case <-tick:
-			a, err := rackClient(c).GetApp(app)
-			if err != nil {
-				return err
-			}
-
-			switch a.Status {
-			case "failed", "running":
-				if failed {
-					stdcli.Writef("<ok>DONE</ok>\n")
-					return fmt.Errorf("Update rolled back")
-				}
-				return nil
-			case "rollback":
-				if !failed {
-					failed = true
-					stdcli.Writef("<fail>FAILED</fail>\n")
-					stdcli.Startf("Rolling back")
-				}
-			}
-		case <-timeout:
-			return fmt.Errorf("timeout")
-		}
-	}
-
-	return nil
+	return c.OK()
 }

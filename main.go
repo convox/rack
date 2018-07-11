@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/convox/rack/server"
+	"github.com/convox/rack/api"
 )
 
 func main() {
@@ -14,5 +14,9 @@ func main() {
 }
 
 func run() error {
-	return server.Listen(os.Getenv("PROVIDER"), ":5443")
+	a := api.New()
+
+	a.Password = os.Getenv("PASSWORD")
+
+	return a.Listen("https", ":5443")
 }

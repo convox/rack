@@ -9,7 +9,6 @@ type Release struct {
 	Build    string `json:"build"`
 	Env      string `json:"env"`
 	Manifest string `json:"manifest"`
-	Status   string `json:"status"`
 
 	Created time.Time `json:"created"`
 }
@@ -22,13 +21,13 @@ type ReleaseCreateOptions struct {
 }
 
 type ReleaseListOptions struct {
-	Count *int
+	Limit *int `flag:"limit,l" query:"limit"`
 }
 
 func NewRelease(app string) *Release {
 	return &Release{
 		App:     app,
-		Created: time.Now(),
+		Created: time.Now().UTC(),
 		Id:      id("R", 10),
 	}
 }

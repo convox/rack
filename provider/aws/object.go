@@ -21,7 +21,7 @@ func (p *AWSProvider) ObjectDelete(app, key string) error {
 	}
 
 	if !exists {
-		return fmt.Errorf("no such object: %s", key)
+		return errorNotFound(fmt.Sprintf("object not found: %s", key))
 	}
 
 	bucket, err := p.appResource(app, "Settings")
@@ -72,7 +72,7 @@ func (p *AWSProvider) ObjectFetch(app, key string) (io.ReadCloser, error) {
 		Key:    aws.String(key),
 	})
 	if ae, ok := err.(awserr.Error); ok && ae.Code() == "NoSuchKey" {
-		return nil, errorNotFound(fmt.Sprintf("no such key: %s", key))
+		return nil, errorNotFound(fmt.Sprintf("key not found: %s", key))
 	}
 	if err != nil {
 		return nil, err

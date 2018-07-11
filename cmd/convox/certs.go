@@ -2,135 +2,150 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"io/ioutil"
 
-	"github.com/convox/rack/cmd/convox/helpers"
-	"github.com/convox/rack/cmd/convox/stdcli"
-	"gopkg.in/urfave/cli.v1"
+	"github.com/convox/rack/helpers"
+	"github.com/convox/rack/options"
+	"github.com/convox/rack/structs"
+	"github.com/convox/stdcli"
 )
 
 func init() {
-	stdcli.RegisterCommand(cli.Command{
-		Name:        "certs",
-		Action:      cmdCertsList,
-		Description: "list certificates",
-		Flags:       []cli.Flag{rackFlag},
-		Subcommands: []cli.Command{
-			{
-				Name:        "create",
-				Description: "upload a certificate",
-				Usage:       "<cert.pub> <cert.key>",
-				ArgsUsage:   "<cert.pub> <cert.key>",
-				Action:      cmdCertsCreate,
-				Flags: []cli.Flag{
-					rackFlag,
-					cli.StringFlag{
-						Name:  "chain",
-						Usage: "intermediate certificate chain",
-					},
-				},
-			},
-			{
-				Name:        "delete",
-				Description: "delete a certificate",
-				Usage:       "<cert id>",
-				ArgsUsage:   "<cert id>",
-				Action:      cmdCertsDelete,
-				Flags:       []cli.Flag{rackFlag},
-			},
-			{
-				Name:        "generate",
-				Description: "generate a certificate",
-				Usage:       "<domain> [domain...]",
-				ArgsUsage:   "<domain> [domain...]",
-				Action:      cmdCertsGenerate,
-				Flags:       []cli.Flag{rackFlag},
-			},
+	CLI.Command("certs", "list certificates", Certs, stdcli.CommandOptions{
+		Flags:    []stdcli.Flag{flagRack},
+		Validate: stdcli.Args(0),
+	})
+
+	CLI.Command("certs delete", "delete a certificate", CertsDelete, stdcli.CommandOptions{
+		Flags:    []stdcli.Flag{flagRack},
+		Usage:    "<cert>",
+		Validate: stdcli.Args(1),
+	})
+
+	CLI.Command("certs generate", "generate a certificate", CertsGenerate, stdcli.CommandOptions{
+		Flags:    []stdcli.Flag{flagId, flagRack},
+		Usage:    "<domain> [domain...]",
+		Validate: stdcli.ArgsMin(1),
+	})
+
+	CLI.Command("certs import", "import a certificate", CertsImport, stdcli.CommandOptions{
+		Flags: []stdcli.Flag{
+			flagId,
+			flagRack,
+			stdcli.StringFlag("chain", "", "intermediate certificate chain"),
 		},
+		Usage:    "<pub> <key>",
+		Validate: stdcli.Args(2),
 	})
 }
 
-func cmdCertsList(c *cli.Context) error {
-	stdcli.NeedHelp(c)
-	stdcli.NeedArg(c, 0)
-
-	certs, err := rackClient(c).ListCertificates()
+func Certs(c *stdcli.Context) error {
+	cs, err := provider(c).CertificateList()
 	if err != nil {
-		return stdcli.Error(err)
+		return err
 	}
 
-	t := stdcli.NewTable("ID", "DOMAIN", "EXPIRES")
+	t := c.Table("ID", "DOMAIN", "EXPIRES")
 
-	for _, cert := range certs {
-		t.AddRow(cert.Id, cert.Domain, helpers.HumanizeTime(cert.Expiration))
+	for _, c := range cs {
+		t.AddRow(c.Id, c.Domain, helpers.Ago(c.Expiration))
 	}
 
-	t.Print()
+	return t.Print()
+}
+
+func CertsDelete(c *stdcli.Context) error {
+	cert := c.Arg(0)
+
+	c.Startf("Deleting certificate <id>%s</id>", cert)
+
+	if err := provider(c).CertificateDelete(cert); err != nil {
+		return err
+	}
+
+	return c.OK()
+}
+
+func CertsGenerate(c *stdcli.Context) error {
+	var stdout io.Writer
+
+	if c.Bool("id") {
+		stdout = c.Writer().Stdout
+		c.Writer().Stdout = c.Writer().Stderr
+	}
+
+	c.Startf("Generating certificate")
+
+	cr, err := provider(c).CertificateGenerate(c.Args)
+	if err != nil {
+		return err
+	}
+
+	c.OK(cr.Id)
+
+	if c.Bool("id") {
+		fmt.Fprintf(stdout, cr.Id)
+	}
+
 	return nil
 }
 
-func cmdCertsCreate(c *cli.Context) error {
-	stdcli.NeedHelp(c)
-	stdcli.NeedArg(c, 2)
+func CertsImport(c *stdcli.Context) error {
+	var stdout io.Writer
 
-	pub, err := ioutil.ReadFile(c.Args()[0])
-	if err != nil {
-		return stdcli.Error(err)
+	if c.Bool("id") {
+		stdout = c.Writer().Stdout
+		c.Writer().Stdout = c.Writer().Stderr
 	}
 
-	key, err := ioutil.ReadFile(c.Args()[1])
+	s, err := provider(c).SystemGet()
 	if err != nil {
-		return stdcli.Error(err)
+		return err
 	}
 
-	chain := ""
+	pub, err := ioutil.ReadFile(c.Arg(0))
+	if err != nil {
+		return err
+	}
 
-	if chainFile := c.String("chain"); chainFile != "" {
-		data, err := ioutil.ReadFile(chainFile)
+	key, err := ioutil.ReadFile(c.Arg(1))
+	if err != nil {
+		return err
+	}
+
+	var opts structs.CertificateCreateOptions
+
+	if cf := c.String("chain"); cf != "" {
+		chain, err := ioutil.ReadFile(cf)
 		if err != nil {
-			return stdcli.Error(err)
+			return err
 		}
 
-		chain = string(data)
+		opts.Chain = options.String(string(chain))
 	}
 
-	fmt.Printf("Uploading certificate... ")
+	c.Startf("Importing certificate")
 
-	cert, err := rackClient(c).CreateCertificate(string(pub), string(key), chain)
-	if err != nil {
-		return stdcli.Error(err)
+	var cr *structs.Certificate
+
+	if s.Version <= "20180708231844" {
+		cr, err = provider(c).CertificateCreateClassic(string(pub), string(key), opts)
+		if err != nil {
+			return err
+		}
+	} else {
+		cr, err = provider(c).CertificateCreate(string(pub), string(key), opts)
+		if err != nil {
+			return err
+		}
 	}
 
-	fmt.Printf("OK, %s\n", cert.Id)
-	return nil
-}
+	c.OK(cr.Id)
 
-func cmdCertsDelete(c *cli.Context) error {
-	stdcli.NeedHelp(c)
-	stdcli.NeedArg(c, 1)
-
-	fmt.Printf("Removing certificate... ")
-
-	err := rackClient(c).DeleteCertificate(c.Args()[0])
-	if err != nil {
-		return stdcli.Error(err)
+	if c.Bool("id") {
+		fmt.Fprintf(stdout, cr.Id)
 	}
 
-	fmt.Println("OK")
-	return nil
-}
-
-func cmdCertsGenerate(c *cli.Context) error {
-	stdcli.NeedHelp(c)
-	stdcli.NeedArg(c, -1)
-
-	fmt.Printf("Requesting certificate... ")
-
-	cert, err := rackClient(c).GenerateCertificate(c.Args())
-	if err != nil {
-		return stdcli.Error(err)
-	}
-
-	fmt.Printf("OK, %s\n", cert.Id)
 	return nil
 }

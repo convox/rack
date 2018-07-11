@@ -2,150 +2,107 @@ package main
 
 import (
 	"fmt"
-	"os"
-	"strconv"
 	"strings"
 
-	"golang.org/x/crypto/ssh/terminal"
-
-	"github.com/convox/rack/cmd/convox/helpers"
-	"github.com/convox/rack/cmd/convox/stdcli"
-	"gopkg.in/urfave/cli.v1"
+	"github.com/convox/rack/helpers"
+	"github.com/convox/rack/options"
+	"github.com/convox/rack/structs"
+	"github.com/convox/stdcli"
 )
 
 func init() {
-	stdcli.RegisterCommand(cli.Command{
-		Name:        "instances",
-		Description: "list your Convox rack's instances",
-		Usage:       "[subcommand] [args] [options]",
-		ArgsUsage:   "",
-		Action:      cmdInstancesList,
-		Flags:       []cli.Flag{rackFlag},
-		Subcommands: []cli.Command{
-			{
-				Name:        "keyroll",
-				Description: "generate and replace the ec2 keypair used for SSH",
-				Usage:       "[options]",
-				ArgsUsage:   "",
-				Action:      cmdInstancesKeyroll,
-				Flags:       []cli.Flag{rackFlag},
-			},
-			{
-				Name:        "ssh",
-				Description: "establish secure shell with EC2 instance",
-				Usage:       "<instance id> [command] [options]",
-				ArgsUsage:   "<intance id>",
-				Action:      cmdInstancesSSH,
-				Flags:       []cli.Flag{rackFlag},
-			},
-			{
-				Name:        "terminate",
-				Description: "terminate an EC2 instance",
-				Usage:       "<instance id> [options]",
-				ArgsUsage:   "<instance id>",
-				Flags:       []cli.Flag{rackFlag},
-				Action:      cmdInstancesTerminate,
-			},
-		},
+	CLI.Command("instances", "list instances", Instances, stdcli.CommandOptions{
+		Flags:    []stdcli.Flag{flagRack},
+		Validate: stdcli.Args(0),
+	})
+
+	CLI.Command("instances keyroll", "roll ssh key on instances", InstancesKeyroll, stdcli.CommandOptions{
+		Flags:    []stdcli.Flag{flagRack, flagWait},
+		Validate: stdcli.Args(0),
+	})
+
+	CLI.Command("instances ssh", "run a shell on an instance", InstancesSsh, stdcli.CommandOptions{
+		Flags:    []stdcli.Flag{flagRack},
+		Validate: stdcli.ArgsMin(1),
 	})
 }
 
-func cmdInstancesList(c *cli.Context) error {
-	stdcli.NeedHelp(c)
-	stdcli.NeedArg(c, 0)
-
-	instances, err := rackClient(c).GetInstances()
+func Instances(c *stdcli.Context) error {
+	is, err := provider(c).InstanceList()
 	if err != nil {
-		return stdcli.Error(err)
+		return err
 	}
 
-	t := stdcli.NewTable("ID", "AGENT", "STATUS", "STARTED", "PS", "CPU", "MEM", "PUBLIC", "PRIVATE")
+	t := c.Table("ID", "STATUS", "STARTED", "PS", "CPU", "MEM", "PUBLIC", "PRIVATE")
 
-	for _, i := range instances {
-		agent := "off"
-		if i.Agent {
-			agent = "on"
+	for _, i := range is {
+		t.AddRow(i.Id, i.Status, helpers.Ago(i.Started), fmt.Sprintf("%d", i.Processes), helpers.Percent(i.Cpu), helpers.Percent(i.Memory), i.PublicIp, i.PrivateIp)
+	}
+
+	return t.Print()
+}
+
+func InstancesKeyroll(c *stdcli.Context) error {
+	c.Startf("Rolling instance key")
+
+	if err := provider(c).InstanceKeyroll(); err != nil {
+		return err
+	}
+
+	if c.Bool("wait") {
+		if err := waitForRackRunning(c); err != nil {
+			return err
 		}
-
-		t.AddRow(i.Id, agent, i.Status,
-			helpers.HumanizeTime(i.Started),
-			strconv.Itoa(i.Processes),
-			fmt.Sprintf("%0.2f%%", i.Cpu*100),
-			fmt.Sprintf("%0.2f%%", i.Memory*100),
-			i.PublicIp,
-			i.PrivateIp)
 	}
 
-	t.Print()
-	return nil
+	return c.OK()
 }
 
-func cmdInstancesKeyroll(c *cli.Context) error {
-	stdcli.NeedHelp(c)
-	stdcli.NeedArg(c, 0)
-
-	fmt.Print("Rolling SSH keys... ")
-
-	err := rackClient(c).InstanceKeyroll()
+func InstancesSsh(c *stdcli.Context) error {
+	s, err := provider(c).SystemGet()
 	if err != nil {
-		return stdcli.Error(err)
+		return err
 	}
 
-	fmt.Println("OK")
-
-	return nil
-}
-
-func cmdInstancesTerminate(c *cli.Context) error {
-	stdcli.NeedHelp(c)
-	stdcli.NeedArg(c, 1)
-
-	id := c.Args()[0]
-
-	fmt.Printf("Terminating %s... ", id)
-
-	err := rackClient(c).TerminateInstance(id)
+	w, h, err := c.TerminalSize()
 	if err != nil {
-		return stdcli.Error(err)
+		return err
 	}
 
-	fmt.Println("OK")
-	return nil
-}
-
-func cmdInstancesSSH(c *cli.Context) error {
-	stdcli.NeedHelp(c)
-	stdcli.NeedArg(c, -1)
-
-	id := c.Args()[0]
-	cmd := strings.Join(c.Args()[1:], " ")
-
-	code, err := sshWithRestore(c, id, cmd)
-	if err != nil {
-		return stdcli.Error(err)
+	opts := structs.InstanceShellOptions{
+		Height: options.Int(h),
+		Width:  options.Int(w),
 	}
 
-	return cli.NewExitError("", code)
-}
+	command := strings.Join(c.Args[1:], " ")
 
-func sshWithRestore(c *cli.Context, id, cmd string) (int, error) {
-	fd := os.Stdin.Fd()
-	isTerm := terminal.IsTerminal(int(fd))
-	var h, w int
+	if command != "" {
+		opts.Command = options.String(command)
+	}
 
-	if isTerm {
-		stdinState, err := terminal.GetState(int(fd))
+	if s.Version <= "20180708231844" {
+		opts.Command = options.String(strings.Join(c.Args[1:], " "))
+		opts.Height = options.Int(h)
+		opts.Width = options.Int(w)
+
+		code, err := provider(c).InstanceShellClassic(c.Arg(0), c, opts)
 		if err != nil {
-			return -1, err
+			return err
 		}
 
-		h, w, err = terminal.GetSize(int(fd))
-		if err != nil {
-			return -1, err
-		}
-
-		defer terminal.Restore(int(fd), stdinState)
+		return stdcli.Exit(code)
 	}
 
-	return rackClient(c).SSHInstance(id, cmd, h, w, isTerm, os.Stdin, os.Stdout)
+	if err := c.TerminalRaw(); err != nil {
+		return err
+	}
+
+	defer c.TerminalRestore()
+
+	code, err := provider(c).InstanceShell(c.Arg(0), c, opts)
+	if err != nil {
+		return err
+	}
+
+	return stdcli.Exit(code)
 }

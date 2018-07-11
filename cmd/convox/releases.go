@@ -1,294 +1,195 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
 	"io"
-	"os"
 	"strings"
 	"time"
 
-	"gopkg.in/urfave/cli.v1"
-
-	"github.com/convox/rack/client"
-	"github.com/convox/rack/cmd/convox/helpers"
-	"github.com/convox/rack/cmd/convox/stdcli"
+	"github.com/convox/rack/helpers"
 	"github.com/convox/rack/options"
 	"github.com/convox/rack/structs"
+	"github.com/convox/stdcli"
 )
 
 func init() {
-	stdcli.RegisterCommand(cli.Command{
-		Name:        "releases",
-		Description: "list an app's releases",
-		Usage:       "[subcommand] [options]",
-		ArgsUsage:   "[subcommand]",
-		Action:      cmdReleases,
-		Flags: []cli.Flag{
-			appFlag,
-			rackFlag,
-			cli.IntFlag{
-				Name:  "limit",
-				Usage: "number of releases to list",
-				Value: 20,
-			},
-		},
-		Subcommands: []cli.Command{
-			{
-				Name:        "info",
-				Description: "see info about a release",
-				Usage:       "<release id>",
-				Action:      cmdReleaseInfo,
-				Flags:       []cli.Flag{appFlag, rackFlag},
-			},
-			{
-				Name:        "promote",
-				Description: "promote a release",
-				Usage:       "[release] [options]",
-				ArgsUsage:   "[release]",
-				Action:      cmdReleasePromote,
-				Flags: []cli.Flag{
-					appFlag,
-					rackFlag,
-					cli.BoolFlag{
-						Name:   "wait",
-						EnvVar: "CONVOX_WAIT",
-						Usage:  "wait for release to finish promoting before returning",
-					},
-				},
-			},
-			{
-				Name:        "rollback",
-				Description: "create a new release from an old release and promote it",
-				Usage:       "<release> [options]",
-				ArgsUsage:   "<release>",
-				Action:      cmdReleaseRollback,
-				Flags: []cli.Flag{
-					appFlag,
-					rackFlag,
-					cli.BoolFlag{
-						Name:   "wait",
-						EnvVar: "CONVOX_WAIT",
-						Usage:  "wait for release to finish promoting before returning",
-					},
-				},
-			},
-		},
+	CLI.Command("releases", "list releases for an app", Releases, stdcli.CommandOptions{
+		Flags:    append(stdcli.OptionFlags(structs.ReleaseListOptions{}), flagRack, flagApp),
+		Validate: stdcli.Args(0),
+	})
+
+	CLI.Command("releases info", "get information about a release", ReleasesInfo, stdcli.CommandOptions{
+		Flags:    []stdcli.Flag{flagApp, flagRack},
+		Validate: stdcli.Args(1),
+	})
+
+	CLI.Command("releases manifest", "get manifest for a release", ReleasesManifest, stdcli.CommandOptions{
+		Flags:    []stdcli.Flag{flagApp, flagRack},
+		Validate: stdcli.Args(1),
+	})
+
+	CLI.Command("releases promote", "promote a release", ReleasesPromote, stdcli.CommandOptions{
+		Flags:    []stdcli.Flag{flagApp, flagRack, flagWait},
+		Validate: stdcli.ArgsMax(1),
+	})
+
+	CLI.Command("releases rollback", "copy an old release forward and promote it", ReleasesRollback, stdcli.CommandOptions{
+		Flags:    []stdcli.Flag{flagApp, flagId, flagRack, flagWait},
+		Validate: stdcli.Args(1),
 	})
 }
 
-func cmdReleases(c *cli.Context) error {
-	stdcli.NeedHelp(c)
-	stdcli.NeedArg(c, 0)
+func Releases(c *stdcli.Context) error {
+	var opts structs.ReleaseListOptions
 
-	_, app, err := stdcli.DirApp(c, ".")
+	if err := c.Options(&opts); err != nil {
+		return err
+	}
+
+	a, err := provider(c).AppGet(app(c))
 	if err != nil {
-		return stdcli.Error(err)
+		return err
 	}
 
-	a, err := rackClient(c).GetApp(app)
+	rs, err := provider(c).ReleaseList(app(c), opts)
 	if err != nil {
-		return stdcli.Error(err)
+		return err
 	}
 
-	var releases client.Releases
-	if c.IsSet("limit") {
-		releases, err = rackClient(c).GetReleasesWithLimit(app, c.Int("limit"))
-	} else {
-		releases, err = rackClient(c).GetReleases(app)
-	}
-	if err != nil {
-		return stdcli.Error(err)
-	}
+	t := c.Table("ID", "STATUS", "BUILD", "CREATED")
 
-	t := stdcli.NewTable("ID", "CREATED", "BUILD", "STATUS")
-
-	for _, r := range releases {
+	for _, r := range rs {
 		status := ""
 
 		if a.Release == r.Id {
 			status = "active"
 		}
 
-		t.AddRow(r.Id, helpers.HumanizeTime(r.Created), r.Build, status)
+		t.AddRow(r.Id, status, r.Build, helpers.Ago(r.Created))
 	}
 
-	t.Print()
+	return t.Print()
+}
+
+func ReleasesInfo(c *stdcli.Context) error {
+	r, err := provider(c).ReleaseGet(app(c), c.Arg(0))
+	if err != nil {
+		return err
+	}
+
+	i := c.Info()
+
+	i.Add("Id", r.Id)
+	i.Add("Build", r.Build)
+	i.Add("Created", r.Created.Format(time.RFC3339))
+	i.Add("Env", r.Env)
+
+	return i.Print()
+}
+
+func ReleasesManifest(c *stdcli.Context) error {
+	release := c.Arg(0)
+
+	r, err := provider(c).ReleaseGet(app(c), release)
+	if err != nil {
+		return err
+	}
+
+	if r.Build == "" {
+		return fmt.Errorf("no build for release: %s", release)
+	}
+
+	b, err := provider(c).BuildGet(app(c), r.Build)
+	if err != nil {
+		return err
+	}
+
+	fmt.Fprintf(c, "%s\n", strings.TrimSpace(b.Manifest))
+
 	return nil
 }
 
-func cmdReleaseInfo(c *cli.Context) error {
-	stdcli.NeedHelp(c)
-	stdcli.NeedArg(c, 1)
+func ReleasesPromote(c *stdcli.Context) error {
+	release := c.Arg(0)
 
-	release := c.Args()[0]
-
-	_, app, err := stdcli.DirApp(c, ".")
-	if err != nil {
-		return stdcli.Error(err)
-	}
-
-	r, err := rackClient(c).GetRelease(app, release)
-	if err != nil {
-		return stdcli.Error(err)
-	}
-
-	fmt.Printf("Id       %s\n", r.Id)
-	fmt.Printf("Build    %s\n", r.Build)
-	fmt.Printf("Created  %s\n", r.Created)
-	fmt.Printf("Env      ")
-
-	fmt.Println(strings.Replace(r.Env, "\n", "\n         ", -1))
-	return nil
-}
-
-func cmdReleasePromote(c *cli.Context) error {
-	stdcli.NeedHelp(c)
-
-	_, app, err := stdcli.DirApp(c, ".")
-	if err != nil {
-		return stdcli.Error(err)
-	}
-
-	var release string
-
-	if len(c.Args()) > 0 {
-		release = c.Args()[0]
-	} else {
-		rr, err := rackClient(c).GetReleases(app)
+	if release == "" {
+		rs, err := provider(c).ReleaseList(app(c), structs.ReleaseListOptions{Limit: options.Int(1)})
 		if err != nil {
-			return stdcli.Error(err)
+			return err
 		}
 
-		if len(rr) < 1 {
-			return stdcli.Error(fmt.Errorf("no releases for app: %s", app))
+		if len(rs) == 0 {
+			return fmt.Errorf("no releases to promote")
 		}
 
-		release = rr[0].Id
+		release = rs[0].Id
 	}
 
-	a, err := rackClient(c).GetApp(app)
-	if err != nil {
-		return stdcli.Error(err)
+	return releasePromote(c, app(c), release)
+}
+
+func releasePromote(c *stdcli.Context, app, id string) error {
+	if id == "" {
+		return fmt.Errorf("no release to promote")
 	}
 
-	if a.Status != "running" {
-		return stdcli.Error(fmt.Errorf("app %s is still being updated, check `convox apps info`", app))
+	c.Startf("Promoting <release>%s</release>", id)
+
+	if err := provider(c).ReleasePromote(app, id); err != nil {
+		return err
 	}
-
-	fmt.Printf("Promoting %s... ", release)
-
-	_, err = rackClient(c).PromoteRelease(app, release)
-	if err != nil {
-		return stdcli.Error(err)
-	}
-
-	fmt.Println("UPDATING")
 
 	if c.Bool("wait") {
-		if err := waitForReleasePromotion(os.Stdout, c, app, release); err != nil {
-			return stdcli.Error(err)
+		if err := waitForAppWithLogs(c, app); err != nil {
+			return err
 		}
 	}
 
-	return nil
+	return c.OK()
 }
 
-func cmdReleaseRollback(c *cli.Context) error {
-	stdcli.NeedHelp(c)
-	stdcli.NeedArg(c, 1)
+func ReleasesRollback(c *stdcli.Context) error {
+	var stdout io.Writer
 
-	_, app, err := stdcli.DirApp(c, ".")
+	if c.Bool("id") {
+		stdout = c.Writer().Stdout
+		c.Writer().Stdout = c.Writer().Stderr
+	}
+
+	release := c.Arg(0)
+
+	c.Startf("Rolling back to <release>%s</release>", release)
+
+	ro, err := provider(c).ReleaseGet(app(c), release)
 	if err != nil {
-		return stdcli.Error(err)
+		return err
 	}
 
-	a, err := rackClient(c).GetApp(app)
-	if err != nil {
-		return stdcli.Error(err)
-	}
-
-	if a.Status != "running" {
-		return stdcli.Error(fmt.Errorf("%s is currently being updated", app))
-	}
-
-	id := c.Args()[0]
-
-	ro, err := rack(c).ReleaseGet(app, id)
-	if err != nil {
-		return stdcli.Error(err)
-	}
-
-	stdcli.Startf("Copying release <release>%s</release>", ro.Id)
-
-	rn, err := rack(c).ReleaseCreate(app, structs.ReleaseCreateOptions{
+	rn, err := provider(c).ReleaseCreate(app(c), structs.ReleaseCreateOptions{
 		Build: options.String(ro.Build),
 		Env:   options.String(ro.Env),
 	})
 	if err != nil {
-		return stdcli.Error(err)
-	}
-
-	stdcli.Writef("<ok>OK</ok>, <release>%s</release>\n", rn.Id)
-
-	stdcli.Startf("Promoting <release>%s</release>", rn.Id)
-
-	if err := rack(c).ReleasePromote(app, rn.Id); err != nil {
-		return stdcli.Error(err)
-	}
-
-	stdcli.OK()
-
-	if c.Bool("wait") {
-		if err := waitForReleasePromotion(os.Stdout, c, app, rn.Id); err != nil {
-			return stdcli.Error(err)
-		}
-	}
-
-	return nil
-}
-
-func waitForReleasePromotion(out io.Writer, c *cli.Context, app, release string) error {
-	out.Write([]byte("Waiting for stabilization...\n"))
-
-	done := make(chan bool)
-
-	go streamAppSystemLogs(out, c, app, done)
-
-	if err := waitForAppRunning(c, app); err != nil {
 		return err
 	}
 
-	done <- true
+	c.OK(rn.Id)
 
-	out.Write([]byte("OK\n"))
+	c.Startf("Promoting <release>%s</release>", rn.Id)
 
-	return nil
-}
+	if err := provider(c).ReleasePromote(app(c), rn.Id); err != nil {
+		return err
+	}
 
-func streamAppSystemLogs(out io.Writer, c *cli.Context, app string, done chan bool) {
-	r, w := io.Pipe()
-
-	defer r.Close()
-
-	go rackClient(c).StreamAppLogs(app, "", true, 0*time.Second, w)
-	go copySystemLogs(out, r)
-
-	<-done
-}
-
-func copySystemLogs(w io.Writer, r io.Reader) {
-	s := bufio.NewScanner(r)
-
-	for s.Scan() {
-		parts := strings.SplitN(s.Text(), " ", 3)
-
-		if len(parts) < 3 {
-			continue
-		}
-
-		if strings.HasPrefix(parts[1], "system/aws") {
-			w.Write([]byte(fmt.Sprintf("%s\n", s.Text())))
+	if c.Bool("wait") {
+		if err := waitForAppWithLogs(c, app(c)); err != nil {
+			return err
 		}
 	}
+
+	if c.Bool("id") {
+		fmt.Fprintf(stdout, rn.Id)
+	}
+
+	return c.OK()
 }

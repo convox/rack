@@ -17,26 +17,25 @@ type System struct {
 }
 
 type SystemInstallOptions struct {
-	Color    *bool
-	Output   io.Writer
-	Password *string
-	Version  *string
+	Name       *string `flag:"name,n"`
+	Output     io.Writer
+	Parameters map[string]string
+	Version    *string `flag:"version,v"`
 }
 
 type SystemProcessesOptions struct {
-	All *bool
+	All *bool `flag:"all,a" query:"all"`
 }
 
 type SystemUninstallOptions struct {
-	Color  *bool
+	Force  bool
+	Input  io.Reader
 	Output io.Writer
 }
 
 type SystemUpdateOptions struct {
-	InstanceCount *int
-	InstanceType  *string
-	Output        io.Writer
-	Parameters    map[string]string
-	Password      *string
-	Version       *string
+	Count      *int              `param:"count"`
+	Parameters map[string]string `param:"parameters"`
+	Type       *string           `param:"type"`
+	Version    *string           `param:"version"`
 }

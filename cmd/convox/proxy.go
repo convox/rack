@@ -6,27 +6,20 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/convox/rack/client"
-	"github.com/convox/rack/cmd/convox/stdcli"
-	"gopkg.in/urfave/cli.v1"
+	"github.com/convox/stdcli"
 )
 
 func init() {
-	stdcli.RegisterCommand(cli.Command{
-		Name:        "proxy",
-		Description: "proxy local ports into a rack",
-		Usage:       "<[port:]host:hostport> [[port:]host:hostport]...",
-		ArgsUsage:   "<[port:]host:hostport>",
-		Action:      cmdProxy,
-		Flags:       []cli.Flag{rackFlag},
+	CLI.Command("proxy", "proxy a connection inside the rack", Proxy, stdcli.CommandOptions{
+		Flags:    []stdcli.Flag{flagRack},
+		Usage:    "<[port:]host:hostport> [[port:]host:hostport]...",
+		Validate: stdcli.ArgsMin(1),
 	})
+
 }
 
-func cmdProxy(c *cli.Context) error {
-	stdcli.NeedHelp(c)
-	stdcli.NeedArg(c, -1)
-
-	for _, arg := range c.Args() {
+func Proxy(c *stdcli.Context) error {
+	for _, arg := range c.Args {
 		parts := strings.SplitN(arg, ":", 3)
 
 		var host string
@@ -38,7 +31,7 @@ func cmdProxy(c *cli.Context) error {
 
 			p, err := strconv.Atoi(parts[1])
 			if err != nil {
-				return stdcli.Error(err)
+				return err
 			}
 
 			port = p
@@ -48,7 +41,7 @@ func cmdProxy(c *cli.Context) error {
 
 			p, err := strconv.Atoi(parts[0])
 			if err != nil {
-				return stdcli.Error(err)
+				return err
 			}
 
 			port = p
@@ -56,25 +49,25 @@ func cmdProxy(c *cli.Context) error {
 			p, err = strconv.Atoi(parts[2])
 
 			if err != nil {
-				return stdcli.Error(err)
+				return err
 			}
 
 			hostport = p
 		default:
-			return stdcli.Error(fmt.Errorf("invalid argument: %s", arg))
+			return fmt.Errorf("invalid argument: %s", arg)
 		}
 
-		go proxy("127.0.0.1", port, host, hostport, rackClient(c))
+		go proxy(c, port, host, hostport)
 	}
 
 	// block forever
 	select {}
 }
 
-func proxy(localhost string, localport int, remotehost string, remoteport int, client *client.Client) {
-	fmt.Printf("proxying %s:%d to %s:%d\n", localhost, localport, remotehost, remoteport)
+func proxy(c *stdcli.Context, localport int, remotehost string, remoteport int) {
+	fmt.Printf("proxying localhost:%d to %s:%d\n", localport, remotehost, remoteport)
 
-	listener, err := net.Listen("tcp4", fmt.Sprintf("%s:%d", localhost, localport))
+	listener, err := net.Listen("tcp4", fmt.Sprintf("127.0.0.1:%d", localport))
 	if err != nil {
 		fmt.Printf("error: %s\n", err)
 		return
@@ -83,22 +76,19 @@ func proxy(localhost string, localport int, remotehost string, remoteport int, c
 	defer listener.Close()
 
 	for {
-		conn, err := listener.Accept()
+		cn, err := listener.Accept()
 		if err != nil {
 			fmt.Printf("error: %s\n", err)
 			return
 		}
 
-		defer conn.Close()
-
 		fmt.Printf("connect: %d\n", localport)
 
 		go func() {
-			err := client.Proxy(remotehost, remoteport, conn)
-			if err != nil {
+			defer cn.Close()
+
+			if err := provider(c).Proxy(remotehost, remoteport, cn); err != nil {
 				fmt.Printf("error: %s\n", err)
-				conn.Close()
-				return
 			}
 		}()
 	}

@@ -117,8 +117,8 @@ func (p *AWSProvider) ReleaseList(app string, opts structs.ReleaseListOptions) (
 		return nil, err
 	}
 
-	if opts.Count == nil {
-		opts.Count = options.Int(10)
+	if opts.Limit == nil {
+		opts.Limit = options.Int(10)
 	}
 
 	req := &dynamodb.QueryInput{
@@ -131,7 +131,7 @@ func (p *AWSProvider) ReleaseList(app string, opts structs.ReleaseListOptions) (
 			},
 		},
 		IndexName:        aws.String("app.created"),
-		Limit:            aws.Int64(int64(*opts.Count)),
+		Limit:            aws.Int64(int64(*opts.Limit)),
 		ScanIndexForward: aws.Bool(false),
 		TableName:        aws.String(p.DynamoReleases),
 	}
@@ -419,7 +419,7 @@ func (p *AWSProvider) releaseSave(r *structs.Release) error {
 	}
 
 	if r.Created.IsZero() {
-		r.Created = time.Now()
+		r.Created = time.Now().UTC()
 	}
 
 	if p.IsTest() {
@@ -501,7 +501,7 @@ func (p *AWSProvider) fetchRelease(app, id string) (map[string]*dynamodb.Attribu
 		return nil, err
 	}
 	if res.Item == nil {
-		return nil, errorNotFound(fmt.Sprintf("no such release: %s", id))
+		return nil, errorNotFound(fmt.Sprintf("release not found: %s", id))
 	}
 	if res.Item["app"] == nil || *res.Item["app"].S != app {
 		return nil, fmt.Errorf("mismatched app and release")

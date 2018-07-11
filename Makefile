@@ -1,4 +1,4 @@
-.PHONY: all build builder mocks release templates test
+.PHONY: all build builder generate mocks release templates test
 
 all: build
 
@@ -8,6 +8,11 @@ build:
 builder:
 	docker build -t convox/build:$(USER) -f cmd/build/Dockerfile .
 	docker push convox/build:$(USER)
+
+generate:
+	go run cmd/generate/main.go controllers > api/controllers.go
+	go run cmd/generate/main.go routes > api/routes.go
+	go run cmd/generate/main.go sdk > sdk/methods.go
 
 mocks:
 	go get -u github.com/vektra/mockery/.../
@@ -21,7 +26,6 @@ release:
 
 templates:
 	go get -u github.com/jteeuwen/go-bindata/...
-	make -C provider templates
 	make -C sync templates
 
 test:

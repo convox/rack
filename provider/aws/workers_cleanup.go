@@ -62,7 +62,7 @@ func (p *AWSProvider) cleanupAppBuilds(a structs.App) (int, error) {
 	removed := 0
 
 	for {
-		bs, err := p.BuildList(a.Name, structs.BuildListOptions{Count: options.Int(1000)})
+		bs, err := p.BuildList(a.Name, structs.BuildListOptions{Limit: options.Int(1000)})
 		if err != nil {
 			return 0, err
 		}
@@ -111,7 +111,7 @@ func (p *AWSProvider) cleanupAppImages(a structs.App) (int, error) {
 		return 0, err
 	}
 
-	bs, err := p.BuildList(a.Name, structs.BuildListOptions{Count: options.Int(maxBuilds)})
+	bs, err := p.BuildList(a.Name, structs.BuildListOptions{Limit: options.Int(maxBuilds)})
 	if err != nil {
 		return 0, err
 	}

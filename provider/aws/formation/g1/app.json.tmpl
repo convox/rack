@@ -549,7 +549,7 @@
             "EmitInterval": 5,
             "Enabled": true,
             "S3BucketName": { "Ref": "LogBucket" },
-            "S3BucketPrefix": { "Fn::Sub": "convox/logs/${AWS::StackName}/elb/{{ .LoadBalancerName $app.Name }}/" }
+            "S3BucketPrefix": { "Fn::Sub": "convox/logs/${AWS::StackName}/elb/{{ .LoadBalancerName $app.Name }}" }
           }
         ] },
         "SecurityGroups" : { "Fn::If" : [

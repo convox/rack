@@ -2,132 +2,85 @@ package main
 
 import (
 	"fmt"
-	"os"
 
-	"github.com/convox/rack/client"
-	"github.com/convox/rack/cmd/convox/stdcli"
-	"gopkg.in/urfave/cli.v1"
+	"github.com/convox/rack/structs"
+	"github.com/convox/stdcli"
 )
 
 func init() {
-	stdcli.RegisterCommand(cli.Command{
-		Name:        "scale",
-		Description: "scale an app's processes",
-		Usage:       "<process> [--count=2] [--memory=256] [--cpu=256]",
-		Action:      cmdScale,
-		Flags: []cli.Flag{
-			appFlag,
-			rackFlag,
-			cli.IntFlag{
-				Name:  "count",
-				Usage: "Number of processes to keep running for specified process type.",
-			},
-			cli.IntFlag{
-				Name:  "memory",
-				Usage: "Amount of memory, in MB, available to specified process type.",
-			},
-			cli.IntFlag{
-				Name:  "cpu",
-				Usage: "CPU units available to specified process type.",
-			},
-			cli.BoolFlag{
-				Name:   "wait",
-				EnvVar: "CONVOX_WAIT",
-				Usage:  "wait for app to finish scaling before returning",
-			},
+	CLI.Command("scale", "scale an app", Scale, stdcli.CommandOptions{
+		Flags: append(stdcli.OptionFlags(structs.ServiceUpdateOptions{}), flagApp, flagRack, flagWait),
+		Validate: func(c *stdcli.Context) error {
+			if c.Value("count") != nil || c.Value("cpu") != nil || c.Value("memory") != nil {
+				if len(c.Args) < 1 {
+					return fmt.Errorf("service name required")
+				} else {
+					return stdcli.Args(1)(c)
+				}
+			} else {
+				return stdcli.Args(0)(c)
+			}
 		},
 	})
 }
 
-func cmdScale(c *cli.Context) error {
-	_, app, err := stdcli.DirApp(c, ".")
-	if err != nil {
-		return stdcli.Error(err)
-	}
-
-	opts := client.FormationOptions{}
-
-	if c.IsSet("count") {
-		opts.Count = c.String("count")
-	}
-
-	if c.IsSet("cpu") {
-		opts.CPU = c.String("cpu")
-	}
-
-	if c.IsSet("memory") {
-		opts.Memory = c.String("memory")
-	}
-
-	// validate single process type argument
-	switch len(c.Args()) {
-	case 0:
-		if opts.Memory != "" || opts.CPU != "" || opts.Count != "" {
-			return stdcli.Errorf("missing process name")
-		}
-
-		return displayFormation(c, app)
-	case 1:
-		if opts.Count == "" && opts.CPU == "" && opts.Memory == "" {
-			return displayFormation(c, app)
-		}
-		// fall through to scale API call
-	default:
-		stdcli.Usage(c)
-		return nil
-	}
-
-	process := c.Args()[0]
-
-	err = rackClient(c).SetFormation(app, process, opts)
-	if err != nil {
-		return stdcli.Error(err)
-	}
-
-	err = displayFormation(c, app)
-	if err != nil {
-		return stdcli.Error(err)
-	}
-
-	if c.Bool("wait") {
-		a, err := rackClient(c).GetApp(app)
-		if err != nil {
-			return stdcli.Error(err)
-		}
-
-		if err := waitForReleasePromotion(os.Stdout, c, app, a.Release); err != nil {
-			return stdcli.Error(err)
-		}
-	}
-
-	return nil
-}
-
-func displayFormation(c *cli.Context, app string) error {
-	formation, err := rackClient(c).ListFormation(app)
+func Scale(c *stdcli.Context) error {
+	s, err := provider(c).SystemGet()
 	if err != nil {
 		return err
 	}
 
-	pss, err := rackClient(c).GetProcesses(app, false)
+	var opts structs.ServiceUpdateOptions
+
+	if err := c.Options(&opts); err != nil {
+		return err
+	}
+
+	if opts.Count != nil || opts.Cpu != nil || opts.Memory != nil {
+		service := c.Arg(0)
+
+		c.Startf("Scaling <service>%s</service>", service)
+
+		if s.Version < "20180708231844" {
+			if err := provider(c).FormationUpdate(app(c), service, opts); err != nil {
+				return err
+			}
+		} else {
+			if err := provider(c).ServiceUpdate(app(c), service, opts); err != nil {
+				return err
+			}
+		}
+
+		if c.Bool("wait") {
+			if err := waitForAppWithLogs(c, app(c)); err != nil {
+				return err
+			}
+		}
+
+		return c.OK()
+	}
+
+	ss, err := provider(c).ServiceList(app(c))
+	if err != nil {
+		return err
+	}
+
+	ps, err := provider(c).ProcessList(app(c), structs.ProcessListOptions{})
 	if err != nil {
 		return err
 	}
 
 	running := map[string]int{}
 
-	for _, ps := range pss {
-		if ps.Id != "pending" {
-			running[ps.Name] += 1
-		}
+	for _, p := range ps {
+		running[p.Name] += 1
 	}
 
-	t := stdcli.NewTable("NAME", "DESIRED", "RUNNING", "CPU", "MEMORY")
+	t := c.Table("SERVICE", "DESIRED", "RUNNING", "CPU", "MEMORY")
 
-	for _, f := range formation {
-		t.AddRow(f.Name, fmt.Sprintf("%d", f.Count), fmt.Sprintf("%d", running[f.Name]), fmt.Sprintf("%d", f.CPU), fmt.Sprintf("%d", f.Memory))
+	for _, s := range ss {
+		t.AddRow(s.Name, fmt.Sprintf("%d", s.Count), fmt.Sprintf("%d", running[s.Name]), fmt.Sprintf("%d", s.Cpu), fmt.Sprintf("%d", s.Memory))
 	}
 
-	t.Print()
-	return nil
+	return t.Print()
 }

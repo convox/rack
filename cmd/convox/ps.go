@@ -1,195 +1,75 @@
 package main
 
 import (
-	"fmt"
-	"strconv"
-
-	"github.com/convox/rack/client"
-	"github.com/convox/rack/cmd/convox/helpers"
-	"github.com/convox/rack/cmd/convox/stdcli"
-	"gopkg.in/urfave/cli.v1"
+	"github.com/convox/rack/helpers"
+	"github.com/convox/rack/structs"
+	"github.com/convox/stdcli"
 )
 
 func init() {
-	stdcli.RegisterCommand(cli.Command{
-		Name:        "ps",
-		Description: "list an app's processes",
-		Action:      cmdPs,
-		Usage:       "[subcommand] [args] [options]",
-		ArgsUsage:   "[subcommand]",
-		Flags: []cli.Flag{
-			appFlag,
-			rackFlag,
-		},
-		Subcommands: []cli.Command{
-			{
-				Name:        "info",
-				Description: "show info for a process",
-				Usage:       "<process id> [options]",
-				UsageText:   "process id (from `convox ps`)",
-				ArgsUsage:   "<process id>",
-				Action:      cmdPsInfo,
-				Flags:       []cli.Flag{appFlag, rackFlag},
-			},
-			{
-				Name:        "stop",
-				Description: "stop a process by its id",
-				Usage:       "<process id> [options]",
-				UsageText:   "process id (from `convox ps`)",
-				ArgsUsage:   "<process id>",
-				Action:      cmdPsStop,
-				Flags:       []cli.Flag{appFlag, rackFlag},
-			},
-		},
+	CLI.Command("ps", "list app processes", Ps, stdcli.CommandOptions{
+		Flags:    append(stdcli.OptionFlags(structs.ProcessListOptions{}), flagApp, flagRack),
+		Validate: stdcli.Args(0),
+	})
+
+	CLI.Command("ps info", "get information about a process", PsInfo, stdcli.CommandOptions{
+		Flags:    []stdcli.Flag{flagApp, flagRack},
+		Validate: stdcli.Args(1),
+	})
+
+	CLI.Command("ps stop", "stop a process", PsStop, stdcli.CommandOptions{
+		Flags:    []stdcli.Flag{flagApp, flagRack},
+		Validate: stdcli.Args(1),
 	})
 }
 
-func cmdPs(c *cli.Context) error {
-	stdcli.NeedHelp(c)
-	stdcli.NeedArg(c, 0)
+func Ps(c *stdcli.Context) error {
+	var opts structs.ProcessListOptions
 
-	_, app, err := stdcli.DirApp(c, ".")
+	if err := c.Options(&opts); err != nil {
+		return err
+	}
+
+	ps, err := provider(c).ProcessList(app(c), opts)
 	if err != nil {
-		return stdcli.Error(err)
+		return err
 	}
 
-	ps, err := rackClient(c).GetProcesses(app, c.Bool("stats"))
-	if err != nil {
-		return stdcli.Error(err)
-	}
-
-	if c.Bool("stats") {
-		fm, err := rackClient(c).ListFormation(app)
-		if err != nil {
-			return stdcli.Error(err)
-		}
-
-		system, err := rackClient(c).GetSystem()
-		if err != nil {
-			return stdcli.Error(err)
-		}
-
-		params, err := rackClient(c).ListParameters(system.Name)
-		if err != nil {
-			return stdcli.Error(err)
-		}
-
-		memory, err := strconv.Atoi(params["BuildMemory"])
-		if err != nil {
-			return stdcli.Error(err)
-		}
-
-		fm = append(fm, client.FormationEntry{
-			Name:   "build",
-			Memory: memory,
-		})
-
-		displayProcessesStats(ps, fm, false)
-
-		return nil
-	}
-
-	displayProcesses(ps, false)
-
-	return nil
-}
-
-func displayProcesses(ps []client.Process, showApp bool) {
-	var t *stdcli.Table
-	if showApp {
-		t = stdcli.NewTable("ID", "APP", "NAME", "RELEASE", "STARTED", "COMMAND")
-	} else {
-		t = stdcli.NewTable("ID", "NAME", "RELEASE", "STARTED", "COMMAND")
-	}
+	t := c.Table("ID", "SERVICE", "STATUS", "RELEASE", "STARTED", "COMMAND")
 
 	for _, p := range ps {
-		if showApp {
-			t.AddRow(prettyId(p), p.App, p.Name, p.Release, helpers.HumanizeTime(p.Started), p.Command)
-		} else {
-			t.AddRow(prettyId(p), p.Name, p.Release, helpers.HumanizeTime(p.Started), p.Command)
-		}
+		t.AddRow(p.Id, p.Name, p.Status, p.Release, helpers.Ago(p.Started), p.Command)
 	}
 
-	t.Print()
+	return t.Print()
 }
 
-func displayProcessesStats(ps []client.Process, fm client.Formation, showApp bool) {
-	var t *stdcli.Table
-	if showApp {
-		t = stdcli.NewTable("ID", "NAME", "APP", "RELEASE", "CPU %", "MEM", "MEM %", "STARTED", "COMMAND")
-	} else {
-		t = stdcli.NewTable("ID", "NAME", "RELEASE", "CPU %", "MEM", "MEM %", "STARTED", "COMMAND")
+func PsInfo(c *stdcli.Context) error {
+	i := c.Info()
+
+	ps, err := provider(c).ProcessGet(app(c), c.Arg(0))
+	if err != nil {
+		return err
 	}
 
-	for _, p := range ps {
-		for _, f := range fm {
-			if f.Name != p.Name {
-				continue
-			}
-			if showApp {
-				t.AddRow(prettyId(p), p.Name, p.App, p.Release, fmt.Sprintf("%0.2f%%", p.Cpu), fmt.Sprintf("%0.1fMB/%dMB", p.Memory*float64(f.Memory), f.Memory), fmt.Sprintf("%0.2f%%", p.Memory*100), helpers.HumanizeTime(p.Started), p.Command)
-			} else {
-				t.AddRow(prettyId(p), p.Name, p.Release, fmt.Sprintf("%0.2f%%", p.Cpu), fmt.Sprintf("%0.1fMB/%dMB", p.Memory*float64(f.Memory), f.Memory), fmt.Sprintf("%0.2f%%", p.Memory*100), helpers.HumanizeTime(p.Started), p.Command)
-			}
-		}
-	}
+	i.Add("Id", ps.Id)
+	i.Add("App", ps.App)
+	i.Add("Command", ps.Command)
+	i.Add("Instance", ps.Instance)
+	i.Add("Release", ps.Release)
+	i.Add("Service", ps.Name)
+	i.Add("Started", helpers.Ago(ps.Started))
+	i.Add("Status", ps.Status)
 
-	t.Print()
+	return i.Print()
 }
 
-func cmdPsInfo(c *cli.Context) error {
-	stdcli.NeedHelp(c)
-	stdcli.NeedArg(c, 1)
+func PsStop(c *stdcli.Context) error {
+	c.Startf("Stopping <process>%s</process>", c.Arg(0))
 
-	_, app, err := stdcli.DirApp(c, ".")
-	if err != nil {
-		return stdcli.Error(err)
+	if err := provider(c).ProcessStop(app(c), c.Arg(0)); err != nil {
+		return err
 	}
 
-	id := c.Args()[0]
-
-	p, err := rackClient(c).GetProcess(app, id)
-	if err != nil {
-		return stdcli.Error(err)
-	}
-
-	fmt.Printf("Id       %s\n", p.Id)
-	fmt.Printf("Name     %s\n", p.Name)
-	fmt.Printf("Release  %s\n", p.Release)
-	fmt.Printf("CPU      %0.2f%%\n", p.Cpu)
-	fmt.Printf("Memory   %0.2f%%\n", p.Memory*100)
-	fmt.Printf("Started  %s\n", helpers.HumanizeTime(p.Started))
-	fmt.Printf("Command  %s\n", p.Command)
-
-	return nil
-}
-
-func cmdPsStop(c *cli.Context) error {
-	stdcli.NeedHelp(c)
-	stdcli.NeedArg(c, 1)
-
-	_, app, err := stdcli.DirApp(c, ".")
-	if err != nil {
-		return stdcli.Error(err)
-	}
-
-	id := c.Args()[0]
-
-	fmt.Printf("Stopping %s... ", id)
-
-	_, err = rackClient(c).StopProcess(app, id)
-	if err != nil {
-		return stdcli.Error(err)
-	}
-
-	fmt.Println("OK")
-	return nil
-}
-
-func prettyId(p client.Process) string {
-	if p.Id == "pending" {
-		return "[PENDING]"
-	}
-
-	return p.Id
+	return c.OK()
 }

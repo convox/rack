@@ -2,14 +2,15 @@ package local
 
 import (
 	"fmt"
+	"io"
 
 	"github.com/convox/rack/structs"
 )
 
-func (p *Provider) processExec(app, pid, command string, opts structs.ProcessExecOptions) (int, error) {
+func (p *Provider) processExec(app, pid, command string, rw io.ReadWriter, opts structs.ProcessExecOptions) (int, error) {
 	return -1, fmt.Errorf("unimplemented")
 }
 
-func (p *Provider) processRun(app string, opts structs.ProcessRunOptions) (string, error) {
+func (p *Provider) processRun(app, service string, opts processStartOptions) (string, error) {
 	return "", fmt.Errorf("unimplemented")
 }

@@ -6,12 +6,10 @@ jobs:
       - image: circleci/golang:1.10
     steps:
       - checkout
-      - run: ci/dependencies-pre.sh
+      - run: ci/dependencies.sh
       - run: ci/install.sh
-      - run: ci/tests/example-app django
-      - run: ci/tests/example-app node-workers
       - run:
-          command: ci/tests/example-app rails
+          command: ci/test.sh
           no_output_timeout: 20m
       - run: ci/report.sh
       - run: ci/uninstall.sh
