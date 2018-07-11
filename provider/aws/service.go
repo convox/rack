@@ -73,9 +73,9 @@ func (p *AWSProvider) ServiceList(app string) (structs.Services, error) {
 			}
 		}
 
-		parts := strings.SplitN(a.Parameters[fmt.Sprintf("%sFormation", upperName(ms.Name))], ",", 3)
+		parts := strings.Split(a.Parameters[fmt.Sprintf("%sFormation", upperName(ms.Name))], ",")
 
-		if len(parts) != 3 {
+		if len(parts) < 3 {
 			return nil, fmt.Errorf("could not read formation for service: %s", ms.Name)
 		}
 
@@ -172,9 +172,9 @@ func (p *AWSProvider) ServiceUpdate(app, name string, opts structs.ServiceUpdate
 
 	param := fmt.Sprintf("%sFormation", upperName(name))
 
-	parts := strings.SplitN(a.Parameters[param], ",", 3)
+	parts := strings.Split(a.Parameters[param], ",")
 
-	if len(parts) != 3 {
+	if len(parts) < 3 {
 		return fmt.Errorf("could not read formation for service: %s", name)
 	}
 
