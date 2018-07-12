@@ -29,7 +29,6 @@ func init() {
 		Flags: []stdcli.Flag{
 			flagRack,
 			flagApp,
-			flagId,
 			stdcli.StringFlag("file", "f", "import from file"),
 		},
 		Usage:    "<build>",
