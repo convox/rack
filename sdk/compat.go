@@ -43,7 +43,10 @@ func (c *Client) BuildCreateUpload(app string, r io.Reader, opts structs.BuildCr
 	}
 
 	ro.Params["cache"] = fmt.Sprintf("%t", (opts.NoCache == nil || !*opts.NoCache))
-	ro.Params["config"] = ro.Params["manifest"]
+
+	if ro.Params["manifest"] != nil {
+		ro.Params["config"] = ro.Params["manifest"]
+	}
 
 	data, err := ioutil.ReadAll(r)
 	if err != nil {
