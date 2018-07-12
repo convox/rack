@@ -36,6 +36,33 @@ func (c *Client) AppParametersSet(name string, params map[string]string) error {
 	return nil
 }
 
+func (c *Client) BuildCreateUpload(app string, r io.Reader, opts structs.BuildCreateOptions) (*structs.Build, error) {
+	ro, err := stdsdk.MarshalOptions(opts)
+	if err != nil {
+		return nil, err
+	}
+
+	ro.Params["cache"] = fmt.Sprintf("%t", (opts.NoCache == nil || !*opts.NoCache))
+	ro.Params["config"] = ro.Params["manifest"]
+
+	data, err := ioutil.ReadAll(r)
+	if err != nil {
+		return nil, err
+	}
+
+	ro.Files = stdsdk.Files{"source": data}
+
+	var b *structs.Build
+
+	if err := c.Post(fmt.Sprintf("/apps/%s/builds", app), ro, &b); err != nil {
+		return nil, err
+	}
+
+	fmt.Printf("b = %+v\n", b)
+
+	return b, nil
+}
+
 func (c *Client) BuildImportMultipart(app string, r io.Reader) (*structs.Build, error) {
 	data, err := ioutil.ReadAll(r)
 	if err != nil {
