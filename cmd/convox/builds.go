@@ -89,32 +89,52 @@ func build(c *stdcli.Context) (*structs.Build, error) {
 		return nil, err
 	}
 
-	c.Startf("Uploading source")
+	c.Startf("Packaging source")
 
 	data, err := helpers.Tarball(coalesce(c.Arg(0), "."))
 	if err != nil {
 		return nil, err
 	}
 
-	tmp, err := generateTempKey()
-	if err != nil {
-		return nil, err
-	}
-
-	tmp += ".tgz"
-
-	o, err := provider(c).ObjectStore(app(c), tmp, bytes.NewReader(data), structs.ObjectStoreOptions{})
-	if err != nil {
-		return nil, err
-	}
-
 	c.OK()
 
-	c.Startf("Starting build")
-
-	b, err := provider(c).BuildCreate(app(c), o.Url, opts)
+	s, err := provider(c).SystemGet()
 	if err != nil {
 		return nil, err
+	}
+
+	var b *structs.Build
+
+	if s.Version < "20180222001443" {
+		c.Startf("Starting build")
+
+		b, err = provider(c).BuildCreateUpload(app(c), bytes.NewReader(data), opts)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		tmp, err := generateTempKey()
+		if err != nil {
+			return nil, err
+		}
+
+		tmp += ".tgz"
+
+		c.Startf("Uploading source")
+
+		o, err := provider(c).ObjectStore(app(c), tmp, bytes.NewReader(data), structs.ObjectStoreOptions{})
+		if err != nil {
+			return nil, err
+		}
+
+		c.OK()
+
+		c.Startf("Starting build")
+
+		b, err = provider(c).BuildCreate(app(c), o.Url, opts)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	c.OK()
