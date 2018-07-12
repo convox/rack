@@ -58,8 +58,6 @@ func (c *Client) BuildCreateUpload(app string, r io.Reader, opts structs.BuildCr
 		return nil, err
 	}
 
-	fmt.Printf("b = %+v\n", b)
-
 	return b, nil
 }
 
