@@ -104,7 +104,7 @@ func build(c *stdcli.Context) (*structs.Build, error) {
 
 	var b *structs.Build
 
-	if s.Version < "20180222001443" {
+	if s.Version < "20180708231844" {
 		c.Startf("Starting build")
 
 		b, err = provider(c).BuildCreateUpload(app(c), bytes.NewReader(data), opts)
