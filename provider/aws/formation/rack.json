@@ -2394,7 +2394,7 @@
                 "awslogs-stream-prefix": "service"
               }
             },
-            "Memory": "64",
+            "Memory": "128",
             "MountPoints": [ { "SourceVolume": "docker", "ContainerPath": "/var/run/docker.sock" } ],
             "Name": "monitor"
           }
