@@ -58,7 +58,7 @@ func copySystemLogs(w io.Writer, r io.Reader) {
 	}
 }
 
-func currentEndpoint(c *stdcli.Context, rack string) (string, error) {
+func currentEndpoint(c *stdcli.Context, rack_ string) (string, error) {
 	if e := os.Getenv("RACK_URL"); e != "" {
 		return e, nil
 	}
@@ -77,8 +77,8 @@ func currentEndpoint(c *stdcli.Context, rack string) (string, error) {
 		return fmt.Sprintf("https://convox:%s@%s", pw, h), nil
 	}
 
-	if strings.HasPrefix(rack, "local/") {
-		return fmt.Sprintf("https://rack.%s", strings.SplitN(rack, "/", 2)[1]), nil
+	if strings.HasPrefix(rack_, "local/") {
+		return fmt.Sprintf("https://rack.%s", strings.SplitN(rack_, "/", 2)[1]), nil
 	}
 
 	host, err := c.SettingRead("host")
@@ -87,7 +87,29 @@ func currentEndpoint(c *stdcli.Context, rack string) (string, error) {
 	}
 
 	if host == "" {
-		return "", fmt.Errorf("must login first, try `convox login`")
+		if !localRackRunning() {
+			return "", fmt.Errorf("no racks found, try `convox login`")
+		}
+
+		var r *rack
+
+		if cr, err := currentRack(c); cr != "" && err == nil {
+			r, err = matchRack(c, cr)
+			if err != nil {
+				return "", err
+			}
+		} else {
+			r, err = matchRack(c, "local/")
+			if err != nil {
+				return "", err
+			}
+		}
+
+		if r == nil {
+			return "", fmt.Errorf("no racks found, try `convox login`")
+		}
+
+		return fmt.Sprintf("https://rack.%s", strings.SplitN(r.Name, "/", 2)[1]), nil
 	}
 
 	pass, err := hostAuth(c, host)

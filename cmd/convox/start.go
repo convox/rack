@@ -40,7 +40,6 @@ func Start(c *stdcli.Context) error {
 	opts.App = app(c)
 	opts.Build = !c.Bool("no-build")
 	opts.Cache = !c.Bool("no-cache")
-	opts.Provider = provider(c)
 	opts.Sync = !c.Bool("no-sync")
 
 	if v := c.String("file"); v != "" {
@@ -59,12 +58,21 @@ func Start(c *stdcli.Context) error {
 		return fmt.Errorf("local rack not found, try `sudo convox rack install local`")
 	}
 
-	s, err := provider(c).SystemGet()
+	r, err := currentRack(c)
 	if err != nil {
 		return err
 	}
 
-	if s.Provider != "local" {
+	if _, err := currentEndpoint(c, r); err == nil {
+		p := provider(c)
+
+		s, err := p.SystemGet()
+		if err == nil && s.Provider == "local" {
+			opts.Provider = p
+		}
+	}
+
+	if opts.Provider == nil {
 		r, err := matchRack(c, "local")
 		if err != nil {
 			return err
