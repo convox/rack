@@ -139,6 +139,8 @@ func (p *Provider) SystemInstall(opts structs.SystemInstallOptions) (string, err
 		return "", err
 	}
 
+	time.Sleep(10 * time.Second)
+
 	return fmt.Sprintf("https://rack.%s", name), nil
 }
 
