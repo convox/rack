@@ -14,7 +14,10 @@ func main() {
 }
 
 func run() error {
-	a := api.New()
+	a, err := api.New()
+	if err != nil {
+		return err
+	}
 
 	a.Password = os.Getenv("PASSWORD")
 

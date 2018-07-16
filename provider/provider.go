@@ -1,6 +1,7 @@
 package provider
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/convox/rack/provider/aws"
@@ -9,17 +10,19 @@ import (
 )
 
 // FromEnv returns a new Provider from env vars
-func FromEnv() structs.Provider {
+func FromEnv() (structs.Provider, error) {
 	return FromName(os.Getenv("PROVIDER"))
 }
 
-func FromName(name string) structs.Provider {
+func FromName(name string) (structs.Provider, error) {
 	switch name {
 	case "aws":
-		return aws.FromEnv()
+		return aws.FromEnv(), nil
 	case "local":
-		return local.FromEnv()
+		return local.FromEnv(), nil
+	case "test":
+		return &structs.MockProvider{}, nil
 	default:
-		return &structs.MockProvider{}
+		return nil, fmt.Errorf("unknown provider: %s", name)
 	}
 }

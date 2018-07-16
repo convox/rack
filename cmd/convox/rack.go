@@ -122,7 +122,10 @@ func RackInstall(c *stdcli.Context) error {
 		opts.Parameters[parts[0]] = parts[1]
 	}
 
-	p := pv.FromName(c.Arg(0))
+	p, err := pv.FromName(c.Arg(0))
+	if err != nil {
+		return err
+	}
 
 	ep, err := p.SystemInstall(opts)
 	if err != nil {
@@ -344,7 +347,10 @@ func RackUninstall(c *stdcli.Context) error {
 		}
 	}
 
-	p := pv.FromName(c.Arg(0))
+	p, err := pv.FromName(c.Arg(0))
+	if err != nil {
+		return err
+	}
 
 	if err := p.SystemUninstall(c.Arg(1), opts); err != nil {
 		return err
