@@ -133,13 +133,13 @@
   branch = "master"
   name = "github.com/convox/stdcli"
   packages = ["."]
-  revision = "21a1c374761e067ed11a62d8631e40d9ad3ff426"
+  revision = "20cf0a314c0bb73bc3f7398e001a3f31910dae7f"
 
 [[projects]]
   branch = "master"
   name = "github.com/convox/stdsdk"
   packages = ["."]
-  revision = "d37108339029baf9cd30c12502b085a6e6f53eda"
+  revision = "62e3a716ee33aaa80ad6d9d4a82777189f462af4"
 
 [[projects]]
   branch = "master"
