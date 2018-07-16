@@ -111,7 +111,7 @@ func localRacks() ([]rack, error) {
 
 	data, err := exec.Command("docker", "ps", "--filter", "label=convox.type=rack", "--format", "{{.Names}}").CombinedOutput()
 	if err != nil {
-		return nil, err
+		return []rack{}, nil // if no docker then no local racks
 	}
 
 	names := strings.Split(strings.TrimSpace(string(data)), "\n")
