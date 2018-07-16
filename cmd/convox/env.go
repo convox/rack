@@ -37,7 +37,13 @@ func init() {
 	})
 
 	CLI.Command("env unset", "unset env var(s)", EnvUnset, stdcli.CommandOptions{
-		Flags:    []stdcli.Flag{flagRack, flagApp},
+		Flags: []stdcli.Flag{
+			flagApp,
+			flagId,
+			flagRack,
+			flagWait,
+			stdcli.BoolFlag("promote", "p", "promote the release"),
+		},
 		Usage:    "<key> [key]...",
 		Validate: stdcli.ArgsMin(1),
 	})
@@ -130,6 +136,13 @@ func EnvSet(c *stdcli.Context) error {
 }
 
 func EnvUnset(c *stdcli.Context) error {
+	var stdout io.Writer
+
+	if c.Bool("id") {
+		stdout = c.Writer().Stdout
+		c.Writer().Stdout = c.Writer().Stderr
+	}
+
 	env, err := helpers.AppEnvironment(provider(c), app(c))
 	if err != nil {
 		return err
@@ -170,6 +183,16 @@ func EnvUnset(c *stdcli.Context) error {
 	c.OK()
 
 	c.Writef("Release: <release>%s</release>\n", r.Id)
+
+	if c.Bool("promote") {
+		if err := releasePromote(c, app(c), r.Id); err != nil {
+			return err
+		}
+	}
+
+	if c.Bool("id") {
+		fmt.Fprintf(stdout, r.Id)
+	}
 
 	return nil
 }
