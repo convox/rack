@@ -1,6 +1,8 @@
 {
   "AWSTemplateFormatVersion" : "2010-09-09",
   "Conditions": {
+    {{ template "service-conditions" .Manifest }}
+
     "BlankIamPolicy": { "Fn::Equals": [ { "Ref": "IamPolicy" }, "" ] },
     "BlankLogBucket": { "Fn::Equals": [ { "Ref": "LogBucket" }, "" ] },
     "BlankLogRetention": { "Fn::Equals": [ { "Ref": "LogRetention" }, "" ] },
@@ -11,9 +13,13 @@
   },
   "Outputs": {
     {{ template "balancer-outputs" . }}
+    {{ template "service-outputs" .Manifest }}
 
     "Agents": {
       "Value": "{{ join .Manifest.Agents "," }}"
+    },
+    "FargateServices": {
+      "Value": { "Fn::If": [ "FargateServices", "Yes", "No" ] }
     },
     "LogGroup": {
       "Value": { "Ref": "LogGroup" }
@@ -257,7 +263,7 @@
             { "Key": "App", "Value": "{{$.App}}" },
             { "Key": "Service", "Value": "{{.Name}}" }
           ],
-          "TargetType": { "Fn::If": [ "FargateServices", "ip", "instance" ] },
+          "TargetType": { "Fn::If": [ "Service{{ upper .Name }}Fargate", "ip", "instance" ] },
           "VpcId": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Vpc" } }
         }
       },
@@ -281,6 +287,28 @@
         ],
         "TemplateURL": "https://convox.s3.amazonaws.com/release/{{$.Version}}/formation/resource/{{.Type}}.json"
       }
+    },
+  {{ end }}
+{{ end }}
+
+{{ define "service-conditions" }}
+  {{ range .Services }}
+    "Service{{ upper .Name }}Fargate": { "Fn::Or": [
+      { "Fn::Equals": [
+        { "Fn::Select": [ 3,
+          { "Fn::Split": [ ",", { "Fn::Sub": [ "${Formation},", { "Formation": { "Fn::Join": [ ",", { "Ref": "{{ upper .Name }}Formation" } ] } } ] } ] }
+        ] },
+        "FARGATE"
+      ] },
+      { "Condition": "FargateServices" }
+    ] },
+  {{ end }}
+{{ end }}
+
+{{ define "service-outputs" }}
+  {{ range .Services }}
+    "Service{{ upper .Name }}Fargate": {
+      "Value": { "Fn::If": [ "Service{{ upper .Name }}Fargate", "Yes", "No" ] }
     },
   {{ end }}
 {{ end }}
@@ -449,7 +477,7 @@
       },
     {{ end }}
     "Service{{ upper .Name }}Security": {
-      "Condition": "FargateServices",
+      "Condition": "Service{{ upper .Name }}Fargate",
       "Type": "AWS::EC2::SecurityGroup",
       "Properties": {
         "GroupDescription": { "Fn::Sub": "${AWS::StackName} service" },
@@ -483,8 +511,8 @@
         {{ else }}
           "DesiredCount": { "Fn::Select": [ 0, { "Ref": "{{ upper .Name }}Formation" } ] },
         {{ end }}
-        "LaunchType": { "Fn::If": [ "FargateServices", "FARGATE", { "Ref": "AWS::NoValue" } ] },
-        "NetworkConfiguration": { "Fn::If": [ "FargateServices",
+        "LaunchType": { "Fn::If": [ "Service{{ upper .Name }}Fargate", "FARGATE", { "Ref": "AWS::NoValue" } ] },
+        "NetworkConfiguration": { "Fn::If": [ "Service{{ upper .Name }}Fargate",
           {
             "AwsvpcConfiguration": {
               "AssignPublicIp": { "Fn::If": [ "Private", "DISABLED", "ENABLED" ] },
@@ -500,14 +528,14 @@
         {{ if .Port.Port }}
           "HealthCheckGracePeriodSeconds": "{{.Health.Grace}}",
           "LoadBalancers": [ { "ContainerName": "{{.Name}}", "ContainerPort": "{{.Port.Port}}", "TargetGroupArn": { "Ref": "Balancer{{ upper .Name }}TargetGroup{{ if .Internal }}Internal{{ end }}" } } ],
-          "Role": { "Fn::If": [ "FargateServices", { "Ref": "AWS::NoValue" }, { "Fn::ImportValue": { "Fn::Sub": "${Rack}:ServiceRole" } } ] },
+          "Role": { "Fn::If": [ "Service{{ upper .Name }}Fargate", { "Ref": "AWS::NoValue" }, { "Fn::ImportValue": { "Fn::Sub": "${Rack}:ServiceRole" } } ] },
         {{ end }}
         {{ if .Agent }}
           "PlacementConstraints": [
             { "Type": "distinctInstance" }
           ],
         {{ else }}
-          "PlacementStrategies": { "Fn::If": [ "FargateServices",
+          "PlacementStrategies": { "Fn::If": [ "Service{{ upper .Name }}Fargate",
             { "Ref": "AWS::NoValue" },
             [
               { "Type": "spread", "Field": "attribute:ecs.availability-zone" },
@@ -572,12 +600,12 @@
             "Name": "{{.Name}}"
           }
         ],
-        "Cpu": { "Fn::If": [ "FargateServices", { "Fn::Select": [ 1, { "Ref": "{{ upper .Name }}Formation" } ] }, { "Ref": "AWS::NoValue" } ] },
+        "Cpu": { "Fn::If": [ "Service{{ upper .Name }}Fargate", { "Fn::Select": [ 1, { "Ref": "{{ upper .Name }}Formation" } ] }, { "Ref": "AWS::NoValue" } ] },
         "ExecutionRoleArn": { "Fn::GetAtt": [ "ExecutionRole", "Arn" ] },
         "Family": { "Fn::Sub": "${AWS::StackName}-service-{{.Name}}" },
-        "Memory": { "Fn::If": [ "FargateServices", { "Fn::Select": [ 2, { "Ref": "{{ upper .Name }}Formation" } ] }, { "Ref": "AWS::NoValue" } ] },
-        "NetworkMode": { "Fn::If": [ "FargateServices", "awsvpc", { "Ref": "AWS::NoValue" } ] },
-        "RequiresCompatibilities": [ { "Fn::If": [ "FargateServices", "FARGATE", { "Ref": "AWS::NoValue" } ] } ],
+        "Memory": { "Fn::If": [ "Service{{ upper .Name }}Fargate", { "Fn::Select": [ 2, { "Ref": "{{ upper .Name }}Formation" } ] }, { "Ref": "AWS::NoValue" } ] },
+        "NetworkMode": { "Fn::If": [ "Service{{ upper .Name }}Fargate", "awsvpc", { "Ref": "AWS::NoValue" } ] },
+        "RequiresCompatibilities": [ { "Fn::If": [ "Service{{ upper .Name }}Fargate", "FARGATE", { "Ref": "AWS::NoValue" } ] } ],
         "TaskRoleArn": { "Fn::GetAtt": [ "ServiceRole", "Arn" ] },
         "Volumes": [
           {{ range $i, $v := .Volumes }}
