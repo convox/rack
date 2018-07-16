@@ -1,6 +1,10 @@
 package stdcli
 
-import "os"
+import (
+	"os"
+
+	"golang.org/x/crypto/ssh/terminal"
+)
 
 func interfaceSlice(ss []string) []interface{} {
 	is := make([]interface{}, len(ss))
@@ -13,10 +17,5 @@ func interfaceSlice(ss []string) []interface{} {
 }
 
 func IsTerminal(f *os.File) bool {
-	stat, err := f.Stat()
-	if err != nil {
-		return false
-	}
-
-	return (stat.Mode() & os.ModeCharDevice) != 0
+	return terminal.IsTerminal(int(f.Fd()))
 }

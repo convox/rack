@@ -24,16 +24,20 @@ func Run(c *stdcli.Context) error {
 
 	service := c.Arg(0)
 
-	w, h, err := c.TerminalSize()
-	if err != nil {
-		return err
+	var width, height int
+
+	if c.Reader().IsTerminal() {
+		if err := c.TerminalRaw(); err != nil {
+			return err
+		}
+
+		defer c.TerminalRestore()
 	}
 
-	if err := c.TerminalRaw(); err != nil {
-		return err
+	if w, h, err := c.TerminalSize(); err == nil {
+		width = w
+		height = h
 	}
-
-	defer c.TerminalRestore()
 
 	var opts structs.ProcessRunOptions
 
@@ -43,8 +47,11 @@ func Run(c *stdcli.Context) error {
 
 	if s.Version <= "20180708231844" {
 		opts.Command = options.String(strings.Join(c.Args[1:], " "))
-		opts.Height = options.Int(h)
-		opts.Width = options.Int(w)
+
+		if height > 0 && width > 0 {
+			opts.Height = options.Int(height)
+			opts.Width = options.Int(width)
+		}
 
 		code, err := provider(c).ProcessRunAttached(app(c), service, c, opts)
 		if err != nil {
@@ -69,9 +76,11 @@ func Run(c *stdcli.Context) error {
 
 	command := strings.Join(c.Args[1:], " ")
 
-	eopts := structs.ProcessExecOptions{
-		Height: options.Int(h),
-		Width:  options.Int(w),
+	eopts := structs.ProcessExecOptions{}
+
+	if height > 0 && width > 0 {
+		eopts.Height = options.Int(height)
+		eopts.Width = options.Int(width)
 	}
 
 	code, err := provider(c).ProcessExec(app(c), ps.Id, command, c, eopts)

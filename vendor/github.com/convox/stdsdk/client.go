@@ -222,7 +222,7 @@ func websocketIn(ws *websocket.Conn, r io.Reader) {
 		n, err := r.Read(buf)
 		switch err {
 		case io.EOF:
-			ws.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseGoingAway, ""))
+			// ws.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseGoingAway, ""))
 		case nil:
 			ws.WriteMessage(websocket.TextMessage, buf[0:n])
 		default:
