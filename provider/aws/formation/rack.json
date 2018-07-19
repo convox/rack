@@ -1357,6 +1357,8 @@
               "  - echo 'OPTIONS=\"${OPTIONS} --log-opt max-file=2 --log-opt max-size=50m --host=unix:///var/run/docker.sock --host=0.0.0.0:2376\"' >> /etc/sysconfig/docker\n",
               "  - echo 'ECS_ENGINE_AUTH_DATA={\"index.docker.io\":{\"username\":\"\",\"password\":\"\",\"email\":\"\"}' >> /etc/ecs/ecs.config\n"
             ] ] },
+            "  - echo 'docker image prune -a --filter=\"until=96h\" --force' > /etc/cron.daily/docker-prune",
+            "  - chmod +x /etc/cron.daily/docker-prune",
             { "Fn::If": [ "HttpProxy",
               { "Fn::Join": ["", ["  - echo \"export HTTP_PROXY=", { "Ref": "HttpProxy" }, "/\" >> /etc/sysconfig/docker\n"
               ] ] },
@@ -1714,6 +1716,8 @@
               "  - echo 'OPTIONS=\"${OPTIONS} --log-opt max-file=2 --log-opt max-size=50m --host=unix:///var/run/docker.sock --host=0.0.0.0:2376\"' >> /etc/sysconfig/docker\n",
               "  - echo 'ECS_ENGINE_AUTH_DATA={\"index.docker.io\":{\"username\":\"\",\"password\":\"\",\"email\":\"\"}' >> /etc/ecs/ecs.config\n"
             ] ] },
+            "  - echo 'docker image prune -a --filter=\"until=96h\" --force' > /etc/cron.daily/docker-prune",
+            "  - chmod +x /etc/cron.daily/docker-prune",
             { "Fn::If": [ "HttpProxy",
               { "Fn::Join": ["", ["  - echo \"export HTTP_PROXY=", { "Ref": "HttpProxy" }, "/\" >> /etc/sysconfig/docker\n"
               ] ] },
