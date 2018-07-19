@@ -42,6 +42,11 @@
         "Default": "false",
         "AllowedValues": [ "true", "false" ]
       },
+      "EngineVersion": {
+        "Description": "Version of MySQL",
+        "Default": "5.7.16",
+        "Type": "String"
+      },
       "Subnets": {
         "Type": "List<AWS::EC2::Subnet::Id>",
         "Description": "VPC subnets"
@@ -55,11 +60,6 @@
         "Type" : "String",
         "Default" : "app",
         "Description" : "Server username"
-      },
-      "Version": {
-        "Description": "Version of MySQL",
-        "Default": "5.7.16",
-        "Type": "String"
       },
       "Vpc": {
         "Type": "AWS::EC2::VPC::Id",

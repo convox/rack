@@ -39,6 +39,11 @@
         "Default": "false",
         "AllowedValues": [ "true", "false" ]
       },
+      "EngineVersion": {
+        "Description": "Version of Postgres",
+        "Default": "9.6.3",
+        "Type": "String"
+      },
       "Family": {
         "Type": "String",
         "Default": "postgres9.6",
@@ -84,11 +89,6 @@
       },
       "VpcCidr": {
         "Description": "VPC CIDR Block",
-        "Type": "String"
-      },
-      "Version": {
-        "Description": "Version of Postgres",
-        "Default": "9.6.3",
         "Type": "String"
       }
     },
