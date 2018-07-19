@@ -2234,6 +2234,7 @@
                 "Effect": "Allow",
                 "Action": [
                   "iam:DeleteServerCertificate",
+                  "iam:DetachRolePolicy",
                   "iam:GetRole",
                   "iam:GetServerCertificate",
                   "iam:ListServerCertificates",
