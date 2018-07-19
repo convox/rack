@@ -42,6 +42,11 @@ convox rack params set LogRetention=14 --wait
 convox rack params | grep LogRetention | grep 14
 convox rack params set LogRetention= --wait
 convox rack params | grep LogRetention | grep -v 14
+convox registries
+convox registries add quay.io convox+ci 6D5CJVRM5P3L24OG4AWOYGCDRJLPL0PFQAENZYJ1KGE040YDUGPYKOZYNWFTE5CV
+convox registries | grep quay.io | grep convox+ci
+convox registries remove quay.io
+convox registries | grep -v quay.io
 
 # gen2
 cd $root/examples/httpd
