@@ -31,6 +31,7 @@
     "Internal": { "Fn::Equals": [ { "Ref": "Internal" }, "Yes" ] },
     "InternetGateway": { "Fn::Not": [ { "Fn::Equals": [ { "Ref": "InternetGateway" }, "" ] } ] },
     "NotExistingVpcAndBlankInternetGateway": { "Fn::Not": [ { "Condition": "ExistingVpcAndBlankInternetGateway" } ] },
+    "Overlay2": { "Fn::Equals": [ { "Ref": "Overlay2" }, "Yes" ] },
     "Private": { "Fn::Equals": [ { "Ref": "Private" }, "Yes" ] },
     "PrivateAndThirdAvailabilityZone": {
       "Fn::And": [ { "Condition": "Private" }, { "Condition": "ThirdAvailabilityZone" } ]
@@ -520,6 +521,12 @@
       "Default": "3",
       "Description": "The minimum number of on-demand instances in the runtime cluster",
       "Type": "Number"
+    },
+    "Overlay2": {
+      "Type": "String",
+      "Description": "Use the overlay2 storage driver for Docker",
+      "Default": "No",
+      "AllowedValues": [ "Yes", "No" ]
     },
     "Password": {
       "Description": "(REQUIRED) API HTTP password",
@@ -1172,7 +1179,12 @@
             "  - mv /etc/sysconfig/docker-tmp /etc/sysconfig/docker\n",
             "  - echo 'OPTIONS=\"--default-ulimit nofile=1024000:1024000\"' >> /etc/sysconfig/docker\n",
             { "Fn::Join": [ "", [
-              "  - echo 'OPTIONS=\"${OPTIONS} --storage-opt dm.basesize=", { "Ref": "ContainerDisk" }, "G\"' >> /etc/sysconfig/docker\n",
+              { "Fn::If": [ "Overlay2",
+                { "Ref": "AWS::NoValue" },
+                { "Fn::Join": [ "", [
+                  "  - echo 'OPTIONS=\"${OPTIONS} --storage-opt dm.basesize=", { "Ref": "ContainerDisk" }, "G\"' >> /etc/sysconfig/docker\n"
+                ] ] }
+              ] },
               "  - echo 'OPTIONS=\"${OPTIONS} --log-opt max-file=2 --log-opt max-size=50m --host=unix:///var/run/docker.sock --host=0.0.0.0:2376\"' >> /etc/sysconfig/docker\n",
               "  - echo 'ECS_ENGINE_AUTH_DATA={\"index.docker.io\":{\"username\":\"\",\"password\":\"\",\"email\":\"\"}' >> /etc/ecs/ecs.config\n"
             ] ] },
@@ -1184,6 +1196,20 @@
               { "Ref": "AWS::NoValue" }
             ] },
             "  - echo -e '/var/log/docker {\\n  rotate 7\\n  daily\\n  nocompress\\n  copytruncate\\n}' >> /etc/logrotate.d/docker\n",
+            { "Fn::If": [ "Overlay2",
+              { "Fn::Join": [ "", [
+                "  - dmsetup remove_all\n",
+                "  - vgremove --force docker\n",
+                "  - mkfs -t ext4 -L docker -i 4096 -F /dev/xvdcz\n",
+                "  - rm -rf /var/lib/docker/*\n",
+                "  - mkdir -p /var/lib/docker/overlay2\n",
+                "  - mount /dev/xvdcz /var/lib/docker/overlay2\n",
+                "  - echo 'DOCKER_STORAGE_OPTIONS=\"--storage-driver=overlay2\"' > /etc/sysconfig/docker-storage\n",
+                "  - echo 'CONTAINER_ROOT_LV_SIZE=100%FREE' >> /etc/sysconfig/docker-storage-setup\n",
+                "  - rm -rf /var/lib/ecs/data/* /var/cache/ecs/*\n"
+              ] ] },
+              { "Ref": "AWS::NoValue" }
+            ] },
             { "Fn::If": [ "BlankInstanceBootCommand",
               { "Ref": "AWS::NoValue" },
               { "Fn::Join": [ "", [
@@ -1353,7 +1379,12 @@
             "  - mv /etc/sysconfig/docker-tmp /etc/sysconfig/docker\n",
             "  - echo 'OPTIONS=\"--default-ulimit nofile=1024000:1024000\"' >> /etc/sysconfig/docker\n",
             { "Fn::Join": [ "", [
-              "  - echo 'OPTIONS=\"${OPTIONS} --storage-opt dm.basesize=", { "Ref": "ContainerDisk" }, "G\"' >> /etc/sysconfig/docker\n",
+              { "Fn::If": [ "Overlay2",
+                { "Ref": "AWS::NoValue" },
+                { "Fn::Join": [ "", [
+                  "  - echo 'OPTIONS=\"${OPTIONS} --storage-opt dm.basesize=", { "Ref": "ContainerDisk" }, "G\"' >> /etc/sysconfig/docker\n"
+                ] ] }
+              ] },
               "  - echo 'OPTIONS=\"${OPTIONS} --log-opt max-file=2 --log-opt max-size=50m --host=unix:///var/run/docker.sock --host=0.0.0.0:2376\"' >> /etc/sysconfig/docker\n",
               "  - echo 'ECS_ENGINE_AUTH_DATA={\"index.docker.io\":{\"username\":\"\",\"password\":\"\",\"email\":\"\"}' >> /etc/ecs/ecs.config\n"
             ] ] },
@@ -1363,6 +1394,20 @@
               { "Ref": "AWS::NoValue" }
             ] },
             "  - echo -e '/var/log/docker {\\n  rotate 7\\n  daily\\n  nocompress\\n  copytruncate\\n}' >> /etc/logrotate.d/docker\n",
+            { "Fn::If": [ "Overlay2",
+              { "Fn::Join": [ "", [
+                "  - dmsetup remove_all\n",
+                "  - vgremove --force docker\n",
+                "  - mkfs -t ext4 -L docker -i 4096 -F /dev/xvdcz\n",
+                "  - rm -rf /var/lib/docker/*\n",
+                "  - mkdir -p /var/lib/docker/overlay2\n",
+                "  - mount /dev/xvdcz /var/lib/docker/overlay2\n",
+                "  - echo 'DOCKER_STORAGE_OPTIONS=\"--storage-driver=overlay2\"' > /etc/sysconfig/docker-storage\n",
+                "  - echo 'CONTAINER_ROOT_LV_SIZE=100%FREE' >> /etc/sysconfig/docker-storage-setup\n",
+                "  - rm -rf /var/lib/ecs/data/* /var/cache/ecs/*\n"
+              ] ] },
+              { "Ref": "AWS::NoValue" }
+            ] },
             { "Fn::If": [ "BlankInstanceBootCommand",
               { "Ref": "AWS::NoValue" },
               { "Fn::Join": [ "", [
@@ -1710,7 +1755,12 @@
             "  - mv /etc/sysconfig/docker-tmp /etc/sysconfig/docker\n",
             "  - echo 'OPTIONS=\"--default-ulimit nofile=1024000:1024000\"' >> /etc/sysconfig/docker\n",
             { "Fn::Join": [ "", [
-              "  - echo 'OPTIONS=\"${OPTIONS} --storage-opt dm.basesize=", { "Ref": "ContainerDisk" }, "G\"' >> /etc/sysconfig/docker\n",
+              { "Fn::If": [ "Overlay2",
+                { "Ref": "AWS::NoValue" },
+                { "Fn::Join": [ "", [
+                  "  - echo 'OPTIONS=\"${OPTIONS} --storage-opt dm.basesize=", { "Ref": "ContainerDisk" }, "G\"' >> /etc/sysconfig/docker\n"
+                ] ] }
+              ] },
               "  - echo 'OPTIONS=\"${OPTIONS} --log-opt max-file=2 --log-opt max-size=50m --host=unix:///var/run/docker.sock --host=0.0.0.0:2376\"' >> /etc/sysconfig/docker\n",
               "  - echo 'ECS_ENGINE_AUTH_DATA={\"index.docker.io\":{\"username\":\"\",\"password\":\"\",\"email\":\"\"}' >> /etc/ecs/ecs.config\n"
             ] ] },
@@ -1720,6 +1770,20 @@
               { "Ref": "AWS::NoValue" }
             ] },
             "  - echo -e '/var/log/docker {\\n  rotate 7\\n  daily\\n  nocompress\\n  copytruncate\\n}' >> /etc/logrotate.d/docker\n",
+            { "Fn::If": [ "Overlay2",
+              { "Fn::Join": [ "", [
+                "  - dmsetup remove_all\n",
+                "  - vgremove --force docker\n",
+                "  - mkfs -t ext4 -L docker -i 4096 -F /dev/xvdcz\n",
+                "  - rm -rf /var/lib/docker/*\n",
+                "  - mkdir -p /var/lib/docker/overlay2\n",
+                "  - mount /dev/xvdcz /var/lib/docker/overlay2\n",
+                "  - echo 'DOCKER_STORAGE_OPTIONS=\"--storage-driver=overlay2\"' > /etc/sysconfig/docker-storage\n",
+                "  - echo 'CONTAINER_ROOT_LV_SIZE=100%FREE' >> /etc/sysconfig/docker-storage-setup\n",
+                "  - rm -rf /var/lib/ecs/data/* /var/cache/ecs/*\n"
+              ] ] },
+              { "Ref": "AWS::NoValue" }
+            ] },
             { "Fn::If": [ "BlankInstanceBootCommand",
               { "Ref": "AWS::NoValue" },
               { "Fn::Join": [ "", [
