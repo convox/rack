@@ -58,30 +58,36 @@ func copySystemLogs(w io.Writer, r io.Reader) {
 	}
 }
 
+func currentHost(c *stdcli.Context) (string, error) {
+	if h := os.Getenv("CONVOX_HOST"); h != "" {
+		return h, nil
+	}
+
+	if h, _ := c.SettingRead("host"); h != "" {
+		return h, nil
+	}
+
+	return "", nil
+}
+
+func currentPassword(c *stdcli.Context, host string) (string, error) {
+	if pw := os.Getenv("CONVOX_PASSWORD"); pw != "" {
+		return pw, nil
+	}
+
+	return hostAuth(c, host)
+}
+
 func currentEndpoint(c *stdcli.Context, rack_ string) (string, error) {
 	if e := os.Getenv("RACK_URL"); e != "" {
 		return e, nil
-	}
-
-	if h := os.Getenv("CONVOX_HOST"); h != "" {
-		pw := os.Getenv("CONVOX_PASSWORD")
-
-		if pw == "" {
-			pwa, err := hostAuth(c, h)
-			if err != nil {
-				return "", err
-			}
-			pw = pwa
-		}
-
-		return fmt.Sprintf("https://convox:%s@%s", pw, h), nil
 	}
 
 	if strings.HasPrefix(rack_, "local/") {
 		return fmt.Sprintf("https://rack.%s", strings.SplitN(rack_, "/", 2)[1]), nil
 	}
 
-	host, err := c.SettingRead("host")
+	host, err := currentHost(c)
 	if err != nil {
 		return "", err
 	}
@@ -93,7 +99,7 @@ func currentEndpoint(c *stdcli.Context, rack_ string) (string, error) {
 
 		var r *rack
 
-		if cr, err := currentRack(c); cr != "" && err == nil {
+		if cr := currentRack(c, ""); cr != "" {
 			r, err = matchRack(c, cr)
 			if err != nil {
 				return "", err
@@ -112,37 +118,36 @@ func currentEndpoint(c *stdcli.Context, rack_ string) (string, error) {
 		return fmt.Sprintf("https://rack.%s", strings.SplitN(r.Name, "/", 2)[1]), nil
 	}
 
-	pass, err := hostAuth(c, host)
+	pw, err := currentPassword(c, host)
 	if err != nil {
 		return "", err
 	}
 
-	return fmt.Sprintf("https://convox:%s@%s", pass, host), nil
+	return fmt.Sprintf("https://convox:%s@%s", pw, host), nil
 }
 
-func currentRack(c *stdcli.Context) (string, error) {
+func currentRack(c *stdcli.Context, host string) string {
 	if r := c.String("rack"); r != "" {
-		return r, nil
+		return r
 	}
 
 	if r := os.Getenv("CONVOX_RACK"); r != "" {
-		return r, nil
-	}
-
-	r, err := c.SettingRead("rack")
-	if err != nil {
-		return "", err
+		return r
 	}
 
 	if r := c.LocalSetting("rack"); r != "" {
-		return r, nil
+		return r
 	}
 
-	// if r == "" {
-	//   return "", fmt.Errorf("no current rack, try `convox switch <rack>`")
-	// }
+	if r := hostRacks(c)[host]; r != "" {
+		return r
+	}
 
-	return r, nil
+	if r, _ := c.SettingRead("rack"); r != "" {
+		return r
+	}
+
+	return ""
 }
 
 func executableName() string {
@@ -198,11 +203,28 @@ func hostAuth(c *stdcli.Context, host string) (string, error) {
 	return "", nil
 }
 
+func hostRacks(c *stdcli.Context) map[string]string {
+	data, err := c.SettingRead("racks")
+	if err != nil {
+		return map[string]string{}
+	}
+
+	var rs map[string]string
+
+	if err := json.Unmarshal([]byte(data), &rs); err != nil {
+		return map[string]string{}
+	}
+
+	return rs
+}
+
 func provider(c *stdcli.Context) *sdk.Client {
-	r, err := currentRack(c)
+	host, err := currentHost(c)
 	if err != nil {
 		c.Fail(err)
 	}
+
+	r := currentRack(c, host)
 
 	endpoint, err := currentEndpoint(c, r)
 	if err != nil {
