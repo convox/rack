@@ -1,6 +1,8 @@
 package main
 
 import (
+	"encoding/json"
+
 	"github.com/convox/stdcli"
 )
 
@@ -11,13 +13,27 @@ func init() {
 }
 
 func Switch(c *stdcli.Context) error {
+	host, err := currentHost(c)
+	if err != nil {
+		return err
+	}
+
 	if rack := c.Arg(0); rack != "" {
 		r, err := matchRack(c, rack)
 		if err != nil {
 			return err
 		}
 
-		if err := c.SettingWrite("rack", r.Name); err != nil {
+		rs := hostRacks(c)
+
+		rs[host] = r.Name
+
+		data, err := json.MarshalIndent(rs, "", "  ")
+		if err != nil {
+			return err
+		}
+
+		if err := c.SettingWrite("racks", string(data)); err != nil {
 			return err
 		}
 
@@ -26,10 +42,7 @@ func Switch(c *stdcli.Context) error {
 		return nil
 	}
 
-	rack, err := currentRack(c)
-	if err != nil {
-		return err
-	}
+	rack := currentRack(c, host)
 
 	c.Writef("%s\n", rack)
 
