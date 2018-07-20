@@ -58,10 +58,12 @@ func Start(c *stdcli.Context) error {
 		return fmt.Errorf("local rack not found, try `sudo convox rack install local`")
 	}
 
-	r, err := currentRack(c)
+	host, err := currentHost(c)
 	if err != nil {
 		return err
 	}
+
+	r := currentRack(c, host)
 
 	if _, err := currentEndpoint(c, r); err == nil {
 		p := provider(c)

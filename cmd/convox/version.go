@@ -16,18 +16,18 @@ func init() {
 func Version(c *stdcli.Context) error {
 	c.Writef("client: <info>%s</info>\n", version)
 
-	r, err := currentRack(c)
-	if err != nil {
-		c.Writef("server: <info>none</info>\n")
-		return nil
-	}
-
-	s, err := provider(c).SystemGet()
+	host, err := currentHost(c)
 	if err != nil {
 		return err
 	}
 
-	ep, err := currentEndpoint(c, r)
+	ep, err := currentEndpoint(c, currentRack(c, host))
+	if err != nil {
+		c.Writef("server: <info>none</info>\n")
+		return err
+	}
+
+	s, err := provider(c).SystemGet()
 	if err != nil {
 		return err
 	}
