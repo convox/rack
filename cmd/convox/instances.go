@@ -25,6 +25,11 @@ func init() {
 		Flags:    []stdcli.Flag{flagRack},
 		Validate: stdcli.ArgsMin(1),
 	})
+
+	CLI.Command("instances terminate", "terminate an instance", InstancesTerminate, stdcli.CommandOptions{
+		Flags:    []stdcli.Flag{flagRack},
+		Validate: stdcli.ArgsMin(1),
+	})
 }
 
 func Instances(c *stdcli.Context) error {
@@ -105,4 +110,14 @@ func InstancesSsh(c *stdcli.Context) error {
 	}
 
 	return stdcli.Exit(code)
+}
+
+func InstancesTerminate(c *stdcli.Context) error {
+	c.Startf("Terminating instance")
+
+	if err := provider(c).InstanceTerminate(c.Arg(0)); err != nil {
+		return err
+	}
+
+	return c.OK()
 }

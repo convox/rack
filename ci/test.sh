@@ -33,6 +33,7 @@ convox instances
 convox instances keyroll --wait
 instance=$(convox api get /instances | jq -r '.[0].id')
 convox instances ssh $instance "ls -la" | grep ec2-user
+convox instances terminate $instance
 convox rack | grep elb.amazonaws.com
 convox rack logs --no-follow | grep service/web
 convox rack ps | grep bin/web
