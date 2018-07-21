@@ -132,7 +132,7 @@
           "BackupRetentionPeriod":  { "Ref": "BackupRetentionPeriod" },
           "DBSubnetGroupName": { "Ref": "SubnetGroup" },
           "Engine": "postgres",
-          "EngineVersion": { "Ref": "Version" },
+          "EngineVersion": { "Ref": "EngineVersion" },
           "KmsKeyId": { "Fn::If": [ "Encrypted", { "Ref": "EncryptionKey" }, { "Ref": "AWS::NoValue" } ] },
           "MasterUsername": { "Ref": "Username" },
           "MasterUserPassword": { "Ref": "Password" },
