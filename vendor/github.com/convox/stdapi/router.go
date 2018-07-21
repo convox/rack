@@ -146,7 +146,7 @@ func (rt *Router) http(fn HandlerFunc) http.HandlerFunc {
 	}
 }
 
-var upgrader = websocket.Upgrader{ReadBufferSize: 1024, WriteBufferSize: 1024}
+var upgrader = websocket.Upgrader{ReadBufferSize: 10 * 1024, WriteBufferSize: 10 * 1024}
 
 func (rt *Router) websocket(fn HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
