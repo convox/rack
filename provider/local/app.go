@@ -147,7 +147,7 @@ func (p *Provider) AppRegistry(app string) (*structs.Registry, error) {
 	}
 
 	registry := &structs.Registry{
-		Server:   p.Name,
+		Server:   p.Rack,
 		Username: "",
 		Password: "",
 	}

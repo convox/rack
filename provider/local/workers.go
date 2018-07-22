@@ -40,7 +40,7 @@ func (p *Provider) Workers() error {
 func (p *Provider) workerConverge() error {
 	log := p.logger("workerConverge")
 
-	if _, err := p.router.RackGet(p.Name); err != nil {
+	if _, err := p.router.RackGet(p.Rack); err != nil {
 		if err := p.routerRegister(); err != nil {
 			log.At("register").Error(err)
 			return err

@@ -22,7 +22,7 @@ func (p *Provider) ServiceList(app string) (structs.Services, error) {
 		svc := structs.Service{Name: s.Name}
 
 		if s.Port.Port > 0 {
-			svc.Domain = fmt.Sprintf("%s.%s.%s", s.Name, app, p.Name)
+			svc.Domain = fmt.Sprintf("%s.%s.%s", s.Name, app, p.Rack)
 			svc.Ports = []structs.ServicePort{
 				{Balancer: 80, Container: s.Port.Port},
 				{Balancer: 443, Container: s.Port.Port},
