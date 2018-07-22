@@ -86,7 +86,6 @@ func (p *Provider) SystemGet() (*structs.System, error) {
 	log := p.logger("SystemGet")
 
 	system := &structs.System{
-		Image:    fmt.Sprintf("%s:%s", p.Image, p.Version),
 		Domain:   fmt.Sprintf("rack.%s", p.Name),
 		Name:     p.Name,
 		Provider: "local",

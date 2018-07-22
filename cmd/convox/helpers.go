@@ -249,15 +249,19 @@ func rackCommand(name string, version string, router string) (*exec.Cmd, error) 
 		vol = "/Users/Shared/convox"
 	}
 
+	image := fmt.Sprintf("convox/rack:%s", version)
+
 	exec.Command("docker", "rm", "-f", name).Run()
 
 	args := []string{"run", "--rm"}
 	args = append(args, "-e", "COMBINED=true")
+	args = append(args, "-e", "COMBINED=true")
+	args = append(args, "-e", fmt.Sprintf("IMAGE=%s", image))
 	args = append(args, "-e", "PROVIDER=local")
-	args = append(args, "-e", fmt.Sprintf("PROVIDER_ROUTER=%s", router))
-	args = append(args, "-e", fmt.Sprintf("PROVIDER_VOLUME=%s", vol))
 	args = append(args, "-e", fmt.Sprintf("RACK=%s", name))
+	args = append(args, "-e", fmt.Sprintf("ROUTER=%s", router))
 	args = append(args, "-e", fmt.Sprintf("VERSION=%s", version))
+	args = append(args, "-e", fmt.Sprintf("VOLUME=%s", vol))
 	args = append(args, "-i")
 	args = append(args, "--label", fmt.Sprintf("convox.rack=%s", name))
 	args = append(args, "--label", "convox.type=rack")
@@ -266,7 +270,7 @@ func rackCommand(name string, version string, router string) (*exec.Cmd, error) 
 	args = append(args, "-p", "5443")
 	args = append(args, "-v", fmt.Sprintf("%s:/var/convox", vol))
 	args = append(args, "-v", "/var/run/docker.sock:/var/run/docker.sock")
-	args = append(args, fmt.Sprintf("convox/rack:%s", version))
+	args = append(args, image)
 
 	return exec.Command("docker", args...), nil
 }

@@ -10,7 +10,9 @@ services:
     - PASSWORD=
     - PROVIDER
     - RACK
+    - ROUTER=
     - VERSION=dev
+    - VOLUME=
     health:
       grace: 20
       interval: 30
@@ -31,7 +33,6 @@ services:
     - AWS_REGION
     - AWS_SECRET_ACCESS_KEY
     - DEVELOPMENT=true
-    - PASSWORD=
     - PROVIDER
     - RACK
     - VERSION=dev

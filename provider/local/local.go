@@ -38,18 +38,20 @@ type Provider struct {
 	router *router.Client
 }
 
-func FromEnv() *Provider {
-	return &Provider{
+func FromEnv() (*Provider, error) {
+	p := &Provider{
 		Combined: os.Getenv("COMBINED") == "true",
 		Image:    coalesce(os.Getenv("IMAGE"), "convox/rack"),
 		Name:     coalesce(os.Getenv("RACK"), "convox"),
-		Root:     coalesce(os.Getenv("PROVIDER_ROOT"), "/var/convox"),
-		Router:   coalesce(os.Getenv("PROVIDER_ROUTER"), "10.42.0.0"),
+		Root:     "/var/convox",
+		Router:   coalesce(os.Getenv("ROUTER"), "10.42.0.0"),
 		Test:     os.Getenv("TEST") == "true",
 		Version:  coalesce(os.Getenv("VERSION"), "latest"),
-		Volume:   coalesce(os.Getenv("PROVIDER_VOLUME"), "/var/convox"),
+		Volume:   coalesce(os.Getenv("VOLUME"), "/var/convox"),
 		logs:     logger.NewWriter("", ioutil.Discard),
 	}
+
+	return p, nil
 }
 
 func (p *Provider) Initialize(opts structs.ProviderOptions) error {
