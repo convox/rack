@@ -66,8 +66,6 @@ func FromEnv() (*Provider, error) {
 
 	p.Image = coalesce(os.Getenv("IMAGE"), image)
 
-	fmt.Printf("p = %+v\n", p)
-
 	return p, nil
 }
 
