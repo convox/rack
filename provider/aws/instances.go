@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io"
 	"math/rand"
-	"os"
 	"sort"
 	"strings"
 
@@ -16,7 +15,7 @@ import (
 )
 
 func (p *AWSProvider) InstanceKeyroll() error {
-	key := fmt.Sprintf("%s-keypair-%d", os.Getenv("RACK"), (rand.Intn(8999) + 1000))
+	key := fmt.Sprintf("%s-keypair-%d", p.Rack, (rand.Intn(8999) + 1000))
 
 	res, err := p.ec2().CreateKeyPair(&ec2.CreateKeyPairInput{
 		KeyName: aws.String(key),
@@ -41,7 +40,7 @@ func (p *AWSProvider) InstanceList() (structs.Instances, error) {
 
 	req := &ec2.DescribeInstancesInput{
 		Filters: []*ec2.Filter{
-			{Name: aws.String("tag:Rack"), Values: []*string{aws.String(os.Getenv("RACK"))}},
+			{Name: aws.String("tag:Rack"), Values: []*string{aws.String(p.Rack)}},
 			{Name: aws.String("tag:aws:cloudformation:logical-id"), Values: []*string{aws.String("Instances"), aws.String("SpotInstances")}},
 			{Name: aws.String("instance-state-name"), Values: []*string{aws.String("pending"), aws.String("running"), aws.String("shutting-down"), aws.String("stopping")}},
 		},
@@ -151,7 +150,7 @@ func (p *AWSProvider) InstanceShell(id string, rw io.ReadWriter, opts structs.In
 	}
 
 	ip := *instance.PrivateIpAddress
-	if os.Getenv("DEVELOPMENT") == "true" {
+	if p.Development {
 		ip = *instance.PublicIpAddress
 	}
 

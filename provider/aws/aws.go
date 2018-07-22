@@ -54,12 +54,14 @@ type AWSProvider struct {
 	LogBucket           string
 	NotificationHost    string
 	NotificationTopic   string
+	OnDemandMinCount    int
 	Password            string
+	Private             bool
 	Rack                string
-	RegistryHost        string
 	Release             string
 	SecurityGroup       string
 	SettingsBucket      string
+	SpotInstances       bool
 	Subnets             string
 	SubnetsPrivate      string
 	Vpc                 string
@@ -72,44 +74,58 @@ type AWSProvider struct {
 }
 
 // NewProviderFromEnv returns a new AWS provider from env vars
-func FromEnv() *AWSProvider {
+func FromEnv() (*AWSProvider, error) {
 	p := &AWSProvider{
-		Region:              os.Getenv("AWS_REGION"),
-		Endpoint:            os.Getenv("AWS_ENDPOINT"),
-		BuildCluster:        os.Getenv("BUILD_CLUSTER"),
-		CloudformationTopic: os.Getenv("CLOUDFORMATION_TOPIC"),
-		Cluster:             os.Getenv("CLUSTER"),
-		CustomTopic:         os.Getenv("CUSTOM_TOPIC"),
-		Development:         os.Getenv("DEVELOPMENT") == "true",
-		DynamoBuilds:        os.Getenv("DYNAMO_BUILDS"),
-		DynamoReleases:      os.Getenv("DYNAMO_RELEASES"),
-		EncryptionKey:       os.Getenv("ENCRYPTION_KEY"),
-		Fargate:             os.Getenv("FARGATE") == "Yes",
-		Internal:            os.Getenv("INTERNAL") == "Yes",
-		LogBucket:           os.Getenv("LOG_BUCKET"),
-		NotificationHost:    os.Getenv("NOTIFICATION_HOST"),
-		NotificationTopic:   os.Getenv("NOTIFICATION_TOPIC"),
-		Password:            os.Getenv("PASSWORD"),
-		Rack:                os.Getenv("RACK"),
-		RegistryHost:        os.Getenv("REGISTRY_HOST"),
-		Release:             os.Getenv("VERSION"),
-		SecurityGroup:       os.Getenv("SECURITY_GROUP"),
-		SettingsBucket:      os.Getenv("SETTINGS_BUCKET"),
-		Subnets:             os.Getenv("SUBNETS"),
-		SubnetsPrivate:      os.Getenv("SUBNETS_PRIVATE"),
-		Vpc:                 os.Getenv("VPC"),
-		VpcCidr:             os.Getenv("VPCCIDR"),
-		ctx:                 context.Background(),
-		log:                 logger.New("ns=aws"),
+		Development: os.Getenv("DEVELOPMENT") == "true",
+		Password:    os.Getenv("PASSWORD"),
+		Rack:        os.Getenv("RACK"),
+		Region:      os.Getenv("AWS_REGION"),
+		ctx:         context.Background(),
+		log:         logger.New("ns=aws"),
 	}
 
-	if i, err := strconv.Atoi(os.Getenv("ECS_POLL_INTERVAL")); err != nil {
-		p.EcsPollInterval = 1
-	} else {
-		p.EcsPollInterval = i
+	rack, err := p.describeStack(p.Rack)
+	if err != nil {
+		return nil, err
 	}
 
-	return p
+	outputs := stackOutputs(rack)
+
+	p.BuildCluster = outputs["BuildCluster"]
+	p.CloudformationTopic = outputs["CloudformationTopic"]
+	p.Cluster = outputs["Cluster"]
+	p.CustomTopic = outputs["CustomTopic"]
+	p.DynamoBuilds = outputs["DynamoBuilds"]
+	p.DynamoReleases = outputs["DynamoReleases"]
+	p.EncryptionKey = outputs["EncryptionKey"]
+	p.Fargate = outputs["Fargate"] == "Yes"
+	p.Internal = outputs["Internal"] == "Yes"
+	p.LogBucket = outputs["LogBucket"]
+	p.NotificationHost = outputs["NotificationHost"]
+	p.NotificationTopic = outputs["NotificationTopic"]
+	p.Private = outputs["Private"] == "Yes"
+	p.Release = outputs["Release"]
+	p.SecurityGroup = outputs["SecurityGroup"]
+	p.SettingsBucket = outputs["SettingsBucket"]
+	p.SpotInstances = outputs["SpotInstances"] == "Yes"
+	p.Subnets = outputs["Subnets"]
+	p.SubnetsPrivate = outputs["SubnetsPrivate"]
+	p.Vpc = outputs["Vpc"]
+	p.VpcCidr = outputs["Vpccidr"]
+
+	v, err := strconv.Atoi(outputs["EcsPollInterval"])
+	if err != nil {
+		return nil, err
+	}
+	p.EcsPollInterval = v
+
+	v, err = strconv.Atoi(outputs["OnDemandMinCount"])
+	if err != nil {
+		return nil, err
+	}
+	p.OnDemandMinCount = v
+
+	return p, nil
 }
 
 func init() {

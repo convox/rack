@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"html/template"
 	"math/rand"
-	"os"
 	"os/exec"
 	"strconv"
 	"strings"
@@ -354,7 +353,7 @@ func (p *AWSProvider) releasePromoteGeneration1(a *structs.App, r *structs.Relea
 					}
 
 					for _, cert := range certs.ServerCertificateMetadataList {
-						if strings.Contains(*cert.Arn, fmt.Sprintf("server-certificate/cert-%s-", os.Getenv("RACK"))) {
+						if strings.Contains(*cert.Arn, fmt.Sprintf("server-certificate/cert-%s-", p.Rack)) {
 							listener[1] = *cert.Arn
 							break
 						}
@@ -362,7 +361,7 @@ func (p *AWSProvider) releasePromoteGeneration1(a *structs.App, r *structs.Relea
 
 					// if not, generate and upload a self-signed cert
 					if listener[1] == "" {
-						name := fmt.Sprintf("cert-%s-%d-%05d", os.Getenv("RACK"), time.Now().Unix(), rand.Intn(100000))
+						name := fmt.Sprintf("cert-%s-%d-%05d", p.Rack, time.Now().Unix(), rand.Intn(100000))
 
 						body, key, err := generateSelfSignedCertificate("*.*.elb.amazonaws.com")
 						if err != nil {
@@ -723,7 +722,7 @@ func (p *AWSProvider) resolveLinks(a *structs.App, m *manifest1.Manifest, r *str
 }
 
 func (p *AWSProvider) waitForPromotion(r *structs.Release) {
-	stackName := fmt.Sprintf("%s-%s", os.Getenv("RACK"), r.App)
+	stackName := fmt.Sprintf("%s-%s", p.Rack, r.App)
 
 	waitch := make(chan error)
 	go func() {
