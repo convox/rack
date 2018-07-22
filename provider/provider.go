@@ -17,7 +17,7 @@ func FromEnv() (structs.Provider, error) {
 func FromName(name string) (structs.Provider, error) {
 	switch name {
 	case "aws":
-		return aws.FromEnv(), nil
+		return aws.FromEnv()
 	case "local":
 		return local.FromEnv(), nil
 	case "test":

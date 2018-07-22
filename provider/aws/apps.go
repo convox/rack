@@ -3,7 +3,6 @@ package aws
 import (
 	"fmt"
 	"io"
-	"os"
 	"strings"
 	"sync"
 	"time"
@@ -50,7 +49,7 @@ func (p *AWSProvider) AppCreate(name string, opts structs.AppCreateOptions) (*st
 	tags := map[string]string{
 		"Generation": "2",
 		"System":     "convox",
-		"Rack":       os.Getenv("RACK"),
+		"Rack":       p.Rack,
 		"Version":    p.Release,
 		"Type":       "app",
 		"Name":       name,
@@ -75,17 +74,21 @@ func (p *AWSProvider) appCreateGeneration1(name string) (*structs.App, error) {
 	}
 
 	params := map[string]string{
-		"LogBucket":      os.Getenv("LOG_BUCKET"),
-		"Private":        os.Getenv("PRIVATE"),
+		"LogBucket":      p.LogBucket,
+		"Private":        "No",
 		"Rack":           p.Rack,
-		"Subnets":        os.Getenv("SUBNETS"),
-		"SubnetsPrivate": coalesces(os.Getenv("SUBNETS_PRIVATE"), os.Getenv("SUBNETS")),
+		"Subnets":        p.Subnets,
+		"SubnetsPrivate": coalesces(p.SubnetsPrivate, p.Subnets),
+	}
+
+	if p.Private {
+		params["Private"] = "Yes"
 	}
 
 	tags := map[string]string{
 		"Generation": "1",
 		"System":     "convox",
-		"Rack":       os.Getenv("RACK"),
+		"Rack":       p.Rack,
 		"Version":    p.Release,
 		"Type":       "app",
 		"Name":       name,
@@ -134,7 +137,7 @@ func (p *AWSProvider) AppDelete(name string) error {
 		return err
 	}
 
-	if app.Tags["Type"] != "app" || app.Tags["System"] != "convox" || app.Tags["Rack"] != os.Getenv("RACK") {
+	if app.Tags["Type"] != "app" || app.Tags["System"] != "convox" || app.Tags["Rack"] != p.Rack {
 		return fmt.Errorf("invalid app: %s", name)
 	}
 

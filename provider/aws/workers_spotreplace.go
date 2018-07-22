@@ -2,7 +2,6 @@ package aws
 
 import (
 	"fmt"
-	"os"
 	"strconv"
 	"time"
 
@@ -12,15 +11,14 @@ import (
 )
 
 var (
-	spotInstancesEnabled = (os.Getenv("SPOT_INSTANCES") == "true")
-	spotTick             = 60 * time.Second
+	spotTick = 60 * time.Second
 )
 
 // Main worker function
 func (p *AWSProvider) workerSpotReplace() {
 	log := logger.New("ns=workers.spotreplace").At("spotReplace")
 
-	if !spotInstancesEnabled {
+	if !p.SpotInstances {
 		return
 	}
 
@@ -51,7 +49,7 @@ func (p *AWSProvider) spotReplace() error {
 		return nil
 	}
 
-	ics, err := p.stackParameter(os.Getenv("RACK"), "InstanceCount")
+	ics, err := p.stackParameter(p.Rack, "InstanceCount")
 	if err != nil {
 		return err
 	}
@@ -61,10 +59,7 @@ func (p *AWSProvider) spotReplace() error {
 		return err
 	}
 
-	odmin, err := strconv.Atoi(os.Getenv("ON_DEMAND_MIN_COUNT"))
-	if err != nil {
-		return err
-	}
+	odmin := p.OnDemandMinCount
 
 	odc, err := p.asgResourceInstanceCount("Instances")
 	if err != nil {
