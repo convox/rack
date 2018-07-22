@@ -15,9 +15,8 @@ func testProvider() (*local.Provider, error) {
 	}
 
 	p := &local.Provider{
-		Root:   tmp,
-		Router: "none",
-		Test:   true,
+		Root: tmp,
+		Test: true,
 	}
 
 	if err := p.Initialize(structs.ProviderOptions{}); err != nil {
