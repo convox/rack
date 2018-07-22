@@ -44,7 +44,6 @@ func StubAwsProvider(cycles ...awsutil.Cycle) *AwsStub {
 		NotificationHost: "notifications.example.org",
 		Password:         "password",
 		Rack:             "convox",
-		RegistryHost:     "registry.example.org",
 		SettingsBucket:   "convox-settings",
 		SkipCache:        true,
 	}
