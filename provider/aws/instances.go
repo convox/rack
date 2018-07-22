@@ -14,7 +14,7 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
-func (p *AWSProvider) InstanceKeyroll() error {
+func (p *Provider) InstanceKeyroll() error {
 	key := fmt.Sprintf("%s-keypair-%d", p.Rack, (rand.Intn(8999) + 1000))
 
 	res, err := p.ec2().CreateKeyPair(&ec2.CreateKeyPairInput{
@@ -35,7 +35,7 @@ func (p *AWSProvider) InstanceKeyroll() error {
 	return nil
 }
 
-func (p *AWSProvider) InstanceList() (structs.Instances, error) {
+func (p *Provider) InstanceList() (structs.Instances, error) {
 	ihash := map[string]structs.Instance{}
 
 	req := &ec2.DescribeInstancesInput{
@@ -116,7 +116,7 @@ func (p *AWSProvider) InstanceList() (structs.Instances, error) {
 	return instances, nil
 }
 
-func (p *AWSProvider) InstanceShell(id string, rw io.ReadWriter, opts structs.InstanceShellOptions) (int, error) {
+func (p *Provider) InstanceShell(id string, rw io.ReadWriter, opts structs.InstanceShellOptions) (int, error) {
 	res, err := p.ec2().DescribeInstances(&ec2.DescribeInstancesInput{
 		Filters: []*ec2.Filter{
 			{Name: aws.String("instance-id"), Values: []*string{aws.String(id)}},
@@ -207,7 +207,7 @@ func (p *AWSProvider) InstanceShell(id string, rw io.ReadWriter, opts structs.In
 	return code, nil
 }
 
-func (p *AWSProvider) InstanceTerminate(id string) error {
+func (p *Provider) InstanceTerminate(id string) error {
 	instances, err := p.InstanceList()
 	if err != nil {
 		return err

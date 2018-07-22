@@ -37,7 +37,7 @@ const (
 // Logger is a package-wide logger
 var Logger = logger.New("ns=provider.aws")
 
-type AWSProvider struct {
+type Provider struct {
 	Region   string
 	Endpoint string
 
@@ -73,8 +73,8 @@ type AWSProvider struct {
 }
 
 // NewProviderFromEnv returns a new AWS provider from env vars
-func FromEnv() (*AWSProvider, error) {
-	p := &AWSProvider{
+func FromEnv() (*Provider, error) {
+	p := &Provider{
 		Development: os.Getenv("DEVELOPMENT") == "true",
 		Password:    os.Getenv("PASSWORD"),
 		Rack:        os.Getenv("RACK"),
@@ -135,7 +135,7 @@ func init() {
 	rand.Seed(time.Now().UTC().UnixNano())
 }
 
-func (p *AWSProvider) Initialize(opts structs.ProviderOptions) error {
+func (p *Provider) Initialize(opts structs.ProviderOptions) error {
 	if opts.Logs != nil {
 		Logger = logger.NewWriter("ns=aws", opts.Logs)
 	}
@@ -168,7 +168,7 @@ func sliceParam(param ...string) string {
 
 /** services ****************************************************************************************/
 
-func (p *AWSProvider) config() *aws.Config {
+func (p *Provider) config() *aws.Config {
 	config := &aws.Config{
 		Region: aws.String(p.Region),
 	}
@@ -186,7 +186,7 @@ func (p *AWSProvider) config() *aws.Config {
 	return config
 }
 
-func (p *AWSProvider) logger(at string) *logger.Logger {
+func (p *Provider) logger(at string) *logger.Logger {
 	log := p.log
 
 	if id := p.ctx.Value("request.id"); id != nil {
@@ -196,67 +196,67 @@ func (p *AWSProvider) logger(at string) *logger.Logger {
 	return log.At(at).Start()
 }
 
-func (p *AWSProvider) acm() *acm.ACM {
+func (p *Provider) acm() *acm.ACM {
 	return acm.New(session.New(), p.config())
 }
 
-func (p *AWSProvider) autoscaling() *autoscaling.AutoScaling {
+func (p *Provider) autoscaling() *autoscaling.AutoScaling {
 	return autoscaling.New(session.New(), p.config())
 }
 
-func (p *AWSProvider) cloudformation() *cloudformation.CloudFormation {
+func (p *Provider) cloudformation() *cloudformation.CloudFormation {
 	return cloudformation.New(session.New(), p.config())
 }
 
-func (p *AWSProvider) cloudwatch() *cloudwatch.CloudWatch {
+func (p *Provider) cloudwatch() *cloudwatch.CloudWatch {
 	return cloudwatch.New(session.New(), p.config())
 }
 
-func (p *AWSProvider) cloudwatchlogs() *cloudwatchlogs.CloudWatchLogs {
+func (p *Provider) cloudwatchlogs() *cloudwatchlogs.CloudWatchLogs {
 	return cloudwatchlogs.New(session.New(), p.config().WithLogLevel(aws.LogOff))
 }
 
-func (p *AWSProvider) dynamodb() *dynamodb.DynamoDB {
+func (p *Provider) dynamodb() *dynamodb.DynamoDB {
 	return dynamodb.New(session.New(), p.config())
 }
 
-func (p *AWSProvider) ec2() *ec2.EC2 {
+func (p *Provider) ec2() *ec2.EC2 {
 	return ec2.New(session.New(), p.config())
 }
 
-func (p *AWSProvider) ecr() *ecr.ECR {
+func (p *Provider) ecr() *ecr.ECR {
 	return ecr.New(session.New(), p.config())
 }
 
-func (p *AWSProvider) ecs() *ecs.ECS {
+func (p *Provider) ecs() *ecs.ECS {
 	return ecs.New(session.New(), p.config())
 }
 
-func (p *AWSProvider) kms() *kms.KMS {
+func (p *Provider) kms() *kms.KMS {
 	return kms.New(session.New(), p.config())
 }
 
-func (p *AWSProvider) iam() *iam.IAM {
+func (p *Provider) iam() *iam.IAM {
 	return iam.New(session.New(), p.config())
 }
 
-func (p *AWSProvider) s3() *s3.S3 {
+func (p *Provider) s3() *s3.S3 {
 	return s3.New(session.New(), p.config().WithS3ForcePathStyle(true))
 }
 
-func (p *AWSProvider) sns() *sns.SNS {
+func (p *Provider) sns() *sns.SNS {
 	return sns.New(session.New(), p.config())
 }
 
-func (p *AWSProvider) sqs() *sqs.SQS {
+func (p *Provider) sqs() *sqs.SQS {
 	return sqs.New(session.New(), p.config())
 }
 
-func (p *AWSProvider) sts() *sts.STS {
+func (p *Provider) sts() *sts.STS {
 	return sts.New(session.New(), p.config())
 }
 
 // IsTest returns true when we're in test mode
-func (p *AWSProvider) IsTest() bool {
+func (p *Provider) IsTest() bool {
 	return p.Region == "us-test-1"
 }

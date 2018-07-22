@@ -8,15 +8,15 @@ import (
 	"github.com/convox/rack/structs"
 )
 
-func (p *AWSProvider) SettingDelete(name string) error {
+func (p *Provider) SettingDelete(name string) error {
 	return p.s3Delete(p.SettingsBucket, name)
 }
 
-func (p *AWSProvider) SettingExists(name string) (bool, error) {
+func (p *Provider) SettingExists(name string) (bool, error) {
 	return p.s3Exists(p.SettingsBucket, name)
 }
 
-func (p *AWSProvider) SettingGet(name string) (string, error) {
+func (p *Provider) SettingGet(name string) (string, error) {
 	exists, err := p.s3Exists(p.SettingsBucket, name)
 	if err != nil {
 		return "", err
@@ -39,7 +39,7 @@ func (p *AWSProvider) SettingGet(name string) (string, error) {
 	return string(dec), nil
 }
 
-func (p *AWSProvider) SettingList(opts structs.SettingListOptions) ([]string, error) {
+func (p *Provider) SettingList(opts structs.SettingListOptions) ([]string, error) {
 	log := Logger.At("ObjectList").Namespace("prefix=%q", opts.Prefix).Start()
 
 	res, err := p.s3().ListObjectsV2(&s3.ListObjectsV2Input{
@@ -60,7 +60,7 @@ func (p *AWSProvider) SettingList(opts structs.SettingListOptions) ([]string, er
 	return objects, log.Success()
 }
 
-func (p *AWSProvider) SettingPut(name, value string) error {
+func (p *Provider) SettingPut(name, value string) error {
 	enc, err := p.SystemEncrypt([]byte(value))
 	if err != nil {
 		return err

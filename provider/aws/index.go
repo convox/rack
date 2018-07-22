@@ -15,7 +15,7 @@ var (
 	IndexOperationConcurrency = 128
 )
 
-func (p *AWSProvider) IndexDiff(index *structs.Index) ([]string, error) {
+func (p *Provider) IndexDiff(index *structs.Index) ([]string, error) {
 	missing := []string{}
 
 	inch := make(chan string)
@@ -48,7 +48,7 @@ func (p *AWSProvider) IndexDiff(index *structs.Index) ([]string, error) {
 	return missing, nil
 }
 
-func (p *AWSProvider) IndexDownload(index *structs.Index, dir string) error {
+func (p *Provider) IndexDownload(index *structs.Index, dir string) error {
 	inch := make(chan string)
 	errch := make(chan error)
 
@@ -71,17 +71,17 @@ func (p *AWSProvider) IndexDownload(index *structs.Index, dir string) error {
 	return nil
 }
 
-func (p *AWSProvider) IndexUpload(hash string, data []byte) error {
+func (p *Provider) IndexUpload(hash string, data []byte) error {
 	return p.s3Put(p.SettingsBucket, fmt.Sprintf("index/%s", hash), data, false)
 }
 
-func (p *AWSProvider) downloadItems(bucket string, index structs.Index, dir string, inch chan string, errch chan error) {
+func (p *Provider) downloadItems(bucket string, index structs.Index, dir string, inch chan string, errch chan error) {
 	for hash := range inch {
 		errch <- p.downloadItem(bucket, hash, index[hash], dir)
 	}
 }
 
-func (p *AWSProvider) downloadItem(bucket, hash string, item structs.IndexItem, dir string) error {
+func (p *Provider) downloadItem(bucket, hash string, item structs.IndexItem, dir string) error {
 	data, err := p.s3Get(bucket, fmt.Sprintf("index/%s", hash))
 
 	if err != nil {
@@ -105,7 +105,7 @@ func (p *AWSProvider) downloadItem(bucket, hash string, item structs.IndexItem, 
 	return os.Chtimes(file, item.ModTime, item.ModTime)
 }
 
-func (p *AWSProvider) missingHashes(bucket string, inch, outch chan string, errch chan error) {
+func (p *Provider) missingHashes(bucket string, inch, outch chan string, errch chan error) {
 	for hash := range inch {
 		exists, err := p.hashExists(bucket, hash)
 
@@ -119,7 +119,7 @@ func (p *AWSProvider) missingHashes(bucket string, inch, outch chan string, errc
 	}
 }
 
-func (p *AWSProvider) hashExists(bucket, hash string) (bool, error) {
+func (p *Provider) hashExists(bucket, hash string) (bool, error) {
 	if exists, ok := cache.Get("index.missingHash", hash).(bool); ok && exists {
 		return true, nil
 	}

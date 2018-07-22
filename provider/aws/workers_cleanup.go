@@ -14,7 +14,7 @@ import (
 	"github.com/convox/rack/structs"
 )
 
-func (p *AWSProvider) workerCleanup() {
+func (p *Provider) workerCleanup() {
 	log := logger.New("ns=workers.cleanup")
 
 	defer recoverWith(func(err error) {
@@ -26,7 +26,7 @@ func (p *AWSProvider) workerCleanup() {
 	}
 }
 
-func (p *AWSProvider) cleanupBuilds(log *logger.Logger) error {
+func (p *Provider) cleanupBuilds(log *logger.Logger) error {
 	as, err := p.AppList()
 	if err != nil {
 		return log.Error(err)
@@ -53,7 +53,7 @@ func (p *AWSProvider) cleanupBuilds(log *logger.Logger) error {
 	return nil
 }
 
-func (p *AWSProvider) cleanupAppBuilds(a structs.App) (int, error) {
+func (p *Provider) cleanupAppBuilds(a structs.App) (int, error) {
 	active, err := p.activeBuild(a)
 	if err != nil {
 		return 0, err
@@ -105,7 +105,7 @@ func (p *AWSProvider) cleanupAppBuilds(a structs.App) (int, error) {
 	return removed, nil
 }
 
-func (p *AWSProvider) cleanupAppImages(a structs.App) (int, error) {
+func (p *Provider) cleanupAppImages(a structs.App) (int, error) {
 	active, err := p.activeBuild(a)
 	if err != nil {
 		return 0, err
@@ -172,7 +172,7 @@ func (p *AWSProvider) cleanupAppImages(a structs.App) (int, error) {
 	return len(remove), nil
 }
 
-func (p *AWSProvider) activeBuild(a structs.App) (string, error) {
+func (p *Provider) activeBuild(a structs.App) (string, error) {
 	if a.Release == "" {
 		return "", nil
 	}
@@ -185,7 +185,7 @@ func (p *AWSProvider) activeBuild(a structs.App) (string, error) {
 	return r.Build, nil
 }
 
-func (p *AWSProvider) repoTags(repo string) ([]string, error) {
+func (p *Provider) repoTags(repo string) ([]string, error) {
 	tags := map[string]bool{}
 
 	err := p.ecr().ListImagesPages(&ecr.ListImagesInput{RepositoryName: aws.String(repo)}, func(page *ecr.ListImagesOutput, last bool) bool {
@@ -209,7 +209,7 @@ func (p *AWSProvider) repoTags(repo string) ([]string, error) {
 	return ts, nil
 }
 
-func (p *AWSProvider) appRepositoryName(a structs.App) (string, error) {
+func (p *Provider) appRepositoryName(a structs.App) (string, error) {
 	switch a.Generation {
 	case "1":
 		return a.Outputs["RegistryRepository"], nil

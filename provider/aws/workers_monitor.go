@@ -28,7 +28,7 @@ type instances map[string]instance
 
 var lastASGActivity = time.Now()
 
-func (p *AWSProvider) workerMonitor() {
+func (p *Provider) workerMonitor() {
 	var log = logger.New("ns=workers.monitor")
 
 	defer recoverWith(func(err error) {
@@ -93,7 +93,7 @@ func (p *AWSProvider) workerMonitor() {
 	}
 }
 
-func (p *AWSProvider) describeASG(ii *instances) error {
+func (p *Provider) describeASG(ii *instances) error {
 	ires, err := p.rackResource("Instances")
 	if err != nil {
 		return err
@@ -137,7 +137,7 @@ func (p *AWSProvider) describeASG(ii *instances) error {
 	return nil
 }
 
-func (p *AWSProvider) describeECS(ii *instances) error {
+func (p *Provider) describeECS(ii *instances) error {
 	dres, err := p.listAndDescribeContainerInstances()
 	if err != nil {
 		return err
