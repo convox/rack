@@ -41,11 +41,6 @@ func (p *Provider) BuildCreate(app, url string, opts structs.BuildCreateOptions)
 		return nil, errors.WithStack(log.Error(err))
 	}
 
-	sys, err := p.SystemGet()
-	if err != nil {
-		return nil, errors.WithStack(log.Error(err))
-	}
-
 	buildUpdateLock.Lock()
 	defer buildUpdateLock.Unlock()
 
@@ -67,7 +62,7 @@ func (p *Provider) BuildCreate(app, url string, opts structs.BuildCreateOptions)
 				"BUILD_URL":        url,
 				"PROVIDER":         "local",
 			},
-			Image:   sys.Image,
+			Image:   p.Image,
 			Release: a.Release,
 			Volumes: map[string]string{
 				p.Volume:               "/var/convox",
