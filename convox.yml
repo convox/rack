@@ -10,9 +10,9 @@ services:
     - PASSWORD=
     - PROVIDER
     - RACK
-    - ROUTER=
+    - ROUTER=10.42.0.0
     - VERSION=dev
-    - VOLUME=
+    - VOLUME=/Users/Shared/convox
     health:
       grace: 20
       interval: 30
@@ -29,9 +29,9 @@ services:
     build: .
     command: bin/monitor
     environment:
-    - AWS_ACCESS_KEY_ID
-    - AWS_REGION
-    - AWS_SECRET_ACCESS_KEY
+    - AWS_ACCESS_KEY_ID=
+    - AWS_REGION=
+    - AWS_SECRET_ACCESS_KEY=
     - DEVELOPMENT=true
     - PROVIDER
     - RACK

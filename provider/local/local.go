@@ -23,14 +23,15 @@ func init() {
 }
 
 type Provider struct {
-	Combined bool
-	Image    string
-	Name     string
-	Root     string
-	Router   string
-	Test     bool
-	Version  string
-	Volume   string
+	Combined  bool
+	Container string
+	Image     string
+	Rack      string
+	Root      string
+	Router    string
+	Test      bool
+	Version   string
+	Volume    string
 
 	ctx    context.Context
 	db     *bolt.DB
@@ -42,7 +43,7 @@ func FromEnv() (*Provider, error) {
 	p := &Provider{
 		Combined: os.Getenv("COMBINED") == "true",
 		Image:    coalesce(os.Getenv("IMAGE"), "convox/rack"),
-		Name:     coalesce(os.Getenv("RACK"), "convox"),
+		Rack:     coalesce(os.Getenv("RACK"), "convox"),
 		Root:     "/var/convox",
 		Router:   coalesce(os.Getenv("ROUTER"), "10.42.0.0"),
 		Test:     os.Getenv("TEST") == "true",
@@ -50,6 +51,22 @@ func FromEnv() (*Provider, error) {
 		Volume:   coalesce(os.Getenv("VOLUME"), "/var/convox"),
 		logs:     logger.NewWriter("", ioutil.Discard),
 	}
+
+	host, err := os.Hostname()
+	if err != nil {
+		return nil, err
+	}
+
+	p.Container = host
+
+	image, err := p.rackImage()
+	if err != nil {
+		return nil, err
+	}
+
+	p.Image = coalesce(os.Getenv("IMAGE"), image)
+
+	fmt.Printf("p = %+v\n", p)
 
 	return p, nil
 }
@@ -65,7 +82,7 @@ func (p *Provider) Initialize(opts structs.ProviderOptions) error {
 		return err
 	}
 
-	db, err := bolt.Open(filepath.Join(p.Root, fmt.Sprintf("%s.db", p.Name)), 0600, nil)
+	db, err := bolt.Open(filepath.Join(p.Root, fmt.Sprintf("%s.db", p.Rack)), 0600, nil)
 	if err != nil {
 		return err
 	}
@@ -76,8 +93,8 @@ func (p *Provider) Initialize(opts structs.ProviderOptions) error {
 		return err
 	}
 
-	if p.Router != "none" {
-		p.router = router.NewClient(coalesce(os.Getenv("PROVIDER_ROUTER"), "10.42.0.0"))
+	if p.Router != "" {
+		p.router = router.NewClient(coalesce(p.Router, "10.42.0.0"))
 
 		if err := p.routerCheck(); err != nil {
 			return err
@@ -106,7 +123,7 @@ func (p *Provider) logger(at string) *logger.Logger {
 // shutdown cleans up any running resources and exit
 func (p *Provider) shutdown() error {
 	cs, err := containersByLabels(map[string]string{
-		"convox.rack": p.Name,
+		"convox.rack": p.Rack,
 	})
 	if err != nil {
 		return err
@@ -145,6 +162,15 @@ func (p *Provider) createRootBucket(name string) (*bolt.Bucket, error) {
 	return bucket, err
 }
 
+func (p *Provider) rackImage() (string, error) {
+	image, err := exec.Command("docker", "inspect", "-f", "{{.Config.Image}}", p.Container).CombinedOutput()
+	if err != nil {
+		return "", err
+	}
+
+	return strings.TrimSpace(string(image)), nil
+}
+
 func (p *Provider) routerCheck() error {
 	v, err := p.router.Version()
 	if err != nil {
@@ -163,12 +189,12 @@ func (p *Provider) routerCheck() error {
 }
 
 func (p *Provider) routerRegister() error {
-	port, err := exec.Command("docker", "inspect", "-f", `{{(index (index .NetworkSettings.Ports "5443/tcp") 0).HostPort}}`, p.Name).CombinedOutput()
+	port, err := exec.Command("docker", "inspect", "-f", `{{(index (index .NetworkSettings.Ports "5443/tcp") 0).HostPort}}`, p.Container).CombinedOutput()
 	if err != nil {
 		return err
 	}
 
-	return p.router.RackCreate(p.Name, fmt.Sprintf("tls://127.0.0.1:%s", strings.TrimSpace(string(port))))
+	return p.router.RackCreate(p.Rack, fmt.Sprintf("tls://127.0.0.1:%s", strings.TrimSpace(string(port))))
 }
 
 func systemVolume(volume string) bool {
