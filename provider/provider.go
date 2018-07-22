@@ -19,7 +19,7 @@ func FromName(name string) (structs.Provider, error) {
 	case "aws":
 		return aws.FromEnv()
 	case "local":
-		return local.FromEnv(), nil
+		return local.FromEnv()
 	case "test":
 		return &structs.MockProvider{}, nil
 	default:

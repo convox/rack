@@ -6,7 +6,6 @@ type System struct {
 	Count      int               `json:"count"`
 	Domain     string            `json:"domain"`
 	Name       string            `json:"name"`
-	Image      string            `json:"image"`
 	Outputs    map[string]string `json:"outputs,omitempty"`
 	Parameters map[string]string `json:"parameters,omitempty"`
 	Provider   string            `json:"provider"`
