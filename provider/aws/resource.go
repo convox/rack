@@ -579,11 +579,11 @@ func (p *AWSProvider) appendSystemParameters(s *structs.Resource) error {
 
 	s.Parameters["NotificationTopic"] = p.NotificationTopic
 	s.Parameters["Private"] = fmt.Sprintf("%t", p.SubnetsPrivate != "")
-	s.Parameters["Release"] = p.Release
+	s.Parameters["Release"] = p.Version
 	s.Parameters["SecurityGroups"] = p.SecurityGroup
 	s.Parameters["Subnets"] = p.Subnets
 	s.Parameters["SubnetsPrivate"] = coalesceString(p.SubnetsPrivate, p.Subnets)
-	s.Parameters["Version"] = p.Release
+	s.Parameters["Version"] = p.Version
 	s.Parameters["Vpc"] = p.Vpc
 	s.Parameters["VpcCidr"] = p.VpcCidr
 

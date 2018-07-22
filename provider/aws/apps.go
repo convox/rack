@@ -50,7 +50,7 @@ func (p *AWSProvider) AppCreate(name string, opts structs.AppCreateOptions) (*st
 		"Generation": "2",
 		"System":     "convox",
 		"Rack":       p.Rack,
-		"Version":    p.Release,
+		"Version":    p.Version,
 		"Type":       "app",
 		"Name":       name,
 	}
@@ -68,7 +68,7 @@ func (p *AWSProvider) AppCreate(name string, opts structs.AppCreateOptions) (*st
 }
 
 func (p *AWSProvider) appCreateGeneration1(name string) (*structs.App, error) {
-	data, err := formationTemplate("g1/app", map[string]interface{}{"Version": p.Release})
+	data, err := formationTemplate("g1/app", map[string]interface{}{"Version": p.Version})
 	if err != nil {
 		return nil, err
 	}
@@ -89,7 +89,7 @@ func (p *AWSProvider) appCreateGeneration1(name string) (*structs.App, error) {
 		"Generation": "1",
 		"System":     "convox",
 		"Rack":       p.Rack,
-		"Version":    p.Release,
+		"Version":    p.Version,
 		"Type":       "app",
 		"Name":       name,
 	}
