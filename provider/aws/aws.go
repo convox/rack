@@ -84,6 +84,10 @@ func FromEnv() (*AWSProvider, error) {
 		log:         logger.New("ns=aws"),
 	}
 
+	if p.Rack == "" {
+		return p, nil
+	}
+
 	rack, err := p.describeStack(p.Rack)
 	if err != nil {
 		return nil, err
