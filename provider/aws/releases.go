@@ -282,8 +282,10 @@ func (p *AWSProvider) releasePromoteGeneration1(a *structs.App, r *structs.Relea
 
 	tp := map[string]interface{}{
 		"App":         a,
+		"Cluster":     p.Cluster,
 		"Environment": fmt.Sprintf("https://%s.s3.amazonaws.com/releases/%s/env", settings, r.Id),
 		"Manifest":    m,
+		"Region":      p.Region,
 		"Version":     p.Version,
 	}
 

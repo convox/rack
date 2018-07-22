@@ -242,8 +242,8 @@
               "Memory": { "Fn::Select": [ 2, { "Ref": "{{ upper $e.Name }}Formation" } ] },
               "Environment": {
                 "APP": "{{ $.App.Name }}",
-                "RACK": "{{ env "RACK" }}",
-                "AWS_REGION": "{{ env "AWS_REGION" }}",
+                "RACK": { "Ref": "Rack" },
+                "AWS_REGION": "{{ $.Region }}",
                 {{ range $e.Environment }}
                   {{ if ne .Value "" }}
                     "{{ .Name }}": {{ value .Value }},
@@ -664,7 +664,7 @@
                         ":",
                         { "Ref": "AWS::AccountId" },
                         ":cluster/",
-                        "{{ env "CLUSTER" }}"
+                        "{{ $.Cluster }}"
                       ] ] }
                     }
                   }
@@ -706,7 +706,7 @@
             "var aws = require('aws-sdk');",
             "var ecs = new aws.ECS({maxRetries:10});",
             "var logs = new aws.CloudWatchLogs();",
-            "var cluster = '{{ env "CLUSTER" }}';",
+            "var cluster = '{{ $.Cluster }}';",
             { "Fn::Join": [ "", [ "var logGroup = '", { "Ref": "LogGroup" }, "';" ] ] },
             { "Fn::Join": [ "", [ "var release = '", { "Ref": "Release" }, "';" ] ] },
             "exports.handler = function(event, context, cb) {",
