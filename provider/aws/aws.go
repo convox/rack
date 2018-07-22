@@ -113,6 +113,10 @@ func FromEnv() (*AWSProvider, error) {
 	p.Vpc = outputs["Vpc"]
 	p.VpcCidr = outputs["Vpccidr"]
 
+	if v := os.Getenv("VERSION"); v != "" {
+		p.Release = v
+	}
+
 	v, err := strconv.Atoi(outputs["EcsPollInterval"])
 	if err != nil {
 		return nil, err
