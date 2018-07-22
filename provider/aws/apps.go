@@ -16,7 +16,7 @@ import (
 	"github.com/convox/rack/structs"
 )
 
-func (p *AWSProvider) AppCancel(name string) error {
+func (p *Provider) AppCancel(name string) error {
 	_, err := p.cloudformation().CancelUpdateStack(&cloudformation.CancelUpdateStackInput{
 		StackName: aws.String(p.rackStack(name)),
 	})
@@ -27,7 +27,7 @@ func (p *AWSProvider) AppCancel(name string) error {
 	return nil
 }
 
-func (p *AWSProvider) AppCreate(name string, opts structs.AppCreateOptions) (*structs.App, error) {
+func (p *Provider) AppCreate(name string, opts structs.AppCreateOptions) (*structs.App, error) {
 	switch generation(opts.Generation) {
 	case "1":
 		return p.appCreateGeneration1(name)
@@ -67,7 +67,7 @@ func (p *AWSProvider) AppCreate(name string, opts structs.AppCreateOptions) (*st
 	return p.AppGet(name)
 }
 
-func (p *AWSProvider) appCreateGeneration1(name string) (*structs.App, error) {
+func (p *Provider) appCreateGeneration1(name string) (*structs.App, error) {
 	data, err := formationTemplate("g1/app", map[string]interface{}{"Version": p.Version})
 	if err != nil {
 		return nil, err
@@ -107,7 +107,7 @@ func (p *AWSProvider) appCreateGeneration1(name string) (*structs.App, error) {
 }
 
 // AppGet gets an app
-func (p *AWSProvider) AppGet(name string) (*structs.App, error) {
+func (p *Provider) AppGet(name string) (*structs.App, error) {
 	stacks, err := p.describeStacks(&cloudformation.DescribeStacksInput{
 		StackName: aws.String(p.Rack + "-" + name),
 	})
@@ -131,7 +131,7 @@ func (p *AWSProvider) AppGet(name string) (*structs.App, error) {
 }
 
 // AppDelete deletes an app
-func (p *AWSProvider) AppDelete(name string) error {
+func (p *Provider) AppDelete(name string) error {
 	app, err := p.AppGet(name)
 	if err != nil {
 		return err
@@ -170,7 +170,7 @@ func (p *AWSProvider) AppDelete(name string) error {
 	return nil
 }
 
-func (p *AWSProvider) AppList() (structs.Apps, error) {
+func (p *Provider) AppList() (structs.Apps, error) {
 	log := p.logger("AppList")
 
 	stacks, err := p.describeStacks(&cloudformation.DescribeStacksInput{})
@@ -191,7 +191,7 @@ func (p *AWSProvider) AppList() (structs.Apps, error) {
 	return apps, log.Success()
 }
 
-func (p *AWSProvider) AppLogs(app string, opts structs.LogsOptions) (io.Reader, error) {
+func (p *Provider) AppLogs(app string, opts structs.LogsOptions) (io.Reader, error) {
 	group, err := p.appResource(app, "LogGroup")
 	if err != nil {
 		return nil, err
@@ -200,7 +200,7 @@ func (p *AWSProvider) AppLogs(app string, opts structs.LogsOptions) (io.Reader, 
 	return p.subscribeLogs(group, opts)
 }
 
-func (p *AWSProvider) AppUpdate(app string, opts structs.AppUpdateOptions) error {
+func (p *Provider) AppUpdate(app string, opts structs.AppUpdateOptions) error {
 	params := opts.Parameters
 
 	if params == nil {
@@ -222,7 +222,7 @@ type appRepository struct {
 }
 
 // appRepository gets an app's repository data
-func (p *AWSProvider) appRepository(name string) (*appRepository, error) {
+func (p *Provider) appRepository(name string) (*appRepository, error) {
 	app, err := p.AppGet(name)
 	if err != nil {
 		return nil, err
@@ -256,7 +256,7 @@ func (p *AWSProvider) appRepository(name string) (*appRepository, error) {
 	return nil, fmt.Errorf("no repo found")
 }
 
-func (p *AWSProvider) appRepository2(app string) (*appRepository, error) {
+func (p *Provider) appRepository2(app string) (*appRepository, error) {
 	reg, err := p.appResource(app, "Registry")
 	if err != nil {
 		return nil, err
@@ -277,7 +277,7 @@ func (p *AWSProvider) appRepository2(app string) (*appRepository, error) {
 }
 
 // cleanup deletes AWS resources that aren't handled by the CloudFormation during stack deletion.
-func (p *AWSProvider) cleanup(app *structs.App) error {
+func (p *Provider) cleanup(app *structs.App) error {
 	settings, err := p.appResource(app.Name, "Settings")
 	if err != nil {
 		return err
@@ -367,7 +367,7 @@ func (p *AWSProvider) cleanup(app *structs.App) error {
 }
 
 // deleteBucket deletes all object versions and delete markers then deletes the bucket.
-func (p *AWSProvider) deleteBucket(bucket string) error {
+func (p *Provider) deleteBucket(bucket string) error {
 	req := &s3.ListObjectVersionsInput{
 		Bucket: aws.String(bucket),
 	}
@@ -445,7 +445,7 @@ func (p *AWSProvider) deleteBucket(bucket string) error {
 	return nil
 }
 
-func (p *AWSProvider) cleanupBucketObject(bucket, key, version string) {
+func (p *Provider) cleanupBucketObject(bucket, key, version string) {
 	req := &s3.DeleteObjectInput{
 		Bucket:    aws.String(bucket),
 		Key:       aws.String(key),

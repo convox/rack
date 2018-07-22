@@ -10,7 +10,7 @@ import (
 )
 
 // CapacityGet returns individual server and total rack resources
-func (p *AWSProvider) CapacityGet() (*structs.Capacity, error) {
+func (p *Provider) CapacityGet() (*structs.Capacity, error) {
 	log := Logger.At("CapacityGet").Start()
 
 	capacity := &structs.Capacity{}
@@ -142,7 +142,7 @@ func (p *AWSProvider) CapacityGet() (*structs.Capacity, error) {
 
 type ECSServices []*ecs.Service
 
-func (p *AWSProvider) clusterServices() (ECSServices, error) {
+func (p *Provider) clusterServices() (ECSServices, error) {
 	services := ECSServices{}
 
 	lreq := &ecs.ListServicesInput{

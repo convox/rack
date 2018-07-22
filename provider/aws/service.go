@@ -11,7 +11,7 @@ import (
 	"github.com/convox/rack/structs"
 )
 
-func (p *AWSProvider) ServiceList(app string) (structs.Services, error) {
+func (p *Provider) ServiceList(app string) (structs.Services, error) {
 	a, err := p.AppGet(app)
 	if err != nil {
 		return nil, err
@@ -100,7 +100,7 @@ func (p *AWSProvider) ServiceList(app string) (structs.Services, error) {
 	return ss, nil
 }
 
-func (p *AWSProvider) serviceListGeneration1(a *structs.App) (structs.Services, error) {
+func (p *Provider) serviceListGeneration1(a *structs.App) (structs.Services, error) {
 	if a.Release == "" {
 		return nil, fmt.Errorf("no release for app: %s", a.Name)
 	}
@@ -164,7 +164,7 @@ func (p *AWSProvider) serviceListGeneration1(a *structs.App) (structs.Services, 
 	return ss, nil
 }
 
-func (p *AWSProvider) ServiceUpdate(app, name string, opts structs.ServiceUpdateOptions) error {
+func (p *Provider) ServiceUpdate(app, name string, opts structs.ServiceUpdateOptions) error {
 	a, err := p.AppGet(app)
 	if err != nil {
 		return err

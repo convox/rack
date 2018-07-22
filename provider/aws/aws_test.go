@@ -15,7 +15,7 @@ func init() {
 }
 
 type AwsStub struct {
-	*aws.AWSProvider
+	*aws.Provider
 	server *httptest.Server
 }
 
@@ -33,7 +33,7 @@ func StubAwsProvider(cycles ...awsutil.Cycle) *AwsStub {
 	os.Setenv("AWS_ACCESS_KEY_ID", "test-access")
 	os.Setenv("AWS_SECRET_ACCESS_KEY", "test-secret")
 
-	p := &aws.AWSProvider{
+	p := &aws.Provider{
 		Region:         "us-test-1",
 		Endpoint:       s.URL,
 		BuildCluster:   "cluster-test",

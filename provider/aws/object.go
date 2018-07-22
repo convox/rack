@@ -14,7 +14,7 @@ import (
 	"github.com/convox/rack/structs"
 )
 
-func (p *AWSProvider) ObjectDelete(app, key string) error {
+func (p *Provider) ObjectDelete(app, key string) error {
 	exists, err := p.ObjectExists(app, key)
 	if err != nil {
 		return err
@@ -40,7 +40,7 @@ func (p *AWSProvider) ObjectDelete(app, key string) error {
 	return nil
 }
 
-func (p *AWSProvider) ObjectExists(app, key string) (bool, error) {
+func (p *Provider) ObjectExists(app, key string) (bool, error) {
 	bucket, err := p.appResource(app, "Settings")
 	if err != nil {
 		return false, err
@@ -61,7 +61,7 @@ func (p *AWSProvider) ObjectExists(app, key string) (bool, error) {
 }
 
 // ObjectFetch fetches an Object
-func (p *AWSProvider) ObjectFetch(app, key string) (io.ReadCloser, error) {
+func (p *Provider) ObjectFetch(app, key string) (io.ReadCloser, error) {
 	bucket, err := p.appResource(app, "Settings")
 	if err != nil {
 		return nil, err
@@ -81,7 +81,7 @@ func (p *AWSProvider) ObjectFetch(app, key string) (io.ReadCloser, error) {
 	return res.Body, nil
 }
 
-func (p *AWSProvider) ObjectList(app, prefix string) ([]string, error) {
+func (p *Provider) ObjectList(app, prefix string) ([]string, error) {
 	log := Logger.At("ObjectList").Namespace("prefix=%q", prefix).Start()
 
 	bucket, err := p.appResource(app, "Settings")
@@ -109,7 +109,7 @@ func (p *AWSProvider) ObjectList(app, prefix string) ([]string, error) {
 }
 
 // ObjectStore stores an Object
-func (p *AWSProvider) ObjectStore(app, key string, r io.Reader, opts structs.ObjectStoreOptions) (*structs.Object, error) {
+func (p *Provider) ObjectStore(app, key string, r io.Reader, opts structs.ObjectStoreOptions) (*structs.Object, error) {
 	log := Logger.At("ObjectStore").Namespace("app=%q key=%q", app, key).Start()
 
 	if key == "" {

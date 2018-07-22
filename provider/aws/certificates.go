@@ -13,7 +13,7 @@ import (
 	"github.com/convox/rack/structs"
 )
 
-func (p *AWSProvider) CertificateApply(app, service string, port int, id string) error {
+func (p *Provider) CertificateApply(app, service string, port int, id string) error {
 	fmt.Printf("app = %+v\n", app)
 	fmt.Printf("service = %+v\n", service)
 	fmt.Printf("port = %+v\n", port)
@@ -35,7 +35,7 @@ func (p *AWSProvider) CertificateApply(app, service string, port int, id string)
 	return fmt.Errorf("generation 2 apps use the domain: attribute on services in convox.yml")
 }
 
-func (p *AWSProvider) certificateApplyGeneration1(a *structs.App, service string, port int, id string) error {
+func (p *Provider) certificateApplyGeneration1(a *structs.App, service string, port int, id string) error {
 	params := map[string]string{}
 
 	cs, err := p.CertificateList()
@@ -54,7 +54,7 @@ func (p *AWSProvider) certificateApplyGeneration1(a *structs.App, service string
 	return p.updateStack(p.rackStack(a.Name), "", params)
 }
 
-func (p *AWSProvider) CertificateCreate(pub, key string, opts structs.CertificateCreateOptions) (*structs.Certificate, error) {
+func (p *Provider) CertificateCreate(pub, key string, opts structs.CertificateCreateOptions) (*structs.Certificate, error) {
 	req := &acm.ImportCertificateInput{
 		Certificate: []byte(pub),
 		PrivateKey:  []byte(key),
@@ -77,7 +77,7 @@ func (p *AWSProvider) CertificateCreate(pub, key string, opts structs.Certificat
 	return c, nil
 }
 
-func (p *AWSProvider) CertificateDelete(id string) error {
+func (p *Provider) CertificateDelete(id string) error {
 	if strings.HasPrefix(id, "acm") {
 		ss := strings.Split(id, "-")
 		if len(ss) < 2 {
@@ -109,7 +109,7 @@ func (p *AWSProvider) CertificateDelete(id string) error {
 	return err
 }
 
-func (p *AWSProvider) CertificateGenerate(domains []string) (*structs.Certificate, error) {
+func (p *Provider) CertificateGenerate(domains []string) (*structs.Certificate, error) {
 	if len(domains) < 1 {
 		return nil, fmt.Errorf("must specify at least one domain")
 	}
@@ -145,7 +145,7 @@ func (p *AWSProvider) CertificateGenerate(domains []string) (*structs.Certificat
 	return &cert, nil
 }
 
-func (p *AWSProvider) CertificateList() (structs.Certificates, error) {
+func (p *Provider) CertificateList() (structs.Certificates, error) {
 	certs := structs.Certificates{}
 
 	req := &iam.ListServerCertificatesInput{}
@@ -243,7 +243,7 @@ func (e CfsslError) Error() string {
 	return e.Message
 }
 
-func (p *AWSProvider) certificateGetACM(arn string) (*structs.Certificate, error) {
+func (p *Provider) certificateGetACM(arn string) (*structs.Certificate, error) {
 	parts := strings.Split(arn, "-")
 	id := fmt.Sprintf("acm-%s", parts[len(parts)-1])
 
@@ -283,7 +283,7 @@ func (p *AWSProvider) certificateGetACM(arn string) (*structs.Certificate, error
 	return c, nil
 }
 
-func (p *AWSProvider) certificateListACM() ([]*acm.CertificateSummary, error) {
+func (p *Provider) certificateListACM() ([]*acm.CertificateSummary, error) {
 	certs := []*acm.CertificateSummary{}
 
 	req := &acm.ListCertificatesInput{}
