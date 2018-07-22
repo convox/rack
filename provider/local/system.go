@@ -86,8 +86,8 @@ func (p *Provider) SystemGet() (*structs.System, error) {
 	log := p.logger("SystemGet")
 
 	system := &structs.System{
-		Domain:   fmt.Sprintf("rack.%s", p.Name),
-		Name:     p.Name,
+		Domain:   fmt.Sprintf("rack.%s", p.Rack),
+		Name:     p.Rack,
 		Provider: "local",
 		Region:   "local",
 		Status:   "running",
