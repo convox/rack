@@ -216,7 +216,7 @@ func (p *AWSProvider) ReleasePromote(app, id string) error {
 		"First":        first,
 		"Manifest":     m,
 		"Release":      r,
-		"Version":      p.Release,
+		"Version":      p.Version,
 	}
 
 	if r.Build != "" {
@@ -284,7 +284,7 @@ func (p *AWSProvider) releasePromoteGeneration1(a *structs.App, r *structs.Relea
 		"App":         a,
 		"Environment": fmt.Sprintf("https://%s.s3.amazonaws.com/releases/%s/env", settings, r.Id),
 		"Manifest":    m,
-		"Version":     p.Release,
+		"Version":     p.Version,
 	}
 
 	if r.Build != "" {

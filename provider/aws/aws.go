@@ -5,6 +5,7 @@ import (
 	"math/rand"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -43,7 +44,6 @@ type AWSProvider struct {
 	BuildCluster        string
 	CloudformationTopic string
 	Cluster             string
-	CustomTopic         string
 	Development         bool
 	DynamoBuilds        string
 	DynamoReleases      string
@@ -52,18 +52,17 @@ type AWSProvider struct {
 	Fargate             bool
 	Internal            bool
 	LogBucket           string
-	NotificationHost    string
 	NotificationTopic   string
 	OnDemandMinCount    int
 	Password            string
 	Private             bool
 	Rack                string
-	Release             string
 	SecurityGroup       string
 	SettingsBucket      string
 	SpotInstances       bool
 	Subnets             string
 	SubnetsPrivate      string
+	Version             string
 	Vpc                 string
 	VpcCidr             string
 
@@ -93,45 +92,41 @@ func FromEnv() (*AWSProvider, error) {
 		return nil, err
 	}
 
-	outputs := stackOutputs(rack)
+	params := stackParameters(rack)
+	resources := map[string]string{}
 
-	p.BuildCluster = outputs["BuildCluster"]
-	p.CloudformationTopic = outputs["CloudformationTopic"]
-	p.Cluster = outputs["Cluster"]
-	p.CustomTopic = outputs["CustomTopic"]
-	p.DynamoBuilds = outputs["DynamoBuilds"]
-	p.DynamoReleases = outputs["DynamoReleases"]
-	p.EncryptionKey = outputs["EncryptionKey"]
-	p.Fargate = outputs["Fargate"] == "Yes"
-	p.Internal = outputs["Internal"] == "Yes"
-	p.LogBucket = outputs["LogBucket"]
-	p.NotificationHost = outputs["NotificationHost"]
-	p.NotificationTopic = outputs["NotificationTopic"]
-	p.Private = outputs["Private"] == "Yes"
-	p.Release = outputs["Release"]
-	p.SecurityGroup = outputs["SecurityGroup"]
-	p.SettingsBucket = outputs["SettingsBucket"]
-	p.SpotInstances = outputs["SpotInstances"] == "Yes"
-	p.Subnets = outputs["Subnets"]
-	p.SubnetsPrivate = outputs["SubnetsPrivate"]
-	p.Vpc = outputs["Vpc"]
-	p.VpcCidr = outputs["Vpccidr"]
-
-	if v := os.Getenv("VERSION"); v != "" {
-		p.Release = v
-	}
-
-	v, err := strconv.Atoi(outputs["EcsPollInterval"])
+	res, err := p.describeStackResources(&cloudformation.DescribeStackResourcesInput{
+		StackName: aws.String(p.Rack),
+	})
 	if err != nil {
 		return nil, err
 	}
-	p.EcsPollInterval = v
 
-	v, err = strconv.Atoi(outputs["OnDemandMinCount"])
-	if err != nil {
-		return nil, err
+	for _, sr := range res.StackResources {
+		resources[*sr.LogicalResourceId] = *sr.PhysicalResourceId
 	}
-	p.OnDemandMinCount = v
+
+	p.BuildCluster = coalesces(resources["BuildCluster"], resources["Cluster"])
+	p.CloudformationTopic = resources["CloudformationTopic"]
+	p.Cluster = resources["Cluster"]
+	p.DynamoBuilds = resources["DynamoBuilds"]
+	p.DynamoReleases = resources["DynamoReleases"]
+	p.EcsPollInterval = intParam(params["EcsPollInterval"], 1)
+	p.EncryptionKey = resources["EncryptionKey"]
+	p.Fargate = params["Fargate"] == "Yes"
+	p.Internal = params["Internal"] == "Yes"
+	p.LogBucket = coalesces(params["LogBucket"], resources["Logs"])
+	p.NotificationTopic = resources["NotificationTopic"]
+	p.OnDemandMinCount = intParam(params["OnDemandMinCount"], 2)
+	p.Private = params["Private"] == "Yes"
+	p.SecurityGroup = coalesces(params["InstanceSecurityGroup"], resources["InstancesSecurity"])
+	p.SettingsBucket = resources["Settings"]
+	p.SpotInstances = params["SpotInstanceBid"] != ""
+	p.Subnets = sliceParam(resources["Subnet0"], resources["Subnet1"], resources["Subnet2"])
+	p.Subnets = sliceParam(resources["SubnetPrivate0"], resources["SubnetPrivate1"], resources["SubnetPrivate2"])
+	p.Version = coalesces(os.Getenv("VERSION"), params["Version"])
+	p.Vpc = coalesces(params["ExistingVpc"], resources["Vpc"])
+	p.VpcCidr = params["VPCCIDR"]
 
 	return p, nil
 }
@@ -146,6 +141,29 @@ func (p *AWSProvider) Initialize(opts structs.ProviderOptions) error {
 	}
 
 	return nil
+}
+
+func intParam(param string, def int) int {
+	if param == "" {
+		return def
+	}
+	v, err := strconv.Atoi(param)
+	if err != nil {
+		return def
+	}
+	return v
+}
+
+func sliceParam(param ...string) string {
+	ss := []string{}
+
+	for _, p := range param {
+		if ps := strings.TrimSpace(p); ps != "" {
+			ss = append(ss, ps)
+		}
+	}
+
+	return strings.Join(ss, ",")
 }
 
 /** services ****************************************************************************************/

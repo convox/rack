@@ -212,9 +212,6 @@
     "Rack": {
       "Value": { "Ref": "AWS::StackName" }
     },
-    "Release": {
-      "Value": { "Ref": "Version" }
-    },
     "RouterCertificate": {
       "Export": { "Name": { "Fn::Sub": "${AWS::StackName}:RouterCertificate" } },
       "Value": { "Ref": "RouterApiCertificate" }
@@ -342,6 +339,9 @@
     },
     "StackId": {
       "Value": { "Ref": "AWS::StackId" }
+    },
+    "Version": {
+      "Value": { "Ref": "Version" }
     },
     "Vpc": {
       "Export": { "Name": { "Fn::Sub": "${AWS::StackName}:Vpc" } },
