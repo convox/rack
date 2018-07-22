@@ -6,7 +6,6 @@ import (
 	"io"
 	"io/ioutil"
 	"math"
-	"os"
 	"sort"
 	"strconv"
 	"strings"
@@ -1215,7 +1214,7 @@ func (p *AWSProvider) rackInstances() (map[string]ec2.Instance, error) {
 		Filters: []*ec2.Filter{
 			&ec2.Filter{
 				Name:   aws.String("tag:Rack"),
-				Values: []*string{aws.String(os.Getenv("RACK"))},
+				Values: []*string{aws.String(p.Rack)},
 			},
 		},
 	}

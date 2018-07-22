@@ -104,11 +104,11 @@ func (p *AWSProvider) handleCloudformationEvents() {
 		}
 
 		// ignore rack events for now
-		if message["StackName"] == os.Getenv("RACK") {
+		if message["StackName"] == p.Rack {
 			return nil
 		}
 
-		app := strings.TrimPrefix(message["StackName"], fmt.Sprintf("%s-", os.Getenv("RACK")))
+		app := strings.TrimPrefix(message["StackName"], fmt.Sprintf("%s-", p.Rack))
 
 		stream, err := p.getAppLogStream(app)
 		if err != nil {
@@ -279,7 +279,7 @@ func (p *AWSProvider) getAppLogStream(app string) (appLogStream, error) {
 
 func (p *AWSProvider) processQueue(resource string, fn queueHandler) error {
 	res, err := p.cloudformation().DescribeStackResources(&cloudformation.DescribeStackResourcesInput{
-		StackName:         aws.String(os.Getenv("RACK")),
+		StackName:         aws.String(p.Rack),
 		LogicalResourceId: aws.String(resource),
 	})
 	if err != nil {

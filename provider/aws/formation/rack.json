@@ -75,12 +75,6 @@
     }
   },
   "Outputs": {
-    "Autoscale": {
-      "Value": { "Fn::If": [ "Autoscale", "true", "false" ] }
-    },
-    "AutoscaleExtra": {
-      "Value": { "Ref": "AutoscaleExtra" }
-    },
     "AutoscalingGroup": {
       "Value": { "Ref": "Instances" }
     },
@@ -120,6 +114,9 @@
     },
     "DynamoReleases": {
       "Value": { "Ref": "DynamoReleases" }
+    },
+    "EcsPollInterval": {
+      "Value": { "Ref": "EcsPollInterval" }
     },
     "EncryptionKey": {
       "Export": { "Name": { "Fn::Sub": "${AWS::StackName}:EncryptionKey" } },
@@ -287,7 +284,7 @@
       "Value": { "Ref": "Settings" }
     },
     "SpotInstances": {
-      "Value": { "Fn::If": [ "SpotInstances", "true", "false" ] }
+      "Value": { "Fn::If": [ "SpotInstances", "Yes", "No" ] }
     },
     "Subnets": {
       "Value": {
@@ -2284,43 +2281,14 @@
             "DockerLabels": { "convox.release": { "Ref": "Version" } },
             "Environment": [
               { "Name": "AWS_REGION", "Value": { "Ref": "AWS::Region" } },
-              { "Name": "BUILD_CLUSTER", "Value": { "Fn::If": [ "DedicatedBuilder", { "Ref": "BuildCluster" }, { "Ref": "Cluster" } ] } },
               { "Name": "CLIENT_ID", "Value": { "Ref": "ClientId" } },
-              { "Name": "CLOUDFORMATION_TOPIC", "Value": { "Ref": "CloudformationTopic" } },
-              { "Name": "CLUSTER", "Value": { "Ref": "Cluster" } },
-              { "Name": "CUSTOM_TOPIC", "Value": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] } },
-              { "Name": "DYNAMO_BUILDS", "Value": { "Ref": "DynamoBuilds" } },
-              { "Name": "DYNAMO_RELEASES", "Value": { "Ref": "DynamoReleases" } },
-              { "Name": "ENCRYPTION_KEY", "Value": { "Ref": "EncryptionKey" } },
               { "Name": "HTTP_PROXY", "Value": { "Ref": "HttpProxy" } },
               { "Name": "HTTPS_PROXY", "Value": { "Ref": "HttpProxy" } },
-              { "Name": "INTERNAL", "Value": { "Ref": "Internal" } },
-              { "Name": "LOG_BUCKET", "Value": { "Fn::If": [ "BlankLogBucket", { "Ref": "Logs" }, { "Ref": "LogBucket" } ] } },
-              { "Name": "LOG_GROUP", "Value": { "Ref": "LogGroup" } },
-              { "Name": "NOTIFICATION_HOST", "Value": { "Fn::GetAtt": [ "Balancer", "DNSName" ] } },
-              { "Name": "NOTIFICATION_TOPIC", "Value": { "Ref": "NotificationTopic" } },
-              { "Name": "ON_DEMAND_MIN_COUNT", "Value": { "Ref": "OnDemandMinCount" } },
               { "Name": "PASSWORD", "Value": { "Ref": "Password" } },
-              { "Name": "PRIVATE", "Value": { "Ref": "Private" } },
               { "Name": "PROVIDER", "Value": "aws" },
               { "Name": "RACK", "Value": { "Ref": "AWS::StackName" } },
-              { "Name": "ROLLBAR_TOKEN", "Value": "f67f25b8a9024d5690f997bd86bf14b0" },
-              { "Name": "SECURITY_GROUP", "Value": { "Fn::If": [ "BlankInstanceSecurityGroup", { "Ref": "InstancesSecurity" }, { "Ref": "InstanceSecurityGroup" } ] } },
               { "Name": "SEGMENT_WRITE_KEY", "Value": "KLvwCXo6qcTmQHLpF69DEwGf9zh7lt9i" },
-              { "Name": "SETTINGS_BUCKET", "Value": { "Ref": "Settings" } },
-              { "Name": "SPOT_INSTANCES", "Value": { "Fn::If": [ "SpotInstances", "true", "false" ] } },
-              { "Name": "STACK_ID", "Value": { "Ref": "AWS::StackId" } },
-              { "Name": "SUBNETS", "Value": { "Fn::Join": [ ",", [
-                { "Ref": "Subnet0" },
-                { "Ref": "Subnet1" },
-                { "Fn::If": [ "ThirdAvailabilityZone", { "Ref": "Subnet2" }, { "Ref": "AWS::NoValue" } ] }
-              ] ] } },
-              { "Name": "VERSION", "Value": { "Ref": "Version" } },
-              { "Name": "VPC", "Value": { "Fn::If": [ "BlankExistingVpc",
-                { "Ref": "Vpc" },
-                { "Ref": "ExistingVpc" }
-              ] } },
-              { "Name": "VPCCIDR", "Value": { "Ref": "VPCCIDR" } }
+              { "Name": "STACK_ID", "Value": { "Ref": "AWS::StackId" } }
             ],
             "Image": { "Fn::If": [ "BlankBuildImage",
               { "Fn::Sub": "convox/rack:${Version}" },
@@ -2352,43 +2320,14 @@
             "DockerLabels": { "convox.release": { "Ref": "Version" } },
             "Environment": [
               { "Name": "AWS_REGION", "Value": { "Ref": "AWS::Region" } },
-              { "Name": "BUILD_CLUSTER", "Value": { "Fn::If": [ "DedicatedBuilder", { "Ref": "BuildCluster" }, { "Ref": "Cluster" } ] } },
               { "Name": "CLIENT_ID", "Value": { "Ref": "ClientId" } },
-              { "Name": "CLOUDFORMATION_TOPIC", "Value": { "Ref": "CloudformationTopic" } },
-              { "Name": "CLUSTER", "Value": { "Ref": "Cluster" } },
-              { "Name": "CUSTOM_TOPIC", "Value": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] } },
-              { "Name": "DYNAMO_BUILDS", "Value": { "Ref": "DynamoBuilds" } },
-              { "Name": "DYNAMO_RELEASES", "Value": { "Ref": "DynamoReleases" } },
-              { "Name": "ECS_POLL_INTERVAL", "Value": { "Ref": "EcsPollInterval" } },
-              { "Name": "ENCRYPTION_KEY", "Value": { "Ref": "EncryptionKey" } },
               { "Name": "HTTP_PROXY", "Value": { "Ref": "HttpProxy" } },
               { "Name": "HTTPS_PROXY", "Value": { "Ref": "HttpProxy" } },
-              { "Name": "INTERNAL", "Value": { "Ref": "Internal" } },
-              { "Name": "LOG_GROUP", "Value": { "Ref": "LogGroup" } },
-              { "Name": "NOTIFICATION_HOST", "Value": { "Fn::GetAtt": [ "Balancer", "DNSName" ] } },
-              { "Name": "NOTIFICATION_TOPIC", "Value": { "Ref": "NotificationTopic" } },
-              { "Name": "ON_DEMAND_MIN_COUNT", "Value": { "Ref": "OnDemandMinCount" } },
               { "Name": "PASSWORD", "Value": { "Ref": "Password" } },
-              { "Name": "PRIVATE", "Value": { "Ref": "Private" } },
               { "Name": "PROVIDER", "Value": "aws" },
               { "Name": "RACK", "Value": { "Ref": "AWS::StackName" } },
-              { "Name": "ROLLBAR_TOKEN", "Value": "f67f25b8a9024d5690f997bd86bf14b0" },
-              { "Name": "SECURITY_GROUP", "Value": { "Fn::If": [ "BlankInstanceSecurityGroup", { "Ref": "InstancesSecurity" }, { "Ref": "InstanceSecurityGroup" } ] } },
               { "Name": "SEGMENT_WRITE_KEY", "Value": "KLvwCXo6qcTmQHLpF69DEwGf9zh7lt9i" },
-              { "Name": "SPOT_INSTANCES", "Value": { "Fn::If": [ "SpotInstances", "true", "false" ] } },
-              { "Name": "SETTINGS_BUCKET", "Value": { "Ref": "Settings" } },
-              { "Name": "STACK_ID", "Value": { "Ref": "AWS::StackId" } },
-              { "Name": "SUBNETS", "Value": { "Fn::Join": [ ",", [
-                { "Ref": "Subnet0" },
-                { "Ref": "Subnet1" },
-                { "Fn::If": [ "ThirdAvailabilityZone", { "Ref": "Subnet2" }, { "Ref": "AWS::NoValue" } ] }
-              ] ] } },
-              { "Name": "VERSION", "Value": { "Ref": "Version" } },
-              { "Name": "VPC", "Value": { "Fn::If": [ "BlankExistingVpc",
-                { "Ref": "Vpc" },
-                { "Ref": "ExistingVpc" }
-              ] } },
-              { "Name": "VPCCIDR", "Value": { "Ref": "VPCCIDR" } }
+              { "Name": "STACK_ID", "Value": { "Ref": "AWS::StackId" } }
             ],
             "Image": { "Fn::Sub": "convox/rack:${Version}" },
             "LogConfiguration": {
@@ -2419,47 +2358,14 @@
             "DockerLabels": { "convox.release": { "Ref": "Version" } },
             "Environment": [
               { "Name": "AWS_REGION", "Value": { "Ref": "AWS::Region" } },
-              { "Name": "BUILD_CLUSTER", "Value": { "Fn::If": [ "DedicatedBuilder", { "Ref": "BuildCluster" }, { "Ref": "Cluster" } ] } },
               { "Name": "CLIENT_ID", "Value": { "Ref": "ClientId" } },
-              { "Name": "CLOUDFORMATION_TOPIC", "Value": { "Ref": "CloudformationTopic" } },
-              { "Name": "CLUSTER", "Value": { "Ref": "Cluster" } },
-              { "Name": "CUSTOM_TOPIC", "Value": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] } },
-              { "Name": "DYNAMO_BUILDS", "Value": { "Ref": "DynamoBuilds" } },
-              { "Name": "DYNAMO_RELEASES", "Value": { "Ref": "DynamoReleases" } },
-              { "Name": "ENCRYPTION_KEY", "Value": { "Ref": "EncryptionKey" } },
-              { "Name": "FARGATE", "Value": { "Fn::FindInMap": [ "RegionConfig", { "Ref": "AWS::Region" }, "Fargate" ] } },
               { "Name": "HTTP_PROXY", "Value": { "Ref": "HttpProxy" } },
               { "Name": "HTTPS_PROXY", "Value": { "Ref": "HttpProxy" } },
-              { "Name": "INTERNAL", "Value": { "Ref": "Internal" } },
-              { "Name": "LOG_GROUP", "Value": { "Ref": "LogGroup" } },
-              { "Name": "NOTIFICATION_HOST", "Value": { "Fn::GetAtt": [ "Balancer", "DNSName" ] } },
-              { "Name": "NOTIFICATION_TOPIC", "Value": { "Ref": "NotificationTopic" } },
-              { "Name": "ON_DEMAND_MIN_COUNT", "Value": { "Ref": "OnDemandMinCount" } },
               { "Name": "PASSWORD", "Value": { "Ref": "Password" } },
-              { "Name": "PRIVATE", "Value": { "Ref": "Private" } },
               { "Name": "PROVIDER", "Value": "aws" },
               { "Name": "RACK", "Value": { "Ref": "AWS::StackName" } },
-              { "Name": "ROLLBAR_TOKEN", "Value": "f67f25b8a9024d5690f997bd86bf14b0" },
-              { "Name": "SECURITY_GROUP", "Value": { "Fn::If": [ "BlankInstanceSecurityGroup", { "Ref": "InstancesSecurity" }, { "Ref": "InstanceSecurityGroup" } ] } },
               { "Name": "SEGMENT_WRITE_KEY", "Value": "KLvwCXo6qcTmQHLpF69DEwGf9zh7lt9i" },
-              { "Name": "SPOT_INSTANCES", "Value": { "Fn::If": [ "SpotInstances", "true", "false" ] } },
-              { "Name": "SETTINGS_BUCKET", "Value": { "Ref": "Settings" } },
-              { "Name": "STACK_ID", "Value": { "Ref": "AWS::StackId" } },
-              { "Name": "SUBNETS", "Value": { "Fn::Join": [ ",", [
-                { "Ref": "Subnet0" },
-                { "Ref": "Subnet1" },
-                { "Fn::If": [ "ThirdAvailabilityZone", { "Ref": "Subnet2" }, { "Ref": "AWS::NoValue" } ] }
-              ] ] } },
-              { "Name": "SUBNETS_PRIVATE", "Value": { "Fn::If": [ "Private",
-                { "Fn::Join": [ ",", [ { "Ref": "SubnetPrivate0" }, { "Ref": "SubnetPrivate1" }, { "Fn::If": [ "ThirdAvailabilityZone", { "Ref": "SubnetPrivate2" }, { "Ref": "AWS::NoValue" } ] } ] ] },
-                ""
-              ] } },
-              { "Name": "VERSION", "Value": { "Ref": "Version" } },
-              { "Name": "VPC", "Value": { "Fn::If": [ "BlankExistingVpc",
-                { "Ref": "Vpc" },
-                { "Ref": "ExistingVpc" }
-              ] } },
-              { "Name": "VPCCIDR", "Value": { "Ref": "VPCCIDR" } }
+              { "Name": "STACK_ID", "Value": { "Ref": "AWS::StackId" } }
             ],
             "Image": { "Fn::Sub": "convox/rack:${Version}" },
             "LogConfiguration": {

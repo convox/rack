@@ -1,7 +1,6 @@
 package aws
 
 import (
-	"os"
 	"time"
 
 	"github.com/cloudflare/cfssl/log"
@@ -40,7 +39,7 @@ func (p *AWSProvider) heartbeat() {
 		"app_count":      len(apps),
 		"instance_count": system.Count,
 		"instance_type":  system.Type,
-		"region":         os.Getenv("AWS_REGION"),
+		"region":         p.Region,
 		"version":        system.Version,
 	})
 }

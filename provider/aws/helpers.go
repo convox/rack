@@ -378,9 +378,6 @@ func stackTags(stack *cloudformation.Stack) map[string]string {
 
 func templateHelpers() template.FuncMap {
 	return template.FuncMap{
-		"env": func(s string) string {
-			return os.Getenv(s)
-		},
 		"upper": func(s string) string {
 			return upperName(s)
 		},
@@ -954,7 +951,7 @@ func (p *AWSProvider) taskRelease(id string) (string, error) {
 	}
 
 	t, err := p.describeTasks(&ecs.DescribeTasksInput{
-		Cluster: aws.String(os.Getenv("CLUSTER")),
+		Cluster: aws.String(p.Cluster),
 		Tasks:   []*string{aws.String(id)},
 	})
 	if err != nil {
