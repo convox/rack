@@ -1,6 +1,6 @@
 package aws
 
-func (p *AWSProvider) Workers() error {
+func (p *Provider) Workers() error {
 	go p.workerAgent()
 	go p.workerCleanup()
 	go p.workerEvents()

@@ -8,7 +8,7 @@ import (
 	"github.com/convox/rack/helpers"
 )
 
-func (p *AWSProvider) workerHeartbeat() {
+func (p *Provider) workerHeartbeat() {
 	log := logger.New("ns=workers.heartbeat")
 
 	defer recoverWith(func(err error) {
@@ -22,7 +22,7 @@ func (p *AWSProvider) workerHeartbeat() {
 	}
 }
 
-func (p *AWSProvider) heartbeat() {
+func (p *Provider) heartbeat() {
 	system, err := p.SystemGet()
 	if err != nil {
 		log.Error(err)

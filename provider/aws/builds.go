@@ -38,7 +38,7 @@ var regexpECRImage = regexp.MustCompile(`(\d+)\.dkr\.ecr\.([^.]+)\.amazonaws\.co
 // StackID is formatted like arn:aws:cloudformation:us-east-1:332653055745:stack/dev/d164aa20-ba89-11e6-b65c-50d5ca632656
 var regexpStackID = regexp.MustCompile(`arn:aws:cloudformation:([^.]+):(\d+):stack/([^.]+)/([^.]+)`)
 
-func (p *AWSProvider) BuildCreate(app, url string, opts structs.BuildCreateOptions) (*structs.Build, error) {
+func (p *Provider) BuildCreate(app, url string, opts structs.BuildCreateOptions) (*structs.Build, error) {
 	log := Logger.At("BuildCreate").Namespace("app=%q url=%q", app, url).Start()
 
 	_, err := p.AppGet(app)
@@ -75,7 +75,7 @@ func (p *AWSProvider) BuildCreate(app, url string, opts structs.BuildCreateOptio
 }
 
 // BuildExport exports a build artifact
-func (p *AWSProvider) BuildExport(app, id string, w io.Writer) error {
+func (p *Provider) BuildExport(app, id string, w io.Writer) error {
 	log := Logger.At("BuildExport").Start()
 
 	build, err := p.BuildGet(app, id)
@@ -264,7 +264,7 @@ func (p *AWSProvider) BuildExport(app, id string, w io.Writer) error {
 	return nil
 }
 
-func (p *AWSProvider) BuildGet(app, id string) (*structs.Build, error) {
+func (p *Provider) BuildGet(app, id string) (*structs.Build, error) {
 	req := &dynamodb.GetItemInput{
 		ConsistentRead: aws.Bool(true),
 		Key: map[string]*dynamodb.AttributeValue{
@@ -288,7 +288,7 @@ func (p *AWSProvider) BuildGet(app, id string) (*structs.Build, error) {
 }
 
 // BuildImport imports a build artifact
-func (p *AWSProvider) BuildImport(app string, r io.Reader) (*structs.Build, error) {
+func (p *Provider) BuildImport(app string, r io.Reader) (*structs.Build, error) {
 	log := Logger.At("BuildImport").Namespace("app=%s", app).Start()
 
 	var sourceBuild structs.Build
@@ -435,7 +435,7 @@ func (p *AWSProvider) BuildImport(app string, r io.Reader) (*structs.Build, erro
 }
 
 // BuildLogs streams the logs for a Build to an io.Writer
-func (p *AWSProvider) BuildLogs(app, id string, opts structs.LogsOptions) (io.ReadCloser, error) {
+func (p *Provider) BuildLogs(app, id string, opts structs.LogsOptions) (io.ReadCloser, error) {
 	b, err := p.BuildGet(app, id)
 	if err != nil {
 		return nil, err
@@ -505,7 +505,7 @@ func (p *AWSProvider) BuildLogs(app, id string, opts structs.LogsOptions) (io.Re
 }
 
 // BuildList returns a list of the latest builds, with the length specified in limit
-func (p *AWSProvider) BuildList(app string, opts structs.BuildListOptions) (structs.Builds, error) {
+func (p *Provider) BuildList(app string, opts structs.BuildListOptions) (structs.Builds, error) {
 	a, err := p.AppGet(app)
 	if err != nil {
 		return nil, err
@@ -543,7 +543,7 @@ func (p *AWSProvider) BuildList(app string, opts structs.BuildListOptions) (stru
 	return builds, nil
 }
 
-func (p *AWSProvider) BuildUpdate(app, id string, opts structs.BuildUpdateOptions) (*structs.Build, error) {
+func (p *Provider) BuildUpdate(app, id string, opts structs.BuildUpdateOptions) (*structs.Build, error) {
 	b, err := p.BuildGet(app, id)
 	if err != nil {
 		return nil, err
@@ -580,7 +580,7 @@ func (p *AWSProvider) BuildUpdate(app, id string, opts structs.BuildUpdateOption
 	return b, nil
 }
 
-func (p *AWSProvider) buildSave(b *structs.Build) error {
+func (p *Provider) buildSave(b *structs.Build) error {
 	_, err := p.AppGet(b.App)
 	if err != nil {
 		return err
@@ -647,7 +647,7 @@ func (p *AWSProvider) buildSave(b *structs.Build) error {
 	return err
 }
 
-func (p *AWSProvider) buildAuth(build *structs.Build) (string, error) {
+func (p *Provider) buildAuth(build *structs.Build) (string, error) {
 	type authEntry struct {
 		Username string
 		Password string
@@ -705,7 +705,7 @@ func (p *AWSProvider) buildAuth(build *structs.Build) (string, error) {
 	return string(data), nil
 }
 
-func (p *AWSProvider) authECR(host, access, secret string) (string, string, error) {
+func (p *Provider) authECR(host, access, secret string) (string, string, error) {
 	config := p.config()
 
 	if access != "" {
@@ -746,7 +746,7 @@ func (p *AWSProvider) authECR(host, access, secret string) (string, string, erro
 	return parts[0], parts[1], nil
 }
 
-func (p *AWSProvider) runBuild(build *structs.Build, url string, opts structs.BuildCreateOptions) error {
+func (p *Provider) runBuild(build *structs.Build, url string, opts structs.BuildCreateOptions) error {
 	log := Logger.At("runBuild").Namespace("url=%q", url).Start()
 
 	br, err := p.stackResource(p.Rack, "ApiBuildTasks")
@@ -897,7 +897,7 @@ func (p *AWSProvider) runBuild(build *structs.Build, url string, opts structs.Bu
 	return nil
 }
 
-func (p *AWSProvider) waitForContainer(task *ecs.Task) error {
+func (p *Provider) waitForContainer(task *ecs.Task) error {
 	ci, err := p.containerInstance(*task.ContainerInstanceArn)
 	if err != nil {
 		return err
@@ -935,7 +935,7 @@ func (p *AWSProvider) waitForContainer(task *ecs.Task) error {
 }
 
 // buildFromItem populates a Build struct from a DynamoDB Item
-func (p *AWSProvider) buildFromItem(item map[string]*dynamodb.AttributeValue) *structs.Build {
+func (p *Provider) buildFromItem(item map[string]*dynamodb.AttributeValue) *structs.Build {
 	id := coalesce(item["id"], "")
 	started, _ := time.Parse(sortableTime, coalesce(item["created"], ""))
 	ended, _ := time.Parse(sortableTime, coalesce(item["ended"], ""))
@@ -961,7 +961,7 @@ func (p *AWSProvider) buildFromItem(item map[string]*dynamodb.AttributeValue) *s
 	}
 }
 
-func (p *AWSProvider) dockerLogin() error {
+func (p *Provider) dockerLogin() error {
 	log := Logger.At("dockerLogin").Start()
 
 	tres, err := p.ecr().GetAuthorizationToken(&ecr.GetAuthorizationTokenInput{})
@@ -1037,7 +1037,7 @@ func extractImageManifest(r io.Reader) (imageManifest, error) {
 	return nil, fmt.Errorf("unable to locate manifest")
 }
 
-func (p *AWSProvider) buildsDeleteAll(app *structs.App) error {
+func (p *Provider) buildsDeleteAll(app *structs.App) error {
 	// query dynamo for all builds belonging to app
 	qi := &dynamodb.QueryInput{
 		KeyConditionExpression: aws.String("app = :app"),

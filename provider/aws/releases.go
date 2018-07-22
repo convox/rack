@@ -24,7 +24,7 @@ import (
 	"github.com/convox/rack/structs"
 )
 
-func (p *AWSProvider) ReleaseCreate(app string, opts structs.ReleaseCreateOptions) (*structs.Release, error) {
+func (p *Provider) ReleaseCreate(app string, opts structs.ReleaseCreateOptions) (*structs.Release, error) {
 	r := structs.NewRelease(app)
 
 	cr, err := helpers.ReleaseLatest(p, app)
@@ -62,7 +62,7 @@ func (p *AWSProvider) ReleaseCreate(app string, opts structs.ReleaseCreateOption
 }
 
 // ReleaseGet returns a release
-func (p *AWSProvider) ReleaseGet(app, id string) (*structs.Release, error) {
+func (p *Provider) ReleaseGet(app, id string) (*structs.Release, error) {
 	if id == "" {
 		return nil, fmt.Errorf("release id must not be empty")
 	}
@@ -110,7 +110,7 @@ func (p *AWSProvider) ReleaseGet(app, id string) (*structs.Release, error) {
 }
 
 // ReleaseList returns a list of the latest releases, with the length specified in limit
-func (p *AWSProvider) ReleaseList(app string, opts structs.ReleaseListOptions) (structs.Releases, error) {
+func (p *Provider) ReleaseList(app string, opts structs.ReleaseListOptions) (structs.Releases, error) {
 	a, err := p.AppGet(app)
 	if err != nil {
 		return nil, err
@@ -155,7 +155,7 @@ func (p *AWSProvider) ReleaseList(app string, opts structs.ReleaseListOptions) (
 }
 
 // ReleasePromote promotes a release
-func (p *AWSProvider) ReleasePromote(app, id string) error {
+func (p *Provider) ReleasePromote(app, id string) error {
 	a, err := p.AppGet(app)
 	if err != nil {
 		return err
@@ -257,7 +257,7 @@ func (p *AWSProvider) ReleasePromote(app, id string) error {
 	return nil
 }
 
-func (p *AWSProvider) releasePromoteGeneration1(a *structs.App, r *structs.Release) error {
+func (p *Provider) releasePromoteGeneration1(a *structs.App, r *structs.Release) error {
 	m, err := manifest1.Load([]byte(r.Manifest))
 	if err != nil {
 		return err
@@ -414,7 +414,7 @@ func (p *AWSProvider) releasePromoteGeneration1(a *structs.App, r *structs.Relea
 }
 
 // ReleaseSave saves a Release
-func (p *AWSProvider) releaseSave(r *structs.Release) error {
+func (p *Provider) releaseSave(r *structs.Release) error {
 	if r.Id == "" {
 		return fmt.Errorf("Id can not be blank")
 	}
@@ -490,7 +490,7 @@ func (p *AWSProvider) releaseSave(r *structs.Release) error {
 	return err
 }
 
-func (p *AWSProvider) fetchRelease(app, id string) (map[string]*dynamodb.AttributeValue, error) {
+func (p *Provider) fetchRelease(app, id string) (map[string]*dynamodb.AttributeValue, error) {
 	res, err := p.dynamodb().GetItem(&dynamodb.GetItemInput{
 		ConsistentRead: aws.Bool(true),
 		Key: map[string]*dynamodb.AttributeValue{
@@ -530,7 +530,7 @@ func releaseFromItem(item map[string]*dynamodb.AttributeValue) (*structs.Release
 
 // releasesDeleteAll will delete all releases associate with app
 // This includes the active release which implies this should only be called when deleting an app.
-func (p *AWSProvider) releaseDeleteAll(app string) error {
+func (p *Provider) releaseDeleteAll(app string) error {
 
 	// query dynamo for all releases for this app
 	qi := &dynamodb.QueryInput{
@@ -546,7 +546,7 @@ func (p *AWSProvider) releaseDeleteAll(app string) error {
 }
 
 // deleteReleaseItems deletes release items from Dynamodb based on query input and the tableName
-func (p *AWSProvider) deleteReleaseItems(qi *dynamodb.QueryInput, tableName string) error {
+func (p *Provider) deleteReleaseItems(qi *dynamodb.QueryInput, tableName string) error {
 	res, err := p.dynamodb().Query(qi)
 	if err != nil {
 		return err
@@ -576,7 +576,7 @@ func (p *AWSProvider) deleteReleaseItems(qi *dynamodb.QueryInput, tableName stri
 	return p.dynamoBatchDeleteItems(wrs, tableName)
 }
 
-func (p *AWSProvider) resolveLinks(a *structs.App, m *manifest1.Manifest, r *structs.Release) (*manifest1.Manifest, error) {
+func (p *Provider) resolveLinks(a *structs.App, m *manifest1.Manifest, r *structs.Release) (*manifest1.Manifest, error) {
 	var registries map[string]struct {
 		Username string
 		Password string
@@ -723,7 +723,7 @@ func (p *AWSProvider) resolveLinks(a *structs.App, m *manifest1.Manifest, r *str
 	return m, nil
 }
 
-func (p *AWSProvider) waitForPromotion(r *structs.Release) {
+func (p *Provider) waitForPromotion(r *structs.Release) {
 	stackName := fmt.Sprintf("%s-%s", p.Rack, r.App)
 
 	waitch := make(chan error)
