@@ -123,7 +123,7 @@ func FromEnv() (*Provider, error) {
 	p.SettingsBucket = resources["Settings"]
 	p.SpotInstances = params["SpotInstanceBid"] != ""
 	p.Subnets = sliceParam(resources["Subnet0"], resources["Subnet1"], resources["Subnet2"])
-	p.Subnets = sliceParam(resources["SubnetPrivate0"], resources["SubnetPrivate1"], resources["SubnetPrivate2"])
+	p.SubnetsPrivate = sliceParam(resources["SubnetPrivate0"], resources["SubnetPrivate1"], resources["SubnetPrivate2"])
 	p.Version = coalesces(os.Getenv("VERSION"), params["Version"])
 	p.Vpc = coalesces(params["ExistingVpc"], resources["Vpc"])
 	p.VpcCidr = params["VPCCIDR"]
