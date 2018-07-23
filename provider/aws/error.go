@@ -53,7 +53,7 @@ func (a apiError) StackTrace() errors.StackTrace {
 	return a.trace
 }
 
-func (p *AWSProvider) ApiError(err error) error {
+func (p *Provider) ApiError(err error) error {
 	if err == nil {
 		return nil
 	}

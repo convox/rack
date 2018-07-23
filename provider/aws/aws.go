@@ -5,6 +5,7 @@ import (
 	"math/rand"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -36,14 +37,13 @@ const (
 // Logger is a package-wide logger
 var Logger = logger.New("ns=provider.aws")
 
-type AWSProvider struct {
+type Provider struct {
 	Region   string
 	Endpoint string
 
 	BuildCluster        string
 	CloudformationTopic string
 	Cluster             string
-	CustomTopic         string
 	Development         bool
 	DynamoBuilds        string
 	DynamoReleases      string
@@ -52,16 +52,17 @@ type AWSProvider struct {
 	Fargate             bool
 	Internal            bool
 	LogBucket           string
-	NotificationHost    string
 	NotificationTopic   string
+	OnDemandMinCount    int
 	Password            string
+	Private             bool
 	Rack                string
-	RegistryHost        string
-	Release             string
 	SecurityGroup       string
 	SettingsBucket      string
+	SpotInstances       bool
 	Subnets             string
 	SubnetsPrivate      string
+	Version             string
 	Vpc                 string
 	VpcCidr             string
 
@@ -72,51 +73,69 @@ type AWSProvider struct {
 }
 
 // NewProviderFromEnv returns a new AWS provider from env vars
-func FromEnv() *AWSProvider {
-	p := &AWSProvider{
-		Region:              os.Getenv("AWS_REGION"),
-		Endpoint:            os.Getenv("AWS_ENDPOINT"),
-		BuildCluster:        os.Getenv("BUILD_CLUSTER"),
-		CloudformationTopic: os.Getenv("CLOUDFORMATION_TOPIC"),
-		Cluster:             os.Getenv("CLUSTER"),
-		CustomTopic:         os.Getenv("CUSTOM_TOPIC"),
-		Development:         os.Getenv("DEVELOPMENT") == "true",
-		DynamoBuilds:        os.Getenv("DYNAMO_BUILDS"),
-		DynamoReleases:      os.Getenv("DYNAMO_RELEASES"),
-		EncryptionKey:       os.Getenv("ENCRYPTION_KEY"),
-		Fargate:             os.Getenv("FARGATE") == "Yes",
-		Internal:            os.Getenv("INTERNAL") == "Yes",
-		LogBucket:           os.Getenv("LOG_BUCKET"),
-		NotificationHost:    os.Getenv("NOTIFICATION_HOST"),
-		NotificationTopic:   os.Getenv("NOTIFICATION_TOPIC"),
-		Password:            os.Getenv("PASSWORD"),
-		Rack:                os.Getenv("RACK"),
-		RegistryHost:        os.Getenv("REGISTRY_HOST"),
-		Release:             os.Getenv("VERSION"),
-		SecurityGroup:       os.Getenv("SECURITY_GROUP"),
-		SettingsBucket:      os.Getenv("SETTINGS_BUCKET"),
-		Subnets:             os.Getenv("SUBNETS"),
-		SubnetsPrivate:      os.Getenv("SUBNETS_PRIVATE"),
-		Vpc:                 os.Getenv("VPC"),
-		VpcCidr:             os.Getenv("VPCCIDR"),
-		ctx:                 context.Background(),
-		log:                 logger.New("ns=aws"),
+func FromEnv() (*Provider, error) {
+	p := &Provider{
+		Development: os.Getenv("DEVELOPMENT") == "true",
+		Password:    os.Getenv("PASSWORD"),
+		Rack:        os.Getenv("RACK"),
+		Region:      os.Getenv("AWS_REGION"),
+		ctx:         context.Background(),
+		log:         logger.New("ns=aws"),
 	}
 
-	if i, err := strconv.Atoi(os.Getenv("ECS_POLL_INTERVAL")); err != nil {
-		p.EcsPollInterval = 1
-	} else {
-		p.EcsPollInterval = i
+	if p.Rack == "" {
+		return p, nil
 	}
 
-	return p
+	rack, err := p.describeStack(p.Rack)
+	if err != nil {
+		return nil, err
+	}
+
+	params := stackParameters(rack)
+	resources := map[string]string{}
+
+	res, err := p.describeStackResources(&cloudformation.DescribeStackResourcesInput{
+		StackName: aws.String(p.Rack),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	for _, sr := range res.StackResources {
+		resources[*sr.LogicalResourceId] = *sr.PhysicalResourceId
+	}
+
+	p.BuildCluster = coalesces(resources["BuildCluster"], resources["Cluster"])
+	p.CloudformationTopic = resources["CloudformationTopic"]
+	p.Cluster = resources["Cluster"]
+	p.DynamoBuilds = resources["DynamoBuilds"]
+	p.DynamoReleases = resources["DynamoReleases"]
+	p.EcsPollInterval = intParam(params["EcsPollInterval"], 1)
+	p.EncryptionKey = resources["EncryptionKey"]
+	p.Fargate = params["Fargate"] == "Yes"
+	p.Internal = params["Internal"] == "Yes"
+	p.LogBucket = coalesces(params["LogBucket"], resources["Logs"])
+	p.NotificationTopic = resources["NotificationTopic"]
+	p.OnDemandMinCount = intParam(params["OnDemandMinCount"], 2)
+	p.Private = params["Private"] == "Yes"
+	p.SecurityGroup = coalesces(params["InstanceSecurityGroup"], resources["InstancesSecurity"])
+	p.SettingsBucket = resources["Settings"]
+	p.SpotInstances = params["SpotInstanceBid"] != ""
+	p.Subnets = sliceParam(resources["Subnet0"], resources["Subnet1"], resources["Subnet2"])
+	p.SubnetsPrivate = sliceParam(resources["SubnetPrivate0"], resources["SubnetPrivate1"], resources["SubnetPrivate2"])
+	p.Version = coalesces(os.Getenv("VERSION"), params["Version"])
+	p.Vpc = coalesces(params["ExistingVpc"], resources["Vpc"])
+	p.VpcCidr = params["VPCCIDR"]
+
+	return p, nil
 }
 
 func init() {
 	rand.Seed(time.Now().UTC().UnixNano())
 }
 
-func (p *AWSProvider) Initialize(opts structs.ProviderOptions) error {
+func (p *Provider) Initialize(opts structs.ProviderOptions) error {
 	if opts.Logs != nil {
 		Logger = logger.NewWriter("ns=aws", opts.Logs)
 	}
@@ -124,9 +143,32 @@ func (p *AWSProvider) Initialize(opts structs.ProviderOptions) error {
 	return nil
 }
 
+func intParam(param string, def int) int {
+	if param == "" {
+		return def
+	}
+	v, err := strconv.Atoi(param)
+	if err != nil {
+		return def
+	}
+	return v
+}
+
+func sliceParam(param ...string) string {
+	ss := []string{}
+
+	for _, p := range param {
+		if ps := strings.TrimSpace(p); ps != "" {
+			ss = append(ss, ps)
+		}
+	}
+
+	return strings.Join(ss, ",")
+}
+
 /** services ****************************************************************************************/
 
-func (p *AWSProvider) config() *aws.Config {
+func (p *Provider) config() *aws.Config {
 	config := &aws.Config{
 		Region: aws.String(p.Region),
 	}
@@ -144,7 +186,7 @@ func (p *AWSProvider) config() *aws.Config {
 	return config
 }
 
-func (p *AWSProvider) logger(at string) *logger.Logger {
+func (p *Provider) logger(at string) *logger.Logger {
 	log := p.log
 
 	if id := p.ctx.Value("request.id"); id != nil {
@@ -154,67 +196,67 @@ func (p *AWSProvider) logger(at string) *logger.Logger {
 	return log.At(at).Start()
 }
 
-func (p *AWSProvider) acm() *acm.ACM {
+func (p *Provider) acm() *acm.ACM {
 	return acm.New(session.New(), p.config())
 }
 
-func (p *AWSProvider) autoscaling() *autoscaling.AutoScaling {
+func (p *Provider) autoscaling() *autoscaling.AutoScaling {
 	return autoscaling.New(session.New(), p.config())
 }
 
-func (p *AWSProvider) cloudformation() *cloudformation.CloudFormation {
+func (p *Provider) cloudformation() *cloudformation.CloudFormation {
 	return cloudformation.New(session.New(), p.config())
 }
 
-func (p *AWSProvider) cloudwatch() *cloudwatch.CloudWatch {
+func (p *Provider) cloudwatch() *cloudwatch.CloudWatch {
 	return cloudwatch.New(session.New(), p.config())
 }
 
-func (p *AWSProvider) cloudwatchlogs() *cloudwatchlogs.CloudWatchLogs {
+func (p *Provider) cloudwatchlogs() *cloudwatchlogs.CloudWatchLogs {
 	return cloudwatchlogs.New(session.New(), p.config().WithLogLevel(aws.LogOff))
 }
 
-func (p *AWSProvider) dynamodb() *dynamodb.DynamoDB {
+func (p *Provider) dynamodb() *dynamodb.DynamoDB {
 	return dynamodb.New(session.New(), p.config())
 }
 
-func (p *AWSProvider) ec2() *ec2.EC2 {
+func (p *Provider) ec2() *ec2.EC2 {
 	return ec2.New(session.New(), p.config())
 }
 
-func (p *AWSProvider) ecr() *ecr.ECR {
+func (p *Provider) ecr() *ecr.ECR {
 	return ecr.New(session.New(), p.config())
 }
 
-func (p *AWSProvider) ecs() *ecs.ECS {
+func (p *Provider) ecs() *ecs.ECS {
 	return ecs.New(session.New(), p.config())
 }
 
-func (p *AWSProvider) kms() *kms.KMS {
+func (p *Provider) kms() *kms.KMS {
 	return kms.New(session.New(), p.config())
 }
 
-func (p *AWSProvider) iam() *iam.IAM {
+func (p *Provider) iam() *iam.IAM {
 	return iam.New(session.New(), p.config())
 }
 
-func (p *AWSProvider) s3() *s3.S3 {
+func (p *Provider) s3() *s3.S3 {
 	return s3.New(session.New(), p.config().WithS3ForcePathStyle(true))
 }
 
-func (p *AWSProvider) sns() *sns.SNS {
+func (p *Provider) sns() *sns.SNS {
 	return sns.New(session.New(), p.config())
 }
 
-func (p *AWSProvider) sqs() *sqs.SQS {
+func (p *Provider) sqs() *sqs.SQS {
 	return sqs.New(session.New(), p.config())
 }
 
-func (p *AWSProvider) sts() *sts.STS {
+func (p *Provider) sts() *sts.STS {
 	return sts.New(session.New(), p.config())
 }
 
 // IsTest returns true when we're in test mode
-func (p *AWSProvider) IsTest() bool {
+func (p *Provider) IsTest() bool {
 	return p.Region == "us-test-1"
 }

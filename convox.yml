@@ -3,38 +3,16 @@ services:
     build: .
     command: bin/web
     environment:
-    - AUTOSCALE=false
-    - AWS_ACCESS_KEY_ID
-    - AWS_REGION
-    - AWS_SECRET_ACCESS_KEY
-    - BUILD_CLUSTER
-    - CLIENT_ID=dev@convox.com
-    - CLOUDFORMATION_TOPIC
-    - CLUSTER
-    - CUSTOM_TOPIC
-    - DEBUG=false
+    - AWS_ACCESS_KEY_ID=
+    - AWS_REGION=
+    - AWS_SECRET_ACCESS_KEY=
     - DEVELOPMENT=true
-    - DYNAMO_BUILDS
-    - DYNAMO_RELEASES
-    - ENCRYPTION_KEY
-    - FARGATE
-    - INTERNAL
-    - LOG_BUCKET
-    - LOG_GROUP
-    - NOTIFICATION_HOST
-    - NOTIFICATION_TOPIC
-    - PASSWORD
-    - PRIVATE
+    - PASSWORD=
     - PROVIDER
     - RACK
-    - SECURITY_GROUP
-    - SETTINGS_BUCKET
-    - STACK_ID
-    - SUBNETS
-    - SUBNETS_PRIVATE
+    - ROUTER=10.42.0.0
     - VERSION=dev
-    - VPC
-    - VPCCIDR
+    - VOLUME=/Users/Shared/convox
     health:
       grace: 20
       interval: 30
@@ -51,37 +29,13 @@ services:
     build: .
     command: bin/monitor
     environment:
-    - AUTOSCALE=false
-    - AUTOSCALE_EXTRA
-    - AWS_ACCESS_KEY_ID
-    - AWS_REGION
-    - AWS_SECRET_ACCESS_KEY
-    - BUILD_CLUSTER
-    - CLIENT_ID=dev@convox.com
-    - CLOUDFORMATION_TOPIC
-    - CLUSTER
-    - CUSTOM_TOPIC
-    - DEBUG=false
+    - AWS_ACCESS_KEY_ID=
+    - AWS_REGION=
+    - AWS_SECRET_ACCESS_KEY=
     - DEVELOPMENT=true
-    - DYNAMO_BUILDS
-    - DYNAMO_RELEASES
-    - ECS_POLL_INTERVAL=1
-    - ENCRYPTION_KEY
-    - LOG_GROUP
-    - NOTIFICATION_HOST
-    - NOTIFICATION_TOPIC
-    - ON_DEMAND_MIN_COUNT
-    - PASSWORD
-    - PRIVATE
     - PROVIDER
     - RACK
-    - SECURITY_GROUP
-    - SPOT_INSTANCES
-    - STACK_ID
-    - SUBNETS
-    - SUBNETS_PRIVATE
     - VERSION=dev
-    - VPC
     scale:
       cpu: 2048
       memory: 256

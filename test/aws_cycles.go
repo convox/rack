@@ -128,10 +128,6 @@ func convoxStackXML(stackName string) string {
 					</member>
 					<member>
 						<ParameterValue/>
-						<ParameterKey>RegistryHost</ParameterKey>
-					</member>
-					<member>
-						<ParameterValue/>
 						<ParameterKey>Key</ParameterKey>
 					</member>
 					<member>

@@ -31,7 +31,7 @@ var resourceSystemParameters = map[string]bool{
 
 // ResourceCreate creates a new resource.
 // Note: see also createResource() below.
-func (p *AWSProvider) ResourceCreate(kind string, opts structs.ResourceCreateOptions) (*structs.Resource, error) {
+func (p *Provider) ResourceCreate(kind string, opts structs.ResourceCreateOptions) (*structs.Resource, error) {
 	name := fmt.Sprintf("%s-%d", kind, (rand.Intn(8999) + 1000))
 
 	if opts.Name != nil {
@@ -114,7 +114,7 @@ func (p *AWSProvider) ResourceCreate(kind string, opts structs.ResourceCreateOpt
 }
 
 // ResourceDelete deletes a resource.
-func (p *AWSProvider) ResourceDelete(name string) error {
+func (p *Provider) ResourceDelete(name string) error {
 	s, err := p.ResourceGet(name)
 	if err != nil {
 		return err
@@ -143,7 +143,7 @@ func (p *AWSProvider) ResourceDelete(name string) error {
 }
 
 // ResourceGet retrieves a resource.
-func (p *AWSProvider) ResourceGet(name string) (*structs.Resource, error) {
+func (p *Provider) ResourceGet(name string) (*structs.Resource, error) {
 	stacks, err := p.describeStacks(&cloudformation.DescribeStacksInput{
 		StackName: aws.String(p.rackStack(name)),
 	})
@@ -208,7 +208,7 @@ func (p *AWSProvider) ResourceGet(name string) (*structs.Resource, error) {
 }
 
 //resourceApps returns the apps that have been linked with a resource (ignoring apps that have been delete out of band)
-func (p *AWSProvider) resourceApps(s structs.Resource) (structs.Apps, error) {
+func (p *Provider) resourceApps(s structs.Resource) (structs.Apps, error) {
 	stacks, err := p.describeStacks(&cloudformation.DescribeStacksInput{
 		StackName: aws.String(p.rackStack(s.Name)),
 	})
@@ -249,7 +249,7 @@ func (p *AWSProvider) resourceApps(s structs.Resource) (structs.Apps, error) {
 }
 
 // ResourceList lists the resources.
-func (p *AWSProvider) ResourceList() (structs.Resources, error) {
+func (p *Provider) ResourceList() (structs.Resources, error) {
 	stacks, err := p.describeStacks(&cloudformation.DescribeStacksInput{})
 	if err != nil {
 		return nil, err
@@ -278,7 +278,7 @@ func (p *AWSProvider) ResourceList() (structs.Resources, error) {
 }
 
 // ResourceLink creates a link between the provided app and resource.
-func (p *AWSProvider) ResourceLink(name, app string) (*structs.Resource, error) {
+func (p *Provider) ResourceLink(name, app string) (*structs.Resource, error) {
 	s, err := p.ResourceGet(name)
 	if err != nil {
 		return nil, err
@@ -314,7 +314,7 @@ func (p *AWSProvider) ResourceLink(name, app string) (*structs.Resource, error) 
 	return s, err
 }
 
-func (p *AWSProvider) ResourceTypes() (structs.ResourceTypes, error) {
+func (p *Provider) ResourceTypes() (structs.ResourceTypes, error) {
 	files, err := ioutil.ReadDir("provider/aws/templates/resource/")
 	if err != nil {
 		return nil, err
@@ -371,7 +371,7 @@ func (p *AWSProvider) ResourceTypes() (structs.ResourceTypes, error) {
 }
 
 // ResourceUnlink removes a link between the provided app and resource.
-func (p *AWSProvider) ResourceUnlink(name, app string) (*structs.Resource, error) {
+func (p *Provider) ResourceUnlink(name, app string) (*structs.Resource, error) {
 	a, err := p.AppGet(app)
 	if err != nil {
 		return nil, err
@@ -414,7 +414,7 @@ func (p *AWSProvider) ResourceUnlink(name, app string) (*structs.Resource, error
 }
 
 // ResourceUpdate updates a resource with new params.
-func (p *AWSProvider) ResourceUpdate(name string, opts structs.ResourceUpdateOptions) (*structs.Resource, error) {
+func (p *Provider) ResourceUpdate(name string, opts structs.ResourceUpdateOptions) (*structs.Resource, error) {
 	s, err := p.ResourceGet(name)
 	if err != nil {
 		return nil, err
@@ -434,7 +434,7 @@ func (p *AWSProvider) ResourceUpdate(name string, opts structs.ResourceUpdateOpt
 // createResource creates a Resource.
 // Note: see also ResourceCreate() above.
 // This should probably be renamed to createResourceStack to be in conformity with createResourceURL below.
-func (p *AWSProvider) createResource(s *structs.Resource) (*cloudformation.CreateStackInput, error) {
+func (p *Provider) createResource(s *structs.Resource) (*cloudformation.CreateStackInput, error) {
 	formation, err := resourceFormation(s.Type, nil)
 	if err != nil {
 		return nil, err
@@ -457,7 +457,7 @@ func (p *AWSProvider) createResource(s *structs.Resource) (*cloudformation.Creat
 	return req, nil
 }
 
-func (p *AWSProvider) createResourceURL(s *structs.Resource, allowedProtocols ...string) (*cloudformation.CreateStackInput, error) {
+func (p *Provider) createResourceURL(s *structs.Resource, allowedProtocols ...string) (*cloudformation.CreateStackInput, error) {
 	if s.Parameters["Url"] == "" {
 		return nil, fmt.Errorf("must specify a URL")
 	}
@@ -483,7 +483,7 @@ func (p *AWSProvider) createResourceURL(s *structs.Resource, allowedProtocols ..
 	return p.createResource(s)
 }
 
-func (p *AWSProvider) updateResource(s *structs.Resource) error {
+func (p *Provider) updateResource(s *structs.Resource) error {
 	formation, err := resourceFormation(s.Type, s)
 	if err != nil {
 		return err
@@ -540,7 +540,7 @@ func (p *AWSProvider) updateResource(s *structs.Resource) error {
 }
 
 // add to links
-func (p *AWSProvider) linkResource(a *structs.App, s *structs.Resource) error {
+func (p *Provider) linkResource(a *structs.App, s *structs.Resource) error {
 	for _, app := range s.Apps {
 		if a.Name == app.Name {
 			return fmt.Errorf("app already linked")
@@ -553,7 +553,7 @@ func (p *AWSProvider) linkResource(a *structs.App, s *structs.Resource) error {
 }
 
 // delete from links
-func (p *AWSProvider) unlinkResource(a *structs.App, s *structs.Resource) error {
+func (p *Provider) unlinkResource(a *structs.App, s *structs.Resource) error {
 	apps := structs.Apps{}
 
 	for _, app := range s.Apps {
@@ -567,7 +567,7 @@ func (p *AWSProvider) unlinkResource(a *structs.App, s *structs.Resource) error 
 	return p.updateResource(s)
 }
 
-func (p *AWSProvider) appendSystemParameters(s *structs.Resource) error {
+func (p *Provider) appendSystemParameters(s *structs.Resource) error {
 	password, err := generatePassword()
 	if err != nil {
 		return err
@@ -579,11 +579,11 @@ func (p *AWSProvider) appendSystemParameters(s *structs.Resource) error {
 
 	s.Parameters["NotificationTopic"] = p.NotificationTopic
 	s.Parameters["Private"] = fmt.Sprintf("%t", p.SubnetsPrivate != "")
-	s.Parameters["Release"] = p.Release
+	s.Parameters["Release"] = p.Version
 	s.Parameters["SecurityGroups"] = p.SecurityGroup
 	s.Parameters["Subnets"] = p.Subnets
 	s.Parameters["SubnetsPrivate"] = coalesceString(p.SubnetsPrivate, p.Subnets)
-	s.Parameters["Version"] = p.Release
+	s.Parameters["Version"] = p.Version
 	s.Parameters["Vpc"] = p.Vpc
 	s.Parameters["VpcCidr"] = p.VpcCidr
 

@@ -6,7 +6,7 @@ import (
 	"github.com/convox/rack/structs"
 )
 
-func (p *AWSProvider) WithContext(ctx context.Context) structs.Provider {
+func (p *Provider) WithContext(ctx context.Context) structs.Provider {
 	cp := *p
 	cp.ctx = ctx
 	return &cp

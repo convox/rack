@@ -6,7 +6,6 @@ import (
 	"io"
 	"io/ioutil"
 	"math"
-	"os"
 	"sort"
 	"strconv"
 	"strings"
@@ -29,7 +28,7 @@ import (
 const StatusCodePrefix = "F1E49A85-0AD7-4AEF-A618-C249C6E6568D:"
 
 // ProcessExec runs a command in an existing Process
-func (p *AWSProvider) ProcessExec(app, pid, command string, rw io.ReadWriter, opts structs.ProcessExecOptions) (int, error) {
+func (p *Provider) ProcessExec(app, pid, command string, rw io.ReadWriter, opts structs.ProcessExecOptions) (int, error) {
 	log := Logger.At("ProcessExec").Namespace("app=%q pid=%q command=%q", app, pid, command).Start()
 
 	pss, err := p.ProcessList(app, structs.ProcessListOptions{})
@@ -174,7 +173,7 @@ func (p *AWSProvider) ProcessExec(app, pid, command string, rw io.ReadWriter, op
 }
 
 // ProcessGet returns the specified process for an app
-func (p *AWSProvider) ProcessGet(app, pid string) (*structs.Process, error) {
+func (p *Provider) ProcessGet(app, pid string) (*structs.Process, error) {
 	log := Logger.At("ProcessGet").Namespace("app=%q pid=%s", app, pid).Start()
 
 	tasks, err := p.appTaskARNs(app)
@@ -199,7 +198,7 @@ func (p *AWSProvider) ProcessGet(app, pid string) (*structs.Process, error) {
 }
 
 // ProcessList returns a list of processes for an app
-func (p *AWSProvider) ProcessList(app string, opts structs.ProcessListOptions) (structs.Processes, error) {
+func (p *Provider) ProcessList(app string, opts structs.ProcessListOptions) (structs.Processes, error) {
 	log := Logger.At("ProcessList").Namespace("app=%q", app).Start()
 
 	tasks, err := p.appTaskARNs(app)
@@ -231,7 +230,7 @@ func (p *AWSProvider) ProcessList(app string, opts structs.ProcessListOptions) (
 	return ps, nil
 }
 
-func (p *AWSProvider) stackTasks(stack string) ([]string, error) {
+func (p *Provider) stackTasks(stack string) ([]string, error) {
 	log := Logger.At("stackTasks").Namespace("stack=%q", stack).Start()
 
 	srs, err := p.listStackResources(stack)
@@ -275,7 +274,7 @@ func (p *AWSProvider) stackTasks(stack string) ([]string, error) {
 
 // appTaskARNs retuns a list of ECS Task (aka process) ARNs that correspond to an app
 // This includes one-off processes, build tasks, etc.
-func (p *AWSProvider) appTaskARNs(app string) ([]string, error) {
+func (p *Provider) appTaskARNs(app string) ([]string, error) {
 	tasks, err := p.stackTasks(fmt.Sprintf("%s-%s", p.Rack, app))
 	if ae, ok := err.(awserr.Error); ok && ae.Code() == "ValidationError" {
 		return nil, errorNotFound(fmt.Sprintf("app not found: %s", app))
@@ -317,7 +316,7 @@ func (p *AWSProvider) appTaskARNs(app string) ([]string, error) {
 
 const describeTasksPageSize = 100
 
-func (p *AWSProvider) taskProcesses(tasks []string) (structs.Processes, error) {
+func (p *Provider) taskProcesses(tasks []string) (structs.Processes, error) {
 	log := Logger.At("taskProcesses").Namespace("tasks=%q", tasks).Start()
 
 	pss := structs.Processes{}
@@ -414,7 +413,7 @@ func (p *AWSProvider) taskProcesses(tasks []string) (structs.Processes, error) {
 }
 
 // ProcessRun runs a new Process
-func (p *AWSProvider) ProcessRun(app, service string, opts structs.ProcessRunOptions) (*structs.Process, error) {
+func (p *Provider) ProcessRun(app, service string, opts structs.ProcessRunOptions) (*structs.Process, error) {
 	log := Logger.At("ProcessRun").Namespace("app=%q service=%q", app, service).Start()
 
 	td, err := p.taskDefinitionForRun(app, service, opts)
@@ -465,7 +464,7 @@ func (p *AWSProvider) ProcessRun(app, service string, opts structs.ProcessRunOpt
 }
 
 // ProcessStop stops a Process
-func (p *AWSProvider) ProcessStop(app, pid string) error {
+func (p *Provider) ProcessStop(app, pid string) error {
 	log := Logger.At("ProcessStop").Namespace("app=%q pid=%q", app, pid).Start()
 
 	arn, err := p.taskArnFromPid(pid)
@@ -522,7 +521,7 @@ func commandString(cs []string) string {
 	return strings.Join(cmd, " ")
 }
 
-func (p *AWSProvider) containerDefinitionForTask(arn string) (*ecs.ContainerDefinition, error) {
+func (p *Provider) containerDefinitionForTask(arn string) (*ecs.ContainerDefinition, error) {
 	cd, ok := cache.Get("containerDefinitionForTask", arn).(*ecs.ContainerDefinition)
 	if ok {
 		return cd, nil
@@ -547,7 +546,7 @@ func (p *AWSProvider) containerDefinitionForTask(arn string) (*ecs.ContainerDefi
 	return res.TaskDefinition.ContainerDefinitions[0], nil
 }
 
-func (p *AWSProvider) containerInstance(id string) (*ecs.ContainerInstance, error) {
+func (p *Provider) containerInstance(id string) (*ecs.ContainerInstance, error) {
 	ci, ok := cache.Get("containerInstance", id).(*ecs.ContainerInstance)
 	if ok {
 		return ci, nil
@@ -587,7 +586,7 @@ func (p *AWSProvider) containerInstance(id string) (*ecs.ContainerInstance, erro
 	return res.ContainerInstances[0], nil
 }
 
-func (p *AWSProvider) describeInstance(id string) (*ec2.Instance, error) {
+func (p *Provider) describeInstance(id string) (*ec2.Instance, error) {
 	instance, ok := cache.Get("describeInstance", id).(*ec2.Instance)
 	if ok {
 		return instance, nil
@@ -612,7 +611,7 @@ func (p *AWSProvider) describeInstance(id string) (*ec2.Instance, error) {
 	return res.Reservations[0].Instances[0], nil
 }
 
-func (p *AWSProvider) describeTaskInner(arn string) (*ecs.Task, error) {
+func (p *Provider) describeTaskInner(arn string) (*ecs.Task, error) {
 	res, err := p.describeTasks(&ecs.DescribeTasksInput{
 		Cluster: aws.String(p.Cluster),
 		Tasks:   []*string{aws.String(arn)},
@@ -643,7 +642,7 @@ func (p *AWSProvider) describeTaskInner(arn string) (*ecs.Task, error) {
 	return res.Tasks[0], nil
 }
 
-func (p *AWSProvider) describeTask(arn string) (*ecs.Task, error) {
+func (p *Provider) describeTask(arn string) (*ecs.Task, error) {
 	var err error
 	for attempt := 0; attempt < 3; attempt++ {
 		task, err := p.describeTaskInner(arn)
@@ -656,7 +655,7 @@ func (p *AWSProvider) describeTask(arn string) (*ecs.Task, error) {
 	return nil, err
 }
 
-func (p *AWSProvider) fetchProcess(task *ecs.Task, psch chan structs.Process, errch chan error) {
+func (p *Provider) fetchProcess(task *ecs.Task, psch chan structs.Process, errch chan error) {
 	if len(task.Containers) < 1 {
 		errch <- fmt.Errorf("invalid task: %s", *task.TaskDefinitionArn)
 		return
@@ -776,7 +775,7 @@ func (p *AWSProvider) fetchProcess(task *ecs.Task, psch chan structs.Process, er
 	psch <- ps
 }
 
-func (p *AWSProvider) generateTaskDefinition1(app, service string, opts structs.ProcessRunOptions) (*ecs.RegisterTaskDefinitionInput, error) {
+func (p *Provider) generateTaskDefinition1(app, service string, opts structs.ProcessRunOptions) (*ecs.RegisterTaskDefinitionInput, error) {
 	a, err := p.AppGet(app)
 	if err != nil {
 		return nil, err
@@ -983,7 +982,7 @@ func (p *AWSProvider) generateTaskDefinition1(app, service string, opts structs.
 	return req, nil
 }
 
-func (p *AWSProvider) generateTaskDefinition2(app, service string, opts structs.ProcessRunOptions) (*ecs.RegisterTaskDefinitionInput, error) {
+func (p *Provider) generateTaskDefinition2(app, service string, opts structs.ProcessRunOptions) (*ecs.RegisterTaskDefinitionInput, error) {
 	release, err := p.resolveRelease(app, cs(opts.Release, ""))
 	if err != nil {
 		return nil, err
@@ -1104,7 +1103,7 @@ func (p *AWSProvider) generateTaskDefinition2(app, service string, opts structs.
 	return req, nil
 }
 
-// func (p *AWSProvider) processRunAttached(app string, rw io.ReadWriter, opts structs.ProcessRunOptions) (*structs.Process, error) {
+// func (p *Provider) processRunAttached(app string, rw io.ReadWriter, opts structs.ProcessRunOptions) (*structs.Process, error) {
 //   if opts.Service == nil {
 //     return nil, fmt.Errorf("must specify a service")
 //   }
@@ -1180,7 +1179,7 @@ func (p *AWSProvider) generateTaskDefinition2(app, service string, opts structs.
 //   return ps, nil
 // }
 
-func (p *AWSProvider) ProcessWait(app, pid string) (int, error) {
+func (p *Provider) ProcessWait(app, pid string) (int, error) {
 	arn, err := p.taskArnFromPid(pid)
 	if err != nil {
 		return -1, err
@@ -1210,12 +1209,12 @@ func (p *AWSProvider) ProcessWait(app, pid string) (int, error) {
 	return int(*task.Containers[0].ExitCode), nil
 }
 
-func (p *AWSProvider) rackInstances() (map[string]ec2.Instance, error) {
+func (p *Provider) rackInstances() (map[string]ec2.Instance, error) {
 	req := &ec2.DescribeInstancesInput{
 		Filters: []*ec2.Filter{
 			&ec2.Filter{
 				Name:   aws.String("tag:Rack"),
-				Values: []*string{aws.String(os.Getenv("RACK"))},
+				Values: []*string{aws.String(p.Rack)},
 			},
 		},
 	}
@@ -1237,7 +1236,7 @@ func (p *AWSProvider) rackInstances() (map[string]ec2.Instance, error) {
 	return instances, nil
 }
 
-func (p *AWSProvider) resolveRelease(app, release string) (string, error) {
+func (p *Provider) resolveRelease(app, release string) (string, error) {
 	if release != "" {
 		return release, nil
 	}
@@ -1253,7 +1252,7 @@ func (p *AWSProvider) resolveRelease(app, release string) (string, error) {
 	return a.Release, nil
 }
 
-func (p *AWSProvider) runTask(req *ecs.RunTaskInput) (*ecs.Task, error) {
+func (p *Provider) runTask(req *ecs.RunTaskInput) (*ecs.Task, error) {
 	res, err := p.ecs().RunTask(req)
 	switch {
 	case err != nil:
@@ -1273,7 +1272,7 @@ func (p *AWSProvider) runTask(req *ecs.RunTaskInput) (*ecs.Task, error) {
 	return res.Tasks[0], nil
 }
 
-func (p *AWSProvider) stopTask(arn string, reason string) error {
+func (p *Provider) stopTask(arn string, reason string) error {
 	_, err := p.ecs().StopTask(&ecs.StopTaskInput{
 		Cluster: aws.String(p.Cluster),
 		Reason:  aws.String(reason),
@@ -1299,7 +1298,7 @@ func (p *AWSProvider) stopTask(arn string, reason string) error {
 	return nil
 }
 
-func (p *AWSProvider) taskArnFromPid(pid string) (string, error) {
+func (p *Provider) taskArnFromPid(pid string) (string, error) {
 	running, err := p.tasksByStatus("RUNNING")
 	if err != nil {
 		return "", err
@@ -1321,7 +1320,7 @@ func (p *AWSProvider) taskArnFromPid(pid string) (string, error) {
 	return "", fmt.Errorf("could not find process")
 }
 
-func (p *AWSProvider) tasksByStatus(status string) ([]string, error) {
+func (p *Provider) tasksByStatus(status string) ([]string, error) {
 	req := &ecs.ListTasksInput{
 		Cluster:       aws.String(p.Cluster),
 		DesiredStatus: aws.String(status),
@@ -1349,7 +1348,7 @@ func (p *AWSProvider) tasksByStatus(status string) ([]string, error) {
 	return tasks, nil
 }
 
-func (p *AWSProvider) taskDefinitionsForPrefix(prefix string) ([]string, error) {
+func (p *Provider) taskDefinitionsForPrefix(prefix string) ([]string, error) {
 	tds := []string{}
 
 	for {
@@ -1370,7 +1369,7 @@ func (p *AWSProvider) taskDefinitionsForPrefix(prefix string) ([]string, error) 
 	return tds, nil
 }
 
-func (p *AWSProvider) taskDefinitionForRun(app, service string, opts structs.ProcessRunOptions) (string, error) {
+func (p *Provider) taskDefinitionForRun(app, service string, opts structs.ProcessRunOptions) (string, error) {
 	release, err := p.resolveRelease(app, cs(opts.Release, ""))
 	if err != nil {
 		return "", nil
@@ -1463,7 +1462,7 @@ func truncate(f float64, precision int) float64 {
 	return float64(int(f*p)) / p
 }
 
-func (p *AWSProvider) waitForTask(arn string) (string, error) {
+func (p *Provider) waitForTask(arn string) (string, error) {
 	timeout := time.After(300 * time.Second)
 	tick := time.Tick(1 * time.Second)
 

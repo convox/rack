@@ -41,7 +41,7 @@ type envelope struct {
 	Nonce        []byte `json:"n"`
 }
 
-func (p *AWSProvider) SystemDecrypt(data []byte) ([]byte, error) {
+func (p *Provider) SystemDecrypt(data []byte) ([]byte, error) {
 	var e *envelope
 
 	err := json.Unmarshal(data, &e)
@@ -76,7 +76,7 @@ func (p *AWSProvider) SystemDecrypt(data []byte) ([]byte, error) {
 	return dec, nil
 }
 
-func (p *AWSProvider) SystemEncrypt(data []byte) ([]byte, error) {
+func (p *Provider) SystemEncrypt(data []byte) ([]byte, error) {
 	req := &kms.GenerateDataKeyInput{
 		KeyId:         aws.String(p.EncryptionKey),
 		NumberOfBytes: aws.Int64(keyLength),
@@ -113,7 +113,7 @@ func (p *AWSProvider) SystemEncrypt(data []byte) ([]byte, error) {
 	return json.Marshal(e)
 }
 
-func (p *AWSProvider) SystemGet() (*structs.System, error) {
+func (p *Provider) SystemGet() (*structs.System, error) {
 	log := Logger.At("SystemGet").Start()
 
 	stacks, err := p.describeStacks(&cloudformation.DescribeStacksInput{
@@ -204,7 +204,7 @@ func (p *AWSProvider) SystemGet() (*structs.System, error) {
 	return r, nil
 }
 
-func (p *AWSProvider) SystemInstall(opts structs.SystemInstallOptions) (string, error) {
+func (p *Provider) SystemInstall(opts structs.SystemInstallOptions) (string, error) {
 	name := cs(opts.Name, "convox")
 
 	var version string
@@ -307,7 +307,7 @@ func (p *AWSProvider) SystemInstall(opts structs.SystemInstallOptions) (string, 
 }
 
 // SystemLogs streams logs for the Rack
-func (p *AWSProvider) SystemLogs(opts structs.LogsOptions) (io.Reader, error) {
+func (p *Provider) SystemLogs(opts structs.LogsOptions) (io.Reader, error) {
 	group, err := p.rackResource("LogGroup")
 	if err != nil {
 		return nil, err
@@ -316,7 +316,7 @@ func (p *AWSProvider) SystemLogs(opts structs.LogsOptions) (io.Reader, error) {
 	return p.subscribeLogs(group, opts)
 }
 
-func (p *AWSProvider) SystemProcesses(opts structs.SystemProcessesOptions) (structs.Processes, error) {
+func (p *Provider) SystemProcesses(opts structs.SystemProcessesOptions) (structs.Processes, error) {
 	var tasks []string
 	var err error
 
@@ -354,7 +354,7 @@ func (p *AWSProvider) SystemProcesses(opts structs.SystemProcessesOptions) (stru
 }
 
 // SystemReleases lists the latest releases of the rack
-func (p *AWSProvider) SystemReleases() (structs.Releases, error) {
+func (p *Provider) SystemReleases() (structs.Releases, error) {
 	req := &dynamodb.QueryInput{
 		KeyConditions: map[string]*dynamodb.Condition{
 			"app": {
@@ -389,7 +389,7 @@ func (p *AWSProvider) SystemReleases() (structs.Releases, error) {
 	return releases, nil
 }
 
-func (p *AWSProvider) SystemUninstall(name string, opts structs.SystemUninstallOptions) error {
+func (p *Provider) SystemUninstall(name string, opts structs.SystemUninstallOptions) error {
 	if err := setupCredentials(); err != nil {
 		return err
 	}
@@ -458,7 +458,7 @@ func (p *AWSProvider) SystemUninstall(name string, opts structs.SystemUninstallO
 	return nil
 }
 
-func (p *AWSProvider) SystemUpdate(opts structs.SystemUpdateOptions) error {
+func (p *Provider) SystemUpdate(opts structs.SystemUpdateOptions) error {
 	changes := map[string]string{}
 	params := opts.Parameters
 	template := ""

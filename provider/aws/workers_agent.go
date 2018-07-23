@@ -9,7 +9,7 @@ import (
 	"github.com/convox/logger"
 )
 
-func (p *AWSProvider) workerAgent() {
+func (p *Provider) workerAgent() {
 	log := logger.New("ns=workers.agent")
 
 	for {
@@ -22,7 +22,7 @@ func (p *AWSProvider) workerAgent() {
 	}
 }
 
-func (p *AWSProvider) scaleAgents() error {
+func (p *Provider) scaleAgents() error {
 	log := logger.New("ns=workers.agent").At("scaleAgents")
 
 	sys, err := p.SystemGet()

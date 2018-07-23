@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"hash/crc32"
 	"net"
-	"os"
 	"path"
 	"path/filepath"
 	"sort"
@@ -135,9 +134,6 @@ func formationHelpers() template.FuncMap {
 				}
 			}
 			return ""
-		},
-		"env": func(s string) string {
-			return os.Getenv(s)
 		},
 		"itoa": func(i int) string {
 			return strconv.Itoa(i)
