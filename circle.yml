@@ -10,7 +10,7 @@ jobs:
       - run: ci/install.sh
       - run:
           command: ci/test.sh
-          no_output_timeout: 60m
+          no_output_timeout: 20m
       - run: ci/report.sh
       - run: ci/uninstall.sh
       - run: ci/cleanup.sh
