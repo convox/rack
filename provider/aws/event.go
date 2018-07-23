@@ -28,7 +28,7 @@ type event struct {
 	Timestamp time.Time         `json:"timestamp"`
 }
 
-func (p *AWSProvider) EventSend(action string, opts structs.EventSendOptions) error {
+func (p *Provider) EventSend(action string, opts structs.EventSendOptions) error {
 	e := event{
 		Action:    action,
 		Data:      opts.Data,

@@ -61,13 +61,13 @@ type detailTaskStateChange struct {
 }
 
 // StartEventQueue starts the event queue workers
-func (p *AWSProvider) workerEvents() {
+func (p *Provider) workerEvents() {
 	go p.handleAccountEvents()
 	go p.handleCloudformationEvents()
 	go p.handleECSEvents()
 }
 
-func (p *AWSProvider) handleAccountEvents() {
+func (p *Provider) handleAccountEvents() {
 	err := p.processQueue("AccountEvents", func(body string) error {
 		var e ecsEvent
 
@@ -82,7 +82,7 @@ func (p *AWSProvider) handleAccountEvents() {
 	}
 }
 
-func (p *AWSProvider) handleCloudformationEvents() {
+func (p *Provider) handleCloudformationEvents() {
 	err := p.processQueue("CloudformationEvents", func(body string) error {
 		var raw struct {
 			Message string
@@ -104,11 +104,11 @@ func (p *AWSProvider) handleCloudformationEvents() {
 		}
 
 		// ignore rack events for now
-		if message["StackName"] == os.Getenv("RACK") {
+		if message["StackName"] == p.Rack {
 			return nil
 		}
 
-		app := strings.TrimPrefix(message["StackName"], fmt.Sprintf("%s-", os.Getenv("RACK")))
+		app := strings.TrimPrefix(message["StackName"], fmt.Sprintf("%s-", p.Rack))
 
 		stream, err := p.getAppLogStream(app)
 		if err != nil {
@@ -149,7 +149,7 @@ func (p *AWSProvider) handleCloudformationEvents() {
 	}
 }
 
-func (p *AWSProvider) handleECSEvents() {
+func (p *Provider) handleECSEvents() {
 	log := Logger.At("handleECSEvents")
 
 	prefix := fmt.Sprintf("%s-", p.Rack)
@@ -243,7 +243,7 @@ func (p *AWSProvider) handleECSEvents() {
 	}
 }
 
-func (p *AWSProvider) getAppLogStream(app string) (appLogStream, error) {
+func (p *Provider) getAppLogStream(app string) (appLogStream, error) {
 	group, ok := cache.Get("appLogGroups", app).(string)
 	if !ok {
 		g, err := p.appResource(app, "LogGroup")
@@ -277,9 +277,9 @@ func (p *AWSProvider) getAppLogStream(app string) (appLogStream, error) {
 	return stream, nil
 }
 
-func (p *AWSProvider) processQueue(resource string, fn queueHandler) error {
+func (p *Provider) processQueue(resource string, fn queueHandler) error {
 	res, err := p.cloudformation().DescribeStackResources(&cloudformation.DescribeStackResourcesInput{
-		StackName:         aws.String(os.Getenv("RACK")),
+		StackName:         aws.String(p.Rack),
 		LogicalResourceId: aws.String(resource),
 	})
 	if err != nil {

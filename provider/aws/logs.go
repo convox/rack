@@ -13,7 +13,7 @@ import (
 	"github.com/convox/rack/structs"
 )
 
-func (p *AWSProvider) subscribeLogs(group string, opts structs.LogsOptions) (io.Reader, error) {
+func (p *Provider) subscribeLogs(group string, opts structs.LogsOptions) (io.Reader, error) {
 	r, w := io.Pipe()
 
 	go p.streamLogs(w, group, opts)
@@ -21,7 +21,7 @@ func (p *AWSProvider) subscribeLogs(group string, opts structs.LogsOptions) (io.
 	return r, nil
 }
 
-func (p *AWSProvider) streamLogs(w io.WriteCloser, group string, opts structs.LogsOptions) error {
+func (p *Provider) streamLogs(w io.WriteCloser, group string, opts structs.LogsOptions) error {
 	log := Logger.At("streamLogs").Namespace("group=%s", group)
 
 	defer w.Close()
@@ -95,7 +95,7 @@ func (p *AWSProvider) streamLogs(w io.WriteCloser, group string, opts structs.Lo
 	return nil
 }
 
-func (p *AWSProvider) writeLogEvents(w io.Writer, events []*cloudwatchlogs.FilteredLogEvent) (int64, error) {
+func (p *Provider) writeLogEvents(w io.Writer, events []*cloudwatchlogs.FilteredLogEvent) (int64, error) {
 	if len(events) == 0 {
 		return 0, nil
 	}

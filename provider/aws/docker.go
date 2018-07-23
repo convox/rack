@@ -10,11 +10,11 @@ import (
 	"github.com/fsouza/go-dockerclient"
 )
 
-func (p *AWSProvider) docker(host string) (*docker.Client, error) {
+func (p *Provider) docker(host string) (*docker.Client, error) {
 	return docker.NewClient(host)
 }
 
-func (p *AWSProvider) dockerInstance(id string) (*docker.Client, error) {
+func (p *Provider) dockerInstance(id string) (*docker.Client, error) {
 	i, err := p.describeInstance(id)
 	if err != nil {
 		return nil, err

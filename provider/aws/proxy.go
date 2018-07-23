@@ -9,7 +9,7 @@ import (
 	"github.com/convox/rack/helpers"
 )
 
-func (p *AWSProvider) Proxy(host string, port int, rw io.ReadWriter) error {
+func (p *Provider) Proxy(host string, port int, rw io.ReadWriter) error {
 	cn, err := net.DialTimeout("tcp", fmt.Sprintf("%s:%d", host, port), 3*time.Second)
 	if err != nil {
 		return err

@@ -46,7 +46,7 @@ func (p *Provider) ProcessGet(app, pid string) (*structs.Process, error) {
 
 	filters := []string{
 		fmt.Sprintf("label=convox.app=%s", app),
-		fmt.Sprintf("label=convox.rack=%s", p.Name),
+		fmt.Sprintf("label=convox.rack=%s", p.Rack),
 		fmt.Sprintf("id=%s", fpid),
 	}
 
@@ -71,7 +71,7 @@ func (p *Provider) ProcessList(app string, opts structs.ProcessListOptions) (str
 
 	filters := []string{
 		fmt.Sprintf("label=convox.app=%s", app),
-		fmt.Sprintf("label=convox.rack=%s", p.Name),
+		fmt.Sprintf("label=convox.rack=%s", p.Rack),
 	}
 
 	if opts.Service != nil {
@@ -320,7 +320,7 @@ func (p *Provider) argsFromOpts(app, service string, opts processStartOptions) (
 	if opts.Image != "" {
 		image = opts.Image
 	} else {
-		image = fmt.Sprintf("%s/%s/%s:%s", p.Name, app, service, r.Build)
+		image = fmt.Sprintf("%s/%s/%s:%s", p.Rack, app, service, r.Build)
 	}
 
 	// FIXME try letting docker daemon pass through dns
@@ -364,7 +364,7 @@ func (p *Provider) argsFromOpts(app, service string, opts processStartOptions) (
 	args = append(args, "--link", hostname)
 
 	args = append(args, "--label", fmt.Sprintf("convox.app=%s", app))
-	args = append(args, "--label", fmt.Sprintf("convox.rack=%s", p.Name))
+	args = append(args, "--label", fmt.Sprintf("convox.rack=%s", p.Rack))
 	args = append(args, "--label", fmt.Sprintf("convox.type=%s", "process"))
 
 	if opts.Release != "" {
@@ -475,7 +475,7 @@ func processList(filters []string, all bool) (structs.Processes, error) {
 //       return "", errors.WithStack(log.Error(err))
 //     }
 
-//     opts.Name = fmt.Sprintf("%s.%s.process.%s.%s", p.Name, app, service, rs)
+//     opts.Name = fmt.Sprintf("%s.%s.process.%s.%s", p.Rack, app, service, rs)
 //   }
 
 //   oargs, err := p.argsFromOpts(app, service, command, opts)

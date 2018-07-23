@@ -54,7 +54,7 @@ func (p *Provider) converge(app string) error {
 	}
 
 	rc, err := containersByLabels(map[string]string{
-		"convox.rack": p.Name,
+		"convox.rack": p.Rack,
 		"convox.app":  app,
 		"convox.type": "resource",
 	})
@@ -63,7 +63,7 @@ func (p *Provider) converge(app string) error {
 	}
 
 	sc, err := containersByLabels(map[string]string{
-		"convox.rack": p.Name,
+		"convox.rack": p.Rack,
 		"convox.app":  app,
 		"convox.type": "service",
 	})
@@ -98,7 +98,7 @@ func (p *Provider) converge(app string) error {
 func (p *Provider) idle() error {
 	log := p.logger("idle")
 
-	r, err := p.router.RackGet(p.Name)
+	r, err := p.router.RackGet(p.Rack)
 	if err != nil {
 		return err
 	}
@@ -158,7 +158,7 @@ func (p *Provider) routeContainers(host string, routes map[string]string, labels
 		return err
 	}
 
-	if err := p.router.HostCreate(p.Name, host); err != nil {
+	if err := p.router.HostCreate(p.Rack, host); err != nil {
 		return err
 	}
 
@@ -173,9 +173,9 @@ func (p *Provider) routeContainers(host string, routes map[string]string, labels
 			return err
 		}
 
-		e, err := p.router.EndpointGet(p.Name, host, sport)
+		e, err := p.router.EndpointGet(p.Rack, host, sport)
 		if err != nil {
-			e, err = p.router.EndpointCreate(p.Name, host, sproto, sport)
+			e, err = p.router.EndpointCreate(p.Rack, host, sproto, sport)
 			if err != nil {
 				return err
 			}
@@ -196,13 +196,13 @@ func (p *Provider) routeContainers(host string, routes map[string]string, labels
 		extra := diff(e.Targets, targets[dport])
 
 		for _, t := range missing {
-			if err := p.router.TargetAdd(p.Name, host, sport, t); err != nil {
+			if err := p.router.TargetAdd(p.Rack, host, sport, t); err != nil {
 				return err
 			}
 		}
 
 		for _, t := range extra {
-			if err := p.router.TargetRemove(p.Name, host, sport, t); err != nil {
+			if err := p.router.TargetRemove(p.Rack, host, sport, t); err != nil {
 				return err
 			}
 		}
@@ -230,7 +230,7 @@ func (p *Provider) route(app string) error {
 		}
 
 		err = p.routeContainers(host, routes, map[string]string{
-			"convox.rack": p.Name,
+			"convox.rack": p.Rack,
 			"convox.app":  app,
 			"convox.type": "resource",
 			"convox.name": r.Name,
@@ -249,7 +249,7 @@ func (p *Provider) route(app string) error {
 		}
 
 		err = p.routeContainers(host, routes, map[string]string{
-			"convox.rack": p.Name,
+			"convox.rack": p.Rack,
 			"convox.app":  app,
 			"convox.type": "service",
 			"convox.name": s.Name,
@@ -299,11 +299,11 @@ func resourcePort(kind string) (int, error) {
 func (p *Provider) resourceURL(app, kind, name string) (string, error) {
 	switch kind {
 	case "mysql":
-		return fmt.Sprintf("mysql://mysql:password@%s.resource.%s.%s:3306/app", name, app, p.Name), nil
+		return fmt.Sprintf("mysql://mysql:password@%s.resource.%s.%s:3306/app", name, app, p.Rack), nil
 	case "postgres":
-		return fmt.Sprintf("postgres://postgres:password@%s.resource.%s.%s:5432/app?sslmode=disable", name, app, p.Name), nil
+		return fmt.Sprintf("postgres://postgres:password@%s.resource.%s.%s:5432/app?sslmode=disable", name, app, p.Rack), nil
 	case "redis":
-		return fmt.Sprintf("redis://%s.resource.%s.%s:6379/0", name, app, p.Name), nil
+		return fmt.Sprintf("redis://%s.resource.%s.%s:6379/0", name, app, p.Rack), nil
 	}
 
 	return "", fmt.Errorf("unknown resource type: %s", kind)
@@ -339,7 +339,7 @@ func (p *Provider) resourceContainers(resources manifest.Resources, app, release
 		hostname := fmt.Sprintf("%s.resource.%s", r.Name, app)
 
 		cs = append(cs, container{
-			Name:     fmt.Sprintf("%s.%s.resource.%s", p.Name, app, r.Name),
+			Name:     fmt.Sprintf("%s.%s.resource.%s", p.Rack, app, r.Name),
 			Hostname: hostname,
 			// Targets: []containerTarget{
 			//   containerTarget{FromScheme: "tcp", FromPort: rp, ToScheme: "tcp", ToPort: rp},
@@ -348,12 +348,11 @@ func (p *Provider) resourceContainers(resources manifest.Resources, app, release
 			Volumes: vs,
 			Port:    rp,
 			Labels: map[string]string{
-				"convox.rack":     p.Name,
+				"convox.rack":     p.Rack,
 				"convox.version":  p.Version,
 				"convox.app":      app,
 				"convox.type":     "resource",
 				"convox.name":     r.Name,
-				"convox.hostname": hostname,
 				"convox.resource": r.Type,
 			},
 		})
@@ -413,8 +412,8 @@ func (p *Provider) serviceContainers(services manifest.Services, app, release st
 		for i := 1; i <= s.Scale.Count.Min; i++ {
 			c := container{
 				Hostname: hostname,
-				Name:     fmt.Sprintf("%s.%s.service.%s.%d", p.Name, app, s.Name, i),
-				Image:    fmt.Sprintf("%s/%s/%s:%s", p.Name, app, s.Name, r.Build),
+				Name:     fmt.Sprintf("%s.%s.service.%s.%d", p.Rack, app, s.Name, i),
+				Image:    fmt.Sprintf("%s/%s/%s:%s", p.Rack, app, s.Name, r.Build),
 				Command:  cmd,
 				Env:      e,
 				Cpu:      s.Scale.Cpu,
@@ -422,7 +421,7 @@ func (p *Provider) serviceContainers(services manifest.Services, app, release st
 				Volumes:  vv,
 				Port:     s.Port.Port,
 				Labels: map[string]string{
-					"convox.rack":     p.Name,
+					"convox.rack":     p.Rack,
 					"convox.version":  p.Version,
 					"convox.app":      app,
 					"convox.release":  release,
@@ -430,7 +429,6 @@ func (p *Provider) serviceContainers(services manifest.Services, app, release st
 					"convox.name":     s.Name,
 					"convox.hostname": hostname,
 					"convox.service":  s.Name,
-					"convox.index":    fmt.Sprintf("%d", i),
 					"convox.port":     strconv.Itoa(s.Port.Port),
 					"convox.scheme":   s.Port.Scheme,
 				},
