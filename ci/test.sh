@@ -141,7 +141,7 @@ convox resources info cilog | grep -v Apps
 convox resources update cilog Url=tcp://syslog2.convox.com --wait
 convox resources info cilog | grep syslog2.convox.com
 convox resources url cilog | grep tcp://syslog2.convox.com
-convox resources delete cilog
+convox resources delete cilog --wait
 
 # cleanup
 convox apps delete ci1 --wait
