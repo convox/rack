@@ -199,6 +199,23 @@ func (c *Client) ProcessRunAttached(app, service string, rw io.ReadWriter, opts 
 	return code, nil
 }
 
+func (c *Client) ProcessRunDetached(app, service string, opts structs.ProcessRunOptions) (string, error) {
+	ro, err := stdsdk.MarshalOptions(opts)
+	if err != nil {
+		return "", err
+	}
+
+	var ret struct {
+		Pid string
+	}
+
+	if err := c.Post(fmt.Sprintf("/apps/%s/processes/%s/run", app, service), ro, &ret); err != nil {
+		return "", err
+	}
+
+	return ret.Pid, nil
+}
+
 func (c *Client) ResourceCreateClassic(kind string, opts structs.ResourceCreateOptions) (*structs.Resource, error) {
 	ro := stdsdk.RequestOptions{
 		Params: stdsdk.Params{
