@@ -2278,7 +2278,44 @@
         "ContainerDefinitions": [
           {
             "Cpu": { "Ref": "BuildCpu" },
-            "DockerLabels": { "convox.release": { "Ref": "Version" } },
+            "DockerLabels": {
+              "convox.release": { "Ref": "Version" },
+              "rack.BuildCluster": { "Fn::If": [ "DedicatedBuilder", { "Ref": "BuildCluster" }, { "Ref": "Cluster" } ] },
+              "rack.CloudformationTopic": { "Ref": "CloudformationTopic" },
+              "rack.Cluster": { "Ref": "Cluster" },
+              "rack.DynamoBuilds": { "Ref": "DynamoBuilds" },
+              "rack.DynamoReleases": { "Ref": "DynamoReleases" },
+              "rack.EcsPollInterval": { "Ref": "EcsPollInterval" },
+              "rack.EncryptionKey": { "Ref": "EncryptionKey" },
+              "rack.Fargate": { "Fn::FindInMap": [ "RegionConfig", { "Ref": "AWS::Region" }, "Fargate" ] },
+              "rack.Internal": { "Ref": "Internal" },
+              "rack.LogBucket": { "Fn::If": [ "BlankLogBucket", { "Ref": "Logs" }, { "Ref": "LogBucket" } ] },
+              "rack.NotificationTopic": { "Ref": "NotificationTopic" },
+              "rack.OnDemandMinCount": { "Ref": "OnDemandMinCount" },
+              "rack.Private": { "Ref": "Private" },
+              "rack.SecurityGroup": { "Fn::If": [ "BlankInstanceSecurityGroup", { "Ref": "InstancesSecurity" }, { "Ref": "InstanceSecurityGroup" } ] },
+              "rack.SettingsBucket": { "Ref": "Settings" },
+              "rack.SpotInstances": { "Fn::If": [ "SpotInstances", "Yes", "No" ] },
+              "rack.Subnets": { "Fn::Join": [ ",", [
+                { "Ref": "Subnet0" },
+                { "Ref": "Subnet1" },
+                { "Fn::If": [ "ThirdAvailabilityZone", { "Ref": "Subnet2" }, { "Ref": "AWS::NoValue" } ] }
+              ] ] },
+              "rack.SubnetsPrivate": { "Fn::If": [ "Private",
+                { "Fn::Join": [ ",", [
+                  { "Ref": "SubnetPrivate0" },
+                  { "Ref": "SubnetPrivate1" },
+                  { "Fn::If": [ "ThirdAvailabilityZone", { "Ref": "SubnetPrivate2" }, { "Ref": "AWS::NoValue" } ] }
+                ] ] },
+                { "Ref": "AWS::NoValue" }
+              ] },
+              "rack.Version": { "Ref": "Version" },
+              "rack.Vpc": { "Fn::If": [ "BlankExistingVpc",
+                { "Ref": "Vpc" },
+                { "Ref": "ExistingVpc" }
+              ] },
+              "rack.VpcCidr": { "Ref": "VPCCIDR" }
+            },
             "Environment": [
               { "Name": "AWS_REGION", "Value": { "Ref": "AWS::Region" } },
               { "Name": "CLIENT_ID", "Value": { "Ref": "ClientId" } },
@@ -2317,7 +2354,44 @@
           {
             "Command": [ "bin/monitor" ],
             "Cpu": "64",
-            "DockerLabels": { "convox.release": { "Ref": "Version" } },
+            "DockerLabels": {
+              "convox.release": { "Ref": "Version" },
+              "rack.BuildCluster": { "Fn::If": [ "DedicatedBuilder", { "Ref": "BuildCluster" }, { "Ref": "Cluster" } ] },
+              "rack.CloudformationTopic": { "Ref": "CloudformationTopic" },
+              "rack.Cluster": { "Ref": "Cluster" },
+              "rack.DynamoBuilds": { "Ref": "DynamoBuilds" },
+              "rack.DynamoReleases": { "Ref": "DynamoReleases" },
+              "rack.EcsPollInterval": { "Ref": "EcsPollInterval" },
+              "rack.EncryptionKey": { "Ref": "EncryptionKey" },
+              "rack.Fargate": { "Fn::FindInMap": [ "RegionConfig", { "Ref": "AWS::Region" }, "Fargate" ] },
+              "rack.Internal": { "Ref": "Internal" },
+              "rack.LogBucket": { "Fn::If": [ "BlankLogBucket", { "Ref": "Logs" }, { "Ref": "LogBucket" } ] },
+              "rack.NotificationTopic": { "Ref": "NotificationTopic" },
+              "rack.OnDemandMinCount": { "Ref": "OnDemandMinCount" },
+              "rack.Private": { "Ref": "Private" },
+              "rack.SecurityGroup": { "Fn::If": [ "BlankInstanceSecurityGroup", { "Ref": "InstancesSecurity" }, { "Ref": "InstanceSecurityGroup" } ] },
+              "rack.SettingsBucket": { "Ref": "Settings" },
+              "rack.SpotInstances": { "Fn::If": [ "SpotInstances", "Yes", "No" ] },
+              "rack.Subnets": { "Fn::Join": [ ",", [
+                { "Ref": "Subnet0" },
+                { "Ref": "Subnet1" },
+                { "Fn::If": [ "ThirdAvailabilityZone", { "Ref": "Subnet2" }, { "Ref": "AWS::NoValue" } ] }
+              ] ] },
+              "rack.SubnetsPrivate": { "Fn::If": [ "Private",
+                { "Fn::Join": [ ",", [
+                  { "Ref": "SubnetPrivate0" },
+                  { "Ref": "SubnetPrivate1" },
+                  { "Fn::If": [ "ThirdAvailabilityZone", { "Ref": "SubnetPrivate2" }, { "Ref": "AWS::NoValue" } ] }
+                ] ] },
+                { "Ref": "AWS::NoValue" }
+              ] },
+              "rack.Version": { "Ref": "Version" },
+              "rack.Vpc": { "Fn::If": [ "BlankExistingVpc",
+                { "Ref": "Vpc" },
+                { "Ref": "ExistingVpc" }
+              ] },
+              "rack.VpcCidr": { "Ref": "VPCCIDR" }
+            },
             "Environment": [
               { "Name": "AWS_REGION", "Value": { "Ref": "AWS::Region" } },
               { "Name": "CLIENT_ID", "Value": { "Ref": "ClientId" } },
@@ -2355,7 +2429,44 @@
           {
             "Command": [ "bin/web" ],
             "Cpu": "128",
-            "DockerLabels": { "convox.release": { "Ref": "Version" } },
+            "DockerLabels": {
+              "convox.release": { "Ref": "Version" },
+              "rack.BuildCluster": { "Fn::If": [ "DedicatedBuilder", { "Ref": "BuildCluster" }, { "Ref": "Cluster" } ] },
+              "rack.CloudformationTopic": { "Ref": "CloudformationTopic" },
+              "rack.Cluster": { "Ref": "Cluster" },
+              "rack.DynamoBuilds": { "Ref": "DynamoBuilds" },
+              "rack.DynamoReleases": { "Ref": "DynamoReleases" },
+              "rack.EcsPollInterval": { "Ref": "EcsPollInterval" },
+              "rack.EncryptionKey": { "Ref": "EncryptionKey" },
+              "rack.Fargate": { "Fn::FindInMap": [ "RegionConfig", { "Ref": "AWS::Region" }, "Fargate" ] },
+              "rack.Internal": { "Ref": "Internal" },
+              "rack.LogBucket": { "Fn::If": [ "BlankLogBucket", { "Ref": "Logs" }, { "Ref": "LogBucket" } ] },
+              "rack.NotificationTopic": { "Ref": "NotificationTopic" },
+              "rack.OnDemandMinCount": { "Ref": "OnDemandMinCount" },
+              "rack.Private": { "Ref": "Private" },
+              "rack.SecurityGroup": { "Fn::If": [ "BlankInstanceSecurityGroup", { "Ref": "InstancesSecurity" }, { "Ref": "InstanceSecurityGroup" } ] },
+              "rack.SettingsBucket": { "Ref": "Settings" },
+              "rack.SpotInstances": { "Fn::If": [ "SpotInstances", "Yes", "No" ] },
+              "rack.Subnets": { "Fn::Join": [ ",", [
+                { "Ref": "Subnet0" },
+                { "Ref": "Subnet1" },
+                { "Fn::If": [ "ThirdAvailabilityZone", { "Ref": "Subnet2" }, { "Ref": "AWS::NoValue" } ] }
+              ] ] },
+              "rack.SubnetsPrivate": { "Fn::If": [ "Private",
+                { "Fn::Join": [ ",", [
+                  { "Ref": "SubnetPrivate0" },
+                  { "Ref": "SubnetPrivate1" },
+                  { "Fn::If": [ "ThirdAvailabilityZone", { "Ref": "SubnetPrivate2" }, { "Ref": "AWS::NoValue" } ] }
+                ] ] },
+                { "Ref": "AWS::NoValue" }
+              ] },
+              "rack.Version": { "Ref": "Version" },
+              "rack.Vpc": { "Fn::If": [ "BlankExistingVpc",
+                { "Ref": "Vpc" },
+                { "Ref": "ExistingVpc" }
+              ] },
+              "rack.VpcCidr": { "Ref": "VPCCIDR" }
+            },
             "Environment": [
               { "Name": "AWS_REGION", "Value": { "Ref": "AWS::Region" } },
               { "Name": "CLIENT_ID", "Value": { "Ref": "ClientId" } },

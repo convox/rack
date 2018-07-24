@@ -2,6 +2,7 @@ package aws
 
 import (
 	"context"
+	"fmt"
 	"math/rand"
 	"os"
 	"strconv"
@@ -83,52 +84,65 @@ func FromEnv() (*Provider, error) {
 		log:         logger.New("ns=aws"),
 	}
 
-	if p.Rack == "" {
-		return p, nil
-	}
-
-	rack, err := p.describeStack(p.Rack)
-	if err != nil {
+	if err := p.loadParams(); err != nil {
 		return nil, err
 	}
-
-	params := stackParameters(rack)
-	resources := map[string]string{}
-
-	res, err := p.describeStackResources(&cloudformation.DescribeStackResourcesInput{
-		StackName: aws.String(p.Rack),
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	for _, sr := range res.StackResources {
-		resources[*sr.LogicalResourceId] = *sr.PhysicalResourceId
-	}
-
-	p.BuildCluster = coalesces(resources["BuildCluster"], resources["Cluster"])
-	p.CloudformationTopic = resources["CloudformationTopic"]
-	p.Cluster = resources["Cluster"]
-	p.DynamoBuilds = resources["DynamoBuilds"]
-	p.DynamoReleases = resources["DynamoReleases"]
-	p.EcsPollInterval = intParam(params["EcsPollInterval"], 1)
-	p.EncryptionKey = resources["EncryptionKey"]
-	p.Fargate = params["Fargate"] == "Yes"
-	p.Internal = params["Internal"] == "Yes"
-	p.LogBucket = coalesces(params["LogBucket"], resources["Logs"])
-	p.NotificationTopic = resources["NotificationTopic"]
-	p.OnDemandMinCount = intParam(params["OnDemandMinCount"], 2)
-	p.Private = params["Private"] == "Yes"
-	p.SecurityGroup = coalesces(params["InstanceSecurityGroup"], resources["InstancesSecurity"])
-	p.SettingsBucket = resources["Settings"]
-	p.SpotInstances = params["SpotInstanceBid"] != ""
-	p.Subnets = sliceParam(resources["Subnet0"], resources["Subnet1"], resources["Subnet2"])
-	p.SubnetsPrivate = sliceParam(resources["SubnetPrivate0"], resources["SubnetPrivate1"], resources["SubnetPrivate2"])
-	p.Version = coalesces(os.Getenv("VERSION"), params["Version"])
-	p.Vpc = coalesces(params["ExistingVpc"], resources["Vpc"])
-	p.VpcCidr = params["VPCCIDR"]
 
 	return p, nil
+}
+
+func (p *Provider) loadParams() error {
+	if p.Rack == "" {
+		return nil
+	}
+
+	td, err := p.stackResource(p.Rack, "ApiWebTasks")
+	if err != nil {
+		return err
+	}
+
+	res, err := p.ecs().DescribeTaskDefinition(&ecs.DescribeTaskDefinitionInput{
+		TaskDefinition: td.PhysicalResourceId,
+	})
+	if err != nil {
+		return err
+	}
+
+	if len(res.TaskDefinition.ContainerDefinitions) < 1 {
+		return fmt.Errorf("invalid container definition")
+	}
+
+	cd := res.TaskDefinition.ContainerDefinitions[0]
+
+	labels := map[string]string{}
+
+	for k, v := range cd.DockerLabels {
+		labels[k] = *v
+	}
+
+	p.BuildCluster = labels["rack.BuildCluster"]
+	p.CloudformationTopic = labels["rack.CloudformationTopic"]
+	p.Cluster = labels["rack.Cluster"]
+	p.DynamoBuilds = labels["rack.DynamoBuilds"]
+	p.DynamoReleases = labels["rack.DynamoReleases"]
+	p.EcsPollInterval = intParam(labels["rack.EcsPollInterval"], 1)
+	p.EncryptionKey = labels["rack.EncryptionKey"]
+	p.Fargate = labels["rack.Fargate"] == "Yes"
+	p.Internal = labels["rack.Internal"] == "Yes"
+	p.LogBucket = labels["rack.LogBucket"]
+	p.NotificationTopic = labels["rack.NotificationTopic"]
+	p.OnDemandMinCount = intParam(labels["rack.OnDemandMinCount"], 2)
+	p.Private = labels["Private"] == "Yes"
+	p.SecurityGroup = labels["rack.SecurityGroup"]
+	p.SettingsBucket = labels["rack.SettingsBucket"]
+	p.SpotInstances = labels["rack.SpotInstances"] == "Yes"
+	p.Subnets = labels["rack.Subnets"]
+	p.SubnetsPrivate = labels["rack.SubnetsPrivate"]
+	p.Version = labels["rack.Version"]
+	p.Vpc = labels["rack.Vpc"]
+	p.VpcCidr = labels["rack.VpcCidr"]
+
+	return nil
 }
 
 func init() {
