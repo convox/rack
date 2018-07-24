@@ -12,5 +12,7 @@ func New(name, version string) *Engine {
 		Validate: ArgsBetween(0, 1),
 	})
 
+	terminalSetup()
+
 	return e
 }
