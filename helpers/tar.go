@@ -16,7 +16,12 @@ func Tarball(dir string) ([]byte, error) {
 		return nil, err
 	}
 
-	data, err := ioutil.ReadFile(filepath.Join(dir, ".dockerignore"))
+	abs, err := filepath.Abs(sym)
+	if err != nil {
+		return nil, err
+	}
+
+	data, err := ioutil.ReadFile(filepath.Join(abs, ".dockerignore"))
 	if err != nil && !os.IsNotExist(err) {
 		return nil, err
 	}
@@ -33,7 +38,7 @@ func Tarball(dir string) ([]byte, error) {
 
 	defer os.Chdir(cwd)
 
-	if err := os.Chdir(sym); err != nil {
+	if err := os.Chdir(abs); err != nil {
 		return nil, err
 	}
 
@@ -43,7 +48,7 @@ func Tarball(dir string) ([]byte, error) {
 		IncludeFiles:    []string{"."},
 	}
 
-	r, err := archive.TarWithOptions(sym, opts)
+	r, err := archive.TarWithOptions(abs, opts)
 	if err != nil {
 		return nil, err
 	}
