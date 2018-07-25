@@ -891,6 +891,24 @@
         ] }
       }
     },
+    "VpcEndpointLogs": {
+      "Type": "AWS::EC2::VPCEndpoint",
+      "Condition": "NotExistingVpcAndBlankInternetGateway",
+      "Properties": {
+        "RouteTableIds": [ { "Ref": "Routes" } ],
+        "ServiceName": { "Fn::Sub": "com.amazonaws.${AWS::Region}.logs" },
+        "VpcId": { "Fn::If": [ "BlankExistingVpc", { "Ref": "Vpc" }, { "Ref": "ExistingVpc" } ] }
+      }
+    },
+    "VpcEndpointS3": {
+      "Type": "AWS::EC2::VPCEndpoint",
+      "Condition": "NotExistingVpcAndBlankInternetGateway",
+      "Properties": {
+        "RouteTableIds": [ { "Ref": "Routes" } ],
+        "ServiceName": { "Fn::Sub": "com.amazonaws.${AWS::Region}.s3" },
+        "VpcId": { "Fn::If": [ "BlankExistingVpc", { "Ref": "Vpc" }, { "Ref": "ExistingVpc" } ] }
+      }
+    },
     "Routes": {
       "Type": "AWS::EC2::RouteTable",
       "Condition": "NotExistingVpcAndBlankInternetGateway",
