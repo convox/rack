@@ -1,12 +1,15 @@
 package router
 
 import (
+	"bytes"
 	"encoding/binary"
+	"fmt"
 	"io/ioutil"
 	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 )
 
 func execute(command string, args ...string) error {
@@ -30,4 +33,28 @@ func writeFile(path string, data []byte) error {
 	}
 
 	return ioutil.WriteFile(path, data, 0644)
+}
+
+func isUbuntu18() bool {
+	fmt.Println("isUbuntu18 called")
+	check := exec.Command("lsb_release", "-ir")
+	var buf bytes.Buffer
+	check.Stdout = &buf
+
+	err := check.Run()
+
+	if err != nil {
+		fmt.Println("Error, lsb_released failed, assuming not Ubuntu 18")
+		return false
+	}
+
+	out := buf.String()
+	out = strings.ToLower(out)
+	if strings.Contains(out, "ubuntu") && strings.Contains(out, "18") {
+		fmt.Println("Ubuntu 18 confirmed")
+		return true
+	} else {
+		fmt.Println("Not Ubuntu 18")
+		return false
+	}
 }
