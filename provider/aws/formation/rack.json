@@ -891,15 +891,6 @@
         ] }
       }
     },
-    "VpcEndpointLogs": {
-      "Type": "AWS::EC2::VPCEndpoint",
-      "Condition": "NotExistingVpcAndBlankInternetGateway",
-      "Properties": {
-        "RouteTableIds": [ { "Ref": "Routes" } ],
-        "ServiceName": { "Fn::Sub": "com.amazonaws.${AWS::Region}.logs" },
-        "VpcId": { "Fn::If": [ "BlankExistingVpc", { "Ref": "Vpc" }, { "Ref": "ExistingVpc" } ] }
-      }
-    },
     "VpcEndpointS3": {
       "Type": "AWS::EC2::VPCEndpoint",
       "Condition": "NotExistingVpcAndBlankInternetGateway",
