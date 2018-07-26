@@ -52,7 +52,17 @@ func (p *Provider) ResourceCreate(kind string, opts structs.ResourceCreateOption
 	var req *cloudformation.CreateStackInput
 
 	switch s.Type {
-	case "memcached", "mysql", "postgres", "redis":
+	case "memcached", "mysql", "postgres", "redis", "sqs":
+		req, err = p.createResource(s)
+	case "s3":
+		if s.Parameters["Topic"] != "" {
+			s.Parameters["Topic"] = fmt.Sprintf("%s-%s", p.Rack, s.Parameters["Topic"])
+		}
+		req, err = p.createResource(s)
+	case "sns":
+		if s.Parameters["Queue"] != "" {
+			s.Parameters["Queue"] = fmt.Sprintf("%s-%s", p.Rack, s.Parameters["Queue"])
+		}
 		req, err = p.createResource(s)
 	case "syslog":
 		req, err = p.createResourceURL(s, "tcp", "tcp+tls", "udp")
@@ -176,6 +186,16 @@ func (p *Provider) ResourceGet(name string) (*structs.Resource, error) {
 		s.Url = fmt.Sprintf("postgres://%s:%s@%s:%s/%s", outputs["EnvPostgresUsername"], outputs["EnvPostgresPassword"], outputs["Port5432TcpAddr"], outputs["Port5432TcpPort"], outputs["EnvPostgresDatabase"])
 	case "redis":
 		s.Url = fmt.Sprintf("redis://%s:%s/%s", outputs["Port6379TcpAddr"], outputs["Port6379TcpPort"], outputs["EnvRedisDatabase"])
+	case "s3":
+		s.Url = fmt.Sprintf("s3://%s:%s@%s", outputs["AccessKey"], outputs["SecretAccessKey"], outputs["Bucket"])
+	case "sns":
+		s.Url = fmt.Sprintf("sns://%s:%s@%s", outputs["AccessKey"], outputs["SecretAccessKey"], outputs["Topic"])
+	case "sqs":
+		if u, err := url.Parse(outputs["Queue"]); err == nil {
+			u.Scheme = "sqs"
+			u.User = url.UserPassword(outputs["AccessKey"], outputs["SecretAccessKey"])
+			s.Url = u.String()
+		}
 	case "syslog":
 		s.Url = s.Parameters["Url"]
 	case "webhook":
