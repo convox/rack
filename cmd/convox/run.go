@@ -107,7 +107,9 @@ func Run(c *stdcli.Context) error {
 
 	command := strings.Join(c.Args[1:], " ")
 
-	eopts := structs.ProcessExecOptions{}
+	eopts := structs.ProcessExecOptions{
+		Entrypoint: options.Bool(true),
+	}
 
 	if height > 0 && width > 0 {
 		eopts.Height = options.Int(height)
