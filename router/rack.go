@@ -11,12 +11,16 @@ type Rack struct {
 	IP    net.IP `json:"ip"`
 	Hosts Hosts  `json:"hosts"`
 
+	lock   sync.Mutex
 	router *Router
 }
 
 type Racks []*Rack
 
 func (rt *Router) NewRack(endpoint, name string) (*Rack, error) {
+	rt.lock.Lock()
+	defer rt.lock.Unlock()
+
 	ip, err := rt.NextIP()
 	if err != nil {
 		return nil, err
@@ -86,12 +90,7 @@ func (r *Rack) Host(hostname string) (*Host, error) {
 	return nil, fmt.Errorf("no such host: %s", hostname)
 }
 
-var rackIPLock sync.Mutex
-
 func (r *Rack) NextIP() (net.IP, error) {
-	rackIPLock.Lock()
-	defer rackIPLock.Unlock()
-
 	for i := uint32(1); i < 255; i++ {
 		ip := incrementIP(r.IP, i)
 		found := false
