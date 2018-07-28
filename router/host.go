@@ -20,6 +20,9 @@ type Host struct {
 type Hosts []*Host
 
 func (r *Rack) NewHost(hostname string) (*Host, error) {
+	r.lock.Lock()
+	defer r.lock.Unlock()
+
 	ip, err := r.NextIP()
 	if err != nil {
 		return nil, err
