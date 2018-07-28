@@ -61,7 +61,7 @@ func FromEnv() (*Provider, error) {
 
 	image, err := p.rackImage()
 	if err != nil {
-		return nil, err
+		return p, nil
 	}
 
 	p.Image = coalesce(os.Getenv("IMAGE"), image)
