@@ -314,6 +314,17 @@ func streamAppSystemLogs(c *stdcli.Context, app string, done chan bool) {
 	<-done
 }
 
+func streamRackSystemLogs(c *stdcli.Context, done chan bool) {
+	r, err := provider(c).SystemLogs(structs.LogsOptions{Prefix: options.Bool(true), Since: options.Duration(0)})
+	if err != nil {
+		return
+	}
+
+	go copySystemLogs(c, r)
+
+	<-done
+}
+
 func tag(name, value string) string {
 	return fmt.Sprintf("<%s>%s</%s>", name, value, name)
 }
@@ -415,6 +426,22 @@ func waitForRackRunning(c *stdcli.Context) error {
 
 		return s.Status == "running", nil
 	})
+}
+
+func waitForRackWithLogs(c *stdcli.Context) error {
+	done := make(chan bool)
+
+	c.Writef("\n")
+
+	go streamRackSystemLogs(c, done)
+
+	if err := waitForRackRunning(c); err != nil {
+		return err
+	}
+
+	done <- true
+
+	return nil
 }
 
 func waitForResourceDeleted(c *stdcli.Context, resource string) error {

@@ -26,6 +26,9 @@ func (p *Provider) dockerInstance(id string) (*docker.Client, error) {
 	case p.IsTest():
 		host = fmt.Sprintf("http://%s", os.Getenv("DOCKER_HOST"))
 	case p.Development:
+		if i.PublicIpAddress == nil {
+			return nil, fmt.Errorf("can not start development builds on a private rack")
+		}
 		host = fmt.Sprintf("http://%s:2376", *i.PublicIpAddress)
 	default:
 		host = fmt.Sprintf("http://%s:2376", *i.PrivateIpAddress)
