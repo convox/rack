@@ -14,17 +14,18 @@ func (d *DNS) setupResolver(domain string, ip net.IP) error {
 
 	switch version {
 	case "ubuntu-18.04":
-		if err := installUbuntu1804(); err != nil {
+		if err := installUbuntu1804(domain, ip); err != nil {
 			return err
 		}
 	default:
-		if err := installGenericLinux(); err != nil {
+		if err := installGenericLinux(domain, ip); err != nil {
 			return err
 		}
 	}
+	return nil
 }
 
-func installUbuntu1804() error {
+func installUbuntu1804(domain string, ip net.IP) error {
 
 	data := []byte(fmt.Sprintf("[Resolve]\nDNS=%s\nDomains=~%s", ip, domain))
 
@@ -46,7 +47,7 @@ func installUbuntu1804() error {
 	return nil
 }
 
-func installGenericLinux() error {
+func installGenericLinux(domain string, ip net.IP) error {
 
 	data := []byte("[main]\ndns=dnsmasq\n")
 

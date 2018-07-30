@@ -3,7 +3,6 @@ package router
 import (
 	"bytes"
 	"encoding/binary"
-	"fmt"
 	"io/ioutil"
 	"net"
 	"os"
