@@ -69,7 +69,7 @@ func (p *Provider) streamLogs(w io.WriteCloser, group string, opts structs.LogsO
 			start = latest + 1
 		}
 
-		log.Success()
+		// log.Success()
 
 		if res.NextToken != nil {
 			req.NextToken = res.NextToken
