@@ -20,8 +20,6 @@ func (p *Provider) dockerInstance(id string) (*docker.Client, error) {
 		return nil, err
 	}
 
-	fmt.Printf("i = %+v\n", i)
-
 	host := ""
 
 	switch {
