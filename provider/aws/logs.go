@@ -141,7 +141,7 @@ func (p *Provider) writeLogEvents(w io.Writer, events []*cloudwatchlogs.Filtered
 		}
 	}
 
-	log.Success()
+	// log.Success()
 
 	return latest, nil
 }
