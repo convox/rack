@@ -37,6 +37,10 @@ func Update(c *stdcli.Context) error {
 		return err
 	}
 
+	if res.StatusCode != 200 {
+		return fmt.Errorf("invalid version")
+	}
+
 	defer res.Body.Close()
 
 	c.Startf("Updating to <release>%s</release>", target)
