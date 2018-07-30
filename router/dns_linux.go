@@ -21,7 +21,6 @@ func (d *DNS) setupResolver(domain string, ip net.IP) error {
 }
 
 func installUbuntu1804(domain string, ip net.IP) error {
-
 	data := []byte(fmt.Sprintf("[Resolve]\nDNS=%s\nDomains=~%s", ip, domain))
 
 	if err := writeFile("/usr/lib/systemd/resolved.conf.d/convox.conf", data); err != nil {
@@ -43,7 +42,6 @@ func installUbuntu1804(domain string, ip net.IP) error {
 }
 
 func installGenericLinux(domain string, ip net.IP) error {
-
 	data := []byte("[main]\ndns=dnsmasq\n")
 
 	if err := writeFile("/etc/NetworkManager/conf.d/convox.conf", data); err != nil {
