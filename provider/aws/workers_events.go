@@ -21,7 +21,7 @@ var (
 	started   = time.Now().UTC()
 )
 
-type appLogStream struct {
+type stackLogStream struct {
 	LogGroup      string
 	LogStream     string
 	SequenceToken string
@@ -103,17 +103,19 @@ func (p *Provider) handleCloudformationEvents() {
 			}
 		}
 
-		// ignore rack events for now
-		if message["StackName"] == p.Rack {
-			return nil
-		}
+		stack := message["StackName"]
 
-		app := strings.TrimPrefix(message["StackName"], fmt.Sprintf("%s-", p.Rack))
-
-		stream, err := p.getAppLogStream(app)
+		stream, err := p.getStackLogStream(stack)
 		if err != nil {
 			return err
 		}
+
+		// app := strings.TrimPrefix(message["StackName"], fmt.Sprintf("%s-", p.Rack))
+
+		// stream, err := p.getAppLogStream(app)
+		// if err != nil {
+		//   return err
+		// }
 
 		req := &cloudwatchlogs.PutLogEventsInput{
 			LogGroupName:  aws.String(stream.LogGroup),
@@ -140,7 +142,7 @@ func (p *Provider) handleCloudformationEvents() {
 
 		stream.SequenceToken = *pres.NextSequenceToken
 
-		cache.Set("appLogStreams", app, stream, 5*time.Minute)
+		cache.Set("stackLogStreams", stack, stream, 5*time.Minute)
 
 		return nil
 	})
@@ -186,7 +188,9 @@ func (p *Provider) handleECSEvents() {
 
 				app := strings.Split(strings.TrimPrefix(name, prefix), "-Service")[0]
 
-				stream, err := p.getAppLogStream(app)
+				stack := p.rackStack(app)
+
+				stream, err := p.getStackLogStream(stack)
 				if err != nil {
 					log.Error(err)
 					continue
@@ -229,7 +233,7 @@ func (p *Provider) handleECSEvents() {
 
 				stream.SequenceToken = *pres.NextSequenceToken
 
-				cache.Set("appLogStreams", app, stream, 5*time.Minute)
+				cache.Set("stackLogStreams", stack, stream, 5*time.Minute)
 			}
 
 			// fmt.Printf("sres = %+v\n", sres)
@@ -243,35 +247,35 @@ func (p *Provider) handleECSEvents() {
 	}
 }
 
-func (p *Provider) getAppLogStream(app string) (appLogStream, error) {
-	group, ok := cache.Get("appLogGroups", app).(string)
+func (p *Provider) getStackLogStream(stack string) (stackLogStream, error) {
+	group, ok := cache.Get("stackLogGroups", stack).(string)
 	if !ok {
-		g, err := p.appResource(app, "LogGroup")
+		g, err := p.stackResource(stack, "LogGroup")
 		if err != nil {
-			return appLogStream{}, err
+			return stackLogStream{}, err
 		}
-		group = g
-		cache.Set("appLogGroups", app, group, 5*time.Minute)
+		group = *g.PhysicalResourceId
+		cache.Set("stackLogGroups", stack, group, 5*time.Minute)
 	}
 
 	name := fmt.Sprintf("system/%d", time.Now().UnixNano())
 
-	stream, ok := cache.Get("appLogStreams", app).(appLogStream)
+	stream, ok := cache.Get("stackLogStreams", stack).(stackLogStream)
 	if !ok {
 		_, err := p.cloudwatchlogs().CreateLogStream(&cloudwatchlogs.CreateLogStreamInput{
 			LogGroupName:  aws.String(group),
 			LogStreamName: aws.String(name),
 		})
 		if err != nil {
-			return appLogStream{}, err
+			return stackLogStream{}, err
 		}
 
-		stream = appLogStream{
+		stream = stackLogStream{
 			LogGroup:  group,
 			LogStream: name,
 		}
 
-		cache.Set("appLogStreams", app, stream, 5*time.Minute)
+		cache.Set("stackLogStreams", stack, stream, 5*time.Minute)
 	}
 
 	return stream, nil
