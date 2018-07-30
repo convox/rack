@@ -17,6 +17,7 @@ services:
       - SECRET
     health:
       interval: 10
+    init: true
     resources:
       - database
     port: 1000
