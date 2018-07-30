@@ -5,8 +5,11 @@ import (
 	"bytes"
 	"fmt"
 	"io/ioutil"
+	"regexp"
 	"strings"
 )
+
+var kvpair = regexp.MustCompile(`(.*[^=])=(.*)`)
 
 func linuxReleaseAttributes() (map[string]string, error) {
 	attrs := map[string]string{}
@@ -17,13 +20,11 @@ func linuxReleaseAttributes() (map[string]string, error) {
 	s := bufio.NewScanner(bytes.NewReader(data))
 	for s.Scan() {
 		line := s.Text()
-		if len(line) == 0 {
-			continue
-		}
 		line = strings.Replace(line, "\"", "", -1)
-		line = strings.ToLower(line)
-		parts := strings.Split(line, "=")
-		attrs[parts[0]] = parts[1]
+		parts := kvpair.FindAllStringSubmatch(line, -1)
+		for _, kv := range parts {
+			attrs[kv[1]] = kv[2]
+		}
 	}
 	return attrs, nil
 }

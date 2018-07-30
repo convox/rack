@@ -13,19 +13,19 @@ func (d *DNS) setupResolver(domain string, ip net.IP) error {
 	}
 
 	switch version {
-	case "ubuntu-18.04":
-		if err := installUbuntu1804(domain, ip); err != nil {
+	case "Ubuntu-18.04":
+		if err := setupResolverUbuntu1804(domain, ip); err != nil {
 			return err
 		}
 	default:
-		if err := installGenericLinux(domain, ip); err != nil {
+		if err := setupResolverGenericLinux(domain, ip); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func installUbuntu1804(domain string, ip net.IP) error {
+func setupResolverUbuntu1804(domain string, ip net.IP) error {
 	data := []byte(fmt.Sprintf("[Resolve]\nDNS=%s\nDomains=~%s", ip, domain))
 
 	if err := writeFile("/usr/lib/systemd/resolved.conf.d/convox.conf", data); err != nil {
@@ -46,7 +46,7 @@ func installUbuntu1804(domain string, ip net.IP) error {
 	return nil
 }
 
-func installGenericLinux(domain string, ip net.IP) error {
+func setupResolverGenericLinux(domain string, ip net.IP) error {
 	data := []byte("[main]\ndns=dnsmasq\n")
 
 	if err := writeFile("/etc/NetworkManager/conf.d/convox.conf", data); err != nil {
