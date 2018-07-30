@@ -229,7 +229,7 @@ func RackParamsSet(c *stdcli.Context) error {
 	}
 
 	if c.Bool("wait") {
-		if err := waitForRackRunning(c); err != nil {
+		if err := waitForRackWithLogs(c); err != nil {
 			return err
 		}
 	}
@@ -384,7 +384,7 @@ func RackUpdate(c *stdcli.Context) error {
 	}
 
 	if c.Bool("wait") {
-		if err := waitForRackRunning(c); err != nil {
+		if err := waitForRackWithLogs(c); err != nil {
 			return err
 		}
 	}
