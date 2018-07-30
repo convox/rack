@@ -51,7 +51,7 @@ func linuxRelease() (string, error) {
 	os_identifier := make([]string, 2)
 	for _, line := range lines {
 		if len(line) == 0 {
-			break
+			continue
 		}
 		parts := strings.Split(line, "=")
 		key := parts[0]
