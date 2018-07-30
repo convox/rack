@@ -35,22 +35,35 @@ func writeFile(path string, data []byte) error {
 	return ioutil.WriteFile(path, data, 0644)
 }
 
-func isUbuntu18() bool {
-	check := exec.Command("lsb_release", "-ir")
+func linuxRelease() (string, error) {
+	os_info := exec.Command("/bin/cat", "/etc/os-release")
 	var buf bytes.Buffer
-	check.Stdout = &buf
+	os_info.Stdout = &buf
 
-	err := check.Run()
+	err := os_info.Run()
 
 	if err != nil {
-		return false
+		return "unknown", err
 	}
 
-	out := buf.String()
-	out = strings.ToLower(out)
-	if strings.Contains(out, "ubuntu") && strings.Contains(out, "18") {
-		return true
-	} else {
-		return false
+	output := buf.String()
+	lines := strings.Split(output, "\n")
+	os_identifier := make([]string, 2)
+	for _, line := range lines {
+		if len(line) == 0 {
+			break
+		}
+		parts := strings.Split(line, "=")
+		key := parts[0]
+		value := parts[1]
+		value = strings.Replace(value, "\"", "", -1)
+		value = strings.ToLower(value)
+		if key == "NAME" {
+			os_identifier[0] = value
+		}
+		if key == "VERSION_ID" {
+			os_identifier[1] = value
+		}
 	}
+	return strings.Join(os_identifier, "-"), nil
 }
