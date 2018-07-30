@@ -83,6 +83,11 @@ func init() {
 		Flags:    []stdcli.Flag{flagRack, flagWait},
 		Validate: stdcli.ArgsMax(1),
 	})
+
+	CLI.Command("rack wait", "wait for rack to finish updating", RackWait, stdcli.CommandOptions{
+		Flags:    []stdcli.Flag{flagRack},
+		Validate: stdcli.Args(0),
+	})
 }
 
 func Rack(c *stdcli.Context) error {
@@ -387,6 +392,16 @@ func RackUpdate(c *stdcli.Context) error {
 		if err := waitForRackRunning(c); err != nil {
 			return err
 		}
+	}
+
+	return c.OK()
+}
+
+func RackWait(c *stdcli.Context) error {
+	c.Startf("Waiting for rack")
+
+	if err := waitForRackWithLogs(c); err != nil {
+		return err
 	}
 
 	return c.OK()

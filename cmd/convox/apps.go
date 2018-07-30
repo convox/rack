@@ -63,6 +63,12 @@ func init() {
 		Usage:    "[app]",
 		Validate: stdcli.ArgsMax(1),
 	})
+
+	CLI.Command("apps wait", "wait for an app to finish updating", AppsWait, stdcli.CommandOptions{
+		Flags:    []stdcli.Flag{flagApp, flagRack},
+		Usage:    "[app]",
+		Validate: stdcli.ArgsMax(1),
+	})
 }
 
 func Apps(c *stdcli.Context) error {
@@ -247,6 +253,18 @@ func AppsWake(c *stdcli.Context) error {
 	c.Startf("Sleeping <app>%s</app>", app)
 
 	if err := provider(c).AppUpdate(app, structs.AppUpdateOptions{Sleep: options.Bool(false)}); err != nil {
+		return err
+	}
+
+	return c.OK()
+}
+
+func AppsWait(c *stdcli.Context) error {
+	app := coalesce(c.Arg(0), app(c))
+
+	c.Startf("Waiting for app")
+
+	if err := waitForAppWithLogs(c, app); err != nil {
 		return err
 	}
 
