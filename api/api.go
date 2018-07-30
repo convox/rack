@@ -33,7 +33,7 @@ func NewWithProvider(p structs.Provider) *Server {
 		Server:   stdapi.New("api", "api"),
 	}
 
-	s.Route("GET", "/check", s.check)
+	s.Route("GET", "/check", s.Check)
 
 	auth := s.Subrouter("/")
 
@@ -55,7 +55,7 @@ func (s *Server) authenticate(next stdapi.HandlerFunc) stdapi.HandlerFunc {
 	}
 }
 
-func (s *Server) check(c *stdapi.Context) error {
+func (s *Server) Check(c *stdapi.Context) error {
 	return c.RenderOK()
 }
 
