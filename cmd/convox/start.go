@@ -69,13 +69,16 @@ func Start(c *stdcli.Context) error {
 		p := provider(c)
 
 		s, err := p.SystemGet()
-		if err == nil && s.Provider == "local" {
+		if err != nil {
+			return err
+		}
+		if s.Provider == "local" {
 			opts.Provider = p
 		}
 	}
 
 	if opts.Provider == nil {
-		r, err := matchRack(c, "local")
+		r, err := matchRack(c, "local/")
 		if err != nil {
 			return err
 		}
