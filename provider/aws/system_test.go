@@ -135,6 +135,7 @@ func TestSystemUpdateNewParameter(t *testing.T) {
 func TestSystemProcessesList(t *testing.T) {
 	provider := StubAwsProvider(
 		cycleSystemListStackResources,
+		cycleSystemDescribeStacks,
 		cycleSystemListTasks,
 		cycleSystemDescribeTasks,
 		cycleSystemDescribeTaskDefinition,
@@ -153,7 +154,7 @@ func TestSystemProcessesList(t *testing.T) {
 func TestSystemProcessesListAll(t *testing.T) {
 	provider := StubAwsProvider(
 		cycleSystemListTasksAll,
-		cycleSystemDescribeTasks,
+		cycleSystemDescribeTasksAll,
 		cycleSystemDescribeTaskDefinition,
 		cycleSystemDescribeContainerInstances,
 		cycleSystemDescribeRackInstances,
@@ -831,6 +832,7 @@ var cycleSystemListTasks = awsutil.Cycle{
 		StatusCode: 200,
 		Body: `{
 			"taskArns": [
+				"arn:aws:ecs:us-east-1:778743527532:task/50b8de99-f94f-4ecd-a98f-5850760f0846",
 				"arn:aws:ecs:us-east-1:778743527532:task/50b8de99-f94f-4ecd-a98f-5850760f0845"
 			]
 		}`,
@@ -856,6 +858,47 @@ var cycleSystemListTasksAll = awsutil.Cycle{
 }
 
 var cycleSystemDescribeTasks = awsutil.Cycle{
+	Request: awsutil.Request{
+		RequestURI: "/",
+		Operation:  "AmazonEC2ContainerServiceV20141113.DescribeTasks",
+		Body: `{
+			"cluster": "cluster-test",
+			"tasks": [
+				"arn:aws:ecs:us-east-1:778743527532:task/50b8de99-f94f-4ecd-a98f-5850760f0846",
+				"arn:aws:ecs:us-east-1:778743527532:task/50b8de99-f94f-4ecd-a98f-5850760f0845"
+			]
+		}`,
+	},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body: `{
+			"failures": [],
+			"tasks": [
+				{
+					"taskArn": "arn:aws:ecs:us-east-1:778743527532:task/50b8de99-f94f-4ecd-a98f-5850760f0845",
+					"overrides": {
+						"containerOverrides": [
+							{
+								"command": ["sh", "-c", "foo"]
+							}
+						]
+					},
+					"lastStatus": "RUNNING",
+					"taskDefinitionArn": "arn:aws:ecs:us-east-1:778743527532:task-definition/convox:34",
+					"containerInstanceArn": "arn:aws:ecs:us-east-1:778743527532:container-instance/e126c67d-fa95-4b09-8b4a-3723932cd2aa",
+					"containers": [
+						{
+							"name": "web",
+							"containerArn": "arn:aws:ecs:us-east-1:778743527532:container/3ab3b8c5-aa5c-4b54-89f8-5f1193aff5f9"
+						}
+					]
+				}
+			]
+		}`,
+	},
+}
+
+var cycleSystemDescribeTasksAll = awsutil.Cycle{
 	Request: awsutil.Request{
 		RequestURI: "/",
 		Operation:  "AmazonEC2ContainerServiceV20141113.DescribeTasks",
@@ -1063,5 +1106,24 @@ var cycleSystemDockerListContainers2 = awsutil.Cycle{
 				"Ports": [{"PrivatePort": 2222, "PublicPort": 3333, "Type": "tcp"}]
 			}
 		]`,
+	},
+}
+
+var cycleSystemListTasksByStack = awsutil.Cycle{
+	Request: awsutil.Request{
+		RequestURI: "/",
+		Operation:  "AmazonEC2ContainerServiceV20141113.ListTasks",
+		Body: `{
+			"cluster": "cluster-test",
+			"serviceName": "service-web"
+		}`,
+	},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body: `{
+			"taskArns": [
+				"arn:aws:ecs:us-east-1:778743527532:task/50b8de99-f94f-4ecd-a98f-5850760f0846"
+			]
+		}`,
 	},
 }
