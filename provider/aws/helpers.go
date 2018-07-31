@@ -900,6 +900,26 @@ func (p *Provider) objectURL(ou string) (string, error) {
 	return fmt.Sprintf("https://s3.%s.amazonaws.com/%s%s", p.Region, p.SettingsBucket, u.Path), nil
 }
 
+func (p *Provider) serviceArn(app, service string) (string, error) {
+	sarn, err := p.appOutput(app, fmt.Sprintf("Service%sService", upperName(service)))
+	if err != nil {
+		return "", err
+	}
+	if sarn != "" {
+		return sarn, nil
+	}
+
+	sarn, err = p.appResource(app, fmt.Sprintf("Service%sService", upperName(service)))
+	if err != nil && !strings.HasPrefix(err.Error(), "resource not found") {
+		return "", err
+	}
+	if sarn != "" {
+		return sarn, nil
+	}
+
+	return "", nil
+}
+
 func (p *Provider) s3Exists(bucket, key string) (bool, error) {
 	_, err := p.s3().HeadObject(&s3.HeadObjectInput{
 		Bucket: aws.String(bucket),

@@ -224,7 +224,7 @@ func (p *Provider) ReleasePromote(app, id string) error {
 			"Service":      s,
 		}
 
-		sarn, err := p.appOutput(r.App, fmt.Sprintf("Service%sService", upperName(s.Name)))
+		sarn, err := p.serviceArn(r.App, s.Name)
 		if err != nil {
 			return err
 		}
