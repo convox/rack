@@ -738,6 +738,21 @@ func (p *Provider) listStackResources(stack string) ([]*cloudformation.StackReso
 	return srs, nil
 }
 
+func (p *Provider) appOutput(app, output string) (string, error) {
+	s, err := p.describeStack(p.rackStack(app))
+	if err != nil {
+		return "", err
+	}
+
+	for k, v := range stackOutputs(s) {
+		if k == output {
+			return v, nil
+		}
+	}
+
+	return "", nil
+}
+
 func (p *Provider) rackResource(resource string) (string, error) {
 	res, err := p.stackResource(p.Rack, resource)
 	if err != nil {
