@@ -8,7 +8,7 @@ import (
 func (d *DNS) setupResolver(domain string, ip net.IP) error {
 	version, err := linuxRelease()
 	switch version {
-	case "Ubuntu-18.04":
+	case "ubuntu-18.04":
 		if err := setupResolverUbuntu1804(domain, ip); err != nil {
 			return err
 		}
