@@ -8,7 +8,7 @@ import (
 	"regexp"
 )
 
-var kvpair = regexp.MustCompile(`(.*)=([^"].*|\"(.*)\")`)
+var kvpair = regexp.MustCompile(`\s*(\w+)\s*=\s*"?([^"]*)`)
 
 func linuxReleaseAttributes() (map[string]string, error) {
 	attrs := map[string]string{}
@@ -19,12 +19,8 @@ func linuxReleaseAttributes() (map[string]string, error) {
 	s := bufio.NewScanner(bytes.NewReader(data))
 	for s.Scan() {
 		p := kvpair.FindStringSubmatch(s.Text())
-		if len(p) == 4 {
-			if p[3] != "" {
-				attrs[p[1]] = p[3]
-			} else {
-				attrs[p[1]] = p[2]
-			}
+		if len(p) == 3 {
+			attrs[p[1]] = p[2]
 		}
 	}
 	return attrs, nil
