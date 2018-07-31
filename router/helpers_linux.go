@@ -9,7 +9,7 @@ import (
 	"strings"
 )
 
-var kvpair = regexp.MustCompile(`(.*[^=])=(.*)`)
+var kvpair = regexp.MustCompile(`(.*)=([^"].*|\"(.*)\")`)
 
 func linuxReleaseAttributes() (map[string]string, error) {
 	attrs := map[string]string{}
@@ -19,11 +19,13 @@ func linuxReleaseAttributes() (map[string]string, error) {
 	}
 	s := bufio.NewScanner(bytes.NewReader(data))
 	for s.Scan() {
-		line := s.Text()
-		line = strings.Replace(line, "\"", "", -1)
-		parts := kvpair.FindAllStringSubmatch(line, -1)
-		for _, kv := range parts {
-			attrs[kv[1]] = kv[2]
+		p := kvpair.FindStringSubmatch(s.Text())
+		if len(p) == 4 {
+			if p[3] != "" {
+				attrs[p[1]] = p[3]
+			} else {
+				attrs[p[1]] = p[2]
+			}
 		}
 	}
 	return attrs, nil
@@ -34,5 +36,5 @@ func linuxRelease() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return fmt.Sprintf("%s-%s", attrs["NAME"], attrs["VERSION_ID"]), nil
+	return fmt.Sprintf("%s-%s", attrs["ID"], attrs["VERSION_ID"]), nil
 }
