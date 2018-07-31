@@ -1025,7 +1025,7 @@ func (p *Provider) generateTaskDefinition2(app, service string, opts structs.Pro
 		return nil, err
 	}
 
-	sarn, err := p.appResource(app, fmt.Sprintf("Service%sService", upperName(service)))
+	sarn, err := p.serviceArn(app, service)
 	if err != nil {
 		return nil, err
 	}
