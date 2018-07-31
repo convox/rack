@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"regexp"
-	"strings"
 )
 
 var kvpair = regexp.MustCompile(`(.*)=([^"].*|\"(.*)\")`)
