@@ -6,6 +6,7 @@ services:
     - AWS_ACCESS_KEY_ID=
     - AWS_REGION=
     - AWS_SECRET_ACCESS_KEY=
+    - COMBINED=true
     - DEVELOPMENT=true
     - PASSWORD=
     - PROVIDER
@@ -19,23 +20,6 @@ services:
       path: /check
       timeout: 3
     port: https:5443
-    scale:
-      cpu: 2048
-      memory: 256
-    volumes:
-    - /Users/Shared/convox:/var/convox
-    - /var/run/docker.sock:/var/run/docker.sock
-  monitor:
-    build: .
-    command: bin/monitor
-    environment:
-    - AWS_ACCESS_KEY_ID=
-    - AWS_REGION=
-    - AWS_SECRET_ACCESS_KEY=
-    - DEVELOPMENT=true
-    - PROVIDER
-    - RACK
-    - VERSION=dev
     scale:
       cpu: 2048
       memory: 256
