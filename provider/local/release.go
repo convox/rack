@@ -132,6 +132,7 @@ func (p *Provider) ReleasePromote(app, id string) error {
 	}
 
 	a.Release = r.Id
+	a.Sleep = false
 
 	if err := p.storageStore(fmt.Sprintf("apps/%s/app.json", a.Name), a); err != nil {
 		return errors.WithStack(log.Error(err))
