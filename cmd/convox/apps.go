@@ -250,7 +250,7 @@ func AppsSleep(c *stdcli.Context) error {
 func AppsWake(c *stdcli.Context) error {
 	app := coalesce(c.Arg(0), app(c))
 
-	c.Startf("Sleeping <app>%s</app>", app)
+	c.Startf("Waking <app>%s</app>", app)
 
 	if err := provider(c).AppUpdate(app, structs.AppUpdateOptions{Sleep: options.Bool(false)}); err != nil {
 		return err
