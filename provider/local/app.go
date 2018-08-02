@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/convox/rack/helpers"
+	"github.com/convox/rack/options"
 	"github.com/convox/rack/structs"
 	"github.com/pkg/errors"
 )
@@ -112,31 +113,56 @@ func (p *Provider) AppLogs(app string, opts structs.LogsOptions) (io.Reader, err
 		return nil, log.Error(err)
 	}
 
-	pss, err := p.ProcessList(app, structs.ProcessListOptions{})
-	if err != nil {
-		return nil, errors.WithStack(log.Error(err))
-	}
-
 	r, w := io.Pipe()
 
-	var wg sync.WaitGroup
-
-	for _, ps := range pss {
-		wg.Add(1)
-		go func(ps structs.Process, wg *sync.WaitGroup) {
-			defer wg.Done()
-			if pr, err := p.ProcessLogs(app, ps.Id, opts); err == nil {
-				helpers.Stream(w, pr)
-			}
-		}(ps, &wg)
-	}
-
 	go func() {
-		wg.Wait()
-		w.Close()
+		pids := map[string]bool{}
+
+		var wg sync.WaitGroup
+		done := false
+
+		go func() {
+			time.Sleep(5 * time.Second)
+			wg.Wait()
+			done = true
+			w.Close()
+		}()
+
+		for {
+			if done {
+				break
+			}
+
+			pss, err := p.ProcessList(app, structs.ProcessListOptions{})
+			if err != nil {
+				log.Error(err)
+				continue
+			}
+
+			for _, ps := range pss {
+				popts := opts
+				popts.Since = options.Duration(60 * time.Minute)
+				if _, ok := pids[ps.Id]; !ok {
+					go p.streamProcessLogs(app, ps.Id, popts, w, &wg)
+					pids[ps.Id] = true
+				}
+			}
+
+			time.Sleep(1 * time.Second)
+		}
 	}()
 
 	return r, log.Success()
+}
+
+func (p *Provider) streamProcessLogs(app, pid string, opts structs.LogsOptions, w io.Writer, wg *sync.WaitGroup) {
+	wg.Add(1)
+	defer wg.Done()
+	r, err := p.ProcessLogs(app, pid, opts)
+	if err != nil {
+		return
+	}
+	helpers.Stream(w, r)
 }
 
 func (p *Provider) AppRegistry(app string) (*structs.Registry, error) {
