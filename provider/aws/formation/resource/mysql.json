@@ -1,5 +1,5 @@
 {
-  "AWSTemplateFormatVersion": "2010-09-09",
+  "AWSTemplateFormatVersion" : "2010-09-09",
   "Parameters": {
     "Password": {
       "MinLength": "8",
@@ -12,15 +12,15 @@
     }
   },
   "Outputs": {
-    "Url": { "Value": { "Fn::Sub": "postgres://app:${Password}@${Instance.Endpoint.Address}:${Instance.Endpoint.Port}/app" } }
+    "Url": { "Value": { "Fn::Sub": "mysql://app:${Password}@${Instance.Endpoint.Address}:${Instance.Endpoint.Port}/app" } }
   },
   "Resources": {
     "SecurityGroup": {
       "Type": "AWS::EC2::SecurityGroup",
       "Properties": {
-        "GroupDescription": "postgres resource",
+        "GroupDescription": "mysql resource",
         "SecurityGroupIngress": [
-          { "IpProtocol": "tcp", "FromPort": "5432", "ToPort": "5432", "CidrIp": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:VpcCidr" } } }
+          { "IpProtocol": "tcp", "FromPort": "3306", "ToPort": "3306", "CidrIp": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:VpcCidr" } } }
         ],
         "VpcId": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Vpc" } }
       }
@@ -45,12 +45,12 @@
         "DBName": "app",
         "DBParameterGroupName": { "Ref": "ParameterGroup" },
         "DBSubnetGroupName": { "Ref": "SubnetGroup" },
-        "Engine": "postgres",
-        "EngineVersion": "9.6.6",
+        "Engine": "mysql",
+        "EngineVersion": "5.7.22",
         "MasterUsername": "app",
         "MasterUserPassword": { "Ref": "Password" },
         "MultiAZ": "false",
-        "Port": "5432",
+        "Port": "3306",
         "PubliclyAccessible": "false",
         "StorageType": "gp2",
         "VPCSecurityGroups": [ { "Ref": "SecurityGroup" } ]
@@ -60,7 +60,7 @@
       "Type": "AWS::RDS::DBParameterGroup",
       "Properties": {
         "Description": { "Fn::Sub": "${AWS::StackName} parameters" },
-        "Family": "postgres9.6"
+        "Family": "mysql5.7"
       }
     }
   }

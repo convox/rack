@@ -154,6 +154,10 @@ func (p *Provider) Initialize(opts structs.ProviderOptions) error {
 		Logger = logger.NewWriter("ns=aws", opts.Logs)
 	}
 
+	if os.Getenv("COMBINED") == "true" {
+		go p.Workers()
+	}
+
 	return nil
 }
 

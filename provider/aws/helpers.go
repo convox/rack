@@ -738,6 +738,21 @@ func (p *Provider) listStackResources(stack string) ([]*cloudformation.StackReso
 	return srs, nil
 }
 
+func (p *Provider) appOutput(app, output string) (string, error) {
+	s, err := p.describeStack(p.rackStack(app))
+	if err != nil {
+		return "", err
+	}
+
+	for k, v := range stackOutputs(s) {
+		if k == output {
+			return v, nil
+		}
+	}
+
+	return "", nil
+}
+
 func (p *Provider) rackResource(resource string) (string, error) {
 	res, err := p.stackResource(p.Rack, resource)
 	if err != nil {
@@ -885,6 +900,26 @@ func (p *Provider) objectURL(ou string) (string, error) {
 	return fmt.Sprintf("https://s3.%s.amazonaws.com/%s%s", p.Region, p.SettingsBucket, u.Path), nil
 }
 
+func (p *Provider) serviceArn(app, service string) (string, error) {
+	sarn, err := p.appOutput(app, fmt.Sprintf("Service%sService", upperName(service)))
+	if err != nil {
+		return "", err
+	}
+	if sarn != "" {
+		return sarn, nil
+	}
+
+	sarn, err = p.appResource(app, fmt.Sprintf("Service%sService", upperName(service)))
+	if err != nil && !strings.HasPrefix(err.Error(), "resource not found") {
+		return "", err
+	}
+	if sarn != "" {
+		return sarn, nil
+	}
+
+	return "", nil
+}
+
 func (p *Provider) s3Exists(bucket, key string) (bool, error) {
 	_, err := p.s3().HeadObject(&s3.HeadObjectInput{
 		Bucket: aws.String(bucket),
@@ -1003,7 +1038,7 @@ func (p *Provider) taskDefinitionRelease(arn string) (string, error) {
 // updateStack updates a stack
 //   template is url to a template or empty string to reuse previous
 //   changes is a list of parameter changes to make (does not need to include every param)
-func (p *Provider) updateStack(name string, template string, changes map[string]string) error {
+func (p *Provider) updateStack(name string, template string, changes map[string]string, tags map[string]string) error {
 	cache.Clear("describeStacks", nil)
 	cache.Clear("describeStacks", name)
 
@@ -1103,6 +1138,15 @@ func (p *Provider) updateStack(name string, template string, changes map[string]
 				UsePreviousValue: aws.Bool(true),
 			})
 		}
+	}
+
+	req.Tags = stack.Tags
+
+	for key, value := range tags {
+		req.Tags = append(req.Tags, &cloudformation.Tag{
+			Key:   aws.String(key),
+			Value: aws.String(value),
+		})
 	}
 
 	_, err = p.cloudformation().UpdateStack(req)
