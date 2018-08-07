@@ -56,12 +56,12 @@ func formationHelpers() template.FuncMap {
 		"join": func(ss []string, j string) string {
 			return strings.Join(ss, j)
 		},
-		"priority": func(app, service, domain string) uint32 {
+		"priority": func(app, service, domain string, index int) uint32 {
 			tier := uint32(1)
 			if strings.HasPrefix(domain, "*.") {
 				tier = 25000
 			}
-			return (crc32.ChecksumIEEE([]byte(fmt.Sprintf("%s-%s-%s", app, service, domain))) % 25000) + tier
+			return (crc32.ChecksumIEEE([]byte(fmt.Sprintf("%s-%s-%s-%d", app, service, domain, index))) % 25000) + tier
 		},
 		"router": func(service string, m *manifest.Manifest) (string, error) {
 			s, err := m.Service(service)
