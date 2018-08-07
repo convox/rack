@@ -217,10 +217,6 @@ func (p *Provider) CertificateList() (structs.Certificates, error) {
 			continue
 		}
 
-		if tags["System"] == "convox" && tags["Type"] == "service" {
-			continue
-		}
-
 		c, err := p.certificateGetACM(*cert.CertificateArn)
 		if err != nil {
 			return nil, err
