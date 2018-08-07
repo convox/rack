@@ -6,6 +6,7 @@
     "BlankIamPolicy": { "Fn::Equals": [ { "Ref": "IamPolicy" }, "" ] },
     "BlankLogBucket": { "Fn::Equals": [ { "Ref": "LogBucket" }, "" ] },
     "BlankLogRetention": { "Fn::Equals": [ { "Ref": "LogRetention" }, "" ] },
+    "BlankResourcePassword": { "Fn::Equals": [ { "Ref": "ResourcePassword" }, "" ] },
     "FargateServices": { "Fn::Equals": [ { "Ref": "FargateServices" }, "Yes" ] },
     "FargateTimers": { "Fn::Equals": [ { "Ref": "FargateTimers" }, "Yes" ] },
     "InternalDomains": { "Fn::Equals": [ { "Ref": "InternalDomains" }, "Yes" ] },
@@ -74,6 +75,12 @@
     "Rack": {
       "Type": "String",
       "MinLength": "1"
+    },
+    "ResourcePassword": {
+      "Type": "String",
+      "Default": "",
+      "Description": "Override the password set for embedded resources",
+      "NoEcho": true
     }
   },
   "Resources": {
@@ -153,7 +160,10 @@
       "Properties": {
         "NotificationARNs": [ "{{ $.Topic }}" ],
         "Parameters": {
-          "Password": { "Fn::Base64": { "Fn::Select": [ 2, { "Fn::Split": [ "/", { "Ref": "AWS::StackId" } ] } ] } },
+          "Password": { "Fn::If": [ "BlankResourcePassword",
+            { "Fn::Select": [ 2, { "Fn::Split": [ "/", { "Ref": "AWS::StackId" } ] } ] },
+            { "Ref": "ResourcePassword" }
+          ] },
           "Rack": { "Ref": "Rack" }
         },
         "Tags": [

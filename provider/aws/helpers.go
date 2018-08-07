@@ -1038,7 +1038,7 @@ func (p *Provider) taskDefinitionRelease(arn string) (string, error) {
 // updateStack updates a stack
 //   template is url to a template or empty string to reuse previous
 //   changes is a list of parameter changes to make (does not need to include every param)
-func (p *Provider) updateStack(name string, template string, changes map[string]string) error {
+func (p *Provider) updateStack(name string, template string, changes map[string]string, tags map[string]string) error {
 	cache.Clear("describeStacks", nil)
 	cache.Clear("describeStacks", name)
 
@@ -1138,6 +1138,15 @@ func (p *Provider) updateStack(name string, template string, changes map[string]
 				UsePreviousValue: aws.Bool(true),
 			})
 		}
+	}
+
+	req.Tags = stack.Tags
+
+	for key, value := range tags {
+		req.Tags = append(req.Tags, &cloudformation.Tag{
+			Key:   aws.String(key),
+			Value: aws.String(value),
+		})
 	}
 
 	_, err = p.cloudformation().UpdateStack(req)
