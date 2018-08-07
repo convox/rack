@@ -23,6 +23,8 @@ func (st streamTester) Close() error {
 func TestProcessExec(t *testing.T) {
 	provider := StubAwsProvider(
 		cycleProcessListStackResources,
+		cycleProcessDescribeStacks,
+		cycleProcessListTasksByStack,
 		cycleProcessListTasksByService1,
 		cycleProcessListTasksByService2,
 		cycleProcessListTasksByStarted,
@@ -66,6 +68,8 @@ func TestProcessExec(t *testing.T) {
 func TestProcessList(t *testing.T) {
 	provider := StubAwsProvider(
 		cycleProcessListStackResources,
+		cycleProcessDescribeStacks,
+		cycleProcessListTasksByStack,
 		cycleProcessListTasksByService1,
 		cycleProcessListTasksByService2,
 		cycleProcessListTasksByStarted,
@@ -118,6 +122,8 @@ func TestProcessList(t *testing.T) {
 func TestProcessListEmpty(t *testing.T) {
 	provider := StubAwsProvider(
 		cycleProcessListStackResources,
+		cycleProcessDescribeStacks,
+		cycleProcessListTasksByStackEmpty,
 		cycleProcessListTasksByService1Empty,
 		cycleProcessListTasksByService2Empty,
 		cycleProcessListTasksByStartedEmpty,
@@ -134,6 +140,8 @@ func TestProcessListEmpty(t *testing.T) {
 func TestProcessListWithBuildCluster(t *testing.T) {
 	provider := StubAwsProvider(
 		cycleProcessListStackResources,
+		cycleProcessDescribeStacks,
+		cycleProcessListTasksByStack,
 		cycleProcessListTasksByService1,
 		cycleProcessListTasksByService2,
 		cycleProcessListTasksByStarted,
@@ -222,6 +230,8 @@ func TestProcessRunDetached(t *testing.T) {
 		cycleProcessReleaseUpdateItem,
 		cycleProcessRunTaskDetached,
 		cycleProcessListStackResources,
+		cycleProcessDescribeStacks,
+		cycleProcessListTasksByStack,
 		cycleProcessListTasksByService1,
 		cycleProcessListTasksByService2,
 		cycleProcessListTasksByStarted,
@@ -415,6 +425,10 @@ var cycleProcessDescribeStacks = awsutil.Cycle{
 								<member>
 									<OutputKey>RegistryRepository</OutputKey>
 									<OutputValue>convox-myapp-nkdecwppkq</OutputValue>
+								</member>
+								<member>
+									<OutputKey>ServiceWebService</OutputKey>
+									<OutputValue>service-web</OutputValue>
 								</member>
 							</Outputs>
 							<Capabilities>
@@ -654,6 +668,7 @@ var cycleProcessDescribeTasksAll = awsutil.Cycle{
 			"cluster": "cluster-test",
 			"tasks": [
 				"arn:aws:ecs:us-east-1:778743527532:task/50b8de99-f94f-4ecd-a98f-5850760f0846",
+				"arn:aws:ecs:us-east-1:778743527532:task/50b8de99-f94f-4ecd-a98f-5850760f0846",
 				"arn:aws:ecs:us-east-1:778743527532:task/50b8de99-f94f-4ecd-a98f-5850760f0847",
 				"arn:aws:ecs:us-east-1:778743527532:task/50b8de99-f94f-4ecd-a98f-5850760f0845"
 			]
@@ -710,6 +725,7 @@ var cycleProcessDescribeTasksAllWithBuildCluster = awsutil.Cycle{
 		Body: `{
 			"cluster": "cluster-test",
 			"tasks": [
+				"arn:aws:ecs:us-east-1:778743527532:task/50b8de99-f94f-4ecd-a98f-5850760f0846",
 				"arn:aws:ecs:us-east-1:778743527532:task/50b8de99-f94f-4ecd-a98f-5850760f0846",
 				"arn:aws:ecs:us-east-1:778743527532:task/50b8de99-f94f-4ecd-a98f-5850760f0847",
 				"arn:aws:ecs:us-east-1:778743527532:task/50b8de99-f94f-4ecd-a98f-5850760f0845",
@@ -768,6 +784,7 @@ var cycleProcessDescribeTasksAllOnBuildCluster = awsutil.Cycle{
 		Body: `{
 			"cluster": "cluster-build",
 			"tasks": [
+				"arn:aws:ecs:us-east-1:778743527532:task/50b8de99-f94f-4ecd-a98f-5850760f0846",
 				"arn:aws:ecs:us-east-1:778743527532:task/50b8de99-f94f-4ecd-a98f-5850760f0846",
 				"arn:aws:ecs:us-east-1:778743527532:task/50b8de99-f94f-4ecd-a98f-5850760f0847",
 				"arn:aws:ecs:us-east-1:778743527532:task/50b8de99-f94f-4ecd-a98f-5850760f0845",
@@ -1051,6 +1068,42 @@ var cycleProcessListTasksByStartedEmpty = awsutil.Cycle{
 		Body: `{
 			"cluster": "cluster-test",
 			"startedBy": "convox.myapp"
+		}`,
+	},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body: `{
+			"taskArns": []
+		}`,
+	},
+}
+
+var cycleProcessListTasksByStack = awsutil.Cycle{
+	Request: awsutil.Request{
+		RequestURI: "/",
+		Operation:  "AmazonEC2ContainerServiceV20141113.ListTasks",
+		Body: `{
+			"cluster": "cluster-test",
+			"serviceName": "service-web"
+		}`,
+	},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body: `{
+			"taskArns": [
+				"arn:aws:ecs:us-east-1:778743527532:task/50b8de99-f94f-4ecd-a98f-5850760f0846"
+			]
+		}`,
+	},
+}
+
+var cycleProcessListTasksByStackEmpty = awsutil.Cycle{
+	Request: awsutil.Request{
+		RequestURI: "/",
+		Operation:  "AmazonEC2ContainerServiceV20141113.ListTasks",
+		Body: `{
+			"cluster": "cluster-test",
+			"serviceName": "service-web"
 		}`,
 	},
 	Response: awsutil.Response{

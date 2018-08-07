@@ -14,6 +14,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
+	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/convox/rack/crypt"
@@ -196,26 +197,12 @@ func (p *Provider) ReleasePromote(app, id string) error {
 		return err
 	}
 
-	first := map[string]bool{}
-
-	rs, err := p.appResources(app)
-	if err != nil {
-		return err
-	}
-
-	for _, s := range m.Services {
-		if _, ok := rs[fmt.Sprintf("Service%sService", upperName(s.Name))]; !ok {
-			first[s.Name] = true
-		}
-	}
-
 	tp := map[string]interface{}{
 		"App":          r.App,
 		"Certificates": cs,
-		"Env":          env,
-		"First":        first,
 		"Manifest":     m,
 		"Release":      r,
+		"Topic":        p.CloudformationTopic,
 		"Version":      p.Version,
 	}
 
@@ -226,6 +213,47 @@ func (p *Provider) ReleasePromote(app, id string) error {
 		}
 
 		tp["Build"] = b
+	}
+
+	for _, s := range m.Services {
+		stp := map[string]interface{}{
+			"App":      r.App,
+			"Build":    tp["Build"],
+			"Manifest": tp["Manifest"],
+			"Release":  tp["Release"],
+			"Service":  s,
+		}
+
+		sarn, err := p.serviceArn(r.App, s.Name)
+		if err != nil {
+			return err
+		}
+
+		if sarn != "" {
+			res, err := p.describeServices(&ecs.DescribeServicesInput{
+				Cluster:  aws.String(p.Cluster),
+				Services: []*string{aws.String(sarn)},
+			})
+			if err != nil {
+				return err
+			}
+
+			if len(res.Services) == 1 && res.Services[0].DesiredCount != nil {
+				stp["CurrentDesiredCount"] = *res.Services[0].DesiredCount
+			}
+		}
+
+		data, err := formationTemplate("service", stp)
+		if err != nil {
+			return err
+		}
+
+		ou, err := p.ObjectStore(app, "", bytes.NewReader(data), structs.ObjectStoreOptions{Public: options.Bool(true)})
+		if err != nil {
+			return err
+		}
+
+		tp[fmt.Sprintf("Template%s", upperName(s.Name))] = ou.Url
 	}
 
 	data, err := formationTemplate("app", tp)

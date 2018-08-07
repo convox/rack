@@ -241,6 +241,17 @@ func (p *Provider) stackTasks(stack string) ([]string, error) {
 
 	services := []string{}
 
+	s, err := p.describeStack(stack)
+	if err != nil {
+		return nil, err
+	}
+
+	for k, v := range stackOutputs(s) {
+		if strings.HasPrefix(k, "Service") && strings.HasSuffix(k, "Service") {
+			services = append(services, v)
+		}
+	}
+
 	for _, sr := range srs {
 		switch *sr.ResourceType {
 		case "AWS::ECS::Service", "Custom::ECSService":
@@ -1014,7 +1025,7 @@ func (p *Provider) generateTaskDefinition2(app, service string, opts structs.Pro
 		return nil, err
 	}
 
-	sarn, err := p.appResource(app, fmt.Sprintf("Service%sService", upperName(service)))
+	sarn, err := p.serviceArn(app, service)
 	if err != nil {
 		return nil, err
 	}
