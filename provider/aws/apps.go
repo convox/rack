@@ -211,7 +211,7 @@ func (p *Provider) AppUpdate(app string, opts structs.AppUpdateOptions) error {
 		return fmt.Errorf("sleeping not yet supported on aws racks")
 	}
 
-	return p.updateStack(p.rackStack(app), "", opts.Parameters)
+	return p.updateStack(p.rackStack(app), "", opts.Parameters, map[string]string{})
 }
 
 // appRepository defines an image repository for an App
