@@ -126,7 +126,7 @@ func (p *Provider) handleCloudformationEvents() {
 			req.SequenceToken = aws.String(stream.SequenceToken)
 		}
 
-		log := fmt.Sprintf("aws/cfm %s %s %s", message["ResourceStatus"], message["LogicalResourceId"], message["ResourceStatusReason"])
+		log := fmt.Sprintf("aws/cfm %s %s %s %s", stack, message["ResourceStatus"], message["LogicalResourceId"], message["ResourceStatusReason"])
 
 		req.LogEvents = []*cloudwatchlogs.InputLogEvent{
 			&cloudwatchlogs.InputLogEvent{
@@ -250,11 +250,25 @@ func (p *Provider) handleECSEvents() {
 func (p *Provider) getStackLogStream(stack string) (stackLogStream, error) {
 	group, ok := cache.Get("stackLogGroups", stack).(string)
 	if !ok {
-		g, err := p.stackResource(stack, "LogGroup")
+		s, err := p.describeStack(stack)
 		if err != nil {
 			return stackLogStream{}, err
 		}
-		group = *g.PhysicalResourceId
+
+		if s.ParentId != nil {
+			g, err := p.stackResource(*s.ParentId, "LogGroup")
+			if err != nil {
+				return stackLogStream{}, err
+			}
+			group = *g.PhysicalResourceId
+		} else {
+			g, err := p.stackResource(stack, "LogGroup")
+			if err != nil {
+				return stackLogStream{}, err
+			}
+			group = *g.PhysicalResourceId
+		}
+
 		cache.Set("stackLogGroups", stack, group, 5*time.Minute)
 	}
 
