@@ -9,15 +9,7 @@
     "Outputs": {
       {{ if .Port.Port }}
         "Certificate": {
-          "Value": {{ if .Domain }}
-            {{ with certificate $.Certificates .Domains }}
-              "{{.}}"
-            {{ else }}
-              { "Ref": "Balancer{{ upper .Name }}Certificate" }
-            {{ end }}
-          {{ else }}
-            { "Fn::ImportValue": { "Fn::Sub": "${Rack}:RouterCertificate" } }
-          {{ end }}
+          "Value": { "Ref": "Certificate" }
         },
         "Endpoint": {
           "Value": { "Fn::If": [ "InternalDomains",
@@ -34,6 +26,9 @@
       }
     },
     "Parameters" : {
+      "Certificate": {
+        "Type": "String"
+      },
       "Count": {
         "Type": "Number"
       },
@@ -123,27 +118,27 @@
         }
       },
       {{ if .Port.Port }}
-        "Balancer{{ upper .Name }}ListenerRule80": {
+        "BalancerListenerRule80": {
           "Type": "AWS::ElasticLoadBalancingV2::ListenerRule",
           {{ if .Domain }} "Condition": "InternalDomains", {{ end }}
           "Properties": {
-            "Actions": [ { "Type": "forward", "TargetGroupArn": { "Ref": "Balancer{{ upper .Name }}TargetGroup{{ if .Internal }}Internal{{ end }}" } } ],
+            "Actions": [ { "Type": "forward", "TargetGroupArn": { "Ref": "BalancerTargetGroup{{ if .Internal }}Internal{{ end }}" } } ],
             "Conditions": [ { "Field": "host-header", "Values": [ { "Fn::Join": [ ".", [ "{{$.App}}-{{.Name}}", { "Fn::ImportValue": { "Fn::Sub": "${Rack}:{{ router .Name $.Manifest }}Host" } } ] ] } ] } ],
             "ListenerArn": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:{{ router .Name $.Manifest }}Listener80" } },
             "Priority": "{{ priority $.App .Name "default" -1 }}"
           }
         },
-        "Balancer{{ upper .Name }}ListenerRule443": {
+        "BalancerListenerRule443": {
           "Type": "AWS::ElasticLoadBalancingV2::ListenerRule",
           {{ if .Domain }} "Condition": "InternalDomains", {{ end }}
           "Properties": {
-            "Actions": [ { "Type": "forward", "TargetGroupArn": { "Ref": "Balancer{{ upper .Name }}TargetGroup{{ if .Internal }}Internal{{ end }}" } } ],
+            "Actions": [ { "Type": "forward", "TargetGroupArn": { "Ref": "BalancerTargetGroup{{ if .Internal }}Internal{{ end }}" } } ],
             "Conditions": [ { "Field": "host-header", "Values": [ { "Fn::Join": [ ".", [ "{{$.App}}-{{.Name}}", { "Fn::ImportValue": { "Fn::Sub": "${Rack}:{{ router .Name $.Manifest }}Host" } } ] ] } ] } ],
             "ListenerArn": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:{{ router .Name $.Manifest }}Listener443" } },
             "Priority": "{{ priority $.App .Name "default" -1 }}"
           }
         },
-        "RecordSet{{ upper .Name }}Internal": {
+        "RecordSetInternal": {
           "Type": "AWS::Route53::RecordSet",
           "Condition": "InternalDomains",
           "Properties": {
@@ -154,78 +149,54 @@
             "ResourceRecords": [ { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Domain{{ if .Internal }}Internal{{ end }}" } } ]
           }
         },
-        "Balancer{{ upper .Name }}ListenerRule80Internal": {
+        "BalancerListenerRule80Internal": {
           "Type": "AWS::ElasticLoadBalancingV2::ListenerRule",
           "Condition": "InternalDomains",
           "Properties": {
-            "Actions": [ { "Type": "forward", "TargetGroupArn": { "Ref": "Balancer{{ upper .Name }}TargetGroup{{ if .Internal }}Internal{{ end }}" } } ],
+            "Actions": [ { "Type": "forward", "TargetGroupArn": { "Ref": "BalancerTargetGroup{{ if .Internal }}Internal{{ end }}" } } ],
             "Conditions": [ { "Field": "host-header", "Values": [ { "Fn::Sub": "{{.Name}}.{{$.App}}.${Rack}.convox" } ] } ],
             "ListenerArn": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:{{ router .Name $.Manifest }}Listener80" } },
             "Priority": "{{ priority $.App .Name "internal" -1 }}"
           }
         },
-        "Balancer{{ upper .Name }}ListenerRule443Internal": {
+        "BalancerListenerRule443Internal": {
           "Type": "AWS::ElasticLoadBalancingV2::ListenerRule",
           "Condition": "InternalDomains",
           "Properties": {
-            "Actions": [ { "Type": "forward", "TargetGroupArn": { "Ref": "Balancer{{ upper .Name }}TargetGroup{{ if .Internal }}Internal{{ end }}" } } ],
+            "Actions": [ { "Type": "forward", "TargetGroupArn": { "Ref": "BalancerTargetGroup{{ if .Internal }}Internal{{ end }}" } } ],
             "Conditions": [ { "Field": "host-header", "Values": [ { "Fn::Sub": "{{.Name}}.{{$.App}}.${Rack}.convox" } ] } ],
             "ListenerArn": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:{{ router .Name $.Manifest }}Listener443" } },
             "Priority": "{{ priority $.App .Name "internal" -1 }}"
           }
         },
         {{ if .Domain }}
-          {{ $existing := certificate $.Certificates .Domains }}
-          {{ if not $existing }}
-            "Balancer{{ upper .Name }}Certificate": {
-              "Type": "AWS::CertificateManager::Certificate",
-              "Properties": {
-                "DomainName": "{{ .Domain }}",
-                "DomainValidationOptions": [
-                  {{ range .Domains }}
-                    { "DomainName": "{{ . }}", "ValidationDomain": "{{ apex . }}" },
-                  {{ end }}
-                  { "Ref": "AWS::NoValue" }
-                ],
-                "SubjectAlternativeNames": [
-                  {{ range .Domains }}
-                    "{{.}}",
-                  {{ end }}
-                  { "Ref": "AWS::NoValue" }
-                ],
-                "Tags": [
-                  { "Key": "Name", "Value": "{{$.App}}-{{.Name}}" }
-                ]
-              }
-            },
-          {{ end }}
-          "Balancer{{ upper .Name }}ListenerCertificate": {
+          "BalancerListenerCertificate": {
             "Type": "AWS::ElasticLoadBalancingV2::ListenerCertificate",
             "Properties": {
-              "Certificates": [ { "CertificateArn": {{ with $existing }} "{{.}}" {{ else }} { "Ref": "Balancer{{ upper .Name }}Certificate" } {{ end }} } ],
+              "Certificates": [ { "CertificateArn": { "Ref": "Certificate" } } ],
               "ListenerArn": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:{{ router .Name $.Manifest }}Listener443" } }
             }
           },
           {{ range $i, $domain := .Domains }}
-            "Balancer{{ upper $.Service.Name }}ListenerRule80Domain{{$i}}": {
+            "BalancerListenerRule80Domain{{$i}}": {
               "Type": "AWS::ElasticLoadBalancingV2::ListenerRule",
               {{ if gt $i 0 }}
-                "DependsOn": "Balancer{{ upper $.Service.Name }}ListenerRule80Domain{{ dec $i }}",
+                "DependsOn": "BalancerListenerRule80Domain{{ dec $i }}",
               {{ end }}
               "Properties": {
-              "Actions": [ { "Type": "forward", "TargetGroupArn": { "Ref": "Balancer{{ upper $.Service.Name }}TargetGroup{{ if $.Service.Internal }}Internal{{ end }}" } } ],
+              "Actions": [ { "Type": "forward", "TargetGroupArn": { "Ref": "BalancerTargetGroup{{ if $.Service.Internal }}Internal{{ end }}" } } ],
                 "Conditions": [ { "Field": "host-header", "Values": [ "{{$domain}}" ] } ],
                 "ListenerArn": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:{{ router $.Service.Name $.Manifest }}Listener80" } },
                 "Priority": "{{ priority $.App $.Service.Name $domain $i }}"
               }
             },
-            "Balancer{{ upper $.Service.Name }}ListenerRule443Domain{{$i}}": {
+            "BalancerListenerRule443Domain{{$i}}": {
               "Type": "AWS::ElasticLoadBalancingV2::ListenerRule",
               {{ if gt $i 0 }}
-                "DependsOn": "Balancer{{ upper $.Service.Name }}ListenerRule443Domain{{ dec $i }}",
+                "DependsOn": "BalancerListenerRule443Domain{{ dec $i }}",
               {{ end }}
               "Properties": {
-              "Actions": [ { "Type": "forward", "TargetGroupArn": { "Ref": "Balancer{{ upper $.Service.Name }}TargetGroup{{ if $.Service.Internal }}Internal{{ end }}" } } ],
+              "Actions": [ { "Type": "forward", "TargetGroupArn": { "Ref": "BalancerTargetGroup{{ if $.Service.Internal }}Internal{{ end }}" } } ],
                 "Conditions": [ { "Field": "host-header", "Values": [ "{{$domain}}" ] } ],
                 "ListenerArn": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:{{ router $.Service.Name $.Manifest }}Listener443" } },
                 "Priority": "{{ priority $.App $.Service.Name $domain $i }}"
@@ -234,7 +205,7 @@
           {{ end }}
         {{ end }}
       {{ end }}
-      "Balancer{{ upper .Name }}TargetGroup{{ if .Internal }}Internal{{ end }}": {
+      "BalancerTargetGroup{{ if .Internal }}Internal{{ end }}": {
         "Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
         "Properties": {
           "HealthCheckIntervalSeconds": "{{.Health.Interval}}",
@@ -305,7 +276,7 @@
             "TargetTrackingScalingPolicyConfiguration": {
               "PredefinedMetricSpecification": {
                 "PredefinedMetricType": "ALBRequestCountPerTarget",
-                "ResourceLabel": { "Fn::Sub": [ "${Balancer}/${Balancer{{ upper .Name }}TargetGroup{{ if .Internal }}Internal{{ end }}.TargetGroupFullName}", { "Balancer": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Router{{ if .Internal }}Internal{{ end }}Name" } } } ] }
+                "ResourceLabel": { "Fn::Sub": [ "${Balancer}/${BalancerTargetGroup{{ if .Internal }}Internal{{ end }}.TargetGroupFullName}", { "Balancer": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Router{{ if .Internal }}Internal{{ end }}Name" } } } ] }
               },
               "ScaleInCooldown": "60",
               "ScaleOutCooldown": "60",
@@ -370,7 +341,7 @@
       "Service": {
         "Type": "AWS::ECS::Service",
         {{ if .Port.Port }}
-          "DependsOn": "Balancer{{ upper .Name }}ListenerRule80{{ if .Domain }}Domain0{{ end }}",
+          "DependsOn": "BalancerListenerRule80{{ if .Domain }}Domain0{{ end }}",
         {{ end }}
         "Properties": {
           "Cluster": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Cluster" } },
@@ -406,7 +377,7 @@
           ] },
           {{ if .Port.Port }}
             "HealthCheckGracePeriodSeconds": "{{.Health.Grace}}",
-            "LoadBalancers": [ { "ContainerName": "{{.Name}}", "ContainerPort": "{{.Port.Port}}", "TargetGroupArn": { "Ref": "Balancer{{ upper .Name }}TargetGroup{{ if .Internal }}Internal{{ end }}" } } ],
+            "LoadBalancers": [ { "ContainerName": "{{.Name}}", "ContainerPort": "{{.Port.Port}}", "TargetGroupArn": { "Ref": "BalancerTargetGroup{{ if .Internal }}Internal{{ end }}" } } ],
             "Role": { "Fn::If": [ "Fargate", { "Ref": "AWS::NoValue" }, { "Fn::ImportValue": { "Fn::Sub": "${Rack}:ServiceRole" } } ] },
           {{ end }}
           {{ if .Agent }}

@@ -77,6 +77,7 @@
     }
   },
   "Resources": {
+    {{ template "balancer-resources" . }}
     {{ template "resource-resources" . }}
     {{ template "service-resources" . }}
     {{ template "timer-resources" . }}
@@ -115,6 +116,31 @@
       },
       "Service{{ upper .Name }}Endpoint": {
         "Value": { "Fn::GetAtt": [ "Service{{ upper .Name }}", "Outputs.Endpoint" ] }
+      },
+    {{ end }}
+  {{ end }}
+{{ end }}
+
+{{ define "balancer-resources" }}
+  {{ range .Manifest.Services }}
+    {{ if and .Port.Port .Domain (not (certificate $.Certificates .Domains )) }}
+      "Balancer{{ upper .Name }}Certificate": {
+        "Type": "AWS::CertificateManager::Certificate",
+        "Properties": {
+          "DomainName": "{{ .Domain }}",
+          "DomainValidationOptions": [
+            {{ range .Domains }}
+              { "DomainName": "{{ . }}", "ValidationDomain": "{{ apex . }}" },
+            {{ end }}
+            { "Ref": "AWS::NoValue" }
+          ],
+          "SubjectAlternativeNames": [
+            {{ range .Domains }}
+              "{{.}}",
+            {{ end }}
+            { "Ref": "AWS::NoValue" }
+          ]
+        }
       },
     {{ end }}
   {{ end }}
@@ -204,6 +230,13 @@
       "Properties": {
         "NotificationARNs": [ "{{ $.Topic }}" ],
         "Parameters": {
+          {{ if not .Domain }}
+            "Certificate": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:RouterCertificate" } },
+          {{ else if $existing := certificate $.Certificates .Domains }}
+            "Certificate": "{{$existing}}",
+          {{ else }}
+            "Certificate": { "Ref": "Balancer{{ upper .Name }}Certificate" },
+          {{ end }}
           "Count": { "Fn::Select": [ 0, { "Ref": "{{ upper .Name }}Formation" } ] },
           "Cpu": { "Fn::Select": [ 1, { "Ref": "{{ upper .Name }}Formation" } ] },
           "Fargate": { "Fn::If": [ "Service{{ upper .Name }}Fargate", "Yes", "No" ] },

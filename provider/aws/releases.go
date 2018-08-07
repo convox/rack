@@ -198,11 +198,12 @@ func (p *Provider) ReleasePromote(app, id string) error {
 	}
 
 	tp := map[string]interface{}{
-		"App":      r.App,
-		"Manifest": m,
-		"Release":  r,
-		"Topic":    p.CloudformationTopic,
-		"Version":  p.Version,
+		"App":          r.App,
+		"Certificates": cs,
+		"Manifest":     m,
+		"Release":      r,
+		"Topic":        p.CloudformationTopic,
+		"Version":      p.Version,
 	}
 
 	if r.Build != "" {
@@ -216,12 +217,11 @@ func (p *Provider) ReleasePromote(app, id string) error {
 
 	for _, s := range m.Services {
 		stp := map[string]interface{}{
-			"App":          r.App,
-			"Build":        tp["Build"],
-			"Certificates": cs,
-			"Manifest":     tp["Manifest"],
-			"Release":      tp["Release"],
-			"Service":      s,
+			"App":      r.App,
+			"Build":    tp["Build"],
+			"Manifest": tp["Manifest"],
+			"Release":  tp["Release"],
+			"Service":  s,
 		}
 
 		sarn, err := p.serviceArn(r.App, s.Name)
