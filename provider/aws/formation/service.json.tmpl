@@ -62,6 +62,12 @@
       "Registry": {
         "Type": "String"
       },
+      {{ range .Resources }}
+        "Resource{{ upper .}}": {
+          "Type": "String",
+          "NoEcho": "true"
+        },
+      {{ end }}
       "Role": {
         "Type": "String"
       },
@@ -416,7 +422,7 @@
                   ] ] } },
                 {{ end }}
                 {{ range .Resources }}
-                  { "Name": "{{ upcase . }}_URL", "Value": { "Fn::GetAtt": [ "Resource{{ upper . }}", "Outputs.Url" ] } },
+                  { "Name": "{{ upcase . }}_URL", "Value": { "Ref": "Resource{{ upper . }}" } },
                 {{ end }}
                 { "Name": "AWS_REGION", "Value": { "Ref": "AWS::Region" } },
                 { "Name": "APP", "Value": "{{$.App}}" },

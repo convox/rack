@@ -246,6 +246,9 @@
           "Private": { "Ref": "Private" },
           "Rack": { "Ref": "Rack" },
           "Registry": { "Ref": "Registry" },
+          {{ range .Resources }}
+            "Resource{{ upper . }}": { "Fn::GetAtt": [ "Resource{{ upper . }}", "Outputs.Url" ] },
+          {{ end }}
           "Role": { "Fn::GetAtt": [ "ServiceRole", "Arn" ] },
           "Settings": { "Ref": "Settings" }
         },
