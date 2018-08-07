@@ -276,7 +276,11 @@ func (p *Provider) ReleasePromote(app, id string) error {
 		"Private":   private,
 	}
 
-	if err := p.updateStack(p.rackStack(r.App), ou.Url, updates); err != nil {
+	tags := map[string]string{
+		"Version": p.Version,
+	}
+
+	if err := p.updateStack(p.rackStack(r.App), ou.Url, updates, tags); err != nil {
 		return err
 	}
 
@@ -432,7 +436,7 @@ func (p *Provider) releasePromoteGeneration1(a *structs.App, r *structs.Release)
 		return err
 	}
 
-	if err := p.updateStack(p.rackStack(a.Name), ou.Url, params); err != nil {
+	if err := p.updateStack(p.rackStack(a.Name), ou.Url, params, map[string]string{}); err != nil {
 		return err
 	}
 

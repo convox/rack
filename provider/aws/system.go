@@ -498,7 +498,7 @@ func (p *Provider) SystemUpdate(opts structs.SystemUpdateOptions) error {
 		}
 	}
 
-	if err := p.updateStack(p.Rack, template, params); err != nil {
+	if err := p.updateStack(p.Rack, template, params, map[string]string{}); err != nil {
 		return err
 	}
 
