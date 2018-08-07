@@ -46,7 +46,7 @@
         "DBParameterGroupName": { "Ref": "ParameterGroup" },
         "DBSubnetGroupName": { "Ref": "SubnetGroup" },
         "Engine": "postgres",
-        "EngineVersion": "9.6.1",
+        "EngineVersion": "9.6.6",
         "MasterUsername": "app",
         "MasterUserPassword": { "Ref": "Password" },
         "MultiAZ": "false",
