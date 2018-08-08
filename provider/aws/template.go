@@ -61,7 +61,7 @@ func formationHelpers() template.FuncMap {
 			if strings.HasPrefix(domain, "*.") {
 				tier = 25000
 			}
-			return (crc32.ChecksumIEEE([]byte(fmt.Sprintf("%s-%s-%s-%d", app, service, domain, index))) % 25000) + tier
+			return (crc32.ChecksumIEEE([]byte(fmt.Sprintf("%s-%s-%s", app, service, domain)))+uint32(index)+2)%25000 + tier
 		},
 		"router": func(service string, m *manifest.Manifest) (string, error) {
 			s, err := m.Service(service)
