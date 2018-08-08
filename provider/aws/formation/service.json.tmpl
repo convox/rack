@@ -124,6 +124,31 @@
         }
       },
       {{ if .Port.Port }}
+        "BalancerTargetGroup{{ if .Internal }}Internal{{ end }}": {
+          "Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
+          "Properties": {
+            "HealthCheckIntervalSeconds": "{{.Health.Interval}}",
+            "HealthCheckTimeoutSeconds": "{{.Health.Timeout}}",
+            "HealthyThresholdCount": "2",
+            "UnhealthyThresholdCount": "2",
+            "HealthCheckPath": "{{.Health.Path}}",
+            "Matcher": { "HttpCode": "200-399,401" },
+            "Port": "{{.Port.Port}}",
+            "Protocol": "{{ upcase .Port.Scheme }}",
+            "TargetGroupAttributes": [
+              {{ if .Sticky }}
+                { "Key": "stickiness.enabled", "Value": "true" },
+              {{ end }}
+              { "Key": "deregistration_delay.timeout_seconds", "Value": "30" }
+            ],
+            "Tags": [
+              { "Key": "App", "Value": "{{$.App}}" },
+              { "Key": "Service", "Value": "{{.Name}}" }
+            ],
+            "TargetType": { "Fn::If": [ "Fargate", "ip", "instance" ] },
+            "VpcId": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Vpc" } }
+          }
+        },
         "BalancerListenerRule80": {
           "Type": "AWS::ElasticLoadBalancingV2::ListenerRule",
           {{ if .Domain }} "Condition": "InternalDomains", {{ end }}
@@ -211,31 +236,6 @@
           {{ end }}
         {{ end }}
       {{ end }}
-      "BalancerTargetGroup{{ if .Internal }}Internal{{ end }}": {
-        "Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
-        "Properties": {
-          "HealthCheckIntervalSeconds": "{{.Health.Interval}}",
-          "HealthCheckTimeoutSeconds": "{{.Health.Timeout}}",
-          "HealthyThresholdCount": "2",
-          "UnhealthyThresholdCount": "2",
-          "HealthCheckPath": "{{.Health.Path}}",
-          "Matcher": { "HttpCode": "200-399,401" },
-          "Port": "{{.Port.Port}}",
-          "Protocol": "{{ upcase .Port.Scheme }}",
-          "TargetGroupAttributes": [
-            {{ if .Sticky }}
-              { "Key": "stickiness.enabled", "Value": "true" },
-            {{ end }}
-            { "Key": "deregistration_delay.timeout_seconds", "Value": "30" }
-          ],
-          "Tags": [
-            { "Key": "App", "Value": "{{$.App}}" },
-            { "Key": "Service", "Value": "{{.Name}}" }
-          ],
-          "TargetType": { "Fn::If": [ "Fargate", "ip", "instance" ] },
-          "VpcId": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Vpc" } }
-        }
-      },
       {{ if .Scale.Targets.Cpu }}
         "AutoscalingPolicyCpu": {
           "Type": "AWS::ApplicationAutoScaling::ScalingPolicy",
