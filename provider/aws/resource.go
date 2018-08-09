@@ -167,7 +167,7 @@ func (p *Provider) ResourceGet(name string) (*structs.Resource, error) {
 	outputs := stackOutputs(stacks[0])
 	tags := stackTags(stacks[0])
 
-	if tags["Type"] != "resource" {
+	if tags["Type"] != "resource" && tags["Type"] != "service" {
 		return nil, errorNotFound(fmt.Sprintf("resource not found: %s", name))
 	}
 
@@ -245,26 +245,23 @@ func (p *Provider) resourceApps(s structs.Resource) (structs.Apps, error) {
 
 	for key, value := range outputs {
 		if strings.HasSuffix(key, "Link") {
-			// Extract app name from log group
-			index := strings.Index(value, "-LogGroup")
-			// avoid runtime panic
-			if index == -1 {
-				continue
+			if ix := strings.Index(value, "-LogGroup"); ix > -1 {
+				value = value[:ix]
 			}
-			r := strings.NewReplacer(fmt.Sprintf("%s-", p.Rack), "", value[index:], "")
-			app := r.Replace(value)
+			if prefix := fmt.Sprintf("%s-", p.Rack); strings.HasPrefix(value, prefix) {
+				value = strings.Replace(value, prefix, "", 1)
+			}
+			app := value
 
 			a, err := p.AppGet(app)
 			if err != nil {
-				if err.Error() == fmt.Sprintf("%s not found", app) {
-					continue
-				}
 				return nil, err
 			}
 
 			apps = append(apps, *a)
 		}
 	}
+
 	return apps, nil
 }
 
