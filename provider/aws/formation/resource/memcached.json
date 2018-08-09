@@ -1,5 +1,5 @@
 {
-  "AWSTemplateFormatVersion": "2010-09-09",
+  "AWSTemplateFormatVersion" : "2010-09-09",
   "Parameters": {
     "Password": {
       "MinLength": "8",
@@ -12,7 +12,7 @@
     }
   },
   "Outputs": {
-    "Url": { "Value": { "Fn::Sub": "redis://:${Password}@${ReplicationGroup.PrimaryEndPoint.Address}:${ReplicationGroup.PrimaryEndPoint.Port}/0" } }
+    "Url": { "Value": { "Fn::Sub": "memcached://:${Password}@${CacheCluster.ConfigurationEndpoint.Address}:${CacheCluster.ConfigurationEndpoint.Port}" } }
   },
   "Resources": {
     "SecurityGroup": {
@@ -20,7 +20,7 @@
       "Properties": {
         "GroupDescription": { "Fn::Sub": "${AWS::StackName} security group" },
         "SecurityGroupIngress": [
-          { "IpProtocol": "tcp", "FromPort": "6379", "ToPort": "6379", "CidrIp": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:VpcCidr" } } }
+          { "IpProtocol": "tcp", "FromPort": "11211", "ToPort": "11211", "CidrIp": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:VpcCidr" } } }
         ],
         "VpcId": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Vpc" } }
       }
@@ -35,19 +35,17 @@
         ]
       }
     },
-    "ReplicationGroup": {
-      "Type": "AWS::ElastiCache::ReplicationGroup",
+    "CacheCluster": {
+      "Type": "AWS::ElastiCache::CacheCluster",
       "Properties": {
-        "AutomaticFailoverEnabled": "false",
-        "AutoMinorVersionUpgrade": "true",
+        "AutoMinorVersionUpgrade": true,
         "CacheNodeType": "cache.t2.micro",
         "CacheSubnetGroupName": { "Ref": "SubnetGroup" },
-        "Engine": "redis",
-        "EngineVersion": "2.8.24",
-        "NumCacheClusters": "1",
-        "Port": "6379",
-        "ReplicationGroupDescription": { "Ref": "AWS::StackName" },
-        "SecurityGroupIds": [ { "Ref": "SecurityGroup" } ]
+        "Engine": "memcached",
+        "EngineVersion": "1.4.34",
+        "NumCacheNodes": "1",
+        "Port": "11211",
+        "VpcSecurityGroupIds": [ { "Ref": "SecurityGroup" } ]
       }
     }
   }

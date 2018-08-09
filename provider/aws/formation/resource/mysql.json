@@ -18,7 +18,7 @@
     "SecurityGroup": {
       "Type": "AWS::EC2::SecurityGroup",
       "Properties": {
-        "GroupDescription": "mysql resource",
+        "GroupDescription": { "Fn::Sub": "${AWS::StackName} security group" },
         "SecurityGroupIngress": [
           { "IpProtocol": "tcp", "FromPort": "3306", "ToPort": "3306", "CidrIp": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:VpcCidr" } } }
         ],
