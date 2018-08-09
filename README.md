@@ -61,14 +61,18 @@ You need an AWS account and access credentials, the Convox CLI, and 10 minutes.
 $ export AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE
 $ export AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
 
+# You may also want to set a region for your rack:
+
+$ export AWS REGION=us-west-2
+
 # Download and install the convox CLI for your platform
 
 $ curl -Ls https://install.convox.com/osx.zip > /tmp/convox.zip
 $ unzip /tmp/convox.zip -d /usr/local/bin
 
-# Install Rack. You may be interested in options like `--region us-west-2`
+# Install Rack.
 
-$ convox install
+$ convox rack install aws
 ...
 
 Success, try `convox apps`
