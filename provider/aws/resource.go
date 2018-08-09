@@ -255,9 +255,6 @@ func (p *Provider) resourceApps(s structs.Resource) (structs.Apps, error) {
 
 			a, err := p.AppGet(app)
 			if err != nil {
-				if err.Error() == fmt.Sprintf("%s not found", app) {
-					continue
-				}
 				return nil, err
 			}
 
