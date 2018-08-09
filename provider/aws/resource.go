@@ -167,7 +167,7 @@ func (p *Provider) ResourceGet(name string) (*structs.Resource, error) {
 	outputs := stackOutputs(stacks[0])
 	tags := stackTags(stacks[0])
 
-	if tags["Type"] != "resource" {
+	if tags["Type"] != "resource" && tags["Type"] != "service" {
 		return nil, errorNotFound(fmt.Sprintf("resource not found: %s", name))
 	}
 
