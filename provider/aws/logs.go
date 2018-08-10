@@ -13,7 +13,7 @@ import (
 	"github.com/convox/rack/structs"
 )
 
-func (p *Provider) subscribeLogs(group string, opts structs.LogsOptions) (io.Reader, error) {
+func (p *Provider) subscribeLogs(group string, opts structs.LogsOptions) (io.ReadCloser, error) {
 	r, w := io.Pipe()
 
 	go p.streamLogs(w, group, opts)

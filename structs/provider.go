@@ -12,7 +12,7 @@ type Provider interface {
 	AppGet(name string) (*App, error)
 	AppDelete(name string) error
 	AppList() (Apps, error)
-	AppLogs(name string, opts LogsOptions) (io.Reader, error)
+	AppLogs(name string, opts LogsOptions) (io.ReadCloser, error)
 	AppUpdate(name string, opts AppUpdateOptions) error
 
 	BuildCreate(app, url string, opts BuildCreateOptions) (*Build, error)
@@ -79,7 +79,7 @@ type Provider interface {
 
 	SystemGet() (*System, error)
 	SystemInstall(opts SystemInstallOptions) (string, error)
-	SystemLogs(opts LogsOptions) (io.Reader, error)
+	SystemLogs(opts LogsOptions) (io.ReadCloser, error)
 	SystemProcesses(opts SystemProcessesOptions) (Processes, error)
 	SystemReleases() (Releases, error)
 	SystemUninstall(name string, opts SystemUninstallOptions) error
