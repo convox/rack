@@ -107,15 +107,15 @@ func (_m *MockProvider) AppList() (Apps, error) {
 }
 
 // AppLogs provides a mock function with given fields: name, opts
-func (_m *MockProvider) AppLogs(name string, opts LogsOptions) (io.Reader, error) {
+func (_m *MockProvider) AppLogs(name string, opts LogsOptions) (io.ReadCloser, error) {
 	ret := _m.Called(name, opts)
 
-	var r0 io.Reader
-	if rf, ok := ret.Get(0).(func(string, LogsOptions) io.Reader); ok {
+	var r0 io.ReadCloser
+	if rf, ok := ret.Get(0).(func(string, LogsOptions) io.ReadCloser); ok {
 		r0 = rf(name, opts)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(io.Reader)
+			r0 = ret.Get(0).(io.ReadCloser)
 		}
 	}
 
@@ -1186,15 +1186,15 @@ func (_m *MockProvider) SystemInstall(opts SystemInstallOptions) (string, error)
 }
 
 // SystemLogs provides a mock function with given fields: opts
-func (_m *MockProvider) SystemLogs(opts LogsOptions) (io.Reader, error) {
+func (_m *MockProvider) SystemLogs(opts LogsOptions) (io.ReadCloser, error) {
 	ret := _m.Called(opts)
 
-	var r0 io.Reader
-	if rf, ok := ret.Get(0).(func(LogsOptions) io.Reader); ok {
+	var r0 io.ReadCloser
+	if rf, ok := ret.Get(0).(func(LogsOptions) io.ReadCloser); ok {
 		r0 = rf(opts)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(io.Reader)
+			r0 = ret.Get(0).(io.ReadCloser)
 		}
 	}
 

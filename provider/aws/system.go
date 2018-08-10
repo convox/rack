@@ -307,7 +307,7 @@ func (p *Provider) SystemInstall(opts structs.SystemInstallOptions) (string, err
 }
 
 // SystemLogs streams logs for the Rack
-func (p *Provider) SystemLogs(opts structs.LogsOptions) (io.Reader, error) {
+func (p *Provider) SystemLogs(opts structs.LogsOptions) (io.ReadCloser, error) {
 	group, err := p.rackResource("LogGroup")
 	if err != nil {
 		return nil, err
