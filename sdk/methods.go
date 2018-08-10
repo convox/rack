@@ -70,7 +70,7 @@ func (c *Client) AppList() (structs.Apps, error) {
 	return v, err
 }
 
-func (c *Client) AppLogs(name string, opts structs.LogsOptions) (io.Reader, error) {
+func (c *Client) AppLogs(name string, opts structs.LogsOptions) (io.ReadCloser, error) {
 	var err error
 
 	ro, err := stdsdk.MarshalOptions(opts)
@@ -78,7 +78,7 @@ func (c *Client) AppLogs(name string, opts structs.LogsOptions) (io.Reader, erro
 		return nil, err
 	}
 
-	var v io.Reader
+	var v io.ReadCloser
 
 	r, err := c.Websocket(fmt.Sprintf("/apps/%s/logs", name), ro)
 	if err != nil {
@@ -789,7 +789,7 @@ func (c *Client) SystemInstall(opts structs.SystemInstallOptions) (string, error
 	return "", err
 }
 
-func (c *Client) SystemLogs(opts structs.LogsOptions) (io.Reader, error) {
+func (c *Client) SystemLogs(opts structs.LogsOptions) (io.ReadCloser, error) {
 	var err error
 
 	ro, err := stdsdk.MarshalOptions(opts)
@@ -797,7 +797,7 @@ func (c *Client) SystemLogs(opts structs.LogsOptions) (io.Reader, error) {
 		return nil, err
 	}
 
-	var v io.Reader
+	var v io.ReadCloser
 
 	r, err := c.Websocket(fmt.Sprintf("/system/logs"), ro)
 	if err != nil {
