@@ -118,6 +118,10 @@ func fetchAmis(regions Regions) error {
 		name := s.Find("td:nth-child(1)").Text()
 		ami := s.Find("td:nth-child(3)").Text()
 
+		if strings.HasPrefix(name, "us-gov-") {
+			return
+		}
+
 		regions[name] = Region{Ami: ami}
 	})
 
