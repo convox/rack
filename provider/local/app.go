@@ -106,7 +106,7 @@ func (p *Provider) AppList() (structs.Apps, error) {
 	return apps, log.Successf("count=%d", len(apps))
 }
 
-func (p *Provider) AppLogs(app string, opts structs.LogsOptions) (io.Reader, error) {
+func (p *Provider) AppLogs(app string, opts structs.LogsOptions) (io.ReadCloser, error) {
 	log := p.logger("AppLogs").Append("app=%q", app)
 
 	if _, err := p.AppGet(app); err != nil {

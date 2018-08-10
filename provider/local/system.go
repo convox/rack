@@ -143,7 +143,7 @@ func (p *Provider) SystemInstall(opts structs.SystemInstallOptions) (string, err
 	return fmt.Sprintf("https://rack.%s", name), nil
 }
 
-func (p *Provider) SystemLogs(opts structs.LogsOptions) (io.Reader, error) {
+func (p *Provider) SystemLogs(opts structs.LogsOptions) (io.ReadCloser, error) {
 	log := p.logger("SystemLogs")
 
 	r, w := io.Pipe()

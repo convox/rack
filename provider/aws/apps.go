@@ -191,7 +191,7 @@ func (p *Provider) AppList() (structs.Apps, error) {
 	return apps, log.Success()
 }
 
-func (p *Provider) AppLogs(app string, opts structs.LogsOptions) (io.Reader, error) {
+func (p *Provider) AppLogs(app string, opts structs.LogsOptions) (io.ReadCloser, error) {
 	group, err := p.appResource(app, "LogGroup")
 	if err != nil {
 		return nil, err
