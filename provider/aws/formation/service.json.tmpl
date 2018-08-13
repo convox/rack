@@ -5,7 +5,7 @@
       "Fargate": { "Fn::Equals": [ { "Ref": "Fargate" }, "Yes" ] },
       "InternalDomains": { "Fn::Equals": [ { "Ref": "InternalDomains" }, "Yes" ] },
       "Isolate": { "Fn::And": [ { "Condition": "Private" }, { "Fn::Equals": [ { "Ref": "Isolate" }, "Yes" ] } ] },
-      "IsolateServices": { "Fn::Or": [ { "Condition": "FargateServices" }, { "Condition": "Isolate" } ] },
+      "IsolateServices": { "Fn::Or": [ { "Condition": "Fargate" }, { "Condition": "Isolate" } ] },
       "Private": { "Fn::Equals": [ { "Ref": "Private" }, "Yes" ] }
     },
     "Outputs": {
