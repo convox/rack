@@ -1,6 +1,9 @@
 {{ define "resource" }}
 {
   "AWSTemplateFormatVersion": "2010-09-09",
+  "Conditions": {
+    "Private": { "Fn::Equals": [ { "Ref": "Private" }, "true" ] }
+  },
   "Outputs": {
     {{ range $k, $app := .Apps }}
       "{{ upper $app.Name }}Link": {
@@ -14,6 +17,20 @@
     }
   },
   "Parameters": {
+    "Private": {
+      "Type": "String",
+      "Description": "Create in private subnets",
+      "Default": "false",
+      "AllowedValues": [ "true", "false" ]
+    },
+    "SecurityGroups": {
+      "Description": "VpcConfig security groups",
+      "Type": "CommaDelimitedList"
+    },
+    "SubnetsPrivate": {
+      "Description": "VpcConfig private subnets",
+      "Type": "CommaDelimitedList"
+    },
     "Url": {
       "Description": "Syslog URL, e.g. 'tcp+tls://logs1.papertrailapp.com:11235'",
       "Type": "String"
@@ -56,7 +73,11 @@
         "Handler": "index.handler",
         "Role": { "Fn::GetAtt": [ "Role", "Arn" ] },
         "Runtime": "nodejs8.10",
-        "Timeout": "25"
+        "Timeout": "25",
+        "VpcConfig": { "Fn::If": [ "Private",
+          { "SecurityGroupIds" : { "Ref": "SecurityGroups" }, "SubnetIds" : { "Ref": "SubnetsPrivate" } },
+          { "Ref": "AWS::NoValue" }
+        ] }
       }
     },
     "Role": {
