@@ -40,6 +40,7 @@ func TestProcessExec(t *testing.T) {
 		cycleProcessDescribeContainerInstances,
 		cycleProcessDescribeInstances,
 		cycleProcessDescribeStacks,
+		cycleProcessDescribeStackResources,
 	)
 	defer provider.Close()
 
@@ -215,7 +216,9 @@ func TestProcessRunDetached(t *testing.T) {
 	provider := StubAwsProvider(
 		cycleProcessReleaseGetItem,
 		cycleProcessDescribeStacks,
+		cycleProcessDescribeStackResources,
 		cycleProcessDescribeStacks,
+		cycleProcessDescribeStackResources,
 		cycleProcessReleaseGetItem,
 		cycleProcessReleaseListStackResources,
 		cycleProcessReleaseEnvironmentGet,
