@@ -478,8 +478,23 @@ func (p *Provider) SystemUpdate(opts structs.SystemUpdateOptions) error {
 	}
 
 	if opts.Version != nil {
-		template = fmt.Sprintf("https://convox.s3.amazonaws.com/release/%s/rack.json", *opts.Version)
-		params["Version"] = *opts.Version
+		if *opts.Version == "dev" {
+			fd, err := os.Open("provider/aws/formation/rack.json")
+			if err != nil {
+				return err
+			}
+
+			o, err := p.ObjectStore("", "", fd, structs.ObjectStoreOptions{})
+			if err != nil {
+				return err
+			}
+
+			template = o.Url
+		} else {
+			template = fmt.Sprintf("https://convox.s3.amazonaws.com/release/%s/rack.json", *opts.Version)
+			params["Version"] = *opts.Version
+		}
+
 		changes["version"] = *opts.Version
 	}
 

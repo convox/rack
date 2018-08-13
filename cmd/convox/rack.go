@@ -374,12 +374,16 @@ func RackUpdate(c *stdcli.Context) error {
 			return err
 		}
 
-		v, err := cv.Next(s.Version)
-		if err != nil {
-			return err
-		}
+		if s.Version == "dev" {
+			target = "dev"
+		} else {
+			v, err := cv.Next(s.Version)
+			if err != nil {
+				return err
+			}
 
-		target = v
+			target = v
+		}
 	}
 
 	c.Startf("Updating to <release>%s</release>", target)
