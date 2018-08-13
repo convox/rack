@@ -24,7 +24,7 @@ func (p *Provider) ObjectDelete(app, key string) error {
 		return errorNotFound(fmt.Sprintf("object not found: %s", key))
 	}
 
-	bucket, err := p.appResource(app, "Settings")
+	bucket, err := p.appBucket(app)
 	if err != nil {
 		return err
 	}
@@ -41,7 +41,7 @@ func (p *Provider) ObjectDelete(app, key string) error {
 }
 
 func (p *Provider) ObjectExists(app, key string) (bool, error) {
-	bucket, err := p.appResource(app, "Settings")
+	bucket, err := p.appBucket(app)
 	if err != nil {
 		return false, err
 	}
@@ -62,7 +62,7 @@ func (p *Provider) ObjectExists(app, key string) (bool, error) {
 
 // ObjectFetch fetches an Object
 func (p *Provider) ObjectFetch(app, key string) (io.ReadCloser, error) {
-	bucket, err := p.appResource(app, "Settings")
+	bucket, err := p.appBucket(app)
 	if err != nil {
 		return nil, err
 	}
@@ -84,7 +84,7 @@ func (p *Provider) ObjectFetch(app, key string) (io.ReadCloser, error) {
 func (p *Provider) ObjectList(app, prefix string) ([]string, error) {
 	log := Logger.At("ObjectList").Namespace("prefix=%q", prefix).Start()
 
-	bucket, err := p.appResource(app, "Settings")
+	bucket, err := p.appBucket(app)
 	if err != nil {
 		return nil, err
 	}
@@ -122,7 +122,7 @@ func (p *Provider) ObjectStore(app, key string, r io.Reader, opts structs.Object
 
 	log = log.Replace("key", key)
 
-	bucket, err := p.appResource(app, "Settings")
+	bucket, err := p.appBucket(app)
 	if err != nil {
 		return nil, log.Error(err)
 	}
@@ -153,6 +153,14 @@ func (p *Provider) ObjectStore(app, key string, r io.Reader, opts structs.Object
 	o := &structs.Object{Url: url}
 
 	return o, log.Success()
+}
+
+func (p *Provider) appBucket(app string) (string, error) {
+	if app == "" {
+		return p.rackResource("Settings")
+	}
+
+	return p.appResource(app, "Settings")
 }
 
 func generateTempKey() (string, error) {
