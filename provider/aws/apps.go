@@ -121,13 +121,16 @@ func (p *Provider) AppGet(name string) (*structs.App, error) {
 		return nil, fmt.Errorf("could not load stack for app: %s", name)
 	}
 
-	app := appFromStack(stacks[0])
+	app, err := p.appFromStack(stacks[0])
+	if err != nil {
+		return nil, err
+	}
 
 	if app.Tags["Rack"] != "" && app.Tags["Rack"] != p.Rack {
 		return nil, errorNotFound(fmt.Sprintf("%s not found", name))
 	}
 
-	return &app, nil
+	return app, nil
 }
 
 // AppDelete deletes an app
@@ -184,7 +187,12 @@ func (p *Provider) AppList() (structs.Apps, error) {
 		tags := stackTags(stack)
 
 		if tags["System"] == "convox" && tags["Type"] == "app" && tags["Rack"] == p.Rack {
-			apps = append(apps, appFromStack(stack))
+			a, err := p.appFromStack(stack)
+			if err != nil {
+				return nil, err
+			}
+
+			apps = append(apps, *a)
 		}
 	}
 
@@ -212,6 +220,53 @@ func (p *Provider) AppUpdate(app string, opts structs.AppUpdateOptions) error {
 	}
 
 	return p.updateStack(p.rackStack(app), "", opts.Parameters, map[string]string{})
+}
+
+func (p *Provider) appFromStack(stack *cloudformation.Stack) (*structs.App, error) {
+	name := *stack.StackName
+	tags := stackTags(stack)
+	if value, ok := tags["Name"]; ok {
+		// StackName probably includes the Rack prefix, prefer Name tag.
+		name = value
+	}
+
+	a := &structs.App{
+		Name:       name,
+		Generation: coalesces(stackTags(stack)["Generation"], "1"),
+		Release:    coalesces(stackOutputs(stack)["Release"], stackParameters(stack)["Release"]),
+		Status:     humanStatus(*stack.StackStatus),
+		Outputs:    stackOutputs(stack),
+		Parameters: stackParameters(stack),
+		Tags:       stackTags(stack),
+	}
+
+	res, err := p.describeStackResources(&cloudformation.DescribeStackResourcesInput{
+		StackName: stack.StackName,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	for _, r := range res.StackResources {
+		if r.ResourceType == nil || *r.ResourceType != "AWS::CloudFormation::Stack" {
+			continue
+		}
+
+		if r.LogicalResourceId == nil || r.PhysicalResourceId == nil {
+			continue
+		}
+
+		sub, err := p.describeStack(*r.PhysicalResourceId)
+		if err != nil {
+			return nil, err
+		}
+
+		for k, v := range stackOutputs(sub) {
+			a.Outputs[fmt.Sprintf("%s.%s", *r.LogicalResourceId, k)] = v
+		}
+	}
+
+	return a, nil
 }
 
 // appRepository defines an image repository for an App
@@ -455,24 +510,5 @@ func (p *Provider) cleanupBucketObject(bucket, key, version string) {
 	_, err := p.s3().DeleteObject(req)
 	if err != nil {
 		fmt.Printf("error: %s\n", err)
-	}
-}
-
-func appFromStack(stack *cloudformation.Stack) structs.App {
-	name := *stack.StackName
-	tags := stackTags(stack)
-	if value, ok := tags["Name"]; ok {
-		// StackName probably includes the Rack prefix, prefer Name tag.
-		name = value
-	}
-
-	return structs.App{
-		Name:       name,
-		Generation: coalesces(stackTags(stack)["Generation"], "1"),
-		Release:    coalesces(stackOutputs(stack)["Release"], stackParameters(stack)["Release"]),
-		Status:     humanStatus(*stack.StackStatus),
-		Outputs:    stackOutputs(stack),
-		Parameters: stackParameters(stack),
-		Tags:       stackTags(stack),
 	}
 }
