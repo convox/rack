@@ -52,7 +52,7 @@ func (p *Provider) ServiceList(app string) (structs.Services, error) {
 	ss := structs.Services{}
 
 	for _, ms := range m.Services {
-		cert := a.Outputs[fmt.Sprintf("Service%sCertificate", upperName(ms.Name))]
+		cert := coalesces(a.Outputs[fmt.Sprintf("Service%s.Certificate", upperName(ms.Name))], a.Outputs[fmt.Sprintf("Service%sCertificate", upperName(ms.Name))])
 		cid := ""
 
 		for _, c := range cs {
@@ -63,7 +63,7 @@ func (p *Provider) ServiceList(app string) (structs.Services, error) {
 
 		s := structs.Service{
 			Name:   ms.Name,
-			Domain: a.Outputs[fmt.Sprintf("Service%sEndpoint", upperName(ms.Name))],
+			Domain: coalesces(a.Outputs[fmt.Sprintf("Service%s.Endpoint", upperName(ms.Name))], a.Outputs[fmt.Sprintf("Service%sEndpoint", upperName(ms.Name))]),
 		}
 
 		if s.Domain != "" {

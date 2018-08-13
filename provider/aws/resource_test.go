@@ -13,6 +13,7 @@ func TestResourceList(t *testing.T) {
 		cycleServiceDescribeStacksList,
 		cycleResourceDescribeStacks,
 		cycleAppDescribeStacks,
+		cycleDescribeAppStackResources,
 	)
 	defer provider.Close()
 
@@ -37,6 +38,7 @@ func TestResourceGet(t *testing.T) {
 		cycleResourceDescribeStacks,
 		cycleResourceDescribeStacks,
 		cycleAppDescribeStacks,
+		cycleDescribeAppStackResources,
 	)
 	defer provider.Close()
 

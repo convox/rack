@@ -36,6 +36,7 @@ func TestReleaseGet(t *testing.T) {
 func TestReleaseList(t *testing.T) {
 	provider := StubAwsProvider(
 		cycleReleaseDescribeStacks,
+		cycleDescribeAppStackResources,
 		cycleReleaseQuery,
 	)
 	defer provider.Close()
