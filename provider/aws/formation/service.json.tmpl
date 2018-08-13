@@ -4,7 +4,8 @@
     "Conditions": {
       "Fargate": { "Fn::Equals": [ { "Ref": "Fargate" }, "Yes" ] },
       "InternalDomains": { "Fn::Equals": [ { "Ref": "InternalDomains" }, "Yes" ] },
-      "Isolate": { "Fn::Or": [ { "Condition": "Fargate" }, { "Fn::Equals": [ { "Ref": "Isolate" }, "Yes" ] } ] },
+      "Isolate": { "Fn::And": [ { "Condition": "Private" }, { "Fn::Equals": [ { "Ref": "Isolate" }, "Yes" ] } ] },
+      "IsolateServices": { "Fn::Or": [ { "Condition": "FargateServices" }, { "Condition": "Isolate" } ] },
       "Private": { "Fn::Equals": [ { "Ref": "Private" }, "Yes" ] }
     },
     "Outputs": {
@@ -151,7 +152,7 @@
               { "Key": "App", "Value": "{{$.App}}" },
               { "Key": "Service", "Value": "{{.Name}}" }
             ],
-            "TargetType": { "Fn::If": [ "Isolate", "ip", "instance" ] },
+            "TargetType": { "Fn::If": [ "IsolateServices", "ip", "instance" ] },
             "VpcId": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Vpc" } }
           }
         },
@@ -337,7 +338,7 @@
         },
       {{ end }}
       "Security": {
-        "Condition": "Isolate",
+        "Condition": "IsolateServices",
         "Type": "AWS::EC2::SecurityGroup",
         "Properties": {
           "GroupDescription": { "Fn::Sub": "${AWS::StackName} service" },
@@ -374,7 +375,7 @@
             "DesiredCount": { "Ref": "Count" },
           {{ end }}
           "LaunchType": { "Fn::If": [ "Fargate", "FARGATE", { "Ref": "AWS::NoValue" } ] },
-          "NetworkConfiguration": { "Fn::If": [ "Isolate",
+          "NetworkConfiguration": { "Fn::If": [ "IsolateServices",
             {
               "AwsvpcConfiguration": {
                 "AssignPublicIp": { "Fn::If": [ "Private", "DISABLED", "ENABLED" ] },
@@ -390,7 +391,7 @@
           {{ if .Port.Port }}
             "HealthCheckGracePeriodSeconds": "{{.Health.Grace}}",
             "LoadBalancers": [ { "ContainerName": "{{.Name}}", "ContainerPort": "{{.Port.Port}}", "TargetGroupArn": { "Ref": "BalancerTargetGroup{{ if .Internal }}Internal{{ end }}" } } ],
-            "Role": { "Fn::If": [ "Isolate", { "Ref": "AWS::NoValue" }, { "Fn::ImportValue": { "Fn::Sub": "${Rack}:ServiceRole" } } ] },
+            "Role": { "Fn::If": [ "IsolateServices", { "Ref": "AWS::NoValue" }, { "Fn::ImportValue": { "Fn::Sub": "${Rack}:ServiceRole" } } ] },
           {{ end }}
           {{ if .Agent }}
             "PlacementConstraints": [
@@ -466,7 +467,7 @@
           "ExecutionRoleArn": { "Fn::GetAtt": [ "ExecutionRole", "Arn" ] },
           "Family": { "Fn::Sub": "${AWS::StackName}-service-{{.Name}}" },
           "Memory": { "Fn::If": [ "Fargate", { "Ref": "Memory" }, { "Ref": "AWS::NoValue" } ] },
-          "NetworkMode": { "Fn::If": [ "Isolate", "awsvpc", { "Ref": "AWS::NoValue" } ] },
+          "NetworkMode": { "Fn::If": [ "IsolateServices", "awsvpc", { "Ref": "AWS::NoValue" } ] },
           "RequiresCompatibilities": [ { "Fn::If": [ "Fargate", "FARGATE", { "Ref": "AWS::NoValue" } ] } ],
           "TaskRoleArn": { "Ref": "Role" },
           "Volumes": [

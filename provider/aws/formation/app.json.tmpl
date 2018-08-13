@@ -10,9 +10,8 @@
     "FargateServices": { "Fn::Equals": [ { "Ref": "FargateServices" }, "Yes" ] },
     "FargateTimers": { "Fn::Equals": [ { "Ref": "FargateTimers" }, "Yes" ] },
     "InternalDomains": { "Fn::Equals": [ { "Ref": "InternalDomains" }, "Yes" ] },
-    "Isolate": { "Fn::Equals": [ { "Ref": "Isolate" }, "Yes" ] },
+    "Isolate": { "Fn::And": [ { "Condition": "Private" }, { "Fn::Equals": [ { "Ref": "Isolate" }, "Yes" ] } ] },
     "IsolateServices": { "Fn::Or": [ { "Condition": "FargateServices" }, { "Condition": "Isolate" } ] },
-    "IsolateTimers": { "Fn::Or": [ { "Condition": "FargateTimers" }, { "Condition": "Isolate" } ] },
     "Private": { "Fn::Equals": [ { "Ref": "Private" }, "Yes" ] }
   },
   "Outputs": {
@@ -386,20 +385,20 @@
         "Name": { "Fn::Sub": "${AWS::StackName}-timer-{{.Name}}" },
         "ScheduleExpression": "cron({{.Cron}})",
         "Targets": [ {
-          "Arn": { "Fn::If": [ "IsolateTimers",
+          "Arn": { "Fn::If": [ "FargateTimers",
             { "Fn::GetAtt": [ "TimerLauncher", "Arn" ] },
             { "Fn::Join": [ "", [ "arn:aws:ecs:", { "Ref": "AWS::Region" }, ":", { "Ref": "AWS::AccountId" }, ":cluster/", { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Cluster" } } ] ] }
           ] },
-          "EcsParameters": { "Fn::If": [ "IsolateTimers",
+          "EcsParameters": { "Fn::If": [ "FargateTimers",
             { "Ref": "AWS::NoValue" },
             { "TaskCount": "1", "TaskDefinitionArn": { "Ref": "Timer{{ upper .Name }}Tasks" } }
           ] },
           "Id": "{{.Name}}",
-          "Input": { "Fn::If": [ "IsolateTimers",
+          "Input": { "Fn::If": [ "FargateTimers",
             { "Fn::Join": [ "", [ "{ \"cluster\": \"", { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Cluster" } }, "\", \"taskDefinition\": \"", { "Ref": "Timer{{ upper .Name }}Tasks" }, "\" }" ] ] },
             { "Ref": "AWS::NoValue" }
           ] },
-          "RoleArn": { "Fn::If": [ "IsolateTimers",
+          "RoleArn": { "Fn::If": [ "FargateTimers",
             { "Ref": "AWS::NoValue" },
             { "Fn::GetAtt": [ "TimerRole", "Arn" ] }
           ] }
@@ -468,7 +467,7 @@
         "ExecutionRoleArn": { "Fn::GetAtt": [ "ExecutionRole", "Arn" ] },
         "Family": { "Fn::Sub": "${AWS::StackName}-timer-{{.Name}}" },
         "Memory": { "Fn::If": [ "FargateTimers", { "Fn::Select": [ 2, { "Ref": "{{ upper ($.Manifest.Service .Service).Name }}Formation" } ] }, { "Ref": "AWS::NoValue" } ] },
-        "NetworkMode": { "Fn::If": [ "IsolateTimers", "awsvpc", { "Ref": "AWS::NoValue" } ] },
+        "NetworkMode": { "Fn::If": [ "FargateTimers", "awsvpc", { "Ref": "AWS::NoValue" } ] },
         "RequiresCompatibilities": [ { "Fn::If": [ "FargateTimers", "FARGATE", { "Ref": "AWS::NoValue" } ] } ],
         "TaskRoleArn": { "Fn::GetAtt": [ "ServiceRole", "Arn" ] },
         "Volumes": [
