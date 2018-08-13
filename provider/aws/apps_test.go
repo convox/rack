@@ -31,6 +31,7 @@ func TestAppCancel(t *testing.T) {
 func TestAppGet(t *testing.T) {
 	provider := StubAwsProvider(
 		cycleAppDescribeStacks,
+		cycleDescribeAppStackResources,
 	)
 	defer provider.Close()
 
