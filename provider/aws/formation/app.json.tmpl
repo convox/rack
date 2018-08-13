@@ -116,16 +116,6 @@
 }
 
 {{ define "balancer-outputs" }}
-  {{ range .Manifest.Services }}
-    {{ if .Port.Port }}
-      "Service{{ upper .Name }}Certificate": {
-        "Value": { "Fn::GetAtt": [ "Service{{ upper .Name }}", "Outputs.Certificate" ] }
-      },
-      "Service{{ upper .Name }}Endpoint": {
-        "Value": { "Fn::GetAtt": [ "Service{{ upper .Name }}", "Outputs.Endpoint" ] }
-      },
-    {{ end }}
-  {{ end }}
 {{ end }}
 
 {{ define "balancer-resources" }}
@@ -193,9 +183,6 @@
 
 {{ define "service-outputs" }}
   {{ range .Services }}
-    "Service{{ upper .Name }}Fargate": {
-      "Value": { "Fn::GetAtt": [ "Service{{ upper .Name }}", "Outputs.Fargate" ] }
-    },
     "Service{{ upper .Name }}Service": {
       "Value": { "Fn::GetAtt": [ "Service{{ upper .Name }}", "Outputs.Service" ] }
     },
