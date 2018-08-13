@@ -10,12 +10,12 @@
     },
     "BlankInstanceBootCommand": { "Fn::Equals": [ { "Ref": "InstanceBootCommand" }, "" ] },
     "BlankInstanceRunCommand": { "Fn::Equals": [ { "Ref": "InstanceRunCommand" }, "" ] },
-    "BlankInstanceSecurityGroup": { "Fn::Equals": [ {"Ref": "InstanceSecurityGroup" }, "" ]},
+    "BlankInstanceSecurityGroup": { "Fn::Equals": [ {"Ref": "InstanceSecurityGroup" }, "" ] },
     "BlankInternetGateway": { "Fn::Equals": [ { "Ref": "InternetGateway"}, "" ] },
     "BlankKey": { "Fn::Equals": [ { "Ref": "Key" }, "" ] },
     "BlankLogBucket": { "Fn::Equals": [ { "Ref": "LogBucket" }, "" ] },
     "BlankLogRetention": { "Fn::Equals": [ { "Ref": "LogRetention" }, "" ] },
-    "BlankRouterSecurityGroup": { "Fn::Equals": [ { "Fn::Join": [ ",", {"Ref": "RouterSecurityGroup" } ] }, "" ]},
+    "BlankRouterSecurityGroup": { "Fn::Equals": [ { "Fn::Join": [ ",", { "Ref": "RouterSecurityGroup" } ] }, "" ] },
     "BlankSslPolicy": { "Fn::Equals": [ { "Ref": "SslPolicy" }, "" ] },
     "DedicatedBuilder": { "Fn::Not": [ { "Fn::Equals": [ { "Ref": "BuildInstance" }, "" ] } ] },
     "Development": { "Fn::Equals": [ { "Ref": "Development" }, "Yes" ] },
@@ -50,8 +50,8 @@
     ] },
     "ThirdAvailabilityZoneAndNotExistingVpcAndBlankInternetGateway": {
       "Fn::And": [
-        { "Condition": "ThirdAvailabilityZone"},
-        { "Condition": "NotExistingVpcAndBlankInternetGateway"}
+        { "Condition": "ThirdAvailabilityZone" },
+        { "Condition": "NotExistingVpcAndBlankInternetGateway" }
       ]
     }
   },
@@ -259,6 +259,10 @@
       "Condition": "Internal",
       "Export": { "Name": { "Fn::Sub": "${AWS::StackName}:RouterInternalName" } },
       "Value": { "Fn::GetAtt": [ "RouterInternal", "LoadBalancerFullName" ] }
+    },
+    "RouterSecurityGroup": {
+      "Export": { "Name": { "Fn::Sub": "${AWS::StackName}:RouterSecurityGroup" } },
+      "Value": { "Fn::If": [ "BlankRouterSecurityGroup", { "Ref": "RouterSecurity" }, { "Fn::Select": [ 0, { "Ref": "RouterSecurityGroup" } ] } ] }
     },
     "RouteTablePublic": {
       "Condition": "NotExistingVpcAndBlankInternetGateway",
