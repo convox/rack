@@ -10,6 +10,9 @@
     "FargateServices": { "Fn::Equals": [ { "Ref": "FargateServices" }, "Yes" ] },
     "FargateTimers": { "Fn::Equals": [ { "Ref": "FargateTimers" }, "Yes" ] },
     "InternalDomains": { "Fn::Equals": [ { "Ref": "InternalDomains" }, "Yes" ] },
+    "Isolate": { "Fn::Equals": [ { "Ref": "Isolate" }, "Yes" ] },
+    "IsolateServices": { "Fn::Or": [ { "Condition": "FargateServices" }, { "Condition": "Isolate" } ] },
+    "IsolateTimers": { "Fn::Or": [ { "Condition": "FargateTimers" }, { "Condition": "Isolate" } ] },
     "Private": { "Fn::Equals": [ { "Ref": "Private" }, "Yes" ] }
   },
   "Outputs": {
@@ -56,6 +59,11 @@
     "InternalDomains": {
       "Type": "String",
       "Default": "Yes",
+      "AllowedValues": [ "Yes", "No" ]
+    },
+    "Isolate": {
+      "Type": "String",
+      "Default": "No",
       "AllowedValues": [ "Yes", "No" ]
     },
     "LogBucket": {
@@ -252,6 +260,7 @@
           "Fargate": { "Fn::If": [ "Service{{ upper .Name }}Fargate", "Yes", "No" ] },
           "LogGroup": { "Ref": "LogGroup" },
           "InternalDomains": { "Ref": "InternalDomains" },
+          "Isolate": { "Fn::If": [ "IsolateServices", "Yes", "No" ] },
           "Memory": { "Fn::Select": [ 2, { "Ref": "{{ upper .Name }}Formation" } ] },
           "Private": { "Ref": "Private" },
           "Rack": { "Ref": "Rack" },
@@ -289,13 +298,27 @@
             "    cluster: event.cluster,",
             "    taskDefinition: event.taskDefinition,",
             "    count: 1,",
-            "    launchType: 'FARGATE',",
+            { "Fn::If": [ "FargateTimers",
+              "    launchType: 'FARGATE',",
+              "    launchType: 'EC2',"
+            ] },
             "    networkConfiguration: {",
             "      awsvpcConfiguration: {",
-            "        assignPublicIp: 'ENABLED',",
+            { "Fn::If": [ "FargateTimers",
+              "        assignPublicIp: 'ENABLED',",
+              { "Ref": "AWS::NoValue" }
+            ] },
             "        subnets: [",
-            { "Fn::Join": [ "", [ "          '", { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Subnet0" } }, "'," ] ] },
-            { "Fn::Join": [ "", [ "          '", { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Subnet1" } }, "'" ] ] },
+            { "Fn::Sub": [ "          \"${Subnet0}\", \"${Subnet1}\"", {
+              "Subnet0": { "Fn::If": [ "Private",
+                { "Fn::ImportValue": { "Fn::Sub": "${Rack}:SubnetPrivate0" } },
+                { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Subnet0" } }
+              ] },
+              "Subnet1": { "Fn::If": [ "Private",
+                { "Fn::ImportValue": { "Fn::Sub": "${Rack}:SubnetPrivate1" } },
+                { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Subnet1" } }
+              ] }
+            } ] },
             "        ]",
             "      }",
             "    }",
@@ -303,6 +326,7 @@
             "  var aws = require('aws-sdk');",
             "  var ecs = new aws.ECS({maxRetries:10});",
             "  ecs.runTask(params, function (err, res) {",
+            "    console.log('res', res);",
             "    cb(err);",
             "  });",
             "};"
@@ -320,6 +344,7 @@
             { "Effect": "Allow", "Action": [ "sts:AssumeRole" ], "Principal": { "Service": [ "lambda.amazonaws.com" ] } }
           ]
         },
+        "ManagedPolicyArns": [ "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole" ],
         "Path": "/convox/",
         "Policies": [
           {
@@ -361,20 +386,20 @@
         "Name": { "Fn::Sub": "${AWS::StackName}-timer-{{.Name}}" },
         "ScheduleExpression": "cron({{.Cron}})",
         "Targets": [ {
-          "Arn": { "Fn::If": [ "FargateTimers",
+          "Arn": { "Fn::If": [ "IsolateTimers",
             { "Fn::GetAtt": [ "TimerLauncher", "Arn" ] },
             { "Fn::Join": [ "", [ "arn:aws:ecs:", { "Ref": "AWS::Region" }, ":", { "Ref": "AWS::AccountId" }, ":cluster/", { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Cluster" } } ] ] }
           ] },
-          "EcsParameters": { "Fn::If": [ "FargateTimers",
+          "EcsParameters": { "Fn::If": [ "IsolateTimers",
             { "Ref": "AWS::NoValue" },
             { "TaskCount": "1", "TaskDefinitionArn": { "Ref": "Timer{{ upper .Name }}Tasks" } }
           ] },
           "Id": "{{.Name}}",
-          "Input": { "Fn::If": [ "FargateTimers",
+          "Input": { "Fn::If": [ "IsolateTimers",
             { "Fn::Join": [ "", [ "{ \"cluster\": \"", { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Cluster" } }, "\", \"taskDefinition\": \"", { "Ref": "Timer{{ upper .Name }}Tasks" }, "\" }" ] ] },
             { "Ref": "AWS::NoValue" }
           ] },
-          "RoleArn": { "Fn::If": [ "FargateTimers",
+          "RoleArn": { "Fn::If": [ "IsolateTimers",
             { "Ref": "AWS::NoValue" },
             { "Fn::GetAtt": [ "TimerRole", "Arn" ] }
           ] }
@@ -443,7 +468,7 @@
         "ExecutionRoleArn": { "Fn::GetAtt": [ "ExecutionRole", "Arn" ] },
         "Family": { "Fn::Sub": "${AWS::StackName}-timer-{{.Name}}" },
         "Memory": { "Fn::If": [ "FargateTimers", { "Fn::Select": [ 2, { "Ref": "{{ upper ($.Manifest.Service .Service).Name }}Formation" } ] }, { "Ref": "AWS::NoValue" } ] },
-        "NetworkMode": { "Fn::If": [ "FargateTimers", "awsvpc", { "Ref": "AWS::NoValue" } ] },
+        "NetworkMode": { "Fn::If": [ "IsolateTimers", "awsvpc", { "Ref": "AWS::NoValue" } ] },
         "RequiresCompatibilities": [ { "Fn::If": [ "FargateTimers", "FARGATE", { "Ref": "AWS::NoValue" } ] } ],
         "TaskRoleArn": { "Fn::GetAtt": [ "ServiceRole", "Arn" ] },
         "Volumes": [
