@@ -403,6 +403,14 @@
                 {{ range $k, $v := .EnvironmentDefaults }}
                   { "Name": "{{$k}}", "Value": {{ safe $v }} },
                 {{ end }}
+                {{ range .Links }}
+                  { "Name": "{{ upcase . }}_URL", "Value": { "Fn::Join": [ ".", [
+                    "https://{{$.App}}-{{.}}", { "Fn::ImportValue": { "Fn::Sub": "${Rack}:{{ router . $.Manifest }}Host" } }
+                  ] ] } },
+                {{ end }}
+                {{ range .Resources }}
+                  { "Name": "{{ upcase . }}_URL", "Value": { "Fn::GetAtt": [ "Resource{{ upper . }}", "Outputs.Url" ] } },
+                {{ end }}
                 { "Name": "AWS_REGION", "Value": { "Ref": "AWS::Region" } },
                 { "Name": "APP", "Value": "{{$.App}}" },
                 { "Name": "RELEASE", "Value": "{{$.Release.Id}}" },
