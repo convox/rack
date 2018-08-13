@@ -304,7 +304,7 @@
           "Properties": {
             "PolicyName": "{{ $.Service.Name }} autoscaling {{ $t.Namespace }}/{{ $t.Name }}",
             "PolicyType": "TargetTrackingScaling",
-            "ScalingTargetId": { "Ref": "Service{{ upper $.Service.Name }}AutoscalingTarget" },
+            "ScalingTargetId": { "Ref": "AutoscalingTarget" },
             "TargetTrackingScalingPolicyConfiguration": {
               "CustomizedMetricSpecification": {
                 "Dimensions": [
