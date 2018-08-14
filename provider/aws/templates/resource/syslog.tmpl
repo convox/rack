@@ -23,10 +23,6 @@
       "Default": "false",
       "AllowedValues": [ "true", "false" ]
     },
-    "SecurityGroups": {
-      "Description": "VpcConfig security groups",
-      "Type": "CommaDelimitedList"
-    },
     "SubnetsPrivate": {
       "Description": "VpcConfig private subnets",
       "Type": "CommaDelimitedList"
@@ -38,6 +34,10 @@
     "Version": {
       "Description": "Rack release version",
       "Type": "String"
+    },
+    "Vpc": {
+      "Type": "AWS::EC2::VPC::Id",
+      "Description": "VPC"
     }
   },
   "Resources": {
@@ -75,7 +75,7 @@
         "Runtime": "nodejs8.10",
         "Timeout": "25",
         "VpcConfig": { "Fn::If": [ "Private",
-          { "SecurityGroupIds" : { "Ref": "SecurityGroups" }, "SubnetIds" : { "Ref": "SubnetsPrivate" } },
+          { "SecurityGroupIds": [ { "Ref": "SecurityGroup" } ], "SubnetIds": { "Ref": "SubnetsPrivate" } },
           { "Ref": "AWS::NoValue" }
         ] }
       }
@@ -157,6 +157,14 @@
         ]
       },
       "Type": "AWS::IAM::Role"
+    },
+    "SecurityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Condition": "Private",
+      "Properties": {
+        "GroupDescription": { "Fn::Sub": "${AWS::StackName} security group" },
+        "VpcId": { "Ref": "Vpc" }
+      }
     }
   }
 }
