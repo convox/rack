@@ -141,7 +141,7 @@ convox resources info cilog | grep -v Apps
 convox resources update cilog Url=tcp://syslog2.convox.com --wait
 convox resources info cilog | grep syslog2.convox.com
 convox resources url cilog | grep tcp://syslog2.convox.com
-convox resources update cilog Private=false --wait # work around delayed deletion of vpc lambdas
+convox resources update cilog Private=false --wait || true # work around delayed deletion of vpc lambdas
 convox resources delete cilog --wait
 
 # cleanup
