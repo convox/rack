@@ -437,13 +437,7 @@ func (p *Provider) ResourceUpdate(name string, opts structs.ResourceUpdateOption
 		return nil, err
 	}
 
-	if opts.Parameters != nil {
-		for key, value := range cfParams(opts.Parameters) {
-			s.Parameters[key] = value
-		}
-	}
-
-	err = p.updateResource(s)
+	err = p.updateResource(s, opts.Parameters)
 
 	return s, err
 }
@@ -500,7 +494,7 @@ func (p *Provider) createResourceURL(s *structs.Resource, allowedProtocols ...st
 	return p.createResource(s)
 }
 
-func (p *Provider) updateResource(s *structs.Resource) error {
+func (p *Provider) updateResource(s *structs.Resource, params map[string]string) error {
 	formation, err := resourceFormation(s.Type, s)
 	if err != nil {
 		return err
@@ -517,6 +511,12 @@ func (p *Provider) updateResource(s *structs.Resource) error {
 	// drop old webhook url
 	if s.Type == "webhook" {
 		s.Parameters["Url"] = s.Url
+	}
+
+	if params != nil {
+		for k, v := range params {
+			s.Parameters[k] = v
+		}
 	}
 
 	req := &cloudformation.UpdateStackInput{
@@ -566,7 +566,7 @@ func (p *Provider) linkResource(a *structs.App, s *structs.Resource) error {
 
 	s.Apps = append(s.Apps, *a)
 
-	return p.updateResource(s)
+	return p.updateResource(s, nil)
 }
 
 // delete from links
@@ -581,7 +581,7 @@ func (p *Provider) unlinkResource(a *structs.App, s *structs.Resource) error {
 
 	s.Apps = apps
 
-	return p.updateResource(s)
+	return p.updateResource(s, nil)
 }
 
 func (p *Provider) appendSystemParameters(s *structs.Resource) error {
