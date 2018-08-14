@@ -126,7 +126,7 @@ sleep 30
 convox certs delete $cert
 
 # resources
-convox resources create syslog Private=false Url=tcp://syslog.convox.com --name cilog --wait # non-private because of lambda eni deletion delays
+convox resources create syslog Url=tcp://syslog.convox.com --name cilog --wait
 convox resources | grep cilog | grep syslog
 convox resources info cilog | grep -v Apps
 convox resources url cilog | grep tcp://syslog.convox.com
@@ -141,6 +141,7 @@ convox resources info cilog | grep -v Apps
 convox resources update cilog Url=tcp://syslog2.convox.com --wait
 convox resources info cilog | grep syslog2.convox.com
 convox resources url cilog | grep tcp://syslog2.convox.com
+convox resources update cilog Private=false --wait # work around delayed deletion of vpc lambdas
 convox resources delete cilog --wait
 
 # cleanup
