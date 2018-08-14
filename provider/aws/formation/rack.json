@@ -148,6 +148,10 @@
     "InstancesRole": {
       "Value": { "Fn::GetAtt": [ "InstancesRole", "Arn" ] }
     },
+    "InstancesSecurityGroup": {
+      "Export": { "Name": { "Fn::Sub": "${AWS::StackName}:InstancesSecurityGroup" } },
+      "Value": { "Fn::If": [ "BlankInstanceSecurityGroup", { "Ref": "InstancesSecurity" }, { "Ref": "InstanceSecurityGroup" } ] }
+    },
     "Internal": {
       "Value": { "Ref": "Internal" }
     },
@@ -273,9 +277,6 @@
         { "Fn::Join": [ ",", [ { "Ref": "RouteTablePrivate0" }, { "Ref": "RouteTablePrivate1" }, { "Fn::If": [ "ThirdAvailabilityZone", { "Ref": "RouteTablePrivate2" }, { "Ref": "AWS::NoValue" } ] } ] ] },
         ""
       ] }
-    },
-    "SecurityGroup": {
-      "Value": { "Fn::If": [ "BlankInstanceSecurityGroup", { "Ref": "InstancesSecurity" }, { "Ref": "InstanceSecurityGroup" } ] }
     },
     "ServiceRole": {
       "Export": { "Name": { "Fn::Sub": "${AWS::StackName}:ServiceRole" } },
