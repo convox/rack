@@ -122,6 +122,9 @@ func (p *Provider) AppGet(name string) (*structs.App, error) {
 	}
 
 	app, err := p.appFromStack(stacks[0])
+	if ae, ok := err.(awserr.Error); ok && ae.Code() == "ValidationError" {
+		return nil, errorNotFound(fmt.Sprintf("app not found: %s", name))
+	}
 	if err != nil {
 		return nil, err
 	}
