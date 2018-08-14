@@ -157,6 +157,9 @@
       "Properties": {
         "NotificationARNs": [ "{{ $.Topic }}" ],
         "Parameters": {
+          {{ range $k, $v := (index $ (printf "ResourceParams%s" (upper .Name) ) ) }}
+            "{{$k}}": "{{$v}}",
+          {{ end }}
           "Password": { "Fn::If": [ "BlankResourcePassword",
             { "Fn::Select": [ 2, { "Fn::Split": [ "/", { "Ref": "AWS::StackId" } ] } ] },
             { "Ref": "ResourcePassword" }
@@ -168,7 +171,7 @@
           { "Key": "Name", "Value": "{{.Name}}" },
           { "Key": "Type", "Value": "resource" }
         ],
-        "TemplateURL": "https://convox.s3.amazonaws.com/release/{{$.Version}}/formation/resource/{{.Type}}.json"
+        "TemplateURL": "{{ index $ (printf "ResourceTemplate%s" (upper .Name) ) }}"
       }
     },
   {{ end }}
@@ -262,7 +265,7 @@
           { "Key": "Name", "Value": "{{ .Name }}" },
           { "Key": "Type", "Value": "service" }
         ],
-        "TemplateURL": "{{ index $ (printf "Template%s" (upper .Name) ) }}"
+        "TemplateURL": "{{ index $ (printf "ServiceTemplate%s" (upper .Name) ) }}"
       }
     },
   {{ end }}

@@ -5,6 +5,8 @@ environment:
 resources:
   database:
     type: postgres
+    options:
+      size: db.t2.large
 services:
   api:
     build:
