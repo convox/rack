@@ -10,9 +10,11 @@ import (
 	"net/url"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
+	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/convox/rack/structs"
 )
 
@@ -126,12 +128,12 @@ func (p *Provider) ResourceCreate(kind string, opts structs.ResourceCreateOption
 
 // ResourceDelete deletes a resource.
 func (p *Provider) ResourceDelete(name string) error {
-	s, err := p.ResourceGet(name)
+	r, err := p.ResourceGet(name)
 	if err != nil {
 		return err
 	}
 
-	apps, err := p.resourceApps(*s)
+	apps, err := p.resourceApps(*r)
 	if err != nil {
 		return err
 	}
@@ -140,15 +142,22 @@ func (p *Provider) ResourceDelete(name string) error {
 		return fmt.Errorf("resource is linked to %s", apps[0].Name)
 	}
 
+	switch r.Type {
+	case "syslog":
+		if err := p.deleteSyslogInterfaces(r); err != nil {
+			return err
+		}
+	}
+
 	_, err = p.cloudformation().DeleteStack(&cloudformation.DeleteStackInput{
-		StackName: aws.String(p.rackStack(s.Name)),
+		StackName: aws.String(p.rackStack(r.Name)),
 	})
 	if err != nil {
-		p.EventSend("resource:delete", structs.EventSendOptions{Data: map[string]string{"name": s.Name, "type": s.Type}, Error: err.Error()})
+		p.EventSend("resource:delete", structs.EventSendOptions{Data: map[string]string{"name": r.Name, "type": r.Type}, Error: err.Error()})
 		return err
 	}
 
-	p.EventSend("resource:delete", structs.EventSendOptions{Data: map[string]string{"name": s.Name, "type": s.Type}})
+	p.EventSend("resource:delete", structs.EventSendOptions{Data: map[string]string{"name": r.Name, "type": r.Type}})
 
 	return nil
 }
@@ -501,6 +510,66 @@ func (p *Provider) createResourceURL(s *structs.Resource, allowedProtocols ...st
 	}
 
 	return p.createResource(s)
+}
+
+// clean up any ENIs attached to the lambda function as they will block stack deletion
+func (p *Provider) deleteSyslogInterfaces(r *structs.Resource) error {
+	fmt.Printf("r = %+v\n", r)
+
+	fn, err := p.stackResource(p.rackStack(r.Name), "Function")
+	if err != nil {
+		fmt.Printf("err = %+v\n", err)
+		return nil
+	}
+
+	res, err := p.ec2().DescribeNetworkInterfaces(&ec2.DescribeNetworkInterfacesInput{
+		Filters: []*ec2.Filter{
+			{Name: aws.String("requester-id"), Values: []*string{aws.String(fmt.Sprintf("*:%s", *fn.PhysicalResourceId))}},
+		},
+	})
+	if err != nil {
+		return err
+	}
+
+	for _, ni := range res.NetworkInterfaces {
+		if ni.Attachment != nil {
+			_, err := p.ec2().DetachNetworkInterface(&ec2.DetachNetworkInterfaceInput{
+				AttachmentId: ni.Attachment.AttachmentId,
+			})
+			if err != nil {
+				return err
+			}
+		}
+
+		for {
+			res, err := p.ec2().DescribeNetworkInterfaces(&ec2.DescribeNetworkInterfacesInput{
+				Filters: []*ec2.Filter{
+					{Name: aws.String("network-interface-id"), Values: []*string{ni.NetworkInterfaceId}},
+				},
+			})
+			if err != nil {
+				return err
+			}
+			if len(res.NetworkInterfaces) < 1 {
+				return nil
+			}
+
+			if res.NetworkInterfaces[0].Attachment == nil {
+				break
+			}
+
+			time.Sleep(1 * time.Second)
+		}
+
+		_, err := p.ec2().DeleteNetworkInterface(&ec2.DeleteNetworkInterfaceInput{
+			NetworkInterfaceId: ni.NetworkInterfaceId,
+		})
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (p *Provider) updateResource(s *structs.Resource, params map[string]string) error {
