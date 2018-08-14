@@ -100,6 +100,7 @@ func (p *Provider) ResourceCreate(kind string, opts structs.ResourceCreateOption
 		"System":   "convox",
 		"Type":     "resource",
 	}
+
 	tagKeys := []string{}
 
 	for key := range tags {
@@ -442,10 +443,13 @@ func (p *Provider) ResourceUpdate(name string, opts structs.ResourceUpdateOption
 	return s, err
 }
 
-// createResource creates a Resource.
-// Note: see also ResourceCreate() above.
-// This should probably be renamed to createResourceStack to be in conformity with createResourceURL below.
 func (p *Provider) createResource(s *structs.Resource) (*cloudformation.CreateStackInput, error) {
+	params := map[string]string{}
+
+	for k, v := range s.Parameters {
+		params[k] = v
+	}
+
 	formation, err := resourceFormation(s.Type, nil)
 	if err != nil {
 		return nil, err
@@ -453,6 +457,11 @@ func (p *Provider) createResource(s *structs.Resource) (*cloudformation.CreateSt
 
 	if err := p.appendSystemParameters(s); err != nil {
 		return nil, err
+	}
+
+	// reapply manually-specified parameters
+	for k, v := range params {
+		s.Parameters[k] = v
 	}
 
 	if err := filterFormationParameters(s, formation); err != nil {
