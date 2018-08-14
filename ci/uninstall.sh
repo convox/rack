@@ -7,7 +7,7 @@ export $($(dirname $0)/region.sh ${CIRCLE_NODE_INDEX})
 
 # hack to delete lambda enis
 vpc=$(aws ec2 describe-vpcs --filter Name=tag:Name,Values=convox-${CIRCLE_BUILD_NUM} --query "Vpcs[0].VpcId" --output text)
-enis=$(aws ec2 describe-network-interfaces  --filters Name=vpc-id,Values=vpc-05511132535d1a6f3 --query "NetworkInterfaces[?contains(@.Description, 'Lambda')].NetworkInterfaceId" --output text)
+enis=$(aws ec2 describe-network-interfaces  --filters Name=vpc-id,Values=$vpc --query "NetworkInterfaces[?contains(@.Description, 'Lambda')].NetworkInterfaceId" --output text)
 
 if [ "$enis" != "" ]; then
   echo $enis | while read eni; do
@@ -22,4 +22,4 @@ if [ "$enis" != "" ]; then
   done
 fi
 
-#convox rack uninstall aws convox-${CIRCLE_BUILD_NUM} --force
+convox rack uninstall aws convox-${CIRCLE_BUILD_NUM} --force
