@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"sort"
 
 	"github.com/convox/rack/structs"
 	"github.com/convox/stdcli"
@@ -60,17 +61,27 @@ func Scale(c *stdcli.Context) error {
 		return c.OK()
 	}
 
-	ss, err := provider(c).ServiceList(app(c))
-	if err != nil {
-		return err
+	var ss structs.Services
+	running := map[string]int{}
+
+	if s.Version < "20180708231844" {
+		ss, err = provider(c).FormationGet(app(c))
+		if err != nil {
+			return err
+		}
+	} else {
+		ss, err = provider(c).ServiceList(app(c))
+		if err != nil {
+			return err
+		}
 	}
+
+	sort.Slice(ss, func(i, j int) bool { return ss[i].Name < ss[j].Name })
 
 	ps, err := provider(c).ProcessList(app(c), structs.ProcessListOptions{})
 	if err != nil {
 		return err
 	}
-
-	running := map[string]int{}
 
 	for _, p := range ps {
 		running[p.Name] += 1
