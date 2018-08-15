@@ -24,9 +24,23 @@ func init() {
 }
 
 func Ssl(c *stdcli.Context) error {
-	ss, err := provider(c).ServiceList(app(c))
+	sys, err := provider(c).SystemGet()
 	if err != nil {
 		return err
+	}
+
+	var ss structs.Services
+
+	if sys.Version < "20180708231844" {
+		ss, err = provider(c).FormationGet(app(c))
+		if err != nil {
+			return err
+		}
+	} else {
+		ss, err = provider(c).ServiceList(app(c))
+		if err != nil {
+			return err
+		}
 	}
 
 	t := c.Table("ENDPOINT", "CERTIFICATE", "DOMAIN", "EXPIRES")
