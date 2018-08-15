@@ -1,14 +1,26 @@
 {
   "AWSTemplateFormatVersion" : "2010-09-09",
   "Parameters": {
+    "Class": {
+      "Type": "String",
+      "Default": "cache.t2.micro"
+    },
     "Password": {
       "MinLength": "8",
       "NoEcho": true,
       "Type": "String"
     },
+    "Nodes": {
+      "Type": "Number",
+      "Default": "1"
+    },
     "Rack": {
       "MinLength": "1",
       "Type": "String"
+    },
+    "Version": {
+      "Type": "String",
+      "Default": "1.4.34"
     }
   },
   "Outputs": {
@@ -39,11 +51,11 @@
       "Type": "AWS::ElastiCache::CacheCluster",
       "Properties": {
         "AutoMinorVersionUpgrade": true,
-        "CacheNodeType": "cache.t2.micro",
+        "CacheNodeType": { "Ref": "Class" },
         "CacheSubnetGroupName": { "Ref": "SubnetGroup" },
         "Engine": "memcached",
-        "EngineVersion": "1.4.34",
-        "NumCacheNodes": "1",
+        "EngineVersion": { "Ref": "Version" },
+        "NumCacheNodes": { "Ref": "Nodes" },
         "Port": "11211",
         "VpcSecurityGroupIds": [ { "Ref": "SecurityGroup" } ]
       }

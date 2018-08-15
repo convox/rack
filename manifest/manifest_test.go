@@ -19,6 +19,9 @@ func TestManifestLoad(t *testing.T) {
 			manifest.Resource{
 				Name: "database",
 				Type: "postgres",
+				Options: map[string]string{
+					"size": "db.t2.large",
+				},
 			},
 		},
 		Services: manifest.Services{
@@ -180,6 +183,8 @@ func TestManifestLoad(t *testing.T) {
 		"environment",
 		"resources",
 		"resources.database",
+		"resources.database.options",
+		"resources.database.options.size",
 		"resources.database.type",
 		"services",
 		"services.api",

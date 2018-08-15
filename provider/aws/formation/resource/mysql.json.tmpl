@@ -1,6 +1,22 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
+  "Conditions": {
+    "BlankIops": { "Fn::Equals": [ { "Ref": "Iops" }, "0" ] }
+  },
   "Parameters": {
+    "Class": {
+      "Type": "String",
+      "Default": "db.t2.micro"
+    },
+    "Durable": {
+      "Type": "String",
+      "Default": "false",
+      "AllowedValues": [ "true", "false" ]
+    },
+    "Iops": {
+      "Type": "Number",
+      "Default": "0"
+    },
     "Password": {
       "MinLength": "8",
       "NoEcho": true,
@@ -9,10 +25,18 @@
     "Rack": {
       "MinLength": "1",
       "Type": "String"
+    },
+    "Storage": {
+      "Type": "Number",
+      "Default": "20"
+    },
+    "Version": {
+      "Type": "String",
+      "Default": "5.7.22"
     }
   },
   "Outputs": {
-    "Url": { "Value": { "Fn::Sub": "postgres://app:${Password}@${Instance.Endpoint.Address}:${Instance.Endpoint.Port}/app" } }
+    "Url": { "Value": { "Fn::Sub": "mysql://app:${Password}@${Instance.Endpoint.Address}:${Instance.Endpoint.Port}/app" } }
   },
   "Resources": {
     "SecurityGroup": {
@@ -20,7 +44,7 @@
       "Properties": {
         "GroupDescription": { "Fn::Sub": "${AWS::StackName} security group" },
         "SecurityGroupIngress": [
-          { "IpProtocol": "tcp", "FromPort": "5432", "ToPort": "5432", "CidrIp": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:VpcCidr" } } }
+          { "IpProtocol": "tcp", "FromPort": "3306", "ToPort": "3306", "CidrIp": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:VpcCidr" } } }
         ],
         "VpcId": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Vpc" } }
       }
@@ -39,20 +63,21 @@
       "Type": "AWS::RDS::DBInstance",
       "DeletionPolicy": "Snapshot",
       "Properties": {
-        "AllocatedStorage": "10",
-        "DBInstanceClass": "db.t2.micro",
+        "AllocatedStorage": { "Ref": "Storage" },
+        "DBInstanceClass": { "Ref": "Class" },
         "DBInstanceIdentifier": { "Ref": "AWS::StackName" },
         "DBName": "app",
         "DBParameterGroupName": { "Ref": "ParameterGroup" },
         "DBSubnetGroupName": { "Ref": "SubnetGroup" },
-        "Engine": "postgres",
-        "EngineVersion": "9.6.6",
+        "Engine": "mysql",
+        "EngineVersion": { "Ref": "Version" },
+        "Iops": { "Fn::If": [ "BlankIops", { "Ref": "AWS::NoValue" }, { "Ref": "Iops" } ] },
         "MasterUsername": "app",
         "MasterUserPassword": { "Ref": "Password" },
-        "MultiAZ": "false",
-        "Port": "5432",
+        "MultiAZ": { "Ref": "Durable" },
+        "Port": "3306",
         "PubliclyAccessible": "false",
-        "StorageType": "gp2",
+        "StorageType": { "Fn::If": [ "BlankIops", "gp2", "io1" ] },
         "VPCSecurityGroups": [ { "Ref": "SecurityGroup" } ]
       }
     },
@@ -60,7 +85,12 @@
       "Type": "AWS::RDS::DBParameterGroup",
       "Properties": {
         "Description": { "Fn::Sub": "${AWS::StackName} parameters" },
-        "Family": "postgres9.6"
+        "Family": { "Fn::Sub": [ "mysql${Base}", {
+          "Base": { "Fn::Join": [ ".", [
+            { "Fn::Select": [ 0, { "Fn::Split": [ ".", { "Ref": "Version" } ] } ] },
+            { "Fn::Select": [ 1, { "Fn::Split": [ ".", { "Ref": "Version" } ] } ] }
+          ] ] }
+        } ] }
       }
     }
   }

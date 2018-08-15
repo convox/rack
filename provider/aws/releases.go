@@ -215,6 +215,27 @@ func (p *Provider) ReleasePromote(app, id string) error {
 		tp["Build"] = b
 	}
 
+	for _, r := range m.Resources {
+		data, err := formationTemplate(fmt.Sprintf("resource/%s", r.Type), map[string]interface{}{})
+		if err != nil {
+			return err
+		}
+
+		ou, err := p.ObjectStore(app, "", bytes.NewReader(data), structs.ObjectStoreOptions{Public: options.Bool(true)})
+		if err != nil {
+			return err
+		}
+
+		params := map[string]string{}
+
+		for k, v := range r.Options {
+			params[upperName(k)] = v
+		}
+
+		tp[fmt.Sprintf("ResourceParams%s", upperName(r.Name))] = params
+		tp[fmt.Sprintf("ResourceTemplate%s", upperName(r.Name))] = ou.Url
+	}
+
 	for _, s := range m.Services {
 		stp := map[string]interface{}{
 			"App":      r.App,
@@ -253,7 +274,7 @@ func (p *Provider) ReleasePromote(app, id string) error {
 			return err
 		}
 
-		tp[fmt.Sprintf("Template%s", upperName(s.Name))] = ou.Url
+		tp[fmt.Sprintf("ServiceTemplate%s", upperName(s.Name))] = ou.Url
 	}
 
 	data, err := formationTemplate("app", tp)

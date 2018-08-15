@@ -1,8 +1,9 @@
 package manifest
 
 type Resource struct {
-	Name string `yaml:"-"`
-	Type string `yaml:"type"`
+	Name    string            `yaml:"-"`
+	Type    string            `yaml:"type"`
+	Options map[string]string `yaml:"options"`
 }
 
 type Resources []Resource
