@@ -1,6 +1,19 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
   "Parameters": {
+    "Class": {
+      "Type": "String",
+      "Default": "cache.t2.micro"
+    },
+    "Durable": {
+      "Type": "String",
+      "Default": "false",
+      "AllowedValues": [ "true", "false" ]
+    },
+    "Nodes": {
+      "Type": "Number",
+      "Default": "1"
+    },
     "Password": {
       "MinLength": "8",
       "NoEcho": true,
@@ -9,6 +22,10 @@
     "Rack": {
       "MinLength": "1",
       "Type": "String"
+    },
+    "Version": {
+      "Type": "String",
+      "Default": "2.8.24"
     }
   },
   "Outputs": {
@@ -38,13 +55,13 @@
     "ReplicationGroup": {
       "Type": "AWS::ElastiCache::ReplicationGroup",
       "Properties": {
-        "AutomaticFailoverEnabled": "false",
+        "AutomaticFailoverEnabled": { "Ref": "Durable" },
         "AutoMinorVersionUpgrade": "true",
-        "CacheNodeType": "cache.t2.micro",
+        "CacheNodeType": { "Ref": "Class" },
         "CacheSubnetGroupName": { "Ref": "SubnetGroup" },
         "Engine": "redis",
-        "EngineVersion": "2.8.24",
-        "NumCacheClusters": "1",
+        "EngineVersion": { "Ref": "Version" },
+        "NumCacheClusters": { "Ref": "Nodes" },
         "Port": "6379",
         "ReplicationGroupDescription": { "Ref": "AWS::StackName" },
         "SecurityGroupIds": [ { "Ref": "SecurityGroup" } ]
