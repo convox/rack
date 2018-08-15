@@ -1,6 +1,7 @@
 package sdk
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -124,6 +125,28 @@ func (c *Client) CertificateCreateClassic(pub string, key string, opts structs.C
 	return v, err
 }
 
+func (c *Client) EnvironmentSet(app string, env []byte) (*structs.Release, error) {
+	req, err := c.Request("POST", fmt.Sprintf("/apps/%s/environment", app), stdsdk.RequestOptions{Body: bytes.NewReader(env)})
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := c.HandleRequest(req)
+	if err != nil {
+		return nil, err
+	}
+	defer res.Body.Close()
+
+	id := res.Header.Get("Release-Id")
+
+	r, err := c.ReleaseGet(app, id)
+	if err != nil {
+		return nil, err
+	}
+
+	return r, nil
+}
+
 func (c *Client) EnvironmentUnset(app string, key string) (*structs.Release, error) {
 	req, err := c.Request("DELETE", fmt.Sprintf("/apps/%s/environment/%s", app, key), stdsdk.RequestOptions{})
 	if err != nil {
@@ -134,6 +157,7 @@ func (c *Client) EnvironmentUnset(app string, key string) (*structs.Release, err
 	if err != nil {
 		return nil, err
 	}
+	defer res.Body.Close()
 
 	id := res.Header.Get("Release-Id")
 
@@ -143,6 +167,61 @@ func (c *Client) EnvironmentUnset(app string, key string) (*structs.Release, err
 	}
 
 	return r, nil
+}
+
+func (c *Client) FormationGet(app string) (structs.Services, error) {
+	var fs []struct {
+		Balancer string
+		Count    int
+		Cpu      int
+		Memory   int
+		Name     string
+		Ports    []int
+	}
+
+	if err := c.Get(fmt.Sprintf("/apps/%s/formation", app), stdsdk.RequestOptions{}, &fs); err != nil {
+		return nil, err
+	}
+
+	ss := structs.Services{}
+
+	for _, f := range fs {
+		var ssls []struct {
+			Certificate string
+			Process     string
+			Port        int
+		}
+
+		if err := c.Get(fmt.Sprintf("/apps/%s/ssl", app), stdsdk.RequestOptions{}, &ssls); err != nil {
+			return nil, err
+		}
+
+		s := structs.Service{
+			Count:  f.Count,
+			Cpu:    f.Cpu,
+			Domain: f.Balancer,
+			Memory: f.Memory,
+			Name:   f.Name,
+			Ports:  []structs.ServicePort{},
+		}
+
+		for _, p := range f.Ports {
+			cert := ""
+
+			for _, ssl := range ssls {
+				if ssl.Process == s.Name && ssl.Port == p {
+					cert = ssl.Certificate
+					break
+				}
+			}
+
+			s.Ports = append(s.Ports, structs.ServicePort{Balancer: p, Certificate: cert})
+		}
+
+		ss = append(ss, s)
+	}
+
+	return ss, nil
 }
 
 func (c *Client) FormationUpdate(app string, service string, opts structs.ServiceUpdateOptions) error {

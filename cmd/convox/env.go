@@ -113,9 +113,23 @@ func EnvSet(c *stdcli.Context) error {
 
 	c.Startf(fmt.Sprintf("Setting %s", strings.Join(keys, ", ")))
 
-	r, err := provider(c).ReleaseCreate(app(c), structs.ReleaseCreateOptions{Env: options.String(env.String())})
+	var r *structs.Release
+
+	s, err := provider(c).SystemGet()
 	if err != nil {
 		return err
+	}
+
+	if s.Version <= "20180708231844" {
+		r, err = provider(c).EnvironmentSet(app(c), []byte(env.String()))
+		if err != nil {
+			return err
+		}
+	} else {
+		r, err = provider(c).ReleaseCreate(app(c), structs.ReleaseCreateOptions{Env: options.String(env.String())})
+		if err != nil {
+			return err
+		}
 	}
 
 	c.OK()
@@ -159,12 +173,12 @@ func EnvUnset(c *stdcli.Context) error {
 
 	c.Startf(fmt.Sprintf("Unsetting %s", strings.Join(keys, ", ")))
 
+	var r *structs.Release
+
 	s, err := provider(c).SystemGet()
 	if err != nil {
 		return err
 	}
-
-	var r *structs.Release
 
 	if s.Version <= "20180708231844" {
 		for _, e := range c.Args {
