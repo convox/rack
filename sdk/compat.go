@@ -288,6 +288,9 @@ func (c *Client) ProcessRunDetached(app, service string, opts structs.ProcessRun
 		Pid string
 	}
 
+	ro.Params["command"] = ro.Headers["Command"]
+	ro.Params["release"] = ro.Headers["Release"]
+
 	if err := c.Post(fmt.Sprintf("/apps/%s/processes/%s/run", app, service), ro, &ret); err != nil {
 		return "", err
 	}
