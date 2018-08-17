@@ -25,7 +25,7 @@ func init() {
 	CLI.Command("apps create", "create an app", AppsCreate, stdcli.CommandOptions{
 		Flags:    append(stdcli.OptionFlags(structs.AppCreateOptions{}), flagRack, flagWait),
 		Usage:    "<app>",
-		Validate: stdcli.Args(1),
+		Validate: stdcli.ArgsMax(1),
 	})
 
 	CLI.Command("apps delete", "delete an app", AppsDelete, stdcli.CommandOptions{
@@ -97,7 +97,7 @@ func AppsCancel(c *stdcli.Context) error {
 }
 
 func AppsCreate(c *stdcli.Context) error {
-	app := c.Args[0]
+	app := coalesce(c.Arg(0), app(c))
 
 	var opts structs.AppCreateOptions
 
