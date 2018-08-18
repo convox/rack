@@ -5,16 +5,16 @@ function assert_run {
 }
 
 function fetch {
-  local endpoint=$1
+  local url=$1
   local count=0
   local success=0
   while [ $success -lt 3 ]; do
     let count=count+1
-    curl -ks -m2 $endpoint >/dev/null && let success=success+1
+    curl -ks -m2 $url >/dev/null && let success=success+1
     [ $count -gt 60 ] && exit 1
     sleep 10
   done
-  curl -ks $endpoint
+  curl -ks $url
 }
 
 function run {
