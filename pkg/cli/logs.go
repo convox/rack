@@ -27,6 +27,8 @@ func Logs(rack sdk.Interface, c *stdcli.Context) error {
 		opts.Follow = options.Bool(false)
 	}
 
+	opts.Prefix = options.Bool(true)
+
 	r, err := rack.AppLogs(app(c), opts)
 	if err != nil {
 		return err
