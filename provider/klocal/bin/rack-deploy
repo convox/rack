@@ -1,0 +1,13 @@
+#!/bin/sh
+
+set -e
+
+rack=$1
+version=$(date +%Y%m%d%H%M%S)
+
+[ "$rack" == "" ] && echo "rack required" && exit 1
+
+go install ./...
+
+provider/klocal/bin/rack-build $version
+provider/klocal/bin/rack-promote $rack $version
