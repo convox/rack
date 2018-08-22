@@ -29,7 +29,10 @@ release:
 	docker build -t convox/rack:$(VERSION) .
 	docker push convox/rack:$(VERSION)
 
-templates:
+run: build
+	$(GOPATH)/bin/rack
+
+template:
 	go get -u github.com/jteeuwen/go-bindata/...
 	make -C pkg/sync templates
 
