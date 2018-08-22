@@ -299,7 +299,7 @@
         },
       {{ end }}
       {{ range $i, $t := .Scale.Targets.Custom }}
-        "AutoscalingPolicyRequests": {
+        "AutoscalingPolicyCustom{{$i}}": {
           "Type": "AWS::ApplicationAutoScaling::ScalingPolicy",
           "Properties": {
             "PolicyName": "{{ $.Service.Name }} autoscaling {{ $t.Namespace }}/{{ $t.Name }}",
