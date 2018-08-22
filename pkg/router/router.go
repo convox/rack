@@ -1,167 +1,157 @@
 package router
 
 import (
-	"crypto/tls"
 	"fmt"
-	"net"
-	"os"
-	"strings"
+	"math/rand"
+	"net/http"
+	"net/url"
 	"sync"
 	"time"
 
-	"github.com/convox/stdapi"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 )
 
 type Router struct {
-	base    net.IP
-	ca      tls.Certificate
-	dns     *DNS
-	iface   string
-	lock    sync.Mutex
-	subnet  string
-	net     *net.IPNet
-	racks   Racks
-	version string
+	Cluster kubernetes.Interface
+	DNS     *DNS
+	HTTP    *HTTP
+	HTTPS   *HTTP
+	routes  map[string]map[string]bool
+	racks   map[string]string
 }
 
-func New(iface, subnet, version string) (*Router, error) {
-	ip, net, err := net.ParseCIDR(subnet)
-	if err != nil {
-		return nil, err
-	}
+type Server interface {
+	Serve() error
+}
 
+func init() {
+	rand.Seed(time.Now().UTC().UnixNano())
+}
+
+func New() (*Router, error) {
 	r := &Router{
-		base:    ip.To4(),
-		iface:   iface,
-		net:     net,
-		racks:   Racks{},
-		subnet:  subnet,
-		version: version,
+		routes: map[string]map[string]bool{},
+		racks:  map[string]string{},
 	}
 
-	ca, err := caCertificate()
+	c, err := rest.InClusterConfig()
 	if err != nil {
 		return nil, err
 	}
 
-	r.ca = ca
+	kc, err := kubernetes.NewForConfig(c)
+	if err != nil {
+		return nil, err
+	}
+
+	dns, err := NewDNS(r)
+	if err != nil {
+		return nil, err
+	}
+
+	http, err := NewHTTP(r, "http", 80)
+	if err != nil {
+		return nil, err
+	}
+
+	http.Handler = redirectHTTPS
+
+	https, err := NewHTTP(r, "https", 443)
+	if err != nil {
+		return nil, err
+	}
+
+	r.Cluster = kc
+	r.DNS = dns
+	r.HTTP = http
+	r.HTTPS = https
+
+	ic, err := NewIngressController(r)
+	if err != nil {
+		return nil, err
+	}
+
+	go ic.Run()
 
 	return r, nil
 }
 
-func (rt *Router) Lookup(host string) net.IP {
-	parts := strings.Split(host, ".")
+func (r *Router) Serve() error {
+	ch := make(chan error, 1)
 
-	if len(parts) < 2 {
-		return nil
-	}
+	go serve(ch, r.DNS)
+	go serve(ch, r.HTTP)
+	go serve(ch, r.HTTPS)
 
-	r, err := rt.Rack(parts[len(parts)-1])
-	if err != nil {
-		return nil
-	}
-
-	h, err := r.Host(strings.Join(parts[0:len(parts)-1], "."))
-	if err != nil {
-		return nil
-	}
-
-	return h.IP
+	return <-ch
 }
 
-func (rt *Router) NextIP() (net.IP, error) {
-	for i := uint32(1); i < 255; i++ {
-		ip := incrementIP(rt.base, (i * 256))
-		found := false
-		for _, r := range rt.racks {
-			if r.IP.Equal(ip) {
-				found = true
-				break
-			}
-		}
-		if !found {
-			return ip, nil
-		}
-	}
-	return net.IP{}, fmt.Errorf("ip exhaustion")
+func (r *Router) RackSet(host, rack string) {
+	r.racks[host] = rack
 }
 
-func (rt *Router) Rack(name string) (*Rack, error) {
-	for i := range rt.racks {
-		if rt.racks[i].Name == name {
-			return rt.racks[i], nil
-		}
+var targetLock sync.Mutex
+
+func (r *Router) TargetAdd(host, target string) {
+	targetLock.Lock()
+	defer targetLock.Unlock()
+
+	fmt.Printf("ns=convox.router at=target.add host=%q target=%q\n", host, target)
+
+	if r.routes[host] == nil {
+		r.routes[host] = map[string]bool{}
 	}
 
-	return nil, fmt.Errorf("no such rack: %s", name)
+	r.routes[host][target] = true
 }
 
-func (rt *Router) Serve() error {
-	destroyInterface(rt.iface)
+func (r *Router) TargetCount(host string) int {
+	targetLock.Lock()
+	defer targetLock.Unlock()
 
-	if err := createInterface(rt.iface, rt.base.String()); err != nil {
-		return err
+	targets, ok := r.routes[host]
+	if !ok {
+		return 0
 	}
 
-	defer destroyInterface(rt.iface)
-
-	if err := createAlias(rt.iface, rt.base.String()); err != nil {
-		return err
-	}
-
-	d, err := NewDNS(rt.base, rt.Lookup)
-	if err != nil {
-		return err
-	}
-
-	rt.dns = d
-
-	go rt.dns.Serve()
-
-	a := stdapi.New("convox.router", "router")
-
-	a.Route("GET", "/", rt.RackList)
-	a.Route("POST", "/racks", rt.RackCreate)
-	a.Route("GET", "/racks/{rack}", rt.RackGet)
-	a.Route("GET", "/racks", rt.RackList)
-	a.Route("POST", "/racks/{rack}/hosts", rt.HostCreate)
-	a.Route("GET", "/racks/{rack}/hosts/{host}", rt.HostGet)
-	a.Route("GET", "/racks/{rack}/hosts", rt.HostList)
-	a.Route("POST", "/racks/{rack}/hosts/{host}/endpoints", rt.EndpointCreate)
-	a.Route("GET", "/racks/{rack}/hosts/{host}/endpoints/{port}", rt.EndpointGet)
-	a.Route("POST", "/racks/{rack}/hosts/{host}/endpoints/{port}/targets/add", rt.TargetAdd)
-	a.Route("GET", "/racks/{rack}/hosts/{host}/endpoints/{port}/targets", rt.TargetList)
-	a.Route("POST", "/racks/{rack}/hosts/{host}/endpoints/{port}/targets/delete", rt.TargetRemove)
-	a.Route("POST", "/terminate", rt.Terminate)
-	a.Route("GET", "/version", rt.Version)
-
-	// a.Route("GET", "/endpoints", r.HostList)
-	// a.Route("POST", "/endpoints/{host}", r.HostCreate)
-	// a.Route("DELETE", "/endpoints/{host}", r.HostDelete)
-	// a.Route("POST", "/endpoints/{host}/proxies/{port}", r.ProxyCreate)
-	// a.Route("POST", "/terminate", r.Terminate)
-	// a.Route("GET", "/version", r.VersionGet)
-
-	if err := a.Listen("https", fmt.Sprintf("%s:443", rt.base)); err != nil {
-		return err
-	}
-
-	return nil
+	return len(targets)
 }
 
-func (rt *Router) Terminate(c *stdapi.Context) error {
-	go func() {
-		time.Sleep(1 * time.Second)
-		os.Exit(0)
-	}()
+func (r *Router) TargetDelete(host, target string) {
+	targetLock.Lock()
+	defer targetLock.Unlock()
 
-	return nil
+	fmt.Printf("ns=convox.router at=target.delete host=%q target=%q\n", host, target)
+
+	if r.routes[host] != nil {
+		delete(r.routes[host], target)
+	}
 }
 
-func (rt *Router) Version(c *stdapi.Context) error {
-	v := map[string]string{
-		"version": rt.version,
+func (r *Router) TargetRandom(host string) string {
+	targetLock.Lock()
+	defer targetLock.Unlock()
+
+	if r.routes[host] == nil || len(r.routes[host]) == 0 {
+		return ""
 	}
 
-	return c.RenderJSON(v)
+	targets := []string{}
+
+	for target := range r.routes[host] {
+		targets = append(targets, target)
+	}
+
+	return targets[rand.Intn(len(targets))]
+}
+
+func redirectHTTPS(w http.ResponseWriter, r *http.Request) {
+	target := url.URL{Scheme: "https", Host: r.Host, Path: r.URL.Path, RawQuery: r.URL.RawQuery}
+
+	http.Redirect(w, r, target.String(), http.StatusMovedPermanently)
+}
+
+func serve(ch chan error, s Server) {
+	ch <- s.Serve()
 }
