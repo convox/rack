@@ -28,7 +28,7 @@ func (s *Start) Start1(ctx context.Context, opts Options1) error {
 		return nil
 	default:
 	}
-	opts.Manifest = helpers.Coalesce(opts.Manifest, "docker-compose.yml")
+	opts.Manifest = helpers.CoalesceString(opts.Manifest, "docker-compose.yml")
 
 	if !helpers.FileExists(opts.Manifest) {
 		return fmt.Errorf("manifest not found: %s", opts.Manifest)
