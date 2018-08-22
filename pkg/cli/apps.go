@@ -117,10 +117,10 @@ func Apps(rack sdk.Interface, c *stdcli.Context) error {
 		return err
 	}
 
-	t := c.Table("APP", "STATUS", "GEN", "RELEASE")
+	t := c.Table("APP", "STATUS", "RELEASE")
 
 	for _, a := range as {
-		t.AddRow(a.Name, a.Status, a.Generation, a.Release)
+		t.AddRow(a.Name, a.Status, a.Release)
 	}
 
 	return t.Print()
