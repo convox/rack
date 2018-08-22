@@ -62,6 +62,7 @@
         "Engine": "redis",
         "EngineVersion": { "Ref": "Version" },
         "NumCacheClusters": { "Ref": "Nodes" },
+        "AuthToken": { "Ref": "Password" },
         "Port": "6379",
         "ReplicationGroupDescription": { "Ref": "AWS::StackName" },
         "SecurityGroupIds": [ { "Ref": "SecurityGroup" } ]
