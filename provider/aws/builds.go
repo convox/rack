@@ -649,7 +649,7 @@ func (p *Provider) buildSave(b *structs.Build) error {
 	return err
 }
 
-func (p *Provider) buildAuth(build *structs.Build) (string, error) {
+func (p *Provider) buildAuth(b *structs.Build) ([]byte, error) {
 	type authEntry struct {
 		Username string
 		Password string
@@ -657,54 +657,33 @@ func (p *Provider) buildAuth(build *structs.Build) (string, error) {
 
 	auth := map[string]authEntry{}
 
-	registries, err := p.RegistryList()
+	rs, err := p.RegistryList()
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	for _, r := range registries {
-		switch {
-		case regexpECRHost.MatchString(r.Server):
-			un, pw, err := p.authECR(r.Server, r.Username, r.Password)
-			if err != nil {
-				return "", err
-			}
-
-			auth[r.Server] = authEntry{
-				Username: un,
-				Password: pw,
-			}
-		default:
-			auth[r.Server] = authEntry{
-				Username: r.Username,
-				Password: r.Password,
-			}
+	for _, r := range rs {
+		auth[r.Server] = authEntry{
+			Username: r.Username,
+			Password: r.Password,
 		}
 	}
 
 	aid, err := p.accountId()
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	host := fmt.Sprintf("%s.dkr.ecr.%s.amazonaws.com", aid, p.Region)
+	repo := fmt.Sprintf("%s.dkr.ecr.%s.amazonaws.com", aid, p.Region)
 
-	un, pw, err := p.authECR(host, "", "")
-	if err != nil {
-		return "", err
-	}
-
-	auth[host] = authEntry{
-		Username: un,
-		Password: pw,
-	}
+	auth[repo] = authEntry{}
 
 	data, err := json.Marshal(auth)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	return string(data), nil
+	return data, nil
 }
 
 func (p *Provider) authECR(host, access, secret string) (string, string, error) {
@@ -829,7 +808,7 @@ func (p *Provider) runBuild(build *structs.Build, burl string, opts structs.Buil
 						},
 						{
 							Name:  aws.String("BUILD_AUTH"),
-							Value: aws.String(auth),
+							Value: aws.String(string(auth)),
 						},
 						{
 							Name:  aws.String("BUILD_DEVELOPMENT"),
