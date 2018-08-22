@@ -26,31 +26,42 @@ root="$(cd $(dirname ${0:-})/..; pwd)"
 
 set -ex
 
+provider=$(convox api get /system | jq -r .provider)
+
 # cli
 convox version
 
 # rack
 convox instances
-convox instances keyroll --wait
-instance=$(convox api get /instances | jq -r '.[0].id')
-convox instances ssh $instance "ls -la" | grep ec2-user
-convox instances terminate $instance
-convox rack | grep elb.amazonaws.com
+convox rack
 convox rack logs --no-follow | grep service/web
-convox rack ps | grep bin/rack
-convox rack releases
-convox rack params | grep LogRetention
-convox rack params set LogRetention=14 --wait
-convox rack params | grep LogRetention | grep 14
-convox rack params set LogRetention= --wait
-convox rack params | grep LogRetention | grep -v 14
+convox rack ps | grep bin/web
+# convox rack releases
+
+# rack (provider-specific)
+case $provider in
+  aws)
+    convox instances keyroll --wait
+    instance=$(convox api get /instances | jq -r '.[0].id')
+    convox instances ssh $instance "ls -la" | grep ec2-user
+    convox instances terminate $instance
+    convox rack | grep elb.amazonaws.com
+    convox rack params | grep LogRetention
+    convox rack params set LogRetention=14 --wait
+    convox rack params | grep LogRetention | grep 14
+    convox rack params set LogRetention= --wait
+    convox rack params | grep LogRetention | grep -v 14
+    ;;
+esac
+
+# registries
 convox registries
 convox registries add quay.io convox+ci 6D5CJVRM5P3L24OG4AWOYGCDRJLPL0PFQAENZYJ1KGE040YDUGPYKOZYNWFTE5CV
 convox registries | grep quay.io | grep convox+ci
 convox registries remove quay.io
 convox registries | grep -v quay.io
 
-# gen2
+# app
 cd $root/examples/httpd
 convox apps create ci2 --wait
 convox apps | grep ci2
@@ -85,7 +96,7 @@ convox ps -a ci2 | grep $releaser
 ps=$(convox api get /apps/ci2/processes | jq -r '.[0].id')
 convox ps info $ps -a ci2 | grep $releaser
 convox scale web --count 2 --cpu 192 --memory 256 -a ci2 --wait
-convox services -a ci2 | grep web | grep convox.site | grep 443:80
+convox services -a ci2 | grep web | grep 443:80 | grep $endpoint
 endpoint=$(convox api get /apps/ci2/services | jq -r '.[] | select(.name == "web") | .domain')
 fetch https://$endpoint | grep "It works"
 convox ps -a ci2 | grep web | wc -l | grep 2
@@ -106,20 +117,32 @@ cat /tmp/dir2/file | grep foo
 convox cp $ps:/file /tmp/file2 -a ci2
 cat /tmp/file2 | grep foo
 convox ps stop $ps
+convox ps stop $ps -a ci2
+convox ps | grep -v $ps
 convox deploy -a ci2 --wait
-convox apps params -a ci2 | grep LogRetention
-convox apps params set LogRetention=14 -a ci2 --wait
-convox apps params -a ci2 | grep LogRetention | grep 14
-convox apps params set LogRetention= -a ci2 --wait
-convox apps params -a ci2 | grep LogRetention | grep -v 14
+
+# app (provider-specific)
+case $provider in
+  aws)
+    convox apps params -a ci2 | grep LogRetention
+    convox apps params set LogRetention=14 -a ci2 --wait
+    convox apps params -a ci2 | grep LogRetention | grep 14
+    convox apps params set LogRetention= -a ci2 --wait
+    convox apps params -a ci2 | grep LogRetention | grep -v 14
+    ;;
+esac
 
 # gen1
-cd $root/examples/httpd
-convox apps create ci1 -g 1 --wait
-convox deploy -a ci1 --wait
-convox services -a ci1 | grep web | grep elb.amazonaws.com | grep 443:80
-endpoint=$(convox api get /apps/ci1/services | jq -r '.[] | select(.name == "web") | .domain')
-fetch https://$endpoint | grep "It works"
+case $provider in
+  aws)
+    cd $root/examples/httpd
+    convox apps create ci1 -g 1 --wait
+    convox deploy -a ci1 --wait
+    convox services -a ci1 | grep web | grep elb.amazonaws.com | grep 443:80
+    endpoint=$(convox api get /apps/ci1/services | jq -r '.[] | select(.name == "web") | .domain')
+    fetch https://$endpoint | grep "It works"
+    ;;
+esac
 
 # certs
 cd $root/ci/assets
@@ -130,39 +153,57 @@ convox certs delete $cert
 cert=$(convox certs import example.org.crt example.org.key --id)
 sleep 30
 convox certs | grep $cert
-certo=$(convox api get /apps/ci1/services | jq -r '.[] | select(.name == "web") | .ports[] | select (.balancer == 443) | .certificate')
-convox ssl -a ci1 | grep web:443 | grep $certo
-convox ssl update web:443 $cert -a ci1 --wait
-convox ssl -a ci1 | grep web:443 | grep $cert
-convox ssl update web:443 $certo -a ci1 --wait
-convox ssl -a ci1 | grep web:443 | grep $certo
-sleep 30
+
+# certs (provider-specific)
+case $provider in
+  aws)
+    certo=$(convox api get /apps/ci1/services | jq -r '.[] | select(.name == "web") | .ports[] | select (.balancer == 443) | .certificate')
+    convox ssl -a ci1 | grep web:443 | grep $certo
+    convox ssl update web:443 $cert -a ci1 --wait
+    convox ssl -a ci1 | grep web:443 | grep $cert
+    convox ssl update web:443 $certo -a ci1 --wait
+    convox ssl -a ci1 | grep web:443 | grep $certo
+    sleep 30
+    ;;
+esac
+
+# certs (cleanup)
 convox certs delete $cert
 
 # resources
-convox resources create syslog Url=tcp://syslog.convox.com --name cilog --wait
-convox resources | grep cilog | grep syslog
-convox resources info cilog | grep -v Apps
-convox resources url cilog | grep tcp://syslog.convox.com
-convox resources link cilog -a ci2 --wait
-convox resources info cilog | grep Apps | grep ci2
-convox resources unlink cilog -a ci2 --wait
-convox resources info cilog | grep -v Apps
-convox resources link cilog -a ci1 --wait
-convox resources info cilog | grep Apps | grep ci1
-convox resources unlink cilog -a ci1 --wait
-convox resources info cilog | grep -v Apps
-convox resources update cilog Url=tcp://syslog2.convox.com --wait
-convox resources info cilog | grep syslog2.convox.com
-convox resources url cilog | grep tcp://syslog2.convox.com
-convox resources delete cilog --wait
-convox resources create postgres --name pgdb --wait
-convox resources | grep pgdb | grep postgres
-dburl=$(convox resources url pgdb)
-convox resources update pgdb BackupRetentionPeriod=2 --wait
-[ "$dburl" == "$(convox resources url pgdb)" ]
-convox resources delete pgdb --wait
+case $provider in
+  aws)
+    convox resources create syslog Url=tcp://syslog.convox.com --name cilog --wait
+    convox resources | grep cilog | grep syslog
+    convox resources info cilog | grep -v Apps
+    convox resources url cilog | grep tcp://syslog.convox.com
+    convox resources link cilog -a ci2 --wait
+    convox resources info cilog | grep Apps | grep ci2
+    convox resources unlink cilog -a ci2 --wait
+    convox resources info cilog | grep -v Apps
+    convox resources link cilog -a ci1 --wait
+    convox resources info cilog | grep Apps | grep ci1
+    convox resources unlink cilog -a ci1 --wait
+    convox resources info cilog | grep -v Apps
+    convox resources update cilog Url=tcp://syslog2.convox.com --wait
+    convox resources info cilog | grep syslog2.convox.com
+    convox resources url cilog | grep tcp://syslog2.convox.com
+    convox resources delete cilog --wait
+    convox resources create postgres --name pgdb --wait
+    convox resources | grep pgdb | grep postgres
+    dburl=$(convox resources url pgdb)
+    convox resources update pgdb BackupRetentionPeriod=2 --wait
+    [ "$dburl" == "$(convox resources url pgdb)" ]
+    convox resources delete pgdb --wait
+    ;;
+esac
 
 # cleanup
-convox apps delete ci1 --wait
 convox apps delete ci2 --wait
+
+# cleanup (provider-specific)
+case $provider in
+  aws)
+    convox apps delete ci1 --wait
+    ;;
+esac
