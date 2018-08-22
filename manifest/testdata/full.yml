@@ -67,3 +67,9 @@ services:
   inherit:
     "<<": *proxy
     command: inherit
+  agent:
+    agent:
+      ports:
+        - 5000/udp
+        - 5001
+        - 5002/tcp
