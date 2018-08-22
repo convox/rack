@@ -21,6 +21,7 @@ type Service struct {
 	Internal    bool           `yaml:"internal,omitempty"`
 	Links       []string       `yaml:"links,omitempty"`
 	Port        ServicePort    `yaml:"port,omitempty"`
+	Ports       []ServicePort  `yaml:"ports,omitempty"`
 	Privileged  bool           `yaml:"privileged,omitempty"`
 	Resources   []string       `yaml:"resources,omitempty"`
 	Scale       ServiceScale   `yaml:"scale,omitempty"`
@@ -56,8 +57,10 @@ type ServiceHealth struct {
 }
 
 type ServicePort struct {
-	Port   int    `yaml:"port,omitempty"`
-	Scheme string `yaml:"scheme,omitempty"`
+	Host     int    `yaml:"host,omitempty"`
+	Port     int    `yaml:"port,omitempty"`
+	Protocol string `yaml:"protocol,omitempty"`
+	Scheme   string `yaml:"scheme,omitempty"`
 }
 
 type ServiceScale struct {

@@ -44,8 +44,15 @@ func TestManifestLoad(t *testing.T) {
 					Interval: 10,
 					Timeout:  9,
 				},
-				Init:      true,
-				Port:      manifest.ServicePort{Port: 1000, Scheme: "http"},
+				Init: true,
+				Port: manifest.ServicePort{Port: 1000, Protocol: "tcp", Scheme: "http"},
+				Ports: []manifest.ServicePort{
+					{Host: 5000, Port: 5000, Protocol: "tcp", Scheme: "http"},
+					{Port: 5001, Protocol: "udp", Scheme: "http"},
+					{Host: 5002, Port: 5002, Protocol: "udp", Scheme: "http"},
+					{Host: 5003, Port: 6003, Protocol: "tcp", Scheme: "http"},
+					{Port: 5004, Protocol: "tcp", Scheme: "https"},
+				},
 				Resources: []string{"database"},
 				Scale: manifest.ServiceScale{
 					Count:  manifest.ServiceScaleCount{Min: 3, Max: 10},
@@ -69,7 +76,7 @@ func TestManifestLoad(t *testing.T) {
 				Environment: []string{
 					"SECRET",
 				},
-				Port: manifest.ServicePort{Port: 2000, Scheme: "https"},
+				Port: manifest.ServicePort{Port: 2000, Protocol: "tcp", Scheme: "https"},
 				Scale: manifest.ServiceScale{
 					Count:  manifest.ServiceScaleCount{Min: 1, Max: 1},
 					Cpu:    512,
@@ -91,7 +98,7 @@ func TestManifestLoad(t *testing.T) {
 					Path:     "/",
 					Timeout:  3,
 				},
-				Port: manifest.ServicePort{Port: 3000, Scheme: "https"},
+				Port: manifest.ServicePort{Port: 3000, Protocol: "tcp", Scheme: "https"},
 				Scale: manifest.ServiceScale{
 					Count:  manifest.ServiceScaleCount{Min: 0, Max: 0},
 					Cpu:    256,
@@ -168,7 +175,7 @@ func TestManifestLoad(t *testing.T) {
 				Environment: []string{
 					"SECRET",
 				},
-				Port: manifest.ServicePort{Port: 2000, Scheme: "https"},
+				Port: manifest.ServicePort{Port: 2000, Protocol: "tcp", Scheme: "https"},
 				Scale: manifest.ServiceScale{
 					Count:  manifest.ServiceScaleCount{Min: 1, Max: 1},
 					Cpu:    512,
@@ -197,6 +204,7 @@ func TestManifestLoad(t *testing.T) {
 		"services.api.health.interval",
 		"services.api.init",
 		"services.api.port",
+		"services.api.ports",
 		"services.api.resources",
 		"services.api.scale",
 		"services.api.test",
