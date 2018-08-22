@@ -45,7 +45,7 @@ func TestManifestLoad(t *testing.T) {
 					Timeout:  9,
 				},
 				Init:      true,
-				Port:      manifest.ServicePort{Port: 1000, Scheme: "http"},
+				Port:      manifest.ServicePort{Port: 1000, Protocol: "tcp", Scheme: "http"},
 				Resources: []string{"database"},
 				Scale: manifest.ServiceScale{
 					Count:  manifest.ServiceScaleCount{Min: 3, Max: 10},
@@ -69,7 +69,7 @@ func TestManifestLoad(t *testing.T) {
 				Environment: []string{
 					"SECRET",
 				},
-				Port: manifest.ServicePort{Port: 2000, Scheme: "https"},
+				Port: manifest.ServicePort{Port: 2000, Protocol: "tcp", Scheme: "https"},
 				Scale: manifest.ServiceScale{
 					Count:  manifest.ServiceScaleCount{Min: 1, Max: 1},
 					Cpu:    512,
@@ -91,7 +91,7 @@ func TestManifestLoad(t *testing.T) {
 					Path:     "/",
 					Timeout:  3,
 				},
-				Port: manifest.ServicePort{Port: 3000, Scheme: "https"},
+				Port: manifest.ServicePort{Port: 3000, Protocol: "tcp", Scheme: "https"},
 				Scale: manifest.ServiceScale{
 					Count:  manifest.ServiceScaleCount{Min: 0, Max: 0},
 					Cpu:    256,
@@ -168,11 +168,38 @@ func TestManifestLoad(t *testing.T) {
 				Environment: []string{
 					"SECRET",
 				},
-				Port: manifest.ServicePort{Port: 2000, Scheme: "https"},
+				Port: manifest.ServicePort{Port: 2000, Protocol: "tcp", Scheme: "https"},
 				Scale: manifest.ServiceScale{
 					Count:  manifest.ServiceScaleCount{Min: 1, Max: 1},
 					Cpu:    512,
 					Memory: 1024,
+				},
+				Sticky: true,
+			},
+			manifest.Service{
+				Name: "agent",
+				Agent: manifest.ServiceAgent{
+					Enabled: true,
+					Ports: []manifest.ServicePort{
+						{Port: 5000, Protocol: "udp", Scheme: "http"},
+						{Port: 5001, Protocol: "tcp", Scheme: "http"},
+						{Port: 5002, Protocol: "tcp", Scheme: "http"},
+					},
+				},
+				Build: manifest.ServiceBuild{
+					Manifest: "Dockerfile",
+					Path:     ".",
+				},
+				Health: manifest.ServiceHealth{
+					Grace:    5,
+					Path:     "/",
+					Interval: 5,
+					Timeout:  4,
+				},
+				Scale: manifest.ServiceScale{
+					Count:  manifest.ServiceScaleCount{Min: 1, Max: 1},
+					Cpu:    256,
+					Memory: 512,
 				},
 				Sticky: true,
 			},
@@ -187,6 +214,9 @@ func TestManifestLoad(t *testing.T) {
 		"resources.database.options.size",
 		"resources.database.type",
 		"services",
+		"services.agent",
+		"services.agent.agent",
+		"services.agent.agent.ports",
 		"services.api",
 		"services.api.build",
 		"services.api.build.manifest",

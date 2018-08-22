@@ -74,7 +74,6 @@ func (p *Provider) spotReplace() error {
 	log.Logf("instanceCount=%d onDemandMin=%d onDemandCount=%d spotCount=%d", ic, odmin, odc, spc)
 
 	spotDesired := ic - odmin
-	onDemandDesired := ic - spc
 
 	if spc != spotDesired {
 		log.Logf("stack=SpotInstances setDesiredCount=%d", spotDesired)
@@ -83,6 +82,8 @@ func (p *Provider) spotReplace() error {
 			return err
 		}
 	}
+
+	onDemandDesired := ic - spotDesired
 
 	if odc != onDemandDesired {
 		log.Logf("stack=Instances setDesiredCount=%d", onDemandDesired)
@@ -111,15 +112,7 @@ func (p *Provider) asgResourceInstanceCount(resource string) (int, error) {
 		return 0, fmt.Errorf("resource not found: %s", resource)
 	}
 
-	count := 0
-
-	for _, ii := range res.AutoScalingGroups[0].Instances {
-		if *ii.LifecycleState == "InService" && *ii.HealthStatus == "Healthy" {
-			count++
-		}
-	}
-
-	return count, nil
+	return int(*res.AutoScalingGroups[0].DesiredCapacity), nil
 }
 
 func (p *Provider) setAsgResourceDesiredCount(resource string, count int) error {
