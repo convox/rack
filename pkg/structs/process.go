@@ -32,6 +32,7 @@ type ProcessExecOptions struct {
 }
 
 type ProcessListOptions struct {
+	Release *string `flag:"release" query:"release"`
 	Service *string `flag:"service,s" query:"service"`
 }
 
@@ -39,8 +40,10 @@ type ProcessRunOptions struct {
 	Command     *string           `header:"Command"`
 	Environment map[string]string `header:"Environment"`
 	Height      *int              `header:"Height"`
+	Image       *string           `header:"Image"`
 	Memory      *int              `header:"Memory"`
 	Release     *string           `flag:"release" header:"Release"`
+	Volumes     map[string]string `header:"Volumes"`
 	Width       *int              `header:"Width"`
 }
 
