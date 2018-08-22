@@ -299,7 +299,7 @@
         },
       {{ end }}
       {{ range $i, $t := .Scale.Targets.Custom }}
-        "AutoscalingPolicyRequests": {
+        "AutoscalingPolicyCustom{{$i}}": {
           "Type": "AWS::ApplicationAutoScaling::ScalingPolicy",
           "Properties": {
             "PolicyName": "{{ $.Service.Name }} autoscaling {{ $t.Namespace }}/{{ $t.Name }}",
@@ -359,7 +359,7 @@
         "Properties": {
           "Cluster": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Cluster" } },
           "DeploymentConfiguration": {
-            {{ if .Singleton }}
+            {{ if or .Agent.Enabled .Singleton }}
               "MinimumHealthyPercent": "0", "MaximumPercent": "100"
             {{ else }}
               "MinimumHealthyPercent": "50", "MaximumPercent": "200"
@@ -393,7 +393,7 @@
             "LoadBalancers": [ { "ContainerName": "{{.Name}}", "ContainerPort": "{{.Port.Port}}", "TargetGroupArn": { "Ref": "BalancerTargetGroup{{ if .Internal }}Internal{{ end }}" } } ],
             "Role": { "Fn::If": [ "IsolateServices", { "Ref": "AWS::NoValue" }, { "Fn::ImportValue": { "Fn::Sub": "${Rack}:ServiceRole" } } ] },
           {{ end }}
-          {{ if .Agent }}
+          {{ if .Agent.Enabled }}
             "PlacementConstraints": [
               { "Type": "distinctInstance" }
             ],
@@ -451,9 +451,22 @@
                 }
               },
               "Memory": { "Ref": "Memory" },
-              {{ if .Port.Port }}
-                "PortMappings": [ { "ContainerPort": "{{.Port.Port}}" } ],
-              {{ end }}
+              "PortMappings": [
+                {{ if .Port.Port }}
+                  {
+                    "ContainerPort": "{{.Port.Port}}",
+                    "Protocol": "{{.Port.Protocol}}"
+                  },
+                {{ end }}
+                {{ range .Agent.Ports }}
+                  {
+                    "ContainerPort": "{{.Port}}",
+                    "HostPort": "{{.Port}}",
+                    "Protocol": "{{.Protocol}}"
+                  },
+                {{ end }}
+                { "Ref": "AWS::NoValue" }
+              ],
               "MountPoints": [
                 {{ range $i, $v := .Volumes }}
                   { "SourceVolume": "volume-{{$i}}", "ContainerPath": "{{ volumeTo $v }}" },

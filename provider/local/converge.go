@@ -361,6 +361,10 @@ func (p *Provider) resourceContainers(resources manifest.Resources, app, release
 	return cs, nil
 }
 
+func (p *Provider) serviceURL(app, name string) (string, error) {
+	return fmt.Sprintf("https://%s.%s.%s", name, app, p.Rack), nil
+}
+
 func (p *Provider) serviceContainers(services manifest.Services, app, release string) ([]container, error) {
 	cs := []container{}
 
@@ -386,6 +390,20 @@ func (p *Provider) serviceContainers(services manifest.Services, app, release st
 
 		for k, v := range env {
 			e[k] = v
+		}
+
+		// add links
+		for _, sl := range s.Links {
+			for _, s := range m.Services {
+				if s.Name == sl {
+					u, err := p.serviceURL(app, s.Name)
+					if err != nil {
+						return nil, err
+					}
+
+					e[fmt.Sprintf("%s_URL", strings.ToUpper(sl))] = u
+				}
+			}
 		}
 
 		// add resources

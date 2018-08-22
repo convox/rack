@@ -110,6 +110,10 @@ func formationHelpers() template.FuncMap {
 			parts := strings.SplitN(s, ":", 2)
 
 			switch v := parts[0]; v {
+			case "/cgroup/":
+				return v
+			case "/proc/":
+				return v
 			case "/var/run/docker.sock":
 				return v
 			default:
