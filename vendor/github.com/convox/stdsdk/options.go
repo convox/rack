@@ -170,6 +170,12 @@ func marshalValues(vv map[string]interface{}) (url.Values, error) {
 			}
 		case time.Duration:
 			u.Set(k, t.String())
+		case map[string]string:
+			uv := url.Values{}
+			for kk, vv := range t {
+				uv.Set(kk, vv)
+			}
+			u.Set(k, uv.Encode())
 		default:
 			return nil, fmt.Errorf("unknown param type: %T", t)
 		}

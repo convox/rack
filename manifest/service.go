@@ -10,7 +10,7 @@ import (
 type Service struct {
 	Name string `yaml:"-"`
 
-	Agent       bool           `yaml:"agent,omitempty"`
+	Agent       ServiceAgent   `yaml:"agent,omitempty"`
 	Build       ServiceBuild   `yaml:"build,omitempty"`
 	Command     string         `yaml:"command,omitempty"`
 	Domains     ServiceDomains `yaml:"domain,omitempty"`
@@ -31,6 +31,11 @@ type Service struct {
 }
 
 type Services []Service
+
+type ServiceAgent struct {
+	Enabled bool          `yaml:"enabled,omitempty"`
+	Ports   []ServicePort `yaml:"ports,omitempty"`
+}
 
 type ServiceBuild struct {
 	Args     []string `yaml:"args,omitempty"`
@@ -56,8 +61,9 @@ type ServiceHealth struct {
 }
 
 type ServicePort struct {
-	Port   int    `yaml:"port,omitempty"`
-	Scheme string `yaml:"scheme,omitempty"`
+	Port     int    `yaml:"port,omitempty"`
+	Protocol string `yaml:"protocol,omitempty"`
+	Scheme   string `yaml:"scheme,omitempty"`
 }
 
 type ServiceScale struct {
