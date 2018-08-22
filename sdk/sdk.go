@@ -101,7 +101,6 @@ func (c *Client) WebsocketExit(path string, ro stdsdk.RequestOptions, rw io.Read
 
 			code, err = strconv.Atoi(strings.TrimSpace(string(buf[m:n])))
 			if err != nil {
-				fmt.Printf("err = %+v\n", err)
 				return 0, fmt.Errorf("unable to read exit code")
 			}
 
