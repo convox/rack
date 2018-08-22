@@ -6,6 +6,7 @@ import (
 	"io"
 	"io/ioutil"
 	"math/rand"
+	"strconv"
 
 	"github.com/convox/rack/structs"
 	"github.com/convox/stdsdk"
@@ -262,11 +263,13 @@ func (c *Client) InstanceShellClassic(id string, rw io.ReadWriter, opts structs.
 	return v, err
 }
 
-func (c *Client) ProcessRunAttached(app, service string, rw io.ReadWriter, opts structs.ProcessRunOptions) (int, error) {
+func (c *Client) ProcessRunAttached(app, service string, rw io.ReadWriter, timeout int, opts structs.ProcessRunOptions) (int, error) {
 	ro, err := stdsdk.MarshalOptions(opts)
 	if err != nil {
 		return 0, err
 	}
+
+	ro.Headers["Timeout"] = strconv.Itoa(timeout)
 
 	ro.Body = rw
 
