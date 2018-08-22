@@ -111,15 +111,7 @@ func (p *Provider) asgResourceInstanceCount(resource string) (int, error) {
 		return 0, fmt.Errorf("resource not found: %s", resource)
 	}
 
-	count := 0
-
-	for _, ii := range res.AutoScalingGroups[0].Instances {
-		if *ii.LifecycleState == "InService" && *ii.HealthStatus == "Healthy" {
-			count++
-		}
-	}
-
-	return count, nil
+	return int(*res.AutoScalingGroups[0].DesiredCapacity), nil
 }
 
 func (p *Provider) setAsgResourceDesiredCount(resource string, count int) error {
