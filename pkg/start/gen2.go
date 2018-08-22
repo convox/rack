@@ -76,7 +76,7 @@ func (s *Start) Start2(ctx context.Context, w io.Writer, opts Options2) error {
 		}
 	}
 
-	data, err := ioutil.ReadFile(helpers.Coalesce(opts.Manifest, "convox.yml"))
+	data, err := ioutil.ReadFile(helpers.CoalesceString(opts.Manifest, "convox.yml"))
 	if err != nil {
 		return err
 	}
@@ -346,80 +346,63 @@ func (opts Options2) healthCheck(ctx context.Context, pw prefix.Writer, s manife
 	var ps int
 
 	for {
-		select {
-		case <-ctx.Done():
-			return
-		case <-tick:
-			res, err := c.Get(hcu)
-			if err != nil {
-				pw.Writef("convox", "health check <service>%s</service>: <fail>%s</fail>\n", s.Name, err.Error())
-				continue
-			}
-			if res.StatusCode < 200 || res.StatusCode > 399 {
-				pw.Writef("convox", "health check <service>%s</service>: <fail>%d</fail>\n", s.Name, res.StatusCode)
-			} else if res.StatusCode != ps {
-				pw.Writef("convox", "health check <service>%s</service>: <ok>%d</ok>\n", s.Name, res.StatusCode)
-			}
-			ps = res.StatusCode
+		logs, err := p.AppLogs(app, structs.LogsOptions{Prefix: options.Bool(true), Since: options.Duration(1 * time.Second)})
+		if err == nil {
+			writeLogs(m, logs, services)
 		}
+
+		time.Sleep(1 * time.Second)
 	}
 }
 
-func (opts Options2) stopProcess(pid string, wg *sync.WaitGroup) {
-	defer wg.Done()
-	opts.Provider.ProcessStop(opts.App, pid)
+func writeLogs(m *manifest.Manifest, r io.Reader, services map[string]bool) {
+	ls := bufio.NewScanner(r)
+
+	for ls.Scan() {
+		match := reAppLog.FindStringSubmatch(ls.Text())
+
+		if len(match) != 7 {
+			continue
+		}
+
+		ls := strings.Split(match[4], ":")[0]
+
+		if !services[ls] {
+			continue
+		}
+
+		m.Writef(ls, "%s\n", match[6])
+	}
 }
 
-func (opts Options2) streamLogs(ctx context.Context, pw prefix.Writer, services map[string]bool) {
+func waitForBuild(p structs.Provider, app, id string) error {
+	if err := waitForBuildCompletion(p, app, id); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func waitForBuildCompletion(p structs.Provider, app, id string) error {
 	for {
-		select {
-		case <-ctx.Done():
-			return
+		time.Sleep(1 * time.Second)
+
+		b, err := p.BuildGet(app, id)
+		if err != nil {
+			return err
+		}
+
+		switch b.Status {
+		case "created", "running":
+			break
 		default:
-			logs, err := opts.Provider.AppLogs(opts.App, structs.LogsOptions{Prefix: options.Bool(true), Since: options.Duration(1 * time.Second)})
-			if err == nil {
-				writeLogs(ctx, pw, logs, services)
-			}
-
-			select {
-			case <-ctx.Done():
-				return
-			default:
-				time.Sleep(1 * time.Second)
-			}
-		}
-	}
-}
-
-func (opts Options2) waitForBuild(ctx context.Context, id string) error {
-	tick := time.Tick(1 * time.Second)
-
-	for {
-		select {
-		case <-ctx.Done():
 			return nil
-		case <-tick:
-			b, err := opts.Provider.BuildGet(opts.App, id)
-			if err != nil {
-				return err
-			}
-
-			switch b.Status {
-			case "created", "running":
-				break
-			case "complete":
-				return nil
-			case "failed":
-				return fmt.Errorf("build failed")
-			default:
-				return fmt.Errorf("unknown build status: %s", b.Status)
-			}
 		}
 	}
 }
 
-func (opts Options2) watchChanges(ctx context.Context, pw prefix.Writer, m *manifest.Manifest, service, root string, ch chan error) {
-	bss, err := buildSources(m, root, service)
+func watchChanges(p structs.Provider, m *manifest.Manifest, app, service, root string, ch chan error) {
+	bss, err := m.BuildSources(root, service)
 	if err != nil {
 		ch <- err
 		return
