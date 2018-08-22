@@ -67,7 +67,7 @@ func (m *Manifest) Agents() []string {
 	a := []string{}
 
 	for _, s := range m.Services {
-		if s.Agent {
+		if s.Agent.Enabled {
 			a = append(a, s.Name)
 		}
 	}

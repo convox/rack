@@ -76,6 +76,35 @@ func (v *Service) SetName(name string) error {
 	return nil
 }
 
+func (v *ServiceAgent) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	var w interface{}
+
+	if err := unmarshal(&w); err != nil {
+		return err
+	}
+
+	switch t := w.(type) {
+	case bool:
+		v.Enabled = t
+	case map[interface{}]interface{}:
+		v.Enabled = true
+
+		if pis, ok := t["ports"].([]interface{}); ok {
+			for _, pi := range pis {
+				var p ServicePort
+				if err := remarshal(pi, &p); err != nil {
+					return err
+				}
+				v.Ports = append(v.Ports, p)
+			}
+		}
+	default:
+		return fmt.Errorf("could not parse agent: %+v", w)
+	}
+
+	return nil
+}
+
 func (v *ServiceBuild) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	var w interface{}
 
@@ -205,30 +234,6 @@ func (v *ServicePort) UnmarshalYAML(unmarshal func(interface{}) error) error {
 
 	switch t := w.(type) {
 	case map[interface{}]interface{}:
-		switch u := t["host"].(type) {
-		case int:
-			p, err := parsePort(strconv.Itoa(u))
-			if err != nil {
-				return err
-			}
-			v.Host = p.Port
-			v.Port = p.Port
-			v.Protocol = p.Protocol
-			v.Scheme = p.Scheme
-		case string:
-			p, err := parsePort(u)
-			if err != nil {
-				return err
-			}
-			v.Host = p.Port
-			v.Port = p.Port
-			v.Protocol = p.Protocol
-			v.Scheme = p.Scheme
-		case nil:
-		default:
-			return fmt.Errorf("could not parse host: %s", t["host"])
-		}
-
 		switch u := t["port"].(type) {
 		case int:
 			p, err := parsePort(strconv.Itoa(u))
