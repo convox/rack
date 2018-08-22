@@ -100,10 +100,18 @@ func Rack(rack sdk.Interface, c *stdcli.Context) error {
 	i := c.Info()
 
 	i.Add("Name", s.Name)
+	i.Add("Provider", s.Provider)
+
+	if s.Region != "" {
+		i.Add("Region", s.Region)
+	}
+
+	if s.Domain != "" {
+		i.Add("Router", s.Domain)
+	}
+
 	i.Add("Status", s.Status)
 	i.Add("Version", s.Version)
-	i.Add("Region", s.Region)
-	i.Add("Router", s.Domain)
 
 	return i.Print()
 }
@@ -175,6 +183,8 @@ func RackLogs(rack sdk.Interface, c *stdcli.Context) error {
 	if c.Bool("no-follow") {
 		opts.Follow = options.Bool(false)
 	}
+
+	opts.Prefix = options.Bool(true)
 
 	r, err := rack.SystemLogs(opts)
 	if err != nil {
