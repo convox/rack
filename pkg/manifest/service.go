@@ -145,6 +145,8 @@ func (s Service) GetName() string {
 
 func (s ServiceScale) Autoscale() bool {
 	switch {
+	case s.Count.Min == s.Count.Max:
+		return false
 	case s.Targets.Cpu > 0:
 		return true
 	case len(s.Targets.Custom) > 0:
