@@ -274,15 +274,15 @@ func (_m *MockProvider) BuildList(app string, opts BuildListOptions) (Builds, er
 }
 
 // BuildLogs provides a mock function with given fields: app, id, opts
-func (_m *MockProvider) BuildLogs(app string, id string, opts LogsOptions) (io.ReadCloser, error) {
+func (_m *MockProvider) BuildLogs(app string, id string, opts LogsOptions) (io.Reader, error) {
 	ret := _m.Called(app, id, opts)
 
-	var r0 io.ReadCloser
-	if rf, ok := ret.Get(0).(func(string, string, LogsOptions) io.ReadCloser); ok {
+	var r0 io.Reader
+	if rf, ok := ret.Get(0).(func(string, string, LogsOptions) io.Reader); ok {
 		r0 = rf(app, id, opts)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(io.ReadCloser)
+			r0 = ret.Get(0).(io.Reader)
 		}
 	}
 
@@ -754,6 +754,29 @@ func (_m *MockProvider) ProcessList(app string, opts ProcessListOptions) (Proces
 	var r1 error
 	if rf, ok := ret.Get(1).(func(string, ProcessListOptions) error); ok {
 		r1 = rf(app, opts)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// ProcessLogs provides a mock function with given fields: app, pid, opts
+func (_m *MockProvider) ProcessLogs(app string, pid string, opts LogsOptions) (io.ReadCloser, error) {
+	ret := _m.Called(app, pid, opts)
+
+	var r0 io.ReadCloser
+	if rf, ok := ret.Get(0).(func(string, string, LogsOptions) io.ReadCloser); ok {
+		r0 = rf(app, pid, opts)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(io.ReadCloser)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(string, string, LogsOptions) error); ok {
+		r1 = rf(app, pid, opts)
 	} else {
 		r1 = ret.Error(1)
 	}

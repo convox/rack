@@ -437,7 +437,7 @@ func (p *Provider) BuildImport(app string, r io.Reader) (*structs.Build, error) 
 }
 
 // BuildLogs streams the logs for a Build to an io.Writer
-func (p *Provider) BuildLogs(app, id string, opts structs.LogsOptions) (io.ReadCloser, error) {
+func (p *Provider) BuildLogs(app, id string, opts structs.LogsOptions) (io.Reader, error) {
 	b, err := p.BuildGet(app, id)
 	if err != nil {
 		return nil, err
