@@ -2,37 +2,31 @@ package router
 
 import (
 	"fmt"
-	"net"
 	"strings"
 
 	"github.com/miekg/dns"
 )
 
 type DNS struct {
-	ip     net.IP
-	lookup DNSLookup
+	Router *Router
 	mux    *dns.ServeMux
-	router *Router
 	server *dns.Server
 }
 
-type DNSLookup func(string) net.IP
-
-func NewDNS(ip net.IP, lookup DNSLookup) (*DNS, error) {
+func NewDNS(r *Router) (*DNS, error) {
 	mux := dns.NewServeMux()
 
 	d := &DNS{
-		ip:     ip,
-		lookup: lookup,
+		Router: r,
 		mux:    mux,
 		server: &dns.Server{
-			Addr:    fmt.Sprintf("%s:53", ip),
+			Addr:    ":5453",
 			Handler: mux,
 			Net:     "udp",
 		},
 	}
 
-	mux.HandleFunc(".", resolvePassthrough)
+	mux.Handle(".", d)
 
 	return d, nil
 }
@@ -41,83 +35,62 @@ func (d *DNS) Serve() error {
 	return d.server.ListenAndServe()
 }
 
-func (d *DNS) registerDomain(domain string) error {
-	fn, err := d.resolveHost(domain)
+func (d *DNS) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
+	soa, err := dns.NewRR("$ORIGIN .\n$TTL 0\n@ SOA ns.convox. support.convox.com. 2018042500 0 0 0 0")
 	if err != nil {
-		return err
+		dnsError(w, r)
+		return
 	}
 
-	d.mux.HandleFunc(fmt.Sprintf("%s.", domain), fn)
-
-	if err := d.setupResolver(domain, d.ip); err != nil {
-		return err
+	if len(r.Question) < 1 {
+		dnsError(w, r)
+		return
 	}
 
-	return nil
-}
+	q := r.Question[0]
 
-func (d *DNS) unregisterDomain(domain string) error {
-	d.mux.HandleRemove(fmt.Sprintf("%s.", domain))
-	return nil
-}
+	if d.Router.TargetCount(strings.TrimSuffix(q.Name, ".")) > 0 {
+		fmt.Printf("ns=convox.router at=resolve type=route host=%q\n", q.Name)
 
-func (d *DNS) resolveHost(domain string) (dns.HandlerFunc, error) {
-	soa, err := dns.NewRR(fmt.Sprintf("$ORIGIN %s.\n$TTL 0\n@ SOA ns.convox. support.convox.com. 2018042500 0 0 0 0", domain))
-	if err != nil {
-		return nil, err
-	}
+		a := &dns.Msg{}
 
-	fn := func(w dns.ResponseWriter, r *dns.Msg) {
-		m := &dns.Msg{}
-		m.SetReply(r)
-		m.Ns = []dns.RR{soa}
-		m.Compress = false
-		m.RecursionAvailable = true
-		m.Authoritative = true
+		a.SetReply(r)
 
-		switch r.Opcode {
-		case dns.OpcodeQuery:
-			for _, q := range m.Question {
-				switch q.Qtype {
-				case dns.TypeA:
-					if ip := d.lookup(strings.TrimSuffix(q.Name, ".")); ip != nil {
-						if rr, err := dns.NewRR(fmt.Sprintf("%s A %s", q.Name, ip)); err == nil {
-							rr.Header().Ttl = 5
-							m.Answer = append(m.Answer, rr)
-							fmt.Printf("ns=convox.router at=resolve type=rack host=%q ip=%q\n", q.Name, ip)
-						}
-					} else {
-						fmt.Printf("ns=convox.router at=resolve type=rack host=%q ip=nxdomain\n", q.Name)
-						m.MsgHdr.Rcode = dns.RcodeNameError
-					}
-				}
-			}
+		a.Authoritative = true
+		a.Compress = false
+		a.Ns = []dns.RR{soa}
+		a.RecursionAvailable = true
+
+		rr, err := dns.NewRR(fmt.Sprintf("%s A %s", q.Name, "127.0.0.1"))
+		if err != nil {
+			dnsError(w, r)
+			return
 		}
 
-		w.WriteMsg(m)
+		a.Answer = append(a.Answer, rr)
+
+		w.WriteMsg(a)
+
+		return
 	}
 
-	return fn, nil
-}
-
-func resolvePassthrough(w dns.ResponseWriter, r *dns.Msg) {
-	soa, _ := dns.NewRR("$ORIGIN .\n$TTL 0\n@ SOA ns.convox. support.convox.com. 2018042500 0 0 0 0")
+	fmt.Printf("ns=convox.router at=resolve type=forward host=%q\n", q.Name)
 
 	c := dns.Client{Net: "tcp"}
 
 	rs, _, err := c.Exchange(r, "8.8.8.8:53")
 	if err != nil {
-		m := &dns.Msg{}
-		m.SetRcode(r, dns.RcodeServerFailure)
-		w.WriteMsg(m)
+		dnsError(w, r)
 		return
 	}
 
 	rs.Ns = []dns.RR{soa}
 
 	w.WriteMsg(rs)
+}
 
-	for _, q := range r.Question {
-		fmt.Printf("ns=convox.router at=resolve type=forward host=%q\n", q.Name)
-	}
+func dnsError(w dns.ResponseWriter, r *dns.Msg) {
+	m := &dns.Msg{}
+	m.SetRcode(r, dns.RcodeServerFailure)
+	w.WriteMsg(m)
 }
