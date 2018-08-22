@@ -10,6 +10,11 @@
       "Default": "false",
       "AllowedValues": [ "true", "false" ]
     },
+    "Encrypted": {
+      "Type": "String",
+      "Default": "false",
+      "AllowedValues": [ "true", "false" ]
+    },
     "Nodes": {
       "Type": "Number",
       "Default": "1"
@@ -55,6 +60,8 @@
     "ReplicationGroup": {
       "Type": "AWS::ElastiCache::ReplicationGroup",
       "Properties": {
+        "AtRestEncryptionEnabled": { "Ref": "Encrypted" },
+        "AuthToken": { "Ref": "Password" },
         "AutomaticFailoverEnabled": { "Ref": "Durable" },
         "AutoMinorVersionUpgrade": "true",
         "CacheNodeType": { "Ref": "Class" },
@@ -64,7 +71,8 @@
         "NumCacheClusters": { "Ref": "Nodes" },
         "Port": "6379",
         "ReplicationGroupDescription": { "Ref": "AWS::StackName" },
-        "SecurityGroupIds": [ { "Ref": "SecurityGroup" } ]
+        "SecurityGroupIds": [ { "Ref": "SecurityGroup" } ],
+        "TransitEncryptionEnabled": "true",
       }
     }
   }
