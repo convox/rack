@@ -17,7 +17,6 @@ type Context struct {
 	Flags []*Flag
 
 	engine *Engine
-	state  *terminal.State
 }
 
 func (c *Context) Arg(i int) string {
@@ -96,33 +95,23 @@ func (c *Context) ReadSecret() (string, error) {
 	return string(data), nil
 }
 
-func (c *Context) TerminalRaw() error {
-	state, err := terminal.MakeRaw(int(c.Reader().Fd()))
-	if err != nil {
-		return err
+func (c *Context) TerminalRaw() func() {
+	var state *terminal.State
+
+	if s, err := terminal.MakeRaw(int(c.Reader().Fd())); err == nil {
+		state = s
 	}
 
-	c.state = state
-
-	return nil
-}
-
-func (c *Context) TerminalRestore() error {
-	if c.state == nil {
-		return nil
+	return func() {
+		if state != nil {
+			terminal.Restore(int(c.Reader().Fd()), state)
+			c.Writef("\r")
+		}
 	}
-
-	if err := terminal.Restore(int(c.Reader().Fd()), c.state); err != nil {
-		return err
-	}
-
-	c.Writef("\r")
-
-	return nil
 }
 
 func (c *Context) TerminalSize() (int, int, error) {
-	return terminal.GetSize(int(c.Reader().Fd()))
+	return terminal.GetSize(int(os.Stdout.Fd()))
 }
 
 func (c *Context) Fail(err error) {

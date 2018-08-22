@@ -101,6 +101,9 @@ func (c *Context) Read(data []byte) (int, error) {
 	}
 
 	_, r, err := c.ws.NextReader()
+	if websocket.IsCloseError(err, websocket.CloseNormalClosure, websocket.CloseGoingAway) {
+		return 0, io.EOF
+	}
 	if err != nil {
 		return 0, err
 	}

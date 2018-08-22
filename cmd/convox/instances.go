@@ -69,15 +69,15 @@ func InstancesSsh(c *stdcli.Context) error {
 		return err
 	}
 
-	w, h, err := c.TerminalSize()
-	if err != nil {
-		return err
+	opts := structs.InstanceShellOptions{}
+
+	if w, h, err := c.TerminalSize(); err == nil {
+		opts.Height = options.Int(h)
+		opts.Width = options.Int(w)
 	}
 
-	opts := structs.InstanceShellOptions{
-		Height: options.Int(h),
-		Width:  options.Int(w),
-	}
+	restore := c.TerminalRaw()
+	defer restore()
 
 	command := strings.Join(c.Args[1:], " ")
 
@@ -86,10 +86,6 @@ func InstancesSsh(c *stdcli.Context) error {
 	}
 
 	if s.Version <= "20180708231844" {
-		opts.Command = options.String(strings.Join(c.Args[1:], " "))
-		opts.Height = options.Int(h)
-		opts.Width = options.Int(w)
-
 		code, err := provider(c).InstanceShellClassic(c.Arg(0), c, opts)
 		if err != nil {
 			return err
@@ -97,12 +93,6 @@ func InstancesSsh(c *stdcli.Context) error {
 
 		return stdcli.Exit(code)
 	}
-
-	if err := c.TerminalRaw(); err != nil {
-		return err
-	}
-
-	defer c.TerminalRestore()
 
 	code, err := provider(c).InstanceShell(c.Arg(0), c, opts)
 	if err != nil {
