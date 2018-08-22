@@ -451,9 +451,22 @@
                 }
               },
               "Memory": { "Ref": "Memory" },
-              {{ if .Port.Port }}
-                "PortMappings": [ { "ContainerPort": "{{.Port.Port}}" } ],
-              {{ end }}
+              "PortMappings": [
+                {{ if .Port.Port }}
+                  {
+                    "ContainerPort": "{{.Port.Port}}",
+                    "Protocol": "{{.Port.Protocol}}"
+                  },
+                {{ end }}
+                {{ range .Ports }}
+                  {
+                    "ContainerPort": "{{.Port}}",
+                    {{ with .Host }} "HostPort": "{{.}}", {{ end }}
+                    "Protocol": "{{.Protocol}}"
+                  },
+                {{ end }}
+                { "Ref": "AWS::NoValue" }
+              ],
               "MountPoints": [
                 {{ range $i, $v := .Volumes }}
                   { "SourceVolume": "volume-{{$i}}", "ContainerPath": "{{ volumeTo $v }}" },
