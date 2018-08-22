@@ -117,6 +117,10 @@ func (s *Server) AppLogs(c *stdapi.Context) error {
 		return err
 	}
 
+	if c, ok := interface{}(v).(io.Closer); ok {
+		defer c.Close()
+	}
+
 	if _, err := io.Copy(c, v); err != nil {
 		return err
 	}
@@ -294,6 +298,10 @@ func (s *Server) BuildLogs(c *stdapi.Context) error {
 	v, err := s.provider(c).BuildLogs(app, id, opts)
 	if err != nil {
 		return err
+	}
+
+	if c, ok := interface{}(v).(io.Closer); ok {
+		defer c.Close()
 	}
 
 	if _, err := io.Copy(c, v); err != nil {
@@ -649,6 +657,10 @@ func (s *Server) ObjectFetch(c *stdapi.Context) error {
 		return err
 	}
 
+	if c, ok := interface{}(v).(io.Closer); ok {
+		defer c.Close()
+	}
+
 	if _, err := io.Copy(c, v); err != nil {
 		return err
 	}
@@ -777,6 +789,42 @@ func (s *Server) ProcessList(c *stdapi.Context) error {
 	return c.RenderJSON(v)
 }
 
+func (s *Server) ProcessLogs(c *stdapi.Context) error {
+	if err := s.hook("ProcessLogsValidate", c); err != nil {
+		return err
+	}
+
+	app := c.Var("app")
+	pid := c.Var("pid")
+
+	var opts structs.LogsOptions
+	if err := stdapi.UnmarshalOptions(c.Request(), &opts); err != nil {
+		return err
+	}
+
+	v, err := s.provider(c).ProcessLogs(app, pid, opts)
+	if err != nil {
+		if ae, ok := s.provider(c).(ApiErrorer); ok {
+			return ae.ApiError(err)
+		}
+		return err
+	}
+
+	if c, ok := interface{}(v).(io.Closer); ok {
+		defer c.Close()
+	}
+
+	if _, err := io.Copy(c, v); err != nil {
+		return err
+	}
+
+	if vs, ok := interface{}(v).(Sortable); ok {
+		sort.Slice(v, vs.Less)
+	}
+
+	return nil
+}
+
 func (s *Server) ProcessRun(c *stdapi.Context) error {
 	if err := s.hook("ProcessRunValidate", c); err != nil {
 		return err
@@ -816,6 +864,29 @@ func (s *Server) ProcessStop(c *stdapi.Context) error {
 	}
 
 	return c.RenderOK()
+}
+
+func (s *Server) ProcessWait(c *stdapi.Context) error {
+	if err := s.hook("ProcessWaitValidate", c); err != nil {
+		return err
+	}
+
+	app := c.Var("app")
+	pid := c.Var("pid")
+
+	v, err := s.provider(c).ProcessWait(app, pid)
+	if err != nil {
+		if ae, ok := s.provider(c).(ApiErrorer); ok {
+			return ae.ApiError(err)
+		}
+		return err
+	}
+
+	if vs, ok := interface{}(v).(Sortable); ok {
+		sort.Slice(v, vs.Less)
+	}
+
+	return c.RenderText(strconv.Itoa(v))
 }
 
 func (s *Server) Proxy(c *stdapi.Context) error {
@@ -1206,6 +1277,10 @@ func (s *Server) SystemLogs(c *stdapi.Context) error {
 	v, err := s.provider(c).SystemLogs(opts)
 	if err != nil {
 		return err
+	}
+
+	if c, ok := interface{}(v).(io.Closer); ok {
+		defer c.Close()
 	}
 
 	if _, err := io.Copy(c, v); err != nil {

@@ -195,7 +195,7 @@ func (c *Client) BuildList(app string, opts structs.BuildListOptions) (structs.B
 	return v, err
 }
 
-func (c *Client) BuildLogs(app string, id string, opts structs.LogsOptions) (io.ReadCloser, error) {
+func (c *Client) BuildLogs(app string, id string, opts structs.LogsOptions) (io.Reader, error) {
 	var err error
 
 	ro, err := stdsdk.MarshalOptions(opts)
@@ -203,7 +203,7 @@ func (c *Client) BuildLogs(app string, id string, opts structs.LogsOptions) (io.
 		return nil, err
 	}
 
-	var v io.ReadCloser
+	var v io.Reader
 
 	r, err := c.Websocket(fmt.Sprintf("/apps/%s/builds/%s/logs", app, id), ro)
 	if err != nil {
@@ -537,6 +537,26 @@ func (c *Client) ProcessList(app string, opts structs.ProcessListOptions) (struc
 	var v structs.Processes
 
 	err = c.Get(fmt.Sprintf("/apps/%s/processes", app), ro, &v)
+
+	return v, err
+}
+
+func (c *Client) ProcessLogs(app string, pid string, opts structs.LogsOptions) (io.ReadCloser, error) {
+	var err error
+
+	ro, err := stdsdk.MarshalOptions(opts)
+	if err != nil {
+		return nil, err
+	}
+
+	var v io.ReadCloser
+
+	r, err := c.Websocket(fmt.Sprintf("/apps/%s/processes/%s/logs", app, pid), ro)
+	if err != nil {
+		return nil, err
+	}
+
+	v = r
 
 	return v, err
 }

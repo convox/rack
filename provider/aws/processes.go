@@ -177,6 +177,10 @@ func (p *Provider) ProcessList(app string, opts structs.ProcessListOptions) (str
 	return ps, nil
 }
 
+func (p *Provider) ProcessLogs(app, pid string, opts structs.LogsOptions) (io.ReadCloser, error) {
+	return nil, fmt.Errorf("unimplemented")
+}
+
 func (p *Provider) stackTasks(stack string) ([]string, error) {
 	log := Logger.At("stackTasks").Namespace("stack=%q", stack).Start()
 

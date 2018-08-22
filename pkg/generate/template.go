@@ -109,7 +109,12 @@ func templateHelpers() template.FuncMap {
 				case reflect.Interface:
 					return "nil", nil
 				case reflect.Int:
-					return "renderStatusCode(c, v)", nil
+					switch m.Route.Method {
+					case "SOCKET":
+						return "renderStatusCode(c, v)", nil
+					default:
+						return "c.RenderText(strconv.Itoa(v))", nil
+					}
 				case reflect.Ptr, reflect.Slice:
 					return "c.RenderJSON(v)", nil
 				case reflect.String:

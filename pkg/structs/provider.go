@@ -20,7 +20,7 @@ type Provider interface {
 	BuildExport(app, id string, w io.Writer) error
 	BuildGet(app, id string) (*Build, error)
 	BuildImport(app string, r io.Reader) (*Build, error)
-	BuildLogs(app, id string, opts LogsOptions) (io.ReadCloser, error)
+	BuildLogs(app, id string, opts LogsOptions) (io.Reader, error)
 	BuildList(app string, opts BuildListOptions) (Builds, error)
 	BuildUpdate(app, id string, opts BuildUpdateOptions) (*Build, error)
 
@@ -52,6 +52,7 @@ type Provider interface {
 	ProcessExec(app, pid, command string, rw io.ReadWriter, opts ProcessExecOptions) (int, error)
 	ProcessGet(app, pid string) (*Process, error)
 	ProcessList(app string, opts ProcessListOptions) (Processes, error)
+	ProcessLogs(app, pid string, opts LogsOptions) (io.ReadCloser, error)
 	ProcessRun(app, service string, opts ProcessRunOptions) (*Process, error)
 	ProcessStop(app, pid string) error
 
