@@ -74,7 +74,6 @@ func (p *Provider) spotReplace() error {
 	log.Logf("instanceCount=%d onDemandMin=%d onDemandCount=%d spotCount=%d", ic, odmin, odc, spc)
 
 	spotDesired := ic - odmin
-	onDemandDesired := ic - spc
 
 	if spc != spotDesired {
 		log.Logf("stack=SpotInstances setDesiredCount=%d", spotDesired)
@@ -83,6 +82,8 @@ func (p *Provider) spotReplace() error {
 			return err
 		}
 	}
+
+	onDemandDesired := ic - spotDesired
 
 	if odc != onDemandDesired {
 		log.Logf("stack=Instances setDesiredCount=%d", onDemandDesired)

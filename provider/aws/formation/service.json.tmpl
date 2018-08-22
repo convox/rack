@@ -359,7 +359,7 @@
         "Properties": {
           "Cluster": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Cluster" } },
           "DeploymentConfiguration": {
-            {{ if .Singleton }}
+            {{ if or .Agent.Enabled .Singleton }}
               "MinimumHealthyPercent": "0", "MaximumPercent": "100"
             {{ else }}
               "MinimumHealthyPercent": "50", "MaximumPercent": "200"
@@ -393,7 +393,7 @@
             "LoadBalancers": [ { "ContainerName": "{{.Name}}", "ContainerPort": "{{.Port.Port}}", "TargetGroupArn": { "Ref": "BalancerTargetGroup{{ if .Internal }}Internal{{ end }}" } } ],
             "Role": { "Fn::If": [ "IsolateServices", { "Ref": "AWS::NoValue" }, { "Fn::ImportValue": { "Fn::Sub": "${Rack}:ServiceRole" } } ] },
           {{ end }}
-          {{ if .Agent }}
+          {{ if .Agent.Enabled }}
             "PlacementConstraints": [
               { "Type": "distinctInstance" }
             ],
@@ -458,10 +458,10 @@
                     "Protocol": "{{.Port.Protocol}}"
                   },
                 {{ end }}
-                {{ range .Ports }}
+                {{ range .Agent.Ports }}
                   {
                     "ContainerPort": "{{.Port}}",
-                    {{ with .Host }} "HostPort": "{{.}}", {{ end }}
+                    "HostPort": "{{.Port}}",
                     "Protocol": "{{.Protocol}}"
                   },
                 {{ end }}
