@@ -23,14 +23,6 @@ services:
     resources:
       - database
     port: 1000
-    ports:
-      - port: 5000
-        host: 5000
-      - 5001/udp
-      - host: 5002/udp
-      - host: 5003/udp
-        port: 6003
-      - https:5004
     scale: 3-10
     test: make ${BAR} test
   proxy: &proxy
@@ -75,3 +67,9 @@ services:
   inherit:
     "<<": *proxy
     command: inherit
+  agent:
+    agent:
+      ports:
+        - 5000/udp
+        - 5001
+        - 5002/tcp
