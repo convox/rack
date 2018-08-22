@@ -6,7 +6,6 @@ import (
 
 	"github.com/convox/rack/pkg/structs"
 	"github.com/convox/rack/provider/aws"
-	"github.com/convox/rack/provider/local"
 )
 
 var Mock = &structs.MockProvider{}
@@ -20,8 +19,6 @@ func FromName(name string) (structs.Provider, error) {
 	switch name {
 	case "aws":
 		return aws.FromEnv()
-	case "local":
-		return local.FromEnv()
 	case "test":
 		return Mock, nil
 	default:
