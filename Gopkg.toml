@@ -7,3 +7,19 @@
   name = "gopkg.in/yaml.v2"
   source = "github.com/ddollar/yaml"
   branch = "merge-map-slice"
+
+[[constraint]]
+  name = "k8s.io/api"
+  version = "kubernetes-1.11.0"
+
+[[constraint]]
+  name = "k8s.io/apimachinery"
+  version = "kubernetes-1.11.0"
+
+[[constraint]]
+  name = "k8s.io/client-go"
+  version = "8.0.0"
+
+[[constraint]]
+  name = "k8s.io/metrics"
+  version = "kubernetes-1.11.0"
