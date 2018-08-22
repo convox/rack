@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/convox/rack/options"
@@ -15,6 +16,7 @@ func init() {
 			flagRack,
 			flagApp,
 			stdcli.BoolFlag("detach", "d", "run process in the background"),
+			stdcli.IntFlag("timeout", "t", "timeout"),
 		),
 		Usage:    "<service> <command>",
 		Validate: stdcli.ArgsMin(2),
@@ -50,6 +52,14 @@ func Run(c *stdcli.Context) error {
 		return err
 	}
 
+	timeout := 3600
+
+	if t := c.Int("timeout"); t > 0 {
+		timeout = t
+	}
+
+	fmt.Printf("timeout = %+v\n", timeout)
+
 	if s.Version <= "20180708231844" {
 		if c.Bool("detach") {
 			c.Startf("Running detached process")
@@ -71,7 +81,7 @@ func Run(c *stdcli.Context) error {
 			opts.Width = options.Int(width)
 		}
 
-		code, err := provider(c).ProcessRunAttached(app(c), service, c, opts)
+		code, err := provider(c).ProcessRunAttached(app(c), service, c, timeout, opts)
 		if err != nil {
 			return err
 		}
@@ -92,7 +102,7 @@ func Run(c *stdcli.Context) error {
 		return c.OK(ps.Id)
 	}
 
-	opts.Command = options.String("sleep 3600")
+	opts.Command = options.String(fmt.Sprintf("sleep %d", timeout))
 
 	ps, err := provider(c).ProcessRun(app(c), c.Arg(0), opts)
 	if err != nil {
