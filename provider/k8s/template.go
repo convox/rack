@@ -10,8 +10,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/convox/rack/manifest"
-	"github.com/convox/rack/structs"
+	"github.com/convox/rack/pkg/manifest"
+	"github.com/convox/rack/pkg/structs"
 	shellquote "github.com/kballard/go-shellquote"
 	yaml "gopkg.in/yaml.v2"
 )

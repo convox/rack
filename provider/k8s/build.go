@@ -16,11 +16,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/convox/rack/helpers"
-	"github.com/convox/rack/manifest"
-	"github.com/convox/rack/options"
+	"github.com/convox/rack/pkg/helpers"
+	"github.com/convox/rack/pkg/manifest"
+	"github.com/convox/rack/pkg/options"
 	ca "github.com/convox/rack/provider/k8s/pkg/apis/convox/v1"
-	"github.com/convox/rack/structs"
+	"github.com/convox/rack/pkg/structs"
 	am "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 

@@ -8,7 +8,7 @@ import (
 	"github.com/convox/rack/provider/aws"
 	"github.com/convox/rack/provider/k8s"
 	"github.com/convox/rack/provider/klocal"
-	"github.com/convox/rack/structs"
+	"github.com/convox/rack/pkg/structs"
 )
 
 var Mock = &structs.MockProvider{}

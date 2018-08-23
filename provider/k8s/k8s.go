@@ -3,7 +3,7 @@ package k8s
 import (
 	"os"
 
-	"github.com/convox/rack/structs"
+	"github.com/convox/rack/pkg/structs"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
