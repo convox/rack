@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 
 	"github.com/convox/rack/sdk"
-	"github.com/convox/rack/start"
+	"github.com/convox/rack/pkg/start"
 	"github.com/convox/stdcli"
 )
 
