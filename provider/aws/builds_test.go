@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/convox/rack/pkg/structs"
-	"github.com/convox/rack/test/awsutil"
+	"github.com/convox/rack/pkg/test/awsutil"
 
 	"github.com/stretchr/testify/assert"
 )

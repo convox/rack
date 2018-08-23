@@ -7,7 +7,7 @@ import (
 
 	"github.com/convox/logger"
 	"github.com/convox/rack/provider/aws"
-	"github.com/convox/rack/test/awsutil"
+	"github.com/convox/rack/pkg/test/awsutil"
 )
 
 func init() {
