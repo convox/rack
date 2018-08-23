@@ -137,3 +137,25 @@ func TestAppGetError(t *testing.T) {
 		require.EqualError(t, err, "err1")
 	})
 }
+
+func TestAppList(t *testing.T) {
+	testServer(t, func(c *stdsdk.Client, p *structs.MockProvider) {
+		a1 := structs.Apps{structs.App{Name: "app1"}, {Name: "app2"}}
+		a2 := structs.Apps{}
+		p.On("AppList").Return(a1, nil)
+		err := c.Get("/apps", stdsdk.RequestOptions{}, &a2)
+		require.NoError(t, err)
+		require.Equal(t, a1, a2)
+	})
+}
+
+func TestAppListError(t *testing.T) {
+	testServer(t, func(c *stdsdk.Client, p *structs.MockProvider) {
+		a1 := structs.Apps{structs.App{Name: "app1"}, {Name: "app2"}}
+		a2 := structs.Apps{}
+		p.On("AppList").Return(a1, nil)
+		err := c.Get("/apps", stdsdk.RequestOptions{}, &a2)
+		require.NoError(t, err)
+		require.Equal(t, a1, a2)
+	})
+}
