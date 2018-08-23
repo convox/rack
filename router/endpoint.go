@@ -6,7 +6,7 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/convox/rack/options"
+	"github.com/convox/rack/pkg/options"
 	"github.com/convox/rack/sdk"
 	"github.com/convox/rack/structs"
 )
