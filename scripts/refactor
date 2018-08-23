@@ -2,6 +2,6 @@
 
 pkg=$1
 
-find . -name '*.go' | xargs -1 sed -i "" -e "s|$1|pkg/$1|g"
+find . -name '*.go' | xargs -n 1 sed -i "" -e "s|convox/rack/$1|convox/rack/pkg/$1|g"
 git checkout vendor
 mv $1 pkg/
