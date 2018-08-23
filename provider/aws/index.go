@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/convox/rack/pkg/cache"
-	"github.com/convox/rack/structs"
+	"github.com/convox/rack/pkg/structs"
 )
 
 var (

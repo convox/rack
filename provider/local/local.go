@@ -15,7 +15,7 @@ import (
 	"github.com/boltdb/bolt"
 	"github.com/convox/logger"
 	"github.com/convox/rack/pkg/router"
-	"github.com/convox/rack/structs"
+	"github.com/convox/rack/pkg/structs"
 )
 
 func init() {

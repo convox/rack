@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/convox/rack/structs"
+	"github.com/convox/rack/pkg/structs"
 )
 
 func (p *Provider) InstanceKeyroll() error {

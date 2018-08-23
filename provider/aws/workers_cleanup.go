@@ -11,7 +11,7 @@ import (
 	"github.com/convox/logger"
 	"github.com/convox/rack/pkg/helpers"
 	"github.com/convox/rack/pkg/options"
-	"github.com/convox/rack/structs"
+	"github.com/convox/rack/pkg/structs"
 )
 
 func (p *Provider) workerCleanup() {

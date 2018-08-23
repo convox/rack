@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/convox/rack/pkg/options"
-	"github.com/convox/rack/structs"
+	"github.com/convox/rack/pkg/structs"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
