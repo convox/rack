@@ -22,7 +22,7 @@ import (
 	"github.com/convox/rack/pkg/helpers"
 	"github.com/convox/rack/pkg/manifest"
 	"github.com/convox/rack/pkg/options"
-	"github.com/convox/rack/structs"
+	"github.com/convox/rack/pkg/structs"
 )
 
 var ()

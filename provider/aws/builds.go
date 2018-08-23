@@ -28,7 +28,7 @@ import (
 	"github.com/convox/rack/pkg/manifest"
 	"github.com/convox/rack/pkg/manifest1"
 	"github.com/convox/rack/pkg/options"
-	"github.com/convox/rack/structs"
+	"github.com/convox/rack/pkg/structs"
 )
 
 // ECR host is formatted like 123456789012.dkr.ecr.us-east-1.amazonaws.com

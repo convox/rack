@@ -5,7 +5,7 @@ import (
 	"os"
 	"os/signal"
 
-	"github.com/convox/rack/structs"
+	"github.com/convox/rack/pkg/structs"
 )
 
 type Options struct {

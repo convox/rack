@@ -19,7 +19,7 @@ import (
 	"github.com/convox/rack/pkg/cache"
 	"github.com/convox/rack/pkg/manifest"
 	"github.com/convox/rack/pkg/manifest1"
-	"github.com/convox/rack/structs"
+	"github.com/convox/rack/pkg/structs"
 	"github.com/fsouza/go-dockerclient"
 	shellquote "github.com/kballard/go-shellquote"
 )

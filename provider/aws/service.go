@@ -8,7 +8,7 @@ import (
 	"github.com/convox/rack/pkg/helpers"
 	"github.com/convox/rack/pkg/manifest"
 	"github.com/convox/rack/pkg/manifest1"
-	"github.com/convox/rack/structs"
+	"github.com/convox/rack/pkg/structs"
 )
 
 func (p *Provider) ServiceList(app string) (structs.Services, error) {

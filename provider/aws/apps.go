@@ -13,7 +13,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ecr"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/convox/rack/pkg/helpers"
-	"github.com/convox/rack/structs"
+	"github.com/convox/rack/pkg/structs"
 )
 
 func (p *Provider) AppCancel(name string) error {

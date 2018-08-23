@@ -9,7 +9,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/convox/rack/structs"
+	"github.com/convox/rack/pkg/structs"
 )
 
 var (

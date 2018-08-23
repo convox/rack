@@ -15,7 +15,7 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/convox/rack/structs"
+	"github.com/convox/rack/pkg/structs"
 	"github.com/pkg/errors"
 
 	cv "github.com/convox/version"
