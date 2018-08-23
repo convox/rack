@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/convox/rack/sync"
+	"github.com/convox/rack/pkg/sync"
 )
 
 type Run struct {
