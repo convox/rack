@@ -23,7 +23,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/aws/aws-sdk-go/service/kms"
-	"github.com/convox/rack/structs"
+	"github.com/convox/rack/pkg/structs"
 	"github.com/fatih/color"
 	"golang.org/x/crypto/nacl/secretbox"
 

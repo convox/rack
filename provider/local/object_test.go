@@ -5,7 +5,7 @@ import (
 	"io/ioutil"
 	"testing"
 
-	"github.com/convox/rack/structs"
+	"github.com/convox/rack/pkg/structs"
 	"github.com/stretchr/testify/assert"
 )
 

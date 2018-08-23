@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/convox/rack/generate"
+	"github.com/convox/rack/pkg/generate"
 )
 
 func main() {

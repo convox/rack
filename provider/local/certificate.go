@@ -3,7 +3,7 @@ package local
 import (
 	"fmt"
 
-	"github.com/convox/rack/structs"
+	"github.com/convox/rack/pkg/structs"
 )
 
 func (p *Provider) CertificateApply(app, service string, port int, id string) error {

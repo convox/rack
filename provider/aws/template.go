@@ -14,9 +14,9 @@ import (
 
 	"html/template"
 
-	"github.com/convox/rack/manifest"
-	"github.com/convox/rack/manifest1"
-	"github.com/convox/rack/structs"
+	"github.com/convox/rack/pkg/manifest"
+	"github.com/convox/rack/pkg/manifest1"
+	"github.com/convox/rack/pkg/structs"
 )
 
 func formationHelpers() template.FuncMap {
