@@ -1,8 +1,11 @@
 package api_test
 
 import (
+	"bytes"
 	"fmt"
+	"io/ioutil"
 	"testing"
+	"time"
 
 	"github.com/convox/rack/pkg/options"
 	"github.com/convox/rack/pkg/structs"
@@ -157,5 +160,32 @@ func TestAppListError(t *testing.T) {
 		err := c.Get("/apps", stdsdk.RequestOptions{}, &a2)
 		require.NoError(t, err)
 		require.Equal(t, a1, a2)
+	})
+}
+
+func TestAppLogs(t *testing.T) {
+	testServer(t, func(c *stdsdk.Client, p *structs.MockProvider) {
+		d1 := []byte("test")
+		r1 := ioutil.NopCloser(bytes.NewReader(d1))
+		opts := structs.LogsOptions{Since: options.Duration(2 * time.Minute)}
+		p.On("AppLogs", "app1", opts).Return(r1, nil)
+		r2, err := c.Websocket("/apps/app1/logs", stdsdk.RequestOptions{})
+		require.NoError(t, err)
+		d2, err := ioutil.ReadAll(r2)
+		require.NoError(t, err)
+		require.Equal(t, d1, d2)
+	})
+}
+
+func TestAppLogsError(t *testing.T) {
+	testServer(t, func(c *stdsdk.Client, p *structs.MockProvider) {
+		opts := structs.LogsOptions{Since: options.Duration(2 * time.Minute)}
+		p.On("AppLogs", "app1", opts).Return(nil, fmt.Errorf("err1"))
+		r1, err := c.Websocket("/apps/app1/logs", stdsdk.RequestOptions{})
+		require.NoError(t, err)
+		require.NotNil(t, r1)
+		d1, err := ioutil.ReadAll(r1)
+		require.NoError(t, err)
+		require.Equal(t, []byte("ERROR: err1\n"), d1)
 	})
 }
