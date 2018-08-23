@@ -33,7 +33,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/convox/rack/pkg/cache"
-	"github.com/convox/rack/manifest1"
+	"github.com/convox/rack/pkg/manifest1"
 	"github.com/convox/rack/structs"
 )
 

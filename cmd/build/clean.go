@@ -8,7 +8,7 @@ import (
 	"sort"
 	"time"
 
-	"github.com/convox/rack/manifest1"
+	"github.com/convox/rack/pkg/manifest1"
 )
 
 // MaxBuilds is the number of most recent builds to retain

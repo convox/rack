@@ -26,7 +26,7 @@ import (
 	docker "github.com/fsouza/go-dockerclient"
 
 	"github.com/convox/rack/manifest"
-	"github.com/convox/rack/manifest1"
+	"github.com/convox/rack/pkg/manifest1"
 	"github.com/convox/rack/options"
 	"github.com/convox/rack/structs"
 )
