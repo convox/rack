@@ -16,7 +16,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/ecs"
-	"github.com/convox/rack/cache"
+	"github.com/convox/rack/pkg/cache"
 	"github.com/convox/rack/manifest"
 	"github.com/convox/rack/manifest1"
 	"github.com/convox/rack/structs"
