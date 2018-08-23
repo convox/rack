@@ -6,6 +6,8 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
+	"net/url"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -161,6 +163,34 @@ func (p *Provider) appBucket(app string) (string, error) {
 	}
 
 	return p.appResource(app, "Settings")
+}
+
+func (p *Provider) objectPresignedURL(o *structs.Object, duration time.Duration) (string, error) {
+	ou, err := url.Parse(o.Url)
+	if err != nil {
+		return "", err
+	}
+
+	if ou.Scheme != "object" {
+		return "", fmt.Errorf("url is not an object: %s", o.Url)
+	}
+
+	bucket, err := p.appBucket(ou.Hostname())
+	if err != nil {
+		return "", err
+	}
+
+	req, _ := p.s3().GetObjectRequest(&s3.GetObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(ou.Path),
+	})
+
+	su, err := req.Presign(duration)
+	if err != nil {
+		return "", err
+	}
+
+	return su, nil
 }
 
 func generateTempKey() (string, error) {
