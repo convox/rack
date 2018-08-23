@@ -175,12 +175,17 @@ func (c *Client) Websocket(path string, opts RequestOptions) (io.ReadCloser, err
 	u = *c.Endpoint
 
 	u.Scheme = "wss"
+
+	if c.Endpoint.Scheme == "http" {
+		u.Scheme = "ws"
+	}
+
 	u.Path += path
 	u.User = nil
 
 	h := c.Headers()
 
-	h.Set("Origin", fmt.Sprintf("https://%s", c.Endpoint.Host))
+	h.Set("Origin", fmt.Sprintf("%s://%s", c.Endpoint.Scheme, c.Endpoint.Host))
 
 	for k, v := range opts.Headers {
 		h.Set(k, v)
