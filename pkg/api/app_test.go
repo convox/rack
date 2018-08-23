@@ -98,3 +98,19 @@ func TestAppCreateGeneration1(t *testing.T) {
 		require.Equal(t, a1, a2)
 	})
 }
+
+func TestAppDelete(t *testing.T) {
+	testServer(t, func(c *stdsdk.Client, p *structs.MockProvider) {
+		p.On("AppDelete", "app1").Return(nil)
+		err := c.Delete("/apps/app1", stdsdk.RequestOptions{}, nil)
+		require.NoError(t, err)
+	})
+}
+
+func TestAppDeleteError(t *testing.T) {
+	testServer(t, func(c *stdsdk.Client, p *structs.MockProvider) {
+		p.On("AppDelete", "app1").Return(fmt.Errorf("err1"))
+		err := c.Delete("/apps/app1", stdsdk.RequestOptions{}, nil)
+		require.EqualError(t, err, "err1")
+	})
+}
