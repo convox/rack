@@ -25,3 +25,4 @@ script:
   - ./ci/set-client-id.sh
   - go get ./cmd/convox
   - make test
+  - curl -s https://codecov.io/bash | bash
