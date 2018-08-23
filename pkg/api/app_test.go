@@ -65,6 +65,7 @@ func TestAppCreate(t *testing.T) {
 
 func TestAppCreateError(t *testing.T) {
 	testServer(t, func(c *stdsdk.Client, p *structs.MockProvider) {
+		var a1 *structs.App
 		opts := structs.AppCreateOptions{
 			Generation: options.String("2"),
 		}
@@ -74,7 +75,8 @@ func TestAppCreateError(t *testing.T) {
 			},
 		}
 		p.On("AppCreate", "app1", opts).Return(nil, fmt.Errorf("err1"))
-		err := c.Post("/apps", ro, nil)
+		err := c.Post("/apps", ro, a1)
+		require.Nil(t, a1)
 		require.EqualError(t, err, "err1")
 	})
 }
