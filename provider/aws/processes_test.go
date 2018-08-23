@@ -216,9 +216,7 @@ func TestProcessRunDetached(t *testing.T) {
 	provider := StubAwsProvider(
 		cycleProcessReleaseGetItem,
 		cycleProcessDescribeStacks,
-		cycleProcessDescribeStackResources,
 		cycleProcessDescribeStacks,
-		cycleProcessDescribeStackResources,
 		cycleProcessReleaseGetItem,
 		cycleProcessReleaseListStackResources,
 		cycleProcessReleaseEnvironmentGet,
