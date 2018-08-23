@@ -29,4 +29,4 @@ templates:
 	make -C sync templates
 
 test:
-	env PROVIDER=test bin/test
+	env PROVIDER=test scripts/test
