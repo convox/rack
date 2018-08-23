@@ -3,20 +3,20 @@
 all: build
 
 build:
-	go install .
+	go install ./...
 
 builder:
 	docker build -t convox/build:$(USER) -f cmd/build/Dockerfile .
 	docker push convox/build:$(USER)
 
 generate:
-	go run cmd/generate/main.go controllers > api/controllers.go
-	go run cmd/generate/main.go routes > api/routes.go
+	go run cmd/generate/main.go controllers > pkg/api/controllers.go
+	go run cmd/generate/main.go routes > pkg/api/routes.go
 	go run cmd/generate/main.go sdk > sdk/methods.go
 
 mocks:
 	go get -u github.com/vektra/mockery/.../
-	make -C structs mocks
+	make -C pkg/structs mocks
 
 release:
 	make -C cmd/convox release VERSION=$(VERSION)
@@ -26,7 +26,7 @@ release:
 
 templates:
 	go get -u github.com/jteeuwen/go-bindata/...
-	make -C sync templates
+	make -C pkg/sync templates
 
 test:
 	env PROVIDER=test scripts/test

@@ -176,7 +176,7 @@ func templateHelpers() template.FuncMap {
 func renderTemplate(name string, data interface{}) ([]byte, error) {
 	var buf bytes.Buffer
 
-	path := fmt.Sprintf("generate/template/%s.tmpl", name)
+	path := fmt.Sprintf("pkg/generate/template/%s.tmpl", name)
 	file := filepath.Base(path)
 
 	t, err := template.New(file).Funcs(templateHelpers()).ParseFiles(path)
