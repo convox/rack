@@ -30,6 +30,8 @@ func testServer(t *testing.T, fn func(*stdsdk.Client, *structs.MockProvider)) {
 	require.NoError(t, err)
 
 	fn(c, p)
+
+	// p.AssertExpectations(t)
 }
 
 func requestContextMatcher(ctx context.Context) bool {
