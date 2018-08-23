@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/convox/rack/stdcli"
+	"github.com/convox/rack/pkg/stdcli"
 	"github.com/stretchr/testify/assert"
 )
 
