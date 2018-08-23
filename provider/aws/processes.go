@@ -17,7 +17,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/convox/rack/pkg/cache"
-	"github.com/convox/rack/manifest"
+	"github.com/convox/rack/pkg/manifest"
 	"github.com/convox/rack/pkg/manifest1"
 	"github.com/convox/rack/structs"
 	"github.com/fsouza/go-dockerclient"

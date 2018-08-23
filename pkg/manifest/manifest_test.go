@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/convox/rack/pkg/helpers"
-	"github.com/convox/rack/manifest"
+	"github.com/convox/rack/pkg/manifest"
 	"github.com/stretchr/testify/require"
 )
 

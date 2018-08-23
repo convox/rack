@@ -3,7 +3,7 @@ package helpers
 import (
 	"fmt"
 
-	"github.com/convox/rack/manifest"
+	"github.com/convox/rack/pkg/manifest"
 	"github.com/convox/rack/options"
 	"github.com/convox/rack/structs"
 	"github.com/pkg/errors"
