@@ -12,7 +12,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/ecr"
 	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/convox/rack/helpers"
+	"github.com/convox/rack/pkg/helpers"
 	"github.com/convox/rack/structs"
 )
 

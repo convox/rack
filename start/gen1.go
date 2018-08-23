@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/convox/rack/helpers"
+	"github.com/convox/rack/pkg/helpers"
 	"github.com/convox/rack/manifest1"
 )
 

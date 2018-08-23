@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/convox/rack/helpers"
+	"github.com/convox/rack/pkg/helpers"
 	"github.com/convox/rack/manifest"
 	"github.com/convox/rack/manifest1"
 	"github.com/convox/rack/structs"
