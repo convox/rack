@@ -6,7 +6,7 @@ import (
 	"net"
 	"time"
 
-	"github.com/convox/rack/helpers"
+	"github.com/convox/rack/pkg/helpers"
 )
 
 func (p *Provider) Proxy(host string, port int, rw io.ReadWriter) error {
