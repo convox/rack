@@ -7,7 +7,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
-	// "github.com/convox/rack/api/models"
+	// "github.com/convox/rack/pkg/api/models"
 )
 
 type ManifestBalancer struct {
