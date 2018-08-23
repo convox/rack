@@ -4,7 +4,7 @@ import (
 	"net/http/httptest"
 	"os"
 
-	"github.com/convox/rack/test/awsutil"
+	"github.com/convox/rack/pkg/test/awsutil"
 )
 
 func stubDocker(cycles ...awsutil.Cycle) *httptest.Server {
