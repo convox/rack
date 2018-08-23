@@ -94,7 +94,11 @@ func templateHelpers() template.FuncMap {
 		"render": func(m Method) (string, error) {
 			switch len(m.Returns) {
 			case 1:
-				return "c.RenderOK()", nil
+				if m.Writer() != "" {
+					return "nil", nil
+				} else {
+					return "c.RenderOK()", nil
+				}
 			case 2:
 				switch m.Returns[0].Kind() {
 				case reflect.Bool:
