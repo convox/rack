@@ -214,7 +214,7 @@ func (s *Server) BuildExport(c *stdapi.Context) error {
 		return err
 	}
 
-	return c.RenderOK()
+	return nil
 }
 
 func (s *Server) BuildGet(c *stdapi.Context) error {
@@ -905,7 +905,7 @@ func (s *Server) Proxy(c *stdapi.Context) error {
 		return err
 	}
 
-	return c.RenderOK()
+	return nil
 }
 
 func (s *Server) RegistryAdd(c *stdapi.Context) error {
