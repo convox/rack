@@ -116,3 +116,24 @@ func TestAppDeleteError(t *testing.T) {
 		require.EqualError(t, err, "err1")
 	})
 }
+
+func TestAppGet(t *testing.T) {
+	testServer(t, func(c *stdsdk.Client, p *structs.MockProvider) {
+		a1 := structs.App{Name: "app1"}
+		a2 := structs.App{}
+		p.On("AppGet", "app1").Return(&a1, nil)
+		err := c.Get("/apps/app1", stdsdk.RequestOptions{}, &a2)
+		require.NoError(t, err)
+		require.Equal(t, a1, a2)
+	})
+}
+
+func TestAppGetError(t *testing.T) {
+	testServer(t, func(c *stdsdk.Client, p *structs.MockProvider) {
+		var a1 *structs.App
+		p.On("AppGet", "app1").Return(nil, fmt.Errorf("err1"))
+		err := c.Get("/apps/app1", stdsdk.RequestOptions{}, a1)
+		require.Nil(t, a1)
+		require.EqualError(t, err, "err1")
+	})
+}
