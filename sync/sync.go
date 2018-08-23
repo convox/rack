@@ -13,7 +13,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/convox/rack/changes"
+	"github.com/convox/rack/pkg/changes"
 	"github.com/fsouza/go-dockerclient"
 )
 
