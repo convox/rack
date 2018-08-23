@@ -243,31 +243,31 @@ func (p *Provider) appFromStack(stack *cloudformation.Stack) (*structs.App, erro
 		Tags:       stackTags(stack),
 	}
 
-	res, err := p.describeStackResources(&cloudformation.DescribeStackResourcesInput{
-		StackName: stack.StackName,
-	})
-	if err != nil {
-		return nil, err
-	}
+	// res, err := p.describeStackResources(&cloudformation.DescribeStackResourcesInput{
+	//   StackName: stack.StackName,
+	// })
+	// if err != nil {
+	//   return nil, err
+	// }
 
-	for _, r := range res.StackResources {
-		if r.ResourceType == nil || *r.ResourceType != "AWS::CloudFormation::Stack" {
-			continue
-		}
+	// for _, r := range res.StackResources {
+	//   if r.ResourceType == nil || *r.ResourceType != "AWS::CloudFormation::Stack" {
+	//     continue
+	//   }
 
-		if r.LogicalResourceId == nil || r.PhysicalResourceId == nil {
-			continue
-		}
+	//   if r.LogicalResourceId == nil || r.PhysicalResourceId == nil {
+	//     continue
+	//   }
 
-		sub, err := p.describeStack(*r.PhysicalResourceId)
-		if err != nil {
-			return nil, err
-		}
+	//   sub, err := p.describeStack(*r.PhysicalResourceId)
+	//   if err != nil {
+	//     return nil, err
+	//   }
 
-		for k, v := range stackOutputs(sub) {
-			a.Outputs[fmt.Sprintf("%s.%s", *r.LogicalResourceId, k)] = v
-		}
-	}
+	//   for k, v := range stackOutputs(sub) {
+	//     a.Outputs[fmt.Sprintf("%s.%s", *r.LogicalResourceId, k)] = v
+	//   }
+	// }
 
 	return a, nil
 }

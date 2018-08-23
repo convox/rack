@@ -52,7 +52,28 @@ func (p *Provider) ServiceList(app string) (structs.Services, error) {
 	ss := structs.Services{}
 
 	for _, ms := range m.Services {
-		cert := coalesces(a.Outputs[fmt.Sprintf("Service%s.Certificate", upperName(ms.Name))], a.Outputs[fmt.Sprintf("Service%sCertificate", upperName(ms.Name))])
+		endpoint := a.Outputs[fmt.Sprintf("Service%sEndpoint", upperName(ms.Name))]
+		cert := a.Outputs[fmt.Sprintf("Service%sCertificate", upperName(ms.Name))]
+
+		if endpoint == "" {
+			sr, err := p.stackResource(p.rackStack(app), fmt.Sprintf("Service%s", upperName(ms.Name)))
+			if err != nil {
+				return nil, err
+			}
+
+			if sr != nil && sr.PhysicalResourceId != nil {
+				s, err := p.describeStack(*sr.PhysicalResourceId)
+				if err != nil {
+					return nil, err
+				}
+
+				outputs := stackOutputs(s)
+
+				cert = outputs["Certificate"]
+				endpoint = outputs["Endpoint"]
+			}
+		}
+
 		cid := ""
 
 		for _, c := range cs {
@@ -63,7 +84,7 @@ func (p *Provider) ServiceList(app string) (structs.Services, error) {
 
 		s := structs.Service{
 			Name:   ms.Name,
-			Domain: coalesces(a.Outputs[fmt.Sprintf("Service%s.Endpoint", upperName(ms.Name))], a.Outputs[fmt.Sprintf("Service%sEndpoint", upperName(ms.Name))]),
+			Domain: endpoint,
 		}
 
 		if s.Domain != "" {
