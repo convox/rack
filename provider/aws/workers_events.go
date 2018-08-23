@@ -13,7 +13,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/aws/aws-sdk-go/service/sqs"
-	"github.com/convox/rack/cache"
+	"github.com/convox/rack/pkg/cache"
 )
 
 var (
