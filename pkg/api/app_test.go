@@ -189,3 +189,35 @@ func TestAppLogsError(t *testing.T) {
 		require.Equal(t, []byte("ERROR: err1\n"), d1)
 	})
 }
+
+func TestAppUpdate(t *testing.T) {
+	testServer(t, func(c *stdsdk.Client, p *structs.MockProvider) {
+		opts := structs.AppUpdateOptions{
+			Sleep: options.Bool(true),
+		}
+		ro := stdsdk.RequestOptions{
+			Params: stdsdk.Params{
+				"sleep": "true",
+			},
+		}
+		p.On("AppUpdate", "app1", opts).Return(nil)
+		err := c.Put("/apps/app1", ro, nil)
+		require.NoError(t, err)
+	})
+}
+
+func TestAppUpdateError(t *testing.T) {
+	testServer(t, func(c *stdsdk.Client, p *structs.MockProvider) {
+		opts := structs.AppUpdateOptions{
+			Sleep: options.Bool(true),
+		}
+		ro := stdsdk.RequestOptions{
+			Params: stdsdk.Params{
+				"sleep": "true",
+			},
+		}
+		p.On("AppUpdate", "app1", opts).Return(fmt.Errorf("err1"))
+		err := c.Put("/apps/app1", ro, nil)
+		require.EqualError(t, err, "err1")
+	})
+}
