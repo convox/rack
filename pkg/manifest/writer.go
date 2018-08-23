@@ -6,7 +6,7 @@ import (
 	"io"
 	"sync"
 
-	"github.com/convox/rack/stdcli"
+	"github.com/convox/rack/pkg/stdcli"
 )
 
 type PrefixWriter struct {
