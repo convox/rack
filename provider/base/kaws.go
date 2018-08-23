@@ -3,7 +3,7 @@ package aws
 import (
 	"os"
 
-	"github.com/convox/rack/structs"
+	"github.com/convox/rack/pkg/structs"
 )
 
 type Provider struct {

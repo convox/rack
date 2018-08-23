@@ -9,7 +9,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/convox/rack/structs"
+	"github.com/convox/rack/pkg/structs"
 )
 
 func (p *Provider) ObjectDelete(app, key string) error {

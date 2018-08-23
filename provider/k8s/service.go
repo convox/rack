@@ -3,8 +3,8 @@ package k8s
 import (
 	"fmt"
 
-	"github.com/convox/rack/helpers"
-	"github.com/convox/rack/structs"
+	"github.com/convox/rack/pkg/helpers"
+	"github.com/convox/rack/pkg/structs"
 	am "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 

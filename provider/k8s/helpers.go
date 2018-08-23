@@ -11,9 +11,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/convox/rack/helpers"
+	"github.com/convox/rack/pkg/helpers"
 	cc "github.com/convox/rack/provider/k8s/pkg/client/clientset/versioned/typed/convox/v1"
-	"github.com/convox/rack/structs"
+	"github.com/convox/rack/pkg/structs"
 	ac "k8s.io/api/core/v1"
 	am "k8s.io/apimachinery/pkg/apis/meta/v1"
 )

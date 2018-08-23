@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/convox/rack/structs"
+	"github.com/convox/rack/pkg/structs"
 	ac "k8s.io/api/core/v1"
 	ae "k8s.io/apimachinery/pkg/api/errors"
 	am "k8s.io/apimachinery/pkg/apis/meta/v1"

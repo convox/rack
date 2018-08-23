@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/convox/rack/provider/k8s"
-	"github.com/convox/rack/structs"
+	"github.com/convox/rack/pkg/structs"
 )
 
 type Provider struct {
