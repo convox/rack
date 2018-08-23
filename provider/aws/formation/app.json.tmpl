@@ -127,25 +127,38 @@
 
 {{ define "balancer-resources" }}
   {{ range .Manifest.Services }}
-    {{ if and .Port.Port .Domain (not (certificate $.Certificates .Domains )) }}
-      "Balancer{{ upper .Name }}Certificate": {
-        "Type": "AWS::CertificateManager::Certificate",
+    {{ if .Port.Port }}
+      "RecordSet{{ upper .Name }}Internal": {
+        "Type": "AWS::Route53::RecordSet",
+        "Condition": "InternalDomains",
         "Properties": {
-          "DomainName": "{{ .Domain }}",
-          "DomainValidationOptions": [
-            {{ range .Domains }}
-              { "DomainName": "{{ . }}", "ValidationDomain": "{{ apex . }}" },
-            {{ end }}
-            { "Ref": "AWS::NoValue" }
-          ],
-          "SubjectAlternativeNames": [
-            {{ range .Domains }}
-              "{{.}}",
-            {{ end }}
-            { "Ref": "AWS::NoValue" }
-          ]
+          "HostedZoneId": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:HostedZone" } },
+          "Name": { "Fn::Sub": "{{.Name}}.{{$.App}}.${Rack}.convox." },
+          "Type": "CNAME",
+          "TTL": "3600",
+          "ResourceRecords": [ { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Domain{{ if .Internal }}Internal{{ end }}" } } ]
         }
       },
+      {{ if not (certificate $.Certificates .Domains) }}
+        "Balancer{{ upper .Name }}Certificate": {
+          "Type": "AWS::CertificateManager::Certificate",
+          "Properties": {
+            "DomainName": "{{ .Domain }}",
+            "DomainValidationOptions": [
+              {{ range .Domains }}
+                { "DomainName": "{{ . }}", "ValidationDomain": "{{ apex . }}" },
+              {{ end }}
+              { "Ref": "AWS::NoValue" }
+            ],
+            "SubjectAlternativeNames": [
+              {{ range .Domains }}
+                "{{.}}",
+              {{ end }}
+              { "Ref": "AWS::NoValue" }
+            ]
+          }
+        },
+      {{ end }}
     {{ end }}
   {{ end }}
 {{ end }}
@@ -232,17 +245,6 @@
     }
   },
   {{ range .Manifest.Services }}
-    "RecordSet{{ upper .Name }}Internal": {
-      "Type": "AWS::Route53::RecordSet",
-      "Condition": "InternalDomains",
-      "Properties": {
-        "HostedZoneId": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:HostedZone" } },
-        "Name": { "Fn::Sub": "{{.Name}}.{{$.App}}.${Rack}.convox." },
-        "Type": "CNAME",
-        "TTL": "3600",
-        "ResourceRecords": [ { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Domain{{ if .Internal }}Internal{{ end }}" } } ]
-      }
-    },
     "Service{{ upper .Name }}": {
       "Type": "AWS::CloudFormation::Stack",
       "Properties": {
