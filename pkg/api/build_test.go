@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"strings"
 	"testing"
 
 	"github.com/convox/rack/pkg/options"
@@ -110,5 +111,33 @@ func TestBuildGetError(t *testing.T) {
 		err := c.Get("/apps/app1/builds/build1", stdsdk.RequestOptions{}, b1)
 		require.Nil(t, b1)
 		require.EqualError(t, err, "err1")
+	})
+}
+
+func TestBuildImport(t *testing.T) {
+	testServer(t, func(c *stdsdk.Client, p *structs.MockProvider) {
+		b1 := &structs.Build{Id: "build1"}
+		b2 := &structs.Build{}
+		ro := stdsdk.RequestOptions{
+			Body: strings.NewReader("data"),
+		}
+		p.On("BuildImport", "app1", mock.Anything).Return(b1, nil).Run(func(args mock.Arguments) {
+			data, err := ioutil.ReadAll(args.Get(1).(io.Reader))
+			require.NoError(t, err)
+			require.Equal(t, "data", string(data))
+		})
+		err := c.Post("/apps/app1/builds/import", ro, b2)
+		require.NoError(t, err)
+		require.Equal(t, b1, b2)
+	})
+}
+
+func TestBuildImportError(t *testing.T) {
+	testServer(t, func(c *stdsdk.Client, p *structs.MockProvider) {
+		var b1 *structs.Build
+		p.On("BuildImport", "app1", mock.Anything).Return(nil, fmt.Errorf("err1"))
+		err := c.Post("/apps/app1/builds/import", stdsdk.RequestOptions{}, b1)
+		require.EqualError(t, err, "err1")
+		require.Nil(t, b1)
 	})
 }
