@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/convox/logger"
-	"github.com/convox/rack/api"
+	"github.com/convox/rack/pkg/api"
 	"github.com/convox/rack/pkg/structs"
 	"github.com/convox/stdsdk"
 	"github.com/stretchr/testify/mock"
