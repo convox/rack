@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/convox/rack/structs"
+	"github.com/convox/rack/pkg/structs"
 	am "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 

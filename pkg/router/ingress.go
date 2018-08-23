@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/convox/rack/helpers"
+	"github.com/convox/rack/pkg/helpers"
 	"github.com/convox/rack/provider/k8s"
 	ac "k8s.io/api/core/v1"
 	ae "k8s.io/api/extensions/v1beta1"

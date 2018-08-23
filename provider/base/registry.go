@@ -3,7 +3,7 @@ package aws
 import (
 	"fmt"
 
-	"github.com/convox/rack/structs"
+	"github.com/convox/rack/pkg/structs"
 )
 
 func (p *Provider) RegistryAdd(server, username, password string) (*structs.Registry, error) {
