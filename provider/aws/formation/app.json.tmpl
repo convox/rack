@@ -232,6 +232,17 @@
     }
   },
   {{ range .Manifest.Services }}
+    "RecordSet{{ upper .Name }}Internal": {
+      "Type": "AWS::Route53::RecordSet",
+      "Condition": "InternalDomains",
+      "Properties": {
+        "HostedZoneId": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:HostedZone" } },
+        "Name": { "Fn::Sub": "{{.Name}}.{{$.App}}.${Rack}.convox." },
+        "Type": "CNAME",
+        "TTL": "3600",
+        "ResourceRecords": [ { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Domain{{ if .Internal }}Internal{{ end }}" } } ]
+      }
+    },
     "Service{{ upper .Name }}": {
       "Type": "AWS::CloudFormation::Stack",
       "Properties": {
