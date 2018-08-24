@@ -109,7 +109,7 @@ spec:
         hostPath: 
           path: "{{ volumeFrom $.App.Name . }}"
       {{ end }}
-{{ if .Service.Scale.Autoscale }}
+{{ if .Service.Autoscale }}
 ---
 apiVersion: autoscaling/v2beta1
 kind: HorizontalPodAutoscaler
