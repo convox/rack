@@ -2555,6 +2555,9 @@
       "DeletionPolicy": "Retain",
       "Properties": {
         "AccessControl": "LogDeliveryWrite",
+        "BucketEncryption": {
+          "ServerSideEncryptionConfiguration": [ { "ServerSideEncryptionByDefault": { "SSEAlgorithm": "aws:kms" } } ]
+        },
         "LifecycleConfiguration": { "Fn::If": [ "BlankLogRetention",
           { "Ref": "AWS::NoValue" },
           { "Rules": [ { "ExpirationInDays": { "Ref": "LogRetention" }, "Status": "Enabled" } ] }
@@ -2589,6 +2592,9 @@
       "DeletionPolicy": "Retain",
       "Properties": {
         "AccessControl": "Private",
+        "BucketEncryption": {
+          "ServerSideEncryptionConfiguration": [ { "ServerSideEncryptionByDefault": { "SSEAlgorithm": "aws:kms" } } ]
+        },
         "LoggingConfiguration": {
           "DestinationBucketName": { "Fn::If": [ "BlankLogBucket", { "Ref": "Logs" }, { "Ref": "LogBucket" } ] },
           "LogFilePrefix": { "Fn::Sub": "convox/logs/${AWS::StackName}/s3/" }
