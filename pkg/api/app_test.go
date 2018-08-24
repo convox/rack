@@ -154,12 +154,11 @@ func TestAppList(t *testing.T) {
 
 func TestAppListError(t *testing.T) {
 	testServer(t, func(c *stdsdk.Client, p *structs.MockProvider) {
-		a1 := structs.Apps{structs.App{Name: "app1"}, {Name: "app2"}}
-		a2 := structs.Apps{}
-		p.On("AppList").Return(a1, nil)
-		err := c.Get("/apps", stdsdk.RequestOptions{}, &a2)
-		require.NoError(t, err)
-		require.Equal(t, a1, a2)
+		var a1 structs.Apps
+		p.On("AppList").Return(nil, fmt.Errorf("err1"))
+		err := c.Get("/apps", stdsdk.RequestOptions{}, &a1)
+		require.EqualError(t, err, "err1")
+		require.Nil(t, a1)
 	})
 }
 
