@@ -28,7 +28,7 @@ spec:
 ---
 {{ end }}
 apiVersion: apps/v1
-kind: Deployment
+kind: {{ if .Service.Agent.Enabled }} DaemonSet {{ else }} Deployment {{ end }}
 metadata:
   namespace: {{.Namespace}}
   name: {{.Service.Name}}
@@ -39,22 +39,28 @@ metadata:
     service: {{.Service.Name}}
     release: {{.Release.Id}}
 spec:
-  replicas: {{.Replicas}}
   selector:
     matchLabels:
       system: convox
       rack: {{.Rack}}
       app: {{.App.Name}}
       service: {{.Service.Name}}
+  {{ if not .Service.Agent.Enabled }}
+  replicas: {{.Replicas}}
   strategy:
     type: RollingUpdate
     rollingUpdate:
       maxSurge: 1
       maxUnavailable: 0
+  {{ end }}
   minReadySeconds: 5
   revisionHistoryLimit: 1
   template:
     metadata:
+      {{ if .Service.Agent.Enabled }}
+      annotations:
+        scheduler.alpha.kubernetes.io/critical-pod: ""
+      {{ end }}
       labels:
         system: convox
         rack: {{.Rack}}
@@ -62,6 +68,9 @@ spec:
         service: {{.Service.Name}}
         release: {{.Release.Id}}
     spec:
+      {{ if .Service.Agent.Ports }}
+      hostNetwork: true
+      {{ end }}
       containers:
       - name: main
         {{ with .Service.Command }}
@@ -94,8 +103,17 @@ spec:
           initialDelaySeconds: {{$.Service.Health.Grace}}
           periodSeconds: {{$.Service.Health.Interval}}
           timeoutSeconds: {{$.Service.Health.Timeout}}
+        {{ end }}
         ports:
+        {{ with .Service.Port.Port }}
           - containerPort: {{.}}
+        {{ end }}
+        {{ if .Service.Agent.Enabled }}
+        {{ range .Service.Agent.Ports }}
+          - containerPort: {{.Port}}
+            hostPort: {{.Port}}
+            protocol: {{ upper .Protocol }}
+        {{ end }}
         {{ end }}
         resources:
           requests:
