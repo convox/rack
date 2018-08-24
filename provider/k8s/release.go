@@ -10,9 +10,10 @@ import (
 	"time"
 
 	"github.com/convox/rack/pkg/helpers"
+	"github.com/convox/rack/pkg/manifest"
 	"github.com/convox/rack/pkg/options"
-	ca "github.com/convox/rack/provider/k8s/pkg/apis/convox/v1"
 	"github.com/convox/rack/pkg/structs"
+	ca "github.com/convox/rack/provider/k8s/pkg/apis/convox/v1"
 	am "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -91,12 +92,20 @@ func (p *Provider) ReleasePromote(app, id string) error {
 
 	items := [][]byte{}
 
+	sps := manifest.Services{}
+
+	for _, s := range m.Services {
+		if s.Port.Port > 0 {
+			sps = append(sps, s)
+		}
+	}
+
 	params := map[string]interface{}{
 		"App":       a,
 		"Namespace": p.appNamespace(a.Name),
 		"Rack":      p.Rack,
 		"Release":   r,
-		"Services":  m.Services,
+		"Services":  sps,
 	}
 
 	data, err := p.yamlTemplate("router", params)
