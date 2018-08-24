@@ -21,16 +21,16 @@ var fxObject = structs.Object{
 
 func TestObjectDelete(t *testing.T) {
 	testServer(t, func(c *stdsdk.Client, p *structs.MockProvider) {
-		p.On("ObjectDelete", "app1", "object1.ext").Return(nil)
-		err := c.Delete("/apps/app1/objects/object1.ext", stdsdk.RequestOptions{}, nil)
+		p.On("ObjectDelete", "app1", "path/object1.ext").Return(nil)
+		err := c.Delete("/apps/app1/objects/path/object1.ext", stdsdk.RequestOptions{}, nil)
 		require.NoError(t, err)
 	})
 }
 
 func TestObjectDeleteError(t *testing.T) {
 	testServer(t, func(c *stdsdk.Client, p *structs.MockProvider) {
-		p.On("ObjectDelete", "app1", "object1.ext").Return(fmt.Errorf("err1"))
-		err := c.Delete("/apps/app1/objects/object1.ext", stdsdk.RequestOptions{}, nil)
+		p.On("ObjectDelete", "app1", "path/object1.ext").Return(fmt.Errorf("err1"))
+		err := c.Delete("/apps/app1/objects/path/object1.ext", stdsdk.RequestOptions{}, nil)
 		require.EqualError(t, err, "err1")
 	})
 }
@@ -38,8 +38,8 @@ func TestObjectDeleteError(t *testing.T) {
 func TestObjectExists(t *testing.T) {
 	testServer(t, func(c *stdsdk.Client, p *structs.MockProvider) {
 		var exists bool
-		p.On("ObjectExists", "app1", "object1.ext").Return(true, nil)
-		err := c.Head("/apps/app1/objects/object1.ext", stdsdk.RequestOptions{}, &exists)
+		p.On("ObjectExists", "app1", "path/object1.ext").Return(true, nil)
+		err := c.Head("/apps/app1/objects/path/object1.ext", stdsdk.RequestOptions{}, &exists)
 		require.NoError(t, err)
 		require.Equal(t, true, exists)
 	})
@@ -48,8 +48,8 @@ func TestObjectExists(t *testing.T) {
 func TestObjectExistsError(t *testing.T) {
 	testServer(t, func(c *stdsdk.Client, p *structs.MockProvider) {
 		var exists bool
-		p.On("ObjectExists", "app1", "object1.ext").Return(false, fmt.Errorf("err1"))
-		err := c.Head("/apps/app1/objects/object1.ext", stdsdk.RequestOptions{}, &exists)
+		p.On("ObjectExists", "app1", "path/object1.ext").Return(false, fmt.Errorf("err1"))
+		err := c.Head("/apps/app1/objects/path/object1.ext", stdsdk.RequestOptions{}, &exists)
 		require.EqualError(t, err, "response status 403")
 		require.Equal(t, false, exists)
 	})
@@ -59,8 +59,8 @@ func TestObjectFetch(t *testing.T) {
 	testServer(t, func(c *stdsdk.Client, p *structs.MockProvider) {
 		d1 := []byte("test")
 		r1 := ioutil.NopCloser(bytes.NewReader(d1))
-		p.On("ObjectFetch", "app1", "object1.ext").Return(r1, nil)
-		res, err := c.GetStream("/apps/app1/objects/object1.ext", stdsdk.RequestOptions{})
+		p.On("ObjectFetch", "app1", "path/object1.ext").Return(r1, nil)
+		res, err := c.GetStream("/apps/app1/objects/path/object1.ext", stdsdk.RequestOptions{})
 		require.NoError(t, err)
 		require.NotNil(t, res)
 		defer res.Body.Close()
@@ -72,8 +72,8 @@ func TestObjectFetch(t *testing.T) {
 
 func TestObjectFetchError(t *testing.T) {
 	testServer(t, func(c *stdsdk.Client, p *structs.MockProvider) {
-		p.On("ObjectFetch", "app1", "object1.ext").Return(nil, fmt.Errorf("err1"))
-		res, err := c.GetStream("/apps/app1/objects/object1.ext", stdsdk.RequestOptions{})
+		p.On("ObjectFetch", "app1", "path/object1.ext").Return(nil, fmt.Errorf("err1"))
+		res, err := c.GetStream("/apps/app1/objects/path/object1.ext", stdsdk.RequestOptions{})
 		require.EqualError(t, err, "err1")
 		require.Nil(t, res)
 	})
@@ -85,10 +85,10 @@ func TestObjectList(t *testing.T) {
 		o2 := []string{}
 		ro := stdsdk.RequestOptions{
 			Query: stdsdk.Query{
-				"prefix": "prefix",
+				"prefix": "path",
 			},
 		}
-		p.On("ObjectList", "app1", "prefix").Return(o1, nil)
+		p.On("ObjectList", "app1", "path").Return(o1, nil)
 		err := c.Get("/apps/app1/objects", ro, &o2)
 		require.NoError(t, err)
 		require.Equal(t, o1, o2)
@@ -100,10 +100,10 @@ func TestObjectListError(t *testing.T) {
 		var o1 []string
 		ro := stdsdk.RequestOptions{
 			Query: stdsdk.Query{
-				"prefix": "prefix",
+				"prefix": "path",
 			},
 		}
-		p.On("ObjectList", "app1", "prefix").Return(nil, fmt.Errorf("err1"))
+		p.On("ObjectList", "app1", "path").Return(nil, fmt.Errorf("err1"))
 		err := c.Get("/apps/app1/objects", ro, &o1)
 		require.EqualError(t, err, "err1")
 		require.Nil(t, o1)
@@ -123,12 +123,12 @@ func TestObjectStore(t *testing.T) {
 				"Public": "true",
 			},
 		}
-		p.On("ObjectStore", "app1", "object1.ext", mock.Anything, opts).Return(&o1, nil).Run(func(args mock.Arguments) {
+		p.On("ObjectStore", "app1", "path/object1.ext", mock.Anything, opts).Return(&o1, nil).Run(func(args mock.Arguments) {
 			data, err := ioutil.ReadAll(args.Get(2).(io.Reader))
 			require.NoError(t, err)
 			require.Equal(t, "data", string(data))
 		})
-		err := c.Post("/apps/app1/objects/object1.ext", ro, &o2)
+		err := c.Post("/apps/app1/objects/path/object1.ext", ro, &o2)
 		require.NoError(t, err)
 		require.Equal(t, o1, o2)
 	})
@@ -137,8 +137,8 @@ func TestObjectStore(t *testing.T) {
 func TestObjectStoreError(t *testing.T) {
 	testServer(t, func(c *stdsdk.Client, p *structs.MockProvider) {
 		var o1 *structs.Object
-		p.On("ObjectStore", "app1", "object1.ext", mock.Anything, structs.ObjectStoreOptions{}).Return(nil, fmt.Errorf("err1"))
-		err := c.Post("/apps/app1/objects/object1.ext", stdsdk.RequestOptions{}, &o1)
+		p.On("ObjectStore", "app1", "path/object1.ext", mock.Anything, structs.ObjectStoreOptions{}).Return(nil, fmt.Errorf("err1"))
+		err := c.Post("/apps/app1/objects/path/object1.ext", stdsdk.RequestOptions{}, &o1)
 		require.EqualError(t, err, "err1")
 		require.Nil(t, o1)
 	})
