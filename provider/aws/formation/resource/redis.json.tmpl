@@ -1,7 +1,7 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
   "Conditions": {
-    "IsEncrypted": { "Fn::Equals": [{ "Ref": "Encrypted" }, "true"] }
+    "Encrypted": { "Fn::Equals": [{ "Ref": "Encrypted" }, "true"] }
   },
   "Parameters": {
     "Class": {
@@ -82,7 +82,7 @@
         "AtRestEncryptionEnabled": { "Ref": "Encrypted" },
         "AuthToken": {
           "Fn::If": [
-            "IsEncrypted",
+            "Encrypted",
             { "Ref": "Password" },
             { "Ref": "AWS::NoValue" }
           ]
