@@ -40,10 +40,13 @@
     "Url": {
       "Value": {
         "Fn::Sub": [
-          "${Protocol}://:${Password}@${ReplicationGroup.PrimaryEndPoint.Address}:${ReplicationGroup.PrimaryEndPoint.Port}/0",
+          "${Protocol}${Auth}${ReplicationGroup.PrimaryEndPoint.Address}:${ReplicationGroup.PrimaryEndPoint.Port}/0",
           {
             "Protocol": {
-              "Fn::If": ["IsEncrypted", "rediss", "redis"]
+              "Fn::If": ["Encrypted", "rediss://", "redis://"]
+            },
+            "Auth": {
+              "Fn::If": ["Encrypted", { "Fn::Sub": ":${Password}@" }, ""]
             }
           }
         ]
