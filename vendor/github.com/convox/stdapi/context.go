@@ -100,7 +100,7 @@ func (c *Context) Read(data []byte) (int, error) {
 		return c.Body().Read(data)
 	}
 
-	_, r, err := c.ws.NextReader()
+	t, r, err := c.ws.NextReader()
 	if websocket.IsCloseError(err, websocket.CloseNormalClosure, websocket.CloseGoingAway) {
 		return 0, io.EOF
 	}
@@ -108,7 +108,14 @@ func (c *Context) Read(data []byte) (int, error) {
 		return 0, err
 	}
 
-	return r.Read(data)
+	switch t {
+	case websocket.TextMessage:
+		return r.Read(data)
+	case websocket.BinaryMessage:
+		return 0, io.EOF
+	default:
+		return 0, fmt.Errorf("unknown message type: %d\n", t)
+	}
 }
 
 func (c *Context) Redirect(code int, target string) error {

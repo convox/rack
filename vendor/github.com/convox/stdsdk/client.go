@@ -197,7 +197,6 @@ func (c *Client) Websocket(path string, opts RequestOptions) (io.ReadCloser, err
 
 	ws, _, err := websocket.DefaultDialer.Dial(u.String(), h)
 	if err != nil {
-		fmt.Printf("err = %+v\n", err)
 		return nil, err
 	}
 
@@ -227,6 +226,7 @@ func websocketIn(ws *websocket.Conn, r io.Reader) {
 		n, err := r.Read(buf)
 		switch err {
 		case io.EOF:
+			ws.WriteMessage(websocket.BinaryMessage, []byte{})
 			// ws.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseGoingAway, ""))
 			return
 		case nil:
@@ -250,6 +250,8 @@ func websocketOut(w io.WriteCloser, ws *websocket.Conn) {
 			switch code {
 			case websocket.TextMessage:
 				w.Write(data)
+			case websocket.BinaryMessage:
+				w.Close()
 			}
 		default:
 			if !websocket.IsCloseError(err, websocket.CloseNormalClosure, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
