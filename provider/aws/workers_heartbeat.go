@@ -5,7 +5,7 @@ import (
 
 	"github.com/cloudflare/cfssl/log"
 	"github.com/convox/logger"
-	"github.com/convox/rack/helpers"
+	"github.com/convox/rack/pkg/helpers"
 )
 
 func (p *Provider) workerHeartbeat() {

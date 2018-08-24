@@ -17,7 +17,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/convox/rack/crypt"
+	"github.com/convox/rack/pkg/crypt"
 )
 
 func main() {

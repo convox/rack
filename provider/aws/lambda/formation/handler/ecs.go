@@ -15,8 +15,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/convox/rack/crypt"
-	"github.com/convox/rack/structs"
+	"github.com/convox/rack/pkg/crypt"
+	"github.com/convox/rack/pkg/structs"
 )
 
 // Parses as [host]:[container]/[protocol?], where [protocol] is optional

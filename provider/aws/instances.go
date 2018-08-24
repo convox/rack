@@ -10,7 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/aws/aws-sdk-go/service/ec2"
-	"github.com/convox/rack/structs"
+	"github.com/convox/rack/pkg/structs"
 	"golang.org/x/crypto/ssh"
 )
 

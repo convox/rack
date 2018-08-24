@@ -8,8 +8,8 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/convox/rack/helpers"
-	"github.com/convox/rack/structs"
+	"github.com/convox/rack/pkg/helpers"
+	"github.com/convox/rack/pkg/structs"
 	"github.com/kr/pty"
 	"github.com/pkg/errors"
 )

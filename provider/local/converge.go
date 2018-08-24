@@ -8,10 +8,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/convox/rack/helpers"
-	"github.com/convox/rack/manifest"
-	"github.com/convox/rack/options"
-	"github.com/convox/rack/structs"
+	"github.com/convox/rack/pkg/helpers"
+	"github.com/convox/rack/pkg/manifest"
+	"github.com/convox/rack/pkg/options"
+	"github.com/convox/rack/pkg/structs"
 	"github.com/pkg/errors"
 )
 
