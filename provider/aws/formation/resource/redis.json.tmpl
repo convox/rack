@@ -1,5 +1,8 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
+  "Conditions": {
+    "Encrypted": { "Fn::Equals": [{ "Ref": "Encrypted" }, "true"] }
+  },
   "Parameters": {
     "Class": {
       "Type": "String",
@@ -34,7 +37,21 @@
     }
   },
   "Outputs": {
-    "Url": { "Value": { "Fn::Sub": "redis://:${Password}@${ReplicationGroup.PrimaryEndPoint.Address}:${ReplicationGroup.PrimaryEndPoint.Port}/0" } }
+    "Url": {
+      "Value": {
+        "Fn::Sub": [
+          "${Protocol}${Auth}${ReplicationGroup.PrimaryEndPoint.Address}:${ReplicationGroup.PrimaryEndPoint.Port}/0",
+          {
+            "Protocol": {
+              "Fn::If": ["Encrypted", "rediss://", "redis://"]
+            },
+            "Auth": {
+              "Fn::If": ["Encrypted", { "Fn::Sub": ":${Password}@" }, ""]
+            }
+          }
+        ]
+      }
+    }
   },
   "Resources": {
     "SecurityGroup": {
@@ -61,7 +78,13 @@
       "Type": "AWS::ElastiCache::ReplicationGroup",
       "Properties": {
         "AtRestEncryptionEnabled": { "Ref": "Encrypted" },
-        "AuthToken": { "Ref": "Password" },
+        "AuthToken": {
+          "Fn::If": [
+            "Encrypted",
+            { "Ref": "Password" },
+            { "Ref": "AWS::NoValue" }
+          ]
+        },
         "AutomaticFailoverEnabled": { "Ref": "Durable" },
         "AutoMinorVersionUpgrade": "true",
         "CacheNodeType": { "Ref": "Class" },
@@ -72,7 +95,7 @@
         "Port": "6379",
         "ReplicationGroupDescription": { "Ref": "AWS::StackName" },
         "SecurityGroupIds": [ { "Ref": "SecurityGroup" } ],
-        "TransitEncryptionEnabled": "true"
+        "TransitEncryptionEnabled": { "Ref": "Encrypted" }
       }
     }
   }
