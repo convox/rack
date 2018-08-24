@@ -100,6 +100,12 @@ func unmarshalValue(r *http.Request, u reflect.Value, v string) error {
 			return err
 		}
 		u.Set(reflect.ValueOf(&d))
+	case *time.Time:
+		tt, err := time.Parse("20060102.150405.000000000", v)
+		if err != nil {
+			return err
+		}
+		u.Set(reflect.ValueOf(&tt))
 	case map[string]string:
 		uv, err := url.ParseQuery(v)
 		if err != nil {
