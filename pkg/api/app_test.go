@@ -13,6 +13,18 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+var fxApp = structs.App{
+	Generation: "generation",
+	Name:       "name",
+	Release:    "release1",
+	Sleep:      true,
+	Status:     "created",
+	Parameters: map[string]string{
+		"p1": "v1",
+		"p2": "v2",
+	},
+}
+
 func TestAppCancel(t *testing.T) {
 	testServer(t, func(c *stdsdk.Client, p *structs.MockProvider) {
 		p.On("AppGet", "app1").Return(&structs.App{Status: "updating"}, nil)
@@ -49,7 +61,7 @@ func TestAppCancelValidateError(t *testing.T) {
 
 func TestAppCreate(t *testing.T) {
 	testServer(t, func(c *stdsdk.Client, p *structs.MockProvider) {
-		a1 := structs.App{Name: "app1"}
+		a1 := fxApp
 		a2 := structs.App{}
 		opts := structs.AppCreateOptions{
 			Generation: options.String("2"),
@@ -86,7 +98,7 @@ func TestAppCreateError(t *testing.T) {
 
 func TestAppCreateGeneration1(t *testing.T) {
 	testServer(t, func(c *stdsdk.Client, p *structs.MockProvider) {
-		a1 := structs.App{Name: "app1"}
+		a1 := fxApp
 		a2 := structs.App{}
 		opts := structs.AppCreateOptions{
 			Generation: options.String("1"),
@@ -122,7 +134,7 @@ func TestAppDeleteError(t *testing.T) {
 
 func TestAppGet(t *testing.T) {
 	testServer(t, func(c *stdsdk.Client, p *structs.MockProvider) {
-		a1 := structs.App{Name: "app1"}
+		a1 := fxApp
 		a2 := structs.App{}
 		p.On("AppGet", "app1").Return(&a1, nil)
 		err := c.Get("/apps/app1", stdsdk.RequestOptions{}, &a2)
@@ -143,7 +155,7 @@ func TestAppGetError(t *testing.T) {
 
 func TestAppList(t *testing.T) {
 	testServer(t, func(c *stdsdk.Client, p *structs.MockProvider) {
-		a1 := structs.Apps{structs.App{Name: "app1"}, {Name: "app2"}}
+		a1 := structs.Apps{fxApp, fxApp}
 		a2 := structs.Apps{}
 		p.On("AppList").Return(a1, nil)
 		err := c.Get("/apps", stdsdk.RequestOptions{}, &a2)
