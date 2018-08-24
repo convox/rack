@@ -1,3 +1,4 @@
+{{ if .Services }}
 apiVersion: extensions/v1beta1
 kind: Ingress
 metadata:
@@ -6,9 +7,7 @@ metadata:
   annotations:
     alb.ingress.kubernetes.io/scheme: internet-facing
     {{ range .Services }}
-    {{ if .Port.Port }}
     convox.ingress.service.{{.Name}}.{{.Port.Port}}.protocol: {{.Port.Scheme}}
-    {{ end }}
     {{ end }}
   labels:
     system: convox
@@ -19,13 +18,10 @@ spec:
   tls:
   - hosts:
     {{ range .Services }}
-    {{ if .Port }}
     - {{ host $.App.Name .Name }}
-    {{ end }}
     {{ end }}
   rules:
     {{ range .Services }}
-    {{ if .Port.Port }}
     - host: {{ host $.App.Name .Name }}
       http:
         paths:
@@ -33,4 +29,4 @@ spec:
             serviceName: {{.Name}}
             servicePort: {{.Port.Port}}
     {{ end }}
-    {{ end }}
+{{ end }}
