@@ -484,7 +484,26 @@ func (s *Server) CertificateList(c *stdapi.Context) error {
 }
 
 func (s *Server) EventSend(c *stdapi.Context) error {
-	return stdapi.Errorf(404, "not available via api")
+	if err := s.hook("EventSendValidate", c); err != nil {
+		return err
+	}
+
+	action := c.Value("action")
+
+	var opts structs.EventSendOptions
+	if err := stdapi.UnmarshalOptions(c.Request(), &opts); err != nil {
+		return err
+	}
+
+	err := s.provider(c).EventSend(action, opts)
+	if err != nil {
+		if ae, ok := s.provider(c).(ApiErrorer); ok {
+			return ae.ApiError(err)
+		}
+		return err
+	}
+
+	return c.RenderOK()
 }
 
 func (s *Server) FilesDelete(c *stdapi.Context) error {

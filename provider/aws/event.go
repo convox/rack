@@ -32,7 +32,7 @@ func (p *Provider) EventSend(action string, opts structs.EventSendOptions) error
 	e := event{
 		Action:    action,
 		Data:      opts.Data,
-		Status:    coalesces(opts.Status, "success"),
+		Status:    cs(opts.Status, "success"),
 		Timestamp: time.Now().UTC(),
 	}
 
@@ -43,9 +43,9 @@ func (p *Provider) EventSend(action string, opts structs.EventSendOptions) error
 		}
 	}
 
-	if opts.Error != "" {
+	if opts.Error != nil {
 		e.Status = "error"
-		e.Data["message"] = opts.Error
+		e.Data["message"] = *opts.Error
 	}
 
 	e.Data["rack"] = p.Rack

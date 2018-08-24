@@ -294,7 +294,17 @@ func (c *Client) CertificateList() (structs.Certificates, error) {
 }
 
 func (c *Client) EventSend(action string, opts structs.EventSendOptions) error {
-	err := fmt.Errorf("not available via api")
+	var err error
+
+	ro, err := stdsdk.MarshalOptions(opts)
+	if err != nil {
+		return err
+	}
+
+	ro.Params["action"] = action
+
+	err = c.Post(fmt.Sprintf("/events"), ro, nil)
+
 	return err
 }
 

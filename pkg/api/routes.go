@@ -23,7 +23,7 @@ func (s *Server) setupRoutes(r stdapi.Router) {
 	r.Route("DELETE", "/certificates/{id}", s.CertificateDelete)
 	r.Route("POST", "/certificates/generate", s.CertificateGenerate)
 	r.Route("GET", "/certificates", s.CertificateList)
-	r.Route("", "", s.EventSend)
+	r.Route("POST", "/events", s.EventSend)
 	r.Route("DELETE", "/apps/{app}/processes/{pid}/files", s.FilesDelete)
 	r.Route("POST", "/apps/{app}/processes/{pid}/files", s.FilesUpload)
 	r.Route("", "", s.Initialize)
