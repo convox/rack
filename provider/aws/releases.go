@@ -453,7 +453,7 @@ func (p *Provider) releasePromoteGeneration1(a *structs.App, r *structs.Release)
 
 	go p.waitForPromotion(r)
 
-	return err
+	return nil
 }
 
 // ReleaseSave saves a Release
