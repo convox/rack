@@ -16,9 +16,23 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+var fxBuild = structs.Build{
+	Id:          "build1",
+	App:         "app1",
+	Description: "description",
+	Logs:        "logs",
+	Manifest:    "manifest",
+	Process:     "process",
+	Release:     "release1",
+	Reason:      "reason",
+	Status:      "status",
+	Started:     time.Now().UTC(),
+	Ended:       time.Now().UTC(),
+}
+
 func TestBuildCreate(t *testing.T) {
 	testServer(t, func(c *stdsdk.Client, p *structs.MockProvider) {
-		b1 := structs.Build{Id: "build1"}
+		b1 := fxBuild
 		b2 := structs.Build{}
 		opts := structs.BuildCreateOptions{
 			Description: options.String("description"),
@@ -40,8 +54,8 @@ func TestBuildCreate(t *testing.T) {
 
 func TestBuildCreateNoCache(t *testing.T) {
 	testServer(t, func(c *stdsdk.Client, p *structs.MockProvider) {
-		b1 := structs.Build{Id: "build1"}
-		b2 := structs.Build{}
+		b1 := fxBuild
+		var b2 structs.Build
 		opts := structs.BuildCreateOptions{
 			Description: options.String("description"),
 			Manifest:    options.String("manifest"),
@@ -97,7 +111,7 @@ func TestBuildExportError(t *testing.T) {
 
 func TestBuildGet(t *testing.T) {
 	testServer(t, func(c *stdsdk.Client, p *structs.MockProvider) {
-		b1 := structs.Build{Id: "build1"}
+		b1 := fxBuild
 		b2 := structs.Build{}
 		p.On("BuildGet", "app1", "build1").Return(&b1, nil)
 		err := c.Get("/apps/app1/builds/build1", stdsdk.RequestOptions{}, &b2)
@@ -118,17 +132,17 @@ func TestBuildGetError(t *testing.T) {
 
 func TestBuildImport(t *testing.T) {
 	testServer(t, func(c *stdsdk.Client, p *structs.MockProvider) {
-		b1 := &structs.Build{Id: "build1"}
-		b2 := &structs.Build{}
+		b1 := fxBuild
+		b2 := structs.Build{}
 		ro := stdsdk.RequestOptions{
 			Body: strings.NewReader("data"),
 		}
-		p.On("BuildImport", "app1", mock.Anything).Return(b1, nil).Run(func(args mock.Arguments) {
+		p.On("BuildImport", "app1", mock.Anything).Return(&b1, nil).Run(func(args mock.Arguments) {
 			data, err := ioutil.ReadAll(args.Get(1).(io.Reader))
 			require.NoError(t, err)
 			require.Equal(t, "data", string(data))
 		})
-		err := c.Post("/apps/app1/builds/import", ro, b2)
+		err := c.Post("/apps/app1/builds/import", ro, &b2)
 		require.NoError(t, err)
 		require.Equal(t, b1, b2)
 	})
@@ -173,7 +187,7 @@ func TestBuildLogsError(t *testing.T) {
 
 func TestBuildList(t *testing.T) {
 	testServer(t, func(c *stdsdk.Client, p *structs.MockProvider) {
-		b1 := structs.Builds{structs.Build{Id: "build1"}, {Id: "build2"}}
+		b1 := structs.Builds{fxBuild, fxBuild}
 		b2 := structs.Builds{}
 		opts := structs.BuildListOptions{
 			Limit: options.Int(10),
@@ -202,8 +216,8 @@ func TestBuildListError(t *testing.T) {
 
 func TestBuildUpdate(t *testing.T) {
 	testServer(t, func(c *stdsdk.Client, p *structs.MockProvider) {
-		b1 := &structs.Build{Id: "build1"}
-		b2 := &structs.Build{}
+		b1 := fxBuild
+		b2 := structs.Build{}
 		opts := structs.BuildUpdateOptions{
 			Ended:    options.Time(time.Date(2018, 1, 1, 0, 0, 0, 0, time.UTC)),
 			Logs:     options.String("logs"),
@@ -222,8 +236,8 @@ func TestBuildUpdate(t *testing.T) {
 				"status":   "status",
 			},
 		}
-		p.On("BuildUpdate", "app1", "build1", opts).Return(b1, nil)
-		err := c.Put("/apps/app1/builds/build1", ro, b2)
+		p.On("BuildUpdate", "app1", "build1", opts).Return(&b1, nil)
+		err := c.Put("/apps/app1/builds/build1", ro, &b2)
 		require.NoError(t, err)
 		require.Equal(t, b1, b2)
 	})
