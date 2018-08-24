@@ -2,8 +2,13 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
 	"io"
+	"io/ioutil"
+	"os"
+	"os/exec"
+	"path/filepath"
 	"sort"
 	"strings"
 
@@ -16,6 +21,16 @@ import (
 func init() {
 	CLI.Command("env", "list env vars", Env, stdcli.CommandOptions{
 		Flags:    []stdcli.Flag{flagRack, flagApp},
+		Validate: stdcli.Args(0),
+	})
+
+	CLI.Command("env edit", "edit env interactively", EnvEdit, stdcli.CommandOptions{
+		Flags: []stdcli.Flag{
+			flagApp,
+			flagRack,
+			flagWait,
+			stdcli.BoolFlag("promote", "p", "promote the release"),
+		},
 		Validate: stdcli.Args(0),
 	})
 
@@ -56,6 +71,99 @@ func Env(c *stdcli.Context) error {
 	}
 
 	c.Writef("%s\n", env.String())
+
+	return nil
+}
+
+func EnvEdit(c *stdcli.Context) error {
+	env, err := helpers.AppEnvironment(provider(c), app(c))
+	if err != nil {
+		return err
+	}
+
+	tmp, err := ioutil.TempDir("", "")
+	if err != nil {
+		return err
+	}
+
+	file := filepath.Join(tmp, fmt.Sprintf("%s.env", app(c)))
+
+	fd, err := os.OpenFile(file, os.O_CREATE|os.O_WRONLY, 0600)
+	if err != nil {
+		return err
+	}
+
+	if _, err := fd.Write([]byte(env.String())); err != nil {
+		return err
+	}
+
+	fd.Close()
+
+	editor := "vi"
+
+	if e := os.Getenv("EDITOR"); e != "" {
+		editor = e
+	}
+
+	cmd := exec.Command(editor, file)
+
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	if err := cmd.Run(); err != nil {
+		return err
+	}
+
+	data, err := ioutil.ReadFile(file)
+	if err != nil {
+		return err
+	}
+
+	nenv := structs.Environment{}
+
+	if err := nenv.Load(bytes.TrimSpace(data)); err != nil {
+		return err
+	}
+
+	nks := []string{}
+
+	for k := range nenv {
+		nks = append(nks, fmt.Sprintf("<info>%s</info>", k))
+	}
+
+	sort.Strings(nks)
+
+	c.Startf(fmt.Sprintf("Setting %s", strings.Join(nks, ", ")))
+
+	var r *structs.Release
+
+	s, err := provider(c).SystemGet()
+	if err != nil {
+		return err
+	}
+
+	if s.Version <= "20180708231844" {
+		r, err = provider(c).EnvironmentSet(app(c), []byte(nenv.String()))
+		if err != nil {
+			return err
+		}
+	} else {
+		r, err = provider(c).ReleaseCreate(app(c), structs.ReleaseCreateOptions{Env: options.String(nenv.String())})
+		if err != nil {
+			return err
+		}
+	}
+
+	c.OK()
+
+	c.Writef("Release: <release>%s</release>\n", r.Id)
+
+	if c.Bool("promote") {
+		if err := releasePromote(c, app(c), r.Id); err != nil {
+			return err
+		}
+	}
 
 	return nil
 }
