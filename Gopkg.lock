@@ -160,11 +160,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:7711c0316585d60468b60c3d78565e68715c8f3f3630ce2b06437648999155f9"
+  digest = "1:edf92426e2297a44e702131268aeda7796a7aec009d8893dda871759f4ad221b"
   name = "github.com/convox/stdapi"
   packages = ["."]
   pruneopts = "NUT"
-  revision = "e7778553b32316c8e65fb836d0f07f8f4373410e"
+  revision = "da0005c1d2b5819669ad05fd2af3f514e121d7bb"
 
 [[projects]]
   branch = "master"
@@ -176,11 +176,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:23240b69af7a07a0482138035ae8dd674a490c9a283fe0efacf269924adbf5e6"
+  digest = "1:95d97d46cb7335f29d9dbf91426035a3d68c65f0576f7fd4f0307284feaca230"
   name = "github.com/convox/stdsdk"
   packages = ["."]
   pruneopts = "NUT"
-  revision = "3029bdf9ab3f224c8b23770b7ae88add331e568d"
+  revision = "f6bb81b058967a82079f1089b020a63a3c1954d1"
 
 [[projects]]
   branch = "master"
