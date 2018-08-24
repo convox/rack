@@ -133,10 +133,12 @@ spec:
     type: RollingUpdate
     rollingUpdate:
       maxSurge: 1
-      maxUnavailable: 1
-  minReadySeconds: 5
+      maxUnavailable: 0
+  minReadySeconds: 10
   template:
     metadata:
+      annotations:
+        scheduler.alpha.kubernetes.io/critical-pod: ""
       labels:
         system: convox
         rack: $rack
@@ -166,7 +168,15 @@ spec:
             path: "/check"
             port: 5443
             scheme: "HTTPS"
-          initialDelaySeconds: 20
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+        readinessProbe:
+          httpGet:
+            path: "/check"
+            port: 5443
+            scheme: "HTTPS"
+          initialDelaySeconds: 5
           periodSeconds: 30
           timeoutSeconds: 3
         ports:
