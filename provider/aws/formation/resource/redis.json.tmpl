@@ -11,12 +11,12 @@
     "Durable": {
       "Type": "String",
       "Default": "false",
-      "AllowedValues": ["true", "false"]
+      "AllowedValues": [ "true", "false" ]
     },
     "Encrypted": {
       "Type": "String",
       "Default": "false",
-      "AllowedValues": ["true", "false"]
+      "AllowedValues": [ "true", "false" ]
     },
     "Nodes": {
       "Type": "Number",
@@ -59,12 +59,7 @@
       "Properties": {
         "GroupDescription": { "Fn::Sub": "${AWS::StackName} security group" },
         "SecurityGroupIngress": [
-          {
-            "IpProtocol": "tcp",
-            "FromPort": "6379",
-            "ToPort": "6379",
-            "CidrIp": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:VpcCidr" } }
-          }
+          { "IpProtocol": "tcp", "FromPort": "6379", "ToPort": "6379", "CidrIp": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:VpcCidr" } } }
         ],
         "VpcId": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Vpc" } }
       }
@@ -99,7 +94,7 @@
         "NumCacheClusters": { "Ref": "Nodes" },
         "Port": "6379",
         "ReplicationGroupDescription": { "Ref": "AWS::StackName" },
-        "SecurityGroupIds": [{ "Ref": "SecurityGroup" }],
+        "SecurityGroupIds": [ { "Ref": "SecurityGroup" } ],
         "TransitEncryptionEnabled": { "Ref": "Encrypted" }
       }
     }
