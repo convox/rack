@@ -870,6 +870,9 @@
     "DeletionPolicy": "Retain",
     "Properties": {
       "AccessControl": "Private",
+      "BucketEncryption": {
+        "ServerSideEncryptionConfiguration": [ { "ServerSideEncryptionByDefault": { "SSEAlgorithm": "aws:kms" } } ]
+      },
       "LoggingConfiguration": { "Fn::If": [ "BlankLogBucket",
         { "Ref": "AWS::NoValue" },
         {
