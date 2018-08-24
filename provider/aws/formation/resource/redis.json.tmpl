@@ -1,5 +1,8 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
+  "Conditions": {
+    "IsEncrypted": { "Fn::Equals": [{ "Ref": "Encrypted" }, "true"] }
+  },
   "Parameters": {
     "Class": {
       "Type": "String",
@@ -8,12 +11,12 @@
     "Durable": {
       "Type": "String",
       "Default": "false",
-      "AllowedValues": [ "true", "false" ]
+      "AllowedValues": ["true", "false"]
     },
     "Encrypted": {
       "Type": "String",
       "Default": "false",
-      "AllowedValues": [ "true", "false" ]
+      "AllowedValues": ["true", "false"]
     },
     "Nodes": {
       "Type": "Number",
@@ -34,7 +37,18 @@
     }
   },
   "Outputs": {
-    "Url": { "Value": { "Fn::Sub": "redis://:${Password}@${ReplicationGroup.PrimaryEndPoint.Address}:${ReplicationGroup.PrimaryEndPoint.Port}/0" } }
+    "Url": {
+      "Value": {
+        "Fn::Sub": [
+          "${Protocol}://:${Password}@${ReplicationGroup.PrimaryEndPoint.Address}:${ReplicationGroup.PrimaryEndPoint.Port}/0",
+          {
+            "Protocol": {
+              "Fn::If": ["IsEncrypted", "rediss", "redis"]
+            }
+          }
+        ]
+      }
+    }
   },
   "Resources": {
     "SecurityGroup": {
@@ -42,7 +56,12 @@
       "Properties": {
         "GroupDescription": { "Fn::Sub": "${AWS::StackName} security group" },
         "SecurityGroupIngress": [
-          { "IpProtocol": "tcp", "FromPort": "6379", "ToPort": "6379", "CidrIp": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:VpcCidr" } } }
+          {
+            "IpProtocol": "tcp",
+            "FromPort": "6379",
+            "ToPort": "6379",
+            "CidrIp": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:VpcCidr" } }
+          }
         ],
         "VpcId": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Vpc" } }
       }
@@ -61,7 +80,13 @@
       "Type": "AWS::ElastiCache::ReplicationGroup",
       "Properties": {
         "AtRestEncryptionEnabled": { "Ref": "Encrypted" },
-        "AuthToken": { "Ref": "Password" },
+        "AuthToken": {
+          "Fn::If": [
+            "IsEncrypted",
+            { "Ref": "Password" },
+            { "Ref": "AWS::NoValue" }
+          ]
+        },
         "AutomaticFailoverEnabled": { "Ref": "Durable" },
         "AutoMinorVersionUpgrade": "true",
         "CacheNodeType": { "Ref": "Class" },
@@ -71,8 +96,8 @@
         "NumCacheClusters": { "Ref": "Nodes" },
         "Port": "6379",
         "ReplicationGroupDescription": { "Ref": "AWS::StackName" },
-        "SecurityGroupIds": [ { "Ref": "SecurityGroup" } ],
-        "TransitEncryptionEnabled": "true"
+        "SecurityGroupIds": [{ "Ref": "SecurityGroup" }],
+        "TransitEncryptionEnabled": { "Ref": "Encrypted" }
       }
     }
   }
