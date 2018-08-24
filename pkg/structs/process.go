@@ -35,12 +35,12 @@ type ProcessListOptions struct {
 }
 
 type ProcessRunOptions struct {
-	Command     *string `header:"Command"`
-	Environment map[string]string
-	Height      *int `header:"Height"`
-	Memory      *int64
-	Release     *string `flag:"release" header:"Release"`
-	Width       *int    `header:"Width"`
+	Command     *string           `header:"Command"`
+	Environment map[string]string `header:"Environment"`
+	Height      *int              `header:"Height"`
+	Memory      *int              `header:"Memory"`
+	Release     *string           `flag:"release" header:"Release"`
+	Width       *int              `header:"Width"`
 }
 
 func (p *Process) sortKey() string {

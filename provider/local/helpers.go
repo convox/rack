@@ -20,7 +20,7 @@ func coalescei(ints ...int) int {
 	return 0
 }
 
-func ci(i *int64, def int64) int64 {
+func ci(i *int, def int) int {
 	if i != nil {
 		return *i
 	}
