@@ -532,18 +532,6 @@ func (c *Client) ProcessStop(app string, pid string) error {
 	return err
 }
 
-func (c *Client) ProcessWait(app string, pid string) (int, error) {
-	var err error
-
-	ro := stdsdk.RequestOptions{Headers: stdsdk.Headers{}, Params: stdsdk.Params{}}
-
-	var v int
-
-	err = c.Get(fmt.Sprintf("/apps/%s/processes/%s/wait", app, pid), ro, &v)
-
-	return v, err
-}
-
 func (c *Client) Proxy(host string, port int, rw io.ReadWriter) error {
 	var err error
 

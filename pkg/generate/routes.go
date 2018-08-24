@@ -39,7 +39,6 @@ var routes = map[string]string{
 	"ProcessList":         "GET /apps/{app}/processes",
 	"ProcessRun":          "POST /apps/{app}/services/{service}/processes",
 	"ProcessStop":         "DELETE /apps/{app}/processes/{pid}",
-	"ProcessWait":         "GET /apps/{app}/processes/{pid}/wait",
 	"Proxy":               "SOCKET /proxy/{host}/{port}",
 	"ReleaseCreate":       "POST /apps/{app}/releases",
 	"ReleaseGet":          "GET /apps/{app}/releases/{id}",
