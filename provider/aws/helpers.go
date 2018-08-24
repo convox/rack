@@ -1060,10 +1060,13 @@ func (p *Provider) updateStack(name string, template []byte, changes map[string]
 	}
 
 	if template != nil {
-		// var data []byte
-		// var err error
+		key := ""
 
-		ou, err := p.ObjectStore("", "", bytes.NewReader(template), structs.ObjectStoreOptions{})
+		if p.IsTest() {
+			key = "test-key"
+		}
+
+		ou, err := p.ObjectStore("", key, bytes.NewReader(template), structs.ObjectStoreOptions{})
 		if err != nil {
 			return err
 		}
@@ -1074,42 +1077,6 @@ func (p *Provider) updateStack(name string, template []byte, changes map[string]
 		}
 
 		req.TemplateURL = aws.String(tu)
-		// if strings.HasPrefix(template, "object://") {
-		//   u, err := url.Parse(template)
-		//   if err != nil {
-		//     return err
-		//   }
-
-		//   r, err := p.ObjectFetch(u.Host, u.Path)
-		//   if err != nil {
-		//     return err
-		//   }
-
-		//   data, err = ioutil.ReadAll(r)
-		//   if err != nil {
-		//     return err
-		//   }
-
-		//   ru, err := p.objectURL(template)
-		//   if err != nil {
-		//     return err
-		//   }
-
-		//   req.TemplateURL = aws.String(ru)
-		// } else {
-		//   res, err := http.Get(template)
-		//   if err != nil {
-		//     return err
-		//   }
-		//   defer res.Body.Close()
-
-		//   data, err = ioutil.ReadAll(res.Body)
-		//   if err != nil {
-		//     return err
-		//   }
-
-		//   req.TemplateURL = aws.String(template)
-		// }
 
 		fp, err := formationParameters(template)
 		if err != nil {
