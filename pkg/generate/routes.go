@@ -22,7 +22,7 @@ var routes = map[string]string{
 	"CertificateDelete":   "DELETE /certificates/{id}",
 	"CertificateGenerate": "POST /certificates/generate",
 	"CertificateList":     "GET /certificates",
-	"EventSend":           "",
+	"EventSend":           "POST /events",
 	"FilesDelete":         "DELETE /apps/{app}/processes/{pid}/files",
 	"FilesUpload":         "POST /apps/{app}/processes/{pid}/files",
 	"InstanceKeyroll":     "POST /instances/keyroll",

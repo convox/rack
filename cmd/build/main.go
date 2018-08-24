@@ -18,8 +18,8 @@ import (
 	"github.com/convox/rack/pkg/manifest"
 	"github.com/convox/rack/pkg/manifest1"
 	"github.com/convox/rack/pkg/options"
-	"github.com/convox/rack/sdk"
 	"github.com/convox/rack/pkg/structs"
+	"github.com/convox/rack/sdk"
 )
 
 var (
@@ -354,7 +354,7 @@ func success() error {
 func fail(err error) {
 	log(fmt.Sprintf("ERROR: %s", err))
 
-	rack.EventSend("build:create", structs.EventSendOptions{Data: map[string]string{"app": flagApp, "id": flagID, "release_id": currentBuild.Release}, Error: err.Error()})
+	rack.EventSend("build:create", structs.EventSendOptions{Data: map[string]string{"app": flagApp, "id": flagID, "release_id": currentBuild.Release}, Error: options.String(err.Error())})
 
 	logs, _ := rack.ObjectStore(flagApp, fmt.Sprintf("build/%s/logs", currentBuild.Id), bytes.NewReader([]byte(currentLogs)), structs.ObjectStoreOptions{})
 

@@ -9,6 +9,6 @@ package structs
 
 type EventSendOptions struct {
 	Data   map[string]string `param:"data"`
-	Error  string            `params:"error"`
-	Status string            `params:"status"`
+	Error  *string           `param:"error"`
+	Status *string           `param:"status"`
 }
