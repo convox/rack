@@ -222,7 +222,7 @@ func (p *Provider) AppUpdate(app string, opts structs.AppUpdateOptions) error {
 		return fmt.Errorf("sleeping not yet supported on aws racks")
 	}
 
-	return p.updateStack(p.rackStack(app), "", opts.Parameters, map[string]string{})
+	return p.updateStack(p.rackStack(app), nil, opts.Parameters, map[string]string{})
 }
 
 func (p *Provider) appFromStack(stack *cloudformation.Stack) (*structs.App, error) {

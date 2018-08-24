@@ -51,7 +51,7 @@ func (p *Provider) certificateApplyGeneration1(a *structs.App, service string, p
 		}
 	}
 
-	return p.updateStack(p.rackStack(a.Name), "", params, map[string]string{})
+	return p.updateStack(p.rackStack(a.Name), nil, params, map[string]string{})
 }
 
 func (p *Provider) CertificateCreate(pub, key string, opts structs.CertificateCreateOptions) (*structs.Certificate, error) {
