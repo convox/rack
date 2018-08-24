@@ -461,7 +461,6 @@ func (p *Provider) SystemUninstall(name string, opts structs.SystemUninstallOpti
 func (p *Provider) SystemUpdate(opts structs.SystemUpdateOptions) error {
 	changes := map[string]string{}
 	params := opts.Parameters
-	template := ""
 
 	if params == nil {
 		params = map[string]string{}
@@ -477,21 +476,30 @@ func (p *Provider) SystemUpdate(opts structs.SystemUpdateOptions) error {
 		changes["type"] = *opts.Type
 	}
 
+	var template []byte
+
 	if opts.Version != nil {
 		if *opts.Version == "dev" {
-			fd, err := os.Open("provider/aws/formation/rack.json")
+			data, err := ioutil.ReadFile("provider/aws/formation/rack.json")
 			if err != nil {
 				return err
 			}
 
-			o, err := p.ObjectStore("", "", fd, structs.ObjectStoreOptions{})
-			if err != nil {
-				return err
-			}
-
-			template = o.Url
+			template = data
 		} else {
-			template = fmt.Sprintf("https://convox.s3.amazonaws.com/release/%s/rack.json", *opts.Version)
+			res, err := http.Get(fmt.Sprintf("https://convox.s3.amazonaws.com/release/%s/rack.json", *opts.Version))
+			if err != nil {
+				return err
+			}
+			defer res.Body.Close()
+
+			data, err := ioutil.ReadAll(res.Body)
+			if err != nil {
+				return err
+			}
+
+			template = data
+
 			params["Version"] = *opts.Version
 		}
 
