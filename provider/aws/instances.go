@@ -28,7 +28,7 @@ func (p *Provider) InstanceKeyroll() error {
 		return err
 	}
 
-	if err := p.updateStack(p.Rack, "", map[string]string{"Key": key}, map[string]string{}); err != nil {
+	if err := p.updateStack(p.Rack, nil, map[string]string{"Key": key}, map[string]string{}); err != nil {
 		return err
 	}
 
