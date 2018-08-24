@@ -14,7 +14,6 @@ import (
 	"io/ioutil"
 	"math/big"
 	"math/rand"
-	"net/http"
 	"net/url"
 	"os"
 	"regexp"
@@ -1038,7 +1037,7 @@ func (p *Provider) taskDefinitionRelease(arn string) (string, error) {
 // updateStack updates a stack
 //   template is url to a template or empty string to reuse previous
 //   changes is a list of parameter changes to make (does not need to include every param)
-func (p *Provider) updateStack(name string, template string, changes map[string]string, tags map[string]string) error {
+func (p *Provider) updateStack(name string, template []byte, changes map[string]string, tags map[string]string) error {
 	cache.Clear("describeStacks", nil)
 	cache.Clear("describeStacks", name)
 
@@ -1060,48 +1059,59 @@ func (p *Provider) updateStack(name string, template string, changes map[string]
 		pexisting[*p.ParameterKey] = true
 	}
 
-	if template != "" {
-		var data []byte
-		var err error
+	if template != nil {
+		// var data []byte
+		// var err error
 
-		if strings.HasPrefix(template, "object://") {
-			u, err := url.Parse(template)
-			if err != nil {
-				return err
-			}
-
-			r, err := p.ObjectFetch(u.Host, u.Path)
-			if err != nil {
-				return err
-			}
-
-			data, err = ioutil.ReadAll(r)
-			if err != nil {
-				return err
-			}
-
-			ru, err := p.objectURL(template)
-			if err != nil {
-				return err
-			}
-
-			req.TemplateURL = aws.String(ru)
-		} else {
-			res, err := http.Get(template)
-			if err != nil {
-				return err
-			}
-			defer res.Body.Close()
-
-			data, err = ioutil.ReadAll(res.Body)
-			if err != nil {
-				return err
-			}
-
-			req.TemplateURL = aws.String(template)
+		ou, err := p.ObjectStore("", "", bytes.NewReader(template), structs.ObjectStoreOptions{})
+		if err != nil {
+			return err
 		}
 
-		fp, err := formationParameters(data)
+		tu, err := p.objectURL(ou.Url)
+		if err != nil {
+			return err
+		}
+
+		req.TemplateURL = aws.String(tu)
+		// if strings.HasPrefix(template, "object://") {
+		//   u, err := url.Parse(template)
+		//   if err != nil {
+		//     return err
+		//   }
+
+		//   r, err := p.ObjectFetch(u.Host, u.Path)
+		//   if err != nil {
+		//     return err
+		//   }
+
+		//   data, err = ioutil.ReadAll(r)
+		//   if err != nil {
+		//     return err
+		//   }
+
+		//   ru, err := p.objectURL(template)
+		//   if err != nil {
+		//     return err
+		//   }
+
+		//   req.TemplateURL = aws.String(ru)
+		// } else {
+		//   res, err := http.Get(template)
+		//   if err != nil {
+		//     return err
+		//   }
+		//   defer res.Body.Close()
+
+		//   data, err = ioutil.ReadAll(res.Body)
+		//   if err != nil {
+		//     return err
+		//   }
+
+		//   req.TemplateURL = aws.String(template)
+		// }
+
+		fp, err := formationParameters(template)
 		if err != nil {
 			return err
 		}

@@ -56,7 +56,7 @@ func (p *Provider) scaleAgents() error {
 				continue
 			}
 
-			if err := p.updateStack(p.rackStack(a.Name), "", map[string]string{n: g}, map[string]string{}); err != nil {
+			if err := p.updateStack(p.rackStack(a.Name), nil, map[string]string{n: g}, map[string]string{}); err != nil {
 				log.Error(err)
 				continue
 			}

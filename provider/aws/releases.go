@@ -282,16 +282,6 @@ func (p *Provider) ReleasePromote(app, id string) error {
 		return err
 	}
 
-	ou, err := p.ObjectStore(app, "", bytes.NewReader(data), structs.ObjectStoreOptions{})
-	if err != nil {
-		return err
-	}
-
-	ous, err := p.objectPresignedURL(ou, 15*time.Minute)
-	if err != nil {
-		return err
-	}
-
 	private, err := p.stackParameter(p.Rack, "Private")
 	if err != nil {
 		return err
@@ -306,7 +296,7 @@ func (p *Provider) ReleasePromote(app, id string) error {
 		"Version": p.Version,
 	}
 
-	if err := p.updateStack(p.rackStack(r.App), ous, updates, tags); err != nil {
+	if err := p.updateStack(p.rackStack(r.App), data, updates, tags); err != nil {
 		return err
 	}
 
@@ -457,17 +447,7 @@ func (p *Provider) releasePromoteGeneration1(a *structs.App, r *structs.Release)
 		return err
 	}
 
-	ou, err := p.ObjectStore(a.Name, "", bytes.NewReader(data), structs.ObjectStoreOptions{})
-	if err != nil {
-		return err
-	}
-
-	ous, err := p.objectPresignedURL(ou, 15*time.Minute)
-	if err != nil {
-		return err
-	}
-
-	if err := p.updateStack(p.rackStack(a.Name), ous, params, map[string]string{}); err != nil {
+	if err := p.updateStack(p.rackStack(a.Name), data, params, map[string]string{}); err != nil {
 		return err
 	}
 
