@@ -19,21 +19,16 @@ func TestProxy(t *testing.T) {
 			Body: strings.NewReader("in"),
 		}
 		p.On("Proxy", "host", 5000, mock.Anything).Return(nil).Run(func(args mock.Arguments) {
-			w := args.Get(2).(io.Writer)
-			w.Write([]byte("out"))
-			r := args.Get(2).(io.Reader)
-			data := make([]byte, 2)
-			n, err := r.Read(data)
+			rw := args.Get(2).(io.ReadWriter)
+			rw.Write([]byte("out"))
+			data, err := ioutil.ReadAll(rw)
 			require.NoError(t, err)
-			require.Equal(t, 2, n)
 			require.Equal(t, "in", string(data))
 		})
 		r, err := c.Websocket("/proxy/host/5000", ro)
 		require.NoError(t, err)
-		data := make([]byte, 3)
-		n, err := r.Read(data)
+		data, err := ioutil.ReadAll(r)
 		require.NoError(t, err)
-		require.Equal(t, 3, n)
 		require.Equal(t, "out", string(data))
 	})
 }
