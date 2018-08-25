@@ -160,11 +160,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:7711c0316585d60468b60c3d78565e68715c8f3f3630ce2b06437648999155f9"
+  digest = "1:f7b06ef3e77a63cb9c7f2eae3d402fd2547c074f08b95af95726246639456153"
   name = "github.com/convox/stdapi"
   packages = ["."]
   pruneopts = "NUT"
-  revision = "e7778553b32316c8e65fb836d0f07f8f4373410e"
+  revision = "056b58bedecdf9d4eac92d44f4d3ba489d59d184"
 
 [[projects]]
   branch = "master"
@@ -176,11 +176,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:9fcc41fdb236a4ac2a93396e1f2ef9b5e8385d59e6da8cf8a0923f4a3dbaea99"
+  digest = "1:746cdb234957eddbfe2d13b549077a68321b3c0253c5b20daa19824016f3526c"
   name = "github.com/convox/stdsdk"
   packages = ["."]
   pruneopts = "NUT"
-  revision = "81184f5134763e84477e627d3d02e55483c202d0"
+  revision = "ce51383c9b1d2d127dfb87d85e215f311794d99d"
 
 [[projects]]
   branch = "master"
@@ -501,15 +501,15 @@
   version = "v1.0.1"
 
 [[projects]]
-  branch = "master"
-  digest = "1:1ce967a1d67f6019f2d8e68a594093de90f17c2c478fe97ab1891b9812cee02f"
+  digest = "1:60a46e2410edbf02b419f833372dd1d24d7aa1b916a990a7370e792fada1eadd"
   name = "github.com/stretchr/objx"
   packages = ["."]
   pruneopts = "NUT"
-  revision = "1a9d0bb9f541897e62256577b352fdbc1fb4fd94"
+  revision = "477a77ecc69700c7cdeb1fa9e129548e1c1c393c"
+  version = "v0.1.1"
 
 [[projects]]
-  digest = "1:6a7d91a501bf2f5fec0ce292638c284f6d84be035d00627e32edcd3aeb44bd9b"
+  digest = "1:72cea38d2957d95d18be2287ef9d4b06b89796d2e3070bc7f796bea3a4844381"
   name = "github.com/stretchr/testify"
   packages = [
     "assert",
@@ -517,8 +517,8 @@
     "require",
   ]
   pruneopts = "NUT"
-  revision = "69483b4bd14f5845b5a1e55bca19e954e827f1d0"
-  version = "v1.1.4"
+  revision = "f35b8ab0b5a2cef36673838d662e249dd9c94686"
+  version = "v1.2.2"
 
 [[projects]]
   digest = "1:23e732b621cc44a466904c71c4d81af2db9a07c153e577f6612531e321e174f0"

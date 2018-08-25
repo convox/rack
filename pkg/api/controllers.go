@@ -214,7 +214,7 @@ func (s *Server) BuildExport(c *stdapi.Context) error {
 		return err
 	}
 
-	return c.RenderOK()
+	return nil
 }
 
 func (s *Server) BuildGet(c *stdapi.Context) error {
@@ -484,7 +484,26 @@ func (s *Server) CertificateList(c *stdapi.Context) error {
 }
 
 func (s *Server) EventSend(c *stdapi.Context) error {
-	return stdapi.Errorf(404, "not available via api")
+	if err := s.hook("EventSendValidate", c); err != nil {
+		return err
+	}
+
+	action := c.Value("action")
+
+	var opts structs.EventSendOptions
+	if err := stdapi.UnmarshalOptions(c.Request(), &opts); err != nil {
+		return err
+	}
+
+	err := s.provider(c).EventSend(action, opts)
+	if err != nil {
+		if ae, ok := s.provider(c).(ApiErrorer); ok {
+			return ae.ApiError(err)
+		}
+		return err
+	}
+
+	return c.RenderOK()
 }
 
 func (s *Server) FilesDelete(c *stdapi.Context) error {
@@ -861,29 +880,6 @@ func (s *Server) ProcessStop(c *stdapi.Context) error {
 	return c.RenderOK()
 }
 
-func (s *Server) ProcessWait(c *stdapi.Context) error {
-	if err := s.hook("ProcessWaitValidate", c); err != nil {
-		return err
-	}
-
-	app := c.Var("app")
-	pid := c.Var("pid")
-
-	v, err := s.provider(c).ProcessWait(app, pid)
-	if err != nil {
-		if ae, ok := s.provider(c).(ApiErrorer); ok {
-			return ae.ApiError(err)
-		}
-		return err
-	}
-
-	if vs, ok := interface{}(v).(Sortable); ok {
-		sort.Slice(v, vs.Less)
-	}
-
-	return renderStatusCode(c, v)
-}
-
 func (s *Server) Proxy(c *stdapi.Context) error {
 	if err := s.hook("ProxyValidate", c); err != nil {
 		return err
@@ -905,7 +901,7 @@ func (s *Server) Proxy(c *stdapi.Context) error {
 		return err
 	}
 
-	return c.RenderOK()
+	return nil
 }
 
 func (s *Server) RegistryAdd(c *stdapi.Context) error {

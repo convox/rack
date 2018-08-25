@@ -294,7 +294,17 @@ func (c *Client) CertificateList() (structs.Certificates, error) {
 }
 
 func (c *Client) EventSend(action string, opts structs.EventSendOptions) error {
-	err := fmt.Errorf("not available via api")
+	var err error
+
+	ro, err := stdsdk.MarshalOptions(opts)
+	if err != nil {
+		return err
+	}
+
+	ro.Params["action"] = action
+
+	err = c.Post(fmt.Sprintf("/events"), ro, nil)
+
 	return err
 }
 
@@ -520,18 +530,6 @@ func (c *Client) ProcessStop(app string, pid string) error {
 	err = c.Delete(fmt.Sprintf("/apps/%s/processes/%s", app, pid), ro, nil)
 
 	return err
-}
-
-func (c *Client) ProcessWait(app string, pid string) (int, error) {
-	var err error
-
-	ro := stdsdk.RequestOptions{Headers: stdsdk.Headers{}, Params: stdsdk.Params{}}
-
-	var v int
-
-	err = c.Get(fmt.Sprintf("/apps/%s/processes/%s/wait", app, pid), ro, &v)
-
-	return v, err
 }
 
 func (c *Client) Proxy(host string, port int, rw io.ReadWriter) error {

@@ -52,7 +52,6 @@ type Provider interface {
 	ProcessList(app string, opts ProcessListOptions) (Processes, error)
 	ProcessRun(app, service string, opts ProcessRunOptions) (*Process, error)
 	ProcessStop(app, pid string) error
-	ProcessWait(app, pid string) (int, error)
 
 	Proxy(host string, port int, rw io.ReadWriter) error
 

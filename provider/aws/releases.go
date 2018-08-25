@@ -796,7 +796,7 @@ func (p *Provider) waitForPromotion(r *structs.Release) {
 			}
 
 			if err != nil && err.Error() == "exceeded 120 wait attempts" {
-				p.EventSend("release:promote", structs.EventSendOptions{Data: map[string]string{"app": r.App, "id": r.Id}, Error: "timeout"})
+				p.EventSend("release:promote", structs.EventSendOptions{Data: map[string]string{"app": r.App, "id": r.Id}, Error: options.String("timeout")})
 				fmt.Println(fmt.Errorf("couldn't determine promotion status, timed out"))
 				return
 			}
@@ -805,13 +805,13 @@ func (p *Provider) waitForPromotion(r *structs.Release) {
 				StackName: aws.String(stackName),
 			})
 			if err != nil {
-				p.EventSend("release:promote", structs.EventSendOptions{Data: map[string]string{"app": r.App, "id": r.Id}, Error: "unable to check status"})
+				p.EventSend("release:promote", structs.EventSendOptions{Data: map[string]string{"app": r.App, "id": r.Id}, Error: options.String("unable to check status")})
 				fmt.Println(fmt.Errorf("unable to check stack status: %s", err))
 				return
 			}
 
 			if len(resp.Stacks) < 1 {
-				p.EventSend("release:promote", structs.EventSendOptions{Data: map[string]string{"app": r.App, "id": r.Id}, Error: "app stack not found"})
+				p.EventSend("release:promote", structs.EventSendOptions{Data: map[string]string{"app": r.App, "id": r.Id}, Error: options.String("app stack not found")})
 				fmt.Println(fmt.Errorf("app stack was not found: %s", stackName))
 				return
 			}
@@ -820,7 +820,7 @@ func (p *Provider) waitForPromotion(r *structs.Release) {
 				StackName: aws.String(stackName),
 			})
 			if err != nil {
-				p.EventSend("release:promote", structs.EventSendOptions{Data: map[string]string{"app": r.App, "id": r.Id}, Error: "unable to check stack events"})
+				p.EventSend("release:promote", structs.EventSendOptions{Data: map[string]string{"app": r.App, "id": r.Id}, Error: options.String("unable to check stack events")})
 				fmt.Println(fmt.Errorf("unable to check stack events: %s", err))
 				return
 			}
@@ -846,7 +846,7 @@ func (p *Provider) waitForPromotion(r *structs.Release) {
 				)
 			}
 
-			p.EventSend("release:promote", structs.EventSendOptions{Data: map[string]string{"app": r.App, "id": r.Id}, Error: ee.Error()})
+			p.EventSend("release:promote", structs.EventSendOptions{Data: map[string]string{"app": r.App, "id": r.Id}, Error: options.String(ee.Error())})
 		}
 	}
 }

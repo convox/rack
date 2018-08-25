@@ -175,12 +175,17 @@ func (c *Client) Websocket(path string, opts RequestOptions) (io.ReadCloser, err
 	u = *c.Endpoint
 
 	u.Scheme = "wss"
+
+	if c.Endpoint.Scheme == "http" {
+		u.Scheme = "ws"
+	}
+
 	u.Path += path
 	u.User = nil
 
 	h := c.Headers()
 
-	h.Set("Origin", fmt.Sprintf("https://%s", c.Endpoint.Host))
+	h.Set("Origin", fmt.Sprintf("%s://%s", c.Endpoint.Scheme, c.Endpoint.Host))
 
 	for k, v := range opts.Headers {
 		h.Set(k, v)
@@ -192,7 +197,6 @@ func (c *Client) Websocket(path string, opts RequestOptions) (io.ReadCloser, err
 
 	ws, _, err := websocket.DefaultDialer.Dial(u.String(), h)
 	if err != nil {
-		fmt.Printf("err = %+v\n", err)
 		return nil, err
 	}
 
@@ -222,6 +226,7 @@ func websocketIn(ws *websocket.Conn, r io.Reader) {
 		n, err := r.Read(buf)
 		switch err {
 		case io.EOF:
+			ws.WriteMessage(websocket.BinaryMessage, []byte{})
 			// ws.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseGoingAway, ""))
 			return
 		case nil:
@@ -234,7 +239,7 @@ func websocketIn(ws *websocket.Conn, r io.Reader) {
 }
 
 func websocketOut(w io.WriteCloser, ws *websocket.Conn) {
-	defer w.Close()
+	defer ws.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseGoingAway, ""))
 
 	for {
 		code, data, err := ws.ReadMessage()
@@ -245,6 +250,8 @@ func websocketOut(w io.WriteCloser, ws *websocket.Conn) {
 			switch code {
 			case websocket.TextMessage:
 				w.Write(data)
+			case websocket.BinaryMessage:
+				w.Close()
 			}
 		default:
 			if !websocket.IsCloseError(err, websocket.CloseNormalClosure, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
