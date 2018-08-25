@@ -15,6 +15,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/convox/rack/pkg/options"
 	"github.com/convox/rack/pkg/structs"
 )
 
@@ -117,7 +118,7 @@ func (p *Provider) ResourceCreate(kind string, opts structs.ResourceCreateOption
 
 	_, err = p.cloudformation().CreateStack(req)
 	if err != nil {
-		p.EventSend("resource:create", structs.EventSendOptions{Data: map[string]string{"name": s.Name, "type": s.Type}, Error: err.Error()})
+		p.EventSend("resource:create", structs.EventSendOptions{Data: map[string]string{"name": s.Name, "type": s.Type}, Error: options.String(err.Error())})
 		return nil, err
 	}
 
@@ -153,7 +154,7 @@ func (p *Provider) ResourceDelete(name string) error {
 		StackName: aws.String(p.rackStack(r.Name)),
 	})
 	if err != nil {
-		p.EventSend("resource:delete", structs.EventSendOptions{Data: map[string]string{"name": r.Name, "type": r.Type}, Error: err.Error()})
+		p.EventSend("resource:delete", structs.EventSendOptions{Data: map[string]string{"name": r.Name, "type": r.Type}, Error: options.String(err.Error())})
 		return err
 	}
 

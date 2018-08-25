@@ -225,7 +225,7 @@ type processStartOptions struct {
 	Environment map[string]string
 	Image       string
 	Links       []string
-	Memory      int64
+	Memory      int
 	Name        string
 	Ports       map[string]string
 	Release     string

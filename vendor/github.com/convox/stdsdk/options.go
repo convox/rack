@@ -140,6 +140,8 @@ func marshalValue(f reflect.Value) (string, bool) {
 		return t, true
 	case time.Duration:
 		return t.String(), true
+	case time.Time:
+		return t.Format("20060102.150405.000000000"), true
 	case map[string]string:
 		uv := url.Values{}
 		for k, v := range t {
