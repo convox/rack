@@ -148,8 +148,8 @@ func TestAppGetError(t *testing.T) {
 		var a1 *structs.App
 		p.On("AppGet", "app1").Return(nil, fmt.Errorf("err1"))
 		err := c.Get("/apps/app1", stdsdk.RequestOptions{}, a1)
-		require.Nil(t, a1)
 		require.EqualError(t, err, "err1")
+		require.Nil(t, a1)
 	})
 }
 
