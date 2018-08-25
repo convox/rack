@@ -136,11 +136,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:4d89e95b3eef53acc080c2b3341295ff6c19f479d0cb23b1c9c5978d0499978b"
+  digest = "1:04874d362220e95f0edeaeb1a29370ebebda09a23148c98b8c629d4fec1c1441"
   name = "github.com/convox/changes"
   packages = ["."]
   pruneopts = "NUT"
-  revision = "f949263e05a7c7884e966e4d9c07e676d4cf80c5"
+  revision = "b0d1912cd4576ca7dd29a443fc4f7cffbd7f5b13"
 
 [[projects]]
   branch = "master"
