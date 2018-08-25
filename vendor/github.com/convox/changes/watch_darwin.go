@@ -48,7 +48,7 @@ func startScanner(dir string) {
 	defer C.free(unsafe.Pointer(cpaths))
 
 	path := C.CString(dir)
-	str := C.CFStringCreateWithCString(nil, path, C.kCFStringEncodingUTF8)
+	str := C.CFStringCreateWithCString(C.kCFAllocatorDefault, path, C.kCFStringEncodingUTF8)
 	defer C.free(unsafe.Pointer(path))
 	defer C.free(unsafe.Pointer(str))
 

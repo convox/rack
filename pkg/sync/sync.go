@@ -13,7 +13,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/convox/rack/pkg/changes"
+	"github.com/convox/changes"
 	"github.com/fsouza/go-dockerclient"
 )
 
@@ -438,7 +438,7 @@ func (s *Sync) watchOutgoing(st Stream) {
 	ch := make(chan changes.Change, 1)
 
 	go func() {
-		if err := changes.Watch(s.Local, ch); err != nil {
+		if err := changes.Watch(s.Local, ch, changes.WatchOptions{}); err != nil {
 			st <- fmt.Sprintf("error: %s", err)
 		}
 	}()
