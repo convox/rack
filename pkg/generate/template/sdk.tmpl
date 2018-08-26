@@ -11,7 +11,7 @@ package sdk
 					return {{ return_values $m }}
 				}
 			{{ else }}
-				ro := stdsdk.RequestOptions{Headers:stdsdk.Headers{}, Params:stdsdk.Params{}}
+				ro := stdsdk.RequestOptions{Headers:stdsdk.Headers{}, Params:stdsdk.Params{}, Query:stdsdk.Query{}}
 			{{ end }}
 
 			{{ params . }}
