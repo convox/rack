@@ -48,74 +48,19 @@ func (p *Provider) ProcessExec(app, pid, command string, rw io.ReadWriter, opts 
 		return -1, errorNotFound(fmt.Sprintf("process id not found for %s", app))
 	}
 
-	arn, err := p.taskArnFromPid(pid)
+	dc, err := p.dockerClientFromPid(pid)
 	if err != nil {
-		return -1, log.Error(err)
+		return -1, err
 	}
 
-	task, err := p.describeTask(arn)
+	c, err := p.dockerContainerFromPid(pid)
 	if err != nil {
-		return -1, log.Error(err)
-	}
-	if len(task.Containers) < 1 {
-		return -1, log.Errorf("no running container for process: %s", pid)
-	}
-
-	if task.ContainerInstanceArn == nil {
-		return -1, fmt.Errorf("could not find instance for process: %s", pid)
-	}
-
-	cires, err := p.describeContainerInstances(&ecs.DescribeContainerInstancesInput{
-		Cluster:            aws.String(p.Cluster),
-		ContainerInstances: []*string{task.ContainerInstanceArn},
-	})
-	if err != nil {
-		return -1, log.Error(err)
-	}
-	if len(cires.ContainerInstances) < 1 {
-		return -1, log.Errorf("could not find instance for process: %s", pid)
-	}
-
-	dc, err := p.dockerInstance(*cires.ContainerInstances[0].Ec2InstanceId)
-	if err != nil {
-		return -1, log.Error(err)
-	}
-
-	tries := 0
-
-	var cs []docker.APIContainers
-
-	for {
-		tries += 1
-		time.Sleep(1 * time.Second)
-
-		cs, err = dc.ListContainers(docker.ListContainersOptions{
-			All: true,
-			Filters: map[string][]string{
-				"label": {fmt.Sprintf("com.amazonaws.ecs.task-arn=%s", arn)},
-			},
-		})
-		if err != nil {
-			return -1, log.Error(err)
-		}
-		if len(cs) != 1 {
-			if tries < 20 {
-				continue
-			}
-			return -1, log.Errorf("could not find container for task: %s", arn)
-		}
-
-		break
+		return -1, err
 	}
 
 	cmd := []string{"sh", "-c", command}
 
 	if opts.Entrypoint != nil && *opts.Entrypoint {
-		c, err := dc.InspectContainer(cs[0].ID)
-		if err != nil {
-			return -1, err
-		}
-
 		cmd = append(c.Config.Entrypoint, cmd...)
 	} else {
 		a, err := p.AppGet(app)
@@ -134,7 +79,7 @@ func (p *Provider) ProcessExec(app, pid, command string, rw io.ReadWriter, opts 
 		AttachStderr: true,
 		Tty:          true,
 		Cmd:          cmd,
-		Container:    cs[0].ID,
+		Container:    c.ID,
 	})
 	if err != nil {
 		return -1, log.Error(err)

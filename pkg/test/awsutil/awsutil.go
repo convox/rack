@@ -39,6 +39,7 @@ type Cycle struct {
 // Handler is an http.Handler that will play back cycles.
 type Handler struct {
 	cycles []Cycle
+	count  int
 }
 
 // NewHandler returns a new Handler instance.
@@ -91,7 +92,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(cycle.Response.StatusCode)
 		io.WriteString(w, cycle.Response.Body)
 	} else {
-		fmt.Println("Request does not match next cycle.")
+		fmt.Printf("Request %d does not match next cycle.\n", h.count)
 		fmt.Println("CYCLE REQUEST:")
 		fmt.Println(cycle.Request.String())
 		fmt.Println("ACTUAL REQUEST:")
@@ -100,6 +101,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.cycles = h.cycles[1:]
+	h.count++
 }
 
 func formatBody(r io.Reader) string {

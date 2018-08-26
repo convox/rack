@@ -39,6 +39,13 @@ func TestProcessExec(t *testing.T) {
 		cycleProcessDescribeTasks,
 		cycleProcessDescribeContainerInstances,
 		cycleProcessDescribeInstances,
+		cycleProcessListTasksRunning,
+		cycleProcessListTasksStopped,
+		cycleProcessDescribeTasks,
+		cycleProcessDescribeContainerInstances,
+		cycleProcessDescribeInstances,
+		cycleProcessListTasksRunning,
+		cycleProcessListTasksStopped,
 		cycleProcessDescribeStacks,
 		cycleProcessDescribeStackResources,
 	)
@@ -46,6 +53,7 @@ func TestProcessExec(t *testing.T) {
 
 	d := stubDocker(
 		cycleProcessDockerListContainers1,
+		cycleProcessDockerInspect,
 		cycleProcessDockerCreateExec,
 		cycleProcessDockerStartExec,
 		cycleProcessDockerResizeExec,
@@ -1608,6 +1616,7 @@ var cycleProcessDockerInspect = awsutil.Cycle{
 	Response: awsutil.Response{
 		StatusCode: 200,
 		Body: `{
+			"Id": "8dfafdbc3a40",
 			"Config": {
 				"Cmd": [
 						"ls",
