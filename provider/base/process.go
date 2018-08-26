@@ -19,7 +19,7 @@ func (p *Provider) ProcessList(app string, opts structs.ProcessListOptions) (str
 	return nil, fmt.Errorf("unimplemented")
 }
 
-func (p *Provider) ProcessLogs(app, pid string, opts structs.LogsOptions) (io.Reader, error) {
+func (p *Provider) ProcessLogs(app, pid string, opts structs.LogsOptions) (io.ReadCloser, error) {
 	return nil, fmt.Errorf("unimplemented")
 }
 

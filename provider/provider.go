@@ -14,7 +14,7 @@ import (
 var Mock = &structs.MockProvider{}
 
 // make sure base provider stays in sync
-var baseProvider = &base.Provider{}
+var baseProvider structs.Provider = &base.Provider{}
 
 // FromEnv returns a new Provider from env vars
 func FromEnv() (structs.Provider, error) {
