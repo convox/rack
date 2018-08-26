@@ -176,11 +176,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:746cdb234957eddbfe2d13b549077a68321b3c0253c5b20daa19824016f3526c"
+  digest = "1:b8b716fb6f6e671eeae093518f7227c89ace2cd917e349c3ede3efce96ada517"
   name = "github.com/convox/stdsdk"
   packages = ["."]
   pruneopts = "NUT"
-  revision = "ce51383c9b1d2d127dfb87d85e215f311794d99d"
+  revision = "21f91b5169bd3aa51311fce423548ba48676f3dd"
 
 [[projects]]
   branch = "master"
@@ -640,14 +640,12 @@
     "github.com/boltdb/bolt",
     "github.com/cloudflare/cfssl/log",
     "github.com/convox/changes",
-    "github.com/convox/inotify",
     "github.com/convox/logger",
     "github.com/convox/stdapi",
     "github.com/convox/stdcli",
     "github.com/convox/stdsdk",
     "github.com/convox/version",
     "github.com/docker/docker/builder/dockerignore",
-    "github.com/docker/docker/pkg/fileutils",
     "github.com/docker/go-units",
     "github.com/dustin/go-humanize",
     "github.com/fatih/color",
