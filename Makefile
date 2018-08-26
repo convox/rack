@@ -29,4 +29,4 @@ templates:
 	make -C pkg/sync templates
 
 test:
-	env PROVIDER=test scripts/test
+	env PROVIDER=test go test -coverpkg ./... -covermode atomic -coverprofile coverage.txt ./...
