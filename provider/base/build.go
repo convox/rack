@@ -23,7 +23,7 @@ func (p *Provider) BuildImport(app string, r io.Reader) (*structs.Build, error) 
 	return nil, fmt.Errorf("unimplemented")
 }
 
-func (p *Provider) BuildLogs(app, id string, opts structs.LogsOptions) (io.ReadCloser, error) {
+func (p *Provider) BuildLogs(app, id string, opts structs.LogsOptions) (io.Reader, error) {
 	return nil, fmt.Errorf("unimplemented")
 }
 

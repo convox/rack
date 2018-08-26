@@ -27,7 +27,7 @@ func (p *Provider) AppList() (structs.Apps, error) {
 	return nil, fmt.Errorf("unimplemented")
 }
 
-func (p *Provider) AppLogs(name string, opts structs.LogsOptions) (io.Reader, error) {
+func (p *Provider) AppLogs(name string, opts structs.LogsOptions) (io.ReadCloser, error) {
 	return nil, fmt.Errorf("unimplemented")
 }
 

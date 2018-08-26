@@ -15,7 +15,7 @@ func (p *Provider) SystemInstall(opts structs.SystemInstallOptions) (string, err
 	return "", fmt.Errorf("unimplemented")
 }
 
-func (p *Provider) SystemLogs(opts structs.LogsOptions) (io.Reader, error) {
+func (p *Provider) SystemLogs(opts structs.LogsOptions) (io.ReadCloser, error) {
 	return nil, fmt.Errorf("unimplemented")
 }
 
