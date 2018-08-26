@@ -230,7 +230,7 @@ func (p *Provider) SystemUninstall(name string, opts structs.SystemUninstallOpti
 }
 
 func (p *Provider) SystemUpdate(opts structs.SystemUpdateOptions) error {
-	log := p.logger("SystemUpdate").Append("version=%q", opts.Version)
+	log := p.logger("SystemUpdate").Append("version=%q", *opts.Version)
 
 	if opts.Version != nil {
 		v := *opts.Version
