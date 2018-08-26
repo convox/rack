@@ -34,6 +34,7 @@ import (
 	"github.com/convox/rack/pkg/cache"
 	"github.com/convox/rack/pkg/manifest1"
 	"github.com/convox/rack/pkg/structs"
+	docker "github.com/fsouza/go-dockerclient"
 )
 
 type Template struct {
@@ -817,6 +818,89 @@ func (p *Provider) stackParameter(stack, param string) (string, error) {
 	}
 
 	return "", fmt.Errorf("parameter not found: %s", param)
+}
+
+func (p *Provider) dockerContainerFromPid(pid string) (*docker.Container, error) {
+	dc, err := p.dockerClientFromPid(pid)
+	if err != nil {
+		return nil, err
+	}
+
+	arn, err := p.taskArnFromPid(pid)
+	if err != nil {
+		return nil, err
+	}
+
+	tries := 0
+
+	var cs []docker.APIContainers
+
+	for {
+		tries += 1
+		time.Sleep(1 * time.Second)
+
+		cs, err = dc.ListContainers(docker.ListContainersOptions{
+			All: true,
+			Filters: map[string][]string{
+				"label": {fmt.Sprintf("com.amazonaws.ecs.task-arn=%s", arn)},
+			},
+		})
+		if err != nil {
+			return nil, err
+		}
+		if len(cs) != 1 {
+			if tries < 20 {
+				continue
+			}
+			return nil, fmt.Errorf("could not find container for task: %s", arn)
+		}
+
+		c, err := dc.InspectContainer(cs[0].ID)
+		if err != nil {
+			return nil, err
+		}
+
+		return c, nil
+	}
+
+	return nil, fmt.Errorf("could not find container for task: %s", arn)
+}
+
+func (p *Provider) dockerClientFromPid(pid string) (*docker.Client, error) {
+	arn, err := p.taskArnFromPid(pid)
+	if err != nil {
+		return nil, err
+	}
+
+	task, err := p.describeTask(arn)
+	if err != nil {
+		return nil, err
+	}
+	if len(task.Containers) < 1 {
+		return nil, fmt.Errorf("no running container for process: %s", pid)
+	}
+
+	if task.ContainerInstanceArn == nil {
+		return nil, fmt.Errorf("could not find instance for process: %s", pid)
+	}
+
+	cires, err := p.describeContainerInstances(&ecs.DescribeContainerInstancesInput{
+		Cluster:            aws.String(p.Cluster),
+		ContainerInstances: []*string{task.ContainerInstanceArn},
+	})
+	if err != nil {
+		return nil, err
+	}
+	if len(cires.ContainerInstances) < 1 {
+		return nil, fmt.Errorf("could not find instance for process: %s", pid)
+	}
+
+	dc, err := p.dockerInstance(*cires.ContainerInstances[0].Ec2InstanceId)
+	if err != nil {
+		return nil, err
+	}
+
+	return dc, nil
 }
 
 func (p *Provider) describeTaskDefinition(input *ecs.DescribeTaskDefinitionInput) (*ecs.DescribeTaskDefinitionOutput, error) {
