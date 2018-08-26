@@ -92,6 +92,17 @@ convox ps -a ci2 | grep web | wc -l | grep 2
 convox run web "ls -la" -a ci2 | grep htdocs
 ps=$(convox api get /apps/ci2/processes | jq -r '.[0].id')
 convox exec $ps "ls -la" -a ci2 | grep htdocs
+echo foo > /tmp/file
+convox cp /tmp/file $ps:/file -a ci2
+convox exec $ps "cat /file" -a ci2 | grep foo
+mkdir -p /tmp/dir
+echo foo > /tmp/dir/file
+convox cp /tmp/dir $ps:/dir -a ci2
+convox exec $ps "cat /dir/file" -a ci2 | grep foo
+convox cp $ps:/dir /tmp/dir2 -a ci2
+cat /tmp/dir2/file | grep foo
+convox cp $ps:/file /tmp/file2 -a ci2
+cat /tmp/file2 | grep foo
 convox ps stop $ps
 convox deploy -a ci2 --wait
 convox apps params -a ci2 | grep LogRetention
