@@ -240,6 +240,7 @@ func websocketIn(ws *websocket.Conn, r io.Reader) {
 
 func websocketOut(w io.WriteCloser, ws *websocket.Conn) {
 	defer ws.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseGoingAway, ""))
+	defer w.Close()
 
 	for {
 		code, data, err := ws.ReadMessage()
@@ -254,9 +255,6 @@ func websocketOut(w io.WriteCloser, ws *websocket.Conn) {
 				w.Close()
 			}
 		default:
-			if !websocket.IsCloseError(err, websocket.CloseNormalClosure, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-				fmt.Fprintf(w, "ERROR: %s\n", err.Error())
-			}
 			return
 		}
 	}

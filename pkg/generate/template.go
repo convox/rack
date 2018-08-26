@@ -54,6 +54,9 @@ func templateHelpers() template.FuncMap {
 			if m.Socket() {
 				vt = "Headers"
 			}
+			if m.Route.Method == "GET" {
+				vt = "Query"
+			}
 			for _, a := range m.Args {
 				if !a.Path(m) {
 					switch a.Type.Kind() {

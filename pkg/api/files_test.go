@@ -39,6 +39,38 @@ func TestFilesDeleteError(t *testing.T) {
 	})
 }
 
+func TestFilesDownload(t *testing.T) {
+	testServer(t, func(c *stdsdk.Client, p *structs.MockProvider) {
+		r1 := strings.NewReader("data")
+		opts := stdsdk.RequestOptions{
+			Query: stdsdk.Query{
+				"file": "file1",
+			},
+		}
+		p.On("FilesDownload", "app1", "pid1", "file1").Return(r1, nil)
+		res, err := c.GetStream("/apps/app1/processes/pid1/files", opts)
+		require.NoError(t, err)
+		defer res.Body.Close()
+		data, err := ioutil.ReadAll(res.Body)
+		require.NoError(t, err)
+		require.Equal(t, "data", string(data))
+	})
+}
+
+func TestFilesDownloadError(t *testing.T) {
+	testServer(t, func(c *stdsdk.Client, p *structs.MockProvider) {
+		opts := stdsdk.RequestOptions{
+			Query: stdsdk.Query{
+				"file": "file1",
+			},
+		}
+		p.On("FilesDownload", "app1", "pid1", "file1").Return(nil, fmt.Errorf("err1"))
+		res, err := c.GetStream("/apps/app1/processes/pid1/files", opts)
+		require.EqualError(t, err, "err1")
+		require.Nil(t, res)
+	})
+}
+
 func TestFilesUpload(t *testing.T) {
 	testServer(t, func(c *stdsdk.Client, p *structs.MockProvider) {
 		opts := stdsdk.RequestOptions{

@@ -25,6 +25,29 @@ func (p *Provider) FilesDelete(app, pid string, files []string) error {
 	return log.Success()
 }
 
+func (p *Provider) FilesDownload(app, pid string, file string) (io.Reader, error) {
+	log := p.logger("FilesUpload").Append("app=%q pid=%q", app, pid)
+
+	if _, err := p.AppGet(app); err != nil {
+		return nil, log.Error(err)
+	}
+
+	r, w := io.Pipe()
+
+	cmd := exec.Command("docker", "cp", fmt.Sprintf("%s:%s", pid, file), "-")
+
+	cmd.Stdout = w
+
+	go func() {
+		if err := cmd.Run(); err != nil {
+			log.Error(err)
+		}
+		w.Close()
+	}()
+
+	return r, log.Success()
+}
+
 func (p *Provider) FilesUpload(app, pid string, r io.Reader) error {
 	log := p.logger("FilesUpload").Append("app=%q pid=%q", app, pid)
 
@@ -32,7 +55,7 @@ func (p *Provider) FilesUpload(app, pid string, r io.Reader) error {
 		return log.Error(err)
 	}
 
-	cmd := exec.Command("docker", "cp", "-", fmt.Sprintf("%s:.", pid))
+	cmd := exec.Command("docker", "cp", "-", fmt.Sprintf("%s:/", pid))
 
 	cmd.Stdin = r
 

@@ -1,14 +1,69 @@
 package helpers
 
 import (
+	"archive/tar"
 	"bytes"
+	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/moby/moby/builder/dockerignore"
 	"github.com/moby/moby/pkg/archive"
 )
+
+func Archive(file string) (io.Reader, error) {
+	opts := &archive.TarOptions{
+		IncludeFiles: []string{file},
+	}
+
+	r, err := archive.TarWithOptions("/", opts)
+	if err != nil {
+		return nil, err
+	}
+
+	return r, nil
+}
+
+func RebaseArchive(r io.Reader, src, dst string) (io.Reader, error) {
+	tr := tar.NewReader(r)
+
+	var buf bytes.Buffer
+
+	tw := tar.NewWriter(&buf)
+
+	for {
+		h, err := tr.Next()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return nil, err
+		}
+
+		if !strings.HasPrefix(h.Name, "/") {
+			h.Name = fmt.Sprintf("/%s", h.Name)
+		}
+
+		if !strings.HasPrefix(h.Name, src) {
+			continue
+		}
+
+		h.Name = filepath.Join(dst, strings.TrimPrefix(h.Name, src))
+
+		tw.WriteHeader(h)
+
+		if _, err := io.Copy(tw, tr); err != nil {
+			return nil, err
+		}
+	}
+
+	tw.Close()
+
+	return &buf, nil
+}
 
 func Tarball(dir string) ([]byte, error) {
 	abs, err := filepath.Abs(dir)
@@ -54,4 +109,38 @@ func Tarball(dir string) ([]byte, error) {
 	}
 
 	return ioutil.ReadAll(r)
+}
+
+func Unarchive(r io.Reader) error {
+	tr := tar.NewReader(r)
+
+	for {
+		h, err := tr.Next()
+		if err == io.EOF {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+
+		switch h.Typeflag {
+		case tar.TypeDir:
+			if err := os.MkdirAll(h.Name, os.FileMode(h.Mode)); err != nil {
+				return err
+			}
+		case tar.TypeReg:
+			if err := os.MkdirAll(filepath.Dir(h.Name), 0755); err != nil {
+				return err
+			}
+
+			fd, err := os.OpenFile(h.Name, os.O_CREATE|os.O_WRONLY, os.FileMode(h.Mode))
+			if err != nil {
+				return err
+			}
+
+			if _, err := io.Copy(fd, tr); err != nil {
+				return err
+			}
+		}
+	}
 }
