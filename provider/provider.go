@@ -6,12 +6,15 @@ import (
 
 	"github.com/convox/rack/pkg/structs"
 	"github.com/convox/rack/provider/aws"
+	"github.com/convox/rack/provider/base"
 	"github.com/convox/rack/provider/k8s"
 	"github.com/convox/rack/provider/klocal"
-	"github.com/convox/rack/pkg/structs"
 )
 
 var Mock = &structs.MockProvider{}
+
+// make sure base provider stays in sync
+var baseProvider = &base.Provider{}
 
 // FromEnv returns a new Provider from env vars
 func FromEnv() (structs.Provider, error) {
