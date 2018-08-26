@@ -526,6 +526,34 @@ func (s *Server) FilesDelete(c *stdapi.Context) error {
 	return c.RenderOK()
 }
 
+func (s *Server) FilesDownload(c *stdapi.Context) error {
+	if err := s.hook("FilesDownloadValidate", c); err != nil {
+		return err
+	}
+
+	app := c.Var("app")
+	pid := c.Var("pid")
+	file := c.Value("file")
+
+	v, err := s.provider(c).FilesDownload(app, pid, file)
+	if err != nil {
+		if ae, ok := s.provider(c).(ApiErrorer); ok {
+			return ae.ApiError(err)
+		}
+		return err
+	}
+
+	if _, err := io.Copy(c, v); err != nil {
+		return err
+	}
+
+	if vs, ok := interface{}(v).(Sortable); ok {
+		sort.Slice(v, vs.Less)
+	}
+
+	return nil
+}
+
 func (s *Server) FilesUpload(c *stdapi.Context) error {
 	if err := s.hook("FilesUploadValidate", c); err != nil {
 		return err

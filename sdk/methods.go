@@ -320,6 +320,25 @@ func (c *Client) FilesDelete(app string, pid string, files []string) error {
 	return err
 }
 
+func (c *Client) FilesDownload(app string, pid string, file string) (io.Reader, error) {
+	var err error
+
+	ro := stdsdk.RequestOptions{Headers: stdsdk.Headers{}, Params: stdsdk.Params{}, Query: stdsdk.Query{}}
+
+	ro.Query["file"] = file
+
+	var v io.Reader
+
+	res, err := c.GetStream(fmt.Sprintf("/apps/%s/processes/%s/files", app, pid), ro)
+	if err != nil {
+		return nil, err
+	}
+
+	v = res.Body
+
+	return v, err
+}
+
 func (c *Client) FilesUpload(app string, pid string, r io.Reader) error {
 	var err error
 

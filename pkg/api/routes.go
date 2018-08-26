@@ -25,6 +25,7 @@ func (s *Server) setupRoutes(r stdapi.Router) {
 	r.Route("GET", "/certificates", s.CertificateList)
 	r.Route("POST", "/events", s.EventSend)
 	r.Route("DELETE", "/apps/{app}/processes/{pid}/files", s.FilesDelete)
+	r.Route("GET", "/apps/{app}/processes/{pid}/files", s.FilesDownload)
 	r.Route("POST", "/apps/{app}/processes/{pid}/files", s.FilesUpload)
 	r.Route("", "", s.Initialize)
 	r.Route("POST", "/instances/keyroll", s.InstanceKeyroll)
