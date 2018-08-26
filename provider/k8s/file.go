@@ -1,6 +1,7 @@
 package k8s
 
 import (
+	"fmt"
 	"io"
 	"io/ioutil"
 
@@ -33,6 +34,10 @@ func (p *Provider) FilesDelete(app, pid string, files []string) error {
 	}
 
 	return nil
+}
+
+func (p *Provider) FilesDownload(app, pid, file string) (io.Reader, error) {
+	return nil, fmt.Errorf("unimplemented")
 }
 
 func (p *Provider) FilesUpload(app, pid string, r io.Reader) error {
