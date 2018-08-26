@@ -1,7 +1,6 @@
 package k8s
 
 import (
-	"fmt"
 	"io"
 	"io/ioutil"
 
@@ -37,7 +36,29 @@ func (p *Provider) FilesDelete(app, pid string, files []string) error {
 }
 
 func (p *Provider) FilesDownload(app, pid, file string) (io.Reader, error) {
-	return nil, fmt.Errorf("unimplemented")
+	req := p.Cluster.CoreV1().RESTClient().Post().Resource("pods").Name(pid).Namespace(p.appNamespace(app)).SubResource("exec").Param("container", "main")
+
+	eo := &ac.PodExecOptions{
+		Container: "main",
+		Command:   []string{"tar", "czPf", "-", file},
+		Stdout:    true,
+	}
+
+	req.VersionedParams(eo, scheme.ParameterCodec)
+
+	exec, err := remotecommand.NewSPDYExecutor(p.Config, "POST", req.URL())
+	if err != nil {
+		return nil, err
+	}
+
+	r, w := io.Pipe()
+
+	go func() {
+		exec.Stream(remotecommand.StreamOptions{Stdout: w})
+		w.Close()
+	}()
+
+	return r, nil
 }
 
 func (p *Provider) FilesUpload(app, pid string, r io.Reader) error {
