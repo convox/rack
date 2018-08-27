@@ -44,6 +44,11 @@ func Run(c *stdcli.Context) error {
 		timeout = t
 	}
 
+	if w, h, err := c.TerminalSize(); err == nil {
+		opts.Height = options.Int(h)
+		opts.Width = options.Int(w)
+	}
+
 	restore := c.TerminalRaw()
 	defer restore()
 
