@@ -38,6 +38,8 @@ func Run(c *stdcli.Context) error {
 		return err
 	}
 
+	opts.Command = options.String(command)
+
 	timeout := 3600
 
 	if t := c.Int("timeout"); t > 0 {
@@ -53,8 +55,6 @@ func Run(c *stdcli.Context) error {
 	defer restore()
 
 	if s.Version <= "20180708231844" {
-		opts.Command = options.String(command)
-
 		if c.Bool("detach") {
 			c.Startf("Running detached process")
 
