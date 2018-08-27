@@ -30,6 +30,7 @@ func Run(c *stdcli.Context) error {
 	}
 
 	service := c.Arg(0)
+	command := strings.Join(c.Args[1:], " ")
 
 	var opts structs.ProcessRunOptions
 
@@ -37,10 +38,17 @@ func Run(c *stdcli.Context) error {
 		return err
 	}
 
+	opts.Command = options.String(command)
+
 	timeout := 3600
 
 	if t := c.Int("timeout"); t > 0 {
 		timeout = t
+	}
+
+	if w, h, err := c.TerminalSize(); err == nil {
+		opts.Height = options.Int(h)
+		opts.Width = options.Int(w)
 	}
 
 	restore := c.TerminalRaw()
@@ -89,8 +97,6 @@ func Run(c *stdcli.Context) error {
 	if err := waitForProcessRunning(c, app(c), ps.Id); err != nil {
 		return err
 	}
-
-	command := strings.Join(c.Args[1:], " ")
 
 	eopts := structs.ProcessExecOptions{
 		Entrypoint: options.Bool(true),
