@@ -239,7 +239,7 @@ func websocketIn(ws *websocket.Conn, r io.Reader) {
 }
 
 func websocketOut(w io.WriteCloser, ws *websocket.Conn) {
-	defer ws.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseGoingAway, ""))
+	// defer ws.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseGoingAway, ""))
 	defer w.Close()
 
 	for {
