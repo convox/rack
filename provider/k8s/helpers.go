@@ -8,12 +8,11 @@ import (
 	"fmt"
 	"io"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/convox/rack/pkg/helpers"
-	cc "github.com/convox/rack/provider/k8s/pkg/client/clientset/versioned/typed/convox/v1"
 	"github.com/convox/rack/pkg/structs"
+	cc "github.com/convox/rack/provider/k8s/pkg/client/clientset/versioned/typed/convox/v1"
 	ac "k8s.io/api/core/v1"
 	am "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -69,16 +68,11 @@ func (p *Provider) streamProcessListLogs(w io.WriteCloser, pl processLister, opt
 	defer w.Close()
 	defer close(ch)
 
-	done := false
-	var wg sync.WaitGroup
-
-	go func() {
-		time.Sleep(5 * time.Second)
-		wg.Wait()
-		done = true
-	}()
-
 	current := map[string]bool{}
+
+	follow := helpers.DefaultBool(opts.Follow, false)
+	pidch := make(chan string)
+	tick := time.NewTicker(1 * time.Second)
 
 	for {
 		if _, err := w.Write([]byte{}); err != nil {
@@ -86,34 +80,36 @@ func (p *Provider) streamProcessListLogs(w io.WriteCloser, pl processLister, opt
 			return
 		}
 
-		if done {
-			return
-		}
+		select {
+		case pid := <-pidch:
+			delete(current, pid)
 
-		time.Sleep(1 * time.Second)
+			if len(current) == 0 && !follow {
+				tick.Stop()
+				return
+			}
+		case <-tick.C:
+			pss, err := pl()
+			if err != nil {
+				ch <- err
+				continue
+			}
 
-		pss, err := pl()
-		if err != nil {
-			ch <- err
-			continue
-		}
-
-		for _, ps := range pss {
-			if !current[ps.Id] {
-				wg.Add(1)
-				go p.streamProcessLogsWait(w, ps, opts, &wg)
-				current[ps.Id] = true
+			for _, ps := range pss {
+				if !current[ps.Id] {
+					go p.streamProcessLogsWait(w, ps, opts, pidch)
+					current[ps.Id] = true
+				}
 			}
 		}
 	}
 }
 
-func (p *Provider) streamProcessLogsWait(w io.WriteCloser, ps structs.Process, opts structs.LogsOptions, wg *sync.WaitGroup) {
-	defer wg.Done()
-
+func (p *Provider) streamProcessLogsWait(w io.WriteCloser, ps structs.Process, opts structs.LogsOptions, pidch chan string) {
 	ri, wi := io.Pipe()
 	go p.streamProcessLogs(wi, ps, opts)
 	io.Copy(w, ri)
+	pidch <- ps.Id
 }
 
 type imageManifest []struct {
