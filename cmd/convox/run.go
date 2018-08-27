@@ -30,6 +30,7 @@ func Run(c *stdcli.Context) error {
 	}
 
 	service := c.Arg(0)
+	command := strings.Join(c.Args[1:], " ")
 
 	var opts structs.ProcessRunOptions
 
@@ -47,6 +48,8 @@ func Run(c *stdcli.Context) error {
 	defer restore()
 
 	if s.Version <= "20180708231844" {
+		opts.Command = options.String(command)
+
 		if c.Bool("detach") {
 			c.Startf("Running detached process")
 
@@ -89,8 +92,6 @@ func Run(c *stdcli.Context) error {
 	if err := waitForProcessRunning(c, app(c), ps.Id); err != nil {
 		return err
 	}
-
-	command := strings.Join(c.Args[1:], " ")
 
 	eopts := structs.ProcessExecOptions{
 		Entrypoint: options.Bool(true),
