@@ -223,7 +223,7 @@ func RackParamsSet(c *stdcli.Context) error {
 
 	c.Startf("Updating parameters")
 
-	if s.Version < "20180708231844" {
+	if s.Version <= "20180708231844" {
 		if err := provider(c).AppParametersSet(s.Name, opts.Parameters); err != nil {
 			return err
 		}

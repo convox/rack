@@ -42,7 +42,7 @@ func Scale(c *stdcli.Context) error {
 
 		c.Startf("Scaling <service>%s</service>", service)
 
-		if s.Version < "20180708231844" {
+		if s.Version <= "20180708231844" {
 			if err := provider(c).FormationUpdate(app(c), service, opts); err != nil {
 				return err
 			}
