@@ -46,10 +46,21 @@ func RegistriesAdd(c *stdcli.Context) error {
 }
 
 func RegistriesRemove(c *stdcli.Context) error {
+	s, err := provider(c).SystemGet()
+	if err != nil {
+		return err
+	}
+
 	c.Startf("Removing registry")
 
-	if err := provider(c).RegistryRemove(c.Arg(0)); err != nil {
-		return err
+	if s.Version <= "20180708231844" {
+		if err := provider(c).RegistryRemoveClassic(c.Arg(0)); err != nil {
+			return err
+		}
+	} else {
+		if err := provider(c).RegistryRemove(c.Arg(0)); err != nil {
+			return err
+		}
 	}
 
 	return c.OK()
