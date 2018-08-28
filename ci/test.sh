@@ -90,8 +90,10 @@ endpoint=$(convox api get /apps/ci2/services | jq -r '.[] | select(.name == "web
 fetch https://$endpoint | grep "It works"
 convox ps -a ci2 | grep web | wc -l | grep 2
 convox run web "ls -la" -a ci2 | grep htdocs
+cat /dev/null | convox run web "sleep 2; echo test" -a ci2 | grep test
 ps=$(convox api get /apps/ci2/processes | jq -r '.[0].id')
 convox exec $ps "ls -la" -a ci2 | grep htdocs
+cat /dev/null | convox exec $ps "sleep 2; echo test" -a ci2 | grep test
 echo foo > /tmp/file
 convox cp /tmp/file $ps:/file -a ci2
 convox exec $ps "cat /file" -a ci2 | grep foo

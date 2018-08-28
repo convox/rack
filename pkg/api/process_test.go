@@ -36,6 +36,7 @@ func TestProcessExec(t *testing.T) {
 		opts := structs.ProcessExecOptions{
 			Entrypoint: options.Bool(true),
 			Height:     options.Int(1),
+			Tty:        options.Bool(true),
 			Width:      options.Int(2),
 		}
 		ro := stdsdk.RequestOptions{
@@ -66,6 +67,7 @@ func TestProcessExecError(t *testing.T) {
 		opts := structs.ProcessExecOptions{
 			Entrypoint: options.Bool(true),
 			Height:     options.Int(1),
+			Tty:        options.Bool(false),
 			Width:      options.Int(2),
 		}
 		ro := stdsdk.RequestOptions{
@@ -74,6 +76,7 @@ func TestProcessExecError(t *testing.T) {
 				"Command":    "command",
 				"Entrypoint": "true",
 				"Height":     "1",
+				"Tty":        "false",
 				"Width":      "2",
 			},
 		}
