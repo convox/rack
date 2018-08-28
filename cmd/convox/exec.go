@@ -1,6 +1,7 @@
 package main
 
 import (
+	"os"
 	"strings"
 
 	"github.com/convox/rack/pkg/options"
@@ -25,6 +26,10 @@ func Exec(c *stdcli.Context) error {
 	if w, h, err := c.TerminalSize(); err == nil {
 		opts.Height = options.Int(h)
 		opts.Width = options.Int(w)
+	}
+
+	if !stdcli.IsTerminal(os.Stdin) {
+		opts.Tty = options.Bool(false)
 	}
 
 	restore := c.TerminalRaw()

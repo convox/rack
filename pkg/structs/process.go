@@ -27,6 +27,7 @@ type Processes []Process
 type ProcessExecOptions struct {
 	Entrypoint *bool `header:"Entrypoint"`
 	Height     *int  `header:"Height"`
+	Tty        *bool `header:"Tty" default:"true"`
 	Width      *int  `header:"Width"`
 }
 
@@ -40,6 +41,7 @@ type ProcessRunOptions struct {
 	Height      *int              `header:"Height"`
 	Memory      *int              `header:"Memory"`
 	Release     *string           `flag:"release" header:"Release"`
+	Tty         *bool             `header:"Tty" default:"true"`
 	Width       *int              `header:"Width"`
 }
 

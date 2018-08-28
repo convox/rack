@@ -36,6 +36,7 @@ func TestProcessExec(t *testing.T) {
 		opts := structs.ProcessExecOptions{
 			Entrypoint: options.Bool(true),
 			Height:     options.Int(1),
+			Tty:        options.Bool(true),
 			Width:      options.Int(2),
 		}
 		ro := stdsdk.RequestOptions{
@@ -66,6 +67,7 @@ func TestProcessExecError(t *testing.T) {
 		opts := structs.ProcessExecOptions{
 			Entrypoint: options.Bool(true),
 			Height:     options.Int(1),
+			Tty:        options.Bool(false),
 			Width:      options.Int(2),
 		}
 		ro := stdsdk.RequestOptions{
@@ -74,6 +76,7 @@ func TestProcessExecError(t *testing.T) {
 				"Command":    "command",
 				"Entrypoint": "true",
 				"Height":     "1",
+				"Tty":        "false",
 				"Width":      "2",
 			},
 		}
@@ -146,6 +149,7 @@ func TestProcessRun(t *testing.T) {
 			Height:      options.Int(1),
 			Memory:      options.Int(2),
 			Release:     options.String("release"),
+			Tty:         options.Bool(true),
 			Width:       options.Int(3),
 		}
 		ro := stdsdk.RequestOptions{
@@ -175,6 +179,7 @@ func TestProcessRunError(t *testing.T) {
 			Height:      options.Int(1),
 			Memory:      options.Int(2),
 			Release:     options.String("release"),
+			Tty:         options.Bool(false),
 			Width:       options.Int(3),
 		}
 		ro := stdsdk.RequestOptions{
@@ -185,6 +190,7 @@ func TestProcessRunError(t *testing.T) {
 				"Height":      "1",
 				"Memory":      "2",
 				"Release":     "release",
+				"Tty":         "false",
 				"Width":       "3",
 			},
 		}

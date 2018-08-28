@@ -60,6 +60,8 @@ func (p *Provider) ProcessExec(app, pid, command string, rw io.ReadWriter, opts 
 
 	cmd := []string{"sh", "-c", command}
 
+	tty := cb(opts.Tty, true)
+
 	if opts.Entrypoint != nil && *opts.Entrypoint {
 		cmd = append(c.Config.Entrypoint, cmd...)
 	} else {
@@ -77,7 +79,7 @@ func (p *Provider) ProcessExec(app, pid, command string, rw io.ReadWriter, opts 
 		AttachStdin:  true,
 		AttachStdout: true,
 		AttachStderr: true,
-		Tty:          true,
+		Tty:          tty,
 		Cmd:          cmd,
 		Container:    c.ID,
 	})
@@ -97,7 +99,7 @@ func (p *Provider) ProcessExec(app, pid, command string, rw io.ReadWriter, opts 
 
 	err = dc.StartExec(eres.ID, docker.StartExecOptions{
 		Detach:       false,
-		Tty:          true,
+		Tty:          tty,
 		InputStream:  ioutil.NopCloser(rw),
 		OutputStream: rw,
 		ErrorStream:  rw,
