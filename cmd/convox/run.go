@@ -52,10 +52,6 @@ func Run(c *stdcli.Context) error {
 		opts.Width = options.Int(w)
 	}
 
-	if !stdcli.IsTerminal(os.Stdin) {
-		opts.Tty = options.Bool(false)
-	}
-
 	restore := c.TerminalRaw()
 	defer restore()
 
@@ -107,6 +103,10 @@ func Run(c *stdcli.Context) error {
 		Entrypoint: options.Bool(true),
 		Height:     opts.Height,
 		Width:      opts.Width,
+	}
+
+	if !stdcli.IsTerminal(os.Stdin) {
+		eopts.Tty = options.Bool(false)
 	}
 
 	code, err := provider(c).ProcessExec(app(c), ps.Id, command, c, eopts)
