@@ -301,6 +301,20 @@ func (c *Client) ProcessRunDetached(app, service string, opts structs.ProcessRun
 	return ret.Pid, nil
 }
 
+func (c *Client) RegistryRemoveClassic(server string) error {
+	ro := stdsdk.RequestOptions{
+		Query: stdsdk.Query{
+			"server": server,
+		},
+	}
+
+	if err := c.Delete("/registries", ro, nil); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (c *Client) ResourceCreateClassic(kind string, opts structs.ResourceCreateOptions) (*structs.Resource, error) {
 	ro := stdsdk.RequestOptions{
 		Params: stdsdk.Params{
