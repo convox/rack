@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/convox/rack/pkg/options"
@@ -102,6 +103,10 @@ func Run(c *stdcli.Context) error {
 		Entrypoint: options.Bool(true),
 		Height:     opts.Height,
 		Width:      opts.Width,
+	}
+
+	if !stdcli.IsTerminal(os.Stdin) {
+		eopts.Tty = options.Bool(false)
 	}
 
 	code, err := provider(c).ProcessExec(app(c), ps.Id, command, c, eopts)
