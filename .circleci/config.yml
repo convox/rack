@@ -3,7 +3,7 @@ jobs:
   build:
     parallelism: 3
     docker:
-      - image: circleci/golang:1.10
+      - image: circleci/golang:1.11
     steps:
       - checkout
       - run: ci/dependencies.sh
