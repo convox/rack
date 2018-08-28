@@ -149,7 +149,6 @@ func TestProcessRun(t *testing.T) {
 			Height:      options.Int(1),
 			Memory:      options.Int(2),
 			Release:     options.String("release"),
-			Tty:         options.Bool(true),
 			Width:       options.Int(3),
 		}
 		ro := stdsdk.RequestOptions{
@@ -179,7 +178,6 @@ func TestProcessRunError(t *testing.T) {
 			Height:      options.Int(1),
 			Memory:      options.Int(2),
 			Release:     options.String("release"),
-			Tty:         options.Bool(false),
 			Width:       options.Int(3),
 		}
 		ro := stdsdk.RequestOptions{
@@ -190,7 +188,6 @@ func TestProcessRunError(t *testing.T) {
 				"Height":      "1",
 				"Memory":      "2",
 				"Release":     "release",
-				"Tty":         "false",
 				"Width":       "3",
 			},
 		}
