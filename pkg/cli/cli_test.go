@@ -5,30 +5,33 @@ import (
 	"io"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/convox/rack/pkg/cli"
 	mocksdk "github.com/convox/rack/pkg/mock/sdk"
+	"github.com/convox/rack/pkg/structs"
 	shellquote "github.com/kballard/go-shellquote"
 )
 
-type result struct {
-	Code   int
-	Stdout string
-	Stderr string
+var fxSystem = structs.System{
+	Version: "20180829000000",
 }
 
-func (r *result) StdoutLines() int {
-	return len(strings.Split(strings.TrimSuffix(r.Stdout, "\n"), "\n"))
-}
-
-func (r *result) StdoutLine(line int) string {
-	return strings.Split(r.Stdout, "\n")[line]
+var fxSystemClassic = structs.System{
+	Version: "20180101000000",
 }
 
 func testClient(t *testing.T, fn func(*cli.Engine, *mocksdk.Interface)) {
+	testClientWait(t, 0*time.Second, fn)
+}
+
+func testClientWait(t *testing.T, wait time.Duration, fn func(*cli.Engine, *mocksdk.Interface)) {
 	i := &mocksdk.Interface{}
 
+	cli.WaitDuration = wait
+
 	c := cli.New("convox", "test")
+
 	c.Client = i
 
 	fn(c, i)
@@ -64,4 +67,22 @@ func testExecute(e *cli.Engine, cmd string, stdin io.Reader) (*result, error) {
 	}
 
 	return res, nil
+}
+
+type result struct {
+	Code   int
+	Stdout string
+	Stderr string
+}
+
+func (r *result) StdoutLines() int {
+	lines := strings.Split(r.Stdout, "\n")
+	if lines[len(lines)-1] == "" {
+		lines = lines[0 : len(lines)-1]
+	}
+	return len(lines)
+}
+
+func (r *result) StdoutLine(line int) string {
+	return strings.Split(r.Stdout, "\n")[line]
 }

@@ -500,9 +500,9 @@ func wait(interval time.Duration, timeout time.Duration, times int, fn func() (b
 }
 
 func waitForAppDeleted(rack sdk.Interface, c *stdcli.Context, app string) error {
-	time.Sleep(5 * time.Second) // give the stack time to start updating
+	time.Sleep(WaitDuration) // give the stack time to start updating
 
-	return wait(5*time.Second, 30*time.Minute, 2, func() (bool, error) {
+	return wait(WaitDuration, 30*time.Minute, 2, func() (bool, error) {
 		_, err := rack.AppGet(app)
 		if err == nil {
 			return false, nil
@@ -518,9 +518,9 @@ func waitForAppDeleted(rack sdk.Interface, c *stdcli.Context, app string) error 
 }
 
 func waitForAppRunning(rack sdk.Interface, c *stdcli.Context, app string) error {
-	time.Sleep(5 * time.Second) // give the stack time to start updating
+	time.Sleep(WaitDuration) // give the stack time to start updating
 
-	return wait(5*time.Second, 30*time.Minute, 2, func() (bool, error) {
+	return wait(WaitDuration, 30*time.Minute, 2, func() (bool, error) {
 		a, err := rack.AppGet(app)
 		if err != nil {
 			return false, err
@@ -558,9 +558,9 @@ func waitForProcessRunning(rack sdk.Interface, c *stdcli.Context, app, pid strin
 }
 
 func waitForRackRunning(rack sdk.Interface, c *stdcli.Context) error {
-	time.Sleep(5 * time.Second) // give the stack time to start updating
+	time.Sleep(WaitDuration) // give the stack time to start updating
 
-	return wait(5*time.Second, 30*time.Minute, 2, func() (bool, error) {
+	return wait(WaitDuration, 30*time.Minute, 2, func() (bool, error) {
 		s, err := rack.SystemGet()
 		if err != nil {
 			return false, err
@@ -587,9 +587,9 @@ func waitForRackWithLogs(rack sdk.Interface, c *stdcli.Context) error {
 }
 
 func waitForResourceDeleted(rack sdk.Interface, c *stdcli.Context, resource string) error {
-	time.Sleep(5 * time.Second) // give the stack time to start updating
+	time.Sleep(WaitDuration) // give the stack time to start updating
 
-	return wait(5*time.Second, 30*time.Minute, 2, func() (bool, error) {
+	return wait(WaitDuration, 30*time.Minute, 2, func() (bool, error) {
 		_, err := rack.ResourceGet(resource)
 		if err == nil {
 			return false, nil
@@ -605,9 +605,9 @@ func waitForResourceDeleted(rack sdk.Interface, c *stdcli.Context, resource stri
 }
 
 func waitForResourceRunning(rack sdk.Interface, c *stdcli.Context, resource string) error {
-	time.Sleep(5 * time.Second) // give the stack time to start updating
+	time.Sleep(WaitDuration) // give the stack time to start updating
 
-	return wait(5*time.Second, 30*time.Minute, 2, func() (bool, error) {
+	return wait(WaitDuration, 30*time.Minute, 2, func() (bool, error) {
 		r, err := rack.ResourceGet(resource)
 		if err != nil {
 			return false, err
