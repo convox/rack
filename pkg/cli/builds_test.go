@@ -155,6 +155,7 @@ func TestBuildsExport(t *testing.T) {
 		tmpd, err := ioutil.TempDir("", "")
 		require.NoError(t, err)
 		tmpf := filepath.Join(tmpd, "export.tgz")
+
 		res, err := testExecute(e, fmt.Sprintf("builds export build1 -a app1 -f %s", tmpf), nil)
 		require.NoError(t, err)
 		require.Equal(t, 0, res.Code)
@@ -185,6 +186,7 @@ func TestBuildsExportStdout(t *testing.T) {
 func TestBuildsExportError(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
 		i.On("BuildExport", "app1", "build1", mock.Anything).Return(fmt.Errorf("err1"))
+
 		res, err := testExecute(e, "builds export build1 -a app1 -f /dev/null", nil)
 		require.NoError(t, err)
 		require.Equal(t, 1, res.Code)
@@ -203,6 +205,7 @@ func TestBuildsImport(t *testing.T) {
 			require.NoError(t, err)
 			require.Equal(t, data, rdata)
 		})
+
 		res, err := testExecute(e, "builds import -a app1 -f testdata/build.tgz", nil)
 		require.NoError(t, err)
 		require.Equal(t, 0, res.Code)
@@ -215,6 +218,7 @@ func TestBuildsImportError(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
 		i.On("SystemGet").Return(&fxSystem, nil)
 		i.On("BuildImport", "app1", mock.Anything).Return(nil, fmt.Errorf("err1"))
+
 		res, err := testExecute(e, "builds import -a app1 -f testdata/build.tgz", nil)
 		require.NoError(t, err)
 		require.Equal(t, 1, res.Code)
@@ -233,6 +237,7 @@ func TestBuildsImportClassic(t *testing.T) {
 			require.NoError(t, err)
 			require.Equal(t, data, rdata)
 		})
+
 		res, err := testExecute(e, "builds import -a app1 -f testdata/build.tgz", nil)
 		require.NoError(t, err)
 		require.Equal(t, 0, res.Code)
@@ -244,6 +249,7 @@ func TestBuildsImportClassic(t *testing.T) {
 func TestBuildsInfo(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
 		i.On("BuildGet", "app1", "build1").Return(&fxBuild, nil)
+
 		res, err := testExecute(e, "builds info build1 -a app1", nil)
 		require.NoError(t, err)
 		require.Equal(t, 0, res.Code)
@@ -262,6 +268,7 @@ func TestBuildsInfo(t *testing.T) {
 func TestBuildsInfoError(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
 		i.On("BuildGet", "app1", "build1").Return(nil, fmt.Errorf("err1"))
+
 		res, err := testExecute(e, "builds info build1 -a app1", nil)
 		require.NoError(t, err)
 		require.Equal(t, 1, res.Code)
@@ -274,6 +281,7 @@ func TestBuildsLogs(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
 		opts := structs.LogsOptions{}
 		i.On("BuildLogs", "app1", "build1", opts).Return(testLogs(fxLogs), nil)
+
 		res, err := testExecute(e, "builds logs build1 -a app1", nil)
 		require.NoError(t, err)
 		require.Equal(t, 0, res.Code)
@@ -289,6 +297,7 @@ func TestBuildsLogsError(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
 		opts := structs.LogsOptions{}
 		i.On("BuildLogs", "app1", "build1", opts).Return(nil, fmt.Errorf("err1"))
+
 		res, err := testExecute(e, "builds logs build1 -a app1", nil)
 		require.NoError(t, err)
 		require.Equal(t, 1, res.Code)
