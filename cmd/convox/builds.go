@@ -236,7 +236,7 @@ func BuildsImport(c *stdcli.Context) error {
 		if c.Reader().IsTerminal() {
 			return fmt.Errorf("pipe a file into this command or specify --file")
 		}
-		r = ioutil.NopCloser(c.Reader().File)
+		r = ioutil.NopCloser(c.Reader())
 	}
 
 	defer r.Close()
