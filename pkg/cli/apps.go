@@ -88,9 +88,11 @@ func Apps(rack sdk.Interface, c *stdcli.Context) error {
 }
 
 func AppsCancel(rack sdk.Interface, c *stdcli.Context) error {
-	c.Startf("Cancelling <app>%s</app>", app(c))
+	app := coalesce(c.Arg(0), app(c))
 
-	if err := rack.AppCancel(app(c)); err != nil {
+	c.Startf("Cancelling <app>%s</app>", app)
+
+	if err := rack.AppCancel(app); err != nil {
 		return err
 	}
 
