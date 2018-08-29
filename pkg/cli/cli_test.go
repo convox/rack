@@ -2,7 +2,9 @@ package cli_test
 
 import (
 	"bytes"
+	"fmt"
 	"io"
+	"io/ioutil"
 	"strings"
 	"testing"
 	"time"
@@ -11,15 +13,20 @@ import (
 	mocksdk "github.com/convox/rack/pkg/mock/sdk"
 	"github.com/convox/rack/pkg/structs"
 	shellquote "github.com/kballard/go-shellquote"
+	"github.com/stretchr/testify/require"
 )
 
-var fxSystem = structs.System{
-	Version: "20180829000000",
-}
-
-var fxSystemClassic = structs.System{
-	Version: "20180101000000",
-}
+var (
+	fxObject = structs.Object{
+		Url: "object://test",
+	}
+	fxSystem = structs.System{
+		Version: "20180829000000",
+	}
+	fxSystemClassic = structs.System{
+		Version: "20180101000000",
+	}
+)
 
 func testClient(t *testing.T, fn func(*cli.Engine, *mocksdk.Interface)) {
 	testClientWait(t, 0*time.Second, fn)
@@ -69,20 +76,22 @@ func testExecute(e *cli.Engine, cmd string, stdin io.Reader) (*result, error) {
 	return res, nil
 }
 
+func testLogs(logs []string) io.ReadCloser {
+	return ioutil.NopCloser(strings.NewReader(fmt.Sprintf("%s\n", strings.Join(logs, "\n"))))
+}
+
 type result struct {
 	Code   int
 	Stdout string
 	Stderr string
 }
 
-func (r *result) StdoutLines() int {
-	lines := strings.Split(r.Stdout, "\n")
-	if lines[len(lines)-1] == "" {
-		lines = lines[0 : len(lines)-1]
-	}
-	return len(lines)
+func (r *result) RequireStderr(t *testing.T, lines []string) {
+	stderr := strings.Split(strings.TrimSuffix(r.Stderr, "\n"), "\n")
+	require.Equal(t, lines, stderr)
 }
 
-func (r *result) StdoutLine(line int) string {
-	return strings.Split(r.Stdout, "\n")[line]
+func (r *result) RequireStdout(t *testing.T, lines []string) {
+	stdout := strings.Split(strings.TrimSuffix(r.Stdout, "\n"), "\n")
+	require.Equal(t, lines, stdout)
 }
