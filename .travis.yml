@@ -20,17 +20,9 @@ before_install:
   - source ./ci/correct-path.sh
   - sudo apt-get -o Dpkg::Options::="--force-confnew" install -y --allow-downgrades docker-ce=${DOCKER_VERSION}
   - docker version
-  - go get github.com/codeclimate/test-reporter
-
-before_script:
-  - test-reporter before-build
 
 script:
   - ./ci/set-client-id.sh
   - go get ./cmd/convox
   - make test
   - curl -s https://codecov.io/bash | bash
-
-after_script:
-  - cp coverage.txt c.out
-  - test-reporter after-build --exit-code $TRAVIS_TEST_RESULT
