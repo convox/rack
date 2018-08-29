@@ -192,3 +192,107 @@ func TestBuildsExportError(t *testing.T) {
 		res.RequireStdout(t, []string{"Exporting build... "})
 	})
 }
+
+func TestBuildsImport(t *testing.T) {
+	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
+		data, err := ioutil.ReadFile("testdata/build.tgz")
+		require.NoError(t, err)
+		i.On("SystemGet").Return(&fxSystem, nil)
+		i.On("BuildImport", "app1", mock.Anything).Return(&fxBuild, nil).Run(func(args mock.Arguments) {
+			rdata, err := ioutil.ReadAll(args.Get(1).(io.Reader))
+			require.NoError(t, err)
+			require.Equal(t, data, rdata)
+		})
+		res, err := testExecute(e, "builds import -a app1 -f testdata/build.tgz", nil)
+		require.NoError(t, err)
+		require.Equal(t, 0, res.Code)
+		res.RequireStderr(t, []string{""})
+		res.RequireStdout(t, []string{"Importing build... OK, release1"})
+	})
+}
+
+func TestBuildsImportError(t *testing.T) {
+	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
+		i.On("SystemGet").Return(&fxSystem, nil)
+		i.On("BuildImport", "app1", mock.Anything).Return(nil, fmt.Errorf("err1"))
+		res, err := testExecute(e, "builds import -a app1 -f testdata/build.tgz", nil)
+		require.NoError(t, err)
+		require.Equal(t, 1, res.Code)
+		res.RequireStderr(t, []string{"ERROR: err1"})
+		res.RequireStdout(t, []string{"Importing build... "})
+	})
+}
+
+func TestBuildsImportClassic(t *testing.T) {
+	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
+		data, err := ioutil.ReadFile("testdata/build.tgz")
+		require.NoError(t, err)
+		i.On("SystemGet").Return(&fxSystemClassic, nil)
+		i.On("BuildImportMultipart", "app1", mock.Anything).Return(&fxBuild, nil).Run(func(args mock.Arguments) {
+			rdata, err := ioutil.ReadAll(args.Get(1).(io.Reader))
+			require.NoError(t, err)
+			require.Equal(t, data, rdata)
+		})
+		res, err := testExecute(e, "builds import -a app1 -f testdata/build.tgz", nil)
+		require.NoError(t, err)
+		require.Equal(t, 0, res.Code)
+		res.RequireStderr(t, []string{""})
+		res.RequireStdout(t, []string{"Importing build... OK, release1"})
+	})
+}
+
+func TestBuildsInfo(t *testing.T) {
+	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
+		i.On("BuildGet", "app1", "build1").Return(&fxBuild, nil)
+		res, err := testExecute(e, "builds info build1 -a app1", nil)
+		require.NoError(t, err)
+		require.Equal(t, 0, res.Code)
+		res.RequireStderr(t, []string{""})
+		res.RequireStdout(t, []string{
+			"Id           build1",
+			"Status       complete",
+			"Release      release1",
+			"Description  desc",
+			"Started      2 days ago",
+			"Elapsed      2m0s",
+		})
+	})
+}
+
+func TestBuildsInfoError(t *testing.T) {
+	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
+		i.On("BuildGet", "app1", "build1").Return(nil, fmt.Errorf("err1"))
+		res, err := testExecute(e, "builds info build1 -a app1", nil)
+		require.NoError(t, err)
+		require.Equal(t, 1, res.Code)
+		res.RequireStderr(t, []string{"ERROR: err1"})
+		res.RequireStdout(t, []string{""})
+	})
+}
+
+func TestBuildsLogs(t *testing.T) {
+	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
+		opts := structs.LogsOptions{}
+		i.On("BuildLogs", "app1", "build1", opts).Return(testLogs(fxLogs), nil)
+		res, err := testExecute(e, "builds logs build1 -a app1", nil)
+		require.NoError(t, err)
+		require.Equal(t, 0, res.Code)
+		res.RequireStderr(t, []string{""})
+		res.RequireStdout(t, []string{
+			fxLogs[0],
+			fxLogs[1],
+		})
+	})
+}
+
+func TestBuildsLogsError(t *testing.T) {
+	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
+		opts := structs.LogsOptions{}
+		i.On("BuildLogs", "app1", "build1", opts).Return(nil, fmt.Errorf("err1"))
+		res, err := testExecute(e, "builds logs build1 -a app1", nil)
+		require.NoError(t, err)
+		require.Equal(t, 1, res.Code)
+		res.RequireStderr(t, []string{"ERROR: err1"})
+		res.RequireStdout(t, []string{""})
+	})
+}
