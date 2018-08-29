@@ -1,22 +1,23 @@
-package main
+package cli
 
 import (
 	"fmt"
 	"strings"
 
 	"github.com/convox/rack/pkg/structs"
+	"github.com/convox/rack/sdk"
 	"github.com/convox/stdcli"
 )
 
 func init() {
-	CLI.Command("services", "list services for an app", Services, stdcli.CommandOptions{
+	register("services", "list services for an app", Services, stdcli.CommandOptions{
 		Flags:    []stdcli.Flag{flagApp, flagRack},
 		Validate: stdcli.Args(0),
 	})
 }
 
-func Services(c *stdcli.Context) error {
-	sys, err := provider(c).SystemGet()
+func Services(rack sdk.Interface, c *stdcli.Context) error {
+	sys, err := rack.SystemGet()
 	if err != nil {
 		return err
 	}
@@ -24,12 +25,12 @@ func Services(c *stdcli.Context) error {
 	var ss structs.Services
 
 	if sys.Version < "20180708231844" {
-		ss, err = provider(c).FormationGet(app(c))
+		ss, err = rack.FormationGet(app(c))
 		if err != nil {
 			return err
 		}
 	} else {
-		ss, err = provider(c).ServiceList(app(c))
+		ss, err = rack.ServiceList(app(c))
 		if err != nil {
 			return err
 		}

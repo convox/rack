@@ -1,4 +1,4 @@
-package main
+package cli
 
 import (
 	"fmt"
@@ -7,11 +7,12 @@ import (
 
 	"github.com/convox/rack/pkg/options"
 	"github.com/convox/rack/pkg/structs"
+	"github.com/convox/rack/sdk"
 	"github.com/convox/stdcli"
 )
 
 func init() {
-	CLI.Command("run", "execute a command in a new process", Run, stdcli.CommandOptions{
+	register("run", "execute a command in a new process", Run, stdcli.CommandOptions{
 		Flags: append(
 			stdcli.OptionFlags(structs.ProcessRunOptions{}),
 			flagRack,
@@ -24,8 +25,8 @@ func init() {
 	})
 }
 
-func Run(c *stdcli.Context) error {
-	s, err := provider(c).SystemGet()
+func Run(rack sdk.Interface, c *stdcli.Context) error {
+	s, err := rack.SystemGet()
 	if err != nil {
 		return err
 	}
@@ -59,7 +60,7 @@ func Run(c *stdcli.Context) error {
 		if c.Bool("detach") {
 			c.Startf("Running detached process")
 
-			pid, err := provider(c).ProcessRunDetached(app(c), service, opts)
+			pid, err := rack.ProcessRunDetached(app(c), service, opts)
 			if err != nil {
 				return err
 			}
@@ -67,7 +68,7 @@ func Run(c *stdcli.Context) error {
 			return c.OK(pid)
 		}
 
-		code, err := provider(c).ProcessRunAttached(app(c), service, c, timeout, opts)
+		code, err := rack.ProcessRunAttached(app(c), service, c, timeout, opts)
 		if err != nil {
 			return err
 		}
@@ -78,7 +79,7 @@ func Run(c *stdcli.Context) error {
 	if c.Bool("detach") {
 		c.Startf("Running detached process")
 
-		ps, err := provider(c).ProcessRun(app(c), service, opts)
+		ps, err := rack.ProcessRun(app(c), service, opts)
 		if err != nil {
 			return err
 		}
@@ -88,14 +89,14 @@ func Run(c *stdcli.Context) error {
 
 	opts.Command = options.String(fmt.Sprintf("sleep %d", timeout))
 
-	ps, err := provider(c).ProcessRun(app(c), c.Arg(0), opts)
+	ps, err := rack.ProcessRun(app(c), c.Arg(0), opts)
 	if err != nil {
 		return err
 	}
 
-	defer provider(c).ProcessStop(app(c), ps.Id)
+	defer rack.ProcessStop(app(c), ps.Id)
 
-	if err := waitForProcessRunning(c, app(c), ps.Id); err != nil {
+	if err := waitForProcessRunning(rack, c, app(c), ps.Id); err != nil {
 		return err
 	}
 
@@ -109,7 +110,7 @@ func Run(c *stdcli.Context) error {
 		eopts.Tty = options.Bool(false)
 	}
 
-	code, err := provider(c).ProcessExec(app(c), ps.Id, command, c, eopts)
+	code, err := rack.ProcessExec(app(c), ps.Id, command, c, eopts)
 	if err != nil {
 		return err
 	}

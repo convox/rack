@@ -1,4 +1,4 @@
-package main
+package cli
 
 import (
 	"fmt"
@@ -7,33 +7,34 @@ import (
 	"github.com/convox/rack/pkg/helpers"
 	"github.com/convox/rack/pkg/options"
 	"github.com/convox/rack/pkg/structs"
+	"github.com/convox/rack/sdk"
 	"github.com/convox/stdcli"
 )
 
 func init() {
-	CLI.Command("instances", "list instances", Instances, stdcli.CommandOptions{
+	register("instances", "list instances", Instances, stdcli.CommandOptions{
 		Flags:    []stdcli.Flag{flagRack},
 		Validate: stdcli.Args(0),
 	})
 
-	CLI.Command("instances keyroll", "roll ssh key on instances", InstancesKeyroll, stdcli.CommandOptions{
+	register("instances keyroll", "roll ssh key on instances", InstancesKeyroll, stdcli.CommandOptions{
 		Flags:    []stdcli.Flag{flagRack, flagWait},
 		Validate: stdcli.Args(0),
 	})
 
-	CLI.Command("instances ssh", "run a shell on an instance", InstancesSsh, stdcli.CommandOptions{
+	register("instances ssh", "run a shell on an instance", InstancesSsh, stdcli.CommandOptions{
 		Flags:    []stdcli.Flag{flagRack},
 		Validate: stdcli.ArgsMin(1),
 	})
 
-	CLI.Command("instances terminate", "terminate an instance", InstancesTerminate, stdcli.CommandOptions{
+	register("instances terminate", "terminate an instance", InstancesTerminate, stdcli.CommandOptions{
 		Flags:    []stdcli.Flag{flagRack},
 		Validate: stdcli.ArgsMin(1),
 	})
 }
 
-func Instances(c *stdcli.Context) error {
-	is, err := provider(c).InstanceList()
+func Instances(rack sdk.Interface, c *stdcli.Context) error {
+	is, err := rack.InstanceList()
 	if err != nil {
 		return err
 	}
@@ -47,15 +48,15 @@ func Instances(c *stdcli.Context) error {
 	return t.Print()
 }
 
-func InstancesKeyroll(c *stdcli.Context) error {
+func InstancesKeyroll(rack sdk.Interface, c *stdcli.Context) error {
 	c.Startf("Rolling instance key")
 
-	if err := provider(c).InstanceKeyroll(); err != nil {
+	if err := rack.InstanceKeyroll(); err != nil {
 		return err
 	}
 
 	if c.Bool("wait") {
-		if err := waitForRackWithLogs(c); err != nil {
+		if err := waitForRackWithLogs(rack, c); err != nil {
 			return err
 		}
 	}
@@ -63,8 +64,8 @@ func InstancesKeyroll(c *stdcli.Context) error {
 	return c.OK()
 }
 
-func InstancesSsh(c *stdcli.Context) error {
-	s, err := provider(c).SystemGet()
+func InstancesSsh(rack sdk.Interface, c *stdcli.Context) error {
+	s, err := rack.SystemGet()
 	if err != nil {
 		return err
 	}
@@ -86,7 +87,7 @@ func InstancesSsh(c *stdcli.Context) error {
 	}
 
 	if s.Version <= "20180708231844" {
-		code, err := provider(c).InstanceShellClassic(c.Arg(0), c, opts)
+		code, err := rack.InstanceShellClassic(c.Arg(0), c, opts)
 		if err != nil {
 			return err
 		}
@@ -94,7 +95,7 @@ func InstancesSsh(c *stdcli.Context) error {
 		return stdcli.Exit(code)
 	}
 
-	code, err := provider(c).InstanceShell(c.Arg(0), c, opts)
+	code, err := rack.InstanceShell(c.Arg(0), c, opts)
 	if err != nil {
 		return err
 	}
@@ -102,10 +103,10 @@ func InstancesSsh(c *stdcli.Context) error {
 	return stdcli.Exit(code)
 }
 
-func InstancesTerminate(c *stdcli.Context) error {
+func InstancesTerminate(rack sdk.Interface, c *stdcli.Context) error {
 	c.Startf("Terminating instance")
 
-	if err := provider(c).InstanceTerminate(c.Arg(0)); err != nil {
+	if err := rack.InstanceTerminate(c.Arg(0)); err != nil {
 		return err
 	}
 

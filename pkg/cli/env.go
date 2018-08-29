@@ -1,4 +1,4 @@
-package main
+package cli
 
 import (
 	"bufio"
@@ -15,16 +15,17 @@ import (
 	"github.com/convox/rack/pkg/helpers"
 	"github.com/convox/rack/pkg/options"
 	"github.com/convox/rack/pkg/structs"
+	"github.com/convox/rack/sdk"
 	"github.com/convox/stdcli"
 )
 
 func init() {
-	CLI.Command("env", "list env vars", Env, stdcli.CommandOptions{
+	register("env", "list env vars", Env, stdcli.CommandOptions{
 		Flags:    []stdcli.Flag{flagRack, flagApp},
 		Validate: stdcli.Args(0),
 	})
 
-	CLI.Command("env edit", "edit env interactively", EnvEdit, stdcli.CommandOptions{
+	register("env edit", "edit env interactively", EnvEdit, stdcli.CommandOptions{
 		Flags: []stdcli.Flag{
 			flagApp,
 			flagRack,
@@ -34,13 +35,13 @@ func init() {
 		Validate: stdcli.Args(0),
 	})
 
-	CLI.Command("env get", "get an env var", EnvGet, stdcli.CommandOptions{
+	register("env get", "get an env var", EnvGet, stdcli.CommandOptions{
 		Flags:    []stdcli.Flag{flagRack, flagApp},
 		Usage:    "<var>",
 		Validate: stdcli.Args(1),
 	})
 
-	CLI.Command("env set", "set env var(s)", EnvSet, stdcli.CommandOptions{
+	register("env set", "set env var(s)", EnvSet, stdcli.CommandOptions{
 		Flags: []stdcli.Flag{
 			flagApp,
 			flagId,
@@ -51,7 +52,7 @@ func init() {
 		Usage: "<key=value> [key=value]...",
 	})
 
-	CLI.Command("env unset", "unset env var(s)", EnvUnset, stdcli.CommandOptions{
+	register("env unset", "unset env var(s)", EnvUnset, stdcli.CommandOptions{
 		Flags: []stdcli.Flag{
 			flagApp,
 			flagId,
@@ -64,8 +65,8 @@ func init() {
 	})
 }
 
-func Env(c *stdcli.Context) error {
-	env, err := helpers.AppEnvironment(provider(c), app(c))
+func Env(rack sdk.Interface, c *stdcli.Context) error {
+	env, err := helpers.AppEnvironment(rack, app(c))
 	if err != nil {
 		return err
 	}
@@ -75,8 +76,8 @@ func Env(c *stdcli.Context) error {
 	return nil
 }
 
-func EnvEdit(c *stdcli.Context) error {
-	env, err := helpers.AppEnvironment(provider(c), app(c))
+func EnvEdit(rack sdk.Interface, c *stdcli.Context) error {
+	env, err := helpers.AppEnvironment(rack, app(c))
 	if err != nil {
 		return err
 	}
@@ -138,18 +139,18 @@ func EnvEdit(c *stdcli.Context) error {
 
 	var r *structs.Release
 
-	s, err := provider(c).SystemGet()
+	s, err := rack.SystemGet()
 	if err != nil {
 		return err
 	}
 
 	if s.Version <= "20180708231844" {
-		r, err = provider(c).EnvironmentSet(app(c), []byte(nenv.String()))
+		r, err = rack.EnvironmentSet(app(c), []byte(nenv.String()))
 		if err != nil {
 			return err
 		}
 	} else {
-		r, err = provider(c).ReleaseCreate(app(c), structs.ReleaseCreateOptions{Env: options.String(nenv.String())})
+		r, err = rack.ReleaseCreate(app(c), structs.ReleaseCreateOptions{Env: options.String(nenv.String())})
 		if err != nil {
 			return err
 		}
@@ -160,7 +161,7 @@ func EnvEdit(c *stdcli.Context) error {
 	c.Writef("Release: <release>%s</release>\n", r.Id)
 
 	if c.Bool("promote") {
-		if err := releasePromote(c, app(c), r.Id); err != nil {
+		if err := releasePromote(rack, c, app(c), r.Id); err != nil {
 			return err
 		}
 	}
@@ -168,8 +169,8 @@ func EnvEdit(c *stdcli.Context) error {
 	return nil
 }
 
-func EnvGet(c *stdcli.Context) error {
-	env, err := helpers.AppEnvironment(provider(c), app(c))
+func EnvGet(rack sdk.Interface, c *stdcli.Context) error {
+	env, err := helpers.AppEnvironment(rack, app(c))
 	if err != nil {
 		return err
 	}
@@ -186,7 +187,7 @@ func EnvGet(c *stdcli.Context) error {
 	return nil
 }
 
-func EnvSet(c *stdcli.Context) error {
+func EnvSet(rack sdk.Interface, c *stdcli.Context) error {
 	var stdout io.Writer
 
 	if c.Bool("id") {
@@ -194,7 +195,7 @@ func EnvSet(c *stdcli.Context) error {
 		c.Writer().Stdout = c.Writer().Stderr
 	}
 
-	env, err := helpers.AppEnvironment(provider(c), app(c))
+	env, err := helpers.AppEnvironment(rack, app(c))
 	if err != nil {
 		return err
 	}
@@ -223,18 +224,18 @@ func EnvSet(c *stdcli.Context) error {
 
 	var r *structs.Release
 
-	s, err := provider(c).SystemGet()
+	s, err := rack.SystemGet()
 	if err != nil {
 		return err
 	}
 
 	if s.Version <= "20180708231844" {
-		r, err = provider(c).EnvironmentSet(app(c), []byte(env.String()))
+		r, err = rack.EnvironmentSet(app(c), []byte(env.String()))
 		if err != nil {
 			return err
 		}
 	} else {
-		r, err = provider(c).ReleaseCreate(app(c), structs.ReleaseCreateOptions{Env: options.String(env.String())})
+		r, err = rack.ReleaseCreate(app(c), structs.ReleaseCreateOptions{Env: options.String(env.String())})
 		if err != nil {
 			return err
 		}
@@ -245,7 +246,7 @@ func EnvSet(c *stdcli.Context) error {
 	c.Writef("Release: <release>%s</release>\n", r.Id)
 
 	if c.Bool("promote") {
-		if err := releasePromote(c, app(c), r.Id); err != nil {
+		if err := releasePromote(rack, c, app(c), r.Id); err != nil {
 			return err
 		}
 	}
@@ -257,7 +258,7 @@ func EnvSet(c *stdcli.Context) error {
 	return nil
 }
 
-func EnvUnset(c *stdcli.Context) error {
+func EnvUnset(rack sdk.Interface, c *stdcli.Context) error {
 	var stdout io.Writer
 
 	if c.Bool("id") {
@@ -265,7 +266,7 @@ func EnvUnset(c *stdcli.Context) error {
 		c.Writer().Stdout = c.Writer().Stderr
 	}
 
-	env, err := helpers.AppEnvironment(provider(c), app(c))
+	env, err := helpers.AppEnvironment(rack, app(c))
 	if err != nil {
 		return err
 	}
@@ -283,20 +284,20 @@ func EnvUnset(c *stdcli.Context) error {
 
 	var r *structs.Release
 
-	s, err := provider(c).SystemGet()
+	s, err := rack.SystemGet()
 	if err != nil {
 		return err
 	}
 
 	if s.Version <= "20180708231844" {
 		for _, e := range c.Args {
-			r, err = provider(c).EnvironmentUnset(app(c), e)
+			r, err = rack.EnvironmentUnset(app(c), e)
 			if err != nil {
 				return err
 			}
 		}
 	} else {
-		r, err = provider(c).ReleaseCreate(app(c), structs.ReleaseCreateOptions{Env: options.String(env.String())})
+		r, err = rack.ReleaseCreate(app(c), structs.ReleaseCreateOptions{Env: options.String(env.String())})
 		if err != nil {
 			return err
 		}
@@ -307,7 +308,7 @@ func EnvUnset(c *stdcli.Context) error {
 	c.Writef("Release: <release>%s</release>\n", r.Id)
 
 	if c.Bool("promote") {
-		if err := releasePromote(c, app(c), r.Id); err != nil {
+		if err := releasePromote(rack, c, app(c), r.Id); err != nil {
 			return err
 		}
 	}

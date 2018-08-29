@@ -1,4 +1,4 @@
-package main
+package cli
 
 import (
 	"fmt"
@@ -9,49 +9,50 @@ import (
 	"github.com/convox/rack/pkg/helpers"
 	"github.com/convox/rack/pkg/options"
 	"github.com/convox/rack/pkg/structs"
+	"github.com/convox/rack/sdk"
 	"github.com/convox/stdcli"
 )
 
 func init() {
-	CLI.Command("releases", "list releases for an app", Releases, stdcli.CommandOptions{
+	register("releases", "list releases for an app", Releases, stdcli.CommandOptions{
 		Flags:    append(stdcli.OptionFlags(structs.ReleaseListOptions{}), flagRack, flagApp),
 		Validate: stdcli.Args(0),
 	})
 
-	CLI.Command("releases info", "get information about a release", ReleasesInfo, stdcli.CommandOptions{
+	register("releases info", "get information about a release", ReleasesInfo, stdcli.CommandOptions{
 		Flags:    []stdcli.Flag{flagApp, flagRack},
 		Validate: stdcli.Args(1),
 	})
 
-	CLI.Command("releases manifest", "get manifest for a release", ReleasesManifest, stdcli.CommandOptions{
+	register("releases manifest", "get manifest for a release", ReleasesManifest, stdcli.CommandOptions{
 		Flags:    []stdcli.Flag{flagApp, flagRack},
 		Validate: stdcli.Args(1),
 	})
 
-	CLI.Command("releases promote", "promote a release", ReleasesPromote, stdcli.CommandOptions{
+	register("releases promote", "promote a release", ReleasesPromote, stdcli.CommandOptions{
 		Flags:    []stdcli.Flag{flagApp, flagRack, flagWait},
 		Validate: stdcli.ArgsMax(1),
 	})
 
-	CLI.Command("releases rollback", "copy an old release forward and promote it", ReleasesRollback, stdcli.CommandOptions{
+	register("releases rollback", "copy an old release forward and promote it", ReleasesRollback, stdcli.CommandOptions{
 		Flags:    []stdcli.Flag{flagApp, flagId, flagRack, flagWait},
 		Validate: stdcli.Args(1),
 	})
 }
 
-func Releases(c *stdcli.Context) error {
+func Releases(rack sdk.Interface, c *stdcli.Context) error {
 	var opts structs.ReleaseListOptions
 
 	if err := c.Options(&opts); err != nil {
 		return err
 	}
 
-	a, err := provider(c).AppGet(app(c))
+	a, err := rack.AppGet(app(c))
 	if err != nil {
 		return err
 	}
 
-	rs, err := provider(c).ReleaseList(app(c), opts)
+	rs, err := rack.ReleaseList(app(c), opts)
 	if err != nil {
 		return err
 	}
@@ -71,8 +72,8 @@ func Releases(c *stdcli.Context) error {
 	return t.Print()
 }
 
-func ReleasesInfo(c *stdcli.Context) error {
-	r, err := provider(c).ReleaseGet(app(c), c.Arg(0))
+func ReleasesInfo(rack sdk.Interface, c *stdcli.Context) error {
+	r, err := rack.ReleaseGet(app(c), c.Arg(0))
 	if err != nil {
 		return err
 	}
@@ -87,10 +88,10 @@ func ReleasesInfo(c *stdcli.Context) error {
 	return i.Print()
 }
 
-func ReleasesManifest(c *stdcli.Context) error {
+func ReleasesManifest(rack sdk.Interface, c *stdcli.Context) error {
 	release := c.Arg(0)
 
-	r, err := provider(c).ReleaseGet(app(c), release)
+	r, err := rack.ReleaseGet(app(c), release)
 	if err != nil {
 		return err
 	}
@@ -99,7 +100,7 @@ func ReleasesManifest(c *stdcli.Context) error {
 		return fmt.Errorf("no build for release: %s", release)
 	}
 
-	b, err := provider(c).BuildGet(app(c), r.Build)
+	b, err := rack.BuildGet(app(c), r.Build)
 	if err != nil {
 		return err
 	}
@@ -109,11 +110,11 @@ func ReleasesManifest(c *stdcli.Context) error {
 	return nil
 }
 
-func ReleasesPromote(c *stdcli.Context) error {
+func ReleasesPromote(rack sdk.Interface, c *stdcli.Context) error {
 	release := c.Arg(0)
 
 	if release == "" {
-		rs, err := provider(c).ReleaseList(app(c), structs.ReleaseListOptions{Limit: options.Int(1)})
+		rs, err := rack.ReleaseList(app(c), structs.ReleaseListOptions{Limit: options.Int(1)})
 		if err != nil {
 			return err
 		}
@@ -125,22 +126,22 @@ func ReleasesPromote(c *stdcli.Context) error {
 		release = rs[0].Id
 	}
 
-	return releasePromote(c, app(c), release)
+	return releasePromote(rack, c, app(c), release)
 }
 
-func releasePromote(c *stdcli.Context, app, id string) error {
+func releasePromote(rack sdk.Interface, c *stdcli.Context, app, id string) error {
 	if id == "" {
 		return fmt.Errorf("no release to promote")
 	}
 
 	c.Startf("Promoting <release>%s</release>", id)
 
-	if err := provider(c).ReleasePromote(app, id); err != nil {
+	if err := rack.ReleasePromote(app, id); err != nil {
 		return err
 	}
 
 	if c.Bool("wait") {
-		if err := waitForAppWithLogs(c, app); err != nil {
+		if err := waitForAppWithLogs(rack, c, app); err != nil {
 			return err
 		}
 	}
@@ -148,7 +149,7 @@ func releasePromote(c *stdcli.Context, app, id string) error {
 	return c.OK()
 }
 
-func ReleasesRollback(c *stdcli.Context) error {
+func ReleasesRollback(rack sdk.Interface, c *stdcli.Context) error {
 	var stdout io.Writer
 
 	if c.Bool("id") {
@@ -160,12 +161,12 @@ func ReleasesRollback(c *stdcli.Context) error {
 
 	c.Startf("Rolling back to <release>%s</release>", release)
 
-	ro, err := provider(c).ReleaseGet(app(c), release)
+	ro, err := rack.ReleaseGet(app(c), release)
 	if err != nil {
 		return err
 	}
 
-	rn, err := provider(c).ReleaseCreate(app(c), structs.ReleaseCreateOptions{
+	rn, err := rack.ReleaseCreate(app(c), structs.ReleaseCreateOptions{
 		Build: options.String(ro.Build),
 		Env:   options.String(ro.Env),
 	})
@@ -177,12 +178,12 @@ func ReleasesRollback(c *stdcli.Context) error {
 
 	c.Startf("Promoting <release>%s</release>", rn.Id)
 
-	if err := provider(c).ReleasePromote(app(c), rn.Id); err != nil {
+	if err := rack.ReleasePromote(app(c), rn.Id); err != nil {
 		return err
 	}
 
 	if c.Bool("wait") {
-		if err := waitForAppWithLogs(c, app(c)); err != nil {
+		if err := waitForAppWithLogs(rack, c, app(c)); err != nil {
 			return err
 		}
 	}

@@ -1,4 +1,4 @@
-package main
+package cli
 
 import (
 	"fmt"
@@ -11,6 +11,7 @@ import (
 	"github.com/convox/rack/pkg/helpers"
 	"github.com/convox/rack/pkg/options"
 	"github.com/convox/rack/pkg/structs"
+	"github.com/convox/rack/sdk"
 	"github.com/convox/stdcli"
 
 	pv "github.com/convox/rack/provider"
@@ -18,44 +19,44 @@ import (
 )
 
 func init() {
-	CLI.Command("rack", "get information about the rack", Rack, stdcli.CommandOptions{
+	register("rack", "get information about the rack", Rack, stdcli.CommandOptions{
 		Flags:    []stdcli.Flag{flagRack},
 		Validate: stdcli.Args(0),
 	})
 
-	CLI.Command("rack install", "install a rack", RackInstall, stdcli.CommandOptions{
+	register("rack install", "install a rack", RackInstall, stdcli.CommandOptions{
 		Flags:    append(stdcli.OptionFlags(structs.SystemInstallOptions{})),
 		Usage:    "<type> [Parameter=Value]...",
 		Validate: stdcli.ArgsMin(1),
 	})
 
-	CLI.Command("rack logs", "get logs for the rack", RackLogs, stdcli.CommandOptions{
+	register("rack logs", "get logs for the rack", RackLogs, stdcli.CommandOptions{
 		Flags:    append(stdcli.OptionFlags(structs.LogsOptions{}), flagNoFollow, flagRack),
 		Validate: stdcli.Args(0),
 	})
 
-	CLI.Command("rack params", "display rack parameters", RackParams, stdcli.CommandOptions{
+	register("rack params", "display rack parameters", RackParams, stdcli.CommandOptions{
 		Flags:    []stdcli.Flag{flagRack},
 		Validate: stdcli.Args(0),
 	})
 
-	CLI.Command("rack params set", "set rack parameters", RackParamsSet, stdcli.CommandOptions{
+	register("rack params set", "set rack parameters", RackParamsSet, stdcli.CommandOptions{
 		Flags:    []stdcli.Flag{flagRack, flagWait},
 		Usage:    "<Key=Value> [Key=Value]...",
 		Validate: stdcli.ArgsMin(1),
 	})
 
-	CLI.Command("rack ps", "list rack processes", RackPs, stdcli.CommandOptions{
+	register("rack ps", "list rack processes", RackPs, stdcli.CommandOptions{
 		Flags:    append(stdcli.OptionFlags(structs.SystemProcessesOptions{}), flagRack),
 		Validate: stdcli.Args(0),
 	})
 
-	CLI.Command("rack releases", "list rack version history", RackReleases, stdcli.CommandOptions{
+	register("rack releases", "list rack version history", RackReleases, stdcli.CommandOptions{
 		Flags:    []stdcli.Flag{flagRack},
 		Validate: stdcli.Args(0),
 	})
 
-	CLI.Command("rack scale", "scale the rack", RackScale, stdcli.CommandOptions{
+	register("rack scale", "scale the rack", RackScale, stdcli.CommandOptions{
 		Flags: []stdcli.Flag{
 			flagRack,
 			stdcli.IntFlag("count", "c", "instance count"),
@@ -64,7 +65,7 @@ func init() {
 		Validate: stdcli.Args(0),
 	})
 
-	CLI.Command("rack start", "start local rack", RackStart, stdcli.CommandOptions{
+	register("rack start", "start local rack", RackStart, stdcli.CommandOptions{
 		Flags: []stdcli.Flag{
 			stdcli.StringFlag("name", "n", "rack name"),
 			stdcli.StringFlag("router", "r", "router host"),
@@ -73,25 +74,25 @@ func init() {
 		Validate:  stdcli.Args(0),
 	})
 
-	CLI.Command("rack uninstall", "uninstall a rack", RackUninstall, stdcli.CommandOptions{
+	register("rack uninstall", "uninstall a rack", RackUninstall, stdcli.CommandOptions{
 		Flags:    append(stdcli.OptionFlags(structs.SystemUninstallOptions{}), flagForce),
 		Usage:    "<type> <name>",
 		Validate: stdcli.Args(2),
 	})
 
-	CLI.Command("rack update", "update the rack", RackUpdate, stdcli.CommandOptions{
+	register("rack update", "update the rack", RackUpdate, stdcli.CommandOptions{
 		Flags:    []stdcli.Flag{flagRack, flagWait},
 		Validate: stdcli.ArgsMax(1),
 	})
 
-	CLI.Command("rack wait", "wait for rack to finish updating", RackWait, stdcli.CommandOptions{
+	register("rack wait", "wait for rack to finish updating", RackWait, stdcli.CommandOptions{
 		Flags:    []stdcli.Flag{flagRack},
 		Validate: stdcli.Args(0),
 	})
 }
 
-func Rack(c *stdcli.Context) error {
-	s, err := provider(c).SystemGet()
+func Rack(rack sdk.Interface, c *stdcli.Context) error {
+	s, err := rack.SystemGet()
 	if err != nil {
 		return err
 	}
@@ -107,7 +108,7 @@ func Rack(c *stdcli.Context) error {
 	return i.Print()
 }
 
-func RackInstall(c *stdcli.Context) error {
+func RackInstall(rack sdk.Interface, c *stdcli.Context) error {
 	var opts structs.SystemInstallOptions
 
 	if err := c.Options(&opts); err != nil {
@@ -157,7 +158,7 @@ func RackInstall(c *stdcli.Context) error {
 	return nil
 }
 
-func RackLogs(c *stdcli.Context) error {
+func RackLogs(rack sdk.Interface, c *stdcli.Context) error {
 	var opts structs.LogsOptions
 
 	if err := c.Options(&opts); err != nil {
@@ -168,7 +169,7 @@ func RackLogs(c *stdcli.Context) error {
 		opts.Follow = options.Bool(false)
 	}
 
-	r, err := provider(c).SystemLogs(opts)
+	r, err := rack.SystemLogs(opts)
 	if err != nil {
 		return err
 	}
@@ -178,8 +179,8 @@ func RackLogs(c *stdcli.Context) error {
 	return nil
 }
 
-func RackParams(c *stdcli.Context) error {
-	s, err := provider(c).SystemGet()
+func RackParams(rack sdk.Interface, c *stdcli.Context) error {
+	s, err := rack.SystemGet()
 	if err != nil {
 		return err
 	}
@@ -201,8 +202,8 @@ func RackParams(c *stdcli.Context) error {
 	return i.Print()
 }
 
-func RackParamsSet(c *stdcli.Context) error {
-	s, err := provider(c).SystemGet()
+func RackParamsSet(rack sdk.Interface, c *stdcli.Context) error {
+	s, err := rack.SystemGet()
 	if err != nil {
 		return err
 	}
@@ -224,17 +225,17 @@ func RackParamsSet(c *stdcli.Context) error {
 	c.Startf("Updating parameters")
 
 	if s.Version <= "20180708231844" {
-		if err := provider(c).AppParametersSet(s.Name, opts.Parameters); err != nil {
+		if err := rack.AppParametersSet(s.Name, opts.Parameters); err != nil {
 			return err
 		}
 	} else {
-		if err := provider(c).SystemUpdate(opts); err != nil {
+		if err := rack.SystemUpdate(opts); err != nil {
 			return err
 		}
 	}
 
 	if c.Bool("wait") {
-		if err := waitForRackWithLogs(c); err != nil {
+		if err := waitForRackWithLogs(rack, c); err != nil {
 			return err
 		}
 	}
@@ -242,14 +243,14 @@ func RackParamsSet(c *stdcli.Context) error {
 	return c.OK()
 }
 
-func RackPs(c *stdcli.Context) error {
+func RackPs(rack sdk.Interface, c *stdcli.Context) error {
 	var opts structs.SystemProcessesOptions
 
 	if err := c.Options(&opts); err != nil {
 		return err
 	}
 
-	ps, err := provider(c).SystemProcesses(opts)
+	ps, err := rack.SystemProcesses(opts)
 	if err != nil {
 		return err
 	}
@@ -263,8 +264,8 @@ func RackPs(c *stdcli.Context) error {
 	return t.Print()
 }
 
-func RackReleases(c *stdcli.Context) error {
-	rs, err := provider(c).SystemReleases()
+func RackReleases(rack sdk.Interface, c *stdcli.Context) error {
+	rs, err := rack.SystemReleases()
 	if err != nil {
 		return err
 	}
@@ -278,8 +279,8 @@ func RackReleases(c *stdcli.Context) error {
 	return t.Print()
 }
 
-func RackScale(c *stdcli.Context) error {
-	s, err := provider(c).SystemGet()
+func RackScale(rack sdk.Interface, c *stdcli.Context) error {
+	s, err := rack.SystemGet()
 	if err != nil {
 		return err
 	}
@@ -300,7 +301,7 @@ func RackScale(c *stdcli.Context) error {
 	if update {
 		c.Startf("Scaling rack")
 
-		if err := provider(c).SystemUpdate(opts); err != nil {
+		if err := rack.SystemUpdate(opts); err != nil {
 			return err
 		}
 
@@ -317,11 +318,11 @@ func RackScale(c *stdcli.Context) error {
 	return i.Print()
 }
 
-func RackStart(c *stdcli.Context) error {
+func RackStart(rack sdk.Interface, c *stdcli.Context) error {
 	name := coalesce(c.String("name"), "convox")
 	router := coalesce(c.String("router"), "10.42.0.0")
 
-	cmd, err := rackCommand(name, version, router)
+	cmd, err := rackCommand(name, c.Version(), router)
 	if err != nil {
 		return err
 	}
@@ -334,7 +335,7 @@ func RackStart(c *stdcli.Context) error {
 	return cmd.Run()
 }
 
-func RackUninstall(c *stdcli.Context) error {
+func RackUninstall(rack sdk.Interface, c *stdcli.Context) error {
 	var opts structs.SystemUninstallOptions
 
 	if err := c.Options(&opts); err != nil {
@@ -364,12 +365,12 @@ func RackUninstall(c *stdcli.Context) error {
 	return nil
 }
 
-func RackUpdate(c *stdcli.Context) error {
+func RackUpdate(rack sdk.Interface, c *stdcli.Context) error {
 	target := c.Arg(0)
 
 	// if no version specified, find the next version
 	if target == "" {
-		s, err := provider(c).SystemGet()
+		s, err := rack.SystemGet()
 		if err != nil {
 			return err
 		}
@@ -388,12 +389,12 @@ func RackUpdate(c *stdcli.Context) error {
 
 	c.Startf("Updating to <release>%s</release>", target)
 
-	if err := provider(c).SystemUpdate(structs.SystemUpdateOptions{Version: options.String(target)}); err != nil {
+	if err := rack.SystemUpdate(structs.SystemUpdateOptions{Version: options.String(target)}); err != nil {
 		return err
 	}
 
 	if c.Bool("wait") {
-		if err := waitForRackWithLogs(c); err != nil {
+		if err := waitForRackWithLogs(rack, c); err != nil {
 			return err
 		}
 	}
@@ -401,10 +402,10 @@ func RackUpdate(c *stdcli.Context) error {
 	return c.OK()
 }
 
-func RackWait(c *stdcli.Context) error {
+func RackWait(rack sdk.Interface, c *stdcli.Context) error {
 	c.Startf("Waiting for rack")
 
-	if err := waitForRackWithLogs(c); err != nil {
+	if err := waitForRackWithLogs(rack, c); err != nil {
 		return err
 	}
 
