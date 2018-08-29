@@ -2,8 +2,6 @@ package cli_test
 
 import (
 	"fmt"
-	"io/ioutil"
-	"strings"
 	"testing"
 	"time"
 
@@ -42,11 +40,12 @@ func TestApps(t *testing.T) {
 		res, err := testExecute(e, "apps", nil)
 		require.NoError(t, err)
 		require.Equal(t, 0, res.Code)
-		require.Equal(t, "", res.Stderr)
-		require.Equal(t, 3, res.StdoutLines())
-		require.Equal(t, "APP   STATUS    GEN  RELEASE ", res.StdoutLine(0))
-		require.Equal(t, "app1  running   2    release1", res.StdoutLine(1))
-		require.Equal(t, "app2  creating  1            ", res.StdoutLine(2))
+		res.RequireStderr(t, []string{""})
+		res.RequireStdout(t, []string{
+			"APP   STATUS    GEN  RELEASE ",
+			"app1  running   2    release1",
+			"app2  creating  1            ",
+		})
 	})
 }
 
@@ -57,8 +56,8 @@ func TestAppsError(t *testing.T) {
 		res, err := testExecute(e, "apps", nil)
 		require.NoError(t, err)
 		require.Equal(t, 1, res.Code)
-		require.Equal(t, "ERROR: err1\n", res.Stderr)
-		require.Equal(t, "", res.Stdout)
+		res.RequireStderr(t, []string{"ERROR: err1"})
+		res.RequireStdout(t, []string{""})
 	})
 }
 
@@ -69,16 +68,18 @@ func TestAppsCancel(t *testing.T) {
 		res, err := testExecute(e, "apps cancel app1", nil)
 		require.NoError(t, err)
 		require.Equal(t, 0, res.Code)
-		require.Equal(t, "", res.Stderr)
-		require.Equal(t, 1, res.StdoutLines())
-		require.Equal(t, "Cancelling app1... OK", res.StdoutLine(0))
+		res.RequireStderr(t, []string{""})
+		res.RequireStdout(t, []string{
+			"Cancelling app1... OK",
+		})
 
 		res, err = testExecute(e, "apps cancel -a app1", nil)
 		require.NoError(t, err)
 		require.Equal(t, 0, res.Code)
-		require.Equal(t, "", res.Stderr)
-		require.Equal(t, 1, res.StdoutLines())
-		require.Equal(t, "Cancelling app1... OK", res.StdoutLine(0))
+		res.RequireStderr(t, []string{""})
+		res.RequireStdout(t, []string{
+			"Cancelling app1... OK",
+		})
 	})
 }
 
@@ -89,9 +90,10 @@ func TestAppsCancelError(t *testing.T) {
 		res, err := testExecute(e, "apps cancel app1", nil)
 		require.NoError(t, err)
 		require.Equal(t, 1, res.Code)
-		require.Equal(t, "ERROR: err1\n", res.Stderr)
-		require.Equal(t, 1, res.StdoutLines())
-		require.Equal(t, "Cancelling app1... ", res.StdoutLine(0))
+		res.RequireStderr(t, []string{"ERROR: err1"})
+		res.RequireStdout(t, []string{
+			"Cancelling app1... ",
+		})
 	})
 }
 
@@ -103,9 +105,10 @@ func TestAppsCreate(t *testing.T) {
 		res, err := testExecute(e, "apps create app1", nil)
 		require.NoError(t, err)
 		require.Equal(t, 0, res.Code)
-		require.Equal(t, "", res.Stderr)
-		require.Equal(t, 1, res.StdoutLines())
-		require.Equal(t, "Creating app1... OK", res.StdoutLine(0))
+		res.RequireStderr(t, []string{""})
+		res.RequireStdout(t, []string{
+			"Creating app1... OK",
+		})
 	})
 }
 
@@ -117,9 +120,8 @@ func TestAppsCreateError(t *testing.T) {
 		res, err := testExecute(e, "apps create app1", nil)
 		require.NoError(t, err)
 		require.Equal(t, 1, res.Code)
-		require.Equal(t, "ERROR: err1\n", res.Stderr)
-		require.Equal(t, 1, res.StdoutLines())
-		require.Equal(t, "Creating app1... ", res.StdoutLine(0))
+		res.RequireStderr(t, []string{"ERROR: err1"})
+		res.RequireStdout(t, []string{"Creating app1... "})
 	})
 }
 
@@ -133,9 +135,10 @@ func TestAppsCreateGeneration1(t *testing.T) {
 		res, err := testExecute(e, "apps create app1 -g 1", nil)
 		require.NoError(t, err)
 		require.Equal(t, 0, res.Code)
-		require.Equal(t, "", res.Stderr)
-		require.Equal(t, 1, res.StdoutLines())
-		require.Equal(t, "Creating app1... OK", res.StdoutLine(0))
+		res.RequireStderr(t, []string{""})
+		res.RequireStdout(t, []string{
+			"Creating app1... OK",
+		})
 	})
 }
 
@@ -149,9 +152,10 @@ func TestAppsCreateWait(t *testing.T) {
 		res, err := testExecute(e, "apps create app1 --wait", nil)
 		require.NoError(t, err)
 		require.Equal(t, 0, res.Code)
-		require.Equal(t, "", res.Stderr)
-		require.Equal(t, 1, res.StdoutLines())
-		require.Equal(t, "Creating app1... OK", res.StdoutLine(0))
+		res.RequireStderr(t, []string{""})
+		res.RequireStdout(t, []string{
+			"Creating app1... OK",
+		})
 	})
 }
 
@@ -162,9 +166,10 @@ func TestAppsDelete(t *testing.T) {
 		res, err := testExecute(e, "apps delete app1", nil)
 		require.NoError(t, err)
 		require.Equal(t, 0, res.Code)
-		require.Equal(t, "", res.Stderr)
-		require.Equal(t, 1, res.StdoutLines())
-		require.Equal(t, "Deleting app1... OK", res.StdoutLine(0))
+		res.RequireStderr(t, []string{""})
+		res.RequireStdout(t, []string{
+			"Deleting app1... OK",
+		})
 	})
 }
 
@@ -175,9 +180,8 @@ func TestAppsDeleteError(t *testing.T) {
 		res, err := testExecute(e, "apps delete app1", nil)
 		require.NoError(t, err)
 		require.Equal(t, 1, res.Code)
-		require.Equal(t, "ERROR: err1\n", res.Stderr)
-		require.Equal(t, 1, res.StdoutLines())
-		require.Equal(t, "Deleting app1... ", res.StdoutLine(0))
+		res.RequireStderr(t, []string{"ERROR: err1"})
+		res.RequireStdout(t, []string{"Deleting app1... "})
 	})
 }
 
@@ -190,9 +194,10 @@ func TestAppsDeleteWait(t *testing.T) {
 		res, err := testExecute(e, "apps delete app1 --wait", nil)
 		require.NoError(t, err)
 		require.Equal(t, 0, res.Code)
-		require.Equal(t, "", res.Stderr)
-		require.Equal(t, 1, res.StdoutLines())
-		require.Equal(t, "Deleting app1... OK", res.StdoutLine(0))
+		res.RequireStderr(t, []string{""})
+		res.RequireStdout(t, []string{
+			"Deleting app1... OK",
+		})
 	})
 }
 
@@ -203,22 +208,24 @@ func TestAppsInfo(t *testing.T) {
 		res, err := testExecute(e, "apps info app1", nil)
 		require.NoError(t, err)
 		require.Equal(t, 0, res.Code)
-		require.Equal(t, "", res.Stderr)
-		require.Equal(t, 4, res.StdoutLines())
-		require.Equal(t, "Name     app1", res.StdoutLine(0))
-		require.Equal(t, "Status   running", res.StdoutLine(1))
-		require.Equal(t, "Gen      2", res.StdoutLine(2))
-		require.Equal(t, "Release  release1", res.StdoutLine(3))
+		res.RequireStderr(t, []string{""})
+		res.RequireStdout(t, []string{
+			"Name     app1",
+			"Status   running",
+			"Gen      2",
+			"Release  release1",
+		})
 
 		res, err = testExecute(e, "apps info -a app1", nil)
 		require.NoError(t, err)
 		require.Equal(t, 0, res.Code)
-		require.Equal(t, "", res.Stderr)
-		require.Equal(t, 4, res.StdoutLines())
-		require.Equal(t, "Name     app1", res.StdoutLine(0))
-		require.Equal(t, "Status   running", res.StdoutLine(1))
-		require.Equal(t, "Gen      2", res.StdoutLine(2))
-		require.Equal(t, "Release  release1", res.StdoutLine(3))
+		res.RequireStderr(t, []string{""})
+		res.RequireStdout(t, []string{
+			"Name     app1",
+			"Status   running",
+			"Gen      2",
+			"Release  release1",
+		})
 	})
 }
 
@@ -229,8 +236,8 @@ func TestAppsInfoError(t *testing.T) {
 		res, err := testExecute(e, "apps info app1", nil)
 		require.NoError(t, err)
 		require.Equal(t, 1, res.Code)
-		require.Equal(t, "ERROR: err1\n", res.Stderr)
-		require.Equal(t, 0, res.StdoutLines())
+		res.RequireStderr(t, []string{"ERROR: err1"})
+		res.RequireStdout(t, []string{""})
 	})
 
 }
@@ -243,18 +250,20 @@ func TestAppsParams(t *testing.T) {
 		res, err := testExecute(e, "apps params app1", nil)
 		require.NoError(t, err)
 		require.Equal(t, 0, res.Code)
-		require.Equal(t, "", res.Stderr)
-		require.Equal(t, 2, res.StdoutLines())
-		require.Equal(t, "ParamFoo    value1", res.StdoutLine(0))
-		require.Equal(t, "ParamOther  value2", res.StdoutLine(1))
+		res.RequireStderr(t, []string{""})
+		res.RequireStdout(t, []string{
+			"ParamFoo    value1",
+			"ParamOther  value2",
+		})
 
 		res, err = testExecute(e, "apps params -a app1", nil)
 		require.NoError(t, err)
 		require.Equal(t, 0, res.Code)
-		require.Equal(t, "", res.Stderr)
-		require.Equal(t, 2, res.StdoutLines())
-		require.Equal(t, "ParamFoo    value1", res.StdoutLine(0))
-		require.Equal(t, "ParamOther  value2", res.StdoutLine(1))
+		res.RequireStderr(t, []string{""})
+		res.RequireStdout(t, []string{
+			"ParamFoo    value1",
+			"ParamOther  value2",
+		})
 	})
 }
 
@@ -266,8 +275,8 @@ func TestAppsParamsError(t *testing.T) {
 		res, err := testExecute(e, "apps params app1", nil)
 		require.NoError(t, err)
 		require.Equal(t, 1, res.Code)
-		require.Equal(t, "ERROR: err1\n", res.Stderr)
-		require.Equal(t, 0, res.StdoutLines())
+		res.RequireStderr(t, []string{"ERROR: err1"})
+		res.RequireStdout(t, []string{""})
 	})
 }
 
@@ -279,10 +288,11 @@ func TestAppsParamsClassic(t *testing.T) {
 		res, err := testExecute(e, "apps params app1", nil)
 		require.NoError(t, err)
 		require.Equal(t, 0, res.Code)
-		require.Equal(t, "", res.Stderr)
-		require.Equal(t, 2, res.StdoutLines())
-		require.Equal(t, "ParamFoo    value1", res.StdoutLine(0))
-		require.Equal(t, "ParamOther  value2", res.StdoutLine(1))
+		res.RequireStderr(t, []string{""})
+		res.RequireStdout(t, []string{
+			"ParamFoo    value1",
+			"ParamOther  value2",
+		})
 	})
 }
 
@@ -300,9 +310,8 @@ func TestAppsParamsSet(t *testing.T) {
 		res, err := testExecute(e, "apps params set Foo=bar Baz=qux -a app1", nil)
 		require.NoError(t, err)
 		require.Equal(t, 0, res.Code)
-		require.Equal(t, "", res.Stderr)
-		require.Equal(t, 1, res.StdoutLines())
-		require.Equal(t, "Updating parameters... OK", res.StdoutLine(0))
+		res.RequireStderr(t, []string{""})
+		res.RequireStdout(t, []string{"Updating parameters... OK"})
 	})
 }
 
@@ -320,9 +329,8 @@ func TestAppsParamsSetError(t *testing.T) {
 		res, err := testExecute(e, "apps params set Foo=bar Baz=qux -a app1", nil)
 		require.NoError(t, err)
 		require.Equal(t, 1, res.Code)
-		require.Equal(t, "ERROR: err1\n", res.Stderr)
-		require.Equal(t, 1, res.StdoutLines())
-		require.Equal(t, "Updating parameters... ", res.StdoutLine(0))
+		res.RequireStderr(t, []string{"ERROR: err1"})
+		res.RequireStdout(t, []string{"Updating parameters... "})
 	})
 }
 
@@ -334,9 +342,8 @@ func TestAppsParamsSetClassic(t *testing.T) {
 		res, err := testExecute(e, "apps params set Foo=bar Baz=qux -a app1", nil)
 		require.NoError(t, err)
 		require.Equal(t, 0, res.Code)
-		require.Equal(t, "", res.Stderr)
-		require.Equal(t, 1, res.StdoutLines())
-		require.Equal(t, "Updating parameters... OK", res.StdoutLine(0))
+		res.RequireStderr(t, []string{""})
+		res.RequireStdout(t, []string{"Updating parameters... OK"})
 	})
 }
 
@@ -351,16 +358,14 @@ func TestAppsSleep(t *testing.T) {
 		res, err := testExecute(e, "apps sleep app1", nil)
 		require.NoError(t, err)
 		require.Equal(t, 0, res.Code)
-		require.Equal(t, "", res.Stderr)
-		require.Equal(t, 1, res.StdoutLines())
-		require.Equal(t, "Sleeping app1... OK", res.StdoutLine(0))
+		res.RequireStderr(t, []string{""})
+		res.RequireStdout(t, []string{"Sleeping app1... OK"})
 
 		res, err = testExecute(e, "apps sleep -a app1", nil)
 		require.NoError(t, err)
 		require.Equal(t, 0, res.Code)
-		require.Equal(t, "", res.Stderr)
-		require.Equal(t, 1, res.StdoutLines())
-		require.Equal(t, "Sleeping app1... OK", res.StdoutLine(0))
+		res.RequireStderr(t, []string{""})
+		res.RequireStdout(t, []string{"Sleeping app1... OK"})
 	})
 }
 
@@ -375,9 +380,8 @@ func TestAppsSleepError(t *testing.T) {
 		res, err := testExecute(e, "apps sleep app1", nil)
 		require.NoError(t, err)
 		require.Equal(t, 1, res.Code)
-		require.Equal(t, "ERROR: err1\n", res.Stderr)
-		require.Equal(t, 1, res.StdoutLines())
-		require.Equal(t, "Sleeping app1... ", res.StdoutLine(0))
+		res.RequireStderr(t, []string{"ERROR: err1"})
+		res.RequireStdout(t, []string{"Sleeping app1... "})
 	})
 }
 
@@ -392,16 +396,14 @@ func TestAppsWake(t *testing.T) {
 		res, err := testExecute(e, "apps wake app1", nil)
 		require.NoError(t, err)
 		require.Equal(t, 0, res.Code)
-		require.Equal(t, "", res.Stderr)
-		require.Equal(t, 1, res.StdoutLines())
-		require.Equal(t, "Waking app1... OK", res.StdoutLine(0))
+		res.RequireStderr(t, []string{""})
+		res.RequireStdout(t, []string{"Waking app1... OK"})
 
 		res, err = testExecute(e, "apps wake -a app1", nil)
 		require.NoError(t, err)
 		require.Equal(t, 0, res.Code)
-		require.Equal(t, "", res.Stderr)
-		require.Equal(t, 1, res.StdoutLines())
-		require.Equal(t, "Waking app1... OK", res.StdoutLine(0))
+		res.RequireStderr(t, []string{""})
+		res.RequireStdout(t, []string{"Waking app1... OK"})
 	})
 }
 
@@ -416,53 +418,49 @@ func TestAppsWakeError(t *testing.T) {
 		res, err := testExecute(e, "apps wake app1", nil)
 		require.NoError(t, err)
 		require.Equal(t, 1, res.Code)
-		require.Equal(t, "ERROR: err1\n", res.Stderr)
-		require.Equal(t, 1, res.StdoutLines())
-		require.Equal(t, "Waking app1... ", res.StdoutLine(0))
+		res.RequireStderr(t, []string{"ERROR: err1"})
+		res.RequireStdout(t, []string{"Waking app1... "})
 	})
 }
 
 func TestAppsWait(t *testing.T) {
-	testClientWait(t, 1*time.Second, func(e *cli.Engine, i *mocksdk.Interface) {
-		logs := []string{
-			"TIME system/aws/foo log1",
-			"TIME system/aws/foo log2",
-		}
+	testClientWait(t, 100*time.Millisecond, func(e *cli.Engine, i *mocksdk.Interface) {
 		opts := structs.LogsOptions{
 			Prefix: options.Bool(true),
 			Since:  options.Duration(0),
 		}
 		i.On("AppGet", "app1").Return(&structs.App{Status: "creating"}, nil).Twice()
 		i.On("AppGet", "app1").Return(&fxApp, nil)
-
-		i.On("AppLogs", "app1", opts).Return(ioutil.NopCloser(strings.NewReader(strings.Join(logs, "\n"))), nil).Once()
+		i.On("AppLogs", "app1", opts).Return(testLogs(fxLogsSystem), nil).Once()
 
 		res, err := testExecute(e, "apps wait app1", nil)
 		require.NoError(t, err)
 		require.Equal(t, 0, res.Code)
-		require.Equal(t, "", res.Stderr)
-		require.Equal(t, 4, res.StdoutLines())
-		require.Equal(t, "Waiting for app... ", res.StdoutLine(0))
-		require.Equal(t, logs[0], res.StdoutLine(1))
-		require.Equal(t, logs[1], res.StdoutLine(2))
-		require.Equal(t, "OK", res.StdoutLine(3))
+		res.RequireStderr(t, []string{""})
+		res.RequireStdout(t, []string{
+			"Waiting for app... ",
+			fxLogsSystem[0],
+			fxLogsSystem[1],
+			"OK",
+		})
 
-		i.On("AppLogs", "app1", opts).Return(ioutil.NopCloser(strings.NewReader(strings.Join(logs, "\n"))), nil).Once()
+		i.On("AppLogs", "app1", opts).Return(testLogs(fxLogsSystem), nil).Once()
 
 		res, err = testExecute(e, "apps wait -a app1", nil)
 		require.NoError(t, err)
 		require.Equal(t, 0, res.Code)
-		require.Equal(t, "", res.Stderr)
-		require.Equal(t, 4, res.StdoutLines())
-		require.Equal(t, "Waiting for app... ", res.StdoutLine(0))
-		require.Equal(t, logs[0], res.StdoutLine(1))
-		require.Equal(t, logs[1], res.StdoutLine(2))
-		require.Equal(t, "OK", res.StdoutLine(3))
+		res.RequireStderr(t, []string{""})
+		res.RequireStdout(t, []string{
+			"Waiting for app... ",
+			fxLogsSystem[0],
+			fxLogsSystem[1],
+			"OK",
+		})
 	})
 }
 
 func TestAppsWaitError(t *testing.T) {
-	testClientWait(t, 1*time.Second, func(e *cli.Engine, i *mocksdk.Interface) {
+	testClientWait(t, 100*time.Millisecond, func(e *cli.Engine, i *mocksdk.Interface) {
 		opts := structs.LogsOptions{
 			Prefix: options.Bool(true),
 			Since:  options.Duration(0),
@@ -473,8 +471,7 @@ func TestAppsWaitError(t *testing.T) {
 		res, err := testExecute(e, "apps wait app1", nil)
 		require.NoError(t, err)
 		require.Equal(t, 1, res.Code)
-		require.Equal(t, "ERROR: err1\n", res.Stderr)
-		require.Equal(t, 1, res.StdoutLines())
-		require.Equal(t, "Waiting for app... ", res.StdoutLine(0))
+		res.RequireStderr(t, []string{"ERROR: err1"})
+		res.RequireStdout(t, []string{"Waiting for app... "})
 	})
 }
