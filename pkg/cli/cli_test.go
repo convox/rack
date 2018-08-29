@@ -28,6 +28,10 @@ var (
 	}
 )
 
+var (
+	fxStarted = time.Now().UTC().Add(-48 * time.Hour)
+)
+
 func testClient(t *testing.T, fn func(*cli.Engine, *mocksdk.Interface)) {
 	testClientWait(t, 0*time.Second, fn)
 }
