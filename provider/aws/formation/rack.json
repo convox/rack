@@ -2070,7 +2070,7 @@
           { "Ref": "Subnet1" },
           { "Fn::If": [ "ThirdAvailabilityZone", { "Ref": "Subnet2" }, { "Ref": "AWS::NoValue" } ] }
         ],
-        "SecurityGroups": [ { "Ref": "RouterSecurity" } ]
+        "SecurityGroups": [ { "Ref": "RouterInternalSecurity" } ]
       }
     },
     "RouterInternalSecurity": {
