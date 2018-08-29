@@ -1,4 +1,4 @@
-package main
+package cli
 
 import (
 	"bufio"
@@ -13,15 +13,49 @@ import (
 	"os/signal"
 	"path/filepath"
 	"runtime"
+	"sort"
 	"strings"
 	"syscall"
 	"time"
 
 	"github.com/convox/rack/pkg/options"
-	"github.com/convox/rack/sdk"
 	"github.com/convox/rack/pkg/structs"
+	"github.com/convox/rack/sdk"
 	"github.com/convox/stdcli"
+	"github.com/convox/stdsdk"
 )
+
+type rack struct {
+	Name   string
+	Status string
+}
+
+func (e *Engine) currentClient(c *stdcli.Context) sdk.Interface {
+	if e.Client != nil {
+		return e.Client
+	}
+
+	host, err := currentHost(c)
+	if err != nil {
+		c.Fail(err)
+	}
+
+	r := currentRack(c, host)
+
+	endpoint, err := currentEndpoint(c, r)
+	if err != nil {
+		c.Fail(err)
+	}
+
+	sc, err := sdk.New(endpoint)
+	if err != nil {
+		c.Fail(err)
+	}
+
+	sc.Rack = r
+
+	return sc
+}
 
 func app(c *stdcli.Context) string {
 	wd, err := os.Getwd()
@@ -218,27 +252,66 @@ func hostRacks(c *stdcli.Context) map[string]string {
 	return rs
 }
 
-func provider(c *stdcli.Context) *sdk.Client {
-	host, err := currentHost(c)
+func localRackRunning() bool {
+	rs, err := localRacks()
 	if err != nil {
-		c.Fail(err)
+		return false
 	}
 
-	r := currentRack(c, host)
+	return len(rs) > 0
+}
 
-	endpoint, err := currentEndpoint(c, r)
+func localRacks() ([]rack, error) {
+	racks := []rack{}
+
+	data, err := exec.Command("docker", "ps", "--filter", "label=convox.type=rack", "--format", "{{.Names}}").CombinedOutput()
 	if err != nil {
-		c.Fail(err)
+		return []rack{}, nil // if no docker then no local racks
 	}
 
-	sc, err := sdk.New(endpoint)
-	if err != nil {
-		c.Fail(err)
+	names := strings.Split(strings.TrimSpace(string(data)), "\n")
+
+	for _, name := range names {
+		if name == "" {
+			continue
+		}
+
+		racks = append(racks, rack{
+			Name:   fmt.Sprintf("local/%s", name),
+			Status: "running",
+		})
 	}
 
-	sc.Rack = r
+	return racks, nil
+}
 
-	return sc
+func matchRack(c *stdcli.Context, name string) (*rack, error) {
+	rs, err := racks(c)
+	if err != nil {
+		return nil, err
+	}
+
+	matches := []rack{}
+
+	for _, r := range rs {
+		if r.Name == name {
+			return &r, nil
+		}
+
+		if strings.Index(r.Name, name) != -1 {
+			matches = append(matches, r)
+		}
+	}
+
+	if len(matches) > 1 {
+		return nil, fmt.Errorf("ambiguous rack name: %s", name)
+	}
+
+	if len(matches) == 1 {
+		return &matches[0], nil
+	}
+
+	return nil, fmt.Errorf("could not find rack: %s", name)
 }
 
 func rackCommand(name string, version string, router string) (*exec.Cmd, error) {
@@ -275,6 +348,75 @@ func rackCommand(name string, version string, router string) (*exec.Cmd, error) 
 	return exec.Command("docker", args...), nil
 }
 
+func racks(c *stdcli.Context) ([]rack, error) {
+	rs := []rack{}
+
+	rrs, err := remoteRacks(c)
+	if err != nil {
+		return nil, err
+	}
+
+	rs = append(rs, rrs...)
+
+	lrs, err := localRacks()
+	if err != nil {
+		return nil, err
+	}
+
+	rs = append(rs, lrs...)
+
+	sort.Slice(rs, func(i, j int) bool {
+		return rs[i].Name < rs[j].Name
+	})
+
+	return rs, nil
+}
+
+func remoteRacks(c *stdcli.Context) ([]rack, error) {
+	h, err := c.SettingRead("host")
+	if err != nil {
+		return nil, err
+	}
+
+	if h == "" {
+		return []rack{}, nil
+	}
+
+	racks := []rack{}
+
+	var rs []struct {
+		Name         string
+		Organization struct {
+			Name string
+		}
+		Status string
+	}
+
+	// override local rack to get remote rack list
+	endpoint, err := currentEndpoint(c, "")
+	if err != nil {
+		return nil, err
+	}
+
+	p, err := sdk.New(endpoint)
+	if err != nil {
+		return nil, err
+	}
+
+	p.Get("/racks", stdsdk.RequestOptions{}, &rs)
+
+	if rs != nil {
+		for _, r := range rs {
+			racks = append(racks, rack{
+				Name:   fmt.Sprintf("%s/%s", r.Organization.Name, r.Name),
+				Status: r.Status,
+			})
+		}
+	}
+
+	return racks, nil
+}
+
 func saveAuth(c *stdcli.Context, host, password string) error {
 	as, err := c.SettingRead("auth")
 	if err != nil {
@@ -303,8 +445,8 @@ func saveAuth(c *stdcli.Context, host, password string) error {
 	return nil
 }
 
-func streamAppSystemLogs(c *stdcli.Context, app string, done chan bool) {
-	r, err := provider(c).AppLogs(app, structs.LogsOptions{Prefix: options.Bool(true), Since: options.Duration(0)})
+func streamAppSystemLogs(rack sdk.Interface, c *stdcli.Context, app string, done chan bool) {
+	r, err := rack.AppLogs(app, structs.LogsOptions{Prefix: options.Bool(true), Since: options.Duration(0)})
 	if err != nil {
 		return
 	}
@@ -314,8 +456,8 @@ func streamAppSystemLogs(c *stdcli.Context, app string, done chan bool) {
 	<-done
 }
 
-func streamRackSystemLogs(c *stdcli.Context, done chan bool) {
-	r, err := provider(c).SystemLogs(structs.LogsOptions{Prefix: options.Bool(true), Since: options.Duration(0)})
+func streamRackSystemLogs(rack sdk.Interface, c *stdcli.Context, done chan bool) {
+	r, err := rack.SystemLogs(structs.LogsOptions{Prefix: options.Bool(true), Since: options.Duration(0)})
 	if err != nil {
 		return
 	}
@@ -357,11 +499,11 @@ func wait(interval time.Duration, timeout time.Duration, times int, fn func() (b
 	}
 }
 
-func waitForAppDeleted(c *stdcli.Context, app string) error {
+func waitForAppDeleted(rack sdk.Interface, c *stdcli.Context, app string) error {
 	time.Sleep(5 * time.Second) // give the stack time to start updating
 
 	return wait(5*time.Second, 30*time.Minute, 2, func() (bool, error) {
-		_, err := provider(c).AppGet(app)
+		_, err := rack.AppGet(app)
 		if err == nil {
 			return false, nil
 		}
@@ -375,11 +517,11 @@ func waitForAppDeleted(c *stdcli.Context, app string) error {
 	})
 }
 
-func waitForAppRunning(c *stdcli.Context, app string) error {
+func waitForAppRunning(rack sdk.Interface, c *stdcli.Context, app string) error {
 	time.Sleep(5 * time.Second) // give the stack time to start updating
 
 	return wait(5*time.Second, 30*time.Minute, 2, func() (bool, error) {
-		a, err := provider(c).AppGet(app)
+		a, err := rack.AppGet(app)
 		if err != nil {
 			return false, err
 		}
@@ -388,14 +530,14 @@ func waitForAppRunning(c *stdcli.Context, app string) error {
 	})
 }
 
-func waitForAppWithLogs(c *stdcli.Context, app string) error {
+func waitForAppWithLogs(rack sdk.Interface, c *stdcli.Context, app string) error {
 	done := make(chan bool)
 
 	c.Writef("\n")
 
-	go streamAppSystemLogs(c, app, done)
+	go streamAppSystemLogs(rack, c, app, done)
 
-	if err := waitForAppRunning(c, app); err != nil {
+	if err := waitForAppRunning(rack, c, app); err != nil {
 		return err
 	}
 
@@ -404,9 +546,9 @@ func waitForAppWithLogs(c *stdcli.Context, app string) error {
 	return nil
 }
 
-func waitForProcessRunning(c *stdcli.Context, app, pid string) error {
+func waitForProcessRunning(rack sdk.Interface, c *stdcli.Context, app, pid string) error {
 	return wait(1*time.Second, 5*time.Minute, 2, func() (bool, error) {
-		ps, err := provider(c).ProcessGet(app, pid)
+		ps, err := rack.ProcessGet(app, pid)
 		if err != nil {
 			return false, err
 		}
@@ -415,11 +557,11 @@ func waitForProcessRunning(c *stdcli.Context, app, pid string) error {
 	})
 }
 
-func waitForRackRunning(c *stdcli.Context) error {
+func waitForRackRunning(rack sdk.Interface, c *stdcli.Context) error {
 	time.Sleep(5 * time.Second) // give the stack time to start updating
 
 	return wait(5*time.Second, 30*time.Minute, 2, func() (bool, error) {
-		s, err := provider(c).SystemGet()
+		s, err := rack.SystemGet()
 		if err != nil {
 			return false, err
 		}
@@ -428,14 +570,14 @@ func waitForRackRunning(c *stdcli.Context) error {
 	})
 }
 
-func waitForRackWithLogs(c *stdcli.Context) error {
+func waitForRackWithLogs(rack sdk.Interface, c *stdcli.Context) error {
 	done := make(chan bool)
 
 	c.Writef("\n")
 
-	go streamRackSystemLogs(c, done)
+	go streamRackSystemLogs(rack, c, done)
 
-	if err := waitForRackRunning(c); err != nil {
+	if err := waitForRackRunning(rack, c); err != nil {
 		return err
 	}
 
@@ -444,11 +586,11 @@ func waitForRackWithLogs(c *stdcli.Context) error {
 	return nil
 }
 
-func waitForResourceDeleted(c *stdcli.Context, resource string) error {
+func waitForResourceDeleted(rack sdk.Interface, c *stdcli.Context, resource string) error {
 	time.Sleep(5 * time.Second) // give the stack time to start updating
 
 	return wait(5*time.Second, 30*time.Minute, 2, func() (bool, error) {
-		_, err := provider(c).ResourceGet(resource)
+		_, err := rack.ResourceGet(resource)
 		if err == nil {
 			return false, nil
 		}
@@ -462,11 +604,11 @@ func waitForResourceDeleted(c *stdcli.Context, resource string) error {
 	})
 }
 
-func waitForResourceRunning(c *stdcli.Context, resource string) error {
+func waitForResourceRunning(rack sdk.Interface, c *stdcli.Context, resource string) error {
 	time.Sleep(5 * time.Second) // give the stack time to start updating
 
 	return wait(5*time.Second, 30*time.Minute, 2, func() (bool, error) {
-		r, err := provider(c).ResourceGet(resource)
+		r, err := rack.ResourceGet(resource)
 		if err != nil {
 			return false, err
 		}

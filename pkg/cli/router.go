@@ -1,15 +1,16 @@
-package main
+package cli
 
 import (
 	"fmt"
 	"os/user"
 
 	"github.com/convox/rack/pkg/router"
+	"github.com/convox/rack/sdk"
 	"github.com/convox/stdcli"
 )
 
 func init() {
-	CLI.Command("router", "start local router", Router, stdcli.CommandOptions{
+	register("router", "start local router", Router, stdcli.CommandOptions{
 		Flags: []stdcli.Flag{
 			stdcli.StringFlag("interface", "i", "interface name"),
 			stdcli.StringFlag("subnet", "s", "subnet cidr"),
@@ -19,7 +20,7 @@ func init() {
 	})
 }
 
-func Router(c *stdcli.Context) error {
+func Router(rack sdk.Interface, c *stdcli.Context) error {
 	u, err := user.Current()
 	if err != nil {
 		return err
@@ -32,7 +33,7 @@ func Router(c *stdcli.Context) error {
 	iface := coalesce(c.String("interface"), "vlan2")
 	subnet := coalesce(c.String("subnet"), "10.42.0.0/16")
 
-	r, err := router.New(iface, subnet, version)
+	r, err := router.New(iface, subnet, c.Version())
 	if err != nil {
 		return err
 	}

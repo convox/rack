@@ -1,4 +1,4 @@
-package main
+package cli
 
 import (
 	"bytes"
@@ -10,22 +10,23 @@ import (
 
 	"github.com/convox/rack/pkg/helpers"
 	"github.com/convox/rack/pkg/structs"
+	"github.com/convox/rack/sdk"
 	"github.com/convox/stdcli"
 )
 
 func init() {
-	CLI.Command("build", "create a build", Build, stdcli.CommandOptions{
+	register("build", "create a build", Build, stdcli.CommandOptions{
 		Flags:    append(stdcli.OptionFlags(structs.BuildCreateOptions{}), flagRack, flagApp, flagId),
 		Usage:    "[dir]",
 		Validate: stdcli.ArgsMax(1),
 	})
 
-	CLI.Command("builds", "list builds", Builds, stdcli.CommandOptions{
+	register("builds", "list builds", Builds, stdcli.CommandOptions{
 		Flags:    append(stdcli.OptionFlags(structs.BuildListOptions{}), flagRack, flagApp),
 		Validate: stdcli.Args(0),
 	})
 
-	CLI.Command("builds export", "export a build", BuildsExport, stdcli.CommandOptions{
+	register("builds export", "export a build", BuildsExport, stdcli.CommandOptions{
 		Flags: []stdcli.Flag{
 			flagRack,
 			flagApp,
@@ -35,7 +36,7 @@ func init() {
 		Validate: stdcli.Args(1),
 	})
 
-	CLI.Command("builds import", "import a build", BuildsImport, stdcli.CommandOptions{
+	register("builds import", "import a build", BuildsImport, stdcli.CommandOptions{
 		Flags: []stdcli.Flag{
 			flagRack,
 			flagApp,
@@ -45,20 +46,20 @@ func init() {
 		Validate: stdcli.Args(0),
 	})
 
-	CLI.Command("builds info", "get information about a build", BuildsInfo, stdcli.CommandOptions{
+	register("builds info", "get information about a build", BuildsInfo, stdcli.CommandOptions{
 		Flags:    []stdcli.Flag{flagRack, flagApp},
 		Usage:    "<build>",
 		Validate: stdcli.Args(1),
 	})
 
-	CLI.Command("builds logs", "get logs for a build", BuildsLogs, stdcli.CommandOptions{
+	register("builds logs", "get logs for a build", BuildsLogs, stdcli.CommandOptions{
 		Flags:    []stdcli.Flag{flagRack, flagApp},
 		Usage:    "<build>",
 		Validate: stdcli.Args(1),
 	})
 }
 
-func Build(c *stdcli.Context) error {
+func Build(rack sdk.Interface, c *stdcli.Context) error {
 	var stdout io.Writer
 
 	if c.Bool("id") {
@@ -66,7 +67,7 @@ func Build(c *stdcli.Context) error {
 		c.Writer().Stdout = c.Writer().Stderr
 	}
 
-	b, err := build(c)
+	b, err := build(rack, c)
 	if err != nil {
 		return err
 	}
@@ -81,7 +82,7 @@ func Build(c *stdcli.Context) error {
 	return nil
 }
 
-func build(c *stdcli.Context) (*structs.Build, error) {
+func build(rack sdk.Interface, c *stdcli.Context) (*structs.Build, error) {
 	var opts structs.BuildCreateOptions
 
 	if err := c.Options(&opts); err != nil {
@@ -97,7 +98,7 @@ func build(c *stdcli.Context) (*structs.Build, error) {
 
 	c.OK()
 
-	s, err := provider(c).SystemGet()
+	s, err := rack.SystemGet()
 	if err != nil {
 		return nil, err
 	}
@@ -107,7 +108,7 @@ func build(c *stdcli.Context) (*structs.Build, error) {
 	if s.Version < "20180708231844" {
 		c.Startf("Starting build")
 
-		b, err = provider(c).BuildCreateUpload(app(c), bytes.NewReader(data), opts)
+		b, err = rack.BuildCreateUpload(app(c), bytes.NewReader(data), opts)
 		if err != nil {
 			return nil, err
 		}
@@ -121,7 +122,7 @@ func build(c *stdcli.Context) (*structs.Build, error) {
 
 		c.Startf("Uploading source")
 
-		o, err := provider(c).ObjectStore(app(c), tmp, bytes.NewReader(data), structs.ObjectStoreOptions{})
+		o, err := rack.ObjectStore(app(c), tmp, bytes.NewReader(data), structs.ObjectStoreOptions{})
 		if err != nil {
 			return nil, err
 		}
@@ -130,7 +131,7 @@ func build(c *stdcli.Context) (*structs.Build, error) {
 
 		c.Startf("Starting build")
 
-		b, err = provider(c).BuildCreate(app(c), o.Url, opts)
+		b, err = rack.BuildCreate(app(c), o.Url, opts)
 		if err != nil {
 			return nil, err
 		}
@@ -138,7 +139,7 @@ func build(c *stdcli.Context) (*structs.Build, error) {
 
 	c.OK()
 
-	r, err := provider(c).BuildLogs(app(c), b.Id, structs.LogsOptions{})
+	r, err := rack.BuildLogs(app(c), b.Id, structs.LogsOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -146,7 +147,7 @@ func build(c *stdcli.Context) (*structs.Build, error) {
 	io.Copy(c, r)
 
 	for {
-		b, err = provider(c).BuildGet(app(c), b.Id)
+		b, err = rack.BuildGet(app(c), b.Id)
 		if err != nil {
 			return nil, err
 		}
@@ -165,14 +166,14 @@ func build(c *stdcli.Context) (*structs.Build, error) {
 	return b, nil
 }
 
-func Builds(c *stdcli.Context) error {
+func Builds(rack sdk.Interface, c *stdcli.Context) error {
 	var opts structs.BuildListOptions
 
 	if err := c.Options(&opts); err != nil {
 		return err
 	}
 
-	bs, err := provider(c).BuildList(app(c), opts)
+	bs, err := rack.BuildList(app(c), opts)
 	if err != nil {
 		return err
 	}
@@ -189,7 +190,7 @@ func Builds(c *stdcli.Context) error {
 	return t.Print()
 }
 
-func BuildsExport(c *stdcli.Context) error {
+func BuildsExport(rack sdk.Interface, c *stdcli.Context) error {
 	var w io.Writer
 
 	if file := c.String("file"); file != "" {
@@ -209,14 +210,14 @@ func BuildsExport(c *stdcli.Context) error {
 
 	c.Startf("Exporting build")
 
-	if err := provider(c).BuildExport(app(c), c.Arg(0), w); err != nil {
+	if err := rack.BuildExport(app(c), c.Arg(0), w); err != nil {
 		return err
 	}
 
 	return c.OK()
 }
 
-func BuildsImport(c *stdcli.Context) error {
+func BuildsImport(rack sdk.Interface, c *stdcli.Context) error {
 	var stdout io.Writer
 
 	if c.Bool("id") {
@@ -241,7 +242,7 @@ func BuildsImport(c *stdcli.Context) error {
 
 	defer r.Close()
 
-	s, err := provider(c).SystemGet()
+	s, err := rack.SystemGet()
 	if err != nil {
 		return err
 	}
@@ -251,11 +252,11 @@ func BuildsImport(c *stdcli.Context) error {
 	var b *structs.Build
 
 	if s.Version <= "20180416200237" {
-		b, err = provider(c).BuildImportMultipart(app(c), r)
+		b, err = rack.BuildImportMultipart(app(c), r)
 	} else if s.Version <= "20180708231844" {
-		b, err = provider(c).BuildImportUrl(app(c), r)
+		b, err = rack.BuildImportUrl(app(c), r)
 	} else {
-		b, err = provider(c).BuildImport(app(c), r)
+		b, err = rack.BuildImport(app(c), r)
 	}
 	if err != nil {
 		return err
@@ -270,8 +271,8 @@ func BuildsImport(c *stdcli.Context) error {
 	return nil
 }
 
-func BuildsInfo(c *stdcli.Context) error {
-	b, err := provider(c).BuildGet(app(c), c.Arg(0))
+func BuildsInfo(rack sdk.Interface, c *stdcli.Context) error {
+	b, err := rack.BuildGet(app(c), c.Arg(0))
 	if err != nil {
 		return err
 	}
@@ -288,14 +289,14 @@ func BuildsInfo(c *stdcli.Context) error {
 	return i.Print()
 }
 
-func BuildsLogs(c *stdcli.Context) error {
+func BuildsLogs(rack sdk.Interface, c *stdcli.Context) error {
 	var opts structs.LogsOptions
 
 	if err := c.Options(&opts); err != nil {
 		return err
 	}
 
-	r, err := provider(c).BuildLogs(app(c), c.Arg(0), opts)
+	r, err := rack.BuildLogs(app(c), c.Arg(0), opts)
 	if err != nil {
 		return err
 	}

@@ -1,4 +1,4 @@
-package main
+package cli
 
 import (
 	"fmt"
@@ -7,34 +7,35 @@ import (
 	"strings"
 
 	"github.com/convox/rack/pkg/helpers"
+	"github.com/convox/rack/sdk"
 	"github.com/convox/stdcli"
 )
 
 func init() {
-	CLI.Command("cp", "copy files", Cp, stdcli.CommandOptions{
+	register("cp", "copy files", Cp, stdcli.CommandOptions{
 		Flags:    []stdcli.Flag{flagApp, flagRack},
 		Usage:    "<[pid:]src> <[pid:]dst>",
 		Validate: stdcli.Args(2),
 	})
 }
 
-func Cp(c *stdcli.Context) error {
+func Cp(rack sdk.Interface, c *stdcli.Context) error {
 	src := c.Arg(0)
 	dst := c.Arg(1)
 
-	r, err := cpSource(c, src)
+	r, err := cpSource(rack, c, src)
 	if err != nil {
 		return err
 	}
 
-	if err := cpDestination(c, r, dst); err != nil {
+	if err := cpDestination(rack, c, r, dst); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func cpDestination(c *stdcli.Context, r io.Reader, dst string) error {
+func cpDestination(rack sdk.Interface, c *stdcli.Context, r io.Reader, dst string) error {
 	parts := strings.SplitN(dst, ":", 2)
 
 	switch len(parts) {
@@ -60,13 +61,13 @@ func cpDestination(c *stdcli.Context, r io.Reader, dst string) error {
 			return err
 		}
 
-		return provider(c).FilesUpload(app(c), parts[0], rr)
+		return rack.FilesUpload(app(c), parts[0], rr)
 	default:
 		return fmt.Errorf("unknown destination: %s", dst)
 	}
 }
 
-func cpSource(c *stdcli.Context, src string) (io.Reader, error) {
+func cpSource(rack sdk.Interface, c *stdcli.Context, src string) (io.Reader, error) {
 	parts := strings.SplitN(src, ":", 2)
 
 	switch len(parts) {
@@ -87,7 +88,7 @@ func cpSource(c *stdcli.Context, src string) (io.Reader, error) {
 			return nil, fmt.Errorf("must specify absolute paths for processes")
 		}
 
-		r, err := provider(c).FilesDownload(app(c), parts[0], parts[1])
+		r, err := rack.FilesDownload(app(c), parts[0], parts[1])
 		if err != nil {
 			return nil, err
 		}

@@ -1,20 +1,21 @@
-package main
+package cli
 
 import (
 	"net/url"
 
+	"github.com/convox/rack/sdk"
 	"github.com/convox/stdcli"
 )
 
 func init() {
-	CLI.Command("version", "display version information", Version, stdcli.CommandOptions{
+	register("version", "display version information", Version, stdcli.CommandOptions{
 		Flags:    []stdcli.Flag{flagRack},
 		Validate: stdcli.Args(0),
 	})
 }
 
-func Version(c *stdcli.Context) error {
-	c.Writef("client: <info>%s</info>\n", version)
+func Version(rack sdk.Interface, c *stdcli.Context) error {
+	c.Writef("client: <info>%s</info>\n", c.Version())
 
 	host, err := currentHost(c)
 	if err != nil {
@@ -27,7 +28,7 @@ func Version(c *stdcli.Context) error {
 		return err
 	}
 
-	s, err := provider(c).SystemGet()
+	s, err := rack.SystemGet()
 	if err != nil {
 		return err
 	}

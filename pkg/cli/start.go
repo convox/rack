@@ -1,16 +1,16 @@
-package main
+package cli
 
 import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/convox/rack/sdk"
 	"github.com/convox/rack/pkg/start"
+	"github.com/convox/rack/sdk"
 	"github.com/convox/stdcli"
 )
 
 func init() {
-	CLI.Command("start", "start an application for local development", Start, stdcli.CommandOptions{
+	register("start", "start an application for local development", Start, stdcli.CommandOptions{
 		Flags: []stdcli.Flag{
 			flagRack,
 			flagApp,
@@ -26,7 +26,7 @@ func init() {
 	})
 }
 
-func Start(c *stdcli.Context) error {
+func Start(rack sdk.Interface, c *stdcli.Context) error {
 	opts := start.Options{}
 
 	if len(c.Args) > 0 {
@@ -66,7 +66,7 @@ func Start(c *stdcli.Context) error {
 	r := currentRack(c, host)
 
 	if _, err := currentEndpoint(c, r); err == nil {
-		p := provider(c)
+		p := rack
 
 		s, err := p.SystemGet()
 		if err != nil {
