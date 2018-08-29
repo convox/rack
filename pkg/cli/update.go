@@ -1,23 +1,24 @@
-package main
+package cli
 
 import (
 	"fmt"
 	"net/http"
 	"runtime"
 
+	"github.com/convox/rack/sdk"
 	"github.com/convox/stdcli"
 	cv "github.com/convox/version"
 	update "github.com/inconshreveable/go-update"
 )
 
 func init() {
-	CLI.Command("update", "update the cli", Update, stdcli.CommandOptions{
+	register("update", "update the cli", Update, stdcli.CommandOptions{
 		Flags:    []stdcli.Flag{flagRack},
 		Validate: stdcli.ArgsMax(1),
 	})
 }
 
-func Update(c *stdcli.Context) error {
+func Update(rack sdk.Interface, c *stdcli.Context) error {
 	target := c.Arg(0)
 
 	// if no version specified, find the latest version

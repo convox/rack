@@ -1,4 +1,4 @@
-package main
+package cli
 
 import (
 	"fmt"
@@ -7,24 +7,25 @@ import (
 
 	"github.com/convox/rack/pkg/helpers"
 	"github.com/convox/rack/pkg/structs"
+	"github.com/convox/rack/sdk"
 	"github.com/convox/stdcli"
 )
 
 func init() {
-	CLI.Command("ssl", "list certificate associates for an app", Ssl, stdcli.CommandOptions{
+	register("ssl", "list certificate associates for an app", Ssl, stdcli.CommandOptions{
 		Flags:    []stdcli.Flag{flagRack, flagApp},
 		Validate: stdcli.Args(0),
 	})
 
-	CLI.Command("ssl update", "update certificate for an app", SslUpdate, stdcli.CommandOptions{
+	register("ssl update", "update certificate for an app", SslUpdate, stdcli.CommandOptions{
 		Flags:    []stdcli.Flag{flagRack, flagApp, flagWait},
 		Usage:    "<process:port> <certificate>",
 		Validate: stdcli.Args(2),
 	})
 }
 
-func Ssl(c *stdcli.Context) error {
-	sys, err := provider(c).SystemGet()
+func Ssl(rack sdk.Interface, c *stdcli.Context) error {
+	sys, err := rack.SystemGet()
 	if err != nil {
 		return err
 	}
@@ -32,12 +33,12 @@ func Ssl(c *stdcli.Context) error {
 	var ss structs.Services
 
 	if sys.Version < "20180708231844" {
-		ss, err = provider(c).FormationGet(app(c))
+		ss, err = rack.FormationGet(app(c))
 		if err != nil {
 			return err
 		}
 	} else {
-		ss, err = provider(c).ServiceList(app(c))
+		ss, err = rack.ServiceList(app(c))
 		if err != nil {
 			return err
 		}
@@ -47,7 +48,7 @@ func Ssl(c *stdcli.Context) error {
 
 	certs := map[string]structs.Certificate{}
 
-	cs, err := provider(c).CertificateList()
+	cs, err := rack.CertificateList()
 	if err != nil {
 		return err
 	}
@@ -67,8 +68,8 @@ func Ssl(c *stdcli.Context) error {
 	return t.Print()
 }
 
-func SslUpdate(c *stdcli.Context) error {
-	a, err := provider(c).AppGet(app(c))
+func SslUpdate(rack sdk.Interface, c *stdcli.Context) error {
+	a, err := rack.AppGet(app(c))
 	if err != nil {
 		return err
 	}
@@ -90,12 +91,12 @@ func SslUpdate(c *stdcli.Context) error {
 
 	c.Startf("Updating certificate")
 
-	if err := provider(c).CertificateApply(app(c), parts[0], port, c.Arg(1)); err != nil {
+	if err := rack.CertificateApply(app(c), parts[0], port, c.Arg(1)); err != nil {
 		return err
 	}
 
 	if c.Bool("wait") {
-		if err := waitForAppRunning(c, app(c)); err != nil {
+		if err := waitForAppRunning(rack, c, app(c)); err != nil {
 			return err
 		}
 	}

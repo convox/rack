@@ -1,18 +1,19 @@
-package main
+package cli
 
 import (
 	"encoding/json"
 
+	"github.com/convox/rack/sdk"
 	"github.com/convox/stdcli"
 )
 
 func init() {
-	CLI.Command("switch", "switch current rack", Switch, stdcli.CommandOptions{
+	register("switch", "switch current rack", Switch, stdcli.CommandOptions{
 		Validate: stdcli.ArgsMax(1),
 	})
 }
 
-func Switch(c *stdcli.Context) error {
+func Switch(rack sdk.Interface, c *stdcli.Context) error {
 	host, err := currentHost(c)
 	if err != nil {
 		return err
@@ -42,9 +43,7 @@ func Switch(c *stdcli.Context) error {
 		return nil
 	}
 
-	rack := currentRack(c, host)
-
-	c.Writef("%s\n", rack)
+	c.Writef("%s\n", currentRack(c, host))
 
 	return nil
 }

@@ -1,21 +1,22 @@
-package main
+package cli
 
 import (
 	"io"
 
 	"github.com/convox/rack/pkg/options"
 	"github.com/convox/rack/pkg/structs"
+	"github.com/convox/rack/sdk"
 	"github.com/convox/stdcli"
 )
 
 func init() {
-	CLI.Command("logs", "get logs for an app", Logs, stdcli.CommandOptions{
+	register("logs", "get logs for an app", Logs, stdcli.CommandOptions{
 		Flags:    append(stdcli.OptionFlags(structs.LogsOptions{}), flagApp, flagNoFollow, flagRack),
 		Validate: stdcli.Args(0),
 	})
 }
 
-func Logs(c *stdcli.Context) error {
+func Logs(rack sdk.Interface, c *stdcli.Context) error {
 	var opts structs.LogsOptions
 
 	if err := c.Options(&opts); err != nil {
@@ -26,7 +27,7 @@ func Logs(c *stdcli.Context) error {
 		opts.Follow = options.Bool(false)
 	}
 
-	r, err := provider(c).AppLogs(app(c), opts)
+	r, err := rack.AppLogs(app(c), opts)
 	if err != nil {
 		return err
 	}

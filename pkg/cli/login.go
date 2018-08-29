@@ -1,4 +1,4 @@
-package main
+package cli
 
 import (
 	"fmt"
@@ -9,7 +9,7 @@ import (
 )
 
 func init() {
-	CLI.Command("login", "authenticate with a rack", Login, stdcli.CommandOptions{
+	register("login", "authenticate with a rack", Login, stdcli.CommandOptions{
 		Flags: []stdcli.Flag{
 			stdcli.StringFlag("password", "p", "password"),
 		},
@@ -18,7 +18,7 @@ func init() {
 	})
 }
 
-func Login(c *stdcli.Context) error {
+func Login(rack sdk.Interface, c *stdcli.Context) error {
 	hostname := coalesce(c.Arg(0), "console.convox.com")
 
 	auth, err := hostAuth(c, hostname)

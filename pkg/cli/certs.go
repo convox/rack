@@ -1,4 +1,4 @@
-package main
+package cli
 
 import (
 	"fmt"
@@ -8,28 +8,29 @@ import (
 	"github.com/convox/rack/pkg/helpers"
 	"github.com/convox/rack/pkg/options"
 	"github.com/convox/rack/pkg/structs"
+	"github.com/convox/rack/sdk"
 	"github.com/convox/stdcli"
 )
 
 func init() {
-	CLI.Command("certs", "list certificates", Certs, stdcli.CommandOptions{
+	register("certs", "list certificates", Certs, stdcli.CommandOptions{
 		Flags:    []stdcli.Flag{flagRack},
 		Validate: stdcli.Args(0),
 	})
 
-	CLI.Command("certs delete", "delete a certificate", CertsDelete, stdcli.CommandOptions{
+	register("certs delete", "delete a certificate", CertsDelete, stdcli.CommandOptions{
 		Flags:    []stdcli.Flag{flagRack},
 		Usage:    "<cert>",
 		Validate: stdcli.Args(1),
 	})
 
-	CLI.Command("certs generate", "generate a certificate", CertsGenerate, stdcli.CommandOptions{
+	register("certs generate", "generate a certificate", CertsGenerate, stdcli.CommandOptions{
 		Flags:    []stdcli.Flag{flagId, flagRack},
 		Usage:    "<domain> [domain...]",
 		Validate: stdcli.ArgsMin(1),
 	})
 
-	CLI.Command("certs import", "import a certificate", CertsImport, stdcli.CommandOptions{
+	register("certs import", "import a certificate", CertsImport, stdcli.CommandOptions{
 		Flags: []stdcli.Flag{
 			flagId,
 			flagRack,
@@ -40,8 +41,8 @@ func init() {
 	})
 }
 
-func Certs(c *stdcli.Context) error {
-	cs, err := provider(c).CertificateList()
+func Certs(rack sdk.Interface, c *stdcli.Context) error {
+	cs, err := rack.CertificateList()
 	if err != nil {
 		return err
 	}
@@ -55,19 +56,19 @@ func Certs(c *stdcli.Context) error {
 	return t.Print()
 }
 
-func CertsDelete(c *stdcli.Context) error {
+func CertsDelete(rack sdk.Interface, c *stdcli.Context) error {
 	cert := c.Arg(0)
 
 	c.Startf("Deleting certificate <id>%s</id>", cert)
 
-	if err := provider(c).CertificateDelete(cert); err != nil {
+	if err := rack.CertificateDelete(cert); err != nil {
 		return err
 	}
 
 	return c.OK()
 }
 
-func CertsGenerate(c *stdcli.Context) error {
+func CertsGenerate(rack sdk.Interface, c *stdcli.Context) error {
 	var stdout io.Writer
 
 	if c.Bool("id") {
@@ -77,7 +78,7 @@ func CertsGenerate(c *stdcli.Context) error {
 
 	c.Startf("Generating certificate")
 
-	cr, err := provider(c).CertificateGenerate(c.Args)
+	cr, err := rack.CertificateGenerate(c.Args)
 	if err != nil {
 		return err
 	}
@@ -91,7 +92,7 @@ func CertsGenerate(c *stdcli.Context) error {
 	return nil
 }
 
-func CertsImport(c *stdcli.Context) error {
+func CertsImport(rack sdk.Interface, c *stdcli.Context) error {
 	var stdout io.Writer
 
 	if c.Bool("id") {
@@ -99,7 +100,7 @@ func CertsImport(c *stdcli.Context) error {
 		c.Writer().Stdout = c.Writer().Stderr
 	}
 
-	s, err := provider(c).SystemGet()
+	s, err := rack.SystemGet()
 	if err != nil {
 		return err
 	}
@@ -130,12 +131,12 @@ func CertsImport(c *stdcli.Context) error {
 	var cr *structs.Certificate
 
 	if s.Version <= "20180708231844" {
-		cr, err = provider(c).CertificateCreateClassic(string(pub), string(key), opts)
+		cr, err = rack.CertificateCreateClassic(string(pub), string(key), opts)
 		if err != nil {
 			return err
 		}
 	} else {
-		cr, err = provider(c).CertificateCreate(string(pub), string(key), opts)
+		cr, err = rack.CertificateCreate(string(pub), string(key), opts)
 		if err != nil {
 			return err
 		}

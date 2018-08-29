@@ -1,15 +1,16 @@
-package main
+package cli
 
 import (
 	"fmt"
 	"sort"
 
 	"github.com/convox/rack/pkg/structs"
+	"github.com/convox/rack/sdk"
 	"github.com/convox/stdcli"
 )
 
 func init() {
-	CLI.Command("scale", "scale an app", Scale, stdcli.CommandOptions{
+	register("scale", "scale an app", Scale, stdcli.CommandOptions{
 		Flags: append(stdcli.OptionFlags(structs.ServiceUpdateOptions{}), flagApp, flagRack, flagWait),
 		Validate: func(c *stdcli.Context) error {
 			if c.Value("count") != nil || c.Value("cpu") != nil || c.Value("memory") != nil {
@@ -25,8 +26,8 @@ func init() {
 	})
 }
 
-func Scale(c *stdcli.Context) error {
-	s, err := provider(c).SystemGet()
+func Scale(rack sdk.Interface, c *stdcli.Context) error {
+	s, err := rack.SystemGet()
 	if err != nil {
 		return err
 	}
@@ -43,17 +44,17 @@ func Scale(c *stdcli.Context) error {
 		c.Startf("Scaling <service>%s</service>", service)
 
 		if s.Version <= "20180708231844" {
-			if err := provider(c).FormationUpdate(app(c), service, opts); err != nil {
+			if err := rack.FormationUpdate(app(c), service, opts); err != nil {
 				return err
 			}
 		} else {
-			if err := provider(c).ServiceUpdate(app(c), service, opts); err != nil {
+			if err := rack.ServiceUpdate(app(c), service, opts); err != nil {
 				return err
 			}
 		}
 
 		if c.Bool("wait") {
-			if err := waitForAppWithLogs(c, app(c)); err != nil {
+			if err := waitForAppWithLogs(rack, c, app(c)); err != nil {
 				return err
 			}
 		}
@@ -65,12 +66,12 @@ func Scale(c *stdcli.Context) error {
 	running := map[string]int{}
 
 	if s.Version < "20180708231844" {
-		ss, err = provider(c).FormationGet(app(c))
+		ss, err = rack.FormationGet(app(c))
 		if err != nil {
 			return err
 		}
 	} else {
-		ss, err = provider(c).ServiceList(app(c))
+		ss, err = rack.ServiceList(app(c))
 		if err != nil {
 			return err
 		}
@@ -78,7 +79,7 @@ func Scale(c *stdcli.Context) error {
 
 	sort.Slice(ss, func(i, j int) bool { return ss[i].Name < ss[j].Name })
 
-	ps, err := provider(c).ProcessList(app(c), structs.ProcessListOptions{})
+	ps, err := rack.ProcessList(app(c), structs.ProcessListOptions{})
 	if err != nil {
 		return err
 	}
