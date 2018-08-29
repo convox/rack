@@ -423,7 +423,7 @@ func TestAppsWakeError(t *testing.T) {
 }
 
 func TestAppsWait(t *testing.T) {
-	testClientWait(t, 0*time.Second, func(e *cli.Engine, i *mocksdk.Interface) {
+	testClientWait(t, 1*time.Second, func(e *cli.Engine, i *mocksdk.Interface) {
 		logs := []string{
 			"TIME system/aws/foo log1",
 			"TIME system/aws/foo log2",
@@ -462,7 +462,7 @@ func TestAppsWait(t *testing.T) {
 }
 
 func TestAppsWaitError(t *testing.T) {
-	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
+	testClientWait(t, 1*time.Second, func(e *cli.Engine, i *mocksdk.Interface) {
 		opts := structs.LogsOptions{
 			Prefix: options.Bool(true),
 			Since:  options.Duration(0),
