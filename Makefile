@@ -17,6 +17,8 @@ generate:
 mocks:
 	go get -u github.com/vektra/mockery/.../
 	make -C pkg/structs mocks
+	mockery -case underscore -dir sdk -outpkg sdk -output pkg/mock/sdk -name Interface
+
 
 release:
 	make -C cmd/convox release VERSION=$(VERSION)
