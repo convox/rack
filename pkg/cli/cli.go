@@ -1,6 +1,8 @@
 package cli
 
 import (
+	"os"
+
 	"github.com/convox/rack/sdk"
 	"github.com/convox/stdcli"
 )
@@ -19,6 +21,17 @@ var (
 func New(name, version string) *Engine {
 	e := &Engine{
 		Engine: stdcli.New(name, version),
+	}
+
+	e.Writer.Tags["app"] = stdcli.RenderColors(39)
+	e.Writer.Tags["build"] = stdcli.RenderColors(23)
+	e.Writer.Tags["rack"] = stdcli.RenderColors(26)
+	e.Writer.Tags["process"] = stdcli.RenderColors(27)
+	e.Writer.Tags["release"] = stdcli.RenderColors(24)
+	e.Writer.Tags["service"] = stdcli.RenderColors(25)
+
+	if dir := os.Getenv("CONVOX_CONFIG"); dir != "" {
+		e.Settings = dir
 	}
 
 	e.RegisterCommands()
