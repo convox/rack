@@ -2,12 +2,17 @@ package cli
 
 import (
 	"os"
+	"time"
 
 	"github.com/convox/rack/sdk"
 	"github.com/convox/stdcli"
 )
 
 type HandlerFunc func(sdk.Interface, *stdcli.Context) error
+
+var (
+	WaitDuration = 5 * time.Second
+)
 
 var (
 	flagApp      = stdcli.StringFlag("app", "a", "app name")
