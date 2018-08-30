@@ -3,6 +3,7 @@ package cli_test
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/convox/rack/pkg/cli"
 	mocksdk "github.com/convox/rack/pkg/mock/sdk"
@@ -67,7 +68,7 @@ func TestDeployError(t *testing.T) {
 }
 
 func TestDeployWait(t *testing.T) {
-	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
+	testClientWait(t, 100*time.Millisecond, func(e *cli.Engine, i *mocksdk.Interface) {
 		i.On("SystemGet").Return(&fxSystem, nil)
 		i.On("ObjectStore", "app1", mock.AnythingOfType("string"), mock.Anything, structs.ObjectStoreOptions{}).Return(&fxObject, nil).Run(func(args mock.Arguments) {
 			require.Regexp(t, `tmp/[0-9a-f]{30}\.tgz`, args.Get(1).(string))
