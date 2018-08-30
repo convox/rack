@@ -10,7 +10,7 @@ var fxRelease = structs.Release{
 	Id:       "release1",
 	App:      "app1",
 	Build:    "build1",
-	Env:      "env",
+	Env:      "FOO=bar\nBAZ=quux",
 	Manifest: "manifest",
 	Created:  time.Now().UTC(),
 }
