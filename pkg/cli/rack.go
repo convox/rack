@@ -24,7 +24,7 @@ func init() {
 		Validate: stdcli.Args(0),
 	})
 
-	register("rack install", "install a rack", RackInstall, stdcli.CommandOptions{
+	registerWithoutProvider("rack install", "install a rack", RackInstall, stdcli.CommandOptions{
 		Flags:    append(stdcli.OptionFlags(structs.SystemInstallOptions{})),
 		Usage:    "<type> [Parameter=Value]...",
 		Validate: stdcli.ArgsMin(1),
@@ -74,7 +74,7 @@ func init() {
 		Validate:  stdcli.Args(0),
 	})
 
-	register("rack uninstall", "uninstall a rack", RackUninstall, stdcli.CommandOptions{
+	registerWithoutProvider("rack uninstall", "uninstall a rack", RackUninstall, stdcli.CommandOptions{
 		Flags:    append(stdcli.OptionFlags(structs.SystemUninstallOptions{}), flagForce),
 		Usage:    "<type> <name>",
 		Validate: stdcli.Args(2),
