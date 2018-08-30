@@ -19,9 +19,6 @@ func (s *Server) AppCancel(c *stdapi.Context) error {
 
 	err := s.provider(c).AppCancel(name)
 	if err != nil {
-		if ae, ok := s.provider(c).(ApiErrorer); ok {
-			return ae.ApiError(err)
-		}
 		return err
 	}
 
@@ -42,9 +39,6 @@ func (s *Server) AppCreate(c *stdapi.Context) error {
 
 	v, err := s.provider(c).AppCreate(name, opts)
 	if err != nil {
-		if ae, ok := s.provider(c).(ApiErrorer); ok {
-			return ae.ApiError(err)
-		}
 		return err
 	}
 
@@ -64,9 +58,6 @@ func (s *Server) AppDelete(c *stdapi.Context) error {
 
 	err := s.provider(c).AppDelete(name)
 	if err != nil {
-		if ae, ok := s.provider(c).(ApiErrorer); ok {
-			return ae.ApiError(err)
-		}
 		return err
 	}
 
@@ -82,9 +73,6 @@ func (s *Server) AppGet(c *stdapi.Context) error {
 
 	v, err := s.provider(c).AppGet(name)
 	if err != nil {
-		if ae, ok := s.provider(c).(ApiErrorer); ok {
-			return ae.ApiError(err)
-		}
 		return err
 	}
 
@@ -102,9 +90,6 @@ func (s *Server) AppList(c *stdapi.Context) error {
 
 	v, err := s.provider(c).AppList()
 	if err != nil {
-		if ae, ok := s.provider(c).(ApiErrorer); ok {
-			return ae.ApiError(err)
-		}
 		return err
 	}
 
@@ -129,9 +114,6 @@ func (s *Server) AppLogs(c *stdapi.Context) error {
 
 	v, err := s.provider(c).AppLogs(name, opts)
 	if err != nil {
-		if ae, ok := s.provider(c).(ApiErrorer); ok {
-			return ae.ApiError(err)
-		}
 		return err
 	}
 
@@ -160,9 +142,6 @@ func (s *Server) AppUpdate(c *stdapi.Context) error {
 
 	err := s.provider(c).AppUpdate(name, opts)
 	if err != nil {
-		if ae, ok := s.provider(c).(ApiErrorer); ok {
-			return ae.ApiError(err)
-		}
 		return err
 	}
 
@@ -184,9 +163,6 @@ func (s *Server) BuildCreate(c *stdapi.Context) error {
 
 	v, err := s.provider(c).BuildCreate(app, url, opts)
 	if err != nil {
-		if ae, ok := s.provider(c).(ApiErrorer); ok {
-			return ae.ApiError(err)
-		}
 		return err
 	}
 
@@ -208,9 +184,6 @@ func (s *Server) BuildExport(c *stdapi.Context) error {
 
 	err := s.provider(c).BuildExport(app, id, w)
 	if err != nil {
-		if ae, ok := s.provider(c).(ApiErrorer); ok {
-			return ae.ApiError(err)
-		}
 		return err
 	}
 
@@ -227,9 +200,6 @@ func (s *Server) BuildGet(c *stdapi.Context) error {
 
 	v, err := s.provider(c).BuildGet(app, id)
 	if err != nil {
-		if ae, ok := s.provider(c).(ApiErrorer); ok {
-			return ae.ApiError(err)
-		}
 		return err
 	}
 
@@ -250,9 +220,6 @@ func (s *Server) BuildImport(c *stdapi.Context) error {
 
 	v, err := s.provider(c).BuildImport(app, r)
 	if err != nil {
-		if ae, ok := s.provider(c).(ApiErrorer); ok {
-			return ae.ApiError(err)
-		}
 		return err
 	}
 
@@ -277,9 +244,6 @@ func (s *Server) BuildList(c *stdapi.Context) error {
 
 	v, err := s.provider(c).BuildList(app, opts)
 	if err != nil {
-		if ae, ok := s.provider(c).(ApiErrorer); ok {
-			return ae.ApiError(err)
-		}
 		return err
 	}
 
@@ -305,9 +269,6 @@ func (s *Server) BuildLogs(c *stdapi.Context) error {
 
 	v, err := s.provider(c).BuildLogs(app, id, opts)
 	if err != nil {
-		if ae, ok := s.provider(c).(ApiErrorer); ok {
-			return ae.ApiError(err)
-		}
 		return err
 	}
 
@@ -337,9 +298,6 @@ func (s *Server) BuildUpdate(c *stdapi.Context) error {
 
 	v, err := s.provider(c).BuildUpdate(app, id, opts)
 	if err != nil {
-		if ae, ok := s.provider(c).(ApiErrorer); ok {
-			return ae.ApiError(err)
-		}
 		return err
 	}
 
@@ -357,9 +315,6 @@ func (s *Server) CapacityGet(c *stdapi.Context) error {
 
 	v, err := s.provider(c).CapacityGet()
 	if err != nil {
-		if ae, ok := s.provider(c).(ApiErrorer); ok {
-			return ae.ApiError(err)
-		}
 		return err
 	}
 
@@ -386,9 +341,6 @@ func (s *Server) CertificateApply(c *stdapi.Context) error {
 
 	err := s.provider(c).CertificateApply(app, service, port, id)
 	if err != nil {
-		if ae, ok := s.provider(c).(ApiErrorer); ok {
-			return ae.ApiError(err)
-		}
 		return err
 	}
 
@@ -410,9 +362,6 @@ func (s *Server) CertificateCreate(c *stdapi.Context) error {
 
 	v, err := s.provider(c).CertificateCreate(pub, key, opts)
 	if err != nil {
-		if ae, ok := s.provider(c).(ApiErrorer); ok {
-			return ae.ApiError(err)
-		}
 		return err
 	}
 
@@ -432,9 +381,6 @@ func (s *Server) CertificateDelete(c *stdapi.Context) error {
 
 	err := s.provider(c).CertificateDelete(id)
 	if err != nil {
-		if ae, ok := s.provider(c).(ApiErrorer); ok {
-			return ae.ApiError(err)
-		}
 		return err
 	}
 
@@ -450,9 +396,6 @@ func (s *Server) CertificateGenerate(c *stdapi.Context) error {
 
 	v, err := s.provider(c).CertificateGenerate(domains)
 	if err != nil {
-		if ae, ok := s.provider(c).(ApiErrorer); ok {
-			return ae.ApiError(err)
-		}
 		return err
 	}
 
@@ -470,9 +413,6 @@ func (s *Server) CertificateList(c *stdapi.Context) error {
 
 	v, err := s.provider(c).CertificateList()
 	if err != nil {
-		if ae, ok := s.provider(c).(ApiErrorer); ok {
-			return ae.ApiError(err)
-		}
 		return err
 	}
 
@@ -497,9 +437,6 @@ func (s *Server) EventSend(c *stdapi.Context) error {
 
 	err := s.provider(c).EventSend(action, opts)
 	if err != nil {
-		if ae, ok := s.provider(c).(ApiErrorer); ok {
-			return ae.ApiError(err)
-		}
 		return err
 	}
 
@@ -517,9 +454,6 @@ func (s *Server) FilesDelete(c *stdapi.Context) error {
 
 	err := s.provider(c).FilesDelete(app, pid, files)
 	if err != nil {
-		if ae, ok := s.provider(c).(ApiErrorer); ok {
-			return ae.ApiError(err)
-		}
 		return err
 	}
 
@@ -537,9 +471,6 @@ func (s *Server) FilesDownload(c *stdapi.Context) error {
 
 	v, err := s.provider(c).FilesDownload(app, pid, file)
 	if err != nil {
-		if ae, ok := s.provider(c).(ApiErrorer); ok {
-			return ae.ApiError(err)
-		}
 		return err
 	}
 
@@ -565,9 +496,6 @@ func (s *Server) FilesUpload(c *stdapi.Context) error {
 
 	err := s.provider(c).FilesUpload(app, pid, r)
 	if err != nil {
-		if ae, ok := s.provider(c).(ApiErrorer); ok {
-			return ae.ApiError(err)
-		}
 		return err
 	}
 
@@ -585,9 +513,6 @@ func (s *Server) InstanceKeyroll(c *stdapi.Context) error {
 
 	err := s.provider(c).InstanceKeyroll()
 	if err != nil {
-		if ae, ok := s.provider(c).(ApiErrorer); ok {
-			return ae.ApiError(err)
-		}
 		return err
 	}
 
@@ -601,9 +526,6 @@ func (s *Server) InstanceList(c *stdapi.Context) error {
 
 	v, err := s.provider(c).InstanceList()
 	if err != nil {
-		if ae, ok := s.provider(c).(ApiErrorer); ok {
-			return ae.ApiError(err)
-		}
 		return err
 	}
 
@@ -629,9 +551,6 @@ func (s *Server) InstanceShell(c *stdapi.Context) error {
 
 	v, err := s.provider(c).InstanceShell(id, rw, opts)
 	if err != nil {
-		if ae, ok := s.provider(c).(ApiErrorer); ok {
-			return ae.ApiError(err)
-		}
 		return err
 	}
 
@@ -651,9 +570,6 @@ func (s *Server) InstanceTerminate(c *stdapi.Context) error {
 
 	err := s.provider(c).InstanceTerminate(id)
 	if err != nil {
-		if ae, ok := s.provider(c).(ApiErrorer); ok {
-			return ae.ApiError(err)
-		}
 		return err
 	}
 
@@ -670,9 +586,6 @@ func (s *Server) ObjectDelete(c *stdapi.Context) error {
 
 	err := s.provider(c).ObjectDelete(app, key)
 	if err != nil {
-		if ae, ok := s.provider(c).(ApiErrorer); ok {
-			return ae.ApiError(err)
-		}
 		return err
 	}
 
@@ -689,9 +602,6 @@ func (s *Server) ObjectExists(c *stdapi.Context) error {
 
 	v, err := s.provider(c).ObjectExists(app, key)
 	if err != nil {
-		if ae, ok := s.provider(c).(ApiErrorer); ok {
-			return ae.ApiError(err)
-		}
 		return err
 	}
 
@@ -712,9 +622,6 @@ func (s *Server) ObjectFetch(c *stdapi.Context) error {
 
 	v, err := s.provider(c).ObjectFetch(app, key)
 	if err != nil {
-		if ae, ok := s.provider(c).(ApiErrorer); ok {
-			return ae.ApiError(err)
-		}
 		return err
 	}
 
@@ -739,9 +646,6 @@ func (s *Server) ObjectList(c *stdapi.Context) error {
 
 	v, err := s.provider(c).ObjectList(app, prefix)
 	if err != nil {
-		if ae, ok := s.provider(c).(ApiErrorer); ok {
-			return ae.ApiError(err)
-		}
 		return err
 	}
 
@@ -768,9 +672,6 @@ func (s *Server) ObjectStore(c *stdapi.Context) error {
 
 	v, err := s.provider(c).ObjectStore(app, key, r, opts)
 	if err != nil {
-		if ae, ok := s.provider(c).(ApiErrorer); ok {
-			return ae.ApiError(err)
-		}
 		return err
 	}
 
@@ -798,9 +699,6 @@ func (s *Server) ProcessExec(c *stdapi.Context) error {
 
 	v, err := s.provider(c).ProcessExec(app, pid, command, rw, opts)
 	if err != nil {
-		if ae, ok := s.provider(c).(ApiErrorer); ok {
-			return ae.ApiError(err)
-		}
 		return err
 	}
 
@@ -821,9 +719,6 @@ func (s *Server) ProcessGet(c *stdapi.Context) error {
 
 	v, err := s.provider(c).ProcessGet(app, pid)
 	if err != nil {
-		if ae, ok := s.provider(c).(ApiErrorer); ok {
-			return ae.ApiError(err)
-		}
 		return err
 	}
 
@@ -848,9 +743,6 @@ func (s *Server) ProcessList(c *stdapi.Context) error {
 
 	v, err := s.provider(c).ProcessList(app, opts)
 	if err != nil {
-		if ae, ok := s.provider(c).(ApiErrorer); ok {
-			return ae.ApiError(err)
-		}
 		return err
 	}
 
@@ -876,9 +768,6 @@ func (s *Server) ProcessRun(c *stdapi.Context) error {
 
 	v, err := s.provider(c).ProcessRun(app, service, opts)
 	if err != nil {
-		if ae, ok := s.provider(c).(ApiErrorer); ok {
-			return ae.ApiError(err)
-		}
 		return err
 	}
 
@@ -899,9 +788,6 @@ func (s *Server) ProcessStop(c *stdapi.Context) error {
 
 	err := s.provider(c).ProcessStop(app, pid)
 	if err != nil {
-		if ae, ok := s.provider(c).(ApiErrorer); ok {
-			return ae.ApiError(err)
-		}
 		return err
 	}
 
@@ -923,9 +809,6 @@ func (s *Server) Proxy(c *stdapi.Context) error {
 
 	err := s.provider(c).Proxy(host, port, rw)
 	if err != nil {
-		if ae, ok := s.provider(c).(ApiErrorer); ok {
-			return ae.ApiError(err)
-		}
 		return err
 	}
 
@@ -943,9 +826,6 @@ func (s *Server) RegistryAdd(c *stdapi.Context) error {
 
 	v, err := s.provider(c).RegistryAdd(server, username, password)
 	if err != nil {
-		if ae, ok := s.provider(c).(ApiErrorer); ok {
-			return ae.ApiError(err)
-		}
 		return err
 	}
 
@@ -963,9 +843,6 @@ func (s *Server) RegistryList(c *stdapi.Context) error {
 
 	v, err := s.provider(c).RegistryList()
 	if err != nil {
-		if ae, ok := s.provider(c).(ApiErrorer); ok {
-			return ae.ApiError(err)
-		}
 		return err
 	}
 
@@ -985,9 +862,6 @@ func (s *Server) RegistryRemove(c *stdapi.Context) error {
 
 	err := s.provider(c).RegistryRemove(server)
 	if err != nil {
-		if ae, ok := s.provider(c).(ApiErrorer); ok {
-			return ae.ApiError(err)
-		}
 		return err
 	}
 
@@ -1008,9 +882,6 @@ func (s *Server) ReleaseCreate(c *stdapi.Context) error {
 
 	v, err := s.provider(c).ReleaseCreate(app, opts)
 	if err != nil {
-		if ae, ok := s.provider(c).(ApiErrorer); ok {
-			return ae.ApiError(err)
-		}
 		return err
 	}
 
@@ -1031,9 +902,6 @@ func (s *Server) ReleaseGet(c *stdapi.Context) error {
 
 	v, err := s.provider(c).ReleaseGet(app, id)
 	if err != nil {
-		if ae, ok := s.provider(c).(ApiErrorer); ok {
-			return ae.ApiError(err)
-		}
 		return err
 	}
 
@@ -1058,9 +926,6 @@ func (s *Server) ReleaseList(c *stdapi.Context) error {
 
 	v, err := s.provider(c).ReleaseList(app, opts)
 	if err != nil {
-		if ae, ok := s.provider(c).(ApiErrorer); ok {
-			return ae.ApiError(err)
-		}
 		return err
 	}
 
@@ -1081,9 +946,6 @@ func (s *Server) ReleasePromote(c *stdapi.Context) error {
 
 	err := s.provider(c).ReleasePromote(app, id)
 	if err != nil {
-		if ae, ok := s.provider(c).(ApiErrorer); ok {
-			return ae.ApiError(err)
-		}
 		return err
 	}
 
@@ -1104,9 +966,6 @@ func (s *Server) ResourceCreate(c *stdapi.Context) error {
 
 	v, err := s.provider(c).ResourceCreate(kind, opts)
 	if err != nil {
-		if ae, ok := s.provider(c).(ApiErrorer); ok {
-			return ae.ApiError(err)
-		}
 		return err
 	}
 
@@ -1126,9 +985,6 @@ func (s *Server) ResourceDelete(c *stdapi.Context) error {
 
 	err := s.provider(c).ResourceDelete(name)
 	if err != nil {
-		if ae, ok := s.provider(c).(ApiErrorer); ok {
-			return ae.ApiError(err)
-		}
 		return err
 	}
 
@@ -1144,9 +1000,6 @@ func (s *Server) ResourceGet(c *stdapi.Context) error {
 
 	v, err := s.provider(c).ResourceGet(name)
 	if err != nil {
-		if ae, ok := s.provider(c).(ApiErrorer); ok {
-			return ae.ApiError(err)
-		}
 		return err
 	}
 
@@ -1167,9 +1020,6 @@ func (s *Server) ResourceLink(c *stdapi.Context) error {
 
 	v, err := s.provider(c).ResourceLink(name, app)
 	if err != nil {
-		if ae, ok := s.provider(c).(ApiErrorer); ok {
-			return ae.ApiError(err)
-		}
 		return err
 	}
 
@@ -1187,9 +1037,6 @@ func (s *Server) ResourceList(c *stdapi.Context) error {
 
 	v, err := s.provider(c).ResourceList()
 	if err != nil {
-		if ae, ok := s.provider(c).(ApiErrorer); ok {
-			return ae.ApiError(err)
-		}
 		return err
 	}
 
@@ -1207,9 +1054,6 @@ func (s *Server) ResourceTypes(c *stdapi.Context) error {
 
 	v, err := s.provider(c).ResourceTypes()
 	if err != nil {
-		if ae, ok := s.provider(c).(ApiErrorer); ok {
-			return ae.ApiError(err)
-		}
 		return err
 	}
 
@@ -1230,9 +1074,6 @@ func (s *Server) ResourceUnlink(c *stdapi.Context) error {
 
 	v, err := s.provider(c).ResourceUnlink(name, app)
 	if err != nil {
-		if ae, ok := s.provider(c).(ApiErrorer); ok {
-			return ae.ApiError(err)
-		}
 		return err
 	}
 
@@ -1257,9 +1098,6 @@ func (s *Server) ResourceUpdate(c *stdapi.Context) error {
 
 	v, err := s.provider(c).ResourceUpdate(name, opts)
 	if err != nil {
-		if ae, ok := s.provider(c).(ApiErrorer); ok {
-			return ae.ApiError(err)
-		}
 		return err
 	}
 
@@ -1279,9 +1117,6 @@ func (s *Server) ServiceList(c *stdapi.Context) error {
 
 	v, err := s.provider(c).ServiceList(app)
 	if err != nil {
-		if ae, ok := s.provider(c).(ApiErrorer); ok {
-			return ae.ApiError(err)
-		}
 		return err
 	}
 
@@ -1307,9 +1142,6 @@ func (s *Server) ServiceUpdate(c *stdapi.Context) error {
 
 	err := s.provider(c).ServiceUpdate(app, name, opts)
 	if err != nil {
-		if ae, ok := s.provider(c).(ApiErrorer); ok {
-			return ae.ApiError(err)
-		}
 		return err
 	}
 
@@ -1323,9 +1155,6 @@ func (s *Server) SystemGet(c *stdapi.Context) error {
 
 	v, err := s.provider(c).SystemGet()
 	if err != nil {
-		if ae, ok := s.provider(c).(ApiErrorer); ok {
-			return ae.ApiError(err)
-		}
 		return err
 	}
 
@@ -1352,9 +1181,6 @@ func (s *Server) SystemLogs(c *stdapi.Context) error {
 
 	v, err := s.provider(c).SystemLogs(opts)
 	if err != nil {
-		if ae, ok := s.provider(c).(ApiErrorer); ok {
-			return ae.ApiError(err)
-		}
 		return err
 	}
 
@@ -1381,9 +1207,6 @@ func (s *Server) SystemProcesses(c *stdapi.Context) error {
 
 	v, err := s.provider(c).SystemProcesses(opts)
 	if err != nil {
-		if ae, ok := s.provider(c).(ApiErrorer); ok {
-			return ae.ApiError(err)
-		}
 		return err
 	}
 
@@ -1401,9 +1224,6 @@ func (s *Server) SystemReleases(c *stdapi.Context) error {
 
 	v, err := s.provider(c).SystemReleases()
 	if err != nil {
-		if ae, ok := s.provider(c).(ApiErrorer); ok {
-			return ae.ApiError(err)
-		}
 		return err
 	}
 
@@ -1430,9 +1250,6 @@ func (s *Server) SystemUpdate(c *stdapi.Context) error {
 
 	err := s.provider(c).SystemUpdate(opts)
 	if err != nil {
-		if ae, ok := s.provider(c).(ApiErrorer); ok {
-			return ae.ApiError(err)
-		}
 		return err
 	}
 

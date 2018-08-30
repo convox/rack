@@ -25,9 +25,6 @@ package api
 
 			{{ return_vars . }} := s.provider(c).{{.Name}}({{ args . }})
 			if err != nil {
-				if ae, ok := s.provider(c).(ApiErrorer); ok {
-					return ae.ApiError(err)
-				}
 				return err
 			}
 
