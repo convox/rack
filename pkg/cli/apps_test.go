@@ -20,6 +20,14 @@ var fxApp = structs.App{
 	Status:     "running",
 }
 
+var fxAppUpdating = structs.App{
+	Name:       "app1",
+	Generation: "2",
+	Parameters: fxAppParameters,
+	Release:    "release1",
+	Status:     "updating",
+}
+
 var fxAppParameters = map[string]string{
 	"ParamFoo":   "value1",
 	"ParamOther": "value2",
