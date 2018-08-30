@@ -506,6 +506,10 @@ func (s *Server) FilesDownload(c *stdapi.Context) error {
 		return err
 	}
 
+	if c, ok := interface{}(v).(io.Closer); ok {
+		defer c.Close()
+	}
+
 	if _, err := io.Copy(c, v); err != nil {
 		return err
 	}
@@ -804,9 +808,6 @@ func (s *Server) ProcessLogs(c *stdapi.Context) error {
 
 	v, err := s.provider(c).ProcessLogs(app, pid, opts)
 	if err != nil {
-		if ae, ok := s.provider(c).(ApiErrorer); ok {
-			return ae.ApiError(err)
-		}
 		return err
 	}
 
