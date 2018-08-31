@@ -17,7 +17,6 @@ type System struct {
 
 type SystemInstallOptions struct {
 	Name       *string `flag:"name,n"`
-	Output     io.Writer
 	Parameters map[string]string
 	Version    *string `flag:"version,v"`
 }

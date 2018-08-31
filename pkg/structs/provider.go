@@ -78,7 +78,7 @@ type Provider interface {
 	ServiceUpdate(app, name string, opts ServiceUpdateOptions) error
 
 	SystemGet() (*System, error)
-	SystemInstall(opts SystemInstallOptions) (string, error)
+	SystemInstall(w io.Writer, opts SystemInstallOptions) (string, error)
 	SystemLogs(opts LogsOptions) (io.ReadCloser, error)
 	SystemProcesses(opts SystemProcessesOptions) (Processes, error)
 	SystemReleases() (Releases, error)

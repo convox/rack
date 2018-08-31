@@ -801,7 +801,7 @@ func (c *Client) SystemGet() (*structs.System, error) {
 	return v, err
 }
 
-func (c *Client) SystemInstall(opts structs.SystemInstallOptions) (string, error) {
+func (c *Client) SystemInstall(w io.Writer, opts structs.SystemInstallOptions) (string, error) {
 	err := fmt.Errorf("not available via api")
 	return "", err
 }

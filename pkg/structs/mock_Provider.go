@@ -1167,20 +1167,20 @@ func (_m *MockProvider) SystemGet() (*System, error) {
 	return r0, r1
 }
 
-// SystemInstall provides a mock function with given fields: opts
-func (_m *MockProvider) SystemInstall(opts SystemInstallOptions) (string, error) {
-	ret := _m.Called(opts)
+// SystemInstall provides a mock function with given fields: w, opts
+func (_m *MockProvider) SystemInstall(w io.Writer, opts SystemInstallOptions) (string, error) {
+	ret := _m.Called(w, opts)
 
 	var r0 string
-	if rf, ok := ret.Get(0).(func(SystemInstallOptions) string); ok {
-		r0 = rf(opts)
+	if rf, ok := ret.Get(0).(func(io.Writer, SystemInstallOptions) string); ok {
+		r0 = rf(w, opts)
 	} else {
 		r0 = ret.Get(0).(string)
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(SystemInstallOptions) error); ok {
-		r1 = rf(opts)
+	if rf, ok := ret.Get(1).(func(io.Writer, SystemInstallOptions) error); ok {
+		r1 = rf(w, opts)
 	} else {
 		r1 = ret.Error(1)
 	}
