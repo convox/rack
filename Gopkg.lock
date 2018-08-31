@@ -168,11 +168,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:b91062f7893e73d48b762189722460ac042086b334edcc96112332075ee67c36"
+  digest = "1:dd69663ce012362e032c32b4a7ecd78ce3ef52229f0311fc1962d7de8cf58d8e"
   name = "github.com/convox/stdcli"
   packages = ["."]
   pruneopts = "NUT"
-  revision = "3bb32b2181c406f47b93cba056e14ec84bbf3a42"
+  revision = "0eba7f86be5d1fefe7478216cfc537dcf3d8720d"
 
 [[projects]]
   branch = "master"
