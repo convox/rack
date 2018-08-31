@@ -262,16 +262,16 @@ func TestRackParamsSetClassicError(t *testing.T) {
 
 func TestRackPs(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("SystemProcesses", structs.SystemProcessesOptions{}).Return(structs.Processes{fxProcess, fxProcess}, nil)
+		i.On("SystemProcesses", structs.SystemProcessesOptions{}).Return(structs.Processes{fxProcess, fxProcessPending}, nil)
 
 		res, err := testExecute(e, "rack ps", nil)
 		require.NoError(t, err)
 		require.Equal(t, 0, res.Code)
 		res.RequireStderr(t, []string{""})
 		res.RequireStdout(t, []string{
-			"ID    APP   SERVICE  STATUS  RELEASE   STARTED     COMMAND",
-			"pid1  app1  name     status  release1  2 days ago  command",
-			"pid1  app1  name     status  release1  2 days ago  command",
+			"ID    APP   SERVICE  STATUS   RELEASE   STARTED     COMMAND",
+			"pid1  app1  name     running  release1  2 days ago  command",
+			"pid1  app1  name     pending  release1  2 days ago  command",
 		})
 	})
 }
@@ -290,16 +290,16 @@ func TestRackPsError(t *testing.T) {
 
 func TestRackPsAll(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("SystemProcesses", structs.SystemProcessesOptions{All: options.Bool(true)}).Return(structs.Processes{fxProcess, fxProcess}, nil)
+		i.On("SystemProcesses", structs.SystemProcessesOptions{All: options.Bool(true)}).Return(structs.Processes{fxProcess, fxProcessPending}, nil)
 
 		res, err := testExecute(e, "rack ps -a", nil)
 		require.NoError(t, err)
 		require.Equal(t, 0, res.Code)
 		res.RequireStderr(t, []string{""})
 		res.RequireStdout(t, []string{
-			"ID    APP   SERVICE  STATUS  RELEASE   STARTED     COMMAND",
-			"pid1  app1  name     status  release1  2 days ago  command",
-			"pid1  app1  name     status  release1  2 days ago  command",
+			"ID    APP   SERVICE  STATUS   RELEASE   STARTED     COMMAND",
+			"pid1  app1  name     running  release1  2 days ago  command",
+			"pid1  app1  name     pending  release1  2 days ago  command",
 		})
 	})
 }
