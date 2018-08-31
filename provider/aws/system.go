@@ -204,7 +204,7 @@ func (p *Provider) SystemGet() (*structs.System, error) {
 	return r, nil
 }
 
-func (p *Provider) SystemInstall(opts structs.SystemInstallOptions) (string, error) {
+func (p *Provider) SystemInstall(w io.Writer, opts structs.SystemInstallOptions) (string, error) {
 	name := cs(opts.Name, "convox")
 
 	var version string
@@ -273,7 +273,7 @@ func (p *Provider) SystemInstall(opts structs.SystemInstallOptions) (string, err
 		return "", err
 	}
 
-	if err := cloudformationProgress(name, token, tdata, opts.Output); err != nil {
+	if err := cloudformationProgress(name, token, tdata, w); err != nil {
 		return "", err
 	}
 
@@ -295,13 +295,13 @@ func (p *Provider) SystemInstall(opts structs.SystemInstallOptions) (string, err
 
 	ep := fmt.Sprintf("https://convox:%s@%s", password, outputs["Dashboard"])
 
-	fmt.Fprintf(opts.Output, "Waiting for load balancer... ")
+	fmt.Fprintf(w, "Waiting for load balancer... ")
 
 	if err := waitForAvailability(ep); err != nil {
 		return "", err
 	}
 
-	fmt.Fprintf(opts.Output, "OK\n")
+	fmt.Fprintf(w, "OK\n")
 
 	return ep, nil
 }
@@ -389,7 +389,7 @@ func (p *Provider) SystemReleases() (structs.Releases, error) {
 	return releases, nil
 }
 
-func (p *Provider) SystemUninstall(name string, opts structs.SystemUninstallOptions) error {
+func (p *Provider) SystemUninstall(name string, w io.Writer, opts structs.SystemUninstallOptions) error {
 	if err := setupCredentials(); err != nil {
 		return err
 	}
@@ -409,24 +409,22 @@ func (p *Provider) SystemUninstall(name string, opts structs.SystemUninstallOpti
 		return err
 	}
 
-	if opts.Output != nil {
-		fmt.Fprintf(opts.Output, "The following stacks will be deleted:\n")
+	fmt.Fprintf(w, "The following stacks will be deleted:\n")
 
-		for _, d := range deps {
-			fmt.Fprintf(opts.Output, "  %s\n", d)
+	for _, d := range deps {
+		fmt.Fprintf(w, "  %s\n", d)
+	}
+
+	if opts.Input != nil && !cb(opts.Force, false) {
+		fmt.Fprintf(w, "Delete everything? [y/N]: ")
+
+		answer, err := bufio.NewReader(opts.Input).ReadString('\n')
+		if err != nil {
+			return err
 		}
 
-		if opts.Input != nil && !opts.Force {
-			fmt.Fprintf(opts.Output, "Delete everything? [y/N]: ")
-
-			answer, err := bufio.NewReader(opts.Input).ReadString('\n')
-			if err != nil {
-				return err
-			}
-
-			if strings.ToLower(strings.TrimSpace(answer)) != "y" {
-				return fmt.Errorf("aborting")
-			}
+		if strings.ToLower(strings.TrimSpace(answer)) != "y" {
+			return fmt.Errorf("aborting")
 		}
 	}
 
@@ -436,9 +434,7 @@ func (p *Provider) SystemUninstall(name string, opts structs.SystemUninstallOpti
 			return err
 		}
 
-		if opts.Output != nil {
-			fmt.Fprintf(opts.Output, color.HiBlueString("Deleting stack: %s\n"), d)
-		}
+		fmt.Fprintf(w, color.HiBlueString("Deleting stack: %s\n"), d)
 
 		token := randomString(20)
 
@@ -450,7 +446,7 @@ func (p *Provider) SystemUninstall(name string, opts structs.SystemUninstallOpti
 			return err
 		}
 
-		if err := cloudformationProgress(d, token, []byte(*tres.TemplateBody), opts.Output); err != nil {
+		if err := cloudformationProgress(d, token, []byte(*tres.TemplateBody), w); err != nil {
 			return err
 		}
 	}

@@ -168,11 +168,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:b91062f7893e73d48b762189722460ac042086b334edcc96112332075ee67c36"
+  digest = "1:8b5b02da8bfb519d8aaac4c3d56cead3e65d4ab1b785f422735a828096957f50"
   name = "github.com/convox/stdcli"
   packages = ["."]
   pruneopts = "NUT"
-  revision = "3bb32b2181c406f47b93cba056e14ec84bbf3a42"
+  revision = "dd62994b556dedbaa3de3da2290c0149af3c5fe5"
 
 [[projects]]
   branch = "master"
@@ -651,6 +651,7 @@
     "github.com/fatih/color",
     "github.com/fsouza/go-dockerclient",
     "github.com/gobwas/glob",
+    "github.com/gorilla/mux",
     "github.com/headzoo/surf",
     "github.com/inconshreveable/go-update",
     "github.com/jasonmoo/lambda_proc",
