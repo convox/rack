@@ -77,7 +77,7 @@ func TestProxyError(t *testing.T) {
 			ch <- res
 		}()
 
-		time.Sleep(50 * time.Millisecond)
+		time.Sleep(100 * time.Millisecond)
 
 		cn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", port))
 		require.NoError(t, err)
