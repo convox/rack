@@ -2,10 +2,11 @@ package stdcli
 
 func New(name, version string) *Engine {
 	e := &Engine{
-		Name:    name,
-		Reader:  DefaultReader,
-		Version: version,
-		Writer:  DefaultWriter,
+		Executor: &CmdExecutor{},
+		Name:     name,
+		Reader:   DefaultReader,
+		Version:  version,
+		Writer:   DefaultWriter,
 	}
 
 	e.Command("help", "list commands", Help, CommandOptions{
