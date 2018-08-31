@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"os/exec"
 	"os/signal"
 	"path/filepath"
 	"runtime"
@@ -127,7 +126,7 @@ func currentEndpoint(c *stdcli.Context, rack_ string) (string, error) {
 	}
 
 	if host == "" {
-		if !localRackRunning() {
+		if !localRackRunning(c) {
 			return "", fmt.Errorf("no racks found, try `convox login`")
 		}
 
@@ -205,14 +204,14 @@ func generateTempKey() (string, error) {
 	return fmt.Sprintf("tmp/%s", hex.EncodeToString(hash[:])[0:30]), nil
 }
 
-func handleSignalTermination(name string) {
+func handleSignalTermination(c *stdcli.Context, name string) {
 	sigs := make(chan os.Signal)
 
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 
 	for range sigs {
 		fmt.Printf("\nstopping: %s\n", name)
-		exec.Command("docker", "stop", name).Run()
+		c.Run("docker", "stop", name)
 	}
 }
 
@@ -252,8 +251,8 @@ func hostRacks(c *stdcli.Context) map[string]string {
 	return rs
 }
 
-func localRackRunning() bool {
-	rs, err := localRacks()
+func localRackRunning(c *stdcli.Context) bool {
+	rs, err := localRacks(c)
 	if err != nil {
 		return false
 	}
@@ -261,10 +260,10 @@ func localRackRunning() bool {
 	return len(rs) > 0
 }
 
-func localRacks() ([]rack, error) {
+func localRacks(c *stdcli.Context) ([]rack, error) {
 	racks := []rack{}
 
-	data, err := exec.Command("docker", "ps", "--filter", "label=convox.type=rack", "--format", "{{.Names}}").CombinedOutput()
+	data, err := c.Execute("docker", "ps", "--filter", "label=convox.type=rack", "--format", "{{.Names}}")
 	if err != nil {
 		return []rack{}, nil // if no docker then no local racks
 	}
@@ -314,7 +313,7 @@ func matchRack(c *stdcli.Context, name string) (*rack, error) {
 	return nil, fmt.Errorf("could not find rack: %s", name)
 }
 
-func rackCommand(name string, version string, router string) (*exec.Cmd, error) {
+func rackCommand(name string, version string, router string) (string, []string, error) {
 	vol := "/var/convox"
 
 	switch runtime.GOOS {
@@ -323,8 +322,6 @@ func rackCommand(name string, version string, router string) (*exec.Cmd, error) 
 	}
 
 	image := fmt.Sprintf("convox/rack:%s", version)
-
-	exec.Command("docker", "rm", "-f", name).Run()
 
 	args := []string{"run", "--rm"}
 	args = append(args, "-e", "COMBINED=true")
@@ -345,7 +342,7 @@ func rackCommand(name string, version string, router string) (*exec.Cmd, error) 
 	args = append(args, "-v", "/var/run/docker.sock:/var/run/docker.sock")
 	args = append(args, image)
 
-	return exec.Command("docker", args...), nil
+	return "docker", args, nil
 }
 
 func racks(c *stdcli.Context) ([]rack, error) {
@@ -358,7 +355,7 @@ func racks(c *stdcli.Context) ([]rack, error) {
 
 	rs = append(rs, rrs...)
 
-	lrs, err := localRacks()
+	lrs, err := localRacks(c)
 	if err != nil {
 		return nil, err
 	}
