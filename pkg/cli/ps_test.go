@@ -24,21 +24,37 @@ var fxProcess = structs.Process{
 	Ports:    []string{"1000", "2000"},
 	Release:  "release1",
 	Started:  time.Now().UTC().Add(-49 * time.Hour),
-	Status:   "status",
+	Status:   "running",
+}
+
+var fxProcessPending = structs.Process{
+	Id:       "pid1",
+	App:      "app1",
+	Command:  "command",
+	Cpu:      1.0,
+	Host:     "host",
+	Image:    "image",
+	Instance: "instance",
+	Memory:   2.0,
+	Name:     "name",
+	Ports:    []string{"1000", "2000"},
+	Release:  "release1",
+	Started:  time.Now().UTC().Add(-49 * time.Hour),
+	Status:   "pending",
 }
 
 func TestPs(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("ProcessList", "app1", structs.ProcessListOptions{}).Return(structs.Processes{fxProcess, fxProcess}, nil)
+		i.On("ProcessList", "app1", structs.ProcessListOptions{}).Return(structs.Processes{fxProcess, fxProcessPending}, nil)
 
 		res, err := testExecute(e, "ps -a app1", nil)
 		require.NoError(t, err)
 		require.Equal(t, 0, res.Code)
 		res.RequireStderr(t, []string{""})
 		res.RequireStdout(t, []string{
-			"ID    SERVICE  STATUS  RELEASE   STARTED     COMMAND",
-			"pid1  name     status  release1  2 days ago  command",
-			"pid1  name     status  release1  2 days ago  command",
+			"ID    SERVICE  STATUS   RELEASE   STARTED     COMMAND",
+			"pid1  name     running  release1  2 days ago  command",
+			"pid1  name     pending  release1  2 days ago  command",
 		})
 	})
 }
@@ -71,7 +87,7 @@ func TestPsInfo(t *testing.T) {
 			"Release   release1",
 			"Service   name",
 			"Started   2 days ago",
-			"Status    status",
+			"Status    running",
 		})
 	})
 }
