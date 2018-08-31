@@ -12,5 +12,5 @@ var fxRelease = structs.Release{
 	Build:    "build1",
 	Env:      "FOO=bar\nBAZ=quux",
 	Manifest: "manifest",
-	Created:  time.Now().UTC(),
+	Created:  time.Now().UTC().Add(-49 * time.Hour),
 }

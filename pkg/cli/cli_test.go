@@ -20,11 +20,9 @@ var (
 	fxObject = structs.Object{
 		Url: "object://test",
 	}
-	fxSystem = structs.System{
-		Version: "20180829000000",
-	}
-	fxSystemClassic = structs.System{
-		Version: "20180101000000",
+	fxParameters = map[string]string{
+		"ParamFoo":   "value1",
+		"ParamOther": "value2",
 	}
 )
 

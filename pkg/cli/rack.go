@@ -115,7 +115,6 @@ func RackInstall(rack sdk.Interface, c *stdcli.Context) error {
 		return err
 	}
 
-	opts.Output = c.Writer()
 	opts.Parameters = map[string]string{}
 
 	for _, arg := range c.Args[1:] {
@@ -133,7 +132,7 @@ func RackInstall(rack sdk.Interface, c *stdcli.Context) error {
 		return err
 	}
 
-	ep, err := p.SystemInstall(opts)
+	ep, err := p.SystemInstall(c, opts)
 	if err != nil {
 		return err
 	}
@@ -255,10 +254,10 @@ func RackPs(rack sdk.Interface, c *stdcli.Context) error {
 		return err
 	}
 
-	t := c.Table("ID", "APP", "NAME", "RELEASE", "STARTED", "COMMAND")
+	t := c.Table("ID", "APP", "SERVICE", "STATUS", "RELEASE", "STARTED", "COMMAND")
 
 	for _, p := range ps {
-		t.AddRow(p.Id, p.App, p.Name, p.Release, helpers.Ago(p.Started), p.Command)
+		t.AddRow(p.Id, p.App, p.Name, p.Status, p.Release, helpers.Ago(p.Started), p.Command)
 	}
 
 	return t.Print()

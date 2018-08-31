@@ -15,7 +15,7 @@ import (
 var fxApp = structs.App{
 	Name:       "app1",
 	Generation: "2",
-	Parameters: fxAppParameters,
+	Parameters: fxParameters,
 	Release:    "release1",
 	Status:     "running",
 }
@@ -23,14 +23,9 @@ var fxApp = structs.App{
 var fxAppUpdating = structs.App{
 	Name:       "app1",
 	Generation: "2",
-	Parameters: fxAppParameters,
+	Parameters: fxParameters,
 	Release:    "release1",
 	Status:     "updating",
-}
-
-var fxAppParameters = map[string]string{
-	"ParamFoo":   "value1",
-	"ParamOther": "value2",
 }
 
 func TestApps(t *testing.T) {
@@ -291,7 +286,7 @@ func TestAppsParamsError(t *testing.T) {
 func TestAppsParamsClassic(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
 		i.On("SystemGet").Return(&fxSystemClassic, nil)
-		i.On("AppParametersGet", "app1").Return(fxAppParameters, nil)
+		i.On("AppParametersGet", "app1").Return(fxParameters, nil)
 
 		res, err := testExecute(e, "apps params app1", nil)
 		require.NoError(t, err)
