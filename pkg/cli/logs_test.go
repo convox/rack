@@ -1,5 +1,15 @@
 package cli_test
 
+import (
+	"fmt"
+	"testing"
+
+	"github.com/convox/rack/pkg/cli"
+	mocksdk "github.com/convox/rack/pkg/mock/sdk"
+	"github.com/convox/rack/pkg/structs"
+	"github.com/stretchr/testify/require"
+)
+
 var fxLogs = []string{
 	"log1",
 	"log2",
@@ -8,4 +18,31 @@ var fxLogs = []string{
 var fxLogsSystem = []string{
 	"TIME system/aws/component log1",
 	"TIME system/aws/component log2",
+}
+
+func TestLogs(t *testing.T) {
+	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
+		i.On("AppLogs", "app1", structs.LogsOptions{}).Return(testLogs(fxLogs), nil)
+
+		res, err := testExecute(e, "logs -a app1", nil)
+		require.NoError(t, err)
+		require.Equal(t, 0, res.Code)
+		res.RequireStderr(t, []string{""})
+		res.RequireStdout(t, []string{
+			fxLogs[0],
+			fxLogs[1],
+		})
+	})
+}
+
+func TestLogsError(t *testing.T) {
+	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
+		i.On("AppLogs", "app1", structs.LogsOptions{}).Return(nil, fmt.Errorf("err1"))
+
+		res, err := testExecute(e, "logs -a app1", nil)
+		require.NoError(t, err)
+		require.Equal(t, 1, res.Code)
+		res.RequireStderr(t, []string{"ERROR: err1"})
+		res.RequireStdout(t, []string{""})
+	})
 }
