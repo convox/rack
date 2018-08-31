@@ -37,6 +37,7 @@ func TestSwitch(t *testing.T) {
 
 		err = ioutil.WriteFile(filepath.Join(tmp, "host"), []byte(tsu.Host), 0644)
 		require.NoError(t, err)
+
 		res, err := testExecute(e, "switch foo", nil)
 		require.NoError(t, err)
 		require.Equal(t, 0, res.Code)
@@ -71,6 +72,7 @@ func TestSwitchUnknown(t *testing.T) {
 
 		err = ioutil.WriteFile(filepath.Join(tmp, "host"), []byte(tsu.Host), 0644)
 		require.NoError(t, err)
+
 		res, err := testExecute(e, "switch rack1", nil)
 		require.NoError(t, err)
 		require.Equal(t, 1, res.Code)

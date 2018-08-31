@@ -19,13 +19,14 @@ func Version(rack sdk.Interface, c *stdcli.Context) error {
 
 	host, err := currentHost(c)
 	if err != nil {
-		return err
+		c.Writef("server: <info>none</info>\n")
+		return nil
 	}
 
 	ep, err := currentEndpoint(c, currentRack(c, host))
 	if err != nil {
 		c.Writef("server: <info>none</info>\n")
-		return err
+		return nil
 	}
 
 	s, err := rack.SystemGet()
