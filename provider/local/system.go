@@ -97,7 +97,7 @@ func (p *Provider) SystemGet() (*structs.System, error) {
 	return system, log.Success()
 }
 
-func (p *Provider) SystemInstall(opts structs.SystemInstallOptions) (string, error) {
+func (p *Provider) SystemInstall(w io.Writer, opts structs.SystemInstallOptions) (string, error) {
 	name := cs(opts.Name, "convox")
 
 	var version string
@@ -126,15 +126,13 @@ func (p *Provider) SystemInstall(opts structs.SystemInstallOptions) (string, err
 		return "", fmt.Errorf("must be root to install a local rack")
 	}
 
-	if opts.Output != nil {
-		fmt.Fprintf(opts.Output, "pulling: convox/rack:%s\n", version)
-	}
+	fmt.Fprintf(w, "pulling: convox/rack:%s\n", version)
 
-	if err := launcherInstall("router", opts, exe, "router"); err != nil {
+	if err := launcherInstall("router", w, opts, exe, "router"); err != nil {
 		return "", err
 	}
 
-	if err := launcherInstall(fmt.Sprintf("rack.%s", name), opts, exe, "rack", "start", "--name", name); err != nil {
+	if err := launcherInstall(fmt.Sprintf("rack.%s", name), w, opts, exe, "rack", "start", "--name", name); err != nil {
 		return "", err
 	}
 
@@ -252,7 +250,7 @@ func (p *Provider) SystemUpdate(opts structs.SystemUpdateOptions) error {
 	return log.Success()
 }
 
-func launcherInstall(name string, opts structs.SystemInstallOptions, command string, args ...string) error {
+func launcherInstall(name string, w io.Writer, opts structs.SystemInstallOptions, command string, args ...string) error {
 	var buf bytes.Buffer
 
 	params := map[string]interface{}{
@@ -268,9 +266,7 @@ func launcherInstall(name string, opts structs.SystemInstallOptions, command str
 
 	path := launcherPath(name)
 
-	if opts.Output != nil {
-		fmt.Fprintf(opts.Output, "installing: %s\n", path)
-	}
+	fmt.Fprintf(w, "installing: %s\n", path)
 
 	if err := ioutil.WriteFile(path, buf.Bytes(), 0644); err != nil {
 		return err

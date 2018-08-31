@@ -204,7 +204,7 @@ func (p *Provider) SystemGet() (*structs.System, error) {
 	return r, nil
 }
 
-func (p *Provider) SystemInstall(opts structs.SystemInstallOptions) (string, error) {
+func (p *Provider) SystemInstall(w io.Writer, opts structs.SystemInstallOptions) (string, error) {
 	name := cs(opts.Name, "convox")
 
 	var version string
@@ -273,7 +273,7 @@ func (p *Provider) SystemInstall(opts structs.SystemInstallOptions) (string, err
 		return "", err
 	}
 
-	if err := cloudformationProgress(name, token, tdata, opts.Output); err != nil {
+	if err := cloudformationProgress(name, token, tdata, w); err != nil {
 		return "", err
 	}
 
@@ -295,13 +295,13 @@ func (p *Provider) SystemInstall(opts structs.SystemInstallOptions) (string, err
 
 	ep := fmt.Sprintf("https://convox:%s@%s", password, outputs["Dashboard"])
 
-	fmt.Fprintf(opts.Output, "Waiting for load balancer... ")
+	fmt.Fprintf(w, "Waiting for load balancer... ")
 
 	if err := waitForAvailability(ep); err != nil {
 		return "", err
 	}
 
-	fmt.Fprintf(opts.Output, "OK\n")
+	fmt.Fprintf(w, "OK\n")
 
 	return ep, nil
 }

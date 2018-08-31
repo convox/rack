@@ -1519,20 +1519,20 @@ func (_m *Interface) SystemGet() (*structs.System, error) {
 	return r0, r1
 }
 
-// SystemInstall provides a mock function with given fields: opts
-func (_m *Interface) SystemInstall(opts structs.SystemInstallOptions) (string, error) {
-	ret := _m.Called(opts)
+// SystemInstall provides a mock function with given fields: w, opts
+func (_m *Interface) SystemInstall(w io.Writer, opts structs.SystemInstallOptions) (string, error) {
+	ret := _m.Called(w, opts)
 
 	var r0 string
-	if rf, ok := ret.Get(0).(func(structs.SystemInstallOptions) string); ok {
-		r0 = rf(opts)
+	if rf, ok := ret.Get(0).(func(io.Writer, structs.SystemInstallOptions) string); ok {
+		r0 = rf(w, opts)
 	} else {
 		r0 = ret.Get(0).(string)
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(structs.SystemInstallOptions) error); ok {
-		r1 = rf(opts)
+	if rf, ok := ret.Get(1).(func(io.Writer, structs.SystemInstallOptions) error); ok {
+		r1 = rf(w, opts)
 	} else {
 		r1 = ret.Error(1)
 	}
