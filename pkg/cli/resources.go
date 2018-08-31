@@ -299,7 +299,7 @@ func ResourcesProxy(rack sdk.Interface, c *stdcli.Context) error {
 
 	go proxy(rack, c, port, remotehost, rpi)
 
-	select {}
+	return <-ProxyCloser
 }
 
 func ResourcesTypes(rack sdk.Interface, c *stdcli.Context) error {
