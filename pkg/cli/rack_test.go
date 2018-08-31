@@ -386,6 +386,53 @@ func TestRackScaleUpdateError(t *testing.T) {
 	})
 }
 
+func TestRackUninstall(t *testing.T) {
+	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
+		opts := structs.SystemUninstallOptions{
+			Force: options.Bool(true),
+		}
+		provider.Mock.On("SystemUninstall", "foo", mock.Anything, opts).Once().Return(nil).Run(func(args mock.Arguments) {
+			w := args.Get(1).(io.Writer)
+			fmt.Fprintf(w, "line1\n")
+			fmt.Fprintf(w, "line2\n")
+		})
+
+		res, err := testExecute(e, "rack uninstall test foo --force", nil)
+		require.NoError(t, err)
+		require.Equal(t, 0, res.Code)
+		res.RequireStderr(t, []string{""})
+		res.RequireStdout(t, []string{
+			"line1",
+			"line2",
+		})
+	})
+}
+
+func TestRackUninstallError(t *testing.T) {
+	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
+		opts := structs.SystemUninstallOptions{
+			Force: options.Bool(true),
+		}
+		provider.Mock.On("SystemUninstall", "foo", mock.Anything, opts).Return(fmt.Errorf("err1"))
+
+		res, err := testExecute(e, "rack uninstall test foo --force", nil)
+		require.NoError(t, err)
+		require.Equal(t, 1, res.Code)
+		res.RequireStderr(t, []string{"ERROR: err1"})
+		res.RequireStdout(t, []string{""})
+	})
+}
+
+func TestRackUninstallWithoutForce(t *testing.T) {
+	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
+		res, err := testExecute(e, "rack uninstall test foo", nil)
+		require.NoError(t, err)
+		require.Equal(t, 1, res.Code)
+		res.RequireStderr(t, []string{"ERROR: must use --force for non-interactive uninstall"})
+		res.RequireStdout(t, []string{""})
+	})
+}
+
 func TestRackUpdate(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
 		i.On("SystemUpdate", structs.SystemUpdateOptions{Version: options.String("version1")}).Return(nil)
