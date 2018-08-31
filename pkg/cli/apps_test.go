@@ -20,6 +20,14 @@ var fxApp = structs.App{
 	Status:     "running",
 }
 
+var fxAppGeneration1 = structs.App{
+	Name:       "app1",
+	Generation: "1",
+	Parameters: fxParameters,
+	Release:    "release1",
+	Status:     "running",
+}
+
 var fxAppUpdating = structs.App{
 	Name:       "app1",
 	Generation: "2",
@@ -32,6 +40,7 @@ func TestApps(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
 		a1 := structs.Apps{
 			fxApp,
+			fxAppGeneration1,
 			structs.App{
 				Name:       "app2",
 				Generation: "1",
@@ -47,6 +56,7 @@ func TestApps(t *testing.T) {
 		res.RequireStdout(t, []string{
 			"APP   STATUS    GEN  RELEASE ",
 			"app1  running   2    release1",
+			"app1  running   1    release1",
 			"app2  creating  1            ",
 		})
 	})
