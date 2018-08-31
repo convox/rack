@@ -228,6 +228,14 @@ func (c *Context) Writef(format string, args ...interface{}) error {
 	return err
 }
 
+func (c *Context) Error(err error) error {
+	return c.Writer().Error(err)
+}
+
+func (c *Context) Errorf(format string, args ...interface{}) error {
+	return c.Writer().Errorf(format, args...)
+}
+
 func (c *Context) Options(opts interface{}) error {
 	v := reflect.ValueOf(opts).Elem()
 	t := v.Type()
