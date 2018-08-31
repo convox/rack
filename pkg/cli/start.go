@@ -54,7 +54,7 @@ func Start(rack sdk.Interface, c *stdcli.Context) error {
 		return start.Start1(opts)
 	}
 
-	if !localRackRunning() {
+	if !localRackRunning(c) {
 		return fmt.Errorf("local rack not found, try `sudo convox rack install local`")
 	}
 

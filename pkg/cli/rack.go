@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io"
 	"net/url"
-	"os"
 	"sort"
 	"strings"
 
@@ -321,17 +320,16 @@ func RackStart(rack sdk.Interface, c *stdcli.Context) error {
 	name := coalesce(c.String("name"), "convox")
 	router := coalesce(c.String("router"), "10.42.0.0")
 
-	cmd, err := rackCommand(name, c.Version(), router)
+	cmd, args, err := rackCommand(name, c.Version(), router)
 	if err != nil {
 		return err
 	}
 
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
+	go handleSignalTermination(c, name)
 
-	go handleSignalTermination(name)
+	c.Execute("docker", "rm", "-f", name)
 
-	return cmd.Run()
+	return c.Run(cmd, args...)
 }
 
 func RackUninstall(rack sdk.Interface, c *stdcli.Context) error {

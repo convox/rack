@@ -7,7 +7,6 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -106,13 +105,7 @@ func EnvEdit(rack sdk.Interface, c *stdcli.Context) error {
 		editor = e
 	}
 
-	cmd := exec.Command(editor, file)
-
-	cmd.Stdin = os.Stdin
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-
-	if err := cmd.Run(); err != nil {
+	if err := c.Terminal(editor, file); err != nil {
 		return err
 	}
 
