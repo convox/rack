@@ -19,6 +19,7 @@ var fxBuild = structs.Build{
 	Id:          "build1",
 	Description: "desc",
 	Ended:       fxStarted.Add(2 * time.Minute),
+	Manifest:    "manifest1\nmanifest2\n",
 	Release:     "release1",
 	Started:     fxStarted,
 	Status:      "complete",
