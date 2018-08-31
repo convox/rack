@@ -4,10 +4,12 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/convox/rack/pkg/structs"
 	"github.com/convox/rack/provider/aws"
 	"github.com/convox/rack/provider/local"
-	"github.com/convox/rack/pkg/structs"
 )
+
+var Mock = &structs.MockProvider{}
 
 // FromEnv returns a new Provider from env vars
 func FromEnv() (structs.Provider, error) {
@@ -21,7 +23,7 @@ func FromName(name string) (structs.Provider, error) {
 	case "local":
 		return local.FromEnv()
 	case "test":
-		return &structs.MockProvider{}, nil
+		return Mock, nil
 	default:
 		return nil, fmt.Errorf("unknown provider: %s", name)
 	}

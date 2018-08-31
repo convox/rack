@@ -1,0 +1,7 @@
+web:
+  image: httpd
+  labels:
+    - convox.port.443.protocol=tls
+  ports:
+    - 80:80
+    - 443:80
