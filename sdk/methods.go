@@ -853,7 +853,7 @@ func (c *Client) SystemReleases() (structs.Releases, error) {
 	return v, err
 }
 
-func (c *Client) SystemUninstall(name string, opts structs.SystemUninstallOptions) error {
+func (c *Client) SystemUninstall(name string, w io.Writer, opts structs.SystemUninstallOptions) error {
 	err := fmt.Errorf("not available via api")
 	return err
 }

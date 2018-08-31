@@ -211,7 +211,7 @@ func (p *Provider) SystemReleases() (structs.Releases, error) {
 	return nil, fmt.Errorf("unimplemented")
 }
 
-func (p *Provider) SystemUninstall(name string, opts structs.SystemUninstallOptions) error {
+func (p *Provider) SystemUninstall(name string, w io.Writer, opts structs.SystemUninstallOptions) error {
 	u, err := user.Current()
 	if err != nil {
 		return err
@@ -221,8 +221,8 @@ func (p *Provider) SystemUninstall(name string, opts structs.SystemUninstallOpti
 		return fmt.Errorf("must be root to uninstall a local rack")
 	}
 
-	launcherRemove("rack")
-	launcherRemove(fmt.Sprintf("rack.%s", name))
+	launcherRemove("rack", w)
+	launcherRemove(fmt.Sprintf("rack.%s", name), w)
 
 	return nil
 }
@@ -279,10 +279,10 @@ func launcherInstall(name string, w io.Writer, opts structs.SystemInstallOptions
 	return nil
 }
 
-func launcherRemove(name string) error {
+func launcherRemove(name string, w io.Writer) error {
 	path := launcherPath(name)
 
-	fmt.Printf("removing: %s\n", path)
+	fmt.Fprintf(w, "removing: %s\n", path)
 
 	launcherStop(name)
 

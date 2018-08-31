@@ -75,7 +75,7 @@ func init() {
 	})
 
 	registerWithoutProvider("rack uninstall", "uninstall a rack", RackUninstall, stdcli.CommandOptions{
-		Flags:    append(stdcli.OptionFlags(structs.SystemUninstallOptions{}), flagForce),
+		Flags:    append(stdcli.OptionFlags(structs.SystemUninstallOptions{})),
 		Usage:    "<type> <name>",
 		Validate: stdcli.Args(2),
 	})
@@ -341,9 +341,6 @@ func RackUninstall(rack sdk.Interface, c *stdcli.Context) error {
 		return err
 	}
 
-	opts.Force = c.Bool("force")
-	opts.Output = c.Writer()
-
 	if c.Reader().IsTerminal() {
 		opts.Input = c.Reader()
 	} else {
@@ -357,7 +354,7 @@ func RackUninstall(rack sdk.Interface, c *stdcli.Context) error {
 		return err
 	}
 
-	if err := p.SystemUninstall(c.Arg(1), opts); err != nil {
+	if err := p.SystemUninstall(c.Arg(1), c, opts); err != nil {
 		return err
 	}
 

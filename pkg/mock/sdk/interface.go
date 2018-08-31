@@ -1609,13 +1609,13 @@ func (_m *Interface) SystemReleases() (structs.Releases, error) {
 	return r0, r1
 }
 
-// SystemUninstall provides a mock function with given fields: name, opts
-func (_m *Interface) SystemUninstall(name string, opts structs.SystemUninstallOptions) error {
-	ret := _m.Called(name, opts)
+// SystemUninstall provides a mock function with given fields: name, w, opts
+func (_m *Interface) SystemUninstall(name string, w io.Writer, opts structs.SystemUninstallOptions) error {
+	ret := _m.Called(name, w, opts)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(string, structs.SystemUninstallOptions) error); ok {
-		r0 = rf(name, opts)
+	if rf, ok := ret.Get(0).(func(string, io.Writer, structs.SystemUninstallOptions) error); ok {
+		r0 = rf(name, w, opts)
 	} else {
 		r0 = ret.Error(0)
 	}

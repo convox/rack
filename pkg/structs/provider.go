@@ -82,7 +82,7 @@ type Provider interface {
 	SystemLogs(opts LogsOptions) (io.ReadCloser, error)
 	SystemProcesses(opts SystemProcessesOptions) (Processes, error)
 	SystemReleases() (Releases, error)
-	SystemUninstall(name string, opts SystemUninstallOptions) error
+	SystemUninstall(name string, w io.Writer, opts SystemUninstallOptions) error
 	SystemUpdate(opts SystemUpdateOptions) error
 
 	Workers() error
