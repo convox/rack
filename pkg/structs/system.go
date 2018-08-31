@@ -26,9 +26,8 @@ type SystemProcessesOptions struct {
 }
 
 type SystemUninstallOptions struct {
-	Force  bool
-	Input  io.Reader
-	Output io.Writer
+	Force *bool `flag:"force,f"`
+	Input io.Reader
 }
 
 type SystemUpdateOptions struct {
