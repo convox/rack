@@ -18,6 +18,7 @@ mocks:
 	go get -u github.com/vektra/mockery/.../
 	make -C pkg/structs mocks
 	mockery -case underscore -dir sdk -outpkg sdk -output pkg/mock/sdk -name Interface
+	mockery -case underscore -dir vendor/github.com/convox/stdcli -outpkg stdcli -output pkg/mock/stdcli -name Executor
 
 
 release:
