@@ -11,6 +11,7 @@ import (
 
 type Engine struct {
 	Commands []Command
+	Executor Executor
 	Name     string
 	Reader   *Reader
 	Settings string
