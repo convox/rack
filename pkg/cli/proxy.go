@@ -16,8 +16,9 @@ func init() {
 		Usage:    "<[port:]host:hostport> [[port:]host:hostport]...",
 		Validate: stdcli.ArgsMin(1),
 	})
-
 }
+
+var ProxyCloser = make(chan error)
 
 func Proxy(rack sdk.Interface, c *stdcli.Context) error {
 	for _, arg := range c.Args {
@@ -61,16 +62,16 @@ func Proxy(rack sdk.Interface, c *stdcli.Context) error {
 		go proxy(rack, c, port, host, hostport)
 	}
 
-	// block forever
-	select {}
+	// block until something sends data on this channel
+	return <-ProxyCloser
 }
 
 func proxy(rack sdk.Interface, c *stdcli.Context, localport int, remotehost string, remoteport int) {
-	fmt.Printf("proxying localhost:%d to %s:%d\n", localport, remotehost, remoteport)
+	c.Writef("proxying localhost:%d to %s:%d\n", localport, remotehost, remoteport)
 
 	listener, err := net.Listen("tcp4", fmt.Sprintf("127.0.0.1:%d", localport))
 	if err != nil {
-		fmt.Printf("error: %s\n", err)
+		c.Error(err)
 		return
 	}
 
@@ -79,17 +80,17 @@ func proxy(rack sdk.Interface, c *stdcli.Context, localport int, remotehost stri
 	for {
 		cn, err := listener.Accept()
 		if err != nil {
-			fmt.Printf("error: %s\n", err)
+			c.Error(err)
 			return
 		}
 
-		fmt.Printf("connect: %d\n", localport)
+		c.Writef("connect: %d\n", localport)
 
 		go func() {
 			defer cn.Close()
 
 			if err := rack.Proxy(remotehost, remoteport, cn); err != nil {
-				fmt.Printf("error: %s\n", err)
+				c.Error(err)
 			}
 		}()
 	}
