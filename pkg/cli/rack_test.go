@@ -131,7 +131,7 @@ func TestRackInstallError(t *testing.T) {
 
 func TestRackLogs(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("SystemLogs", structs.LogsOptions{}).Return(testLogs(fxLogs()), nil)
+		i.On("SystemLogs", structs.LogsOptions{Prefix: options.Bool(true)}).Return(testLogs(fxLogs()), nil)
 
 		res, err := testExecute(e, "rack logs", nil)
 		require.NoError(t, err)
@@ -146,7 +146,7 @@ func TestRackLogs(t *testing.T) {
 
 func TestRackLogsError(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("SystemLogs", structs.LogsOptions{}).Return(nil, fmt.Errorf("err1"))
+		i.On("SystemLogs", structs.LogsOptions{Prefix: options.Bool(true)}).Return(nil, fmt.Errorf("err1"))
 
 		res, err := testExecute(e, "rack logs", nil)
 		require.NoError(t, err)
