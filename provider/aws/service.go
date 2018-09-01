@@ -57,7 +57,7 @@ func (p *Provider) ServiceList(app string) (structs.Services, error) {
 
 		if endpoint == "" {
 			sr, err := p.stackResource(p.rackStack(app), fmt.Sprintf("Service%s", upperName(ms.Name)))
-			if err != nil {
+			if err != nil && !strings.HasPrefix(err.Error(), "resource not found") {
 				return nil, err
 			}
 
