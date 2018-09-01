@@ -11,7 +11,7 @@ func (p *Provider) SystemGet() (*structs.System, error) {
 	return nil, fmt.Errorf("unimplemented")
 }
 
-func (p *Provider) SystemInstall(opts structs.SystemInstallOptions) (string, error) {
+func (p *Provider) SystemInstall(w io.Writer, opts structs.SystemInstallOptions) (string, error) {
 	return "", fmt.Errorf("unimplemented")
 }
 
@@ -27,7 +27,7 @@ func (p *Provider) SystemReleases() (structs.Releases, error) {
 	return nil, fmt.Errorf("unimplemented")
 }
 
-func (p *Provider) SystemUninstall(name string, opts structs.SystemUninstallOptions) error {
+func (p *Provider) SystemUninstall(name string, w io.Writer, opts structs.SystemUninstallOptions) error {
 	return fmt.Errorf("unimplemented")
 }
 

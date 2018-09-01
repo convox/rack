@@ -6,13 +6,14 @@ import (
 
 	"github.com/convox/rack/pkg/cli"
 	mocksdk "github.com/convox/rack/pkg/mock/sdk"
+	"github.com/convox/rack/pkg/options"
 	"github.com/convox/rack/pkg/structs"
 	"github.com/stretchr/testify/require"
 )
 
 func TestLogs(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("AppLogs", "app1", structs.LogsOptions{}).Return(testLogs(fxLogs()), nil)
+		i.On("AppLogs", "app1", structs.LogsOptions{Prefix: options.Bool(true)}).Return(testLogs(fxLogs()), nil)
 
 		res, err := testExecute(e, "logs -a app1", nil)
 		require.NoError(t, err)
@@ -27,7 +28,7 @@ func TestLogs(t *testing.T) {
 
 func TestLogsError(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("AppLogs", "app1", structs.LogsOptions{}).Return(nil, fmt.Errorf("err1"))
+		i.On("AppLogs", "app1", structs.LogsOptions{Prefix: options.Bool(true)}).Return(nil, fmt.Errorf("err1"))
 
 		res, err := testExecute(e, "logs -a app1", nil)
 		require.NoError(t, err)
