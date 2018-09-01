@@ -37,10 +37,10 @@ func TestApps(t *testing.T) {
 		require.Equal(t, 0, res.Code)
 		res.RequireStderr(t, []string{""})
 		res.RequireStdout(t, []string{
-			"APP   STATUS    GEN  RELEASE ",
-			"app1  running   2    release1",
-			"app1  running   1    release1",
-			"app2  creating  1            ",
+			"APP   STATUS    RELEASE ",
+			"app1  running   release1",
+			"app1  running   release1",
+			"app2  creating          ",
 		})
 	})
 }
