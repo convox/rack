@@ -1,14 +1,21 @@
 package cli_test
 
 import (
+	"compress/gzip"
 	"fmt"
+	"io"
+	"io/ioutil"
+	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
 	"github.com/convox/rack/pkg/cli"
+	"github.com/convox/rack/pkg/helpers"
 	mocksdk "github.com/convox/rack/pkg/mock/sdk"
 	"github.com/convox/rack/pkg/options"
 	"github.com/convox/rack/pkg/structs"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -210,6 +217,110 @@ func TestAppsDeleteWait(t *testing.T) {
 		res.RequireStderr(t, []string{""})
 		res.RequireStdout(t, []string{
 			"Deleting app1... OK",
+		})
+	})
+}
+
+func TestAppsExport(t *testing.T) {
+	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
+		i.On("AppGet", "app1").Return(&fxApp, nil)
+		i.On("ReleaseGet", "app1", "release1").Return(&fxRelease, nil)
+		bdata, err := ioutil.ReadFile("testdata/build.tgz")
+		require.NoError(t, err)
+		i.On("BuildExport", "app1", "build1", mock.Anything).Return(nil).Run(func(args mock.Arguments) {
+			args.Get(2).(io.Writer).Write(bdata)
+		})
+
+		tmp, err := ioutil.TempDir("", "")
+		require.NoError(t, err)
+		defer os.RemoveAll(tmp)
+
+		res, err := testExecute(e, fmt.Sprintf("apps export -a app1 -f %s/app.tgz", tmp), nil)
+		require.NoError(t, err)
+		require.Equal(t, 0, res.Code)
+		res.RequireStderr(t, []string{""})
+		res.RequireStdout(t, []string{
+			"Exporting app app1... OK",
+			"Exporting env... OK",
+			"Exporting build build1... OK",
+			"Packaging export... OK",
+		})
+
+		fd, err := os.Open(filepath.Join(tmp, "app.tgz"))
+		require.NoError(t, err)
+		defer fd.Close()
+
+		gz, err := gzip.NewReader(fd)
+		require.NoError(t, err)
+
+		err = helpers.Unarchive(gz, tmp)
+		require.NoError(t, err)
+
+		data, err := ioutil.ReadFile(filepath.Join(tmp, "app.json"))
+		require.NoError(t, err)
+		require.Equal(t, "{\"generation\":\"2\",\"name\":\"app1\",\"release\":\"release1\",\"sleep\":false,\"status\":\"running\",\"parameters\":{\"ParamFoo\":\"value1\",\"ParamOther\":\"value2\"}}", string(data))
+
+		data, err = ioutil.ReadFile(filepath.Join(tmp, "env"))
+		require.NoError(t, err)
+		require.Equal(t, "FOO=bar\nBAZ=quux", string(data))
+
+		data, err = ioutil.ReadFile(filepath.Join(tmp, "build.tgz"))
+		require.NoError(t, err)
+		require.Equal(t, bdata, data)
+	})
+}
+
+func TestAppsImport(t *testing.T) {
+	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
+		i.On("AppCreate", "app1", structs.AppCreateOptions{Generation: options.String("2")}).Return(&fxApp, nil)
+		i.On("AppGet", "app1").Return(&structs.App{Status: "creating"}, nil).Twice()
+		i.On("AppGet", "app1").Return(&fxApp, nil)
+		bdata, err := ioutil.ReadFile("testdata/build.tgz")
+		require.NoError(t, err)
+		i.On("BuildImport", "app1", mock.Anything).Return(&fxBuild, nil).Run(func(args mock.Arguments) {
+			rdata, err := ioutil.ReadAll(args.Get(1).(io.Reader))
+			require.NoError(t, err)
+			require.Equal(t, bdata, rdata)
+		})
+		i.On("ReleaseCreate", "app1", structs.ReleaseCreateOptions{Env: options.String("ALPHA=one\nBRAVO=two\n")}).Return(&fxRelease, nil)
+		i.On("ReleasePromote", "app1", "release1").Return(nil)
+
+		res, err := testExecute(e, "apps import -a app1 -f testdata/app.tgz", nil)
+		require.NoError(t, err)
+		require.Equal(t, 0, res.Code)
+		res.RequireStderr(t, []string{""})
+		res.RequireStdout(t, []string{
+			"Creating app app1... OK",
+			"Waiting for app... OK",
+			"Importing build... OK, release1",
+			"Importing env... OK, release1",
+			"Promoting release1... OK",
+		})
+	})
+}
+
+func TestAppsImportNoBuild(t *testing.T) {
+	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
+		i.On("AppCreate", "app1", structs.AppCreateOptions{Generation: options.String("2")}).Return(&fxApp, nil)
+		i.On("AppGet", "app1").Return(&structs.App{Status: "creating"}, nil).Twice()
+		i.On("AppGet", "app1").Return(&fxApp, nil)
+		bdata, err := ioutil.ReadFile("testdata/build.tgz")
+		require.NoError(t, err)
+		i.On("BuildImport", "app1", mock.Anything).Return(&fxBuild, nil).Run(func(args mock.Arguments) {
+			rdata, err := ioutil.ReadAll(args.Get(1).(io.Reader))
+			require.NoError(t, err)
+			require.Equal(t, bdata, rdata)
+		})
+		i.On("ReleaseCreate", "app1", structs.ReleaseCreateOptions{Env: options.String("ALPHA=one\nBRAVO=two\n")}).Return(&fxRelease, nil)
+		i.On("ReleasePromote", "app1", "release1").Return(nil)
+
+		res, err := testExecute(e, "apps import -a app1 -f testdata/app.nobuild.tgz", nil)
+		require.NoError(t, err)
+		require.Equal(t, 0, res.Code)
+		res.RequireStderr(t, []string{""})
+		res.RequireStdout(t, []string{
+			"Creating app app1... OK",
+			"Waiting for app... OK",
 		})
 	})
 }

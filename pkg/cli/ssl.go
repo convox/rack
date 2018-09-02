@@ -96,7 +96,7 @@ func SslUpdate(rack sdk.Interface, c *stdcli.Context) error {
 	}
 
 	if c.Bool("wait") {
-		if err := waitForAppRunning(rack, c, app(c)); err != nil {
+		if err := waitForAppRunning(rack, app(c)); err != nil {
 			return err
 		}
 	}
