@@ -514,7 +514,7 @@ func waitForAppDeleted(rack sdk.Interface, c *stdcli.Context, app string) error 
 	})
 }
 
-func waitForAppRunning(rack sdk.Interface, c *stdcli.Context, app string) error {
+func waitForAppRunning(rack sdk.Interface, app string) error {
 	time.Sleep(WaitDuration) // give the stack time to start updating
 
 	return wait(WaitDuration, 30*time.Minute, 2, func() (bool, error) {
@@ -534,7 +534,7 @@ func waitForAppWithLogs(rack sdk.Interface, c *stdcli.Context, app string) error
 
 	go streamAppSystemLogs(rack, c, app, done)
 
-	if err := waitForAppRunning(rack, c, app); err != nil {
+	if err := waitForAppRunning(rack, app); err != nil {
 		return err
 	}
 

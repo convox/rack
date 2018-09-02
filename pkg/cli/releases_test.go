@@ -17,7 +17,7 @@ var fxRelease = structs.Release{
 	App:      "app1",
 	Build:    "build1",
 	Env:      "FOO=bar\nBAZ=quux",
-	Manifest: "manifest",
+	Manifest: "services:\n  web:\n    build: .",
 	Created:  time.Now().UTC().Add(-49 * time.Hour),
 }
 
