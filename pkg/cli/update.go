@@ -12,7 +12,7 @@ import (
 )
 
 func init() {
-	register("update", "update the cli", Update, stdcli.CommandOptions{
+	registerWithoutProvider("update", "update the cli", Update, stdcli.CommandOptions{
 		Flags:    []stdcli.Flag{flagRack},
 		Validate: stdcli.ArgsMax(1),
 	})

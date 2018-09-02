@@ -31,11 +31,7 @@ func TestSwitch(t *testing.T) {
 		tsu, err := url.Parse(ts.URL)
 		require.NoError(t, err)
 
-		tmp, err := ioutil.TempDir("", "")
-		require.NoError(t, err)
-		e.Settings = tmp
-
-		err = ioutil.WriteFile(filepath.Join(tmp, "host"), []byte(tsu.Host), 0644)
+		err = ioutil.WriteFile(filepath.Join(e.Settings, "host"), []byte(tsu.Host), 0644)
 		require.NoError(t, err)
 
 		res, err := testExecute(e, "switch foo", nil)
@@ -44,7 +40,7 @@ func TestSwitch(t *testing.T) {
 		res.RequireStderr(t, []string{""})
 		res.RequireStdout(t, []string{"Switched to test/foo"})
 
-		data, err := ioutil.ReadFile(filepath.Join(tmp, "racks"))
+		data, err := ioutil.ReadFile(filepath.Join(e.Settings, "racks"))
 		require.NoError(t, err)
 		require.Equal(t, fmt.Sprintf("{\n  \"%s\": \"test/foo\"\n}", tsu.Host), string(data))
 	})
@@ -66,11 +62,7 @@ func TestSwitchUnknown(t *testing.T) {
 		tsu, err := url.Parse(ts.URL)
 		require.NoError(t, err)
 
-		tmp, err := ioutil.TempDir("", "")
-		require.NoError(t, err)
-		e.Settings = tmp
-
-		err = ioutil.WriteFile(filepath.Join(tmp, "host"), []byte(tsu.Host), 0644)
+		err = ioutil.WriteFile(filepath.Join(e.Settings, "host"), []byte(tsu.Host), 0644)
 		require.NoError(t, err)
 
 		res, err := testExecute(e, "switch rack1", nil)

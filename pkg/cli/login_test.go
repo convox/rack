@@ -16,10 +16,6 @@ import (
 
 func TestLogin(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		tmp, err := ioutil.TempDir("", "")
-		require.NoError(t, err)
-		e.Settings = tmp
-
 		ts := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			require.Equal(t, "/auth", r.URL.Path)
 			user, pass, _ := r.BasicAuth()
@@ -36,11 +32,11 @@ func TestLogin(t *testing.T) {
 		res.RequireStderr(t, []string{""})
 		res.RequireStdout(t, []string{fmt.Sprintf("Authenticating with %s... OK", tsu.Host)})
 
-		data, err := ioutil.ReadFile(filepath.Join(tmp, "auth"))
+		data, err := ioutil.ReadFile(filepath.Join(e.Settings, "auth"))
 		require.NoError(t, err)
 		require.Equal(t, fmt.Sprintf("{\n  \"%s\": \"password\"\n}", tsu.Host), string(data))
 
-		data, err = ioutil.ReadFile(filepath.Join(tmp, "host"))
+		data, err = ioutil.ReadFile(filepath.Join(e.Settings, "host"))
 		require.NoError(t, err)
 		require.Equal(t, tsu.Host, string(data))
 	})
@@ -48,10 +44,6 @@ func TestLogin(t *testing.T) {
 
 func TestLoginError(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		tmp, err := ioutil.TempDir("", "")
-		require.NoError(t, err)
-		e.Settings = tmp
-
 		ts := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(401)
 		}))

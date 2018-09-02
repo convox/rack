@@ -8,7 +8,7 @@ import (
 )
 
 func init() {
-	register("switch", "switch current rack", Switch, stdcli.CommandOptions{
+	registerWithoutProvider("switch", "switch current rack", Switch, stdcli.CommandOptions{
 		Validate: stdcli.ArgsMax(1),
 	})
 }

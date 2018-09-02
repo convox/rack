@@ -32,11 +32,7 @@ func TestRacks(t *testing.T) {
 		tsu, err := url.Parse(ts.URL)
 		require.NoError(t, err)
 
-		tmp, err := ioutil.TempDir("", "")
-		require.NoError(t, err)
-		e.Settings = tmp
-
-		err = ioutil.WriteFile(filepath.Join(tmp, "host"), []byte(tsu.Host), 0644)
+		err = ioutil.WriteFile(filepath.Join(e.Settings, "host"), []byte(tsu.Host), 0644)
 		require.NoError(t, err)
 
 		me := &mockstdcli.Executor{}
@@ -71,11 +67,7 @@ func TestRacksError(t *testing.T) {
 		tsu, err := url.Parse(ts.URL)
 		require.NoError(t, err)
 
-		tmp, err := ioutil.TempDir("", "")
-		require.NoError(t, err)
-		e.Settings = tmp
-
-		err = ioutil.WriteFile(filepath.Join(tmp, "host"), []byte(tsu.Host), 0644)
+		err = ioutil.WriteFile(filepath.Join(e.Settings, "host"), []byte(tsu.Host), 0644)
 		require.NoError(t, err)
 
 		me := &mockstdcli.Executor{}
