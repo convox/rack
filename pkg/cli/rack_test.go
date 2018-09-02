@@ -89,10 +89,6 @@ func TestRackInstall(t *testing.T) {
 		tsu, err := url.Parse(ts.URL)
 		require.NoError(t, err)
 
-		tmp, err := ioutil.TempDir("", "")
-		require.NoError(t, err)
-		e.Settings = tmp
-
 		opts := structs.SystemInstallOptions{
 			Name:       options.String("foo"),
 			Parameters: map[string]string{},
@@ -114,11 +110,11 @@ func TestRackInstall(t *testing.T) {
 			fmt.Sprintf("Authenticating with %s... OK", tsu.Host),
 		})
 
-		data, err := ioutil.ReadFile(filepath.Join(tmp, "auth"))
+		data, err := ioutil.ReadFile(filepath.Join(e.Settings, "auth"))
 		require.NoError(t, err)
 		require.Equal(t, fmt.Sprintf("{\n  \"%s\": \"password\"\n}", tsu.Host), string(data))
 
-		data, err = ioutil.ReadFile(filepath.Join(tmp, "host"))
+		data, err = ioutil.ReadFile(filepath.Join(e.Settings, "host"))
 		require.NoError(t, err)
 		require.Equal(t, tsu.Host, string(data))
 	})

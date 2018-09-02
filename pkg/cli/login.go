@@ -9,7 +9,7 @@ import (
 )
 
 func init() {
-	register("login", "authenticate with a rack", Login, stdcli.CommandOptions{
+	registerWithoutProvider("login", "authenticate with a rack", Login, stdcli.CommandOptions{
 		Flags: []stdcli.Flag{
 			stdcli.StringFlag("password", "p", "password"),
 		},

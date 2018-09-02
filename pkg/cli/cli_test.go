@@ -39,11 +39,16 @@ func testClientWait(t *testing.T, wait time.Duration, fn func(*cli.Engine, *mock
 
 	cli.WaitDuration = wait
 
-	c := cli.New("convox", "test")
+	e := cli.New("convox", "test")
 
-	c.Client = i
+	e.Client = i
 
-	fn(c, i)
+	tmp, err := ioutil.TempDir("", "")
+	require.NoError(t, err)
+	e.Settings = tmp
+	// defer os.RemoveAll(tmp)
+
+	fn(e, i)
 
 	// i.AssertExpectations(t)
 }
