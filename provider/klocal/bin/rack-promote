@@ -10,6 +10,8 @@ version=$2
 
 provider/k8s/bin/rack-promote $rack $version
 
+kubectl patch deployment/metrics-server -n kube-system -p "{\"spec\":{\"template\":{\"spec\":{\"containers\":[{\"name\":\"metrics-server\",\"command\":[\"/metrics-server\",\"--kubelet-insecure-tls\"]}]}}}}" || true
+
 kubectl apply -f - <<EOF
 apiVersion: v1
 kind: ConfigMap
