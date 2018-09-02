@@ -111,7 +111,7 @@ func Tarball(dir string) ([]byte, error) {
 	return ioutil.ReadAll(r)
 }
 
-func Unarchive(r io.Reader) error {
+func Unarchive(r io.Reader, target string) error {
 	tr := tar.NewReader(r)
 
 	for {
@@ -123,17 +123,19 @@ func Unarchive(r io.Reader) error {
 			return err
 		}
 
+		file := filepath.Join(target, h.Name)
+
 		switch h.Typeflag {
 		case tar.TypeDir:
-			if err := os.MkdirAll(h.Name, os.FileMode(h.Mode)); err != nil {
+			if err := os.MkdirAll(file, os.FileMode(h.Mode)); err != nil {
 				return err
 			}
 		case tar.TypeReg:
-			if err := os.MkdirAll(filepath.Dir(h.Name), 0755); err != nil {
+			if err := os.MkdirAll(filepath.Dir(file), 0755); err != nil {
 				return err
 			}
 
-			fd, err := os.OpenFile(h.Name, os.O_CREATE|os.O_WRONLY, os.FileMode(h.Mode))
+			fd, err := os.OpenFile(file, os.O_CREATE|os.O_WRONLY, os.FileMode(h.Mode))
 			if err != nil {
 				return err
 			}

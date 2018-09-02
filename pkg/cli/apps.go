@@ -1,10 +1,17 @@
 package cli
 
 import (
+	"compress/gzip"
+	"encoding/json"
 	"fmt"
+	"io"
+	"io/ioutil"
+	"os"
+	"path/filepath"
 	"sort"
 	"strings"
 
+	"github.com/convox/rack/pkg/helpers"
 	"github.com/convox/rack/pkg/options"
 	"github.com/convox/rack/pkg/structs"
 	"github.com/convox/rack/sdk"
@@ -25,7 +32,7 @@ func init() {
 
 	register("apps create", "create an app", AppsCreate, stdcli.CommandOptions{
 		Flags:    append(stdcli.OptionFlags(structs.AppCreateOptions{}), flagRack, flagWait),
-		Usage:    "<app>",
+		Usage:    "[name]",
 		Validate: stdcli.ArgsMax(1),
 	})
 
@@ -33,6 +40,26 @@ func init() {
 		Flags:    []stdcli.Flag{flagRack, flagWait},
 		Usage:    "<app>",
 		Validate: stdcli.Args(1),
+	})
+
+	register("apps export", "export an app", AppsExport, stdcli.CommandOptions{
+		Flags: []stdcli.Flag{
+			flagApp,
+			flagRack,
+			stdcli.StringFlag("file", "f", "import from file"),
+		},
+		Usage:    "[app]",
+		Validate: stdcli.ArgsMax(1),
+	})
+
+	register("apps import", "import an app", AppsImport, stdcli.CommandOptions{
+		Flags: []stdcli.Flag{
+			flagApp,
+			flagRack,
+			stdcli.StringFlag("file", "f", "import from file"),
+		},
+		Usage:    "[app]",
+		Validate: stdcli.ArgsMax(1),
 	})
 
 	register("apps info", "get information about an app", AppsInfo, stdcli.CommandOptions{
@@ -115,7 +142,7 @@ func AppsCreate(rack sdk.Interface, c *stdcli.Context) error {
 	}
 
 	if c.Bool("wait") {
-		if err := waitForAppRunning(rack, c, app); err != nil {
+		if err := waitForAppRunning(rack, app); err != nil {
 			return err
 		}
 	}
@@ -139,6 +166,71 @@ func AppsDelete(rack sdk.Interface, c *stdcli.Context) error {
 	}
 
 	return c.OK()
+}
+
+func AppsExport(rack sdk.Interface, c *stdcli.Context) error {
+	app := coalesce(c.Arg(0), app(c))
+
+	var w io.Writer
+
+	if file := c.String("file"); file != "" {
+		f, err := os.Create(file)
+		if err != nil {
+			return err
+		}
+		defer f.Close()
+		w = f
+	} else {
+		if c.Writer().IsTerminal() {
+			return fmt.Errorf("pipe this command into a file or specify --file")
+		}
+		w = c.Writer().Stdout
+		c.Writer().Stdout = c.Writer().Stderr
+	}
+
+	if err := appExport(rack, c, app, w); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func AppsImport(rack sdk.Interface, c *stdcli.Context) error {
+	app := coalesce(c.Arg(0), app(c))
+
+	var r io.ReadCloser
+
+	if file := c.String("file"); file != "" {
+		f, err := os.Open(file)
+		if err != nil {
+			return err
+		}
+		r = f
+	} else {
+		if c.Reader().IsTerminal() {
+			return fmt.Errorf("pipe a file into this command or specify --file")
+		}
+		r = ioutil.NopCloser(c.Reader())
+	}
+
+	defer r.Close()
+
+	release, err := appImport(rack, c, app, r)
+	if err != nil {
+		return err
+	}
+
+	if release != "" {
+		c.Startf("Promoting <release>%s</release>", release)
+
+		if err := rack.ReleasePromote(app, release); err != nil {
+			return err
+		}
+
+		c.OK()
+	}
+
+	return nil
 }
 
 func AppsInfo(rack sdk.Interface, c *stdcli.Context) error {
@@ -272,4 +364,162 @@ func AppsWait(rack sdk.Interface, c *stdcli.Context) error {
 	}
 
 	return c.OK()
+}
+
+func appExport(rack sdk.Interface, c *stdcli.Context, app string, w io.Writer) error {
+	tmp, err := ioutil.TempDir("", "")
+	if err != nil {
+		return err
+	}
+	defer os.RemoveAll(tmp)
+
+	c.Startf("Exporting app <app>%s</app>", app)
+
+	a, err := rack.AppGet(app)
+	if err != nil {
+		return err
+	}
+
+	data, err := json.Marshal(a)
+	if err != nil {
+		return err
+	}
+
+	if err := ioutil.WriteFile(filepath.Join(tmp, "app.json"), data, 0600); err != nil {
+		return err
+	}
+
+	c.OK()
+
+	if a.Release != "" {
+		c.Startf("Exporting env")
+
+		_, r, err := helpers.AppManifest(rack, app)
+		if err != nil {
+			return err
+		}
+
+		if err := ioutil.WriteFile(filepath.Join(tmp, "env"), []byte(r.Env), 0600); err != nil {
+			return err
+		}
+
+		c.OK()
+
+		if r.Build != "" {
+			c.Startf("Exporting build <build>%s</build>", r.Build)
+
+			fd, err := os.OpenFile(filepath.Join(tmp, "build.tgz"), os.O_CREATE|os.O_WRONLY, 0600)
+			if err != nil {
+				return err
+			}
+			defer fd.Close()
+
+			if err := rack.BuildExport(app, r.Build, fd); err != nil {
+				return err
+			}
+
+			c.OK()
+		}
+	}
+
+	c.Startf("Packaging export")
+
+	tgz, err := helpers.Tarball(tmp)
+	if err != nil {
+		return err
+	}
+
+	if _, err := w.Write(tgz); err != nil {
+		return err
+	}
+
+	c.OK()
+
+	return nil
+}
+
+func appImport(rack sdk.Interface, c *stdcli.Context, app string, r io.Reader) (string, error) {
+	tmp, err := ioutil.TempDir("", "")
+	if err != nil {
+		return "", err
+	}
+	defer os.RemoveAll(tmp)
+
+	gz, err := gzip.NewReader(r)
+	if err != nil {
+		return "", err
+	}
+
+	if err := helpers.Unarchive(gz, tmp); err != nil {
+		return "", err
+	}
+
+	var a structs.App
+
+	data, err := ioutil.ReadFile(filepath.Join(tmp, "app.json"))
+	if err != nil {
+		return "", err
+	}
+
+	if err := json.Unmarshal(data, &a); err != nil {
+		return "", err
+	}
+
+	c.Startf("Creating app <app>%s</app>", app)
+
+	if _, err := rack.AppCreate(app, structs.AppCreateOptions{Generation: options.String(a.Generation)}); err != nil {
+		return "", err
+	}
+
+	c.OK()
+
+	c.Startf("Waiting for app")
+
+	if err := waitForAppRunning(rack, app); err != nil {
+		return "", err
+	}
+
+	c.OK()
+
+	build := filepath.Join(tmp, "build.tgz")
+	env := filepath.Join(tmp, "env")
+	release := ""
+
+	if _, err := os.Stat(build); !os.IsNotExist(err) {
+		fd, err := os.Open(build)
+		if err != nil {
+			return "", err
+		}
+
+		c.Startf("Importing build")
+
+		b, err := rack.BuildImport(app, fd)
+		if err != nil {
+			return "", err
+		}
+
+		c.OK(b.Release)
+
+		release = b.Release
+	}
+
+	if _, err := os.Stat(env); !os.IsNotExist(err) {
+		data, err := ioutil.ReadFile(env)
+		if err != nil {
+			return "", err
+		}
+
+		c.Startf("Importing env")
+
+		r, err := rack.ReleaseCreate(app, structs.ReleaseCreateOptions{Env: options.String(string(data))})
+		if err != nil {
+			return "", err
+		}
+
+		c.OK(r.Id)
+
+		release = r.Id
+	}
+
+	return release, nil
 }
