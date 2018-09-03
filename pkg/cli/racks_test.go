@@ -36,7 +36,8 @@ func TestRacks(t *testing.T) {
 		require.NoError(t, err)
 
 		me := &mockstdcli.Executor{}
-		me.On("Execute", "docker", "ps", "--filter", "label=convox.type=rack", "--format", "{{.Names}}").Return([]byte("alpha\necho\n"), nil)
+		me.On("Execute", "docker", "ps", "--filter", "label=convox.type=rack", "--format", "{{.Names}}").Return([]byte("classic\n"), nil)
+		me.On("Execute", "kubectl", "get", "ns", "--selector=system=convox,type=rack", "--output=name").Return([]byte("namespace/dev\n"), nil)
 		e.Executor = me
 
 		res, err := testExecute(e, "racks", nil)
@@ -44,11 +45,11 @@ func TestRacks(t *testing.T) {
 		require.Equal(t, 0, res.Code)
 		res.RequireStderr(t, []string{""})
 		res.RequireStdout(t, []string{
-			"NAME         STATUS  ",
-			"local/alpha  running ",
-			"local/echo   running ",
-			"test/foo     running ",
-			"test/other   updating",
+			"NAME           STATUS  ",
+			"local/classic  running ",
+			"local/dev      running ",
+			"test/foo       running ",
+			"test/other     updating",
 		})
 	})
 }
