@@ -281,6 +281,20 @@ func localRacks(c *stdcli.Context) ([]rack, error) {
 		})
 	}
 
+	data, err = c.Execute("kubectl", "get", "ns", "--selector=system=convox,type=rack", "--output=name")
+	if err == nil {
+		nsrs := strings.Split(strings.TrimSpace(string(data)), "\n")
+
+		for _, nsr := range nsrs {
+			if strings.HasPrefix(nsr, "namespace/") {
+				racks = append(racks, rack{
+					Name:   fmt.Sprintf("local/%s", strings.TrimPrefix(nsr, "namespace/")),
+					Status: "running",
+				})
+			}
+		}
+	}
+
 	return racks, nil
 }
 
