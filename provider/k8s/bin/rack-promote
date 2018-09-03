@@ -15,6 +15,7 @@ metadata:
   name: $rack
   labels:
     system: convox
+    type: rack
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
