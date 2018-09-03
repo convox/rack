@@ -1,0 +1,28 @@
+#!/bin/sh
+
+set -e
+
+# rack=$1
+
+# [ "$rack" == "" ] && echo "rack required" && exit 1
+
+# ca
+kubectl apply -f - <<EOF
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: convox
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  namespace: convox
+  name: ca
+  labels:
+    system: convox
+    service: router
+type: kubernetes.io/tls
+data:
+  tls.crt: "$(sudo cat /etc/convox/ca.crt | base64)"
+  tls.key: "$(sudo cat /etc/convox/ca.key | base64)"
+EOF
