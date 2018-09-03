@@ -291,6 +291,8 @@ func resourcePort(kind string) (int, error) {
 		return 5432, nil
 	case "redis":
 		return 6379, nil
+	case "memcached":
+		return 11211, nil
 	}
 
 	return 0, fmt.Errorf("unknown resource type: %s", kind)
@@ -304,6 +306,8 @@ func (p *Provider) resourceURL(app, kind, name string) (string, error) {
 		return fmt.Sprintf("postgres://postgres:password@%s.resource.%s.%s:5432/app?sslmode=disable", name, app, p.Rack), nil
 	case "redis":
 		return fmt.Sprintf("redis://%s.resource.%s.%s:6379/0", name, app, p.Rack), nil
+	case "memcached":
+		return fmt.Sprintf("%s.resource.%s.%s:11211", name, app, p.Rack), nil
 	}
 
 	return "", fmt.Errorf("unknown resource type: %s", kind)
@@ -316,6 +320,8 @@ func (p *Provider) resourceVolumes(app, kind, name string) ([]string, error) {
 	case "postgres":
 		return []string{fmt.Sprintf("%s/%s/resource/%s:/var/lib/postgresql/data", p.Volume, app, name)}, nil
 	case "redis":
+		return []string{}, nil
+	case "memcached":
 		return []string{}, nil
 	}
 
