@@ -50,7 +50,7 @@ func cpDestination(rack sdk.Interface, c *stdcli.Context, r io.Reader, dst strin
 			return err
 		}
 
-		return helpers.Unarchive(rr)
+		return helpers.Unarchive(rr, "/")
 	case 2:
 		if !strings.HasPrefix(parts[1], "/") {
 			return fmt.Errorf("must specify absolute paths for processes")
