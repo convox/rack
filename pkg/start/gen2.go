@@ -25,9 +25,7 @@ import (
 	"github.com/convox/rack/pkg/structs"
 )
 
-var ()
-
-func Start2(opts Options) error {
+func (s *Start) Start2(p structs.Provider, opts Options) error {
 	mf := helpers.Coalesce(opts.Manifest, "convox.yml")
 
 	data, err := ioutil.ReadFile(mf)
@@ -37,13 +35,13 @@ func Start2(opts Options) error {
 
 	app := opts.App
 
-	if _, err := opts.Provider.AppGet(app); err != nil {
-		if _, err := opts.Provider.AppCreate(app, structs.AppCreateOptions{Generation: options.String("2")}); err != nil {
+	if _, err := p.AppGet(app); err != nil {
+		if _, err := p.AppCreate(app, structs.AppCreateOptions{Generation: options.String("2")}); err != nil {
 			return err
 		}
 	}
 
-	env, err := helpers.AppEnvironment(opts.Provider, app)
+	env, err := helpers.AppEnvironment(p, app)
 	if err != nil {
 		return err
 	}
@@ -76,19 +74,19 @@ func Start2(opts Options) error {
 			return err
 		}
 
-		o, err := opts.Provider.ObjectStore(app, "", bytes.NewReader(data), structs.ObjectStoreOptions{})
+		o, err := p.ObjectStore(app, "", bytes.NewReader(data), structs.ObjectStoreOptions{})
 		if err != nil {
 			return err
 		}
 
 		m.Writef("build", "starting build\n")
 
-		b, err := opts.Provider.BuildCreate(app, o.Url, structs.BuildCreateOptions{Manifest: options.String(mf)})
+		b, err := p.BuildCreate(app, o.Url, structs.BuildCreateOptions{Manifest: options.String(mf)})
 		if err != nil {
 			return err
 		}
 
-		logs, err := opts.Provider.BuildLogs(app, b.Id, structs.LogsOptions{})
+		logs, err := p.BuildLogs(app, b.Id, structs.LogsOptions{})
 		if err != nil {
 			return err
 		}
@@ -99,16 +97,16 @@ func Start2(opts Options) error {
 			return err
 		}
 
-		if err := waitForBuild(opts.Provider, app, b.Id); err != nil {
+		if err := waitForBuild(p, app, b.Id); err != nil {
 			return err
 		}
 
-		b, err = opts.Provider.BuildGet(app, b.Id)
+		b, err = p.BuildGet(app, b.Id)
 		if err != nil {
 			return err
 		}
 
-		if err := opts.Provider.ReleasePromote(app, b.Release); err != nil {
+		if err := p.ReleasePromote(app, b.Release); err != nil {
 			return err
 		}
 	}
@@ -116,7 +114,7 @@ func Start2(opts Options) error {
 	errch := make(chan error)
 
 	go handleInterrupt(func() {
-		ps, err := opts.Provider.ProcessList(app, structs.ProcessListOptions{})
+		pss, err := p.ProcessList(app, structs.ProcessListOptions{})
 		if err != nil {
 			errch <- err
 			return
@@ -124,15 +122,15 @@ func Start2(opts Options) error {
 
 		var wg sync.WaitGroup
 
-		wg.Add(len(ps))
+		wg.Add(len(pss))
 
-		for _, p := range ps {
-			m.Writef("convox", "stopping %s\n", p.Id)
+		for _, ps := range pss {
+			m.Writef("convox", "stopping %s\n", ps.Id)
 
 			go func(id string) {
 				defer wg.Done()
-				opts.Provider.ProcessStop(app, id)
-			}(p.Id)
+				p.ProcessStop(app, id)
+			}(ps.Id)
 		}
 
 		wg.Wait()
@@ -151,15 +149,15 @@ func Start2(opts Options) error {
 		}
 
 		if s.Build.Path != "" {
-			go watchChanges(opts.Provider, m, app, s.Name, wd, errch)
+			go watchChanges(p, m, app, s.Name, wd, errch)
 		}
 
 		if s.Port.Port > 0 {
-			go healthCheck(opts.Provider, m, app, s, errch)
+			go healthCheck(p, m, app, s, errch)
 		}
 	}
 
-	logs, err := opts.Provider.AppLogs(app, structs.LogsOptions{Prefix: options.Bool(true)})
+	logs, err := p.AppLogs(app, structs.LogsOptions{Prefix: options.Bool(true)})
 	if err != nil {
 		return err
 	}
