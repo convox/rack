@@ -23,7 +23,7 @@ func init() {
 			stdcli.BoolFlag("no-sync", "", "do not sync local changes into the running containers"),
 			stdcli.IntFlag("shift", "s", "shift local port numbers (generation 1 only)"),
 		},
-		Usage: "[service] [command]",
+		Usage: "[service] [service...]",
 	})
 }
 
@@ -32,10 +32,6 @@ func Start(rack sdk.Interface, c *stdcli.Context) error {
 
 	if len(c.Args) > 0 {
 		opts.Services = c.Args
-	}
-
-	if len(c.Args) > 1 {
-		opts.Command = c.Args[1:]
 	}
 
 	opts.App = app(c)
@@ -52,6 +48,14 @@ func Start(rack sdk.Interface, c *stdcli.Context) error {
 	}
 
 	if c.String("generation") == "1" || c.LocalSetting("generation") == "1" || filepath.Base(opts.Manifest) == "docker-compose.yml" {
+		if len(c.Args) >= 1 {
+			opts.Services = []string{c.Arg(0)}
+		}
+
+		if len(c.Args) > 1 {
+			opts.Command = c.Args[1:]
+		}
+
 		return Starter.Start1(opts)
 	}
 
