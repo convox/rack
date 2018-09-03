@@ -3,8 +3,8 @@ package api
 import (
 	"reflect"
 
-	"github.com/convox/rack/provider"
 	"github.com/convox/rack/pkg/structs"
+	"github.com/convox/rack/provider"
 	"github.com/convox/stdapi"
 )
 
