@@ -3,8 +3,10 @@ package cli
 import (
 	"fmt"
 	"path/filepath"
+	"strings"
 
 	"github.com/convox/rack/pkg/start"
+	"github.com/convox/rack/pkg/structs"
 	"github.com/convox/rack/sdk"
 	"github.com/convox/stdcli"
 )
@@ -14,8 +16,7 @@ func init() {
 		Flags: []stdcli.Flag{
 			flagRack,
 			flagApp,
-			flagId,
-			stdcli.StringFlag("file", "f", "manifest file"),
+			stdcli.StringFlag("manifest", "m", "manifest file"),
 			stdcli.StringFlag("generation", "g", "generation"),
 			stdcli.BoolFlag("no-build", "", "skip build"),
 			stdcli.BoolFlag("no-cache", "", "build withoit layer cache"),
@@ -42,7 +43,7 @@ func Start(rack sdk.Interface, c *stdcli.Context) error {
 	opts.Cache = !c.Bool("no-cache")
 	opts.Sync = !c.Bool("no-sync")
 
-	if v := c.String("file"); v != "" {
+	if v := c.String("manifest"); v != "" {
 		opts.Manifest = v
 	}
 
@@ -51,45 +52,45 @@ func Start(rack sdk.Interface, c *stdcli.Context) error {
 	}
 
 	if c.String("generation") == "1" || c.LocalSetting("generation") == "1" || filepath.Base(opts.Manifest) == "docker-compose.yml" {
-		return start.Start1(opts)
+		return Starter.Start1(opts)
 	}
 
 	if !localRackRunning(c) {
 		return fmt.Errorf("local rack not found, try `sudo convox rack install local`")
 	}
 
-	host, err := currentHost(c)
-	if err != nil {
-		return err
-	}
+	var p structs.Provider
 
-	r := currentRack(c, host)
-
-	if _, err := currentEndpoint(c, r); err == nil {
-		p := rack
-
-		s, err := p.SystemGet()
+	if rack != nil {
+		s, err := rack.SystemGet()
 		if err != nil {
 			return err
 		}
-		if s.Provider == "local" {
-			opts.Provider = p
+		if s.Provider == "local" || s.Provider == "klocal" {
+			p = rack
 		}
 	}
 
-	if opts.Provider == nil {
+	if p == nil {
 		r, err := matchRack(c, "local/")
 		if err != nil {
+			if strings.HasPrefix(err.Error(), "ambiguous rack name") {
+				return fmt.Errorf("multiple local racks detected, use `convox switch` to select one")
+			}
 			return err
 		}
 
-		cl, err := sdk.New(fmt.Sprintf("https://rack.%s", r.Name))
+		cl, err := sdk.New(fmt.Sprintf("https://rack.%s", strings.TrimPrefix(r.Name, "local/")))
 		if err != nil {
 			return err
 		}
 
-		opts.Provider = cl
+		p = cl
 	}
 
-	return start.Start2(opts)
+	if p == nil {
+		return fmt.Errorf("could not find local rack")
+	}
+
+	return Starter.Start2(p, opts)
 }
