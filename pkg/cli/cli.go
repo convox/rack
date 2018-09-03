@@ -4,6 +4,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/convox/rack/pkg/start"
 	"github.com/convox/rack/sdk"
 	"github.com/convox/stdcli"
 )
@@ -11,6 +12,7 @@ import (
 type HandlerFunc func(sdk.Interface, *stdcli.Context) error
 
 var (
+	Starter      = start.New()
 	WaitDuration = 5 * time.Second
 )
 
