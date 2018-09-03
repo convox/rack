@@ -10,7 +10,7 @@ import (
 	"github.com/convox/rack/pkg/manifest1"
 )
 
-func Start1(opts Options) error {
+func (s *Start) Start1(opts Options) error {
 	opts.Manifest = helpers.Coalesce(opts.Manifest, "docker-compose.yml")
 
 	if !helpers.FileExists(opts.Manifest) {
