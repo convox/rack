@@ -10,7 +10,7 @@ import (
 )
 
 func init() {
-	register("router", "start local router", Router, stdcli.CommandOptions{
+	registerWithoutProvider("router", "start local router", Router, stdcli.CommandOptions{
 		Flags: []stdcli.Flag{
 			stdcli.StringFlag("interface", "i", "interface name"),
 			stdcli.StringFlag("subnet", "s", "subnet cidr"),

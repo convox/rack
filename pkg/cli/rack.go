@@ -64,7 +64,7 @@ func init() {
 		Validate: stdcli.Args(0),
 	})
 
-	register("rack start", "start local rack", RackStart, stdcli.CommandOptions{
+	registerWithoutProvider("rack start", "start local rack", RackStart, stdcli.CommandOptions{
 		Flags: []stdcli.Flag{
 			stdcli.StringFlag("name", "n", "rack name"),
 			stdcli.StringFlag("router", "r", "router host"),
