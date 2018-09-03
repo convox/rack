@@ -15,12 +15,13 @@ services:
     - VERSION=dev
     - VOLUME=/Users/Shared/convox
     health:
-      grace: 20
+      grace: 0
       interval: 30
       path: /check
-      timeout: 3
+      timeout: 2
     port: https:5443
     scale:
+      count: 1
       cpu: 256
       memory: 256
     volumes:
