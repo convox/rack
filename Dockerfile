@@ -1,5 +1,8 @@
 FROM golang:1.11
 
+RUN curl -Ls https://github.com/krallin/tini/releases/download/v0.18.0/tini -o /tini && chmod +x /tini
+ENTRYPOINT ["/tini", "--"]
+
 RUN curl -s https://download.docker.com/linux/static/stable/x86_64/docker-18.03.1-ce.tgz | \
     tar -C /usr/bin --strip-components 1 -xz
 
