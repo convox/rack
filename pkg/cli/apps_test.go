@@ -223,7 +223,13 @@ func TestAppsDeleteWait(t *testing.T) {
 
 func TestAppsExport(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("AppGet", "app1").Return(&fxApp, nil)
+		app := fxApp
+		app.Parameters = map[string]string{
+			"ParamFoo":      "value1",
+			"ParamOther":    "value2",
+			"ParamPassword": "****",
+		}
+		i.On("AppGet", "app1").Return(&app, nil)
 		i.On("ReleaseGet", "app1", "release1").Return(&fxRelease, nil)
 		bdata, err := ioutil.ReadFile("testdata/build.tgz")
 		require.NoError(t, err)
