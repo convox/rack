@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	"net/http"
 	"reflect"
 
@@ -35,7 +36,7 @@ func NewWithProvider(p structs.Provider) *Server {
 	}
 
 	s.Router.Router.HandleFunc("/check", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(200)
+		fmt.Fprintf(w, "ok\n")
 	})
 
 	auth := s.Subrouter("/")
@@ -56,10 +57,6 @@ func (s *Server) authenticate(next stdapi.HandlerFunc) stdapi.HandlerFunc {
 		}
 		return next(c)
 	}
-}
-
-func (s *Server) Check(c *stdapi.Context) error {
-	return c.RenderOK()
 }
 
 func (s *Server) hook(name string, args ...interface{}) error {
