@@ -215,19 +215,8 @@ func AppsImport(rack sdk.Interface, c *stdcli.Context) error {
 
 	defer r.Close()
 
-	release, err := appImport(rack, c, app, r)
-	if err != nil {
+	if err := appImport(rack, c, app, r); err != nil {
 		return err
-	}
-
-	if release != "" {
-		c.Startf("Promoting <release>%s</release>", release)
-
-		if err := rack.ReleasePromote(app, release); err != nil {
-			return err
-		}
-
-		c.OK()
 	}
 
 	return nil
@@ -380,6 +369,12 @@ func appExport(rack sdk.Interface, c *stdcli.Context, app string, w io.Writer) e
 		return err
 	}
 
+	for k, v := range a.Parameters {
+		if v == "****" {
+			delete(a.Parameters, k)
+		}
+	}
+
 	data, err := json.Marshal(a)
 	if err != nil {
 		return err
@@ -438,45 +433,41 @@ func appExport(rack sdk.Interface, c *stdcli.Context, app string, w io.Writer) e
 	return nil
 }
 
-func appImport(rack sdk.Interface, c *stdcli.Context, app string, r io.Reader) (string, error) {
+func appImport(rack sdk.Interface, c *stdcli.Context, app string, r io.Reader) error {
 	tmp, err := ioutil.TempDir("", "")
 	if err != nil {
-		return "", err
+		return err
 	}
 	defer os.RemoveAll(tmp)
 
 	gz, err := gzip.NewReader(r)
 	if err != nil {
-		return "", err
+		return err
 	}
 
 	if err := helpers.Unarchive(gz, tmp); err != nil {
-		return "", err
+		return err
 	}
 
 	var a structs.App
 
 	data, err := ioutil.ReadFile(filepath.Join(tmp, "app.json"))
 	if err != nil {
-		return "", err
+		return err
 	}
 
 	if err := json.Unmarshal(data, &a); err != nil {
-		return "", err
+		return err
 	}
 
 	c.Startf("Creating app <app>%s</app>", app)
 
 	if _, err := rack.AppCreate(app, structs.AppCreateOptions{Generation: options.String(a.Generation)}); err != nil {
-		return "", err
+		return err
 	}
 
-	c.OK()
-
-	c.Startf("Waiting for app")
-
 	if err := waitForAppRunning(rack, app); err != nil {
-		return "", err
+		return err
 	}
 
 	c.OK()
@@ -488,14 +479,14 @@ func appImport(rack sdk.Interface, c *stdcli.Context, app string, r io.Reader) (
 	if _, err := os.Stat(build); !os.IsNotExist(err) {
 		fd, err := os.Open(build)
 		if err != nil {
-			return "", err
+			return err
 		}
 
 		c.Startf("Importing build")
 
 		b, err := rack.BuildImport(app, fd)
 		if err != nil {
-			return "", err
+			return err
 		}
 
 		c.OK(b.Release)
@@ -506,14 +497,14 @@ func appImport(rack sdk.Interface, c *stdcli.Context, app string, r io.Reader) (
 	if _, err := os.Stat(env); !os.IsNotExist(err) {
 		data, err := ioutil.ReadFile(env)
 		if err != nil {
-			return "", err
+			return err
 		}
 
 		c.Startf("Importing env")
 
 		r, err := rack.ReleaseCreate(app, structs.ReleaseCreateOptions{Env: options.String(string(data))})
 		if err != nil {
-			return "", err
+			return err
 		}
 
 		c.OK(r.Id)
@@ -521,5 +512,49 @@ func appImport(rack sdk.Interface, c *stdcli.Context, app string, r io.Reader) (
 		release = r.Id
 	}
 
-	return release, nil
+	if release != "" {
+		c.Startf("Promoting <release>%s</release>", release)
+
+		if err := rack.ReleasePromote(app, release); err != nil {
+			return err
+		}
+
+		if err := waitForAppRunning(rack, app); err != nil {
+			return err
+		}
+
+		c.OK()
+	}
+
+	if len(a.Parameters) > 0 {
+		ae, err := rack.AppGet(app)
+		if err != nil {
+			return err
+		}
+
+		change := false
+
+		for k, v := range a.Parameters {
+			if v != ae.Parameters[k] {
+				change = true
+				break
+			}
+		}
+
+		if change {
+			c.Startf("Updating parameters")
+
+			if err := rack.AppUpdate(app, structs.AppUpdateOptions{Parameters: a.Parameters}); err != nil {
+				return err
+			}
+
+			if err := waitForAppRunning(rack, app); err != nil {
+				return err
+			}
+
+			c.OK()
+		}
+	}
+
+	return nil
 }

@@ -17,26 +17,9 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var fxResource = structs.Resource{
-	Name:       "resource1",
-	Parameters: map[string]string{"k1": "v1", "k2": "v2", "Url": "https://other.example.org/path"},
-	Status:     "status",
-	Type:       "type",
-	Url:        "https://example.org/path",
-	Apps:       structs.Apps{fxApp, fxApp},
-}
-
-var fxResourceType = structs.ResourceType{
-	Name: "type1",
-	Parameters: structs.ResourceParameters{
-		{Default: "def1", Description: "desc1", Name: "Param1"},
-		{Default: "def2", Description: "desc2", Name: "Param2"},
-	},
-}
-
 func TestResources(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("ResourceList").Return(structs.Resources{fxResource, fxResource}, nil)
+		i.On("ResourceList").Return(structs.Resources{*fxResource(), *fxResource()}, nil)
 
 		res, err := testExecute(e, "resources", nil)
 		require.NoError(t, err)
@@ -64,9 +47,9 @@ func TestResourcesError(t *testing.T) {
 
 func TestResourcesCreate(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("SystemGet").Return(&fxSystem, nil)
+		i.On("SystemGet").Return(fxSystem(), nil)
 		opts := structs.ResourceCreateOptions{Name: options.String("name1"), Parameters: map[string]string{"Foo": "bar", "Baz": "quux"}}
-		i.On("ResourceCreate", "type1", opts).Return(&fxResource, nil)
+		i.On("ResourceCreate", "type1", opts).Return(fxResource(), nil)
 
 		res, err := testExecute(e, "resources create type1 -n name1 Foo=bar Baz=quux", nil)
 		require.NoError(t, err)
@@ -78,7 +61,7 @@ func TestResourcesCreate(t *testing.T) {
 
 func TestResourcesCreateError(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("SystemGet").Return(&fxSystem, nil)
+		i.On("SystemGet").Return(fxSystem(), nil)
 		opts := structs.ResourceCreateOptions{Name: options.String("name1"), Parameters: map[string]string{"Foo": "bar", "Baz": "quux"}}
 		i.On("ResourceCreate", "type1", opts).Return(nil, fmt.Errorf("err1"))
 
@@ -92,9 +75,9 @@ func TestResourcesCreateError(t *testing.T) {
 
 func TestResourcesCreateClassic(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("SystemGet").Return(&fxSystemClassic, nil)
+		i.On("SystemGet").Return(fxSystemClassic(), nil)
 		opts := structs.ResourceCreateOptions{Name: options.String("name1"), Parameters: map[string]string{"Foo": "bar", "Baz": "quux"}}
-		i.On("ResourceCreateClassic", "type1", opts).Return(&fxResource, nil)
+		i.On("ResourceCreateClassic", "type1", opts).Return(fxResource(), nil)
 
 		res, err := testExecute(e, "resources create type1 -n name1 Foo=bar Baz=quux", nil)
 		require.NoError(t, err)
@@ -130,7 +113,7 @@ func TestResourcesDeleteError(t *testing.T) {
 
 func TestResourcesInfo(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("ResourceGet", "resource1").Return(&fxResource, nil)
+		i.On("ResourceGet", "resource1").Return(fxResource(), nil)
 
 		res, err := testExecute(e, "resources info resource1", nil)
 		require.NoError(t, err)
@@ -163,7 +146,7 @@ func TestResourcesInfoError(t *testing.T) {
 
 func TestResourcesLink(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("ResourceLink", "resource1", "app1").Return(&fxResource, nil)
+		i.On("ResourceLink", "resource1", "app1").Return(fxResource(), nil)
 
 		res, err := testExecute(e, "resources link resource1 -a app1", nil)
 		require.NoError(t, err)
@@ -187,7 +170,7 @@ func TestResourcesLinkError(t *testing.T) {
 
 func TestResourcesOptions(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("ResourceTypes").Return(structs.ResourceTypes{fxResourceType}, nil)
+		i.On("ResourceTypes").Return(structs.ResourceTypes{fxResourceType()}, nil)
 
 		res, err := testExecute(e, "resources options type1", nil)
 		require.NoError(t, err)
@@ -215,7 +198,7 @@ func TestResourcesOptionsError(t *testing.T) {
 
 func TestResourcesProxy(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("ResourceGet", "resource1").Return(&fxResource, nil)
+		i.On("ResourceGet", "resource1").Return(fxResource(), nil)
 		i.On("Proxy", "example.org", 443, mock.Anything).Return(nil).Run(func(args mock.Arguments) {
 			buf := make([]byte, 2)
 			rwc := args.Get(2).(io.ReadWriteCloser)
@@ -265,7 +248,7 @@ func TestResourcesProxy(t *testing.T) {
 
 func TestResourcesTypes(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("ResourceTypes").Return(structs.ResourceTypes{fxResourceType, fxResourceType}, nil)
+		i.On("ResourceTypes").Return(structs.ResourceTypes{fxResourceType(), fxResourceType()}, nil)
 
 		res, err := testExecute(e, "resources types", nil)
 		require.NoError(t, err)
@@ -293,7 +276,7 @@ func TestResourcesTypesError(t *testing.T) {
 
 func TestResourcesUnlink(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("ResourceUnlink", "resource1", "app1").Return(&fxResource, nil)
+		i.On("ResourceUnlink", "resource1", "app1").Return(fxResource(), nil)
 
 		res, err := testExecute(e, "resources unlink resource1 -a app1", nil)
 		require.NoError(t, err)
@@ -317,9 +300,9 @@ func TestResourcesUnlinkError(t *testing.T) {
 
 func TestResourcesUpdate(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("SystemGet").Return(&fxSystem, nil)
+		i.On("SystemGet").Return(fxSystem(), nil)
 		opts := structs.ResourceUpdateOptions{Parameters: map[string]string{"Foo": "bar", "Baz": "quux"}}
-		i.On("ResourceUpdate", "resource1", opts).Return(&fxResource, nil)
+		i.On("ResourceUpdate", "resource1", opts).Return(fxResource(), nil)
 
 		res, err := testExecute(e, "resources update resource1 Foo=bar Baz=quux", nil)
 		require.NoError(t, err)
@@ -331,7 +314,7 @@ func TestResourcesUpdate(t *testing.T) {
 
 func TestResourcesUpdateError(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("SystemGet").Return(&fxSystem, nil)
+		i.On("SystemGet").Return(fxSystem(), nil)
 		opts := structs.ResourceUpdateOptions{Parameters: map[string]string{"Foo": "bar", "Baz": "quux"}}
 		i.On("ResourceUpdate", "resource1", opts).Return(nil, fmt.Errorf("err1"))
 
@@ -345,9 +328,9 @@ func TestResourcesUpdateError(t *testing.T) {
 
 func TestResourcesUpdateClassic(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("SystemGet").Return(&fxSystemClassic, nil)
+		i.On("SystemGet").Return(fxSystemClassic(), nil)
 		opts := structs.ResourceUpdateOptions{Parameters: map[string]string{"Foo": "bar", "Baz": "quux"}}
-		i.On("ResourceUpdateClassic", "resource1", opts).Return(&fxResource, nil)
+		i.On("ResourceUpdateClassic", "resource1", opts).Return(fxResource(), nil)
 
 		res, err := testExecute(e, "resources update resource1 Foo=bar Baz=quux", nil)
 		require.NoError(t, err)
@@ -359,8 +342,8 @@ func TestResourcesUpdateClassic(t *testing.T) {
 
 func TestResourcesUrl(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("SystemGet").Return(&fxSystem, nil)
-		i.On("ResourceGet", "resource1").Return(&fxResource, nil)
+		i.On("SystemGet").Return(fxSystem(), nil)
+		i.On("ResourceGet", "resource1").Return(fxResource(), nil)
 
 		res, err := testExecute(e, "resources url resource1", nil)
 		require.NoError(t, err)
@@ -372,7 +355,7 @@ func TestResourcesUrl(t *testing.T) {
 
 func TestResourcesUrlError(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("SystemGet").Return(&fxSystem, nil)
+		i.On("SystemGet").Return(fxSystem(), nil)
 		i.On("ResourceGet", "resource1").Return(nil, fmt.Errorf("err1"))
 
 		res, err := testExecute(e, "resources url resource1", nil)
@@ -385,8 +368,8 @@ func TestResourcesUrlError(t *testing.T) {
 
 func TestResourcesUrlClassic(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("SystemGet").Return(&fxSystemClassic, nil)
-		i.On("ResourceGet", "resource1").Return(&fxResource, nil)
+		i.On("SystemGet").Return(fxSystemClassic(), nil)
+		i.On("ResourceGet", "resource1").Return(fxResource(), nil)
 
 		res, err := testExecute(e, "resources url resource1", nil)
 		require.NoError(t, err)

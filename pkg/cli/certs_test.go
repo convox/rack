@@ -3,7 +3,6 @@ package cli_test
 import (
 	"fmt"
 	"testing"
-	"time"
 
 	"github.com/convox/rack/pkg/cli"
 	mocksdk "github.com/convox/rack/pkg/mock/sdk"
@@ -12,17 +11,9 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var fxCertificate = structs.Certificate{
-	Id:         "cert1",
-	Domain:     "example.org",
-	Domains:    []string{"example.net", "example.com"},
-	Expiration: time.Now().Add(49 * time.Hour).UTC(),
-}
-
 func TestCerts(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		c1 := structs.Certificates{fxCertificate, fxCertificate}
-		i.On("CertificateList").Return(c1, nil)
+		i.On("CertificateList").Return(structs.Certificates{*fxCertificate(), *fxCertificate()}, nil)
 
 		res, err := testExecute(e, "certs", nil)
 		require.NoError(t, err)
@@ -74,7 +65,7 @@ func TestCertsDeleteError(t *testing.T) {
 
 func TestCertsGenerate(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("CertificateGenerate", []string{"test.example.org", "other.example.org"}).Return(&fxCertificate, nil)
+		i.On("CertificateGenerate", []string{"test.example.org", "other.example.org"}).Return(fxCertificate(), nil)
 
 		res, err := testExecute(e, "certs generate test.example.org other.example.org", nil)
 		require.NoError(t, err)
@@ -98,9 +89,9 @@ func TestCertsGenerateError(t *testing.T) {
 
 func TestCertsImport(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("SystemGet").Return(&fxSystem, nil)
+		i.On("SystemGet").Return(fxSystem(), nil)
 		opts := structs.CertificateCreateOptions{Chain: options.String("chain\n")}
-		i.On("CertificateCreate", "cert\n", "key\n", opts).Return(&fxCertificate, nil)
+		i.On("CertificateCreate", "cert\n", "key\n", opts).Return(fxCertificate(), nil)
 
 		res, err := testExecute(e, "certs import testdata/cert.pem testdata/key.pem --chain testdata/chain.pem", nil)
 		require.NoError(t, err)
@@ -112,7 +103,7 @@ func TestCertsImport(t *testing.T) {
 
 func TestCertsImportError(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("SystemGet").Return(&fxSystem, nil)
+		i.On("SystemGet").Return(fxSystem(), nil)
 		opts := structs.CertificateCreateOptions{Chain: options.String("chain\n")}
 		i.On("CertificateCreate", "cert\n", "key\n", opts).Return(nil, fmt.Errorf("err1"))
 
@@ -126,9 +117,9 @@ func TestCertsImportError(t *testing.T) {
 
 func TestCertsImportClassic(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("SystemGet").Return(&fxSystemClassic, nil)
+		i.On("SystemGet").Return(fxSystemClassic(), nil)
 		opts := structs.CertificateCreateOptions{Chain: options.String("chain\n")}
-		i.On("CertificateCreateClassic", "cert\n", "key\n", opts).Return(&fxCertificate, nil)
+		i.On("CertificateCreateClassic", "cert\n", "key\n", opts).Return(fxCertificate(), nil)
 
 		res, err := testExecute(e, "certs import testdata/cert.pem testdata/key.pem --chain testdata/chain.pem", nil)
 		require.NoError(t, err)

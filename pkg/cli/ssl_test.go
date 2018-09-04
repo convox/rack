@@ -12,9 +12,9 @@ import (
 
 func TestSsl(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("SystemGet").Return(&fxSystem, nil)
-		i.On("ServiceList", "app1").Return(structs.Services{fxService, fxService}, nil)
-		i.On("CertificateList").Return(structs.Certificates{fxCertificate}, nil)
+		i.On("SystemGet").Return(fxSystem(), nil)
+		i.On("ServiceList", "app1").Return(structs.Services{*fxService(), *fxService()}, nil)
+		i.On("CertificateList").Return(structs.Certificates{*fxCertificate()}, nil)
 
 		res, err := testExecute(e, "ssl -a app1", nil)
 		require.NoError(t, err)
@@ -32,7 +32,7 @@ func TestSsl(t *testing.T) {
 
 func TestSslError(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("SystemGet").Return(&fxSystem, nil)
+		i.On("SystemGet").Return(fxSystem(), nil)
 		i.On("ServiceList", "app1").Return(nil, fmt.Errorf("err1"))
 
 		res, err := testExecute(e, "ssl -a app1", nil)
@@ -45,9 +45,9 @@ func TestSslError(t *testing.T) {
 
 func TestSslClassic(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("SystemGet").Return(&fxSystemClassic, nil)
-		i.On("FormationGet", "app1").Return(structs.Services{fxService, fxService}, nil)
-		i.On("CertificateList").Return(structs.Certificates{fxCertificate}, nil)
+		i.On("SystemGet").Return(fxSystemClassic(), nil)
+		i.On("FormationGet", "app1").Return(structs.Services{*fxService(), *fxService()}, nil)
+		i.On("CertificateList").Return(structs.Certificates{*fxCertificate()}, nil)
 
 		res, err := testExecute(e, "ssl -a app1", nil)
 		require.NoError(t, err)
@@ -65,7 +65,7 @@ func TestSslClassic(t *testing.T) {
 
 func TestSslUpdate(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("AppGet", "app1").Return(&fxApp, nil)
+		i.On("AppGet", "app1").Return(fxApp(), nil)
 
 		res, err := testExecute(e, "ssl update web:5000 cert1 -a app1", nil)
 		require.NoError(t, err)
@@ -77,7 +77,7 @@ func TestSslUpdate(t *testing.T) {
 
 func TestSslUpdateGeneration1(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("AppGet", "app1").Return(&fxAppGeneration1, nil)
+		i.On("AppGet", "app1").Return(fxAppGeneration1(), nil)
 		i.On("CertificateApply", "app1", "web", 5000, "cert1").Return(nil)
 
 		res, err := testExecute(e, "ssl update web:5000 cert1 -a app1", nil)
@@ -90,7 +90,7 @@ func TestSslUpdateGeneration1(t *testing.T) {
 
 func TestSslUpdateGeneration1Error(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("AppGet", "app1").Return(&fxAppGeneration1, nil)
+		i.On("AppGet", "app1").Return(fxAppGeneration1(), nil)
 		i.On("CertificateApply", "app1", "web", 5000, "cert1").Return(fmt.Errorf("err1"))
 
 		res, err := testExecute(e, "ssl update web:5000 cert1 -a app1", nil)
