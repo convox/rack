@@ -54,6 +54,8 @@ COPY --from=development /go/bin/rack /go/bin/
 # aws templates
 COPY --from=development /go/src/github.com/convox/rack/provider/aws/formation/ provider/aws/formation/
 COPY --from=development /go/src/github.com/convox/rack/provider/aws/templates/ provider/aws/templates/
+
+# k8s templates
 COPY --from=development /go/src/github.com/convox/rack/provider/k8s/template/ provider/k8s/template/
 
 CMD ["/go/bin/rack"]
