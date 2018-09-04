@@ -6,7 +6,6 @@ import (
 	"io/ioutil"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/convox/rack/pkg/cli"
 	mocksdk "github.com/convox/rack/pkg/mock/sdk"
@@ -15,21 +14,9 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var fxInstance = structs.Instance{
-	Agent:     true,
-	Cpu:       0.423,
-	Id:        "instance1",
-	Memory:    0.718,
-	PrivateIp: "private",
-	Processes: 3,
-	PublicIp:  "public",
-	Status:    "status",
-	Started:   time.Now().UTC().Add(-48 * time.Hour),
-}
-
 func TestInstances(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("InstanceList").Return(structs.Instances{fxInstance, fxInstance}, nil)
+		i.On("InstanceList").Return(structs.Instances{*fxInstance(), *fxInstance()}, nil)
 
 		res, err := testExecute(e, "instances", nil)
 		require.NoError(t, err)
@@ -81,7 +68,7 @@ func TestInstancesKeyrollError(t *testing.T) {
 
 func TestInstancesSsh(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("SystemGet").Return(&fxSystem, nil)
+		i.On("SystemGet").Return(fxSystem(), nil)
 		opts := structs.InstanceShellOptions{}
 		i.On("InstanceShell", "instance1", mock.Anything, opts).Return(4, nil).Run(func(args mock.Arguments) {
 			data, err := ioutil.ReadAll(args.Get(1).(io.Reader))
@@ -100,7 +87,7 @@ func TestInstancesSsh(t *testing.T) {
 
 func TestInstancesSshError(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("SystemGet").Return(&fxSystem, nil)
+		i.On("SystemGet").Return(fxSystem(), nil)
 		opts := structs.InstanceShellOptions{}
 		i.On("InstanceShell", "instance1", mock.Anything, opts).Return(0, fmt.Errorf("err1"))
 
@@ -114,7 +101,7 @@ func TestInstancesSshError(t *testing.T) {
 
 func TestInstancesSshClassic(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("SystemGet").Return(&fxSystemClassic, nil)
+		i.On("SystemGet").Return(fxSystemClassic(), nil)
 		opts := structs.InstanceShellOptions{}
 		i.On("InstanceShellClassic", "instance1", mock.Anything, opts).Return(4, nil).Run(func(args mock.Arguments) {
 			data, err := ioutil.ReadAll(args.Get(1).(io.Reader))

@@ -21,35 +21,9 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var fxSystem = structs.System{
-	Count:      1,
-	Domain:     "domain",
-	Name:       "name",
-	Outputs:    map[string]string{"k1": "v1", "k2": "v2"},
-	Parameters: map[string]string{"Autoscale": "Yes", "ParamFoo": "value1", "ParamOther": "value2"},
-	Provider:   "provider",
-	Region:     "region",
-	Status:     "running",
-	Type:       "type",
-	Version:    "20180901000000",
-}
-
-var fxSystemClassic = structs.System{
-	Count:      1,
-	Domain:     "domain",
-	Name:       "name",
-	Outputs:    map[string]string{"k1": "v1", "k2": "v2"},
-	Parameters: map[string]string{"ParamFoo": "value1", "ParamOther": "value2"},
-	Provider:   "provider",
-	Region:     "region",
-	Status:     "running",
-	Type:       "type",
-	Version:    "20180101000000",
-}
-
 func TestRack(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("SystemGet").Return(&fxSystem, nil)
+		i.On("SystemGet").Return(fxSystem(), nil)
 
 		res, err := testExecute(e, "rack", nil)
 		require.NoError(t, err)
@@ -139,15 +113,15 @@ func TestRackInstallError(t *testing.T) {
 
 func TestRackLogs(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("SystemLogs", structs.LogsOptions{}).Return(testLogs(fxLogs), nil)
+		i.On("SystemLogs", structs.LogsOptions{}).Return(testLogs(fxLogs()), nil)
 
 		res, err := testExecute(e, "rack logs", nil)
 		require.NoError(t, err)
 		require.Equal(t, 0, res.Code)
 		res.RequireStderr(t, []string{""})
 		res.RequireStdout(t, []string{
-			fxLogs[0],
-			fxLogs[1],
+			fxLogs()[0],
+			fxLogs()[1],
 		})
 	})
 }
@@ -166,7 +140,7 @@ func TestRackLogsError(t *testing.T) {
 
 func TestRackParams(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("SystemGet").Return(&fxSystem, nil)
+		i.On("SystemGet").Return(fxSystem(), nil)
 
 		res, err := testExecute(e, "rack params", nil)
 		require.NoError(t, err)
@@ -194,7 +168,7 @@ func TestRackParamsError(t *testing.T) {
 
 func TestRackParamsSet(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("SystemGet").Return(&fxSystem, nil)
+		i.On("SystemGet").Return(fxSystem(), nil)
 		opts := structs.SystemUpdateOptions{
 			Parameters: map[string]string{
 				"Foo": "bar",
@@ -213,7 +187,7 @@ func TestRackParamsSet(t *testing.T) {
 
 func TestRackParamsSetError(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("SystemGet").Return(&fxSystem, nil)
+		i.On("SystemGet").Return(fxSystem(), nil)
 		opts := structs.SystemUpdateOptions{
 			Parameters: map[string]string{
 				"Foo": "bar",
@@ -232,7 +206,7 @@ func TestRackParamsSetError(t *testing.T) {
 
 func TestRackParamsSetClassic(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("SystemGet").Return(&fxSystemClassic, nil)
+		i.On("SystemGet").Return(fxSystemClassic(), nil)
 		i.On("AppParametersSet", "name", map[string]string{"Foo": "bar", "Baz": "qux"}).Return(nil)
 
 		res, err := testExecute(e, "rack params set Foo=bar Baz=qux", nil)
@@ -245,7 +219,7 @@ func TestRackParamsSetClassic(t *testing.T) {
 
 func TestRackParamsSetClassicError(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("SystemGet").Return(&fxSystemClassic, nil)
+		i.On("SystemGet").Return(fxSystemClassic(), nil)
 		i.On("AppParametersSet", "name", map[string]string{"Foo": "bar", "Baz": "qux"}).Return(fmt.Errorf("err1"))
 
 		res, err := testExecute(e, "rack params set Foo=bar Baz=qux", nil)
@@ -258,7 +232,7 @@ func TestRackParamsSetClassicError(t *testing.T) {
 
 func TestRackPs(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("SystemProcesses", structs.SystemProcessesOptions{}).Return(structs.Processes{fxProcess, fxProcessPending}, nil)
+		i.On("SystemProcesses", structs.SystemProcessesOptions{}).Return(structs.Processes{*fxProcess(), *fxProcessPending()}, nil)
 
 		res, err := testExecute(e, "rack ps", nil)
 		require.NoError(t, err)
@@ -286,7 +260,7 @@ func TestRackPsError(t *testing.T) {
 
 func TestRackPsAll(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("SystemProcesses", structs.SystemProcessesOptions{All: options.Bool(true)}).Return(structs.Processes{fxProcess, fxProcessPending}, nil)
+		i.On("SystemProcesses", structs.SystemProcessesOptions{All: options.Bool(true)}).Return(structs.Processes{*fxProcess(), *fxProcessPending()}, nil)
 
 		res, err := testExecute(e, "rack ps -a", nil)
 		require.NoError(t, err)
@@ -302,7 +276,7 @@ func TestRackPsAll(t *testing.T) {
 
 func TestRackReleases(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("SystemReleases").Return(structs.Releases{fxRelease, fxRelease}, nil)
+		i.On("SystemReleases").Return(structs.Releases{*fxRelease(), *fxRelease()}, nil)
 
 		res, err := testExecute(e, "rack releases", nil)
 		require.NoError(t, err)
@@ -330,7 +304,7 @@ func TestRackReleasesError(t *testing.T) {
 
 func TestRackScale(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("SystemGet").Return(&fxSystem, nil)
+		i.On("SystemGet").Return(fxSystem(), nil)
 
 		res, err := testExecute(e, "rack scale", nil)
 		require.NoError(t, err)
@@ -359,7 +333,7 @@ func TestRackScaleError(t *testing.T) {
 
 func TestRackScaleUpdate(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("SystemGet").Return(&fxSystem, nil)
+		i.On("SystemGet").Return(fxSystem(), nil)
 		i.On("SystemUpdate", structs.SystemUpdateOptions{Count: options.Int(5), Type: options.String("type1")}).Return(nil)
 
 		res, err := testExecute(e, "rack scale -c 5 -t type1", nil)
@@ -372,7 +346,7 @@ func TestRackScaleUpdate(t *testing.T) {
 
 func TestRackScaleUpdateError(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("SystemGet").Return(&fxSystem, nil)
+		i.On("SystemGet").Return(fxSystem(), nil)
 		i.On("SystemUpdate", structs.SystemUpdateOptions{Count: options.Int(5), Type: options.String("type1")}).Return(fmt.Errorf("err1"))
 
 		res, err := testExecute(e, "rack scale -c 5 -t type1", nil)
@@ -570,9 +544,9 @@ func TestRackWait(t *testing.T) {
 			Prefix: options.Bool(true),
 			Since:  options.Duration(0),
 		}
-		i.On("SystemLogs", opts).Return(testLogs(fxLogsSystem), nil).Once()
+		i.On("SystemLogs", opts).Return(testLogs(fxLogsSystem()), nil).Once()
 		i.On("SystemGet").Return(&structs.System{Status: "updating"}, nil).Twice()
-		i.On("SystemGet").Return(&fxSystem, nil)
+		i.On("SystemGet").Return(fxSystem(), nil)
 
 		res, err := testExecute(e, "rack wait", nil)
 		require.NoError(t, err)
@@ -580,8 +554,8 @@ func TestRackWait(t *testing.T) {
 		res.RequireStderr(t, []string{""})
 		res.RequireStdout(t, []string{
 			"Waiting for rack... ",
-			fxLogsSystem[0],
-			fxLogsSystem[1],
+			fxLogsSystem()[0],
+			fxLogsSystem()[1],
 			"OK",
 		})
 	})
@@ -593,7 +567,7 @@ func TestRackWaitError(t *testing.T) {
 			Prefix: options.Bool(true),
 			Since:  options.Duration(0),
 		}
-		i.On("SystemLogs", opts).Return(testLogs(fxLogsSystem), nil).Once()
+		i.On("SystemLogs", opts).Return(testLogs(fxLogsSystem()), nil).Once()
 		i.On("SystemGet").Return(nil, fmt.Errorf("err1"))
 
 		res, err := testExecute(e, "rack wait", nil)
@@ -602,8 +576,8 @@ func TestRackWaitError(t *testing.T) {
 		res.RequireStderr(t, []string{"ERROR: err1"})
 		res.RequireStdout(t, []string{
 			"Waiting for rack... ",
-			fxLogsSystem[0],
-			fxLogsSystem[1],
+			fxLogsSystem()[0],
+			fxLogsSystem()[1],
 		})
 	})
 }

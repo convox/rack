@@ -17,10 +17,10 @@ import (
 
 func TestRun(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("SystemGet").Return(&fxSystem, nil)
-		i.On("ProcessRun", "app1", "web", structs.ProcessRunOptions{Command: options.String("sleep 7200")}).Return(&fxProcess, nil)
-		i.On("ProcessGet", "app1", "pid1").Return(&fxProcessPending, nil).Twice()
-		i.On("ProcessGet", "app1", "pid1").Return(&fxProcess, nil)
+		i.On("SystemGet").Return(fxSystem(), nil)
+		i.On("ProcessRun", "app1", "web", structs.ProcessRunOptions{Command: options.String("sleep 7200")}).Return(fxProcess(), nil)
+		i.On("ProcessGet", "app1", "pid1").Return(fxProcessPending(), nil).Twice()
+		i.On("ProcessGet", "app1", "pid1").Return(fxProcess(), nil)
 		opts := structs.ProcessExecOptions{Entrypoint: options.Bool(true), Tty: options.Bool(false)}
 		i.On("ProcessExec", "app1", "pid1", "bash", mock.Anything, opts).Return(4, nil).Run(func(args mock.Arguments) {
 			data, err := ioutil.ReadAll(args.Get(3).(io.Reader))
@@ -40,7 +40,7 @@ func TestRun(t *testing.T) {
 
 func TestRunError(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("SystemGet").Return(&fxSystem, nil)
+		i.On("SystemGet").Return(fxSystem(), nil)
 		i.On("ProcessRun", "app1", "web", structs.ProcessRunOptions{Command: options.String("sleep 7200")}).Return(nil, fmt.Errorf("err1"))
 
 		res, err := testExecute(e, "run web bash -a app1 -t 7200", strings.NewReader("in"))
@@ -53,7 +53,7 @@ func TestRunError(t *testing.T) {
 
 func TestRunClassic(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("SystemGet").Return(&fxSystemClassic, nil)
+		i.On("SystemGet").Return(fxSystemClassic(), nil)
 		i.On("ProcessRunAttached", "app1", "web", mock.Anything, 7200, structs.ProcessRunOptions{Command: options.String("bash")}).Return(4, nil).Run(func(args mock.Arguments) {
 			data, err := ioutil.ReadAll(args.Get(2).(io.Reader))
 			require.NoError(t, err)
@@ -71,7 +71,7 @@ func TestRunClassic(t *testing.T) {
 
 func TestRunClassicDetached(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("SystemGet").Return(&fxSystemClassic, nil)
+		i.On("SystemGet").Return(fxSystemClassic(), nil)
 		i.On("ProcessRunDetached", "app1", "web", structs.ProcessRunOptions{Command: options.String("bash")}).Return("pid1", nil)
 
 		res, err := testExecute(e, "run web bash -a app1 -d", strings.NewReader("in"))
@@ -84,8 +84,8 @@ func TestRunClassicDetached(t *testing.T) {
 
 func TestRunDetached(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("SystemGet").Return(&fxSystem, nil)
-		i.On("ProcessRun", "app1", "web", structs.ProcessRunOptions{Command: options.String("bash")}).Return(&fxProcess, nil)
+		i.On("SystemGet").Return(fxSystem(), nil)
+		i.On("ProcessRun", "app1", "web", structs.ProcessRunOptions{Command: options.String("bash")}).Return(fxProcess(), nil)
 
 		res, err := testExecute(e, "run web bash -a app1 -d", nil)
 		require.NoError(t, err)

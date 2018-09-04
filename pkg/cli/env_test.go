@@ -11,16 +11,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var fxEnvironment = map[string]string{
-	"FOO": "bar",
-	"BAZ": "quux",
-}
-
 func TestEnv(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
 		opts := structs.ReleaseListOptions{Limit: options.Int(1)}
-		i.On("ReleaseList", "app1", opts).Return(structs.Releases{fxRelease}, nil)
-		i.On("ReleaseGet", "app1", "release1").Return(&fxRelease, nil)
+		i.On("ReleaseList", "app1", opts).Return(structs.Releases{*fxRelease()}, nil)
+		i.On("ReleaseGet", "app1", "release1").Return(fxRelease(), nil)
 
 		res, err := testExecute(e, "env -a app1", nil)
 		require.NoError(t, err)
@@ -36,7 +31,7 @@ func TestEnv(t *testing.T) {
 func TestEnvError(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
 		opts := structs.ReleaseListOptions{Limit: options.Int(1)}
-		i.On("ReleaseList", "app1", opts).Return(structs.Releases{fxRelease}, nil)
+		i.On("ReleaseList", "app1", opts).Return(structs.Releases{*fxRelease()}, nil)
 		i.On("ReleaseGet", "app1", "release1").Return(nil, fmt.Errorf("err1"))
 
 		res, err := testExecute(e, "env -a app1", nil)
@@ -50,8 +45,8 @@ func TestEnvError(t *testing.T) {
 func TestEnvGet(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
 		opts := structs.ReleaseListOptions{Limit: options.Int(1)}
-		i.On("ReleaseList", "app1", opts).Return(structs.Releases{fxRelease}, nil)
-		i.On("ReleaseGet", "app1", "release1").Return(&fxRelease, nil)
+		i.On("ReleaseList", "app1", opts).Return(structs.Releases{*fxRelease()}, nil)
+		i.On("ReleaseGet", "app1", "release1").Return(fxRelease(), nil)
 
 		res, err := testExecute(e, "env get FOO -a app1", nil)
 		require.NoError(t, err)
@@ -64,7 +59,7 @@ func TestEnvGet(t *testing.T) {
 func TestEnvGetError(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
 		opts := structs.ReleaseListOptions{Limit: options.Int(1)}
-		i.On("ReleaseList", "app1", opts).Return(structs.Releases{fxRelease}, nil)
+		i.On("ReleaseList", "app1", opts).Return(structs.Releases{*fxRelease()}, nil)
 		i.On("ReleaseGet", "app1", "release1").Return(nil, fmt.Errorf("err1"))
 
 		res, err := testExecute(e, "env get FOO -a app1", nil)
@@ -78,8 +73,8 @@ func TestEnvGetError(t *testing.T) {
 func TestEnvGetMissing(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
 		opts := structs.ReleaseListOptions{Limit: options.Int(1)}
-		i.On("ReleaseList", "app1", opts).Return(structs.Releases{fxRelease}, nil)
-		i.On("ReleaseGet", "app1", "release1").Return(&fxRelease, nil)
+		i.On("ReleaseList", "app1", opts).Return(structs.Releases{*fxRelease()}, nil)
+		i.On("ReleaseGet", "app1", "release1").Return(fxRelease(), nil)
 
 		res, err := testExecute(e, "env get FOOO -a app1", nil)
 		require.NoError(t, err)
@@ -91,12 +86,12 @@ func TestEnvGetMissing(t *testing.T) {
 
 func TestEnvSet(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("SystemGet").Return(&fxSystem, nil)
+		i.On("SystemGet").Return(fxSystem(), nil)
 		opts := structs.ReleaseListOptions{Limit: options.Int(1)}
-		i.On("ReleaseList", "app1", opts).Return(structs.Releases{fxRelease}, nil)
-		i.On("ReleaseGet", "app1", "release1").Return(&fxRelease, nil)
+		i.On("ReleaseList", "app1", opts).Return(structs.Releases{*fxRelease()}, nil)
+		i.On("ReleaseGet", "app1", "release1").Return(fxRelease(), nil)
 		ropts := structs.ReleaseCreateOptions{Env: options.String("AAA=bbb\nBAZ=quux\nCCC=ddd\nFOO=bar")}
-		i.On("ReleaseCreate", "app1", ropts).Return(&fxRelease, nil)
+		i.On("ReleaseCreate", "app1", ropts).Return(fxRelease(), nil)
 
 		res, err := testExecute(e, "env set AAA=bbb CCC=ddd -a app1", nil)
 		require.NoError(t, err)
@@ -111,10 +106,10 @@ func TestEnvSet(t *testing.T) {
 
 func TestEnvSetError(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("SystemGet").Return(&fxSystem, nil)
+		i.On("SystemGet").Return(fxSystem(), nil)
 		opts := structs.ReleaseListOptions{Limit: options.Int(1)}
-		i.On("ReleaseList", "app1", opts).Return(structs.Releases{fxRelease}, nil)
-		i.On("ReleaseGet", "app1", "release1").Return(&fxRelease, nil)
+		i.On("ReleaseList", "app1", opts).Return(structs.Releases{*fxRelease()}, nil)
+		i.On("ReleaseGet", "app1", "release1").Return(fxRelease(), nil)
 		ropts := structs.ReleaseCreateOptions{Env: options.String("AAA=bbb\nBAZ=quux\nCCC=ddd\nFOO=bar")}
 		i.On("ReleaseCreate", "app1", ropts).Return(nil, fmt.Errorf("err1"))
 
@@ -128,11 +123,11 @@ func TestEnvSetError(t *testing.T) {
 
 func TestEnvSetClassic(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("SystemGet").Return(&fxSystemClassic, nil)
+		i.On("SystemGet").Return(fxSystemClassic(), nil)
 		opts := structs.ReleaseListOptions{Limit: options.Int(1)}
-		i.On("ReleaseList", "app1", opts).Return(structs.Releases{fxRelease}, nil)
-		i.On("ReleaseGet", "app1", "release1").Return(&fxRelease, nil)
-		i.On("EnvironmentSet", "app1", []byte("AAA=bbb\nBAZ=quux\nCCC=ddd\nFOO=bar")).Return(&fxRelease, nil)
+		i.On("ReleaseList", "app1", opts).Return(structs.Releases{*fxRelease()}, nil)
+		i.On("ReleaseGet", "app1", "release1").Return(fxRelease(), nil)
+		i.On("EnvironmentSet", "app1", []byte("AAA=bbb\nBAZ=quux\nCCC=ddd\nFOO=bar")).Return(fxRelease(), nil)
 
 		res, err := testExecute(e, "env set AAA=bbb CCC=ddd -a app1", nil)
 		require.NoError(t, err)
@@ -147,12 +142,12 @@ func TestEnvSetClassic(t *testing.T) {
 
 func TestEnvUnset(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("SystemGet").Return(&fxSystem, nil)
+		i.On("SystemGet").Return(fxSystem(), nil)
 		opts := structs.ReleaseListOptions{Limit: options.Int(1)}
-		i.On("ReleaseList", "app1", opts).Return(structs.Releases{fxRelease}, nil)
-		i.On("ReleaseGet", "app1", "release1").Return(&fxRelease, nil)
+		i.On("ReleaseList", "app1", opts).Return(structs.Releases{*fxRelease()}, nil)
+		i.On("ReleaseGet", "app1", "release1").Return(fxRelease(), nil)
 		ropts := structs.ReleaseCreateOptions{Env: options.String("BAZ=quux")}
-		i.On("ReleaseCreate", "app1", ropts).Return(&fxRelease, nil)
+		i.On("ReleaseCreate", "app1", ropts).Return(fxRelease(), nil)
 
 		res, err := testExecute(e, "env unset FOO -a app1", nil)
 		require.NoError(t, err)
@@ -167,10 +162,10 @@ func TestEnvUnset(t *testing.T) {
 
 func TestEnvUnsetError(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("SystemGet").Return(&fxSystem, nil)
+		i.On("SystemGet").Return(fxSystem(), nil)
 		opts := structs.ReleaseListOptions{Limit: options.Int(1)}
-		i.On("ReleaseList", "app1", opts).Return(structs.Releases{fxRelease}, nil)
-		i.On("ReleaseGet", "app1", "release1").Return(&fxRelease, nil)
+		i.On("ReleaseList", "app1", opts).Return(structs.Releases{*fxRelease()}, nil)
+		i.On("ReleaseGet", "app1", "release1").Return(fxRelease(), nil)
 		ropts := structs.ReleaseCreateOptions{Env: options.String("BAZ=quux")}
 		i.On("ReleaseCreate", "app1", ropts).Return(nil, fmt.Errorf("err1"))
 
@@ -184,11 +179,11 @@ func TestEnvUnsetError(t *testing.T) {
 
 func TestEnvUnsetClassic(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("SystemGet").Return(&fxSystemClassic, nil)
+		i.On("SystemGet").Return(fxSystemClassic(), nil)
 		opts := structs.ReleaseListOptions{Limit: options.Int(1)}
-		i.On("ReleaseList", "app1", opts).Return(structs.Releases{fxRelease}, nil)
-		i.On("ReleaseGet", "app1", "release1").Return(&fxRelease, nil)
-		i.On("EnvironmentUnset", "app1", "FOO").Return(&fxRelease, nil)
+		i.On("ReleaseList", "app1", opts).Return(structs.Releases{*fxRelease()}, nil)
+		i.On("ReleaseGet", "app1", "release1").Return(fxRelease(), nil)
+		i.On("EnvironmentUnset", "app1", "FOO").Return(fxRelease(), nil)
 
 		res, err := testExecute(e, "env unset FOO -a app1", nil)
 		require.NoError(t, err)
