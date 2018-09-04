@@ -65,7 +65,7 @@ type Provider interface {
 	ReleaseCreate(app string, opts ReleaseCreateOptions) (*Release, error)
 	ReleaseGet(app, id string) (*Release, error)
 	ReleaseList(app string, opts ReleaseListOptions) (Releases, error)
-	ReleasePromote(app, id string) error
+	ReleasePromote(app, id string, opts ReleasePromoteOptions) error
 
 	ResourceGet(app, name string) (*Resource, error)
 	ResourceList(app string) (Resources, error)

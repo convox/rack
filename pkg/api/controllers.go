@@ -1022,7 +1022,12 @@ func (s *Server) ReleasePromote(c *stdapi.Context) error {
 	app := c.Var("app")
 	id := c.Var("id")
 
-	err := s.provider(c).ReleasePromote(app, id)
+	var opts structs.ReleasePromoteOptions
+	if err := stdapi.UnmarshalOptions(c.Request(), &opts); err != nil {
+		return err
+	}
+
+	err := s.provider(c).ReleasePromote(app, id, opts)
 	if err != nil {
 		return err
 	}

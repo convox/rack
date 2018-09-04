@@ -259,7 +259,7 @@ func TestAppsImport(t *testing.T) {
 			require.Equal(t, bdata, rdata)
 		})
 		i.On("ReleaseCreate", "app1", structs.ReleaseCreateOptions{Env: options.String("ALPHA=one\nBRAVO=two\n")}).Return(fxRelease(), nil)
-		i.On("ReleasePromote", "app1", "release1").Return(nil)
+		i.On("ReleasePromote", "app1", "release1", structs.ReleasePromoteOptions{}).Return(nil)
 		i.On("AppGet", "app1").Return(&structs.App{Status: "creating"}, nil).Twice()
 		i.On("AppGet", "app1").Return(fxApp(), nil).Twice()
 		i.On("AppUpdate", "app1", structs.AppUpdateOptions{Parameters: map[string]string{"Foo": "bar", "Baz": "qux"}}).Return(nil)
@@ -313,7 +313,7 @@ func TestAppsImportNoParams(t *testing.T) {
 			require.Equal(t, bdata, rdata)
 		})
 		i.On("ReleaseCreate", "app1", structs.ReleaseCreateOptions{Env: options.String("ALPHA=one\nBRAVO=two\n")}).Return(fxRelease(), nil)
-		i.On("ReleasePromote", "app1", "release1").Return(nil)
+		i.On("ReleasePromote", "app1", "release1", structs.ReleasePromoteOptions{}).Return(nil)
 		i.On("AppGet", "app1").Return(&structs.App{Status: "creating"}, nil).Twice()
 		i.On("AppGet", "app1").Return(fxApp(), nil).Twice()
 
@@ -342,7 +342,7 @@ func TestAppsImportSameParams(t *testing.T) {
 			require.Equal(t, bdata, rdata)
 		})
 		i.On("ReleaseCreate", "app1", structs.ReleaseCreateOptions{Env: options.String("ALPHA=one\nBRAVO=two\n")}).Return(fxRelease(), nil)
-		i.On("ReleasePromote", "app1", "release1").Return(nil)
+		i.On("ReleasePromote", "app1", "release1", structs.ReleasePromoteOptions{}).Return(nil)
 		i.On("AppGet", "app1").Return(fxApp(), nil).Twice()
 		i.On("AppGet", "app1").Return(fxApp(), nil).Twice()
 
