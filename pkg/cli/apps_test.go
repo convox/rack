@@ -19,35 +19,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var fxApp = structs.App{
-	Name:       "app1",
-	Generation: "2",
-	Parameters: fxParameters,
-	Release:    "release1",
-	Status:     "running",
-}
-
-var fxAppGeneration1 = structs.App{
-	Name:       "app1",
-	Generation: "1",
-	Parameters: fxParameters,
-	Release:    "release1",
-	Status:     "running",
-}
-
-var fxAppUpdating = structs.App{
-	Name:       "app1",
-	Generation: "2",
-	Parameters: fxParameters,
-	Release:    "release1",
-	Status:     "updating",
-}
-
 func TestApps(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
 		a1 := structs.Apps{
-			fxApp,
-			fxAppGeneration1,
+			*fxApp(),
+			*fxAppGeneration1(),
 			structs.App{
 				Name:       "app2",
 				Generation: "1",
@@ -120,7 +96,7 @@ func TestAppsCancelError(t *testing.T) {
 func TestAppsCreate(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
 		opts := structs.AppCreateOptions{}
-		i.On("AppCreate", "app1", opts).Return(&fxApp, nil)
+		i.On("AppCreate", "app1", opts).Return(fxApp(), nil)
 
 		res, err := testExecute(e, "apps create app1", nil)
 		require.NoError(t, err)
@@ -150,7 +126,7 @@ func TestAppsCreateGeneration1(t *testing.T) {
 		opts := structs.AppCreateOptions{
 			Generation: options.String("1"),
 		}
-		i.On("AppCreate", "app1", opts).Return(&fxApp, nil)
+		i.On("AppCreate", "app1", opts).Return(fxApp(), nil)
 
 		res, err := testExecute(e, "apps create app1 -g 1", nil)
 		require.NoError(t, err)
@@ -165,9 +141,9 @@ func TestAppsCreateGeneration1(t *testing.T) {
 func TestAppsCreateWait(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
 		opts := structs.AppCreateOptions{}
-		i.On("AppCreate", "app1", opts).Return(&fxApp, nil)
+		i.On("AppCreate", "app1", opts).Return(fxApp(), nil)
 		i.On("AppGet", "app1").Return(&structs.App{Status: "creating"}, nil).Twice()
-		i.On("AppGet", "app1").Return(&fxApp, nil)
+		i.On("AppGet", "app1").Return(fxApp(), nil)
 
 		res, err := testExecute(e, "apps create app1 --wait", nil)
 		require.NoError(t, err)
@@ -223,14 +199,8 @@ func TestAppsDeleteWait(t *testing.T) {
 
 func TestAppsExport(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		app := fxApp
-		app.Parameters = map[string]string{
-			"ParamFoo":      "value1",
-			"ParamOther":    "value2",
-			"ParamPassword": "****",
-		}
-		i.On("AppGet", "app1").Return(&app, nil)
-		i.On("ReleaseGet", "app1", "release1").Return(&fxRelease, nil)
+		i.On("AppGet", "app1").Return(fxApp(), nil)
+		i.On("ReleaseGet", "app1", "release1").Return(fxRelease(), nil)
 		bdata, err := ioutil.ReadFile("testdata/build.tgz")
 		require.NoError(t, err)
 		i.On("BuildExport", "app1", "build1", mock.Anything).Return(nil).Run(func(args mock.Arguments) {
@@ -278,23 +248,23 @@ func TestAppsExport(t *testing.T) {
 
 func TestAppsImport(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("AppCreate", "app1", structs.AppCreateOptions{Generation: options.String("2")}).Return(&fxApp, nil)
+		i.On("AppCreate", "app1", structs.AppCreateOptions{Generation: options.String("2")}).Return(fxApp(), nil)
 		i.On("AppGet", "app1").Return(&structs.App{Status: "creating"}, nil).Twice()
-		i.On("AppGet", "app1").Return(&fxApp, nil).Twice()
+		i.On("AppGet", "app1").Return(fxApp(), nil).Twice()
 		bdata, err := ioutil.ReadFile("testdata/build.tgz")
 		require.NoError(t, err)
-		i.On("BuildImport", "app1", mock.Anything).Return(&fxBuild, nil).Run(func(args mock.Arguments) {
+		i.On("BuildImport", "app1", mock.Anything).Return(fxBuild(), nil).Run(func(args mock.Arguments) {
 			rdata, err := ioutil.ReadAll(args.Get(1).(io.Reader))
 			require.NoError(t, err)
 			require.Equal(t, bdata, rdata)
 		})
-		i.On("ReleaseCreate", "app1", structs.ReleaseCreateOptions{Env: options.String("ALPHA=one\nBRAVO=two\n")}).Return(&fxRelease, nil)
+		i.On("ReleaseCreate", "app1", structs.ReleaseCreateOptions{Env: options.String("ALPHA=one\nBRAVO=two\n")}).Return(fxRelease(), nil)
 		i.On("ReleasePromote", "app1", "release1").Return(nil)
 		i.On("AppGet", "app1").Return(&structs.App{Status: "creating"}, nil).Twice()
-		i.On("AppGet", "app1").Return(&fxApp, nil).Twice()
+		i.On("AppGet", "app1").Return(fxApp(), nil).Twice()
 		i.On("AppUpdate", "app1", structs.AppUpdateOptions{Parameters: map[string]string{"Foo": "bar", "Baz": "qux"}}).Return(nil)
 		i.On("AppGet", "app1").Return(&structs.App{Status: "creating"}, nil).Twice()
-		i.On("AppGet", "app1").Return(&fxApp, nil).Twice()
+		i.On("AppGet", "app1").Return(fxApp(), nil).Twice()
 
 		res, err := testExecute(e, "apps import -a app1 -f testdata/app.tgz", nil)
 		require.NoError(t, err)
@@ -312,12 +282,12 @@ func TestAppsImport(t *testing.T) {
 
 func TestAppsImportNoBuild(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("AppCreate", "app1", structs.AppCreateOptions{Generation: options.String("2")}).Return(&fxApp, nil)
+		i.On("AppCreate", "app1", structs.AppCreateOptions{Generation: options.String("2")}).Return(fxApp(), nil)
 		i.On("AppGet", "app1").Return(&structs.App{Status: "creating"}, nil).Twice()
-		i.On("AppGet", "app1").Return(&fxApp, nil).Twice()
+		i.On("AppGet", "app1").Return(fxApp(), nil).Twice()
 		i.On("AppUpdate", "app1", structs.AppUpdateOptions{Parameters: map[string]string{"Foo": "bar", "Baz": "qux"}}).Return(nil)
 		i.On("AppGet", "app1").Return(&structs.App{Status: "creating"}, nil).Twice()
-		i.On("AppGet", "app1").Return(&fxApp, nil).Twice()
+		i.On("AppGet", "app1").Return(fxApp(), nil).Twice()
 
 		res, err := testExecute(e, "apps import -a app1 -f testdata/app.nobuild.tgz", nil)
 		require.NoError(t, err)
@@ -332,20 +302,20 @@ func TestAppsImportNoBuild(t *testing.T) {
 
 func TestAppsImportNoParams(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("AppCreate", "app1", structs.AppCreateOptions{Generation: options.String("2")}).Return(&fxApp, nil)
+		i.On("AppCreate", "app1", structs.AppCreateOptions{Generation: options.String("2")}).Return(fxApp(), nil)
 		i.On("AppGet", "app1").Return(&structs.App{Status: "creating"}, nil).Twice()
-		i.On("AppGet", "app1").Return(&fxApp, nil).Twice()
+		i.On("AppGet", "app1").Return(fxApp(), nil).Twice()
 		bdata, err := ioutil.ReadFile("testdata/build.tgz")
 		require.NoError(t, err)
-		i.On("BuildImport", "app1", mock.Anything).Return(&fxBuild, nil).Run(func(args mock.Arguments) {
+		i.On("BuildImport", "app1", mock.Anything).Return(fxBuild(), nil).Run(func(args mock.Arguments) {
 			rdata, err := ioutil.ReadAll(args.Get(1).(io.Reader))
 			require.NoError(t, err)
 			require.Equal(t, bdata, rdata)
 		})
-		i.On("ReleaseCreate", "app1", structs.ReleaseCreateOptions{Env: options.String("ALPHA=one\nBRAVO=two\n")}).Return(&fxRelease, nil)
+		i.On("ReleaseCreate", "app1", structs.ReleaseCreateOptions{Env: options.String("ALPHA=one\nBRAVO=two\n")}).Return(fxRelease(), nil)
 		i.On("ReleasePromote", "app1", "release1").Return(nil)
 		i.On("AppGet", "app1").Return(&structs.App{Status: "creating"}, nil).Twice()
-		i.On("AppGet", "app1").Return(&fxApp, nil).Twice()
+		i.On("AppGet", "app1").Return(fxApp(), nil).Twice()
 
 		res, err := testExecute(e, "apps import -a app1 -f testdata/app.noparams.tgz", nil)
 		require.NoError(t, err)
@@ -362,20 +332,19 @@ func TestAppsImportNoParams(t *testing.T) {
 
 func TestAppsImportSameParams(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("AppCreate", "app1", structs.AppCreateOptions{Generation: options.String("2")}).Return(&fxApp, nil)
-		i.On("AppGet", "app1").Return(&fxApp, nil).Twice()
+		i.On("AppCreate", "app1", structs.AppCreateOptions{Generation: options.String("2")}).Return(fxApp(), nil)
+		i.On("AppGet", "app1").Return(fxApp(), nil).Twice()
 		bdata, err := ioutil.ReadFile("testdata/build.tgz")
 		require.NoError(t, err)
-		i.On("BuildImport", "app1", mock.Anything).Return(&fxBuild, nil).Run(func(args mock.Arguments) {
+		i.On("BuildImport", "app1", mock.Anything).Return(fxBuild(), nil).Run(func(args mock.Arguments) {
 			rdata, err := ioutil.ReadAll(args.Get(1).(io.Reader))
 			require.NoError(t, err)
 			require.Equal(t, bdata, rdata)
 		})
-		i.On("ReleaseCreate", "app1", structs.ReleaseCreateOptions{Env: options.String("ALPHA=one\nBRAVO=two\n")}).Return(&fxRelease, nil)
+		i.On("ReleaseCreate", "app1", structs.ReleaseCreateOptions{Env: options.String("ALPHA=one\nBRAVO=two\n")}).Return(fxRelease(), nil)
 		i.On("ReleasePromote", "app1", "release1").Return(nil)
-		i.On("AppGet", "app1").Return(&fxApp, nil).Twice()
-		i.On("AppUpdate", "app1", structs.AppUpdateOptions{Parameters: map[string]string{"Foo": "bar", "Baz": "qux"}}).Return(nil)
-		i.On("AppGet", "app1").Return(&fxApp, nil).Twice()
+		i.On("AppGet", "app1").Return(fxApp(), nil).Twice()
+		i.On("AppGet", "app1").Return(fxApp(), nil).Twice()
 
 		res, err := testExecute(e, "apps import -a app1 -f testdata/app.sameparams.tgz", nil)
 		require.NoError(t, err)
@@ -392,7 +361,7 @@ func TestAppsImportSameParams(t *testing.T) {
 
 func TestAppsInfo(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("AppGet", "app1").Return(&fxApp, nil)
+		i.On("AppGet", "app1").Return(fxApp(), nil)
 
 		res, err := testExecute(e, "apps info app1", nil)
 		require.NoError(t, err)
@@ -433,16 +402,17 @@ func TestAppsInfoError(t *testing.T) {
 
 func TestAppsParams(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("SystemGet").Return(&fxSystem, nil)
-		i.On("AppGet", "app1").Return(&fxApp, nil)
+		i.On("SystemGet").Return(fxSystem(), nil)
+		i.On("AppGet", "app1").Return(fxApp(), nil)
 
 		res, err := testExecute(e, "apps params app1", nil)
 		require.NoError(t, err)
 		require.Equal(t, 0, res.Code)
 		res.RequireStderr(t, []string{""})
 		res.RequireStdout(t, []string{
-			"ParamFoo    value1",
-			"ParamOther  value2",
+			"ParamFoo       value1",
+			"ParamOther     value2",
+			"ParamPassword  ****",
 		})
 
 		res, err = testExecute(e, "apps params -a app1", nil)
@@ -450,15 +420,16 @@ func TestAppsParams(t *testing.T) {
 		require.Equal(t, 0, res.Code)
 		res.RequireStderr(t, []string{""})
 		res.RequireStdout(t, []string{
-			"ParamFoo    value1",
-			"ParamOther  value2",
+			"ParamFoo       value1",
+			"ParamOther     value2",
+			"ParamPassword  ****",
 		})
 	})
 }
 
 func TestAppsParamsError(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("SystemGet").Return(&fxSystem, nil)
+		i.On("SystemGet").Return(fxSystem(), nil)
 		i.On("AppGet", "app1").Return(nil, fmt.Errorf("err1"))
 
 		res, err := testExecute(e, "apps params app1", nil)
@@ -471,23 +442,24 @@ func TestAppsParamsError(t *testing.T) {
 
 func TestAppsParamsClassic(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("SystemGet").Return(&fxSystemClassic, nil)
-		i.On("AppParametersGet", "app1").Return(fxParameters, nil)
+		i.On("SystemGet").Return(fxSystemClassic(), nil)
+		i.On("AppParametersGet", "app1").Return(fxParameters(), nil)
 
 		res, err := testExecute(e, "apps params app1", nil)
 		require.NoError(t, err)
 		require.Equal(t, 0, res.Code)
 		res.RequireStderr(t, []string{""})
 		res.RequireStdout(t, []string{
-			"ParamFoo    value1",
-			"ParamOther  value2",
+			"ParamFoo       value1",
+			"ParamOther     value2",
+			"ParamPassword  ****",
 		})
 	})
 }
 
 func TestAppsParamsSet(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("SystemGet").Return(&fxSystem, nil)
+		i.On("SystemGet").Return(fxSystem(), nil)
 		opts := structs.AppUpdateOptions{
 			Parameters: map[string]string{
 				"Foo": "bar",
@@ -506,7 +478,7 @@ func TestAppsParamsSet(t *testing.T) {
 
 func TestAppsParamsSetError(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("SystemGet").Return(&fxSystem, nil)
+		i.On("SystemGet").Return(fxSystem(), nil)
 		opts := structs.AppUpdateOptions{
 			Parameters: map[string]string{
 				"Foo": "bar",
@@ -525,7 +497,7 @@ func TestAppsParamsSetError(t *testing.T) {
 
 func TestAppsParamsSetClassic(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("SystemGet").Return(&fxSystemClassic, nil)
+		i.On("SystemGet").Return(fxSystemClassic(), nil)
 		i.On("AppParametersSet", "app1", map[string]string{"Foo": "bar", "Baz": "qux"}).Return(nil)
 
 		res, err := testExecute(e, "apps params set Foo=bar Baz=qux -a app1", nil)
@@ -538,7 +510,7 @@ func TestAppsParamsSetClassic(t *testing.T) {
 
 func TestAppsSleep(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("SystemGet").Return(&fxSystem, nil)
+		i.On("SystemGet").Return(fxSystem(), nil)
 		opts := structs.AppUpdateOptions{
 			Sleep: options.Bool(true),
 		}
@@ -560,7 +532,7 @@ func TestAppsSleep(t *testing.T) {
 
 func TestAppsSleepError(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("SystemGet").Return(&fxSystem, nil)
+		i.On("SystemGet").Return(fxSystem(), nil)
 		opts := structs.AppUpdateOptions{
 			Sleep: options.Bool(true),
 		}
@@ -576,7 +548,7 @@ func TestAppsSleepError(t *testing.T) {
 
 func TestAppsWake(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("SystemGet").Return(&fxSystem, nil)
+		i.On("SystemGet").Return(fxSystem(), nil)
 		opts := structs.AppUpdateOptions{
 			Sleep: options.Bool(false),
 		}
@@ -598,7 +570,7 @@ func TestAppsWake(t *testing.T) {
 
 func TestAppsWakeError(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("SystemGet").Return(&fxSystem, nil)
+		i.On("SystemGet").Return(fxSystem(), nil)
 		opts := structs.AppUpdateOptions{
 			Sleep: options.Bool(false),
 		}
@@ -619,8 +591,8 @@ func TestAppsWait(t *testing.T) {
 			Since:  options.Duration(0),
 		}
 		i.On("AppGet", "app1").Return(&structs.App{Status: "creating"}, nil).Twice()
-		i.On("AppGet", "app1").Return(&fxApp, nil)
-		i.On("AppLogs", "app1", opts).Return(testLogs(fxLogsSystem), nil).Once()
+		i.On("AppGet", "app1").Return(fxApp(), nil)
+		i.On("AppLogs", "app1", opts).Return(testLogs(fxLogsSystem()), nil).Once()
 
 		res, err := testExecute(e, "apps wait app1", nil)
 		require.NoError(t, err)
@@ -628,12 +600,12 @@ func TestAppsWait(t *testing.T) {
 		res.RequireStderr(t, []string{""})
 		res.RequireStdout(t, []string{
 			"Waiting for app... ",
-			fxLogsSystem[0],
-			fxLogsSystem[1],
+			fxLogsSystem()[0],
+			fxLogsSystem()[1],
 			"OK",
 		})
 
-		i.On("AppLogs", "app1", opts).Return(testLogs(fxLogsSystem), nil).Once()
+		i.On("AppLogs", "app1", opts).Return(testLogs(fxLogsSystem()), nil).Once()
 
 		res, err = testExecute(e, "apps wait -a app1", nil)
 		require.NoError(t, err)
@@ -641,8 +613,8 @@ func TestAppsWait(t *testing.T) {
 		res.RequireStderr(t, []string{""})
 		res.RequireStdout(t, []string{
 			"Waiting for app... ",
-			fxLogsSystem[0],
-			fxLogsSystem[1],
+			fxLogsSystem()[0],
+			fxLogsSystem()[1],
 			"OK",
 		})
 	})

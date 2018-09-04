@@ -13,9 +13,9 @@ import (
 
 func TestScale(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("SystemGet").Return(&fxSystem, nil)
-		i.On("ServiceList", "app1").Return(structs.Services{fxService, fxService}, nil)
-		i.On("ProcessList", "app1", structs.ProcessListOptions{}).Return(structs.Processes{fxProcess, fxProcess}, nil)
+		i.On("SystemGet").Return(fxSystem(), nil)
+		i.On("ServiceList", "app1").Return(structs.Services{*fxService(), *fxService()}, nil)
+		i.On("ProcessList", "app1", structs.ProcessListOptions{}).Return(structs.Processes{*fxProcess(), *fxProcess()}, nil)
 
 		res, err := testExecute(e, "scale -a app1", nil)
 		require.NoError(t, err)
@@ -31,7 +31,7 @@ func TestScale(t *testing.T) {
 
 func TestScaleError(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("SystemGet").Return(&fxSystem, nil)
+		i.On("SystemGet").Return(fxSystem(), nil)
 		i.On("ServiceList", "app1").Return(nil, fmt.Errorf("err1"))
 
 		res, err := testExecute(e, "scale -a app1", nil)
@@ -44,9 +44,9 @@ func TestScaleError(t *testing.T) {
 
 func TestScaleClassic(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("SystemGet").Return(&fxSystemClassic, nil)
-		i.On("FormationGet", "app1").Return(structs.Services{fxService, fxService}, nil)
-		i.On("ProcessList", "app1", structs.ProcessListOptions{}).Return(structs.Processes{fxProcess, fxProcess}, nil)
+		i.On("SystemGet").Return(fxSystemClassic(), nil)
+		i.On("FormationGet", "app1").Return(structs.Services{*fxService(), *fxService()}, nil)
+		i.On("ProcessList", "app1", structs.ProcessListOptions{}).Return(structs.Processes{*fxProcess(), *fxProcess()}, nil)
 
 		res, err := testExecute(e, "scale -a app1", nil)
 		require.NoError(t, err)
@@ -62,7 +62,7 @@ func TestScaleClassic(t *testing.T) {
 
 func TestScaleUpdate(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("SystemGet").Return(&fxSystem, nil)
+		i.On("SystemGet").Return(fxSystem(), nil)
 		i.On("ServiceUpdate", "app1", "web", structs.ServiceUpdateOptions{Count: options.Int(3), Cpu: options.Int(5), Memory: options.Int(10)}).Return(nil)
 
 		res, err := testExecute(e, "scale web --cpu 5 --memory 10 --count 3 -a app1", nil)
@@ -75,7 +75,7 @@ func TestScaleUpdate(t *testing.T) {
 
 func TestScaleUpdateError(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("SystemGet").Return(&fxSystem, nil)
+		i.On("SystemGet").Return(fxSystem(), nil)
 		i.On("ServiceUpdate", "app1", "web", structs.ServiceUpdateOptions{Count: options.Int(3), Cpu: options.Int(5), Memory: options.Int(10)}).Return(fmt.Errorf("err1"))
 
 		res, err := testExecute(e, "scale web --cpu 5 --memory 10 --count 3 -a app1", nil)
@@ -88,7 +88,7 @@ func TestScaleUpdateError(t *testing.T) {
 
 func TestScaleUpdateClassic(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("SystemGet").Return(&fxSystemClassic, nil)
+		i.On("SystemGet").Return(fxSystemClassic(), nil)
 		i.On("FormationUpdate", "app1", "web", structs.ServiceUpdateOptions{Count: options.Int(3), Cpu: options.Int(5), Memory: options.Int(10)}).Return(nil)
 
 		res, err := testExecute(e, "scale web --cpu 5 --memory 10 --count 3 -a app1", nil)

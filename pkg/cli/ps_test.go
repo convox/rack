@@ -3,7 +3,6 @@ package cli_test
 import (
 	"fmt"
 	"testing"
-	"time"
 
 	"github.com/convox/rack/pkg/cli"
 	mocksdk "github.com/convox/rack/pkg/mock/sdk"
@@ -11,41 +10,9 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var fxProcess = structs.Process{
-	Id:       "pid1",
-	App:      "app1",
-	Command:  "command",
-	Cpu:      1.0,
-	Host:     "host",
-	Image:    "image",
-	Instance: "instance",
-	Memory:   2.0,
-	Name:     "name",
-	Ports:    []string{"1000", "2000"},
-	Release:  "release1",
-	Started:  time.Now().UTC().Add(-49 * time.Hour),
-	Status:   "running",
-}
-
-var fxProcessPending = structs.Process{
-	Id:       "pid1",
-	App:      "app1",
-	Command:  "command",
-	Cpu:      1.0,
-	Host:     "host",
-	Image:    "image",
-	Instance: "instance",
-	Memory:   2.0,
-	Name:     "name",
-	Ports:    []string{"1000", "2000"},
-	Release:  "release1",
-	Started:  time.Now().UTC().Add(-49 * time.Hour),
-	Status:   "pending",
-}
-
 func TestPs(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("ProcessList", "app1", structs.ProcessListOptions{}).Return(structs.Processes{fxProcess, fxProcessPending}, nil)
+		i.On("ProcessList", "app1", structs.ProcessListOptions{}).Return(structs.Processes{*fxProcess(), *fxProcessPending()}, nil)
 
 		res, err := testExecute(e, "ps -a app1", nil)
 		require.NoError(t, err)
@@ -73,7 +40,7 @@ func TestPsError(t *testing.T) {
 
 func TestPsInfo(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("ProcessGet", "app1", "pid1").Return(&fxProcess, nil)
+		i.On("ProcessGet", "app1", "pid1").Return(fxProcess(), nil)
 
 		res, err := testExecute(e, "ps info pid1 -a app1", nil)
 		require.NoError(t, err)

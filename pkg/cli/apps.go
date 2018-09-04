@@ -8,7 +8,6 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"reflect"
 	"sort"
 	"strings"
 
@@ -533,7 +532,16 @@ func appImport(rack sdk.Interface, c *stdcli.Context, app string, r io.Reader) e
 			return err
 		}
 
-		if !reflect.DeepEqual(a.Parameters, ae.Parameters) {
+		change := false
+
+		for k, v := range a.Parameters {
+			if v != ae.Parameters[k] {
+				change = true
+				break
+			}
+		}
+
+		if change {
 			c.Startf("Updating parameters")
 
 			if err := rack.AppUpdate(app, structs.AppUpdateOptions{Parameters: a.Parameters}); err != nil {
