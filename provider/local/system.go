@@ -9,6 +9,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net"
+	"net/http"
 	"os"
 	"os/exec"
 	"os/user"
@@ -136,9 +137,29 @@ func (p *Provider) SystemInstall(w io.Writer, opts structs.SystemInstallOptions)
 		return "", err
 	}
 
-	time.Sleep(10 * time.Second)
+	url := fmt.Sprintf("https://rack.%s", name)
 
-	return fmt.Sprintf("https://rack.%s", name), nil
+	fmt.Fprintf(w, "waiting for rack... ")
+
+	tick := time.Tick(2 * time.Second)
+	timeout := time.After(30 * time.Minute)
+
+	ht := *(http.DefaultTransport.(*http.Transport))
+	ht.TLSClientConfig.InsecureSkipVerify = true
+	hc := &http.Client{Transport: &ht}
+
+	for {
+		select {
+		case <-tick:
+			_, err := hc.Get(url)
+			if err == nil {
+				fmt.Fprintf(w, "OK\n")
+				return url, nil
+			}
+		case <-timeout:
+			return "", fmt.Errorf("timeout")
+		}
+	}
 }
 
 func (p *Provider) SystemLogs(opts structs.LogsOptions) (io.ReadCloser, error) {
