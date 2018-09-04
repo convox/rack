@@ -285,6 +285,8 @@ func diffContainers(a, b []container) []container {
 
 func resourcePort(kind string) (int, error) {
 	switch kind {
+	case "memcached":
+		return 11211, nil
 	case "mysql":
 		return 3306, nil
 	case "postgres":
@@ -298,6 +300,8 @@ func resourcePort(kind string) (int, error) {
 
 func (p *Provider) resourceURL(app, kind, name string) (string, error) {
 	switch kind {
+	case "memcached":
+		return fmt.Sprintf("%s.resource.%s.%s:11211", name, app, p.Rack), nil
 	case "mysql":
 		return fmt.Sprintf("mysql://mysql:password@%s.resource.%s.%s:3306/app", name, app, p.Rack), nil
 	case "postgres":
@@ -311,6 +315,8 @@ func (p *Provider) resourceURL(app, kind, name string) (string, error) {
 
 func (p *Provider) resourceVolumes(app, kind, name string) ([]string, error) {
 	switch kind {
+	case "memcached":
+		return []string{}, nil
 	case "mysql":
 		return []string{fmt.Sprintf("%s/%s/resource/%s:/var/lib/mysql", p.Volume, app, name)}, nil
 	case "postgres":
