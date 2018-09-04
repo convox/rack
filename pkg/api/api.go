@@ -1,6 +1,8 @@
 package api
 
 import (
+	"fmt"
+	"net/http"
 	"reflect"
 
 	"github.com/convox/rack/pkg/structs"
@@ -33,7 +35,9 @@ func NewWithProvider(p structs.Provider) *Server {
 		Server:   stdapi.New("api", "api"),
 	}
 
-	s.Route("GET", "/check", s.Check)
+	s.Router.Router.HandleFunc("/check", func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintf(w, "ok\n")
+	})
 
 	auth := s.Subrouter("/")
 
@@ -53,10 +57,6 @@ func (s *Server) authenticate(next stdapi.HandlerFunc) stdapi.HandlerFunc {
 		}
 		return next(c)
 	}
-}
-
-func (s *Server) Check(c *stdapi.Context) error {
-	return c.RenderOK()
 }
 
 func (s *Server) hook(name string, args ...interface{}) error {
