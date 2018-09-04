@@ -1270,13 +1270,13 @@ func (_m *Interface) ReleaseList(app string, opts structs.ReleaseListOptions) (s
 	return r0, r1
 }
 
-// ReleasePromote provides a mock function with given fields: app, id
-func (_m *Interface) ReleasePromote(app string, id string) error {
-	ret := _m.Called(app, id)
+// ReleasePromote provides a mock function with given fields: app, id, opts
+func (_m *Interface) ReleasePromote(app string, id string, opts structs.ReleasePromoteOptions) error {
+	ret := _m.Called(app, id, opts)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(string, string) error); ok {
-		r0 = rf(app, id)
+	if rf, ok := ret.Get(0).(func(string, string, structs.ReleasePromoteOptions) error); ok {
+		r0 = rf(app, id, opts)
 	} else {
 		r0 = ret.Error(0)
 	}

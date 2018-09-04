@@ -14,7 +14,7 @@ generate:
 	go run cmd/generate/main.go routes > pkg/api/routes.go
 	go run cmd/generate/main.go sdk > sdk/methods.go
 
-mocks:
+mocks: generate
 	go get -u github.com/vektra/mockery/.../
 	make -C pkg/structs mocks
 	mockery -case underscore -dir pkg/start -outpkg sdk -output pkg/mock/start -name Interface

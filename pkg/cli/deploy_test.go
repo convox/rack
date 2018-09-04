@@ -23,8 +23,8 @@ func TestDeploy(t *testing.T) {
 		i.On("BuildLogs", "app1", "build1", structs.LogsOptions{}).Return(testLogs(fxLogs()), nil)
 		i.On("BuildGet", "app1", "build1").Return(fxBuildRunning(), nil).Twice()
 		i.On("BuildGet", "app1", "build4").Return(fxBuild(), nil)
-		i.On("AppGet", "app1").Return(fxApp(), nil)
-		i.On("ReleasePromote", "app1", "release1").Return(nil)
+        i.On("AppGet", "app1").Return(fxApp(), nil)
+        i.On("ReleasePromote", "app1", "release1", structs.ReleasePromoteOptions{}).Return(nil)
 
 		res, err := testExecute(e, "deploy ./testdata/httpd -a app1", nil)
 		require.NoError(t, err)
@@ -51,8 +51,8 @@ func TestDeployError(t *testing.T) {
 		i.On("BuildLogs", "app1", "build1", structs.LogsOptions{}).Return(testLogs(fxLogs()), nil)
 		i.On("BuildGet", "app1", "build1").Return(fxBuildRunning(), nil).Twice()
 		i.On("BuildGet", "app1", "build4").Return(fxBuild(), nil)
-		i.On("AppGet", "app1").Return(fxApp(), nil)
-		i.On("ReleasePromote", "app1", "release1").Return(fmt.Errorf("err1"))
+        i.On("AppGet", "app1").Return(fxApp(), nil)
+        i.On("ReleasePromote", "app1", "release1", structs.ReleasePromoteOptions{}).Return(fmt.Errorf("err1"))
 
 		res, err := testExecute(e, "deploy ./testdata/httpd -a app1", nil)
 		require.NoError(t, err)
@@ -79,8 +79,8 @@ func TestDeployWait(t *testing.T) {
 		i.On("BuildLogs", "app1", "build1", structs.LogsOptions{}).Return(testLogs(fxLogs()), nil)
 		i.On("BuildGet", "app1", "build1").Return(fxBuildRunning(), nil).Twice()
 		i.On("BuildGet", "app1", "build4").Return(fxBuild(), nil)
-		i.On("AppGet", "app1").Return(fxApp(), nil).Once()
-		i.On("ReleasePromote", "app1", "release1").Return(nil)
+        i.On("AppGet", "app1").Return(fxApp(), nil).Once()
+        i.On("ReleasePromote", "app1", "release1", structs.ReleasePromoteOptions{}).Return(nil)
 		i.On("AppGet", "app1").Return(fxAppUpdating(), nil).Twice()
 		i.On("AppGet", "app1").Return(fxApp(), nil)
 		opts := structs.LogsOptions{Prefix: options.Bool(true), Since: options.Duration(1)}

@@ -76,7 +76,7 @@ func (p *Provider) ReleaseList(app string, opts structs.ReleaseListOptions) (str
 	return rs, nil
 }
 
-func (p *Provider) ReleasePromote(app, id string) error {
+func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOptions) error {
 	a, err := p.AppGet(app)
 	if err != nil {
 		return err
@@ -121,17 +121,35 @@ func (p *Provider) ReleasePromote(app, id string) error {
 			return err
 		}
 
+		min := 50
+		max := 200
+
+		if s.Agent.Enabled || s.Singleton {
+			min = 0
+			max = 100
+		}
+
+		if opts.Min != nil {
+			min = *opts.Min
+		}
+
+		if opts.Max != nil {
+			max = *opts.Max
+		}
+
 		replicas := helpers.CoalesceInt(len(ps), s.Scale.Count.Min)
 
 		params := map[string]interface{}{
-			"App":       a,
-			"Env":       e,
-			"Manifest":  m,
-			"Namespace": p.appNamespace(a.Name),
-			"Rack":      p.Rack,
-			"Release":   r,
-			"Replicas":  replicas,
-			"Service":   s,
+			"App":            a,
+			"Env":            e,
+			"Manifest":       m,
+			"MaxSurge":       max,
+			"MaxUnavailable": 100 - min,
+			"Namespace":      p.appNamespace(a.Name),
+			"Rack":           p.Rack,
+			"Release":        r,
+			"Replicas":       replicas,
+			"Service":        s,
 		}
 
 		data, err := p.yamlTemplate("service", params)
