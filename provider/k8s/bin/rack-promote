@@ -149,6 +149,7 @@ spec:
         app: system
         service: web
     spec:
+      shareProcessNamespace: true
       containers:
       - name: main
         args:
@@ -156,6 +157,8 @@ spec:
         env:
         - name: DATA
           value: /data
+        - name: DEVELOPMENT
+          value: "false"
         - name: IMAGE
           value: convox/rack:$version
         - name: RACK
