@@ -22,7 +22,7 @@ func TestVersion(t *testing.T) {
 		err := ioutil.WriteFile(filepath.Join(e.Settings, "host"), []byte("host1"), 0644)
 		require.NoError(t, err)
 
-		i.On("SystemGet").Return(&fxSystem, nil)
+		i.On("SystemGet").Return(fxSystem(), nil)
 
 		res, err := testExecute(e, "version", nil)
 		require.NoError(t, err)
@@ -100,7 +100,7 @@ func TestVersionNoSystemSingleLocal(t *testing.T) {
 		me.On("Execute", "kubectl", "get", "ns", "--selector=system=convox,type=rack", "--output=name").Return([]byte("namespace/dev\n"), nil)
 		e.Executor = me
 
-		i.On("SystemGet").Return(&fxSystemLocal, nil)
+		i.On("SystemGet").Return(fxSystemLocal(), nil)
 
 		res, err := testExecute(e, "version", nil)
 		require.NoError(t, err)

@@ -12,37 +12,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var fxRelease = structs.Release{
-	Id:       "release1",
-	App:      "app1",
-	Build:    "build1",
-	Env:      "FOO=bar\nBAZ=quux",
-	Manifest: "services:\n  web:\n    build: .",
-	Created:  time.Now().UTC().Add(-49 * time.Hour),
-}
-
-var fxRelease2 = structs.Release{
-	Id:       "release2",
-	App:      "app1",
-	Build:    "build1",
-	Env:      "FOO=bar\nBAZ=quux",
-	Manifest: "manifest",
-	Created:  time.Now().UTC().Add(-49 * time.Hour),
-}
-
-var fxRelease3 = structs.Release{
-	Id:       "release3",
-	App:      "app1",
-	Build:    "build1",
-	Env:      "FOO=bar\nBAZ=quux",
-	Manifest: "manifest",
-	Created:  time.Now().UTC().Add(-49 * time.Hour),
-}
-
 func TestReleases(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("AppGet", "app1").Return(&fxApp, nil)
-		i.On("ReleaseList", "app1", structs.ReleaseListOptions{}).Return(structs.Releases{fxRelease, fxRelease2}, nil)
+		i.On("AppGet", "app1").Return(fxApp(), nil)
+		i.On("ReleaseList", "app1", structs.ReleaseListOptions{}).Return(structs.Releases{*fxRelease(), *fxRelease2()}, nil)
 
 		res, err := testExecute(e, "releases -a app1", nil)
 		require.NoError(t, err)
@@ -58,7 +31,7 @@ func TestReleases(t *testing.T) {
 
 func TestReleasesError(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("AppGet", "app1").Return(&fxApp, nil)
+		i.On("AppGet", "app1").Return(fxApp(), nil)
 		i.On("ReleaseList", "app1", structs.ReleaseListOptions{}).Return(nil, fmt.Errorf("err1"))
 
 		res, err := testExecute(e, "releases -a app1", nil)
@@ -71,7 +44,7 @@ func TestReleasesError(t *testing.T) {
 
 func TestReleasesInfo(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("ReleaseGet", "app1", "release1").Return(&fxRelease, nil)
+		i.On("ReleaseGet", "app1", "release1").Return(fxRelease(), nil)
 
 		res, err := testExecute(e, "releases info release1 -a app1", nil)
 		require.NoError(t, err)
@@ -80,7 +53,7 @@ func TestReleasesInfo(t *testing.T) {
 		res.RequireStdout(t, []string{
 			"Id       release1",
 			"Build    build1",
-			fmt.Sprintf("Created  %s", fxRelease.Created.Format(time.RFC3339)),
+			fmt.Sprintf("Created  %s", fxRelease().Created.Format(time.RFC3339)),
 			"Env      FOO=bar",
 			"         BAZ=quux",
 		})
@@ -101,8 +74,8 @@ func TestReleasesInfoError(t *testing.T) {
 
 func TestReleasesManifest(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("ReleaseGet", "app1", "release1").Return(&fxRelease, nil)
-		i.On("BuildGet", "app1", "build1").Return(&fxBuild, nil)
+		i.On("ReleaseGet", "app1", "release1").Return(fxRelease(), nil)
+		i.On("BuildGet", "app1", "build1").Return(fxBuild(), nil)
 
 		res, err := testExecute(e, "releases manifest release1 -a app1", nil)
 		require.NoError(t, err)
@@ -153,8 +126,8 @@ func TestReleasesPromoteError(t *testing.T) {
 
 func TestReleasesRollback(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("ReleaseGet", "app1", "release2").Return(&fxRelease2, nil)
-		i.On("ReleaseCreate", "app1", structs.ReleaseCreateOptions{Build: options.String(fxRelease2.Build), Env: options.String(fxRelease2.Env)}).Return(&fxRelease3, nil)
+		i.On("ReleaseGet", "app1", "release2").Return(fxRelease2(), nil)
+		i.On("ReleaseCreate", "app1", structs.ReleaseCreateOptions{Build: options.String(fxRelease2().Build), Env: options.String(fxRelease2().Env)}).Return(fxRelease3(), nil)
 		i.On("ReleasePromote", "app1", "release3").Return(nil)
 
 		res, err := testExecute(e, "releases rollback release2 -a app1", nil)
@@ -170,8 +143,8 @@ func TestReleasesRollback(t *testing.T) {
 
 func TestReleasesRollbackErrorCreate(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("ReleaseGet", "app1", "release2").Return(&fxRelease2, nil)
-		i.On("ReleaseCreate", "app1", structs.ReleaseCreateOptions{Build: options.String(fxRelease2.Build), Env: options.String(fxRelease2.Env)}).Return(nil, fmt.Errorf("err1"))
+		i.On("ReleaseGet", "app1", "release2").Return(fxRelease2(), nil)
+		i.On("ReleaseCreate", "app1", structs.ReleaseCreateOptions{Build: options.String(fxRelease2().Build), Env: options.String(fxRelease2().Env)}).Return(nil, fmt.Errorf("err1"))
 
 		res, err := testExecute(e, "releases rollback release2 -a app1", nil)
 		require.NoError(t, err)
@@ -183,8 +156,8 @@ func TestReleasesRollbackErrorCreate(t *testing.T) {
 
 func TestReleasesRollbackErrorPromote(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("ReleaseGet", "app1", "release2").Return(&fxRelease2, nil)
-		i.On("ReleaseCreate", "app1", structs.ReleaseCreateOptions{Build: options.String(fxRelease2.Build), Env: options.String(fxRelease2.Env)}).Return(&fxRelease3, nil)
+		i.On("ReleaseGet", "app1", "release2").Return(fxRelease2(), nil)
+		i.On("ReleaseCreate", "app1", structs.ReleaseCreateOptions{Build: options.String(fxRelease2().Build), Env: options.String(fxRelease2().Env)}).Return(fxRelease3(), nil)
 		i.On("ReleasePromote", "app1", "release3").Return(fmt.Errorf("err1"))
 
 		res, err := testExecute(e, "releases rollback release2 -a app1", nil)

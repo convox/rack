@@ -6,7 +6,6 @@ import (
 	"io/ioutil"
 	"path/filepath"
 	"testing"
-	"time"
 
 	"github.com/convox/rack/pkg/cli"
 	mocksdk "github.com/convox/rack/pkg/mock/sdk"
@@ -15,43 +14,16 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var fxBuild = structs.Build{
-	Id:          "build1",
-	Description: "desc",
-	Ended:       fxStarted.Add(2 * time.Minute),
-	Manifest:    "manifest1\nmanifest2\n",
-	Release:     "release1",
-	Started:     fxStarted,
-	Status:      "complete",
-}
-
-var fxBuildCreated = structs.Build{
-	Id:     "build2",
-	Status: "running",
-}
-
-var fxBuildFailed = structs.Build{
-	Id:      "build3",
-	Started: fxStarted,
-	Status:  "failed",
-}
-
-var fxBuildRunning = structs.Build{
-	Id:      "build4",
-	Started: fxStarted,
-	Status:  "running",
-}
-
 func TestBuild(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("SystemGet").Return(&fxSystem, nil)
+		i.On("SystemGet").Return(fxSystem(), nil)
 		i.On("ObjectStore", "app1", mock.AnythingOfType("string"), mock.Anything, structs.ObjectStoreOptions{}).Return(&fxObject, nil).Run(func(args mock.Arguments) {
 			require.Regexp(t, `tmp/[0-9a-f]{30}\.tgz`, args.Get(1).(string))
 		})
-		i.On("BuildCreate", "app1", "object://test", structs.BuildCreateOptions{}).Return(&fxBuild, nil)
-		i.On("BuildLogs", "app1", "build1", structs.LogsOptions{}).Return(testLogs(fxLogs), nil)
-		i.On("BuildGet", "app1", "build1").Return(&fxBuildRunning, nil).Twice()
-		i.On("BuildGet", "app1", "build4").Return(&fxBuild, nil)
+		i.On("BuildCreate", "app1", "object://test", structs.BuildCreateOptions{}).Return(fxBuild(), nil)
+		i.On("BuildLogs", "app1", "build1", structs.LogsOptions{}).Return(testLogs(fxLogs()), nil)
+		i.On("BuildGet", "app1", "build1").Return(fxBuildRunning(), nil).Twice()
+		i.On("BuildGet", "app1", "build4").Return(fxBuild(), nil)
 
 		res, err := testExecute(e, "build ./testdata/httpd -a app1", nil)
 		require.NoError(t, err)
@@ -71,7 +43,7 @@ func TestBuild(t *testing.T) {
 
 func TestBuildError(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("SystemGet").Return(&fxSystem, nil)
+		i.On("SystemGet").Return(fxSystem(), nil)
 		i.On("ObjectStore", "app1", mock.AnythingOfType("string"), mock.Anything, structs.ObjectStoreOptions{}).Return(&fxObject, nil).Run(func(args mock.Arguments) {
 			require.Regexp(t, `tmp/[0-9a-f]{30}\.tgz`, args.Get(1).(string))
 		})
@@ -91,11 +63,11 @@ func TestBuildError(t *testing.T) {
 
 func TestBuildClassic(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("SystemGet").Return(&fxSystemClassic, nil)
-		i.On("BuildCreateUpload", "app1", mock.Anything, structs.BuildCreateOptions{}).Return(&fxBuild, nil)
-		i.On("BuildLogs", "app1", "build1", structs.LogsOptions{}).Return(testLogs(fxLogs), nil)
-		i.On("BuildGet", "app1", "build1").Return(&fxBuildRunning, nil).Twice()
-		i.On("BuildGet", "app1", "build4").Return(&fxBuild, nil)
+		i.On("SystemGet").Return(fxSystemClassic(), nil)
+		i.On("BuildCreateUpload", "app1", mock.Anything, structs.BuildCreateOptions{}).Return(fxBuild(), nil)
+		i.On("BuildLogs", "app1", "build1", structs.LogsOptions{}).Return(testLogs(fxLogs()), nil)
+		i.On("BuildGet", "app1", "build1").Return(fxBuildRunning(), nil).Twice()
+		i.On("BuildGet", "app1", "build4").Return(fxBuild(), nil)
 
 		res, err := testExecute(e, "build ./testdata/httpd -a app1", nil)
 		require.NoError(t, err)
@@ -115,9 +87,9 @@ func TestBuildClassic(t *testing.T) {
 func TestBuilds(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
 		b1 := structs.Builds{
-			fxBuild,
-			fxBuildRunning,
-			fxBuildFailed,
+			*fxBuild(),
+			*fxBuildRunning(),
+			*fxBuildFailed(),
 		}
 		i.On("BuildList", "app1", structs.BuildListOptions{}).Return(b1, nil)
 
@@ -200,8 +172,8 @@ func TestBuildsImport(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
 		data, err := ioutil.ReadFile("testdata/build.tgz")
 		require.NoError(t, err)
-		i.On("SystemGet").Return(&fxSystem, nil)
-		i.On("BuildImport", "app1", mock.Anything).Return(&fxBuild, nil).Run(func(args mock.Arguments) {
+		i.On("SystemGet").Return(fxSystem(), nil)
+		i.On("BuildImport", "app1", mock.Anything).Return(fxBuild(), nil).Run(func(args mock.Arguments) {
 			rdata, err := ioutil.ReadAll(args.Get(1).(io.Reader))
 			require.NoError(t, err)
 			require.Equal(t, data, rdata)
@@ -217,7 +189,7 @@ func TestBuildsImport(t *testing.T) {
 
 func TestBuildsImportError(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("SystemGet").Return(&fxSystem, nil)
+		i.On("SystemGet").Return(fxSystem(), nil)
 		i.On("BuildImport", "app1", mock.Anything).Return(nil, fmt.Errorf("err1"))
 
 		res, err := testExecute(e, "builds import -a app1 -f testdata/build.tgz", nil)
@@ -232,8 +204,8 @@ func TestBuildsImportClassic(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
 		data, err := ioutil.ReadFile("testdata/build.tgz")
 		require.NoError(t, err)
-		i.On("SystemGet").Return(&fxSystemClassic, nil)
-		i.On("BuildImportMultipart", "app1", mock.Anything).Return(&fxBuild, nil).Run(func(args mock.Arguments) {
+		i.On("SystemGet").Return(fxSystemClassic(), nil)
+		i.On("BuildImportMultipart", "app1", mock.Anything).Return(fxBuild(), nil).Run(func(args mock.Arguments) {
 			rdata, err := ioutil.ReadAll(args.Get(1).(io.Reader))
 			require.NoError(t, err)
 			require.Equal(t, data, rdata)
@@ -249,7 +221,7 @@ func TestBuildsImportClassic(t *testing.T) {
 
 func TestBuildsInfo(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("BuildGet", "app1", "build1").Return(&fxBuild, nil)
+		i.On("BuildGet", "app1", "build1").Return(fxBuild(), nil)
 
 		res, err := testExecute(e, "builds info build1 -a app1", nil)
 		require.NoError(t, err)
@@ -281,15 +253,15 @@ func TestBuildsInfoError(t *testing.T) {
 func TestBuildsLogs(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
 		opts := structs.LogsOptions{}
-		i.On("BuildLogs", "app1", "build1", opts).Return(testLogs(fxLogs), nil)
+		i.On("BuildLogs", "app1", "build1", opts).Return(testLogs(fxLogs()), nil)
 
 		res, err := testExecute(e, "builds logs build1 -a app1", nil)
 		require.NoError(t, err)
 		require.Equal(t, 0, res.Code)
 		res.RequireStderr(t, []string{""})
 		res.RequireStdout(t, []string{
-			fxLogs[0],
-			fxLogs[1],
+			fxLogs()[0],
+			fxLogs()[1],
 		})
 	})
 }

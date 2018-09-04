@@ -9,18 +9,10 @@ import (
 	mockstart "github.com/convox/rack/pkg/mock/start"
 	mockstdcli "github.com/convox/rack/pkg/mock/stdcli"
 	"github.com/convox/rack/pkg/start"
-	"github.com/convox/rack/pkg/structs"
 	"github.com/convox/rack/sdk"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
-
-var fxSystemLocal = structs.System{
-	Name:     "convox",
-	Provider: "local",
-	Status:   "running",
-	Version:  "dev",
-}
 
 func TestStart1(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
@@ -36,7 +28,7 @@ func TestStart1(t *testing.T) {
 
 		ms.On("Start1", opts).Return(nil)
 
-		i.On("SystemGet").Return(&fxSystemLocal, nil)
+		i.On("SystemGet").Return(fxSystemLocal, nil)
 
 		res, err := testExecute(e, "start -g 1 -a app1", nil)
 		require.NoError(t, err)
@@ -60,7 +52,7 @@ func TestStart1Error(t *testing.T) {
 
 		ms.On("Start1", opts).Return(fmt.Errorf("err1"))
 
-		i.On("SystemGet").Return(&fxSystemLocal, nil)
+		i.On("SystemGet").Return(fxSystemLocal, nil)
 
 		res, err := testExecute(e, "start -g 1 -a app1", nil)
 		require.NoError(t, err)
@@ -88,7 +80,7 @@ func TestStart1Options(t *testing.T) {
 
 		ms.On("Start1", opts).Return(nil)
 
-		i.On("SystemGet").Return(&fxSystemLocal, nil)
+		i.On("SystemGet").Return(fxSystemLocal, nil)
 
 		res, err := testExecute(e, "start -g 1 -a app1 -m manifest1 --no-build --no-cache --no-sync -s 3000 service1 bin/command args", nil)
 		require.NoError(t, err)
@@ -117,7 +109,7 @@ func TestStart2(t *testing.T) {
 
 		ms.On("Start2", i, opts).Return(nil)
 
-		i.On("SystemGet").Return(&fxSystemLocal, nil)
+		i.On("SystemGet").Return(fxSystemLocal, nil)
 
 		res, err := testExecute(e, "start -g 2 -a app1", nil)
 		require.NoError(t, err)
@@ -146,7 +138,7 @@ func TestStart2Error(t *testing.T) {
 
 		ms.On("Start2", i, opts).Return(fmt.Errorf("err1"))
 
-		i.On("SystemGet").Return(&fxSystemLocal, nil)
+		i.On("SystemGet").Return(fxSystemLocal, nil)
 
 		res, err := testExecute(e, "start -g 2 -a app1", nil)
 		require.NoError(t, err)
@@ -177,7 +169,7 @@ func TestStart2Options(t *testing.T) {
 
 		ms.On("Start2", i, opts).Return(nil)
 
-		i.On("SystemGet").Return(&fxSystemLocal, nil)
+		i.On("SystemGet").Return(fxSystemLocal(), nil)
 
 		res, err := testExecute(e, "start -g 2 -a app1 -m manifest1 --no-build --no-cache --no-sync service1 service2", nil)
 		require.NoError(t, err)
@@ -210,7 +202,7 @@ func TestStart2Remote(t *testing.T) {
 			require.Equal(t, "rack.classic", s.Client.Endpoint.Host)
 		})
 
-		i.On("SystemGet").Return(&fxSystem, nil)
+		i.On("SystemGet").Return(fxSystem(), nil)
 
 		res, err := testExecute(e, "start -g 2 -a app1", nil)
 		require.NoError(t, err)
@@ -243,7 +235,7 @@ func TestStart2RemoteMultiple(t *testing.T) {
 			require.Equal(t, "rack.classic", s.Client.Endpoint.Host)
 		})
 
-		i.On("SystemGet").Return(&fxSystem, nil)
+		i.On("SystemGet").Return(fxSystem(), nil)
 
 		res, err := testExecute(e, "start -g 2 -a app1", nil)
 		require.NoError(t, err)
