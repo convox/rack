@@ -10,15 +10,9 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var fxRegistry = structs.Registry{
-	Server:   "registry1",
-	Username: "username",
-	Password: "password",
-}
-
 func TestRegistries(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("RegistryList").Return(structs.Registries{fxRegistry, fxRegistry}, nil)
+		i.On("RegistryList").Return(structs.Registries{*fxRegistry(), *fxRegistry()}, nil)
 
 		res, err := testExecute(e, "registries", nil)
 		require.NoError(t, err)
@@ -46,7 +40,7 @@ func TestRegistriesError(t *testing.T) {
 
 func TestRegistriesAdd(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("RegistryAdd", "foo", "bar", "baz").Return(&fxRegistry, nil)
+		i.On("RegistryAdd", "foo", "bar", "baz").Return(fxRegistry(), nil)
 
 		res, err := testExecute(e, "registries add foo bar baz", nil)
 		require.NoError(t, err)
@@ -70,7 +64,7 @@ func TestRegistriesAddError(t *testing.T) {
 
 func TestRegistriesRemove(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("SystemGet").Return(&fxSystem, nil)
+		i.On("SystemGet").Return(fxSystem(), nil)
 		i.On("RegistryRemove", "foo").Return(nil)
 
 		res, err := testExecute(e, "registries remove foo", nil)
@@ -83,7 +77,7 @@ func TestRegistriesRemove(t *testing.T) {
 
 func TestRegistriesRemoveError(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("SystemGet").Return(&fxSystem, nil)
+		i.On("SystemGet").Return(fxSystem(), nil)
 		i.On("RegistryRemove", "foo").Return(fmt.Errorf("err1"))
 
 		res, err := testExecute(e, "registries remove foo", nil)
@@ -96,7 +90,7 @@ func TestRegistriesRemoveError(t *testing.T) {
 
 func TestRegistriesRemoveClassic(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("SystemGet").Return(&fxSystemClassic, nil)
+		i.On("SystemGet").Return(fxSystemClassic(), nil)
 		i.On("RegistryRemoveClassic", "foo").Return(nil)
 
 		res, err := testExecute(e, "registries remove foo", nil)

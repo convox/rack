@@ -20,10 +20,6 @@ var (
 	fxObject = structs.Object{
 		Url: "object://test",
 	}
-	fxParameters = map[string]string{
-		"ParamFoo":   "value1",
-		"ParamOther": "value2",
-	}
 )
 
 var (

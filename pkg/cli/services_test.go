@@ -10,22 +10,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var fxService = structs.Service{
-	Name:   "service1",
-	Count:  1,
-	Cpu:    2,
-	Domain: "domain",
-	Memory: 3,
-	Ports: []structs.ServicePort{
-		{Balancer: 1, Certificate: "cert1", Container: 2},
-		{Balancer: 1, Certificate: "cert1", Container: 2},
-	},
-}
-
 func TestServices(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("SystemGet").Return(&fxSystem, nil)
-		i.On("ServiceList", "app1").Return(structs.Services{fxService, fxService}, nil)
+		i.On("SystemGet").Return(fxSystem(), nil)
+		i.On("ServiceList", "app1").Return(structs.Services{*fxService(), *fxService()}, nil)
 
 		res, err := testExecute(e, "services -a app1", nil)
 		require.NoError(t, err)
@@ -41,7 +29,7 @@ func TestServices(t *testing.T) {
 
 func TestServicesError(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("SystemGet").Return(&fxSystem, nil)
+		i.On("SystemGet").Return(fxSystem(), nil)
 		i.On("ServiceList", "app1").Return(nil, fmt.Errorf("err1"))
 
 		res, err := testExecute(e, "services -a app1", nil)
@@ -54,8 +42,8 @@ func TestServicesError(t *testing.T) {
 
 func TestServicesClassic(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("SystemGet").Return(&fxSystemClassic, nil)
-		i.On("FormationGet", "app1").Return(structs.Services{fxService, fxService}, nil)
+		i.On("SystemGet").Return(fxSystemClassic(), nil)
+		i.On("FormationGet", "app1").Return(structs.Services{*fxService(), *fxService()}, nil)
 
 		res, err := testExecute(e, "services -a app1", nil)
 		require.NoError(t, err)
