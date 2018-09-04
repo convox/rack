@@ -102,6 +102,8 @@ spec:
         args:
         - bin/router
         env:
+        - name: DEVELOPMENT
+          value: "false"
         - name: VERSION
           value: "$version"
         image: convox/rack:$version
