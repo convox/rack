@@ -18,6 +18,6 @@ func (p *Provider) ReleaseList(app string, opts structs.ReleaseListOptions) (str
 	return nil, fmt.Errorf("unimplemented")
 }
 
-func (p *Provider) ReleasePromote(app, id string) error {
+func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOptions) error {
 	return fmt.Errorf("unimplemented")
 }

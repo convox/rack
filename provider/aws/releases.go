@@ -158,7 +158,7 @@ func (p *Provider) ReleaseList(app string, opts structs.ReleaseListOptions) (str
 }
 
 // ReleasePromote promotes a release
-func (p *Provider) ReleasePromote(app, id string) error {
+func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOptions) error {
 	a, err := p.AppGet(app)
 	if err != nil {
 		return err
@@ -244,13 +244,31 @@ func (p *Provider) ReleasePromote(app, id string) error {
 	}
 
 	for _, s := range m.Services {
+		min := 50
+		max := 200
+
+		if s.Agent.Enabled || s.Singleton {
+			min = 0
+			max = 100
+		}
+
+		if opts.Min != nil {
+			min = *opts.Min
+		}
+
+		if opts.Max != nil {
+			max = *opts.Max
+		}
+
 		stp := map[string]interface{}{
-			"App":      r.App,
-			"Build":    tp["Build"],
-			"Manifest": tp["Manifest"],
-			"Password": p.Password,
-			"Release":  tp["Release"],
-			"Service":  s,
+			"App":           r.App,
+			"Build":         tp["Build"],
+			"DeploymentMin": min,
+			"DeploymentMax": max,
+			"Manifest":      tp["Manifest"],
+            "Password":      p.Password,
+			"Release":       tp["Release"],
+			"Service":       s,
 		}
 
 		sarn, err := p.serviceArn(r.App, s.Name)

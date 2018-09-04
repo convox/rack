@@ -370,11 +370,8 @@
         "Properties": {
           "Cluster": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Cluster" } },
           "DeploymentConfiguration": {
-            {{ if or .Agent.Enabled .Singleton }}
-              "MinimumHealthyPercent": "0", "MaximumPercent": "100"
-            {{ else }}
-              "MinimumHealthyPercent": "50", "MaximumPercent": "200"
-            {{ end }}
+            "MinimumHealthyPercent": "{{$.DeploymentMin}}",
+            "MaximumPercent": "{{$.DeploymentMax}}"
           },
           {{ if .Agent.Enabled }}
             "SchedulingStrategy": "DAEMON",

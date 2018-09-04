@@ -97,8 +97,8 @@ func (p *Provider) streamProcessListLogs(w io.WriteCloser, pl processLister, opt
 
 			for _, ps := range pss {
 				if !current[ps.Id] {
-					go p.streamProcessLogsWait(w, ps, opts, pidch)
 					current[ps.Id] = true
+					go p.streamProcessLogsWait(w, ps, opts, pidch)
 				}
 			}
 		}

@@ -25,6 +25,11 @@ type ReleaseListOptions struct {
 	Limit *int `flag:"limit,l" query:"limit"`
 }
 
+type ReleasePromoteOptions struct {
+	Min *int `param:"min"`
+	Max *int `param:"max"`
+}
+
 func NewRelease(app string) *Release {
 	return &Release{
 		App:     app,
