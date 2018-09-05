@@ -61,7 +61,7 @@ build=$(convox api get /apps/ci2/builds | jq -r ".[0].id") && [ -n "$build" ]
 convox builds -a ci2 | grep $build
 convox builds info $build -a ci2 | grep $build
 convox builds info $build -a ci2 | grep cibuild
-convox builds logs $build -a ci2 | grep "Successfully built"
+convox builds logs $build -a ci2 | grep "Pushing:"
 convox builds export $build -a ci2 -f /tmp/build.tgz
 releasei=$(convox builds import -a ci2 -f /tmp/build.tgz --id) && [ -n "$releasei" ]
 buildi=$(convox api get /apps/ci2/releases/$releasei | jq -r ".build") && [ -n "$buildi" ]
