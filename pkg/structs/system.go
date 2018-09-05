@@ -16,6 +16,7 @@ type System struct {
 }
 
 type SystemInstallOptions struct {
+	Id         *string
 	Name       *string `flag:"name,n"`
 	Parameters map[string]string
 	Version    *string `flag:"version,v"`
