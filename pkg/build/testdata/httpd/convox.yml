@@ -1,0 +1,6 @@
+services:
+  web:
+    image: httpd
+    port: 80
+  web2:
+    build: .
