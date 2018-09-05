@@ -1,0 +1,6 @@
+services:
+  web:
+    build:
+      path: .
+      manifest: Dockerfile2
+    port: 80
