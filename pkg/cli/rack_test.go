@@ -81,7 +81,6 @@ func TestRackInstall(t *testing.T) {
 		res.RequireStdout(t, []string{
 			"line1",
 			"line2",
-			fmt.Sprintf("Authenticating with %s... OK", tsu.Host),
 		})
 
 		data, err := ioutil.ReadFile(filepath.Join(e.Settings, "auth"))
@@ -369,7 +368,7 @@ func TestRackStart(t *testing.T) {
 			"-e",
 			"COMBINED=true",
 			"-e",
-			"COMBINED=true",
+			"ID=id1",
 			"-e",
 			"IMAGE=convox/rack:test",
 			"-e",
@@ -404,7 +403,7 @@ func TestRackStart(t *testing.T) {
 		})
 		e.Executor = me
 
-		res, err := testExecute(e, "rack start -n foo -r bar", nil)
+		res, err := testExecute(e, "rack start --id id1 -n foo -r bar", nil)
 		require.NoError(t, err)
 		require.Equal(t, 0, res.Code)
 		res.RequireStderr(t, []string{""})
@@ -427,7 +426,7 @@ func TestRackStartError(t *testing.T) {
 			"-e",
 			"COMBINED=true",
 			"-e",
-			"COMBINED=true",
+			"ID=",
 			"-e",
 			"IMAGE=convox/rack:test",
 			"-e",

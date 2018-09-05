@@ -327,7 +327,7 @@ func matchRack(c *stdcli.Context, name string) (*rack, error) {
 	return nil, fmt.Errorf("could not find rack: %s", name)
 }
 
-func rackCommand(name string, version string, router string) (string, []string, error) {
+func rackCommand(name string, version string, router string, id string) (string, []string, error) {
 	vol := "/var/convox"
 
 	switch runtime.GOOS {
@@ -339,7 +339,7 @@ func rackCommand(name string, version string, router string) (string, []string, 
 
 	args := []string{"run", "--rm"}
 	args = append(args, "-e", "COMBINED=true")
-	args = append(args, "-e", "COMBINED=true")
+	args = append(args, "-e", fmt.Sprintf("ID=%s", id))
 	args = append(args, "-e", fmt.Sprintf("IMAGE=%s", image))
 	args = append(args, "-e", "PROVIDER=local")
 	args = append(args, "-e", fmt.Sprintf("RACK=%s", name))

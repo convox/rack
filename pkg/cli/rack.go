@@ -66,6 +66,7 @@ func init() {
 
 	registerWithoutProvider("rack start", "start local rack", RackStart, stdcli.CommandOptions{
 		Flags: []stdcli.Flag{
+			stdcli.StringFlag("id", "", "identifier"),
 			stdcli.StringFlag("name", "n", "rack name"),
 			stdcli.StringFlag("router", "r", "router host"),
 		},
@@ -114,6 +115,10 @@ func RackInstall(rack sdk.Interface, c *stdcli.Context) error {
 		return err
 	}
 
+	if id, _ := c.SettingRead("id"); id != "" {
+		opts.Id = options.String(id)
+	}
+
 	opts.Parameters = map[string]string{}
 
 	for _, arg := range c.Args[1:] {
@@ -149,8 +154,12 @@ func RackInstall(rack sdk.Interface, c *stdcli.Context) error {
 		}
 	}
 
-	if err := login(c, u.Host, password); err != nil {
+	if err := saveAuth(c, u.Host, password); err != nil {
 		return err
+	}
+
+	if host, _ := c.SettingRead("host"); host == "" {
+		c.SettingWrite("host", u.Host)
 	}
 
 	return nil
@@ -317,10 +326,11 @@ func RackScale(rack sdk.Interface, c *stdcli.Context) error {
 }
 
 func RackStart(rack sdk.Interface, c *stdcli.Context) error {
+	id := c.String("id")
 	name := coalesce(c.String("name"), "convox")
 	router := coalesce(c.String("router"), "10.42.0.0")
 
-	cmd, args, err := rackCommand(name, c.Version(), router)
+	cmd, args, err := rackCommand(name, c.Version(), router, id)
 	if err != nil {
 		return err
 	}

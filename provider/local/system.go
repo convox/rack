@@ -113,6 +113,8 @@ func (p *Provider) SystemInstall(w io.Writer, opts structs.SystemInstallOptions)
 		version = v
 	}
 
+	id := cs(opts.Id, "")
+
 	exe, err := os.Executable()
 	if err != nil {
 		return "", err
@@ -133,7 +135,7 @@ func (p *Provider) SystemInstall(w io.Writer, opts structs.SystemInstallOptions)
 		return "", err
 	}
 
-	if err := launcherInstall(fmt.Sprintf("rack.%s", name), w, opts, exe, "rack", "start", "--name", name); err != nil {
+	if err := launcherInstall(fmt.Sprintf("rack.%s", name), w, opts, exe, "rack", "start", "--id", id, "--name", name); err != nil {
 		return "", err
 	}
 

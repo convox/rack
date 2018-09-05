@@ -39,14 +39,6 @@ func Login(rack sdk.Interface, c *stdcli.Context) error {
 		c.Writef("\n")
 	}
 
-	if err := login(c, hostname, password); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func login(c *stdcli.Context, hostname, password string) error {
 	c.Startf("Authenticating with <info>%s</info>", hostname)
 
 	cl, err := sdk.New(fmt.Sprintf("https://convox:%s@%s", password, hostname))
@@ -54,7 +46,8 @@ func login(c *stdcli.Context, hostname, password string) error {
 		return err
 	}
 
-	if err := cl.Auth(); err != nil {
+	id, err := cl.Auth()
+	if err != nil {
 		return fmt.Errorf("invalid login")
 	}
 
@@ -64,6 +57,12 @@ func login(c *stdcli.Context, hostname, password string) error {
 
 	if err := c.SettingWrite("host", hostname); err != nil {
 		return err
+	}
+
+	if id != "" {
+		if err := c.SettingWrite("id", id); err != nil {
+			return err
+		}
 	}
 
 	if err := c.SettingDelete("rack"); err != nil {

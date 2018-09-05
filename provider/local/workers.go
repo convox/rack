@@ -1,61 +1,42 @@
 package local
 
 import (
-	"os"
-	"os/signal"
-	"syscall"
+	"fmt"
 	"time"
 
-	"github.com/pkg/errors"
+	"github.com/convox/rack/pkg/helpers"
 )
 
 func (p *Provider) Workers() error {
-	log := p.logger("Workers")
-
-	terminate := make(chan os.Signal, 1)
-	signal.Notify(terminate, syscall.SIGINT, syscall.SIGTERM)
-
-	go func() {
-		<-terminate
-		if err := p.shutdown(); err != nil {
-			log.Error(errors.WithStack(err))
-		}
-	}()
-
-	if !p.Test {
-		go func() {
-			for {
-				time.Sleep(10 * time.Second)
-
-				if err := p.workerConverge(); err != nil {
-					log.Error(errors.WithStack(err))
-				}
-			}
-		}()
+	if p.Test {
+		return nil
 	}
+
+	go helpers.Tick(10*time.Second, p.workerConverge)
+	go helpers.Tick(1*time.Hour, p.workerHeartbeat)
 
 	return nil
 }
 
-func (p *Provider) workerConverge() error {
+func (p *Provider) workerConverge() {
 	log := p.logger("workerConverge")
 
 	if _, err := p.router.RackGet(p.Rack); err != nil {
 		if err := p.routerRegister(); err != nil {
 			log.At("register").Error(err)
-			return err
+			return
 		}
 	}
 
 	if err := p.idle(); err != nil {
 		log.At("idle").Error(err)
-		return err
+		return
 	}
 
 	apps, err := p.AppList()
 	if err != nil {
 		log.At("list").Error(err)
-		return err
+		return
 	}
 
 	for _, a := range apps {
@@ -64,6 +45,19 @@ func (p *Provider) workerConverge() error {
 			continue
 		}
 	}
+}
 
-	return nil
+func (p *Provider) workerHeartbeat() {
+	as, err := p.AppList()
+	if err != nil {
+		return
+	}
+
+	p.Metrics.Post("heartbeat", map[string]interface{}{
+		"id":        p.Id,
+		"app_count": len(as),
+		"rack_id":   fmt.Sprintf("%s:%s", p.Id, p.Rack),
+		"provider":  "local",
+		"version":   p.Version,
+	})
 }

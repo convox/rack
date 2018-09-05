@@ -244,6 +244,10 @@ func (p *Provider) SystemInstall(w io.Writer, opts structs.SystemInstallOptions)
 		"Version":  version,
 	}
 
+	if opts.Id != nil {
+		params["ClientId"] = *opts.Id
+	}
+
 	if opts.Parameters != nil {
 		for k, v := range opts.Parameters {
 			params[k] = v
@@ -302,6 +306,8 @@ func (p *Provider) SystemInstall(w io.Writer, opts structs.SystemInstallOptions)
 	}
 
 	fmt.Fprintf(w, "OK\n")
+
+	fmt.Fprintf(w, "Hostname: %s\n", outputs["Dashboard"])
 
 	return ep, nil
 }
