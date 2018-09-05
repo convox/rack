@@ -37,7 +37,7 @@ convox instances ssh $instance "ls -la" | grep ec2-user
 convox instances terminate $instance
 convox rack | grep elb.amazonaws.com
 convox rack logs --no-follow | grep service/web
-convox rack ps | grep bin/web
+convox rack ps | grep bin/rack
 convox rack releases
 convox rack params | grep LogRetention
 convox rack params set LogRetention=14 --wait
