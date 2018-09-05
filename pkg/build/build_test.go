@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"strings"
 	"testing"
 	"time"
 
@@ -28,7 +29,7 @@ func TestBuildGeneration2(t *testing.T) {
 		Source:     "object://app1/object.tgz",
 	}
 
-	testBuild(t, opts, func(b *build.Build, p *structs.MockProvider, e *exec.MockInterface, out bytes.Buffer) {
+	testBuild(t, opts, func(b *build.Build, p *structs.MockProvider, e *exec.MockInterface, out *bytes.Buffer) {
 		p.On("BuildGet", "app1", "build1").Return(fxBuildStarted(), nil).Once()
 		bdata, err := ioutil.ReadFile("testdata/httpd.tgz")
 		require.NoError(t, err)
@@ -85,6 +86,22 @@ func TestBuildGeneration2(t *testing.T) {
 
 		err = b.Execute()
 		require.NoError(t, err)
+
+		require.Equal(t,
+			[]string{
+				"Building: .",
+				"build1",
+				"build2",
+				"Pulling: httpd",
+				"tagging",
+				"tagging",
+				"tagging",
+				"Pushing: push1:web2.build1",
+				"tagging",
+				"Pushing: push1:web.build1",
+			},
+			strings.Split(strings.TrimSuffix(out.String(), "\n"), "\n"),
+		)
 	})
 }
 
@@ -125,13 +142,15 @@ func fxRelease2() *structs.Release {
 	}
 }
 
-func testBuild(t *testing.T, opts build.Options, fn func(*build.Build, *structs.MockProvider, *exec.MockInterface, bytes.Buffer)) {
+func testBuild(t *testing.T, opts build.Options, fn func(*build.Build, *structs.MockProvider, *exec.MockInterface, *bytes.Buffer)) {
 	e := &exec.MockInterface{}
 	p := &structs.MockProvider{}
 
-	buf := bytes.Buffer{}
+	buf := &bytes.Buffer{}
 
-	b, err := build.NewWithOutput(&buf, opts)
+	opts.Output = buf
+
+	b, err := build.New(opts)
 	require.NoError(t, err)
 
 	b.Exec = e
