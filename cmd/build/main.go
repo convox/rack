@@ -11,16 +11,17 @@ import (
 )
 
 var (
-	flagApp        string
-	flagAuth       string
-	flagCache      string
-	flagGeneration string
-	flagID         string
-	flagManifest   string
-	flagMethod     string
-	flagPush       string
-	flagRack       string
-	flagUrl        string
+	flagApp         string
+	flagAuth        string
+	flagCache       string
+	flagDevelopment string
+	flagGeneration  string
+	flagID          string
+	flagManifest    string
+	flagMethod      string
+	flagPush        string
+	flagRack        string
+	flagUrl         string
 
 	currentBuild    *structs.Build
 	currentLogs     string
@@ -42,6 +43,7 @@ func execute() error {
 	fs.StringVar(&flagApp, "app", "example", "app name")
 	fs.StringVar(&flagAuth, "auth", "", "docker auth data (json)")
 	fs.StringVar(&flagCache, "cache", "true", "use docker cache")
+	fs.StringVar(&flagDevelopment, "development", "false", "create a development build")
 	fs.StringVar(&flagGeneration, "generation", "", "app generation")
 	fs.StringVar(&flagID, "id", "latest", "build id")
 	fs.StringVar(&flagManifest, "manifest", "", "path to app manifest")
@@ -60,6 +62,10 @@ func execute() error {
 
 	if v := os.Getenv("BUILD_AUTH"); v != "" {
 		flagAuth = v
+	}
+
+	if v := os.Getenv("BUILD_DEVELOPMENT"); v != "" {
+		flagDevelopment = v
 	}
 
 	if v := os.Getenv("BUILD_GENERATION"); v != "" {
@@ -87,15 +93,16 @@ func execute() error {
 	}
 
 	opts := build.Options{
-		App:        flagApp,
-		Auth:       flagAuth,
-		Cache:      flagCache == "true",
-		Generation: flagGeneration,
-		Id:         flagID,
-		Manifest:   flagManifest,
-		Push:       flagPush,
-		Rack:       flagRack,
-		Source:     flagUrl,
+		App:         flagApp,
+		Auth:        flagAuth,
+		Cache:       flagCache == "true",
+		Development: flagDevelopment == "true",
+		Generation:  flagGeneration,
+		Id:          flagID,
+		Manifest:    flagManifest,
+		Push:        flagPush,
+		Rack:        flagRack,
+		Source:      flagUrl,
 	}
 
 	b, err := build.New(opts)

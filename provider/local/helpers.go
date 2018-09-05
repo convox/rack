@@ -20,6 +20,13 @@ func coalescei(ints ...int) int {
 	return 0
 }
 
+func cb(b *bool, def bool) bool {
+	if b != nil {
+		return *b
+	}
+	return def
+}
+
 func ci(i *int, def int) int {
 	if i != nil {
 		return *i
