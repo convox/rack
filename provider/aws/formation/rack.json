@@ -2385,7 +2385,7 @@
       "Properties": {
         "ContainerDefinitions": [
           {
-            "Command": [ "bin/monitor" ],
+            "Command": [ "/app/bin/monitor" ],
             "Cpu": "64",
             "DockerLabels": {
               "convox.release": { "Ref": "Version" },
@@ -2460,7 +2460,7 @@
       "Properties": {
         "ContainerDefinitions": [
           {
-            "Command": [ "bin/web" ],
+            "Command": [ "/app/bin/rack" ],
             "Cpu": "128",
             "DockerLabels": {
               "convox.release": { "Ref": "Version" },
