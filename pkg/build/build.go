@@ -104,9 +104,15 @@ func (bb *Build) execute() error {
 		return err
 	}
 
+	cwd, err := os.Getwd()
+	if err != nil {
+		return err
+	}
+
 	if err := os.Chdir(dir); err != nil {
 		return err
 	}
+	defer os.Chdir(cwd)
 
 	u, err := url.Parse(bb.Source)
 	if err != nil {
