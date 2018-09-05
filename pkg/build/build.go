@@ -32,6 +32,7 @@ type Options struct {
 	Generation  string
 	Id          string
 	Manifest    string
+	Output      io.Writer
 	Push        string
 	Rack        string
 	Source      string
@@ -46,11 +47,9 @@ type Build struct {
 }
 
 func New(opts Options) (*Build, error) {
-	return NewWithOutput(os.Stdout, opts)
-}
-
-func NewWithOutput(w io.Writer, opts Options) (*Build, error) {
 	b := &Build{Options: opts}
+
+	b.Exec = &exec.Exec{}
 
 	if b.Manifest == "" {
 		switch b.Generation {
@@ -70,7 +69,11 @@ func NewWithOutput(w io.Writer, opts Options) (*Build, error) {
 
 	b.logs = bytes.Buffer{}
 
-	b.writer = io.MultiWriter(w, &b.logs)
+	if opts.Output != nil {
+		b.writer = io.MultiWriter(opts.Output, &b.logs)
+	} else {
+		b.writer = io.MultiWriter(os.Stdout, &b.logs)
+	}
 
 	return b, nil
 }
