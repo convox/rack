@@ -81,7 +81,7 @@ func (s *Start) Start2(p structs.Provider, opts Options) error {
 
 		m.Writef("build", "starting build\n")
 
-		b, err := p.BuildCreate(app, o.Url, structs.BuildCreateOptions{Manifest: options.String(mf)})
+		b, err := p.BuildCreate(app, o.Url, structs.BuildCreateOptions{Development: options.Bool(true), Manifest: options.String(mf)})
 		if err != nil {
 			return err
 		}
