@@ -228,12 +228,14 @@ func (p *Provider) ResourceGet(name string) (*structs.Resource, error) {
 	}
 
 	// Populate linked apps
-	apps, err := p.resourceApps(s)
-	if err != nil {
-		return nil, err
+	switch s.Type {
+	case "syslog":
+		apps, err := p.resourceApps(s)
+		if err != nil {
+			return nil, err
+		}
+		s.Apps = apps
 	}
-
-	s.Apps = apps
 
 	return &s, nil
 }
@@ -295,11 +297,14 @@ func (p *Provider) ResourceList() (structs.Resources, error) {
 	}
 
 	for _, s := range resources {
-		apps, err := p.resourceApps(s)
-		if err != nil {
-			return nil, err
+		switch s.Type {
+		case "syslog":
+			apps, err := p.resourceApps(s)
+			if err != nil {
+				return nil, err
+			}
+			s.Apps = apps
 		}
-		s.Apps = apps
 	}
 
 	return resources, nil
