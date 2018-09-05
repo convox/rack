@@ -100,6 +100,48 @@ func TestBuildGeneration2(t *testing.T) {
 	})
 }
 
+func TestBuildGeneration2Failure(t *testing.T) {
+	opts := build.Options{
+		App:        "app1",
+		Auth:       "{}",
+		Cache:      true,
+		Generation: "2",
+		Id:         "build1",
+		Rack:       "rack1",
+		Source:     "object://app1/object.tgz",
+	}
+
+	testBuild(t, opts, func(b *build.Build, p *structs.MockProvider, e *exec.MockInterface, out *bytes.Buffer) {
+		p.On("BuildGet", "app1", "build1").Return(fxBuildStarted(), nil)
+		p.On("ObjectFetch", "app1", "/object.tgz").Return(nil, fmt.Errorf("err1"))
+		p.On("ObjectStore", "app1", "build/build1/logs", mock.Anything, structs.ObjectStoreOptions{}).Return(fxObject(), nil).Run(func(args mock.Arguments) {
+			data, err := ioutil.ReadAll(args.Get(2).(io.Reader))
+			require.NoError(t, err)
+			require.Equal(t, "ERROR: err1\n", string(data))
+		})
+		p.On("BuildUpdate", "app1", "build1", mock.Anything).Return(fxBuildStarted(), nil).Run(func(args mock.Arguments) {
+			opts := args.Get(2).(structs.BuildUpdateOptions)
+			require.NotNil(t, opts.Ended)
+			require.False(t, opts.Ended.IsZero())
+			require.NotNil(t, opts.Logs)
+			require.Equal(t, "object://app1/build/build1/logs", *opts.Logs)
+			require.NotNil(t, opts.Status)
+			require.Equal(t, "failed", *opts.Status)
+		})
+		p.On("EventSend", "build:create", structs.EventSendOptions{Data: map[string]string{"app": "app1", "id": "build1"}, Error: options.String("err1")}).Return(nil)
+
+		err := b.Execute()
+		require.EqualError(t, err, "err1")
+
+		require.Equal(t,
+			[]string{
+				"ERROR: err1",
+			},
+			strings.Split(strings.TrimSuffix(out.String(), "\n"), "\n"),
+		)
+	})
+}
+
 func TestBuildGeneration2Options(t *testing.T) {
 	opts := build.Options{
 		App:         "app1",
