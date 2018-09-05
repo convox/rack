@@ -148,6 +148,8 @@ func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	req.ContentLength = r.ContentLength
+
 	req.Host = r.Host
 
 	req.Header.Add("X-Forwarded-For", r.RemoteAddr)
