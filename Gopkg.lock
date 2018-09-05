@@ -144,6 +144,14 @@
 
 [[projects]]
   branch = "master"
+  digest = "1:66dd89ca790b128ac8df9c24e12873006b76bfcdef11d8dda5d8a0b5e3802193"
+  name = "github.com/convox/exec"
+  packages = ["."]
+  pruneopts = "NUT"
+  revision = "cc13d277f89725badd8a11aec59fab7587bd0af9"
+
+[[projects]]
+  branch = "master"
   digest = "1:96b22063c223a2871baab21201a63e40bafac55072d94baeab15ce549fdb84c2"
   name = "github.com/convox/inotify"
   packages = ["."]
@@ -640,6 +648,7 @@
     "github.com/boltdb/bolt",
     "github.com/cloudflare/cfssl/log",
     "github.com/convox/changes",
+    "github.com/convox/exec",
     "github.com/convox/logger",
     "github.com/convox/stdapi",
     "github.com/convox/stdcli",
