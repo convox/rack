@@ -27,6 +27,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/convox/logger"
+	"github.com/convox/rack/pkg/metrics"
 	"github.com/convox/rack/pkg/structs"
 )
 
@@ -43,6 +44,7 @@ type Provider struct {
 	Endpoint string
 
 	BuildCluster        string
+	ClientId            string
 	CloudformationTopic string
 	Cluster             string
 	Development         bool
@@ -63,10 +65,12 @@ type Provider struct {
 	SpotInstances       bool
 	Subnets             string
 	SubnetsPrivate      string
+	StackId             string
 	Version             string
 	Vpc                 string
 	VpcCidr             string
 
+	Metrics   *metrics.Metrics
 	SkipCache bool
 
 	ctx context.Context
@@ -76,10 +80,13 @@ type Provider struct {
 // NewProviderFromEnv returns a new AWS provider from env vars
 func FromEnv() (*Provider, error) {
 	p := &Provider{
+		ClientId:    os.Getenv("CLIENT_ID"),
 		Development: os.Getenv("DEVELOPMENT") == "true",
 		Password:    os.Getenv("PASSWORD"),
 		Rack:        os.Getenv("RACK"),
 		Region:      os.Getenv("AWS_REGION"),
+		StackId:     os.Getenv("STACK_ID"),
+		Metrics:     metrics.New("https://metrics.convox.com/metrics/rack"),
 		ctx:         context.Background(),
 		log:         logger.New("ns=aws"),
 	}
