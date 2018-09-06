@@ -36,6 +36,7 @@
       "Fn::And": [ { "Condition": "Private" }, { "Condition": "ThirdAvailabilityZone" } ]
     },
     "PrivateApi": { "Fn::Equals": [ { "Ref": "PrivateApi" }, "Yes" ] },
+    "PublicRouter": { "Fn::Equals": [ { "Ref": "InternalOnly" }, "No" ] },
     "RegionHasEFS": { "Fn::Equals": [
       { "Fn::FindInMap": [ "RegionConfig", { "Ref": "AWS::Region" }, "EFS" ] },
       "Yes"
@@ -75,6 +76,7 @@
     }
   },
   "Outputs": {
+    "Foo": { "Value": "3" },
     "AutoscalingGroup": {
       "Value": { "Ref": "Instances" }
     },
@@ -87,9 +89,6 @@
     "BuildCluster": {
       "Value": { "Fn::If": [ "DedicatedBuilder", { "Ref": "BuildCluster" }, { "Ref": "Cluster" } ] }
     },
-    "CloudformationTopic": {
-      "Value": { "Ref": "CloudformationTopic" }
-    },
     "Cluster": {
       "Export": { "Name": { "Fn::Sub": "${AWS::StackName}:Cluster" } },
       "Value": { "Ref": "Cluster" }
@@ -101,6 +100,7 @@
       "Value": { "Fn::GetAtt": [ "Balancer", "DNSName" ] }
     },
     "Domain": {
+      "Condition": "PublicRouter",
       "Export": { "Name": { "Fn::Sub": "${AWS::StackName}:Domain" } },
       "Value": { "Fn::GetAtt": [ "Router", "DNSName" ] }
     },
@@ -121,14 +121,6 @@
     "EncryptionKey": {
       "Export": { "Name": { "Fn::Sub": "${AWS::StackName}:EncryptionKey" } },
       "Value": { "Ref": "EncryptionKey" }
-    },
-    "Endpoint": {
-      "Value": { "Fn::Join": [ ".", [
-        "rack",
-        { "Fn::Select": [ 0, { "Fn::Split": [ ".", { "Fn::GetAtt": [ "Router", "DNSName" ] } ] } ] },
-        { "Fn::Select": [ 1, { "Fn::Split": [ ".", { "Fn::GetAtt": [ "Router", "DNSName" ] } ] } ] },
-        "convox.site"
-      ] ] }
     },
     "Fargate": {
       "Value": { "Fn::FindInMap": [ "RegionConfig", { "Ref": "AWS::Region" }, "Fargate" ] }
@@ -209,18 +201,16 @@
     "Private": {
       "Value": { "Ref": "Private" }
     },
-    "Provider": {
-      "Condition": "Development",
-      "Value": "aws"
-    },
     "Rack": {
       "Value": { "Ref": "AWS::StackName" }
     },
     "RouterCertificate": {
+      "Condition": "PublicRouter",
       "Export": { "Name": { "Fn::Sub": "${AWS::StackName}:RouterCertificate" } },
       "Value": { "Ref": "RouterApiCertificate" }
     },
     "RouterHost": {
+      "Condition": "PublicRouter",
       "Export": { "Name": { "Fn::Sub": "${AWS::StackName}:RouterHost" } },
       "Value": { "Fn::Join": [ ".", [
         { "Fn::Select": [ 0, { "Fn::Split": [ ".", { "Fn::GetAtt": [ "Router", "DNSName" ] } ] } ] },
@@ -229,16 +219,24 @@
       ] ] }
     },
     "RouterListener80": {
+      "Condition": "PublicRouter",
       "Export": { "Name": { "Fn::Sub": "${AWS::StackName}:RouterListener80" } },
       "Value": { "Ref": "RouterListener80" }
     },
     "RouterListener443": {
+      "Condition": "PublicRouter",
       "Export": { "Name": { "Fn::Sub": "${AWS::StackName}:RouterListener443" } },
       "Value": { "Ref": "RouterListener443" }
     },
     "RouterName": {
+      "Condition": "PublicRouter",
       "Export": { "Name": { "Fn::Sub": "${AWS::StackName}:RouterName" } },
       "Value": { "Fn::GetAtt": [ "Router", "LoadBalancerFullName" ] }
+    },
+    "RouterInternalCertificate": {
+      "Condition": "Internal",
+      "Export": { "Name": { "Fn::Sub": "${AWS::StackName}:RouterInternalCertificate" } },
+      "Value": { "Ref": "RouterInternalCertificate" }
     },
     "RouterInternalHost": {
       "Condition": "Internal",
@@ -264,7 +262,13 @@
       "Export": { "Name": { "Fn::Sub": "${AWS::StackName}:RouterInternalName" } },
       "Value": { "Fn::GetAtt": [ "RouterInternal", "LoadBalancerFullName" ] }
     },
+    "RouterInternalSecurityGroup": {
+      "Condition": "Internal",
+      "Export": { "Name": { "Fn::Sub": "${AWS::StackName}:RouterInternalSecurityGroup" } },
+      "Value": { "Ref": "RouterInternalSecurity" }
+    },
     "RouterSecurityGroup": {
+      "Condition": "PublicRouter",
       "Export": { "Name": { "Fn::Sub": "${AWS::StackName}:RouterSecurityGroup" } },
       "Value": { "Fn::If": [ "BlankRouterSecurityGroup", { "Ref": "RouterSecurity" }, { "Fn::Select": [ 0, { "Ref": "RouterSecurityGroup" } ] } ] }
     },
@@ -458,6 +462,12 @@
     "Internal": {
       "Type": "String",
       "Description": "Support applications that are only accessible inside the VPC",
+      "Default": "No",
+      "AllowedValues": [ "Yes", "No" ]
+    },
+    "InternalOnly": {
+      "Type": "String",
+      "Description": "Only support applications that are only accessible inside the VPC",
       "Default": "No",
       "AllowedValues": [ "Yes", "No" ]
     },
@@ -1866,7 +1876,12 @@
       "Condition": "RegionHasEFS",
       "Properties": {
         "GroupDescription": { "Fn::Sub": "${AWS::StackName} volumes" },
-        "SecurityGroupIngress": [ { "IpProtocol": "tcp", "FromPort": "2049", "ToPort": "2049", "CidrIp": { "Ref": "VPCCIDR" } } ],
+        "SecurityGroupIngress": [ {
+          "IpProtocol": "tcp",
+          "FromPort": "2049",
+          "ToPort": "2049",
+          "SourceSecurityGroupId": { "Fn::If": [ "BlankInstanceSecurityGroup", { "Ref": "InstancesSecurity" }, { "Ref": "InstanceSecurityGroup" } ] }
+        } ],
         "Tags": [ { "Key": "Name", "Value": { "Fn::Sub": "${AWS::StackName}-volumes" } } ],
         "VpcId": { "Fn::If": [ "BlankExistingVpc", { "Ref": "Vpc" }, { "Ref": "ExistingVpc" } ] }
       }
@@ -1962,6 +1977,7 @@
       }
     },
     "Router": {
+      "Condition": "PublicRouter",
       "DependsOn": [ "ApiRole", "LogsPolicy" ],
       "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
       "Properties": {
@@ -1984,16 +2000,21 @@
     },
     "RouterSecurity": {
       "Type": "AWS::EC2::SecurityGroup",
+      "Condition": "PublicRouter",
       "DependsOn": "ApiRole",
       "Properties": {
         "GroupDescription": { "Fn::Sub": "${AWS::StackName} router" },
-        "SecurityGroupIngress": [ { "CidrIp": "0.0.0.0/0", "IpProtocol": "tcp", "FromPort": "0", "ToPort": "65535" } ],
+        "SecurityGroupIngress": [
+          { "CidrIp": "0.0.0.0/0", "IpProtocol": "tcp", "FromPort": "80", "ToPort": "80" },
+          { "CidrIp": "0.0.0.0/0", "IpProtocol": "tcp", "FromPort": "443", "ToPort": "443" }
+        ],
         "Tags": [ { "Key": "Name", "Value": { "Fn::Sub": "${AWS::StackName}-router" } } ],
         "VpcId": { "Fn::If": [ "BlankExistingVpc", { "Ref": "Vpc" }, { "Ref": "ExistingVpc" } ] }
       }
     },
     "RouterListener80": {
       "Type": "AWS::ElasticLoadBalancingV2::Listener",
+      "Condition": "PublicRouter",
       "Properties": {
         "DefaultActions": [ { "Type": "forward", "TargetGroupArn": { "Ref": "RouterApiTargetGroup" } } ],
         "LoadBalancerArn": { "Ref" : "Router" },
@@ -2003,6 +2024,7 @@
     },
     "RouterListener443": {
       "Type": "AWS::ElasticLoadBalancingV2::Listener",
+      "Condition": "PublicRouter",
       "Properties": {
         "Certificates": [ { "CertificateArn": { "Ref": "RouterApiCertificate" } } ],
         "DefaultActions": [ { "Type": "forward", "TargetGroupArn": { "Ref": "RouterApiTargetGroup" } } ],
@@ -2014,6 +2036,7 @@
     },
     "RouterApiCertificate": {
       "Type": "AWS::CertificateManager::Certificate",
+      "Condition": "PublicRouter",
       "DependsOn": "RouterApiTargetGroup",
       "Properties": {
         "DomainName": { "Fn::Join": [ ".", [
@@ -2037,6 +2060,7 @@
     },
     "RouterApiTargetGroup": {
       "Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
+      "Condition": "PublicRouter",
       "DependsOn": "Router",
       "Properties": {
         "HealthCheckIntervalSeconds": "5",
@@ -2079,7 +2103,10 @@
       "DependsOn": "ApiRole",
       "Properties": {
         "GroupDescription": { "Fn::Sub": "${AWS::StackName} internal router" },
-        "SecurityGroupIngress": [ { "CidrIp": { "Ref": "VPCCIDR" }, "IpProtocol": "tcp", "FromPort": "0", "ToPort": "65535" } ],
+        "SecurityGroupIngress": [
+          { "CidrIp": { "Ref": "VPCCIDR" }, "IpProtocol": "tcp", "FromPort": "80", "ToPort": "80" },
+          { "CidrIp": { "Ref": "VPCCIDR" }, "IpProtocol": "tcp", "FromPort": "443", "ToPort": "443" }
+        ],
         "Tags": [ { "Key": "Name", "Value": { "Fn::Sub": "${AWS::StackName}-router-internal" } } ],
         "VpcId": { "Fn::If": [ "BlankExistingVpc", { "Ref": "Vpc" }, { "Ref": "ExistingVpc" } ] }
       }
@@ -2296,6 +2323,7 @@
               "rack.EncryptionKey": { "Ref": "EncryptionKey" },
               "rack.Fargate": { "Fn::FindInMap": [ "RegionConfig", { "Ref": "AWS::Region" }, "Fargate" ] },
               "rack.Internal": { "Ref": "Internal" },
+              "rack.InternalOnly": { "Ref": "InternalOnly" },
               "rack.LogBucket": { "Fn::If": [ "BlankLogBucket", { "Ref": "Logs" }, { "Ref": "LogBucket" } ] },
               "rack.NotificationTopic": { "Ref": "NotificationTopic" },
               "rack.OnDemandMinCount": { "Ref": "OnDemandMinCount" },
@@ -2372,6 +2400,7 @@
               "rack.EncryptionKey": { "Ref": "EncryptionKey" },
               "rack.Fargate": { "Fn::FindInMap": [ "RegionConfig", { "Ref": "AWS::Region" }, "Fargate" ] },
               "rack.Internal": { "Ref": "Internal" },
+              "rack.InternalOnly": { "Ref": "InternalOnly" },
               "rack.LogBucket": { "Fn::If": [ "BlankLogBucket", { "Ref": "Logs" }, { "Ref": "LogBucket" } ] },
               "rack.NotificationTopic": { "Ref": "NotificationTopic" },
               "rack.OnDemandMinCount": { "Ref": "OnDemandMinCount" },
@@ -2447,6 +2476,7 @@
               "rack.EncryptionKey": { "Ref": "EncryptionKey" },
               "rack.Fargate": { "Fn::FindInMap": [ "RegionConfig", { "Ref": "AWS::Region" }, "Fargate" ] },
               "rack.Internal": { "Ref": "Internal" },
+              "rack.InternalOnly": { "Ref": "InternalOnly" },
               "rack.LogBucket": { "Fn::If": [ "BlankLogBucket", { "Ref": "Logs" }, { "Ref": "LogBucket" } ] },
               "rack.NotificationTopic": { "Ref": "NotificationTopic" },
               "rack.OnDemandMinCount": { "Ref": "OnDemandMinCount" },
