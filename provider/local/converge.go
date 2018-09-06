@@ -437,7 +437,7 @@ func (p *Provider) serviceContainers(services manifest.Services, app, release st
 			c := container{
 				Hostname: hostname,
 				Name:     fmt.Sprintf("%s.%s.service.%s.%d", p.Rack, app, s.Name, i),
-				Image:    fmt.Sprintf("%s/%s/%s:%s", p.Rack, app, s.Name, r.Build),
+				Image:    fmt.Sprintf("%s/%s:%s.%s", p.Rack, app, s.Name, r.Build),
 				Command:  cmd,
 				Env:      e,
 				Cpu:      s.Scale.Cpu,

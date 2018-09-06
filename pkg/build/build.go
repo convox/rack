@@ -273,7 +273,7 @@ func (bb *Build) buildGeneration2(dir string) error {
 
 	for _, s := range m.Services {
 		hash := s.BuildHash(bb.Id)
-		to := fmt.Sprintf("%s/%s:%s", prefix, s.Name, bb.Id)
+		to := fmt.Sprintf("%s:%s.%s", prefix, s.Name, bb.Id)
 
 		if s.Image != "" {
 			pulls[s.Image] = true
