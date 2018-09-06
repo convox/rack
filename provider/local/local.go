@@ -7,15 +7,19 @@ import (
 	"math/rand"
 	"os"
 	"os/exec"
+	"os/signal"
 	"path/filepath"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/boltdb/bolt"
 	"github.com/convox/logger"
+	"github.com/convox/rack/pkg/metrics"
 	"github.com/convox/rack/pkg/router"
 	"github.com/convox/rack/pkg/structs"
+	"github.com/pkg/errors"
 )
 
 func init() {
@@ -25,6 +29,7 @@ func init() {
 type Provider struct {
 	Combined  bool
 	Container string
+	Id        string
 	Image     string
 	Rack      string
 	Root      string
@@ -32,6 +37,8 @@ type Provider struct {
 	Test      bool
 	Version   string
 	Volume    string
+
+	Metrics *metrics.Metrics
 
 	ctx    context.Context
 	db     *bolt.DB
@@ -42,6 +49,7 @@ type Provider struct {
 func FromEnv() (*Provider, error) {
 	p := &Provider{
 		Combined: os.Getenv("COMBINED") == "true",
+		Id:       os.Getenv("ID"),
 		Image:    coalesce(os.Getenv("IMAGE"), "convox/rack"),
 		Rack:     coalesce(os.Getenv("RACK"), "convox"),
 		Root:     "/var/convox",
@@ -49,6 +57,7 @@ func FromEnv() (*Provider, error) {
 		Test:     os.Getenv("TEST") == "true",
 		Version:  coalesce(os.Getenv("VERSION"), "latest"),
 		Volume:   coalesce(os.Getenv("VOLUME"), "/var/convox"),
+		Metrics:  metrics.New("https://metrics.convox.com/metrics/rack"),
 		logs:     logger.NewWriter("", ioutil.Discard),
 	}
 
@@ -58,6 +67,10 @@ func FromEnv() (*Provider, error) {
 	}
 
 	p.Container = host
+
+	if p.Id == "" {
+		p.Id = p.Container
+	}
 
 	image, err := p.rackImage()
 	if err != nil {
@@ -102,6 +115,16 @@ func (p *Provider) Initialize(opts structs.ProviderOptions) error {
 			return err
 		}
 	}
+
+	terminate := make(chan os.Signal, 1)
+	signal.Notify(terminate, syscall.SIGINT, syscall.SIGTERM)
+
+	go func() {
+		<-terminate
+		if err := p.shutdown(); err != nil {
+			p.logs.Error(errors.WithStack(err))
+		}
+	}()
 
 	if p.Combined {
 		go p.Workers()
