@@ -217,7 +217,6 @@ var reAppLog = regexp.MustCompile(`^(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2}:\d{2}) ([^/
 
 func streamLogs(p structs.Provider, m *manifest.Manifest, app string, services map[string]bool) {
 	for {
-		fmt.Printf("app logs: %s", app)
 		logs, err := p.AppLogs(app, structs.LogsOptions{Prefix: options.Bool(true), Since: options.Duration(1 * time.Second)})
 		if err == nil {
 			writeLogs(m, logs, services)
