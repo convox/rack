@@ -157,12 +157,7 @@ func (s *Start) Start2(p structs.Provider, opts Options) error {
 		}
 	}
 
-	logs, err := p.AppLogs(app, structs.LogsOptions{Prefix: options.Bool(true)})
-	if err != nil {
-		return err
-	}
-
-	go streamLogs(m, logs, services)
+	go streamLogs(p, m, app, services)
 
 	return <-errch
 }
@@ -220,7 +215,19 @@ func healthCheck(p structs.Provider, m *manifest.Manifest, app string, s manifes
 
 var reAppLog = regexp.MustCompile(`^(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2}:\d{2}) ([^/]+)/([^/]+)/([^ ]+) (.*)$`)
 
-func streamLogs(m *manifest.Manifest, r io.Reader, services map[string]bool) {
+func streamLogs(p structs.Provider, m *manifest.Manifest, app string, services map[string]bool) {
+	for {
+		fmt.Printf("app logs: %s", app)
+		logs, err := p.AppLogs(app, structs.LogsOptions{Prefix: options.Bool(true), Since: options.Duration(1 * time.Second)})
+		if err == nil {
+			writeLogs(m, logs, services)
+		}
+
+		time.Sleep(1 * time.Second)
+	}
+}
+
+func writeLogs(m *manifest.Manifest, r io.Reader, services map[string]bool) {
 	ls := bufio.NewScanner(r)
 
 	for ls.Scan() {
