@@ -9,7 +9,8 @@ if [[ "$(aws iam list-account-aliases | jq -r '.AccountAliases[0]')" != "convox-
   exit 1
 fi
 
-for region in $(cat $base/REGIONS); do
+# for region in $(cat $base/REGIONS); do
+for region in eu-west-1 us-east-1 us-west-2; do
   echo "region: $region"
 
   for stack in $(aws cloudformation describe-stacks --region $region | jq -r '.Stacks[].StackName'); do
