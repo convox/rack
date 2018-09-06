@@ -251,7 +251,11 @@
         "NotificationARNs": [ "{{ $.Topic }}" ],
         "Parameters": {
           {{ if not .Domain }}
-            "Certificate": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:RouterCertificate" } },
+            {{ if .Internal }}
+              "Certificate": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:RouterInternalCertificate" } },
+            {{ else }}
+              "Certificate": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:RouterCertificate" } },
+            {{ end }}
           {{ else if $existing := certificate $.Certificates .Domains }}
             "Certificate": "{{$existing}}",
           {{ else }}
