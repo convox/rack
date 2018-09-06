@@ -42,23 +42,23 @@ func TestBuildGeneration2(t *testing.T) {
 			fmt.Fprintf(args.Get(0).(io.Writer), "build1\nbuild2\n")
 		})
 		e.On("Execute", "docker", "pull", "httpd").Return([]byte("pulling\n"), nil)
-		e.On("Run", mock.Anything, "docker", "tag", "httpd", "rack1/app1/web:build1").Return(nil).Run(func(args mock.Arguments) {
+		e.On("Run", mock.Anything, "docker", "tag", "httpd", "rack1/app1:web.build1").Return(nil).Run(func(args mock.Arguments) {
 			fmt.Fprintf(args.Get(0).(io.Writer), "tagging\n")
 		})
-		e.On("Execute", "docker", "inspect", "rack1/app1/web:build1", "--format", "{{json .Config.Cmd}}").Return([]byte(`["command1"]`), nil)
-		e.On("Execute", "docker", "inspect", "rack1/app1/web:build1", "--format", "{{json .Config.Entrypoint}}").Return([]byte(`["entrypoint1"]`), nil)
+		e.On("Execute", "docker", "inspect", "rack1/app1:web.build1", "--format", "{{json .Config.Cmd}}").Return([]byte(`["command1"]`), nil)
+		e.On("Execute", "docker", "inspect", "rack1/app1:web.build1", "--format", "{{json .Config.Entrypoint}}").Return([]byte(`["entrypoint1"]`), nil)
 		e.On("Execute", "cp", "/go/bin/convox-env", mock.AnythingOfType("string")).Return([]byte("copying\n"), nil)
-		e.On("Execute", "docker", "build", "-t", "rack1/app1/web:build1", mock.AnythingOfType("string")).Return([]byte("building convox-env\n"), nil)
-		e.On("Run", mock.Anything, "docker", "tag", "049f26f1b03bfca2e3af367d481a7bf1a94564ba", "rack1/app1/web2:build1").Return(nil).Run(func(args mock.Arguments) {
+		e.On("Execute", "docker", "build", "-t", "rack1/app1:web.build1", mock.AnythingOfType("string")).Return([]byte("building convox-env\n"), nil)
+		e.On("Run", mock.Anything, "docker", "tag", "049f26f1b03bfca2e3af367d481a7bf1a94564ba", "rack1/app1:web2.build1").Return(nil).Run(func(args mock.Arguments) {
 			fmt.Fprintf(args.Get(0).(io.Writer), "tagging\n")
 		})
-		e.On("Execute", "docker", "inspect", "rack1/app1/web2:build1", "--format", "{{json .Config.Cmd}}").Return([]byte(`["command2"]`), nil)
-		e.On("Execute", "docker", "inspect", "rack1/app1/web2:build1", "--format", "{{json .Config.Entrypoint}}").Return([]byte(`["entrypoint2"]`), nil)
-		e.On("Execute", "docker", "build", "-t", "rack1/app1/web2:build1", mock.AnythingOfType("string")).Return([]byte("building convox-env\n"), nil)
-		e.On("Run", mock.Anything, "docker", "tag", "rack1/app1/web2:build1", "push1:web2.build1").Return(nil).Run(func(args mock.Arguments) {
+		e.On("Execute", "docker", "inspect", "rack1/app1:web2.build1", "--format", "{{json .Config.Cmd}}").Return([]byte(`["command2"]`), nil)
+		e.On("Execute", "docker", "inspect", "rack1/app1:web2.build1", "--format", "{{json .Config.Entrypoint}}").Return([]byte(`["entrypoint2"]`), nil)
+		e.On("Execute", "docker", "build", "-t", "rack1/app1:web2.build1", mock.AnythingOfType("string")).Return([]byte("building convox-env\n"), nil)
+		e.On("Run", mock.Anything, "docker", "tag", "rack1/app1:web2.build1", "push1:web2.build1").Return(nil).Run(func(args mock.Arguments) {
 			fmt.Fprintf(args.Get(0).(io.Writer), "tagging\n")
 		})
-		e.On("Run", mock.Anything, "docker", "tag", "rack1/app1/web:build1", "push1:web.build1").Return(nil).Run(func(args mock.Arguments) {
+		e.On("Run", mock.Anything, "docker", "tag", "rack1/app1:web.build1", "push1:web.build1").Return(nil).Run(func(args mock.Arguments) {
 			fmt.Fprintf(args.Get(0).(io.Writer), "tagging\n")
 		})
 		e.On("Execute", "docker", "push", "push1:web.build1").Return([]byte("pushing\n"), nil)
@@ -176,10 +176,10 @@ func TestBuildGeneration2Options(t *testing.T) {
 			fmt.Fprintf(args.Get(0).(io.Writer), "build1\nbuild2\n")
 		})
 		e.On("Execute", "docker", "pull", "httpd").Return([]byte("pulling\n"), nil)
-		e.On("Run", mock.Anything, "docker", "tag", "63b602b07e75429dbf1ab14132f20c9e5a649f2f", "rack1/app1/web:build1").Return(nil).Run(func(args mock.Arguments) {
+		e.On("Run", mock.Anything, "docker", "tag", "63b602b07e75429dbf1ab14132f20c9e5a649f2f", "rack1/app1:web.build1").Return(nil).Run(func(args mock.Arguments) {
 			fmt.Fprintf(args.Get(0).(io.Writer), "tagging\n")
 		})
-		e.On("Run", mock.Anything, "docker", "tag", "rack1/app1/web:build1", "push1:web.build1").Return(nil).Run(func(args mock.Arguments) {
+		e.On("Run", mock.Anything, "docker", "tag", "rack1/app1:web.build1", "push1:web.build1").Return(nil).Run(func(args mock.Arguments) {
 			fmt.Fprintf(args.Get(0).(io.Writer), "tagging\n")
 		})
 		e.On("Execute", "docker", "push", "push1:web.build1").Return([]byte("pushing\n"), nil)
