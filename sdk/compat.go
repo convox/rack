@@ -175,6 +175,7 @@ func (c *Client) FormationGet(app string) (structs.Services, error) {
 		Balancer string
 		Count    int
 		Cpu      int
+		Hostname string
 		Memory   int
 		Name     string
 		Ports    []int
@@ -200,7 +201,7 @@ func (c *Client) FormationGet(app string) (structs.Services, error) {
 		s := structs.Service{
 			Count:  f.Count,
 			Cpu:    f.Cpu,
-			Domain: f.Balancer,
+			Domain: coalesce(f.Balancer, f.Hostname),
 			Memory: f.Memory,
 			Name:   f.Name,
 			Ports:  []structs.ServicePort{},
