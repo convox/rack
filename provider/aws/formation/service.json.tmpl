@@ -342,7 +342,7 @@
           "GroupDescription": { "Fn::Sub": "${AWS::StackName} service" },
           "SecurityGroupIngress": [
             {{ if .Port.Port }}
-              { "IpProtocol": "tcp", "FromPort": "{{.Port.Port}}", "ToPort": "{{.Port.Port}}", "SourceSecurityGroupId": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:RouterSecurityGroup" } } }
+              { "IpProtocol": "tcp", "FromPort": "{{.Port.Port}}", "ToPort": "{{.Port.Port}}", "SourceSecurityGroupId": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Router{{ if .Internal }}Internal{{ end }}SecurityGroup" } } }
             {{ end }}
           ],
           "Tags": [ { "Key": "Name", "Value": { "Fn::Sub": "${AWS::StackName}-service" } } ],

@@ -52,6 +52,7 @@ type Provider struct {
 	EncryptionKey       string
 	Fargate             bool
 	Internal            bool
+	InternalOnly        bool
 	LogBucket           string
 	NotificationTopic   string
 	OnDemandMinCount    int
@@ -129,6 +130,7 @@ func (p *Provider) loadParams() error {
 	p.EncryptionKey = labels["rack.EncryptionKey"]
 	p.Fargate = labels["rack.Fargate"] == "Yes"
 	p.Internal = labels["rack.Internal"] == "Yes"
+	p.InternalOnly = labels["rack.InternalOnly"] == "Yes"
 	p.LogBucket = labels["rack.LogBucket"]
 	p.NotificationTopic = labels["rack.NotificationTopic"]
 	p.OnDemandMinCount = intParam(labels["rack.OnDemandMinCount"], 2)

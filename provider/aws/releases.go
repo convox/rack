@@ -190,6 +190,10 @@ func (p *Provider) ReleasePromote(app, id string) error {
 		if s.Internal && !p.Internal {
 			return fmt.Errorf("rack does not support internal services")
 		}
+
+		if !s.Internal && p.InternalOnly {
+			return fmt.Errorf("rack only supports internal services")
+		}
 	}
 
 	cs, err := p.CertificateList()
