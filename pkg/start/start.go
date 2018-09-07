@@ -8,7 +8,12 @@ import (
 	"os"
 	"os/signal"
 
+	"github.com/convox/exec"
 	"github.com/convox/rack/pkg/prefix"
+)
+
+var (
+	Exec exec.Interface = &exec.Exec{}
 )
 
 type Interface interface {
@@ -28,6 +33,10 @@ type Options struct {
 }
 
 type Start struct{}
+
+func New() *Start {
+	return &Start{}
+}
 
 func (o Options) Writef(prefix, format string, args ...interface{}) {
 	if o.writer == nil {

@@ -13,7 +13,7 @@ import (
 type HandlerFunc func(sdk.Interface, *stdcli.Context) error
 
 var (
-	Starter      = &start.Start{}
+	Starter      = start.New()
 	WaitDuration = 5 * time.Second
 )
 

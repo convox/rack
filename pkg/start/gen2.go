@@ -14,7 +14,6 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -160,6 +159,8 @@ func (s *Start) Start2(ctx context.Context, opts Options2) error {
 		return err
 	}
 
+	var wg sync.WaitGroup
+
 	for _, s := range m.Services {
 		if !services[s.Name] {
 			continue
@@ -170,9 +171,12 @@ func (s *Start) Start2(ctx context.Context, opts Options2) error {
 		}
 
 		if s.Port.Port > 0 {
-			go opts.healthCheck(ctx, s, errch)
+			wg.Add(1)
+			go opts.healthCheck(ctx, s, errch, &wg)
 		}
 	}
+
+	wg.Wait()
 
 	go opts.streamLogs(ctx, services)
 
@@ -182,8 +186,6 @@ func (s *Start) Start2(ctx context.Context, opts Options2) error {
 	if err != nil {
 		return nil
 	}
-
-	var wg sync.WaitGroup
 
 	wg.Add(len(pss))
 
@@ -203,7 +205,7 @@ func (opts Options2) handleAdds(pid, remote string, adds []changes.Change) error
 	}
 
 	if !filepath.IsAbs(remote) {
-		data, err := exec.Command("docker", "inspect", pid, "--format", "{{.Config.WorkingDir}}").CombinedOutput()
+		data, err := Exec.Execute("docker", "inspect", pid, "--format", "{{.Config.WorkingDir}}")
 		if err != nil {
 			return fmt.Errorf("container inspect %s %s", string(data), err)
 		}
@@ -293,7 +295,7 @@ func (opts Options2) handleRemoves(pid string, removes []changes.Change) error {
 	return opts.Provider.FilesDelete(opts.App, pid, changes.Files(removes))
 }
 
-func (opts Options2) healthCheck(ctx context.Context, s manifest.Service, errch chan error) {
+func (opts Options2) healthCheck(ctx context.Context, s manifest.Service, errch chan error, wg *sync.WaitGroup) {
 	rss, err := opts.Provider.ServiceList(opts.App)
 	if err != nil {
 		errch <- err
@@ -314,6 +316,8 @@ func (opts Options2) healthCheck(ctx context.Context, s manifest.Service, errch 
 	}
 
 	opts.Writef("convox", "starting health check for <service>%s</service> on path <setting>%s</setting> with <setting>%d</setting>s interval, <setting>%d</setting>s grace\n", s.Name, s.Health.Path, s.Health.Interval, s.Health.Grace)
+
+	wg.Done()
 
 	hcu := fmt.Sprintf("https://%s%s", hostname, s.Health.Path)
 
@@ -623,7 +627,7 @@ func buildSources(m *manifest.Manifest, root, service string) ([]buildSource, er
 			if len(parts) > 1 {
 				var ee []string
 
-				data, err := exec.Command("docker", "inspect", parts[1], "--format", "{{json .Config.Env}}").CombinedOutput()
+				data, err := Exec.Execute("docker", "inspect", parts[1], "--format", "{{json .Config.Env}}")
 				if err != nil {
 					return nil, err
 				}
@@ -640,7 +644,7 @@ func buildSources(m *manifest.Manifest, root, service string) ([]buildSource, er
 					}
 				}
 
-				data, err = exec.Command("docker", "inspect", parts[1], "--format", "{{.Config.WorkingDir}}").CombinedOutput()
+				data, err = Exec.Execute("docker", "inspect", parts[1], "--format", "{{.Config.WorkingDir}}")
 				if err != nil {
 					return nil, err
 				}
