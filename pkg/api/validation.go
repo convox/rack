@@ -17,6 +17,22 @@ func (s *Server) AppCancelValidate(c *stdapi.Context) error {
 	return nil
 }
 
+func (s *Server) ProcessExecValidate(c *stdapi.Context) error {
+	if _, err := s.Provider.AppGet(c.Var("app")); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *Server) ProcessRunValidate(c *stdapi.Context) error {
+	if _, err := s.Provider.AppGet(c.Var("app")); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (s *Server) ReleasePromoteValidate(c *stdapi.Context) error {
 	a, err := s.Provider.AppGet(c.Var("app"))
 	if err != nil {
