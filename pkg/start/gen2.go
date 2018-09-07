@@ -642,6 +642,10 @@ func buildSources(m *manifest.Manifest, root, service string) ([]buildSource, er
 					return nil, err
 				}
 
+				if strings.HasPrefix(parts[1], "--from") {
+					continue
+				}
+
 				switch u.Scheme {
 				case "http", "https":
 					// do nothing
