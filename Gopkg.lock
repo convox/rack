@@ -127,14 +127,6 @@
   version = "v1.3.1"
 
 [[projects]]
-  digest = "1:516ee3a1fa7124ae809f64a432c0a78fcb4dc35f0e9bb0ba8760218136462416"
-  name = "github.com/cloudflare/cfssl"
-  packages = ["log"]
-  pruneopts = "NUT"
-  revision = "db0d0650b6496bfe8061ec56a92edd32d8e75c30"
-  version = "1.2.0"
-
-[[projects]]
   branch = "master"
   digest = "1:04874d362220e95f0edeaeb1a29370ebebda09a23148c98b8c629d4fec1c1441"
   name = "github.com/convox/changes"
@@ -176,11 +168,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:8b5b02da8bfb519d8aaac4c3d56cead3e65d4ab1b785f422735a828096957f50"
+  digest = "1:e25a9e8b551ce6ea19dc8d6002f84b47717fc9f76497325f485573c6de70fb49"
   name = "github.com/convox/stdcli"
   packages = ["."]
   pruneopts = "NUT"
-  revision = "dd62994b556dedbaa3de3da2290c0149af3c5fe5"
+  revision = "1aa1b42f7238d36ab9d76fca03ea56a0f7f5abe4"
 
 [[projects]]
   branch = "master"
@@ -207,10 +199,9 @@
   version = "v1.1.0"
 
 [[projects]]
-  digest = "1:2292119ba52109ee542423e6b2a028586f076bde97436db2d34abf9159ece97c"
+  digest = "1:6f49fc567186650298fe82fb6b27e4e7417241bb2831041b694df57b5014c404"
   name = "github.com/docker/docker"
   packages = [
-    "builder/dockerignore",
     "pkg/archive",
     "pkg/fileutils",
     "pkg/idtools",
@@ -646,7 +637,6 @@
     "github.com/aws/aws-sdk-go/service/sqs",
     "github.com/aws/aws-sdk-go/service/sts",
     "github.com/boltdb/bolt",
-    "github.com/cloudflare/cfssl/log",
     "github.com/convox/changes",
     "github.com/convox/exec",
     "github.com/convox/logger",
@@ -654,7 +644,6 @@
     "github.com/convox/stdcli",
     "github.com/convox/stdsdk",
     "github.com/convox/version",
-    "github.com/docker/docker/builder/dockerignore",
     "github.com/docker/go-units",
     "github.com/dustin/go-humanize",
     "github.com/fatih/color",
