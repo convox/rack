@@ -459,6 +459,8 @@ func (p *Provider) releasePromoteGeneration1(a *structs.App, r *structs.Release)
 		return err
 	}
 
+	p.EventSend("release:promote", structs.EventSendOptions{Data: map[string]string{"app": r.App, "id": r.Id}, Status: options.String("start")})
+
 	go p.waitForPromotion(r)
 
 	return nil
