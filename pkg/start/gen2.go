@@ -95,46 +95,6 @@ func (s *Start) Start2(ctx context.Context, opts Options2) error {
 
 	opts.writer = opts.prefixWriter(services)
 
-	// mf := helpers.Coalesce(opts.Manifest, "convox.yml")
-
-	// data, err := ioutil.ReadFile(mf)
-	// if err != nil {
-	//   return err
-	// }
-
-	// app := opts.App
-
-	// if _, err := opts.Provider.AppGet(app); err != nil {
-	//   if _, err := opts.Provider.AppCreate(app, structs.AppCreateOptions{Generation: options.String("2")}); err != nil {
-	//     return err
-	//   }
-	// }
-
-	// env, err := helpers.AppEnvironment(opts.Provider, app)
-	// if err != nil {
-	//   return err
-	// }
-
-	// m, err := manifest.Load(data, env)
-	// if err != nil {
-	//   return err
-	// }
-
-	// services := map[string]bool{}
-
-	// if opts.Services == nil {
-	//   for _, s := range m.Services {
-	//     services[s.Name] = true
-	//   }
-	// } else {
-	//   for _, s := range opts.Services {
-	//     if _, err := m.Service(s); err != nil {
-	//       return err
-	//     }
-	//     services[s] = true
-	//   }
-	// }
-
 	if opts.Build {
 		opts.Writef("build", "uploading source\n")
 
@@ -194,11 +154,6 @@ func (s *Start) Start2(ctx context.Context, opts Options2) error {
 	defer close(errch)
 
 	go opts.handleErrors(ctx, errch)
-
-	// go handleInterrupt(func() {
-
-	//   errch <- nil
-	// })
 
 	wd, err := os.Getwd()
 	if err != nil {
@@ -652,10 +607,6 @@ func buildSources(m *manifest.Manifest, root, service string) ([]buildSource, er
 				default:
 					local := filepath.Join(svc.Build.Path, parts[1])
 					remote := replaceEnv(parts[2], env)
-
-					// if remote == "." || strings.HasSuffix(remote, "/") {
-					//   remote = filepath.Join(remote, filepath.Base(local))
-					// }
 
 					if wd != "" && !filepath.IsAbs(remote) {
 						remote = filepath.Join(wd, remote)
