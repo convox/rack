@@ -321,7 +321,7 @@ func (p *Provider) argsFromOpts(app, service string, opts processStartOptions) (
 	if opts.Image != "" {
 		image = opts.Image
 	} else {
-		image = fmt.Sprintf("%s/%s/%s:%s", p.Rack, app, service, r.Build)
+		image = fmt.Sprintf("%s/%s:%s.%s", p.Rack, app, service, r.Build)
 	}
 
 	// FIXME try letting docker daemon pass through dns
