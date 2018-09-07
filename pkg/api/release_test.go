@@ -113,6 +113,7 @@ func TestReleaseListError(t *testing.T) {
 
 func TestReleasePromote(t *testing.T) {
 	testServer(t, func(c *stdsdk.Client, p *structs.MockProvider) {
+		p.On("AppGet", "app1").Return(&structs.App{Status: "running"}, nil)
 		p.On("ReleasePromote", "app1", "release1").Return(nil)
 		err := c.Post("/apps/app1/releases/release1/promote", stdsdk.RequestOptions{}, nil)
 		require.NoError(t, err)
@@ -121,8 +122,18 @@ func TestReleasePromote(t *testing.T) {
 
 func TestReleasePromoteError(t *testing.T) {
 	testServer(t, func(c *stdsdk.Client, p *structs.MockProvider) {
+		p.On("AppGet", "app1").Return(&structs.App{Status: "running"}, nil)
 		p.On("ReleasePromote", "app1", "release1").Return(fmt.Errorf("err1"))
 		err := c.Post("/apps/app1/releases/release1/promote", stdsdk.RequestOptions{}, nil)
 		require.EqualError(t, err, "err1")
+	})
+}
+
+func TestReleasePromoteNotRunning(t *testing.T) {
+	testServer(t, func(c *stdsdk.Client, p *structs.MockProvider) {
+		p.On("AppGet", "app1").Return(&structs.App{Status: "other"}, nil)
+		p.On("ReleasePromote", "app1", "release1").Return(nil)
+		err := c.Post("/apps/app1/releases/release1/promote", stdsdk.RequestOptions{}, nil)
+		require.Error(t, err, "app is currently updating")
 	})
 }
