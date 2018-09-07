@@ -297,8 +297,6 @@ func (bb *Build) buildGeneration2(dir string) error {
 	}
 
 	for image := range pulls {
-		bb.Printf("Pulling: %s\n", image)
-
 		if err := bb.pull(image); err != nil {
 			return err
 		}
@@ -320,10 +318,8 @@ func (bb *Build) buildGeneration2(dir string) error {
 				return err
 			}
 
-			if !bb.Development {
-				if err := bb.injectConvoxEnv(to); err != nil {
-					return err
-				}
+			if err := bb.injectConvoxEnv(to); err != nil {
+				return err
 			}
 		}
 	}
@@ -342,8 +338,6 @@ func (bb *Build) buildGeneration2(dir string) error {
 		if err := bb.tag(from, to); err != nil {
 			return err
 		}
-
-		bb.Printf("Pushing: %s\n", to)
 
 		if err := bb.push(to); err != nil {
 			return err
