@@ -6,10 +6,12 @@ import (
 	"bytes"
 	"compress/gzip"
 	"crypto/tls"
+	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -23,6 +25,7 @@ import (
 	"github.com/convox/rack/pkg/manifest"
 	"github.com/convox/rack/pkg/options"
 	"github.com/convox/rack/pkg/structs"
+	"github.com/moby/moby/builder/dockerignore"
 )
 
 func (s *Start) Start2(p structs.Provider, opts Options) error {
@@ -162,6 +165,200 @@ func (s *Start) Start2(p structs.Provider, opts Options) error {
 	return <-errch
 }
 
+func buildDockerfile(m *manifest.Manifest, root, service string) ([]byte, error) {
+	s, err := m.Service(service)
+	if err != nil {
+		return nil, err
+	}
+
+	if s.Image != "" {
+		return nil, nil
+	}
+
+	path, err := filepath.Abs(filepath.Join(root, s.Build.Path, s.Build.Manifest))
+	if err != nil {
+		return nil, err
+	}
+
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		return nil, fmt.Errorf("no such file: %s", filepath.Join(s.Build.Path, s.Build.Manifest))
+	}
+
+	return ioutil.ReadFile(path)
+}
+
+func buildIgnores(root, service string) ([]string, error) {
+	fd, err := os.Open(filepath.Join(root, ".dockerignroe"))
+	if os.IsNotExist(err) {
+		return []string{}, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	return dockerignore.ReadAll(fd)
+}
+
+type buildSource struct {
+	Local  string
+	Remote string
+}
+
+func buildSources(m *manifest.Manifest, root, service string) ([]buildSource, error) {
+	data, err := buildDockerfile(m, root, service)
+	if err != nil {
+		return nil, err
+	}
+	if data == nil {
+		return []buildSource{}, nil
+	}
+
+	svc, err := m.Service(service)
+	if err != nil {
+		return nil, err
+	}
+
+	bs := []buildSource{}
+	env := map[string]string{}
+	wd := ""
+
+	s := bufio.NewScanner(bytes.NewReader(data))
+
+	for s.Scan() {
+		parts := strings.Fields(s.Text())
+
+		if len(parts) < 1 {
+			continue
+		}
+
+		switch strings.ToUpper(parts[0]) {
+		case "ADD", "COPY":
+			if len(parts) > 2 {
+				u, err := url.Parse(parts[1])
+				if err != nil {
+					return nil, err
+				}
+
+				switch u.Scheme {
+				case "http", "https":
+					// do nothing
+				default:
+					if strings.HasPrefix(parts[1], "--from") {
+						continue
+					}
+
+					local := filepath.Join(svc.Build.Path, parts[1])
+					remote := replaceEnv(parts[2], env)
+
+					// if remote == "." || strings.HasSuffix(remote, "/") {
+					//   remote = filepath.Join(remote, filepath.Base(local))
+					// }
+
+					if wd != "" && !filepath.IsAbs(remote) {
+						remote = filepath.Join(wd, remote)
+					}
+
+					bs = append(bs, buildSource{Local: local, Remote: remote})
+				}
+			}
+		case "ENV":
+			if len(parts) > 2 {
+				env[parts[1]] = parts[2]
+			}
+		case "FROM":
+			if len(parts) > 1 {
+				var ee []string
+
+				data, err := exec.Command("docker", "inspect", parts[1], "--format", "{{json .Config.Env}}").CombinedOutput()
+				if err != nil {
+					return nil, err
+				}
+
+				if err := json.Unmarshal(data, &ee); err != nil {
+					return nil, err
+				}
+
+				for _, e := range ee {
+					parts := strings.SplitN(e, "=", 2)
+
+					if len(parts) == 2 {
+						env[parts[0]] = parts[1]
+					}
+				}
+
+				data, err = exec.Command("docker", "inspect", parts[1], "--format", "{{.Config.WorkingDir}}").CombinedOutput()
+				if err != nil {
+					return nil, err
+				}
+
+				wd = strings.TrimSpace(string(data))
+			}
+		case "WORKDIR":
+			if len(parts) > 1 {
+				wd = replaceEnv(parts[1], env)
+			}
+		}
+	}
+
+	for i := range bs {
+		abs, err := filepath.Abs(bs[i].Local)
+		if err != nil {
+			return nil, err
+		}
+
+		stat, err := os.Stat(abs)
+		if err != nil {
+			return nil, err
+		}
+
+		if stat.IsDir() && !strings.HasSuffix(abs, "/") {
+			abs = abs + "/"
+		}
+
+		bs[i].Local = abs
+
+		if bs[i].Remote == "." {
+			bs[i].Remote = wd
+		}
+	}
+
+	bss := []buildSource{}
+
+	for i := range bs {
+		contained := false
+
+		for j := i + 1; j < len(bs); j++ {
+			if strings.HasPrefix(bs[i].Local, bs[j].Local) {
+				if bs[i].Remote == bs[j].Remote {
+					contained = true
+					break
+				}
+
+				rl, err := filepath.Rel(bs[j].Local, bs[i].Local)
+				if err != nil {
+					return nil, err
+				}
+
+				rr, err := filepath.Rel(bs[j].Remote, bs[i].Remote)
+				if err != nil {
+					return nil, err
+				}
+
+				if rl == rr {
+					contained = true
+					break
+				}
+			}
+		}
+
+		if !contained {
+			bss = append(bss, bs[i])
+		}
+	}
+
+	return bss, nil
+}
+
 func healthCheck(p structs.Provider, m *manifest.Manifest, app string, s manifest.Service, errch chan error) {
 	rss, err := p.ServiceList(app)
 	if err != nil {
@@ -211,6 +408,15 @@ func healthCheck(p structs.Provider, m *manifest.Manifest, app string, s manifes
 
 		m.Writef("convox", "health check <service>%s</service>: <ok>%d</ok>\n", s.Name, res.StatusCode)
 	}
+}
+
+func replaceEnv(s string, env map[string]string) string {
+	for k, v := range env {
+		s = strings.Replace(s, fmt.Sprintf("${%s}", k), v, -1)
+		s = strings.Replace(s, fmt.Sprintf("$%s", k), v, -1)
+	}
+
+	return s
 }
 
 var reAppLog = regexp.MustCompile(`^(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2}:\d{2}) ([^/]+)/([^/]+)/([^ ]+) (.*)$`)
@@ -267,13 +473,13 @@ func waitForBuild(p structs.Provider, app, id string) error {
 }
 
 func watchChanges(p structs.Provider, m *manifest.Manifest, app, service, root string, ch chan error) {
-	bss, err := m.BuildSources(root, service)
+	bss, err := buildSources(m, root, service)
 	if err != nil {
 		ch <- err
 		return
 	}
 
-	ignores, err := m.BuildIgnores(root, service)
+	ignores, err := buildIgnores(root, service)
 	if err != nil {
 		ch <- err
 		return
@@ -284,7 +490,7 @@ func watchChanges(p structs.Provider, m *manifest.Manifest, app, service, root s
 	}
 }
 
-func watchPath(p structs.Provider, m *manifest.Manifest, app, service, root string, bs manifest.BuildSource, ignores []string, ch chan error) {
+func watchPath(p structs.Provider, m *manifest.Manifest, app, service, root string, bs buildSource, ignores []string, ch chan error) {
 	cch := make(chan changes.Change, 1)
 
 	w := m.Writer("convox", os.Stdout)

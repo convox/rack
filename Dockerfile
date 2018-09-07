@@ -33,18 +33,18 @@ RUN curl -s https://download.docker.com/linux/static/stable/x86_64/docker-18.03.
 
 ENV DEVELOPMENT=false
 ENV GOPATH=/go
-ENV PATH=$PATH:/app/bin
+ENV PATH=$PATH:/go/bin
 
 WORKDIR /app
 
 # binaries
-COPY --from=development /go/bin/build bin/
-COPY --from=development /go/bin/convox-env bin/
-COPY --from=development /go/bin/monitor bin/
-COPY --from=development /go/bin/rack bin/
+COPY --from=development /go/bin/build /go/bin/
+COPY --from=development /go/bin/convox-env /go/bin/
+COPY --from=development /go/bin/monitor /go/bin/
+COPY --from=development /go/bin/rack /go/bin/
 
 # aws templates
 COPY --from=development /go/src/github.com/convox/rack/provider/aws/formation/ provider/aws/formation/
 COPY --from=development /go/src/github.com/convox/rack/provider/aws/templates/ provider/aws/templates/
 
-CMD ["/app/bin/rack"]
+CMD ["/go/bin/rack"]
