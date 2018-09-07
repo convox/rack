@@ -69,7 +69,7 @@ func FromEnv() (*Provider, error) {
 	p.Container = host
 
 	if p.Id == "" {
-		p.Id = p.Container
+		p.Id, _ = dockerSystemId()
 	}
 
 	image, err := p.rackImage()
@@ -216,6 +216,21 @@ func (p *Provider) routerRegister() error {
 	}
 
 	return p.router.RackCreate(p.Rack, fmt.Sprintf("tls://127.0.0.1:%s", strings.TrimSpace(string(port))))
+}
+
+func dockerSystemId() (string, error) {
+	data, err := exec.Command("docker", "system", "info").CombinedOutput()
+	if err != nil {
+		return "", err
+	}
+
+	for _, line := range strings.Split(string(data), "\n") {
+		if strings.HasPrefix(line, "ID: ") {
+			return strings.ToLower(strings.TrimPrefix(line, "ID :")), nil
+		}
+	}
+
+	return "", fmt.Errorf("could not find docker system id")
 }
 
 func systemVolume(volume string) bool {

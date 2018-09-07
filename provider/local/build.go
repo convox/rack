@@ -52,6 +52,7 @@ func (p *Provider) BuildCreate(app, url string, opts structs.BuildCreateOptions)
 	if !p.Test {
 		pid, err := p.processRun(app, "build", processStartOptions{
 			Command: fmt.Sprintf("build -method tgz -cache %t", cache),
+			Cpu:     1024,
 			Environment: map[string]string{
 				"BUILD_APP":        app,
 				"BUILD_AUTH":       string(auth),

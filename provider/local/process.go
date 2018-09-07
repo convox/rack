@@ -63,7 +63,7 @@ func (p *Provider) ProcessGet(app, pid string) (*structs.Process, error) {
 }
 
 func (p *Provider) ProcessList(app string, opts structs.ProcessListOptions) (structs.Processes, error) {
-	log := p.logger("ProcessGet").Append("app=%q", app)
+	log := p.logger("ProcessList").Append("app=%q", app)
 
 	if _, err := p.AppGet(app); err != nil {
 		return nil, log.Error(err)
@@ -222,6 +222,7 @@ func (p *Provider) ProcessWait(app, pid string) (int, error) {
 
 type processStartOptions struct {
 	Command     string
+	Cpu         int
 	Environment map[string]string
 	Image       string
 	Links       []string
@@ -320,7 +321,7 @@ func (p *Provider) argsFromOpts(app, service string, opts processStartOptions) (
 	if opts.Image != "" {
 		image = opts.Image
 	} else {
-		image = fmt.Sprintf("%s/%s/%s:%s", p.Rack, app, service, r.Build)
+		image = fmt.Sprintf("%s/%s:%s.%s", p.Rack, app, service, r.Build)
 	}
 
 	// FIXME try letting docker daemon pass through dns
@@ -328,6 +329,10 @@ func (p *Provider) argsFromOpts(app, service string, opts processStartOptions) (
 	// if p.Router != "" {
 	//   args = append(args, "--dns", p.Router)
 	// }
+
+	if opts.Cpu != 0 {
+		args = append(args, "--cpu-shares", fmt.Sprintf("%d", opts.Cpu))
+	}
 
 	for k, v := range opts.Environment {
 		args = append(args, "-e", fmt.Sprintf("%s=%s", k, v))

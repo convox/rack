@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/convox/rack/pkg/helpers"
+	docker "github.com/fsouza/go-dockerclient"
 )
 
 func (p *Provider) Workers() error {
@@ -12,7 +13,8 @@ func (p *Provider) Workers() error {
 		return nil
 	}
 
-	go helpers.Tick(10*time.Second, p.workerConverge)
+	go p.workerEvents()
+	// go helpers.Tick(10*time.Second, p.workerConverge)
 	go helpers.Tick(1*time.Hour, p.workerHeartbeat)
 
 	return nil
@@ -45,6 +47,47 @@ func (p *Provider) workerConverge() {
 			continue
 		}
 	}
+}
+
+func (p *Provider) workerEvents() error {
+	dc, err := docker.NewClient("unix:///var/run/docker.sock")
+	if err != nil {
+		return err
+	}
+
+	ch := make(chan *docker.APIEvents)
+
+	if err := dc.AddEventListener(ch); err != nil {
+		return err
+	}
+
+	for event := range ch {
+		attrs := event.Actor.Attributes
+
+		if attrs["convox.rack"] != p.Rack {
+			continue
+		}
+
+		app, ok := attrs["convox.app"]
+		if !ok {
+			continue
+		}
+
+		switch attrs["convox.type"] {
+		case "resource", "service":
+		default:
+			continue
+		}
+
+		switch event.Action {
+		case "start", "die":
+			p.route(app)
+		case "stop":
+			p.converge(app)
+		}
+	}
+
+	return nil
 }
 
 func (p *Provider) workerHeartbeat() {
