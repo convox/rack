@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/convox/exec"
 	"github.com/convox/rack/pkg/options"
 	"github.com/convox/rack/pkg/start"
 	"github.com/convox/rack/pkg/structs"
@@ -30,12 +31,18 @@ func TestStart2(t *testing.T) {
 	p.On("ProcessStop", "app1", "process1").Return(nil)
 	p.On("ProcessStop", "app1", "process2").Return(nil)
 
+	e := &exec.MockInterface{}
+	start.Exec = e
+
+	e.On("Execute", "docker", "inspect", "httpd", "--format", "{{json .Config.Env}}").Return([]byte(`["FOO=bar","BAZ=qux"]`), nil)
+	e.On("Execute", "docker", "inspect", "httpd", "--format", "{{.Config.WorkingDir}}").Return([]byte(`/app/foo`), nil)
+
 	cwd, err := os.Getwd()
 	require.NoError(t, err)
 	os.Chdir("testdata/httpd")
 	defer os.Chdir(cwd)
 
-	s := &start.Start{}
+	s := start.New()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
@@ -52,9 +59,9 @@ func TestStart2(t *testing.T) {
 
 	require.Equal(t,
 		[]string{
+			"<system>convox</system> | starting health check for <service>web</service> on path <setting>/</setting> with <setting>5</setting>s interval, <setting>5</setting>s grace",
 			"<color3>web   </color3> | log1",
 			"<color3>web   </color3> | log2",
-			"<system>convox</system> | starting health check for <service>web</service> on path <setting>/</setting> with <setting>5</setting>s interval, <setting>5</setting>s grace",
 			"<system>convox</system> | stopping process1",
 			"<system>convox</system> | stopping process2",
 		},
@@ -82,12 +89,18 @@ func TestStart2Options(t *testing.T) {
 	p.On("ProcessStop", "app1", "process1").Return(nil)
 	p.On("ProcessStop", "app1", "process2").Return(nil)
 
+	e := &exec.MockInterface{}
+	start.Exec = e
+
+	e.On("Execute", "docker", "inspect", "httpd", "--format", "{{json .Config.Env}}").Return([]byte(`["FOO=bar","BAZ=qux"]`), nil)
+	e.On("Execute", "docker", "inspect", "httpd", "--format", "{{.Config.WorkingDir}}").Return([]byte(`/app/foo`), nil)
+
 	cwd, err := os.Getwd()
 	require.NoError(t, err)
 	os.Chdir("testdata/httpd")
 	defer os.Chdir(cwd)
 
-	s := &start.Start{}
+	s := start.New()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
@@ -112,9 +125,9 @@ func TestStart2Options(t *testing.T) {
 			"<system>build </system> | starting build",
 			"<system>build </system> | build1",
 			"<system>build </system> | build2",
+			"<system>convox</system> | starting health check for <service>web</service> on path <setting>/</setting> with <setting>5</setting>s interval, <setting>5</setting>s grace",
 			"<color3>web   </color3> | log1",
 			"<color3>web   </color3> | log2",
-			"<system>convox</system> | starting health check for <service>web</service> on path <setting>/</setting> with <setting>5</setting>s interval, <setting>5</setting>s grace",
 			"<system>convox</system> | stopping process1",
 			"<system>convox</system> | stopping process2",
 		},
