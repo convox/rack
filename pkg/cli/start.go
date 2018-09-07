@@ -1,7 +1,10 @@
 package cli
 
 import (
+	"context"
 	"fmt"
+	"os"
+	"os/signal"
 	"path/filepath"
 	"strings"
 
@@ -28,11 +31,11 @@ func init() {
 }
 
 func Start(rack sdk.Interface, c *stdcli.Context) error {
-	opts := start.Options{}
+	ctx, cancel := context.WithCancel(context.Background())
 
-	if len(c.Args) > 0 {
-		opts.Services = c.Args
-	}
+	go handleInterrupt(cancel)
+
+	opts := start.Options{Output: c}
 
 	opts.App = app(c)
 	opts.Build = !c.Bool("no-build")
@@ -43,20 +46,22 @@ func Start(rack sdk.Interface, c *stdcli.Context) error {
 		opts.Manifest = v
 	}
 
-	if v := c.Int("shift"); v > 0 {
-		opts.Shift = v
-	}
-
 	if c.String("generation") == "1" || c.LocalSetting("generation") == "1" || filepath.Base(opts.Manifest) == "docker-compose.yml" {
+		opts1 := start.Options1{Options: opts}
+
 		if len(c.Args) >= 1 {
-			opts.Services = []string{c.Arg(0)}
+			opts1.Service = c.Arg(0)
 		}
 
 		if len(c.Args) > 1 {
-			opts.Command = c.Args[1:]
+			opts1.Command = c.Args[1:]
 		}
 
-		return Starter.Start1(opts)
+		if v := c.Int("shift"); v > 0 {
+			opts1.Shift = v
+		}
+
+		return Starter.Start1(opts1)
 	}
 
 	if !localRackRunning(c) {
@@ -96,5 +101,19 @@ func Start(rack sdk.Interface, c *stdcli.Context) error {
 		return fmt.Errorf("could not find local rack")
 	}
 
-	return Starter.Start2(p, opts)
+	opts2 := start.Options2{Options: opts, Provider: p}
+
+	if len(c.Args) > 0 {
+		opts2.Services = c.Args
+	}
+
+	return Starter.Start2(ctx, opts2)
+}
+
+func handleInterrupt(cancel context.CancelFunc) {
+	ch := make(chan os.Signal, 1)
+	signal.Notify(ch, os.Interrupt, os.Kill)
+	<-ch
+	fmt.Println("")
+	cancel()
 }
