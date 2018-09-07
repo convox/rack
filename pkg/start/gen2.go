@@ -5,6 +5,7 @@ import (
 	"bufio"
 	"bytes"
 	"compress/gzip"
+	"context"
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
@@ -28,23 +29,49 @@ import (
 	"github.com/moby/moby/builder/dockerignore"
 )
 
-func (s *Start) Start2(p structs.Provider, opts Options) error {
-	mf := helpers.Coalesce(opts.Manifest, "convox.yml")
+var (
+	reAppLog = regexp.MustCompile(`^(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2}:\d{2}) ([^/]+)/([^/]+)/([^ ]+) (.*)$`)
+)
 
-	data, err := ioutil.ReadFile(mf)
+type Options2 struct {
+	Options
+	Provider structs.Provider
+	Services []string
+}
+
+type buildSource struct {
+	Local  string
+	Remote string
+}
+
+func (s *Start) Start2(ctx context.Context, opts Options2) error {
+	select {
+	case <-ctx.Done():
+		return nil
+	default:
+	}
+
+	if opts.App == "" {
+		return fmt.Errorf("app required")
+	}
+
+	a, err := opts.Provider.AppGet(opts.App)
+	if err != nil {
+		if _, err := opts.Provider.AppCreate(opts.App, structs.AppCreateOptions{Generation: options.String("2")}); err != nil {
+			return err
+		}
+	} else {
+		if a.Generation != "2" {
+			return fmt.Errorf("invalid generation: %s", a.Generation)
+		}
+	}
+
+	data, err := ioutil.ReadFile(helpers.Coalesce(opts.Manifest, "convox.yml"))
 	if err != nil {
 		return err
 	}
 
-	app := opts.App
-
-	if _, err := p.AppGet(app); err != nil {
-		if _, err := p.AppCreate(app, structs.AppCreateOptions{Generation: options.String("2")}); err != nil {
-			return err
-		}
-	}
-
-	env, err := helpers.AppEnvironment(p, app)
+	env, err := helpers.AppEnvironment(opts.Provider, opts.App)
 	if err != nil {
 		return err
 	}
@@ -62,84 +89,116 @@ func (s *Start) Start2(p structs.Provider, opts Options) error {
 		}
 	} else {
 		for _, s := range opts.Services {
-			if _, err := m.Service(s); err != nil {
-				return err
-			}
 			services[s] = true
 		}
 	}
 
+	opts.writer = opts.prefixWriter(services)
+
+	// mf := helpers.Coalesce(opts.Manifest, "convox.yml")
+
+	// data, err := ioutil.ReadFile(mf)
+	// if err != nil {
+	//   return err
+	// }
+
+	// app := opts.App
+
+	// if _, err := opts.Provider.AppGet(app); err != nil {
+	//   if _, err := opts.Provider.AppCreate(app, structs.AppCreateOptions{Generation: options.String("2")}); err != nil {
+	//     return err
+	//   }
+	// }
+
+	// env, err := helpers.AppEnvironment(opts.Provider, app)
+	// if err != nil {
+	//   return err
+	// }
+
+	// m, err := manifest.Load(data, env)
+	// if err != nil {
+	//   return err
+	// }
+
+	// services := map[string]bool{}
+
+	// if opts.Services == nil {
+	//   for _, s := range m.Services {
+	//     services[s.Name] = true
+	//   }
+	// } else {
+	//   for _, s := range opts.Services {
+	//     if _, err := m.Service(s); err != nil {
+	//       return err
+	//     }
+	//     services[s] = true
+	//   }
+	// }
+
 	if opts.Build {
-		m.Writef("build", "uploading source\n")
+		opts.Writef("build", "uploading source\n")
 
 		data, err := helpers.Tarball(".")
 		if err != nil {
 			return err
 		}
 
-		o, err := p.ObjectStore(app, "", bytes.NewReader(data), structs.ObjectStoreOptions{})
+		o, err := opts.Provider.ObjectStore(opts.App, "", bytes.NewReader(data), structs.ObjectStoreOptions{})
 		if err != nil {
 			return err
 		}
 
-		m.Writef("build", "starting build\n")
+		opts.Writef("build", "starting build\n")
 
-		b, err := p.BuildCreate(app, o.Url, structs.BuildCreateOptions{Development: options.Bool(true), Manifest: options.String(mf)})
+		bopts := structs.BuildCreateOptions{Development: options.Bool(true)}
+
+		if opts.Manifest != "" {
+			bopts.Manifest = options.String(opts.Manifest)
+		}
+
+		b, err := opts.Provider.BuildCreate(opts.App, o.Url, bopts)
 		if err != nil {
 			return err
 		}
 
-		logs, err := p.BuildLogs(app, b.Id, structs.LogsOptions{})
+		logs, err := opts.Provider.BuildLogs(opts.App, b.Id, structs.LogsOptions{})
 		if err != nil {
 			return err
 		}
 
-		bo := m.Writer("build", os.Stdout)
+		bo := opts.Writer("build")
 
-		if _, err := io.Copy(bo, logs); err != nil {
+		go io.Copy(bo, logs)
+
+		if err := opts.waitForBuild(ctx, b.Id); err != nil {
 			return err
 		}
 
-		if err := waitForBuild(p, app, b.Id); err != nil {
-			return err
+		select {
+		case <-ctx.Done():
+			return nil
+		default:
 		}
 
-		b, err = p.BuildGet(app, b.Id)
+		b, err = opts.Provider.BuildGet(opts.App, b.Id)
 		if err != nil {
 			return err
 		}
 
-		if err := p.ReleasePromote(app, b.Release); err != nil {
+		if err := opts.Provider.ReleasePromote(opts.App, b.Release); err != nil {
 			return err
 		}
 	}
 
 	errch := make(chan error)
+	defer close(errch)
 
-	go handleInterrupt(func() {
-		pss, err := p.ProcessList(app, structs.ProcessListOptions{})
-		if err != nil {
-			errch <- err
-			return
-		}
+	go opts.handleErrors(ctx, errch)
 
-		var wg sync.WaitGroup
+	// go handleInterrupt(func() {
 
-		wg.Add(len(pss))
-
-		for _, ps := range pss {
-			m.Writef("convox", "stopping %s\n", ps.Id)
-
-			go func(id string) {
-				defer wg.Done()
-				p.ProcessStop(app, id)
-			}(ps.Id)
-		}
-
-		wg.Wait()
-
-		errch <- nil
-	})
+	//   errch <- nil
+	// })
 
 	wd, err := os.Getwd()
 	if err != nil {
@@ -152,17 +211,366 @@ func (s *Start) Start2(p structs.Provider, opts Options) error {
 		}
 
 		if s.Build.Path != "" {
-			go watchChanges(p, m, app, s.Name, wd, errch)
+			go opts.watchChanges(ctx, m, s.Name, wd, errch)
 		}
 
 		if s.Port.Port > 0 {
-			go healthCheck(p, m, app, s, errch)
+			go opts.healthCheck(ctx, s, errch)
 		}
 	}
 
-	go streamLogs(p, m, app, services)
+	go opts.streamLogs(ctx, services)
 
-	return <-errch
+	<-ctx.Done()
+
+	pss, err := opts.Provider.ProcessList(opts.App, structs.ProcessListOptions{})
+	if err != nil {
+		return nil
+	}
+
+	var wg sync.WaitGroup
+
+	wg.Add(len(pss))
+
+	for _, ps := range pss {
+		opts.Writef("convox", "stopping %s\n", ps.Id)
+		go opts.stopProcess(ps.Id, &wg)
+	}
+
+	wg.Wait()
+
+	return nil
+}
+
+func (opts Options2) handleAdds(pid, remote string, adds []changes.Change) error {
+	if len(adds) == 0 {
+		return nil
+	}
+
+	if !filepath.IsAbs(remote) {
+		data, err := exec.Command("docker", "inspect", pid, "--format", "{{.Config.WorkingDir}}").CombinedOutput()
+		if err != nil {
+			return fmt.Errorf("container inspect %s %s", string(data), err)
+		}
+
+		wd := strings.TrimSpace(string(data))
+
+		remote = filepath.Join(wd, remote)
+	}
+
+	rp, wp := io.Pipe()
+
+	ch := make(chan error)
+	defer close(ch)
+
+	go func() {
+		ch <- opts.Provider.FilesUpload(opts.App, pid, rp)
+	}()
+
+	tgz := gzip.NewWriter(wp)
+	tw := tar.NewWriter(tgz)
+
+	for _, add := range adds {
+		local := filepath.Join(add.Base, add.Path)
+
+		stat, err := os.Stat(local)
+		if err != nil {
+			// skip transient files like '.git/.COMMIT_EDITMSG.swp'
+			if os.IsNotExist(err) {
+				continue
+			}
+
+			return err
+		}
+
+		tw.WriteHeader(&tar.Header{
+			Name:    filepath.Join(remote, add.Path),
+			Mode:    int64(stat.Mode()),
+			Size:    stat.Size(),
+			ModTime: stat.ModTime(),
+		})
+
+		fd, err := os.Open(local)
+		if err != nil {
+			return err
+		}
+
+		defer fd.Close()
+
+		if _, err := io.Copy(tw, fd); err != nil {
+			return err
+		}
+
+		fd.Close()
+	}
+
+	if err := tw.Close(); err != nil {
+		return err
+	}
+
+	if err := tgz.Close(); err != nil {
+		return err
+	}
+
+	if err := wp.Close(); err != nil {
+		return err
+	}
+
+	return <-ch
+}
+
+func (opts Options2) handleErrors(ctx context.Context, errch chan error) {
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case err := <-errch:
+			opts.Writef("convox", "<error>error: %s</error>\n", err)
+		}
+	}
+}
+
+func (opts Options2) handleRemoves(pid string, removes []changes.Change) error {
+	if len(removes) == 0 {
+		return nil
+	}
+
+	return opts.Provider.FilesDelete(opts.App, pid, changes.Files(removes))
+}
+
+func (opts Options2) healthCheck(ctx context.Context, s manifest.Service, errch chan error) {
+	rss, err := opts.Provider.ServiceList(opts.App)
+	if err != nil {
+		errch <- err
+		return
+	}
+
+	hostname := ""
+
+	for _, rs := range rss {
+		if rs.Name == s.Name {
+			hostname = rs.Domain
+		}
+	}
+
+	if hostname == "" {
+		errch <- fmt.Errorf("could not find hostname for service: %s", s.Name)
+		return
+	}
+
+	opts.Writef("convox", "starting health check for <service>%s</service> on path <setting>%s</setting> with <setting>%d</setting>s interval, <setting>%d</setting>s grace\n", s.Name, s.Health.Path, s.Health.Interval, s.Health.Grace)
+
+	hcu := fmt.Sprintf("https://%s%s", hostname, s.Health.Path)
+
+	time.Sleep(time.Duration(s.Health.Grace) * time.Second)
+
+	tick := time.Tick(time.Duration(s.Health.Interval) * time.Second)
+
+	c := &http.Client{
+		Timeout: time.Duration(s.Health.Timeout) * time.Second,
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: true,
+			},
+		},
+	}
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-tick:
+			res, err := c.Get(hcu)
+			if err != nil {
+				opts.Writef("convox", "health check <service>%s</service>: <fail>%s</fail>\n", s.Name, err.Error())
+				continue
+			}
+
+			if res.StatusCode < 200 || res.StatusCode > 399 {
+				opts.Writef("convox", "health check <service>%s</service>: <fail>%d</fail>\n", s.Name, res.StatusCode)
+				continue
+			}
+
+			opts.Writef("convox", "health check <service>%s</service>: <ok>%d</ok>\n", s.Name, res.StatusCode)
+		}
+	}
+}
+
+func (opts Options2) stopProcess(pid string, wg *sync.WaitGroup) {
+	defer wg.Done()
+	opts.Provider.ProcessStop(opts.App, pid)
+}
+
+func (opts Options2) streamLogs(ctx context.Context, services map[string]bool) {
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+			logs, err := opts.Provider.AppLogs(opts.App, structs.LogsOptions{Prefix: options.Bool(true), Since: options.Duration(1 * time.Second)})
+			if err == nil {
+				opts.writeLogs(ctx, logs, services)
+			}
+
+			select {
+			case <-ctx.Done():
+				return
+			default:
+				time.Sleep(1 * time.Second)
+			}
+		}
+	}
+}
+
+func (opts Options2) waitForBuild(ctx context.Context, id string) error {
+	tick := time.Tick(1 * time.Second)
+
+	for {
+		select {
+		case <-ctx.Done():
+			return nil
+		case <-tick:
+			b, err := opts.Provider.BuildGet(opts.App, id)
+			if err != nil {
+				return err
+			}
+
+			switch b.Status {
+			case "created", "running":
+				break
+			case "complete":
+				return nil
+			case "failed":
+				return fmt.Errorf("build failed")
+			default:
+				return fmt.Errorf("unknown build status: %s", b.Status)
+			}
+		}
+	}
+}
+
+func (opts Options2) watchChanges(ctx context.Context, m *manifest.Manifest, service, root string, ch chan error) {
+	bss, err := buildSources(m, root, service)
+	if err != nil {
+		ch <- err
+		return
+	}
+
+	ignores, err := buildIgnores(root, service)
+	if err != nil {
+		ch <- err
+		return
+	}
+
+	for _, bs := range bss {
+		go opts.watchPath(ctx, m, service, root, bs, ignores, ch)
+	}
+}
+
+func (opts Options2) watchPath(ctx context.Context, m *manifest.Manifest, service, root string, bs buildSource, ignores []string, ch chan error) {
+	cch := make(chan changes.Change, 1)
+	defer close(cch)
+
+	abs, err := filepath.Abs(bs.Local)
+	if err != nil {
+		ch <- err
+		return
+	}
+
+	wd, err := os.Getwd()
+	if err != nil {
+		ch <- err
+		return
+	}
+
+	rel, err := filepath.Rel(wd, bs.Local)
+	if err != nil {
+		ch <- err
+		return
+	}
+
+	opts.Writef("convox", "syncing: <dir>%s</dir> to <dir>%s:%s</dir>\n", rel, service, bs.Remote)
+
+	go changes.Watch(abs, cch, changes.WatchOptions{
+		Ignores: ignores,
+	})
+
+	tick := time.Tick(1000 * time.Millisecond)
+	chgs := []changes.Change{}
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case c := <-cch:
+			chgs = append(chgs, c)
+		case <-tick:
+			if len(chgs) == 0 {
+				continue
+			}
+
+			pss, err := opts.Provider.ProcessList(opts.App, structs.ProcessListOptions{Service: options.String(service)})
+			if err != nil {
+				opts.Writef("convox", "sync error: %s\n", err)
+				continue
+			}
+
+			adds, removes := changes.Partition(chgs)
+
+			for _, ps := range pss {
+				switch {
+				case len(adds) > 3:
+					opts.Writef("convox", "sync: %d files to <dir>%s:%s</dir>\n", len(adds), service, bs.Remote)
+				case len(adds) > 0:
+					for _, a := range adds {
+						opts.Writef("convox", "sync: <dir>%s</dir> to <dir>%s:%s</dir>\n", a.Path, service, bs.Remote)
+					}
+				}
+
+				if err := opts.handleAdds(ps.Id, bs.Remote, adds); err != nil {
+					opts.Writef("convox", "sync add error: %s\n", err)
+				}
+
+				switch {
+				case len(removes) > 3:
+					opts.Writef("convox", "remove: %d files from <dir>%s:%s</dir>\n", len(removes), service, bs.Remote)
+				case len(removes) > 0:
+					for _, r := range removes {
+						opts.Writef("convox", "remove: <dir>%s</dir> from <dir>%s:%s</dir>\n", r.Path, service, bs.Remote)
+					}
+				}
+
+				if err := opts.handleRemoves(ps.Id, removes); err != nil {
+					opts.Writef("convox", "sync remove error: %s\n", err)
+				}
+			}
+
+			chgs = []changes.Change{}
+		}
+	}
+}
+
+func (opts Options2) writeLogs(ctx context.Context, r io.Reader, services map[string]bool) {
+	ls := bufio.NewScanner(r)
+
+	for ls.Scan() {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+			match := reAppLog.FindStringSubmatch(ls.Text())
+
+			if len(match) != 7 {
+				continue
+			}
+
+			if !services[match[4]] {
+				continue
+			}
+
+			opts.Writef(match[4], "%s\n", match[6])
+		}
+	}
 }
 
 func buildDockerfile(m *manifest.Manifest, root, service string) ([]byte, error) {
@@ -188,7 +596,7 @@ func buildDockerfile(m *manifest.Manifest, root, service string) ([]byte, error)
 }
 
 func buildIgnores(root, service string) ([]string, error) {
-	fd, err := os.Open(filepath.Join(root, ".dockerignroe"))
+	fd, err := os.Open(filepath.Join(root, ".dockerignore"))
 	if os.IsNotExist(err) {
 		return []string{}, nil
 	}
@@ -197,11 +605,6 @@ func buildIgnores(root, service string) ([]string, error) {
 	}
 
 	return dockerignore.ReadAll(fd)
-}
-
-type buildSource struct {
-	Local  string
-	Remote string
 }
 
 func buildSources(m *manifest.Manifest, root, service string) ([]buildSource, error) {
@@ -243,10 +646,6 @@ func buildSources(m *manifest.Manifest, root, service string) ([]buildSource, er
 				case "http", "https":
 					// do nothing
 				default:
-					if strings.HasPrefix(parts[1], "--from") {
-						continue
-					}
-
 					local := filepath.Join(svc.Build.Path, parts[1])
 					remote := replaceEnv(parts[2], env)
 
@@ -359,57 +758,6 @@ func buildSources(m *manifest.Manifest, root, service string) ([]buildSource, er
 	return bss, nil
 }
 
-func healthCheck(p structs.Provider, m *manifest.Manifest, app string, s manifest.Service, errch chan error) {
-	rss, err := p.ServiceList(app)
-	if err != nil {
-		errch <- err
-		return
-	}
-
-	hostname := ""
-
-	for _, rs := range rss {
-		if rs.Name == s.Name {
-			hostname = rs.Domain
-		}
-	}
-
-	if hostname == "" {
-		errch <- fmt.Errorf("could not find hostname for service: %s", s.Name)
-		return
-	}
-
-	m.Writef("convox", "starting health check for <service>%s</service> on path <setting>%s</setting> with <setting>%d</setting>s interval, <setting>%d</setting>s grace\n", s.Name, s.Health.Path, s.Health.Interval, s.Health.Grace)
-
-	hcu := fmt.Sprintf("https://%s%s", hostname, s.Health.Path)
-
-	time.Sleep(time.Duration(s.Health.Grace) * time.Second)
-
-	c := &http.Client{
-		Timeout: time.Duration(s.Health.Timeout) * time.Second,
-		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{
-				InsecureSkipVerify: true,
-			},
-		},
-	}
-
-	for range time.Tick(time.Duration(s.Health.Interval) * time.Second) {
-		res, err := c.Get(hcu)
-		if err != nil {
-			m.Writef("convox", "health check <service>%s</service>: <fail>%s</fail>\n", s.Name, err.Error())
-			continue
-		}
-
-		if res.StatusCode < 200 || res.StatusCode > 399 {
-			m.Writef("convox", "health check <service>%s</service>: <fail>%d</fail>\n", s.Name, res.StatusCode)
-			continue
-		}
-
-		m.Writef("convox", "health check <service>%s</service>: <ok>%d</ok>\n", s.Name, res.StatusCode)
-	}
-}
-
 func replaceEnv(s string, env map[string]string) string {
 	for k, v := range env {
 		s = strings.Replace(s, fmt.Sprintf("${%s}", k), v, -1)
@@ -417,241 +765,4 @@ func replaceEnv(s string, env map[string]string) string {
 	}
 
 	return s
-}
-
-var reAppLog = regexp.MustCompile(`^(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2}:\d{2}) ([^/]+)/([^/]+)/([^ ]+) (.*)$`)
-
-func streamLogs(p structs.Provider, m *manifest.Manifest, app string, services map[string]bool) {
-	for {
-		logs, err := p.AppLogs(app, structs.LogsOptions{Prefix: options.Bool(true), Since: options.Duration(1 * time.Second)})
-		if err == nil {
-			writeLogs(m, logs, services)
-		}
-
-		time.Sleep(1 * time.Second)
-	}
-}
-
-func writeLogs(m *manifest.Manifest, r io.Reader, services map[string]bool) {
-	ls := bufio.NewScanner(r)
-
-	for ls.Scan() {
-		match := reAppLog.FindStringSubmatch(ls.Text())
-
-		if len(match) != 7 {
-			continue
-		}
-
-		if !services[match[4]] {
-			continue
-		}
-
-		m.Writef(match[4], "%s\n", match[6])
-	}
-}
-
-func waitForBuild(p structs.Provider, app, id string) error {
-	for {
-		time.Sleep(1 * time.Second)
-
-		b, err := p.BuildGet(app, id)
-		if err != nil {
-			return err
-		}
-
-		switch b.Status {
-		case "created", "running":
-			break
-		case "complete":
-			return nil
-		case "failed":
-			return fmt.Errorf("build failed")
-		default:
-			return fmt.Errorf("unknown build status: %s", b.Status)
-		}
-	}
-}
-
-func watchChanges(p structs.Provider, m *manifest.Manifest, app, service, root string, ch chan error) {
-	bss, err := buildSources(m, root, service)
-	if err != nil {
-		ch <- err
-		return
-	}
-
-	ignores, err := buildIgnores(root, service)
-	if err != nil {
-		ch <- err
-		return
-	}
-
-	for _, bs := range bss {
-		go watchPath(p, m, app, service, root, bs, ignores, ch)
-	}
-}
-
-func watchPath(p structs.Provider, m *manifest.Manifest, app, service, root string, bs buildSource, ignores []string, ch chan error) {
-	cch := make(chan changes.Change, 1)
-
-	w := m.Writer("convox", os.Stdout)
-
-	abs, err := filepath.Abs(bs.Local)
-	if err != nil {
-		ch <- err
-		return
-	}
-
-	wd, err := os.Getwd()
-	if err != nil {
-		ch <- err
-		return
-	}
-
-	rel, err := filepath.Rel(wd, bs.Local)
-	if err != nil {
-		ch <- err
-		return
-	}
-
-	m.Writef("convox", "syncing: <dir>%s</dir> to <dir>%s:%s</dir>\n", rel, service, bs.Remote)
-
-	go changes.Watch(abs, cch, changes.WatchOptions{
-		Ignores: ignores,
-	})
-
-	tick := time.Tick(1000 * time.Millisecond)
-	chgs := []changes.Change{}
-
-	for {
-		select {
-		case c := <-cch:
-			chgs = append(chgs, c)
-		case <-tick:
-			if len(chgs) == 0 {
-				continue
-			}
-
-			pss, err := p.ProcessList(app, structs.ProcessListOptions{Service: options.String(service)})
-			if err != nil {
-				w.Writef("sync error: %s\n", err)
-				continue
-			}
-
-			adds, removes := changes.Partition(chgs)
-
-			for _, ps := range pss {
-				switch {
-				case len(adds) > 3:
-					w.Writef("sync: %d files to <dir>%s:%s</dir>\n", len(adds), service, bs.Remote)
-				case len(adds) > 0:
-					for _, a := range adds {
-						w.Writef("sync: <dir>%s</dir> to <dir>%s:%s</dir>\n", a.Path, service, bs.Remote)
-					}
-				}
-
-				if err := handleAdds(p, app, ps.Id, bs.Remote, adds); err != nil {
-					w.Writef("sync add error: %s\n", err)
-				}
-
-				switch {
-				case len(removes) > 3:
-					w.Writef("remove: %d files from <dir>%s:%s</dir>\n", len(removes), service, bs.Remote)
-				case len(removes) > 0:
-					for _, r := range removes {
-						w.Writef("remove: <dir>%s</dir> from <dir>%s:%s</dir>\n", r.Path, service, bs.Remote)
-					}
-				}
-
-				if err := handleRemoves(p, app, ps.Id, removes); err != nil {
-					w.Writef("sync remove error: %s\n", err)
-				}
-			}
-
-			chgs = []changes.Change{}
-		}
-	}
-}
-
-func handleAdds(p structs.Provider, app, pid, remote string, adds []changes.Change) error {
-	if len(adds) == 0 {
-		return nil
-	}
-
-	if !filepath.IsAbs(remote) {
-		data, err := exec.Command("docker", "inspect", pid, "--format", "{{.Config.WorkingDir}}").CombinedOutput()
-		if err != nil {
-			return fmt.Errorf("container inspect %s %s", string(data), err)
-		}
-
-		wd := strings.TrimSpace(string(data))
-
-		remote = filepath.Join(wd, remote)
-	}
-
-	rp, wp := io.Pipe()
-
-	ch := make(chan error)
-
-	go func() {
-		ch <- p.FilesUpload(app, pid, rp)
-	}()
-
-	tgz := gzip.NewWriter(wp)
-	tw := tar.NewWriter(tgz)
-
-	for _, add := range adds {
-		local := filepath.Join(add.Base, add.Path)
-
-		stat, err := os.Stat(local)
-		if err != nil {
-			// skip transient files like '.git/.COMMIT_EDITMSG.swp'
-			if os.IsNotExist(err) {
-				continue
-			}
-
-			return err
-		}
-
-		tw.WriteHeader(&tar.Header{
-			Name:    filepath.Join(remote, add.Path),
-			Mode:    int64(stat.Mode()),
-			Size:    stat.Size(),
-			ModTime: stat.ModTime(),
-		})
-
-		fd, err := os.Open(local)
-		if err != nil {
-			return err
-		}
-
-		defer fd.Close()
-
-		if _, err := io.Copy(tw, fd); err != nil {
-			return err
-		}
-
-		fd.Close()
-	}
-
-	if err := tw.Close(); err != nil {
-		return err
-	}
-
-	if err := tgz.Close(); err != nil {
-		return err
-	}
-
-	if err := wp.Close(); err != nil {
-		return err
-	}
-
-	return <-ch
-}
-
-func handleRemoves(p structs.Provider, app, pid string, removes []changes.Change) error {
-	if len(removes) == 0 {
-		return nil
-	}
-
-	return p.FilesDelete(app, pid, changes.Files(removes))
 }
