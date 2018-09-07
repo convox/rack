@@ -54,6 +54,8 @@ func (p *Provider) containerStart(c container, app, release string) (string, err
 
 	args := []string{"run", "--detach", "-t"}
 
+	args = append(args, "--restart", "always")
+
 	args = append(args, "--name", c.Name)
 
 	for k, v := range c.Labels {
