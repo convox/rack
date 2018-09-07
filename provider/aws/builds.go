@@ -429,6 +429,8 @@ func (p *Provider) BuildImport(app string, r io.Reader) (*structs.Build, error) 
 		return nil, err
 	}
 
+	p.EventSend("build:create", structs.EventSendOptions{Data: map[string]string{"app": targetBuild.App, "id": targetBuild.Id, "release_id": targetBuild.Id}})
+
 	log.Successf("build=%q release=%q", targetBuild.Id, rr.Id)
 
 	return targetBuild, nil
