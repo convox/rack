@@ -35,7 +35,13 @@ func NewWithProvider(p structs.Provider) *Server {
 		Server:   stdapi.New("api", "api"),
 	}
 
-	s.Router.Router.HandleFunc("/check", func(w http.ResponseWriter, r *http.Request) {
+	// s.Router.HandleFunc("/debug/pprof/", pprof.Index)
+	// s.Router.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
+	// s.Router.HandleFunc("/debug/pprof/profile", pprof.Profile)
+	// s.Router.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
+	// s.Router.HandleFunc("/debug/pprof/trace", pprof.Trace)
+
+	s.Router.HandleFunc("/check", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "ok\n")
 	})
 
