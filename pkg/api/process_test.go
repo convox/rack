@@ -33,6 +33,8 @@ var fxProcess = structs.Process{
 
 func TestProcessExec(t *testing.T) {
 	testServer(t, func(c *stdsdk.Client, p *structs.MockProvider) {
+		a1 := fxApp
+		p.On("AppGet", "app1").Return(&a1, nil)
 		opts := structs.ProcessExecOptions{
 			Entrypoint: options.Bool(true),
 			Height:     options.Int(1),
@@ -64,6 +66,8 @@ func TestProcessExec(t *testing.T) {
 
 func TestProcessExecError(t *testing.T) {
 	testServer(t, func(c *stdsdk.Client, p *structs.MockProvider) {
+		a1 := fxApp
+		p.On("AppGet", "app1").Return(&a1, nil)
 		opts := structs.ProcessExecOptions{
 			Entrypoint: options.Bool(true),
 			Height:     options.Int(1),
@@ -86,6 +90,16 @@ func TestProcessExecError(t *testing.T) {
 		d, err := ioutil.ReadAll(r)
 		require.NoError(t, err)
 		require.Equal(t, []byte("ERROR: err1\n"), d)
+	})
+}
+
+func TestProcessExecValidate(t *testing.T) {
+	testServer(t, func(c *stdsdk.Client, p *structs.MockProvider) {
+		p.On("AppGet", "app1").Return(nil, fmt.Errorf("no such app: app1"))
+		r, err := c.Websocket("/apps/app1/processes/pid1/exec", stdsdk.RequestOptions{})
+		data, err := ioutil.ReadAll(r)
+		require.NoError(t, err)
+		require.Equal(t, "ERROR: no such app: app1\n", string(data))
 	})
 }
 
@@ -141,6 +155,8 @@ func TestProcessListError(t *testing.T) {
 
 func TestProcessRun(t *testing.T) {
 	testServer(t, func(c *stdsdk.Client, p *structs.MockProvider) {
+		a1 := fxApp
+		p.On("AppGet", "app1").Return(&a1, nil)
 		p1 := fxProcess
 		p2 := structs.Process{}
 		opts := structs.ProcessRunOptions{
@@ -171,6 +187,8 @@ func TestProcessRun(t *testing.T) {
 
 func TestProcessRunError(t *testing.T) {
 	testServer(t, func(c *stdsdk.Client, p *structs.MockProvider) {
+		a1 := fxApp
+		p.On("AppGet", "app1").Return(&a1, nil)
 		var p1 *structs.Process
 		opts := structs.ProcessRunOptions{
 			Command:     options.String("command"),
@@ -194,6 +212,16 @@ func TestProcessRunError(t *testing.T) {
 		p.On("ProcessRun", "app1", "service1", opts).Return(nil, fmt.Errorf("err1"))
 		err := c.Post("/apps/app1/services/service1/processes", ro, &p1)
 		require.EqualError(t, err, "err1")
+		require.Nil(t, p1)
+	})
+}
+
+func TestProcessRunValidate(t *testing.T) {
+	testServer(t, func(c *stdsdk.Client, p *structs.MockProvider) {
+		var p1 *structs.Process
+		p.On("AppGet", "app1").Return(nil, fmt.Errorf("no such app: app1"))
+		err := c.Post("/apps/app1/services/service1/processes", stdsdk.RequestOptions{}, p1)
+		require.EqualError(t, err, "no such app: app1")
 		require.Nil(t, p1)
 	})
 }
