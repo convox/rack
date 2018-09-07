@@ -46,7 +46,7 @@ func init() {
 		Flags: []stdcli.Flag{
 			flagApp,
 			flagRack,
-			stdcli.StringFlag("file", "f", "import from file"),
+			stdcli.StringFlag("file", "f", "export to file"),
 		},
 		Usage:    "[app]",
 		Validate: stdcli.ArgsMax(1),
