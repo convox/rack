@@ -59,6 +59,8 @@ func (p *Provider) ReleaseCreate(app string, opts structs.ReleaseCreateOptions) 
 		return nil, err
 	}
 
+	p.EventSend("release:create", structs.EventSendOptions{Data: map[string]string{"app": r.App, "id": r.Id}})
+
 	return r, nil
 }
 
@@ -304,6 +306,8 @@ func (p *Provider) ReleasePromote(app, id string) error {
 		return err
 	}
 
+	p.EventSend("release:promote", structs.EventSendOptions{Data: map[string]string{"app": r.App, "id": r.Id}, Status: options.String("start")})
+
 	go p.waitForPromotion(r)
 
 	return nil
@@ -454,6 +458,8 @@ func (p *Provider) releasePromoteGeneration1(a *structs.App, r *structs.Release)
 	if err := p.updateStack(p.rackStack(a.Name), data, params, map[string]string{}); err != nil {
 		return err
 	}
+
+	p.EventSend("release:promote", structs.EventSendOptions{Data: map[string]string{"app": r.App, "id": r.Id}, Status: options.String("start")})
 
 	go p.waitForPromotion(r)
 
