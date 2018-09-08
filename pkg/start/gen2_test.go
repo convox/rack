@@ -49,12 +49,12 @@ func TestStart2(t *testing.T) {
 
 	buf := bytes.Buffer{}
 
-	opts := start.Options{
-		App:    "app1",
-		Output: &buf,
+	opts := start.Options2{
+		App:      "app1",
+		Provider: p,
 	}
 
-	err = s.Start2(ctx, start.Options2{Options: opts, Provider: p})
+	err = s.Start2(ctx, &buf, opts)
 	require.NoError(t, err)
 
 	require.Equal(t,
@@ -107,16 +107,16 @@ func TestStart2Options(t *testing.T) {
 
 	buf := bytes.Buffer{}
 
-	opts := start.Options{
+	opts := start.Options2{
 		App:      "app1",
 		Build:    true,
 		Cache:    true,
 		Manifest: "convox2.yml",
-		Output:   &buf,
+		Provider: p,
 		Sync:     true,
 	}
 
-	err = s.Start2(ctx, start.Options2{Options: opts, Provider: p})
+	err = s.Start2(ctx, &buf, opts)
 	require.NoError(t, err)
 
 	require.Equal(t,

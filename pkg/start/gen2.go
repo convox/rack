@@ -24,6 +24,7 @@ import (
 	"github.com/convox/rack/pkg/helpers"
 	"github.com/convox/rack/pkg/manifest"
 	"github.com/convox/rack/pkg/options"
+	"github.com/convox/rack/pkg/prefix"
 	"github.com/convox/rack/pkg/structs"
 	"github.com/moby/moby/builder/dockerignore"
 )
@@ -33,9 +34,13 @@ var (
 )
 
 type Options2 struct {
-	Options
+	App      string
+	Build    bool
+	Cache    bool
+	Manifest string
 	Provider structs.Provider
 	Services []string
+	Sync     bool
 }
 
 type buildSource struct {
@@ -43,7 +48,7 @@ type buildSource struct {
 	Remote string
 }
 
-func (s *Start) Start2(ctx context.Context, opts Options2) error {
+func (s *Start) Start2(ctx context.Context, w io.Writer, opts Options2) error {
 	select {
 	case <-ctx.Done():
 		return nil
@@ -92,10 +97,10 @@ func (s *Start) Start2(ctx context.Context, opts Options2) error {
 		}
 	}
 
-	opts.writer = opts.prefixWriter(services)
+	pw := prefixWriter(w, services)
 
 	if opts.Build {
-		opts.Writef("build", "uploading source\n")
+		pw.Writef("build", "uploading source\n")
 
 		data, err := helpers.Tarball(".")
 		if err != nil {
@@ -107,7 +112,7 @@ func (s *Start) Start2(ctx context.Context, opts Options2) error {
 			return err
 		}
 
-		opts.Writef("build", "starting build\n")
+		pw.Writef("build", "starting build\n")
 
 		bopts := structs.BuildCreateOptions{Development: options.Bool(true)}
 
@@ -125,7 +130,7 @@ func (s *Start) Start2(ctx context.Context, opts Options2) error {
 			return err
 		}
 
-		bo := opts.Writer("build")
+		bo := pw.Writer("build")
 
 		go io.Copy(bo, logs)
 
@@ -152,7 +157,7 @@ func (s *Start) Start2(ctx context.Context, opts Options2) error {
 	errch := make(chan error)
 	defer close(errch)
 
-	go opts.handleErrors(ctx, errch)
+	go handleErrors(ctx, pw, errch)
 
 	wd, err := os.Getwd()
 	if err != nil {
@@ -167,18 +172,18 @@ func (s *Start) Start2(ctx context.Context, opts Options2) error {
 		}
 
 		if s.Build.Path != "" {
-			go opts.watchChanges(ctx, m, s.Name, wd, errch)
+			go opts.watchChanges(ctx, pw, m, s.Name, wd, errch)
 		}
 
 		if s.Port.Port > 0 {
 			wg.Add(1)
-			go opts.healthCheck(ctx, s, errch, &wg)
+			go opts.healthCheck(ctx, pw, s, errch, &wg)
 		}
 	}
 
 	wg.Wait()
 
-	go opts.streamLogs(ctx, services)
+	go opts.streamLogs(ctx, pw, services)
 
 	<-ctx.Done()
 
@@ -190,7 +195,7 @@ func (s *Start) Start2(ctx context.Context, opts Options2) error {
 	wg.Add(len(pss))
 
 	for _, ps := range pss {
-		opts.Writef("convox", "stopping %s\n", ps.Id)
+		pw.Writef("convox", "stopping %s\n", ps.Id)
 		go opts.stopProcess(ps.Id, &wg)
 	}
 
@@ -276,17 +281,6 @@ func (opts Options2) handleAdds(pid, remote string, adds []changes.Change) error
 	return <-ch
 }
 
-func (opts Options2) handleErrors(ctx context.Context, errch chan error) {
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case err := <-errch:
-			opts.Writef("convox", "<error>error: %s</error>\n", err)
-		}
-	}
-}
-
 func (opts Options2) handleRemoves(pid string, removes []changes.Change) error {
 	if len(removes) == 0 {
 		return nil
@@ -295,7 +289,7 @@ func (opts Options2) handleRemoves(pid string, removes []changes.Change) error {
 	return opts.Provider.FilesDelete(opts.App, pid, changes.Files(removes))
 }
 
-func (opts Options2) healthCheck(ctx context.Context, s manifest.Service, errch chan error, wg *sync.WaitGroup) {
+func (opts Options2) healthCheck(ctx context.Context, pw prefix.Writer, s manifest.Service, errch chan error, wg *sync.WaitGroup) {
 	rss, err := opts.Provider.ServiceList(opts.App)
 	if err != nil {
 		errch <- err
@@ -315,7 +309,7 @@ func (opts Options2) healthCheck(ctx context.Context, s manifest.Service, errch 
 		return
 	}
 
-	opts.Writef("convox", "starting health check for <service>%s</service> on path <setting>%s</setting> with <setting>%d</setting>s interval, <setting>%d</setting>s grace\n", s.Name, s.Health.Path, s.Health.Interval, s.Health.Grace)
+	pw.Writef("convox", "starting health check for <service>%s</service> on path <setting>%s</setting> with <setting>%d</setting>s interval, <setting>%d</setting>s grace\n", s.Name, s.Health.Path, s.Health.Interval, s.Health.Grace)
 
 	wg.Done()
 
@@ -341,16 +335,16 @@ func (opts Options2) healthCheck(ctx context.Context, s manifest.Service, errch 
 		case <-tick:
 			res, err := c.Get(hcu)
 			if err != nil {
-				opts.Writef("convox", "health check <service>%s</service>: <fail>%s</fail>\n", s.Name, err.Error())
+				pw.Writef("convox", "health check <service>%s</service>: <fail>%s</fail>\n", s.Name, err.Error())
 				continue
 			}
 
 			if res.StatusCode < 200 || res.StatusCode > 399 {
-				opts.Writef("convox", "health check <service>%s</service>: <fail>%d</fail>\n", s.Name, res.StatusCode)
+				pw.Writef("convox", "health check <service>%s</service>: <fail>%d</fail>\n", s.Name, res.StatusCode)
 				continue
 			}
 
-			opts.Writef("convox", "health check <service>%s</service>: <ok>%d</ok>\n", s.Name, res.StatusCode)
+			pw.Writef("convox", "health check <service>%s</service>: <ok>%d</ok>\n", s.Name, res.StatusCode)
 		}
 	}
 }
@@ -360,7 +354,7 @@ func (opts Options2) stopProcess(pid string, wg *sync.WaitGroup) {
 	opts.Provider.ProcessStop(opts.App, pid)
 }
 
-func (opts Options2) streamLogs(ctx context.Context, services map[string]bool) {
+func (opts Options2) streamLogs(ctx context.Context, pw prefix.Writer, services map[string]bool) {
 	for {
 		select {
 		case <-ctx.Done():
@@ -368,7 +362,7 @@ func (opts Options2) streamLogs(ctx context.Context, services map[string]bool) {
 		default:
 			logs, err := opts.Provider.AppLogs(opts.App, structs.LogsOptions{Prefix: options.Bool(true), Since: options.Duration(1 * time.Second)})
 			if err == nil {
-				opts.writeLogs(ctx, logs, services)
+				writeLogs(ctx, pw, logs, services)
 			}
 
 			select {
@@ -408,7 +402,7 @@ func (opts Options2) waitForBuild(ctx context.Context, id string) error {
 	}
 }
 
-func (opts Options2) watchChanges(ctx context.Context, m *manifest.Manifest, service, root string, ch chan error) {
+func (opts Options2) watchChanges(ctx context.Context, pw prefix.Writer, m *manifest.Manifest, service, root string, ch chan error) {
 	bss, err := buildSources(m, root, service)
 	if err != nil {
 		ch <- err
@@ -422,11 +416,11 @@ func (opts Options2) watchChanges(ctx context.Context, m *manifest.Manifest, ser
 	}
 
 	for _, bs := range bss {
-		go opts.watchPath(ctx, m, service, root, bs, ignores, ch)
+		go opts.watchPath(ctx, pw, service, root, bs, ignores, ch)
 	}
 }
 
-func (opts Options2) watchPath(ctx context.Context, m *manifest.Manifest, service, root string, bs buildSource, ignores []string, ch chan error) {
+func (opts Options2) watchPath(ctx context.Context, pw prefix.Writer, service, root string, bs buildSource, ignores []string, ch chan error) {
 	cch := make(chan changes.Change, 1)
 	defer close(cch)
 
@@ -448,7 +442,7 @@ func (opts Options2) watchPath(ctx context.Context, m *manifest.Manifest, servic
 		return
 	}
 
-	opts.Writef("convox", "syncing: <dir>%s</dir> to <dir>%s:%s</dir>\n", rel, service, bs.Remote)
+	pw.Writef("convox", "syncing: <dir>%s</dir> to <dir>%s:%s</dir>\n", rel, service, bs.Remote)
 
 	go changes.Watch(abs, cch, changes.WatchOptions{
 		Ignores: ignores,
@@ -470,7 +464,7 @@ func (opts Options2) watchPath(ctx context.Context, m *manifest.Manifest, servic
 
 			pss, err := opts.Provider.ProcessList(opts.App, structs.ProcessListOptions{Service: options.String(service)})
 			if err != nil {
-				opts.Writef("convox", "sync error: %s\n", err)
+				pw.Writef("convox", "sync error: %s\n", err)
 				continue
 			}
 
@@ -479,55 +473,32 @@ func (opts Options2) watchPath(ctx context.Context, m *manifest.Manifest, servic
 			for _, ps := range pss {
 				switch {
 				case len(adds) > 3:
-					opts.Writef("convox", "sync: %d files to <dir>%s:%s</dir>\n", len(adds), service, bs.Remote)
+					pw.Writef("convox", "sync: %d files to <dir>%s:%s</dir>\n", len(adds), service, bs.Remote)
 				case len(adds) > 0:
 					for _, a := range adds {
-						opts.Writef("convox", "sync: <dir>%s</dir> to <dir>%s:%s</dir>\n", a.Path, service, bs.Remote)
+						pw.Writef("convox", "sync: <dir>%s</dir> to <dir>%s:%s</dir>\n", a.Path, service, bs.Remote)
 					}
 				}
 
 				if err := opts.handleAdds(ps.Id, bs.Remote, adds); err != nil {
-					opts.Writef("convox", "sync add error: %s\n", err)
+					pw.Writef("convox", "sync add error: %s\n", err)
 				}
 
 				switch {
 				case len(removes) > 3:
-					opts.Writef("convox", "remove: %d files from <dir>%s:%s</dir>\n", len(removes), service, bs.Remote)
+					pw.Writef("convox", "remove: %d files from <dir>%s:%s</dir>\n", len(removes), service, bs.Remote)
 				case len(removes) > 0:
 					for _, r := range removes {
-						opts.Writef("convox", "remove: <dir>%s</dir> from <dir>%s:%s</dir>\n", r.Path, service, bs.Remote)
+						pw.Writef("convox", "remove: <dir>%s</dir> from <dir>%s:%s</dir>\n", r.Path, service, bs.Remote)
 					}
 				}
 
 				if err := opts.handleRemoves(ps.Id, removes); err != nil {
-					opts.Writef("convox", "sync remove error: %s\n", err)
+					pw.Writef("convox", "sync remove error: %s\n", err)
 				}
 			}
 
 			chgs = []changes.Change{}
-		}
-	}
-}
-
-func (opts Options2) writeLogs(ctx context.Context, r io.Reader, services map[string]bool) {
-	ls := bufio.NewScanner(r)
-
-	for ls.Scan() {
-		select {
-		case <-ctx.Done():
-			return
-		default:
-			match := reAppLog.FindStringSubmatch(ls.Text())
-
-			if len(match) != 7 {
-				continue
-			}
-
-			if !services[match[4]] {
-				continue
-			}
-
-			opts.Writef(match[4], "%s\n", match[6])
 		}
 	}
 }
@@ -717,6 +688,17 @@ func buildSources(m *manifest.Manifest, root, service string) ([]buildSource, er
 	return bss, nil
 }
 
+func handleErrors(ctx context.Context, pw prefix.Writer, errch chan error) {
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case err := <-errch:
+			pw.Writef("convox", "<error>error: %s</error>\n", err)
+		}
+	}
+}
+
 func replaceEnv(s string, env map[string]string) string {
 	for k, v := range env {
 		s = strings.Replace(s, fmt.Sprintf("${%s}", k), v, -1)
@@ -724,4 +706,27 @@ func replaceEnv(s string, env map[string]string) string {
 	}
 
 	return s
+}
+
+func writeLogs(ctx context.Context, pw prefix.Writer, r io.Reader, services map[string]bool) {
+	ls := bufio.NewScanner(r)
+
+	for ls.Scan() {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+			match := reAppLog.FindStringSubmatch(ls.Text())
+
+			if len(match) != 7 {
+				continue
+			}
+
+			if !services[match[4]] {
+				continue
+			}
+
+			pw.Writef(match[4], "%s\n", match[6])
+		}
+	}
 }
