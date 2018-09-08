@@ -199,9 +199,10 @@
   version = "v1.1.0"
 
 [[projects]]
-  digest = "1:6f49fc567186650298fe82fb6b27e4e7417241bb2831041b694df57b5014c404"
+  digest = "1:2292119ba52109ee542423e6b2a028586f076bde97436db2d34abf9159ece97c"
   name = "github.com/docker/docker"
   packages = [
+    "builder/dockerignore",
     "pkg/archive",
     "pkg/fileutils",
     "pkg/idtools",
@@ -430,17 +431,6 @@
   revision = "b8bc1bf767474819792c23f32d8286a45736f1c6"
 
 [[projects]]
-  digest = "1:3a41dc0cc1516ec83332af49a7e98a3f45e9a6a082c2d743c669e08dc9f471d5"
-  name = "github.com/moby/moby"
-  packages = [
-    "builder/dockerignore",
-    "pkg/archive",
-  ]
-  pruneopts = "NUT"
-  revision = "092cba3727bb9b4a2f0e922cd6c0f93ea270e363"
-  version = "v1.13.1"
-
-[[projects]]
   digest = "1:1b9ae1eb2a842fc4562b71ab43421c5d025131cd9170f9b53a44dcf6a2f5d8d1"
   name = "github.com/mweagle/Sparta"
   packages = ["aws/cloudwatchlogs"]
@@ -593,14 +583,6 @@
   revision = "8b4580aae2a0dd0c231a45d3ccb8434ff533b840"
 
 [[projects]]
-  digest = "1:5dba68a1600a235630e208cb7196b24e58fcbb77bb7a6bec08fcd23f081b0a58"
-  name = "gopkg.in/urfave/cli.v1"
-  packages = ["."]
-  pruneopts = "NUT"
-  revision = "cfb38830724cc34fedffe9a2a29fb54fa9169cd1"
-  version = "v1.20.0"
-
-[[projects]]
   branch = "v2"
   digest = "1:8c53ce78f10de538c37a5fb33148f81ce068a0b25bec08d8521212e0c0b5f7bd"
   name = "gopkg.in/yaml.v2"
@@ -644,6 +626,8 @@
     "github.com/convox/stdcli",
     "github.com/convox/stdsdk",
     "github.com/convox/version",
+    "github.com/docker/docker/builder/dockerignore",
+    "github.com/docker/docker/pkg/archive",
     "github.com/docker/go-units",
     "github.com/dustin/go-humanize",
     "github.com/fatih/color",
@@ -657,8 +641,6 @@
     "github.com/kr/pty",
     "github.com/miekg/dns",
     "github.com/mitchellh/go-homedir",
-    "github.com/moby/moby/builder/dockerignore",
-    "github.com/moby/moby/pkg/archive",
     "github.com/mweagle/Sparta/aws/cloudwatchlogs",
     "github.com/pkg/errors",
     "github.com/segmentio/analytics-go",
@@ -670,7 +652,6 @@
     "golang.org/x/crypto/nacl/secretbox",
     "golang.org/x/crypto/ssh",
     "golang.org/x/net/websocket",
-    "gopkg.in/urfave/cli.v1",
     "gopkg.in/yaml.v2",
   ]
   solver-name = "gps-cdcl"
