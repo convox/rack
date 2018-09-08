@@ -1,6 +1,7 @@
 package start
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"path/filepath"
@@ -11,13 +12,22 @@ import (
 )
 
 type Options1 struct {
-	Options
-	Command []string
-	Service string
-	Shift   int
+	App      string
+	Build    bool
+	Cache    bool
+	Command  []string
+	Manifest string
+	Service  string
+	Shift    int
+	Sync     bool
 }
 
-func (s *Start) Start1(opts Options1) error {
+func (s *Start) Start1(ctx context.Context, opts Options1) error {
+	select {
+	case <-ctx.Done():
+		return nil
+	default:
+	}
 	opts.Manifest = helpers.Coalesce(opts.Manifest, "docker-compose.yml")
 
 	if !helpers.FileExists(opts.Manifest) {
@@ -63,13 +73,11 @@ func (s *Start) Start1(opts Options1) error {
 		Sync:    opts.Sync,
 	})
 
-	err = r.Start()
-	if err != nil {
-		r.Stop()
+	defer r.Stop()
+
+	if err := r.Start(); err != nil {
 		return err
 	}
 
-	go handleInterrupt(func() { r.Stop() })
-
-	return r.Wait()
+	return r.Wait(ctx)
 }

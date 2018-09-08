@@ -3,6 +3,7 @@ package manifest1
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -236,9 +237,12 @@ func (r *Run) Start() error {
 	return nil
 }
 
-func (r *Run) Wait() error {
-	defer r.Stop()
-	<-r.done
+func (r *Run) Wait(ctx context.Context) error {
+	select {
+	case <-r.done:
+	case <-ctx.Done():
+	}
+
 	return nil
 }
 

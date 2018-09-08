@@ -14,7 +14,7 @@ type Writer struct {
 	writer   io.Writer
 }
 
-func NewWriter(w io.Writer, prefixes map[string]string) *Writer {
+func NewWriter(w io.Writer, prefixes map[string]string) Writer {
 	max := 0
 
 	for k := range prefixes {
@@ -23,10 +23,10 @@ func NewWriter(w io.Writer, prefixes map[string]string) *Writer {
 		}
 	}
 
-	return &Writer{max: max, prefixes: prefixes, writer: w}
+	return Writer{max: max, prefixes: prefixes, writer: w}
 }
 
-func (w *Writer) Write(prefix string, r io.Reader) {
+func (w Writer) Write(prefix string, r io.Reader) {
 	s := bufio.NewScanner(r)
 
 	for s.Scan() {
@@ -34,7 +34,7 @@ func (w *Writer) Write(prefix string, r io.Reader) {
 	}
 }
 
-func (w *Writer) Writer(prefix string) io.Writer {
+func (w Writer) Writer(prefix string) io.Writer {
 	rr, ww := io.Pipe()
 
 	go w.Write(prefix, rr)
@@ -42,7 +42,7 @@ func (w *Writer) Writer(prefix string) io.Writer {
 	return ww
 }
 
-func (w *Writer) Writef(prefix string, format string, args ...interface{}) {
+func (w Writer) Writef(prefix string, format string, args ...interface{}) {
 	w.lock.Lock()
 	defer w.lock.Unlock()
 
@@ -51,7 +51,7 @@ func (w *Writer) Writef(prefix string, format string, args ...interface{}) {
 	fmt.Fprintf(w.writer, line)
 }
 
-func (w *Writer) format(prefix string) string {
+func (w Writer) format(prefix string) string {
 	ot := ""
 	ct := ""
 
