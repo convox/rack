@@ -10,8 +10,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/moby/moby/builder/dockerignore"
-	"github.com/moby/moby/pkg/archive"
+	"github.com/docker/docker/builder/dockerignore"
+	"github.com/docker/docker/pkg/archive"
 )
 
 func Archive(file string) (io.Reader, error) {

@@ -26,7 +26,7 @@ import (
 	"github.com/convox/rack/pkg/options"
 	"github.com/convox/rack/pkg/prefix"
 	"github.com/convox/rack/pkg/structs"
-	"github.com/moby/moby/builder/dockerignore"
+	"github.com/docker/docker/builder/dockerignore"
 )
 
 var (
