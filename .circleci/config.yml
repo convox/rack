@@ -7,7 +7,9 @@ jobs:
     steps:
       - checkout
       - run: ci/dependencies.sh
-      - run: ci/install.sh
+      - run:
+          command: ci/install.sh
+          no_output_timeout: 20m
       - run:
           command: ci/test.sh
           no_output_timeout: 20m
