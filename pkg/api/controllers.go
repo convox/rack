@@ -1195,6 +1195,28 @@ func (s *Server) SystemLogs(c *stdapi.Context) error {
 	return nil
 }
 
+func (s *Server) SystemMetrics(c *stdapi.Context) error {
+	if err := s.hook("SystemMetricsValidate", c); err != nil {
+		return err
+	}
+
+	var opts structs.MetricsOptions
+	if err := stdapi.UnmarshalOptions(c.Request(), &opts); err != nil {
+		return err
+	}
+
+	v, err := s.provider(c).SystemMetrics(opts)
+	if err != nil {
+		return err
+	}
+
+	if vs, ok := interface{}(v).(Sortable); ok {
+		sort.Slice(v, vs.Less)
+	}
+
+	return c.RenderJSON(v)
+}
+
 func (s *Server) SystemProcesses(c *stdapi.Context) error {
 	if err := s.hook("SystemProcessesValidate", c); err != nil {
 		return err

@@ -162,11 +162,11 @@ func cs(s *string, def string) string {
 	return def
 }
 
-func ct(t *time.Time) time.Time {
+func ct(t *time.Time, def time.Time) time.Time {
 	if t != nil {
 		return *t
 	}
-	return time.Time{}
+	return def
 }
 
 func generation(g *string) string {

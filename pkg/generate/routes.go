@@ -61,6 +61,7 @@ var routes = map[string]string{
 	"SystemGet":           "GET /system",
 	"SystemLogs":          "SOCKET /system/logs",
 	"SystemInstall":       "",
+	"SystemMetrics":       "GET /system/metrics",
 	"SystemProcesses":     "GET /system/processes",
 	"SystemReleases":      "GET /system/releases",
 	"SystemUninstall":     "",

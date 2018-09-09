@@ -92,6 +92,12 @@ func unmarshalValue(r *http.Request, u reflect.Value, v string) error {
 			return err
 		}
 		u.Set(reflect.ValueOf(&i))
+	case *int64:
+		i, err := strconv.ParseInt(v, 10, 64)
+		if err != nil {
+			return err
+		}
+		u.Set(reflect.ValueOf(&i))
 	case *string:
 		u.Set(reflect.ValueOf(&v))
 	case *time.Duration:

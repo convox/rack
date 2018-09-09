@@ -63,6 +63,7 @@ func (s *Server) setupRoutes(r stdapi.Router) {
 	r.Route("GET", "/system", s.SystemGet)
 	r.Route("", "", s.SystemInstall)
 	r.Route("SOCKET", "/system/logs", s.SystemLogs)
+	r.Route("GET", "/system/metrics", s.SystemMetrics)
 	r.Route("GET", "/system/processes", s.SystemProcesses)
 	r.Route("GET", "/system/releases", s.SystemReleases)
 	r.Route("", "", s.SystemUninstall)
