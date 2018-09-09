@@ -43,6 +43,8 @@ type Provider struct {
 	Region   string
 	Endpoint string
 
+	AsgSpot             string
+	AsgStandard         string
 	BuildCluster        string
 	ClientId            string
 	CloudformationTopic string
@@ -128,6 +130,8 @@ func (p *Provider) loadParams() error {
 		labels[k] = *v
 	}
 
+	p.AsgSpot = labels["rack.AsgSpot"]
+	p.AsgStandard = labels["rack.AsgStandard"]
 	p.BuildCluster = labels["rack.BuildCluster"]
 	p.CloudformationTopic = labels["rack.CloudformationTopic"]
 	p.Cluster = labels["rack.Cluster"]

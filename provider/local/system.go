@@ -203,6 +203,10 @@ func (p *Provider) SystemLogs(opts structs.LogsOptions) (io.ReadCloser, error) {
 	return r, log.Success()
 }
 
+func (p *Provider) SystemMetrics(opts structs.MetricsOptions) (structs.Metrics, error) {
+	return nil, fmt.Errorf("unimplemented")
+}
+
 func (p *Provider) SystemOptions() (map[string]string, error) {
 	log := p.logger("SystemOptions")
 

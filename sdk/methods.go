@@ -826,6 +826,21 @@ func (c *Client) SystemLogs(opts structs.LogsOptions) (io.ReadCloser, error) {
 	return v, err
 }
 
+func (c *Client) SystemMetrics(opts structs.MetricsOptions) (structs.Metrics, error) {
+	var err error
+
+	ro, err := stdsdk.MarshalOptions(opts)
+	if err != nil {
+		return nil, err
+	}
+
+	var v structs.Metrics
+
+	err = c.Get(fmt.Sprintf("/system/metrics"), ro, &v)
+
+	return v, err
+}
+
 func (c *Client) SystemProcesses(opts structs.SystemProcessesOptions) (structs.Processes, error) {
 	var err error
 

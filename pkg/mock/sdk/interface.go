@@ -1563,6 +1563,29 @@ func (_m *Interface) SystemLogs(opts structs.LogsOptions) (io.ReadCloser, error)
 	return r0, r1
 }
 
+// SystemMetrics provides a mock function with given fields: opts
+func (_m *Interface) SystemMetrics(opts structs.MetricsOptions) (structs.Metrics, error) {
+	ret := _m.Called(opts)
+
+	var r0 structs.Metrics
+	if rf, ok := ret.Get(0).(func(structs.MetricsOptions) structs.Metrics); ok {
+		r0 = rf(opts)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(structs.Metrics)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(structs.MetricsOptions) error); ok {
+		r1 = rf(opts)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // SystemProcesses provides a mock function with given fields: opts
 func (_m *Interface) SystemProcesses(opts structs.SystemProcessesOptions) (structs.Processes, error) {
 	ret := _m.Called(opts)

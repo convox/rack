@@ -80,6 +80,7 @@ type Provider interface {
 	SystemGet() (*System, error)
 	SystemInstall(w io.Writer, opts SystemInstallOptions) (string, error)
 	SystemLogs(opts LogsOptions) (io.ReadCloser, error)
+	SystemMetrics(opts MetricsOptions) (Metrics, error)
 	SystemProcesses(opts SystemProcessesOptions) (Processes, error)
 	SystemReleases() (Releases, error)
 	SystemUninstall(name string, w io.Writer, opts SystemUninstallOptions) error

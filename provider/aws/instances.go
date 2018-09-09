@@ -6,6 +6,7 @@ import (
 	"math/rand"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
@@ -54,7 +55,7 @@ func (p *Provider) InstanceList() (structs.Instances, error) {
 					PrivateIp: cs(i.PrivateIpAddress, ""),
 					PublicIp:  cs(i.PublicIpAddress, ""),
 					Status:    "",
-					Started:   ct(i.LaunchTime),
+					Started:   ct(i.LaunchTime, time.Time{}),
 				}
 			}
 		}
