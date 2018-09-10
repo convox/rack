@@ -226,7 +226,7 @@ func dockerSystemId() (string, error) {
 
 	for _, line := range strings.Split(string(data), "\n") {
 		if strings.HasPrefix(line, "ID: ") {
-			return strings.ToLower(strings.TrimPrefix(line, "ID :")), nil
+			return strings.ToLower(strings.TrimPrefix(line, "ID: ")), nil
 		}
 	}
 
