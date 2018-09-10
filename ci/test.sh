@@ -37,7 +37,7 @@ convox instances ssh $instance "ls -la" | grep ec2-user
 convox instances terminate $instance
 convox rack | grep elb.amazonaws.com
 convox rack logs --no-follow | grep service/web
-convox rack ps | grep bin/web
+convox rack ps | grep bin/rack
 convox rack releases
 convox rack params | grep LogRetention
 convox rack params set LogRetention=14 --wait
@@ -61,7 +61,7 @@ build=$(convox api get /apps/ci2/builds | jq -r ".[0].id") && [ -n "$build" ]
 convox builds -a ci2 | grep $build
 convox builds info $build -a ci2 | grep $build
 convox builds info $build -a ci2 | grep cibuild
-convox builds logs $build -a ci2 | grep "Pushing:"
+convox builds logs $build -a ci2 | grep "Running: docker push"
 convox builds export $build -a ci2 -f /tmp/build.tgz
 releasei=$(convox builds import -a ci2 -f /tmp/build.tgz --id) && [ -n "$releasei" ]
 buildi=$(convox api get /apps/ci2/releases/$releasei | jq -r ".build") && [ -n "$buildi" ]

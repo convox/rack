@@ -1,6 +1,7 @@
 package start
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"path/filepath"
@@ -10,7 +11,23 @@ import (
 	"github.com/convox/rack/pkg/manifest1"
 )
 
-func (s *Start) Start1(opts Options) error {
+type Options1 struct {
+	App      string
+	Build    bool
+	Cache    bool
+	Command  []string
+	Manifest string
+	Service  string
+	Shift    int
+	Sync     bool
+}
+
+func (s *Start) Start1(ctx context.Context, opts Options1) error {
+	select {
+	case <-ctx.Done():
+		return nil
+	default:
+	}
 	opts.Manifest = helpers.Coalesce(opts.Manifest, "docker-compose.yml")
 
 	if !helpers.FileExists(opts.Manifest) {
@@ -36,20 +53,6 @@ func (s *Start) Start1(opts Options) error {
 		return errors.New(strings.Join(ss, "\n"))
 	}
 
-	service := ""
-
-	if opts.Services != nil {
-		if len(opts.Services) > 1 {
-			return fmt.Errorf("can not specify multiple services for gen1 apps")
-		}
-
-		service = opts.Services[0]
-
-		if _, ok := m.Services[service]; !ok {
-			return fmt.Errorf("service not found in manifest: %s", service)
-		}
-	}
-
 	if err := m.Shift(opts.Shift); err != nil {
 		return err
 	}
@@ -66,17 +69,15 @@ func (s *Start) Start1(opts Options) error {
 		Build:   opts.Build,
 		Cache:   opts.Cache,
 		Command: opts.Command,
-		Service: service,
+		Service: opts.Service,
 		Sync:    opts.Sync,
 	})
 
-	err = r.Start()
-	if err != nil {
-		r.Stop()
+	defer r.Stop()
+
+	if err := r.Start(); err != nil {
 		return err
 	}
 
-	go handleInterrupt(func() { r.Stop() })
-
-	return r.Wait()
+	return r.Wait(ctx)
 }
