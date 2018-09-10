@@ -79,6 +79,8 @@ func (bb *Build) buildArgs(dockerfile string, env map[string]string) ([]string, 
 }
 
 func (bb *Build) injectConvoxEnv(tag string) error {
+	fmt.Fprintf(bb.writer, "Injecting: convox-env\n")
+
 	var cmd []string
 	var entrypoint []string
 
@@ -138,15 +140,22 @@ func (bb *Build) injectConvoxEnv(tag string) error {
 }
 
 func (bb *Build) pull(tag string) error {
+	fmt.Fprintf(bb.writer, "Running: docker pull %s\n", tag)
+
 	_, err := bb.Exec.Execute("docker", "pull", tag)
 	return err
 }
 
 func (bb *Build) push(tag string) error {
+	fmt.Fprintf(bb.writer, "Running: docker push %s\n", tag)
+
 	_, err := bb.Exec.Execute("docker", "push", tag)
 	return err
 }
 
 func (bb *Build) tag(from, to string) error {
-	return bb.Exec.Run(bb.writer, "docker", "tag", from, to)
+	fmt.Fprintf(bb.writer, "Running: docker tag %s %s\n", from, to)
+
+	_, err := bb.Exec.Execute("docker", "tag", from, to)
+	return err
 }

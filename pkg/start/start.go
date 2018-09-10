@@ -1,35 +1,52 @@
 package start
 
 import (
+	"context"
 	"fmt"
+	"io"
 	"os"
 	"os/signal"
 
-	"github.com/convox/rack/pkg/structs"
+	"github.com/convox/exec"
+	"github.com/convox/rack/pkg/prefix"
+)
+
+var (
+	Exec exec.Interface = &exec.Exec{}
 )
 
 type Interface interface {
-	Start1(Options) error
-	Start2(structs.Provider, Options) error
-}
-
-type Options struct {
-	App     string
-	Build   bool
-	Cache   bool
-	Command []string
-	// Context  *cli.Context
-	Id       string
-	Manifest string
-	Services []string
-	Shift    int
-	Sync     bool
+	Start1(context.Context, Options1) error
+	Start2(context.Context, io.Writer, Options2) error
 }
 
 type Start struct{}
 
 func New() Interface {
 	return &Start{}
+}
+
+func prefixHash(prefix string) int {
+	sum := 0
+
+	for c := range prefix {
+		sum += int(c)
+	}
+
+	return sum % 18
+}
+
+func prefixWriter(w io.Writer, services map[string]bool) prefix.Writer {
+	prefixes := map[string]string{
+		"build":  "system",
+		"convox": "system",
+	}
+
+	for s := range services {
+		prefixes[s] = fmt.Sprintf("color%d", prefixHash(s))
+	}
+
+	return prefix.NewWriter(w, prefixes)
 }
 
 func handleInterrupt(fn func()) {

@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"fmt"
 	"os"
 	"time"
 
@@ -30,11 +31,19 @@ func New(name, version string) *Engine {
 	}
 
 	e.Writer.Tags["app"] = stdcli.RenderColors(39)
+	e.Writer.Tags["dir"] = stdcli.RenderColors(246)
 	e.Writer.Tags["build"] = stdcli.RenderColors(23)
+	e.Writer.Tags["fail"] = stdcli.RenderColors(160)
 	e.Writer.Tags["rack"] = stdcli.RenderColors(26)
 	e.Writer.Tags["process"] = stdcli.RenderColors(27)
 	e.Writer.Tags["release"] = stdcli.RenderColors(24)
 	e.Writer.Tags["service"] = stdcli.RenderColors(25)
+	e.Writer.Tags["setting"] = stdcli.RenderColors(246)
+	e.Writer.Tags["system"] = stdcli.RenderColors(15)
+
+	for i := 0; i < 18; i++ {
+		e.Writer.Tags[fmt.Sprintf("color%d", i)] = stdcli.RenderColors(237 + i)
+	}
 
 	if dir := os.Getenv("CONVOX_CONFIG"); dir != "" {
 		e.Settings = dir

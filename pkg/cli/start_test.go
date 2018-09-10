@@ -19,14 +19,14 @@ func TestStart1(t *testing.T) {
 		ms := &mockstart.Interface{}
 		cli.Starter = ms
 
-		opts := start.Options{
+		opts := start.Options1{
 			App:   "app1",
 			Build: true,
 			Cache: true,
 			Sync:  true,
 		}
 
-		ms.On("Start1", opts).Return(nil)
+		ms.On("Start1", mock.Anything, opts).Return(nil)
 
 		i.On("SystemGet").Return(fxSystemLocal, nil)
 
@@ -43,14 +43,14 @@ func TestStart1Error(t *testing.T) {
 		ms := &mockstart.Interface{}
 		cli.Starter = ms
 
-		opts := start.Options{
+		opts := start.Options1{
 			App:   "app1",
 			Build: true,
 			Cache: true,
 			Sync:  true,
 		}
 
-		ms.On("Start1", opts).Return(fmt.Errorf("err1"))
+		ms.On("Start1", mock.Anything, opts).Return(fmt.Errorf("err1"))
 
 		i.On("SystemGet").Return(fxSystemLocal, nil)
 
@@ -67,18 +67,18 @@ func TestStart1Options(t *testing.T) {
 		ms := &mockstart.Interface{}
 		cli.Starter = ms
 
-		opts := start.Options{
+		opts := start.Options1{
 			App:      "app1",
 			Build:    false,
 			Cache:    false,
 			Command:  []string{"bin/command", "args"},
 			Manifest: "manifest1",
-			Services: []string{"service1"},
+			Service:  "service1",
 			Shift:    3000,
 			Sync:     false,
 		}
 
-		ms.On("Start1", opts).Return(nil)
+		ms.On("Start1", mock.Anything, opts).Return(nil)
 
 		i.On("SystemGet").Return(fxSystemLocal, nil)
 
@@ -100,14 +100,15 @@ func TestStart2(t *testing.T) {
 		ms := &mockstart.Interface{}
 		cli.Starter = ms
 
-		opts := start.Options{
-			App:   "app1",
-			Build: true,
-			Cache: true,
-			Sync:  true,
+		opts := start.Options2{
+			App:      "app1",
+			Build:    true,
+			Cache:    true,
+			Provider: i,
+			Sync:     true,
 		}
 
-		ms.On("Start2", i, opts).Return(nil)
+		ms.On("Start2", mock.Anything, mock.Anything, opts).Return(nil)
 
 		i.On("SystemGet").Return(fxSystemLocal, nil)
 
@@ -129,14 +130,15 @@ func TestStart2Error(t *testing.T) {
 		ms := &mockstart.Interface{}
 		cli.Starter = ms
 
-		opts := start.Options{
-			App:   "app1",
-			Build: true,
-			Cache: true,
-			Sync:  true,
+		opts := start.Options2{
+			App:      "app1",
+			Build:    true,
+			Cache:    true,
+			Provider: i,
+			Sync:     true,
 		}
 
-		ms.On("Start2", i, opts).Return(fmt.Errorf("err1"))
+		ms.On("Start2", mock.Anything, mock.Anything, opts).Return(fmt.Errorf("err1"))
 
 		i.On("SystemGet").Return(fxSystemLocal, nil)
 
@@ -158,16 +160,17 @@ func TestStart2Options(t *testing.T) {
 		ms := &mockstart.Interface{}
 		cli.Starter = ms
 
-		opts := start.Options{
+		opts := start.Options2{
 			App:      "app1",
 			Build:    false,
 			Cache:    false,
 			Manifest: "manifest1",
+			Provider: i,
 			Services: []string{"service1", "service2"},
 			Sync:     false,
 		}
 
-		ms.On("Start2", i, opts).Return(nil)
+		ms.On("Start2", mock.Anything, mock.Anything, opts).Return(nil)
 
 		i.On("SystemGet").Return(fxSystemLocal(), nil)
 
@@ -189,17 +192,15 @@ func TestStart2Remote(t *testing.T) {
 		ms := &mockstart.Interface{}
 		cli.Starter = ms
 
-		opts := start.Options{
-			App:   "app1",
-			Build: true,
-			Cache: true,
-			Sync:  true,
-		}
-
-		ms.On("Start2", mock.Anything, opts).Return(nil).Run(func(args mock.Arguments) {
-			s := args.Get(0).(*sdk.Client)
-			require.Equal(t, "https", s.Client.Endpoint.Scheme)
-			require.Equal(t, "rack.classic", s.Client.Endpoint.Host)
+		ms.On("Start2", mock.Anything, mock.Anything, mock.Anything).Return(nil).Run(func(args mock.Arguments) {
+			opts := args.Get(2).(start.Options2)
+			require.Equal(t, "app1", opts.App)
+			require.Equal(t, true, opts.Build)
+			require.Equal(t, true, opts.Cache)
+			require.Equal(t, true, opts.Sync)
+			p := opts.Provider.(*sdk.Client)
+			require.Equal(t, "https", p.Client.Endpoint.Scheme)
+			require.Equal(t, "rack.classic", p.Client.Endpoint.Host)
 		})
 
 		i.On("SystemGet").Return(fxSystem(), nil)
@@ -222,7 +223,7 @@ func TestStart2RemoteMultiple(t *testing.T) {
 		ms := &mockstart.Interface{}
 		cli.Starter = ms
 
-		opts := start.Options{
+		opts := start.Options2{
 			App:   "app1",
 			Build: true,
 			Cache: true,

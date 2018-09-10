@@ -127,14 +127,6 @@
   version = "v1.3.1"
 
 [[projects]]
-  digest = "1:516ee3a1fa7124ae809f64a432c0a78fcb4dc35f0e9bb0ba8760218136462416"
-  name = "github.com/cloudflare/cfssl"
-  packages = ["log"]
-  pruneopts = "NUT"
-  revision = "db0d0650b6496bfe8061ec56a92edd32d8e75c30"
-  version = "1.2.0"
-
-[[projects]]
   branch = "master"
   digest = "1:04874d362220e95f0edeaeb1a29370ebebda09a23148c98b8c629d4fec1c1441"
   name = "github.com/convox/changes"
@@ -176,11 +168,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:8b5b02da8bfb519d8aaac4c3d56cead3e65d4ab1b785f422735a828096957f50"
+  digest = "1:e25a9e8b551ce6ea19dc8d6002f84b47717fc9f76497325f485573c6de70fb49"
   name = "github.com/convox/stdcli"
   packages = ["."]
   pruneopts = "NUT"
-  revision = "dd62994b556dedbaa3de3da2290c0149af3c5fe5"
+  revision = "1aa1b42f7238d36ab9d76fca03ea56a0f7f5abe4"
 
 [[projects]]
   branch = "master"
@@ -439,17 +431,6 @@
   revision = "b8bc1bf767474819792c23f32d8286a45736f1c6"
 
 [[projects]]
-  digest = "1:3a41dc0cc1516ec83332af49a7e98a3f45e9a6a082c2d743c669e08dc9f471d5"
-  name = "github.com/moby/moby"
-  packages = [
-    "builder/dockerignore",
-    "pkg/archive",
-  ]
-  pruneopts = "NUT"
-  revision = "092cba3727bb9b4a2f0e922cd6c0f93ea270e363"
-  version = "v1.13.1"
-
-[[projects]]
   digest = "1:1b9ae1eb2a842fc4562b71ab43421c5d025131cd9170f9b53a44dcf6a2f5d8d1"
   name = "github.com/mweagle/Sparta"
   packages = ["aws/cloudwatchlogs"]
@@ -602,14 +583,6 @@
   revision = "8b4580aae2a0dd0c231a45d3ccb8434ff533b840"
 
 [[projects]]
-  digest = "1:5dba68a1600a235630e208cb7196b24e58fcbb77bb7a6bec08fcd23f081b0a58"
-  name = "gopkg.in/urfave/cli.v1"
-  packages = ["."]
-  pruneopts = "NUT"
-  revision = "cfb38830724cc34fedffe9a2a29fb54fa9169cd1"
-  version = "v1.20.0"
-
-[[projects]]
   branch = "v2"
   digest = "1:8c53ce78f10de538c37a5fb33148f81ce068a0b25bec08d8521212e0c0b5f7bd"
   name = "gopkg.in/yaml.v2"
@@ -646,7 +619,6 @@
     "github.com/aws/aws-sdk-go/service/sqs",
     "github.com/aws/aws-sdk-go/service/sts",
     "github.com/boltdb/bolt",
-    "github.com/cloudflare/cfssl/log",
     "github.com/convox/changes",
     "github.com/convox/exec",
     "github.com/convox/logger",
@@ -655,6 +627,7 @@
     "github.com/convox/stdsdk",
     "github.com/convox/version",
     "github.com/docker/docker/builder/dockerignore",
+    "github.com/docker/docker/pkg/archive",
     "github.com/docker/go-units",
     "github.com/dustin/go-humanize",
     "github.com/fatih/color",
@@ -668,8 +641,6 @@
     "github.com/kr/pty",
     "github.com/miekg/dns",
     "github.com/mitchellh/go-homedir",
-    "github.com/moby/moby/builder/dockerignore",
-    "github.com/moby/moby/pkg/archive",
     "github.com/mweagle/Sparta/aws/cloudwatchlogs",
     "github.com/pkg/errors",
     "github.com/segmentio/analytics-go",
@@ -681,7 +652,6 @@
     "golang.org/x/crypto/nacl/secretbox",
     "golang.org/x/crypto/ssh",
     "golang.org/x/net/websocket",
-    "gopkg.in/urfave/cli.v1",
     "gopkg.in/yaml.v2",
   ]
   solver-name = "gps-cdcl"
