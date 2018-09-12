@@ -26,7 +26,6 @@ type Context struct {
 	context  context.Context
 	id       string
 	logger   *logger.Logger
-	name     string
 	request  *http.Request
 	response http.ResponseWriter
 	rvars    map[string]string
@@ -132,10 +131,6 @@ func (c *Context) Header(name string) string {
 
 func (c *Context) Logf(format string, args ...interface{}) {
 	c.logger.Logf(format, args...)
-}
-
-func (c *Context) Name() string {
-	return c.name
 }
 
 func (c *Context) Query(name string) string {
