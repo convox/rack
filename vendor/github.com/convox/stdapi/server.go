@@ -48,7 +48,7 @@ func (s *Server) Listen(proto, addr string) error {
 	return http.Serve(l, s)
 }
 
-func (s *Server) MatcherFunc(fn mux.MatcherFunc) *Router {
+func (s *Server) MatcherFunc(fn mux.MatcherFunc) Route {
 	return s.Router.MatcherFunc(fn)
 }
 
@@ -60,8 +60,8 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	s.Router.ServeHTTP(w, r)
 }
 
-func (s *Server) Subrouter(prefix string, fn func(*Router)) *Router {
-	r := &Router{
+func (s *Server) Subrouter(prefix string, fn func(Router)) Router {
+	r := Router{
 		Parent: s.Router,
 		Router: s.Router.PathPrefix(prefix).Subrouter(),
 		Server: s,

@@ -30,33 +30,6 @@ type rack struct {
 	Status string
 }
 
-func (e *Engine) currentClient(c *stdcli.Context) sdk.Interface {
-	if e.Client != nil {
-		return e.Client
-	}
-
-	host, err := currentHost(c)
-	if err != nil {
-		c.Fail(err)
-	}
-
-	r := currentRack(c, host)
-
-	endpoint, err := currentEndpoint(c, r)
-	if err != nil {
-		c.Fail(err)
-	}
-
-	sc, err := sdk.New(endpoint)
-	if err != nil {
-		c.Fail(err)
-	}
-
-	sc.Rack = r
-
-	return sc
-}
-
 func app(c *stdcli.Context) string {
 	wd, err := os.Getwd()
 	if err != nil {

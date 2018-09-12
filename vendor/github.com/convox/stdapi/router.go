@@ -26,19 +26,18 @@ type Route struct {
 	Router *Router
 }
 
-// func (r Route) Subrouter(prefix string, fn func(Router)) {
-//   fn(Router{
-//     Parent: r.Router,
-//     Router: r.PathPrefix(prefix).Subrouter(),
-//     Server: r.Router.Server,
-//   })
-// }
+func (r Route) Subrouter(prefix string, fn func(Router)) {
+	fn(Router{
+		Parent: r.Router,
+		Router: r.PathPrefix(prefix).Subrouter(),
+		Server: r.Router.Server,
+	})
+}
 
-func (rt *Router) MatcherFunc(fn mux.MatcherFunc) *Router {
-	return &Router{
-		Parent: rt,
-		Router: rt.Router.MatcherFunc(fn).Subrouter(),
-		Server: rt.Server,
+func (rt *Router) MatcherFunc(fn mux.MatcherFunc) Route {
+	return Route{
+		Route:  rt.Router.MatcherFunc(fn),
+		Router: rt,
 	}
 }
 
@@ -73,11 +72,11 @@ func (rt *Router) Static(prefix, path string) Route {
 	}
 }
 
-func (rt *Router) Subrouter(prefix string, fn func(*Router)) {
-	fn(&Router{
-		Parent: rt,
-		Router: rt.PathPrefix(prefix).Subrouter(),
-		Server: rt.Server,
+func (r *Router) Subrouter(prefix string, fn func(Router)) {
+	fn(Router{
+		Parent: r,
+		Router: r.PathPrefix(prefix).Subrouter(),
+		Server: r.Server,
 	})
 }
 
@@ -107,7 +106,6 @@ func (rt *Router) context(name string, w http.ResponseWriter, r *http.Request, c
 	c.context = context.WithValue(r.Context(), "request.id", id)
 	c.id = id
 	c.logger = rt.Server.Logger.Prepend("id=%s", id).At(name)
-	c.name = name
 	c.ws = conn
 
 	return c, nil
@@ -140,21 +138,9 @@ func (rt *Router) handle(fn HandlerFunc, c *Context) error {
 
 	mw := []Middleware{}
 
-	p := rt.Parent
-
-	for {
-		if p == nil {
-			break
-		}
-
-		mw = append(p.Middleware, mw...)
-
-		p = p.Parent
+	if rt.Parent != nil {
+		mw = append(mw, rt.Parent.Middleware...)
 	}
-
-	// if rt.Parent != nil {
-	//   mw = append(mw, rt.Parent.Middleware...)
-	// }
 
 	mw = append(mw, rt.Middleware...)
 
