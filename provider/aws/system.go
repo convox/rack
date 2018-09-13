@@ -394,7 +394,7 @@ func (p *Provider) cloudwatchMetric(name string, ns, metric string, dimensions m
 		StartTime:  aws.Time(ct(opts.Start, time.Now().Add(-24*time.Hour))),
 	}
 
-	res, err := p.cloudwatch().GetMetricStatistics(req)
+	res, err := p.CloudWatch.GetMetricStatistics(req)
 	if err != nil {
 		return nil, err
 	}
