@@ -16,7 +16,9 @@ WORKDIR /go/src/github.com/convox/rack
 COPY . .
 
 RUN env CGO_ENABLED=0 go install --ldflags '-extldflags "-static"' ./cmd/convox-env
-RUN go install ./cmd/...
+
+RUN go install ./cmd/build
+RUN go install ./cmd/monitor
 RUN go install .
 
 CMD ["bin/web"]
