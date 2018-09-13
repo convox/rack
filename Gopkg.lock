@@ -177,19 +177,19 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:e25a9e8b551ce6ea19dc8d6002f84b47717fc9f76497325f485573c6de70fb49"
+  digest = "1:e66f34674adb363daca0dcf84129b1f427f6390b32057646469bb54d276e7e9d"
   name = "github.com/convox/stdcli"
   packages = ["."]
   pruneopts = "NUT"
-  revision = "1aa1b42f7238d36ab9d76fca03ea56a0f7f5abe4"
+  revision = "b34206670e48eca7101810693d65b5413a2e7a2b"
 
 [[projects]]
   branch = "master"
-  digest = "1:fc782b643f850e5d197dcaa8a4dd9b4e272883ccbfaffcbccd3fe66bb6241dc9"
+  digest = "1:8b3daffa25c8ca5dbd3b924363fde4c9dbe6af982b60365eb6c00da1478b93d5"
   name = "github.com/convox/stdsdk"
   packages = ["."]
   pruneopts = "NUT"
-  revision = "1510063d454cf7fc16260bbb326435b5c076377e"
+  revision = "ff49450a8b3cbaacb6bbfc0be72d31d7644ed50a"
 
 [[projects]]
   branch = "master"

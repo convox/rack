@@ -2,9 +2,7 @@ package stdcli
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
-	"path/filepath"
 	"reflect"
 	"strings"
 	"time"
@@ -151,72 +149,28 @@ func (c *Context) Reader() *Reader {
 	return c.engine.Reader
 }
 
-func (c *Context) SettingDelete(name string) error {
-	file, err := c.engine.settingFile(name)
-	if err != nil {
-		return err
-	}
-
-	if _, err := os.Stat(file); os.IsNotExist(err) {
-		return nil
-	}
-
-	if err := os.Remove(file); err != nil {
-		return err
-	}
-
-	return nil
+func (c *Context) LocalSetting(name string) string {
+	return c.engine.LocalSetting(name)
 }
 
-func (c *Context) LocalSetting(name string) string {
-	file := filepath.Join(c.engine.localSettingDir(), name)
-
-	if _, err := os.Stat(file); os.IsNotExist(err) {
-		return ""
-	}
-
-	data, err := ioutil.ReadFile(file)
-	if err != nil {
-		return ""
-	}
-
-	return strings.TrimSpace(string(data))
+func (c *Context) SettingDelete(name string) error {
+	return c.engine.SettingDelete(name)
 }
 
 func (c *Context) SettingRead(name string) (string, error) {
-	file, err := c.engine.settingFile(name)
-	if err != nil {
-		return "", err
-	}
+	return c.engine.SettingRead(name)
+}
 
-	data, err := ioutil.ReadFile(file)
-	if os.IsNotExist(err) {
-		return "", nil
-	}
-	if err != nil {
-		return "", err
-	}
-
-	return strings.TrimSpace(string(data)), nil
+func (c *Context) SettingReadKey(name, key string) (string, error) {
+	return c.engine.SettingReadKey(name, key)
 }
 
 func (c *Context) SettingWrite(name, value string) error {
-	file, err := c.engine.settingFile(name)
-	if err != nil {
-		return err
-	}
+	return c.engine.SettingWrite(name, value)
+}
 
-	dir := filepath.Dir(file)
-
-	if err := os.MkdirAll(dir, 0700); err != nil {
-		return err
-	}
-
-	if err := ioutil.WriteFile(file, []byte(value), 0600); err != nil {
-		return err
-	}
-
-	return nil
+func (c *Context) SettingWriteKey(name, key, value string) error {
+	return c.engine.SettingWriteKey(name, key, value)
 }
 
 func (c *Context) Table(columns ...string) *Table {

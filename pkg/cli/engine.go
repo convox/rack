@@ -1,15 +1,8 @@
 package cli
 
 import (
-	"bytes"
-	"io/ioutil"
-	"net/http"
-	"regexp"
-
-	"github.com/convox/rack/pkg/token"
 	"github.com/convox/rack/sdk"
 	"github.com/convox/stdcli"
-	"github.com/convox/stdsdk"
 )
 
 type Engine struct {
@@ -43,64 +36,6 @@ func (e *Engine) RegisterCommands() {
 	}
 }
 
-var reSessionAuthentication = regexp.MustCompile(`^Session path="([^"]+)" token="([^"]+)"$`)
-
-type session struct {
-	Id string `json:"id"`
-}
-
-func (e *Engine) authenticator(c *stdsdk.Client, res *http.Response) (http.Header, error) {
-	m := reSessionAuthentication.FindStringSubmatch(res.Header.Get("WWW-Authenticate"))
-	if len(m) < 3 {
-		return nil, nil
-	}
-
-	body := []byte{}
-	headers := map[string]string{}
-
-	if m[2] == "true" {
-		areq, err := c.GetStream(m[1], stdsdk.RequestOptions{})
-		if err != nil {
-			return nil, err
-		}
-		defer areq.Body.Close()
-
-		dreq, err := ioutil.ReadAll(areq.Body)
-		if err != nil {
-			return nil, err
-		}
-
-		e.Writer.Writef("Waiting for security token... ")
-
-		data, err := token.Authenticate(dreq)
-		if err != nil {
-			return nil, err
-		}
-
-		e.Writer.Writef("<ok>OK</ok>\n")
-
-		body = data
-		headers["Challenge"] = areq.Header.Get("Challenge")
-	}
-
-	var s session
-
-	ro := stdsdk.RequestOptions{
-		Body:    bytes.NewReader(body),
-		Headers: stdsdk.Headers(headers),
-	}
-
-	if err := c.Post(m[1], ro, &s); err != nil {
-		return nil, err
-	}
-
-	h := http.Header{}
-
-	h.Set("Session", s.Id)
-
-	return h, nil
-}
-
 func (e *Engine) currentClient(c *stdcli.Context) sdk.Interface {
 	if e.Client != nil {
 		return e.Client
@@ -118,6 +53,11 @@ func (e *Engine) currentClient(c *stdcli.Context) sdk.Interface {
 		c.Fail(err)
 	}
 
+	session, err := c.SettingReadKey("session", host)
+	if err != nil {
+		c.Fail(err)
+	}
+
 	sc, err := sdk.New(endpoint)
 	if err != nil {
 		c.Fail(err)
@@ -125,6 +65,7 @@ func (e *Engine) currentClient(c *stdcli.Context) sdk.Interface {
 
 	sc.Authenticator = e.authenticator
 	sc.Rack = r
+	sc.Session = session
 
 	return sc
 }

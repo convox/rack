@@ -88,7 +88,7 @@ func currentPassword(c *stdcli.Context, host string) (string, error) {
 		return pw, nil
 	}
 
-	return hostAuth(c, host)
+	return c.SettingReadKey("auth", host)
 }
 
 func currentEndpoint(c *stdcli.Context, rack_ string) (string, error) {
@@ -193,27 +193,6 @@ func handleSignalTermination(c *stdcli.Context, name string) {
 		fmt.Printf("\nstopping: %s\n", name)
 		c.Run("docker", "stop", name)
 	}
-}
-
-func hostAuth(c *stdcli.Context, host string) (string, error) {
-	data, err := c.SettingRead("auth")
-	if err != nil {
-		return "", err
-	}
-
-	auth := map[string]string{}
-
-	if data != "" {
-		if err := json.Unmarshal([]byte(data), &auth); err != nil {
-			return "", err
-		}
-	}
-
-	if pass, ok := auth[host]; ok {
-		return pass, nil
-	}
-
-	return "", nil
 }
 
 func hostRacks(c *stdcli.Context) map[string]string {
@@ -406,34 +385,6 @@ func remoteRacks(c *stdcli.Context) ([]rack, error) {
 	}
 
 	return racks, nil
-}
-
-func saveAuth(c *stdcli.Context, host, password string) error {
-	as, err := c.SettingRead("auth")
-	if err != nil {
-		return err
-	}
-
-	data := []byte(coalesce(as, "{}"))
-
-	var auth map[string]string
-
-	if err := json.Unmarshal(data, &auth); err != nil {
-		return err
-	}
-
-	auth[host] = password
-
-	data, err = json.MarshalIndent(auth, "", "  ")
-	if err != nil {
-		return err
-	}
-
-	if err := c.SettingWrite("auth", string(data)); err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func streamAppLogs(ctx context.Context, rack sdk.Interface, c *stdcli.Context, app string) {

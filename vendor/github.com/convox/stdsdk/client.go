@@ -309,6 +309,7 @@ func (c *Client) HandleRequest(req *http.Request) (*http.Response, error) {
 			}
 			if hs != nil {
 				for k, v := range hs {
+					req.Header.Del(k)
 					for _, s := range v {
 						req.Header.Add(k, s)
 					}
