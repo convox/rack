@@ -531,13 +531,19 @@ func waitForAppDeleted(rack sdk.Interface, c *stdcli.Context, app string) error 
 func waitForAppRunning(rack sdk.Interface, app string) error {
 	time.Sleep(WaitDuration) // give the stack time to start updating
 
+	var waitError error
+
 	return wait(WaitDuration, 30*time.Minute, 2, func() (bool, error) {
 		a, err := rack.AppGet(app)
 		if err != nil {
 			return false, err
 		}
 
-		return a.Status == "running", nil
+		if a.Status == "rollback" {
+			waitError = fmt.Errorf("rollback")
+		}
+
+		return a.Status == "running", waitError
 	})
 }
 
