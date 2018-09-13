@@ -15,6 +15,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
+	"github.com/aws/aws-sdk-go/service/cloudwatch/cloudwatchiface"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/ec2"
@@ -75,6 +76,8 @@ type Provider struct {
 
 	Metrics   *metrics.Metrics
 	SkipCache bool
+
+	CloudWatch cloudwatchiface.CloudWatchAPI
 
 	ctx context.Context
 	log *logger.Logger
@@ -170,6 +173,8 @@ func (p *Provider) Initialize(opts structs.ProviderOptions) error {
 	if os.Getenv("COMBINED") == "true" {
 		go p.Workers()
 	}
+
+	p.CloudWatch = cloudwatch.New(session.New(), p.config())
 
 	return nil
 }

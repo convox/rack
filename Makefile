@@ -19,6 +19,7 @@ mocks:
 	make -C pkg/structs mocks
 	mockery -case underscore -dir pkg/start -outpkg sdk -output pkg/mock/start -name Interface
 	mockery -case underscore -dir sdk -outpkg sdk -output pkg/mock/sdk -name Interface
+	mockery -case underscore -dir vendor/github.com/aws/aws-sdk-go/service/cloudwatch/cloudwatchiface -outpkg aws -output pkg/mock/aws -name CloudWatchAPI
 	mockery -case underscore -dir vendor/github.com/convox/stdcli -outpkg stdcli -output pkg/mock/stdcli -name Executor
 
 

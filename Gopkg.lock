@@ -65,7 +65,7 @@
   version = "v1.2.0"
 
 [[projects]]
-  digest = "1:063349d0f3137fc29f59f9fae80ba7bba0bcc4b35c81370d3b3c50d2524c8016"
+  digest = "1:e7d095069975495115514684047b021e4bd60630a8c93fa4f344efd6308751f0"
   name = "github.com/aws/aws-sdk-go"
   packages = [
     "aws",
@@ -99,6 +99,7 @@
     "service/autoscaling",
     "service/cloudformation",
     "service/cloudwatch",
+    "service/cloudwatch/cloudwatchiface",
     "service/cloudwatchlogs",
     "service/dynamodb",
     "service/ec2",
@@ -605,6 +606,7 @@
     "github.com/aws/aws-sdk-go/service/autoscaling",
     "github.com/aws/aws-sdk-go/service/cloudformation",
     "github.com/aws/aws-sdk-go/service/cloudwatch",
+    "github.com/aws/aws-sdk-go/service/cloudwatch/cloudwatchiface",
     "github.com/aws/aws-sdk-go/service/cloudwatchlogs",
     "github.com/aws/aws-sdk-go/service/dynamodb",
     "github.com/aws/aws-sdk-go/service/ec2",
