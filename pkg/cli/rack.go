@@ -154,7 +154,7 @@ func RackInstall(rack sdk.Interface, c *stdcli.Context) error {
 		}
 	}
 
-	if err := saveAuth(c, u.Host, password); err != nil {
+	if err := c.SettingWriteKey("auth", u.Host, password); err != nil {
 		return err
 	}
 

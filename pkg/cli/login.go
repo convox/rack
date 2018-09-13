@@ -21,7 +21,7 @@ func init() {
 func Login(rack sdk.Interface, c *stdcli.Context) error {
 	hostname := coalesce(c.Arg(0), "console.convox.com")
 
-	auth, err := hostAuth(c, hostname)
+	auth, err := c.SettingReadKey("auth", hostname)
 	if err != nil {
 		return err
 	}
@@ -51,7 +51,7 @@ func Login(rack sdk.Interface, c *stdcli.Context) error {
 		return fmt.Errorf("invalid login")
 	}
 
-	if err := saveAuth(c, hostname, password); err != nil {
+	if err := c.SettingWriteKey("auth", hostname, password); err != nil {
 		return err
 	}
 
