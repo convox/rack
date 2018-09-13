@@ -373,6 +373,13 @@ func remoteRacks(c *stdcli.Context) ([]rack, error) {
 		return nil, err
 	}
 
+	session, err := c.SettingReadKey("session", h)
+	if err != nil {
+		return nil, err
+	}
+
+	p.Session = session
+
 	p.Get("/racks", stdsdk.RequestOptions{}, &rs)
 
 	if rs != nil {
