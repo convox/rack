@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"math"
 	"net/http"
 	"os"
 	"os/exec"
@@ -403,9 +404,9 @@ func (p *Provider) cloudwatchMetric(name string, ns, metric string, dimensions m
 	for _, d := range res.Datapoints {
 		mvs = append(mvs, structs.MetricValue{
 			Time:    *d.Timestamp,
-			Average: *d.Average,
-			Maximum: *d.Maximum,
-			Minimum: *d.Minimum,
+			Average: math.Floor(*d.Average*100) / 100,
+			Maximum: math.Floor(*d.Maximum*100) / 100,
+			Minimum: math.Floor(*d.Minimum*100) / 100,
 		})
 	}
 
