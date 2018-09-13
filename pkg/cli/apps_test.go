@@ -636,3 +636,41 @@ func TestAppsWaitError(t *testing.T) {
 		res.RequireStdout(t, []string{"Waiting for app... "})
 	})
 }
+
+func TestAppsRollback(t *testing.T) {
+	testClientWait(t, 100*time.Millisecond, func(e *cli.Engine, i *mocksdk.Interface) {
+		opts := structs.LogsOptions{
+			Prefix: options.Bool(true),
+			Since:  options.Duration(0),
+		}
+		i.On("AppGet", "app1").Return(&structs.App{Status: "updating"}, nil).Once()
+		i.On("AppGet", "app1").Return(&structs.App{Status: "rollback"}, nil).Once()
+		i.On("AppGet", "app1").Return(fxApp(), nil).Once()
+		i.On("AppLogs", "app1", opts).Return(testLogs(fxLogsSystem()), nil).Once()
+
+		res, err := testExecute(e, "apps wait app1", nil)
+		require.NoError(t, err)
+		require.Equal(t, 1, res.Code)
+		res.RequireStderr(t, []string{"ERROR: rollback"})
+		res.RequireStdout(t, []string{
+			"Waiting for app... ",
+			fxLogsSystem()[0],
+			fxLogsSystem()[1],
+		})
+
+		i.On("AppGet", "app1").Return(&structs.App{Status: "updating"}, nil).Once()
+		i.On("AppGet", "app1").Return(&structs.App{Status: "rollback"}, nil).Once()
+		i.On("AppGet", "app1").Return(fxApp(), nil).Once()
+		i.On("AppLogs", "app1", opts).Return(testLogs(fxLogsSystem()), nil).Once()
+
+		res, err = testExecute(e, "apps wait -a app1", nil)
+		require.NoError(t, err)
+		require.Equal(t, 1, res.Code)
+		res.RequireStderr(t, []string{"ERROR: rollback"})
+		res.RequireStdout(t, []string{
+			"Waiting for app... ",
+			fxLogsSystem()[0],
+			fxLogsSystem()[1],
+		})
+	})
+}
