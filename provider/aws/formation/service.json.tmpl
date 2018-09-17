@@ -23,6 +23,10 @@
       "Fargate": {
         "Value": { "Fn::If": [ "Fargate", "Yes", "No" ] }
       },
+      "SecurityGroup": {
+        "Condition": "IsolateServices",
+        "Value": { "Ref": "Security" }
+      },
       "Service": {
         "Value": { "Ref": "Service" }
       }
