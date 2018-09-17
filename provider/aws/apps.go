@@ -232,12 +232,11 @@ func (p *Provider) AppMetrics(name string, opts structs.MetricsOptions) (structs
 				existing = true
 
 				for j := range mm.Values {
-					for _, v := range m.Values {
-						mms[i].Values[j].Average += v.Average
-						mms[i].Values[j].Count += v.Count
-						mms[i].Values[j].Maximum += v.Maximum
-						mms[i].Values[j].Minimum += v.Minimum
-					}
+					mms[i].Values[j].Average += mm.Values[j].Average
+					mms[i].Values[j].Count += mm.Values[j].Count
+					mms[i].Values[j].Maximum += mm.Values[j].Maximum
+					mms[i].Values[j].Minimum += mm.Values[j].Minimum
+					mms[i].Values[j].Sum += mm.Values[j].Sum
 				}
 
 				break
