@@ -97,15 +97,17 @@ func TestSystemMetrics(t *testing.T) {
 		m1 := structs.Metrics{fxMetric, fxMetric}
 		m2 := structs.Metrics{}
 		opts := structs.MetricsOptions{
-			Start:  options.Time(time.Date(2018, 9, 1, 2, 3, 4, 0, time.UTC)),
-			End:    options.Time(time.Date(2018, 10, 1, 3, 4, 5, 0, time.UTC)),
-			Period: options.Int64(300),
+			End:     options.Time(time.Date(2018, 10, 1, 3, 4, 5, 0, time.UTC)),
+			Metrics: []string{"foo", "bar"},
+			Period:  options.Int64(300),
+			Start:   options.Time(time.Date(2018, 9, 1, 2, 3, 4, 0, time.UTC)),
 		}
 		ro := stdsdk.RequestOptions{
 			Query: stdsdk.Query{
-				"start":  "20180901.020304.000000000",
-				"end":    "20181001.030405.000000000",
-				"period": "300",
+				"end":     "20181001.030405.000000000",
+				"metrics": "foo,bar",
+				"period":  "300",
+				"start":   "20180901.020304.000000000",
 			},
 		}
 		p.On("SystemMetrics", opts).Return(m1, nil)
