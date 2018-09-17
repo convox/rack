@@ -10,14 +10,17 @@ type Metric struct {
 type Metrics []Metric
 
 type MetricValue struct {
-	Time   time.Time `json:"time"`
-	Perc95 float64   `json:"p95"`
+	Average float64   `json:"avg"`
+	Maximum float64   `json:"max"`
+	Minimum float64   `json:"min"`
+	Time    time.Time `json:"time"`
 }
 
 type MetricValues []MetricValue
 
 type MetricsOptions struct {
-	Start  *time.Time `query:"start"`
-	End    *time.Time `query:"end"`
-	Period *int64     `query:"period"`
+	End     *time.Time `query:"end"`
+	Metrics []string   `query:"metrics"`
+	Start   *time.Time `query:"start"`
+	Period  *int64     `query:"period"`
 }

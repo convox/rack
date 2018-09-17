@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"math"
 	"net/http"
 	"os"
 	"os/exec"
@@ -21,11 +20,9 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
-	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/aws/aws-sdk-go/service/kms"
-	"github.com/convox/rack/pkg/options"
 	"github.com/convox/rack/pkg/structs"
 	"github.com/fatih/color"
 	"golang.org/x/crypto/nacl/secretbox"
@@ -331,91 +328,30 @@ func (p *Provider) SystemLogs(opts structs.LogsOptions) (io.ReadCloser, error) {
 }
 
 func (p *Provider) SystemMetrics(opts structs.MetricsOptions) (structs.Metrics, error) {
+	metrics := map[string]bool{}
+
+	if opts.Metrics != nil {
+		for _, m := range opts.Metrics {
+			metrics[m] = true
+		}
+	}
+
 	ms := structs.Metrics{}
 
-	m, err := p.cloudwatchMetric("cluster:cpu:reservation", "AWS/ECS", "CPUReservation", map[string]string{"ClusterName": p.Cluster}, opts)
-	if err != nil {
-		return nil, err
-	}
-	ms = append(ms, *m)
+	for _, md := range p.systemMetricDefinitions() {
+		if len(metrics) > 0 && !metrics[md.Name] {
+			continue
+		}
 
-	m, err = p.cloudwatchMetric("cluster:mem:reservation", "AWS/ECS", "MemoryReservation", map[string]string{"ClusterName": p.Cluster}, opts)
-	if err != nil {
-		return nil, err
-	}
-	ms = append(ms, *m)
-
-	m, err = p.cloudwatchMetric("cluster:cpu:utilization", "AWS/ECS", "CPUUtilization", map[string]string{"ClusterName": p.Cluster}, opts)
-	if err != nil {
-		return nil, err
-	}
-	ms = append(ms, *m)
-
-	m, err = p.cloudwatchMetric("cluster:mem:utilization", "AWS/ECS", "MemoryUtilization", map[string]string{"ClusterName": p.Cluster}, opts)
-	if err != nil {
-		return nil, err
-	}
-	ms = append(ms, *m)
-
-	if p.AsgSpot != "" {
-		m, err = p.cloudwatchMetric("instances:spot:cpu", "AWS/EC2", "CPUUtilization", map[string]string{"AutoScalingGroupName": p.AsgSpot}, opts)
+		m, err := p.cloudwatchMetric(md, opts)
 		if err != nil {
 			return nil, err
 		}
+
 		ms = append(ms, *m)
 	}
 
-	m, err = p.cloudwatchMetric("instances:standard:cpu", "AWS/EC2", "CPUUtilization", map[string]string{"AutoScalingGroupName": p.AsgStandard}, opts)
-	if err != nil {
-		return nil, err
-	}
-	ms = append(ms, *m)
-
 	return ms, nil
-}
-
-func (p *Provider) cloudwatchMetric(name string, ns, metric string, dimensions map[string]string, opts structs.MetricsOptions) (*structs.Metric, error) {
-	dim := []*cloudwatch.Dimension{}
-
-	for k, v := range dimensions {
-		dim = append(dim, &cloudwatch.Dimension{
-			Name:  options.String(k),
-			Value: options.String(v),
-		})
-	}
-
-	req := &cloudwatch.GetMetricStatisticsInput{
-		Dimensions:         dim,
-		EndTime:            aws.Time(ct(opts.End, time.Now())),
-		ExtendedStatistics: []*string{aws.String("p95")},
-		MetricName:         aws.String(metric),
-		Namespace:          aws.String(ns),
-		Period:             aws.Int64(ci(opts.Period, 3600)),
-		StartTime:          aws.Time(ct(opts.Start, time.Now().Add(-24*time.Hour))),
-	}
-
-	res, err := p.CloudWatch.GetMetricStatistics(req)
-	if err != nil {
-		return nil, err
-	}
-
-	mvs := structs.MetricValues{}
-
-	for _, d := range res.Datapoints {
-		mvs = append(mvs, structs.MetricValue{
-			Time:   *d.Timestamp,
-			Perc95: math.Floor(*d.ExtendedStatistics["p95"]*100) / 100,
-		})
-	}
-
-	sort.Slice(mvs, func(i, j int) bool { return mvs[i].Time.Before(mvs[j].Time) })
-
-	m := &structs.Metric{
-		Name:   name,
-		Values: mvs,
-	}
-
-	return m, nil
 }
 
 func (p *Provider) SystemProcesses(opts structs.SystemProcessesOptions) (structs.Processes, error) {
