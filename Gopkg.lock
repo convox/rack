@@ -161,11 +161,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:e42ff5b49ba1843f24271a4ac4b1023ddcbd6fd185f227e8d4a84f0a36b4d308"
+  digest = "1:3b45c56d397208ea54e4f9168e0d48cc0176e36aa8fc699222bee9c9dbc14a40"
   name = "github.com/convox/stdapi"
   packages = ["."]
   pruneopts = "NUT"
-  revision = "11b584ec8914da984ce1c684ae3f45d59c9222f5"
+  revision = "06e74572b01f5c259c2521eefe0de3f3242955e5"
 
 [[projects]]
   branch = "master"
@@ -177,11 +177,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:3cc6461ed62e20e9a9ec79f4c154f6c265248386a8cbf5be474fda62684eace1"
+  digest = "1:390c4fecf96c38741299982330558761d0d5f595ca8e88b3790b7fe45a92335b"
   name = "github.com/convox/stdsdk"
   packages = ["."]
   pruneopts = "NUT"
-  revision = "ae0f12e0643a804613ae6d2a2050a9c03ff3d40e"
+  revision = "232674682662254064241732c7dd26d36d1a973e"
 
 [[projects]]
   branch = "master"
@@ -601,6 +601,7 @@
     "github.com/aws/aws-sdk-go/aws",
     "github.com/aws/aws-sdk-go/aws/awserr",
     "github.com/aws/aws-sdk-go/aws/credentials",
+    "github.com/aws/aws-sdk-go/aws/request",
     "github.com/aws/aws-sdk-go/aws/session",
     "github.com/aws/aws-sdk-go/service/acm",
     "github.com/aws/aws-sdk-go/service/autoscaling",

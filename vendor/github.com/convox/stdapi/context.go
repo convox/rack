@@ -2,6 +2,7 @@ package stdapi
 
 import (
 	"context"
+	"encoding/gob"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -25,12 +26,22 @@ type Context struct {
 	context  context.Context
 	id       string
 	logger   *logger.Logger
+	name     string
 	request  *http.Request
 	response http.ResponseWriter
 	rvars    map[string]string
 	session  sessions.Store
 	vars     map[string]interface{}
 	ws       *websocket.Conn
+}
+
+type Flash struct {
+	Kind    string
+	Message string
+}
+
+func init() {
+	gob.Register(Flash{})
 }
 
 func NewContext(w http.ResponseWriter, r *http.Request) *Context {
@@ -70,6 +81,38 @@ func (c *Context) Context() context.Context {
 	return c.context
 }
 
+func (c *Context) Flash(kind, message string) error {
+	s, err := c.session.Get(c.request, SessionName)
+	if err != nil {
+		return err
+	}
+
+	s.AddFlash(Flash{Kind: kind, Message: message})
+
+	return s.Save(c.request, c.response)
+}
+
+func (c *Context) Flashes() ([]Flash, error) {
+	s, err := c.session.Get(c.request, SessionName)
+	if err != nil {
+		return nil, err
+	}
+
+	fs := []Flash{}
+
+	for _, f := range s.Flashes() {
+		if ff, ok := f.(Flash); ok {
+			fs = append(fs, ff)
+		}
+	}
+
+	if err := s.Save(c.request, c.response); err != nil {
+		return nil, err
+	}
+
+	return fs, nil
+}
+
 func (c *Context) Form(name string) string {
 	return c.request.FormValue(name)
 }
@@ -89,6 +132,10 @@ func (c *Context) Header(name string) string {
 
 func (c *Context) Logf(format string, args ...interface{}) {
 	c.logger.Logf(format, args...)
+}
+
+func (c *Context) Name() string {
+	return c.name
 }
 
 func (c *Context) Query(name string) string {
@@ -148,7 +195,7 @@ func (c *Context) RenderOK() error {
 }
 
 func (c *Context) RenderTemplate(path string, params interface{}) error {
-	return RenderTemplate(c.response, path, params)
+	return RenderTemplate(c, path, params)
 }
 
 func (c *Context) RenderText(t string) error {
@@ -174,6 +221,10 @@ func (c *Context) Required(names ...string) error {
 	}
 
 	return nil
+}
+
+func (c *Context) Response() http.ResponseWriter {
+	return c.response
 }
 
 func (c *Context) SessionGet(name string) (string, error) {
@@ -235,6 +286,10 @@ func (c *Context) Var(name string) string {
 		return v
 	}
 	return mux.Vars(c.request)[name]
+}
+
+func (c *Context) Websocket() *websocket.Conn {
+	return c.ws
 }
 
 func (c *Context) Write(data []byte) (int, error) {
