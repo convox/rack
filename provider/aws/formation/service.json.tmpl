@@ -19,6 +19,9 @@
             {{ if .Domain }} "{{.Domain}}" {{ else }} { "Fn::Join": [ ".", [ "{{$.App}}-{{.Name}}", { "Fn::ImportValue": { "Fn::Sub": "${Rack}:{{ router .Name $.Manifest }}Host" } } ] ] } {{ end }}
           ] }
         },
+        "TargetGroup": {
+          "Value": { "Ref": "BalancerTargetGroup{{ if .Internal }}Internal{{ end }}" }
+        },
       {{ end }}
       "Fargate": {
         "Value": { "Fn::If": [ "Fargate", "Yes", "No" ] }

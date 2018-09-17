@@ -133,6 +133,29 @@ func (_m *Interface) AppLogs(name string, opts structs.LogsOptions) (io.ReadClos
 	return r0, r1
 }
 
+// AppMetrics provides a mock function with given fields: name, opts
+func (_m *Interface) AppMetrics(name string, opts structs.MetricsOptions) (structs.Metrics, error) {
+	ret := _m.Called(name, opts)
+
+	var r0 structs.Metrics
+	if rf, ok := ret.Get(0).(func(string, structs.MetricsOptions) structs.Metrics); ok {
+		r0 = rf(name, opts)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(structs.Metrics)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(string, structs.MetricsOptions) error); ok {
+		r1 = rf(name, opts)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // AppParametersGet provides a mock function with given fields: _a0
 func (_m *Interface) AppParametersGet(_a0 string) (map[string]string, error) {
 	ret := _m.Called(_a0)
