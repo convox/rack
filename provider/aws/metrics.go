@@ -35,7 +35,7 @@ func (p *Provider) cloudwatchMetric(md metricDefinition, opts structs.MetricsOpt
 		Namespace:  aws.String(md.Namespace),
 		Period:     aws.Int64(ci(opts.Period, 3600)),
 		StartTime:  aws.Time(ct(opts.Start, time.Now().Add(-24*time.Hour))),
-		Statistics: []*string{aws.String("Minimum"), aws.String("Average"), aws.String("Maximum")},
+		Statistics: []*string{aws.String("Average"), aws.String("Minimum"), aws.String("Maximum")},
 	}
 
 	res, err := p.CloudWatch.GetMetricStatistics(req)
