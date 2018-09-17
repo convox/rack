@@ -11,6 +11,7 @@ type Metrics []Metric
 
 type MetricValue struct {
 	Average float64   `json:"avg"`
+	Count   float64   `json:"count"`
 	Maximum float64   `json:"max"`
 	Minimum float64   `json:"min"`
 	Time    time.Time `json:"time"`

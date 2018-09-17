@@ -211,6 +211,47 @@ func (p *Provider) AppLogs(app string, opts structs.LogsOptions) (io.ReadCloser,
 	return p.subscribeLogs(group, opts)
 }
 
+func (p *Provider) AppMetrics(name string, opts structs.MetricsOptions) (structs.Metrics, error) {
+	mds, err := p.appMetricDefinitions(name)
+	if err != nil {
+		return nil, err
+	}
+
+	mms := structs.Metrics{}
+
+	for _, md := range mds {
+		m, err := p.cloudwatchMetric(md, opts)
+		if err != nil {
+			return nil, err
+		}
+
+		existing := false
+
+		for i, mm := range mms {
+			if mm.Name == m.Name {
+				existing = true
+
+				for j := range mm.Values {
+					for _, v := range m.Values {
+						mms[i].Values[j].Average += v.Average
+						mms[i].Values[j].Count += v.Count
+						mms[i].Values[j].Maximum += v.Maximum
+						mms[i].Values[j].Minimum += v.Minimum
+					}
+				}
+
+				break
+			}
+		}
+
+		if !existing {
+			mms = append(mms, *m)
+		}
+	}
+
+	return mms, nil
+}
+
 func (p *Provider) AppUpdate(app string, opts structs.AppUpdateOptions) error {
 	params := opts.Parameters
 

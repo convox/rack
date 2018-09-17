@@ -8,6 +8,7 @@ var routes = map[string]string{
 	"AppGet":              "GET /apps/{name}",
 	"AppList":             "GET /apps",
 	"AppLogs":             "SOCKET /apps/{name}/logs",
+	"AppMetrics":          "GET /apps/{name}/metrics",
 	"AppUpdate":           "PUT /apps/{name}",
 	"BuildCreate":         "POST /apps/{app}/builds",
 	"BuildExport":         "GET /apps/{app}/builds/{id}.tgz",

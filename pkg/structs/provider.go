@@ -13,6 +13,7 @@ type Provider interface {
 	AppDelete(name string) error
 	AppList() (Apps, error)
 	AppLogs(name string, opts LogsOptions) (io.ReadCloser, error)
+	AppMetrics(name string, opts MetricsOptions) (Metrics, error)
 	AppUpdate(name string, opts AppUpdateOptions) error
 
 	BuildCreate(app, url string, opts BuildCreateOptions) (*Build, error)

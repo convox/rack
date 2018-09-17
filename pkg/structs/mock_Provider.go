@@ -130,6 +130,29 @@ func (_m *MockProvider) AppLogs(name string, opts LogsOptions) (io.ReadCloser, e
 	return r0, r1
 }
 
+// AppMetrics provides a mock function with given fields: name, opts
+func (_m *MockProvider) AppMetrics(name string, opts MetricsOptions) (Metrics, error) {
+	ret := _m.Called(name, opts)
+
+	var r0 Metrics
+	if rf, ok := ret.Get(0).(func(string, MetricsOptions) Metrics); ok {
+		r0 = rf(name, opts)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(Metrics)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(string, MetricsOptions) error); ok {
+		r1 = rf(name, opts)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // AppUpdate provides a mock function with given fields: name, opts
 func (_m *MockProvider) AppUpdate(name string, opts AppUpdateOptions) error {
 	ret := _m.Called(name, opts)
