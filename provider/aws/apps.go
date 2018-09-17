@@ -212,6 +212,14 @@ func (p *Provider) AppLogs(app string, opts structs.LogsOptions) (io.ReadCloser,
 }
 
 func (p *Provider) AppMetrics(name string, opts structs.MetricsOptions) (structs.Metrics, error) {
+	metrics := map[string]bool{}
+
+	if opts.Metrics != nil {
+		for _, m := range opts.Metrics {
+			metrics[m] = true
+		}
+	}
+
 	mds, err := p.appMetricDefinitions(name)
 	if err != nil {
 		return nil, err
@@ -220,6 +228,10 @@ func (p *Provider) AppMetrics(name string, opts structs.MetricsOptions) (structs
 	mms := structs.Metrics{}
 
 	for _, md := range mds {
+		if len(metrics) > 0 && !metrics[md.Name] {
+			continue
+		}
+
 		m, err := p.cloudwatchMetric(md, opts)
 		if err != nil {
 			return nil, err
