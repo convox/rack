@@ -385,13 +385,13 @@ func (p *Provider) cloudwatchMetric(name string, ns, metric string, dimensions m
 	}
 
 	req := &cloudwatch.GetMetricStatisticsInput{
-		Dimensions: dim,
-		EndTime:    aws.Time(ct(opts.End, time.Now())),
-		MetricName: aws.String(metric),
-		Namespace:  aws.String(ns),
-		Period:     aws.Int64(ci(opts.Period, 3600)),
-		Statistics: []*string{aws.String("Average"), aws.String("Minimum"), aws.String("Maximum")},
-		StartTime:  aws.Time(ct(opts.Start, time.Now().Add(-24*time.Hour))),
+		Dimensions:         dim,
+		EndTime:            aws.Time(ct(opts.End, time.Now())),
+		ExtendedStatistics: []*string{aws.String("p95")},
+		MetricName:         aws.String(metric),
+		Namespace:          aws.String(ns),
+		Period:             aws.Int64(ci(opts.Period, 3600)),
+		StartTime:          aws.Time(ct(opts.Start, time.Now().Add(-24*time.Hour))),
 	}
 
 	res, err := p.CloudWatch.GetMetricStatistics(req)
@@ -403,10 +403,8 @@ func (p *Provider) cloudwatchMetric(name string, ns, metric string, dimensions m
 
 	for _, d := range res.Datapoints {
 		mvs = append(mvs, structs.MetricValue{
-			Time:    *d.Timestamp,
-			Average: math.Floor(*d.Average*100) / 100,
-			Maximum: math.Floor(*d.Maximum*100) / 100,
-			Minimum: math.Floor(*d.Minimum*100) / 100,
+			Time:   *d.Timestamp,
+			Perc95: math.Floor(*d.ExtendedStatistics["p95"]*100) / 100,
 		})
 	}
 
