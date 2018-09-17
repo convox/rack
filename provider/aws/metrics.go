@@ -1,7 +1,6 @@
 package aws
 
 import (
-	"fmt"
 	"math"
 	"sort"
 	"strings"
@@ -76,6 +75,10 @@ func (p *Provider) cloudwatchMetric(md metricDefinition, opts structs.MetricsOpt
 			mv.Count = math.Floor((*d.SampleCount/(float64(*req.Period)/60))*100) / 100
 		}
 
+		if d.Sum != nil {
+			mv.Sum = math.Floor(*d.Sum*100) / 100
+		}
+
 		mvs = append(mvs, mv)
 	}
 
@@ -112,23 +115,19 @@ func (p *Provider) appMetricDefinitions(app string) ([]metricDefinition, error) 
 				if sv := sos["Service"]; sv != "" {
 					svp := strings.Split(sv, "/")
 					svn := svp[len(svp)-1]
-					fmt.Printf("svn = %+v\n", svn)
 
 					mds = append(mds, metricDefinition{"process:running", "AWS/ECS", "CPUUtilization", map[string]string{"ClusterName": p.Cluster, "ServiceName": svn}, []string{"SampleCount"}})
 				}
 
-				fmt.Printf("sos = %+v\n", sos)
+				if tg := sos["TargetGroup"]; tg != "" {
+					tgp := strings.Split(tg, ":")
+					tgn := tgp[len(tgp)-1]
 
-				// if tg := sos["TargetGroup"]; tg != "" {
-				//   fmt.Printf("tg = %+v\n", tg)
-				// }
+					mds = append(mds, metricDefinition{"service:requests", "AWS/ApplicationELB", "RequestCountPerTarget", map[string]string{"TargetGroup": tgn}, []string{"Sum"}})
+				}
 			}
 		}
 	}
-
-	fmt.Printf("mds = %+v\n", mds)
-
-	// fmt.Printf("rs = %+v\n", rs)
 
 	return mds, nil
 }
