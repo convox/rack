@@ -10,10 +10,8 @@ type Metric struct {
 type Metrics []Metric
 
 type MetricValue struct {
-	Time    time.Time `json:"time"`
-	Average float64   `json:"avg"`
-	Maximum float64   `json:"max"`
-	Minimum float64   `json:"min"`
+	Time   time.Time `json:"time"`
+	Perc95 float64   `json:"p95"`
 }
 
 type MetricValues []MetricValue
