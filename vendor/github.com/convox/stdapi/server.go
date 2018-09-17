@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/convox/logger"
+	"github.com/gorilla/mux"
 )
 
 type RecoverFunc func(error)
@@ -47,20 +48,28 @@ func (s *Server) Listen(proto, addr string) error {
 	return http.Serve(l, s)
 }
 
-func (s *Server) Route(method, path string, fn HandlerFunc) {
-	s.Router.Route(method, path, fn)
+func (s *Server) MatcherFunc(fn mux.MatcherFunc) *Router {
+	return s.Router.MatcherFunc(fn)
+}
+
+func (s *Server) Route(method, path string, fn HandlerFunc) Route {
+	return s.Router.Route(method, path, fn)
 }
 
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	s.Router.ServeHTTP(w, r)
 }
 
-func (s *Server) Subrouter(prefix string) Router {
-	return Router{
+func (s *Server) Subrouter(prefix string, fn func(*Router)) *Router {
+	r := &Router{
 		Parent: s.Router,
 		Router: s.Router.PathPrefix(prefix).Subrouter(),
 		Server: s,
 	}
+
+	fn(r)
+
+	return r
 }
 
 func (s *Server) Use(mw Middleware) {
