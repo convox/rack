@@ -2,6 +2,7 @@ package cli
 
 import (
 	"bufio"
+	"context"
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
@@ -75,10 +76,16 @@ func coalesce(ss ...string) string {
 	return ""
 }
 
-func copySystemLogs(w io.Writer, r io.Reader) {
+func copySystemLogs(ctx context.Context, w io.Writer, r io.Reader) {
 	s := bufio.NewScanner(r)
 
 	for s.Scan() {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+		}
+
 		parts := strings.SplitN(s.Text(), " ", 3)
 
 		if len(parts) < 3 {
@@ -456,26 +463,42 @@ func saveAuth(c *stdcli.Context, host, password string) error {
 	return nil
 }
 
-func streamAppSystemLogs(rack sdk.Interface, c *stdcli.Context, app string, done chan bool) {
-	r, err := rack.AppLogs(app, structs.LogsOptions{Prefix: options.Bool(true), Since: options.Duration(0)})
-	if err != nil {
-		return
+func streamAppLogs(ctx context.Context, rack sdk.Interface, c *stdcli.Context, app string) {
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+		}
+
+		r, err := rack.AppLogs(app, structs.LogsOptions{Prefix: options.Bool(true), Since: options.Duration(1)})
+		if err != nil {
+			return
+		}
+
+		copySystemLogs(ctx, c, r)
+
+		time.Sleep(1 * time.Second)
 	}
-
-	go copySystemLogs(c, r)
-
-	<-done
 }
 
-func streamRackSystemLogs(rack sdk.Interface, c *stdcli.Context, done chan bool) {
-	r, err := rack.SystemLogs(structs.LogsOptions{Prefix: options.Bool(true), Since: options.Duration(0)})
-	if err != nil {
-		return
+func streamRackSystemLogs(ctx context.Context, rack sdk.Interface, c *stdcli.Context) {
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+		}
+
+		r, err := rack.SystemLogs(structs.LogsOptions{Prefix: options.Bool(true), Since: options.Duration(1)})
+		if err != nil {
+			return
+		}
+
+		copySystemLogs(ctx, c, r)
+
+		time.Sleep(1 * time.Second)
 	}
-
-	go copySystemLogs(c, r)
-
-	<-done
 }
 
 func tag(name, value string) string {
@@ -483,7 +506,8 @@ func tag(name, value string) string {
 }
 
 func wait(interval time.Duration, timeout time.Duration, times int, fn func() (bool, error)) error {
-	count := 0
+	successes := 0
+	errors := 0
 	start := time.Now().UTC()
 
 	for {
@@ -493,16 +517,22 @@ func wait(interval time.Duration, timeout time.Duration, times int, fn func() (b
 
 		success, err := fn()
 		if err != nil {
+			errors += 1
+		} else {
+			errors = 0
+		}
+
+		if errors >= times {
 			return err
 		}
 
 		if success {
-			count += 1
+			successes += 1
 		} else {
-			count = 0
+			successes = 0
 		}
 
-		if count >= times {
+		if successes >= times {
 			return nil
 		}
 
@@ -548,17 +578,16 @@ func waitForAppRunning(rack sdk.Interface, app string) error {
 }
 
 func waitForAppWithLogs(rack sdk.Interface, c *stdcli.Context, app string) error {
-	done := make(chan bool)
-
 	c.Writef("\n")
 
-	go streamAppSystemLogs(rack, c, app, done)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	go streamAppLogs(ctx, rack, c, app)
 
 	if err := waitForAppRunning(rack, app); err != nil {
 		return err
 	}
-
-	done <- true
 
 	return nil
 }
@@ -588,17 +617,16 @@ func waitForRackRunning(rack sdk.Interface, c *stdcli.Context) error {
 }
 
 func waitForRackWithLogs(rack sdk.Interface, c *stdcli.Context) error {
-	done := make(chan bool)
-
 	c.Writef("\n")
 
-	go streamRackSystemLogs(rack, c, done)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	go streamRackSystemLogs(ctx, rack, c)
 
 	if err := waitForRackRunning(rack, c); err != nil {
 		return err
 	}
-
-	done <- true
 
 	return nil
 }

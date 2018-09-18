@@ -541,7 +541,7 @@ func TestRackWait(t *testing.T) {
 	testClientWait(t, 100*time.Millisecond, func(e *cli.Engine, i *mocksdk.Interface) {
 		opts := structs.LogsOptions{
 			Prefix: options.Bool(true),
-			Since:  options.Duration(0),
+			Since:  options.Duration(1),
 		}
 		i.On("SystemLogs", opts).Return(testLogs(fxLogsSystem()), nil).Once()
 		i.On("SystemGet").Return(&structs.System{Status: "updating"}, nil).Twice()
@@ -564,7 +564,7 @@ func TestRackWaitError(t *testing.T) {
 	testClientWait(t, 100*time.Millisecond, func(e *cli.Engine, i *mocksdk.Interface) {
 		opts := structs.LogsOptions{
 			Prefix: options.Bool(true),
-			Since:  options.Duration(0),
+			Since:  options.Duration(1),
 		}
 		i.On("SystemLogs", opts).Return(testLogs(fxLogsSystem()), nil).Once()
 		i.On("SystemGet").Return(nil, fmt.Errorf("err1"))
