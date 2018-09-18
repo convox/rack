@@ -80,7 +80,7 @@ func TestDeployWait(t *testing.T) {
 		i.On("ReleasePromote", "app1", "release1").Return(nil)
 		i.On("AppGet", "app1").Return(fxAppUpdating(), nil).Twice()
 		i.On("AppGet", "app1").Return(fxApp(), nil)
-		opts := structs.LogsOptions{Prefix: options.Bool(true), Since: options.Duration(0)}
+		opts := structs.LogsOptions{Prefix: options.Bool(true), Since: options.Duration(1)}
 		i.On("AppLogs", "app1", opts).Return(testLogs(fxLogsSystem()), nil)
 
 		res, err := testExecute(e, "deploy ./testdata/httpd -a app1 --wait", nil)
