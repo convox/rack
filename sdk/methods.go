@@ -313,7 +313,7 @@ func (c *Client) FilesDelete(app string, pid string, files []string) error {
 
 	ro := stdsdk.RequestOptions{Headers: stdsdk.Headers{}, Params: stdsdk.Params{}, Query: stdsdk.Query{}}
 
-	ro.Params["files"] = strings.Join(files, ",")
+	ro.Query["files"] = strings.Join(files, ",")
 
 	err = c.Delete(fmt.Sprintf("/apps/%s/processes/%s/files", app, pid), ro, nil)
 
