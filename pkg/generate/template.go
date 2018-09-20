@@ -54,7 +54,7 @@ func templateHelpers() template.FuncMap {
 			if m.Socket() {
 				vt = "Headers"
 			}
-			if m.Route.Method == "GET" {
+			if m.Route.Method == "GET" || m.Route.Method == "DELETE" {
 				vt = "Query"
 			}
 			for _, a := range m.Args {
