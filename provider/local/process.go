@@ -25,21 +25,17 @@ func (p *Provider) ProcessExec(app, pid, command string, rw io.ReadWriter, opts 
 }
 
 func (p *Provider) ProcessGet(app, pid string) (*structs.Process, error) {
-	log := p.logger("ProcessGet").Append("app=%q pid=%q", app, pid)
-
 	if _, err := p.AppGet(app); err != nil {
-		return nil, log.Error(err)
+		return nil, err
 	}
 
 	if strings.TrimSpace(pid) == "" {
 		return nil, fmt.Errorf("pid cannot be blank")
 	}
 
-	fmt.Printf("pid = %+v\n", pid)
-
 	data, err := exec.Command("docker", "inspect", pid, "--format", "{{.ID}}").CombinedOutput()
 	if err != nil {
-		return nil, errors.WithStack(log.Error(err))
+		return nil, errors.WithStack(err)
 	}
 
 	fpid := strings.TrimSpace(string(data))
@@ -52,21 +48,19 @@ func (p *Provider) ProcessGet(app, pid string) (*structs.Process, error) {
 
 	pss, err := processList(filters, true)
 	if err != nil {
-		return nil, errors.WithStack(log.Error(err))
+		return nil, errors.WithStack(err)
 	}
 
 	if len(pss) != 1 {
-		return nil, log.Error(fmt.Errorf("no such process: %s", pid))
+		return nil, fmt.Errorf("no such process: %s", pid)
 	}
 
-	return &pss[0], log.Success()
+	return &pss[0], nil
 }
 
 func (p *Provider) ProcessList(app string, opts structs.ProcessListOptions) (structs.Processes, error) {
-	log := p.logger("ProcessList").Append("app=%q", app)
-
 	if _, err := p.AppGet(app); err != nil {
-		return nil, log.Error(err)
+		return nil, err
 	}
 
 	filters := []string{
@@ -81,10 +75,10 @@ func (p *Provider) ProcessList(app string, opts structs.ProcessListOptions) (str
 
 	pss, err := processList(filters, false)
 	if err != nil {
-		return nil, errors.WithStack(log.Error(err))
+		return nil, errors.WithStack(err)
 	}
 
-	return pss, log.Success()
+	return pss, nil
 }
 
 func (p *Provider) ProcessLogs(app, pid string, opts structs.LogsOptions) (io.ReadCloser, error) {
