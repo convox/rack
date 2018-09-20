@@ -17,6 +17,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/convox/rack/pkg/crypt"
 	"github.com/convox/rack/pkg/structs"
+	shellquote "github.com/kballard/go-shellquote"
 )
 
 // Parses as [host]:[container]/[protocol?], where [protocol] is optional
@@ -200,6 +201,19 @@ func ECSTaskDefinitionCreate(req Request) (string, map[string]string, error) {
 			r.ContainerDefinitions[i].Command = make([]*string, len(commands))
 			for j, command := range commands {
 				r.ContainerDefinitions[i].Command[j] = aws.String(command.(string))
+			}
+		}
+
+		if ep, ok := task["Entrypoint"].(string); ok {
+			parts, err := shellquote.Split(ep)
+			if err != nil {
+				return "invalid", nil, err
+			}
+
+			r.ContainerDefinitions[i].EntryPoint = make([]*string, len(parts))
+
+			for j, p := range parts {
+				r.ContainerDefinitions[i].EntryPoint[j] = aws.String(p)
 			}
 		}
 
