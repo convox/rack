@@ -68,18 +68,16 @@ func (p *Provider) AppDelete(app string) error {
 }
 
 func (p *Provider) AppGet(name string) (*structs.App, error) {
-	log := p.logger("AppGet").Append("name=%q", name)
-
 	var app structs.App
 
 	if err := p.storageLoad(fmt.Sprintf("apps/%s/app.json", name), &app, AppCacheDuration); err != nil {
 		if strings.HasPrefix(err.Error(), "no such key:") {
 			return nil, fmt.Errorf("no such app: %s", name)
 		}
-		return nil, errors.WithStack(log.Error(err))
+		return nil, errors.WithStack(err)
 	}
 
-	return &app, log.Success()
+	return &app, nil
 }
 
 func (p *Provider) AppList() (structs.Apps, error) {
@@ -113,6 +111,12 @@ func (p *Provider) AppLogs(app string, opts structs.LogsOptions) (io.ReadCloser,
 		return nil, log.Error(err)
 	}
 
+	var since time.Time
+
+	if opts.Since != nil {
+		since = time.Now().UTC().Add((*opts.Since) * -1)
+	}
+
 	r, w := io.Pipe()
 
 	go func() {
@@ -141,7 +145,7 @@ func (p *Provider) AppLogs(app string, opts structs.LogsOptions) (io.ReadCloser,
 
 			for _, ps := range pss {
 				popts := opts
-				popts.Since = options.Duration(60 * time.Minute)
+				popts.Since = options.Duration(time.Since(since))
 				if _, ok := pids[ps.Id]; !ok {
 					go p.streamProcessLogs(app, ps.Id, popts, w, &wg)
 					pids[ps.Id] = true

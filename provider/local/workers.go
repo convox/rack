@@ -14,7 +14,7 @@ func (p *Provider) Workers() error {
 	}
 
 	go p.workerEvents()
-	// go helpers.Tick(10*time.Second, p.workerConverge)
+	go p.workerConverge() // run once at startup
 	go helpers.Tick(1*time.Hour, p.workerHeartbeat)
 
 	return nil
