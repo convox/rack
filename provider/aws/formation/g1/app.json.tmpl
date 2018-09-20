@@ -238,6 +238,9 @@
               {{else if ne $e.Command.String ""}}
                 "Command": {{ value $e.Command.String }},
               {{end}}
+              {{ with $e.Entrypoint }}
+                "Entrypoint": {{ value . }},
+              {{ end }}
               "Cpu": { "Fn::Select": [ 1, { "Ref": "{{ upper $e.Name }}Formation" } ] },
               "Memory": { "Fn::Select": [ 2, { "Ref": "{{ upper $e.Name }}Formation" } ] },
               "Environment": {
