@@ -68,18 +68,16 @@ func (p *Provider) AppDelete(app string) error {
 }
 
 func (p *Provider) AppGet(name string) (*structs.App, error) {
-	log := p.logger("AppGet").Append("name=%q", name)
-
 	var app structs.App
 
 	if err := p.storageLoad(fmt.Sprintf("apps/%s/app.json", name), &app, AppCacheDuration); err != nil {
 		if strings.HasPrefix(err.Error(), "no such key:") {
 			return nil, fmt.Errorf("no such app: %s", name)
 		}
-		return nil, errors.WithStack(log.Error(err))
+		return nil, errors.WithStack(err)
 	}
 
-	return &app, log.Success()
+	return &app, nil
 }
 
 func (p *Provider) AppList() (structs.Apps, error) {
