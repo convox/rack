@@ -111,6 +111,12 @@ func (p *Provider) AppLogs(app string, opts structs.LogsOptions) (io.ReadCloser,
 		return nil, log.Error(err)
 	}
 
+	var since time.Time
+
+	if opts.Since != nil {
+		since = time.Now().UTC().Add((*opts.Since) * -1)
+	}
+
 	r, w := io.Pipe()
 
 	go func() {
@@ -139,7 +145,7 @@ func (p *Provider) AppLogs(app string, opts structs.LogsOptions) (io.ReadCloser,
 
 			for _, ps := range pss {
 				popts := opts
-				popts.Since = options.Duration(60 * time.Minute)
+				popts.Since = options.Duration(time.Since(since))
 				if _, ok := pids[ps.Id]; !ok {
 					go p.streamProcessLogs(app, ps.Id, popts, w, &wg)
 					pids[ps.Id] = true
