@@ -367,7 +367,7 @@
               "MinimumHealthyPercent": "50", "MaximumPercent": "200"
             {{ end }}
           },
-          {{ if .Agent }}
+          {{ if .Agent.Enabled }}
             "SchedulingStrategy": "DAEMON",
           {{ else }}
             {{ if .Scale.Autoscale }}
