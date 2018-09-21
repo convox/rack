@@ -367,14 +367,26 @@
               "MinimumHealthyPercent": "50", "MaximumPercent": "200"
             {{ end }}
           },
-          {{ if .Scale.Autoscale }}
-            {{ with $.CurrentDesiredCount }}
-              "DesiredCount": "{{.}}",
-            {{ else }}
-              "DesiredCount": "{{$.Service.Scale.Count.Min}}",
-            {{ end }}
+          {{ if .Agent }}
+            "SchedulingStrategy": "DAEMON",
           {{ else }}
-            "DesiredCount": { "Ref": "Count" },
+            {{ if .Scale.Autoscale }}
+              {{ with $.CurrentDesiredCount }}
+                "DesiredCount": "{{.}}",
+              {{ else }}
+                "DesiredCount": "{{$.Service.Scale.Count.Min}}",
+              {{ end }}
+            {{ else }}
+              "DesiredCount": { "Ref": "Count" },
+            {{ end }}
+            "SchedulingStrategy": "REPLICA",
+            "PlacementStrategies": { "Fn::If": [ "Fargate",
+              { "Ref": "AWS::NoValue" },
+              [
+                { "Type": "spread", "Field": "attribute:ecs.availability-zone" },
+                { "Type": "spread", "Field": "instanceId" }
+              ]
+            ] },
           {{ end }}
           "LaunchType": { "Fn::If": [ "Fargate", "FARGATE", { "Ref": "AWS::NoValue" } ] },
           "NetworkConfiguration": { "Fn::If": [ "IsolateServices",
@@ -394,19 +406,6 @@
             "HealthCheckGracePeriodSeconds": "{{.Health.Grace}}",
             "LoadBalancers": [ { "ContainerName": "{{.Name}}", "ContainerPort": "{{.Port.Port}}", "TargetGroupArn": { "Ref": "BalancerTargetGroup{{ if .Internal }}Internal{{ end }}" } } ],
             "Role": { "Fn::If": [ "IsolateServices", { "Ref": "AWS::NoValue" }, { "Fn::ImportValue": { "Fn::Sub": "${Rack}:ServiceRole" } } ] },
-          {{ end }}
-          {{ if .Agent.Enabled }}
-            "PlacementConstraints": [
-              { "Type": "distinctInstance" }
-            ],
-          {{ else }}
-            "PlacementStrategies": { "Fn::If": [ "Fargate",
-              { "Ref": "AWS::NoValue" },
-              [
-                { "Type": "spread", "Field": "attribute:ecs.availability-zone" },
-                { "Type": "spread", "Field": "instanceId" }
-              ]
-            ] },
           {{ end }}
           "TaskDefinition": { "Ref": "Tasks" }
         }
