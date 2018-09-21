@@ -48,7 +48,7 @@ func (w Writer) Writef(prefix string, format string, args ...interface{}) {
 
 	line := fmt.Sprintf(w.format(prefix), prefix, fmt.Sprintf(format, args...))
 
-	fmt.Fprintf(w.writer, line)
+	fmt.Fprintf(w.writer, "%s", line)
 }
 
 func (w Writer) format(prefix string) string {
