@@ -273,6 +273,11 @@ func (p *Provider) SystemInstall(w io.Writer, opts structs.SystemInstallOptions)
 		})
 	}
 
+	req.Tags = []*cloudformation.Tag{
+		{Key: aws.String("System"), Value: aws.String("convox")},
+		{Key: aws.String("Type"), Value: aws.String("rack")},
+	}
+
 	if _, err := cf.CreateStack(req); err != nil {
 		return "", err
 	}
@@ -523,7 +528,12 @@ func (p *Provider) SystemUpdate(opts structs.SystemUpdateOptions) error {
 		}
 	}
 
-	if err := p.updateStack(p.Rack, template, params, map[string]string{}); err != nil {
+	tags := map[string]string{
+		"System": "convox",
+		"Type":   "rack",
+	}
+
+	if err := p.updateStack(p.Rack, template, params, tags); err != nil {
 		return err
 	}
 
