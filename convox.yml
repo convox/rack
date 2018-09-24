@@ -19,6 +19,9 @@ services:
       interval: 30
       path: /check
       timeout: 2
+    hooks:
+      before: ls -la
+      after: ls -la
     port: https:5443
     scale:
       count: 1

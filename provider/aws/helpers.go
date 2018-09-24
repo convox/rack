@@ -1203,10 +1203,18 @@ func (p *Provider) updateStack(name string, template []byte, changes map[string]
 
 	req.Tags = stack.Tags
 
-	for key, value := range tags {
+	tks := []string{}
+
+	for key := range tags {
+		tks = append(tks, key)
+	}
+
+	sort.Strings(tks)
+
+	for _, key := range tks {
 		req.Tags = append(req.Tags, &cloudformation.Tag{
 			Key:   aws.String(key),
-			Value: aws.String(value),
+			Value: aws.String(tags[key]),
 		})
 	}
 
