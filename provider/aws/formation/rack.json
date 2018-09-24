@@ -1159,6 +1159,7 @@
             "bootcmd:\n",
             "  - mkswap /dev/xvdb\n",
             "  - swapon /dev/xvdb\n",
+            "  - echo 'DOCKER_STORAGE_OPTIONS=\"--storage-driver=overlay2\"' > /etc/sysconfig/docker-storage\n",
             "  - [ cloud-init-per, instance, docker_storage_setup, /usr/bin/docker-storage-setup ]\n",
             "  - export http_proxy=", { "Ref": "HttpProxy" }, "\n",
             "  - echo http_proxy=", { "Ref": "HttpProxy" }, " >> /etc/environment\n",
@@ -1185,15 +1186,7 @@
             "  - echo 'OPTIONS=\"--default-ulimit nofile=1024000:1024000\"' >> /etc/sysconfig/docker\n",
             { "Fn::Join": [ "", [
               "  - echo 'OPTIONS=\"${OPTIONS} --log-opt max-file=2 --log-opt max-size=50m --host=unix:///var/run/docker.sock --host=0.0.0.0:2376\"' >> /etc/sysconfig/docker\n",
-              "  - echo 'DOCKER_STORAGE_OPTIONS=\"--storage-driver=overlay2\"' > /etc/sysconfig/docker-storage\n",
-              "  - echo 'ECS_ENGINE_AUTH_DATA={\"index.docker.io\":{\"username\":\"\",\"password\":\"\",\"email\":\"\"}' >> /etc/ecs/ecs.config\n",
-              "  - dmsetup remove_all\n",
-              "  - vgremove --force docker\n",
-              "  - mkfs -t ext4 -L docker -i 4096 -F /dev/xvdcz\n",
-              "  - rm -rf /var/lib/docker/*\n",
-              "  - mkdir -p /var/lib/docker/overlay2\n",
-              "  - mount /dev/xvdcz /var/lib/docker/overlay2\n",
-              "  - rm -rf /var/lib/ecs/data/* /var/cache/ecs/*\n"
+              "  - echo 'ECS_ENGINE_AUTH_DATA={\"index.docker.io\":{\"username\":\"\",\"password\":\"\",\"email\":\"\"}' >> /etc/ecs/ecs.config\n"
             ] ] },
             "  - echo 'docker image prune -a --filter=\"until=96h\" --force' > /etc/cron.daily/docker-prune\n",
             "  - chmod +x /etc/cron.daily/docker-prune\n",
@@ -1210,6 +1203,14 @@
               ] ] }
             ] },
             "runcmd:\n",
+            "  - service docker stop\n",
+            "  - dmsetup remove_all\n",
+            "  - vgremove --force docker\n",
+            "  - mkfs -t ext4 -L docker -i 4096 -F /dev/xvdcz\n",
+            "  - mkdir -p /var/lib/docker/overlay2\n",
+            "  - mount /dev/xvdcz /var/lib/docker/overlay2\n",
+            "  - service docker start\n",
+            "  - start ecs\n",
             { "Fn::If": [ "BlankInstanceRunCommand",
               { "Ref": "AWS::NoValue" },
               { "Fn::Join": [ "", [
