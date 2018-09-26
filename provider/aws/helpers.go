@@ -842,7 +842,10 @@ func (p *Provider) dockerContainerFromPid(pid string) (*docker.Container, error)
 		cs, err = dc.ListContainers(docker.ListContainersOptions{
 			All: true,
 			Filters: map[string][]string{
-				"label": {fmt.Sprintf("com.amazonaws.ecs.task-arn=%s", arn)},
+				"label": {
+					fmt.Sprintf("com.amazonaws.ecs.task-arn=%s", arn),
+					"convox.release",
+				},
 			},
 		})
 		if err != nil {
