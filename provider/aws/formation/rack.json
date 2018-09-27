@@ -531,6 +531,7 @@
     "OnDemandMinCount": {
       "Default": "3",
       "Description": "The minimum number of on-demand instances in the runtime cluster",
+      "MinValue": "1",
       "Type": "Number"
     },
     "Password": {

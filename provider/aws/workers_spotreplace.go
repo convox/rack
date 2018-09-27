@@ -7,6 +7,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
+	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/convox/logger"
 )
 
@@ -66,7 +67,7 @@ func (p *Provider) spotReplace() error {
 		return err
 	}
 
-	spc, err := p.asgResourceInstanceCount("SpotInstances")
+	spc, err := p.asgResourceInstanceCountRunning("SpotInstances")
 	if err != nil {
 		return err
 	}
@@ -83,7 +84,7 @@ func (p *Provider) spotReplace() error {
 		}
 	}
 
-	onDemandDesired := ic - spotDesired
+	onDemandDesired := ic - spc
 
 	if odc != onDemandDesired {
 		log.Logf("stack=Instances setDesiredCount=%d", onDemandDesired)
@@ -113,6 +114,37 @@ func (p *Provider) asgResourceInstanceCount(resource string) (int, error) {
 	}
 
 	return int(*res.AutoScalingGroups[0].DesiredCapacity), nil
+}
+
+func (p *Provider) asgResourceInstanceCountRunning(resource string) (int, error) {
+	asg, err := p.stackResource(p.Rack, resource)
+	if err != nil {
+		return 0, err
+	}
+
+	res, err := p.ec2().DescribeInstances(&ec2.DescribeInstancesInput{
+		Filters: []*ec2.Filter{
+			&ec2.Filter{
+				Name:   aws.String("instance-state-name"),
+				Values: []*string{aws.String("running")},
+			},
+			&ec2.Filter{
+				Name:   aws.String("tag:aws:autoscaling:groupName"),
+				Values: []*string{asg.PhysicalResourceId},
+			},
+		},
+	})
+	if err != nil {
+		return 0, err
+	}
+
+	count := 0
+
+	for _, r := range res.Reservations {
+		count += len(r.Instances)
+	}
+
+	return count, nil
 }
 
 func (p *Provider) setAsgResourceDesiredCount(resource string, count int) error {
