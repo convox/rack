@@ -24,7 +24,7 @@ func TestReleases(t *testing.T) {
 		res.RequireStdout(t, []string{
 			"ID        STATUS  BUILD   CREATED     DESCRIPTION ",
 			"release1  active  build1  2 days ago  description1",
-			"release2          build1  2 days ago  description2",
+			"release2          build1  2 days ago              ",
 		})
 	})
 }
