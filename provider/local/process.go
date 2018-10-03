@@ -239,6 +239,7 @@ func (p *Provider) argsFromOpts(app, service string, opts processStartOptions) (
 		}
 
 		release = a.Release
+
 	}
 
 	// get release and manifest for initial environment and volumes
@@ -252,12 +253,17 @@ func (p *Provider) argsFromOpts(app, service string, opts processStartOptions) (
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
-
-		// if service is not defined in manifest, i.e. "build", carry on
-		s, err = m.Service(service)
-		if err != nil && !strings.Contains(err.Error(), "no such service") {
+	} else {
+		m, r, err = helpers.AppManifest(p, app)
+		if err != nil {
 			return nil, errors.WithStack(err)
 		}
+	}
+
+	// if service is not defined in manifest, i.e. "build", carry on
+	s, err = m.Service(service)
+	if err != nil && !strings.Contains(err.Error(), "no such service") {
+		return nil, errors.WithStack(err)
 	}
 
 	if s != nil {
@@ -414,6 +420,7 @@ func processList(filters []string, all bool) (structs.Processes, error) {
 			ID        string
 			Labels    string
 			Ports     string
+			Status    string
 		}
 
 		if err := jd.Decode(&dps); err != nil {
@@ -446,6 +453,7 @@ func processList(filters []string, all bool) (structs.Processes, error) {
 			Name:    labels["convox.service"],
 			Release: labels["convox.release"],
 			Started: started,
+			Status:  "running",
 			Ports:   []string{},
 		}
 
