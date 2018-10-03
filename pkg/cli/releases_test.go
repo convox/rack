@@ -51,12 +51,12 @@ func TestReleasesInfo(t *testing.T) {
 		require.Equal(t, 0, res.Code)
 		res.RequireStderr(t, []string{""})
 		res.RequireStdout(t, []string{
-			"Id       release1",
-			"Build    build1",
-			fmt.Sprintf("Created  %s", fxRelease().Created.Format(time.RFC3339)),
+			"Id           release1",
+			"Build        build1",
+			fmt.Sprintf("Created      %s", fxRelease().Created.Format(time.RFC3339)),
 			"Description  ",
-			"Env      FOO=bar",
-			"         BAZ=quux",
+			"Env          FOO=bar",
+			"             BAZ=quux",
 		})
 	})
 }
