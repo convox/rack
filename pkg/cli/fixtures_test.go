@@ -174,13 +174,12 @@ func fxRelease() *structs.Release {
 
 func fxRelease2() *structs.Release {
 	return &structs.Release{
-		Id:          "release2",
-		App:         "app1",
-		Build:       "build1",
-		Env:         "FOO=bar\nBAZ=quux",
-		Manifest:    "manifest",
-		Created:     time.Now().UTC().Add(-49 * time.Hour),
-		Description: "description2",
+		Id:       "release2",
+		App:      "app1",
+		Build:    "build1",
+		Env:      "FOO=bar\nBAZ=quux",
+		Manifest: "manifest",
+		Created:  time.Now().UTC().Add(-49 * time.Hour),
 	}
 }
 
