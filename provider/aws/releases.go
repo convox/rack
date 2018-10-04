@@ -491,6 +491,9 @@ func (p *Provider) releaseSave(r *structs.Release) error {
 
 	if r.Build != "" {
 		req.Item["build"] = &dynamodb.AttributeValue{S: aws.String(r.Build)}
+	}
+
+	if r.Description != "" {
 		req.Item["description"] = &dynamodb.AttributeValue{S: aws.String(r.Description)}
 	}
 
