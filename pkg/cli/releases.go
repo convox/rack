@@ -57,7 +57,7 @@ func Releases(rack sdk.Interface, c *stdcli.Context) error {
 		return err
 	}
 
-	t := c.Table("ID", "STATUS", "BUILD", "CREATED")
+	t := c.Table("ID", "STATUS", "BUILD", "CREATED", "DESCRIPTION")
 
 	for _, r := range rs {
 		status := ""
@@ -66,7 +66,7 @@ func Releases(rack sdk.Interface, c *stdcli.Context) error {
 			status = "active"
 		}
 
-		t.AddRow(r.Id, status, r.Build, helpers.Ago(r.Created))
+		t.AddRow(r.Id, status, r.Build, helpers.Ago(r.Created), r.Description)
 	}
 
 	return t.Print()
@@ -83,6 +83,7 @@ func ReleasesInfo(rack sdk.Interface, c *stdcli.Context) error {
 	i.Add("Id", r.Id)
 	i.Add("Build", r.Build)
 	i.Add("Created", r.Created.Format(time.RFC3339))
+	i.Add("Description", r.Description)
 	i.Add("Env", r.Env)
 
 	return i.Print()
