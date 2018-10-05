@@ -819,6 +819,7 @@ func (p *Provider) generateTaskDefinition1(app, service string, opts structs.Pro
 	cd := &ecs.ContainerDefinition{
 		DockerLabels: map[string]*string{
 			"convox.process.type": aws.String("oneoff"),
+			"convox.release":      aws.String(release),
 		},
 		Essential:         aws.Bool(true),
 		Image:             aws.String(fmt.Sprintf("%s.dkr.ecr.%s.amazonaws.com/%s:%s.%s", a.Outputs["RegistryId"], p.Region, a.Outputs["RegistryRepository"], service, r.Build)),
