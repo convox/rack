@@ -1219,7 +1219,8 @@ var cycleProcessRegisterTaskDefinitionDetached = awsutil.Cycle{
 			"containerDefinitions": [
 				{
 					"dockerLabels": {
-						"convox.process.type": "oneoff"
+						"convox.process.type": "oneoff",
+						"convox.release": "RVFETUHHKKD"
 					},
 					"environment": [
 						{
