@@ -198,8 +198,14 @@ func (p *Proxy) serveWebsocket(r *http.Request, target *url.URL) websocket.Handl
 
 		wst.Path = r.URL.Path
 
+		h := r.Header
+
+		h.Add("X-Forwarded-For", r.RemoteAddr)
+		h.Set("X-Forwarded-Port", p.Listen.Port())
+		h.Set("X-Forwarded-Proto", p.Listen.Scheme)
+
 		cn, err := websocket.DialConfig(&websocket.Config{
-			Header:   r.Header,
+			Header:   h,
 			Location: wst,
 			Origin:   target,
 			TlsConfig: &tls.Config{
