@@ -166,7 +166,7 @@ func fxRelease() *structs.Release {
 		App:         "app1",
 		Build:       "build1",
 		Env:         "FOO=bar\nBAZ=quux",
-		Manifest:    "services:\n  web:\n    build: .",
+		Manifest:    "services:\n  web:\n    build: .\n    test: make test",
 		Created:     time.Now().UTC().Add(-49 * time.Hour),
 		Description: "description1",
 	}
