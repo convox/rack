@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/convox/rack/pkg/helpers"
+	"github.com/convox/rack/pkg/options"
 	"github.com/convox/rack/pkg/structs"
 	"github.com/convox/rack/sdk"
 	"github.com/convox/stdcli"
@@ -67,7 +68,7 @@ func Build(rack sdk.Interface, c *stdcli.Context) error {
 		c.Writer().Stdout = c.Writer().Stderr
 	}
 
-	b, err := build(rack, c)
+	b, err := build(rack, c, false)
 	if err != nil {
 		return err
 	}
@@ -82,8 +83,12 @@ func Build(rack sdk.Interface, c *stdcli.Context) error {
 	return nil
 }
 
-func build(rack sdk.Interface, c *stdcli.Context) (*structs.Build, error) {
+func build(rack sdk.Interface, c *stdcli.Context, development bool) (*structs.Build, error) {
 	var opts structs.BuildCreateOptions
+
+	if development {
+		opts.Development = options.Bool(true)
+	}
 
 	if err := c.Options(&opts); err != nil {
 		return nil, err
