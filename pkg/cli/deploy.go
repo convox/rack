@@ -25,7 +25,7 @@ func Deploy(rack sdk.Interface, c *stdcli.Context) error {
 		c.Writer().Stdout = c.Writer().Stderr
 	}
 
-	b, err := build(rack, c)
+	b, err := build(rack, c, false)
 	if err != nil {
 		return err
 	}
