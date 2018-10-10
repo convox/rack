@@ -283,6 +283,26 @@ func diffContainers(a, b []container) []container {
 	return diff
 }
 
+func resourceImage(r manifest.Resource) (string, error) {
+	switch r.Type {
+	case "memcached":
+		return "convox/memcached", nil
+	case "mysql":
+		return "convox/mysql", nil
+	case "postgres":
+		switch strings.Split(r.Options["version"], ".")[0] {
+		case "10":
+			return "convox/postgres:10", nil
+		default:
+			return "convox/postgres:9", nil
+		}
+	case "redis":
+		return "convox/redis", nil
+	}
+
+	return "", fmt.Errorf("unknown resource type: %s", r.Type)
+}
+
 func resourcePort(kind string) (int, error) {
 	switch kind {
 	case "memcached":
@@ -313,31 +333,36 @@ func (p *Provider) resourceURL(app, kind, name string) (string, error) {
 	return "", fmt.Errorf("unknown resource type: %s", kind)
 }
 
-func (p *Provider) resourceVolumes(app, kind, name string) ([]string, error) {
-	switch kind {
+func (p *Provider) resourceVolumes(app string, r manifest.Resource) ([]string, error) {
+	switch r.Type {
 	case "memcached":
 		return []string{}, nil
 	case "mysql":
-		return []string{fmt.Sprintf("%s/%s/resource/%s:/var/lib/mysql", p.Volume, app, name)}, nil
+		return []string{fmt.Sprintf("%s/%s/resource/%s:/var/lib/mysql", p.Volume, app, r.Name)}, nil
 	case "postgres":
-		return []string{fmt.Sprintf("%s/%s/resource/%s:/var/lib/postgresql/data", p.Volume, app, name)}, nil
+		return []string{fmt.Sprintf("%s/%s/resource/%s/%s:/var/lib/postgresql/data", p.Volume, app, r.Name, r.Options["version"])}, nil
 	case "redis":
 		return []string{}, nil
 	}
 
-	return []string{}, fmt.Errorf("unknown resource type: %s", kind)
+	return []string{}, fmt.Errorf("unknown resource type: %s", r.Type)
 }
 
 func (p *Provider) resourceContainers(resources manifest.Resources, app, release string) ([]container, error) {
 	cs := []container{}
 
 	for _, r := range resources {
+		im, err := resourceImage(r)
+		if err != nil {
+			return nil, err
+		}
+
 		rp, err := resourcePort(r.Type)
 		if err != nil {
 			return nil, err
 		}
 
-		vs, err := p.resourceVolumes(app, r.Type, r.Name)
+		vs, err := p.resourceVolumes(app, r)
 		if err != nil {
 			return nil, err
 		}
@@ -350,16 +375,17 @@ func (p *Provider) resourceContainers(resources manifest.Resources, app, release
 			// Targets: []containerTarget{
 			//   containerTarget{FromScheme: "tcp", FromPort: rp, ToScheme: "tcp", ToPort: rp},
 			// },
-			Image:   fmt.Sprintf("convox/%s", r.Type),
+			Image:   im,
 			Volumes: vs,
 			Port:    rp,
 			Labels: map[string]string{
-				"convox.rack":     p.Rack,
-				"convox.version":  p.Version,
-				"convox.app":      app,
-				"convox.type":     "resource",
-				"convox.name":     r.Name,
-				"convox.resource": r.Type,
+				"convox.rack":             p.Rack,
+				"convox.version":          p.Version,
+				"convox.app":              app,
+				"convox.type":             "resource",
+				"convox.name":             r.Name,
+				"convox.resource":         r.Type,
+				"convox.resource.version": r.Options["version"],
 			},
 		})
 	}
