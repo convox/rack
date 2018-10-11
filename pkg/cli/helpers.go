@@ -343,7 +343,7 @@ func racks(c *stdcli.Context) ([]rack, error) {
 }
 
 func remoteRacks(c *stdcli.Context) ([]rack, error) {
-	h, err := c.SettingRead("host")
+	h, err := currentHost(c)
 	if err != nil {
 		return nil, err
 	}
