@@ -1,6 +1,7 @@
 # Convox Rack
 
 [![Build Status](https://travis-ci.org/convox/rack.svg?branch=master)](https://travis-ci.org/convox/rack)
+[![Reviewed by Hound](https://img.shields.io/badge/Reviewed_by-Hound-8E64B0.svg)](https://houndci.com)
 
 Convox Rack is open source PaaS built on top of expert infrastructure automation and devops best practices.
 
