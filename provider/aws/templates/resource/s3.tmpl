@@ -22,6 +22,9 @@
         "Type": "AWS::S3::Bucket",
         "Properties": {
           "AccessControl": "Private",
+          "BucketEncryption": {
+            "ServerSideEncryptionConfiguration": [ { "ServerSideEncryptionByDefault": { "SSEAlgorithm": "aws:kms" } } ]
+          },
           "BucketName": { "Ref": "AWS::StackName" },
           "NotificationConfiguration": {
           "Fn::If": [ "Topic",
