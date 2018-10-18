@@ -188,6 +188,10 @@ func (p *Provider) AppRegistry(app string) (*structs.Registry, error) {
 func (p *Provider) AppUpdate(app string, opts structs.AppUpdateOptions) error {
 	log := p.logger("AppUpdate").Append("app=%q", app)
 
+	if opts.Lock != nil {
+		return fmt.Errorf("locking not supported on local racks")
+	}
+
 	if opts.Sleep != nil {
 		a, err := p.AppGet(app)
 		if err != nil {
