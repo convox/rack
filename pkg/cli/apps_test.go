@@ -234,7 +234,7 @@ func TestAppsExport(t *testing.T) {
 
 		data, err := ioutil.ReadFile(filepath.Join(tmp, "app.json"))
 		require.NoError(t, err)
-		require.Equal(t, "{\"generation\":\"2\",\"name\":\"app1\",\"release\":\"release1\",\"sleep\":false,\"status\":\"running\",\"parameters\":{\"ParamFoo\":\"value1\",\"ParamOther\":\"value2\"}}", string(data))
+		require.Equal(t, "{\"generation\":\"2\",\"locked\":false,\"name\":\"app1\",\"release\":\"release1\",\"sleep\":false,\"status\":\"running\",\"parameters\":{\"ParamFoo\":\"value1\",\"ParamOther\":\"value2\"}}", string(data))
 
 		data, err = ioutil.ReadFile(filepath.Join(tmp, "env"))
 		require.NoError(t, err)
@@ -368,10 +368,11 @@ func TestAppsInfo(t *testing.T) {
 		require.Equal(t, 0, res.Code)
 		res.RequireStderr(t, []string{""})
 		res.RequireStdout(t, []string{
-			"Name     app1",
-			"Status   running",
-			"Gen      2",
-			"Release  release1",
+			"Name        app1",
+			"Status      running",
+			"Generation  2",
+			"Locked      false",
+			"Release     release1",
 		})
 
 		res, err = testExecute(e, "apps info -a app1", nil)
@@ -379,10 +380,11 @@ func TestAppsInfo(t *testing.T) {
 		require.Equal(t, 0, res.Code)
 		res.RequireStderr(t, []string{""})
 		res.RequireStdout(t, []string{
-			"Name     app1",
-			"Status   running",
-			"Gen      2",
-			"Release  release1",
+			"Name        app1",
+			"Status      running",
+			"Generation  2",
+			"Locked      false",
+			"Release     release1",
 		})
 	})
 }
