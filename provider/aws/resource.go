@@ -415,6 +415,8 @@ func (p *Provider) ResourceUnlink(name, app string) (*structs.Resource, error) {
 		return nil, err
 	}
 
+	fmt.Printf("s.Parameters = %+v\n", s.Parameters)
+
 	apps, err := p.resourceApps(*s)
 	if err != nil {
 		return nil, err
@@ -472,6 +474,15 @@ func (p *Provider) createResource(s *structs.Resource) (*cloudformation.CreateSt
 
 	if err := p.appendSystemParameters(s); err != nil {
 		return nil, err
+	}
+
+	if s.Parameters["Password"] == "" {
+		pw, err := generatePassword()
+		if err != nil {
+			return nil, err
+		}
+
+		s.Parameters["Password"] = pw
 	}
 
 	// reapply manually-specified parameters
@@ -592,6 +603,8 @@ func (p *Provider) updateResource(s *structs.Resource, params map[string]string)
 		return err
 	}
 
+	fmt.Printf("s.Parameters = %+v\n", s.Parameters)
+
 	// drop old webhook url
 	if s.Type == "webhook" {
 		s.Parameters["Url"] = s.Url
@@ -669,15 +682,6 @@ func (p *Provider) unlinkResource(a *structs.App, s *structs.Resource) error {
 }
 
 func (p *Provider) appendSystemParameters(s *structs.Resource) error {
-	password, err := generatePassword()
-	if err != nil {
-		return err
-	}
-
-	if s.Parameters["Password"] == "" {
-		s.Parameters["Password"] = password
-	}
-
 	s.Parameters["NotificationTopic"] = p.NotificationTopic
 	s.Parameters["Private"] = fmt.Sprintf("%t", p.SubnetsPrivate != "")
 	s.Parameters["Release"] = p.Version
@@ -753,6 +757,8 @@ func resourceFromStack(stack *cloudformation.Stack) structs.Resource {
 	if rtype == "" {
 		rtype = tags["Service"]
 	}
+
+	delete(params, "Password")
 
 	return structs.Resource{
 		Name:       tags["Name"],
