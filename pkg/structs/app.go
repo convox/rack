@@ -2,6 +2,7 @@ package structs
 
 type App struct {
 	Generation string `json:"generation,omitempty"`
+	Locked     bool   `json:"locked"`
 	Name       string `json:"name"`
 	Release    string `json:"release"`
 	Sleep      bool   `json:"sleep"`
@@ -19,6 +20,7 @@ type AppCreateOptions struct {
 }
 
 type AppUpdateOptions struct {
+	Lock       *bool             `param:"lock"`
 	Parameters map[string]string `param:"parameters"`
 	Sleep      *bool             `param:"sleep"`
 }
