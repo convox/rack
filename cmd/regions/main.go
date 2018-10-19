@@ -100,7 +100,7 @@ func run() error {
 func fetchAmis(regions Regions) error {
 	b := surf.NewBrowser()
 
-	if err := b.Open("https://docs.aws.amazon.com/AmazonECS/latest/developerguide/ecs-optimized_AMI.html"); err != nil {
+	if err := b.Open("https://docs.aws.amazon.com/AmazonECS/latest/developerguide/al2ami.html"); err != nil {
 		return err
 	}
 
