@@ -595,6 +595,10 @@ func (p *Provider) updateResource(s *structs.Resource, params map[string]string)
 		return err
 	}
 
+	if params == nil {
+		params = map[string]string{}
+	}
+
 	for k, v := range p.resourceSystemParameters() {
 		params[k] = v
 	}
