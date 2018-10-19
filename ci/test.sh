@@ -156,6 +156,12 @@ convox resources update cilog Url=tcp://syslog2.convox.com --wait
 convox resources info cilog | grep syslog2.convox.com
 convox resources url cilog | grep tcp://syslog2.convox.com
 convox resources delete cilog --wait
+convox resources create postgres --name pgdb --wait
+convox resources | grep pgdb | grep postgres
+dburl=$(convox resources url pgdb)
+convox resources update pgdb BackupRetentionPeriod=2 --wait
+[ "$dburl" == "$(convox resources url pgdb)" ]
+convox resources delete pgdb --wait
 
 # cleanup
 convox apps delete ci1 --wait

@@ -472,8 +472,8 @@ func (p *Provider) createResource(s *structs.Resource) (*cloudformation.CreateSt
 		return nil, err
 	}
 
-	if err := p.appendSystemParameters(s); err != nil {
-		return nil, err
+	for k, v := range p.resourceSystemParameters() {
+		s.Parameters[k] = v
 	}
 
 	if s.Parameters["Password"] == "" {
@@ -595,38 +595,13 @@ func (p *Provider) updateResource(s *structs.Resource, params map[string]string)
 		return err
 	}
 
-	if err := p.appendSystemParameters(s); err != nil {
-		return err
+	for k, v := range p.resourceSystemParameters() {
+		params[k] = v
 	}
 
-	if err := filterFormationParameters(s, formation); err != nil {
-		return err
-	}
-
-	fmt.Printf("s.Parameters = %+v\n", s.Parameters)
-
-	// drop old webhook url
+	// inject webhook url for backwards-compatibility
 	if s.Type == "webhook" {
-		s.Parameters["Url"] = s.Url
-	}
-
-	if params != nil {
-		for k, v := range params {
-			s.Parameters[k] = v
-		}
-	}
-
-	req := &cloudformation.UpdateStackInput{
-		Capabilities: []*string{aws.String("CAPABILITY_IAM")},
-		StackName:    aws.String(p.rackStack(s.Name)),
-		TemplateBody: aws.String(formation),
-	}
-
-	for key, value := range s.Parameters {
-		req.Parameters = append(req.Parameters, &cloudformation.Parameter{
-			ParameterKey:   aws.String(key),
-			ParameterValue: aws.String(value),
-		})
+		params["Url"] = s.Url
 	}
 
 	tags := map[string]string{
@@ -636,21 +611,12 @@ func (p *Provider) updateResource(s *structs.Resource, params map[string]string)
 		"System":   "convox",
 		"Type":     "resource",
 	}
-	tagKeys := []string{}
 
-	for key := range tags {
-		tagKeys = append(tagKeys, key)
+	if err := p.updateStack(p.rackStack(s.Name), []byte(formation), params, tags); err != nil {
+		return err
 	}
 
-	// sort keys for easier testing
-	sort.Strings(tagKeys)
-	for _, key := range tagKeys {
-		req.Tags = append(req.Tags, &cloudformation.Tag{Key: aws.String(key), Value: aws.String(tags[key])})
-	}
-
-	_, err = p.cloudformation().UpdateStack(req)
-
-	return err
+	return nil
 }
 
 // add to links
@@ -681,18 +647,20 @@ func (p *Provider) unlinkResource(a *structs.App, s *structs.Resource) error {
 	return p.updateResource(s, nil)
 }
 
-func (p *Provider) appendSystemParameters(s *structs.Resource) error {
-	s.Parameters["NotificationTopic"] = p.NotificationTopic
-	s.Parameters["Private"] = fmt.Sprintf("%t", p.SubnetsPrivate != "")
-	s.Parameters["Release"] = p.Version
-	s.Parameters["SecurityGroups"] = p.SecurityGroup
-	s.Parameters["Subnets"] = p.Subnets
-	s.Parameters["SubnetsPrivate"] = coalesceString(p.SubnetsPrivate, p.Subnets)
-	s.Parameters["Version"] = p.Version
-	s.Parameters["Vpc"] = p.Vpc
-	s.Parameters["VpcCidr"] = p.VpcCidr
+func (p *Provider) resourceSystemParameters() map[string]string {
+	params := map[string]string{}
 
-	return nil
+	params["NotificationTopic"] = p.NotificationTopic
+	params["Private"] = fmt.Sprintf("%t", p.SubnetsPrivate != "")
+	params["Release"] = p.Version
+	params["SecurityGroups"] = p.SecurityGroup
+	params["Subnets"] = p.Subnets
+	params["SubnetsPrivate"] = coalesceString(p.SubnetsPrivate, p.Subnets)
+	params["Version"] = p.Version
+	params["Vpc"] = p.Vpc
+	params["VpcCidr"] = p.VpcCidr
+
+	return params
 }
 
 func coalesceString(ss ...string) string {
