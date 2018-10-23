@@ -82,7 +82,7 @@ func (p *Provider) containerStart(c container, app, release string) (string, err
 	}
 
 	args = append(args, "-e", fmt.Sprintf("APP=%s", app))
-	args = append(args, "-e", fmt.Sprintf("RACK_URL=https://%s:3000", hostname))
+	args = append(args, "-e", fmt.Sprintf("RACK_URL=https://%s:5443", hostname))
 	args = append(args, "-e", fmt.Sprintf("RELEASE=%s", release))
 
 	args = append(args, "--link", hostname)
