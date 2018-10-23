@@ -10,8 +10,9 @@ import (
 )
 
 func init() {
-	register("scale", "scale an app", Scale, stdcli.CommandOptions{
+	register("scale", "scale a service", Scale, stdcli.CommandOptions{
 		Flags: append(stdcli.OptionFlags(structs.ServiceUpdateOptions{}), flagApp, flagRack, flagWait),
+		Usage: "<service>",
 		Validate: func(c *stdcli.Context) error {
 			if c.Value("count") != nil || c.Value("cpu") != nil || c.Value("memory") != nil {
 				if len(c.Args) < 1 {
