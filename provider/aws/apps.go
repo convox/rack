@@ -218,6 +218,16 @@ func (p *Provider) AppUpdate(app string, opts structs.AppUpdateOptions) error {
 		params = map[string]string{}
 	}
 
+	if opts.Lock != nil {
+		_, err := p.cloudformation().UpdateTerminationProtection(&cloudformation.UpdateTerminationProtectionInput{
+			EnableTerminationProtection: opts.Lock,
+			StackName:                   aws.String(p.rackStack(app)),
+		})
+		if err != nil {
+			return err
+		}
+	}
+
 	if opts.Sleep != nil {
 		return fmt.Errorf("sleeping not yet supported on aws racks")
 	}
@@ -236,6 +246,7 @@ func (p *Provider) appFromStack(stack *cloudformation.Stack) (*structs.App, erro
 	a := &structs.App{
 		Name:       name,
 		Generation: coalesces(stackTags(stack)["Generation"], "1"),
+		Locked:     cb(stack.EnableTerminationProtection, false),
 		Release:    coalesces(stackOutputs(stack)["Release"], stackParameters(stack)["Release"]),
 		Status:     humanStatus(*stack.StackStatus),
 		Outputs:    stackOutputs(stack),

@@ -68,6 +68,12 @@ func init() {
 		Validate: stdcli.ArgsMax(1),
 	})
 
+	register("apps lock", "enable termination protection", AppsLock, stdcli.CommandOptions{
+		Flags:    []stdcli.Flag{flagApp, flagRack},
+		Usage:    "[app]",
+		Validate: stdcli.ArgsMax(1),
+	})
+
 	register("apps params", "display app parameters", AppsParams, stdcli.CommandOptions{
 		Flags:    []stdcli.Flag{flagApp, flagRack},
 		Usage:    "[app]",
@@ -81,6 +87,12 @@ func init() {
 	})
 
 	register("apps sleep", "sleep an app", AppsSleep, stdcli.CommandOptions{
+		Flags:    []stdcli.Flag{flagApp, flagRack},
+		Usage:    "[app]",
+		Validate: stdcli.ArgsMax(1),
+	})
+
+	register("apps unlock", "disable termination protection", AppsUnlock, stdcli.CommandOptions{
 		Flags:    []stdcli.Flag{flagApp, flagRack},
 		Usage:    "[app]",
 		Validate: stdcli.ArgsMax(1),
@@ -232,10 +244,23 @@ func AppsInfo(rack sdk.Interface, c *stdcli.Context) error {
 
 	i.Add("Name", a.Name)
 	i.Add("Status", a.Status)
-	i.Add("Gen", a.Generation)
+	i.Add("Generation", a.Generation)
+	i.Add("Locked", fmt.Sprintf("%t", a.Locked))
 	i.Add("Release", a.Release)
 
 	return i.Print()
+}
+
+func AppsLock(rack sdk.Interface, c *stdcli.Context) error {
+	app := coalesce(c.Arg(0), app(c))
+
+	c.Startf("Locking <app>%s</app>", app)
+
+	if err := rack.AppUpdate(app, structs.AppUpdateOptions{Lock: options.Bool(true)}); err != nil {
+		return err
+	}
+
+	return c.OK()
 }
 
 func AppsParams(rack sdk.Interface, c *stdcli.Context) error {
@@ -325,6 +350,18 @@ func AppsSleep(rack sdk.Interface, c *stdcli.Context) error {
 	c.Startf("Sleeping <app>%s</app>", app)
 
 	if err := rack.AppUpdate(app, structs.AppUpdateOptions{Sleep: options.Bool(true)}); err != nil {
+		return err
+	}
+
+	return c.OK()
+}
+
+func AppsUnlock(rack sdk.Interface, c *stdcli.Context) error {
+	app := coalesce(c.Arg(0), app(c))
+
+	c.Startf("Unlocking <app>%s</app>", app)
+
+	if err := rack.AppUpdate(app, structs.AppUpdateOptions{Lock: options.Bool(false)}); err != nil {
 		return err
 	}
 
