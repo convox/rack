@@ -371,6 +371,15 @@ func TestManifestLoadInvalid(t *testing.T) {
 	require.Len(t, m.Services, 0)
 }
 
+func TestManifestEnvManipulation(t *testing.T) {
+	m, err := testdataManifest("env", map[string]string{})
+	require.NotNil(t, m)
+	require.NoError(t, err)
+
+	require.Equal(t, "train-intent", m.Services[0].EnvironmentDefaults()["QUEUE_NAME"])
+	require.Equal(t, "delete-intent", m.Services[1].EnvironmentDefaults()["QUEUE_NAME"])
+}
+
 func testdataManifest(name string, env map[string]string) (*manifest.Manifest, error) {
 	data, err := helpers.Testdata(name)
 	if err != nil {
