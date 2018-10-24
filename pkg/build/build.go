@@ -10,7 +10,6 @@ import (
 	"net/url"
 	"os"
 	"sort"
-
 	// "os/exec"
 	"path/filepath"
 	"strings"
@@ -178,7 +177,7 @@ func (bb *Build) login() error {
 	for host, entry := range auth {
 		buf := &bytes.Buffer{}
 
-		err := bb.Exec.Stream(buf, strings.NewReader(url.QueryEscape(entry.Password)), "docker", "login", "-u", entry.Username, "--password-stdin", host)
+		err := bb.Exec.Stream(buf, strings.NewReader(entry.Password), "docker", "login", "-u", entry.Username, "--password-stdin", host)
 
 		bb.Printf("Authenticating %s: %s\n", host, strings.TrimSpace(buf.String()))
 
