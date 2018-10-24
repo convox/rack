@@ -1,7 +1,8 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
   "Conditions": {
-    "BlankIops": { "Fn::Equals": [ { "Ref": "Iops" }, "0" ] }
+    "BlankIops": { "Fn::Equals": [ { "Ref": "Iops" }, "0" ] },
+    "Version9": { "Fn::Equals": [ { "Fn::Select": [ 0, { "Fn::Split": [ ".", { "Ref": "Version" } ] } ] }, "9" ] }
   },
   "Parameters": {
     "Class": {
@@ -86,10 +87,13 @@
       "Properties": {
         "Description": { "Fn::Sub": "${AWS::StackName} parameters" },
         "Family": { "Fn::Sub": [ "postgres${Base}", {
-          "Base": { "Fn::Join": [ ".", [
-            { "Fn::Select": [ 0, { "Fn::Split": [ ".", { "Ref": "Version" } ] } ] },
-            { "Fn::Select": [ 1, { "Fn::Split": [ ".", { "Ref": "Version" } ] } ] }
-          ] ] }
+          "Base": { "Fn::If": [ "Version9",
+            { "Fn::Join": [ ".", [
+              { "Fn::Select": [ 0, { "Fn::Split": [ ".", { "Ref": "Version" } ] } ] },
+              { "Fn::Select": [ 1, { "Fn::Split": [ ".", { "Ref": "Version" } ] } ] }
+            ] ] },
+            { "Fn::Select": [ 0, { "Fn::Split": [ ".", { "Ref": "Version" } ] } ] }
+          ] }
         } ] }
       }
     }

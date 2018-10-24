@@ -51,7 +51,7 @@ func (p *Provider) ReleaseCreate(app string, opts structs.ReleaseCreateOptions) 
 		if err != nil {
 			return nil, err
 		}
-
+		r.Description = b.Description
 		r.Manifest = b.Manifest
 	}
 
@@ -493,6 +493,10 @@ func (p *Provider) releaseSave(r *structs.Release) error {
 		req.Item["build"] = &dynamodb.AttributeValue{S: aws.String(r.Build)}
 	}
 
+	if r.Description != "" {
+		req.Item["description"] = &dynamodb.AttributeValue{S: aws.String(r.Description)}
+	}
+
 	if r.Manifest != "" {
 		req.Item["manifest"] = &dynamodb.AttributeValue{S: aws.String(r.Manifest)}
 	}
@@ -571,11 +575,12 @@ func releaseFromItem(item map[string]*dynamodb.AttributeValue) (*structs.Release
 	}
 
 	release := &structs.Release{
-		Id:       coalesce(item["id"], ""),
-		App:      coalesce(item["app"], ""),
-		Build:    coalesce(item["build"], ""),
-		Manifest: coalesce(item["manifest"], ""),
-		Created:  created,
+		Id:          coalesce(item["id"], ""),
+		App:         coalesce(item["app"], ""),
+		Build:       coalesce(item["build"], ""),
+		Manifest:    coalesce(item["manifest"], ""),
+		Description: coalesce(item["description"], ""),
+		Created:     created,
 	}
 
 	return release, nil

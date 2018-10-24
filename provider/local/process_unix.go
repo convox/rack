@@ -7,6 +7,7 @@ import (
 	"io"
 	"os/exec"
 	"strings"
+	"syscall"
 
 	"github.com/convox/rack/pkg/helpers"
 	"github.com/convox/rack/pkg/structs"
@@ -43,6 +44,11 @@ func (p *Provider) processExec(app, pid, command string, rw io.ReadWriter, opts 
 	go helpers.Pipe(fd, rw)
 
 	if err := cmd.Wait(); err != nil {
+		if ee, ok := err.(*exec.ExitError); ok {
+			if ws, ok := ee.Sys().(syscall.WaitStatus); ok {
+				return ws.ExitStatus(), nil
+			}
+		}
 		return 0, errors.WithStack(log.Error(err))
 	}
 

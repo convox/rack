@@ -25,7 +25,8 @@ After=network.target
 
 [Service]
 Type=simple
-ExecStart={{ .Command }} {{ range .Args }}{{ . }} {{ end }}
+Environment='PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin"'
+ExecStart={{ .Command }} {{ range .Args }}"{{ . }}" {{ end }}
 KillMode=control-group
 Restart=always
 RestartSec=10s

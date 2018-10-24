@@ -15,7 +15,6 @@ import (
 	"time"
 
 	"github.com/convox/rack/pkg/helpers"
-	"github.com/convox/rack/pkg/manifest"
 	"github.com/convox/rack/pkg/structs"
 	"github.com/pkg/errors"
 )
@@ -241,81 +240,70 @@ func (p *Provider) argsFromOpts(app, service string, opts processStartOptions) (
 		release = a.Release
 	}
 
-	// get release and manifest for initial environment and volumes
-	var m *manifest.Manifest
-	var r *structs.Release
-	var s *manifest.Service
-	var err error
+	image := opts.Image
 
-	if opts.Release != "" {
-		m, r, err = helpers.ReleaseManifest(p, app, opts.Release)
-		if err != nil {
-			return nil, errors.WithStack(err)
-		}
-
-		// if service is not defined in manifest, i.e. "build", carry on
-		s, err = m.Service(service)
-		if err != nil && !strings.Contains(err.Error(), "no such service") {
-			return nil, errors.WithStack(err)
-		}
-	}
-
-	if s != nil {
-		// manifest environment
-		env, err := m.ServiceEnvironment(s.Name)
-		if err != nil {
-			return nil, errors.WithStack(err)
-		}
-
-		for k, v := range env {
-			args = append(args, "-e", fmt.Sprintf("%s=%s", k, v))
-		}
-
-		for _, sr := range s.Resources {
-			for _, r := range m.Resources {
-				if r.Name == sr {
-					u, err := p.resourceURL(app, r.Type, r.Name)
-					if err != nil {
-						return nil, err
-					}
-
-					args = append(args, "-e", fmt.Sprintf("%s=%s", fmt.Sprintf("%s_URL", strings.ToUpper(sr)), u))
-				}
-			}
-		}
-
-		// app environment
-		menv, err := helpers.AppEnvironment(p, app)
+	if image == "" {
+		m, r, err := helpers.ReleaseManifest(p, app, release)
 		if err != nil {
 			return nil, err
 		}
 
-		for k, v := range menv {
-			args = append(args, "-e", fmt.Sprintf("%s=%s", k, v))
-		}
-
-		// volumes
-		s, err := m.Service(s.Name)
-		if err != nil {
-			return nil, errors.WithStack(err)
-		}
-
-		vv, err := p.serviceVolumes(app, s.Volumes)
-		if err != nil {
-			return nil, errors.WithStack(err)
-		}
-
-		for _, v := range vv {
-			args = append(args, "-v", v)
-		}
-	}
-
-	image := ""
-
-	if opts.Image != "" {
-		image = opts.Image
-	} else {
 		image = fmt.Sprintf("%s/%s:%s.%s", p.Rack, app, service, r.Build)
+
+		s, err := m.Service(service)
+		if err != nil {
+			return nil, err
+		}
+
+		if s != nil {
+			// manifest environment
+			env, err := m.ServiceEnvironment(s.Name)
+			if err != nil {
+				return nil, errors.WithStack(err)
+			}
+
+			for k, v := range env {
+				args = append(args, "-e", fmt.Sprintf("%s=%s", k, v))
+			}
+
+			for _, sr := range s.Resources {
+				for _, r := range m.Resources {
+					if r.Name == sr {
+						u, err := p.resourceURL(app, r.Type, r.Name)
+						if err != nil {
+							return nil, err
+						}
+
+						args = append(args, "-e", fmt.Sprintf("%s=%s", fmt.Sprintf("%s_URL", strings.ToUpper(sr)), u))
+					}
+				}
+			}
+
+			// app environment
+			menv, err := helpers.AppEnvironment(p, app)
+			if err != nil {
+				return nil, err
+			}
+
+			for k, v := range menv {
+				args = append(args, "-e", fmt.Sprintf("%s=%s", k, v))
+			}
+
+			// volumes
+			s, err := m.Service(s.Name)
+			if err != nil {
+				return nil, errors.WithStack(err)
+			}
+
+			vv, err := p.serviceVolumes(app, s.Volumes)
+			if err != nil {
+				return nil, errors.WithStack(err)
+			}
+
+			for _, v := range vv {
+				args = append(args, "-v", v)
+			}
+		}
 	}
 
 	// FIXME try letting docker daemon pass through dns
@@ -365,11 +353,7 @@ func (p *Provider) argsFromOpts(app, service string, opts processStartOptions) (
 	args = append(args, "--label", fmt.Sprintf("convox.app=%s", app))
 	args = append(args, "--label", fmt.Sprintf("convox.rack=%s", p.Rack))
 	args = append(args, "--label", fmt.Sprintf("convox.type=%s", "process"))
-
-	if opts.Release != "" {
-		args = append(args, "--label", fmt.Sprintf("convox.release=%s", opts.Release))
-	}
-
+	args = append(args, "--label", fmt.Sprintf("convox.release=%s", release))
 	args = append(args, "--label", fmt.Sprintf("convox.service=%s", service))
 
 	for from, to := range opts.Volumes {
@@ -414,6 +398,7 @@ func processList(filters []string, all bool) (structs.Processes, error) {
 			ID        string
 			Labels    string
 			Ports     string
+			Status    string
 		}
 
 		if err := jd.Decode(&dps); err != nil {
@@ -446,6 +431,7 @@ func processList(filters []string, all bool) (structs.Processes, error) {
 			Name:    labels["convox.service"],
 			Release: labels["convox.release"],
 			Started: started,
+			Status:  "running",
 			Ports:   []string{},
 		}
 

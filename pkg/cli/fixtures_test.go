@@ -162,12 +162,13 @@ func fxRegistry() *structs.Registry {
 
 func fxRelease() *structs.Release {
 	return &structs.Release{
-		Id:       "release1",
-		App:      "app1",
-		Build:    "build1",
-		Env:      "FOO=bar\nBAZ=quux",
-		Manifest: "services:\n  web:\n    build: .",
-		Created:  time.Now().UTC().Add(-49 * time.Hour),
+		Id:          "release1",
+		App:         "app1",
+		Build:       "build1",
+		Env:         "FOO=bar\nBAZ=quux",
+		Manifest:    "services:\n  web:\n    build: .\n    test: make test",
+		Created:     time.Now().UTC().Add(-49 * time.Hour),
+		Description: "description1",
 	}
 }
 
