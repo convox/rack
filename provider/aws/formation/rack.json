@@ -2472,6 +2472,8 @@
             "Cpu": "128",
             "DockerLabels": {
               "convox.release": { "Ref": "Version" },
+              "rack.AsgSpot": { "Fn::If": [ "SpotInstances", { "Ref": "SpotInstances" }, { "Ref": "AWS::NoValue" } ] },
+              "rack.AsgStandard": { "Ref": "Instances" },
               "rack.BuildCluster": { "Fn::If": [ "DedicatedBuilder", { "Ref": "BuildCluster" }, { "Ref": "Cluster" } ] },
               "rack.CloudformationTopic": { "Ref": "CloudformationTopic" },
               "rack.Cluster": { "Ref": "Cluster" },

@@ -169,6 +169,10 @@ func (p *Provider) streamProcessLogs(app, pid string, opts structs.LogsOptions, 
 	helpers.Stream(w, r)
 }
 
+func (p *Provider) AppMetrics(name string, opts structs.MetricsOptions) (structs.Metrics, error) {
+	return nil, fmt.Errorf("unimplemented")
+}
+
 func (p *Provider) AppRegistry(app string) (*structs.Registry, error) {
 	log := p.logger("AppRegistry").Append("app=%q", app)
 

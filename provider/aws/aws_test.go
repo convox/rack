@@ -6,8 +6,9 @@ import (
 	"os"
 
 	"github.com/convox/logger"
-	"github.com/convox/rack/provider/aws"
+	"github.com/convox/rack/pkg/structs"
 	"github.com/convox/rack/pkg/test/awsutil"
+	"github.com/convox/rack/provider/aws"
 )
 
 func init() {
@@ -48,4 +49,14 @@ func StubAwsProvider(cycles ...awsutil.Cycle) *AwsStub {
 	}
 
 	return &AwsStub{p, s}
+}
+
+func testProvider(fn func(p *aws.Provider)) {
+	p := &aws.Provider{
+		Region: "us-test-1",
+	}
+
+	p.Initialize(structs.ProviderOptions{})
+
+	fn(p)
 }

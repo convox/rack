@@ -21,29 +21,64 @@ type Router struct {
 	Server     *Server
 }
 
+type Route struct {
+	*mux.Route
+	Router *Router
+}
+
+// func (r Route) Subrouter(prefix string, fn func(Router)) {
+//   fn(Router{
+//     Parent: r.Router,
+//     Router: r.PathPrefix(prefix).Subrouter(),
+//     Server: r.Router.Server,
+//   })
+// }
+
+func (rt *Router) MatcherFunc(fn mux.MatcherFunc) *Router {
+	return &Router{
+		Parent: rt,
+		Router: rt.Router.MatcherFunc(fn).Subrouter(),
+		Server: rt.Server,
+	}
+}
+
 func (rt *Router) Redirect(method, path string, code int, target string) {
 	rt.Handle(path, Redirect(code, target)).Methods(method)
 }
 
-func (rt *Router) Route(method, path string, fn HandlerFunc) {
+func (rt *Router) Route(method, path string, fn HandlerFunc) Route {
 	switch method {
 	case "SOCKET":
-		rt.Handle(path, rt.websocket(fn)).Methods("GET").Headers("Upgrade", "websocket")
+		return Route{
+			Route:  rt.Handle(path, rt.websocket(fn)).Methods("GET").Headers("Upgrade", "websocket"),
+			Router: rt,
+		}
+	case "ANY":
+		return Route{
+			Route:  rt.Handle(path, rt.http(fn)),
+			Router: rt,
+		}
 	default:
-		rt.Handle(path, rt.http(fn)).Methods(method)
+		return Route{
+			Route:  rt.Handle(path, rt.http(fn)).Methods(method),
+			Router: rt,
+		}
 	}
 }
 
-func (rt *Router) Static(prefix, path string) {
-	rt.PathPrefix(prefix).Handler(http.StripPrefix(prefix, http.FileServer(http.Dir(path))))
+func (rt *Router) Static(prefix, path string) Route {
+	return Route{
+		Route:  rt.PathPrefix(prefix).Handler(http.StripPrefix(prefix, http.FileServer(http.Dir(path)))),
+		Router: rt,
+	}
 }
 
-func (r *Router) Subrouter(prefix string) Router {
-	return Router{
-		Parent: r,
-		Router: r.PathPrefix(prefix).Subrouter(),
-		Server: r.Server,
-	}
+func (rt *Router) Subrouter(prefix string, fn func(*Router)) {
+	fn(&Router{
+		Parent: rt,
+		Router: rt.PathPrefix(prefix).Subrouter(),
+		Server: rt.Server,
+	})
 }
 
 func (rt *Router) Use(mw Middleware) {
@@ -72,6 +107,7 @@ func (rt *Router) context(name string, w http.ResponseWriter, r *http.Request, c
 	c.context = context.WithValue(r.Context(), "request.id", id)
 	c.id = id
 	c.logger = rt.Server.Logger.Prepend("id=%s", id).At(name)
+	c.name = name
 	c.ws = conn
 
 	return c, nil
@@ -104,9 +140,21 @@ func (rt *Router) handle(fn HandlerFunc, c *Context) error {
 
 	mw := []Middleware{}
 
-	if rt.Parent != nil {
-		mw = append(mw, rt.Parent.Middleware...)
+	p := rt.Parent
+
+	for {
+		if p == nil {
+			break
+		}
+
+		mw = append(p.Middleware, mw...)
+
+		p = p.Parent
 	}
+
+	// if rt.Parent != nil {
+	//   mw = append(mw, rt.Parent.Middleware...)
+	// }
 
 	mw = append(mw, rt.Middleware...)
 

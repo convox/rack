@@ -20,8 +20,9 @@ const (
 )
 
 type Client struct {
-	Endpoint *url.URL
-	Headers  HeadersFunc
+	Authenticator func(c *Client, w *http.Response) (http.Header, error)
+	Endpoint      *url.URL
+	Headers       HeadersFunc
 }
 
 type HeadersFunc func() http.Header
@@ -298,6 +299,24 @@ func (c *Client) HandleRequest(req *http.Request) (*http.Response, error) {
 	res, err := DefaultClient.Do(req)
 	if err != nil {
 		return nil, err
+	}
+
+	if res.StatusCode == 401 {
+		if c.Authenticator != nil {
+			hs, err := c.Authenticator(c, res)
+			if err != nil {
+				return nil, err
+			}
+			if hs != nil {
+				for k, v := range hs {
+					req.Header.Del(k)
+					for _, s := range v {
+						req.Header.Add(k, s)
+					}
+				}
+				return c.HandleRequest(req)
+			}
+		}
 	}
 
 	if err := responseError(res); err != nil {

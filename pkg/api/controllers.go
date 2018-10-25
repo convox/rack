@@ -128,6 +128,30 @@ func (s *Server) AppLogs(c *stdapi.Context) error {
 	return nil
 }
 
+func (s *Server) AppMetrics(c *stdapi.Context) error {
+	if err := s.hook("AppMetricsValidate", c); err != nil {
+		return err
+	}
+
+	name := c.Var("name")
+
+	var opts structs.MetricsOptions
+	if err := stdapi.UnmarshalOptions(c.Request(), &opts); err != nil {
+		return err
+	}
+
+	v, err := s.provider(c).AppMetrics(name, opts)
+	if err != nil {
+		return err
+	}
+
+	if vs, ok := interface{}(v).(Sortable); ok {
+		sort.Slice(v, vs.Less)
+	}
+
+	return c.RenderJSON(v)
+}
+
 func (s *Server) AppUpdate(c *stdapi.Context) error {
 	if err := s.hook("AppUpdateValidate", c); err != nil {
 		return err
@@ -1193,6 +1217,28 @@ func (s *Server) SystemLogs(c *stdapi.Context) error {
 	}
 
 	return nil
+}
+
+func (s *Server) SystemMetrics(c *stdapi.Context) error {
+	if err := s.hook("SystemMetricsValidate", c); err != nil {
+		return err
+	}
+
+	var opts structs.MetricsOptions
+	if err := stdapi.UnmarshalOptions(c.Request(), &opts); err != nil {
+		return err
+	}
+
+	v, err := s.provider(c).SystemMetrics(opts)
+	if err != nil {
+		return err
+	}
+
+	if vs, ok := interface{}(v).(Sortable); ok {
+		sort.Slice(v, vs.Less)
+	}
+
+	return c.RenderJSON(v)
 }
 
 func (s *Server) SystemProcesses(c *stdapi.Context) error {

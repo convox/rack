@@ -65,7 +65,7 @@
   version = "v1.2.0"
 
 [[projects]]
-  digest = "1:063349d0f3137fc29f59f9fae80ba7bba0bcc4b35c81370d3b3c50d2524c8016"
+  digest = "1:e7d095069975495115514684047b021e4bd60630a8c93fa4f344efd6308751f0"
   name = "github.com/aws/aws-sdk-go"
   packages = [
     "aws",
@@ -99,6 +99,7 @@
     "service/autoscaling",
     "service/cloudformation",
     "service/cloudwatch",
+    "service/cloudwatch/cloudwatchiface",
     "service/cloudwatchlogs",
     "service/dynamodb",
     "service/ec2",
@@ -160,11 +161,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:f7b06ef3e77a63cb9c7f2eae3d402fd2547c074f08b95af95726246639456153"
+  digest = "1:3b45c56d397208ea54e4f9168e0d48cc0176e36aa8fc699222bee9c9dbc14a40"
   name = "github.com/convox/stdapi"
   packages = ["."]
   pruneopts = "NUT"
-  revision = "056b58bedecdf9d4eac92d44f4d3ba489d59d184"
+  revision = "06e74572b01f5c259c2521eefe0de3f3242955e5"
 
 [[projects]]
   branch = "master"
@@ -176,11 +177,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:86ee1fcd2d6ba5b4801c37d1a2b871adedff093f32a25ea04999425f67aa3fc4"
+  digest = "1:390c4fecf96c38741299982330558761d0d5f595ca8e88b3790b7fe45a92335b"
   name = "github.com/convox/stdsdk"
   packages = ["."]
   pruneopts = "NUT"
-  revision = "e633306a9d4c7ce972eeccdd952e7be33715a933"
+  revision = "232674682662254064241732c7dd26d36d1a973e"
 
 [[projects]]
   branch = "master"
@@ -600,11 +601,13 @@
     "github.com/aws/aws-sdk-go/aws",
     "github.com/aws/aws-sdk-go/aws/awserr",
     "github.com/aws/aws-sdk-go/aws/credentials",
+    "github.com/aws/aws-sdk-go/aws/request",
     "github.com/aws/aws-sdk-go/aws/session",
     "github.com/aws/aws-sdk-go/service/acm",
     "github.com/aws/aws-sdk-go/service/autoscaling",
     "github.com/aws/aws-sdk-go/service/cloudformation",
     "github.com/aws/aws-sdk-go/service/cloudwatch",
+    "github.com/aws/aws-sdk-go/service/cloudwatch/cloudwatchiface",
     "github.com/aws/aws-sdk-go/service/cloudwatchlogs",
     "github.com/aws/aws-sdk-go/service/dynamodb",
     "github.com/aws/aws-sdk-go/service/ec2",
