@@ -6,7 +6,8 @@
       "InternalDomains": { "Fn::Equals": [ { "Ref": "InternalDomains" }, "Yes" ] },
       "Isolate": { "Fn::And": [ { "Condition": "Private" }, { "Fn::Equals": [ { "Ref": "Isolate" }, "Yes" ] } ] },
       "IsolateServices": { "Fn::Or": [ { "Condition": "Fargate" }, { "Condition": "Isolate" } ] },
-      "Private": { "Fn::Equals": [ { "Ref": "Private" }, "Yes" ] }
+      "Private": { "Fn::Equals": [ { "Ref": "Private" }, "Yes" ] },
+      "RackUrl": { "Fn::Equals": [ { "Ref": "RackUrl" }, "Yes" ] }
     },
     "Outputs": {
       {{ if .Port.Port }}
@@ -72,6 +73,11 @@
       },
       "Rack": {
         "Type": "String"
+      },
+      "RackUrl": {
+        "Type": "String",
+        "Default": "No",
+        "AllowedValues": [ "Yes", "No" ]
       },
       "Registry": {
         "Type": "String"
@@ -441,7 +447,10 @@
                 { "Name": "BUILD_DESCRIPTION", "Value": {{ safe $.Build.Description }} },
                 { "Name": "RELEASE", "Value": "{{$.Release.Id}}" },
                 { "Name": "RACK", "Value": { "Ref": "Rack" } },
-                { "Name": "RACK_URL", "Value": { "Fn::Sub": "https://{{$.Password}}@rack.${Rack}.convox" } },
+                { "Fn::If": [ "RackUrl",
+                  { "Name": "RACK_URL", "Value": { "Fn::Sub": "https://{{$.Password}}@rack.${Rack}.convox" } },
+                  { "Ref": "AWS::NoValue" }
+                ] },
                 { "Name": "CONVOX_ENV_KEY", "Value": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:EncryptionKey" } } },
                 { "Name": "CONVOX_ENV_URL", "Value": { "Fn::Sub": "s3://${Settings}/releases/{{$.Release.Id}}/env" } },
                 { "Name": "CONVOX_ENV_VARS", "Value": "{{.EnvironmentKeys}}" }
