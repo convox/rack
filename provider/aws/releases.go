@@ -207,6 +207,7 @@ func (p *Provider) ReleasePromote(app, id string) error {
 		"App":          r.App,
 		"Certificates": cs,
 		"Manifest":     m,
+		"Password":     p.Password,
 		"Release":      r,
 		"Topic":        p.CloudformationTopic,
 		"Version":      p.Version,
@@ -247,6 +248,7 @@ func (p *Provider) ReleasePromote(app, id string) error {
 			"App":      r.App,
 			"Build":    tp["Build"],
 			"Manifest": tp["Manifest"],
+			"Password": p.Password,
 			"Release":  tp["Release"],
 			"Service":  s,
 		}
