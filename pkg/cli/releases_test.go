@@ -103,6 +103,7 @@ func TestReleasesManifestError(t *testing.T) {
 
 func TestReleasesPromote(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
+		i.On("AppGet", "app1").Return(fxApp(), nil)
 		i.On("ReleasePromote", "app1", "release1").Return(nil)
 
 		res, err := testExecute(e, "releases promote release1 -a app1", nil)
@@ -115,6 +116,7 @@ func TestReleasesPromote(t *testing.T) {
 
 func TestReleasesPromoteError(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
+		i.On("AppGet", "app1").Return(fxApp(), nil)
 		i.On("ReleasePromote", "app1", "release1").Return(fmt.Errorf("err1"))
 
 		res, err := testExecute(e, "releases promote release1 -a app1", nil)
@@ -122,6 +124,23 @@ func TestReleasesPromoteError(t *testing.T) {
 		require.Equal(t, 1, res.Code)
 		res.RequireStderr(t, []string{"ERROR: err1"})
 		res.RequireStdout(t, []string{"Promoting release1... "})
+	})
+}
+
+func TestReleasesPromoteAlreadyUpdating(t *testing.T) {
+	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
+		i.On("AppGet", "app1").Return(fxAppUpdating(), nil).Twice()
+		i.On("AppGet", "app1").Return(fxApp(), nil)
+		i.On("ReleasePromote", "app1", "release1").Return(nil)
+
+		res, err := testExecute(e, "releases promote release1 -a app1", nil)
+		require.NoError(t, err)
+		require.Equal(t, 0, res.Code)
+		res.RequireStderr(t, []string{""})
+		res.RequireStdout(t, []string{
+			"Waiting for app to be ready... OK",
+			"Promoting release1... OK",
+		})
 	})
 }
 
