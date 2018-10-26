@@ -25,7 +25,7 @@ type Builds []Build
 
 type BuildCreateOptions struct {
 	Description *string `flag:"description,d" param:"description"`
-	Development *bool   `param:"development"`
+	Development *bool   `flag:"development" param:"development"`
 	Manifest    *string `flag:"manifest,m" param:"manifest"`
 	NoCache     *bool   `flag:"no-cache" param:"no-cache"`
 }
