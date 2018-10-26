@@ -8,27 +8,28 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/gobuffalo/packr"
 	"github.com/pkg/errors"
 )
 
 var (
-	templateDir     string
+	templateBox     packr.Box
 	templateHelpers TemplateHelpers
 )
 
 type TemplateHelpers func(c *Context) template.FuncMap
 
-func LoadTemplates(dir string, helpers TemplateHelpers) {
-	templateDir = dir
+func LoadTemplates(box packr.Box, helpers TemplateHelpers) {
+	templateBox = box
 	templateHelpers = helpers
 }
 
 func RenderTemplate(c *Context, path string, params interface{}) error {
 	files := []string{}
 
-	files = appendIfExists(files, filepath.Join(templateDir, "layout.tmpl"))
-	files = appendIfExists(files, filepath.Join(templateDir, filepath.Dir(path), "layout.tmpl"))
-	files = append(files, filepath.Join(templateDir, fmt.Sprintf("%s.tmpl", path)))
+	files = append(files, "layout.tmpl")
+	files = append(files, filepath.Join(filepath.Dir(path), "layout.tmpl"))
+	files = append(files, fmt.Sprintf("%s.tmpl", path))
 
 	ts := template.New("main")
 
@@ -36,19 +37,22 @@ func RenderTemplate(c *Context, path string, params interface{}) error {
 		ts = ts.Funcs(templateHelpers(c))
 	}
 
-	t, err := ts.ParseFiles(files...)
-	if err != nil {
-		return err
+	for _, f := range files {
+		if templateBox.Has(f) {
+			if _, err := ts.Parse(templateBox.String(f)); err != nil {
+				return errors.WithStack(err)
+			}
+		}
 	}
 
 	var buf bytes.Buffer
 
-	if err := t.Execute(&buf, params); err != nil {
+	if err := ts.Execute(&buf, params); err != nil {
 		return errors.WithStack(err)
 	}
 
 	if _, err := io.Copy(c, &buf); err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 
 	return nil

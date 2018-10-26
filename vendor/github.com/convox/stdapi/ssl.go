@@ -9,17 +9,19 @@ import (
 	"encoding/pem"
 	"math/big"
 	"time"
+
+	"github.com/pkg/errors"
 )
 
 func generateSelfSignedCertificate(host string) (tls.Certificate, error) {
 	rkey, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
-		return tls.Certificate{}, err
+		return tls.Certificate{}, errors.WithStack(err)
 	}
 
 	serial, err := rand.Int(rand.Reader, new(big.Int).Lsh(big.NewInt(1), 128))
 	if err != nil {
-		return tls.Certificate{}, err
+		return tls.Certificate{}, errors.WithStack(err)
 	}
 
 	template := x509.Certificate{
@@ -38,7 +40,7 @@ func generateSelfSignedCertificate(host string) (tls.Certificate, error) {
 
 	data, err := x509.CreateCertificate(rand.Reader, &template, &template, &rkey.PublicKey, rkey)
 	if err != nil {
-		return tls.Certificate{}, err
+		return tls.Certificate{}, errors.WithStack(err)
 	}
 
 	pub := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: data})
@@ -46,7 +48,7 @@ func generateSelfSignedCertificate(host string) (tls.Certificate, error) {
 
 	cert, err := tls.X509KeyPair(pub, key)
 	if err != nil {
-		return tls.Certificate{}, err
+		return tls.Certificate{}, errors.WithStack(err)
 	}
 
 	return cert, nil

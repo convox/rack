@@ -7,6 +7,7 @@ import (
 
 	"github.com/convox/logger"
 	"github.com/gorilla/mux"
+	"github.com/pkg/errors"
 )
 
 type RecoverFunc func(error)
@@ -24,7 +25,7 @@ func (s *Server) Listen(proto, addr string) error {
 
 	l, err := net.Listen("tcp", addr)
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 
 	switch proto {
@@ -37,7 +38,7 @@ func (s *Server) Listen(proto, addr string) error {
 
 		cert, err := generateSelfSignedCertificate(s.Hostname)
 		if err != nil {
-			return err
+			return errors.WithStack(err)
 		}
 
 		config.Certificates = append(config.Certificates, cert)
@@ -48,7 +49,7 @@ func (s *Server) Listen(proto, addr string) error {
 	return http.Serve(l, s)
 }
 
-func (s *Server) MatcherFunc(fn mux.MatcherFunc) Route {
+func (s *Server) MatcherFunc(fn mux.MatcherFunc) *Router {
 	return s.Router.MatcherFunc(fn)
 }
 
@@ -60,8 +61,8 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	s.Router.ServeHTTP(w, r)
 }
 
-func (s *Server) Subrouter(prefix string, fn func(Router)) Router {
-	r := Router{
+func (s *Server) Subrouter(prefix string, fn func(*Router)) *Router {
+	r := &Router{
 		Parent: s.Router,
 		Router: s.Router.PathPrefix(prefix).Subrouter(),
 		Server: s,
