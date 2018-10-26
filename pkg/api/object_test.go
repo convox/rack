@@ -50,7 +50,7 @@ func TestObjectExistsError(t *testing.T) {
 		var exists bool
 		p.On("ObjectExists", "app1", "path/object1.ext").Return(false, fmt.Errorf("err1"))
 		err := c.Head("/apps/app1/objects/path/object1.ext", stdsdk.RequestOptions{}, &exists)
-		require.EqualError(t, err, "response status 403")
+		require.EqualError(t, err, "response status 500")
 		require.Equal(t, false, exists)
 	})
 }
