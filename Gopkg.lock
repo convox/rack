@@ -169,11 +169,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:c8a2adcf146c877e5d4c40dff18b75134e0f7c08fe02c39e10f198f3410b0161"
+  digest = "1:525ccf816532d4eccef4964ad07fee5609122a7ea501228504bba81d26c9fcc0"
   name = "github.com/convox/stdapi"
   packages = ["."]
   pruneopts = "NUT"
-  revision = "d878e7ff24684d25f94cd15fa65ce071972fb7f5"
+  revision = "6a30c95451f94c774a6d37154e8eca8e162a0b02"
 
 [[projects]]
   branch = "master"
@@ -185,11 +185,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:8b3daffa25c8ca5dbd3b924363fde4c9dbe6af982b60365eb6c00da1478b93d5"
+  digest = "1:390c4fecf96c38741299982330558761d0d5f595ca8e88b3790b7fe45a92335b"
   name = "github.com/convox/stdsdk"
   packages = ["."]
   pruneopts = "NUT"
-  revision = "ff49450a8b3cbaacb6bbfc0be72d31d7644ed50a"
+  revision = "232674682662254064241732c7dd26d36d1a973e"
 
 [[projects]]
   branch = "master"
@@ -294,6 +294,14 @@
   pruneopts = "NUT"
   revision = "32e4c1e6bc4e7d0d8451aa6b75200d19e37a536a"
   version = "v1.32.0"
+
+[[projects]]
+  digest = "1:38cc212d9056e1e15604c1be32ee422526e5cbf52469bf49b33a00a362e1b26e"
+  name = "github.com/gobuffalo/packr"
+  packages = ["."]
+  pruneopts = "NUT"
+  revision = "5a2cbb54c4e7d482e3f518c56f1f86f133d5204f"
+  version = "v1.13.7"
 
 [[projects]]
   digest = "1:6a7159c5f8f8826207545407a458b43ab6599c1c8a2271465c2e979ecea1dcd4"

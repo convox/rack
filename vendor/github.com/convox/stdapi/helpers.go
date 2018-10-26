@@ -7,6 +7,8 @@ import (
 	"reflect"
 	"runtime"
 	"strings"
+
+	"github.com/pkg/errors"
 )
 
 func coalesce(ss ...string) string {
@@ -31,13 +33,13 @@ func generateId(length int) (string, error) {
 	data := make([]byte, 1024)
 
 	if _, err := rand.Read(data); err != nil {
-		return "", err
+		return "", errors.WithStack(err)
 	}
 
 	key := fmt.Sprintf("%x", sha1.Sum(data))
 
 	if len(key) < length {
-		return "", fmt.Errorf("key too long")
+		return "", errors.WithStack(fmt.Errorf("key too long"))
 	}
 
 	return key[0:length], nil

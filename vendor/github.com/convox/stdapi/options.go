@@ -6,7 +6,10 @@ import (
 	"net/url"
 	"reflect"
 	"strconv"
+	"strings"
 	"time"
+
+	"github.com/pkg/errors"
 )
 
 func UnmarshalOptions(r *http.Request, opts interface{}) error {
@@ -23,7 +26,7 @@ func UnmarshalOptions(r *http.Request, opts interface{}) error {
 		if n := f.Tag.Get("header"); n != "" {
 			if v, ok := fetchHeader(r, n, d); ok {
 				if err := unmarshalValue(r, u, v); err != nil {
-					return err
+					return errors.WithStack(err)
 				}
 			}
 			continue
@@ -32,7 +35,7 @@ func UnmarshalOptions(r *http.Request, opts interface{}) error {
 		if n := f.Tag.Get("param"); n != "" {
 			if v, ok := fetchForm(r, n, d); ok {
 				if err := unmarshalValue(r, u, v); err != nil {
-					return err
+					return errors.WithStack(err)
 				}
 			}
 			continue
@@ -41,7 +44,7 @@ func UnmarshalOptions(r *http.Request, opts interface{}) error {
 		if n := f.Tag.Get("query"); n != "" {
 			if v, ok := fetchQuery(r, n, d); ok {
 				if err := unmarshalValue(r, u, v); err != nil {
-					return err
+					return errors.WithStack(err)
 				}
 			}
 			continue
@@ -89,13 +92,13 @@ func unmarshalValue(r *http.Request, u reflect.Value, v string) error {
 	case *int:
 		i, err := strconv.Atoi(v)
 		if err != nil {
-			return err
+			return errors.WithStack(err)
 		}
 		u.Set(reflect.ValueOf(&i))
 	case *int64:
 		i, err := strconv.ParseInt(v, 10, 64)
 		if err != nil {
-			return err
+			return errors.WithStack(err)
 		}
 		u.Set(reflect.ValueOf(&i))
 	case *string:
@@ -103,19 +106,22 @@ func unmarshalValue(r *http.Request, u reflect.Value, v string) error {
 	case *time.Duration:
 		d, err := time.ParseDuration(v)
 		if err != nil {
-			return err
+			return errors.WithStack(err)
 		}
 		u.Set(reflect.ValueOf(&d))
 	case *time.Time:
 		tt, err := time.Parse("20060102.150405.000000000", v)
 		if err != nil {
-			return err
+			return errors.WithStack(err)
 		}
 		u.Set(reflect.ValueOf(&tt))
+	case []string:
+		ss := strings.Split(v, ",")
+		u.Set(reflect.ValueOf(ss))
 	case map[string]string:
 		uv, err := url.ParseQuery(v)
 		if err != nil {
-			return err
+			return errors.WithStack(err)
 		}
 		m := map[string]string{}
 		for k := range uv {
@@ -123,7 +129,7 @@ func unmarshalValue(r *http.Request, u reflect.Value, v string) error {
 		}
 		u.Set(reflect.ValueOf(m))
 	default:
-		return fmt.Errorf("unknown param type: %T", t)
+		return errors.WithStack(fmt.Errorf("unknown param type: %T", t))
 	}
 
 	return nil
