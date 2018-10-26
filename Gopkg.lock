@@ -584,12 +584,13 @@
   revision = "8b4580aae2a0dd0c231a45d3ccb8434ff533b840"
 
 [[projects]]
-  branch = "v2"
-  digest = "1:8c53ce78f10de538c37a5fb33148f81ce068a0b25bec08d8521212e0c0b5f7bd"
+  branch = "merge-map-slice"
+  digest = "1:fb3d94df5c3e7d76333935f72a5a08e1d2fcd383a3974e10dcafc23c3d913188"
   name = "gopkg.in/yaml.v2"
   packages = ["."]
   pruneopts = "NUT"
-  revision = "287cf08546ab5e7e37d55a84f7ed3fd1db036de5"
+  revision = "3fb95e32dd8a54d6a2e0daec4151b6a41c2e64f4"
+  source = "github.com/ddollar/yaml"
 
 [solve-meta]
   analyzer-name = "dep"
