@@ -6,6 +6,7 @@ import (
 	"net/url"
 	"reflect"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -92,6 +93,12 @@ func unmarshalValue(r *http.Request, u reflect.Value, v string) error {
 			return err
 		}
 		u.Set(reflect.ValueOf(&i))
+	case *int64:
+		i, err := strconv.ParseInt(v, 10, 64)
+		if err != nil {
+			return err
+		}
+		u.Set(reflect.ValueOf(&i))
 	case *string:
 		u.Set(reflect.ValueOf(&v))
 	case *time.Duration:
@@ -106,6 +113,9 @@ func unmarshalValue(r *http.Request, u reflect.Value, v string) error {
 			return err
 		}
 		u.Set(reflect.ValueOf(&tt))
+	case []string:
+		ss := strings.Split(v, ",")
+		u.Set(reflect.ValueOf(ss))
 	case map[string]string:
 		uv, err := url.ParseQuery(v)
 		if err != nil {

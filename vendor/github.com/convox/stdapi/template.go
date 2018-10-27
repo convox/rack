@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"html/template"
 	"io"
-	"net/http"
 	"os"
 	"path/filepath"
 
@@ -13,44 +12,33 @@ import (
 )
 
 var (
-	Templates = map[string]*template.Template{}
+	templateDir     string
+	templateHelpers TemplateHelpers
 )
 
-func LoadTemplates(dir string, helpers map[string]interface{}) error {
-	return filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
+type TemplateHelpers func(c *Context) template.FuncMap
 
-		if !info.IsDir() {
-			files := []string{}
-
-			files = appendIfExists(files, filepath.Join(dir, "layout.tmpl"))
-			files = appendIfExists(files, filepath.Join(filepath.Dir(path), "layout.tmpl"))
-			files = append(files, path)
-
-			t, err := template.New("main").Funcs(helpers).ParseFiles(files...)
-			if err != nil {
-				return err
-			}
-
-			rel, err := filepath.Rel(dir, path)
-			if err != nil {
-				return err
-			}
-
-			Templates[rel] = t
-		}
-
-		return nil
-	})
+func LoadTemplates(dir string, helpers TemplateHelpers) {
+	templateDir = dir
+	templateHelpers = helpers
 }
 
-func RenderTemplate(w http.ResponseWriter, path string, params interface{}) error {
-	t, ok := Templates[fmt.Sprintf("%s.tmpl", path)]
+func RenderTemplate(c *Context, path string, params interface{}) error {
+	files := []string{}
 
-	if !ok {
-		return fmt.Errorf("no such template: %s", path)
+	files = appendIfExists(files, filepath.Join(templateDir, "layout.tmpl"))
+	files = appendIfExists(files, filepath.Join(templateDir, filepath.Dir(path), "layout.tmpl"))
+	files = append(files, filepath.Join(templateDir, fmt.Sprintf("%s.tmpl", path)))
+
+	ts := template.New("main")
+
+	if templateHelpers != nil {
+		ts = ts.Funcs(templateHelpers(c))
+	}
+
+	t, err := ts.ParseFiles(files...)
+	if err != nil {
+		return err
 	}
 
 	var buf bytes.Buffer
@@ -59,7 +47,7 @@ func RenderTemplate(w http.ResponseWriter, path string, params interface{}) erro
 		return errors.WithStack(err)
 	}
 
-	if _, err := io.Copy(w, &buf); err != nil {
+	if _, err := io.Copy(c, &buf); err != nil {
 		return err
 	}
 

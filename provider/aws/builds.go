@@ -832,6 +832,10 @@ func (p *Provider) runBuild(build *structs.Build, url string, opts structs.Build
 							Value: aws.String(auth),
 						},
 						{
+							Name:  aws.String("BUILD_DEVELOPMENT"),
+							Value: aws.String(fmt.Sprintf("%t", cb(opts.Development, false))),
+						},
+						{
 							Name:  aws.String("BUILD_GENERATION"),
 							Value: aws.String(a.Tags["Generation"]),
 						},

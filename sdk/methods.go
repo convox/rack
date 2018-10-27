@@ -90,6 +90,21 @@ func (c *Client) AppLogs(name string, opts structs.LogsOptions) (io.ReadCloser, 
 	return v, err
 }
 
+func (c *Client) AppMetrics(name string, opts structs.MetricsOptions) (structs.Metrics, error) {
+	var err error
+
+	ro, err := stdsdk.MarshalOptions(opts)
+	if err != nil {
+		return nil, err
+	}
+
+	var v structs.Metrics
+
+	err = c.Get(fmt.Sprintf("/apps/%s/metrics", name), ro, &v)
+
+	return v, err
+}
+
 func (c *Client) AppUpdate(name string, opts structs.AppUpdateOptions) error {
 	var err error
 
@@ -822,6 +837,21 @@ func (c *Client) SystemLogs(opts structs.LogsOptions) (io.ReadCloser, error) {
 	}
 
 	v = r
+
+	return v, err
+}
+
+func (c *Client) SystemMetrics(opts structs.MetricsOptions) (structs.Metrics, error) {
+	var err error
+
+	ro, err := stdsdk.MarshalOptions(opts)
+	if err != nil {
+		return nil, err
+	}
+
+	var v structs.Metrics
+
+	err = c.Get(fmt.Sprintf("/system/metrics"), ro, &v)
 
 	return v, err
 }

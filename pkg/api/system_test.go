@@ -26,6 +26,24 @@ var fxSystem = structs.System{
 	Version:    "version",
 }
 
+var fxMetric = structs.Metric{
+	Name: "metric1",
+	Values: structs.MetricValues{
+		{
+			Time:    time.Date(2018, 9, 1, 0, 0, 0, 0, time.UTC),
+			Average: 2.0,
+			Minimum: 1.0,
+			Maximum: 3.0,
+		},
+		{
+			Time:    time.Date(2018, 9, 1, 1, 0, 0, 0, time.UTC),
+			Average: 2.0,
+			Minimum: 1.0,
+			Maximum: 3.0,
+		},
+	},
+}
+
 func TestSystemGet(t *testing.T) {
 	testServer(t, func(c *stdsdk.Client, p *structs.MockProvider) {
 		s1 := fxSystem
@@ -71,6 +89,41 @@ func TestSystemLogsError(t *testing.T) {
 		d1, err := ioutil.ReadAll(r1)
 		require.NoError(t, err)
 		require.Equal(t, []byte("ERROR: err1\n"), d1)
+	})
+}
+
+func TestSystemMetrics(t *testing.T) {
+	testServer(t, func(c *stdsdk.Client, p *structs.MockProvider) {
+		m1 := structs.Metrics{fxMetric, fxMetric}
+		m2 := structs.Metrics{}
+		opts := structs.MetricsOptions{
+			End:     options.Time(time.Date(2018, 10, 1, 3, 4, 5, 0, time.UTC)),
+			Metrics: []string{"foo", "bar"},
+			Period:  options.Int64(300),
+			Start:   options.Time(time.Date(2018, 9, 1, 2, 3, 4, 0, time.UTC)),
+		}
+		ro := stdsdk.RequestOptions{
+			Query: stdsdk.Query{
+				"end":     "20181001.030405.000000000",
+				"metrics": "foo,bar",
+				"period":  "300",
+				"start":   "20180901.020304.000000000",
+			},
+		}
+		p.On("SystemMetrics", opts).Return(m1, nil)
+		err := c.Get("/system/metrics", ro, &m2)
+		require.NoError(t, err)
+		require.Equal(t, m1, m2)
+	})
+}
+
+func TestSystemMetricsError(t *testing.T) {
+	testServer(t, func(c *stdsdk.Client, p *structs.MockProvider) {
+		var m1 structs.Metrics
+		p.On("SystemMetrics", structs.MetricsOptions{}).Return(nil, fmt.Errorf("err1"))
+		err := c.Get("/system/metrics", stdsdk.RequestOptions{}, &m1)
+		require.EqualError(t, err, "err1")
+		require.Nil(t, m1)
 	})
 }
 

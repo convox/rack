@@ -7,7 +7,7 @@ import (
 	"mime/multipart"
 	"net/url"
 	"reflect"
-	"strconv"
+	"strings"
 	"time"
 )
 
@@ -134,14 +134,16 @@ func marshalValue(f reflect.Value) (string, bool) {
 	switch t := v.(type) {
 	case bool:
 		return fmt.Sprintf("%t", t), true
-	case int:
-		return strconv.Itoa(t), true
+	case int, int64:
+		return fmt.Sprintf("%d", t), true
 	case string:
 		return t, true
 	case time.Duration:
 		return t.String(), true
 	case time.Time:
 		return t.Format("20060102.150405.000000000"), true
+	case []string:
+		return strings.Join(t, ","), true
 	case map[string]string:
 		uv := url.Values{}
 		for k, v := range t {
@@ -162,7 +164,7 @@ func marshalValues(vv map[string]interface{}) (url.Values, error) {
 		switch t := v.(type) {
 		case bool:
 			u.Set(k, fmt.Sprintf("%t", t))
-		case int:
+		case int, int64:
 			u.Set(k, fmt.Sprintf("%d", t))
 		case string:
 			u.Set(k, t)

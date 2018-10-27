@@ -404,7 +404,7 @@
     "BuildInstance": {
       "Type": "String",
       "Description": "Instance type for a dedicated build cluster",
-      "Default": "t3.small"
+      "Default": "t2.small"
     },
     "BuildMemory": {
       "Type": "String",
@@ -488,7 +488,7 @@
       "Type": "Number"
     },
     "InstanceType": {
-      "Default": "t3.small",
+      "Default": "t2.small",
       "Description": "The type of the instances in the runtime cluster",
       "Type": "String"
     },
@@ -2472,6 +2472,8 @@
             "Cpu": "128",
             "DockerLabels": {
               "convox.release": { "Ref": "Version" },
+              "rack.AsgSpot": { "Fn::If": [ "SpotInstances", { "Ref": "SpotInstances" }, { "Ref": "AWS::NoValue" } ] },
+              "rack.AsgStandard": { "Ref": "Instances" },
               "rack.BuildCluster": { "Fn::If": [ "DedicatedBuilder", { "Ref": "BuildCluster" }, { "Ref": "Cluster" } ] },
               "rack.CloudformationTopic": { "Ref": "CloudformationTopic" },
               "rack.Cluster": { "Ref": "Cluster" },

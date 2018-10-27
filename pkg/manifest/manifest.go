@@ -123,7 +123,9 @@ func (m *Manifest) SetEnv(env map[string]string) {
 
 func (m *Manifest) CombineEnv() error {
 	for i, s := range m.Services {
-		m.Services[i].Environment = append(m.Environment, s.Environment...)
+		me := make([]string, len(m.Environment))
+		copy(me, m.Environment)
+		m.Services[i].Environment = append(me, s.Environment...)
 	}
 
 	return nil
