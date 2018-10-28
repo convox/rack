@@ -6,8 +6,10 @@ import (
 	"net"
 	"net/http"
 
+	"github.com/gobuffalo/packr"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
+	"github.com/pkg/errors"
 )
 
 type HandlerFunc func(c *Context) error
@@ -25,14 +27,6 @@ type Route struct {
 	*mux.Route
 	Router *Router
 }
-
-// func (r Route) Subrouter(prefix string, fn func(Router)) {
-//   fn(Router{
-//     Parent: r.Router,
-//     Router: r.PathPrefix(prefix).Subrouter(),
-//     Server: r.Router.Server,
-//   })
-// }
 
 func (rt *Router) MatcherFunc(fn mux.MatcherFunc) *Router {
 	return &Router{
@@ -66,9 +60,11 @@ func (rt *Router) Route(method, path string, fn HandlerFunc) Route {
 	}
 }
 
-func (rt *Router) Static(prefix, path string) Route {
+func (rt *Router) Static(path string, box packr.Box) Route {
+	prefix := fmt.Sprintf("%s/", path)
+
 	return Route{
-		Route:  rt.PathPrefix(prefix).Handler(http.StripPrefix(prefix, http.FileServer(http.Dir(path)))),
+		Route:  rt.PathPrefix(prefix).Handler(http.StripPrefix(prefix, http.FileServer(box))),
 		Router: rt,
 	}
 }
@@ -97,7 +93,7 @@ func (rt *Router) UseHandlerFunc(fn http.HandlerFunc) {
 func (rt *Router) context(name string, w http.ResponseWriter, r *http.Request, conn *websocket.Conn) (*Context, error) {
 	id, err := generateId(12)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 
 	w.Header().Add("Request-Id", id)
@@ -135,8 +131,8 @@ func (rt *Router) handle(fn HandlerFunc, c *Context) error {
 	c.logger.Logf("method=%q path=%q", c.request.Method, c.request.URL.Path)
 	c.logger = c.logger.Start()
 
-	rw := &responseWriter{ResponseWriter: c.response, code: 200}
-	c.response = rw
+	// rw := &responseWriter{ResponseWriter: c.response, code: 200}
+	// c.response = rw
 
 	mw := []Middleware{}
 
@@ -152,10 +148,6 @@ func (rt *Router) handle(fn HandlerFunc, c *Context) error {
 		p = p.Parent
 	}
 
-	// if rt.Parent != nil {
-	//   mw = append(mw, rt.Parent.Middleware...)
-	// }
-
 	mw = append(mw, rt.Middleware...)
 
 	fnmw := rt.wrap(fn, mw...)
@@ -167,7 +159,7 @@ func (rt *Router) handle(fn HandlerFunc, c *Context) error {
 		return nil
 	}
 
-	return err
+	return errors.WithStack(err)
 }
 
 func (rt *Router) http(fn HandlerFunc) http.HandlerFunc {
@@ -183,12 +175,9 @@ func (rt *Router) http(fn HandlerFunc) http.HandlerFunc {
 			case Error:
 				c.logger.Append("code=%d", t.Code()).Error(err)
 				http.Error(c.response, t.Error(), t.Code())
-			case causer:
-				c.logger.Error(err)
-				http.Error(c.response, "server error", http.StatusInternalServerError)
 			case error:
 				c.logger.Error(err)
-				http.Error(c.response, t.Error(), http.StatusForbidden)
+				http.Error(c.response, t.Error(), http.StatusInternalServerError)
 			}
 		}
 	}
@@ -229,25 +218,25 @@ func (rt *Router) wrap(fn HandlerFunc, m ...Middleware) HandlerFunc {
 	return m[0](rt.wrap(fn, m[1:len(m)]...))
 }
 
-type responseWriter struct {
-	http.ResponseWriter
-	bytes int64
-	code  int
-}
+// type responseWriter struct {
+//   http.ResponseWriter
+//   bytes int64
+//   code  int
+// }
 
-func (w *responseWriter) Flush() {
-	if f, ok := w.ResponseWriter.(http.Flusher); ok {
-		f.Flush()
-	}
-}
+// func (w *responseWriter) Flush() {
+//   if f, ok := w.ResponseWriter.(http.Flusher); ok {
+//     f.Flush()
+//   }
+// }
 
-func (w *responseWriter) Write(data []byte) (int, error) {
-	n, err := w.ResponseWriter.Write(data)
-	w.bytes += int64(n)
-	return n, err
-}
+// func (w *responseWriter) Write(data []byte) (int, error) {
+//   n, err := w.ResponseWriter.Write(data)
+//   w.bytes += int64(n)
+//   return n, err
+// }
 
-func (w *responseWriter) WriteHeader(code int) {
-	w.code = code
-	w.ResponseWriter.WriteHeader(code)
-}
+// func (w *responseWriter) WriteHeader(code int) {
+//   w.code = code
+//   w.ResponseWriter.WriteHeader(code)
+// }

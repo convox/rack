@@ -46,8 +46,9 @@ func NewWithProvider(p structs.Provider) *Server {
 	})
 
 	s.Subrouter("/", func(auth *stdapi.Router) {
-		auth.Use(s.authenticate)
 		auth.Route("GET", "/auth", func(c *stdapi.Context) error { return c.RenderOK() })
+
+		auth.Use(s.authenticate)
 
 		s.setupRoutes(*auth)
 	})

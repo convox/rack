@@ -145,6 +145,14 @@
 
 [[projects]]
   branch = "master"
+  digest = "1:2341eb519bac5d661f5f97eba2ef94c95743a260cb58e88692c5457addb2f477"
+  name = "github.com/convox/hid"
+  packages = ["."]
+  pruneopts = "NUT"
+  revision = "c67381b7ffffd69e6cf916c11a72acc93ecb3c0b"
+
+[[projects]]
+  branch = "master"
   digest = "1:96b22063c223a2871baab21201a63e40bafac55072d94baeab15ce549fdb84c2"
   name = "github.com/convox/inotify"
   packages = ["."]
@@ -161,19 +169,19 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:3b45c56d397208ea54e4f9168e0d48cc0176e36aa8fc699222bee9c9dbc14a40"
+  digest = "1:525ccf816532d4eccef4964ad07fee5609122a7ea501228504bba81d26c9fcc0"
   name = "github.com/convox/stdapi"
   packages = ["."]
   pruneopts = "NUT"
-  revision = "06e74572b01f5c259c2521eefe0de3f3242955e5"
+  revision = "6a30c95451f94c774a6d37154e8eca8e162a0b02"
 
 [[projects]]
   branch = "master"
-  digest = "1:e25a9e8b551ce6ea19dc8d6002f84b47717fc9f76497325f485573c6de70fb49"
+  digest = "1:e66f34674adb363daca0dcf84129b1f427f6390b32057646469bb54d276e7e9d"
   name = "github.com/convox/stdcli"
   packages = ["."]
   pruneopts = "NUT"
-  revision = "1aa1b42f7238d36ab9d76fca03ea56a0f7f5abe4"
+  revision = "b34206670e48eca7101810693d65b5413a2e7a2b"
 
 [[projects]]
   branch = "master"
@@ -182,6 +190,17 @@
   packages = ["."]
   pruneopts = "NUT"
   revision = "232674682662254064241732c7dd26d36d1a973e"
+
+[[projects]]
+  branch = "master"
+  digest = "1:9b7c37f737b12a6401a6c16f5a06cfb68709fc60df1c154260d4bb0f9ce250b0"
+  name = "github.com/convox/u2f"
+  packages = [
+    "u2fhid",
+    "u2ftoken",
+  ]
+  pruneopts = "NUT"
+  revision = "a734041427264f5a7d229a2e4c57cf75cb586d93"
 
 [[projects]]
   branch = "master"
@@ -275,6 +294,14 @@
   pruneopts = "NUT"
   revision = "32e4c1e6bc4e7d0d8451aa6b75200d19e37a536a"
   version = "v1.32.0"
+
+[[projects]]
+  digest = "1:38cc212d9056e1e15604c1be32ee422526e5cbf52469bf49b33a00a362e1b26e"
+  name = "github.com/gobuffalo/packr"
+  packages = ["."]
+  pruneopts = "NUT"
+  revision = "5a2cbb54c4e7d482e3f518c56f1f86f133d5204f"
+  version = "v1.13.7"
 
 [[projects]]
   digest = "1:6a7159c5f8f8826207545407a458b43ab6599c1c8a2271465c2e979ecea1dcd4"
@@ -625,10 +652,13 @@
     "github.com/boltdb/bolt",
     "github.com/convox/changes",
     "github.com/convox/exec",
+    "github.com/convox/hid",
     "github.com/convox/logger",
     "github.com/convox/stdapi",
     "github.com/convox/stdcli",
     "github.com/convox/stdsdk",
+    "github.com/convox/u2f/u2fhid",
+    "github.com/convox/u2f/u2ftoken",
     "github.com/convox/version",
     "github.com/docker/docker/builder/dockerignore",
     "github.com/docker/docker/pkg/archive",

@@ -6,6 +6,16 @@ import (
 	"golang.org/x/crypto/ssh/terminal"
 )
 
+func coalesce(ss ...string) string {
+	for _, s := range ss {
+		if s != "" {
+			return s
+		}
+	}
+
+	return ""
+}
+
 func interfaceSlice(ss []string) []interface{} {
 	is := make([]interface{}, len(ss))
 

@@ -26,8 +26,9 @@ var (
 
 type Client struct {
 	*stdsdk.Client
-	Debug bool
-	Rack  string
+	Debug   bool
+	Rack    string
+	Session string
 }
 
 // ensure interface parity
@@ -69,6 +70,10 @@ func (c *Client) Headers() http.Header {
 
 	if c.Rack != "" {
 		h.Set("Rack", c.Rack)
+	}
+
+	if c.Session != "" {
+		h.Set("Session", c.Session)
 	}
 
 	return h

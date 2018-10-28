@@ -36,6 +36,40 @@ func (e *Engine) RegisterCommands() {
 	}
 }
 
+func (e *Engine) currentClient(c *stdcli.Context) sdk.Interface {
+	if e.Client != nil {
+		return e.Client
+	}
+
+	host, err := currentHost(c)
+	if err != nil {
+		c.Fail(err)
+	}
+
+	r := currentRack(c, host)
+
+	endpoint, err := currentEndpoint(c, r)
+	if err != nil {
+		c.Fail(err)
+	}
+
+	session, err := c.SettingReadKey("session", host)
+	if err != nil {
+		c.Fail(err)
+	}
+
+	sc, err := sdk.New(endpoint)
+	if err != nil {
+		c.Fail(err)
+	}
+
+	sc.Authenticator = e.authenticator
+	sc.Rack = r
+	sc.Session = session
+
+	return sc
+}
+
 var commands = []command{}
 
 type command struct {

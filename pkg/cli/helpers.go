@@ -30,33 +30,6 @@ type rack struct {
 	Status string
 }
 
-func (e *Engine) currentClient(c *stdcli.Context) sdk.Interface {
-	if e.Client != nil {
-		return e.Client
-	}
-
-	host, err := currentHost(c)
-	if err != nil {
-		c.Fail(err)
-	}
-
-	r := currentRack(c, host)
-
-	endpoint, err := currentEndpoint(c, r)
-	if err != nil {
-		c.Fail(err)
-	}
-
-	sc, err := sdk.New(endpoint)
-	if err != nil {
-		c.Fail(err)
-	}
-
-	sc.Rack = r
-
-	return sc
-}
-
 func app(c *stdcli.Context) string {
 	wd, err := os.Getwd()
 	if err != nil {
@@ -115,7 +88,7 @@ func currentPassword(c *stdcli.Context, host string) (string, error) {
 		return pw, nil
 	}
 
-	return hostAuth(c, host)
+	return c.SettingReadKey("auth", host)
 }
 
 func currentEndpoint(c *stdcli.Context, rack_ string) (string, error) {
@@ -220,27 +193,6 @@ func handleSignalTermination(c *stdcli.Context, name string) {
 		fmt.Printf("\nstopping: %s\n", name)
 		c.Run("docker", "stop", name)
 	}
-}
-
-func hostAuth(c *stdcli.Context, host string) (string, error) {
-	data, err := c.SettingRead("auth")
-	if err != nil {
-		return "", err
-	}
-
-	auth := map[string]string{}
-
-	if data != "" {
-		if err := json.Unmarshal([]byte(data), &auth); err != nil {
-			return "", err
-		}
-	}
-
-	if pass, ok := auth[host]; ok {
-		return pass, nil
-	}
-
-	return "", nil
 }
 
 func hostRacks(c *stdcli.Context) map[string]string {
@@ -391,7 +343,7 @@ func racks(c *stdcli.Context) ([]rack, error) {
 }
 
 func remoteRacks(c *stdcli.Context) ([]rack, error) {
-	h, err := c.SettingRead("host")
+	h, err := currentHost(c)
 	if err != nil {
 		return nil, err
 	}
@@ -421,6 +373,13 @@ func remoteRacks(c *stdcli.Context) ([]rack, error) {
 		return nil, err
 	}
 
+	session, err := c.SettingReadKey("session", h)
+	if err != nil {
+		return nil, err
+	}
+
+	p.Session = session
+
 	p.Get("/racks", stdsdk.RequestOptions{}, &rs)
 
 	if rs != nil {
@@ -433,34 +392,6 @@ func remoteRacks(c *stdcli.Context) ([]rack, error) {
 	}
 
 	return racks, nil
-}
-
-func saveAuth(c *stdcli.Context, host, password string) error {
-	as, err := c.SettingRead("auth")
-	if err != nil {
-		return err
-	}
-
-	data := []byte(coalesce(as, "{}"))
-
-	var auth map[string]string
-
-	if err := json.Unmarshal(data, &auth); err != nil {
-		return err
-	}
-
-	auth[host] = password
-
-	data, err = json.MarshalIndent(auth, "", "  ")
-	if err != nil {
-		return err
-	}
-
-	if err := c.SettingWrite("auth", string(data)); err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func streamAppLogs(ctx context.Context, rack sdk.Interface, c *stdcli.Context, app string) {
