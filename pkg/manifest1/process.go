@@ -164,6 +164,6 @@ func (p *Process) GenerateArgs(opts *ArgOptions) ([]string, error) {
 	return args, nil
 }
 
-func (p *Process) Sync(local, remote string) (*sync.Sync, error) {
-	return sync.NewSync(p.Name, local, remote)
+func (p *Process) Sync(local, remote string, ignores []string) (*sync.Sync, error) {
+	return sync.NewSync(p.Name, local, remote, ignores)
 }
