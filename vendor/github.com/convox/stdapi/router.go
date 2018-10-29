@@ -128,8 +128,7 @@ func (rt *Router) handle(fn HandlerFunc, c *Context) error {
 		}
 	}()
 
-	c.logger.Logf("method=%q path=%q", c.request.Method, c.request.URL.Path)
-	c.logger = c.logger.Start()
+	c.logger = c.logger.Append("method=%q path=%q", c.request.Method, c.request.URL.Path).Start()
 
 	// rw := &responseWriter{ResponseWriter: c.response, code: 200}
 	// c.response = rw
@@ -152,14 +151,22 @@ func (rt *Router) handle(fn HandlerFunc, c *Context) error {
 
 	fnmw := rt.wrap(fn, mw...)
 
-	err := fnmw(c)
+	errr := fnmw(c) // non-standard error name to avoid wrapping
 
-	if ne, ok := err.(*net.OpError); ok {
+	if ne, ok := errr.(*net.OpError); ok {
 		c.logger.Logf("state=closed error=%q", ne.Err)
 		return nil
 	}
 
-	return errors.WithStack(err)
+	code := c.response.Code()
+
+	if code == 0 {
+		code = 200
+	}
+
+	c.logger.Logf("response=%d", code)
+
+	return errr
 }
 
 func (rt *Router) http(fn HandlerFunc) http.HandlerFunc {
