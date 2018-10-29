@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/convox/rack/pkg/sync"
+	"github.com/docker/docker/builder/dockerignore"
 )
 
 type Run struct {
@@ -180,6 +181,22 @@ func (r *Run) Start() error {
 		}
 
 		if r.Opts.Sync {
+			ignores := []string{}
+
+			di := filepath.Join(r.Dir, ".dockerignore")
+
+			if _, err := os.Stat(di); !os.IsNotExist(err) {
+				fd, err := os.Open(di)
+				if err != nil {
+					return err
+				}
+				defer fd.Close()
+				ignores, err = dockerignore.ReadAll(fd)
+				if err != nil {
+					return err
+				}
+			}
+
 			syncs := []sync.Sync{}
 
 			for local, remote := range sp {
@@ -194,7 +211,7 @@ func (r *Run) Start() error {
 					remote = filepath.Join(wd, remote)
 				}
 
-				s, err := p.Sync(local, remote)
+				s, err := p.Sync(local, remote, ignores)
 				if err != nil {
 					return err
 				}

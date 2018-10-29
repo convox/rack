@@ -26,6 +26,7 @@ type Sync struct {
 
 	docker   *docker.Client
 	lock     sync.Mutex
+	ignores  []string
 	incoming chan changes.Change
 	outgoing chan changes.Change
 
@@ -39,7 +40,7 @@ type execState struct {
 	ExitCode int
 }
 
-func NewSync(container, local, remote string) (*Sync, error) {
+func NewSync(container, local, remote string, ignores []string) (*Sync, error) {
 	l, err := filepath.Abs(local)
 
 	if err != nil {
@@ -50,6 +51,7 @@ func NewSync(container, local, remote string) (*Sync, error) {
 		Container: container,
 		Local:     l,
 		Remote:    remote,
+		ignores:   ignores,
 	}
 
 	sync.docker, _ = docker.NewClientFromEnv()
@@ -438,7 +440,7 @@ func (s *Sync) watchOutgoing(st Stream) {
 	ch := make(chan changes.Change, 1)
 
 	go func() {
-		if err := changes.Watch(s.Local, ch, changes.WatchOptions{}); err != nil {
+		if err := changes.Watch(s.Local, ch, changes.WatchOptions{Ignores: s.ignores}); err != nil {
 			st <- fmt.Sprintf("error: %s", err)
 		}
 	}()
