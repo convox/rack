@@ -63,7 +63,7 @@ func (e *Engine) currentClient(c *stdcli.Context) sdk.Interface {
 		c.Fail(err)
 	}
 
-	sc.Authenticator = e.authenticator
+	sc.Authenticator = authenticator(c)
 	sc.Rack = r
 	sc.Session = session
 
