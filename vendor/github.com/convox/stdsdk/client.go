@@ -19,8 +19,10 @@ const (
 	sortableTime = "20060102.150405.000000000"
 )
 
+type Authenticator func(c *Client, w *http.Response) (http.Header, error)
+
 type Client struct {
-	Authenticator func(c *Client, w *http.Response) (http.Header, error)
+	Authenticator Authenticator
 	Endpoint      *url.URL
 	Headers       HeadersFunc
 }
