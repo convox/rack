@@ -169,11 +169,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:525ccf816532d4eccef4964ad07fee5609122a7ea501228504bba81d26c9fcc0"
+  digest = "1:d8471ff49481810699b2def3e61920d452005d06afdb930acc9651c9fc1ff771"
   name = "github.com/convox/stdapi"
   packages = ["."]
   pruneopts = "NUT"
-  revision = "6a30c95451f94c774a6d37154e8eca8e162a0b02"
+  revision = "59a4b5097eb2fa7a0aba825df23c044f498fd04a"
 
 [[projects]]
   branch = "master"
