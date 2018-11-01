@@ -8,6 +8,7 @@ import (
 	"regexp"
 
 	"github.com/convox/rack/pkg/token"
+	"github.com/convox/rack/sdk"
 	"github.com/convox/stdcli"
 	"github.com/convox/stdsdk"
 )
@@ -77,5 +78,12 @@ func authenticator(c *stdcli.Context) stdsdk.Authenticator {
 		h.Set("Session", s.Id)
 
 		return h, nil
+	}
+}
+
+func currentSession(c *stdcli.Context) sdk.SessionFunc {
+	return func(cl *sdk.Client) string {
+		sid, _ := c.SettingReadKey("session", cl.Endpoint.Host)
+		return sid
 	}
 }
