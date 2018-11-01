@@ -153,8 +153,18 @@ func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	req.Host = r.Host
 
 	req.Header.Add("X-Forwarded-For", r.RemoteAddr)
-	req.Header.Set("X-Forwarded-Port", p.Listen.Port())
-	req.Header.Set("X-Forwarded-Proto", p.Listen.Scheme)
+
+	if h := req.Header.Get("X-Forwarded-Port"); h != "" {
+		req.Header.Set("X-Forwarded-Port", h)
+	} else {
+		req.Header.Set("X-Forwarded-Port", p.Listen.Port())
+	}
+
+	if h := req.Header.Get("X-Forwarded-Proto"); h != "" {
+		req.Header.Set("X-Forwarded-Proto", h)
+	} else {
+		req.Header.Set("X-Forwarded-Proto", p.Listen.Scheme)
+	}
 
 	res, err := hc.Do(req)
 	if err != nil {
