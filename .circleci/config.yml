@@ -15,6 +15,6 @@ jobs:
           no_output_timeout: 20m
       - run: ci/report.sh
       - run: ci/uninstall.sh
-      - run: ci/cleanup.sh
+      - run: ci/archive.sh
       - store_artifacts:
           path: /tmp/artifacts

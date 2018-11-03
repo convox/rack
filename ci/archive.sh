@@ -33,20 +33,3 @@ for stackId in $(jq -r ".StackSummaries[] | select(.StackId | contains(\"-$CIRCL
   aws cloudformation describe-stacks       --stack-name $stackId | tee $CIRCLE_ARTIFACTS/describe-stacks-${stackId//\//-}.json
   aws cloudformation describe-stack-events --stack-name $stackId | tee $CIRCLE_ARTIFACTS/describe-stack-events-${stackId//\//-}.json
 done
-
-# Clean leaked S3 Buckets, Repositories and Log Groups
-aws s3api list-buckets |\
-  jq ".Buckets[] | select(.Name | contains(\"-$CIRCLE_BUILD_NUM-\")) | .Name" |\
-  xargs -L1 -I% aws s3 rb --force s3://%
-
-aws ecr describe-repositories |\
-  jq ".repositories[] | select(.repositoryName | contains(\"-$CIRCLE_BUILD_NUM-\")) | .repositoryName" |\
-  xargs -L1 aws ecr delete-repository --force --repository-name
-
-aws logs describe-log-groups |\
-  jq ".logGroups[] | select(.logGroupName | contains(\"-$CIRCLE_BUILD_NUM-\")) | .logGroupName" |\
-  xargs -L1 aws logs delete-log-group --log-group-name
-
-aws iam list-server-certificates |\
-  jq ".ServerCertificateMetadataList[] | select(.ServerCertificateName | contains(\"-$STACK_NAME-\")) | .ServerCertificateName" |\
-  xargs -L1 -I{} sh -c 'aws iam delete-server-certificate --server-certificate-name {} || true'
