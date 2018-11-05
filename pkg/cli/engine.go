@@ -53,11 +53,6 @@ func (e *Engine) currentClient(c *stdcli.Context) sdk.Interface {
 		c.Fail(err)
 	}
 
-	session, err := c.SettingReadKey("session", host)
-	if err != nil {
-		c.Fail(err)
-	}
-
 	sc, err := sdk.New(endpoint)
 	if err != nil {
 		c.Fail(err)
@@ -65,7 +60,7 @@ func (e *Engine) currentClient(c *stdcli.Context) sdk.Interface {
 
 	sc.Authenticator = authenticator(c)
 	sc.Rack = r
-	sc.Session = session
+	sc.Session = currentSession(c)
 
 	return sc
 }

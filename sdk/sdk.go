@@ -28,8 +28,10 @@ type Client struct {
 	*stdsdk.Client
 	Debug   bool
 	Rack    string
-	Session string
+	Session SessionFunc
 }
+
+type SessionFunc func(c *Client) string
 
 // ensure interface parity
 var _ structs.Provider = &Client{}
@@ -72,8 +74,8 @@ func (c *Client) Headers() http.Header {
 		h.Set("Rack", c.Rack)
 	}
 
-	if c.Session != "" {
-		h.Set("Session", c.Session)
+	if c.Session != nil {
+		h.Set("Session", c.Session(c))
 	}
 
 	return h
