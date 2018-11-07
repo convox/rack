@@ -112,6 +112,40 @@ func (p *Provider) streamProcessLogsWait(w io.WriteCloser, ps structs.Process, o
 	pidch <- ps.Id
 }
 
+func (p *Provider) streamProcessLogs(w io.WriteCloser, ps structs.Process, opts structs.LogsOptions) {
+	defer w.Close()
+
+	r, err := p.podLogs(p.appNamespace(ps.App), ps.Id, opts)
+	if err != nil {
+		return
+	}
+	defer r.Close()
+
+	if helpers.DefaultBool(opts.Prefix, false) {
+		streamLogsWithPrefix(w, r, fmt.Sprintf("service/%s:%s/%s", ps.Name, ps.Release, ps.Id))
+	} else {
+		io.Copy(w, r)
+	}
+}
+
+func streamLogsWithPrefix(w io.WriteCloser, r io.Reader, prefix string) {
+	defer w.Close()
+
+	ls := bufio.NewScanner(r)
+
+	for ls.Scan() {
+		parts := strings.SplitN(ls.Text(), " ", 2)
+
+		ts, err := time.Parse(time.RFC3339Nano, parts[0])
+		if err != nil {
+			fmt.Printf("err = %+v\n", err)
+			continue
+		}
+
+		fmt.Fprintf(w, "%s %s %s\n", ts.Format(helpers.PrintableTime), prefix, parts[1])
+	}
+}
+
 type imageManifest []struct {
 	RepoTags []string
 }
@@ -158,24 +192,6 @@ func processFilter(in structs.Processes, fn func(structs.Process) bool) structs.
 	}
 
 	return out
-}
-
-func streamLogsWithPrefix(w io.WriteCloser, r io.Reader, prefix string) {
-	defer w.Close()
-
-	ls := bufio.NewScanner(r)
-
-	for ls.Scan() {
-		parts := strings.SplitN(ls.Text(), " ", 2)
-
-		ts, err := time.Parse(time.RFC3339Nano, parts[0])
-		if err != nil {
-			fmt.Printf("err = %+v\n", err)
-			continue
-		}
-
-		fmt.Fprintf(w, "%s %s %s\n", ts.Format(helpers.PrintableTime), prefix, parts[1])
-	}
 }
 
 func systemVolume(v string) bool {
