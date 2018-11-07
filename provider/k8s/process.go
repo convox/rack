@@ -278,22 +278,6 @@ func (p *Provider) podSpecFromRunOptions(app, service string, opts structs.Proce
 	return s, nil
 }
 
-func (p *Provider) streamProcessLogs(w io.WriteCloser, ps structs.Process, opts structs.LogsOptions) {
-	defer w.Close()
-
-	r, err := p.podLogs(p.appNamespace(ps.App), ps.Id, opts)
-	if err != nil {
-		return
-	}
-	defer r.Close()
-
-	if helpers.DefaultBool(opts.Prefix, false) {
-		streamLogsWithPrefix(w, r, fmt.Sprintf("service/%s:%s/%s", ps.Name, ps.Release, ps.Id))
-	} else {
-		io.Copy(w, r)
-	}
-}
-
 func podVolume(app, from, to string) (ac.Volume, ac.VolumeMount) {
 	hash := sha256.Sum256([]byte(fmt.Sprintf("%s-%s", from, to)))
 	name := fmt.Sprintf("volume-%x", hash[0:20])
