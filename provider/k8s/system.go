@@ -31,6 +31,10 @@ func (p *Provider) SystemLogs(opts structs.LogsOptions) (io.ReadCloser, error) {
 	return r, nil
 }
 
+func (p *Provider) SystemMetrics(opts structs.MetricsOptions) (structs.Metrics, error) {
+	return nil, fmt.Errorf("unimplemented")
+}
+
 func (p *Provider) SystemProcesses(opts structs.SystemProcessesOptions) (structs.Processes, error) {
 	pds, err := p.Cluster.CoreV1().Pods(p.Rack).List(am.ListOptions{})
 	if err != nil {

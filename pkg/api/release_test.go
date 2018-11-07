@@ -113,6 +113,7 @@ func TestReleaseListError(t *testing.T) {
 
 func TestReleasePromote(t *testing.T) {
 	testServer(t, func(c *stdsdk.Client, p *structs.MockProvider) {
+		p.On("AppGet", "app1").Return(&structs.App{Status: "running"}, nil)
 		opts := structs.ReleasePromoteOptions{
 			Min: options.Int(1),
 			Max: options.Int(2),
@@ -131,6 +132,7 @@ func TestReleasePromote(t *testing.T) {
 
 func TestReleasePromoteError(t *testing.T) {
 	testServer(t, func(c *stdsdk.Client, p *structs.MockProvider) {
+		p.On("AppGet", "app1").Return(&structs.App{Status: "running"}, nil)
 		p.On("ReleasePromote", "app1", "release1", structs.ReleasePromoteOptions{}).Return(fmt.Errorf("err1"))
 		err := c.Post("/apps/app1/releases/release1/promote", stdsdk.RequestOptions{}, nil)
 		require.EqualError(t, err, "err1")

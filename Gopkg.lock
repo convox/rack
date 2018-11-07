@@ -65,7 +65,7 @@
   version = "v1.2.0"
 
 [[projects]]
-  digest = "1:5fb9d7e3309703e75689c5d3ca0b2f9fd179fe25b7e1e8593cb2cb9882fe2ed7"
+  digest = "1:322a5c398457d41feb40d1748184c52ec75ce7fa88850d4debee1a3aca51e87b"
   name = "github.com/aws/aws-sdk-go"
   packages = [
     "aws",
@@ -111,6 +111,7 @@
     "service/ec2",
     "service/ecr",
     "service/ecs",
+    "service/elbv2",
     "service/iam",
     "service/kms",
     "service/lambda",
@@ -122,8 +123,8 @@
     "service/sts",
   ]
   pruneopts = "NUT"
-  revision = "4324bc9d8865bdb3e6aa86ec7772ca1272d2750e"
-  version = "v1.15.21"
+  revision = "1186f7e6f000ce13edff71ed5ecc8b0e27ba38d7"
+  version = "v1.15.33"
 
 [[projects]]
   digest = "1:a12d94258c5298ead75e142e8001224bf029f302fed9e96cd39c0eaf90f3954d"
@@ -1028,6 +1029,7 @@
     "github.com/aws/aws-sdk-go/service/ec2",
     "github.com/aws/aws-sdk-go/service/ecr",
     "github.com/aws/aws-sdk-go/service/ecs",
+    "github.com/aws/aws-sdk-go/service/elbv2",
     "github.com/aws/aws-sdk-go/service/iam",
     "github.com/aws/aws-sdk-go/service/kms",
     "github.com/aws/aws-sdk-go/service/lambda",
