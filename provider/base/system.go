@@ -19,6 +19,10 @@ func (p *Provider) SystemLogs(opts structs.LogsOptions) (io.ReadCloser, error) {
 	return nil, fmt.Errorf("unimplemented")
 }
 
+func (p *Provider) SystemMetrics(opts structs.MetricsOptions) (structs.Metrics, error) {
+	return nil, fmt.Errorf("unimplemented")
+}
+
 func (p *Provider) SystemProcesses(opts structs.SystemProcessesOptions) (structs.Processes, error) {
 	return nil, fmt.Errorf("unimplemented")
 }

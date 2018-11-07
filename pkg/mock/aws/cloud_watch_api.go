@@ -707,6 +707,84 @@ func (_m *CloudWatchAPI) GetDashboardWithContext(_a0 aws.Context, _a1 *cloudwatc
 	return r0, r1
 }
 
+// GetMetricData provides a mock function with given fields: _a0
+func (_m *CloudWatchAPI) GetMetricData(_a0 *cloudwatch.GetMetricDataInput) (*cloudwatch.GetMetricDataOutput, error) {
+	ret := _m.Called(_a0)
+
+	var r0 *cloudwatch.GetMetricDataOutput
+	if rf, ok := ret.Get(0).(func(*cloudwatch.GetMetricDataInput) *cloudwatch.GetMetricDataOutput); ok {
+		r0 = rf(_a0)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*cloudwatch.GetMetricDataOutput)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(*cloudwatch.GetMetricDataInput) error); ok {
+		r1 = rf(_a0)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// GetMetricDataRequest provides a mock function with given fields: _a0
+func (_m *CloudWatchAPI) GetMetricDataRequest(_a0 *cloudwatch.GetMetricDataInput) (*request.Request, *cloudwatch.GetMetricDataOutput) {
+	ret := _m.Called(_a0)
+
+	var r0 *request.Request
+	if rf, ok := ret.Get(0).(func(*cloudwatch.GetMetricDataInput) *request.Request); ok {
+		r0 = rf(_a0)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*request.Request)
+		}
+	}
+
+	var r1 *cloudwatch.GetMetricDataOutput
+	if rf, ok := ret.Get(1).(func(*cloudwatch.GetMetricDataInput) *cloudwatch.GetMetricDataOutput); ok {
+		r1 = rf(_a0)
+	} else {
+		if ret.Get(1) != nil {
+			r1 = ret.Get(1).(*cloudwatch.GetMetricDataOutput)
+		}
+	}
+
+	return r0, r1
+}
+
+// GetMetricDataWithContext provides a mock function with given fields: _a0, _a1, _a2
+func (_m *CloudWatchAPI) GetMetricDataWithContext(_a0 aws.Context, _a1 *cloudwatch.GetMetricDataInput, _a2 ...request.Option) (*cloudwatch.GetMetricDataOutput, error) {
+	_va := make([]interface{}, len(_a2))
+	for _i := range _a2 {
+		_va[_i] = _a2[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, _a0, _a1)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	var r0 *cloudwatch.GetMetricDataOutput
+	if rf, ok := ret.Get(0).(func(aws.Context, *cloudwatch.GetMetricDataInput, ...request.Option) *cloudwatch.GetMetricDataOutput); ok {
+		r0 = rf(_a0, _a1, _a2...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*cloudwatch.GetMetricDataOutput)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(aws.Context, *cloudwatch.GetMetricDataInput, ...request.Option) error); ok {
+		r1 = rf(_a0, _a1, _a2...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // GetMetricStatistics provides a mock function with given fields: _a0
 func (_m *CloudWatchAPI) GetMetricStatistics(_a0 *cloudwatch.GetMetricStatisticsInput) (*cloudwatch.GetMetricStatisticsOutput, error) {
 	ret := _m.Called(_a0)

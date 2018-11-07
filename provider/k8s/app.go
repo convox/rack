@@ -90,6 +90,10 @@ func (p *Provider) AppLogs(name string, opts structs.LogsOptions) (io.ReadCloser
 	return r, nil
 }
 
+func (p *Provider) AppMetrics(name string, opts structs.MetricsOptions) (structs.Metrics, error) {
+	return nil, fmt.Errorf("unimplemented")
+}
+
 func (p *Provider) AppUpdate(name string, opts structs.AppUpdateOptions) error {
 	return fmt.Errorf("unimplemented")
 }

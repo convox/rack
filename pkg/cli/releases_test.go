@@ -103,7 +103,7 @@ func TestReleasesManifestError(t *testing.T) {
 
 func TestReleasesPromote(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-        i.On("AppGet", "app1").Return(fxApp(), nil)
+		i.On("AppGet", "app1").Return(fxApp(), nil)
 		i.On("ReleasePromote", "app1", "release1", structs.ReleasePromoteOptions{}).Return(nil)
 
 		res, err := testExecute(e, "releases promote release1 -a app1", nil)
@@ -116,7 +116,7 @@ func TestReleasesPromote(t *testing.T) {
 
 func TestReleasesPromoteError(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-        i.On("AppGet", "app1").Return(fxApp(), nil)
+		i.On("AppGet", "app1").Return(fxApp(), nil)
 		i.On("ReleasePromote", "app1", "release1", structs.ReleasePromoteOptions{}).Return(fmt.Errorf("err1"))
 
 		res, err := testExecute(e, "releases promote release1 -a app1", nil)
@@ -131,7 +131,7 @@ func TestReleasesPromoteAlreadyUpdating(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
 		i.On("AppGet", "app1").Return(fxAppUpdating(), nil).Twice()
 		i.On("AppGet", "app1").Return(fxApp(), nil)
-		i.On("ReleasePromote", "app1", "release1").Return(nil)
+		i.On("ReleasePromote", "app1", "release1", structs.ReleasePromoteOptions{}).Return(nil)
 
 		res, err := testExecute(e, "releases promote release1 -a app1", nil)
 		require.NoError(t, err)
@@ -148,7 +148,7 @@ func TestReleasesRollback(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
 		i.On("ReleaseGet", "app1", "release2").Return(fxRelease2(), nil)
 		i.On("ReleaseCreate", "app1", structs.ReleaseCreateOptions{Build: options.String(fxRelease2().Build), Env: options.String(fxRelease2().Env)}).Return(fxRelease3(), nil)
-        i.On("ReleasePromote", "app1", "release3", structs.ReleasePromoteOptions{}).Return(nil)
+		i.On("ReleasePromote", "app1", "release3", structs.ReleasePromoteOptions{}).Return(nil)
 
 		res, err := testExecute(e, "releases rollback release2 -a app1", nil)
 		require.NoError(t, err)
@@ -178,7 +178,7 @@ func TestReleasesRollbackErrorPromote(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
 		i.On("ReleaseGet", "app1", "release2").Return(fxRelease2(), nil)
 		i.On("ReleaseCreate", "app1", structs.ReleaseCreateOptions{Build: options.String(fxRelease2().Build), Env: options.String(fxRelease2().Env)}).Return(fxRelease3(), nil)
-        i.On("ReleasePromote", "app1", "release3", structs.ReleasePromoteOptions{}).Return(fmt.Errorf("err1"))
+		i.On("ReleasePromote", "app1", "release3", structs.ReleasePromoteOptions{}).Return(fmt.Errorf("err1"))
 
 		res, err := testExecute(e, "releases rollback release2 -a app1", nil)
 		require.NoError(t, err)
