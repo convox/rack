@@ -14,7 +14,7 @@ func (p *Provider) ServiceList(app string) (structs.Services, error) {
 		LabelSelector: fmt.Sprintf("app=%s,type=service", app),
 	}
 
-	ds, err := p.Cluster.AppsV1().Deployments(p.appNamespace(app)).List(lopts)
+	ds, err := p.Cluster.AppsV1().Deployments(p.AppNamespace(app)).List(lopts)
 	if err != nil {
 		return nil, err
 	}
@@ -39,7 +39,7 @@ func (p *Provider) ServiceList(app string) (structs.Services, error) {
 		}
 
 		if len(cs[0].Ports) == 1 {
-			i, err := p.Cluster.ExtensionsV1beta1().Ingresses(p.appNamespace(app)).Get(app, am.GetOptions{})
+			i, err := p.Cluster.ExtensionsV1beta1().Ingresses(p.AppNamespace(app)).Get(app, am.GetOptions{})
 			if err != nil {
 				return nil, err
 			}
@@ -61,7 +61,7 @@ func (p *Provider) ServiceList(app string) (structs.Services, error) {
 }
 
 func (p *Provider) ServiceUpdate(app, name string, opts structs.ServiceUpdateOptions) error {
-	d, err := p.Cluster.AppsV1().Deployments(p.appNamespace(app)).Get(name, am.GetOptions{})
+	d, err := p.Cluster.AppsV1().Deployments(p.AppNamespace(app)).Get(name, am.GetOptions{})
 	if err != nil {
 		return err
 	}
@@ -71,7 +71,7 @@ func (p *Provider) ServiceUpdate(app, name string, opts structs.ServiceUpdateOpt
 		d.Spec.Replicas = &c
 	}
 
-	if _, err := p.Cluster.AppsV1().Deployments(p.appNamespace(app)).Update(d); err != nil {
+	if _, err := p.Cluster.AppsV1().Deployments(p.AppNamespace(app)).Update(d); err != nil {
 		return err
 	}
 

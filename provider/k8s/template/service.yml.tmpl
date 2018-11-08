@@ -9,7 +9,6 @@ metadata:
     convox.service.ports.{{.Service.Port.Port}}.protocol: {{.Service.Port.Scheme}}
   labels:
     system: convox
-    scope: app
     rack: {{.Rack}}
     app: {{.App.Name}}
     service: {{.Service.Name}}
@@ -18,7 +17,6 @@ spec:
   type: NodePort
   selector:
     system: convox
-    scope: app
     rack: {{.Rack}}
     app: {{.App.Name}}
     service: {{.Service.Name}}
@@ -37,7 +35,6 @@ metadata:
   name: {{.Service.Name}}
   labels:
     system: convox
-    scope: app
     rack: {{.Rack}}
     app: {{.App.Name}}
     type: service
@@ -68,7 +65,6 @@ spec:
       {{ end }}
       labels:
         system: convox
-        scope: app
         rack: {{.Rack}}
         app: {{.App.Name}}
         service: {{.Service.Name}}
@@ -157,7 +153,6 @@ metadata:
   name: {{.Service.Name}}
   labels:
     system: convox
-    scope: app
     rack: {{.Rack}}
     app: {{.App.Name}}
     service: {{.Service.Name}}

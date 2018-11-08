@@ -5,7 +5,6 @@ metadata:
   name: resource-{{.Name}}
   labels:
     system: convox
-    scope: resource
     rack: {{.Rack}}
     app: {{.App}}
     resource: {{.Name}}
@@ -19,7 +18,6 @@ metadata:
   name: resource-{{.Name}}
   labels:
     system: convox
-    scope: resource
     rack: {{.Rack}}
     app: {{.App}}
     resource: {{.Name}}
@@ -35,7 +33,6 @@ spec:
     metadata:
       labels:
         system: convox
-        scope: resource
         rack: {{.Rack}}
         app: {{.App}}
         type: resource
@@ -55,7 +52,6 @@ metadata:
   name: resource-{{.Name}}
   labels:
     system: convox
-    scope: resource
     rack: {{.Rack}}
     app: {{.App}}
     resource: {{.Name}}
@@ -65,7 +61,6 @@ spec:
   - port: 11211
   selector:
     system: convox
-    scope: resource
     rack: {{.Rack}}
     app: {{.App}}
     resource: {{.Name}}

@@ -102,7 +102,7 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 
 	params := map[string]interface{}{
 		"App":       a,
-		"Namespace": p.appNamespace(a.Name),
+		"Namespace": p.AppNamespace(a.Name),
 		"Rack":      p.Rack,
 		"Release":   r,
 		"Services":  sps,
@@ -115,16 +115,8 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 
 	items = append(items, data)
 
-	for _, rl := range m.Resources {
-		params := map[string]interface{}{
-			"App":       a,
-			"Namespace": p.appNamespace(a.Name),
-			"Rack":      p.Rack,
-			"Release":   r,
-			"Resource":  rl,
-		}
-
-		data, err := p.RenderTemplate("resource", params)
+	for _, r := range m.Resources {
+		data, err := p.Engine.ResourceRender(app, r)
 		if err != nil {
 			return err
 		}
@@ -168,7 +160,7 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 			"Manifest":       m,
 			"MaxSurge":       max,
 			"MaxUnavailable": 100 - min,
-			"Namespace":      p.appNamespace(a.Name),
+			"Namespace":      p.AppNamespace(a.Name),
 			"Rack":           p.Rack,
 			"Release":        r,
 			"Replicas":       replicas,
@@ -189,7 +181,7 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 
 	// fmt.Printf("string(tdata) = %+v\n", string(tdata))
 
-	cmd := exec.Command("kubectl", "apply", "--prune", "-l", fmt.Sprintf("system=convox,scope=app,rack=%s,app=%s", p.Rack, app), "-f", "-")
+	cmd := exec.Command("kubectl", "apply", "--prune", "-l", fmt.Sprintf("system=convox,rack=%s,app=%s", p.Rack, app), "-f", "-")
 
 	cmd.Stdin = bytes.NewReader(tdata)
 
@@ -199,7 +191,7 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 		return errors.New(strings.TrimSpace(string(data)))
 	}
 
-	ns, err := p.Cluster.CoreV1().Namespaces().Get(p.appNamespace(app), am.GetOptions{})
+	ns, err := p.Cluster.CoreV1().Namespaces().Get(p.AppNamespace(app), am.GetOptions{})
 	if err != nil {
 		return err
 	}
@@ -225,7 +217,7 @@ func (p *Provider) releaseCreate(r *structs.Release) (*structs.Release, error) {
 		return nil, err
 	}
 
-	kr, err := c.Releases(p.appNamespace(r.App)).Create(p.releaseMarshal(r))
+	kr, err := c.Releases(p.AppNamespace(r.App)).Create(p.releaseMarshal(r))
 	if err != nil {
 		return nil, err
 	}
@@ -239,7 +231,7 @@ func (p *Provider) releaseGet(app, id string) (*structs.Release, error) {
 		return nil, err
 	}
 
-	kr, err := c.Releases(p.appNamespace(app)).Get(strings.ToLower(id), am.GetOptions{})
+	kr, err := c.Releases(p.AppNamespace(app)).Get(strings.ToLower(id), am.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -273,7 +265,7 @@ func (p *Provider) releaseList(app string) (structs.Releases, error) {
 		return nil, err
 	}
 
-	krs, err := c.Releases(p.appNamespace(app)).List(am.ListOptions{})
+	krs, err := c.Releases(p.AppNamespace(app)).List(am.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -295,7 +287,7 @@ func (p *Provider) releaseList(app string) (structs.Releases, error) {
 func (p *Provider) releaseMarshal(r *structs.Release) *ca.Release {
 	return &ca.Release{
 		ObjectMeta: am.ObjectMeta{
-			Namespace: p.appNamespace(r.App),
+			Namespace: p.AppNamespace(r.App),
 			Name:      strings.ToLower(r.Id),
 			Labels: map[string]string{
 				"system": "convox",
