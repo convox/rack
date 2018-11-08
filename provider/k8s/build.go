@@ -57,7 +57,7 @@ func (p *Provider) BuildCreate(app, url string, opts structs.BuildCreateOptions)
 		"RACK_URL":          fmt.Sprintf("https://convox:%s@web.%s.svc.cluster.local:5443", p.Password, p.Rack),
 	}
 
-	repo, remote, err := p.RepoFunc(app)
+	repo, remote, err := p.Engine.AppRepository(app)
 	if err != nil {
 		return nil, err
 	}
@@ -157,7 +157,7 @@ func (p *Provider) BuildExport(app, id string, w io.Writer) error {
 	images := []string{}
 
 	for _, service := range services {
-		repo, remote, err := p.RepoFunc(app)
+		repo, remote, err := p.Engine.AppRepository(app)
 		if err != nil {
 			return err
 		}
@@ -326,7 +326,7 @@ func (p *Provider) BuildImport(app string, r io.Reader) (*structs.Build, error) 
 		for _, from := range tags.RepoTags {
 			service := strings.Split(from, ":")[0]
 
-			repo, remote, err := p.RepoFunc(app)
+			repo, remote, err := p.Engine.AppRepository(app)
 			if err != nil {
 				return nil, err
 			}
@@ -470,7 +470,7 @@ func (p *Provider) buildAuth(b *structs.Build) ([]byte, error) {
 		}
 	}
 
-	repo, remote, err := p.RepoFunc(b.App)
+	repo, remote, err := p.Engine.AppRepository(b.App)
 	if err != nil {
 		return nil, err
 	}
