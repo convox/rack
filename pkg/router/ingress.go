@@ -169,5 +169,5 @@ func rulePathTarget(port ae.HTTPIngressPath, meta am.ObjectMeta) string {
 		proto = p
 	}
 
-	return fmt.Sprintf("%s://%s.%s.svc.cluster.local:%d", proto, port.Backend.ServiceName, meta.Namespace, port.Backend.ServicePort.IntVal)
+	return fmt.Sprintf("%s://service-%s.%s.svc.cluster.local:%d", proto, port.Backend.ServiceName, meta.Namespace, port.Backend.ServicePort.IntVal)
 }

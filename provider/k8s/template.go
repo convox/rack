@@ -10,6 +10,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/convox/rack/pkg/helpers"
 	"github.com/convox/rack/pkg/manifest"
 	"github.com/convox/rack/pkg/structs"
 	shellquote "github.com/kballard/go-shellquote"
@@ -23,6 +24,9 @@ type envItem struct {
 
 func (p *Provider) templateHelpers() template.FuncMap {
 	return template.FuncMap{
+		"coalesce": func(ss ...string) string {
+			return helpers.CoalesceString(ss...)
+		},
 		"env": func(envs ...map[string]string) []envItem {
 			env := map[string]string{}
 			for _, e := range envs {
@@ -40,6 +44,9 @@ func (p *Provider) templateHelpers() template.FuncMap {
 				eis = append(eis, envItem{Key: k, Value: env[k]})
 			}
 			return eis
+		},
+		"envname": func(s string) string {
+			return strings.Replace(strings.ToUpper(s), "-", "_", -1)
 		},
 		"host": func(app, service string) string {
 			return p.HostFunc(app, service)
@@ -92,10 +99,10 @@ func (p *Provider) templateHelpers() template.FuncMap {
 	}
 }
 
-func (p *Provider) yamlTemplate(name string, params interface{}) ([]byte, error) {
+func (p *Provider) RenderTemplate(provider, name string, params interface{}) ([]byte, error) {
 	var buf bytes.Buffer
 
-	path := fmt.Sprintf("provider/k8s/template/%s.yml.tmpl", name)
+	path := fmt.Sprintf("provider/%s/template/%s.yml.tmpl", provider, name)
 	file := filepath.Base(path)
 
 	t, err := template.New(file).Funcs(p.templateHelpers()).ParseFiles(path)

@@ -108,19 +108,42 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 		"Services":  sps,
 	}
 
-	data, err := p.yamlTemplate("router", params)
+	data, err := p.RenderTemplate("k8s", "router", params)
 	if err != nil {
 		return err
 	}
 
 	items = append(items, data)
 
-	for _, s := range m.Services {
-		ps, err := p.ProcessList(app, structs.ProcessListOptions{Release: options.String(a.Release), Service: options.String(s.Name)})
+	for _, rl := range m.Resources {
+		params := map[string]interface{}{
+			"App":       a,
+			"Namespace": p.appNamespace(a.Name),
+			"Rack":      p.Rack,
+			"Release":   r,
+			"Resource":  rl,
+		}
+
+		data, err := p.RenderTemplate("k8s", "resource", params)
 		if err != nil {
 			return err
 		}
 
+		items = append(items, data)
+	}
+
+	ss, err := p.ServiceList(app)
+	if err != nil {
+		return err
+	}
+
+	sc := map[string]int{}
+
+	for _, s := range ss {
+		sc[s.Name] = s.Count
+	}
+
+	for _, s := range m.Services {
 		min := 50
 		max := 200
 
@@ -137,7 +160,7 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 			max = *opts.Max
 		}
 
-		replicas := helpers.CoalesceInt(len(ps), s.Scale.Count.Min)
+		replicas := helpers.CoalesceInt(sc[s.Name], s.Scale.Count.Min)
 
 		params := map[string]interface{}{
 			"App":            a,
@@ -152,7 +175,7 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 			"Service":        s,
 		}
 
-		data, err := p.yamlTemplate("service", params)
+		data, err := p.RenderTemplate("k8s", "service", params)
 		if err != nil {
 			return err
 		}
@@ -166,16 +189,15 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 
 	// fmt.Printf("string(tdata) = %+v\n", string(tdata))
 
-	cmd := exec.Command("kubectl", "apply", "--prune", fmt.Sprintf("-l system=convox,rack=%s,app=%s", p.Rack, app), "-f", "-")
+	cmd := exec.Command("kubectl", "apply", "--prune", "-l", fmt.Sprintf("system=convox,scope=app,rack=%s,app=%s", p.Rack, app), "-f", "-")
 
 	cmd.Stdin = bytes.NewReader(tdata)
 
 	data, err = cmd.CombinedOutput()
+	fmt.Printf("string(data) = %+v\n", string(data))
 	if err != nil {
 		return errors.New(strings.TrimSpace(string(data)))
 	}
-
-	fmt.Printf("string(data) = %+v\n", string(data))
 
 	ns, err := p.Cluster.CoreV1().Namespaces().Get(p.appNamespace(app), am.GetOptions{})
 	if err != nil {

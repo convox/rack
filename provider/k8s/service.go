@@ -10,7 +10,11 @@ import (
 
 // TODO finish
 func (p *Provider) ServiceList(app string) (structs.Services, error) {
-	ds, err := p.Cluster.AppsV1().Deployments(p.appNamespace(app)).List(am.ListOptions{})
+	lopts := am.ListOptions{
+		LabelSelector: fmt.Sprintf("app=%s,type=service", app),
+	}
+
+	ds, err := p.Cluster.AppsV1().Deployments(p.appNamespace(app)).List(lopts)
 	if err != nil {
 		return nil, err
 	}

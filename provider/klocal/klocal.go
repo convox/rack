@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/convox/rack/provider/k8s"
 	"github.com/convox/rack/pkg/structs"
+	"github.com/convox/rack/provider/k8s"
 )
 
 type Provider struct {
@@ -49,6 +49,13 @@ func (p *Provider) Initialize(opts structs.ProviderOptions) error {
 	if err := p.Provider.Initialize(opts); err != nil {
 		return err
 	}
+
+	rc, err := NewResourceController(p.Provider)
+	if err != nil {
+		return err
+	}
+
+	go rc.Run()
 
 	// if p.Router != nil {
 	//   go handlerLoop(p.routerRegister)

@@ -31,6 +31,8 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 	scheme.AddKnownTypes(SchemeGroupVersion,
 		&Build{},
 		&BuildList{},
+		&ExternalResource{},
+		&ExternalResourceList{},
 		&Release{},
 		&ReleaseList{},
 	)

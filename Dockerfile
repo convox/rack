@@ -3,9 +3,6 @@ FROM golang:1.11 AS development
 RUN curl -Ls https://github.com/krallin/tini/releases/download/v0.18.0/tini -o /tini && chmod +x /tini
 ENTRYPOINT ["/tini", "--"]
 
-RUN curl -Ls https://github.com/krallin/tini/releases/download/v0.18.0/tini -o /tini && chmod +x /tini
-ENTRYPOINT ["/tini", "--"]
-
 RUN curl -s https://download.docker.com/linux/static/stable/x86_64/docker-18.03.1-ce.tgz | \
     tar -C /usr/bin --strip-components 1 -xz
 
@@ -25,6 +22,7 @@ RUN env CGO_ENABLED=0 go install --ldflags '-extldflags "-static"' ./cmd/convox-
 
 RUN go install ./cmd/build
 RUN go install ./cmd/monitor
+RUN go install ./cmd/router
 RUN go install .
 
 CMD ["bin/web"]
@@ -39,6 +37,9 @@ ENTRYPOINT ["/tini", "--"]
 RUN curl -s https://download.docker.com/linux/static/stable/x86_64/docker-18.03.1-ce.tgz | \
     tar -C /usr/bin --strip-components 1 -xz
 
+RUN curl -Ls https://storage.googleapis.com/kubernetes-release/release/v1.11.0/bin/linux/amd64/kubectl -o /usr/bin/kubectl && \
+    chmod +x /usr/bin/kubectl
+
 ENV DEVELOPMENT=false
 ENV GOPATH=/go
 ENV PATH=$PATH:/go/bin
@@ -50,6 +51,7 @@ COPY --from=development /go/bin/build /go/bin/
 COPY --from=development /go/bin/convox-env /go/bin/
 COPY --from=development /go/bin/monitor /go/bin/
 COPY --from=development /go/bin/rack /go/bin/
+COPY --from=development /go/bin/router /go/bin/
 
 # aws templates
 COPY --from=development /go/src/github.com/convox/rack/provider/aws/formation/ provider/aws/formation/
@@ -57,5 +59,8 @@ COPY --from=development /go/src/github.com/convox/rack/provider/aws/templates/ p
 
 # k8s templates
 COPY --from=development /go/src/github.com/convox/rack/provider/k8s/template/ provider/k8s/template/
+
+# klocal templates
+COPY --from=development /go/src/github.com/convox/rack/provider/klocal/template/ provider/klocal/template/
 
 CMD ["/go/bin/rack"]
