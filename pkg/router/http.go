@@ -88,8 +88,18 @@ func (h *HTTP) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	req.Host = r.Host
 
 	req.Header.Add("X-Forwarded-For", r.RemoteAddr)
-	req.Header.Set("X-Forwarded-Port", strconv.Itoa(h.Port))
-	req.Header.Set("X-Forwarded-Proto", h.Scheme)
+
+	if v := req.Header.Get("X-Forwarded-Port"); v != "" {
+		req.Header.Set("X-Forwarded-Port", v)
+	} else {
+		req.Header.Set("X-Forwarded-Port", strconv.Itoa(h.Port))
+	}
+
+	if v := req.Header.Get("X-Forwarded-Proto"); v != "" {
+		req.Header.Set("X-Forwarded-Proto", v)
+	} else {
+		req.Header.Set("X-Forwarded-Proto", h.Scheme)
+	}
 
 	res, err := h.Client.Do(req)
 	if err != nil {
@@ -186,8 +196,18 @@ func (h *HTTP) serveWebsocket(w http.ResponseWriter, r *http.Request, target str
 
 	r.Header.Set("Origin", target)
 	r.Header.Add("X-Forwarded-For", r.RemoteAddr)
-	r.Header.Set("X-Forwarded-Port", strconv.Itoa(h.Port))
-	r.Header.Set("X-Forwarded-Proto", h.Scheme)
+
+	if v := r.Header.Get("X-Forwarded-Port"); v != "" {
+		r.Header.Set("X-Forwarded-Port", v)
+	} else {
+		r.Header.Set("X-Forwarded-Port", strconv.Itoa(h.Port))
+	}
+
+	if v := r.Header.Get("X-Forwarded-Proto"); v != "" {
+		r.Header.Set("X-Forwarded-Proto", v)
+	} else {
+		r.Header.Set("X-Forwarded-Proto", h.Scheme)
+	}
 
 	r.Header.Del("Connection")
 	r.Header.Del("Sec-Websocket-Extensions")
