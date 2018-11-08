@@ -5,24 +5,34 @@ import (
 	"os"
 
 	"github.com/convox/rack/pkg/structs"
+	"github.com/convox/rack/pkg/templater"
+	"github.com/gobuffalo/packr"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	metrics "k8s.io/metrics/pkg/client/clientset_generated/clientset"
 )
 
+type Engine interface {
+	AppRepository(app string) (string, bool, error)
+	ServiceHost(app, service string) string
+}
+
 type Provider struct {
-	Config   *rest.Config
-	Cluster  kubernetes.Interface
-	HostFunc func(app, service string) string
+	Config  *rest.Config
+	Cluster kubernetes.Interface
+	// HostFunc func(app, service string) string
 	Image    string
+	Engine   Engine
 	Metrics  metrics.Interface
 	Password string
 	Provider string
 	Rack     string
-	RepoFunc func(app string) (string, bool, error)
-	Storage  string
-	Version  string
+	// RepoFunc func(app string) (string, bool, error)
+	Storage string
+	Version string
+
+	templater *templater.Templater
 }
 
 func init() {
@@ -59,6 +69,8 @@ func FromEnv() (*Provider, error) {
 		Storage:  os.Getenv("STORAGE"),
 		Version:  os.Getenv("VERSION"),
 	}
+
+	p.templater = templater.New(packr.NewBox("template"), p.templateHelpers())
 
 	return p, nil
 }

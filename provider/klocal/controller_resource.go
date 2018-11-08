@@ -23,13 +23,13 @@ import (
 
 type ResourceController struct {
 	Controller *k8s.Controller
-	Provider   *k8s.Provider
+	Provider   *Provider
 
 	client versioned.Interface
 	logger *logger.Logger
 }
 
-func NewResourceController(p *k8s.Provider) (*ResourceController, error) {
+func NewResourceController(p *Provider) (*ResourceController, error) {
 	cfg, err := rest.InClusterConfig()
 	if err != nil {
 		return nil, err
@@ -189,7 +189,7 @@ func (c *ResourceController) resourceTemplate(r *acx.ExternalResource) ([]byte, 
 		"Rack":       r.ObjectMeta.Labels["rack"],
 	}
 
-	return c.Provider.RenderTemplate("klocal", fmt.Sprintf("resource/%s", r.Spec.Type), params)
+	return c.Provider.RenderTemplate(fmt.Sprintf("resource/%s", r.Spec.Type), params)
 }
 
 func assertResource(v interface{}) (*acx.ExternalResource, error) {

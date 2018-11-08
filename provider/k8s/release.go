@@ -108,7 +108,7 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 		"Services":  sps,
 	}
 
-	data, err := p.RenderTemplate("k8s", "router", params)
+	data, err := p.RenderTemplate("router", params)
 	if err != nil {
 		return err
 	}
@@ -124,7 +124,7 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 			"Resource":  rl,
 		}
 
-		data, err := p.RenderTemplate("k8s", "resource", params)
+		data, err := p.RenderTemplate("resource", params)
 		if err != nil {
 			return err
 		}
@@ -175,7 +175,7 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 			"Service":        s,
 		}
 
-		data, err := p.RenderTemplate("k8s", "service", params)
+		data, err := p.RenderTemplate("service", params)
 		if err != nil {
 			return err
 		}

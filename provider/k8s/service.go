@@ -33,7 +33,7 @@ func (p *Provider) ServiceList(app string) (structs.Services, error) {
 
 		s := structs.Service{
 			Count:  int(helpers.DefaultInt32(d.Spec.Replicas, 0)),
-			Domain: p.HostFunc(app, d.ObjectMeta.Name),
+			Domain: p.Engine.ServiceHost(app, d.ObjectMeta.Name),
 			Name:   d.ObjectMeta.Name,
 			Ports:  []structs.ServicePort{},
 		}
@@ -44,7 +44,7 @@ func (p *Provider) ServiceList(app string) (structs.Services, error) {
 				return nil, err
 			}
 
-			s.Domain = fmt.Sprintf("%s.%s", p.HostFunc(app, s.Name), helpers.CoalesceString(i.Annotations["convox.domain"], i.Labels["rack"]))
+			s.Domain = fmt.Sprintf("%s.%s", p.Engine.ServiceHost(app, s.Name), helpers.CoalesceString(i.Annotations["convox.domain"], i.Labels["rack"]))
 
 			// if domain, ok := i.Annotations["convox.domain"]; ok {
 			//   s.Domain += fmt.Sprintf(".%s", domain)
