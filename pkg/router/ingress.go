@@ -72,11 +72,7 @@ func (c *IngressController) Add(obj interface{}) error {
 			host = fmt.Sprintf("%s.%s.", host, helpers.CoalesceString(i.ObjectMeta.Annotations["convox.domain"], i.ObjectMeta.Labels["rack"]))
 		}
 
-		fmt.Printf("host = %+v\n", host)
-
 		host = strings.TrimSuffix(host, ".")
-
-		fmt.Printf("host = %+v\n", host)
 
 		for _, port := range r.IngressRuleValue.HTTP.Paths {
 			target := rulePathTarget(port, i.ObjectMeta)
