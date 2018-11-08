@@ -3,7 +3,7 @@ apiVersion: v1
 kind: Service
 metadata:
   namespace: {{.Namespace}}
-  name: service-{{.Service.Name}}
+  name: {{.Service.Name}}
   annotations:
     alb.ingress.kubernetes.io/target-type: pod
     convox.service.ports.{{.Service.Port.Port}}.protocol: {{.Service.Port.Scheme}}
@@ -24,7 +24,8 @@ spec:
     service: {{.Service.Name}}
     release: {{.Release.Id}}
   ports:
-    - port: {{.Service.Port.Port}}
+    - name: main
+      port: {{.Service.Port.Port}}
       protocol: TCP
       targetPort: {{.Service.Port.Port}}
 ---
@@ -33,7 +34,7 @@ apiVersion: apps/v1
 kind: {{ if .Service.Agent.Enabled }} DaemonSet {{ else }} Deployment {{ end }}
 metadata:
   namespace: {{.Namespace}}
-  name: service-{{.Service.Name}}
+  name: {{.Service.Name}}
   labels:
     system: convox
     scope: app
@@ -57,7 +58,7 @@ spec:
       maxSurge: "{{.MaxSurge}}%"
       maxUnavailable: "{{.MaxUnavailable}}%"
   {{ end }}
-  minReadySeconds: 5
+  # minReadySeconds: 5
   revisionHistoryLimit: 1
   template:
     metadata:
@@ -76,7 +77,7 @@ spec:
       {{ if .Service.Agent.Ports }}
       hostNetwork: true
       {{ end }}
-      shareProcessNamespace: true
+      shareProcessNamespace: {{.Service.Init}}
       containers:
       - name: main
         {{ with .Service.Command }}
@@ -153,7 +154,7 @@ apiVersion: autoscaling/v2beta1
 kind: HorizontalPodAutoscaler
 metadata:
   namespace: {{.Namespace}}
-  name: service-{{.Service.Name}}
+  name: {{.Service.Name}}
   labels:
     system: convox
     scope: app
@@ -165,7 +166,7 @@ spec:
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: service-{{.Service.Name}}
+    name: {{.Service.Name}}
   minReplicas: {{.Service.Scale.Count.Min}}
   maxReplicas: {{.Service.Scale.Count.Max}}
   metrics:
