@@ -153,8 +153,9 @@ func appFromNamespace(ns ac.Namespace) structs.App {
 	}
 
 	return structs.App{
-		Name:    ns.Labels["name"],
-		Release: ns.Annotations["convox.release"],
-		Status:  status,
+		Generation: "2",
+		Name:       ns.Labels["name"],
+		Release:    ns.Annotations["convox.release"],
+		Status:     status,
 	}
 }

@@ -1,0 +1,18 @@
+apiVersion: convox.com/v1
+kind: ExternalResource
+metadata:
+  namespace: {{.Namespace}}
+  name: {{.Resource.Name}}
+  labels:
+    system: convox
+    scope: app
+    rack: {{.Rack}}
+    app: {{.App.Name}}
+    resource: {{.Resource.Name}}
+    release: {{.Release.Id}}
+spec:
+  type: {{.Resource.Type}}
+  parameters:
+  {{ range $k, $v := .Resource.Options }}
+    {{$k}}: "{{$v}}"
+  {{ end }}

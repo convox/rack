@@ -19,8 +19,8 @@ import (
 	"github.com/convox/rack/pkg/helpers"
 	"github.com/convox/rack/pkg/manifest"
 	"github.com/convox/rack/pkg/options"
-	ca "github.com/convox/rack/provider/k8s/pkg/apis/convox/v1"
 	"github.com/convox/rack/pkg/structs"
+	ca "github.com/convox/rack/provider/k8s/pkg/apis/convox/v1"
 	am "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -46,14 +46,15 @@ func (p *Provider) BuildCreate(app, url string, opts structs.BuildCreateOptions)
 	cache := helpers.DefaultBool(opts.NoCache, true)
 
 	env := map[string]string{
-		"BUILD_APP":        app,
-		"BUILD_AUTH":       string(auth),
-		"BUILD_GENERATION": "2",
-		"BUILD_ID":         b.Id,
-		"BUILD_MANIFEST":   helpers.DefaultString(opts.Manifest, "convox.yml"),
-		"BUILD_RACK":       p.Rack,
-		"BUILD_URL":        url,
-		"RACK_URL":         fmt.Sprintf("https://convox:%s@web.%s.svc.cluster.local:5443", p.Password, p.Rack),
+		"BUILD_APP":         app,
+		"BUILD_AUTH":        string(auth),
+		"BUILD_DEVELOPMENT": fmt.Sprintf("%t", helpers.DefaultBool(opts.Development, false)),
+		"BUILD_GENERATION":  "2",
+		"BUILD_ID":          b.Id,
+		"BUILD_MANIFEST":    helpers.DefaultString(opts.Manifest, "convox.yml"),
+		"BUILD_RACK":        p.Rack,
+		"BUILD_URL":         url,
+		"RACK_URL":          fmt.Sprintf("https://convox:%s@web.%s.svc.cluster.local:5443", p.Password, p.Rack),
 	}
 
 	repo, remote, err := p.RepoFunc(app)

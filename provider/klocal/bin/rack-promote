@@ -100,7 +100,7 @@ spec:
       containers:
       - name: router
         args:
-        - bin/router
+        - router
         env:
         - name: DEVELOPMENT
           value: "false"

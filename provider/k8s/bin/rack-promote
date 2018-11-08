@@ -153,7 +153,7 @@ spec:
       containers:
       - name: main
         args:
-        - bin/web
+        - rack
         env:
         - name: DATA
           value: /data
@@ -272,6 +272,27 @@ spec:
     kind: Build
     categories:
     - convox
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  name: externalresources.convox.com
+spec:
+  group: convox.com
+  versions:
+    - name: v1
+      served: true
+      storage: true
+  version: v1
+  scope: Namespaced
+  names:
+    plural: externalresources
+    singular: externalresource
+    kind: ExternalResource
+    categories:
+    - convox
+    shortNames:
+    - resource
 ---
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition

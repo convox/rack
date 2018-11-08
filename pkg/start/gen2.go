@@ -722,11 +722,13 @@ func writeLogs(ctx context.Context, pw prefix.Writer, r io.Reader, services map[
 				continue
 			}
 
-			if !services[match[4]] {
+			service := strings.Split(match[4], ":")[0]
+
+			if !services[service] {
 				continue
 			}
 
-			pw.Writef(match[4], "%s\n", match[6])
+			pw.Writef(service, "%s\n", match[6])
 		}
 	}
 }
