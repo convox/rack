@@ -10,7 +10,7 @@ metadata:
     app: {{.App}}
     resource: {{.Name}}
 data:
-  URL: "postgres://app:{{.Password}}@resource-{{.Name}}.{{.Namespace}}.svc.cluster.local:5432/app"
+  URL: "redis://resource-{{.Name}}.{{.Namespace}}.svc.cluster.local:6379"
 ---
 kind: PersistentVolume
 apiVersion: v1
@@ -79,20 +79,13 @@ spec:
         resource: {{.Name}}
     spec:
       containers:
-      - name: postgres
-        image: postgres:{{ coalesce (index .Parameters "version") "10.5" }}
+      - name: redis
+        image: redis:{{ coalesce (index .Parameters "version") "4.0.10" }}
         imagePullPolicy: IfNotPresent
         ports:
-        - containerPort: 5432
-        env:
-        - name: POSTGRES_DB
-          value: app
-        - name: POSTGRES_USER
-          value: app
-        - name: POSTGRES_PASSWORD
-          value: "{{.Password}}"
+        - containerPort: 6379
         volumeMounts:
-        - mountPath: /var/lib/postgresql/data
+        - mountPath: /data
           name: data
       volumes:
       - name: data
@@ -113,7 +106,7 @@ metadata:
 spec:
   type: NodePort
   ports:
-  - port: 5432
+  - port: 6379
   selector:
     system: convox
     scope: resource
