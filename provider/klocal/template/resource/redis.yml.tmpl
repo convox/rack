@@ -5,7 +5,6 @@ metadata:
   name: resource-{{.Name}}
   labels:
     system: convox
-    scope: resource
     rack: {{.Rack}}
     app: {{.App}}
     resource: {{.Name}}
@@ -16,10 +15,9 @@ kind: PersistentVolume
 apiVersion: v1
 metadata:
   namespace: {{.Namespace}}
-  name: resource-{{.Name}}
+  name: resource-{{.Name}}-redis
   labels:
     system: convox
-    scope: resource
     rack: {{.Rack}}
     app: {{.App}}
     resource: {{.Name}}
@@ -35,10 +33,9 @@ kind: PersistentVolumeClaim
 apiVersion: v1
 metadata:
   namespace: {{.Namespace}}
-  name: resource-{{.Name}}
+  name: resource-{{.Name}}-redis
   labels:
     system: convox
-    scope: resource
     rack: {{.Rack}}
     app: {{.App}}
     resource: {{.Name}}
@@ -56,7 +53,6 @@ metadata:
   name: resource-{{.Name}}
   labels:
     system: convox
-    scope: resource
     rack: {{.Rack}}
     app: {{.App}}
     resource: {{.Name}}
@@ -72,7 +68,6 @@ spec:
     metadata:
       labels:
         system: convox
-        scope: resource
         rack: {{.Rack}}
         app: {{.App}}
         type: resource
@@ -90,7 +85,7 @@ spec:
       volumes:
       - name: data
         persistentVolumeClaim:
-          claimName: resource-{{.Name}}
+          claimName: resource-{{.Name}}-redis
 ---
 apiVersion: v1
 kind: Service
@@ -99,7 +94,6 @@ metadata:
   name: resource-{{.Name}}
   labels:
     system: convox
-    scope: resource
     rack: {{.Rack}}
     app: {{.App}}
     resource: {{.Name}}
@@ -109,7 +103,6 @@ spec:
   - port: 6379
   selector:
     system: convox
-    scope: resource
     rack: {{.Rack}}
     app: {{.App}}
     resource: {{.Name}}

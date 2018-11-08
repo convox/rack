@@ -493,7 +493,7 @@ func (p *Provider) buildCreate(b *structs.Build) (*structs.Build, error) {
 		return nil, err
 	}
 
-	kb, err := c.Builds(p.appNamespace(b.App)).Create(p.buildMarshal(b))
+	kb, err := c.Builds(p.AppNamespace(b.App)).Create(p.buildMarshal(b))
 	if err != nil {
 		return nil, err
 	}
@@ -507,7 +507,7 @@ func (p *Provider) buildGet(app, id string) (*structs.Build, error) {
 		return nil, err
 	}
 
-	kb, err := c.Builds(p.appNamespace(app)).Get(strings.ToLower(id), am.GetOptions{})
+	kb, err := c.Builds(p.AppNamespace(app)).Get(strings.ToLower(id), am.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -521,7 +521,7 @@ func (p *Provider) buildList(app string) (structs.Builds, error) {
 		return nil, err
 	}
 
-	kbs, err := c.Builds(p.appNamespace(app)).List(am.ListOptions{})
+	kbs, err := c.Builds(p.AppNamespace(app)).List(am.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -543,7 +543,7 @@ func (p *Provider) buildList(app string) (structs.Builds, error) {
 func (p *Provider) buildMarshal(b *structs.Build) *ca.Build {
 	return &ca.Build{
 		ObjectMeta: am.ObjectMeta{
-			Namespace: p.appNamespace(b.App),
+			Namespace: p.AppNamespace(b.App),
 			Name:      strings.ToLower(b.Id),
 			Labels: map[string]string{
 				"system": "convox",
@@ -597,7 +597,7 @@ func (p *Provider) buildUpdate(b *structs.Build) (*structs.Build, error) {
 		return nil, err
 	}
 
-	kbo, err := c.Builds(p.appNamespace(b.App)).Get(strings.ToLower(b.Id), am.GetOptions{})
+	kbo, err := c.Builds(p.AppNamespace(b.App)).Get(strings.ToLower(b.Id), am.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -606,7 +606,7 @@ func (p *Provider) buildUpdate(b *structs.Build) (*structs.Build, error) {
 
 	kbn.ObjectMeta = kbo.ObjectMeta
 
-	kb, err := c.Builds(p.appNamespace(b.App)).Update(kbn)
+	kb, err := c.Builds(p.AppNamespace(b.App)).Update(kbn)
 	if err != nil {
 		return nil, err
 	}

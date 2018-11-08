@@ -18,7 +18,7 @@ import (
 )
 
 func (p *Provider) ProcessExec(app, pid, command string, rw io.ReadWriter, opts structs.ProcessExecOptions) (int, error) {
-	req := p.Cluster.CoreV1().RESTClient().Post().Resource("pods").Name(pid).Namespace(p.appNamespace(app)).SubResource("exec").Param("container", "main")
+	req := p.Cluster.CoreV1().RESTClient().Post().Resource("pods").Name(pid).Namespace(p.AppNamespace(app)).SubResource("exec").Param("container", "main")
 
 	cp, err := shellquote.Split(command)
 	if err != nil {
@@ -53,7 +53,7 @@ func (p *Provider) ProcessExec(app, pid, command string, rw io.ReadWriter, opts 
 }
 
 func (p *Provider) ProcessGet(app, pid string) (*structs.Process, error) {
-	pd, err := p.Cluster.CoreV1().Pods(p.appNamespace(app)).Get(pid, am.GetOptions{})
+	pd, err := p.Cluster.CoreV1().Pods(p.AppNamespace(app)).Get(pid, am.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -77,7 +77,7 @@ func (p *Provider) ProcessList(app string, opts structs.ProcessListOptions) (str
 		filters = append(filters, fmt.Sprintf("service=%s", *opts.Service))
 	}
 
-	pds, err := p.Cluster.CoreV1().Pods(p.appNamespace(app)).List(am.ListOptions{LabelSelector: strings.Join(filters, ",")})
+	pds, err := p.Cluster.CoreV1().Pods(p.AppNamespace(app)).List(am.ListOptions{LabelSelector: strings.Join(filters, ",")})
 	if err != nil {
 		return nil, err
 	}
@@ -120,7 +120,7 @@ func (p *Provider) ProcessRun(app, service string, opts structs.ProcessRunOption
 		return nil, err
 	}
 
-	pd, err := p.Cluster.CoreV1().Pods(p.appNamespace(app)).Create(&ac.Pod{
+	pd, err := p.Cluster.CoreV1().Pods(p.AppNamespace(app)).Create(&ac.Pod{
 		ObjectMeta: am.ObjectMeta{
 			Annotations: map[string]string{
 				"iam.amazonaws.com/role": ns.ObjectMeta.Annotations["convox.aws.role"],
@@ -149,7 +149,7 @@ func (p *Provider) ProcessRun(app, service string, opts structs.ProcessRunOption
 }
 
 func (p *Provider) ProcessStop(app, pid string) error {
-	if err := p.Cluster.CoreV1().Pods(p.appNamespace(app)).Delete(pid, nil); err != nil {
+	if err := p.Cluster.CoreV1().Pods(p.AppNamespace(app)).Delete(pid, nil); err != nil {
 		return err
 	}
 
@@ -158,7 +158,7 @@ func (p *Provider) ProcessStop(app, pid string) error {
 
 func (p *Provider) ProcessWait(app, pid string) (int, error) {
 	for {
-		pd, err := p.Cluster.CoreV1().Pods(p.appNamespace(app)).Get(pid, am.GetOptions{})
+		pd, err := p.Cluster.CoreV1().Pods(p.AppNamespace(app)).Get(pid, am.GetOptions{})
 		if err != nil {
 			return 0, err
 		}

@@ -10,7 +10,7 @@ import (
 )
 
 func (p *Provider) FilesDelete(app, pid string, files []string) error {
-	req := p.Cluster.CoreV1().RESTClient().Post().Resource("pods").Name(pid).Namespace(p.appNamespace(app)).SubResource("exec").Param("container", "main")
+	req := p.Cluster.CoreV1().RESTClient().Post().Resource("pods").Name(pid).Namespace(p.AppNamespace(app)).SubResource("exec").Param("container", "main")
 
 	command := []string{"rm", "-f"}
 	command = append(command, files...)
@@ -36,7 +36,7 @@ func (p *Provider) FilesDelete(app, pid string, files []string) error {
 }
 
 func (p *Provider) FilesDownload(app, pid, file string) (io.Reader, error) {
-	req := p.Cluster.CoreV1().RESTClient().Post().Resource("pods").Name(pid).Namespace(p.appNamespace(app)).SubResource("exec").Param("container", "main")
+	req := p.Cluster.CoreV1().RESTClient().Post().Resource("pods").Name(pid).Namespace(p.AppNamespace(app)).SubResource("exec").Param("container", "main")
 
 	eo := &ac.PodExecOptions{
 		Container: "main",
@@ -62,7 +62,7 @@ func (p *Provider) FilesDownload(app, pid, file string) (io.Reader, error) {
 }
 
 func (p *Provider) FilesUpload(app, pid string, r io.Reader) error {
-	req := p.Cluster.CoreV1().RESTClient().Post().Resource("pods").Name(pid).Namespace(p.appNamespace(app)).SubResource("exec").Param("container", "main")
+	req := p.Cluster.CoreV1().RESTClient().Post().Resource("pods").Name(pid).Namespace(p.AppNamespace(app)).SubResource("exec").Param("container", "main")
 
 	eo := &ac.PodExecOptions{
 		Container: "main",

@@ -43,12 +43,5 @@ func (p *Provider) Initialize(opts structs.ProviderOptions) error {
 		return err
 	}
 
-	rc, err := NewResourceController(p)
-	if err != nil {
-		return err
-	}
-
-	go rc.Run()
-
 	return nil
 }
