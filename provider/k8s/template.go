@@ -1,12 +1,10 @@
 package k8s
 
 import (
-	"bytes"
 	"crypto/sha256"
 	"fmt"
 	"html/template"
 	"path"
-	"path/filepath"
 	"sort"
 	"strings"
 
@@ -14,8 +12,16 @@ import (
 	"github.com/convox/rack/pkg/manifest"
 	"github.com/convox/rack/pkg/structs"
 	shellquote "github.com/kballard/go-shellquote"
-	yaml "gopkg.in/yaml.v2"
 )
+
+func (p *Provider) RenderTemplate(name string, params map[string]interface{}) ([]byte, error) {
+	data, err := p.templater.Render(fmt.Sprintf("%s.yml.tmpl", name), params)
+	if err != nil {
+		return nil, err
+	}
+
+	return helpers.FormatYAML(data)
+}
 
 type envItem struct {
 	Key   string
@@ -24,9 +30,6 @@ type envItem struct {
 
 func (p *Provider) templateHelpers() template.FuncMap {
 	return template.FuncMap{
-		"coalesce": func(ss ...string) string {
-			return helpers.CoalesceString(ss...)
-		},
 		"env": func(envs ...map[string]string) []envItem {
 			env := map[string]string{}
 			for _, e := range envs {
@@ -49,10 +52,10 @@ func (p *Provider) templateHelpers() template.FuncMap {
 			return strings.Replace(strings.ToUpper(s), "-", "_", -1)
 		},
 		"host": func(app, service string) string {
-			return p.HostFunc(app, service)
+			return p.Engine.ServiceHost(app, service)
 		},
 		"image": func(a *structs.App, s manifest.Service, r *structs.Release) (string, error) {
-			repo, _, err := p.RepoFunc(a.Name)
+			repo, _, err := p.Engine.AppRepository(a.Name)
 			if err != nil {
 				return "", err
 			}
@@ -97,41 +100,4 @@ func (p *Provider) templateHelpers() template.FuncMap {
 			}
 		},
 	}
-}
-
-func (p *Provider) RenderTemplate(provider, name string, params interface{}) ([]byte, error) {
-	var buf bytes.Buffer
-
-	path := fmt.Sprintf("provider/%s/template/%s.yml.tmpl", provider, name)
-	file := filepath.Base(path)
-
-	t, err := template.New(file).Funcs(p.templateHelpers()).ParseFiles(path)
-	if err != nil {
-		return nil, err
-	}
-
-	if err := t.Execute(&buf, params); err != nil {
-		return nil, err
-	}
-
-	// fmt.Printf("buf.String() = %+v\n", buf.String())
-
-	parts := bytes.Split(buf.Bytes(), []byte("---"))
-
-	for i, part := range parts {
-		var v interface{}
-
-		if err := yaml.Unmarshal(part, &v); err != nil {
-			return nil, err
-		}
-
-		data, err := yaml.Marshal(v)
-		if err != nil {
-			return nil, err
-		}
-
-		parts[i] = data
-	}
-
-	return bytes.Join(parts, []byte("---\n")), nil
 }

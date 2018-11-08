@@ -217,7 +217,7 @@ func (p *Provider) podSpecFromService(app, service, release string) (*ac.PodSpec
 				c.Env = append(c.Env, ac.EnvVar{Name: k, Value: v})
 			}
 
-			repo, _, err := p.RepoFunc(app)
+			repo, _, err := p.Engine.AppRepository(app)
 			if err != nil {
 				return nil, err
 			}
