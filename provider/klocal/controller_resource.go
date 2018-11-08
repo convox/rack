@@ -189,7 +189,7 @@ func (c *ResourceController) resourceTemplate(r *acx.ExternalResource) ([]byte, 
 		"Rack":       r.ObjectMeta.Labels["rack"],
 	}
 
-	return c.Provider.RenderTemplate("klocal", "resource/postgres", params)
+	return c.Provider.RenderTemplate("klocal", fmt.Sprintf("resource/%s", r.Spec.Type), params)
 }
 
 func assertResource(v interface{}) (*acx.ExternalResource, error) {
