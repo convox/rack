@@ -17,7 +17,7 @@ func (p *Provider) AppCancel(name string) error {
 func (p *Provider) AppCreate(name string, opts structs.AppCreateOptions) (*structs.App, error) {
 	_, err := p.Cluster.CoreV1().Namespaces().Create(&ac.Namespace{
 		ObjectMeta: am.ObjectMeta{
-			Name: p.appNamespace(name),
+			Name: p.AppNamespace(name),
 			Labels: map[string]string{
 				"system": "convox",
 				"rack":   p.Rack,
@@ -34,7 +34,7 @@ func (p *Provider) AppCreate(name string, opts structs.AppCreateOptions) (*struc
 }
 
 func (p *Provider) AppGet(name string) (*structs.App, error) {
-	ns, err := p.Cluster.CoreV1().Namespaces().Get(p.appNamespace(name), am.GetOptions{})
+	ns, err := p.Cluster.CoreV1().Namespaces().Get(p.AppNamespace(name), am.GetOptions{})
 	if ae.IsNotFound(err) {
 		return nil, fmt.Errorf("app not found: %s", name)
 	}
@@ -52,7 +52,7 @@ func (p *Provider) AppDelete(name string) error {
 		return err
 	}
 
-	if err := p.Cluster.CoreV1().Namespaces().Delete(p.appNamespace(name), nil); err != nil {
+	if err := p.Cluster.CoreV1().Namespaces().Delete(p.AppNamespace(name), nil); err != nil {
 		return err
 	}
 
@@ -94,16 +94,16 @@ func (p *Provider) AppMetrics(name string, opts structs.MetricsOptions) (structs
 	return nil, fmt.Errorf("unimplemented")
 }
 
-func (p *Provider) AppUpdate(name string, opts structs.AppUpdateOptions) error {
-	return fmt.Errorf("unimplemented")
-}
-
-func (p *Provider) appNamespace(app string) string {
+func (p *Provider) AppNamespace(app string) string {
 	if app == "system" {
 		return p.Rack
 	}
 
 	return fmt.Sprintf("%s-%s", p.Rack, app)
+}
+
+func (p *Provider) AppUpdate(name string, opts structs.AppUpdateOptions) error {
+	return fmt.Errorf("unimplemented")
 }
 
 func (p *Provider) streamAppLogs(w io.WriteCloser, app string, opts structs.LogsOptions) {

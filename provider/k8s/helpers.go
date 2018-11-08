@@ -115,7 +115,7 @@ func (p *Provider) streamProcessLogsWait(w io.WriteCloser, ps structs.Process, o
 func (p *Provider) streamProcessLogs(w io.WriteCloser, ps structs.Process, opts structs.LogsOptions) {
 	defer w.Close()
 
-	r, err := p.podLogs(p.appNamespace(ps.App), ps.Id, opts)
+	r, err := p.podLogs(p.AppNamespace(ps.App), ps.Id, opts)
 	if err != nil {
 		return
 	}

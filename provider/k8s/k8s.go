@@ -4,6 +4,7 @@ import (
 	"flag"
 	"os"
 
+	"github.com/convox/rack/pkg/manifest"
 	"github.com/convox/rack/pkg/structs"
 	"github.com/convox/rack/pkg/templater"
 	"github.com/gobuffalo/packr"
@@ -15,6 +16,7 @@ import (
 
 type Engine interface {
 	AppRepository(app string) (string, bool, error)
+	ResourceRender(app string, r manifest.Resource) ([]byte, error)
 	ServiceHost(app, service string) string
 }
 
