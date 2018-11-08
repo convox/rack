@@ -55,6 +55,8 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 	// Group=convox.com, Version=v1
 	case v1.SchemeGroupVersion.WithResource("builds"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Convox().V1().Builds().Informer()}, nil
+	case v1.SchemeGroupVersion.WithResource("externalresources"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Convox().V1().ExternalResources().Informer()}, nil
 	case v1.SchemeGroupVersion.WithResource("releases"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Convox().V1().Releases().Informer()}, nil
 

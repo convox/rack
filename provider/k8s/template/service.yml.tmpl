@@ -3,12 +3,13 @@ apiVersion: v1
 kind: Service
 metadata:
   namespace: {{.Namespace}}
-  name: {{.Service.Name}}
+  name: service-{{.Service.Name}}
   annotations:
     alb.ingress.kubernetes.io/target-type: pod
     convox.service.ports.{{.Service.Port.Port}}.protocol: {{.Service.Port.Scheme}}
   labels:
     system: convox
+    scope: app
     rack: {{.Rack}}
     app: {{.App.Name}}
     service: {{.Service.Name}}
@@ -17,6 +18,7 @@ spec:
   type: NodePort
   selector:
     system: convox
+    scope: app
     rack: {{.Rack}}
     app: {{.App.Name}}
     service: {{.Service.Name}}
@@ -31,11 +33,13 @@ apiVersion: apps/v1
 kind: {{ if .Service.Agent.Enabled }} DaemonSet {{ else }} Deployment {{ end }}
 metadata:
   namespace: {{.Namespace}}
-  name: {{.Service.Name}}
+  name: service-{{.Service.Name}}
   labels:
     system: convox
+    scope: app
     rack: {{.Rack}}
     app: {{.App.Name}}
+    type: service
     service: {{.Service.Name}}
     release: {{.Release.Id}}
 spec:
@@ -63,6 +67,7 @@ spec:
       {{ end }}
       labels:
         system: convox
+        scope: app
         rack: {{.Rack}}
         app: {{.App.Name}}
         service: {{.Service.Name}}
@@ -84,6 +89,13 @@ spec:
         {{ range env .Service.EnvironmentDefaults .Env }}
         - name: {{ safe .Key }}
           value: {{ safe .Value }}
+        {{ end }}
+        {{ range .Service.Resources }}
+        - name: {{ envname . }}_URL
+          valueFrom:
+            configMapKeyRef:
+              name: resource-{{.}}
+              key: URL
         {{ end }}
         image: {{ image .App .Service .Release }}
         imagePullPolicy: IfNotPresent
@@ -141,9 +153,10 @@ apiVersion: autoscaling/v2beta1
 kind: HorizontalPodAutoscaler
 metadata:
   namespace: {{.Namespace}}
-  name: {{.Service.Name}}
+  name: service-{{.Service.Name}}
   labels:
     system: convox
+    scope: app
     rack: {{.Rack}}
     app: {{.App.Name}}
     service: {{.Service.Name}}
@@ -152,7 +165,7 @@ spec:
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: {{.Service.Name}}
+    name: service-{{.Service.Name}}
   minReplicas: {{.Service.Scale.Count.Min}}
   maxReplicas: {{.Service.Scale.Count.Max}}
   metrics:

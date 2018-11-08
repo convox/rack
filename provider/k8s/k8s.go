@@ -1,6 +1,7 @@
 package k8s
 
 import (
+	"flag"
 	"os"
 
 	"github.com/convox/rack/pkg/structs"
@@ -22,6 +23,13 @@ type Provider struct {
 	RepoFunc func(app string) (string, bool, error)
 	Storage  string
 	Version  string
+}
+
+func init() {
+	// hack to make glog stop complaining about flag parsing
+	fs := flag.NewFlagSet("", flag.ContinueOnError)
+	_ = fs.Parse([]string{})
+	flag.CommandLine = fs
 }
 
 func FromEnv() (*Provider, error) {
