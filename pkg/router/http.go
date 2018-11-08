@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+	"github.com/miekg/dns"
 )
 
 type HTTP struct {
@@ -249,4 +250,35 @@ func defaultTransport() *http.Transport {
 			InsecureSkipVerify: true,
 		},
 	}
+}
+
+func targetBackendCount(target string) (int, error) {
+	tu, err := url.Parse(target)
+	if err != nil {
+		return 0, fmt.Errorf("invalid target: %s", target)
+	}
+
+	m := &dns.Msg{}
+	m.SetQuestion(fmt.Sprintf("_main._tcp.%s.", tu.Hostname()), dns.TypeSRV)
+
+	cfg, err := dns.ClientConfigFromFile("/etc/resolv.conf")
+	if err != nil {
+		return 0, err
+	}
+	if len(cfg.Servers) < 1 {
+		return 0, fmt.Errorf("no dns servers found")
+	}
+
+	c := &dns.Client{}
+
+	ma, _, err := c.Exchange(m, fmt.Sprintf("%s:%s", cfg.Servers[0], cfg.Port))
+	if err != nil {
+		return 0, err
+	}
+
+	for _, a := range ma.Answer {
+		fmt.Printf("a = %+v\n", a)
+	}
+
+	return 1, nil
 }
