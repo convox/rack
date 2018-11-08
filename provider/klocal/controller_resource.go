@@ -117,7 +117,24 @@ func (c *ResourceController) Delete(obj interface{}) error {
 	}
 
 	log = log.Append("app=%s resource=%s type=%s", r.ObjectMeta.Labels["app"], r.Name, r.Spec.Type)
-	// fmt.Printf("resource add: %+v\n", r)
+
+	tdata, err := c.resourceTemplate(r)
+	if err != nil {
+		return err
+	}
+
+	// fmt.Printf("string(tdata) = %+v\n", string(tdata))
+
+	cmd := exec.Command("kubectl", "delete", "-f", "-")
+
+	cmd.Stdin = bytes.NewReader(tdata)
+
+	data, err := cmd.CombinedOutput()
+	if err != nil {
+		return log.Error(errors.New(strings.TrimSpace(string(data))))
+	}
+
+	// fmt.Printf("string(data) = %+v\n", string(data))
 
 	return log.Success()
 }
@@ -141,14 +158,23 @@ func (c *ResourceController) Update(prev, cur interface{}) error {
 
 	log = log.Append("app=%s resource=%s type=%s", cr.ObjectMeta.Labels["app"], cr.Name, cr.Spec.Type)
 
-	// fmt.Printf("pod %s: %s\n", cp.ObjectMeta.Name, cp.Status.Phase)
+	tdata, err := c.resourceTemplate(cr)
+	if err != nil {
+		return err
+	}
 
-	// switch cp.Status.Phase {
-	// case "Succeeded", "Failed":
-	//   if err := c.cleanupPod(cp); err != nil {
-	//     return err
-	//   }
-	// }
+	// fmt.Printf("string(tdata) = %+v\n", string(tdata))
+
+	cmd := exec.Command("kubectl", "apply", "--prune", "-l", fmt.Sprintf("system=convox,scope=resource,rack=%s,app=%s,resource=%s", cr.ObjectMeta.Labels["rack"], cr.ObjectMeta.Labels["app"], cr.Name), "-f", "-")
+
+	cmd.Stdin = bytes.NewReader(tdata)
+
+	data, err := cmd.CombinedOutput()
+	if err != nil {
+		return log.Error(errors.New(strings.TrimSpace(string(data))))
+	}
+
+	// fmt.Printf("string(data) = %+v\n", string(data))
 
 	return log.Success()
 }
