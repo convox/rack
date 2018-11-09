@@ -67,7 +67,7 @@ func Start(rack sdk.Interface, c *stdcli.Context) error {
 		if err != nil {
 			return err
 		}
-		if s.Provider == "local" || s.Provider == "klocal" || s.Provider == "kaws" {
+		if s.Provider == "local" {
 			p = rack
 		}
 	}

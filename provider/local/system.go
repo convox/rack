@@ -1,4 +1,4 @@
-package klocal
+package local
 
 import (
 	"crypto/rand"
@@ -106,7 +106,7 @@ func (p *Provider) SystemUninstall(name string, w io.Writer, opts structs.System
 }
 
 func (p *Provider) generateCACertificate() error {
-	if err := exec.Command("kubectl", "get", "secret", "ca", "-n", "convox-system"); err == nil {
+	if err := exec.Command("kubectl", "get", "secret", "ca", "-n", "convox-system").Run(); err == nil {
 		return nil
 	}
 

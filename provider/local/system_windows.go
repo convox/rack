@@ -1,4 +1,4 @@
-package klocal
+package local
 
 func dnsInstall(name string) error {
 	// Add-DnsClientNrptRule -Namespace "NAME" -NameServers "10.0.0.1"

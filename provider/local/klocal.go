@@ -1,4 +1,4 @@
-package klocal
+package local
 
 import (
 	"github.com/convox/rack/pkg/structs"
