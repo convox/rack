@@ -8,7 +8,7 @@ import (
 	"github.com/convox/rack/provider/aws"
 	"github.com/convox/rack/provider/base"
 	"github.com/convox/rack/provider/k8s"
-	"github.com/convox/rack/provider/klocal"
+	"github.com/convox/rack/provider/local"
 )
 
 var Mock = &structs.MockProvider{}
@@ -27,8 +27,8 @@ func FromName(name string) (structs.Provider, error) {
 		return aws.FromEnv()
 	case "k8s":
 		return k8s.FromEnv()
-	case "klocal":
-		return klocal.FromEnv()
+	case "local":
+		return local.FromEnv()
 	case "test":
 		return Mock, nil
 	case "":
