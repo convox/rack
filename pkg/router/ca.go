@@ -15,7 +15,7 @@ import (
 )
 
 func (r *Router) caCertificate() (*tls.Certificate, error) {
-	c, err := r.Cluster.CoreV1().Secrets("convox").Get("ca", am.GetOptions{})
+	c, err := r.Cluster.CoreV1().Secrets("convox-system").Get("ca", am.GetOptions{})
 	if err != nil {
 		return nil, err
 	}

@@ -2,7 +2,6 @@ package templater
 
 import (
 	"bytes"
-	"fmt"
 	"html/template"
 
 	"github.com/gobuffalo/packr"
@@ -14,7 +13,7 @@ type Templater struct {
 }
 
 func New(box packr.Box, helpers template.FuncMap) *Templater {
-	fmt.Printf("box.List() = %+v\n", box.List())
+	// fmt.Printf("box.List() = %+v\n", box.List())
 
 	return &Templater{
 		box:     box,

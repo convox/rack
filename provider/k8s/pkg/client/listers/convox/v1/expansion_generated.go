@@ -26,14 +26,6 @@ type BuildListerExpansion interface{}
 // BuildNamespaceLister.
 type BuildNamespaceListerExpansion interface{}
 
-// ExternalResourceListerExpansion allows custom methods to be added to
-// ExternalResourceLister.
-type ExternalResourceListerExpansion interface{}
-
-// ExternalResourceNamespaceListerExpansion allows custom methods to be added to
-// ExternalResourceNamespaceLister.
-type ExternalResourceNamespaceListerExpansion interface{}
-
 // ReleaseListerExpansion allows custom methods to be added to
 // ReleaseLister.
 type ReleaseListerExpansion interface{}

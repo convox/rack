@@ -184,11 +184,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:e66f34674adb363daca0dcf84129b1f427f6390b32057646469bb54d276e7e9d"
+  digest = "1:ca23107fa67ca2519e8651b6243a0b579015cdeb79ba17c6d7370546403b1696"
   name = "github.com/convox/stdcli"
   packages = ["."]
   pruneopts = "NUT"
-  revision = "b34206670e48eca7101810693d65b5413a2e7a2b"
+  revision = "c8d5b9c2b1d3154e341b0552e72779883c0054a0"
 
 [[projects]]
   branch = "master"
@@ -1055,6 +1055,7 @@
     "github.com/dustin/go-humanize",
     "github.com/fatih/color",
     "github.com/fsouza/go-dockerclient",
+    "github.com/gobuffalo/packr",
     "github.com/gobwas/glob",
     "github.com/gorilla/mux",
     "github.com/gorilla/websocket",

@@ -20,6 +20,4 @@ package v1
 
 type BuildExpansion interface{}
 
-type ExternalResourceExpansion interface{}
-
 type ReleaseExpansion interface{}
