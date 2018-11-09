@@ -5,6 +5,7 @@ import (
 	"github.com/convox/rack/pkg/templater"
 	"github.com/convox/rack/provider/k8s"
 	"github.com/gobuffalo/packr"
+	"k8s.io/client-go/rest"
 )
 
 // var (
@@ -35,7 +36,9 @@ func FromEnv() (*Provider, error) {
 
 	kp.Engine = p
 
-	go p.Workers()
+	if _, err := rest.InClusterConfig(); err == nil {
+		go p.Workers()
+	}
 
 	return p, nil
 }
