@@ -1,37 +1,19 @@
-#!/bin/sh
-
-set -e
-
-rack=$1
-version=$2
-
-[ "$rack" == "" ] && echo "rack required" && exit 1
-[ "$version" == "" ] && echo "version required" && exit 1
-
-provider/k8s/bin/rack-promote $rack $version
-
-kubectl patch deployment/metrics-server -n kube-system -p "{\"spec\":{\"template\":{\"spec\":{\"containers\":[{\"name\":\"metrics-server\",\"command\":[\"/metrics-server\",\"--kubelet-insecure-tls\"]}]}}}}" || true
-
-kubectl apply -f - <<EOF
 apiVersion: v1
-kind: ConfigMap
+kind: Namespace
 metadata:
-  namespace: $rack
-  name: env-web
-data:
-  PROVIDER: klocal
-EOF
-
-# router
-kubectl apply -f - <<EOF
+  name: convox-system
+  labels:
+    system: convox
+    type: system
+---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  namespace: convox
+  namespace: convox-system
   name: router
   labels:
     system: convox
-    service: router
+    type: system
 rules:
   - apiGroups:
       - ""
@@ -47,11 +29,11 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  namespace: convox
+  namespace: convox-system
   name: router
   labels:
     system: convox
-    service: router
+    type: system
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
@@ -59,32 +41,32 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: router
-    namespace: convox
+    namespace: convox-system
 ---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  namespace: convox
+  namespace: convox-system
   name: router
   labels:
     system: convox
-    service: router
+    type: system
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  namespace: convox
+  namespace: convox-system
   name: router
   labels:
     system: convox
-    service: router
+    type: system
 spec:
   replicas: 1
   revisionHistoryLimit: 0
   selector:
     matchLabels:
       system: convox
-      service: router
+      type: system
   strategy:
     type: RollingUpdate
     rollingUpdate:
@@ -95,7 +77,7 @@ spec:
     metadata:
       labels:
         system: convox
-        service: router
+        type: system
     spec:
       containers:
       - name: router
@@ -105,8 +87,8 @@ spec:
         - name: DEVELOPMENT
           value: "false"
         - name: VERSION
-          value: "$version"
-        image: convox/rack:$version
+          value: "{{.Version}}"
+        image: convox/rack:{{.Version}}
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 80
@@ -120,11 +102,11 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  namespace: convox
+  namespace: convox-system
   name: router
   labels:
     system: convox
-    service: router
+    type: system
 spec:
   type: LoadBalancer
   ports:
@@ -138,16 +120,16 @@ spec:
     protocol: TCP
   selector:
     system: convox
-    service: router
+    type: system
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  namespace: convox
+  namespace: convox-system
   name: resolver
   labels:
     system: convox
-    service: router
+    type: system
 spec:
   type: LoadBalancer
   ports:
@@ -157,5 +139,4 @@ spec:
     protocol: UDP
   selector:
     system: convox
-    service: router
-EOF
+    type: system

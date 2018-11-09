@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: {{.Rack}}
+  name: env-web
+  labels:
+    system: convox
+    type: config
+    rack: {{.Rack}}
+data:
+  PROVIDER: klocal

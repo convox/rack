@@ -1,9 +1,0 @@
-#!/bin/sh
-
-set -e
-
-version=$1
-
-[ "$version" == "" ] && echo "version required" && exit 1
-
-provider/k8s/bin/rack-build $version

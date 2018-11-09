@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"os/exec"
 	"strings"
 	"time"
 
@@ -126,6 +127,21 @@ func (p *Provider) streamProcessLogs(w io.WriteCloser, ps structs.Process, opts 
 	} else {
 		io.Copy(w, r)
 	}
+}
+
+func dockerSystemId() (string, error) {
+	data, err := exec.Command("docker", "system", "info").CombinedOutput()
+	if err != nil {
+		return "", err
+	}
+
+	for _, line := range strings.Split(string(data), "\n") {
+		if strings.HasPrefix(line, "ID: ") {
+			return strings.ToLower(strings.TrimPrefix(line, "ID: ")), nil
+		}
+	}
+
+	return "", fmt.Errorf("could not find docker system id")
 }
 
 func streamLogsWithPrefix(w io.WriteCloser, r io.Reader, prefix string) {

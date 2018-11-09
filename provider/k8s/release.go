@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"os/exec"
 	"sort"
 	"strings"
 	"time"
@@ -181,14 +180,9 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 
 	// fmt.Printf("string(tdata) = %+v\n", string(tdata))
 
-	cmd := exec.Command("kubectl", "apply", "--prune", "-l", fmt.Sprintf("system=convox,rack=%s,app=%s", p.Rack, app), "-f", "-")
-
-	cmd.Stdin = bytes.NewReader(tdata)
-
-	data, err = cmd.CombinedOutput()
-	fmt.Printf("string(data) = %+v\n", string(data))
+	out, err := p.Apply(tdata, fmt.Sprintf("system=convox,rack=%s,app=%s", p.Rack, app))
 	if err != nil {
-		return errors.New(strings.TrimSpace(string(data)))
+		return errors.New(strings.TrimSpace(string(out)))
 	}
 
 	ns, err := p.Cluster.CoreV1().Namespaces().Get(p.AppNamespace(app), am.GetOptions{})

@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  namespace: convox-system
+  name: ca
+  labels:
+    system: convox
+    type: ca
+type: kubernetes.io/tls
+data:
+  tls.crt: "{{.Public}}"
+  tls.key: "{{.Private}}"

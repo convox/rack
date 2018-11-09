@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/convox/rack/pkg/helpers"
 	"github.com/convox/rack/pkg/structs"
 	am "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -20,7 +21,27 @@ func (p *Provider) SystemGet() (*structs.System, error) {
 }
 
 func (p *Provider) SystemInstall(w io.Writer, opts structs.SystemInstallOptions) (string, error) {
-	return "", fmt.Errorf("unimplemented")
+	name := helpers.DefaultString(opts.Name, "convox")
+
+	params := map[string]interface{}{
+		"ID":      opts.Id,
+		"Rack":    name,
+		"Version": helpers.DefaultString(opts.Version, "dev"),
+	}
+
+	if _, err := p.ApplyTemplate("custom", "system=convox,type=custom", nil); err != nil {
+		return "", err
+	}
+
+	if _, err := p.ApplyTemplate("metrics", "system=convox,type=metrics", nil); err != nil {
+		return "", err
+	}
+
+	if _, err := p.ApplyTemplate("rack", fmt.Sprintf("system=convox,rack=%s", name), params); err != nil {
+		return "", err
+	}
+
+	return "", nil
 }
 
 func (p *Provider) SystemLogs(opts structs.LogsOptions) (io.ReadCloser, error) {
