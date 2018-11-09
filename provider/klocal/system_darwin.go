@@ -15,6 +15,8 @@ func dnsInstall(name string) error {
 		return fmt.Errorf("could not write resolver config")
 	}
 
+	exec.Command("killall", "-HUP", "mDNSResponder").Run()
+
 	return nil
 }
 
@@ -25,7 +27,7 @@ func dnsUninstall(name string) error {
 
 func removeOriginalRack(name string) error {
 	exec.Command("launchctl", "remove", fmt.Sprintf("convox.rack.%s", name)).Run()
-	os.Remove(fmt.Sprintf("/Library/LaunchDaemons/convox.rack.%s.plis", name))
+	os.Remove(fmt.Sprintf("/Library/LaunchDaemons/convox.rack.%s.plist", name))
 
 	return nil
 }
