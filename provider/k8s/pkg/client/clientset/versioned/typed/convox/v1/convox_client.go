@@ -28,7 +28,6 @@ import (
 type ConvoxV1Interface interface {
 	RESTClient() rest.Interface
 	BuildsGetter
-	ExternalResourcesGetter
 	ReleasesGetter
 }
 
@@ -39,10 +38,6 @@ type ConvoxV1Client struct {
 
 func (c *ConvoxV1Client) Builds(namespace string) BuildInterface {
 	return newBuilds(c, namespace)
-}
-
-func (c *ConvoxV1Client) ExternalResources(namespace string) ExternalResourceInterface {
-	return newExternalResources(c, namespace)
 }
 
 func (c *ConvoxV1Client) Releases(namespace string) ReleaseInterface {

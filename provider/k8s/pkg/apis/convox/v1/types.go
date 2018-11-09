@@ -39,36 +39,6 @@ type BuildList struct {
 // +genclient:noStatus
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-type ExternalResource struct {
-	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
-
-	Outputs ExternalResourceOutputs `json:"outputs"`
-	Spec    ExternalResourceSpec    `json:"spec"`
-}
-
-type ExternalResourceOutputs struct {
-	URL string `json:"url"`
-}
-
-type ExternalResourceSpec struct {
-	Parameters map[string]string `json:"parameters"`
-	Type       string            `json:"type"`
-}
-
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
-type ExternalResourceList struct {
-	metav1.TypeMeta `json:",inline"`
-	metav1.ListMeta `json:"metadata"`
-
-	Items []ExternalResource `json:"items"`
-}
-
-// +genclient
-// +genclient:noStatus
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
 type Release struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

@@ -123,6 +123,14 @@ func RackInstall(rack sdk.Interface, c *stdcli.Context) error {
 		return err
 	}
 
+	if opts.Version == nil {
+		v, err := cv.Latest()
+		if err != nil {
+			return err
+		}
+		opts.Version = options.String(v)
+	}
+
 	if id, _ := c.SettingRead("id"); id != "" {
 		opts.Id = options.String(id)
 	}
@@ -143,6 +151,12 @@ func RackInstall(rack sdk.Interface, c *stdcli.Context) error {
 	if err != nil {
 		return err
 	}
+
+	c.Writef("   ___ ___  _  ___   _______  __\n")
+	c.Writef("  / __/ _ \\| \\| \\ \\ / / _ \\ \\/ /\n")
+	c.Writef(" | (_| (_) | .` |\\ V / (_) >  < \n")
+	c.Writef("  \\___\\___/|_|\\_| \\_/ \\___/_/\\_\\\n")
+	c.Writef("\n")
 
 	ep, err := p.SystemInstall(c, opts)
 	if err != nil {

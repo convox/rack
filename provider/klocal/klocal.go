@@ -35,6 +35,8 @@ func FromEnv() (*Provider, error) {
 
 	kp.Engine = p
 
+	go p.Workers()
+
 	return p, nil
 }
 

@@ -14,6 +14,15 @@ import (
 	shellquote "github.com/kballard/go-shellquote"
 )
 
+func (p *Provider) ApplyTemplate(name string, filter string, params map[string]interface{}) ([]byte, error) {
+	data, err := p.RenderTemplate(name, params)
+	if err != nil {
+		return nil, err
+	}
+
+	return p.Apply(data, filter)
+}
+
 func (p *Provider) RenderTemplate(name string, params map[string]interface{}) ([]byte, error) {
 	data, err := p.templater.Render(fmt.Sprintf("%s.yml.tmpl", name), params)
 	if err != nil {

@@ -32,10 +32,6 @@ func (c *FakeConvoxV1) Builds(namespace string) v1.BuildInterface {
 	return &FakeBuilds{c, namespace}
 }
 
-func (c *FakeConvoxV1) ExternalResources(namespace string) v1.ExternalResourceInterface {
-	return &FakeExternalResources{c, namespace}
-}
-
 func (c *FakeConvoxV1) Releases(namespace string) v1.ReleaseInterface {
 	return &FakeReleases{c, namespace}
 }

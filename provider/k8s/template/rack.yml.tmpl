@@ -1,0 +1,244 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{.Rack}}
+  labels:
+    system: convox
+    type: rack
+    rack: {{.Rack}}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  namespace: {{.Rack}}
+  name: rack
+  labels:
+    system: convox
+    rack: {{.Rack}}
+rules:
+  - apiGroups:
+      - ""
+      - apps
+      - autoscaling
+      - extensions
+    resources:
+      - autoscaling
+      - configmaps
+      - daemonsets
+      - deployments
+      - endpoints
+      - events
+      - horizontalpodautoscalers
+      - ingresses
+      - ingresses/status
+      - namespaces
+      - pods
+      - pods/exec
+      - secrets
+      - services
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - update
+      - watch
+      - patch
+  - apiGroups:
+      - convox.com
+    resources:
+      - builds
+      - releases
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - update
+      - watch
+      - patch
+  - apiGroups:
+      - ""
+      - apps
+      - batch
+      - extensions
+    resources:
+      - cronjobs
+      - daemonsets
+      - jobs
+      - nodes
+      - persistentvolumeclaims
+      - persistentvolumes
+      - pods/log
+      - replicasets
+      - replicationcontrollers
+      - secrets
+      - statefulsets
+    verbs:
+      - get
+      - list
+      - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  namespace: {{.Rack}}
+  name: rack
+  labels:
+    system: convox
+    rack: {{.Rack}}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: rack
+subjects:
+  - kind: ServiceAccount
+    name: rack
+    namespace: {{.Rack}}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  namespace: {{.Rack}}
+  name: rack
+  labels:
+    system: convox
+    rack: {{.Rack}}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: {{.Rack}}
+  name: web
+  labels:
+    system: convox
+    rack: {{.Rack}}
+    app: system
+    service: web
+spec:
+  revisionHistoryLimit: 0
+  selector:
+    matchLabels:
+      system: convox
+      rack: {{.Rack}}
+      app: system
+      service: web
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  minReadySeconds: 10
+  template:
+    metadata:
+      annotations:
+        scheduler.alpha.kubernetes.io/critical-pod: ""
+      labels:
+        system: convox
+        rack: {{.Rack}}
+        app: system
+        service: web
+    spec:
+      shareProcessNamespace: true
+      containers:
+      - name: main
+        args:
+        - rack
+        env:
+        - name: DATA
+          value: /data
+        - name: DEVELOPMENT
+          value: "false"
+        - name: ID
+          value: "{{.ID}}"
+        - name: IMAGE
+          value: convox/rack:{{.Version}}
+        - name: RACK
+          value: {{.Rack}}
+        - name: VERSION
+          value: "{{.Version}}"
+        envFrom:
+        - configMapRef:
+            name: env-web
+        image: convox/rack:{{.Version}}
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          httpGet:
+            path: "/check"
+            port: 5443
+            scheme: "HTTPS"
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+        readinessProbe:
+          httpGet:
+            path: "/check"
+            port: 5443
+            scheme: "HTTPS"
+          # initialDelaySeconds: 5
+          periodSeconds: 30
+          timeoutSeconds: 3
+        ports:
+        - containerPort: 5443
+        volumeMounts:
+        - name: data
+          mountPath: /data
+        - name: docker
+          mountPath: /var/run/docker.sock
+      serviceAccountName: rack
+      volumes:
+      - name: data
+        hostPath:
+          path: /var/rack/{{.Rack}}
+          type: DirectoryOrCreate
+      - name: docker
+        hostPath:
+          path: /var/run/docker.sock
+---
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: {{.Rack}}
+  name: web
+  annotations:
+    convox.service.ports.5443.protocol: https
+  labels:
+    system: convox
+    rack: {{.Rack}}
+    app: system
+    service: web
+spec:
+  type: NodePort
+  ports:
+  - name: https
+    port: 5443
+    targetPort: 5443
+    protocol: TCP
+  selector:
+    system: convox
+    rack: {{.Rack}}
+    app: system
+    service: web
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  namespace: {{.Rack}}
+  name: system
+  annotations:
+    convox.ingress.service.web.5443.protocol: https
+  labels:
+    system: convox
+    rack: {{.Rack}}
+    app: system
+spec:
+  tls:
+  - hosts:
+    - rack
+  rules:
+    - host: rack
+      http:
+        paths:
+        - backend:
+            serviceName: web
+            servicePort: 5443

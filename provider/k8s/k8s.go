@@ -1,8 +1,10 @@
 package k8s
 
 import (
+	"bytes"
 	"flag"
 	"os"
+	"os/exec"
 
 	"github.com/convox/rack/pkg/manifest"
 	"github.com/convox/rack/pkg/structs"
@@ -21,18 +23,17 @@ type Engine interface {
 }
 
 type Provider struct {
-	Config  *rest.Config
-	Cluster kubernetes.Interface
-	// HostFunc func(app, service string) string
+	Config   *rest.Config
+	Cluster  kubernetes.Interface
+	ID       string
 	Image    string
 	Engine   Engine
 	Metrics  metrics.Interface
 	Password string
 	Provider string
 	Rack     string
-	// RepoFunc func(app string) (string, bool, error)
-	Storage string
-	Version string
+	Storage  string
+	Version  string
 
 	templater *templater.Templater
 }
@@ -45,26 +46,9 @@ func init() {
 }
 
 func FromEnv() (*Provider, error) {
-	cfg, err := rest.InClusterConfig()
-	if err != nil {
-		return nil, err
-	}
-
-	kc, err := kubernetes.NewForConfig(cfg)
-	if err != nil {
-		return nil, err
-	}
-
-	mc, err := metrics.NewForConfig(cfg)
-	if err != nil {
-		return nil, err
-	}
-
 	p := &Provider{
-		Config:   cfg,
-		Cluster:  kc,
+		ID:       os.Getenv("ID"),
 		Image:    os.Getenv("IMAGE"),
-		Metrics:  mc,
 		Password: os.Getenv("PASSWORD"),
 		Provider: os.Getenv("PROVIDER"),
 		Rack:     os.Getenv("RACK"),
@@ -72,9 +56,44 @@ func FromEnv() (*Provider, error) {
 		Version:  os.Getenv("VERSION"),
 	}
 
+	if cfg, err := rest.InClusterConfig(); err == nil {
+		p.Config = cfg
+
+		kc, err := kubernetes.NewForConfig(cfg)
+		if err != nil {
+			return nil, err
+		}
+
+		mc, err := metrics.NewForConfig(cfg)
+		if err != nil {
+			return nil, err
+		}
+
+		p.Cluster = kc
+		p.Metrics = mc
+	}
+
+	if p.ID == "" {
+		p.ID, _ = dockerSystemId()
+	}
+
 	p.templater = templater.New(packr.NewBox("template"), p.templateHelpers())
 
 	return p, nil
+}
+
+func (p *Provider) Apply(data []byte, prune string) ([]byte, error) {
+	cmd := exec.Command("kubectl", "apply", "--prune", "-l", prune, "-f", "-")
+
+	cmd.Stdin = bytes.NewReader(data)
+
+	out, err := cmd.CombinedOutput()
+	// fmt.Printf("output ------\n%s\n-------------\n", string(out))
+	if err != nil {
+		return out, err
+	}
+
+	return out, nil
 }
 
 func (p *Provider) Initialize(opts structs.ProviderOptions) error {

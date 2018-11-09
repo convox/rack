@@ -26,8 +26,6 @@ import (
 type Interface interface {
 	// Builds returns a BuildInformer.
 	Builds() BuildInformer
-	// ExternalResources returns a ExternalResourceInformer.
-	ExternalResources() ExternalResourceInformer
 	// Releases returns a ReleaseInformer.
 	Releases() ReleaseInformer
 }
@@ -46,11 +44,6 @@ func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakList
 // Builds returns a BuildInformer.
 func (v *version) Builds() BuildInformer {
 	return &buildInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
-}
-
-// ExternalResources returns a ExternalResourceInformer.
-func (v *version) ExternalResources() ExternalResourceInformer {
-	return &externalResourceInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
 // Releases returns a ReleaseInformer.
