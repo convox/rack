@@ -14,6 +14,7 @@ metadata:
   name: rack
   labels:
     system: convox
+    type: rack
     rack: {{.Rack}}
 rules:
   - apiGroups:
@@ -86,6 +87,7 @@ metadata:
   name: rack
   labels:
     system: convox
+    type: rack
     rack: {{.Rack}}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
@@ -103,6 +105,7 @@ metadata:
   name: rack
   labels:
     system: convox
+    type: rack
     rack: {{.Rack}}
 ---
 apiVersion: apps/v1
@@ -112,6 +115,7 @@ metadata:
   name: web
   labels:
     system: convox
+    type: rack
     rack: {{.Rack}}
     app: system
     service: web
@@ -204,6 +208,7 @@ metadata:
     convox.service.ports.5443.protocol: https
   labels:
     system: convox
+    type: rack
     rack: {{.Rack}}
     app: system
     service: web
@@ -229,6 +234,7 @@ metadata:
     convox.ingress.service.web.5443.protocol: https
   labels:
     system: convox
+    type: rack
     rack: {{.Rack}}
     app: system
 spec:
