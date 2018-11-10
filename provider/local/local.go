@@ -36,16 +36,16 @@ func FromEnv() (*Provider, error) {
 
 	kp.Engine = p
 
-	if _, err := rest.InClusterConfig(); err == nil {
-		go p.Workers()
-	}
-
 	return p, nil
 }
 
 func (p *Provider) Initialize(opts structs.ProviderOptions) error {
 	if err := p.Provider.Initialize(opts); err != nil {
 		return err
+	}
+
+	if _, err := rest.InClusterConfig(); err == nil {
+		go p.Workers()
 	}
 
 	return nil
