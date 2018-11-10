@@ -369,7 +369,7 @@ func (p *Provider) BuildImport(app string, r io.Reader) (*structs.Build, error) 
 	return target, nil
 }
 
-func (p *Provider) BuildLogs(app, id string, opts structs.LogsOptions) (io.Reader, error) {
+func (p *Provider) BuildLogs(app, id string, opts structs.LogsOptions) (io.ReadCloser, error) {
 	b, err := p.BuildGet(app, id)
 	if err != nil {
 		return nil, err

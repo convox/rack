@@ -3,6 +3,9 @@ services:
     build: .
     command: bin/web
     environment:
+      - AWS_ACCESS_KEY_ID=
+      - AWS_REGION=
+      - AWS_SECRET_ACCESS_KEY=
       - DEVELOPMENT=true
       - IMAGE=convox/rack:dev
       - PASSWORD=
@@ -15,9 +18,6 @@ services:
       interval: 30
       path: /check
       timeout: 2
-    hooks:
-      before: ls -la
-      after: ls -la
     port: https:5443
     scale:
       count: 1
