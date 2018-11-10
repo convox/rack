@@ -35,7 +35,7 @@ convox version
 convox instances
 convox rack
 convox rack logs --no-follow | grep service/web
-convox rack ps | grep bin/web
+convox rack ps | grep bin/rack
 # convox rack releases
 
 # rack (provider-specific)
