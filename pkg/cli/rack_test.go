@@ -80,9 +80,9 @@ func TestRackInstall(t *testing.T) {
 		require.Equal(t, 0, res.Code)
 		res.RequireStderr(t, []string{""})
 		res.RequireStdout(t, []string{
-			"   ___ ___  _  ___   _______  __",
+			"   ___ ___  _  _ _   __ __ _  __",
 			"  / __/ _ \\| \\| \\ \\ / / _ \\ \\/ /",
-			" | (_| (_) | .` |\\ V / (_) >  < ",
+			" | (_| (_) |  ` |\\ V / (_) )  ( ",
 			"  \\___\\___/|_|\\_| \\_/ \\___/_/\\_\\",
 			"",
 			"line1",
@@ -113,9 +113,9 @@ func TestRackInstallError(t *testing.T) {
 		require.Equal(t, 1, res.Code)
 		res.RequireStderr(t, []string{"ERROR: err1"})
 		res.RequireStdout(t, []string{
-			"   ___ ___  _  ___   _______  __",
+			"   ___ ___  _  _ _   __ __ _  __",
 			"  / __/ _ \\| \\| \\ \\ / / _ \\ \\/ /",
-			" | (_| (_) | .` |\\ V / (_) >  < ",
+			" | (_| (_) |  ` |\\ V / (_) )  ( ",
 			"  \\___\\___/|_|\\_| \\_/ \\___/_/\\_\\",
 			"",
 		})
