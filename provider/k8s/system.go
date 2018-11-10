@@ -23,21 +23,10 @@ func (p *Provider) SystemGet() (*structs.System, error) {
 func (p *Provider) SystemInstall(w io.Writer, opts structs.SystemInstallOptions) (string, error) {
 	name := helpers.DefaultString(opts.Name, "convox")
 
-	params := map[string]interface{}{
-		"ID":      opts.Id,
-		"Rack":    name,
-		"Version": helpers.DefaultString(opts.Version, "dev"),
-	}
+	p.ID = helpers.DefaultString(opts.Id, "")
+	p.Rack = name
 
-	if _, err := p.ApplyTemplate("custom", "system=convox,type=custom", nil); err != nil {
-		return "", err
-	}
-
-	if _, err := p.ApplyTemplate("metrics", "system=convox,type=metrics", nil); err != nil {
-		return "", err
-	}
-
-	if _, err := p.ApplyTemplate("rack", fmt.Sprintf("system=convox,rack=%s", name), params); err != nil {
+	if err := p.systemUpdate(helpers.DefaultString(opts.Version, "dev")); err != nil {
 		return "", err
 	}
 
@@ -87,7 +76,11 @@ func (p *Provider) SystemUninstall(name string, w io.Writer, opts structs.System
 }
 
 func (p *Provider) SystemUpdate(opts structs.SystemUpdateOptions) error {
-	return fmt.Errorf("unimplemented")
+	if err := p.systemUpdate(helpers.DefaultString(opts.Version, p.Version)); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (p *Provider) streamSystemLogs(w io.WriteCloser, opts structs.LogsOptions) {
@@ -115,4 +108,28 @@ func (p *Provider) streamSystemLogs(w io.WriteCloser, opts structs.LogsOptions) 
 			return
 		}
 	}
+}
+
+func (p *Provider) systemUpdate(version string) error {
+	log := p.logger.At("systemUpdate").Namespace("id=%s rack=%s version=%s", p.ID, p.Rack, version)
+
+	params := map[string]interface{}{
+		"ID":      p.ID,
+		"Rack":    p.Rack,
+		"Version": version,
+	}
+
+	if _, err := p.ApplyTemplate("custom", "system=convox,type=custom", nil); err != nil {
+		return log.Error(err)
+	}
+
+	if _, err := p.ApplyTemplate("metrics", "system=convox,type=metrics", nil); err != nil {
+		return log.Error(err)
+	}
+
+	if _, err := p.ApplyTemplate("rack", fmt.Sprintf("system=convox,type=rack,rack=%s", p.Rack), params); err != nil {
+		return log.Error(err)
+	}
+
+	return log.Success()
 }

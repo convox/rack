@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 
+	"github.com/convox/logger"
 	"github.com/convox/rack/pkg/manifest"
 	"github.com/convox/rack/pkg/structs"
 	"github.com/convox/rack/pkg/templater"
@@ -35,6 +36,7 @@ type Provider struct {
 	Storage  string
 	Version  string
 
+	logger    *logger.Logger
 	templater *templater.Templater
 }
 
@@ -43,6 +45,8 @@ func init() {
 	fs := flag.NewFlagSet("", flag.ContinueOnError)
 	_ = fs.Parse([]string{})
 	flag.CommandLine = fs
+
+	runtime.ErrorHandlers = []func(error){}
 }
 
 func FromEnv() (*Provider, error) {
@@ -54,6 +58,7 @@ func FromEnv() (*Provider, error) {
 		Rack:     os.Getenv("RACK"),
 		Storage:  os.Getenv("STORAGE"),
 		Version:  os.Getenv("VERSION"),
+		logger:   logger.Discard,
 	}
 
 	if cfg, err := rest.InClusterConfig(); err == nil {
@@ -71,6 +76,8 @@ func FromEnv() (*Provider, error) {
 
 		p.Cluster = kc
 		p.Metrics = mc
+
+		p.logger = logger.New("ns=k8s")
 	}
 
 	if p.ID == "" {
@@ -97,14 +104,18 @@ func (p *Provider) Apply(data []byte, prune string) ([]byte, error) {
 }
 
 func (p *Provider) Initialize(opts structs.ProviderOptions) error {
-	runtime.ErrorHandlers = []func(error){}
+	log := p.logger.At("Initialize")
+
+	if err := p.systemUpdate(p.Version); err != nil {
+		return log.Error(err)
+	}
 
 	pc, err := NewPodController(p)
 	if err != nil {
-		return err
+		return log.Error(err)
 	}
 
 	go pc.Run()
 
-	return nil
+	return log.Success()
 }

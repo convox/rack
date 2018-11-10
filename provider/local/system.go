@@ -43,16 +43,9 @@ func (p *Provider) SystemInstall(w io.Writer, opts structs.SystemInstallOptions)
 		return "", err
 	}
 
-	params := map[string]interface{}{
-		"Rack":    name,
-		"Version": version,
-	}
+	p.Rack = name
 
-	if _, err := p.ApplyTemplate("config", "system=convox,type=config", params); err != nil {
-		return "", err
-	}
-
-	if _, err := p.ApplyTemplate("system", "system=convox,type=system", params); err != nil {
+	if err := p.systemUpdate(version); err != nil {
 		return "", err
 	}
 
@@ -101,6 +94,18 @@ func (p *Provider) SystemUninstall(name string, w io.Writer, opts structs.System
 	}
 
 	fmt.Fprintf(w, "OK\n")
+
+	return nil
+}
+
+func (p *Provider) SystemUpdate(opts structs.SystemUpdateOptions) error {
+	if err := p.Provider.SystemUpdate(opts); err != nil {
+		return err
+	}
+
+	if err := p.systemUpdate(helpers.DefaultString(opts.Version, p.Version)); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -157,6 +162,25 @@ func (p *Provider) generateCACertificate() error {
 	}
 
 	return nil
+}
+
+func (p *Provider) systemUpdate(version string) error {
+	log := p.logger.At("systemUpdate").Namespace("rack=%s version=%s", p.Rack, version)
+
+	params := map[string]interface{}{
+		"Rack":    p.Rack,
+		"Version": version,
+	}
+
+	if _, err := p.ApplyTemplate("config", "system=convox,type=config", params); err != nil {
+		return log.Error(err)
+	}
+
+	if _, err := p.ApplyTemplate("system", "system=convox,type=system", params); err != nil {
+		return log.Error(err)
+	}
+
+	return log.Success()
 }
 
 func checkKubectl() error {
