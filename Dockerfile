@@ -27,12 +27,10 @@ CMD ["bin/web"]
 
 FROM golang:1.11 AS package
 
-RUN go get -u github.com/gobuffalo/packr/packr
-
 WORKDIR /go/src/github.com/convox/rack
 
 COPY --from=development /go/src/github.com/convox/rack .
-RUN make package
+RUN make package build
 
 ## production ##################################################################
 
