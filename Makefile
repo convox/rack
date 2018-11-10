@@ -29,7 +29,7 @@ mocks: generate
 
 package:
 	go get -u github.com/gobuffalo/packr/packr
-	packr
+	$(GOPATH)/bin/packr
 
 release: package
 	make -C cmd/convox release VERSION=$(VERSION)
