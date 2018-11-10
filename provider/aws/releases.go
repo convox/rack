@@ -266,7 +266,7 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 			"DeploymentMin": min,
 			"DeploymentMax": max,
 			"Manifest":      tp["Manifest"],
-            "Password":      p.Password,
+			"Password":      p.Password,
 			"Release":       tp["Release"],
 			"Service":       s,
 		}

@@ -195,7 +195,7 @@ func (c *Client) BuildList(app string, opts structs.BuildListOptions) (structs.B
 	return v, err
 }
 
-func (c *Client) BuildLogs(app string, id string, opts structs.LogsOptions) (io.Reader, error) {
+func (c *Client) BuildLogs(app string, id string, opts structs.LogsOptions) (io.ReadCloser, error) {
 	var err error
 
 	ro, err := stdsdk.MarshalOptions(opts)
@@ -203,7 +203,7 @@ func (c *Client) BuildLogs(app string, id string, opts structs.LogsOptions) (io.
 		return nil, err
 	}
 
-	var v io.Reader
+	var v io.ReadCloser
 
 	r, err := c.Websocket(fmt.Sprintf("/apps/%s/builds/%s/logs", app, id), ro)
 	if err != nil {

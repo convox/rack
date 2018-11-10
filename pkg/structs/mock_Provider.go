@@ -274,15 +274,15 @@ func (_m *MockProvider) BuildList(app string, opts BuildListOptions) (Builds, er
 }
 
 // BuildLogs provides a mock function with given fields: app, id, opts
-func (_m *MockProvider) BuildLogs(app string, id string, opts LogsOptions) (io.Reader, error) {
+func (_m *MockProvider) BuildLogs(app string, id string, opts LogsOptions) (io.ReadCloser, error) {
 	ret := _m.Called(app, id, opts)
 
-	var r0 io.Reader
-	if rf, ok := ret.Get(0).(func(string, string, LogsOptions) io.Reader); ok {
+	var r0 io.ReadCloser
+	if rf, ok := ret.Get(0).(func(string, string, LogsOptions) io.ReadCloser); ok {
 		r0 = rf(app, id, opts)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(io.Reader)
+			r0 = ret.Get(0).(io.ReadCloser)
 		}
 	}
 

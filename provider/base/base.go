@@ -1,19 +1,14 @@
 package base
 
 import (
-	"os"
-
 	"github.com/convox/rack/pkg/structs"
 )
 
 type Provider struct {
-	Region string
 }
 
 func FromEnv() (*Provider, error) {
-	p := &Provider{
-		Region: os.Getenv("AWS_REGION"),
-	}
+	p := &Provider{}
 
 	return p, nil
 }
