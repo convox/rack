@@ -437,7 +437,7 @@ func (p *Provider) BuildImport(app string, r io.Reader) (*structs.Build, error) 
 }
 
 // BuildLogs streams the logs for a Build to an io.Writer
-func (p *Provider) BuildLogs(app, id string, opts structs.LogsOptions) (io.Reader, error) {
+func (p *Provider) BuildLogs(app, id string, opts structs.LogsOptions) (io.ReadCloser, error) {
 	b, err := p.BuildGet(app, id)
 	if err != nil {
 		return nil, err
@@ -649,7 +649,7 @@ func (p *Provider) buildSave(b *structs.Build) error {
 	return err
 }
 
-func (p *Provider) buildAuth(b *structs.Build) ([]byte, error) {
+func (p *Provider) buildAuth(build *structs.Build) (string, error) {
 	type authEntry struct {
 		Username string
 		Password string
@@ -657,33 +657,54 @@ func (p *Provider) buildAuth(b *structs.Build) ([]byte, error) {
 
 	auth := map[string]authEntry{}
 
-	rs, err := p.RegistryList()
+	registries, err := p.RegistryList()
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
-	for _, r := range rs {
-		auth[r.Server] = authEntry{
-			Username: r.Username,
-			Password: r.Password,
+	for _, r := range registries {
+		switch {
+		case regexpECRHost.MatchString(r.Server):
+			un, pw, err := p.authECR(r.Server, r.Username, r.Password)
+			if err != nil {
+				return "", err
+			}
+
+			auth[r.Server] = authEntry{
+				Username: un,
+				Password: pw,
+			}
+		default:
+			auth[r.Server] = authEntry{
+				Username: r.Username,
+				Password: r.Password,
+			}
 		}
 	}
 
 	aid, err := p.accountId()
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
-	repo := fmt.Sprintf("%s.dkr.ecr.%s.amazonaws.com", aid, p.Region)
+	host := fmt.Sprintf("%s.dkr.ecr.%s.amazonaws.com", aid, p.Region)
 
-	auth[repo] = authEntry{}
+	un, pw, err := p.authECR(host, "", "")
+	if err != nil {
+		return "", err
+	}
+
+	auth[host] = authEntry{
+		Username: un,
+		Password: pw,
+	}
 
 	data, err := json.Marshal(auth)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
-	return data, nil
+	return string(data), nil
 }
 
 func (p *Provider) authECR(host, access, secret string) (string, string, error) {
@@ -808,7 +829,7 @@ func (p *Provider) runBuild(build *structs.Build, burl string, opts structs.Buil
 						},
 						{
 							Name:  aws.String("BUILD_AUTH"),
-							Value: aws.String(string(auth)),
+							Value: aws.String(auth),
 						},
 						{
 							Name:  aws.String("BUILD_DEVELOPMENT"),

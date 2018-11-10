@@ -20,7 +20,7 @@ type Provider interface {
 	BuildExport(app, id string, w io.Writer) error
 	BuildGet(app, id string) (*Build, error)
 	BuildImport(app string, r io.Reader) (*Build, error)
-	BuildLogs(app, id string, opts LogsOptions) (io.Reader, error)
+	BuildLogs(app, id string, opts LogsOptions) (io.ReadCloser, error)
 	BuildList(app string, opts BuildListOptions) (Builds, error)
 	BuildUpdate(app, id string, opts BuildUpdateOptions) (*Build, error)
 

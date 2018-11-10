@@ -3,7 +3,7 @@
 cd $(dirname ${0:-})/..
 
 if [ "$DEVELOPMENT" == "true" ]; then
-  exec watchexec -e go -r -s SIGTERM "make $GOPATH/bin/web && $GOPATH/bin/web"
+  exec watchexec -e go -r -s SIGTERM "make $GOPATH/bin/rack && $GOPATH/bin/rack"
 else
   exec $GOPATH/bin/rack
 fi
