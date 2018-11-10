@@ -116,9 +116,8 @@ convox cp $ps:/dir /tmp/dir2 -a ci2
 cat /tmp/dir2/file | grep foo
 convox cp $ps:/file /tmp/file2 -a ci2
 cat /tmp/file2 | grep foo
-convox ps stop $ps
 convox ps stop $ps -a ci2
-convox ps | grep -v $ps
+convox ps -a ci2 | grep -v $ps
 convox deploy -a ci2 --wait
 
 # app (provider-specific)
