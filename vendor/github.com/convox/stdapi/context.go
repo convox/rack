@@ -47,13 +47,16 @@ func init() {
 }
 
 func NewContext(w http.ResponseWriter, r *http.Request) *Context {
+	s := sessions.NewCookieStore([]byte(SessionSecret))
+	s.Options.SameSite = http.SameSiteLaxMode
+
 	return &Context{
 		context:  r.Context(),
 		logger:   logger.New(""),
 		request:  r,
 		response: &Response{ResponseWriter: w},
 		rvars:    map[string]string{},
-		session:  sessions.NewCookieStore([]byte(SessionSecret)),
+		session:  s,
 		vars:     map[string]interface{}{},
 	}
 }
