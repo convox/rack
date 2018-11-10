@@ -1,6 +1,7 @@
 package local
 
 import (
+	"github.com/convox/logger"
 	"github.com/convox/rack/pkg/structs"
 	"github.com/convox/rack/pkg/templater"
 	"github.com/convox/rack/provider/k8s"
@@ -19,6 +20,7 @@ import (
 type Provider struct {
 	*k8s.Provider
 
+	logger    *logger.Logger
 	templater *templater.Templater
 }
 
@@ -30,6 +32,11 @@ func FromEnv() (*Provider, error) {
 
 	p := &Provider{
 		Provider: kp,
+		logger:   logger.Discard,
+	}
+
+	if _, err := rest.InClusterConfig(); err == nil {
+		p.logger = logger.New("ns=local")
 	}
 
 	p.templater = templater.New(packr.NewBox("template"), p.templateHelpers())
@@ -40,13 +47,19 @@ func FromEnv() (*Provider, error) {
 }
 
 func (p *Provider) Initialize(opts structs.ProviderOptions) error {
+	log := p.logger.At("Initialize")
+
+	if err := p.systemUpdate(p.Version); err != nil {
+		return log.Error(err)
+	}
+
 	if err := p.Provider.Initialize(opts); err != nil {
-		return err
+		return log.Error(err)
 	}
 
 	if _, err := rest.InClusterConfig(); err == nil {
 		go p.Workers()
 	}
 
-	return nil
+	return log.Success()
 }
