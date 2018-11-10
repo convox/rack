@@ -36,11 +36,11 @@ convox instances
 convox rack
 convox rack logs --no-follow | grep service/web
 convox rack ps | grep bin/rack
-# convox rack releases
 
 # rack (provider-specific)
 case $provider in
   aws)
+    convox rack releases
     convox instances keyroll --wait
     instance=$(convox api get /instances | jq -r '.[0].id')
     convox instances ssh $instance "ls -la" | grep ec2-user
