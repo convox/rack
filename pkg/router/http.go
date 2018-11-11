@@ -61,6 +61,10 @@ func (h *HTTP) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	h.ServeRequest(w, r)
+}
+
+func (h *HTTP) ServeRequest(w http.ResponseWriter, r *http.Request) {
 	target := h.Router.TargetRandom(r.Host)
 	if target == "" {
 		http.Error(w, "no backends available", 502)
