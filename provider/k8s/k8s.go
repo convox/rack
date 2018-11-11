@@ -40,16 +40,13 @@ type Provider struct {
 	templater *templater.Templater
 }
 
-func init() {
+func FromEnv() (*Provider, error) {
 	// hack to make glog stop complaining about flag parsing
 	fs := flag.NewFlagSet("", flag.ContinueOnError)
 	_ = fs.Parse([]string{})
 	flag.CommandLine = fs
-
 	runtime.ErrorHandlers = []func(error){}
-}
 
-func FromEnv() (*Provider, error) {
 	p := &Provider{
 		ID:       os.Getenv("ID"),
 		Image:    os.Getenv("IMAGE"),
