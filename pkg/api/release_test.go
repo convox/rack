@@ -142,7 +142,6 @@ func TestReleasePromoteError(t *testing.T) {
 func TestReleasePromoteNotRunning(t *testing.T) {
 	testServer(t, func(c *stdsdk.Client, p *structs.MockProvider) {
 		p.On("AppGet", "app1").Return(&structs.App{Status: "other"}, nil)
-		p.On("ReleasePromote", "app1", "release1").Return(nil)
 		err := c.Post("/apps/app1/releases/release1/promote", stdsdk.RequestOptions{}, nil)
 		require.Error(t, err, "app is currently updating")
 	})

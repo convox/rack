@@ -28,8 +28,6 @@ func TestStart1(t *testing.T) {
 
 		ms.On("Start1", mock.Anything, opts).Return(nil)
 
-		i.On("SystemGet").Return(fxSystemLocal, nil)
-
 		res, err := testExecute(e, "start -g 1 -a app1", nil)
 		require.NoError(t, err)
 		require.Equal(t, 0, res.Code)
@@ -51,8 +49,6 @@ func TestStart1Error(t *testing.T) {
 		}
 
 		ms.On("Start1", mock.Anything, opts).Return(fmt.Errorf("err1"))
-
-		i.On("SystemGet").Return(fxSystemLocal, nil)
 
 		res, err := testExecute(e, "start -g 1 -a app1", nil)
 		require.NoError(t, err)
@@ -79,8 +75,6 @@ func TestStart1Options(t *testing.T) {
 		}
 
 		ms.On("Start1", mock.Anything, opts).Return(nil)
-
-		i.On("SystemGet").Return(fxSystemLocal, nil)
 
 		res, err := testExecute(e, "start -g 1 -a app1 -m manifest1 --no-build --no-cache --no-sync -s 3000 service1 bin/command args", nil)
 		require.NoError(t, err)

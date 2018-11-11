@@ -355,7 +355,6 @@ func TestResourcesUrl(t *testing.T) {
 
 func TestResourcesUrlError(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("SystemGet").Return(fxSystem(), nil)
 		i.On("ResourceGet", "resource1").Return(nil, fmt.Errorf("err1"))
 
 		res, err := testExecute(e, "resources url resource1", nil)
