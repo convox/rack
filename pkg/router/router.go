@@ -55,7 +55,7 @@ func New() (*Router, error) {
 		return nil, err
 	}
 
-	http.Handler = redirectHTTPS
+	http.Handler = redirectHTTPS(http.ServeRequest)
 
 	https, err := NewHTTP(r, "https", 443)
 	if err != nil {
@@ -146,10 +146,17 @@ func (r *Router) TargetRandom(host string) string {
 	return targets[rand.Intn(len(targets))]
 }
 
-func redirectHTTPS(w http.ResponseWriter, r *http.Request) {
-	target := url.URL{Scheme: "https", Host: r.Host, Path: r.URL.Path, RawQuery: r.URL.RawQuery}
+func redirectHTTPS(fn http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("X-Forwarded-Proto") == "https" {
+			fn(w, r)
+			return
+		}
 
-	http.Redirect(w, r, target.String(), http.StatusMovedPermanently)
+		target := url.URL{Scheme: "https", Host: r.Host, Path: r.URL.Path, RawQuery: r.URL.RawQuery}
+
+		http.Redirect(w, r, target.String(), http.StatusMovedPermanently)
+	}
 }
 
 func serve(ch chan error, s Server) {
