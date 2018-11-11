@@ -184,7 +184,12 @@ func (p *Provider) systemUpdate(version string) error {
 }
 
 func checkKubectl() error {
-	if err := exec.Command("kubectl", "version").Run(); err != nil {
+	ch := make(chan error, 1)
+
+	go func() { ch <- exec.Command("kubectl", "version").Run() }()
+	go time.AfterFunc(3*time.Second, func() { ch <- fmt.Errorf("timeout") })
+
+	if err := <-ch; err != nil {
 		return fmt.Errorf("kubernetes not running or kubectl not configured, try `kubectl version`")
 	}
 
