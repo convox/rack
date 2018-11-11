@@ -344,7 +344,7 @@ func TestAppsImportSameParams(t *testing.T) {
 		i.On("ReleaseCreate", "app1", structs.ReleaseCreateOptions{Env: options.String("ALPHA=one\nBRAVO=two\n")}).Return(fxRelease(), nil)
 		i.On("ReleasePromote", "app1", "release1", structs.ReleasePromoteOptions{}).Return(nil)
 		i.On("AppGet", "app1").Return(fxApp(), nil).Twice()
-		i.On("AppGet", "app1").Return(fxApp(), nil).Twice()
+		i.On("AppGet", "app1").Return(fxApp(), nil).Once()
 
 		res, err := testExecute(e, "apps import -a app1 -f testdata/app.sameparams.tgz", nil)
 		require.NoError(t, err)
@@ -512,7 +512,6 @@ func TestAppsParamsSetClassic(t *testing.T) {
 
 func TestAppsSleep(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("SystemGet").Return(fxSystem(), nil)
 		opts := structs.AppUpdateOptions{
 			Sleep: options.Bool(true),
 		}
@@ -534,7 +533,6 @@ func TestAppsSleep(t *testing.T) {
 
 func TestAppsSleepError(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("SystemGet").Return(fxSystem(), nil)
 		opts := structs.AppUpdateOptions{
 			Sleep: options.Bool(true),
 		}
@@ -550,7 +548,6 @@ func TestAppsSleepError(t *testing.T) {
 
 func TestAppsWake(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("SystemGet").Return(fxSystem(), nil)
 		opts := structs.AppUpdateOptions{
 			Sleep: options.Bool(false),
 		}
@@ -572,7 +569,6 @@ func TestAppsWake(t *testing.T) {
 
 func TestAppsWakeError(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("SystemGet").Return(fxSystem(), nil)
 		opts := structs.AppUpdateOptions{
 			Sleep: options.Bool(false),
 		}

@@ -38,7 +38,7 @@ release: package
 	docker push convox/rack:$(VERSION)
 
 test:
-	go test -v -coverpkg ./... -covermode atomic -coverprofile coverage.txt ./...
+	env PROVIDER=test go test -coverpkg ./... -covermode atomic -coverprofile coverage.txt ./...
 
 $(binaries): $(GOPATH)/bin/%: $(sources)
 	go install ./cmd/$*

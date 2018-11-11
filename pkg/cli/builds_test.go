@@ -22,7 +22,7 @@ func TestBuild(t *testing.T) {
 		})
 		i.On("BuildCreate", "app1", "object://test", structs.BuildCreateOptions{}).Return(fxBuild(), nil)
 		i.On("BuildLogs", "app1", "build1", structs.LogsOptions{}).Return(testLogs(fxLogs()), nil)
-		i.On("BuildGet", "app1", "build1").Return(fxBuildRunning(), nil).Twice()
+		i.On("BuildGet", "app1", "build1").Return(fxBuildRunning(), nil).Once()
 		i.On("BuildGet", "app1", "build4").Return(fxBuild(), nil)
 
 		res, err := testExecute(e, "build ./testdata/httpd -a app1", nil)
@@ -66,7 +66,7 @@ func TestBuildClassic(t *testing.T) {
 		i.On("SystemGet").Return(fxSystemClassic(), nil)
 		i.On("BuildCreateUpload", "app1", mock.Anything, structs.BuildCreateOptions{}).Return(fxBuild(), nil)
 		i.On("BuildLogs", "app1", "build1", structs.LogsOptions{}).Return(testLogs(fxLogs()), nil)
-		i.On("BuildGet", "app1", "build1").Return(fxBuildRunning(), nil).Twice()
+		i.On("BuildGet", "app1", "build1").Return(fxBuildRunning(), nil).Once()
 		i.On("BuildGet", "app1", "build4").Return(fxBuild(), nil)
 
 		res, err := testExecute(e, "build ./testdata/httpd -a app1", nil)
