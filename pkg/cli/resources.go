@@ -53,7 +53,7 @@ func init() {
 		Validate: stdcli.Args(1),
 	})
 
-	register("resources proxy", "get information about a resource", ResourcesProxy, stdcli.CommandOptions{
+	register("resources proxy", "proxy a local port to a rack resource", ResourcesProxy, stdcli.CommandOptions{
 		Flags: []stdcli.Flag{
 			flagRack,
 			stdcli.IntFlag("port", "p", "local port"),
