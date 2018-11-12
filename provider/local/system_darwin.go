@@ -11,6 +11,8 @@ import (
 func dnsInstall(name string) error {
 	os.Remove(fmt.Sprintf("/etc/resolver/%s", name))
 
+	os.MkdirAll("/etc/resolver", 0755)
+
 	if err := ioutil.WriteFile(fmt.Sprintf("/etc/resolver/%s", name), []byte("nameserver 127.0.0.1\nport 5453\n"), 0644); err != nil {
 		return fmt.Errorf("could not write resolver config")
 	}
