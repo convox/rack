@@ -112,6 +112,8 @@ func formationHelpers() template.FuncMap {
 			switch v := parts[0]; v {
 			case "/cgroup/":
 				return v
+			case "/sys/fs/cgroup/":
+				return v
 			case "/proc/":
 				return v
 			case "/var/run/docker.sock":
