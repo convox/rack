@@ -495,9 +495,10 @@ func (p *Provider) createResource(s *structs.Resource) (*cloudformation.CreateSt
 	}
 
 	req := &cloudformation.CreateStackInput{
-		Capabilities: []*string{aws.String("CAPABILITY_IAM")},
-		StackName:    aws.String(fmt.Sprintf("%s-%s", p.Rack, s.Name)),
-		TemplateBody: aws.String(formation),
+		Capabilities:     []*string{aws.String("CAPABILITY_IAM")},
+		NotificationARNs: []*string{aws.String(p.CloudformationTopic)},
+		StackName:        aws.String(fmt.Sprintf("%s-%s", p.Rack, s.Name)),
+		TemplateBody:     aws.String(formation),
 	}
 
 	return req, nil

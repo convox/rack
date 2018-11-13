@@ -110,13 +110,6 @@ func (p *Provider) handleCloudformationEvents() {
 			return err
 		}
 
-		// app := strings.TrimPrefix(message["StackName"], fmt.Sprintf("%s-", p.Rack))
-
-		// stream, err := p.getAppLogStream(app)
-		// if err != nil {
-		//   return err
-		// }
-
 		req := &cloudwatchlogs.PutLogEventsInput{
 			LogGroupName:  aws.String(stream.LogGroup),
 			LogStreamName: aws.String(stream.LogStream),
@@ -135,12 +128,12 @@ func (p *Provider) handleCloudformationEvents() {
 			},
 		}
 
-		pres, err := p.cloudwatchlogs().PutLogEvents(req)
+		token, err := p.putLogEvents(req)
 		if err != nil {
 			return err
 		}
 
-		stream.SequenceToken = *pres.NextSequenceToken
+		stream.SequenceToken = token
 
 		cache.Set("stackLogStreams", stack, stream, 5*time.Minute)
 
@@ -148,6 +141,42 @@ func (p *Provider) handleCloudformationEvents() {
 	})
 	if err != nil {
 		panic(err)
+	}
+}
+
+func (p *Provider) putLogEvents(req *cloudwatchlogs.PutLogEventsInput) (string, error) {
+	attempts := 0
+
+	for {
+		// fmt.Printf("req = %+v\n", req)
+		res, err := p.cloudwatchlogs().PutLogEvents(req)
+		if err == nil {
+			return *res.NextSequenceToken, nil
+		}
+		if awsError(err) == "InvalidSequenceTokenException" {
+			attempts++
+
+			if attempts > 3 {
+				return "", err
+			}
+
+			sres, err := p.cloudwatchlogs().DescribeLogStreams(&cloudwatchlogs.DescribeLogStreamsInput{
+				LogGroupName:        req.LogGroupName,
+				LogStreamNamePrefix: req.LogStreamName,
+			})
+			if err != nil {
+				return "", err
+			}
+			if len(sres.LogStreams) != 1 {
+				return "", fmt.Errorf("could not describe log stream: %s/%s\n", *req.LogGroupName, *req.LogStreamName)
+			}
+
+			req.SequenceToken = sres.LogStreams[0].UploadSequenceToken
+
+			continue
+		}
+
+		return "", err
 	}
 }
 
@@ -264,6 +293,9 @@ func (p *Provider) getStackLogStream(stack string) (stackLogStream, error) {
 		} else {
 			g, err := p.stackResource(stack, "LogGroup")
 			if err != nil {
+				if strings.Contains(err.Error(), "resource not found") {
+					return p.getStackLogStream(p.Rack)
+				}
 				return stackLogStream{}, err
 			}
 			group = *g.PhysicalResourceId
