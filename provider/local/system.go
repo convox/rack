@@ -13,7 +13,6 @@ import (
 	"math/big"
 	"net/http"
 	"os/exec"
-	"os/user"
 	"time"
 
 	"github.com/convox/rack/pkg/helpers"
@@ -168,6 +167,7 @@ func (p *Provider) systemUpdate(version string) error {
 	log := p.logger.At("systemUpdate").Namespace("rack=%s version=%s", p.Rack, version)
 
 	params := map[string]interface{}{
+		"DnsPort": dnsPort(),
 		"Rack":    p.Rack,
 		"Version": version,
 	}
@@ -191,19 +191,6 @@ func checkKubectl() error {
 
 	if err := <-ch; err != nil {
 		return fmt.Errorf("kubernetes not running or kubectl not configured, try `kubectl version`")
-	}
-
-	return nil
-}
-
-func checkPermissions() error {
-	u, err := user.Current()
-	if err != nil {
-		return err
-	}
-
-	if u.Uid != "0" {
-		return fmt.Errorf("must be run as root")
 	}
 
 	return nil
