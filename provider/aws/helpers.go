@@ -785,7 +785,7 @@ func (p *Provider) stackResource(stack, resource string) (*cloudformation.StackR
 		}
 	}
 
-	return nil, log.Error(fmt.Errorf("resource not found: %s", resource))
+	return nil, fmt.Errorf("resource not found: %s", resource)
 }
 
 func (p *Provider) appResources(app string) (map[string]string, error) {
