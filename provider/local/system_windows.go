@@ -2,7 +2,10 @@ package local
 
 import (
 	"fmt"
+	"io/ioutil"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 )
 
@@ -40,5 +43,25 @@ func removeOriginalRack(name string) error {
 }
 
 func trustCertificate(data []byte) error {
+	tmp, err := ioutil.TempDir("", "")
+	if err != nil {
+		return err
+	}
+
+	crt := filepath.Join(tmp, "ca.crt")
+
+	defer os.Remove(crt)
+
+	if err := ioutil.WriteFile(crt, data, 0600); err != nil {
+		return err
+	}
+
+	out, err := powershell(fmt.Sprintf(`Import-Certificate -CertStoreLocation Cert:\LocalMachine\Root -FilePath %s`, crt))
+	fmt.Printf("string(out) = %+v\n", string(out))
+	fmt.Printf("err = %+v\n", err)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
