@@ -5,8 +5,22 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"os/user"
 	"path/filepath"
 )
+
+func checkPermissions() error {
+	u, err := user.Current()
+	if err != nil {
+		return err
+	}
+
+	if u.Uid != "0" {
+		return fmt.Errorf("must be run as root")
+	}
+
+	return nil
+}
 
 func dnsInstall(name string) error {
 	os.Remove(fmt.Sprintf("/etc/resolver/%s", name))
@@ -20,6 +34,10 @@ func dnsInstall(name string) error {
 	exec.Command("killall", "-HUP", "mDNSResponder").Run()
 
 	return nil
+}
+
+func dnsPort() string {
+	return "5453"
 }
 
 func dnsUninstall(name string) error {

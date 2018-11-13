@@ -5,9 +5,23 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"os/user"
 
 	"github.com/convox/rack/pkg/helpers"
 )
+
+func checkPermissions() error {
+	u, err := user.Current()
+	if err != nil {
+		return err
+	}
+
+	if u.Uid != "0" {
+		return fmt.Errorf("must be run as root")
+	}
+
+	return nil
+}
 
 func dnsInstall(name string) error {
 	v, err := helpers.LinuxRelease()
@@ -17,13 +31,13 @@ func dnsInstall(name string) error {
 
 	switch v {
 	case "ubuntu-18.04":
-		return dnsInstallLinuxResolved(name)
+		return dnsInstallResolved(name)
 	default:
-		return dnsInstallLinuxNetworkManager(name)
+		return dnsInstallNetworkManager(name)
 	}
 }
 
-func dnsInstallLinuxNetworkManager(name string) error {
+func dnsInstallNetworkManager(name string) error {
 	data := []byte("[main]\ndns=dnsmasq\n")
 
 	if err := ioutil.WriteFile("/etc/NetworkManager/conf.d/convox.conf", data, 0644); err != nil {
@@ -43,7 +57,7 @@ func dnsInstallLinuxNetworkManager(name string) error {
 	return nil
 }
 
-func dnsInstallLinuxResolved(name string) error {
+func dnsInstallResolved(name string) error {
 	data := []byte(fmt.Sprintf("[Resolve]\nDNS=127.0.0.1:5453\nDomains=~%s", name))
 
 	if err := ioutil.WriteFile(fmt.Sprintf("/usr/lib/systemd/resolved.conf.d/convox.%s.conf", name), data, 0644); err != nil {
@@ -59,6 +73,10 @@ func dnsInstallLinuxResolved(name string) error {
 	}
 
 	return nil
+}
+
+func dnsPort() string {
+	return "53"
 }
 
 func dnsUninstall(name string) error {
