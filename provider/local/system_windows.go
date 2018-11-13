@@ -56,11 +56,8 @@ func trustCertificate(data []byte) error {
 		return err
 	}
 
-	out, err := powershell(fmt.Sprintf(`Import-Certificate -CertStoreLocation Cert:\LocalMachine\Root -FilePath %s`, crt))
-	fmt.Printf("string(out) = %+v\n", string(out))
-	fmt.Printf("err = %+v\n", err)
-	if err != nil {
-		return err
+	if _, err := powershell(fmt.Sprintf(`Import-Certificate -CertStoreLocation Cert:\LocalMachine\Root -FilePath %s`, crt)); err != nil {
+		return fmt.Errorf("unable to add ca certificate to trusted roots")
 	}
 
 	return nil
