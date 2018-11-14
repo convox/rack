@@ -41,6 +41,7 @@ services:
   foo:
     command: foo
     domain: baz.example.org, qux.example.org
+    drain: 60
     health:
       grace: 2
       timeout: 3

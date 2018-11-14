@@ -31,8 +31,9 @@ func TestManifestLoad(t *testing.T) {
 					Manifest: "Dockerfile2",
 					Path:     "api",
 				},
-				Domains: []string{"foo.example.org"},
 				Command: "",
+				Domains: []string{"foo.example.org"},
+				Drain:   30,
 				Environment: []string{
 					"DEFAULT=test",
 					"DEVELOPMENT=false",
@@ -59,6 +60,7 @@ func TestManifestLoad(t *testing.T) {
 				Name:    "proxy",
 				Command: "bash",
 				Domains: []string{"bar.example.org", "*.example.org"},
+				Drain:   30,
 				Health: manifest.ServiceHealth{
 					Grace:    5,
 					Path:     "/auth",
@@ -85,6 +87,7 @@ func TestManifestLoad(t *testing.T) {
 				},
 				Command: "foo",
 				Domains: []string{"baz.example.org", "qux.example.org"},
+				Drain:   60,
 				Health: manifest.ServiceHealth{
 					Grace:    2,
 					Interval: 5,
@@ -107,6 +110,7 @@ func TestManifestLoad(t *testing.T) {
 					Path:     ".",
 				},
 				Command: "",
+				Drain:   30,
 				Health: manifest.ServiceHealth{
 					Grace:    5,
 					Interval: 5,
@@ -127,6 +131,7 @@ func TestManifestLoad(t *testing.T) {
 					Path:     ".",
 				},
 				Command: "",
+				Drain:   30,
 				Health: manifest.ServiceHealth{
 					Grace:    5,
 					Interval: 5,
@@ -158,6 +163,7 @@ func TestManifestLoad(t *testing.T) {
 				Name:    "inherit",
 				Command: "inherit",
 				Domains: []string{"bar.example.org", "*.example.org"},
+				Drain:   30,
 				Health: manifest.ServiceHealth{
 					Grace:    5,
 					Path:     "/auth",
@@ -190,6 +196,7 @@ func TestManifestLoad(t *testing.T) {
 					Manifest: "Dockerfile",
 					Path:     ".",
 				},
+				Drain: 30,
 				Health: manifest.ServiceHealth{
 					Grace:    5,
 					Path:     "/",
@@ -234,6 +241,7 @@ func TestManifestLoad(t *testing.T) {
 		"services.foo",
 		"services.foo.command",
 		"services.foo.domain",
+		"services.foo.drain",
 		"services.foo.health",
 		"services.foo.health.grace",
 		"services.foo.health.timeout",
@@ -317,6 +325,7 @@ func TestManifestLoadSimple(t *testing.T) {
 					Manifest: "Dockerfile",
 					Path:     ".",
 				},
+				Drain: 30,
 				Environment: manifest.Environment{
 					"REQUIRED",
 					"DEFAULT=true",
