@@ -60,7 +60,12 @@ func dnsInstallNetworkManager(name string) error {
 }
 
 func dnsInstallResolved(name string) error {
-	data := []byte(fmt.Sprintf("[Resolve]\nDNS=127.0.0.1:5453\nDomains=~%s", name))
+	rip, err := routerIP()
+	if err != nil {
+		return err
+	}
+
+	data := []byte(fmt.Sprintf("[Resolve]\nDNS=%s\nDomains=~%s", rip, name))
 
 	if err := helpers.WriteFile(fmt.Sprintf("/usr/lib/systemd/resolved.conf.d/convox.%s.conf", name), data, 0644); err != nil {
 		return err
