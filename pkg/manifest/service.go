@@ -14,6 +14,7 @@ type Service struct {
 	Build       ServiceBuild   `yaml:"build,omitempty"`
 	Command     string         `yaml:"command,omitempty"`
 	Domains     ServiceDomains `yaml:"domain,omitempty"`
+	Drain       int            `yaml:"drain,omitempty"`
 	Environment Environment    `yaml:"environment,omitempty"`
 	Health      ServiceHealth  `yaml:"health,omitempty"`
 	Image       string         `yaml:"image,omitempty"`
