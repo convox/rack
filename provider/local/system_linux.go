@@ -123,7 +123,7 @@ func trustCertificateDebian(name string, data []byte) error {
 		return fmt.Errorf("unable to add ca certificate to trusted roots")
 	}
 
-	if err := exec.Command("update-ca-certificates"); err != nil {
+	if err := exec.Command("update-ca-certificates").Run(); err != nil {
 		return fmt.Errorf("unable to add ca certificate to trusted roots")
 	}
 
@@ -135,11 +135,11 @@ func trustCertificateRedhat(name string, data []byte) error {
 		return fmt.Errorf("unable to add ca certificate to trusted roots, try installing the 'ca-certificates' package")
 	}
 
-	if err := exec.Command("update-ca-trust", "force-enable"); err != nil {
+	if err := exec.Command("update-ca-trust", "force-enable").Run(); err != nil {
 		return fmt.Errorf("unable to add ca certificate to trusted roots, try installing the 'ca-certificates' package")
 	}
 
-	if err := exec.Command("update-ca-trust", "extract"); err != nil {
+	if err := exec.Command("update-ca-trust", "extract").Run(); err != nil {
 		return fmt.Errorf("unable to add ca certificate to trusted roots, try installing the 'ca-certificates' package")
 	}
 
