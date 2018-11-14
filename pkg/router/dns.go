@@ -36,11 +36,11 @@ func (d *DNS) Serve() error {
 }
 
 func (d *DNS) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
-	soa, err := dns.NewRR("$ORIGIN .\n$TTL 0\n@ SOA ns.convox. support.convox.com. 2018042500 0 0 0 0")
-	if err != nil {
-		dnsError(w, r)
-		return
-	}
+	//soa, err := dns.NewRR("$ORIGIN .\n$TTL 0\n@ SOA ns.convox. support.convox.com. 2018042500 0 0 0 0")
+	//if err != nil {
+	//	dnsError(w, r)
+	//	return
+	//}
 
 	if len(r.Question) < 1 {
 		dnsError(w, r)
@@ -54,20 +54,33 @@ func (d *DNS) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 
 		a := &dns.Msg{}
 
-		a.SetReply(r)
-
-		a.Authoritative = true
-		a.Compress = false
-		a.Ns = []dns.RR{soa}
-		a.RecursionAvailable = true
-
-		rr, err := dns.NewRR(fmt.Sprintf("%s A %s", q.Name, "127.0.0.1"))
-		if err != nil {
-			dnsError(w, r)
-			return
+		if r.IsEdns0() != nil {
+			a.SetEdns0(4096, true)
 		}
 
-		a.Answer = append(a.Answer, rr)
+		a.SetReply(r)
+
+		//a.Authoritative = true
+		a.Compress = false
+		//a.Ns = []dns.RR{soa}
+		a.RecursionAvailable = true
+
+		switch q.Qtype {
+		case dns.TypeA:
+			rr, err := dns.NewRR(fmt.Sprintf("%s A %s", q.Name, d.Router.IP))
+			if err != nil {
+				dnsError(w, r)
+				return
+			}
+			a.Answer = append(a.Answer, rr)
+		case dns.TypeAAAA:
+			rr, err := dns.NewRR(fmt.Sprintf("%s AAAA %s", q.Name, d.Router.IP))
+			if err != nil {
+				dnsError(w, r)
+				return
+			}
+			a.Answer = append(a.Answer, rr)
+		}
 
 		w.WriteMsg(a)
 
@@ -84,7 +97,7 @@ func (d *DNS) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 		return
 	}
 
-	rs.Ns = []dns.RR{soa}
+	//rs.Ns = []dns.RR{soa}
 
 	w.WriteMsg(rs)
 }

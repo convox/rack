@@ -2,10 +2,10 @@ package local
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"os/user"
+	"strings"
 
 	"github.com/convox/rack/pkg/helpers"
 )
@@ -24,29 +24,31 @@ func checkPermissions() error {
 }
 
 func dnsInstall(name string) error {
-	v, err := helpers.LinuxRelease()
-	if err != nil {
-		return err
-	}
-
-	switch v {
-	case "ubuntu-18.04":
+	switch {
+	case helpers.FileExists("/etc/systemd/resolved.conf"):
 		return dnsInstallResolved(name)
-	default:
+	case helpers.FileExists("/etc/NetworkManager/NetworkManager.conf"):
 		return dnsInstallNetworkManager(name)
+	default:
+		return fmt.Errorf("unable to install dns handlers")
 	}
 }
 
 func dnsInstallNetworkManager(name string) error {
 	data := []byte("[main]\ndns=dnsmasq\n")
 
-	if err := ioutil.WriteFile("/etc/NetworkManager/conf.d/convox.conf", data, 0644); err != nil {
+	if err := helpers.WriteFile("/etc/NetworkManager/conf.d/convox.conf", data, 0644); err != nil {
 		return err
 	}
 
-	data = []byte(fmt.Sprintf("server=/%s/127.0.0.1:5453\n", name))
+	rip, err := routerIP()
+	if err != nil {
+		return err
+	}
 
-	if err := ioutil.WriteFile(fmt.Sprintf("/etc/NetworkManager/dnsmasq.d/%s", name), data, 0644); err != nil {
+	data = []byte(fmt.Sprintf("server=/%s/%s\n", name, rip))
+
+	if err := helpers.WriteFile(fmt.Sprintf("/etc/NetworkManager/dnsmasq.d/%s", name), data, 0644); err != nil {
 		return err
 	}
 
@@ -60,7 +62,7 @@ func dnsInstallNetworkManager(name string) error {
 func dnsInstallResolved(name string) error {
 	data := []byte(fmt.Sprintf("[Resolve]\nDNS=127.0.0.1:5453\nDomains=~%s", name))
 
-	if err := ioutil.WriteFile(fmt.Sprintf("/usr/lib/systemd/resolved.conf.d/convox.%s.conf", name), data, 0644); err != nil {
+	if err := helpers.WriteFile(fmt.Sprintf("/usr/lib/systemd/resolved.conf.d/convox.%s.conf", name), data, 0644); err != nil {
 		return err
 	}
 
@@ -96,6 +98,50 @@ func removeOriginalRack(name string) error {
 	return nil
 }
 
-func trustCertificate(data []byte) error {
+func routerIP() (string, error) {
+	data, err := exec.Command("kubectl", "get", "service/resolver", "-n", "convox-system", "--template={{.spec.clusterIP}}").CombinedOutput()
+	if err != nil {
+		return "", err
+	}
+
+	return strings.TrimSpace(string(data)), nil
+}
+
+func trustCertificate(name string, data []byte) error {
+	switch {
+	case helpers.FileExists("/usr/local/share/ca-certificates"):
+		return trustCertificateDebian(name, data)
+	case helpers.FileExists("/etc/pki/ca-trust/source/anchors"):
+		return trustCertificateRedhat(name, data)
+	default:
+		return fmt.Errorf("unable to add ca certificate to trusted roots")
+	}
+}
+
+func trustCertificateDebian(name string, data []byte) error {
+	if err := helpers.WriteFile(fmt.Sprintf("/usr/local/share/ca-certificates/convox.%s.crt", name), data, 0644); err != nil {
+		return fmt.Errorf("unable to add ca certificate to trusted roots")
+	}
+
+	if err := exec.Command("update-ca-certificates"); err != nil {
+		return fmt.Errorf("unable to add ca certificate to trusted roots")
+	}
+
+	return nil
+}
+
+func trustCertificateRedhat(name string, data []byte) error {
+	if err := helpers.WriteFile(fmt.Sprintf("/etc/pks/ca-trust/source/anchors/convox.%s.crt", name), data, 0644); err != nil {
+		return fmt.Errorf("unable to add ca certificate to trusted roots, try installing the 'ca-certificates' package")
+	}
+
+	if err := exec.Command("update-ca-trust", "force-enable"); err != nil {
+		return fmt.Errorf("unable to add ca certificate to trusted roots, try installing the 'ca-certificates' package")
+	}
+
+	if err := exec.Command("update-ca-trust", "extract"); err != nil {
+		return fmt.Errorf("unable to add ca certificate to trusted roots, try installing the 'ca-certificates' package")
+	}
+
 	return nil
 }
