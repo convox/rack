@@ -48,7 +48,7 @@ func (p *Provider) SystemInstall(w io.Writer, opts structs.SystemInstallOptions)
 		return "", err
 	}
 
-	if err := p.generateCACertificate(); err != nil {
+	if err := p.generateCACertificate(name); err != nil {
 		return "", err
 	}
 
@@ -109,7 +109,7 @@ func (p *Provider) SystemUpdate(opts structs.SystemUpdateOptions) error {
 	return nil
 }
 
-func (p *Provider) generateCACertificate() error {
+func (p *Provider) generateCACertificate(name string) error {
 	if err := exec.Command("kubectl", "get", "secret", "ca", "-n", "convox-system").Run(); err == nil {
 		return nil
 	}
@@ -156,7 +156,7 @@ func (p *Provider) generateCACertificate() error {
 		return err
 	}
 
-	if err := trustCertificate(pub); err != nil {
+	if err := trustCertificate(name, pub); err != nil {
 		return err
 	}
 

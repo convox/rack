@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	am "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 )
@@ -17,6 +18,7 @@ type Router struct {
 	DNS     *DNS
 	HTTP    *HTTP
 	HTTPS   *HTTP
+	IP      string
 	routes  map[string]map[string]bool
 	racks   map[string]string
 }
@@ -70,6 +72,17 @@ func New() (*Router, error) {
 	ic, err := NewIngressController(r)
 	if err != nil {
 		return nil, err
+	}
+
+	s, err := kc.CoreV1().Services("convox-system").Get("router", am.GetOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	if len(s.Status.LoadBalancer.Ingress) > 0 && s.Status.LoadBalancer.Ingress[0].Hostname == "localhost" {
+		r.IP = "127.0.0.1"
+	} else {
+		r.IP = s.Spec.ClusterIP
 	}
 
 	go ic.Run()

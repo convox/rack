@@ -50,7 +50,7 @@ func removeOriginalRack(name string) error {
 	return nil
 }
 
-func trustCertificate(data []byte) error {
+func trustCertificate(name string, data []byte) error {
 	tmp, err := ioutil.TempDir("", "")
 	if err != nil {
 		return err

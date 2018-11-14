@@ -7,6 +7,8 @@ import (
 	"os/exec"
 	"os/user"
 	"path/filepath"
+
+	"github.com/convox/rack/pkg/helpers"
 )
 
 func checkPermissions() error {
@@ -25,9 +27,7 @@ func checkPermissions() error {
 func dnsInstall(name string) error {
 	os.Remove(fmt.Sprintf("/etc/resolver/%s", name))
 
-	os.MkdirAll("/etc/resolver", 0755)
-
-	if err := ioutil.WriteFile(fmt.Sprintf("/etc/resolver/%s", name), []byte("nameserver 127.0.0.1\nport 5453\n"), 0644); err != nil {
+	if err := helpers.WriteFile(fmt.Sprintf("/etc/resolver/%s", name), []byte("nameserver 127.0.0.1\nport 5453\n"), 0644); err != nil {
 		return fmt.Errorf("could not write resolver config")
 	}
 
@@ -52,7 +52,7 @@ func removeOriginalRack(name string) error {
 	return nil
 }
 
-func trustCertificate(data []byte) error {
+func trustCertificate(name string, data []byte) error {
 	tmp, err := ioutil.TempDir("", "")
 	if err != nil {
 		return err
