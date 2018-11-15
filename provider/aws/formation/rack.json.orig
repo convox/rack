@@ -58,21 +58,39 @@
   },
   "Mappings": {
     "RegionConfig": {
+<<<<<<< HEAD
+      "ap-northeast-1": { "Ami": "ami-0edf19001c48838c7", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "582318560864", "Fargate": "Yes" },
+      "ap-northeast-2": { "Ami": "ami-0b52e57bed048ca48", "EFS": "Yes", "ThirdAvailabilityZone": "No",  "ELBAccountId": "600734575887", "Fargate": "No"  },
+      "ap-south-1":     { "Ami": "ami-05f009513cd58ac90", "EFS": "No",  "ThirdAvailabilityZone": "No",  "ELBAccountId": "718504428378", "Fargate": "No"  },
+      "ap-southeast-1": { "Ami": "ami-08d4fe232c67b81b8", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "114774131450", "Fargate": "Yes" },
+      "ap-southeast-2": { "Ami": "ami-08c26730c8ee004fa", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "783225319266", "Fargate": "Yes" },
+      "ca-central-1":   { "Ami": "ami-055750f063052ec55", "EFS": "No",  "ThirdAvailabilityZone": "No",  "ELBAccountId": "985666609251", "Fargate": "No"  },
+      "eu-central-1":   { "Ami": "ami-0b9fee3a2d0596ed1", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "054676820928", "Fargate": "Yes" },
+      "eu-west-1":      { "Ami": "ami-066826c6a40879d75", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "156460612806", "Fargate": "Yes" },
+      "eu-west-2":      { "Ami": "ami-0cb31bf24b130a0f9", "EFS": "No",  "ThirdAvailabilityZone": "Yes", "ELBAccountId": "652711504416", "Fargate": "Yes" },
+      "eu-west-3":      { "Ami": "ami-0a0948de946510ec0", "EFS": "No",  "ThirdAvailabilityZone": "Yes", "ELBAccountId": "009996457667", "Fargate": "No"  },
+      "sa-east-1":      { "Ami": "ami-0ada25501ac1375b3", "EFS": "No",  "ThirdAvailabilityZone": "Yes", "ELBAccountId": "507241528517", "Fargate": "No"  },
+      "us-east-1":      { "Ami": "ami-07eb698ce660402d2", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "127311923021", "Fargate": "Yes" },
+      "us-east-2":      { "Ami": "ami-0a0c6574ce16ce87a", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "033677994240", "Fargate": "Yes" },
+      "us-west-1":      { "Ami": "ami-04c22ba97a0c063c4", "EFS": "Yes", "ThirdAvailabilityZone": "No",  "ELBAccountId": "027434742980", "Fargate": "No"  },
+      "us-west-2":      { "Ami": "ami-09568291a9d6c804c", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "797873946194", "Fargate": "Yes" }
+=======
       "ap-northeast-1": { "Ami": "ami-05a1f057a1a8e1a50", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "582318560864", "Fargate": "Yes" },
-      "ap-northeast-2": { "Ami": "ami-0fcea96f3b2c67274", "EFS": "Yes", "ThirdAvailabilityZone": "No",  "ELBAccountId": "600734575887", "Fargate": "Yes" },
+      "ap-northeast-2": { "Ami": "ami-0fcea96f3b2c67274", "EFS": "Yes", "ThirdAvailabilityZone": "No",  "ELBAccountId": "600734575887", "Fargate": "No"  },
       "ap-south-1":     { "Ami": "ami-00afc9e848e32b1ca", "EFS": "No",  "ThirdAvailabilityZone": "No",  "ELBAccountId": "718504428378", "Fargate": "No"  },
       "ap-southeast-1": { "Ami": "ami-0d4d4a42a45fb8e4a", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "114774131450", "Fargate": "Yes" },
       "ap-southeast-2": { "Ami": "ami-0231cd5b17565f0b1", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "783225319266", "Fargate": "Yes" },
       "ca-central-1":   { "Ami": "ami-0605f253b9e04698c", "EFS": "No",  "ThirdAvailabilityZone": "No",  "ELBAccountId": "985666609251", "Fargate": "No"  },
       "eu-central-1":   { "Ami": "ami-07c3a868617f8acdb", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "054676820928", "Fargate": "Yes" },
       "eu-west-1":      { "Ami": "ami-0651de2fa6ccf6d26", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "156460612806", "Fargate": "Yes" },
-      "eu-west-2":      { "Ami": "ami-0ba06c0257c11d483", "EFS": "No",  "ThirdAvailabilityZone": "Yes", "ELBAccountId": "652711504416", "Fargate": "Yes" },
+      "eu-west-2":      { "Ami": "ami-0ba06c0257c11d483", "EFS": "No",  "ThirdAvailabilityZone": "Yes", "ELBAccountId": "652711504416", "Fargate": "No"  },
       "eu-west-3":      { "Ami": "ami-0b0b5fca56d03d022", "EFS": "No",  "ThirdAvailabilityZone": "Yes", "ELBAccountId": "009996457667", "Fargate": "No"  },
       "sa-east-1":      { "Ami": "ami-0f2187a18380957e4", "EFS": "No",  "ThirdAvailabilityZone": "Yes", "ELBAccountId": "507241528517", "Fargate": "No"  },
       "us-east-1":      { "Ami": "ami-0a6be20ed8ce1f055", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "127311923021", "Fargate": "Yes" },
       "us-east-2":      { "Ami": "ami-075d44ed0d20df780", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "033677994240", "Fargate": "Yes" },
-      "us-west-1":      { "Ami": "ami-0828cd2f20543a2b3", "EFS": "Yes", "ThirdAvailabilityZone": "No",  "ELBAccountId": "027434742980", "Fargate": "Yes" },
+      "us-west-1":      { "Ami": "ami-0828cd2f20543a2b3", "EFS": "Yes", "ThirdAvailabilityZone": "No",  "ELBAccountId": "027434742980", "Fargate": "No"  },
       "us-west-2":      { "Ami": "ami-04a4fb062c609f55b", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "797873946194", "Fargate": "Yes" }
+>>>>>>> wip
     }
   },
   "Outputs": {
@@ -420,6 +438,11 @@
       "Type": "String",
       "Description": "Anonymous identifier",
       "Default": ""
+    },
+    "ContainerDisk": {
+      "Type": "Number",
+      "Description": "Default container disk size in GB",
+      "Default": "10"
     },
     "Development": {
       "Type": "String",
@@ -1163,8 +1186,11 @@
             "  - echo 'ECS_INSTANCE_ATTRIBUTES={\"asg\":\"build\"}' >> /etc/ecs/ecs.config\n",
             "  - echo HTTP_PROXY=", { "Ref": "HttpProxy" }, " >> /etc/ecs/ecs.config\n",
             "  - echo NO_PROXY=169.254.169.254,169.254.170.2,/var/run/docker.sock >> /etc/ecs/ecs.config\n",
-            "  - echo 'OPTIONS=\"--default-ulimit nofile=1024000:1024000 --log-opt max-file=2 --log-opt max-size=50m --host=unix:///var/run/docker.sock --host=0.0.0.0:2376\"' >> /etc/sysconfig/docker\n",
-            "  - echo 'ECS_ENGINE_AUTH_DATA={\"index.docker.io\":{\"username\":\"\",\"password\":\"\",\"email\":\"\"}' >> /etc/ecs/ecs.config\n",
+            "  - echo 'OPTIONS=\"--default-ulimit nofile=1024000:1024000\"' >> /etc/sysconfig/docker\n",
+            { "Fn::Join": [ "", [
+              "  - echo 'OPTIONS=\"${OPTIONS} --log-opt max-file=2 --log-opt max-size=50m --host=unix:///var/run/docker.sock --host=0.0.0.0:2376\"' >> /etc/sysconfig/docker\n",
+              "  - echo 'ECS_ENGINE_AUTH_DATA={\"index.docker.io\":{\"username\":\"\",\"password\":\"\",\"email\":\"\"}' >> /etc/ecs/ecs.config\n"
+            ] ] },
             "  - echo 'docker image prune -a --filter=\"until=96h\" --force' > /etc/cron.daily/docker-prune\n",
             "  - chmod +x /etc/cron.daily/docker-prune\n",
             { "Fn::If": [ "HttpProxy",
@@ -1332,8 +1358,12 @@
             "  - echo 'ECS_INSTANCE_ATTRIBUTES={\"asg\":\"primary\"}' >> /etc/ecs/ecs.config\n",
             "  - echo HTTP_PROXY=", { "Ref": "HttpProxy" }, " >> /etc/ecs/ecs.config\n",
             "  - echo NO_PROXY=169.254.169.254,169.254.170.2,/var/run/docker.sock >> /etc/ecs/ecs.config\n",
-            "  - echo 'OPTIONS=\"--default-ulimit nofile=1024000:1024000 --log-opt max-file=2 --log-opt max-size=50m --host=unix:///var/run/docker.sock --host=0.0.0.0:2376\"' >> /etc/sysconfig/docker\n",
-            "  - echo 'ECS_ENGINE_AUTH_DATA={\"index.docker.io\":{\"username\":\"\",\"password\":\"\",\"email\":\"\"}' >> /etc/ecs/ecs.config\n",
+            "  - echo 'OPTIONS=\"--default-ulimit nofile=1024000:1024000\"' >> /etc/sysconfig/docker\n",
+            { "Fn::Join": [ "", [
+              "  - echo 'OPTIONS=\"${OPTIONS} --storage-opt dm.basesize=", { "Ref": "ContainerDisk" }, "G\"' >> /etc/sysconfig/docker\n",
+              "  - echo 'OPTIONS=\"${OPTIONS} --log-opt max-file=2 --log-opt max-size=50m --host=unix:///var/run/docker.sock --host=0.0.0.0:2376\"' >> /etc/sysconfig/docker\n",
+              "  - echo 'ECS_ENGINE_AUTH_DATA={\"index.docker.io\":{\"username\":\"\",\"password\":\"\",\"email\":\"\"}' >> /etc/ecs/ecs.config\n"
+            ] ] },
             "  - echo 'docker image prune -a --filter=\"until=96h\" --force' > /etc/cron.daily/docker-prune\n",
             "  - chmod +x /etc/cron.daily/docker-prune\n",
             { "Fn::If": [ "HttpProxy",
@@ -1679,8 +1709,12 @@
             "  - echo 'ECS_INSTANCE_ATTRIBUTES={\"asg\":\"spot\"}' >> /etc/ecs/ecs.config\n",
             "  - echo HTTP_PROXY=", { "Ref": "HttpProxy" }, " >> /etc/ecs/ecs.config\n",
             "  - echo NO_PROXY=169.254.169.254,169.254.170.2,/var/run/docker.sock >> /etc/ecs/ecs.config\n",
-            "  - echo 'OPTIONS=\"--default-ulimit nofile=1024000:1024000 --log-opt max-file=2 --log-opt max-size=50m --host=unix:///var/run/docker.sock --host=0.0.0.0:2376\"' >> /etc/sysconfig/docker\n",
-            "  - echo 'ECS_ENGINE_AUTH_DATA={\"index.docker.io\":{\"username\":\"\",\"password\":\"\",\"email\":\"\"}' >> /etc/ecs/ecs.config\n",
+            "  - echo 'OPTIONS=\"--default-ulimit nofile=1024000:1024000\"' >> /etc/sysconfig/docker\n",
+            { "Fn::Join": [ "", [
+              "  - echo 'OPTIONS=\"${OPTIONS} --storage-opt dm.basesize=", { "Ref": "ContainerDisk" }, "G\"' >> /etc/sysconfig/docker\n",
+              "  - echo 'OPTIONS=\"${OPTIONS} --log-opt max-file=2 --log-opt max-size=50m --host=unix:///var/run/docker.sock --host=0.0.0.0:2376\"' >> /etc/sysconfig/docker\n",
+              "  - echo 'ECS_ENGINE_AUTH_DATA={\"index.docker.io\":{\"username\":\"\",\"password\":\"\",\"email\":\"\"}' >> /etc/ecs/ecs.config\n"
+            ] ] },
             "  - echo 'docker image prune -a --filter=\"until=96h\" --force' > /etc/cron.daily/docker-prune\n",
             "  - chmod +x /etc/cron.daily/docker-prune\n",
             { "Fn::If": [ "HttpProxy",
