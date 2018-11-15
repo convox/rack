@@ -82,7 +82,7 @@ func TestStart2Options(t *testing.T) {
 	p.On("BuildCreate", "app1", "object://app1/object1.tgz", structs.BuildCreateOptions{Development: options.Bool(true), Manifest: options.String("convox2.yml")}).Return(&structs.Build{Id: "build1"}, nil)
 	p.On("BuildLogs", "app1", "build1", structs.LogsOptions{}).Return(ioutil.NopCloser(strings.NewReader(buildLogs)), nil)
 	p.On("BuildGet", "app1", "build1").Return(&structs.Build{Id: "build1", Release: "release1", Status: "complete"}, nil)
-	p.On("ReleasePromote", "app1", "release1", structs.ReleasePromoteOptions{Min: options.Int(0)}).Return(nil)
+	p.On("ReleasePromote", "app1", "release1", structs.ReleasePromoteOptions{Development: options.Bool(true), Min: options.Int(0)}).Return(nil)
 	p.On("ServiceList", "app1").Return(structs.Services{{Name: "web", Domain: "foo"}}, nil)
 	p.On("AppLogs", "app1", structs.LogsOptions{Prefix: options.Bool(true), Since: options.Duration(1 * time.Second)}).Return(ioutil.NopCloser(strings.NewReader(appLogs)), nil)
 	p.On("ProcessList", "app1", structs.ProcessListOptions{}).Return(structs.Processes{{Id: "process1"}, {Id: "process2"}}, nil)
