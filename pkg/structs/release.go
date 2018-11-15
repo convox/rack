@@ -26,8 +26,9 @@ type ReleaseListOptions struct {
 }
 
 type ReleasePromoteOptions struct {
-	Min *int `param:"min"`
-	Max *int `param:"max"`
+	Development *bool `param:"development"`
+	Min         *int  `param:"min"`
+	Max         *int  `param:"max"`
 }
 
 func NewRelease(app string) *Release {

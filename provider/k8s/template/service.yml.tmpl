@@ -97,6 +97,7 @@ spec:
         image: {{ image .App .Service .Release }}
         imagePullPolicy: IfNotPresent
         {{ with .Service.Port.Port }}
+        {{ if not $.Development }}
         livenessProbe:
           httpGet:
             path: "{{$.Service.Health.Path}}"
@@ -113,6 +114,7 @@ spec:
             # initialDelaySeconds: {{$.Service.Health.Grace}}
           periodSeconds: {{$.Service.Health.Interval}}
           timeoutSeconds: {{$.Service.Health.Timeout}}
+        {{ end }}
         {{ end }}
         ports:
         {{ with .Service.Port.Port }}

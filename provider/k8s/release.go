@@ -155,6 +155,7 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 
 		params := map[string]interface{}{
 			"App":            a,
+			"Development":    helpers.DefaultBool(opts.Development, false),
 			"Env":            e,
 			"Manifest":       m,
 			"MaxSurge":       max,

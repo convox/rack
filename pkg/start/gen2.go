@@ -149,7 +149,12 @@ func (s *Start) Start2(ctx context.Context, w io.Writer, opts Options2) error {
 			return err
 		}
 
-		if err := opts.Provider.ReleasePromote(opts.App, b.Release, structs.ReleasePromoteOptions{Min: options.Int(0)}); err != nil {
+		popts := structs.ReleasePromoteOptions{
+			Development: options.Bool(true),
+			Min:         options.Int(0),
+		}
+
+		if err := opts.Provider.ReleasePromote(opts.App, b.Release, popts); err != nil {
 			return err
 		}
 	}
