@@ -83,6 +83,20 @@ spec:
         {{ end }}
         {{ end }}
         env:
+        - name: APP
+          value: {{ safe $.App.Name }}
+        - name: RACK
+          value: {{ safe $.Rack }}
+        - name: RACK_URL
+          value: "https://web.{{$.Rack}}.svc.cluster.local:5443"
+        - name: RELEASE
+          value: {{ safe $.Release.Id }}
+        {{ with $.Build }}
+        - name: BUILD
+          value: {{ safe .Id }}
+        - name: BUILD_DESCRIPTION
+          value: {{ safe .Description }}
+        {{ end }}
         {{ range env .Service.EnvironmentDefaults .Env }}
         - name: {{ safe .Key }}
           value: {{ safe .Value }}

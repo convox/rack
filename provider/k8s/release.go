@@ -134,6 +134,16 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 		sc[s.Name] = s.Count
 	}
 
+	var b *structs.Build
+
+	if r.Build != "" {
+		bb, err := p.BuildGet(app, r.Build)
+		if err != nil {
+			return err
+		}
+		b = bb
+	}
+
 	for _, s := range m.Services {
 		min := 50
 		max := 200
@@ -155,6 +165,7 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 
 		params := map[string]interface{}{
 			"App":            a,
+			"Build":          b,
 			"Development":    helpers.DefaultBool(opts.Development, false),
 			"Env":            e,
 			"Manifest":       m,
