@@ -223,6 +223,10 @@ func (m *Manifest) ApplyDefaults() error {
 			m.Services[i].Build.Manifest = "Dockerfile"
 		}
 
+		if s.Drain == 0 {
+			m.Services[i].Drain = 30
+		}
+
 		if s.Health.Path == "" {
 			m.Services[i].Health.Path = "/"
 		}
