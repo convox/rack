@@ -88,7 +88,7 @@ spec:
         - name: RACK
           value: {{ safe $.Rack }}
         - name: RACK_URL
-          value: "https://web.{{$.Rack}}.svc.cluster.local:5443"
+          value: "https://convox:{{$.Password}}@web.{{$.Rack}}.svc.cluster.local:5443"
         - name: RELEASE
           value: {{ safe $.Release.Id }}
         {{ with $.Build }}
