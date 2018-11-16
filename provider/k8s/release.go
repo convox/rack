@@ -172,6 +172,7 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 			"MaxSurge":       max,
 			"MaxUnavailable": 100 - min,
 			"Namespace":      p.AppNamespace(a.Name),
+			"Password":       p.Password,
 			"Rack":           p.Rack,
 			"Release":        r,
 			"Replicas":       replicas,
