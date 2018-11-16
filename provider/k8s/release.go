@@ -144,6 +144,18 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 		b = bb
 	}
 
+	senv := map[string]string{
+		"APP":      a.Name,
+		"RACK":     p.Rack,
+		"RACK_URL": fmt.Sprintf("https://convox:%s@web.%s.svc.cluster.local:5443", p.Password, p.Rack),
+		"RELEASE":  r.Id,
+	}
+
+	if b != nil {
+		senv["BUILD"] = b.Id
+		senv["BUILD_DESCRIPTION"] = b.Description
+	}
+
 	for _, s := range m.Services {
 		min := 50
 		max := 200
@@ -177,6 +189,7 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 			"Release":        r,
 			"Replicas":       replicas,
 			"Service":        s,
+			"SystemEnv":      senv,
 		}
 
 		data, err := p.RenderTemplate("service", params)
