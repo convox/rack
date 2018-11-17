@@ -175,6 +175,15 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 
 		replicas := helpers.CoalesceInt(sc[s.Name], s.Scale.Count.Min)
 
+		envs := []map[string]string{senv, s.EnvironmentDefaults(), e}
+
+		renv := map[string]string{}
+		for _, me := range envs {
+			for k, v := range me {
+			    renv[k] = v
+			}
+		}
+
 		params := map[string]interface{}{
 			"App":            a,
 			"Build":          b,
@@ -190,6 +199,7 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 			"Replicas":       replicas,
 			"Service":        s,
 			"SystemEnv":      senv,
+			"ReleaseEnv":     renv,
 		}
 
 		data, err := p.RenderTemplate("service", params)

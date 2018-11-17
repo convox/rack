@@ -83,7 +83,7 @@ spec:
         {{ end }}
         {{ end }}
         env:
-        {{ range env .SystemEnv .Service.EnvironmentDefaults .Env }}
+        {{ range env .ServiceEnv }}
         - name: {{ safe .Key }}
           value: {{ safe .Value }}
         {{ end }}
