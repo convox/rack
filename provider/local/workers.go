@@ -9,6 +9,10 @@ import (
 )
 
 func (p *Provider) Workers() error {
+	if err := p.Provider.Workers(); err != nil {
+		return err
+	}
+
 	go helpers.Tick(1*time.Hour, p.workerHeartbeat)
 
 	return nil
