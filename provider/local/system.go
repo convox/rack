@@ -17,6 +17,7 @@ import (
 
 	"github.com/convox/rack/pkg/helpers"
 	"github.com/convox/rack/pkg/structs"
+	am "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func (p *Provider) SystemInstall(w io.Writer, opts structs.SystemInstallOptions) (string, error) {
@@ -166,8 +167,23 @@ func (p *Provider) generateCACertificate(name string) error {
 func (p *Provider) systemUpdate(version string) error {
 	log := p.logger.At("systemUpdate").Namespace("rack=%s version=%s", p.Rack, version)
 
+	dp := dnsPort()
+
+	if p.Cluster != nil {
+		s, err := p.Cluster.CoreV1().Services("convox-system").Get("resolver", am.GetOptions{})
+		if err != nil {
+			return err
+		}
+
+		if len(s.Spec.Ports) != 1 {
+			return fmt.Errorf("could not find resolver port")
+		}
+
+		dp = fmt.Sprintf("%d", s.Spec.Ports[0].Port)
+	}
+
 	params := map[string]interface{}{
-		"DnsPort": dnsPort(),
+		"DnsPort": dp,
 		"Rack":    p.Rack,
 		"Version": version,
 	}
