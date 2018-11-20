@@ -5,9 +5,17 @@
     "Version9": { "Fn::Equals": [ { "Fn::Select": [ 0, { "Fn::Split": [ ".", { "Ref": "Version" } ] } ] }, "9" ] }
   },
   "Parameters": {
+    "BackupRetentionPeriod": {
+      "Type": "String",
+      "Default": "1"
+    },
     "Class": {
       "Type": "String",
       "Default": "db.t2.micro"
+    },
+    "Database": {
+      "Type": "String",
+      "Default": "app"
     },
     "Durable": {
       "Type": "String",
@@ -42,7 +50,7 @@
     }
   },
   "Outputs": {
-    "Url": { "Value": { "Fn::Sub": "postgres://app:${Password}@${Instance.Endpoint.Address}:${Instance.Endpoint.Port}/app" } }
+    "Url": { "Value": { "Fn::Sub": "postgres://app:${Password}@${Instance.Endpoint.Address}:${Instance.Endpoint.Port}/${Database}" } }
   },
   "Resources": {
     "SecurityGroup": {
@@ -70,9 +78,10 @@
       "DeletionPolicy": "Snapshot",
       "Properties": {
         "AllocatedStorage": { "Ref": "Storage" },
+        "BackupRetentionPeriod": { "Ref": "BackupRetentionPeriod" }
         "DBInstanceClass": { "Ref": "Class" },
         "DBInstanceIdentifier": { "Ref": "AWS::StackName" },
-        "DBName": "app",
+        "DBName": { "Ref": "Database" },
         "DBParameterGroupName": { "Ref": "ParameterGroup" },
         "DBSubnetGroupName": { "Ref": "SubnetGroup" },
         "Engine": "postgres",
