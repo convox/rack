@@ -1,6 +1,9 @@
 {{ define "resource" }}
   {
     "AWSTemplateFormatVersion" : "2010-09-09",
+    "Conditions": {
+      "CreateUserAndKeys" : {"Fn::Equals" : [{"Ref" : "CreateUserAndKeys"}, "False"]}
+    },
     "Parameters": {
       "MessageRetentionPeriod": {
         "Description": "Number of seconds that a message should be retained on the queue",
@@ -22,6 +25,12 @@
         "Default": "30",
         "MinValue": "0",
         "MaxValue": "43200"
+      },
+      "CreateUserAndKeys": {
+        "Description": "Create IAM user and keys for accessing the SQS queue (or you can use IAM roles instead)",
+        "Type": "String",
+        "Default": "True",
+        "AllowedPattern": "(True|False)"
       }
     },
     "Resources": {
@@ -36,6 +45,7 @@
       },
       "User": {
         "Type": "AWS::IAM::User",
+        "Condition":  "CreateUserAndKeys",
         "Properties": {
           "Path": "/convox/",
           "Policies": [{
@@ -52,6 +62,7 @@
       },
       "AccessKey": {
         "Type": "AWS::IAM::AccessKey",
+        "Condition":  "CreateUserAndKeys",
         "Properties": {
           "UserName": { "Ref": "User" }
         }
@@ -68,10 +79,12 @@
         "Value": { "Fn::GetAtt": ["Queue", "Arn"] }
       },
       "AccessKey": {
-        "Value": { "Ref": "AccessKey" }
+        "Value": { "Ref": "AccessKey" },
+        "Condition":  "CreateUserAndKeys"
       },
       "SecretAccessKey": {
-        "Value": { "Fn::GetAtt": ["AccessKey", "SecretAccessKey"] }
+        "Value": { "Fn::GetAtt": ["AccessKey", "SecretAccessKey"] },
+        "Condition":  "CreateUserAndKeys"
       }
     }
   }
