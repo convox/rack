@@ -103,8 +103,8 @@ func fxLogs() []string {
 
 func fxLogsSystem() []string {
 	return []string{
-		"TIME system/aws/component log1",
-		"TIME system/aws/component log2",
+		"TIME system/service/component log1",
+		"TIME system/service/component log2",
 	}
 }
 

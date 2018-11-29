@@ -110,7 +110,13 @@ func (p *Provider) streamProcessLogsWait(w io.WriteCloser, ps structs.Process, o
 	ri, wi := io.Pipe()
 	go p.streamProcessLogs(wi, ps, opts)
 	io.Copy(w, ri)
-	pidch <- ps.Id
+	pps, err := p.ProcessGet(ps.App, ps.Id)
+	if err != nil {
+		pidch <- ps.Id
+	}
+	if pps != nil && pps.Status == "running" {
+		pidch <- ps.Id
+	}
 }
 
 func (p *Provider) streamProcessLogs(w io.WriteCloser, ps structs.Process, opts structs.LogsOptions) {

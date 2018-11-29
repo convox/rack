@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"time"
 
 	"github.com/convox/rack/pkg/helpers"
 	"github.com/convox/rack/pkg/options"
@@ -158,6 +159,8 @@ func (p *Provider) ProcessStop(app, pid string) error {
 
 func (p *Provider) ProcessWait(app, pid string) (int, error) {
 	for {
+		time.Sleep(1 * time.Second)
+
 		pd, err := p.Cluster.CoreV1().Pods(p.AppNamespace(app)).Get(pid, am.GetOptions{})
 		if err != nil {
 			return 0, err
@@ -165,8 +168,8 @@ func (p *Provider) ProcessWait(app, pid string) (int, error) {
 
 		cs := pd.Status.ContainerStatuses
 
-		if len(cs) != 1 || cs[0].Name != "main" {
-			return 0, fmt.Errorf("unexpected containers for pid: %s", pid)
+		if len(cs) < 1 {
+			continue
 		}
 
 		if t := cs[0].State.Terminated; t != nil {

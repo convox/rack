@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -132,7 +133,7 @@ func (s *Start) Start2(ctx context.Context, w io.Writer, opts Options2) error {
 
 		bo := pw.Writer("build")
 
-		go io.Copy(bo, logs)
+		io.Copy(bo, logs)
 
 		if err := opts.waitForBuild(ctx, b.Id); err != nil {
 			return err
@@ -149,14 +150,39 @@ func (s *Start) Start2(ctx context.Context, w io.Writer, opts Options2) error {
 			return err
 		}
 
+		ho := pw.Writer("hooks")
+
+		fmt.Fprintf(ho, "Running before-promote\n")
+
+		for _, s := range m.Services {
+			if s.Hooks.BeforePromote != "" {
+				if err := runHook(ho, opts.Provider, opts.App, s.Name, b.Release, s.Hooks.BeforePromote); err != nil {
+					return err
+				}
+			}
+		}
+
 		popts := structs.ReleasePromoteOptions{
 			Development: options.Bool(true),
 			Min:         options.Int(0),
 		}
 
+		pw.Writef("convox", "Promoting release\n")
+
 		if err := opts.Provider.ReleasePromote(opts.App, b.Release, popts); err != nil {
 			return err
 		}
+
+		fmt.Fprintf(ho, "Running after-promote\n")
+
+		for _, s := range m.Services {
+			if s.Hooks.AfterPromote != "" {
+				if err := runHook(ho, opts.Provider, opts.App, s.Name, b.Release, s.Hooks.AfterPromote); err != nil {
+					return err
+				}
+			}
+		}
+
 	}
 
 	errch := make(chan error)
@@ -711,6 +737,60 @@ func replaceEnv(s string, env map[string]string) string {
 	}
 
 	return s
+}
+
+func runHook(w io.Writer, rack structs.Provider, app, service, release, command string) error {
+	fmt.Fprintf(w, "<service>%s</service>: <command>%s</command>\n", service, command)
+
+	ropts := structs.ProcessRunOptions{
+		Command: options.String("sleep 3600"),
+		Release: options.String(release),
+	}
+
+	ps, err := rack.ProcessRun(app, service, ropts)
+	if err != nil {
+		return err
+	}
+
+	defer rack.ProcessStop(app, ps.Id)
+
+	if err := waitForProcessRunning(rack, app, ps.Id); err != nil {
+		return err
+	}
+
+	a, b := net.Pipe()
+
+	go io.Copy(w, a)
+
+	code, err := rack.ProcessExec(app, ps.Id, command, b, structs.ProcessExecOptions{})
+	if err != nil {
+		return err
+	}
+
+	if code > 0 {
+		fmt.Fprintf(w, "<error>exit %d</error>\n", code)
+
+		return fmt.Errorf("hook failure")
+	}
+
+	fmt.Fprintf(w, "<ok>OK</ok>\n")
+
+	return nil
+}
+
+func waitForProcessRunning(rack structs.Provider, app, pid string) error {
+	for {
+		time.Sleep(1 * time.Second)
+
+		ps, err := rack.ProcessGet(app, pid)
+		if err != nil {
+			return err
+		}
+
+		if ps.Status == "running" {
+			return nil
+		}
+	}
 }
 
 func writeLogs(ctx context.Context, pw prefix.Writer, r io.Reader, services map[string]bool) {

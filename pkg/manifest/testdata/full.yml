@@ -19,6 +19,8 @@ services:
       - SECRET
     health:
       interval: 10
+    hooks:
+      before-promote: bin/before
     init: true
     resources:
       - database
@@ -52,6 +54,10 @@ services:
     singleton: true
     sticky: false
   bar:
+  baz:
+    hooks:
+      before-promote: bin/before1
+      after-promote: bin/after2
   scaler:
     scale:
       count: 1-5

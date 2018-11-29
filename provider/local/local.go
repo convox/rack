@@ -49,8 +49,10 @@ func FromEnv() (*Provider, error) {
 func (p *Provider) Initialize(opts structs.ProviderOptions) error {
 	log := p.logger.At("Initialize")
 
-	if err := p.systemUpdate(p.Version); err != nil {
-		return log.Error(err)
+	if !p.Development {
+		if err := p.systemUpdate(p.Version); err != nil {
+			return log.Error(err)
+		}
 	}
 
 	if err := p.Provider.Initialize(opts); err != nil {

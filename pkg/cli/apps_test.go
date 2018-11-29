@@ -274,6 +274,7 @@ func TestAppsImport(t *testing.T) {
 			"Creating app app1... OK",
 			"Importing build... OK, release1",
 			"Importing env... OK, release1",
+			"Waiting for app to be ready... OK",
 			"Promoting release1... OK",
 			"Updating parameters... OK",
 		})
@@ -325,6 +326,7 @@ func TestAppsImportNoParams(t *testing.T) {
 			"Creating app app1... OK",
 			"Importing build... OK, release1",
 			"Importing env... OK, release1",
+			"Waiting for app to be ready... OK",
 			"Promoting release1... OK",
 		})
 	})
@@ -344,7 +346,6 @@ func TestAppsImportSameParams(t *testing.T) {
 		i.On("ReleaseCreate", "app1", structs.ReleaseCreateOptions{Env: options.String("ALPHA=one\nBRAVO=two\n")}).Return(fxRelease(), nil)
 		i.On("ReleasePromote", "app1", "release1", structs.ReleasePromoteOptions{}).Return(nil)
 		i.On("AppGet", "app1").Return(fxApp(), nil).Twice()
-		i.On("AppGet", "app1").Return(fxApp(), nil).Once()
 
 		res, err := testExecute(e, "apps import -a app1 -f testdata/app.sameparams.tgz", nil)
 		require.NoError(t, err)

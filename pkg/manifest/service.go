@@ -17,6 +17,7 @@ type Service struct {
 	Drain       int            `yaml:"drain,omitempty"`
 	Environment Environment    `yaml:"environment,omitempty"`
 	Health      ServiceHealth  `yaml:"health,omitempty"`
+	Hooks       ServiceHooks   `yaml:"hooks,omitempty"`
 	Image       string         `yaml:"image,omitempty"`
 	Init        bool           `yaml:"init,omitempty"`
 	Internal    bool           `yaml:"internal,omitempty"`
@@ -59,6 +60,11 @@ type ServiceHealth struct {
 	Interval int
 	Path     string
 	Timeout  int
+}
+
+type ServiceHooks struct {
+	BeforePromote string `yaml:"before-promote,omitempty"`
+	AfterPromote  string `yaml:"after-promote,omitempty"`
 }
 
 type ServicePort struct {

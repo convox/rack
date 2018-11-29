@@ -149,8 +149,6 @@ spec:
         args:
         - rack
         env:
-        - name: DATA
-          value: /data
         - name: DEVELOPMENT
           value: "false"
         - name: ID
@@ -159,6 +157,8 @@ spec:
           value: convox/rack:{{.Version}}
         - name: RACK
           value: {{.Rack}}
+        - name: STORAGE
+          value: /data
         - name: VERSION
           value: "{{.Version}}"
         envFrom:
@@ -184,6 +184,10 @@ spec:
           timeoutSeconds: 3
         ports:
         - containerPort: 5443
+        resources:
+          requests:
+            cpu: "64m"
+            memory: "256Mi"
         volumeMounts:
         - name: data
           mountPath: /data

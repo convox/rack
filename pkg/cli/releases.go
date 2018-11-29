@@ -150,19 +150,86 @@ func releasePromote(rack sdk.Interface, c *stdcli.Context, app, id string) error
 		c.OK()
 	}
 
+	m, _, err := helpers.ReleaseManifest(rack, app, id)
+	if err != nil {
+		return err
+	}
+
+	c.Writef("Running hooks: <system>before-promote</system>\n")
+
+	for _, s := range m.Services {
+		if s.Hooks.BeforePromote != "" {
+			opts := structs.ProcessRunOptions{
+				Command: options.String(s.Hooks.BeforePromote),
+				Release: options.String(id),
+			}
+
+			c.Writef("<service>%s</service>: <command>%s</command>\n", s.Name, s.Hooks.BeforePromote)
+
+			code, err := runAttached(c, rack, app, s.Name, opts, 3600)
+			if err != nil {
+				return err
+			}
+
+			if code > 0 {
+				return fmt.Errorf("exit %d", code)
+			}
+
+			c.OK()
+		}
+	}
+
 	c.Startf("Promoting <release>%s</release>", id)
 
 	if err := rack.ReleasePromote(app, id, structs.ReleasePromoteOptions{}); err != nil {
 		return err
 	}
 
-	if c.Bool("wait") {
-		if err := waitForAppWithLogs(rack, c, app); err != nil {
-			return err
+	if err := waitForAppWithLogs(rack, c, app); err != nil {
+		return err
+	}
+
+	c.OK()
+
+	c.Writef("Running hooks: <system>after-promote</system>\n")
+
+	for _, s := range m.Services {
+		if s.Hooks.AfterPromote != "" {
+			opts := structs.ProcessRunOptions{
+				Command: options.String(s.Hooks.AfterPromote),
+				Release: options.String(id),
+			}
+
+			c.Writef("<service>%s</service>: <command>%s</command>\n", s.Name, s.Hooks.AfterPromote)
+
+			code, err := runAttached(c, rack, app, s.Name, opts, 3600)
+			if err != nil {
+				return err
+			}
+
+			if code > 0 {
+				c.Writef("<error>exit %d</error>\n", code)
+
+				c.Startf("Rolling back to <release>%s</release>", a.Release)
+
+				if err := rack.ReleasePromote(app, id, structs.ReleasePromoteOptions{}); err != nil {
+					return err
+				}
+
+				if err := waitForAppWithLogs(rack, c, app); err != nil {
+					return err
+				}
+
+				c.OK()
+
+				return fmt.Errorf("hook failure on service %s", s.Name)
+			}
+
+			c.OK()
 		}
 	}
 
-	return c.OK()
+	return nil
 }
 
 func ReleasesRollback(rack sdk.Interface, c *stdcli.Context) error {
@@ -192,21 +259,13 @@ func ReleasesRollback(rack sdk.Interface, c *stdcli.Context) error {
 
 	c.OK(rn.Id)
 
-	c.Startf("Promoting <release>%s</release>", rn.Id)
-
-	if err := rack.ReleasePromote(app(c), rn.Id, structs.ReleasePromoteOptions{}); err != nil {
+	if err := releasePromote(rack, c, app(c), rn.Id); err != nil {
 		return err
-	}
-
-	if c.Bool("wait") {
-		if err := waitForAppWithLogs(rack, c, app(c)); err != nil {
-			return err
-		}
 	}
 
 	if c.Bool("id") {
 		fmt.Fprintf(stdout, rn.Id)
 	}
 
-	return c.OK()
+	return nil
 }

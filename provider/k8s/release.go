@@ -86,6 +86,29 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 		return err
 	}
 
+	// if helpers.DefaultBool(opts.Hooks, true) {
+	//   for _, s := range m.Services {
+	//     if s.Hooks.BeforePromote != "" {
+	//       ps, err := p.ProcessRun(app, s.Name, structs.ProcessRunOptions{
+	//         Command: options.String(s.Hooks.BeforePromote),
+	//         Release: options.String(id),
+	//       })
+	//       if err != nil {
+	//         return fmt.Errorf("before-promote hook for service %s failed: %s", s.Name, err)
+	//       }
+
+	//       code, err := p.ProcessWait(app, ps.Id)
+	//       if err != nil {
+	//         return fmt.Errorf("before-promote hook for service %s failed: %s", s.Name, err)
+	//       }
+
+	//       if code > 0 {
+	//         return fmt.Errorf("before-promote hook for service %s failed: exit %d", s.Name, code)
+	//       }
+	//     }
+	//   }
+	// }
+
 	e := structs.Environment{}
 	e.Load([]byte(r.Env))
 

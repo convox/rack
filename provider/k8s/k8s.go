@@ -24,17 +24,18 @@ type Engine interface {
 }
 
 type Provider struct {
-	Config   *rest.Config
-	Cluster  kubernetes.Interface
-	ID       string
-	Image    string
-	Engine   Engine
-	Metrics  metrics.Interface
-	Password string
-	Provider string
-	Rack     string
-	Storage  string
-	Version  string
+	Config      *rest.Config
+	Cluster     kubernetes.Interface
+	Development bool
+	ID          string
+	Image       string
+	Engine      Engine
+	Metrics     metrics.Interface
+	Password    string
+	Provider    string
+	Rack        string
+	Storage     string
+	Version     string
 
 	logger    *logger.Logger
 	templater *templater.Templater
@@ -48,14 +49,15 @@ func FromEnv() (*Provider, error) {
 	runtime.ErrorHandlers = []func(error){}
 
 	p := &Provider{
-		ID:       os.Getenv("ID"),
-		Image:    os.Getenv("IMAGE"),
-		Password: os.Getenv("PASSWORD"),
-		Provider: os.Getenv("PROVIDER"),
-		Rack:     os.Getenv("RACK"),
-		Storage:  os.Getenv("STORAGE"),
-		Version:  os.Getenv("VERSION"),
-		logger:   logger.Discard,
+		Development: os.Getenv("DEVELOPMENT") == "true",
+		ID:          os.Getenv("ID"),
+		Image:       os.Getenv("IMAGE"),
+		Password:    os.Getenv("PASSWORD"),
+		Provider:    os.Getenv("PROVIDER"),
+		Rack:        os.Getenv("RACK"),
+		Storage:     os.Getenv("STORAGE"),
+		Version:     os.Getenv("VERSION"),
+		logger:      logger.Discard,
 	}
 
 	if cfg, err := rest.InClusterConfig(); err == nil {
@@ -103,8 +105,10 @@ func (p *Provider) Apply(data []byte, prune string) ([]byte, error) {
 func (p *Provider) Initialize(opts structs.ProviderOptions) error {
 	log := p.logger.At("Initialize")
 
-	if err := p.systemUpdate(p.Version); err != nil {
-		return log.Error(err)
+	if !p.Development {
+		if err := p.systemUpdate(p.Version); err != nil {
+			return log.Error(err)
+		}
 	}
 
 	pc, err := NewPodController(p)

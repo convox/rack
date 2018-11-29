@@ -65,7 +65,7 @@ func copySystemLogs(ctx context.Context, w io.Writer, r io.Reader) {
 			continue
 		}
 
-		if strings.HasPrefix(parts[1], "system/aws") {
+		if strings.HasPrefix(parts[1], "system/") {
 			w.Write([]byte(fmt.Sprintf("%s\n", s.Text())))
 		}
 	}
@@ -519,7 +519,7 @@ func waitForAppWithLogs(rack sdk.Interface, c *stdcli.Context, app string) error
 	return nil
 }
 
-func waitForProcessRunning(rack sdk.Interface, c *stdcli.Context, app, pid string) error {
+func waitForProcessRunning(rack sdk.Interface, app, pid string) error {
 	return wait(1*time.Second, 5*time.Minute, 2, func() (bool, error) {
 		ps, err := rack.ProcessGet(app, pid)
 		if err != nil {

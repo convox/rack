@@ -6,12 +6,11 @@ services:
       - AWS_ACCESS_KEY_ID=
       - AWS_REGION=
       - AWS_SECRET_ACCESS_KEY=
-      - DEVELOPMENT=true
       - IMAGE=convox/rack:dev
       - PASSWORD=
       - PROVIDER
+      - STORAGE=/data
       - RACK
-      - STORAGE=/storage
       - VERSION=dev
     health:
       grace: 0
@@ -21,8 +20,8 @@ services:
     port: https:5443
     scale:
       count: 1
-      cpu: 256
+      cpu: 64
       memory: 256
     volumes:
-      - /storage
+      - /data
       - /var/run/docker.sock

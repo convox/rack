@@ -148,6 +148,7 @@ func TestReleasesRollback(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
 		i.On("ReleaseGet", "app1", "release2").Return(fxRelease2(), nil)
 		i.On("ReleaseCreate", "app1", structs.ReleaseCreateOptions{Build: options.String(fxRelease2().Build), Env: options.String(fxRelease2().Env)}).Return(fxRelease3(), nil)
+		i.On("AppGet", "app1").Return(fxApp(), nil)
 		i.On("ReleasePromote", "app1", "release3", structs.ReleasePromoteOptions{}).Return(nil)
 
 		res, err := testExecute(e, "releases rollback release2 -a app1", nil)
@@ -158,6 +159,24 @@ func TestReleasesRollback(t *testing.T) {
 			"Rolling back to release2... OK, release3",
 			"Promoting release3... OK",
 		})
+	})
+}
+
+func TestReleasesRollbackId(t *testing.T) {
+	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
+		i.On("ReleaseGet", "app1", "release2").Return(fxRelease2(), nil)
+		i.On("ReleaseCreate", "app1", structs.ReleaseCreateOptions{Build: options.String(fxRelease2().Build), Env: options.String(fxRelease2().Env)}).Return(fxRelease3(), nil)
+		i.On("AppGet", "app1").Return(fxApp(), nil)
+		i.On("ReleasePromote", "app1", "release3", structs.ReleasePromoteOptions{}).Return(nil)
+
+		res, err := testExecute(e, "releases rollback release2 -a app1 --id", nil)
+		require.NoError(t, err)
+		require.Equal(t, 0, res.Code)
+		res.RequireStderr(t, []string{
+			"Rolling back to release2... OK, release3",
+			"Promoting release3... OK",
+		})
+		res.RequireStdout(t, []string{"release3"})
 	})
 }
 
@@ -178,6 +197,7 @@ func TestReleasesRollbackErrorPromote(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
 		i.On("ReleaseGet", "app1", "release2").Return(fxRelease2(), nil)
 		i.On("ReleaseCreate", "app1", structs.ReleaseCreateOptions{Build: options.String(fxRelease2().Build), Env: options.String(fxRelease2().Env)}).Return(fxRelease3(), nil)
+		i.On("AppGet", "app1").Return(fxApp(), nil)
 		i.On("ReleasePromote", "app1", "release3", structs.ReleasePromoteOptions{}).Return(fmt.Errorf("err1"))
 
 		res, err := testExecute(e, "releases rollback release2 -a app1", nil)

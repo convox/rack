@@ -66,7 +66,7 @@ func Test(rack sdk.Interface, c *stdcli.Context) error {
 
 		defer rack.ProcessStop(app(c), ps.Id)
 
-		if err := waitForProcessRunning(rack, c, app(c), ps.Id); err != nil {
+		if err := waitForProcessRunning(rack, app(c), ps.Id); err != nil {
 			return err
 		}
 

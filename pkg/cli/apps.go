@@ -550,17 +550,9 @@ func appImport(rack sdk.Interface, c *stdcli.Context, app string, r io.Reader) e
 	}
 
 	if release != "" {
-		c.Startf("Promoting <release>%s</release>", release)
-
-		if err := rack.ReleasePromote(app, release, structs.ReleasePromoteOptions{}); err != nil {
+		if err := releasePromote(rack, c, app, release); err != nil {
 			return err
 		}
-
-		if err := waitForAppRunning(rack, app); err != nil {
-			return err
-		}
-
-		c.OK()
 	}
 
 	if len(a.Parameters) > 0 {
