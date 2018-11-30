@@ -28,11 +28,6 @@ func init() {
 }
 
 func Run(rack sdk.Interface, c *stdcli.Context) error {
-	// s, err := rack.SystemGet()
-	// if err != nil {
-	//   return err
-	// }
-
 	service := c.Arg(0)
 	command := strings.Join(c.Args[1:], " ")
 
@@ -47,9 +42,12 @@ func Run(rack sdk.Interface, c *stdcli.Context) error {
 	if c.Bool("detach") {
 		c.Startf("Running detached process")
 
-		if err := runDetached(rack, app(c), service, command); err != nil {
+		pid, err := runDetached(rack, app(c), service, opts)
+		if err != nil {
 			return err
 		}
+
+		return c.OK(pid)
 	}
 
 	timeout := 3600
@@ -72,67 +70,6 @@ func Run(rack sdk.Interface, c *stdcli.Context) error {
 	}
 
 	return stdcli.Exit(code)
-
-	// if s.Version <= "20180708231844" {
-	//   if c.Bool("detach") {
-	//     c.Startf("Running detached process")
-
-	//     pid, err := rack.ProcessRunDetached(app(c), service, opts)
-	//     if err != nil {
-	//       return err
-	//     }
-
-	//     return c.OK(pid)
-	//   }
-
-	//   code, err := rack.ProcessRunAttached(app(c), service, c, timeout, opts)
-	//   if err != nil {
-	//     return err
-	//   }
-
-	//   return stdcli.Exit(code)
-	// }
-
-	// if c.Bool("detach") {
-	//   c.Startf("Running detached process")
-
-	//   ps, err := rack.ProcessRun(app(c), service, opts)
-	//   if err != nil {
-	//     return err
-	//   }
-
-	//   return c.OK(ps.Id)
-	// }
-
-	// opts.Command = options.String(fmt.Sprintf("sleep %d", timeout))
-
-	// ps, err := rack.ProcessRun(app(c), c.Arg(0), opts)
-	// if err != nil {
-	//   return err
-	// }
-
-	// defer rack.ProcessStop(app(c), ps.Id)
-
-	// if err := waitForProcessRunning(rack, c, app(c), ps.Id); err != nil {
-	//   return err
-	// }
-
-	// eopts := structs.ProcessExecOptions{
-	//   Entrypoint: options.Bool(true),
-	//   Height:     opts.Height,
-	//   Width:      opts.Width,
-	// }
-
-	// if !stdcli.IsTerminal(os.Stdin) {
-	//   eopts.Tty = options.Bool(false)
-	// }
-
-	// code, err := rack.ProcessExec(app(c), ps.Id, command, c, eopts)
-	// if err != nil {
-	//   return err
-	// }
-
-	// return stdcli.Exit(code)
 }
 
 func runAttached(rw io.ReadWriter, rack sdk.Interface, app, service string, opts structs.ProcessRunOptions, timeout int) (int, error) {
@@ -173,6 +110,20 @@ func runAttached(rw io.ReadWriter, rack sdk.Interface, app, service string, opts
 	return rack.ProcessExec(app, ps.Id, command, rw, eopts)
 }
 
-func runDetached(rack sdk.Interface, app, service, command string) error {
-	return nil
+func runDetached(rack sdk.Interface, app, service string, opts structs.ProcessRunOptions) (string, error) {
+	s, err := rack.SystemGet()
+	if err != nil {
+		return "", err
+	}
+
+	if s.Version <= "20180708231844" {
+		return rack.ProcessRunDetached(app, service, opts)
+	}
+
+	ps, err := rack.ProcessRun(app, service, opts)
+	if err != nil {
+		return "", err
+	}
+
+	return ps.Id, nil
 }

@@ -152,7 +152,7 @@ func (s *Start) Start2(ctx context.Context, w io.Writer, opts Options2) error {
 
 		ho := pw.Writer("hooks")
 
-		fmt.Fprintf(ho, "Running before-promote\n")
+		fmt.Fprintf(ho, "running before-promote\n")
 
 		for _, s := range m.Services {
 			if s.Hooks.BeforePromote != "" {
@@ -167,13 +167,13 @@ func (s *Start) Start2(ctx context.Context, w io.Writer, opts Options2) error {
 			Min:         options.Int(0),
 		}
 
-		pw.Writef("convox", "Promoting release\n")
+		pw.Writef("convox", "promoting release\n")
 
 		if err := opts.Provider.ReleasePromote(opts.App, b.Release, popts); err != nil {
 			return err
 		}
 
-		fmt.Fprintf(ho, "Running after-promote\n")
+		fmt.Fprintf(ho, "running after-promote\n")
 
 		for _, s := range m.Services {
 			if s.Hooks.AfterPromote != "" {

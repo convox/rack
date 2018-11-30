@@ -249,8 +249,8 @@ func TestAppsExport(t *testing.T) {
 func TestAppsImport(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
 		i.On("AppCreate", "app1", structs.AppCreateOptions{Generation: options.String("2")}).Return(fxApp(), nil)
-		i.On("AppGet", "app1").Return(&structs.App{Status: "creating"}, nil).Twice()
-		i.On("AppGet", "app1").Return(fxApp(), nil).Twice()
+		i.On("AppGet", "app1").Return(&structs.App{Status: "creating"}, nil).Once()
+		i.On("AppGet", "app1").Return(fxApp(), nil).Once()
 		bdata, err := ioutil.ReadFile("testdata/build.tgz")
 		require.NoError(t, err)
 		i.On("BuildImport", "app1", mock.Anything).Return(fxBuild(), nil).Run(func(args mock.Arguments) {
@@ -259,11 +259,14 @@ func TestAppsImport(t *testing.T) {
 			require.Equal(t, bdata, rdata)
 		})
 		i.On("ReleaseCreate", "app1", structs.ReleaseCreateOptions{Env: options.String("ALPHA=one\nBRAVO=two\n")}).Return(fxRelease(), nil)
+		i.On("AppGet", "app1").Return(fxApp(), nil).Twice()
+		i.On("ReleaseGet", "app1", "release1").Return(fxRelease(), nil).Once()
 		i.On("ReleasePromote", "app1", "release1", structs.ReleasePromoteOptions{}).Return(nil)
-		i.On("AppGet", "app1").Return(&structs.App{Status: "creating"}, nil).Twice()
+		i.On("AppLogs", "app1", structs.LogsOptions{Prefix: options.Bool(true), Since: options.Duration(1)}).Return(testLogs(fxLogsSystem()), nil).Once()
+		i.On("AppGet", "app1").Return(&structs.App{Status: "creating"}, nil).Once()
 		i.On("AppGet", "app1").Return(fxApp(), nil).Twice()
 		i.On("AppUpdate", "app1", structs.AppUpdateOptions{Parameters: map[string]string{"Foo": "bar", "Baz": "qux"}}).Return(nil)
-		i.On("AppGet", "app1").Return(&structs.App{Status: "creating"}, nil).Twice()
+		i.On("AppGet", "app1").Return(&structs.App{Status: "creating"}, nil).Once()
 		i.On("AppGet", "app1").Return(fxApp(), nil).Twice()
 
 		res, err := testExecute(e, "apps import -a app1 -f testdata/app.tgz", nil)
@@ -274,8 +277,12 @@ func TestAppsImport(t *testing.T) {
 			"Creating app app1... OK",
 			"Importing build... OK, release1",
 			"Importing env... OK, release1",
-			"Waiting for app to be ready... OK",
-			"Promoting release1... OK",
+			"Running hooks: before-promote",
+			"Promoting release1... ",
+			"TIME system/service/component log1",
+			"TIME system/service/component log2",
+			"OK",
+			"Running hooks: after-promote",
 			"Updating parameters... OK",
 		})
 	})
@@ -314,7 +321,10 @@ func TestAppsImportNoParams(t *testing.T) {
 			require.Equal(t, bdata, rdata)
 		})
 		i.On("ReleaseCreate", "app1", structs.ReleaseCreateOptions{Env: options.String("ALPHA=one\nBRAVO=two\n")}).Return(fxRelease(), nil)
+		i.On("AppGet", "app1").Return(fxApp(), nil).Twice()
+		i.On("ReleaseGet", "app1", "release1").Return(fxRelease(), nil).Once()
 		i.On("ReleasePromote", "app1", "release1", structs.ReleasePromoteOptions{}).Return(nil)
+		i.On("AppLogs", "app1", structs.LogsOptions{Prefix: options.Bool(true), Since: options.Duration(1)}).Return(testLogs(fxLogsSystem()), nil).Once()
 		i.On("AppGet", "app1").Return(&structs.App{Status: "creating"}, nil).Twice()
 		i.On("AppGet", "app1").Return(fxApp(), nil).Twice()
 
@@ -326,8 +336,12 @@ func TestAppsImportNoParams(t *testing.T) {
 			"Creating app app1... OK",
 			"Importing build... OK, release1",
 			"Importing env... OK, release1",
-			"Waiting for app to be ready... OK",
-			"Promoting release1... OK",
+			"Running hooks: before-promote",
+			"Promoting release1... ",
+			"TIME system/service/component log1",
+			"TIME system/service/component log2",
+			"OK",
+			"Running hooks: after-promote",
 		})
 	})
 }
@@ -344,7 +358,10 @@ func TestAppsImportSameParams(t *testing.T) {
 			require.Equal(t, bdata, rdata)
 		})
 		i.On("ReleaseCreate", "app1", structs.ReleaseCreateOptions{Env: options.String("ALPHA=one\nBRAVO=two\n")}).Return(fxRelease(), nil)
+		i.On("AppGet", "app1").Return(fxApp(), nil).Twice()
+		i.On("ReleaseGet", "app1", "release1").Return(fxRelease(), nil).Once()
 		i.On("ReleasePromote", "app1", "release1", structs.ReleasePromoteOptions{}).Return(nil)
+		i.On("AppLogs", "app1", structs.LogsOptions{Prefix: options.Bool(true), Since: options.Duration(1)}).Return(testLogs(fxLogsSystem()), nil).Once()
 		i.On("AppGet", "app1").Return(fxApp(), nil).Twice()
 
 		res, err := testExecute(e, "apps import -a app1 -f testdata/app.sameparams.tgz", nil)
@@ -355,7 +372,12 @@ func TestAppsImportSameParams(t *testing.T) {
 			"Creating app app1... OK",
 			"Importing build... OK, release1",
 			"Importing env... OK, release1",
-			"Promoting release1... OK",
+			"Running hooks: before-promote",
+			"Promoting release1... ",
+			"TIME system/service/component log1",
+			"TIME system/service/component log2",
+			"OK",
+			"Running hooks: after-promote",
 		})
 	})
 }

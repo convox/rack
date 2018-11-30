@@ -516,6 +516,8 @@ func waitForAppWithLogs(rack sdk.Interface, c *stdcli.Context, app string) error
 		return err
 	}
 
+	time.Sleep(500 * time.Millisecond)
+
 	return nil
 }
 

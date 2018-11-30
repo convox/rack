@@ -104,26 +104,39 @@ func TestReleasesManifestError(t *testing.T) {
 func TestReleasesPromote(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
 		i.On("AppGet", "app1").Return(fxApp(), nil)
+		i.On("ReleaseGet", "app1", "release1").Return(fxRelease(), nil).Once()
 		i.On("ReleasePromote", "app1", "release1", structs.ReleasePromoteOptions{}).Return(nil)
+		i.On("AppLogs", "app1", structs.LogsOptions{Prefix: options.Bool(true), Since: options.Duration(1)}).Return(testLogs(fxLogsSystem()), nil).Once()
 
 		res, err := testExecute(e, "releases promote release1 -a app1", nil)
 		require.NoError(t, err)
 		require.Equal(t, 0, res.Code)
 		res.RequireStderr(t, []string{""})
-		res.RequireStdout(t, []string{"Promoting release1... OK"})
+		res.RequireStdout(t, []string{
+			"Running hooks: before-promote",
+			"Promoting release1... ",
+			"TIME system/service/component log1",
+			"TIME system/service/component log2",
+			"OK",
+			"Running hooks: after-promote",
+		})
 	})
 }
 
 func TestReleasesPromoteError(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
 		i.On("AppGet", "app1").Return(fxApp(), nil)
+		i.On("ReleaseGet", "app1", "release1").Return(fxRelease(), nil).Once()
 		i.On("ReleasePromote", "app1", "release1", structs.ReleasePromoteOptions{}).Return(fmt.Errorf("err1"))
 
 		res, err := testExecute(e, "releases promote release1 -a app1", nil)
 		require.NoError(t, err)
 		require.Equal(t, 1, res.Code)
 		res.RequireStderr(t, []string{"ERROR: err1"})
-		res.RequireStdout(t, []string{"Promoting release1... "})
+		res.RequireStdout(t, []string{
+			"Running hooks: before-promote",
+			"Promoting release1... ",
+		})
 	})
 }
 
@@ -131,7 +144,9 @@ func TestReleasesPromoteAlreadyUpdating(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
 		i.On("AppGet", "app1").Return(fxAppUpdating(), nil).Twice()
 		i.On("AppGet", "app1").Return(fxApp(), nil)
+		i.On("ReleaseGet", "app1", "release1").Return(fxRelease(), nil).Once()
 		i.On("ReleasePromote", "app1", "release1", structs.ReleasePromoteOptions{}).Return(nil)
+		i.On("AppLogs", "app1", structs.LogsOptions{Prefix: options.Bool(true), Since: options.Duration(1)}).Return(testLogs(fxLogsSystem()), nil).Once()
 
 		res, err := testExecute(e, "releases promote release1 -a app1", nil)
 		require.NoError(t, err)
@@ -139,17 +154,24 @@ func TestReleasesPromoteAlreadyUpdating(t *testing.T) {
 		res.RequireStderr(t, []string{""})
 		res.RequireStdout(t, []string{
 			"Waiting for app to be ready... OK",
-			"Promoting release1... OK",
+			"Running hooks: before-promote",
+			"Promoting release1... ",
+			"TIME system/service/component log1",
+			"TIME system/service/component log2",
+			"OK",
+			"Running hooks: after-promote",
 		})
 	})
 }
 
 func TestReleasesRollback(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("ReleaseGet", "app1", "release2").Return(fxRelease2(), nil)
+		i.On("ReleaseGet", "app1", "release2").Return(fxRelease2(), nil).Once()
 		i.On("ReleaseCreate", "app1", structs.ReleaseCreateOptions{Build: options.String(fxRelease2().Build), Env: options.String(fxRelease2().Env)}).Return(fxRelease3(), nil)
 		i.On("AppGet", "app1").Return(fxApp(), nil)
+		i.On("ReleaseGet", "app1", "release3").Return(fxRelease(), nil).Once()
 		i.On("ReleasePromote", "app1", "release3", structs.ReleasePromoteOptions{}).Return(nil)
+		i.On("AppLogs", "app1", structs.LogsOptions{Prefix: options.Bool(true), Since: options.Duration(1)}).Return(testLogs(fxLogsSystem()), nil).Once()
 
 		res, err := testExecute(e, "releases rollback release2 -a app1", nil)
 		require.NoError(t, err)
@@ -157,7 +179,12 @@ func TestReleasesRollback(t *testing.T) {
 		res.RequireStderr(t, []string{""})
 		res.RequireStdout(t, []string{
 			"Rolling back to release2... OK, release3",
-			"Promoting release3... OK",
+			"Running hooks: before-promote",
+			"Promoting release3... ",
+			"TIME system/service/component log1",
+			"TIME system/service/component log2",
+			"OK",
+			"Running hooks: after-promote",
 		})
 	})
 }
@@ -167,14 +194,21 @@ func TestReleasesRollbackId(t *testing.T) {
 		i.On("ReleaseGet", "app1", "release2").Return(fxRelease2(), nil)
 		i.On("ReleaseCreate", "app1", structs.ReleaseCreateOptions{Build: options.String(fxRelease2().Build), Env: options.String(fxRelease2().Env)}).Return(fxRelease3(), nil)
 		i.On("AppGet", "app1").Return(fxApp(), nil)
+		i.On("ReleaseGet", "app1", "release3").Return(fxRelease(), nil).Once()
 		i.On("ReleasePromote", "app1", "release3", structs.ReleasePromoteOptions{}).Return(nil)
+		i.On("AppLogs", "app1", structs.LogsOptions{Prefix: options.Bool(true), Since: options.Duration(1)}).Return(testLogs(fxLogsSystem()), nil).Once()
 
 		res, err := testExecute(e, "releases rollback release2 -a app1 --id", nil)
 		require.NoError(t, err)
 		require.Equal(t, 0, res.Code)
 		res.RequireStderr(t, []string{
 			"Rolling back to release2... OK, release3",
-			"Promoting release3... OK",
+			"Running hooks: before-promote",
+			"Promoting release3... ",
+			"TIME system/service/component log1",
+			"TIME system/service/component log2",
+			"OK",
+			"Running hooks: after-promote",
 		})
 		res.RequireStdout(t, []string{"release3"})
 	})
@@ -198,6 +232,7 @@ func TestReleasesRollbackErrorPromote(t *testing.T) {
 		i.On("ReleaseGet", "app1", "release2").Return(fxRelease2(), nil)
 		i.On("ReleaseCreate", "app1", structs.ReleaseCreateOptions{Build: options.String(fxRelease2().Build), Env: options.String(fxRelease2().Env)}).Return(fxRelease3(), nil)
 		i.On("AppGet", "app1").Return(fxApp(), nil)
+		i.On("ReleaseGet", "app1", "release3").Return(fxRelease(), nil).Once()
 		i.On("ReleasePromote", "app1", "release3", structs.ReleasePromoteOptions{}).Return(fmt.Errorf("err1"))
 
 		res, err := testExecute(e, "releases rollback release2 -a app1", nil)
@@ -206,6 +241,7 @@ func TestReleasesRollbackErrorPromote(t *testing.T) {
 		res.RequireStderr(t, []string{"ERROR: err1"})
 		res.RequireStdout(t, []string{
 			"Rolling back to release2... OK, release3",
+			"Running hooks: before-promote",
 			"Promoting release3... ",
 		})
 	})
