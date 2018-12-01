@@ -170,7 +170,7 @@ func (p *Provider) Initialize(opts structs.ProviderOptions) error {
 		Logger = logger.NewWriter("ns=aws", opts.Logs)
 	}
 
-	if os.Getenv("COMBINED") == "true" {
+	if p.Development {
 		go p.Workers()
 	}
 
