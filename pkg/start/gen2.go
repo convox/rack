@@ -328,6 +328,9 @@ func (opts Options2) healthCheck(ctx context.Context, pw prefix.Writer, s manife
 		},
 	}
 
+	// previous status code
+	var ps int
+
 	for {
 		select {
 		case <-ctx.Done():
@@ -338,13 +341,12 @@ func (opts Options2) healthCheck(ctx context.Context, pw prefix.Writer, s manife
 				pw.Writef("convox", "health check <service>%s</service>: <fail>%s</fail>\n", s.Name, err.Error())
 				continue
 			}
-
 			if res.StatusCode < 200 || res.StatusCode > 399 {
 				pw.Writef("convox", "health check <service>%s</service>: <fail>%d</fail>\n", s.Name, res.StatusCode)
-				continue
+			} else if res.StatusCode != ps {
+				pw.Writef("convox", "health check <service>%s</service>: <ok>%d</ok>\n", s.Name, res.StatusCode)
 			}
-
-			pw.Writef("convox", "health check <service>%s</service>: <ok>%d</ok>\n", s.Name, res.StatusCode)
+			ps = res.StatusCode
 		}
 	}
 }
