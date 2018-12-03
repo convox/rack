@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"context"
 	"io/ioutil"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"strings"
 	"testing"
@@ -128,6 +130,84 @@ func TestStart2Options(t *testing.T) {
 			"<system>convox</system> | starting health check for <service>web</service> on path <setting>/</setting> with <setting>5</setting>s interval, <setting>5</setting>s grace",
 			"<color3>web   </color3> | log1",
 			"<color3>web   </color3> | log2",
+			"<system>convox</system> | stopping process1",
+			"<system>convox</system> | stopping process2",
+		},
+		strings.Split(strings.TrimSuffix(buf.String(), "\n"), "\n"),
+	)
+}
+
+func TestStart2Health(t *testing.T) {
+	p := &structs.MockProvider{}
+
+	// a server which responds with:
+	// 503, 200, 200, 500, 500, 200, 200...
+	n := 0
+	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if n < 1 {
+			w.WriteHeader(503)
+		} else if n >= 3 && n < 5 {
+			w.WriteHeader(500)
+		} else {
+			w.WriteHeader(200)
+		}
+		n++
+	}))
+	defer server.Close()
+
+	logs := "0000-00-00 00:00:00 service/web/pid1 log1\n0000-00-00 00:00:00 service/web/pid1 log2\n"
+
+	p.On("AppGet", "app1").Return(&structs.App{Name: "app1", Generation: "2"}, nil)
+	p.On("ReleaseList", "app1", structs.ReleaseListOptions{Limit: options.Int(1)}).Return(structs.Releases{{Id: "release1"}}, nil)
+	p.On("ReleaseGet", "app1", "release1").Return(&structs.Release{}, nil)
+	p.On("AppLogs", "app1", structs.LogsOptions{Prefix: options.Bool(true), Since: options.Duration(1 * time.Second)}).Return(ioutil.NopCloser(strings.NewReader(logs)), nil)
+	p.On("ServiceList", "app1").Return(structs.Services{{Name: "web", Domain: server.Listener.Addr().String()}}, nil)
+	p.On("ProcessList", "app1", structs.ProcessListOptions{}).Return(structs.Processes{{Id: "process1"}, {Id: "process2"}}, nil)
+	p.On("ProcessStop", "app1", "process1").Return(nil)
+	p.On("ProcessStop", "app1", "process2").Return(nil)
+
+	e := &exec.MockInterface{}
+	start.Exec = e
+
+	e.On("Execute", "docker", "inspect", "httpd", "--format", "{{json .Config.Env}}").Return([]byte(`["FOO=bar","BAZ=qux"]`), nil)
+	e.On("Execute", "docker", "inspect", "httpd", "--format", "{{.Config.WorkingDir}}").Return([]byte(`/app/foo`), nil)
+
+	cwd, err := os.Getwd()
+	require.NoError(t, err)
+	os.Chdir("testdata/httpd")
+	defer os.Chdir(cwd)
+
+	s := start.New()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 9*time.Second)
+	defer cancel()
+
+	buf := bytes.Buffer{}
+
+	opts := start.Options2{
+		App:      "app1",
+		Provider: p,
+		Manifest: "convox3.yml",
+	}
+
+	err = s.Start2(ctx, &buf, opts)
+	require.NoError(t, err)
+
+	// less than 6 checks would mean we don't test properly
+	if n < 6 {
+		require.Fail(t, "expected at least 6 healthchecks")
+	}
+
+	require.Equal(t,
+		[]string{
+			"<system>convox</system> | starting health check for <service>web</service> on path <setting>/</setting> with <setting>1</setting>s interval, <setting>1</setting>s grace",
+			"<color3>web   </color3> | log1",
+			"<color3>web   </color3> | log2",
+			"<system>convox</system> | health check <service>web</service>: <fail>503</fail>",
+			"<system>convox</system> | health check <service>web</service>: <ok>200</ok>",
+			"<system>convox</system> | health check <service>web</service>: <fail>500</fail>",
+			"<system>convox</system> | health check <service>web</service>: <fail>500</fail>",
+			"<system>convox</system> | health check <service>web</service>: <ok>200</ok>",
 			"<system>convox</system> | stopping process1",
 			"<system>convox</system> | stopping process2",
 		},
