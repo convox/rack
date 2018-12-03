@@ -4,8 +4,6 @@ import (
 	"bytes"
 	"context"
 	"io/ioutil"
-	"net/http"
-	"net/http/httptest"
 	"os"
 	"strings"
 	"testing"
@@ -22,13 +20,18 @@ import (
 func TestStart2(t *testing.T) {
 	p := &structs.MockProvider{}
 
+	mhc := mockHealthCheck(func(n int) int {
+		return 200
+	})
+	defer mhc.Close()
+
 	logs := "0000-00-00 00:00:00 service/web/pid1 log1\n0000-00-00 00:00:00 service/web/pid1 log2\n"
 
 	p.On("AppGet", "app1").Return(&structs.App{Name: "app1", Generation: "2"}, nil)
 	p.On("ReleaseList", "app1", structs.ReleaseListOptions{Limit: options.Int(1)}).Return(structs.Releases{{Id: "release1"}}, nil)
 	p.On("ReleaseGet", "app1", "release1").Return(&structs.Release{}, nil)
 	p.On("AppLogs", "app1", structs.LogsOptions{Prefix: options.Bool(true), Since: options.Duration(1 * time.Second)}).Return(ioutil.NopCloser(strings.NewReader(logs)), nil)
-	p.On("ServiceList", "app1").Return(structs.Services{{Name: "web", Domain: "foo"}}, nil)
+	p.On("ServiceList", "app1").Return(structs.Services{{Name: "web", Domain: mhc.Listener.Addr().String()}}, nil)
 	p.On("ProcessList", "app1", structs.ProcessListOptions{}).Return(structs.Processes{{Id: "process1"}, {Id: "process2"}}, nil)
 	p.On("ProcessStop", "app1", "process1").Return(nil)
 	p.On("ProcessStop", "app1", "process2").Return(nil)
@@ -54,6 +57,7 @@ func TestStart2(t *testing.T) {
 	opts := start.Options2{
 		App:      "app1",
 		Provider: p,
+		Test:     true,
 	}
 
 	err = s.Start2(ctx, &buf, opts)
@@ -64,6 +68,7 @@ func TestStart2(t *testing.T) {
 			"<system>convox</system> | starting health check for <service>web</service> on path <setting>/</setting> with <setting>5</setting>s interval, <setting>5</setting>s grace",
 			"<color3>web   </color3> | log1",
 			"<color3>web   </color3> | log2",
+			"<system>convox</system> | health check <service>web</service>: <ok>200</ok>",
 			"<system>convox</system> | stopping process1",
 			"<system>convox</system> | stopping process2",
 		},
@@ -73,6 +78,11 @@ func TestStart2(t *testing.T) {
 
 func TestStart2Options(t *testing.T) {
 	p := &structs.MockProvider{}
+
+	mhc := mockHealthCheck(func(n int) int {
+		return 200
+	})
+	defer mhc.Close()
 
 	appLogs := "0000-00-00 00:00:00 service/web/pid1 log1\n0000-00-00 00:00:00 service/web/pid1 log2\n"
 	buildLogs := "build1\nbuild2\n"
@@ -85,7 +95,7 @@ func TestStart2Options(t *testing.T) {
 	p.On("BuildLogs", "app1", "build1", structs.LogsOptions{}).Return(ioutil.NopCloser(strings.NewReader(buildLogs)), nil)
 	p.On("BuildGet", "app1", "build1").Return(&structs.Build{Id: "build1", Release: "release1", Status: "complete"}, nil)
 	p.On("ReleasePromote", "app1", "release1").Return(nil)
-	p.On("ServiceList", "app1").Return(structs.Services{{Name: "web", Domain: "foo"}}, nil)
+	p.On("ServiceList", "app1").Return(structs.Services{{Name: "web", Domain: mhc.Listener.Addr().String()}}, nil)
 	p.On("AppLogs", "app1", structs.LogsOptions{Prefix: options.Bool(true), Since: options.Duration(1 * time.Second)}).Return(ioutil.NopCloser(strings.NewReader(appLogs)), nil)
 	p.On("ProcessList", "app1", structs.ProcessListOptions{}).Return(structs.Processes{{Id: "process1"}, {Id: "process2"}}, nil)
 	p.On("ProcessStop", "app1", "process1").Return(nil)
@@ -116,6 +126,7 @@ func TestStart2Options(t *testing.T) {
 		Manifest: "convox2.yml",
 		Provider: p,
 		Sync:     true,
+		Test:     true,
 	}
 
 	err = s.Start2(ctx, &buf, opts)
@@ -130,6 +141,7 @@ func TestStart2Options(t *testing.T) {
 			"<system>convox</system> | starting health check for <service>web</service> on path <setting>/</setting> with <setting>5</setting>s interval, <setting>5</setting>s grace",
 			"<color3>web   </color3> | log1",
 			"<color3>web   </color3> | log2",
+			"<system>convox</system> | health check <service>web</service>: <ok>200</ok>",
 			"<system>convox</system> | stopping process1",
 			"<system>convox</system> | stopping process2",
 		},
@@ -140,20 +152,17 @@ func TestStart2Options(t *testing.T) {
 func TestStart2Health(t *testing.T) {
 	p := &structs.MockProvider{}
 
-	// a server which responds with:
 	// 503, 200, 200, 500, 500, 200, 200...
-	n := 0
-	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	mhc := mockHealthCheck(func(n int) int {
 		if n < 1 {
-			w.WriteHeader(503)
+			return 503
 		} else if n >= 3 && n < 5 {
-			w.WriteHeader(500)
+			return 500
 		} else {
-			w.WriteHeader(200)
+			return 200
 		}
-		n++
-	}))
-	defer server.Close()
+	})
+	defer mhc.Close()
 
 	logs := "0000-00-00 00:00:00 service/web/pid1 log1\n0000-00-00 00:00:00 service/web/pid1 log2\n"
 
@@ -161,7 +170,7 @@ func TestStart2Health(t *testing.T) {
 	p.On("ReleaseList", "app1", structs.ReleaseListOptions{Limit: options.Int(1)}).Return(structs.Releases{{Id: "release1"}}, nil)
 	p.On("ReleaseGet", "app1", "release1").Return(&structs.Release{}, nil)
 	p.On("AppLogs", "app1", structs.LogsOptions{Prefix: options.Bool(true), Since: options.Duration(1 * time.Second)}).Return(ioutil.NopCloser(strings.NewReader(logs)), nil)
-	p.On("ServiceList", "app1").Return(structs.Services{{Name: "web", Domain: server.Listener.Addr().String()}}, nil)
+	p.On("ServiceList", "app1").Return(structs.Services{{Name: "web", Domain: mhc.Listener.Addr().String()}}, nil)
 	p.On("ProcessList", "app1", structs.ProcessListOptions{}).Return(structs.Processes{{Id: "process1"}, {Id: "process2"}}, nil)
 	p.On("ProcessStop", "app1", "process1").Return(nil)
 	p.On("ProcessStop", "app1", "process2").Return(nil)
@@ -179,7 +188,7 @@ func TestStart2Health(t *testing.T) {
 
 	s := start.New()
 
-	ctx, cancel := context.WithTimeout(context.Background(), 9*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
 	buf := bytes.Buffer{}
@@ -187,20 +196,20 @@ func TestStart2Health(t *testing.T) {
 	opts := start.Options2{
 		App:      "app1",
 		Provider: p,
-		Manifest: "convox3.yml",
+		Test:     true,
 	}
 
 	err = s.Start2(ctx, &buf, opts)
 	require.NoError(t, err)
 
 	// less than 6 checks would mean we don't test properly
-	if n < 6 {
+	if mhc.Count() < 6 {
 		require.Fail(t, "expected at least 6 healthchecks")
 	}
 
 	require.Equal(t,
 		[]string{
-			"<system>convox</system> | starting health check for <service>web</service> on path <setting>/</setting> with <setting>1</setting>s interval, <setting>1</setting>s grace",
+			"<system>convox</system> | starting health check for <service>web</service> on path <setting>/</setting> with <setting>5</setting>s interval, <setting>5</setting>s grace",
 			"<color3>web   </color3> | log1",
 			"<color3>web   </color3> | log2",
 			"<system>convox</system> | health check <service>web</service>: <fail>503</fail>",
