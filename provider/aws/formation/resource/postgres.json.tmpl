@@ -5,10 +5,6 @@
     "Version9": { "Fn::Equals": [ { "Fn::Select": [ 0, { "Fn::Split": [ ".", { "Ref": "Version" } ] } ] }, "9" ] }
   },
   "Parameters": {
-    "BackupRetentionPeriod": {
-      "Type": "String",
-      "Default": "1"
-    },
     "Class": {
       "Type": "String",
       "Default": "db.t2.micro"
@@ -82,7 +78,7 @@
       "DeletionPolicy": "Snapshot",
       "Properties": {
         "AllocatedStorage": { "Ref": "Storage" },
-        "BackupRetentionPeriod": { "Ref": "BackupRetentionPeriod" }
+        "BackupRetentionPeriod": "30"
         "DBInstanceClass": { "Ref": "Class" },
         "DBInstanceIdentifier": { "Ref": "AWS::StackName" },
         "DBName": { "Ref": "Database" },
