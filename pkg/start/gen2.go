@@ -41,6 +41,7 @@ type Options2 struct {
 	Provider structs.Provider
 	Services []string
 	Sync     bool
+	Test     bool
 }
 
 type buildSource struct {
@@ -315,9 +316,17 @@ func (opts Options2) healthCheck(ctx context.Context, pw prefix.Writer, s manife
 
 	hcu := fmt.Sprintf("https://%s%s", hostname, s.Health.Path)
 
-	time.Sleep(time.Duration(s.Health.Grace) * time.Second)
+	grace := time.Duration(s.Health.Grace) * time.Second
+	interval := time.Duration(s.Health.Interval) * time.Second
 
-	tick := time.Tick(time.Duration(s.Health.Interval) * time.Second)
+	if opts.Test {
+		grace = 5 * time.Millisecond
+		interval = 5 * time.Millisecond
+	}
+
+	time.Sleep(grace)
+
+	tick := time.Tick(interval)
 
 	c := &http.Client{
 		Timeout: time.Duration(s.Health.Timeout) * time.Second,
