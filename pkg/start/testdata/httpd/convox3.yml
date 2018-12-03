@@ -1,6 +1,0 @@
-services:
-  web:
-    build: .
-    port: 80
-    health:
-      interval: 1
