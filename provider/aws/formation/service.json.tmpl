@@ -456,6 +456,12 @@
                 { "Name": "CONVOX_ENV_VARS", "Value": "{{.EnvironmentKeys}}" }
               ],
               "Image": { "Fn::Sub": "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${Registry}:{{.Name}}.{{$.Release.Build}}" },
+              "LinuxParameters": {
+                {{ if .Init }}
+                  "InitProcessEnabled": "true"
+                {{ end }}
+              },
+              "Privileged": "{{ .Privileged }}",
               "LogConfiguration": {
                 "LogDriver": "awslogs",
                 "Options": {
