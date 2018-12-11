@@ -58,21 +58,21 @@
   },
   "Mappings": {
     "RegionConfig": {
-      "ap-northeast-1": { "Ami": "ami-05a1f057a1a8e1a50", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "582318560864", "Fargate": "Yes" },
-      "ap-northeast-2": { "Ami": "ami-0fcea96f3b2c67274", "EFS": "Yes", "ThirdAvailabilityZone": "No",  "ELBAccountId": "600734575887", "Fargate": "Yes" },
-      "ap-south-1":     { "Ami": "ami-00afc9e848e32b1ca", "EFS": "No",  "ThirdAvailabilityZone": "No",  "ELBAccountId": "718504428378", "Fargate": "No"  },
-      "ap-southeast-1": { "Ami": "ami-0d4d4a42a45fb8e4a", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "114774131450", "Fargate": "Yes" },
-      "ap-southeast-2": { "Ami": "ami-0231cd5b17565f0b1", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "783225319266", "Fargate": "Yes" },
-      "ca-central-1":   { "Ami": "ami-0605f253b9e04698c", "EFS": "No",  "ThirdAvailabilityZone": "No",  "ELBAccountId": "985666609251", "Fargate": "No"  },
-      "eu-central-1":   { "Ami": "ami-07c3a868617f8acdb", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "054676820928", "Fargate": "Yes" },
-      "eu-west-1":      { "Ami": "ami-0651de2fa6ccf6d26", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "156460612806", "Fargate": "Yes" },
-      "eu-west-2":      { "Ami": "ami-0ba06c0257c11d483", "EFS": "No",  "ThirdAvailabilityZone": "Yes", "ELBAccountId": "652711504416", "Fargate": "Yes" },
-      "eu-west-3":      { "Ami": "ami-0b0b5fca56d03d022", "EFS": "No",  "ThirdAvailabilityZone": "Yes", "ELBAccountId": "009996457667", "Fargate": "No"  },
-      "sa-east-1":      { "Ami": "ami-0f2187a18380957e4", "EFS": "No",  "ThirdAvailabilityZone": "Yes", "ELBAccountId": "507241528517", "Fargate": "No"  },
-      "us-east-1":      { "Ami": "ami-0a6be20ed8ce1f055", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "127311923021", "Fargate": "Yes" },
-      "us-east-2":      { "Ami": "ami-075d44ed0d20df780", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "033677994240", "Fargate": "Yes" },
-      "us-west-1":      { "Ami": "ami-0828cd2f20543a2b3", "EFS": "Yes", "ThirdAvailabilityZone": "No",  "ELBAccountId": "027434742980", "Fargate": "Yes" },
-      "us-west-2":      { "Ami": "ami-04a4fb062c609f55b", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "797873946194", "Fargate": "Yes" }
+      "ap-northeast-1": { "Ami": "ami-0c38293d60d98af86", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "582318560864", "Fargate": "Yes" },
+      "ap-northeast-2": { "Ami": "ami-0bdc871079baf9649", "EFS": "Yes", "ThirdAvailabilityZone": "No",  "ELBAccountId": "600734575887", "Fargate": "Yes" },
+      "ap-south-1":     { "Ami": "ami-0b7c3be99909df6ef", "EFS": "No",  "ThirdAvailabilityZone": "No",  "ELBAccountId": "718504428378", "Fargate": "Yes" },
+      "ap-southeast-1": { "Ami": "ami-0e28ff4e3f1776d86", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "114774131450", "Fargate": "Yes" },
+      "ap-southeast-2": { "Ami": "ami-0eed1c915ea891aca", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "783225319266", "Fargate": "Yes" },
+      "ca-central-1":   { "Ami": "ami-02c80e9173258d289", "EFS": "No",  "ThirdAvailabilityZone": "No",  "ELBAccountId": "985666609251", "Fargate": "Yes" },
+      "eu-central-1":   { "Ami": "ami-055aa9664ef169e25", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "054676820928", "Fargate": "Yes" },
+      "eu-west-1":      { "Ami": "ami-0acc9f8be17a41897", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "156460612806", "Fargate": "Yes" },
+      "eu-west-2":      { "Ami": "ami-0b5225210a12d9951", "EFS": "No",  "ThirdAvailabilityZone": "Yes", "ELBAccountId": "652711504416", "Fargate": "Yes" },
+      "eu-west-3":      { "Ami": "ami-0caadc4f0db31a303", "EFS": "No",  "ThirdAvailabilityZone": "Yes", "ELBAccountId": "009996457667", "Fargate": "No"  },
+      "sa-east-1":      { "Ami": "ami-078146697425f25a7", "EFS": "No",  "ThirdAvailabilityZone": "Yes", "ELBAccountId": "507241528517", "Fargate": "No"  },
+      "us-east-1":      { "Ami": "ami-0a6b7e0cc0b1f464f", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "127311923021", "Fargate": "Yes" },
+      "us-east-2":      { "Ami": "ami-037a92bf1efdb11a2", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "033677994240", "Fargate": "Yes" },
+      "us-west-1":      { "Ami": "ami-0184f498956de7db5", "EFS": "Yes", "ThirdAvailabilityZone": "No",  "ELBAccountId": "027434742980", "Fargate": "Yes" },
+      "us-west-2":      { "Ami": "ami-0c1f4871ebaae6d86", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "797873946194", "Fargate": "Yes" }
     }
   },
   "Outputs": {
