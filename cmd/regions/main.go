@@ -116,7 +116,16 @@ func fetchAmis(regions Regions) error {
 		}
 
 		name := s.Find("td:nth-child(1)").Text()
+		desc := s.Find("td:nth-child(2)").Text()
 		ami := s.Find("td:nth-child(3)").Text()
+
+		if name == "" {
+			return
+		}
+
+		if strings.Index(desc, "arm64") > -1 {
+			return
+		}
 
 		if strings.HasPrefix(name, "us-gov-") {
 			return
