@@ -81,6 +81,13 @@ func (c *Client) Headers() http.Header {
 	return h
 }
 
+func (c *Client) Websocket(path string, opts stdsdk.RequestOptions) (io.ReadCloser, error) {
+	// trigger session authentication
+	c.Get("/racks", stdsdk.RequestOptions{}, nil)
+
+	return c.Client.Websocket(path, opts)
+}
+
 func (c *Client) WebsocketExit(path string, ro stdsdk.RequestOptions, rw io.ReadWriter) (int, error) {
 	ws, err := c.Websocket(path, ro)
 	if err != nil {
