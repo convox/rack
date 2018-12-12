@@ -40,7 +40,7 @@
       "Type": "Number",
       "Default": "20"
     },
-    "MasterUsername": {
+    "Username": {
       "Type": "String",
       "Default": "app"
     }
@@ -87,7 +87,7 @@
         "Engine": "postgres",
         "EngineVersion": { "Ref": "Version" },
         "Iops": { "Fn::If": [ "BlankIops", { "Ref": "AWS::NoValue" }, { "Ref": "Iops" } ] },
-        "MasterUsername": { "Ref": "MasterUsername" },
+        "MasterUsername": { "Ref": "Username" },
         "MasterUserPassword": { "Ref": "Password" },
         "MultiAZ": { "Ref": "Durable" },
         "Port": "5432",
