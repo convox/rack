@@ -18,6 +18,11 @@ import (
 	am "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+const (
+	ScannerStartSize = 4096
+	ScannerMaxSize   = 1024 * 1024
+)
+
 type processLister func() (structs.Processes, error)
 
 func (p *Provider) convoxClient() (cc.ConvoxV1Interface, error) {
@@ -149,6 +154,8 @@ func streamLogsWithPrefix(w io.WriteCloser, r io.Reader, prefix string) {
 
 	ls := bufio.NewScanner(r)
 
+	ls.Buffer(make([]byte, ScannerStartSize), ScannerMaxSize)
+
 	for ls.Scan() {
 		parts := strings.SplitN(ls.Text(), " ", 2)
 
@@ -159,6 +166,10 @@ func streamLogsWithPrefix(w io.WriteCloser, r io.Reader, prefix string) {
 		}
 
 		fmt.Fprintf(w, "%s %s %s\n", ts.Format(helpers.PrintableTime), prefix, parts[1])
+	}
+
+	if err := ls.Err(); err != nil {
+		fmt.Fprintf(w, "%s %s scan error: %s\n", time.Now().Format(helpers.PrintableTime), prefix, err)
 	}
 }
 
