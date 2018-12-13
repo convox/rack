@@ -7,6 +7,11 @@ import (
 	"sync"
 )
 
+const (
+	ScannerStartSize = 4096
+	ScannerMaxSize   = 1024 * 1024
+)
+
 type Writer struct {
 	lock     sync.Mutex
 	max      int
@@ -29,8 +34,14 @@ func NewWriter(w io.Writer, prefixes map[string]string) Writer {
 func (w Writer) Write(prefix string, r io.Reader) {
 	s := bufio.NewScanner(r)
 
+	s.Buffer(make([]byte, ScannerStartSize), ScannerMaxSize)
+
 	for s.Scan() {
 		w.Writef(prefix, "%s\n", s.Text())
+	}
+
+	if err := s.Err(); err != nil {
+		w.Writef(prefix, "scan error: %s\n", err)
 	}
 }
 
