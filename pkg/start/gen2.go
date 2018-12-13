@@ -29,6 +29,11 @@ import (
 	"github.com/docker/docker/builder/dockerignore"
 )
 
+const (
+	ScannerStartSize = 4096
+	ScannerMaxSize   = 1024 * 1024
+)
+
 var (
 	reAppLog = regexp.MustCompile(`^(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2}:\d{2}) ([^/]+)/([^/]+)/([^ ]+) (.*)$`)
 )
@@ -722,6 +727,8 @@ func replaceEnv(s string, env map[string]string) string {
 func writeLogs(ctx context.Context, pw prefix.Writer, r io.Reader, services map[string]bool) {
 	ls := bufio.NewScanner(r)
 
+	ls.Buffer(make([]byte, ScannerStartSize), ScannerMaxSize)
+
 	for ls.Scan() {
 		select {
 		case <-ctx.Done():
@@ -739,5 +746,9 @@ func writeLogs(ctx context.Context, pw prefix.Writer, r io.Reader, services map[
 
 			pw.Writef(match[4], "%s\n", match[6])
 		}
+	}
+
+	if err := ls.Err(); err != nil {
+		pw.Writef("convox", "scan error: %s\n", err)
 	}
 }
