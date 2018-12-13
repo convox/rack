@@ -19,6 +19,11 @@ import (
 	"github.com/pkg/errors"
 )
 
+const (
+	ScannerStartSize = 4096
+	ScannerMaxSize   = 1024 * 1024
+)
+
 func (p *Provider) ProcessExec(app, pid, command string, rw io.ReadWriter, opts structs.ProcessExecOptions) (int, error) {
 	return p.processExec(app, pid, command, rw, opts)
 }
@@ -118,6 +123,8 @@ func (p *Provider) ProcessLogs(app, pid string, opts structs.LogsOptions) (io.Re
 
 	s := bufio.NewScanner(cr)
 
+	s.Buffer(make([]byte, ScannerStartSize), ScannerMaxSize)
+
 	rr, rw := io.Pipe()
 
 	go func() {
@@ -129,6 +136,14 @@ func (p *Provider) ProcessLogs(app, pid string, opts structs.LogsOptions) (io.Re
 				fmt.Fprintf(rw, "%s\n", s.Text())
 			}
 		}
+		if err := s.Err(); err != nil {
+			if opts.Prefix != nil && *opts.Prefix {
+				fmt.Fprintf(rw, "%s %s/%s/%s scan error: %s\n", time.Now().Format(helpers.PrintableTime), ps.App, ps.Name, ps.Id, err)
+			} else {
+				fmt.Fprintf(rw, "scan error: %s\n", err)
+			}
+		}
+
 	}()
 
 	go func() {
