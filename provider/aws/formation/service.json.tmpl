@@ -445,16 +445,16 @@
                 { "Name": "APP", "Value": "{{$.App}}" },
                 { "Name": "BUILD", "Value": "{{$.Build.Id}}" },
                 { "Name": "BUILD_DESCRIPTION", "Value": {{ safe $.Build.Description }} },
-                { "Name": "RELEASE", "Value": "{{$.Release.Id}}" },
-                { "Name": "SERVICE", "Value": "{{.Name}}" },
+                { "Name": "CONVOX_ENV_KEY", "Value": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:EncryptionKey" } } },
+                { "Name": "CONVOX_ENV_URL", "Value": { "Fn::Sub": "s3://${Settings}/releases/{{$.Release.Id}}/env" } },
+                { "Name": "CONVOX_ENV_VARS", "Value": "{{.EnvironmentKeys}}" },
                 { "Name": "RACK", "Value": { "Ref": "Rack" } },
                 { "Fn::If": [ "RackUrl",
                   { "Name": "RACK_URL", "Value": { "Fn::Sub": "https://convox:{{$.Password}}@rack.${Rack}.convox" } },
                   { "Ref": "AWS::NoValue" }
                 ] },
-                { "Name": "CONVOX_ENV_KEY", "Value": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:EncryptionKey" } } },
-                { "Name": "CONVOX_ENV_URL", "Value": { "Fn::Sub": "s3://${Settings}/releases/{{$.Release.Id}}/env" } },
-                { "Name": "CONVOX_ENV_VARS", "Value": "{{.EnvironmentKeys}}" }
+                { "Name": "RELEASE", "Value": "{{$.Release.Id}}" },
+                { "Name": "SERVICE", "Value": "{{.Name}}" }
               ],
               "Image": { "Fn::Sub": "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${Registry}:{{.Name}}.{{$.Release.Build}}" },
               "LinuxParameters": {
