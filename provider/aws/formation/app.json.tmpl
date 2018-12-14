@@ -454,6 +454,7 @@
                 { "Name": "APP", "Value": "{{$.App}}" },
                 { "Name": "RELEASE", "Value": "{{$.Release.Id}}" },
                 { "Name": "RACK", "Value": { "Ref": "Rack" } },
+                { "Name": "SERVICE", "Value": "{{.Name}}" },
                 { "Fn::If": [ "RackUrl",
                   { "Name": "RACK_URL", "Value": { "Fn::Sub": "https://convox:{{$.Password}}@rack.${Rack}.convox" } },
                   { "Ref": "AWS::NoValue" }
