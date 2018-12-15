@@ -517,17 +517,15 @@ func (p *Provider) containerInstance(id string) (*ecs.ContainerInstance, error) 
 	if err != nil {
 		return nil, err
 	}
-	// check the build cluster too
-	for _, f := range res.Failures {
-		if f.Reason != nil && *f.Reason == "MISSING" && p.BuildCluster != p.Cluster {
-			res, err = p.describeContainerInstances(&ecs.DescribeContainerInstancesInput{
-				Cluster:            aws.String(p.BuildCluster),
-				ContainerInstances: []*string{aws.String(id)},
-			})
-			if err != nil {
-				return nil, err
-			}
-			break
+
+	// if there were failures, try the build cluster
+	if len(res.Failures) > 0 {
+		res, err = p.describeContainerInstances(&ecs.DescribeContainerInstancesInput{
+			Cluster:            aws.String(p.BuildCluster),
+			ContainerInstances: []*string{aws.String(id)},
+		})
+		if err != nil {
+			return nil, err
 		}
 	}
 
