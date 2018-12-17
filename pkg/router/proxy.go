@@ -206,7 +206,7 @@ func (p *Proxy) serveWebsocket(r *http.Request, target *url.URL) websocket.Handl
 			wst.Scheme = "ws"
 		}
 
-		wst.Path = r.URL.Path
+		wst.Path, wst.RawQuery = r.URL.Path, r.URL.RawQuery
 
 		h := r.Header
 
