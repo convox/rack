@@ -2,17 +2,23 @@ package helpers
 
 import (
 	"bytes"
+	"regexp"
 
 	yaml "gopkg.in/yaml.v2"
 )
 
-func FormatYAML(data []byte) ([]byte, error) {
-	parts := bytes.Split(data, []byte("---"))
+var (
+	yamlSplitter = regexp.MustCompile(`(?m)^\s*---\s*$`)
+)
 
-	for i, part := range parts {
+func FormatYAML(data []byte) ([]byte, error) {
+	ps := yamlSplitter.Split(string(data), -1)
+	bs := make([][]byte, len(ps))
+
+	for i, p := range ps {
 		var v interface{}
 
-		if err := yaml.Unmarshal(part, &v); err != nil {
+		if err := yaml.Unmarshal([]byte(p), &v); err != nil {
 			return nil, err
 		}
 
@@ -21,8 +27,8 @@ func FormatYAML(data []byte) ([]byte, error) {
 			return nil, err
 		}
 
-		parts[i] = data
+		bs[i] = data
 	}
 
-	return bytes.Join(parts, []byte("---\n")), nil
+	return bytes.Join(bs, []byte("---\n")), nil
 }
