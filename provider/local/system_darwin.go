@@ -46,8 +46,11 @@ func dnsUninstall(name string) error {
 }
 
 func removeOriginalRack(name string) error {
-	exec.Command("launchctl", "remove", fmt.Sprintf("convox.rack.%s", name)).Run()
 	os.Remove(fmt.Sprintf("/Library/LaunchDaemons/convox.rack.%s.plist", name))
+	os.Remove("/Library/LaunchDaemons/convox.router.plist")
+
+	exec.Command("launchctl", "remove", fmt.Sprintf("convox.rack.%s", name)).Run()
+	exec.Command("launchctl", "remove", "convox.router").Run()
 
 	return nil
 }
