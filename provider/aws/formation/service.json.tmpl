@@ -4,10 +4,12 @@
     "Conditions": {
       "Fargate": { "Fn::Equals": [ { "Ref": "Fargate" }, "Yes" ] },
       "InternalDomains": { "Fn::Equals": [ { "Ref": "InternalDomains" }, "Yes" ] },
+      "InternalDomainsAndRouteHttp": { "Fn::And": [ { "Condition": "InternalDomains" }, { "Condition": "RouteHttp" } ] },
       "Isolate": { "Fn::And": [ { "Condition": "Private" }, { "Fn::Equals": [ { "Ref": "Isolate" }, "Yes" ] } ] },
       "IsolateServices": { "Fn::Or": [ { "Condition": "Fargate" }, { "Condition": "Isolate" } ] },
       "Private": { "Fn::Equals": [ { "Ref": "Private" }, "Yes" ] },
-      "RackUrl": { "Fn::Equals": [ { "Ref": "RackUrl" }, "Yes" ] }
+      "RackUrl": { "Fn::Equals": [ { "Ref": "RackUrl" }, "Yes" ] },
+      "RouteHttp": { "Fn::Equals": [ { "Ref": "RedirectHttps" }, "No" ] }
     },
     "Outputs": {
       {{ if .Port.Port }}
@@ -77,6 +79,11 @@
       "RackUrl": {
         "Type": "String",
         "Default": "No",
+        "AllowedValues": [ "Yes", "No" ]
+      },
+      "RedirectHttps": {
+        "Type": "String",
+        "Default": "Yes",
         "AllowedValues": [ "Yes", "No" ]
       },
       "Registry": {
@@ -169,7 +176,11 @@
         },
         "BalancerListenerRule80": {
           "Type": "AWS::ElasticLoadBalancingV2::ListenerRule",
-          {{ if .Domain }} "Condition": "InternalDomains", {{ end }}
+          {{ if .Domain }}
+            "Condition": "InternalDomainsAndRouteHttp",
+          {{ else }}
+            "Condition": "RouteHttp",
+          {{ end }}
           "Properties": {
             "Actions": [ { "Type": "forward", "TargetGroupArn": { "Ref": "BalancerTargetGroup{{ if .Internal }}Internal{{ end }}" } } ],
             "Conditions": [ { "Field": "host-header", "Values": [ { "Fn::Join": [ ".", [ "{{$.App}}-{{.Name}}", { "Fn::ImportValue": { "Fn::Sub": "${Rack}:{{ router .Name $.Manifest }}Host" } } ] ] } ] } ],
@@ -179,7 +190,9 @@
         },
         "BalancerListenerRule443": {
           "Type": "AWS::ElasticLoadBalancingV2::ListenerRule",
-          {{ if .Domain }} "Condition": "InternalDomains", {{ end }}
+          {{ if .Domain }}
+            "Condition": "InternalDomains",
+          {{ end }}
           "Properties": {
             "Actions": [ { "Type": "forward", "TargetGroupArn": { "Ref": "BalancerTargetGroup{{ if .Internal }}Internal{{ end }}" } } ],
             "Conditions": [ { "Field": "host-header", "Values": [ { "Fn::Join": [ ".", [ "{{$.App}}-{{.Name}}", { "Fn::ImportValue": { "Fn::Sub": "${Rack}:{{ router .Name $.Manifest }}Host" } } ] ] } ] } ],
@@ -200,7 +213,7 @@
         },
         "BalancerListenerRule80Internal": {
           "Type": "AWS::ElasticLoadBalancingV2::ListenerRule",
-          "Condition": "InternalDomains",
+          "Condition": "InternalDomainsAndRouteHttp",
           "Properties": {
             "Actions": [ { "Type": "forward", "TargetGroupArn": { "Ref": "BalancerTargetGroup{{ if .Internal }}Internal{{ end }}" } } ],
             "Conditions": [ { "Field": "host-header", "Values": [ { "Fn::Sub": "{{.Name}}.{{$.App}}.${Rack}.convox" } ] } ],
@@ -229,6 +242,7 @@
           {{ range $i, $domain := .Domains }}
             "BalancerListenerRule80Domain{{$i}}": {
               "Type": "AWS::ElasticLoadBalancingV2::ListenerRule",
+              "Condition": "RouteHttp",
               {{ if gt $i 0 }}
                 "DependsOn": "BalancerListenerRule80Domain{{ dec $i }}",
               {{ end }}
@@ -365,7 +379,7 @@
       "Service": {
         "Type": "AWS::ECS::Service",
         {{ if .Port.Port }}
-          "DependsOn": "BalancerListenerRule80{{ if .Domain }}Domain0{{ end }}",
+          "DependsOn": "BalancerListenerRule443{{ if .Domain }}Domain0{{ end }}",
         {{ end }}
         "Properties": {
           "Cluster": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Cluster" } },
