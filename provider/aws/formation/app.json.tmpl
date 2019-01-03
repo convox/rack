@@ -90,6 +90,12 @@
       "Description": "Add RACK_URL to the application environment",
       "AllowedValues": [ "Yes", "No" ]
     },
+    "RedirectHttps": {
+      "Type": "String",
+      "Default": "Yes",
+      "Description": "Redirect all HTTP connection to HTTPS",
+      "AllowedValues": [ "Yes", "No" ]
+    },
     "ResourcePassword": {
       "Type": "String",
       "Default": "",
@@ -278,6 +284,7 @@
           "Private": { "Ref": "Private" },
           "Rack": { "Ref": "Rack" },
           "RackUrl": { "Ref": "RackUrl" },
+          "RedirectHttps": { "Ref": "RedirectHttps" },
           "Registry": { "Ref": "Registry" },
           {{ range .Resources }}
             "Resource{{ upper . }}": { "Fn::GetAtt": [ "Resource{{ upper . }}", "Outputs.Url" ] },
