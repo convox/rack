@@ -748,8 +748,8 @@ func (p *Provider) authECR(host, access, secret string) (string, string, error) 
 	return parts[0], parts[1], nil
 }
 
-func (p *Provider) runBuild(build *structs.Build, url string, opts structs.BuildCreateOptions) error {
-	log := Logger.At("runBuild").Namespace("url=%q", url).Start()
+func (p *Provider) runBuild(build *structs.Build, burl string, opts structs.BuildCreateOptions) error {
+	log := Logger.At("runBuild").Namespace("url=%q", burl).Start()
 
 	br, err := p.stackResource(p.Rack, "ApiBuildTasks")
 	if err != nil {
@@ -801,7 +801,7 @@ func (p *Provider) runBuild(build *structs.Build, url string, opts structs.Build
 		return err
 	}
 
-	rackUrl := fmt.Sprintf("https://convox:%s@%s", p.Password, stackOutputs(rk)["Dashboard"])
+	rackUrl := fmt.Sprintf("https://convox:%s@%s", url.QueryEscape(p.Password), stackOutputs(rk)["Dashboard"])
 
 	cache := true
 	if opts.NoCache != nil && *opts.NoCache {
@@ -853,7 +853,7 @@ func (p *Provider) runBuild(build *structs.Build, url string, opts structs.Build
 						},
 						{
 							Name:  aws.String("BUILD_URL"),
-							Value: aws.String(url),
+							Value: aws.String(burl),
 						},
 						{
 							Name:  aws.String("HTTP_PROXY"),
