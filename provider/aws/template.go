@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"hash/crc32"
 	"net"
-	"path"
 	"path/filepath"
 	"sort"
 	"strconv"
@@ -107,30 +106,10 @@ func formationHelpers() template.FuncMap {
 			return upperName(s)
 		},
 		"volumeFrom": func(app, s string) string {
-			parts := strings.SplitN(s, ":", 2)
-
-			switch v := parts[0]; v {
-			case "/cgroup/":
-				return v
-			case "/sys/fs/cgroup/":
-				return v
-			case "/proc/":
-				return v
-			case "/var/run/docker.sock":
-				return v
-			default:
-				return path.Join("/volumes", app, v)
-			}
+			return volumeFrom(app, s)
 		},
 		"volumeTo": func(s string) string {
-			parts := strings.SplitN(s, ":", 2)
-			switch len(parts) {
-			case 1:
-				return s
-			case 2:
-				return parts[1]
-			}
-			return fmt.Sprintf("invalid volume %q", s)
+			return volumeTo(s)
 		},
 		// generation 1
 		"coalesce": func(ss ...string) string {

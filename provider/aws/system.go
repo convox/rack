@@ -8,6 +8,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"os"
 	"os/exec"
 	"sort"
@@ -302,7 +303,7 @@ func (p *Provider) SystemInstall(w io.Writer, opts structs.SystemInstallOptions)
 		outputs[*o.OutputKey] = *o.OutputValue
 	}
 
-	ep := fmt.Sprintf("https://convox:%s@%s", password, outputs["Dashboard"])
+	ep := fmt.Sprintf("https://convox:%s@%s", url.QueryEscape(password), outputs["Dashboard"])
 
 	fmt.Fprintf(w, "Waiting for load balancer... ")
 
