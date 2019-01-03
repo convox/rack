@@ -6,6 +6,7 @@ import (
 	"io"
 	"io/ioutil"
 	"math"
+	"net/url"
 	"sort"
 	"strconv"
 	"strings"
@@ -971,36 +972,12 @@ func (p *Provider) generateTaskDefinition2(app, service string, opts structs.Pro
 		return nil, err
 	}
 
-	sarn, err := p.serviceArn(app, service)
-	if err != nil {
-		return nil, err
+	labels := map[string]*string{
+		"convox.app":          aws.String(r.App),
+		"convox.generation":   aws.String("2"),
+		"convox.process.type": aws.String("oneoff"),
+		"convox.release":      aws.String(r.Id),
 	}
-
-	sres, err := p.describeServices(&ecs.DescribeServicesInput{
-		Cluster:  aws.String(p.Cluster),
-		Services: []*string{aws.String(sarn)},
-	})
-	if err != nil {
-		return nil, err
-	}
-	if len(sres.Services) != 1 {
-		return nil, fmt.Errorf("could not find service: %s", service)
-	}
-
-	tres, err := p.describeTaskDefinition(&ecs.DescribeTaskDefinitionInput{
-		TaskDefinition: sres.Services[0].TaskDefinition,
-	})
-	if err != nil {
-		return nil, err
-	}
-	if len(tres.TaskDefinition.ContainerDefinitions) < 1 {
-		return nil, fmt.Errorf("could not find container definition for service: %s", service)
-	}
-
-	ocd := tres.TaskDefinition.ContainerDefinitions[0]
-
-	labels := ocd.DockerLabels
-	labels["convox.process.type"] = aws.String("oneoff")
 
 	aid, err := p.accountId()
 	if err != nil {
@@ -1017,22 +994,74 @@ func (p *Provider) generateTaskDefinition2(app, service string, opts structs.Pro
 		return nil, err
 	}
 
-	senv := s.EnvironmentDefaults()
-
-	for _, e := range ocd.Environment {
-		senv[*e.Name] = *e.Value
+	rs, err := p.describeStack(p.Rack)
+	if err != nil {
+		return nil, err
 	}
 
+	ros := stackOutputs(rs)
+
+	as, err := p.describeStack(p.rackStack(r.App))
+	if err != nil {
+		return nil, err
+	}
+
+	aps := stackParameters(as)
+	aos := stackOutputs(as)
+
+	senv := s.EnvironmentDefaults()
+
+	for _, l := range s.Links {
+		ls, err := m.Service(l)
+		if err != nil {
+			return nil, err
+		}
+
+		host := ros["RouterHost"]
+
+		if ls.Internal {
+			host = ros["RouterInternalHost"]
+		}
+
+		senv[fmt.Sprintf("%s_URL", strings.ToUpper(l))] = fmt.Sprintf("https://%s-%s.%s", r.App, l, host)
+	}
+
+	senv["AWS_REGION"] = p.Region
+	senv["APP"] = r.App
 	senv["BUILD"] = b.Id
 	senv["BUILD_DESCRIPTION"] = b.Description
-	senv["RELEASE"] = r.Id
+	senv["CONVOX_ENV_KEY"] = p.EncryptionKey
 	senv["CONVOX_ENV_URL"] = fmt.Sprintf("s3://%s/releases/%s/env", settings, release)
 	senv["CONVOX_ENV_VARS"] = s.EnvironmentKeys()
+	senv["RACK"] = p.Rack
+	senv["RELEASE"] = r.Id
+	senv["SERVICE"] = service
+
+	if aps["RackUrl"] == "Yes" {
+		senv["RACK_URL"] = fmt.Sprintf("https://convox:%s@rack.%s.convox", url.QueryEscape(p.Password), p.Rack)
+	}
 
 	cenv := []*ecs.KeyValuePair{}
 
 	for k, v := range senv {
 		cenv = append(cenv, &ecs.KeyValuePair{Name: aws.String(k), Value: aws.String(v)})
+	}
+
+	mps := []*ecs.MountPoint{}
+	vs := []*ecs.Volume{}
+
+	for i, v := range s.Volumes {
+		mps = append(mps, &ecs.MountPoint{
+			SourceVolume:  aws.String(fmt.Sprintf("volume-%d", i)),
+			ContainerPath: aws.String(volumeTo(v)),
+		})
+
+		vs = append(vs, &ecs.Volume{
+			Name: aws.String(fmt.Sprintf("volume-%d", i)),
+			Host: &ecs.HostVolumeProperties{
+				SourcePath: aws.String(volumeFrom(r.App, v)),
+			},
+		})
 	}
 
 	cd := &ecs.ContainerDefinition{
@@ -1041,7 +1070,7 @@ func (p *Provider) generateTaskDefinition2(app, service string, opts structs.Pro
 		Essential:         aws.Bool(true),
 		Image:             aws.String(fmt.Sprintf("%s.dkr.ecr.%s.amazonaws.com/%s:%s.%s", aid, p.Region, reg, service, r.Build)),
 		MemoryReservation: aws.Int64(512),
-		MountPoints:       tres.TaskDefinition.ContainerDefinitions[0].MountPoints,
+		MountPoints:       mps,
 		Name:              aws.String(service),
 		Privileged:        aws.Bool(s.Privileged),
 	}
@@ -1053,8 +1082,8 @@ func (p *Provider) generateTaskDefinition2(app, service string, opts structs.Pro
 	req := &ecs.RegisterTaskDefinitionInput{
 		ContainerDefinitions: []*ecs.ContainerDefinition{cd},
 		Family:               aws.String(fmt.Sprintf("%s-%s-%s", p.Rack, app, service)),
-		TaskRoleArn:          tres.TaskDefinition.TaskRoleArn,
-		Volumes:              tres.TaskDefinition.Volumes,
+		TaskRoleArn:          aws.String(aos["ServiceRole"]),
+		Volumes:              vs,
 	}
 
 	return req, nil

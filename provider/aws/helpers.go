@@ -16,6 +16,7 @@ import (
 	"math/rand"
 	"net/url"
 	"os"
+	"path"
 	"regexp"
 	"sort"
 	"strings"
@@ -385,6 +386,34 @@ func templateHelpers() template.FuncMap {
 			return template.HTML(fmt.Sprintf("%q", s))
 		},
 	}
+}
+
+func volumeFrom(app, s string) string {
+	parts := strings.SplitN(s, ":", 2)
+
+	switch v := parts[0]; v {
+	case "/cgroup/":
+		return v
+	case "/sys/fs/cgroup/":
+		return v
+	case "/proc/":
+		return v
+	case "/var/run/docker.sock":
+		return v
+	default:
+		return path.Join("/volumes", app, v)
+	}
+}
+
+func volumeTo(s string) string {
+	parts := strings.SplitN(s, ":", 2)
+	switch len(parts) {
+	case 1:
+		return s
+	case 2:
+		return parts[1]
+	}
+	return fmt.Sprintf("invalid volume %q", s)
 }
 
 func dashName(name string) string {
