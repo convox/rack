@@ -21,7 +21,6 @@ type AppCreateOptions struct {
 type AppUpdateOptions struct {
 	Lock       *bool             `param:"lock"`
 	Parameters map[string]string `param:"parameters"`
-	Sleep      *bool             `param:"sleep"`
 }
 
 func (a Apps) Less(i, j int) bool {
