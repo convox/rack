@@ -146,7 +146,6 @@ spec:
         hostPath: 
           path: "{{ volumeFrom $.App.Name . }}"
       {{ end }}
-{{ if .Service.Autoscale }}
 ---
 apiVersion: autoscaling/v2beta1
 kind: HorizontalPodAutoscaler
@@ -179,4 +178,3 @@ spec:
       name: memory
       targetAverageUtilization: {{.}}
   {{ end }}
-{{ end }}

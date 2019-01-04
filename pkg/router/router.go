@@ -5,22 +5,38 @@ import (
 	"math/rand"
 	"net/http"
 	"net/url"
+	"regexp"
 	"sync"
 	"time"
 
+	ae "k8s.io/api/extensions/v1beta1"
 	am "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 )
 
+const (
+	idleCheck   = 1 * time.Minute
+	idleTimeout = 60 * time.Minute
+)
+
+var (
+	activityLock sync.Mutex
+	idleLock     sync.Mutex
+	targetLock   sync.Mutex
+)
+
 type Router struct {
-	Cluster kubernetes.Interface
-	DNS     *DNS
-	HTTP    *HTTP
-	HTTPS   *HTTP
-	IP      string
-	routes  map[string]map[string]bool
-	racks   map[string]string
+	Cluster  kubernetes.Interface
+	DNS      *DNS
+	HTTP     *HTTP
+	HTTPS    *HTTP
+	IP       string
+	activity map[string]time.Time
+	active   map[string]int
+	idle     map[string]bool
+	routes   map[string]map[string]bool
+	racks    map[string]string
 }
 
 type Server interface {
@@ -33,8 +49,11 @@ func init() {
 
 func New() (*Router, error) {
 	r := &Router{
-		routes: map[string]map[string]bool{},
-		racks:  map[string]string{},
+		activity: map[string]time.Time{},
+		active:   map[string]int{},
+		idle:     map[string]bool{},
+		routes:   map[string]map[string]bool{},
+		racks:    map[string]string{},
 	}
 
 	c, err := rest.InClusterConfig()
@@ -90,6 +109,130 @@ func New() (*Router, error) {
 	return r, nil
 }
 
+func (r *Router) ActivityBegin(host string) {
+	activityLock.Lock()
+	defer activityLock.Unlock()
+
+	r.activity[host] = time.Now().UTC()
+	r.active[host] += 1
+}
+
+func (r *Router) ActivityEnd(host string) {
+	activityLock.Lock()
+	defer activityLock.Unlock()
+
+	r.active[host] -= 1
+}
+
+func (r *Router) ActivityGet(host string) (time.Time, int) {
+	activityLock.Lock()
+	defer activityLock.Unlock()
+
+	return r.activity[host], r.active[host]
+}
+
+func (r *Router) ActivityOld() []string {
+	activityLock.Lock()
+	defer activityLock.Unlock()
+
+	hs := []string{}
+
+	for host, activity := range r.activity {
+		if activity.Before(time.Now().UTC().Add(-1*idleTimeout)) && r.active[host] == 0 {
+			hs = append(hs, host)
+		}
+	}
+
+	return hs
+}
+
+func (r *Router) HostBegin(host string) {
+	r.HostUnidle(host)
+	r.ActivityBegin(host)
+}
+
+func (r *Router) HostEnd(host string) {
+	r.ActivityEnd(host)
+}
+
+func (r *Router) HostIdleGet(host string) bool {
+	idleLock.Lock()
+	defer idleLock.Unlock()
+
+	return r.idle[host]
+}
+
+func (r *Router) HostIdleSet(host string, idle bool) {
+	idleLock.Lock()
+	defer idleLock.Unlock()
+
+	r.idle[host] = idle
+}
+
+func (r *Router) HostIdle(host string) {
+	if r.HostIdleGet(host) {
+		return
+	}
+
+	fmt.Printf("ns=convox.router at=idle host=%q\n", host)
+
+	r.HostIdleSet(host, true)
+
+	for target := range r.routes[host] {
+		if service, namespace, ok := parseTarget(target); ok {
+			scale := &ae.Scale{
+				ObjectMeta: am.ObjectMeta{
+					Namespace: namespace,
+					Name:      service,
+				},
+				Spec: ae.ScaleSpec{Replicas: 0},
+			}
+
+			if _, err := r.Cluster.ExtensionsV1beta1().Deployments(namespace).UpdateScale(service, scale); err != nil {
+				fmt.Printf("ns=convox.router at=idle host=%q error=%q\n", host, err)
+			}
+		}
+	}
+}
+
+func (r *Router) HostUnidle(host string) {
+	if !r.HostIdleGet(host) {
+		return
+	}
+
+	fmt.Printf("ns=convox.router at=unidle host=%q state=unidling\n", host)
+
+	r.HostIdleSet(host, false)
+
+	for target := range r.routes[host] {
+		if service, namespace, ok := parseTarget(target); ok {
+			scale := &ae.Scale{
+				ObjectMeta: am.ObjectMeta{
+					Namespace: namespace,
+					Name:      service,
+				},
+				Spec: ae.ScaleSpec{Replicas: 1},
+			}
+
+			if _, err := r.Cluster.ExtensionsV1beta1().Deployments(namespace).UpdateScale(service, scale); err != nil {
+				fmt.Printf("ns=convox.router at=unidle host=%q error=%q\n", host, err)
+			}
+
+			for {
+				time.Sleep(200 * time.Millisecond)
+				if rs, err := r.Cluster.AppsV1().Deployments(namespace).Get(service, am.GetOptions{}); err == nil {
+					if rs.Status.ReadyReplicas > 0 {
+						time.Sleep(500 * time.Millisecond)
+						break
+					}
+				}
+			}
+		}
+	}
+
+	fmt.Printf("ns=convox.router at=unidle host=%q state=ready\n", host)
+}
+
 func (r *Router) Serve() error {
 	ch := make(chan error, 1)
 
@@ -97,14 +240,14 @@ func (r *Router) Serve() error {
 	go serve(ch, r.HTTP)
 	go serve(ch, r.HTTPS)
 
+	go r.idleTicker()
+
 	return <-ch
 }
 
 func (r *Router) RackSet(host, rack string) {
 	r.racks[host] = rack
 }
-
-var targetLock sync.Mutex
 
 func (r *Router) TargetAdd(host, target string) {
 	targetLock.Lock()
@@ -117,6 +260,14 @@ func (r *Router) TargetAdd(host, target string) {
 	}
 
 	r.routes[host][target] = true
+
+	if service, namespace, ok := parseTarget(target); ok {
+		if rs, err := r.Cluster.AppsV1().Deployments(namespace).Get(service, am.GetOptions{}); err == nil {
+			if rs.Status.Replicas == 0 {
+				r.HostIdle(host)
+			}
+		}
+	}
 }
 
 func (r *Router) TargetCount(host string) int {
@@ -157,6 +308,43 @@ func (r *Router) TargetRandom(host string) string {
 	}
 
 	return targets[rand.Intn(len(targets))]
+}
+
+func (r *Router) idleTicker() {
+	for range time.Tick(idleCheck) {
+		if err := r.idleTick(); err != nil {
+			fmt.Printf("ns=convox.router at=idle.ticker error=%v\n", err)
+		}
+	}
+}
+
+func (r *Router) idleTick() error {
+	targetLock.Lock()
+	defer targetLock.Unlock()
+
+	for _, host := range r.ActivityOld() {
+		activity, active := r.ActivityGet(host)
+		age := activity.Sub(time.Now().UTC()).Truncate(time.Second) * -1
+		fmt.Printf("ns=convox.router at=idle.tick host=%q age=%s active=%d idle=%t\n", host, age, active, r.HostIdleGet(host))
+		r.HostIdle(host)
+	}
+
+	return nil
+}
+
+var reTarget = regexp.MustCompile(`^([^.]+)\.([^.]+)\.svc\.cluster\.local$`)
+
+func parseTarget(target string) (string, string, bool) {
+	u, err := url.Parse(target)
+	if err != nil {
+		return "", "", false
+	}
+
+	if m := reTarget.FindStringSubmatch(u.Hostname()); len(m) == 3 {
+		return m[1], m[2], true
+	}
+
+	return "", "", false
 }
 
 func redirectHTTPS(fn http.HandlerFunc) http.HandlerFunc {

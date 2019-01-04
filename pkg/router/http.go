@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -76,6 +77,9 @@ func (h *HTTP) ServeRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	h.Router.HostBegin(r.Host)
+	defer h.Router.HostEnd(r.Host)
+
 	fmt.Printf("ns=convox.router at=route host=%q method=%q path=%q\n", r.Host, r.Method, r.RequestURI)
 
 	req, err := http.NewRequest(r.Method, fmt.Sprintf("%s%s", target, r.RequestURI), r.Body)
@@ -138,14 +142,13 @@ func websocketError(ws *websocket.Conn, err error) {
 	ws.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseInternalServerErr, err.Error()))
 }
 
-func websocketCopy(wsw, wsr *websocket.Conn) {
+func websocketCopy(wsw, wsr *websocket.Conn, wg *sync.WaitGroup) {
+	defer wg.Done()
 	defer wsw.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
 
 	for {
 		t, r, err := wsr.NextReader()
 		if cerr, ok := err.(*websocket.CloseError); ok {
-			fmt.Println("reader")
-			fmt.Printf("cerr = %+v\n", cerr)
 			wsw.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(cerr.Code, cerr.Text))
 			return
 		}
@@ -155,15 +158,11 @@ func websocketCopy(wsw, wsr *websocket.Conn) {
 		}
 
 		w, err := wsw.NextWriter(t)
-		if cerr, ok := err.(*websocket.CloseError); ok {
-			fmt.Println("writer")
-			fmt.Printf("cerr = %+v\n", cerr)
+		if _, ok := err.(*websocket.CloseError); ok {
 			// wsr.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(cerr.Code, cerr.Text))
 			return
 		}
 		if err != nil {
-			fmt.Println("writer")
-			fmt.Printf("err = %+v\n", err)
 			// websocketError(wsr, err)
 			return
 		}
@@ -175,6 +174,9 @@ func websocketCopy(wsw, wsr *websocket.Conn) {
 }
 
 func (h *HTTP) serveWebsocket(w http.ResponseWriter, r *http.Request, target string) {
+	h.Router.HostBegin(r.Host)
+	defer h.Router.HostEnd(r.Host)
+
 	fmt.Printf("ns=convox.router at=websocket host=%q path=%q\n", r.Host, r.RequestURI)
 
 	in, err := upgrader.Upgrade(w, r, nil)
@@ -232,8 +234,14 @@ func (h *HTTP) serveWebsocket(w http.ResponseWriter, r *http.Request, target str
 		return
 	}
 
-	go websocketCopy(in, out)
-	go websocketCopy(out, in)
+	var wg sync.WaitGroup
+
+	wg.Add(2)
+
+	go websocketCopy(in, out, &wg)
+	go websocketCopy(out, in, &wg)
+
+	wg.Wait()
 }
 
 func defaultDialer() *net.Dialer {
