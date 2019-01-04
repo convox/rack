@@ -280,10 +280,6 @@ func (p *Provider) AppUpdate(app string, opts structs.AppUpdateOptions) error {
 		}
 	}
 
-	if opts.Sleep != nil {
-		return fmt.Errorf("sleeping not yet supported on aws racks")
-	}
-
 	return p.updateStack(p.rackStack(app), nil, opts.Parameters, map[string]string{})
 }
 

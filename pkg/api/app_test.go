@@ -17,7 +17,6 @@ var fxApp = structs.App{
 	Generation: "generation",
 	Name:       "name",
 	Release:    "release1",
-	Sleep:      true,
 	Status:     "created",
 	Parameters: map[string]string{
 		"p1": "v1",
@@ -208,7 +207,6 @@ func TestAppUpdate(t *testing.T) {
 				"foo": "bar",
 				"baz": "qux",
 			},
-			Sleep: options.Bool(true),
 		}
 		ro := stdsdk.RequestOptions{
 			Params: stdsdk.Params{
