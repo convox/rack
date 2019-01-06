@@ -70,6 +70,12 @@ spec:
         service: {{.Service.Name}}
         release: {{.Release.Id}}
     spec:
+      {{ with .Resolver }}
+      dnsPolicy: "None"
+      dnsConfig:
+        nameservers:
+          - "{{ . }}"
+      {{ end }}
       {{ if .Service.Agent.Ports }}
       hostNetwork: true
       {{ end }}
