@@ -6,7 +6,7 @@ import (
 )
 
 func (p *Provider) Resolver() (string, error) {
-	ips, err := net.LookupIP("resolver.convox-system.svc.cluster.local")
+	ips, err := net.LookupIP("resolver-internal.convox-system.svc.cluster.local")
 	if err != nil {
 		return "", err
 	}

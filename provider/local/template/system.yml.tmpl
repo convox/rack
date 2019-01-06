@@ -144,3 +144,22 @@ spec:
   selector:
     system: convox
     type: system
+---
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: convox-system
+  name: resolver-internal
+  labels:
+    system: convox
+    type: system
+spec:
+  type: NodePort
+  ports:
+  - name: dns
+    port: 53
+    targetPort: 5453
+    protocol: UDP
+  selector:
+    system: convox
+    type: system
