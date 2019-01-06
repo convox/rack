@@ -86,6 +86,10 @@ spec:
         env:
         - name: DEVELOPMENT
           value: "false"
+        - name: POD_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
         - name: VERSION
           value: "{{.Version}}"
         image: convox/rack:{{.Version}}

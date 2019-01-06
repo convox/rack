@@ -2,15 +2,21 @@ package router
 
 import (
 	"fmt"
+	"net"
+	"os"
 	"strings"
 
 	"github.com/miekg/dns"
 )
 
 type DNS struct {
-	Router *Router
-	mux    *dns.ServeMux
-	server *dns.Server
+	Router   *Router
+	config   *dns.ClientConfig
+	mux      *dns.ServeMux
+	prefix   string
+	server   *dns.Server
+	service  string
+	upstream string
 }
 
 func NewDNS(r *Router) (*DNS, error) {
@@ -24,7 +30,31 @@ func NewDNS(r *Router) (*DNS, error) {
 			Handler: mux,
 			Net:     "udp",
 		},
+		upstream: "8.8.8.8:53",
 	}
+
+	cc, err := dns.ClientConfigFromFile("/etc/resolv.conf")
+	if err != nil {
+		return nil, err
+	}
+
+	d.config = cc
+
+	if len(d.config.Servers) > 0 {
+		d.upstream = fmt.Sprintf("%s:53", d.config.Servers[0])
+	}
+
+	if ips, err := net.LookupIP("router.convox-system.svc.cluster.local"); err == nil && len(ips) > 0 {
+		d.service = ips[0].String()
+	}
+
+	if parts := strings.Split(os.Getenv("POD_IP"), "."); len(parts) > 2 {
+		d.prefix = fmt.Sprintf("%s.%s.", parts[0], parts[1])
+	}
+
+	fmt.Printf("d.prefix: %v\n", d.prefix)
+	fmt.Printf("d.service: %v\n", d.service)
+	fmt.Printf("d.upstream: %v\n", d.upstream)
 
 	mux.Handle(".", d)
 
@@ -47,6 +77,8 @@ func (d *DNS) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 		return
 	}
 
+	fmt.Printf("w.RemoteAddr: %v\n", w.RemoteAddr())
+
 	q := r.Question[0]
 
 	if d.Router.TargetCount(strings.TrimSuffix(q.Name, ".")) > 0 {
@@ -65,16 +97,22 @@ func (d *DNS) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 		//a.Ns = []dns.RR{soa}
 		a.RecursionAvailable = true
 
+		ip := d.Router.IP
+
+		if strings.HasPrefix(w.RemoteAddr().String(), d.prefix) {
+			ip = d.service
+		}
+
 		switch q.Qtype {
 		case dns.TypeA:
-			rr, err := dns.NewRR(fmt.Sprintf("%s A %s", q.Name, d.Router.IP))
+			rr, err := dns.NewRR(fmt.Sprintf("%s A %s", q.Name, ip))
 			if err != nil {
 				dnsError(w, r)
 				return
 			}
 			a.Answer = append(a.Answer, rr)
 		case dns.TypeAAAA:
-			rr, err := dns.NewRR(fmt.Sprintf("%s AAAA %s", q.Name, d.Router.IP))
+			rr, err := dns.NewRR(fmt.Sprintf("%s AAAA %s", q.Name, ip))
 			if err != nil {
 				dnsError(w, r)
 				return
@@ -89,9 +127,9 @@ func (d *DNS) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 
 	fmt.Printf("ns=convox.router at=resolve type=forward host=%q\n", q.Name)
 
-	c := dns.Client{Net: "tcp"}
+	c := dns.Client{Net: "udp"}
 
-	rs, _, err := c.Exchange(r, "8.8.8.8:53")
+	rs, _, err := c.Exchange(r, d.upstream)
 	if err != nil {
 		dnsError(w, r)
 		return

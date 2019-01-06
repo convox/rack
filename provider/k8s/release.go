@@ -192,6 +192,10 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 			"SystemEnv":      senv,
 		}
 
+		if ip, err := p.Engine.Resolver(); err == nil {
+			params["Resolver"] = ip
+		}
+
 		data, err := p.RenderTemplate("service", params)
 		if err != nil {
 			return err

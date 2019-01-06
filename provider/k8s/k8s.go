@@ -20,6 +20,7 @@ import (
 type Engine interface {
 	AppRepository(app string) (string, bool, error)
 	ResourceRender(app string, r manifest.Resource) ([]byte, error)
+	Resolver() (string, error)
 	ServiceHost(app, service string) string
 }
 
