@@ -2,6 +2,7 @@ package cli
 
 import (
 	"fmt"
+	"net/url"
 	"os"
 
 	"github.com/convox/rack/sdk"
@@ -41,7 +42,7 @@ func Login(rack sdk.Interface, c *stdcli.Context) error {
 
 	c.Startf("Authenticating with <info>%s</info>", hostname)
 
-	cl, err := sdk.New(fmt.Sprintf("https://convox:%s@%s", password, hostname))
+	cl, err := sdk.New(fmt.Sprintf("https://convox:%s@%s", url.QueryEscape(password), hostname))
 	if err != nil {
 		return err
 	}
