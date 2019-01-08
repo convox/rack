@@ -11,6 +11,7 @@
     "BlankInstanceBootCommand": { "Fn::Equals": [ { "Ref": "InstanceBootCommand" }, "" ] },
     "BlankInstanceRunCommand": { "Fn::Equals": [ { "Ref": "InstanceRunCommand" }, "" ] },
     "BlankInstanceSecurityGroup": { "Fn::Equals": [ {"Ref": "InstanceSecurityGroup" }, "" ] },
+    "BlankInternalSuffix": { "Fn::Equals": [ { "Ref": "InternalSuffix"}, "" ] },
     "BlankInternetGateway": { "Fn::Equals": [ { "Ref": "InternetGateway"}, "" ] },
     "BlankKey": { "Fn::Equals": [ { "Ref": "Key" }, "" ] },
     "BlankLogBucket": { "Fn::Equals": [ { "Ref": "LogBucket" }, "" ] },
@@ -466,6 +467,11 @@
       "Description": "Only support applications that are only accessible inside the VPC",
       "Default": "No",
       "AllowedValues": [ "Yes", "No" ]
+    },
+    "InternalSuffix": {
+      "Type": "String",
+      "Description": "Suffix for internal router",
+      "Default": "-rti"
     },
     "InstanceBootCommand": {
       "Type": "String",
@@ -2039,7 +2045,7 @@
           { "Key": "access_logs.s3.prefix", "Value": { "Fn::Sub": "convox/logs/${AWS::StackName}/alb" } },
           { "Key": "idle_timeout.timeout_seconds", "Value": "3600" }
         ],
-        "Name": { "Fn::Sub": "${AWS::StackName}-rti" },
+        "Name": { "Fn::If": [ "BlankInternalSuffix", { "Ref": "AWS::NoValue" }, { "Fn::Sub": "${AWS::StackName}${InternalSuffix}" } ] },
         "Scheme": "internal",
         "Subnets": [
           { "Ref": "Subnet0" },
