@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net/url"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -136,7 +137,7 @@ func currentEndpoint(c *stdcli.Context, rack_ string) (string, error) {
 		return "", err
 	}
 
-	return fmt.Sprintf("https://convox:%s@%s", pw, host), nil
+	return fmt.Sprintf("https://convox:%s@%s", url.QueryEscape(pw), host), nil
 }
 
 func currentRack(c *stdcli.Context, host string) string {
