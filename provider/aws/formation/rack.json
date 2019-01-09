@@ -18,6 +18,7 @@
     "BlankLogRetention": { "Fn::Equals": [ { "Ref": "LogRetention" }, "" ] },
     "BlankPrivateApiSecurityGroup": { "Fn::Equals": [ { "Ref": "PrivateApiSecurityGroup" }, "" ] },
     "BlankRouterSecurityGroup": { "Fn::Equals": [ { "Fn::Join": [ ",", { "Ref": "RouterSecurityGroup" } ] }, "" ] },
+    "BlankRouterInternalSecurityGroup": { "Fn::Equals": [ { "Fn::Join": [ ",", { "Ref": "RouterInternalSecurityGroup" } ] }, "" ] },
     "BlankSslPolicy": { "Fn::Equals": [ { "Ref": "SslPolicy" }, "" ] },
     "DedicatedBuilder": { "Fn::Not": [ { "Fn::Equals": [ { "Ref": "BuildInstance" }, "" ] } ] },
     "Development": { "Fn::Equals": [ { "Ref": "Development" }, "Yes" ] },
@@ -268,7 +269,7 @@
     "RouterInternalSecurityGroup": {
       "Condition": "Internal",
       "Export": { "Name": { "Fn::Sub": "${AWS::StackName}:RouterInternalSecurityGroup" } },
-      "Value": { "Ref": "RouterInternalSecurity" }
+      "Value": { "Fn::If": [ "BlankRouterInternalSecurityGroup", { "Ref": "RouterSecurity" }, { "Fn::Select": [ 0, { "Ref": "RouterInternalSecurityGroup" } ] } ] }
     },
     "RouterSecurityGroup": {
       "Condition": "PublicRouter",
@@ -560,6 +561,11 @@
       "Type": "String",
       "Description": "Lock down private API to a security group",
       "Default": ""
+    },
+    "RouterInternalSecurityGroup": {
+      "Default": "",
+      "Description": "The security groups (comma delimited) to assign to the internal rack router.",
+      "Type": "CommaDelimitedList"
     },
     "RouterSecurityGroup": {
       "Default": "",
@@ -2059,7 +2065,7 @@
           { "Ref": "Subnet1" },
           { "Fn::If": [ "ThirdAvailabilityZone", { "Ref": "Subnet2" }, { "Ref": "AWS::NoValue" } ] }
         ],
-        "SecurityGroups": [ { "Ref": "RouterInternalSecurity" } ]
+        "SecurityGroups": { "Fn::If": [ "BlankRouterInternalSecurityGroup", [ { "Ref": "RouterInternalSecurity" } ], { "Ref": "RouterInternalSecurityGroup" } ] },
       }
     },
     "RouterInternalSecurity": {
