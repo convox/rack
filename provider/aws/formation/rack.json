@@ -16,6 +16,7 @@
     "BlankKey": { "Fn::Equals": [ { "Ref": "Key" }, "" ] },
     "BlankLogBucket": { "Fn::Equals": [ { "Ref": "LogBucket" }, "" ] },
     "BlankLogRetention": { "Fn::Equals": [ { "Ref": "LogRetention" }, "" ] },
+    "BlankPrivateApiSecurityGroup": { "Fn::Equals": [ { "Ref": "PrivateApiSecurityGroup" }, "" ] },
     "BlankRouterSecurityGroup": { "Fn::Equals": [ { "Fn::Join": [ ",", { "Ref": "RouterSecurityGroup" } ] }, "" ] },
     "BlankSslPolicy": { "Fn::Equals": [ { "Ref": "SslPolicy" }, "" ] },
     "DedicatedBuilder": { "Fn::Not": [ { "Fn::Equals": [ { "Ref": "BuildInstance" }, "" ] } ] },
@@ -554,6 +555,11 @@
       "Description": "Put Rack API Load Balancer in private network",
       "Default": "No",
       "AllowedValues": [ "Yes", "No" ]
+    },
+    "PrivateApiSecurityGroup": {
+      "Type": "String",
+      "Description": "Lock down private API to a security group",
+      "Default": ""
     },
     "RouterSecurityGroup": {
       "Default": "",
@@ -2175,8 +2181,44 @@
       "Properties": {
         "GroupDescription": { "Fn::Sub": "${AWS::StackName} balancer" },
         "SecurityGroupIngress": [
-          { "CidrIp": { "Fn::If" : [ "PrivateApi", { "Ref": "VPCCIDR" }, "0.0.0.0/0" ] }, "IpProtocol": "tcp", "FromPort": "80", "ToPort": "80" },
-          { "CidrIp": { "Fn::If" : [ "PrivateApi", { "Ref": "VPCCIDR" }, "0.0.0.0/0" ] }, "IpProtocol": "tcp", "FromPort": "443", "ToPort": "443" }
+          {
+            "CidrIp": { "Fn::If": [ "PrivateApi",
+              { "Fn::If": [ "BlankPrivateApiSecurityGroup",
+                { "Ref": "VPCCIDR" },
+                { "Ref": "AWS::NoValue" }
+              ] },
+              "0.0.0.0/0"
+            ] },
+            "SourceSecurityGroupId": { "Fn::If": [ "PrivateApi",
+              { "Fn::If": [ "BlankPrivateApiSecurityGroup",
+                { "Ref": "AWS::NoValue" },
+                { "Ref": "PrivateApiSecurityGroup" }
+              ] },
+              { "Ref": "AWS::NoValue" }
+            ] },
+            "IpProtocol": "tcp",
+            "FromPort": "80",
+            "ToPort": "80"
+          },
+          {
+            "CidrIp": { "Fn::If": [ "PrivateApi",
+              { "Fn::If": [ "BlankPrivateApiSecurityGroup",
+                { "Ref": "VPCCIDR" },
+                { "Ref": "AWS::NoValue" }
+              ] },
+              "0.0.0.0/0"
+            ] },
+            "SourceSecurityGroupId": { "Fn::If": [ "PrivateApi",
+              { "Fn::If": [ "BlankPrivateApiSecurityGroup",
+                { "Ref": "AWS::NoValue" },
+                { "Ref": "PrivateApiSecurityGroup" }
+              ] },
+              { "Ref": "AWS::NoValue" }
+            ] },
+            "IpProtocol": "tcp",
+            "FromPort": "443",
+            "ToPort": "443"
+          }
         ],
         "Tags": [ { "Key": "Name", "Value": { "Fn::Sub": "${AWS::StackName}-balancer" } } ],
         "VpcId": { "Fn::If": [ "BlankExistingVpc", { "Ref": "Vpc" }, { "Ref": "ExistingVpc" } ] }
