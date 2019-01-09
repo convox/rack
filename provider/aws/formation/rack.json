@@ -406,7 +406,7 @@
     "BuildInstance": {
       "Type": "String",
       "Description": "Instance type for a dedicated build cluster",
-      "Default": "t2.small"
+      "Default": "t3.small"
     },
     "BuildMemory": {
       "Type": "String",
@@ -490,7 +490,7 @@
       "Type": "Number"
     },
     "InstanceType": {
-      "Default": "t2.small",
+      "Default": "t3.small",
       "Description": "The type of the instances in the runtime cluster",
       "Type": "String"
     },
