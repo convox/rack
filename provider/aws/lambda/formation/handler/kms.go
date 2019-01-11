@@ -34,15 +34,41 @@ func KMSKeyCreate(req Request) (string, map[string]string, error) {
 		Description: aws.String(req.ResourceProperties["Description"].(string)),
 		KeyUsage:    aws.String(req.ResourceProperties["KeyUsage"].(string)),
 	})
-
 	if err != nil {
 		return "invalid", nil, err
+	}
+
+	if v, ok := req.ResourceProperties["Rotate"].(string); ok && v == "true" {
+		KMS(req).EnableKeyRotation(&kms.EnableKeyRotationInput{
+			KeyId: res.KeyMetadata.KeyId,
+		})
+	} else {
+		KMS(req).DisableKeyRotation(&kms.DisableKeyRotationInput{
+			KeyId: res.KeyMetadata.KeyId,
+		})
 	}
 
 	return *res.KeyMetadata.Arn, nil, nil
 }
 
 func KMSKeyUpdate(req Request) (string, map[string]string, error) {
+	res, err := KMS(req).DescribeKey(&kms.DescribeKeyInput{
+		KeyId: aws.String(req.PhysicalResourceId),
+	})
+	if err != nil {
+		return "invalid", nil, err
+	}
+
+	if v, ok := req.ResourceProperties["Rotate"].(string); ok && v == "true" {
+		KMS(req).EnableKeyRotation(&kms.EnableKeyRotationInput{
+			KeyId: res.KeyMetadata.KeyId,
+		})
+	} else {
+		KMS(req).DisableKeyRotation(&kms.DisableKeyRotationInput{
+			KeyId: res.KeyMetadata.KeyId,
+		})
+	}
+
 	return req.PhysicalResourceId, nil, nil
 }
 
@@ -50,14 +76,10 @@ func KMSKeyDelete(req Request) (string, map[string]string, error) {
 	_, err := KMS(req).DisableKey(&kms.DisableKeyInput{
 		KeyId: aws.String(req.PhysicalResourceId),
 	})
-
 	// go ahead and mark the delete good if the key is not found
-	if ae, ok := err.(awserr.Error); ok {
-		if ae.Code() == "NotFoundException" {
-			return req.PhysicalResourceId, nil, nil
-		}
+	if ae, ok := err.(awserr.Error); ok && ae.Code() == "NotFoundException" {
+		return req.PhysicalResourceId, nil, nil
 	}
-
 	if err != nil {
 		fmt.Printf("error: %s\n", err)
 		return req.PhysicalResourceId, nil, err
