@@ -1026,8 +1026,22 @@ func (p *Provider) generateTaskDefinition2(app, service string, opts structs.Pro
 		senv[fmt.Sprintf("%s_URL", strings.ToUpper(l))] = fmt.Sprintf("https://%s-%s.%s", r.App, l, host)
 	}
 
-	for _, r := range s.Resources {
-		senv[fmt.Sprintf("%s_URL", strings.ToUpper(r))] = aps[fmt.Sprintf("Resource%s", upperName(r))]
+	if len(s.Resources) > 0 {
+		srs, err := p.appResources(r.App)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, r := range s.Resources {
+			if sr, ok := srs[fmt.Sprintf("Resource%s", upperName(r))]; ok {
+				rs, err := p.describeStack(sr)
+				if err != nil {
+					return nil, err
+				}
+
+				senv[fmt.Sprintf("%s_URL", strings.ToUpper(r))] = stackOutputs(rs)["Url"]
+			}
+		}
 	}
 
 	senv["AWS_REGION"] = p.Region
