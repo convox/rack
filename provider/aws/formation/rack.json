@@ -646,7 +646,8 @@
       "Properties": {
         "ServiceToken": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
         "Description": "Convox Master Encryption",
-        "KeyUsage": "ENCRYPT_DECRYPT"
+        "KeyUsage": "ENCRYPT_DECRYPT",
+        "Rotate": "true"
       }
     },
     "EncryptionKeyAlias": {
