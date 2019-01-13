@@ -149,7 +149,9 @@ func build(rack sdk.Interface, c *stdcli.Context, development bool) (*structs.Bu
 		return nil, err
 	}
 
-	io.Copy(c, r)
+	go io.Copy(c, r)
+
+	time.Sleep(1 * time.Second)
 
 	for {
 		b, err = rack.BuildGet(app(c), b.Id)
