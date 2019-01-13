@@ -140,28 +140,28 @@ sleep 30
 convox certs delete $cert
 
 # resources
-convox resources create syslog Url=tcp://syslog.convox.com --name cilog --wait
-convox resources | grep cilog | grep syslog
-convox resources info cilog | grep -v Apps
-convox resources url cilog | grep tcp://syslog.convox.com
-convox resources link cilog -a ci2 --wait
-convox resources info cilog | grep Apps | grep ci2
-convox resources unlink cilog -a ci2 --wait
-convox resources info cilog | grep -v Apps
-convox resources link cilog -a ci1 --wait
-convox resources info cilog | grep Apps | grep ci1
-convox resources unlink cilog -a ci1 --wait
-convox resources info cilog | grep -v Apps
-convox resources update cilog Url=tcp://syslog2.convox.com --wait
-convox resources info cilog | grep syslog2.convox.com
-convox resources url cilog | grep tcp://syslog2.convox.com
-convox resources delete cilog --wait
-convox resources create postgres --name pgdb --wait
-convox resources | grep pgdb | grep postgres
-dburl=$(convox resources url pgdb)
-convox resources update pgdb BackupRetentionPeriod=2 --wait
-[ "$dburl" == "$(convox resources url pgdb)" ]
-convox resources delete pgdb --wait
+convox rack resources create syslog Url=tcp://syslog.convox.com --name cilog --wait
+convox rack resources | grep cilog | grep syslog
+convox rack resources info cilog | grep -v Apps
+convox rack resources url cilog | grep tcp://syslog.convox.com
+convox rack resources link cilog -a ci2 --wait
+convox rack resources info cilog | grep Apps | grep ci2
+convox rack resources unlink cilog -a ci2 --wait
+convox rack resources info cilog | grep -v Apps
+convox rack resources link cilog -a ci1 --wait
+convox rack resources info cilog | grep Apps | grep ci1
+convox rack resources unlink cilog -a ci1 --wait
+convox rack resources info cilog | grep -v Apps
+convox rack resources update cilog Url=tcp://syslog2.convox.com --wait
+convox rack resources info cilog | grep syslog2.convox.com
+convox rack resources url cilog | grep tcp://syslog2.convox.com
+convox rack resources delete cilog --wait
+convox rack resources create postgres --name pgdb --wait
+convox rack resources | grep pgdb | grep postgres
+dburl=$(convox rack resources url pgdb)
+convox rack resources update pgdb BackupRetentionPeriod=2 --wait
+[ "$dburl" == "$(convox rack resources url pgdb)" ]
+convox rack resources delete pgdb --wait
 
 # cleanup
 convox apps delete ci1 --wait
