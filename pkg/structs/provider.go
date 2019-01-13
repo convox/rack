@@ -55,7 +55,7 @@ type Provider interface {
 	ProcessRun(app, service string, opts ProcessRunOptions) (*Process, error)
 	ProcessStop(app, pid string) error
 
-	Proxy(host string, port int, rw io.ReadWriter) error
+	Proxy(host string, port int, rw io.ReadWriter, opts ProxyOptions) error
 
 	RegistryAdd(server, username, password string) (*Registry, error)
 	RegistryList() (Registries, error)
@@ -66,14 +66,8 @@ type Provider interface {
 	ReleaseList(app string, opts ReleaseListOptions) (Releases, error)
 	ReleasePromote(app, id string) error
 
-	ResourceCreate(kind string, opts ResourceCreateOptions) (*Resource, error)
-	ResourceDelete(name string) error
-	ResourceGet(name string) (*Resource, error)
-	ResourceLink(name, app string) (*Resource, error)
-	ResourceList() (Resources, error)
-	ResourceTypes() (ResourceTypes, error)
-	ResourceUnlink(name, app string) (*Resource, error)
-	ResourceUpdate(name string, opts ResourceUpdateOptions) (*Resource, error)
+	ResourceGet(app, name string) (*Resource, error)
+	ResourceList(app string) (Resources, error)
 
 	ServiceList(app string) (Services, error)
 	ServiceUpdate(app, name string, opts ServiceUpdateOptions) error
@@ -84,6 +78,14 @@ type Provider interface {
 	SystemMetrics(opts MetricsOptions) (Metrics, error)
 	SystemProcesses(opts SystemProcessesOptions) (Processes, error)
 	SystemReleases() (Releases, error)
+	SystemResourceCreate(kind string, opts ResourceCreateOptions) (*Resource, error)
+	SystemResourceDelete(name string) error
+	SystemResourceGet(name string) (*Resource, error)
+	SystemResourceLink(name, app string) (*Resource, error)
+	SystemResourceList() (Resources, error)
+	SystemResourceTypes() (ResourceTypes, error)
+	SystemResourceUnlink(name, app string) (*Resource, error)
+	SystemResourceUpdate(name string, opts ResourceUpdateOptions) (*Resource, error)
 	SystemUninstall(name string, w io.Writer, opts SystemUninstallOptions) error
 	SystemUpdate(opts SystemUpdateOptions) error
 

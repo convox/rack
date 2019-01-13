@@ -30,4 +30,12 @@ type Interface interface {
 	RegistryRemoveClassic(string) error
 	ResourceCreateClassic(string, structs.ResourceCreateOptions) (*structs.Resource, error)
 	ResourceUpdateClassic(string, structs.ResourceUpdateOptions) (*structs.Resource, error)
+	SystemResourceCreateClassic(string, structs.ResourceCreateOptions) (*structs.Resource, error)
+	SystemResourceDeleteClassic(string) error
+	SystemResourceGetClassic(string) (*structs.Resource, error)
+	SystemResourceLinkClassic(string, string) (*structs.Resource, error)
+	SystemResourceListClassic() (structs.Resources, error)
+	SystemResourceTypesClassic() (structs.ResourceTypes, error)
+	SystemResourceUnlinkClassic(string, string) (*structs.Resource, error)
+	SystemResourceUpdateClassic(string, structs.ResourceUpdateOptions) (*structs.Resource, error)
 }

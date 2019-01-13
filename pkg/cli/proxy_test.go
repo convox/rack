@@ -11,13 +11,18 @@ import (
 
 	"github.com/convox/rack/pkg/cli"
 	mocksdk "github.com/convox/rack/pkg/mock/sdk"
+	"github.com/convox/rack/pkg/options"
+	"github.com/convox/rack/pkg/structs"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
 func TestProxy(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("Proxy", "test.example.org", 5000, mock.Anything).Return(nil).Run(func(args mock.Arguments) {
+		opts := structs.ProxyOptions{
+			TLS: options.Bool(false),
+		}
+		i.On("Proxy", "test.example.org", 5000, mock.Anything, opts).Return(nil).Run(func(args mock.Arguments) {
 			buf := make([]byte, 2)
 			rwc := args.Get(2).(io.ReadWriteCloser)
 			n, err := rwc.Read(buf)
@@ -66,7 +71,10 @@ func TestProxy(t *testing.T) {
 
 func TestProxyError(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("Proxy", "test.example.org", 5000, mock.Anything).Return(fmt.Errorf("err1"))
+		opts := structs.ProxyOptions{
+			TLS: options.Bool(false),
+		}
+		i.On("Proxy", "test.example.org", 5000, mock.Anything, opts).Return(fmt.Errorf("err1"))
 
 		port := rand.Intn(30000) + 10000
 

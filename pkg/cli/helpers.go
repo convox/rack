@@ -560,10 +560,20 @@ func waitForRackWithLogs(rack sdk.Interface, c *stdcli.Context) error {
 }
 
 func waitForResourceDeleted(rack sdk.Interface, c *stdcli.Context, resource string) error {
+	s, err := rack.SystemGet()
+	if err != nil {
+		return err
+	}
+
 	time.Sleep(WaitDuration) // give the stack time to start updating
 
 	return wait(WaitDuration, 30*time.Minute, 2, func() (bool, error) {
-		_, err := rack.ResourceGet(resource)
+		var err error
+		if s.Version <= "20190111211123" {
+			_, err = rack.SystemResourceGetClassic(resource)
+		} else {
+			_, err = rack.SystemResourceGet(resource)
+		}
 		if err == nil {
 			return false, nil
 		}
@@ -578,10 +588,22 @@ func waitForResourceDeleted(rack sdk.Interface, c *stdcli.Context, resource stri
 }
 
 func waitForResourceRunning(rack sdk.Interface, c *stdcli.Context, resource string) error {
+	s, err := rack.SystemGet()
+	if err != nil {
+		return err
+	}
+
 	time.Sleep(WaitDuration) // give the stack time to start updating
 
 	return wait(WaitDuration, 30*time.Minute, 2, func() (bool, error) {
-		r, err := rack.ResourceGet(resource)
+		var r *structs.Resource
+		var err error
+
+		if s.Version <= "20190111211123" {
+			r, err = rack.SystemResourceGetClassic(resource)
+		} else {
+			r, err = rack.SystemResourceGet(resource)
+		}
 		if err != nil {
 			return false, err
 		}

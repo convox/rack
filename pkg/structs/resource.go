@@ -2,8 +2,8 @@ package structs
 
 type Resource struct {
 	Name       string            `json:"name"`
-	Parameters map[string]string `json:"parameters"`
-	Status     string            `json:"status"`
+	Parameters map[string]string `json:"parameters,omitempty"`
+	Status     string            `json:"status,omitempty"`
 	Type       string            `json:"type"`
 	Url        string            `json:"url"`
 

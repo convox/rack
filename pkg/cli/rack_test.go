@@ -32,7 +32,7 @@ func TestRack(t *testing.T) {
 		res.RequireStdout(t, []string{
 			"Name     name",
 			"Status   running",
-			"Version  20180901000000",
+			"Version  21000101000000",
 			"Region   region",
 			"Router   domain",
 		})

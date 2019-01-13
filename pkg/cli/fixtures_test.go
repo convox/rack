@@ -240,7 +240,7 @@ func fxSystem() *structs.System {
 		Region:     "region",
 		Status:     "running",
 		Type:       "type",
-		Version:    "20180901000000",
+		Version:    "21000101000000",
 	}
 }
 

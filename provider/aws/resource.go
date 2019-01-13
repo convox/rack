@@ -15,9 +15,90 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/convox/rack/pkg/helpers"
 	"github.com/convox/rack/pkg/options"
 	"github.com/convox/rack/pkg/structs"
 )
+
+func (p *Provider) ResourceGet(app, name string) (*structs.Resource, error) {
+	a, err := p.AppGet(app)
+	if err != nil {
+		return nil, err
+	}
+
+	m, _, err := helpers.AppManifest(p, a.Name)
+	if err != nil {
+		return nil, err
+	}
+
+	rts := map[string]string{}
+
+	for _, r := range m.Resources {
+		rts[r.Name] = r.Type
+	}
+
+	ar, err := p.describeStackResource(&cloudformation.DescribeStackResourceInput{
+		StackName:         aws.String(p.rackStack(a.Name)),
+		LogicalResourceId: aws.String(fmt.Sprintf("Resource%s", upperName(name))),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	sr, err := p.describeStack(cs(ar.StackResourceDetail.PhysicalResourceId, ""))
+	if err != nil {
+		return nil, err
+	}
+
+	r := &structs.Resource{
+		Name: name,
+		Type: rts[name],
+		Url:  stackOutputs(sr)["Url"],
+	}
+
+	return r, nil
+}
+
+func (p *Provider) ResourceList(app string) (structs.Resources, error) {
+	a, err := p.AppGet(app)
+	if err != nil {
+		return nil, err
+	}
+
+	m, _, err := helpers.AppManifest(p, a.Name)
+	if err != nil {
+		return nil, err
+	}
+
+	ars, err := p.describeStackResources(&cloudformation.DescribeStackResourcesInput{
+		StackName: aws.String(p.rackStack(a.Name)),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	arsns := map[string]string{}
+
+	for _, ar := range ars.StackResources {
+		arsns[cs(ar.LogicalResourceId, "")] = cs(ar.PhysicalResourceId, "")
+	}
+
+	rs := structs.Resources{}
+
+	for _, r := range m.Resources {
+		if sr, err := p.describeStack(arsns[fmt.Sprintf("Resource%s", upperName(r.Name))]); err == nil {
+			rs = append(rs, structs.Resource{
+				Name: r.Name,
+				Type: r.Type,
+				Url:  stackOutputs(sr)["Url"],
+			})
+		}
+	}
+
+	return rs, nil
+}
+
+/** system resources ***************************************************************************/
 
 var resourceSystemParameters = map[string]bool{
 	"CustomTopic":       true,
@@ -34,14 +115,14 @@ var resourceSystemParameters = map[string]bool{
 
 // ResourceCreate creates a new resource.
 // Note: see also createResource() below.
-func (p *Provider) ResourceCreate(kind string, opts structs.ResourceCreateOptions) (*structs.Resource, error) {
+func (p *Provider) SystemResourceCreate(kind string, opts structs.ResourceCreateOptions) (*structs.Resource, error) {
 	name := fmt.Sprintf("%s-%d", kind, (rand.Intn(8999) + 1000))
 
 	if opts.Name != nil {
 		name = *opts.Name
 	}
 
-	_, err := p.ResourceGet(name)
+	_, err := p.SystemResourceGet(name)
 	if awsError(err) != "ValidationError" {
 		return nil, fmt.Errorf("resource named %s already exists", name)
 	}
@@ -128,8 +209,8 @@ func (p *Provider) ResourceCreate(kind string, opts structs.ResourceCreateOption
 }
 
 // ResourceDelete deletes a resource.
-func (p *Provider) ResourceDelete(name string) error {
-	r, err := p.ResourceGet(name)
+func (p *Provider) SystemResourceDelete(name string) error {
+	r, err := p.SystemResourceGet(name)
 	if err != nil {
 		return err
 	}
@@ -164,7 +245,7 @@ func (p *Provider) ResourceDelete(name string) error {
 }
 
 // ResourceGet retrieves a resource.
-func (p *Provider) ResourceGet(name string) (*structs.Resource, error) {
+func (p *Provider) SystemResourceGet(name string) (*structs.Resource, error) {
 	stacks, err := p.describeStacks(&cloudformation.DescribeStacksInput{
 		StackName: aws.String(p.rackStack(name)),
 	})
@@ -240,46 +321,8 @@ func (p *Provider) ResourceGet(name string) (*structs.Resource, error) {
 	return &s, nil
 }
 
-//resourceApps returns the apps that have been linked with a resource (ignoring apps that have been delete out of band)
-func (p *Provider) resourceApps(s structs.Resource) (structs.Apps, error) {
-	stacks, err := p.describeStacks(&cloudformation.DescribeStacksInput{
-		StackName: aws.String(p.rackStack(s.Name)),
-	})
-	if err != nil {
-		return nil, err
-	}
-	if len(stacks) != 1 {
-		return nil, fmt.Errorf("could not load stack for resource: %s", s.Name)
-	}
-
-	outputs := stackOutputs(stacks[0])
-
-	apps := structs.Apps(make([]structs.App, 0))
-
-	for key, value := range outputs {
-		if strings.HasSuffix(key, "Link") {
-			if ix := strings.Index(value, "-LogGroup"); ix > -1 {
-				value = value[:ix]
-			}
-			if prefix := fmt.Sprintf("%s-", p.Rack); strings.HasPrefix(value, prefix) {
-				value = strings.Replace(value, prefix, "", 1)
-			}
-			app := value
-
-			a, err := p.AppGet(app)
-			if err != nil {
-				return nil, err
-			}
-
-			apps = append(apps, *a)
-		}
-	}
-
-	return apps, nil
-}
-
 // ResourceList lists the resources.
-func (p *Provider) ResourceList() (structs.Resources, error) {
+func (p *Provider) SystemResourceList() (structs.Resources, error) {
 	stacks, err := p.describeStacks(&cloudformation.DescribeStacksInput{})
 	if err != nil {
 		return nil, err
@@ -311,8 +354,8 @@ func (p *Provider) ResourceList() (structs.Resources, error) {
 }
 
 // ResourceLink creates a link between the provided app and resource.
-func (p *Provider) ResourceLink(name, app string) (*structs.Resource, error) {
-	s, err := p.ResourceGet(name)
+func (p *Provider) SystemResourceLink(name, app string) (*structs.Resource, error) {
+	s, err := p.SystemResourceGet(name)
 	if err != nil {
 		return nil, err
 	}
@@ -347,7 +390,7 @@ func (p *Provider) ResourceLink(name, app string) (*structs.Resource, error) {
 	return s, err
 }
 
-func (p *Provider) ResourceTypes() (structs.ResourceTypes, error) {
+func (p *Provider) SystemResourceTypes() (structs.ResourceTypes, error) {
 	files, err := ioutil.ReadDir("provider/aws/templates/resource/")
 	if err != nil {
 		return nil, err
@@ -404,13 +447,13 @@ func (p *Provider) ResourceTypes() (structs.ResourceTypes, error) {
 }
 
 // ResourceUnlink removes a link between the provided app and resource.
-func (p *Provider) ResourceUnlink(name, app string) (*structs.Resource, error) {
+func (p *Provider) SystemResourceUnlink(name, app string) (*structs.Resource, error) {
 	a, err := p.AppGet(app)
 	if err != nil {
 		return nil, err
 	}
 
-	s, err := p.ResourceGet(name)
+	s, err := p.SystemResourceGet(name)
 	if err != nil {
 		return nil, err
 	}
@@ -449,8 +492,8 @@ func (p *Provider) ResourceUnlink(name, app string) (*structs.Resource, error) {
 }
 
 // ResourceUpdate updates a resource with new params.
-func (p *Provider) ResourceUpdate(name string, opts structs.ResourceUpdateOptions) (*structs.Resource, error) {
-	s, err := p.ResourceGet(name)
+func (p *Provider) SystemResourceUpdate(name string, opts structs.ResourceUpdateOptions) (*structs.Resource, error) {
+	s, err := p.SystemResourceGet(name)
 	if err != nil {
 		return nil, err
 	}
@@ -588,6 +631,44 @@ func (p *Provider) deleteSyslogInterfaces(r *structs.Resource) error {
 	}
 
 	return nil
+}
+
+//resourceApps returns the apps that have been linked with a resource (ignoring apps that have been delete out of band)
+func (p *Provider) resourceApps(s structs.Resource) (structs.Apps, error) {
+	stacks, err := p.describeStacks(&cloudformation.DescribeStacksInput{
+		StackName: aws.String(p.rackStack(s.Name)),
+	})
+	if err != nil {
+		return nil, err
+	}
+	if len(stacks) != 1 {
+		return nil, fmt.Errorf("could not load stack for resource: %s", s.Name)
+	}
+
+	outputs := stackOutputs(stacks[0])
+
+	apps := structs.Apps(make([]structs.App, 0))
+
+	for key, value := range outputs {
+		if strings.HasSuffix(key, "Link") {
+			if ix := strings.Index(value, "-LogGroup"); ix > -1 {
+				value = value[:ix]
+			}
+			if prefix := fmt.Sprintf("%s-", p.Rack); strings.HasPrefix(value, prefix) {
+				value = strings.Replace(value, prefix, "", 1)
+			}
+			app := value
+
+			a, err := p.AppGet(app)
+			if err != nil {
+				return nil, err
+			}
+
+			apps = append(apps, *a)
+		}
+	}
+
+	return apps, nil
 }
 
 func (p *Provider) updateResource(s *structs.Resource, params map[string]string) error {
