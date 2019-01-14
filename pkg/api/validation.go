@@ -1,6 +1,8 @@
 package api
 
 import (
+	"fmt"
+
 	"github.com/convox/stdapi"
 )
 
@@ -41,6 +43,22 @@ func (s *Server) ReleasePromoteValidate(c *stdapi.Context) error {
 
 	if a.Status != "running" {
 		return stdapi.Errorf(403, "app is currently updating")
+	}
+
+	if a.Release != "" {
+		or, err := s.Provider.ReleaseGet(c.Var("app"), a.Release)
+		if err != nil {
+			return err
+		}
+
+		nr, err := s.Provider.ReleaseGet(c.Var("app"), c.Var("id"))
+		if err != nil {
+			return err
+		}
+
+		if nr.Created.Before(or.Created) {
+			return fmt.Errorf("can not promote an older release, try rollback")
+		}
 	}
 
 	return nil
