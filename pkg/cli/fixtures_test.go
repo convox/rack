@@ -267,3 +267,18 @@ func fxSystemLocal() *structs.System {
 		Version:  "dev",
 	}
 }
+
+func fxSystemInternal() *structs.System {
+	return &structs.System{
+		Count:      1,
+		Domain:     "domain",
+		Name:       "name",
+		Outputs:    map[string]string{"DomainInternal": "domain-internal"},
+		Parameters: map[string]string{"Autoscale": "Yes", "ParamFoo": "value1", "ParamOther": "value2"},
+		Provider:   "provider",
+		Region:     "region",
+		Status:     "running",
+		Type:       "type",
+		Version:    "20180901000000",
+	}
+}

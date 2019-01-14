@@ -51,6 +51,25 @@ func TestRackError(t *testing.T) {
 	})
 }
 
+func TestRackInternal(t *testing.T) {
+	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
+		i.On("SystemGet").Return(fxSystemInternal(), nil)
+
+		res, err := testExecute(e, "rack", nil)
+		require.NoError(t, err)
+		require.Equal(t, 0, res.Code)
+		res.RequireStderr(t, []string{""})
+		res.RequireStdout(t, []string{
+			"Name     name",
+			"Status   running",
+			"Version  20180901000000",
+			"Region   region",
+			"Router   domain (external)",
+			"         domain-internal (internal)",
+		})
+	})
+}
+
 func TestRackInstall(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
 		ts := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

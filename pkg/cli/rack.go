@@ -102,8 +102,14 @@ func Rack(rack sdk.Interface, c *stdcli.Context) error {
 	i.Add("Name", s.Name)
 	i.Add("Status", s.Status)
 	i.Add("Version", s.Version)
+
 	i.Add("Region", s.Region)
-	i.Add("Router", s.Domain)
+
+	if ri := s.Outputs["DomainInternal"]; ri != "" {
+		i.Add("Router", fmt.Sprintf("%s (external)\n%s (internal)", s.Domain, ri))
+	} else {
+		i.Add("Router", s.Domain)
+	}
 
 	return i.Print()
 }
