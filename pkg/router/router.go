@@ -147,8 +147,8 @@ func (r *Router) ActivityOld() []string {
 }
 
 func (r *Router) HostBegin(host string) {
-	r.HostUnidle(host)
 	r.ActivityBegin(host)
+	r.HostUnidle(host)
 }
 
 func (r *Router) HostEnd(host string) {
