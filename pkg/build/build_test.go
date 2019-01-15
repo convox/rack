@@ -42,18 +42,11 @@ func TestBuildGeneration2(t *testing.T) {
 		})
 		e.On("Execute", "docker", "pull", "httpd").Return([]byte("pulling\n"), nil)
 		e.On("Execute", "docker", "tag", "httpd", "rack1/app1:web.build1").Return([]byte("tagging\n"), nil)
-		e.On("Execute", "docker", "inspect", "rack1/app1:web.build1", "--format", "{{json .Config.Cmd}}").Return([]byte(`["command1"]`), nil)
-		e.On("Execute", "docker", "inspect", "rack1/app1:web.build1", "--format", "{{json .Config.Entrypoint}}").Return([]byte(`["entrypoint1"]`), nil)
-		e.On("Execute", "cp", "/go/bin/convox-env", mock.AnythingOfType("string")).Return([]byte("copying\n"), nil)
-		e.On("Execute", "docker", "build", "-t", "rack1/app1:web.build1", mock.AnythingOfType("string")).Return([]byte("building convox-env\n"), nil)
 		e.On("Execute", "docker", "tag", "049f26f1b03bfca2e3af367d481a7bf1a94564ba", "rack1/app1:web2.build1").Return([]byte("tagging\n"), nil)
-		e.On("Execute", "docker", "inspect", "rack1/app1:web2.build1", "--format", "{{json .Config.Cmd}}").Return([]byte(`["command2"]`), nil)
-		e.On("Execute", "docker", "inspect", "rack1/app1:web2.build1", "--format", "{{json .Config.Entrypoint}}").Return([]byte(`["entrypoint2"]`), nil)
-		e.On("Execute", "docker", "build", "-t", "rack1/app1:web2.build1", mock.AnythingOfType("string")).Return([]byte("building convox-env\n"), nil)
 		p.On("ObjectStore", "app1", "build/build1/logs", mock.Anything, structs.ObjectStoreOptions{}).Return(fxObject(), nil).Run(func(args mock.Arguments) {
 			data, err := ioutil.ReadAll(args.Get(2).(io.Reader))
 			require.NoError(t, err)
-			require.Equal(t, "Building: .\nbuild1\nbuild2\nRunning: docker pull httpd\nRunning: docker tag 049f26f1b03bfca2e3af367d481a7bf1a94564ba rack1/app1:web2.build1\nInjecting: convox-env\nRunning: docker tag httpd rack1/app1:web.build1\nInjecting: convox-env\n", string(data))
+			require.Equal(t, "Building: .\nbuild1\nbuild2\nRunning: docker pull httpd\nRunning: docker tag 049f26f1b03bfca2e3af367d481a7bf1a94564ba rack1/app1:web2.build1\nRunning: docker tag httpd rack1/app1:web.build1\n", string(data))
 		})
 		p.On("BuildUpdate", "app1", "build1", mock.Anything).Return(fxBuildStarted(), nil).Run(func(args mock.Arguments) {
 			opts := args.Get(2).(structs.BuildUpdateOptions)
@@ -80,9 +73,7 @@ func TestBuildGeneration2(t *testing.T) {
 				"build2",
 				"Running: docker pull httpd",
 				"Running: docker tag 049f26f1b03bfca2e3af367d481a7bf1a94564ba rack1/app1:web2.build1",
-				"Injecting: convox-env",
 				"Running: docker tag httpd rack1/app1:web.build1",
-				"Injecting: convox-env",
 			},
 			strings.Split(strings.TrimSuffix(out.String(), "\n"), "\n"),
 		)
@@ -114,14 +105,10 @@ func TestBuildGeneration2Development(t *testing.T) {
 			fmt.Fprintf(args.Get(0).(io.Writer), "build1\nbuild2\n")
 		})
 		e.On("Execute", "docker", "tag", "049f26f1b03bfca2e3af367d481a7bf1a94564ba", "rack1/app1:web.build1").Return([]byte("tagging\n"), nil)
-		e.On("Execute", "docker", "inspect", "rack1/app1:web.build1", "--format", "{{json .Config.Cmd}}").Return([]byte(`["command2"]`), nil)
-		e.On("Execute", "docker", "inspect", "rack1/app1:web.build1", "--format", "{{json .Config.Entrypoint}}").Return([]byte(`["entrypoint2"]`), nil)
-		e.On("Execute", "cp", "/go/bin/convox-env", mock.AnythingOfType("string")).Return([]byte("copying\n"), nil)
-		e.On("Execute", "docker", "build", "-t", "rack1/app1:web.build1", mock.AnythingOfType("string")).Return([]byte("building convox-env\n"), nil)
 		p.On("ObjectStore", "app1", "build/build1/logs", mock.Anything, structs.ObjectStoreOptions{}).Return(fxObject(), nil).Run(func(args mock.Arguments) {
 			data, err := ioutil.ReadAll(args.Get(2).(io.Reader))
 			require.NoError(t, err)
-			require.Equal(t, "Building: .\nbuild1\nbuild2\nRunning: docker tag 049f26f1b03bfca2e3af367d481a7bf1a94564ba rack1/app1:web.build1\nInjecting: convox-env\n", string(data))
+			require.Equal(t, "Building: .\nbuild1\nbuild2\nRunning: docker tag 049f26f1b03bfca2e3af367d481a7bf1a94564ba rack1/app1:web.build1\n", string(data))
 		})
 		p.On("BuildUpdate", "app1", "build1", mock.Anything).Return(fxBuildStarted(), nil).Run(func(args mock.Arguments) {
 			opts := args.Get(2).(structs.BuildUpdateOptions)
@@ -147,7 +134,6 @@ func TestBuildGeneration2Development(t *testing.T) {
 				"build1",
 				"build2",
 				"Running: docker tag 049f26f1b03bfca2e3af367d481a7bf1a94564ba rack1/app1:web.build1",
-				"Injecting: convox-env",
 			},
 			strings.Split(strings.TrimSuffix(out.String(), "\n"), "\n"),
 		)
@@ -202,6 +188,7 @@ func TestBuildGeneration2Options(t *testing.T) {
 		Auth:        `{"host1":{"username":"user1","password":"pass1"}}`,
 		Cache:       false,
 		Development: true,
+		EnvWrapper:  true,
 		Generation:  "2",
 		Id:          "build1",
 		Manifest:    "convox2.yml",
