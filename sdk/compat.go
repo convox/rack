@@ -363,3 +363,107 @@ func (c *Client) ResourceUpdateClassic(name string, opts structs.ResourceUpdateO
 
 	return r, nil
 }
+
+func (c *Client) SystemResourceCreateClassic(kind string, opts structs.ResourceCreateOptions) (*structs.Resource, error) {
+	var err error
+
+	ro, err := stdsdk.MarshalOptions(opts)
+	if err != nil {
+		return nil, err
+	}
+
+	ro.Params["kind"] = kind
+
+	var v *structs.Resource
+
+	err = c.Post(fmt.Sprintf("/resources"), ro, &v)
+
+	return v, err
+}
+
+func (c *Client) SystemResourceDeleteClassic(name string) error {
+	var err error
+
+	ro := stdsdk.RequestOptions{Headers: stdsdk.Headers{}, Params: stdsdk.Params{}, Query: stdsdk.Query{}}
+
+	err = c.Delete(fmt.Sprintf("/resources/%s", name), ro, nil)
+
+	return err
+}
+
+func (c *Client) SystemResourceGetClassic(name string) (*structs.Resource, error) {
+	var err error
+
+	ro := stdsdk.RequestOptions{Headers: stdsdk.Headers{}, Params: stdsdk.Params{}, Query: stdsdk.Query{}}
+
+	var v *structs.Resource
+
+	err = c.Get(fmt.Sprintf("/resources/%s", name), ro, &v)
+
+	return v, err
+}
+
+func (c *Client) SystemResourceLinkClassic(name string, app string) (*structs.Resource, error) {
+	var err error
+
+	ro := stdsdk.RequestOptions{Headers: stdsdk.Headers{}, Params: stdsdk.Params{}, Query: stdsdk.Query{}}
+
+	ro.Params["app"] = app
+
+	var v *structs.Resource
+
+	err = c.Post(fmt.Sprintf("/resources/%s/links", name), ro, &v)
+
+	return v, err
+}
+
+func (c *Client) SystemResourceListClassic() (structs.Resources, error) {
+	var err error
+
+	ro := stdsdk.RequestOptions{Headers: stdsdk.Headers{}, Params: stdsdk.Params{}, Query: stdsdk.Query{}}
+
+	var v structs.Resources
+
+	err = c.Get(fmt.Sprintf("/resources"), ro, &v)
+
+	return v, err
+}
+
+func (c *Client) SystemResourceTypesClassic() (structs.ResourceTypes, error) {
+	var err error
+
+	ro := stdsdk.RequestOptions{Headers: stdsdk.Headers{}, Params: stdsdk.Params{}, Query: stdsdk.Query{}}
+
+	var v structs.ResourceTypes
+
+	err = c.Options(fmt.Sprintf("/resources"), ro, &v)
+
+	return v, err
+}
+
+func (c *Client) SystemResourceUnlinkClassic(name string, app string) (*structs.Resource, error) {
+	var err error
+
+	ro := stdsdk.RequestOptions{Headers: stdsdk.Headers{}, Params: stdsdk.Params{}, Query: stdsdk.Query{}}
+
+	var v *structs.Resource
+
+	err = c.Delete(fmt.Sprintf("/resources/%s/links/%s", name, app), ro, &v)
+
+	return v, err
+}
+
+func (c *Client) SystemResourceUpdateClassic(name string, opts structs.ResourceUpdateOptions) (*structs.Resource, error) {
+	var err error
+
+	ro, err := stdsdk.MarshalOptions(opts)
+	if err != nil {
+		return nil, err
+	}
+
+	var v *structs.Resource
+
+	err = c.Put(fmt.Sprintf("/resources/%s", name), ro, &v)
+
+	return v, err
+}

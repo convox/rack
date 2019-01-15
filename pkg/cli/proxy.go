@@ -6,13 +6,18 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/convox/rack/pkg/options"
+	"github.com/convox/rack/pkg/structs"
 	"github.com/convox/rack/sdk"
 	"github.com/convox/stdcli"
 )
 
 func init() {
 	register("proxy", "proxy a connection inside the rack", Proxy, stdcli.CommandOptions{
-		Flags:    []stdcli.Flag{flagRack},
+		Flags: []stdcli.Flag{
+			flagRack,
+			stdcli.BoolFlag("tls", "t", "wrap connection in tls"),
+		},
 		Usage:    "<[port:]host:hostport> [[port:]host:hostport]...",
 		Validate: stdcli.ArgsMin(1),
 	})
@@ -59,14 +64,14 @@ func Proxy(rack sdk.Interface, c *stdcli.Context) error {
 			return fmt.Errorf("invalid argument: %s", arg)
 		}
 
-		go proxy(rack, c, port, host, hostport)
+		go proxy(rack, c, port, host, hostport, c.Bool("tls"))
 	}
 
 	// block until something sends data on this channel
 	return <-ProxyCloser
 }
 
-func proxy(rack sdk.Interface, c *stdcli.Context, localport int, remotehost string, remoteport int) {
+func proxy(rack sdk.Interface, c *stdcli.Context, localport int, remotehost string, remoteport int, secure bool) {
 	c.Writef("proxying localhost:%d to %s:%d\n", localport, remotehost, remoteport)
 
 	listener, err := net.Listen("tcp4", fmt.Sprintf("127.0.0.1:%d", localport))
@@ -89,7 +94,11 @@ func proxy(rack sdk.Interface, c *stdcli.Context, localport int, remotehost stri
 		go func() {
 			defer cn.Close()
 
-			if err := rack.Proxy(remotehost, remoteport, cn); err != nil {
+			opts := structs.ProxyOptions{
+				TLS: options.Bool(secure),
+			}
+
+			if err := rack.Proxy(remotehost, remoteport, cn, opts); err != nil {
 				c.Error(err)
 			}
 		}()

@@ -18,7 +18,7 @@ func TestProxy(t *testing.T) {
 		ro := stdsdk.RequestOptions{
 			Body: strings.NewReader("in"),
 		}
-		p.On("Proxy", "host", 5000, mock.Anything).Return(nil).Run(func(args mock.Arguments) {
+		p.On("Proxy", "host", 5000, mock.Anything, structs.ProxyOptions{}).Return(nil).Run(func(args mock.Arguments) {
 			rw := args.Get(2).(io.ReadWriter)
 			rw.Write([]byte("out"))
 			data, err := ioutil.ReadAll(rw)
@@ -35,7 +35,7 @@ func TestProxy(t *testing.T) {
 
 func TestProxyError(t *testing.T) {
 	testServer(t, func(c *stdsdk.Client, p *structs.MockProvider) {
-		p.On("Proxy", "host", 5000, mock.Anything).Return(fmt.Errorf("err1"))
+		p.On("Proxy", "host", 5000, mock.Anything, structs.ProxyOptions{}).Return(fmt.Errorf("err1"))
 		r, err := c.Websocket("/proxy/host/5000", stdsdk.RequestOptions{})
 		require.NoError(t, err)
 		d, err := ioutil.ReadAll(r)

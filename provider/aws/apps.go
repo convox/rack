@@ -147,7 +147,7 @@ func (p *Provider) AppDelete(name string) error {
 		return fmt.Errorf("invalid app: %s", name)
 	}
 
-	resources, err := p.ResourceList()
+	resources, err := p.SystemResourceList()
 	if err != nil {
 		return err
 	}

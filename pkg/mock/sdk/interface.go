@@ -1090,13 +1090,13 @@ func (_m *Interface) ProcessStop(app string, pid string) error {
 	return r0
 }
 
-// Proxy provides a mock function with given fields: host, port, rw
-func (_m *Interface) Proxy(host string, port int, rw io.ReadWriter) error {
-	ret := _m.Called(host, port, rw)
+// Proxy provides a mock function with given fields: host, port, rw, opts
+func (_m *Interface) Proxy(host string, port int, rw io.ReadWriter, opts structs.ProxyOptions) error {
+	ret := _m.Called(host, port, rw, opts)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(string, int, io.ReadWriter) error); ok {
-		r0 = rf(host, port, rw)
+	if rf, ok := ret.Get(0).(func(string, int, io.ReadWriter, structs.ProxyOptions) error); ok {
+		r0 = rf(host, port, rw, opts)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -1261,29 +1261,6 @@ func (_m *Interface) ReleasePromote(app string, id string) error {
 	return r0
 }
 
-// ResourceCreate provides a mock function with given fields: kind, opts
-func (_m *Interface) ResourceCreate(kind string, opts structs.ResourceCreateOptions) (*structs.Resource, error) {
-	ret := _m.Called(kind, opts)
-
-	var r0 *structs.Resource
-	if rf, ok := ret.Get(0).(func(string, structs.ResourceCreateOptions) *structs.Resource); ok {
-		r0 = rf(kind, opts)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*structs.Resource)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(string, structs.ResourceCreateOptions) error); ok {
-		r1 = rf(kind, opts)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
 // ResourceCreateClassic provides a mock function with given fields: _a0, _a1
 func (_m *Interface) ResourceCreateClassic(_a0 string, _a1 structs.ResourceCreateOptions) (*structs.Resource, error) {
 	ret := _m.Called(_a0, _a1)
@@ -1307,50 +1284,13 @@ func (_m *Interface) ResourceCreateClassic(_a0 string, _a1 structs.ResourceCreat
 	return r0, r1
 }
 
-// ResourceDelete provides a mock function with given fields: name
-func (_m *Interface) ResourceDelete(name string) error {
-	ret := _m.Called(name)
-
-	var r0 error
-	if rf, ok := ret.Get(0).(func(string) error); ok {
-		r0 = rf(name)
-	} else {
-		r0 = ret.Error(0)
-	}
-
-	return r0
-}
-
-// ResourceGet provides a mock function with given fields: name
-func (_m *Interface) ResourceGet(name string) (*structs.Resource, error) {
-	ret := _m.Called(name)
-
-	var r0 *structs.Resource
-	if rf, ok := ret.Get(0).(func(string) *structs.Resource); ok {
-		r0 = rf(name)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*structs.Resource)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(string) error); ok {
-		r1 = rf(name)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// ResourceLink provides a mock function with given fields: name, app
-func (_m *Interface) ResourceLink(name string, app string) (*structs.Resource, error) {
-	ret := _m.Called(name, app)
+// ResourceGet provides a mock function with given fields: app, name
+func (_m *Interface) ResourceGet(app string, name string) (*structs.Resource, error) {
+	ret := _m.Called(app, name)
 
 	var r0 *structs.Resource
 	if rf, ok := ret.Get(0).(func(string, string) *structs.Resource); ok {
-		r0 = rf(name, app)
+		r0 = rf(app, name)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*structs.Resource)
@@ -1359,7 +1299,7 @@ func (_m *Interface) ResourceLink(name string, app string) (*structs.Resource, e
 
 	var r1 error
 	if rf, ok := ret.Get(1).(func(string, string) error); ok {
-		r1 = rf(name, app)
+		r1 = rf(app, name)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -1367,13 +1307,13 @@ func (_m *Interface) ResourceLink(name string, app string) (*structs.Resource, e
 	return r0, r1
 }
 
-// ResourceList provides a mock function with given fields:
-func (_m *Interface) ResourceList() (structs.Resources, error) {
-	ret := _m.Called()
+// ResourceList provides a mock function with given fields: app
+func (_m *Interface) ResourceList(app string) (structs.Resources, error) {
+	ret := _m.Called(app)
 
 	var r0 structs.Resources
-	if rf, ok := ret.Get(0).(func() structs.Resources); ok {
-		r0 = rf()
+	if rf, ok := ret.Get(0).(func(string) structs.Resources); ok {
+		r0 = rf(app)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(structs.Resources)
@@ -1381,77 +1321,8 @@ func (_m *Interface) ResourceList() (structs.Resources, error) {
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func() error); ok {
-		r1 = rf()
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// ResourceTypes provides a mock function with given fields:
-func (_m *Interface) ResourceTypes() (structs.ResourceTypes, error) {
-	ret := _m.Called()
-
-	var r0 structs.ResourceTypes
-	if rf, ok := ret.Get(0).(func() structs.ResourceTypes); ok {
-		r0 = rf()
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(structs.ResourceTypes)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func() error); ok {
-		r1 = rf()
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// ResourceUnlink provides a mock function with given fields: name, app
-func (_m *Interface) ResourceUnlink(name string, app string) (*structs.Resource, error) {
-	ret := _m.Called(name, app)
-
-	var r0 *structs.Resource
-	if rf, ok := ret.Get(0).(func(string, string) *structs.Resource); ok {
-		r0 = rf(name, app)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*structs.Resource)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(string, string) error); ok {
-		r1 = rf(name, app)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// ResourceUpdate provides a mock function with given fields: name, opts
-func (_m *Interface) ResourceUpdate(name string, opts structs.ResourceUpdateOptions) (*structs.Resource, error) {
-	ret := _m.Called(name, opts)
-
-	var r0 *structs.Resource
-	if rf, ok := ret.Get(0).(func(string, structs.ResourceUpdateOptions) *structs.Resource); ok {
-		r0 = rf(name, opts)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*structs.Resource)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(string, structs.ResourceUpdateOptions) error); ok {
-		r1 = rf(name, opts)
+	if rf, ok := ret.Get(1).(func(string) error); ok {
+		r1 = rf(app)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -1648,6 +1519,356 @@ func (_m *Interface) SystemReleases() (structs.Releases, error) {
 	var r1 error
 	if rf, ok := ret.Get(1).(func() error); ok {
 		r1 = rf()
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// SystemResourceCreate provides a mock function with given fields: kind, opts
+func (_m *Interface) SystemResourceCreate(kind string, opts structs.ResourceCreateOptions) (*structs.Resource, error) {
+	ret := _m.Called(kind, opts)
+
+	var r0 *structs.Resource
+	if rf, ok := ret.Get(0).(func(string, structs.ResourceCreateOptions) *structs.Resource); ok {
+		r0 = rf(kind, opts)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*structs.Resource)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(string, structs.ResourceCreateOptions) error); ok {
+		r1 = rf(kind, opts)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// SystemResourceCreateClassic provides a mock function with given fields: _a0, _a1
+func (_m *Interface) SystemResourceCreateClassic(_a0 string, _a1 structs.ResourceCreateOptions) (*structs.Resource, error) {
+	ret := _m.Called(_a0, _a1)
+
+	var r0 *structs.Resource
+	if rf, ok := ret.Get(0).(func(string, structs.ResourceCreateOptions) *structs.Resource); ok {
+		r0 = rf(_a0, _a1)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*structs.Resource)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(string, structs.ResourceCreateOptions) error); ok {
+		r1 = rf(_a0, _a1)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// SystemResourceDelete provides a mock function with given fields: name
+func (_m *Interface) SystemResourceDelete(name string) error {
+	ret := _m.Called(name)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(string) error); ok {
+		r0 = rf(name)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// SystemResourceDeleteClassic provides a mock function with given fields: _a0
+func (_m *Interface) SystemResourceDeleteClassic(_a0 string) error {
+	ret := _m.Called(_a0)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(string) error); ok {
+		r0 = rf(_a0)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// SystemResourceGet provides a mock function with given fields: name
+func (_m *Interface) SystemResourceGet(name string) (*structs.Resource, error) {
+	ret := _m.Called(name)
+
+	var r0 *structs.Resource
+	if rf, ok := ret.Get(0).(func(string) *structs.Resource); ok {
+		r0 = rf(name)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*structs.Resource)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(string) error); ok {
+		r1 = rf(name)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// SystemResourceGetClassic provides a mock function with given fields: _a0
+func (_m *Interface) SystemResourceGetClassic(_a0 string) (*structs.Resource, error) {
+	ret := _m.Called(_a0)
+
+	var r0 *structs.Resource
+	if rf, ok := ret.Get(0).(func(string) *structs.Resource); ok {
+		r0 = rf(_a0)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*structs.Resource)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(string) error); ok {
+		r1 = rf(_a0)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// SystemResourceLink provides a mock function with given fields: name, app
+func (_m *Interface) SystemResourceLink(name string, app string) (*structs.Resource, error) {
+	ret := _m.Called(name, app)
+
+	var r0 *structs.Resource
+	if rf, ok := ret.Get(0).(func(string, string) *structs.Resource); ok {
+		r0 = rf(name, app)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*structs.Resource)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(string, string) error); ok {
+		r1 = rf(name, app)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// SystemResourceLinkClassic provides a mock function with given fields: _a0, _a1
+func (_m *Interface) SystemResourceLinkClassic(_a0 string, _a1 string) (*structs.Resource, error) {
+	ret := _m.Called(_a0, _a1)
+
+	var r0 *structs.Resource
+	if rf, ok := ret.Get(0).(func(string, string) *structs.Resource); ok {
+		r0 = rf(_a0, _a1)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*structs.Resource)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(string, string) error); ok {
+		r1 = rf(_a0, _a1)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// SystemResourceList provides a mock function with given fields:
+func (_m *Interface) SystemResourceList() (structs.Resources, error) {
+	ret := _m.Called()
+
+	var r0 structs.Resources
+	if rf, ok := ret.Get(0).(func() structs.Resources); ok {
+		r0 = rf()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(structs.Resources)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func() error); ok {
+		r1 = rf()
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// SystemResourceListClassic provides a mock function with given fields:
+func (_m *Interface) SystemResourceListClassic() (structs.Resources, error) {
+	ret := _m.Called()
+
+	var r0 structs.Resources
+	if rf, ok := ret.Get(0).(func() structs.Resources); ok {
+		r0 = rf()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(structs.Resources)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func() error); ok {
+		r1 = rf()
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// SystemResourceTypes provides a mock function with given fields:
+func (_m *Interface) SystemResourceTypes() (structs.ResourceTypes, error) {
+	ret := _m.Called()
+
+	var r0 structs.ResourceTypes
+	if rf, ok := ret.Get(0).(func() structs.ResourceTypes); ok {
+		r0 = rf()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(structs.ResourceTypes)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func() error); ok {
+		r1 = rf()
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// SystemResourceTypesClassic provides a mock function with given fields:
+func (_m *Interface) SystemResourceTypesClassic() (structs.ResourceTypes, error) {
+	ret := _m.Called()
+
+	var r0 structs.ResourceTypes
+	if rf, ok := ret.Get(0).(func() structs.ResourceTypes); ok {
+		r0 = rf()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(structs.ResourceTypes)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func() error); ok {
+		r1 = rf()
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// SystemResourceUnlink provides a mock function with given fields: name, app
+func (_m *Interface) SystemResourceUnlink(name string, app string) (*structs.Resource, error) {
+	ret := _m.Called(name, app)
+
+	var r0 *structs.Resource
+	if rf, ok := ret.Get(0).(func(string, string) *structs.Resource); ok {
+		r0 = rf(name, app)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*structs.Resource)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(string, string) error); ok {
+		r1 = rf(name, app)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// SystemResourceUnlinkClassic provides a mock function with given fields: _a0, _a1
+func (_m *Interface) SystemResourceUnlinkClassic(_a0 string, _a1 string) (*structs.Resource, error) {
+	ret := _m.Called(_a0, _a1)
+
+	var r0 *structs.Resource
+	if rf, ok := ret.Get(0).(func(string, string) *structs.Resource); ok {
+		r0 = rf(_a0, _a1)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*structs.Resource)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(string, string) error); ok {
+		r1 = rf(_a0, _a1)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// SystemResourceUpdate provides a mock function with given fields: name, opts
+func (_m *Interface) SystemResourceUpdate(name string, opts structs.ResourceUpdateOptions) (*structs.Resource, error) {
+	ret := _m.Called(name, opts)
+
+	var r0 *structs.Resource
+	if rf, ok := ret.Get(0).(func(string, structs.ResourceUpdateOptions) *structs.Resource); ok {
+		r0 = rf(name, opts)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*structs.Resource)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(string, structs.ResourceUpdateOptions) error); ok {
+		r1 = rf(name, opts)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// SystemResourceUpdateClassic provides a mock function with given fields: _a0, _a1
+func (_m *Interface) SystemResourceUpdateClassic(_a0 string, _a1 structs.ResourceUpdateOptions) (*structs.Resource, error) {
+	ret := _m.Called(_a0, _a1)
+
+	var r0 *structs.Resource
+	if rf, ok := ret.Get(0).(func(string, structs.ResourceUpdateOptions) *structs.Resource); ok {
+		r0 = rf(_a0, _a1)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*structs.Resource)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(string, structs.ResourceUpdateOptions) error); ok {
+		r1 = rf(_a0, _a1)
 	} else {
 		r1 = ret.Error(1)
 	}

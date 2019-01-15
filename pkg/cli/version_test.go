@@ -30,7 +30,7 @@ func TestVersion(t *testing.T) {
 		res.RequireStderr(t, []string{""})
 		res.RequireStdout(t, []string{
 			"client: test",
-			"server: 20180901000000 (host1)",
+			"server: 21000101000000 (host1)",
 		})
 	})
 }

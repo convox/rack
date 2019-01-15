@@ -27,7 +27,49 @@ var fxResourceType = structs.ResourceType{
 	},
 }
 
-func TestResourceCreate(t *testing.T) {
+func TestResourceGet(t *testing.T) {
+	testServer(t, func(c *stdsdk.Client, p *structs.MockProvider) {
+		r1 := fxResource
+		r2 := structs.Resource{}
+		p.On("ResourceGet", "app1", "resource1").Return(&r1, nil)
+		err := c.Get("/apps/app1/resources/resource1", stdsdk.RequestOptions{}, &r2)
+		require.NoError(t, err)
+		require.Equal(t, r1, r2)
+	})
+}
+
+func TestResourceGetError(t *testing.T) {
+	testServer(t, func(c *stdsdk.Client, p *structs.MockProvider) {
+		var r1 *structs.Resource
+		p.On("ResourceGet", "app1", "resource1").Return(nil, fmt.Errorf("err1"))
+		err := c.Get("/apps/app1/resources/resource1", stdsdk.RequestOptions{}, &r1)
+		require.EqualError(t, err, "err1")
+		require.Nil(t, r1)
+	})
+}
+
+func TestResourceList(t *testing.T) {
+	testServer(t, func(c *stdsdk.Client, p *structs.MockProvider) {
+		r1 := structs.Resources{fxResource, fxResource}
+		r2 := structs.Resources{}
+		p.On("ResourceList", "app1").Return(r1, nil)
+		err := c.Get("/apps/app1/resources", stdsdk.RequestOptions{}, &r2)
+		require.NoError(t, err)
+		require.Equal(t, r1, r2)
+	})
+}
+
+func TestResourceListError(t *testing.T) {
+	testServer(t, func(c *stdsdk.Client, p *structs.MockProvider) {
+		var r1 structs.Resources
+		p.On("ResourceList", "app1").Return(nil, fmt.Errorf("err1"))
+		err := c.Get("/apps/app1/resources", stdsdk.RequestOptions{}, &r1)
+		require.EqualError(t, err, "err1")
+		require.Nil(t, r1)
+	})
+}
+
+func TestSystemResourceCreate(t *testing.T) {
 	testServer(t, func(c *stdsdk.Client, p *structs.MockProvider) {
 		r1 := fxResource
 		r2 := structs.Resource{}
@@ -42,14 +84,14 @@ func TestResourceCreate(t *testing.T) {
 				"parameters": "k1=v1&k2=v2",
 			},
 		}
-		p.On("ResourceCreate", "type", opts).Return(&r1, nil)
+		p.On("SystemResourceCreate", "type", opts).Return(&r1, nil)
 		err := c.Post("/resources", ro, &r2)
 		require.NoError(t, err)
 		require.Equal(t, r1, r2)
 	})
 }
 
-func TestResourceCreateError(t *testing.T) {
+func TestSystemResourceCreateError(t *testing.T) {
 	testServer(t, func(c *stdsdk.Client, p *structs.MockProvider) {
 		var r1 *structs.Resource
 		ro := stdsdk.RequestOptions{
@@ -57,51 +99,51 @@ func TestResourceCreateError(t *testing.T) {
 				"kind": "type",
 			},
 		}
-		p.On("ResourceCreate", "type", structs.ResourceCreateOptions{}).Return(nil, fmt.Errorf("err1"))
+		p.On("SystemResourceCreate", "type", structs.ResourceCreateOptions{}).Return(nil, fmt.Errorf("err1"))
 		err := c.Post("/resources", ro, &r1)
 		require.EqualError(t, err, "err1")
 		require.Nil(t, r1)
 	})
 }
 
-func TestResourceDelete(t *testing.T) {
+func TestSystemResourceDelete(t *testing.T) {
 	testServer(t, func(c *stdsdk.Client, p *structs.MockProvider) {
-		p.On("ResourceDelete", "resource1").Return(nil)
+		p.On("SystemResourceDelete", "resource1").Return(nil)
 		err := c.Delete("/resources/resource1", stdsdk.RequestOptions{}, nil)
 		require.NoError(t, err)
 	})
 }
 
-func TestResourceDeleteError(t *testing.T) {
+func TestSystemResourceDeleteError(t *testing.T) {
 	testServer(t, func(c *stdsdk.Client, p *structs.MockProvider) {
-		p.On("ResourceDelete", "resource1").Return(fmt.Errorf("err1"))
+		p.On("SystemResourceDelete", "resource1").Return(fmt.Errorf("err1"))
 		err := c.Delete("/resources/resource1", stdsdk.RequestOptions{}, nil)
 		require.EqualError(t, err, "err1")
 	})
 }
 
-func TestResourceGet(t *testing.T) {
+func TestSystemResourceGet(t *testing.T) {
 	testServer(t, func(c *stdsdk.Client, p *structs.MockProvider) {
 		r1 := fxResource
 		r2 := structs.Resource{}
-		p.On("ResourceGet", "resource1").Return(&r1, nil)
+		p.On("SystemResourceGet", "resource1").Return(&r1, nil)
 		err := c.Get("/resources/resource1", stdsdk.RequestOptions{}, &r2)
 		require.NoError(t, err)
 		require.Equal(t, r1, r2)
 	})
 }
 
-func TestResourceGetError(t *testing.T) {
+func TestSystemResourceGetError(t *testing.T) {
 	testServer(t, func(c *stdsdk.Client, p *structs.MockProvider) {
 		var r1 *structs.Resource
-		p.On("ResourceGet", "resource1").Return(nil, fmt.Errorf("err1"))
+		p.On("SystemResourceGet", "resource1").Return(nil, fmt.Errorf("err1"))
 		err := c.Get("/resources/resource1", stdsdk.RequestOptions{}, &r1)
 		require.EqualError(t, err, "err1")
 		require.Nil(t, r1)
 	})
 }
 
-func TestResourceLink(t *testing.T) {
+func TestSystemResourceLink(t *testing.T) {
 	testServer(t, func(c *stdsdk.Client, p *structs.MockProvider) {
 		r1 := fxResource
 		r2 := structs.Resource{}
@@ -110,14 +152,14 @@ func TestResourceLink(t *testing.T) {
 				"app": "app1",
 			},
 		}
-		p.On("ResourceLink", "resource1", "app1").Return(&r1, nil)
+		p.On("SystemResourceLink", "resource1", "app1").Return(&r1, nil)
 		err := c.Post("/resources/resource1/links", ro, &r2)
 		require.NoError(t, err)
 		require.Equal(t, r1, r2)
 	})
 }
 
-func TestResourceLinkError(t *testing.T) {
+func TestSystemResourceLinkError(t *testing.T) {
 	testServer(t, func(c *stdsdk.Client, p *structs.MockProvider) {
 		var r1 *structs.Resource
 		ro := stdsdk.RequestOptions{
@@ -125,77 +167,77 @@ func TestResourceLinkError(t *testing.T) {
 				"app": "app1",
 			},
 		}
-		p.On("ResourceLink", "resource1", "app1").Return(nil, fmt.Errorf("err1"))
+		p.On("SystemResourceLink", "resource1", "app1").Return(nil, fmt.Errorf("err1"))
 		err := c.Post("/resources/resource1/links", ro, &r1)
 		require.EqualError(t, err, "err1")
 		require.Nil(t, r1)
 	})
 }
 
-func TestResourceList(t *testing.T) {
+func TestSystemResourceList(t *testing.T) {
 	testServer(t, func(c *stdsdk.Client, p *structs.MockProvider) {
 		r1 := structs.Resources{fxResource, fxResource}
 		r2 := structs.Resources{}
-		p.On("ResourceList").Return(r1, nil)
+		p.On("SystemResourceList").Return(r1, nil)
 		err := c.Get("/resources", stdsdk.RequestOptions{}, &r2)
 		require.NoError(t, err)
 		require.Equal(t, r1, r2)
 	})
 }
 
-func TestResourceListError(t *testing.T) {
+func TestSystemResourceListError(t *testing.T) {
 	testServer(t, func(c *stdsdk.Client, p *structs.MockProvider) {
 		var r1 structs.Resources
-		p.On("ResourceList").Return(nil, fmt.Errorf("err1"))
+		p.On("SystemResourceList").Return(nil, fmt.Errorf("err1"))
 		err := c.Get("/resources", stdsdk.RequestOptions{}, &r1)
 		require.EqualError(t, err, "err1")
 		require.Nil(t, r1)
 	})
 }
 
-func TestResourceTypes(t *testing.T) {
+func TestSystemResourceTypes(t *testing.T) {
 	testServer(t, func(c *stdsdk.Client, p *structs.MockProvider) {
 		r1 := structs.ResourceTypes{fxResourceType, fxResourceType}
 		r2 := structs.ResourceTypes{}
-		p.On("ResourceTypes").Return(r1, nil)
+		p.On("SystemResourceTypes").Return(r1, nil)
 		err := c.Options("/resources", stdsdk.RequestOptions{}, &r2)
 		require.NoError(t, err)
 		require.Equal(t, r1, r2)
 	})
 }
 
-func TestResourceTypesError(t *testing.T) {
+func TestSystemResourceTypesError(t *testing.T) {
 	testServer(t, func(c *stdsdk.Client, p *structs.MockProvider) {
 		var r1 structs.ResourceTypes
-		p.On("ResourceTypes").Return(nil, fmt.Errorf("err1"))
+		p.On("SystemResourceTypes").Return(nil, fmt.Errorf("err1"))
 		err := c.Options("/resources", stdsdk.RequestOptions{}, &r1)
 		require.EqualError(t, err, "err1")
 		require.Nil(t, r1)
 	})
 }
 
-func TestResourceUnlink(t *testing.T) {
+func TestSystemResourceUnlink(t *testing.T) {
 	testServer(t, func(c *stdsdk.Client, p *structs.MockProvider) {
 		r1 := fxResource
 		r2 := structs.Resource{}
-		p.On("ResourceUnlink", "resource1", "app1").Return(&r1, nil)
+		p.On("SystemResourceUnlink", "resource1", "app1").Return(&r1, nil)
 		err := c.Delete("/resources/resource1/links/app1", stdsdk.RequestOptions{}, &r2)
 		require.NoError(t, err)
 		require.Equal(t, r1, r2)
 	})
 }
 
-func TestResourceUnlinkError(t *testing.T) {
+func TestSystemResourceUnlinkError(t *testing.T) {
 	testServer(t, func(c *stdsdk.Client, p *structs.MockProvider) {
 		var r1 *structs.Resource
-		p.On("ResourceUnlink", "resource1", "app1").Return(nil, fmt.Errorf("err1"))
+		p.On("SystemResourceUnlink", "resource1", "app1").Return(nil, fmt.Errorf("err1"))
 		err := c.Delete("/resources/resource1/links/app1", stdsdk.RequestOptions{}, &r1)
 		require.EqualError(t, err, "err1")
 		require.Nil(t, r1)
 	})
 }
 
-func TestResourceUpdate(t *testing.T) {
+func TestSystemResourceUpdate(t *testing.T) {
 	testServer(t, func(c *stdsdk.Client, p *structs.MockProvider) {
 		r1 := fxResource
 		r2 := structs.Resource{}
@@ -207,14 +249,14 @@ func TestResourceUpdate(t *testing.T) {
 				"parameters": "k1=v1&k2=v2",
 			},
 		}
-		p.On("ResourceUpdate", "resource1", opts).Return(&r1, nil)
+		p.On("SystemResourceUpdate", "resource1", opts).Return(&r1, nil)
 		err := c.Put("/resources/resource1", ro, &r2)
 		require.NoError(t, err)
 		require.Equal(t, r1, r2)
 	})
 }
 
-func TestResourceUpdateError(t *testing.T) {
+func TestSystemResourceUpdateError(t *testing.T) {
 	testServer(t, func(c *stdsdk.Client, p *structs.MockProvider) {
 		var r1 *structs.Resource
 		opts := structs.ResourceUpdateOptions{
@@ -225,7 +267,7 @@ func TestResourceUpdateError(t *testing.T) {
 				"parameters": "k1=v1&k2=v2",
 			},
 		}
-		p.On("ResourceUpdate", "resource1", opts).Return(nil, fmt.Errorf("err1"))
+		p.On("SystemResourceUpdate", "resource1", opts).Return(nil, fmt.Errorf("err1"))
 		err := c.Put("/resources/resource1", ro, &r1)
 		require.EqualError(t, err, "err1")
 		require.Nil(t, r1)

@@ -566,10 +566,13 @@ func (c *Client) ProcessStop(app string, pid string) error {
 	return err
 }
 
-func (c *Client) Proxy(host string, port int, rw io.ReadWriter) error {
+func (c *Client) Proxy(host string, port int, rw io.ReadWriter, opts structs.ProxyOptions) error {
 	var err error
 
-	ro := stdsdk.RequestOptions{Headers: stdsdk.Headers{}, Params: stdsdk.Params{}, Query: stdsdk.Query{}}
+	ro, err := stdsdk.MarshalOptions(opts)
+	if err != nil {
+		return err
+	}
 
 	ro.Body = rw
 
@@ -675,106 +678,26 @@ func (c *Client) ReleasePromote(app string, id string) error {
 	return err
 }
 
-func (c *Client) ResourceCreate(kind string, opts structs.ResourceCreateOptions) (*structs.Resource, error) {
-	var err error
-
-	ro, err := stdsdk.MarshalOptions(opts)
-	if err != nil {
-		return nil, err
-	}
-
-	ro.Params["kind"] = kind
-
-	var v *structs.Resource
-
-	err = c.Post(fmt.Sprintf("/resources"), ro, &v)
-
-	return v, err
-}
-
-func (c *Client) ResourceDelete(name string) error {
-	var err error
-
-	ro := stdsdk.RequestOptions{Headers: stdsdk.Headers{}, Params: stdsdk.Params{}, Query: stdsdk.Query{}}
-
-	err = c.Delete(fmt.Sprintf("/resources/%s", name), ro, nil)
-
-	return err
-}
-
-func (c *Client) ResourceGet(name string) (*structs.Resource, error) {
+func (c *Client) ResourceGet(app string, name string) (*structs.Resource, error) {
 	var err error
 
 	ro := stdsdk.RequestOptions{Headers: stdsdk.Headers{}, Params: stdsdk.Params{}, Query: stdsdk.Query{}}
 
 	var v *structs.Resource
 
-	err = c.Get(fmt.Sprintf("/resources/%s", name), ro, &v)
+	err = c.Get(fmt.Sprintf("/apps/%s/resources/%s", app, name), ro, &v)
 
 	return v, err
 }
 
-func (c *Client) ResourceLink(name string, app string) (*structs.Resource, error) {
-	var err error
-
-	ro := stdsdk.RequestOptions{Headers: stdsdk.Headers{}, Params: stdsdk.Params{}, Query: stdsdk.Query{}}
-
-	ro.Params["app"] = app
-
-	var v *structs.Resource
-
-	err = c.Post(fmt.Sprintf("/resources/%s/links", name), ro, &v)
-
-	return v, err
-}
-
-func (c *Client) ResourceList() (structs.Resources, error) {
+func (c *Client) ResourceList(app string) (structs.Resources, error) {
 	var err error
 
 	ro := stdsdk.RequestOptions{Headers: stdsdk.Headers{}, Params: stdsdk.Params{}, Query: stdsdk.Query{}}
 
 	var v structs.Resources
 
-	err = c.Get(fmt.Sprintf("/resources"), ro, &v)
-
-	return v, err
-}
-
-func (c *Client) ResourceTypes() (structs.ResourceTypes, error) {
-	var err error
-
-	ro := stdsdk.RequestOptions{Headers: stdsdk.Headers{}, Params: stdsdk.Params{}, Query: stdsdk.Query{}}
-
-	var v structs.ResourceTypes
-
-	err = c.Options(fmt.Sprintf("/resources"), ro, &v)
-
-	return v, err
-}
-
-func (c *Client) ResourceUnlink(name string, app string) (*structs.Resource, error) {
-	var err error
-
-	ro := stdsdk.RequestOptions{Headers: stdsdk.Headers{}, Params: stdsdk.Params{}, Query: stdsdk.Query{}}
-
-	var v *structs.Resource
-
-	err = c.Delete(fmt.Sprintf("/resources/%s/links/%s", name, app), ro, &v)
-
-	return v, err
-}
-
-func (c *Client) ResourceUpdate(name string, opts structs.ResourceUpdateOptions) (*structs.Resource, error) {
-	var err error
-
-	ro, err := stdsdk.MarshalOptions(opts)
-	if err != nil {
-		return nil, err
-	}
-
-	var v *structs.Resource
-
-	err = c.Put(fmt.Sprintf("/resources/%s", name), ro, &v)
+	err = c.Get(fmt.Sprintf("/apps/%s/resources", app), ro, &v)
 
 	return v, err
 }
@@ -879,6 +802,110 @@ func (c *Client) SystemReleases() (structs.Releases, error) {
 	var v structs.Releases
 
 	err = c.Get(fmt.Sprintf("/system/releases"), ro, &v)
+
+	return v, err
+}
+
+func (c *Client) SystemResourceCreate(kind string, opts structs.ResourceCreateOptions) (*structs.Resource, error) {
+	var err error
+
+	ro, err := stdsdk.MarshalOptions(opts)
+	if err != nil {
+		return nil, err
+	}
+
+	ro.Params["kind"] = kind
+
+	var v *structs.Resource
+
+	err = c.Post(fmt.Sprintf("/resources"), ro, &v)
+
+	return v, err
+}
+
+func (c *Client) SystemResourceDelete(name string) error {
+	var err error
+
+	ro := stdsdk.RequestOptions{Headers: stdsdk.Headers{}, Params: stdsdk.Params{}, Query: stdsdk.Query{}}
+
+	err = c.Delete(fmt.Sprintf("/resources/%s", name), ro, nil)
+
+	return err
+}
+
+func (c *Client) SystemResourceGet(name string) (*structs.Resource, error) {
+	var err error
+
+	ro := stdsdk.RequestOptions{Headers: stdsdk.Headers{}, Params: stdsdk.Params{}, Query: stdsdk.Query{}}
+
+	var v *structs.Resource
+
+	err = c.Get(fmt.Sprintf("/resources/%s", name), ro, &v)
+
+	return v, err
+}
+
+func (c *Client) SystemResourceLink(name string, app string) (*structs.Resource, error) {
+	var err error
+
+	ro := stdsdk.RequestOptions{Headers: stdsdk.Headers{}, Params: stdsdk.Params{}, Query: stdsdk.Query{}}
+
+	ro.Params["app"] = app
+
+	var v *structs.Resource
+
+	err = c.Post(fmt.Sprintf("/resources/%s/links", name), ro, &v)
+
+	return v, err
+}
+
+func (c *Client) SystemResourceList() (structs.Resources, error) {
+	var err error
+
+	ro := stdsdk.RequestOptions{Headers: stdsdk.Headers{}, Params: stdsdk.Params{}, Query: stdsdk.Query{}}
+
+	var v structs.Resources
+
+	err = c.Get(fmt.Sprintf("/resources"), ro, &v)
+
+	return v, err
+}
+
+func (c *Client) SystemResourceTypes() (structs.ResourceTypes, error) {
+	var err error
+
+	ro := stdsdk.RequestOptions{Headers: stdsdk.Headers{}, Params: stdsdk.Params{}, Query: stdsdk.Query{}}
+
+	var v structs.ResourceTypes
+
+	err = c.Options(fmt.Sprintf("/resources"), ro, &v)
+
+	return v, err
+}
+
+func (c *Client) SystemResourceUnlink(name string, app string) (*structs.Resource, error) {
+	var err error
+
+	ro := stdsdk.RequestOptions{Headers: stdsdk.Headers{}, Params: stdsdk.Params{}, Query: stdsdk.Query{}}
+
+	var v *structs.Resource
+
+	err = c.Delete(fmt.Sprintf("/resources/%s/links/%s", name, app), ro, &v)
+
+	return v, err
+}
+
+func (c *Client) SystemResourceUpdate(name string, opts structs.ResourceUpdateOptions) (*structs.Resource, error) {
+	var err error
+
+	ro, err := stdsdk.MarshalOptions(opts)
+	if err != nil {
+		return nil, err
+	}
+
+	var v *structs.Resource
+
+	err = c.Put(fmt.Sprintf("/resources/%s", name), ro, &v)
 
 	return v, err
 }

@@ -15,79 +15,259 @@ import (
 
 func init() {
 	register("resources", "list resources", Resources, stdcli.CommandOptions{
-		Flags:    []stdcli.Flag{flagRack},
+		Flags:    []stdcli.Flag{flagRack, flagApp},
 		Validate: stdcli.Args(0),
-	})
-
-	register("resources create", "create a resource", ResourcesCreate, stdcli.CommandOptions{
-		Flags: []stdcli.Flag{
-			flagRack,
-			flagWait,
-			stdcli.StringFlag("name", "n", "resource name"),
-		},
-		Usage:    "<type> [Option=Value]...",
-		Validate: stdcli.ArgsMin(1),
-	})
-
-	register("resources delete", "delete a resource", ResourcesDelete, stdcli.CommandOptions{
-		Flags:    []stdcli.Flag{flagRack, flagWait},
-		Usage:    "<name>",
-		Validate: stdcli.Args(1),
 	})
 
 	register("resources info", "get information about a resource", ResourcesInfo, stdcli.CommandOptions{
-		Flags:    []stdcli.Flag{flagRack},
+		Flags:    []stdcli.Flag{flagRack, flagApp},
 		Usage:    "<resource>",
 		Validate: stdcli.Args(1),
 	})
 
-	register("resources link", "link a resource to an app", ResourcesLink, stdcli.CommandOptions{
-		Flags:    []stdcli.Flag{flagApp, flagRack, flagWait},
-		Usage:    "<resource>",
-		Validate: stdcli.Args(1),
-	})
-
-	register("resources options", "list options for a resource type", ResourcesOptions, stdcli.CommandOptions{
-		Flags:    []stdcli.Flag{flagRack},
-		Usage:    "<resource>",
-		Validate: stdcli.Args(1),
-	})
-
-	register("resources proxy", "proxy a local port to a rack resource", ResourcesProxy, stdcli.CommandOptions{
+	register("resources proxy", "proxy a local port to a resource", ResourcesProxy, stdcli.CommandOptions{
 		Flags: []stdcli.Flag{
 			flagRack,
+			flagApp,
 			stdcli.IntFlag("port", "p", "local port"),
+			stdcli.BoolFlag("tls", "t", "wrap connection in tls"),
 		},
-		Usage:    "<resource>",
-		Validate: stdcli.Args(1),
-	})
-
-	register("resources types", "list resource types", ResourcesTypes, stdcli.CommandOptions{
-		Flags:    []stdcli.Flag{flagRack},
-		Validate: stdcli.Args(0),
-	})
-
-	register("resources update", "update resource options", ResourcesUpdate, stdcli.CommandOptions{
-		Flags:    []stdcli.Flag{flagRack, flagWait},
-		Usage:    "<name> [Option=Value]...",
-		Validate: stdcli.ArgsMin(1),
-	})
-
-	register("resources unlink", "unlink a resource from an app", ResourcesUnlink, stdcli.CommandOptions{
-		Flags:    []stdcli.Flag{flagApp, flagRack, flagWait},
 		Usage:    "<resource>",
 		Validate: stdcli.Args(1),
 	})
 
 	register("resources url", "get url for a resource", ResourcesUrl, stdcli.CommandOptions{
-		Flags:    []stdcli.Flag{flagRack},
+		Flags:    []stdcli.Flag{flagRack, flagApp},
 		Usage:    "<resource>",
 		Validate: stdcli.Args(1),
+	})
+
+	register("rack resources", "list resources", RackResources, stdcli.CommandOptions{
+		Flags:     []stdcli.Flag{flagRack},
+		Invisible: true,
+		Validate:  stdcli.Args(0),
+	})
+
+	register("rack resources create", "create a resource", RackResourcesCreate, stdcli.CommandOptions{
+		Flags: []stdcli.Flag{
+			flagRack,
+			flagWait,
+			stdcli.StringFlag("name", "n", "resource name"),
+		},
+		Invisible: true,
+		Usage:     "<type> [Option=Value]...",
+		Validate:  stdcli.ArgsMin(1),
+	})
+
+	register("rack resources delete", "delete a resource", RackResourcesDelete, stdcli.CommandOptions{
+		Flags:     []stdcli.Flag{flagRack, flagWait},
+		Invisible: true,
+		Usage:     "<name>",
+		Validate:  stdcli.Args(1),
+	})
+
+	register("rack resources info", "get information about a resource", RackResourcesInfo, stdcli.CommandOptions{
+		Flags:     []stdcli.Flag{flagRack},
+		Invisible: true,
+		Usage:     "<resource>",
+		Validate:  stdcli.Args(1),
+	})
+
+	register("rack resources link", "link a resource to an app", RackResourcesLink, stdcli.CommandOptions{
+		Flags:     []stdcli.Flag{flagApp, flagRack, flagWait},
+		Invisible: true,
+		Usage:     "<resource>",
+		Validate:  stdcli.Args(1),
+	})
+
+	register("rack resources options", "list options for a resource type", RackResourcesOptions, stdcli.CommandOptions{
+		Flags:     []stdcli.Flag{flagRack},
+		Invisible: true,
+		Usage:     "<resource>",
+		Validate:  stdcli.Args(1),
+	})
+
+	register("rack resources proxy", "proxy a local port to a rack resource", RackResourcesProxy, stdcli.CommandOptions{
+		Flags: []stdcli.Flag{
+			flagRack,
+			stdcli.IntFlag("port", "p", "local port"),
+			stdcli.BoolFlag("tls", "t", "wrap connection in tls"),
+		},
+		Invisible: true,
+		Usage:     "<resource>",
+		Validate:  stdcli.Args(1),
+	})
+
+	register("rack resources types", "list resource types", RackResourcesTypes, stdcli.CommandOptions{
+		Flags:     []stdcli.Flag{flagRack},
+		Invisible: true,
+		Validate:  stdcli.Args(0),
+	})
+
+	register("rack resources update", "update resource options", RackResourcesUpdate, stdcli.CommandOptions{
+		Flags:     []stdcli.Flag{flagRack, flagWait},
+		Invisible: true,
+		Usage:     "<name> [Option=Value]...",
+		Validate:  stdcli.ArgsMin(1),
+	})
+
+	register("rack resources unlink", "unlink a resource from an app", RackResourcesUnlink, stdcli.CommandOptions{
+		Flags:     []stdcli.Flag{flagApp, flagRack, flagWait},
+		Invisible: true,
+		Usage:     "<resource>",
+		Validate:  stdcli.Args(1),
+	})
+
+	register("rack resources url", "get url for a resource", RackResourcesUrl, stdcli.CommandOptions{
+		Flags:     []stdcli.Flag{flagRack},
+		Invisible: true,
+		Usage:     "<resource>",
+		Validate:  stdcli.Args(1),
 	})
 }
 
 func Resources(rack sdk.Interface, c *stdcli.Context) error {
-	rs, err := rack.ResourceList()
+	s, err := rack.SystemGet()
+	if err != nil {
+		return err
+	}
+
+	if s.Version <= "20190111211123" {
+		return fmt.Errorf("command unavailable, please upgrade this rack")
+	}
+
+	rs, err := rack.ResourceList(app(c))
+	if err != nil {
+		return err
+	}
+
+	t := c.Table("NAME", "TYPE", "URL")
+
+	for _, r := range rs {
+		t.AddRow(r.Name, r.Type, r.Url)
+	}
+
+	return t.Print()
+}
+
+func ResourcesInfo(rack sdk.Interface, c *stdcli.Context) error {
+	s, err := rack.SystemGet()
+	if err != nil {
+		return err
+	}
+
+	if s.Version <= "20190111211123" {
+		return fmt.Errorf("command unavailable, please upgrade this rack")
+	}
+
+	r, err := rack.ResourceGet(app(c), c.Arg(0))
+	if err != nil {
+		return err
+	}
+
+	i := c.Info()
+
+	i.Add("Name", r.Name)
+	i.Add("Type", r.Type)
+
+	if r.Url != "" {
+		i.Add("URL", r.Url)
+	}
+
+	return i.Print()
+}
+
+func ResourcesProxy(rack sdk.Interface, c *stdcli.Context) error {
+	s, err := rack.SystemGet()
+	if err != nil {
+		return err
+	}
+
+	if s.Version <= "20190111211123" {
+		return fmt.Errorf("command unavailable, please upgrade this rack")
+	}
+
+	r, err := rack.ResourceGet(app(c), c.Arg(0))
+	if err != nil {
+		return err
+	}
+
+	if r.Url == "" {
+		return fmt.Errorf("no url for resource: %s", r.Name)
+	}
+
+	u, err := url.Parse(r.Url)
+	if err != nil {
+		return err
+	}
+
+	remotehost := u.Hostname()
+	remoteport := u.Port()
+
+	if remoteport == "" {
+		switch u.Scheme {
+		case "http":
+			remoteport = "80"
+		case "https":
+			remoteport = "443"
+		default:
+			return fmt.Errorf("unknown port for url: %s", r.Url)
+		}
+	}
+
+	rpi, err := strconv.Atoi(remoteport)
+	if err != nil {
+		return err
+	}
+
+	port := rpi
+
+	if p := c.Int("port"); p != 0 {
+		port = p
+	}
+
+	go proxy(rack, c, port, remotehost, rpi, c.Bool("tls"))
+
+	return <-ProxyCloser
+}
+
+func ResourcesUrl(rack sdk.Interface, c *stdcli.Context) error {
+	s, err := rack.SystemGet()
+	if err != nil {
+		return err
+	}
+
+	if s.Version <= "20190111211123" {
+		return fmt.Errorf("command unavailable, please upgrade this rack")
+	}
+
+	r, err := rack.ResourceGet(app(c), c.Arg(0))
+	if err != nil {
+		return err
+	}
+
+	if r.Url == "" {
+		return fmt.Errorf("no url for resource: %s", r.Name)
+	}
+
+	fmt.Fprintf(c, "%s\n", r.Url)
+
+	return nil
+}
+
+func RackResources(rack sdk.Interface, c *stdcli.Context) error {
+	s, err := rack.SystemGet()
+	if err != nil {
+		return err
+	}
+
+	var rs structs.Resources
+
+	if s.Version <= "20190111211123" {
+		rs, err = rack.SystemResourceListClassic()
+	} else {
+		rs, err = rack.SystemResourceList()
+	}
 	if err != nil {
 		return err
 	}
@@ -101,7 +281,7 @@ func Resources(rack sdk.Interface, c *stdcli.Context) error {
 	return t.Print()
 }
 
-func ResourcesCreate(rack sdk.Interface, c *stdcli.Context) error {
+func RackResourcesCreate(rack sdk.Interface, c *stdcli.Context) error {
 	var opts structs.ResourceCreateOptions
 
 	if err := c.Options(&opts); err != nil {
@@ -135,8 +315,10 @@ func ResourcesCreate(rack sdk.Interface, c *stdcli.Context) error {
 
 	if s.Version <= "20180708231844" {
 		r, err = rack.ResourceCreateClassic(c.Arg(0), opts)
+	} else if s.Version <= "20190111211123" {
+		r, err = rack.SystemResourceCreateClassic(c.Arg(0), opts)
 	} else {
-		r, err = rack.ResourceCreate(c.Arg(0), opts)
+		r, err = rack.SystemResourceCreate(c.Arg(0), opts)
 	}
 	if err != nil {
 		return err
@@ -151,10 +333,20 @@ func ResourcesCreate(rack sdk.Interface, c *stdcli.Context) error {
 	return c.OK(r.Name)
 }
 
-func ResourcesDelete(rack sdk.Interface, c *stdcli.Context) error {
+func RackResourcesDelete(rack sdk.Interface, c *stdcli.Context) error {
+	s, err := rack.SystemGet()
+	if err != nil {
+		return err
+	}
+
 	c.Startf("Deleting resource")
 
-	if err := rack.ResourceDelete(c.Arg(0)); err != nil {
+	if s.Version <= "20190111211123" {
+		err = rack.SystemResourceDeleteClassic(c.Arg(0))
+	} else {
+		err = rack.SystemResourceDelete(c.Arg(0))
+	}
+	if err != nil {
 		return err
 	}
 
@@ -167,8 +359,19 @@ func ResourcesDelete(rack sdk.Interface, c *stdcli.Context) error {
 	return c.OK()
 }
 
-func ResourcesInfo(rack sdk.Interface, c *stdcli.Context) error {
-	r, err := rack.ResourceGet(c.Arg(0))
+func RackResourcesInfo(rack sdk.Interface, c *stdcli.Context) error {
+	s, err := rack.SystemGet()
+	if err != nil {
+		return err
+	}
+
+	var r *structs.Resource
+
+	if s.Version <= "20190111211123" {
+		r, err = rack.SystemResourceGetClassic(c.Arg(0))
+	} else {
+		r, err = rack.SystemResourceGet(c.Arg(0))
+	}
 	if err != nil {
 		return err
 	}
@@ -209,12 +412,22 @@ func ResourcesInfo(rack sdk.Interface, c *stdcli.Context) error {
 	return i.Print()
 }
 
-func ResourcesLink(rack sdk.Interface, c *stdcli.Context) error {
+func RackResourcesLink(rack sdk.Interface, c *stdcli.Context) error {
+	s, err := rack.SystemGet()
+	if err != nil {
+		return err
+	}
+
 	c.Startf("Linking to <app>%s</app>", app(c))
 
 	resource := c.Arg(0)
 
-	if _, err := rack.ResourceLink(resource, app(c)); err != nil {
+	if s.Version <= "20190111211123" {
+		_, err = rack.SystemResourceLinkClassic(resource, app(c))
+	} else {
+		_, err = rack.SystemResourceLink(resource, app(c))
+	}
+	if err != nil {
 		return err
 	}
 
@@ -227,8 +440,19 @@ func ResourcesLink(rack sdk.Interface, c *stdcli.Context) error {
 	return c.OK()
 }
 
-func ResourcesOptions(rack sdk.Interface, c *stdcli.Context) error {
-	rts, err := rack.ResourceTypes()
+func RackResourcesOptions(rack sdk.Interface, c *stdcli.Context) error {
+	s, err := rack.SystemGet()
+	if err != nil {
+		return err
+	}
+
+	var rts structs.ResourceTypes
+
+	if s.Version <= "20190111211123" {
+		rts, err = rack.SystemResourceTypesClassic()
+	} else {
+		rts, err = rack.SystemResourceTypes()
+	}
 	if err != nil {
 		return err
 	}
@@ -257,8 +481,19 @@ func ResourcesOptions(rack sdk.Interface, c *stdcli.Context) error {
 	return t.Print()
 }
 
-func ResourcesProxy(rack sdk.Interface, c *stdcli.Context) error {
-	r, err := rack.ResourceGet(c.Arg(0))
+func RackResourcesProxy(rack sdk.Interface, c *stdcli.Context) error {
+	s, err := rack.SystemGet()
+	if err != nil {
+		return err
+	}
+
+	var r *structs.Resource
+
+	if s.Version <= "20190111211123" {
+		r, err = rack.SystemResourceGetClassic(c.Arg(0))
+	} else {
+		r, err = rack.SystemResourceGet(c.Arg(0))
+	}
 	if err != nil {
 		return err
 	}
@@ -297,13 +532,24 @@ func ResourcesProxy(rack sdk.Interface, c *stdcli.Context) error {
 		port = p
 	}
 
-	go proxy(rack, c, port, remotehost, rpi)
+	go proxy(rack, c, port, remotehost, rpi, c.Bool("tls"))
 
 	return <-ProxyCloser
 }
 
-func ResourcesTypes(rack sdk.Interface, c *stdcli.Context) error {
-	rts, err := rack.ResourceTypes()
+func RackResourcesTypes(rack sdk.Interface, c *stdcli.Context) error {
+	s, err := rack.SystemGet()
+	if err != nil {
+		return err
+	}
+
+	var rts structs.ResourceTypes
+
+	if s.Version <= "20190111211123" {
+		rts, err = rack.SystemResourceTypesClassic()
+	} else {
+		rts, err = rack.SystemResourceTypes()
+	}
 	if err != nil {
 		return err
 	}
@@ -317,12 +563,22 @@ func ResourcesTypes(rack sdk.Interface, c *stdcli.Context) error {
 	return t.Print()
 }
 
-func ResourcesUnlink(rack sdk.Interface, c *stdcli.Context) error {
+func RackResourcesUnlink(rack sdk.Interface, c *stdcli.Context) error {
+	s, err := rack.SystemGet()
+	if err != nil {
+		return err
+	}
+
 	c.Startf("Unlinking from <app>%s</app>", app(c))
 
 	resource := c.Arg(0)
 
-	if _, err := rack.ResourceUnlink(resource, app(c)); err != nil {
+	if s.Version <= "20190111211123" {
+		_, err = rack.SystemResourceUnlinkClassic(resource, app(c))
+	} else {
+		_, err = rack.SystemResourceUnlink(resource, app(c))
+	}
+	if err != nil {
 		return err
 	}
 
@@ -335,7 +591,7 @@ func ResourcesUnlink(rack sdk.Interface, c *stdcli.Context) error {
 	return c.OK()
 }
 
-func ResourcesUpdate(rack sdk.Interface, c *stdcli.Context) error {
+func RackResourcesUpdate(rack sdk.Interface, c *stdcli.Context) error {
 	opts := structs.ResourceUpdateOptions{
 		Parameters: map[string]string{},
 	}
@@ -360,13 +616,14 @@ func ResourcesUpdate(rack sdk.Interface, c *stdcli.Context) error {
 	resource := c.Arg(0)
 
 	if s.Version <= "20180708231844" {
-		if _, err := rack.ResourceUpdateClassic(resource, opts); err != nil {
-			return err
-		}
+		_, err = rack.ResourceUpdateClassic(resource, opts)
+	} else if s.Version <= "20190111211123" {
+		_, err = rack.SystemResourceUpdateClassic(resource, opts)
 	} else {
-		if _, err := rack.ResourceUpdate(resource, opts); err != nil {
-			return err
-		}
+		_, err = rack.SystemResourceUpdate(resource, opts)
+	}
+	if err != nil {
+		return err
 	}
 
 	if c.Bool("wait") {
@@ -378,13 +635,19 @@ func ResourcesUpdate(rack sdk.Interface, c *stdcli.Context) error {
 	return c.OK()
 }
 
-func ResourcesUrl(rack sdk.Interface, c *stdcli.Context) error {
-	r, err := rack.ResourceGet(c.Arg(0))
+func RackResourcesUrl(rack sdk.Interface, c *stdcli.Context) error {
+	s, err := rack.SystemGet()
 	if err != nil {
 		return err
 	}
 
-	s, err := rack.SystemGet()
+	var r *structs.Resource
+
+	if s.Version <= "20190111211123" {
+		r, err = rack.SystemResourceGetClassic(c.Arg(0))
+	} else {
+		r, err = rack.SystemResourceGet(c.Arg(0))
+	}
 	if err != nil {
 		return err
 	}

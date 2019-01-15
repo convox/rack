@@ -831,7 +831,12 @@ func (s *Server) Proxy(c *stdapi.Context) error {
 		return cerr
 	}
 
-	err := s.provider(c).Proxy(host, port, rw)
+	var opts structs.ProxyOptions
+	if err := stdapi.UnmarshalOptions(c.Request(), &opts); err != nil {
+		return err
+	}
+
+	err := s.provider(c).Proxy(host, port, rw, opts)
 	if err != nil {
 		return err
 	}
@@ -976,73 +981,15 @@ func (s *Server) ReleasePromote(c *stdapi.Context) error {
 	return c.RenderOK()
 }
 
-func (s *Server) ResourceCreate(c *stdapi.Context) error {
-	if err := s.hook("ResourceCreateValidate", c); err != nil {
-		return err
-	}
-
-	kind := c.Value("kind")
-
-	var opts structs.ResourceCreateOptions
-	if err := stdapi.UnmarshalOptions(c.Request(), &opts); err != nil {
-		return err
-	}
-
-	v, err := s.provider(c).ResourceCreate(kind, opts)
-	if err != nil {
-		return err
-	}
-
-	if vs, ok := interface{}(v).(Sortable); ok {
-		sort.Slice(v, vs.Less)
-	}
-
-	return c.RenderJSON(v)
-}
-
-func (s *Server) ResourceDelete(c *stdapi.Context) error {
-	if err := s.hook("ResourceDeleteValidate", c); err != nil {
-		return err
-	}
-
-	name := c.Var("name")
-
-	err := s.provider(c).ResourceDelete(name)
-	if err != nil {
-		return err
-	}
-
-	return c.RenderOK()
-}
-
 func (s *Server) ResourceGet(c *stdapi.Context) error {
 	if err := s.hook("ResourceGetValidate", c); err != nil {
 		return err
 	}
 
+	app := c.Var("app")
 	name := c.Var("name")
 
-	v, err := s.provider(c).ResourceGet(name)
-	if err != nil {
-		return err
-	}
-
-	if vs, ok := interface{}(v).(Sortable); ok {
-		sort.Slice(v, vs.Less)
-	}
-
-	return c.RenderJSON(v)
-}
-
-func (s *Server) ResourceLink(c *stdapi.Context) error {
-	if err := s.hook("ResourceLinkValidate", c); err != nil {
-		return err
-	}
-
-	name := c.Var("name")
-	app := c.Value("app")
-
-	v, err := s.provider(c).ResourceLink(name, app)
+	v, err := s.provider(c).ResourceGet(app, name)
 	if err != nil {
 		return err
 	}
@@ -1059,68 +1006,9 @@ func (s *Server) ResourceList(c *stdapi.Context) error {
 		return err
 	}
 
-	v, err := s.provider(c).ResourceList()
-	if err != nil {
-		return err
-	}
-
-	if vs, ok := interface{}(v).(Sortable); ok {
-		sort.Slice(v, vs.Less)
-	}
-
-	return c.RenderJSON(v)
-}
-
-func (s *Server) ResourceTypes(c *stdapi.Context) error {
-	if err := s.hook("ResourceTypesValidate", c); err != nil {
-		return err
-	}
-
-	v, err := s.provider(c).ResourceTypes()
-	if err != nil {
-		return err
-	}
-
-	if vs, ok := interface{}(v).(Sortable); ok {
-		sort.Slice(v, vs.Less)
-	}
-
-	return c.RenderJSON(v)
-}
-
-func (s *Server) ResourceUnlink(c *stdapi.Context) error {
-	if err := s.hook("ResourceUnlinkValidate", c); err != nil {
-		return err
-	}
-
-	name := c.Var("name")
 	app := c.Var("app")
 
-	v, err := s.provider(c).ResourceUnlink(name, app)
-	if err != nil {
-		return err
-	}
-
-	if vs, ok := interface{}(v).(Sortable); ok {
-		sort.Slice(v, vs.Less)
-	}
-
-	return c.RenderJSON(v)
-}
-
-func (s *Server) ResourceUpdate(c *stdapi.Context) error {
-	if err := s.hook("ResourceUpdateValidate", c); err != nil {
-		return err
-	}
-
-	name := c.Var("name")
-
-	var opts structs.ResourceUpdateOptions
-	if err := stdapi.UnmarshalOptions(c.Request(), &opts); err != nil {
-		return err
-	}
-
-	v, err := s.provider(c).ResourceUpdate(name, opts)
+	v, err := s.provider(c).ResourceList(app)
 	if err != nil {
 		return err
 	}
@@ -1269,6 +1157,162 @@ func (s *Server) SystemReleases(c *stdapi.Context) error {
 	}
 
 	v, err := s.provider(c).SystemReleases()
+	if err != nil {
+		return err
+	}
+
+	if vs, ok := interface{}(v).(Sortable); ok {
+		sort.Slice(v, vs.Less)
+	}
+
+	return c.RenderJSON(v)
+}
+
+func (s *Server) SystemResourceCreate(c *stdapi.Context) error {
+	if err := s.hook("SystemResourceCreateValidate", c); err != nil {
+		return err
+	}
+
+	kind := c.Value("kind")
+
+	var opts structs.ResourceCreateOptions
+	if err := stdapi.UnmarshalOptions(c.Request(), &opts); err != nil {
+		return err
+	}
+
+	v, err := s.provider(c).SystemResourceCreate(kind, opts)
+	if err != nil {
+		return err
+	}
+
+	if vs, ok := interface{}(v).(Sortable); ok {
+		sort.Slice(v, vs.Less)
+	}
+
+	return c.RenderJSON(v)
+}
+
+func (s *Server) SystemResourceDelete(c *stdapi.Context) error {
+	if err := s.hook("SystemResourceDeleteValidate", c); err != nil {
+		return err
+	}
+
+	name := c.Var("name")
+
+	err := s.provider(c).SystemResourceDelete(name)
+	if err != nil {
+		return err
+	}
+
+	return c.RenderOK()
+}
+
+func (s *Server) SystemResourceGet(c *stdapi.Context) error {
+	if err := s.hook("SystemResourceGetValidate", c); err != nil {
+		return err
+	}
+
+	name := c.Var("name")
+
+	v, err := s.provider(c).SystemResourceGet(name)
+	if err != nil {
+		return err
+	}
+
+	if vs, ok := interface{}(v).(Sortable); ok {
+		sort.Slice(v, vs.Less)
+	}
+
+	return c.RenderJSON(v)
+}
+
+func (s *Server) SystemResourceLink(c *stdapi.Context) error {
+	if err := s.hook("SystemResourceLinkValidate", c); err != nil {
+		return err
+	}
+
+	name := c.Var("name")
+	app := c.Value("app")
+
+	v, err := s.provider(c).SystemResourceLink(name, app)
+	if err != nil {
+		return err
+	}
+
+	if vs, ok := interface{}(v).(Sortable); ok {
+		sort.Slice(v, vs.Less)
+	}
+
+	return c.RenderJSON(v)
+}
+
+func (s *Server) SystemResourceList(c *stdapi.Context) error {
+	if err := s.hook("SystemResourceListValidate", c); err != nil {
+		return err
+	}
+
+	v, err := s.provider(c).SystemResourceList()
+	if err != nil {
+		return err
+	}
+
+	if vs, ok := interface{}(v).(Sortable); ok {
+		sort.Slice(v, vs.Less)
+	}
+
+	return c.RenderJSON(v)
+}
+
+func (s *Server) SystemResourceTypes(c *stdapi.Context) error {
+	if err := s.hook("SystemResourceTypesValidate", c); err != nil {
+		return err
+	}
+
+	v, err := s.provider(c).SystemResourceTypes()
+	if err != nil {
+		return err
+	}
+
+	if vs, ok := interface{}(v).(Sortable); ok {
+		sort.Slice(v, vs.Less)
+	}
+
+	return c.RenderJSON(v)
+}
+
+func (s *Server) SystemResourceUnlink(c *stdapi.Context) error {
+	if err := s.hook("SystemResourceUnlinkValidate", c); err != nil {
+		return err
+	}
+
+	name := c.Var("name")
+	app := c.Var("app")
+
+	v, err := s.provider(c).SystemResourceUnlink(name, app)
+	if err != nil {
+		return err
+	}
+
+	if vs, ok := interface{}(v).(Sortable); ok {
+		sort.Slice(v, vs.Less)
+	}
+
+	return c.RenderJSON(v)
+}
+
+func (s *Server) SystemResourceUpdate(c *stdapi.Context) error {
+	if err := s.hook("SystemResourceUpdateValidate", c); err != nil {
+		return err
+	}
+
+	name := c.Var("name")
+
+	var opts structs.ResourceUpdateOptions
+	if err := stdapi.UnmarshalOptions(c.Request(), &opts); err != nil {
+		return err
+	}
+
+	v, err := s.provider(c).SystemResourceUpdate(name, opts)
 	if err != nil {
 		return err
 	}
