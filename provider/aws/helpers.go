@@ -1020,7 +1020,6 @@ func (p *Provider) putLogEvents(req *cloudwatchlogs.PutLogEventsInput) (string, 
 	attempts := 0
 
 	for {
-		fmt.Printf("req = %+v\n", req)
 		res, err := p.cloudwatchlogs().PutLogEvents(req)
 		if err == nil {
 			return *res.NextSequenceToken, nil
