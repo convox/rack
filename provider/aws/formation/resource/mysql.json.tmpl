@@ -13,6 +13,11 @@
       "Default": "false",
       "AllowedValues": [ "true", "false" ]
     },
+    "Encrypted": {
+      "Type": "String",
+      "Default": "false",
+      "AllowedValues": [ "true", "false" ]
+    },
     "Iops": {
       "Type": "Number",
       "Default": "0"
@@ -77,6 +82,7 @@
         "MultiAZ": { "Ref": "Durable" },
         "Port": "3306",
         "PubliclyAccessible": "false",
+        "StorageEncrypted": { "Ref": "Encrypted" },
         "StorageType": { "Fn::If": [ "BlankIops", "gp2", "io1" ] },
         "VPCSecurityGroups": [ { "Ref": "SecurityGroup" } ]
       }
