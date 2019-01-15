@@ -29,6 +29,7 @@ type Options struct {
 	Auth        string
 	Cache       bool
 	Development bool
+	EnvWrapper  bool
 	Generation  string
 	Id          string
 	Manifest    string
@@ -318,8 +319,10 @@ func (bb *Build) buildGeneration2(dir string) error {
 				return err
 			}
 
-			if err := bb.injectConvoxEnv(to); err != nil {
-				return err
+			if bb.EnvWrapper {
+				if err := bb.injectConvoxEnv(to); err != nil {
+					return err
+				}
 			}
 		}
 	}

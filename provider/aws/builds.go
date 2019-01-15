@@ -836,6 +836,10 @@ func (p *Provider) runBuild(build *structs.Build, burl string, opts structs.Buil
 							Value: aws.String(fmt.Sprintf("%t", cb(opts.Development, false))),
 						},
 						{
+							Name:  aws.String("BUILD_ENV_WRAPPER"),
+							Value: aws.String("true"),
+						},
+						{
 							Name:  aws.String("BUILD_GENERATION"),
 							Value: aws.String(a.Tags["Generation"]),
 						},
