@@ -112,13 +112,13 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   namespace: {{.Rack}}
-  name: web
+  name: api
   labels:
     system: convox
     type: rack
     rack: {{.Rack}}
     app: system
-    service: web
+    service: api
 spec:
   revisionHistoryLimit: 0
   selector:
@@ -126,7 +126,7 @@ spec:
       system: convox
       rack: {{.Rack}}
       app: system
-      service: web
+      service: api
   strategy:
     type: RollingUpdate
     rollingUpdate:
@@ -141,7 +141,7 @@ spec:
         system: convox
         rack: {{.Rack}}
         app: system
-        service: web
+        service: api
     spec:
       shareProcessNamespace: true
       containers:
@@ -163,7 +163,7 @@ spec:
           value: "{{.Version}}"
         envFrom:
         - configMapRef:
-            name: env-web
+            name: env-api
         image: convox/rack:{{.Version}}
         imagePullPolicy: IfNotPresent
         livenessProbe:
@@ -180,7 +180,7 @@ spec:
             port: 5443
             scheme: "HTTPS"
           # initialDelaySeconds: 5
-          periodSeconds: 30
+          periodSeconds: 5
           timeoutSeconds: 3
         ports:
         - containerPort: 5443
@@ -203,7 +203,7 @@ apiVersion: v1
 kind: Service
 metadata:
   namespace: {{.Rack}}
-  name: web
+  name: api
   annotations:
     convox.service.ports.5443.protocol: https
   labels:
@@ -211,7 +211,7 @@ metadata:
     type: rack
     rack: {{.Rack}}
     app: system
-    service: web
+    service: api
 spec:
   type: NodePort
   ports:
@@ -223,7 +223,7 @@ spec:
     system: convox
     rack: {{.Rack}}
     app: system
-    service: web
+    service: api
 ---
 apiVersion: extensions/v1beta1
 kind: Ingress
@@ -231,7 +231,7 @@ metadata:
   namespace: {{.Rack}}
   name: system
   annotations:
-    convox.ingress.service.web.5443.protocol: https
+    convox.ingress.service.api.5443.protocol: https
   labels:
     system: convox
     type: rack
@@ -246,5 +246,5 @@ spec:
       http:
         paths:
         - backend:
-            serviceName: web
+            serviceName: api
             servicePort: 5443

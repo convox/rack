@@ -147,7 +147,7 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 	senv := map[string]string{
 		"APP":      a.Name,
 		"RACK":     p.Rack,
-		"RACK_URL": fmt.Sprintf("https://convox:%s@web.%s.svc.cluster.local:5443", p.Password, p.Rack),
+		"RACK_URL": fmt.Sprintf("https://convox:%s@api.%s.svc.cluster.local:5443", p.Password, p.Rack),
 		"RELEASE":  r.Id,
 	}
 
