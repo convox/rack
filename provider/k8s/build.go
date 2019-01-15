@@ -54,7 +54,7 @@ func (p *Provider) BuildCreate(app, url string, opts structs.BuildCreateOptions)
 		"BUILD_MANIFEST":    helpers.DefaultString(opts.Manifest, "convox.yml"),
 		"BUILD_RACK":        p.Rack,
 		"BUILD_URL":         url,
-		"RACK_URL":          fmt.Sprintf("https://convox:%s@web.%s.svc.cluster.local:5443", p.Password, p.Rack),
+		"RACK_URL":          fmt.Sprintf("https://convox:%s@api.%s.svc.cluster.local:5443", p.Password, p.Rack),
 	}
 
 	repo, remote, err := p.Engine.AppRepository(app)
