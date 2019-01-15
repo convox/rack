@@ -30,11 +30,12 @@ func TestRack(t *testing.T) {
 		require.Equal(t, 0, res.Code)
 		res.RequireStderr(t, []string{""})
 		res.RequireStdout(t, []string{
-			"Name     name",
-			"Status   running",
-			"Version  21000101000000",
-			"Region   region",
-			"Router   domain",
+			"Name      name",
+			"Provider  provider",
+			"Region    region",
+			"Router    domain",
+			"Status    running",
+			"Version   21000101000000",
 		})
 	})
 }
@@ -60,12 +61,13 @@ func TestRackInternal(t *testing.T) {
 		require.Equal(t, 0, res.Code)
 		res.RequireStderr(t, []string{""})
 		res.RequireStdout(t, []string{
-			"Name     name",
-			"Status   running",
-			"Version  20180901000000",
-			"Region   region",
-			"Router   domain (external)",
-			"         domain-internal (internal)",
+			"Name      name",
+			"Provider  provider",
+			"Region    region",
+			"Router    domain (external)",
+			"          domain-internal (internal)",
+			"Status    running",
+			"Version   20180901000000",
 		})
 	})
 }
