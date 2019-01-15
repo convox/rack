@@ -97,16 +97,6 @@ func (p *Provider) handleCloudformationEvents() {
 			}
 		}
 
-		fmt.Println("message")
-		keys := []string{}
-		for k := range message {
-			keys = append(keys, k)
-		}
-		sort.Strings(keys)
-		for _, k := range keys {
-			fmt.Printf("%s: %s\n", k, message[k])
-		}
-
 		stack := message["StackName"]
 
 		group, err := p.getStackLogGroup(stack)
