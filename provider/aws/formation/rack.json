@@ -48,6 +48,7 @@
       "Fn::And": [ { "Condition": "RegionHasEFS" }, { "Condition": "ThirdAvailabilityZone" } ]
     },
     "SpotInstances": { "Fn::Not": [ { "Fn::Equals": [ { "Ref": "SpotInstanceBid"}, "" ] } ] },
+    "SwapEnabled": { "Fn::Not": [ { "Fn::Equals": [ { "Ref": "SwapSize" }, "0" ] } ] },
     "ThirdAvailabilityZone": { "Fn::And": [
       { "Fn::Equals": [ { "Fn::FindInMap": [ "RegionConfig", { "Ref": "AWS::Region" }, "ThirdAvailabilityZone" ] }, "Yes" ] },
       { "Fn::Equals": [ { "Ref": "MaxAvailabilityZones" }, "3" ] }
@@ -1135,14 +1136,17 @@
               "VolumeType":"gp2"
             }
           },
-          {
-            "DeviceName": "/dev/xvdb",
-            "Ebs": {
-              "Encrypted": { "Fn::If": [ "EncryptEbs", "true", { "Ref": "AWS::NoValue" } ] },
-              "VolumeSize": { "Ref": "SwapSize" },
-              "VolumeType":"gp2"
-            }
-          }
+          { "Fn::If": [ "SwapEnabled",
+            {
+              "DeviceName": "/dev/xvdb",
+              "Ebs": {
+                "Encrypted": { "Fn::If": [ "EncryptEbs", "true", { "Ref": "AWS::NoValue" } ] },
+                "VolumeSize": { "Ref": "SwapSize" },
+                "VolumeType":"gp2"
+              }
+            },
+            { "Ref": "AWS::NoValue" }
+          ] }
         ],
         "IamInstanceProfile": { "Ref": "InstancesProfile" },
         "ImageId": { "Fn::If": [ "BlankAmi", { "Fn::FindInMap": [ "RegionConfig", { "Ref": "AWS::Region" }, "Ami" ] }, { "Ref": "Ami" } ] },
@@ -1159,10 +1163,18 @@
             "packages:\n",
             "  - aws-cfn-bootstrap\n",
             "mounts:\n",
-            "  - ['/dev/xvdb', 'none', 'swap', 'sw', '0', '0']\n",
+            { "Fn::If": [ "SwapEnabled",
+              "  - ['/dev/xvdb', 'none', 'swap', 'sw', '0', '0']\n",
+              { "Ref": "AWS::NoValue" }
+            ] },
             "bootcmd:\n",
-            "  - mkswap /dev/xvdb\n",
-            "  - swapon /dev/xvdb\n",
+            { "Fn::If": [ "SwapEnabled",
+              { "Fn::Join": [ "", [
+                "  - mkswap /dev/xvdb\n",
+                "  - swapon /dev/xvdb\n"
+              ] ] },
+              { "Ref": "AWS::NoValue" }
+            ] },
             "  - export http_proxy=", { "Ref": "HttpProxy" }, "\n",
             "  - echo http_proxy=", { "Ref": "HttpProxy" }, " >> /etc/environment\n",
             "  - export https_proxy=", { "Ref": "HttpProxy" }, "\n",
@@ -1290,14 +1302,17 @@
               "VolumeType":"gp2"
             }
           },
-          {
-            "DeviceName": "/dev/xvdb",
-            "Ebs": {
-              "Encrypted": { "Fn::If": [ "EncryptEbs", "true", { "Ref": "AWS::NoValue" } ] },
-              "VolumeSize": { "Ref": "SwapSize" },
-              "VolumeType":"gp2"
-            }
-          }
+          { "Fn::If": [ "SwapEnabled",
+            {
+              "DeviceName": "/dev/xvdb",
+              "Ebs": {
+                "Encrypted": { "Fn::If": [ "EncryptEbs", "true", { "Ref": "AWS::NoValue" } ] },
+                "VolumeSize": { "Ref": "SwapSize" },
+                "VolumeType":"gp2"
+              }
+            },
+            { "Ref": "AWS::NoValue" }
+          ] }
         ],
         "IamInstanceProfile": { "Ref": "InstancesProfile" },
         "ImageId": { "Fn::If": [ "BlankAmi", { "Fn::FindInMap": [ "RegionConfig", { "Ref": "AWS::Region" }, "Ami" ] }, { "Ref": "Ami" } ] },
@@ -1314,10 +1329,18 @@
             "packages:\n",
             "  - aws-cfn-bootstrap\n",
             "mounts:\n",
-            "  - ['/dev/xvdb', 'none', 'swap', 'sw', '0', '0']\n",
+            { "Fn::If": [ "SwapEnabled",
+              "  - ['/dev/xvdb', 'none', 'swap', 'sw', '0', '0']\n",
+              { "Ref": "AWS::NoValue" }
+            ] },
             "bootcmd:\n",
-            "  - mkswap /dev/xvdb\n",
-            "  - swapon /dev/xvdb\n",
+            { "Fn::If": [ "SwapEnabled",
+              { "Fn::Join": [ "", [
+                "  - mkswap /dev/xvdb\n",
+                "  - swapon /dev/xvdb\n"
+              ] ] },
+              { "Ref": "AWS::NoValue" }
+            ] },
             "  - export http_proxy=", { "Ref": "HttpProxy" }, "\n",
             "  - echo http_proxy=", { "Ref": "HttpProxy" }, " >> /etc/environment\n",
             "  - export https_proxy=", { "Ref": "HttpProxy" }, "\n",
@@ -1637,14 +1660,17 @@
               "VolumeType":"gp2"
             }
           },
-          {
-            "DeviceName": "/dev/xvdb",
-            "Ebs": {
-              "Encrypted": { "Fn::If": [ "EncryptEbs", "true", { "Ref": "AWS::NoValue" } ] },
-              "VolumeSize": { "Ref": "SwapSize" },
-              "VolumeType":"gp2"
-            }
-          }
+          { "Fn::If": [ "SwapEnabled",
+            {
+              "DeviceName": "/dev/xvdb",
+              "Ebs": {
+                "Encrypted": { "Fn::If": [ "EncryptEbs", "true", { "Ref": "AWS::NoValue" } ] },
+                "VolumeSize": { "Ref": "SwapSize" },
+                "VolumeType":"gp2"
+              }
+            },
+            { "Ref": "AWS::NoValue" }
+          ] }
         ],
         "IamInstanceProfile": { "Ref": "InstancesProfile" },
         "ImageId": { "Fn::If": [ "BlankAmi", { "Fn::FindInMap": [ "RegionConfig", { "Ref": "AWS::Region" }, "Ami" ] }, { "Ref": "Ami" } ] },
@@ -1661,10 +1687,18 @@
             "packages:\n",
             "  - aws-cfn-bootstrap\n",
             "mounts:\n",
-            "  - ['/dev/xvdb', 'none', 'swap', 'sw', '0', '0']\n",
+            { "Fn::If": [ "SwapEnabled",
+              "  - ['/dev/xvdb', 'none', 'swap', 'sw', '0', '0']\n",
+              { "Ref": "AWS::NoValue" }
+            ] },
             "bootcmd:\n",
-            "  - mkswap /dev/xvdb\n",
-            "  - swapon /dev/xvdb\n",
+            { "Fn::If": [ "SwapEnabled",
+              { "Fn::Join": [ "", [
+                "  - mkswap /dev/xvdb\n",
+                "  - swapon /dev/xvdb\n"
+              ] ] },
+              { "Ref": "AWS::NoValue" }
+            ] },
             "  - export http_proxy=", { "Ref": "HttpProxy" }, "\n",
             "  - echo http_proxy=", { "Ref": "HttpProxy" }, " >> /etc/environment\n",
             "  - export https_proxy=", { "Ref": "HttpProxy" }, "\n",
