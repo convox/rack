@@ -51,6 +51,18 @@ func init() {
 		Usage: "<key=value> [key=value]...",
 	})
 
+	register("env set-file", "load env var(s) from file and replace", EnvSetFile, stdcli.CommandOptions{
+		Flags: []stdcli.Flag{
+			flagApp,
+			flagId,
+			flagRack,
+			flagWait,
+			stdcli.BoolFlag("promote", "p", "promote the release"),
+		},
+		Usage: "<path-to-file>>",
+		Validate: stdcli.Args(1),
+	})
+
 	register("env unset", "unset env var(s)", EnvUnset, stdcli.CommandOptions{
 		Flags: []stdcli.Flag{
 			flagApp,
@@ -108,7 +120,14 @@ func EnvEdit(rack sdk.Interface, c *stdcli.Context) error {
 	if err := c.Terminal(editor, file); err != nil {
 		return err
 	}
+	return envSetFromFile(rack, c, file)
+}
 
+func EnvSetFile(rack sdk.Interface, c *stdcli.Context) error {
+	return envSetFromFile(rack, c, c.Arg(0))
+}
+
+func envSetFromFile(rack sdk.Interface, c *stdcli.Context, file string) error {
 	data, err := ioutil.ReadFile(file)
 	if err != nil {
 		return err
