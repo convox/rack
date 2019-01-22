@@ -93,6 +93,10 @@ spec:
         - name: {{ safe .Key }}
           value: {{ safe .Value }}
         {{ end }}
+        {{ range .Service.Links }}
+        - name: {{ envname . }}_URL
+          value: https://{{.}}.{{.Namespace}}.svc.cluster.local
+        {{ end }}
         {{ range .Service.Resources }}
         - name: {{ envname . }}_URL
           valueFrom:
