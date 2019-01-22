@@ -38,3 +38,7 @@ func NewRelease(app string) *Release {
 		Id:      id("R", 10),
 	}
 }
+
+func (rs Releases) Less(i, j int) bool {
+	return rs[i].Created.After(rs[j].Created)
+}
