@@ -12,11 +12,17 @@ import (
 	"io"
 	"math/big"
 	"net/http"
+	"os"
 	"os/exec"
+	"runtime"
+	"sort"
 	"time"
 
 	"github.com/convox/rack/pkg/helpers"
+	"github.com/convox/rack/pkg/options"
+	"github.com/convox/rack/pkg/storage"
 	"github.com/convox/rack/pkg/structs"
+	"github.com/convox/rack/sdk"
 	am "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -66,6 +72,10 @@ func (p *Provider) SystemInstall(w io.Writer, opts structs.SystemInstallOptions)
 	}
 
 	fmt.Fprintf(w, "OK\n")
+
+	if err := importOriginalSettings(w, name, url); err != nil {
+		return "", err
+	}
 
 	return url, nil
 }
@@ -231,4 +241,108 @@ func endpointWait(url string) error {
 			return fmt.Errorf("timeout")
 		}
 	}
+}
+
+func importOriginalEnvironment(s *storage.Storage, app string) (string, error) {
+	ris, err := s.List(fmt.Sprintf("apps/%s/releases", app))
+	if err != nil {
+		return "", err
+	}
+
+	rs := structs.Releases{}
+
+	for _, ri := range ris {
+		var r structs.Release
+
+		if err := s.Load(fmt.Sprintf("apps/%s/releases/%s/release.json", app, ri), &r); err != nil {
+			return "", err
+		}
+
+		rs = append(rs, r)
+	}
+
+	sort.Slice(rs, rs.Less)
+
+	if len(rs) < 1 {
+		return "", nil
+	}
+
+	return rs[0].Env, nil
+}
+
+func importOriginalSettings(w io.Writer, name, url string) error {
+	db := ""
+
+	switch runtime.GOOS {
+	case "darwin":
+		db = fmt.Sprintf("/Users/Shared/convox/%s.db", name)
+	case "linux":
+		db = fmt.Sprintf("/var/convox/%s.db", name)
+	default:
+		return nil
+	}
+
+	if _, err := os.Stat(db); os.IsNotExist(err) {
+		return nil
+	}
+
+	fmt.Fprintf(w, "Importing original rack settings... ")
+
+	c, err := sdk.New(url)
+	if err != nil {
+		return err
+	}
+
+	s, err := storage.Open(db)
+	if err != nil {
+		return err
+	}
+	defer s.Close()
+
+	cas, err := c.AppList()
+	if err != nil {
+		return err
+	}
+
+	cash := map[string]bool{}
+
+	for _, ca := range cas {
+		cash[ca.Name] = true
+	}
+
+	eas, err := s.List("apps")
+	if err != nil {
+		return err
+	}
+
+	for _, ea := range eas {
+		if cash[ea] {
+			continue
+		}
+
+		env, err := importOriginalEnvironment(s, ea)
+		if err != nil {
+			return err
+		}
+
+		if _, err := c.AppCreate(ea, structs.AppCreateOptions{}); err != nil {
+			return err
+		}
+
+		if _, err := c.ReleaseCreate(ea, structs.ReleaseCreateOptions{Env: options.String(env)}); err != nil {
+			return err
+		}
+	}
+
+	if err := s.Close(); err != nil {
+		return err
+	}
+
+	if err := os.Rename(db, fmt.Sprintf("%s.backup", db)); err != nil {
+		return err
+	}
+
+	fmt.Fprintf(w, "OK\n")
+
+	return nil
 }
