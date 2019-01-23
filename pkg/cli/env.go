@@ -46,7 +46,7 @@ func init() {
 			flagId,
 			flagRack,
 			flagWait,
-			flagReplace,
+			stdcli.BoolFlag("replace", "", "replace all environment variables with given ones"),
 			stdcli.BoolFlag("promote", "p", "promote the release"),
 		},
 		Usage: "<key=value> [key=value]...",
