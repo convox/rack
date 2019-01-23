@@ -23,6 +23,7 @@ var (
 	flagNoFollow = stdcli.BoolFlag("no-follow", "", "do not follow logs")
 	flagRack     = stdcli.StringFlag("rack", "r", "rack name")
 	flagWait     = stdcli.BoolFlag("wait", "w", "wait for completion")
+	flagReplace  = stdcli.BoolFlag("replace", "", "replace all environment variables with given ones")
 )
 
 func New(name, version string) *Engine {
