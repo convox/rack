@@ -33,20 +33,6 @@ func (p *Provider) AppCreate(name string, opts structs.AppCreateOptions) (*struc
 	return p.AppGet(name)
 }
 
-func (p *Provider) AppGet(name string) (*structs.App, error) {
-	ns, err := p.Cluster.CoreV1().Namespaces().Get(p.AppNamespace(name), am.GetOptions{})
-	if ae.IsNotFound(err) {
-		return nil, fmt.Errorf("app not found: %s", name)
-	}
-	if err != nil {
-		return nil, err
-	}
-
-	a := appFromNamespace(*ns)
-
-	return &a, nil
-}
-
 func (p *Provider) AppDelete(name string) error {
 	if _, err := p.AppGet(name); err != nil {
 		return err
@@ -61,6 +47,20 @@ func (p *Provider) AppDelete(name string) error {
 	// }
 
 	return nil
+}
+
+func (p *Provider) AppGet(name string) (*structs.App, error) {
+	ns, err := p.Cluster.CoreV1().Namespaces().Get(p.AppNamespace(name), am.GetOptions{})
+	if ae.IsNotFound(err) {
+		return nil, fmt.Errorf("app not found: %s", name)
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	a := appFromNamespace(*ns)
+
+	return &a, nil
 }
 
 func (p *Provider) AppList() (structs.Apps, error) {
