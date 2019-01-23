@@ -118,6 +118,32 @@ func (p *Provider) streamProcessLogsWait(w io.WriteCloser, ps structs.Process, o
 	pidch <- ps.Id
 }
 
+func (p *Provider) systemEnvironment(app, release string) (map[string]string, error) {
+	senv := map[string]string{
+		"APP":      app,
+		"RACK":     p.Rack,
+		"RACK_URL": fmt.Sprintf("https://convox:%s@api.%s.svc.cluster.local:5443", p.Password, p.Rack),
+		"RELEASE":  release,
+	}
+
+	r, err := p.ReleaseGet(app, release)
+	if err != nil {
+		return nil, err
+	}
+
+	if r.Build != "" {
+		b, err := p.BuildGet(app, r.Build)
+		if err != nil {
+			return nil, err
+		}
+
+		senv["BUILD"] = b.Id
+		senv["BUILD_DESCRIPTION"] = b.Description
+	}
+
+	return senv, nil
+}
+
 func (p *Provider) streamProcessLogs(w io.WriteCloser, ps structs.Process, opts structs.LogsOptions) {
 	defer w.Close()
 
@@ -149,28 +175,8 @@ func dockerSystemId() (string, error) {
 	return "", fmt.Errorf("could not find docker system id")
 }
 
-func streamLogsWithPrefix(w io.WriteCloser, r io.Reader, prefix string) {
-	defer w.Close()
-
-	ls := bufio.NewScanner(r)
-
-	ls.Buffer(make([]byte, ScannerStartSize), ScannerMaxSize)
-
-	for ls.Scan() {
-		parts := strings.SplitN(ls.Text(), " ", 2)
-
-		ts, err := time.Parse(time.RFC3339Nano, parts[0])
-		if err != nil {
-			fmt.Printf("err = %+v\n", err)
-			continue
-		}
-
-		fmt.Fprintf(w, "%s %s %s\n", ts.Format(helpers.PrintableTime), prefix, parts[1])
-	}
-
-	if err := ls.Err(); err != nil {
-		fmt.Fprintf(w, "%s %s scan error: %s\n", time.Now().Format(helpers.PrintableTime), prefix, err)
-	}
+func envName(s string) string {
+	return strings.Replace(strings.ToUpper(s), "-", "_", -1)
 }
 
 type imageManifest []struct {
@@ -219,6 +225,30 @@ func processFilter(in structs.Processes, fn func(structs.Process) bool) structs.
 	}
 
 	return out
+}
+
+func streamLogsWithPrefix(w io.WriteCloser, r io.Reader, prefix string) {
+	defer w.Close()
+
+	ls := bufio.NewScanner(r)
+
+	ls.Buffer(make([]byte, ScannerStartSize), ScannerMaxSize)
+
+	for ls.Scan() {
+		parts := strings.SplitN(ls.Text(), " ", 2)
+
+		ts, err := time.Parse(time.RFC3339Nano, parts[0])
+		if err != nil {
+			fmt.Printf("err = %+v\n", err)
+			continue
+		}
+
+		fmt.Fprintf(w, "%s %s %s\n", ts.Format(helpers.PrintableTime), prefix, parts[1])
+	}
+
+	if err := ls.Err(); err != nil {
+		fmt.Fprintf(w, "%s %s scan error: %s\n", time.Now().Format(helpers.PrintableTime), prefix, err)
+	}
 }
 
 func systemVolume(v string) bool {
