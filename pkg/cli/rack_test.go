@@ -30,11 +30,12 @@ func TestRack(t *testing.T) {
 		require.Equal(t, 0, res.Code)
 		res.RequireStderr(t, []string{""})
 		res.RequireStdout(t, []string{
-			"Name     name",
-			"Status   running",
-			"Version  21000101000000",
-			"Region   region",
-			"Router   domain",
+			"Name      name",
+			"Provider  provider",
+			"Region    region",
+			"Router    domain",
+			"Status    running",
+			"Version   21000101000000",
 		})
 	})
 }
@@ -60,12 +61,13 @@ func TestRackInternal(t *testing.T) {
 		require.Equal(t, 0, res.Code)
 		res.RequireStderr(t, []string{""})
 		res.RequireStdout(t, []string{
-			"Name     name",
-			"Status   running",
-			"Version  20180901000000",
-			"Region   region",
-			"Router   domain (external)",
-			"         domain-internal (internal)",
+			"Name      name",
+			"Provider  provider",
+			"Region    region",
+			"Router    domain (external)",
+			"          domain-internal (internal)",
+			"Status    running",
+			"Version   20180901000000",
 		})
 	})
 }
@@ -98,6 +100,11 @@ func TestRackInstall(t *testing.T) {
 		require.Equal(t, 0, res.Code)
 		res.RequireStderr(t, []string{""})
 		res.RequireStdout(t, []string{
+			"   ___ ___  _  _ _   __ __ _  __",
+			"  / __/ _ \\| \\| \\ \\ / / _ \\ \\/ /",
+			" | (_| (_) |  ` |\\ V / (_) )  ( ",
+			"  \\___\\___/|_|\\_| \\_/ \\___/_/\\_\\",
+			"",
 			"line1",
 			"line2",
 		})
@@ -125,13 +132,19 @@ func TestRackInstallError(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, 1, res.Code)
 		res.RequireStderr(t, []string{"ERROR: err1"})
-		res.RequireStdout(t, []string{""})
+		res.RequireStdout(t, []string{
+			"   ___ ___  _  _ _   __ __ _  __",
+			"  / __/ _ \\| \\| \\ \\ / / _ \\ \\/ /",
+			" | (_| (_) |  ` |\\ V / (_) )  ( ",
+			"  \\___\\___/|_|\\_| \\_/ \\___/_/\\_\\",
+			"",
+		})
 	})
 }
 
 func TestRackLogs(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("SystemLogs", structs.LogsOptions{}).Return(testLogs(fxLogs()), nil)
+		i.On("SystemLogs", structs.LogsOptions{Prefix: options.Bool(true)}).Return(testLogs(fxLogs()), nil)
 
 		res, err := testExecute(e, "rack logs", nil)
 		require.NoError(t, err)
@@ -146,7 +159,7 @@ func TestRackLogs(t *testing.T) {
 
 func TestRackLogsError(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("SystemLogs", structs.LogsOptions{}).Return(nil, fmt.Errorf("err1"))
+		i.On("SystemLogs", structs.LogsOptions{Prefix: options.Bool(true)}).Return(nil, fmt.Errorf("err1"))
 
 		res, err := testExecute(e, "rack logs", nil)
 		require.NoError(t, err)

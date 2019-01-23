@@ -152,7 +152,7 @@ func releasePromote(rack sdk.Interface, c *stdcli.Context, app, id string) error
 
 	c.Startf("Promoting <release>%s</release>", id)
 
-	if err := rack.ReleasePromote(app, id); err != nil {
+	if err := rack.ReleasePromote(app, id, structs.ReleasePromoteOptions{}); err != nil {
 		return err
 	}
 
@@ -194,7 +194,7 @@ func ReleasesRollback(rack sdk.Interface, c *stdcli.Context) error {
 
 	c.Startf("Promoting <release>%s</release>", rn.Id)
 
-	if err := rack.ReleasePromote(app(c), rn.Id); err != nil {
+	if err := rack.ReleasePromote(app(c), rn.Id, structs.ReleasePromoteOptions{}); err != nil {
 		return err
 	}
 

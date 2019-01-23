@@ -2,13 +2,13 @@ package start
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"path/filepath"
 	"strings"
 
 	"github.com/convox/rack/pkg/helpers"
 	"github.com/convox/rack/pkg/manifest1"
+	"github.com/pkg/errors"
 )
 
 type Options1 struct {
@@ -28,15 +28,15 @@ func (s *Start) Start1(ctx context.Context, opts Options1) error {
 		return nil
 	default:
 	}
-	opts.Manifest = helpers.Coalesce(opts.Manifest, "docker-compose.yml")
+	opts.Manifest = helpers.CoalesceString(opts.Manifest, "docker-compose.yml")
 
 	if !helpers.FileExists(opts.Manifest) {
-		return fmt.Errorf("manifest not found: %s", opts.Manifest)
+		return errors.WithStack(fmt.Errorf("manifest not found: %s", opts.Manifest))
 	}
 
 	m, err := manifest1.LoadFile(opts.Manifest)
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 
 	errs := m.Validate()
@@ -50,19 +50,19 @@ func (s *Start) Start1(ctx context.Context, opts Options1) error {
 		for _, err := range errs {
 			ss = append(ss, err.Error())
 		}
-		return errors.New(strings.Join(ss, "\n"))
+		return errors.WithStack(errors.New(strings.Join(ss, "\n")))
 	}
 
 	if err := m.Shift(opts.Shift); err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 
 	pcc, err := m.PortConflicts()
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 	if len(pcc) > 0 {
-		return fmt.Errorf("ports in use: %v", pcc)
+		return errors.WithStack(fmt.Errorf("ports in use: %v", pcc))
 	}
 
 	r := m.Run(filepath.Dir(opts.Manifest), opts.App, manifest1.RunOptions{
@@ -76,7 +76,7 @@ func (s *Start) Start1(ctx context.Context, opts Options1) error {
 	defer r.Stop()
 
 	if err := r.Start(); err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 
 	return r.Wait(ctx)

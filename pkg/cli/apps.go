@@ -86,19 +86,7 @@ func init() {
 		Validate: stdcli.ArgsMin(1),
 	})
 
-	register("apps sleep", "sleep an app", AppsSleep, stdcli.CommandOptions{
-		Flags:    []stdcli.Flag{flagApp, flagRack},
-		Usage:    "[app]",
-		Validate: stdcli.ArgsMax(1),
-	})
-
 	register("apps unlock", "disable termination protection", AppsUnlock, stdcli.CommandOptions{
-		Flags:    []stdcli.Flag{flagApp, flagRack},
-		Usage:    "[app]",
-		Validate: stdcli.ArgsMax(1),
-	})
-
-	register("apps wake", "wake an app", AppsWake, stdcli.CommandOptions{
 		Flags:    []stdcli.Flag{flagApp, flagRack},
 		Usage:    "[app]",
 		Validate: stdcli.ArgsMax(1),
@@ -117,10 +105,10 @@ func Apps(rack sdk.Interface, c *stdcli.Context) error {
 		return err
 	}
 
-	t := c.Table("APP", "STATUS", "GEN", "RELEASE")
+	t := c.Table("APP", "STATUS", "RELEASE")
 
 	for _, a := range as {
-		t.AddRow(a.Name, a.Status, a.Generation, a.Release)
+		t.AddRow(a.Name, a.Status, a.Release)
 	}
 
 	return t.Print()
@@ -344,36 +332,12 @@ func AppsParamsSet(rack sdk.Interface, c *stdcli.Context) error {
 	return c.OK()
 }
 
-func AppsSleep(rack sdk.Interface, c *stdcli.Context) error {
-	app := coalesce(c.Arg(0), app(c))
-
-	c.Startf("Sleeping <app>%s</app>", app)
-
-	if err := rack.AppUpdate(app, structs.AppUpdateOptions{Sleep: options.Bool(true)}); err != nil {
-		return err
-	}
-
-	return c.OK()
-}
-
 func AppsUnlock(rack sdk.Interface, c *stdcli.Context) error {
 	app := coalesce(c.Arg(0), app(c))
 
 	c.Startf("Unlocking <app>%s</app>", app)
 
 	if err := rack.AppUpdate(app, structs.AppUpdateOptions{Lock: options.Bool(false)}); err != nil {
-		return err
-	}
-
-	return c.OK()
-}
-
-func AppsWake(rack sdk.Interface, c *stdcli.Context) error {
-	app := coalesce(c.Arg(0), app(c))
-
-	c.Startf("Waking <app>%s</app>", app)
-
-	if err := rack.AppUpdate(app, structs.AppUpdateOptions{Sleep: options.Bool(false)}); err != nil {
 		return err
 	}
 
@@ -552,7 +516,7 @@ func appImport(rack sdk.Interface, c *stdcli.Context, app string, r io.Reader) e
 	if release != "" {
 		c.Startf("Promoting <release>%s</release>", release)
 
-		if err := rack.ReleasePromote(app, release); err != nil {
+		if err := rack.ReleasePromote(app, release, structs.ReleasePromoteOptions{}); err != nil {
 			return err
 		}
 

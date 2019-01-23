@@ -3,30 +3,27 @@ services:
     build: .
     command: bin/web
     environment:
-    - AWS_ACCESS_KEY_ID=
-    - AWS_REGION=
-    - AWS_SECRET_ACCESS_KEY=
-    - COMBINED=true
-    - DEVELOPMENT=true
-    - PASSWORD=
-    - PROVIDER
-    - RACK
-    - ROUTER=10.42.0.0
-    - VERSION=dev
-    - VOLUME=/Users/Shared/convox
+      - AWS_ACCESS_KEY_ID=
+      - AWS_REGION=
+      - AWS_SECRET_ACCESS_KEY=
+      - DEVELOPMENT=true
+      - IMAGE=convox/rack:dev
+      - PASSWORD=
+      - PROVIDER
+      - RACK
+      - STORAGE=/storage
+      - VERSION=dev
     health:
       grace: 0
       interval: 30
       path: /check
       timeout: 2
-    hooks:
-      before: ls -la
-      after: ls -la
+    init: true
     port: https:5443
     scale:
       count: 1
       cpu: 256
       memory: 256
     volumes:
-    - /Users/Shared/convox:/var/convox
-    - /var/run/docker.sock:/var/run/docker.sock
+      - /storage
+      - /var/run/docker.sock

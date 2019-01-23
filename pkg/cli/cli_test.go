@@ -46,7 +46,7 @@ func testClientWait(t *testing.T, wait time.Duration, fn func(*cli.Engine, *mock
 
 	fn(e, i)
 
-	// i.AssertExpectations(t)
+	i.AssertExpectations(t)
 }
 
 func testExecute(e *cli.Engine, cmd string, stdin io.Reader) (*result, error) {

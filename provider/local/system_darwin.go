@@ -2,51 +2,76 @@ package local
 
 import (
 	"fmt"
+	"io/ioutil"
+	"os"
 	"os/exec"
+	"os/user"
 	"path/filepath"
+
+	"github.com/convox/rack/pkg/helpers"
 )
 
-func launcherPath(name string) string {
-	return filepath.Join("/Library/LaunchDaemons", fmt.Sprintf("convox.%s.plist", name))
+func checkPermissions() error {
+	u, err := user.Current()
+	if err != nil {
+		return err
+	}
+
+	if u.Uid != "0" {
+		return fmt.Errorf("must be run as root")
+	}
+
+	return nil
 }
 
-func launcherStart(name string) error {
-	return exec.Command("launchctl", "load", launcherPath(name)).Run()
+func dnsInstall(name string) error {
+	os.Remove(fmt.Sprintf("/etc/resolver/%s", name))
+
+	if err := helpers.WriteFile(fmt.Sprintf("/etc/resolver/%s", name), []byte("nameserver 127.0.0.1\nport 5453\n"), 0644); err != nil {
+		return fmt.Errorf("could not write resolver config")
+	}
+
+	exec.Command("killall", "-HUP", "mDNSResponder").Run()
+
+	return nil
 }
 
-func launcherStop(name string) error {
-	return exec.Command("launchctl", "remove", fmt.Sprintf("convox.%s", name)).Run()
+func dnsPort() string {
+	return "5453"
 }
 
-func launcherTemplate() string {
-	return `<?xml version="1.0" encoding="UTF-8"?>
-	<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-	<plist version="1.0">
-		<dict>
-			<key>Label</key>
-			<string>convox.{{ .Name }}</string>
-			<key>ProgramArguments</key>
-			<array>
-				<string>{{ .Command }}</string>
-				{{ range .Args }}
-					<string>{{ . }}</string>
-				{{ end }}
-			</array>
-			<key>EnvironmentVariables</key>
-			<dict>
-				<key>PATH</key>
-				<string>/sbin:/usr/sbin:/bin:/usr/bin:/usr/local/bin</string>
-			</dict>
-			<key>RunAtLoad</key>
-			<true/>
-			<key>KeepAlive</key>
-			<true/>
-			{{ if .Logs }}
-				<key>StandardOutPath</key>
-				<string>{{ .Logs }}</string>
-				<key>StandardErrorPath</key>
-				<string>{{ .Logs }}</string>
-			{{ end }}
-		</dict>
-	</plist>`
+func dnsUninstall(name string) error {
+	os.Remove(fmt.Sprintf("/etc/resolver/%s", name))
+	return nil
+}
+
+func removeOriginalRack(name string) error {
+	os.Remove(fmt.Sprintf("/Library/LaunchDaemons/convox.rack.%s.plist", name))
+	os.Remove("/Library/LaunchDaemons/convox.router.plist")
+
+	exec.Command("launchctl", "remove", fmt.Sprintf("convox.rack.%s", name)).Run()
+	exec.Command("launchctl", "remove", "convox.router").Run()
+
+	return nil
+}
+
+func trustCertificate(name string, data []byte) error {
+	tmp, err := ioutil.TempDir("", "")
+	if err != nil {
+		return err
+	}
+
+	crt := filepath.Join(tmp, "ca.crt")
+
+	defer os.Remove(crt)
+
+	if err := ioutil.WriteFile(crt, data, 0600); err != nil {
+		return err
+	}
+
+	if err := exec.Command("security", "add-trusted-cert", "-d", "-r", "trustRoot", "-k", "/Library/Keychains/System.keychain", crt).Run(); err != nil {
+		return fmt.Errorf("unable to add ca certificate to trusted roots")
+	}
+
+	return nil
 }

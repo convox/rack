@@ -27,6 +27,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
+	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/aws/aws-sdk-go/service/iam"
@@ -1013,6 +1014,57 @@ func (p *Provider) objectURL(ou string) (string, error) {
 	}
 
 	return fmt.Sprintf("https://s3.%s.amazonaws.com/%s%s", p.Region, p.SettingsBucket, u.Path), nil
+}
+
+func (p *Provider) putLogEvents(req *cloudwatchlogs.PutLogEventsInput) (string, error) {
+	attempts := 0
+
+	for {
+		res, err := p.cloudwatchlogs().PutLogEvents(req)
+		if err == nil {
+			return *res.NextSequenceToken, nil
+		}
+		if err != nil {
+			attempts++
+			if attempts > 3 {
+				return "", err
+			}
+		}
+		if awsError(err) == "ResourceNotFoundException" {
+			_, err := p.cloudwatchlogs().CreateLogStream(&cloudwatchlogs.CreateLogStreamInput{
+				LogGroupName:  req.LogGroupName,
+				LogStreamName: req.LogStreamName,
+			})
+			if err != nil {
+				return "", err
+			}
+
+			continue
+		}
+		if awsError(err) == "InvalidSequenceTokenException" {
+			fmt.Println("sequence token error")
+			if ae, ok := err.(awserr.Error); ok {
+				fmt.Printf("ae = %#v\n", ae)
+			}
+
+			sres, err := p.cloudwatchlogs().DescribeLogStreams(&cloudwatchlogs.DescribeLogStreamsInput{
+				LogGroupName:        req.LogGroupName,
+				LogStreamNamePrefix: req.LogStreamName,
+			})
+			if err != nil {
+				return "", err
+			}
+			if len(sres.LogStreams) != 1 {
+				return "", fmt.Errorf("could not describe log stream: %s/%s\n", *req.LogGroupName, *req.LogStreamName)
+			}
+
+			req.SequenceToken = sres.LogStreams[0].UploadSequenceToken
+
+			continue
+		}
+
+		return "", err
+	}
 }
 
 func (p *Provider) serviceArn(app, service string) (string, error) {

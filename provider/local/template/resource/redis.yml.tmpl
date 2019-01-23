@@ -1,0 +1,108 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: {{.Namespace}}
+  name: resource-{{.Name}}
+  labels:
+    system: convox
+    rack: {{.Rack}}
+    app: {{.App}}
+    resource: {{.Name}}
+data:
+  URL: "redis://resource-{{.Name}}.{{.Namespace}}.svc.cluster.local:6379"
+---
+kind: PersistentVolume
+apiVersion: v1
+metadata:
+  namespace: {{.Namespace}}
+  name: resource-{{.Name}}-redis
+  labels:
+    system: convox
+    rack: {{.Rack}}
+    app: {{.App}}
+    resource: {{.Name}}
+spec:
+  capacity:
+    storage: 10Gi
+  accessModes:
+  - ReadWriteOnce
+  hostPath:
+    path: "/mnt/data"
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  namespace: {{.Namespace}}
+  name: resource-{{.Name}}-redis
+  labels:
+    system: convox
+    rack: {{.Rack}}
+    app: {{.App}}
+    resource: {{.Name}}
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: {{.Namespace}}
+  name: resource-{{.Name}}
+  labels:
+    system: convox
+    rack: {{.Rack}}
+    app: {{.App}}
+    resource: {{.Name}}
+spec:
+  selector:
+    matchLabels:
+      system: convox
+      rack: {{.Rack}}
+      app: {{.App}}
+      resource: {{.Name}}
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        system: convox
+        rack: {{.Rack}}
+        app: {{.App}}
+        type: resource
+        resource: {{.Name}}
+    spec:
+      containers:
+      - name: redis
+        image: redis:{{ coalesce (index .Parameters "version") "4.0.10" }}
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 6379
+        volumeMounts:
+        - mountPath: /data
+          name: data
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: resource-{{.Name}}-redis
+---
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: {{.Namespace}}
+  name: resource-{{.Name}}
+  labels:
+    system: convox
+    rack: {{.Rack}}
+    app: {{.App}}
+    resource: {{.Name}}
+spec:
+  type: NodePort
+  ports:
+  - port: 6379
+  selector:
+    system: convox
+    rack: {{.Rack}}
+    app: {{.App}}
+    resource: {{.Name}}

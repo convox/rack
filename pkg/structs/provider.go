@@ -52,6 +52,7 @@ type Provider interface {
 	ProcessExec(app, pid, command string, rw io.ReadWriter, opts ProcessExecOptions) (int, error)
 	ProcessGet(app, pid string) (*Process, error)
 	ProcessList(app string, opts ProcessListOptions) (Processes, error)
+	ProcessLogs(app, pid string, opts LogsOptions) (io.ReadCloser, error)
 	ProcessRun(app, service string, opts ProcessRunOptions) (*Process, error)
 	ProcessStop(app, pid string) error
 
@@ -64,7 +65,7 @@ type Provider interface {
 	ReleaseCreate(app string, opts ReleaseCreateOptions) (*Release, error)
 	ReleaseGet(app, id string) (*Release, error)
 	ReleaseList(app string, opts ReleaseListOptions) (Releases, error)
-	ReleasePromote(app, id string) error
+	ReleasePromote(app, id string, opts ReleasePromoteOptions) error
 
 	ResourceGet(app, name string) (*Resource, error)
 	ResourceList(app string) (Resources, error)

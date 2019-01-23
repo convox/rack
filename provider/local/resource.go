@@ -3,45 +3,18 @@ package local
 import (
 	"fmt"
 
-	"github.com/convox/rack/pkg/structs"
+	"github.com/convox/rack/pkg/manifest"
 )
 
-func (p *Provider) ResourceGet(app, name string) (*structs.Resource, error) {
-	return nil, fmt.Errorf("unimplemented")
-}
+func (p *Provider) ResourceRender(app string, r manifest.Resource) ([]byte, error) {
+	params := map[string]interface{}{
+		"App":        app,
+		"Namespace":  p.AppNamespace(app),
+		"Name":       r.Name,
+		"Parameters": r.Options,
+		"Password":   "foo",
+		"Rack":       p.Rack,
+	}
 
-func (p *Provider) ResourceList(app string) (structs.Resources, error) {
-	return nil, fmt.Errorf("unimplemented")
-}
-
-func (p *Provider) SystemResourceCreate(kind string, opts structs.ResourceCreateOptions) (*structs.Resource, error) {
-	return nil, fmt.Errorf("unimplemented")
-}
-
-func (p *Provider) SystemResourceDelete(name string) error {
-	return fmt.Errorf("unimplemented")
-}
-
-func (p *Provider) SystemResourceGet(name string) (*structs.Resource, error) {
-	return nil, fmt.Errorf("unimplemented")
-}
-
-func (p *Provider) SystemResourceLink(name, app string) (*structs.Resource, error) {
-	return nil, fmt.Errorf("unimplemented")
-}
-
-func (p *Provider) SystemResourceList() (structs.Resources, error) {
-	return nil, fmt.Errorf("unimplemented")
-}
-
-func (p *Provider) SystemResourceTypes() (structs.ResourceTypes, error) {
-	return nil, fmt.Errorf("unimplemented")
-}
-
-func (p *Provider) SystemResourceUnlink(name, app string) (*structs.Resource, error) {
-	return nil, fmt.Errorf("unimplemented")
-}
-
-func (p *Provider) SystemResourceUpdate(name string, opts structs.ResourceUpdateOptions) (*structs.Resource, error) {
-	return nil, fmt.Errorf("unimplemented")
+	return p.RenderTemplate(fmt.Sprintf("resource/%s", r.Type), params)
 }

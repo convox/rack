@@ -25,10 +25,20 @@ type ReleaseListOptions struct {
 	Limit *int `flag:"limit,l" query:"limit"`
 }
 
+type ReleasePromoteOptions struct {
+	Development *bool `param:"development"`
+	Min         *int  `param:"min"`
+	Max         *int  `param:"max"`
+}
+
 func NewRelease(app string) *Release {
 	return &Release{
 		App:     app,
 		Created: time.Now().UTC(),
 		Id:      id("R", 10),
 	}
+}
+
+func (rs Releases) Less(i, j int) bool {
+	return rs[i].Created.After(rs[j].Created)
 }
