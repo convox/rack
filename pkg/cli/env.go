@@ -181,13 +181,6 @@ func EnvGet(rack sdk.Interface, c *stdcli.Context) error {
 	return nil
 }
 
-func loadEnvs(rack sdk.Interface, c *stdcli.Context, empty bool) (structs.Environment, error) {
-	if empty {
-		return structs.Environment{}, nil
-	}
-	return helpers.AppEnvironment(rack, app(c))
-}
-
 func EnvSet(rack sdk.Interface, c *stdcli.Context) error {
 	var stdout io.Writer
 
@@ -196,7 +189,15 @@ func EnvSet(rack sdk.Interface, c *stdcli.Context) error {
 		c.Writer().Stdout = c.Writer().Stderr
 	}
 
-	env, err := loadEnvs(rack, c, c.Bool("replace"))
+	env := structs.Environment{}
+	var err error
+
+	if !c.Bool("replace") {
+		env, err = helpers.AppEnvironment(rack, app(c))
+		if err != nil {
+			return err
+		}
+	}
 
 	args := []string(c.Args)
 	keys := []string{}
