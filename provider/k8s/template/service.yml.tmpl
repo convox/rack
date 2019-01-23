@@ -95,7 +95,7 @@ spec:
         {{ end }}
         {{ range .Service.Links }}
         - name: {{ envname . }}_URL
-          value: https://{{.}}.{{.Namespace}}.svc.cluster.local
+          value: https://{{.}}.{{$.App.Name}}.{{$.Rack}}
         {{ end }}
         {{ range .Service.Resources }}
         - name: {{ envname . }}_URL

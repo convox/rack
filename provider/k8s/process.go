@@ -67,7 +67,9 @@ func (p *Provider) ProcessGet(app, pid string) (*structs.Process, error) {
 }
 
 func (p *Provider) ProcessList(app string, opts structs.ProcessListOptions) (structs.Processes, error) {
-	filters := []string{}
+	filters := []string{
+		"type!=resource",
+	}
 
 	if opts.Release != nil {
 		filters = append(filters, fmt.Sprintf("release=%s", *opts.Release))
@@ -204,6 +206,27 @@ func (p *Provider) podSpecFromService(app, service, release string) (*ac.PodSpec
 			return nil, err
 		}
 
+		env := map[string]string{}
+
+		senv, err := p.systemEnvironment(app, release)
+		if err != nil {
+			return nil, err
+		}
+
+		for k, v := range senv {
+			env[k] = v
+		}
+
+		e := structs.Environment{}
+
+		if err := e.Load([]byte(r.Env)); err != nil {
+			return nil, err
+		}
+
+		for k, v := range e {
+			env[k] = v
+		}
+
 		if s, _ := m.Service(service); s != nil {
 			if s.Command != "" {
 				parts, err := shellquote.Split(s.Command)
@@ -214,7 +237,20 @@ func (p *Provider) podSpecFromService(app, service, release string) (*ac.PodSpec
 			}
 
 			for k, v := range s.EnvironmentDefaults() {
-				c.Env = append(c.Env, ac.EnvVar{Name: k, Value: v})
+				env[k] = v
+			}
+
+			for _, l := range s.Links {
+				env[fmt.Sprintf("%s_URL", envName(l))] = fmt.Sprintf("https://%s.%s.%s", l, app, p.Rack)
+			}
+
+			for _, r := range s.Resources {
+				cm, err := p.Cluster.CoreV1().ConfigMaps(p.AppNamespace(app)).Get(fmt.Sprintf("resource-%s", r), am.GetOptions{})
+				if err != nil {
+					return nil, err
+				}
+
+				env[fmt.Sprintf("%s_URL", envName(r))] = cm.Data["URL"]
 			}
 
 			repo, _, err := p.Engine.AppRepository(app)
@@ -229,6 +265,10 @@ func (p *Provider) podSpecFromService(app, service, release string) (*ac.PodSpec
 				vs = append(vs, vv)
 				c.VolumeMounts = append(c.VolumeMounts, vm)
 			}
+		}
+
+		for k, v := range env {
+			c.Env = append(c.Env, ac.EnvVar{Name: k, Value: v})
 		}
 	}
 

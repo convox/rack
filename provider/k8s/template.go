@@ -58,7 +58,7 @@ func (p *Provider) templateHelpers() template.FuncMap {
 			return eis
 		},
 		"envname": func(s string) string {
-			return strings.Replace(strings.ToUpper(s), "-", "_", -1)
+			return envName(s)
 		},
 		"host": func(app, service string) string {
 			return p.Engine.ServiceHost(app, service)
