@@ -37,17 +37,18 @@ import (
 	"github.com/convox/rack/pkg/manifest1"
 	"github.com/convox/rack/pkg/structs"
 	docker "github.com/fsouza/go-dockerclient"
+	yaml "gopkg.in/yaml.v2"
 )
 
 type Template struct {
-	Parameters map[string]TemplateParameter
+	Parameters map[string]TemplateParameter `json:"Parameters" yaml:"Parameters"`
 }
 
 type TemplateParameter struct {
-	Default     string
-	Description string
-	NoEcho      bool
-	Type        string
+	Default     string `json:"Default" yaml:"Default"`
+	Description string `json:"Description" yaml:"Description"`
+	NoEcho      bool   `json:"NoEcho" yaml:"NoEcho"`
+	Type        string `json:"Type" yaml:"Type"`
 }
 
 func (p *Provider) accountId() (string, error) {
@@ -222,11 +223,27 @@ func (p *Provider) createdTime() string {
 	return time.Now().Format(sortableTime)
 }
 
-func formationParameters(body []byte) (map[string]bool, error) {
+func formationParametersJson(body []byte) (map[string]bool, error) {
 	var t Template
 
 	err := json.Unmarshal(body, &t)
+	if err != nil {
+		return nil, err
+	}
 
+	params := map[string]bool{}
+
+	for key := range t.Parameters {
+		params[key] = true
+	}
+
+	return params, nil
+}
+
+func formationParametersYaml(body []byte) (map[string]bool, error) {
+	var t Template
+
+	err := yaml.Unmarshal(body, &t)
 	if err != nil {
 		return nil, err
 	}
@@ -1205,7 +1222,7 @@ func (p *Provider) taskDefinitionRelease(arn string) (string, error) {
 // updateStack updates a stack
 //   template is url to a template or empty string to reuse previous
 //   changes is a list of parameter changes to make (does not need to include every param)
-func (p *Provider) updateStack(name string, template []byte, changes map[string]string, tags map[string]string) error {
+func (p *Provider) updateStack(name string, template []byte, format string, changes map[string]string, tags map[string]string) error {
 	cache.Clear("describeStacks", nil)
 	cache.Clear("describeStacks", name)
 
@@ -1246,9 +1263,19 @@ func (p *Provider) updateStack(name string, template []byte, changes map[string]
 
 		req.TemplateURL = aws.String(tu)
 
-		fp, err := formationParameters(template)
-		if err != nil {
-			return err
+		var fp map[string]bool
+
+		switch format {
+		case "yaml":
+			fp, err = formationParametersYaml(template)
+			if err != nil {
+				return err
+			}
+		default:
+			fp, err = formationParametersJson(template)
+			if err != nil {
+				return err
+			}
 		}
 
 		for p := range fp {

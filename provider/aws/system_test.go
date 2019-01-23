@@ -1,6 +1,7 @@
 package aws_test
 
 import (
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -188,10 +189,14 @@ func TestSystemUpdate(t *testing.T) {
 	)
 	defer provider.Close()
 
+	wd, _ := os.Getwd()
+	defer os.Chdir(wd)
+	os.Chdir("../..")
+
 	err := provider.SystemUpdate(structs.SystemUpdateOptions{
 		Count:   options.Int(5),
 		Type:    options.String("t2.small"),
-		Version: options.String("20171214220445"),
+		Version: options.String("dev"),
 	})
 
 	assert.NoError(t, err)
@@ -208,10 +213,14 @@ func TestSystemUpdateNewParameter(t *testing.T) {
 	)
 	defer provider.Close()
 
+	wd, _ := os.Getwd()
+	defer os.Chdir(wd)
+	os.Chdir("../..")
+
 	err := provider.SystemUpdate(structs.SystemUpdateOptions{
 		Count:   options.Int(5),
 		Type:    options.String("t2.small"),
-		Version: options.String("20171214220445"),
+		Version: options.String("dev"),
 	})
 
 	assert.NoError(t, err)
@@ -461,7 +470,7 @@ var cycleSystemReleasePutItem = awsutil.Cycle{
 	Request: awsutil.Request{
 		RequestURI: "/",
 		Operation:  "DynamoDB_20120810.PutItem",
-		Body:       `{"Item":{"app":{"S":"convox"},"created":{"S":"00010101.000000.000000000"},"id":{"S":"20171214220445"}},"TableName":"convox-releases"}`,
+		Body:       `{"Item":{"app":{"S":"convox"},"created":{"S":"00010101.000000.000000000"},"id":{"S":"dev"}},"TableName":"convox-releases"}`,
 	},
 	Response: awsutil.Response{
 		StatusCode: 200,
@@ -472,7 +481,7 @@ var cycleSystemReleasePutItem = awsutil.Cycle{
 var cycleSystemUpdateNotificationPublish = awsutil.Cycle{
 	Request: awsutil.Request{
 		RequestURI: "/",
-		Body:       `Action=Publish&Message=%7B%22action%22%3A%22rack%3Aupdate%22%2C%22data%22%3A%7B%22count%22%3A%225%22%2C%22rack%22%3A%22convox%22%2C%22type%22%3A%22t2.small%22%2C%22version%22%3A%2220171214220445%22%7D%2C%22status%22%3A%22success%22%2C%22timestamp%22%3A%220001-01-01T00%3A00%3A00Z%22%7D&Subject=rack%3Aupdate&TargetArn=&Version=2010-03-31`,
+		Body:       `Action=Publish&Message=%7B%22action%22%3A%22rack%3Aupdate%22%2C%22data%22%3A%7B%22count%22%3A%225%22%2C%22rack%22%3A%22convox%22%2C%22type%22%3A%22t2.small%22%2C%22version%22%3A%22dev%22%7D%2C%22status%22%3A%22success%22%2C%22timestamp%22%3A%220001-01-01T00%3A00%3A00Z%22%7D&Subject=rack%3Aupdate&TargetArn=&Version=2010-03-31`,
 	},
 	Response: awsutil.Response{
 		StatusCode: 200,
@@ -492,7 +501,7 @@ var cycleSystemUpdateNotificationPublish = awsutil.Cycle{
 var cycleSystemUpdateStack = awsutil.Cycle{
 	Request: awsutil.Request{
 		RequestURI: "/",
-		Body:       `Action=UpdateStack&Capabilities.member.1=CAPABILITY_IAM&NotificationARNs.member.1=&Parameters.member.1.ParameterKey=Ami&Parameters.member.1.UsePreviousValue=true&Parameters.member.10.ParameterKey=InstanceCount&Parameters.member.10.ParameterValue=5&Parameters.member.11.ParameterKey=InstanceRunCommand&Parameters.member.11.UsePreviousValue=true&Parameters.member.12.ParameterKey=InstanceType&Parameters.member.12.ParameterValue=t2.small&Parameters.member.13.ParameterKey=InstanceUpdateBatchSize&Parameters.member.13.UsePreviousValue=true&Parameters.member.14.ParameterKey=Internal&Parameters.member.14.UsePreviousValue=true&Parameters.member.15.ParameterKey=Key&Parameters.member.15.UsePreviousValue=true&Parameters.member.16.ParameterKey=Password&Parameters.member.16.UsePreviousValue=true&Parameters.member.17.ParameterKey=Private&Parameters.member.17.UsePreviousValue=true&Parameters.member.18.ParameterKey=PrivateApi&Parameters.member.18.UsePreviousValue=true&Parameters.member.19.ParameterKey=Subnet0CIDR&Parameters.member.19.UsePreviousValue=true&Parameters.member.2.ParameterKey=ApiMemory&Parameters.member.2.UsePreviousValue=true&Parameters.member.20.ParameterKey=Subnet1CIDR&Parameters.member.20.UsePreviousValue=true&Parameters.member.21.ParameterKey=Subnet2CIDR&Parameters.member.21.UsePreviousValue=true&Parameters.member.22.ParameterKey=SubnetPrivate0CIDR&Parameters.member.22.UsePreviousValue=true&Parameters.member.23.ParameterKey=SubnetPrivate1CIDR&Parameters.member.23.UsePreviousValue=true&Parameters.member.24.ParameterKey=SubnetPrivate2CIDR&Parameters.member.24.UsePreviousValue=true&Parameters.member.25.ParameterKey=SwapSize&Parameters.member.25.UsePreviousValue=true&Parameters.member.26.ParameterKey=Tenancy&Parameters.member.26.UsePreviousValue=true&Parameters.member.27.ParameterKey=VPCCIDR&Parameters.member.27.UsePreviousValue=true&Parameters.member.28.ParameterKey=Version&Parameters.member.28.ParameterValue=20171214220445&Parameters.member.29.ParameterKey=VolumeSize&Parameters.member.29.UsePreviousValue=true&Parameters.member.3.ParameterKey=Autoscale&Parameters.member.3.UsePreviousValue=true&Parameters.member.4.ParameterKey=ClientId&Parameters.member.4.UsePreviousValue=true&Parameters.member.5.ParameterKey=ContainerDisk&Parameters.member.5.UsePreviousValue=true&Parameters.member.6.ParameterKey=Development&Parameters.member.6.UsePreviousValue=true&Parameters.member.7.ParameterKey=Encryption&Parameters.member.7.UsePreviousValue=true&Parameters.member.8.ParameterKey=ExistingVpc&Parameters.member.8.UsePreviousValue=true&Parameters.member.9.ParameterKey=InstanceBootCommand&Parameters.member.9.UsePreviousValue=true&StackName=convox&Tags.member.1.Key=System&Tags.member.1.Value=convox&Tags.member.2.Key=Type&Tags.member.2.Value=rack&TemplateURL=https%3A%2F%2Fs3.us-test-1.amazonaws.com%2Fconvox-settings%2Ftest-key&Version=2010-05-15`,
+		Body:       `Action=UpdateStack&Capabilities.member.1=CAPABILITY_IAM&NotificationARNs.member.1=&Parameters.member.1.ParameterKey=Ami&Parameters.member.1.UsePreviousValue=true&Parameters.member.10.ParameterKey=InstanceRunCommand&Parameters.member.10.UsePreviousValue=true&Parameters.member.11.ParameterKey=InstanceType&Parameters.member.11.ParameterValue=t2.small&Parameters.member.12.ParameterKey=InstanceUpdateBatchSize&Parameters.member.12.UsePreviousValue=true&Parameters.member.13.ParameterKey=Internal&Parameters.member.13.UsePreviousValue=true&Parameters.member.14.ParameterKey=Key&Parameters.member.14.UsePreviousValue=true&Parameters.member.15.ParameterKey=Password&Parameters.member.15.UsePreviousValue=true&Parameters.member.16.ParameterKey=Private&Parameters.member.16.UsePreviousValue=true&Parameters.member.17.ParameterKey=PrivateApi&Parameters.member.17.UsePreviousValue=true&Parameters.member.18.ParameterKey=Subnet0CIDR&Parameters.member.18.UsePreviousValue=true&Parameters.member.19.ParameterKey=Subnet1CIDR&Parameters.member.19.UsePreviousValue=true&Parameters.member.2.ParameterKey=ApiMemory&Parameters.member.2.UsePreviousValue=true&Parameters.member.20.ParameterKey=Subnet2CIDR&Parameters.member.20.UsePreviousValue=true&Parameters.member.21.ParameterKey=SubnetPrivate0CIDR&Parameters.member.21.UsePreviousValue=true&Parameters.member.22.ParameterKey=SubnetPrivate1CIDR&Parameters.member.22.UsePreviousValue=true&Parameters.member.23.ParameterKey=SubnetPrivate2CIDR&Parameters.member.23.UsePreviousValue=true&Parameters.member.24.ParameterKey=SwapSize&Parameters.member.24.UsePreviousValue=true&Parameters.member.25.ParameterKey=Tenancy&Parameters.member.25.UsePreviousValue=true&Parameters.member.26.ParameterKey=VPCCIDR&Parameters.member.26.UsePreviousValue=true&Parameters.member.27.ParameterKey=Version&Parameters.member.27.UsePreviousValue=true&Parameters.member.28.ParameterKey=VolumeSize&Parameters.member.28.UsePreviousValue=true&Parameters.member.3.ParameterKey=Autoscale&Parameters.member.3.UsePreviousValue=true&Parameters.member.4.ParameterKey=ClientId&Parameters.member.4.UsePreviousValue=true&Parameters.member.5.ParameterKey=Development&Parameters.member.5.UsePreviousValue=true&Parameters.member.6.ParameterKey=Encryption&Parameters.member.6.UsePreviousValue=true&Parameters.member.7.ParameterKey=ExistingVpc&Parameters.member.7.UsePreviousValue=true&Parameters.member.8.ParameterKey=InstanceBootCommand&Parameters.member.8.UsePreviousValue=true&Parameters.member.9.ParameterKey=InstanceCount&Parameters.member.9.ParameterValue=5&StackName=convox&Tags.member.1.Key=System&Tags.member.1.Value=convox&Tags.member.2.Key=Type&Tags.member.2.Value=rack&TemplateURL=https%3A%2F%2Fs3.us-test-1.amazonaws.com%2Fconvox-settings%2Ftest-key&Version=2010-05-15`,
 	},
 	Response: awsutil.Response{
 		StatusCode: 200,
@@ -512,7 +521,7 @@ var cycleSystemUpdateStack = awsutil.Cycle{
 var cycleSystemUpdateStackNewParameter = awsutil.Cycle{
 	Request: awsutil.Request{
 		RequestURI: "/",
-		Body:       `Action=UpdateStack&Capabilities.member.1=CAPABILITY_IAM&NotificationARNs.member.1=&Parameters.member.1.ParameterKey=Ami&Parameters.member.1.UsePreviousValue=true&Parameters.member.2.ParameterKey=InstanceCount&Parameters.member.2.ParameterValue=5&Parameters.member.3.ParameterKey=InstanceType&Parameters.member.3.ParameterValue=t2.small&Parameters.member.4.ParameterKey=Version&Parameters.member.4.ParameterValue=20171214220445&StackName=convox&Tags.member.1.Key=System&Tags.member.1.Value=convox&Tags.member.2.Key=Type&Tags.member.2.Value=rack&TemplateURL=https%3A%2F%2Fs3.us-test-1.amazonaws.com%2Fconvox-settings%2Ftest-key&Version=2010-05-15`,
+		Body:       `Action=UpdateStack&Capabilities.member.1=CAPABILITY_IAM&NotificationARNs.member.1=&Parameters.member.1.ParameterKey=Ami&Parameters.member.1.UsePreviousValue=true&Parameters.member.2.ParameterKey=InstanceCount&Parameters.member.2.ParameterValue=5&Parameters.member.3.ParameterKey=InstanceType&Parameters.member.3.ParameterValue=t2.small&StackName=convox&Tags.member.1.Key=System&Tags.member.1.Value=convox&Tags.member.2.Key=Type&Tags.member.2.Value=rack&TemplateURL=https%3A%2F%2Fs3.us-test-1.amazonaws.com%2Fconvox-settings%2Ftest-key&Version=2010-05-15`,
 	},
 	Response: awsutil.Response{
 		StatusCode: 200,

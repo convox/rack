@@ -322,7 +322,7 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 		"Version": p.Version,
 	}
 
-	if err := p.updateStack(p.rackStack(r.App), data, updates, tags); err != nil {
+	if err := p.updateStack(p.rackStack(r.App), data, "json", updates, tags); err != nil {
 		return err
 	}
 
@@ -475,7 +475,7 @@ func (p *Provider) releasePromoteGeneration1(a *structs.App, r *structs.Release)
 		return err
 	}
 
-	if err := p.updateStack(p.rackStack(a.Name), data, params, map[string]string{}); err != nil {
+	if err := p.updateStack(p.rackStack(a.Name), data, "json", params, map[string]string{}); err != nil {
 		return err
 	}
 

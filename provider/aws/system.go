@@ -27,6 +27,7 @@ import (
 	"github.com/convox/rack/pkg/structs"
 	"github.com/fatih/color"
 	"golang.org/x/crypto/nacl/secretbox"
+	yaml "gopkg.in/yaml.v2"
 
 	cv "github.com/convox/version"
 )
@@ -224,7 +225,7 @@ func (p *Provider) SystemInstall(w io.Writer, opts structs.SystemInstallOptions)
 		return "", err
 	}
 
-	template := fmt.Sprintf("https://convox.s3.amazonaws.com/release/%s/rack.json", version)
+	template := fmt.Sprintf("https://convox.s3.amazonaws.com/release/%s/rack.yml", version)
 
 	tres, err := http.Get(template)
 	if err != nil {
@@ -521,14 +522,14 @@ func (p *Provider) SystemUpdate(opts structs.SystemUpdateOptions) error {
 
 	if opts.Version != nil {
 		if *opts.Version == "dev" {
-			data, err := ioutil.ReadFile("provider/aws/formation/rack.json")
+			data, err := ioutil.ReadFile("provider/aws/formation/rack.yml")
 			if err != nil {
 				return err
 			}
 
 			template = data
 		} else {
-			res, err := http.Get(fmt.Sprintf("https://convox.s3.amazonaws.com/release/%s/rack.json", *opts.Version))
+			res, err := http.Get(fmt.Sprintf("https://convox.s3.amazonaws.com/release/%s/rack.yml", *opts.Version))
 			if err != nil {
 				return err
 			}
@@ -567,7 +568,7 @@ func (p *Provider) SystemUpdate(opts structs.SystemUpdateOptions) error {
 		"Type":   "rack",
 	}
 
-	if err := p.updateStack(p.Rack, template, params, tags); err != nil {
+	if err := p.updateStack(p.Rack, template, "yaml", params, tags); err != nil {
 		return err
 	}
 
@@ -583,10 +584,10 @@ func awscli(args ...string) ([]byte, error) {
 
 func cloudformationProgress(stack, token string, template []byte, w io.Writer) error {
 	var formation struct {
-		Resources map[string]interface{}
+		Resources map[string]interface{} `yaml:"Resources"`
 	}
 
-	if err := json.Unmarshal(template, &formation); err != nil {
+	if err := yaml.Unmarshal(template, &formation); err != nil {
 		return err
 	}
 
