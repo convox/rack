@@ -11,24 +11,6 @@ metadata:
 data:
   URL: "postgres://app:{{.Password}}@resource-{{.Name}}.{{.Namespace}}.svc.cluster.local:5432/app"
 ---
-kind: PersistentVolume
-apiVersion: v1
-metadata:
-  namespace: {{.Namespace}}
-  name: resource-{{.Name}}-postgres
-  labels:
-    system: convox
-    rack: {{.Rack}}
-    app: {{.App}}
-    resource: {{.Name}}
-spec:
-  capacity:
-    storage: 10Gi
-  accessModes:
-  - ReadWriteOnce
-  hostPath:
-    path: "/mnt/data"
----
 kind: PersistentVolumeClaim
 apiVersion: v1
 metadata:
