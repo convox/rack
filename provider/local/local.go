@@ -2,6 +2,7 @@ package local
 
 import (
 	"github.com/convox/logger"
+	"github.com/convox/rack/pkg/manifest"
 	"github.com/convox/rack/pkg/structs"
 	"github.com/convox/rack/pkg/templater"
 	"github.com/convox/rack/provider/k8s"
@@ -16,6 +17,11 @@ import (
 // func init() {
 //   Templater = templater.New(packr.NewBox("template"), templateHelpers())
 // }
+
+func init() {
+	manifest.DefaultCpu = 64
+	manifest.DefaultMem = 256
+}
 
 type Provider struct {
 	*k8s.Provider
