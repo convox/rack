@@ -1,7 +1,6 @@
 package k8s
 
 import (
-	"crypto/sha256"
 	"fmt"
 	"io"
 	"strings"
@@ -260,10 +259,20 @@ func (p *Provider) podSpecFromService(app, service, release string) (*ac.PodSpec
 
 			c.Image = fmt.Sprintf("%s:%s.%s", repo, service, r.Build)
 
+			for _, v := range volumeSources(app, s.Volumes) {
+				vs = append(vs, podVolume(v))
+			}
+
 			for _, v := range s.Volumes {
-				vv, vm := podVolume(app, v, v)
-				vs = append(vs, vv)
-				c.VolumeMounts = append(c.VolumeMounts, vm)
+				to, err := volumeTo(v)
+				if err != nil {
+					return nil, err
+				}
+
+				c.VolumeMounts = append(c.VolumeMounts, ac.VolumeMount{
+					Name:      volumeName(volumeFrom(app, v)),
+					MountPath: to,
+				})
 			}
 		}
 
@@ -306,10 +315,26 @@ func (p *Provider) podSpecFromRunOptions(app, service string, opts structs.Proce
 	}
 
 	if opts.Volumes != nil {
+		vs := []string{}
+
 		for from, to := range opts.Volumes {
-			v, vm := podVolume(app, from, to)
-			s.Volumes = append(s.Volumes, v)
-			s.Containers[0].VolumeMounts = append(s.Containers[0].VolumeMounts, vm)
+			vs = append(vs, fmt.Sprintf("%s:%s", from, to))
+		}
+
+		for _, v := range volumeSources(app, vs) {
+			s.Volumes = append(s.Volumes, podVolume(v))
+		}
+
+		for _, v := range vs {
+			to, err := volumeTo(v)
+			if err != nil {
+				return nil, err
+			}
+
+			s.Containers[0].VolumeMounts = append(s.Containers[0].VolumeMounts, ac.VolumeMount{
+				Name:      volumeName(volumeFrom(app, v)),
+				MountPath: to,
+			})
 		}
 	}
 
@@ -318,32 +343,25 @@ func (p *Provider) podSpecFromRunOptions(app, service string, opts structs.Proce
 	return s, nil
 }
 
-func podVolume(app, from, to string) (ac.Volume, ac.VolumeMount) {
-	hash := sha256.Sum256([]byte(fmt.Sprintf("%s-%s", from, to)))
-	name := fmt.Sprintf("volume-%x", hash[0:20])
-
-	host := &ac.HostPathVolumeSource{
-		Path: from,
-	}
-
-	if !systemVolume(from) {
-		t := ac.HostPathDirectoryOrCreate
-		host.Path = fmt.Sprintf("/mnt/volumes/%s/%s", app, from)
-		host.Type = &t
-	}
-
+func podVolume(from string) ac.Volume {
 	v := ac.Volume{
-		Name:         name,
-		VolumeSource: ac.VolumeSource{HostPath: host},
+		Name: volumeName(from),
+		VolumeSource: ac.VolumeSource{
+			PersistentVolumeClaim: &ac.PersistentVolumeClaimVolumeSource{
+				ClaimName: volumeName(from),
+			},
+		},
 	}
 
-	vm := ac.VolumeMount{
-		Name:      name,
-		MountPath: to,
+	if systemVolume(from) {
+		v.VolumeSource = ac.VolumeSource{
+			HostPath: &ac.HostPathVolumeSource{
+				Path: from,
+			},
+		}
 	}
 
-	return v, vm
-
+	return v
 }
 
 func processFromPod(pd ac.Pod) (*structs.Process, error) {

@@ -1,10 +1,8 @@
 package k8s
 
 import (
-	"crypto/sha256"
 	"fmt"
 	"html/template"
-	"path"
 	"sort"
 	"strings"
 
@@ -84,29 +82,23 @@ func (p *Provider) templateHelpers() template.FuncMap {
 			sort.Strings(ks)
 			return ks
 		},
+		"systemVolume": func(v string) bool {
+			return systemVolume(v)
+		},
 		"upper": func(s string) string {
 			return strings.ToUpper(s)
 		},
 		"volumeFrom": func(app, v string) string {
-			if from := strings.Split(v, ":")[0]; systemVolume(from) {
-				return from
-			} else {
-				return path.Join("/mnt/volumes", app, from)
-			}
+			return volumeFrom(app, v)
+		},
+		"volumeSources": func(app string, vs []string) []string {
+			return volumeSources(app, vs)
 		},
 		"volumeName": func(v string) string {
-			hash := sha256.Sum256([]byte(v))
-			return fmt.Sprintf("volume-%x", hash[0:20])
+			return volumeName(v)
 		},
 		"volumeTo": func(v string) (string, error) {
-			switch parts := strings.SplitN(v, ":", 2); len(parts) {
-			case 1:
-				return parts[0], nil
-			case 2:
-				return parts[1], nil
-			default:
-				return "", fmt.Errorf("invalid volume %q", v)
-			}
+			return volumeTo(v)
 		},
 	}
 }
