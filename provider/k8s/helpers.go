@@ -4,10 +4,13 @@ import (
 	"archive/tar"
 	"bufio"
 	"bytes"
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"io"
 	"os/exec"
+	"path"
+	"sort"
 	"strings"
 	"time"
 
@@ -257,4 +260,46 @@ func systemVolume(v string) bool {
 		return true
 	}
 	return false
+}
+
+func volumeFrom(app, v string) string {
+	if from := strings.Split(v, ":")[0]; systemVolume(from) {
+		return from
+	} else {
+		return path.Join("/mnt/volumes", app, from)
+	}
+}
+
+func volumeName(v string) string {
+	hash := sha256.Sum256([]byte(v))
+	return fmt.Sprintf("volume-%x", hash[0:20])
+}
+
+func volumeSources(app string, vs []string) []string {
+	vsh := map[string]bool{}
+
+	for _, v := range vs {
+		vsh[volumeFrom(app, v)] = true
+	}
+
+	vsu := []string{}
+
+	for v := range vsh {
+		vsu = append(vsu, v)
+	}
+
+	sort.Strings(vsu)
+
+	return vsu
+}
+
+func volumeTo(v string) (string, error) {
+	switch parts := strings.SplitN(v, ":", 2); len(parts) {
+	case 1:
+		return parts[0], nil
+	case 2:
+		return parts[1], nil
+	default:
+		return "", fmt.Errorf("invalid volume %q", v)
+	}
 }
