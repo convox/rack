@@ -1,153 +1,233 @@
 package local
 
 import (
-	"bytes"
-	"crypto/aes"
-	"crypto/cipher"
-	"encoding/hex"
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/tls"
+	"crypto/x509"
+	"crypto/x509/pkix"
+	"encoding/base64"
+	"encoding/pem"
 	"fmt"
 	"io"
-	"io/ioutil"
-	"net"
+	"math/big"
 	"net/http"
 	"os"
 	"os/exec"
-	"os/user"
-	"text/template"
+	"runtime"
+	"sort"
 	"time"
 
+	"github.com/convox/rack/pkg/helpers"
+	"github.com/convox/rack/pkg/options"
+	"github.com/convox/rack/pkg/storage"
 	"github.com/convox/rack/pkg/structs"
-	"github.com/pkg/errors"
-
-	cv "github.com/convox/version"
+	"github.com/convox/rack/sdk"
+	am "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
-
-const (
-	aesKey   = "AES256Key-32Characters1234567890"
-	nonceHex = "37b8e8a308c354048d245f6d"
-)
-
-var (
-	launcher = template.Must(template.New("launcher").Parse(launcherTemplate()))
-)
-
-func (p *Provider) SystemDecrypt(data []byte) ([]byte, error) {
-	log := p.logger("SystemDecrypt")
-
-	block, err := aes.NewCipher([]byte(aesKey))
-	if err != nil {
-		return nil, errors.WithStack(log.Error(err))
-	}
-
-	nonce, err := hex.DecodeString(nonceHex)
-	if err != nil {
-		return nil, errors.WithStack(log.Error(err))
-	}
-
-	aesgcm, err := cipher.NewGCM(block)
-	if err != nil {
-		return nil, errors.WithStack(log.Error(err))
-	}
-
-	dec, err := aesgcm.Open(nil, nonce, data, nil)
-	if err != nil {
-		return nil, errors.WithStack(log.Error(err))
-	}
-
-	return dec, log.Success()
-}
-
-func (p *Provider) SystemEncrypt(data []byte) ([]byte, error) {
-	log := p.logger("SystemEncrypt")
-
-	block, err := aes.NewCipher([]byte(aesKey))
-	if err != nil {
-		return nil, errors.WithStack(log.Error(err))
-	}
-
-	nonce, err := hex.DecodeString(nonceHex)
-	if err != nil {
-		return nil, errors.WithStack(log.Error(err))
-	}
-
-	aesgcm, err := cipher.NewGCM(block)
-	if err != nil {
-		return nil, errors.WithStack(log.Error(err))
-	}
-
-	enc, err := aesgcm.Seal(nil, nonce, data, nil), nil
-	if err != nil {
-		return nil, errors.WithStack(log.Error(err))
-	}
-
-	return enc, log.Success()
-}
-
-func (p *Provider) SystemGet() (*structs.System, error) {
-	log := p.logger("SystemGet")
-
-	system := &structs.System{
-		Domain:   fmt.Sprintf("rack.%s", p.Rack),
-		Name:     p.Rack,
-		Provider: "local",
-		Region:   "local",
-		Status:   "running",
-		Version:  p.Version,
-	}
-
-	return system, log.Success()
-}
 
 func (p *Provider) SystemInstall(w io.Writer, opts structs.SystemInstallOptions) (string, error) {
-	name := cs(opts.Name, "convox")
-
-	var version string
-
-	if opts.Version != nil {
-		version = *opts.Version
-	} else {
-		v, err := cv.Latest()
-		if err != nil {
-			return "", err
-		}
-		version = v
-	}
-
-	id := cs(opts.Id, "")
-
-	exe, err := os.Executable()
-	if err != nil {
+	if err := checkKubectl(); err != nil {
 		return "", err
 	}
 
-	u, err := user.Current()
-	if err != nil {
+	if err := checkPermissions(); err != nil {
 		return "", err
 	}
 
-	if u.Uid != "0" {
-		return "", fmt.Errorf("must be root to install a local rack")
-	}
-
-	fmt.Fprintf(w, "pulling: convox/rack:%s\n", version)
-
-	if err := launcherInstall("router", w, opts, exe, "router"); err != nil {
-		return "", err
-	}
-
-	if err := launcherInstall(fmt.Sprintf("rack.%s", name), w, opts, exe, "rack", "start", "--id", id, "--name", name); err != nil {
-		return "", err
-	}
-
+	name := helpers.DefaultString(opts.Name, "convox")
+	version := helpers.DefaultString(opts.Version, "dev")
 	url := fmt.Sprintf("https://rack.%s", name)
 
-	fmt.Fprintf(w, "waiting for rack... ")
+	fmt.Fprintf(w, "Installing rack (%s)... ", version)
 
+	if err := removeOriginalRack(name); err != nil {
+		return "", err
+	}
+
+	if _, err := p.Provider.SystemInstall(w, opts); err != nil {
+		return "", err
+	}
+
+	p.Rack = name
+
+	if err := p.systemUpdate(version); err != nil {
+		return "", err
+	}
+
+	if err := p.generateCACertificate(name); err != nil {
+		return "", err
+	}
+
+	if err := dnsInstall(name); err != nil {
+		return "", err
+	}
+
+	fmt.Fprintf(w, "OK\n")
+
+	fmt.Fprintf(w, "Waiting for rack... ")
+
+	if err := endpointWait(url); err != nil {
+		return "", err
+	}
+
+	fmt.Fprintf(w, "OK\n")
+
+	if err := importOriginalSettings(w, name, url); err != nil {
+		return "", err
+	}
+
+	return url, nil
+}
+
+func (p *Provider) SystemUninstall(name string, w io.Writer, opts structs.SystemUninstallOptions) error {
+	if err := checkKubectl(); err != nil {
+		return err
+	}
+
+	if err := checkPermissions(); err != nil {
+		return err
+	}
+
+	fmt.Fprintf(w, "Uninstalling rack... ")
+
+	if err := removeOriginalRack(name); err != nil {
+		return err
+	}
+
+	if err := exec.Command("kubectl", "delete", "ns", "-l", fmt.Sprintf("rack=%s", name)).Run(); err != nil {
+		return err
+	}
+
+	if err := dnsUninstall(name); err != nil {
+		return err
+	}
+
+	fmt.Fprintf(w, "OK\n")
+
+	return nil
+}
+
+func (p *Provider) SystemUpdate(opts structs.SystemUpdateOptions) error {
+	if err := p.Provider.SystemUpdate(opts); err != nil {
+		return err
+	}
+
+	if err := p.systemUpdate(helpers.DefaultString(opts.Version, p.Version)); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (p *Provider) generateCACertificate(name string) error {
+	if err := exec.Command("kubectl", "get", "secret", "ca", "-n", "convox-system").Run(); err == nil {
+		return nil
+	}
+
+	rkey, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		return err
+	}
+
+	serial, err := rand.Int(rand.Reader, new(big.Int).Lsh(big.NewInt(1), 128))
+	if err != nil {
+		return err
+	}
+
+	template := x509.Certificate{
+		BasicConstraintsValid: true,
+		IsCA:                  true,
+		DNSNames:              []string{"ca.convox"},
+		SerialNumber:          serial,
+		NotBefore:             time.Now(),
+		NotAfter:              time.Now().Add(365 * 24 * time.Hour),
+		KeyUsage:              x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
+		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
+		Subject: pkix.Name{
+			CommonName:   "ca.convox",
+			Organization: []string{"convox"},
+		},
+	}
+
+	data, err := x509.CreateCertificate(rand.Reader, &template, &template, &rkey.PublicKey, rkey)
+	if err != nil {
+		return err
+	}
+
+	pub := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: data})
+	key := pem.EncodeToMemory(&pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(rkey)})
+
+	params := map[string]interface{}{
+		"Public":  base64.StdEncoding.EncodeToString(pub),
+		"Private": base64.StdEncoding.EncodeToString(key),
+	}
+
+	if _, err := p.ApplyTemplate("ca", "system=convox,type=ca", params); err != nil {
+		return err
+	}
+
+	if err := trustCertificate(name, pub); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (p *Provider) systemUpdate(version string) error {
+	log := p.logger.At("systemUpdate").Namespace("rack=%s version=%s", p.Rack, version)
+
+	dp := dnsPort()
+
+	if p.Cluster != nil {
+		s, err := p.Cluster.CoreV1().Services("convox-system").Get("resolver", am.GetOptions{})
+		if err != nil {
+			return err
+		}
+
+		if len(s.Spec.Ports) != 1 {
+			return fmt.Errorf("could not find resolver port")
+		}
+
+		dp = fmt.Sprintf("%d", s.Spec.Ports[0].Port)
+	}
+
+	params := map[string]interface{}{
+		"DnsPort": dp,
+		"Rack":    p.Rack,
+		"Version": version,
+	}
+
+	if _, err := p.ApplyTemplate("config", "system=convox,type=config", params); err != nil {
+		return log.Error(err)
+	}
+
+	if _, err := p.ApplyTemplate("system", "system=convox,type=system", params); err != nil {
+		return log.Error(err)
+	}
+
+	return log.Success()
+}
+
+func checkKubectl() error {
+	ch := make(chan error, 1)
+
+	go func() { ch <- exec.Command("kubectl", "version").Run() }()
+	go time.AfterFunc(3*time.Second, func() { ch <- fmt.Errorf("timeout") })
+
+	if err := <-ch; err != nil {
+		return fmt.Errorf("kubernetes not running or kubectl not configured, try `kubectl version`")
+	}
+
+	return nil
+}
+
+func endpointWait(url string) error {
 	tick := time.Tick(2 * time.Second)
-	timeout := time.After(30 * time.Minute)
+	timeout := time.After(5 * time.Minute)
 
 	ht := *(http.DefaultTransport.(*http.Transport))
-	ht.TLSClientConfig.InsecureSkipVerify = true
+	ht.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 	hc := &http.Client{Transport: &ht}
 
 	for {
@@ -155,165 +235,114 @@ func (p *Provider) SystemInstall(w io.Writer, opts structs.SystemInstallOptions)
 		case <-tick:
 			_, err := hc.Get(url)
 			if err == nil {
-				fmt.Fprintf(w, "OK\n")
-				return url, nil
+				return nil
 			}
 		case <-timeout:
-			return "", fmt.Errorf("timeout")
+			return fmt.Errorf("timeout")
 		}
 	}
 }
 
-func (p *Provider) SystemLogs(opts structs.LogsOptions) (io.ReadCloser, error) {
-	log := p.logger("SystemLogs")
-
-	r, w := io.Pipe()
-
-	hostname, err := os.Hostname()
+func importOriginalEnvironment(s *storage.Storage, app string) (string, error) {
+	ris, err := s.List(fmt.Sprintf("apps/%s/releases", app))
 	if err != nil {
-		return nil, errors.WithStack(log.Error(err))
+		return "", err
 	}
 
-	args := []string{"logs"}
+	rs := structs.Releases{}
 
-	if opts.Follow == nil || *opts.Follow {
-		args = append(args, "-f")
-	}
+	for _, ri := range ris {
+		var r structs.Release
 
-	if opts.Since != nil {
-		args = append(args, "--since", time.Now().UTC().Add((*opts.Since)*-1).Format(time.RFC3339))
-	}
-
-	args = append(args, hostname)
-
-	cmd := exec.Command("docker", args...)
-
-	cmd.Stdout = w
-	cmd.Stderr = w
-
-	if err := cmd.Start(); err != nil {
-		return nil, errors.WithStack(log.Error(err))
-	}
-
-	go func() {
-		defer w.Close()
-		cmd.Wait()
-	}()
-
-	return r, log.Success()
-}
-
-func (p *Provider) SystemMetrics(opts structs.MetricsOptions) (structs.Metrics, error) {
-	return nil, fmt.Errorf("unimplemented")
-}
-
-func (p *Provider) SystemOptions() (map[string]string, error) {
-	log := p.logger("SystemOptions")
-
-	options := map[string]string{
-		"streaming": "websocket",
-	}
-
-	return options, log.Success()
-}
-
-func (p *Provider) SystemProcesses(opts structs.SystemProcessesOptions) (structs.Processes, error) {
-	return nil, fmt.Errorf("unimplemented")
-}
-
-func (p *Provider) SystemProxy(host string, port int, in io.Reader) (io.ReadCloser, error) {
-	log := p.logger("SystemProxy").Append("host=%s port=%d", host, port)
-
-	cn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", host, port))
-	if err != nil {
-		return nil, errors.WithStack(log.Error(err))
-	}
-
-	go io.Copy(cn, in)
-
-	return cn, log.Success()
-}
-
-func (p *Provider) SystemReleases() (structs.Releases, error) {
-	return nil, fmt.Errorf("unimplemented")
-}
-
-func (p *Provider) SystemUninstall(name string, w io.Writer, opts structs.SystemUninstallOptions) error {
-	u, err := user.Current()
-	if err != nil {
-		return err
-	}
-
-	if u.Uid != "0" {
-		return fmt.Errorf("must be root to uninstall a local rack")
-	}
-
-	launcherRemove("rack", w)
-	launcherRemove(fmt.Sprintf("rack.%s", name), w)
-
-	return nil
-}
-
-func (p *Provider) SystemUpdate(opts structs.SystemUpdateOptions) error {
-	log := p.logger("SystemUpdate").Append("version=%q", *opts.Version)
-
-	if opts.Version != nil {
-		v := *opts.Version
-
-		if err := ioutil.WriteFile("/var/convox/version", []byte(v), 0644); err != nil {
-			return errors.WithStack(log.Error(err))
+		if err := s.Load(fmt.Sprintf("apps/%s/releases/%s/release.json", app, ri), &r); err != nil {
+			return "", err
 		}
 
-		if err := exec.Command("docker", "pull", fmt.Sprintf("convox/rack:%s", v)).Run(); err != nil {
-			return errors.WithStack(log.Error(err))
+		rs = append(rs, r)
+	}
+
+	sort.Slice(rs, rs.Less)
+
+	if len(rs) < 1 {
+		return "", nil
+	}
+
+	return rs[0].Env, nil
+}
+
+func importOriginalSettings(w io.Writer, name, url string) error {
+	db := ""
+
+	switch runtime.GOOS {
+	case "darwin":
+		db = fmt.Sprintf("/Users/Shared/convox/%s.db", name)
+	case "linux":
+		db = fmt.Sprintf("/var/convox/%s.db", name)
+	default:
+		return nil
+	}
+
+	if _, err := os.Stat(db); os.IsNotExist(err) {
+		return nil
+	}
+
+	fmt.Fprintf(w, "Importing original rack settings... ")
+
+	c, err := sdk.New(url)
+	if err != nil {
+		return err
+	}
+
+	s, err := storage.Open(db)
+	if err != nil {
+		return err
+	}
+	defer s.Close()
+
+	cas, err := c.AppList()
+	if err != nil {
+		return err
+	}
+
+	cash := map[string]bool{}
+
+	for _, ca := range cas {
+		cash[ca.Name] = true
+	}
+
+	eas, err := s.List("apps")
+	if err != nil {
+		return err
+	}
+
+	for _, ea := range eas {
+		if cash[ea] {
+			continue
 		}
 
-		go func() {
-			time.Sleep(1 * time.Second)
-			os.Exit(0)
-		}()
+		env, err := importOriginalEnvironment(s, ea)
+		if err != nil {
+			return err
+		}
+
+		if _, err := c.AppCreate(ea, structs.AppCreateOptions{}); err != nil {
+			return err
+		}
+
+		if _, err := c.ReleaseCreate(ea, structs.ReleaseCreateOptions{Env: options.String(env)}); err != nil {
+			return err
+		}
 	}
 
-	return log.Success()
-}
-
-func launcherInstall(name string, w io.Writer, opts structs.SystemInstallOptions, command string, args ...string) error {
-	var buf bytes.Buffer
-
-	params := map[string]interface{}{
-		"Name":    name,
-		"Command": command,
-		"Args":    args,
-		"Logs":    fmt.Sprintf("/var/log/convox/%s.log", name),
-	}
-
-	if err := launcher.Execute(&buf, params); err != nil {
+	if err := s.Close(); err != nil {
 		return err
 	}
 
-	path := launcherPath(name)
-
-	fmt.Fprintf(w, "installing: %s\n", path)
-
-	if err := ioutil.WriteFile(path, buf.Bytes(), 0644); err != nil {
+	if err := os.Rename(db, fmt.Sprintf("%s.backup", db)); err != nil {
 		return err
 	}
 
-	if err := launcherStart(name); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func launcherRemove(name string, w io.Writer) error {
-	path := launcherPath(name)
-
-	fmt.Fprintf(w, "removing: %s\n", path)
-
-	launcherStop(name)
-
-	os.Remove(path)
+	fmt.Fprintf(w, "OK\n")
 
 	return nil
 }

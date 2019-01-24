@@ -100,16 +100,22 @@ func Rack(rack sdk.Interface, c *stdcli.Context) error {
 	i := c.Info()
 
 	i.Add("Name", s.Name)
+	i.Add("Provider", s.Provider)
+
+	if s.Region != "" {
+		i.Add("Region", s.Region)
+	}
+
+	if s.Domain != "" {
+		if ri := s.Outputs["DomainInternal"]; ri != "" {
+			i.Add("Router", fmt.Sprintf("%s (external)\n%s (internal)", s.Domain, ri))
+		} else {
+			i.Add("Router", s.Domain)
+		}
+	}
+
 	i.Add("Status", s.Status)
 	i.Add("Version", s.Version)
-
-	i.Add("Region", s.Region)
-
-	if ri := s.Outputs["DomainInternal"]; ri != "" {
-		i.Add("Router", fmt.Sprintf("%s (external)\n%s (internal)", s.Domain, ri))
-	} else {
-		i.Add("Router", s.Domain)
-	}
 
 	return i.Print()
 }
@@ -119,6 +125,14 @@ func RackInstall(rack sdk.Interface, c *stdcli.Context) error {
 
 	if err := c.Options(&opts); err != nil {
 		return err
+	}
+
+	if opts.Version == nil {
+		v, err := cv.Latest()
+		if err != nil {
+			return err
+		}
+		opts.Version = options.String(v)
 	}
 
 	if id, _ := c.SettingRead("id"); id != "" {
@@ -141,6 +155,12 @@ func RackInstall(rack sdk.Interface, c *stdcli.Context) error {
 	if err != nil {
 		return err
 	}
+
+	c.Writef("   ___ ___  _  _ _   __ __ _  __\n")
+	c.Writef("  / __/ _ \\| \\| \\ \\ / / _ \\ \\/ /\n")
+	c.Writef(" | (_| (_) |  ` |\\ V / (_) )  ( \n")
+	c.Writef("  \\___\\___/|_|\\_| \\_/ \\___/_/\\_\\\n")
+	c.Writef("\n")
 
 	ep, err := p.SystemInstall(c, opts)
 	if err != nil {
@@ -181,6 +201,8 @@ func RackLogs(rack sdk.Interface, c *stdcli.Context) error {
 	if c.Bool("no-follow") {
 		opts.Follow = options.Bool(false)
 	}
+
+	opts.Prefix = options.Bool(true)
 
 	r, err := rack.SystemLogs(opts)
 	if err != nil {

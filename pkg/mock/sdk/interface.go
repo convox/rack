@@ -1011,6 +1011,29 @@ func (_m *Interface) ProcessList(app string, opts structs.ProcessListOptions) (s
 	return r0, r1
 }
 
+// ProcessLogs provides a mock function with given fields: app, pid, opts
+func (_m *Interface) ProcessLogs(app string, pid string, opts structs.LogsOptions) (io.ReadCloser, error) {
+	ret := _m.Called(app, pid, opts)
+
+	var r0 io.ReadCloser
+	if rf, ok := ret.Get(0).(func(string, string, structs.LogsOptions) io.ReadCloser); ok {
+		r0 = rf(app, pid, opts)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(io.ReadCloser)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(string, string, structs.LogsOptions) error); ok {
+		r1 = rf(app, pid, opts)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // ProcessRun provides a mock function with given fields: app, service, opts
 func (_m *Interface) ProcessRun(app string, service string, opts structs.ProcessRunOptions) (*structs.Process, error) {
 	ret := _m.Called(app, service, opts)
@@ -1247,13 +1270,13 @@ func (_m *Interface) ReleaseList(app string, opts structs.ReleaseListOptions) (s
 	return r0, r1
 }
 
-// ReleasePromote provides a mock function with given fields: app, id
-func (_m *Interface) ReleasePromote(app string, id string) error {
-	ret := _m.Called(app, id)
+// ReleasePromote provides a mock function with given fields: app, id, opts
+func (_m *Interface) ReleasePromote(app string, id string, opts structs.ReleasePromoteOptions) error {
+	ret := _m.Called(app, id, opts)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(string, string) error); ok {
-		r0 = rf(app, id)
+	if rf, ok := ret.Get(0).(func(string, string, structs.ReleasePromoteOptions) error); ok {
+		r0 = rf(app, id, opts)
 	} else {
 		r0 = ret.Error(0)
 	}

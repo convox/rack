@@ -20,6 +20,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/pkg/errors"
+
 	"github.com/convox/changes"
 	"github.com/convox/rack/pkg/helpers"
 	"github.com/convox/rack/pkg/manifest"
@@ -62,33 +64,33 @@ func (s *Start) Start2(ctx context.Context, w io.Writer, opts Options2) error {
 	}
 
 	if opts.App == "" {
-		return fmt.Errorf("app required")
+		return errors.WithStack(fmt.Errorf("app required"))
 	}
 
 	a, err := opts.Provider.AppGet(opts.App)
 	if err != nil {
 		if _, err := opts.Provider.AppCreate(opts.App, structs.AppCreateOptions{Generation: options.String("2")}); err != nil {
-			return err
+			return errors.WithStack(err)
 		}
 	} else {
 		if a.Generation != "2" {
-			return fmt.Errorf("invalid generation: %s", a.Generation)
+			return errors.WithStack(fmt.Errorf("invalid generation: %s", a.Generation))
 		}
 	}
 
-	data, err := ioutil.ReadFile(helpers.Coalesce(opts.Manifest, "convox.yml"))
+	data, err := ioutil.ReadFile(helpers.CoalesceString(opts.Manifest, "convox.yml"))
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 
 	env, err := helpers.AppEnvironment(opts.Provider, opts.App)
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 
 	m, err := manifest.Load(data, env)
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 
 	services := map[string]bool{}
@@ -110,12 +112,12 @@ func (s *Start) Start2(ctx context.Context, w io.Writer, opts Options2) error {
 
 		data, err := helpers.Tarball(".")
 		if err != nil {
-			return err
+			return errors.WithStack(err)
 		}
 
 		o, err := opts.Provider.ObjectStore(opts.App, "", bytes.NewReader(data), structs.ObjectStoreOptions{})
 		if err != nil {
-			return err
+			return errors.WithStack(err)
 		}
 
 		pw.Writef("build", "starting build\n")
@@ -128,12 +130,12 @@ func (s *Start) Start2(ctx context.Context, w io.Writer, opts Options2) error {
 
 		b, err := opts.Provider.BuildCreate(opts.App, o.Url, bopts)
 		if err != nil {
-			return err
+			return errors.WithStack(err)
 		}
 
 		logs, err := opts.Provider.BuildLogs(opts.App, b.Id, structs.LogsOptions{})
 		if err != nil {
-			return err
+			return errors.WithStack(err)
 		}
 
 		bo := pw.Writer("build")
@@ -141,7 +143,7 @@ func (s *Start) Start2(ctx context.Context, w io.Writer, opts Options2) error {
 		go io.Copy(bo, logs)
 
 		if err := opts.waitForBuild(ctx, b.Id); err != nil {
-			return err
+			return errors.WithStack(err)
 		}
 
 		select {
@@ -152,11 +154,16 @@ func (s *Start) Start2(ctx context.Context, w io.Writer, opts Options2) error {
 
 		b, err = opts.Provider.BuildGet(opts.App, b.Id)
 		if err != nil {
-			return err
+			return errors.WithStack(err)
 		}
 
-		if err := opts.Provider.ReleasePromote(opts.App, b.Release); err != nil {
-			return err
+		popts := structs.ReleasePromoteOptions{
+			Development: options.Bool(true),
+			Min:         options.Int(0),
+		}
+
+		if err := opts.Provider.ReleasePromote(opts.App, b.Release, popts); err != nil {
+			return errors.WithStack(err)
 		}
 	}
 
@@ -167,7 +174,7 @@ func (s *Start) Start2(ctx context.Context, w io.Writer, opts Options2) error {
 
 	wd, err := os.Getwd()
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 
 	var wg sync.WaitGroup
@@ -218,7 +225,7 @@ func (opts Options2) handleAdds(pid, remote string, adds []changes.Change) error
 	if !filepath.IsAbs(remote) {
 		data, err := Exec.Execute("docker", "inspect", pid, "--format", "{{.Config.WorkingDir}}")
 		if err != nil {
-			return fmt.Errorf("container inspect %s %s", string(data), err)
+			return errors.WithStack(fmt.Errorf("container inspect %s %s", string(data), err))
 		}
 
 		wd := strings.TrimSpace(string(data))
@@ -248,7 +255,7 @@ func (opts Options2) handleAdds(pid, remote string, adds []changes.Change) error
 				continue
 			}
 
-			return err
+			return errors.WithStack(err)
 		}
 
 		tw.WriteHeader(&tar.Header{
@@ -260,28 +267,28 @@ func (opts Options2) handleAdds(pid, remote string, adds []changes.Change) error
 
 		fd, err := os.Open(local)
 		if err != nil {
-			return err
+			return errors.WithStack(err)
 		}
 
 		defer fd.Close()
 
 		if _, err := io.Copy(tw, fd); err != nil {
-			return err
+			return errors.WithStack(err)
 		}
 
 		fd.Close()
 	}
 
 	if err := tw.Close(); err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 
 	if err := tgz.Close(); err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 
 	if err := wp.Close(); err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 
 	return <-ch
@@ -355,11 +362,13 @@ func (opts Options2) healthCheck(ctx context.Context, pw prefix.Writer, s manife
 				pw.Writef("convox", "health check <service>%s</service>: <fail>%s</fail>\n", s.Name, err.Error())
 				continue
 			}
+
 			if res.StatusCode < 200 || res.StatusCode > 399 {
 				pw.Writef("convox", "health check <service>%s</service>: <fail>%d</fail>\n", s.Name, res.StatusCode)
 			} else if res.StatusCode != ps {
 				pw.Writef("convox", "health check <service>%s</service>: <ok>%d</ok>\n", s.Name, res.StatusCode)
 			}
+
 			ps = res.StatusCode
 		}
 	}
@@ -401,7 +410,7 @@ func (opts Options2) waitForBuild(ctx context.Context, id string) error {
 		case <-tick:
 			b, err := opts.Provider.BuildGet(opts.App, id)
 			if err != nil {
-				return err
+				return errors.WithStack(err)
 			}
 
 			switch b.Status {
@@ -410,9 +419,9 @@ func (opts Options2) waitForBuild(ctx context.Context, id string) error {
 			case "complete":
 				return nil
 			case "failed":
-				return fmt.Errorf("build failed")
+				return errors.WithStack(fmt.Errorf("build failed"))
 			default:
-				return fmt.Errorf("unknown build status: %s", b.Status)
+				return errors.WithStack(fmt.Errorf("unknown build status: %s", b.Status))
 			}
 		}
 	}
@@ -522,7 +531,7 @@ func (opts Options2) watchPath(ctx context.Context, pw prefix.Writer, service, r
 func buildDockerfile(m *manifest.Manifest, root, service string) ([]byte, error) {
 	s, err := m.Service(service)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 
 	if s.Image != "" {
@@ -531,11 +540,11 @@ func buildDockerfile(m *manifest.Manifest, root, service string) ([]byte, error)
 
 	path, err := filepath.Abs(filepath.Join(root, s.Build.Path, s.Build.Manifest))
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 
 	if _, err := os.Stat(path); os.IsNotExist(err) {
-		return nil, fmt.Errorf("no such file: %s", filepath.Join(s.Build.Path, s.Build.Manifest))
+		return nil, errors.WithStack(fmt.Errorf("no such file: %s", filepath.Join(s.Build.Path, s.Build.Manifest)))
 	}
 
 	return ioutil.ReadFile(path)
@@ -547,7 +556,7 @@ func buildIgnores(root, service string) ([]string, error) {
 		return []string{}, nil
 	}
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 
 	return dockerignore.ReadAll(fd)
@@ -556,7 +565,7 @@ func buildIgnores(root, service string) ([]string, error) {
 func buildSources(m *manifest.Manifest, root, service string) ([]buildSource, error) {
 	data, err := buildDockerfile(m, root, service)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	if data == nil {
 		return []buildSource{}, nil
@@ -564,7 +573,7 @@ func buildSources(m *manifest.Manifest, root, service string) ([]buildSource, er
 
 	svc, err := m.Service(service)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 
 	bs := []buildSource{}
@@ -585,7 +594,7 @@ func buildSources(m *manifest.Manifest, root, service string) ([]buildSource, er
 			if len(parts) > 2 {
 				u, err := url.Parse(parts[1])
 				if err != nil {
-					return nil, err
+					return nil, errors.WithStack(err)
 				}
 
 				if strings.HasPrefix(parts[1], "--from") {
@@ -616,11 +625,11 @@ func buildSources(m *manifest.Manifest, root, service string) ([]buildSource, er
 
 				data, err := Exec.Execute("docker", "inspect", parts[1], "--format", "{{json .Config.Env}}")
 				if err != nil {
-					return nil, err
+					continue
 				}
 
 				if err := json.Unmarshal(data, &ee); err != nil {
-					return nil, err
+					return nil, errors.WithStack(err)
 				}
 
 				for _, e := range ee {
@@ -633,7 +642,7 @@ func buildSources(m *manifest.Manifest, root, service string) ([]buildSource, er
 
 				data, err = Exec.Execute("docker", "inspect", parts[1], "--format", "{{.Config.WorkingDir}}")
 				if err != nil {
-					return nil, err
+					return nil, errors.WithStack(err)
 				}
 
 				wd = strings.TrimSpace(string(data))
@@ -648,12 +657,12 @@ func buildSources(m *manifest.Manifest, root, service string) ([]buildSource, er
 	for i := range bs {
 		abs, err := filepath.Abs(bs[i].Local)
 		if err != nil {
-			return nil, err
+			return nil, errors.WithStack(err)
 		}
 
 		stat, err := os.Stat(abs)
 		if err != nil {
-			return nil, err
+			return nil, errors.WithStack(err)
 		}
 
 		if stat.IsDir() && !strings.HasSuffix(abs, "/") {
@@ -681,12 +690,12 @@ func buildSources(m *manifest.Manifest, root, service string) ([]buildSource, er
 
 				rl, err := filepath.Rel(bs[j].Local, bs[i].Local)
 				if err != nil {
-					return nil, err
+					return nil, errors.WithStack(err)
 				}
 
 				rr, err := filepath.Rel(bs[j].Remote, bs[i].Remote)
 				if err != nil {
-					return nil, err
+					return nil, errors.WithStack(err)
 				}
 
 				if rl == rr {
@@ -702,6 +711,10 @@ func buildSources(m *manifest.Manifest, root, service string) ([]buildSource, er
 	}
 
 	return bss, nil
+}
+
+type stackTracer interface {
+	StackTrace() errors.StackTrace
 }
 
 func handleErrors(ctx context.Context, pw prefix.Writer, errch chan error) {
@@ -740,11 +753,13 @@ func writeLogs(ctx context.Context, pw prefix.Writer, r io.Reader, services map[
 				continue
 			}
 
-			if !services[match[4]] {
+			service := strings.Split(match[4], ":")[0]
+
+			if !services[service] {
 				continue
 			}
 
-			pw.Writef(match[4], "%s\n", match[6])
+			pw.Writef(service, "%s\n", match[6])
 		}
 	}
 

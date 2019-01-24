@@ -143,15 +143,21 @@ func (s Service) GetName() string {
 	return s.Name
 }
 
-func (s ServiceScale) Autoscale() bool {
+func (s Service) Autoscale() bool {
+	if s.Agent.Enabled {
+		return false
+	}
+
 	switch {
-	case s.Targets.Cpu > 0:
+	case s.Scale.Count.Min == s.Scale.Count.Max:
+		return false
+	case s.Scale.Targets.Cpu > 0:
 		return true
-	case len(s.Targets.Custom) > 0:
+	case len(s.Scale.Targets.Custom) > 0:
 		return true
-	case s.Targets.Memory > 0:
+	case s.Scale.Targets.Memory > 0:
 		return true
-	case s.Targets.Requests > 0:
+	case s.Scale.Targets.Requests > 0:
 		return true
 	}
 

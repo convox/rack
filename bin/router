@@ -1,0 +1,9 @@
+#!/bin/bash
+
+cd $(dirname ${0:-})/..
+
+if [ "$DEVELOPMENT" == "true" ]; then
+  exec watchexec -e go -r -s SIGTERM "set -x && go install ./cmd/router && $GOPATH/bin/router"
+else
+  exec $GOPATH/bin/router
+fi

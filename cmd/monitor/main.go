@@ -1,26 +1,19 @@
 package main
 
 import (
-	"github.com/convox/rack/provider"
 	"github.com/convox/rack/pkg/structs"
+	"github.com/convox/rack/provider"
 )
 
-var (
-	Provider structs.Provider
-)
-
-func init() {
+func main() {
 	p, err := provider.FromEnv()
 	if err != nil {
 		panic(err)
 	}
-	Provider = p
-}
 
-func main() {
-	Provider.Initialize(structs.ProviderOptions{})
+	p.Initialize(structs.ProviderOptions{})
 
-	go Provider.Workers()
+	go p.Workers()
 
 	select {}
 }

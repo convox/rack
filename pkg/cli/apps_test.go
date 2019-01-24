@@ -37,10 +37,10 @@ func TestApps(t *testing.T) {
 		require.Equal(t, 0, res.Code)
 		res.RequireStderr(t, []string{""})
 		res.RequireStdout(t, []string{
-			"APP   STATUS    GEN  RELEASE ",
-			"app1  running   2    release1",
-			"app1  running   1    release1",
-			"app2  creating  1            ",
+			"APP   STATUS    RELEASE ",
+			"app1  running   release1",
+			"app1  running   release1",
+			"app2  creating          ",
 		})
 	})
 }
@@ -234,7 +234,7 @@ func TestAppsExport(t *testing.T) {
 
 		data, err := ioutil.ReadFile(filepath.Join(tmp, "app.json"))
 		require.NoError(t, err)
-		require.Equal(t, "{\"generation\":\"2\",\"locked\":false,\"name\":\"app1\",\"release\":\"release1\",\"sleep\":false,\"status\":\"running\",\"parameters\":{\"ParamFoo\":\"value1\",\"ParamOther\":\"value2\"}}", string(data))
+		require.Equal(t, "{\"generation\":\"2\",\"locked\":false,\"name\":\"app1\",\"release\":\"release1\",\"status\":\"running\",\"parameters\":{\"ParamFoo\":\"value1\",\"ParamOther\":\"value2\"}}", string(data))
 
 		data, err = ioutil.ReadFile(filepath.Join(tmp, "env"))
 		require.NoError(t, err)
@@ -259,7 +259,7 @@ func TestAppsImport(t *testing.T) {
 			require.Equal(t, bdata, rdata)
 		})
 		i.On("ReleaseCreate", "app1", structs.ReleaseCreateOptions{Env: options.String("ALPHA=one\nBRAVO=two\n")}).Return(fxRelease(), nil)
-		i.On("ReleasePromote", "app1", "release1").Return(nil)
+		i.On("ReleasePromote", "app1", "release1", structs.ReleasePromoteOptions{}).Return(nil)
 		i.On("AppGet", "app1").Return(&structs.App{Status: "creating"}, nil).Twice()
 		i.On("AppGet", "app1").Return(fxApp(), nil).Twice()
 		i.On("AppUpdate", "app1", structs.AppUpdateOptions{Parameters: map[string]string{"Foo": "bar", "Baz": "qux"}}).Return(nil)
@@ -313,7 +313,7 @@ func TestAppsImportNoParams(t *testing.T) {
 			require.Equal(t, bdata, rdata)
 		})
 		i.On("ReleaseCreate", "app1", structs.ReleaseCreateOptions{Env: options.String("ALPHA=one\nBRAVO=two\n")}).Return(fxRelease(), nil)
-		i.On("ReleasePromote", "app1", "release1").Return(nil)
+		i.On("ReleasePromote", "app1", "release1", structs.ReleasePromoteOptions{}).Return(nil)
 		i.On("AppGet", "app1").Return(&structs.App{Status: "creating"}, nil).Twice()
 		i.On("AppGet", "app1").Return(fxApp(), nil).Twice()
 
@@ -342,9 +342,9 @@ func TestAppsImportSameParams(t *testing.T) {
 			require.Equal(t, bdata, rdata)
 		})
 		i.On("ReleaseCreate", "app1", structs.ReleaseCreateOptions{Env: options.String("ALPHA=one\nBRAVO=two\n")}).Return(fxRelease(), nil)
-		i.On("ReleasePromote", "app1", "release1").Return(nil)
+		i.On("ReleasePromote", "app1", "release1", structs.ReleasePromoteOptions{}).Return(nil)
 		i.On("AppGet", "app1").Return(fxApp(), nil).Twice()
-		i.On("AppGet", "app1").Return(fxApp(), nil).Twice()
+		i.On("AppGet", "app1").Return(fxApp(), nil).Once()
 
 		res, err := testExecute(e, "apps import -a app1 -f testdata/app.sameparams.tgz", nil)
 		require.NoError(t, err)
@@ -507,82 +507,6 @@ func TestAppsParamsSetClassic(t *testing.T) {
 		require.Equal(t, 0, res.Code)
 		res.RequireStderr(t, []string{""})
 		res.RequireStdout(t, []string{"Updating parameters... OK"})
-	})
-}
-
-func TestAppsSleep(t *testing.T) {
-	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("SystemGet").Return(fxSystem(), nil)
-		opts := structs.AppUpdateOptions{
-			Sleep: options.Bool(true),
-		}
-		i.On("AppUpdate", "app1", opts).Return(nil)
-
-		res, err := testExecute(e, "apps sleep app1", nil)
-		require.NoError(t, err)
-		require.Equal(t, 0, res.Code)
-		res.RequireStderr(t, []string{""})
-		res.RequireStdout(t, []string{"Sleeping app1... OK"})
-
-		res, err = testExecute(e, "apps sleep -a app1", nil)
-		require.NoError(t, err)
-		require.Equal(t, 0, res.Code)
-		res.RequireStderr(t, []string{""})
-		res.RequireStdout(t, []string{"Sleeping app1... OK"})
-	})
-}
-
-func TestAppsSleepError(t *testing.T) {
-	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("SystemGet").Return(fxSystem(), nil)
-		opts := structs.AppUpdateOptions{
-			Sleep: options.Bool(true),
-		}
-		i.On("AppUpdate", "app1", opts).Return(fmt.Errorf("err1"))
-
-		res, err := testExecute(e, "apps sleep app1", nil)
-		require.NoError(t, err)
-		require.Equal(t, 1, res.Code)
-		res.RequireStderr(t, []string{"ERROR: err1"})
-		res.RequireStdout(t, []string{"Sleeping app1... "})
-	})
-}
-
-func TestAppsWake(t *testing.T) {
-	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("SystemGet").Return(fxSystem(), nil)
-		opts := structs.AppUpdateOptions{
-			Sleep: options.Bool(false),
-		}
-		i.On("AppUpdate", "app1", opts).Return(nil)
-
-		res, err := testExecute(e, "apps wake app1", nil)
-		require.NoError(t, err)
-		require.Equal(t, 0, res.Code)
-		res.RequireStderr(t, []string{""})
-		res.RequireStdout(t, []string{"Waking app1... OK"})
-
-		res, err = testExecute(e, "apps wake -a app1", nil)
-		require.NoError(t, err)
-		require.Equal(t, 0, res.Code)
-		res.RequireStderr(t, []string{""})
-		res.RequireStdout(t, []string{"Waking app1... OK"})
-	})
-}
-
-func TestAppsWakeError(t *testing.T) {
-	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("SystemGet").Return(fxSystem(), nil)
-		opts := structs.AppUpdateOptions{
-			Sleep: options.Bool(false),
-		}
-		i.On("AppUpdate", "app1", opts).Return(fmt.Errorf("err1"))
-
-		res, err := testExecute(e, "apps wake app1", nil)
-		require.NoError(t, err)
-		require.Equal(t, 1, res.Code)
-		res.RequireStderr(t, []string{"ERROR: err1"})
-		res.RequireStdout(t, []string{"Waking app1... "})
 	})
 }
 

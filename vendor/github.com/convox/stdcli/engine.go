@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	homedir "github.com/mitchellh/go-homedir"
-	"github.com/spf13/pflag"
 )
 
 type Engine struct {
@@ -33,14 +32,7 @@ func (e *Engine) Command(command, description string, fn HandlerFunc, opts Comma
 }
 
 func (e *Engine) Execute(args []string) int {
-	var version bool
-
-	fs := pflag.NewFlagSet(e.Name, pflag.ContinueOnError)
-	fs.Usage = func() {}
-	fs.BoolVarP(&version, "version", "v", false, "display version")
-	fs.Parse(args)
-
-	if version {
+	if len(args) > 0 && (args[0] == "-v" || args[0] == "--version") {
 		fmt.Println(e.Version)
 		return 0
 	}

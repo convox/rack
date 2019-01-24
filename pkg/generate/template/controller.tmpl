@@ -29,6 +29,10 @@ package api
 			}
 
 			{{ if .Reader }}
+				if c, ok := interface{}(v).(io.Closer); ok {
+					defer c.Close()
+				}
+
 				if _, err := io.Copy(c, v); err != nil {
 					return err
 				}

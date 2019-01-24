@@ -541,6 +541,26 @@ func (c *Client) ProcessList(app string, opts structs.ProcessListOptions) (struc
 	return v, err
 }
 
+func (c *Client) ProcessLogs(app string, pid string, opts structs.LogsOptions) (io.ReadCloser, error) {
+	var err error
+
+	ro, err := stdsdk.MarshalOptions(opts)
+	if err != nil {
+		return nil, err
+	}
+
+	var v io.ReadCloser
+
+	r, err := c.Websocket(fmt.Sprintf("/apps/%s/processes/%s/logs", app, pid), ro)
+	if err != nil {
+		return nil, err
+	}
+
+	v = r
+
+	return v, err
+}
+
 func (c *Client) ProcessRun(app string, service string, opts structs.ProcessRunOptions) (*structs.Process, error) {
 	var err error
 
@@ -668,10 +688,13 @@ func (c *Client) ReleaseList(app string, opts structs.ReleaseListOptions) (struc
 	return v, err
 }
 
-func (c *Client) ReleasePromote(app string, id string) error {
+func (c *Client) ReleasePromote(app string, id string, opts structs.ReleasePromoteOptions) error {
 	var err error
 
-	ro := stdsdk.RequestOptions{Headers: stdsdk.Headers{}, Params: stdsdk.Params{}, Query: stdsdk.Query{}}
+	ro, err := stdsdk.MarshalOptions(opts)
+	if err != nil {
+		return err
+	}
 
 	err = c.Post(fmt.Sprintf("/apps/%s/releases/%s/promote", app, id), ro, nil)
 

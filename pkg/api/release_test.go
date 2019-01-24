@@ -114,8 +114,18 @@ func TestReleaseListError(t *testing.T) {
 func TestReleasePromote(t *testing.T) {
 	testServer(t, func(c *stdsdk.Client, p *structs.MockProvider) {
 		p.On("AppGet", "app1").Return(&structs.App{Status: "running"}, nil)
-		p.On("ReleasePromote", "app1", "release1").Return(nil)
-		err := c.Post("/apps/app1/releases/release1/promote", stdsdk.RequestOptions{}, nil)
+		opts := structs.ReleasePromoteOptions{
+			Min: options.Int(1),
+			Max: options.Int(2),
+		}
+		ro := stdsdk.RequestOptions{
+			Params: stdsdk.Params{
+				"min": "1",
+				"max": "2",
+			},
+		}
+		p.On("ReleasePromote", "app1", "release1", opts).Return(nil)
+		err := c.Post("/apps/app1/releases/release1/promote", ro, nil)
 		require.NoError(t, err)
 	})
 }
@@ -123,7 +133,7 @@ func TestReleasePromote(t *testing.T) {
 func TestReleasePromoteError(t *testing.T) {
 	testServer(t, func(c *stdsdk.Client, p *structs.MockProvider) {
 		p.On("AppGet", "app1").Return(&structs.App{Status: "running"}, nil)
-		p.On("ReleasePromote", "app1", "release1").Return(fmt.Errorf("err1"))
+		p.On("ReleasePromote", "app1", "release1", structs.ReleasePromoteOptions{}).Return(fmt.Errorf("err1"))
 		err := c.Post("/apps/app1/releases/release1/promote", stdsdk.RequestOptions{}, nil)
 		require.EqualError(t, err, "err1")
 	})
@@ -132,7 +142,6 @@ func TestReleasePromoteError(t *testing.T) {
 func TestReleasePromoteNotRunning(t *testing.T) {
 	testServer(t, func(c *stdsdk.Client, p *structs.MockProvider) {
 		p.On("AppGet", "app1").Return(&structs.App{Status: "other"}, nil)
-		p.On("ReleasePromote", "app1", "release1").Return(nil)
 		err := c.Post("/apps/app1/releases/release1/promote", stdsdk.RequestOptions{}, nil)
 		require.Error(t, err, "app is currently updating")
 	})
@@ -153,7 +162,7 @@ func TestReleasePromoteExistingReleaseNewer(t *testing.T) {
 		p.On("AppGet", "app1").Return(&structs.App{Release: "release1", Status: "running"}, nil)
 		p.On("ReleaseGet", "app1", "release1").Return(&structs.Release{Created: time.Date(2018, 01, 01, 0, 0, 0, 0, time.UTC)}, nil)
 		p.On("ReleaseGet", "app1", "release2").Return(&structs.Release{Created: time.Date(2018, 02, 01, 0, 0, 0, 0, time.UTC)}, nil)
-		p.On("ReleasePromote", "app1", "release2").Return(nil)
+		p.On("ReleasePromote", "app1", "release2", structs.ReleasePromoteOptions{}).Return(nil)
 		err := c.Post("/apps/app1/releases/release2/promote", stdsdk.RequestOptions{}, nil)
 		require.NoError(t, err)
 	})

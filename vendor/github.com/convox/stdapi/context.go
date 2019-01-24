@@ -16,6 +16,7 @@ import (
 	"github.com/gorilla/sessions"
 	"github.com/gorilla/websocket"
 	"github.com/pkg/errors"
+	"github.com/sebest/xff"
 )
 
 var (
@@ -46,15 +47,22 @@ func init() {
 }
 
 func NewContext(w http.ResponseWriter, r *http.Request) *Context {
+	s := sessions.NewCookieStore([]byte(SessionSecret))
+	s.Options.SameSite = http.SameSiteLaxMode
+
 	return &Context{
 		context:  r.Context(),
 		logger:   logger.New(""),
 		request:  r,
 		response: &Response{ResponseWriter: w},
 		rvars:    map[string]string{},
-		session:  sessions.NewCookieStore([]byte(SessionSecret)),
+		session:  s,
 		vars:     map[string]interface{}{},
 	}
+}
+
+func (c *Context) Ajax() bool {
+	return c.request.Header.Get("X-Requested-With") == "XMLHttpRequest"
 }
 
 func (c *Context) Body() io.ReadCloser {
@@ -129,6 +137,10 @@ func (c *Context) Get(name string) interface{} {
 
 func (c *Context) Header(name string) string {
 	return c.request.Header.Get(name)
+}
+
+func (c *Context) IP() string {
+	return strings.Split(xff.GetRemoteAddr(c.Request()), ":")[0]
 }
 
 func (c *Context) Logf(format string, args ...interface{}) {
