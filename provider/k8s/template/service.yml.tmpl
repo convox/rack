@@ -153,9 +153,46 @@ spec:
       volumes:
       {{ range .Service.Volumes }}
       - name: {{ volumeName . }}
-        hostPath: 
-          path: "{{ volumeFrom $.App.Name . }}"
+        persistentVolumeClaim:
+          claimName: {{ volumeName . }}
       {{ end }}
+{{ range .Service.Volumes }}
+---
+kind: PersistentVolume
+apiVersion: v1
+metadata:
+  namespace: {{$.Namespace}}
+  name: {{ volumeName . }}
+  labels:
+    system: convox
+    rack: {{$.Rack}}
+    app: {{$.App.Name}}
+    service: {{$.Service.Name}}
+spec:
+  capacity:
+    storage: 10Gi
+  accessModes:
+  - ReadWriteOnce
+  hostPath:
+    path: "/mnt/data"
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  namespace: {{$.Namespace}}
+  name: {{ volumeName . }}
+  labels:
+    system: convox
+    rack: {{$.Rack}}
+    app: {{$.App.Name}}
+    service: {{$.Service.Name}}
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+{{ end }}
 ---
 apiVersion: autoscaling/v2beta1
 kind: HorizontalPodAutoscaler
