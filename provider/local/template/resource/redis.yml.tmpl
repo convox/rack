@@ -7,6 +7,7 @@ metadata:
     system: convox
     rack: {{.Rack}}
     app: {{.App}}
+    type: resource
     resource: {{.Name}}
 data:
   URL: "redis://resource-{{.Name}}.{{.Namespace}}.svc.cluster.local:6379"
@@ -55,6 +56,8 @@ metadata:
     system: convox
     rack: {{.Rack}}
     app: {{.App}}
+    type: resource
+    kind: redis
     resource: {{.Name}}
 spec:
   selector:
@@ -96,6 +99,7 @@ metadata:
     system: convox
     rack: {{.Rack}}
     app: {{.App}}
+    type: resource
     resource: {{.Name}}
 spec:
   type: NodePort

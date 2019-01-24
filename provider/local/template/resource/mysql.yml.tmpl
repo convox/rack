@@ -7,6 +7,7 @@ metadata:
     system: convox
     rack: {{.Rack}}
     app: {{.App}}
+    type: resource
     resource: {{.Name}}
 data:
   URL: "mysql://app:{{.Password}}@resource-{{.Name}}.{{.Namespace}}.svc.cluster.local:3306/app"
@@ -55,6 +56,8 @@ metadata:
     system: convox
     rack: {{.Rack}}
     app: {{.App}}
+    type: resource
+    kind: mysql
     resource: {{.Name}}
 spec:
   selector:
@@ -105,6 +108,7 @@ metadata:
     system: convox
     rack: {{.Rack}}
     app: {{.App}}
+    type: resource
     resource: {{.Name}}
 spec:
   type: NodePort
