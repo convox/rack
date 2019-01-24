@@ -287,6 +287,13 @@ func (p *Provider) podSpecFromService(app, service, release string) (*ac.PodSpec
 		Volumes:               vs,
 	}
 
+	if ip, err := p.Engine.Resolver(); err == nil {
+		ps.DNSPolicy = "None"
+		ps.DNSConfig = &ac.PodDNSConfig{
+			Nameservers: []string{ip},
+		}
+	}
+
 	return ps, nil
 }
 
