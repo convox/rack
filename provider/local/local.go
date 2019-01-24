@@ -18,11 +18,6 @@ import (
 //   Templater = templater.New(packr.NewBox("template"), templateHelpers())
 // }
 
-func init() {
-	manifest.DefaultCpu = 64
-	manifest.DefaultMem = 256
-}
-
 type Provider struct {
 	*k8s.Provider
 
@@ -31,6 +26,9 @@ type Provider struct {
 }
 
 func FromEnv() (*Provider, error) {
+	manifest.DefaultCpu = 64
+	manifest.DefaultMem = 256
+
 	kp, err := k8s.FromEnv()
 	if err != nil {
 		return nil, err
