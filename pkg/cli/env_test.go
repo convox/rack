@@ -140,6 +140,37 @@ func TestEnvSetClassic(t *testing.T) {
 	})
 }
 
+func TestEnvSetReplace(t *testing.T) {
+	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
+		i.On("SystemGet").Return(fxSystem(), nil)
+		ropts := structs.ReleaseCreateOptions{Env: options.String("AAA=bbb\nCCC=ddd")}
+		i.On("ReleaseCreate", "app1", ropts).Return(fxRelease(), nil)
+
+		res, err := testExecute(e, "env set AAA=bbb CCC=ddd -a app1 --replace", nil)
+		require.NoError(t, err)
+		require.Equal(t, 0, res.Code)
+		res.RequireStderr(t, []string{""})
+		res.RequireStdout(t, []string{
+			"Setting AAA, CCC... OK",
+			"Release: release1",
+		})
+	})
+}
+
+func TestEnvSetReplaceError(t *testing.T) {
+	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
+		i.On("SystemGet").Return(fxSystem(), nil)
+		ropts := structs.ReleaseCreateOptions{Env: options.String("AAA=bbb\nCCC=ddd")}
+		i.On("ReleaseCreate", "app1", ropts).Return(nil, fmt.Errorf("err1"))
+
+		res, err := testExecute(e, "env set AAA=bbb CCC=ddd -a app1 --replace", nil)
+		require.NoError(t, err)
+		require.Equal(t, 1, res.Code)
+		res.RequireStderr(t, []string{"ERROR: err1"})
+		res.RequireStdout(t, []string{"Setting AAA, CCC... "})
+	})
+}
+
 func TestEnvUnset(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
 		i.On("SystemGet").Return(fxSystem(), nil)

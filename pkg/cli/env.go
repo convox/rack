@@ -46,6 +46,7 @@ func init() {
 			flagId,
 			flagRack,
 			flagWait,
+			stdcli.BoolFlag("replace", "", "replace all environment variables with given ones"),
 			stdcli.BoolFlag("promote", "p", "promote the release"),
 		},
 		Usage: "<key=value> [key=value]...",
@@ -188,9 +189,14 @@ func EnvSet(rack sdk.Interface, c *stdcli.Context) error {
 		c.Writer().Stdout = c.Writer().Stderr
 	}
 
-	env, err := helpers.AppEnvironment(rack, app(c))
-	if err != nil {
-		return err
+	env := structs.Environment{}
+	var err error
+
+	if !c.Bool("replace") {
+		env, err = helpers.AppEnvironment(rack, app(c))
+		if err != nil {
+			return err
+		}
 	}
 
 	args := []string(c.Args)
