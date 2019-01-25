@@ -2514,11 +2514,20 @@
             "Cpu": "128",
             "DockerLabels": {
               "convox.release": { "Ref": "Version" },
+              "rack.AvailabilityZones": { "Fn::Join": [ ",", [
+                { "Fn::GetAtt": [ "AvailabilityZones", "AvailabilityZone0" ] },
+                { "Fn::GetAtt": [ "AvailabilityZones", "AvailabilityZone1" ] },
+                { "Fn::If": [ "ThirdAvailabilityZone",
+                  { "Fn::GetAtt": [ "AvailabilityZones", "AvailabilityZone2" ] },
+                  { "Ref": "AWS::NoValue" }
+                ] }
+              ] ] },
               "rack.AsgSpot": { "Fn::If": [ "SpotInstances", { "Ref": "SpotInstances" }, { "Ref": "AWS::NoValue" } ] },
               "rack.AsgStandard": { "Ref": "Instances" },
               "rack.BuildCluster": { "Fn::If": [ "DedicatedBuilder", { "Ref": "BuildCluster" }, { "Ref": "Cluster" } ] },
               "rack.CloudformationTopic": { "Ref": "CloudformationTopic" },
               "rack.Cluster": { "Ref": "Cluster" },
+              "rack.CustomEncryptionKey": { "Ref": "EncryptionKey" },
               "rack.DynamoBuilds": { "Ref": "DynamoBuilds" },
               "rack.DynamoReleases": { "Ref": "DynamoReleases" },
               "rack.EcsPollInterval": { "Ref": "EcsPollInterval" },
@@ -2532,6 +2541,7 @@
               "rack.Private": { "Ref": "Private" },
               "rack.SecurityGroup": { "Fn::If": [ "BlankInstanceSecurityGroup", { "Ref": "InstancesSecurity" }, { "Ref": "InstanceSecurityGroup" } ] },
               "rack.SettingsBucket": { "Ref": "Settings" },
+              "rack.SshKey": { "Ref": "Key" },
               "rack.SpotInstances": { "Fn::If": [ "SpotInstances", "Yes", "No" ] },
               "rack.Subnets": { "Fn::Join": [ ",", [
                 { "Ref": "Subnet0" },
