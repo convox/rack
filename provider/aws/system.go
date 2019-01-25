@@ -501,6 +501,12 @@ func (p *Provider) SystemUpdate(opts structs.SystemUpdateOptions) error {
 		params = map[string]string{}
 	}
 
+	// carry forward values from original custom topic resources
+
+	params["AvailabilityZones"] = p.AvailabilityZones
+	params["KmsKey"] = p.CustomEncryptionKey
+	params["SshKey"] = p.SshKey
+
 	if opts.Count != nil {
 		params["InstanceCount"] = strconv.Itoa(*opts.Count)
 		changes["count"] = strconv.Itoa(*opts.Count)
