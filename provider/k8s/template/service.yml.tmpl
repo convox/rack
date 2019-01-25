@@ -155,7 +155,7 @@ spec:
       - name: {{ volumeName . }}
         {{ if systemVolume . }}
         hostPath:
-          path: "."
+          path: "{{.}}"
         {{ else }}
         persistentVolumeClaim:
           claimName: {{ volumeName . }}
