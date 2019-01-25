@@ -5,6 +5,7 @@ import (
 	"bufio"
 	"bytes"
 	"crypto/sha256"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -127,6 +128,12 @@ func (p *Provider) systemEnvironment(app, release string) (map[string]string, er
 		"RACK":     p.Rack,
 		"RACK_URL": fmt.Sprintf("https://convox:%s@api.%s.svc.cluster.local:5443", p.Password, p.Rack),
 		"RELEASE":  release,
+	}
+
+	if cs, _ := p.Cluster.CoreV1().Secrets("convox-system").Get("ca", am.GetOptions{}); cs != nil {
+		if ca := cs.Data["tls.crt"]; ca != nil {
+			senv["RACK_CA"] = base64.StdEncoding.EncodeToString(ca)
+		}
 	}
 
 	r, err := p.ReleaseGet(app, release)
