@@ -2,6 +2,7 @@ package local
 
 import (
 	"github.com/convox/logger"
+	"github.com/convox/rack/pkg/manifest"
 	"github.com/convox/rack/pkg/structs"
 	"github.com/convox/rack/pkg/templater"
 	"github.com/convox/rack/provider/k8s"
@@ -25,6 +26,9 @@ type Provider struct {
 }
 
 func FromEnv() (*Provider, error) {
+	manifest.DefaultCpu = 64
+	manifest.DefaultMem = 256
+
 	kp, err := k8s.FromEnv()
 	if err != nil {
 		return nil, err
