@@ -391,6 +391,15 @@ func processFromPod(pd ac.Pod) (*structs.Process, error) {
 		status = "complete"
 	}
 
+	if css := pd.Status.ContainerStatuses; len(css) > 0 && css[0].Name == "main" {
+		if cs := css[0]; cs.State.Waiting != nil {
+			switch cs.State.Waiting.Reason {
+			case "CrashLoopBackOff":
+				status = "crashed"
+			}
+		}
+	}
+
 	ps := &structs.Process{
 		Id:       pd.ObjectMeta.Name,
 		App:      pd.ObjectMeta.Labels["app"],
