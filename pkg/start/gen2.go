@@ -4,7 +4,6 @@ import (
 	"archive/tar"
 	"bufio"
 	"bytes"
-	"compress/gzip"
 	"context"
 	"crypto/tls"
 	"encoding/json"
@@ -242,8 +241,7 @@ func (opts Options2) handleAdds(pid, remote string, adds []changes.Change) error
 		ch <- opts.Provider.FilesUpload(opts.App, pid, rp)
 	}()
 
-	tgz := gzip.NewWriter(wp)
-	tw := tar.NewWriter(tgz)
+	tw := tar.NewWriter(wp)
 
 	for _, add := range adds {
 		local := filepath.Join(add.Base, add.Path)
@@ -280,10 +278,6 @@ func (opts Options2) handleAdds(pid, remote string, adds []changes.Change) error
 	}
 
 	if err := tw.Close(); err != nil {
-		return errors.WithStack(err)
-	}
-
-	if err := tgz.Close(); err != nil {
 		return errors.WithStack(err)
 	}
 
