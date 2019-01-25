@@ -50,6 +50,8 @@ func Methods() ([]Method, error) {
 
 	names := []string{}
 
+	routes := structs.Routes()
+
 	for name := range routes {
 		names = append(names, name)
 	}
