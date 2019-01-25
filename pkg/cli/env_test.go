@@ -143,9 +143,6 @@ func TestEnvSetClassic(t *testing.T) {
 func TestEnvSetReplace(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
 		i.On("SystemGet").Return(fxSystem(), nil)
-		opts := structs.ReleaseListOptions{Limit: options.Int(1)}
-		i.On("ReleaseList", "app1", opts).Return(structs.Releases{*fxRelease()}, nil)
-		i.On("ReleaseGet", "app1", "release1").Return(fxRelease(), nil)
 		ropts := structs.ReleaseCreateOptions{Env: options.String("AAA=bbb\nCCC=ddd")}
 		i.On("ReleaseCreate", "app1", ropts).Return(fxRelease(), nil)
 
