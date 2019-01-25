@@ -10,7 +10,7 @@ metadata:
     type: resource
     resource: {{.Name}}
 data:
-  URL: "mysql://app:{{.Password}}@resource-{{.Name}}.{{.Namespace}}.svc.cluster.local:3306/app"
+  URL: "mysql://root:{{.Password}}@resource-{{.Name}}.{{.Namespace}}.svc.cluster.local:3306/app"
 ---
 kind: PersistentVolumeClaim
 apiVersion: v1
@@ -67,12 +67,8 @@ spec:
         env:
         - name: MYSQL_DATABASE
           value: app
-        - name: MYSQL_USER
-          value: app
-        - name: MYSQL_PASSWORD
+        - name: MYSQL_ROOT_PASSWORD
           value: "{{.Password}}"
-        - name: MYSQL_RANDOM_ROOT_PASSWORD
-          value: "yes"
         volumeMounts:
         - mountPath: /var/lib/mysql
           name: data
