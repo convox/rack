@@ -40,7 +40,7 @@ func (p *Provider) FilesDownload(app, pid, file string) (io.Reader, error) {
 
 	eo := &ac.PodExecOptions{
 		Container: "main",
-		Command:   []string{"tar", "czPf", "-", file},
+		Command:   []string{"tar", "-cf", "-", file},
 		Stdout:    true,
 	}
 
@@ -66,7 +66,7 @@ func (p *Provider) FilesUpload(app, pid string, r io.Reader) error {
 
 	eo := &ac.PodExecOptions{
 		Container: "main",
-		Command:   []string{"tar", "xzPf", "-"},
+		Command:   []string{"tar", "-C", "/", "-xf", "-"},
 		Stdin:     true,
 	}
 
