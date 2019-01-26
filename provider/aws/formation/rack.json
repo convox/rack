@@ -81,7 +81,6 @@
     }
   },
   "Outputs": {
-    "Foo": { "Value": "3" },
     "AutoscalingGroup": {
       "Value": { "Ref": "Instances" }
     },
@@ -1491,7 +1490,7 @@
         },
         "Handler": "handler",
         "MemorySize": "128",
-        "Role": { "Fn::GetAtt": [ "ApiRole", "Arn" ] },
+        "Role": { "Fn::GetAtt": [ "InstancesAutoscalerRole", "Arn" ] },
         "Runtime": "go1.x",
         "Timeout": "60"
       }
@@ -1512,6 +1511,42 @@
       "Properties": {
         "ScheduleExpression": "cron(*/1 * * * ? *)",
         "Targets": [ { "Id": "InstancesAutoscaler", "Arn": { "Fn::GetAtt": [ "InstancesAutoscaler", "Arn" ] } } ]
+      }
+    },
+    "InstancesAutoscalerRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            { "Effect": "Allow", "Principal": { "Service": [ "lambda.amazonaws.com" ] }, "Action": [ "sts:AssumeRole" ] }
+          ]
+        },
+        "ManagedPolicyArns": [ "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole" ],
+        "Path": "/convox/",
+        "Policies": [
+          {
+            "PolicyName": "instances-autoscaler",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "cloudformation:DescribeStacks",
+                    "cloudformation:UpdateStack",
+                    "ecs:DescribeContainerInstances",
+                    "ecs:DescribeServices",
+                    "ecs:DescribeTaskDefinition",
+                    "ecs:ListContainerInstances",
+                    "ecs:ListServices"
+                  ],
+                  "Resource": "*"
+                }
+              ]
+            }
+          }
+        ]
       }
     },
     "InstancesLifecycleLaunching": {
@@ -2282,49 +2317,54 @@
         "Path": "/convox/"
       }
     },
+    "ApiPolicy": {
+      "Type": "AWS::IAM::ManagedPolicy",
+      "Properties": {
+        "Path": "/convox/",
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Action": [ "iam:*" ],
+              "Resource": [
+                "arn:aws:iam::*:instance-profile/convox/*",
+                "arn:aws:iam::*:policy/convox/*",
+                "arn:aws:iam::*:role/convox/*",
+                "arn:aws:iam::*:user/convox/*"
+              ]
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "iam:DeleteServerCertificate",
+                "iam:DetachRolePolicy",
+                "iam:GetRole",
+                "iam:GetServerCertificate",
+                "iam:ListServerCertificates",
+                "iam:PassRole",
+                "iam:UploadServerCertificate"
+              ],
+              "Resource": [ "*" ]
+            }
+          ]
+        }
+      }
+    },
     "ApiRole": {
       "Type": "AWS::IAM::Role",
       "Properties": {
         "AssumeRolePolicyDocument": {
           "Statement": [
-            { "Effect": "Allow", "Principal": { "Service": [ "ecs-tasks.amazonaws.com" ] }, "Action": [ "sts:AssumeRole" ] },
-            { "Effect": "Allow", "Principal": { "Service": [ "lambda.amazonaws.com" ] }, "Action": [ "sts:AssumeRole" ] }
+            { "Effect": "Allow", "Principal": { "Service": [ "ecs-tasks.amazonaws.com" ] }, "Action": [ "sts:AssumeRole" ] }
           ],
           "Version": "2012-10-17"
         },
-        "ManagedPolicyArns": [ "arn:aws:iam::aws:policy/PowerUserAccess" ],
-        "Path": "/convox/",
-        "Policies": [ {
-          "PolicyName": "iam-convox",
-          "PolicyDocument": {
-            "Version": "2012-10-17",
-            "Statement": [
-              {
-                "Effect": "Allow",
-                "Action": [ "iam:*" ],
-                "Resource": [
-                  "arn:aws:iam::*:instance-profile/convox/*",
-                  "arn:aws:iam::*:policy/convox/*",
-                  "arn:aws:iam::*:role/convox/*",
-                  "arn:aws:iam::*:user/convox/*"
-                ]
-              },
-              {
-                "Effect": "Allow",
-                "Action": [
-                  "iam:DeleteServerCertificate",
-                  "iam:DetachRolePolicy",
-                  "iam:GetRole",
-                  "iam:GetServerCertificate",
-                  "iam:ListServerCertificates",
-                  "iam:PassRole",
-                  "iam:UploadServerCertificate"
-                ],
-                "Resource": [ "*" ]
-              }
-            ]
-          }
-        } ]
+        "ManagedPolicyArns": [
+          "arn:aws:iam::aws:policy/PowerUserAccess",
+          { "Ref": "ApiPolicy" }
+        ],
+        "Path": "/convox/"
       }
     },
     "ApiMonitorService": {
@@ -2514,11 +2554,20 @@
             "Cpu": "128",
             "DockerLabels": {
               "convox.release": { "Ref": "Version" },
+              "rack.AvailabilityZones": { "Fn::Join": [ ",", [
+                { "Fn::GetAtt": [ "AvailabilityZones", "AvailabilityZone0" ] },
+                { "Fn::GetAtt": [ "AvailabilityZones", "AvailabilityZone1" ] },
+                { "Fn::If": [ "ThirdAvailabilityZone",
+                  { "Fn::GetAtt": [ "AvailabilityZones", "AvailabilityZone2" ] },
+                  { "Ref": "AWS::NoValue" }
+                ] }
+              ] ] },
               "rack.AsgSpot": { "Fn::If": [ "SpotInstances", { "Ref": "SpotInstances" }, { "Ref": "AWS::NoValue" } ] },
               "rack.AsgStandard": { "Ref": "Instances" },
               "rack.BuildCluster": { "Fn::If": [ "DedicatedBuilder", { "Ref": "BuildCluster" }, { "Ref": "Cluster" } ] },
               "rack.CloudformationTopic": { "Ref": "CloudformationTopic" },
               "rack.Cluster": { "Ref": "Cluster" },
+              "rack.CustomEncryptionKey": { "Ref": "EncryptionKey" },
               "rack.DynamoBuilds": { "Ref": "DynamoBuilds" },
               "rack.DynamoReleases": { "Ref": "DynamoReleases" },
               "rack.EcsPollInterval": { "Ref": "EcsPollInterval" },
@@ -2532,6 +2581,7 @@
               "rack.Private": { "Ref": "Private" },
               "rack.SecurityGroup": { "Fn::If": [ "BlankInstanceSecurityGroup", { "Ref": "InstancesSecurity" }, { "Ref": "InstanceSecurityGroup" } ] },
               "rack.SettingsBucket": { "Ref": "Settings" },
+              "rack.SshKey": { "Ref": "Key" },
               "rack.SpotInstances": { "Fn::If": [ "SpotInstances", "Yes", "No" ] },
               "rack.Subnets": { "Fn::Join": [ ",", [
                 { "Ref": "Subnet0" },

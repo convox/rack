@@ -46,10 +46,12 @@ type Provider struct {
 
 	AsgSpot             string
 	AsgStandard         string
+	AvailabilityZones   string
 	BuildCluster        string
 	ClientId            string
 	CloudformationTopic string
 	Cluster             string
+	CustomEncryptionKey string
 	Development         bool
 	DynamoBuilds        string
 	DynamoReleases      string
@@ -66,6 +68,7 @@ type Provider struct {
 	Rack                string
 	SecurityGroup       string
 	SettingsBucket      string
+	SshKey              string
 	SpotInstances       bool
 	Subnets             string
 	SubnetsPrivate      string
@@ -135,9 +138,11 @@ func (p *Provider) loadParams() error {
 
 	p.AsgSpot = labels["rack.AsgSpot"]
 	p.AsgStandard = labels["rack.AsgStandard"]
+	p.AvailabilityZones = labels["rack.AvailabilityZones"]
 	p.BuildCluster = labels["rack.BuildCluster"]
 	p.CloudformationTopic = labels["rack.CloudformationTopic"]
 	p.Cluster = labels["rack.Cluster"]
+	p.CustomEncryptionKey = labels["rack.CustomEncryptionKey"]
 	p.DynamoBuilds = labels["rack.DynamoBuilds"]
 	p.DynamoReleases = labels["rack.DynamoReleases"]
 	p.EcsPollInterval = intParam(labels["rack.EcsPollInterval"], 1)
@@ -152,6 +157,7 @@ func (p *Provider) loadParams() error {
 	p.SecurityGroup = labels["rack.SecurityGroup"]
 	p.SettingsBucket = labels["rack.SettingsBucket"]
 	p.SpotInstances = labels["rack.SpotInstances"] == "Yes"
+	p.SshKey = labels["rack.SshKey"]
 	p.Subnets = labels["rack.Subnets"]
 	p.SubnetsPrivate = labels["rack.SubnetsPrivate"]
 	p.Version = labels["rack.Version"]

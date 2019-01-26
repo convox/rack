@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/kms"
 )
 
@@ -72,23 +71,24 @@ func KMSKeyUpdate(req Request) (string, map[string]string, error) {
 	return req.PhysicalResourceId, nil, nil
 }
 
+// avoid key deletion so it can be reused as an external key
 func KMSKeyDelete(req Request) (string, map[string]string, error) {
-	_, err := KMS(req).DisableKey(&kms.DisableKeyInput{
-		KeyId: aws.String(req.PhysicalResourceId),
-	})
-	// go ahead and mark the delete good if the key is not found
-	if ae, ok := err.(awserr.Error); ok && ae.Code() == "NotFoundException" {
-		return req.PhysicalResourceId, nil, nil
-	}
-	if err != nil {
-		fmt.Printf("error: %s\n", err)
-		return req.PhysicalResourceId, nil, err
-	}
+	// _, err := KMS(req).DisableKey(&kms.DisableKeyInput{
+	//   KeyId: aws.String(req.PhysicalResourceId),
+	// })
+	// // go ahead and mark the delete good if the key is not found
+	// if ae, ok := err.(awserr.Error); ok && ae.Code() == "NotFoundException" {
+	//   return req.PhysicalResourceId, nil, nil
+	// }
+	// if err != nil {
+	//   fmt.Printf("error: %s\n", err)
+	//   return req.PhysicalResourceId, nil, err
+	// }
 
-	_, err = KMS(req).ScheduleKeyDeletion(&kms.ScheduleKeyDeletionInput{
-		KeyId:               aws.String(req.PhysicalResourceId),
-		PendingWindowInDays: aws.Int64(7),
-	})
+	// _, err = KMS(req).ScheduleKeyDeletion(&kms.ScheduleKeyDeletionInput{
+	//   KeyId:               aws.String(req.PhysicalResourceId),
+	//   PendingWindowInDays: aws.Int64(7),
+	// })
 
-	return req.PhysicalResourceId, nil, err
+	return req.PhysicalResourceId, nil, nil
 }
