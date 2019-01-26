@@ -28,6 +28,11 @@ for region in eu-west-1 us-east-1 us-west-2; do
     aws ecr delete-repository --repository-name $repo --region $region --force >/dev/null
   done
 
+  for group in $(aws logs describe-log-groups --region $region | jq -r ".logGroups[].logGroupName"); do
+    echo "deleting log group: $group ($region)"
+    aws logs delete-log-group --log-group-name $group --region $region
+  done
+
   if [ "${1}" == "all" ]; then
     for eip in $(aws ec2 describe-addresses --region $region | jq -r '.Addresses[] | select(has("PrivateIpAddress") | not) | .AllocationId'); do
       echo "deleting eip: $eip ($region)"
@@ -107,11 +112,6 @@ for region in eu-west-1 us-east-1 us-west-2; do
     #   echo "deleting lambda: $func ($region)"
     #   aws lambda delete-function --function-name $func --region $region
     # done
-
-    for group in $(aws logs describe-log-groups --region $region | jq -r ".logGroups[].logGroupName"); do
-      echo "deleting log group: $group ($region)"
-      aws logs delete-log-group --log-group-name $group --region $region
-    done
 
     for key in $(aws kms list-keys --region $region | jq -r '.Keys[].KeyId'); do
       data=$(aws kms describe-key --region $region --key-id $key)
