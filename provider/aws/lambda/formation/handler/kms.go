@@ -90,5 +90,5 @@ func KMSKeyDelete(req Request) (string, map[string]string, error) {
 	//   PendingWindowInDays: aws.Int64(7),
 	// })
 
-	return req.PhysicalResourceId, nil, err
+	return req.PhysicalResourceId, nil, nil
 }
