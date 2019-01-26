@@ -10,13 +10,11 @@ import (
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/ecs"
 )
 
 var (
-	AutoScaling    = autoscaling.New(session.New(), nil)
 	CloudFormation = cloudformation.New(session.New(), nil)
 	ECS            = ecs.New(session.New(), nil)
 )
