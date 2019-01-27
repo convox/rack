@@ -417,8 +417,9 @@
       "Default": "1"
     },
     "AvailabilityZones": {
+      "Type": "CommaDelimitedList",
       "Description": "Override the availability zones used in the rack (specify 3)",
-      "Type": "CommaDelimitedList"
+      "Default": ""
     },
     "BuildCpu": {
       "Type": "String",
