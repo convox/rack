@@ -3,6 +3,7 @@
   "Conditions": {
     "Autoscale": { "Fn::Equals": [ { "Ref": "Autoscale" }, "Yes" ] },
     "BlankAmi": { "Fn::Equals": [ { "Ref": "Ami" }, "" ] },
+    "BlankAvailabilityZones": { "Fn::Equals": [ { "Fn::Join": [ "", { "Ref": "AvailabilityZones" } ] }, "" ] },
     "BlankBuildImage": { "Fn::Equals": [ { "Ref": "BuildImage" }, "" ] },
     "BlankExistingVpc": { "Fn::Equals": [ { "Ref": "ExistingVpc" }, "" ] },
     "BlankExistingVpcAndThirdAvailabilityZone": {
@@ -83,6 +84,26 @@
   "Outputs": {
     "AutoscalingGroup": {
       "Value": { "Ref": "Instances" }
+    },
+    "AvailabilityZones": {
+      "Value": { "Fn::If": [ "BlankAvailabilityZones",
+        { "Fn::Join": [ ",", [
+          { "Fn::Select": [ 0, { "Fn::GetAZs": "" } ] },
+          { "Fn::Select": [ 1, { "Fn::GetAZs": "" } ] },
+          { "Fn::If": [ "ThirdAvailabilityZone",
+            { "Fn::Select": [ 2, { "Fn::GetAZs": "" } ] },
+            { "Ref": "AWS::NoValue" }
+          ] }
+        ] ] },
+        { "Fn::Join": [ ",", [
+          { "Fn::Select": [ 0, { "Ref": "AvailabilityZones" } ] },
+          { "Fn::Select": [ 1, { "Ref": "AvailabilityZones" } ] },
+          { "Fn::If": [ "ThirdAvailabilityZone",
+            { "Fn::Select": [ 2, { "Ref": "AvailabilityZones" } ] },
+            { "Ref": "AWS::NoValue" }
+          ] }
+        ] ] }
+      ] }
     },
     "AwsRegion": {
       "Value": { "Ref": "AWS::Region" }
@@ -395,6 +416,11 @@
       "Description": "The number of instances of extra capacity that autoscale should keep running",
       "Default": "1"
     },
+    "AvailabilityZones": {
+      "Type": "CommaDelimitedList",
+      "Description": "Override the availability zones used in the rack (specify 3)",
+      "Default": ""
+    },
     "BuildCpu": {
       "Type": "String",
       "Description": "How much cpu should be reserved by the builder",
@@ -640,13 +666,6 @@
     }
   },
   "Resources": {
-    "AvailabilityZones": {
-      "Type": "Custom::EC2AvailabilityZones",
-      "Properties": {
-        "ServiceToken": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
-        "Vpc": { "Fn::If": [ "BlankExistingVpc", { "Ref": "Vpc" }, { "Ref": "ExistingVpc" } ] }
-      }
-    },
     "EncryptionKey": {
       "Type": "Custom::KMSKey",
       "Properties": {
@@ -841,7 +860,10 @@
         "Tags": [
           { "Key": "Name", "Value": { "Fn::Join": [ " ", [ { "Ref": "AWS::StackName" }, "public", "0" ] ] } }
         ],
-        "AvailabilityZone": { "Fn::GetAtt": [ "AvailabilityZones", "AvailabilityZone0" ] },
+        "AvailabilityZone": { "Fn::If": [ "BlankAvailabilityZones",
+          { "Fn::Select": [ 0, { "Fn::GetAZs": "" } ] },
+          { "Fn::Select": [ 0, { "Ref": "AvailabilityZones" } ] }
+        ] },
         "CidrBlock": { "Ref": "Subnet0CIDR" },
         "VpcId": { "Fn::If": [ "BlankExistingVpc",
           { "Ref": "Vpc" },
@@ -855,7 +877,10 @@
         "Tags": [
           { "Key": "Name", "Value": { "Fn::Join": [ " ", [ { "Ref": "AWS::StackName" }, "public", "1" ] ] } }
         ],
-        "AvailabilityZone": { "Fn::GetAtt": [ "AvailabilityZones", "AvailabilityZone1" ] },
+        "AvailabilityZone": { "Fn::If": [ "BlankAvailabilityZones",
+          { "Fn::Select": [ 1, { "Fn::GetAZs": "" } ] },
+          { "Fn::Select": [ 1, { "Ref": "AvailabilityZones" } ] }
+        ] },
         "CidrBlock": { "Ref": "Subnet1CIDR" },
         "VpcId": { "Fn::If": [ "BlankExistingVpc",
           { "Ref": "Vpc" },
@@ -870,7 +895,10 @@
         "Tags": [
           { "Key": "Name", "Value": { "Fn::Join": [ " ", [ { "Ref": "AWS::StackName" }, "public", "2" ] ] } }
         ],
-        "AvailabilityZone": { "Fn::GetAtt": [ "AvailabilityZones", "AvailabilityZone2" ] },
+        "AvailabilityZone": { "Fn::If": [ "BlankAvailabilityZones",
+          { "Fn::Select": [ 2, { "Fn::GetAZs": "" } ] },
+          { "Fn::Select": [ 2, { "Ref": "AvailabilityZones" } ] }
+        ] },
         "CidrBlock": { "Ref": "Subnet2CIDR" },
         "VpcId": { "Fn::If": [ "BlankExistingVpc",
           { "Ref": "Vpc" },
@@ -883,7 +911,10 @@
       "Type": "AWS::EC2::Subnet",
       "Properties": {
         "Tags": [ { "Key": "Name", "Value": { "Fn::Join": [ " ", [ { "Ref": "AWS::StackName" }, "private", "0" ] ] } } ],
-        "AvailabilityZone": { "Fn::GetAtt": [ "AvailabilityZones", "AvailabilityZone0" ] },
+        "AvailabilityZone": { "Fn::If": [ "BlankAvailabilityZones",
+          { "Fn::Select": [ 0, { "Fn::GetAZs": "" } ] },
+          { "Fn::Select": [ 0, { "Ref": "AvailabilityZones" } ] }
+        ] },
         "CidrBlock": { "Ref": "SubnetPrivate0CIDR" },
         "VpcId": { "Fn::If": [ "BlankExistingVpc",
           { "Ref": "Vpc" },
@@ -896,7 +927,10 @@
       "Type": "AWS::EC2::Subnet",
       "Properties": {
         "Tags": [ { "Key": "Name", "Value": { "Fn::Join": [ " ", [ { "Ref": "AWS::StackName" }, "private", "1" ] ] } } ],
-        "AvailabilityZone": { "Fn::GetAtt": [ "AvailabilityZones", "AvailabilityZone1" ] },
+        "AvailabilityZone": { "Fn::If": [ "BlankAvailabilityZones",
+          { "Fn::Select": [ 1, { "Fn::GetAZs": "" } ] },
+          { "Fn::Select": [ 1, { "Ref": "AvailabilityZones" } ] }
+        ] },
         "CidrBlock": { "Ref": "SubnetPrivate1CIDR" },
         "VpcId": { "Fn::If": [ "BlankExistingVpc",
           { "Ref": "Vpc" },
@@ -909,7 +943,10 @@
       "Type": "AWS::EC2::Subnet",
       "Properties": {
         "Tags": [ { "Key": "Name", "Value": { "Fn::Join": [ " ", [ { "Ref": "AWS::StackName" }, "private", "2" ] ] } } ],
-        "AvailabilityZone": { "Fn::GetAtt": [ "AvailabilityZones", "AvailabilityZone2" ] },
+        "AvailabilityZone": { "Fn::If": [ "BlankAvailabilityZones",
+          { "Fn::Select": [ 2, { "Fn::GetAZs": "" } ] },
+          { "Fn::Select": [ 2, { "Ref": "AvailabilityZones" } ] }
+        ] },
         "CidrBlock": { "Ref": "SubnetPrivate2CIDR" },
         "VpcId": { "Fn::If": [ "BlankExistingVpc",
           { "Ref": "Vpc" },
@@ -2554,16 +2591,26 @@
             "Cpu": "128",
             "DockerLabels": {
               "convox.release": { "Ref": "Version" },
-              "rack.AvailabilityZones": { "Fn::Join": [ ",", [
-                { "Fn::GetAtt": [ "AvailabilityZones", "AvailabilityZone0" ] },
-                { "Fn::GetAtt": [ "AvailabilityZones", "AvailabilityZone1" ] },
-                { "Fn::If": [ "ThirdAvailabilityZone",
-                  { "Fn::GetAtt": [ "AvailabilityZones", "AvailabilityZone2" ] },
-                  { "Ref": "AWS::NoValue" }
-                ] }
-              ] ] },
               "rack.AsgSpot": { "Fn::If": [ "SpotInstances", { "Ref": "SpotInstances" }, { "Ref": "AWS::NoValue" } ] },
               "rack.AsgStandard": { "Ref": "Instances" },
+              "rack.AvailabilityZones": { "Fn::If": [ "BlankAvailabilityZones",
+                { "Fn::Join": [ ",", [
+                  { "Fn::Select": [ 0, { "Fn::GetAZs": "" } ] },
+                  { "Fn::Select": [ 1, { "Fn::GetAZs": "" } ] },
+                  { "Fn::If": [ "ThirdAvailabilityZone",
+                    { "Fn::Select": [ 2, { "Fn::GetAZs": "" } ] },
+                    { "Ref": "AWS::NoValue" }
+                  ] }
+                ] ] },
+                { "Fn::Join": [ ",", [
+                  { "Fn::Select": [ 0, { "Ref": "AvailabilityZones" } ] },
+                  { "Fn::Select": [ 1, { "Ref": "AvailabilityZones" } ] },
+                  { "Fn::If": [ "ThirdAvailabilityZone",
+                    { "Fn::Select": [ 2, { "Ref": "AvailabilityZones" } ] },
+                    { "Ref": "AWS::NoValue" }
+                  ] }
+                ] ] }
+              ] },
               "rack.BuildCluster": { "Fn::If": [ "DedicatedBuilder", { "Ref": "BuildCluster" }, { "Ref": "Cluster" } ] },
               "rack.CloudformationTopic": { "Ref": "CloudformationTopic" },
               "rack.Cluster": { "Ref": "Cluster" },
