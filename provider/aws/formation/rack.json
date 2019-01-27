@@ -10,6 +10,7 @@
       "Fn::And": [ { "Condition": "BlankExistingVpc" }, { "Condition": "ThirdAvailabilityZone" } ]
     },
     "BlankInstanceBootCommand": { "Fn::Equals": [ { "Ref": "InstanceBootCommand" }, "" ] },
+    "BlankInstancePolicy": { "Fn::Equals": [ { "Ref": "InstancePolicy" }, "" ] },
     "BlankInstanceRunCommand": { "Fn::Equals": [ { "Ref": "InstanceRunCommand" }, "" ] },
     "BlankInstanceSecurityGroup": { "Fn::Equals": [ {"Ref": "InstanceSecurityGroup" }, "" ] },
     "BlankInternalSuffix": { "Fn::Equals": [ { "Ref": "InternalSuffix"}, "" ] },
@@ -527,6 +528,11 @@
       "Description": "The number of instances to update in a batch",
       "MinValue": "1",
       "Type": "Number"
+    },
+    "InstancePolicy": {
+      "Default": "",
+      "Description": "ARN of an additional IAM policy to add to the cluster instances",
+      "Type": "String"
     },
     "InstanceSecurityGroup": {
       "Default": "",
@@ -1142,7 +1148,11 @@
         "Path": "/convox/",
         "ManagedPolicyArns": [
           "arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceforEC2Role",
-          "arn:aws:iam::aws:policy/AutoScalingFullAccess"
+          "arn:aws:iam::aws:policy/AutoScalingFullAccess",
+          { "Fn::If": [ "BlankInstancePolicy",
+            { "Ref": "AWS::NoValue" },
+            { "Ref": "InstancePolicy" }
+          ] }
         ]
       }
     },
