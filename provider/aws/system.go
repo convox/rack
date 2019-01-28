@@ -495,17 +495,19 @@ func (p *Provider) SystemUninstall(name string, w io.Writer, opts structs.System
 
 func (p *Provider) SystemUpdate(opts structs.SystemUpdateOptions) error {
 	changes := map[string]string{}
-	params := opts.Parameters
-
-	if params == nil {
-		params = map[string]string{}
-	}
 
 	// carry forward values from original custom topic resources
+	params := map[string]string{
+		"AvailabilityZones": p.AvailabilityZones,
+		"KmsKey":            p.CustomEncryptionKey,
+		"SshKey":            p.SshKey,
+	}
 
-	params["AvailabilityZones"] = p.AvailabilityZones
-	params["KmsKey"] = p.CustomEncryptionKey
-	params["SshKey"] = p.SshKey
+	if opts.Parameters != nil {
+		for k, v := range opts.Parameters {
+			params[k] = v
+		}
+	}
 
 	if opts.Count != nil {
 		params["InstanceCount"] = strconv.Itoa(*opts.Count)
