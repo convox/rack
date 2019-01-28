@@ -36,7 +36,8 @@ const (
 )
 
 var (
-	reAppLog = regexp.MustCompile(`^(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2}:\d{2}) ([^/]+)/([^/]+)/([^ ]+) (.*)$`)
+	reAppLog       = regexp.MustCompile(`^(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2}:\d{2}) ([^/]+)/([^/]+)/([^ ]+) (.*)$`)
+	reDockerOption = regexp.MustCompile("--([a-z]+)")
 )
 
 type Options2 struct {
@@ -424,13 +425,13 @@ func (opts Options2) waitForBuild(ctx context.Context, id string) error {
 func (opts Options2) watchChanges(ctx context.Context, pw prefix.Writer, m *manifest.Manifest, service, root string, ch chan error) {
 	bss, err := buildSources(m, root, service)
 	if err != nil {
-		ch <- err
+		ch <- fmt.Errorf("sync error: %s", err)
 		return
 	}
 
 	ignores, err := buildIgnores(root, service)
 	if err != nil {
-		ch <- err
+		ch <- fmt.Errorf("sync error: %s", err)
 		return
 	}
 
@@ -445,19 +446,19 @@ func (opts Options2) watchPath(ctx context.Context, pw prefix.Writer, service, r
 
 	abs, err := filepath.Abs(bs.Local)
 	if err != nil {
-		ch <- err
+		ch <- fmt.Errorf("sync error: %s", err)
 		return
 	}
 
 	wd, err := os.Getwd()
 	if err != nil {
-		ch <- err
+		ch <- fmt.Errorf("sync error: %s", err)
 		return
 	}
 
 	rel, err := filepath.Rel(wd, bs.Local)
 	if err != nil {
-		ch <- err
+		ch <- fmt.Errorf("sync error: %s", err)
 		return
 	}
 
@@ -576,6 +577,7 @@ func buildSources(m *manifest.Manifest, root, service string) ([]buildSource, er
 
 	s := bufio.NewScanner(bytes.NewReader(data))
 
+lines:
 	for s.Scan() {
 		parts := strings.Fields(s.Text())
 
@@ -585,6 +587,17 @@ func buildSources(m *manifest.Manifest, root, service string) ([]buildSource, er
 
 		switch strings.ToUpper(parts[0]) {
 		case "ADD", "COPY":
+			for i, p := range parts {
+				if m := reDockerOption.FindStringSubmatch(p); len(m) > 1 {
+					switch strings.ToLower(m[1]) {
+					case "from":
+						continue lines
+					default:
+						parts = append(parts[:i], parts[i+1:]...)
+					}
+				}
+			}
+
 			if len(parts) > 2 {
 				u, err := url.Parse(parts[1])
 				if err != nil {
