@@ -1520,7 +1520,6 @@
     },
     "InstancesAutoscaler": {
       "Type": "AWS::Lambda::Function",
-      "DependsOn": "ApiRole",
       "Condition": "Autoscale",
       "Properties": {
         "Code": {
@@ -1537,7 +1536,7 @@
         },
         "Handler": "handler",
         "MemorySize": "128",
-        "Role": { "Fn::GetAtt": [ "InstancesAutoscalerRole", "Arn" ] },
+        "Role": { "Fn::GetAtt": [ "ApiRole", "Arn" ] },
         "Runtime": "go1.x",
         "Timeout": "60"
       }
@@ -1558,42 +1557,6 @@
       "Properties": {
         "ScheduleExpression": "cron(*/1 * * * ? *)",
         "Targets": [ { "Id": "InstancesAutoscaler", "Arn": { "Fn::GetAtt": [ "InstancesAutoscaler", "Arn" ] } } ]
-      }
-    },
-    "InstancesAutoscalerRole": {
-      "Type": "AWS::IAM::Role",
-      "Properties": {
-        "AssumeRolePolicyDocument": {
-          "Version": "2012-10-17",
-          "Statement": [
-            { "Effect": "Allow", "Principal": { "Service": [ "lambda.amazonaws.com" ] }, "Action": [ "sts:AssumeRole" ] }
-          ]
-        },
-        "ManagedPolicyArns": [ "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole" ],
-        "Path": "/convox/",
-        "Policies": [
-          {
-            "PolicyName": "instances-autoscaler",
-            "PolicyDocument": {
-              "Version": "2012-10-17",
-              "Statement": [
-                {
-                  "Effect": "Allow",
-                  "Action": [
-                    "cloudformation:DescribeStacks",
-                    "cloudformation:UpdateStack",
-                    "ecs:DescribeContainerInstances",
-                    "ecs:DescribeServices",
-                    "ecs:DescribeTaskDefinition",
-                    "ecs:ListContainerInstances",
-                    "ecs:ListServices"
-                  ],
-                  "Resource": "*"
-                }
-              ]
-            }
-          }
-        ]
       }
     },
     "InstancesLifecycleLaunching": {
@@ -2403,7 +2366,8 @@
       "Properties": {
         "AssumeRolePolicyDocument": {
           "Statement": [
-            { "Effect": "Allow", "Principal": { "Service": [ "ecs-tasks.amazonaws.com" ] }, "Action": [ "sts:AssumeRole" ] }
+            { "Effect": "Allow", "Principal": { "Service": [ "ecs-tasks.amazonaws.com" ] }, "Action": [ "sts:AssumeRole" ] },
+            { "Effect": "Allow", "Principal": { "Service": [ "lambda.amazonaws.com" ] }, "Action": [ "sts:AssumeRole" ] }
           ],
           "Version": "2012-10-17"
         },
