@@ -7,10 +7,12 @@ metadata:
     system: convox
     rack: {{.Rack}}
     app: {{.App}}
+    database: {{.Database}}
     type: resource
     resource: {{.Name}}
+    username: {{.Username}}
 data:
-  URL: "mysql://root:{{.Password}}@resource-{{.Name}}.{{.Namespace}}.svc.cluster.local:3306/app"
+  URL: "mysql://{{.Username}}:{{.Password}}@resource-{{.Name}}.{{.Namespace}}.svc.cluster.local:3306/{{.Database}}"
 ---
 kind: PersistentVolumeClaim
 apiVersion: v1
@@ -21,7 +23,9 @@ metadata:
     system: convox
     rack: {{.Rack}}
     app: {{.App}}
+    database: {{.Database}}
     resource: {{.Name}}
+    username: {{.Username}}
 spec:
   accessModes:
   - ReadWriteOnce
@@ -38,16 +42,20 @@ metadata:
     system: convox
     rack: {{.Rack}}
     app: {{.App}}
+    database: {{.Database}}
     type: resource
     kind: mysql
     resource: {{.Name}}
+    username: {{.Username}}
 spec:
   selector:
     matchLabels:
       system: convox
       rack: {{.Rack}}
       app: {{.App}}
+      database: {{.Database}}
       resource: {{.Name}}
+      username: {{.Username}}
   replicas: 1
   template:
     metadata:
@@ -55,8 +63,10 @@ spec:
         system: convox
         rack: {{.Rack}}
         app: {{.App}}
+        database: {{.Database}}
         type: resource
         resource: {{.Name}}
+        username: {{.Username}}
     spec:
       containers:
       - name: mysql
@@ -66,8 +76,12 @@ spec:
         - containerPort: 3306
         env:
         - name: MYSQL_DATABASE
-          value: app
+          value: "{{.Database}}"
         - name: MYSQL_ROOT_PASSWORD
+          value: "{{.Password}}"
+        - name: MYSQL_USER
+          value: "{{.Username}}"
+        - name: MYSQL_PASSWORD
           value: "{{.Password}}"
         volumeMounts:
         - mountPath: /var/lib/mysql
@@ -86,8 +100,10 @@ metadata:
     system: convox
     rack: {{.Rack}}
     app: {{.App}}
+    database: {{.Database}}
     type: resource
     resource: {{.Name}}
+    username: {{.Username}}
 spec:
   type: NodePort
   ports:
@@ -96,4 +112,6 @@ spec:
     system: convox
     rack: {{.Rack}}
     app: {{.App}}
+    database: {{.Database}}
     resource: {{.Name}}
+    username: {{.Username}}
