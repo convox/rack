@@ -50,7 +50,7 @@
     }
   },
   "Outputs": {
-    "Url": { "Value": { "Fn::Sub": "postgres://app:${Password}@${Instance.Endpoint.Address}:${Instance.Endpoint.Port}/${Database}" } }
+    "Url": { "Value": { "Fn::Sub": "postgres://${Username}:${Password}@${Instance.Endpoint.Address}:${Instance.Endpoint.Port}/${Database}" } }
   },
   "Resources": {
     "SecurityGroup": {
@@ -78,7 +78,7 @@
       "DeletionPolicy": "Snapshot",
       "Properties": {
         "AllocatedStorage": { "Ref": "Storage" },
-        "BackupRetentionPeriod": "30"
+        "BackupRetentionPeriod": "30",
         "DBInstanceClass": { "Ref": "Class" },
         "DBInstanceIdentifier": { "Ref": "AWS::StackName" },
         "DBName": { "Ref": "Database" },
