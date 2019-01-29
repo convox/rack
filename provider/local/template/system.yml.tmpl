@@ -90,6 +90,8 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: status.podIP
+        - name: SERVICE_HOST
+          value: "router.convox-system.svc.cluster.local"
         - name: VERSION
           value: "{{.Version}}"
         image: convox/rack:{{.Version}}
