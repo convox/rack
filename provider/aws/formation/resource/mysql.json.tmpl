@@ -8,6 +8,10 @@
       "Type": "String",
       "Default": "db.t2.micro"
     },
+    "Database": {
+      "Type": "String",
+      "Default": "app"
+    },
     "Durable": {
       "Type": "String",
       "Default": "false",
@@ -35,13 +39,17 @@
       "Type": "Number",
       "Default": "20"
     },
+    "Username": {
+      "Type": "String",
+      "Default": "app"
+    },
     "Version": {
       "Type": "String",
       "Default": "5.7"
     }
   },
   "Outputs": {
-    "Url": { "Value": { "Fn::Sub": "mysql://app:${Password}@${Instance.Endpoint.Address}:${Instance.Endpoint.Port}/app" } }
+    "Url": { "Value": { "Fn::Sub": "mysql://${Username}:${Password}@${Instance.Endpoint.Address}:${Instance.Endpoint.Port}/${Database}" } }
   },
   "Resources": {
     "SecurityGroup": {
@@ -69,15 +77,16 @@
       "DeletionPolicy": "Snapshot",
       "Properties": {
         "AllocatedStorage": { "Ref": "Storage" },
+        "BackupRetentionPeriod": "30",
         "DBInstanceClass": { "Ref": "Class" },
         "DBInstanceIdentifier": { "Ref": "AWS::StackName" },
-        "DBName": "app",
+        "DBName": { "Ref": "Database" },
         "DBParameterGroupName": { "Ref": "ParameterGroup" },
         "DBSubnetGroupName": { "Ref": "SubnetGroup" },
         "Engine": "mysql",
         "EngineVersion": { "Ref": "Version" },
         "Iops": { "Fn::If": [ "BlankIops", { "Ref": "AWS::NoValue" }, { "Ref": "Iops" } ] },
-        "MasterUsername": "app",
+        "MasterUsername": { "Ref": "Username" },
         "MasterUserPassword": { "Ref": "Password" },
         "MultiAZ": { "Ref": "Durable" },
         "Port": "3306",
