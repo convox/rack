@@ -1,7 +1,8 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
   "Conditions": {
-    "BlankIops": { "Fn::Equals": [ { "Ref": "Iops" }, "0" ] }
+    "BlankIops": { "Fn::Equals": [ { "Ref": "Iops" }, "0" ] },
+    "Encrypted": { "Fn::Equals": [ { "Ref": "Encrypted" }, "true" }
   },
   "Parameters": {
     "Class": {
@@ -82,7 +83,7 @@
         "MultiAZ": { "Ref": "Durable" },
         "Port": "3306",
         "PubliclyAccessible": "false",
-        "StorageEncrypted": { "Ref": "Encrypted" },
+        "StorageEncrypted": { "Fn::If": [ "Encrypted", true, { "Ref": "AWS::NoValue" } },
         "StorageType": { "Fn::If": [ "BlankIops", "gp2", "io1" ] },
         "VPCSecurityGroups": [ { "Ref": "SecurityGroup" } ]
       }
