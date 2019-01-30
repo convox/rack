@@ -254,8 +254,7 @@ func defaultDialer() *net.Dialer {
 func defaultTransport() *http.Transport {
 	return &http.Transport{
 		DialContext:           defaultDialer().DialContext,
-		MaxIdleConns:          100,
-		IdleConnTimeout:       90 * time.Second,
+		DisableKeepAlives:     true,
 		TLSHandshakeTimeout:   10 * time.Second,
 		ExpectContinueTimeout: 1 * time.Second,
 		TLSClientConfig: &tls.Config{
