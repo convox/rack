@@ -239,9 +239,25 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 			params[upperName(k)] = v
 		}
 
+		fmt.Printf("r.Name = %+v\n", r.Name)
+		fmt.Printf("r.Type = %+v\n", r.Type)
+
+		switch r.Type {
+		case "mysql", "postgres":
+			if stack, _ := p.appResource(app, fmt.Sprintf("Resource%s", upperName(r.Name))); stack != "" {
+				if rs, _ := p.stackResource(stack, "Instance"); rs != nil {
+					fmt.Printf("rs = %+v\n", rs)
+				}
+			}
+		}
+
+		fmt.Printf("params = %+v\n", params)
+
 		tp[fmt.Sprintf("ResourceParams%s", upperName(r.Name))] = params
 		tp[fmt.Sprintf("ResourceTemplate%s", upperName(r.Name))] = ou.Url
 	}
+
+	// return fmt.Errorf("stop")
 
 	for _, s := range m.Services {
 		min := 50
