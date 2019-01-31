@@ -1,0 +1,168 @@
+{{ with .Timer }}
+  {
+    "AWSTemplateFormatVersion" : "2010-09-09",
+    "Conditions": {
+      "Fargate": { "Fn::Equals": [ { "Ref": "Fargate" }, "Yes" ] },
+      "RackUrl": { "Fn::Equals": [ { "Ref": "RackUrl" }, "Yes" ] }
+    },
+    "Outputs": {
+      "Fargate": {
+        "Value": { "Fn::If": [ "Fargate", "Yes", "No" ] }
+      }
+    },
+    "Parameters" : {
+      "Cpu": {
+        "Type": "Number"
+      },
+      "ExecutionRole": {
+        "Type": "String"
+      },
+      "Fargate": {
+        "Type": "String",
+        "Default": "No",
+        "AllowedValues": [ "Yes", "No" ]
+      },
+      "Launcher": {
+        "Type": "String"
+      },
+      "LogGroup": {
+        "Type": "String"
+      },
+      "Memory": {
+        "Type": "Number"
+      },
+      "Rack": {
+        "Type": "String"
+      },
+      "RackUrl": {
+        "Type": "String",
+        "Default": "No",
+        "AllowedValues": [ "Yes", "No" ]
+      },
+      "Registry": {
+        "Type": "String"
+      },
+      {{ range ($.Manifest.Service .Service).Resources }}
+        "Resource{{ upper .}}": {
+          "Type": "String",
+          "NoEcho": "true"
+        },
+      {{ end }}
+      "Role": {
+        "Type": "String"
+      },
+      "ServiceRole": {
+        "Type": "String"
+      },
+      "Settings": {
+        "Type": "String"
+      }
+    },
+    "Resources": {
+      "LauncherPermission": {
+        "Type" : "AWS::Lambda::Permission",
+        "Properties" : {
+          "Action" : "lambda:InvokeFunction",
+          "FunctionName" : { "Ref": "Launcher" },
+          "Principal" : "events.amazonaws.com",
+          "SourceArn" : { "Fn::GetAtt": [ "Timer", "Arn" ] }
+        }
+      },
+      "Timer": {
+        "Type": "AWS::Events::Rule",
+        "Properties": {
+          "Name": { "Fn::Sub": "${Rack}-{{$.App}}-timer-{{.Name}}" },
+          "ScheduleExpression": "cron({{.Cron}})",
+          "Targets": [ {
+            "Arn": { "Fn::If": [ "Fargate",
+              { "Ref": "Launcher" },
+              { "Fn::Join": [ "", [ "arn:aws:ecs:", { "Ref": "AWS::Region" }, ":", { "Ref": "AWS::AccountId" }, ":cluster/", { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Cluster" } } ] ] }
+            ] },
+            "EcsParameters": { "Fn::If": [ "Fargate",
+              { "Ref": "AWS::NoValue" },
+              { "TaskCount": "1", "TaskDefinitionArn": { "Ref": "TaskDefinition" } }
+            ] },
+            "Id": "{{.Name}}",
+            "Input": { "Fn::If": [ "Fargate",
+              { "Fn::Join": [ "", [ "{ \"cluster\": \"", { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Cluster" } }, "\", \"taskDefinition\": \"", { "Ref": "TaskDefinition" }, "\" }" ] ] },
+              { "Ref": "AWS::NoValue" }
+            ] },
+            "RoleArn": { "Fn::If": [ "Fargate",
+              { "Ref": "AWS::NoValue" },
+              { "Ref": "Role" }
+            ] }
+          } ]
+        }
+      },
+      "TaskDefinition": {
+        "Type": "AWS::ECS::TaskDefinition",
+        "Properties": {
+          "ContainerDefinitions": [
+            {{ with $.Manifest.Service .Service }}
+              {
+                "Command": [ "sh", "-c", {{ safe $.Timer.Command }} ],
+                "Cpu": { "Ref": "Cpu" },
+                "DockerLabels": { "convox.app": "{{$.App}}", "convox.generation": "2", "convox.release": "{{$.Release.Id}}" },
+                "Environment": [
+                  {{ range $k, $v := .EnvironmentDefaults }}
+                    { "Name": "{{$k}}", "Value": {{ safe $v }} },
+                  {{ end }}
+                  {{ range .Links }}
+                    { "Name": "{{ upcase . }}_URL", "Value": { "Fn::Join": [ ".", [
+                      "https://{{$.App}}-{{.}}", { "Fn::ImportValue": { "Fn::Sub": "${Rack}:{{ router . $.Manifest }}Host" } }
+                    ] ] } },
+                  {{ end }}
+                  {{ range .Resources }}
+                    { "Name": "{{ upcase . }}_URL", "Value": { "Ref": "Resource{{ upper . }}" } },
+                  {{ end }}
+                  { "Name": "AWS_REGION", "Value": { "Ref": "AWS::Region" } },
+                  { "Name": "APP", "Value": "{{$.App}}" },
+                  { "Name": "CONVOX_ENV_KEY", "Value": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:EncryptionKey" } } },
+                  { "Name": "CONVOX_ENV_URL", "Value": { "Fn::Sub": "s3://${Settings}/releases/{{$.Release.Id}}/env" } },
+                  { "Name": "CONVOX_ENV_VARS", "Value": "{{.EnvironmentKeys}}" },
+                  { "Name": "RACK", "Value": { "Ref": "Rack" } },
+                  { "Fn::If": [ "RackUrl",
+                    { "Name": "RACK_URL", "Value": { "Fn::Sub": "https://convox:{{$.Password}}@rack.${Rack}.convox" } },
+                    { "Ref": "AWS::NoValue" }
+                  ] },
+                  { "Name": "RELEASE", "Value": "{{$.Release.Id}}" },
+                  { "Name": "SERVICE", "Value": "{{.Name}}" }
+                ],
+                "Image": { "Fn::Sub": "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${Registry}:{{.Name}}.{{$.Release.Build}}" },
+                "LogConfiguration": {
+                  "LogDriver": "awslogs",
+                  "Options": {
+                    "awslogs-region": { "Ref": "AWS::Region" },
+                    "awslogs-group": { "Ref": "LogGroup" },
+                    "awslogs-stream-prefix": "timer"
+                  }
+                },
+                "Memory": { "Ref": "Memory" },
+                "MountPoints": [
+                  {{ range $i, $v := .Volumes }}
+                    { "SourceVolume": "volume-{{$i}}", "ContainerPath": "{{ volumeTo $v }}" },
+                  {{ end }}
+                  { "Ref": "AWS::NoValue" }
+                ],
+                "Name": "{{$.Timer.Name}}"
+              }
+            {{ end }}
+          ],
+          "Cpu": { "Fn::If": [ "Fargate", { "Ref": "Cpu" }, { "Ref": "AWS::NoValue" } ] },
+          "ExecutionRoleArn": { "Ref": "ExecutionRole" },
+          "Family": { "Fn::Sub": "${AWS::StackName}-timer-{{.Name}}" },
+          "Memory": { "Fn::If": [ "Fargate", { "Ref": "Memory" }, { "Ref": "AWS::NoValue" } ] },
+          "NetworkMode": { "Fn::If": [ "Fargate", "awsvpc", { "Ref": "AWS::NoValue" } ] },
+          "RequiresCompatibilities": [ { "Fn::If": [ "Fargate", "FARGATE", { "Ref": "AWS::NoValue" } ] } ],
+          "TaskRoleArn": { "Ref": "ServiceRole" },
+          "Volumes": [
+            {{ range $i, $v := ($.Manifest.Service .Service).Volumes }}
+              { "Name": "volume-{{$i}}", "Host": { "SourcePath": "{{ volumeFrom $.App $v }}" } },
+            {{ end }}
+            { "Ref": "AWS::NoValue" }
+          ]
+        }
+      }
+    }
+  }
+{{ end }}
