@@ -303,6 +303,28 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 		tp[fmt.Sprintf("ServiceTemplate%s", upperName(s.Name))] = ou.Url
 	}
 
+	for _, t := range m.Timers {
+		ttp := map[string]interface{}{
+			"App":      r.App,
+			"Manifest": tp["Manifest"],
+			"Password": p.Password,
+			"Release":  tp["Release"],
+			"Timer":    t,
+		}
+
+		data, err := formationTemplate("timer", ttp)
+		if err != nil {
+			return err
+		}
+
+		ou, err := p.ObjectStore(app, "", bytes.NewReader(data), structs.ObjectStoreOptions{Public: options.Bool(true)})
+		if err != nil {
+			return err
+		}
+
+		tp[fmt.Sprintf("TimerTemplate%s", upperName(t.Name))] = ou.Url
+	}
+
 	data, err := formationTemplate("app", tp)
 	if err != nil {
 		return err
