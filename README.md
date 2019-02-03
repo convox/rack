@@ -115,7 +115,6 @@ See the [Development Guide](DEVELOPMENT.md) for more instructions to develop, co
 ## Contributing
 
 * Join the [Convox Slack](https://invite.convox.com) channel to ask questions from the community and team
-* Open a [GitHub Issue](https://github.com/convox/rack/issues/new) for bugs and feature requests
 * Initiate a [GitHub Pull Request](https://help.github.com/articles/using-pull-requests/) to submit patches
 
 ## License
