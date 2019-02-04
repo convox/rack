@@ -31,7 +31,7 @@ RUN make package build
 
 ## production ##################################################################
 
-FROM debian:stretch
+FROM ubuntu:18.04
 
 RUN apt-get -qq update && apt-get -qq -y install curl
 
