@@ -1,6 +1,21 @@
 # convox/rack
 
-Convox Rack is a private PaaS that runs in your own AWS account.
+Convox Rack is a private PaaS that runs in an AWS account.
+
+## Usage
+
+### Installation
+
+Install a Rack from [Convox Console](https://console.convox.com)
+
+### Usage
+
+```
+$ convox apps create myapp
+Creating app myapp... OK
+
+$ convox deploy ~/src/myapp -a myapp
+```
 
 ## Related
 
