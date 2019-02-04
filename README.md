@@ -2,7 +2,7 @@
 
 Convox Rack is a private PaaS that runs in your own AWS account.
 
-## Links
+## Related
 
 * [Convox Console](https://console.convox.com)
 * [Documentation](https://docs.convox.com)
