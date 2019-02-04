@@ -71,7 +71,7 @@
       "Timer": {
         "Type": "AWS::Events::Rule",
         "Properties": {
-          "Name": { "Fn::Sub": "${Rack}-{{$.App}}-timer-{{.Name}}" },
+          "Name": { "Ref": "AWS::StackName" },
           "ScheduleExpression": "cron({{.Cron}})",
           "Targets": [ {
             "Arn": { "Fn::If": [ "Fargate",
