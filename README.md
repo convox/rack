@@ -14,7 +14,13 @@ Install a Rack from [Convox Console](https://console.convox.com)
 $ convox apps create myapp
 Creating app myapp... OK
 
+$ convox env set SECRET=foo -a myapp
+Setting SECRET... OK, RABCDEFGH
+
 $ convox deploy ~/src/myapp -a myapp
+Building myapp... OK
+Creating release RHGFEFCBA... OK
+Promoting release RHGFEFCBA... OK
 ```
 
 ## Related
