@@ -1,6 +1,6 @@
 # convox/rack
 
-Convox Rack is a private PaaS that runs in an AWS account.
+Convox Rack is a private PaaS that runs in your AWS account.
 
 ## Usage
 
