@@ -2673,14 +2673,13 @@
           { "AttributeName": "app", "AttributeType": "S" },
           { "AttributeName": "created", "AttributeType": "S" }
         ],
+        "BillingMode": "PAY_PER_REQUEST",
         "KeySchema": [ { "AttributeName": "id", "KeyType": "HASH" } ],
         "GlobalSecondaryIndexes": [ {
           "IndexName": "app.created",
           "KeySchema": [ { "AttributeName": "app", "KeyType": "HASH" }, { "AttributeName": "created", "KeyType": "RANGE" } ],
-          "Projection": { "ProjectionType": "ALL" },
-          "ProvisionedThroughput": { "ReadCapacityUnits": "5", "WriteCapacityUnits": "5" }
-        }],
-        "ProvisionedThroughput": { "ReadCapacityUnits": "5", "WriteCapacityUnits": "5" }
+          "Projection": { "ProjectionType": "ALL" }
+        }]
       }
     },
     "DynamoReleases": {
@@ -2692,14 +2691,13 @@
           { "AttributeName": "app", "AttributeType": "S" },
           { "AttributeName": "created", "AttributeType": "S" }
         ],
+        "BillingMode": "PAY_PER_REQUEST",
         "KeySchema": [ { "AttributeName": "id", "KeyType": "HASH" } ],
         "GlobalSecondaryIndexes": [{
           "IndexName": "app.created",
           "KeySchema": [ { "AttributeName": "app", "KeyType": "HASH" }, { "AttributeName": "created", "KeyType": "RANGE" } ],
-          "Projection": { "ProjectionType": "ALL" },
-          "ProvisionedThroughput": { "ReadCapacityUnits": "5", "WriteCapacityUnits": "5" }
-        }],
-        "ProvisionedThroughput": { "ReadCapacityUnits": "5", "WriteCapacityUnits": "5" }
+          "Projection": { "ProjectionType": "ALL" }
+        }]
       }
     },
     "Logs": {
