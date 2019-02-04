@@ -10,7 +10,7 @@ Install a Rack from [Convox Console](https://console.convox.com)
 
 ### Usage
 
-```
+```console
 $ convox apps create myapp
 Creating app myapp... OK
 
