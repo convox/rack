@@ -39,15 +39,21 @@ import (
 	docker "github.com/fsouza/go-dockerclient"
 )
 
-type Template struct {
-	Parameters map[string]TemplateParameter
+type Formation struct {
+	Parameters map[string]FormationParameter
+	Resources  map[string]FormationResource
 }
 
-type TemplateParameter struct {
-	Default     string
+type FormationParameter struct {
+	Default     interface{}
 	Description string
 	NoEcho      bool
 	Type        string
+}
+
+type FormationResource struct {
+	Type       string
+	Properties map[string]interface{}
 }
 
 func (p *Provider) accountId() (string, error) {
@@ -222,18 +228,15 @@ func (p *Provider) createdTime() string {
 	return time.Now().Format(sortableTime)
 }
 
-func formationParameters(body []byte) (map[string]bool, error) {
-	var t Template
-
-	err := json.Unmarshal(body, &t)
-
+func formationParameters(data []byte) (map[string]bool, error) {
+	f, err := parseFormation(data)
 	if err != nil {
 		return nil, err
 	}
 
 	params := map[string]bool{}
 
-	for key := range t.Parameters {
+	for key := range f.Parameters {
 		params[key] = true
 	}
 
@@ -274,6 +277,16 @@ func humanStatus(original string) string {
 		fmt.Printf("unknown status: %s\n", original)
 		return "unknown"
 	}
+}
+
+func parseFormation(data []byte) (*Formation, error) {
+	var f Formation
+
+	if err := json.Unmarshal(data, &f); err != nil {
+		return nil, err
+	}
+
+	return &f, nil
 }
 
 func taskStatus(original string) string {
@@ -730,6 +743,20 @@ func (p *Provider) describeStackResources(input *cloudformation.DescribeStackRes
 	}
 
 	return res, nil
+}
+
+func (p *Provider) stackTemplate(stack string) ([]byte, error) {
+	res, err := p.cloudformation().GetTemplate(&cloudformation.GetTemplateInput{
+		StackName: aws.String(stack),
+	})
+	if err != nil {
+		return nil, err
+	}
+	if res.TemplateBody == nil {
+		return nil, fmt.Errorf("no template body")
+	}
+
+	return []byte(*res.TemplateBody), nil
 }
 
 func (p *Provider) listStackResources(stack string) ([]*cloudformation.StackResourceSummary, error) {
