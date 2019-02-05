@@ -233,7 +233,10 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 			return err
 		}
 
-		params := map[string]string{}
+		params, err := p.resourceDefaults(app, r.Name)
+		if err != nil {
+			return err
+		}
 
 		for k, v := range r.Options {
 			params[upperName(k)] = v

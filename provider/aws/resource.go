@@ -98,6 +98,29 @@ func (p *Provider) ResourceList(app string) (structs.Resources, error) {
 	return rs, nil
 }
 
+func (p *Provider) resourceDefaults(app, resource string) (map[string]string, error) {
+	ds := map[string]string{}
+
+	stack, _ := p.appResource(app, fmt.Sprintf("Resource%s", upperName(resource)))
+	if stack == "" {
+		return ds, nil
+	}
+
+	s, err := p.describeStack(stack)
+	if err != nil {
+		return nil, err
+	}
+
+	for k, v := range stackParameters(s) {
+		ds[k] = v
+	}
+
+	delete(ds, "Password")
+	delete(ds, "Rack")
+
+	return ds, nil
+}
+
 /** system resources ***************************************************************************/
 
 var resourceSystemParameters = map[string]bool{
