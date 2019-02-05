@@ -1,6 +1,7 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
   "Conditions": {
+    "BlankEncrypted": { "Fn::Equals": [ { "Ref": "Encrypted" }, "" ] },
     "BlankIops": { "Fn::Equals": [ { "Ref": "Iops" }, "0" ] }
   },
   "Parameters": {
@@ -15,8 +16,8 @@
     },
     "Encrypted": {
       "Type": "String",
-      "Default": "false",
-      "AllowedValues": [ "true", "false" ]
+      "Default": "",
+      "AllowedValues": [ "true", "false", "" ]
     },
     "Iops": {
       "Type": "Number",
