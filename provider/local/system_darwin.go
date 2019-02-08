@@ -50,6 +50,7 @@ func removeOriginalRack(name string) error {
 	os.Remove("/Library/LaunchDaemons/convox.router.plist")
 
 	exec.Command("launchctl", "remove", fmt.Sprintf("convox.rack.%s", name)).Run()
+	exec.Command("launchctl", "remove", "convox.rack").Run()
 	exec.Command("launchctl", "remove", "convox.router").Run()
 
 	return nil
