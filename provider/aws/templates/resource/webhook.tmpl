@@ -5,10 +5,21 @@
     "NotificationTopic": {
       "Type": "String"
     },
+    "Private": {
+      "Type": "String",
+      "Default": "No",
+      "AllowedValues": [ "Yes", "No" ]
+    },
+    "Rack": {
+      "Type": "String"
+    },
     "Url": {
       "Type": "String",
       "Description": "Webhook URL"
     }
+  },
+  "Conditions": {
+    "Private": { "Fn::Equals": [ { "Ref": "Private" }, "Yes" ] }
   },
   "Resources": {
     "Forwarder": {
@@ -31,7 +42,16 @@
         "Handler": "index.handler",
         "Role": { "Fn::GetAtt": [ "ForwarderRole", "Arn" ] },
         "Runtime": "nodejs6.10",
-        "Timeout": "10"
+        "Timeout": "10",
+        "VpcConfig": { "Fn::If": [ "Private", {
+            "SubnetIds": [
+              { "Fn::ImportValue": { "Fn::Sub": "${Rack}:SubnetPrivate0" } },
+              { "Fn::ImportValue": { "Fn::Sub": "${Rack}:SubnetPrivate1" } }
+            ],
+            "SecurityGroupIds": [ { "Fn::ImportValue": { "Fn::Sub": "${Rack}:InstancesSecurityGroup" } } ]
+          },
+          { "Ref": "AWS::NoValue" } ]
+        }
       }
     },
     "ForwarderPermission": {
@@ -50,7 +70,10 @@
           "Version": "2012-10-17",
           "Statement": [ { "Effect": "Allow", "Principal": { "Service": [ "lambda.amazonaws.com" ] }, "Action": "sts:AssumeRole" } ]
         },
-        "ManagedPolicyArns": [ "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole" ],
+        "ManagedPolicyArns": [
+            "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
+            { "Fn::If": [ "Private", "arn:aws:iam::aws:policy/service-role/AWSLambdaENIManagementAccess", { "Ref": "AWS::NoValue" } ] }
+        ],
         "Path": "/convox/"
       }
     },
