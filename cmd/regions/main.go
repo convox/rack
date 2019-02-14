@@ -147,7 +147,7 @@ func fetchAvailabilityZones(regions Regions) error {
 	for name, region := range regions {
 		data, err := exec.Command("bash", "-c", fmt.Sprintf("aws ec2 describe-availability-zones --region %s", name)).CombinedOutput()
 		if err != nil {
-			return err
+			return fmt.Errorf(string(data))
 		}
 
 		if err := json.Unmarshal(data, &azs); err != nil {
