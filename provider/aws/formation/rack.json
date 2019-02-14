@@ -291,7 +291,7 @@
     "RouterInternalSecurityGroup": {
       "Condition": "Internal",
       "Export": { "Name": { "Fn::Sub": "${AWS::StackName}:RouterInternalSecurityGroup" } },
-      "Value": { "Fn::If": [ "BlankRouterInternalSecurityGroup", { "Ref": "RouterSecurity" }, { "Fn::Select": [ 0, { "Ref": "RouterInternalSecurityGroup" } ] } ] }
+      "Value": { "Fn::If": [ "BlankRouterInternalSecurityGroup", { "Ref": "RouterInternalSecurity" }, { "Fn::Select": [ 0, { "Ref": "RouterInternalSecurityGroup" } ] } ] }
     },
     "RouterSecurityGroup": {
       "Condition": "PublicRouter",
