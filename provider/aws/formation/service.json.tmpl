@@ -483,6 +483,13 @@
                 }
               },
               "Memory": { "Ref": "Memory" },
+              "MountPoints": [
+                {{ range $i, $v := .Volumes }}
+                  { "SourceVolume": "volume-{{$i}}", "ContainerPath": "{{ volumeTo $v }}" },
+                {{ end }}
+                { "Ref": "AWS::NoValue" }
+              ],
+              "Name": "{{.Name}}",
               "PortMappings": [
                 {{ if .Port.Port }}
                   {
@@ -499,13 +506,7 @@
                 {{ end }}
                 { "Ref": "AWS::NoValue" }
               ],
-              "MountPoints": [
-                {{ range $i, $v := .Volumes }}
-                  { "SourceVolume": "volume-{{$i}}", "ContainerPath": "{{ volumeTo $v }}" },
-                {{ end }}
-                { "Ref": "AWS::NoValue" }
-              ],
-              "Name": "{{.Name}}"
+              "Ulimits": [ { "Name": "nofile", "SoftLimit": "1024000", "HardLimit": "1024000" } ]
             }
           ],
           "Cpu": { "Fn::If": [ "Fargate", { "Ref": "Cpu" }, { "Ref": "AWS::NoValue" } ] },

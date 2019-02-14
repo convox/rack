@@ -143,7 +143,8 @@
                   {{ end }}
                   { "Ref": "AWS::NoValue" }
                 ],
-                "Name": "{{$.Timer.Name}}"
+                "Name": "{{$.Timer.Name}}",
+                "Ulimits": [ { "Name": "nofile", "SoftLimit": "1024000", "HardLimit": "1024000" } ]
               }
             {{ end }}
           ],
