@@ -159,6 +159,8 @@ spec:
           value: convox/rack:{{.Version}}
         - name: RACK
           value: {{.Rack}}
+        - name: SOCKET
+          value: {{.Docker}}
         - name: VERSION
           value: "{{.Version}}"
         envFrom:
