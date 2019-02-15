@@ -25,6 +25,7 @@ func (p *Provider) SystemInstall(w io.Writer, opts structs.SystemInstallOptions)
 
 	p.ID = helpers.DefaultString(opts.Id, "")
 	p.Rack = name
+	p.Socket = p.dockerSocket()
 
 	if err := p.systemUpdate(helpers.DefaultString(opts.Version, "dev")); err != nil {
 		return "", err
@@ -114,7 +115,7 @@ func (p *Provider) systemUpdate(version string) error {
 	log := p.logger.At("systemUpdate").Namespace("id=%s rack=%s version=%s", p.ID, p.Rack, version)
 
 	params := map[string]interface{}{
-		"Docker":  p.Engine.DockerSocket(),
+		"Docker":  p.Socket,
 		"ID":      p.ID,
 		"Rack":    p.Rack,
 		"Version": version,
