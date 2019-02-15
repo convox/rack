@@ -265,6 +265,8 @@ func systemVolume(v string) bool {
 	switch v {
 	case "/var/run/docker.sock":
 		return true
+	case "/var/snap/microk8s/current/docker.sock":
+		return true
 	}
 	return false
 }

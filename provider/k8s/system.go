@@ -114,6 +114,7 @@ func (p *Provider) systemUpdate(version string) error {
 	log := p.logger.At("systemUpdate").Namespace("id=%s rack=%s version=%s", p.ID, p.Rack, version)
 
 	params := map[string]interface{}{
+		"Docker":  p.Engine.DockerSocket(),
 		"ID":      p.ID,
 		"Rack":    p.Rack,
 		"Version": version,
