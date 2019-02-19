@@ -159,6 +159,8 @@ spec:
           value: convox/rack:{{.Version}}
         - name: RACK
           value: {{.Rack}}
+        - name: SOCKET
+          value: {{.Docker}}
         - name: VERSION
           value: "{{.Version}}"
         envFrom:
@@ -197,7 +199,7 @@ spec:
           type: DirectoryOrCreate
       - name: docker
         hostPath:
-          path: /var/run/docker.sock
+          path: {{.Docker}}
 ---
 apiVersion: v1
 kind: Service

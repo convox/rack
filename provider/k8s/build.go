@@ -70,7 +70,7 @@ func (p *Provider) BuildCreate(app, url string, opts structs.BuildCreateOptions)
 		Environment: env,
 		Image:       options.String(p.Image),
 		Volumes: map[string]string{
-			"/var/run/docker.sock": "/var/run/docker.sock",
+			p.Socket: "/var/run/docker.sock",
 		},
 	})
 	if err != nil {

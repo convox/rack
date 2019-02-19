@@ -7,6 +7,7 @@ import (
 	"os/exec"
 
 	"github.com/convox/logger"
+	"github.com/convox/rack/pkg/helpers"
 	"github.com/convox/rack/pkg/manifest"
 	"github.com/convox/rack/pkg/structs"
 	"github.com/convox/rack/pkg/templater"
@@ -34,6 +35,7 @@ type Provider struct {
 	Password string
 	Provider string
 	Rack     string
+	Socket   string
 	Storage  string
 	Version  string
 
@@ -54,6 +56,7 @@ func FromEnv() (*Provider, error) {
 		Password: os.Getenv("PASSWORD"),
 		Provider: os.Getenv("PROVIDER"),
 		Rack:     os.Getenv("RACK"),
+		Socket:   helpers.CoalesceString(os.Getenv("SOCKET"), "/var/run/docker.sock"),
 		Storage:  os.Getenv("STORAGE"),
 		Version:  os.Getenv("VERSION"),
 		logger:   logger.Discard,
