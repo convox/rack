@@ -8,7 +8,7 @@ function fetch {
   local url=$1
   local count=0
   local success=0
-  while [ $success -lt 3 ]; do
+  while [ $success -lt 6 ]; do
     let count=count+1
     curl -ks -m2 $url >/dev/null && let success=success+1
     [ $count -gt 60 ] && exit 1
