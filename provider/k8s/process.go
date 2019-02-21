@@ -259,7 +259,7 @@ func (p *Provider) podSpecFromService(app, service, release string) (*ac.PodSpec
 
 			c.Image = fmt.Sprintf("%s:%s.%s", repo, service, r.Build)
 
-			for _, v := range volumeSources(app, s.Name, s.Volumes) {
+			for _, v := range p.volumeSources(app, s.Name, s.Volumes) {
 				vs = append(vs, p.podVolume(app, v))
 			}
 
@@ -270,7 +270,7 @@ func (p *Provider) podSpecFromService(app, service, release string) (*ac.PodSpec
 				}
 
 				c.VolumeMounts = append(c.VolumeMounts, ac.VolumeMount{
-					Name:      p.volumeName(app, volumeFrom(app, s.Name, v)),
+					Name:      p.volumeName(app, p.volumeFrom(app, s.Name, v)),
 					MountPath: to,
 				})
 			}
@@ -328,7 +328,7 @@ func (p *Provider) podSpecFromRunOptions(app, service string, opts structs.Proce
 			vs = append(vs, fmt.Sprintf("%s:%s", from, to))
 		}
 
-		for _, v := range volumeSources(app, service, vs) {
+		for _, v := range p.volumeSources(app, service, vs) {
 			s.Volumes = append(s.Volumes, p.podVolume(app, v))
 		}
 
@@ -339,7 +339,7 @@ func (p *Provider) podSpecFromRunOptions(app, service string, opts structs.Proce
 			}
 
 			s.Containers[0].VolumeMounts = append(s.Containers[0].VolumeMounts, ac.VolumeMount{
-				Name:      p.volumeName(app, volumeFrom(app, service, v)),
+				Name:      p.volumeName(app, p.volumeFrom(app, service, v)),
 				MountPath: to,
 			})
 		}

@@ -271,7 +271,7 @@ func systemVolume(v string) bool {
 	return false
 }
 
-func volumeFrom(app, service, v string) string {
+func (p *Provider) volumeFrom(app, service, v string) string {
 	if from := strings.Split(v, ":")[0]; systemVolume(from) {
 		return from
 	} else if strings.Contains(v, ":") {
@@ -286,11 +286,11 @@ func (p *Provider) volumeName(app, v string) string {
 	return fmt.Sprintf("%s-%s-%x", p.Rack, app, hash[0:20])
 }
 
-func volumeSources(app, service string, vs []string) []string {
+func (p *Provider) volumeSources(app, service string, vs []string) []string {
 	vsh := map[string]bool{}
 
 	for _, v := range vs {
-		vsh[volumeFrom(app, service, v)] = true
+		vsh[p.volumeFrom(app, service, v)] = true
 	}
 
 	vsu := []string{}
