@@ -96,6 +96,37 @@ func dnsUninstall(name string) error {
 	return nil
 }
 
+func networkSetup() error {
+	switch {
+	case helpers.FileExists("/etc/network/if-up.d"):
+		return networkSetupDebian()
+	case helpers.FileExists("/etc/NetworkManager/dispatcher.d"):
+		return networkSetupRedhat()
+	default:
+		return fmt.Errorf("unable to set up network")
+	}
+}
+
+func networkSetupDebian() error {
+	data := []byte("#!/bin/sh\niptables -P FORWARD ACCEPT\n")
+
+	if err := helpers.WriteFile("/etc/network/if-up.d/convox", data, 0755); err != nil {
+		return fmt.Errorf("unable to set up network")
+	}
+
+	return nil
+}
+
+func networkSetupRedhat() error {
+	data := []byte("#!/bin/sh\niptables -P FORWARD ACCEPT\n")
+
+	if err := helpers.WriteFile("/etc/NetworkManager/dispatcher.d/99-convox", data, 0755); err != nil {
+		return fmt.Errorf("unable to set up network")
+	}
+
+	return nil
+}
+
 func removeOriginalRack(name string) error {
 	exec.Command("systemctl", "stop", fmt.Sprintf("convox.%s", name))
 	os.Remove(fmt.Sprintf("/lib/systemd/system/convox.%s.service", name))
