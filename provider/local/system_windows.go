@@ -42,6 +42,10 @@ func dnsUninstall(name string) error {
 	return nil
 }
 
+func networkSetup() error {
+	return nil
+}
+
 func powershell(command string) ([]byte, error) {
 	return exec.Command("powershell.exe", "-Sta", "-NonInteractive", "-ExecutionPolicy", "RemoteSigned", command).CombinedOutput()
 }
