@@ -147,42 +147,20 @@ spec:
             {{ end }}
         volumeMounts:
         {{ range .Service.Volumes }}
-        - name: {{ volumeName (volumeFrom $.App.Name .) }}
+        - name: {{ volumeName $.App.Name (volumeFrom $.App.Name $.Service.Name .) }}
           mountPath: "{{ volumeTo . }}" 
         {{ end }}
       volumes:
-      {{ range (volumeSources $.App.Name .Service.Volumes) }}
-      - name: {{ volumeName . }}
+      {{ range (volumeSources $.App.Name .Service.Name .Service.Volumes) }}
+      - name: {{ volumeName $.App.Name . }}
         {{ if systemVolume . }}
         hostPath:
           path: "{{.}}"
         {{ else }}
         persistentVolumeClaim:
-          claimName: {{ volumeName . }}
+          claimName: {{ volumeName $.App.Name . }}
         {{ end }}
       {{ end }}
-{{ range (volumeSources $.App.Name .Service.Volumes) }}
-{{ if not (systemVolume .) }}
----
-kind: PersistentVolumeClaim
-apiVersion: v1
-metadata:
-  namespace: {{$.Namespace}}
-  name: {{ volumeName . }}
-  labels:
-    system: convox
-    rack: {{$.Rack}}
-    app: {{$.App.Name}}
-    service: {{$.Service.Name}}
-spec:
-  accessModes:
-  - ReadWriteMany
-  resources:
-    requests:
-      storage: 10Gi
-  storageClassName: hostpath
-{{ end }}
-{{ end }}
 ---
 apiVersion: autoscaling/v2beta1
 kind: HorizontalPodAutoscaler
