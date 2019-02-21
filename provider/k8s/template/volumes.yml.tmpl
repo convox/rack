@@ -1,24 +1,5 @@
 {{ range .Volumes }}
 ---
-kind: PersistentVolume
-apiVersion: v1
-metadata:
-  name: {{ volumeName $.App.Name . }}
-  labels:
-    system: convox
-    rack: {{$.Rack}}
-    app: {{$.App.Name}}
-    volume: {{ volumeName $.App.Name . }}
-spec:
-  storageClassName: convox
-  accessModes:
-  - ReadWriteMany
-  capacity:
-    storage: 10Gi
-  hostPath:
-    path: "{{.}}"
-  persistentVolumeReclaimPolicy: Delete
----
 kind: PersistentVolumeClaim
 apiVersion: v1
 metadata:
@@ -40,5 +21,4 @@ spec:
       rack: {{$.Rack}}
       app: {{$.App.Name}}
       volume: {{ volumeName $.App.Name . }}
-  storageClassName: convox
 {{ end }}

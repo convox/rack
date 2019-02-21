@@ -102,7 +102,7 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 	vsh := map[string]bool{}
 
 	for _, s := range m.Services {
-		for _, v := range volumeSources(app, s.Name, s.Volumes) {
+		for _, v := range p.volumeSources(app, s.Name, s.Volumes) {
 			if !systemVolume(v) {
 				vsh[v] = true
 			}

@@ -89,10 +89,10 @@ func (p *Provider) templateHelpers() template.FuncMap {
 			return strings.ToUpper(s)
 		},
 		"volumeFrom": func(app, service, v string) string {
-			return volumeFrom(app, service, v)
+			return p.volumeFrom(app, service, v)
 		},
 		"volumeSources": func(app, service string, vs []string) []string {
-			return volumeSources(app, service, vs)
+			return p.volumeSources(app, service, vs)
 		},
 		"volumeName": func(app, v string) string {
 			return p.volumeName(app, v)
