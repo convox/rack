@@ -218,26 +218,6 @@ func (m *Manifest) ValidateEnv() error {
 	return nil
 }
 
-// func (m *Manifest) Volumes() []string {
-// 	vsh := map[string]bool{}
-
-// 	for _, s := range m.Services {
-// 		for _, v := range s.Volumes {
-// 			vsh[v] = true
-// 		}
-// 	}
-
-// 	vs := []string{}
-
-// 	for v := range vsh {
-// 		vs = append(vs, v)
-// 	}
-
-// 	sort.Strings(vs)
-
-// 	return vs
-// }
-
 func (m *Manifest) ApplyDefaults() error {
 	for i, s := range m.Services {
 		if s.Build.Path == "" && s.Image == "" {
