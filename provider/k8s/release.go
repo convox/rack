@@ -99,15 +99,40 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 		}
 	}
 
+	vsh := map[string]bool{}
+
+	for _, s := range m.Services {
+		for _, v := range p.volumeSources(app, s.Name, s.Volumes) {
+			if !systemVolume(v) {
+				vsh[v] = true
+			}
+		}
+	}
+
+	vs := []string{}
+
+	for s := range vsh {
+		vs = append(vs, s)
+	}
+
 	params := map[string]interface{}{
 		"App":       a,
+		"Manifest":  m,
 		"Namespace": p.AppNamespace(a.Name),
 		"Rack":      p.Rack,
 		"Release":   r,
 		"Services":  sps,
+		"Volumes":   vs,
 	}
 
 	data, err := p.RenderTemplate("router", params)
+	if err != nil {
+		return err
+	}
+
+	items = append(items, data)
+
+	data, err = p.RenderTemplate("volumes", params)
 	if err != nil {
 		return err
 	}
@@ -197,11 +222,9 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 		items = append(items, data)
 	}
 
-	fmt.Println("updating")
-
 	tdata := bytes.Join(items, []byte("---\n"))
 
-	// fmt.Printf("string(tdata) = %+v\n", string(tdata))
+	fmt.Printf("string(tdata) = %+v\n", string(tdata))
 
 	out, err := p.Apply(tdata, fmt.Sprintf("system=convox,rack=%s,app=%s", p.Rack, app))
 	if err != nil {

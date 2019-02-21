@@ -88,14 +88,14 @@ func (p *Provider) templateHelpers() template.FuncMap {
 		"upper": func(s string) string {
 			return strings.ToUpper(s)
 		},
-		"volumeFrom": func(app, v string) string {
-			return volumeFrom(app, v)
+		"volumeFrom": func(app, service, v string) string {
+			return p.volumeFrom(app, service, v)
 		},
-		"volumeSources": func(app string, vs []string) []string {
-			return volumeSources(app, vs)
+		"volumeSources": func(app, service string, vs []string) []string {
+			return p.volumeSources(app, service, vs)
 		},
-		"volumeName": func(v string) string {
-			return volumeName(v)
+		"volumeName": func(app, v string) string {
+			return p.volumeName(app, v)
 		},
 		"volumeTo": func(v string) (string, error) {
 			return volumeTo(v)
