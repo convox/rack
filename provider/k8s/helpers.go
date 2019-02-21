@@ -271,24 +271,26 @@ func systemVolume(v string) bool {
 	return false
 }
 
-func volumeFrom(app, v string) string {
+func volumeFrom(app, service, v string) string {
 	if from := strings.Split(v, ":")[0]; systemVolume(from) {
 		return from
+	} else if strings.Contains(v, ":") {
+		return path.Join("/mnt/volumes", app, "app", from)
 	} else {
-		return path.Join("/mnt/volumes", app, from)
+		return path.Join("/mnt/volumes", app, "service", service, from)
 	}
 }
 
-func volumeName(v string) string {
+func (p *Provider) volumeName(app, v string) string {
 	hash := sha256.Sum256([]byte(v))
-	return fmt.Sprintf("volume-%x", hash[0:20])
+	return fmt.Sprintf("%s-%s-%x", p.Rack, app, hash[0:20])
 }
 
-func volumeSources(app string, vs []string) []string {
+func volumeSources(app, service string, vs []string) []string {
 	vsh := map[string]bool{}
 
 	for _, v := range vs {
-		vsh[volumeFrom(app, v)] = true
+		vsh[volumeFrom(app, service, v)] = true
 	}
 
 	vsu := []string{}
