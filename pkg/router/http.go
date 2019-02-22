@@ -58,11 +58,11 @@ func (h *HTTP) Serve() error {
 
 func (h *HTTP) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if h.Handler != nil {
-		h.Handler(w, r)
+		go h.Handler(w, r)
 		return
 	}
 
-	h.ServeRequest(w, r)
+	go h.ServeRequest(w, r)
 }
 
 func (h *HTTP) ServeRequest(w http.ResponseWriter, r *http.Request) {
