@@ -3,10 +3,8 @@ package router
 import (
 	"fmt"
 	"reflect"
-	"strings"
 	"time"
 
-	"github.com/convox/rack/pkg/helpers"
 	"github.com/convox/rack/provider/k8s"
 	ac "k8s.io/api/core/v1"
 	ae "k8s.io/api/extensions/v1beta1"
@@ -64,22 +62,20 @@ func (c *IngressController) Add(obj interface{}) error {
 	}
 
 	for _, r := range i.Spec.Rules {
-		c.Router.RackSet(r.Host, i.Labels["rack"])
+		for _, host := range ruleHosts(i, r) {
+			c.Router.RackSet(host, i.Labels["rack"])
 
-		host := r.Host
+			// if !strings.HasSuffix(host, ".") {
+			//   host = fmt.Sprintf("%s.%s.", host, helpers.CoalesceString(i.ObjectMeta.Annotations["convox.domain"], i.ObjectMeta.Labels["rack"]))
+			// }
 
-		if !strings.HasSuffix(host, ".") {
-			host = fmt.Sprintf("%s.%s.", host, helpers.CoalesceString(i.ObjectMeta.Annotations["convox.domain"], i.ObjectMeta.Labels["rack"]))
-		}
+			// host = strings.TrimSuffix(host, ".")
 
-		host = strings.TrimSuffix(host, ".")
-
-		for _, port := range r.IngressRuleValue.HTTP.Paths {
-			target := rulePathTarget(port, i.ObjectMeta)
-
-			c.Controller.Event(i, ac.EventTypeNormal, "TargetAdd", fmt.Sprintf("%s => %s", host, target))
-
-			c.Router.TargetAdd(host, target)
+			for _, port := range r.IngressRuleValue.HTTP.Paths {
+				target := rulePathTarget(port, i.ObjectMeta)
+				c.Controller.Event(i, ac.EventTypeNormal, "TargetAdd", fmt.Sprintf("%s => %s", host, target))
+				c.Router.TargetAdd(host, target)
+			}
 		}
 	}
 
@@ -97,10 +93,12 @@ func (c *IngressController) Delete(obj interface{}) error {
 	}
 
 	for _, r := range i.Spec.Rules {
-		for _, port := range r.IngressRuleValue.HTTP.Paths {
-			target := rulePathTarget(port, i.ObjectMeta)
-			c.Controller.Event(i, ac.EventTypeNormal, "TargetDelete", fmt.Sprintf("%s => %s", r.Host, target))
-			c.Router.TargetDelete(r.Host, rulePathTarget(port, i.ObjectMeta))
+		for _, host := range ruleHosts(i, r) {
+			for _, port := range r.IngressRuleValue.HTTP.Paths {
+				target := rulePathTarget(port, i.ObjectMeta)
+				c.Controller.Event(i, ac.EventTypeNormal, "TargetDelete", fmt.Sprintf("%s => %s", host, target))
+				c.Router.TargetDelete(host, rulePathTarget(port, i.ObjectMeta))
+			}
 		}
 	}
 
@@ -156,6 +154,13 @@ func assertIngress(v interface{}) (*ae.Ingress, error) {
 	}
 
 	return i, nil
+}
+
+func ruleHosts(i *ae.Ingress, r ae.IngressRule) []string {
+	return []string{
+		fmt.Sprintf("%s.%s", r.Host, i.Labels["rack"]),
+		fmt.Sprintf("%s.%s.convox", r.Host, i.Labels["rack"]),
+	}
 }
 
 func rulePathTarget(port ae.HTTPIngressPath, meta am.ObjectMeta) string {
