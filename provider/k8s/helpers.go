@@ -283,7 +283,11 @@ func (p *Provider) volumeFrom(app, service, v string) string {
 
 func (p *Provider) volumeName(app, v string) string {
 	hash := sha256.Sum256([]byte(v))
-	return fmt.Sprintf("%s-%s-%x", p.Rack, app, hash[0:20])
+	name := fmt.Sprintf("%s-%s-%x", p.Rack, app, hash[0:20])
+	if len(name) > 63 {
+		name = name[0:62]
+	}
+	return name
 }
 
 func (p *Provider) volumeSources(app, service string, vs []string) []string {
