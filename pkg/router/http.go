@@ -7,7 +7,6 @@ import (
 	"net"
 	"net/http"
 	"net/url"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -16,44 +15,74 @@ import (
 	"github.com/miekg/dns"
 )
 
-type HTTP struct {
-	Client  *http.Client
-	Handler http.HandlerFunc
-	Port    int
-	Router  *Router
-	Scheme  string
+type TargetRouter interface {
+	Certificate(host string) (*tls.Certificate, error)
+	Route(host string) (string, error)
 }
 
-func NewHTTP(r *Router, scheme string, port int) (*HTTP, error) {
+type HTTP struct {
+	Handler http.HandlerFunc
+
+	client   *http.Client
+	listener net.Listener
+	port     int
+	router   TargetRouter
+	scheme   string
+}
+
+func NewHTTP(scheme string, port int, router TargetRouter) (*HTTP, error) {
 	h := &HTTP{
-		Client: &http.Client{
+		client: &http.Client{
 			CheckRedirect: func(r *http.Request, via []*http.Request) error { return http.ErrUseLastResponse },
 			Transport:     defaultTransport(),
 		},
-		Router: r,
-		Port:   port,
-		Scheme: scheme,
+		router: router,
+		port:   port,
+		scheme: scheme,
 	}
+
+	var ln net.Listener
+	var err error
+
+	switch h.scheme {
+	case "http":
+		ln, err = net.Listen("tcp", fmt.Sprintf(":%d", h.port))
+		if err != nil {
+			return nil, err
+		}
+	case "https":
+		ln, err = tls.Listen("tcp", fmt.Sprintf(":%d", h.port), &tls.Config{
+			GetCertificate: h.generateCertificate,
+		})
+	default:
+		return nil, fmt.Errorf("unknown scheme: %s", h.scheme)
+	}
+
+	h.listener = ln
 
 	return h, nil
 }
 
-func (h *HTTP) Serve() error {
-	ln, err := net.Listen("tcp", fmt.Sprintf(":%d", h.Port))
+func (h *HTTP) Close() error {
+	if h.listener == nil {
+		return nil
+	}
+
+	return h.listener.Close()
+}
+
+func (h *HTTP) Port() (string, error) {
+	_, port, err := net.SplitHostPort(h.listener.Addr().String())
 	if err != nil {
-		return err
+		return "", err
 	}
 
-	switch h.Scheme {
-	case "https":
-		ln = tls.NewListener(ln, &tls.Config{
-			GetCertificate: h.generateCertificate,
-		})
-	}
+	return port, nil
+}
 
+func (h *HTTP) Serve() error {
 	s := &http.Server{Handler: h}
-
-	return s.Serve(ln)
+	return s.Serve(h.listener)
 }
 
 func (h *HTTP) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -66,9 +95,9 @@ func (h *HTTP) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *HTTP) ServeRequest(w http.ResponseWriter, r *http.Request) {
-	target := h.Router.TargetRandom(r.Host)
-	if target == "" {
-		http.Error(w, "no backends available", 502)
+	target, err := h.router.Route(r.Host)
+	if err != nil {
+		http.Error(w, err.Error(), 502)
 		return
 	}
 
@@ -76,9 +105,6 @@ func (h *HTTP) ServeRequest(w http.ResponseWriter, r *http.Request) {
 		h.serveWebsocket(w, r, target)
 		return
 	}
-
-	h.Router.HostBegin(r.Host)
-	defer h.Router.HostEnd(r.Host)
 
 	fmt.Printf("ns=convox.router at=route host=%q method=%q path=%q\n", r.Host, r.Method, r.RequestURI)
 
@@ -99,19 +125,25 @@ func (h *HTTP) ServeRequest(w http.ResponseWriter, r *http.Request) {
 
 	req.Header.Add("X-Forwarded-For", r.RemoteAddr)
 
+	port, err := h.Port()
+	if err != nil {
+		http.Error(w, err.Error(), 502)
+		return
+	}
+
 	if v := req.Header.Get("X-Forwarded-Port"); v != "" {
 		req.Header.Set("X-Forwarded-Port", v)
 	} else {
-		req.Header.Set("X-Forwarded-Port", strconv.Itoa(h.Port))
+		req.Header.Set("X-Forwarded-Port", port)
 	}
 
 	if v := req.Header.Get("X-Forwarded-Proto"); v != "" {
 		req.Header.Set("X-Forwarded-Proto", v)
 	} else {
-		req.Header.Set("X-Forwarded-Proto", h.Scheme)
+		req.Header.Set("X-Forwarded-Proto", h.scheme)
 	}
 
-	res, err := h.Client.Do(req)
+	res, err := h.client.Do(req)
 	if err != nil {
 		http.Error(w, err.Error(), 502)
 		return
@@ -134,7 +166,7 @@ func (h *HTTP) ServeRequest(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *HTTP) generateCertificate(hello *tls.ClientHelloInfo) (*tls.Certificate, error) {
-	return h.Router.generateCertificate(hello.ServerName)
+	return h.router.Certificate(hello.ServerName)
 }
 
 var upgrader = websocket.Upgrader{ReadBufferSize: 10 * 1024, WriteBufferSize: 10 * 1024}
@@ -175,9 +207,6 @@ func websocketCopy(wsw, wsr *websocket.Conn, wg *sync.WaitGroup) {
 }
 
 func (h *HTTP) serveWebsocket(w http.ResponseWriter, r *http.Request, target string) {
-	h.Router.HostBegin(r.Host)
-	defer h.Router.HostEnd(r.Host)
-
 	fmt.Printf("ns=convox.router at=websocket host=%q path=%q\n", r.Host, r.RequestURI)
 
 	in, err := upgrader.Upgrade(w, r, nil)
@@ -205,16 +234,22 @@ func (h *HTTP) serveWebsocket(w http.ResponseWriter, r *http.Request, target str
 	r.Header.Set("Origin", target)
 	r.Header.Add("X-Forwarded-For", r.RemoteAddr)
 
+	port, err := h.Port()
+	if err != nil {
+		http.Error(w, err.Error(), 502)
+		return
+	}
+
 	if v := r.Header.Get("X-Forwarded-Port"); v != "" {
 		r.Header.Set("X-Forwarded-Port", v)
 	} else {
-		r.Header.Set("X-Forwarded-Port", strconv.Itoa(h.Port))
+		r.Header.Set("X-Forwarded-Port", port)
 	}
 
 	if v := r.Header.Get("X-Forwarded-Proto"); v != "" {
 		r.Header.Set("X-Forwarded-Proto", v)
 	} else {
-		r.Header.Set("X-Forwarded-Proto", h.Scheme)
+		r.Header.Set("X-Forwarded-Proto", h.scheme)
 	}
 
 	r.Header.Del("Connection")
