@@ -1,6 +1,6 @@
 ## development #################################################################
 
-FROM golang:1.11 AS development
+FROM golang:1.12 AS development
 
 RUN curl -s https://download.docker.com/linux/static/stable/x86_64/docker-18.03.1-ce.tgz | \
     tar -C /usr/bin --strip-components 1 -xz
@@ -25,7 +25,7 @@ CMD ["bin/web"]
 
 ## package #####################################################################
 
-FROM golang:1.11 AS package
+FROM golang:1.12 AS package
 
 RUN apt-get update && apt-get -y install upx-ucl
 

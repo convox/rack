@@ -13,6 +13,7 @@ import (
 	"math/big"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -25,7 +26,7 @@ func TestNoHost(t *testing.T) {
 	r := testRouter{}
 
 	testHTTP(t, r, func(h *router.HTTP) {
-		res, err := testRequest(h, "GET", "test.convox", nil)
+		res, err := testRequest(h, "GET", "test.convox", nil, nil)
 		require.NoError(t, err)
 		defer res.Body.Close()
 
@@ -37,7 +38,7 @@ func TestNoHost(t *testing.T) {
 	})
 }
 
-func TestRequestValid(t *testing.T) {
+func TestRequest(t *testing.T) {
 	r := testRouter{}
 
 	testHTTP(t, r, func(h *router.HTTP) {
@@ -45,6 +46,7 @@ func TestRequestValid(t *testing.T) {
 		require.NoError(t, err)
 
 		s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			require.Equal(t, "convox/router-test", r.Header.Get("User-Agent"))
 			require.NotEmpty(t, r.Header.Get("X-Forwarded-For"))
 			require.Equal(t, port, r.Header.Get("X-Forwarded-Port"))
 			require.Equal(t, "https", r.Header.Get("X-Forwarded-Proto"))
@@ -53,7 +55,122 @@ func TestRequestValid(t *testing.T) {
 
 		r["test.convox"] = s.URL
 
-		res, err := testRequest(h, "GET", "test.convox", nil)
+		res, err := testRequest(h, "GET", "test.convox", nil, nil)
+		require.NoError(t, err)
+		defer res.Body.Close()
+
+		require.Equal(t, 200, res.StatusCode)
+
+		data, err := ioutil.ReadAll(res.Body)
+		require.NoError(t, err)
+		require.Equal(t, []byte("valid"), data)
+	})
+}
+
+func TestRequestError(t *testing.T) {
+	r := testRouter{}
+
+	testHTTP(t, r, func(h *router.HTTP) {
+		r["test.convox"] = "://invalid"
+
+		res, err := testRequest(h, "GET", "test.convox", nil, nil)
+		require.NoError(t, err)
+		defer res.Body.Close()
+
+		require.Equal(t, 502, res.StatusCode)
+
+		data, err := ioutil.ReadAll(res.Body)
+		require.NoError(t, err)
+		require.Equal(t, []byte("invalid target: ://invalid\n"), data)
+	})
+}
+
+func TestRequestHTTPS(t *testing.T) {
+	r := testRouter{}
+
+	testHTTP(t, r, func(h *router.HTTP) {
+		port, err := h.Port()
+		require.NoError(t, err)
+
+		s := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			require.Equal(t, "convox/router-test", r.Header.Get("User-Agent"))
+			require.NotEmpty(t, r.Header.Get("X-Forwarded-For"))
+			require.Equal(t, port, r.Header.Get("X-Forwarded-Port"))
+			require.Equal(t, "https", r.Header.Get("X-Forwarded-Proto"))
+			fmt.Fprintf(w, "valid")
+		}))
+
+		r["test.convox"] = s.URL
+
+		res, err := testRequest(h, "GET", "test.convox", nil, nil)
+		require.NoError(t, err)
+		defer res.Body.Close()
+
+		require.Equal(t, 200, res.StatusCode)
+
+		data, err := ioutil.ReadAll(res.Body)
+		require.NoError(t, err)
+		require.Equal(t, []byte("valid"), data)
+	})
+}
+
+func TestRequestPost(t *testing.T) {
+	r := testRouter{}
+
+	testHTTP(t, r, func(h *router.HTTP) {
+		port, err := h.Port()
+		require.NoError(t, err)
+
+		s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			require.Equal(t, "convox/router-test", r.Header.Get("User-Agent"))
+
+			require.NotEmpty(t, r.Header.Get("X-Forwarded-For"))
+			require.Equal(t, port, r.Header.Get("X-Forwarded-Port"))
+			require.Equal(t, "https", r.Header.Get("X-Forwarded-Proto"))
+
+			require.Equal(t, "7", r.Header.Get("Content-Length"))
+
+			data, err := ioutil.ReadAll(r.Body)
+			require.NoError(t, err)
+			require.Equal(t, []byte("foo=bar"), data)
+
+			fmt.Fprintf(w, "valid")
+		}))
+
+		r["test.convox"] = s.URL
+
+		res, err := testRequest(h, "POST", "test.convox", strings.NewReader("foo=bar"), nil)
+		require.NoError(t, err)
+		defer res.Body.Close()
+
+		require.Equal(t, 200, res.StatusCode)
+
+		data, err := ioutil.ReadAll(res.Body)
+		require.NoError(t, err)
+		require.Equal(t, []byte("valid"), data)
+	})
+}
+
+func TestRequestExistingForwardHeaders(t *testing.T) {
+	r := testRouter{}
+
+	testHTTP(t, r, func(h *router.HTTP) {
+		s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			require.Equal(t, "convox/router-test", r.Header.Get("User-Agent"))
+			require.NotEmpty(t, r.Header.Get("X-Forwarded-For"))
+			require.Equal(t, "5000", r.Header.Get("X-Forwarded-Port"))
+			require.Equal(t, "foo", r.Header.Get("X-Forwarded-Proto"))
+			fmt.Fprintf(w, "valid")
+		}))
+
+		r["test.convox"] = s.URL
+
+		hs := http.Header{}
+
+		hs.Set("X-Forwarded-Port", "5000")
+		hs.Set("X-Forwarded-Proto", "foo")
+
+		res, err := testRequest(h, "GET", "test.convox", nil, hs)
 		require.NoError(t, err)
 		defer res.Body.Close()
 
@@ -75,11 +192,13 @@ func TestRequestRedirect(t *testing.T) {
 		s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			switch r.URL.Path {
 			case "/":
+				require.Equal(t, "convox/router-test", r.Header.Get("User-Agent"))
 				require.NotEmpty(t, r.Header.Get("X-Forwarded-For"))
 				require.Equal(t, port, r.Header.Get("X-Forwarded-Port"))
 				require.Equal(t, "https", r.Header.Get("X-Forwarded-Proto"))
 				http.Redirect(w, r, "/redirect", 301)
 			case "/redirect":
+				require.Equal(t, "convox/router-test", r.Header.Get("User-Agent"))
 				require.NotEmpty(t, r.Header.Get("X-Forwarded-For"))
 				require.Equal(t, port, r.Header.Get("X-Forwarded-Port"))
 				require.Equal(t, "https", r.Header.Get("X-Forwarded-Proto"))
@@ -91,7 +210,7 @@ func TestRequestRedirect(t *testing.T) {
 
 		r["test.convox"] = s.URL
 
-		res, err := testRequest(h, "GET", "test.convox", nil)
+		res, err := testRequest(h, "GET", "test.convox", nil, nil)
 		require.NoError(t, err)
 		defer res.Body.Close()
 
@@ -111,6 +230,7 @@ func TestRequestWebsocket(t *testing.T) {
 		require.NoError(t, err)
 
 		s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			require.Equal(t, "convox/router-test", r.Header.Get("User-Agent"))
 			require.NotEmpty(t, r.Header.Get("X-Forwarded-For"))
 			require.Equal(t, port, r.Header.Get("X-Forwarded-Port"))
 			require.Equal(t, "https", r.Header.Get("X-Forwarded-Proto"))
@@ -145,14 +265,14 @@ func TestRequestWebsocket(t *testing.T) {
 }
 
 func testHTTP(t *testing.T, r testRouter, fn func(h *router.HTTP)) {
-	h, err := router.NewHTTP("https", 0, r)
+	h, err := router.NewHTTP(0, r)
 	require.NoError(t, err)
 	defer h.Close()
-	go h.Serve()
+	go h.ListenAndServe()
 	fn(h)
 }
 
-func testRequest(h *router.HTTP, method, host string, body io.Reader) (*http.Response, error) {
+func testRequest(h *router.HTTP, method, host string, body io.Reader, headers http.Header) (*http.Response, error) {
 	port, err := h.Port()
 	if err != nil {
 		return nil, err
@@ -174,6 +294,16 @@ func testRequest(h *router.HTTP, method, host string, body io.Reader) (*http.Res
 
 	req.Host = host
 
+	req.Header.Set("User-Agent", "convox/router-test")
+
+	if headers != nil {
+		for k, vs := range headers {
+			for _, v := range vs {
+				req.Header.Add(k, v)
+			}
+		}
+	}
+
 	return c.Do(req)
 }
 
@@ -191,7 +321,9 @@ func testWebsocket(h *router.HTTP, host, path string) (*websocket.Conn, error) {
 	}
 
 	hs := http.Header{}
+
 	hs.Set("Host", host)
+	hs.Set("User-Agent", "convox/router-test")
 
 	c, _, err := d.Dial(fmt.Sprintf("wss://localhost:%s%s", port, path), hs)
 	if err != nil {
