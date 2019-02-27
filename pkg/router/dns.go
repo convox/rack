@@ -69,7 +69,7 @@ func NewDNS(r *Router) (*DNS, error) {
 	return d, nil
 }
 
-func (d *DNS) Serve() error {
+func (d *DNS) ListenAndServe() error {
 	return d.server.ListenAndServe()
 }
 

@@ -28,9 +28,9 @@ var (
 
 type Router struct {
 	Cluster  kubernetes.Interface
-	DNS      *DNS
-	HTTP     *HTTP
-	HTTPS    *HTTP
+	DNS      Server
+	HTTP     Server
+	HTTPS    Server
 	IP       string
 	activity map[string]time.Time
 	active   map[string]int
@@ -40,7 +40,7 @@ type Router struct {
 }
 
 type Server interface {
-	Serve() error
+	ListenAndServe() error
 }
 
 func init() {
@@ -71,17 +71,19 @@ func New() (*Router, error) {
 		return nil, err
 	}
 
-	http, err := NewHTTP("http", 80, r)
+	// http, err := NewHTTP("http", 80, r)
+	// if err != nil {
+	//   return nil, err
+	// }
+
+	// http.Handler = redirectHTTPS(http.ServeRequest)
+
+	https, err := NewHTTP(443, r)
 	if err != nil {
 		return nil, err
 	}
 
-	http.Handler = redirectHTTPS(http.ServeRequest)
-
-	https, err := NewHTTP("https", 443, r)
-	if err != nil {
-		return nil, err
-	}
+	http := &http.Server{Addr: ":80", Handler: redirectHTTPS(https.ServeRequest)}
 
 	r.Cluster = kc
 	r.DNS = dns
@@ -368,5 +370,5 @@ func redirectHTTPS(fn http.HandlerFunc) http.HandlerFunc {
 }
 
 func serve(ch chan error, s Server) {
-	ch <- s.Serve()
+	ch <- s.ListenAndServe()
 }
