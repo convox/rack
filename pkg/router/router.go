@@ -71,14 +71,14 @@ func New() (*Router, error) {
 		return nil, err
 	}
 
-	http, err := NewHTTP(r, "http", 80)
+	http, err := NewHTTP("http", 80, r)
 	if err != nil {
 		return nil, err
 	}
 
 	http.Handler = redirectHTTPS(http.ServeRequest)
 
-	https, err := NewHTTP(r, "https", 443)
+	https, err := NewHTTP("https", 443, r)
 	if err != nil {
 		return nil, err
 	}
@@ -249,6 +249,30 @@ func (r *Router) RackSet(host, rack string) {
 	r.racks[host] = rack
 }
 
+func (r *Router) Route(host string) (string, error) {
+	targetLock.Lock()
+	defer targetLock.Unlock()
+
+	if r.routes[host] == nil {
+		return "", fmt.Errorf("unknown host")
+	}
+
+	if len(r.routes[host]) == 0 {
+		return "", fmt.Errorf("no backends available")
+	}
+
+	r.HostBegin(host)
+	defer r.HostEnd(host)
+
+	targets := []string{}
+
+	for target := range r.routes[host] {
+		targets = append(targets, target)
+	}
+
+	return targets[rand.Intn(len(targets))], nil
+}
+
 func (r *Router) TargetAdd(host, target string) {
 	targetLock.Lock()
 	defer targetLock.Unlock()
@@ -291,23 +315,6 @@ func (r *Router) TargetDelete(host, target string) {
 	if r.routes[host] != nil {
 		delete(r.routes[host], target)
 	}
-}
-
-func (r *Router) TargetRandom(host string) string {
-	targetLock.Lock()
-	defer targetLock.Unlock()
-
-	if r.routes[host] == nil || len(r.routes[host]) == 0 {
-		return ""
-	}
-
-	targets := []string{}
-
-	for target := range r.routes[host] {
-		targets = append(targets, target)
-	}
-
-	return targets[rand.Intn(len(targets))]
 }
 
 func (r *Router) idleTicker() {
