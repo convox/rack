@@ -290,7 +290,7 @@ func (p *Provider) podSpecFromService(app, service, release string) (*ac.PodSpec
 				env[fmt.Sprintf("%s_URL", envName(r))] = cm.Data["URL"]
 			}
 
-			repo, _, err := p.Engine.AppRepository(app)
+			repo, _, err := p.Engine.RepositoryHost(app)
 			if err != nil {
 				return nil, err
 			}

@@ -62,7 +62,7 @@ func (p *Provider) templateHelpers() template.FuncMap {
 			return p.Engine.ServiceHost(app, service)
 		},
 		"image": func(a *structs.App, s manifest.Service, r *structs.Release) (string, error) {
-			repo, _, err := p.Engine.AppRepository(a.Name)
+			repo, _, err := p.Engine.RepositoryHost(a.Name)
 			if err != nil {
 				return "", err
 			}
