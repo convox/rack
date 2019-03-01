@@ -391,6 +391,14 @@ func processFromPod(pd ac.Pod) (*structs.Process, error) {
 		status = "complete"
 	}
 
+	if cds := pd.Status.Conditions; len(cds) > 0 {
+		for _, cd := range cds {
+			if cd.Type == "Ready" && cd.Status == "False" {
+				status = "unhealthy"
+			}
+		}
+	}
+
 	if css := pd.Status.ContainerStatuses; len(css) > 0 && css[0].Name == "main" {
 		if cs := css[0]; cs.State.Waiting != nil {
 			switch cs.State.Waiting.Reason {
