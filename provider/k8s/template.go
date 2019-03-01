@@ -37,13 +37,10 @@ type envItem struct {
 
 func (p *Provider) templateHelpers() template.FuncMap {
 	return template.FuncMap{
-		"domain_external_base": func() string {
-			return p.Engine.DomainExternalBase()
-		},
 		"domains": func(app string, s manifest.Service) []string {
 			ds := []string{
-				p.Engine.DomainExternal(app, s.Name),
-				p.Engine.DomainInternal(app, s.Name),
+				p.Engine.ServiceHost(app, s),
+				fmt.Sprintf("%s.%s.%s.convox", s.Name, app, p.Rack),
 			}
 			for _, d := range s.Domains {
 				ds = append(ds, d)
@@ -94,6 +91,9 @@ func (p *Provider) templateHelpers() template.FuncMap {
 			}
 			sort.Strings(ks)
 			return ks
+		},
+		"systemHost": func() string {
+			return p.Engine.SystemHost()
 		},
 		"systemVolume": func(v string) bool {
 			return systemVolume(v)

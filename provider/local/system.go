@@ -26,6 +26,10 @@ import (
 	am "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+func (p *Provider) SystemHost() string {
+	return fmt.Sprintf("rack.%s", p.Rack)
+}
+
 func (p *Provider) SystemInstall(w io.Writer, opts structs.SystemInstallOptions) (string, error) {
 	if err := checkKubectl(); err != nil {
 		return "", err

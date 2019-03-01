@@ -19,6 +19,11 @@ func (p *Provider) ServiceList(app string) (structs.Services, error) {
 		return nil, err
 	}
 
+	m, _, err := helpers.AppManifest(p, app)
+	if err != nil {
+		return nil, err
+	}
+
 	ss := structs.Services{}
 
 	for _, d := range ds.Items {
@@ -43,7 +48,12 @@ func (p *Provider) ServiceList(app string) (structs.Services, error) {
 			//   return nil, err
 			// }
 
-			s.Domain = p.Engine.DomainExternal(app, d.ObjectMeta.Name)
+			ms, err := m.Service(d.ObjectMeta.Name)
+			if err != nil {
+				return nil, err
+			}
+
+			s.Domain = p.Engine.ServiceHost(app, *ms)
 
 			// s.Domain = fmt.Sprintf("%s.%s", p.Engine.ServiceHost(app, s.Name), helpers.CoalesceString(i.Annotations["convox.domain"], i.Labels["rack"]))
 
