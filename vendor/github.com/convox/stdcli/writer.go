@@ -62,11 +62,7 @@ func (w *Writer) Sprintf(format string, args ...interface{}) string {
 }
 
 func (w *Writer) Write(data []byte) (int, error) {
-	if _, err := w.Stdout.Write([]byte(w.renderTags(string(data)))); err != nil {
-		return len(data), err
-	}
-
-	return len(data), nil
+	return w.Stdout.Write([]byte(w.renderTags(string(data))))
 }
 
 func (w *Writer) Writef(format string, args ...interface{}) (int, error) {
