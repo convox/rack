@@ -232,6 +232,34 @@ func (v *ServicePort) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	}
 
 	switch t := w.(type) {
+	case map[interface{}]interface{}:
+		switch u := t["port"].(type) {
+		case int:
+			v.Port = u
+		case string:
+			ps := strings.Split(u, ":")
+			pp := ps[0]
+			if len(ps) > 1 {
+				v.Scheme = ps[0]
+				pp = ps[1]
+			}
+			pi, err := strconv.Atoi(pp)
+			if err != nil {
+				return err
+			}
+			v.Port = pi
+		case nil:
+		default:
+			return fmt.Errorf("could not parse port: %s", t)
+		}
+
+		if scheme := t["scheme"]; scheme != nil {
+			v.Scheme = scheme.(string)
+		}
+
+		if v.Port == 0 {
+			return fmt.Errorf("could not parse port: %+v", t)
+		}
 	case string:
 		ps := strings.Split(t, ":")
 		pp := ps[0]

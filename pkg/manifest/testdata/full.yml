@@ -45,7 +45,9 @@ services:
     health:
       grace: 2
       timeout: 3
-    port: https:3000
+    port:
+      scheme: https
+      port: 3000
     scale: 0
     singleton: true
     sticky: false
