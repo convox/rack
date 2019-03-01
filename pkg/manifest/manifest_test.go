@@ -46,7 +46,7 @@ func TestManifestLoad(t *testing.T) {
 					Timeout:  9,
 				},
 				Init:      true,
-				Port:      manifest.ServicePort{Port: 1000, Protocol: "tcp", Scheme: "http"},
+				Port:      manifest.ServicePort{Port: 1000, Scheme: "http"},
 				Resources: []string{"database"},
 				Scale: manifest.ServiceScale{
 					Count:  manifest.ServiceScaleCount{Min: 3, Max: 10},
@@ -71,7 +71,7 @@ func TestManifestLoad(t *testing.T) {
 				Environment: []string{
 					"SECRET",
 				},
-				Port: manifest.ServicePort{Port: 2000, Protocol: "tcp", Scheme: "https"},
+				Port: manifest.ServicePort{Port: 2000, Scheme: "https"},
 				Scale: manifest.ServiceScale{
 					Count:  manifest.ServiceScaleCount{Min: 1, Max: 1},
 					Cpu:    512,
@@ -94,7 +94,7 @@ func TestManifestLoad(t *testing.T) {
 					Path:     "/",
 					Timeout:  3,
 				},
-				Port: manifest.ServicePort{Port: 3000, Protocol: "tcp", Scheme: "https"},
+				Port: manifest.ServicePort{Port: 3000, Scheme: "https"},
 				Scale: manifest.ServiceScale{
 					Count:  manifest.ServiceScaleCount{Min: 0, Max: 0},
 					Cpu:    256,
@@ -174,7 +174,7 @@ func TestManifestLoad(t *testing.T) {
 				Environment: []string{
 					"SECRET",
 				},
-				Port: manifest.ServicePort{Port: 2000, Protocol: "tcp", Scheme: "https"},
+				Port: manifest.ServicePort{Port: 2000, Scheme: "https"},
 				Scale: manifest.ServiceScale{
 					Count:  manifest.ServiceScaleCount{Min: 1, Max: 1},
 					Cpu:    512,
@@ -186,10 +186,10 @@ func TestManifestLoad(t *testing.T) {
 				Name: "agent",
 				Agent: manifest.ServiceAgent{
 					Enabled: true,
-					Ports: []manifest.ServicePort{
-						{Port: 5000, Protocol: "udp", Scheme: "http"},
-						{Port: 5001, Protocol: "tcp", Scheme: "http"},
-						{Port: 5002, Protocol: "tcp", Scheme: "http"},
+					Ports: []manifest.ServiceAgentPort{
+						{Port: 5000, Protocol: "udp"},
+						{Port: 5001, Protocol: "tcp"},
+						{Port: 5002, Protocol: "tcp"},
 					},
 				},
 				Build: manifest.ServiceBuild{
@@ -246,8 +246,6 @@ func TestManifestLoad(t *testing.T) {
 		"services.foo.health.grace",
 		"services.foo.health.timeout",
 		"services.foo.port",
-		"services.foo.port.port",
-		"services.foo.port.scheme",
 		"services.foo.scale",
 		"services.foo.singleton",
 		"services.foo.sticky",
