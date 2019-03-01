@@ -8,6 +8,7 @@ type Build struct {
 	Id          string `json:"id"`
 	App         string `json:"app"`
 	Description string `json:"description"`
+	Entrypoint  string `json:"entrypoint"`
 	Logs        string `json:"logs"`
 	Manifest    string `json:"manifest"`
 	Process     string `json:"process"`
@@ -35,12 +36,13 @@ type BuildListOptions struct {
 }
 
 type BuildUpdateOptions struct {
-	Ended    *time.Time `param:"ended"`
-	Logs     *string    `param:"logs"`
-	Manifest *string    `param:"manifest"`
-	Release  *string    `param:"release"`
-	Started  *time.Time `param:"started"`
-	Status   *string    `param:"status"`
+	Ended      *time.Time `param:"ended"`
+	Entrypoint *string    `param:"entrypoint"`
+	Logs       *string    `param:"logs"`
+	Manifest   *string    `param:"manifest"`
+	Release    *string    `param:"release"`
+	Started    *time.Time `param:"started"`
+	Status     *string    `param:"status"`
 }
 
 func NewBuild(app string) *Build {

@@ -423,6 +423,10 @@ func (p *Provider) BuildUpdate(app, id string, opts structs.BuildUpdateOptions) 
 		b.Ended = *opts.Ended
 	}
 
+	if opts.Entrypoint != nil {
+		b.Entrypoint = *opts.Entrypoint
+	}
+
 	if opts.Logs != nil {
 		b.Logs = *opts.Logs
 	}
@@ -554,6 +558,7 @@ func (p *Provider) buildMarshal(b *structs.Build) *ca.Build {
 		Spec: ca.BuildSpec{
 			Description: b.Description,
 			Ended:       b.Ended.UTC().Format(helpers.SortableTime),
+			Entrypoint:  b.Entrypoint,
 			Logs:        b.Logs,
 			Manifest:    b.Manifest,
 			Process:     b.Process,
@@ -579,6 +584,7 @@ func (p *Provider) buildUnmarshal(kb *ca.Build) (*structs.Build, error) {
 		App:         kb.ObjectMeta.Labels["app"],
 		Description: kb.Spec.Description,
 		Ended:       ended,
+		Entrypoint:  kb.Spec.Entrypoint,
 		Id:          strings.ToUpper(kb.ObjectMeta.Name),
 		Logs:        kb.Spec.Logs,
 		Manifest:    kb.Spec.Manifest,
