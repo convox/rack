@@ -8,6 +8,10 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/convox/rack/pkg/options"
+	"github.com/convox/rack/pkg/structs"
+	shellquote "github.com/kballard/go-shellquote"
 )
 
 func (bb *Build) build(path, dockerfile string, tag string, env map[string]string) error {
@@ -37,6 +41,27 @@ func (bb *Build) build(path, dockerfile string, tag string, env map[string]strin
 
 	if err := bb.Exec.Run(bb.writer, "docker", args...); err != nil {
 		return err
+	}
+
+	data, err := bb.Exec.Execute("docker", "inspect", tag, "--format", "{{json .Config.Entrypoint}}")
+	if err != nil {
+		return err
+	}
+
+	var ep []string
+
+	if err := json.Unmarshal(data, &ep); err != nil {
+		return err
+	}
+
+	if ep != nil {
+		opts := structs.BuildUpdateOptions{
+			Entrypoint: options.String(shellquote.Join(ep...)),
+		}
+
+		if _, err := bb.Provider.BuildUpdate(bb.App, bb.Id, opts); err != nil {
+			return err
+		}
 	}
 
 	return nil

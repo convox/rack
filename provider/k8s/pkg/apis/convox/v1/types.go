@@ -18,6 +18,7 @@ type Build struct {
 type BuildSpec struct {
 	Description string `json:"description"`
 	Ended       string `json:"ended"`
+	Entrypoint  string `json:"entrypoint"`
 	Logs        string `json:"logs"`
 	Manifest    string `json:"manifest"`
 	Process     string `json:"process"`

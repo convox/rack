@@ -119,7 +119,7 @@ func (c *FakeReleases) DeleteCollection(options *v1.DeleteOptions, listOptions v
 // Patch applies the patch and returns the patched release.
 func (c *FakeReleases) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *convoxv1.Release, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewPatchSubresourceAction(releasesResource, c.ns, name, data, subresources...), &convoxv1.Release{})
+		Invokes(testing.NewPatchSubresourceAction(releasesResource, c.ns, name, pt, data, subresources...), &convoxv1.Release{})
 
 	if obj == nil {
 		return nil, err
