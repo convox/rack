@@ -257,9 +257,9 @@ metadata:
 spec:
   tls:
   - hosts:
-    - rack.{{domain_external_base}}
+    - {{systemHost}}
   rules:
-    - host: rack.{{domain_external_base}}
+    - host: {{systemHost}}
       http:
         paths:
         - backend:
