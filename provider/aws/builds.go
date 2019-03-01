@@ -555,6 +555,10 @@ func (p *Provider) BuildUpdate(app, id string, opts structs.BuildUpdateOptions) 
 		b.Ended = *opts.Ended
 	}
 
+	if opts.Entrypoint != nil {
+		b.Entrypoint = *opts.Entrypoint
+	}
+
 	if opts.Logs != nil {
 		b.Logs = *opts.Logs
 	}
@@ -613,6 +617,10 @@ func (p *Provider) buildSave(b *structs.Build) error {
 
 	if b.Description != "" {
 		req.Item["description"] = &dynamodb.AttributeValue{S: aws.String(b.Description)}
+	}
+
+	if b.Entrypoint != "" {
+		req.Item["entrypoint"] = &dynamodb.AttributeValue{S: aws.String(b.Entrypoint)}
 	}
 
 	if b.Manifest != "" {
@@ -960,6 +968,7 @@ func (p *Provider) buildFromItem(item map[string]*dynamodb.AttributeValue) *stru
 		Id:          id,
 		App:         coalesce(item["app"], ""),
 		Description: coalesce(item["description"], ""),
+		Entrypoint:  coalesce(item["entrypoint"], ""),
 		Manifest:    coalesce(item["manifest"], ""),
 		Logs:        coalesce(item["logs"], ""),
 		Release:     coalesce(item["release"], ""),

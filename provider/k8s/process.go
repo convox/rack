@@ -24,6 +24,32 @@ func (p *Provider) ProcessExec(app, pid, command string, rw io.ReadWriter, opts 
 		return 0, err
 	}
 
+	if helpers.DefaultBool(opts.Entrypoint, false) {
+		ps, err := p.ProcessGet(app, pid)
+		if err != nil {
+			return 0, err
+		}
+
+		r, err := p.ReleaseGet(app, ps.Release)
+		if err != nil {
+			return 0, err
+		}
+
+		b, err := p.BuildGet(app, r.Build)
+		if err != nil {
+			return 0, err
+		}
+
+		if b.Entrypoint != "" {
+			ep, err := shellquote.Split(b.Entrypoint)
+			if err != nil {
+				return 0, err
+			}
+
+			cp = append(ep, cp...)
+		}
+	}
+
 	eo := &ac.PodExecOptions{
 		Container: "main",
 		Command:   cp,
@@ -121,6 +147,17 @@ func (p *Provider) ProcessRun(app, service string, opts structs.ProcessRunOption
 		return nil, err
 	}
 
+	release := helpers.DefaultString(opts.Release, "")
+
+	if release == "" {
+		a, err := p.AppGet(app)
+		if err != nil {
+			return nil, err
+		}
+
+		release = a.Release
+	}
+
 	pd, err := p.Cluster.CoreV1().Pods(p.AppNamespace(app)).Create(&ac.Pod{
 		ObjectMeta: am.ObjectMeta{
 			Annotations: map[string]string{
@@ -128,10 +165,11 @@ func (p *Provider) ProcessRun(app, service string, opts structs.ProcessRunOption
 			},
 			GenerateName: fmt.Sprintf("%s-", service),
 			Labels: map[string]string{
-				"system":  "convox",
-				"rack":    p.Rack,
 				"app":     app,
+				"rack":    p.Rack,
+				"release": release,
 				"service": service,
+				"system":  "convox",
 				"type":    "process",
 			},
 		},
