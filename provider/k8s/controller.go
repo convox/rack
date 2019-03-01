@@ -31,6 +31,8 @@ type ControllerHandler interface {
 	Add(interface{}) error
 	Client() kubernetes.Interface
 	Delete(interface{}) error
+	Start() error
+	Stop() error
 	Update(interface{}, interface{}) error
 }
 
@@ -98,9 +100,17 @@ func (c *Controller) leaderStart(informer cache.SharedInformer) func(<-chan stru
 			UpdateFunc: c.updateHandler,
 		})
 
+		if err := c.Handler.Start(); err != nil {
+			c.errch <- err
+		}
+
 		informer.Run(stop)
 
 		fmt.Printf("stopped leading: %s/%s (%s)\n", c.Namespace, c.Name, c.Identifier)
+
+		if err := c.Handler.Stop(); err != nil {
+			c.errch <- err
+		}
 	}
 }
 

@@ -1,18 +1,29 @@
 .PHONY: all build builder generate mocks package release test
 
 commands = build monitor rack router
+injects  = convox-env
+
+# commands = build rack
+# injects  =
 
 assets   = $(wildcard assets/*)
 binaries = $(addprefix $(GOPATH)/bin/, $(commands))
 sources  = $(shell find . -name '*.go')
+statics  = $(addprefix $(GOPATH)/bin/, $(injects))
 
 all: build
 
-build: $(binaries) $(GOPATH)/bin/convox-env
+build: $(binaries) $(statics)
 
 builder:
 	docker build -t convox/build:$(USER) -f cmd/build/Dockerfile .
 	docker push convox/build:$(USER)
+
+dev:
+	docker build --target development -t convox/rack:dev . && docker push convox/rack:dev && kubectl delete pod --all -n kaws3 && kubectl rollout status deployment/api -n kaws3 && convox rack logs
+
+compress: $(binaries) $(statics)
+	upx-ucl -1 $^
 
 generate:
 	go run cmd/generate/main.go controllers > pkg/api/controllers.go
@@ -28,7 +39,6 @@ mocks: generate
 	mockery -case underscore -dir vendor/github.com/convox/stdcli -outpkg stdcli -output pkg/mock/stdcli -name Executor
 
 package:
-	go get -u github.com/gobuffalo/packr/packr
 	$(GOPATH)/bin/packr
 
 release: package
@@ -41,7 +51,7 @@ test:
 	env PROVIDER=test go test -coverpkg ./... -covermode atomic -coverprofile coverage.txt ./...
 
 $(binaries): $(GOPATH)/bin/%: $(sources)
-	go install ./cmd/$*
+	go install --ldflags="-s -w" ./cmd/$*
 
-$(GOPATH)/bin/convox-env: $(sources)
-	env CGO_ENABLED=0 go install --ldflags '-extldflags "-static"' ./cmd/convox-env
+$(statics): $(GOPATH)/bin/%: $(sources)
+	env CGO_ENABLED=0 go install --ldflags '-extldflags "-static" -s -w' ./cmd/$*
