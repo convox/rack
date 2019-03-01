@@ -223,12 +223,13 @@ func (opts Options2) handleAdds(pid, remote string, adds []changes.Change) error
 	}
 
 	if !filepath.IsAbs(remote) {
-		data, err := Exec.Execute("docker", "inspect", pid, "--format", "{{.Config.WorkingDir}}")
-		if err != nil {
-			return errors.WithStack(fmt.Errorf("container inspect %s %s", string(data), err))
+		var buf bytes.Buffer
+
+		if _, err := opts.Provider.ProcessExec(opts.App, pid, "pwd", &buf, structs.ProcessExecOptions{}); err != nil {
+			return errors.WithStack(fmt.Errorf("%s pwd: %s", pid, err))
 		}
 
-		wd := strings.TrimSpace(string(data))
+		wd := strings.TrimSpace(buf.String())
 
 		remote = filepath.Join(wd, remote)
 	}
