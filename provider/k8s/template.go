@@ -37,6 +37,19 @@ type envItem struct {
 
 func (p *Provider) templateHelpers() template.FuncMap {
 	return template.FuncMap{
+		"base": func() string {
+			return p.Engine.DomainBase()
+		},
+		"domains": func(app string, s manifest.Service) []string {
+			ds := []string{
+				p.Engine.DomainExternal(app, s.Name),
+				p.Engine.DomainInternal(app, s.Name),
+			}
+			for _, d := range s.Domains {
+				ds = append(ds, d)
+			}
+			return ds
+		},
 		"env": func(envs ...map[string]string) []envItem {
 			env := map[string]string{}
 			for _, e := range envs {
@@ -58,9 +71,9 @@ func (p *Provider) templateHelpers() template.FuncMap {
 		"envname": func(s string) string {
 			return envName(s)
 		},
-		"host": func(app, service string) string {
-			return p.Engine.ServiceHost(app, service)
-		},
+		// "host": func(app, service string) string {
+		//   return p.Engine.ServiceHost(app, service)
+		// },
 		"image": func(a *structs.App, s manifest.Service, r *structs.Release) (string, error) {
 			repo, _, err := p.Engine.RepositoryHost(a.Name)
 			if err != nil {
