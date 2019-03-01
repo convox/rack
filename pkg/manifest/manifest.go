@@ -248,6 +248,10 @@ func (m *Manifest) ApplyDefaults() error {
 			m.Services[i].Health.Timeout = m.Services[i].Health.Interval - 1
 		}
 
+		if s.Port.Port > 0 && s.Port.Scheme == "" {
+			m.Services[i].Port.Scheme = "http"
+		}
+
 		sp := fmt.Sprintf("services.%s.scale", s.Name)
 
 		// if no scale attributes set
