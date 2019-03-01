@@ -19,9 +19,10 @@ import (
 )
 
 type Engine interface {
-	DomainBase() string
 	DomainExternal(app, service string) string
+	DomainExternalBase() string
 	DomainInternal(app, service string) string
+	DomainInternalBase() string
 	RepositoryAuth(app string) (string, string, error)
 	RepositoryHost(app string) (string, bool, error)
 	ResourceRender(app string, r manifest.Resource) ([]byte, error)
