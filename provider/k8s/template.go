@@ -37,8 +37,8 @@ type envItem struct {
 
 func (p *Provider) templateHelpers() template.FuncMap {
 	return template.FuncMap{
-		"base": func() string {
-			return p.Engine.DomainBase()
+		"domain_external_base": func() string {
+			return p.Engine.DomainExternalBase()
 		},
 		"domains": func(app string, s manifest.Service) []string {
 			ds := []string{
