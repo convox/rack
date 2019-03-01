@@ -19,7 +19,8 @@ import (
 )
 
 type Engine interface {
-	AppRepository(app string) (string, bool, error)
+	RepositoryAuth(app string) (string, string, error)
+	RepositoryHost(app string) (string, bool, error)
 	ResourceRender(app string, r manifest.Resource) ([]byte, error)
 	Resolver() (string, error)
 	ServiceHost(app, service string) string
