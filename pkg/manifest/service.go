@@ -34,8 +34,13 @@ type Service struct {
 type Services []Service
 
 type ServiceAgent struct {
-	Enabled bool          `yaml:"enabled,omitempty"`
-	Ports   []ServicePort `yaml:"ports,omitempty"`
+	Enabled bool               `yaml:"enabled,omitempty"`
+	Ports   []ServiceAgentPort `yaml:"ports,omitempty"`
+}
+
+type ServiceAgentPort struct {
+	Port     int    `yaml:"port,omitempty"`
+	Protocol string `yaml:"protocol,omitempty"`
 }
 
 type ServiceBuild struct {
@@ -44,15 +49,7 @@ type ServiceBuild struct {
 	Path     string   `yaml:"path,omitempty"`
 }
 
-type ServiceCommand struct {
-	Development string
-	Test        string
-	Production  string
-}
-
 type ServiceDomains []string
-
-// type ServiceEnvironment []string
 
 type ServiceHealth struct {
 	Grace    int
@@ -62,9 +59,8 @@ type ServiceHealth struct {
 }
 
 type ServicePort struct {
-	Port     int    `yaml:"port,omitempty"`
-	Protocol string `yaml:"protocol,omitempty"`
-	Scheme   string `yaml:"scheme,omitempty"`
+	Port   int    `yaml:"port,omitempty"`
+	Scheme string `yaml:"scheme,omitempty"`
 }
 
 type ServiceScale struct {
