@@ -246,6 +246,8 @@ func TestManifestLoad(t *testing.T) {
 		"services.foo.health.grace",
 		"services.foo.health.timeout",
 		"services.foo.port",
+		"services.foo.port.port",
+		"services.foo.port.scheme",
 		"services.foo.scale",
 		"services.foo.singleton",
 		"services.foo.sticky",
