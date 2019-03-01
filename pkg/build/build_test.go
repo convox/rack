@@ -40,6 +40,7 @@ func TestBuildGeneration2(t *testing.T) {
 		e.On("Run", mock.Anything, "docker", "build", "-t", "049f26f1b03bfca2e3af367d481a7bf1a94564ba", "-f", "Dockerfile", ".").Return(nil).Run(func(args mock.Arguments) {
 			fmt.Fprintf(args.Get(0).(io.Writer), "build1\nbuild2\n")
 		})
+		e.On("Execute", "docker", "inspect", "049f26f1b03bfca2e3af367d481a7bf1a94564ba", "--format", "{{json .Config.Entrypoint}}").Return([]byte("[]"), nil)
 		e.On("Execute", "docker", "pull", "httpd").Return([]byte("pulling\n"), nil)
 		e.On("Execute", "docker", "tag", "httpd", "rack1/app1:web.build1").Return([]byte("tagging\n"), nil)
 		e.On("Execute", "docker", "tag", "049f26f1b03bfca2e3af367d481a7bf1a94564ba", "rack1/app1:web2.build1").Return([]byte("tagging\n"), nil)
@@ -104,6 +105,7 @@ func TestBuildGeneration2Development(t *testing.T) {
 		e.On("Run", mock.Anything, "docker", "build", "-t", "049f26f1b03bfca2e3af367d481a7bf1a94564ba", "-f", "Dockerfile", "--target", "development", ".").Return(nil).Run(func(args mock.Arguments) {
 			fmt.Fprintf(args.Get(0).(io.Writer), "build1\nbuild2\n")
 		})
+		e.On("Execute", "docker", "inspect", "049f26f1b03bfca2e3af367d481a7bf1a94564ba", "--format", "{{json .Config.Entrypoint}}").Return([]byte("[]"), nil)
 		e.On("Execute", "docker", "tag", "049f26f1b03bfca2e3af367d481a7bf1a94564ba", "rack1/app1:web.build1").Return([]byte("tagging\n"), nil)
 		p.On("ObjectStore", "app1", "build/build1/logs", mock.Anything, structs.ObjectStoreOptions{}).Return(fxObject(), nil).Run(func(args mock.Arguments) {
 			data, err := ioutil.ReadAll(args.Get(2).(io.Reader))
@@ -134,6 +136,71 @@ func TestBuildGeneration2Development(t *testing.T) {
 				"build1",
 				"build2",
 				"Running: docker tag 049f26f1b03bfca2e3af367d481a7bf1a94564ba rack1/app1:web.build1",
+			},
+			strings.Split(strings.TrimSuffix(out.String(), "\n"), "\n"),
+		)
+	})
+}
+
+func TestBuildGeneration2Entrypoint(t *testing.T) {
+	opts := build.Options{
+		App:        "app1",
+		Auth:       "{}",
+		Cache:      true,
+		Generation: "2",
+		Id:         "build1",
+		Rack:       "rack1",
+		Source:     "object://app1/object.tgz",
+	}
+
+	testBuild(t, opts, func(b *build.Build, p *structs.MockProvider, e *exec.MockInterface, out *bytes.Buffer) {
+		p.On("BuildGet", "app1", "build1").Return(fxBuildStarted(), nil).Once()
+		bdata, err := ioutil.ReadFile("testdata/httpd.tgz")
+		require.NoError(t, err)
+		p.On("ObjectFetch", "app1", "/object.tgz").Return(ioutil.NopCloser(bytes.NewReader(bdata)), nil)
+		mdata, err := ioutil.ReadFile("testdata/httpd/convox.yml")
+		require.NoError(t, err)
+		p.On("ReleaseList", "app1", structs.ReleaseListOptions{Limit: options.Int(1)}).Return(structs.Releases{*fxRelease()}, nil)
+		p.On("ReleaseGet", "app1", "release1").Return(fxRelease(), nil)
+		e.On("Run", mock.Anything, "docker", "build", "-t", "049f26f1b03bfca2e3af367d481a7bf1a94564ba", "-f", "Dockerfile", ".").Return(nil).Run(func(args mock.Arguments) {
+			fmt.Fprintf(args.Get(0).(io.Writer), "build1\nbuild2\n")
+		})
+		e.On("Execute", "docker", "inspect", "049f26f1b03bfca2e3af367d481a7bf1a94564ba", "--format", "{{json .Config.Entrypoint}}").Return([]byte("[\"bin/entry\"]"), nil)
+		e.On("Execute", "docker", "pull", "httpd").Return([]byte("pulling\n"), nil)
+		e.On("Execute", "docker", "tag", "httpd", "rack1/app1:web.build1").Return([]byte("tagging\n"), nil)
+		e.On("Execute", "docker", "tag", "049f26f1b03bfca2e3af367d481a7bf1a94564ba", "rack1/app1:web2.build1").Return([]byte("tagging\n"), nil)
+		p.On("ObjectStore", "app1", "build/build1/logs", mock.Anything, structs.ObjectStoreOptions{}).Return(fxObject(), nil).Run(func(args mock.Arguments) {
+			data, err := ioutil.ReadAll(args.Get(2).(io.Reader))
+			require.NoError(t, err)
+			require.Equal(t, "Building: .\nbuild1\nbuild2\nRunning: docker pull httpd\nRunning: docker tag 049f26f1b03bfca2e3af367d481a7bf1a94564ba rack1/app1:web2.build1\nRunning: docker tag httpd rack1/app1:web.build1\n", string(data))
+		})
+		p.On("BuildUpdate", "app1", "build1", structs.BuildUpdateOptions{Entrypoint: options.String("bin/entry")}).Return(fxBuildStarted(), nil)
+		p.On("BuildUpdate", "app1", "build1", mock.Anything).Return(fxBuildStarted(), nil).Run(func(args mock.Arguments) {
+			opts := args.Get(2).(structs.BuildUpdateOptions)
+			if opts.Ended != nil {
+				require.False(t, opts.Ended.IsZero())
+			}
+			if opts.Logs != nil {
+				require.NotNil(t, opts.Logs)
+			}
+			if opts.Manifest != nil {
+				require.Equal(t, string(mdata), *opts.Manifest)
+			}
+		})
+		p.On("ReleaseCreate", "app1", structs.ReleaseCreateOptions{Build: options.String("build1")}).Return(fxRelease2(), nil)
+		p.On("EventSend", "build:create", structs.EventSendOptions{Data: map[string]string{"app": "app1", "id": "build1", "release_id": "release2"}}).Return(nil)
+
+		err = b.Execute()
+		require.NoError(t, err)
+
+		require.Equal(t,
+			[]string{
+				"Building: .",
+				"build1",
+				"build2",
+				"Running: docker pull httpd",
+				"Running: docker tag 049f26f1b03bfca2e3af367d481a7bf1a94564ba rack1/app1:web2.build1",
+				"Running: docker tag httpd rack1/app1:web.build1",
 			},
 			strings.Split(strings.TrimSuffix(out.String(), "\n"), "\n"),
 		)
@@ -216,6 +283,7 @@ func TestBuildGeneration2Options(t *testing.T) {
 		e.On("Run", mock.Anything, "docker", "build", "--no-cache", "-t", "63b602b07e75429dbf1ab14132f20c9e5a649f2f", "-f", "Dockerfile2", "--build-arg", "FOO=bar", ".").Return(nil).Run(func(args mock.Arguments) {
 			fmt.Fprintf(args.Get(0).(io.Writer), "build1\nbuild2\n")
 		})
+		e.On("Execute", "docker", "inspect", "63b602b07e75429dbf1ab14132f20c9e5a649f2f", "--format", "{{json .Config.Entrypoint}}").Return([]byte("[]"), nil)
 		e.On("Execute", "docker", "tag", "63b602b07e75429dbf1ab14132f20c9e5a649f2f", "rack1/app1:web.build1").Return([]byte("tagging\n"), nil)
 		e.On("Execute", "docker", "tag", "rack1/app1:web.build1", "push1:web.build1").Return([]byte("tagging\n"), nil)
 		e.On("Execute", "docker", "inspect", "rack1/app1:web.build1", "--format", "{{json .Config.Cmd}}").Return([]byte(`["command2"]`), nil)
