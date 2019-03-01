@@ -463,7 +463,7 @@ func (opts Options2) watchPath(ctx context.Context, pw prefix.Writer, service, r
 		return
 	}
 
-	pw.Writef("convox", "syncing: <dir>%s</dir> to <dir>%s:%s</dir>\n", rel, service, bs.Remote)
+	pw.Writef("convox", "starting sync from <dir>%s</dir> to <dir>%s</dir> on <service>%s</service>\n", rel, helpers.CoalesceString(bs.Remote, "."), service)
 
 	go changes.Watch(abs, cch, changes.WatchOptions{
 		Ignores: ignores,
@@ -494,10 +494,10 @@ func (opts Options2) watchPath(ctx context.Context, pw prefix.Writer, service, r
 			for _, ps := range pss {
 				switch {
 				case len(adds) > 3:
-					pw.Writef("convox", "sync: %d files to <dir>%s:%s</dir>\n", len(adds), service, bs.Remote)
+					pw.Writef("convox", "sync: %d files to <dir>%s</dir> on <service>%s</service>\n", len(adds), helpers.CoalesceString(bs.Remote, "."), service)
 				case len(adds) > 0:
 					for _, a := range adds {
-						pw.Writef("convox", "sync: <dir>%s</dir> to <dir>%s:%s</dir>\n", a.Path, service, bs.Remote)
+						pw.Writef("convox", "sync: <dir>%s</dir> to <dir>%s</dir> on <service>%s</service>\n", a.Path, helpers.CoalesceString(bs.Remote, "."), service)
 					}
 				}
 
@@ -507,10 +507,10 @@ func (opts Options2) watchPath(ctx context.Context, pw prefix.Writer, service, r
 
 				switch {
 				case len(removes) > 3:
-					pw.Writef("convox", "remove: %d files from <dir>%s:%s</dir>\n", len(removes), service, bs.Remote)
+					pw.Writef("convox", "remove: %d files from <dir>%s</dir> to <service>%s</service>\n", len(removes), helpers.CoalesceString(bs.Remote, "."), service)
 				case len(removes) > 0:
 					for _, r := range removes {
-						pw.Writef("convox", "remove: <dir>%s</dir> from <dir>%s:%s</dir>\n", r.Path, service, bs.Remote)
+						pw.Writef("convox", "remove: <dir>%s</dir> from <dir>%s</dir> on <service>%s</service>\n", r.Path, helpers.CoalesceString(bs.Remote, "."), service)
 					}
 				}
 
@@ -745,6 +745,18 @@ func replaceEnv(s string, env map[string]string) string {
 	return s
 }
 
+var ansiScreenSequences = []*regexp.Regexp{
+	regexp.MustCompile("\033\\[\\d+;\\d+H"),
+}
+
+func stripANSIScreenCommands(data string) string {
+	for _, r := range ansiScreenSequences {
+		data = r.ReplaceAllString(data, "")
+	}
+
+	return data
+}
+
 func writeLogs(ctx context.Context, pw prefix.Writer, r io.Reader, services map[string]bool) {
 	ls := bufio.NewScanner(r)
 
@@ -767,7 +779,9 @@ func writeLogs(ctx context.Context, pw prefix.Writer, r io.Reader, services map[
 				continue
 			}
 
-			pw.Writef(service, "%s\n", match[6])
+			stripped := stripANSIScreenCommands(match[6])
+
+			pw.Writef(service, "%s\n", stripped)
 		}
 	}
 
