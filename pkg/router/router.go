@@ -120,6 +120,10 @@ func (r *Router) Route(host string) (string, error) {
 		return "", err
 	}
 
+	if len(ts) < 1 {
+		return "", fmt.Errorf("no backends available")
+	}
+
 	return ts[rand.Intn(len(ts))], nil
 }
 
