@@ -494,7 +494,7 @@
                 {{ if .Port.Port }}
                   {
                     "ContainerPort": "{{.Port.Port}}",
-                    "Protocol": "{{.Port.Protocol}}"
+                    "Protocol": "tcp"
                   },
                 {{ end }}
                 {{ range .Agent.Ports }}

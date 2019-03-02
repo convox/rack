@@ -20,13 +20,23 @@ rules:
   - apiGroups:
       - ""
       - apps
+      - apiextensions.k8s.io
+      - apiregistration.k8s.io
+      - authentication.k8s.io
+      - authorization.k8s.io
       - autoscaling
       - extensions
+      - rbac.authorization.k8s.io
     resources:
+      - apiservices
       - autoscaling
+      - clusterrolebindings
+      - clusterroles
       - configmaps
+      - customresourcedefinitions
       - daemonsets
       - deployments
+      - deployments/scale
       - endpoints
       - events
       - horizontalpodautoscalers
@@ -35,8 +45,12 @@ rules:
       - namespaces
       - pods
       - pods/exec
+      - rolebindings
       - secrets
       - services
+      - serviceaccounts
+      - subjectaccessreviews
+      - tokenreviews
     verbs:
       - create
       - delete
@@ -50,6 +64,7 @@ rules:
     resources:
       - builds
       - releases
+      - stacks
     verbs:
       - create
       - delete
@@ -68,6 +83,7 @@ rules:
       - daemonsets
       - jobs
       - nodes
+      - nodes/stats
       - persistentvolumeclaims
       - persistentvolumes
       - pods/log

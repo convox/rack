@@ -22,7 +22,7 @@ func NewPodController(p *Provider) (*PodController, error) {
 		Provider: p,
 	}
 
-	c, err := NewController(p.Rack, "convox-pod", pc)
+	c, err := NewController(p.Rack, "convox-k8s-pod", pc)
 	if err != nil {
 		return nil, err
 	}
@@ -51,6 +51,14 @@ func (c *PodController) Run() {
 	for err := range ch {
 		fmt.Printf("err = %+v\n", err)
 	}
+}
+
+func (c *PodController) Start() error {
+	return nil
+}
+
+func (c *PodController) Stop() error {
+	return nil
 }
 
 func (c *PodController) Add(obj interface{}) error {

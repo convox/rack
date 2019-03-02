@@ -3,7 +3,6 @@ package manifest
 import (
 	"fmt"
 	"reflect"
-	"regexp"
 	"strconv"
 	"strings"
 
@@ -91,7 +90,7 @@ func (v *ServiceAgent) UnmarshalYAML(unmarshal func(interface{}) error) error {
 
 		if pis, ok := t["ports"].([]interface{}); ok {
 			for _, pi := range pis {
-				var p ServicePort
+				var p ServiceAgentPort
 				if err := remarshal(pi, &p); err != nil {
 					return err
 				}
@@ -100,6 +99,34 @@ func (v *ServiceAgent) UnmarshalYAML(unmarshal func(interface{}) error) error {
 		}
 	default:
 		return fmt.Errorf("could not parse agent: %+v", w)
+	}
+
+	return nil
+}
+
+func (v *ServiceAgentPort) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	var w interface{}
+
+	if err := unmarshal(&w); err != nil {
+		return err
+	}
+
+	switch t := w.(type) {
+	case string:
+		ps := strings.Split(t, "/")
+		pi, err := strconv.Atoi(ps[0])
+		if err != nil {
+			return err
+		}
+		v.Port = pi
+		if len(ps) > 1 {
+			v.Protocol = ps[1]
+		}
+	case int:
+		v.Port = t
+		v.Protocol = "tcp"
+	default:
+		return fmt.Errorf("invalid port: %s", t)
 	}
 
 	return nil
@@ -137,34 +164,6 @@ func (v ServiceBuild) MarshalYAML() (interface{}, error) {
 	}
 
 	return v, nil
-}
-
-func (v *ServiceCommand) UnmarshalYAML(unmarshal func(interface{}) error) error {
-	var w interface{}
-
-	if err := unmarshal(&w); err != nil {
-		return err
-	}
-
-	switch t := w.(type) {
-	case map[interface{}]interface{}:
-		if c, ok := t["development"].(string); ok {
-			v.Development = c
-		}
-		if c, ok := t["test"].(string); ok {
-			v.Test = c
-		}
-		if c, ok := t["production"].(string); ok {
-			v.Production = c
-		}
-	case string:
-		v.Development = t
-		v.Production = t
-	default:
-		return fmt.Errorf("unknown type for service command: %T", t)
-	}
-
-	return nil
 }
 
 func (v *ServiceDomains) UnmarshalYAML(unmarshal func(interface{}) error) error {
@@ -236,21 +235,19 @@ func (v *ServicePort) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	case map[interface{}]interface{}:
 		switch u := t["port"].(type) {
 		case int:
-			p, err := parsePort(strconv.Itoa(u))
-			if err != nil {
-				return err
-			}
-			v.Port = p.Port
-			v.Protocol = p.Protocol
-			v.Scheme = p.Scheme
+			v.Port = u
 		case string:
-			p, err := parsePort(u)
+			ps := strings.Split(u, ":")
+			pp := ps[0]
+			if len(ps) > 1 {
+				v.Scheme = ps[0]
+				pp = ps[1]
+			}
+			pi, err := strconv.Atoi(pp)
 			if err != nil {
 				return err
 			}
-			v.Port = p.Port
-			v.Protocol = p.Protocol
-			v.Scheme = p.Scheme
+			v.Port = pi
 		case nil:
 		default:
 			return fmt.Errorf("could not parse port: %s", t)
@@ -264,47 +261,25 @@ func (v *ServicePort) UnmarshalYAML(unmarshal func(interface{}) error) error {
 			return fmt.Errorf("could not parse port: %+v", t)
 		}
 	case string:
-		p, err := parsePort(t)
+		ps := strings.Split(t, ":")
+		pp := ps[0]
+		if len(ps) > 1 {
+			v.Scheme = ps[0]
+			pp = ps[1]
+		}
+		pi, err := strconv.Atoi(pp)
 		if err != nil {
 			return err
 		}
-		v.Port = p.Port
-		v.Protocol = p.Protocol
-		v.Scheme = p.Scheme
+		v.Port = pi
 	case int:
 		v.Port = t
-		v.Protocol = "tcp"
-		v.Scheme = "http"
+		// v.Scheme = "http"
 	default:
 		return fmt.Errorf("invalid port: %s", t)
 	}
 
 	return nil
-}
-
-var rePortParser = regexp.MustCompile(`^((\w+):)?(\d+)(/(\w+))?$`)
-
-func parsePort(s string) (*ServicePort, error) {
-	var err error
-
-	p := &ServicePort{Protocol: "tcp", Scheme: "http"}
-
-	m := rePortParser.FindStringSubmatch(s)
-	if m == nil {
-		return nil, fmt.Errorf("could not parse port: %s", s)
-	}
-	p.Port, err = strconv.Atoi(m[3])
-	if err != nil {
-		return nil, err
-	}
-	if m[2] != "" {
-		p.Scheme = m[2]
-	}
-	if m[5] != "" {
-		p.Protocol = m[5]
-	}
-
-	return p, nil
 }
 
 func (v ServicePort) MarshalYAML() (interface{}, error) {
@@ -563,8 +538,14 @@ func yamlAttributes(data []byte) (map[string]bool, error) {
 	}
 
 	for ki, v := range m {
-		k, ok := ki.(string)
-		if !ok {
+		k := ""
+
+		switch t := ki.(type) {
+		case string:
+			k = t
+		case int:
+			k = strconv.Itoa(t)
+		default:
 			continue
 		}
 
