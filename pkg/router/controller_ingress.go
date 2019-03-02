@@ -70,8 +70,6 @@ func (c *IngressController) Add(obj interface{}) error {
 	}
 
 	for _, r := range i.Spec.Rules {
-		c.Router.RackSet(r.Host, i.Labels["rack"])
-
 		for _, port := range r.IngressRuleValue.HTTP.Paths {
 			target := rulePathTarget(port, i.ObjectMeta)
 			c.Controller.Event(i, ac.EventTypeNormal, "TargetAdd", fmt.Sprintf("%s => %s", r.Host, target))
@@ -96,7 +94,7 @@ func (c *IngressController) Delete(obj interface{}) error {
 		for _, port := range r.IngressRuleValue.HTTP.Paths {
 			target := rulePathTarget(port, i.ObjectMeta)
 			c.Controller.Event(i, ac.EventTypeNormal, "TargetDelete", fmt.Sprintf("%s => %s", r.Host, target))
-			c.Router.TargetDelete(r.Host, rulePathTarget(port, i.ObjectMeta))
+			c.Router.TargetRemove(r.Host, rulePathTarget(port, i.ObjectMeta))
 		}
 	}
 
