@@ -24,40 +24,6 @@ func NewBackendMemory() *BackendMemory {
 	}
 }
 
-func (b *BackendMemory) RequestBegin(host string) error {
-	b.activityLock.Lock()
-	defer b.activityLock.Unlock()
-
-	c, err := b.activeCount(host)
-	if err != nil {
-		return err
-	}
-
-	b.activity.Store(host, time.Now().UTC())
-	b.active.Store(host, c+1)
-
-	return nil
-}
-
-func (b *BackendMemory) RequestEnd(host string) error {
-	b.activityLock.Lock()
-	defer b.activityLock.Unlock()
-
-	c, err := b.activeCount(host)
-	if err != nil {
-		return err
-	}
-
-	if c < 1 {
-		return nil
-	}
-
-	b.activity.Store(host, time.Now().UTC())
-	b.active.Store(host, c-1)
-
-	return nil
-}
-
 func (b *BackendMemory) IdleGet(host string) (bool, error) {
 	v, ok := b.idle.Load(host)
 	if !ok {
@@ -105,6 +71,40 @@ func (b *BackendMemory) IdleReady(cutoff time.Time) ([]string, error) {
 
 func (b *BackendMemory) IdleSet(host string, idle bool) error {
 	b.idle.Store(host, idle)
+
+	return nil
+}
+
+func (b *BackendMemory) RequestBegin(host string) error {
+	b.activityLock.Lock()
+	defer b.activityLock.Unlock()
+
+	c, err := b.activeCount(host)
+	if err != nil {
+		return err
+	}
+
+	b.activity.Store(host, time.Now().UTC())
+	b.active.Store(host, c+1)
+
+	return nil
+}
+
+func (b *BackendMemory) RequestEnd(host string) error {
+	b.activityLock.Lock()
+	defer b.activityLock.Unlock()
+
+	c, err := b.activeCount(host)
+	if err != nil {
+		return err
+	}
+
+	if c < 1 {
+		return nil
+	}
+
+	b.activity.Store(host, time.Now().UTC())
+	b.active.Store(host, c-1)
 
 	return nil
 }
