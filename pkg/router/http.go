@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"sync"
 )
 
 type TargetRouter interface {
@@ -15,8 +16,7 @@ type TargetRouter interface {
 }
 
 type HTTP struct {
-	Handler http.HandlerFunc
-
+	certs    sync.Map
 	listener net.Listener
 	port     int
 	router   TargetRouter
@@ -24,6 +24,7 @@ type HTTP struct {
 
 func NewHTTP(port int, router TargetRouter) (*HTTP, error) {
 	h := &HTTP{
+		certs:  sync.Map{},
 		router: router,
 		port:   port,
 	}
@@ -63,15 +64,6 @@ func (h *HTTP) ListenAndServe() error {
 }
 
 func (h *HTTP) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if h.Handler != nil {
-		h.Handler(w, r)
-		return
-	}
-
-	h.ServeRequest(w, r)
-}
-
-func (h *HTTP) ServeRequest(w http.ResponseWriter, r *http.Request) {
 	target, err := h.router.Route(r.Host)
 	if err != nil {
 		http.Error(w, err.Error(), 502)
@@ -102,7 +94,23 @@ func (h *HTTP) ServeRequest(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *HTTP) generateCertificate(hello *tls.ClientHelloInfo) (*tls.Certificate, error) {
-	return h.router.Certificate(hello.ServerName)
+	host := hello.ServerName
+
+	v, ok := h.certs.Load(host)
+	if ok {
+		if c, ok := v.(tls.Certificate); ok {
+			return &c, nil
+		}
+	}
+
+	c, err := h.router.Certificate(host)
+	if err != nil {
+		return nil, err
+	}
+
+	h.certs.Store(host, *c)
+
+	return c, nil
 }
 
 func (h *HTTP) proxyDirector(existing func(r *http.Request)) func(r *http.Request) {
