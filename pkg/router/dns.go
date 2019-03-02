@@ -89,7 +89,13 @@ func (d *DNS) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 
 	q := r.Question[0]
 
-	if d.Router.TargetCount(strings.TrimSuffix(q.Name, ".")) > 0 {
+	ts, err := d.Router.TargetList(strings.TrimSuffix(q.Name, "."))
+	if err != nil {
+		dnsError(w, r, err)
+		return
+	}
+
+	if len(ts) > 0 {
 		fmt.Printf("ns=convox.router at=resolve type=route host=%q\n", q.Name)
 
 		a := &dns.Msg{}
