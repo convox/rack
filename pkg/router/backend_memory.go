@@ -13,10 +13,6 @@ type BackendMemory struct {
 
 	activityLock sync.Mutex
 	targetLock   sync.Mutex
-	// activity map[string]time.Time
-	// active   map[string]int
-	// idle     map[string]bool
-	// routes   map[string]map[string]bool
 }
 
 func NewBackendMemory() *BackendMemory {
