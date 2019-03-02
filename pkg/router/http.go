@@ -12,6 +12,8 @@ import (
 
 type TargetRouter interface {
 	Certificate(host string) (*tls.Certificate, error)
+	RequestBegin(host string) error
+	RequestEnd(host string) error
 	Route(host string) (string, error)
 }
 
@@ -64,6 +66,9 @@ func (h *HTTP) ListenAndServe() error {
 }
 
 func (h *HTTP) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	h.router.RequestBegin(r.Host)
+	defer h.router.RequestEnd(r.Host)
+
 	target, err := h.router.Route(r.Host)
 	if err != nil {
 		http.Error(w, err.Error(), 502)

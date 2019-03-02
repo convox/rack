@@ -3,9 +3,10 @@ package router
 import "time"
 
 type Backend interface {
-	ActivityBegin(host string) error
-	ActivityEnd(host string) error
-	ActivityLatest(host string) (time.Time, error)
+	// ActivityLatest(host string) (time.Time, error)
+
+	RequestBegin(host string) error
+	RequestEnd(host string) error
 
 	IdleGet(host string) (bool, error)
 	IdleReady(cutoff time.Time) ([]string, error)
