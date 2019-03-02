@@ -1,7 +1,11 @@
 package local
 
-import "fmt"
+import (
+	"fmt"
 
-func (p *Provider) ServiceHost(app, service string) string {
-	return fmt.Sprintf("%s.%s", service, app)
+	"github.com/convox/rack/pkg/manifest"
+)
+
+func (p *Provider) ServiceHost(app string, s manifest.Service) string {
+	return fmt.Sprintf("%s.%s.%s", s.Name, app, p.Rack)
 }

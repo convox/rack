@@ -247,20 +247,19 @@ apiVersion: extensions/v1beta1
 kind: Ingress
 metadata:
   namespace: {{.Rack}}
-  name: system
+  name: rack
   annotations:
     convox.ingress.service.api.5443.protocol: https
   labels:
     system: convox
     type: rack
     rack: {{.Rack}}
-    app: system
 spec:
   tls:
   - hosts:
-    - rack
+    - {{systemHost}}
   rules:
-    - host: rack
+    - host: {{systemHost}}
       http:
         paths:
         - backend:

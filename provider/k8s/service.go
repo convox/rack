@@ -19,6 +19,19 @@ func (p *Provider) ServiceList(app string) (structs.Services, error) {
 		return nil, err
 	}
 
+	r, err := helpers.ReleaseLatest(p, app)
+	if err != nil {
+		return nil, err
+	}
+	if r == nil {
+		return structs.Services{}, nil
+	}
+
+	m, _, err := helpers.ReleaseManifest(p, app, r.Id)
+	if err != nil {
+		return nil, err
+	}
+
 	ss := structs.Services{}
 
 	for _, d := range ds.Items {
@@ -32,25 +45,30 @@ func (p *Provider) ServiceList(app string) (structs.Services, error) {
 		// fmt.Printf("d.Status = %+v\n", d.Status)
 
 		s := structs.Service{
-			Count:  int(helpers.DefaultInt32(d.Spec.Replicas, 0)),
-			Domain: p.Engine.ServiceHost(app, d.ObjectMeta.Name),
-			Name:   d.ObjectMeta.Name,
-			Ports:  []structs.ServicePort{},
+			Count: int(helpers.DefaultInt32(d.Spec.Replicas, 0)),
+			Name:  d.ObjectMeta.Name,
+			Ports: []structs.ServicePort{},
 		}
 
 		if len(cs[0].Ports) == 1 {
-			i, err := p.Cluster.ExtensionsV1beta1().Ingresses(p.AppNamespace(app)).Get(app, am.GetOptions{})
+			// i, err := p.Cluster.ExtensionsV1beta1().Ingresses(p.AppNamespace(app)).Get(app, am.GetOptions{})
+			// if err != nil {
+			//   return nil, err
+			// }
+
+			ms, err := m.Service(d.ObjectMeta.Name)
 			if err != nil {
 				return nil, err
 			}
 
-			s.Domain = fmt.Sprintf("%s.%s", p.Engine.ServiceHost(app, s.Name), helpers.CoalesceString(i.Annotations["convox.domain"], i.Labels["rack"]))
+			s.Domain = p.Engine.ServiceHost(app, *ms)
+
+			// s.Domain = fmt.Sprintf("%s.%s", p.Engine.ServiceHost(app, s.Name), helpers.CoalesceString(i.Annotations["convox.domain"], i.Labels["rack"]))
 
 			// if domain, ok := i.Annotations["convox.domain"]; ok {
 			//   s.Domain += fmt.Sprintf(".%s", domain)
 			// }
 
-			s.Ports = append(s.Ports, structs.ServicePort{Balancer: 80, Container: int(cs[0].Ports[0].ContainerPort)})
 			s.Ports = append(s.Ports, structs.ServicePort{Balancer: 443, Container: int(cs[0].Ports[0].ContainerPort)})
 		}
 

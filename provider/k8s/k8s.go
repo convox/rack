@@ -23,7 +23,8 @@ type Engine interface {
 	RepositoryHost(app string) (string, bool, error)
 	ResourceRender(app string, r manifest.Resource) ([]byte, error)
 	Resolver() (string, error)
-	ServiceHost(app, service string) string
+	ServiceHost(app string, s manifest.Service) string
+	SystemHost() string
 }
 
 type Provider struct {
