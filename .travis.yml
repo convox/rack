@@ -14,7 +14,7 @@ branches:
 language: go
 
 go:
-  - "1.11"
+  - "1.12"
 
 before_install:
   - source ./ci/correct-path.sh
