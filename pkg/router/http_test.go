@@ -379,6 +379,14 @@ func (r testRouter) Certificate(host string) (*tls.Certificate, error) {
 	return &cert, nil
 }
 
+func (r testRouter) RequestBegin(host string) error {
+	return nil
+}
+
+func (r testRouter) RequestEnd(host string) error {
+	return nil
+}
+
 func (r testRouter) Route(host string) (string, error) {
 	target, ok := r[host]
 	if !ok {

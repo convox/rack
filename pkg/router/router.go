@@ -106,6 +106,14 @@ func (r *Router) Serve() error {
 	return <-ch
 }
 
+func (r *Router) RequestBegin(host string) error {
+	return r.backend.RequestBegin(host)
+}
+
+func (r *Router) RequestEnd(host string) error {
+	return r.backend.RequestEnd(host)
+}
+
 func (r *Router) Route(host string) (string, error) {
 	ts, err := r.TargetList(host)
 	if err != nil {
