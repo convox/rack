@@ -1,4 +1,4 @@
-.PHONY: all build builder generate mocks package release test
+.PHONY: all build builder compress generate mocks package release test
 
 commands = build monitor rack router
 injects  = convox-env
@@ -18,9 +18,6 @@ build: $(binaries) $(statics)
 builder:
 	docker build -t convox/build:$(USER) -f cmd/build/Dockerfile .
 	docker push convox/build:$(USER)
-
-dev:
-	docker build --target development -t convox/rack:dev . && docker push convox/rack:dev && kubectl delete pod --all -n kaws3 && kubectl rollout status deployment/api -n kaws3 && convox rack logs
 
 compress: $(binaries) $(statics)
 	upx-ucl -1 $^
