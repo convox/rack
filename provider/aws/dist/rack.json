@@ -572,7 +572,7 @@
         "Handler": "index.handler",
         "MemorySize": "128",
         "Role": { "Fn::GetAtt": [ "LogSubscriptionFilterRole", "Arn" ] },
-        "Runtime": "nodejs4.3",
+        "Runtime": "nodejs8.10",
         "Timeout": "30"
       }
     },
@@ -674,7 +674,7 @@
         "Handler": "index.external",
         "MemorySize": "128",
         "Role": { "Fn::GetAtt": [ "CustomTopicRole", "Arn" ] },
-        "Runtime": "nodejs4.3",
+        "Runtime": "nodejs8.10",
         "Timeout": "300"
       }
     },
@@ -1908,7 +1908,7 @@
         "Handler": "index.external",
         "MemorySize": "128",
         "Role": { "Fn::GetAtt": [ "InstancesLifecycleHandlerRole", "Arn" ] },
-        "Runtime": "nodejs4.3",
+        "Runtime": "nodejs8.10",
         "Timeout": "300"
       }
     },
