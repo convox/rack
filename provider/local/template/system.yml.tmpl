@@ -53,7 +53,7 @@ metadata:
     type: system
 ---
 apiVersion: apps/v1
-kind: Deployment
+kind: DaemonSet
 metadata:
   namespace: convox-system
   name: router
@@ -61,17 +61,10 @@ metadata:
     system: convox
     type: system
 spec:
-  replicas: 1
-  revisionHistoryLimit: 0
   selector:
     matchLabels:
       system: convox
       type: system
-  strategy:
-    type: RollingUpdate
-    rollingUpdate:
-      maxSurge: 1
-      maxUnavailable: 0
   minReadySeconds: 5
   template:
     metadata:

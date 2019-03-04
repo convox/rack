@@ -8,6 +8,32 @@ import (
 	am "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+func (r *Router) HostIdleStatus(host string) (bool, error) {
+	idle := true
+
+	ts, err := r.backend.TargetList(host)
+	if err != nil {
+		return false, err
+	}
+
+	for _, t := range ts {
+		if service, namespace, ok := parseTarget(t); ok {
+			d, err := r.Cluster.ExtensionsV1beta1().Deployments(namespace).Get(service, am.GetOptions{})
+			if err != nil {
+				return false, err
+			}
+
+			fmt.Printf("d = %+v\n", d)
+
+			// ; err != nil {
+			//   fmt.Printf("ns=convox.router at=idle host=%q error=%q\n", host, err)
+			// }
+		}
+	}
+
+	return idle, nil
+}
+
 func (r *Router) HostIdle(host string) error {
 	idle, err := r.backend.IdleGet(host)
 	if err != nil {

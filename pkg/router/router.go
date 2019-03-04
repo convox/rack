@@ -107,6 +107,17 @@ func (r *Router) Serve() error {
 }
 
 func (r *Router) RequestBegin(host string) error {
+	idle, err := r.backend.IdleGet(host)
+	if err != nil {
+		return fmt.Errorf("could not fetch idle status: %s", err)
+	}
+
+	if idle {
+		if err := r.HostUnidle(host); err != nil {
+			return fmt.Errorf("could not unidle: %s", err)
+		}
+	}
+
 	return r.backend.RequestBegin(host)
 }
 
@@ -129,6 +140,15 @@ func (r *Router) Route(host string) (string, error) {
 
 func (r *Router) TargetAdd(host, target string) error {
 	fmt.Printf("ns=convox.router at=target.add host=%q target=%q\n", host, target)
+
+	idle, err := r.HostIdleStatus(host)
+	if err != nil {
+		return err
+	}
+
+	if err := r.backend.IdleSet(host, idle); err != nil {
+		return err
+	}
 
 	return r.backend.TargetAdd(host, target)
 }

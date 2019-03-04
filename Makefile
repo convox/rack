@@ -1,4 +1,4 @@
-.PHONY: all build builder compress generate mocks package release test
+.PHONY: all build builder compress dev generate mocks package release test
 
 commands = build monitor rack router
 injects  = convox-env
@@ -21,6 +21,19 @@ builder:
 
 compress: $(binaries) $(statics)
 	upx-ucl -1 $^
+
+dev:
+	docker build --target development -t convox/rack:dev . && \
+	( [ "$(UPLOAD)" == "true" ] && \
+	  docker push convox/rack:dev && \
+	  kubectl patch deployment/api -p '{"spec":{"template":{"spec":{"containers":[{"name":"main","imagePullPolicy":"Always"}]}}}}' -n $(RACK) && \
+	  kubectl patch daemonset/router -p '{"spec":{"template":{"spec":{"containers":[{"name":"router","imagePullPolicy":"Always"}]}}}}' -n convox-system  \
+	  || true \
+	) && \
+	kubectl delete pod --all -n convox-system && \
+	kubectl delete pod --all -n $(RACK) && \
+	kubectl rollout status deployment/api -n $(RACK) && \
+	convox rack logs
 
 generate:
 	go run cmd/generate/main.go controllers > pkg/api/controllers.go
