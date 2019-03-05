@@ -237,10 +237,10 @@ func (opts Options2) handleAdds(pid, remote string, adds []changes.Change) error
 	rp, wp := io.Pipe()
 
 	ch := make(chan error)
-	defer close(ch)
 
 	go func() {
 		ch <- opts.Provider.FilesUpload(opts.App, pid, rp)
+		close(ch)
 	}()
 
 	tw := tar.NewWriter(wp)
