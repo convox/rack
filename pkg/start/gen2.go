@@ -358,6 +358,7 @@ func (opts Options2) healthCheck(ctx context.Context, pw prefix.Writer, s manife
 				pw.Writef("convox", "health check <service>%s</service>: <fail>%s</fail>\n", s.Name, err.Error())
 				continue
 			}
+			defer res.Body.Close()
 
 			if res.StatusCode < 200 || res.StatusCode > 399 {
 				pw.Writef("convox", "health check <service>%s</service>: <fail>%d</fail>\n", s.Name, res.StatusCode)
