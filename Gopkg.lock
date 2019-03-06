@@ -151,11 +151,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:04874d362220e95f0edeaeb1a29370ebebda09a23148c98b8c629d4fec1c1441"
+  digest = "1:7ae9cc19994e63042fee1d06940ad0497079b4cfd99d0ba84bcb6e91898a1db0"
   name = "github.com/convox/changes"
   packages = ["."]
   pruneopts = "NUT"
-  revision = "b0d1912cd4576ca7dd29a443fc4f7cffbd7f5b13"
+  revision = "bce25ca20c47013cc10aaf6ab50df0387e6a2a3b"
 
 [[projects]]
   branch = "master"
@@ -668,6 +668,14 @@
   packages = ["."]
   pruneopts = "NUT"
   revision = "b8bc1bf767474819792c23f32d8286a45736f1c6"
+
+[[projects]]
+  digest = "1:3e59731bdbfea083daa9b165949d23b4cdd3d060afff5a54d4cf8d4fb2b88f67"
+  name = "github.com/moby/moby"
+  packages = ["pkg/fileutils"]
+  pruneopts = "NUT"
+  revision = "092cba3727bb9b4a2f0e922cd6c0f93ea270e363"
+  version = "v1.13.1"
 
 [[projects]]
   digest = "1:2f42fa12d6911c7b7659738758631bec870b7e9b4c6be5444f963cdcfccc191f"
