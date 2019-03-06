@@ -10,7 +10,6 @@ import (
 )
 
 type TargetRouter interface {
-	Certificate(host string) (*tls.Certificate, error)
 	RequestBegin(host string) error
 	RequestEnd(host string) error
 	Route(host string) (string, error)
