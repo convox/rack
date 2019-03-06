@@ -1,22 +1,16 @@
 package router_test
 
 import (
-	"crypto/rand"
-	"crypto/rsa"
 	"crypto/tls"
-	"crypto/x509"
-	"crypto/x509/pkix"
-	"encoding/pem"
 	"fmt"
 	"io"
 	"io/ioutil"
-	"math/big"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
-	"time"
 
+	"github.com/convox/rack/pkg/helpers"
 	"github.com/convox/rack/pkg/router"
 	"github.com/gorilla/websocket"
 	"github.com/stretchr/testify/require"
@@ -264,11 +258,22 @@ func TestRequestWebsocket(t *testing.T) {
 	})
 }
 
+func generateSelfSignedCertificate(hello *tls.ClientHelloInfo) (*tls.Certificate, error) {
+	return helpers.CertificateSelfSigned(hello.ServerName)
+}
+
 func testHTTP(t *testing.T, r testRouter, fn func(h *router.HTTP)) {
-	h, err := router.NewHTTP(0, r)
+	ln, err := tls.Listen("tcp", fmt.Sprintf(":0"), &tls.Config{
+		GetCertificate: generateSelfSignedCertificate,
+	})
+	require.NoError(t, err)
+
+	h, err := router.NewHTTP(ln, r)
 	require.NoError(t, err)
 	defer h.Close()
+
 	go h.ListenAndServe()
+
 	fn(h)
 }
 
@@ -334,50 +339,6 @@ func testWebsocket(h *router.HTTP, host, path string) (*websocket.Conn, error) {
 }
 
 type testRouter map[string]string
-
-func (r testRouter) Certificate(host string) (*tls.Certificate, error) {
-	rkey, err := rsa.GenerateKey(rand.Reader, 2048)
-
-	if err != nil {
-		return nil, err
-	}
-
-	serial, err := rand.Int(rand.Reader, new(big.Int).Lsh(big.NewInt(1), 128))
-
-	if err != nil {
-		return nil, err
-	}
-
-	template := x509.Certificate{
-		SerialNumber: serial,
-		Subject: pkix.Name{
-			CommonName:   host,
-			Organization: []string{"convox"},
-		},
-		NotBefore:             time.Now(),
-		NotAfter:              time.Now().Add(365 * 24 * time.Hour),
-		KeyUsage:              x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
-		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
-		BasicConstraintsValid: true,
-		DNSNames:              []string{host},
-	}
-
-	data, err := x509.CreateCertificate(rand.Reader, &template, &template, &rkey.PublicKey, rkey)
-
-	if err != nil {
-		return nil, err
-	}
-
-	pub := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: data})
-	key := pem.EncodeToMemory(&pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(rkey)})
-
-	cert, err := tls.X509KeyPair(pub, key)
-	if err != nil {
-		return nil, err
-	}
-
-	return &cert, nil
-}
 
 func (r testRouter) RequestBegin(host string) error {
 	return nil
