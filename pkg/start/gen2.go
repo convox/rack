@@ -444,7 +444,6 @@ func (opts Options2) watchChanges(ctx context.Context, pw prefix.Writer, m *mani
 
 func (opts Options2) watchPath(ctx context.Context, pw prefix.Writer, service, root string, bs buildSource, ignores []string, ch chan error) {
 	cch := make(chan changes.Change, 1)
-	defer close(cch)
 
 	abs, err := filepath.Abs(bs.Local)
 	if err != nil {
