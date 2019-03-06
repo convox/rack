@@ -8,17 +8,11 @@ metadata:
     alb.ingress.kubernetes.io/target-type: pod
     convox.service.ports.{{.Service.Port.Port}}.protocol: {{.Service.Port.Scheme}}
   labels:
-    system: convox
-    rack: {{.Rack}}
-    app: {{.App.Name}}
     service: {{.Service.Name}}
     release: {{.Release.Id}}
 spec:
   type: NodePort
   selector:
-    system: convox
-    rack: {{.Rack}}
-    app: {{.App.Name}}
     service: {{.Service.Name}}
     release: {{.Release.Id}}
   ports:
@@ -34,9 +28,6 @@ metadata:
   namespace: {{.Namespace}}
   name: {{.Service.Name}}
   labels:
-    system: convox
-    rack: {{.Rack}}
-    app: {{.App.Name}}
     type: service
     service: {{.Service.Name}}
     release: {{.Release.Id}}
@@ -168,9 +159,6 @@ metadata:
   namespace: {{.Namespace}}
   name: {{.Service.Name}}
   labels:
-    system: convox
-    rack: {{.Rack}}
-    app: {{.App.Name}}
     service: {{.Service.Name}}
     release: {{.Release.Id}}
 spec:

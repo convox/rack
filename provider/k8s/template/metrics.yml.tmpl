@@ -2,9 +2,6 @@ apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: ClusterRoleBinding
 metadata:
   name: metrics-server:system:auth-delegator
-  labels:
-    system: convox
-    type: metrics
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
@@ -19,9 +16,6 @@ kind: RoleBinding
 metadata:
   name: metrics-server-auth-reader
   namespace: kube-system
-  labels:
-    system: convox
-    type: metrics
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
@@ -35,9 +29,6 @@ apiVersion: apiregistration.k8s.io/v1beta1
 kind: APIService
 metadata:
   name: v1beta1.metrics.k8s.io
-  labels:
-    system: convox
-    type: metrics
 spec:
   service:
     name: metrics-server
@@ -53,9 +44,6 @@ kind: ServiceAccount
 metadata:
   name: metrics-server
   namespace: kube-system
-  labels:
-    system: convox
-    type: metrics
 ---
 apiVersion: extensions/v1beta1
 kind: Deployment
@@ -64,8 +52,6 @@ metadata:
   namespace: kube-system
   labels:
     k8s-app: metrics-server
-    system: convox
-    type: metrics
 spec:
   selector:
     matchLabels:
@@ -96,8 +82,6 @@ metadata:
   namespace: kube-system
   labels:
     kubernetes.io/name: "Metrics-server"
-    system: convox
-    type: metrics
 spec:
   selector:
     k8s-app: metrics-server
@@ -110,9 +94,6 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   name: system:metrics-server
-  labels:
-    system: convox
-    type: metrics
 rules:
 - apiGroups:
   - ""
@@ -138,9 +119,6 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
   name: system:metrics-server
-  labels:
-    system: convox
-    type: metrics
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole

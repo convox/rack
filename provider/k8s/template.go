@@ -1,8 +1,10 @@
 package k8s
 
 import (
+	"bytes"
 	"fmt"
 	"html/template"
+	"os/exec"
 	"sort"
 	"strings"
 
@@ -10,7 +12,38 @@ import (
 	"github.com/convox/rack/pkg/manifest"
 	"github.com/convox/rack/pkg/structs"
 	shellquote "github.com/kballard/go-shellquote"
+	yaml "gopkg.in/yaml.v2"
 )
+
+func (p *Provider) Apply(data []byte, filter string) ([]byte, error) {
+	labels := parseLabels(filter)
+
+	parts := bytes.Split(data, []byte("---\n"))
+
+	for i := range parts {
+		dp, err := applyLabels(parts[i], labels)
+		if err != nil {
+			panic(err)
+			return nil, err
+		}
+
+		parts[i] = dp
+	}
+
+	data = bytes.Join(parts, []byte("---\n"))
+
+	cmd := exec.Command("kubectl", "apply", "--prune", "-l", filter, "-f", "-", "--force")
+
+	cmd.Stdin = bytes.NewReader(data)
+
+	out, err := cmd.CombinedOutput()
+	// fmt.Printf("output ------\n%s\n-------------\n", string(out))
+	if err != nil {
+		return out, err
+	}
+
+	return out, nil
+}
 
 func (p *Provider) ApplyTemplate(name string, filter string, params map[string]interface{}) ([]byte, error) {
 	data, err := p.RenderTemplate(name, params)
@@ -111,4 +144,75 @@ func (p *Provider) templateHelpers() template.FuncMap {
 			return volumeTo(v)
 		},
 	}
+}
+
+func applyLabels(data []byte, labels map[string]string) ([]byte, error) {
+	var v map[string]interface{}
+
+	if err := yaml.Unmarshal(data, &v); err != nil {
+		return nil, err
+	}
+
+	if len(v) == 0 {
+		return data, nil
+	}
+
+	switch t := v["metadata"].(type) {
+	case nil:
+		v["metadata"] = map[string]interface{}{"labels": labels}
+	case map[interface{}]interface{}:
+		switch u := t["labels"].(type) {
+		case nil:
+			t["labels"] = labels
+			v["metadata"] = t
+		case map[interface{}]interface{}:
+			for k, v := range labels {
+				u[k] = v
+			}
+			t["labels"] = u
+			v["metadata"] = t
+		default:
+			return nil, fmt.Errorf("unknown labels type: %T", u)
+		}
+	default:
+		return nil, fmt.Errorf("unknown metadata type: %T", t)
+	}
+
+	pd, err := yaml.Marshal(v)
+	if err != nil {
+		return nil, err
+	}
+
+	return pd, nil
+	// if v["metadata"] == nil {
+	//   v["metadata"] = map[string]interface{}{}
+	// }
+
+	// switch t := v["metadata"]["labels"].(type) {
+	// default:
+	//   return fmt.Errorf("unknown labels type: %T", t)
+	// }
+
+	// if v["metadata"]["labels"] == nil {
+	//   v["metadata"]["labels"] = map[string]interface{}{}
+	// }
+
+	// ls := v["metadata"]["labels"]
+	// fmt.Printf("ls = %+v\n", ls)
+	// fmt.Printf("v = %+v\n", v)
+
+	// return data, nil
+}
+
+func parseLabels(labels string) map[string]string {
+	ls := map[string]string{}
+
+	for _, part := range strings.Split(labels, ",") {
+		ps := strings.SplitN(strings.TrimSpace(part), "=", 2)
+		if len(ps) == 2 {
+			ls[ps[0]] = ps[1]
+		}
+	}
+
+	return ls
 }
