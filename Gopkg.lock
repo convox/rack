@@ -654,12 +654,12 @@
   version = "v0.0.3"
 
 [[projects]]
-  digest = "1:e7a7b1f248cf75676608c2e37e4d2887c03310e174bcdb265cef3bc8d95150ab"
+  digest = "1:9747dd1fd2a355a86f3a7499f8d39102843e6f04281c825b30eb011e8ccefc98"
   name = "github.com/miekg/dns"
   packages = ["."]
   pruneopts = "NUT"
-  revision = "5364553f1ee9cddc7ac8b62dce148309c386695b"
-  version = "v1.0.4"
+  revision = "8fc2e5773bbd308ca2fcc962fd8d25c1bd0f6743"
+  version = "v1.1.4"
 
 [[projects]]
   branch = "master"
@@ -825,12 +825,16 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:669c028b586257f776001fbb73b9e49ee56c870ff28f115467a01acc68de16ba"
+  digest = "1:2ae5d829d3765828aed1cbac2f1b2e608502b44d524309b6d5d1f9f2e9739231"
   name = "golang.org/x/crypto"
   packages = [
+    "acme",
+    "acme/autocert",
     "curve25519",
     "ed25519",
     "ed25519/internal/edwards25519",
+    "internal/chacha20",
+    "internal/subtle",
     "nacl/secretbox",
     "poly1305",
     "salsa20/salsa",
@@ -838,7 +842,7 @@
     "ssh/terminal",
   ]
   pruneopts = "NUT"
-  revision = "94eea52f7b742c7cbe0b03b22f0c4c8631ece122"
+  revision = "8dd112bcdc25174059e45e07517d9fc663123347"
 
 [[projects]]
   branch = "master"
@@ -863,14 +867,15 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:17414dd7b927933c761dbe6db160b8e7c801ff183349232b423bb9c82af875d0"
+  digest = "1:06016ff94d4b63a5d59477d44567a8baab8d9f0b1f7c7e226fc5870cffdf2d07"
   name = "golang.org/x/sys"
   packages = [
+    "cpu",
     "unix",
     "windows",
   ]
   pruneopts = "NUT"
-  revision = "8b4580aae2a0dd0c231a45d3ccb8434ff533b840"
+  revision = "b6889370fb1098ed892bd3400d189bb6a3355813"
 
 [[projects]]
   digest = "1:e33513a825fcd765e97b5de639a2f7547542d1a8245df0cef18e1fd390b778a9"
@@ -1287,6 +1292,7 @@
     "github.com/stretchr/testify/require",
     "github.com/stvp/rollbar",
     "github.com/twmb/algoimpl/go/graph",
+    "golang.org/x/crypto/acme/autocert",
     "golang.org/x/crypto/nacl/secretbox",
     "golang.org/x/crypto/ssh",
     "gopkg.in/yaml.v2",

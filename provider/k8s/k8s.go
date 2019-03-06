@@ -1,10 +1,8 @@
 package k8s
 
 import (
-	"bytes"
 	"flag"
 	"os"
-	"os/exec"
 
 	"github.com/convox/logger"
 	"github.com/convox/rack/pkg/helpers"
@@ -90,20 +88,6 @@ func FromEnv() (*Provider, error) {
 	p.templater = templater.New(packr.NewBox("template"), p.templateHelpers())
 
 	return p, nil
-}
-
-func (p *Provider) Apply(data []byte, prune string) ([]byte, error) {
-	cmd := exec.Command("kubectl", "apply", "--prune", "-l", prune, "-f", "-")
-
-	cmd.Stdin = bytes.NewReader(data)
-
-	out, err := cmd.CombinedOutput()
-	// fmt.Printf("output ------\n%s\n-------------\n", string(out))
-	if err != nil {
-		return out, err
-	}
-
-	return out, nil
 }
 
 func (p *Provider) Initialize(opts structs.ProviderOptions) error {

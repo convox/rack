@@ -2,10 +2,6 @@ apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
   name: builds.convox.com
-  labels:
-    scope: k8s
-    system: convox
-    type: custom
 spec:
   group: convox.com
   versions:
@@ -25,10 +21,6 @@ apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
   name: releases.convox.com
-  labels:
-    scope: k8s
-    system: convox
-    type: custom
 spec:
   group: convox.com
   versions:

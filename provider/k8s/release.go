@@ -224,9 +224,9 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 
 	tdata := bytes.Join(items, []byte("---\n"))
 
-	fmt.Printf("string(tdata) = %+v\n", string(tdata))
+	// fmt.Printf("string(tdata) = %+v\n", string(tdata))
 
-	out, err := p.Apply(tdata, fmt.Sprintf("system=convox,rack=%s,app=%s", p.Rack, app))
+	out, err := p.Apply(tdata, fmt.Sprintf("system=convox,provider=k8s,scope=release,rack=%s,app=%s", p.Rack, app))
 	if err != nil {
 		return errors.New(strings.TrimSpace(string(out)))
 	}

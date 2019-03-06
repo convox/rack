@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/convox/rack/pkg/helpers"
 	"github.com/convox/rack/pkg/structs"
 	ac "k8s.io/api/core/v1"
 	ae "k8s.io/apimachinery/pkg/api/errors"
@@ -15,19 +16,18 @@ func (p *Provider) AppCancel(name string) error {
 }
 
 func (p *Provider) AppCreate(name string, opts structs.AppCreateOptions) (*structs.App, error) {
-	_, err := p.Cluster.CoreV1().Namespaces().Create(&ac.Namespace{
-		ObjectMeta: am.ObjectMeta{
-			Name: p.AppNamespace(name),
-			Labels: map[string]string{
-				"system": "convox",
-				"rack":   p.Rack,
-				"type":   "app",
-				"name":   name,
-			},
-		},
-	})
-	if err != nil {
-		return nil, err
+	if _, err := p.Cluster.CoreV1().Namespaces().Get(p.AppNamespace(name), am.GetOptions{}); !ae.IsNotFound(err) {
+		return nil, fmt.Errorf("app already exists: %s", name)
+	}
+
+	params := map[string]interface{}{
+		"Name":      name,
+		"Namespace": p.AppNamespace(name),
+		"Rack":      p.Rack,
+	}
+
+	if out, err := p.ApplyTemplate("app", fmt.Sprintf("system=convox,provider=k8s,scope=app,rack=%s,app=%s", p.Rack, name), params); err != nil {
+		return nil, fmt.Errorf("create error: %s", string(out))
 	}
 
 	return p.AppGet(name)
@@ -154,7 +154,7 @@ func appFromNamespace(ns ac.Namespace) structs.App {
 
 	return structs.App{
 		Generation: "2",
-		Name:       ns.Labels["name"],
+		Name:       helpers.CoalesceString(ns.Labels["app"], ns.Labels["name"]),
 		Release:    ns.Annotations["convox.release"],
 		Status:     status,
 	}

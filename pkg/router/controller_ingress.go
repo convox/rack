@@ -24,7 +24,7 @@ func NewIngressController(r *Router) (*IngressController, error) {
 		Router: r,
 	}
 
-	c, err := k8s.NewController("convox-system", "convox-router", ic)
+	c, err := k8s.NewController("convox-system", "convox-router-ingress", ic)
 	if err != nil {
 		return nil, err
 	}

@@ -121,15 +121,15 @@ func (p *Provider) systemUpdate(version string) error {
 		"Version": version,
 	}
 
-	if out, err := p.ApplyTemplate("custom", "system=convox,type=custom,scope=k8s", nil); err != nil {
+	if out, err := p.ApplyTemplate("custom", "system=convox,provider=k8s,scope=custom", nil); err != nil {
 		return log.Error(fmt.Errorf("update error: %s", string(out)))
 	}
 
-	if out, err := p.ApplyTemplate("metrics", "system=convox,type=metrics", nil); err != nil {
+	if out, err := p.ApplyTemplate("metrics", "system=convox,provider=k8s,scope=metrics", nil); err != nil {
 		return log.Error(fmt.Errorf("update error: %s", string(out)))
 	}
 
-	if out, err := p.ApplyTemplate("rack", fmt.Sprintf("system=convox,type=rack,rack=%s", p.Rack), params); err != nil {
+	if out, err := p.ApplyTemplate("rack", fmt.Sprintf("system=convox,provider=k8s,scope=rack,rack=%s", p.Rack), params); err != nil {
 		return log.Error(fmt.Errorf("update error: %s", string(out)))
 	}
 
