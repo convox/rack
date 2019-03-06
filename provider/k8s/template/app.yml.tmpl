@@ -3,5 +3,18 @@ kind: Namespace
 metadata:
   name: {{.Namespace}}
   labels:
-    generation: 2
-    release: {{.Release.Id}}
+    type: app
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  namespace: {{.Namespace}}
+  name: {{.Name}}
+spec:
+  podSelector: {}
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          system: convox
+          scope: system

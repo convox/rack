@@ -1,10 +1,10 @@
 .PHONY: all build builder compress dev generate mocks package release test
 
-commands = build monitor rack router
-injects  = convox-env
+# commands = build monitor rack router
+# injects  = convox-env
 
-# commands = build rack
-# injects  =
+commands = build rack router
+injects  =
 
 assets   = $(wildcard assets/*)
 binaries = $(addprefix $(GOPATH)/bin/, $(commands))
@@ -23,16 +23,17 @@ compress: $(binaries) $(statics)
 	upx-ucl -1 $^
 
 dev:
-	docker build --target development -t convox/rack:dev . && \
-	( [ "$(UPLOAD)" == "true" ] && \
-	  docker push convox/rack:dev && \
-	  kubectl patch deployment/api -p '{"spec":{"template":{"spec":{"containers":[{"name":"main","imagePullPolicy":"Always"}]}}}}' -n $(RACK) && \
-	  kubectl patch daemonset/router -p '{"spec":{"template":{"spec":{"containers":[{"name":"router","imagePullPolicy":"Always"}]}}}}' -n convox-system  \
-	  || true \
-	) && \
-	kubectl delete pod --all -n convox-system && \
-	kubectl delete pod --all -n $(RACK) && \
-	kubectl rollout status deployment/api -n $(RACK) && \
+	test -n "$(RACK)" # RACK
+	docker build --target development -t convox/rack:dev .
+ifdef UPLOAD
+	docker push convox/rack:dev
+	kubectl patch deployment/api -p '{"spec":{"template":{"spec":{"containers":[{"name":"main","imagePullPolicy":"Always"}]}}}}' -n $(RACK)
+	kubectl patch daemonset/router -p '{"spec":{"template":{"spec":{"containers":[{"name":"router","imagePullPolicy":"Always"}]}}}}' -n convox-system
+endif
+	kubectl delete pod --all -n convox-system
+	kubectl delete pod --all -n $(RACK)
+	kubectl rollout status deployment/api -n $(RACK)
+	kubectl rollout status daemonset/router -n convox-system
 	convox rack logs
 
 generate:
