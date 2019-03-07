@@ -9,16 +9,12 @@ import (
 	"net/url"
 	"os"
 	"regexp"
-	"strings"
 	"sync"
 	"time"
 
 	"github.com/convox/rack/pkg/helpers"
 	"github.com/miekg/dns"
 	"golang.org/x/crypto/acme/autocert"
-	am "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
 )
 
 const (
@@ -31,15 +27,12 @@ var (
 )
 
 type Router struct {
-	Cluster kubernetes.Interface
-	DNS     Server
-	HTTP    Server
-	HTTPS   Server
+	DNS   Server
+	HTTP  Server
+	HTTPS Server
 
+	backend Backend
 	certs   sync.Map
-	ip      string
-	prefix  string
-	service string
 	storage Storage
 }
 
@@ -56,24 +49,22 @@ func New() (*Router, error) {
 		certs: sync.Map{},
 	}
 
+	switch os.Getenv("BACKEND") {
+	default:
+		b, err := NewBackendKubernetes(r)
+		if err != nil {
+			return nil, err
+		}
+
+		r.backend = b
+	}
+
 	switch os.Getenv("STORAGE") {
 	case "dynamodb":
 		r.storage = NewStorageDynamo(os.Getenv("ROUTER_ROUTES"))
 	default:
 		r.storage = NewStorageMemory()
 	}
-
-	c, err := rest.InClusterConfig()
-	if err != nil {
-		return nil, err
-	}
-
-	kc, err := kubernetes.NewForConfig(c)
-	if err != nil {
-		return nil, err
-	}
-
-	r.Cluster = kc
 
 	if err := r.setupDNS(); err != nil {
 		return nil, err
@@ -83,40 +74,7 @@ func New() (*Router, error) {
 		return nil, err
 	}
 
-	ic, err := NewIngressController(r)
-	if err != nil {
-		return nil, err
-	}
-
-	go ic.Run()
-
-	if parts := strings.Split(os.Getenv("POD_IP"), "."); len(parts) > 2 {
-		r.prefix = fmt.Sprintf("%s.%s.", parts[0], parts[1])
-	}
-
-	if host := os.Getenv("SERVICE_HOST"); host != "" {
-		for {
-			if ips, err := net.LookupIP(host); err == nil && len(ips) > 0 {
-				r.service = ips[0].String()
-				break
-			}
-
-			time.Sleep(1 * time.Second)
-		}
-	}
-
-	s, err := kc.CoreV1().Services("convox-system").Get("router", am.GetOptions{})
-	if err != nil {
-		return nil, err
-	}
-
-	if len(s.Status.LoadBalancer.Ingress) > 0 && s.Status.LoadBalancer.Ingress[0].Hostname == "localhost" {
-		r.ip = "127.0.0.1"
-	} else {
-		r.ip = s.Spec.ClusterIP
-	}
-
-	fmt.Printf("ns=router at=new ip=%s prefix=%s service=%s\n", r.ip, r.prefix, r.service)
+	fmt.Printf("ns=router at=new\n")
 
 	return r, nil
 }
@@ -134,11 +92,7 @@ func (r *Router) Serve() error {
 }
 
 func (r *Router) ExternalIP(remote net.Addr) string {
-	if strings.HasPrefix(remote.String(), r.prefix) {
-		return r.service
-	}
-
-	return r.ip
+	return r.backend.ExternalIP(remote)
 }
 
 func (r *Router) RequestBegin(host string) error {
@@ -148,7 +102,11 @@ func (r *Router) RequestBegin(host string) error {
 	}
 
 	if idle {
-		if err := r.HostUnidle(host); err != nil {
+		if err := r.backend.IdleSet(host, false); err != nil {
+			return fmt.Errorf("could not unidle: %s", err)
+		}
+
+		if err := r.storage.IdleSet(host, false); err != nil {
 			return fmt.Errorf("could not unidle: %s", err)
 		}
 	}
@@ -180,7 +138,7 @@ func (r *Router) TargetAdd(host, target string) error {
 		return err
 	}
 
-	idle, err := r.HostIdleStatus(host)
+	idle, err := r.backend.IdleGet(host)
 	if err != nil {
 		return err
 	}
@@ -235,7 +193,7 @@ func (r *Router) generateCertificateCA(hello *tls.ClientHelloInfo) (*tls.Certifi
 		}
 	}
 
-	ca, err := r.ca()
+	ca, err := r.backend.CA()
 	if err != nil {
 		return nil, err
 	}
@@ -248,6 +206,41 @@ func (r *Router) generateCertificateCA(hello *tls.ClientHelloInfo) (*tls.Certifi
 	r.certs.Store(host, *c)
 
 	return c, nil
+}
+
+func (r *Router) idleTicker() {
+	for range time.Tick(idleCheck) {
+		if err := r.idleTick(); err != nil {
+			fmt.Printf("ns=router at=idle.ticker error=%v\n", err)
+		}
+	}
+}
+
+func (r *Router) idleTick() error {
+	hs, err := r.storage.IdleReady(time.Now().UTC().Add(-1 * idleTimeout))
+	if err != nil {
+		return err
+	}
+
+	for _, h := range hs {
+		idle, err := r.storage.IdleGet(h)
+		if err != nil {
+			return err
+		}
+		if idle {
+			continue
+		}
+
+		if err := r.backend.IdleSet(h, true); err != nil {
+			return err
+		}
+
+		if err := r.storage.IdleSet(h, true); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (r *Router) setupDNS() error {

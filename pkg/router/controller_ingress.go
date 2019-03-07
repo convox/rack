@@ -15,27 +15,26 @@ import (
 )
 
 type IngressController struct {
-	Controller *k8s.Controller
-	Router     *Router
+	controller *k8s.Controller
+	kc         kubernetes.Interface
+	router     BackendRouter
 }
 
-func NewIngressController(r *Router) (*IngressController, error) {
-	ic := &IngressController{
-		Router: r,
-	}
+func NewIngressController(kc kubernetes.Interface, router BackendRouter) (*IngressController, error) {
+	ic := &IngressController{kc: kc, router: router}
 
 	c, err := k8s.NewController("convox-system", "convox-router-ingress", ic)
 	if err != nil {
 		return nil, err
 	}
 
-	ic.Controller = c
+	ic.controller = c
 
 	return ic, nil
 }
 
 func (c *IngressController) Client() kubernetes.Interface {
-	return c.Router.Cluster
+	return c.kc
 }
 
 func (c *IngressController) ListOptions(opts *am.ListOptions) {
@@ -44,11 +43,11 @@ func (c *IngressController) ListOptions(opts *am.ListOptions) {
 }
 
 func (c *IngressController) Run() {
-	i := ie.NewFilteredIngressInformer(c.Router.Cluster, ac.NamespaceAll, 10*time.Second, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, c.ListOptions)
+	i := ie.NewFilteredIngressInformer(c.kc, ac.NamespaceAll, 10*time.Second, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, c.ListOptions)
 
 	ch := make(chan error)
 
-	go c.Controller.Run(i, ch)
+	go c.controller.Run(i, ch)
 
 	for err := range ch {
 		fmt.Printf("err = %+v\n", err)
@@ -72,8 +71,8 @@ func (c *IngressController) Add(obj interface{}) error {
 	for _, r := range i.Spec.Rules {
 		for _, port := range r.IngressRuleValue.HTTP.Paths {
 			target := rulePathTarget(port, i.ObjectMeta)
-			c.Controller.Event(i, ac.EventTypeNormal, "TargetAdd", fmt.Sprintf("%s => %s", r.Host, target))
-			c.Router.TargetAdd(r.Host, target)
+			c.controller.Event(i, ac.EventTypeNormal, "TargetAdd", fmt.Sprintf("%s => %s", r.Host, target))
+			c.router.TargetAdd(r.Host, target)
 		}
 	}
 
@@ -93,8 +92,8 @@ func (c *IngressController) Delete(obj interface{}) error {
 	for _, r := range i.Spec.Rules {
 		for _, port := range r.IngressRuleValue.HTTP.Paths {
 			target := rulePathTarget(port, i.ObjectMeta)
-			c.Controller.Event(i, ac.EventTypeNormal, "TargetDelete", fmt.Sprintf("%s => %s", r.Host, target))
-			c.Router.TargetRemove(r.Host, rulePathTarget(port, i.ObjectMeta))
+			c.controller.Event(i, ac.EventTypeNormal, "TargetDelete", fmt.Sprintf("%s => %s", r.Host, target))
+			c.router.TargetRemove(r.Host, rulePathTarget(port, i.ObjectMeta))
 		}
 	}
 
@@ -136,7 +135,7 @@ func (c *IngressController) updateIngressIP(i *ae.Ingress, ip string) error {
 		{IP: ip},
 	}
 
-	if _, err := c.Router.Cluster.ExtensionsV1beta1().Ingresses(i.ObjectMeta.Namespace).UpdateStatus(i); err != nil {
+	if _, err := c.kc.ExtensionsV1beta1().Ingresses(i.ObjectMeta.Namespace).UpdateStatus(i); err != nil {
 		return err
 	}
 
