@@ -1,9 +1,13 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"github.com/convox/rack/pkg/router"
 	"k8s.io/apimachinery/pkg/util/runtime"
@@ -27,5 +31,20 @@ func run() error {
 		return err
 	}
 
+	ch := make(chan os.Signal, 1)
+	signal.Notify(ch, syscall.SIGINT, syscall.SIGTERM)
+	go handleSignals(r, ch)
+
 	return r.Serve()
+}
+
+func handleSignals(r *router.Router, ch <-chan os.Signal) {
+	sig := <-ch
+
+	fmt.Printf("ns=rack at=signal signal=%v terminate=true\n", sig)
+
+	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
+	r.Shutdown(ctx)
+
+	os.Exit(0)
 }

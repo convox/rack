@@ -234,13 +234,13 @@ func endpointWait(url string) error {
 
 	ht := *(http.DefaultTransport.(*http.Transport))
 	ht.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-	hc := &http.Client{Transport: &ht}
+	hc := &http.Client{Timeout: 2 * time.Second, Transport: &ht}
 
 	for {
 		select {
 		case <-tick:
-			_, err := hc.Get(url)
-			if err == nil {
+			res, err := hc.Get(fmt.Sprintf("%s/apps", url))
+			if err == nil && res.StatusCode == 200 {
 				return nil
 			}
 		case <-timeout:

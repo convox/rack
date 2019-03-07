@@ -24,6 +24,10 @@ func LoadTemplates(box packr.Box, helpers TemplateHelpers) {
 	templateHelpers = helpers
 }
 
+func TemplateExists(path string) bool {
+	return templateBox.Has(fmt.Sprintf("%s.tmpl", path))
+}
+
 func RenderTemplate(c *Context, path string, params interface{}) error {
 	files := []string{}
 
@@ -51,9 +55,7 @@ func RenderTemplate(c *Context, path string, params interface{}) error {
 		return errors.WithStack(err)
 	}
 
-	if _, err := io.Copy(c, &buf); err != nil {
-		return errors.WithStack(err)
-	}
+	io.Copy(c, &buf)
 
 	return nil
 }

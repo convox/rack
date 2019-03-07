@@ -1,8 +1,12 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"github.com/convox/rack/pkg/api"
 )
@@ -14,12 +18,27 @@ func main() {
 }
 
 func run() error {
-	a, err := api.New()
+	s, err := api.New()
 	if err != nil {
 		return err
 	}
 
-	a.Password = os.Getenv("PASSWORD")
+	s.Password = os.Getenv("PASSWORD")
 
-	return a.Listen("https", ":5443")
+	ch := make(chan os.Signal, 1)
+	signal.Notify(ch, syscall.SIGINT, syscall.SIGTERM)
+	go handleSignals(s, ch)
+
+	return s.Listen("https", ":5443")
+}
+
+func handleSignals(s *api.Server, ch <-chan os.Signal) {
+	sig := <-ch
+
+	fmt.Printf("ns=rack at=signal signal=%v terminate=true\n", sig)
+
+	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
+	s.Shutdown(ctx)
+
+	os.Exit(0)
 }
