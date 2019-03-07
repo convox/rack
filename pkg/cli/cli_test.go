@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -31,6 +32,11 @@ func testClient(t *testing.T, fn func(*cli.Engine, *mocksdk.Interface)) {
 }
 
 func testClientWait(t *testing.T, wait time.Duration, fn func(*cli.Engine, *mocksdk.Interface)) {
+	os.Unsetenv("CONVOX_HOST")
+	os.Unsetenv("CONVOX_PASSWORD")
+	os.Unsetenv("CONVOX_RACK")
+	os.Unsetenv("RACK_URL")
+
 	i := &mocksdk.Interface{}
 
 	cli.WaitDuration = wait

@@ -1,6 +1,7 @@
 package router_test
 
 import (
+	"context"
 	"crypto/tls"
 	"fmt"
 	"io"
@@ -270,8 +271,7 @@ func testHTTP(t *testing.T, r testHTTPRouter, fn func(h *router.HTTP)) {
 
 	h, err := router.NewHTTP(ln, r)
 	require.NoError(t, err)
-	defer h.Close()
-
+	defer h.Shutdown(context.Background())
 	go h.ListenAndServe()
 
 	fn(h)

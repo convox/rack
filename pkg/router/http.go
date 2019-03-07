@@ -1,6 +1,7 @@
 package router
 
 import (
+	"context"
 	"crypto/tls"
 	"fmt"
 	"net"
@@ -12,6 +13,7 @@ import (
 type HTTP struct {
 	listener net.Listener
 	router   HTTPRouter
+	server   http.Server
 }
 
 type HTTPRouter interface {
@@ -30,12 +32,8 @@ func NewHTTP(ln net.Listener, router HTTPRouter) (*HTTP, error) {
 	return h, nil
 }
 
-func (h *HTTP) Close() error {
-	if h.listener == nil {
-		return nil
-	}
-
-	return h.listener.Close()
+func (h *HTTP) Shutdown(ctx context.Context) error {
+	return h.server.Shutdown(ctx)
 }
 
 func (h *HTTP) Port() (string, error) {
@@ -48,8 +46,9 @@ func (h *HTTP) Port() (string, error) {
 }
 
 func (h *HTTP) ListenAndServe() error {
-	s := &http.Server{Handler: h}
-	return s.Serve(h.listener)
+	h.server = http.Server{Handler: h}
+
+	return h.server.Serve(h.listener)
 }
 
 func (h *HTTP) ServeHTTP(w http.ResponseWriter, r *http.Request) {
