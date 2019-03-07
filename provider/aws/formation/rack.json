@@ -2077,7 +2077,7 @@
       "Condition": "PublicRouter",
       "Properties": {
         "Certificates": [ { "CertificateArn": { "Ref": "RouterApiCertificate" } } ],
-        "DefaultActions": [ { "Type": "forward", "TargetGroupArn": { "Ref": "RouterApiTargetGroup" } } ],
+        "DefaultActions": [ { "Type": "fixed-response", "FixedResponseConfig": { "StatusCode": "404", "MessageBody": "unknown host" } } ],
         "LoadBalancerArn": { "Ref" : "Router" },
         "Port": "443",
         "Protocol": "HTTPS",
@@ -2087,7 +2087,6 @@
     "RouterApiCertificate": {
       "Type": "AWS::CertificateManager::Certificate",
       "Condition": "PublicRouter",
-      "DependsOn": "RouterApiTargetGroup",
       "Properties": {
         "DomainName": { "Fn::Join": [ ".", [
           "*",
@@ -2106,24 +2105,6 @@
             "ValidationDomain": "convox.site"
           }
         ]
-      }
-    },
-    "RouterApiTargetGroup": {
-      "Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
-      "Condition": "PublicRouter",
-      "DependsOn": "Router",
-      "Properties": {
-        "HealthCheckIntervalSeconds": "5",
-        "HealthCheckTimeoutSeconds": "3",
-        "UnhealthyThresholdCount": "2",
-        "HealthCheckPath": "/check",
-        "Port": "5443",
-        "Protocol": "HTTPS",
-        "TargetGroupAttributes": [
-          { "Key": "deregistration_delay.timeout_seconds", "Value": "30" },
-          { "Key": "stickiness.enabled", "Value": "true" }
-        ],
-        "VpcId": { "Fn::If": [ "BlankExistingVpc", { "Ref": "Vpc" }, { "Ref": "ExistingVpc" } ] }
       }
     },
     "RouterInternal": {
@@ -2168,7 +2149,7 @@
       "Type": "AWS::ElasticLoadBalancingV2::Listener",
       "Condition": "Internal",
       "Properties": {
-        "DefaultActions": [ { "Type": "forward", "TargetGroupArn": { "Ref": "RouterInternalApiTargetGroup" } } ],
+        "DefaultActions": [ { "Type": "redirect", "RedirectConfig": { "Protocol": "HTTPS", "Port": "443", "StatusCode": "HTTP_301" } } ],
         "LoadBalancerArn": { "Ref" : "RouterInternal" },
         "Port": "80",
         "Protocol": "HTTP"
@@ -2179,7 +2160,7 @@
       "Condition": "Internal",
       "Properties": {
         "Certificates": [ { "CertificateArn": { "Ref": "RouterInternalCertificate" } } ],
-        "DefaultActions": [ { "Type": "forward", "TargetGroupArn": { "Ref": "RouterInternalApiTargetGroup" } } ],
+        "DefaultActions": [ { "Type": "fixed-response", "FixedResponseConfig": { "StatusCode": "404", "MessageBody": "unknown host" } } ],
         "LoadBalancerArn": { "Ref" : "RouterInternal" },
         "Port": "443",
         "Protocol": "HTTPS",
@@ -2189,7 +2170,6 @@
     "RouterInternalCertificate": {
       "Type": "AWS::CertificateManager::Certificate",
       "Condition": "Internal",
-      "DependsOn": "RouterInternalApiTargetGroup",
       "Properties": {
         "DomainName": { "Fn::Join": [ ".", [
           "*",
@@ -2208,24 +2188,6 @@
             "ValidationDomain": "convox.site"
           }
         ]
-      }
-    },
-    "RouterInternalApiTargetGroup": {
-      "Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
-      "Condition": "Internal",
-      "DependsOn": "RouterInternal",
-      "Properties": {
-        "HealthCheckIntervalSeconds": "5",
-        "HealthCheckTimeoutSeconds": "3",
-        "UnhealthyThresholdCount": "2",
-        "HealthCheckPath": "/check",
-        "Port": "5443",
-        "Protocol": "HTTPS",
-        "TargetGroupAttributes": [
-          { "Key": "deregistration_delay.timeout_seconds", "Value": "30" },
-          { "Key": "stickiness.enabled", "Value": "true" }
-        ],
-        "VpcId": { "Fn::If": [ "BlankExistingVpc", { "Ref": "Vpc" }, { "Ref": "ExistingVpc" } ] }
       }
     },
     "Balancer": {
