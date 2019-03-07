@@ -167,7 +167,7 @@ func (p *Provider) generateCACertificate(name string) error {
 		"Private": base64.StdEncoding.EncodeToString(key),
 	}
 
-	if _, err := p.ApplyTemplate("ca", "system=convox,type=ca", params); err != nil {
+	if _, err := p.ApplyTemplate("ca", "system=convox,provider=local,scope=ca", params); err != nil {
 		return err
 	}
 
@@ -202,12 +202,14 @@ func (p *Provider) systemUpdate(version string) error {
 		"Version": version,
 	}
 
-	if _, err := p.ApplyTemplate("config", "system=convox,type=config", params); err != nil {
-		return log.Error(err)
+	if out, err := p.ApplyTemplate("system", "system=convox,provider=local,scope=system", params); err != nil {
+		fmt.Printf("err = %+v\n", err)
+		return log.Error(fmt.Errorf("update error: %s\n", string(out)))
 	}
 
-	if _, err := p.ApplyTemplate("system", "system=convox,type=system", params); err != nil {
-		return log.Error(err)
+	if out, err := p.ApplyTemplate("config", fmt.Sprintf("system=convox,provider=local,scope=config,rack=%s", p.Rack), params); err != nil {
+		fmt.Printf("err = %+v\n", err)
+		return log.Error(fmt.Errorf("update error: %s\n", string(out)))
 	}
 
 	return log.Success()

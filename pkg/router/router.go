@@ -1,16 +1,20 @@
 package router
 
 import (
+	"crypto/tls"
 	"fmt"
 	"math/rand"
+	"net"
 	"net/http"
 	"net/url"
+	"os"
 	"regexp"
+	"sync"
 	"time"
 
-	am "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
+	"github.com/convox/rack/pkg/helpers"
+	"github.com/miekg/dns"
+	"golang.org/x/crypto/acme/autocert"
 )
 
 const (
@@ -23,13 +27,13 @@ var (
 )
 
 type Router struct {
-	Cluster kubernetes.Interface
-	DNS     Server
-	HTTP    Server
-	HTTPS   Server
-	IP      string
+	DNS   Server
+	HTTP  Server
+	HTTPS Server
 
 	backend Backend
+	certs   sync.Map
+	storage Storage
 }
 
 type Server interface {
@@ -42,54 +46,35 @@ func init() {
 
 func New() (*Router, error) {
 	r := &Router{
-		backend: NewBackendMemory(),
+		certs: sync.Map{},
 	}
 
-	c, err := rest.InClusterConfig()
-	if err != nil {
+	switch os.Getenv("BACKEND") {
+	default:
+		b, err := NewBackendKubernetes(r)
+		if err != nil {
+			return nil, err
+		}
+
+		r.backend = b
+	}
+
+	switch os.Getenv("STORAGE") {
+	case "dynamodb":
+		r.storage = NewStorageDynamo(os.Getenv("ROUTER_ROUTES"))
+	default:
+		r.storage = NewStorageMemory()
+	}
+
+	if err := r.setupDNS(); err != nil {
 		return nil, err
 	}
 
-	kc, err := kubernetes.NewForConfig(c)
-	if err != nil {
+	if err := r.setupHTTP(); err != nil {
 		return nil, err
 	}
 
-	r.Cluster = kc
-
-	dns, err := NewDNS(r)
-	if err != nil {
-		return nil, err
-	}
-
-	r.DNS = dns
-
-	https, err := NewHTTP(443, r)
-	if err != nil {
-		return nil, err
-	}
-
-	r.HTTPS = https
-
-	r.HTTP = &http.Server{Addr: ":80", Handler: redirectHTTPS(https.ServeHTTP)}
-
-	ic, err := NewIngressController(r)
-	if err != nil {
-		return nil, err
-	}
-
-	go ic.Run()
-
-	s, err := kc.CoreV1().Services("convox-system").Get("router", am.GetOptions{})
-	if err != nil {
-		return nil, err
-	}
-
-	if len(s.Status.LoadBalancer.Ingress) > 0 && s.Status.LoadBalancer.Ingress[0].Hostname == "localhost" {
-		r.IP = "127.0.0.1"
-	} else {
-		r.IP = s.Spec.ClusterIP
-	}
+	fmt.Printf("ns=router at=new\n")
 
 	return r, nil
 }
@@ -106,29 +91,37 @@ func (r *Router) Serve() error {
 	return <-ch
 }
 
+func (r *Router) ExternalIP(remote net.Addr) string {
+	return r.backend.ExternalIP(remote)
+}
+
 func (r *Router) RequestBegin(host string) error {
-	idle, err := r.backend.IdleGet(host)
+	idle, err := r.storage.IdleGet(host)
 	if err != nil {
 		return fmt.Errorf("could not fetch idle status: %s", err)
 	}
 
 	if idle {
-		if err := r.HostUnidle(host); err != nil {
+		if err := r.backend.IdleSet(host, false); err != nil {
+			return fmt.Errorf("could not unidle: %s", err)
+		}
+
+		if err := r.storage.IdleSet(host, false); err != nil {
 			return fmt.Errorf("could not unidle: %s", err)
 		}
 	}
 
-	return r.backend.RequestBegin(host)
+	return r.storage.RequestBegin(host)
 }
 
 func (r *Router) RequestEnd(host string) error {
-	return r.backend.RequestEnd(host)
+	return r.storage.RequestEnd(host)
 }
 
 func (r *Router) Route(host string) (string, error) {
 	ts, err := r.TargetList(host)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("no backends available")
 	}
 
 	if len(ts) < 1 {
@@ -139,28 +132,180 @@ func (r *Router) Route(host string) (string, error) {
 }
 
 func (r *Router) TargetAdd(host, target string) error {
-	fmt.Printf("ns=convox.router at=target.add host=%q target=%q\n", host, target)
+	fmt.Printf("ns=router at=target.add host=%q target=%q\n", host, target)
 
-	idle, err := r.HostIdleStatus(host)
+	if err := r.storage.TargetAdd(host, target); err != nil {
+		return err
+	}
+
+	idle, err := r.backend.IdleGet(host)
 	if err != nil {
 		return err
 	}
 
-	if err := r.backend.IdleSet(host, idle); err != nil {
+	if err := r.storage.IdleSet(host, idle); err != nil {
 		return err
 	}
 
-	return r.backend.TargetAdd(host, target)
+	return nil
 }
 
 func (r *Router) TargetList(host string) ([]string, error) {
-	return r.backend.TargetList(host)
+	return r.storage.TargetList(host)
 }
 
 func (r *Router) TargetRemove(host, target string) error {
-	fmt.Printf("ns=convox.router at=target.delete host=%q target=%q\n", host, target)
+	fmt.Printf("ns=router at=target.delete host=%q target=%q\n", host, target)
 
-	return r.backend.TargetRemove(host, target)
+	return r.storage.TargetRemove(host, target)
+}
+
+func (r *Router) Upstream() (string, error) {
+	cc, err := dns.ClientConfigFromFile("/etc/resolv.conf")
+	if err != nil {
+		return "", err
+	}
+
+	if len(cc.Servers) < 1 {
+		return "", fmt.Errorf("no upstream dns")
+	}
+
+	return fmt.Sprintf("%s:53", cc.Servers[0]), nil
+}
+
+func (r *Router) generateCertificateAutocert(m *autocert.Manager) func(*tls.ClientHelloInfo) (*tls.Certificate, error) {
+	return func(hello *tls.ClientHelloInfo) (*tls.Certificate, error) {
+		if hello.ServerName == "" {
+			return helpers.CertificateSelfSigned("convox")
+		}
+
+		return m.GetCertificate(hello)
+	}
+}
+
+func (r *Router) generateCertificateCA(hello *tls.ClientHelloInfo) (*tls.Certificate, error) {
+	host := hello.ServerName
+
+	v, ok := r.certs.Load(host)
+	if ok {
+		if c, ok := v.(tls.Certificate); ok {
+			return &c, nil
+		}
+	}
+
+	ca, err := r.backend.CA()
+	if err != nil {
+		return nil, err
+	}
+
+	c, err := helpers.CertificateCA(host, ca)
+	if err != nil {
+		return nil, err
+	}
+
+	r.certs.Store(host, *c)
+
+	return c, nil
+}
+
+func (r *Router) idleTicker() {
+	for range time.Tick(idleCheck) {
+		if err := r.idleTick(); err != nil {
+			fmt.Printf("ns=router at=idle.ticker error=%v\n", err)
+		}
+	}
+}
+
+func (r *Router) idleTick() error {
+	hs, err := r.storage.IdleReady(time.Now().UTC().Add(-1 * idleTimeout))
+	if err != nil {
+		return err
+	}
+
+	for _, h := range hs {
+		idle, err := r.storage.IdleGet(h)
+		if err != nil {
+			return err
+		}
+		if idle {
+			continue
+		}
+
+		if err := r.backend.IdleSet(h, true); err != nil {
+			return err
+		}
+
+		if err := r.storage.IdleSet(h, true); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (r *Router) setupDNS() error {
+	conn, err := net.ListenPacket("udp", ":5453")
+	if err != nil {
+		return err
+	}
+
+	dns, err := NewDNS(conn, r)
+	if err != nil {
+		return err
+	}
+
+	r.DNS = dns
+
+	return nil
+}
+
+func (r *Router) setupHTTP() error {
+	if os.Getenv("AUTOCERT") == "true" {
+		return r.setupHTTPAutocert()
+	}
+
+	ln, err := tls.Listen("tcp", ":443", &tls.Config{
+		GetCertificate: r.generateCertificateCA,
+	})
+	if err != nil {
+		return err
+	}
+
+	https, err := NewHTTP(ln, r)
+	if err != nil {
+		return err
+	}
+
+	r.HTTPS = https
+
+	r.HTTP = &http.Server{Addr: ":80", Handler: redirectHTTPS(https.ServeHTTP)}
+
+	return nil
+}
+
+func (r *Router) setupHTTPAutocert() error {
+	m := &autocert.Manager{
+		Cache:  NewCacheDynamo(os.Getenv("ROUTER_CACHE")),
+		Prompt: autocert.AcceptTOS,
+	}
+
+	ln, err := tls.Listen("tcp", fmt.Sprintf(":443"), &tls.Config{
+		GetCertificate: r.generateCertificateAutocert(m),
+	})
+	if err != nil {
+		return err
+	}
+
+	https, err := NewHTTP(ln, r)
+	if err != nil {
+		return err
+	}
+
+	r.HTTPS = https
+
+	r.HTTP = &http.Server{Addr: ":80", Handler: m.HTTPHandler(redirectHTTPS(https.ServeHTTP))}
+
+	return nil
 }
 
 func parseTarget(target string) (string, string, bool) {

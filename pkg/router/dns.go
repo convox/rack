@@ -3,66 +3,45 @@ package router
 import (
 	"fmt"
 	"net"
-	"os"
 	"strings"
-	"time"
 
 	"github.com/miekg/dns"
 )
 
 type DNS struct {
-	Router   *Router
-	config   *dns.ClientConfig
 	mux      *dns.ServeMux
-	prefix   string
+	router   DNSRouter
 	server   *dns.Server
-	service  string
 	upstream string
 }
 
-func NewDNS(r *Router) (*DNS, error) {
+type DNSRouter interface {
+	ExternalIP(remote net.Addr) string
+	TargetList(host string) ([]string, error)
+	Upstream() (string, error)
+}
+
+func NewDNS(conn net.PacketConn, router DNSRouter) (*DNS, error) {
 	mux := dns.NewServeMux()
 
 	d := &DNS{
-		Router: r,
 		mux:    mux,
+		router: router,
 		server: &dns.Server{
-			Addr:    ":5453",
-			Handler: mux,
-			Net:     "udp",
+			PacketConn: conn,
+			Handler:    mux,
 		},
-		upstream: "8.8.8.8:53",
+		upstream: "1.1.1.1:53",
 	}
 
-	cc, err := dns.ClientConfigFromFile("/etc/resolv.conf")
+	us, err := router.Upstream()
 	if err != nil {
 		return nil, err
 	}
 
-	d.config = cc
+	d.upstream = us
 
-	if len(d.config.Servers) > 0 {
-		d.upstream = fmt.Sprintf("%s:53", d.config.Servers[0])
-	}
-
-	if host := os.Getenv("SERVICE_HOST"); host != "" {
-		for {
-			if ips, err := net.LookupIP(host); err == nil && len(ips) > 0 {
-				d.service = ips[0].String()
-				break
-			}
-
-			time.Sleep(1 * time.Second)
-		}
-	}
-
-	if parts := strings.Split(os.Getenv("POD_IP"), "."); len(parts) > 2 {
-		d.prefix = fmt.Sprintf("%s.%s.", parts[0], parts[1])
-	}
-
-	fmt.Printf("d.prefix: %v\n", d.prefix)
-	fmt.Printf("d.service: %v\n", d.service)
-	fmt.Printf("d.upstream: %v\n", d.upstream)
+	fmt.Printf("ns=dns at=new upstream=%s\n", d.upstream)
 
 	mux.Handle(".", d)
 
@@ -70,7 +49,7 @@ func NewDNS(r *Router) (*DNS, error) {
 }
 
 func (d *DNS) ListenAndServe() error {
-	return d.server.ListenAndServe()
+	return d.server.ActivateAndServe()
 }
 
 func (d *DNS) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
@@ -85,18 +64,18 @@ func (d *DNS) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 		return
 	}
 
-	fmt.Printf("ns=convox.router at=query remote=%s\n", w.RemoteAddr())
+	fmt.Printf("ns=dns at=query remote=%s\n", w.RemoteAddr())
 
 	q := r.Question[0]
 
-	ts, err := d.Router.TargetList(strings.TrimSuffix(q.Name, "."))
+	ts, err := d.router.TargetList(strings.TrimSuffix(q.Name, "."))
 	if err != nil {
 		dnsError(w, r, err)
 		return
 	}
 
 	if len(ts) > 0 {
-		fmt.Printf("ns=convox.router at=resolve type=route host=%q\n", q.Name)
+		fmt.Printf("ns=dns at=resolve type=route host=%q\n", q.Name)
 
 		a := &dns.Msg{}
 
@@ -111,15 +90,11 @@ func (d *DNS) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 		//a.Ns = []dns.RR{soa}
 		a.RecursionAvailable = true
 
-		ip := d.Router.IP
-
-		if strings.HasPrefix(w.RemoteAddr().String(), d.prefix) {
-			ip = d.service
-		}
+		ip := d.router.ExternalIP(w.RemoteAddr())
 
 		switch q.Qtype {
 		case dns.TypeA:
-			fmt.Printf("ns=convox.router at=answer type=A value=%s\n", ip)
+			fmt.Printf("ns=dns at=answer type=A value=%s\n", ip)
 			rr, err := dns.NewRR(fmt.Sprintf("%s A %s", q.Name, ip))
 			if err != nil {
 				dnsError(w, r, err)
@@ -127,7 +102,7 @@ func (d *DNS) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 			}
 			a.Answer = append(a.Answer, rr)
 		case dns.TypeAAAA:
-			fmt.Printf("ns=convox.router at=answer type=AAAA value=%s\n", ip)
+			fmt.Printf("ns=dns at=answer type=AAAA value=%s\n", ip)
 			rr, err := dns.NewRR(fmt.Sprintf("%s AAAA %s", q.Name, ip))
 			if err != nil {
 				dnsError(w, r, err)
@@ -135,7 +110,7 @@ func (d *DNS) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 			}
 			a.Answer = append(a.Answer, rr)
 		default:
-			fmt.Printf("ns=convox.router at=answer type=%s value=nx\n", dns.TypeToString[q.Qtype])
+			fmt.Printf("ns=dns at=answer type=%s value=nx\n", dns.TypeToString[q.Qtype])
 		}
 
 		w.WriteMsg(a)
@@ -143,7 +118,7 @@ func (d *DNS) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 		return
 	}
 
-	fmt.Printf("ns=convox.router at=resolve type=forward host=%q\n", q.Name)
+	fmt.Printf("ns=dns at=resolve type=forward host=%q\n", q.Name)
 
 	c := dns.Client{Net: "udp"}
 
@@ -159,7 +134,7 @@ func (d *DNS) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 }
 
 func dnsError(w dns.ResponseWriter, r *dns.Msg, err error) {
-	fmt.Printf("ns=convox.router at=error error=%s\n", err)
+	fmt.Printf("ns=dns at=error error=%s\n", err)
 	m := &dns.Msg{}
 	m.SetRcode(r, dns.RcodeServerFailure)
 	w.WriteMsg(m)

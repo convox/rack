@@ -10,9 +10,6 @@ metadata:
     convox.ingress.service.{{.Name}}.{{.Port.Port}}.protocol: {{.Port.Scheme}}
     {{ end }}
   labels:
-    system: convox
-    rack: {{.Rack}}
-    app: {{.App.Name}}
     release: {{.Release.Id}}
 spec:
   tls:

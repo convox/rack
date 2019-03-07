@@ -1,19 +1,18 @@
 package router
 
-import "time"
+import (
+	"crypto/tls"
+	"net"
+)
 
 type Backend interface {
-	// ActivityLatest(host string) (time.Time, error)
-
-	RequestBegin(host string) error
-	RequestEnd(host string) error
-
+	CA() (*tls.Certificate, error)
+	ExternalIP(remote net.Addr) string
 	IdleGet(host string) (bool, error)
-	IdleReady(cutoff time.Time) ([]string, error)
 	IdleSet(host string, idle bool) error
+}
 
-	// Route(host string) (string, error)
-
+type BackendRouter interface {
 	TargetAdd(host, target string) error
 	TargetList(host string) ([]string, error)
 	TargetRemove(host, target string) error

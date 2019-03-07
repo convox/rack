@@ -2,20 +2,12 @@ apiVersion: v1
 kind: Namespace
 metadata:
   name: {{.Rack}}
-  labels:
-    system: convox
-    type: rack
-    rack: {{.Rack}}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   namespace: {{.Rack}}
   name: rack
-  labels:
-    system: convox
-    type: rack
-    rack: {{.Rack}}
 rules:
   - apiGroups:
       - ""
@@ -26,6 +18,7 @@ rules:
       - authorization.k8s.io
       - autoscaling
       - extensions
+      - networking.k8s.io
       - rbac.authorization.k8s.io
     resources:
       - apiservices
@@ -43,8 +36,10 @@ rules:
       - ingresses
       - ingresses/status
       - namespaces
+      - networkpolicies
       - pods
       - pods/exec
+      - roles
       - rolebindings
       - secrets
       - services
@@ -101,10 +96,6 @@ kind: ClusterRoleBinding
 metadata:
   namespace: {{.Rack}}
   name: rack
-  labels:
-    system: convox
-    type: rack
-    rack: {{.Rack}}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
@@ -119,10 +110,6 @@ kind: ServiceAccount
 metadata:
   namespace: {{.Rack}}
   name: rack
-  labels:
-    system: convox
-    type: rack
-    rack: {{.Rack}}
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -130,9 +117,6 @@ metadata:
   namespace: {{.Rack}}
   name: api
   labels:
-    system: convox
-    type: rack
-    rack: {{.Rack}}
     app: system
     service: api
 spec:
@@ -183,7 +167,6 @@ spec:
         - configMapRef:
             name: env-api
         image: convox/rack:{{.Version}}
-        imagePullPolicy: IfNotPresent
         livenessProbe:
           httpGet:
             path: "/check"
@@ -225,9 +208,6 @@ metadata:
   annotations:
     convox.service.ports.5443.protocol: https
   labels:
-    system: convox
-    type: rack
-    rack: {{.Rack}}
     app: system
     service: api
 spec:
@@ -250,10 +230,6 @@ metadata:
   name: rack
   annotations:
     convox.ingress.service.api.5443.protocol: https
-  labels:
-    system: convox
-    type: rack
-    rack: {{.Rack}}
 spec:
   tls:
   - hosts:

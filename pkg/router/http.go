@@ -7,35 +7,22 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
-	"sync"
 )
 
-type TargetRouter interface {
-	Certificate(host string) (*tls.Certificate, error)
+type HTTP struct {
+	listener net.Listener
+	router   HTTPRouter
+}
+
+type HTTPRouter interface {
 	RequestBegin(host string) error
 	RequestEnd(host string) error
 	Route(host string) (string, error)
 }
 
-type HTTP struct {
-	certs    sync.Map
-	listener net.Listener
-	port     int
-	router   TargetRouter
-}
-
-func NewHTTP(port int, router TargetRouter) (*HTTP, error) {
+func NewHTTP(ln net.Listener, router HTTPRouter) (*HTTP, error) {
 	h := &HTTP{
-		certs:  sync.Map{},
 		router: router,
-		port:   port,
-	}
-
-	ln, err := tls.Listen("tcp", fmt.Sprintf(":%d", h.port), &tls.Config{
-		GetCertificate: h.generateCertificate,
-	})
-	if err != nil {
-		return nil, err
 	}
 
 	h.listener = ln
@@ -66,6 +53,11 @@ func (h *HTTP) ListenAndServe() error {
 }
 
 func (h *HTTP) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if r.URL.Path == "/convox/health" {
+		fmt.Fprintf(w, "ok")
+		return
+	}
+
 	h.router.RequestBegin(r.Host)
 	defer h.router.RequestEnd(r.Host)
 
@@ -75,7 +67,7 @@ func (h *HTTP) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Printf("ns=convox.router at=route host=%q method=%q path=%q\n", r.Host, r.Method, r.RequestURI)
+	fmt.Printf("ns=http at=route host=%q method=%q path=%q\n", r.Host, r.Method, r.RequestURI)
 
 	tu, err := url.Parse(target)
 	if err != nil {
@@ -96,26 +88,6 @@ func (h *HTTP) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	p.ServeHTTP(w, r)
-}
-
-func (h *HTTP) generateCertificate(hello *tls.ClientHelloInfo) (*tls.Certificate, error) {
-	host := hello.ServerName
-
-	v, ok := h.certs.Load(host)
-	if ok {
-		if c, ok := v.(tls.Certificate); ok {
-			return &c, nil
-		}
-	}
-
-	c, err := h.router.Certificate(host)
-	if err != nil {
-		return nil, err
-	}
-
-	h.certs.Store(host, *c)
-
-	return c, nil
 }
 
 func (h *HTTP) proxyDirector(existing func(r *http.Request)) func(r *http.Request) {

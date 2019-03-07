@@ -1,29 +1,23 @@
 package router_test
 
 import (
-	"crypto/rand"
-	"crypto/rsa"
 	"crypto/tls"
-	"crypto/x509"
-	"crypto/x509/pkix"
-	"encoding/pem"
 	"fmt"
 	"io"
 	"io/ioutil"
-	"math/big"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
-	"time"
 
+	"github.com/convox/rack/pkg/helpers"
 	"github.com/convox/rack/pkg/router"
 	"github.com/gorilla/websocket"
 	"github.com/stretchr/testify/require"
 )
 
-func TestNoHost(t *testing.T) {
-	r := testRouter{}
+func TestHTTPNoHost(t *testing.T) {
+	r := testHTTPRouter{}
 
 	testHTTP(t, r, func(h *router.HTTP) {
 		res, err := testRequest(h, "GET", "test.convox", nil, nil)
@@ -38,8 +32,8 @@ func TestNoHost(t *testing.T) {
 	})
 }
 
-func TestRequest(t *testing.T) {
-	r := testRouter{}
+func TestHTTPRequest(t *testing.T) {
+	r := testHTTPRouter{}
 
 	testHTTP(t, r, func(h *router.HTTP) {
 		port, err := h.Port()
@@ -67,8 +61,8 @@ func TestRequest(t *testing.T) {
 	})
 }
 
-func TestRequestError(t *testing.T) {
-	r := testRouter{}
+func TestHTTPRequestError(t *testing.T) {
+	r := testHTTPRouter{}
 
 	testHTTP(t, r, func(h *router.HTTP) {
 		r["test.convox"] = "://invalid"
@@ -85,8 +79,8 @@ func TestRequestError(t *testing.T) {
 	})
 }
 
-func TestRequestHTTPS(t *testing.T) {
-	r := testRouter{}
+func TestHTTPRequestHTTPS(t *testing.T) {
+	r := testHTTPRouter{}
 
 	testHTTP(t, r, func(h *router.HTTP) {
 		port, err := h.Port()
@@ -114,8 +108,8 @@ func TestRequestHTTPS(t *testing.T) {
 	})
 }
 
-func TestRequestPost(t *testing.T) {
-	r := testRouter{}
+func TestHTTPRequestPost(t *testing.T) {
+	r := testHTTPRouter{}
 
 	testHTTP(t, r, func(h *router.HTTP) {
 		port, err := h.Port()
@@ -151,8 +145,8 @@ func TestRequestPost(t *testing.T) {
 	})
 }
 
-func TestRequestExistingForwardHeaders(t *testing.T) {
-	r := testRouter{}
+func TestHTTPRequestExistingForwardHeaders(t *testing.T) {
+	r := testHTTPRouter{}
 
 	testHTTP(t, r, func(h *router.HTTP) {
 		s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -182,8 +176,8 @@ func TestRequestExistingForwardHeaders(t *testing.T) {
 	})
 }
 
-func TestRequestRedirect(t *testing.T) {
-	r := testRouter{}
+func TestHTTPRequestRedirect(t *testing.T) {
+	r := testHTTPRouter{}
 
 	testHTTP(t, r, func(h *router.HTTP) {
 		port, err := h.Port()
@@ -222,8 +216,8 @@ func TestRequestRedirect(t *testing.T) {
 	})
 }
 
-func TestRequestWebsocket(t *testing.T) {
-	r := testRouter{}
+func TestHTTPRequestWebsocket(t *testing.T) {
+	r := testHTTPRouter{}
 
 	testHTTP(t, r, func(h *router.HTTP) {
 		port, err := h.Port()
@@ -264,11 +258,22 @@ func TestRequestWebsocket(t *testing.T) {
 	})
 }
 
-func testHTTP(t *testing.T, r testRouter, fn func(h *router.HTTP)) {
-	h, err := router.NewHTTP(0, r)
+func generateSelfSignedCertificate(hello *tls.ClientHelloInfo) (*tls.Certificate, error) {
+	return helpers.CertificateSelfSigned(hello.ServerName)
+}
+
+func testHTTP(t *testing.T, r testHTTPRouter, fn func(h *router.HTTP)) {
+	ln, err := tls.Listen("tcp", "", &tls.Config{
+		GetCertificate: generateSelfSignedCertificate,
+	})
+	require.NoError(t, err)
+
+	h, err := router.NewHTTP(ln, r)
 	require.NoError(t, err)
 	defer h.Close()
+
 	go h.ListenAndServe()
+
 	fn(h)
 }
 
@@ -333,61 +338,17 @@ func testWebsocket(h *router.HTTP, host, path string) (*websocket.Conn, error) {
 	return c, nil
 }
 
-type testRouter map[string]string
+type testHTTPRouter map[string]string
 
-func (r testRouter) Certificate(host string) (*tls.Certificate, error) {
-	rkey, err := rsa.GenerateKey(rand.Reader, 2048)
-
-	if err != nil {
-		return nil, err
-	}
-
-	serial, err := rand.Int(rand.Reader, new(big.Int).Lsh(big.NewInt(1), 128))
-
-	if err != nil {
-		return nil, err
-	}
-
-	template := x509.Certificate{
-		SerialNumber: serial,
-		Subject: pkix.Name{
-			CommonName:   host,
-			Organization: []string{"convox"},
-		},
-		NotBefore:             time.Now(),
-		NotAfter:              time.Now().Add(365 * 24 * time.Hour),
-		KeyUsage:              x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
-		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
-		BasicConstraintsValid: true,
-		DNSNames:              []string{host},
-	}
-
-	data, err := x509.CreateCertificate(rand.Reader, &template, &template, &rkey.PublicKey, rkey)
-
-	if err != nil {
-		return nil, err
-	}
-
-	pub := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: data})
-	key := pem.EncodeToMemory(&pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(rkey)})
-
-	cert, err := tls.X509KeyPair(pub, key)
-	if err != nil {
-		return nil, err
-	}
-
-	return &cert, nil
-}
-
-func (r testRouter) RequestBegin(host string) error {
+func (r testHTTPRouter) RequestBegin(host string) error {
 	return nil
 }
 
-func (r testRouter) RequestEnd(host string) error {
+func (r testHTTPRouter) RequestEnd(host string) error {
 	return nil
 }
 
-func (r testRouter) Route(host string) (string, error) {
+func (r testHTTPRouter) Route(host string) (string, error) {
 	target, ok := r[host]
 	if !ok {
 		return "", fmt.Errorf("no route")
