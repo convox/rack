@@ -47,6 +47,6 @@ func TestCheck(t *testing.T) {
 		defer res.Body.Close()
 		data, err := ioutil.ReadAll(res.Body)
 		require.NoError(t, err)
-		require.Equal(t, "ok\n", string(data))
+		require.Equal(t, "ok", string(data))
 	})
 }
