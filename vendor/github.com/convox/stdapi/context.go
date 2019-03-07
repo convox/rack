@@ -8,7 +8,6 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
-	"os"
 	"strings"
 
 	"github.com/convox/logger"
@@ -20,8 +19,9 @@ import (
 )
 
 var (
-	SessionName   = "console"
-	SessionSecret = os.Getenv("SESSION_SECRET")
+	SessionExpiration = 86400 * 30
+	SessionName       = ""
+	SessionSecret     = ""
 )
 
 type Context struct {
@@ -48,6 +48,7 @@ func init() {
 
 func NewContext(w http.ResponseWriter, r *http.Request) *Context {
 	s := sessions.NewCookieStore([]byte(SessionSecret))
+	s.Options.MaxAge = SessionExpiration
 	s.Options.SameSite = http.SameSiteLaxMode
 
 	return &Context{
@@ -143,12 +144,24 @@ func (c *Context) IP() string {
 	return strings.Split(xff.GetRemoteAddr(c.Request()), ":")[0]
 }
 
+func (c *Context) Logger() *logger.Logger {
+	return c.logger
+}
+
 func (c *Context) Logf(format string, args ...interface{}) {
 	c.logger.Logf(format, args...)
 }
 
 func (c *Context) Name() string {
 	return c.name
+}
+
+func (c *Context) Protocol() string {
+	if h := c.Header("X-Forwarded-Proto"); h != "" {
+		return h
+	}
+
+	return "https"
 }
 
 func (c *Context) Query(name string) string {
@@ -241,10 +254,15 @@ func (c *Context) Response() *Response {
 }
 
 func (c *Context) SessionGet(name string) (string, error) {
-	s, err := c.session.Get(c.request, SessionName)
-	if err != nil {
-		return "", errors.WithStack(err)
+	if SessionName == "" {
+		return "", fmt.Errorf("no session name set")
 	}
+
+	if SessionSecret == "" {
+		return "", fmt.Errorf("no session secret set")
+	}
+
+	s, _ := c.session.Get(c.request, SessionName)
 
 	vi, ok := s.Values[name]
 	if !ok {
@@ -260,10 +278,15 @@ func (c *Context) SessionGet(name string) (string, error) {
 }
 
 func (c *Context) SessionSet(name, value string) error {
-	s, err := c.session.Get(c.request, SessionName)
-	if err != nil {
-		return errors.WithStack(err)
+	if SessionName == "" {
+		return fmt.Errorf("no session name set")
 	}
+
+	if SessionSecret == "" {
+		return fmt.Errorf("no session secret set")
+	}
+
+	s, _ := c.session.Get(c.request, SessionName)
 
 	s.Values[name] = value
 

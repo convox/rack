@@ -1,6 +1,7 @@
 package router
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"strings"
@@ -131,6 +132,10 @@ func (d *DNS) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 	//rs.Ns = []dns.RR{soa}
 
 	w.WriteMsg(rs)
+}
+
+func (d *DNS) Shutdown(ctx context.Context) error {
+	return d.server.Shutdown()
 }
 
 func dnsError(w dns.ResponseWriter, r *dns.Msg, err error) {

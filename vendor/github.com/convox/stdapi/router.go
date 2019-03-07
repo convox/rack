@@ -36,6 +36,10 @@ func (rt *Router) MatcherFunc(fn mux.MatcherFunc) *Router {
 	}
 }
 
+func (rt *Router) HandleNotFound(fn HandlerFunc) {
+	rt.Router.NotFoundHandler = rt.http(fn)
+}
+
 func (rt *Router) Redirect(method, path string, code int, target string) {
 	rt.Handle(path, Redirect(code, target)).Methods(method)
 }

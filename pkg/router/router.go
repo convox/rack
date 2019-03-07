@@ -1,6 +1,7 @@
 package router
 
 import (
+	"context"
 	"crypto/tls"
 	"fmt"
 	"math/rand"
@@ -38,6 +39,7 @@ type Router struct {
 
 type Server interface {
 	ListenAndServe() error
+	Shutdown(ctx context.Context) error
 }
 
 func init() {
@@ -79,6 +81,10 @@ func New() (*Router, error) {
 	return r, nil
 }
 
+func (r *Router) ExternalIP(remote net.Addr) string {
+	return r.backend.ExternalIP(remote)
+}
+
 func (r *Router) Serve() error {
 	ch := make(chan error, 1)
 
@@ -91,8 +97,14 @@ func (r *Router) Serve() error {
 	return <-ch
 }
 
-func (r *Router) ExternalIP(remote net.Addr) string {
-	return r.backend.ExternalIP(remote)
+func (r *Router) Shutdown(ctx context.Context) error {
+	fmt.Printf("r.HTTPS = %+v\n", r.HTTPS)
+
+	if err := r.HTTPS.Shutdown(ctx); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (r *Router) RequestBegin(host string) error {
@@ -335,5 +347,12 @@ func redirectHTTPS(fn http.HandlerFunc) http.HandlerFunc {
 }
 
 func serve(ch chan error, s Server) {
-	ch <- s.ListenAndServe()
+	err := s.ListenAndServe()
+
+	switch err {
+	case http.ErrServerClosed:
+	case nil:
+	default:
+		ch <- err
+	}
 }

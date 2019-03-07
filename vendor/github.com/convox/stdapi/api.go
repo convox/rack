@@ -28,5 +28,17 @@ func New(ns, hostname string) *Server {
 		logger.Logf("id=%s route=unknown code=404 method=%q path=%q", id, r.Method, r.URL.Path)
 	})
 
+	server.Router.HandleFunc("/check", server.check)
+
 	return server
+}
+
+func (s *Server) check(w http.ResponseWriter, r *http.Request) {
+	if s.Check != nil {
+		if err := s.Check(NewContext(w, r)); err != nil {
+			http.Error(w, err.Error(), 500)
+		}
+	}
+
+	fmt.Fprintf(w, "ok")
 }
