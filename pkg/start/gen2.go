@@ -237,10 +237,10 @@ func (opts Options2) handleAdds(pid, remote string, adds []changes.Change) error
 	rp, wp := io.Pipe()
 
 	ch := make(chan error)
-	defer close(ch)
 
 	go func() {
 		ch <- opts.Provider.FilesUpload(opts.App, pid, rp)
+		close(ch)
 	}()
 
 	tw := tar.NewWriter(wp)
@@ -358,6 +358,7 @@ func (opts Options2) healthCheck(ctx context.Context, pw prefix.Writer, s manife
 				pw.Writef("convox", "health check <service>%s</service>: <fail>%s</fail>\n", s.Name, err.Error())
 				continue
 			}
+			defer res.Body.Close()
 
 			if res.StatusCode < 200 || res.StatusCode > 399 {
 				pw.Writef("convox", "health check <service>%s</service>: <fail>%d</fail>\n", s.Name, res.StatusCode)
@@ -443,7 +444,6 @@ func (opts Options2) watchChanges(ctx context.Context, pw prefix.Writer, m *mani
 
 func (opts Options2) watchPath(ctx context.Context, pw prefix.Writer, service, root string, bs buildSource, ignores []string, ch chan error) {
 	cch := make(chan changes.Change, 1)
-	defer close(cch)
 
 	abs, err := filepath.Abs(bs.Local)
 	if err != nil {

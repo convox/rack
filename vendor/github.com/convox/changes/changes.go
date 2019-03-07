@@ -6,7 +6,7 @@ import (
 	"sort"
 	"time"
 
-	"github.com/docker/docker/pkg/fileutils"
+	"github.com/moby/moby/pkg/fileutils"
 )
 
 type Change struct {
@@ -59,6 +59,8 @@ func Watch(dir string, ch chan Change, opts WatchOptions) error {
 }
 
 func watchForChanges(dir string, ignore []string, ch chan Change) error {
+	defer close(ch)
+
 	cur, err := snapshot(dir)
 	if err != nil {
 		return err
