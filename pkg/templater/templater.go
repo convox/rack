@@ -2,7 +2,6 @@ package templater
 
 import (
 	"bytes"
-	"fmt"
 	"html/template"
 
 	"github.com/gobuffalo/packr"
@@ -23,8 +22,6 @@ func New(box packr.Box, helpers template.FuncMap) *Templater {
 }
 
 func (t *Templater) Render(name string, params interface{}) ([]byte, error) {
-	fmt.Printf("t = %+v\n", t)
-	fmt.Printf("t.helpers = %+v\n", t.helpers)
 	ts := template.New("").Funcs(t.helpers)
 
 	tdata, err := t.box.MustString(name)
