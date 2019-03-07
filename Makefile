@@ -1,10 +1,10 @@
 .PHONY: all build builder compress dev generate mocks package release test
 
-# commands = build monitor rack router
-# injects  = convox-env
+commands = build monitor rack router
+injects  = convox-env
 
-commands = build rack router
-injects  =
+# commands = build rack router
+# injects  =
 
 assets   = $(wildcard assets/*)
 binaries = $(addprefix $(GOPATH)/bin/, $(commands))
