@@ -176,6 +176,10 @@ func (r *Router) Route(host string) (string, error) {
 func (r *Router) TargetAdd(host, target string) error {
 	fmt.Printf("ns=router at=target.add host=%q target=%q\n", host, target)
 
+	if err := r.storage.TargetAdd(host, target); err != nil {
+		return err
+	}
+
 	idle, err := r.HostIdleStatus(host)
 	if err != nil {
 		return err
@@ -185,7 +189,7 @@ func (r *Router) TargetAdd(host, target string) error {
 		return err
 	}
 
-	return r.storage.TargetAdd(host, target)
+	return nil
 }
 
 func (r *Router) TargetList(host string) ([]string, error) {
@@ -231,7 +235,12 @@ func (r *Router) generateCertificateCA(hello *tls.ClientHelloInfo) (*tls.Certifi
 		}
 	}
 
-	c, err := r.Certificate(host)
+	ca, err := r.ca()
+	if err != nil {
+		return nil, err
+	}
+
+	c, err := helpers.CertificateCA(host, ca)
 	if err != nil {
 		return nil, err
 	}
