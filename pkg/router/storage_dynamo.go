@@ -10,19 +10,19 @@ import (
 	"github.com/convox/rack/pkg/helpers"
 )
 
-type BackendDynamo struct {
+type StorageDynamo struct {
 	ddb   *dynamodb.DynamoDB
 	table string
 }
 
-func NewBackendDynamo(table string) *BackendDynamo {
-	return &BackendDynamo{
+func NewStorageDynamo(table string) *StorageDynamo {
+	return &StorageDynamo{
 		ddb:   dynamodb.New(session.New()),
 		table: table,
 	}
 }
 
-func (b *BackendDynamo) IdleGet(host string) (bool, error) {
+func (b *StorageDynamo) IdleGet(host string) (bool, error) {
 	res, err := b.ddb.GetItem(&dynamodb.GetItemInput{
 		Key:       map[string]*dynamodb.AttributeValue{"host": {S: aws.String(host)}},
 		TableName: aws.String(b.table),
@@ -37,11 +37,11 @@ func (b *BackendDynamo) IdleGet(host string) (bool, error) {
 	return (*res.Item["idle"].S == "true"), nil
 }
 
-func (b *BackendDynamo) IdleReady(cutoff time.Time) ([]string, error) {
+func (b *StorageDynamo) IdleReady(cutoff time.Time) ([]string, error) {
 	return []string{}, nil
 }
 
-func (b *BackendDynamo) IdleSet(host string, idle bool) error {
+func (b *StorageDynamo) IdleSet(host string, idle bool) error {
 	_, err := b.ddb.UpdateItem(&dynamodb.UpdateItemInput{
 		ExpressionAttributeNames:  map[string]*string{"#idle": aws.String("idle")},
 		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{":idle": {S: aws.String(fmt.Sprintf("%t", idle))}},
@@ -55,7 +55,7 @@ func (b *BackendDynamo) IdleSet(host string, idle bool) error {
 	return nil
 }
 
-func (b *BackendDynamo) RequestBegin(host string) error {
+func (b *StorageDynamo) RequestBegin(host string) error {
 	activity := time.Now().UTC().Format(helpers.SortableTime)
 
 	_, err := b.ddb.UpdateItem(&dynamodb.UpdateItemInput{
@@ -72,7 +72,7 @@ func (b *BackendDynamo) RequestBegin(host string) error {
 	return nil
 }
 
-func (b *BackendDynamo) RequestEnd(host string) error {
+func (b *StorageDynamo) RequestEnd(host string) error {
 	activity := time.Now().UTC().Format(helpers.SortableTime)
 
 	_, err := b.ddb.UpdateItem(&dynamodb.UpdateItemInput{
@@ -89,7 +89,7 @@ func (b *BackendDynamo) RequestEnd(host string) error {
 	return nil
 }
 
-func (b *BackendDynamo) TargetAdd(host, target string) error {
+func (b *StorageDynamo) TargetAdd(host, target string) error {
 	_, err := b.ddb.UpdateItem(&dynamodb.UpdateItemInput{
 		ExpressionAttributeNames:  map[string]*string{"#targets": aws.String("targets")},
 		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{":targets": {SS: []*string{aws.String(target)}}},
@@ -104,7 +104,7 @@ func (b *BackendDynamo) TargetAdd(host, target string) error {
 	return nil
 }
 
-func (b *BackendDynamo) TargetList(host string) ([]string, error) {
+func (b *StorageDynamo) TargetList(host string) ([]string, error) {
 	res, err := b.ddb.GetItem(&dynamodb.GetItemInput{
 		Key:       map[string]*dynamodb.AttributeValue{"host": {S: aws.String(host)}},
 		TableName: aws.String(b.table),
@@ -125,7 +125,7 @@ func (b *BackendDynamo) TargetList(host string) ([]string, error) {
 	return ts, nil
 }
 
-func (b *BackendDynamo) TargetRemove(host, target string) error {
+func (b *StorageDynamo) TargetRemove(host, target string) error {
 	_, err := b.ddb.UpdateItem(&dynamodb.UpdateItemInput{
 		ExpressionAttributeNames:  map[string]*string{"#targets": aws.String("targets")},
 		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{":targets": {SS: []*string{aws.String(target)}}},

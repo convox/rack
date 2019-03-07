@@ -9,18 +9,18 @@ import (
 	"net/url"
 )
 
-type TargetRouter interface {
+type HTTP struct {
+	listener net.Listener
+	router   HTTPRouter
+}
+
+type HTTPRouter interface {
 	RequestBegin(host string) error
 	RequestEnd(host string) error
 	Route(host string) (string, error)
 }
 
-type HTTP struct {
-	listener net.Listener
-	router   TargetRouter
-}
-
-func NewHTTP(ln net.Listener, router TargetRouter) (*HTTP, error) {
+func NewHTTP(ln net.Listener, router HTTPRouter) (*HTTP, error) {
 	h := &HTTP{
 		router: router,
 	}
@@ -67,7 +67,7 @@ func (h *HTTP) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Printf("ns=convox.router at=route host=%q method=%q path=%q\n", r.Host, r.Method, r.RequestURI)
+	fmt.Printf("ns=http at=route host=%q method=%q path=%q\n", r.Host, r.Method, r.RequestURI)
 
 	tu, err := url.Parse(target)
 	if err != nil {
