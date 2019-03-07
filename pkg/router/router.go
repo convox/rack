@@ -56,7 +56,7 @@ func New() (*Router, error) {
 		certs: sync.Map{},
 	}
 
-	switch os.Getenv("BACKEND") {
+	switch os.Getenv("STORAGE") {
 	case "dynamodb":
 		r.storage = NewStorageDynamo(os.Getenv("ROUTER_ROUTES"))
 	default:
