@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-type BackendMemory struct {
+type StorageMemory struct {
 	activity sync.Map
 	active   sync.Map
 	idle     sync.Map
@@ -15,8 +15,8 @@ type BackendMemory struct {
 	targetLock   sync.Mutex
 }
 
-func NewBackendMemory() *BackendMemory {
-	return &BackendMemory{
+func NewStorageMemory() *StorageMemory {
+	return &StorageMemory{
 		activity: sync.Map{},
 		active:   sync.Map{},
 		idle:     sync.Map{},
@@ -24,7 +24,7 @@ func NewBackendMemory() *BackendMemory {
 	}
 }
 
-func (b *BackendMemory) IdleGet(host string) (bool, error) {
+func (b *StorageMemory) IdleGet(host string) (bool, error) {
 	v, ok := b.idle.Load(host)
 	if !ok {
 		return false, nil
@@ -38,7 +38,7 @@ func (b *BackendMemory) IdleGet(host string) (bool, error) {
 	return i, nil
 }
 
-func (b *BackendMemory) IdleReady(cutoff time.Time) ([]string, error) {
+func (b *StorageMemory) IdleReady(cutoff time.Time) ([]string, error) {
 	hosts := []string{}
 
 	b.activity.Range(func(k, v interface{}) bool {
@@ -69,13 +69,13 @@ func (b *BackendMemory) IdleReady(cutoff time.Time) ([]string, error) {
 	return hosts, nil
 }
 
-func (b *BackendMemory) IdleSet(host string, idle bool) error {
+func (b *StorageMemory) IdleSet(host string, idle bool) error {
 	b.idle.Store(host, idle)
 
 	return nil
 }
 
-func (b *BackendMemory) RequestBegin(host string) error {
+func (b *StorageMemory) RequestBegin(host string) error {
 	b.activityLock.Lock()
 	defer b.activityLock.Unlock()
 
@@ -90,7 +90,7 @@ func (b *BackendMemory) RequestBegin(host string) error {
 	return nil
 }
 
-func (b *BackendMemory) RequestEnd(host string) error {
+func (b *StorageMemory) RequestEnd(host string) error {
 	b.activityLock.Lock()
 	defer b.activityLock.Unlock()
 
@@ -109,7 +109,7 @@ func (b *BackendMemory) RequestEnd(host string) error {
 	return nil
 }
 
-func (b *BackendMemory) TargetAdd(host, target string) error {
+func (b *StorageMemory) TargetAdd(host, target string) error {
 	b.targetLock.Lock()
 	defer b.targetLock.Unlock()
 
@@ -122,7 +122,7 @@ func (b *BackendMemory) TargetAdd(host, target string) error {
 	return nil
 }
 
-func (b *BackendMemory) TargetList(host string) ([]string, error) {
+func (b *StorageMemory) TargetList(host string) ([]string, error) {
 	b.targetLock.Lock()
 	defer b.targetLock.Unlock()
 
@@ -137,7 +137,7 @@ func (b *BackendMemory) TargetList(host string) ([]string, error) {
 	return targets, nil
 }
 
-func (b *BackendMemory) TargetRemove(host, target string) error {
+func (b *StorageMemory) TargetRemove(host, target string) error {
 	b.targetLock.Lock()
 	defer b.targetLock.Unlock()
 
@@ -150,7 +150,7 @@ func (b *BackendMemory) TargetRemove(host, target string) error {
 	return nil
 }
 
-func (b *BackendMemory) activeCount(host string) (int64, error) {
+func (b *StorageMemory) activeCount(host string) (int64, error) {
 	v, ok := b.active.Load(host)
 	if !ok {
 		return 0, nil
@@ -164,7 +164,7 @@ func (b *BackendMemory) activeCount(host string) (int64, error) {
 	return i, nil
 }
 
-func (b *BackendMemory) targets(host string) map[string]bool {
+func (b *StorageMemory) targets(host string) map[string]bool {
 	v, ok := b.routes.Load(host)
 	if !ok {
 		return map[string]bool{}

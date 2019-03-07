@@ -16,8 +16,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestNoHost(t *testing.T) {
-	r := testRouter{}
+func TestHTTPNoHost(t *testing.T) {
+	r := testHTTPRouter{}
 
 	testHTTP(t, r, func(h *router.HTTP) {
 		res, err := testRequest(h, "GET", "test.convox", nil, nil)
@@ -32,8 +32,8 @@ func TestNoHost(t *testing.T) {
 	})
 }
 
-func TestRequest(t *testing.T) {
-	r := testRouter{}
+func TestHTTPRequest(t *testing.T) {
+	r := testHTTPRouter{}
 
 	testHTTP(t, r, func(h *router.HTTP) {
 		port, err := h.Port()
@@ -61,8 +61,8 @@ func TestRequest(t *testing.T) {
 	})
 }
 
-func TestRequestError(t *testing.T) {
-	r := testRouter{}
+func TestHTTPRequestError(t *testing.T) {
+	r := testHTTPRouter{}
 
 	testHTTP(t, r, func(h *router.HTTP) {
 		r["test.convox"] = "://invalid"
@@ -79,8 +79,8 @@ func TestRequestError(t *testing.T) {
 	})
 }
 
-func TestRequestHTTPS(t *testing.T) {
-	r := testRouter{}
+func TestHTTPRequestHTTPS(t *testing.T) {
+	r := testHTTPRouter{}
 
 	testHTTP(t, r, func(h *router.HTTP) {
 		port, err := h.Port()
@@ -108,8 +108,8 @@ func TestRequestHTTPS(t *testing.T) {
 	})
 }
 
-func TestRequestPost(t *testing.T) {
-	r := testRouter{}
+func TestHTTPRequestPost(t *testing.T) {
+	r := testHTTPRouter{}
 
 	testHTTP(t, r, func(h *router.HTTP) {
 		port, err := h.Port()
@@ -145,8 +145,8 @@ func TestRequestPost(t *testing.T) {
 	})
 }
 
-func TestRequestExistingForwardHeaders(t *testing.T) {
-	r := testRouter{}
+func TestHTTPRequestExistingForwardHeaders(t *testing.T) {
+	r := testHTTPRouter{}
 
 	testHTTP(t, r, func(h *router.HTTP) {
 		s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -176,8 +176,8 @@ func TestRequestExistingForwardHeaders(t *testing.T) {
 	})
 }
 
-func TestRequestRedirect(t *testing.T) {
-	r := testRouter{}
+func TestHTTPRequestRedirect(t *testing.T) {
+	r := testHTTPRouter{}
 
 	testHTTP(t, r, func(h *router.HTTP) {
 		port, err := h.Port()
@@ -216,8 +216,8 @@ func TestRequestRedirect(t *testing.T) {
 	})
 }
 
-func TestRequestWebsocket(t *testing.T) {
-	r := testRouter{}
+func TestHTTPRequestWebsocket(t *testing.T) {
+	r := testHTTPRouter{}
 
 	testHTTP(t, r, func(h *router.HTTP) {
 		port, err := h.Port()
@@ -262,8 +262,8 @@ func generateSelfSignedCertificate(hello *tls.ClientHelloInfo) (*tls.Certificate
 	return helpers.CertificateSelfSigned(hello.ServerName)
 }
 
-func testHTTP(t *testing.T, r testRouter, fn func(h *router.HTTP)) {
-	ln, err := tls.Listen("tcp", fmt.Sprintf(":0"), &tls.Config{
+func testHTTP(t *testing.T, r testHTTPRouter, fn func(h *router.HTTP)) {
+	ln, err := tls.Listen("tcp", "", &tls.Config{
 		GetCertificate: generateSelfSignedCertificate,
 	})
 	require.NoError(t, err)
@@ -338,17 +338,17 @@ func testWebsocket(h *router.HTTP, host, path string) (*websocket.Conn, error) {
 	return c, nil
 }
 
-type testRouter map[string]string
+type testHTTPRouter map[string]string
 
-func (r testRouter) RequestBegin(host string) error {
+func (r testHTTPRouter) RequestBegin(host string) error {
 	return nil
 }
 
-func (r testRouter) RequestEnd(host string) error {
+func (r testHTTPRouter) RequestEnd(host string) error {
 	return nil
 }
 
-func (r testRouter) Route(host string) (string, error) {
+func (r testHTTPRouter) Route(host string) (string, error) {
 	target, ok := r[host]
 	if !ok {
 		return "", fmt.Errorf("no route")

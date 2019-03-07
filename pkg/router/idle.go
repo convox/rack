@@ -11,23 +11,22 @@ import (
 func (r *Router) HostIdleStatus(host string) (bool, error) {
 	idle := true
 
-	ts, err := r.backend.TargetList(host)
+	ts, err := r.storage.TargetList(host)
 	if err != nil {
 		return false, err
 	}
 
 	for _, t := range ts {
 		if service, namespace, ok := parseTarget(t); ok {
-			d, err := r.Cluster.ExtensionsV1beta1().Deployments(namespace).Get(service, am.GetOptions{})
+			s, err := r.Cluster.ExtensionsV1beta1().Deployments(namespace).GetScale(service, am.GetOptions{})
 			if err != nil {
 				return false, err
 			}
 
-			fmt.Printf("d = %+v\n", d)
-
-			// ; err != nil {
-			//   fmt.Printf("ns=convox.router at=idle host=%q error=%q\n", host, err)
-			// }
+			if s.Spec.Replicas > 0 {
+				idle = false
+				break
+			}
 		}
 	}
 
@@ -35,7 +34,7 @@ func (r *Router) HostIdleStatus(host string) (bool, error) {
 }
 
 func (r *Router) HostIdle(host string) error {
-	idle, err := r.backend.IdleGet(host)
+	idle, err := r.storage.IdleGet(host)
 	if err != nil {
 		return err
 	}
@@ -43,13 +42,13 @@ func (r *Router) HostIdle(host string) error {
 		return nil
 	}
 
-	fmt.Printf("ns=convox.router at=idle host=%q\n", host)
+	fmt.Printf("ns=router at=idle host=%q\n", host)
 
-	if err := r.backend.IdleSet(host, true); err != nil {
+	if err := r.storage.IdleSet(host, true); err != nil {
 		return err
 	}
 
-	ts, err := r.backend.TargetList(host)
+	ts, err := r.storage.TargetList(host)
 	if err != nil {
 		return err
 	}
@@ -65,7 +64,7 @@ func (r *Router) HostIdle(host string) error {
 			}
 
 			if _, err := r.Cluster.ExtensionsV1beta1().Deployments(namespace).UpdateScale(service, scale); err != nil {
-				fmt.Printf("ns=convox.router at=idle host=%q error=%q\n", host, err)
+				fmt.Printf("ns=router at=idle host=%q error=%q\n", host, err)
 			}
 		}
 	}
@@ -74,7 +73,7 @@ func (r *Router) HostIdle(host string) error {
 }
 
 func (r *Router) HostUnidle(host string) error {
-	idle, err := r.backend.IdleGet(host)
+	idle, err := r.storage.IdleGet(host)
 	if err != nil {
 		return err
 	}
@@ -82,9 +81,9 @@ func (r *Router) HostUnidle(host string) error {
 		return nil
 	}
 
-	fmt.Printf("ns=convox.router at=unidle host=%q state=unidling\n", host)
+	fmt.Printf("ns=router at=unidle host=%q state=unidling\n", host)
 
-	ts, err := r.backend.TargetList(host)
+	ts, err := r.storage.TargetList(host)
 	if err != nil {
 		return err
 	}
@@ -100,7 +99,7 @@ func (r *Router) HostUnidle(host string) error {
 			}
 
 			if _, err := r.Cluster.ExtensionsV1beta1().Deployments(namespace).UpdateScale(service, scale); err != nil {
-				fmt.Printf("ns=convox.router at=unidle host=%q error=%q\n", host, err)
+				fmt.Printf("ns=router at=unidle host=%q error=%q\n", host, err)
 			}
 
 			for {
@@ -115,11 +114,11 @@ func (r *Router) HostUnidle(host string) error {
 		}
 	}
 
-	if err := r.backend.IdleSet(host, false); err != nil {
+	if err := r.storage.IdleSet(host, false); err != nil {
 		return err
 	}
 
-	fmt.Printf("ns=convox.router at=unidle host=%q state=ready\n", host)
+	fmt.Printf("ns=router at=unidle host=%q state=ready\n", host)
 
 	return nil
 }
@@ -127,13 +126,13 @@ func (r *Router) HostUnidle(host string) error {
 func (r *Router) idleTicker() {
 	for range time.Tick(idleCheck) {
 		if err := r.idleTick(); err != nil {
-			fmt.Printf("ns=convox.router at=idle.ticker error=%v\n", err)
+			fmt.Printf("ns=router at=idle.ticker error=%v\n", err)
 		}
 	}
 }
 
 func (r *Router) idleTick() error {
-	hs, err := r.backend.IdleReady(time.Now().UTC().Add(-1 * idleTimeout))
+	hs, err := r.storage.IdleReady(time.Now().UTC().Add(-1 * idleTimeout))
 	if err != nil {
 		return err
 	}
