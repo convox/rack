@@ -3,7 +3,6 @@ package router
 import (
 	"fmt"
 	"reflect"
-	"time"
 
 	"github.com/convox/rack/provider/k8s"
 	ac "k8s.io/api/core/v1"
@@ -43,7 +42,7 @@ func (c *IngressController) ListOptions(opts *am.ListOptions) {
 }
 
 func (c *IngressController) Run() {
-	i := ie.NewFilteredIngressInformer(c.kc, ac.NamespaceAll, 10*time.Second, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, c.ListOptions)
+	i := ie.NewFilteredIngressInformer(c.kc, ac.NamespaceAll, 0, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, c.ListOptions)
 
 	ch := make(chan error)
 
