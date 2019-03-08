@@ -34,6 +34,15 @@ func NewHTTP(ln net.Listener, router HTTPRouter) (*HTTP, error) {
 	return h, nil
 }
 
+func (h *HTTP) Port() (string, error) {
+	_, port, err := net.SplitHostPort(h.listener.Addr().String())
+	if err != nil {
+		return "", err
+	}
+
+	return port, nil
+}
+
 func (h *HTTP) Shutdown(ctx context.Context) error {
 	fmt.Printf("ns=http at=shutdown\n")
 
@@ -86,20 +95,11 @@ func (h *HTTP) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	p.ServeHTTP(w, r)
 }
 
-func (h *HTTP) port() (string, error) {
-	_, port, err := net.SplitHostPort(h.listener.Addr().String())
-	if err != nil {
-		return "", err
-	}
-
-	return port, nil
-}
-
 func (h *HTTP) proxyDirector(existing func(r *http.Request)) func(r *http.Request) {
 	return func(r *http.Request) {
 		existing(r)
 
-		port, err := h.port()
+		port, err := h.Port()
 		if err != nil {
 			return
 		}
