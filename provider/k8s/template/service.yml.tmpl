@@ -46,7 +46,7 @@ spec:
       maxSurge: "{{.MaxSurge}}%"
       maxUnavailable: "{{.MaxUnavailable}}%"
   {{ end }}
-  # minReadySeconds: 5
+  minReadySeconds: 1
   revisionHistoryLimit: 1
   template:
     metadata:
@@ -98,7 +98,6 @@ spec:
         image: {{ image .App .Service .Release }}
         imagePullPolicy: IfNotPresent
         {{ with .Service.Port.Port }}
-        {{ if not $.Development }}
         livenessProbe:
           httpGet:
             path: "{{$.Service.Health.Path}}"
@@ -112,10 +111,9 @@ spec:
             path: "{{$.Service.Health.Path}}"
             port: {{.}}
             scheme: "{{ upper $.Service.Port.Scheme }}"
-            # initialDelaySeconds: {{$.Service.Health.Grace}}
-          periodSeconds: {{$.Service.Health.Interval}}
+          initialDelaySeconds: 0
+          periodSeconds: 1
           timeoutSeconds: {{$.Service.Health.Timeout}}
-        {{ end }}
         {{ end }}
         ports:
         {{ with .Service.Port.Port }}

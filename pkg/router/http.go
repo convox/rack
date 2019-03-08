@@ -29,23 +29,20 @@ func NewHTTP(ln net.Listener, router HTTPRouter) (*HTTP, error) {
 
 	h.listener = ln
 
+	fmt.Printf("ns=http at=new\n")
+
 	return h, nil
 }
 
 func (h *HTTP) Shutdown(ctx context.Context) error {
+	fmt.Printf("ns=http at=shutdown\n")
+
 	return h.server.Shutdown(ctx)
 }
 
-func (h *HTTP) Port() (string, error) {
-	_, port, err := net.SplitHostPort(h.listener.Addr().String())
-	if err != nil {
-		return "", err
-	}
-
-	return port, nil
-}
-
 func (h *HTTP) ListenAndServe() error {
+	fmt.Printf("ns=http at=serve\n")
+
 	h.server = http.Server{Handler: h}
 
 	return h.server.Serve(h.listener)
@@ -89,11 +86,20 @@ func (h *HTTP) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	p.ServeHTTP(w, r)
 }
 
+func (h *HTTP) port() (string, error) {
+	_, port, err := net.SplitHostPort(h.listener.Addr().String())
+	if err != nil {
+		return "", err
+	}
+
+	return port, nil
+}
+
 func (h *HTTP) proxyDirector(existing func(r *http.Request)) func(r *http.Request) {
 	return func(r *http.Request) {
 		existing(r)
 
-		port, err := h.Port()
+		port, err := h.port()
 		if err != nil {
 			return
 		}
