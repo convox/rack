@@ -13,6 +13,7 @@ type Backend interface {
 }
 
 type BackendRouter interface {
+	IdleSet(host string, idle bool) error
 	TargetAdd(host, target string) error
 	TargetList(host string) ([]string, error)
 	TargetRemove(host, target string) error

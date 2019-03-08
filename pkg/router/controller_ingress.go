@@ -68,6 +68,8 @@ func (c *IngressController) Add(obj interface{}) error {
 		return err
 	}
 
+	fmt.Printf("ns=controller.ingress at=add ingress=%s\n", i.ObjectMeta.Name)
+
 	for _, r := range i.Spec.Rules {
 		for _, port := range r.IngressRuleValue.HTTP.Paths {
 			target := rulePathTarget(port, i.ObjectMeta)
@@ -88,6 +90,8 @@ func (c *IngressController) Delete(obj interface{}) error {
 	if err != nil {
 		return err
 	}
+
+	fmt.Printf("ns=controller.ingress at=delete ingress=%s\n", i.ObjectMeta.Name)
 
 	for _, r := range i.Spec.Rules {
 		for _, port := range r.IngressRuleValue.HTTP.Paths {

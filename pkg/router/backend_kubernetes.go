@@ -44,6 +44,13 @@ func NewBackendKubernetes(router BackendRouter) (*BackendKubernetes, error) {
 
 	go ic.Run()
 
+	pc, err := NewPodController(kc, router)
+	if err != nil {
+		return nil, err
+	}
+
+	go pc.Run()
+
 	if parts := strings.Split(os.Getenv("POD_IP"), "."); len(parts) > 2 {
 		b.prefix = fmt.Sprintf("%s.%s.", parts[0], parts[1])
 	}
@@ -98,6 +105,8 @@ func (b *BackendKubernetes) ExternalIP(remote net.Addr) string {
 }
 
 func (b *BackendKubernetes) IdleGet(host string) (bool, error) {
+	fmt.Printf("ns=backend.k8s at=idle.get host=%q\n", host)
+
 	idle := true
 
 	ts, err := b.router.TargetList(host)
@@ -182,8 +191,7 @@ func (b *BackendKubernetes) unidle(host string) error {
 			for {
 				time.Sleep(200 * time.Millisecond)
 				if rs, err := b.cluster.AppsV1().Deployments(namespace).Get(service, am.GetOptions{}); err == nil {
-					if rs.Status.ReadyReplicas > 0 {
-						time.Sleep(500 * time.Millisecond)
+					if rs.Status.AvailableReplicas > 0 {
 						break
 					}
 				}

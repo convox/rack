@@ -29,11 +29,9 @@ func NewHTTP(ln net.Listener, router HTTPRouter) (*HTTP, error) {
 
 	h.listener = ln
 
-	return h, nil
-}
+	fmt.Printf("ns=http at=new\n")
 
-func (h *HTTP) Shutdown(ctx context.Context) error {
-	return h.server.Shutdown(ctx)
+	return h, nil
 }
 
 func (h *HTTP) Port() (string, error) {
@@ -45,7 +43,15 @@ func (h *HTTP) Port() (string, error) {
 	return port, nil
 }
 
+func (h *HTTP) Shutdown(ctx context.Context) error {
+	fmt.Printf("ns=http at=shutdown\n")
+
+	return h.server.Shutdown(ctx)
+}
+
 func (h *HTTP) ListenAndServe() error {
+	fmt.Printf("ns=http at=serve\n")
+
 	h.server = http.Server{Handler: h}
 
 	return h.server.Serve(h.listener)
