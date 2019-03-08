@@ -19,7 +19,7 @@ import (
 )
 
 const (
-	idleCheck   = 1 * time.Minute
+	idleTick    = 1 * time.Minute
 	idleTimeout = 60 * time.Minute
 )
 
@@ -98,8 +98,6 @@ func (r *Router) Serve() error {
 }
 
 func (r *Router) Shutdown(ctx context.Context) error {
-	fmt.Printf("r.HTTPS = %+v\n", r.HTTPS)
-
 	if err := r.HTTPS.Shutdown(ctx); err != nil {
 		return err
 	}
@@ -107,7 +105,19 @@ func (r *Router) Shutdown(ctx context.Context) error {
 	return nil
 }
 
+func (r *Router) IdleSet(host string, idle bool) error {
+	fmt.Printf("ns=router at=request.begin host=%q idle=%t\n", host, idle)
+
+	return r.storage.IdleSet(host, idle)
+}
+
 func (r *Router) RequestBegin(host string) error {
+	fmt.Printf("ns=router at=request.begin host=%q\n", host)
+
+	if err := r.storage.RequestBegin(host); err != nil {
+		return err
+	}
+
 	idle, err := r.storage.IdleGet(host)
 	if err != nil {
 		return fmt.Errorf("could not fetch idle status: %s", err)
@@ -123,14 +133,18 @@ func (r *Router) RequestBegin(host string) error {
 		}
 	}
 
-	return r.storage.RequestBegin(host)
+	return nil
 }
 
 func (r *Router) RequestEnd(host string) error {
+	fmt.Printf("ns=router at=request.end host=%q\n", host)
+
 	return r.storage.RequestEnd(host)
 }
 
 func (r *Router) Route(host string) (string, error) {
+	fmt.Printf("ns=router at=route host=%q\n", host)
+
 	ts, err := r.TargetList(host)
 	if err != nil {
 		return "", fmt.Errorf("no backends available")
@@ -163,6 +177,8 @@ func (r *Router) TargetAdd(host, target string) error {
 }
 
 func (r *Router) TargetList(host string) ([]string, error) {
+	fmt.Printf("ns=router at=target.list host=%q\n", host)
+
 	return r.storage.TargetList(host)
 }
 
@@ -221,7 +237,7 @@ func (r *Router) generateCertificateCA(hello *tls.ClientHelloInfo) (*tls.Certifi
 }
 
 func (r *Router) idleTicker() {
-	for range time.Tick(idleCheck) {
+	for range time.Tick(idleTick) {
 		if err := r.idleTick(); err != nil {
 			fmt.Printf("ns=router at=idle.ticker error=%v\n", err)
 		}
@@ -229,7 +245,7 @@ func (r *Router) idleTicker() {
 }
 
 func (r *Router) idleTick() error {
-	hs, err := r.storage.IdleReady(time.Now().UTC().Add(-1 * idleTimeout))
+	hs, err := r.storage.Stale(time.Now().UTC().Add(-1 * idleTimeout))
 	if err != nil {
 		return err
 	}

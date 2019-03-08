@@ -50,7 +50,15 @@ func NewDNS(conn net.PacketConn, router DNSRouter) (*DNS, error) {
 }
 
 func (d *DNS) ListenAndServe() error {
+	fmt.Printf("ns=dns at=serve\n")
+
 	return d.server.ActivateAndServe()
+}
+
+func (d *DNS) Shutdown(ctx context.Context) error {
+	fmt.Printf("ns=dns at=shutdown\n")
+
+	return d.server.Shutdown()
 }
 
 func (d *DNS) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
@@ -132,10 +140,6 @@ func (d *DNS) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 	//rs.Ns = []dns.RR{soa}
 
 	w.WriteMsg(rs)
-}
-
-func (d *DNS) Shutdown(ctx context.Context) error {
-	return d.server.Shutdown()
 }
 
 func dnsError(w dns.ResponseWriter, r *dns.Msg, err error) {
