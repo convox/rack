@@ -112,18 +112,6 @@ func (p *Provider) SystemUninstall(name string, w io.Writer, opts structs.System
 	return nil
 }
 
-func (p *Provider) SystemUpdate(opts structs.SystemUpdateOptions) error {
-	if err := p.Provider.SystemUpdate(opts); err != nil {
-		return err
-	}
-
-	if err := p.systemUpdate(helpers.DefaultString(opts.Version, p.Version)); err != nil {
-		return err
-	}
-
-	return nil
-}
-
 func (p *Provider) generateCACertificate(name string) error {
 	if err := exec.Command("kubectl", "get", "secret", "ca", "-n", "convox-system").Run(); err == nil {
 		return nil
@@ -141,13 +129,13 @@ func (p *Provider) generateCACertificate(name string) error {
 
 	template := x509.Certificate{
 		BasicConstraintsValid: true,
-		IsCA:                  true,
-		DNSNames:              []string{"ca.convox"},
-		SerialNumber:          serial,
-		NotBefore:             time.Now(),
-		NotAfter:              time.Now().Add(365 * 24 * time.Hour),
-		KeyUsage:              x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
-		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
+		IsCA:         true,
+		DNSNames:     []string{"ca.convox"},
+		SerialNumber: serial,
+		NotBefore:    time.Now(),
+		NotAfter:     time.Now().Add(365 * 24 * time.Hour),
+		KeyUsage:     x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
+		ExtKeyUsage:  []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
 		Subject: pkix.Name{
 			CommonName:   "ca.convox",
 			Organization: []string{"convox"},
