@@ -17,6 +17,11 @@ func Int(value int) *int {
 	return &v
 }
 
+func Int32(value int32) *int32 {
+	v := value
+	return &v
+}
+
 func Int64(value int64) *int64 {
 	v := value
 	return &v
