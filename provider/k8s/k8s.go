@@ -97,11 +97,17 @@ func (p *Provider) Initialize(opts structs.ProviderOptions) error {
 		return log.Error(err)
 	}
 
+	nc, err := NewNodeController(p)
+	if err != nil {
+		return log.Error(err)
+	}
+
 	pc, err := NewPodController(p)
 	if err != nil {
 		return log.Error(err)
 	}
 
+	go nc.Run()
 	go pc.Run()
 
 	return log.Success()
