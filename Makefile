@@ -28,12 +28,12 @@ dev:
 ifdef UPLOAD
 	docker push convox/rack:dev
 	kubectl patch deployment/api -p '{"spec":{"template":{"spec":{"containers":[{"name":"main","imagePullPolicy":"Always"}]}}}}' -n $(RACK)
-	kubectl patch daemonset/router -p '{"spec":{"template":{"spec":{"containers":[{"name":"router","imagePullPolicy":"Always"}]}}}}' -n convox-system
+	kubectl patch deployment/router -p '{"spec":{"template":{"spec":{"containers":[{"name":"router","imagePullPolicy":"Always"}]}}}}' -n convox-system
 endif
 	kubectl delete pod --all -n convox-system
 	kubectl delete pod --all -n $(RACK)
 	kubectl rollout status deployment/api -n $(RACK)
-	kubectl rollout status daemonset/router -n convox-system
+	kubectl rollout status deployment/router -n convox-system
 	convox rack logs
 
 generate:

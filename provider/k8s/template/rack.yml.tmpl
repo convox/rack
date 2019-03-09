@@ -117,7 +117,7 @@ metadata:
   namespace: {{.Rack}}
   name: api
   labels:
-    app: system
+    app: rack
     service: api
 spec:
   revisionHistoryLimit: 0
@@ -125,7 +125,7 @@ spec:
     matchLabels:
       system: convox
       rack: {{.Rack}}
-      app: system
+      app: rack
       service: api
   strategy:
     type: RollingUpdate
@@ -140,7 +140,7 @@ spec:
       labels:
         system: convox
         rack: {{.Rack}}
-        app: system
+        app: rack
         service: api
     spec:
       shareProcessNamespace: true
@@ -207,7 +207,7 @@ metadata:
   annotations:
     convox.service.ports.5443.protocol: https
   labels:
-    app: system
+    app: rack
     service: api
 spec:
   type: NodePort
@@ -219,7 +219,7 @@ spec:
   selector:
     system: convox
     rack: {{.Rack}}
-    app: system
+    app: rack
     service: api
 ---
 apiVersion: extensions/v1beta1

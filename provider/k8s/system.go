@@ -3,6 +3,8 @@ package k8s
 import (
 	"fmt"
 	"io"
+	"os/exec"
+	"strconv"
 
 	"github.com/convox/rack/pkg/helpers"
 	"github.com/convox/rack/pkg/structs"
@@ -60,7 +62,25 @@ func (p *Provider) SystemProcesses(opts structs.SystemProcessesOptions) (structs
 			return nil, err
 		}
 
+		ps.App = "rack"
+		ps.Release = p.Version
+
+		pss = append(pss, *ps)
+	}
+
+	pds, err = p.Cluster.CoreV1().Pods("convox-system").List(am.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	for _, pd := range pds.Items {
+		ps, err := processFromPod(pd)
+		if err != nil {
+			return nil, err
+		}
+
 		ps.App = "system"
+		ps.Release = p.Version
 
 		pss = append(pss, *ps)
 	}
@@ -114,11 +134,23 @@ func (p *Provider) streamSystemLogs(w io.WriteCloser, opts structs.LogsOptions) 
 func (p *Provider) systemUpdate(version string) error {
 	log := p.logger.At("systemUpdate").Namespace("id=%s rack=%s version=%s", p.ID, p.Rack, version)
 
+	data, err := exec.Command("kubectl", "get", "nodes", "-o", "go-template={{ len .items }}").CombinedOutput()
+	if err != nil {
+		return err
+	}
+
+	nc, err := strconv.Atoi(string(data))
+	if err != nil {
+		return err
+	}
+
 	params := map[string]interface{}{
-		"Docker":  p.Socket,
-		"ID":      p.ID,
-		"Rack":    p.Rack,
-		"Version": version,
+		"Docker":    p.Socket,
+		"ID":        p.ID,
+		"Rack":      p.Rack,
+		"RouterMin": nc,
+		"RouterMax": nc,
+		"Version":   version,
 	}
 
 	if out, err := p.ApplyTemplate("custom", "system=convox,provider=k8s,scope=custom", nil); err != nil {
@@ -130,6 +162,10 @@ func (p *Provider) systemUpdate(version string) error {
 	}
 
 	if out, err := p.ApplyTemplate("rack", fmt.Sprintf("system=convox,provider=k8s,scope=rack,rack=%s", p.Rack), params); err != nil {
+		return log.Error(fmt.Errorf("update error: %s", string(out)))
+	}
+
+	if out, err := p.ApplyTemplate("system", "system=convox,provider=k8s,scope=system", params); err != nil {
 		return log.Error(fmt.Errorf("update error: %s", string(out)))
 	}
 

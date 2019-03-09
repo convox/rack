@@ -95,11 +95,14 @@ func (p *Provider) AppMetrics(name string, opts structs.MetricsOptions) (structs
 }
 
 func (p *Provider) AppNamespace(app string) string {
-	if app == "system" {
+	switch app {
+	case "system":
+		return "convox-system"
+	case "rack":
 		return p.Rack
+	default:
+		return fmt.Sprintf("%s-%s", p.Rack, app)
 	}
-
-	return fmt.Sprintf("%s-%s", p.Rack, app)
 }
 
 func (p *Provider) AppUpdate(name string, opts structs.AppUpdateOptions) error {

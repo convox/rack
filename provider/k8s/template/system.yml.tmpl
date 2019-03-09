@@ -1,0 +1,127 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: convox-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  namespace: convox-system
+  name: router
+rules:
+  - apiGroups:
+      - ""
+      - extensions
+    resources:
+      - ingresses
+      - services
+    verbs:
+      - get
+      - list
+      - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  namespace: convox-system
+  name: router
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: rack
+subjects:
+  - kind: ServiceAccount
+    name: router
+    namespace: convox-system
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  namespace: convox-system
+  name: router
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: convox-system
+  name: router
+  labels:
+    service: router
+spec:
+  selector:
+    matchLabels:
+      system: convox
+      service: router
+  replicas: {{.RouterMin}}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: "200%"
+      maxUnavailable: "0%"
+  minReadySeconds: 1
+  template:
+    metadata:
+      labels:
+        system: convox
+        service: router
+    spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchLabels:
+                  system: convox
+                  service: router
+              topologyKey: kubernetes.io/hostname
+      dnsConfig:
+        options:
+        - name: ndots
+          value: "1"
+      containers:
+      - name: main
+        args:
+        - router
+        env:
+        - name: POD_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+        - name: SERVICE_HOST
+          value: "router.convox-system.svc.cluster.local"
+        - name: VERSION
+          value: "{{.Version}}"
+        envFrom:
+        - configMapRef:
+            name: env-router
+        image: convox/rack:{{.Version}}
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 80
+          protocol: TCP
+        - containerPort: 443
+          protocol: TCP
+        - containerPort: 5453
+          protocol: UDP
+      serviceAccountName: router
+---
+apiVersion: autoscaling/v2beta1
+kind: HorizontalPodAutoscaler
+metadata:
+  namespace: convox-system
+  name: router
+  labels:
+    service: router
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: router
+  minReplicas: {{.RouterMin}}
+  maxReplicas: {{.RouterMax}} 
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      targetAverageUtilization: 50
