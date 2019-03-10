@@ -2,6 +2,7 @@
 
 package sdk
 
+import context "context"
 import io "io"
 import mock "github.com/stretchr/testify/mock"
 
@@ -1922,6 +1923,22 @@ func (_m *Interface) SystemUpdate(opts structs.SystemUpdateOptions) error {
 		r0 = rf(opts)
 	} else {
 		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// WithContext provides a mock function with given fields: ctx
+func (_m *Interface) WithContext(ctx context.Context) structs.Provider {
+	ret := _m.Called(ctx)
+
+	var r0 structs.Provider
+	if rf, ok := ret.Get(0).(func(context.Context) structs.Provider); ok {
+		r0 = rf(ctx)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(structs.Provider)
+		}
 	}
 
 	return r0

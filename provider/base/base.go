@@ -1,6 +1,8 @@
 package base
 
 import (
+	"context"
+
 	"github.com/convox/rack/pkg/structs"
 )
 
@@ -15,4 +17,8 @@ func FromEnv() (*Provider, error) {
 
 func (p *Provider) Initialize(opts structs.ProviderOptions) error {
 	return nil
+}
+
+func (p *Provider) WithContext(ctx context.Context) structs.Provider {
+	return p
 }

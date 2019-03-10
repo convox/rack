@@ -1,6 +1,7 @@
 package k8s
 
 import (
+	"context"
 	"flag"
 	"os"
 
@@ -39,6 +40,7 @@ type Provider struct {
 	Storage  string
 	Version  string
 
+	ctx       context.Context
 	logger    *logger.Logger
 	templater *templater.Templater
 }
@@ -59,6 +61,7 @@ func FromEnv() (*Provider, error) {
 		Socket:   helpers.CoalesceString(os.Getenv("SOCKET"), "/var/run/docker.sock"),
 		Storage:  os.Getenv("STORAGE"),
 		Version:  os.Getenv("VERSION"),
+		ctx:      context.Background(),
 		logger:   logger.Discard,
 	}
 
@@ -111,4 +114,10 @@ func (p *Provider) Initialize(opts structs.ProviderOptions) error {
 	go pc.Run()
 
 	return log.Success()
+}
+
+func (p *Provider) WithContext(ctx context.Context) structs.Provider {
+	pp := *p
+	pp.ctx = ctx
+	return &pp
 }
