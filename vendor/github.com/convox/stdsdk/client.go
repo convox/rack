@@ -1,6 +1,7 @@
 package stdsdk
 
 import (
+	"context"
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
@@ -25,6 +26,8 @@ type Client struct {
 	Authenticator Authenticator
 	Endpoint      *url.URL
 	Headers       HeadersFunc
+
+	ctx context.Context
 }
 
 type HeadersFunc func() http.Header
@@ -51,7 +54,10 @@ func New(endpoint string) (*Client, error) {
 		return nil, err
 	}
 
-	c := &Client{Endpoint: u}
+	c := &Client{
+		Endpoint: u,
+		ctx:      context.Background(),
+	}
 
 	c.Headers = func() http.Header { return http.Header{} }
 
@@ -212,53 +218,62 @@ func (c *Client) Websocket(path string, opts RequestOptions) (io.ReadCloser, err
 
 	h.Set("Content-Type", ct)
 
-	go websocketIn(ws, or)
-	go websocketOut(w, ws)
+	go copyToWebsocket(c.ctx, ws, or)
+	go copyFromWebsocket(c.ctx, w, ws)
 
 	return r, nil
 }
 
-func websocketIn(ws *websocket.Conn, r io.Reader) {
+func copyToWebsocket(ctx context.Context, ws *websocket.Conn, r io.Reader) {
 	if r == nil {
 		return
 	}
 
+	// used as eof
+	defer ws.WriteMessage(websocket.BinaryMessage, []byte{})
+
 	buf := make([]byte, 1024)
 
 	for {
-		n, err := r.Read(buf)
-		switch err {
-		case io.EOF:
-			ws.WriteMessage(websocket.BinaryMessage, []byte{})
-			// ws.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseGoingAway, ""))
+		select {
+		case <-ctx.Done():
 			return
-		case nil:
-			ws.WriteMessage(websocket.TextMessage, buf[0:n])
 		default:
-			ws.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseInternalServerErr, err.Error()))
-			return
+			n, err := r.Read(buf)
+			switch err {
+			case io.EOF:
+				return
+			case nil:
+				ws.WriteMessage(websocket.TextMessage, buf[0:n])
+			default:
+				return
+			}
 		}
 	}
 }
 
-func websocketOut(w io.WriteCloser, ws *websocket.Conn) {
-	// defer ws.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseGoingAway, ""))
+func copyFromWebsocket(ctx context.Context, w io.WriteCloser, ws *websocket.Conn) {
 	defer w.Close()
 
 	for {
-		code, data, err := ws.ReadMessage()
-		switch err {
-		case io.EOF:
+		select {
+		case <-ctx.Done():
 			return
-		case nil:
-			switch code {
-			case websocket.TextMessage:
-				w.Write(data)
-			case websocket.BinaryMessage:
-				w.Close()
-			}
 		default:
-			return
+			code, data, err := ws.ReadMessage()
+			switch err {
+			case io.EOF:
+				return
+			case nil:
+				switch code {
+				case websocket.TextMessage:
+					w.Write(data)
+				case websocket.BinaryMessage: // interpreted as eof
+					return
+				}
+			default:
+				return
+			}
 		}
 	}
 }
@@ -280,6 +295,8 @@ func (c *Client) Request(method, path string, opts RequestOptions) (*http.Reques
 	if err != nil {
 		return nil, err
 	}
+
+	req = req.WithContext(c.ctx)
 
 	req.Header.Add("Accept", "*/*")
 	req.Header.Set("Content-Type", ct)
@@ -326,6 +343,12 @@ func (c *Client) HandleRequest(req *http.Request) (*http.Response, error) {
 	}
 
 	return res, nil
+}
+
+func (c *Client) WithContext(ctx context.Context) *Client {
+	d := *c
+	d.ctx = ctx
+	return &d
 }
 
 func responseError(res *http.Response) error {

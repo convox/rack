@@ -1,6 +1,7 @@
 package sdk
 
 import (
+	"context"
 	"encoding/base64"
 	"fmt"
 	"io"
@@ -125,4 +126,10 @@ func (c *Client) WebsocketExit(path string, ro stdsdk.RequestOptions, rw io.Read
 			return 0, err
 		}
 	}
+}
+
+func (c *Client) WithContext(ctx context.Context) structs.Provider {
+	cc := *c
+	cc.Client = cc.Client.WithContext(ctx)
+	return &cc
 }
