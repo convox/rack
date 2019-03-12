@@ -3,7 +3,6 @@ package k8s
 import (
 	"fmt"
 	"reflect"
-	"time"
 
 	ac "k8s.io/api/core/v1"
 	am "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -42,7 +41,7 @@ func (c *PodController) ListOptions(opts *am.ListOptions) {
 }
 
 func (c *PodController) Run() {
-	i := ic.NewFilteredPodInformer(c.Provider.Cluster, ac.NamespaceAll, 10*time.Second, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, c.ListOptions)
+	i := ic.NewFilteredPodInformer(c.Provider.Cluster, ac.NamespaceAll, 0, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, c.ListOptions)
 
 	ch := make(chan error)
 
