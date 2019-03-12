@@ -202,13 +202,11 @@ func (p *Provider) systemUpdate(version string) error {
 		"Version": version,
 	}
 
-	if out, err := p.ApplyTemplate("system", "system=convox,provider=local,scope=system", params); err != nil {
-		fmt.Printf("err = %+v\n", err)
+	if out, err := p.ApplyTemplate("config", fmt.Sprintf("system=convox,provider=local,scope=config,rack=%s", p.Rack), params); err != nil {
 		return log.Error(fmt.Errorf("update error: %s\n", string(out)))
 	}
 
-	if out, err := p.ApplyTemplate("config", fmt.Sprintf("system=convox,provider=local,scope=config,rack=%s", p.Rack), params); err != nil {
-		fmt.Printf("err = %+v\n", err)
+	if out, err := p.ApplyTemplate("system", "system=convox,provider=local,scope=system", params); err != nil {
 		return log.Error(fmt.Errorf("update error: %s\n", string(out)))
 	}
 

@@ -5,3 +5,11 @@ metadata:
   name: env-api
 data:
   PROVIDER: local
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: convox-system
+  name: env-router
+data:
+  AUTOCERT: "false"

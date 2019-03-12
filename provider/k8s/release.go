@@ -125,7 +125,7 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 		"Volumes":   vs,
 	}
 
-	data, err := p.RenderTemplate("router", params)
+	data, err := p.RenderTemplate("ingress", params)
 	if err != nil {
 		return err
 	}

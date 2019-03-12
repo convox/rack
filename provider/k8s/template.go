@@ -32,14 +32,25 @@ func (p *Provider) Apply(data []byte, filter string) ([]byte, error) {
 
 	data = bytes.Join(parts, []byte("---\n"))
 
-	cmd := exec.Command("kubectl", "apply", "--prune", "-l", filter, "-f", "-", "--force")
+	cmd := exec.Command("kubectl", "apply", "--prune", "-l", filter, "-f", "-") //, "--force")
 
 	cmd.Stdin = bytes.NewReader(data)
 
 	out, err := cmd.CombinedOutput()
 	// fmt.Printf("output ------\n%s\n-------------\n", string(out))
 	if err != nil {
-		return out, err
+		if strings.Contains(string(out), "is immutable") {
+			cmd := exec.Command("kubectl", "apply", "-f", "-", "--force")
+
+			cmd.Stdin = bytes.NewReader(data)
+
+			out, err := cmd.CombinedOutput()
+			if err != nil {
+				return out, err
+			}
+		} else {
+			return out, err
+		}
 	}
 
 	return out, nil
