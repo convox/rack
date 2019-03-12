@@ -23,7 +23,7 @@ package api
 				}
 			{{ end }}
 
-			{{ return_vars . }} := s.provider(c).{{.Name}}({{ args . }})
+			{{ return_vars . }} := s.provider(c).WithContext(c.Context()).{{.Name}}({{ args . }})
 			if err != nil {
 				return err
 			}

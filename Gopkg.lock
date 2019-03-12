@@ -207,11 +207,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:c31aaa9f449a85f2f02d97b4b8dc6a52c7416ef2f8710e411b72d23b5b8fa6e0"
+  digest = "1:64ef00adea692d2615f4da56693482574c04680c871fe684180c1ef34a838ad1"
   name = "github.com/convox/stdsdk"
   packages = ["."]
   pruneopts = "NUT"
-  revision = "b0eb7c54aebcccb43acf582a1970f21083b91a23"
+  revision = "9095fa2b44fe30248611b946f18a93c52d848435"
 
 [[projects]]
   branch = "master"
