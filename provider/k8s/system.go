@@ -97,7 +97,29 @@ func (p *Provider) SystemUninstall(name string, w io.Writer, opts structs.System
 }
 
 func (p *Provider) SystemUpdate(opts structs.SystemUpdateOptions) error {
-	if err := p.systemUpdate(helpers.DefaultString(opts.Version, p.Version)); err != nil {
+	ds, err := p.Cluster.ExtensionsV1beta1().Deployments(p.Rack).Get("api", am.GetOptions{})
+	if err != nil {
+		return err
+	}
+
+	version := helpers.DefaultString(opts.Version, p.Version)
+
+	for i, c := range ds.Spec.Template.Spec.Containers {
+		if c.Name == "main" {
+			ds.Spec.Template.Spec.Containers[i].Image = fmt.Sprintf("convox/rack:%s", version)
+		}
+
+		for i, e := range c.Env {
+			switch e.Name {
+			case "IMAGE":
+				c.Env[i].Value = fmt.Sprintf("convox/rack:%s", version)
+			case "VERSION":
+				c.Env[i].Value = version
+			}
+		}
+	}
+
+	if _, err := p.Cluster.ExtensionsV1beta1().Deployments(p.Rack).Update(ds); err != nil {
 		return err
 	}
 
