@@ -83,11 +83,7 @@ func (p *Provider) AppList() (structs.Apps, error) {
 }
 
 func (p *Provider) AppLogs(name string, opts structs.LogsOptions) (io.ReadCloser, error) {
-	r, w := io.Pipe()
-
-	go p.streamAppLogs(w, name, opts)
-
-	return r, nil
+	return nil, fmt.Errorf("unimplemented")
 }
 
 func (p *Provider) AppMetrics(name string, opts structs.MetricsOptions) (structs.Metrics, error) {
@@ -107,42 +103,6 @@ func (p *Provider) AppNamespace(app string) string {
 
 func (p *Provider) AppUpdate(name string, opts structs.AppUpdateOptions) error {
 	return fmt.Errorf("unimplemented")
-}
-
-func (p *Provider) streamAppLogs(w io.WriteCloser, app string, opts structs.LogsOptions) {
-	defer w.Close()
-
-	a, err := p.AppGet(app)
-	if err != nil {
-		return
-	}
-
-	pl := func() (structs.Processes, error) {
-		pss, err := p.ProcessList(app, structs.ProcessListOptions{})
-		if err != nil {
-			return nil, err
-		}
-
-		pss = processFilter(pss, func(ps structs.Process) bool {
-			return ps.Release == a.Release
-		})
-
-		return pss, nil
-	}
-
-	ch := make(chan error)
-
-	go p.streamProcessListLogs(w, pl, opts, ch)
-
-	for {
-		err, ok := <-ch
-		if err != nil {
-			fmt.Printf("err = %+v\n", err)
-		}
-		if !ok {
-			return
-		}
-	}
 }
 
 func appFromNamespace(ns ac.Namespace) structs.App {
