@@ -114,12 +114,6 @@ func (c *Controller) leaderStart(informer cache.SharedInformer) func(<-chan stru
 	}
 }
 
-func (c *Controller) leaderStop(stop chan struct{}) func() {
-	return func() {
-		stop <- struct{}{}
-	}
-}
-
 func (c *Controller) addHandler(obj interface{}) {
 	if err := c.Handler.Add(obj); err != nil {
 		c.errch <- err

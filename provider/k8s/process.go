@@ -124,16 +124,7 @@ func (p *Provider) ProcessList(app string, opts structs.ProcessListOptions) (str
 }
 
 func (p *Provider) ProcessLogs(app, pid string, opts structs.LogsOptions) (io.ReadCloser, error) {
-	ps, err := p.ProcessGet(app, pid)
-	if err != nil {
-		return nil, err
-	}
-
-	r, w := io.Pipe()
-
-	go p.streamProcessLogs(w, *ps, opts)
-
-	return r, nil
+	return nil, fmt.Errorf("unimplemented")
 }
 
 func (p *Provider) ProcessRun(app, service string, opts structs.ProcessRunOptions) (*structs.Process, error) {

@@ -1,32 +1,24 @@
 package k8s_test
 
-import (
-	"testing"
+// func testProvider(t *testing.T, fn func(*k8s.Provider, *fakek8s.Clientset)) {
+//   c := fakek8s.NewSimpleClientset()
 
-	"github.com/convox/rack/provider/k8s"
-	"github.com/stretchr/testify/require"
-	fakek8s "k8s.io/client-go/kubernetes/fake"
-)
+//   p, err := k8s.FromEnv()
+//   require.NoError(t, err)
 
-func testProvider(t *testing.T, fn func(*k8s.Provider, *fakek8s.Clientset)) {
-	c := fakek8s.NewSimpleClientset()
+//   p.Cluster = c
+//   p.Rack = "test"
 
-	p, err := k8s.FromEnv()
-	require.NoError(t, err)
+//   fn(p, c)
+// }
 
-	p.Cluster = c
-	p.Rack = "test"
+// func testProviderManual(t *testing.T, fn func(*k8s.Provider, *fakek8s.Clientset)) {
+//   c := &fakek8s.Clientset{}
 
-	fn(p, c)
-}
+//   p := &k8s.Provider{
+//     Cluster: c,
+//     Rack:    "test",
+//   }
 
-func testProviderManual(t *testing.T, fn func(*k8s.Provider, *fakek8s.Clientset)) {
-	c := &fakek8s.Clientset{}
-
-	p := &k8s.Provider{
-		Cluster: c,
-		Rack:    "test",
-	}
-
-	fn(p, c)
-}
+//   fn(p, c)
+// }
