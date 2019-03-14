@@ -118,6 +118,10 @@ func (p *Provider) Initialize(opts structs.ProviderOptions) error {
 	return log.Success()
 }
 
+func (p *Provider) Context() context.Context {
+	return p.ctx
+}
+
 func (p *Provider) WithContext(ctx context.Context) structs.Provider {
 	pp := *p
 	pp.ctx = ctx
