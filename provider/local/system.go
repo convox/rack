@@ -129,13 +129,13 @@ func (p *Provider) generateCACertificate(name string) error {
 
 	template := x509.Certificate{
 		BasicConstraintsValid: true,
-		IsCA:         true,
-		DNSNames:     []string{"ca.convox"},
-		SerialNumber: serial,
-		NotBefore:    time.Now(),
-		NotAfter:     time.Now().Add(365 * 24 * time.Hour),
-		KeyUsage:     x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
-		ExtKeyUsage:  []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
+		IsCA:                  true,
+		DNSNames:              []string{"ca.convox"},
+		SerialNumber:          serial,
+		NotBefore:             time.Now(),
+		NotAfter:              time.Now().Add(365 * 24 * time.Hour),
+		KeyUsage:              x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
+		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
 		Subject: pkix.Name{
 			CommonName:   "ca.convox",
 			Organization: []string{"convox"},
@@ -194,7 +194,7 @@ func (p *Provider) systemUpdate(version string) error {
 		return log.Error(fmt.Errorf("update error: %s\n", string(out)))
 	}
 
-	if out, err := p.ApplyTemplate("system", "system=convox,provider=local,scope=system", params); err != nil {
+	if out, err := p.ApplyTemplate("ports", "system=convox,provider=local,scope=ports", params); err != nil {
 		return log.Error(fmt.Errorf("update error: %s\n", string(out)))
 	}
 
