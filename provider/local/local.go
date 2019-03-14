@@ -72,7 +72,6 @@ func (p *Provider) Initialize(opts structs.ProviderOptions) error {
 
 func (p *Provider) WithContext(ctx context.Context) structs.Provider {
 	pp := *p
-	bp := *pp.Provider
-	pp.Provider = bp.WithContext(ctx).(*k8s.Provider)
+	pp.Provider = pp.Provider.WithContext(ctx).(*k8s.Provider)
 	return &pp
 }
