@@ -89,7 +89,11 @@ func subscribeLogs(ctx context.Context, w io.WriteCloser, sub logstore.Subscribe
 			if !ok {
 				return
 			}
-			if _, err := fmt.Fprintf(w, "%s %s %s\n", l.Timestamp.Format(time.RFC3339), l.Stream, l.Message); err != nil {
+			prefix := ""
+			if helpers.DefaultBool(opts.Prefix, false) {
+				prefix = fmt.Sprintf("%s %s ", l.Timestamp.Format(time.RFC3339), l.Stream)
+			}
+			if _, err := fmt.Fprintf(w, "%s%s\n", prefix, l.Message); err != nil {
 				return
 			}
 		}
