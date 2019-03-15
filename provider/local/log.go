@@ -1,6 +1,7 @@
 package local
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net/url"
@@ -67,19 +68,25 @@ func (p *Provider) SystemLogs(opts structs.LogsOptions) (io.ReadCloser, error) {
 	return r, nil
 }
 
-func (p *Provider) subscribeLogs(w io.Writer, sub logstore.Subscribe, opts structs.LogsOptions) {
+func (p *Provider) subscribeLogs(w io.WriteCloser, sub logstore.Subscribe, opts structs.LogsOptions) {
+	defer w.Close()
+
 	ch := make(chan logstore.Log)
 
-	cancel := sub(ch, time.Now().UTC().Add(helpers.DefaultDuration(opts.Since, 0)))
-
+	ctx, cancel := context.WithCancel(p.Context())
 	defer cancel()
+
+	go sub(ctx, ch, time.Now().UTC().Add(-1*helpers.DefaultDuration(opts.Since, 0)), helpers.DefaultBool(opts.Follow, true))
 
 	for {
 		select {
 		case <-p.Context().Done():
 			return
-		case l := <-ch:
-			if _, err := fmt.Fprintf(w, "%s %s %s\n", l.Timestamp, l.Stream, l.Message); err != nil {
+		case l, ok := <-ch:
+			if !ok {
+				return
+			}
+			if _, err := fmt.Fprintf(w, "%s %s %s\n", l.Timestamp.Format(time.RFC3339), l.Stream, l.Message); err != nil {
 				return
 			}
 		}
