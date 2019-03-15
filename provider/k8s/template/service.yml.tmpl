@@ -106,14 +106,6 @@ spec:
           initialDelaySeconds: {{$.Service.Health.Grace}}
           periodSeconds: {{$.Service.Health.Interval}}
           timeoutSeconds: {{$.Service.Health.Timeout}}
-        readinessProbe:
-          httpGet:
-            path: "{{$.Service.Health.Path}}"
-            port: {{.}}
-            scheme: "{{ upper $.Service.Port.Scheme }}"
-          initialDelaySeconds: 0
-          periodSeconds: 1
-          timeoutSeconds: {{$.Service.Health.Timeout}}
         {{ end }}
         ports:
         {{ with .Service.Port.Port }}
