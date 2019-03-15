@@ -34,9 +34,6 @@ func (p *Provider) BuildLogs(app, id string, opts structs.LogsOptions) (io.ReadC
 		return nil, err
 	}
 
-	// temp
-	return p.ProcessLogs(app, b.Process, opts)
-
 	switch b.Status {
 	case "running":
 		return p.ProcessLogs(app, b.Process, opts)
