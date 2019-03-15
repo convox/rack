@@ -37,11 +37,7 @@ func (p *Provider) SystemInstall(w io.Writer, opts structs.SystemInstallOptions)
 }
 
 func (p *Provider) SystemLogs(opts structs.LogsOptions) (io.ReadCloser, error) {
-	r, w := io.Pipe()
-
-	go p.streamSystemLogs(w, opts)
-
-	return r, nil
+	return nil, fmt.Errorf("unimplemented")
 }
 
 func (p *Provider) SystemMetrics(opts structs.MetricsOptions) (structs.Metrics, error) {
@@ -124,33 +120,6 @@ func (p *Provider) SystemUpdate(opts structs.SystemUpdateOptions) error {
 	}
 
 	return nil
-}
-
-func (p *Provider) streamSystemLogs(w io.WriteCloser, opts structs.LogsOptions) {
-	defer w.Close()
-
-	pl := func() (structs.Processes, error) {
-		pss, err := p.SystemProcesses(structs.SystemProcessesOptions{})
-		if err != nil {
-			return nil, err
-		}
-
-		return pss, nil
-	}
-
-	ch := make(chan error)
-
-	go p.streamProcessListLogs(w, pl, opts, ch)
-
-	for {
-		err, ok := <-ch
-		if err != nil {
-			fmt.Printf("err = %+v\n", err)
-		}
-		if !ok {
-			return
-		}
-	}
 }
 
 func (p *Provider) systemUpdate(version string) error {

@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -186,7 +185,7 @@ func (p *Provider) BuildExport(app, id string, w io.Writer) error {
 
 	out, err := exec.Command("docker", args...).CombinedOutput()
 	if err != nil {
-		return fmt.Errorf("%s: %s\n", strings.TrimSpace(string(out)), err.Error())
+		return fmt.Errorf("%s: %s", strings.TrimSpace(string(out)), err.Error())
 	}
 
 	defer os.Remove(file)
@@ -312,7 +311,7 @@ func (p *Provider) BuildImport(app string, r io.Reader) (*structs.Build, error) 
 
 			if err := cmd.Wait(); err != nil {
 				out := strings.TrimSpace(outb.String())
-				return nil, fmt.Errorf("%s: %s\n", out, err.Error())
+				return nil, fmt.Errorf("%s: %s", out, err.Error())
 			}
 
 			if len(manifest) == 0 {
@@ -370,27 +369,7 @@ func (p *Provider) BuildImport(app string, r io.Reader) (*structs.Build, error) 
 }
 
 func (p *Provider) BuildLogs(app, id string, opts structs.LogsOptions) (io.ReadCloser, error) {
-	b, err := p.BuildGet(app, id)
-	if err != nil {
-		return nil, err
-	}
-
-	switch b.Status {
-	case "running":
-		return p.ProcessLogs(app, b.Process, opts)
-	default:
-		u, err := url.Parse(b.Logs)
-		if err != nil {
-			return nil, err
-		}
-
-		switch u.Scheme {
-		case "object":
-			return p.ObjectFetch(u.Hostname(), u.Path)
-		default:
-			return nil, fmt.Errorf("unable to read logs for build: %s", id)
-		}
-	}
+	return nil, fmt.Errorf("unimplemented")
 }
 
 func (p *Provider) BuildList(app string, opts structs.BuildListOptions) (structs.Builds, error) {

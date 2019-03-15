@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"os"
+	"time"
 
 	"github.com/convox/logger"
 	"github.com/convox/rack/pkg/helpers"
@@ -18,6 +19,7 @@ import (
 )
 
 type Engine interface {
+	Log(app, pid string, ts time.Time, message string) error
 	RepositoryAuth(app string) (string, string, error)
 	RepositoryHost(app string) (string, bool, error)
 	ResourceRender(app string, r manifest.Resource) ([]byte, error)
@@ -114,6 +116,10 @@ func (p *Provider) Initialize(opts structs.ProviderOptions) error {
 	go pc.Run()
 
 	return log.Success()
+}
+
+func (p *Provider) Context() context.Context {
+	return p.ctx
 }
 
 func (p *Provider) WithContext(ctx context.Context) structs.Provider {

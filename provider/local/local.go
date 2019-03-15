@@ -1,6 +1,8 @@
 package local
 
 import (
+	"context"
+
 	"github.com/convox/logger"
 	"github.com/convox/rack/pkg/manifest"
 	"github.com/convox/rack/pkg/structs"
@@ -66,4 +68,10 @@ func (p *Provider) Initialize(opts structs.ProviderOptions) error {
 	}
 
 	return log.Success()
+}
+
+func (p *Provider) WithContext(ctx context.Context) structs.Provider {
+	pp := *p
+	pp.Provider = pp.Provider.WithContext(ctx).(*k8s.Provider)
+	return &pp
 }
