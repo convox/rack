@@ -1,6 +1,8 @@
 package logstore
 
 import (
+	"context"
+	"sort"
 	"sync"
 	"time"
 )
@@ -19,7 +21,7 @@ type Group struct {
 	Name    string
 	Streams map[string]*Stream
 	lock    sync.Mutex
-	subs    map[chan Log]time.Time
+	subs    map[chan Log]subscription
 }
 
 type Stream struct {
@@ -27,7 +29,7 @@ type Stream struct {
 	Name  string
 	Logs  []log
 	lock  sync.Mutex
-	subs  map[chan Log]time.Time
+	subs  map[chan Log]subscription
 }
 
 type Log struct {
@@ -37,7 +39,12 @@ type Log struct {
 	Message   string
 }
 
-type Subscribe func(chan Log, time.Time) func()
+type subscription struct {
+	context context.Context
+	after   time.Time
+}
+
+type Subscribe func(context.Context, chan Log, time.Time, bool)
 
 type log struct {
 	Timestamp time.Time
@@ -56,7 +63,7 @@ func newGroup(name string) *Group {
 	return &Group{
 		Name:    name,
 		Streams: map[string]*Stream{},
-		subs:    map[chan Log]time.Time{},
+		subs:    map[chan Log]subscription{},
 	}
 }
 
@@ -109,9 +116,15 @@ func (s *Store) cleanup() {
 func (g *Group) Append(stream string, ts time.Time, message string) {
 	g.Stream(stream).Append(ts, message)
 
-	for sub, since := range g.subs {
-		if ts.After(since) {
-			sub <- Log{Group: g.Name, Stream: stream, Timestamp: ts, Message: message}
+	for ch, sub := range g.subs {
+		select {
+		case <-sub.context.Done():
+			delete(g.subs, ch)
+			close(ch)
+		default:
+			if ts.After(sub.after) {
+				ch <- Log{Group: g.Name, Stream: stream, Timestamp: ts, Message: message}
+			}
 		}
 	}
 }
@@ -131,24 +144,26 @@ func (g *Group) Stream(name string) *Stream {
 	return s
 }
 
-func (g *Group) Subscribe(ch chan Log, since time.Time) func() {
+func (g *Group) Subscribe(ctx context.Context, ch chan Log, since time.Time, follow bool) {
 	g.lock.Lock()
 	defer g.lock.Unlock()
 
-	latest := time.Time{}
+	logs := []Log{}
 
 	for _, s := range g.Streams {
-		if l := s.stream(ch, since); l.After(latest) {
-			latest = l
+		for _, l := range s.Logs {
+			if l.Timestamp.After(since) {
+				logs = append(logs, Log{Group: g.Name, Stream: s.Name, Timestamp: l.Timestamp, Message: l.Message})
+			}
 		}
 	}
 
-	g.subs[ch] = latest
+	latest := stream(ch, logs)
 
-	return func() {
-		g.lock.Lock()
-		defer g.lock.Unlock()
-		delete(g.subs, ch)
+	if follow {
+		g.subs[ch] = subscription{context: ctx, after: latest}
+	} else {
+		close(ch)
 	}
 }
 
@@ -171,23 +186,37 @@ func (s *Stream) Append(ts time.Time, message string) {
 
 	s.Logs = append(s.Logs, log{Timestamp: ts, Message: message})
 
-	for sub, since := range s.subs {
-		if ts.After(since) {
-			sub <- Log{Group: s.Group, Stream: s.Name, Timestamp: ts, Message: message}
+	for ch, sub := range s.subs {
+		select {
+		case <-sub.context.Done():
+			delete(s.subs, ch)
+			close(ch)
+		default:
+			if ts.After(sub.after) {
+				ch <- Log{Group: s.Group, Stream: s.Name, Timestamp: ts, Message: message}
+			}
 		}
 	}
 }
 
-func (s *Stream) Subscribe(ch chan Log, since time.Time) func() {
+func (s *Stream) Subscribe(ctx context.Context, ch chan Log, since time.Time, follow bool) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
-	s.subs[ch] = s.stream(ch, since)
+	logs := []Log{}
 
-	return func() {
-		s.lock.Lock()
-		defer s.lock.Unlock()
-		delete(s.subs, ch)
+	for _, l := range s.Logs {
+		if l.Timestamp.After(since) {
+			logs = append(logs, Log{Group: s.Group, Stream: s.Name, Timestamp: l.Timestamp, Message: l.Message})
+		}
+	}
+
+	latest := stream(ch, logs)
+
+	if follow {
+		s.subs[ch] = subscription{context: ctx, after: latest}
+	} else {
+		close(ch)
 	}
 }
 
@@ -205,14 +234,17 @@ func (s *Stream) cleanup() {
 	s.Logs = []log{}
 }
 
-func (s *Stream) stream(ch chan Log, since time.Time) time.Time {
+func stream(ch chan Log, logs []Log) time.Time {
 	latest := time.Time{}
 
-	for _, l := range s.Logs {
-		ch <- Log{Group: s.Group, Stream: s.Name, Timestamp: l.Timestamp, Message: l.Message}
-		if l.Timestamp.After(latest) {
-			latest = l.Timestamp
-		}
+	sort.Slice(logs, func(i, j int) bool { return logs[i].Timestamp.Before(logs[j].Timestamp) })
+
+	for _, l := range logs {
+		ch <- l
+	}
+
+	if len(logs) > 1 {
+		latest = logs[len(logs)-1].Timestamp
 	}
 
 	return latest
