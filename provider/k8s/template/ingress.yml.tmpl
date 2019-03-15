@@ -16,13 +16,13 @@ spec:
   - hosts:
     {{ range .Services }}
     {{ range (domains $.App.Name .) }}
-    - {{.}}
+    - {{ safe . }}
     {{ end }}
     {{ end }}
   rules:
     {{ range $s := .Services }}
     {{ range (domains $.App.Name .) }}
-    - host: {{.}}
+    - host: {{ safe . }}
       http:
         paths:
         - backend:
