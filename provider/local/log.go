@@ -23,7 +23,7 @@ func (p *Provider) Log(app, pid string, ts time.Time, message string) error {
 func (p *Provider) AppLogs(name string, opts structs.LogsOptions) (io.ReadCloser, error) {
 	r, w := io.Pipe()
 
-	go p.subscribeLogs(w, logs.Group(name).Subscribe, opts)
+	go subscribeLogs(p.Context(), w, logs.Group(name).Subscribe, opts)
 
 	return r, nil
 }
@@ -33,6 +33,9 @@ func (p *Provider) BuildLogs(app, id string, opts structs.LogsOptions) (io.ReadC
 	if err != nil {
 		return nil, err
 	}
+
+	// temp
+	return p.ProcessLogs(app, b.Process, opts)
 
 	switch b.Status {
 	case "running":
@@ -55,7 +58,10 @@ func (p *Provider) BuildLogs(app, id string, opts structs.LogsOptions) (io.ReadC
 func (p *Provider) ProcessLogs(app, pid string, opts structs.LogsOptions) (io.ReadCloser, error) {
 	r, w := io.Pipe()
 
-	go p.subscribeLogs(w, logs.Group(app).Stream(pid).Subscribe, opts)
+	ctx, cancel := context.WithCancel(p.Context())
+
+	go subscribeLogs(ctx, w, logs.Group(app).Stream(pid).Subscribe, opts)
+	go p.watchForProcessTermination(ctx, app, pid, cancel)
 
 	return r, nil
 }
@@ -63,24 +69,21 @@ func (p *Provider) ProcessLogs(app, pid string, opts structs.LogsOptions) (io.Re
 func (p *Provider) SystemLogs(opts structs.LogsOptions) (io.ReadCloser, error) {
 	r, w := io.Pipe()
 
-	go p.subscribeLogs(w, logs.Group("rack").Subscribe, opts)
+	go subscribeLogs(p.Context(), w, logs.Group("rack").Subscribe, opts)
 
 	return r, nil
 }
 
-func (p *Provider) subscribeLogs(w io.WriteCloser, sub logstore.Subscribe, opts structs.LogsOptions) {
+func subscribeLogs(ctx context.Context, w io.WriteCloser, sub logstore.Subscribe, opts structs.LogsOptions) {
 	defer w.Close()
 
 	ch := make(chan logstore.Log)
-
-	ctx, cancel := context.WithCancel(p.Context())
-	defer cancel()
 
 	go sub(ctx, ch, time.Now().UTC().Add(-1*helpers.DefaultDuration(opts.Since, 0)), helpers.DefaultBool(opts.Follow, true))
 
 	for {
 		select {
-		case <-p.Context().Done():
+		case <-ctx.Done():
 			return
 		case l, ok := <-ch:
 			if !ok {

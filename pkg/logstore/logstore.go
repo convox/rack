@@ -21,7 +21,7 @@ type Group struct {
 	Name    string
 	Streams map[string]*Stream
 	lock    sync.Mutex
-	subs    map[chan Log]subscription
+	subs    map[chan Log]time.Time
 }
 
 type Stream struct {
@@ -29,7 +29,7 @@ type Stream struct {
 	Name  string
 	Logs  []log
 	lock  sync.Mutex
-	subs  map[chan Log]subscription
+	subs  map[chan Log]time.Time
 }
 
 type Log struct {
@@ -63,7 +63,7 @@ func newGroup(name string) *Group {
 	return &Group{
 		Name:    name,
 		Streams: map[string]*Stream{},
-		subs:    map[chan Log]subscription{},
+		subs:    map[chan Log]time.Time{},
 	}
 }
 
@@ -72,6 +72,7 @@ func newStream(group, name string) *Stream {
 		Group: group,
 		Name:  name,
 		Logs:  []log{},
+		subs:  map[chan Log]time.Time{},
 	}
 }
 
@@ -116,15 +117,12 @@ func (s *Store) cleanup() {
 func (g *Group) Append(stream string, ts time.Time, message string) {
 	g.Stream(stream).Append(ts, message)
 
-	for ch, sub := range g.subs {
-		select {
-		case <-sub.context.Done():
-			delete(g.subs, ch)
-			close(ch)
-		default:
-			if ts.After(sub.after) {
-				ch <- Log{Group: g.Name, Stream: stream, Timestamp: ts, Message: message}
-			}
+	g.lock.Lock()
+	defer g.lock.Unlock()
+
+	for ch, after := range g.subs {
+		if ts.After(after) {
+			ch <- Log{Group: g.Name, Stream: stream, Timestamp: ts, Message: message}
 		}
 	}
 }
@@ -161,7 +159,8 @@ func (g *Group) Subscribe(ctx context.Context, ch chan Log, since time.Time, fol
 	latest := stream(ch, logs)
 
 	if follow {
-		g.subs[ch] = subscription{context: ctx, after: latest}
+		g.subs[ch] = latest
+		go g.watchSubscription(ctx, ch)
 	} else {
 		close(ch)
 	}
@@ -180,21 +179,23 @@ func (g *Group) cleanup() {
 	}
 }
 
+func (g *Group) watchSubscription(ctx context.Context, ch chan Log) {
+	<-ctx.Done()
+	g.lock.Lock()
+	defer g.lock.Unlock()
+	delete(g.subs, ch)
+	close(ch)
+}
+
 func (s *Stream) Append(ts time.Time, message string) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
 	s.Logs = append(s.Logs, log{Timestamp: ts, Message: message})
 
-	for ch, sub := range s.subs {
-		select {
-		case <-sub.context.Done():
-			delete(s.subs, ch)
-			close(ch)
-		default:
-			if ts.After(sub.after) {
-				ch <- Log{Group: s.Group, Stream: s.Name, Timestamp: ts, Message: message}
-			}
+	for ch, after := range s.subs {
+		if ts.After(after) {
+			ch <- Log{Group: s.Group, Stream: s.Name, Timestamp: ts, Message: message}
 		}
 	}
 }
@@ -214,7 +215,8 @@ func (s *Stream) Subscribe(ctx context.Context, ch chan Log, since time.Time, fo
 	latest := stream(ch, logs)
 
 	if follow {
-		s.subs[ch] = subscription{context: ctx, after: latest}
+		s.subs[ch] = latest
+		go s.watchSubscription(ctx, ch)
 	} else {
 		close(ch)
 	}
@@ -232,6 +234,14 @@ func (s *Stream) cleanup() {
 	}
 
 	s.Logs = []log{}
+}
+
+func (s *Stream) watchSubscription(ctx context.Context, ch chan Log) {
+	<-ctx.Done()
+	s.lock.Lock()
+	defer s.lock.Unlock()
+	delete(s.subs, ch)
+	close(ch)
 }
 
 func stream(ch chan Log, logs []Log) time.Time {
