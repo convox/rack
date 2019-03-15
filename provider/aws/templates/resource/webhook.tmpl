@@ -2,34 +2,65 @@
 {
   "AWSTemplateFormatVersion" : "2010-09-09",
   "Parameters": {
-    "Url": {
-      "Type" : "String",
-      "Description" : "Webhook URL, e.g. 'https://grid.convox.com/rack-hook/1234'"
-    },
-    "CustomTopic": {
-      "Type" : "String",
-      "Description" : ""
-    },
     "NotificationTopic": {
-      "Type" : "String",
-      "Description" : ""
+      "Type": "String"
+    },
+    "Url": {
+      "Type": "String",
+      "Description": "Webhook URL"
     }
   },
   "Resources": {
-    "Notifications": {
-      "Type" : "Custom::SNSSubscription",
-      "Version": "1.0",
+    "Forwarder": {
+      "Type": "AWS::Lambda::Function",
       "Properties": {
-        "ServiceToken": { "Ref": "CustomTopic" },
-        "TopicArn" : { "Ref": "NotificationTopic" },
-        "Protocol" : "http",
-        "Endpoint" : { "Ref": "Url" }
+        "Code": {
+          "ZipFile": { "Fn::Join": [ "\n", [
+            "var https = require(\"https\");",
+            "var url = require(\"url\");",
+            "exports.handler = (event, context, cb) => {",
+            "  var req = https.request(Object.assign(url.parse(process.env.WEBHOOK_URL), { method:\"POST\" }), function(res) {;",
+            "    cb(null);",
+            "  });",
+            "  req.write(event.Records[0].Sns.Message);",
+            "  req.end();",
+            "}"
+          ] ] }
+        },
+        "Environment": { "Variables": { "WEBHOOK_URL": { "Ref": "Url" } } },
+        "Handler": "index.handler",
+        "Role": { "Fn::GetAtt": [ "ForwarderRole", "Arn" ] },
+        "Runtime": "nodejs6.10",
+        "Timeout": "10"
       }
-    }
-  },
-  "Outputs": {
-    "Url": {
-      "Value": { "Ref": "Url" }
+    },
+    "ForwarderPermission": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties": {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": { "Fn::GetAtt": [ "Forwarder", "Arn" ] },
+        "Principal": "sns.amazonaws.com",
+        "SourceArn": { "Ref": "NotificationTopic" }
+      }
+    },
+    "ForwarderRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [ { "Effect": "Allow", "Principal": { "Service": [ "lambda.amazonaws.com" ] }, "Action": "sts:AssumeRole" } ]
+        },
+        "ManagedPolicyArns": [ "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole" ],
+        "Path": "/convox/"
+      }
+    },
+    "Subscription": {
+      "Type": "AWS::SNS::Subscription",
+      "Properties": {
+        "Endpoint": { "Fn::GetAtt": [ "Forwarder", "Arn" ] },
+        "Protocol": "lambda",
+        "TopicArn": { "Ref": "NotificationTopic" }
+      }
     }
   }
 }

@@ -1,0 +1,104 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Conditions": {
+    "BlankEncrypted": { "Fn::Equals": [ { "Ref": "Encrypted" }, "" ] },
+    "BlankIops": { "Fn::Equals": [ { "Ref": "Iops" }, "0" ] }
+  },
+  "Parameters": {
+    "Class": {
+      "Type": "String",
+      "Default": "db.t2.micro"
+    },
+    "Durable": {
+      "Type": "String",
+      "Default": "false",
+      "AllowedValues": [ "true", "false" ]
+    },
+    "Encrypted": {
+      "Type": "String",
+      "Default": "",
+      "AllowedValues": [ "true", "false", "" ]
+    },
+    "Iops": {
+      "Type": "Number",
+      "Default": "0"
+    },
+    "Password": {
+      "MinLength": "8",
+      "NoEcho": true,
+      "Type": "String"
+    },
+    "Rack": {
+      "MinLength": "1",
+      "Type": "String"
+    },
+    "Storage": {
+      "Type": "Number",
+      "Default": "20"
+    },
+    "Version": {
+      "Type": "String",
+      "Default": "5.7"
+    }
+  },
+  "Outputs": {
+    "Url": { "Value": { "Fn::Sub": "mysql://app:${Password}@${Instance.Endpoint.Address}:${Instance.Endpoint.Port}/app" } }
+  },
+  "Resources": {
+    "SecurityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": { "Fn::Sub": "${AWS::StackName} security group" },
+        "SecurityGroupIngress": [
+          { "IpProtocol": "tcp", "FromPort": "3306", "ToPort": "3306", "CidrIp": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:VpcCidr" } } }
+        ],
+        "VpcId": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Vpc" } }
+      }
+    },
+    "SubnetGroup": {
+      "Type": "AWS::RDS::DBSubnetGroup",
+      "Properties": {
+        "DBSubnetGroupDescription": { "Fn::Sub": "${AWS::StackName} subnets" },
+        "SubnetIds": [
+          { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Subnet0" } },
+          { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Subnet1" } }
+        ]
+      }
+    },
+    "Instance": {
+      "Type": "AWS::RDS::DBInstance",
+      "DeletionPolicy": "Snapshot",
+      "Properties": {
+        "AllocatedStorage": { "Ref": "Storage" },
+        "DBInstanceClass": { "Ref": "Class" },
+        "DBInstanceIdentifier": { "Ref": "AWS::StackName" },
+        "DBName": "app",
+        "DBParameterGroupName": { "Ref": "ParameterGroup" },
+        "DBSubnetGroupName": { "Ref": "SubnetGroup" },
+        "Engine": "mysql",
+        "EngineVersion": { "Ref": "Version" },
+        "Iops": { "Fn::If": [ "BlankIops", { "Ref": "AWS::NoValue" }, { "Ref": "Iops" } ] },
+        "MasterUsername": "app",
+        "MasterUserPassword": { "Ref": "Password" },
+        "MultiAZ": { "Ref": "Durable" },
+        "Port": "3306",
+        "PubliclyAccessible": "false",
+        "StorageEncrypted": { "Ref": "Encrypted" },
+        "StorageType": { "Fn::If": [ "BlankIops", "gp2", "io1" ] },
+        "VPCSecurityGroups": [ { "Ref": "SecurityGroup" } ]
+      }
+    },
+    "ParameterGroup": {
+      "Type": "AWS::RDS::DBParameterGroup",
+      "Properties": {
+        "Description": { "Fn::Sub": "${AWS::StackName} parameters" },
+        "Family": { "Fn::Sub": [ "mysql${Base}", {
+          "Base": { "Fn::Join": [ ".", [
+            { "Fn::Select": [ 0, { "Fn::Split": [ ".", { "Ref": "Version" } ] } ] },
+            { "Fn::Select": [ 1, { "Fn::Split": [ ".", { "Ref": "Version" } ] } ] }
+          ] ] }
+        } ] }
+      }
+    }
+  }
+}

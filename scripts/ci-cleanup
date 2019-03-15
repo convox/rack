@@ -1,0 +1,159 @@
+#!/bin/sh
+
+trap exit SIGINT
+
+base=$(dirname $(dirname $0))
+
+if [[ "$(aws iam list-account-aliases | jq -r '.AccountAliases[0]')" != "convox-ci" ]]; then
+  echo "only run this on the ci account"
+  exit 1
+fi
+
+# for region in $(cat $base/REGIONS); do
+for region in eu-west-1 us-east-1 us-west-2; do
+  echo "region: $region"
+
+  for stack in $(aws cloudformation describe-stacks --region $region | jq -r '.Stacks[].StackName'); do
+    echo "deleting stack: $stack ($region)"
+    aws cloudformation delete-stack --stack-name $stack --region $region
+  done
+
+  for snapshot in $(aws rds describe-db-snapshots --region $region | jq -r '.DBSnapshots[].DBSnapshotIdentifier'); do
+    echo "deleting rds snapshot: $snapshot ($region)"
+    aws rds delete-db-snapshot --db-snapshot-identifier $snapshot --region $region >/dev/null
+  done
+
+  for repo in $(aws ecr describe-repositories --region $region | jq -r '.repositories[].repositoryName'); do
+    echo "deleting repository: $repo ($region)"
+    aws ecr delete-repository --repository-name $repo --region $region --force >/dev/null
+  done
+
+  for group in $(aws logs describe-log-groups --region $region | jq -r ".logGroups[].logGroupName"); do
+    echo "deleting log group: $group ($region)"
+    aws logs delete-log-group --log-group-name $group --region $region
+  done
+
+  if [ "${1}" == "all" ]; then
+    for eip in $(aws ec2 describe-addresses --region $region | jq -r '.Addresses[] | select(has("PrivateIpAddress") | not) | .AllocationId'); do
+      echo "deleting eip: $eip ($region)"
+      aws ec2 release-address --allocation-id $eip --region $region
+    done
+
+    case $region in
+    ap-northeast-1) ;;
+    ap-northeast-2) ;;
+    ap-south-1) ;;
+    ap-southeast-1) ;;
+    ca-central-1) ;;
+    eu-west-2) ;;
+    eu-west-3) ;;
+    sa-east-1) ;;
+    us-west-1) ;;
+    *)
+      for efs in $(aws efs describe-file-systems --region $region | jq -r '.FileSystems[].FileSystemId'); do
+        echo "deleting efs: $efs ($region)"
+        for mt in $(aws efs describe-mount-targets --file-system-id $efs --region $region | jq -r '.MountTargets[].MountTargetId'); do
+          aws efs delete-mount-target --mount-target-id $mt --region $region
+        done
+        aws efs delete-file-system --file-system-id $efs --region $region
+      done
+      ;;
+    esac
+
+    for elb in $(aws elb describe-load-balancers --region $region | jq -r '.LoadBalancerDescriptions[].LoadBalancerName'); do
+      echo "deleting load balancer: $elb ($region)"
+      aws elb delete-load-balancer --load-balancer-name $elb --region $region
+    done
+
+    for rtb in $(aws ec2 describe-route-tables --region $region | jq -r '.RouteTables[] | select(.Associations[0].Main!=true) | .RouteTableId'); do
+      echo "deleting route table: $rtb ($region)"
+      aws ec2 delete-route-table --route-table-id $rtb --region $region
+    done
+
+    for eni in $(aws ec2 describe-network-interfaces --region $region | jq -r '.NetworkInterfaces[].NetworkInterfaceId'); do
+      echo "deleting network interface: $eni ($region)"
+      aws ec2 delete-network-interface --network-interface-id $eni --region $region
+    done
+
+    for subnet in $(aws ec2 describe-subnets --region $region | jq -r '.Subnets[] | .SubnetId'); do
+      echo "deleting subnet: $subnet ($region)"
+      aws ec2 delete-subnet --subnet-id $subnet --region $region
+    done
+
+    for igw in $(aws ec2 describe-internet-gateways --region $region | jq -r '.InternetGateways[].InternetGatewayId'); do
+      echo "deleting igw: $igw ($region)"
+      for vpc in $(aws ec2 describe-internet-gateways --internet-gateway-id $igw --region $region | jq -r '.InternetGateways[].Attachments[].VpcId'); do
+        aws ec2 detach-internet-gateway --internet-gateway-id $igw --vpc-id $vpc --region $region
+      done
+      aws ec2 delete-internet-gateway --internet-gateway-id $igw --region $region
+    done
+
+    for vpc in $(aws ec2 describe-vpcs --region $region | jq -r '.Vpcs[].VpcId'); do
+      for sg in $(aws ec2 describe-security-groups --region $region --filters "Name=vpc-id,Values=$vpc" | jq -r '.SecurityGroups[] | select(.GroupName!="default") | .GroupId'); do
+        echo "deleting security group: $sg ($region)"
+        aws ec2 delete-security-group --group-id $sg --region $region
+      done
+      echo "deleting vpc: $vpc ($region)"
+      aws ec2 delete-vpc --vpc-id $vpc --region $region
+    done
+
+    for cluster in $(aws ecs list-clusters --region $region | jq -r '.clusterArns[]'); do
+      for service in $(aws ecs list-services --cluster $cluster --region $region | jq -r '.serviceArns[]'); do
+        echo "deleting service: $service"
+        aws ecs update-service --cluster $cluster --service $service --desired-count 0 --region $region >/dev/null
+        aws ecs delete-service --cluster $cluster --service $service --region $region
+      done
+      echo "deleting cluster: $cluster"
+      aws ecs delete-cluster --cluster $cluster --region $region >/dev/null
+    done
+
+    # probably need to avoid deleting lambda so we dont break custom resources
+    # for func in $(aws lambda list-functions --region $region | jq -r '.Functions[].FunctionName'); do
+    #   echo "deleting lambda: $func ($region)"
+    #   aws lambda delete-function --function-name $func --region $region
+    # done
+
+    for key in $(aws kms list-keys --region $region | jq -r '.Keys[].KeyId'); do
+      data=$(aws kms describe-key --region $region --key-id $key)
+      state=$(echo $data | jq -r '.KeyMetadata.KeyState')
+      manager=$(echo $data | jq -r '.KeyMetadata.KeyManager')
+      if [[ "$state" != "PendingDeletion" && "$manager" != "AWS" ]]; then
+        echo "deleting key: $key ($region)"
+        aws kms schedule-key-deletion --key-id $key --pending-window-in-days 7 --region $region >/dev/null
+      fi
+    done
+  fi
+done
+
+for bucket in $(aws s3api list-buckets | jq -r '.Buckets[].Name'); do
+  if [[ "$bucket" =~ ^convox-[0-9]+(-[a-z]+-[0-9]+)? ]] && [[ ! "$bucket" =~ ^convox-0 ]]; then
+    region=$(aws s3api get-bucket-location --bucket $bucket 2>/dev/null | jq -r .LocationConstraint 2>/dev/null)
+    echo "deleting bucket: $bucket ($region)"
+    case $region in
+    "")
+      echo "  bucket already deleted" ;;
+    null)
+      aws s3 rb s3://$bucket --force ;;
+    *)
+      aws s3 rb s3://$bucket --force --region $region ;;
+    esac
+  fi
+done
+
+for cert in $(aws iam list-server-certificates | jq -r '.ServerCertificateMetadataList[].ServerCertificateName'); do
+  echo "deleting cert: $cert"
+  aws iam delete-server-certificate --server-certificate-name $cert
+done
+
+if [ "${1}" == "all" ]; then
+  for role in $(aws iam list-roles | jq -r '.Roles[].RoleName'); do
+    if [[ "$role" =~ ^convox-[0-9]+(-[a-z]+-[0-9]+)? ]]; then
+      for policy in $(aws iam list-role-policies --role-name $role | jq -r '.PolicyNames[]'); do
+        echo "deleting policy: $policy"
+        aws iam delete-role-policy --role-name $role --policy-name $policy
+      done
+      echo "deleting role: $role"
+      aws iam delete-role --role-name $role
+    fi
+  done
+fi

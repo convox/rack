@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/kms"
 )
 
@@ -34,39 +33,62 @@ func KMSKeyCreate(req Request) (string, map[string]string, error) {
 		Description: aws.String(req.ResourceProperties["Description"].(string)),
 		KeyUsage:    aws.String(req.ResourceProperties["KeyUsage"].(string)),
 	})
-
 	if err != nil {
 		return "invalid", nil, err
+	}
+
+	if v, ok := req.ResourceProperties["Rotate"].(string); ok && v == "true" {
+		KMS(req).EnableKeyRotation(&kms.EnableKeyRotationInput{
+			KeyId: res.KeyMetadata.KeyId,
+		})
+	} else {
+		KMS(req).DisableKeyRotation(&kms.DisableKeyRotationInput{
+			KeyId: res.KeyMetadata.KeyId,
+		})
 	}
 
 	return *res.KeyMetadata.Arn, nil, nil
 }
 
 func KMSKeyUpdate(req Request) (string, map[string]string, error) {
+	res, err := KMS(req).DescribeKey(&kms.DescribeKeyInput{
+		KeyId: aws.String(req.PhysicalResourceId),
+	})
+	if err != nil {
+		return "invalid", nil, err
+	}
+
+	if v, ok := req.ResourceProperties["Rotate"].(string); ok && v == "true" {
+		KMS(req).EnableKeyRotation(&kms.EnableKeyRotationInput{
+			KeyId: res.KeyMetadata.KeyId,
+		})
+	} else {
+		KMS(req).DisableKeyRotation(&kms.DisableKeyRotationInput{
+			KeyId: res.KeyMetadata.KeyId,
+		})
+	}
+
 	return req.PhysicalResourceId, nil, nil
 }
 
+// avoid key deletion so it can be reused as an external key
 func KMSKeyDelete(req Request) (string, map[string]string, error) {
-	_, err := KMS(req).DisableKey(&kms.DisableKeyInput{
-		KeyId: aws.String(req.PhysicalResourceId),
-	})
+	// _, err := KMS(req).DisableKey(&kms.DisableKeyInput{
+	//   KeyId: aws.String(req.PhysicalResourceId),
+	// })
+	// // go ahead and mark the delete good if the key is not found
+	// if ae, ok := err.(awserr.Error); ok && ae.Code() == "NotFoundException" {
+	//   return req.PhysicalResourceId, nil, nil
+	// }
+	// if err != nil {
+	//   fmt.Printf("error: %s\n", err)
+	//   return req.PhysicalResourceId, nil, err
+	// }
 
-	// go ahead and mark the delete good if the key is not found
-	if ae, ok := err.(awserr.Error); ok {
-		if ae.Code() == "NotFoundException" {
-			return req.PhysicalResourceId, nil, nil
-		}
-	}
+	// _, err = KMS(req).ScheduleKeyDeletion(&kms.ScheduleKeyDeletionInput{
+	//   KeyId:               aws.String(req.PhysicalResourceId),
+	//   PendingWindowInDays: aws.Int64(7),
+	// })
 
-	if err != nil {
-		fmt.Printf("error: %s\n", err)
-		return req.PhysicalResourceId, nil, err
-	}
-
-	_, err = KMS(req).ScheduleKeyDeletion(&kms.ScheduleKeyDeletionInput{
-		KeyId:               aws.String(req.PhysicalResourceId),
-		PendingWindowInDays: aws.Int64(7),
-	})
-
-	return req.PhysicalResourceId, nil, err
+	return req.PhysicalResourceId, nil, nil
 }

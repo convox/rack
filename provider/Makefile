@@ -1,14 +1,9 @@
-.PHONY: all release templates
+.PHONY: all build release
 
-all: templates
+all: build
 
-mocks:
-	go get -u github.com/vektra/mockery/.../
-	rm -f mock_Provider.go
-	mockery -inpkg -name Provider
+build:
+	go install ./...
 
 release:
 	make -C aws release VERSION=$(VERSION)
-
-templates:
-	make -C aws templates

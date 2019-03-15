@@ -1,0 +1,70 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: {{.Namespace}}
+  name: resource-{{.Name}}
+  labels:
+    system: convox
+    rack: {{.Rack}}
+    app: {{.App}}
+    type: resource
+    resource: {{.Name}}
+data:
+  URL: "memcached://resource-{{.Name}}.{{.Namespace}}.svc.cluster.local:11211"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: {{.Namespace}}
+  name: resource-{{.Name}}
+  labels:
+    system: convox
+    rack: {{.Rack}}
+    app: {{.App}}
+    type: resource
+    kind: memcached
+    resource: {{.Name}}
+spec:
+  selector:
+    matchLabels:
+      system: convox
+      rack: {{.Rack}}
+      app: {{.App}}
+      resource: {{.Name}}
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        system: convox
+        rack: {{.Rack}}
+        app: {{.App}}
+        type: resource
+        resource: {{.Name}}
+    spec:
+      containers:
+      - name: memcached
+        image: memcached:{{ coalesce (index .Parameters "version") "1.4.34" }}
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 11211
+---
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: {{.Namespace}}
+  name: resource-{{.Name}}
+  labels:
+    system: convox
+    rack: {{.Rack}}
+    app: {{.App}}
+    type: resource
+    resource: {{.Name}}
+spec:
+  type: NodePort
+  ports:
+  - port: 11211
+  selector:
+    system: convox
+    rack: {{.Rack}}
+    app: {{.App}}
+    resource: {{.Name}}

@@ -2,7 +2,9 @@
   {
     "AWSTemplateFormatVersion": "2010-09-09",
     "Conditions": {
+      "BlankDatabaseSnapshotIdentifier": { "Fn::Equals": [ { "Ref": "DatabaseSnapshotIdentifier"}, "" ] },
       "BlankMaxConnections": { "Fn::Equals": [ { "Ref": "MaxConnections" }, "" ] },
+      "Encrypted": { "Fn::Equals": [ { "Ref": "Encrypted" }, "true" ] },
       "Private": { "Fn::Equals": [ { "Ref": "Private" }, "true" ] }
     },
     "Parameters": {
@@ -16,10 +18,31 @@
         "Default": "app",
         "Description": "Default database name"
       },
+      "BackupRetentionPeriod": {
+        "Type": "String",
+        "Default": "1",
+        "Description": "The automatic RDS backup retention period, (default 1 day)"
+      },
       "InstanceType": {
         "Type": "String",
         "Default": "db.t2.micro",
         "Description": "Instance class for database nodes"
+      },
+      "DatabaseSnapshotIdentifier": {
+        "Type": "String",
+        "Default": "",
+        "Description": "ARN of database snapshot to restore"
+      },
+      "Encrypted": {
+        "Type": "String",
+        "Description": "Encrypt database with KMS",
+        "Default": "false",
+        "AllowedValues": [ "true", "false" ]
+      },
+      "EngineVersion": {
+        "Description": "Version of Postgres",
+        "Default": "9.6",
+        "Type": "String"
       },
       "Family": {
         "Type": "String",
@@ -67,11 +90,6 @@
       "VpcCidr": {
         "Description": "VPC CIDR Block",
         "Type": "String"
-      },
-      "Version": {
-        "Description": "Version of Postgres",
-        "Default": "9.6.1",
-        "Type": "String"
       }
     },
     "Outputs": {
@@ -108,16 +126,20 @@
           "AllocatedStorage": { "Ref": "AllocatedStorage" },
           "DBInstanceClass": { "Ref": "InstanceType" },
           "DBInstanceIdentifier": { "Ref": "AWS::StackName" },
-          "DBName": { "Ref": "Database" },
+          "DBName": { "Fn::If": [ "BlankDatabaseSnapshotIdentifier", { "Ref": "Database" }, { "Ref": "AWS::NoValue" } ] },
+          "DBSnapshotIdentifier": { "Fn::If": [ "BlankDatabaseSnapshotIdentifier", { "Ref": "AWS::NoValue" }, { "Ref": "DatabaseSnapshotIdentifier" } ] },
           "DBParameterGroupName": { "Ref": "ParameterGroup" },
+          "BackupRetentionPeriod":  { "Ref": "BackupRetentionPeriod" },
           "DBSubnetGroupName": { "Ref": "SubnetGroup" },
           "Engine": "postgres",
-          "EngineVersion": { "Ref": "Version" },
+          "EngineVersion": { "Ref": "EngineVersion" },
+          "KmsKeyId": { "Fn::If": [ "Encrypted", { "Ref": "EncryptionKey" }, { "Ref": "AWS::NoValue" } ] },
           "MasterUsername": { "Ref": "Username" },
           "MasterUserPassword": { "Ref": "Password" },
           "MultiAZ": { "Ref": "MultiAZ" },
           "Port": "5432",
           "PubliclyAccessible": "false",
+          "StorageEncrypted": { "Ref": "Encrypted" },
           "StorageType": "gp2",
           "VPCSecurityGroups": [ { "Ref": "SecurityGroup" } ]
         }
@@ -130,6 +152,33 @@
           "Parameters": {
             "max_connections": { "Fn::If": [ "BlankMaxConnections", { "Ref": "AWS::NoValue" }, { "Ref": "MaxConnections" } ] }
           }
+        }
+      },
+      "EncryptionKey": {
+        "Type": "AWS::KMS::Key",
+        "Condition": "Encrypted",
+        "Properties": {
+          "Description": { "Ref": "AWS::StackName" },
+          "KeyPolicy": {
+            "Version": "2012-10-17",
+            "Statement": [
+              {
+                "Sid": "Allow administration of the key",
+                "Effect": "Allow",
+                "Principal": { "AWS": { "Fn::Sub": "arn:aws:iam::${AWS::AccountId}:root" } },
+                "Action": [ "kms:*" ],
+                "Resource": "*"
+              }
+            ]
+          }
+        }
+      },
+      "EncryptionKeyAlias": {
+        "Type": "AWS::KMS::Alias",
+        "Condition": "Encrypted",
+        "Properties": {
+          "AliasName": { "Fn::Sub": "alias/${AWS::StackName}" },
+          "TargetKeyId": { "Ref": "EncryptionKey" }
         }
       }
     }

@@ -1,0 +1,181 @@
+{{ if .Service.Port.Port }}
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: {{.Namespace}}
+  name: {{.Service.Name}}
+  annotations:
+    alb.ingress.kubernetes.io/target-type: pod
+    convox.service.ports.{{.Service.Port.Port}}.protocol: {{.Service.Port.Scheme}}
+  labels:
+    service: {{.Service.Name}}
+    release: {{.Release.Id}}
+spec:
+  type: NodePort
+  selector:
+    service: {{.Service.Name}}
+    release: {{.Release.Id}}
+  ports:
+    - name: main
+      port: {{.Service.Port.Port}}
+      protocol: TCP
+      targetPort: {{.Service.Port.Port}}
+---
+{{ end }}
+apiVersion: apps/v1
+kind: {{ if .Service.Agent.Enabled }} DaemonSet {{ else }} Deployment {{ end }}
+metadata:
+  namespace: {{.Namespace}}
+  name: {{.Service.Name}}
+  labels:
+    type: service
+    service: {{.Service.Name}}
+    release: {{.Release.Id}}
+spec:
+  selector:
+    matchLabels:
+      system: convox
+      rack: {{.Rack}}
+      app: {{.App.Name}}
+      service: {{.Service.Name}}
+  {{ if not .Service.Agent.Enabled }}
+  replicas: {{.Replicas}}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: "{{.MaxSurge}}%"
+      maxUnavailable: "{{.MaxUnavailable}}%"
+  {{ end }}
+  minReadySeconds: 1
+  revisionHistoryLimit: 1
+  template:
+    metadata:
+      {{ if .Service.Agent.Enabled }}
+      annotations:
+        scheduler.alpha.kubernetes.io/critical-pod: ""
+      {{ end }}
+      labels:
+        system: convox
+        rack: {{.Rack}}
+        app: {{.App.Name}}
+        service: {{.Service.Name}}
+        release: {{.Release.Id}}
+    spec:
+      {{ with .Resolver }}
+      dnsPolicy: "None"
+      dnsConfig:
+        nameservers:
+          - "{{ . }}"
+      {{ end }}
+      {{ if .Service.Agent.Ports }}
+      hostNetwork: true
+      {{ end }}
+      shareProcessNamespace: {{.Service.Init}}
+      containers:
+      - name: main
+        {{ with .Service.Command }}
+        args:
+        {{ range shellsplit . }}
+          - {{ safe . }}
+        {{ end }}
+        {{ end }}
+        env:
+        {{ range env .SystemEnv .Service.EnvironmentDefaults .Env }}
+        - name: {{ safe .Key }}
+          value: {{ safe .Value }}
+        {{ end }}
+        {{ range .Service.Links }}
+        - name: {{ envname . }}_URL
+          value: https://{{.}}.{{$.App.Name}}.{{$.Rack}}
+        {{ end }}
+        {{ range .Service.Resources }}
+        - name: {{ envname . }}_URL
+          valueFrom:
+            configMapKeyRef:
+              name: resource-{{.}}
+              key: URL
+        {{ end }}
+        image: {{ image .App .Service .Release }}
+        imagePullPolicy: IfNotPresent
+        {{ with .Service.Port.Port }}
+        livenessProbe:
+          httpGet:
+            path: "{{$.Service.Health.Path}}"
+            port: {{.}}
+            scheme: "{{ upper $.Service.Port.Scheme }}"
+          initialDelaySeconds: {{$.Service.Health.Grace}}
+          periodSeconds: {{$.Service.Health.Interval}}
+          timeoutSeconds: {{$.Service.Health.Timeout}}
+        readinessProbe:
+          httpGet:
+            path: "{{$.Service.Health.Path}}"
+            port: {{.}}
+            scheme: "{{ upper $.Service.Port.Scheme }}"
+          initialDelaySeconds: 0
+          periodSeconds: 1
+          timeoutSeconds: {{$.Service.Health.Timeout}}
+        {{ end }}
+        ports:
+        {{ with .Service.Port.Port }}
+          - containerPort: {{.}}
+        {{ end }}
+        {{ if .Service.Agent.Enabled }}
+        {{ range .Service.Agent.Ports }}
+          - containerPort: {{.Port}}
+            hostPort: {{.Port}}
+            protocol: {{ upper .Protocol }}
+        {{ end }}
+        {{ end }}
+        resources:
+          requests:
+            {{ with .Service.Scale.Cpu }}
+            cpu: "{{.}}m"
+            {{ end }}
+            {{ with .Service.Scale.Memory }}
+            memory: "{{.}}Mi"
+            {{ end }}
+        volumeMounts:
+        {{ range .Service.Volumes }}
+        - name: {{ volumeName $.App.Name (volumeFrom $.App.Name $.Service.Name .) }}
+          mountPath: "{{ volumeTo . }}" 
+        {{ end }}
+      volumes:
+      {{ range (volumeSources $.App.Name .Service.Name .Service.Volumes) }}
+      - name: {{ volumeName $.App.Name . }}
+        {{ if systemVolume . }}
+        hostPath:
+          path: "{{.}}"
+        {{ else }}
+        persistentVolumeClaim:
+          claimName: {{ volumeName $.App.Name . }}
+        {{ end }}
+      {{ end }}
+---
+apiVersion: autoscaling/v2beta1
+kind: HorizontalPodAutoscaler
+metadata:
+  namespace: {{.Namespace}}
+  name: {{.Service.Name}}
+  labels:
+    service: {{.Service.Name}}
+    release: {{.Release.Id}}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{.Service.Name}}
+  minReplicas: {{.Service.Scale.Count.Min}}
+  maxReplicas: {{.Service.Scale.Count.Max}}
+  metrics:
+  {{ with .Service.Scale.Targets.Cpu }}
+  - type: Resource
+    resource:
+      name: cpu
+      targetAverageUtilization: {{.}}
+  {{ end }}
+  {{ with .Service.Scale.Targets.Memory }}
+  - type: Resource
+    resource:
+      name: memory
+      targetAverageUtilization: {{.}}
+  {{ end }}

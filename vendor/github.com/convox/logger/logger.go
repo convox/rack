@@ -5,18 +5,23 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"math/rand"
 	"os"
+	"path/filepath"
 	"regexp"
-	"runtime"
 	"runtime/debug"
 	"strings"
 	"time"
+
+	"github.com/pkg/errors"
 )
 
 func init() {
 	rand.Seed(time.Now().UTC().UnixNano())
 }
+
+var Discard = NewWriter("", ioutil.Discard)
 
 type Logger struct {
 	namespace string
@@ -43,11 +48,42 @@ func (l *Logger) Step(step string) *Logger {
 	return l.Replace("step", step)
 }
 
+func (l *Logger) Append(format string, args ...interface{}) *Logger {
+	return &Logger{
+		namespace: fmt.Sprintf("%s %s", l.namespace, fmt.Sprintf(format, args...)),
+		started:   l.started,
+		writer:    l.writer,
+	}
+}
+
+func (l *Logger) Prepend(format string, args ...interface{}) *Logger {
+	return &Logger{
+		namespace: fmt.Sprintf("%s %s", fmt.Sprintf(format, args...), l.namespace),
+		started:   l.started,
+		writer:    l.writer,
+	}
+}
+
+type tracer interface {
+	StackTrace() errors.StackTrace
+}
+
 func (l *Logger) Error(err error) error {
-	if _, file, line, ok := runtime.Caller(1); ok {
-		l.Logf("state=error error=%q location=%q", strings.Replace(err.Error(), "\n", " ", -1), fmt.Sprintf("%s:%d", file, line))
-	} else {
-		l.Logf("state=error error=%q", err)
+	if err == nil {
+		return nil
+	}
+
+	message := strings.Replace(err.Error(), "\n", " ", -1)
+
+	switch t := err.(type) {
+	case tracer:
+		file := strings.Split(fmt.Sprintf("%+s", t.StackTrace()[0]), "\n\t")[1]
+		if f, err := stripGoPath(file); err == nil {
+			file = f
+		}
+		l.Logf("error=%q location=%q", message, fmt.Sprintf("%s:%d", file, t.StackTrace()[0]))
+	case error:
+		l.Logf("error=%q", message)
 	}
 
 	return err
@@ -113,12 +149,14 @@ func (l *Logger) Start() *Logger {
 	}
 }
 
-func (l *Logger) Success() {
+func (l *Logger) Success() error {
 	l.Logf("state=success")
+	return nil
 }
 
-func (l *Logger) Successf(format string, args ...interface{}) {
+func (l *Logger) Successf(format string, args ...interface{}) error {
 	l.Logf("state=success %s", fmt.Sprintf(format, args...))
+	return nil
 }
 
 func (l *Logger) Writer() io.Writer {
@@ -127,4 +165,8 @@ func (l *Logger) Writer() io.Writer {
 	}
 
 	return l.writer
+}
+
+func stripGoPath(file string) (string, error) {
+	return filepath.Rel(filepath.Join(os.Getenv("GOPATH"), "src"), file)
 }

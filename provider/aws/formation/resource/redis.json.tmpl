@@ -1,0 +1,102 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Conditions": {
+    "Encrypted": { "Fn::Equals": [{ "Ref": "Encrypted" }, "true"] }
+  },
+  "Parameters": {
+    "Class": {
+      "Type": "String",
+      "Default": "cache.t2.micro"
+    },
+    "Durable": {
+      "Type": "String",
+      "Default": "false",
+      "AllowedValues": [ "true", "false" ]
+    },
+    "Encrypted": {
+      "Type": "String",
+      "Default": "false",
+      "AllowedValues": [ "true", "false" ]
+    },
+    "Nodes": {
+      "Type": "Number",
+      "Default": "1"
+    },
+    "Password": {
+      "MinLength": "8",
+      "NoEcho": true,
+      "Type": "String"
+    },
+    "Rack": {
+      "MinLength": "1",
+      "Type": "String"
+    },
+    "Version": {
+      "Type": "String",
+      "Default": "2.8"
+    }
+  },
+  "Outputs": {
+    "Url": {
+      "Value": {
+        "Fn::Sub": [
+          "${Protocol}${Auth}${ReplicationGroup.PrimaryEndPoint.Address}:${ReplicationGroup.PrimaryEndPoint.Port}/0",
+          {
+            "Protocol": {
+              "Fn::If": ["Encrypted", "rediss://", "redis://"]
+            },
+            "Auth": {
+              "Fn::If": ["Encrypted", { "Fn::Sub": ":${Password}@" }, ""]
+            }
+          }
+        ]
+      }
+    }
+  },
+  "Resources": {
+    "SecurityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": { "Fn::Sub": "${AWS::StackName} security group" },
+        "SecurityGroupIngress": [
+          { "IpProtocol": "tcp", "FromPort": "6379", "ToPort": "6379", "CidrIp": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:VpcCidr" } } }
+        ],
+        "VpcId": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Vpc" } }
+      }
+    },
+    "SubnetGroup": {
+      "Type": "AWS::ElastiCache::SubnetGroup",
+      "Properties": {
+        "Description": { "Fn::Sub": "${AWS::StackName} subnets" },
+        "SubnetIds": [
+          { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Subnet0" } },
+          { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Subnet1" } }
+        ]
+      }
+    },
+    "ReplicationGroup": {
+      "Type": "AWS::ElastiCache::ReplicationGroup",
+      "Properties": {
+        "AtRestEncryptionEnabled": { "Ref": "Encrypted" },
+        "AuthToken": {
+          "Fn::If": [
+            "Encrypted",
+            { "Ref": "Password" },
+            { "Ref": "AWS::NoValue" }
+          ]
+        },
+        "AutomaticFailoverEnabled": { "Ref": "Durable" },
+        "AutoMinorVersionUpgrade": "true",
+        "CacheNodeType": { "Ref": "Class" },
+        "CacheSubnetGroupName": { "Ref": "SubnetGroup" },
+        "Engine": "redis",
+        "EngineVersion": { "Ref": "Version" },
+        "NumCacheClusters": { "Ref": "Nodes" },
+        "Port": "6379",
+        "ReplicationGroupDescription": { "Ref": "AWS::StackName" },
+        "SecurityGroupIds": [ { "Ref": "SecurityGroup" } ],
+        "TransitEncryptionEnabled": { "Ref": "Encrypted" }
+      }
+    }
+  }
+}

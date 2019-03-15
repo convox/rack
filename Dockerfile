@@ -1,33 +1,67 @@
-FROM golang:1.7.5-alpine3.5
+## development #################################################################
 
-RUN apk update && apk add \
-    build-base \
-    curl \
-    git \
-    haproxy \
-    openssh \
-    openssl \
-    python \
-    tar
+FROM golang:1.12 AS development
 
-RUN curl -fsSLO https://get.docker.com/builds/Linux/x86_64/docker-1.13.0.tgz \
-    && tar --strip-components=1 -xvzf docker-1.13.0.tgz -C /usr/local/bin
+RUN curl -s https://download.docker.com/linux/static/stable/x86_64/docker-18.03.1-ce.tgz | \
+    tar -C /usr/bin --strip-components 1 -xz
 
-# need a real pid 1 for signal handling, zombie reaping, etc
-ADD http://convox-binaries.s3.amazonaws.com/tini-static /tini
-RUN chmod +x /tini
-ENTRYPOINT ["/tini", "--"]
+RUN curl -Ls https://storage.googleapis.com/kubernetes-release/release/v1.13.0/bin/linux/amd64/kubectl -o /usr/bin/kubectl && \
+    chmod +x /usr/bin/kubectl
 
-RUN go get github.com/convox/rerun
+RUN curl -Ls https://github.com/mattgreen/watchexec/releases/download/1.8.6/watchexec-1.8.6-x86_64-unknown-linux-gnu.tar.gz | \
+    tar -C /usr/bin --strip-components 1 -xz
 
-COPY dist/haproxy.cfg /etc/haproxy/haproxy.cfg
+ENV DEVELOPMENT=true
 
-ENV PORT 3000
 WORKDIR /go/src/github.com/convox/rack
-COPY . /go/src/github.com/convox/rack
 
-RUN go install ./api
-RUN go install ./api/cmd/build
-RUN go install ./api/cmd/monitor
+COPY vendor vendor
+RUN go install --ldflags="-s -w" ./vendor/...
 
-CMD ["api/bin/web"]
+COPY . .
+RUN make build
+
+CMD ["bin/web"]
+
+## package #####################################################################
+
+FROM golang:1.12 AS package
+
+RUN apt-get update && apt-get -y install upx-ucl
+
+RUN go get -u github.com/gobuffalo/packr/packr
+
+WORKDIR /go/src/github.com/convox/rack
+
+COPY --from=development /go/src/github.com/convox/rack .
+RUN make package build compress
+
+## production ##################################################################
+
+FROM ubuntu:18.04
+
+RUN apt-get -qq update && apt-get -qq -y install curl
+
+RUN curl -s https://download.docker.com/linux/static/stable/x86_64/docker-18.03.1-ce.tgz | \
+    tar -C /usr/bin --strip-components 1 -xz
+
+RUN curl -Ls https://storage.googleapis.com/kubernetes-release/release/v1.13.0/bin/linux/amd64/kubectl -o /usr/bin/kubectl && \
+    chmod +x /usr/bin/kubectl
+
+ENV DEVELOPMENT=false
+ENV GOPATH=/go
+ENV PATH=$PATH:/go/bin
+
+WORKDIR /rack
+
+COPY --from=package /go/bin/build /go/bin/
+COPY --from=package /go/bin/convox-env /go/bin/
+COPY --from=package /go/bin/monitor /go/bin/
+COPY --from=package /go/bin/rack /go/bin/
+COPY --from=package /go/bin/router /go/bin/
+
+# aws templates
+COPY --from=development /go/src/github.com/convox/rack/provider/aws/formation/ provider/aws/formation/
+COPY --from=development /go/src/github.com/convox/rack/provider/aws/templates/ provider/aws/templates/
+
+CMD ["/go/bin/rack"]

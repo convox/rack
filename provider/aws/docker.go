@@ -10,11 +10,11 @@ import (
 	"github.com/fsouza/go-dockerclient"
 )
 
-func (p *AWSProvider) docker(host string) (*docker.Client, error) {
+func (p *Provider) docker(host string) (*docker.Client, error) {
 	return docker.NewClient(host)
 }
 
-func (p *AWSProvider) dockerInstance(id string) (*docker.Client, error) {
+func (p *Provider) dockerInstance(id string) (*docker.Client, error) {
 	i, err := p.describeInstance(id)
 	if err != nil {
 		return nil, err
@@ -24,11 +24,14 @@ func (p *AWSProvider) dockerInstance(id string) (*docker.Client, error) {
 
 	switch {
 	case p.IsTest():
-		host = fmt.Sprintf("http://%s", os.Getenv("DOCKER_HOST"))
+		host = os.Getenv("DOCKER_HOST")
 	case p.Development:
-		host = fmt.Sprintf("http://%s:2376", *i.PublicIpAddress)
+		if i.PublicIpAddress == nil {
+			return nil, fmt.Errorf("can not start development builds on a private rack")
+		}
+		host = fmt.Sprintf("tcp://%s:2376", *i.PublicIpAddress)
 	default:
-		host = fmt.Sprintf("http://%s:2376", *i.PrivateIpAddress)
+		host = fmt.Sprintf("tcp://%s:2376", *i.PrivateIpAddress)
 	}
 
 	dc, err := p.docker(host)

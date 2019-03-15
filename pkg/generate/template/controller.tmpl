@@ -1,0 +1,52 @@
+package api
+
+{{ range $m := .Methods }}
+	func (s *Server) {{.Name}}(c *stdapi.Context) error {
+		{{ if .Route.Method }}
+			if err := s.hook("{{.Name}}Validate", c); err != nil {
+				return err
+			}
+
+			{{ vars . }}
+
+			{{ range .Ints }}
+				{{.Name}}, cerr := strconv.Atoi(c.{{ if .Path $m  }}Var{{ else }}Value{{ end }}("{{.Name}}"))
+				if cerr != nil {
+					return cerr
+				}
+			{{ end }}
+
+			{{ with .Option }}
+				var opts {{.Type}}
+				if err := stdapi.UnmarshalOptions(c.Request(), &opts); err != nil {
+					return err
+				}
+			{{ end }}
+
+			{{ return_vars . }} := s.provider(c).WithContext(c.Context()).{{.Name}}({{ args . }})
+			if err != nil {
+				return err
+			}
+
+			{{ if .Reader }}
+				if c, ok := interface{}(v).(io.Closer); ok {
+					defer c.Close()
+				}
+
+				if _, err := io.Copy(c, v); err != nil {
+					return err
+				}
+			{{ end }}
+
+			{{ if .ReturnsValue }}
+				if vs, ok := interface{}(v).(Sortable); ok {
+					sort.Slice(v, vs.Less)
+				}
+			{{ end }}
+
+			return {{ render . }}
+		{{ else }}
+			return stdapi.Errorf(404, "not available via api")
+		{{ end }}
+	}
+{{ end }}

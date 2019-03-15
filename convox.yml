@@ -1,0 +1,29 @@
+services:
+  web:
+    build: .
+    command: bin/web
+    environment:
+      - AWS_ACCESS_KEY_ID=
+      - AWS_REGION=
+      - AWS_SECRET_ACCESS_KEY=
+      - DEVELOPMENT=true
+      - IMAGE=convox/rack:dev
+      - PASSWORD=
+      - PROVIDER
+      - RACK
+      - STORAGE=/storage
+      - VERSION=dev
+    health:
+      grace: 0
+      interval: 30
+      path: /check
+      timeout: 2
+    init: true
+    port: https:5443
+    scale:
+      count: 1
+      cpu: 256
+      memory: 256
+    volumes:
+      - /storage
+      - /var/run/docker.sock

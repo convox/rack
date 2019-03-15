@@ -4,17 +4,19 @@ import (
 	"testing"
 	"time"
 
-	"github.com/convox/rack/api/awsutil"
-	"github.com/convox/rack/api/structs"
+	"github.com/convox/rack/pkg/options"
+	"github.com/convox/rack/pkg/structs"
+	"github.com/convox/rack/pkg/test/awsutil"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestReleaseGet(t *testing.T) {
 	provider := StubAwsProvider(
-		cycleReleaseDescribeStacks,
 		cycleReleaseGetItem,
+		cycleReleaseListStackResources,
 		cycleReleaseEnvironmentGet,
+		cycleSystemListStackResources,
 	)
 	defer provider.Close()
 
@@ -38,7 +40,7 @@ func TestReleaseList(t *testing.T) {
 	)
 	defer provider.Close()
 
-	r, err := provider.ReleaseList("httpd", 20)
+	r, err := provider.ReleaseList("httpd", structs.ReleaseListOptions{Limit: options.Int(20)})
 
 	assert.NoError(t, err)
 
@@ -222,6 +224,64 @@ var cycleReleaseGetItem = awsutil.Cycle{
 	Response: awsutil.Response{
 		StatusCode: 200,
 		Body:       `{"Item":{"id":{"S":"RVFETUHHKKD"},"build":{"S":"BHINCLZYYVN"},"app":{"S":"httpd"},"manifest":{"S":"web:\n  image: httpd\n  ports:\n  - 80:80\n"},"env":{"S":"foo=bar"},"created":{"S":"20160404.143542.627770380"}}}`,
+	},
+}
+
+var cycleReleaseListStackResources = awsutil.Cycle{
+	Request: awsutil.Request{
+		RequestURI: "/",
+		Operation:  "",
+		Body:       `Action=ListStackResources&StackName=convox-httpd&Version=2010-05-15`,
+	},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body: `
+			<ListStackResourcesResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
+  <ListStackResourcesResult>
+    <StackResourceSummaries>
+    <member>
+      <PhysicalResourceId>convox-httpd-settings-139bidzalmbtu</PhysicalResourceId>
+      <ResourceStatus>UPDATE_COMPLETE</ResourceStatus>
+      <LogicalResourceId>Settings</LogicalResourceId>
+      <Timestamp>2016-10-22T02:53:23.817Z</Timestamp>
+      <ResourceType>AWS::Logs::LogGroup</ResourceType>
+    </member>
+    </StackResourceSummaries>
+  </ListStackResourcesResult>
+  <ResponseMetadata>
+    <RequestId>50ce1445-9805-11e6-8ba2-2b306877d289</RequestId>
+  </ResponseMetadata>
+</ListStackResourcesResponse>
+		`,
+	},
+}
+
+var cycleReleaseDescribeStackResources = awsutil.Cycle{
+	Request: awsutil.Request{
+		RequestURI: "/",
+		Operation:  "",
+		Body:       `Action=DescribeStackResources&StackName=convox-httpd&Version=2010-05-15`,
+	},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body: `
+			<DescribeStackResourcesResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
+  <DescribeStackResourcesResult>
+    <StackResources>
+    <member>
+      <PhysicalResourceId>convox-httpd-settings-139bidzalmbtu</PhysicalResourceId>
+      <ResourceStatus>UPDATE_COMPLETE</ResourceStatus>
+      <LogicalResourceId>Settings</LogicalResourceId>
+      <Timestamp>2016-10-22T02:53:23.817Z</Timestamp>
+      <ResourceType>AWS::Logs::LogGroup</ResourceType>
+    </member>
+    </StackResources>
+  </DescribeStackResourcesResult>
+  <ResponseMetadata>
+    <RequestId>50ce1445-9805-11e6-8ba2-2b306877d289</RequestId>
+  </ResponseMetadata>
+</DescribeStackResourcesResponse>
+		`,
 	},
 }
 

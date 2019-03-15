@@ -1,0 +1,76 @@
+environment:
+  - DEVELOPMENT=true
+  - GLOBAL=true
+  - OTHERGLOBAL
+resources:
+  database:
+    type: postgres
+    options:
+      size: db.t2.large
+services:
+  api:
+    build:
+      manifest: Dockerfile2
+      path: api
+    domain: foo.example.org
+    environment:
+      - DEFAULT=test
+      - DEVELOPMENT=false
+      - SECRET
+    health:
+      interval: 10
+    init: true
+    resources:
+      - database
+    port: 1000
+    scale: 3-10
+    test: make ${BAR} test
+  proxy: &proxy
+    command: bash
+    domain:
+      - bar.example.org
+      - "*.example.org"
+    image: ubuntu:16.04
+    environment:
+      - SECRET
+    health: /auth
+    port: https:2000
+    scale:
+      cpu: 512
+      memory: 1024
+  foo:
+    command: foo
+    domain: baz.example.org, qux.example.org
+    drain: 60
+    health:
+      grace: 2
+      timeout: 3
+    port:
+      scheme: https
+      port: 3000
+    scale: 0
+    singleton: true
+    sticky: false
+  bar:
+  scaler:
+    scale:
+      count: 1-5
+      targets:
+        cpu: 50
+        memory: 75
+        requests: 200
+        custom:
+          AWS/SQS/ApproximateNumberOfMessagesVisible:
+            aggregate: max
+            value: 200
+            dimensions:
+              QueueName: testqueue
+  inherit:
+    "<<": *proxy
+    command: inherit
+  agent:
+    agent:
+      ports:
+        - 5000/udp
+        - 5001
+        - 5002/tcp

@@ -1,17 +1,21 @@
 package aws
 
 import (
+	"context"
+	"fmt"
 	"math/rand"
 	"os"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/acm"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
+	"github.com/aws/aws-sdk-go/service/cloudwatch/cloudwatchiface"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/ec2"
@@ -21,100 +25,194 @@ import (
 	"github.com/aws/aws-sdk-go/service/kms"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/sns"
+	"github.com/aws/aws-sdk-go/service/sqs"
+	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/convox/logger"
-	"github.com/convox/rack/api/structs"
+	"github.com/convox/rack/pkg/metrics"
+	"github.com/convox/rack/pkg/structs"
 )
 
-var (
-	customTopic       = os.Getenv("CUSTOM_TOPIC")
-	notificationTopic = os.Getenv("NOTIFICATION_TOPIC")
-	sortableTime      = "20060102.150405.000000000"
+const (
+	maxBuilds    = 50
+	sortableTime = "20060102.150405.000000000"
 )
 
 // Logger is a package-wide logger
 var Logger = logger.New("ns=provider.aws")
 
-type AWSProvider struct {
+type Provider struct {
 	Region   string
 	Endpoint string
-	Access   string
-	Secret   string
-	Token    string
 
+	AsgSpot             string
+	AsgStandard         string
+	AvailabilityZones   string
 	BuildCluster        string
+	ClientId            string
 	CloudformationTopic string
 	Cluster             string
+	CustomEncryptionKey string
 	Development         bool
-	DockerImageAPI      string
 	DynamoBuilds        string
 	DynamoReleases      string
+	EcsPollInterval     int
 	EncryptionKey       string
-	NotificationHost    string
+	Fargate             bool
+	Internal            bool
+	InternalOnly        bool
+	LogBucket           string
 	NotificationTopic   string
+	OnDemandMinCount    int
 	Password            string
+	Private             bool
 	Rack                string
-	RegistryHost        string
 	SecurityGroup       string
 	SettingsBucket      string
+	SshKey              string
+	SpotInstances       bool
 	Subnets             string
 	SubnetsPrivate      string
+	StackId             string
+	Version             string
 	Vpc                 string
 	VpcCidr             string
 
+	Metrics   *metrics.Metrics
 	SkipCache bool
+
+	CloudWatch cloudwatchiface.CloudWatchAPI
+
+	ctx context.Context
+	log *logger.Logger
 }
 
 // NewProviderFromEnv returns a new AWS provider from env vars
-func FromEnv() *AWSProvider {
-	return &AWSProvider{
-		Region:              os.Getenv("AWS_REGION"),
-		Endpoint:            os.Getenv("AWS_ENDPOINT"),
-		Access:              os.Getenv("AWS_ACCESS"),
-		Secret:              os.Getenv("AWS_SECRET"),
-		Token:               os.Getenv("AWS_TOKEN"),
-		BuildCluster:        os.Getenv("BUILD_CLUSTER"),
-		CloudformationTopic: os.Getenv("CLOUDFORMATION_TOPIC"),
-		Cluster:             os.Getenv("CLUSTER"),
-		Development:         os.Getenv("DEVELOPMENT") == "true",
-		DockerImageAPI:      os.Getenv("DOCKER_IMAGE_API"),
-		DynamoBuilds:        os.Getenv("DYNAMO_BUILDS"),
-		DynamoReleases:      os.Getenv("DYNAMO_RELEASES"),
-		EncryptionKey:       os.Getenv("ENCRYPTION_KEY"),
-		NotificationHost:    os.Getenv("NOTIFICATION_HOST"),
-		NotificationTopic:   os.Getenv("NOTIFICATION_TOPIC"),
-		Password:            os.Getenv("PASSWORD"),
-		Rack:                os.Getenv("RACK"),
-		RegistryHost:        os.Getenv("REGISTRY_HOST"),
-		SecurityGroup:       os.Getenv("SECURITY_GROUP"),
-		SettingsBucket:      os.Getenv("SETTINGS_BUCKET"),
-		Subnets:             os.Getenv("SUBNETS"),
-		SubnetsPrivate:      os.Getenv("SUBNETS_PRIVATE"),
-		Vpc:                 os.Getenv("VPC"),
-		VpcCidr:             os.Getenv("VPCCIDR"),
+func FromEnv() (*Provider, error) {
+	p := &Provider{
+		ClientId:    os.Getenv("CLIENT_ID"),
+		Development: os.Getenv("DEVELOPMENT") == "true",
+		Password:    os.Getenv("PASSWORD"),
+		Rack:        os.Getenv("RACK"),
+		Region:      os.Getenv("AWS_REGION"),
+		StackId:     os.Getenv("STACK_ID"),
+		Metrics:     metrics.New("https://metrics.convox.com/metrics/rack"),
+		ctx:         context.Background(),
+		log:         logger.New("ns=aws"),
 	}
+
+	if err := p.loadParams(); err != nil {
+		return nil, err
+	}
+
+	return p, nil
+}
+
+func (p *Provider) loadParams() error {
+	if p.Rack == "" {
+		return nil
+	}
+
+	td, err := p.stackResource(p.Rack, "ApiWebTasks")
+	if err != nil {
+		return err
+	}
+
+	res, err := p.ecs().DescribeTaskDefinition(&ecs.DescribeTaskDefinitionInput{
+		TaskDefinition: td.PhysicalResourceId,
+	})
+	if err != nil {
+		return err
+	}
+
+	if len(res.TaskDefinition.ContainerDefinitions) < 1 {
+		return fmt.Errorf("invalid container definition")
+	}
+
+	cd := res.TaskDefinition.ContainerDefinitions[0]
+
+	labels := map[string]string{}
+
+	for k, v := range cd.DockerLabels {
+		labels[k] = *v
+	}
+
+	p.AsgSpot = labels["rack.AsgSpot"]
+	p.AsgStandard = labels["rack.AsgStandard"]
+	p.AvailabilityZones = labels["rack.AvailabilityZones"]
+	p.BuildCluster = labels["rack.BuildCluster"]
+	p.CloudformationTopic = labels["rack.CloudformationTopic"]
+	p.Cluster = labels["rack.Cluster"]
+	p.CustomEncryptionKey = labels["rack.CustomEncryptionKey"]
+	p.DynamoBuilds = labels["rack.DynamoBuilds"]
+	p.DynamoReleases = labels["rack.DynamoReleases"]
+	p.EcsPollInterval = intParam(labels["rack.EcsPollInterval"], 1)
+	p.EncryptionKey = labels["rack.EncryptionKey"]
+	p.Fargate = labels["rack.Fargate"] == "Yes"
+	p.Internal = labels["rack.Internal"] == "Yes"
+	p.InternalOnly = labels["rack.InternalOnly"] == "Yes"
+	p.LogBucket = labels["rack.LogBucket"]
+	p.NotificationTopic = labels["rack.NotificationTopic"]
+	p.OnDemandMinCount = intParam(labels["rack.OnDemandMinCount"], 2)
+	p.Private = labels["Private"] == "Yes"
+	p.SecurityGroup = labels["rack.SecurityGroup"]
+	p.SettingsBucket = labels["rack.SettingsBucket"]
+	p.SpotInstances = labels["rack.SpotInstances"] == "Yes"
+	p.SshKey = labels["rack.SshKey"]
+	p.Subnets = labels["rack.Subnets"]
+	p.SubnetsPrivate = labels["rack.SubnetsPrivate"]
+	p.Version = labels["rack.Version"]
+	p.Vpc = labels["rack.Vpc"]
+	p.VpcCidr = labels["rack.VpcCidr"]
+
+	return nil
 }
 
 func init() {
 	rand.Seed(time.Now().UTC().UnixNano())
 }
 
-func (p *AWSProvider) Initialize(opts structs.ProviderOptions) error {
-	if opts.LogOutput != nil {
-		Logger = logger.NewWriter("ns=provider.aws", opts.LogOutput)
+func (p *Provider) Initialize(opts structs.ProviderOptions) error {
+	if opts.Logs != nil {
+		Logger = logger.NewWriter("ns=aws", opts.Logs)
 	}
+
+	if p.Development {
+		go p.Workers()
+	}
+
+	p.CloudWatch = cloudwatch.New(session.New(), p.config())
 
 	return nil
 }
 
-/** services ****************************************************************************************/
+func intParam(param string, def int) int {
+	if param == "" {
+		return def
+	}
+	v, err := strconv.Atoi(param)
+	if err != nil {
+		return def
+	}
+	return v
+}
 
-func (p *AWSProvider) config() *aws.Config {
-	config := &aws.Config{
-		Credentials: credentials.NewStaticCredentials(p.Access, p.Secret, p.Token),
+func sliceParam(param ...string) string {
+	ss := []string{}
+
+	for _, p := range param {
+		if ps := strings.TrimSpace(p); ps != "" {
+			ss = append(ss, ps)
+		}
 	}
 
-	if p.Region != "" {
-		config.Region = aws.String(p.Region)
+	return strings.Join(ss, ",")
+}
+
+/** services ****************************************************************************************/
+
+func (p *Provider) config() *aws.Config {
+	config := &aws.Config{
+		Region: aws.String(p.Region),
 	}
 
 	if p.Endpoint != "" {
@@ -125,62 +223,82 @@ func (p *AWSProvider) config() *aws.Config {
 		config.WithLogLevel(aws.LogDebugWithHTTPBody)
 	}
 
+	config.MaxRetries = aws.Int(7)
+
 	return config
 }
 
-func (p *AWSProvider) acm() *acm.ACM {
+func (p *Provider) logger(at string) *logger.Logger {
+	log := p.log
+
+	if id := p.ctx.Value("request.id"); id != nil {
+		log = log.Prepend("id=%s", id)
+	}
+
+	return log.At(at).Start()
+}
+
+func (p *Provider) acm() *acm.ACM {
 	return acm.New(session.New(), p.config())
 }
 
-func (p *AWSProvider) autoscaling() *autoscaling.AutoScaling {
+func (p *Provider) autoscaling() *autoscaling.AutoScaling {
 	return autoscaling.New(session.New(), p.config())
 }
 
-func (p *AWSProvider) cloudformation() *cloudformation.CloudFormation {
+func (p *Provider) cloudformation() *cloudformation.CloudFormation {
 	return cloudformation.New(session.New(), p.config())
 }
 
-func (p *AWSProvider) cloudwatch() *cloudwatch.CloudWatch {
+func (p *Provider) cloudwatch() *cloudwatch.CloudWatch {
 	return cloudwatch.New(session.New(), p.config())
 }
 
-func (p *AWSProvider) cloudwatchlogs() *cloudwatchlogs.CloudWatchLogs {
-	return cloudwatchlogs.New(session.New(), p.config())
+func (p *Provider) cloudwatchlogs() *cloudwatchlogs.CloudWatchLogs {
+	return cloudwatchlogs.New(session.New(), p.config().WithLogLevel(aws.LogOff))
 }
 
-func (p *AWSProvider) dynamodb() *dynamodb.DynamoDB {
+func (p *Provider) dynamodb() *dynamodb.DynamoDB {
 	return dynamodb.New(session.New(), p.config())
 }
 
-func (p *AWSProvider) ec2() *ec2.EC2 {
+func (p *Provider) ec2() *ec2.EC2 {
 	return ec2.New(session.New(), p.config())
 }
 
-func (p *AWSProvider) ecr() *ecr.ECR {
+func (p *Provider) ecr() *ecr.ECR {
 	return ecr.New(session.New(), p.config())
 }
 
-func (p *AWSProvider) ecs() *ecs.ECS {
+func (p *Provider) ecs() *ecs.ECS {
 	return ecs.New(session.New(), p.config())
 }
 
-func (p *AWSProvider) kms() *kms.KMS {
+func (p *Provider) kms() *kms.KMS {
 	return kms.New(session.New(), p.config())
 }
 
-func (p *AWSProvider) iam() *iam.IAM {
+func (p *Provider) iam() *iam.IAM {
 	return iam.New(session.New(), p.config())
 }
 
-func (p *AWSProvider) s3() *s3.S3 {
+func (p *Provider) s3() *s3.S3 {
 	return s3.New(session.New(), p.config().WithS3ForcePathStyle(true))
 }
 
-func (p *AWSProvider) sns() *sns.SNS {
+func (p *Provider) sns() *sns.SNS {
 	return sns.New(session.New(), p.config())
 }
 
+func (p *Provider) sqs() *sqs.SQS {
+	return sqs.New(session.New(), p.config())
+}
+
+func (p *Provider) sts() *sts.STS {
+	return sts.New(session.New(), p.config())
+}
+
 // IsTest returns true when we're in test mode
-func (p *AWSProvider) IsTest() bool {
+func (p *Provider) IsTest() bool {
 	return p.Region == "us-test-1"
 }

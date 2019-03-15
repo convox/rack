@@ -1,26 +1,38 @@
 package aws
 
 import (
-	"bytes"
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
 	"io"
+	"net/url"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/convox/rack/api/structs"
+	"github.com/aws/aws-sdk-go/service/s3/s3manager"
+	"github.com/convox/rack/pkg/structs"
 )
 
-func (p *AWSProvider) ObjectDelete(key string) error {
-	if !p.ObjectExists(key) {
-		return fmt.Errorf("no such object: %s", key)
+func (p *Provider) ObjectDelete(app, key string) error {
+	exists, err := p.ObjectExists(app, key)
+	if err != nil {
+		return err
 	}
 
-	_, err := p.s3().DeleteObject(&s3.DeleteObjectInput{
-		Bucket: aws.String(p.SettingsBucket),
+	if !exists {
+		return errorNotFound(fmt.Sprintf("object not found: %s", key))
+	}
+
+	bucket, err := p.appBucket(app)
+	if err != nil {
+		return err
+	}
+
+	_, err = p.s3().DeleteObject(&s3.DeleteObjectInput{
+		Bucket: aws.String(bucket),
 		Key:    aws.String(key),
 	})
 	if err != nil {
@@ -30,27 +42,40 @@ func (p *AWSProvider) ObjectDelete(key string) error {
 	return nil
 }
 
-func (p *AWSProvider) ObjectExists(key string) bool {
-	_, err := p.s3().HeadObject(&s3.HeadObjectInput{
-		Bucket: aws.String(p.SettingsBucket),
+func (p *Provider) ObjectExists(app, key string) (bool, error) {
+	bucket, err := p.appBucket(app)
+	if err != nil {
+		return false, err
+	}
+
+	_, err = p.s3().HeadObject(&s3.HeadObjectInput{
+		Bucket: aws.String(bucket),
 		Key:    aws.String(key),
 	})
 	if err, ok := err.(awserr.Error); ok && err.Code() == "NotFound" {
-		return false
+		return false, nil
 	}
-	return true
+	if err != nil {
+		return false, err
+	}
+
+	return true, nil
 }
 
 // ObjectFetch fetches an Object
-func (p *AWSProvider) ObjectFetch(key string) (io.ReadCloser, error) {
+func (p *Provider) ObjectFetch(app, key string) (io.ReadCloser, error) {
+	bucket, err := p.appBucket(app)
+	if err != nil {
+		return nil, err
+	}
+
 	res, err := p.s3().GetObject(&s3.GetObjectInput{
-		Bucket: aws.String(p.SettingsBucket),
+		Bucket: aws.String(bucket),
 		Key:    aws.String(key),
 	})
 	if ae, ok := err.(awserr.Error); ok && ae.Code() == "NoSuchKey" {
-		return nil, errorNotFound(fmt.Sprintf("no such key: %s", key))
+		return nil, errorNotFound(fmt.Sprintf("key not found: %s", key))
 	}
-
 	if err != nil {
 		return nil, err
 	}
@@ -58,11 +83,16 @@ func (p *AWSProvider) ObjectFetch(key string) (io.ReadCloser, error) {
 	return res.Body, nil
 }
 
-func (p *AWSProvider) ObjectList(prefix string) ([]string, error) {
+func (p *Provider) ObjectList(app, prefix string) ([]string, error) {
 	log := Logger.At("ObjectList").Namespace("prefix=%q", prefix).Start()
 
+	bucket, err := p.appBucket(app)
+	if err != nil {
+		return nil, err
+	}
+
 	res, err := p.s3().ListObjectsV2(&s3.ListObjectsV2Input{
-		Bucket:    aws.String(p.SettingsBucket),
+		Bucket:    aws.String(bucket),
 		Delimiter: aws.String("/"),
 		Prefix:    aws.String(prefix),
 	})
@@ -81,93 +111,86 @@ func (p *AWSProvider) ObjectList(prefix string) ([]string, error) {
 }
 
 // ObjectStore stores an Object
-func (p *AWSProvider) ObjectStore(key string, r io.Reader, opts structs.ObjectOptions) (string, error) {
-	log := Logger.At("ObjectStore").Namespace("key=%q public=%t", key, opts.Public).Start()
+func (p *Provider) ObjectStore(app, key string, r io.Reader, opts structs.ObjectStoreOptions) (*structs.Object, error) {
+	log := Logger.At("ObjectStore").Namespace("app=%q key=%q", app, key).Start()
 
 	if key == "" {
 		k, err := generateTempKey()
 		if err != nil {
-			log.Error(err)
-			return "", err
+			return nil, log.Error(err)
 		}
 		key = k
 	}
 
 	log = log.Replace("key", key)
 
-	mreq := &s3.CreateMultipartUploadInput{
-		Bucket: aws.String(p.SettingsBucket),
-		Key:    aws.String(key),
-	}
-
-	if opts.Public {
-		mreq.ACL = aws.String("public-read")
-	}
-
-	mres, err := p.s3().CreateMultipartUpload(mreq)
+	bucket, err := p.appBucket(app)
 	if err != nil {
-		log.Error(err)
+		return nil, log.Error(err)
+	}
+
+	up := s3manager.NewUploaderWithClient(p.s3())
+
+	req := &s3manager.UploadInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(key),
+		Body:   r,
+	}
+
+	if opts.Public != nil && *opts.Public {
+		req.ACL = aws.String("public-read")
+	}
+
+	res, err := up.Upload(req)
+	if err != nil {
+		return nil, log.Error(err)
+	}
+
+	url := fmt.Sprintf("object://%s/%s", app, key)
+
+	if opts.Public != nil && *opts.Public {
+		url = res.Location
+	}
+
+	o := &structs.Object{Url: url}
+
+	return o, log.Success()
+}
+
+func (p *Provider) appBucket(app string) (string, error) {
+	if app == "" {
+		return p.rackResource("Settings")
+	}
+
+	return p.appResource(app, "Settings")
+}
+
+func (p *Provider) objectPresignedURL(o *structs.Object, duration time.Duration) (string, error) {
+	ou, err := url.Parse(o.Url)
+	if err != nil {
 		return "", err
 	}
 
-	// buf := make([]byte, 5*1024*1024)
-	buf := make([]byte, 10*1024*1024)
-	i := 1
-	parts := []*s3.CompletedPart{}
-
-	for {
-		n, err := r.Read(buf)
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			log.Error(err)
-			return "", err
-		}
-
-		res, err := p.s3().UploadPart(&s3.UploadPartInput{
-			Body:          bytes.NewReader(buf[0:n]),
-			Bucket:        aws.String(p.SettingsBucket),
-			ContentLength: aws.Int64(int64(n)),
-			Key:           aws.String(key),
-			PartNumber:    aws.Int64(int64(i)),
-			UploadId:      mres.UploadId,
-		})
-		if err != nil {
-			log.Error(err)
-			return "", err
-		}
-
-		parts = append(parts, &s3.CompletedPart{
-			ETag:       res.ETag,
-			PartNumber: aws.Int64(int64(i)),
-		})
-
-		i++
+	if ou.Scheme != "object" {
+		return "", fmt.Errorf("url is not an object: %s", o.Url)
 	}
 
-	res, err := p.s3().CompleteMultipartUpload(&s3.CompleteMultipartUploadInput{
-		Bucket: aws.String(p.SettingsBucket),
-		Key:    aws.String(key),
-		MultipartUpload: &s3.CompletedMultipartUpload{
-			Parts: parts,
-		},
-		UploadId: mres.UploadId,
+	bucket, err := p.appBucket(ou.Hostname())
+	if err != nil {
+		return "", err
+	}
+
+	req, _ := p.s3().GetObjectRequest(&s3.GetObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(ou.Path),
 	})
+
+	su, err := req.Presign(duration)
 	if err != nil {
-		log.Error(err)
 		return "", err
 	}
 
-	log.Success()
-
-	url := fmt.Sprintf("object:///%s", key)
-
-	if opts.Public {
-		url = *res.Location
-	}
-
-	return url, nil
+	return su, nil
 }
 
 func generateTempKey() (string, error) {

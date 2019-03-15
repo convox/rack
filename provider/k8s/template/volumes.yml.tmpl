@@ -1,0 +1,20 @@
+{{ range .Volumes }}
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  namespace: {{$.Namespace}}
+  name: {{ volumeName $.App.Name . }}
+spec:
+  accessModes:
+  - ReadWriteMany
+  resources:
+    requests:
+      storage: 10Gi
+  selector:
+    matchLabels:
+      system: convox
+      rack: {{$.Rack}}
+      app: {{$.App.Name}}
+      volume: {{ volumeName $.App.Name . }}
+{{ end }}

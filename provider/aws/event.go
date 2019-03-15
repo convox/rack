@@ -2,14 +2,11 @@ package aws
 
 import (
 	"encoding/json"
-	"fmt"
-	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/sns"
-	"github.com/convox/rack/api/helpers"
-	"github.com/convox/rack/api/structs"
+	"github.com/convox/rack/pkg/structs"
 )
 
 // EventSend publishes an important message out to the world.
@@ -23,8 +20,21 @@ import (
 //
 // Because these are important system events, they are also published to Segment
 // for operational metrics.
-func (p *AWSProvider) EventSend(e *structs.Event, err error) error {
-	e.Timestamp = time.Now().UTC()
+
+type event struct {
+	Action    string            `json:"action"`
+	Data      map[string]string `json:"data"`
+	Status    string            `json:"status"`
+	Timestamp time.Time         `json:"timestamp"`
+}
+
+func (p *Provider) EventSend(action string, opts structs.EventSendOptions) error {
+	e := event{
+		Action:    action,
+		Data:      opts.Data,
+		Status:    cs(opts.Status, "success"),
+		Timestamp: time.Now().UTC(),
+	}
 
 	if e.Data["timestamp"] != "" {
 		t, err := time.Parse(time.RFC3339, e.Data["timestamp"])
@@ -33,22 +43,15 @@ func (p *AWSProvider) EventSend(e *structs.Event, err error) error {
 		}
 	}
 
-	if e.Status == "" {
-		e.Status = "success"
+	if opts.Error != nil {
+		e.Status = "error"
+		e.Data["message"] = *opts.Error
 	}
 
-	if e.Data == nil {
-		e.Data = map[string]string{}
-	}
 	e.Data["rack"] = p.Rack
 
 	if p.IsTest() {
 		e.Timestamp = time.Time{}
-	}
-
-	if err != nil {
-		e.Data["message"] = err.Error()
-		e.Status = "error"
 	}
 
 	msg, err := json.Marshal(e)
@@ -66,39 +69,5 @@ func (p *AWSProvider) EventSend(e *structs.Event, err error) error {
 		return err
 	}
 
-	sendSegmentEvent(e)
-
 	return nil
-}
-
-// sendSegmentEvent reports an event to Segment
-func sendSegmentEvent(e *structs.Event) {
-	action := strings.Split(e.Action, ":")
-
-	obj := strings.Title(action[0])
-	act := strings.Title(action[1])
-	se := "unkown segment event"
-
-	pst := map[string]string{
-		"Create":  "Created",
-		"Promote": "Promoted",
-		"Delete":  "Deleted",
-	}
-
-	switch e.Status {
-	case "start":
-		se = fmt.Sprintf("%s %s %s", obj, act, "Started")
-	case "error":
-		se = fmt.Sprintf("%s %s %s", obj, act, "Failed")
-	case "success":
-		se = fmt.Sprintf("%s %s", obj, pst[act])
-	}
-
-	params := map[string]interface{}{}
-
-	for k, v := range e.Data {
-		params[k] = v
-	}
-
-	helpers.TrackEvent(se, params)
 }

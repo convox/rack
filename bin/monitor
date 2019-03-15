@@ -1,0 +1,9 @@
+#!/bin/bash
+
+cd $(dirname ${0:-})/..
+
+if [ "$DEVELOPMENT" == "true" ]; then
+  exec watchexec -e go -r -s SIGTERM "set -x && go install ./cmd/monitor && $GOPATH/bin/monitor"
+else
+  exec $GOPATH/bin/monitor
+fi

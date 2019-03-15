@@ -18,120 +18,67 @@
   },
   "Parameters": {
     "Private": {
-        "Description": "Flag stating if Rack is private",
-        "Default": "false",
-        "Type": "String"
+      "Type": "String",
+      "Description": "Create in private subnets",
+      "Default": "false",
+      "AllowedValues": [ "true", "false" ]
+    },
+    "SubnetsPrivate": {
+      "Description": "VpcConfig private subnets",
+      "Type": "CommaDelimitedList"
     },
     "Url": {
       "Description": "Syslog URL, e.g. 'tcp+tls://logs1.papertrailapp.com:11235'",
       "Type": "String"
     },
-    "SecurityGroups": {
-      "Description": "VpcConfig security groups",
-      "Type": "CommaDelimitedList"
+    "Version": {
+      "Description": "Rack release version",
+      "Type": "String"
     },
-    "SubnetsPrivate": {
-      "Description": "VpcConfig private subnets",
-      "Type": "CommaDelimitedList"
+    "Vpc": {
+      "Type": "AWS::EC2::VPC::Id",
+      "Description": "VPC"
     }
   },
   "Resources": {
     {{ range $k, $app := .Apps }}
       "{{ upper $app.Name }}Permission": {
+        "Type": "AWS::Lambda::Permission",
         "Properties": {
           "Action": "lambda:InvokeFunction",
-          "FunctionName": {
-            "Ref": "Function"
-          },
-          "Principal": {
-            "Fn::Join": [
-              ".",
-              [
-                "logs",
-                {
-                  "Ref": "AWS::Region"
-                },
-                "amazonaws.com"
-              ]
-            ]
-          },
-          "SourceAccount": {
-            "Ref": "AWS::AccountId"
-          },
-          "SourceArn": {
-            "Fn::Join": [
-              "",
-              [
-                "arn:aws:logs:",
-                {
-                  "Ref": "AWS::Region"
-                },
-                ":",
-                {
-                  "Ref": "AWS::AccountId"
-                },
-                ":log-group:{{ $app.Outputs.LogGroup }}:*"
-              ]
-            ]
-          }
-        },
-        "Type": "AWS::Lambda::Permission"
+          "FunctionName": { "Ref": "Function" },
+          "Principal": { "Fn::Sub": "logs.${AWS::Region}.amazonaws.com" },
+          "SourceAccount": { "Ref": "AWS::AccountId" },
+          "SourceArn": { "Fn::Sub": "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:{{ $app.Outputs.LogGroup }}:*" }
+        }
       },
       "{{ upper $app.Name }}SubscriptionFilter": {
-        "DependsOn": [
-          "{{ upper $app.Name }}Permission"
-        ],
+        "Type": "AWS::Logs::SubscriptionFilter",
+        "DependsOn": [ "{{ upper $app.Name }}Permission" ],
         "Properties": {
-          "DestinationArn": {
-            "Fn::GetAtt": [
-              "Function",
-              "Arn"
-            ]
-          },
+          "DestinationArn": { "Fn::GetAtt": [ "Function", "Arn" ] },
           "FilterPattern": "",
           "LogGroupName": "{{ $app.Outputs.LogGroup }}"
-        },
-        "Type": "AWS::Logs::SubscriptionFilter"
+        }
       },
     {{ end }}
     "Function": {
+      "Type": "AWS::Lambda::Function",
       "Properties": {
         "Code": {
-          "S3Bucket": {
-            "Fn::Join": [
-              "-",
-              [
-                "convox",
-                {
-                  "Ref": "AWS::Region"
-                }
-              ]
-            ]
-          },
-          "S3Key": "lambda/syslog.zip"
+          "S3Bucket": { "Fn::Sub": "convox-${AWS::Region}" },
+          "S3Key": { "Fn::Sub": "release/${Version}/lambda/syslog.zip" }
         },
-        "Description": {
-          "Ref": "Url"
-        },
+        "Description": { "Ref": "Url" },
         "Handler": "index.handler",
-        "Role": {
-          "Fn::GetAtt": [
-            "Role",
-            "Arn"
-          ]
-        },
-        "Runtime": "nodejs4.3",
+        "Role": { "Fn::GetAtt": [ "Role", "Arn" ] },
+        "Runtime": "nodejs8.10",
         "Timeout": "25",
-        "VpcConfig": {
-          "Fn::If": [ "Private",
-          {
-            "SecurityGroupIds" : { "Ref": "SecurityGroups" },
-            "SubnetIds" : { "Ref": "SubnetsPrivate" }
-          },
+        "VpcConfig": { "Fn::If": [ "Private",
+          { "SecurityGroupIds": [ { "Ref": "SecurityGroup" } ], "SubnetIds": { "Ref": "SubnetsPrivate" } },
           { "Ref": "AWS::NoValue" }
-        ]}
-      },
-      "Type": "AWS::Lambda::Function"
+        ] }
+      }
     },
     "Role": {
       "Properties": {
@@ -210,6 +157,14 @@
         ]
       },
       "Type": "AWS::IAM::Role"
+    },
+    "SecurityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Condition": "Private",
+      "Properties": {
+        "GroupDescription": { "Fn::Sub": "${AWS::StackName} security group" },
+        "VpcId": { "Ref": "Vpc" }
+      }
     }
   }
 }

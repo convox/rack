@@ -3,7 +3,8 @@
 // license that can be found in the LICENSE file.
 
 /*
-Package poly1305 implements Poly1305 one-time message authentication code as specified in http://cr.yp.to/mac/poly1305-20050329.pdf.
+Package poly1305 implements Poly1305 one-time message authentication code as
+specified in https://cr.yp.to/mac/poly1305-20050329.pdf.
 
 Poly1305 is a fast, one-time authentication function. It is infeasible for an
 attacker to generate an authenticator for a message without the key. However, a
@@ -16,7 +17,7 @@ used with a fixed key in order to generate one-time keys from an nonce.
 However, in this package AES isn't used and the one-time key is specified
 directly.
 */
-package poly1305
+package poly1305 // import "golang.org/x/crypto/poly1305"
 
 import "crypto/subtle"
 

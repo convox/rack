@@ -1,0 +1,69 @@
+package sdk
+
+{{ range $m := .Methods }}
+	func (c *Client) {{.Name}}({{ args_types . }}) ({{ returns . }}) {
+		{{ if .Route.Method }}
+			var err error
+
+			{{ with .Option }}
+				ro, err := stdsdk.MarshalOptions({{.Name}})
+				if err != nil {
+					return {{ return_values $m }}
+				}
+			{{ else }}
+				ro := stdsdk.RequestOptions{Headers:stdsdk.Headers{}, Params:stdsdk.Params{}, Query:stdsdk.Query{}}
+			{{ end }}
+
+			{{ params . }}
+
+			{{ with .ReturnType }}
+				var v {{.}}
+			{{ end }}
+
+			{{ if $m.SocketExit }}
+				v, err = c.WebsocketExit({{ path $m }}, ro, rw)
+				if err != nil {
+					return {{ return_values $m }}
+				}
+			{{ else if $m.Socket }}
+				r, err := c.Websocket({{ path $m }}, ro)
+				if err != nil {
+					return {{ return_values $m }}
+				}
+
+				{{ if $m.Reader }}
+					v = r
+				{{ else if $w := $m.Writer }}
+					if _, err := io.Copy({{$w}}, r); err != nil {
+						return {{ return_values $m }}
+					}
+				{{ end }}
+			{{ else if $m.Reader }}
+				res, err := c.{{ method $m.Route.Method }}Stream({{ path $m }}, ro)
+				if err != nil {
+					return {{ return_values $m }}
+				}
+
+				v = res.Body
+			{{ else if $w := $m.Writer }}
+				res, err := c.{{ method $m.Route.Method }}Stream({{ path $m }}, ro)
+				if err != nil {
+					return err
+				}
+
+				defer res.Body.Close()
+
+				if _, err := io.Copy({{$w}}, res.Body); err != nil {
+					return {{ return_values $m }}
+				}
+			{{ else }}
+				err = c.{{ method $m.Route.Method }}({{ path $m }}, ro, {{ if .ReturnType }} &v {{ else }} nil {{ end }})
+			{{ end }}
+
+			return {{ return_vars . }}
+		{{ else }}
+			err := fmt.Errorf("not available via api")
+			return {{ return_values $m }}
+		{{ end }}
+	}
+{{ end }}
