@@ -21,7 +21,7 @@ type Group struct {
 	Name    string
 	Streams map[string]*Stream
 	lock    sync.Mutex
-	subs    map[chan Log]time.Time
+	subs    map[chan Log]subscription
 }
 
 type Stream struct {
@@ -29,7 +29,7 @@ type Stream struct {
 	Name  string
 	Logs  []log
 	lock  sync.Mutex
-	subs  map[chan Log]time.Time
+	subs  map[chan Log]subscription
 }
 
 type Log struct {
@@ -63,7 +63,7 @@ func newGroup(name string) *Group {
 	return &Group{
 		Name:    name,
 		Streams: map[string]*Stream{},
-		subs:    map[chan Log]time.Time{},
+		subs:    map[chan Log]subscription{},
 	}
 }
 
@@ -72,7 +72,7 @@ func newStream(group, name string) *Stream {
 		Group: group,
 		Name:  name,
 		Logs:  []log{},
-		subs:  map[chan Log]time.Time{},
+		subs:  map[chan Log]subscription{},
 	}
 }
 
@@ -120,9 +120,14 @@ func (g *Group) Append(stream string, ts time.Time, message string) {
 	g.lock.Lock()
 	defer g.lock.Unlock()
 
-	for ch, after := range g.subs {
-		if ts.After(after) {
-			ch <- Log{Group: g.Name, Stream: stream, Timestamp: ts, Message: message}
+	for ch, sub := range g.subs {
+		select {
+		case <-sub.context.Done():
+			continue
+		default:
+			if ts.After(sub.after) {
+				ch <- Log{Group: g.Name, Stream: stream, Timestamp: ts, Message: message}
+			}
 		}
 	}
 }
@@ -159,7 +164,7 @@ func (g *Group) Subscribe(ctx context.Context, ch chan Log, since time.Time, fol
 	latest := stream(ch, logs)
 
 	if follow {
-		g.subs[ch] = latest
+		g.subs[ch] = subscription{context: ctx, after: latest}
 		go g.watchSubscription(ctx, ch)
 	} else {
 		close(ch)
@@ -193,9 +198,14 @@ func (s *Stream) Append(ts time.Time, message string) {
 
 	s.Logs = append(s.Logs, log{Timestamp: ts, Message: message})
 
-	for ch, after := range s.subs {
-		if ts.After(after) {
-			ch <- Log{Group: s.Group, Stream: s.Name, Timestamp: ts, Message: message}
+	for ch, sub := range s.subs {
+		if ts.After(sub.after) {
+			select {
+			case <-sub.context.Done():
+				continue
+			default:
+				ch <- Log{Group: s.Group, Stream: s.Name, Timestamp: ts, Message: message}
+			}
 		}
 	}
 }
@@ -215,7 +225,7 @@ func (s *Stream) Subscribe(ctx context.Context, ch chan Log, since time.Time, fo
 	latest := stream(ch, logs)
 
 	if follow {
-		s.subs[ch] = latest
+		s.subs[ch] = subscription{context: ctx, after: latest}
 		go s.watchSubscription(ctx, ch)
 	} else {
 		close(ch)
