@@ -3,7 +3,6 @@ package k8s
 import (
 	"context"
 	"flag"
-	"fmt"
 	"os"
 	"time"
 
