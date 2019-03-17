@@ -256,7 +256,7 @@ func (p *Provider) SystemInstall(w io.Writer, opts structs.SystemInstallOptions)
 
 	err := p.cloudformationInstallProgress(name, template, params, tags, func(current, total int) {
 		if raw {
-			fmt.Fprintf(w, "{ \"current\": %d, \"total\": %d }\n", current, total)
+			fmt.Fprintf(w, "{ \"stack\": %q, \"current\": %d, \"total\": %d }\n", name, current, total)
 			return
 		}
 
@@ -649,6 +649,8 @@ func (p *Provider) cloudformationInstallProgress(name, template string, params, 
 		switch *s.StackStatus {
 		case "CREATE_FAILED", "DELETE_COMPLETE", "DELETE_FAILED", "DELETE_IN_PROGRESS", "ROLLBACK_COMPLETE", "ROLLBACK_FAILED":
 			return fmt.Errorf("installation failed")
+		case "CREATE_COMPLETE":
+			return nil
 		}
 
 		rres, err := cf.DescribeStackResources(&cloudformation.DescribeStackResourcesInput{
