@@ -3,6 +3,7 @@ package k8s
 import (
 	"context"
 	"flag"
+	"fmt"
 	"os"
 	"time"
 
@@ -25,6 +26,7 @@ type Engine interface {
 	ResourceRender(app string, r manifest.Resource) ([]byte, error)
 	Resolver() (string, error)
 	ServiceHost(app string, s manifest.Service) string
+	SystemAnnotations() map[string]string
 	SystemHost() string
 }
 

@@ -11,87 +11,9 @@ metadata:
   namespace: {{.Rack}}
   name: rack
 rules:
-  - apiGroups:
-      - ""
-      - apps
-      - apiextensions.k8s.io
-      - apiregistration.k8s.io
-      - authentication.k8s.io
-      - authorization.k8s.io
-      - autoscaling
-      - extensions
-      - networking.k8s.io
-      - rbac.authorization.k8s.io
-    resources:
-      - apiservices
-      - autoscaling
-      - clusterrolebindings
-      - clusterroles
-      - configmaps
-      - customresourcedefinitions
-      - daemonsets
-      - deployments
-      - deployments/scale
-      - endpoints
-      - events
-      - horizontalpodautoscalers
-      - ingresses
-      - ingresses/status
-      - namespaces
-      - networkpolicies
-      - pods
-      - pods/exec
-      - roles
-      - rolebindings
-      - secrets
-      - services
-      - serviceaccounts
-      - subjectaccessreviews
-      - tokenreviews
-    verbs:
-      - create
-      - delete
-      - get
-      - list
-      - update
-      - watch
-      - patch
-  - apiGroups:
-      - convox.com
-    resources:
-      - builds
-      - releases
-      - stacks
-    verbs:
-      - create
-      - delete
-      - get
-      - list
-      - update
-      - watch
-      - patch
-  - apiGroups:
-      - ""
-      - apps
-      - batch
-      - extensions
-    resources:
-      - cronjobs
-      - daemonsets
-      - jobs
-      - nodes
-      - nodes/stats
-      - persistentvolumeclaims
-      - persistentvolumes
-      - pods/log
-      - replicasets
-      - replicationcontrollers
-      - secrets
-      - statefulsets
-    verbs:
-      - get
-      - list
-      - watch
+  - apiGroups: [ "*" ]
+    resources: [ "*" ]
+    verbs: [ "*" ]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -139,6 +61,9 @@ spec:
     metadata:
       annotations:
         scheduler.alpha.kubernetes.io/critical-pod: ""
+        {{ range $k, $v := .Annotations }}
+        {{$k}}: {{ safe $v }}
+        {{ end }}
       labels:
         system: convox
         rack: {{.Rack}}
