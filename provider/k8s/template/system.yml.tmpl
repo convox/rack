@@ -59,6 +59,7 @@ spec:
       maxSurge: "200%"
       maxUnavailable: "0%"
   minReadySeconds: 1
+  revisionHistoryLimit: 1
   template:
     metadata:
       annotations:
@@ -110,7 +111,7 @@ spec:
           protocol: UDP
         resources:
           requests:
-            cpu: "32m"
+            cpu: "256m"
             memory: "64Mi"
       serviceAccountName: router
 ---
@@ -132,4 +133,4 @@ spec:
   - type: Resource
     resource:
       name: cpu
-      targetAverageUtilization: 50
+      targetAverageUtilization: 100
