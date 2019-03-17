@@ -61,6 +61,10 @@ spec:
   minReadySeconds: 1
   template:
     metadata:
+      annotations:
+        {{ range $k, $v := .Annotations }}
+        {{$k}}: {{ safe $v }}
+        {{ end }}
       labels:
         system: convox
         service: router
@@ -104,6 +108,10 @@ spec:
           protocol: TCP
         - containerPort: 5453
           protocol: UDP
+        resources:
+          requests:
+            cpu: "32m"
+            memory: "64Mi"
       serviceAccountName: router
 ---
 apiVersion: autoscaling/v2beta1
