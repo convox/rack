@@ -26,6 +26,10 @@ import (
 	am "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+func (p *Provider) SystemAnnotations() map[string]string {
+	return map[string]string{}
+}
+
 func (p *Provider) SystemHost() string {
 	return fmt.Sprintf("rack.%s", p.Rack)
 }
