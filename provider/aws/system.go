@@ -24,9 +24,11 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/aws/aws-sdk-go/service/kms"
+	"github.com/convox/rack/pkg/helpers"
 	"github.com/convox/rack/pkg/structs"
 	"github.com/fatih/color"
 	"golang.org/x/crypto/nacl/secretbox"
+	"gopkg.in/cheggaaa/pb.v1"
 
 	cv "github.com/convox/version"
 )
@@ -226,18 +228,6 @@ func (p *Provider) SystemInstall(w io.Writer, opts structs.SystemInstallOptions)
 
 	template := fmt.Sprintf("https://convox.s3.amazonaws.com/release/%s/rack.json", version)
 
-	tres, err := http.Get(template)
-	if err != nil {
-		return "", err
-	}
-
-	defer tres.Body.Close()
-
-	tdata, err := ioutil.ReadAll(tres.Body)
-	if err != nil {
-		return "", err
-	}
-
 	password := randomString(30)
 
 	params := map[string]string{
@@ -255,37 +245,41 @@ func (p *Provider) SystemInstall(w io.Writer, opts structs.SystemInstallOptions)
 		}
 	}
 
+	tags := map[string]string{
+		"System": "convox",
+		"Type":   "rack",
+	}
+
+	raw := helpers.DefaultBool(opts.Raw, false)
+
+	var bar *pb.ProgressBar
+
+	err := p.cloudformationInstallProgress(name, template, params, tags, func(current, total int) {
+		if raw {
+			fmt.Fprintf(w, "{ \"current\": %d, \"total\": %d }\n", current, total)
+			return
+		}
+
+		if bar == nil {
+			bar = pb.New(total)
+			bar.Output = w
+			bar.Prefix("Installing ")
+			bar.ShowCounters = false
+			bar.ShowTimeLeft = false
+			bar.Start()
+		}
+
+		bar.Set(current)
+	})
+	if err != nil {
+		return "", err
+	}
+
+	if !raw {
+		bar.Finish()
+	}
+
 	cf := cloudformation.New(session.New(&aws.Config{}))
-
-	token := randomString(20)
-
-	req := &cloudformation.CreateStackInput{
-		Capabilities:       []*string{aws.String("CAPABILITY_IAM")},
-		ClientRequestToken: aws.String(token),
-		Parameters:         []*cloudformation.Parameter{},
-		StackName:          aws.String(name),
-		TemplateURL:        aws.String(template),
-	}
-
-	for k, v := range params {
-		req.Parameters = append(req.Parameters, &cloudformation.Parameter{
-			ParameterKey:   aws.String(k),
-			ParameterValue: aws.String(v),
-		})
-	}
-
-	req.Tags = []*cloudformation.Tag{
-		{Key: aws.String("System"), Value: aws.String("convox")},
-		{Key: aws.String("Type"), Value: aws.String("rack")},
-	}
-
-	if _, err := cf.CreateStack(req); err != nil {
-		return "", err
-	}
-
-	if err := cloudformationProgress(name, token, tdata, w); err != nil {
-		return "", err
-	}
 
 	dres, err := cf.DescribeStacks(&cloudformation.DescribeStacksInput{
 		StackName: aws.String(name),
@@ -305,15 +299,18 @@ func (p *Provider) SystemInstall(w io.Writer, opts structs.SystemInstallOptions)
 
 	ep := fmt.Sprintf("https://convox:%s@%s", url.QueryEscape(password), outputs["Dashboard"])
 
-	fmt.Fprintf(w, "Waiting for load balancer... ")
+	if !raw {
+		fmt.Fprintf(w, "Waiting for load balancer... ")
+	}
 
 	if err := waitForAvailability(ep); err != nil {
 		return "", err
 	}
 
-	fmt.Fprintf(w, "OK\n")
-
-	fmt.Fprintf(w, "Hostname: %s\n", outputs["Dashboard"])
+	if !raw {
+		fmt.Fprintf(w, "OK\n")
+		fmt.Fprintf(w, "Hostname: %s\n", outputs["Dashboard"])
+	}
 
 	return ep, nil
 }
@@ -575,6 +572,102 @@ func (p *Provider) SystemUpdate(opts structs.SystemUpdateOptions) error {
 
 	// notify about the update
 	p.EventSend("rack:update", structs.EventSendOptions{Data: changes})
+
+	return nil
+}
+
+func (p *Provider) cloudformationInstallProgress(name, template string, params, tags map[string]string, cb func(int, int)) error {
+	res, err := http.Get(template)
+	if err != nil {
+		return err
+	}
+	defer res.Body.Close()
+
+	data, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return err
+	}
+
+	var t struct {
+		Resources map[string]interface{}
+	}
+
+	if err := json.Unmarshal(data, &t); err != nil {
+		return err
+	}
+
+	total := len(t.Resources)
+
+	cb(0, total)
+
+	cf := cloudformation.New(session.New(&aws.Config{}))
+
+	token := randomString(20)
+
+	req := &cloudformation.CreateStackInput{
+		Capabilities:       []*string{aws.String("CAPABILITY_IAM")},
+		ClientRequestToken: aws.String(token),
+		Parameters:         []*cloudformation.Parameter{},
+		StackName:          aws.String(name),
+		Tags:               []*cloudformation.Tag{},
+		TemplateURL:        aws.String(template),
+	}
+
+	for k, v := range params {
+		req.Parameters = append(req.Parameters, &cloudformation.Parameter{
+			ParameterKey:   aws.String(k),
+			ParameterValue: aws.String(v),
+		})
+	}
+
+	for k, v := range tags {
+		req.Tags = append(req.Tags, &cloudformation.Tag{
+			Key:   aws.String(k),
+			Value: aws.String(v),
+		})
+	}
+
+	if _, err := cf.CreateStack(req); err != nil {
+		return err
+	}
+
+	for {
+		time.Sleep(1 * time.Second)
+
+		res, err := cf.DescribeStacks(&cloudformation.DescribeStacksInput{
+			StackName: aws.String(name),
+		})
+		if err != nil {
+			return err
+		}
+		if len(res.Stacks) != 1 {
+			return fmt.Errorf("could not describe stack: %s", name)
+		}
+
+		s := res.Stacks[0]
+
+		switch *s.StackStatus {
+		case "CREATE_FAILED", "DELETE_COMPLETE", "DELETE_FAILED", "DELETE_IN_PROGRESS", "ROLLBACK_COMPLETE", "ROLLBACK_FAILED":
+			return fmt.Errorf("installation failed")
+		}
+
+		rres, err := cf.DescribeStackResources(&cloudformation.DescribeStackResourcesInput{
+			StackName: aws.String(name),
+		})
+		if err != nil {
+			return err
+		}
+
+		current := 0
+
+		for _, r := range rres.StackResources {
+			if *r.ResourceStatus == "CREATE_COMPLETE" {
+				current += 1
+			}
+		}
+
+		cb(current, total)
+	}
 
 	return nil
 }
