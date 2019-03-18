@@ -107,7 +107,7 @@ func (c *NodeController) updateRouterScale() error {
 		return err
 	}
 
-	as.Spec.MinReplicas = options.Int32(int32(min))
+	as.Spec.MinReplicas = options.Int32(1)
 	as.Spec.MaxReplicas = int32(max)
 
 	if _, err := c.Provider.Cluster.AutoscalingV1().HorizontalPodAutoscalers("convox-system").Update(as); err != nil {
