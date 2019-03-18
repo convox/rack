@@ -14,8 +14,8 @@ import (
 
 var logs = logstore.New()
 
-func (p *Provider) Log(app, pid string, ts time.Time, message string) error {
-	logs.Append(app, pid, ts, message)
+func (p *Provider) Log(app, kind, name, pid string, ts time.Time, message string) error {
+	logs.Append(app, fmt.Sprintf("%s/%s/%s", kind, name, pid), ts, message)
 
 	return nil
 }
@@ -53,11 +53,18 @@ func (p *Provider) BuildLogs(app, id string, opts structs.LogsOptions) (io.ReadC
 }
 
 func (p *Provider) ProcessLogs(app, pid string, opts structs.LogsOptions) (io.ReadCloser, error) {
+	ps, err := p.ProcessGet(app, pid)
+	if err != nil {
+		return nil, err
+	}
+
+	key := fmt.Sprintf("service/%s/%s", ps.Name, pid)
+
 	r, w := io.Pipe()
 
 	ctx, cancel := context.WithCancel(p.Context())
 
-	go subscribeLogs(ctx, w, logs.Group(app).Stream(pid).Subscribe, opts)
+	go subscribeLogs(ctx, w, logs.Group(app).Stream(key).Subscribe, opts)
 	go p.watchForProcessTermination(ctx, app, pid, cancel)
 
 	return r, nil
@@ -76,7 +83,10 @@ func subscribeLogs(ctx context.Context, w io.WriteCloser, sub logstore.Subscribe
 
 	ch := make(chan logstore.Log)
 
-	go sub(ctx, ch, time.Now().UTC().Add(-1*helpers.DefaultDuration(opts.Since, 0)), helpers.DefaultBool(opts.Follow, true))
+	sctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	go sub(sctx, ch, time.Now().UTC().Add(-1*helpers.DefaultDuration(opts.Since, 0)), helpers.DefaultBool(opts.Follow, true))
 
 	for {
 		select {
