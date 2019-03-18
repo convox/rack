@@ -211,6 +211,7 @@ func (l *podLogger) watch(ctx context.Context, namespace, pod string) {
 	}
 
 	app := p.ObjectMeta.Labels["app"]
+	service := p.ObjectMeta.Labels["service"]
 
 	go l.stream(ch, namespace, pod)
 
@@ -221,7 +222,7 @@ func (l *podLogger) watch(ctx context.Context, namespace, pod string) {
 		case log, ok := <-ch:
 			if parts := strings.SplitN(log, " ", 2); len(parts) == 2 {
 				if ts, err := time.Parse(time.RFC3339Nano, parts[0]); err == nil {
-					l.provider.Engine.Log(app, pod, ts, parts[1])
+					l.provider.Engine.Log(app, "service", service, pod, ts, parts[1])
 				}
 			}
 
