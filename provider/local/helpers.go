@@ -17,6 +17,7 @@ func (p *Provider) watchForProcessTermination(ctx context.Context, app, pid stri
 			return
 		case <-tick.C:
 			if _, err := p.ProcessGet(app, pid); err != nil {
+				time.Sleep(2 * time.Second)
 				cancel()
 				return
 			}
