@@ -31,7 +31,7 @@ func (p *Provider) SystemResourceLink(name, app string) (*structs.Resource, erro
 }
 
 func (p *Provider) SystemResourceList() (structs.Resources, error) {
-	return nil, fmt.Errorf("unimplemented")
+	return structs.Resources{}, nil
 }
 
 func (p *Provider) SystemResourceTypes() (structs.ResourceTypes, error) {
