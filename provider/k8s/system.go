@@ -5,6 +5,7 @@ import (
 	"io"
 	"os/exec"
 	"strconv"
+	"strings"
 
 	"github.com/convox/rack/pkg/helpers"
 	"github.com/convox/rack/pkg/structs"
@@ -151,19 +152,19 @@ func (p *Provider) systemUpdate(version string) error {
 	}
 
 	if out, err := p.ApplyTemplate("custom", "system=convox,provider=k8s,scope=custom", nil); err != nil {
-		return log.Error(fmt.Errorf("update error: %s", string(out)))
+		return log.Error(fmt.Errorf("update error: %s: %s", err, strings.TrimSpace(string(out))))
 	}
 
 	if out, err := p.ApplyTemplate("metrics", "system=convox,provider=k8s,scope=metrics", nil); err != nil {
-		return log.Error(fmt.Errorf("update error: %s", string(out)))
+		return log.Error(fmt.Errorf("update error: %s: %s", err, strings.TrimSpace(string(out))))
 	}
 
 	if out, err := p.ApplyTemplate("rack", fmt.Sprintf("system=convox,provider=k8s,scope=rack,rack=%s", p.Rack), params); err != nil {
-		return log.Error(fmt.Errorf("update error: %s", string(out)))
+		return log.Error(fmt.Errorf("update error: %s: %s", err, strings.TrimSpace(string(out))))
 	}
 
 	if out, err := p.ApplyTemplate("system", "system=convox,provider=k8s,scope=system", params); err != nil {
-		return log.Error(fmt.Errorf("update error: %s", string(out)))
+		return log.Error(fmt.Errorf("update error: %s: %s", err, strings.TrimSpace(string(out))))
 	}
 
 	return log.Success()
