@@ -19,6 +19,7 @@ import (
 )
 
 type Engine interface {
+	AppStatus(app string) (string, error)
 	Log(app, kind, name, id string, ts time.Time, message string) error
 	RepositoryAuth(app string) (string, string, error)
 	RepositoryHost(app string) (string, bool, error)
