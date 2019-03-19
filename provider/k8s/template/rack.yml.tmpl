@@ -61,7 +61,7 @@ spec:
     metadata:
       annotations:
         scheduler.alpha.kubernetes.io/critical-pod: ""
-        {{ range $k, $v := .Annotations }}
+        {{ range $k, $v := .RackAnnotations }}
         {{$k}}: {{ safe $v }}
         {{ end }}
       labels:
@@ -99,7 +99,7 @@ spec:
             path: "/check"
             port: 5443
             scheme: "HTTPS"
-          initialDelaySeconds: 5
+          initialDelaySeconds: 10
           periodSeconds: 5
           timeoutSeconds: 3
         readinessProbe:

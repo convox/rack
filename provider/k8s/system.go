@@ -140,13 +140,14 @@ func (p *Provider) systemUpdate(version string) error {
 	}
 
 	params := map[string]interface{}{
-		"Annotations": p.Engine.SystemAnnotations(),
-		"Docker":      p.Socket,
-		"ID":          p.ID,
-		"Rack":        p.Rack,
-		"RouterMin":   1,
-		"RouterMax":   nc,
-		"Version":     version,
+		"Docker":            p.Socket,
+		"ID":                p.ID,
+		"Rack":              p.Rack,
+		"RackAnnotations":   p.Engine.SystemAnnotations("rack"),
+		"RouterAnnotations": p.Engine.SystemAnnotations("router"),
+		"RouterMin":         1,
+		"RouterMax":         nc,
+		"Version":           version,
 	}
 
 	if out, err := p.ApplyTemplate("custom", "system=convox,provider=k8s,scope=custom", nil); err != nil {
