@@ -58,9 +58,12 @@ func (p *Provider) AppGet(name string) (*structs.App, error) {
 		return nil, err
 	}
 
-	a := appFromNamespace(*ns)
+	a, err := p.appFromNamespace(*ns)
+	if err != nil {
+		return nil, err
+	}
 
-	return &a, nil
+	return a, nil
 }
 
 func (p *Provider) AppList() (structs.Apps, error) {
@@ -76,7 +79,12 @@ func (p *Provider) AppList() (structs.Apps, error) {
 	as := structs.Apps{}
 
 	for _, n := range ns.Items {
-		as = append(as, appFromNamespace(n))
+		a, err := p.appFromNamespace(n)
+		if err != nil {
+			return nil, err
+		}
+
+		as = append(as, *a)
 	}
 
 	return as, nil
@@ -101,24 +109,52 @@ func (p *Provider) AppNamespace(app string) string {
 	}
 }
 
+func (p *Provider) AppStatus(app string) (string, error) {
+	ds, err := p.Cluster.AppsV1().Deployments(p.AppNamespace(app)).List(am.ListOptions{})
+	if err != nil {
+		return "", err
+	}
+
+	for _, d := range ds.Items {
+		switch {
+		case d.Spec.Replicas != nil && d.Status.UpdatedReplicas < *d.Spec.Replicas:
+			return "updating", nil
+		case d.Status.Replicas > d.Status.UpdatedReplicas:
+			return "updating", nil
+		case d.Status.AvailableReplicas < d.Status.UpdatedReplicas:
+			return "updating", nil
+		}
+	}
+
+	return p.Engine.AppStatus(app)
+}
+
 func (p *Provider) AppUpdate(name string, opts structs.AppUpdateOptions) error {
 	return fmt.Errorf("unimplemented")
 }
 
-func appFromNamespace(ns ac.Namespace) structs.App {
+func (p *Provider) appFromNamespace(ns ac.Namespace) (*structs.App, error) {
 	status := "unknown"
 
+	name := helpers.CoalesceString(ns.Labels["app"], ns.Labels["name"])
+
 	switch ns.Status.Phase {
-	case "Active":
-		status = "running"
 	case "Terminating":
 		status = "deleting"
+	default:
+		s, err := p.AppStatus(name)
+		if err != nil {
+			return nil, err
+		}
+		status = s
 	}
 
-	return structs.App{
+	a := &structs.App{
 		Generation: "2",
-		Name:       helpers.CoalesceString(ns.Labels["app"], ns.Labels["name"]),
+		Name:       name,
 		Release:    ns.Annotations["convox.release"],
 		Status:     status,
 	}
+
+	return a, nil
 }
