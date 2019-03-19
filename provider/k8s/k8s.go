@@ -19,13 +19,13 @@ import (
 )
 
 type Engine interface {
-	Log(app, kind, name, pid string, ts time.Time, message string) error
+	Log(app, kind, name, id string, ts time.Time, message string) error
 	RepositoryAuth(app string) (string, string, error)
 	RepositoryHost(app string) (string, bool, error)
 	ResourceRender(app string, r manifest.Resource) ([]byte, error)
 	Resolver() (string, error)
 	ServiceHost(app string, s manifest.Service) string
-	SystemAnnotations() map[string]string
+	SystemAnnotations(service string) map[string]string
 	SystemHost() string
 }
 

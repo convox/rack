@@ -14,8 +14,8 @@ import (
 
 var logs = logstore.New()
 
-func (p *Provider) Log(app, kind, name, pid string, ts time.Time, message string) error {
-	logs.Append(app, fmt.Sprintf("%s/%s/%s", kind, name, pid), ts, message)
+func (p *Provider) Log(app, kind, name, id string, ts time.Time, message string) error {
+	logs.Append(app, fmt.Sprintf("%s/%s/%s", kind, name, id), ts, message)
 
 	return nil
 }

@@ -63,7 +63,7 @@ spec:
   template:
     metadata:
       annotations:
-        {{ range $k, $v := .Annotations }}
+        {{ range $k, $v := .RouterAnnotations }}
         {{$k}}: {{ safe $v }}
         {{ end }}
       labels:

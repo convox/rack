@@ -26,7 +26,7 @@ import (
 	am "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func (p *Provider) SystemAnnotations() map[string]string {
+func (p *Provider) SystemAnnotations(service string) map[string]string {
 	return map[string]string{}
 }
 
