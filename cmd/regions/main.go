@@ -100,11 +100,11 @@ func run() error {
 func fetchAmis(regions Regions) error {
 	b := surf.NewBrowser()
 
-	if err := b.Open("https://docs.aws.amazon.com/AmazonECS/latest/developerguide/al2ami.html"); err != nil {
+	if err := b.Open("https://docs.aws.amazon.com/AmazonECS/latest/developerguide/ecs-optimized_AMI.html"); err != nil {
 		return err
 	}
 
-	rows := b.Find("#main-content .table-contents table:nth-child(1) tr")
+	rows := b.Find("#main-content dd[data-tab=\"amazon-linux-2\"] .table-contents table:nth-child(1) tr")
 
 	if rows.Length() < 1 {
 		return fmt.Errorf("no amis found")
