@@ -25,7 +25,7 @@ func TestStart2(t *testing.T) {
 	})
 	defer mhc.Close()
 
-	logs := "0000-00-00 00:00:00 service/web/pid1 log1\n0000-00-00 00:00:00 service/web/pid1 log2\n"
+	logs := "0000-00-00T00:00:00Z service/web/pid1 log1\n0000-00-00T00:00:00Z service/web/pid1 log2\n"
 
 	p.On("AppGet", "app1").Return(&structs.App{Name: "app1", Generation: "2"}, nil)
 	p.On("ReleaseList", "app1", structs.ReleaseListOptions{Limit: options.Int(1)}).Return(structs.Releases{{Id: "release1"}}, nil)
@@ -84,7 +84,7 @@ func TestStart2Options(t *testing.T) {
 	})
 	defer mhc.Close()
 
-	appLogs := "0000-00-00 00:00:00 service/web/pid1 log1\n0000-00-00 00:00:00 service/web/pid1 log2\n"
+	appLogs := "0000-00-00T00:00:00Z service/web/pid1 log1\n0000-00-00T00:00:00Z service/web/pid1 log2\n"
 	buildLogs := "build1\nbuild2\n"
 
 	p.On("AppGet", "app1").Return(&structs.App{Name: "app1", Generation: "2"}, nil)
@@ -164,7 +164,7 @@ func TestStart2Health(t *testing.T) {
 	})
 	defer mhc.Close()
 
-	logs := "0000-00-00 00:00:00 service/web/pid1 log1\n0000-00-00 00:00:00 service/web/pid1 log2\n"
+	logs := "0000-00-00T00:00:00Z service/web/pid1 log1\n0000-00-00T00:00:00Z service/web/pid1 log2\n"
 
 	p.On("AppGet", "app1").Return(&structs.App{Name: "app1", Generation: "2"}, nil)
 	p.On("ReleaseList", "app1", structs.ReleaseListOptions{Limit: options.Int(1)}).Return(structs.Releases{{Id: "release1"}}, nil)
