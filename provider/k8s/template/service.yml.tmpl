@@ -142,6 +142,7 @@ spec:
           claimName: {{ volumeName $.App.Name . }}
         {{ end }}
       {{ end }}
+{{ if not (eq .Service.Scale.Count.Min .Service.Scale.Count.Max) }}
 ---
 apiVersion: autoscaling/v2beta1
 kind: HorizontalPodAutoscaler
@@ -171,3 +172,4 @@ spec:
       name: memory
       targetAverageUtilization: {{.}}
   {{ end }}
+{{ end }}
