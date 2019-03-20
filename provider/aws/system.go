@@ -220,7 +220,7 @@ func (p *Provider) SystemInstall(w io.Writer, opts structs.SystemInstallOptions)
 		version = v
 	}
 
-	if err := helpers.LoadAWSCredentials(); err != nil {
+	if err := helpers.AwsCredentialsLoad(); err != nil {
 		return "", err
 	}
 
@@ -424,7 +424,7 @@ func (p *Provider) SystemReleases() (structs.Releases, error) {
 }
 
 func (p *Provider) SystemUninstall(name string, w io.Writer, opts structs.SystemUninstallOptions) error {
-	if err := helpers.LoadAWSCredentials(); err != nil {
+	if err := helpers.AwsCredentialsLoad(); err != nil {
 		return err
 	}
 
