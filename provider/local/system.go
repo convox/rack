@@ -16,6 +16,7 @@ import (
 	"os/exec"
 	"runtime"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/convox/rack/pkg/helpers"
@@ -195,11 +196,11 @@ func (p *Provider) systemUpdate(version string) error {
 	}
 
 	if out, err := p.ApplyTemplate("config", fmt.Sprintf("system=convox,provider=local,scope=config,rack=%s", p.Rack), params); err != nil {
-		return log.Error(fmt.Errorf("update error: %s\n", string(out)))
+		return log.Error(fmt.Errorf("update error: %s: %s", err, strings.TrimSpace(string(out))))
 	}
 
 	if out, err := p.ApplyTemplate("ports", "system=convox,provider=local,scope=ports", params); err != nil {
-		return log.Error(fmt.Errorf("update error: %s\n", string(out)))
+		return log.Error(fmt.Errorf("update error: %s: %s", err, strings.TrimSpace(string(out))))
 	}
 
 	return log.Success()
