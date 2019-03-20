@@ -36,7 +36,7 @@ const (
 )
 
 var (
-	reAppLog       = regexp.MustCompile(`^(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2}:\d{2}) ([^/]+)/([^/]+)/([^ ]+) (.*)$`)
+	reAppLog       = regexp.MustCompile(`^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2}:\d{2})Z ([^/]+)/([^/]+)/([^ ]+) (.*)$`)
 	reDockerOption = regexp.MustCompile("--([a-z]+)")
 )
 
