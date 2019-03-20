@@ -92,7 +92,7 @@ func FromEnv() (*Provider, error) {
 		p.ID, _ = dockerSystemId()
 	}
 
-	p.templater = templater.New(packr.NewBox("template"), p.templateHelpers())
+	p.templater = templater.New(packr.NewBox("../k8s/template"), p.templateHelpers())
 
 	return p, nil
 }

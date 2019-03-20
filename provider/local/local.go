@@ -45,7 +45,7 @@ func FromEnv() (*Provider, error) {
 		p.logger = logger.New("ns=local")
 	}
 
-	p.templater = templater.New(packr.NewBox("template"), p.templateHelpers())
+	p.templater = templater.New(packr.NewBox("../local/template"), p.templateHelpers())
 
 	kp.Engine = p
 
