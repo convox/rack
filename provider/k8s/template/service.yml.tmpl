@@ -47,6 +47,7 @@ spec:
       maxUnavailable: "{{.MaxUnavailable}}%"
   {{ end }}
   minReadySeconds: 1
+  progressDeadlineSeconds: 1800
   revisionHistoryLimit: 1
   template:
     metadata:

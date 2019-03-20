@@ -185,6 +185,16 @@ func (p *Provider) Initialize(opts structs.ProviderOptions) error {
 	return nil
 }
 
+func (p *Provider) Context() context.Context {
+	return p.ctx
+}
+
+func (p *Provider) WithContext(ctx context.Context) structs.Provider {
+	cp := *p
+	cp.ctx = ctx
+	return &cp
+}
+
 func intParam(param string, def int) int {
 	if param == "" {
 		return def
