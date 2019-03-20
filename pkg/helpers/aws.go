@@ -1,8 +1,10 @@
 package helpers
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -12,9 +14,60 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
+	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
+	"github.com/convox/rack/pkg/structs"
 	yaml "gopkg.in/yaml.v2"
 )
+
+func AwsCredentialsLoad() error {
+	if os.Getenv("AWS_ACCESS_KEY_ID") == "" {
+		if err := exec.Command("which", "aws").Run(); err != nil {
+			return fmt.Errorf("unable to find aws executable in path")
+		}
+
+		data, err := awscli("iam", "get-account-summary")
+		if err != nil {
+			lines := strings.Split(strings.TrimSpace(string(data)), "\n")
+			return fmt.Errorf("aws cli error: %s", lines[len(lines)-1])
+		}
+
+		env, err := setupCredentialsStatic()
+		if err != nil {
+			return err
+		}
+
+		if env["AWS_ACCESS_KEY_ID"] == "" {
+			env, err = setupCredentialsRole()
+			if err != nil {
+				return err
+			}
+		}
+
+		if env["AWS_ACCESS_KEY_ID"] == "" {
+			return fmt.Errorf("unable to load credentials from aws cli")
+		}
+
+		for k, v := range env {
+			os.Setenv(k, v)
+		}
+	}
+
+	if os.Getenv("AWS_REGION") == "" {
+		os.Setenv("AWS_REGION", "us-east-1")
+	}
+
+	return nil
+}
+
+func AwsErrorCode(err error) string {
+	if ae, ok := err.(awserr.Error); ok {
+		return ae.Code()
+	}
+
+	return ""
+}
 
 func CloudformationInstall(cf *cloudformation.CloudFormation, name, template string, params, tags map[string]string, cb func(int, int)) error {
 	res, err := http.Get(template)
@@ -124,44 +177,102 @@ func CloudformationInstall(cf *cloudformation.CloudFormation, name, template str
 	return nil
 }
 
-func LoadAWSCredentials() error {
-	if os.Getenv("AWS_ACCESS_KEY_ID") == "" {
-		if err := exec.Command("which", "aws").Run(); err != nil {
-			return fmt.Errorf("unable to find aws executable in path")
-		}
+func CloudWatchLogsSubscribe(ctx context.Context, cf *cloudwatchlogs.CloudWatchLogs, group, stream string, opts structs.LogsOptions) (io.ReadCloser, error) {
+	r, w := io.Pipe()
 
-		data, err := awscli("iam", "get-account-summary")
-		if err != nil {
-			lines := strings.Split(strings.TrimSpace(string(data)), "\n")
-			return fmt.Errorf("aws cli error: %s", lines[len(lines)-1])
-		}
+	go CloudWatchLogsStream(ctx, cf, w, group, stream, opts)
 
-		env, err := setupCredentialsStatic()
-		if err != nil {
-			return err
-		}
+	return r, nil
+}
 
-		if env["AWS_ACCESS_KEY_ID"] == "" {
-			env, err = setupCredentialsRole()
+func CloudWatchLogsStream(ctx context.Context, cf *cloudwatchlogs.CloudWatchLogs, w io.WriteCloser, group, stream string, opts structs.LogsOptions) error {
+	defer w.Close()
+
+	req := &cloudwatchlogs.FilterLogEventsInput{
+		LogGroupName: aws.String(group),
+	}
+
+	if stream != "" {
+		req.LogStreamNames = []*string{aws.String(stream)}
+	} else {
+		req.Interleaved = aws.Bool(true)
+	}
+
+	if opts.Filter != nil {
+		req.FilterPattern = aws.String(*opts.Filter)
+	}
+
+	var start int64
+
+	if opts.Since != nil {
+		start = time.Now().UTC().Add((*opts.Since)*-1).UnixNano() / int64(time.Millisecond)
+		req.StartTime = aws.Int64(start)
+	}
+
+	var seen = map[string]bool{}
+
+	for {
+		select {
+		case <-ctx.Done():
+			return nil
+		default:
+			// check for closed writer
+			if _, err := w.Write([]byte{}); err != nil {
+				return err
+			}
+
+			res, err := cf.FilterLogEvents(req)
+			if err != nil {
+				switch AwsErrorCode(err) {
+				case "ThrottlingException", "ResourceNotFoundException":
+					time.Sleep(1 * time.Second)
+					continue
+				default:
+					return err
+				}
+			}
+
+			es := []*cloudwatchlogs.FilteredLogEvent{}
+
+			for _, e := range res.Events {
+				if !seen[*e.EventId] {
+					es = append(es, e)
+				}
+			}
+
+			seen = map[string]bool{}
+
+			for _, e := range res.Events {
+				seen[*e.EventId] = true
+			}
+
+			latest, err := writeLogEvents(w, es, opts)
 			if err != nil {
 				return err
 			}
-		}
 
-		if env["AWS_ACCESS_KEY_ID"] == "" {
-			return fmt.Errorf("unable to load credentials from aws cli")
-		}
+			if latest > start {
+				start = latest //+ 1
+			}
 
-		for k, v := range env {
-			os.Setenv(k, v)
+			if res.NextToken != nil {
+				req.NextToken = res.NextToken
+				req.StartTime = nil
+				continue
+			}
+
+			req.NextToken = nil
+
+			if !DefaultBool(opts.Follow, true) {
+				return nil
+			}
+
+			if start > 0 {
+				req.StartTime = aws.Int64(start)
+				time.Sleep(200 * time.Millisecond)
+			}
 		}
 	}
-
-	if os.Getenv("AWS_REGION") == "" {
-		os.Setenv("AWS_REGION", "us-east-1")
-	}
-
-	return nil
 }
 
 func awscli(args ...string) ([]byte, error) {
@@ -235,4 +346,38 @@ func setupCredentialsRole() (map[string]string, error) {
 	}
 
 	return env, nil
+}
+
+func writeLogEvents(w io.Writer, events []*cloudwatchlogs.FilteredLogEvent, opts structs.LogsOptions) (int64, error) {
+	if len(events) == 0 {
+		return 0, nil
+	}
+
+	// sort.Slice(events, func(i, j int) bool { return *events[i].Timestamp < *events[j].Timestamp })
+
+	latest := int64(0)
+
+	for _, e := range events {
+		if *e.Timestamp > latest {
+			latest = *e.Timestamp
+		}
+
+		prefix := ""
+
+		if DefaultBool(opts.Prefix, false) {
+			sec := *e.Timestamp / 1000
+			nsec := (*e.Timestamp % 1000) * 1000
+			t := time.Unix(sec, nsec).UTC()
+
+			prefix = fmt.Sprintf("%s %s ", t.Format(time.RFC3339), *e.LogStreamName)
+		}
+
+		line := fmt.Sprintf("%s%s\n", prefix, *e.Message)
+
+		if _, err := w.Write([]byte(line)); err != nil {
+			return 0, err
+		}
+	}
+
+	return latest, nil
 }
