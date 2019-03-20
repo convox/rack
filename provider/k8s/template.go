@@ -2,6 +2,7 @@ package k8s
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"html/template"
 	"os/exec"
@@ -16,6 +17,11 @@ import (
 )
 
 func (p *Provider) Apply(data []byte, filter string) ([]byte, error) {
+	rs, err := templateResources(filter)
+	if err != nil {
+		return nil, err
+	}
+
 	labels := parseLabels(filter)
 
 	parts := bytes.Split(data, []byte("---\n"))
@@ -32,23 +38,20 @@ func (p *Provider) Apply(data []byte, filter string) ([]byte, error) {
 
 	data = bytes.Join(parts, []byte("---\n"))
 
-	cmd := exec.Command("kubectl", "apply", "--prune", "-l", filter, "-f", "-") //, "--force")
+	args := []string{"--prune", "-l", filter}
 
-	cmd.Stdin = bytes.NewReader(data)
+	for _, r := range rs {
+		args = append(args, "--prune-whitelist", r)
+	}
 
-	out, err := cmd.CombinedOutput()
-	// fmt.Printf("output ------\n%s\n-------------\n", string(out))
+	out, err := kubectlApply(data, args...)
 	if err != nil {
-		if strings.Contains(string(out), "is immutable") {
-			cmd := exec.Command("kubectl", "apply", "-f", "-", "--force")
+		if !strings.Contains(string(out), "is immutable") {
+			return out, err
+		}
 
-			cmd.Stdin = bytes.NewReader(data)
-
-			out, err := cmd.CombinedOutput()
-			if err != nil {
-				return out, err
-			}
-		} else {
+		out, err := kubectlApply(data, "--force")
+		if err != nil {
 			return out, err
 		}
 	}
@@ -195,24 +198,16 @@ func applyLabels(data []byte, labels map[string]string) ([]byte, error) {
 	}
 
 	return pd, nil
-	// if v["metadata"] == nil {
-	//   v["metadata"] = map[string]interface{}{}
-	// }
+}
 
-	// switch t := v["metadata"]["labels"].(type) {
-	// default:
-	//   return fmt.Errorf("unknown labels type: %T", t)
-	// }
+func kubectlApply(data []byte, args ...string) ([]byte, error) {
+	ka := append([]string{"apply", "-f", "-"}, args...)
 
-	// if v["metadata"]["labels"] == nil {
-	//   v["metadata"]["labels"] = map[string]interface{}{}
-	// }
+	cmd := exec.Command("kubectl", ka...)
 
-	// ls := v["metadata"]["labels"]
-	// fmt.Printf("ls = %+v\n", ls)
-	// fmt.Printf("v = %+v\n", v)
+	cmd.Stdin = bytes.NewReader(data)
 
-	// return data, nil
+	return cmd.CombinedOutput()
 }
 
 func parseLabels(labels string) map[string]string {
@@ -226,4 +221,55 @@ func parseLabels(labels string) map[string]string {
 	}
 
 	return ls
+}
+
+func templateResources(filter string) ([]string, error) {
+	data, err := exec.Command("kubectl", "api-resources", "--verbs=list", "--namespaced", "-o", "name").CombinedOutput()
+	if err != nil {
+		return nil, err
+	}
+
+	ars := strings.Split(strings.TrimSpace(string(data)), "\n")
+
+	rsh := map[string]bool{}
+
+	data, err = exec.Command("kubectl", "get", "-l", filter, "--all-namespaces", "-o", "json", strings.Join(ars, ",")).CombinedOutput()
+	if err != nil {
+		return nil, err
+	}
+
+	if strings.TrimSpace(string(data)) == "" {
+		return []string{}, nil
+	}
+
+	var res struct {
+		Items []struct {
+			ApiVersion string `json:"apiVersion"`
+			Kind       string `json:"kind"`
+		}
+	}
+
+	if err := json.Unmarshal(data, &res); err != nil {
+		return nil, err
+	}
+
+	for _, i := range res.Items {
+		av := i.ApiVersion
+
+		if !strings.Contains(av, "/") {
+			av = fmt.Sprintf("core/%s", av)
+		}
+
+		rsh[fmt.Sprintf("%s/%s", av, i.Kind)] = true
+	}
+
+	rs := []string{}
+
+	for r := range rsh {
+		rs = append(rs, r)
+	}
+
+	sort.Strings(rs)
+
+	return rs, nil
 }
