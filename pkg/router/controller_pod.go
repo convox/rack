@@ -75,10 +75,9 @@ func (c *PodController) Add(obj interface{}) error {
 	// change a host's state to non-idle when one of its pods starts
 	for _, i := range is.Items {
 		for _, r := range i.Spec.Rules {
-			for _, pt := range r.HTTP.Paths {
-				if pt.Backend.ServiceName == p.ObjectMeta.Labels["service"] {
-					c.router.IdleSet(r.Host, false)
-				}
+			for _, port := range r.IngressRuleValue.HTTP.Paths {
+				target := rulePathTarget(port, i.ObjectMeta)
+				c.router.IdleSet(target, false)
 			}
 		}
 	}
