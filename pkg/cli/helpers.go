@@ -66,7 +66,7 @@ func copySystemLogs(ctx context.Context, w io.Writer, r io.Reader) {
 			continue
 		}
 
-		if strings.HasPrefix(parts[1], "system/aws") {
+		if strings.HasPrefix(parts[1], "system/") {
 			w.Write([]byte(fmt.Sprintf("%s\n", s.Text())))
 		}
 	}
@@ -399,7 +399,7 @@ func streamAppLogs(ctx context.Context, rack sdk.Interface, c *stdcli.Context, a
 		default:
 		}
 
-		r, err := rack.AppLogs(app, structs.LogsOptions{Prefix: options.Bool(true), Since: options.Duration(1)})
+		r, err := rack.AppLogs(app, structs.LogsOptions{Prefix: options.Bool(true), Since: options.Duration(5)})
 		if err != nil {
 			return
 		}
@@ -418,7 +418,7 @@ func streamRackSystemLogs(ctx context.Context, rack sdk.Interface, c *stdcli.Con
 		default:
 		}
 
-		r, err := rack.SystemLogs(structs.LogsOptions{Prefix: options.Bool(true), Since: options.Duration(1)})
+		r, err := rack.SystemLogs(structs.LogsOptions{Prefix: options.Bool(true), Since: options.Duration(5)})
 		if err != nil {
 			return
 		}

@@ -220,15 +220,13 @@ func (l *podLogger) watch(ctx context.Context, namespace, pod string) {
 		case <-ctx.Done():
 			return
 		case log, ok := <-ch:
+			if !ok {
+				return
+			}
 			if parts := strings.SplitN(log, " ", 2); len(parts) == 2 {
 				if ts, err := time.Parse(time.RFC3339Nano, parts[0]); err == nil {
 					l.provider.Engine.Log(app, "service", service, pod, ts, parts[1])
 				}
-			}
-
-			if !ok {
-				fmt.Println("stream closed")
-				return
 			}
 		}
 	}

@@ -246,6 +246,12 @@ func CloudWatchLogsStream(ctx context.Context, cf *cloudwatchlogs.CloudWatchLogs
 				seen[*e.EventId] = true
 			}
 
+			sleep := time.Duration(0)
+
+			if len(es) == 0 {
+				sleep = time.Duration(200 * time.Millisecond)
+			}
+
 			latest, err := writeLogEvents(w, es, opts)
 			if err != nil {
 				return err
@@ -269,7 +275,7 @@ func CloudWatchLogsStream(ctx context.Context, cf *cloudwatchlogs.CloudWatchLogs
 
 			if start > 0 {
 				req.StartTime = aws.Int64(start)
-				time.Sleep(200 * time.Millisecond)
+				time.Sleep(sleep)
 			}
 		}
 	}
