@@ -56,13 +56,12 @@ func (p *Provider) BuildCreate(app, url string, opts structs.BuildCreateOptions)
 		"RACK_URL":          fmt.Sprintf("https://convox:%s@api.%s.svc.cluster.local:5443", p.Password, p.Rack),
 	}
 
-	repo, remote, err := p.Engine.RepositoryHost(app)
+	repo, _, err := p.Engine.RepositoryHost(app)
 	if err != nil {
 		return nil, err
 	}
-	if remote {
-		env["BUILD_PUSH"] = repo
-	}
+
+	env["BUILD_PUSH"] = repo
 
 	ps, err := p.ProcessRun(app, "build", structs.ProcessRunOptions{
 		Command:     options.String(fmt.Sprintf("build -method tgz -cache %t", cache)),

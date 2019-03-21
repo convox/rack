@@ -203,6 +203,10 @@ func (p *Provider) systemUpdate(version string) error {
 		return log.Error(fmt.Errorf("update error: %s: %s", err, strings.TrimSpace(string(out))))
 	}
 
+	if out, err := p.ApplyTemplate("rack", fmt.Sprintf("system=convox,provider=local,scope=rack,rack=%s", p.Rack), params); err != nil {
+		return log.Error(fmt.Errorf("update error: %s: %s", err, strings.TrimSpace(string(out))))
+	}
+
 	return log.Success()
 }
 

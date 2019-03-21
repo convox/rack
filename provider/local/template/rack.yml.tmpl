@@ -1,0 +1,73 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: {{.Rack}}
+  name: registry
+  labels:
+    service: registry
+spec:
+  selector:
+    matchLabels:
+      system: convox
+      service: registry
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+  minReadySeconds: 1
+  revisionHistoryLimit: 1
+  template:
+    metadata:
+      labels:
+        system: convox
+        service: registry
+    spec:
+      containers:
+      - name: main
+        env:
+        - name: REGISTRY_HTTP_SECRET
+          value: secret
+        image: registry:2
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 5000
+          protocol: TCP
+        volumeMounts:
+        - name: registry
+          mountPath: /var/lib/registry
+      volumes:
+      - name: registry
+        hostPath:
+          path: /var/lib/registry
+---
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: {{.Rack}}
+  name: registry
+spec:
+  type: LoadBalancer
+  ports:
+  - name: http
+    port: 80
+    targetPort: 5000
+    protocol: TCP
+  selector:
+    system: convox
+    service: registry
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  namespace: {{.Rack}}
+  name: registry
+spec:
+  tls:
+  - hosts:
+    - registry.{{.Rack}}
+  rules:
+    - host: registry.{{.Rack}}
+      http:
+        paths:
+        - backend:
+            serviceName: registry
+            servicePort: 80

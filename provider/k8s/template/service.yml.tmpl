@@ -27,6 +27,8 @@ kind: {{ if .Service.Agent.Enabled }} DaemonSet {{ else }} Deployment {{ end }}
 metadata:
   namespace: {{.Namespace}}
   name: {{.Service.Name}}
+  annotations:
+    convox.rollback: "{{.Rollback}}"
   labels:
     type: service
     service: {{.Service.Name}}
@@ -107,6 +109,14 @@ spec:
           initialDelaySeconds: {{$.Service.Health.Grace}}
           periodSeconds: {{$.Service.Health.Interval}}
           timeoutSeconds: {{$.Service.Health.Timeout}}
+        readinessProbe:
+          tcpSocket:
+            port: {{.}}
+          failureThreshold: 1
+          initialDelaySeconds: 0
+          periodSeconds: 2
+          successThreshold: 2
+          timeoutSeconds: 2
         {{ end }}
         ports:
         {{ with .Service.Port.Port }}
