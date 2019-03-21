@@ -63,7 +63,7 @@ func New() (*Router, error) {
 
 	switch os.Getenv("STORAGE") {
 	case "dynamodb":
-		r.storage = NewStorageDynamo(os.Getenv("ROUTER_ROUTES"))
+		r.storage = NewStorageDynamo(os.Getenv("ROUTER_ROUTES"), os.Getenv("ROUTER_ACTIVITY"))
 	default:
 		r.storage = NewStorageMemory()
 	}
@@ -105,30 +105,30 @@ func (r *Router) Shutdown(ctx context.Context) error {
 	return nil
 }
 
-func (r *Router) IdleSet(host string, idle bool) error {
-	fmt.Printf("ns=router at=request.begin host=%q idle=%t\n", host, idle)
+func (r *Router) IdleSet(target string, idle bool) error {
+	fmt.Printf("ns=router at=request.begin target=%q idle=%t\n", target, idle)
 
-	return r.storage.IdleSet(host, idle)
+	return r.storage.IdleSet(target, idle)
 }
 
-func (r *Router) RequestBegin(host string) error {
-	fmt.Printf("ns=router at=request.begin host=%q\n", host)
+func (r *Router) RequestBegin(target string) error {
+	fmt.Printf("ns=router at=request.begin target=%q\n", target)
 
-	if err := r.storage.RequestBegin(host); err != nil {
+	if err := r.storage.RequestBegin(target); err != nil {
 		return err
 	}
 
-	idle, err := r.storage.IdleGet(host)
+	idle, err := r.storage.IdleGet(target)
 	if err != nil {
 		return fmt.Errorf("could not fetch idle status: %s", err)
 	}
 
 	if idle {
-		if err := r.backend.IdleSet(host, false); err != nil {
+		if err := r.backend.IdleSet(target, false); err != nil {
 			return fmt.Errorf("could not unidle: %s", err)
 		}
 
-		if err := r.storage.IdleSet(host, false); err != nil {
+		if err := r.storage.IdleSet(target, false); err != nil {
 			return fmt.Errorf("could not unidle: %s", err)
 		}
 	}
@@ -136,10 +136,10 @@ func (r *Router) RequestBegin(host string) error {
 	return nil
 }
 
-func (r *Router) RequestEnd(host string) error {
-	fmt.Printf("ns=router at=request.end host=%q\n", host)
+func (r *Router) RequestEnd(target string) error {
+	fmt.Printf("ns=router at=request.end target=%q\n", target)
 
-	return r.storage.RequestEnd(host)
+	return r.storage.RequestEnd(target)
 }
 
 func (r *Router) Route(host string) (string, error) {
@@ -164,12 +164,12 @@ func (r *Router) TargetAdd(host, target string) error {
 		return err
 	}
 
-	idle, err := r.backend.IdleGet(host)
+	idle, err := r.backend.IdleGet(target)
 	if err != nil {
 		return err
 	}
 
-	if err := r.storage.IdleSet(host, idle); err != nil {
+	if err := r.storage.IdleSet(target, idle); err != nil {
 		return err
 	}
 
@@ -245,13 +245,13 @@ func (r *Router) idleTicker() {
 }
 
 func (r *Router) idleTick() error {
-	hs, err := r.storage.Stale(time.Now().UTC().Add(-1 * idleTimeout))
+	ts, err := r.storage.Stale(time.Now().UTC().Add(-1 * idleTimeout))
 	if err != nil {
 		return err
 	}
 
-	for _, h := range hs {
-		idle, err := r.storage.IdleGet(h)
+	for _, t := range ts {
+		idle, err := r.storage.IdleGet(t)
 		if err != nil {
 			return err
 		}
@@ -259,11 +259,11 @@ func (r *Router) idleTick() error {
 			continue
 		}
 
-		if err := r.backend.IdleSet(h, true); err != nil {
+		if err := r.backend.IdleSet(t, true); err != nil {
 			return err
 		}
 
-		if err := r.storage.IdleSet(h, true); err != nil {
+		if err := r.storage.IdleSet(t, true); err != nil {
 			return err
 		}
 	}

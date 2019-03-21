@@ -340,11 +340,11 @@ func testWebsocket(h *router.HTTP, host, path string) (*websocket.Conn, error) {
 
 type testHTTPRouter map[string]string
 
-func (r testHTTPRouter) RequestBegin(host string) error {
+func (r testHTTPRouter) RequestBegin(target string) error {
 	return nil
 }
 
-func (r testHTTPRouter) RequestEnd(host string) error {
+func (r testHTTPRouter) RequestEnd(target string) error {
 	return nil
 }
 
