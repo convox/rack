@@ -206,6 +206,7 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 			"Rack":           p.Rack,
 			"Release":        r,
 			"Replicas":       replicas,
+			"Rollback":       a.Release,
 			"Service":        s,
 			"SystemEnv":      senv,
 		}
@@ -245,8 +246,6 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 	if _, err := p.Cluster.CoreV1().Namespaces().Update(ns); err != nil {
 		return err
 	}
-
-	fmt.Println("done")
 
 	return nil
 }

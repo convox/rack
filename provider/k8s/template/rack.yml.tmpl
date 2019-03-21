@@ -56,7 +56,7 @@ spec:
     rollingUpdate:
       maxSurge: 1
       maxUnavailable: 0
-  minReadySeconds: 10
+  minReadySeconds: 3
   template:
     metadata:
       annotations:
@@ -99,8 +99,10 @@ spec:
             path: "/check"
             port: 5443
             scheme: "HTTPS"
-          initialDelaySeconds: 10
+          failureThreshold: 3
+          initialDelaySeconds: 15
           periodSeconds: 5
+          successThreshold: 1
           timeoutSeconds: 3
         readinessProbe:
           httpGet:

@@ -104,6 +104,16 @@ func (p *Provider) Initialize(opts structs.ProviderOptions) error {
 		return log.Error(err)
 	}
 
+	dc, err := NewDeploymentController(p)
+	if err != nil {
+		return log.Error(err)
+	}
+
+	ec, err := NewEventController(p)
+	if err != nil {
+		return log.Error(err)
+	}
+
 	nc, err := NewNodeController(p)
 	if err != nil {
 		return log.Error(err)
@@ -114,6 +124,8 @@ func (p *Provider) Initialize(opts structs.ProviderOptions) error {
 		return log.Error(err)
 	}
 
+	go dc.Run()
+	go ec.Run()
 	go nc.Run()
 	go pc.Run()
 

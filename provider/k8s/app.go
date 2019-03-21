@@ -110,6 +110,19 @@ func (p *Provider) AppNamespace(app string) string {
 }
 
 func (p *Provider) AppStatus(app string) (string, error) {
+	// ps, err := p.Cluster.CoreV1().Pods(p.AppNamespace(app)).List(am.ListOptions{})
+	// if err != nil {
+	//   return "", err
+	// }
+
+	// for _, p := range ps.Items {
+	//   for _, c := range p.Status.ContainerStatuses {
+	//     if c.State.Waiting != nil && c.State.Waiting.Reason == "CrashLoopBackOff" {
+	//       return "crashing", nil
+	//     }
+	//   }
+	// }
+
 	ds, err := p.Cluster.AppsV1().Deployments(p.AppNamespace(app)).List(am.ListOptions{})
 	if err != nil {
 		return "", err
