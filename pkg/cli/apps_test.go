@@ -514,7 +514,7 @@ func TestAppsWait(t *testing.T) {
 	testClientWait(t, 100*time.Millisecond, func(e *cli.Engine, i *mocksdk.Interface) {
 		opts := structs.LogsOptions{
 			Prefix: options.Bool(true),
-			Since:  options.Duration(1),
+			Since:  options.Duration(5 * time.Second),
 		}
 		i.On("AppGet", "app1").Return(&structs.App{Status: "creating"}, nil).Twice()
 		i.On("AppGet", "app1").Return(fxApp(), nil)
@@ -550,7 +550,7 @@ func TestAppsWaitError(t *testing.T) {
 	testClientWait(t, 100*time.Millisecond, func(e *cli.Engine, i *mocksdk.Interface) {
 		opts := structs.LogsOptions{
 			Prefix: options.Bool(true),
-			Since:  options.Duration(1),
+			Since:  options.Duration(5 * time.Second),
 		}
 		i.On("AppGet", "app1").Return(nil, fmt.Errorf("err1"))
 		i.On("AppLogs", "app1", opts).Return(nil, fmt.Errorf("err2"))
@@ -567,7 +567,7 @@ func TestAppsRollback(t *testing.T) {
 	testClientWait(t, 100*time.Millisecond, func(e *cli.Engine, i *mocksdk.Interface) {
 		opts := structs.LogsOptions{
 			Prefix: options.Bool(true),
-			Since:  options.Duration(1),
+			Since:  options.Duration(5 * time.Second),
 		}
 		i.On("AppGet", "app1").Return(&structs.App{Status: "updating"}, nil).Once()
 		i.On("AppGet", "app1").Return(&structs.App{Status: "rollback"}, nil).Once()

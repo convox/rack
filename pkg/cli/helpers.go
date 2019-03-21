@@ -399,7 +399,7 @@ func streamAppLogs(ctx context.Context, rack sdk.Interface, c *stdcli.Context, a
 		default:
 		}
 
-		r, err := rack.AppLogs(app, structs.LogsOptions{Prefix: options.Bool(true), Since: options.Duration(5)})
+		r, err := rack.AppLogs(app, structs.LogsOptions{Prefix: options.Bool(true), Since: options.Duration(5 * time.Second)})
 		if err != nil {
 			return
 		}
@@ -418,7 +418,7 @@ func streamRackSystemLogs(ctx context.Context, rack sdk.Interface, c *stdcli.Con
 		default:
 		}
 
-		r, err := rack.SystemLogs(structs.LogsOptions{Prefix: options.Bool(true), Since: options.Duration(5)})
+		r, err := rack.SystemLogs(structs.LogsOptions{Prefix: options.Bool(true), Since: options.Duration(5 * time.Second)})
 		if err != nil {
 			return
 		}
