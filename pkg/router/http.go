@@ -17,8 +17,8 @@ type HTTP struct {
 }
 
 type HTTPRouter interface {
-	RequestBegin(host string) error
-	RequestEnd(host string) error
+	RequestBegin(target string) error
+	RequestEnd(target string) error
 	Route(host string) (string, error)
 }
 
@@ -63,14 +63,14 @@ func (h *HTTP) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.router.RequestBegin(r.Host)
-	defer h.router.RequestEnd(r.Host)
-
 	target, err := h.router.Route(r.Host)
 	if err != nil {
 		http.Error(w, err.Error(), 502)
 		return
 	}
+
+	h.router.RequestBegin(target)
+	defer h.router.RequestEnd(target)
 
 	fmt.Printf("ns=http at=route host=%q method=%q path=%q\n", r.Host, r.Method, r.RequestURI)
 

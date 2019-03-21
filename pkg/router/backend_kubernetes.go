@@ -18,12 +18,11 @@ type BackendKubernetes struct {
 	cluster kubernetes.Interface
 	ip      string
 	prefix  string
-	router  BackendRouter
 	service string
 }
 
 func NewBackendKubernetes(router BackendRouter) (*BackendKubernetes, error) {
-	b := &BackendKubernetes{router: router}
+	b := &BackendKubernetes{}
 
 	c, err := rest.InClusterConfig()
 	if err != nil {
@@ -104,102 +103,78 @@ func (b *BackendKubernetes) ExternalIP(remote net.Addr) string {
 	return b.ip
 }
 
-func (b *BackendKubernetes) IdleGet(host string) (bool, error) {
-	fmt.Printf("ns=backend.k8s at=idle.get host=%q\n", host)
+func (b *BackendKubernetes) IdleGet(target string) (bool, error) {
+	fmt.Printf("ns=backend.k8s at=idle.get target=%q\n", target)
 
-	idle := true
+	if service, namespace, ok := parseTarget(target); ok {
+		s, err := b.cluster.ExtensionsV1beta1().Deployments(namespace).GetScale(service, am.GetOptions{})
+		if err != nil {
+			return false, err
+		}
 
-	ts, err := b.router.TargetList(host)
-	if err != nil {
-		return false, err
-	}
-
-	for _, t := range ts {
-		if service, namespace, ok := parseTarget(t); ok {
-			s, err := b.cluster.ExtensionsV1beta1().Deployments(namespace).GetScale(service, am.GetOptions{})
-			if err != nil {
-				return false, err
-			}
-
-			if s.Spec.Replicas > 0 {
-				idle = false
-				break
-			}
+		if s.Spec.Replicas > 0 {
+			return false, nil
 		}
 	}
 
-	return idle, nil
+	return true, nil
 }
 
-func (b *BackendKubernetes) IdleSet(host string, idle bool) error {
+func (b *BackendKubernetes) IdleSet(target string, idle bool) error {
 	if idle {
-		return b.idle(host)
+		return b.idle(target)
 	} else {
-		return b.unidle(host)
+		return b.unidle(target)
 	}
 }
 
-func (b *BackendKubernetes) idle(host string) error {
-	fmt.Printf("ns=backend.k8s at=idle host=%q\n", host)
+func (b *BackendKubernetes) idle(target string) error {
+	fmt.Printf("ns=backend.k8s at=idle target=%q\n", target)
 
-	ts, err := b.router.TargetList(host)
-	if err != nil {
-		return err
-	}
+	if service, namespace, ok := parseTarget(target); ok {
+		scale := &ae.Scale{
+			ObjectMeta: am.ObjectMeta{
+				Namespace: namespace,
+				Name:      service,
+			},
+			Spec: ae.ScaleSpec{Replicas: 0},
+		}
 
-	for _, t := range ts {
-		if service, namespace, ok := parseTarget(t); ok {
-			scale := &ae.Scale{
-				ObjectMeta: am.ObjectMeta{
-					Namespace: namespace,
-					Name:      service,
-				},
-				Spec: ae.ScaleSpec{Replicas: 0},
-			}
-
-			if _, err := b.cluster.ExtensionsV1beta1().Deployments(namespace).UpdateScale(service, scale); err != nil {
-				fmt.Printf("ns=backend.k8s at=idle host=%q error=%q\n", host, err)
-			}
+		if _, err := b.cluster.ExtensionsV1beta1().Deployments(namespace).UpdateScale(service, scale); err != nil {
+			fmt.Printf("ns=backend.k8s at=idle target=%q error=%q\n", target, err)
 		}
 	}
 
 	return nil
 }
 
-func (b *BackendKubernetes) unidle(host string) error {
-	fmt.Printf("ns=backend.k8s at=unidle host=%q state=unidling\n", host)
+func (b *BackendKubernetes) unidle(target string) error {
+	fmt.Printf("ns=backend.k8s at=unidle target=%q state=unidling\n", target)
 
-	ts, err := b.router.TargetList(host)
-	if err != nil {
-		return err
-	}
+	if service, namespace, ok := parseTarget(target); ok {
+		scale := &ae.Scale{
+			ObjectMeta: am.ObjectMeta{
+				Namespace: namespace,
+				Name:      service,
+			},
+			Spec: ae.ScaleSpec{Replicas: 1},
+		}
 
-	for _, t := range ts {
-		if service, namespace, ok := parseTarget(t); ok {
-			scale := &ae.Scale{
-				ObjectMeta: am.ObjectMeta{
-					Namespace: namespace,
-					Name:      service,
-				},
-				Spec: ae.ScaleSpec{Replicas: 1},
-			}
+		if _, err := b.cluster.ExtensionsV1beta1().Deployments(namespace).UpdateScale(service, scale); err != nil {
+			fmt.Printf("ns=backend.k8s at=unidle target=%q error=%q\n", target, err)
+		}
 
-			if _, err := b.cluster.ExtensionsV1beta1().Deployments(namespace).UpdateScale(service, scale); err != nil {
-				fmt.Printf("ns=backend.k8s at=unidle host=%q error=%q\n", host, err)
-			}
-
-			for {
-				time.Sleep(200 * time.Millisecond)
-				if rs, err := b.cluster.AppsV1().Deployments(namespace).Get(service, am.GetOptions{}); err == nil {
-					if rs.Status.AvailableReplicas > 0 {
-						break
-					}
+		for {
+			time.Sleep(200 * time.Millisecond)
+			if rs, err := b.cluster.AppsV1().Deployments(namespace).Get(service, am.GetOptions{}); err == nil {
+				if rs.Status.AvailableReplicas > 0 {
+					break
 				}
 			}
 		}
 	}
 
-	fmt.Printf("ns=backend.k8s at=unidle host=%q state=ready\n", host)
+	fmt.Printf("ns=backend.k8s at=unidle target=%q state=ready\n", target)
 
 	return nil
 }

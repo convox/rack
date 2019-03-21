@@ -7,10 +7,9 @@ import (
 )
 
 type StorageMemory struct {
-	hostActivity   activityTracker
-	targetActivity activityTracker
-	idle           sync.Map
-	routes         sync.Map
+	activity activityTracker
+	idle     sync.Map
+	routes   sync.Map
 
 	targetLock sync.Mutex
 }
@@ -24,10 +23,10 @@ func NewStorageMemory() *StorageMemory {
 	}
 }
 
-func (b *StorageMemory) IdleGet(host string) (bool, error) {
-	fmt.Printf("ns=storage.memory at=idle.get host=%q\n", host)
+func (b *StorageMemory) IdleGet(target string) (bool, error) {
+	fmt.Printf("ns=storage.memory at=idle.get target=%q\n", target)
 
-	v, ok := b.idle.Load(host)
+	v, ok := b.idle.Load(target)
 	if !ok {
 		return false, nil
 	}
@@ -40,51 +39,29 @@ func (b *StorageMemory) IdleGet(host string) (bool, error) {
 	return i, nil
 }
 
-func (b *StorageMemory) IdleSet(host string, idle bool) error {
-	fmt.Printf("ns=storage.memory at=idle.get host=%q idle=%t\n", host, idle)
+func (b *StorageMemory) IdleSet(target string, idle bool) error {
+	fmt.Printf("ns=storage.memory at=idle.get target=%q idle=%t\n", target, idle)
 
-	b.idle.Store(host, idle)
+	b.idle.Store(target, idle)
 
 	return nil
 }
 
-func (b *StorageMemory) RequestBegin(host string) error {
-	fmt.Printf("ns=storage.memory at=request.begin host=%q\n", host)
+func (b *StorageMemory) RequestBegin(target string) error {
+	fmt.Printf("ns=storage.memory at=request.begin target=%q\n", target)
 
-	if err := b.hostActivity.Begin(host); err != nil {
+	if err := b.activity.Begin(target); err != nil {
 		return err
-	}
-
-	ts, err := b.TargetList(host)
-	if err != nil {
-		return err
-	}
-
-	for _, t := range ts {
-		if err := b.targetActivity.Begin(t); err != nil {
-			return err
-		}
 	}
 
 	return nil
 }
 
-func (b *StorageMemory) RequestEnd(host string) error {
-	fmt.Printf("ns=storage.memory at=request.end host=%q\n", host)
+func (b *StorageMemory) RequestEnd(target string) error {
+	fmt.Printf("ns=storage.memory at=request.end target=%q\n", target)
 
-	if err := b.hostActivity.End(host); err != nil {
+	if err := b.activity.End(target); err != nil {
 		return err
-	}
-
-	ts, err := b.TargetList(host)
-	if err != nil {
-		return err
-	}
-
-	for _, t := range ts {
-		if err := b.targetActivity.End(t); err != nil {
-			return err
-		}
 	}
 
 	return nil
@@ -93,7 +70,7 @@ func (b *StorageMemory) RequestEnd(host string) error {
 func (b *StorageMemory) Stale(cutoff time.Time) ([]string, error) {
 	fmt.Printf("ns=storage.memory at=stale cutoff=%s\n", cutoff)
 
-	stale := []string{}
+	tsh := map[string]bool{}
 
 	b.routes.Range(func(k, v interface{}) bool {
 		host, ok := k.(string)
@@ -101,25 +78,25 @@ func (b *StorageMemory) Stale(cutoff time.Time) ([]string, error) {
 			return true
 		}
 
-		if a, err := b.hostActivity.ActiveSince(host, cutoff); err != nil || a {
-			return true
+		for t := range b.targets(host) {
+			tsh[t] = true
 		}
-
-		ts, err := b.TargetList(host)
-		if err != nil {
-			return true
-		}
-
-		for _, t := range ts {
-			if a, err := b.targetActivity.ActiveSince(t, cutoff); err != nil || a {
-				return true
-			}
-		}
-
-		stale = append(stale, host)
 
 		return true
 	})
+
+	stale := []string{}
+
+	for t := range tsh {
+		a, err := b.activity.ActiveSince(t, cutoff)
+		if err != nil {
+			return nil, err
+		}
+
+		if !a {
+			stale = append(stale, t)
+		}
+	}
 
 	return stale, nil
 }
