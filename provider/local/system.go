@@ -199,7 +199,7 @@ func (p *Provider) systemUpdate(version string) error {
 		return log.Error(fmt.Errorf("update error: %s: %s", err, strings.TrimSpace(string(out))))
 	}
 
-	if out, err := p.ApplyTemplate("ports", "system=convox,provider=local,scope=ports", params); err != nil {
+	if out, err := p.ApplyTemplate("system", "system=convox,provider=local,scope=system", params); err != nil {
 		return log.Error(fmt.Errorf("update error: %s: %s", err, strings.TrimSpace(string(out))))
 	}
 

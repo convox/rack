@@ -56,10 +56,6 @@ func Start(rack sdk.Interface, c *stdcli.Context) error {
 		return Starter.Start1(ctx, opts)
 	}
 
-	if !localRackRunning(c) {
-		return fmt.Errorf("local rack not found, try `sudo convox rack install local`")
-	}
-
 	var p structs.Provider
 
 	if rack != nil {
@@ -67,12 +63,16 @@ func Start(rack sdk.Interface, c *stdcli.Context) error {
 		if err != nil {
 			return err
 		}
-		if s.Provider == "local" {
+		if s.Provider == "local" || s.Provider == "kaws" {
 			p = rack
 		}
 	}
 
 	if p == nil {
+		if !localRackRunning(c) {
+			return fmt.Errorf("local rack not found, try `sudo convox rack install local`")
+		}
+
 		r, err := matchRack(c, "local/")
 		if err != nil {
 			if strings.HasPrefix(err.Error(), "ambiguous rack name") {

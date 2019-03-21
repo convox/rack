@@ -320,6 +320,9 @@ func (p *Provider) podSpecFromService(app, service, release string) (*ac.PodSpec
 		ps.DNSPolicy = "None"
 		ps.DNSConfig = &ac.PodDNSConfig{
 			Nameservers: []string{ip},
+			Options: []ac.PodDNSConfigOption{
+				{Name: "ndots", Value: options.String("1")},
+			},
 		}
 	}
 
