@@ -174,6 +174,11 @@ func (p *Provider) SystemResourceCreate(kind string, opts structs.ResourceCreate
 	case "syslog":
 		req, err = p.createResourceURL(s, "tcp", "tcp+tls", "udp")
 	case "webhook":
+		s.Parameters["Rack"] = p.Rack
+		if p.Private {
+			s.Parameters["Private"] = "Yes" // Default is No
+		}
+
 		req, err = p.createResourceURL(s, "http", "https")
 	default:
 		err = fmt.Errorf("invalid resource type: %s", s.Type)
