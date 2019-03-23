@@ -9,7 +9,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/convox/rack/pkg/options"
 	ac "k8s.io/api/core/v1"
 	am "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ic "k8s.io/client-go/informers/core/v1"
@@ -22,12 +21,14 @@ type PodController struct {
 	Provider   *Provider
 
 	logger *podLogger
+	start  time.Time
 }
 
 func NewPodController(p *Provider) (*PodController, error) {
 	pc := &PodController{
 		Provider: p,
 		logger:   NewPodLogger(p),
+		start:    time.Now().UTC(),
 	}
 
 	c, err := NewController(p.Rack, "convox-k8s-pod", pc)
@@ -62,6 +63,8 @@ func (c *PodController) Run() {
 }
 
 func (c *PodController) Start() error {
+	c.start = time.Now().UTC()
+
 	return nil
 }
 
@@ -81,7 +84,7 @@ func (c *PodController) Add(obj interface{}) error {
 			return err
 		}
 	case "Running":
-		c.logger.Start(p.ObjectMeta.Namespace, p.ObjectMeta.Name)
+		c.logger.Start(p.ObjectMeta.Namespace, p.ObjectMeta.Name, c.start)
 	}
 
 	return nil
@@ -108,13 +111,15 @@ func (c *PodController) Update(prev, cur interface{}) error {
 
 	// fmt.Printf("pod %s: %s\n", cp.ObjectMeta.Name, cp.Status.Phase)
 
-	switch cp.Status.Phase {
-	case "Succeeded", "Failed":
-		if err := c.cleanupPod(cp); err != nil {
-			return err
+	if cp.Status.Phase != pp.Status.Phase {
+		switch cp.Status.Phase {
+		case "Succeeded", "Failed":
+			if err := c.cleanupPod(cp); err != nil {
+				return err
+			}
+		case "Running":
+			c.logger.Start(cp.ObjectMeta.Namespace, cp.ObjectMeta.Name, c.start)
 		}
-	case "Running":
-		c.logger.Start(cp.ObjectMeta.Namespace, cp.ObjectMeta.Name)
 	}
 
 	return nil
@@ -137,10 +142,15 @@ func assertPod(v interface{}) (*ac.Pod, error) {
 	return p, nil
 }
 
-// const (
-//   ScannerStartSize = 4096
-//   ScannerMaxSize   = 1024 * 1024
-// )
+// func podCondition(p *ac.Pod, name string) *ac.PodCondition {
+//   for _, c := range p.Status.Conditions {
+//     if string(c.Type) == name {
+//       return &c
+//     }
+//   }
+
+//   return nil
+// }
 
 type podLogger struct {
 	provider *Provider
@@ -151,13 +161,13 @@ func NewPodLogger(p *Provider) *podLogger {
 	return &podLogger{provider: p}
 }
 
-func (l *podLogger) Start(namespace, pod string) {
+func (l *podLogger) Start(namespace, pod string, start time.Time) {
 	key := fmt.Sprintf("%s:%s", namespace, pod)
 
 	ctx, cancel := context.WithCancel(context.Background())
 
 	if _, exists := l.streams.LoadOrStore(key, cancel); !exists {
-		go l.watch(ctx, namespace, pod)
+		go l.watch(ctx, namespace, pod, start)
 	}
 }
 
@@ -172,12 +182,14 @@ func (l *podLogger) Stop(namespace, pod string) {
 	}
 }
 
-func (l *podLogger) stream(ch chan string, namespace, pod string) {
+func (l *podLogger) stream(ch chan string, namespace, pod string, start time.Time) {
+	since := am.NewTime(start)
+
 	for {
 		lopts := &ac.PodLogOptions{
-			Follow:       true,
-			SinceSeconds: options.Int64(1),
-			Timestamps:   true,
+			Follow:     true,
+			SinceTime:  &since,
+			Timestamps: true,
 		}
 		r, err := l.provider.Cluster.CoreV1().Pods(namespace).GetLogs(pod, lopts).Stream()
 		if err != nil {
@@ -190,7 +202,13 @@ func (l *podLogger) stream(ch chan string, namespace, pod string) {
 		s.Buffer(make([]byte, ScannerStartSize), ScannerMaxSize)
 
 		for s.Scan() {
-			ch <- s.Text()
+			line := s.Text()
+
+			if ts, err := time.Parse(time.RFC3339Nano, strings.Split(line, " ")[0]); err == nil {
+				since = am.NewTime(ts)
+			}
+
+			ch <- line
 		}
 
 		if err := s.Err(); err != nil {
@@ -199,7 +217,7 @@ func (l *podLogger) stream(ch chan string, namespace, pod string) {
 	}
 }
 
-func (l *podLogger) watch(ctx context.Context, namespace, pod string) {
+func (l *podLogger) watch(ctx context.Context, namespace, pod string, start time.Time) {
 	defer l.Stop(namespace, pod)
 
 	ch := make(chan string)
@@ -213,7 +231,7 @@ func (l *podLogger) watch(ctx context.Context, namespace, pod string) {
 	app := p.ObjectMeta.Labels["app"]
 	service := p.ObjectMeta.Labels["service"]
 
-	go l.stream(ch, namespace, pod)
+	go l.stream(ch, namespace, pod, start)
 
 	for {
 		select {
@@ -225,7 +243,7 @@ func (l *podLogger) watch(ctx context.Context, namespace, pod string) {
 			}
 			if parts := strings.SplitN(log, " ", 2); len(parts) == 2 {
 				if ts, err := time.Parse(time.RFC3339Nano, parts[0]); err == nil {
-					l.provider.Engine.Log(app, "service", service, pod, ts, parts[1])
+					l.provider.Engine.Log(app, fmt.Sprintf("service/%s/%s", service, pod), ts, parts[1])
 				}
 			}
 		}
