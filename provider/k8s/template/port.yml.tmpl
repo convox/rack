@@ -1,0 +1,23 @@
+{{ if .Service.Port.Port }}
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: {{.Namespace}}
+  name: {{.Service.Name}}
+  annotations:
+    alb.ingress.kubernetes.io/target-type: pod
+    convox.service.ports.{{.Service.Port.Port}}.protocol: {{.Service.Port.Scheme}}
+  labels:
+    service: {{.Service.Name}}
+    release: {{.Release.Id}}
+spec:
+  type: NodePort
+  selector:
+    service: {{.Service.Name}}
+    release: {{.Release.Id}}
+  ports:
+    - name: main
+      port: 3000
+      protocol: TCP
+      targetPort: {{.Service.Port.Port}}
+{{ end }}
