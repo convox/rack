@@ -20,7 +20,8 @@ import (
 
 type Engine interface {
 	AppStatus(app string) (string, error)
-	Log(app, kind, name, id string, ts time.Time, message string) error
+	Log(group, stream string, ts time.Time, message string) error
+	ReleasePromote(app, id string, opts structs.ReleasePromoteOptions) error
 	RepositoryAuth(app string) (string, string, error)
 	RepositoryHost(app string) (string, bool, error)
 	ResourceRender(app string, r manifest.Resource) ([]byte, error)
