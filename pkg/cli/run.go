@@ -5,6 +5,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/convox/rack/pkg/helpers"
 	"github.com/convox/rack/pkg/options"
 	"github.com/convox/rack/pkg/structs"
 	"github.com/convox/rack/sdk"
@@ -96,7 +97,7 @@ func Run(rack sdk.Interface, c *stdcli.Context) error {
 
 	defer rack.ProcessStop(app(c), ps.Id)
 
-	if err := waitForProcessRunning(rack, c, app(c), ps.Id); err != nil {
+	if err := helpers.WaitForProcessRunning(rack, c, app(c), ps.Id); err != nil {
 		return err
 	}
 
