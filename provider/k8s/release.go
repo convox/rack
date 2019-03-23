@@ -209,6 +209,7 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 			"Rollback":       a.Release,
 			"Service":        s,
 			"SystemEnv":      senv,
+			"Timeout":        helpers.DefaultInt(opts.Timeout, 1800),
 		}
 
 		if ip, err := p.Engine.Resolver(); err == nil {

@@ -2,6 +2,7 @@ package k8s
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/convox/rack/pkg/helpers"
 	"github.com/convox/rack/pkg/structs"
@@ -91,6 +92,35 @@ func (p *Provider) ServiceUpdate(app, name string, opts structs.ServiceUpdateOpt
 
 	if _, err := p.Cluster.AppsV1().Deployments(p.AppNamespace(app)).Update(d); err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func (p *Provider) serviceInstall(app, release, service string) error {
+	a, err := p.AppGet(app)
+	if err != nil {
+		return err
+	}
+
+	m, r, err := helpers.ReleaseManifest(p, app, release)
+	if err != nil {
+		return err
+	}
+
+	s, err := m.Service(service)
+	if err != nil {
+		return err
+	}
+
+	params := map[string]interface{}{
+		"Namespace": p.AppNamespace(a.Name),
+		"Release":   r,
+		"Service":   s,
+	}
+
+	if out, err := p.ApplyTemplate("port", fmt.Sprintf("system=convox,provider=k8s,scope=port,rack=%s,app=%s", p.Rack, app), params); err != nil {
+		return fmt.Errorf("update error: %s: %s", err, strings.TrimSpace(string(out)))
 	}
 
 	return nil

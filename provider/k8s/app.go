@@ -123,13 +123,15 @@ func (p *Provider) AppStatus(app string) (string, error) {
 	//   }
 	// }
 
-	ds, err := p.Cluster.AppsV1().Deployments(p.AppNamespace(app)).List(am.ListOptions{})
+	ds, err := p.Cluster.ExtensionsV1beta1().Deployments(p.AppNamespace(app)).List(am.ListOptions{})
 	if err != nil {
 		return "", err
 	}
 
 	for _, d := range ds.Items {
 		switch {
+		case deploymentCondition(&d, "Rollback") == "True":
+			return "rollback", nil
 		case d.Spec.Replicas != nil && d.Status.UpdatedReplicas < *d.Spec.Replicas:
 			return "updating", nil
 		case d.Status.Replicas > d.Status.UpdatedReplicas:
