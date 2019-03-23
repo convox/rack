@@ -159,13 +159,17 @@ func (s *Start) Start2(ctx context.Context, w io.Writer, opts Options2) error {
 
 		popts := structs.ReleasePromoteOptions{
 			Development: options.Bool(true),
+			Force:       options.Bool(true),
 			Min:         options.Int(0),
+			Timeout:     options.Int(180),
 		}
 
 		if err := opts.Provider.ReleasePromote(opts.App, b.Release, popts); err != nil {
 			return errors.WithStack(err)
 		}
 	}
+
+	go opts.streamLogs(ctx, pw, services)
 
 	errch := make(chan error)
 	defer close(errch)
@@ -177,8 +181,6 @@ func (s *Start) Start2(ctx context.Context, w io.Writer, opts Options2) error {
 		return errors.WithStack(err)
 	}
 
-	var wg sync.WaitGroup
-
 	for _, s := range m.Services {
 		if !services[s.Name] {
 			continue
@@ -187,16 +189,11 @@ func (s *Start) Start2(ctx context.Context, w io.Writer, opts Options2) error {
 		if s.Build.Path != "" {
 			go opts.watchChanges(ctx, pw, m, s.Name, wd, errch)
 		}
-
-		if s.Port.Port > 0 {
-			wg.Add(1)
-			go opts.healthCheck(ctx, pw, s, errch, &wg)
-		}
 	}
 
-	wg.Wait()
-
-	go opts.streamLogs(ctx, pw, services)
+	if err := helpers.WaitForAppRunningContext(ctx, opts.Provider, opts.App); err != nil {
+		return err
+	}
 
 	<-ctx.Done()
 
@@ -204,6 +201,8 @@ func (s *Start) Start2(ctx context.Context, w io.Writer, opts Options2) error {
 	if err != nil {
 		return nil
 	}
+
+	var wg sync.WaitGroup
 
 	wg.Add(len(pss))
 
@@ -731,7 +730,9 @@ func handleErrors(ctx context.Context, pw prefix.Writer, errch chan error) {
 		case <-ctx.Done():
 			return
 		case err := <-errch:
-			pw.Writef("convox", "<error>error: %s</error>\n", err)
+			if err != nil {
+				pw.Writef("convox", "<error>error: %s</error>\n", err)
+			}
 		}
 	}
 }
@@ -773,15 +774,26 @@ func writeLogs(ctx context.Context, pw prefix.Writer, r io.Reader, services map[
 				continue
 			}
 
-			service := strings.Split(match[4], ":")[0]
+			switch match[3] {
+			case "service":
+				service := match[4]
 
-			if !services[service] {
-				continue
+				if !services[service] {
+					continue
+				}
+
+				stripped := stripANSIScreenCommands(match[6])
+
+				pw.Writef(service, "%s\n", stripped)
+			case "system":
+				service := strings.Split(match[5], "-")[0]
+
+				if !services[service] {
+					continue
+				}
+
+				pw.Writef(service, "%s\n", match[6])
 			}
-
-			stripped := stripANSIScreenCommands(match[6])
-
-			pw.Writef(service, "%s\n", stripped)
 		}
 	}
 

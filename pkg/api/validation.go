@@ -41,7 +41,7 @@ func (s *Server) ReleasePromoteValidate(c *stdapi.Context) error {
 		return err
 	}
 
-	if a.Status != "running" {
+	if c.Form("force") != "true" && a.Status != "running" {
 		return stdapi.Errorf(403, "app is currently updating")
 	}
 

@@ -272,7 +272,9 @@ func RackParamsSet(rack sdk.Interface, c *stdcli.Context) error {
 	}
 
 	if c.Bool("wait") {
-		if err := waitForRackWithLogs(rack, c); err != nil {
+		c.Writef("\n")
+
+		if err := helpers.WaitForRackWithLogs(rack, c); err != nil {
 			return err
 		}
 	}
@@ -428,7 +430,9 @@ func RackUpdate(rack sdk.Interface, c *stdcli.Context) error {
 	}
 
 	if c.Bool("wait") {
-		if err := waitForRackWithLogs(rack, c); err != nil {
+		c.Writef("\n")
+
+		if err := helpers.WaitForRackWithLogs(rack, c); err != nil {
 			return err
 		}
 	}
@@ -439,7 +443,9 @@ func RackUpdate(rack sdk.Interface, c *stdcli.Context) error {
 func RackWait(rack sdk.Interface, c *stdcli.Context) error {
 	c.Startf("Waiting for rack")
 
-	if err := waitForRackWithLogs(rack, c); err != nil {
+	c.Writef("\n")
+
+	if err := helpers.WaitForRackWithLogs(rack, c); err != nil {
 		return err
 	}
 

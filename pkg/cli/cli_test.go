@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/convox/rack/pkg/cli"
+	"github.com/convox/rack/pkg/helpers"
 	mocksdk "github.com/convox/rack/pkg/mock/sdk"
 	"github.com/convox/rack/pkg/structs"
 	shellquote "github.com/kballard/go-shellquote"
@@ -28,7 +29,7 @@ var (
 )
 
 func testClient(t *testing.T, fn func(*cli.Engine, *mocksdk.Interface)) {
-	testClientWait(t, 0*time.Second, fn)
+	testClientWait(t, 1, fn)
 }
 
 func testClientWait(t *testing.T, wait time.Duration, fn func(*cli.Engine, *mocksdk.Interface)) {
@@ -40,6 +41,7 @@ func testClientWait(t *testing.T, wait time.Duration, fn func(*cli.Engine, *mock
 	i := &mocksdk.Interface{}
 
 	cli.WaitDuration = wait
+	helpers.ProviderWaitDuration = wait
 
 	e := cli.New("convox", "test")
 
