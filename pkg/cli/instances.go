@@ -56,7 +56,9 @@ func InstancesKeyroll(rack sdk.Interface, c *stdcli.Context) error {
 	}
 
 	if c.Bool("wait") {
-		if err := waitForRackWithLogs(rack, c); err != nil {
+		c.Writef("\n")
+
+		if err := helpers.WaitForRackWithLogs(rack, c); err != nil {
 			return err
 		}
 	}

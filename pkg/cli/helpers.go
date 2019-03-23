@@ -1,14 +1,11 @@
 package cli
 
 import (
-	"bufio"
-	"context"
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/url"
 	"os"
 	"os/signal"
@@ -19,7 +16,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/convox/rack/pkg/options"
+	"github.com/convox/rack/pkg/helpers"
 	"github.com/convox/rack/pkg/structs"
 	"github.com/convox/rack/sdk"
 	"github.com/convox/stdcli"
@@ -48,28 +45,6 @@ func coalesce(ss ...string) string {
 	}
 
 	return ""
-}
-
-func copySystemLogs(ctx context.Context, w io.Writer, r io.Reader) {
-	s := bufio.NewScanner(r)
-
-	for s.Scan() {
-		select {
-		case <-ctx.Done():
-			return
-		default:
-		}
-
-		parts := strings.SplitN(s.Text(), " ", 3)
-
-		if len(parts) < 3 {
-			continue
-		}
-
-		if strings.HasPrefix(parts[1], "system/") {
-			w.Write([]byte(fmt.Sprintf("%s\n", s.Text())))
-		}
-	}
 }
 
 func currentHost(c *stdcli.Context) (string, error) {
@@ -391,172 +366,8 @@ func remoteRacks(c *stdcli.Context) ([]rack, error) {
 	return racks, nil
 }
 
-func streamAppLogs(ctx context.Context, rack sdk.Interface, c *stdcli.Context, app string) {
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		default:
-		}
-
-		r, err := rack.AppLogs(app, structs.LogsOptions{Prefix: options.Bool(true), Since: options.Duration(5 * time.Second)})
-		if err != nil {
-			return
-		}
-
-		copySystemLogs(ctx, c, r)
-
-		time.Sleep(1 * time.Second)
-	}
-}
-
-func streamRackSystemLogs(ctx context.Context, rack sdk.Interface, c *stdcli.Context) {
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		default:
-		}
-
-		r, err := rack.SystemLogs(structs.LogsOptions{Prefix: options.Bool(true), Since: options.Duration(5 * time.Second)})
-		if err != nil {
-			return
-		}
-
-		copySystemLogs(ctx, c, r)
-
-		time.Sleep(1 * time.Second)
-	}
-}
-
 func tag(name, value string) string {
 	return fmt.Sprintf("<%s>%s</%s>", name, value, name)
-}
-
-func wait(interval time.Duration, timeout time.Duration, times int, fn func() (bool, error)) error {
-	successes := 0
-	errors := 0
-	start := time.Now().UTC()
-
-	for {
-		if start.Add(timeout).Before(time.Now().UTC()) {
-			return fmt.Errorf("timeout")
-		}
-
-		success, err := fn()
-		if err != nil {
-			errors += 1
-		} else {
-			errors = 0
-		}
-
-		if errors >= times {
-			return err
-		}
-
-		if success {
-			successes += 1
-		} else {
-			successes = 0
-		}
-
-		if successes >= times {
-			return nil
-		}
-
-		time.Sleep(interval)
-	}
-}
-
-func waitForAppDeleted(rack sdk.Interface, c *stdcli.Context, app string) error {
-	time.Sleep(WaitDuration) // give the stack time to start updating
-
-	return wait(WaitDuration, 30*time.Minute, 2, func() (bool, error) {
-		_, err := rack.AppGet(app)
-		if err == nil {
-			return false, nil
-		}
-		if strings.Contains(err.Error(), "no such app") {
-			return true, nil
-		}
-		if strings.Contains(err.Error(), "app not found") {
-			return true, nil
-		}
-		return false, err
-	})
-}
-
-func waitForAppRunning(rack sdk.Interface, app string) error {
-	time.Sleep(WaitDuration) // give the stack time to start updating
-
-	var waitError error
-
-	return wait(WaitDuration, 30*time.Minute, 2, func() (bool, error) {
-		a, err := rack.AppGet(app)
-		if err != nil {
-			return false, err
-		}
-
-		if a.Status == "rollback" {
-			waitError = fmt.Errorf("rollback")
-		}
-
-		return a.Status == "running", waitError
-	})
-}
-
-func waitForAppWithLogs(rack sdk.Interface, c *stdcli.Context, app string) error {
-	c.Writef("\n")
-
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	go streamAppLogs(ctx, rack, c, app)
-
-	if err := waitForAppRunning(rack, app); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func waitForProcessRunning(rack sdk.Interface, c *stdcli.Context, app, pid string) error {
-	return wait(1*time.Second, 5*time.Minute, 2, func() (bool, error) {
-		ps, err := rack.ProcessGet(app, pid)
-		if err != nil {
-			return false, err
-		}
-
-		return ps.Status == "running", nil
-	})
-}
-
-func waitForRackRunning(rack sdk.Interface, c *stdcli.Context) error {
-	time.Sleep(WaitDuration) // give the stack time to start updating
-
-	return wait(WaitDuration, 30*time.Minute, 2, func() (bool, error) {
-		s, err := rack.SystemGet()
-		if err != nil {
-			return false, err
-		}
-
-		return s.Status == "running", nil
-	})
-}
-
-func waitForRackWithLogs(rack sdk.Interface, c *stdcli.Context) error {
-	c.Writef("\n")
-
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	go streamRackSystemLogs(ctx, rack, c)
-
-	if err := waitForRackRunning(rack, c); err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func waitForResourceDeleted(rack sdk.Interface, c *stdcli.Context, resource string) error {
@@ -567,7 +378,7 @@ func waitForResourceDeleted(rack sdk.Interface, c *stdcli.Context, resource stri
 
 	time.Sleep(WaitDuration) // give the stack time to start updating
 
-	return wait(WaitDuration, 30*time.Minute, 2, func() (bool, error) {
+	return helpers.Wait(WaitDuration, 30*time.Minute, 2, func() (bool, error) {
 		var err error
 		if s.Version <= "20190111211123" {
 			_, err = rack.SystemResourceGetClassic(resource)
@@ -595,7 +406,7 @@ func waitForResourceRunning(rack sdk.Interface, c *stdcli.Context, resource stri
 
 	time.Sleep(WaitDuration) // give the stack time to start updating
 
-	return wait(WaitDuration, 30*time.Minute, 2, func() (bool, error) {
+	return helpers.Wait(WaitDuration, 30*time.Minute, 2, func() (bool, error) {
 		var r *structs.Resource
 		var err error
 
