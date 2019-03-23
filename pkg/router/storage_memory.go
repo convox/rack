@@ -111,6 +111,7 @@ func (b *StorageMemory) TargetAdd(host, target string) error {
 
 	ts[target] = true
 
+	b.activity.KeepAlive(target)
 	b.routes.Store(host, ts)
 
 	return nil
@@ -215,6 +216,12 @@ func (t *activityTracker) Count(key string) (int64, error) {
 
 func (t *activityTracker) End(key string) error {
 	return t.addCount(key, -1)
+}
+
+func (t *activityTracker) KeepAlive(key string) error {
+	t.activity.Store(key, time.Now().UTC())
+
+	return nil
 }
 
 func (t *activityTracker) addCount(key string, n int64) error {
