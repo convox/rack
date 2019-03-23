@@ -85,7 +85,7 @@ func (c *EventController) Add(obj interface{}) error {
 		}
 
 		if app := d.ObjectMeta.Labels["app"]; app != "" {
-			if err := c.Provider.Engine.Log(app, "system", "k8s", d.Name, e.LastTimestamp.Time, e.Message); err != nil {
+			if err := c.Provider.systemLog(app, d.Name, e.LastTimestamp.Time, e.Message); err != nil {
 				return err
 			}
 		}
@@ -96,7 +96,7 @@ func (c *EventController) Add(obj interface{}) error {
 		}
 
 		if app := rs.ObjectMeta.Labels["app"]; app != "" {
-			if err := c.Provider.Engine.Log(app, "system", "k8s", rs.Name, e.LastTimestamp.Time, e.Message); err != nil {
+			if err := c.Provider.systemLog(app, rs.Name, e.LastTimestamp.Time, e.Message); err != nil {
 				return err
 			}
 		}
@@ -107,7 +107,7 @@ func (c *EventController) Add(obj interface{}) error {
 		}
 
 		if app := a.ObjectMeta.Labels["app"]; app != "" {
-			if err := c.Provider.Engine.Log(app, "system", "k8s", a.Name, e.LastTimestamp.Time, e.Message); err != nil {
+			if err := c.Provider.systemLog(app, a.Name, e.LastTimestamp.Time, e.Message); err != nil {
 				return err
 			}
 		}
@@ -122,7 +122,7 @@ func (c *EventController) Add(obj interface{}) error {
 			}
 
 			if app := p.ObjectMeta.Labels["app"]; app != "" {
-				if err := c.Provider.Engine.Log(app, "system", "k8s", p.Name, e.LastTimestamp.Time, e.Message); err != nil {
+				if err := c.Provider.systemLog(app, p.Name, e.LastTimestamp.Time, e.Message); err != nil {
 					return err
 				}
 			}

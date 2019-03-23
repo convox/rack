@@ -142,7 +142,7 @@ func AppsCreate(rack sdk.Interface, c *stdcli.Context) error {
 	}
 
 	if c.Bool("wait") {
-		if err := waitForAppRunning(rack, app); err != nil {
+		if err := helpers.WaitForAppRunning(rack, app); err != nil {
 			return err
 		}
 	}
@@ -160,7 +160,7 @@ func AppsDelete(rack sdk.Interface, c *stdcli.Context) error {
 	}
 
 	if c.Bool("wait") {
-		if err := waitForAppDeleted(rack, c, app); err != nil {
+		if err := helpers.WaitForAppDeleted(rack, c, app); err != nil {
 			return err
 		}
 	}
@@ -324,7 +324,9 @@ func AppsParamsSet(rack sdk.Interface, c *stdcli.Context) error {
 	}
 
 	if c.Bool("wait") {
-		if err := waitForAppWithLogs(rack, c, app(c)); err != nil {
+		c.Writef("\n")
+
+		if err := helpers.WaitForAppWithLogs(rack, c, app(c)); err != nil {
 			return err
 		}
 	}
@@ -349,7 +351,9 @@ func AppsWait(rack sdk.Interface, c *stdcli.Context) error {
 
 	c.Startf("Waiting for app")
 
-	if err := waitForAppWithLogs(rack, c, app); err != nil {
+	c.Writef("\n")
+
+	if err := helpers.WaitForAppWithLogs(rack, c, app); err != nil {
 		return err
 	}
 
@@ -467,7 +471,7 @@ func appImport(rack sdk.Interface, c *stdcli.Context, app string, r io.Reader) e
 		return err
 	}
 
-	if err := waitForAppRunning(rack, app); err != nil {
+	if err := helpers.WaitForAppRunning(rack, app); err != nil {
 		return err
 	}
 
@@ -520,7 +524,7 @@ func appImport(rack sdk.Interface, c *stdcli.Context, app string, r io.Reader) e
 			return err
 		}
 
-		if err := waitForAppRunning(rack, app); err != nil {
+		if err := helpers.WaitForAppRunning(rack, app); err != nil {
 			return err
 		}
 
@@ -549,7 +553,7 @@ func appImport(rack sdk.Interface, c *stdcli.Context, app string, r io.Reader) e
 				return err
 			}
 
-			if err := waitForAppRunning(rack, app); err != nil {
+			if err := helpers.WaitForAppRunning(rack, app); err != nil {
 				return err
 			}
 

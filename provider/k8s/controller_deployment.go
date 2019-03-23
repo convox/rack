@@ -2,7 +2,10 @@ package k8s
 
 import (
 	"fmt"
+	"time"
 
+	"github.com/convox/rack/pkg/options"
+	"github.com/convox/rack/pkg/structs"
 	ac "k8s.io/api/core/v1"
 	ae "k8s.io/api/extensions/v1beta1"
 	am "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -98,14 +101,105 @@ func (c *DeploymentController) Update(prev, cur interface{}) error {
 
 	fmt.Printf("deployment update: %s/%s\n", cd.ObjectMeta.Namespace, cd.ObjectMeta.Name)
 
-	sc, rc := deploymentCondition(cd, "Progressing")
-	sp, _ := deploymentCondition(pd, "Progressing")
-
-	if sc == "False" && sp == "True" && rc == "ProgressDeadlineExceeded" {
-		fmt.Printf("rollback: %s/%s\n", cd.ObjectMeta.Namespace, cd.ObjectMeta.Name)
+	switch {
+	case deploymentConditionReason(cd, "Progressing") == "NewReplicaSetAvailable" && deploymentConditionReason(pd, "Progressing") != "NewReplicaSetAvailable":
+		if cd.ObjectMeta.Labels["app"] != "" && cd.ObjectMeta.Labels["release"] != "" {
+			if err := c.Provider.serviceInstall(cd.ObjectMeta.Labels["app"], cd.ObjectMeta.Labels["release"], cd.Name); err != nil {
+				return err
+			}
+		}
+	case deploymentCondition(cd, "Progressing") == "False" && deploymentCondition(pd, "Progressing") == "True" && deploymentConditionReason(cd, "Progressing") == "ProgressDeadlineExceeded":
+		if err := c.deploymentRollback(cd); err != nil {
+			return err
+		}
+	case deploymentCondition(cd, "Rollback") == "True" && cd.Status.UnavailableReplicas == 0:
+		go func() {
+			time.Sleep(10 * time.Second)
+			c.setDeploymentCondition(cd, "Rollback", "False", "")
+		}()
 	}
 
-	// if deploymentCondition(cd, "
+	return nil
+}
+
+func (c *DeploymentController) deploymentLog(d *ae.Deployment, message string) error {
+	return c.Provider.systemLog(d.ObjectMeta.Labels["app"], d.Name, time.Now().UTC(), message)
+}
+
+func (c *DeploymentController) deploymentRollback(d *ae.Deployment) error {
+	app := d.ObjectMeta.Labels["app"]
+	if app == "" {
+		return nil
+	}
+
+	c.deploymentLog(d, "Promotion timeout")
+
+	if rollback := d.ObjectMeta.Annotations["convox.rollback"]; rollback != "" {
+		c.deploymentLog(d, fmt.Sprintf("Rolling back to %s", rollback))
+
+		if err := c.Provider.Engine.ReleasePromote(app, rollback, structs.ReleasePromoteOptions{}); err != nil {
+			fmt.Printf("err = %+v\n", err)
+			return err
+		}
+	} else {
+		c.deploymentLog(d, "Rolling back")
+
+		if err := c.deploymentScale(d, 0); err != nil {
+			fmt.Printf("err = %+v\n", err)
+			return err
+		}
+	}
+
+	if err := c.setDeploymentCondition(d, "Rollback", "True", "ProgressDeadlineExceeded"); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (c *DeploymentController) deploymentScale(d *ae.Deployment, count int32) error {
+	ud, err := c.Provider.Cluster.ExtensionsV1beta1().Deployments(d.ObjectMeta.Namespace).Get(d.ObjectMeta.Name, am.GetOptions{})
+	if err != nil {
+		return err
+	}
+
+	ud.Spec.Replicas = options.Int32(count)
+
+	if _, err := c.Client().ExtensionsV1beta1().Deployments(d.ObjectMeta.Namespace).Update(ud); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (c *DeploymentController) setDeploymentCondition(d *ae.Deployment, name, status, reason string) error {
+	ud, err := c.Provider.Cluster.ExtensionsV1beta1().Deployments(d.ObjectMeta.Namespace).Get(d.ObjectMeta.Name, am.GetOptions{ResourceVersion: d.ResourceVersion})
+	if err != nil {
+		return err
+	}
+
+	found := false
+
+	for i, sc := range ud.Status.Conditions {
+		if sc.Type == ae.DeploymentConditionType(name) {
+			ud.Status.Conditions[i].Reason = reason
+			ud.Status.Conditions[i].Status = ac.ConditionStatus(status)
+			found = true
+			break
+		}
+	}
+
+	if !found {
+		ud.Status.Conditions = append(ud.Status.Conditions, ae.DeploymentCondition{
+			Reason: reason,
+			Status: ac.ConditionStatus(status),
+			Type:   ae.DeploymentConditionType(name),
+		})
+	}
+
+	if _, err := c.Provider.Cluster.ExtensionsV1beta1().Deployments(ud.ObjectMeta.Namespace).UpdateStatus(ud); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -119,12 +213,22 @@ func assertDeployment(v interface{}) (*ae.Deployment, error) {
 	return d, nil
 }
 
-func deploymentCondition(d *ae.Deployment, name string) (string, string) {
+func deploymentCondition(d *ae.Deployment, name string) string {
 	for _, c := range d.Status.Conditions {
 		if string(c.Type) == name {
-			return string(c.Status), c.Reason
+			return string(c.Status)
 		}
 	}
 
-	return "", ""
+	return ""
+}
+
+func deploymentConditionReason(d *ae.Deployment, name string) string {
+	for _, c := range d.Status.Conditions {
+		if string(c.Type) == name {
+			return c.Reason
+		}
+	}
+
+	return ""
 }

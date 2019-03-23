@@ -68,6 +68,10 @@ func (p *Provider) SystemInstall(w io.Writer, opts structs.SystemInstallOptions)
 		return "", err
 	}
 
+	if err := networkSetup(); err != nil {
+		return "", err
+	}
+
 	if err := dnsInstall(name); err != nil {
 		return "", err
 	}
@@ -224,7 +228,8 @@ func checkKubectl() error {
 }
 
 func endpointWait(url string) error {
-	tick := time.Tick(2 * time.Second)
+	tick := time.NewTicker(2 * time.Second)
+	defer tick.Stop()
 	timeout := time.After(5 * time.Minute)
 
 	ht := *(http.DefaultTransport.(*http.Transport))
@@ -233,7 +238,7 @@ func endpointWait(url string) error {
 
 	for {
 		select {
-		case <-tick:
+		case <-tick.C:
 			res, err := hc.Get(fmt.Sprintf("%s/apps", url))
 			if err == nil && res.StatusCode == 200 {
 				return nil

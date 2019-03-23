@@ -159,13 +159,31 @@ func (s *Start) Start2(ctx context.Context, w io.Writer, opts Options2) error {
 
 		popts := structs.ReleasePromoteOptions{
 			Development: options.Bool(true),
+			Force:       options.Bool(true),
 			Min:         options.Int(0),
+			Timeout:     options.Int(180),
 		}
 
 		if err := opts.Provider.ReleasePromote(opts.App, b.Release, popts); err != nil {
 			return errors.WithStack(err)
 		}
+
+		// r, w := io.Pipe()
+
+		// go timestampStripper(ctx, pw, r)
+
+		// if err := helpers.WaitForAppWithLogsContext(ctx, opts.Provider, w, opts.App); err != nil {
+		//   return err
+		// }
+
+		// select {
+		// case <-ctx.Done():
+		//   return nil
+		// default:
+		// }
 	}
+
+	go opts.streamLogs(ctx, pw, services)
 
 	errch := make(chan error)
 	defer close(errch)
@@ -177,7 +195,7 @@ func (s *Start) Start2(ctx context.Context, w io.Writer, opts Options2) error {
 		return errors.WithStack(err)
 	}
 
-	var wg sync.WaitGroup
+	// var wg sync.WaitGroup
 
 	for _, s := range m.Services {
 		if !services[s.Name] {
@@ -188,15 +206,17 @@ func (s *Start) Start2(ctx context.Context, w io.Writer, opts Options2) error {
 			go opts.watchChanges(ctx, pw, m, s.Name, wd, errch)
 		}
 
-		if s.Port.Port > 0 {
-			wg.Add(1)
-			go opts.healthCheck(ctx, pw, s, errch, &wg)
-		}
+		// if s.Port.Port > 0 {
+		//   wg.Add(1)
+		//   go opts.healthCheck(ctx, pw, s, errch, &wg)
+		// }
 	}
 
-	wg.Wait()
+	// wg.Wait()
 
-	go opts.streamLogs(ctx, pw, services)
+	if err := helpers.WaitForAppRunningContext(ctx, opts.Provider, opts.App); err != nil {
+		return err
+	}
 
 	<-ctx.Done()
 
@@ -204,6 +224,8 @@ func (s *Start) Start2(ctx context.Context, w io.Writer, opts Options2) error {
 	if err != nil {
 		return nil
 	}
+
+	var wg sync.WaitGroup
 
 	wg.Add(len(pss))
 
@@ -731,7 +753,9 @@ func handleErrors(ctx context.Context, pw prefix.Writer, errch chan error) {
 		case <-ctx.Done():
 			return
 		case err := <-errch:
-			pw.Writef("convox", "<error>error: %s</error>\n", err)
+			if err != nil {
+				pw.Writef("convox", "<error>error: %s</error>\n", err)
+			}
 		}
 	}
 }
@@ -773,15 +797,26 @@ func writeLogs(ctx context.Context, pw prefix.Writer, r io.Reader, services map[
 				continue
 			}
 
-			service := strings.Split(match[4], ":")[0]
+			switch match[3] {
+			case "service":
+				service := match[4]
 
-			if !services[service] {
-				continue
+				if !services[service] {
+					continue
+				}
+
+				stripped := stripANSIScreenCommands(match[6])
+
+				pw.Writef(service, "%s\n", stripped)
+			case "system":
+				service := strings.Split(match[5], "-")[0]
+
+				if !services[service] {
+					continue
+				}
+
+				pw.Writef(service, "%s\n", match[6])
 			}
-
-			stripped := stripANSIScreenCommands(match[6])
-
-			pw.Writef(service, "%s\n", stripped)
 		}
 	}
 
@@ -789,3 +824,27 @@ func writeLogs(ctx context.Context, pw prefix.Writer, r io.Reader, services map[
 		pw.Writef("convox", "scan error: %s\n", err)
 	}
 }
+
+// func timestampStripper(ctx context.Context, w prefix.Writer, r io.Reader) {
+//   s := bufio.NewScanner(r)
+
+//   s.Buffer(make([]byte, ScannerStartSize), ScannerMaxSize)
+
+//   for s.Scan() {
+//     select {
+//     case <-ctx.Done():
+//       return
+//     default:
+//       match := reAppLog.FindStringSubmatch(s.Text())
+
+//       if len(match) != 7 {
+//         continue
+//       }
+
+//       switch match[3] {
+//       case "service", "system":
+//         w.Writef(strings.Split(match[5], "-")[0], fmt.Sprintf("%s\n", match[6]))
+//       }
+//     }
+//   }
+// }
