@@ -14,8 +14,9 @@ import (
 
 var logs = logstore.New()
 
-func (p *Provider) Log(app, kind, name, id string, ts time.Time, message string) error {
-	logs.Append(app, fmt.Sprintf("%s/%s/%s", kind, name, id), ts, message)
+func (p *Provider) Log(group, stream string, ts time.Time, message string) error {
+	logs.Append(group, ts, stream, message)
+	logs.Append(fmt.Sprintf("%s/%s", group, stream), ts, stream, message)
 
 	return nil
 }
@@ -23,7 +24,7 @@ func (p *Provider) Log(app, kind, name, id string, ts time.Time, message string)
 func (p *Provider) AppLogs(name string, opts structs.LogsOptions) (io.ReadCloser, error) {
 	r, w := io.Pipe()
 
-	go subscribeLogs(p.Context(), w, logs.Group(name).Subscribe, opts)
+	go subscribeLogs(p.Context(), w, name, opts)
 
 	return r, nil
 }
@@ -58,13 +59,13 @@ func (p *Provider) ProcessLogs(app, pid string, opts structs.LogsOptions) (io.Re
 		return nil, err
 	}
 
-	key := fmt.Sprintf("service/%s/%s", ps.Name, pid)
+	stream := fmt.Sprintf("%s/service/%s/%s", app, ps.Name, pid)
 
 	r, w := io.Pipe()
 
 	ctx, cancel := context.WithCancel(p.Context())
 
-	go subscribeLogs(ctx, w, logs.Group(app).Stream(key).Subscribe, opts)
+	go subscribeLogs(ctx, w, stream, opts)
 	go p.watchForProcessTermination(ctx, app, pid, cancel)
 
 	return r, nil
@@ -73,20 +74,23 @@ func (p *Provider) ProcessLogs(app, pid string, opts structs.LogsOptions) (io.Re
 func (p *Provider) SystemLogs(opts structs.LogsOptions) (io.ReadCloser, error) {
 	r, w := io.Pipe()
 
-	go subscribeLogs(p.Context(), w, logs.Group("rack").Subscribe, opts)
+	go subscribeLogs(p.Context(), w, "rack", opts)
 
 	return r, nil
 }
 
-func subscribeLogs(ctx context.Context, w io.WriteCloser, sub logstore.Subscribe, opts structs.LogsOptions) {
+func subscribeLogs(ctx context.Context, w io.WriteCloser, stream string, opts structs.LogsOptions) {
 	defer w.Close()
 
-	ch := make(chan logstore.Log)
+	ch := make(chan logstore.Log, 1000)
 
 	sctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	go sub(sctx, ch, time.Now().UTC().Add(-1*helpers.DefaultDuration(opts.Since, 0)), helpers.DefaultBool(opts.Follow, true))
+	since := time.Now().UTC().Add(-1 * helpers.DefaultDuration(opts.Since, 0))
+	follow := helpers.DefaultBool(opts.Follow, true)
+
+	logs.Subscribe(sctx, ch, stream, since, follow)
 
 	for {
 		select {
@@ -98,7 +102,7 @@ func subscribeLogs(ctx context.Context, w io.WriteCloser, sub logstore.Subscribe
 			}
 			prefix := ""
 			if helpers.DefaultBool(opts.Prefix, false) {
-				prefix = fmt.Sprintf("%s %s ", l.Timestamp.Format(time.RFC3339), l.Stream)
+				prefix = fmt.Sprintf("%s %s ", l.Timestamp.Format(time.RFC3339), l.Prefix)
 			}
 			if _, err := fmt.Fprintf(w, "%s%s\n", prefix, l.Message); err != nil {
 				return
