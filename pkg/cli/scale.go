@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"sort"
 
+	"github.com/convox/rack/pkg/helpers"
 	"github.com/convox/rack/pkg/structs"
 	"github.com/convox/rack/sdk"
 	"github.com/convox/stdcli"
@@ -55,7 +56,9 @@ func Scale(rack sdk.Interface, c *stdcli.Context) error {
 		}
 
 		if c.Bool("wait") {
-			if err := waitForAppWithLogs(rack, c, app(c)); err != nil {
+			c.Writef("\n")
+
+			if err := helpers.WaitForAppWithLogs(rack, c, app(c)); err != nil {
 				return err
 			}
 		}

@@ -143,7 +143,7 @@ func releasePromote(rack sdk.Interface, c *stdcli.Context, app, id string) error
 	if a.Status != "running" {
 		c.Startf("Waiting for app to be ready")
 
-		if err := waitForAppRunning(rack, app); err != nil {
+		if err := helpers.WaitForAppRunning(rack, app); err != nil {
 			return err
 		}
 
@@ -157,7 +157,9 @@ func releasePromote(rack sdk.Interface, c *stdcli.Context, app, id string) error
 	}
 
 	if c.Bool("wait") {
-		if err := waitForAppWithLogs(rack, c, app); err != nil {
+		c.Writef("\n")
+
+		if err := helpers.WaitForAppWithLogs(rack, c, app); err != nil {
 			return err
 		}
 	}
@@ -199,7 +201,9 @@ func ReleasesRollback(rack sdk.Interface, c *stdcli.Context) error {
 	}
 
 	if c.Bool("wait") {
-		if err := waitForAppWithLogs(rack, c, app(c)); err != nil {
+		c.Writef("\n")
+
+		if err := helpers.WaitForAppWithLogs(rack, c, app(c)); err != nil {
 			return err
 		}
 	}
