@@ -99,11 +99,12 @@ func TestResourcesProxy(t *testing.T) {
 		ch := make(chan *result)
 
 		go func() {
-			res, _ := testExecute(e, fmt.Sprintf("resources proxy resource1 -a app1 -p %d", port), nil)
+			res, err := testExecute(e, fmt.Sprintf("resources proxy resource1 -a app1 -p %d", port), nil)
+			fmt.Printf("err = %+v\n", err)
 			ch <- res
 		}()
 
-		time.Sleep(50 * time.Millisecond)
+		time.Sleep(2 * time.Second)
 
 		cn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", port))
 		require.NoError(t, err)

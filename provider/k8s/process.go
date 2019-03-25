@@ -228,6 +228,22 @@ func (p *Provider) podSpecFromService(app, service, release string) (*ac.PodSpec
 
 	vs := []ac.Volume{}
 
+	c.VolumeMounts = append(c.VolumeMounts, ac.VolumeMount{
+		Name:      "ca",
+		MountPath: "/etc/convox",
+	})
+
+	vs = append(vs, ac.Volume{
+		Name: "ca",
+		VolumeSource: ac.VolumeSource{
+			ConfigMap: &ac.ConfigMapVolumeSource{
+				LocalObjectReference: ac.LocalObjectReference{
+					Name: "ca",
+				},
+			},
+		},
+	})
+
 	if release != "" {
 		m, r, err := helpers.ReleaseManifest(p, app, release)
 		if err != nil {

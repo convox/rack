@@ -24,5 +24,5 @@ before_install:
 script:
   - ./ci/set-client-id.sh
   - go get ./cmd/convox
-  - make test
+  - travis_wait make test
   - curl -s https://codecov.io/bash | bash

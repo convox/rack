@@ -110,11 +110,16 @@ spec:
             memory: "{{.}}Mi"
             {{ end }}
         volumeMounts:
+        - name: ca
+          mountPath: /etc/convox
         {{ range .Service.Volumes }}
         - name: {{ volumeName $.App.Name (volumeFrom $.App.Name $.Service.Name .) }}
           mountPath: "{{ volumeTo . }}" 
         {{ end }}
       volumes:
+      - name: ca
+        configMap:
+          name: ca
       {{ range (volumeSources $.App.Name .Service.Name .Service.Volumes) }}
       - name: {{ volumeName $.App.Name . }}
         {{ if systemVolume . }}
