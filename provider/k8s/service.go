@@ -20,15 +20,16 @@ func (p *Provider) ServiceList(app string) (structs.Services, error) {
 		return nil, err
 	}
 
-	r, err := helpers.ReleaseLatest(p, app)
+	a, err := p.AppGet(app)
 	if err != nil {
 		return nil, err
 	}
-	if r == nil {
+
+	if a.Release == "" {
 		return structs.Services{}, nil
 	}
 
-	m, _, err := helpers.ReleaseManifest(p, app, r.Id)
+	m, _, err := helpers.ReleaseManifest(p, app, a.Release)
 	if err != nil {
 		return nil, err
 	}
