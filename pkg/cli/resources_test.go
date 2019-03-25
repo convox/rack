@@ -103,7 +103,7 @@ func TestResourcesProxy(t *testing.T) {
 			ch <- res
 		}()
 
-		time.Sleep(50 * time.Millisecond)
+		time.Sleep(2 * time.Second)
 
 		cn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", port))
 		require.NoError(t, err)
