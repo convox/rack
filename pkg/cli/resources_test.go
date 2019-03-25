@@ -99,7 +99,8 @@ func TestResourcesProxy(t *testing.T) {
 		ch := make(chan *result)
 
 		go func() {
-			res, _ := testExecute(e, fmt.Sprintf("resources proxy resource1 -a app1 -p %d", port), nil)
+			res, err := testExecute(e, fmt.Sprintf("resources proxy resource1 -a app1 -p %d", port), nil)
+			fmt.Printf("err = %+v\n", err)
 			ch <- res
 		}()
 
