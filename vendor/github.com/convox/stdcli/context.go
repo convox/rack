@@ -1,6 +1,7 @@
 package stdcli
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"reflect"
@@ -11,6 +12,8 @@ import (
 )
 
 type Context struct {
+	context.Context
+
 	Args  []string
 	Flags []*Flag
 

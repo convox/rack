@@ -228,7 +228,9 @@ func ResourcesProxy(rack sdk.Interface, c *stdcli.Context) error {
 
 	go proxy(rack, c, port, remotehost, rpi, c.Bool("tls"))
 
-	return <-ProxyCloser
+	<-c.Done()
+
+	return nil
 }
 
 func ResourcesUrl(rack sdk.Interface, c *stdcli.Context) error {
@@ -534,7 +536,9 @@ func RackResourcesProxy(rack sdk.Interface, c *stdcli.Context) error {
 
 	go proxy(rack, c, port, remotehost, rpi, c.Bool("tls"))
 
-	return <-ProxyCloser
+	<-c.Done()
+
+	return nil
 }
 
 func RackResourcesTypes(rack sdk.Interface, c *stdcli.Context) error {

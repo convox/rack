@@ -1,6 +1,7 @@
 package stdcli
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -30,7 +31,14 @@ type CommandOptions struct {
 
 type HandlerFunc func(*Context) error
 
-func (c *Command) Execute(args []string) error {
+// func (c *Command) Execute(args []string) error {
+//   ctx, cancel := context.WithCancel(context.Background())
+//   defer cancel()
+
+//   return c.ExecuteContext(ctx, args)
+// }
+
+func (c *Command) ExecuteContext(ctx context.Context, args []string) error {
 	fs := pflag.NewFlagSet("", pflag.ContinueOnError)
 	fs.Usage = func() { helpCommand(c.engine, c) }
 
@@ -56,19 +64,20 @@ func (c *Command) Execute(args []string) error {
 		return err
 	}
 
-	ctx := &Context{
-		Args:   fs.Args(),
-		Flags:  flags,
-		engine: c.engine,
+	cc := &Context{
+		Context: ctx,
+		Args:    fs.Args(),
+		Flags:   flags,
+		engine:  c.engine,
 	}
 
 	if c.Validate != nil {
-		if err := c.Validate(ctx); err != nil {
+		if err := c.Validate(cc); err != nil {
 			return err
 		}
 	}
 
-	if err := c.Handler(ctx); err != nil {
+	if err := c.Handler(cc); err != nil {
 		return err
 	}
 
