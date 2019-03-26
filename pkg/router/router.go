@@ -68,6 +68,10 @@ func New() (*Router, error) {
 		r.storage = NewStorageMemory()
 	}
 
+	if err := r.backend.Start(); err != nil {
+		return nil, err
+	}
+
 	if err := r.setupDNS(); err != nil {
 		return nil, err
 	}
