@@ -10,6 +10,7 @@ type Backend interface {
 	ExternalIP(remote net.Addr) string
 	IdleGet(target string) (bool, error)
 	IdleSet(target string, idle bool) error
+	Start() error
 }
 
 type BackendRouter interface {
