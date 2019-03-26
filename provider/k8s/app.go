@@ -1,6 +1,7 @@
 package k8s
 
 import (
+	"encoding/base64"
 	"fmt"
 	"io"
 
@@ -20,13 +21,23 @@ func (p *Provider) AppCreate(name string, opts structs.AppCreateOptions) (*struc
 		return nil, fmt.Errorf("app already exists: %s", name)
 	}
 
+	ca, err := p.Cluster.CoreV1().Secrets("convox-system").Get("ca", am.GetOptions{})
+	if err != nil {
+		return nil, err
+	}
+
 	params := map[string]interface{}{
+		"CA":        base64.StdEncoding.EncodeToString(ca.Data["tls.crt"]),
 		"Name":      name,
 		"Namespace": p.AppNamespace(name),
 		"Rack":      p.Rack,
 	}
 
 	if out, err := p.ApplyTemplate("app", fmt.Sprintf("system=convox,provider=k8s,scope=app,rack=%s,app=%s", p.Rack, name), params); err != nil {
+		return nil, fmt.Errorf("create error: %s", string(out))
+	}
+
+	if out, err := p.ApplyTemplate("config", fmt.Sprintf("system=convox,provider=k8s,scope=config,rack=%s,app=%s", p.Rack, name), params); err != nil {
 		return nil, fmt.Errorf("create error: %s", string(out))
 	}
 
