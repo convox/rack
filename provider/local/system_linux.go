@@ -134,6 +134,13 @@ func removeOriginalRack(name string) error {
 	return nil
 }
 
+func restartKubernetes() error {
+	exec.Command("microk8s.stop").Run()
+	exec.Command("microk8s.start").Run()
+
+	return nil
+}
+
 func routerIP() (string, error) {
 	data, err := exec.Command("kubectl", "get", "service/resolver", "-n", "convox-system", "--template={{.spec.clusterIP}}").CombinedOutput()
 	if err != nil {
@@ -163,6 +170,10 @@ func trustCertificateDebian(name string, data []byte) error {
 		return fmt.Errorf("unable to add ca certificate to trusted roots")
 	}
 
+	if err := restartKubernetes(); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -177,6 +188,10 @@ func trustCertificateRedhat(name string, data []byte) error {
 
 	if err := exec.Command("update-ca-trust", "extract").Run(); err != nil {
 		return fmt.Errorf("unable to add ca certificate to trusted roots, try installing the 'ca-certificates' package")
+	}
+
+	if err := restartKubernetes(); err != nil {
+		return err
 	}
 
 	return nil
