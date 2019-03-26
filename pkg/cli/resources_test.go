@@ -1,6 +1,7 @@
 package cli_test
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -79,6 +80,10 @@ func TestResourcesInfoError(t *testing.T) {
 
 func TestResourcesProxy(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
+		i.On("WithContext", ctx).Return(i)
 		i.On("SystemGet").Return(fxSystem(), nil)
 		i.On("ResourceGet", "app1", "resource1").Return(fxResource(), nil)
 		i.On("Proxy", "example.org", 443, mock.Anything, structs.ProxyOptions{TLS: options.Bool(false)}).Return(nil).Run(func(args mock.Arguments) {
@@ -99,12 +104,11 @@ func TestResourcesProxy(t *testing.T) {
 		ch := make(chan *result)
 
 		go func() {
-			res, err := testExecute(e, fmt.Sprintf("resources proxy resource1 -a app1 -p %d", port), nil)
-			fmt.Printf("err = %+v\n", err)
+			res, _ := testExecuteContext(ctx, e, fmt.Sprintf("resources proxy resource1 -a app1 -p %d", port), nil)
 			ch <- res
 		}()
 
-		time.Sleep(2 * time.Second)
+		time.Sleep(500 * time.Millisecond)
 
 		cn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", port))
 		require.NoError(t, err)
@@ -115,7 +119,7 @@ func TestResourcesProxy(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, "out", string(data))
 
-		cli.ProxyCloser <- nil
+		cancel()
 
 		res := <-ch
 
@@ -346,6 +350,10 @@ func TestRackResourcesOptionsError(t *testing.T) {
 
 func TestRackResourcesProxy(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
+		i.On("WithContext", ctx).Return(i)
 		i.On("SystemGet").Return(fxSystem(), nil)
 		i.On("SystemResourceGet", "resource1").Return(fxResource(), nil)
 		i.On("Proxy", "example.org", 443, mock.Anything, structs.ProxyOptions{TLS: options.Bool(false)}).Return(nil).Run(func(args mock.Arguments) {
@@ -366,11 +374,11 @@ func TestRackResourcesProxy(t *testing.T) {
 		ch := make(chan *result)
 
 		go func() {
-			res, _ := testExecute(e, fmt.Sprintf("rack resources proxy resource1 -p %d", port), nil)
+			res, _ := testExecuteContext(ctx, e, fmt.Sprintf("rack resources proxy resource1 -p %d", port), nil)
 			ch <- res
 		}()
 
-		time.Sleep(50 * time.Millisecond)
+		time.Sleep(500 * time.Millisecond)
 
 		cn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", port))
 		require.NoError(t, err)
@@ -381,7 +389,7 @@ func TestRackResourcesProxy(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, "out", string(data))
 
-		cli.ProxyCloser <- nil
+		cancel()
 
 		res := <-ch
 

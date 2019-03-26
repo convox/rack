@@ -1,6 +1,7 @@
 package stdcli
 
 import (
+	"context"
 	"fmt"
 	"path/filepath"
 	"strings"
@@ -32,6 +33,13 @@ func (e *Engine) Command(command, description string, fn HandlerFunc, opts Comma
 }
 
 func (e *Engine) Execute(args []string) int {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	return e.ExecuteContext(ctx, args)
+}
+
+func (e *Engine) ExecuteContext(ctx context.Context, args []string) int {
 	if len(args) > 0 && (args[0] == "-v" || args[0] == "--version") {
 		fmt.Println(e.Version)
 		return 0
@@ -54,7 +62,7 @@ func (e *Engine) Execute(args []string) int {
 		m = &(e.Commands[0])
 	}
 
-	err := m.Execute(cargs)
+	err := m.ExecuteContext(ctx, cargs)
 	switch t := err.(type) {
 	case nil:
 		return 0
