@@ -3,7 +3,5 @@ kind: ConfigMap
 metadata:
   namespace: {{.Namespace}}
   name: ca
-  labels:
-    release: {{.Release.Id}}
 binaryData:
   ca.crt: "{{.CA}}"
