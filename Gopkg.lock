@@ -81,7 +81,7 @@
   version = "v1.2.0"
 
 [[projects]]
-  digest = "1:683be321aec693933f5f23c293df0ce4b7d45997a3710997dfef23ae1412139e"
+  digest = "1:c6b2c08e23390b4d482494713d205b542a73d3126c31ee3d675d272b30b31e75"
   name = "github.com/aws/aws-sdk-go"
   packages = [
     "aws",
@@ -120,9 +120,11 @@
     "service/acm",
     "service/autoscaling",
     "service/cloudformation",
+    "service/cloudformation/cloudformationiface",
     "service/cloudwatch",
     "service/cloudwatch/cloudwatchiface",
     "service/cloudwatchlogs",
+    "service/cloudwatchlogs/cloudwatchlogsiface",
     "service/dynamodb",
     "service/ec2",
     "service/ecr",
@@ -1228,9 +1230,11 @@
     "github.com/aws/aws-sdk-go/service/acm",
     "github.com/aws/aws-sdk-go/service/autoscaling",
     "github.com/aws/aws-sdk-go/service/cloudformation",
+    "github.com/aws/aws-sdk-go/service/cloudformation/cloudformationiface",
     "github.com/aws/aws-sdk-go/service/cloudwatch",
     "github.com/aws/aws-sdk-go/service/cloudwatch/cloudwatchiface",
     "github.com/aws/aws-sdk-go/service/cloudwatchlogs",
+    "github.com/aws/aws-sdk-go/service/cloudwatchlogs/cloudwatchlogsiface",
     "github.com/aws/aws-sdk-go/service/dynamodb",
     "github.com/aws/aws-sdk-go/service/ec2",
     "github.com/aws/aws-sdk-go/service/ecr",
