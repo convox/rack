@@ -73,7 +73,7 @@ func (c *IngressController) Add(obj interface{}) error {
 		for _, port := range r.IngressRuleValue.HTTP.Paths {
 			target := rulePathTarget(port, i.ObjectMeta)
 			c.controller.Event(i, ac.EventTypeNormal, "TargetAdd", fmt.Sprintf("%s => %s", r.Host, target))
-			c.router.TargetAdd(r.Host, target)
+			c.router.TargetAdd(r.Host, target, i.ObjectMeta.Annotations["convox.idles"] == "true")
 		}
 	}
 
@@ -114,7 +114,7 @@ func (c *IngressController) Update(prev, cur interface{}) error {
 		return err
 	}
 
-	if reflect.DeepEqual(pi.Spec, ci.Spec) {
+	if reflect.DeepEqual(pi.ObjectMeta.Annotations, ci.ObjectMeta.Annotations) && reflect.DeepEqual(pi.Spec, ci.Spec) {
 		return nil
 	}
 
