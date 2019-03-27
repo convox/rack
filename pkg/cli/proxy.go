@@ -23,7 +23,7 @@ func init() {
 	})
 }
 
-var ProxyCloser = make(chan error)
+// var ProxyCloser = make(chan error)
 
 func Proxy(rack sdk.Interface, c *stdcli.Context) error {
 	for _, arg := range c.Args {
@@ -67,40 +67,59 @@ func Proxy(rack sdk.Interface, c *stdcli.Context) error {
 		go proxy(rack, c, port, host, hostport, c.Bool("tls"))
 	}
 
-	// block until something sends data on this channel
-	return <-ProxyCloser
+	<-c.Done()
+
+	return nil
 }
 
 func proxy(rack sdk.Interface, c *stdcli.Context, localport int, remotehost string, remoteport int, secure bool) {
 	c.Writef("proxying localhost:%d to %s:%d\n", localport, remotehost, remoteport)
 
-	listener, err := net.Listen("tcp4", fmt.Sprintf("127.0.0.1:%d", localport))
+	lc := &net.ListenConfig{}
+
+	ln, err := lc.Listen(c.Context, "tcp4", fmt.Sprintf("127.0.0.1:%d", localport))
 	if err != nil {
 		c.Error(err)
 		return
 	}
+	defer ln.Close()
 
-	defer listener.Close()
+	ch := make(chan net.Conn)
+
+	go proxyAccept(c, ln, ch)
 
 	for {
-		cn, err := listener.Accept()
-		if err != nil {
-			c.Error(err)
+		select {
+		case <-c.Done():
 			return
+		case cn := <-ch:
+			c.Writef("connect: %d\n", localport)
+			go proxyConnection(c, cn, rack, remotehost, remoteport, secure)
 		}
+	}
+}
 
-		c.Writef("connect: %d\n", localport)
-
-		go func() {
-			defer cn.Close()
-
-			opts := structs.ProxyOptions{
-				TLS: options.Bool(secure),
+func proxyAccept(c *stdcli.Context, ln net.Listener, ch chan net.Conn) {
+	for {
+		select {
+		case <-c.Done():
+			return
+		default:
+			if cn, _ := ln.Accept(); cn != nil {
+				ch <- cn
 			}
+		}
+	}
+}
 
-			if err := rack.Proxy(remotehost, remoteport, cn, opts); err != nil {
-				c.Error(err)
-			}
-		}()
+func proxyConnection(c *stdcli.Context, cn net.Conn, rack sdk.Interface, remotehost string, remoteport int, secure bool) {
+	defer cn.Close()
+
+	opts := structs.ProxyOptions{
+		TLS: options.Bool(secure),
+	}
+
+	if err := rack.WithContext(c.Context).Proxy(remotehost, remoteport, cn, opts); err != nil {
+		c.Error(err)
 	}
 }

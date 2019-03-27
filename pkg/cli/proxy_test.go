@@ -1,6 +1,7 @@
 package cli_test
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -19,6 +20,10 @@ import (
 
 func TestProxy(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
+		i.On("WithContext", ctx).Return(i)
 		opts := structs.ProxyOptions{
 			TLS: options.Bool(false),
 		}
@@ -40,11 +45,12 @@ func TestProxy(t *testing.T) {
 		ch := make(chan *result)
 
 		go func() {
-			res, _ := testExecute(e, fmt.Sprintf("proxy %d:test.example.org:5000", port), nil)
+			res, err := testExecuteContext(ctx, e, fmt.Sprintf("proxy %d:test.example.org:5000", port), nil)
+			require.NoError(t, err)
 			ch <- res
 		}()
 
-		time.Sleep(50 * time.Millisecond)
+		time.Sleep(500 * time.Millisecond)
 
 		cn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", port))
 		require.NoError(t, err)
@@ -55,7 +61,7 @@ func TestProxy(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, "out", string(data))
 
-		cli.ProxyCloser <- nil
+		cancel()
 
 		res := <-ch
 
@@ -71,6 +77,10 @@ func TestProxy(t *testing.T) {
 
 func TestProxyError(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
+		i.On("WithContext", ctx).Return(i)
 		opts := structs.ProxyOptions{
 			TLS: options.Bool(false),
 		}
@@ -81,11 +91,12 @@ func TestProxyError(t *testing.T) {
 		ch := make(chan *result)
 
 		go func() {
-			res, _ := testExecute(e, fmt.Sprintf("proxy %d:test.example.org:5000", port), nil)
+			res, err := testExecuteContext(ctx, e, fmt.Sprintf("proxy %d:test.example.org:5000", port), nil)
+			require.NoError(t, err)
 			ch <- res
 		}()
 
-		time.Sleep(100 * time.Millisecond)
+		time.Sleep(500 * time.Millisecond)
 
 		cn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", port))
 		require.NoError(t, err)
@@ -96,7 +107,8 @@ func TestProxyError(t *testing.T) {
 		require.Error(t, err)
 		require.Len(t, data, 0)
 
-		cli.ProxyCloser <- nil
+		cancel()
+		// cli.ProxyCloser <- nil
 
 		res := <-ch
 

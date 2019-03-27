@@ -2,6 +2,7 @@ package cli_test
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -58,6 +59,13 @@ func testClientWait(t *testing.T, wait time.Duration, fn func(*cli.Engine, *mock
 }
 
 func testExecute(e *cli.Engine, cmd string, stdin io.Reader) (*result, error) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	return testExecuteContext(ctx, e, cmd, stdin)
+}
+
+func testExecuteContext(ctx context.Context, e *cli.Engine, cmd string, stdin io.Reader) (*result, error) {
 	if stdin == nil {
 		stdin = &bytes.Buffer{}
 	}
@@ -76,7 +84,7 @@ func testExecute(e *cli.Engine, cmd string, stdin io.Reader) (*result, error) {
 		return nil, err
 	}
 
-	code := e.Execute(cp)
+	code := e.ExecuteContext(ctx, cp)
 
 	res := &result{
 		Code:   code,
