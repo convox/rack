@@ -32,10 +32,6 @@ func TestStart2(t *testing.T) {
 	p.On("ReleaseList", "app1", structs.ReleaseListOptions{Limit: options.Int(1)}).Return(structs.Releases{{Id: "release1"}}, nil)
 	p.On("ReleaseGet", "app1", "release1").Return(&structs.Release{}, nil)
 	p.On("AppLogs", "app1", structs.LogsOptions{Prefix: options.Bool(true), Since: options.Duration(1 * time.Second)}).Return(ioutil.NopCloser(strings.NewReader(logs)), nil)
-	p.On("ServiceList", "app1").Return(structs.Services{{Name: "web", Domain: mhc.Listener.Addr().String()}}, nil)
-	p.On("ProcessList", "app1", structs.ProcessListOptions{}).Return(structs.Processes{{Id: "process1"}, {Id: "process2"}}, nil)
-	p.On("ProcessStop", "app1", "process1").Return(nil)
-	p.On("ProcessStop", "app1", "process2").Return(nil)
 
 	e := &exec.MockInterface{}
 	start.Exec = e
@@ -68,11 +64,13 @@ func TestStart2(t *testing.T) {
 		[]string{
 			"<color3>web   </color3> | log1",
 			"<color3>web   </color3> | log2",
-			"<system>convox</system> | stopping process1",
-			"<system>convox</system> | stopping process2",
+			"<system>convox</system> | stopping",
 		},
 		strings.Split(strings.TrimSuffix(buf.String(), "\n"), "\n"),
 	)
+
+	p.AssertExpectations(t)
+	e.AssertExpectations(t)
 }
 
 func TestStart2Options(t *testing.T) {
@@ -83,20 +81,16 @@ func TestStart2Options(t *testing.T) {
 	appLogs := "0000-00-00T00:00:00Z service/web/pid1 log1\n0000-00-00T00:00:00Z service/web/pid1 log2\n"
 	buildLogs := "build1\nbuild2\n"
 
-	p.On("AppGet", "app1").Return(&structs.App{Name: "app1", Generation: "2", Status: "running"}, nil)
+	p.On("AppGet", "app1").Return(&structs.App{Name: "app1", Generation: "2", Release: "old", Status: "running"}, nil)
 	p.On("ReleaseList", "app1", structs.ReleaseListOptions{Limit: options.Int(1)}).Return(structs.Releases{{Id: "release1"}}, nil)
 	p.On("ReleaseGet", "app1", "release1").Return(&structs.Release{}, nil)
 	p.On("ObjectStore", "app1", "", mock.Anything, structs.ObjectStoreOptions{}).Return(&structs.Object{Url: "object://app1/object1.tgz"}, nil)
 	p.On("BuildCreate", "app1", "object://app1/object1.tgz", structs.BuildCreateOptions{Development: options.Bool(true), Manifest: options.String("convox2.yml")}).Return(&structs.Build{Id: "build1"}, nil)
 	p.On("BuildLogs", "app1", "build1", structs.LogsOptions{}).Return(ioutil.NopCloser(strings.NewReader(buildLogs)), nil)
 	p.On("BuildGet", "app1", "build1").Return(&structs.Build{Id: "build1", Release: "release1", Status: "complete"}, nil)
-	p.On("ReleasePromote", "app1", "release1", structs.ReleasePromoteOptions{Development: options.Bool(true), Force: options.Bool(true), Min: options.Int(0), Timeout: options.Int(180)}).Return(nil)
+	p.On("ReleasePromote", "app1", "release1", structs.ReleasePromoteOptions{Development: options.Bool(true), Idle: options.Bool(false), Min: options.Int(0), Timeout: options.Int(300)}).Return(nil)
 	p.On("AppLogs", "app1", structs.LogsOptions{Prefix: options.Bool(true), Since: options.Duration(1 * time.Second)}).Return(ioutil.NopCloser(strings.NewReader(appLogs)), nil).Once()
-	p.On("ServiceList", "app1").Return(structs.Services{{Name: "web"}}, nil)
-	p.On("AppLogs", "app1", structs.LogsOptions{Prefix: options.Bool(true), Since: options.Duration(5 * time.Second)}).Return(ioutil.NopCloser(strings.NewReader(appLogs)), nil).Once()
-	p.On("ProcessList", "app1", structs.ProcessListOptions{}).Return(structs.Processes{{Id: "process1"}, {Id: "process2"}}, nil)
-	p.On("ProcessStop", "app1", "process1").Return(nil)
-	p.On("ProcessStop", "app1", "process2").Return(nil)
+	p.On("ReleasePromote", "app1", "old", structs.ReleasePromoteOptions{Development: options.Bool(false)}).Return(nil)
 
 	e := &exec.MockInterface{}
 	start.Exec = e
@@ -137,9 +131,11 @@ func TestStart2Options(t *testing.T) {
 			"<system>build </system> | build2",
 			"<color3>web   </color3> | log1",
 			"<color3>web   </color3> | log2",
-			"<system>convox</system> | stopping process1",
-			"<system>convox</system> | stopping process2",
+			"<system>convox</system> | stopping",
 		},
 		strings.Split(strings.TrimSuffix(buf.String(), "\n"), "\n"),
 	)
+
+	p.AssertExpectations(t)
+	e.AssertExpectations(t)
 }
