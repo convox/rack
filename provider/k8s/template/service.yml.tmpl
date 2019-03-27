@@ -120,6 +120,7 @@ spec:
       - name: ca
         configMap:
           name: ca
+          optional: true
       {{ range (volumeSources $.App.Name .Service.Name .Service.Volumes) }}
       - name: {{ volumeName $.App.Name . }}
         {{ if systemVolume . }}

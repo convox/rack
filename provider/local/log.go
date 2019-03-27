@@ -14,9 +14,9 @@ import (
 
 var logs = logstore.New()
 
-func (p *Provider) Log(group, stream string, ts time.Time, message string) error {
-	logs.Append(group, ts, stream, message)
-	logs.Append(fmt.Sprintf("%s/%s", group, stream), ts, stream, message)
+func (p *Provider) Log(app, stream string, ts time.Time, message string) error {
+	logs.Append(app, ts, stream, message)
+	logs.Append(fmt.Sprintf("%s/%s", app, stream), ts, stream, message)
 
 	return nil
 }
