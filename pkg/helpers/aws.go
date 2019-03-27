@@ -16,7 +16,9 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
+	"github.com/aws/aws-sdk-go/service/cloudformation/cloudformationiface"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
+	"github.com/aws/aws-sdk-go/service/cloudwatchlogs/cloudwatchlogsiface"
 	"github.com/convox/rack/pkg/structs"
 	yaml "gopkg.in/yaml.v2"
 )
@@ -69,7 +71,7 @@ func AwsErrorCode(err error) string {
 	return ""
 }
 
-func CloudformationInstall(cf *cloudformation.CloudFormation, name, template string, params, tags map[string]string, cb func(int, int)) error {
+func CloudformationInstall(cf cloudformationiface.CloudFormationAPI, name, template string, params, tags map[string]string, cb func(int, int)) error {
 	res, err := http.Get(template)
 	if err != nil {
 		return err
@@ -177,15 +179,15 @@ func CloudformationInstall(cf *cloudformation.CloudFormation, name, template str
 	return nil
 }
 
-func CloudWatchLogsSubscribe(ctx context.Context, cf *cloudwatchlogs.CloudWatchLogs, group, stream string, opts structs.LogsOptions) (io.ReadCloser, error) {
+func CloudWatchLogsSubscribe(ctx context.Context, cw cloudwatchlogsiface.CloudWatchLogsAPI, group, stream string, opts structs.LogsOptions) (io.ReadCloser, error) {
 	r, w := io.Pipe()
 
-	go CloudWatchLogsStream(ctx, cf, w, group, stream, opts)
+	go CloudWatchLogsStream(ctx, cw, w, group, stream, opts)
 
 	return r, nil
 }
 
-func CloudWatchLogsStream(ctx context.Context, cf *cloudwatchlogs.CloudWatchLogs, w io.WriteCloser, group, stream string, opts structs.LogsOptions) error {
+func CloudWatchLogsStream(ctx context.Context, cw cloudwatchlogsiface.CloudWatchLogsAPI, w io.WriteCloser, group, stream string, opts structs.LogsOptions) error {
 	defer w.Close()
 
 	req := &cloudwatchlogs.FilterLogEventsInput{
@@ -221,7 +223,7 @@ func CloudWatchLogsStream(ctx context.Context, cf *cloudwatchlogs.CloudWatchLogs
 				return err
 			}
 
-			res, err := cf.FilterLogEvents(req)
+			res, err := cw.FilterLogEvents(req)
 			if err != nil {
 				switch AwsErrorCode(err) {
 				case "ThrottlingException", "ResourceNotFoundException":

@@ -42,10 +42,6 @@ func (p *Provider) AppDelete(name string) error {
 		return err
 	}
 
-	// if err := p.Storage.Clear(fmt.Sprintf("apps/%s", name)); err != nil {
-	//   return err
-	// }
-
 	return nil
 }
 
