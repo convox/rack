@@ -161,10 +161,10 @@ func (r *Router) Route(host string) (string, error) {
 	return ts[rand.Intn(len(ts))], nil
 }
 
-func (r *Router) TargetAdd(host, target string) error {
+func (r *Router) TargetAdd(host, target string, idles bool) error {
 	fmt.Printf("ns=router at=target.add host=%q target=%q\n", host, target)
 
-	if err := r.storage.TargetAdd(host, target); err != nil {
+	if err := r.storage.TargetAdd(host, target, idles); err != nil {
 		return err
 	}
 
