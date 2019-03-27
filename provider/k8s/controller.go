@@ -75,9 +75,9 @@ func (c *Controller) Run(informer cache.SharedInformer, ch chan error) {
 
 	el, err := leaderelection.NewLeaderElector(leaderelection.LeaderElectionConfig{
 		Lock:          rl,
-		LeaseDuration: 4 * time.Second,
-		RenewDeadline: 2 * time.Second,
-		RetryPeriod:   1 * time.Second,
+		LeaseDuration: 15 * time.Second,
+		RenewDeadline: 10 * time.Second,
+		RetryPeriod:   2 * time.Second,
 		Callbacks: leaderelection.LeaderCallbacks{
 			OnStartedLeading: c.leaderStart(informer),
 		},
