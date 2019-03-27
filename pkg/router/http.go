@@ -58,9 +58,27 @@ func (h *HTTP) ListenAndServe() error {
 }
 
 func (h *HTTP) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if r.URL.Path == "/convox/health" {
+	fmt.Printf("r.URL.Path = %+v\n", r.URL.Path)
+
+	switch r.URL.Path {
+	case "/convox/health":
 		fmt.Fprintf(w, "ok")
 		return
+		// case "/debug/pprof/":
+		//   pprof.Index(w, r)
+		//   return
+		// case "/debug/pprof/cmdline":
+		//   pprof.Cmdline(w, r)
+		//   return
+		// case "/debug/pprof/profile":
+		//   pprof.Profile(w, r)
+		//   return
+		// case "/debug/pprof/symbol":
+		//   pprof.Symbol(w, r)
+		//   return
+		// case "/debug/pprof/trace":
+		//   pprof.Trace(w, r)
+		//   return
 	}
 
 	target, err := h.router.Route(r.Host)
