@@ -116,14 +116,8 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 		vs = append(vs, s)
 	}
 
-	ca, err := p.Cluster.CoreV1().Secrets("convox-system").Get("ca", am.GetOptions{})
-	if err != nil {
-		return err
-	}
-
 	params := map[string]interface{}{
 		"App":       a,
-		"CA":        base64.StdEncoding.EncodeToString(ca.Data["tls.crt"]),
 		"Manifest":  m,
 		"Namespace": p.AppNamespace(a.Name),
 		"Rack":      p.Rack,
@@ -132,14 +126,18 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 		"Volumes":   vs,
 	}
 
-	data, err := p.RenderTemplate("config", params)
-	if err != nil {
-		return err
+	if ca, err := p.Cluster.CoreV1().Secrets("convox-system").Get("ca", am.GetOptions{}); err == nil {
+		params["CA"] = base64.StdEncoding.EncodeToString(ca.Data["tls.crt"])
+
+		data, err := p.RenderTemplate("config", params)
+		if err != nil {
+			return err
+		}
+
+		items = append(items, data)
 	}
 
-	items = append(items, data)
-
-	data, err = p.RenderTemplate("ingress", params)
+	data, err := p.RenderTemplate("ingress", params)
 	if err != nil {
 		return err
 	}

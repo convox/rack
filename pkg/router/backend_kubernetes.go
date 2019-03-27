@@ -18,11 +18,12 @@ type BackendKubernetes struct {
 	cluster kubernetes.Interface
 	ip      string
 	prefix  string
+	router  BackendRouter
 	service string
 }
 
 func NewBackendKubernetes(router BackendRouter) (*BackendKubernetes, error) {
-	b := &BackendKubernetes{}
+	b := &BackendKubernetes{router: router}
 
 	c, err := rest.InClusterConfig()
 	if err != nil {
@@ -35,20 +36,6 @@ func NewBackendKubernetes(router BackendRouter) (*BackendKubernetes, error) {
 	}
 
 	b.cluster = kc
-
-	ic, err := NewIngressController(kc, router)
-	if err != nil {
-		return nil, err
-	}
-
-	go ic.Run()
-
-	pc, err := NewPodController(kc, router)
-	if err != nil {
-		return nil, err
-	}
-
-	go pc.Run()
 
 	if parts := strings.Split(os.Getenv("POD_IP"), "."); len(parts) > 2 {
 		b.prefix = fmt.Sprintf("%s.%s.", parts[0], parts[1])
@@ -79,6 +66,24 @@ func NewBackendKubernetes(router BackendRouter) (*BackendKubernetes, error) {
 	fmt.Printf("ns=backend.k8s at=new ip=%s prefix=%s service=%s\n", b.ip, b.prefix, b.service)
 
 	return b, nil
+}
+
+func (b *BackendKubernetes) Start() error {
+	ic, err := NewIngressController(b.cluster, b.router)
+	if err != nil {
+		return err
+	}
+
+	go ic.Run()
+
+	pc, err := NewPodController(b.cluster, b.router)
+	if err != nil {
+		return err
+	}
+
+	go pc.Run()
+
+	return nil
 }
 
 func (b *BackendKubernetes) CA() (*tls.Certificate, error) {

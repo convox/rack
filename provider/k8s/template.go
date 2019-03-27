@@ -226,7 +226,7 @@ func parseLabels(labels string) map[string]string {
 func templateResources(filter string) ([]string, error) {
 	data, err := exec.Command("kubectl", "api-resources", "--verbs=list", "--namespaced", "-o", "name").CombinedOutput()
 	if err != nil {
-		return nil, err
+		return []string{}, nil
 	}
 
 	ars := strings.Split(strings.TrimSpace(string(data)), "\n")
@@ -235,7 +235,7 @@ func templateResources(filter string) ([]string, error) {
 
 	data, err = exec.Command("kubectl", "get", "-l", filter, "--all-namespaces", "-o", "json", strings.Join(ars, ",")).CombinedOutput()
 	if err != nil {
-		return nil, err
+		return []string{}, nil
 	}
 
 	if strings.TrimSpace(string(data)) == "" {

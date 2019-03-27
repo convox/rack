@@ -240,6 +240,7 @@ func (p *Provider) podSpecFromService(app, service, release string) (*ac.PodSpec
 				LocalObjectReference: ac.LocalObjectReference{
 					Name: "ca",
 				},
+				Optional: options.Bool(true),
 			},
 		},
 	})

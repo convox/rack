@@ -20,7 +20,7 @@ import (
 
 type Engine interface {
 	AppStatus(app string) (string, error)
-	Log(group, stream string, ts time.Time, message string) error
+	Log(app, stream string, ts time.Time, message string) error
 	ReleasePromote(app, id string, opts structs.ReleasePromoteOptions) error
 	RepositoryAuth(app string) (string, string, error)
 	RepositoryHost(app string) (string, bool, error)
