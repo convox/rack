@@ -101,18 +101,21 @@ func (c *DeploymentController) Update(prev, cur interface{}) error {
 
 	fmt.Printf("deployment update: %s/%s\n", cd.ObjectMeta.Namespace, cd.ObjectMeta.Name)
 
-	switch {
-	case deploymentConditionReason(cd, "Progressing") == "NewReplicaSetAvailable" && deploymentConditionReason(pd, "Progressing") != "NewReplicaSetAvailable":
+	if deploymentConditionReason(cd, "Progressing") == "NewReplicaSetAvailable" {
 		if cd.ObjectMeta.Labels["app"] != "" && cd.ObjectMeta.Labels["release"] != "" {
 			if err := c.Provider.serviceInstall(cd.ObjectMeta.Labels["app"], cd.ObjectMeta.Labels["release"], cd.Name); err != nil {
 				return err
 			}
 		}
-	case deploymentCondition(cd, "Progressing") == "False" && deploymentCondition(pd, "Progressing") == "True" && deploymentConditionReason(cd, "Progressing") == "ProgressDeadlineExceeded":
+	}
+
+	if deploymentCondition(cd, "Progressing") == "False" && deploymentCondition(pd, "Progressing") == "True" && deploymentConditionReason(cd, "Progressing") == "ProgressDeadlineExceeded" {
 		if err := c.deploymentRollback(cd); err != nil {
 			return err
 		}
-	case deploymentCondition(cd, "Rollback") == "True" && cd.Status.UnavailableReplicas == 0:
+	}
+
+	if deploymentCondition(cd, "Rollback") == "True" && cd.Status.UnavailableReplicas == 0 {
 		go func() {
 			time.Sleep(10 * time.Second)
 			c.setDeploymentCondition(cd, "Rollback", "False", "")
