@@ -6,6 +6,7 @@ metadata:
   name: {{.App.Name}}
   annotations:
     alb.ingress.kubernetes.io/scheme: internet-facing
+    convox.idles: "{{.Idles}}"
     {{ range .Services }}
     convox.ingress.service.{{.Name}}.{{.Port.Port}}.protocol: {{.Port.Scheme}}
     {{ end }}

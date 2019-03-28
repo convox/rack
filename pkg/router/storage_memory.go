@@ -9,6 +9,7 @@ import (
 type StorageMemory struct {
 	activity activityTracker
 	idle     sync.Map
+	idles    sync.Map
 	routes   sync.Map
 
 	targetLock sync.Mutex
@@ -88,6 +89,10 @@ func (b *StorageMemory) Stale(cutoff time.Time) ([]string, error) {
 	stale := []string{}
 
 	for t := range tsh {
+		if v, ok := b.idles.Load(t); !ok || !v.(bool) {
+			continue
+		}
+
 		a, err := b.activity.ActiveSince(t, cutoff)
 		if err != nil {
 			return nil, err
@@ -101,8 +106,8 @@ func (b *StorageMemory) Stale(cutoff time.Time) ([]string, error) {
 	return stale, nil
 }
 
-func (b *StorageMemory) TargetAdd(host, target string) error {
-	fmt.Printf("ns=storage.memory at=target.add host=%q target=%q\n", host, target)
+func (b *StorageMemory) TargetAdd(host, target string, idles bool) error {
+	fmt.Printf("ns=storage.memory at=target.add host=%q target=%q idles=%t\n", host, target, idles)
 
 	b.targetLock.Lock()
 	defer b.targetLock.Unlock()
@@ -112,6 +117,8 @@ func (b *StorageMemory) TargetAdd(host, target string) error {
 	ts[target] = true
 
 	b.activity.KeepAlive(target)
+	b.idles.Store(target, idles)
+
 	b.routes.Store(host, ts)
 
 	return nil

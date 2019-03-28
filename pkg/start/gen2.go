@@ -159,9 +159,9 @@ func (s *Start) Start2(ctx context.Context, w io.Writer, opts Options2) error {
 
 		popts := structs.ReleasePromoteOptions{
 			Development: options.Bool(true),
-			Force:       options.Bool(true),
+			Idle:        options.Bool(false),
 			Min:         options.Int(0),
-			Timeout:     options.Int(180),
+			Timeout:     options.Int(300),
 		}
 
 		if err := opts.Provider.ReleasePromote(opts.App, b.Release, popts); err != nil {
@@ -197,21 +197,22 @@ func (s *Start) Start2(ctx context.Context, w io.Writer, opts Options2) error {
 
 	<-ctx.Done()
 
-	pss, err := opts.Provider.ProcessList(opts.App, structs.ProcessListOptions{})
+	a, err = opts.Provider.AppGet(opts.App)
 	if err != nil {
 		return nil
 	}
 
-	var wg sync.WaitGroup
+	pw.Writef("convox", "stopping\n")
 
-	wg.Add(len(pss))
+	if a.Release != "" {
+		popts := structs.ReleasePromoteOptions{
+			Development: options.Bool(false),
+		}
 
-	for _, ps := range pss {
-		pw.Writef("convox", "stopping %s\n", ps.Id)
-		go opts.stopProcess(ps.Id, &wg)
+		if err := opts.Provider.ReleasePromote(opts.App, a.Release, popts); err != nil {
+			return errors.WithStack(err)
+		}
 	}
-
-	wg.Wait()
 
 	return nil
 }

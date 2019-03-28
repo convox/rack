@@ -92,6 +92,11 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 
 	items := [][]byte{}
 
+	idles, err := p.Engine.AppIdles(a.Name)
+	if err != nil {
+		return err
+	}
+
 	sps := manifest.Services{}
 
 	for _, s := range m.Services {
@@ -118,6 +123,7 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 
 	params := map[string]interface{}{
 		"App":       a,
+		"Idles":     helpers.DefaultBool(opts.Idle, idles),
 		"Manifest":  m,
 		"Namespace": p.AppNamespace(a.Name),
 		"Rack":      p.Rack,

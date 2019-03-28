@@ -103,7 +103,7 @@ func (b *StorageDynamo) Stale(cutoff time.Time) ([]string, error) {
 	return []string{}, nil
 }
 
-func (b *StorageDynamo) TargetAdd(host, target string) error {
+func (b *StorageDynamo) TargetAdd(host, target string, idles bool) error {
 	fmt.Printf("ns=storage.dynamo at=target.add host=%q target=%q\n", host, target)
 
 	_, err := b.ddb.UpdateItem(&dynamodb.UpdateItemInput{
