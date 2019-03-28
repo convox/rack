@@ -450,8 +450,14 @@ func (p *Provider) ProcessStop(app, pid string) error {
 }
 
 func arnToPid(arn string) string {
-	parts := strings.Split(arn, "-")
-	return parts[len(parts)-1]
+	parts := strings.Split(arn, "/")
+	id := parts[len(parts)-1]
+
+	if len(id) > 12 {
+		id = id[len(id)-12:]
+	}
+
+	return id
 }
 
 // from https://github.com/docker/docker/blob/master/api/client/stats.go
