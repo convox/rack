@@ -8,7 +8,7 @@ metadata:
     alb.ingress.kubernetes.io/scheme: internet-facing
     convox.idles: "{{.Idles}}"
     {{ range .Services }}
-    convox.ingress.service.{{.Name}}.{{.Port.Port}}.protocol: {{.Port.Scheme}}
+    convox.ingress.service.{{.Name}}.3000.protocol: {{.Port.Scheme}}
     {{ end }}
   labels:
     release: {{.Release.Id}}
