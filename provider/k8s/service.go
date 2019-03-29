@@ -114,13 +114,17 @@ func (p *Provider) serviceInstall(app, release, service string) error {
 		return err
 	}
 
+	if s.Port.Port == 0 {
+		return nil
+	}
+
 	params := map[string]interface{}{
 		"Namespace": p.AppNamespace(a.Name),
 		"Release":   r,
 		"Service":   s,
 	}
 
-	if out, err := p.ApplyTemplate("port", fmt.Sprintf("system=convox,provider=k8s,scope=port,rack=%s,app=%s", p.Rack, app), params); err != nil {
+	if out, err := p.ApplyTemplate("port", fmt.Sprintf("system=convox,provider=k8s,scope=port,rack=%s,app=%s,service=%s", p.Rack, app, service), params); err != nil {
 		return fmt.Errorf("update error: %s: %s", err, strings.TrimSpace(string(out)))
 	}
 
