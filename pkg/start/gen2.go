@@ -159,6 +159,7 @@ func (s *Start) Start2(ctx context.Context, w io.Writer, opts Options2) error {
 
 		popts := structs.ReleasePromoteOptions{
 			Development: options.Bool(true),
+			Force:       options.Bool(true),
 			Idle:        options.Bool(false),
 			Min:         options.Int(0),
 			Timeout:     options.Int(300),
@@ -207,6 +208,7 @@ func (s *Start) Start2(ctx context.Context, w io.Writer, opts Options2) error {
 	if a.Release != "" {
 		popts := structs.ReleasePromoteOptions{
 			Development: options.Bool(false),
+			Force:       options.Bool(true),
 		}
 
 		if err := opts.Provider.ReleasePromote(opts.App, a.Release, popts); err != nil {

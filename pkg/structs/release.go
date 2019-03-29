@@ -27,6 +27,7 @@ type ReleaseListOptions struct {
 
 type ReleasePromoteOptions struct {
 	Development *bool `param:"development"`
+	Force       *bool `param:"force"`
 	Idle        *bool `param:"idle"`
 	Min         *int  `param:"min"`
 	Max         *int  `param:"max"`

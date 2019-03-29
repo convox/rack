@@ -103,8 +103,7 @@ func TestProxyError(t *testing.T) {
 
 		cn.Write([]byte("in"))
 
-		data, err := ioutil.ReadAll(cn)
-		require.Error(t, err)
+		data, _ := ioutil.ReadAll(cn)
 		require.Len(t, data, 0)
 
 		cancel()
