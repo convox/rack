@@ -61,7 +61,7 @@ spec:
         {{ end }}
         {{ end }}
         env:
-        {{ range env .SystemEnv .Service.EnvironmentDefaults .Env }}
+        {{ range env .SystemEnv .Service.EnvironmentDefaults }}
         - name: {{ safe .Key }}
           value: {{ safe .Value }}
         {{ end }}
@@ -76,6 +76,9 @@ spec:
               name: resource-{{.}}
               key: URL
         {{ end }}
+        envFrom:
+        - secretRef:
+            name: release-{{ lower $.Release.Id }}
         image: {{ image .App .Service .Release }}
         imagePullPolicy: IfNotPresent
         {{ with .Service.Port.Port }}
