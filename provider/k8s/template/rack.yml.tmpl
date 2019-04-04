@@ -157,6 +157,7 @@ metadata:
   namespace: {{.Rack}}
   name: rack
   annotations:
+    convox.idles: "true"
     convox.ingress.service.api.5443.protocol: https
 spec:
   tls:

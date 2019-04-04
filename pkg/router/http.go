@@ -58,8 +58,6 @@ func (h *HTTP) ListenAndServe() error {
 }
 
 func (h *HTTP) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	fmt.Printf("r.URL.Path = %+v\n", r.URL.Path)
-
 	switch r.URL.Path {
 	case "/convox/health":
 		fmt.Fprintf(w, "ok")
