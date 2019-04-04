@@ -24,10 +24,10 @@ func NewStorageMemory() *StorageMemory {
 	}
 }
 
-func (b *StorageMemory) IdleGet(target string) (bool, error) {
+func (s *StorageMemory) IdleGet(target string) (bool, error) {
 	fmt.Printf("ns=storage.memory at=idle.get target=%q\n", target)
 
-	v, ok := b.idle.Load(target)
+	v, ok := s.idle.Load(target)
 	if !ok {
 		return false, nil
 	}
@@ -40,46 +40,46 @@ func (b *StorageMemory) IdleGet(target string) (bool, error) {
 	return i, nil
 }
 
-func (b *StorageMemory) IdleSet(target string, idle bool) error {
+func (s *StorageMemory) IdleSet(target string, idle bool) error {
 	fmt.Printf("ns=storage.memory at=idle.get target=%q idle=%t\n", target, idle)
 
-	b.idle.Store(target, idle)
+	s.idle.Store(target, idle)
 
 	return nil
 }
 
-func (b *StorageMemory) RequestBegin(target string) error {
+func (s *StorageMemory) RequestBegin(target string) error {
 	fmt.Printf("ns=storage.memory at=request.begin target=%q\n", target)
 
-	if err := b.activity.Begin(target); err != nil {
+	if err := s.activity.Begin(target); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (b *StorageMemory) RequestEnd(target string) error {
+func (s *StorageMemory) RequestEnd(target string) error {
 	fmt.Printf("ns=storage.memory at=request.end target=%q\n", target)
 
-	if err := b.activity.End(target); err != nil {
+	if err := s.activity.End(target); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (b *StorageMemory) Stale(cutoff time.Time) ([]string, error) {
+func (s *StorageMemory) Stale(cutoff time.Time) ([]string, error) {
 	fmt.Printf("ns=storage.memory at=stale cutoff=%s\n", cutoff)
 
 	tsh := map[string]bool{}
 
-	b.routes.Range(func(k, v interface{}) bool {
+	s.routes.Range(func(k, v interface{}) bool {
 		host, ok := k.(string)
 		if !ok {
 			return true
 		}
 
-		for t := range b.targets(host) {
+		for t := range s.targets(host) {
 			tsh[t] = true
 		}
 
@@ -89,11 +89,11 @@ func (b *StorageMemory) Stale(cutoff time.Time) ([]string, error) {
 	stale := []string{}
 
 	for t := range tsh {
-		if v, ok := b.idles.Load(t); !ok || !v.(bool) {
+		if v, ok := s.idles.Load(t); !ok || !v.(bool) {
 			continue
 		}
 
-		a, err := b.activity.ActiveSince(t, cutoff)
+		a, err := s.activity.ActiveSince(t, cutoff)
 		if err != nil {
 			return nil, err
 		}
@@ -106,29 +106,29 @@ func (b *StorageMemory) Stale(cutoff time.Time) ([]string, error) {
 	return stale, nil
 }
 
-func (b *StorageMemory) TargetAdd(host, target string, idles bool) error {
+func (s *StorageMemory) TargetAdd(host, target string, idles bool) error {
 	fmt.Printf("ns=storage.memory at=target.add host=%q target=%q idles=%t\n", host, target, idles)
 
-	b.targetLock.Lock()
-	defer b.targetLock.Unlock()
+	s.targetLock.Lock()
+	defer s.targetLock.Unlock()
 
-	ts := b.targets(host)
+	ts := s.targets(host)
 
 	ts[target] = true
 
-	b.activity.KeepAlive(target)
-	b.idles.Store(target, idles)
+	s.activity.KeepAlive(target)
+	s.idles.Store(target, idles)
 
-	b.routes.Store(host, ts)
+	s.routes.Store(host, ts)
 
 	return nil
 }
 
-func (b *StorageMemory) TargetList(host string) ([]string, error) {
-	b.targetLock.Lock()
-	defer b.targetLock.Unlock()
+func (s *StorageMemory) TargetList(host string) ([]string, error) {
+	s.targetLock.Lock()
+	defer s.targetLock.Unlock()
 
-	ts := b.targets(host)
+	ts := s.targets(host)
 
 	targets := []string{}
 
@@ -139,23 +139,23 @@ func (b *StorageMemory) TargetList(host string) ([]string, error) {
 	return targets, nil
 }
 
-func (b *StorageMemory) TargetRemove(host, target string) error {
+func (s *StorageMemory) TargetRemove(host, target string) error {
 	fmt.Printf("ns=storage.memory at=target.remove host=%q target=%q\n", host, target)
 
-	b.targetLock.Lock()
-	defer b.targetLock.Unlock()
+	s.targetLock.Lock()
+	defer s.targetLock.Unlock()
 
-	ts := b.targets(host)
+	ts := s.targets(host)
 
 	delete(ts, target)
 
-	b.routes.Store(host, ts)
+	s.routes.Store(host, ts)
 
 	return nil
 }
 
-func (b *StorageMemory) targets(host string) map[string]bool {
-	v, ok := b.routes.Load(host)
+func (s *StorageMemory) targets(host string) map[string]bool {
+	v, ok := s.routes.Load(host)
 	if !ok {
 		return map[string]bool{}
 	}

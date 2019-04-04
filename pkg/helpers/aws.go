@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 
@@ -213,11 +214,15 @@ func CloudWatchLogsStream(ctx context.Context, cw cloudwatchlogsiface.CloudWatch
 
 	var seen = map[string]bool{}
 
+	sleep := time.Duration(100 * time.Millisecond)
+
 	for {
 		select {
 		case <-ctx.Done():
 			return nil
 		default:
+			time.Sleep(sleep)
+
 			// check for closed writer
 			if _, err := w.Write([]byte{}); err != nil {
 				return err
@@ -237,6 +242,9 @@ func CloudWatchLogsStream(ctx context.Context, cw cloudwatchlogsiface.CloudWatch
 			es := []*cloudwatchlogs.FilteredLogEvent{}
 
 			for _, e := range res.Events {
+				if *e.Timestamp > start {
+					start = *e.Timestamp + 1
+				}
 				if !seen[*e.EventId] {
 					es = append(es, e)
 				}
@@ -248,24 +256,20 @@ func CloudWatchLogsStream(ctx context.Context, cw cloudwatchlogsiface.CloudWatch
 				seen[*e.EventId] = true
 			}
 
-			sleep := time.Duration(0)
-
-			if len(es) == 0 {
-				sleep = time.Duration(200 * time.Millisecond)
+			if len(es) > 0 {
+				sleep = time.Duration(100 * time.Millisecond)
+			} else if sleep < 5*time.Second {
+				sleep *= 2
 			}
 
-			latest, err := writeLogEvents(w, es, opts)
-			if err != nil {
+			sort.Slice(es, func(i, j int) bool { return *es[i].Timestamp < *es[j].Timestamp })
+
+			if _, err := writeLogEvents(w, es, opts); err != nil {
 				return err
-			}
-
-			if latest > start {
-				start = latest //+ 1
 			}
 
 			if res.NextToken != nil {
 				req.NextToken = res.NextToken
-				req.StartTime = nil
 				continue
 			}
 
@@ -275,10 +279,7 @@ func CloudWatchLogsStream(ctx context.Context, cw cloudwatchlogsiface.CloudWatch
 				return nil
 			}
 
-			if start > 0 {
-				req.StartTime = aws.Int64(start)
-				time.Sleep(sleep)
-			}
+			req.StartTime = aws.Int64(start)
 		}
 	}
 }
