@@ -60,6 +60,8 @@ kind: Ingress
 metadata:
   namespace: {{.Rack}}
   name: registry
+  annotations:
+    convox.idles: "true"
 spec:
   tls:
   - hosts:

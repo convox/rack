@@ -63,7 +63,7 @@ func New() (*Router, error) {
 
 	switch os.Getenv("STORAGE") {
 	case "dynamodb":
-		r.storage = NewStorageDynamo(os.Getenv("ROUTER_ROUTES"), os.Getenv("ROUTER_ACTIVITY"))
+		r.storage = NewStorageDynamo(os.Getenv("ROUTER_HOSTS"), os.Getenv("ROUTER_TARGETS"))
 	default:
 		r.storage = NewStorageMemory()
 	}
