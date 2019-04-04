@@ -122,6 +122,9 @@ func (p *Provider) templateHelpers() template.FuncMap {
 			}
 			return fmt.Sprintf("%s:%s.%s", repo, s.Name, r.Build), nil
 		},
+		"lower": func(s string) string {
+			return strings.ToLower(s)
+		},
 		"safe": func(s string) template.HTML {
 			return template.HTML(fmt.Sprintf("%q", s))
 		},

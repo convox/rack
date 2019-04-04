@@ -14,6 +14,7 @@ import (
 	"github.com/convox/rack/pkg/options"
 	"github.com/convox/rack/pkg/structs"
 	ca "github.com/convox/rack/provider/k8s/pkg/apis/convox/v1"
+	ac "k8s.io/api/core/v1"
 	am "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -215,7 +216,6 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 			"App":            a,
 			"Build":          b,
 			"Development":    helpers.DefaultBool(opts.Development, false),
-			"Env":            e,
 			"Manifest":       m,
 			"MaxSurge":       max,
 			"MaxUnavailable": 100 - min,
@@ -272,6 +272,29 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 func (p *Provider) releaseCreate(r *structs.Release) (*structs.Release, error) {
 	c, err := p.convoxClient()
 	if err != nil {
+		return nil, err
+	}
+
+	e := structs.Environment{}
+
+	if err := e.Load([]byte(r.Env)); err != nil {
+		return nil, err
+	}
+
+	s := &ac.Secret{
+		ObjectMeta: am.ObjectMeta{
+			Name: fmt.Sprintf("release-%s", strings.ToLower(r.Id)),
+			Labels: map[string]string{
+				"system": "convox",
+				"rack":   p.Rack,
+				"app":    r.App,
+				"type":   "release",
+			},
+		},
+		StringData: e,
+	}
+
+	if _, err := p.Cluster.CoreV1().Secrets(p.AppNamespace(r.App)).Create(s); err != nil {
 		return nil, err
 	}
 
@@ -356,7 +379,6 @@ func (p *Provider) releaseMarshal(r *structs.Release) *ca.Release {
 		Spec: ca.ReleaseSpec{
 			Build:    r.Build,
 			Created:  r.Created.Format(helpers.SortableTime),
-			Env:      r.Env,
 			Manifest: r.Manifest,
 		},
 	}
@@ -375,6 +397,16 @@ func (p *Provider) releaseUnmarshal(kr *ca.Release) (*structs.Release, error) {
 		Env:      kr.Spec.Env,
 		Id:       strings.ToUpper(kr.ObjectMeta.Name),
 		Manifest: kr.Spec.Manifest,
+	}
+
+	if s, err := p.Cluster.CoreV1().Secrets(p.AppNamespace(r.App)).Get(fmt.Sprintf("release-%s", kr.ObjectMeta.Name), am.GetOptions{}); err == nil {
+		e := structs.Environment{}
+
+		for k, v := range s.Data {
+			e[k] = string(v)
+		}
+
+		r.Env = e.String()
 	}
 
 	return r, nil
