@@ -69,9 +69,10 @@
   revision = "349dd0209470eabd9514242c688c403c0926d266"
 
 [[projects]]
-  digest = "1:a53a4cb4e0a06b37c54224dbf87478050a7605e4e2c4f786e7e08d92d527c4bf"
+  digest = "1:28eb4bd99455a69fc752dc76a7a76db77ccdba051b17ee477c6b3298729ea9df"
   name = "github.com/aws/aws-lambda-go"
   packages = [
+    "events",
     "lambda",
     "lambda/messages",
     "lambdacontext",
@@ -81,7 +82,7 @@
   version = "v1.2.0"
 
 [[projects]]
-  digest = "1:c6b2c08e23390b4d482494713d205b542a73d3126c31ee3d675d272b30b31e75"
+  digest = "1:330b5791926303af00ffc69c79dbc166745c10fac569b13eb77d87575fa7cc95"
   name = "github.com/aws/aws-sdk-go"
   packages = [
     "aws",
@@ -114,7 +115,6 @@
     "private/protocol/query",
     "private/protocol/query/queryutil",
     "private/protocol/rest",
-    "private/protocol/restjson",
     "private/protocol/restxml",
     "private/protocol/xml/xmlutil",
     "service/acm",
@@ -131,7 +131,6 @@
     "service/ecs",
     "service/iam",
     "service/kms",
-    "service/lambda",
     "service/s3",
     "service/s3/s3iface",
     "service/s3/s3manager",
@@ -1221,6 +1220,7 @@
   input-imports = [
     "github.com/PuerkitoBio/goquery",
     "github.com/RackSec/srslog",
+    "github.com/aws/aws-lambda-go/events",
     "github.com/aws/aws-lambda-go/lambda",
     "github.com/aws/aws-sdk-go/aws",
     "github.com/aws/aws-sdk-go/aws/awserr",
@@ -1241,7 +1241,6 @@
     "github.com/aws/aws-sdk-go/service/ecs",
     "github.com/aws/aws-sdk-go/service/iam",
     "github.com/aws/aws-sdk-go/service/kms",
-    "github.com/aws/aws-sdk-go/service/lambda",
     "github.com/aws/aws-sdk-go/service/s3",
     "github.com/aws/aws-sdk-go/service/s3/s3manager",
     "github.com/aws/aws-sdk-go/service/sns",
