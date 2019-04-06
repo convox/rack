@@ -1621,6 +1621,23 @@
         "TopicName" : { "Fn::Join": ["", [{"Ref":"AWS::StackName"}, "-lifecycle"]] }
       }
     },
+    "InstancesLifecycleTopicPolicy": {
+      "Type": "AWS::SNS::TopicPolicy",
+      "Properties": {
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": { "Service": "events.amazonaws.com" },
+              "Action": "sns:Publish",
+              "Resource": { "Ref": "InstancesLifecycleTopic" }
+            }
+          ]
+        },
+        "Topics": [ { "Ref": "InstancesLifecycleTopic" } ]
+      }
+    },
     "InstancesLifecycleHandler": {
       "Type": "AWS::Lambda::Function",
       "Properties": {
@@ -1629,10 +1646,16 @@
           "S3Key": { "Fn::Join": [ "", [ "release/", { "Ref": "Version" }, "/lambda/lifecycle.zip" ] ] }
         },
         "Description": { "Fn::Join": [ "", [ "{\"Cluster\": \"", { "Ref": "Cluster" }, "\", \"Rack\": \"", { "Ref": "AWS::StackName" }, "\"}" ] ] },
-        "Handler": "index.external",
+        "Environment": {
+          "Variables": {
+            "CLUSTER": { "Ref": "Cluster" },
+            "RACK": { "Ref": "AWS::StackName" }
+          }
+        },
+        "Handler": "handler",
         "MemorySize": "128",
         "Role": { "Fn::GetAtt": [ "InstancesLifecycleHandlerRole", "Arn" ] },
-        "Runtime": "nodejs8.10",
+        "Runtime": "go1.x",
         "Timeout": "300"
       }
     },
@@ -1888,6 +1911,18 @@
             "Arn"
           ]
         }
+      }
+    },
+    "SpotInstancesLifecycleInterrupting": {
+      "Type": "AWS::Events::Rule",
+      "Properties": {
+        "Description": "spot instances interrupting",
+        "EventPattern": {
+          "detail-type": [ "EC2 Spot Instance Interruption Warning" ],
+          "source": [ "aws.ec2" ]
+        },
+        "State": "ENABLED",
+        "Targets": [ { "Arn": { "Ref": "InstancesLifecycleTopic" }, "Id": "interrupting" } ]
       }
     },
     "SpotInstancesLifecycleTerminating": {

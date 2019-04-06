@@ -45,7 +45,7 @@ func (p *Provider) spotReplace() error {
 
 	// only modify spot instances when running or converging
 	switch system.Status {
-	case "running", "converging":
+	case "running", "converging", "rollback":
 	default:
 		return nil
 	}
@@ -67,12 +67,17 @@ func (p *Provider) spotReplace() error {
 		return err
 	}
 
-	spc, err := p.asgResourceInstanceCountRunning("SpotInstances")
+	spc, err := p.asgResourceInstanceCount("SpotInstances")
 	if err != nil {
 		return err
 	}
 
-	log.Logf("instanceCount=%d onDemandMin=%d onDemandCount=%d spotCount=%d", ic, odmin, odc, spc)
+	spcr, err := p.asgResourceInstanceCountRunning("SpotInstances")
+	if err != nil {
+		return err
+	}
+
+	log.Logf("instanceCount=%d onDemandMin=%d onDemandCount=%d spotCount=%d spotCountRunning=%d", ic, odmin, odc, spc, spcr)
 
 	spotDesired := ic - odmin
 
@@ -84,7 +89,7 @@ func (p *Provider) spotReplace() error {
 		}
 	}
 
-	onDemandDesired := ic - spc
+	onDemandDesired := ic - spcr
 
 	if odc != onDemandDesired {
 		log.Logf("stack=Instances setDesiredCount=%d", onDemandDesired)
