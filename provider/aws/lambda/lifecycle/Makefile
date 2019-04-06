@@ -1,15 +1,9 @@
-.PHONY: all build clean release
+.PHONY: all clean release test upload
 
 all: lambda.zip
 
 clean:
-	rm -f lambda.zip main
-
-lambda.zip: index.js main
-	zip -r lambda.zip main index.js
-
-main: *.go
-	GOOS=linux GOARCH=amd64 go build -o main
+	rm -f lambda.zip handler
 
 release: lambda.zip
 	for region in $(shell cat ../../../../REGIONS); do \
@@ -21,3 +15,9 @@ test:
 
 upload: lambda.zip
 	bin/upload $(RACK)
+
+handler: *.go
+	GOOS=linux GOARCH=amd64 go build -o handler
+
+lambda.zip: handler
+	zip -r lambda.zip handler
