@@ -36,11 +36,13 @@
     "Internal": { "Fn::Equals": [ { "Ref": "Internal" }, "Yes" ] },
     "InternetGateway": { "Fn::Not": [ { "Fn::Equals": [ { "Ref": "InternetGateway" }, "" ] } ] },
     "NotExistingVpcAndBlankInternetGateway": { "Fn::Not": [ { "Condition": "ExistingVpcAndBlankInternetGateway" } ] },
-    "Private": { "Fn::Equals": [ { "Ref": "Private" }, "Yes" ] },
+    "Private": { "Fn::Or": [ { "Condition": "PrivateBuild" }, { "Condition": "PrivateInstances" } ] },
     "PrivateAndThirdAvailabilityZone": {
       "Fn::And": [ { "Condition": "Private" }, { "Condition": "ThirdAvailabilityZone" } ]
     },
     "PrivateApi": { "Fn::Equals": [ { "Ref": "PrivateApi" }, "Yes" ] },
+    "PrivateBuild": { "Fn::Or": [ { "Fn::Equals": [ { "Ref": "Private" }, "Yes" ] }, { "Fn::Equals": [ { "Ref": "PrivateBuild" }, "Yes" ] } ] },
+    "PrivateInstances": { "Fn::Equals": [ { "Ref": "Private" }, "Yes" ] },
     "PublicRouter": { "Fn::Equals": [ { "Ref": "InternalOnly" }, "No" ] },
     "RegionHasEFS": { "Fn::Equals": [
       { "Fn::FindInMap": [ "RegionConfig", { "Ref": "AWS::Region" }, "EFS" ] },
@@ -594,6 +596,12 @@
       "Description": "Lock down private API to a security group",
       "Default": ""
     },
+    "PrivateBuild": {
+      "Type": "String",
+      "Description": "Place only the build instances into a private network (unused if Private is Yes)",
+      "Default": "No",
+      "AllowedValues": [ "Yes", "No" ]
+    },
     "RouterInternalSecurityGroup": {
       "Default": "",
       "Description": "The security groups (comma delimited) to assign to the internal rack router.",
@@ -821,7 +829,7 @@
       }
     },
     "NatAddress2": {
-      "Condition": "Private",
+      "Condition": "PrivateAndThirdAvailabilityZone",
       "Type": "AWS::EC2::EIP",
       "Properties": {
         "Domain": "vpc"
@@ -1172,7 +1180,7 @@
       "Condition": "DedicatedBuilder",
       "Type": "AWS::AutoScaling::LaunchConfiguration",
       "Properties": {
-        "AssociatePublicIpAddress": { "Fn::If": [ "Private", false, true ] },
+        "AssociatePublicIpAddress": { "Fn::If": [ "PrivateBuild", false, true ] },
         "BlockDeviceMappings": [
           {
             "DeviceName": "/dev/xvda",
@@ -1275,7 +1283,7 @@
       "Properties" : {
         "LaunchConfigurationName" : { "Ref": "BuildLaunchConfiguration" },
         "VPCZoneIdentifier": {
-          "Fn::If": [ "Private", [
+          "Fn::If": [ "PrivateBuild", [
             { "Ref": "SubnetPrivate0" },
             { "Ref": "SubnetPrivate1" },
             { "Fn::If": [ "ThirdAvailabilityZone", { "Ref": "SubnetPrivate2" }, { "Ref": "AWS::NoValue" } ] }
@@ -1312,7 +1320,7 @@
             "Key": "NatGateways",
             "PropagateAtLaunch": false,
             "Value": { "Fn::If": [
-              "Private",
+              "PrivateBuild",
               { "Fn::Join": [ ",", [
                 { "Ref": "Nat0" },
                 { "Ref": "Nat1" },
@@ -1338,7 +1346,7 @@
     "LaunchConfiguration": {
       "Type": "AWS::AutoScaling::LaunchConfiguration",
       "Properties": {
-        "AssociatePublicIpAddress": { "Fn::If": [ "Private", false, true ] },
+        "AssociatePublicIpAddress": { "Fn::If": [ "PrivateInstances", false, true ] },
         "BlockDeviceMappings": [
           {
             "DeviceName": "/dev/xvda",
@@ -1458,7 +1466,7 @@
       "Properties" : {
         "LaunchConfigurationName" : { "Ref": "LaunchConfiguration" },
         "VPCZoneIdentifier": {
-          "Fn::If": [ "Private", [
+          "Fn::If": [ "PrivateInstances", [
             { "Ref": "SubnetPrivate0" },
             { "Ref": "SubnetPrivate1" },
             { "Fn::If": [ "ThirdAvailabilityZone", { "Ref": "SubnetPrivate2" }, { "Ref": "AWS::NoValue" } ] }
@@ -1495,7 +1503,7 @@
             "Key": "NatGateways",
             "PropagateAtLaunch": false,
             "Value": { "Fn::If": [
-              "Private",
+              "PrivateInstances",
               { "Fn::Join": [ ",", [
                 { "Ref": "Nat0" },
                 { "Ref": "Nat1" },
@@ -1695,7 +1703,7 @@
       "Condition": "SpotInstances",
       "Type": "AWS::AutoScaling::LaunchConfiguration",
       "Properties": {
-        "AssociatePublicIpAddress": { "Fn::If": [ "Private", false, true ] },
+        "AssociatePublicIpAddress": { "Fn::If": [ "PrivateInstances", false, true ] },
         "BlockDeviceMappings": [
           {
             "DeviceName": "/dev/xvda",
@@ -1816,7 +1824,7 @@
       "Properties" : {
         "LaunchConfigurationName" : { "Ref": "SpotLaunchConfiguration" },
         "VPCZoneIdentifier": {
-          "Fn::If": [ "Private", [
+          "Fn::If": [ "PrivateInstances", [
             { "Ref": "SubnetPrivate0" },
             { "Ref": "SubnetPrivate1" },
             { "Fn::If": [ "ThirdAvailabilityZone", { "Ref": "SubnetPrivate2" }, { "Ref": "AWS::NoValue" } ] }
@@ -1941,7 +1949,7 @@
       "Condition": "RegionHasEFS",
       "Properties": {
         "FileSystemId": { "Ref": "VolumeFilesystem" },
-        "SubnetId": { "Fn::If": [ "Private", { "Ref": "SubnetPrivate0" }, { "Ref": "Subnet0" } ] },
+        "SubnetId": { "Fn::If": [ "PrivateInstances", { "Ref": "SubnetPrivate0" }, { "Ref": "Subnet0" } ] },
         "SecurityGroups": [ { "Ref": "VolumeSecurity" } ]
       }
     },
@@ -1950,7 +1958,7 @@
       "Condition": "RegionHasEFS",
       "Properties": {
         "FileSystemId": { "Ref": "VolumeFilesystem" },
-        "SubnetId": { "Fn::If": [ "Private", { "Ref": "SubnetPrivate1" }, { "Ref": "Subnet1" } ] },
+        "SubnetId": { "Fn::If": [ "PrivateInstances", { "Ref": "SubnetPrivate1" }, { "Ref": "Subnet1" } ] },
         "SecurityGroups": [ { "Ref": "VolumeSecurity" } ]
       }
     },
@@ -1959,7 +1967,7 @@
       "Condition": "RegionHasEFSAndThirdAvailabilityZone",
       "Properties": {
         "FileSystemId": { "Ref": "VolumeFilesystem" },
-        "SubnetId": { "Fn::If": [ "Private", { "Ref": "SubnetPrivate2" }, { "Ref": "Subnet2" } ] },
+        "SubnetId": { "Fn::If": [ "PrivateInstances", { "Ref": "SubnetPrivate2" }, { "Ref": "Subnet2" } ] },
         "SecurityGroups": [ { "Ref": "VolumeSecurity" } ]
       }
     },
