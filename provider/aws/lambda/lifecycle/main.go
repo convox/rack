@@ -1,30 +1,39 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
 	"time"
 
+	"github.com/aws/aws-lambda-go/events"
+	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/aws/aws-sdk-go/service/ecs"
-	"github.com/aws/aws-sdk-go/service/lambda"
 )
 
 var (
 	AutoScaling = autoscaling.New(session.New(), nil)
 	ECS         = ecs.New(session.New(), nil)
-	Lambda      = lambda.New(session.New(), nil)
 )
 
-type Event struct {
-	Records []Record
+type Interruption struct {
+	Account    string            `json:"account"`
+	Detail     map[string]string `json:"detail"`
+	DetailType string            `json:"detail-type"`
+	ID         string            `json:"id"`
+	Region     string            `json:"region"`
+	Resources  []string          `json:"resources"`
+	Source     string            `json:"source"`
+	Time       string            `json:"time"`
+	Version    string            `json:"version"`
 }
 
-type Message struct {
+type Termination struct {
 	AutoScalingGroupName string
 	EC2InstanceID        string
 	LifecycleActionToken string
@@ -32,94 +41,49 @@ type Message struct {
 	LifecycleTransition  string
 }
 
-type Record struct {
-	Sns struct {
-		Message string
-	}
-}
-
-type Metadata struct {
-	Cluster string
-	Rack    string
-}
-
 func main() {
-	if len(os.Args) < 2 {
-		die(fmt.Errorf("must specify event as argument"))
-	}
+	lambda.Start(Handler)
+}
 
-	data := []byte(os.Args[1])
+func Handler(ctx context.Context, event events.SNSEvent) error {
+	fmt.Printf("event = %+v\n", event)
 
-	var e Event
-
-	if err := json.Unmarshal(data, &e); err != nil {
-		die(err)
-	}
-
-	for _, r := range e.Records {
-		if err := handle(r); err != nil {
-			die(err)
+	for _, r := range event.Records {
+		switch {
+		case strings.HasPrefix(r.SNS.Subject, "Auto Scaling"):
+			if err := handleAutoscaling(r); err != nil {
+				fmt.Printf("err = %+v\n", err)
+			}
+		case r.SNS.Subject == "":
+			if err := handleInterruption(r); err != nil {
+				fmt.Printf("err = %+v\n", err)
+			}
+		default:
+			fmt.Printf("unknown event: %v\n", r)
 		}
 	}
+
+	return nil
 }
 
-func handle(r Record) error {
-	var m Message
+func handleAutoscaling(r events.SNSEventRecord) error {
+	fmt.Println("handleAutoscaling")
 
-	if err := json.Unmarshal([]byte(r.Sns.Message), &m); err != nil {
+	var m Termination
+
+	if err := json.Unmarshal([]byte(r.SNS.Message), &m); err != nil {
 		return err
 	}
 
 	fmt.Printf("m = %+v\n", m)
 
-	if m.LifecycleTransition != "autoscaling:EC2_INSTANCE_TERMINATING" {
-		return nil
+	if m.LifecycleTransition == "autoscaling:EC2_INSTANCE_TERMINATING" {
+		if err := drainInstance(m.EC2InstanceID); err != nil {
+			fmt.Printf("err = %+v\n", err)
+		}
 	}
 
-	md, err := metadata()
-	if err != nil {
-		return err
-	}
-
-	fmt.Printf("md = %+v\n", md)
-
-	ci, err := containerInstance(md.Cluster, m.EC2InstanceID)
-	if err != nil {
-		return err
-	}
-
-	fmt.Printf("ci = %+v\n", ci)
-
-	cis, err := ECS.UpdateContainerInstancesState(&ecs.UpdateContainerInstancesStateInput{
-		ContainerInstances: []*string{
-			aws.String(ci),
-		},
-		Status:  aws.String("DRAINING"),
-		Cluster: aws.String(md.Cluster),
-	})
-	if err != nil {
-		return err
-	}
-
-	if len(cis.Failures) > 0 {
-		return fmt.Errorf("unable to drain instance: %s - %s", ci, *cis.Failures[0].Reason)
-	}
-
-	if err := waitForInstanceDrain(md.Cluster, ci); err != nil {
-		return err
-	}
-
-	fmt.Println("instance has been drained")
-
-	if _, err := ECS.DeregisterContainerInstance(&ecs.DeregisterContainerInstanceInput{
-		Cluster:           aws.String(md.Cluster),
-		ContainerInstance: aws.String(ci),
-		Force:             aws.Bool(true),
-	}); err != nil {
-		return err
-	}
-
-	_, err = AutoScaling.CompleteLifecycleAction(&autoscaling.CompleteLifecycleActionInput{
+	_, err := AutoScaling.CompleteLifecycleAction(&autoscaling.CompleteLifecycleActionInput{
 		AutoScalingGroupName:  aws.String(m.AutoScalingGroupName),
 		InstanceId:            aws.String(m.EC2InstanceID),
 		LifecycleActionResult: aws.String("CONTINUE"),
@@ -135,8 +99,147 @@ func handle(r Record) error {
 	return nil
 }
 
-func waitForInstanceDrain(cluster, ci string) error {
+func handleInterruption(r events.SNSEventRecord) error {
+	fmt.Println("handleInterruption")
 
+	var m Interruption
+
+	if err := json.Unmarshal([]byte(r.SNS.Message), &m); err != nil {
+		return err
+	}
+
+	fmt.Printf("m = %+v\n", m)
+
+	if m.DetailType != "EC2 Spot Instance Interruption Warning" {
+		return fmt.Errorf("invalid detail type")
+	}
+
+	id := m.Detail["instance-id"]
+	if id == "" {
+		return fmt.Errorf("no instance id")
+	}
+
+	if err := drainInstance(id); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func containerInstance(cluster string, id string) (string, error) {
+	lreq := &ecs.ListContainerInstancesInput{
+		Cluster:    aws.String(cluster),
+		MaxResults: aws.Int64(10),
+	}
+
+	for {
+		lres, err := ECS.ListContainerInstances(lreq)
+		if err != nil {
+			return "", err
+		}
+
+		dres, err := ECS.DescribeContainerInstances(&ecs.DescribeContainerInstancesInput{
+			Cluster:            aws.String(cluster),
+			ContainerInstances: lres.ContainerInstanceArns,
+		})
+		if err != nil {
+			return "", err
+		}
+
+		for _, ci := range dres.ContainerInstances {
+			if *ci.Ec2InstanceId == id {
+				return *ci.ContainerInstanceArn, nil
+			}
+		}
+
+		if lres.NextToken == nil {
+			break
+		}
+
+		lreq.NextToken = lres.NextToken
+	}
+
+	return "", fmt.Errorf("could not find cluster instance: %s", id)
+}
+
+func drainInstance(id string) error {
+	cluster := os.Getenv("CLUSTER")
+
+	ci, err := containerInstance(cluster, id)
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("ci = %+v\n", ci)
+
+	cis, err := ECS.UpdateContainerInstancesState(&ecs.UpdateContainerInstancesStateInput{
+		ContainerInstances: []*string{
+			aws.String(ci),
+		},
+		Status:  aws.String("DRAINING"),
+		Cluster: aws.String(cluster),
+	})
+	if err != nil {
+		return err
+	}
+
+	if len(cis.Failures) > 0 {
+		return fmt.Errorf("unable to drain instance: %s - %s", ci, *cis.Failures[0].Reason)
+	}
+
+	if err := waitForInstanceDrain(cluster, ci); err != nil {
+		return err
+	}
+
+	fmt.Println("instance has been drained")
+
+	_, err = ECS.DeregisterContainerInstance(&ecs.DeregisterContainerInstanceInput{
+		Cluster:           aws.String(cluster),
+		ContainerInstance: aws.String(ci),
+		Force:             aws.Bool(true),
+	})
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func remarshal(v, w interface{}) error {
+	data, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	return json.Unmarshal(data, &w)
+}
+
+// stopServicelessTasks stops one-off tasks that do not belog to a ECS service.
+// For example, a scheduled task or running a process
+func stopServicelessTasks(input *ecs.DescribeTasksInput) error {
+	tasks, err := ECS.DescribeTasks(input)
+	if err != nil {
+		return err
+	}
+
+	for _, t := range tasks.Tasks {
+		// if the task isn't part of a service and wasn't started by ECS, stop it
+		if !strings.HasPrefix(*t.Group, "service:") && !strings.HasPrefix(*t.StartedBy, "ecs-svc") {
+			_, err := ECS.StopTask(&ecs.StopTaskInput{
+				Cluster: input.Cluster,
+				Reason:  aws.String("draining instance for termination"),
+				Task:    t.TaskArn,
+			})
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+func waitForInstanceDrain(cluster, ci string) error {
 	params := &ecs.ListTasksInput{
 		Cluster:           aws.String(cluster),
 		ContainerInstance: aws.String(ci),
@@ -178,88 +281,4 @@ func waitForInstanceDrain(cluster, ci string) error {
 	fmt.Println("stopped service-less tasks")
 
 	return ECS.WaitUntilTasksStopped(input)
-}
-
-// stopServicelessTasks stops one-off tasks that do not belog to a ECS service.
-// For example, a scheduled task or running a process
-func stopServicelessTasks(input *ecs.DescribeTasksInput) error {
-
-	tasks, err := ECS.DescribeTasks(input)
-	if err != nil {
-		return err
-	}
-
-	for _, t := range tasks.Tasks {
-		// if the task isn't part of a service and wasn't started by ECS, stop it
-		if !strings.HasPrefix(*t.Group, "service:") && !strings.HasPrefix(*t.StartedBy, "ecs-svc") {
-			_, err := ECS.StopTask(&ecs.StopTaskInput{
-				Cluster: input.Cluster,
-				Reason:  aws.String("draining instance for termination"),
-				Task:    t.TaskArn,
-			})
-			if err != nil {
-				return err
-			}
-		}
-	}
-
-	return nil
-}
-
-func metadata() (*Metadata, error) {
-	var md Metadata
-
-	fres, err := Lambda.GetFunction(&lambda.GetFunctionInput{
-		FunctionName: aws.String(os.Getenv("AWS_LAMBDA_FUNCTION_NAME")),
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	if err := json.Unmarshal([]byte(*fres.Configuration.Description), &md); err != nil {
-		return nil, err
-	}
-
-	return &md, nil
-}
-
-func containerInstance(cluster string, id string) (string, error) {
-	lreq := &ecs.ListContainerInstancesInput{
-		Cluster:    aws.String(cluster),
-		MaxResults: aws.Int64(10),
-	}
-
-	for {
-		lres, err := ECS.ListContainerInstances(lreq)
-		if err != nil {
-			return "", err
-		}
-
-		dres, err := ECS.DescribeContainerInstances(&ecs.DescribeContainerInstancesInput{
-			Cluster:            aws.String(cluster),
-			ContainerInstances: lres.ContainerInstanceArns,
-		})
-		if err != nil {
-			return "", err
-		}
-
-		for _, ci := range dres.ContainerInstances {
-			if *ci.Ec2InstanceId == id {
-				return *ci.ContainerInstanceArn, nil
-			}
-		}
-
-		if lres.NextToken == nil {
-			break
-		}
-
-		lreq.NextToken = lres.NextToken
-	}
-
-	return "", fmt.Errorf("could not find cluster instance: %s", id)
-}
-
-func die(err error) {
-	fmt.Fprintf(os.Stderr, "ERROR: %s\n", err)
-	os.Exit(1)
 }
