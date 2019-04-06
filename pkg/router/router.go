@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"os"
 	"regexp"
+	"strings"
 	"sync"
 	"time"
 
@@ -149,16 +150,18 @@ func (r *Router) RequestEnd(target string) error {
 func (r *Router) Route(host string) (string, error) {
 	fmt.Printf("ns=router at=route host=%q\n", host)
 
-	ts, err := r.TargetList(host)
-	if err != nil {
-		return "", fmt.Errorf("no backends available")
+	for _, vr := range validRoutes(host) {
+		ts, err := r.TargetList(vr)
+		if err != nil {
+			return "", fmt.Errorf("error reaching backend")
+		}
+
+		if len(ts) > 0 {
+			return ts[rand.Intn(len(ts))], nil
+		}
 	}
 
-	if len(ts) < 1 {
-		return "", fmt.Errorf("no backends available")
-	}
-
-	return ts[rand.Intn(len(ts))], nil
+	return "", fmt.Errorf("no backends available")
 }
 
 func (r *Router) TargetAdd(host, target string, idles bool) error {
@@ -375,4 +378,18 @@ func serve(ch chan error, s Server) {
 	default:
 		ch <- err
 	}
+}
+
+func validRoutes(host string) []string {
+	parts := strings.Split(host, ".")
+
+	rs := make([]string, len(parts))
+
+	rs[0] = host
+
+	for i := 1; i < len(parts); i++ {
+		rs[i] = fmt.Sprintf("*.%s", strings.Join(parts[i:], "."))
+	}
+
+	return rs
 }
