@@ -12,6 +12,8 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/convox/rack/pkg/manifest"
+	"github.com/convox/rack/pkg/structs"
 	cc "github.com/convox/rack/provider/k8s/pkg/client/clientset/versioned/typed/convox/v1"
 )
 
@@ -22,6 +24,37 @@ const (
 
 func (p *Provider) convoxClient() (cc.ConvoxV1Interface, error) {
 	return cc.NewForConfig(p.Config)
+}
+
+func (p *Provider) serviceEnvironment(app, release string, s manifest.Service) (map[string]string, []string, error) {
+	static := map[string]string{}
+	secret := []string{}
+
+	r, err := p.ReleaseGet(app, release)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	env := structs.Environment{}
+
+	if err := env.Load([]byte(r.Env)); err != nil {
+		return nil, nil, err
+	}
+
+	for _, e := range s.Environment {
+		parts := strings.SplitN(e, "=", 2)
+
+		switch len(parts) {
+		case 1:
+			secret = append(secret, parts[0])
+		case 2:
+			static[parts[0]] = parts[1]
+		default:
+			return nil, nil, fmt.Errorf("invalid environment value: %s\n", e)
+		}
+	}
+
+	return static, secret, nil
 }
 
 func (p *Provider) systemEnvironment(app, release string) (map[string]string, error) {
