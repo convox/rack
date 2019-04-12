@@ -178,14 +178,18 @@ func (v *ServiceDomains) UnmarshalYAML(unmarshal func(interface{}) error) error 
 		for _, s := range t {
 			switch st := s.(type) {
 			case string:
-				*v = append(*v, st)
+				if tst := strings.TrimSpace(st); tst != "" {
+					*v = append(*v, tst)
+				}
 			default:
 				return fmt.Errorf("unknown type for service domain: %T", s)
 			}
 		}
 	case string:
 		for _, d := range strings.Split(t, ",") {
-			*v = append(*v, strings.TrimSpace(d))
+			if td := strings.TrimSpace(d); td != "" {
+				*v = append(*v, td)
+			}
 		}
 	default:
 		return fmt.Errorf("unknown type for service domain: %T", t)
