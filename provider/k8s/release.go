@@ -188,7 +188,7 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 		b = bb
 	}
 
-	senv, err := p.systemEnvironment(a.Name, r.Id)
+	senv, err := p.systemEnvironment(app, r.Id)
 	if err != nil {
 		return err
 	}
@@ -212,10 +212,18 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 
 		replicas := helpers.CoalesceInt(sc[s.Name], s.Scale.Count.Min)
 
+		static, secret, err := p.serviceEnvironment(a.Name, r.Id, s)
+		if err != nil {
+			return err
+		}
+
 		params := map[string]interface{}{
 			"App":            a,
 			"Build":          b,
 			"Development":    helpers.DefaultBool(opts.Development, false),
+			"EnvSecret":      secret,
+			"EnvStatic":      static,
+			"EnvSystem":      senv,
 			"Manifest":       m,
 			"MaxSurge":       max,
 			"MaxUnavailable": 100 - min,
@@ -226,7 +234,6 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 			"Replicas":       replicas,
 			"Rollback":       a.Release,
 			"Service":        s,
-			"SystemEnv":      senv,
 			"Timeout":        helpers.DefaultInt(opts.Timeout, 1800),
 		}
 
