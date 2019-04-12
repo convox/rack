@@ -48,9 +48,13 @@ func (p *Provider) serviceEnvironment(app, release string, s manifest.Service) (
 		case 1:
 			secret = append(secret, parts[0])
 		case 2:
-			static[parts[0]] = parts[1]
+			if _, ok := env[parts[0]]; ok {
+				secret = append(secret, parts[0])
+			} else {
+				static[parts[0]] = parts[1]
+			}
 		default:
-			return nil, nil, fmt.Errorf("invalid environment value: %s\n", e)
+			return nil, nil, fmt.Errorf("invalid environment: %s\n", e)
 		}
 	}
 
