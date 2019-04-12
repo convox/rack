@@ -2,6 +2,7 @@ package k8s
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"html/template"
@@ -84,6 +85,9 @@ type envItem struct {
 
 func (p *Provider) templateHelpers() template.FuncMap {
 	return template.FuncMap{
+		"base64": func(s string) string {
+			return string(base64.StdEncoding.EncodeToString([]byte(s)))
+		},
 		"domains": func(app string, s manifest.Service) []string {
 			ds := []string{
 				p.Engine.ServiceHost(app, s),

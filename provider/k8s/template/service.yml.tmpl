@@ -1,3 +1,18 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  namespace: {{.Namespace}}
+  name: env-{{.Service.Name}}
+  labels:
+    type: env
+    service: {{.Service.Name}}
+    release: {{.Release.Id}}
+type: Opaque
+data:
+  {{ range env .SystemEnv .Service.EnvironmentDefaults .Env }}
+  {{.Key}}: {{ safe (base64 .Value) }}
+  {{ end }}
+---
 apiVersion: apps/v1
 kind: {{ if .Service.Agent.Enabled }} DaemonSet {{ else }} Deployment {{ end }}
 metadata:
@@ -61,17 +76,6 @@ spec:
         {{ end }}
         {{ end }}
         env:
-        {{ range env .EnvSystem .EnvStatic }}
-        - name: {{ safe .Key }}
-          value: {{ safe .Value }}
-        {{ end }}
-        {{ range .EnvSecret }}
-        - name: {{ safe . }}
-          valueFrom:
-            secretKeyRef:
-              name: release-{{ lower $.Release.Id }}
-              key: {{ safe . }}
-        {{ end }}
         {{ range .Service.Links }}
         - name: {{ envname . }}_URL
           value: https://{{.}}.{{$.App.Name}}.{{$.Rack}}
@@ -83,6 +87,9 @@ spec:
               name: resource-{{.}}
               key: URL
         {{ end }}
+        envFrom:
+        - secretRef:
+            name: env-{{.Service.Name}}
         image: {{ image .App .Service .Release }}
         imagePullPolicy: IfNotPresent
         {{ with .Service.Port.Port }}
