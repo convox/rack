@@ -16,8 +16,8 @@ func (p *Provider) AppCancel(name string) error {
 }
 
 func (p *Provider) AppCreate(name string, opts structs.AppCreateOptions) (*structs.App, error) {
-	if _, err := p.Cluster.CoreV1().Namespaces().Get(p.AppNamespace(name), am.GetOptions{}); !ae.IsNotFound(err) {
-		return nil, fmt.Errorf("app already exists: %s", name)
+	if err := p.appNameValidate(name); err != nil {
+		return nil, err
 	}
 
 	params := map[string]interface{}{
@@ -168,4 +168,17 @@ func (p *Provider) appFromNamespace(ns ac.Namespace) (*structs.App, error) {
 	}
 
 	return a, nil
+}
+
+func (p *Provider) appNameValidate(name string) error {
+	switch name {
+	case "rack", "system":
+		return fmt.Errorf("app name is reserved")
+	}
+
+	if _, err := p.Cluster.CoreV1().Namespaces().Get(p.AppNamespace(name), am.GetOptions{}); !ae.IsNotFound(err) {
+		return fmt.Errorf("app already exists: %s", name)
+	}
+
+	return nil
 }
