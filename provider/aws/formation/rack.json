@@ -1,6 +1,8 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
   "Conditions": {
+    "ApiRouterALB": { "Fn::Equals": [ { "Ref": "ApiRouter" }, "ALB" ] },
+    "ApiRouterELB": { "Fn::Equals": [ { "Ref": "ApiRouter" }, "ELB" ] },
     "Autoscale": { "Fn::Equals": [ { "Ref": "Autoscale" }, "Yes" ] },
     "BlankAmi": { "Fn::Equals": [ { "Ref": "Ami" }, "" ] },
     "BlankAvailabilityZones": { "Fn::Equals": [ { "Fn::Join": [ "", { "Ref": "AvailabilityZones" } ] }, "" ] },
@@ -125,7 +127,15 @@
       "Value": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] }
     },
     "Dashboard": {
-      "Value": { "Fn::GetAtt": [ "Balancer", "DNSName" ] }
+      "Value": { "Fn::If": [ "ApiRouterALB", 
+        { "Fn::Join": [ ".", [
+          "rack",
+          { "Fn::Select": [ 0, { "Fn::Split": [ ".", { "Fn::GetAtt": [ "Router", "DNSName" ] } ] } ] },
+          { "Fn::Select": [ 1, { "Fn::Split": [ ".", { "Fn::GetAtt": [ "Router", "DNSName" ] } ] } ] },
+          "convox.site"
+        ] ] },
+        { "Fn::GetAtt": [ "Balancer", "DNSName" ] }
+      ] }
     },
     "Domain": {
       "Condition": "PublicRouter",
@@ -212,9 +222,6 @@
           ""
         ]
       }
-    },
-    "NotificationHost": {
-      "Value": { "Fn::GetAtt": [ "Balancer", "DNSName" ] }
     },
     "NotificationTopic": {
       "Value" : { "Ref": "NotificationTopic" }
@@ -407,6 +414,12 @@
       "Type": "String",
       "Description": "How much memory should be reserved by the api web process",
       "Default": "256"
+    },
+    "ApiRouter": {
+      "Type": "String",
+      "Description": "Defines ",
+      "Default": "ELB",
+      "AllowedValues": [ "ALB", "ELB" ]
     },
     "Autoscale": {
       "Type": "String",
@@ -1125,7 +1138,17 @@
         "Name": { "Fn::Sub": "rack.${AWS::StackName}.convox." },
         "Type": "CNAME",
         "TTL": "3600",
-        "ResourceRecords": [ { "Fn::GetAtt": [ "Balancer", "DNSName" ] } ]
+        "ResourceRecords": [
+          { "Fn::If": [ "ApiRouterALB",
+            { "Fn::Join": [ ".", [
+              "rack",
+              { "Fn::Select": [ 0, { "Fn::Split": [ ".", { "Fn::GetAtt": [ "Router", "DNSName" ] } ] } ] },
+              { "Fn::Select": [ 1, { "Fn::Split": [ ".", { "Fn::GetAtt": [ "Router", "DNSName" ] } ] } ] },
+              "convox.site"
+            ] ] },
+            { "Fn::GetAtt": [ "Balancer", "DNSName" ] }
+          ] }
+        ]
       }
     },
     "InstancesSecurity": {
@@ -2150,6 +2173,42 @@
         ]
       }
     },
+    "RouterApiTargetGroup": {
+      "Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
+      "Condition": "ApiRouterALB",
+      "Properties": {
+        "HealthCheckIntervalSeconds": "5",
+        "HealthCheckTimeoutSeconds": "3",
+        "HealthyThresholdCount": "2",
+        "UnhealthyThresholdCount": "2",
+        "HealthCheckPath": "/check",
+        "Matcher": { "HttpCode": "200" },
+        "Port": "5443",
+        "Protocol": "HTTPS",
+        "TargetGroupAttributes": [
+          { "Key": "deregistration_delay.timeout_seconds", "Value": "30" }
+        ],
+        "TargetType": "instance",
+        "VpcId": { "Fn::If": [ "BlankExistingVpc", { "Ref": "Vpc" }, { "Ref": "ExistingVpc" } ] }
+      }
+    },
+    "RouterApiListenerRule": {
+      "Type": "AWS::ElasticLoadBalancingV2::ListenerRule",
+      "Condition": "ApiRouterALB",
+      "Properties": {
+        "Actions": [ { "Type": "forward", "TargetGroupArn": { "Ref": "RouterApiTargetGroup" } } ],
+        "Conditions": [
+          { "Field": "host-header", "Values": [ { "Fn::Join": [ ".", [
+            "rack",
+            { "Fn::Select": [ 0, { "Fn::Split": [ ".", { "Fn::GetAtt": [ "Router", "DNSName" ] } ] } ] },
+            { "Fn::Select": [ 1, { "Fn::Split": [ ".", { "Fn::GetAtt": [ "Router", "DNSName" ] } ] } ] },
+            "convox.site"
+          ] ] } ] }
+        ],
+        "ListenerArn": { "Ref": "RouterListener443" },
+        "Priority": "1"
+      }
+    },
     "RouterInternal": {
       "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
       "Condition": "Internal",
@@ -2235,6 +2294,7 @@
     },
     "Balancer": {
       "Type": "AWS::ElasticLoadBalancing::LoadBalancer",
+      "Condition": "ApiRouterELB",
       "Properties": {
         "ConnectionDrainingPolicy": { "Enabled": true, "Timeout": 60 },
         "ConnectionSettings": { "IdleTimeout": 3600 },
@@ -2272,6 +2332,7 @@
     },
     "BalancerSecurity": {
       "Type": "AWS::EC2::SecurityGroup",
+      "Condition": "ApiRouterELB",
       "Properties": {
         "GroupDescription": { "Fn::Sub": "${AWS::StackName} balancer" },
         "SecurityGroupIngress": [
@@ -2401,7 +2462,10 @@
         "Cluster": { "Ref": "Cluster" },
         "DeploymentConfiguration": { "MinimumHealthyPercent": "50", "MaximumPercent": "200" },
         "DesiredCount": { "Ref": "ApiCount" },
-        "LoadBalancers": [ { "ContainerName": "web", "ContainerPort": "5443", "LoadBalancerName": { "Ref": "Balancer" } } ],
+        "LoadBalancers": [ { "Fn::If": [ "ApiRouterALB",
+          { "ContainerName": "web", "ContainerPort": "5443", "TargetGroupArn": { "Ref": "RouterApiTargetGroup" } },
+          { "ContainerName": "web", "ContainerPort": "5443", "LoadBalancerName": { "Ref": "Balancer" } }
+        ] } ],
         "Role": { "Fn::GetAtt": [ "ServiceRole", "Arn" ] },
         "TaskDefinition": { "Ref": "ApiWebTasks" }
       }
@@ -2654,13 +2718,12 @@
             "MemoryReservation": { "Ref": "ApiMemory" },
             "MountPoints": [ { "SourceVolume": "docker", "ContainerPath": "/var/run/docker.sock" } ],
             "Name": "web",
-            "PortMappings": { "Fn::If": [ "PrivateApi",
-              [
-                { "HostPort": "3100", "ContainerPort": "5443", "Protocol": "tcp" }
-              ],
-              [
-                { "HostPort": "3000", "ContainerPort": "5443", "Protocol": "tcp" }
-              ]
+            "PortMappings": { "Fn::If": [ "ApiRouterALB",
+              [ { "ContainerPort": "5443", "Protocol": "tcp" } ],
+              { "Fn::If": [ "PrivateApi",
+                [ { "HostPort": "3100", "ContainerPort": "5443", "Protocol": "tcp" } ],
+                [ { "HostPort": "3000", "ContainerPort": "5443", "Protocol": "tcp" } ]
+              ] }
             ] }
           }
         ],
