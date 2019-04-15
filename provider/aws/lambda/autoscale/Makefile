@@ -14,8 +14,9 @@ clean:
 	rm -f lambda.zip handler
 
 release: lambda.zip
+	aws s3 cp lambda.zip s3://convox/release/$(VERSION)/lambda/autoscale.zip --acl public-read
 	for region in $(shell cat ../../../../REGIONS); do \
-		aws s3 cp lambda.zip s3://convox-$$region/release/$(VERSION)/lambda/autoscale.zip --acl public-read --region $$region; \
+		aws s3 cp s3://convox/release/$(VERSION)/lambda/autoscale.zip s3://convox-$$region/release/$(VERSION)/lambda/autoscale.zip --acl public-read --region $$region; \
 	done
 
 run:
