@@ -1,4 +1,4 @@
-.PHONY: all build builder compress dev generate mocks package release test
+.PHONY: all build builder compress dev generate mocks package release release-cli release-image release-provider release-version test
 
 commands = build monitor rack router
 injects  = convox-env
@@ -54,11 +54,20 @@ mocks: generate
 package:
 	$(GOPATH)/bin/packr
 
-release: package
+release: release-version release-cli release-image release-provider
+
+release-cli: release-version package
 	make -C cmd/convox release VERSION=$(VERSION)
-	make -C provider release VERSION=$(VERSION)
+
+release-image: release-version package
 	docker build --pull -t convox/rack:$(VERSION) .
 	docker push convox/rack:$(VERSION)
+
+release-provider: release-version package
+	make -C provider release VERSION=$(VERSION)
+
+release-version:
+	test -n "$(VERSION)" # VERSION
 
 test:
 	go test -run=none ./...
