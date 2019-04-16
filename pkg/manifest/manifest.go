@@ -18,6 +18,7 @@ var (
 
 type Manifest struct {
 	Environment Environment `yaml:"environment,omitempty"`
+	Params      Params      `yaml:"params,omitempty"`
 	Resources   Resources   `yaml:"resources,omitempty"`
 	Services    Services    `yaml:"services,omitempty"`
 	Timers      Timers      `yaml:"timers,omitempty"`

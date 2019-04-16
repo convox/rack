@@ -15,6 +15,9 @@ func TestManifestLoad(t *testing.T) {
 			"GLOBAL=true",
 			"OTHERGLOBAL",
 		},
+		Params: manifest.Params{
+			"Foo": "bar",
+		},
 		Resources: manifest.Resources{
 			manifest.Resource{
 				Name: "database",
@@ -215,6 +218,8 @@ func TestManifestLoad(t *testing.T) {
 
 	attrs := []string{"services.proxy.environment",
 		"environment",
+		"params",
+		"params.Foo",
 		"resources",
 		"resources.database",
 		"resources.database.options",

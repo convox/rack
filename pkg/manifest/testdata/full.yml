@@ -2,6 +2,8 @@ environment:
   - DEVELOPMENT=true
   - GLOBAL=true
   - OTHERGLOBAL
+params:
+  Foo: bar
 resources:
   database:
     type: postgres
