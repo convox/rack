@@ -35,15 +35,15 @@ func (p *Provider) cleanupBuilds(log *logger.Logger) error {
 	for _, a := range as {
 		log = log.Replace("app", a.Name)
 
-		log = log.At("builds")
-		if count, err := p.cleanupAppBuilds(a); err != nil {
+		log = log.At("images")
+		if count, err := p.cleanupAppImages(a); err != nil {
 			log.Error(err)
 		} else {
 			log.Logf("expired=%d", count)
 		}
 
-		log = log.At("images")
-		if count, err := p.cleanupAppImages(a); err != nil {
+		log = log.At("builds")
+		if count, err := p.cleanupAppBuilds(a); err != nil {
 			log.Error(err)
 		} else {
 			log.Logf("expired=%d", count)
