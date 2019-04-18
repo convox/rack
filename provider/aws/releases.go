@@ -343,6 +343,12 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 		"Private":   private,
 	}
 
+	if m.Params != nil {
+		for k, v := range m.Params {
+			updates[k] = v
+		}
+	}
+
 	tags := map[string]string{
 		"Version": p.Version,
 	}
