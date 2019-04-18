@@ -172,7 +172,7 @@ func CloudformationInstall(cf cloudformationiface.CloudFormationAPI, name, templ
 			return err
 		}
 		if len(res.Stacks) != 1 {
-			return fmt.Errorf("could not find stack: %s\n", cres.StackId)
+			return fmt.Errorf("could not find stack: %s\n", *cres.StackId)
 		}
 
 		s := res.Stacks[0]
