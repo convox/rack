@@ -5,11 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
-	"net/http"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"sort"
 	"strings"
 	"time"
@@ -21,7 +18,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs/cloudwatchlogsiface"
 	"github.com/convox/rack/pkg/structs"
-	yaml "gopkg.in/yaml.v2"
 )
 
 func AwsCredentialsLoad() error {
@@ -73,50 +69,45 @@ func AwsErrorCode(err error) string {
 }
 
 func CloudformationInstall(cf cloudformationiface.CloudFormationAPI, name, template string, params, tags map[string]string, cb func(int, int)) error {
-	res, err := http.Get(template)
-	if err != nil {
-		return err
-	}
-	defer res.Body.Close()
+	// res, err := http.Get(template)
+	// if err != nil {
+	//   return err
+	// }
+	// defer res.Body.Close()
 
-	data, err := ioutil.ReadAll(res.Body)
-	if err != nil {
-		return err
-	}
+	// data, err := ioutil.ReadAll(res.Body)
+	// if err != nil {
+	//   return err
+	// }
 
-	var t struct {
-		Resources map[string]interface{} `json:"Resources" yaml:"Resources"`
-	}
+	// var t struct {
+	//   Resources map[string]interface{} `json:"Resources" yaml:"Resources"`
+	// }
 
-	switch filepath.Ext(template) {
-	case ".json":
-		if err := json.Unmarshal(data, &t); err != nil {
-			return err
-		}
-	case ".yml", ".yaml":
-		if err := yaml.Unmarshal(data, &t); err != nil {
-			return err
-		}
-	default:
-		return fmt.Errorf("unknown template extension: %s", filepath.Ext(template))
-	}
+	// switch filepath.Ext(template) {
+	// case ".json":
+	//   if err := json.Unmarshal(data, &t); err != nil {
+	//     return err
+	//   }
+	// case ".yml", ".yaml":
+	//   if err := yaml.Unmarshal(data, &t); err != nil {
+	//     return err
+	//   }
+	// default:
+	//   return fmt.Errorf("unknown template extension: %s", filepath.Ext(template))
+	// }
 
-	total := len(t.Resources)
+	// total := len(t.Resources)
 
-	cb(0, total)
-
-	token, err := RandomString(20)
-	if err != nil {
-		return err
-	}
-
-	req := &cloudformation.CreateStackInput{
-		Capabilities:       []*string{aws.String("CAPABILITY_IAM")},
-		ClientRequestToken: aws.String(token),
-		Parameters:         []*cloudformation.Parameter{},
-		StackName:          aws.String(name),
-		Tags:               []*cloudformation.Tag{},
-		TemplateURL:        aws.String(template),
+	req := &cloudformation.CreateChangeSetInput{
+		Capabilities:  []*string{aws.String("CAPABILITY_IAM")},
+		ChangeSetName: aws.String("init"),
+		ChangeSetType: aws.String("CREATE"),
+		// ClientRequestToken: aws.String(token),
+		Parameters:  []*cloudformation.Parameter{},
+		StackName:   aws.String(name),
+		Tags:        []*cloudformation.Tag{},
+		TemplateURL: aws.String(template),
 	}
 
 	for k, v := range params {
@@ -133,21 +124,55 @@ func CloudformationInstall(cf cloudformationiface.CloudFormationAPI, name, templ
 		})
 	}
 
-	if _, err := cf.CreateStack(req); err != nil {
+	cres, err := cf.CreateChangeSet(req)
+	if err != nil {
+		return err
+	}
+
+	dreq := &cloudformation.DescribeChangeSetInput{
+		ChangeSetName: aws.String("init"),
+		StackName:     cres.StackId,
+	}
+
+	if err := cf.WaitUntilChangeSetCreateComplete(dreq); err != nil {
+		return err
+	}
+
+	dres, err := cf.DescribeChangeSet(dreq)
+	if err != nil {
+		return err
+	}
+
+	total := len(dres.Changes)
+
+	cb(0, total)
+
+	token, err := RandomString(20)
+	if err != nil {
+		return err
+	}
+
+	ereq := &cloudformation.ExecuteChangeSetInput{
+		ChangeSetName:      aws.String("init"),
+		ClientRequestToken: aws.String(token),
+		StackName:          cres.StackId,
+	}
+
+	if _, err := cf.ExecuteChangeSet(ereq); err != nil {
 		return err
 	}
 
 	for {
-		time.Sleep(1 * time.Second)
+		time.Sleep(10 * time.Second)
 
 		res, err := cf.DescribeStacks(&cloudformation.DescribeStacksInput{
-			StackName: aws.String(name),
+			StackName: cres.StackId,
 		})
 		if err != nil {
 			return err
 		}
 		if len(res.Stacks) != 1 {
-			return fmt.Errorf("could not describe stack: %s", name)
+			return fmt.Errorf("could not find stack: %s\n", cres.StackId)
 		}
 
 		s := res.Stacks[0]
