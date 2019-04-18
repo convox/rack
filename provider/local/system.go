@@ -48,7 +48,7 @@ func (p *Provider) SystemInstall(w io.Writer, opts structs.SystemInstallOptions)
 	version := helpers.DefaultString(opts.Version, "dev")
 	url := fmt.Sprintf("https://rack.%s", name)
 
-	fmt.Fprintf(w, "Installing rack (%s)... ", version)
+	fmt.Fprintf(w, "Installing... ")
 
 	if err := removeOriginalRack(name); err != nil {
 		return "", err
@@ -78,7 +78,7 @@ func (p *Provider) SystemInstall(w io.Writer, opts structs.SystemInstallOptions)
 
 	fmt.Fprintf(w, "OK\n")
 
-	fmt.Fprintf(w, "Waiting for rack... ")
+	fmt.Fprintf(w, "Starting... ")
 
 	if err := endpointWait(url); err != nil {
 		return "", err
@@ -102,7 +102,7 @@ func (p *Provider) SystemUninstall(name string, w io.Writer, opts structs.System
 		return err
 	}
 
-	fmt.Fprintf(w, "Uninstalling rack... ")
+	fmt.Fprintf(w, "Uninstalling... ")
 
 	if err := removeOriginalRack(name); err != nil {
 		return err

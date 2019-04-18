@@ -156,13 +156,13 @@ func RackInstall(rack sdk.Interface, c *stdcli.Context) error {
 		return err
 	}
 
-	if !helpers.DefaultBool(opts.Raw, false) {
-		c.Writef("   ___ ___  _  _ _   __ __ _  __\n")
-		c.Writef("  / __/ _ \\| \\| \\ \\ / / _ \\ \\/ /\n")
-		c.Writef(" | (_| (_) |  ` |\\ V / (_) )  ( \n")
-		c.Writef("  \\___\\___/|_|\\_| \\_/ \\___/_/\\_\\\n")
-		c.Writef("\n")
-	}
+	// if !helpers.DefaultBool(opts.Raw, false) {
+	//   c.Writef("   ___ ___  _  _ _   __ __ _  __\n")
+	//   c.Writef("  / __/ _ \\| \\| \\ \\ / / _ \\ \\/ /\n")
+	//   c.Writef(" | (_| (_) |  ` |\\ V / (_) )  ( \n")
+	//   c.Writef("  \\___\\___/|_|\\_| \\_/ \\___/_/\\_\\\n")
+	//   c.Writef("\n")
+	// }
 
 	ep, err := p.SystemInstall(c, opts)
 	if err != nil {
