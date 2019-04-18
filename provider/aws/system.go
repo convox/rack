@@ -254,6 +254,10 @@ func (p *Provider) SystemInstall(w io.Writer, opts structs.SystemInstallOptions)
 
 	cf := cloudformation.New(session.New(&aws.Config{}))
 
+	if !raw {
+		fmt.Fprintf(w, "Preparing... ")
+	}
+
 	err := helpers.CloudformationInstall(cf, name, template, params, tags, func(current, total int) {
 		if raw {
 			fmt.Fprintf(w, "{ \"stack\": %q, \"current\": %d, \"total\": %d }\n", name, current, total)
@@ -261,9 +265,12 @@ func (p *Provider) SystemInstall(w io.Writer, opts structs.SystemInstallOptions)
 		}
 
 		if bar == nil {
+			fmt.Fprintf(w, "OK\n")
 			bar = pb.New(total)
+			bar.Format(" ██  ")
 			bar.Output = w
-			bar.Prefix("Installing ")
+			bar.Prefix("Installing...")
+			bar.ShowBar = false
 			bar.ShowCounters = false
 			bar.ShowTimeLeft = false
 			bar.Start()
@@ -298,7 +305,7 @@ func (p *Provider) SystemInstall(w io.Writer, opts structs.SystemInstallOptions)
 	ep := fmt.Sprintf("https://convox:%s@%s", url.QueryEscape(password), outputs["Dashboard"])
 
 	if !raw {
-		fmt.Fprintf(w, "Waiting for load balancer... ")
+		fmt.Fprintf(w, "Starting... ")
 	}
 
 	if err := waitForAvailability(ep); err != nil {
@@ -306,8 +313,7 @@ func (p *Provider) SystemInstall(w io.Writer, opts structs.SystemInstallOptions)
 	}
 
 	if !raw {
-		fmt.Fprintf(w, "OK\n")
-		fmt.Fprintf(w, "Hostname: %s\n", outputs["Dashboard"])
+		fmt.Fprintf(w, "OK, %s\n", outputs["Dashboard"])
 	}
 
 	return ep, nil

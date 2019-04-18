@@ -1,4 +1,4 @@
-.PHONY: all build builder compress dev generate mocks package release release-cli release-image release-provider release-version test
+.PHONY: all build builder clean clean-package compress dev generate mocks package release release-cli release-image release-provider release-version test
 
 commands = build monitor rack router
 injects  = convox-env
@@ -18,6 +18,12 @@ build: $(binaries) $(statics)
 builder:
 	docker build -t convox/build:$(USER) -f cmd/build/Dockerfile .
 	docker push convox/build:$(USER)
+
+clean: clean-package
+	make -C cmd/convox clean
+
+clean-package:
+	find . -name '*-packr.go' -delete
 
 compress: $(binaries) $(statics)
 	upx-ucl -1 $^
