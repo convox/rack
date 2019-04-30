@@ -1,0 +1,22 @@
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: convox-system
+  name: router
+spec:
+  type: NodePort
+  externalTrafficPolicy: Local
+  ports:
+  - name: http
+    nodePort: 32000
+    port: 80
+    targetPort: 80
+    protocol: TCP
+  - name: https
+    nodePort: 32001
+    port: 443
+    targetPort: 443
+    protocol: TCP
+  selector:
+    system: convox
+    service: router
