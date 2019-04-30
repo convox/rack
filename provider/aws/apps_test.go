@@ -19,6 +19,7 @@ func init() {
 
 func TestAppCancel(t *testing.T) {
 	provider := StubAwsProvider(
+		cycleAppDescribeStacks,
 		cycleAppCancelUpdateStack,
 	)
 	defer provider.Close()
@@ -60,18 +61,18 @@ func TestAppGet(t *testing.T) {
 			"Subnets":                "subnet-13de3139,subnet-b5578fc3,subnet-21c13379",
 			"Private":                "Yes",
 			"WebPort80ProxyProtocol": "No",
-			"VPC":                  "vpc-f8006b9c",
-			"Cluster":              "convox-Cluster-1E4XJ0PQWNAYS",
-			"Key":                  "arn:aws:kms:us-east-1:132866487567:key/d9f38426-9017-4931-84f8-604ad1524920",
-			"Repository":           "",
-			"WebPort80Balancer":    "80",
-			"SubnetsPrivate":       "subnet-d4e85cfe,subnet-103d5a66,subnet-57952a0f",
-			"Environment":          "https://convox-httpd-settings-139bidzalmbtu.s3.amazonaws.com/releases/RVFETUHHKKD/env",
-			"WebPort80Certificate": "",
-			"WebPort80Host":        "56694",
-			"WebDesiredCount":      "1",
-			"WebPort80Secure":      "No",
-			"Version":              "20160330143438-command-exec-form",
+			"VPC":                    "vpc-f8006b9c",
+			"Cluster":                "convox-Cluster-1E4XJ0PQWNAYS",
+			"Key":                    "arn:aws:kms:us-east-1:132866487567:key/d9f38426-9017-4931-84f8-604ad1524920",
+			"Repository":             "",
+			"WebPort80Balancer":      "80",
+			"SubnetsPrivate":         "subnet-d4e85cfe,subnet-103d5a66,subnet-57952a0f",
+			"Environment":            "https://convox-httpd-settings-139bidzalmbtu.s3.amazonaws.com/releases/RVFETUHHKKD/env",
+			"WebPort80Certificate":   "",
+			"WebPort80Host":          "56694",
+			"WebDesiredCount":        "1",
+			"WebPort80Secure":        "No",
+			"Version":                "20160330143438-command-exec-form",
 		},
 		Tags: map[string]string{
 			"Name":   "httpd",
@@ -106,7 +107,7 @@ func TestAppLogs(t *testing.T) {
 var cycleAppCancelUpdateStack = awsutil.Cycle{
 	awsutil.Request{
 		RequestURI: "/",
-		Body:       `Action=CancelUpdateStack&StackName=convox-httpd&Version=2010-05-15`,
+		Body:       `/Action=CancelUpdateStack&ClientRequestToken=[0-9]+-[A-Z]+&StackName=convox-httpd&Version=2010-05-15/`,
 	},
 	awsutil.Response{
 		StatusCode: 200,
