@@ -14,6 +14,8 @@ import (
 	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/convox/rack/pkg/cache"
+	"github.com/convox/rack/pkg/options"
+	"github.com/convox/rack/pkg/structs"
 )
 
 var (
@@ -130,6 +132,27 @@ func (p *Provider) handleCloudformationEvents() {
 		}
 
 		cache.Set("logStreamSequenceToken", fmt.Sprintf("%s/%s", group, stream), token, 4*time.Hour)
+
+		if message["ResourceType"] == "AWS::CloudFormation::Stack" && message["ClientRequestToken"] != "null" {
+			switch message["ResourceStatus"] {
+			case "ROLLBACK_COMPLETE", "ROLLBACK_FAILED", "UPDATE_COMPLETE", "UPDATE_ROLLBACK_COMPLETE", "UPDATE_ROLLBACK_FAILED":
+				if ss, err := p.describeStacks(&cloudformation.DescribeStacksInput{StackName: aws.String(message["PhysicalResourceId"])}); err == nil && len(ss) == 1 {
+					if tags := stackTags(ss[0]); tags["Type"] == "app" {
+						if parts := strings.SplitN(message["ClientRequestToken"], "-", 2); len(parts) == 2 {
+							var emsg *string
+							switch message["ResourceStatus"] {
+							case "ROLLBACK_COMPLETE", "UPDATE_ROLLBACK_COMPLETE":
+								emsg = options.String("rollback")
+							case "ROLLBACK_FAILED", "UPDATE_ROLLBACK_FAILED":
+								emsg = options.String("rollback failed")
+							}
+
+							p.EventSend("release:promote", structs.EventSendOptions{Data: map[string]string{"app": tags["Name"], "id": parts[1]}, Error: emsg})
+						}
+					}
+				}
+			}
+		}
 
 		return nil
 	})

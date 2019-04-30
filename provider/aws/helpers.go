@@ -1232,7 +1232,7 @@ func (p *Provider) taskDefinitionRelease(arn string) (string, error) {
 // updateStack updates a stack
 //   template is url to a template or empty string to reuse previous
 //   changes is a list of parameter changes to make (does not need to include every param)
-func (p *Provider) updateStack(name string, template []byte, changes map[string]string, tags map[string]string) error {
+func (p *Provider) updateStack(name string, template []byte, changes map[string]string, tags map[string]string, id string) error {
 	cache.Clear("describeStacks", nil)
 	cache.Clear("describeStacks", name)
 
@@ -1240,6 +1240,10 @@ func (p *Provider) updateStack(name string, template []byte, changes map[string]
 		Capabilities:     []*string{aws.String("CAPABILITY_IAM")},
 		StackName:        aws.String(name),
 		NotificationARNs: []*string{aws.String(p.CloudformationTopic)},
+	}
+
+	if id != "" {
+		req.ClientRequestToken = aws.String(id)
 	}
 
 	params := map[string]bool{}

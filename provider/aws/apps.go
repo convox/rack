@@ -17,10 +17,20 @@ import (
 )
 
 func (p *Provider) AppCancel(name string) error {
-	_, err := p.cloudformation().CancelUpdateStack(&cloudformation.CancelUpdateStackInput{
-		StackName: aws.String(p.rackStack(name)),
-	})
+	a, err := p.AppGet(name)
 	if err != nil {
+		return err
+	}
+
+	req := &cloudformation.CancelUpdateStackInput{
+		StackName: aws.String(p.rackStack(name)),
+	}
+
+	if a.Release != "" {
+		req.ClientRequestToken = aws.String(fmt.Sprintf("%s-%s", time.Now().UTC().Format(helpers.CompactSortableTime), a.Release))
+	}
+
+	if _, err := p.cloudformation().CancelUpdateStack(req); err != nil {
 		return err
 	}
 
@@ -280,7 +290,7 @@ func (p *Provider) AppUpdate(app string, opts structs.AppUpdateOptions) error {
 		}
 	}
 
-	return p.updateStack(p.rackStack(app), nil, opts.Parameters, map[string]string{})
+	return p.updateStack(p.rackStack(app), nil, opts.Parameters, map[string]string{}, "")
 }
 
 func (p *Provider) appFromStack(stack *cloudformation.Stack) (*structs.App, error) {
