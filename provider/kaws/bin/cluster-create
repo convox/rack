@@ -1,0 +1,6 @@
+#!/bin/sh
+
+aws cloudformation create-stack --stack-name $1 --template-body file://provider/kaws/formation/rack.yml --capabilities CAPABILITY_IAM \
+  --tags \
+    Key=system,Value=convox \
+    Key=rack,Value=$1 \

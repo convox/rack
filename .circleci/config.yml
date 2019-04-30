@@ -24,6 +24,10 @@ workflows:
           name: ci/aws/private
           provider: aws
           args: Private=Yes
+      - ci:
+          <<: *ci
+          name: ci/kaws
+          provider: kaws
 
 jobs:
   ci:
