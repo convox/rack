@@ -3,6 +3,7 @@ package k8s
 import (
 	"fmt"
 
+	"github.com/convox/rack/pkg/kctl"
 	"github.com/convox/rack/pkg/options"
 	ac "k8s.io/api/core/v1"
 	am "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -12,7 +13,7 @@ import (
 )
 
 type NodeController struct {
-	Controller *Controller
+	Controller *kctl.Controller
 	Provider   *Provider
 }
 
@@ -21,7 +22,7 @@ func NewNodeController(p *Provider) (*NodeController, error) {
 		Provider: p,
 	}
 
-	c, err := NewController(p.Rack, "convox-k8s-node", pc)
+	c, err := kctl.NewController(p.Rack, "convox-k8s-node", pc)
 	if err != nil {
 		return nil, err
 	}

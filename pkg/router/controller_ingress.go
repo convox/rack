@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/convox/rack/provider/k8s"
+	"github.com/convox/rack/pkg/kctl"
 	ac "k8s.io/api/core/v1"
 	ae "k8s.io/api/extensions/v1beta1"
 	am "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -14,7 +14,7 @@ import (
 )
 
 type IngressController struct {
-	controller *k8s.Controller
+	controller *kctl.Controller
 	kc         kubernetes.Interface
 	router     BackendRouter
 }
@@ -22,7 +22,7 @@ type IngressController struct {
 func NewIngressController(kc kubernetes.Interface, router BackendRouter) (*IngressController, error) {
 	ic := &IngressController{kc: kc, router: router}
 
-	c, err := k8s.NewController("convox-system", "convox-router-ingress", ic)
+	c, err := kctl.NewController("convox-system", "convox-router-ingress", ic)
 	if err != nil {
 		return nil, err
 	}

@@ -2,6 +2,8 @@ package local
 
 import (
 	"context"
+	"fmt"
+	"os"
 
 	"github.com/convox/logger"
 	"github.com/convox/rack/pkg/manifest"
@@ -9,6 +11,7 @@ import (
 	"github.com/convox/rack/pkg/templater"
 	"github.com/convox/rack/provider/k8s"
 	"github.com/gobuffalo/packr"
+	am "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/rest"
 )
 
@@ -55,15 +58,15 @@ func FromEnv() (*Provider, error) {
 func (p *Provider) Initialize(opts structs.ProviderOptions) error {
 	log := p.logger.At("Initialize")
 
-	if err := p.systemUpdate(p.Version); err != nil {
-		return log.Error(err)
-	}
-
 	if err := p.Provider.Initialize(opts); err != nil {
 		return log.Error(err)
 	}
 
 	if _, err := rest.InClusterConfig(); err == nil {
+		if err := p.initializeDNSPort(); err != nil {
+			return log.Error(err)
+		}
+
 		go p.Workers()
 	}
 
@@ -74,4 +77,23 @@ func (p *Provider) WithContext(ctx context.Context) structs.Provider {
 	pp := *p
 	pp.Provider = pp.Provider.WithContext(ctx).(*k8s.Provider)
 	return &pp
+}
+
+func (p *Provider) initializeDNSPort() error {
+	if p.Cluster == nil {
+		return nil
+	}
+
+	s, err := p.Cluster.CoreV1().Services("convox-system").Get("resolver", am.GetOptions{})
+	if err != nil {
+		return err
+	}
+
+	if len(s.Spec.Ports) != 1 {
+		return fmt.Errorf("could not find resolver port")
+	}
+
+	os.Setenv("DNS", fmt.Sprintf("%d", s.Spec.Ports[0].Port))
+
+	return nil
 }

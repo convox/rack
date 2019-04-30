@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/convox/rack/pkg/kctl"
 	ac "k8s.io/api/core/v1"
 	am "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ic "k8s.io/client-go/informers/core/v1"
@@ -12,7 +13,7 @@ import (
 )
 
 type EventController struct {
-	Controller *Controller
+	Controller *kctl.Controller
 	Provider   *Provider
 
 	start am.Time
@@ -24,7 +25,7 @@ func NewEventController(p *Provider) (*EventController, error) {
 		start:    am.NewTime(time.Now().UTC()),
 	}
 
-	c, err := NewController(p.Rack, "convox-k8s-event", pc)
+	c, err := kctl.NewController(p.Rack, "convox-k8s-event", pc)
 	if err != nil {
 		return nil, err
 	}

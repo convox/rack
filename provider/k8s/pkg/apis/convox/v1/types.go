@@ -15,6 +15,15 @@ type Build struct {
 	Spec BuildSpec `json:"spec"`
 }
 
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+type BuildList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata"`
+
+	Items []Build `json:"items"`
+}
+
 type BuildSpec struct {
 	Description string `json:"description"`
 	Ended       string `json:"ended"`
@@ -25,15 +34,6 @@ type BuildSpec struct {
 	Release     string `json:"release"`
 	Started     string `json:"started"`
 	Status      string `json:"status"`
-}
-
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
-type BuildList struct {
-	metav1.TypeMeta `json:",inline"`
-	metav1.ListMeta `json:"metadata"`
-
-	Items []Build `json:"items"`
 }
 
 // +genclient
@@ -47,13 +47,6 @@ type Release struct {
 	Spec ReleaseSpec `json:"spec"`
 }
 
-type ReleaseSpec struct {
-	Build    string `json:"build"`
-	Created  string `json:"created"`
-	Env      string `json:"env"`
-	Manifest string `json:"manifest"`
-}
-
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 type ReleaseList struct {
@@ -61,4 +54,11 @@ type ReleaseList struct {
 	metav1.ListMeta `json:"metadata"`
 
 	Items []Release `json:"items"`
+}
+
+type ReleaseSpec struct {
+	Build    string `json:"build"`
+	Created  string `json:"created"`
+	Env      string `json:"env"`
+	Manifest string `json:"manifest"`
 }

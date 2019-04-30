@@ -1,0 +1,11 @@
+apiVersion: convox.com/v1
+kind: Atom
+metadata:
+  namespace: {{.Namespace}}
+  name: {{.Name}}
+spec:
+  current:
+    template: {{.Template}}
+    version: {{.Version}}
+  progressDeadlineSeconds: {{.Timeout}}
+status: Pending

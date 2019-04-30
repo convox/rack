@@ -1,12 +1,9 @@
 package k8s
 
 import (
-	"bytes"
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"html/template"
-	"os/exec"
 	"sort"
 	"strings"
 
@@ -14,60 +11,7 @@ import (
 	"github.com/convox/rack/pkg/manifest"
 	"github.com/convox/rack/pkg/structs"
 	shellquote "github.com/kballard/go-shellquote"
-	yaml "gopkg.in/yaml.v2"
 )
-
-func (p *Provider) Apply(data []byte, filter string) ([]byte, error) {
-	rs, err := templateResources(filter)
-	if err != nil {
-		return nil, err
-	}
-
-	labels := parseLabels(filter)
-
-	parts := bytes.Split(data, []byte("---\n"))
-
-	for i := range parts {
-		dp, err := applyLabels(parts[i], labels)
-		if err != nil {
-			panic(err)
-			return nil, err
-		}
-
-		parts[i] = dp
-	}
-
-	data = bytes.Join(parts, []byte("---\n"))
-
-	args := []string{"--prune", "-l", filter}
-
-	for _, r := range rs {
-		args = append(args, "--prune-whitelist", r)
-	}
-
-	out, err := kubectlApply(data, args...)
-	if err != nil {
-		if !strings.Contains(string(out), "is immutable") {
-			return out, err
-		}
-
-		out, err := kubectlApply(data, "--force")
-		if err != nil {
-			return out, err
-		}
-	}
-
-	return out, nil
-}
-
-func (p *Provider) ApplyTemplate(name string, filter string, params map[string]interface{}) ([]byte, error) {
-	data, err := p.RenderTemplate(name, params)
-	if err != nil {
-		return nil, err
-	}
-
-	return p.Apply(data, filter)
-}
 
 func (p *Provider) RenderTemplate(name string, params map[string]interface{}) ([]byte, error) {
 	data, err := p.templater.Render(fmt.Sprintf("%s.yml.tmpl", name), params)
@@ -167,116 +111,53 @@ func (p *Provider) templateHelpers() template.FuncMap {
 	}
 }
 
-func applyLabels(data []byte, labels map[string]string) ([]byte, error) {
-	var v map[string]interface{}
+// func templateResources(filter string) ([]string, error) {
+//   data, err := exec.Command("kubectl", "api-resources", "--verbs=list", "--namespaced", "-o", "name").CombinedOutput()
+//   if err != nil {
+//     return []string{}, nil
+//   }
 
-	if err := yaml.Unmarshal(data, &v); err != nil {
-		return nil, err
-	}
+//   ars := strings.Split(strings.TrimSpace(string(data)), "\n")
 
-	if len(v) == 0 {
-		return data, nil
-	}
+//   rsh := map[string]bool{}
 
-	switch t := v["metadata"].(type) {
-	case nil:
-		v["metadata"] = map[string]interface{}{"labels": labels}
-	case map[interface{}]interface{}:
-		switch u := t["labels"].(type) {
-		case nil:
-			t["labels"] = labels
-			v["metadata"] = t
-		case map[interface{}]interface{}:
-			for k, v := range labels {
-				u[k] = v
-			}
-			t["labels"] = u
-			v["metadata"] = t
-		default:
-			return nil, fmt.Errorf("unknown labels type: %T", u)
-		}
-	default:
-		return nil, fmt.Errorf("unknown metadata type: %T", t)
-	}
+//   data, err = exec.Command("kubectl", "get", "-l", filter, "--all-namespaces", "-o", "json", strings.Join(ars, ",")).CombinedOutput()
+//   if err != nil {
+//     return []string{}, nil
+//   }
 
-	pd, err := yaml.Marshal(v)
-	if err != nil {
-		return nil, err
-	}
+//   if strings.TrimSpace(string(data)) == "" {
+//     return []string{}, nil
+//   }
 
-	return pd, nil
-}
+//   var res struct {
+//     Items []struct {
+//       ApiVersion string `json:"apiVersion"`
+//       Kind       string `json:"kind"`
+//     }
+//   }
 
-func kubectlApply(data []byte, args ...string) ([]byte, error) {
-	ka := append([]string{"apply", "-f", "-"}, args...)
+//   if err := json.Unmarshal(data, &res); err != nil {
+//     return nil, err
+//   }
 
-	cmd := exec.Command("kubectl", ka...)
+//   for _, i := range res.Items {
+//     av := i.ApiVersion
 
-	cmd.Stdin = bytes.NewReader(data)
+//     if !strings.Contains(av, "/") {
+//       av = fmt.Sprintf("core/%s", av)
+//     }
 
-	return cmd.CombinedOutput()
-}
+//     rsh[fmt.Sprintf("%s/%s", av, i.Kind)] = true
+//   }
 
-func parseLabels(labels string) map[string]string {
-	ls := map[string]string{}
+//   rs := []string{}
 
-	for _, part := range strings.Split(labels, ",") {
-		ps := strings.SplitN(strings.TrimSpace(part), "=", 2)
-		if len(ps) == 2 {
-			ls[ps[0]] = ps[1]
-		}
-	}
+//   for r := range rsh {
+//     rs = append(rs, r)
+//   }
 
-	return ls
-}
+//   sort.Strings(rs)
 
-func templateResources(filter string) ([]string, error) {
-	data, err := exec.Command("kubectl", "api-resources", "--verbs=list", "--namespaced", "-o", "name").CombinedOutput()
-	if err != nil {
-		return []string{}, nil
-	}
-
-	ars := strings.Split(strings.TrimSpace(string(data)), "\n")
-
-	rsh := map[string]bool{}
-
-	data, err = exec.Command("kubectl", "get", "-l", filter, "--all-namespaces", "-o", "json", strings.Join(ars, ",")).CombinedOutput()
-	if err != nil {
-		return []string{}, nil
-	}
-
-	if strings.TrimSpace(string(data)) == "" {
-		return []string{}, nil
-	}
-
-	var res struct {
-		Items []struct {
-			ApiVersion string `json:"apiVersion"`
-			Kind       string `json:"kind"`
-		}
-	}
-
-	if err := json.Unmarshal(data, &res); err != nil {
-		return nil, err
-	}
-
-	for _, i := range res.Items {
-		av := i.ApiVersion
-
-		if !strings.Contains(av, "/") {
-			av = fmt.Sprintf("core/%s", av)
-		}
-
-		rsh[fmt.Sprintf("%s/%s", av, i.Kind)] = true
-	}
-
-	rs := []string{}
-
-	for r := range rsh {
-		rs = append(rs, r)
-	}
-
-	sort.Strings(rs)
-
-	return rs, nil
-}
+//   return rs, nil
+// }

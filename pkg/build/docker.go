@@ -29,6 +29,7 @@ func (bb *Build) build(path, dockerfile string, tag string, env map[string]strin
 
 	args = append(args, "-t", tag)
 	args = append(args, "-f", df)
+	args = append(args, "--network", "host")
 
 	ba, err := bb.buildArgs(df, env)
 	if err != nil {

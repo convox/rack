@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
+	"net/http"
 	"os"
 	"os/exec"
 	"sort"
@@ -18,6 +20,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs/cloudwatchlogsiface"
 	"github.com/convox/rack/pkg/structs"
+	yaml "gopkg.in/yaml.v2"
 )
 
 func AwsCredentialsLoad() error {
@@ -68,37 +71,23 @@ func AwsErrorCode(err error) string {
 	return ""
 }
 
+func CloudformationDescribe(cf cloudformationiface.CloudFormationAPI, stack string) (*cloudformation.Stack, error) {
+	req := &cloudformation.DescribeStacksInput{
+		StackName: aws.String(stack),
+	}
+
+	res, err := cf.DescribeStacks(req)
+	if err != nil {
+		return nil, err
+	}
+	if len(res.Stacks) != 1 {
+		return nil, fmt.Errorf("stack not found: %s", stack)
+	}
+
+	return res.Stacks[0], nil
+}
+
 func CloudformationInstall(cf cloudformationiface.CloudFormationAPI, name, template string, params, tags map[string]string, cb func(int, int)) error {
-	// res, err := http.Get(template)
-	// if err != nil {
-	//   return err
-	// }
-	// defer res.Body.Close()
-
-	// data, err := ioutil.ReadAll(res.Body)
-	// if err != nil {
-	//   return err
-	// }
-
-	// var t struct {
-	//   Resources map[string]interface{} `json:"Resources" yaml:"Resources"`
-	// }
-
-	// switch filepath.Ext(template) {
-	// case ".json":
-	//   if err := json.Unmarshal(data, &t); err != nil {
-	//     return err
-	//   }
-	// case ".yml", ".yaml":
-	//   if err := yaml.Unmarshal(data, &t); err != nil {
-	//     return err
-	//   }
-	// default:
-	//   return fmt.Errorf("unknown template extension: %s", filepath.Ext(template))
-	// }
-
-	// total := len(t.Resources)
-
 	req := &cloudformation.CreateChangeSetInput{
 		Capabilities:  []*string{aws.String("CAPABILITY_IAM")},
 		ChangeSetName: aws.String("init"),
@@ -201,6 +190,128 @@ func CloudformationInstall(cf cloudformationiface.CloudFormationAPI, name, templ
 
 		cb(current, total)
 	}
+
+	return nil
+}
+
+func CloudformationParameters(template []byte) (map[string]bool, error) {
+	var f struct {
+		Parameters map[string]interface{} `yaml:"Parameters"`
+	}
+
+	if err := yaml.Unmarshal(template, &f); err != nil {
+		return nil, err
+	}
+
+	ps := map[string]bool{}
+
+	for p := range f.Parameters {
+		ps[p] = true
+	}
+
+	return ps, nil
+}
+
+func CloudformationUpdate(cf cloudformationiface.CloudFormationAPI, stack string, template string, changes map[string]string, tags map[string]string, topic string) error {
+	req := &cloudformation.UpdateStackInput{
+		Capabilities:     []*string{aws.String("CAPABILITY_IAM")},
+		NotificationARNs: []*string{aws.String(topic)},
+		StackName:        aws.String(stack),
+	}
+
+	params := map[string]bool{}
+	pexisting := map[string]bool{}
+
+	s, err := CloudformationDescribe(cf, stack)
+	if err != nil {
+		return err
+	}
+
+	for _, p := range s.Parameters {
+		pexisting[*p.ParameterKey] = true
+	}
+
+	if template == "" {
+		req.UsePreviousTemplate = aws.Bool(true)
+
+		for param := range pexisting {
+			params[param] = true
+		}
+	} else {
+		req.TemplateURL = aws.String(template)
+
+		res, err := http.Get(template)
+		if err != nil {
+			return err
+		}
+		defer res.Body.Close()
+
+		body, err := ioutil.ReadAll(res.Body)
+		if err != nil {
+			return err
+		}
+
+		fp, err := CloudformationParameters(body)
+		if err != nil {
+			return err
+		}
+
+		for p := range fp {
+			params[p] = true
+		}
+	}
+
+	sorted := []string{}
+
+	for param := range params {
+		sorted = append(sorted, param)
+	}
+
+	// sort params for easier testing
+	sort.Strings(sorted)
+
+	for _, param := range sorted {
+		if value, ok := changes[param]; ok {
+			req.Parameters = append(req.Parameters, &cloudformation.Parameter{
+				ParameterKey:   aws.String(param),
+				ParameterValue: aws.String(value),
+			})
+		} else if pexisting[param] {
+			req.Parameters = append(req.Parameters, &cloudformation.Parameter{
+				ParameterKey:     aws.String(param),
+				UsePreviousValue: aws.Bool(true),
+			})
+		}
+	}
+
+	req.Tags = s.Tags
+
+	tks := []string{}
+
+	for key := range tags {
+		tks = append(tks, key)
+	}
+
+	sort.Strings(tks)
+
+	for _, key := range tks {
+		req.Tags = append(req.Tags, &cloudformation.Tag{
+			Key:   aws.String(key),
+			Value: aws.String(tags[key]),
+		})
+	}
+
+	if _, err := cf.UpdateStack(req); err != nil {
+		return err
+	}
+
+	// dreq := &cloudformation.DescribeStacksInput{
+	//   StackName: aws.String(stack),
+	// }
+
+	// if err := cf.WaitUntilStackUpdateComplete(dreq); err != nil {
+	//   return err
+	// }
 
 	return nil
 }

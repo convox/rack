@@ -1,6 +1,7 @@
 package local
 
 import (
+	"bytes"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/tls"
@@ -16,20 +17,19 @@ import (
 	"os/exec"
 	"runtime"
 	"sort"
-	"strings"
 	"time"
 
 	"github.com/convox/rack/pkg/helpers"
 	"github.com/convox/rack/pkg/options"
 	"github.com/convox/rack/pkg/storage"
 	"github.com/convox/rack/pkg/structs"
+	"github.com/convox/rack/provider/k8s"
 	"github.com/convox/rack/sdk"
-	am "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func (p *Provider) SystemAnnotations(service string) map[string]string {
-	return map[string]string{}
-}
+var (
+	systemTemplates = []string{"registry", "router"}
+)
 
 func (p *Provider) SystemHost() string {
 	return fmt.Sprintf("rack.%s", p.Rack)
@@ -48,23 +48,11 @@ func (p *Provider) SystemInstall(w io.Writer, opts structs.SystemInstallOptions)
 	version := helpers.DefaultString(opts.Version, "dev")
 	url := fmt.Sprintf("https://rack.%s", name)
 
+	p.Rack = name
+
 	fmt.Fprintf(w, "Installing... ")
 
 	if err := removeOriginalRack(name); err != nil {
-		return "", err
-	}
-
-	if _, err := p.Provider.SystemInstall(w, opts); err != nil {
-		return "", err
-	}
-
-	p.Rack = name
-
-	if err := p.systemUpdate(version); err != nil {
-		return "", err
-	}
-
-	if err := p.generateCACertificate(name); err != nil {
 		return "", err
 	}
 
@@ -73,6 +61,23 @@ func (p *Provider) SystemInstall(w io.Writer, opts structs.SystemInstallOptions)
 	}
 
 	if err := dnsInstall(name); err != nil {
+		return "", err
+	}
+
+	if err := p.generateCACertificate(version); err != nil {
+		return "", err
+	}
+
+	if _, err := p.Provider.SystemInstall(w, opts); err != nil {
+		return "", err
+	}
+
+	params := map[string]interface{}{
+		"DNS":  dnsPort(),
+		"Rack": name,
+	}
+
+	if err := p.systemUpdate(version, params); err != nil {
 		return "", err
 	}
 
@@ -91,6 +96,41 @@ func (p *Provider) SystemInstall(w io.Writer, opts structs.SystemInstallOptions)
 	}
 
 	return url, nil
+}
+
+func (p *Provider) SystemStatus() (string, error) {
+	return "running", nil
+}
+
+func (p *Provider) SystemTemplate(version string) ([]byte, error) {
+	params := map[string]interface{}{
+		"Version": version,
+	}
+
+	ts := [][]byte{}
+
+	data, err := p.Provider.SystemTemplate(version)
+	if err != nil {
+		return nil, err
+	}
+
+	ts = append(ts, data)
+
+	for _, st := range systemTemplates {
+		data, err := p.RenderTemplate(fmt.Sprintf("system/%s", st), params)
+		if err != nil {
+			return nil, err
+		}
+
+		ldata, err := k8s.ApplyLabels(data, "system=convox,provider=local")
+		if err != nil {
+			return nil, err
+		}
+
+		ts = append(ts, ldata)
+	}
+
+	return bytes.Join(ts, []byte("---\n")), nil
 }
 
 func (p *Provider) SystemUninstall(name string, w io.Writer, opts structs.SystemUninstallOptions) error {
@@ -121,7 +161,26 @@ func (p *Provider) SystemUninstall(name string, w io.Writer, opts structs.System
 	return nil
 }
 
-func (p *Provider) generateCACertificate(name string) error {
+func (p *Provider) SystemUpdate(opts structs.SystemUpdateOptions) error {
+	if err := p.Provider.SystemUpdate(opts); err != nil {
+		return err
+	}
+
+	version := helpers.DefaultString(opts.Version, p.Version)
+
+	params := map[string]interface{}{
+		"DNS":  os.Getenv("DNS"),
+		"Rack": p.Rack,
+	}
+
+	if err := p.systemUpdate(version, params); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (p *Provider) generateCACertificate(version string) error {
 	if err := exec.Command("kubectl", "get", "secret", "ca", "-n", "convox-system").Run(); err == nil {
 		return nil
 	}
@@ -164,54 +223,56 @@ func (p *Provider) generateCACertificate(name string) error {
 		"Private": base64.StdEncoding.EncodeToString(key),
 	}
 
-	if _, err := p.ApplyTemplate("ca", "system=convox,provider=local,scope=ca", params); err != nil {
+	data, err = p.RenderTemplate("ca", params)
+	if err != nil {
 		return err
 	}
 
-	if err := trustCertificate(name, pub); err != nil {
+	if err := p.Apply(p.Rack, "ca", version, data, fmt.Sprintf("system=convox,provider=local,rack=%s", p.Rack), 30); err != nil {
+		return err
+	}
+
+	if err := trustCertificate(p.Rack, pub); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (p *Provider) systemUpdate(version string) error {
-	log := p.logger.At("systemUpdate").Namespace("rack=%s version=%s", p.Rack, version)
-
-	dp := dnsPort()
-
-	if p.Cluster != nil {
-		s, err := p.Cluster.CoreV1().Services("convox-system").Get("resolver", am.GetOptions{})
-		if err != nil {
-			return err
-		}
-
-		if len(s.Spec.Ports) != 1 {
-			return fmt.Errorf("could not find resolver port")
-		}
-
-		dp = fmt.Sprintf("%d", s.Spec.Ports[0].Port)
+func (p *Provider) systemUpdate(version string, params map[string]interface{}) error {
+	data, err := p.RenderTemplate("config", params)
+	if err != nil {
+		return err
 	}
 
-	params := map[string]interface{}{
-		"DnsPort": dp,
-		"Rack":    p.Rack,
-		"Version": version,
+	if err := p.Apply(p.Rack, "config", version, data, fmt.Sprintf("system=convox,provider=local,rack=%s", p.Rack), 30); err != nil {
+		return err
 	}
 
-	if out, err := p.ApplyTemplate("config", fmt.Sprintf("system=convox,provider=local,scope=config,rack=%s", p.Rack), params); err != nil {
-		return log.Error(fmt.Errorf("update error: %s: %s", err, strings.TrimSpace(string(out))))
+	host := fmt.Sprintf("rack.%s", p.Rack)
+	template := fmt.Sprintf("https://convox.s3.amazonaws.com/release/%s/provider/local/k8s/rack.yml", version)
+
+	data, err = helpers.Get(template)
+	if err != nil {
+		return err
 	}
 
-	if out, err := p.ApplyTemplate("system", "system=convox,provider=local,scope=system", params); err != nil {
-		return log.Error(fmt.Errorf("update error: %s: %s", err, strings.TrimSpace(string(out))))
+	tags := map[string]string{
+		"DNS":    helpers.CoalesceString(os.Getenv("DNS"), dnsPort()),
+		"HOST":   host,
+		"RACK":   p.Rack,
+		"SOCKET": dockerSocket(),
 	}
 
-	if out, err := p.ApplyTemplate("rack", fmt.Sprintf("system=convox,provider=local,scope=rack,rack=%s", p.Rack), params); err != nil {
-		return log.Error(fmt.Errorf("update error: %s: %s", err, strings.TrimSpace(string(out))))
+	for k, v := range tags {
+		data = bytes.Replace(data, []byte(fmt.Sprintf("==%s==", k)), []byte(v), -1)
 	}
 
-	return log.Success()
+	if err := p.Apply(p.Rack, "system", version, data, fmt.Sprintf("system=convox,provider=local,rack=%s", p.Rack), 300); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func checkKubectl() error {

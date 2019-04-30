@@ -1,14 +1,14 @@
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: {{.Rack}}
+  name: ==RACK==
   labels:
     type: rack
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  namespace: {{.Rack}}
+  namespace: ==RACK==
   name: rack
 rules:
   - apiGroups: [ "*" ]
@@ -18,7 +18,7 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  namespace: {{.Rack}}
+  namespace: ==RACK==
   name: rack
 roleRef:
   apiGroup: rbac.authorization.k8s.io
@@ -27,19 +27,21 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: rack
-    namespace: {{.Rack}}
+    namespace: ==RACK==
 ---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  namespace: {{.Rack}}
+  namespace: ==RACK==
   name: rack
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  namespace: {{.Rack}}
+  namespace: ==RACK==
   name: api
+  annotations:
+    atom.conditions: Available=True,Progressing=True/NewReplicaSetAvailable
   labels:
     app: rack
     service: api
@@ -48,7 +50,7 @@ spec:
   selector:
     matchLabels:
       system: convox
-      rack: {{.Rack}}
+      rack: ==RACK==
       app: rack
       service: api
   strategy:
@@ -61,12 +63,9 @@ spec:
     metadata:
       annotations:
         scheduler.alpha.kubernetes.io/critical-pod: ""
-        {{ range $k, $v := .RackAnnotations }}
-        {{$k}}: {{ safe $v }}
-        {{ end }}
       labels:
         system: convox
-        rack: {{.Rack}}
+        rack: ==RACK==
         app: rack
         service: api
     spec:
@@ -80,14 +79,10 @@ spec:
           value: /data
         - name: DEVELOPMENT
           value: "false"
-        - name: ID
-          value: "{{.ID}}"
         - name: IMAGE
           value: convox/rack:{{.Version}}
         - name: RACK
-          value: {{.Rack}}
-        - name: SOCKET
-          value: {{.Docker}}
+          value: ==RACK==
         - name: VERSION
           value: "{{.Version}}"
         envFrom:
@@ -122,16 +117,16 @@ spec:
       volumes:
       - name: data
         hostPath:
-          path: /var/rack/{{.Rack}}
+          path: /var/rack/==RACK==
           type: DirectoryOrCreate
       - name: docker
         hostPath:
-          path: {{.Docker}}
+          path: ==SOCKET==
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  namespace: {{.Rack}}
+  namespace: ==RACK==
   name: api
   annotations:
     convox.service.ports.5443.protocol: https
@@ -147,14 +142,14 @@ spec:
     protocol: TCP
   selector:
     system: convox
-    rack: {{.Rack}}
+    rack: ==RACK==
     app: rack
     service: api
 ---
 apiVersion: extensions/v1beta1
 kind: Ingress
 metadata:
-  namespace: {{.Rack}}
+  namespace: ==RACK==
   name: rack
   annotations:
     convox.idles: "true"
@@ -162,9 +157,9 @@ metadata:
 spec:
   tls:
   - hosts:
-    - {{systemHost}}
+    - ==HOST==
   rules:
-    - host: {{systemHost}}
+    - host: ==HOST==
       http:
         paths:
         - backend:

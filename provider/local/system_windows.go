@@ -42,6 +42,10 @@ func dnsUninstall(name string) error {
 	return nil
 }
 
+func dockerSocket() string {
+	return "/var/run/docker.sock"
+}
+
 func networkSetup() error {
 	return nil
 }

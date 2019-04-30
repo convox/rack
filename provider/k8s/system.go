@@ -1,22 +1,39 @@
 package k8s
 
 import (
+	"bytes"
 	"fmt"
 	"io"
-	"os/exec"
-	"strconv"
-	"strings"
 
 	"github.com/convox/rack/pkg/helpers"
 	"github.com/convox/rack/pkg/structs"
 	am "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+var (
+	systemTemplates = []string{"custom", "metrics", "rack", "router"}
+)
+
 func (p *Provider) SystemGet() (*structs.System, error) {
+	status, err := p.Engine.SystemStatus()
+	if err != nil {
+		return nil, err
+	}
+
+	ss, _, err := p.atom.Status(p.Rack, "system")
+	if err != nil {
+		return nil, err
+	}
+
+	switch status {
+	case "running", "unknown":
+		status = helpers.AtomStatus(ss)
+	}
+
 	s := &structs.System{
 		Name:     p.Rack,
 		Provider: p.Provider,
-		Status:   "running",
+		Status:   status,
 		Version:  p.Version,
 	}
 
@@ -24,13 +41,9 @@ func (p *Provider) SystemGet() (*structs.System, error) {
 }
 
 func (p *Provider) SystemInstall(w io.Writer, opts structs.SystemInstallOptions) (string, error) {
-	name := helpers.DefaultString(opts.Name, "convox")
+	version := helpers.DefaultString(opts.Version, "dev")
 
-	p.ID = helpers.DefaultString(opts.Id, "")
-	p.Rack = name
-	p.Socket = p.dockerSocket()
-
-	if err := p.systemUpdate(helpers.DefaultString(opts.Version, "dev")); err != nil {
+	if err := p.systemUpdate(version); err != nil {
 		return "", err
 	}
 
@@ -93,30 +106,34 @@ func (p *Provider) SystemUninstall(name string, w io.Writer, opts structs.System
 	return fmt.Errorf("unimplemented")
 }
 
-func (p *Provider) SystemUpdate(opts structs.SystemUpdateOptions) error {
-	ds, err := p.Cluster.ExtensionsV1beta1().Deployments(p.Rack).Get("api", am.GetOptions{})
-	if err != nil {
-		return err
+func (p *Provider) SystemTemplate(version string) ([]byte, error) {
+	params := map[string]interface{}{
+		"Version": version,
 	}
 
+	ts := [][]byte{}
+
+	for _, st := range systemTemplates {
+		data, err := p.RenderTemplate(fmt.Sprintf("system/%s", st), params)
+		if err != nil {
+			return nil, err
+		}
+
+		ldata, err := ApplyLabels(data, "system=convox,provider=k8s")
+		if err != nil {
+			return nil, err
+		}
+
+		ts = append(ts, ldata)
+	}
+
+	return bytes.Join(ts, []byte("---\n")), nil
+}
+
+func (p *Provider) SystemUpdate(opts structs.SystemUpdateOptions) error {
 	version := helpers.DefaultString(opts.Version, p.Version)
 
-	for i, c := range ds.Spec.Template.Spec.Containers {
-		if c.Name == "main" {
-			ds.Spec.Template.Spec.Containers[i].Image = fmt.Sprintf("convox/rack:%s", version)
-		}
-
-		for i, e := range c.Env {
-			switch e.Name {
-			case "IMAGE":
-				c.Env[i].Value = fmt.Sprintf("convox/rack:%s", version)
-			case "VERSION":
-				c.Env[i].Value = version
-			}
-		}
-	}
-
-	if _, err := p.Cluster.ExtensionsV1beta1().Deployments(p.Rack).Update(ds); err != nil {
+	if err := p.systemUpdate(version); err != nil {
 		return err
 	}
 
@@ -124,48 +141,5 @@ func (p *Provider) SystemUpdate(opts structs.SystemUpdateOptions) error {
 }
 
 func (p *Provider) systemUpdate(version string) error {
-	log := p.logger.At("systemUpdate").Namespace("id=%s rack=%s version=%s", p.ID, p.Rack, version)
-
-	data, err := exec.Command("kubectl", "get", "nodes", "-o", "go-template={{ len .items }}").CombinedOutput()
-	if err != nil {
-		return err
-	}
-
-	nc, err := strconv.Atoi(string(data))
-	if err != nil {
-		return err
-	}
-
-	if nc < 1 {
-		nc = 1
-	}
-
-	params := map[string]interface{}{
-		"Docker":            p.Socket,
-		"ID":                p.ID,
-		"Rack":              p.Rack,
-		"RackAnnotations":   p.Engine.SystemAnnotations("rack"),
-		"RouterAnnotations": p.Engine.SystemAnnotations("router"),
-		"RouterMin":         1,
-		"RouterMax":         nc,
-		"Version":           version,
-	}
-
-	if out, err := p.ApplyTemplate("custom", "system=convox,provider=k8s,scope=custom", nil); err != nil {
-		return log.Error(fmt.Errorf("update error: %s: %s", err, strings.TrimSpace(string(out))))
-	}
-
-	if out, err := p.ApplyTemplate("metrics", "system=convox,provider=k8s,scope=metrics", nil); err != nil {
-		return log.Error(fmt.Errorf("update error: %s: %s", err, strings.TrimSpace(string(out))))
-	}
-
-	if out, err := p.ApplyTemplate("rack", fmt.Sprintf("system=convox,provider=k8s,scope=rack,rack=%s", p.Rack), params); err != nil {
-		return log.Error(fmt.Errorf("update error: %s: %s", err, strings.TrimSpace(string(out))))
-	}
-
-	if out, err := p.ApplyTemplate("system", "system=convox,provider=k8s,scope=system", params); err != nil {
-		return log.Error(fmt.Errorf("update error: %s: %s", err, strings.TrimSpace(string(out))))
-	}
-
-	return log.Success()
+	return nil
 }

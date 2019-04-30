@@ -27,7 +27,7 @@ spec:
   type: LoadBalancer
   ports:
   - name: dns
-    port: {{.DnsPort}}
+    port: ==DNS==
     targetPort: 5453
     protocol: UDP
   selector:

@@ -3,7 +3,6 @@ package k8s
 import (
 	"bytes"
 	"encoding/base64"
-	"errors"
 	"fmt"
 	"sort"
 	"strings"
@@ -125,6 +124,7 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 		"App":       a,
 		"Idles":     helpers.DefaultBool(opts.Idle, idles),
 		"Manifest":  m,
+		"Name":      a.Name,
 		"Namespace": p.AppNamespace(a.Name),
 		"Rack":      p.Rack,
 		"Release":   r,
@@ -132,10 +132,17 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 		"Volumes":   vs,
 	}
 
+	data, err := p.RenderTemplate("app/app", params)
+	if err != nil {
+		return err
+	}
+
+	items = append(items, data)
+
 	if ca, err := p.Cluster.CoreV1().Secrets("convox-system").Get("ca", am.GetOptions{}); err == nil {
 		params["CA"] = base64.StdEncoding.EncodeToString(ca.Data["tls.crt"])
 
-		data, err := p.RenderTemplate("config", params)
+		data, err := p.RenderTemplate("app/ca", params)
 		if err != nil {
 			return err
 		}
@@ -143,14 +150,14 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 		items = append(items, data)
 	}
 
-	data, err := p.RenderTemplate("ingress", params)
+	data, err = p.RenderTemplate("app/ingress", params)
 	if err != nil {
 		return err
 	}
 
 	items = append(items, data)
 
-	data, err = p.RenderTemplate("volumes", params)
+	data, err = p.RenderTemplate("app/volumes", params)
 	if err != nil {
 		return err
 	}
@@ -227,14 +234,13 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 			"Rollback":       a.Release,
 			"Service":        s,
 			"SystemEnv":      senv,
-			"Timeout":        helpers.DefaultInt(opts.Timeout, 1800),
 		}
 
 		if ip, err := p.Engine.Resolver(); err == nil {
 			params["Resolver"] = ip
 		}
 
-		data, err := p.RenderTemplate("service", params)
+		data, err := p.RenderTemplate("app/service", params)
 		if err != nil {
 			return err
 		}
@@ -244,25 +250,9 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 
 	tdata := bytes.Join(items, []byte("---\n"))
 
-	// fmt.Printf("string(tdata) = %+v\n", string(tdata))
+	timeout := int32(helpers.DefaultInt(opts.Timeout, 1800))
 
-	out, err := p.Apply(tdata, fmt.Sprintf("system=convox,provider=k8s,scope=release,rack=%s,app=%s", p.Rack, app))
-	if err != nil {
-		return errors.New(strings.TrimSpace(string(out)))
-	}
-
-	ns, err := p.Cluster.CoreV1().Namespaces().Get(p.AppNamespace(app), am.GetOptions{})
-	if err != nil {
-		return err
-	}
-
-	if ns.ObjectMeta.Annotations == nil {
-		ns.ObjectMeta.Annotations = map[string]string{}
-	}
-
-	ns.Annotations["convox.release"] = r.Id
-
-	if _, err := p.Cluster.CoreV1().Namespaces().Update(ns); err != nil {
+	if err := p.Apply(p.AppNamespace(app), "app", r.Id, tdata, fmt.Sprintf("system=convox,provider=k8s,rack=%s,app=%s,release=%s", p.Rack, app, r.Id), timeout); err != nil {
 		return err
 	}
 
@@ -275,7 +265,7 @@ func (p *Provider) releaseCreate(r *structs.Release) (*structs.Release, error) {
 		return nil, err
 	}
 
-	kr, err := c.Releases(p.AppNamespace(r.App)).Create(p.releaseMarshal(r))
+	kr, err := c.ConvoxV1().Releases(p.AppNamespace(r.App)).Create(p.releaseMarshal(r))
 	if err != nil {
 		return nil, err
 	}
@@ -289,7 +279,7 @@ func (p *Provider) releaseGet(app, id string) (*structs.Release, error) {
 		return nil, err
 	}
 
-	kr, err := c.Releases(p.AppNamespace(app)).Get(strings.ToLower(id), am.GetOptions{})
+	kr, err := c.ConvoxV1().Releases(p.AppNamespace(app)).Get(strings.ToLower(id), am.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -323,7 +313,7 @@ func (p *Provider) releaseList(app string) (structs.Releases, error) {
 		return nil, err
 	}
 
-	krs, err := c.Releases(p.AppNamespace(app)).List(am.ListOptions{})
+	krs, err := c.ConvoxV1().Releases(p.AppNamespace(app)).List(am.ListOptions{})
 	if err != nil {
 		return nil, err
 	}

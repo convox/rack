@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/convox/rack/pkg/kctl"
 	"github.com/convox/rack/pkg/options"
 	"github.com/convox/rack/pkg/structs"
 	ac "k8s.io/api/core/v1"
@@ -15,7 +16,7 @@ import (
 )
 
 type DeploymentController struct {
-	Controller *Controller
+	Controller *kctl.Controller
 	Provider   *Provider
 }
 
@@ -24,7 +25,7 @@ func NewDeploymentController(p *Provider) (*DeploymentController, error) {
 		Provider: p,
 	}
 
-	c, err := NewController(p.Rack, "convox-k8s-deployment", pc)
+	c, err := kctl.NewController(p.Rack, "convox-k8s-deployment", pc)
 	if err != nil {
 		return nil, err
 	}
@@ -101,7 +102,7 @@ func (c *DeploymentController) Update(prev, cur interface{}) error {
 
 	fmt.Printf("deployment update: %s/%s\n", cd.ObjectMeta.Namespace, cd.ObjectMeta.Name)
 
-	if deploymentConditionReason(cd, "Progressing") == "NewReplicaSetAvailable" {
+	if deploymentConditionReason(pd, "Progressing") != "NewReplicaSetAvailable" && deploymentConditionReason(cd, "Progressing") == "NewReplicaSetAvailable" {
 		if cd.ObjectMeta.Labels["app"] != "" && cd.ObjectMeta.Labels["release"] != "" {
 			if err := c.Provider.serviceInstall(cd.ObjectMeta.Labels["app"], cd.ObjectMeta.Labels["release"], cd.Name); err != nil {
 				return err
@@ -109,18 +110,18 @@ func (c *DeploymentController) Update(prev, cur interface{}) error {
 		}
 	}
 
-	if deploymentCondition(cd, "Progressing") == "False" && deploymentCondition(pd, "Progressing") == "True" && deploymentConditionReason(cd, "Progressing") == "ProgressDeadlineExceeded" {
-		if err := c.deploymentRollback(cd); err != nil {
-			return err
-		}
-	}
+	// if deploymentCondition(cd, "Progressing") == "False" && deploymentCondition(pd, "Progressing") == "True" && deploymentConditionReason(cd, "Progressing") == "ProgressDeadlineExceeded" {
+	//   if err := c.deploymentRollback(cd); err != nil {
+	//     return err
+	//   }
+	// }
 
-	if deploymentCondition(cd, "Rollback") == "True" && cd.Status.UnavailableReplicas == 0 {
-		go func() {
-			time.Sleep(10 * time.Second)
-			c.setDeploymentCondition(cd, "Rollback", "False", "")
-		}()
-	}
+	// if deploymentCondition(cd, "Rollback") == "True" && cd.Status.UnavailableReplicas == 0 {
+	//   go func() {
+	//     time.Sleep(10 * time.Second)
+	//     c.setDeploymentCondition(cd, "Rollback", "False", "")
+	//   }()
+	// }
 
 	return nil
 }

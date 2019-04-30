@@ -123,7 +123,7 @@ func StreamSystemLogs(ctx context.Context, p structs.Provider, w io.Writer) {
 func WaitForAppDeleted(p structs.Provider, w io.Writer, app string) error {
 	time.Sleep(ProviderWaitDuration) // give the stack time to start updating
 
-	return Wait(ProviderWaitDuration, 30*time.Minute, 2, func() (bool, error) {
+	return Wait(ProviderWaitDuration, 35*time.Minute, 2, func() (bool, error) {
 		_, err := p.AppGet(app)
 		if err == nil {
 			return false, nil
@@ -147,7 +147,7 @@ func WaitForAppRunningContext(ctx context.Context, p structs.Provider, app strin
 
 	var waitError error
 
-	return WaitContext(ctx, ProviderWaitDuration, 30*time.Minute, 2, func() (bool, error) {
+	return WaitContext(ctx, ProviderWaitDuration, 35*time.Minute, 2, func() (bool, error) {
 		a, err := p.AppGet(app)
 		if err != nil {
 			return false, err
@@ -192,7 +192,7 @@ func WaitForProcessRunning(p structs.Provider, w io.Writer, app, pid string) err
 func WaitForRackRunning(p structs.Provider, w io.Writer) error {
 	time.Sleep(ProviderWaitDuration) // give the stack time to start updating
 
-	return Wait(ProviderWaitDuration, 30*time.Minute, 2, func() (bool, error) {
+	return Wait(ProviderWaitDuration, 35*time.Minute, 2, func() (bool, error) {
 		s, err := p.SystemGet()
 		if err != nil {
 			return false, err

@@ -96,6 +96,10 @@ func dnsUninstall(name string) error {
 	return nil
 }
 
+func dockerSocket() string {
+	return "/var/snap/microk8s/current/docker.sock"
+}
+
 func networkSetup() error {
 	switch {
 	case helpers.FileExists("/etc/network/if-up.d"):

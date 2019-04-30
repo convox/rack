@@ -54,6 +54,7 @@ ENV PATH=$PATH:/go/bin
 
 WORKDIR /rack
 
+COPY --from=package /go/bin/atom /go/bin/
 COPY --from=package /go/bin/build /go/bin/
 COPY --from=package /go/bin/convox-env /go/bin/
 COPY --from=package /go/bin/monitor /go/bin/
