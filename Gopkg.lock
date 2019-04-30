@@ -82,7 +82,7 @@
   version = "v1.2.0"
 
 [[projects]]
-  digest = "1:330b5791926303af00ffc69c79dbc166745c10fac569b13eb77d87575fa7cc95"
+  digest = "1:9ff21006c9b2b8b86991a54638c1c38185c7367ba1fc5157e949ce1c76784c03"
   name = "github.com/aws/aws-sdk-go"
   packages = [
     "aws",
@@ -128,6 +128,7 @@
     "service/dynamodb",
     "service/ec2",
     "service/ecr",
+    "service/ecr/ecriface",
     "service/ecs",
     "service/iam",
     "service/kms",
@@ -136,6 +137,7 @@
     "service/s3/s3manager",
     "service/sns",
     "service/sqs",
+    "service/sqs/sqsiface",
     "service/sts",
   ]
   pruneopts = "NUT"
@@ -1238,13 +1240,16 @@
     "github.com/aws/aws-sdk-go/service/dynamodb",
     "github.com/aws/aws-sdk-go/service/ec2",
     "github.com/aws/aws-sdk-go/service/ecr",
+    "github.com/aws/aws-sdk-go/service/ecr/ecriface",
     "github.com/aws/aws-sdk-go/service/ecs",
     "github.com/aws/aws-sdk-go/service/iam",
     "github.com/aws/aws-sdk-go/service/kms",
     "github.com/aws/aws-sdk-go/service/s3",
+    "github.com/aws/aws-sdk-go/service/s3/s3iface",
     "github.com/aws/aws-sdk-go/service/s3/s3manager",
     "github.com/aws/aws-sdk-go/service/sns",
     "github.com/aws/aws-sdk-go/service/sqs",
+    "github.com/aws/aws-sdk-go/service/sqs/sqsiface",
     "github.com/aws/aws-sdk-go/service/sts",
     "github.com/boltdb/bolt",
     "github.com/convox/changes",
