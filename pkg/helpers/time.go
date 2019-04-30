@@ -8,8 +8,9 @@ import (
 )
 
 var (
-	PrintableTime = "2006-01-02 15:04:05"
-	SortableTime  = "20060102.150405.000000000"
+	CompactSortableTime = "20060102150405000000000"
+	PrintableTime       = "2006-01-02 15:04:05"
+	SortableTime        = "20060102.150405.000000000"
 )
 
 func Ago(t time.Time) string {

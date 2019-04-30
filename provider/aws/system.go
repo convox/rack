@@ -570,7 +570,7 @@ func (p *Provider) SystemUpdate(opts structs.SystemUpdateOptions) error {
 		"Type":   "rack",
 	}
 
-	if err := p.updateStack(p.Rack, template, params, tags); err != nil {
+	if err := p.updateStack(p.Rack, template, params, tags, ""); err != nil {
 		return err
 	}
 
