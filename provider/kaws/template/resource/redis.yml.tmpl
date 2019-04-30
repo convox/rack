@@ -1,0 +1,96 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: {{.Namespace}}
+  name: resource-{{.Name}}
+  labels:
+    system: convox
+    rack: {{.Rack}}
+    app: {{.App}}
+    type: resource
+    resource: {{.Name}}
+---
+apiVersion: "convox.com/v1"
+kind: Stack
+metadata:
+  namespace: {{.Namespace}}
+  name: resource-{{.Name}}
+  finalizers:
+    - stack.kaws.convox
+  labels:
+    system: convox
+    rack: {{.Rack}}
+    app: {{.App}}
+    type: resource
+    resource: redis
+    name: {{.Name}}
+spec:
+  parameters:
+  {{ range $k, $v := .Parameters }}
+    {{ upper $k }}: {{ safe $v }}
+  {{ end }}
+  template: |
+    AWSTemplateFormatVersion: "2010-09-09"
+    Conditions:
+      Encrypted: !Equals [ !Ref "Encrypted", "true" ]
+    Parameters:
+      Class:
+        Type: String
+        Default: cache.t2.micro
+      Durable:
+        Type: String
+        Default: "false"
+        AllowedValues: [ "true", "false" ]
+      Encrypted:
+        Type: String
+        Default: "false"
+        AllowedValues: [ "true", "false" ]
+      Nodes:
+        Type: Number
+        Default: "1"
+      Version:
+        Type: String
+        Default: "5.0"
+    Outputs:
+      Url:
+        Value: !Sub
+          - ${Protocol}${Auth}${ReplicationGroup.PrimaryEndPoint.Address}:${ReplicationGroup.PrimaryEndPoint.Port}/0
+          - Protocol: !If [ Encrypted, "rediss://", "redis://" ]
+            Auth: !If [ Encrypted, ":{{.Password}}@", "" ]
+    Resources:
+      SecurityGroup:
+        Type: AWS::EC2::SecurityGroup
+        Properties:
+          GroupDescription: !Ref AWS::StackName
+          SecurityGroupIngress:
+            - IpProtocol: tcp
+              FromPort: "6379"
+              ToPort: "6379"
+              CidrIp: !ImportValue "{{.Rack}}:VpcCidr"
+          VpcId: !ImportValue "{{.Rack}}:Vpc"
+          Tags:
+            - Key: Name
+              Value: !Ref AWS::StackName
+      SubnetGroup:
+        Type: AWS::ElastiCache::SubnetGroup
+        Properties:
+          Description: !Ref AWS::StackName
+          SubnetIds:
+            - !ImportValue "{{.Rack}}:VpcPrivateSubnet0"
+            - !ImportValue "{{.Rack}}:VpcPrivateSubnet1"
+      ReplicationGroup:
+        Type: AWS::ElastiCache::ReplicationGroup
+        Properties:
+          AtRestEncryptionEnabled: !Ref Encrypted
+          AuthToken: !If [ Encrypted, {{ safe .Password }}, !Ref "AWS::NoValue" ]
+          AutomaticFailoverEnabled: !Ref Durable
+          AutoMinorVersionUpgrade: true
+          CacheNodeType: !Ref Class
+          CacheSubnetGroupName: !Ref SubnetGroup
+          Engine: redis
+          EngineVersion: !Ref Version
+          NumCacheClusters: !Ref Nodes
+          Port: "6379"
+          ReplicationGroupDescription: !Ref "AWS::StackName"
+          SecurityGroupIds: [ !Ref SecurityGroup ]
+          TransitEncryptionEnabled: !Ref Encrypted

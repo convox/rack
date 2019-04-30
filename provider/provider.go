@@ -8,6 +8,7 @@ import (
 	"github.com/convox/rack/provider/aws"
 	"github.com/convox/rack/provider/base"
 	"github.com/convox/rack/provider/k8s"
+	"github.com/convox/rack/provider/kaws"
 	"github.com/convox/rack/provider/local"
 )
 
@@ -27,6 +28,8 @@ func FromName(name string) (structs.Provider, error) {
 	switch name {
 	case "aws":
 		return aws.FromEnv()
+	case "kaws":
+		return kaws.FromEnv()
 	case "k8s":
 		return k8s.FromEnv()
 	case "local":

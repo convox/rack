@@ -1,0 +1,113 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: {{.Namespace}}
+  name: resource-{{.Name}}
+  labels:
+    system: convox
+    rack: {{.Rack}}
+    app: {{.App}}
+    type: resource
+    resource: {{.Name}}
+---
+apiVersion: "convox.com/v1"
+kind: Stack
+metadata:
+  namespace: {{.Namespace}}
+  name: resource-{{.Name}}
+  finalizers:
+    - stack.kaws.convox
+  labels:
+    system: convox
+    rack: {{.Rack}}
+    app: {{.App}}
+    type: resource
+    resource: postgres
+    name: {{.Name}}
+spec:
+  parameters:
+  {{ range $k, $v := .Parameters }}
+    {{ upper $k }}: {{ safe $v }}
+  {{ end }}
+  template: |
+    AWSTemplateFormatVersion: "2010-09-09"
+    Conditions:
+      BlankEncrypted: !Equals [ !Ref Encrypted, "" ]
+      BlankIops: !Equals [ !Ref Iops, "0" ]
+      Version9: !Equals [ !Select [ "0", !Split [ ".", !Ref Version ] ], "9" ]
+    Parameters:
+      Class:
+        Type: String
+        Default: db.t2.micro
+      Durable:
+        Type: String
+        Default: "false"
+        AllowedValues: [ "true", "false" ]
+      Encrypted:
+        Type: String
+        Default: "false"
+        AllowedValues: [ "true", "false" ]
+      Iops:
+        Type: Number
+        Default: "0"
+      Storage:
+        Type: Number
+        Default: "20"
+      Version:
+        Type: String
+        Default: "10.6"
+    Outputs:
+      Url:
+        Value: !Sub "postgres://app:{{.Password}}@${Instance.Endpoint.Address}:${Instance.Endpoint.Port}/app"
+    Resources:
+      SecurityGroup:
+        Type: AWS::EC2::SecurityGroup
+        Properties:
+          GroupDescription: !Ref AWS::StackName
+          SecurityGroupIngress:
+            - IpProtocol: tcp
+              FromPort: "5432"
+              ToPort: "5432"
+              CidrIp: !ImportValue "{{.Rack}}:VpcCidr"
+          VpcId: !ImportValue "{{.Rack}}:Vpc"
+          Tags:
+            - Key: Name
+              Value: !Ref AWS::StackName
+      SubnetGroup:
+        Type: AWS::RDS::DBSubnetGroup
+        Properties:
+          DBSubnetGroupDescription: !Ref AWS::StackName
+          SubnetIds:
+            - !ImportValue "{{.Rack}}:VpcPrivateSubnet0"
+            - !ImportValue "{{.Rack}}:VpcPrivateSubnet1"
+      Instance:
+        Type: AWS::RDS::DBInstance
+        DeletionPolicy: Snapshot
+        Properties:
+          AllocatedStorage: !Ref Storage
+          DBInstanceClass: !Ref Class
+          DBInstanceIdentifier: !Ref AWS::StackName
+          DBName: app
+          DBParameterGroupName: !Ref ParameterGroup
+          DBSubnetGroupName: !Ref SubnetGroup
+          Engine: postgres
+          EngineVersion: !Ref Version
+          Iops: !If [ BlankIops, !Ref "AWS::NoValue", !Ref Iops ]
+          MasterUsername: app
+          MasterUserPassword: {{ safe .Password }}
+          MultiAZ: !Ref Durable
+          Port: "5432"
+          PubliclyAccessible: "false"
+          StorageEncrypted: !Ref Encrypted
+          StorageType: !If [ BlankIops, gp2, io1 ]
+          VPCSecurityGroups: [ !Ref SecurityGroup ]
+      ParameterGroup:
+        Type: AWS::RDS::DBParameterGroup
+        Properties:
+          Description: !Ref AWS::StackName
+          Family: !Sub
+            - postgres${Base}
+            - Base: !If
+                - Version9
+                - !Join [ ".", [ !Select [ 0, !Split [ ".", !Ref Version ] ], !Select [ 1, !Split [ ".", !Ref Version ] ] ] ]
+                - !Select [ 0, !Split [ ".", !Ref Version ]]

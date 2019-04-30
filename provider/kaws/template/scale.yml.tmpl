@@ -1,0 +1,20 @@
+apiVersion: autoscaling/v2beta1
+kind: HorizontalPodAutoscaler
+metadata:
+  namespace: convox-system
+  name: router
+  labels:
+    service: router
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: router
+  minReplicas: {{.RouterMin}}
+  maxReplicas: {{.RouterMax}} 
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      targetAverageUtilization: 100
+
