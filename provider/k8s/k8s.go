@@ -105,10 +105,6 @@ func FromEnv() (*Provider, error) {
 		}
 
 		p.Metrics = mc
-
-		if err := p.initializeAtom(); err != nil {
-			return nil, err
-		}
 	}
 
 	if p.ID == "" {
@@ -120,6 +116,10 @@ func FromEnv() (*Provider, error) {
 
 func (p *Provider) Initialize(opts structs.ProviderOptions) error {
 	log := p.logger.At("Initialize")
+
+	if err := p.initializeAtom(); err != nil {
+		return log.Error(err)
+	}
 
 	dc, err := NewDeploymentController(p)
 	if err != nil {

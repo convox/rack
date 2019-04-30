@@ -64,11 +64,13 @@ func (p *Provider) SystemInstall(w io.Writer, opts structs.SystemInstallOptions)
 		return "", err
 	}
 
-	if err := p.generateCACertificate(version); err != nil {
+	p.Version = version
+
+	if _, err := p.Provider.SystemInstall(w, opts); err != nil {
 		return "", err
 	}
 
-	if _, err := p.Provider.SystemInstall(w, opts); err != nil {
+	if err := p.generateCACertificate(version); err != nil {
 		return "", err
 	}
 

@@ -141,5 +141,9 @@ func (p *Provider) SystemUpdate(opts structs.SystemUpdateOptions) error {
 }
 
 func (p *Provider) systemUpdate(version string) error {
+	if err := p.initializeAtom(); err != nil {
+		return err
+	}
+
 	return nil
 }
