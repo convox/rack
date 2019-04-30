@@ -212,6 +212,25 @@ func CloudformationParameters(template []byte) (map[string]bool, error) {
 	return ps, nil
 }
 
+func CloudformationUninstall(cf cloudformationiface.CloudFormationAPI, stack string) error {
+	_, err := cf.DeleteStack(&cloudformation.DeleteStackInput{
+		StackName: aws.String(stack),
+	})
+	if err != nil {
+		return err
+	}
+
+	req := &cloudformation.DescribeStacksInput{
+		StackName: aws.String(stack),
+	}
+
+	if err := cf.WaitUntilStackDeleteComplete(req); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func CloudformationUpdate(cf cloudformationiface.CloudFormationAPI, stack string, template string, changes map[string]string, tags map[string]string, topic string) error {
 	req := &cloudformation.UpdateStackInput{
 		Capabilities:     []*string{aws.String("CAPABILITY_IAM")},

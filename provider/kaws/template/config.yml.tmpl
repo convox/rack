@@ -1,0 +1,22 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: {{.Rack}}
+  name: env-api
+data:
+  AWS_REGION: {{.Region}}
+  PASSWORD: {{.Password}}
+  PROVIDER: kaws
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: convox-system
+  name: env-router
+data:
+  AUTOCERT: "true"
+  AWS_REGION: {{.Region}}
+  ROUTER_CACHE: {{.RouterCache}}
+  ROUTER_HOSTS: {{.RouterHosts}}
+  ROUTER_TARGETS: {{.RouterTargets}}
+  STORAGE: dynamodb
