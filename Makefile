@@ -36,8 +36,9 @@ ifdef UPLOAD
 	kubectl patch deployment/api -p '{"spec":{"template":{"spec":{"containers":[{"name":"main","imagePullPolicy":"Always"}]}}}}' -n $(RACK)
 	kubectl patch deployment/router -p '{"spec":{"template":{"spec":{"containers":[{"name":"main","imagePullPolicy":"Always"}]}}}}' -n convox-system
 endif
-	kubectl patch deployment/api -p '{"spec":{"template":{"spec":{"containers":[{"name":"main","image":"convox/rack:dev","env":[{"name":"VERSION","value":"dev"}]}]}}}}' -n $(RACK)
-	kubectl patch deployment/router -p '{"spec":{"template":{"spec":{"containers":[{"name":"main","image":"convox/rack:dev","env":[{"name":"VERSION","value":"dev"}]}]}}}}' -n convox-system
+	convox rack update dev --wait
+	# kubectl patch deployment/api -p '{"spec":{"template":{"spec":{"containers":[{"name":"main","image":"convox/rack:dev","env":[{"name":"VERSION","value":"dev"}]}]}}}}' -n $(RACK)
+	# kubectl patch deployment/router -p '{"spec":{"template":{"spec":{"containers":[{"name":"main","image":"convox/rack:dev","env":[{"name":"VERSION","value":"dev"}]}]}}}}' -n convox-system
 	kubectl delete pod --all -n convox-system
 	kubectl delete pod --all -n $(RACK)
 	kubectl rollout status deployment/api -n $(RACK)
@@ -50,6 +51,7 @@ generate:
 	go run cmd/generate/main.go sdk > sdk/methods.go
 	make -C pkg/atom generate
 	make -C provider/k8s generate
+	make -C provider/kaws generate
 
 mocks: generate
 	go get -u github.com/vektra/mockery/.../

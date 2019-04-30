@@ -5,16 +5,21 @@ function assert_run {
 }
 
 function fetch {
-  local url=$1
-  local count=0
-  local success=0
-  while [ $success -lt 6 ]; do
-    let count=count+1
-    curl -ks -m2 $url >/dev/null && let success=success+1
-    [ $count -gt 60 ] && exit 1
-    sleep 10
-  done
-  curl -ks $url
+  fetch_once $1 && sleep 5 && fetch_once $1
+}
+
+function fetch_once {
+  curl -ks --connect-timeout 5 --max-time 3 --retry 100 --retry-max-time 600 --retry-connrefused $1
+  # local url=$1
+  # local count=0
+  # local success=0
+  # while [ $success -lt 6 ]; do
+  #   let count=count+1
+  #   curl -ks -m2 $url >/dev/null && let success=success+1
+  #   [ $count -gt 60 ] && exit 1
+  #   sleep 10
+  # done
+  # curl -ks $url
 }
 
 function run {
@@ -100,11 +105,11 @@ convox services -a ci2 | grep web | grep 443:80 | grep $endpoint
 endpoint=$(convox api get /apps/ci2/services | jq -r '.[] | select(.name == "web") | .domain')
 fetch https://$endpoint | grep "It works"
 convox ps -a ci2 | grep web | wc -l | grep 2
-convox run web "ls -la" -a ci2 | grep htdocs
-cat /dev/null | convox run web "sleep 2; echo test" -a ci2 | grep test
 ps=$(convox api get /apps/ci2/processes | jq -r '.[0].id')
 convox exec $ps "ls -la" -a ci2 | grep htdocs
-cat /dev/null | convox exec $ps "sleep 2; echo test" -a ci2 | grep test
+cat /dev/null | convox exec $ps 'sh -c "sleep 2; echo test"' -a ci2 | grep test
+convox run web "ls -la" -a ci2 | grep htdocs
+cat /dev/null | convox run web 'sh -c "sleep 2; echo test"' -a ci2 | grep test
 echo foo > /tmp/file
 convox cp /tmp/file $ps:/file -a ci2
 convox exec $ps "cat /file" -a ci2 | grep foo
