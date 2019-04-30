@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: aws-auth
+  namespace: kube-system
+data:
+  mapRoles: |
+    - rolearn: {{.NodesRole}}
+      username: system:node:{{"{{"}}EC2PrivateDNSName{{"}}"}}
+      groups:
+        - system:bootstrappers
+        - system:nodes
+  {{ with .AdminUser }}
+  mapUsers: |
+    - userarn: {{.}}
+      username: admin
+      groups:
+        - system:masters
+  {{ end }}
