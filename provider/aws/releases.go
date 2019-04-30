@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/aws/aws-sdk-go/service/iam"
@@ -353,13 +352,13 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 		"Version": p.Version,
 	}
 
-	if err := p.updateStack(p.rackStack(r.App), data, updates, tags); err != nil {
+	cfid := fmt.Sprintf("%s-%s", time.Now().UTC().Format(helpers.CompactSortableTime), r.Id)
+
+	if err := p.updateStack(p.rackStack(r.App), data, updates, tags, cfid); err != nil {
 		return err
 	}
 
 	p.EventSend("release:promote", structs.EventSendOptions{Data: map[string]string{"app": r.App, "id": r.Id}, Status: options.String("start")})
-
-	go p.waitForPromotion(r)
 
 	return nil
 }
@@ -506,13 +505,11 @@ func (p *Provider) releasePromoteGeneration1(a *structs.App, r *structs.Release)
 		return err
 	}
 
-	if err := p.updateStack(p.rackStack(a.Name), data, params, map[string]string{}); err != nil {
+	if err := p.updateStack(p.rackStack(a.Name), data, params, map[string]string{}, r.Id); err != nil {
 		return err
 	}
 
 	p.EventSend("release:promote", structs.EventSendOptions{Data: map[string]string{"app": r.App, "id": r.Id}, Status: options.String("start")})
-
-	go p.waitForPromotion(r)
 
 	return nil
 }
@@ -830,89 +827,4 @@ func (p *Provider) resolveLinks(a *structs.App, m *manifest1.Manifest, r *struct
 	}
 
 	return m, nil
-}
-
-func (p *Provider) waitForPromotion(r *structs.Release) {
-	stackName := fmt.Sprintf("%s-%s", p.Rack, r.App)
-
-	waitch := make(chan error)
-	go func() {
-		var err error
-		//we have observed stack stabalization failures take up to 3 hours
-		for i := 0; i < 3; i++ {
-			err = p.cloudformation().WaitUntilStackUpdateComplete(&cloudformation.DescribeStacksInput{
-				StackName: aws.String(stackName),
-			})
-			if err != nil {
-				if err.Error() == "exceeded 120 wait attempts" {
-					continue
-				}
-			}
-			break
-		}
-		waitch <- err
-	}()
-
-	for {
-		select {
-		case err := <-waitch:
-			if err == nil {
-				p.EventSend("release:promote", structs.EventSendOptions{Data: map[string]string{"app": r.App, "id": r.Id}})
-				return
-			}
-
-			if err != nil && err.Error() == "exceeded 120 wait attempts" {
-				p.EventSend("release:promote", structs.EventSendOptions{Data: map[string]string{"app": r.App, "id": r.Id}, Error: options.String("timeout")})
-				fmt.Println(fmt.Errorf("couldn't determine promotion status, timed out"))
-				return
-			}
-
-			resp, err := p.cloudformation().DescribeStacks(&cloudformation.DescribeStacksInput{
-				StackName: aws.String(stackName),
-			})
-			if err != nil {
-				p.EventSend("release:promote", structs.EventSendOptions{Data: map[string]string{"app": r.App, "id": r.Id}, Error: options.String("unable to check status")})
-				fmt.Println(fmt.Errorf("unable to check stack status: %s", err))
-				return
-			}
-
-			if len(resp.Stacks) < 1 {
-				p.EventSend("release:promote", structs.EventSendOptions{Data: map[string]string{"app": r.App, "id": r.Id}, Error: options.String("app stack not found")})
-				fmt.Println(fmt.Errorf("app stack was not found: %s", stackName))
-				return
-			}
-
-			se, err := p.cloudformation().DescribeStackEvents(&cloudformation.DescribeStackEventsInput{
-				StackName: aws.String(stackName),
-			})
-			if err != nil {
-				p.EventSend("release:promote", structs.EventSendOptions{Data: map[string]string{"app": r.App, "id": r.Id}, Error: options.String("unable to check stack events")})
-				fmt.Println(fmt.Errorf("unable to check stack events: %s", err))
-				return
-			}
-
-			var lastEvent *cloudformation.StackEvent
-
-			for _, e := range se.StackEvents {
-				switch *e.ResourceStatus {
-				case "UPDATE_FAILED", "DELETE_FAILED", "CREATE_FAILED":
-					lastEvent = e
-					break
-				}
-			}
-
-			ee := fmt.Errorf("unable to determine release error")
-			if lastEvent != nil {
-				ee = fmt.Errorf(
-					"[%s:%s] [%s]: %s",
-					*lastEvent.ResourceType,
-					*lastEvent.LogicalResourceId,
-					*lastEvent.ResourceStatus,
-					*lastEvent.ResourceStatusReason,
-				)
-			}
-
-			p.EventSend("release:promote", structs.EventSendOptions{Data: map[string]string{"app": r.App, "id": r.Id}, Error: options.String(ee.Error())})
-		}
-	}
 }

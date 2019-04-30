@@ -211,7 +211,7 @@ func (p *Provider) ServiceUpdate(app, name string, opts structs.ServiceUpdateOpt
 		parts[2] = strconv.Itoa(*opts.Memory)
 	}
 
-	if err := p.updateStack(p.rackStack(a.Name), nil, map[string]string{param: strings.Join(parts, ",")}, map[string]string{}); err != nil {
+	if err := p.updateStack(p.rackStack(a.Name), nil, map[string]string{param: strings.Join(parts, ",")}, map[string]string{}, ""); err != nil {
 		return err
 	}
 
