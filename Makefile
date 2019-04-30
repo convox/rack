@@ -50,6 +50,7 @@ generate:
 	go run cmd/generate/main.go sdk > sdk/methods.go
 	make -C pkg/atom generate
 	make -C provider/k8s generate
+	make -C provider/kaws generate
 
 mocks: generate
 	go get -u github.com/vektra/mockery/.../

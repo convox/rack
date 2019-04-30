@@ -1,0 +1,493 @@
+#!/bin/sh
+
+set -e
+
+rack=$1
+
+[ "$rack" == "" ] && echo "rack required" && exit 1
+
+stack_output() {
+  aws cloudformation describe-stacks --stack-name $1 --query "Stacks[0].Outputs[?OutputKey==\`$2\`].OutputValue" --output text
+}
+
+account=$(stack_output $rack AccountId)
+autoscaler_role=$(stack_output $rack AutoscalerRole)
+cluster=$(stack_output $rack Cluster)
+region=$(stack_output $rack Region)
+nodes_role=$(stack_output $rack NodesRole)
+
+kubectl apply -f - <<EOF
+EOF
+
+# kube2iam
+kubectl apply -f - <<EOF
+EOF
+
+# cluster-autoscaler
+kubectl apply -f - <<EOF
+---
+EOF
+
+# alb-ingress-controller
+# kubectl apply -f - <<EOF
+# ---
+# apiVersion: rbac.authorization.k8s.io/v1
+# kind: ClusterRole
+# metadata:
+#   labels:
+#     app: alb-ingress-controller
+#   name: alb-ingress-controller
+# rules:
+#   - apiGroups:
+#       - ""
+#       - extensions
+#     resources:
+#       - configmaps
+#       - endpoints
+#       - events
+#       - ingresses
+#       - ingresses/status
+#       - services
+#     verbs:
+#       - create
+#       - get
+#       - list
+#       - update
+#       - watch
+#       - patch
+#   - apiGroups:
+#       - ""
+#       - extensions
+#     resources:
+#       - nodes
+#       - pods
+#       - secrets
+#       - services
+#       - namespaces
+#     verbs:
+#       - get
+#       - list
+#       - watch
+# ---
+# apiVersion: rbac.authorization.k8s.io/v1
+# kind: ClusterRoleBinding
+# metadata:
+#   labels:
+#     app: alb-ingress-controller
+#   name: alb-ingress-controller
+# roleRef:
+#   apiGroup: rbac.authorization.k8s.io
+#   kind: ClusterRole
+#   name: alb-ingress-controller
+# subjects:
+#   - kind: ServiceAccount
+#     name: alb-ingress
+#     namespace: kube-system
+# ---
+# apiVersion: v1
+# kind: ServiceAccount
+# metadata:
+#   labels:
+#     app: alb-ingress-controller
+#   name: alb-ingress
+#   namespace: kube-system
+# ---
+# # Application Load Balancer (ALB) Ingress Controller Deployment Manifest.
+# # This manifest details sensible defaults for deploying an ALB Ingress Controller.
+# # GitHub: https://github.com/kubernetes-sigs/aws-alb-ingress-controller
+# apiVersion: apps/v1
+# kind: Deployment
+# metadata:
+#   labels:
+#     app: alb-ingress-controller
+#   name: alb-ingress-controller
+#   # Namespace the ALB Ingress Controller should run in. Does not impact which
+#   # namespaces it's able to resolve ingress resource for. For limiting ingress
+#   # namespace scope, see --watch-namespace.
+#   namespace: kube-system
+# spec:
+#   replicas: 1
+#   selector:
+#     matchLabels:
+#       app: alb-ingress-controller
+#   strategy:
+#     rollingUpdate:
+#       maxSurge: 1
+#       maxUnavailable: 1
+#     type: RollingUpdate
+#   template:
+#     metadata:
+#       creationTimestamp: null
+#       labels:
+#         app: alb-ingress-controller
+#     spec:
+#       # serviceAccountName: alb-ingress
+#       # Please provide serviceAccountName if you setup you k8s cluster with RBAC
+#       containers:
+#       - args:
+#         - /server
+#         # Limit the namespace where this ALB Ingress Controller deployment will
+#         # resolve ingress resources. If left commented, all namespaces are used.
+#         #- --watch-namespace=your-k8s-namespace
+#         # Setting the ingress-class flag below ensures that only ingress resources with the
+#         # annotation kubernetes.io/ingress.class: "alb" are respected by the controller. You may
+#         # choose any class you'd like for this controller to respect.
+#         - --ingress-class=alb
+#         env:
+#           # AWS region this ingress controller will operate in.
+#           # List of regions:
+#           # http://docs.aws.amazon.com/general/latest/gr/rande.html#vpc_region
+#         - name: AWS_REGION
+#           value: $region
+#           # Name of your cluster. Used when naming resources created
+#           # by the ALB Ingress Controller, providing distinction between
+#           # clusters.
+#         - name: CLUSTER_NAME
+#           value: $cluster
+#           # AWS key id for authenticating with the AWS API.
+#           # This is only here for examples. It's recommended you instead use
+#           # a project like kube2iam for granting access.
+#         - name: AWS_DEBUG
+#           value: "true"
+#           # Maximum number of times to retry the aws calls.
+#           # defaults to 20.
+#         - name: AWS_MAX_RETRIES
+#           value: "20"
+#         - name: POD_NAME
+#           valueFrom:
+#             fieldRef:
+#               apiVersion: v1
+#               fieldPath: metadata.name
+#         - name: POD_NAMESPACE
+#           valueFrom:
+#             fieldRef:
+#               apiVersion: v1
+#               fieldPath: metadata.namespace
+#         # Repository location of the ALB Ingress Controller.
+#         image: quay.io/coreos/alb-ingress-controller:1.0-beta.5
+#         imagePullPolicy: Always
+#         name: server
+#         resources: {}
+#         terminationMessagePath: /dev/termination-log
+#       dnsPolicy: ClusterFirst
+#       restartPolicy: Always
+#       securityContext: {}
+#       terminationGracePeriodSeconds: 30
+#       serviceAccountName: alb-ingress
+#       serviceAccount: alb-ingress
+# EOF
+
+# ingress-nginx
+# kubectl apply -f - <<EOF
+# apiVersion: v1
+# kind: Namespace
+# metadata:
+#   name: ingress-nginx
+# ---
+# apiVersion: extensions/v1beta1
+# kind: Deployment
+# metadata:
+#   name: default-http-backend
+#   labels:
+#     app: default-http-backend
+#   namespace: ingress-nginx
+# spec:
+#   replicas: 1
+#   selector:
+#     matchLabels:
+#       app: default-http-backend
+#   template:
+#     metadata:
+#       labels:
+#         app: default-http-backend
+#     spec:
+#       terminationGracePeriodSeconds: 60
+#       containers:
+#       - name: default-http-backend
+#         # Any image is permissible as long as:
+#         # 1. It serves a 404 page at /
+#         # 2. It serves 200 on a /healthz endpoint
+#         image: gcr.io/google_containers/defaultbackend:1.4
+#         livenessProbe:
+#           httpGet:
+#             path: /healthz
+#             port: 8080
+#             scheme: HTTP
+#           initialDelaySeconds: 30
+#           timeoutSeconds: 5
+#         ports:
+#         - containerPort: 8080
+#         resources:
+#           limits:
+#             cpu: 10m
+#             memory: 20Mi
+#           requests:
+#             cpu: 10m
+#             memory: 20Mi
+# ---
+# apiVersion: v1
+# kind: Service
+# metadata:
+#   name: default-http-backend
+#   namespace: ingress-nginx
+#   labels:
+#     app: default-http-backend
+# spec:
+#   ports:
+#   - port: 80
+#     targetPort: 8080
+#   selector:
+#     app: default-http-backend
+# ---
+# kind: ConfigMap
+# apiVersion: v1
+# metadata:
+#   name: nginx-configuration
+#   namespace: ingress-nginx
+#   labels:
+#     app: ingress-nginx
+# ---
+# kind: ConfigMap
+# apiVersion: v1
+# metadata:
+#   name: tcp-services
+#   namespace: ingress-nginx
+# ---
+# kind: ConfigMap
+# apiVersion: v1
+# metadata:
+#   name: udp-services
+#   namespace: ingress-nginx
+# ---
+# apiVersion: v1
+# kind: ServiceAccount
+# metadata:
+#   name: nginx-ingress-serviceaccount
+#   namespace: ingress-nginx
+# ---
+# apiVersion: rbac.authorization.k8s.io/v1beta1
+# kind: ClusterRole
+# metadata:
+#   name: nginx-ingress-clusterrole
+# rules:
+#   - apiGroups:
+#       - ""
+#     resources:
+#       - configmaps
+#       - endpoints
+#       - nodes
+#       - pods
+#       - secrets
+#     verbs:
+#       - list
+#       - watch
+#   - apiGroups:
+#       - ""
+#     resources:
+#       - nodes
+#     verbs:
+#       - get
+#   - apiGroups:
+#       - ""
+#     resources:
+#       - services
+#     verbs:
+#       - get
+#       - list
+#       - watch
+#   - apiGroups:
+#       - "extensions"
+#     resources:
+#       - ingresses
+#     verbs:
+#       - get
+#       - list
+#       - watch
+#   - apiGroups:
+#       - ""
+#     resources:
+#         - events
+#     verbs:
+#         - create
+#         - patch
+#   - apiGroups:
+#       - "extensions"
+#     resources:
+#       - ingresses/status
+#     verbs:
+#       - update
+# ---
+# apiVersion: rbac.authorization.k8s.io/v1beta1
+# kind: Role
+# metadata:
+#   name: nginx-ingress-role
+#   namespace: ingress-nginx
+# rules:
+#   - apiGroups:
+#       - ""
+#     resources:
+#       - configmaps
+#       - pods
+#       - secrets
+#       - namespaces
+#     verbs:
+#       - get
+#   - apiGroups:
+#       - ""
+#     resources:
+#       - configmaps
+#     resourceNames:
+#       # Defaults to "<election-id>-<ingress-class>"
+#       # Here: "<ingress-controller-leader>-<nginx>"
+#       # This has to be adapted if you change either parameter
+#       # when launching the nginx-ingress-controller.
+#       - "ingress-controller-leader-nginx"
+#     verbs:
+#       - get
+#       - update
+#   - apiGroups:
+#       - ""
+#     resources:
+#       - configmaps
+#     verbs:
+#       - create
+#   - apiGroups:
+#       - ""
+#     resources:
+#       - endpoints
+#     verbs:
+#       - get
+# ---
+# apiVersion: rbac.authorization.k8s.io/v1beta1
+# kind: RoleBinding
+# metadata:
+#   name: nginx-ingress-role-nisa-binding
+#   namespace: ingress-nginx
+# roleRef:
+#   apiGroup: rbac.authorization.k8s.io
+#   kind: Role
+#   name: nginx-ingress-role
+# subjects:
+#   - kind: ServiceAccount
+#     name: nginx-ingress-serviceaccount
+#     namespace: ingress-nginx
+# ---
+# apiVersion: rbac.authorization.k8s.io/v1beta1
+# kind: ClusterRoleBinding
+# metadata:
+#   name: nginx-ingress-clusterrole-nisa-binding
+# roleRef:
+#   apiGroup: rbac.authorization.k8s.io
+#   kind: ClusterRole
+#   name: nginx-ingress-clusterrole
+# subjects:
+#   - kind: ServiceAccount
+#     name: nginx-ingress-serviceaccount
+#     namespace: ingress-nginx
+# ---
+# apiVersion: extensions/v1beta1
+# kind: Deployment
+# metadata:
+#   name: nginx-ingress-controller
+#   namespace: ingress-nginx
+# spec:
+#   replicas: 1
+#   selector:
+#     matchLabels:
+#       app: ingress-nginx
+#   template:
+#     metadata:
+#       labels:
+#         app: ingress-nginx
+#       annotations:
+#         prometheus.io/port: '10254'
+#         prometheus.io/scrape: 'true'
+#     spec:
+#       serviceAccountName: nginx-ingress-serviceaccount
+#       containers:
+#         - name: nginx-ingress-controller
+#           image: quay.io/kubernetes-ingress-controller/nginx-ingress-controller:0.17.1
+#           args:
+#             - /nginx-ingress-controller
+#             - --default-backend-service=\$(POD_NAMESPACE)/default-http-backend
+#             - --configmap=\$(POD_NAMESPACE)/nginx-configuration
+#             - --tcp-services-configmap=\$(POD_NAMESPACE)/tcp-services
+#             - --udp-services-configmap=\$(POD_NAMESPACE)/udp-services
+#             - --publish-service=\$(POD_NAMESPACE)/ingress-nginx
+#             - --annotations-prefix=nginx.ingress.kubernetes.io
+#           securityContext:
+#             capabilities:
+#                 drop:
+#                 - ALL
+#                 add:
+#                 - NET_BIND_SERVICE
+#             # www-data -> 33
+#             runAsUser: 33
+#           env:
+#             - name: POD_NAME
+#               valueFrom:
+#                 fieldRef:
+#                   fieldPath: metadata.name
+#             - name: POD_NAMESPACE
+#               valueFrom:
+#                 fieldRef:
+#                   fieldPath: metadata.namespace
+#           ports:
+#           - name: http
+#             containerPort: 80
+#           - name: https
+#             containerPort: 443
+#           livenessProbe:
+#             failureThreshold: 3
+#             httpGet:
+#               path: /healthz
+#               port: 10254
+#               scheme: HTTP
+#             initialDelaySeconds: 10
+#             periodSeconds: 10
+#             successThreshold: 1
+#             timeoutSeconds: 1
+#           readinessProbe:
+#             failureThreshold: 3
+#             httpGet:
+#               path: /healthz
+#               port: 10254
+#               scheme: HTTP
+#             periodSeconds: 10
+#             successThreshold: 1
+#             timeoutSeconds: 1
+# ---
+# kind: Service
+# apiVersion: v1
+# metadata:
+#   name: ingress-nginx
+#   namespace: ingress-nginx
+#   labels:
+#     app: ingress-nginx
+#   annotations:
+#     # Enable PROXY protocol
+#     service.beta.kubernetes.io/aws-load-balancer-proxy-protocol: '*'
+#     # Increase the ELB idle timeout to avoid issues with WebSockets or Server-Sent Events.
+#     service.beta.kubernetes.io/aws-load-balancer-connection-idle-timeout: '3600'
+# spec:
+#   type: LoadBalancer
+#   selector:
+#     app: ingress-nginx
+#   ports:
+#   - name: http
+#     port: 80
+#     targetPort: http
+#   - name: https
+#     port: 443
+#     targetPort: https
+# ---
+# kind: ConfigMap
+# apiVersion: v1
+# metadata:
+#   name: nginx-configuration
+#   namespace: ingress-nginx
+#   labels:
+#     app: ingress-nginx
+# data:
+#   use-proxy-protocol: "true"
+# EOF

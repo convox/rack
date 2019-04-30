@@ -1,0 +1,920 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Conditions:
+  BaseDomain: !Not [ !Condition BaseDomainBlank ]
+  BaseDomainBlank: !Equals [ !Ref BaseDomain, "" ]
+  SshKey: !Not [ !Equals [ !Ref SshKey, "" ] ]
+Mappings:
+  Regions:
+    ap-northeast-1:
+      AMI: ami-0bfedee6a7845c26d
+      EFS: Yes
+    ap-northeast-2:
+      AMI: ami-0a904348b703e620c
+      EFS: Yes
+    ap-south-1:
+      AMI: ami-09c3eb35bb3be46a4
+      EFS: No
+    ap-southeast-1:
+      AMI: ami-07b922b9b94d9a6d2
+      EFS: Yes
+    ap-southeast-2:
+      AMI: ami-0f0121e9e64ebd3dc
+      EFS: Yes
+    eu-central-1:
+      AMI: ami-0d741ed58ca5b342e
+      EFS: Yes
+    eu-north-1:
+      AMI: ami-0c65a309fc58f6907
+      EFS: No
+    eu-west-1:
+      AMI: ami-08716b70cac884aaa
+      EFS: Yes
+    eu-west-2:
+      AMI: ami-0c7388116d474ee10
+      EFS: Yes
+    eu-west-3:
+      AMI: ami-0560aea042fec8b12
+      EFS: No
+    us-east-1:
+      AMI: ami-0abcb9f9190e867ab
+      EFS: Yes
+    us-east-2:
+      AMI: ami-04ea7cb66af82ae4a
+      EFS: Yes
+    us-west-2:
+      AMI: ami-0923e4b35a30a5f53
+      EFS: Yes
+  Static:
+    Global:
+      Version: dev
+  SubnetMasks:
+    "16": { Public: 12, Private: 14 }
+    "17": { Public: 11, Private: 13 }
+    "18": { Public: 10, Private: 12 }
+    "19": { Public: 9, Private: 11 }
+    "20": { Public: 8, Private: 10 }
+    "21": { Public: 7, Private: 9 }
+    "22": { Public: 6, Private: 8 }
+    "23": { Public: 5, Private: 7 }
+    "24": { Public: 4, Private: 6 }
+Outputs:
+  AccountId:
+    Value: !Ref AWS::AccountId
+  AdminUser:
+    Value: !Ref AdminUser
+  AutoscalerRole:
+    Value: !GetAtt AutoscalerRole.Arn
+  BaseDomain:
+    Value: !If [ BaseDomain, !Ref BaseDomain, !GetAtt DomainMapping.Domain ]
+  Cluster:
+    Value: !Ref Cluster
+  ClusterCertificateAuthority:
+    Value: !GetAtt Cluster.CertificateAuthorityData
+  ClusterEndpoint:
+    Value: !GetAtt Cluster.Endpoint
+  NodesRole:
+    Value: !Sub arn:aws:iam::${AWS::AccountId}:role/${NodesRole}
+  EventQueue:
+    Value: !Ref EventQueue
+  EventTopic:
+    Value: !Ref EventTopic
+  RackBucket:
+    Value: !Ref RackBucket
+  RackRole:
+    Value: !GetAtt RackRole.Arn
+  Region:
+    Value: !Ref AWS::Region
+  RouterCache:
+    Value: !Ref RouterCache
+  RouterHosts:
+    Value: !Ref RouterHosts
+  RouterRole:
+    Value: !GetAtt RouterRole.Arn
+  RouterTargets:
+    Value: !Ref RouterTargets
+  RouterTargetGroup80:
+    Value: !Ref RouterTargetGroup80
+  RouterTargetGroup443:
+    Value: !Ref RouterTargetGroup443
+  StackId:
+    Value: !Ref AWS::StackId
+  Version:
+    Value: !FindInMap [ Static, Global, Version ]
+  Vpc:
+    Export: { Name: !Sub "${AWS::StackName}:Vpc" }
+    Value: !Ref Vpc
+  VpcCidr:
+    Export: { Name: !Sub "${AWS::StackName}:VpcCidr" }
+    Value: !GetAtt Vpc.CidrBlock
+  VpcPrivateSubnets:
+    Value: !Sub "${VpcPrivateSubnet0},${VpcPrivateSubnet1},${VpcPrivateSubnet2}"
+  VpcPrivateSubnet0:
+    Export: { Name: !Sub "${AWS::StackName}:VpcPrivateSubnet0" }
+    Value: !Ref VpcPrivateSubnet0
+  VpcPrivateSubnet1:
+    Export: { Name: !Sub "${AWS::StackName}:VpcPrivateSubnet1" }
+    Value: !Ref VpcPrivateSubnet1
+  VpcPrivateSubnet2:
+    Export: { Name: !Sub "${AWS::StackName}:VpcPrivateSubnet2" }
+    Value: !Ref VpcPrivateSubnet2
+  VpcPublicSubnets:
+    Value: !Sub "${VpcPublicSubnet0},${VpcPublicSubnet1},${VpcPublicSubnet2}"
+Parameters:
+  AdminUser:
+    Type: String
+    Default: ""
+  BaseDomain:
+    Type: String
+    Default: ""
+  CidrBase:
+    Type: String
+    Default: 10.1.0.0
+    AllowedPattern: (\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})
+  CidrMask:
+    Type: Number
+    Default: 16
+    MinValue: 16
+    MaxValue: 24
+  NodeType:
+    Type: String
+    Default: t3.small
+  SshKey:
+    Type: String
+    Default: ""
+Resources:
+  AutoscalerRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal: { AWS: !GetAtt NodesRole.Arn }
+            Action: sts:AssumeRole
+      Path: /convox/
+      Policies:
+        - PolicyName: alb-ingress
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+            - Effect: Allow
+              Action:
+              - autoscaling:DescribeAutoScalingGroups
+              - autoscaling:DescribeAutoScalingInstances
+              - autoscaling:DescribeTags
+              Resource: "*"
+            - Effect: Allow
+              Action:
+              - autoscaling:SetDesiredCapacity
+              - autoscaling:TerminateInstanceInAutoScalingGroup
+              Resource: !Sub "arn:aws:autoscaling:${AWS::Region}:${AWS::AccountId}:autoScalingGroup:*:autoScalingGroupName/${Nodes}"
+  Cluster:
+    Type: AWS::EKS::Cluster
+    Properties:
+      Name: !Ref AWS::StackName
+      ResourcesVpcConfig:
+        SecurityGroupIds:
+          - !Ref ClusterSecurityGroup
+        SubnetIds:
+          - !Ref VpcPublicSubnet0
+          - !Ref VpcPublicSubnet1
+          - !Ref VpcPublicSubnet2
+      RoleArn: !GetAtt ClusterRole.Arn
+  ClusterRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal: { Service: [ "eks.amazonaws.com" ] }
+            Action: [ "sts:AssumeRole" ]
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonEKSClusterPolicy
+        - arn:aws:iam::aws:policy/AmazonEKSServicePolicy
+      Path: /convox/
+  ClusterSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: !Sub "${AWS::StackName} cluster"
+      VpcId: !Ref Vpc
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName} cluster"
+  ClusterSecurityGroupIngressNodes:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref ClusterSecurityGroup
+      SourceSecurityGroupId: !Ref NodesSecurityGroup
+      IpProtocol: tcp
+      ToPort: 443
+      FromPort: 443
+  ClusterSecurityGroupEgressNodes:
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+      GroupId: !Ref ClusterSecurityGroup
+      DestinationSecurityGroupId: !Ref NodesSecurityGroup
+      IpProtocol: tcp
+      FromPort: 1025
+      ToPort: 65535
+  ClusterSecurityGroupEgressNodesControl:
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+      GroupId: !Ref ClusterSecurityGroup
+      DestinationSecurityGroupId: !Ref NodesSecurityGroup
+      IpProtocol: tcp
+      FromPort: 443
+      ToPort: 443
+  DomainMapper:
+    Type: AWS::Lambda::Function
+    Condition: BaseDomainBlank
+    Properties:
+      Code:
+        ZipFile: |
+          var https = require('https');
+          var qs = require('querystring');
+          var url = require('url');
+          exports.main = function(event, context) {
+            if (event.RequestType == 'Delete') {
+              respond(event, context, 'SUCCESS', '', {});
+              return;
+            }
+            var host = 'dnsbot-web.produ-Route-1FYSSGEO6GFLA-1246272290.us-east-1.convox.site';
+            var options = { method: 'POST', hostname: host, port: 443, path: '/register/aws', headers: { 'Content-Type': 'application/x-www-form-urlencoded' } };
+            var data = '';
+            var req = https.request(options, function(res) {
+              res.on('data', function(chunk) { data += chunk });
+              res.on('end', function() {
+                if (res.statusCode < 300) {
+                  respond(event, context, 'SUCCESS', '', { 'Domain': data });
+                } else {
+                  respond(event, context, 'FAILED', data, {});
+                }
+              });
+            });
+            req.on('error', function(err) {
+              console.log('err', err);
+              respond(event, context, 'FAILED', err, {});
+            });
+            req.write(qs.stringify({ subdomain: event.ResourceProperties.Subdomain }));
+            req.end();
+          };
+          function respond(event, context, status, reason, data) {
+            var body = JSON.stringify({
+              Status: status,
+              Reason: reason,
+              PhysicalResourceId: event.ResourceProperties.Subdomain,
+              StackId: event.StackId,
+              RequestId: event.RequestId,
+              LogicalResourceId: event.LogicalResourceId,
+              Data: data
+            });
+            var u = url.parse(event.ResponseURL);
+            var options = { method: 'PUT', hostname: u.hostname, port: 443, path: u.path, headers: { 'Content-Length': body.length } };
+            var req = https.request(options, function(res) {
+              context.done();
+            });
+            req.on('error', function(err) {
+              console.log('err', err);
+              context.done();
+            });
+            req.write(body);
+            req.end();
+          }
+      Handler: index.main
+      Role: !GetAtt DomainMapperRole.Arn
+      Runtime: nodejs8.10
+  DomainMapperRole:
+    Type: AWS::IAM::Role
+    Condition: BaseDomainBlank
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal: { Service: [ "lambda.amazonaws.com" ] }
+            Action: [ "sts:AssumeRole" ]
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Path: /convox/
+  DomainMapping:
+    Type: Custom::DomainMapping
+    Condition: BaseDomainBlank
+    Properties:
+      ServiceToken: !GetAtt DomainMapper.Arn
+      Subdomain: !Join
+        - "."
+        - - !Select [ 0, !Split [ ".", !GetAtt Router.DNSName ] ]
+          - !Select [ 1, !Split [ ".", !GetAtt Router.DNSName ] ]
+          - !Select [ 2, !Split [ ".", !GetAtt Router.DNSName ] ]
+  EventQueue:
+    Type: AWS::SQS::Queue
+  EventQueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      Queues:
+        - !Ref EventQueue
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: { "AWS": "*" }
+            Action: sqs:SendMessage
+            Resource: !GetAtt EventQueue.Arn
+            Condition: { "ArnEquals": { "aws:SourceArn": !Ref EventTopic } }
+  EventTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      DisplayName: !Ref AWS::StackName
+      Subscription:
+        - Protocol: sqs
+          Endpoint: !GetAtt EventQueue.Arn
+  NodesInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Path: /convox/
+      Roles:
+        - !Ref NodesRole
+  NodesLaunchConfig:
+    Type: AWS::AutoScaling::LaunchConfiguration
+    Properties:
+      AssociatePublicIpAddress: true
+      IamInstanceProfile: !Ref NodesInstanceProfile
+      ImageId: !FindInMap [ Regions, !Ref "AWS::Region", AMI ]
+      InstanceType: !Ref NodeType
+      KeyName: !If [ SshKey, !Ref SshKey, !Ref "AWS::NoValue" ]
+      SecurityGroups:
+        - !Ref NodesSecurityGroup
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash -xe
+          /etc/eks/bootstrap.sh ${Cluster}
+          iptables --append PREROUTING --protocol tcp --destination 169.254.169.254 --dport 80 --in-interface eni+ --jump DNAT --table nat --to-destination `curl 169.254.169.254/latest/meta-data/local-ipv4`:8181
+          /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource Nodes --region ${AWS::Region}
+  NodesRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal: { Service: [ "ec2.amazonaws.com" ] }
+            Action: [ "sts:AssumeRole" ]
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy
+        - arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy
+        - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
+      Path: /convox/
+      Policies:
+        - PolicyName: alb-ingress
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+            - Effect: Allow
+              Action:
+              - acm:DescribeCertificate
+              - acm:ListCertificates
+              - acm:GetCertificate
+              Resource: "*"
+            # - Effect: Allow
+            #   Action:
+            #   - ec2:AuthorizeSecurityGroupIngress
+            #   - ec2:CreateSecurityGroup
+            #   - ec2:CreateTags
+            #   - ec2:DeleteSecurityGroup
+            #   - ec2:DescribeInstances
+            #   - ec2:DescribeInstanceStatus
+            #   - ec2:DescribeSecurityGroups
+            #   - ec2:DescribeSubnets
+            #   - ec2:DescribeTags
+            #   - ec2:DescribeVpcs
+            #   - ec2:ModifyInstanceAttribute
+            #   - ec2:RevokeSecurityGroupIngress
+            #   Resource: "*"
+            - Effect: Allow
+              Action:
+              - elasticloadbalancing:AddTags
+              - elasticloadbalancing:CreateListener
+              - elasticloadbalancing:CreateLoadBalancer
+              - elasticloadbalancing:CreateRule
+              - elasticloadbalancing:CreateTargetGroup
+              - elasticloadbalancing:DeleteListener
+              - elasticloadbalancing:DeleteLoadBalancer
+              - elasticloadbalancing:DeleteRule
+              - elasticloadbalancing:DeleteTargetGroup
+              - elasticloadbalancing:DeregisterTargets
+              - elasticloadbalancing:DescribeListeners
+              - elasticloadbalancing:DescribeLoadBalancers
+              - elasticloadbalancing:DescribeLoadBalancerAttributes
+              - elasticloadbalancing:DescribeRules
+              - elasticloadbalancing:DescribeSSLPolicies
+              - elasticloadbalancing:DescribeTags
+              - elasticloadbalancing:DescribeTargetGroups
+              - elasticloadbalancing:DescribeTargetGroupAttributes
+              - elasticloadbalancing:DescribeTargetHealth
+              - elasticloadbalancing:ModifyListener
+              - elasticloadbalancing:ModifyLoadBalancerAttributes
+              - elasticloadbalancing:ModifyRule
+              - elasticloadbalancing:ModifyTargetGroup
+              - elasticloadbalancing:ModifyTargetGroupAttributes
+              - elasticloadbalancing:RegisterTargets
+              - elasticloadbalancing:RemoveTags
+              - elasticloadbalancing:SetIpAddressType
+              - elasticloadbalancing:SetSecurityGroups
+              - elasticloadbalancing:SetSubnets
+              - elasticloadbalancing:SetWebACL
+              Resource: "*"
+            # - Effect: Allow
+            #   Action:
+            #   - iam:GetServerCertificate
+            #   - iam:ListServerCertificates
+            #   Resource: "*"
+            # - Effect: Allow
+            #   Action:
+            #   - waf-regional:GetWebACLForResource
+            #   Resource: "*"
+            # - Effect: Allow
+            #   Action:
+            #   - tag:GetResources
+            #   Resource: "*"
+            # - Effect: Allow
+            #   Action:
+            #   - waf:GetWebACL
+            #   - waf:AssociateWebACL
+            #   - waf:DisassociateWebACL
+            #   Resource: "*"
+  NodesSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: !Sub "${AWS::StackName} nodes"
+      SecurityGroupIngress:
+        - Description: mtu discovery
+          CidrIp: 0.0.0.0/0
+          IpProtocol: icmp
+          FromPort: 3
+          ToPort: 4
+        - Description: router traffic
+          CidrIp: 0.0.0.0/0
+          IpProtocol: tcp
+          FromPort: 32000
+          ToPort: 32001
+      VpcId:
+        !Ref Vpc
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName} nodes"
+        - Key: !Sub "kubernetes.io/cluster/${Cluster}"
+          Value: owned
+  NodesSecurityGroupIngressClusterControl:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      Description: eks control plane
+      GroupId: !Ref NodesSecurityGroup
+      SourceSecurityGroupId: !Ref ClusterSecurityGroup
+      IpProtocol: tcp
+      FromPort: 443
+      ToPort: 443
+  NodesSecurityGroupIngressClusterTraffic:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      Description: eks traffic
+      GroupId: !Ref NodesSecurityGroup
+      SourceSecurityGroupId: !Ref ClusterSecurityGroup
+      IpProtocol: tcp
+      FromPort: 1025
+      ToPort: 65535
+  NodesSecurityGroupIngressInternal:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      Description: internal traffic
+      GroupId: !Ref NodesSecurityGroup
+      SourceSecurityGroupId: !Ref NodesSecurityGroup
+      IpProtocol: "-1"
+      FromPort: 0
+      ToPort: 65535
+  Nodes:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      LaunchConfigurationName: !Ref NodesLaunchConfig
+      MinSize: 3
+      MaxSize: 20
+      TargetGroupARNs:
+        - !Ref RouterTargetGroup80
+        - !Ref RouterTargetGroup443
+      VPCZoneIdentifier:
+        - !Ref VpcPublicSubnet0
+        - !Ref VpcPublicSubnet1
+        - !Ref VpcPublicSubnet2
+      Tags:
+        - Key: Name
+          Value: !Ref AWS::StackName
+          PropagateAtLaunch: true
+        - Key: !Sub "kubernetes.io/cluster/${Cluster}"
+          Value: owned
+          PropagateAtLaunch: true
+        - Key: k8s.io/cluster-autoscaler/enabled
+          Value: ""
+          PropagateAtLaunch: false
+        - Key: !Sub k8s.io/cluster-autoscaler/${Cluster}
+          Value: ""
+          PropagateAtLaunch: false
+    UpdatePolicy:
+      AutoScalingRollingUpdate:
+        MinInstancesInService: 2
+        MaxBatchSize: 1
+        PauseTime: PT5M
+        SuspendProcesses: [ ScheduledActions ]
+        WaitOnResourceSignals: true
+  RackBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    Properties:
+      AccessControl: Private
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: aws:kms
+  RackRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal: { AWS: !GetAtt NodesRole.Arn }
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/PowerUserAccess
+        - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryFullAccess
+      Path: /convox/
+      Policies:
+        - PolicyName: iam
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+      Policies:
+        - PolicyName: rack
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Action:
+                  - acm:DescribeCertificate
+                  - acm:RequestCertificate
+                Effect: Allow
+                Resource: "*"
+              - Action:
+                  - cloudformation:DescribeStacks
+                Effect: Allow
+                Resource: !Sub "arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${AWS::StackName}/*"
+              - Action:
+                  - elasticloadbalancing:CreateListener
+                  - elasticloadbalancing:CreateLoadBalancer
+                  - elasticloadbalancing:CreateRule
+                  - elasticloadbalancing:CreateTargetGroup
+                  - elasticloadbalancing:DeleteLoadBalancer
+                  - elasticloadbalancing:DeleteRule
+                  - elasticloadbalancing:DeleteTargetGroup
+                  - elasticloadbalancing:DeregisterTargets
+                  - elasticloadbalancing:DescribeRules
+                  - elasticloadbalancing:DescribeTargetHealth
+                  - elasticloadbalancing:ModifyRule
+                  - elasticloadbalancing:ModifyTargetGroup
+                  - elasticloadbalancing:ModifyTargetGroupAttributes
+                  - elasticloadbalancing:RegisterTargets
+                Effect: Allow
+                Resource: "*"
+              - Effect: Allow
+                Action: iam:*
+                Resource:
+                  - arn:aws:iam::*:instance-profile/convox/*
+                  - arn:aws:iam::*:policy/convox/*
+                  - arn:aws:iam::*:role/convox/*
+                  - arn:aws:iam::*:user/convox/*
+              - Effect: Allow
+                Action:
+                  - iam:CreateServiceLinkedRole
+                Resource: "*"
+  Router:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Name: !Sub ${AWS::StackName}
+      Scheme: internet-facing
+      Subnets:
+        - !Ref VpcPublicSubnet0
+        - !Ref VpcPublicSubnet1
+        - !Ref VpcPublicSubnet2
+      Type: network
+  RouterListener80:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref RouterTargetGroup80
+      LoadBalancerArn: !Ref Router
+      Port: 80
+      Protocol: TCP
+  RouterListener443:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref RouterTargetGroup443
+      LoadBalancerArn: !Ref Router
+      Port: 443
+      Protocol: TCP
+  RouterRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal: { AWS: !GetAtt NodesRole.Arn }
+            Action: sts:AssumeRole
+      Path: /convox/
+      Policies:
+        - PolicyName: alb-ingress
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+            - Effect: Allow
+              Action:
+              - dynamodb:DeleteItem
+              - dynamodb:GetItem
+              - dynamodb:PutItem
+              Resource: !GetAtt RouterCache.Arn
+            - Effect: Allow
+              Action:
+              - dynamodb:GetItem
+              - dynamodb:UpdateItem
+              Resource: !GetAtt RouterHosts.Arn
+            - Effect: Allow
+              Action:
+              - dynamodb:GetItem
+              - dynamodb:UpdateItem
+              Resource: !GetAtt RouterTargets.Arn
+  RouterCache:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: key
+          AttributeType: S
+      BillingMode: PAY_PER_REQUEST
+      KeySchema:
+        - AttributeName: key
+          KeyType: HASH
+  RouterHosts:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: host
+          AttributeType: S
+      BillingMode: PAY_PER_REQUEST
+      KeySchema:
+        - AttributeName: host
+          KeyType: HASH
+  RouterTargets:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: target
+          AttributeType: S
+      BillingMode: PAY_PER_REQUEST
+      KeySchema:
+        - AttributeName: target
+          KeyType: HASH
+  RouterTargetGroup80:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      HealthCheckIntervalSeconds: 10
+      HealthCheckPath: /convox/health
+      HealthCheckProtocol: HTTP
+      HealthyThresholdCount: 2
+      Port: 32000
+      Protocol: TCP
+      TargetType: instance
+      UnhealthyThresholdCount: 2
+      VpcId: !Ref Vpc
+  RouterTargetGroup443:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      HealthCheckIntervalSeconds: 10
+      HealthCheckPath: /convox/health
+      HealthCheckProtocol: HTTPS
+      HealthyThresholdCount: 2
+      Port: 32001
+      Protocol: TCP
+      TargetType: instance
+      UnhealthyThresholdCount: 2
+      VpcId: !Ref Vpc
+  Vpc:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Sub "${CidrBase}/${CidrMask}"
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
+      Tags:
+        - Key: Name
+          Value: !Ref AWS::StackName
+  VpcGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Ref AWS::StackName
+  VpcGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      InternetGatewayId: !Ref VpcGateway
+      VpcId: !Ref Vpc
+  VpcNatAddress0:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+  VpcNatAddress1:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+  VpcNatAddress2:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+  VpcNat0:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId: !GetAtt VpcNatAddress0.AllocationId
+      SubnetId: !Ref VpcPublicSubnet0
+  VpcNat1:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId: !GetAtt VpcNatAddress1.AllocationId
+      SubnetId: !Ref VpcPublicSubnet1
+  VpcNat2:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId: !GetAtt VpcNatAddress2.AllocationId
+      SubnetId: !Ref VpcPublicSubnet2
+  VpcPrivateRoutes0:
+    Type: AWS::EC2::RouteTable
+    DependsOn: VpcNat0
+    Properties:
+      VpcId: !Ref Vpc
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName} private 0"
+  VpcPrivateRoutes0Default:
+    Type: AWS::EC2::Route
+    Properties:
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref VpcNat0
+      RouteTableId: !Ref VpcPrivateRoutes0
+  VpcPrivateRoutes1:
+    Type: AWS::EC2::RouteTable
+    DependsOn: VpcNat1
+    Properties:
+      VpcId: !Ref Vpc
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName} private 1"
+  VpcPrivateRoutes1Default:
+    Type: AWS::EC2::Route
+    Properties:
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref VpcNat1
+      RouteTableId: !Ref VpcPrivateRoutes1
+  VpcPrivateRoutes2:
+    Type: AWS::EC2::RouteTable
+    DependsOn: VpcNat2
+    Properties:
+      VpcId: !Ref Vpc
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName} private 2"
+  VpcPrivateRoutes2Default:
+    Type: AWS::EC2::Route
+    Properties:
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref VpcNat2
+      RouteTableId: !Ref VpcPrivateRoutes2
+  VpcPrivateSubnet0:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Select [ 0, { "Fn::GetAZs": "" } ]
+      CidrBlock: !Select [ 1, !Cidr [ !GetAtt Vpc.CidrBlock, "4", !FindInMap [ "SubnetMasks", !Ref CidrMask, "Private" ] ] ]
+      VpcId: !Ref Vpc
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName} public 0"
+        - Key: kubernetes.io/role/elb
+          Value: ""
+        - Key: kubernetes.io/role/internal-elb
+          Value: ""
+  VpcPrivateSubnet0Routes:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref VpcPrivateSubnet0
+      RouteTableId: !Ref VpcPrivateRoutes0
+  VpcPrivateSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Select [ 1, { "Fn::GetAZs": "" } ]
+      CidrBlock: !Select [ 2, !Cidr [ !GetAtt Vpc.CidrBlock, "4", !FindInMap [ "SubnetMasks", !Ref CidrMask, "Private" ] ] ]
+      VpcId: !Ref Vpc
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName} public 1"
+        - Key: kubernetes.io/role/elb
+          Value: ""
+        - Key: kubernetes.io/role/internal-elb
+          Value: ""
+  VpcPrivateSubnet1Routes:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref VpcPrivateSubnet1
+      RouteTableId: !Ref VpcPrivateRoutes1
+  VpcPrivateSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Select [ 2, { "Fn::GetAZs": "" } ]
+      CidrBlock: !Select [ 3, !Cidr [ !GetAtt Vpc.CidrBlock, "4", !FindInMap [ "SubnetMasks", !Ref CidrMask, "Private" ] ] ]
+      VpcId: !Ref Vpc
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName} public 2"
+        - Key: kubernetes.io/role/elb
+          Value: ""
+        - Key: kubernetes.io/role/internal-elb
+          Value: ""
+  VpcPrivateSubnet2Routes:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref VpcPrivateSubnet2
+      RouteTableId: !Ref VpcPrivateRoutes2
+  VpcPublicRoutes:
+    Type: AWS::EC2::RouteTable
+    DependsOn: VpcGatewayAttachment
+    Properties:
+      VpcId: !Ref Vpc
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName} public"
+  VpcPublicRoutesDefault:
+    Type: AWS::EC2::Route
+    Properties:
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref VpcGateway
+      RouteTableId: !Ref VpcPublicRoutes
+  VpcPublicSubnet0:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Select [ 0, { "Fn::GetAZs": "" } ]
+      CidrBlock: !Select [ 0, !Cidr [ !GetAtt Vpc.CidrBlock, "8", !FindInMap [ "SubnetMasks", !Ref CidrMask, "Public" ] ] ]
+      VpcId: !Ref Vpc
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName} private 0"
+        - Key: kubernetes.io/role/elb
+          Value: ""
+        - Key: kubernetes.io/role/internal-elb
+          Value: ""
+  VpcPublicSubnet0Routes:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref VpcPublicSubnet0
+      RouteTableId: !Ref VpcPublicRoutes
+  VpcPublicSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Select [ 1, { "Fn::GetAZs": "" } ]
+      CidrBlock: !Select [ 1, !Cidr [ !GetAtt Vpc.CidrBlock, "8", !FindInMap [ "SubnetMasks", !Ref CidrMask, "Public" ] ] ]
+      VpcId: !Ref Vpc
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName} private 1"
+        - Key: kubernetes.io/role/elb
+          Value: ""
+        - Key: kubernetes.io/role/internal-elb
+          Value: ""
+  VpcPublicSubnet1Routes:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref VpcPublicSubnet1
+      RouteTableId: !Ref VpcPublicRoutes
+  VpcPublicSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Select [ 2, { "Fn::GetAZs": "" } ]
+      CidrBlock: !Select [ 2, !Cidr [ !GetAtt Vpc.CidrBlock, "8", !FindInMap [ "SubnetMasks", !Ref CidrMask, "Public" ] ] ]
+      VpcId: !Ref Vpc
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName} private 2"
+        - Key: kubernetes.io/role/elb
+          Value: ""
+        - Key: kubernetes.io/role/internal-elb
+          Value: ""
+  VpcPublicSubnet2Routes:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref VpcPublicSubnet2
+      RouteTableId: !Ref VpcPublicRoutes
