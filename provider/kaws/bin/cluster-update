@@ -1,0 +1,11 @@
+#!/bin/sh
+
+aws cloudformation update-stack --stack-name $1 --template-body file://provider/kaws/formation/rack.yml --capabilities CAPABILITY_IAM \
+  --parameters \
+    ParameterKey=BaseDomain,UsePreviousValue=true \
+    ParameterKey=CidrBase,UsePreviousValue=true \
+    ParameterKey=CidrMask,UsePreviousValue=true \
+    ParameterKey=NodeType,UsePreviousValue=true \
+  --tags \
+    Key=system,Value=convox \
+    Key=rack,Value=$1 \
