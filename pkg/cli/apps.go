@@ -329,6 +329,17 @@ func AppsParamsSet(rack sdk.Interface, c *stdcli.Context) error {
 		if err := helpers.WaitForAppWithLogs(rack, c, app(c)); err != nil {
 			return err
 		}
+
+		a, err := rack.AppGet(app(c))
+		if err != nil {
+			return err
+		}
+
+		for k, v := range opts.Parameters {
+			if a.Parameters[k] != v {
+				return fmt.Errorf("rollback")
+			}
+		}
 	}
 
 	return c.OK()

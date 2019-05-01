@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/convox/rack/pkg/kctl"
 	ac "k8s.io/api/core/v1"
 	am "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ic "k8s.io/client-go/informers/core/v1"
@@ -17,7 +18,7 @@ import (
 )
 
 type PodController struct {
-	Controller *Controller
+	Controller *kctl.Controller
 	Provider   *Provider
 
 	logger *podLogger
@@ -31,7 +32,7 @@ func NewPodController(p *Provider) (*PodController, error) {
 		start:    time.Now().UTC(),
 	}
 
-	c, err := NewController(p.Rack, "convox-k8s-pod", pc)
+	c, err := kctl.NewController(p.Rack, "convox-k8s-pod", pc)
 	if err != nil {
 		return nil, err
 	}

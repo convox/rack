@@ -3,7 +3,7 @@ package router
 import (
 	"fmt"
 
-	"github.com/convox/rack/provider/k8s"
+	"github.com/convox/rack/pkg/kctl"
 	ac "k8s.io/api/core/v1"
 	am "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ic "k8s.io/client-go/informers/core/v1"
@@ -12,7 +12,7 @@ import (
 )
 
 type PodController struct {
-	controller *k8s.Controller
+	controller *kctl.Controller
 	kc         kubernetes.Interface
 	router     BackendRouter
 }
@@ -20,7 +20,7 @@ type PodController struct {
 func NewPodController(kc kubernetes.Interface, router BackendRouter) (*PodController, error) {
 	ic := &PodController{kc: kc, router: router}
 
-	c, err := k8s.NewController("convox-system", "convox-router-pod", ic)
+	c, err := kctl.NewController("convox-system", "convox-router-pod", ic)
 	if err != nil {
 		return nil, err
 	}

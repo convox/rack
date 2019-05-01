@@ -12,7 +12,7 @@ import (
 	"sort"
 	"strings"
 
-	cc "github.com/convox/rack/provider/k8s/pkg/client/clientset/versioned/typed/convox/v1"
+	cv "github.com/convox/rack/provider/k8s/pkg/client/clientset/versioned"
 )
 
 const (
@@ -20,8 +20,8 @@ const (
 	ScannerMaxSize   = 1024 * 1024
 )
 
-func (p *Provider) convoxClient() (cc.ConvoxV1Interface, error) {
-	return cc.NewForConfig(p.Config)
+func (p *Provider) convoxClient() (cv.Interface, error) {
+	return cv.NewForConfig(p.Config)
 }
 
 func (p *Provider) systemEnvironment(app, release string) (map[string]string, error) {

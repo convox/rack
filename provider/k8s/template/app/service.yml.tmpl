@@ -6,7 +6,6 @@ metadata:
   labels:
     type: env
     service: {{.Service.Name}}
-    release: {{.Release.Id}}
 type: Opaque
 data:
   {{ range env .SystemEnv .Service.EnvironmentDefaults .Env }}
@@ -19,11 +18,12 @@ metadata:
   namespace: {{.Namespace}}
   name: {{.Service.Name}}
   annotations:
+    atom.conditions: Available=True,Progressing=True/NewReplicaSetAvailable
     convox.rollback: "{{.Rollback}}"
   labels:
+    app: {{.App.Name}}
     type: service
     service: {{.Service.Name}}
-    release: {{.Release.Id}}
 spec:
   selector:
     matchLabels:
@@ -40,7 +40,6 @@ spec:
       maxUnavailable: "{{.MaxUnavailable}}%"
   {{ end }}
   minReadySeconds: 1
-  progressDeadlineSeconds: {{.Timeout}}
   revisionHistoryLimit: 1
   template:
     metadata:
@@ -154,7 +153,6 @@ metadata:
   name: {{.Service.Name}}
   labels:
     service: {{.Service.Name}}
-    release: {{.Release.Id}}
 spec:
   scaleTargetRef:
     apiVersion: apps/v1

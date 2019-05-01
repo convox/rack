@@ -10,8 +10,6 @@ metadata:
     {{ range .Services }}
     convox.ingress.service.{{.Name}}.3000.protocol: {{.Port.Scheme}}
     {{ end }}
-  labels:
-    release: {{.Release.Id}}
 spec:
   tls:
   - hosts:

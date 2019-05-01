@@ -1,0 +1,92 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: convox-system
+  labels:
+    scope: system
+    system: convox
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  name: atoms.convox.com
+spec:
+  group: convox.com
+  versions:
+    - name: v1
+      served: true
+      storage: true
+  version: v1
+  scope: Namespaced
+  names:
+    plural: atoms
+    singular: atom
+    kind: Atom
+    categories:
+    - convox
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  namespace: convox-system
+  name: atom
+rules:
+  - apiGroups: [ "*" ]
+    resources: [ "*" ]
+    verbs: [ "*" ]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  namespace: convox-system
+  name: atom
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: atom
+subjects:
+  - kind: ServiceAccount
+    name: atom
+    namespace: convox-system
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  namespace: convox-system
+  name: atom
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: convox-system
+  name: atom
+spec:
+  revisionHistoryLimit: 0
+  selector:
+    matchLabels:
+      system: convox
+      service: atom
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      annotations:
+        scheduler.alpha.kubernetes.io/critical-pod: ""
+      labels:
+        system: convox
+        service: atom
+    spec:
+      shareProcessNamespace: true
+      containers:
+      - name: main
+        args:
+        - atom
+        image: convox/rack:{{.Version}}
+        resources:
+          requests:
+            cpu: "32m"
+            memory: "32Mi"
+      serviceAccountName: atom

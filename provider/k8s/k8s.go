@@ -1,12 +1,17 @@
 package k8s
 
 import (
+	"bytes"
 	"context"
+	"errors"
 	"flag"
 	"os"
+	"os/exec"
+	"strings"
 	"time"
 
 	"github.com/convox/logger"
+	"github.com/convox/rack/pkg/atom"
 	"github.com/convox/rack/pkg/helpers"
 	"github.com/convox/rack/pkg/manifest"
 	"github.com/convox/rack/pkg/structs"
@@ -28,8 +33,9 @@ type Engine interface {
 	ResourceRender(app string, r manifest.Resource) ([]byte, error)
 	Resolver() (string, error)
 	ServiceHost(app string, s manifest.Service) string
-	SystemAnnotations(service string) map[string]string
+	// SystemAnnotations(service string) map[string]string
 	SystemHost() string
+	SystemStatus() (string, error)
 }
 
 type Provider struct {
@@ -46,6 +52,7 @@ type Provider struct {
 	Storage  string
 	Version  string
 
+	atom      *atom.Client
 	ctx       context.Context
 	logger    *logger.Logger
 	templater *templater.Templater
@@ -71,30 +78,38 @@ func FromEnv() (*Provider, error) {
 		logger:   logger.Discard,
 	}
 
+	p.templater = templater.New(packr.NewBox("../k8s/template"), p.templateHelpers())
+
 	if cfg, err := rest.InClusterConfig(); err == nil {
+		p.logger = logger.New("ns=k8s")
+
 		p.Config = cfg
+
+		ac, err := atom.New(cfg)
+		if err != nil {
+			return nil, err
+		}
+
+		p.atom = ac
 
 		kc, err := kubernetes.NewForConfig(cfg)
 		if err != nil {
 			return nil, err
 		}
 
+		p.Cluster = kc
+
 		mc, err := metrics.NewForConfig(cfg)
 		if err != nil {
 			return nil, err
 		}
 
-		p.Cluster = kc
 		p.Metrics = mc
-
-		p.logger = logger.New("ns=k8s")
 	}
 
 	if p.ID == "" {
 		p.ID, _ = dockerSystemId()
 	}
-
-	p.templater = templater.New(packr.NewBox("../k8s/template"), p.templateHelpers())
 
 	return p, nil
 }
@@ -102,7 +117,7 @@ func FromEnv() (*Provider, error) {
 func (p *Provider) Initialize(opts structs.ProviderOptions) error {
 	log := p.logger.At("Initialize")
 
-	if err := p.systemUpdate(p.Version); err != nil {
+	if err := p.initializeAtom(); err != nil {
 		return log.Error(err)
 	}
 
@@ -142,4 +157,25 @@ func (p *Provider) WithContext(ctx context.Context) structs.Provider {
 	pp := *p
 	pp.ctx = ctx
 	return &pp
+}
+
+func (p *Provider) initializeAtom() error {
+	params := map[string]interface{}{
+		"Version": p.Version,
+	}
+
+	data, err := p.RenderTemplate("atom", params)
+	if err != nil {
+		return err
+	}
+
+	cmd := exec.Command("kubectl", "apply", "-f", "-")
+
+	cmd.Stdin = bytes.NewReader(data)
+
+	if out, err := cmd.CombinedOutput(); err != nil {
+		return errors.New(strings.TrimSpace(string(out)))
+	}
+
+	return nil
 }

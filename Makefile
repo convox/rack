@@ -1,6 +1,6 @@
 .PHONY: all build builder clean clean-package compress dev generate mocks package release release-cli release-image release-provider release-version test
 
-commands = build monitor rack router
+commands = atom build monitor rack router
 injects  = convox-env
 
 # commands = build rack router
@@ -48,6 +48,8 @@ generate:
 	go run cmd/generate/main.go controllers > pkg/api/controllers.go
 	go run cmd/generate/main.go routes > pkg/api/routes.go
 	go run cmd/generate/main.go sdk > sdk/methods.go
+	make -C pkg/atom generate
+	make -C provider/k8s generate
 
 mocks: generate
 	go get -u github.com/vektra/mockery/.../

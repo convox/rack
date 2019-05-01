@@ -26,8 +26,13 @@ func (p *Provider) AppCreate(name string, opts structs.AppCreateOptions) (*struc
 		"Rack":      p.Rack,
 	}
 
-	if out, err := p.ApplyTemplate("app", fmt.Sprintf("system=convox,provider=k8s,scope=app,rack=%s,app=%s", p.Rack, name), params); err != nil {
-		return nil, fmt.Errorf("create error: %s", string(out))
+	data, err := p.RenderTemplate("app/app", params)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := p.ApplyWait(p.AppNamespace(name), "app", "", data, fmt.Sprintf("system=convox,provider=k8s,rack=%s,app=%s", p.Rack, name), 30); err != nil {
+		return nil, err
 	}
 
 	return p.AppGet(name)
@@ -70,8 +75,6 @@ func (p *Provider) AppList() (structs.Apps, error) {
 		return nil, err
 	}
 
-	// fmt.Printf("ns = %+v\n", ns)
-
 	as := structs.Apps{}
 
 	for _, n := range ns.Items {
@@ -105,66 +108,38 @@ func (p *Provider) AppNamespace(app string) string {
 	}
 }
 
-func (p *Provider) AppStatus(app string) (string, error) {
-	// ps, err := p.Cluster.CoreV1().Pods(p.AppNamespace(app)).List(am.ListOptions{})
-	// if err != nil {
-	//   return "", err
-	// }
-
-	// for _, p := range ps.Items {
-	//   for _, c := range p.Status.ContainerStatuses {
-	//     if c.State.Waiting != nil && c.State.Waiting.Reason == "CrashLoopBackOff" {
-	//       return "crashing", nil
-	//     }
-	//   }
-	// }
-
-	ds, err := p.Cluster.ExtensionsV1beta1().Deployments(p.AppNamespace(app)).List(am.ListOptions{})
-	if err != nil {
-		return "", err
-	}
-
-	for _, d := range ds.Items {
-		switch {
-		case deploymentCondition(&d, "Rollback") == "True":
-			return "rollback", nil
-		case d.Spec.Replicas != nil && d.Status.UpdatedReplicas < *d.Spec.Replicas:
-			return "updating", nil
-		case d.Status.Replicas > d.Status.UpdatedReplicas:
-			return "updating", nil
-		case d.Status.AvailableReplicas < d.Status.UpdatedReplicas:
-			return "updating", nil
-		}
-	}
-
-	return p.Engine.AppStatus(app)
-}
-
 func (p *Provider) AppUpdate(name string, opts structs.AppUpdateOptions) error {
 	return fmt.Errorf("unimplemented")
 }
 
 func (p *Provider) appFromNamespace(ns ac.Namespace) (*structs.App, error) {
-	status := "unknown"
-
 	name := helpers.CoalesceString(ns.Labels["app"], ns.Labels["name"])
 
-	switch ns.Status.Phase {
-	case "Terminating":
-		status = "deleting"
-	default:
-		s, err := p.AppStatus(name)
-		if err != nil {
-			return nil, err
-		}
-		status = s
+	as, release, err := p.atom.Status(ns.Name, "app")
+	if err != nil {
+		return nil, err
+	}
+
+	status, err := p.Engine.AppStatus(name)
+	if err != nil {
+		return nil, err
+	}
+
+	switch status {
+	case "running", "unknown":
+		status = helpers.AtomStatus(as)
 	}
 
 	a := &structs.App{
 		Generation: "2",
 		Name:       name,
-		Release:    ns.Annotations["convox.release"],
+		Release:    release,
 		Status:     status,
+	}
+
+	switch ns.Status.Phase {
+	case "Terminating":
+		a.Status = "deleting"
 	}
 
 	return a, nil

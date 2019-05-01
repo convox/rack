@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  namespace: {{.Rack}}
+  namespace: ==RACK==
   name: registry
   labels:
     service: registry
@@ -42,7 +42,7 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  namespace: {{.Rack}}
+  namespace: ==RACK==
   name: registry
 spec:
   type: LoadBalancer
@@ -58,16 +58,16 @@ spec:
 apiVersion: extensions/v1beta1
 kind: Ingress
 metadata:
-  namespace: {{.Rack}}
+  namespace: ==RACK==
   name: registry
   annotations:
     convox.idles: "true"
 spec:
   tls:
   - hosts:
-    - registry.{{.Rack}}
+    - registry.==RACK==
   rules:
-    - host: registry.{{.Rack}}
+    - host: registry.==RACK==
       http:
         paths:
         - backend:

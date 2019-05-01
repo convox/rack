@@ -1,9 +1,15 @@
 apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{.Rack}}
+---
+apiVersion: v1
 kind: ConfigMap
 metadata:
   namespace: {{.Rack}}
   name: env-api
 data:
+  DNS: "{{.DNS}}"
   PROVIDER: local
 ---
 apiVersion: v1
