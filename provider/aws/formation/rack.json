@@ -1506,6 +1506,7 @@
         "MinSize" : { "Fn::If": [ "SpotInstances", { "Ref": "OnDemandMinCount" }, { "Ref": "InstanceCount" } ] },
         "MaxSize" : "1000",
         "MetricsCollection": [ { "Granularity": "1Minute" } ],
+        "TerminationPolicies": [ "NewestInstance" ],
         "Tags": [
           {
             "Key": "Name",
