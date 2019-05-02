@@ -38,20 +38,22 @@ commands:
     steps:
       - run: ci/uninstall.sh
 
-# defaults:
-#   job: &job
-#     filters:
-#       branches:
-#         ignore: /.*/
-#   provider: &provider
-#     docker:
-#       - image: circleci/golang:1.12
-#     steps:
-#       - checkout
-#       - dependencies
-#       - install
-#       - test
-#       - uninstall
+defaults:
+  job: &job
+    filters:
+      branches:
+        ignore: /.*/
+      tags:
+        only: /^\d{14}/
+  provider: &provider
+    docker:
+      - image: circleci/golang:1.12
+    steps:
+      - checkout
+      - dependencies
+      - install
+      - test
+      - uninstall
 
   # build:
   #   parallelism: 3
