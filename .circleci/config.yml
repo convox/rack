@@ -20,13 +20,13 @@ workflows:
             branches:
               ignore: /.*/
             tags:
-              only: /^\d{14}/
+              only: /[0-9]{14}.*/
       - aws-private:
           filters:
             branches:
               ignore: /.*/
             tags:
-              only: /^\d{14}/
+              only: /[0-9]{14}.*/
 
 jobs:
   aws:
