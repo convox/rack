@@ -17,11 +17,11 @@ workflows:
     jobs:
       - ci:
           <<: *ci
-          name: ci/aws-public
+          name: ci/release/aws/public
           provider: aws
       - ci:
           <<: *ci
-          name: ci/aws-private
+          name: ci/release/aws/private
           provider: aws
           args: Private=Yes
 
