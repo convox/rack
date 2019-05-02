@@ -39,11 +39,11 @@ jobs:
       - run: go install ./cmd/convox
       - run: make test
       - run: curl -s https://codecov.io/bash | bash
-  aws:
+  ci/aws/public:
     <<: *provider
     environment:
       PROVIDER: aws
-  aws-private:
+  ci/aws/private:
     <<: *provider
     environment:
       ARGS: Private=Yes
