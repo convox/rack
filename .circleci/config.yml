@@ -5,8 +5,9 @@ workflows:
   ci:
     jobs:
       - aws:
-          branches:
-            only: kaws-ci
+          filters:
+            branches:
+              only: kaws-ci
       # - aws-private
       # - kaws
 
