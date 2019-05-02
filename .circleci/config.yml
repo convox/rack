@@ -8,6 +8,10 @@ workflows:
           filters:
             branches:
               only: kaws-ci
+      - aws-private:
+          filters:
+            branches:
+              only: kaws-ci
       # - aws-private
       # - kaws
 
