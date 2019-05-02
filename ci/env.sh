@@ -7,5 +7,5 @@ fi
 
 export AWS_DEFAULT_REGION=us-east-1
 export AWS_REGION=us-east-1
-export RACK=$(cat /tmp/convox-rack-name)
+export RACK_NAME=$(cat /tmp/convox-rack-name)
 export VERSION=${VERSION:-${CIRCLE_TAG}}
