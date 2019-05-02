@@ -78,8 +78,7 @@ release-version:
 	test -n "$(VERSION)" # VERSION
 
 test:
-	go test -run=none ./...
-	env PROVIDER=test go test -v -coverpkg ./... -covermode atomic -coverprofile coverage.txt ./...
+	env PROVIDER=test go test -coverpkg $(shell go list github.com/convox/rack/...) -covermode atomic -coverprofile coverage.txt ./...
 
 $(binaries): $(GOPATH)/bin/%: $(sources)
 	go install --ldflags="-s -w" ./cmd/$*

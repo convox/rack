@@ -33,6 +33,7 @@ jobs:
   test:
     docker:
       - image: circleci/golang:1.12
+    working_directory: /go/src/github.com/convox/rack
     steps:
       - checkout
       - run: go install ./cmd/convox
