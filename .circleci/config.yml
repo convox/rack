@@ -1,7 +1,7 @@
 version: 2.1
 
 defaults:
-  release: &release
+  ci: &ci
     filters:
       branches:
         ignore: /.*/
@@ -15,18 +15,18 @@ workflows:
       - test
   release:
     jobs:
-      - release:
-          <<: *release
-          name: release/aws/public
+      - ci:
+          <<: *ci
+          name: ci/aws-public
           provider: aws
-      - release:
-          <<: *release
-          name: release/aws/private
+      - ci:
+          <<: *ci
+          name: ci/aws-private
           provider: aws
           args: Private=Yes
 
 jobs:
-  release:
+  ci:
     parameters:
       provider:
         type: string
