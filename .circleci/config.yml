@@ -1,5 +1,16 @@
 version: 2.1
 
+defaults:
+  provider: &provider
+    docker:
+      - image: circleci/golang:1.12
+    steps:
+      - checkout
+      - dependencies
+      - install
+      - test
+      - uninstall
+
 workflows:
   version: 2
   ci:
@@ -45,17 +56,6 @@ commands:
   uninstall:
     steps:
       - run: ci/uninstall.sh
-
-defaults:
-  provider: &provider
-    docker:
-      - image: circleci/golang:1.12
-    steps:
-      - checkout
-      - dependencies
-      - install
-      - test
-      - uninstall
 
   # build:
   #   parallelism: 3
