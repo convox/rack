@@ -1,20 +1,66 @@
-version: 2
+version: 2.1
+
+workflows:
+  version: 2
+  ci:
+    jobs:
+      - aws:
+          branches:
+            only: kaws-ci
+      # - aws-private
+      # - kaws
+
 jobs:
-  build:
-    parallelism: 3
+  provider: &provider
     docker:
       - image: circleci/golang:1.12
     steps:
       - checkout
+      - dependencies
+      - install
+      # - test
+      - uninstall
+  aws:
+    <<: *provider
+    environment:
+      PROVIDER: aws
+      VERSION: "20190502120514"
+          
+commands:
+  dependencies:
+    steps:
       - run: ci/dependencies.sh
+  install:
+    steps:
       - run:
           command: ci/install.sh
           no_output_timeout: 20m
+  test:
+    steps:
       - run:
           command: ci/test.sh
           no_output_timeout: 20m
-      - run: ci/report.sh
+  uninstall:
+    steps:
       - run: ci/uninstall.sh
-      - run: ci/archive.sh
-      - store_artifacts:
-          path: /tmp/artifacts
+
+
+
+  # build:
+  #   parallelism: 3
+  #   docker:
+  #     - image: circleci/golang:1.12
+  #   steps:
+  #     - checkout
+  #     - run: ci/dependencies.sh
+  #     - run:
+  #         command: ci/install.sh
+  #         no_output_timeout: 20m
+  #     - run:
+  #         command: ci/test.sh
+  #         no_output_timeout: 20m
+  #     - run: ci/report.sh
+  #     - run: ci/uninstall.sh
+  #     - run: ci/archive.sh
+  #     - store_artifacts:
+  #         path: /tmp/artifacts
