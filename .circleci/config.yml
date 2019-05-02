@@ -19,7 +19,7 @@ jobs:
       - checkout
       - dependencies
       - install
-      # - test
+      - test
       - uninstall
   aws:
     <<: *provider
