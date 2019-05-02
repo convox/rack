@@ -38,7 +38,7 @@ commands:
     steps:
       - run: ci/uninstall.sh
 
-common:
+defaults:
   job: &job
     filters:
       branches:
