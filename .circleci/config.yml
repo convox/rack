@@ -40,10 +40,10 @@ jobs:
       ARGS: << parameters.args >>
     steps:
       - checkout
-      - ci/dependencies
-      - ci/install
-      - ci/test
-      - ci/uninstall
+      - ci-dependencies
+      - ci-install
+      - ci-test
+      - ci-uninstall
   test:
     docker:
       - image: circleci/golang:1.12
@@ -65,19 +65,19 @@ jobs:
   #     PROVIDER: aws
           
 commands:
-  ci/dependencies:
+  ci-dependencies:
     steps:
       - run: ci/dependencies.sh
-  ci/install:
+  ci-install:
     steps:
       - run:
           command: ci/install.sh
           no_output_timeout: 20m
-  ci/test:
+  ci-test:
     steps:
       - run:
           command: ci/test.sh
           no_output_timeout: 20m
-  ci/uninstall:
+  ci-uninstall:
     steps:
       - run: ci/uninstall.sh
