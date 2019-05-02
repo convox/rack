@@ -5,7 +5,11 @@ workflows:
   ci:
     jobs:
       - aws:
-          <<: *job
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^\d{14}/
       - aws-private:
           <<: *job
 
@@ -40,11 +44,6 @@ commands:
 
 defaults:
   job: &job
-    filters:
-      branches:
-        ignore: /.*/
-      tags:
-        only: /^\d{14}/
   provider: &provider
     docker:
       - image: circleci/golang:1.12
