@@ -1,16 +1,7 @@
 version: 2.1
 
 defaults:
-  provider: &provider
-    docker:
-      - image: circleci/golang:1.12
-    steps:
-      - checkout
-      - dependencies
-      - install
-      - test
-      - uninstall
-  releases: &releases
+  ci: &ci
     filters:
       branches:
         ignore: /.*/
@@ -24,12 +15,35 @@ workflows:
       - test
   release:
     jobs:
-      - aws:
-          <<: *releases
-      - aws-private:
-          <<: *releases
+      - ci:
+          <<: *ci
+          name: ci/release/aws/public
+          provider: aws
+      - ci:
+          <<: *ci
+          name: ci/release/aws/private
+          provider: aws
+          args: Private=Yes
 
 jobs:
+  ci:
+    parameters:
+      provider:
+        type: string
+      args:
+        type: string
+        default: ""
+    docker:
+      - image: circleci/golang:1.12
+    environment:
+      PROVIDER: << parameters.provider >>
+      ARGS: << parameters.args >>
+    steps:
+      - checkout
+      - ci-dependencies
+      - ci-install
+      - ci-test
+      - ci-uninstall
   test:
     docker:
       - image: circleci/golang:1.12
@@ -39,30 +53,21 @@ jobs:
       - run: go install ./cmd/convox
       - run: make test
       - run: curl -s https://codecov.io/bash | bash
-  ci/aws/public:
-    <<: *provider
-    environment:
-      PROVIDER: aws
-  ci/aws/private:
-    <<: *provider
-    environment:
-      ARGS: Private=Yes
-      PROVIDER: aws
           
 commands:
-  dependencies:
+  ci-dependencies:
     steps:
       - run: ci/dependencies.sh
-  install:
+  ci-install:
     steps:
       - run:
           command: ci/install.sh
           no_output_timeout: 20m
-  test:
+  ci-test:
     steps:
       - run:
           command: ci/test.sh
           no_output_timeout: 20m
-  uninstall:
+  ci-uninstall:
     steps:
       - run: ci/uninstall.sh
