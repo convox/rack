@@ -11,7 +11,11 @@ workflows:
             tags:
               only: /^\d{14}/
       - aws-private:
-          <<: *job
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^\d{14}/
 
 jobs:
   aws:
@@ -43,7 +47,6 @@ commands:
       - run: ci/uninstall.sh
 
 defaults:
-  job: &job
   provider: &provider
     docker:
       - image: circleci/golang:1.12
