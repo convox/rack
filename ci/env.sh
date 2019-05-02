@@ -2,7 +2,7 @@
 set -e -o pipefail
 
 if [ ! -f /tmp/convox-rack-name ]; then
-  echo "${CIRCLE_BUILD_NUM}-$(date +"%H%M")" > /tmp/convox-rack-name
+  echo "ci-${CIRCLE_BUILD_NUM}-$(date +"%H%M")" > /tmp/convox-rack-name
 fi
 
 export AWS_REGION=us-east-1
