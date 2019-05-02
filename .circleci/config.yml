@@ -1,6 +1,12 @@
 version: 2.1
 
 defaults:
+  job: &job
+    filters:
+      branches:
+        ignore: /.*/
+      tags:
+        only: /[0-9]{14}.*/
   provider: &provider
     docker:
       - image: circleci/golang:1.12
@@ -16,17 +22,9 @@ workflows:
   ci:
     jobs:
       - aws:
-          filters:
-            branches:
-              ignore: /.*/
-            tags:
-              only: /[0-9]{14}.*/
+          <<: *job
       - aws-private:
-          filters:
-            branches:
-              ignore: /.*/
-            tags:
-              only: /[0-9]{14}.*/
+          <<: *job
 
 jobs:
   aws:
