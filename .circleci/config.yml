@@ -1,20 +1,68 @@
-version: 2
-jobs:
-  build:
-    parallelism: 3
+version: 2.1
+
+defaults:
+  provider: &provider
     docker:
       - image: circleci/golang:1.12
     steps:
       - checkout
+      - dependencies
+      - install
+      - test
+      - uninstall
+  releases: &releases
+    filters:
+      branches:
+        ignore: /.*/
+      tags:
+        only: /[0-9]{14}.*/
+
+workflows:
+  version: 2
+  test:
+    jobs:
+      - test
+  release:
+    jobs:
+      - aws:
+          <<: *releases
+      - aws-private:
+          <<: *releases
+
+jobs:
+  test:
+    docker:
+      - image: circleci/golang:1.12
+    working_directory: /go/src/github.com/convox/rack
+    steps:
+      - checkout
+      - run: go install ./cmd/convox
+      - run: make test
+      - run: curl -s https://codecov.io/bash | bash
+  aws:
+    <<: *provider
+    environment:
+      PROVIDER: aws
+  aws-private:
+    <<: *provider
+    environment:
+      ARGS: Private=Yes
+      PROVIDER: aws
+          
+commands:
+  dependencies:
+    steps:
       - run: ci/dependencies.sh
+  install:
+    steps:
       - run:
           command: ci/install.sh
           no_output_timeout: 20m
+  test:
+    steps:
       - run:
           command: ci/test.sh
           no_output_timeout: 20m
-      - run: ci/report.sh
+  uninstall:
+    steps:
       - run: ci/uninstall.sh
-      - run: ci/archive.sh
-      - store_artifacts:
-          path: /tmp/artifacts
