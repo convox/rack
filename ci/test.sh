@@ -34,8 +34,8 @@ convox version
 # rack
 convox instances
 convox rack
-convox rack logs --no-follow | grep service/web
-convox rack ps | grep bin/rack
+convox rack logs --no-follow | grep service/
+convox rack ps | grep rack
 
 # rack (provider-specific)
 case $provider in
@@ -144,18 +144,16 @@ case $provider in
 esac
 
 # certs
-cd $root/ci/assets
-convox certs
-cert=$(convox certs generate example.org --id)
-convox certs | grep -v $cert
-convox certs delete $cert
-cert=$(convox certs import example.org.crt example.org.key --id)
-sleep 30
-convox certs | grep $cert
-
-# certs (provider-specific)
 case $provider in
   aws)
+    cd $root/ci/assets
+    convox certs
+    cert=$(convox certs generate example.org --id)
+    convox certs | grep -v $cert
+    convox certs delete $cert
+    cert=$(convox certs import example.org.crt example.org.key --id)
+    sleep 30
+    convox certs | grep $cert
     certo=$(convox api get /apps/ci1/services | jq -r '.[] | select(.name == "web") | .ports[] | select (.balancer == 443) | .certificate')
     convox ssl -a ci1 | grep web:443 | grep $certo
     convox ssl update web:443 $cert -a ci1 --wait
@@ -163,13 +161,11 @@ case $provider in
     convox ssl update web:443 $certo -a ci1 --wait
     convox ssl -a ci1 | grep web:443 | grep $certo
     sleep 30
+    convox certs delete $cert
     ;;
 esac
 
-# certs (cleanup)
-convox certs delete $cert
-
-# resources
+# rack resources
 case $provider in
   aws)
     convox rack resources create syslog Url=tcp://syslog.convox.com --name cilog --wait
