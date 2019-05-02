@@ -26,6 +26,12 @@ jobs:
     environment:
       PROVIDER: aws
       VERSION: "20190502120514"
+  aws-private:
+    <<: *provider
+    environment:
+      ARGS: Private=Yes
+      PROVIDER: aws
+      VERSION: "20190502120514"
           
 commands:
   dependencies:
