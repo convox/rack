@@ -125,7 +125,7 @@ for region in eu-west-1 us-east-1 us-west-2; do
 done
 
 for bucket in $(aws s3api list-buckets | jq -r '.Buckets[].Name'); do
-  if [[ "$bucket" =~ ^convox-[0-9]+(-[a-z]+-[0-9]+)? ]] && [[ ! "$bucket" =~ ^convox-0 ]]; then
+  if [[ "$bucket" =~ ^ci-[0-9]+(-[a-z]+-[0-9]+)? ]]; then
     region=$(aws s3api get-bucket-location --bucket $bucket 2>/dev/null | jq -r .LocationConstraint 2>/dev/null)
     echo "deleting bucket: $bucket ($region)"
     case $region in
@@ -146,7 +146,7 @@ done
 
 if [ "${1}" == "all" ]; then
   for role in $(aws iam list-roles | jq -r '.Roles[].RoleName'); do
-    if [[ "$role" =~ ^convox-[0-9]+(-[a-z]+-[0-9]+)? ]]; then
+    if [[ "$role" =~ ^ci-[0-9]+(-[a-z]+-[0-9]+)? ]]; then
       for policy in $(aws iam list-role-policies --role-name $role | jq -r '.PolicyNames[]'); do
         echo "deleting policy: $policy"
         aws iam delete-role-policy --role-name $role --policy-name $policy
