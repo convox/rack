@@ -74,12 +74,10 @@ func (p *Provider) SystemInstall(w io.Writer, opts structs.SystemInstallOptions)
 		return "", err
 	}
 
-	params := map[string]interface{}{
-		"DNS":  dnsPort(),
-		"Rack": name,
-	}
+	p.DNS = dnsPort()
+	p.Socket = dockerSocket()
 
-	if err := p.systemUpdate(version, params); err != nil {
+	if err := p.systemUpdate(version); err != nil {
 		return "", err
 	}
 
@@ -170,12 +168,7 @@ func (p *Provider) SystemUpdate(opts structs.SystemUpdateOptions) error {
 
 	version := helpers.DefaultString(opts.Version, p.Version)
 
-	params := map[string]interface{}{
-		"DNS":  os.Getenv("DNS"),
-		"Rack": p.Rack,
-	}
-
-	if err := p.systemUpdate(version, params); err != nil {
+	if err := p.systemUpdate(version); err != nil {
 		return err
 	}
 
@@ -241,7 +234,11 @@ func (p *Provider) generateCACertificate(version string) error {
 	return nil
 }
 
-func (p *Provider) systemUpdate(version string, params map[string]interface{}) error {
+func (p *Provider) systemUpdate(version string) error {
+	params := map[string]interface{}{
+		"Rack": p.Rack,
+	}
+
 	data, err := p.RenderTemplate("config", params)
 	if err != nil {
 		return err
@@ -260,10 +257,10 @@ func (p *Provider) systemUpdate(version string, params map[string]interface{}) e
 	}
 
 	tags := map[string]string{
-		"DNS":    helpers.CoalesceString(os.Getenv("DNS"), dnsPort()),
+		"DNS":    p.DNS,
 		"HOST":   host,
 		"RACK":   p.Rack,
-		"SOCKET": dockerSocket(),
+		"SOCKET": p.Socket,
 	}
 
 	for k, v := range tags {
