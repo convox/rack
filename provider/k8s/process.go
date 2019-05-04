@@ -66,7 +66,10 @@ func (p *Provider) ProcessExec(app, pid, command string, rw io.ReadWriter, opts 
 		return 0, err
 	}
 
-	err = e.Stream(remotecommand.StreamOptions{Stdin: rw, Stdout: rw, Stderr: rw, Tty: true})
+	inr, inw := io.Pipe()
+	go io.Copy(inw, rw)
+
+	err = e.Stream(remotecommand.StreamOptions{Stdin: inr, Stdout: rw, Stderr: rw, Tty: true})
 	if ee, ok := err.(exec.ExitError); ok {
 		return ee.ExitStatus(), nil
 	}
