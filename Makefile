@@ -36,8 +36,7 @@ ifdef UPLOAD
 	kubectl patch deployment/api -p '{"spec":{"template":{"spec":{"containers":[{"name":"main","imagePullPolicy":"Always"}]}}}}' -n $(RACK)
 	kubectl patch deployment/router -p '{"spec":{"template":{"spec":{"containers":[{"name":"main","imagePullPolicy":"Always"}]}}}}' -n convox-system
 endif
-	kubectl patch deployment/api -p '{"spec":{"template":{"spec":{"containers":[{"name":"main","image":"convox/rack:dev","env":[{"name":"VERSION","value":"dev"}]}]}}}}' -n $(RACK)
-	kubectl patch deployment/router -p '{"spec":{"template":{"spec":{"containers":[{"name":"main","image":"convox/rack:dev","env":[{"name":"VERSION","value":"dev"}]}]}}}}' -n convox-system
+	convox rack update dev --wait
 	kubectl delete pod --all -n convox-system
 	kubectl delete pod --all -n $(RACK)
 	kubectl rollout status deployment/api -n $(RACK)
