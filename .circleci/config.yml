@@ -7,9 +7,21 @@ defaults:
         ignore: /.*/
       tags:
         only: /[0-9]{14}.*/
+  nightly: &nightly
+    schedule:
+      cron: "0 8 * * *"
+      filters:
+        branches:
+          only:
+            - master
 
 workflows:
   version: 2
+  cleanup:
+    jobs:
+      - cleanup
+    triggers:
+      - <<: *nightly
   test:
     jobs:
       - test
@@ -44,6 +56,13 @@ jobs:
       - ci-install
       - ci-test
       - ci-uninstall
+  cleanup:
+    docker:
+      - image: circleci/golang:1.12
+    steps:
+      - checkout
+      - ci-dependencies
+      - run: scripts/ci-cleanup
   test:
     docker:
       - image: circleci/golang:1.12
@@ -70,4 +89,6 @@ commands:
           no_output_timeout: 20m
   ci-uninstall:
     steps:
-      - run: ci/uninstall.sh
+      - run:
+          command: ci/uninstall.sh
+          no_output_timeout: 30m
