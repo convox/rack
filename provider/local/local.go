@@ -3,7 +3,6 @@ package local
 import (
 	"context"
 	"fmt"
-	"os"
 
 	"github.com/convox/logger"
 	"github.com/convox/rack/pkg/manifest"
@@ -25,6 +24,9 @@ import (
 
 type Provider struct {
 	*k8s.Provider
+
+	DNS    string
+	Socket string
 
 	logger    *logger.Logger
 	templater *templater.Templater
@@ -63,7 +65,7 @@ func (p *Provider) Initialize(opts structs.ProviderOptions) error {
 	}
 
 	if _, err := rest.InClusterConfig(); err == nil {
-		if err := p.initializeDNSPort(); err != nil {
+		if err := p.initializePlatform(); err != nil {
 			return log.Error(err)
 		}
 
@@ -79,7 +81,19 @@ func (p *Provider) WithContext(ctx context.Context) structs.Provider {
 	return &pp
 }
 
-func (p *Provider) initializeDNSPort() error {
+func (p *Provider) initializePlatform() error {
+	if err := p.initializePlatformDNSPort(); err != nil {
+		return err
+	}
+
+	if err := p.initializePlatformDockerSocket(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (p *Provider) initializePlatformDNSPort() error {
 	if p.Cluster == nil {
 		return nil
 	}
@@ -93,7 +107,23 @@ func (p *Provider) initializeDNSPort() error {
 		return fmt.Errorf("could not find resolver port")
 	}
 
-	os.Setenv("DNS", fmt.Sprintf("%d", s.Spec.Ports[0].Port))
+	p.DNS = fmt.Sprintf("%d", s.Spec.Ports[0].Port)
+
+	return nil
+}
+
+func (p *Provider) initializePlatformDockerSocket() error {
+	d, err := p.Cluster.ExtensionsV1beta1().Deployments(p.Rack).Get("api", am.GetOptions{})
+	if err != nil {
+		return err
+	}
+
+	for _, v := range d.Spec.Template.Spec.Volumes {
+		if v.Name == "docker" && v.VolumeSource.HostPath != nil {
+			p.Socket = v.VolumeSource.HostPath.Path
+			break
+		}
+	}
 
 	return nil
 }
