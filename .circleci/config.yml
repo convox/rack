@@ -1,19 +1,30 @@
 version: 2.1
 
 defaults:
-  ci: &ci
+  deploy: &deploy
+    requires:
+      - ci/staging/rack
+  filter-releases-any: &filter-releases-any
     filters:
       branches:
         ignore: /.*/
       tags:
         only: /[0-9]{14}.*/
+  filter-releases-master: &filter-releases-master
+    filters:
+      branches:
+        ignore: /.*/
+      tags:
+        only: /[0-9]{14}/
   nightly: &nightly
     schedule:
-      cron: "0 8 * * *"
+      cron: "27 * * * *"
+      # cron: "0 8 * * *"
       filters:
         branches:
           only:
-            - master
+            # - master
+            - ci-rack-update
 
 workflows:
   version: 2
@@ -28,14 +39,41 @@ workflows:
   release:
     jobs:
       - ci:
-          <<: *ci
+          <<: *filter-releases-any
           name: ci/aws/public
           provider: aws
       - ci:
-          <<: *ci
+          <<: *filter-releases-any
           name: ci/aws/private
           provider: aws
           args: Private=Yes
+      - update:
+          <<: *filter-releases-master
+          requires:
+            - ci/aws/public
+            - ci/aws/private
+          name: ci/staging/rack
+      - deploy:
+          <<: *filter-releases-master
+          <<: *deploy
+          name: ci/staging/app/docs-staging
+          repo: https://github.com/convox/docs
+          app: docs-staging
+          check: https://docs-staging.convox.com
+      - deploy:
+          <<: *filter-releases-master
+          <<: *deploy
+          name: ci/staging/app/httpd
+          repo: https://github.com/convox-examples/httpd
+          app: httpd
+          check: https://httpd-staging.convox.com
+      - deploy:
+          <<: *filter-releases-master
+          <<: *deploy
+          name: ci/staging/app/site-staging
+          repo: https://github.com/convox/site
+          app: site-staging
+          check: https://site-staging.convox.com
 
 jobs:
   ci:
@@ -48,8 +86,8 @@ jobs:
     docker:
       - image: circleci/golang:1.12
     environment:
-      PROVIDER: << parameters.provider >>
-      ARGS: << parameters.args >>
+      PROVIDER: <<parameters.provider>>
+      ARGS: <<parameters.args>>
     steps:
       - checkout
       - ci-dependencies
@@ -63,6 +101,20 @@ jobs:
       - checkout
       - ci-dependencies
       - run: scripts/ci-cleanup
+  deploy:
+    parameters:
+      app:
+        type: string
+      check:
+        type: string
+      repo:
+        type: string
+    docker:
+      - image: circleci/golang:1.12
+    steps:
+      - checkout
+      - ci-dependencies
+      - run: ci/deploy.sh <<parameters.repo>> <<parameters.app>> <<parameters.check>>
   test:
     docker:
       - image: circleci/golang:1.12
@@ -72,6 +124,13 @@ jobs:
       - run: go install ./cmd/convox
       - run: make test
       - run: curl -s https://codecov.io/bash | bash
+  update:
+    docker:
+      - image: circleci/golang:1.12
+    steps:
+      - checkout
+      - ci-dependencies
+      - run: ci/update.sh
           
 commands:
   ci-dependencies:
