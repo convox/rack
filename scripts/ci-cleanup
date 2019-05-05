@@ -9,7 +9,7 @@ if [[ "$(aws iam list-account-aliases | jq -r '.AccountAliases[0]')" != "convox-
   exit 1
 fi
 
-for region in eu-west-1 us-east-1 us-west-2; do
+for region in us-east-1; do
   echo "region: $region"
 
   for stack in $(aws cloudformation describe-stacks --region $region | jq -r '.Stacks[].StackName'); do
@@ -30,6 +30,16 @@ for region in eu-west-1 us-east-1 us-west-2; do
   for group in $(aws logs describe-log-groups --region $region | jq -r ".logGroups[].logGroupName"); do
     echo "deleting log group: $group ($region)"
     aws logs delete-log-group --log-group-name $group --region $region
+  done
+
+  for key in $(aws kms list-keys --region $region | jq -r '.Keys[].KeyId'); do
+    data=$(aws kms describe-key --region $region --key-id $key)
+    state=$(echo $data | jq -r '.KeyMetadata.KeyState')
+    manager=$(echo $data | jq -r '.KeyMetadata.KeyManager')
+    if [[ "$state" != "PendingDeletion" && "$manager" != "AWS" ]]; then
+      echo "deleting key: $key ($region)"
+      aws kms schedule-key-deletion --key-id $key --pending-window-in-days 7 --region $region >/dev/null
+    fi
   done
 
   if [ "${1}" == "all" ]; then
@@ -111,16 +121,6 @@ for region in eu-west-1 us-east-1 us-west-2; do
     #   echo "deleting lambda: $func ($region)"
     #   aws lambda delete-function --function-name $func --region $region
     # done
-
-    for key in $(aws kms list-keys --region $region | jq -r '.Keys[].KeyId'); do
-      data=$(aws kms describe-key --region $region --key-id $key)
-      state=$(echo $data | jq -r '.KeyMetadata.KeyState')
-      manager=$(echo $data | jq -r '.KeyMetadata.KeyManager')
-      if [[ "$state" != "PendingDeletion" && "$manager" != "AWS" ]]; then
-        echo "deleting key: $key ($region)"
-        aws kms schedule-key-deletion --key-id $key --pending-window-in-days 7 --region $region >/dev/null
-      fi
-    done
   fi
 done
 
