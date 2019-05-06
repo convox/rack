@@ -69,7 +69,18 @@ func (p *Provider) ProcessExec(app, pid, command string, rw io.ReadWriter, opts 
 	inr, inw := io.Pipe()
 	go io.Copy(inw, rw)
 
-	err = e.Stream(remotecommand.StreamOptions{Stdin: inr, Stdout: rw, Stderr: rw, Tty: true})
+	sopts := remotecommand.StreamOptions{
+		Stdin:  inr,
+		Stdout: rw,
+		Stderr: rw,
+		Tty:    true,
+	}
+
+	if opts.Height != nil && opts.Width != nil {
+		sopts.TerminalSizeQueue = &terminalSize{Height: *opts.Height, Width: *opts.Width}
+	}
+
+	err = e.Stream(sopts)
 	if ee, ok := err.(exec.ExitError); ok {
 		return ee.ExitStatus(), nil
 	}
@@ -474,4 +485,20 @@ func processFromPod(pd ac.Pod) (*structs.Process, error) {
 	}
 
 	return ps, nil
+}
+
+type terminalSize struct {
+	Height int
+	Width  int
+	sent   bool
+}
+
+func (ts *terminalSize) Next() *remotecommand.TerminalSize {
+	if ts.sent {
+		return nil
+	}
+
+	ts.sent = true
+
+	return &remotecommand.TerminalSize{Height: uint16(ts.Height), Width: uint16(ts.Width)}
 }
