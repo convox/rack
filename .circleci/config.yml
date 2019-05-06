@@ -2,6 +2,7 @@ version: 2.1
 
 defaults:
   deploy: &deploy
+    context: staging
     requires:
       - ci/staging/rack
   filter-releases-any: &filter-releases-any
