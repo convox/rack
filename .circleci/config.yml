@@ -2,7 +2,6 @@ version: 2.1
 
 defaults:
   deploy: &deploy
-    context: staging
     requires:
       - ci/staging/rack
   filter-releases-any: &filter-releases-any
@@ -48,6 +47,7 @@ workflows:
           args: Private=Yes
       - update:
           <<: *filter-releases-master
+          context: staging
           requires:
             - ci/aws/public
             - ci/aws/private
@@ -55,6 +55,7 @@ workflows:
       - deploy:
           <<: *filter-releases-master
           <<: *deploy
+          context: staging
           name: ci/staging/app/docs-staging
           repo: https://github.com/convox/docs
           app: docs-staging
@@ -62,6 +63,7 @@ workflows:
       - deploy:
           <<: *filter-releases-master
           <<: *deploy
+          context: staging
           name: ci/staging/app/httpd
           repo: https://github.com/convox-examples/httpd
           app: httpd
@@ -69,6 +71,7 @@ workflows:
       - deploy:
           <<: *filter-releases-master
           <<: *deploy
+          context: staging
           name: ci/staging/app/site-staging
           repo: https://github.com/convox/site
           app: site-staging
