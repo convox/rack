@@ -3,6 +3,7 @@ package build
 import (
 	"bufio"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -168,20 +169,32 @@ func (bb *Build) injectConvoxEnv(tag string) error {
 func (bb *Build) pull(tag string) error {
 	fmt.Fprintf(bb.writer, "Running: docker pull %s\n", tag)
 
-	_, err := bb.Exec.Execute("docker", "pull", tag)
-	return err
+	data, err := bb.Exec.Execute("docker", "pull", tag)
+	if err != nil {
+		return errors.New(strings.TrimSpace(string(data)))
+	}
+
+	return nil
 }
 
 func (bb *Build) push(tag string) error {
 	fmt.Fprintf(bb.writer, "Running: docker push %s\n", tag)
 
-	_, err := bb.Exec.Execute("docker", "push", tag)
-	return err
+	data, err := bb.Exec.Execute("docker", "push", tag)
+	if err != nil {
+		return errors.New(strings.TrimSpace(string(data)))
+	}
+
+	return nil
 }
 
 func (bb *Build) tag(from, to string) error {
 	fmt.Fprintf(bb.writer, "Running: docker tag %s %s\n", from, to)
 
-	_, err := bb.Exec.Execute("docker", "tag", from, to)
-	return err
+	data, err := bb.Exec.Execute("docker", "tag", from, to)
+	if err != nil {
+		return errors.New(strings.TrimSpace(string(data)))
+	}
+
+	return nil
 }
