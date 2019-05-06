@@ -1,8 +1,8 @@
-## development #################################################################
+## test ########################################################################
 
-FROM golang:1.12 AS development
+FROM golang:1.12 AS test
 
-RUN curl -s https://download.docker.com/linux/static/stable/x86_64/docker-18.03.1-ce.tgz | \
+RUN curl -s https://download.docker.com/linux/static/stable/x86_64/docker-18.09.6.tgz | \
     tar -C /usr/bin --strip-components 1 -xz
 
 RUN curl -Ls https://storage.googleapis.com/kubernetes-release/release/v1.13.0/bin/linux/amd64/kubectl -o /usr/bin/kubectl && \
@@ -11,14 +11,34 @@ RUN curl -Ls https://storage.googleapis.com/kubernetes-release/release/v1.13.0/b
 RUN curl -Ls https://github.com/mattgreen/watchexec/releases/download/1.8.6/watchexec-1.8.6-x86_64-unknown-linux-gnu.tar.gz | \
     tar -C /usr/bin --strip-components 1 -xz
 
-ENV DEVELOPMENT=true
-
 WORKDIR /go/src/github.com/convox/rack
 
 COPY vendor vendor
 RUN go install --ldflags="-s -w" ./vendor/...
 
 COPY . .
+
+## development #################################################################
+
+FROM test AS development
+
+# RUN curl -s https://download.docker.com/linux/static/stable/x86_64/docker-18.09.6.tgz | \
+#     tar -C /usr/bin --strip-components 1 -xz
+
+# RUN curl -Ls https://storage.googleapis.com/kubernetes-release/release/v1.13.0/bin/linux/amd64/kubectl -o /usr/bin/kubectl && \
+#     chmod +x /usr/bin/kubectl
+
+# RUN curl -Ls https://github.com/mattgreen/watchexec/releases/download/1.8.6/watchexec-1.8.6-x86_64-unknown-linux-gnu.tar.gz | \
+#     tar -C /usr/bin --strip-components 1 -xz
+
+ENV DEVELOPMENT=true
+
+# WORKDIR /go/src/github.com/convox/rack
+
+# COPY vendor vendor
+# RUN go install --ldflags="-s -w" ./vendor/...
+
+# COPY . .
 RUN make build
 
 CMD ["bin/web"]
