@@ -205,6 +205,9 @@ func (p *Provider) CertificateList() (structs.Certificates, error) {
 		tres, err := p.acm().ListTagsForCertificate(&acm.ListTagsForCertificateInput{
 			CertificateArn: cert.CertificateArn,
 		})
+		if awsError(err) == "ResourceNotFoundException" {
+			continue
+		}
 		if err != nil {
 			return nil, err
 		}
