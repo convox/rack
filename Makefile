@@ -1,4 +1,4 @@
-.PHONY: all build builder clean clean-package compress dev generate mocks package release release-cli release-image release-provider release-version test
+.PHONY: all build builder clean clean-package compress dev generate mocks package release release-cli release-image release-provider release-version test test-docker
 
 commands = atom build monitor rack router
 injects  = convox-env
@@ -78,6 +78,10 @@ release-version:
 
 test:
 	env PROVIDER=test go test -covermode atomic -coverprofile coverage.txt ./...
+
+test-docker:
+	docker build -t convox/rack:test --target development .
+	docker run -it convox/rack:test make test
 
 $(binaries): $(GOPATH)/bin/%: $(sources)
 	go install --ldflags="-s -w" ./cmd/$*

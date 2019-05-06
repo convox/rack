@@ -123,6 +123,7 @@ jobs:
     working_directory: /go/src/github.com/convox/rack
     steps:
       - checkout
+      - ci-dependencies
       - run: go install ./cmd/convox
       - run: make test
       - run: curl -s https://codecov.io/bash | bash
