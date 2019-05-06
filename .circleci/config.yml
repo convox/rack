@@ -19,13 +19,11 @@ defaults:
         only: /[0-9]{14}/
   nightly: &nightly
     schedule:
-      cron: "27 * * * *"
-      # cron: "0 8 * * *"
+      cron: "0 8 * * *"
       filters:
         branches:
           only:
-            # - master
-            - ci-rack-update
+            - master
 
 workflows:
   version: 2
