@@ -25,8 +25,7 @@ import (
 type Provider struct {
 	*k8s.Provider
 
-	DNS    string
-	Socket string
+	DNS string
 
 	logger    *logger.Logger
 	templater *templater.Templater
