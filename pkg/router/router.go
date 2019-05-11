@@ -110,12 +110,6 @@ func (r *Router) Shutdown(ctx context.Context) error {
 	return nil
 }
 
-func (r *Router) IdleSet(target string, idle bool) error {
-	fmt.Printf("ns=router at=request.begin target=%q idle=%t\n", target, idle)
-
-	return r.storage.IdleSet(target, idle)
-}
-
 func (r *Router) RequestBegin(target string) error {
 	fmt.Printf("ns=router at=request.begin target=%q\n", target)
 
@@ -123,17 +117,13 @@ func (r *Router) RequestBegin(target string) error {
 		return err
 	}
 
-	idle, err := r.storage.IdleGet(target)
+	idle, err := r.backend.IdleGet(target)
 	if err != nil {
 		return fmt.Errorf("could not fetch idle status: %s", err)
 	}
 
 	if idle {
 		if err := r.backend.IdleSet(target, false); err != nil {
-			return fmt.Errorf("could not unidle: %s", err)
-		}
-
-		if err := r.storage.IdleSet(target, false); err != nil {
 			return fmt.Errorf("could not unidle: %s", err)
 		}
 	}
@@ -168,15 +158,6 @@ func (r *Router) TargetAdd(host, target string, idles bool) error {
 	fmt.Printf("ns=router at=target.add host=%q target=%q\n", host, target)
 
 	if err := r.storage.TargetAdd(host, target, idles); err != nil {
-		return err
-	}
-
-	idle, err := r.backend.IdleGet(target)
-	if err != nil {
-		return err
-	}
-
-	if err := r.storage.IdleSet(target, idle); err != nil {
 		return err
 	}
 
@@ -258,7 +239,7 @@ func (r *Router) idleTick() error {
 	}
 
 	for _, t := range ts {
-		idle, err := r.storage.IdleGet(t)
+		idle, err := r.backend.IdleGet(t)
 		if err != nil {
 			return err
 		}
@@ -267,11 +248,7 @@ func (r *Router) idleTick() error {
 		}
 
 		if err := r.backend.IdleSet(t, true); err != nil {
-			return err
-		}
-
-		if err := r.storage.IdleSet(t, true); err != nil {
-			return err
+			fmt.Printf("err = %+v\n", err)
 		}
 	}
 
