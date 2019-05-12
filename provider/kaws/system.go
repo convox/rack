@@ -3,12 +3,10 @@ package kaws
 import (
 	"bufio"
 	"bytes"
-	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
-	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -163,7 +161,7 @@ func (p *Provider) SystemInstall(w io.Writer, opts structs.SystemInstallOptions)
 		fmt.Fprintf(w, "Starting... ")
 	}
 
-	if err := endpointWait(url); err != nil {
+	if err := helpers.EndpointWait(url); err != nil {
 		return "", err
 	}
 
@@ -438,29 +436,6 @@ func checkKubectl() error {
 	}
 
 	return nil
-}
-
-func endpointWait(url string) error {
-	timeout := time.After(10 * time.Minute)
-
-	tick := time.NewTicker(2 * time.Second)
-	defer tick.Stop()
-
-	ht := *(http.DefaultTransport.(*http.Transport))
-	ht.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-	hc := &http.Client{Timeout: 2 * time.Second, Transport: &ht}
-
-	for {
-		select {
-		case <-tick.C:
-			res, err := hc.Get(fmt.Sprintf("%s/apps", url))
-			if err == nil && res.StatusCode == 200 {
-				return nil
-			}
-		case <-timeout:
-			return fmt.Errorf("timeout")
-		}
-	}
 }
 
 func writeKubeConfig(outputs map[string]string) (string, error) {

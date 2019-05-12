@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"crypto/rand"
 	"crypto/rsa"
-	"crypto/tls"
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/base64"
@@ -12,7 +11,6 @@ import (
 	"fmt"
 	"io"
 	"math/big"
-	"net/http"
 	"os"
 	"os/exec"
 	"runtime"
@@ -85,7 +83,7 @@ func (p *Provider) SystemInstall(w io.Writer, opts structs.SystemInstallOptions)
 
 	fmt.Fprintf(w, "Starting... ")
 
-	if err := endpointWait(url); err != nil {
+	if err := helpers.EndpointWait(url); err != nil {
 		return "", err
 	}
 
@@ -285,28 +283,6 @@ func checkKubectl() error {
 	}
 
 	return nil
-}
-
-func endpointWait(url string) error {
-	tick := time.NewTicker(2 * time.Second)
-	defer tick.Stop()
-	timeout := time.After(5 * time.Minute)
-
-	ht := *(http.DefaultTransport.(*http.Transport))
-	ht.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-	hc := &http.Client{Timeout: 2 * time.Second, Transport: &ht}
-
-	for {
-		select {
-		case <-tick.C:
-			res, err := hc.Get(fmt.Sprintf("%s/apps", url))
-			if err == nil && res.StatusCode == 200 {
-				return nil
-			}
-		case <-timeout:
-			return fmt.Errorf("timeout")
-		}
-	}
 }
 
 func importOriginalEnvironment(s *storage.Storage, app string) (string, error) {
