@@ -76,13 +76,6 @@ func (b *BackendKubernetes) Start() error {
 
 	go ic.Run()
 
-	pc, err := NewPodController(b.cluster, b.router)
-	if err != nil {
-		return err
-	}
-
-	go pc.Run()
-
 	return nil
 }
 
@@ -113,6 +106,8 @@ func (b *BackendKubernetes) IdleGet(target string) (bool, error) {
 
 	if service, namespace, ok := parseTarget(target); ok {
 		s, err := b.cluster.ExtensionsV1beta1().Deployments(namespace).GetScale(service, am.GetOptions{})
+		fmt.Printf("s = %+v\n", s)
+		fmt.Printf("err = %+v\n", err)
 		if err != nil {
 			return false, err
 		}
