@@ -113,7 +113,9 @@ func TestReleaseListError(t *testing.T) {
 
 func TestReleasePromote(t *testing.T) {
 	testServer(t, func(c *stdsdk.Client, p *structs.MockProvider) {
+		r1 := fxRelease
 		p.On("AppGet", "app1").Return(&structs.App{Status: "running"}, nil)
+		p.On("ReleaseGet", "app1", "release1").Return(&r1, nil)
 		opts := structs.ReleasePromoteOptions{
 			Min: options.Int(1),
 			Max: options.Int(2),
@@ -132,7 +134,9 @@ func TestReleasePromote(t *testing.T) {
 
 func TestReleasePromoteError(t *testing.T) {
 	testServer(t, func(c *stdsdk.Client, p *structs.MockProvider) {
+		r1 := fxRelease
 		p.On("AppGet", "app1").Return(&structs.App{Status: "running"}, nil)
+		p.On("ReleaseGet", "app1", "release1").Return(&r1, nil)
 		p.On("ReleasePromote", "app1", "release1", structs.ReleasePromoteOptions{}).Return(fmt.Errorf("err1"))
 		err := c.Post("/apps/app1/releases/release1/promote", stdsdk.RequestOptions{}, nil)
 		require.EqualError(t, err, "err1")
@@ -147,11 +151,20 @@ func TestReleasePromoteNotRunning(t *testing.T) {
 	})
 }
 
+func TestReleasePromoteEmptyManifest(t *testing.T) {
+	testServer(t, func(c *stdsdk.Client, p *structs.MockProvider) {
+		p.On("AppGet", "app1").Return(&structs.App{Release: "release1", Status: "running"}, nil)
+		p.On("ReleaseGet", "app1", "release1").Return(&structs.Release{}, nil)
+		err := c.Post("/apps/app1/releases/release1/promote", stdsdk.RequestOptions{}, nil)
+		require.EqualError(t, err, "can not promote a release with an empty manifest")
+	})
+}
+
 func TestReleasePromoteExistingReleaseOlder(t *testing.T) {
 	testServer(t, func(c *stdsdk.Client, p *structs.MockProvider) {
 		p.On("AppGet", "app1").Return(&structs.App{Release: "release1", Status: "running"}, nil)
 		p.On("ReleaseGet", "app1", "release1").Return(&structs.Release{Created: time.Date(2018, 02, 01, 0, 0, 0, 0, time.UTC)}, nil)
-		p.On("ReleaseGet", "app1", "release2").Return(&structs.Release{Created: time.Date(2018, 01, 01, 0, 0, 0, 0, time.UTC)}, nil)
+		p.On("ReleaseGet", "app1", "release2").Return(&structs.Release{Created: time.Date(2018, 01, 01, 0, 0, 0, 0, time.UTC), Manifest: "manifest1"}, nil)
 		err := c.Post("/apps/app1/releases/release2/promote", stdsdk.RequestOptions{}, nil)
 		require.EqualError(t, err, "can not promote an older release, try rollback")
 	})
@@ -161,7 +174,7 @@ func TestReleasePromoteExistingReleaseNewer(t *testing.T) {
 	testServer(t, func(c *stdsdk.Client, p *structs.MockProvider) {
 		p.On("AppGet", "app1").Return(&structs.App{Release: "release1", Status: "running"}, nil)
 		p.On("ReleaseGet", "app1", "release1").Return(&structs.Release{Created: time.Date(2018, 01, 01, 0, 0, 0, 0, time.UTC)}, nil)
-		p.On("ReleaseGet", "app1", "release2").Return(&structs.Release{Created: time.Date(2018, 02, 01, 0, 0, 0, 0, time.UTC)}, nil)
+		p.On("ReleaseGet", "app1", "release2").Return(&structs.Release{Created: time.Date(2018, 02, 01, 0, 0, 0, 0, time.UTC), Manifest: "manifest1"}, nil)
 		p.On("ReleasePromote", "app1", "release2", structs.ReleasePromoteOptions{}).Return(nil)
 		err := c.Post("/apps/app1/releases/release2/promote", stdsdk.RequestOptions{}, nil)
 		require.NoError(t, err)
