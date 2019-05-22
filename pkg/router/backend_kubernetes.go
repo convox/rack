@@ -6,6 +6,7 @@ import (
 	"net"
 	"os"
 	"strings"
+	"sync"
 	"time"
 
 	ae "k8s.io/api/extensions/v1beta1"
@@ -15,11 +16,13 @@ import (
 )
 
 type BackendKubernetes struct {
-	cluster kubernetes.Interface
-	ip      string
-	prefix  string
-	router  BackendRouter
-	service string
+	cluster   kubernetes.Interface
+	idled     map[string]bool
+	idledLock sync.Mutex
+	ip        string
+	prefix    string
+	router    BackendRouter
+	service   string
 }
 
 func NewBackendKubernetes(router BackendRouter) (*BackendKubernetes, error) {
@@ -36,6 +39,7 @@ func NewBackendKubernetes(router BackendRouter) (*BackendKubernetes, error) {
 	}
 
 	b.cluster = kc
+	b.idled = map[string]bool{}
 
 	if parts := strings.Split(os.Getenv("POD_IP"), "."); len(parts) > 2 {
 		b.prefix = fmt.Sprintf("%s.%s.", parts[0], parts[1])
@@ -69,6 +73,13 @@ func NewBackendKubernetes(router BackendRouter) (*BackendKubernetes, error) {
 }
 
 func (b *BackendKubernetes) Start() error {
+	dc, err := NewDeploymentController(b.cluster, b)
+	if err != nil {
+		return err
+	}
+
+	go dc.Run()
+
 	ic, err := NewIngressController(b.cluster, b.router)
 	if err != nil {
 		return err
@@ -105,16 +116,7 @@ func (b *BackendKubernetes) IdleGet(target string) (bool, error) {
 	fmt.Printf("ns=backend.k8s at=idle.get target=%q\n", target)
 
 	if service, namespace, ok := parseTarget(target); ok {
-		s, err := b.cluster.ExtensionsV1beta1().Deployments(namespace).GetScale(service, am.GetOptions{})
-		fmt.Printf("s = %+v\n", s)
-		fmt.Printf("err = %+v\n", err)
-		if err != nil {
-			return false, err
-		}
-
-		if s.Spec.Replicas > 0 {
-			return false, nil
-		}
+		return b.idled[fmt.Sprintf("%s/%s", namespace, service)], nil
 	}
 
 	return true, nil
@@ -126,6 +128,17 @@ func (b *BackendKubernetes) IdleSet(target string, idle bool) error {
 	} else {
 		return b.unidle(target)
 	}
+}
+
+func (b *BackendKubernetes) IdleUpdate(namespace, service string, idle bool) error {
+	b.idledLock.Lock()
+	defer b.idledLock.Unlock()
+
+	fmt.Printf("ns=backend.k8s at=idle.update namespace=%q service=%q idle=%t\n", namespace, service, idle)
+
+	b.idled[fmt.Sprintf("%s/%s", namespace, service)] = idle
+
+	return nil
 }
 
 func (b *BackendKubernetes) idle(target string) error {
