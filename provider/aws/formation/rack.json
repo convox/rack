@@ -127,7 +127,7 @@
       "Value": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] }
     },
     "Dashboard": {
-      "Value": { "Fn::If": [ "ApiRouterALB", 
+      "Value": { "Fn::If": [ "ApiRouterALB",
         { "Fn::Join": [ ".", [
           "rack",
           { "Fn::Select": [ 0, { "Fn::Split": [ ".", { "Fn::GetAtt": [ "Router", "DNSName" ] } ] } ] },
@@ -1129,6 +1129,16 @@
       "Properties": {
         "Name": { "Fn::Sub": "${AWS::StackName}.convox" },
         "VPCs": [ { "VPCId": { "Fn::If": [ "BlankExistingVpc", { "Ref": "Vpc" }, { "Ref": "ExistingVpc" } ] }, "VPCRegion": { "Ref": "AWS::Region" } } ]
+      }
+    },
+    "RecordSetGateway": {
+      "Type": "AWS::Route53::RecordSet",
+      "Properties": {
+        "HostedZoneId": { "Ref": "HostedZone" },
+        "Name": { "Fn::Sub": "host.${AWS::StackName}.convox." },
+        "Type": "A",
+        "TTL": "3600",
+        "ResourceRecords": [ "172.17.0.1" ]
       }
     },
     "RecordSetRack": {
