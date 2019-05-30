@@ -164,7 +164,8 @@
             "Protocol": "{{ upcase .Port.Scheme }}",
             "TargetGroupAttributes": [
               { "Key": "stickiness.enabled", "Value": "{{.Sticky}}" },
-              { "Key": "deregistration_delay.timeout_seconds", "Value": "{{.Drain}}" }
+              { "Key": "deregistration_delay.timeout_seconds", "Value": "{{.Drain}}" },
+              { "Key": "slow_start.duration_seconds", "Value": "{{.SlowStart}}" }
             ],
             "Tags": [
               { "Key": "App", "Value": "{{$.App}}" },

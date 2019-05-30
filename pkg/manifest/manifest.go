@@ -233,6 +233,10 @@ func (m *Manifest) ApplyDefaults() error {
 			m.Services[i].Drain = 30
 		}
 
+		if s.SlowStart == 0 {
+			m.Services[i].SlowStart = 0
+		}
+
 		if s.Health.Path == "" {
 			m.Services[i].Health.Path = "/"
 		}
