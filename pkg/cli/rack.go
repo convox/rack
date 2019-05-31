@@ -64,16 +64,6 @@ func init() {
 		Validate: stdcli.Args(0),
 	})
 
-	registerWithoutProvider("rack start", "start local rack", RackStart, stdcli.CommandOptions{
-		Flags: []stdcli.Flag{
-			stdcli.StringFlag("id", "", "identifier"),
-			stdcli.StringFlag("name", "n", "rack name"),
-			stdcli.StringFlag("router", "r", "router host"),
-		},
-		Invisible: true,
-		Validate:  stdcli.Args(0),
-	})
-
 	registerWithoutProvider("rack uninstall", "uninstall a rack", RackUninstall, stdcli.CommandOptions{
 		Flags:    append(stdcli.OptionFlags(structs.SystemUninstallOptions{})),
 		Usage:    "<type> <name>",
@@ -355,23 +345,6 @@ func RackScale(rack sdk.Interface, c *stdcli.Context) error {
 	i.Add("Type", s.Type)
 
 	return i.Print()
-}
-
-func RackStart(rack sdk.Interface, c *stdcli.Context) error {
-	id := c.String("id")
-	name := coalesce(c.String("name"), "convox")
-	router := coalesce(c.String("router"), "10.42.0.0")
-
-	cmd, args, err := rackCommand(name, c.Version(), router, id)
-	if err != nil {
-		return err
-	}
-
-	go handleSignalTermination(c, name)
-
-	c.Execute("docker", "rm", "-f", name)
-
-	return c.Run(cmd, args...)
 }
 
 func RackUninstall(rack sdk.Interface, c *stdcli.Context) error {
