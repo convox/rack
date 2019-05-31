@@ -198,25 +198,7 @@ func localRackRunning(c *stdcli.Context) bool {
 func localRacks(c *stdcli.Context) ([]rack, error) {
 	racks := []rack{}
 
-	data, err := c.Execute("docker", "ps", "--filter", "label=convox.type=rack", "--format", "{{.Names}}")
-	if err != nil {
-		return []rack{}, nil // if no docker then no local racks
-	}
-
-	names := strings.Split(strings.TrimSpace(string(data)), "\n")
-
-	for _, name := range names {
-		if name == "" {
-			continue
-		}
-
-		racks = append(racks, rack{
-			Name:   fmt.Sprintf("local/%s", name),
-			Status: "running",
-		})
-	}
-
-	data, err = c.Execute("kubectl", "get", "ns", "--selector=system=convox,type=rack", "--output=name")
+	data, err := c.Execute("kubectl", "get", "ns", "--selector=system=convox,type=rack", "--output=name")
 	if err == nil {
 		nsrs := strings.Split(strings.TrimSpace(string(data)), "\n")
 

@@ -146,9 +146,13 @@ func restartKubernetes() error {
 }
 
 func routerIP() (string, error) {
+	if err := exec.Command("kubectl", "wait", "--for=condition=Available", "deployment/router", "-n", "convox-system", "--timeout=600s").Run(); err != nil {
+		return "", fmt.Errorf("router did not become available")
+	}
+
 	data, err := exec.Command("kubectl", "get", "service/resolver", "-n", "convox-system", "--template={{.spec.clusterIP}}").CombinedOutput()
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("could not fetch resolver ip")
 	}
 
 	return strings.TrimSpace(string(data)), nil
