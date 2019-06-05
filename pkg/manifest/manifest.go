@@ -21,10 +21,12 @@ type Manifest struct {
 	Params      Params      `yaml:"params,omitempty"`
 	Resources   Resources   `yaml:"resources,omitempty"`
 	Services    Services    `yaml:"services,omitempty"`
+	Secrets     Secrets     `yaml:"secrets,omitempty"`
 	Timers      Timers      `yaml:"timers,omitempty"`
 
 	attributes map[string]bool
 	env        map[string]string
+	secrets    map[string]string
 }
 
 func init() {
@@ -63,6 +65,14 @@ func Load(data []byte, env map[string]string) (*Manifest, error) {
 	}
 
 	if err := m.ValidateEnv(); err != nil {
+		return nil, err
+	}
+
+	if err := m.CombineSecrets(); err != nil {
+		return nil, err
+	}
+
+	if err := m.ValidateSecrets(); err != nil {
 		return nil, err
 	}
 
@@ -137,6 +147,21 @@ func (m *Manifest) CombineEnv() error {
 	return nil
 }
 
+// used only for tests
+func (m *Manifest) SetSecrets(secrets map[string]string) {
+	m.secrets = secrets
+}
+
+func (m *Manifest) CombineSecrets() error {
+	for i, s := range m.Services {
+		me := make([]string, len(m.Secrets))
+		copy(me, m.Secrets)
+		m.Services[i].Secrets = append(me, s.Secrets...)
+	}
+
+	return nil
+}
+
 func (m *Manifest) Service(name string) (*Service, error) {
 	for _, s := range m.Services {
 		if s.Name == name {
@@ -194,6 +219,53 @@ func (m *Manifest) ServiceEnvironment(service string) (map[string]string, error)
 	return env, nil
 }
 
+func (m *Manifest) ServiceSecrets(service string) (map[string]string, error) {
+	s, err := m.Service(service)
+	if err != nil {
+		return nil, err
+	}
+
+	secrets := map[string]string{}
+
+	missing := []string{}
+
+	for _, e := range s.Secrets {
+		parts := strings.SplitN(e, "=", 2)
+
+		switch len(parts) {
+		case 1:
+			if parts[0] == "*" {
+				for k, v := range m.secrets {
+					secrets[k] = v
+				}
+			} else {
+				v, ok := m.secrets[parts[0]]
+				if !ok {
+					missing = append(missing, parts[0])
+				}
+				secrets[parts[0]] = v
+			}
+		case 2:
+			v, ok := m.secrets[parts[0]]
+			if ok {
+				secrets[parts[0]] = v
+			} else {
+				secrets[parts[0]] = parts[1]
+			}
+		default:
+			return nil, fmt.Errorf("invalid secrets declaration: %s", e)
+		}
+	}
+
+	if len(missing) > 0 {
+		sort.Strings(missing)
+
+		return nil, fmt.Errorf("required secrets: %s", strings.Join(missing, ", "))
+	}
+
+	return secrets, nil
+}
+
 // ValidateEnv returns an error if required env vars for a service are not available
 // It also filters m.env to the union of all service env vars defined in the manifest
 func (m *Manifest) ValidateEnv() error {
@@ -213,6 +285,31 @@ func (m *Manifest) ValidateEnv() error {
 	for k := range m.env {
 		if !keys[k] {
 			delete(m.env, k)
+		}
+	}
+
+	return nil
+}
+
+// ValidateSecrets returns an error if required secrets vars for a service are not available
+// It also filters m.secrets to the union of all service secrets vars defined in the manifest
+func (m *Manifest) ValidateSecrets() error {
+	keys := map[string]bool{}
+
+	for _, s := range m.Services {
+		secrets, err := m.ServiceSecrets(s.Name)
+		if err != nil {
+			return err
+		}
+
+		for k := range secrets {
+			keys[k] = true
+		}
+	}
+
+	for k := range m.secrets {
+		if !keys[k] {
+			delete(m.secrets, k)
 		}
 	}
 

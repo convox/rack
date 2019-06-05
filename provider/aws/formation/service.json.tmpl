@@ -507,6 +507,12 @@
                 { "Ref": "AWS::NoValue" }
               ],
               "Ulimits": [ { "Name": "nofile", "SoftLimit": "1024000", "HardLimit": "1024000" } ]
+              "Secrets": [
+                {{ range $k, $v := .Secrets }}
+                  { "Name": "{{$k}}", "ValueFrom": {{ safe $v }} },
+                {{ end }}
+                { "Ref": "AWS::NoValue" }
+              ]
             }
           ],
           "Cpu": { "Fn::If": [ "Fargate", { "Ref": "Cpu" }, { "Ref": "AWS::NoValue" } ] },

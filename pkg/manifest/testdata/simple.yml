@@ -4,3 +4,5 @@ services:
     environment:
       - REQUIRED
       - DEFAULT=true
+    secrets:
+      - DATABASE=sql://localhost

@@ -16,6 +16,7 @@ type Service struct {
 	Domains     ServiceDomains `yaml:"domain,omitempty"`
 	Drain       int            `yaml:"drain,omitempty"`
 	Environment Environment    `yaml:"environment,omitempty"`
+	Secrets     Secrets        `yaml:"secrets,omitempty"`
 	Health      ServiceHealth  `yaml:"health,omitempty"`
 	Image       string         `yaml:"image,omitempty"`
 	Init        bool           `yaml:"init,omitempty"`
@@ -121,6 +122,24 @@ func (s Service) EnvironmentKeys() string {
 	kh := map[string]bool{}
 
 	for _, e := range s.Environment {
+		kh[strings.Split(e, "=")[0]] = true
+	}
+
+	keys := []string{}
+
+	for k := range kh {
+		keys = append(keys, k)
+	}
+
+	sort.Strings(keys)
+
+	return strings.Join(keys, ",")
+}
+
+func (s Service) SecretstKeys() string {
+	kh := map[string]bool{}
+
+	for _, e := range s.Secrets {
 		kh[strings.Split(e, "=")[0]] = true
 	}
 

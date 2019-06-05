@@ -42,6 +42,7 @@ func TestManifestLoad(t *testing.T) {
 					"DEVELOPMENT=false",
 					"SECRET",
 				},
+				Secrets: []string{},
 				Health: manifest.ServiceHealth{
 					Grace:    10,
 					Path:     "/",
@@ -74,6 +75,7 @@ func TestManifestLoad(t *testing.T) {
 				Environment: []string{
 					"SECRET",
 				},
+				Secrets: []string{},
 				Port: manifest.ServicePort{Port: 2000, Scheme: "https"},
 				Scale: manifest.ServiceScale{
 					Count:  manifest.ServiceScaleCount{Min: 1, Max: 1},
@@ -91,6 +93,7 @@ func TestManifestLoad(t *testing.T) {
 				Command: "foo",
 				Domains: []string{"baz.example.org", "qux.example.org"},
 				Drain:   60,
+				Secrets: []string{},
 				Health: manifest.ServiceHealth{
 					Grace:    2,
 					Interval: 5,
@@ -114,6 +117,7 @@ func TestManifestLoad(t *testing.T) {
 				},
 				Command: "",
 				Drain:   30,
+				Secrets: []string{},
 				Health: manifest.ServiceHealth{
 					Grace:    5,
 					Interval: 5,
@@ -135,6 +139,7 @@ func TestManifestLoad(t *testing.T) {
 				},
 				Command: "",
 				Drain:   30,
+				Secrets: []string{},
 				Health: manifest.ServiceHealth{
 					Grace:    5,
 					Interval: 5,
@@ -177,6 +182,7 @@ func TestManifestLoad(t *testing.T) {
 				Environment: []string{
 					"SECRET",
 				},
+				Secrets: []string{},
 				Port: manifest.ServicePort{Port: 2000, Scheme: "https"},
 				Scale: manifest.ServiceScale{
 					Count:  manifest.ServiceScaleCount{Min: 1, Max: 1},
@@ -200,6 +206,7 @@ func TestManifestLoad(t *testing.T) {
 					Path:     ".",
 				},
 				Drain: 30,
+				Secrets: []string{},
 				Health: manifest.ServiceHealth{
 					Grace:    5,
 					Path:     "/",
@@ -335,6 +342,9 @@ func TestManifestLoadSimple(t *testing.T) {
 					"REQUIRED",
 					"DEFAULT=true",
 				},
+				Secrets: manifest.Secrets{
+					"DATABASE=sql://localhost",
+				},
 				Health: manifest.ServiceHealth{
 					Grace:    5,
 					Interval: 5,
@@ -351,7 +361,7 @@ func TestManifestLoadSimple(t *testing.T) {
 		},
 	}
 
-	n.SetAttributes([]string{"services", "services.web", "services.web.build", "services.web.environment"})
+	n.SetAttributes([]string{"services", "services.web", "services.web.build", "services.web.environment", "services.web.secrets"})
 	n.SetEnv(map[string]string{"REQUIRED": "test"})
 
 	// env processing that normally happens as part of load
