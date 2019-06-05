@@ -58,10 +58,6 @@ func (p *Provider) SystemInstall(w io.Writer, opts structs.SystemInstallOptions)
 		return "", err
 	}
 
-	if err := dnsInstall(name); err != nil {
-		return "", err
-	}
-
 	p.Version = version
 
 	if _, err := p.Provider.SystemInstall(w, opts); err != nil {
@@ -80,6 +76,10 @@ func (p *Provider) SystemInstall(w io.Writer, opts structs.SystemInstallOptions)
 	}
 
 	fmt.Fprintf(w, "OK\n")
+
+	if err := dnsInstall(name); err != nil {
+		return "", err
+	}
 
 	fmt.Fprintf(w, "Starting... ")
 

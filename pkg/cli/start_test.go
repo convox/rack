@@ -87,7 +87,6 @@ func TestStart1Options(t *testing.T) {
 func TestStart2(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
 		me := &mockstdcli.Executor{}
-		me.On("Execute", "docker", "ps", "--filter", "label=convox.type=rack", "--format", "{{.Names}}").Return([]byte("classic\n"), nil)
 		me.On("Execute", "kubectl", "get", "ns", "--selector=system=convox,type=rack", "--output=name").Return([]byte("namespace/dev\n"), nil)
 		e.Executor = me
 
@@ -117,7 +116,6 @@ func TestStart2(t *testing.T) {
 func TestStart2Error(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
 		me := &mockstdcli.Executor{}
-		me.On("Execute", "docker", "ps", "--filter", "label=convox.type=rack", "--format", "{{.Names}}").Return([]byte("classic\n"), nil)
 		me.On("Execute", "kubectl", "get", "ns", "--selector=system=convox,type=rack", "--output=name").Return([]byte("namespace/dev\n"), nil)
 		e.Executor = me
 
@@ -147,7 +145,6 @@ func TestStart2Error(t *testing.T) {
 func TestStart2Options(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
 		me := &mockstdcli.Executor{}
-		me.On("Execute", "docker", "ps", "--filter", "label=convox.type=rack", "--format", "{{.Names}}").Return([]byte("classic\n"), nil)
 		me.On("Execute", "kubectl", "get", "ns", "--selector=system=convox,type=rack", "--output=name").Return([]byte("namespace/dev\n"), nil)
 		e.Executor = me
 
@@ -179,8 +176,7 @@ func TestStart2Options(t *testing.T) {
 func TestStart2Remote(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
 		me := &mockstdcli.Executor{}
-		me.On("Execute", "docker", "ps", "--filter", "label=convox.type=rack", "--format", "{{.Names}}").Return([]byte("classic\n"), nil)
-		me.On("Execute", "kubectl", "get", "ns", "--selector=system=convox,type=rack", "--output=name").Return([]byte(""), nil)
+		me.On("Execute", "kubectl", "get", "ns", "--selector=system=convox,type=rack", "--output=name").Return([]byte("namespace/dev"), nil)
 		e.Executor = me
 
 		ms := &mockstart.Interface{}
@@ -194,7 +190,7 @@ func TestStart2Remote(t *testing.T) {
 			require.Equal(t, true, opts.Sync)
 			p := opts.Provider.(*sdk.Client)
 			require.Equal(t, "https", p.Client.Endpoint.Scheme)
-			require.Equal(t, "rack.classic", p.Client.Endpoint.Host)
+			require.Equal(t, "rack.dev", p.Client.Endpoint.Host)
 		})
 
 		i.On("SystemGet").Return(fxSystem(), nil)
@@ -210,8 +206,7 @@ func TestStart2Remote(t *testing.T) {
 func TestStart2RemoteMultiple(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
 		me := &mockstdcli.Executor{}
-		me.On("Execute", "docker", "ps", "--filter", "label=convox.type=rack", "--format", "{{.Names}}").Return([]byte("classic\n"), nil)
-		me.On("Execute", "kubectl", "get", "ns", "--selector=system=convox,type=rack", "--output=name").Return([]byte("namespace/dev\n"), nil)
+		me.On("Execute", "kubectl", "get", "ns", "--selector=system=convox,type=rack", "--output=name").Return([]byte("namespace/dev\nnamespace/dev2\n"), nil)
 		e.Executor = me
 
 		ms := &mockstart.Interface{}
