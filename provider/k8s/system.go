@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"os/exec"
 
 	"github.com/convox/rack/pkg/helpers"
 	"github.com/convox/rack/pkg/structs"
@@ -128,6 +129,26 @@ func (p *Provider) SystemTemplate(version string) ([]byte, error) {
 	}
 
 	return bytes.Join(ts, []byte("---\n")), nil
+}
+
+func (p *Provider) SystemTemplateLocal(provider, version string) ([]byte, error) {
+	data, err := exec.Command("go", "run", "cmd/system-template/main.go", provider, version).CombinedOutput()
+	if err != nil {
+		return nil, err
+	}
+
+	return data, nil
+}
+
+func (p *Provider) SystemTemplateRemote(provider, version string) ([]byte, error) {
+	template := fmt.Sprintf("https://convox.s3.amazonaws.com/release/%s/provider/%s/k8s/rack.yml", provider, version)
+
+	data, err := helpers.Get(template)
+	if err != nil {
+		return nil, err
+	}
+
+	return data, nil
 }
 
 func (p *Provider) SystemUpdate(opts structs.SystemUpdateOptions) error {
