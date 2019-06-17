@@ -1,0 +1,84 @@
+---
+kind: CronJob
+apiVersion: batch/v1beta1
+metadata:
+  namespace: {{.Namespace}}
+  name: timer-{{.Timer.Name}}
+spec:
+  schedule: "{{.Timer.Schedule}}"
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      ttlSecondsAfterFinished: 60
+      template:
+        metadata:
+          labels:
+            system: convox
+            rack: {{.Rack}}
+            app: {{.App.Name}}
+            name: {{.Timer.Name}}
+            release: {{.Release.Id}}
+            type: timer
+        spec:
+          {{ with .Resolver }}
+          dnsPolicy: "None"
+          dnsConfig:
+            nameservers:
+              - "{{ . }}"
+          {{ end }}
+          restartPolicy: Never
+          shareProcessNamespace: {{.Service.Init}}
+          containers:
+          - name: main
+            args:
+            {{ range shellsplit .Timer.Command }}
+              - {{ safe . }}
+            {{ end }}
+            env:
+            {{ range .Service.Links }}
+            - name: {{ envname . }}_URL
+              value: https://{{.}}.{{$.App.Name}}.{{$.Rack}}
+            {{ end }}
+            {{ range .Service.Resources }}
+            - name: {{ envname . }}_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: resource-{{.}}
+                  key: URL
+            {{ end }}
+            envFrom:
+            - secretRef:
+                name: env-{{.Service.Name}}
+            image: {{ image .App .Service .Release }}
+            imagePullPolicy: IfNotPresent
+            resources:
+              requests:
+                {{ with .Service.Scale.Cpu }}
+                cpu: "{{.}}m"
+                {{ end }}
+                {{ with .Service.Scale.Memory }}
+                memory: "{{.}}Mi"
+                {{ end }}
+            volumeMounts:
+            - name: ca
+              mountPath: /etc/convox
+            {{ range .Service.Volumes }}
+            - name: {{ volumeName $.App.Name (volumeFrom $.App.Name $.Service.Name .) }}
+              mountPath: "{{ volumeTo . }}" 
+            {{ end }}
+          volumes:
+          - name: ca
+            configMap:
+              name: ca
+              optional: true
+          {{ range (volumeSources $.App.Name .Service.Name .Service.Volumes) }}
+          - name: {{ volumeName $.App.Name . }}
+            {{ if systemVolume . }}
+            hostPath:
+              path: "{{.}}"
+            {{ else }}
+            persistentVolumeClaim:
+              claimName: {{ volumeName $.App.Name . }}
+            {{ end }}
+          {{ end }}
