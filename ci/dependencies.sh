@@ -14,7 +14,8 @@ curl -Ls https://storage.googleapis.com/kubernetes-release/release/v1.13.0/bin/l
 	sudo mv /tmp/kubectl /usr/bin/kubectl && sudo chmod +x /usr/bin/kubectl
 
 # install aws-iam-authenticator
-go get -u github.com/kubernetes-sigs/aws-iam-authenticator/cmd/aws-iam-authenticator
+curl -Ls https://amazon-eks.s3-us-west-2.amazonaws.com/1.12.7/2019-03-27/bin/linux/amd64/aws-iam-authenticator -o /tmp/aws-iam-authenticator && \
+	sudo mv /tmp/aws-iam-authenticator /usr/bin/aws-iam-authenticator && sudo chmod +x /usr/bin/aws-iam-authenticator
 
 # download appropriate cli version
 curl -o ${GOPATH}/bin/convox https://convox.s3.amazonaws.com/release/${VERSION}/cli/linux/convox

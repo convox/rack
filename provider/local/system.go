@@ -232,6 +232,15 @@ func (p *Provider) generateCACertificate(version string) error {
 	return nil
 }
 
+func (p *Provider) systemTemplate(version string) ([]byte, error) {
+	switch version {
+	case "dev":
+		return p.Provider.SystemTemplateLocal("local", version)
+	default:
+		return p.Provider.SystemTemplateRemote("local", version)
+	}
+}
+
 func (p *Provider) systemUpdate(version string) error {
 	params := map[string]interface{}{
 		"Rack": p.Rack,
@@ -247,9 +256,8 @@ func (p *Provider) systemUpdate(version string) error {
 	}
 
 	host := fmt.Sprintf("rack.%s", p.Rack)
-	template := fmt.Sprintf("https://convox.s3.amazonaws.com/release/%s/provider/local/k8s/rack.yml", version)
 
-	data, err = helpers.Get(template)
+	data, err = p.systemTemplate(version)
 	if err != nil {
 		return err
 	}
