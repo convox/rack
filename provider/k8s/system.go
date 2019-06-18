@@ -141,7 +141,7 @@ func (p *Provider) SystemTemplateLocal(provider, version string) ([]byte, error)
 }
 
 func (p *Provider) SystemTemplateRemote(provider, version string) ([]byte, error) {
-	template := fmt.Sprintf("https://convox.s3.amazonaws.com/release/%s/provider/%s/k8s/rack.yml", provider, version)
+	template := fmt.Sprintf("https://convox.s3.amazonaws.com/release/%s/provider/%s/k8s/rack.yml", version, provider)
 
 	data, err := helpers.Get(template)
 	if err != nil {
