@@ -82,10 +82,10 @@ func (c *PodController) Add(obj interface{}) error {
 	// fmt.Printf("pod %s: %s\n", p.ObjectMeta.Name, p.Status.Phase)
 
 	switch p.Status.Phase {
-	// case "Succeeded", "Failed":
-	//   if err := c.cleanupPod(p); err != nil {
-	//     return err
-	//   }
+	case "Succeeded", "Failed":
+		if err := c.cleanupPod(p); err != nil {
+			return err
+		}
 	case "Running":
 		c.logger.Start(p.ObjectMeta.Namespace, p.ObjectMeta.Name, c.start)
 	}
@@ -116,16 +116,12 @@ func (c *PodController) Update(prev, cur interface{}) error {
 
 	if cp.Status.Phase != pp.Status.Phase {
 		switch cp.Status.Phase {
-		// case "Succeeded", "Failed":
-		//   if err := c.cleanupPod(cp); err != nil {
-		//     return err
-		//   }
+		case "Succeeded", "Failed":
+			if err := c.cleanupPod(cp); err != nil {
+				return err
+			}
 		case "Running":
 			c.logger.Start(cp.ObjectMeta.Namespace, cp.ObjectMeta.Name, c.start)
-		case "Succeeded":
-			if pp.Status.Phase == "Pending" {
-				c.logger.Start(cp.ObjectMeta.Namespace, cp.ObjectMeta.Name, c.start)
-			}
 		}
 	}
 
@@ -190,8 +186,6 @@ func (l *podLogger) Stop(namespace, pod string) {
 }
 
 func (l *podLogger) stream(ch chan string, namespace, pod string, start time.Time) {
-	defer close(ch)
-
 	since := am.NewTime(start)
 
 	for {
@@ -202,8 +196,8 @@ func (l *podLogger) stream(ch chan string, namespace, pod string, start time.Tim
 		}
 		r, err := l.provider.Cluster.CoreV1().Pods(namespace).GetLogs(pod, lopts).Stream()
 		if err != nil {
-			fmt.Printf("err = %+v\n", err)
-			break
+			close(ch)
+			return
 		}
 
 		s := bufio.NewScanner(r)
@@ -222,10 +216,7 @@ func (l *podLogger) stream(ch chan string, namespace, pod string, start time.Tim
 
 		if err := s.Err(); err != nil {
 			fmt.Printf("err = %+v\n", err)
-			continue
 		}
-
-		break
 	}
 }
 
