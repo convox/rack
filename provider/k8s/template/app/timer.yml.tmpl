@@ -19,6 +19,7 @@ spec:
             app: {{.App.Name}}
             name: {{.Timer.Name}}
             release: {{.Release.Id}}
+            service: {{.Service.Name}}
             type: timer
         spec:
           {{ with .Resolver }}

@@ -79,14 +79,12 @@ func (c *PodController) Add(obj interface{}) error {
 		return err
 	}
 
-	// fmt.Printf("pod %s: %s\n", p.ObjectMeta.Name, p.Status.Phase)
+	// fmt.Printf("pod add %s/%s: %s\n", p.ObjectMeta.Namespace, p.ObjectMeta.Name, p.Status.Phase)
 
 	switch p.Status.Phase {
 	case "Succeeded", "Failed":
-		if err := c.cleanupPod(p); err != nil {
-			return err
-		}
-	case "Running":
+		go c.cleanupPod(p)
+	case "Pending", "Running":
 		c.logger.Start(p.ObjectMeta.Namespace, p.ObjectMeta.Name, c.start)
 	}
 
@@ -112,16 +110,12 @@ func (c *PodController) Update(prev, cur interface{}) error {
 		return nil
 	}
 
-	// fmt.Printf("pod %s: %s (was %s)\n", cp.ObjectMeta.Name, cp.Status.Phase, pp.Status.Phase)
+	// fmt.Printf("pod update %s/%s: %s (was %s)\n", cp.ObjectMeta.Namespace, cp.ObjectMeta.Name, cp.Status.Phase, pp.Status.Phase)
 
 	if cp.Status.Phase != pp.Status.Phase {
 		switch cp.Status.Phase {
 		case "Succeeded", "Failed":
-			if err := c.cleanupPod(cp); err != nil {
-				return err
-			}
-		case "Running":
-			c.logger.Start(cp.ObjectMeta.Namespace, cp.ObjectMeta.Name, c.start)
+			go c.cleanupPod(cp)
 		}
 	}
 
@@ -129,6 +123,8 @@ func (c *PodController) Update(prev, cur interface{}) error {
 }
 
 func (c *PodController) cleanupPod(p *ac.Pod) error {
+	time.Sleep(5 * time.Second)
+
 	if err := c.Client().CoreV1().Pods(p.ObjectMeta.Namespace).Delete(p.ObjectMeta.Name, nil); err != nil {
 		return err
 	}
@@ -186,6 +182,8 @@ func (l *podLogger) Stop(namespace, pod string) {
 }
 
 func (l *podLogger) stream(ch chan string, namespace, pod string, start time.Time) {
+	defer close(ch)
+
 	since := am.NewTime(start)
 
 	for {
@@ -196,8 +194,8 @@ func (l *podLogger) stream(ch chan string, namespace, pod string, start time.Tim
 		}
 		r, err := l.provider.Cluster.CoreV1().Pods(namespace).GetLogs(pod, lopts).Stream()
 		if err != nil {
-			close(ch)
-			return
+			fmt.Printf("err = %+v\n", err)
+			break
 		}
 
 		s := bufio.NewScanner(r)
@@ -216,7 +214,10 @@ func (l *podLogger) stream(ch chan string, namespace, pod string, start time.Tim
 
 		if err := s.Err(); err != nil {
 			fmt.Printf("err = %+v\n", err)
+			continue
 		}
+
+		break
 	}
 }
 
@@ -225,15 +226,30 @@ func (l *podLogger) watch(ctx context.Context, namespace, pod string, start time
 
 	ch := make(chan string)
 
-	p, err := l.provider.Cluster.CoreV1().Pods(namespace).Get(pod, am.GetOptions{})
-	if err != nil {
-		fmt.Printf("err = %+v\n", err)
-		return
+	var p *ac.Pod
+	var err error
+
+	for {
+		p, err = l.provider.Cluster.CoreV1().Pods(namespace).Get(pod, am.GetOptions{})
+		if err != nil {
+			fmt.Printf("err = %+v\n", err)
+			return
+		}
+
+		if p.Status.Phase != "Pending" {
+			break
+		}
+
+		time.Sleep(1 * time.Second)
 	}
 
 	app := p.ObjectMeta.Labels["app"]
 	typ := p.ObjectMeta.Labels["type"]
 	name := p.ObjectMeta.Labels["name"]
+
+	if typ == "process" {
+		typ = "service"
+	}
 
 	go l.stream(ch, namespace, pod, start)
 
