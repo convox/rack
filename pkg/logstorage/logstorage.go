@@ -1,4 +1,4 @@
-package logstore
+package logstorage
 
 import (
 	"context"
@@ -28,7 +28,11 @@ func init() {
 }
 
 func New() Store {
-	return Store{streams: map[string][]Log{}}
+	s := Store{streams: map[string][]Log{}}
+
+	go s.startCleaner()
+
+	return s
 }
 
 func (s *Store) Append(stream string, ts time.Time, prefix, message string) {
@@ -68,6 +72,23 @@ func (s *Store) Subscribe(ctx context.Context, ch Receiver, stream string, start
 
 	if follow {
 		s.subscriptions.Subscribe(ctx, ch, stream, start)
+	}
+}
+
+func (s *Store) cleanupLogs() {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
+	for name := range s.streams {
+		ls := s.streams[name]
+		n := sort.Search(len(ls), func(i int) bool { return ls[i].Timestamp.After(time.Now().Add(30 * time.Second)) })
+		s.streams[name] = ls[n:]
+	}
+}
+
+func (s *Store) startCleaner() {
+	for range time.Tick(30 * time.Second) {
+		s.cleanupLogs()
 	}
 }
 
