@@ -132,7 +132,7 @@ func (p *Provider) SystemTemplate(version string) ([]byte, error) {
 }
 
 func (p *Provider) SystemTemplateLocal(provider, version string) ([]byte, error) {
-	data, err := exec.Command("go", "run", "cmd/system-template/main.go", provider, version).CombinedOutput()
+	data, err := exec.Command("go", "run", "cmd/template/main.go", provider, version).CombinedOutput()
 	if err != nil {
 		return nil, err
 	}

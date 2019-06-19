@@ -8,11 +8,11 @@ import (
 	"time"
 
 	"github.com/convox/rack/pkg/helpers"
-	"github.com/convox/rack/pkg/logstore"
+	"github.com/convox/rack/pkg/logstorage"
 	"github.com/convox/rack/pkg/structs"
 )
 
-var logs = logstore.New()
+var logs = logstorage.New()
 
 func (p *Provider) Log(app, stream string, ts time.Time, message string) error {
 	logs.Append(app, ts, stream, message)
@@ -66,7 +66,7 @@ func (p *Provider) ProcessLogs(app, pid string, opts structs.LogsOptions) (io.Re
 	ctx, cancel := context.WithCancel(p.Context())
 
 	go subscribeLogs(ctx, w, stream, opts)
-	go p.watchForProcessTermination(ctx, app, pid, cancel)
+	go p.watchForProcessCompletion(ctx, app, pid, cancel)
 
 	return r, nil
 }
@@ -82,7 +82,7 @@ func (p *Provider) SystemLogs(opts structs.LogsOptions) (io.ReadCloser, error) {
 func subscribeLogs(ctx context.Context, w io.WriteCloser, stream string, opts structs.LogsOptions) {
 	defer w.Close()
 
-	ch := make(chan logstore.Log, 1000)
+	ch := make(chan logstorage.Log, 1000)
 
 	sctx, cancel := context.WithCancel(ctx)
 	defer cancel()
