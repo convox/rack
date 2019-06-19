@@ -21,7 +21,7 @@ func main() {
 
 func run() error {
 	if len(os.Args) < 3 {
-		return fmt.Errorf("usage: system-template <provider> <version>")
+		return fmt.Errorf("usage: template <provider> <version>")
 	}
 
 	switch os.Args[1] {
