@@ -231,7 +231,6 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 			"Rack":           p.Rack,
 			"Release":        r,
 			"Replicas":       replicas,
-			"Rollback":       a.Release,
 			"Service":        s,
 			"SystemEnv":      senv,
 		}
@@ -244,6 +243,35 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 		if err != nil {
 			return err
 		}
+
+		items = append(items, data)
+	}
+
+	for _, t := range m.Timers {
+		s, err := m.Service(t.Service)
+		if err != nil {
+			return err
+		}
+
+		params := map[string]interface{}{
+			"App":       a,
+			"Namespace": p.AppNamespace(a.Name),
+			"Rack":      p.Rack,
+			"Release":   r,
+			"Service":   s,
+			"Timer":     t,
+		}
+
+		if ip, err := p.Engine.Resolver(); err == nil {
+			params["Resolver"] = ip
+		}
+
+		data, err = p.RenderTemplate("app/timer", params)
+		if err != nil {
+			return err
+		}
+
+		fmt.Printf("string(data) = %+v\n", string(data))
 
 		items = append(items, data)
 	}

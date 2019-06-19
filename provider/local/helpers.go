@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-func (p *Provider) watchForProcessTermination(ctx context.Context, app, pid string, cancel func()) {
+func (p *Provider) watchForProcessCompletion(ctx context.Context, app, pid string, cancel func()) {
 	defer cancel()
 
 	tick := time.NewTicker(2 * time.Second)
@@ -16,7 +16,7 @@ func (p *Provider) watchForProcessTermination(ctx context.Context, app, pid stri
 		case <-ctx.Done():
 			return
 		case <-tick.C:
-			if _, err := p.ProcessGet(app, pid); err != nil {
+			if ps, err := p.ProcessGet(app, pid); err != nil || (ps != nil && ps.Status == "complete") {
 				time.Sleep(2 * time.Second)
 				cancel()
 				return
