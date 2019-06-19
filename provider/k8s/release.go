@@ -271,8 +271,6 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 			return err
 		}
 
-		fmt.Printf("string(data) = %+v\n", string(data))
-
 		items = append(items, data)
 	}
 
