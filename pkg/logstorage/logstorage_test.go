@@ -1,11 +1,11 @@
-package logstore_test
+package logstorage_test
 
 import (
 	"context"
 	"testing"
 	"time"
 
-	"github.com/convox/rack/pkg/logstore"
+	"github.com/convox/rack/pkg/logstorage"
 	"github.com/stretchr/testify/require"
 )
 
@@ -16,13 +16,13 @@ var (
 )
 
 func TestNoFollow(t *testing.T) {
-	s := logstore.New()
+	s := logstorage.New()
 
 	s.Append("foo", time2, "p2", "two")
 	s.Append("foo", time1, "p1", "one")
 	s.Append("foo", time3, "p3", "three")
 
-	ch := make(chan logstore.Log)
+	ch := make(chan logstorage.Log)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -52,11 +52,11 @@ func TestNoFollow(t *testing.T) {
 }
 
 func TestFollow(t *testing.T) {
-	s := logstore.New()
+	s := logstorage.New()
 
 	s.Append("foo", time2, "p2", "two")
 
-	ch := make(chan logstore.Log)
+	ch := make(chan logstorage.Log)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()

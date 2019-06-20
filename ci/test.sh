@@ -88,14 +88,14 @@ fetch https://$endpoint | grep "It works"
 convox logs -a ci2 --no-follow | grep service/web
 releaser=$(convox releases rollback $release -a ci2 --wait --id)
 convox ps -a ci2 | grep $releaser
-ps=$(convox api get /apps/ci2/processes | jq -r '.[0].id')
+ps=$(convox api get /apps/ci2/processes | jq -r '.[]|select(.status=="running")|.id' | head -n 1)
 convox ps info $ps -a ci2 | grep $releaser
 convox scale web --count 2 --cpu 192 --memory 256 -a ci2 --wait
 convox services -a ci2 | grep web | grep 443:80 | grep $endpoint
 endpoint=$(convox api get /apps/ci2/services | jq -r '.[] | select(.name == "web") | .domain')
 fetch https://$endpoint | grep "It works"
 convox ps -a ci2 | grep web | wc -l | grep 2
-ps=$(convox api get /apps/ci2/processes | jq -r '.[0].id')
+ps=$(convox api get /apps/ci2/processes | jq -r '.[]|select(.status=="running")|.id' | head -n 1)
 convox exec $ps "ls -la" -a ci2 | grep htdocs
 cat /dev/null | convox exec $ps 'sh -c "sleep 2; echo test"' -a ci2 | grep test
 convox run web "ls -la" -a ci2 | grep htdocs
