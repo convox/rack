@@ -10,7 +10,7 @@ metadata:
     type: resource
     resource: {{.Name}}
 data:
-  URL: "postgres://app:{{.Password}}@resource-{{.Name}}.{{.Namespace}}.svc.cluster.local:5432/app"
+  URL: "postgres://app:{{.Password}}@resource-{{.Name}}.{{.Namespace}}.svc.cluster.local:5432/app?sslmode=disable"
 ---
 kind: PersistentVolumeClaim
 apiVersion: v1
