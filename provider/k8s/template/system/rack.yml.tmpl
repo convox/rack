@@ -72,6 +72,10 @@ spec:
         name: api
     spec:
       shareProcessNamespace: true
+      dnsPolicy: "None"
+      dnsConfig:
+        nameservers:
+          - ==RESOLVER==
       containers:
       - name: main
         args:
