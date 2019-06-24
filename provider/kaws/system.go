@@ -324,19 +324,13 @@ func (p *Provider) systemUpdate(version string) error {
 		return err
 	}
 
-	rsv, err := p.Resolver()
-	if err != nil {
-		return err
-	}
-
 	tags := map[string]string{
-		"ACCOUNT":  p.AccountId,
-		"CLUSTER":  p.Cluster,
-		"HOST":     p.BaseDomain,
-		"RACK":     p.Rack,
-		"REGION":   p.Region,
-		"RESOLVER": rsv,
-		"SOCKET":   "/var/run/docker.sock",
+		"ACCOUNT": p.AccountId,
+		"CLUSTER": p.Cluster,
+		"HOST":    p.BaseDomain,
+		"RACK":    p.Rack,
+		"REGION":  p.Region,
+		"SOCKET":  "/var/run/docker.sock",
 	}
 
 	for k, v := range tags {
