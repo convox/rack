@@ -19,7 +19,7 @@ import (
 	"github.com/convox/rack/pkg/helpers"
 	"github.com/convox/rack/pkg/structs"
 	"github.com/convox/rack/provider/k8s"
-	"gopkg.in/cheggaaa/pb.v1"
+	pb "gopkg.in/cheggaaa/pb.v1"
 )
 
 const (

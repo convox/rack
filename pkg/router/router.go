@@ -29,9 +29,10 @@ var (
 )
 
 type Router struct {
-	DNS   Server
-	HTTP  Server
-	HTTPS Server
+	DNSExternal Server
+	DNSInternal Server
+	HTTP        Server
+	HTTPS       Server
 
 	backend Backend
 	certs   sync.Map
@@ -86,14 +87,19 @@ func New() (*Router, error) {
 	return r, nil
 }
 
-func (r *Router) ExternalIP(remote net.Addr) string {
-	return r.backend.ExternalIP(remote)
+func (r *Router) RouterIP(internal bool) string {
+	if internal {
+		return r.backend.InternalIP()
+	} else {
+		return r.backend.ExternalIP()
+	}
 }
 
 func (r *Router) Serve() error {
 	ch := make(chan error, 1)
 
-	go serve(ch, r.DNS)
+	go serve(ch, r.DNSExternal)
+	go serve(ch, r.DNSInternal)
 	go serve(ch, r.HTTP)
 	go serve(ch, r.HTTPS)
 
@@ -256,17 +262,28 @@ func (r *Router) idleTick() error {
 }
 
 func (r *Router) setupDNS() error {
-	conn, err := net.ListenPacket("udp", ":5453")
+	ce, err := net.ListenPacket("udp", ":5453")
 	if err != nil {
 		return err
 	}
 
-	dns, err := NewDNS(conn, r)
+	de, err := NewDNS(ce, r, false)
 	if err != nil {
 		return err
 	}
 
-	r.DNS = dns
+	ci, err := net.ListenPacket("udp", ":5454")
+	if err != nil {
+		return err
+	}
+
+	di, err := NewDNS(ci, r, true)
+	if err != nil {
+		return err
+	}
+
+	r.DNSExternal = de
+	r.DNSInternal = di
 
 	return nil
 }
