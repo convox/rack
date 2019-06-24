@@ -104,12 +104,12 @@ func (b *BackendKubernetes) CA() (*tls.Certificate, error) {
 	return &ca, nil
 }
 
-func (b *BackendKubernetes) ExternalIP(remote net.Addr) string {
-	if strings.HasPrefix(remote.String(), b.prefix) {
-		return b.service
-	}
-
+func (b *BackendKubernetes) ExternalIP() string {
 	return b.ip
+}
+
+func (b *BackendKubernetes) InternalIP() string {
+	return b.service
 }
 
 func (b *BackendKubernetes) IdleGet(target string) (bool, error) {

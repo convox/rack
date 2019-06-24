@@ -19,7 +19,7 @@ import (
 	"github.com/convox/rack/pkg/helpers"
 	"github.com/convox/rack/pkg/structs"
 	"github.com/convox/rack/provider/k8s"
-	"gopkg.in/cheggaaa/pb.v1"
+	pb "gopkg.in/cheggaaa/pb.v1"
 )
 
 const (
@@ -324,13 +324,19 @@ func (p *Provider) systemUpdate(version string) error {
 		return err
 	}
 
+	rsv, err := p.Resolver()
+	if err != nil {
+		return err
+	}
+
 	tags := map[string]string{
-		"ACCOUNT": p.AccountId,
-		"CLUSTER": p.Cluster,
-		"HOST":    p.BaseDomain,
-		"RACK":    p.Rack,
-		"REGION":  p.Region,
-		"SOCKET":  "/var/run/docker.sock",
+		"ACCOUNT":  p.AccountId,
+		"CLUSTER":  p.Cluster,
+		"HOST":     p.BaseDomain,
+		"RACK":     p.Rack,
+		"REGION":   p.Region,
+		"RESOLVER": rsv,
+		"SOCKET":   "/var/run/docker.sock",
 	}
 
 	for k, v := range tags {

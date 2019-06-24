@@ -262,11 +262,17 @@ func (p *Provider) systemUpdate(version string) error {
 		return err
 	}
 
+	rsv, err := p.Resolver()
+	if err != nil {
+		return err
+	}
+
 	tags := map[string]string{
-		"DNS":    p.DNS,
-		"HOST":   host,
-		"RACK":   p.Rack,
-		"SOCKET": p.Socket,
+		"DNS":      p.DNS,
+		"HOST":     host,
+		"RACK":     p.Rack,
+		"RESOLVER": rsv,
+		"SOCKET":   p.Socket,
 	}
 
 	for k, v := range tags {

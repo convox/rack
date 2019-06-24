@@ -10,6 +10,7 @@ import (
 )
 
 type DNS struct {
+	internal bool
 	mux      *dns.ServeMux
 	router   DNSRouter
 	server   *dns.Server
@@ -17,17 +18,18 @@ type DNS struct {
 }
 
 type DNSRouter interface {
-	ExternalIP(remote net.Addr) string
+	RouterIP(internal bool) string
 	TargetList(host string) ([]string, error)
 	Upstream() (string, error)
 }
 
-func NewDNS(conn net.PacketConn, router DNSRouter) (*DNS, error) {
+func NewDNS(conn net.PacketConn, router DNSRouter, internal bool) (*DNS, error) {
 	mux := dns.NewServeMux()
 
 	d := &DNS{
-		mux:    mux,
-		router: router,
+		internal: internal,
+		mux:      mux,
+		router:   router,
 		server: &dns.Server{
 			PacketConn: conn,
 			Handler:    mux,
@@ -77,7 +79,14 @@ func (d *DNS) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 
 	q := r.Question[0]
 
-	ts, err := d.router.TargetList(strings.TrimSuffix(q.Name, "."))
+	host := strings.TrimSuffix(q.Name, ".")
+	internal := d.internal
+
+	if parts := strings.Split(host, "."); len(parts) == 2 && parts[0] == "registry" {
+		internal = true
+	}
+
+	ts, err := d.router.TargetList(host)
 	if err != nil {
 		dnsError(w, r, err)
 		return
@@ -99,7 +108,7 @@ func (d *DNS) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 		//a.Ns = []dns.RR{soa}
 		a.RecursionAvailable = true
 
-		ip := d.router.ExternalIP(w.RemoteAddr())
+		ip := d.router.RouterIP(internal)
 
 		switch q.Qtype {
 		case dns.TypeA:
@@ -110,14 +119,14 @@ func (d *DNS) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 				return
 			}
 			a.Answer = append(a.Answer, rr)
-		case dns.TypeAAAA:
-			fmt.Printf("ns=dns at=answer type=AAAA value=%s\n", ip)
-			rr, err := dns.NewRR(fmt.Sprintf("%s AAAA %s", q.Name, ip))
-			if err != nil {
-				dnsError(w, r, err)
-				return
-			}
-			a.Answer = append(a.Answer, rr)
+		// case dns.TypeAAAA:
+		// 	fmt.Printf("ns=dns at=answer type=AAAA value=%s\n", ip)
+		// 	rr, err := dns.NewRR(fmt.Sprintf("%s AAAA %s", q.Name, ip))
+		// 	if err != nil {
+		// 		dnsError(w, r, err)
+		// 		return
+		// 	}
+		// 	a.Answer = append(a.Answer, rr)
 		default:
 			fmt.Printf("ns=dns at=answer type=%s value=nx\n", dns.TypeToString[q.Qtype])
 		}
