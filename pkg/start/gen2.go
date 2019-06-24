@@ -261,7 +261,7 @@ func (opts Options2) handleAdds(pid, remote string, adds []changes.Change) error
 		}
 
 		tw.WriteHeader(&tar.Header{
-			Name:    filepath.Join(remote, add.Path),
+			Name:    filepath.ToSlash(filepath.Join(remote, add.Path)),
 			Mode:    int64(stat.Mode()),
 			Size:    stat.Size(),
 			ModTime: stat.ModTime(),
@@ -684,6 +684,10 @@ lines:
 		if bs[i].Remote == "." {
 			bs[i].Remote = wd
 		}
+	}
+
+	for i := range bs {
+		bs[i].Remote = filepath.ToSlash(bs[i].Remote)
 	}
 
 	bss := []buildSource{}
