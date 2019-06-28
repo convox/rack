@@ -38,7 +38,9 @@ func (s *Server) Listen(proto, addr string) error {
 
 	switch proto {
 	case "h2", "https", "tls":
-		config := &tls.Config{}
+		config := &tls.Config{
+			MinVersion: tls.VersionTLS12,
+		}
 
 		if proto == "h2" {
 			config.NextProtos = []string{"h2"}
