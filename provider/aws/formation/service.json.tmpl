@@ -387,6 +387,8 @@
             "MinimumHealthyPercent": "{{$.DeploymentMin}}",
             "MaximumPercent": "{{$.DeploymentMax}}"
           },
+          "EnableECSManagedTags": "true",
+          "PropagateTags": "SERVICE",
           {{ if .Agent.Enabled }}
             "SchedulingStrategy": "DAEMON",
           {{ else }}
