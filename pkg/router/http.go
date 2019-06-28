@@ -104,11 +104,13 @@ func (h *HTTP) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	p.ErrorHandler = h.proxyErrorHandler
 
-	p.Transport = helpers.NewDefaultTransport()
+	t := helpers.NewDefaultTransport()
 
-	p.Transport.TLSClientConfig = &tls.Config{
+	t.TLSClientConfig = &tls.Config{
 		InsecureSkipVerify: true,
 	}
+
+	p.Transport = t
 
 	p.ServeHTTP(w, r)
 }
