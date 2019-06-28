@@ -9,7 +9,8 @@
       "IsolateServices": { "Fn::Or": [ { "Condition": "Fargate" }, { "Condition": "Isolate" } ] },
       "Private": { "Fn::Equals": [ { "Ref": "Private" }, "Yes" ] },
       "RackUrl": { "Fn::Equals": [ { "Ref": "RackUrl" }, "Yes" ] },
-      "RouteHttp": { "Fn::Equals": [ { "Ref": "RedirectHttps" }, "No" ] }
+      "RouteHttp": { "Fn::Equals": [ { "Ref": "RedirectHttps" }, "No" ] },
+      "TaskTags": { "Fn::Equals": [ { "Ref": "TaskTags" }, "Yes" ] }
     },
     "Outputs": {
       {{ if .Port.Port }}
@@ -97,6 +98,12 @@
       {{ end }}
       "Role": {
         "Type": "String"
+      },
+      "TaskTags": {
+        "Type": "String",
+        "Default": "No",
+        "Description": "Enable tag propagation to ECS tasks",
+        "AllowedValues": [ "Yes", "No" ]
       },
       "Settings": {
         "Type": "String"
@@ -387,8 +394,8 @@
             "MinimumHealthyPercent": "{{$.DeploymentMin}}",
             "MaximumPercent": "{{$.DeploymentMax}}"
           },
-          "EnableECSManagedTags": "true",
-          "PropagateTags": "SERVICE",
+          "EnableECSManagedTags": { "Fn::If": [ "TaskTags", "true", { "Ref": "AWS::NoValue" } ] },
+          "PropagateTags": { "Fn::If": [ "TaskTags", "SERVICE", { "Ref": "AWS::NoValue" } ] },
           {{ if .Agent.Enabled }}
             "SchedulingStrategy": "DAEMON",
           {{ else }}

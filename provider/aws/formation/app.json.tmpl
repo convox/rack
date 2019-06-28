@@ -101,6 +101,12 @@
       "Default": "",
       "Description": "Override the password set for embedded resources",
       "NoEcho": true
+    },
+    "TaskTags": {
+      "Type": "String",
+      "Default": "No",
+      "Description": "Enable tag propagation to ECS services",
+      "AllowedValues": [ "Yes", "No" ]
     }
   },
   "Resources": {
@@ -290,7 +296,8 @@
             "Resource{{ upper . }}": { "Fn::GetAtt": [ "Resource{{ upper . }}", "Outputs.Url" ] },
           {{ end }}
           "Role": { "Fn::GetAtt": [ "ServiceRole", "Arn" ] },
-          "Settings": { "Ref": "Settings" }
+          "Settings": { "Ref": "Settings" },
+          "TaskTags": { "Ref": "TaskTags" }
         },
         "Tags": [
           { "Key": "App", "Value": "{{ $.App }}" },
