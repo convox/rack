@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+
+	"github.com/convox/rack/pkg/helpers"
 )
 
 type HTTP struct {
@@ -102,10 +104,10 @@ func (h *HTTP) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	p.ErrorHandler = h.proxyErrorHandler
 
-	p.Transport = &http.Transport{
-		TLSClientConfig: &tls.Config{
-			InsecureSkipVerify: true,
-		},
+	p.Transport = helpers.NewDefaultTransport()
+
+	p.Transport.TLSClientConfig = &tls.Config{
+		InsecureSkipVerify: true,
 	}
 
 	p.ServeHTTP(w, r)
