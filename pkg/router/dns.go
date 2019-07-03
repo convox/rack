@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"os"
 	"strings"
 
 	"github.com/miekg/dns"
@@ -82,10 +83,6 @@ func (d *DNS) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 	host := strings.TrimSuffix(q.Name, ".")
 	internal := d.internal
 
-	if parts := strings.Split(host, "."); len(parts) == 2 && parts[0] == "registry" {
-		internal = true
-	}
-
 	ts, err := d.router.TargetList(host)
 	if err != nil {
 		dnsError(w, r, err)
@@ -93,7 +90,7 @@ func (d *DNS) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 	}
 
 	if len(ts) > 0 {
-		fmt.Printf("ns=dns at=resolve type=route host=%q\n", q.Name)
+		fmt.Printf("ns=dns at=resolve internal=%t type=route host=%q\n", internal, q.Name)
 
 		a := &dns.Msg{}
 
@@ -110,9 +107,16 @@ func (d *DNS) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 
 		ip := d.router.RouterIP(internal)
 
+		if parts := strings.Split(host, "."); len(parts) == 2 && parts[0] == "registry" {
+			switch os.Getenv("PLATFORM") {
+			case "darwin":
+				ip = "0.0.0.0"
+			}
+		}
+
 		switch q.Qtype {
 		case dns.TypeA:
-			fmt.Printf("ns=dns at=answer type=A value=%s\n", ip)
+			fmt.Printf("ns=dns at=answer internal=%t type=A value=%s\n", internal, ip)
 			rr, err := dns.NewRR(fmt.Sprintf("%s A %s", q.Name, ip))
 			if err != nil {
 				dnsError(w, r, err)
@@ -120,7 +124,7 @@ func (d *DNS) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 			}
 			a.Answer = append(a.Answer, rr)
 		// case dns.TypeAAAA:
-		// 	fmt.Printf("ns=dns at=answer type=AAAA value=%s\n", ip)
+		// 	fmt.Printf("ns=dns at=answer internal=%t type=AAAA value=%s\n", internal, ip)
 		// 	rr, err := dns.NewRR(fmt.Sprintf("%s AAAA %s", q.Name, ip))
 		// 	if err != nil {
 		// 		dnsError(w, r, err)
@@ -128,7 +132,7 @@ func (d *DNS) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 		// 	}
 		// 	a.Answer = append(a.Answer, rr)
 		default:
-			fmt.Printf("ns=dns at=answer type=%s value=nx\n", dns.TypeToString[q.Qtype])
+			fmt.Printf("ns=dns at=answer internal=%t type=%s value=nx\n", internal, dns.TypeToString[q.Qtype])
 		}
 
 		w.WriteMsg(a)

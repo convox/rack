@@ -69,6 +69,7 @@ func (p *Provider) SystemInstall(w io.Writer, opts structs.SystemInstallOptions)
 	}
 
 	p.DNS = dnsPort()
+	p.Platform = runtime.GOOS
 	p.Socket = dockerSocket()
 
 	if err := p.systemUpdate(version); err != nil {
@@ -243,7 +244,8 @@ func (p *Provider) systemTemplate(version string) ([]byte, error) {
 
 func (p *Provider) systemUpdate(version string) error {
 	params := map[string]interface{}{
-		"Rack": p.Rack,
+		"Platform": p.Platform,
+		"Rack":     p.Rack,
 	}
 
 	data, err := p.RenderTemplate("config", params)
