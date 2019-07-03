@@ -119,14 +119,14 @@ func (d *DNS) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 				return
 			}
 			a.Answer = append(a.Answer, rr)
-		// case dns.TypeAAAA:
-		// 	fmt.Printf("ns=dns at=answer type=AAAA value=%s\n", ip)
-		// 	rr, err := dns.NewRR(fmt.Sprintf("%s AAAA %s", q.Name, ip))
-		// 	if err != nil {
-		// 		dnsError(w, r, err)
-		// 		return
-		// 	}
-		// 	a.Answer = append(a.Answer, rr)
+		case dns.TypeAAAA:
+			fmt.Printf("ns=dns at=answer type=AAAA value=%s\n", ip)
+			rr, err := dns.NewRR(fmt.Sprintf("%s AAAA %s", q.Name, ip))
+			if err != nil {
+				dnsError(w, r, err)
+				return
+			}
+			a.Answer = append(a.Answer, rr)
 		default:
 			fmt.Printf("ns=dns at=answer type=%s value=nx\n", dns.TypeToString[q.Qtype])
 		}
