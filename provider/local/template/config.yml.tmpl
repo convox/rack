@@ -11,6 +11,7 @@ metadata:
   namespace: {{.Rack}}
   name: env-api
 data:
+  PLATFORM: {{.Platform}}
   PROVIDER: local
 ---
 apiVersion: v1
@@ -20,3 +21,4 @@ metadata:
   name: env-router
 data:
   AUTOCERT: "false"
+  PLATFORM: {{.Platform}}
