@@ -2234,11 +2234,10 @@
         ],
         "Name": { "Fn::If": [ "BlankInternalSuffix", { "Ref": "AWS::NoValue" }, { "Fn::Sub": "${AWS::StackName}${InternalSuffix}" } ] },
         "Scheme": "internal",
-        "Subnets": [
-          { "Ref": "Subnet0" },
-          { "Ref": "Subnet1" },
-          { "Fn::If": [ "ThirdAvailabilityZone", { "Ref": "Subnet2" }, { "Ref": "AWS::NoValue" } ] }
-        ],
+        "Subnets": { "Fn::If": [ "Private",
+          { "Ref": "SubnetsPrivate" },
+          { "Ref": "Subnets" }
+        ] },
         "SecurityGroups": { "Fn::If": [ "BlankRouterInternalSecurityGroup", [ { "Ref": "RouterInternalSecurity" } ], { "Ref": "RouterInternalSecurityGroup" } ] },
         "Tags": [
           { "Key": "Rack", "Value": { "Ref": "AWS::StackName" } }
