@@ -1546,6 +1546,15 @@
               ] ] },
               ""
             ] }
+          },
+          {
+            "Key": "VolumeTargets",
+            "PropagateAtLaunch": false,
+            "Value": { "Fn::Join": [ ",", [
+              { "Ref": "VolumeTarget0" },
+              { "Ref": "VolumeTarget1" },
+              { "Fn::If": [ "ThirdAvailabilityZone", { "Ref": "VolumeTarget2" }, { "Ref": "AWS::NoValue" } ] }
+            ] ] }
           }
         ]
       },
@@ -1918,6 +1927,28 @@
             "Key": "InstanceCount",
             "Value": { "Ref": "InstanceCount" },
             "PropagateAtLaunch": false
+          },
+          {
+            "Key": "NatGateways",
+            "PropagateAtLaunch": false,
+            "Value": { "Fn::If": [
+              "PrivateInstances",
+              { "Fn::Join": [ ",", [
+                { "Ref": "Nat0" },
+                { "Ref": "Nat1" },
+                { "Fn::If": [ "ThirdAvailabilityZone", { "Ref": "Nat2" }, { "Ref": "AWS::NoValue" } ] }
+              ] ] },
+              ""
+            ] }
+          },
+          {
+            "Key": "VolumeTargets",
+            "PropagateAtLaunch": false,
+            "Value": { "Fn::Join": [ ",", [
+              { "Ref": "VolumeTarget0" },
+              { "Ref": "VolumeTarget1" },
+              { "Fn::If": [ "ThirdAvailabilityZone", { "Ref": "VolumeTarget2" }, { "Ref": "AWS::NoValue" } ] }
+            ] ] }
           }
         ]
       },
