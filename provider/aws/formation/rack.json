@@ -1546,6 +1546,15 @@
               ] ] },
               ""
             ] }
+          },
+          {
+            "Key": "VolumeTargets",
+            "PropagateAtLaunch": false,
+            "Value": { "Fn::Join": [ ",", [
+              { "Ref": "VolumeTarget0" },
+              { "Ref": "VolumeTarget1" },
+              { "Fn::If": [ "ThirdAvailabilityZone", { "Ref": "VolumeTarget2" }, { "Ref": "AWS::NoValue" } ] }
+            ] ] }
           }
         ]
       },
@@ -1918,6 +1927,28 @@
             "Key": "InstanceCount",
             "Value": { "Ref": "InstanceCount" },
             "PropagateAtLaunch": false
+          },
+          {
+            "Key": "NatGateways",
+            "PropagateAtLaunch": false,
+            "Value": { "Fn::If": [
+              "PrivateInstances",
+              { "Fn::Join": [ ",", [
+                { "Ref": "Nat0" },
+                { "Ref": "Nat1" },
+                { "Fn::If": [ "ThirdAvailabilityZone", { "Ref": "Nat2" }, { "Ref": "AWS::NoValue" } ] }
+              ] ] },
+              ""
+            ] }
+          },
+          {
+            "Key": "VolumeTargets",
+            "PropagateAtLaunch": false,
+            "Value": { "Fn::Join": [ ",", [
+              { "Ref": "VolumeTarget0" },
+              { "Ref": "VolumeTarget1" },
+              { "Fn::If": [ "ThirdAvailabilityZone", { "Ref": "VolumeTarget2" }, { "Ref": "AWS::NoValue" } ] }
+            ] ] }
           }
         ]
       },
@@ -2234,11 +2265,18 @@
         ],
         "Name": { "Fn::If": [ "BlankInternalSuffix", { "Ref": "AWS::NoValue" }, { "Fn::Sub": "${AWS::StackName}${InternalSuffix}" } ] },
         "Scheme": "internal",
-        "Subnets": [
-          { "Ref": "Subnet0" },
-          { "Ref": "Subnet1" },
-          { "Fn::If": [ "ThirdAvailabilityZone", { "Ref": "Subnet2" }, { "Ref": "AWS::NoValue" } ] }
-        ],
+        "Subnets": { "Fn::If": [ "Private",
+          [
+            { "Ref": "SubnetPrivate0" },
+            { "Ref": "SubnetPrivate1" },
+            { "Fn::If": [ "ThirdAvailabilityZone", { "Ref": "SubnetPrivate2" }, { "Ref": "AWS::NoValue" } ] }
+          ],
+          [
+            { "Ref": "Subnet0" },
+            { "Ref": "Subnet1" },
+            { "Fn::If": [ "ThirdAvailabilityZone", { "Ref": "Subnet2" }, { "Ref": "AWS::NoValue" } ] }
+          ]
+        ] },
         "SecurityGroups": { "Fn::If": [ "BlankRouterInternalSecurityGroup", [ { "Ref": "RouterInternalSecurity" } ], { "Ref": "RouterInternalSecurityGroup" } ] },
         "Tags": [
           { "Key": "Rack", "Value": { "Ref": "AWS::StackName" } }
