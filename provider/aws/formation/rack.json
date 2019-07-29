@@ -1547,15 +1547,18 @@
               ""
             ] }
           },
-          {
-            "Key": "VolumeTargets",
-            "PropagateAtLaunch": false,
-            "Value": { "Fn::Join": [ ",", [
-              { "Ref": "VolumeTarget0" },
-              { "Ref": "VolumeTarget1" },
-              { "Fn::If": [ "ThirdAvailabilityZone", { "Ref": "VolumeTarget2" }, { "Ref": "AWS::NoValue" } ] }
-            ] ] }
-          }
+          { "Fn::If": [ "RegionHasEFS",
+            {
+              "Key": "VolumeTargets",
+              "PropagateAtLaunch": false,
+              "Value": { "Fn::Join": [ ",", [
+                { "Ref": "VolumeTarget0" },
+                { "Ref": "VolumeTarget1" },
+                { "Fn::If": [ "ThirdAvailabilityZone", { "Ref": "VolumeTarget2" }, { "Ref": "AWS::NoValue" } ] }
+              ] ] }
+            },
+            { "Ref": "AWS::NoValue" }
+          ] }
         ]
       },
       "UpdatePolicy": {
@@ -1941,15 +1944,18 @@
               ""
             ] }
           },
-          {
-            "Key": "VolumeTargets",
-            "PropagateAtLaunch": false,
-            "Value": { "Fn::Join": [ ",", [
-              { "Ref": "VolumeTarget0" },
-              { "Ref": "VolumeTarget1" },
-              { "Fn::If": [ "ThirdAvailabilityZone", { "Ref": "VolumeTarget2" }, { "Ref": "AWS::NoValue" } ] }
-            ] ] }
-          }
+          { "Fn::If": [ "RegionHasEFS",
+            {
+              "Key": "VolumeTargets",
+              "PropagateAtLaunch": false,
+              "Value": { "Fn::Join": [ ",", [
+                { "Ref": "VolumeTarget0" },
+                { "Ref": "VolumeTarget1" },
+                { "Fn::If": [ "ThirdAvailabilityZone", { "Ref": "VolumeTarget2" }, { "Ref": "AWS::NoValue" } ] }
+              ] ] }
+            },
+            { "Ref": "AWS::NoValue" }
+          ] }
         ]
       },
       "UpdatePolicy": {
