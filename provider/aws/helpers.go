@@ -393,6 +393,9 @@ func stackTags(stack *cloudformation.Stack) map[string]string {
 
 func templateHelpers() template.FuncMap {
 	return template.FuncMap{
+		"safe": func(s string) template.HTML {
+			return template.HTML(fmt.Sprintf("%q", s))
+		},
 		"upper": func(s string) string {
 			return upperName(s)
 		},
