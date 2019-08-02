@@ -25,3 +25,11 @@ type AtomListerExpansion interface{}
 // AtomNamespaceListerExpansion allows custom methods to be added to
 // AtomNamespaceLister.
 type AtomNamespaceListerExpansion interface{}
+
+// AtomVersionListerExpansion allows custom methods to be added to
+// AtomVersionLister.
+type AtomVersionListerExpansion interface{}
+
+// AtomVersionNamespaceListerExpansion allows custom methods to be added to
+// AtomVersionNamespaceLister.
+type AtomVersionNamespaceListerExpansion interface{}

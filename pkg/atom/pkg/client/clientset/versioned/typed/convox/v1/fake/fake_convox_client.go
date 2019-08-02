@@ -32,6 +32,10 @@ func (c *FakeConvoxV1) Atoms(namespace string) v1.AtomInterface {
 	return &FakeAtoms{c, namespace}
 }
 
+func (c *FakeConvoxV1) AtomVersions(namespace string) v1.AtomVersionInterface {
+	return &FakeAtomVersions{c, namespace}
+}
+
 // RESTClient returns a RESTClient that is used to communicate
 // with API server by this client implementation.
 func (c *FakeConvoxV1) RESTClient() rest.Interface {

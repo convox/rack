@@ -122,6 +122,9 @@ func (c *AtomController) Update(prev, cur interface{}) error {
 			c.atom.status(ca, "Failed")
 			return errors.WithStack(err)
 		}
+	case "Cleanup":
+		ca.Spec.PreviousVersion = ""
+		c.atom.status(ca, "Success")
 	case "Pending":
 		if err := c.atom.apply(ca); err != nil {
 			c.atom.status(ca, "Rollback")
@@ -155,7 +158,7 @@ func (c *AtomController) Update(prev, cur interface{}) error {
 		}
 
 		if success {
-			c.atom.status(ca, "Success")
+			c.atom.status(ca, "Cleanup")
 		}
 	}
 
