@@ -1,0 +1,8 @@
+apiVersion: convox.com/v1
+kind: AtomVersion
+metadata:
+  namespace: {{.Namespace}}
+  name: {{.Name}}-{{.Version}}
+spec:
+  release: {{.Release}}
+  template: {{.Template}}

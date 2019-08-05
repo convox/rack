@@ -28,6 +28,7 @@ import (
 type ConvoxV1Interface interface {
 	RESTClient() rest.Interface
 	AtomsGetter
+	AtomVersionsGetter
 }
 
 // ConvoxV1Client is used to interact with features provided by the convox.com group.
@@ -37,6 +38,10 @@ type ConvoxV1Client struct {
 
 func (c *ConvoxV1Client) Atoms(namespace string) AtomInterface {
 	return newAtoms(c, namespace)
+}
+
+func (c *ConvoxV1Client) AtomVersions(namespace string) AtomVersionInterface {
+	return newAtomVersions(c, namespace)
 }
 
 // NewForConfig creates a new ConvoxV1Client for the given config.

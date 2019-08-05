@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"os/user"
 	"strings"
+	"time"
 
 	"github.com/convox/rack/pkg/helpers"
 )
@@ -142,10 +143,26 @@ func restartKubernetes() error {
 	exec.Command("microk8s.stop").Run()
 	exec.Command("microk8s.start").Run()
 
+	for {
+		if err := checkKubectl(); err == nil {
+			break
+		}
+
+		time.Sleep(1 * time.Second)
+	}
+
 	return nil
 }
 
 func routerIP() (string, error) {
+	for {
+		if err := exec.Command("kubectl", "get", "deployment/router", "-n", "convox-system").Run(); err == nil {
+			break
+		}
+
+		time.Sleep(1 * time.Second)
+	}
+
 	if err := exec.Command("kubectl", "wait", "--for=condition=Available", "deployment/router", "-n", "convox-system", "--timeout=600s").Run(); err != nil {
 		return "", fmt.Errorf("router did not become available")
 	}
