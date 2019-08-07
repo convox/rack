@@ -19,7 +19,7 @@ limitations under the License.
 package fake
 
 import (
-	convoxv1 "github.com/convox/rack/pkg/atom/pkg/apis/convox/v1"
+	v2 "github.com/convox/rack/pkg/atom/pkg/apis/convox/v2"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
@@ -30,29 +30,29 @@ import (
 
 // FakeAtomVersions implements AtomVersionInterface
 type FakeAtomVersions struct {
-	Fake *FakeConvoxV1
+	Fake *FakeConvoxV2
 	ns   string
 }
 
-var atomversionsResource = schema.GroupVersionResource{Group: "convox.com", Version: "v1", Resource: "atomversions"}
+var atomversionsResource = schema.GroupVersionResource{Group: "convox.com", Version: "v2", Resource: "atomversions"}
 
-var atomversionsKind = schema.GroupVersionKind{Group: "convox.com", Version: "v1", Kind: "AtomVersion"}
+var atomversionsKind = schema.GroupVersionKind{Group: "convox.com", Version: "v2", Kind: "AtomVersion"}
 
 // Get takes name of the atomVersion, and returns the corresponding atomVersion object, and an error if there is any.
-func (c *FakeAtomVersions) Get(name string, options v1.GetOptions) (result *convoxv1.AtomVersion, err error) {
+func (c *FakeAtomVersions) Get(name string, options v1.GetOptions) (result *v2.AtomVersion, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewGetAction(atomversionsResource, c.ns, name), &convoxv1.AtomVersion{})
+		Invokes(testing.NewGetAction(atomversionsResource, c.ns, name), &v2.AtomVersion{})
 
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*convoxv1.AtomVersion), err
+	return obj.(*v2.AtomVersion), err
 }
 
 // List takes label and field selectors, and returns the list of AtomVersions that match those selectors.
-func (c *FakeAtomVersions) List(opts v1.ListOptions) (result *convoxv1.AtomVersionList, err error) {
+func (c *FakeAtomVersions) List(opts v1.ListOptions) (result *v2.AtomVersionList, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewListAction(atomversionsResource, atomversionsKind, c.ns, opts), &convoxv1.AtomVersionList{})
+		Invokes(testing.NewListAction(atomversionsResource, atomversionsKind, c.ns, opts), &v2.AtomVersionList{})
 
 	if obj == nil {
 		return nil, err
@@ -62,8 +62,8 @@ func (c *FakeAtomVersions) List(opts v1.ListOptions) (result *convoxv1.AtomVersi
 	if label == nil {
 		label = labels.Everything()
 	}
-	list := &convoxv1.AtomVersionList{ListMeta: obj.(*convoxv1.AtomVersionList).ListMeta}
-	for _, item := range obj.(*convoxv1.AtomVersionList).Items {
+	list := &v2.AtomVersionList{ListMeta: obj.(*v2.AtomVersionList).ListMeta}
+	for _, item := range obj.(*v2.AtomVersionList).Items {
 		if label.Matches(labels.Set(item.Labels)) {
 			list.Items = append(list.Items, item)
 		}
@@ -79,43 +79,43 @@ func (c *FakeAtomVersions) Watch(opts v1.ListOptions) (watch.Interface, error) {
 }
 
 // Create takes the representation of a atomVersion and creates it.  Returns the server's representation of the atomVersion, and an error, if there is any.
-func (c *FakeAtomVersions) Create(atomVersion *convoxv1.AtomVersion) (result *convoxv1.AtomVersion, err error) {
+func (c *FakeAtomVersions) Create(atomVersion *v2.AtomVersion) (result *v2.AtomVersion, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewCreateAction(atomversionsResource, c.ns, atomVersion), &convoxv1.AtomVersion{})
+		Invokes(testing.NewCreateAction(atomversionsResource, c.ns, atomVersion), &v2.AtomVersion{})
 
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*convoxv1.AtomVersion), err
+	return obj.(*v2.AtomVersion), err
 }
 
 // Update takes the representation of a atomVersion and updates it. Returns the server's representation of the atomVersion, and an error, if there is any.
-func (c *FakeAtomVersions) Update(atomVersion *convoxv1.AtomVersion) (result *convoxv1.AtomVersion, err error) {
+func (c *FakeAtomVersions) Update(atomVersion *v2.AtomVersion) (result *v2.AtomVersion, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewUpdateAction(atomversionsResource, c.ns, atomVersion), &convoxv1.AtomVersion{})
+		Invokes(testing.NewUpdateAction(atomversionsResource, c.ns, atomVersion), &v2.AtomVersion{})
 
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*convoxv1.AtomVersion), err
+	return obj.(*v2.AtomVersion), err
 }
 
 // UpdateStatus was generated because the type contains a Status member.
 // Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-func (c *FakeAtomVersions) UpdateStatus(atomVersion *convoxv1.AtomVersion) (*convoxv1.AtomVersion, error) {
+func (c *FakeAtomVersions) UpdateStatus(atomVersion *v2.AtomVersion) (*v2.AtomVersion, error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewUpdateSubresourceAction(atomversionsResource, "status", c.ns, atomVersion), &convoxv1.AtomVersion{})
+		Invokes(testing.NewUpdateSubresourceAction(atomversionsResource, "status", c.ns, atomVersion), &v2.AtomVersion{})
 
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*convoxv1.AtomVersion), err
+	return obj.(*v2.AtomVersion), err
 }
 
 // Delete takes name of the atomVersion and deletes it. Returns an error if one occurs.
 func (c *FakeAtomVersions) Delete(name string, options *v1.DeleteOptions) error {
 	_, err := c.Fake.
-		Invokes(testing.NewDeleteAction(atomversionsResource, c.ns, name), &convoxv1.AtomVersion{})
+		Invokes(testing.NewDeleteAction(atomversionsResource, c.ns, name), &v2.AtomVersion{})
 
 	return err
 }
@@ -124,17 +124,17 @@ func (c *FakeAtomVersions) Delete(name string, options *v1.DeleteOptions) error 
 func (c *FakeAtomVersions) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
 	action := testing.NewDeleteCollectionAction(atomversionsResource, c.ns, listOptions)
 
-	_, err := c.Fake.Invokes(action, &convoxv1.AtomVersionList{})
+	_, err := c.Fake.Invokes(action, &v2.AtomVersionList{})
 	return err
 }
 
 // Patch applies the patch and returns the patched atomVersion.
-func (c *FakeAtomVersions) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *convoxv1.AtomVersion, err error) {
+func (c *FakeAtomVersions) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v2.AtomVersion, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewPatchSubresourceAction(atomversionsResource, c.ns, name, data, subresources...), &convoxv1.AtomVersion{})
+		Invokes(testing.NewPatchSubresourceAction(atomversionsResource, c.ns, name, data, subresources...), &v2.AtomVersion{})
 
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*convoxv1.AtomVersion), err
+	return obj.(*v2.AtomVersion), err
 }

@@ -26,8 +26,6 @@ import (
 type Interface interface {
 	// Atoms returns a AtomInformer.
 	Atoms() AtomInformer
-	// AtomVersions returns a AtomVersionInformer.
-	AtomVersions() AtomVersionInformer
 }
 
 type version struct {
@@ -44,9 +42,4 @@ func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakList
 // Atoms returns a AtomInformer.
 func (v *version) Atoms() AtomInformer {
 	return &atomInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
-}
-
-// AtomVersions returns a AtomVersionInformer.
-func (v *version) AtomVersions() AtomVersionInformer {
-	return &atomVersionInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }

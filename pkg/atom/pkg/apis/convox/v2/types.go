@@ -1,4 +1,4 @@
-package v1
+package v2
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -40,14 +40,36 @@ type AtomConditionMatch struct {
 
 type AtomSpec struct {
 	Conditions              []AtomCondition `json:"conditions"`
-	Current                 AtomState       `json:"current"`
-	Previous                AtomState       `json:"previous"`
+	CurrentVersion          string          `json:"currentVersion"`
+	PreviousVersion         string          `json:"previousVersion"`
 	ProgressDeadlineSeconds int32           `json:"progressDeadlineSeconds"`
 }
 
 type AtomStatus string
 
-type AtomState struct {
-	Template []byte `json:"template"`
-	Version  string `json:"version"`
+// +genclient
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+type AtomVersion struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+
+	Status AtomVersionStatus `json:"status"`
+	Spec   AtomVersionSpec   `json:"spec"`
 }
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+type AtomVersionList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata"`
+
+	Items []AtomVersion `json:"items"`
+}
+
+type AtomVersionSpec struct {
+	Release  string `json:"release"`
+	Template []byte `json:"template"`
+}
+
+type AtomVersionStatus string

@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	ca "github.com/convox/rack/pkg/atom/pkg/apis/convox/v1"
+	ca "github.com/convox/rack/pkg/atom/pkg/apis/convox/v2"
 	cv "github.com/convox/rack/pkg/atom/pkg/client/clientset/versioned"
 	"github.com/convox/rack/pkg/templater"
 	"github.com/gobuffalo/packr"
@@ -132,7 +132,7 @@ func (c *Client) Apply(ns, name string, release string, template []byte, timeout
 		}
 	}
 
-	v, err := c.convox.ConvoxV1().AtomVersions(ns).Create(&ca.AtomVersion{
+	v, err := c.convox.ConvoxV2().AtomVersions(ns).Create(&ca.AtomVersion{
 		ObjectMeta: am.ObjectMeta{
 			Name: fmt.Sprintf("%s-%d", name, time.Now().UTC().UnixNano()),
 		},
@@ -145,10 +145,10 @@ func (c *Client) Apply(ns, name string, release string, template []byte, timeout
 		return errors.WithStack(err)
 	}
 
-	a, err := c.convox.ConvoxV1().Atoms(ns).Get(name, am.GetOptions{})
+	a, err := c.convox.ConvoxV2().Atoms(ns).Get(name, am.GetOptions{})
 	switch {
 	case ae.IsNotFound(err):
-		a, err = c.convox.ConvoxV1().Atoms(ns).Create(&ca.Atom{
+		a, err = c.convox.ConvoxV2().Atoms(ns).Create(&ca.Atom{
 			ObjectMeta: am.ObjectMeta{
 				Name: name,
 			},
@@ -162,11 +162,14 @@ func (c *Client) Apply(ns, name string, release string, template []byte, timeout
 		a.Spec.PreviousVersion = a.Spec.CurrentVersion
 	}
 
+	fmt.Printf("v.ObjectMeta = %+v\n", v.ObjectMeta)
+	fmt.Printf("v.Name = %+v\n", v.Name)
+
 	a.Spec.CurrentVersion = v.Name
 	a.Spec.ProgressDeadlineSeconds = timeout
 	a.Status = "Pending"
 
-	if _, err := c.convox.ConvoxV1().Atoms(ns).Update(a); err != nil {
+	if _, err := c.convox.ConvoxV2().Atoms(ns).Update(a); err != nil {
 		return errors.WithStack(err)
 	}
 
@@ -174,7 +177,7 @@ func (c *Client) Apply(ns, name string, release string, template []byte, timeout
 }
 
 func (c *Client) Status(ns, name string) (string, string, error) {
-	a, err := c.convox.ConvoxV1().Atoms(ns).Get(name, am.GetOptions{})
+	a, err := c.convox.ConvoxV2().Atoms(ns).Get(name, am.GetOptions{})
 	if ae.IsNotFound(err) {
 		return "", "", nil
 	}
@@ -182,17 +185,23 @@ func (c *Client) Status(ns, name string) (string, string, error) {
 		return "", "", errors.WithStack(err)
 	}
 
-	v, err := c.convox.ConvoxV1().AtomVersions(ns).Get(a.Spec.CurrentVersion, am.GetOptions{})
-	if err != nil {
-		return "", "", err
+	release := ""
+
+	if a.Spec.CurrentVersion != "" {
+		v, err := c.convox.ConvoxV2().AtomVersions(ns).Get(a.Spec.CurrentVersion, am.GetOptions{})
+		if err != nil {
+			return "", "", err
+		}
+
+		release = v.Spec.Release
 	}
 
-	return string(a.Status), v.Spec.Release, nil
+	return string(a.Status), release, nil
 }
 
 func (c *Client) Wait(ns, name string) error {
 	for {
-		a, err := c.convox.ConvoxV1().Atoms(ns).Get(name, am.GetOptions{})
+		a, err := c.convox.ConvoxV2().Atoms(ns).Get(name, am.GetOptions{})
 		if err != nil {
 			return errors.WithStack(err)
 		}
@@ -211,12 +220,12 @@ func (c *Client) apply(a *ca.Atom) error {
 
 	a.Status = "Building"
 
-	a, err = c.convox.ConvoxV1().Atoms(a.Namespace).Update(a)
+	a, err = c.convox.ConvoxV2().Atoms(a.Namespace).Update(a)
 	if err != nil {
 		return errors.WithStack(err)
 	}
 
-	v, err := c.convox.ConvoxV1().AtomVersions(a.Namespace).Get(a.Spec.CurrentVersion, am.GetOptions{})
+	v, err := c.convox.ConvoxV2().AtomVersions(a.Namespace).Get(a.Spec.CurrentVersion, am.GetOptions{})
 	if err != nil {
 		return err
 	}
@@ -228,7 +237,11 @@ func (c *Client) apply(a *ca.Atom) error {
 
 	a.Spec.Conditions = cs
 
+	fmt.Printf("string(v.Spec.Template) = %+v\n", string(v.Spec.Template))
+
 	out, err := applyTemplate(v.Spec.Template, fmt.Sprintf("atom=%s.%s", a.Namespace, a.Name))
+	fmt.Printf("string(out) = %+v\n", string(out))
+	fmt.Printf("err = %+v\n", err)
 	if err != nil {
 		return errors.WithStack(errors.New(strings.TrimSpace(string(out))))
 	}
@@ -238,7 +251,7 @@ func (c *Client) apply(a *ca.Atom) error {
 	a.Started = am.Now()
 	a.Status = "Running"
 
-	a, err = c.convox.ConvoxV1().Atoms(a.Namespace).Update(a)
+	a, err = c.convox.ConvoxV2().Atoms(a.Namespace).Update(a)
 	if err != nil {
 		return errors.WithStack(err)
 	}
@@ -306,7 +319,7 @@ func (c *Client) check(a *ca.Atom) (bool, error) {
 }
 
 func (c *Client) rollback(a *ca.Atom) error {
-	v, err := c.convox.ConvoxV1().AtomVersions(a.Namespace).Get(a.Spec.PreviousVersion, am.GetOptions{})
+	v, err := c.convox.ConvoxV2().AtomVersions(a.Namespace).Get(a.Spec.PreviousVersion, am.GetOptions{})
 	if err != nil {
 		return err
 	}
@@ -323,7 +336,7 @@ func (c *Client) rollback(a *ca.Atom) error {
 	a.Started = am.Now()
 	a.Status = "Rollback"
 
-	a, err = c.convox.ConvoxV1().Atoms(a.Namespace).Update(a)
+	a, err = c.convox.ConvoxV2().Atoms(a.Namespace).Update(a)
 	if err != nil {
 		return errors.WithStack(err)
 	}
@@ -336,7 +349,7 @@ func (c *Client) status(a *ca.Atom, status string) error {
 
 	a.Status = ca.AtomStatus(status)
 
-	a, err = c.convox.ConvoxV1().Atoms(a.Namespace).Update(a)
+	a, err = c.convox.ConvoxV2().Atoms(a.Namespace).Update(a)
 	if err != nil {
 		return errors.WithStack(err)
 	}

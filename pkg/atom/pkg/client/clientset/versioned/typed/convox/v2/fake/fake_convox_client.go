@@ -19,22 +19,26 @@ limitations under the License.
 package fake
 
 import (
-	v1 "github.com/convox/rack/pkg/atom/pkg/client/clientset/versioned/typed/convox/v1"
+	v2 "github.com/convox/rack/pkg/atom/pkg/client/clientset/versioned/typed/convox/v2"
 	rest "k8s.io/client-go/rest"
 	testing "k8s.io/client-go/testing"
 )
 
-type FakeConvoxV1 struct {
+type FakeConvoxV2 struct {
 	*testing.Fake
 }
 
-func (c *FakeConvoxV1) Atoms(namespace string) v1.AtomInterface {
+func (c *FakeConvoxV2) Atoms(namespace string) v2.AtomInterface {
 	return &FakeAtoms{c, namespace}
+}
+
+func (c *FakeConvoxV2) AtomVersions(namespace string) v2.AtomVersionInterface {
+	return &FakeAtomVersions{c, namespace}
 }
 
 // RESTClient returns a RESTClient that is used to communicate
 // with API server by this client implementation.
-func (c *FakeConvoxV1) RESTClient() rest.Interface {
+func (c *FakeConvoxV2) RESTClient() rest.Interface {
 	var ret *rest.RESTClient
 	return ret
 }
