@@ -20,6 +20,7 @@ package scheme
 
 import (
 	convoxv1 "github.com/convox/rack/pkg/atom/pkg/apis/convox/v1"
+	convoxv2 "github.com/convox/rack/pkg/atom/pkg/apis/convox/v2"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
@@ -51,4 +52,5 @@ func init() {
 // correctly.
 func AddToScheme(scheme *runtime.Scheme) {
 	convoxv1.AddToScheme(scheme)
+	convoxv2.AddToScheme(scheme)
 }

@@ -22,6 +22,8 @@ import (
 	clientset "github.com/convox/rack/pkg/atom/pkg/client/clientset/versioned"
 	convoxv1 "github.com/convox/rack/pkg/atom/pkg/client/clientset/versioned/typed/convox/v1"
 	fakeconvoxv1 "github.com/convox/rack/pkg/atom/pkg/client/clientset/versioned/typed/convox/v1/fake"
+	convoxv2 "github.com/convox/rack/pkg/atom/pkg/client/clientset/versioned/typed/convox/v2"
+	fakeconvoxv2 "github.com/convox/rack/pkg/atom/pkg/client/clientset/versioned/typed/convox/v2/fake"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/discovery"
@@ -76,7 +78,12 @@ func (c *Clientset) ConvoxV1() convoxv1.ConvoxV1Interface {
 	return &fakeconvoxv1.FakeConvoxV1{Fake: &c.Fake}
 }
 
-// Convox retrieves the ConvoxV1Client
-func (c *Clientset) Convox() convoxv1.ConvoxV1Interface {
-	return &fakeconvoxv1.FakeConvoxV1{Fake: &c.Fake}
+// ConvoxV2 retrieves the ConvoxV2Client
+func (c *Clientset) ConvoxV2() convoxv2.ConvoxV2Interface {
+	return &fakeconvoxv2.FakeConvoxV2{Fake: &c.Fake}
+}
+
+// Convox retrieves the ConvoxV2Client
+func (c *Clientset) Convox() convoxv2.ConvoxV2Interface {
+	return &fakeconvoxv2.FakeConvoxV2{Fake: &c.Fake}
 }

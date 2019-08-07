@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"time"
 
-	ct "github.com/convox/rack/pkg/atom/pkg/apis/convox/v1"
+	ct "github.com/convox/rack/pkg/atom/pkg/apis/convox/v2"
 	cv "github.com/convox/rack/pkg/atom/pkg/client/clientset/versioned"
-	ic "github.com/convox/rack/pkg/atom/pkg/client/informers/externalversions/convox/v1"
+	ic "github.com/convox/rack/pkg/atom/pkg/client/informers/externalversions/convox/v2"
 	"github.com/convox/rack/pkg/kctl"
 	"github.com/pkg/errors"
 	ac "k8s.io/api/core/v1"
