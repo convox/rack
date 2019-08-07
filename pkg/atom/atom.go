@@ -182,12 +182,18 @@ func (c *Client) Status(ns, name string) (string, string, error) {
 		return "", "", errors.WithStack(err)
 	}
 
-	v, err := c.convox.ConvoxV1().AtomVersions(ns).Get(a.Spec.CurrentVersion, am.GetOptions{})
-	if err != nil {
-		return "", "", err
+	release := ""
+
+	if a.Spec.CurrentVersion != "" {
+		v, err := c.convox.ConvoxV1().AtomVersions(ns).Get(a.Spec.CurrentVersion, am.GetOptions{})
+		if err != nil {
+			return "", "", err
+		}
+
+		release = v.Spec.Release
 	}
 
-	return string(a.Status), v.Spec.Release, nil
+	return string(a.Status), release, nil
 }
 
 func (c *Client) Wait(ns, name string) error {
