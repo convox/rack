@@ -4,5 +4,5 @@ metadata:
   namespace: {{.Namespace}}
   name: {{.Name}}-{{.Version}}
 spec:
-  release: {{.Release}}
-  template: {{.Template}}
+  release: {{ safe .Release }}
+  template: {{ safe .Template }}

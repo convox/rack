@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"html/template"
 	"os/exec"
 	"sort"
 	"strings"
@@ -27,7 +28,7 @@ import (
 )
 
 var (
-	templates = templater.New(packr.NewBox("../atom/templates"), nil)
+	templates = templater.New(packr.NewBox("../atom/templates"), templateHelpers())
 )
 
 type Client struct {
@@ -582,4 +583,12 @@ func templateResources(filter string) ([]string, error) {
 	sort.Strings(rs)
 
 	return rs, nil
+}
+
+func templateHelpers() map[string]interface{} {
+	return map[string]interface{}{
+		"safe": func(s string) template.HTML {
+			return template.HTML(fmt.Sprintf("%q", s))
+		},
+	}
 }
