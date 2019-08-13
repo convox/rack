@@ -265,7 +265,9 @@ func (p *Provider) SystemUpdate(opts structs.SystemUpdateOptions) error {
 	template := fmt.Sprintf(cfnTemplate, helpers.DefaultString(opts.Version, p.Provider.Version))
 
 	if err := helpers.CloudformationUpdate(p.CloudFormation, p.Rack, template, nil, nil, p.EventTopic); err != nil {
-		return err
+		if !cloudformationErrorNoUpdates(err) {
+			return err
+		}
 	}
 
 	if err := p.Provider.SystemUpdate(opts); err != nil {
