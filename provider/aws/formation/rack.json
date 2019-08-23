@@ -2408,25 +2408,6 @@
               { "Ref": "AWS::NoValue" }
             ] },
             "IpProtocol": "tcp",
-            "FromPort": "80",
-            "ToPort": "80"
-          },
-          {
-            "CidrIp": { "Fn::If": [ "PrivateApi",
-              { "Fn::If": [ "BlankPrivateApiSecurityGroup",
-                { "Ref": "VPCCIDR" },
-                { "Ref": "AWS::NoValue" }
-              ] },
-              "0.0.0.0/0"
-            ] },
-            "SourceSecurityGroupId": { "Fn::If": [ "PrivateApi",
-              { "Fn::If": [ "BlankPrivateApiSecurityGroup",
-                { "Ref": "AWS::NoValue" },
-                { "Ref": "PrivateApiSecurityGroup" }
-              ] },
-              { "Ref": "AWS::NoValue" }
-            ] },
-            "IpProtocol": "tcp",
             "FromPort": "443",
             "ToPort": "443"
           }
