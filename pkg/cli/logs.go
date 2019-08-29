@@ -36,5 +36,5 @@ func Logs(rack sdk.Interface, c *stdcli.Context) error {
 
 	_, err = io.Copy(c, r)
 
-	return nil
+	return err
 }
