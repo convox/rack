@@ -367,6 +367,8 @@ func CloudWatchLogsStream(ctx context.Context, cw cloudwatchlogsiface.CloudWatch
 		req.StartTime = aws.Int64(start)
 	}
 
+	follow := DefaultBool(opts.Follow, true)
+
 	var seen = map[string]bool{}
 
 	sleep := time.Duration(100 * time.Millisecond)
@@ -423,16 +425,24 @@ func CloudWatchLogsStream(ctx context.Context, cw cloudwatchlogsiface.CloudWatch
 				return err
 			}
 
-			if res.NextToken != nil {
+			done := len(res.SearchedLogStreams) > 0
+
+			for _, s := range res.SearchedLogStreams {
+				if s.SearchedCompletely == nil || !*s.SearchedCompletely {
+					done = false
+				}
+			}
+
+			if !done && res.NextToken != nil {
 				req.NextToken = res.NextToken
 				continue
 			}
 
-			req.NextToken = nil
-
-			if !DefaultBool(opts.Follow, true) {
+			if !follow {
 				return nil
 			}
+
+			req.NextToken = nil
 
 			req.StartTime = aws.Int64(start)
 		}
