@@ -369,11 +369,6 @@ func CloudWatchLogsStream(ctx context.Context, cw cloudwatchlogsiface.CloudWatch
 
 	follow := DefaultBool(opts.Follow, true)
 
-	if !follow {
-		end := time.Now().UTC().UnixNano() / int64(time.Millisecond)
-		req.EndTime = aws.Int64(end)
-	}
-
 	var seen = map[string]bool{}
 
 	sleep := time.Duration(100 * time.Millisecond)

@@ -96,12 +96,13 @@ func TestAppLogs(t *testing.T) {
 	r, err := provider.AppLogs("httpd", structs.LogsOptions{
 		Follow: options.Bool(false),
 		Filter: options.String("test"),
+		Prefix: options.Bool(true),
 	})
 
 	io.Copy(buf, r)
 
 	assert.NoError(t, err)
-	assert.Equal(t, "2014-03-28T19:36:18Z event2\n2014-03-28T19:36:18Z event3\n2014-03-28T19:36:18Z event4\n2014-03-28T19:36:18Z event1\n2014-03-28T19:36:18Z event5\n", buf.String())
+	assert.Equal(t, "2014-03-28T19:36:18Z stream1 event2\n2014-03-28T19:36:18Z stream2 event3\n2014-03-28T19:36:18Z stream3 event4\n2014-03-28T19:36:18Z stream1 event1\n2014-03-28T19:36:18Z stream2 event5\n", buf.String())
 }
 
 var cycleAppCancelUpdateStack = awsutil.Cycle{
@@ -316,7 +317,7 @@ var cycleLogFilterLogEvents1 = awsutil.Cycle{
 					"logStreamName": "stream1"
 				}, 
 				{
-					"searchedCompletely": false,      
+					"searchedCompletely": false,
 					"logStreamName": "stream2"
 				},
 				{
@@ -349,14 +350,14 @@ var cycleLogFilterLogEvents2 = awsutil.Cycle{
 					"timestamp": 1396035378968,
 					"message": "event1",
 					"logStreamName": "stream1",
-					"eventId": "31132629274945519779805322857203735586714454643391594505"
+					"eventId": "31132629274945519779805322857203735586714454643391594506"
 				},
 				{
 					"ingestionTime": 1396035394997,
 					"timestamp": 1396035378998,
 					"message": "event5",
 					"logStreamName": "stream2",
-					"eventId": "31132629274945519779805322857203735586814454643391594505"
+					"eventId": "31132629274945519779805322857203735586814454643391594507"
 				}
 			],
 			"searchedLogStreams": [
@@ -365,7 +366,7 @@ var cycleLogFilterLogEvents2 = awsutil.Cycle{
 					"logStreamName": "stream1"
 				}, 
 				{
-					"searchedCompletely": true,      
+					"searchedCompletely": false,
 					"logStreamName": "stream2"
 				}
 			]
