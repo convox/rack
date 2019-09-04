@@ -15,6 +15,14 @@ import (
 
 var reSessionAuthentication = regexp.MustCompile(`^Session path="([^"]+)" token="([^"]+)"$`)
 
+type AuthenticationError struct {
+	error
+}
+
+func (ae AuthenticationError) AuthenticationError() error {
+	return ae.error
+}
+
 type session struct {
 	Id string `json:"id"`
 }
@@ -30,28 +38,28 @@ func authenticator(c *stdcli.Context) stdsdk.Authenticator {
 		headers := map[string]string{}
 
 		if m[2] == "true" {
-			areq, err := cl.GetStream(m[1], stdsdk.RequestOptions{})
+			ares, err := cl.GetStream(m[1], stdsdk.RequestOptions{})
 			if err != nil {
 				return nil, err
 			}
-			defer areq.Body.Close()
+			defer ares.Body.Close()
 
-			dreq, err := ioutil.ReadAll(areq.Body)
+			dres, err := ioutil.ReadAll(ares.Body)
 			if err != nil {
 				return nil, err
 			}
 
 			c.Writef("Waiting for security token... ")
 
-			data, err := token.Authenticate(dreq)
+			data, err := token.Authenticate(dres)
 			if err != nil {
-				return nil, err
+				return nil, AuthenticationError{err}
 			}
 
 			c.Writef("<ok>OK</ok>\n")
 
 			body = data
-			headers["Challenge"] = areq.Header.Get("Challenge")
+			headers["Challenge"] = ares.Header.Get("Challenge")
 		}
 
 		var s session

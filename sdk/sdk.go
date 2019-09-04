@@ -25,6 +25,10 @@ var (
 	Version = "dev"
 )
 
+type AuthenticationError interface {
+	AuthenticationError() error
+}
+
 type Client struct {
 	*stdsdk.Client
 	Debug   bool
@@ -84,7 +88,11 @@ func (c *Client) Headers() http.Header {
 
 func (c *Client) Websocket(path string, opts stdsdk.RequestOptions) (io.ReadCloser, error) {
 	// trigger session authentication
-	c.Get("/racks", stdsdk.RequestOptions{}, nil)
+	if err := c.Get("/racks", stdsdk.RequestOptions{}, nil); err != nil {
+		if _, ok := err.(AuthenticationError); ok {
+			return nil, err
+		}
+	}
 
 	return c.Client.Websocket(path, opts)
 }
