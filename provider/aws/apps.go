@@ -218,7 +218,12 @@ func (p *Provider) AppLogs(app string, opts structs.LogsOptions) (io.ReadCloser,
 		return nil, err
 	}
 
-	return p.subscribeLogs(group, opts)
+	return helpers.CloudWatchLogsSubscribe(p.Context(), p.cloudwatchlogs(), group, "", opts)
+	// func (p *Provider) subscribeLogs(group string, opts structs.LogsOptions) (io.ReadCloser, error) {
+	// func CloudWatchLogsSubscribe(ctx context.Context, cw cloudwatchlogsiface.CloudWatchLogsAPI, group, stream string, opts structs.LogsOptions) (io.ReadCloser, error) {
+
+	// }
+	// 	return p.subscribeLogs(group, opts)
 }
 
 func (p *Provider) AppMetrics(name string, opts structs.MetricsOptions) (structs.Metrics, error) {
