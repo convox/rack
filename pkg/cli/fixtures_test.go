@@ -38,6 +38,7 @@ func fxAppUpdating() *structs.App {
 
 func fxBuild() *structs.Build {
 	return &structs.Build{
+		App:         "app1",
 		Id:          "build1",
 		Description: "desc",
 		Ended:       fxStarted.Add(2 * time.Minute),
@@ -98,6 +99,14 @@ func fxLogs() []string {
 	return []string{
 		"log1",
 		"log2",
+	}
+}
+
+func fxLogsLonger() []string {
+	return []string{
+		"log1",
+		"log2",
+		"log3",
 	}
 }
 
