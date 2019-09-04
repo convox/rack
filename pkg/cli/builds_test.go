@@ -21,9 +21,10 @@ func TestBuild(t *testing.T) {
 			require.Regexp(t, `tmp/[0-9a-f]{30}\.tgz`, args.Get(1).(string))
 		})
 		i.On("BuildCreate", "app1", "object://test", structs.BuildCreateOptions{}).Return(fxBuild(), nil)
-		i.On("BuildLogs", "app1", "build1", structs.LogsOptions{}).Return(testLogs(fxLogs()), nil)
+		i.On("BuildLogs", "app1", "build1", structs.LogsOptions{}).Return(testLogs(fxLogs()), nil).Once()
 		i.On("BuildGet", "app1", "build1").Return(fxBuildRunning(), nil).Once()
 		i.On("BuildGet", "app1", "build4").Return(fxBuild(), nil)
+		i.On("BuildLogs", "app1", "build1", structs.LogsOptions{}).Return(testLogs(fxLogs()), nil)
 
 		res, err := testExecute(e, "build ./testdata/httpd -a app1", nil)
 		require.NoError(t, err)
@@ -35,6 +36,35 @@ func TestBuild(t *testing.T) {
 			"Starting build... OK",
 			"log1",
 			"log2",
+			"Build:   build1",
+			"Release: release1",
+		})
+	})
+}
+
+func TestBuildFinalizeLogs(t *testing.T) {
+	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
+		i.On("SystemGet").Return(fxSystem(), nil)
+		i.On("ObjectStore", "app1", mock.AnythingOfType("string"), mock.Anything, structs.ObjectStoreOptions{}).Return(&fxObject, nil).Run(func(args mock.Arguments) {
+			require.Regexp(t, `tmp/[0-9a-f]{30}\.tgz`, args.Get(1).(string))
+		})
+		i.On("BuildCreate", "app1", "object://test", structs.BuildCreateOptions{}).Return(fxBuild(), nil)
+		i.On("BuildLogs", "app1", "build1", structs.LogsOptions{}).Return(testLogs(fxLogs()), nil).Once()
+		i.On("BuildGet", "app1", "build1").Return(fxBuildRunning(), nil).Once()
+		i.On("BuildGet", "app1", "build4").Return(fxBuild(), nil)
+		i.On("BuildLogs", "app1", "build1", structs.LogsOptions{}).Return(testLogs(fxLogsLonger()), nil)
+
+		res, err := testExecute(e, "build ./testdata/httpd -a app1", nil)
+		require.NoError(t, err)
+		require.Equal(t, 0, res.Code)
+		res.RequireStderr(t, []string{""})
+		res.RequireStdout(t, []string{
+			"Packaging source... OK",
+			"Uploading source... OK",
+			"Starting build... OK",
+			"log1",
+			"log2",
+			"log3",
 			"Build:   build1",
 			"Release: release1",
 		})

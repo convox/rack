@@ -149,7 +149,8 @@ func build(rack sdk.Interface, c *stdcli.Context, development bool) (*structs.Bu
 		return nil, err
 	}
 
-	io.Copy(c, r)
+	count, _ := io.Copy(c, r)
+	defer finalizeBuildLogs(rack, c, b, count)
 
 	for {
 		b, err = rack.BuildGet(app(c), b.Id)
@@ -169,6 +170,25 @@ func build(rack sdk.Interface, c *stdcli.Context, development bool) (*structs.Bu
 	}
 
 	return b, nil
+}
+
+func finalizeBuildLogs(rack structs.Provider, c *stdcli.Context, b *structs.Build, count int64) error {
+	r, err := rack.BuildLogs(b.App, b.Id, structs.LogsOptions{})
+	if err != nil {
+		return err
+	}
+	defer r.Close()
+
+	data, err := ioutil.ReadAll(r)
+	if err != nil {
+		return err
+	}
+
+	if int64(len(data)) > count {
+		c.Write(data[count:])
+	}
+
+	return nil
 }
 
 func Builds(rack sdk.Interface, c *stdcli.Context) error {
