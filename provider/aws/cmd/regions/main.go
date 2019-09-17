@@ -29,7 +29,10 @@ func main() {
 }
 
 func run() error {
-	regions := Regions{}
+	regions, err := fetchRegions()
+	if err != nil {
+		return err
+	}
 
 	if err := fetchAmis(regions); err != nil {
 		return err
@@ -97,42 +100,44 @@ func run() error {
 	return nil
 }
 
+func fetchRegions() (Regions, error) {
+	rs := Regions{}
+
+	data, err := exec.Command("aws", "ec2", "describe-regions", "--query", "Regions[].RegionName").CombinedOutput()
+	if err != nil {
+		return nil, err
+	}
+
+	var regions []string
+
+	if err := json.Unmarshal(data, &regions); err != nil {
+		return nil, err
+	}
+
+	for _, region := range regions {
+		rs[region] = Region{}
+	}
+
+	return rs, nil
+}
+
 func fetchAmis(regions Regions) error {
-	b := surf.NewBrowser()
+	var ami string
 
-	if err := b.Open("https://docs.aws.amazon.com/AmazonECS/latest/developerguide/ecs-optimized_AMI.html"); err != nil {
-		return err
+	for name, region := range regions {
+		data, err := exec.Command("aws", "ssm", "get-parameter", "--name", "/aws/service/ecs/optimized-ami/amazon-linux-2/recommended/image_id", "--query", "Parameter.Value", "--region", name).CombinedOutput()
+		if err != nil {
+			return err
+		}
+
+		if err := json.Unmarshal(data, &ami); err != nil {
+			return err
+		}
+
+		region.Ami = ami
+
+		regions[name] = region
 	}
-
-	rows := b.Find("#main-content dd[data-tab=\"amazon-linux-2\"] .table-contents table:nth-child(1) tr")
-
-	if rows.Length() < 1 {
-		return fmt.Errorf("no amis found")
-	}
-
-	rows.Each(func(i int, s *goquery.Selection) {
-		if i == 0 {
-			return
-		}
-
-		name := s.Find("td:nth-child(1)").Text()
-		desc := s.Find("td:nth-child(2)").Text()
-		ami := s.Find("td:nth-child(3)").Text()
-
-		if name == "" {
-			return
-		}
-
-		if strings.Index(desc, "arm64") > -1 {
-			return
-		}
-
-		if strings.HasPrefix(name, "us-gov-") {
-			return
-		}
-
-		regions[name] = Region{Ami: ami}
-	})
 
 	return nil
 }
@@ -230,7 +235,7 @@ func fetchFargate(regions Regions) error {
 		return err
 	}
 
-	rows := b.Find("h1#AWS_Fargate~.table:nth-of-type(3) tr")
+	rows := b.Find("h1#AWS_Fargate~.table tr")
 
 	if rows.Length() < 1 {
 		return fmt.Errorf("no fargate regions found")
@@ -244,9 +249,10 @@ func fetchFargate(regions Regions) error {
 		name := strings.TrimSpace(s.Find("td:nth-child(2)").Text())
 
 		if !strings.HasSuffix(name, "*") {
-			region := regions[name]
-			region.Fargate = true
-			regions[name] = region
+			if region, ok := regions[name]; ok {
+				region.Fargate = true
+				regions[name] = region
+			}
 		}
 	})
 
