@@ -10,6 +10,7 @@ import (
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/headzoo/surf"
+	"github.com/pkg/errors"
 )
 
 type Region struct {
@@ -24,34 +25,34 @@ type Regions map[string]Region
 
 func main() {
 	if err := run(); err != nil {
-		fmt.Fprintf(os.Stderr, "ERROR: %s\n", err)
+		fmt.Fprintf(os.Stderr, "ERROR: %+v\n", err)
 	}
 }
 
 func run() error {
 	regions, err := fetchRegions()
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 
 	if err := fetchAmis(regions); err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 
 	if err := fetchAvailabilityZones(regions); err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 
 	if err := fetchEFS(regions); err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 
 	if err := fetchFargate(regions); err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 
 	if err := fetchELBAccountIds(regions); err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 
 	names := []string{}
@@ -105,13 +106,13 @@ func fetchRegions() (Regions, error) {
 
 	data, err := exec.Command("aws", "ec2", "describe-regions", "--query", "Regions[].RegionName").CombinedOutput()
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 
 	var regions []string
 
 	if err := json.Unmarshal(data, &regions); err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 
 	for _, region := range regions {
@@ -127,11 +128,13 @@ func fetchAmis(regions Regions) error {
 	for name, region := range regions {
 		data, err := exec.Command("aws", "ssm", "get-parameter", "--name", "/aws/service/ecs/optimized-ami/amazon-linux-2/recommended/image_id", "--query", "Parameter.Value", "--region", name).CombinedOutput()
 		if err != nil {
-			return err
+			fmt.Printf("string(data): %+v\n", string(data))
+			delete(regions, name)
+			continue
 		}
 
 		if err := json.Unmarshal(data, &ami); err != nil {
-			return err
+			return errors.WithStack(err)
 		}
 
 		region.Ami = ami
@@ -152,11 +155,11 @@ func fetchAvailabilityZones(regions Regions) error {
 	for name, region := range regions {
 		data, err := exec.Command("bash", "-c", fmt.Sprintf("aws ec2 describe-availability-zones --region %s", name)).CombinedOutput()
 		if err != nil {
-			return fmt.Errorf(string(data))
+			return errors.WithStack(fmt.Errorf(string(data)))
 		}
 
 		if err := json.Unmarshal(data, &azs); err != nil {
-			return err
+			return errors.WithStack(err)
 		}
 
 		for _, az := range azs.AvailabilityZones {
@@ -173,13 +176,13 @@ func fetchEFS(regions Regions) error {
 	b := surf.NewBrowser()
 
 	if err := b.Open("https://docs.aws.amazon.com/general/latest/gr/rande.html"); err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 
 	rows := b.Find("h2#elasticfilesystem-region+.table .table-contents table tr")
 
 	if rows.Length() < 1 {
-		return fmt.Errorf("no efs entries found")
+		return errors.WithStack(fmt.Errorf("no efs entries found"))
 	}
 
 	rows.Each(func(i int, s *goquery.Selection) {
@@ -201,13 +204,13 @@ func fetchELBAccountIds(regions Regions) error {
 	b := surf.NewBrowser()
 
 	if err := b.Open("https://docs.aws.amazon.com/elasticloadbalancing/latest/application/load-balancer-access-logs.html"); err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 
 	rows := b.Find("h2#access-logging-bucket-permissions~ol:nth-of-type(1) table tr")
 
 	if rows.Length() < 1 {
-		return fmt.Errorf("no elb account ids found")
+		return errors.WithStack(fmt.Errorf("no elb account ids found"))
 	}
 
 	rows.Each(func(i int, s *goquery.Selection) {
@@ -232,13 +235,13 @@ func fetchFargate(regions Regions) error {
 	b := surf.NewBrowser()
 
 	if err := b.Open("https://docs.aws.amazon.com/AmazonECS/latest/developerguide/AWS_Fargate.html"); err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 
 	rows := b.Find("h1#AWS_Fargate~.table tr")
 
 	if rows.Length() < 1 {
-		return fmt.Errorf("no fargate regions found")
+		return errors.WithStack(fmt.Errorf("no fargate regions found"))
 	}
 
 	rows.Each(func(i int, s *goquery.Selection) {
