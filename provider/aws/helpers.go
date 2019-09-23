@@ -1072,11 +1072,6 @@ func (p *Provider) putLogEvents(req *cloudwatchlogs.PutLogEventsInput) (string, 
 			continue
 		}
 		if awsError(err) == "InvalidSequenceTokenException" {
-			fmt.Println("sequence token error")
-			if ae, ok := err.(awserr.Error); ok {
-				fmt.Printf("ae = %#v\n", ae)
-			}
-
 			sres, err := p.cloudwatchlogs().DescribeLogStreams(&cloudwatchlogs.DescribeLogStreamsInput{
 				LogGroupName:        req.LogGroupName,
 				LogStreamNamePrefix: req.LogStreamName,
