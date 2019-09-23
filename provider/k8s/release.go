@@ -26,10 +26,6 @@ func (p *Provider) ReleaseCreate(app string, opts structs.ReleaseCreateOptions) 
 		r.Build = *opts.Build
 	}
 
-	if opts.Env != nil {
-		r.Env = *opts.Env
-	}
-
 	if r.Build != "" {
 		b, err := p.BuildGet(app, r.Build)
 		if err != nil {
@@ -37,6 +33,20 @@ func (p *Provider) ReleaseCreate(app string, opts structs.ReleaseCreateOptions) 
 		}
 
 		r.Manifest = b.Manifest
+	}
+
+	if opts.Env != nil {
+		desc, err := helpers.EnvDiff(r.Env, *opts.Env)
+		if err != nil {
+			return nil, err
+		}
+
+		r.Description = fmt.Sprintf("env %s", desc)
+		r.Env = *opts.Env
+	}
+
+	if opts.Description != nil {
+		r.Description = *opts.Description
 	}
 
 	ro, err := p.releaseCreate(r)
