@@ -19,14 +19,14 @@ func TestDeploy(t *testing.T) {
 		i.On("ObjectStore", "app1", mock.AnythingOfType("string"), mock.Anything, structs.ObjectStoreOptions{}).Return(&fxObject, nil).Run(func(args mock.Arguments) {
 			require.Regexp(t, `tmp/[0-9a-f]{30}\.tgz`, args.Get(1).(string))
 		})
-		i.On("BuildCreate", "app1", "object://test", structs.BuildCreateOptions{}).Return(fxBuild(), nil)
+		i.On("BuildCreate", "app1", "object://test", structs.BuildCreateOptions{Description: options.String("foo")}).Return(fxBuild(), nil)
 		i.On("BuildLogs", "app1", "build1", structs.LogsOptions{}).Return(testLogs(fxLogs()), nil)
 		i.On("BuildGet", "app1", "build1").Return(fxBuildRunning(), nil).Once()
 		i.On("BuildGet", "app1", "build4").Return(fxBuild(), nil)
 		i.On("AppGet", "app1").Return(fxApp(), nil)
 		i.On("ReleasePromote", "app1", "release1", structs.ReleasePromoteOptions{}).Return(nil)
 
-		res, err := testExecute(e, "deploy ./testdata/httpd -a app1", nil)
+		res, err := testExecute(e, "deploy ./testdata/httpd -a app1 -d foo", nil)
 		require.NoError(t, err)
 		require.Equal(t, 0, res.Code)
 		res.RequireStderr(t, []string{""})
@@ -47,14 +47,14 @@ func TestDeployError(t *testing.T) {
 		i.On("ObjectStore", "app1", mock.AnythingOfType("string"), mock.Anything, structs.ObjectStoreOptions{}).Return(&fxObject, nil).Run(func(args mock.Arguments) {
 			require.Regexp(t, `tmp/[0-9a-f]{30}\.tgz`, args.Get(1).(string))
 		})
-		i.On("BuildCreate", "app1", "object://test", structs.BuildCreateOptions{}).Return(fxBuild(), nil)
+		i.On("BuildCreate", "app1", "object://test", structs.BuildCreateOptions{Description: options.String("foo")}).Return(fxBuild(), nil)
 		i.On("BuildLogs", "app1", "build1", structs.LogsOptions{}).Return(testLogs(fxLogs()), nil)
 		i.On("BuildGet", "app1", "build1").Return(fxBuildRunning(), nil).Once()
 		i.On("BuildGet", "app1", "build4").Return(fxBuild(), nil)
 		i.On("AppGet", "app1").Return(fxApp(), nil)
 		i.On("ReleasePromote", "app1", "release1", structs.ReleasePromoteOptions{}).Return(fmt.Errorf("err1"))
 
-		res, err := testExecute(e, "deploy ./testdata/httpd -a app1", nil)
+		res, err := testExecute(e, "deploy ./testdata/httpd -a app1 -d foo", nil)
 		require.NoError(t, err)
 		require.Equal(t, 1, res.Code)
 		res.RequireStderr(t, []string{"ERROR: err1"})
@@ -75,7 +75,7 @@ func TestDeployWait(t *testing.T) {
 		i.On("ObjectStore", "app1", mock.AnythingOfType("string"), mock.Anything, structs.ObjectStoreOptions{}).Return(&fxObject, nil).Run(func(args mock.Arguments) {
 			require.Regexp(t, `tmp/[0-9a-f]{30}\.tgz`, args.Get(1).(string))
 		})
-		i.On("BuildCreate", "app1", "object://test", structs.BuildCreateOptions{}).Return(fxBuild(), nil)
+		i.On("BuildCreate", "app1", "object://test", structs.BuildCreateOptions{Description: options.String("foo")}).Return(fxBuild(), nil)
 		i.On("BuildLogs", "app1", "build1", structs.LogsOptions{}).Return(testLogs(fxLogs()), nil)
 		i.On("BuildGet", "app1", "build1").Return(fxBuildRunning(), nil).Once()
 		i.On("BuildGet", "app1", "build4").Return(fxBuild(), nil)
@@ -86,7 +86,7 @@ func TestDeployWait(t *testing.T) {
 		opts := structs.LogsOptions{Prefix: options.Bool(true), Since: options.Duration(5 * time.Second)}
 		i.On("AppLogs", "app1", opts).Return(testLogs(fxLogsSystem()), nil)
 
-		res, err := testExecute(e, "deploy ./testdata/httpd -a app1 --wait", nil)
+		res, err := testExecute(e, "deploy ./testdata/httpd -a app1 -d foo --wait", nil)
 		require.NoError(t, err)
 		require.Equal(t, 0, res.Code)
 		res.RequireStderr(t, []string{""})

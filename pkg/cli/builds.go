@@ -6,6 +6,8 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"os/exec"
+	"strings"
 	"time"
 
 	"github.com/convox/rack/pkg/helpers"
@@ -92,6 +94,14 @@ func build(rack sdk.Interface, c *stdcli.Context, development bool) (*structs.Bu
 
 	if err := c.Options(&opts); err != nil {
 		return nil, err
+	}
+
+	if opts.Description == nil {
+		if err := exec.Command("git", "diff", "--quiet").Run(); err == nil {
+			if data, err := exec.Command("git", "log", "-n", "1", "--pretty=%h %s", "--abbrev=10").CombinedOutput(); err == nil {
+				opts.Description = options.String(fmt.Sprintf("build %s", strings.TrimSpace(string(data))))
+			}
+		}
 	}
 
 	c.Startf("Packaging source")
