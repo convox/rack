@@ -54,10 +54,6 @@ func Handler(ctx context.Context, event events.SNSEvent) error {
 			if err := handleAutoscaling(r); err != nil {
 				fmt.Printf("err = %+v\n", err)
 			}
-		case r.SNS.Subject == "":
-			if err := handleInterruption(r); err != nil {
-				fmt.Printf("err = %+v\n", err)
-			}
 		default:
 			fmt.Printf("unknown event: %v\n", r)
 		}
@@ -95,33 +91,6 @@ func handleAutoscaling(r events.SNSEventRecord) error {
 	}
 
 	fmt.Println("success")
-
-	return nil
-}
-
-func handleInterruption(r events.SNSEventRecord) error {
-	fmt.Println("handleInterruption")
-
-	var m Interruption
-
-	if err := json.Unmarshal([]byte(r.SNS.Message), &m); err != nil {
-		return err
-	}
-
-	fmt.Printf("m = %+v\n", m)
-
-	if m.DetailType != "EC2 Spot Instance Interruption Warning" {
-		return fmt.Errorf("invalid detail type")
-	}
-
-	id := m.Detail["instance-id"]
-	if id == "" {
-		return fmt.Errorf("no instance id")
-	}
-
-	if err := drainInstance(id); err != nil {
-		return err
-	}
 
 	return nil
 }
