@@ -426,18 +426,16 @@ func (p *Provider) ProcessRun(app, service string, opts structs.ProcessRunOption
 
 	var ps *structs.Process
 
-	// fetch the job 3 times for eventual consistency
-	for i := 1; i <= 3; i++ {
-		err = retry(5, 1*time.Second, func() error {
-			ps, err = p.ProcessGet(app, pid)
-			return err
-		})
-		if err != nil {
-			return nil, log.Error(err)
-		}
-
-		time.Sleep(1 * time.Second)
+	err = retry(5, 1*time.Second, func() error {
+		ps, err = p.ProcessGet(app, pid)
+		return err
+	})
+	if err != nil {
+		return nil, log.Error(err)
 	}
+
+	// wait for eventual consistency
+	time.Sleep(3 * time.Second)
 
 	return ps, log.Success()
 }
