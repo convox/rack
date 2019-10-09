@@ -26,6 +26,17 @@ func fxAppGeneration1() *structs.App {
 	}
 }
 
+func fxAppRouter() *structs.App {
+	return &structs.App{
+		Name:       "app1",
+		Generation: "2",
+		Parameters: fxParameters(),
+		Release:    "release1",
+		Router:     "router1",
+		Status:     "running",
+	}
+}
+
 func fxAppUpdating() *structs.App {
 	return &structs.App{
 		Name:       "app1",
