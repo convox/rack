@@ -56,3 +56,27 @@ func TestServicesClassic(t *testing.T) {
 		})
 	})
 }
+
+func TestServicesRestart(t *testing.T) {
+	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
+		i.On("ServiceRestart", "app1", "service1").Return(nil)
+
+		res, err := testExecute(e, "services restart service1 -a app1", nil)
+		require.NoError(t, err)
+		require.Equal(t, 0, res.Code)
+		res.RequireStderr(t, []string{""})
+		res.RequireStdout(t, []string{"Restarting service1... OK"})
+	})
+}
+
+func TestServicesRestartError(t *testing.T) {
+	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
+		i.On("ServiceRestart", "app1", "service1").Return(fmt.Errorf("err1"))
+
+		res, err := testExecute(e, "services restart service1 -a app1", nil)
+		require.NoError(t, err)
+		require.Equal(t, 1, res.Code)
+		res.RequireStderr(t, []string{"ERROR: err1"})
+		res.RequireStdout(t, []string{"Restarting service1... "})
+	})
+}

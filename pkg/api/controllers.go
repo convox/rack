@@ -1093,6 +1093,22 @@ func (s *Server) ServiceList(c *stdapi.Context) error {
 	return c.RenderJSON(v)
 }
 
+func (s *Server) ServiceRestart(c *stdapi.Context) error {
+	if err := s.hook("ServiceRestartValidate", c); err != nil {
+		return err
+	}
+
+	app := c.Var("app")
+	name := c.Var("name")
+
+	err := s.provider(c).WithContext(c.Context()).ServiceRestart(app, name)
+	if err != nil {
+		return err
+	}
+
+	return c.RenderOK()
+}
+
 func (s *Server) ServiceUpdate(c *stdapi.Context) error {
 	if err := s.hook("ServiceUpdateValidate", c); err != nil {
 		return err

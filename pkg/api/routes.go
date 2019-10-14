@@ -55,6 +55,7 @@ func (s *Server) setupRoutes(r stdapi.Router) {
 	r.Route("GET", "/apps/{app}/resources/{name}", s.ResourceGet)
 	r.Route("GET", "/apps/{app}/resources", s.ResourceList)
 	r.Route("GET", "/apps/{app}/services", s.ServiceList)
+	r.Route("POST", "/apps/{app}/services/{name}/restart", s.ServiceRestart)
 	r.Route("PUT", "/apps/{app}/services/{name}", s.ServiceUpdate)
 	r.Route("GET", "/system", s.SystemGet)
 	r.Route("", "", s.SystemInstall)

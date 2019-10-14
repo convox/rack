@@ -79,6 +79,10 @@ func (p *Provider) ServiceList(app string) (structs.Services, error) {
 	return ss, nil
 }
 
+func (p *Provider) ServiceRestart(app, name string) error {
+	return fmt.Errorf("unimplemented")
+}
+
 func (p *Provider) ServiceUpdate(app, name string, opts structs.ServiceUpdateOptions) error {
 	d, err := p.Cluster.AppsV1().Deployments(p.AppNamespace(app)).Get(name, am.GetOptions{})
 	if err != nil {
