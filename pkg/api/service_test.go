@@ -43,6 +43,22 @@ func TestServiceListError(t *testing.T) {
 	})
 }
 
+func TestServiceRestart(t *testing.T) {
+	testServer(t, func(c *stdsdk.Client, p *structs.MockProvider) {
+		p.On("ServiceRestart", "app1", "service1").Return(nil)
+		err := c.Post("/apps/app1/services/service1/restart", stdsdk.RequestOptions{}, nil)
+		require.NoError(t, err)
+	})
+}
+
+func TestServiceRestartError(t *testing.T) {
+	testServer(t, func(c *stdsdk.Client, p *structs.MockProvider) {
+		p.On("ServiceRestart", "app1", "service1").Return(fmt.Errorf("err1"))
+		err := c.Post("/apps/app1/services/service1/restart", stdsdk.RequestOptions{}, nil)
+		require.EqualError(t, err, "err1")
+	})
+}
+
 func TestServiceUpdate(t *testing.T) {
 	testServer(t, func(c *stdsdk.Client, p *structs.MockProvider) {
 		opts := structs.ServiceUpdateOptions{
