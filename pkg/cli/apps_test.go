@@ -234,7 +234,7 @@ func TestAppsExport(t *testing.T) {
 
 		data, err := ioutil.ReadFile(filepath.Join(tmp, "app.json"))
 		require.NoError(t, err)
-		require.Equal(t, "{\"generation\":\"2\",\"locked\":false,\"name\":\"app1\",\"release\":\"release1\",\"status\":\"running\",\"parameters\":{\"ParamFoo\":\"value1\",\"ParamOther\":\"value2\"}}", string(data))
+		require.Equal(t, "{\"generation\":\"2\",\"locked\":false,\"name\":\"app1\",\"release\":\"release1\",\"router\":\"\",\"status\":\"running\",\"parameters\":{\"ParamFoo\":\"value1\",\"ParamOther\":\"value2\"}}", string(data))
 
 		data, err = ioutil.ReadFile(filepath.Join(tmp, "env"))
 		require.NoError(t, err)
@@ -360,6 +360,38 @@ func TestAppsImportSameParams(t *testing.T) {
 }
 
 func TestAppsInfo(t *testing.T) {
+	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
+		i.On("AppGet", "app1").Return(fxAppRouter(), nil)
+
+		res, err := testExecute(e, "apps info app1", nil)
+		require.NoError(t, err)
+		require.Equal(t, 0, res.Code)
+		res.RequireStderr(t, []string{""})
+		res.RequireStdout(t, []string{
+			"Name        app1",
+			"Status      running",
+			"Generation  2",
+			"Locked      false",
+			"Release     release1",
+			"Router      router1",
+		})
+
+		res, err = testExecute(e, "apps info -a app1", nil)
+		require.NoError(t, err)
+		require.Equal(t, 0, res.Code)
+		res.RequireStderr(t, []string{""})
+		res.RequireStdout(t, []string{
+			"Name        app1",
+			"Status      running",
+			"Generation  2",
+			"Locked      false",
+			"Release     release1",
+			"Router      router1",
+		})
+	})
+}
+
+func TestAppsInfoRouter(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
 		i.On("AppGet", "app1").Return(fxApp(), nil)
 

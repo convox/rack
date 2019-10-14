@@ -232,9 +232,14 @@ func AppsInfo(rack sdk.Interface, c *stdcli.Context) error {
 
 	i.Add("Name", a.Name)
 	i.Add("Status", a.Status)
+
 	i.Add("Generation", a.Generation)
 	i.Add("Locked", fmt.Sprintf("%t", a.Locked))
 	i.Add("Release", a.Release)
+
+	if a.Router != "" {
+		i.Add("Router", a.Router)
+	}
 
 	return i.Print()
 }
