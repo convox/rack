@@ -5,6 +5,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/convox/rack/pkg/helpers"
 	"github.com/convox/rack/pkg/manifest"
 	"github.com/convox/rack/pkg/manifest1"
@@ -183,6 +185,35 @@ func (p *Provider) serviceListGeneration1(a *structs.App) (structs.Services, err
 	}
 
 	return ss, nil
+}
+
+func (p *Provider) ServiceRestart(app, name string) error {
+	stack, err := p.stackResource(p.rackStack(app), fmt.Sprintf("Service%s", upperName(name)))
+	if err != nil {
+		return err
+	}
+	if stack.PhysicalResourceId == nil {
+		return fmt.Errorf("invalid stack resource")
+	}
+
+	svc, err := p.stackResource(*stack.PhysicalResourceId, "Service")
+	if err != nil {
+		return err
+	}
+	if svc.PhysicalResourceId == nil {
+		return fmt.Errorf("invalid service resource")
+	}
+
+	_, err = p.ecs().UpdateService(&ecs.UpdateServiceInput{
+		Cluster:            aws.String(p.Cluster),
+		ForceNewDeployment: aws.Bool(true),
+		Service:            svc.PhysicalResourceId,
+	})
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (p *Provider) ServiceUpdate(app, name string, opts structs.ServiceUpdateOptions) error {

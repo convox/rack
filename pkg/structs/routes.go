@@ -55,6 +55,7 @@ func init() {
 	routes["ResourceGet"] = "GET /apps/{app}/resources/{name}"
 	routes["ResourceList"] = "GET /apps/{app}/resources"
 	routes["ServiceList"] = "GET /apps/{app}/services"
+	routes["ServiceRestart"] = "POST /apps/{app}/services/{name}/restart"
 	routes["ServiceUpdate"] = "PUT /apps/{app}/services/{name}"
 	routes["SystemGet"] = "GET /system"
 	routes["SystemLogs"] = "SOCKET /system/logs"
