@@ -55,7 +55,7 @@ workflows:
           requires:
             - ci/aws/public
             - ci/aws/private
-            - ci/kaws
+            # - ci/kaws
           name: ci/staging/rack
       - deploy:
           <<: *filter-releases-master
