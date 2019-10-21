@@ -17,7 +17,7 @@ import (
 
 const (
 	ScannerStartSize = 4096
-	ScannerMaxSize   = 1024 * 1024
+	ScannerMaxSize   = 20 * 1024 * 1024
 )
 
 func (p *Provider) convoxClient() (cv.Interface, error) {
