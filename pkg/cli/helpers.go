@@ -183,6 +183,10 @@ func localRackRunning(c *stdcli.Context) bool {
 }
 
 func localRacks(c *stdcli.Context) ([]rack, error) {
+	if os.Getenv("CONVOX_LOCAL") == "disable" {
+		return []rack{}, nil
+	}
+
 	racks := []rack{}
 
 	data, err := c.Execute("kubectl", "get", "ns", "--selector=system=convox,type=rack", "--output=name")
