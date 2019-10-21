@@ -10,7 +10,7 @@ spec:
   failedJobsHistoryLimit: 1
   jobTemplate:
     spec:
-      ttlSecondsAfterFinished: 60
+      # ttlSecondsAfterFinished: 60
       template:
         metadata:
           labels:
@@ -66,7 +66,7 @@ spec:
               mountPath: /etc/convox
             {{ range .Service.Volumes }}
             - name: {{ volumeName $.App.Name (volumeFrom $.App.Name $.Service.Name .) }}
-              mountPath: "{{ volumeTo . }}" 
+              mountPath: "{{ volumeTo . }}"
             {{ end }}
           volumes:
           - name: ca
