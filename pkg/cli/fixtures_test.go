@@ -26,6 +26,17 @@ func fxAppGeneration1() *structs.App {
 	}
 }
 
+func fxAppRouter() *structs.App {
+	return &structs.App{
+		Name:       "app1",
+		Generation: "2",
+		Parameters: fxParameters(),
+		Release:    "release1",
+		Router:     "router1",
+		Status:     "running",
+	}
+}
+
 func fxAppUpdating() *structs.App {
 	return &structs.App{
 		Name:       "app1",
@@ -38,6 +49,7 @@ func fxAppUpdating() *structs.App {
 
 func fxBuild() *structs.Build {
 	return &structs.Build{
+		App:         "app1",
 		Id:          "build1",
 		Description: "desc",
 		Ended:       fxStarted.Add(2 * time.Minute),
@@ -98,6 +110,14 @@ func fxLogs() []string {
 	return []string{
 		"log1",
 		"log2",
+	}
+}
+
+func fxLogsLonger() []string {
+	return []string{
+		"log1",
+		"log2",
+		"log3",
 	}
 }
 

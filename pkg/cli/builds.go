@@ -6,6 +6,8 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"os/exec"
+	"strings"
 	"time"
 
 	"github.com/convox/rack/pkg/helpers"
@@ -94,6 +96,14 @@ func build(rack sdk.Interface, c *stdcli.Context, development bool) (*structs.Bu
 		return nil, err
 	}
 
+	if opts.Description == nil {
+		if err := exec.Command("git", "diff", "--quiet").Run(); err == nil {
+			if data, err := exec.Command("git", "log", "-n", "1", "--pretty=%h %s", "--abbrev=10").CombinedOutput(); err == nil {
+				opts.Description = options.String(fmt.Sprintf("build %s", strings.TrimSpace(string(data))))
+			}
+		}
+	}
+
 	c.Startf("Packaging source")
 
 	data, err := helpers.Tarball(coalesce(c.Arg(0), "."))
@@ -149,7 +159,8 @@ func build(rack sdk.Interface, c *stdcli.Context, development bool) (*structs.Bu
 		return nil, err
 	}
 
-	io.Copy(c, r)
+	count, _ := io.Copy(c, r)
+	defer finalizeBuildLogs(rack, c, b, count)
 
 	for {
 		b, err = rack.BuildGet(app(c), b.Id)
@@ -169,6 +180,25 @@ func build(rack sdk.Interface, c *stdcli.Context, development bool) (*structs.Bu
 	}
 
 	return b, nil
+}
+
+func finalizeBuildLogs(rack structs.Provider, c *stdcli.Context, b *structs.Build, count int64) error {
+	r, err := rack.BuildLogs(b.App, b.Id, structs.LogsOptions{})
+	if err != nil {
+		return err
+	}
+	defer r.Close()
+
+	data, err := ioutil.ReadAll(r)
+	if err != nil {
+		return err
+	}
+
+	if int64(len(data)) > count {
+		c.Write(data[count:])
+	}
+
+	return nil
 }
 
 func Builds(rack sdk.Interface, c *stdcli.Context) error {

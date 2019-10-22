@@ -45,17 +45,17 @@ workflows:
           name: ci/aws/private
           provider: aws
           args: Private=Yes
-      - ci:
-          <<: *filter-releases-any
-          name: ci/kaws
-          provider: kaws
+      # - ci:
+      #     <<: *filter-releases-any
+      #     name: ci/kaws
+      #     provider: kaws
       - update:
           <<: *filter-releases-master
           context: staging
           requires:
             - ci/aws/public
             - ci/aws/private
-            - ci/kaws
+            # - ci/kaws
           name: ci/staging/rack
       - deploy:
           <<: *filter-releases-master
@@ -139,7 +139,7 @@ jobs:
       - checkout
       - ci-dependencies
       - run: ci/update.sh
-          
+
 commands:
   ci-dependencies:
     steps:

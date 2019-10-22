@@ -68,23 +68,22 @@
   },
   "Mappings": {
     "RegionConfig": {
-      "ap-east-1":      { "Ami": "ami-01cb1066e1ad93cba", "EFS": "No",  "ThirdAvailabilityZone": "Yes", "ELBAccountId": "754344448648", "Fargate": "No"  },
-      "ap-northeast-1": { "Ami": "ami-052f2fa11c7145e04", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "582318560864", "Fargate": "Yes" },
-      "ap-northeast-2": { "Ami": "ami-0400d18ee6d078a95", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "600734575887", "Fargate": "Yes" },
-      "ap-south-1":     { "Ami": "ami-05af3f57a0b59fb78", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "718504428378", "Fargate": "Yes" },
-      "ap-southeast-1": { "Ami": "ami-0e8baaccc62ee0a9f", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "114774131450", "Fargate": "Yes" },
-      "ap-southeast-2": { "Ami": "ami-01711df8fe87a6217", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "783225319266", "Fargate": "Yes" },
-      "ca-central-1":   { "Ami": "ami-04fc06e24a65297fb", "EFS": "Yes", "ThirdAvailabilityZone": "No",  "ELBAccountId": "985666609251", "Fargate": "Yes" },
-      "eu-central-1":   { "Ami": "ami-09577c19fbe1bd7fa", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "054676820928", "Fargate": "Yes" },
-      "eu-north-1":     { "Ami": "ami-0c788f17fd2f1f650", "EFS": "No",  "ThirdAvailabilityZone": "Yes", "ELBAccountId": "897822967062", "Fargate": "No"  },
-      "eu-west-1":      { "Ami": "ami-04a084a6d17d9816e", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "156460612806", "Fargate": "Yes" },
-      "eu-west-2":      { "Ami": "ami-013b322dbc79e9a6a", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "652711504416", "Fargate": "Yes" },
-      "eu-west-3":      { "Ami": "ami-071f4e4006f9c3211", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "009996457667", "Fargate": "No"  },
-      "sa-east-1":      { "Ami": "ami-01569d819ef2d5743", "EFS": "No",  "ThirdAvailabilityZone": "Yes", "ELBAccountId": "507241528517", "Fargate": "No"  },
-      "us-east-1":      { "Ami": "ami-02507631a9f7bc956", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "127311923021", "Fargate": "Yes" },
-      "us-east-2":      { "Ami": "ami-0329a1fdc914b0c55", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "033677994240", "Fargate": "Yes" },
-      "us-west-1":      { "Ami": "ami-0e7f661f69bb5d6b4", "EFS": "Yes", "ThirdAvailabilityZone": "No",  "ELBAccountId": "027434742980", "Fargate": "Yes" },
-      "us-west-2":      { "Ami": "ami-00e0090ac21971297", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "797873946194", "Fargate": "Yes" }
+      "ap-northeast-1": { "Ami": "ami-0b7368a7a931fee7f", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "582318560864", "Fargate": "Yes" },
+      "ap-northeast-2": { "Ami": "ami-093714bddebb6d7e1", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "600734575887", "Fargate": "Yes" },
+      "ap-south-1":     { "Ami": "ami-055a5bbcbce2b9721", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "718504428378", "Fargate": "Yes" },
+      "ap-southeast-1": { "Ami": "ami-0aaa6d1e08e1e271d", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "114774131450", "Fargate": "Yes" },
+      "ap-southeast-2": { "Ami": "ami-061f60917a06a83a5", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "783225319266", "Fargate": "Yes" },
+      "ca-central-1":   { "Ami": "ami-07ccb98d329a39856", "EFS": "Yes", "ThirdAvailabilityZone": "No",  "ELBAccountId": "985666609251", "Fargate": "Yes" },
+      "eu-central-1":   { "Ami": "ami-094d4d00fd7462815", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "054676820928", "Fargate": "Yes" },
+      "eu-north-1":     { "Ami": "ami-03611bd6dccda00ec", "EFS": "No",  "ThirdAvailabilityZone": "Yes", "ELBAccountId": "897822967062", "Fargate": "No"  },
+      "eu-west-1":      { "Ami": "ami-0d7db0e3ec32793ae", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "156460612806", "Fargate": "Yes" },
+      "eu-west-2":      { "Ami": "ami-08ebd554ebc53fa9f", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "652711504416", "Fargate": "Yes" },
+      "eu-west-3":      { "Ami": "ami-0307fe684176d8151", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "009996457667", "Fargate": "No"  },
+      "sa-east-1":      { "Ami": "ami-0da6ab8acebc7f9db", "EFS": "No",  "ThirdAvailabilityZone": "Yes", "ELBAccountId": "507241528517", "Fargate": "No"  },
+      "us-east-1":      { "Ami": "ami-084f07d75acedcefa", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "127311923021", "Fargate": "Yes" },
+      "us-east-2":      { "Ami": "ami-0918be4c91697b460", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "033677994240", "Fargate": "Yes" },
+      "us-west-1":      { "Ami": "ami-056e733017f14ab33", "EFS": "Yes", "ThirdAvailabilityZone": "No",  "ELBAccountId": "027434742980", "Fargate": "Yes" },
+      "us-west-2":      { "Ami": "ami-0ab0050d945a2d795", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "797873946194", "Fargate": "Yes" }
     }
   },
   "Outputs": {
@@ -761,7 +760,7 @@
         "Handler": "index.external",
         "MemorySize": "128",
         "Role": { "Fn::GetAtt": [ "CustomTopicRole", "Arn" ] },
-        "Runtime": "nodejs8.10",
+        "Runtime": "nodejs10.x",
         "Timeout": "300"
       }
     },
@@ -1852,6 +1851,7 @@
             "  - [ cloud-init-per, instance, docker_storage_setup, /usr/bin/docker-storage-setup ]\n",
             "  - echo ECS_CLUSTER=", { "Ref": "Cluster" }, " >> /etc/ecs/ecs.config\n",
             "  - echo ECS_ENABLE_CONTAINER_METADATA=true >> /etc/ecs/ecs.config\n",
+            "  - echo ECS_ENABLE_SPOT_INSTANCE_DRAINING=true >> /etc/ecs/ecs.config\n",
             "  - echo ECS_ENGINE_AUTH_TYPE=docker >> /etc/ecs/ecs.config\n",
             "  - echo 'ECS_INSTANCE_ATTRIBUTES={\"asg\":\"spot\"}' >> /etc/ecs/ecs.config\n",
             "  - echo HTTP_PROXY=", { "Ref": "HttpProxy" }, " >> /etc/ecs/ecs.config\n",
@@ -1991,18 +1991,6 @@
             "Arn"
           ]
         }
-      }
-    },
-    "SpotInstancesLifecycleInterrupting": {
-      "Type": "AWS::Events::Rule",
-      "Properties": {
-        "Description": "spot instances interrupting",
-        "EventPattern": {
-          "detail-type": [ "EC2 Spot Instance Interruption Warning" ],
-          "source": [ "aws.ec2" ]
-        },
-        "State": "ENABLED",
-        "Targets": [ { "Arn": { "Ref": "InstancesLifecycleTopic" }, "Id": "interrupting" } ]
       }
     },
     "SpotInstancesLifecycleTerminating": {
@@ -2392,25 +2380,6 @@
       "Properties": {
         "GroupDescription": { "Fn::Sub": "${AWS::StackName} balancer" },
         "SecurityGroupIngress": [
-          {
-            "CidrIp": { "Fn::If": [ "PrivateApi",
-              { "Fn::If": [ "BlankPrivateApiSecurityGroup",
-                { "Ref": "VPCCIDR" },
-                { "Ref": "AWS::NoValue" }
-              ] },
-              "0.0.0.0/0"
-            ] },
-            "SourceSecurityGroupId": { "Fn::If": [ "PrivateApi",
-              { "Fn::If": [ "BlankPrivateApiSecurityGroup",
-                { "Ref": "AWS::NoValue" },
-                { "Ref": "PrivateApiSecurityGroup" }
-              ] },
-              { "Ref": "AWS::NoValue" }
-            ] },
-            "IpProtocol": "tcp",
-            "FromPort": "80",
-            "ToPort": "80"
-          },
           {
             "CidrIp": { "Fn::If": [ "PrivateApi",
               { "Fn::If": [ "BlankPrivateApiSecurityGroup",

@@ -5,6 +5,7 @@ type App struct {
 	Locked     bool   `json:"locked"`
 	Name       string `json:"name"`
 	Release    string `json:"release"`
+	Router     string `json:"router"`
 	Status     string `json:"status"`
 
 	Outputs    map[string]string `json:"-"`

@@ -326,7 +326,7 @@ func (p *Provider) SystemLogs(opts structs.LogsOptions) (io.ReadCloser, error) {
 		return nil, err
 	}
 
-	return p.subscribeLogs(group, opts)
+	return helpers.CloudWatchLogsSubscribe(p.Context(), p.cloudwatchlogs(), group, "", opts)
 }
 
 func (p *Provider) SystemMetrics(opts structs.MetricsOptions) (structs.Metrics, error) {

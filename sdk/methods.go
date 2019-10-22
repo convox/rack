@@ -737,6 +737,16 @@ func (c *Client) ServiceList(app string) (structs.Services, error) {
 	return v, err
 }
 
+func (c *Client) ServiceRestart(app string, name string) error {
+	var err error
+
+	ro := stdsdk.RequestOptions{Headers: stdsdk.Headers{}, Params: stdsdk.Params{}, Query: stdsdk.Query{}}
+
+	err = c.Post(fmt.Sprintf("/apps/%s/services/%s/restart", app, name), ro, nil)
+
+	return err
+}
+
 func (c *Client) ServiceUpdate(app string, name string, opts structs.ServiceUpdateOptions) error {
 	var err error
 
