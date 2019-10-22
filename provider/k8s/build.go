@@ -438,6 +438,8 @@ func (p *Provider) buildAuth(b *structs.Build) ([]byte, error) {
 		Password string
 	}
 
+	serverProtocol := "https://"
+
 	auth := map[string]authEntry{}
 
 	rs, err := p.RegistryList()
@@ -446,7 +448,7 @@ func (p *Provider) buildAuth(b *structs.Build) ([]byte, error) {
 	}
 
 	for _, r := range rs {
-		auth[r.Server] = authEntry{
+		auth[serverProtocol + r.Server] = authEntry{
 			Username: r.Username,
 			Password: r.Password,
 		}
@@ -463,7 +465,7 @@ func (p *Provider) buildAuth(b *structs.Build) ([]byte, error) {
 			return nil, err
 		}
 
-		auth[repo] = authEntry{
+		auth[serverProtocol + repo] = authEntry{
 			Username: user,
 			Password: pass,
 		}
