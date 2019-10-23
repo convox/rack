@@ -701,7 +701,7 @@
       "Properties": {
         "Handler": "index.handler",
         "Role": { "Fn::GetAtt": [ "CronRole", "Arn" ] },
-        "Runtime": "nodejs10.x",
+        "Runtime": "nodejs8.10",
         "Timeout": 50,
         "Code": {
           "ZipFile": { "Fn::Join": ["\n", [

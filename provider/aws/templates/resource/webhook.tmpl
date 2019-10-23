@@ -30,7 +30,7 @@
         "Environment": { "Variables": { "WEBHOOK_URL": { "Ref": "Url" } } },
         "Handler": "index.handler",
         "Role": { "Fn::GetAtt": [ "ForwarderRole", "Arn" ] },
-        "Runtime": "nodejs10.x",
+        "Runtime": "nodejs8.10",
         "Timeout": "10"
       }
     },
