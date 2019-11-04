@@ -1,0 +1,6 @@
+resources:
+  database:
+services:
+  web:
+    resources:
+      - database
