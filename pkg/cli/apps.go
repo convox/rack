@@ -2,6 +2,7 @@ package cli
 
 import (
 	"compress/gzip"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -126,7 +127,7 @@ func AppsCancel(rack sdk.Interface, c *stdcli.Context) error {
 	if c.Bool("wait") {
 		c.Writef("\n")
 
-		if err := helpers.WaitForAppWithLogs(rack, c, app); err != nil {
+		if err := helpers.WaitForAppRollbackWithLogsContext(context.Background(), rack, c, app); err != nil {
 			if !strings.Contains(err.Error(), "rollback") {
 				return err
 			}
