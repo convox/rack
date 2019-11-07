@@ -128,9 +128,7 @@ func AppsCancel(rack sdk.Interface, c *stdcli.Context) error {
 		c.Writef("\n")
 
 		if err := helpers.WaitForAppRollbackWithLogsContext(context.Background(), rack, c, app); err != nil {
-			if !strings.Contains(err.Error(), "rollback") {
-				return err
-			}
+			return err
 		}
 	}
 
