@@ -80,7 +80,7 @@ func TestAppsCancel(t *testing.T) {
 }
 
 func TestAppsCancelWait(t *testing.T) {
-	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
+	testClientWait(t, 100*time.Millisecond, func(e *cli.Engine, i *mocksdk.Interface) {
 		i.On("AppCancel", "app1").Return(nil)
 		opts := structs.LogsOptions{Prefix: options.Bool(true), Since: options.Duration(5 * time.Second)}
 		i.On("AppLogs", "app1", opts).Return(testLogs(fxLogsSystem()), nil)
