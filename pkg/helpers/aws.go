@@ -347,6 +347,8 @@ func CloudWatchLogsSubscribe(ctx context.Context, cw cloudwatchlogsiface.CloudWa
 func CloudWatchLogsStream(ctx context.Context, cw cloudwatchlogsiface.CloudWatchLogsAPI, w io.WriteCloser, group, stream string, opts structs.LogsOptions) error {
 	defer w.Close()
 
+	fmt.Printf("CloudWatchLogsStream group=%q stream=%q", group, stream)
+
 	streams := map[string]bool{}
 
 	req := &cloudwatchlogs.FilterLogEventsInput{
@@ -384,15 +386,19 @@ func CloudWatchLogsStream(ctx context.Context, cw cloudwatchlogsiface.CloudWatch
 
 	sleep := time.Duration(100 * time.Millisecond)
 
+	fmt.Printf("StartTime=%d\n", req.StartTime)
+
 	for {
 		select {
 		case <-ctx.Done():
+			fmt.Printf("Logging ctx Done\n")
 			return nil
 		default:
 			time.Sleep(sleep)
 
 			// check for closed writer
 			if _, err := w.Write([]byte{}); err != nil {
+				fmt.Printf("WriterError=%v\n", err)
 				return err
 			}
 
@@ -400,9 +406,11 @@ func CloudWatchLogsStream(ctx context.Context, cw cloudwatchlogsiface.CloudWatch
 			if err != nil {
 				switch AwsErrorCode(err) {
 				case "ThrottlingException", "ResourceNotFoundException":
+					fmt.Printf("AWS Known Error=%v\n", err)
 					time.Sleep(1 * time.Second)
 					continue
 				default:
+					fmt.Printf("AWS Unknown Error=%v\n", err)
 					return err
 				}
 			}
@@ -433,10 +441,12 @@ func CloudWatchLogsStream(ctx context.Context, cw cloudwatchlogsiface.CloudWatch
 			sort.Slice(es, func(i, j int) bool { return *es[i].Timestamp < *es[j].Timestamp })
 
 			if _, err := writeLogEvents(w, es, opts); err != nil {
+				fmt.Printf("WriteLogEventError=%v\n", err)
 				return err
 			}
 
 			done := len(res.SearchedLogStreams) > 0
+			fmt.Printf("SearchedLogStreams=%d\n", len(res.SearchedLogStreams))
 
 			for _, s := range res.SearchedLogStreams {
 				if s.SearchedCompletely == nil || !*s.SearchedCompletely {
@@ -446,10 +456,12 @@ func CloudWatchLogsStream(ctx context.Context, cw cloudwatchlogsiface.CloudWatch
 
 			if !done && res.NextToken != nil {
 				req.NextToken = res.NextToken
+				fmt.Printf("Continuing from=%v\n", req.NextToken)
 				continue
 			}
 
 			if !follow {
+				fmt.Printf("Finishing\n")
 				return nil
 			}
 
@@ -458,6 +470,7 @@ func CloudWatchLogsStream(ctx context.Context, cw cloudwatchlogsiface.CloudWatch
 
 			ss, err := logStreamsSince(ctx, cw, group, start)
 			if err != nil {
+				fmt.Printf("logStreamsSince error=%v\n", err)
 				return err
 			}
 
@@ -593,6 +606,7 @@ func logStreamsSince(ctx context.Context, cw cloudwatchlogsiface.CloudWatchLogsA
 
 	for p.Next() {
 		if p.Err() != nil {
+			fmt.Printf("LogStream pagination error=%s\n", p.Err())
 			return nil, p.Err()
 		}
 
@@ -610,6 +624,8 @@ func logStreamsSince(ctx context.Context, cw cloudwatchlogsiface.CloudWatchLogsA
 			}
 
 			streams = append(streams, aws.String(*stream.LogStreamName))
+
+			fmt.Printf("StreamName=%s | ", *stream.LogStreamName)
 		}
 
 		if done {
