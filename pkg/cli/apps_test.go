@@ -84,7 +84,7 @@ func TestAppsCancelWait(t *testing.T) {
 		i.On("AppCancel", "app1").Return(nil)
 		opts := structs.LogsOptions{Prefix: options.Bool(true), Since: options.Duration(5 * time.Second)}
 		i.On("AppLogs", "app1", opts).Return(testLogs(fxLogsSystem()), nil)
-		i.On("AppGet", "app1").Return(fxAppRollback(), nil).Once()
+		i.On("AppGet", "app1").Return(fxAppRollback(), nil).Times(2)
 		i.On("AppGet", "app1").Return(fxApp(), nil)
 
 		res, err := testExecute(e, "apps cancel app1 --wait", nil)
