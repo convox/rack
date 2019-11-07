@@ -26,6 +26,16 @@ func fxAppGeneration1() *structs.App {
 	}
 }
 
+func fxAppRollback() *structs.App {
+	return &structs.App{
+		Name:       "app1",
+		Generation: "2",
+		Parameters: fxParameters(),
+		Release:    "release1",
+		Status:     "rollback",
+	}
+}
+
 func fxAppRouter() *structs.App {
 	return &structs.App{
 		Name:       "app1",
