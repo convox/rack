@@ -219,11 +219,6 @@ func (p *Provider) AppLogs(app string, opts structs.LogsOptions) (io.ReadCloser,
 	}
 
 	return helpers.CloudWatchLogsSubscribe(p.Context(), p.cloudwatchlogs(), group, "", opts)
-	// func (p *Provider) subscribeLogs(group string, opts structs.LogsOptions) (io.ReadCloser, error) {
-	// func CloudWatchLogsSubscribe(ctx context.Context, cw cloudwatchlogsiface.CloudWatchLogsAPI, group, stream string, opts structs.LogsOptions) (io.ReadCloser, error) {
-
-	// }
-	// 	return p.subscribeLogs(group, opts)
 }
 
 func (p *Provider) AppMetrics(name string, opts structs.MetricsOptions) (structs.Metrics, error) {
@@ -240,39 +235,9 @@ func (p *Provider) AppMetrics(name string, opts structs.MetricsOptions) (structs
 		return nil, err
 	}
 
-	mms := structs.Metrics{}
-
-	for _, md := range mds {
-		if len(metrics) > 0 && !metrics[md.Name] {
-			continue
-		}
-
-		m, err := p.cloudwatchMetric(md, opts)
-		if err != nil {
-			return nil, err
-		}
-
-		existing := false
-
-		for i, mm := range mms {
-			if mm.Name == m.Name {
-				existing = true
-
-				for j := range mm.Values {
-					mms[i].Values[j].Average += mm.Values[j].Average
-					mms[i].Values[j].Count += mm.Values[j].Count
-					mms[i].Values[j].Maximum += mm.Values[j].Maximum
-					mms[i].Values[j].Minimum += mm.Values[j].Minimum
-					mms[i].Values[j].Sum += mm.Values[j].Sum
-				}
-
-				break
-			}
-		}
-
-		if !existing {
-			mms = append(mms, *m)
-		}
+	mms, err := p.cloudwatchMetrics(mds, opts)
+	if err != nil {
+		return nil, err
 	}
 
 	return mms, nil
