@@ -192,7 +192,7 @@ func (s *Start) Start2(ctx context.Context, w io.Writer, opts Options2) error {
 		}
 	}
 
-	if err := helpers.WaitForAppRunningContext(ctx, opts.Provider, opts.App); err != nil {
+	if err := helpers.WaitForAppRunningContext(ctx, opts.Provider, opts.App, true); err != nil {
 		return err
 	}
 
