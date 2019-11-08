@@ -1188,8 +1188,8 @@
         },
         "Path": "/convox/",
         "ManagedPolicyArns": [
-          "arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceforEC2Role",
-          "arn:aws:iam::aws:policy/AutoScalingFullAccess",
+          { "Fn::Sub": "arn:${AWS::Partition}:iam::aws:policy/service-role/AmazonEC2ContainerServiceforEC2Role" },
+          { "Fn::Sub": "arn:${AWS::Partition}:iam::aws:policy/AutoScalingFullAccess" },
           { "Fn::If": [ "BlankInstancePolicy",
             { "Ref": "AWS::NoValue" },
             { "Ref": "InstancePolicy" }
@@ -2095,7 +2095,7 @@
           "account":  [ { "Ref": "AWS::AccountId" } ],
           "source": [ "aws.ecs" ],
           "detail-type": [ "ECS Task State Change" ],
-          "detail": { "clusterArn": [ { "Fn::Sub": "arn:aws:ecs:${AWS::Region}:${AWS::AccountId}:cluster/${Cluster}" } ] }
+          "detail": { "clusterArn": [ { "Fn::Sub": "arn:${AWS::Partition}:ecs:${AWS::Region}:${AWS::AccountId}:cluster/${Cluster}" } ] }
         },
         "State" : "ENABLED",
         "Targets" : [ { "Arn": { "Fn::GetAtt": [ "AccountEvents", "Arn" ] }, "Id": "Events" } ]
@@ -2414,7 +2414,7 @@
           "Statement": [ { "Effect": "Allow", "Principal": { "Service": [ "ecs.amazonaws.com" ] }, "Action": [ "sts:AssumeRole" ] } ],
           "Version": "2012-10-17"
         },
-        "ManagedPolicyArns": [ "arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceRole" ],
+        "ManagedPolicyArns": [ { "Fn::Sub": "arn:${AWS::Partition}:iam::aws:policy/service-role/AmazonEC2ContainerServiceRole" } ],
         "Path": "/convox/"
       }
     },
@@ -2429,10 +2429,10 @@
               "Effect": "Allow",
               "Action": [ "iam:*" ],
               "Resource": [
-                "arn:aws:iam::*:instance-profile/convox/*",
-                "arn:aws:iam::*:policy/convox/*",
-                "arn:aws:iam::*:role/convox/*",
-                "arn:aws:iam::*:user/convox/*"
+                { "Fn::Sub": "arn:${AWS::Partition}:iam::*:instance-profile/convox/*" },
+                { "Fn::Sub": "arn:${AWS::Partition}:iam::*:policy/convox/*" },
+                { "Fn::Sub": "arn:${AWS::Partition}:iam::*:role/convox/*" },
+                { "Fn::Sub": "arn:${AWS::Partition}:iam::*:user/convox/*" }
               ]
             },
             {
@@ -2463,7 +2463,7 @@
           "Version": "2012-10-17"
         },
         "ManagedPolicyArns": [
-          "arn:aws:iam::aws:policy/PowerUserAccess",
+          { "Fn::Sub": "arn:${AWS::Partition}:iam::aws:policy/PowerUserAccess" },
           { "Ref": "ApiPolicy" }
         ],
         "Path": "/convox/"
@@ -2823,7 +2823,7 @@
               "Effect": "Allow",
               "Principal": { "AWS": { "Fn::FindInMap": [ "RegionConfig", { "Ref": "AWS::Region" }, "ELBAccountId" ] } },
               "Action": "s3:PutObject",
-              "Resource": { "Fn::Sub": "arn:aws:s3:::${Logs}/*" }
+              "Resource": { "Fn::Sub": "arn:${AWS::Partition}:s3:::${Logs}/*" }
             }
           ]
         }

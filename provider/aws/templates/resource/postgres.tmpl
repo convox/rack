@@ -165,7 +165,7 @@
               {
                 "Sid": "Allow administration of the key",
                 "Effect": "Allow",
-                "Principal": { "AWS": { "Fn::Sub": "arn:aws:iam::${AWS::AccountId}:root" } },
+                "Principal": { "AWS": { "Fn::Sub": "arn:${AWS::Partition}:iam::${AWS::AccountId}:root" } },
                 "Action": [ "kms:*" ],
                 "Resource": "*"
               }
