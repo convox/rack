@@ -19,11 +19,6 @@ type MetricValue struct {
 	P99     float64   `json:"p99"`
 	Sum     float64   `json:"sum"`
 	Time    time.Time `json:"time"`
-
-	Averages []float64 `json:"-"`
-	P90s     []float64 `json:"-"`
-	P95s     []float64 `json:"-"`
-	P99s     []float64 `json:"-"`
 }
 
 type MetricValues []MetricValue
