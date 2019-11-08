@@ -136,47 +136,55 @@ func (p *Provider) appMetricDefinitions(app string) ([]metricDataQuerier, error)
 	mdqs := []metricDataQuerier{}
 
 	for _, r := range rs.StackResources {
-		if r.ResourceType != nil && r.LogicalResourceId != nil {
-			if *r.ResourceType == "AWS::CloudFormation::Stack" && strings.HasPrefix(*r.LogicalResourceId, "Service") {
-				s, err := p.describeStack(*r.PhysicalResourceId)
-				if err != nil {
-					return nil, err
-				}
+		if r.ResourceType == nil || r.LogicalResourceId == nil {
+			continue
+		}
 
-				sos := stackOutputs(s)
+		if *r.ResourceType != "AWS::CloudFormation::Stack" || !strings.HasPrefix(*r.LogicalResourceId, "Service") {
+			continue
+		}
 
-				if sv := sos["Service"]; sv != "" {
-					svp := strings.Split(sv, "/")
-					svn := svp[len(svp)-1]
+		s, err := p.describeStack(*r.PhysicalResourceId)
+		if err != nil {
+			return nil, err
+		}
 
-					mdqs = append(mdqs, metricStatistics{"process:running", "AWS/ECS", "CPUUtilization", map[string]string{"ClusterName": p.Cluster, "ServiceName": svn}, []string{"SampleCount"}})
-				}
+		sos := stackOutputs(s)
 
-				if tg := sos["TargetGroup"]; tg != "" {
-					tgp := strings.Split(tg, ":")
-					tgn := tgp[len(tgp)-1]
+		if sv := sos["Service"]; sv != "" {
+			svp := strings.Split(sv, "/")
+			svn := svp[len(svp)-1]
 
-					if rn := ros["RouterName"]; rn != "" {
-						mdqs = append(mdqs, metricStatistics{"process:healthy", "AWS/ApplicationELB", "HealthyHostCount", map[string]string{"LoadBalancer": rn, "TargetGroup": tgn}, []string{"Average", "Minimum", "Maximum"}})
-						mdqs = append(mdqs, metricStatistics{"process:unhealthy", "AWS/ApplicationELB", "UnHealthyHostCount", map[string]string{"LoadBalancer": rn, "TargetGroup": tgn}, []string{"Average", "Minimum", "Maximum"}})
-						mdqs = append(mdqs, metricStatistics{"service:requests:2xx", "AWS/ApplicationELB", "HTTPCode_Target_2XX_Count", map[string]string{"LoadBalancer": rn, "TargetGroup": tgn}, []string{"Sum"}})
-						mdqs = append(mdqs, metricStatistics{"service:requests:3xx", "AWS/ApplicationELB", "HTTPCode_Target_3XX_Count", map[string]string{"LoadBalancer": rn, "TargetGroup": tgn}, []string{"Sum"}})
-						mdqs = append(mdqs, metricStatistics{"service:requests:4xx", "AWS/ApplicationELB", "HTTPCode_Target_4XX_Count", map[string]string{"LoadBalancer": rn, "TargetGroup": tgn}, []string{"Sum"}})
-						mdqs = append(mdqs, metricStatistics{"service:requests:5xx", "AWS/ApplicationELB", "HTTPCode_Target_5XX_Count", map[string]string{"LoadBalancer": rn, "TargetGroup": tgn}, []string{"Sum"}})
-						// mdqs = append(mdqs, metricStatistics{"service:requests", "AWS/ApplicationELB", "RequestCountPerTarget", map[string]string{"LoadBalancer": rn, "TargetGroup": tgn}, []string{"Sum"}})
-						mdqs = append(mdqs, metricStatistics{"service:response:time", "AWS/ApplicationELB", "TargetResponseTime", map[string]string{"LoadBalancer": rn, "TargetGroup": tgn}, []string{"Minimum", "Maximum"}})
+			mdqs = append(mdqs, metricStatistics{"process:running", "AWS/ECS", "CPUUtilization", map[string]string{"ClusterName": p.Cluster, "ServiceName": svn}, []string{"SampleCount"}})
+		}
 
-						mdqs = append(mdqs, metricExpressions{
-							"service:requests",
-							"Sum",
-							[]metricStatistics{
-								metricStatistics{"target_requests", "AWS/ApplicationELB", "RequestCountPerTarget", map[string]string{"LoadBalancer": rn, "TargetGroup": tgn}, []string{"Sum"}},
-								metricStatistics{"target_healthy", "AWS/ApplicationELB", "HealthyHostCount", map[string]string{"LoadBalancer": rn, "TargetGroup": tgn}, []string{"Average"}},
-							},
-							[]metricExpression{metricExpression{"requests", "target_requests_Sum_## * target_healthy_Average_##"}},
-						})
-					}
-				}
+		if tg := sos["TargetGroup"]; tg != "" {
+			tgp := strings.Split(tg, ":")
+			tgn := tgp[len(tgp)-1]
+
+			if rn := ros["RouterName"]; rn != "" {
+				ns := "AWS/ApplicationELB"
+				dim := map[string]string{"LoadBalancer": rn, "TargetGroup": tgn}
+
+				mdqs = append(mdqs, metricStatistics{"process:healthy", ns, "HealthyHostCount", dim, []string{"Average", "Minimum", "Maximum"}})
+				mdqs = append(mdqs, metricStatistics{"process:unhealthy", ns, "UnHealthyHostCount", dim, []string{"Average", "Minimum", "Maximum"}})
+				mdqs = append(mdqs, metricStatistics{"service:requests:2xx", ns, "HTTPCode_Target_2XX_Count", dim, []string{"Sum"}})
+				mdqs = append(mdqs, metricStatistics{"service:requests:3xx", ns, "HTTPCode_Target_3XX_Count", dim, []string{"Sum"}})
+				mdqs = append(mdqs, metricStatistics{"service:requests:4xx", ns, "HTTPCode_Target_4XX_Count", dim, []string{"Sum"}})
+				mdqs = append(mdqs, metricStatistics{"service:requests:5xx", ns, "HTTPCode_Target_5XX_Count", dim, []string{"Sum"}})
+				mdqs = append(mdqs, metricStatistics{"service:response:time", ns, "TargetResponseTime", dim, []string{"Minimum", "Maximum"}})
+
+				mdqs = append(mdqs, metricExpressions{
+					"service:requests",
+					"Sum",
+					[]metricStatistics{
+						metricStatistics{"target_requests", ns, "RequestCountPerTarget", dim, []string{"Sum"}},
+						metricStatistics{"target_count", ns, "HealthyHostCount", dim, []string{"Average"}},
+					},
+					[]metricExpression{
+						metricExpression{"requests", "target_requests_Sum_## * target_count_Average_##"},
+					},
+				})
 			}
 		}
 	}
