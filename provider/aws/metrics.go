@@ -14,16 +14,7 @@ import (
 	"github.com/convox/rack/pkg/structs"
 )
 
-type metricDefinition struct {
-	Name        string
-	Namespace   string
-	Metric      string
-	Dimensions  map[string]string
-	Statistics  []string
-	Expressions []string
-}
-
-func (p *Provider) cloudwatchMetrics(mds []metricDefinition, opts structs.MetricsOptions) (structs.Metrics, error) {
+func (p *Provider) cloudwatchMetrics(mdqs []metricDataQuerier, opts structs.MetricsOptions) (structs.Metrics, error) {
 	period := ci(opts.Period, 3600)
 
 	req := &cloudwatch.GetMetricDataInput{
@@ -33,37 +24,8 @@ func (p *Provider) cloudwatchMetrics(mds []metricDefinition, opts structs.Metric
 		StartTime:         aws.Time(ct(opts.Start, time.Now().Add(-24*time.Hour))),
 	}
 
-	for i, md := range mds {
-		dim := []*cloudwatch.Dimension{}
-		for k, v := range md.Dimensions {
-			dim = append(dim, &cloudwatch.Dimension{
-				Name:  options.String(k),
-				Value: options.String(v),
-			})
-		}
-
-		stats := []*string{}
-		for _, s := range md.Statistics {
-			stats = append(stats, aws.String(s))
-		}
-
-		for _, s := range md.Statistics {
-			q := &cloudwatch.MetricDataQuery{
-				Id:    aws.String(fmt.Sprintf("%s_%s_%d", strings.ReplaceAll(md.Name, ":", "_"), s, i)),
-				Label: aws.String(fmt.Sprintf("%s/%s", md.Name, s)),
-				MetricStat: &cloudwatch.MetricStat{
-					Metric: &cloudwatch.Metric{
-						Dimensions: dim,
-						MetricName: aws.String(md.Metric),
-						Namespace:  aws.String(md.Namespace),
-					},
-					Period: aws.Int64(period),
-					Stat:   aws.String(s),
-				},
-			}
-
-			req.MetricDataQueries = append(req.MetricDataQueries, q)
-		}
+	for i, mdq := range mdqs {
+		req.MetricDataQueries = append(req.MetricDataQueries, mdq.MetricDataQueries(period, fmt.Sprintf("%d", i))...)
 	}
 
 	res, err := p.CloudWatch.GetMetricData(req)
@@ -156,7 +118,7 @@ func (p *Provider) cloudwatchMetrics(mds []metricDefinition, opts structs.Metric
 	return ms, nil
 }
 
-func (p *Provider) appMetricDefinitions(app string) ([]metricDefinition, error) {
+func (p *Provider) appMetricDefinitions(app string) ([]metricDataQuerier, error) {
 	rs, err := p.describeStackResources(&cloudformation.DescribeStackResourcesInput{
 		StackName: aws.String(p.rackStack(app)),
 	})
@@ -171,7 +133,7 @@ func (p *Provider) appMetricDefinitions(app string) ([]metricDefinition, error) 
 
 	ros := stackOutputs(sr)
 
-	mds := []metricDefinition{}
+	mdqs := []metricDataQuerier{}
 
 	for _, r := range rs.StackResources {
 		if r.ResourceType != nil && r.LogicalResourceId != nil {
@@ -187,7 +149,7 @@ func (p *Provider) appMetricDefinitions(app string) ([]metricDefinition, error) 
 					svp := strings.Split(sv, "/")
 					svn := svp[len(svp)-1]
 
-					mds = append(mds, metricDefinition{"process:running", "AWS/ECS", "CPUUtilization", map[string]string{"ClusterName": p.Cluster, "ServiceName": svn}, []string{"SampleCount"}, []string{}})
+					mdqs = append(mdqs, metricStatistics{"process:running", "AWS/ECS", "CPUUtilization", map[string]string{"ClusterName": p.Cluster, "ServiceName": svn}, []string{"SampleCount"}})
 				}
 
 				if tg := sos["TargetGroup"]; tg != "" {
@@ -195,35 +157,126 @@ func (p *Provider) appMetricDefinitions(app string) ([]metricDefinition, error) 
 					tgn := tgp[len(tgp)-1]
 
 					if rn := ros["RouterName"]; rn != "" {
-						mds = append(mds, metricDefinition{"process:healthy", "AWS/ApplicationELB", "HealthyHostCount", map[string]string{"LoadBalancer": rn, "TargetGroup": tgn}, []string{"Average", "Minimum", "Maximum"}, []string{}})
-						mds = append(mds, metricDefinition{"process:unhealthy", "AWS/ApplicationELB", "UnHealthyHostCount", map[string]string{"LoadBalancer": rn, "TargetGroup": tgn}, []string{"Average", "Minimum", "Maximum"}, []string{}})
-						mds = append(mds, metricDefinition{"service:requests:2xx", "AWS/ApplicationELB", "HTTPCode_Target_2XX_Count", map[string]string{"LoadBalancer": rn, "TargetGroup": tgn}, []string{"Sum"}, []string{}})
-						mds = append(mds, metricDefinition{"service:requests:3xx", "AWS/ApplicationELB", "HTTPCode_Target_3XX_Count", map[string]string{"LoadBalancer": rn, "TargetGroup": tgn}, []string{"Sum"}, []string{}})
-						mds = append(mds, metricDefinition{"service:requests:4xx", "AWS/ApplicationELB", "HTTPCode_Target_4XX_Count", map[string]string{"LoadBalancer": rn, "TargetGroup": tgn}, []string{"Sum"}, []string{}})
-						mds = append(mds, metricDefinition{"service:requests:5xx", "AWS/ApplicationELB", "HTTPCode_Target_5XX_Count", map[string]string{"LoadBalancer": rn, "TargetGroup": tgn}, []string{"Sum"}, []string{}})
-						mds = append(mds, metricDefinition{"service:requests", "AWS/ApplicationELB", "RequestCountPerTarget", map[string]string{"LoadBalancer": rn, "TargetGroup": tgn}, []string{"Sum"}, []string{}})
-						mds = append(mds, metricDefinition{"service:response:time", "AWS/ApplicationELB", "TargetResponseTime", map[string]string{"LoadBalancer": rn, "TargetGroup": tgn}, []string{"Minimum", "Maximum"}, []string{}})
+						mdqs = append(mdqs, metricStatistics{"process:healthy", "AWS/ApplicationELB", "HealthyHostCount", map[string]string{"LoadBalancer": rn, "TargetGroup": tgn}, []string{"Average", "Minimum", "Maximum"}})
+						mdqs = append(mdqs, metricStatistics{"process:unhealthy", "AWS/ApplicationELB", "UnHealthyHostCount", map[string]string{"LoadBalancer": rn, "TargetGroup": tgn}, []string{"Average", "Minimum", "Maximum"}})
+						mdqs = append(mdqs, metricStatistics{"service:requests:2xx", "AWS/ApplicationELB", "HTTPCode_Target_2XX_Count", map[string]string{"LoadBalancer": rn, "TargetGroup": tgn}, []string{"Sum"}})
+						mdqs = append(mdqs, metricStatistics{"service:requests:3xx", "AWS/ApplicationELB", "HTTPCode_Target_3XX_Count", map[string]string{"LoadBalancer": rn, "TargetGroup": tgn}, []string{"Sum"}})
+						mdqs = append(mdqs, metricStatistics{"service:requests:4xx", "AWS/ApplicationELB", "HTTPCode_Target_4XX_Count", map[string]string{"LoadBalancer": rn, "TargetGroup": tgn}, []string{"Sum"}})
+						mdqs = append(mdqs, metricStatistics{"service:requests:5xx", "AWS/ApplicationELB", "HTTPCode_Target_5XX_Count", map[string]string{"LoadBalancer": rn, "TargetGroup": tgn}, []string{"Sum"}})
+						// mdqs = append(mdqs, metricStatistics{"service:requests", "AWS/ApplicationELB", "RequestCountPerTarget", map[string]string{"LoadBalancer": rn, "TargetGroup": tgn}, []string{"Sum"}})
+						mdqs = append(mdqs, metricStatistics{"service:response:time", "AWS/ApplicationELB", "TargetResponseTime", map[string]string{"LoadBalancer": rn, "TargetGroup": tgn}, []string{"Minimum", "Maximum"}})
+
+						mdqs = append(mdqs, metricExpressions{
+							"service:requests",
+							"Sum",
+							[]metricStatistics{
+								metricStatistics{"target_requests", "AWS/ApplicationELB", "RequestCountPerTarget", map[string]string{"LoadBalancer": rn, "TargetGroup": tgn}, []string{"Sum"}},
+								metricStatistics{"target_healthy", "AWS/ApplicationELB", "HealthyHostCount", map[string]string{"LoadBalancer": rn, "TargetGroup": tgn}, []string{"Average"}},
+							},
+							[]metricExpression{metricExpression{"requests", "target_requests_Sum_## * target_healthy_Average_##"}},
+						})
 					}
 				}
 			}
 		}
 	}
 
-	return mds, nil
+	return mdqs, nil
 }
 
-func (p *Provider) systemMetricDefinitions() []metricDefinition {
-	mds := []metricDefinition{
-		{"cluster:cpu:reservation", "AWS/ECS", "CPUReservation", map[string]string{"ClusterName": p.Cluster}, []string{"Average", "Minimum", "Maximum"}, []string{}},
-		{"cluster:cpu:utilization", "AWS/ECS", "CPUUtilization", map[string]string{"ClusterName": p.Cluster}, []string{"Average", "Minimum", "Maximum"}, []string{}},
-		{"cluster:mem:reservation", "AWS/ECS", "MemoryReservation", map[string]string{"ClusterName": p.Cluster}, []string{"Average", "Minimum", "Maximum"}, []string{}},
-		{"cluster:mem:utilization", "AWS/ECS", "MemoryUtilization", map[string]string{"ClusterName": p.Cluster}, []string{"Average", "Minimum", "Maximum"}, []string{}},
-		{"instances:standard:cpu", "AWS/EC2", "CPUUtilization", map[string]string{"AutoScalingGroupName": p.AsgStandard}, []string{"Average", "Minimum", "Maximum"}, []string{}},
+func (p *Provider) systemMetricDefinitions() []metricDataQuerier {
+	mdqs := []metricDataQuerier{
+		metricStatistics{"cluster:cpu:reservation", "AWS/ECS", "CPUReservation", map[string]string{"ClusterName": p.Cluster}, []string{"Average", "Minimum", "Maximum"}},
+		metricStatistics{"cluster:cpu:utilization", "AWS/ECS", "CPUUtilization", map[string]string{"ClusterName": p.Cluster}, []string{"Average", "Minimum", "Maximum"}},
+		metricStatistics{"cluster:mem:reservation", "AWS/ECS", "MemoryReservation", map[string]string{"ClusterName": p.Cluster}, []string{"Average", "Minimum", "Maximum"}},
+		metricStatistics{"cluster:mem:utilization", "AWS/ECS", "MemoryUtilization", map[string]string{"ClusterName": p.Cluster}, []string{"Average", "Minimum", "Maximum"}},
+		metricStatistics{"instances:standard:cpu", "AWS/EC2", "CPUUtilization", map[string]string{"AutoScalingGroupName": p.AsgStandard}, []string{"Average", "Minimum", "Maximum"}},
 	}
 
 	if p.AsgSpot != "" {
-		mds = append(mds, metricDefinition{"instances:spot:cpu", "AWS/EC2", "CPUUtilization", map[string]string{"AutoScalingGroupName": p.AsgSpot}, []string{"Average", "Minimum", "Maximum"}, []string{}})
+		mdqs = append(mdqs, metricStatistics{"instances:spot:cpu", "AWS/EC2", "CPUUtilization", map[string]string{"AutoScalingGroupName": p.AsgSpot}, []string{"Average", "Minimum", "Maximum"}})
 	}
 
-	return mds
+	return mdqs
+}
+
+type metricDataQuerier interface {
+	MetricDataQueries(period int64, suffix string) []*cloudwatch.MetricDataQuery
+}
+
+type metricExpressions struct {
+	Name        string
+	Statistic   string
+	Statistics  []metricStatistics
+	Expressions []metricExpression
+}
+
+type metricExpression struct {
+	Name       string
+	Expression string
+}
+
+type metricStatistics struct {
+	Name       string
+	Namespace  string
+	Metric     string
+	Dimensions map[string]string
+	Statistics []string
+}
+
+func (me metricExpressions) MetricDataQueries(period int64, suffix string) []*cloudwatch.MetricDataQuery {
+	qs := []*cloudwatch.MetricDataQuery{}
+
+	for _, ms := range me.Statistics {
+		qs = append(qs, ms.MetricDataQueries(period, suffix)...)
+	}
+
+	for _, e := range me.Expressions {
+		q := &cloudwatch.MetricDataQuery{
+			Id:         aws.String(fmt.Sprintf("%s_%s_%s", strings.ReplaceAll(me.Name, ":", "_"), me.Statistic, suffix)),
+			Label:      aws.String(fmt.Sprintf("%s/%s", me.Name, me.Statistic)),
+			Expression: aws.String(strings.ReplaceAll(e.Expression, "##", suffix)),
+		}
+
+		qs = append(qs, q)
+	}
+
+	return qs
+}
+
+func (ms metricStatistics) MetricDataQueries(period int64, suffix string) []*cloudwatch.MetricDataQuery {
+	qs := []*cloudwatch.MetricDataQuery{}
+
+	dim := []*cloudwatch.Dimension{}
+	for k, v := range ms.Dimensions {
+		dim = append(dim, &cloudwatch.Dimension{
+			Name:  options.String(k),
+			Value: options.String(v),
+		})
+	}
+
+	stats := []*string{}
+	for _, s := range ms.Statistics {
+		stats = append(stats, aws.String(s))
+	}
+
+	for _, s := range ms.Statistics {
+		q := &cloudwatch.MetricDataQuery{
+			Id:    aws.String(fmt.Sprintf("%s_%s_%s", strings.ReplaceAll(ms.Name, ":", "_"), s, suffix)),
+			Label: aws.String(fmt.Sprintf("%s/%s", ms.Name, s)),
+			MetricStat: &cloudwatch.MetricStat{
+				Metric: &cloudwatch.Metric{
+					Dimensions: dim,
+					MetricName: aws.String(ms.Metric),
+					Namespace:  aws.String(ms.Namespace),
+				},
+				Period: aws.Int64(period),
+				Stat:   aws.String(s),
+			},
+		}
+
+		qs = append(qs, q)
+	}
+
+	return qs
 }
