@@ -139,10 +139,10 @@ func WaitForAppDeleted(p structs.Provider, w io.Writer, app string) error {
 }
 
 func WaitForAppRunning(p structs.Provider, app string) error {
-	return WaitForAppRunningContext(context.Background(), p, app)
+	return WaitForAppRunningContext(context.Background(), p, app, true)
 }
 
-func WaitForAppRunningContext(ctx context.Context, p structs.Provider, app string) error {
+func WaitForAppRunningContext(ctx context.Context, p structs.Provider, app string, errorOnRollback bool) error {
 	time.Sleep(ProviderWaitDuration) // give the stack time to start updating
 
 	var waitError error
@@ -153,7 +153,7 @@ func WaitForAppRunningContext(ctx context.Context, p structs.Provider, app strin
 			return false, err
 		}
 
-		if a.Status == "rollback" {
+		if errorOnRollback && a.Status == "rollback" {
 			waitError = fmt.Errorf("rollback")
 		}
 
@@ -171,7 +171,17 @@ func WaitForAppWithLogs(p structs.Provider, w io.Writer, app string) error {
 func WaitForAppWithLogsContext(ctx context.Context, p structs.Provider, w io.Writer, app string) error {
 	go StreamAppLogs(ctx, p, w, app)
 
-	if err := WaitForAppRunningContext(ctx, p, app); err != nil {
+	if err := WaitForAppRunningContext(ctx, p, app, true); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func WaitForAppRollbackWithLogsContext(ctx context.Context, p structs.Provider, w io.Writer, app string) error {
+	go StreamAppLogs(ctx, p, w, app)
+
+	if err := WaitForAppRunningContext(ctx, p, app, false); err != nil {
 		return err
 	}
 

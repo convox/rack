@@ -79,6 +79,27 @@ func TestAppsCancel(t *testing.T) {
 	})
 }
 
+func TestAppsCancelWait(t *testing.T) {
+	testClientWait(t, 100*time.Millisecond, func(e *cli.Engine, i *mocksdk.Interface) {
+		i.On("AppCancel", "app1").Return(nil)
+		opts := structs.LogsOptions{Prefix: options.Bool(true), Since: options.Duration(5 * time.Second)}
+		i.On("AppLogs", "app1", opts).Return(testLogs(fxLogsSystem()), nil)
+		i.On("AppGet", "app1").Return(fxAppRollback(), nil).Times(2)
+		i.On("AppGet", "app1").Return(fxApp(), nil)
+
+		res, err := testExecute(e, "apps cancel app1 --wait", nil)
+		require.NoError(t, err)
+		require.Equal(t, 0, res.Code)
+		res.RequireStderr(t, []string{""})
+		res.RequireStdout(t, []string{
+			"Cancelling app1... ",
+			"TIME system/aws/component log1",
+			"TIME system/aws/component log2",
+			"OK",
+		})
+	})
+}
+
 func TestAppsCancelError(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
 		i.On("AppCancel", "app1").Return(fmt.Errorf("err1"))
