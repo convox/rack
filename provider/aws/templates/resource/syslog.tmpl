@@ -132,7 +132,7 @@
                     "logs:PutLogEvents"
                   ],
                   "Effect": "Allow",
-                  "Resource": { "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:*"
+                  "Resource": { "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:*" }
                 },
                 {
                   "Action": [
