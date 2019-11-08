@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"math/rand"
 	"net/http"
 	"os"
 	"os/exec"
@@ -20,9 +21,16 @@ import (
 	"github.com/aws/aws-sdk-go/service/cloudformation/cloudformationiface"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs/cloudwatchlogsiface"
+	"github.com/convox/logger"
 	"github.com/convox/rack/pkg/structs"
 	yaml "gopkg.in/yaml.v2"
 )
+
+var log = logger.New("ns=pkg.helpers")
+
+func init() {
+	rand.Seed(time.Now().UTC().UnixNano())
+}
 
 func AwsCredentialsLoad() error {
 	if os.Getenv("AWS_ACCESS_KEY_ID") == "" {
@@ -347,7 +355,9 @@ func CloudWatchLogsSubscribe(ctx context.Context, cw cloudwatchlogsiface.CloudWa
 func CloudWatchLogsStream(ctx context.Context, cw cloudwatchlogsiface.CloudWatchLogsAPI, w io.WriteCloser, group, stream string, opts structs.LogsOptions) error {
 	defer w.Close()
 
-	fmt.Printf("CloudWatchLogsStream group=%q stream=%q", group, stream)
+	loggingId := rand.Int31()
+	log = log.At("CloudWatchLogStream")
+	log.Logf("id=%d group=%q stream=%q", loggingId, group, stream)
 
 	streams := map[string]bool{}
 
@@ -368,7 +378,8 @@ func CloudWatchLogsStream(ctx context.Context, cw cloudwatchlogsiface.CloudWatch
 	} else {
 		req.Interleaved = aws.Bool(true)
 
-		ss, err := logStreamsSince(ctx, cw, group, start)
+		ss, err := logStreamsSince(ctx, cw, group, start, loggingId)
+		log = log.At("CloudWatchLogStream")
 		if err != nil {
 			return err
 		}
@@ -386,32 +397,30 @@ func CloudWatchLogsStream(ctx context.Context, cw cloudwatchlogsiface.CloudWatch
 
 	sleep := time.Duration(100 * time.Millisecond)
 
-	fmt.Printf("StartTime=%d\n", req.StartTime)
+	log.Logf("id=%d StartTime=%d", loggingId, req.StartTime)
 
 	for {
 		select {
 		case <-ctx.Done():
-			fmt.Printf("Logging ctx Done\n")
+			log.Logf("id=%d Logging ctx Done", loggingId)
 			return nil
 		default:
 			time.Sleep(sleep)
 
 			// check for closed writer
 			if _, err := w.Write([]byte{}); err != nil {
-				fmt.Printf("WriterError=%v\n", err)
-				return err
+				return log.Errorf("id=%d WriterError=%v", loggingId, err)
 			}
 
 			res, err := cw.FilterLogEvents(req)
 			if err != nil {
 				switch AwsErrorCode(err) {
 				case "ThrottlingException", "ResourceNotFoundException":
-					fmt.Printf("AWS Known Error=%v\n", err)
+					log.Errorf("id=%d AWS Known Error=%v", loggingId, err)
 					time.Sleep(1 * time.Second)
 					continue
 				default:
-					fmt.Printf("AWS Unknown Error=%v\n", err)
-					return err
+					return log.Errorf("id=%d AWS Unknown Error=%v", loggingId, err)
 				}
 			}
 
@@ -441,12 +450,11 @@ func CloudWatchLogsStream(ctx context.Context, cw cloudwatchlogsiface.CloudWatch
 			sort.Slice(es, func(i, j int) bool { return *es[i].Timestamp < *es[j].Timestamp })
 
 			if _, err := writeLogEvents(w, es, opts); err != nil {
-				fmt.Printf("WriteLogEventError=%v\n", err)
-				return err
+				return log.Errorf("id=%d WriteLogEventError=%v", loggingId, err)
 			}
 
 			done := len(res.SearchedLogStreams) > 0
-			fmt.Printf("SearchedLogStreams=%d\n", len(res.SearchedLogStreams))
+			log.Logf("id=%d SearchedLogStreams=%d", loggingId, len(res.SearchedLogStreams))
 
 			for _, s := range res.SearchedLogStreams {
 				if s.SearchedCompletely == nil || !*s.SearchedCompletely {
@@ -456,22 +464,22 @@ func CloudWatchLogsStream(ctx context.Context, cw cloudwatchlogsiface.CloudWatch
 
 			if !done && res.NextToken != nil {
 				req.NextToken = res.NextToken
-				fmt.Printf("Continuing from=%v\n", req.NextToken)
+				log.Logf("id=%d Continuing from=%v", loggingId, req.NextToken)
 				continue
 			}
 
 			if !follow {
-				fmt.Printf("Finishing\n")
+				log.Logf("id=%d Finishing", loggingId)
 				return nil
 			}
 
 			req.NextToken = nil
 			req.StartTime = aws.Int64(start)
 
-			ss, err := logStreamsSince(ctx, cw, group, start)
+			ss, err := logStreamsSince(ctx, cw, group, start, loggingId)
+			log = log.At("CloudWatchLogStream")
 			if err != nil {
-				fmt.Printf("logStreamsSince error=%v\n", err)
-				return err
+				return log.Errorf("id=%d logStreamsSince error=%v", loggingId, err)
 			}
 
 			req.LogStreamNames = ss
@@ -586,7 +594,7 @@ func writeLogEvents(w io.Writer, events []*cloudwatchlogs.FilteredLogEvent, opts
 	return latest, nil
 }
 
-func logStreamsSince(ctx context.Context, cw cloudwatchlogsiface.CloudWatchLogsAPI, group string, since int64) ([]*string, error) {
+func logStreamsSince(ctx context.Context, cw cloudwatchlogsiface.CloudWatchLogsAPI, group string, since int64, loggingId int32) ([]*string, error) {
 	params := &cloudwatchlogs.DescribeLogStreamsInput{
 		Descending:   aws.Bool(true),
 		LogGroupName: aws.String(group),
@@ -601,12 +609,14 @@ func logStreamsSince(ctx context.Context, cw cloudwatchlogsiface.CloudWatchLogsA
 		},
 	}
 
+	log = log.At("logStreamsSince")
+
 	streams := []*string{}
 	done := false
 
 	for p.Next() {
 		if p.Err() != nil {
-			fmt.Printf("LogStream pagination error=%s\n", p.Err())
+			log.Errorf("id=%d LogStream pagination error=%s", loggingId, p.Err())
 			return nil, p.Err()
 		}
 
@@ -625,7 +635,7 @@ func logStreamsSince(ctx context.Context, cw cloudwatchlogsiface.CloudWatchLogsA
 
 			streams = append(streams, aws.String(*stream.LogStreamName))
 
-			fmt.Printf("StreamName=%s | ", *stream.LogStreamName)
+			log.Logf("id=%d StreamName=%s", loggingId, *stream.LogStreamName)
 		}
 
 		if done {
