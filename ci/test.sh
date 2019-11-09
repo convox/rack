@@ -29,6 +29,7 @@ convox version
 # rack
 convox instances
 convox rack
+sleep 15
 convox rack logs --no-follow | grep service/
 convox rack ps | grep rack
 
