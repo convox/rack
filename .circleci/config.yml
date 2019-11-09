@@ -153,7 +153,7 @@ commands:
     steps:
       - run:
           command: ci/test.sh
-          no_output_timeout: 20m
+          no_output_timeout: 40m
   ci-uninstall:
     steps:
       - run:
