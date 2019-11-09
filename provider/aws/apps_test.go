@@ -87,7 +87,8 @@ func TestAppGet(t *testing.T) {
 func TestAppLogs(t *testing.T) {
 	provider := StubAwsProvider(
 		cycleListAppStackResources,
-		cycleLogDescribeLogStreams,
+		cycleLogDescribeLogStreamsDescending,
+		cycleLogDescribeLogStreamsAscending,
 		cycleLogFilterLogEvents1,
 		cycleLogFilterLogEvents2,
 	)
@@ -110,7 +111,8 @@ func TestAppLogs(t *testing.T) {
 func TestAppLogsSince(t *testing.T) {
 	provider := StubAwsProvider(
 		cycleListAppStackResources,
-		cycleLogDescribeLogStreams,
+		cycleLogDescribeLogStreamsDescending,
+		cycleLogDescribeLogStreamsAscending,
 		cycleLogFilterLogEventsLimit1,
 		cycleLogFilterLogEventsLimit2,
 		cycleLogFilterLogEventsLimit3,
@@ -302,7 +304,38 @@ var cycleAppDescribeStacks = awsutil.Cycle{
 	`},
 }
 
-var cycleLogDescribeLogStreams = awsutil.Cycle{
+var cycleLogDescribeLogStreamsAscending = awsutil.Cycle{
+	Request: awsutil.Request{
+		RequestURI: "/",
+		Operation:  "Logs_20140328.DescribeLogStreams",
+		Body: `{
+			"descending": false,
+			"logGroupName": "convox-httpd-LogGroup-L4V203L35WRM",
+			"orderBy": "LastEventTime"
+		}`,
+	},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body: `{
+			"logStreams": [
+				{
+					"logStreamName": "logstream3",
+					"creationTime": 1546214900000
+				},
+				{
+					"logStreamName": "logstream1",
+					"lastEventTimestamp": 1546214400000
+				},
+				{
+					"logStreamName": "logstream2",
+					"lastEventTimestamp": 1546214300000
+				}
+			]
+		}`,
+	},
+}
+
+var cycleLogDescribeLogStreamsDescending = awsutil.Cycle{
 	Request: awsutil.Request{
 		RequestURI: "/",
 		Operation:  "Logs_20140328.DescribeLogStreams",
@@ -325,10 +358,8 @@ var cycleLogDescribeLogStreams = awsutil.Cycle{
 					"lastEventTimestamp": 1546214300000
 				},
 				{
-					"logStreamName": "logstream3",
-					"creationTime": 1546214300000,
-					"firstEventTimestamp": 1546214300000,
-					"lastEventTimestamp": 1546214300000
+					"logStreamName": "logstream4",
+					"lastEventTimestamp": 1246214300000
 				}
 			]
 		}`,
@@ -345,7 +376,7 @@ var cycleLogFilterLogEventsLimit1 = awsutil.Cycle{
 			"logGroupName": "convox-httpd-LogGroup-L4V203L35WRM",
 			"logStreamNames": [
 				"logstream1",
-				"logstream2"
+				"logstream3"
 			],
 			"startTime": 1546300800000
 		}`,
@@ -401,7 +432,7 @@ var cycleLogFilterLogEventsLimit2 = awsutil.Cycle{
 			"logGroupName": "convox-httpd-LogGroup-L4V203L35WRM",
 			"logStreamNames": [
 				"logstream1",
-				"logstream2"
+				"logstream3"
 			],
 			"nextToken": "ZNUEPl7FcQuXbIH4Swk9D9eFu2XBg-ijZIZlvzz4ea9zZRjw-MMtQtvcoMdmq4T29K7Q6Y1e_KvyfpcT_f_tUw",
 			"startTime": 1546300800000
@@ -450,7 +481,7 @@ var cycleLogFilterLogEventsLimit3 = awsutil.Cycle{
 			"logGroupName": "convox-httpd-LogGroup-L4V203L35WRM",
 			"logStreamNames": [
 				"logstream1",
-				"logstream2"
+				"logstream3"
 			],
 			"nextToken": "ZNUEPl7FcQuXbIH4Swk9D9eFu2XBg-ijZIZlvzz4ea9zZRjw-MMtQtvcoMdmq4T29K7Q6Y1e_KvyfpcT_f_tUw",
 			"startTime": 1546300800000
@@ -476,7 +507,8 @@ var cycleLogFilterLogEvents1 = awsutil.Cycle{
 			"logStreamNames": [
 				"logstream1",
 				"logstream2",
-				"logstream3"
+				"logstream3",
+				"logstream4"
 			]
 		}`,
 	},
@@ -536,7 +568,8 @@ var cycleLogFilterLogEvents2 = awsutil.Cycle{
 			"logStreamNames": [
 				"logstream1",
 				"logstream2",
-				"logstream3"
+				"logstream3",
+				"logstream4"
 			],
 			"nextToken": "ZNUEPl7FcQuXbIH4Swk9D9eFu2XBg-ijZIZlvzz4ea9zZRjw-MMtQtvcoMdmq4T29K7Q6Y1e_KvyfpcT_f_tUw"
 		}`,
