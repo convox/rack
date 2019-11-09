@@ -76,9 +76,12 @@ func KMSKeyDelete(req Request) (string, map[string]string, error) {
 	_, err := KMS(req).DisableKey(&kms.DisableKeyInput{
 		KeyId: aws.String(req.PhysicalResourceId),
 	})
-	// go ahead and mark the delete good if the key is not found
-	if ae, ok := err.(awserr.Error); ok && ae.Code() == "NotFoundException" {
-		return req.PhysicalResourceId, nil, nil
+	// go ahead and mark the delete good if the key is not found or already deleting
+	if ae, ok := err.(awserr.Error); ok {
+		switch ae.Code() {
+		case "NotFoundException", "KMSInvalidStateException":
+			return req.PhysicalResourceId, nil, nil
+		}
 	}
 	if err != nil {
 		fmt.Printf("error: %s\n", err)
