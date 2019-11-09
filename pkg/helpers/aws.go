@@ -599,14 +599,21 @@ func logStreamsSince(ctx context.Context, cw cloudwatchlogsiface.CloudWatchLogsA
 		page := p.Page().(*cloudwatchlogs.DescribeLogStreamsOutput)
 
 		for _, stream := range page.LogStreams {
-			if stream.LastEventTimestamp == nil || stream.LogStreamName == nil {
+			if stream.LogStreamName == nil {
 				continue
 			}
 
-			// last event timestamp takes a long time to update
-			if since > 0 && *stream.LastEventTimestamp < (since-86400000) {
-				done = true
-				break
+			// if the stream wasn't created or had its first or last event in the last 24 hours, skip it
+			if since > 0 {
+				cutoff := since - 86400000
+				if stream.CreationTime != nil && *stream.CreationTime < cutoff {
+					if stream.FirstEventTimestamp != nil && *stream.FirstEventTimestamp < cutoff {
+						if stream.LastEventTimestamp != nil && *stream.LastEventTimestamp < cutoff {
+							done = true
+							break
+						}
+					}
+				}
 			}
 
 			streams = append(streams, aws.String(*stream.LogStreamName))
