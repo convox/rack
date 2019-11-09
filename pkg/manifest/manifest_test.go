@@ -297,7 +297,9 @@ func TestManifestLoad(t *testing.T) {
 
 	// env processing that normally happens as part of load
 	require.NoError(t, n.CombineEnv())
-	require.NoError(t, n.ValidateEnv())
+
+	// ensure validations pass
+	require.NoError(t, n.Validate())
 
 	m, err := testdataManifest("full", env)
 	require.NoError(t, err)
@@ -356,7 +358,9 @@ func TestManifestLoadSimple(t *testing.T) {
 
 	// env processing that normally happens as part of load
 	require.NoError(t, n.CombineEnv())
-	require.NoError(t, n.ValidateEnv())
+
+	// ensure validations pass
+	require.NoError(t, n.Validate())
 
 	m, err := testdataManifest("simple", map[string]string{"REQUIRED": "test"})
 	require.NoError(t, err)
@@ -392,6 +396,12 @@ func TestManifestEnvManipulation(t *testing.T) {
 
 	require.Equal(t, "train-intent", m.Services[0].EnvironmentDefaults()["QUEUE_NAME"])
 	require.Equal(t, "delete-intent", m.Services[1].EnvironmentDefaults()["QUEUE_NAME"])
+}
+
+func TestManifestValidation(t *testing.T) {
+	m, err := testdataManifest("invalid.3", map[string]string{})
+	require.Nil(t, m)
+	require.EqualError(t, err, "resource type can not be blank")
 }
 
 func testdataManifest(name string, env map[string]string) (*manifest.Manifest, error) {
