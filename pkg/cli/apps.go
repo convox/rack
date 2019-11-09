@@ -2,6 +2,7 @@ package cli
 
 import (
 	"compress/gzip"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -25,7 +26,7 @@ func init() {
 	})
 
 	register("apps cancel", "cancel an app update", AppsCancel, stdcli.CommandOptions{
-		Flags:    []stdcli.Flag{flagRack, flagApp},
+		Flags:    []stdcli.Flag{flagRack, flagApp, flagWait},
 		Usage:    "[app]",
 		Validate: stdcli.ArgsMax(1),
 	})
@@ -121,6 +122,14 @@ func AppsCancel(rack sdk.Interface, c *stdcli.Context) error {
 
 	if err := rack.AppCancel(app); err != nil {
 		return err
+	}
+
+	if c.Bool("wait") {
+		c.Writef("\n")
+
+		if err := helpers.WaitForAppRollbackWithLogsContext(context.Background(), rack, c, app); err != nil {
+			return err
+		}
 	}
 
 	return c.OK()
