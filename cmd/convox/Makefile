@@ -1,4 +1,4 @@
-.PHONY: all build clean package package-deps package-gopath release
+.PHONY: all build clean package package-deps package-export package-gopath release
 
 pkg_darwin  = pkg/convox-darwin-10.6-amd64
 pkg_linux   = pkg/convox-linux-amd64
@@ -14,13 +14,17 @@ build:
 clean:
 	rm -f pkg/convox-*
 
-package: package-deps package-gopath $(pkg_darwin) $(pkg_linux) $(pkg_windows)
+package: package-deps package-gopath $(pkg_darwin) $(pkg_linux) $(pkg_windows) package-export
 
 package-deps:
 	go get -u github.com/karalabe/xgo
 	mkdir -p pkg
 
-# set up gopath in docker volume if running inside a container
+# copy finished packages out if running inside a container
+package-export:
+	if [ -f /.dockerenv ]; then mkdir -p pkg && docker run -v $(GOPATH):/gopath -i ubuntu tar czv /gopath/src/github.com/convox/rack/cmd/convox/pkg | tar xzv -C pkg --strip-components 8; fi
+
+# copy gopath in if running inside a container
 package-gopath:
 	if [ -f /.dockerenv ]; then tar cz $(GOPATH) | docker run -v $(GOPATH):/gopath -i ubuntu tar xz -C /gopath --strip-components 2; fi
 
