@@ -1,4 +1,4 @@
-.PHONY: all build builder clean clean-package compress dev generate generate-provider mocks package release release-cli release-image release-provider release-version test test-docker
+.PHONY: all build builder clean clean-package compress dev generate mocks package release release-cli release-image release-provider release-version test test-docker
 
 commands = atom build monitor rack router
 injects  = convox-env
@@ -44,6 +44,9 @@ endif
 	convox rack logs
 
 generate:
+	go run cmd/generate/main.go controllers > pkg/api/controllers.go
+	go run cmd/generate/main.go routes > pkg/api/routes.go
+	go run cmd/generate/main.go sdk > sdk/methods.go
 	make -C pkg/atom generate
 	make -C provider/k8s generate
 	make -C provider/kaws generate
@@ -63,6 +66,10 @@ mocks: generate-provider
 
 package:
 	$(GOPATH)/bin/packr
+
+regions:
+	@aws-vault exec convox-release-standard go run provider/aws/cmd/regions/main.go
+	@aws-vault exec convox-release-govcloud go run provider/aws/cmd/regions/main.go
 
 release: release-version release-cli release-image release-provider
 
