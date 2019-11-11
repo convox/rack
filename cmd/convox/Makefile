@@ -14,7 +14,7 @@ build:
 clean:
 	rm -f pkg/convox-*
 
-package: package-deps package-deps $(pkg_darwin) $(pkg_linux) $(pkg_windows)
+package: package-deps package-gopath $(pkg_darwin) $(pkg_linux) $(pkg_windows)
 
 package-deps:
 	go get -u github.com/karalabe/xgo
