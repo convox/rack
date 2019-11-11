@@ -1,4 +1,4 @@
-.PHONY: all build builder clean clean-package compress dev generate mocks package release release-cli release-image release-provider release-version test test-docker
+.PHONY: all build builder clean clean-package compress dev generate mocks package regions release release-cli release-image release-provider release-version test test-docker
 
 commands = atom build monitor rack router
 injects  = convox-env
@@ -61,6 +61,10 @@ mocks: generate
 
 package:
 	$(GOPATH)/bin/packr
+
+regions:
+	@aws-vault exec convox-release-standard go run provider/aws/cmd/regions/main.go
+	@aws-vault exec convox-release-govcloud go run provider/aws/cmd/regions/main.go
 
 release: release-version release-cli release-image release-provider
 

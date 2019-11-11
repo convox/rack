@@ -129,7 +129,9 @@ func fetchAmis(regions Regions) error {
 	for name, region := range regions {
 		data, err := exec.Command("aws", "ssm", "get-parameter", "--name", "/aws/service/ecs/optimized-ami/amazon-linux-2/recommended/image_id", "--query", "Parameter.Value", "--region", name).CombinedOutput()
 		if err != nil {
-			fmt.Printf("string(data): %+v\n", string(data))
+			// fmt.Printf("name: %+v\n", name)
+			// fmt.Printf("region: %+v\n", region)
+			// fmt.Printf("string(data): %+v\n", string(data))
 			delete(regions, name)
 			continue
 		}
