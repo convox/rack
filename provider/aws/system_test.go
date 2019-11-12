@@ -105,9 +105,9 @@ func TestSystemMetrics(t *testing.T) {
 		stats := []string{"Average", "Minimum", "Maximum"}
 
 		values := map[string]float64{
-			"Average": 2.12345,
-			"Minimum": 1.12345,
-			"Maximum": 3.12345,
+			"Average": 2.12345678,
+			"Minimum": 1.12345678,
+			"Maximum": 3.12345678,
 		}
 
 		input := &cloudwatch.GetMetricDataInput{MetricDataQueries: []*cloudwatch.MetricDataQuery{}}
@@ -167,12 +167,12 @@ func TestSystemMetrics(t *testing.T) {
 		require.NoError(t, err)
 
 		m2 := structs.Metrics{
-			{Name: "cluster:cpu:reservation", Values: structs.MetricValues{{Time: time.Date(2018, 9, 1, 2, 3, 4, 0, time.UTC), Average: 2.12, Maximum: 3.12, Minimum: 1.12}}},
-			{Name: "cluster:cpu:utilization", Values: structs.MetricValues{{Time: time.Date(2018, 9, 1, 2, 3, 4, 0, time.UTC), Average: 2.12, Maximum: 3.12, Minimum: 1.12}}},
-			{Name: "cluster:mem:reservation", Values: structs.MetricValues{{Time: time.Date(2018, 9, 1, 2, 3, 4, 0, time.UTC), Average: 2.12, Maximum: 3.12, Minimum: 1.12}}},
-			{Name: "cluster:mem:utilization", Values: structs.MetricValues{{Time: time.Date(2018, 9, 1, 2, 3, 4, 0, time.UTC), Average: 2.12, Maximum: 3.12, Minimum: 1.12}}},
-			{Name: "instances:spot:cpu", Values: structs.MetricValues{{Time: time.Date(2018, 9, 1, 2, 3, 4, 0, time.UTC), Average: 2.12, Maximum: 3.12, Minimum: 1.12}}},
-			{Name: "instances:standard:cpu", Values: structs.MetricValues{{Time: time.Date(2018, 9, 1, 2, 3, 4, 0, time.UTC), Average: 2.12, Maximum: 3.12, Minimum: 1.12}}},
+			{Name: "cluster:cpu:reservation", Values: structs.MetricValues{{Time: time.Date(2018, 9, 1, 2, 3, 4, 0, time.UTC), Average: 2.12345, Maximum: 3.12345, Minimum: 1.12345}}},
+			{Name: "cluster:cpu:utilization", Values: structs.MetricValues{{Time: time.Date(2018, 9, 1, 2, 3, 4, 0, time.UTC), Average: 2.12345, Maximum: 3.12345, Minimum: 1.12345}}},
+			{Name: "cluster:mem:reservation", Values: structs.MetricValues{{Time: time.Date(2018, 9, 1, 2, 3, 4, 0, time.UTC), Average: 2.12345, Maximum: 3.12345, Minimum: 1.12345}}},
+			{Name: "cluster:mem:utilization", Values: structs.MetricValues{{Time: time.Date(2018, 9, 1, 2, 3, 4, 0, time.UTC), Average: 2.12345, Maximum: 3.12345, Minimum: 1.12345}}},
+			{Name: "instances:spot:cpu", Values: structs.MetricValues{{Time: time.Date(2018, 9, 1, 2, 3, 4, 0, time.UTC), Average: 2.12345, Maximum: 3.12345, Minimum: 1.12345}}},
+			{Name: "instances:standard:cpu", Values: structs.MetricValues{{Time: time.Date(2018, 9, 1, 2, 3, 4, 0, time.UTC), Average: 2.12345, Maximum: 3.12345, Minimum: 1.12345}}},
 		}
 
 		require.Equal(t, m2, m1)

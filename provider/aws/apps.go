@@ -222,15 +222,7 @@ func (p *Provider) AppLogs(app string, opts structs.LogsOptions) (io.ReadCloser,
 }
 
 func (p *Provider) AppMetrics(name string, opts structs.MetricsOptions) (structs.Metrics, error) {
-	metrics := map[string]bool{}
-
-	if opts.Metrics != nil {
-		for _, m := range opts.Metrics {
-			metrics[m] = true
-		}
-	}
-
-	mds, err := p.appMetricDefinitions(name)
+	mds, err := p.appMetricQueries(name)
 	if err != nil {
 		return nil, err
 	}

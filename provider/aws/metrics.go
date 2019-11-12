@@ -14,6 +14,14 @@ import (
 	"github.com/convox/rack/pkg/structs"
 )
 
+const (
+	metricPrecision = 5
+)
+
+var (
+	metricShifter = math.Pow(10, metricPrecision)
+)
+
 func (p *Provider) cloudwatchMetrics(mdqs []metricDataQuerier, opts structs.MetricsOptions) (structs.Metrics, error) {
 	period := ci(opts.Period, 3600)
 
@@ -63,7 +71,7 @@ func (p *Provider) cloudwatchMetrics(mdqs []metricDataQuerier, opts structs.Metr
 				continue
 			}
 
-			v := math.Floor(*dr.Values[i]*100) / 100
+			v := math.Floor(*dr.Values[i]*metricShifter) / metricShifter
 
 			mv, ok := mvsh[*ts]
 			if !ok {
@@ -77,11 +85,11 @@ func (p *Provider) cloudwatchMetrics(mdqs []metricDataQuerier, opts structs.Metr
 				mv.Minimum += v
 			case "Maximum":
 				mv.Maximum += v
-			case "P90":
+			case "p90":
 				mv.P90 += v
-			case "P95":
+			case "p95":
 				mv.P95 += v
-			case "P99":
+			case "p99":
 				mv.P99 += v
 			case "SampleCount":
 				mv.Count += v / (float64(period) / 60)
@@ -118,7 +126,7 @@ func (p *Provider) cloudwatchMetrics(mdqs []metricDataQuerier, opts structs.Metr
 	return ms, nil
 }
 
-func (p *Provider) appMetricDefinitions(app string) ([]metricDataQuerier, error) {
+func (p *Provider) appMetricQueries(app string) ([]metricDataQuerier, error) {
 	rs, err := p.describeStackResources(&cloudformation.DescribeStackResourcesInput{
 		StackName: aws.String(p.rackStack(app)),
 	})
@@ -168,11 +176,6 @@ func (p *Provider) appMetricDefinitions(app string) ([]metricDataQuerier, error)
 
 				mdqs = append(mdqs, metricStatistics{"process:healthy", ns, "HealthyHostCount", dim, []string{"Average", "Minimum", "Maximum"}})
 				mdqs = append(mdqs, metricStatistics{"process:unhealthy", ns, "UnHealthyHostCount", dim, []string{"Average", "Minimum", "Maximum"}})
-				mdqs = append(mdqs, metricStatistics{"service:requests:2xx", ns, "HTTPCode_Target_2XX_Count", dim, []string{"Sum"}})
-				mdqs = append(mdqs, metricStatistics{"service:requests:3xx", ns, "HTTPCode_Target_3XX_Count", dim, []string{"Sum"}})
-				mdqs = append(mdqs, metricStatistics{"service:requests:4xx", ns, "HTTPCode_Target_4XX_Count", dim, []string{"Sum"}})
-				mdqs = append(mdqs, metricStatistics{"service:requests:5xx", ns, "HTTPCode_Target_5XX_Count", dim, []string{"Sum"}})
-				mdqs = append(mdqs, metricStatistics{"service:response:time", ns, "TargetResponseTime", dim, []string{"Minimum", "Maximum"}})
 
 				mdqs = append(mdqs, metricExpressions{
 					"service:requests",
@@ -192,7 +195,54 @@ func (p *Provider) appMetricDefinitions(app string) ([]metricDataQuerier, error)
 	return mdqs, nil
 }
 
-func (p *Provider) systemMetricDefinitions() []metricDataQuerier {
+func (p *Provider) serviceMetricQueries(app, service string) ([]metricDataQuerier, error) {
+	sr, err := p.describeStack(p.Rack)
+	if err != nil {
+		return nil, err
+	}
+
+	ros := stackOutputs(sr)
+
+	r, err := p.describeStackResource(&cloudformation.DescribeStackResourceInput{
+		LogicalResourceId: aws.String(fmt.Sprintf("Service%s", upperName(service))),
+		StackName:         aws.String(p.rackStack(app)),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	s, err := p.describeStack(*r.StackResourceDetail.PhysicalResourceId)
+	if err != nil {
+		return nil, err
+	}
+
+	sos := stackOutputs(s)
+
+	mdqs := []metricDataQuerier{}
+
+	if rn := ros["RouterName"]; rn != "" {
+		ns := "AWS/ApplicationELB"
+
+		if tg := sos["TargetGroup"]; tg != "" {
+			tgp := strings.Split(tg, ":")
+			tgn := tgp[len(tgp)-1]
+
+			dim := map[string]string{"LoadBalancer": rn, "TargetGroup": tgn}
+
+			mdqs = append(mdqs, metricStatistics{"process:healthy", ns, "HealthyHostCount", dim, []string{"Average", "Minimum", "Maximum"}})
+			mdqs = append(mdqs, metricStatistics{"process:unhealthy", ns, "UnHealthyHostCount", dim, []string{"Average", "Minimum", "Maximum"}})
+			mdqs = append(mdqs, metricStatistics{"service:requests:2xx", ns, "HTTPCode_Target_2XX_Count", dim, []string{"Sum"}})
+			mdqs = append(mdqs, metricStatistics{"service:requests:3xx", ns, "HTTPCode_Target_3XX_Count", dim, []string{"Sum"}})
+			mdqs = append(mdqs, metricStatistics{"service:requests:4xx", ns, "HTTPCode_Target_4XX_Count", dim, []string{"Sum"}})
+			mdqs = append(mdqs, metricStatistics{"service:requests:5xx", ns, "HTTPCode_Target_5XX_Count", dim, []string{"Sum"}})
+			mdqs = append(mdqs, metricStatistics{"service:response:time", ns, "TargetResponseTime", dim, []string{"Average", "Minimum", "Maximum", "p90", "p95", "p99"}})
+		}
+	}
+
+	return mdqs, nil
+}
+
+func (p *Provider) systemMetricQueries() []metricDataQuerier {
 	mdqs := []metricDataQuerier{
 		metricStatistics{"cluster:cpu:reservation", "AWS/ECS", "CPUReservation", map[string]string{"ClusterName": p.Cluster}, []string{"Average", "Minimum", "Maximum"}},
 		metricStatistics{"cluster:cpu:utilization", "AWS/ECS", "CPUUtilization", map[string]string{"ClusterName": p.Cluster}, []string{"Average", "Minimum", "Maximum"}},
