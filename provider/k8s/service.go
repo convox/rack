@@ -81,6 +81,10 @@ func (p *Provider) ServiceList(app string) (structs.Services, error) {
 	return ss, nil
 }
 
+func (p *Provider) ServiceMetrics(app, name string, opts structs.MetricsOptions) (structs.Metrics, error) {
+	return nil, fmt.Errorf("unimplemented")
+}
+
 func (p *Provider) ServiceRestart(app, name string) error {
 	m, _, err := helpers.AppManifest(p, app)
 	if err != nil {

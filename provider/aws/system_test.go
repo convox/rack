@@ -1,6 +1,7 @@
 package aws_test
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -90,44 +91,69 @@ func TestSystemMetrics(t *testing.T) {
 		metrics := []struct {
 			Name       string
 			Namespace  string
+			Metric     string
 			Dimensions []string
 		}{
-			{Namespace: "AWS/ECS", Name: "CPUReservation", Dimensions: []string{"ClusterName:cluster1"}},
-			{Namespace: "AWS/ECS", Name: "MemoryReservation", Dimensions: []string{"ClusterName:cluster1"}},
-			{Namespace: "AWS/ECS", Name: "CPUUtilization", Dimensions: []string{"ClusterName:cluster1"}},
-			{Namespace: "AWS/ECS", Name: "MemoryUtilization", Dimensions: []string{"ClusterName:cluster1"}},
-			{Namespace: "AWS/EC2", Name: "CPUUtilization", Dimensions: []string{"AutoScalingGroupName:asg-spot"}},
-			{Namespace: "AWS/EC2", Name: "CPUUtilization", Dimensions: []string{"AutoScalingGroupName:asg-standard"}},
+			{Name: "cluster:cpu:reservation", Namespace: "AWS/ECS", Metric: "CPUReservation", Dimensions: []string{"ClusterName:cluster1"}},
+			{Name: "cluster:cpu:utilization", Namespace: "AWS/ECS", Metric: "CPUUtilization", Dimensions: []string{"ClusterName:cluster1"}},
+			{Name: "cluster:mem:reservation", Namespace: "AWS/ECS", Metric: "MemoryReservation", Dimensions: []string{"ClusterName:cluster1"}},
+			{Name: "cluster:mem:utilization", Namespace: "AWS/ECS", Metric: "MemoryUtilization", Dimensions: []string{"ClusterName:cluster1"}},
+			{Name: "instances:standard:cpu", Namespace: "AWS/EC2", Metric: "CPUUtilization", Dimensions: []string{"AutoScalingGroupName:asg-standard"}},
+			{Name: "instances:spot:cpu", Namespace: "AWS/EC2", Metric: "CPUUtilization", Dimensions: []string{"AutoScalingGroupName:asg-spot"}},
 		}
 
-		for _, metric := range metrics {
-			input := &cloudwatch.GetMetricStatisticsInput{
-				EndTime:    awssdk.Time(time.Date(2018, 10, 1, 3, 4, 5, 0, time.UTC)),
-				MetricName: awssdk.String(metric.Name),
-				Namespace:  awssdk.String(metric.Namespace),
-				Period:     awssdk.Int64(300),
-				StartTime:  awssdk.Time(time.Date(2018, 9, 1, 2, 3, 4, 0, time.UTC)),
-				Statistics: []*string{awssdk.String("Average"), awssdk.String("Minimum"), awssdk.String("Maximum")},
-			}
+		stats := []string{"Average", "Minimum", "Maximum"}
 
+		values := map[string]float64{
+			"Average": 2.12345678,
+			"Minimum": 1.12345678,
+			"Maximum": 3.12345678,
+		}
+
+		input := &cloudwatch.GetMetricDataInput{MetricDataQueries: []*cloudwatch.MetricDataQuery{}}
+		output := &cloudwatch.GetMetricDataOutput{MetricDataResults: []*cloudwatch.MetricDataResult{}}
+
+		input.EndTime = awssdk.Time(time.Date(2018, 10, 1, 3, 4, 5, 0, time.UTC))
+		input.ScanBy = awssdk.String("TimestampAscending")
+		input.StartTime = awssdk.Time(time.Date(2018, 9, 1, 2, 3, 4, 0, time.UTC))
+
+		for i, metric := range metrics {
+			dims := []*cloudwatch.Dimension{}
 			for _, d := range metric.Dimensions {
-				parts := strings.Split(d, ":")
-				input.Dimensions = append(input.Dimensions, &cloudwatch.Dimension{Name: awssdk.String(parts[0]), Value: awssdk.String(parts[1])})
+				if parts := strings.SplitN(d, ":", 2); len(parts) == 2 {
+					dims = append(dims, &cloudwatch.Dimension{
+						Name:  awssdk.String(parts[0]),
+						Value: awssdk.String(parts[1]),
+					})
+				}
 			}
 
-			output := &cloudwatch.GetMetricStatisticsOutput{
-				Datapoints: []*cloudwatch.Datapoint{
-					{
-						Timestamp: awssdk.Time(time.Date(2018, 9, 1, 2, 3, 4, 0, time.UTC)),
-						Average:   awssdk.Float64(2.12345),
-						Minimum:   awssdk.Float64(1.12345),
-						Maximum:   awssdk.Float64(3.12345),
+			for _, stat := range stats {
+				input.MetricDataQueries = append(input.MetricDataQueries, &cloudwatch.MetricDataQuery{
+					Id:    awssdk.String(fmt.Sprintf("%s_%s_%d", strings.ReplaceAll(metric.Name, ":", "_"), stat, i)),
+					Label: awssdk.String(fmt.Sprintf("%s/%s", metric.Name, stat)),
+					MetricStat: &cloudwatch.MetricStat{
+						Metric: &cloudwatch.Metric{
+							Dimensions: dims,
+							MetricName: awssdk.String(metric.Metric),
+							Namespace:  awssdk.String(metric.Namespace),
+						},
+						Period: awssdk.Int64(300),
+						Stat:   awssdk.String(stat),
 					},
-				},
+				})
 			}
 
-			m.On("GetMetricStatistics", input).Return(output, nil)
+			for stat, value := range values {
+				output.MetricDataResults = append(output.MetricDataResults, &cloudwatch.MetricDataResult{
+					Label:      awssdk.String(fmt.Sprintf("%s/%s", metric.Name, stat)),
+					Timestamps: []*time.Time{awssdk.Time(time.Date(2018, 9, 1, 2, 3, 4, 0, time.UTC))},
+					Values:     []*float64{awssdk.Float64(value)},
+				})
+			}
 		}
+
+		m.On("GetMetricData", input).Return(output, nil)
 
 		p.CloudWatch = m
 
@@ -141,12 +167,12 @@ func TestSystemMetrics(t *testing.T) {
 		require.NoError(t, err)
 
 		m2 := structs.Metrics{
-			{Name: "cluster:cpu:reservation", Values: structs.MetricValues{{Time: time.Date(2018, 9, 1, 2, 3, 4, 0, time.UTC), Average: 2.12, Maximum: 3.12, Minimum: 1.12}}},
-			{Name: "cluster:cpu:utilization", Values: structs.MetricValues{{Time: time.Date(2018, 9, 1, 2, 3, 4, 0, time.UTC), Average: 2.12, Maximum: 3.12, Minimum: 1.12}}},
-			{Name: "cluster:mem:reservation", Values: structs.MetricValues{{Time: time.Date(2018, 9, 1, 2, 3, 4, 0, time.UTC), Average: 2.12, Maximum: 3.12, Minimum: 1.12}}},
-			{Name: "cluster:mem:utilization", Values: structs.MetricValues{{Time: time.Date(2018, 9, 1, 2, 3, 4, 0, time.UTC), Average: 2.12, Maximum: 3.12, Minimum: 1.12}}},
-			{Name: "instances:standard:cpu", Values: structs.MetricValues{{Time: time.Date(2018, 9, 1, 2, 3, 4, 0, time.UTC), Average: 2.12, Maximum: 3.12, Minimum: 1.12}}},
-			{Name: "instances:spot:cpu", Values: structs.MetricValues{{Time: time.Date(2018, 9, 1, 2, 3, 4, 0, time.UTC), Average: 2.12, Maximum: 3.12, Minimum: 1.12}}},
+			{Name: "cluster:cpu:reservation", Values: structs.MetricValues{{Time: time.Date(2018, 9, 1, 2, 3, 4, 0, time.UTC), Average: 2.12345, Maximum: 3.12345, Minimum: 1.12345}}},
+			{Name: "cluster:cpu:utilization", Values: structs.MetricValues{{Time: time.Date(2018, 9, 1, 2, 3, 4, 0, time.UTC), Average: 2.12345, Maximum: 3.12345, Minimum: 1.12345}}},
+			{Name: "cluster:mem:reservation", Values: structs.MetricValues{{Time: time.Date(2018, 9, 1, 2, 3, 4, 0, time.UTC), Average: 2.12345, Maximum: 3.12345, Minimum: 1.12345}}},
+			{Name: "cluster:mem:utilization", Values: structs.MetricValues{{Time: time.Date(2018, 9, 1, 2, 3, 4, 0, time.UTC), Average: 2.12345, Maximum: 3.12345, Minimum: 1.12345}}},
+			{Name: "instances:spot:cpu", Values: structs.MetricValues{{Time: time.Date(2018, 9, 1, 2, 3, 4, 0, time.UTC), Average: 2.12345, Maximum: 3.12345, Minimum: 1.12345}}},
+			{Name: "instances:standard:cpu", Values: structs.MetricValues{{Time: time.Date(2018, 9, 1, 2, 3, 4, 0, time.UTC), Average: 2.12345, Maximum: 3.12345, Minimum: 1.12345}}},
 		}
 
 		require.Equal(t, m2, m1)

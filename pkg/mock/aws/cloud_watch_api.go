@@ -3,8 +3,9 @@
 package aws
 
 import (
-	aws "github.com/aws/aws-sdk-go/aws"
 	cloudwatch "github.com/aws/aws-sdk-go/service/cloudwatch"
+
+	context "context"
 
 	mock "github.com/stretchr/testify/mock"
 
@@ -65,7 +66,7 @@ func (_m *CloudWatchAPI) DeleteAlarmsRequest(_a0 *cloudwatch.DeleteAlarmsInput) 
 }
 
 // DeleteAlarmsWithContext provides a mock function with given fields: _a0, _a1, _a2
-func (_m *CloudWatchAPI) DeleteAlarmsWithContext(_a0 aws.Context, _a1 *cloudwatch.DeleteAlarmsInput, _a2 ...request.Option) (*cloudwatch.DeleteAlarmsOutput, error) {
+func (_m *CloudWatchAPI) DeleteAlarmsWithContext(_a0 context.Context, _a1 *cloudwatch.DeleteAlarmsInput, _a2 ...request.Option) (*cloudwatch.DeleteAlarmsOutput, error) {
 	_va := make([]interface{}, len(_a2))
 	for _i := range _a2 {
 		_va[_i] = _a2[_i]
@@ -76,7 +77,7 @@ func (_m *CloudWatchAPI) DeleteAlarmsWithContext(_a0 aws.Context, _a1 *cloudwatc
 	ret := _m.Called(_ca...)
 
 	var r0 *cloudwatch.DeleteAlarmsOutput
-	if rf, ok := ret.Get(0).(func(aws.Context, *cloudwatch.DeleteAlarmsInput, ...request.Option) *cloudwatch.DeleteAlarmsOutput); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, *cloudwatch.DeleteAlarmsInput, ...request.Option) *cloudwatch.DeleteAlarmsOutput); ok {
 		r0 = rf(_a0, _a1, _a2...)
 	} else {
 		if ret.Get(0) != nil {
@@ -85,7 +86,85 @@ func (_m *CloudWatchAPI) DeleteAlarmsWithContext(_a0 aws.Context, _a1 *cloudwatc
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(aws.Context, *cloudwatch.DeleteAlarmsInput, ...request.Option) error); ok {
+	if rf, ok := ret.Get(1).(func(context.Context, *cloudwatch.DeleteAlarmsInput, ...request.Option) error); ok {
+		r1 = rf(_a0, _a1, _a2...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// DeleteAnomalyDetector provides a mock function with given fields: _a0
+func (_m *CloudWatchAPI) DeleteAnomalyDetector(_a0 *cloudwatch.DeleteAnomalyDetectorInput) (*cloudwatch.DeleteAnomalyDetectorOutput, error) {
+	ret := _m.Called(_a0)
+
+	var r0 *cloudwatch.DeleteAnomalyDetectorOutput
+	if rf, ok := ret.Get(0).(func(*cloudwatch.DeleteAnomalyDetectorInput) *cloudwatch.DeleteAnomalyDetectorOutput); ok {
+		r0 = rf(_a0)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*cloudwatch.DeleteAnomalyDetectorOutput)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(*cloudwatch.DeleteAnomalyDetectorInput) error); ok {
+		r1 = rf(_a0)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// DeleteAnomalyDetectorRequest provides a mock function with given fields: _a0
+func (_m *CloudWatchAPI) DeleteAnomalyDetectorRequest(_a0 *cloudwatch.DeleteAnomalyDetectorInput) (*request.Request, *cloudwatch.DeleteAnomalyDetectorOutput) {
+	ret := _m.Called(_a0)
+
+	var r0 *request.Request
+	if rf, ok := ret.Get(0).(func(*cloudwatch.DeleteAnomalyDetectorInput) *request.Request); ok {
+		r0 = rf(_a0)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*request.Request)
+		}
+	}
+
+	var r1 *cloudwatch.DeleteAnomalyDetectorOutput
+	if rf, ok := ret.Get(1).(func(*cloudwatch.DeleteAnomalyDetectorInput) *cloudwatch.DeleteAnomalyDetectorOutput); ok {
+		r1 = rf(_a0)
+	} else {
+		if ret.Get(1) != nil {
+			r1 = ret.Get(1).(*cloudwatch.DeleteAnomalyDetectorOutput)
+		}
+	}
+
+	return r0, r1
+}
+
+// DeleteAnomalyDetectorWithContext provides a mock function with given fields: _a0, _a1, _a2
+func (_m *CloudWatchAPI) DeleteAnomalyDetectorWithContext(_a0 context.Context, _a1 *cloudwatch.DeleteAnomalyDetectorInput, _a2 ...request.Option) (*cloudwatch.DeleteAnomalyDetectorOutput, error) {
+	_va := make([]interface{}, len(_a2))
+	for _i := range _a2 {
+		_va[_i] = _a2[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, _a0, _a1)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	var r0 *cloudwatch.DeleteAnomalyDetectorOutput
+	if rf, ok := ret.Get(0).(func(context.Context, *cloudwatch.DeleteAnomalyDetectorInput, ...request.Option) *cloudwatch.DeleteAnomalyDetectorOutput); ok {
+		r0 = rf(_a0, _a1, _a2...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*cloudwatch.DeleteAnomalyDetectorOutput)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, *cloudwatch.DeleteAnomalyDetectorInput, ...request.Option) error); ok {
 		r1 = rf(_a0, _a1, _a2...)
 	} else {
 		r1 = ret.Error(1)
@@ -143,7 +222,7 @@ func (_m *CloudWatchAPI) DeleteDashboardsRequest(_a0 *cloudwatch.DeleteDashboard
 }
 
 // DeleteDashboardsWithContext provides a mock function with given fields: _a0, _a1, _a2
-func (_m *CloudWatchAPI) DeleteDashboardsWithContext(_a0 aws.Context, _a1 *cloudwatch.DeleteDashboardsInput, _a2 ...request.Option) (*cloudwatch.DeleteDashboardsOutput, error) {
+func (_m *CloudWatchAPI) DeleteDashboardsWithContext(_a0 context.Context, _a1 *cloudwatch.DeleteDashboardsInput, _a2 ...request.Option) (*cloudwatch.DeleteDashboardsOutput, error) {
 	_va := make([]interface{}, len(_a2))
 	for _i := range _a2 {
 		_va[_i] = _a2[_i]
@@ -154,7 +233,7 @@ func (_m *CloudWatchAPI) DeleteDashboardsWithContext(_a0 aws.Context, _a1 *cloud
 	ret := _m.Called(_ca...)
 
 	var r0 *cloudwatch.DeleteDashboardsOutput
-	if rf, ok := ret.Get(0).(func(aws.Context, *cloudwatch.DeleteDashboardsInput, ...request.Option) *cloudwatch.DeleteDashboardsOutput); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, *cloudwatch.DeleteDashboardsInput, ...request.Option) *cloudwatch.DeleteDashboardsOutput); ok {
 		r0 = rf(_a0, _a1, _a2...)
 	} else {
 		if ret.Get(0) != nil {
@@ -163,7 +242,7 @@ func (_m *CloudWatchAPI) DeleteDashboardsWithContext(_a0 aws.Context, _a1 *cloud
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(aws.Context, *cloudwatch.DeleteDashboardsInput, ...request.Option) error); ok {
+	if rf, ok := ret.Get(1).(func(context.Context, *cloudwatch.DeleteDashboardsInput, ...request.Option) error); ok {
 		r1 = rf(_a0, _a1, _a2...)
 	} else {
 		r1 = ret.Error(1)
@@ -210,7 +289,7 @@ func (_m *CloudWatchAPI) DescribeAlarmHistoryPages(_a0 *cloudwatch.DescribeAlarm
 }
 
 // DescribeAlarmHistoryPagesWithContext provides a mock function with given fields: _a0, _a1, _a2, _a3
-func (_m *CloudWatchAPI) DescribeAlarmHistoryPagesWithContext(_a0 aws.Context, _a1 *cloudwatch.DescribeAlarmHistoryInput, _a2 func(*cloudwatch.DescribeAlarmHistoryOutput, bool) bool, _a3 ...request.Option) error {
+func (_m *CloudWatchAPI) DescribeAlarmHistoryPagesWithContext(_a0 context.Context, _a1 *cloudwatch.DescribeAlarmHistoryInput, _a2 func(*cloudwatch.DescribeAlarmHistoryOutput, bool) bool, _a3 ...request.Option) error {
 	_va := make([]interface{}, len(_a3))
 	for _i := range _a3 {
 		_va[_i] = _a3[_i]
@@ -221,7 +300,7 @@ func (_m *CloudWatchAPI) DescribeAlarmHistoryPagesWithContext(_a0 aws.Context, _
 	ret := _m.Called(_ca...)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(aws.Context, *cloudwatch.DescribeAlarmHistoryInput, func(*cloudwatch.DescribeAlarmHistoryOutput, bool) bool, ...request.Option) error); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, *cloudwatch.DescribeAlarmHistoryInput, func(*cloudwatch.DescribeAlarmHistoryOutput, bool) bool, ...request.Option) error); ok {
 		r0 = rf(_a0, _a1, _a2, _a3...)
 	} else {
 		r0 = ret.Error(0)
@@ -256,7 +335,7 @@ func (_m *CloudWatchAPI) DescribeAlarmHistoryRequest(_a0 *cloudwatch.DescribeAla
 }
 
 // DescribeAlarmHistoryWithContext provides a mock function with given fields: _a0, _a1, _a2
-func (_m *CloudWatchAPI) DescribeAlarmHistoryWithContext(_a0 aws.Context, _a1 *cloudwatch.DescribeAlarmHistoryInput, _a2 ...request.Option) (*cloudwatch.DescribeAlarmHistoryOutput, error) {
+func (_m *CloudWatchAPI) DescribeAlarmHistoryWithContext(_a0 context.Context, _a1 *cloudwatch.DescribeAlarmHistoryInput, _a2 ...request.Option) (*cloudwatch.DescribeAlarmHistoryOutput, error) {
 	_va := make([]interface{}, len(_a2))
 	for _i := range _a2 {
 		_va[_i] = _a2[_i]
@@ -267,7 +346,7 @@ func (_m *CloudWatchAPI) DescribeAlarmHistoryWithContext(_a0 aws.Context, _a1 *c
 	ret := _m.Called(_ca...)
 
 	var r0 *cloudwatch.DescribeAlarmHistoryOutput
-	if rf, ok := ret.Get(0).(func(aws.Context, *cloudwatch.DescribeAlarmHistoryInput, ...request.Option) *cloudwatch.DescribeAlarmHistoryOutput); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, *cloudwatch.DescribeAlarmHistoryInput, ...request.Option) *cloudwatch.DescribeAlarmHistoryOutput); ok {
 		r0 = rf(_a0, _a1, _a2...)
 	} else {
 		if ret.Get(0) != nil {
@@ -276,7 +355,7 @@ func (_m *CloudWatchAPI) DescribeAlarmHistoryWithContext(_a0 aws.Context, _a1 *c
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(aws.Context, *cloudwatch.DescribeAlarmHistoryInput, ...request.Option) error); ok {
+	if rf, ok := ret.Get(1).(func(context.Context, *cloudwatch.DescribeAlarmHistoryInput, ...request.Option) error); ok {
 		r1 = rf(_a0, _a1, _a2...)
 	} else {
 		r1 = ret.Error(1)
@@ -357,7 +436,7 @@ func (_m *CloudWatchAPI) DescribeAlarmsForMetricRequest(_a0 *cloudwatch.Describe
 }
 
 // DescribeAlarmsForMetricWithContext provides a mock function with given fields: _a0, _a1, _a2
-func (_m *CloudWatchAPI) DescribeAlarmsForMetricWithContext(_a0 aws.Context, _a1 *cloudwatch.DescribeAlarmsForMetricInput, _a2 ...request.Option) (*cloudwatch.DescribeAlarmsForMetricOutput, error) {
+func (_m *CloudWatchAPI) DescribeAlarmsForMetricWithContext(_a0 context.Context, _a1 *cloudwatch.DescribeAlarmsForMetricInput, _a2 ...request.Option) (*cloudwatch.DescribeAlarmsForMetricOutput, error) {
 	_va := make([]interface{}, len(_a2))
 	for _i := range _a2 {
 		_va[_i] = _a2[_i]
@@ -368,7 +447,7 @@ func (_m *CloudWatchAPI) DescribeAlarmsForMetricWithContext(_a0 aws.Context, _a1
 	ret := _m.Called(_ca...)
 
 	var r0 *cloudwatch.DescribeAlarmsForMetricOutput
-	if rf, ok := ret.Get(0).(func(aws.Context, *cloudwatch.DescribeAlarmsForMetricInput, ...request.Option) *cloudwatch.DescribeAlarmsForMetricOutput); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, *cloudwatch.DescribeAlarmsForMetricInput, ...request.Option) *cloudwatch.DescribeAlarmsForMetricOutput); ok {
 		r0 = rf(_a0, _a1, _a2...)
 	} else {
 		if ret.Get(0) != nil {
@@ -377,7 +456,7 @@ func (_m *CloudWatchAPI) DescribeAlarmsForMetricWithContext(_a0 aws.Context, _a1
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(aws.Context, *cloudwatch.DescribeAlarmsForMetricInput, ...request.Option) error); ok {
+	if rf, ok := ret.Get(1).(func(context.Context, *cloudwatch.DescribeAlarmsForMetricInput, ...request.Option) error); ok {
 		r1 = rf(_a0, _a1, _a2...)
 	} else {
 		r1 = ret.Error(1)
@@ -401,7 +480,7 @@ func (_m *CloudWatchAPI) DescribeAlarmsPages(_a0 *cloudwatch.DescribeAlarmsInput
 }
 
 // DescribeAlarmsPagesWithContext provides a mock function with given fields: _a0, _a1, _a2, _a3
-func (_m *CloudWatchAPI) DescribeAlarmsPagesWithContext(_a0 aws.Context, _a1 *cloudwatch.DescribeAlarmsInput, _a2 func(*cloudwatch.DescribeAlarmsOutput, bool) bool, _a3 ...request.Option) error {
+func (_m *CloudWatchAPI) DescribeAlarmsPagesWithContext(_a0 context.Context, _a1 *cloudwatch.DescribeAlarmsInput, _a2 func(*cloudwatch.DescribeAlarmsOutput, bool) bool, _a3 ...request.Option) error {
 	_va := make([]interface{}, len(_a3))
 	for _i := range _a3 {
 		_va[_i] = _a3[_i]
@@ -412,7 +491,7 @@ func (_m *CloudWatchAPI) DescribeAlarmsPagesWithContext(_a0 aws.Context, _a1 *cl
 	ret := _m.Called(_ca...)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(aws.Context, *cloudwatch.DescribeAlarmsInput, func(*cloudwatch.DescribeAlarmsOutput, bool) bool, ...request.Option) error); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, *cloudwatch.DescribeAlarmsInput, func(*cloudwatch.DescribeAlarmsOutput, bool) bool, ...request.Option) error); ok {
 		r0 = rf(_a0, _a1, _a2, _a3...)
 	} else {
 		r0 = ret.Error(0)
@@ -447,7 +526,7 @@ func (_m *CloudWatchAPI) DescribeAlarmsRequest(_a0 *cloudwatch.DescribeAlarmsInp
 }
 
 // DescribeAlarmsWithContext provides a mock function with given fields: _a0, _a1, _a2
-func (_m *CloudWatchAPI) DescribeAlarmsWithContext(_a0 aws.Context, _a1 *cloudwatch.DescribeAlarmsInput, _a2 ...request.Option) (*cloudwatch.DescribeAlarmsOutput, error) {
+func (_m *CloudWatchAPI) DescribeAlarmsWithContext(_a0 context.Context, _a1 *cloudwatch.DescribeAlarmsInput, _a2 ...request.Option) (*cloudwatch.DescribeAlarmsOutput, error) {
 	_va := make([]interface{}, len(_a2))
 	for _i := range _a2 {
 		_va[_i] = _a2[_i]
@@ -458,7 +537,7 @@ func (_m *CloudWatchAPI) DescribeAlarmsWithContext(_a0 aws.Context, _a1 *cloudwa
 	ret := _m.Called(_ca...)
 
 	var r0 *cloudwatch.DescribeAlarmsOutput
-	if rf, ok := ret.Get(0).(func(aws.Context, *cloudwatch.DescribeAlarmsInput, ...request.Option) *cloudwatch.DescribeAlarmsOutput); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, *cloudwatch.DescribeAlarmsInput, ...request.Option) *cloudwatch.DescribeAlarmsOutput); ok {
 		r0 = rf(_a0, _a1, _a2...)
 	} else {
 		if ret.Get(0) != nil {
@@ -467,7 +546,85 @@ func (_m *CloudWatchAPI) DescribeAlarmsWithContext(_a0 aws.Context, _a1 *cloudwa
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(aws.Context, *cloudwatch.DescribeAlarmsInput, ...request.Option) error); ok {
+	if rf, ok := ret.Get(1).(func(context.Context, *cloudwatch.DescribeAlarmsInput, ...request.Option) error); ok {
+		r1 = rf(_a0, _a1, _a2...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// DescribeAnomalyDetectors provides a mock function with given fields: _a0
+func (_m *CloudWatchAPI) DescribeAnomalyDetectors(_a0 *cloudwatch.DescribeAnomalyDetectorsInput) (*cloudwatch.DescribeAnomalyDetectorsOutput, error) {
+	ret := _m.Called(_a0)
+
+	var r0 *cloudwatch.DescribeAnomalyDetectorsOutput
+	if rf, ok := ret.Get(0).(func(*cloudwatch.DescribeAnomalyDetectorsInput) *cloudwatch.DescribeAnomalyDetectorsOutput); ok {
+		r0 = rf(_a0)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*cloudwatch.DescribeAnomalyDetectorsOutput)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(*cloudwatch.DescribeAnomalyDetectorsInput) error); ok {
+		r1 = rf(_a0)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// DescribeAnomalyDetectorsRequest provides a mock function with given fields: _a0
+func (_m *CloudWatchAPI) DescribeAnomalyDetectorsRequest(_a0 *cloudwatch.DescribeAnomalyDetectorsInput) (*request.Request, *cloudwatch.DescribeAnomalyDetectorsOutput) {
+	ret := _m.Called(_a0)
+
+	var r0 *request.Request
+	if rf, ok := ret.Get(0).(func(*cloudwatch.DescribeAnomalyDetectorsInput) *request.Request); ok {
+		r0 = rf(_a0)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*request.Request)
+		}
+	}
+
+	var r1 *cloudwatch.DescribeAnomalyDetectorsOutput
+	if rf, ok := ret.Get(1).(func(*cloudwatch.DescribeAnomalyDetectorsInput) *cloudwatch.DescribeAnomalyDetectorsOutput); ok {
+		r1 = rf(_a0)
+	} else {
+		if ret.Get(1) != nil {
+			r1 = ret.Get(1).(*cloudwatch.DescribeAnomalyDetectorsOutput)
+		}
+	}
+
+	return r0, r1
+}
+
+// DescribeAnomalyDetectorsWithContext provides a mock function with given fields: _a0, _a1, _a2
+func (_m *CloudWatchAPI) DescribeAnomalyDetectorsWithContext(_a0 context.Context, _a1 *cloudwatch.DescribeAnomalyDetectorsInput, _a2 ...request.Option) (*cloudwatch.DescribeAnomalyDetectorsOutput, error) {
+	_va := make([]interface{}, len(_a2))
+	for _i := range _a2 {
+		_va[_i] = _a2[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, _a0, _a1)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	var r0 *cloudwatch.DescribeAnomalyDetectorsOutput
+	if rf, ok := ret.Get(0).(func(context.Context, *cloudwatch.DescribeAnomalyDetectorsInput, ...request.Option) *cloudwatch.DescribeAnomalyDetectorsOutput); ok {
+		r0 = rf(_a0, _a1, _a2...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*cloudwatch.DescribeAnomalyDetectorsOutput)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, *cloudwatch.DescribeAnomalyDetectorsInput, ...request.Option) error); ok {
 		r1 = rf(_a0, _a1, _a2...)
 	} else {
 		r1 = ret.Error(1)
@@ -525,7 +682,7 @@ func (_m *CloudWatchAPI) DisableAlarmActionsRequest(_a0 *cloudwatch.DisableAlarm
 }
 
 // DisableAlarmActionsWithContext provides a mock function with given fields: _a0, _a1, _a2
-func (_m *CloudWatchAPI) DisableAlarmActionsWithContext(_a0 aws.Context, _a1 *cloudwatch.DisableAlarmActionsInput, _a2 ...request.Option) (*cloudwatch.DisableAlarmActionsOutput, error) {
+func (_m *CloudWatchAPI) DisableAlarmActionsWithContext(_a0 context.Context, _a1 *cloudwatch.DisableAlarmActionsInput, _a2 ...request.Option) (*cloudwatch.DisableAlarmActionsOutput, error) {
 	_va := make([]interface{}, len(_a2))
 	for _i := range _a2 {
 		_va[_i] = _a2[_i]
@@ -536,7 +693,7 @@ func (_m *CloudWatchAPI) DisableAlarmActionsWithContext(_a0 aws.Context, _a1 *cl
 	ret := _m.Called(_ca...)
 
 	var r0 *cloudwatch.DisableAlarmActionsOutput
-	if rf, ok := ret.Get(0).(func(aws.Context, *cloudwatch.DisableAlarmActionsInput, ...request.Option) *cloudwatch.DisableAlarmActionsOutput); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, *cloudwatch.DisableAlarmActionsInput, ...request.Option) *cloudwatch.DisableAlarmActionsOutput); ok {
 		r0 = rf(_a0, _a1, _a2...)
 	} else {
 		if ret.Get(0) != nil {
@@ -545,7 +702,7 @@ func (_m *CloudWatchAPI) DisableAlarmActionsWithContext(_a0 aws.Context, _a1 *cl
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(aws.Context, *cloudwatch.DisableAlarmActionsInput, ...request.Option) error); ok {
+	if rf, ok := ret.Get(1).(func(context.Context, *cloudwatch.DisableAlarmActionsInput, ...request.Option) error); ok {
 		r1 = rf(_a0, _a1, _a2...)
 	} else {
 		r1 = ret.Error(1)
@@ -603,7 +760,7 @@ func (_m *CloudWatchAPI) EnableAlarmActionsRequest(_a0 *cloudwatch.EnableAlarmAc
 }
 
 // EnableAlarmActionsWithContext provides a mock function with given fields: _a0, _a1, _a2
-func (_m *CloudWatchAPI) EnableAlarmActionsWithContext(_a0 aws.Context, _a1 *cloudwatch.EnableAlarmActionsInput, _a2 ...request.Option) (*cloudwatch.EnableAlarmActionsOutput, error) {
+func (_m *CloudWatchAPI) EnableAlarmActionsWithContext(_a0 context.Context, _a1 *cloudwatch.EnableAlarmActionsInput, _a2 ...request.Option) (*cloudwatch.EnableAlarmActionsOutput, error) {
 	_va := make([]interface{}, len(_a2))
 	for _i := range _a2 {
 		_va[_i] = _a2[_i]
@@ -614,7 +771,7 @@ func (_m *CloudWatchAPI) EnableAlarmActionsWithContext(_a0 aws.Context, _a1 *clo
 	ret := _m.Called(_ca...)
 
 	var r0 *cloudwatch.EnableAlarmActionsOutput
-	if rf, ok := ret.Get(0).(func(aws.Context, *cloudwatch.EnableAlarmActionsInput, ...request.Option) *cloudwatch.EnableAlarmActionsOutput); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, *cloudwatch.EnableAlarmActionsInput, ...request.Option) *cloudwatch.EnableAlarmActionsOutput); ok {
 		r0 = rf(_a0, _a1, _a2...)
 	} else {
 		if ret.Get(0) != nil {
@@ -623,7 +780,7 @@ func (_m *CloudWatchAPI) EnableAlarmActionsWithContext(_a0 aws.Context, _a1 *clo
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(aws.Context, *cloudwatch.EnableAlarmActionsInput, ...request.Option) error); ok {
+	if rf, ok := ret.Get(1).(func(context.Context, *cloudwatch.EnableAlarmActionsInput, ...request.Option) error); ok {
 		r1 = rf(_a0, _a1, _a2...)
 	} else {
 		r1 = ret.Error(1)
@@ -681,7 +838,7 @@ func (_m *CloudWatchAPI) GetDashboardRequest(_a0 *cloudwatch.GetDashboardInput) 
 }
 
 // GetDashboardWithContext provides a mock function with given fields: _a0, _a1, _a2
-func (_m *CloudWatchAPI) GetDashboardWithContext(_a0 aws.Context, _a1 *cloudwatch.GetDashboardInput, _a2 ...request.Option) (*cloudwatch.GetDashboardOutput, error) {
+func (_m *CloudWatchAPI) GetDashboardWithContext(_a0 context.Context, _a1 *cloudwatch.GetDashboardInput, _a2 ...request.Option) (*cloudwatch.GetDashboardOutput, error) {
 	_va := make([]interface{}, len(_a2))
 	for _i := range _a2 {
 		_va[_i] = _a2[_i]
@@ -692,7 +849,7 @@ func (_m *CloudWatchAPI) GetDashboardWithContext(_a0 aws.Context, _a1 *cloudwatc
 	ret := _m.Called(_ca...)
 
 	var r0 *cloudwatch.GetDashboardOutput
-	if rf, ok := ret.Get(0).(func(aws.Context, *cloudwatch.GetDashboardInput, ...request.Option) *cloudwatch.GetDashboardOutput); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, *cloudwatch.GetDashboardInput, ...request.Option) *cloudwatch.GetDashboardOutput); ok {
 		r0 = rf(_a0, _a1, _a2...)
 	} else {
 		if ret.Get(0) != nil {
@@ -701,7 +858,7 @@ func (_m *CloudWatchAPI) GetDashboardWithContext(_a0 aws.Context, _a1 *cloudwatc
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(aws.Context, *cloudwatch.GetDashboardInput, ...request.Option) error); ok {
+	if rf, ok := ret.Get(1).(func(context.Context, *cloudwatch.GetDashboardInput, ...request.Option) error); ok {
 		r1 = rf(_a0, _a1, _a2...)
 	} else {
 		r1 = ret.Error(1)
@@ -733,6 +890,41 @@ func (_m *CloudWatchAPI) GetMetricData(_a0 *cloudwatch.GetMetricDataInput) (*clo
 	return r0, r1
 }
 
+// GetMetricDataPages provides a mock function with given fields: _a0, _a1
+func (_m *CloudWatchAPI) GetMetricDataPages(_a0 *cloudwatch.GetMetricDataInput, _a1 func(*cloudwatch.GetMetricDataOutput, bool) bool) error {
+	ret := _m.Called(_a0, _a1)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(*cloudwatch.GetMetricDataInput, func(*cloudwatch.GetMetricDataOutput, bool) bool) error); ok {
+		r0 = rf(_a0, _a1)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// GetMetricDataPagesWithContext provides a mock function with given fields: _a0, _a1, _a2, _a3
+func (_m *CloudWatchAPI) GetMetricDataPagesWithContext(_a0 context.Context, _a1 *cloudwatch.GetMetricDataInput, _a2 func(*cloudwatch.GetMetricDataOutput, bool) bool, _a3 ...request.Option) error {
+	_va := make([]interface{}, len(_a3))
+	for _i := range _a3 {
+		_va[_i] = _a3[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, _a0, _a1, _a2)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, *cloudwatch.GetMetricDataInput, func(*cloudwatch.GetMetricDataOutput, bool) bool, ...request.Option) error); ok {
+		r0 = rf(_a0, _a1, _a2, _a3...)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // GetMetricDataRequest provides a mock function with given fields: _a0
 func (_m *CloudWatchAPI) GetMetricDataRequest(_a0 *cloudwatch.GetMetricDataInput) (*request.Request, *cloudwatch.GetMetricDataOutput) {
 	ret := _m.Called(_a0)
@@ -759,7 +951,7 @@ func (_m *CloudWatchAPI) GetMetricDataRequest(_a0 *cloudwatch.GetMetricDataInput
 }
 
 // GetMetricDataWithContext provides a mock function with given fields: _a0, _a1, _a2
-func (_m *CloudWatchAPI) GetMetricDataWithContext(_a0 aws.Context, _a1 *cloudwatch.GetMetricDataInput, _a2 ...request.Option) (*cloudwatch.GetMetricDataOutput, error) {
+func (_m *CloudWatchAPI) GetMetricDataWithContext(_a0 context.Context, _a1 *cloudwatch.GetMetricDataInput, _a2 ...request.Option) (*cloudwatch.GetMetricDataOutput, error) {
 	_va := make([]interface{}, len(_a2))
 	for _i := range _a2 {
 		_va[_i] = _a2[_i]
@@ -770,7 +962,7 @@ func (_m *CloudWatchAPI) GetMetricDataWithContext(_a0 aws.Context, _a1 *cloudwat
 	ret := _m.Called(_ca...)
 
 	var r0 *cloudwatch.GetMetricDataOutput
-	if rf, ok := ret.Get(0).(func(aws.Context, *cloudwatch.GetMetricDataInput, ...request.Option) *cloudwatch.GetMetricDataOutput); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, *cloudwatch.GetMetricDataInput, ...request.Option) *cloudwatch.GetMetricDataOutput); ok {
 		r0 = rf(_a0, _a1, _a2...)
 	} else {
 		if ret.Get(0) != nil {
@@ -779,7 +971,7 @@ func (_m *CloudWatchAPI) GetMetricDataWithContext(_a0 aws.Context, _a1 *cloudwat
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(aws.Context, *cloudwatch.GetMetricDataInput, ...request.Option) error); ok {
+	if rf, ok := ret.Get(1).(func(context.Context, *cloudwatch.GetMetricDataInput, ...request.Option) error); ok {
 		r1 = rf(_a0, _a1, _a2...)
 	} else {
 		r1 = ret.Error(1)
@@ -837,7 +1029,7 @@ func (_m *CloudWatchAPI) GetMetricStatisticsRequest(_a0 *cloudwatch.GetMetricSta
 }
 
 // GetMetricStatisticsWithContext provides a mock function with given fields: _a0, _a1, _a2
-func (_m *CloudWatchAPI) GetMetricStatisticsWithContext(_a0 aws.Context, _a1 *cloudwatch.GetMetricStatisticsInput, _a2 ...request.Option) (*cloudwatch.GetMetricStatisticsOutput, error) {
+func (_m *CloudWatchAPI) GetMetricStatisticsWithContext(_a0 context.Context, _a1 *cloudwatch.GetMetricStatisticsInput, _a2 ...request.Option) (*cloudwatch.GetMetricStatisticsOutput, error) {
 	_va := make([]interface{}, len(_a2))
 	for _i := range _a2 {
 		_va[_i] = _a2[_i]
@@ -848,7 +1040,7 @@ func (_m *CloudWatchAPI) GetMetricStatisticsWithContext(_a0 aws.Context, _a1 *cl
 	ret := _m.Called(_ca...)
 
 	var r0 *cloudwatch.GetMetricStatisticsOutput
-	if rf, ok := ret.Get(0).(func(aws.Context, *cloudwatch.GetMetricStatisticsInput, ...request.Option) *cloudwatch.GetMetricStatisticsOutput); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, *cloudwatch.GetMetricStatisticsInput, ...request.Option) *cloudwatch.GetMetricStatisticsOutput); ok {
 		r0 = rf(_a0, _a1, _a2...)
 	} else {
 		if ret.Get(0) != nil {
@@ -857,7 +1049,85 @@ func (_m *CloudWatchAPI) GetMetricStatisticsWithContext(_a0 aws.Context, _a1 *cl
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(aws.Context, *cloudwatch.GetMetricStatisticsInput, ...request.Option) error); ok {
+	if rf, ok := ret.Get(1).(func(context.Context, *cloudwatch.GetMetricStatisticsInput, ...request.Option) error); ok {
+		r1 = rf(_a0, _a1, _a2...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// GetMetricWidgetImage provides a mock function with given fields: _a0
+func (_m *CloudWatchAPI) GetMetricWidgetImage(_a0 *cloudwatch.GetMetricWidgetImageInput) (*cloudwatch.GetMetricWidgetImageOutput, error) {
+	ret := _m.Called(_a0)
+
+	var r0 *cloudwatch.GetMetricWidgetImageOutput
+	if rf, ok := ret.Get(0).(func(*cloudwatch.GetMetricWidgetImageInput) *cloudwatch.GetMetricWidgetImageOutput); ok {
+		r0 = rf(_a0)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*cloudwatch.GetMetricWidgetImageOutput)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(*cloudwatch.GetMetricWidgetImageInput) error); ok {
+		r1 = rf(_a0)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// GetMetricWidgetImageRequest provides a mock function with given fields: _a0
+func (_m *CloudWatchAPI) GetMetricWidgetImageRequest(_a0 *cloudwatch.GetMetricWidgetImageInput) (*request.Request, *cloudwatch.GetMetricWidgetImageOutput) {
+	ret := _m.Called(_a0)
+
+	var r0 *request.Request
+	if rf, ok := ret.Get(0).(func(*cloudwatch.GetMetricWidgetImageInput) *request.Request); ok {
+		r0 = rf(_a0)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*request.Request)
+		}
+	}
+
+	var r1 *cloudwatch.GetMetricWidgetImageOutput
+	if rf, ok := ret.Get(1).(func(*cloudwatch.GetMetricWidgetImageInput) *cloudwatch.GetMetricWidgetImageOutput); ok {
+		r1 = rf(_a0)
+	} else {
+		if ret.Get(1) != nil {
+			r1 = ret.Get(1).(*cloudwatch.GetMetricWidgetImageOutput)
+		}
+	}
+
+	return r0, r1
+}
+
+// GetMetricWidgetImageWithContext provides a mock function with given fields: _a0, _a1, _a2
+func (_m *CloudWatchAPI) GetMetricWidgetImageWithContext(_a0 context.Context, _a1 *cloudwatch.GetMetricWidgetImageInput, _a2 ...request.Option) (*cloudwatch.GetMetricWidgetImageOutput, error) {
+	_va := make([]interface{}, len(_a2))
+	for _i := range _a2 {
+		_va[_i] = _a2[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, _a0, _a1)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	var r0 *cloudwatch.GetMetricWidgetImageOutput
+	if rf, ok := ret.Get(0).(func(context.Context, *cloudwatch.GetMetricWidgetImageInput, ...request.Option) *cloudwatch.GetMetricWidgetImageOutput); ok {
+		r0 = rf(_a0, _a1, _a2...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*cloudwatch.GetMetricWidgetImageOutput)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, *cloudwatch.GetMetricWidgetImageInput, ...request.Option) error); ok {
 		r1 = rf(_a0, _a1, _a2...)
 	} else {
 		r1 = ret.Error(1)
@@ -889,6 +1159,41 @@ func (_m *CloudWatchAPI) ListDashboards(_a0 *cloudwatch.ListDashboardsInput) (*c
 	return r0, r1
 }
 
+// ListDashboardsPages provides a mock function with given fields: _a0, _a1
+func (_m *CloudWatchAPI) ListDashboardsPages(_a0 *cloudwatch.ListDashboardsInput, _a1 func(*cloudwatch.ListDashboardsOutput, bool) bool) error {
+	ret := _m.Called(_a0, _a1)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(*cloudwatch.ListDashboardsInput, func(*cloudwatch.ListDashboardsOutput, bool) bool) error); ok {
+		r0 = rf(_a0, _a1)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// ListDashboardsPagesWithContext provides a mock function with given fields: _a0, _a1, _a2, _a3
+func (_m *CloudWatchAPI) ListDashboardsPagesWithContext(_a0 context.Context, _a1 *cloudwatch.ListDashboardsInput, _a2 func(*cloudwatch.ListDashboardsOutput, bool) bool, _a3 ...request.Option) error {
+	_va := make([]interface{}, len(_a3))
+	for _i := range _a3 {
+		_va[_i] = _a3[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, _a0, _a1, _a2)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, *cloudwatch.ListDashboardsInput, func(*cloudwatch.ListDashboardsOutput, bool) bool, ...request.Option) error); ok {
+		r0 = rf(_a0, _a1, _a2, _a3...)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // ListDashboardsRequest provides a mock function with given fields: _a0
 func (_m *CloudWatchAPI) ListDashboardsRequest(_a0 *cloudwatch.ListDashboardsInput) (*request.Request, *cloudwatch.ListDashboardsOutput) {
 	ret := _m.Called(_a0)
@@ -915,7 +1220,7 @@ func (_m *CloudWatchAPI) ListDashboardsRequest(_a0 *cloudwatch.ListDashboardsInp
 }
 
 // ListDashboardsWithContext provides a mock function with given fields: _a0, _a1, _a2
-func (_m *CloudWatchAPI) ListDashboardsWithContext(_a0 aws.Context, _a1 *cloudwatch.ListDashboardsInput, _a2 ...request.Option) (*cloudwatch.ListDashboardsOutput, error) {
+func (_m *CloudWatchAPI) ListDashboardsWithContext(_a0 context.Context, _a1 *cloudwatch.ListDashboardsInput, _a2 ...request.Option) (*cloudwatch.ListDashboardsOutput, error) {
 	_va := make([]interface{}, len(_a2))
 	for _i := range _a2 {
 		_va[_i] = _a2[_i]
@@ -926,7 +1231,7 @@ func (_m *CloudWatchAPI) ListDashboardsWithContext(_a0 aws.Context, _a1 *cloudwa
 	ret := _m.Called(_ca...)
 
 	var r0 *cloudwatch.ListDashboardsOutput
-	if rf, ok := ret.Get(0).(func(aws.Context, *cloudwatch.ListDashboardsInput, ...request.Option) *cloudwatch.ListDashboardsOutput); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, *cloudwatch.ListDashboardsInput, ...request.Option) *cloudwatch.ListDashboardsOutput); ok {
 		r0 = rf(_a0, _a1, _a2...)
 	} else {
 		if ret.Get(0) != nil {
@@ -935,7 +1240,7 @@ func (_m *CloudWatchAPI) ListDashboardsWithContext(_a0 aws.Context, _a1 *cloudwa
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(aws.Context, *cloudwatch.ListDashboardsInput, ...request.Option) error); ok {
+	if rf, ok := ret.Get(1).(func(context.Context, *cloudwatch.ListDashboardsInput, ...request.Option) error); ok {
 		r1 = rf(_a0, _a1, _a2...)
 	} else {
 		r1 = ret.Error(1)
@@ -982,7 +1287,7 @@ func (_m *CloudWatchAPI) ListMetricsPages(_a0 *cloudwatch.ListMetricsInput, _a1 
 }
 
 // ListMetricsPagesWithContext provides a mock function with given fields: _a0, _a1, _a2, _a3
-func (_m *CloudWatchAPI) ListMetricsPagesWithContext(_a0 aws.Context, _a1 *cloudwatch.ListMetricsInput, _a2 func(*cloudwatch.ListMetricsOutput, bool) bool, _a3 ...request.Option) error {
+func (_m *CloudWatchAPI) ListMetricsPagesWithContext(_a0 context.Context, _a1 *cloudwatch.ListMetricsInput, _a2 func(*cloudwatch.ListMetricsOutput, bool) bool, _a3 ...request.Option) error {
 	_va := make([]interface{}, len(_a3))
 	for _i := range _a3 {
 		_va[_i] = _a3[_i]
@@ -993,7 +1298,7 @@ func (_m *CloudWatchAPI) ListMetricsPagesWithContext(_a0 aws.Context, _a1 *cloud
 	ret := _m.Called(_ca...)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(aws.Context, *cloudwatch.ListMetricsInput, func(*cloudwatch.ListMetricsOutput, bool) bool, ...request.Option) error); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, *cloudwatch.ListMetricsInput, func(*cloudwatch.ListMetricsOutput, bool) bool, ...request.Option) error); ok {
 		r0 = rf(_a0, _a1, _a2, _a3...)
 	} else {
 		r0 = ret.Error(0)
@@ -1028,7 +1333,7 @@ func (_m *CloudWatchAPI) ListMetricsRequest(_a0 *cloudwatch.ListMetricsInput) (*
 }
 
 // ListMetricsWithContext provides a mock function with given fields: _a0, _a1, _a2
-func (_m *CloudWatchAPI) ListMetricsWithContext(_a0 aws.Context, _a1 *cloudwatch.ListMetricsInput, _a2 ...request.Option) (*cloudwatch.ListMetricsOutput, error) {
+func (_m *CloudWatchAPI) ListMetricsWithContext(_a0 context.Context, _a1 *cloudwatch.ListMetricsInput, _a2 ...request.Option) (*cloudwatch.ListMetricsOutput, error) {
 	_va := make([]interface{}, len(_a2))
 	for _i := range _a2 {
 		_va[_i] = _a2[_i]
@@ -1039,7 +1344,7 @@ func (_m *CloudWatchAPI) ListMetricsWithContext(_a0 aws.Context, _a1 *cloudwatch
 	ret := _m.Called(_ca...)
 
 	var r0 *cloudwatch.ListMetricsOutput
-	if rf, ok := ret.Get(0).(func(aws.Context, *cloudwatch.ListMetricsInput, ...request.Option) *cloudwatch.ListMetricsOutput); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, *cloudwatch.ListMetricsInput, ...request.Option) *cloudwatch.ListMetricsOutput); ok {
 		r0 = rf(_a0, _a1, _a2...)
 	} else {
 		if ret.Get(0) != nil {
@@ -1048,7 +1353,163 @@ func (_m *CloudWatchAPI) ListMetricsWithContext(_a0 aws.Context, _a1 *cloudwatch
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(aws.Context, *cloudwatch.ListMetricsInput, ...request.Option) error); ok {
+	if rf, ok := ret.Get(1).(func(context.Context, *cloudwatch.ListMetricsInput, ...request.Option) error); ok {
+		r1 = rf(_a0, _a1, _a2...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// ListTagsForResource provides a mock function with given fields: _a0
+func (_m *CloudWatchAPI) ListTagsForResource(_a0 *cloudwatch.ListTagsForResourceInput) (*cloudwatch.ListTagsForResourceOutput, error) {
+	ret := _m.Called(_a0)
+
+	var r0 *cloudwatch.ListTagsForResourceOutput
+	if rf, ok := ret.Get(0).(func(*cloudwatch.ListTagsForResourceInput) *cloudwatch.ListTagsForResourceOutput); ok {
+		r0 = rf(_a0)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*cloudwatch.ListTagsForResourceOutput)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(*cloudwatch.ListTagsForResourceInput) error); ok {
+		r1 = rf(_a0)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// ListTagsForResourceRequest provides a mock function with given fields: _a0
+func (_m *CloudWatchAPI) ListTagsForResourceRequest(_a0 *cloudwatch.ListTagsForResourceInput) (*request.Request, *cloudwatch.ListTagsForResourceOutput) {
+	ret := _m.Called(_a0)
+
+	var r0 *request.Request
+	if rf, ok := ret.Get(0).(func(*cloudwatch.ListTagsForResourceInput) *request.Request); ok {
+		r0 = rf(_a0)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*request.Request)
+		}
+	}
+
+	var r1 *cloudwatch.ListTagsForResourceOutput
+	if rf, ok := ret.Get(1).(func(*cloudwatch.ListTagsForResourceInput) *cloudwatch.ListTagsForResourceOutput); ok {
+		r1 = rf(_a0)
+	} else {
+		if ret.Get(1) != nil {
+			r1 = ret.Get(1).(*cloudwatch.ListTagsForResourceOutput)
+		}
+	}
+
+	return r0, r1
+}
+
+// ListTagsForResourceWithContext provides a mock function with given fields: _a0, _a1, _a2
+func (_m *CloudWatchAPI) ListTagsForResourceWithContext(_a0 context.Context, _a1 *cloudwatch.ListTagsForResourceInput, _a2 ...request.Option) (*cloudwatch.ListTagsForResourceOutput, error) {
+	_va := make([]interface{}, len(_a2))
+	for _i := range _a2 {
+		_va[_i] = _a2[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, _a0, _a1)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	var r0 *cloudwatch.ListTagsForResourceOutput
+	if rf, ok := ret.Get(0).(func(context.Context, *cloudwatch.ListTagsForResourceInput, ...request.Option) *cloudwatch.ListTagsForResourceOutput); ok {
+		r0 = rf(_a0, _a1, _a2...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*cloudwatch.ListTagsForResourceOutput)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, *cloudwatch.ListTagsForResourceInput, ...request.Option) error); ok {
+		r1 = rf(_a0, _a1, _a2...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// PutAnomalyDetector provides a mock function with given fields: _a0
+func (_m *CloudWatchAPI) PutAnomalyDetector(_a0 *cloudwatch.PutAnomalyDetectorInput) (*cloudwatch.PutAnomalyDetectorOutput, error) {
+	ret := _m.Called(_a0)
+
+	var r0 *cloudwatch.PutAnomalyDetectorOutput
+	if rf, ok := ret.Get(0).(func(*cloudwatch.PutAnomalyDetectorInput) *cloudwatch.PutAnomalyDetectorOutput); ok {
+		r0 = rf(_a0)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*cloudwatch.PutAnomalyDetectorOutput)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(*cloudwatch.PutAnomalyDetectorInput) error); ok {
+		r1 = rf(_a0)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// PutAnomalyDetectorRequest provides a mock function with given fields: _a0
+func (_m *CloudWatchAPI) PutAnomalyDetectorRequest(_a0 *cloudwatch.PutAnomalyDetectorInput) (*request.Request, *cloudwatch.PutAnomalyDetectorOutput) {
+	ret := _m.Called(_a0)
+
+	var r0 *request.Request
+	if rf, ok := ret.Get(0).(func(*cloudwatch.PutAnomalyDetectorInput) *request.Request); ok {
+		r0 = rf(_a0)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*request.Request)
+		}
+	}
+
+	var r1 *cloudwatch.PutAnomalyDetectorOutput
+	if rf, ok := ret.Get(1).(func(*cloudwatch.PutAnomalyDetectorInput) *cloudwatch.PutAnomalyDetectorOutput); ok {
+		r1 = rf(_a0)
+	} else {
+		if ret.Get(1) != nil {
+			r1 = ret.Get(1).(*cloudwatch.PutAnomalyDetectorOutput)
+		}
+	}
+
+	return r0, r1
+}
+
+// PutAnomalyDetectorWithContext provides a mock function with given fields: _a0, _a1, _a2
+func (_m *CloudWatchAPI) PutAnomalyDetectorWithContext(_a0 context.Context, _a1 *cloudwatch.PutAnomalyDetectorInput, _a2 ...request.Option) (*cloudwatch.PutAnomalyDetectorOutput, error) {
+	_va := make([]interface{}, len(_a2))
+	for _i := range _a2 {
+		_va[_i] = _a2[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, _a0, _a1)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	var r0 *cloudwatch.PutAnomalyDetectorOutput
+	if rf, ok := ret.Get(0).(func(context.Context, *cloudwatch.PutAnomalyDetectorInput, ...request.Option) *cloudwatch.PutAnomalyDetectorOutput); ok {
+		r0 = rf(_a0, _a1, _a2...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*cloudwatch.PutAnomalyDetectorOutput)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, *cloudwatch.PutAnomalyDetectorInput, ...request.Option) error); ok {
 		r1 = rf(_a0, _a1, _a2...)
 	} else {
 		r1 = ret.Error(1)
@@ -1106,7 +1567,7 @@ func (_m *CloudWatchAPI) PutDashboardRequest(_a0 *cloudwatch.PutDashboardInput) 
 }
 
 // PutDashboardWithContext provides a mock function with given fields: _a0, _a1, _a2
-func (_m *CloudWatchAPI) PutDashboardWithContext(_a0 aws.Context, _a1 *cloudwatch.PutDashboardInput, _a2 ...request.Option) (*cloudwatch.PutDashboardOutput, error) {
+func (_m *CloudWatchAPI) PutDashboardWithContext(_a0 context.Context, _a1 *cloudwatch.PutDashboardInput, _a2 ...request.Option) (*cloudwatch.PutDashboardOutput, error) {
 	_va := make([]interface{}, len(_a2))
 	for _i := range _a2 {
 		_va[_i] = _a2[_i]
@@ -1117,7 +1578,7 @@ func (_m *CloudWatchAPI) PutDashboardWithContext(_a0 aws.Context, _a1 *cloudwatc
 	ret := _m.Called(_ca...)
 
 	var r0 *cloudwatch.PutDashboardOutput
-	if rf, ok := ret.Get(0).(func(aws.Context, *cloudwatch.PutDashboardInput, ...request.Option) *cloudwatch.PutDashboardOutput); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, *cloudwatch.PutDashboardInput, ...request.Option) *cloudwatch.PutDashboardOutput); ok {
 		r0 = rf(_a0, _a1, _a2...)
 	} else {
 		if ret.Get(0) != nil {
@@ -1126,7 +1587,7 @@ func (_m *CloudWatchAPI) PutDashboardWithContext(_a0 aws.Context, _a1 *cloudwatc
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(aws.Context, *cloudwatch.PutDashboardInput, ...request.Option) error); ok {
+	if rf, ok := ret.Get(1).(func(context.Context, *cloudwatch.PutDashboardInput, ...request.Option) error); ok {
 		r1 = rf(_a0, _a1, _a2...)
 	} else {
 		r1 = ret.Error(1)
@@ -1184,7 +1645,7 @@ func (_m *CloudWatchAPI) PutMetricAlarmRequest(_a0 *cloudwatch.PutMetricAlarmInp
 }
 
 // PutMetricAlarmWithContext provides a mock function with given fields: _a0, _a1, _a2
-func (_m *CloudWatchAPI) PutMetricAlarmWithContext(_a0 aws.Context, _a1 *cloudwatch.PutMetricAlarmInput, _a2 ...request.Option) (*cloudwatch.PutMetricAlarmOutput, error) {
+func (_m *CloudWatchAPI) PutMetricAlarmWithContext(_a0 context.Context, _a1 *cloudwatch.PutMetricAlarmInput, _a2 ...request.Option) (*cloudwatch.PutMetricAlarmOutput, error) {
 	_va := make([]interface{}, len(_a2))
 	for _i := range _a2 {
 		_va[_i] = _a2[_i]
@@ -1195,7 +1656,7 @@ func (_m *CloudWatchAPI) PutMetricAlarmWithContext(_a0 aws.Context, _a1 *cloudwa
 	ret := _m.Called(_ca...)
 
 	var r0 *cloudwatch.PutMetricAlarmOutput
-	if rf, ok := ret.Get(0).(func(aws.Context, *cloudwatch.PutMetricAlarmInput, ...request.Option) *cloudwatch.PutMetricAlarmOutput); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, *cloudwatch.PutMetricAlarmInput, ...request.Option) *cloudwatch.PutMetricAlarmOutput); ok {
 		r0 = rf(_a0, _a1, _a2...)
 	} else {
 		if ret.Get(0) != nil {
@@ -1204,7 +1665,7 @@ func (_m *CloudWatchAPI) PutMetricAlarmWithContext(_a0 aws.Context, _a1 *cloudwa
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(aws.Context, *cloudwatch.PutMetricAlarmInput, ...request.Option) error); ok {
+	if rf, ok := ret.Get(1).(func(context.Context, *cloudwatch.PutMetricAlarmInput, ...request.Option) error); ok {
 		r1 = rf(_a0, _a1, _a2...)
 	} else {
 		r1 = ret.Error(1)
@@ -1262,7 +1723,7 @@ func (_m *CloudWatchAPI) PutMetricDataRequest(_a0 *cloudwatch.PutMetricDataInput
 }
 
 // PutMetricDataWithContext provides a mock function with given fields: _a0, _a1, _a2
-func (_m *CloudWatchAPI) PutMetricDataWithContext(_a0 aws.Context, _a1 *cloudwatch.PutMetricDataInput, _a2 ...request.Option) (*cloudwatch.PutMetricDataOutput, error) {
+func (_m *CloudWatchAPI) PutMetricDataWithContext(_a0 context.Context, _a1 *cloudwatch.PutMetricDataInput, _a2 ...request.Option) (*cloudwatch.PutMetricDataOutput, error) {
 	_va := make([]interface{}, len(_a2))
 	for _i := range _a2 {
 		_va[_i] = _a2[_i]
@@ -1273,7 +1734,7 @@ func (_m *CloudWatchAPI) PutMetricDataWithContext(_a0 aws.Context, _a1 *cloudwat
 	ret := _m.Called(_ca...)
 
 	var r0 *cloudwatch.PutMetricDataOutput
-	if rf, ok := ret.Get(0).(func(aws.Context, *cloudwatch.PutMetricDataInput, ...request.Option) *cloudwatch.PutMetricDataOutput); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, *cloudwatch.PutMetricDataInput, ...request.Option) *cloudwatch.PutMetricDataOutput); ok {
 		r0 = rf(_a0, _a1, _a2...)
 	} else {
 		if ret.Get(0) != nil {
@@ -1282,7 +1743,7 @@ func (_m *CloudWatchAPI) PutMetricDataWithContext(_a0 aws.Context, _a1 *cloudwat
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(aws.Context, *cloudwatch.PutMetricDataInput, ...request.Option) error); ok {
+	if rf, ok := ret.Get(1).(func(context.Context, *cloudwatch.PutMetricDataInput, ...request.Option) error); ok {
 		r1 = rf(_a0, _a1, _a2...)
 	} else {
 		r1 = ret.Error(1)
@@ -1340,7 +1801,7 @@ func (_m *CloudWatchAPI) SetAlarmStateRequest(_a0 *cloudwatch.SetAlarmStateInput
 }
 
 // SetAlarmStateWithContext provides a mock function with given fields: _a0, _a1, _a2
-func (_m *CloudWatchAPI) SetAlarmStateWithContext(_a0 aws.Context, _a1 *cloudwatch.SetAlarmStateInput, _a2 ...request.Option) (*cloudwatch.SetAlarmStateOutput, error) {
+func (_m *CloudWatchAPI) SetAlarmStateWithContext(_a0 context.Context, _a1 *cloudwatch.SetAlarmStateInput, _a2 ...request.Option) (*cloudwatch.SetAlarmStateOutput, error) {
 	_va := make([]interface{}, len(_a2))
 	for _i := range _a2 {
 		_va[_i] = _a2[_i]
@@ -1351,7 +1812,7 @@ func (_m *CloudWatchAPI) SetAlarmStateWithContext(_a0 aws.Context, _a1 *cloudwat
 	ret := _m.Called(_ca...)
 
 	var r0 *cloudwatch.SetAlarmStateOutput
-	if rf, ok := ret.Get(0).(func(aws.Context, *cloudwatch.SetAlarmStateInput, ...request.Option) *cloudwatch.SetAlarmStateOutput); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, *cloudwatch.SetAlarmStateInput, ...request.Option) *cloudwatch.SetAlarmStateOutput); ok {
 		r0 = rf(_a0, _a1, _a2...)
 	} else {
 		if ret.Get(0) != nil {
@@ -1360,7 +1821,163 @@ func (_m *CloudWatchAPI) SetAlarmStateWithContext(_a0 aws.Context, _a1 *cloudwat
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(aws.Context, *cloudwatch.SetAlarmStateInput, ...request.Option) error); ok {
+	if rf, ok := ret.Get(1).(func(context.Context, *cloudwatch.SetAlarmStateInput, ...request.Option) error); ok {
+		r1 = rf(_a0, _a1, _a2...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// TagResource provides a mock function with given fields: _a0
+func (_m *CloudWatchAPI) TagResource(_a0 *cloudwatch.TagResourceInput) (*cloudwatch.TagResourceOutput, error) {
+	ret := _m.Called(_a0)
+
+	var r0 *cloudwatch.TagResourceOutput
+	if rf, ok := ret.Get(0).(func(*cloudwatch.TagResourceInput) *cloudwatch.TagResourceOutput); ok {
+		r0 = rf(_a0)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*cloudwatch.TagResourceOutput)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(*cloudwatch.TagResourceInput) error); ok {
+		r1 = rf(_a0)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// TagResourceRequest provides a mock function with given fields: _a0
+func (_m *CloudWatchAPI) TagResourceRequest(_a0 *cloudwatch.TagResourceInput) (*request.Request, *cloudwatch.TagResourceOutput) {
+	ret := _m.Called(_a0)
+
+	var r0 *request.Request
+	if rf, ok := ret.Get(0).(func(*cloudwatch.TagResourceInput) *request.Request); ok {
+		r0 = rf(_a0)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*request.Request)
+		}
+	}
+
+	var r1 *cloudwatch.TagResourceOutput
+	if rf, ok := ret.Get(1).(func(*cloudwatch.TagResourceInput) *cloudwatch.TagResourceOutput); ok {
+		r1 = rf(_a0)
+	} else {
+		if ret.Get(1) != nil {
+			r1 = ret.Get(1).(*cloudwatch.TagResourceOutput)
+		}
+	}
+
+	return r0, r1
+}
+
+// TagResourceWithContext provides a mock function with given fields: _a0, _a1, _a2
+func (_m *CloudWatchAPI) TagResourceWithContext(_a0 context.Context, _a1 *cloudwatch.TagResourceInput, _a2 ...request.Option) (*cloudwatch.TagResourceOutput, error) {
+	_va := make([]interface{}, len(_a2))
+	for _i := range _a2 {
+		_va[_i] = _a2[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, _a0, _a1)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	var r0 *cloudwatch.TagResourceOutput
+	if rf, ok := ret.Get(0).(func(context.Context, *cloudwatch.TagResourceInput, ...request.Option) *cloudwatch.TagResourceOutput); ok {
+		r0 = rf(_a0, _a1, _a2...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*cloudwatch.TagResourceOutput)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, *cloudwatch.TagResourceInput, ...request.Option) error); ok {
+		r1 = rf(_a0, _a1, _a2...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// UntagResource provides a mock function with given fields: _a0
+func (_m *CloudWatchAPI) UntagResource(_a0 *cloudwatch.UntagResourceInput) (*cloudwatch.UntagResourceOutput, error) {
+	ret := _m.Called(_a0)
+
+	var r0 *cloudwatch.UntagResourceOutput
+	if rf, ok := ret.Get(0).(func(*cloudwatch.UntagResourceInput) *cloudwatch.UntagResourceOutput); ok {
+		r0 = rf(_a0)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*cloudwatch.UntagResourceOutput)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(*cloudwatch.UntagResourceInput) error); ok {
+		r1 = rf(_a0)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// UntagResourceRequest provides a mock function with given fields: _a0
+func (_m *CloudWatchAPI) UntagResourceRequest(_a0 *cloudwatch.UntagResourceInput) (*request.Request, *cloudwatch.UntagResourceOutput) {
+	ret := _m.Called(_a0)
+
+	var r0 *request.Request
+	if rf, ok := ret.Get(0).(func(*cloudwatch.UntagResourceInput) *request.Request); ok {
+		r0 = rf(_a0)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*request.Request)
+		}
+	}
+
+	var r1 *cloudwatch.UntagResourceOutput
+	if rf, ok := ret.Get(1).(func(*cloudwatch.UntagResourceInput) *cloudwatch.UntagResourceOutput); ok {
+		r1 = rf(_a0)
+	} else {
+		if ret.Get(1) != nil {
+			r1 = ret.Get(1).(*cloudwatch.UntagResourceOutput)
+		}
+	}
+
+	return r0, r1
+}
+
+// UntagResourceWithContext provides a mock function with given fields: _a0, _a1, _a2
+func (_m *CloudWatchAPI) UntagResourceWithContext(_a0 context.Context, _a1 *cloudwatch.UntagResourceInput, _a2 ...request.Option) (*cloudwatch.UntagResourceOutput, error) {
+	_va := make([]interface{}, len(_a2))
+	for _i := range _a2 {
+		_va[_i] = _a2[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, _a0, _a1)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	var r0 *cloudwatch.UntagResourceOutput
+	if rf, ok := ret.Get(0).(func(context.Context, *cloudwatch.UntagResourceInput, ...request.Option) *cloudwatch.UntagResourceOutput); ok {
+		r0 = rf(_a0, _a1, _a2...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*cloudwatch.UntagResourceOutput)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, *cloudwatch.UntagResourceInput, ...request.Option) error); ok {
 		r1 = rf(_a0, _a1, _a2...)
 	} else {
 		r1 = ret.Error(1)
@@ -1384,7 +2001,7 @@ func (_m *CloudWatchAPI) WaitUntilAlarmExists(_a0 *cloudwatch.DescribeAlarmsInpu
 }
 
 // WaitUntilAlarmExistsWithContext provides a mock function with given fields: _a0, _a1, _a2
-func (_m *CloudWatchAPI) WaitUntilAlarmExistsWithContext(_a0 aws.Context, _a1 *cloudwatch.DescribeAlarmsInput, _a2 ...request.WaiterOption) error {
+func (_m *CloudWatchAPI) WaitUntilAlarmExistsWithContext(_a0 context.Context, _a1 *cloudwatch.DescribeAlarmsInput, _a2 ...request.WaiterOption) error {
 	_va := make([]interface{}, len(_a2))
 	for _i := range _a2 {
 		_va[_i] = _a2[_i]
@@ -1395,7 +2012,7 @@ func (_m *CloudWatchAPI) WaitUntilAlarmExistsWithContext(_a0 aws.Context, _a1 *c
 	ret := _m.Called(_ca...)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(aws.Context, *cloudwatch.DescribeAlarmsInput, ...request.WaiterOption) error); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, *cloudwatch.DescribeAlarmsInput, ...request.WaiterOption) error); ok {
 		r0 = rf(_a0, _a1, _a2...)
 	} else {
 		r0 = ret.Error(0)
