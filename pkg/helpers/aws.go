@@ -15,7 +15,6 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/cloudformation/cloudformationiface"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
@@ -347,11 +346,15 @@ func CloudWatchLogsSubscribe(ctx context.Context, cw cloudwatchlogsiface.CloudWa
 func CloudWatchLogsStream(ctx context.Context, cw cloudwatchlogsiface.CloudWatchLogsAPI, w io.WriteCloser, group, stream string, opts structs.LogsOptions) error {
 	defer w.Close()
 
-	streams := map[string]bool{}
-
 	req := &cloudwatchlogs.FilterLogEventsInput{
 		LogGroupName: aws.String(group),
 	}
+
+	if opts.Filter != nil {
+		req.FilterPattern = aws.String(*opts.Filter)
+	}
+
+	follow := DefaultBool(opts.Follow, true)
 
 	var start int64
 
@@ -362,35 +365,17 @@ func CloudWatchLogsStream(ctx context.Context, cw cloudwatchlogsiface.CloudWatch
 
 	if stream != "" {
 		req.LogStreamNames = []*string{aws.String(stream)}
-		streams[stream] = true
 	} else {
 		req.Interleaved = aws.Bool(true)
-
-		ss, err := logStreamsSince(ctx, cw, group, start)
-		if err != nil {
-			return err
-		}
-
-		req.LogStreamNames = ss
 	}
 
-	if opts.Filter != nil {
-		req.FilterPattern = aws.String(*opts.Filter)
-	}
-
-	follow := DefaultBool(opts.Follow, true)
-
-	var seen = map[string]bool{}
-
-	sleep := time.Duration(100 * time.Millisecond)
+	seen := map[string]bool{}
 
 	for {
 		select {
 		case <-ctx.Done():
 			return nil
 		default:
-			time.Sleep(sleep)
-
 			// check for closed writer
 			if _, err := w.Write([]byte{}); err != nil {
 				return err
@@ -410,24 +395,14 @@ func CloudWatchLogsStream(ctx context.Context, cw cloudwatchlogsiface.CloudWatch
 			es := []*cloudwatchlogs.FilteredLogEvent{}
 
 			for _, e := range res.Events {
-				if *e.Timestamp > start {
-					start = *e.Timestamp + 1
-				}
 				if !seen[*e.EventId] {
 					es = append(es, e)
+					seen[*e.EventId] = true
 				}
-			}
 
-			seen = map[string]bool{}
-
-			for _, e := range res.Events {
-				seen[*e.EventId] = true
-			}
-
-			if len(es) > 0 {
-				sleep = time.Duration(100 * time.Millisecond)
-			} else if sleep < 5*time.Second {
-				sleep *= 2
+				if e.Timestamp != nil && *e.Timestamp > start {
+					start = *e.Timestamp
+				}
 			}
 
 			sort.Slice(es, func(i, j int) bool { return *es[i].Timestamp < *es[j].Timestamp })
@@ -436,32 +411,15 @@ func CloudWatchLogsStream(ctx context.Context, cw cloudwatchlogsiface.CloudWatch
 				return err
 			}
 
-			done := len(res.SearchedLogStreams) > 0
+			req.NextToken = res.NextToken
 
-			for _, s := range res.SearchedLogStreams {
-				if s.SearchedCompletely == nil || !*s.SearchedCompletely {
-					done = false
+			if res.NextToken == nil {
+				if !follow {
+					return nil
 				}
+
+				req.StartTime = aws.Int64(start)
 			}
-
-			if !done && res.NextToken != nil {
-				req.NextToken = res.NextToken
-				continue
-			}
-
-			if !follow {
-				return nil
-			}
-
-			req.NextToken = nil
-			req.StartTime = aws.Int64(start)
-
-			ss, err := logStreamsSince(ctx, cw, group, start)
-			if err != nil {
-				return err
-			}
-
-			req.LogStreamNames = ss
 		}
 	}
 }
@@ -571,114 +529,4 @@ func writeLogEvents(w io.Writer, events []*cloudwatchlogs.FilteredLogEvent, opts
 	}
 
 	return latest, nil
-}
-
-func logStreamsSince(ctx context.Context, cw cloudwatchlogsiface.CloudWatchLogsAPI, group string, since int64) ([]*string, error) {
-	streams := map[string]bool{}
-
-	// get log streams with a last event within 24h
-
-	params := &cloudwatchlogs.DescribeLogStreamsInput{
-		Descending:   aws.Bool(true),
-		LogGroupName: aws.String(group),
-		OrderBy:      aws.String("LastEventTime"),
-	}
-
-	p := request.Pagination{
-		NewRequest: func() (*request.Request, error) {
-			req, _ := cw.DescribeLogStreamsRequest(params)
-			req.SetContext(ctx)
-			return req, nil
-		},
-	}
-
-	done := false
-
-	for p.Next() {
-		if p.Err() != nil {
-			return nil, p.Err()
-		}
-
-		page := p.Page().(*cloudwatchlogs.DescribeLogStreamsOutput)
-
-		for _, stream := range page.LogStreams {
-			if stream.LogStreamName == nil {
-				continue
-			}
-
-			if since > 0 {
-				if stream.LastEventTimestamp != nil && *stream.LastEventTimestamp < (since-86400000) {
-					done = true
-					break
-				}
-			}
-
-			streams[*stream.LogStreamName] = true
-		}
-
-		if done {
-			break
-		}
-	}
-
-	// get log streams with no events but created or with first event in the last 24h
-
-	cutoff := time.Now().UTC().Add(-24*time.Hour).UnixNano() / int64(time.Millisecond)
-
-	params = &cloudwatchlogs.DescribeLogStreamsInput{
-		Descending:   aws.Bool(false),
-		LogGroupName: aws.String(group),
-		OrderBy:      aws.String("LastEventTime"),
-	}
-
-	p = request.Pagination{
-		NewRequest: func() (*request.Request, error) {
-			req, _ := cw.DescribeLogStreamsRequest(params)
-			req.SetContext(ctx)
-			return req, nil
-		},
-	}
-
-	done = false
-
-	for p.Next() {
-		if p.Err() != nil {
-			return nil, p.Err()
-		}
-
-		page := p.Page().(*cloudwatchlogs.DescribeLogStreamsOutput)
-
-		for _, stream := range page.LogStreams {
-			if stream.LogStreamName == nil {
-				continue
-			}
-
-			if stream.LastEventTimestamp != nil {
-				done = true
-				break
-			}
-
-			if stream.CreationTime != nil && *stream.CreationTime < cutoff {
-				if stream.FirstEventTimestamp != nil && *stream.FirstEventTimestamp < cutoff {
-					continue
-				}
-			}
-
-			streams[*stream.LogStreamName] = true
-		}
-
-		if done {
-			break
-		}
-	}
-
-	ss := []*string{}
-
-	for s := range streams {
-		ss = append(ss, aws.String(s))
-	}
-
-	sort.Slice(ss, func(i, j int) bool { return *ss[i] < *ss[j] })
-
-	return ss, nil
 }
