@@ -330,27 +330,9 @@ func (p *Provider) SystemLogs(opts structs.LogsOptions) (io.ReadCloser, error) {
 }
 
 func (p *Provider) SystemMetrics(opts structs.MetricsOptions) (structs.Metrics, error) {
-	metrics := map[string]bool{}
-
-	if opts.Metrics != nil {
-		for _, m := range opts.Metrics {
-			metrics[m] = true
-		}
-	}
-
-	ms := structs.Metrics{}
-
-	for _, md := range p.systemMetricDefinitions() {
-		if len(metrics) > 0 && !metrics[md.Name] {
-			continue
-		}
-
-		m, err := p.cloudwatchMetric(md, opts)
-		if err != nil {
-			return nil, err
-		}
-
-		ms = append(ms, *m)
+	ms, err := p.cloudwatchMetrics(p.systemMetricQueries(), opts)
+	if err != nil {
+		return nil, err
 	}
 
 	return ms, nil

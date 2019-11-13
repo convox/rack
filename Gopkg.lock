@@ -82,7 +82,7 @@
   version = "v1.2.0"
 
 [[projects]]
-  digest = "1:9ff21006c9b2b8b86991a54638c1c38185c7367ba1fc5157e949ce1c76784c03"
+  digest = "1:378be3493bd9da95b50c9c17ad9cc29786395ac3b46ca8a2e8ad425146614384"
   name = "github.com/aws/aws-sdk-go"
   packages = [
     "aws",
@@ -94,7 +94,9 @@
     "aws/credentials",
     "aws/credentials/ec2rolecreds",
     "aws/credentials/endpointcreds",
+    "aws/credentials/processcreds",
     "aws/credentials/stscreds",
+    "aws/crr",
     "aws/csm",
     "aws/defaults",
     "aws/ec2metadata",
@@ -102,7 +104,10 @@
     "aws/request",
     "aws/session",
     "aws/signer/v4",
+    "internal/ini",
+    "internal/s3err",
     "internal/sdkio",
+    "internal/sdkmath",
     "internal/sdkrand",
     "internal/sdkuri",
     "internal/shareddefaults",
@@ -138,11 +143,12 @@
     "service/sns",
     "service/sqs",
     "service/sqs/sqsiface",
-    "service/sts"
+    "service/sts",
+    "service/sts/stsiface"
   ]
   pruneopts = "NUT"
-  revision = "1186f7e6f000ce13edff71ed5ecc8b0e27ba38d7"
-  version = "v1.15.33"
+  revision = "2b2c58bba0c2a29a44712ad02cc0ae41907e449c"
+  version = "v1.25.29"
 
 [[projects]]
   digest = "1:a12d94258c5298ead75e142e8001224bf029f302fed9e96cd39c0eaf90f3954d"
@@ -341,14 +347,6 @@
   pruneopts = "NUT"
   revision = "0ca9ea5df5451ffdf184b4428c902747c2c11cd7"
   version = "v1.0.0"
-
-[[projects]]
-  digest = "1:0c0eac431b07bd0da31ef684aa15b5b5eeeda8a820f666e6523d2bfb8ce868c4"
-  name = "github.com/go-ini/ini"
-  packages = ["."]
-  pruneopts = "NUT"
-  revision = "32e4c1e6bc4e7d0d8451aa6b75200d19e37a536a"
-  version = "v1.32.0"
 
 [[projects]]
   digest = "1:260f7ebefc63024c8dfe2c9f1a2935a89fa4213637a1f522f592f80c001cc441"
@@ -591,14 +589,6 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:1ab6b7fb4c7119e78fea16f2bd424ccc434c0d44654307e5f24a8bb8408819b7"
-  name = "github.com/jasonmoo/lambda_proc"
-  packages = ["."]
-  pruneopts = "NUT"
-  revision = "49abf10b4b3c7cb01992397ec47880e05d65ad85"
-
-[[projects]]
-  branch = "master"
   digest = "1:e721d401d3ae66dbc0bfe05cc094eccddd46adc1288a155e4a334aeb1b6f9d6c"
   name = "github.com/jehiah/go-strftime"
   packages = ["."]
@@ -606,11 +596,11 @@
   revision = "1d33003b386959af197ba96475f198c114627b5e"
 
 [[projects]]
-  digest = "1:ac6d01547ec4f7f673311b4663909269bfb8249952de3279799289467837c3cc"
+  digest = "1:1f2aebae7e7c856562355ec0198d8ca2fa222fb05e5b1b66632a1fce39631885"
   name = "github.com/jmespath/go-jmespath"
   packages = ["."]
   pruneopts = "NUT"
-  revision = "0b12d6b5"
+  revision = "c2b33e84"
 
 [[projects]]
   digest = "1:8e36686e8b139f8fe240c1d5cf3a145bc675c22ff8e707857cdd3ae17b00d728"
@@ -1274,7 +1264,6 @@
     "github.com/gorilla/websocket",
     "github.com/headzoo/surf",
     "github.com/inconshreveable/go-update",
-    "github.com/jasonmoo/lambda_proc",
     "github.com/kballard/go-shellquote",
     "github.com/miekg/dns",
     "github.com/mitchellh/go-homedir",

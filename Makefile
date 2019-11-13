@@ -1,4 +1,4 @@
-.PHONY: all build builder clean clean-package compress dev generate mocks package release release-cli release-image release-provider release-version test test-docker
+.PHONY: all build builder clean clean-package compress dev generate generate-provider mocks package release release-cli release-image release-provider release-version test test-docker
 
 commands = atom build monitor rack router
 injects  = convox-env
@@ -44,14 +44,16 @@ endif
 	convox rack logs
 
 generate:
-	go run cmd/generate/main.go controllers > pkg/api/controllers.go
-	go run cmd/generate/main.go routes > pkg/api/routes.go
-	go run cmd/generate/main.go sdk > sdk/methods.go
 	make -C pkg/atom generate
 	make -C provider/k8s generate
 	make -C provider/kaws generate
 
-mocks: generate
+generate-provider:
+	go run cmd/generate/main.go controllers > pkg/api/controllers.go
+	go run cmd/generate/main.go routes > pkg/api/routes.go
+	go run cmd/generate/main.go sdk > sdk/methods.go
+
+mocks: generate-provider
 	go get -u github.com/vektra/mockery/.../
 	make -C pkg/structs mocks
 	mockery -case underscore -dir pkg/start -outpkg sdk -output pkg/mock/start -name Interface

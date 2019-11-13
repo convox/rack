@@ -1093,6 +1093,31 @@ func (s *Server) ServiceList(c *stdapi.Context) error {
 	return c.RenderJSON(v)
 }
 
+func (s *Server) ServiceMetrics(c *stdapi.Context) error {
+	if err := s.hook("ServiceMetricsValidate", c); err != nil {
+		return err
+	}
+
+	app := c.Var("app")
+	name := c.Var("name")
+
+	var opts structs.MetricsOptions
+	if err := stdapi.UnmarshalOptions(c.Request(), &opts); err != nil {
+		return err
+	}
+
+	v, err := s.provider(c).WithContext(c.Context()).ServiceMetrics(app, name, opts)
+	if err != nil {
+		return err
+	}
+
+	if vs, ok := interface{}(v).(Sortable); ok {
+		sort.Slice(v, vs.Less)
+	}
+
+	return c.RenderJSON(v)
+}
+
 func (s *Server) ServiceRestart(c *stdapi.Context) error {
 	if err := s.hook("ServiceRestartValidate", c); err != nil {
 		return err

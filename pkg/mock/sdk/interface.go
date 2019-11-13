@@ -1404,6 +1404,29 @@ func (_m *Interface) ServiceList(app string) (structs.Services, error) {
 	return r0, r1
 }
 
+// ServiceMetrics provides a mock function with given fields: app, name, opts
+func (_m *Interface) ServiceMetrics(app string, name string, opts structs.MetricsOptions) (structs.Metrics, error) {
+	ret := _m.Called(app, name, opts)
+
+	var r0 structs.Metrics
+	if rf, ok := ret.Get(0).(func(string, string, structs.MetricsOptions) structs.Metrics); ok {
+		r0 = rf(app, name, opts)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(structs.Metrics)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(string, string, structs.MetricsOptions) error); ok {
+		r1 = rf(app, name, opts)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // ServiceRestart provides a mock function with given fields: app, name
 func (_m *Interface) ServiceRestart(app string, name string) error {
 	ret := _m.Called(app, name)

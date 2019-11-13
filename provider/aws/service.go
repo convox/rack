@@ -187,6 +187,20 @@ func (p *Provider) serviceListGeneration1(a *structs.App) (structs.Services, err
 	return ss, nil
 }
 
+func (p *Provider) ServiceMetrics(app, name string, opts structs.MetricsOptions) (structs.Metrics, error) {
+	mds, err := p.serviceMetricQueries(app, name)
+	if err != nil {
+		return nil, err
+	}
+
+	mms, err := p.cloudwatchMetrics(mds, opts)
+	if err != nil {
+		return nil, err
+	}
+
+	return mms, nil
+}
+
 func (p *Provider) ServiceRestart(app, name string) error {
 	stack, err := p.stackResource(p.rackStack(app), fmt.Sprintf("Service%s", upperName(name)))
 	if err != nil {
