@@ -163,7 +163,15 @@ func (p *Provider) appMetricQueries(app string) ([]metricDataQuerier, error) {
 			svp := strings.Split(sv, "/")
 			svn := svp[len(svp)-1]
 
-			mdqs = append(mdqs, metricStatistics{"process:running", "AWS/ECS", "CPUUtilization", map[string]string{"ClusterName": p.Cluster, "ServiceName": svn}, []string{"SampleCount"}})
+			mdqs = append(mdqs, metricExpressions{
+				"process:running",
+				[]metricStatistics{
+					metricStatistics{"running_count", "AWS/ECS", "CPUUtilization", map[string]string{"ClusterName": p.Cluster, "ServiceName": svn}, []string{"SampleCount"}},
+				},
+				[]metricExpression{
+					metricExpression{"SampleCount", "FILL(running_count_SampleCount_##,0)"},
+				},
+			})
 		}
 
 		if tg := sos["TargetGroup"]; tg != "" {
@@ -179,13 +187,12 @@ func (p *Provider) appMetricQueries(app string) ([]metricDataQuerier, error) {
 
 				mdqs = append(mdqs, metricExpressions{
 					"service:requests",
-					"Sum",
 					[]metricStatistics{
 						metricStatistics{"target_requests", ns, "RequestCountPerTarget", dim, []string{"Sum"}},
 						metricStatistics{"target_count", ns, "HealthyHostCount", dim, []string{"Average"}},
 					},
 					[]metricExpression{
-						metricExpression{"requests", "target_requests_Sum_## * target_count_Average_##"},
+						metricExpression{"Sum", "FILL(target_requests_Sum_##,0)*FILL(target_count_Average_##,0)"},
 					},
 				})
 			}
@@ -220,6 +227,21 @@ func (p *Provider) serviceMetricQueries(app, service string) ([]metricDataQuerie
 
 	mdqs := []metricDataQuerier{}
 
+	if sv := sos["Service"]; sv != "" {
+		svp := strings.Split(sv, "/")
+		svn := svp[len(svp)-1]
+
+		mdqs = append(mdqs, metricExpressions{
+			"process:running",
+			[]metricStatistics{
+				metricStatistics{"running_count", "AWS/ECS", "CPUUtilization", map[string]string{"ClusterName": p.Cluster, "ServiceName": svn}, []string{"SampleCount"}},
+			},
+			[]metricExpression{
+				metricExpression{"SampleCount", "FILL(running_count_SampleCount_##,0)"},
+			},
+		})
+	}
+
 	if rn := ros["RouterName"]; rn != "" {
 		ns := "AWS/ApplicationELB"
 
@@ -235,7 +257,23 @@ func (p *Provider) serviceMetricQueries(app, service string) ([]metricDataQuerie
 			mdqs = append(mdqs, metricStatistics{"service:requests:3xx", ns, "HTTPCode_Target_3XX_Count", dim, []string{"Sum"}})
 			mdqs = append(mdqs, metricStatistics{"service:requests:4xx", ns, "HTTPCode_Target_4XX_Count", dim, []string{"Sum"}})
 			mdqs = append(mdqs, metricStatistics{"service:requests:5xx", ns, "HTTPCode_Target_5XX_Count", dim, []string{"Sum"}})
-			mdqs = append(mdqs, metricStatistics{"service:response:time", ns, "TargetResponseTime", dim, []string{"Average", "Minimum", "Maximum", "p90", "p95", "p99"}})
+
+			mdqs = append(mdqs, metricExpressions{
+				"service:response:time",
+				[]metricStatistics{
+					metricStatistics{"response_time", ns, "TargetResponseTime", dim, []string{"Average", "Minimum", "Maximum", "p90", "p95", "p99"}},
+				},
+				[]metricExpression{
+					metricExpression{"Average", "FILL(response_time_Average_##,0)"},
+					metricExpression{"Minimum", "FILL(response_time_Minimum_##,0)"},
+					metricExpression{"Maximum", "FILL(response_time_Maximum_##,0)"},
+					metricExpression{"p90", "FILL(response_time_p90_##,0)"},
+					metricExpression{"p95", "FILL(response_time_p95_##,0)"},
+					metricExpression{"p99", "FILL(response_time_Maximum_##,0)"},
+				},
+			})
+
+			// mdqs = append(mdqs, metricStatistics{"service:response:time", ns, "TargetResponseTime", dim, []string{"Minimum", "Maximum", "p90", "p95", "p99"}})
 		}
 	}
 
@@ -264,13 +302,12 @@ type metricDataQuerier interface {
 
 type metricExpressions struct {
 	Name        string
-	Statistic   string
 	Statistics  []metricStatistics
 	Expressions []metricExpression
 }
 
 type metricExpression struct {
-	Name       string
+	Statistic  string
 	Expression string
 }
 
@@ -291,8 +328,8 @@ func (me metricExpressions) MetricDataQueries(period int64, suffix string) []*cl
 
 	for _, e := range me.Expressions {
 		q := &cloudwatch.MetricDataQuery{
-			Id:         aws.String(fmt.Sprintf("%s_%s_%s", strings.ReplaceAll(me.Name, ":", "_"), me.Statistic, suffix)),
-			Label:      aws.String(fmt.Sprintf("%s/%s", me.Name, me.Statistic)),
+			Id:         aws.String(fmt.Sprintf("%s_%s_%s", strings.ReplaceAll(me.Name, ":", "_"), e.Statistic, suffix)),
+			Label:      aws.String(fmt.Sprintf("%s/%s", me.Name, e.Statistic)),
 			Expression: aws.String(strings.ReplaceAll(e.Expression, "##", suffix)),
 		}
 
