@@ -111,6 +111,10 @@ func systemVolume(v string) bool {
 		return true
 	case "/var/snap/microk8s/current/docker.sock":
 		return true
+	case "/var/run":
+		return true
+	case "/var/log/audit":
+		return true
 	}
 	return false
 }
