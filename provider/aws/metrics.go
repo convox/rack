@@ -273,6 +273,17 @@ func (p *Provider) serviceMetricQueries(app, service string) ([]metricDataQuerie
 				},
 			})
 
+			mdqs = append(mdqs, metricExpressions{
+				"service:requests",
+				[]metricStatistics{
+					metricStatistics{"target_requests", ns, "RequestCountPerTarget", dim, []string{"Sum"}},
+					metricStatistics{"target_count", ns, "HealthyHostCount", dim, []string{"Average"}},
+				},
+				[]metricExpression{
+					metricExpression{"Sum", "FILL(target_requests_Sum_##,0)*FILL(target_count_Average_##,0)"},
+				},
+			})
+
 			// mdqs = append(mdqs, metricStatistics{"service:response:time", ns, "TargetResponseTime", dim, []string{"Minimum", "Maximum", "p90", "p95", "p99"}})
 		}
 	}
