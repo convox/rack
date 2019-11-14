@@ -1,7 +1,7 @@
 package api
 
 func (s *Server) setupRoutes(r stdapi.Router) {
-	r.Router.SkipClean(true)
+	r.Router = r.Router.SkipClean(true)
 	{{ range .Methods }}
 		r.Route("{{ .Route.Method }}", "{{.Route.Path}}", s.{{.Name}})
 	{{ end }}

@@ -40,7 +40,7 @@ func NewWithProvider(p structs.Provider) *Server {
 	// s.Router.HandleFunc("/debug/pprof/trace", pprof.Trace)
 
 	s.Subrouter("/", func(auth *stdapi.Router) {
-		auth.Router.SkipClean(true)
+		auth.Router = auth.Router.SkipClean(true)
 
 		auth.Route("GET", "/auth", func(c *stdapi.Context) error { return c.RenderOK() })
 
