@@ -33,6 +33,8 @@ func NewWithProvider(p structs.Provider) *Server {
 		Server:   stdapi.New("api", "api"),
 	}
 
+	s.Server.Router.Router = s.Server.Router.Router.SkipClean(true)
+
 	// s.Router.HandleFunc("/debug/pprof/", pprof.Index)
 	// s.Router.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
 	// s.Router.HandleFunc("/debug/pprof/profile", pprof.Profile)
@@ -40,8 +42,6 @@ func NewWithProvider(p structs.Provider) *Server {
 	// s.Router.HandleFunc("/debug/pprof/trace", pprof.Trace)
 
 	s.Subrouter("/", func(auth *stdapi.Router) {
-		auth.Router = auth.Router.SkipClean(true)
-
 		auth.Route("GET", "/auth", func(c *stdapi.Context) error { return c.RenderOK() })
 
 		auth.Use(s.authenticate)
