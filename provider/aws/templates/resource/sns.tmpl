@@ -62,7 +62,7 @@
               "Statement": [{
                 "Effect": "Allow",
                 "Action": "sns:*",
-                "Resource": { "Fn::Sub": "arn:${AWS::Partition}:sns:${AWS::Region}:${AWS::AccountId}:${AWS::StackName}" },
+                "Resource": { "Fn::Sub": "arn:${AWS::Partition}:sns:${AWS::Region}:${AWS::AccountId}:${AWS::StackName}" }
               }]
             }
           }]

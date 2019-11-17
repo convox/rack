@@ -27,21 +27,21 @@
           },
           "BucketName": { "Ref": "AWS::StackName" },
           "NotificationConfiguration": {
-          "Fn::If": [ "Topic",
-            {
-              "TopicConfigurations": [
-                {
-                  "Event": "s3:ObjectCreated:*",
-                  "Topic": { "Fn::Sub": "arn:${AWS::Partition}:sns:${AWS::Region}:${AWS::AccountId}:${Topic}" }
-                },
-                {
-                  "Event": "s3:ObjectRemoved:*",
-                  "Topic": { "Fn::Sub": "arn:${AWS::Partition}:sns:${AWS::Region}:${AWS::AccountId}:${Topic}" }
-                }
-              ]
-            },
-            { "Ref" : "AWS::NoValue" }
-          ]
+            "Fn::If": [ "Topic",
+              {
+                "TopicConfigurations": [
+                  {
+                    "Event": "s3:ObjectCreated:*",
+                    "Topic": { "Fn::Sub": "arn:${AWS::Partition}:sns:${AWS::Region}:${AWS::AccountId}:${Topic}" }
+                  },
+                  {
+                    "Event": "s3:ObjectRemoved:*",
+                    "Topic": { "Fn::Sub": "arn:${AWS::Partition}:sns:${AWS::Region}:${AWS::AccountId}:${Topic}" }
+                  }
+                ]
+              },
+              { "Ref" : "AWS::NoValue" }
+            ]
           },
           "VersioningConfiguration": { "Fn::If": [ "Versioning",
             { "Status": "Enabled" },
@@ -79,7 +79,7 @@
               "Resource": { "Fn::Sub": "arn:${AWS::Partition}:sns:${AWS::Region}:${AWS::AccountId}:${Topic}" },
               "Condition": {
                 "ArnLike": {
-                  "aws:SourceArn": { "Fn::Sub": "arn:${AWS::Partition}:s3:*:*:${AWS::StackName}"
+                  "aws:SourceArn": { "Fn::Sub": "arn:${AWS::Partition}:s3:*:*:${AWS::StackName}" }
                 }
               }
             }]
