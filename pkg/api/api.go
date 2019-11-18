@@ -33,6 +33,8 @@ func NewWithProvider(p structs.Provider) *Server {
 		Server:   stdapi.New("api", "api"),
 	}
 
+	s.Server.Router.Router = s.Server.Router.Router.SkipClean(true)
+
 	// s.Router.HandleFunc("/debug/pprof/", pprof.Index)
 	// s.Router.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
 	// s.Router.HandleFunc("/debug/pprof/profile", pprof.Profile)
