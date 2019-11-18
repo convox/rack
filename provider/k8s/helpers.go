@@ -107,13 +107,13 @@ func extractImageManifest(r io.Reader) (imageManifest, error) {
 
 func systemVolume(v string) bool {
 	switch v {
-	case "/var/run/docker.sock":
-		return true
-	case "/var/snap/microk8s/current/docker.sock":
+	case "/var/log/audit":
 		return true
 	case "/var/run":
 		return true
-	case "/var/log/audit":
+	case "/var/run/docker.sock":
+		return true
+	case "/var/snap/microk8s/current/docker.sock":
 		return true
 	}
 	return false
