@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -438,6 +439,8 @@ func (p *Provider) buildAuth(b *structs.Build) ([]byte, error) {
 		Password string
 	}
 
+
+
 	auth := map[string]authEntry{}
 
 	rs, err := p.RegistryList()
@@ -446,7 +449,13 @@ func (p *Provider) buildAuth(b *structs.Build) ([]byte, error) {
 	}
 
 	for _, r := range rs {
-		auth[r.Server] = authEntry{
+
+		server, err := ensureRegistryProtocol(r.Server)
+		if (err != nil) {
+			return nil, err
+		}
+
+		auth[server] = authEntry{
 			Username: r.Username,
 			Password: r.Password,
 		}
@@ -463,7 +472,12 @@ func (p *Provider) buildAuth(b *structs.Build) ([]byte, error) {
 			return nil, err
 		}
 
-		auth[repo] = authEntry{
+		server, err := ensureRegistryProtocol(repo)
+		if (err != nil) {
+			return nil, err
+		}
+
+		auth[server] = authEntry{
 			Username: user,
 			Password: pass,
 		}
@@ -475,6 +489,17 @@ func (p *Provider) buildAuth(b *structs.Build) ([]byte, error) {
 	}
 
 	return data, nil
+}
+
+func ensureRegistryProtocol(repo string) (string, error) {
+	u, err := url.Parse(repo)
+	if err != nil {
+		return "", err
+	}
+	if (len(u.Scheme) == 0) {
+		u.Scheme = "https"
+	}
+	return u.String(), nil
 }
 
 func (p *Provider) buildCreate(b *structs.Build) (*structs.Build, error) {
