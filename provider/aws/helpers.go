@@ -415,6 +415,10 @@ func volumeFrom(app, s string) string {
 		return v
 	case "/proc/":
 		return v
+	case "/var/log/audit/":
+		return v
+	case "/var/run/":
+		return v
 	case "/var/run/docker.sock":
 		return v
 	default:
