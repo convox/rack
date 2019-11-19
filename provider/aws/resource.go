@@ -442,6 +442,9 @@ func (p *Provider) SystemResourceTypes() (structs.ResourceTypes, error) {
 		}
 
 		if err := json.Unmarshal([]byte(data), &r); err != nil {
+			if serr, ok := err.(*json.SyntaxError); ok {
+				return nil, jsonSyntaxError(serr, []byte(data))
+			}
 			return nil, err
 		}
 

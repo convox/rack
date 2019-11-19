@@ -36,7 +36,7 @@ var regexpECRHost = regexp.MustCompile(`(\d+)\.dkr\.ecr\.([^.]+)\.amazonaws\.com
 var regexpECRImage = regexp.MustCompile(`(\d+)\.dkr\.ecr\.([^.]+)\.amazonaws\.com\/([^:]+):([^ ]+)`)
 
 // StackID is formatted like arn:aws:cloudformation:us-east-1:332653055745:stack/dev/d164aa20-ba89-11e6-b65c-50d5ca632656
-var regexpStackID = regexp.MustCompile(`arn:aws:cloudformation:([^.]+):(\d+):stack/([^.]+)/([^.]+)`)
+var regexpStackID = regexp.MustCompile(`arn:[^:]+:cloudformation:([^.]+):(\d+):stack/([^.]+)/([^.]+)`)
 
 func (p *Provider) BuildCreate(app, url string, opts structs.BuildCreateOptions) (*structs.Build, error) {
 	log := Logger.At("BuildCreate").Namespace("app=%q url=%q", app, url).Start()
