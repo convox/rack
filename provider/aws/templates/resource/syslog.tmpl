@@ -17,6 +17,11 @@
     }
   },
   "Parameters": {
+    "Format": {
+      "Type": "String",
+      "Description": "Syslog format string",
+      "Default": {{ safe "<22>1 {DATE} {GROUP} {SERVICE} {CONTAINER} - - {MESSAGE}" }}
+    },
     "Private": {
       "Type": "String",
       "Description": "Create in private subnets",
@@ -70,9 +75,15 @@
           "S3Key": { "Fn::Sub": "release/${Version}/lambda/syslog.zip" }
         },
         "Description": { "Ref": "Url" },
-        "Handler": "index.handler",
+        "Environment": {
+          "Variables": {
+            "SYSLOG_FORMAT": { "Ref": "Format" },
+            "SYSLOG_URL": { "Ref": "Url" }
+          }
+        },
+        "Handler": "handler",
         "Role": { "Fn::GetAtt": [ "Role", "Arn" ] },
-        "Runtime": "nodejs8.10",
+        "Runtime": "go1.x",
         "Timeout": "25",
         "VpcConfig": { "Fn::If": [ "Private",
           { "SecurityGroupIds": [ { "Ref": "SecurityGroup" } ], "SubnetIds": { "Ref": "SubnetsPrivate" } },

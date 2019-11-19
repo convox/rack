@@ -1,6 +1,8 @@
-#!/bin/sh
+#!/bin/bash
 
 set -e
+
+nl=$'\n'
 
 die() { echo $*; exit 1; }
 
@@ -19,14 +21,20 @@ merge() {
   local base=$(git rev-parse --abbrev-ref HEAD)
   local remote="https://github.com/$(gethub /repos/convox/rack/pulls/$1 ".head.repo.full_name")"
   local ref=$(gethub /repos/convox/rack/pulls/$1 ".head.ref")
+  local title=$(gethub /repos/convox/rack/pulls/$1 ".title")
+  local body=$(gethub /repos/convox/rack/pulls/$1 ".body")
   local work="merge-${ref}"
+
+  local message="[#${1}] ${title}${nl}${nl}${body}"
 
   git branch -D $work >/dev/null 2>&1 || true
   git fetch $remote $ref:$work
   git checkout $work
+  git reset --soft $(git merge-base $work $base)
+  git commit -m "$message"
   git rebase $base || (git rebase --abort; git checkout $base; die "could not rebase: $pr")
   git checkout $base
-  git merge --no-ff --no-edit -m "[merge] pull request #$pr" $work
+  git merge --no-edit $work
   git branch -d $work
 }
 

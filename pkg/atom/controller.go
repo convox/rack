@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"time"
 
-	ct "github.com/convox/rack/pkg/atom/pkg/apis/convox/v1"
+	ct "github.com/convox/rack/pkg/atom/pkg/apis/convox/v2"
 	cv "github.com/convox/rack/pkg/atom/pkg/client/clientset/versioned"
-	ic "github.com/convox/rack/pkg/atom/pkg/client/informers/externalversions/convox/v1"
+	ic "github.com/convox/rack/pkg/atom/pkg/client/informers/externalversions/convox/v2"
 	"github.com/convox/rack/pkg/kctl"
 	"github.com/pkg/errors"
 	ac "k8s.io/api/core/v1"
@@ -122,6 +122,9 @@ func (c *AtomController) Update(prev, cur interface{}) error {
 			c.atom.status(ca, "Failed")
 			return errors.WithStack(err)
 		}
+	case "Cleanup":
+		ca.Spec.PreviousVersion = ""
+		c.atom.status(ca, "Success")
 	case "Pending":
 		if err := c.atom.apply(ca); err != nil {
 			c.atom.status(ca, "Rollback")
@@ -155,7 +158,7 @@ func (c *AtomController) Update(prev, cur interface{}) error {
 		}
 
 		if success {
-			c.atom.status(ca, "Success")
+			c.atom.status(ca, "Cleanup")
 		}
 	}
 

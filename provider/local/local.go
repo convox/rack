@@ -3,6 +3,7 @@ package local
 import (
 	"context"
 	"fmt"
+	"os"
 
 	"github.com/convox/logger"
 	"github.com/convox/rack/pkg/manifest"
@@ -25,7 +26,8 @@ import (
 type Provider struct {
 	*k8s.Provider
 
-	DNS string
+	DNS      string
+	Platform string
 
 	logger    *logger.Logger
 	templater *templater.Templater
@@ -41,6 +43,7 @@ func FromEnv() (*Provider, error) {
 	}
 
 	p := &Provider{
+		Platform: os.Getenv("PLATFORM"),
 		Provider: kp,
 		logger:   logger.Discard,
 	}

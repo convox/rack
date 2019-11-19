@@ -8,9 +8,9 @@ import (
 )
 
 func EndpointCheck(url string) error {
-	ht := *(http.DefaultTransport.(*http.Transport))
+	ht := NewDefaultTransport()
 	ht.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-	hc := &http.Client{Timeout: 2 * time.Second, Transport: &ht}
+	hc := &http.Client{Timeout: 2 * time.Second, Transport: ht}
 
 	res, err := hc.Get(fmt.Sprintf("%s/apps", url))
 	if err == nil && res.StatusCode == 200 {

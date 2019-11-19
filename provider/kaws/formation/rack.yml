@@ -6,43 +6,43 @@ Conditions:
 Mappings:
   Regions:
     ap-northeast-1:
-      AMI: ami-0bfedee6a7845c26d
+      AMI: ami-0dfbca8d183884f02
       EFS: Yes
     ap-northeast-2:
-      AMI: ami-0a904348b703e620c
+      AMI: ami-0a9d12fe9c2a31876
       EFS: Yes
     ap-south-1:
-      AMI: ami-09c3eb35bb3be46a4
-      EFS: No
+      AMI: ami-0644de45344ce867e
+      EFS: Yes
     ap-southeast-1:
-      AMI: ami-07b922b9b94d9a6d2
+      AMI: ami-040bdde117f3828ab
       EFS: Yes
     ap-southeast-2:
-      AMI: ami-0f0121e9e64ebd3dc
+      AMI: ami-01bfe815f644becc0
       EFS: Yes
     eu-central-1:
-      AMI: ami-0d741ed58ca5b342e
+      AMI: ami-09ed3f40a2b3c11f1
       EFS: Yes
     eu-north-1:
-      AMI: ami-0c65a309fc58f6907
+      AMI: ami-022cd6a50742d611a
       EFS: No
     eu-west-1:
-      AMI: ami-08716b70cac884aaa
+      AMI: ami-091fc251b67b776c3
       EFS: Yes
     eu-west-2:
-      AMI: ami-0c7388116d474ee10
+      AMI: ami-0bc8d0262346bd65e
       EFS: Yes
     eu-west-3:
-      AMI: ami-0560aea042fec8b12
-      EFS: No
+      AMI: ami-0084dea61e480763e
+      EFS: Yes
     us-east-1:
-      AMI: ami-0abcb9f9190e867ab
+      AMI: ami-0200e65a38edfb7e1
       EFS: Yes
     us-east-2:
-      AMI: ami-04ea7cb66af82ae4a
+      AMI: ami-0e8d353285e26a68c
       EFS: Yes
     us-west-2:
-      AMI: ami-0923e4b35a30a5f53
+      AMI: ami-0f11fd98b02f12a4c
       EFS: Yes
   Static:
     Global:

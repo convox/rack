@@ -79,6 +79,27 @@ func TestAppsCancel(t *testing.T) {
 	})
 }
 
+func TestAppsCancelWait(t *testing.T) {
+	testClientWait(t, 100*time.Millisecond, func(e *cli.Engine, i *mocksdk.Interface) {
+		i.On("AppCancel", "app1").Return(nil)
+		opts := structs.LogsOptions{Prefix: options.Bool(true), Since: options.Duration(5 * time.Second)}
+		i.On("AppLogs", "app1", opts).Return(testLogs(fxLogsSystem()), nil)
+		i.On("AppGet", "app1").Return(fxAppRollback(), nil).Times(2)
+		i.On("AppGet", "app1").Return(fxApp(), nil)
+
+		res, err := testExecute(e, "apps cancel app1 --wait", nil)
+		require.NoError(t, err)
+		require.Equal(t, 0, res.Code)
+		res.RequireStderr(t, []string{""})
+		res.RequireStdout(t, []string{
+			"Cancelling app1... ",
+			"TIME system/aws/component log1",
+			"TIME system/aws/component log2",
+			"OK",
+		})
+	})
+}
+
 func TestAppsCancelError(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
 		i.On("AppCancel", "app1").Return(fmt.Errorf("err1"))
@@ -234,7 +255,7 @@ func TestAppsExport(t *testing.T) {
 
 		data, err := ioutil.ReadFile(filepath.Join(tmp, "app.json"))
 		require.NoError(t, err)
-		require.Equal(t, "{\"generation\":\"2\",\"locked\":false,\"name\":\"app1\",\"release\":\"release1\",\"status\":\"running\",\"parameters\":{\"ParamFoo\":\"value1\",\"ParamOther\":\"value2\"}}", string(data))
+		require.Equal(t, "{\"generation\":\"2\",\"locked\":false,\"name\":\"app1\",\"release\":\"release1\",\"router\":\"\",\"status\":\"running\",\"parameters\":{\"ParamFoo\":\"value1\",\"ParamOther\":\"value2\"}}", string(data))
 
 		data, err = ioutil.ReadFile(filepath.Join(tmp, "env"))
 		require.NoError(t, err)
@@ -360,6 +381,38 @@ func TestAppsImportSameParams(t *testing.T) {
 }
 
 func TestAppsInfo(t *testing.T) {
+	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
+		i.On("AppGet", "app1").Return(fxAppRouter(), nil)
+
+		res, err := testExecute(e, "apps info app1", nil)
+		require.NoError(t, err)
+		require.Equal(t, 0, res.Code)
+		res.RequireStderr(t, []string{""})
+		res.RequireStdout(t, []string{
+			"Name        app1",
+			"Status      running",
+			"Generation  2",
+			"Locked      false",
+			"Release     release1",
+			"Router      router1",
+		})
+
+		res, err = testExecute(e, "apps info -a app1", nil)
+		require.NoError(t, err)
+		require.Equal(t, 0, res.Code)
+		res.RequireStderr(t, []string{""})
+		res.RequireStdout(t, []string{
+			"Name        app1",
+			"Status      running",
+			"Generation  2",
+			"Locked      false",
+			"Release     release1",
+			"Router      router1",
+		})
+	})
+}
+
+func TestAppsInfoRouter(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
 		i.On("AppGet", "app1").Return(fxApp(), nil)
 

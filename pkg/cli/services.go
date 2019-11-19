@@ -14,6 +14,11 @@ func init() {
 		Flags:    []stdcli.Flag{flagApp, flagRack},
 		Validate: stdcli.Args(0),
 	})
+
+	register("services restart", "restart a service", ServicesRestart, stdcli.CommandOptions{
+		Flags:    []stdcli.Flag{flagApp, flagRack},
+		Validate: stdcli.Args(1),
+	})
 }
 
 func Services(rack sdk.Interface, c *stdcli.Context) error {
@@ -55,4 +60,16 @@ func Services(rack sdk.Interface, c *stdcli.Context) error {
 	}
 
 	return t.Print()
+}
+
+func ServicesRestart(rack sdk.Interface, c *stdcli.Context) error {
+	name := c.Arg(0)
+
+	c.Startf("Restarting <service>%s</service>", name)
+
+	if err := rack.ServiceRestart(app(c), name); err != nil {
+		return err
+	}
+
+	return c.OK()
 }

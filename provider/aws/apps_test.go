@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/convox/rack/pkg/options"
 	"github.com/convox/rack/pkg/structs"
@@ -96,12 +97,36 @@ func TestAppLogs(t *testing.T) {
 	r, err := provider.AppLogs("httpd", structs.LogsOptions{
 		Follow: options.Bool(false),
 		Filter: options.String("test"),
+		Prefix: options.Bool(true),
 	})
 
 	io.Copy(buf, r)
 
 	assert.NoError(t, err)
-	assert.Equal(t, "2014-03-28T19:36:18Z event2\n2014-03-28T19:36:18Z event3\n2014-03-28T19:36:18Z event4\n2014-03-28T19:36:18Z event1\n2014-03-28T19:36:18Z event5\n", buf.String())
+	assert.Equal(t, "2014-03-28T19:36:18Z stream1 event2\n2014-03-28T19:36:18Z stream2 event3\n2014-03-28T19:36:18Z stream3 event4\n2014-03-28T19:36:18Z stream1 event1\n2014-03-28T19:36:18Z stream2 event5\n", buf.String())
+}
+
+func TestAppLogsSince(t *testing.T) {
+	provider := StubAwsProvider(
+		cycleListAppStackResources,
+		cycleLogFilterLogEventsLimit1,
+		cycleLogFilterLogEventsLimit2,
+	)
+	defer provider.Close()
+
+	buf := &bytes.Buffer{}
+
+	r, err := provider.AppLogs("httpd", structs.LogsOptions{
+		Follow: options.Bool(false),
+		Filter: options.String("test"),
+		Prefix: options.Bool(true),
+		Since:  options.Duration(time.Since(time.Date(2019, 1, 1, 0, 0, 0, 0, time.UTC))),
+	})
+
+	io.Copy(buf, r)
+
+	assert.NoError(t, err)
+	assert.Equal(t, "2020-07-29T15:09:38Z stream1 event2\n2020-07-29T15:09:38Z stream2 event3\n2020-07-29T15:09:38Z stream3 event4\n2020-07-29T15:09:38Z stream1 event1\n2020-07-29T15:09:38Z stream2 event5\n", buf.String())
 }
 
 var cycleAppCancelUpdateStack = awsutil.Cycle{
@@ -274,6 +299,103 @@ var cycleAppDescribeStacks = awsutil.Cycle{
 	`},
 }
 
+var cycleLogFilterLogEventsLimit1 = awsutil.Cycle{
+	Request: awsutil.Request{
+		RequestURI: "/",
+		Operation:  "Logs_20140328.FilterLogEvents",
+		Body: `{
+			"filterPattern": "test",
+			"interleaved": true,
+			"logGroupName": "convox-httpd-LogGroup-L4V203L35WRM",
+			"startTime": 1546300800000
+		}`,
+	},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body: `{
+			"events": [
+				{
+					"ingestionTime": 1396035394997,
+					"timestamp": 1596035378988,
+					"message": "event2",
+					"logStreamName": "stream1",
+					"eventId": "31132629274945519779805322857203735586714454643391594505"
+				},
+				{
+					"ingestionTime": 1396035394997,
+					"timestamp": 1596035378988,
+					"message": "event3",
+					"logStreamName": "stream2",
+					"eventId": "31132629274945519779805322857203735586814454643391594505"
+				},
+				{
+					"ingestionTime": 1396035394997,
+					"timestamp": 1596035378989,
+					"message": "event4",
+					"logStreamName": "stream3",
+					"eventId": "31132629274945519779805322857203735586824454643391594505"
+				}
+			],
+			"searchedLogStreams": [
+				{
+					"searchedCompletely": false, 
+					"logStreamName": "stream1"
+				}, 
+				{
+					"searchedCompletely": false,
+					"logStreamName": "stream2"
+				}
+			],
+			"nextToken": "ZNUEPl7FcQuXbIH4Swk9D9eFu2XBg-ijZIZlvzz4ea9zZRjw-MMtQtvcoMdmq4T29K7Q6Y1e_KvyfpcT_f_tUw"
+		}`,
+	},
+}
+
+var cycleLogFilterLogEventsLimit2 = awsutil.Cycle{
+	Request: awsutil.Request{
+		RequestURI: "/",
+		Operation:  "Logs_20140328.FilterLogEvents",
+		Body: `{
+			"filterPattern": "test",
+			"interleaved": true,
+			"logGroupName": "convox-httpd-LogGroup-L4V203L35WRM",
+			"nextToken": "ZNUEPl7FcQuXbIH4Swk9D9eFu2XBg-ijZIZlvzz4ea9zZRjw-MMtQtvcoMdmq4T29K7Q6Y1e_KvyfpcT_f_tUw",
+			"startTime": 1546300800000
+		}`,
+	},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body: `{
+			"events": [
+				{
+					"ingestionTime": 1396035394997,
+					"timestamp": 1596035378968,
+					"message": "event1",
+					"logStreamName": "stream1",
+					"eventId": "31132629274945519779805322857203735586714454643391594506"
+				},
+				{
+					"ingestionTime": 1396035394997,
+					"timestamp": 1596035378998,
+					"message": "event5",
+					"logStreamName": "stream2",
+					"eventId": "31132629274945519779805322857203735586814454643391594507"
+				}
+			],
+			"searchedLogStreams": [
+				{
+					"searchedCompletely": true, 
+					"logStreamName": "stream1"
+				}, 
+				{
+					"searchedCompletely": false,
+					"logStreamName": "stream2"
+				}
+			]
+		}`,
+	},
+}
+
 var cycleLogFilterLogEvents1 = awsutil.Cycle{
 	Request: awsutil.Request{
 		RequestURI: "/",
@@ -316,7 +438,7 @@ var cycleLogFilterLogEvents1 = awsutil.Cycle{
 					"logStreamName": "stream1"
 				}, 
 				{
-					"searchedCompletely": false,      
+					"searchedCompletely": false,
 					"logStreamName": "stream2"
 				},
 				{
@@ -349,14 +471,14 @@ var cycleLogFilterLogEvents2 = awsutil.Cycle{
 					"timestamp": 1396035378968,
 					"message": "event1",
 					"logStreamName": "stream1",
-					"eventId": "31132629274945519779805322857203735586714454643391594505"
+					"eventId": "31132629274945519779805322857203735586714454643391594506"
 				},
 				{
 					"ingestionTime": 1396035394997,
 					"timestamp": 1396035378998,
 					"message": "event5",
 					"logStreamName": "stream2",
-					"eventId": "31132629274945519779805322857203735586814454643391594505"
+					"eventId": "31132629274945519779805322857203735586814454643391594507"
 				}
 			],
 			"searchedLogStreams": [
@@ -365,7 +487,7 @@ var cycleLogFilterLogEvents2 = awsutil.Cycle{
 					"logStreamName": "stream1"
 				}, 
 				{
-					"searchedCompletely": true,      
+					"searchedCompletely": false,
 					"logStreamName": "stream2"
 				}
 			]

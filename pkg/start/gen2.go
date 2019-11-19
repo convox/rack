@@ -32,7 +32,7 @@ import (
 
 const (
 	ScannerStartSize = 4096
-	ScannerMaxSize   = 1024 * 1024
+	ScannerMaxSize   = 20 * 1024 * 1024
 )
 
 var (
@@ -192,7 +192,7 @@ func (s *Start) Start2(ctx context.Context, w io.Writer, opts Options2) error {
 		}
 	}
 
-	if err := helpers.WaitForAppRunningContext(ctx, opts.Provider, opts.App); err != nil {
+	if err := helpers.WaitForAppRunningContext(ctx, opts.Provider, opts.App, true); err != nil {
 		return err
 	}
 

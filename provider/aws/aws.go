@@ -186,6 +186,10 @@ func (p *Provider) Initialize(opts structs.ProviderOptions) error {
 }
 
 func (p *Provider) Context() context.Context {
+	if p.ctx == nil {
+		return context.Background()
+	}
+
 	return p.ctx
 }
 

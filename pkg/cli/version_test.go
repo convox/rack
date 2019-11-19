@@ -15,7 +15,6 @@ import (
 func TestVersion(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
 		me := &mockstdcli.Executor{}
-		me.On("Execute", "docker", "ps", "--filter", "label=convox.type=rack", "--format", "{{.Names}}").Return([]byte("classic\n"), nil)
 		me.On("Execute", "kubectl", "get", "ns", "--selector=system=convox,type=rack", "--output=name").Return([]byte("namespace/dev\n"), nil)
 		e.Executor = me
 
@@ -38,7 +37,6 @@ func TestVersion(t *testing.T) {
 func TestVersionError(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
 		me := &mockstdcli.Executor{}
-		me.On("Execute", "docker", "ps", "--filter", "label=convox.type=rack", "--format", "{{.Names}}").Return([]byte("classic\n"), nil)
 		me.On("Execute", "kubectl", "get", "ns", "--selector=system=convox,type=rack", "--output=name").Return([]byte("namespace/dev\n"), nil)
 		e.Executor = me
 
@@ -60,7 +58,6 @@ func TestVersionError(t *testing.T) {
 func TestVersionNoSystem(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
 		me := &mockstdcli.Executor{}
-		me.On("Execute", "docker", "ps", "--filter", "label=convox.type=rack", "--format", "{{.Names}}").Return([]byte(""), nil)
 		me.On("Execute", "kubectl", "get", "ns", "--selector=system=convox,type=rack", "--output=name").Return([]byte(""), nil)
 		e.Executor = me
 
@@ -78,8 +75,7 @@ func TestVersionNoSystem(t *testing.T) {
 func TestVersionNoSystemMultipleLocal(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
 		me := &mockstdcli.Executor{}
-		me.On("Execute", "docker", "ps", "--filter", "label=convox.type=rack", "--format", "{{.Names}}").Return([]byte("classic\n"), nil)
-		me.On("Execute", "kubectl", "get", "ns", "--selector=system=convox,type=rack", "--output=name").Return([]byte("namespace/dev\n"), nil)
+		me.On("Execute", "kubectl", "get", "ns", "--selector=system=convox,type=rack", "--output=name").Return([]byte("namespace/dev\nnamespace/dev2\n"), nil)
 		e.Executor = me
 
 		res, err := testExecute(e, "version", nil)
@@ -96,7 +92,6 @@ func TestVersionNoSystemMultipleLocal(t *testing.T) {
 func TestVersionNoSystemSingleLocal(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
 		me := &mockstdcli.Executor{}
-		me.On("Execute", "docker", "ps", "--filter", "label=convox.type=rack", "--format", "{{.Names}}").Return([]byte(""), nil)
 		me.On("Execute", "kubectl", "get", "ns", "--selector=system=convox,type=rack", "--output=name").Return([]byte("namespace/dev\n"), nil)
 		e.Executor = me
 

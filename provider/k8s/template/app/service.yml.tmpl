@@ -19,7 +19,6 @@ metadata:
   name: {{.Service.Name}}
   annotations:
     atom.conditions: Available=True,Progressing=True/NewReplicaSetAvailable
-    convox.rollback: "{{.Rollback}}"
   labels:
     app: {{.App.Name}}
     type: service

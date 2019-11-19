@@ -72,6 +72,8 @@ type Provider interface {
 	ResourceList(app string) (Resources, error)
 
 	ServiceList(app string) (Services, error)
+	ServiceMetrics(app, name string, opts MetricsOptions) (Metrics, error)
+	ServiceRestart(app, name string) error
 	ServiceUpdate(app, name string, opts ServiceUpdateOptions) error
 
 	SystemGet() (*System, error)

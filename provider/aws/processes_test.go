@@ -503,7 +503,7 @@ var cycleProcessListStackResources = awsutil.Cycle{
 							<ResourceType>AWS::Logs::LogGroup</ResourceType>
 						</member>
 						<member>
-							<PhysicalResourceId>settings</PhysicalResourceId>
+							<PhysicalResourceId>myapp-settings</PhysicalResourceId>
 							<ResourceStatus>UPDATE_COMPLETE</ResourceStatus>
 							<StackId>arn:aws:cloudformation:us-east-1:778743527532:stack/convox-myapp/5c05e0c0-6e10-11e6-8a4e-50fae98a10d2</StackId>
 							<StackName>convox-myapp</StackName>
@@ -1456,7 +1456,7 @@ var cycleProcessReleaseListStackResources = awsutil.Cycle{
   <ListStackResourcesResult>
     <StackResourceSummaries>
     <member>
-      <PhysicalResourceId></PhysicalResourceId>
+      <PhysicalResourceId>myapp-settings</PhysicalResourceId>
       <ResourceStatus>UPDATE_COMPLETE</ResourceStatus>
       <LogicalResourceId>Settings</LogicalResourceId>
       <Timestamp>2016-10-22T02:53:23.817Z</Timestamp>
@@ -1485,7 +1485,7 @@ var cycleProcessReleaseDescribeStackResources = awsutil.Cycle{
   <DescribeStackResourcesResult>
     <StackResources>
     <member>
-      <PhysicalResourceId></PhysicalResourceId>
+      <PhysicalResourceId>myapp-settings</PhysicalResourceId>
       <ResourceStatus>UPDATE_COMPLETE</ResourceStatus>
       <LogicalResourceId>Settings</LogicalResourceId>
       <Timestamp>2016-10-22T02:53:23.817Z</Timestamp>
@@ -1504,7 +1504,7 @@ var cycleProcessReleaseDescribeStackResources = awsutil.Cycle{
 var cycleProcessReleaseEnvironmentGet = awsutil.Cycle{
 	Request: awsutil.Request{
 		Method:     "GET",
-		RequestURI: "/releases/RVFETUHHKKD/env",
+		RequestURI: "/myapp-settings/releases/RVFETUHHKKD/env",
 	},
 	Response: awsutil.Response{
 		StatusCode: 200,

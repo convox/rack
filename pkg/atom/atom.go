@@ -5,12 +5,13 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"html/template"
 	"os/exec"
 	"sort"
 	"strings"
 	"time"
 
-	ca "github.com/convox/rack/pkg/atom/pkg/apis/convox/v1"
+	ca "github.com/convox/rack/pkg/atom/pkg/apis/convox/v2"
 	cv "github.com/convox/rack/pkg/atom/pkg/client/clientset/versioned"
 	"github.com/convox/rack/pkg/templater"
 	"github.com/gobuffalo/packr"
@@ -27,7 +28,7 @@ import (
 )
 
 var (
-	templates = templater.New(packr.NewBox("../atom/templates"), nil)
+	templates = templater.New(packr.NewBox("../atom/templates"), templateHelpers())
 )
 
 type Client struct {
@@ -56,22 +57,18 @@ func New(cfg *rest.Config) (*Client, error) {
 	return c, nil
 }
 
-func Apply(namespace, name, version string, template []byte, timeout int32) error {
+func Apply(namespace, name, release string, template []byte, timeout int32) error {
 	params := map[string]interface{}{
 		"Name":      name,
 		"Namespace": namespace,
+		"Release":   release,
 		"Template":  base64.StdEncoding.EncodeToString(template),
 		"Timeout":   timeout,
-		"Version":   version,
+		"Version":   time.Now().UTC().UnixNano(),
 	}
 
 	if err := exec.Command("kubectl", "get", fmt.Sprintf("ns/%s", namespace)).Run(); err != nil {
-		data, err := templates.Render("namespace.yml.tmpl", params)
-		if err != nil {
-			return errors.WithStack(err)
-		}
-
-		if err := kubectlApply(data); err != nil {
+		if err := kubectlApplyTemplate("namespace.yml.tmpl", params); err != nil {
 			return err
 		}
 
@@ -84,12 +81,16 @@ func Apply(namespace, name, version string, template []byte, timeout int32) erro
 		}
 	}
 
-	data, err := templates.Render("atom.yml.tmpl", params)
+	data, err := templates.Render("version.yml.tmpl", params)
 	if err != nil {
-		return errors.WithStack(err)
+		return err
 	}
 
-	if err := kubectlApply(data); err != nil {
+	if data, err := kubectlCreate(data); err != nil {
+		return fmt.Errorf("could not create atom version for %s/%s: %s", name, release, strings.TrimSpace(string(data)))
+	}
+
+	if err := kubectlApplyTemplate("atom.yml.tmpl", params); err != nil {
 		return err
 	}
 
@@ -112,7 +113,7 @@ func Wait(namespace, name string) error {
 	}
 }
 
-func (c *Client) Apply(ns, name string, version string, template []byte, timeout int32) error {
+func (c *Client) Apply(ns, name string, release string, template []byte, timeout int32) error {
 	if _, err := c.k8s.CoreV1().Namespaces().Get(ns, am.GetOptions{}); ae.IsNotFound(err) {
 		_, err := c.k8s.CoreV1().Namespaces().Create(&ac.Namespace{
 			ObjectMeta: am.ObjectMeta{
@@ -132,10 +133,23 @@ func (c *Client) Apply(ns, name string, version string, template []byte, timeout
 		}
 	}
 
-	a, err := c.convox.ConvoxV1().Atoms(ns).Get(name, am.GetOptions{})
+	v, err := c.convox.ConvoxV2().AtomVersions(ns).Create(&ca.AtomVersion{
+		ObjectMeta: am.ObjectMeta{
+			Name: fmt.Sprintf("%s-%d", name, time.Now().UTC().UnixNano()),
+		},
+		Spec: ca.AtomVersionSpec{
+			Release:  release,
+			Template: template,
+		},
+	})
+	if err != nil {
+		return errors.WithStack(err)
+	}
+
+	a, err := c.convox.ConvoxV2().Atoms(ns).Get(name, am.GetOptions{})
 	switch {
 	case ae.IsNotFound(err):
-		a, err = c.convox.ConvoxV1().Atoms(ns).Create(&ca.Atom{
+		a, err = c.convox.ConvoxV2().Atoms(ns).Create(&ca.Atom{
 			ObjectMeta: am.ObjectMeta{
 				Name: name,
 			},
@@ -146,15 +160,17 @@ func (c *Client) Apply(ns, name string, version string, template []byte, timeout
 	case err != nil:
 		return errors.WithStack(err)
 	default:
-		a.Spec.Previous = a.Spec.Current
+		a.Spec.PreviousVersion = a.Spec.CurrentVersion
 	}
 
-	a.Spec.Current.Version = version
-	a.Spec.Current.Template = template
+	fmt.Printf("v.ObjectMeta = %+v\n", v.ObjectMeta)
+	fmt.Printf("v.Name = %+v\n", v.Name)
+
+	a.Spec.CurrentVersion = v.Name
 	a.Spec.ProgressDeadlineSeconds = timeout
 	a.Status = "Pending"
 
-	if _, err := c.convox.ConvoxV1().Atoms(ns).Update(a); err != nil {
+	if _, err := c.convox.ConvoxV2().Atoms(ns).Update(a); err != nil {
 		return errors.WithStack(err)
 	}
 
@@ -162,7 +178,7 @@ func (c *Client) Apply(ns, name string, version string, template []byte, timeout
 }
 
 func (c *Client) Status(ns, name string) (string, string, error) {
-	a, err := c.convox.ConvoxV1().Atoms(ns).Get(name, am.GetOptions{})
+	a, err := c.convox.ConvoxV2().Atoms(ns).Get(name, am.GetOptions{})
 	if ae.IsNotFound(err) {
 		return "", "", nil
 	}
@@ -170,12 +186,23 @@ func (c *Client) Status(ns, name string) (string, string, error) {
 		return "", "", errors.WithStack(err)
 	}
 
-	return string(a.Status), a.Spec.Current.Version, nil
+	release := ""
+
+	if a.Spec.CurrentVersion != "" {
+		v, err := c.convox.ConvoxV2().AtomVersions(ns).Get(a.Spec.CurrentVersion, am.GetOptions{})
+		if err != nil {
+			return "", "", err
+		}
+
+		release = v.Spec.Release
+	}
+
+	return string(a.Status), release, nil
 }
 
 func (c *Client) Wait(ns, name string) error {
 	for {
-		a, err := c.convox.ConvoxV1().Atoms(ns).Get(name, am.GetOptions{})
+		a, err := c.convox.ConvoxV2().Atoms(ns).Get(name, am.GetOptions{})
 		if err != nil {
 			return errors.WithStack(err)
 		}
@@ -194,19 +221,28 @@ func (c *Client) apply(a *ca.Atom) error {
 
 	a.Status = "Building"
 
-	a, err = c.convox.ConvoxV1().Atoms(a.Namespace).Update(a)
+	a, err = c.convox.ConvoxV2().Atoms(a.Namespace).Update(a)
 	if err != nil {
 		return errors.WithStack(err)
 	}
 
-	cs, err := extractConditions(a.Spec.Current.Template)
+	v, err := c.convox.ConvoxV2().AtomVersions(a.Namespace).Get(a.Spec.CurrentVersion, am.GetOptions{})
+	if err != nil {
+		return err
+	}
+
+	cs, err := extractConditions(v.Spec.Template)
 	if err != nil {
 		return errors.WithStack(err)
 	}
 
 	a.Spec.Conditions = cs
 
-	out, err := applyTemplate(a.Spec.Current.Template, fmt.Sprintf("atom=%s.%s", a.Namespace, a.Name))
+	fmt.Printf("string(v.Spec.Template) = %+v\n", string(v.Spec.Template))
+
+	out, err := applyTemplate(v.Spec.Template, fmt.Sprintf("atom=%s.%s", a.Namespace, a.Name))
+	fmt.Printf("string(out) = %+v\n", string(out))
+	fmt.Printf("err = %+v\n", err)
 	if err != nil {
 		return errors.WithStack(errors.New(strings.TrimSpace(string(out))))
 	}
@@ -216,7 +252,7 @@ func (c *Client) apply(a *ca.Atom) error {
 	a.Started = am.Now()
 	a.Status = "Running"
 
-	a, err = c.convox.ConvoxV1().Atoms(a.Namespace).Update(a)
+	a, err = c.convox.ConvoxV2().Atoms(a.Namespace).Update(a)
 	if err != nil {
 		return errors.WithStack(err)
 	}
@@ -284,18 +320,24 @@ func (c *Client) check(a *ca.Atom) (bool, error) {
 }
 
 func (c *Client) rollback(a *ca.Atom) error {
-	out, err := applyTemplate(a.Spec.Previous.Template, fmt.Sprintf("atom=%s.%s", a.Namespace, a.Name))
+	v, err := c.convox.ConvoxV2().AtomVersions(a.Namespace).Get(a.Spec.PreviousVersion, am.GetOptions{})
+	if err != nil {
+		return err
+	}
+
+	out, err := applyTemplate(v.Spec.Template, fmt.Sprintf("atom=%s.%s", a.Namespace, a.Name))
 	if err != nil {
 		return errors.WithStack(errors.New(strings.TrimSpace(string(out))))
 	}
 
 	time.Sleep(1 * time.Second)
 
-	a.Spec.Current = a.Spec.Previous
+	a.Spec.CurrentVersion = v.Name
+	a.Spec.PreviousVersion = ""
 	a.Started = am.Now()
 	a.Status = "Rollback"
 
-	a, err = c.convox.ConvoxV1().Atoms(a.Namespace).Update(a)
+	a, err = c.convox.ConvoxV2().Atoms(a.Namespace).Update(a)
 	if err != nil {
 		return errors.WithStack(err)
 	}
@@ -308,7 +350,7 @@ func (c *Client) status(a *ca.Atom, status string) error {
 
 	a.Status = ca.AtomStatus(status)
 
-	a, err = c.convox.ConvoxV1().Atoms(a.Namespace).Update(a)
+	a, err = c.convox.ConvoxV2().Atoms(a.Namespace).Update(a)
 	if err != nil {
 		return errors.WithStack(err)
 	}
@@ -383,13 +425,13 @@ func applyTemplate(data []byte, filter string) ([]byte, error) {
 		args = append(args, "--prune-whitelist", r)
 	}
 
-	out, err := kubectlApplyOutput(data, args...)
+	out, err := kubectlApply(data, args...)
 	if err != nil {
 		if !strings.Contains(string(out), "is immutable") {
 			return out, errors.WithStack(err)
 		}
 
-		out, err := kubectlApplyOutput(data, "--force")
+		out, err := kubectlApply(data, "--force")
 		if err != nil {
 			return out, errors.WithStack(err)
 		}
@@ -446,15 +488,7 @@ func extractConditions(data []byte) ([]ca.AtomCondition, error) {
 	return cs, nil
 }
 
-func kubectlApply(data []byte, args ...string) error {
-	if out, err := kubectlApplyOutput(data, args...); err != nil {
-		return errors.New(strings.TrimSpace(string(out)))
-	}
-
-	return nil
-}
-
-func kubectlApplyOutput(data []byte, args ...string) ([]byte, error) {
+func kubectlApply(data []byte, args ...string) ([]byte, error) {
 	ka := append([]string{"apply", "-f", "-"}, args...)
 
 	cmd := exec.Command("kubectl", ka...)
@@ -462,6 +496,29 @@ func kubectlApplyOutput(data []byte, args ...string) ([]byte, error) {
 	cmd.Stdin = bytes.NewReader(data)
 
 	return cmd.CombinedOutput()
+}
+
+func kubectlCreate(data []byte, args ...string) ([]byte, error) {
+	ka := append([]string{"create", "-f", "-"}, args...)
+
+	cmd := exec.Command("kubectl", ka...)
+
+	cmd.Stdin = bytes.NewReader(data)
+
+	return cmd.CombinedOutput()
+}
+
+func kubectlApplyTemplate(template string, params map[string]interface{}) error {
+	data, err := templates.Render(template, params)
+	if err != nil {
+		return err
+	}
+
+	if out, err := kubectlApply(data); err != nil {
+		return errors.New(strings.TrimSpace(string(out)))
+	}
+
+	return nil
 }
 
 func parseLabels(labels string) map[string]string {
@@ -526,4 +583,12 @@ func templateResources(filter string) ([]string, error) {
 	sort.Strings(rs)
 
 	return rs, nil
+}
+
+func templateHelpers() map[string]interface{} {
+	return map[string]interface{}{
+		"safe": func(s string) template.HTML {
+			return template.HTML(fmt.Sprintf("%q", s))
+		},
+	}
 }

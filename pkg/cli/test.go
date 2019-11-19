@@ -16,6 +16,7 @@ func init() {
 		Flags: []stdcli.Flag{
 			flagApp,
 			flagRack,
+			stdcli.StringFlag("description", "d", "description"),
 			stdcli.StringFlag("release", "", "use existing release to run tests"),
 			stdcli.IntFlag("timeout", "t", "timeout"),
 		},

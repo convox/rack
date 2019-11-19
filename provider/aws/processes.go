@@ -21,7 +21,7 @@ import (
 	"github.com/convox/rack/pkg/manifest"
 	"github.com/convox/rack/pkg/manifest1"
 	"github.com/convox/rack/pkg/structs"
-	"github.com/fsouza/go-dockerclient"
+	docker "github.com/fsouza/go-dockerclient"
 	shellquote "github.com/kballard/go-shellquote"
 )
 
@@ -331,7 +331,18 @@ func (p *Provider) taskProcesses(tasks []string) (structs.Processes, error) {
 			}
 
 			for _, task := range tres.Tasks {
-				ecsTasks = append(ecsTasks, task)
+				// workaround for ECS:ListTasks bug that is returning all tasks you specify even if they
+				// are not on the cluster that you specify
+				exists := false
+				for _, t := range ecsTasks {
+					if t.TaskArn != nil && task.TaskArn != nil && *t.TaskArn == *task.TaskArn {
+						exists = true
+						break
+					}
+				}
+				if !exists {
+					ecsTasks = append(ecsTasks, task)
+				}
 			}
 		}
 
@@ -422,6 +433,9 @@ func (p *Provider) ProcessRun(app, service string, opts structs.ProcessRunOption
 	if err != nil {
 		return nil, log.Error(err)
 	}
+
+	// wait for eventual consistency
+	time.Sleep(3 * time.Second)
 
 	return ps, log.Success()
 }

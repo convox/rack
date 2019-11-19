@@ -82,5 +82,9 @@ func trustCertificate(name string, data []byte) error {
 		return fmt.Errorf("unable to add ca certificate to trusted roots")
 	}
 
+	if err := installDockerDesktopCertificate(data); err != nil {
+		return fmt.Errorf("unable to install docker desktop ca: %v", err)
+	}
+
 	return nil
 }

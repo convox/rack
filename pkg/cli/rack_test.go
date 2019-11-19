@@ -13,7 +13,6 @@ import (
 
 	"github.com/convox/rack/pkg/cli"
 	mocksdk "github.com/convox/rack/pkg/mock/sdk"
-	mockstdcli "github.com/convox/rack/pkg/mock/stdcli"
 	"github.com/convox/rack/pkg/options"
 	"github.com/convox/rack/pkg/structs"
 	"github.com/convox/rack/provider"
@@ -374,116 +373,6 @@ func TestRackScaleUpdateError(t *testing.T) {
 		require.Equal(t, 1, res.Code)
 		res.RequireStderr(t, []string{"ERROR: err1"})
 		res.RequireStdout(t, []string{"Scaling rack... "})
-	})
-}
-
-func TestRackStart(t *testing.T) {
-	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		me := &mockstdcli.Executor{}
-		me.On("Execute", "docker", "rm", "-f", "foo").Return([]byte(""), nil)
-		me.On("Run",
-			mock.Anything,
-			"docker",
-			"run",
-			"--rm",
-			"-e",
-			"COMBINED=true",
-			"-e",
-			"ID=id1",
-			"-e",
-			"IMAGE=convox/rack:test",
-			"-e",
-			"PROVIDER=local",
-			"-e",
-			"RACK=foo",
-			"-e",
-			"ROUTER=bar",
-			"-e",
-			"VERSION=test",
-			"-e",
-			mock.AnythingOfType("string"),
-			"-i",
-			"--label",
-			"convox.rack=foo",
-			"--label",
-			"convox.type=rack",
-			"-m",
-			"256m",
-			"--name",
-			"foo",
-			"-p",
-			"5443",
-			"-v",
-			mock.AnythingOfType("string"),
-			"-v",
-			"/var/run/docker.sock:/var/run/docker.sock",
-			"convox/rack:test",
-		).Return(nil).Run(func(args mock.Arguments) {
-			w := args.Get(0).(io.Writer)
-			w.Write([]byte("out1\nout2\n"))
-		})
-		e.Executor = me
-
-		res, err := testExecute(e, "rack start --id id1 -n foo -r bar", nil)
-		require.NoError(t, err)
-		require.Equal(t, 0, res.Code)
-		res.RequireStderr(t, []string{""})
-		res.RequireStdout(t, []string{
-			"out1",
-			"out2",
-		})
-	})
-}
-
-func TestRackStartError(t *testing.T) {
-	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		me := &mockstdcli.Executor{}
-		me.On("Execute", "docker", "rm", "-f", "foo").Return([]byte(""), nil)
-		me.On("Run",
-			mock.Anything,
-			"docker",
-			"run",
-			"--rm",
-			"-e",
-			"COMBINED=true",
-			"-e",
-			"ID=",
-			"-e",
-			"IMAGE=convox/rack:test",
-			"-e",
-			"PROVIDER=local",
-			"-e",
-			"RACK=foo",
-			"-e",
-			"ROUTER=bar",
-			"-e",
-			"VERSION=test",
-			"-e",
-			mock.AnythingOfType("string"),
-			"-i",
-			"--label",
-			"convox.rack=foo",
-			"--label",
-			"convox.type=rack",
-			"-m",
-			"256m",
-			"--name",
-			"foo",
-			"-p",
-			"5443",
-			"-v",
-			mock.AnythingOfType("string"),
-			"-v",
-			"/var/run/docker.sock:/var/run/docker.sock",
-			"convox/rack:test",
-		).Return(fmt.Errorf("err1"))
-		e.Executor = me
-
-		res, err := testExecute(e, "rack start -n foo -r bar", nil)
-		require.NoError(t, err)
-		require.Equal(t, 1, res.Code)
-		res.RequireStderr(t, []string{"ERROR: err1"})
-		res.RequireStdout(t, []string{""})
 	})
 }
 

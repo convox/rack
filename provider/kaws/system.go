@@ -19,7 +19,7 @@ import (
 	"github.com/convox/rack/pkg/helpers"
 	"github.com/convox/rack/pkg/structs"
 	"github.com/convox/rack/provider/k8s"
-	"gopkg.in/cheggaaa/pb.v1"
+	pb "gopkg.in/cheggaaa/pb.v1"
 )
 
 const (
@@ -265,7 +265,9 @@ func (p *Provider) SystemUpdate(opts structs.SystemUpdateOptions) error {
 	template := fmt.Sprintf(cfnTemplate, helpers.DefaultString(opts.Version, p.Provider.Version))
 
 	if err := helpers.CloudformationUpdate(p.CloudFormation, p.Rack, template, nil, nil, p.EventTopic); err != nil {
-		return err
+		if !cloudformationErrorNoUpdates(err) {
+			return err
+		}
 	}
 
 	if err := p.Provider.SystemUpdate(opts); err != nil {
@@ -273,6 +275,15 @@ func (p *Provider) SystemUpdate(opts structs.SystemUpdateOptions) error {
 	}
 
 	return nil
+}
+
+func (p *Provider) systemTemplate(version string) ([]byte, error) {
+	switch version {
+	case "dev":
+		return p.Provider.SystemTemplateLocal("kaws", version)
+	default:
+		return p.Provider.SystemTemplateRemote("kaws", version)
+	}
 }
 
 func (p *Provider) systemUpdate(version string) error {
@@ -310,9 +321,7 @@ func (p *Provider) systemUpdate(version string) error {
 		return err
 	}
 
-	template := fmt.Sprintf("https://convox.s3.amazonaws.com/release/%s/provider/kaws/k8s/rack.yml", version)
-
-	data, err = helpers.Get(template)
+	data, err = p.systemTemplate(version)
 	if err != nil {
 		return err
 	}
@@ -336,62 +345,6 @@ func (p *Provider) systemUpdate(version string) error {
 
 	return nil
 }
-
-// func (p *Provider) systemUpdate(version string) error {
-//   if out, err := kubectl("scale", "deployment/api", "-n", p.Rack, "--replicas=2"); err != nil {
-//     return fmt.Errorf("update error: %s", strings.TrimSpace(string(out)))
-//   }
-
-//   // if out, err := kubectl("patch", "deployment/api", "-p", `{"spec":{"template":{"spec":{"containers":[{"name":"main","env":[{"name":"SOCKET","value":"/var/run/docker.sock"}]}]}}}}`, "-n", p.Rack); err != nil {
-//   //   return fmt.Errorf("update error: %s", strings.TrimSpace(string(out)))
-//   // }
-
-//   params := map[string]interface{}{
-//     // "AccountId":      p.AccountId,
-//     // "AdminUser":      p.AdminUser,
-//     // "AutoscalerRole": p.AutoscalerRole,
-//     // "Cluster":        p.Cluster,
-//     // "NodesRole":      p.NodesRole,
-//     // "Password":       p.Password,
-//     // "Rack":           p.Rack,
-//     // "Region":         p.Region,
-//     // "RouterCache":    p.RouterCache,
-//     // "RouterHosts":    p.RouterHosts,
-//     // "RouterRole":     p.RouterRole,
-//     // "RouterTargets":  p.RouterTargets,
-//     // "Version":        version,
-//   }
-
-//   if out, err := p.ApplyTemplate("autoscale", "system=convox,provider=kaws,scope=autoscale", params); err != nil {
-//     return fmt.Errorf("update error: %s: %s", err, strings.TrimSpace(string(out)))
-//   }
-
-//   if out, err := p.ApplyTemplate("calico", "system=convox,provider=kaws,scope=calico", params); err != nil {
-//     return fmt.Errorf("update error: %s: %s", err, strings.TrimSpace(string(out)))
-//   }
-
-//   if out, err := p.ApplyTemplate("cluster", "system=convox,provider=kaws,scope=cluster", params); err != nil {
-//     return fmt.Errorf("update error: %s: %s", err, strings.TrimSpace(string(out)))
-//   }
-
-//   if out, err := p.ApplyTemplate("config", fmt.Sprintf("system=convox,provider=kaws,scope=config,rack=%s", p.Rack), params); err != nil {
-//     return fmt.Errorf("update error: %s: %s", err, strings.TrimSpace(string(out)))
-//   }
-
-//   if out, err := p.ApplyTemplate("custom", "system=convox,provider=kaws,scope=custom", params); err != nil {
-//     return fmt.Errorf("update error: %s: %s", err, strings.TrimSpace(string(out)))
-//   }
-
-//   if out, err := p.ApplyTemplate("iam", "system=convox,provider=kaws,scope=iam", params); err != nil {
-//     return fmt.Errorf("update error: %s: %s", err, strings.TrimSpace(string(out)))
-//   }
-
-//   if out, err := p.ApplyTemplate("system", "system=convox,provider=kaws,scope=system", params); err != nil {
-//     return fmt.Errorf("update error: %s: %s", err, strings.TrimSpace(string(out)))
-//   }
-
-//   return nil
-// }
 
 func awsCommand(args ...string) ([]byte, error) {
 	cmd := exec.Command("aws", args...)

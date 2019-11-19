@@ -1,11 +1,9 @@
-apiVersion: convox.com/v1
+apiVersion: convox.com/v2
 kind: Atom
 metadata:
   namespace: {{.Namespace}}
   name: {{.Name}}
 spec:
-  current:
-    template: {{.Template}}
-    version: "{{.Version}}"
+  currentVersion: {{.Name}}-{{.Version}}
   progressDeadlineSeconds: {{.Timeout}}
 status: Pending

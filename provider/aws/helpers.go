@@ -393,6 +393,9 @@ func stackTags(stack *cloudformation.Stack) map[string]string {
 
 func templateHelpers() template.FuncMap {
 	return template.FuncMap{
+		"safe": func(s string) template.HTML {
+			return template.HTML(fmt.Sprintf("%q", s))
+		},
 		"upper": func(s string) string {
 			return upperName(s)
 		},
@@ -1069,11 +1072,6 @@ func (p *Provider) putLogEvents(req *cloudwatchlogs.PutLogEventsInput) (string, 
 			continue
 		}
 		if awsError(err) == "InvalidSequenceTokenException" {
-			fmt.Println("sequence token error")
-			if ae, ok := err.(awserr.Error); ok {
-				fmt.Printf("ae = %#v\n", ae)
-			}
-
 			sres, err := p.cloudwatchlogs().DescribeLogStreams(&cloudwatchlogs.DescribeLogStreamsInput{
 				LogGroupName:        req.LogGroupName,
 				LogStreamNamePrefix: req.LogStreamName,

@@ -62,7 +62,7 @@ func Load(data []byte, env map[string]string) (*Manifest, error) {
 		return nil, err
 	}
 
-	if err := m.ValidateEnv(); err != nil {
+	if err := m.Validate(); err != nil {
 		return nil, err
 	}
 
@@ -194,9 +194,23 @@ func (m *Manifest) ServiceEnvironment(service string) (map[string]string, error)
 	return env, nil
 }
 
-// ValidateEnv returns an error if required env vars for a service are not available
+func (m *Manifest) Validate() error {
+	if err := m.validateEnv(); err != nil {
+		return err
+	}
+
+	for _, r := range m.Resources {
+		if strings.TrimSpace(r.Type) == "" {
+			return fmt.Errorf("resource type can not be blank")
+		}
+	}
+
+	return nil
+}
+
+// validateEnv returns an error if required env vars for a service are not available
 // It also filters m.env to the union of all service env vars defined in the manifest
-func (m *Manifest) ValidateEnv() error {
+func (m *Manifest) validateEnv() error {
 	keys := map[string]bool{}
 
 	for _, s := range m.Services {

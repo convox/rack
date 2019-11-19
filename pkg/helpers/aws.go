@@ -350,15 +350,11 @@ func CloudWatchLogsStream(ctx context.Context, cw cloudwatchlogsiface.CloudWatch
 		LogGroupName: aws.String(group),
 	}
 
-	if stream != "" {
-		req.LogStreamNames = []*string{aws.String(stream)}
-	} else {
-		req.Interleaved = aws.Bool(true)
-	}
-
 	if opts.Filter != nil {
 		req.FilterPattern = aws.String(*opts.Filter)
 	}
+
+	follow := DefaultBool(opts.Follow, true)
 
 	var start int64
 
@@ -367,17 +363,19 @@ func CloudWatchLogsStream(ctx context.Context, cw cloudwatchlogsiface.CloudWatch
 		req.StartTime = aws.Int64(start)
 	}
 
-	var seen = map[string]bool{}
+	if stream != "" {
+		req.LogStreamNames = []*string{aws.String(stream)}
+	} else {
+		req.Interleaved = aws.Bool(true)
+	}
 
-	sleep := time.Duration(100 * time.Millisecond)
+	seen := map[string]bool{}
 
 	for {
 		select {
 		case <-ctx.Done():
 			return nil
 		default:
-			time.Sleep(sleep)
-
 			// check for closed writer
 			if _, err := w.Write([]byte{}); err != nil {
 				return err
@@ -397,24 +395,14 @@ func CloudWatchLogsStream(ctx context.Context, cw cloudwatchlogsiface.CloudWatch
 			es := []*cloudwatchlogs.FilteredLogEvent{}
 
 			for _, e := range res.Events {
-				if *e.Timestamp > start {
-					start = *e.Timestamp + 1
-				}
 				if !seen[*e.EventId] {
 					es = append(es, e)
+					seen[*e.EventId] = true
 				}
-			}
 
-			seen = map[string]bool{}
-
-			for _, e := range res.Events {
-				seen[*e.EventId] = true
-			}
-
-			if len(es) > 0 {
-				sleep = time.Duration(100 * time.Millisecond)
-			} else if sleep < 5*time.Second {
-				sleep *= 2
+				if e.Timestamp != nil && *e.Timestamp > start {
+					start = *e.Timestamp
+				}
 			}
 
 			sort.Slice(es, func(i, j int) bool { return *es[i].Timestamp < *es[j].Timestamp })
@@ -423,18 +411,15 @@ func CloudWatchLogsStream(ctx context.Context, cw cloudwatchlogsiface.CloudWatch
 				return err
 			}
 
-			if res.NextToken != nil {
-				req.NextToken = res.NextToken
-				continue
+			req.NextToken = res.NextToken
+
+			if res.NextToken == nil {
+				if !follow {
+					return nil
+				}
+
+				req.StartTime = aws.Int64(start)
 			}
-
-			req.NextToken = nil
-
-			if !DefaultBool(opts.Follow, true) {
-				return nil
-			}
-
-			req.StartTime = aws.Int64(start)
 		}
 	}
 }

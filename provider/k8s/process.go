@@ -176,6 +176,7 @@ func (p *Provider) ProcessRun(app, service string, opts structs.ProcessRunOption
 				"service": service,
 				"system":  "convox",
 				"type":    "process",
+				"name":    service,
 			},
 		},
 		Spec: *s,
@@ -454,7 +455,7 @@ func processFromPod(pd ac.Pod) (*structs.Process, error) {
 		status = "complete"
 	}
 
-	if cds := pd.Status.Conditions; len(cds) > 0 {
+	if cds := pd.Status.Conditions; len(cds) > 0 && status != "complete" && status != "failed" {
 		for _, cd := range cds {
 			if cd.Type == "Ready" && cd.Status == "False" {
 				status = "unhealthy"

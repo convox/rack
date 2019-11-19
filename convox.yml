@@ -15,7 +15,7 @@ services:
       - VERSION=dev
     health:
       grace: 0
-      interval: 30
+      interval: 5
       path: /check
       timeout: 2
     init: true
