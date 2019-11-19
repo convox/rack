@@ -106,6 +106,7 @@ func fetchRegions() (Regions, error) {
 
 	data, err := exec.Command("aws", "ec2", "describe-regions", "--query", "Regions[].RegionName").CombinedOutput()
 	if err != nil {
+		fmt.Printf("string(data): %+v\n", string(data))
 		return nil, errors.WithStack(err)
 	}
 
@@ -128,7 +129,9 @@ func fetchAmis(regions Regions) error {
 	for name, region := range regions {
 		data, err := exec.Command("aws", "ssm", "get-parameter", "--name", "/aws/service/ecs/optimized-ami/amazon-linux-2/recommended/image_id", "--query", "Parameter.Value", "--region", name).CombinedOutput()
 		if err != nil {
-			fmt.Printf("string(data): %+v\n", string(data))
+			// fmt.Printf("name: %+v\n", name)
+			// fmt.Printf("region: %+v\n", region)
+			// fmt.Printf("string(data): %+v\n", string(data))
 			delete(regions, name)
 			continue
 		}
@@ -218,14 +221,12 @@ func fetchELBAccountIds(regions Regions) error {
 			return
 		}
 
-		name := strings.TrimSpace(s.Find("td:nth-child(1)").Text())
+		name := strings.TrimSuffix(strings.TrimSpace(s.Find("td:nth-child(1)").Text()), "*")
 		id := strings.TrimSpace(s.Find("td:nth-child(3)").Text())
 
-		if !strings.HasSuffix(name, "*") {
-			region := regions[name]
-			region.ELBAccountId = id
-			regions[name] = region
-		}
+		region := regions[name]
+		region.ELBAccountId = id
+		regions[name] = region
 	})
 
 	return nil
