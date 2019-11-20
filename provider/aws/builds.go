@@ -663,8 +663,6 @@ func (p *Provider) buildAuth(build *structs.Build) (string, error) {
 		Password string
 	}
 
-	serverProtocol := "https://"
-
 	auth := map[string]authEntry{}
 
 	registries, err := p.RegistryList()
@@ -680,12 +678,21 @@ func (p *Provider) buildAuth(build *structs.Build) (string, error) {
 				return "", err
 			}
 
-			auth[serverProtocol + r.Server] = authEntry{
+			server, err := ensureRegistryProtocol(r.Server)
+			if (err != nil) {
+				return "", err
+			}
+
+			auth[server] = authEntry{
 				Username: un,
 				Password: pw,
 			}
 		default:
-			auth[serverProtocol + r.Server] = authEntry{
+			server, err := ensureRegistryProtocol(r.Server)
+			if (err != nil) {
+				return "", err
+			}
+			auth[server] = authEntry{
 				Username: r.Username,
 				Password: r.Password,
 			}
@@ -715,6 +722,17 @@ func (p *Provider) buildAuth(build *structs.Build) (string, error) {
 	}
 
 	return string(data), nil
+}
+
+func ensureRegistryProtocol(repo string) (string, error) {
+	u, err := url.Parse(repo)
+	if err != nil {
+		return "", err
+	}
+	if (len(u.Scheme) == 0) {
+		u.Scheme = "https"
+	}
+	return u.String(), nil
 }
 
 func (p *Provider) authECR(host, access, secret string) (string, string, error) {
