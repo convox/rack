@@ -680,7 +680,7 @@ func (p *Provider) buildAuth(build *structs.Build) (string, error) {
 
 			server, err := ensureRegistryProtocol(r.Server)
 			if (err != nil) {
-				return nil, err
+				return "", err
 			}
 
 			auth[server] = authEntry{
@@ -690,7 +690,7 @@ func (p *Provider) buildAuth(build *structs.Build) (string, error) {
 		default:
 			server, err := ensureRegistryProtocol(r.Server)
 			if (err != nil) {
-				return nil, err
+				return "", err
 			}
 			auth[server] = authEntry{
 				Username: r.Username,
