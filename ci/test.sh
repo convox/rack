@@ -50,13 +50,6 @@ case $provider in
     ;;
 esac
 
-# registries
-convox registries
-convox registries add quay.io convox+ci 6D5CJVRM5P3L24OG4AWOYGCDRJLPL0PFQAENZYJ1KGE040YDUGPYKOZYNWFTE5CV
-convox registries | grep quay.io | grep convox+ci
-convox registries remove quay.io
-convox registries | grep -v quay.io
-
 # app
 cd $root/examples/httpd
 convox apps create ci2 --wait
@@ -115,6 +108,14 @@ cat /tmp/file2 | grep foo
 convox ps stop $ps -a ci2
 convox ps -a ci2 | grep -v $ps
 convox deploy -a ci2 --wait
+
+# registries
+convox registries
+convox registries add quay.io convox+ci 6D5CJVRM5P3L24OG4AWOYGCDRJLPL0PFQAENZYJ1KGE040YDUGPYKOZYNWFTE5CV
+convox registries | grep quay.io | grep convox+ci
+convox build -a ci2 | grep "Authenticating https://quay.io: Login Succeeded"
+convox registries remove quay.io
+convox registries | grep -v quay.io
 
 # app (provider-specific)
 case $provider in
