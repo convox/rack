@@ -43,11 +43,6 @@ for region in us-east-1; do
   done
 
   if [ "${1}" == "all" ]; then
-    for eip in $(aws ec2 describe-addresses --region $region | jq -r '.Addresses[] | select(has("PrivateIpAddress") | not) | .AllocationId'); do
-      echo "deleting eip: $eip ($region)"
-      aws ec2 release-address --allocation-id $eip --region $region
-    done
-
     case $region in
     ap-northeast-1) ;;
     ap-northeast-2) ;;
@@ -69,14 +64,34 @@ for region in us-east-1; do
       ;;
     esac
 
+    for cluster in $(aws ecs list-clusters --region $region | jq -r '.clusterArns[]'); do
+      for service in $(aws ecs list-services --cluster $cluster --region $region | jq -r '.serviceArns[]'); do
+        echo "deleting service: $service ($region)"
+        aws ecs update-service --cluster $cluster --service $service --desired-count 0 --region $region >/dev/null
+        aws ecs delete-service --cluster $cluster --service $service --region $region
+      done
+      echo "deleting cluster: $cluster ($region)"
+      aws ecs delete-cluster --cluster $cluster --region $region >/dev/null
+    done
+
+    for eks in $(aws eks list-clusters --region $region | jq -r '.clusters[]'); do
+      echo "deleting eks: $eks ($region)"
+      aws eks delete-cluster --name $eks --region $region >/dev/null
+    done
+
     for elb in $(aws elb describe-load-balancers --region $region | jq -r '.LoadBalancerDescriptions[].LoadBalancerName'); do
-      echo "deleting load balancer: $elb ($region)"
+      echo "deleting elb: $elb ($region)"
       aws elb delete-load-balancer --load-balancer-name $elb --region $region
     done
 
-    for rtb in $(aws ec2 describe-route-tables --region $region | jq -r '.RouteTables[] | select(.Associations[0].Main!=true) | .RouteTableId'); do
-      echo "deleting route table: $rtb ($region)"
-      aws ec2 delete-route-table --route-table-id $rtb --region $region
+    for alb in $(aws elbv2 describe-load-balancers --region $region | jq -r '.LoadBalancers[].LoadBalancerArn'); do
+      echo "deleting alb: $alb ($region)"
+      aws elbv2 delete-load-balancer --load-balancer-arn $alb --region $region
+    done
+
+    for nat in $(aws ec2 describe-nat-gateways --filter Name=state,Values=pending,failed,available --region $region | jq -r '.NatGateways[].NatGatewayId'); do
+      echo "deleting nat gateway: $nat ($region)"
+      aws ec2 delete-nat-gateway --nat-gateway-id $nat --region $region >/dev/null
     done
 
     for eni in $(aws ec2 describe-network-interfaces --region $region | jq -r '.NetworkInterfaces[].NetworkInterfaceId'); do
@@ -97,6 +112,16 @@ for region in us-east-1; do
       aws ec2 delete-internet-gateway --internet-gateway-id $igw --region $region
     done
 
+    for rtb in $(aws ec2 describe-route-tables --region $region | jq -r '.RouteTables[] | select(.Associations[0].Main!=true) | .RouteTableId'); do
+      echo "deleting route table: $rtb ($region)"
+      aws ec2 delete-route-table --route-table-id $rtb --region $region
+    done
+
+    for eip in $(aws ec2 describe-addresses --region $region | jq -r '.Addresses[] | select(has("PrivateIpAddress") | not) | .AllocationId'); do
+      echo "deleting eip: $eip ($region)"
+      aws ec2 release-address --allocation-id $eip --region $region
+    done
+
     for vpc in $(aws ec2 describe-vpcs --region $region | jq -r '.Vpcs[].VpcId'); do
       for sg in $(aws ec2 describe-security-groups --region $region --filters "Name=vpc-id,Values=$vpc" | jq -r '.SecurityGroups[] | select(.GroupName!="default") | .GroupId'); do
         echo "deleting security group: $sg ($region)"
@@ -106,14 +131,20 @@ for region in us-east-1; do
       aws ec2 delete-vpc --vpc-id $vpc --region $region
     done
 
-    for cluster in $(aws ecs list-clusters --region $region | jq -r '.clusterArns[]'); do
-      for service in $(aws ecs list-services --cluster $cluster --region $region | jq -r '.serviceArns[]'); do
-        echo "deleting service: $service"
-        aws ecs update-service --cluster $cluster --service $service --desired-count 0 --region $region >/dev/null
-        aws ecs delete-service --cluster $cluster --service $service --region $region
-      done
-      echo "deleting cluster: $cluster"
-      aws ecs delete-cluster --cluster $cluster --region $region >/dev/null
+    for role in $(aws iam list-roles | jq -r '.Roles[].RoleName'); do
+      if [[ "$role" =~ ^ci-[0-9]+ ]]; then
+        echo "deleting role: $role"
+        for policy in $(aws iam list-attached-role-policies --role-name $role | jq -r '.AttachedPolicies[].PolicyArn'); do
+          echo "  detaching policy: $policy"
+          aws iam detach-role-policy --role-name $role --policy-arn $policy
+        done
+        for policy in $(aws iam list-role-policies --role-name $role | jq -r '.PolicyNames[]'); do
+          echo "  deleting policy: $policy"
+          aws iam delete-role-policy --role-name $role --policy-name $policy
+        done
+        echo "  deleting role"
+        aws iam delete-role --role-name $role
+      fi
     done
 
     # probably need to avoid deleting lambda so we dont break custom resources
@@ -143,16 +174,3 @@ for cert in $(aws iam list-server-certificates | jq -r '.ServerCertificateMetada
   echo "deleting cert: $cert"
   aws iam delete-server-certificate --server-certificate-name $cert
 done
-
-if [ "${1}" == "all" ]; then
-  for role in $(aws iam list-roles | jq -r '.Roles[].RoleName'); do
-    if [[ "$role" =~ ^ci-[0-9]+(-[a-z]+-[0-9]+)? ]]; then
-      for policy in $(aws iam list-role-policies --role-name $role | jq -r '.PolicyNames[]'); do
-        echo "deleting policy: $policy"
-        aws iam delete-role-policy --role-name $role --policy-name $policy
-      done
-      echo "deleting role: $role"
-      aws iam delete-role --role-name $role
-    fi
-  done
-fi
