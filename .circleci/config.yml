@@ -16,13 +16,6 @@ defaults:
         ignore: /.*/
       tags:
         only: /[0-9]{14}/
-  nightly: &nightly
-    schedule:
-      cron: "0 8 * * *"
-      filters:
-        branches:
-          only:
-            - master
 
 workflows:
   version: 2
@@ -30,7 +23,22 @@ workflows:
     jobs:
       - cleanup
     triggers:
-      - <<: *nightly
+      - schedule:
+          cron: "0 8 * * *"
+          filters:
+            branches:
+              only:
+                - master
+  cleanup_all:
+    jobs:
+      - cleanup_all
+    triggers:
+      - schedule:
+          cron: "0 9 * * *"
+          filters:
+            branches:
+              only:
+                - master
   test:
     jobs:
       - test
@@ -108,6 +116,13 @@ jobs:
       - checkout
       - ci-dependencies
       - run: scripts/ci-cleanup
+  cleanup_all:
+    docker:
+      - image: circleci/golang:1.12
+    steps:
+      - checkout
+      - ci-dependencies
+      - run: scripts/ci-cleanup all
   deploy:
     parameters:
       app:
