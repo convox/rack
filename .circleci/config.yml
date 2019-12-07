@@ -24,7 +24,7 @@ workflows:
       - cleanup
     triggers:
       - schedule:
-          cron: "0 8 * * *"
+          cron: "0 7 * * *"
           filters:
             branches:
               only:
@@ -34,7 +34,7 @@ workflows:
       - cleanup_all
     triggers:
       - schedule:
-          cron: "0 9 * * *"
+          cron: "0 8,9 * * *"
           filters:
             branches:
               only:

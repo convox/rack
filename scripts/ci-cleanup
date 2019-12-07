@@ -76,6 +76,11 @@ for region in us-east-1; do
 
     for eks in $(aws eks list-clusters --region $region | jq -r '.clusters[]'); do
       echo "deleting eks: $eks ($region)"
+      for ng in $(aws eks list-nodegroups --cluster-name $eks --region $region | jq -r '.nodegroups[]'); do
+        echo "  deleting nodegroup: $ng"
+        aws eks delete-nodegroup --cluster-name $eks --nodegroup-name $ng --region $region >/dev/null
+      done
+      echo "  deleting cluster"
       aws eks delete-cluster --name $eks --region $region >/dev/null
     done
 
