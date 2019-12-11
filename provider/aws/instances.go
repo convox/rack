@@ -135,7 +135,7 @@ func (p *Provider) InstanceShell(id string, rw io.ReadWriter, opts structs.Insta
 
 	key, err := p.SettingGet("instance-key")
 	if err != nil {
-		return 0, fmt.Errorf("no instance key found")
+		return 0, fmt.Errorf("no instance key found. Did you forget to run `convox instances keyroll`?")
 	}
 
 	// configure SSH client
