@@ -59,6 +59,7 @@ func ECR(req Request) *ecr.ECR {
 func ECS(req Request) *ecs.ECS {
 	return ecs.New(session.New(), &aws.Config{
 		Credentials: Credentials(&req),
+		MaxRetries:  aws.Int(8),
 		Region:      Region(&req),
 	})
 }
