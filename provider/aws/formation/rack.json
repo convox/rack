@@ -502,6 +502,12 @@
       "Type": "String",
       "Default": ""
     },
+    "ImagePullBehavior": {
+      "Type": "String",
+      "Description": "The behavior used to customize the pull image process for your container instances. See ECS_IMAGE_PULL_BEHAVIOR https://docs.aws.amazon.com/AmazonECS/latest/developerguide/ecs-agent-config.html",
+      "Default": "default",
+      "AllowedValues": ["default", "always", "once", "prefer-cached"]
+    },
     "Internal": {
       "Type": "String",
       "Description": "Support applications that are only accessible inside the VPC",
@@ -1280,6 +1286,7 @@
               { "Ref": "AWS::NoValue" }
             ] },
             "  - echo ECS_CLUSTER=", { "Ref": "BuildCluster" }, " >> /etc/ecs/ecs.config\n",
+            "  - echo ECS_IMAGE_PULL_BEHAVIOR=", { "Ref": "ImagePullBehavior" }, " >> /etc/ecs/ecs.config\n",
             "  - echo ECS_ENGINE_AUTH_TYPE=docker >> /etc/ecs/ecs.config\n",
             "  - echo 'ECS_INSTANCE_ATTRIBUTES={\"asg\":\"build\"}' >> /etc/ecs/ecs.config\n",
             "  - echo HTTP_PROXY=", { "Ref": "HttpProxy" }, " >> /etc/ecs/ecs.config\n",
