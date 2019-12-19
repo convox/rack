@@ -107,6 +107,8 @@ func extractImageManifest(r io.Reader) (imageManifest, error) {
 
 func systemVolume(v string) bool {
 	switch v {
+	case "/dev/log":
+		return true
 	case "/var/log/audit":
 		return true
 	case "/var/run":

@@ -411,9 +411,11 @@ func volumeFrom(app, s string) string {
 	switch v := parts[0]; v {
 	case "/cgroup/":
 		return v
-	case "/sys/fs/cgroup/":
+	case "/dev/log":
 		return v
 	case "/proc/":
+		return v		
+	case "/sys/fs/cgroup/":
 		return v
 	case "/var/log/audit/":
 		return v
