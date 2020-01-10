@@ -107,7 +107,7 @@ func extractImageManifest(r io.Reader) (imageManifest, error) {
 
 func systemVolume(v string) bool {
 	switch v {
-	case "/cgroup/"
+	case "/cgroup/":
 		return true
 	case "/dev/log":
 		return true
