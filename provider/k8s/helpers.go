@@ -107,11 +107,19 @@ func extractImageManifest(r io.Reader) (imageManifest, error) {
 
 func systemVolume(v string) bool {
 	switch v {
+	case "/cgroup/"
+		return true
 	case "/dev/log":
+		return true
+	case "/etc/passwd":
+		return true
+	case "/proc/":
+		return true		
+	case "/sys/fs/cgroup/":
 		return true
 	case "/var/log/audit":
 		return true
-	case "/var/run":
+	case "/var/run/":
 		return true
 	case "/var/run/docker.sock":
 		return true

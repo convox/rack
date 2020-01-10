@@ -413,6 +413,8 @@ func volumeFrom(app, s string) string {
 		return v
 	case "/dev/log":
 		return v
+	case "/etc/passwd":
+		return v
 	case "/proc/":
 		return v		
 	case "/sys/fs/cgroup/":
