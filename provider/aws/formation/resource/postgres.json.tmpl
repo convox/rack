@@ -6,6 +6,11 @@
     "Version9": { "Fn::Equals": [ { "Fn::Select": [ 0, { "Fn::Split": [ ".", { "Ref": "Version" } ] } ] }, "9" ] }
   },
   "Parameters": {
+    "CACertificateIdentifier": {
+      "Type": "String",
+      "Default": "rds-ca-2019",
+      "Description": "Certificate Authority certificate identifier"
+    },
     "Class": {
       "Type": "String",
       "Default": "db.t2.micro"
@@ -71,6 +76,7 @@
       "DeletionPolicy": "Snapshot",
       "Properties": {
         "AllocatedStorage": { "Ref": "Storage" },
+        "CACertificateIdentifier": { "Ref": "CACertificateIdentifier" },
         "DBInstanceClass": { "Ref": "Class" },
         "DBInstanceIdentifier": { "Ref": "AWS::StackName" },
         "DBName": "app",
