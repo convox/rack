@@ -5,6 +5,11 @@
     "BlankIops": { "Fn::Equals": [ { "Ref": "Iops" }, "0" ] }
   },
   "Parameters": {
+    "CACertificateIdentifier": {
+      "Type": "String",
+      "Default": "rds-ca-2019",
+      "Description": "Certificate Authority certificate identifier"
+    },    
     "Class": {
       "Type": "String",
       "Default": "db.t2.micro"
@@ -70,6 +75,7 @@
       "DeletionPolicy": "Snapshot",
       "Properties": {
         "AllocatedStorage": { "Ref": "Storage" },
+        "CACertificateIdentifier": "rds-ca-2019",
         "DBInstanceClass": { "Ref": "Class" },
         "DBInstanceIdentifier": { "Ref": "AWS::StackName" },
         "DBName": "app",

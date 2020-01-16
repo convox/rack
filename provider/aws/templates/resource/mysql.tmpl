@@ -11,6 +11,11 @@
         "Default" : "10",
         "Description" : "Allocated storage size (GB)"
       },
+      "CACertificateIdentifier": {
+        "Type": "String",
+        "Default": "rds-ca-2019",
+        "Description": "Certificate Authority certificate identifier"
+      },
       "Database": {
         "Type" : "String",
         "Default" : "app",
@@ -101,20 +106,21 @@
       "Instance": {
         "Type": "AWS::RDS::DBInstance",
         "Properties": {
-          "KmsKeyId": { "Fn::If": [ "Encrypted", { "Ref": "EncryptionKey" }, { "Ref": "AWS::NoValue" } ] },
-          "StorageEncrypted": { "Ref": "Encrypted" },
           "AllocatedStorage": { "Ref": "AllocatedStorage" },
+          "CACertificateIdentifier": "rds-ca-2019",
           "DBInstanceClass": { "Ref": "InstanceType" },
           "DBInstanceIdentifier": { "Ref": "AWS::StackName" },
           "DBName": { "Ref": "Database" },
           "DBSubnetGroupName": { "Ref": "SubnetGroup" },
           "Engine": "mysql",
           "EngineVersion": { "Ref": "EngineVersion" },
+          "KmsKeyId": { "Fn::If": [ "Encrypted", { "Ref": "EncryptionKey" }, { "Ref": "AWS::NoValue" } ] },
           "MasterUsername": { "Ref": "Username" },
           "MasterUserPassword": { "Ref": "Password" },
           "MultiAZ": { "Ref": "MultiAZ" },
           "Port": "3306",
           "PubliclyAccessible": "false",
+          "StorageEncrypted": { "Ref": "Encrypted" },
           "StorageType": "gp2",
           "VPCSecurityGroups": [ { "Ref": "SecurityGroup" } ]
         }
