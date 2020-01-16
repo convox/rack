@@ -129,7 +129,7 @@
         "Type": "AWS::RDS::DBInstance",
         "Properties": {
           "AllocatedStorage": { "Ref": "AllocatedStorage" },
-          "CACertificateIdentifier": { "Ref": "CACertificateIdentifier" },
+          "CACertificateIdentifier": "rds-ca-2019",
           "DBInstanceClass": { "Ref": "InstanceType" },
           "DBInstanceIdentifier": { "Ref": "AWS::StackName" },
           "DBName": { "Fn::If": [ "BlankDatabaseSnapshotIdentifier", { "Ref": "Database" }, { "Ref": "AWS::NoValue" } ] },

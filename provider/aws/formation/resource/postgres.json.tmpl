@@ -76,7 +76,7 @@
       "DeletionPolicy": "Snapshot",
       "Properties": {
         "AllocatedStorage": { "Ref": "Storage" },
-        "CACertificateIdentifier": { "Ref": "CACertificateIdentifier" },
+        "CACertificateIdentifier": "rds-ca-2019",
         "DBInstanceClass": { "Ref": "Class" },
         "DBInstanceIdentifier": { "Ref": "AWS::StackName" },
         "DBName": "app",
