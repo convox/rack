@@ -125,6 +125,8 @@
                     { "Ref": "AWS::NoValue" }
                   ] },
                   { "Name": "RELEASE", "Value": "{{$.Release.Id}}" },
+                  { "Name": "BUILD", "Value": "{{$.Build.Id}}" },
+                  { "Name": "BUILD_DESCRIPTION", "Value": {{ safe $.Build.Description }} },
                   { "Name": "SERVICE", "Value": "{{.Name}}" }
                 ],
                 "Image": { "Fn::Sub": "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${Registry}:{{.Name}}.{{$.Release.Build}}" },
