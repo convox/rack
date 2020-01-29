@@ -327,6 +327,7 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 	for _, t := range m.Timers {
 		ttp := map[string]interface{}{
 			"App":      r.App,
+			"Build":    tp["Build"],
 			"Manifest": tp["Manifest"],
 			"Password": p.Password,
 			"Release":  tp["Release"],
