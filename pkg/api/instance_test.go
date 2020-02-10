@@ -87,6 +87,7 @@ func TestInstanceShell(t *testing.T) {
 			require.Equal(t, "in", string(data))
 		})
 		r, err := c.Websocket("/instances/instance1/shell", ro)
+		require.NoError(t, err)
 		data, err := ioutil.ReadAll(r)
 		require.NoError(t, err)
 		require.Equal(t, "outF1E49A85-0AD7-4AEF-A618-C249C6E6568D:1\n", string(data))

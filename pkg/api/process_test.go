@@ -58,6 +58,7 @@ func TestProcessExec(t *testing.T) {
 			require.Equal(t, "in", string(data))
 		})
 		r, err := c.Websocket("/apps/app1/processes/pid1/exec", ro)
+		require.NoError(t, err)
 		data, err := ioutil.ReadAll(r)
 		require.NoError(t, err)
 		require.Equal(t, "outF1E49A85-0AD7-4AEF-A618-C249C6E6568D:1\n", string(data))
@@ -97,6 +98,7 @@ func TestProcessExecValidate(t *testing.T) {
 	testServer(t, func(c *stdsdk.Client, p *structs.MockProvider) {
 		p.On("AppGet", "app1").Return(nil, fmt.Errorf("no such app: app1"))
 		r, err := c.Websocket("/apps/app1/processes/pid1/exec", stdsdk.RequestOptions{})
+		require.NoError(t, err)
 		data, err := ioutil.ReadAll(r)
 		require.NoError(t, err)
 		require.Equal(t, "ERROR: no such app: app1\n", string(data))
