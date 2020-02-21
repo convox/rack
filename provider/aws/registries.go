@@ -54,13 +54,15 @@ func (p *Provider) RegistryAdd(server, username, password string) (*structs.Regi
 	case p.PrivateBuild:
 		// Don't authenticate the registry if PrivateBuild is enabled.  Keeps all registry access on the Build Cluster rather than the main Rack.
 	default:
-		_, err := dc.AuthCheck(&docker.AuthConfiguration{
-			ServerAddress: server,
-			Username:      username,
-			Password:      password,
-		})
-		if err != nil {
-			return nil, fmt.Errorf("unable to authenticate")
+		if !(p.PrivateBuild) {		
+			_, err := dc.AuthCheck(&docker.AuthConfiguration{
+				ServerAddress: server,
+				Username:      username,
+				Password:      password,
+			})
+			if err != nil {
+				return nil, fmt.Errorf("unable to authenticate")
+			}
 		}
 	}
 
