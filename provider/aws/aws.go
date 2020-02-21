@@ -65,6 +65,7 @@ type Provider struct {
 	OnDemandMinCount    int
 	Password            string
 	Private             bool
+	PrivateBuild        bool
 	Rack                string
 	SecurityGroup       string
 	SettingsBucket      string
@@ -153,7 +154,8 @@ func (p *Provider) loadParams() error {
 	p.LogBucket = labels["rack.LogBucket"]
 	p.NotificationTopic = labels["rack.NotificationTopic"]
 	p.OnDemandMinCount = intParam(labels["rack.OnDemandMinCount"], 2)
-	p.Private = labels["Private"] == "Yes"
+	p.Private = labels["rack.Private"] == "Yes"
+	p.PrivateBuild = labels["rack.PrivateBuild"] == "Yes"
 	p.SecurityGroup = labels["rack.SecurityGroup"]
 	p.SettingsBucket = labels["rack.SettingsBucket"]
 	p.SpotInstances = labels["rack.SpotInstances"] == "Yes"
