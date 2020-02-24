@@ -51,16 +51,15 @@ func (p *Provider) RegistryAdd(server, username, password string) (*structs.Regi
 		if _, _, err := p.authECR(server, username, password); err != nil {
 			return nil, fmt.Errorf("unable to authenticate")
 		}
+	case p.PrivateBuild:
 	default:
-		if !(p.PrivateBuild) {		
-			_, err := dc.AuthCheck(&docker.AuthConfiguration{
-				ServerAddress: server,
-				Username:      username,
-				Password:      password,
-			})
-			if err != nil {
-				return nil, fmt.Errorf("unable to authenticate")
-			}
+		_, err := dc.AuthCheck(&docker.AuthConfiguration{
+			ServerAddress: server,
+			Username:      username,
+			Password:      password,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("unable to authenticate")
 		}
 	}
 
