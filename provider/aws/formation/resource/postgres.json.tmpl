@@ -71,10 +71,19 @@
       "DeletionPolicy": "Snapshot",
       "Properties": {
         "AllocatedStorage": { "Ref": "Storage" },
+        "AllowMajorVersionUpgrade": "true",
         "DBInstanceClass": { "Ref": "Class" },
         "DBInstanceIdentifier": { "Ref": "AWS::StackName" },
         "DBName": "app",
-        "DBParameterGroupName": { "Ref": "ParameterGroup" },
+        "DBParameterGroupName": { "Fn::Sub": [ "default.postgres${Base}", {
+          "Base": { "Fn::If": [ "Version9",
+            { "Fn::Join": [ ".", [
+              { "Fn::Select": [ 0, { "Fn::Split": [ ".", { "Ref": "Version" } ] } ] },
+              { "Fn::Select": [ 1, { "Fn::Split": [ ".", { "Ref": "Version" } ] } ] }
+            ] ] },
+            { "Fn::Select": [ 0, { "Fn::Split": [ ".", { "Ref": "Version" } ] } ] }
+          ] }
+        } ] },
         "DBSubnetGroupName": { "Ref": "SubnetGroup" },
         "Engine": "postgres",
         "EngineVersion": { "Ref": "Version" },
@@ -87,21 +96,6 @@
         "StorageEncrypted": { "Ref": "Encrypted" },
         "StorageType": { "Fn::If": [ "BlankIops", "gp2", "io1" ] },
         "VPCSecurityGroups": [ { "Ref": "SecurityGroup" } ]
-      }
-    },
-    "ParameterGroup": {
-      "Type": "AWS::RDS::DBParameterGroup",
-      "Properties": {
-        "Description": { "Fn::Sub": "${AWS::StackName} parameters" },
-        "Family": { "Fn::Sub": [ "postgres${Base}", {
-          "Base": { "Fn::If": [ "Version9",
-            { "Fn::Join": [ ".", [
-              { "Fn::Select": [ 0, { "Fn::Split": [ ".", { "Ref": "Version" } ] } ] },
-              { "Fn::Select": [ 1, { "Fn::Split": [ ".", { "Ref": "Version" } ] } ] }
-            ] ] },
-            { "Fn::Select": [ 0, { "Fn::Split": [ ".", { "Ref": "Version" } ] } ] }
-          ] }
-        } ] }
       }
     }
   }
