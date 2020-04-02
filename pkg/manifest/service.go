@@ -10,25 +10,26 @@ import (
 type Service struct {
 	Name string `yaml:"-"`
 
-	Agent       ServiceAgent   `yaml:"agent,omitempty"`
-	Build       ServiceBuild   `yaml:"build,omitempty"`
-	Command     string         `yaml:"command,omitempty"`
-	Domains     ServiceDomains `yaml:"domain,omitempty"`
-	Drain       int            `yaml:"drain,omitempty"`
-	Environment Environment    `yaml:"environment,omitempty"`
-	Health      ServiceHealth  `yaml:"health,omitempty"`
-	Image       string         `yaml:"image,omitempty"`
-	Init        bool           `yaml:"init,omitempty"`
-	Internal    bool           `yaml:"internal,omitempty"`
-	Links       []string       `yaml:"links,omitempty"`
-	Port        ServicePort    `yaml:"port,omitempty"`
-	Privileged  bool           `yaml:"privileged,omitempty"`
-	Resources   []string       `yaml:"resources,omitempty"`
-	Scale       ServiceScale   `yaml:"scale,omitempty"`
-	Singleton   bool           `yaml:"singleton,omitempty"`
-	Sticky      bool           `yaml:"sticky,omitempty"`
-	Test        string         `yaml:"test,omitempty"`
-	Volumes     []string       `yaml:"volumes,omitempty"`
+	Agent       ServiceAgent      `yaml:"agent,omitempty"`
+	Build       ServiceBuild      `yaml:"build,omitempty"`
+	Command     string            `yaml:"command,omitempty"`
+	Deployment  ServiceDeployment `yaml:"deployment,omitempty"`
+	Domains     ServiceDomains    `yaml:"domain,omitempty"`
+	Drain       int               `yaml:"drain,omitempty"`
+	Environment Environment       `yaml:"environment,omitempty"`
+	Health      ServiceHealth     `yaml:"health,omitempty"`
+	Image       string            `yaml:"image,omitempty"`
+	Init        bool              `yaml:"init,omitempty"`
+	Internal    bool              `yaml:"internal,omitempty"`
+	Links       []string          `yaml:"links,omitempty"`
+	Port        ServicePort       `yaml:"port,omitempty"`
+	Privileged  bool              `yaml:"privileged,omitempty"`
+	Resources   []string          `yaml:"resources,omitempty"`
+	Scale       ServiceScale      `yaml:"scale,omitempty"`
+	Singleton   bool              `yaml:"singleton,omitempty"`
+	Sticky      bool              `yaml:"sticky,omitempty"`
+	Test        string            `yaml:"test,omitempty"`
+	Volumes     []string          `yaml:"volumes,omitempty"`
 }
 
 type Services []Service
@@ -47,6 +48,11 @@ type ServiceBuild struct {
 	Args     []string `yaml:"args,omitempty"`
 	Manifest string   `yaml:"manifest,omitempty"`
 	Path     string   `yaml:"path,omitempty"`
+}
+
+type ServiceDeployment struct {
+	Maximum int `yaml:"maximum,omitempty"`
+	Minimum int `yaml:"minimum,omitempty"`
 }
 
 type ServiceDomains []string
