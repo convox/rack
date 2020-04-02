@@ -243,6 +243,22 @@ func (m *Manifest) ApplyDefaults() error {
 			m.Services[i].Build.Manifest = "Dockerfile"
 		}
 
+		if !m.AttributeSet(fmt.Sprintf("services.%s.deployment.maximum", s.Name)) {
+			if s.Agent.Enabled || s.Singleton {
+				m.Services[i].Deployment.Maximum = 100
+			} else {
+				m.Services[i].Deployment.Maximum = 200
+			}
+		}
+
+		if !m.AttributeSet(fmt.Sprintf("services.%s.deployment.minimum", s.Name)) {
+			if s.Agent.Enabled || s.Singleton {
+				m.Services[i].Deployment.Minimum = 0
+			} else {
+				m.Services[i].Deployment.Minimum = 50
+			}
+		}
+
 		if s.Drain == 0 {
 			m.Services[i].Drain = 30
 		}

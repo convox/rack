@@ -265,13 +265,8 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 	}
 
 	for _, s := range m.Services {
-		min := 50
-		max := 200
-
-		if s.Agent.Enabled || s.Singleton {
-			min = 0
-			max = 100
-		}
+		min := s.Deployment.Minimum
+		max := s.Deployment.Maximum
 
 		if opts.Min != nil {
 			min = *opts.Min
