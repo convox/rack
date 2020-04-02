@@ -35,6 +35,10 @@ func TestManifestLoad(t *testing.T) {
 					Path:     "api",
 				},
 				Command: "",
+				Deployment: manifest.ServiceDeployment{
+					Minimum: 25,
+					Maximum: 65,
+				},
 				Domains: []string{"foo.example.org"},
 				Drain:   30,
 				Environment: []string{
@@ -62,6 +66,10 @@ func TestManifestLoad(t *testing.T) {
 			manifest.Service{
 				Name:    "proxy",
 				Command: "bash",
+				Deployment: manifest.ServiceDeployment{
+					Minimum: 50,
+					Maximum: 200,
+				},
 				Domains: []string{"bar.example.org", "*.example.org"},
 				Drain:   30,
 				Health: manifest.ServiceHealth{
@@ -89,6 +97,10 @@ func TestManifestLoad(t *testing.T) {
 					Path:     ".",
 				},
 				Command: "foo",
+				Deployment: manifest.ServiceDeployment{
+					Minimum: 0,
+					Maximum: 100,
+				},
 				Domains: []string{"baz.example.org", "qux.example.org"},
 				Drain:   60,
 				Health: manifest.ServiceHealth{
@@ -113,7 +125,11 @@ func TestManifestLoad(t *testing.T) {
 					Path:     ".",
 				},
 				Command: "",
-				Drain:   30,
+				Deployment: manifest.ServiceDeployment{
+					Minimum: 50,
+					Maximum: 200,
+				},
+				Drain: 30,
 				Health: manifest.ServiceHealth{
 					Grace:    5,
 					Interval: 5,
@@ -134,7 +150,11 @@ func TestManifestLoad(t *testing.T) {
 					Path:     ".",
 				},
 				Command: "",
-				Drain:   30,
+				Deployment: manifest.ServiceDeployment{
+					Minimum: 50,
+					Maximum: 200,
+				},
+				Drain: 30,
 				Health: manifest.ServiceHealth{
 					Grace:    5,
 					Interval: 5,
@@ -165,6 +185,10 @@ func TestManifestLoad(t *testing.T) {
 			manifest.Service{
 				Name:    "inherit",
 				Command: "inherit",
+				Deployment: manifest.ServiceDeployment{
+					Minimum: 50,
+					Maximum: 200,
+				},
 				Domains: []string{"bar.example.org", "*.example.org"},
 				Drain:   30,
 				Health: manifest.ServiceHealth{
@@ -198,6 +222,10 @@ func TestManifestLoad(t *testing.T) {
 				Build: manifest.ServiceBuild{
 					Manifest: "Dockerfile",
 					Path:     ".",
+				},
+				Deployment: manifest.ServiceDeployment{
+					Minimum: 0,
+					Maximum: 100,
 				},
 				Drain: 30,
 				Health: manifest.ServiceHealth{
@@ -233,6 +261,9 @@ func TestManifestLoad(t *testing.T) {
 		"services.api.build",
 		"services.api.build.manifest",
 		"services.api.build.path",
+		"services.api.deployment",
+		"services.api.deployment.maximum",
+		"services.api.deployment.minimum",
 		"services.api.domain",
 		"services.api.environment",
 		"services.api.health",
@@ -331,6 +362,10 @@ func TestManifestLoadSimple(t *testing.T) {
 				Build: manifest.ServiceBuild{
 					Manifest: "Dockerfile",
 					Path:     ".",
+				},
+				Deployment: manifest.ServiceDeployment{
+					Minimum: 50,
+					Maximum: 200,
 				},
 				Drain: 30,
 				Environment: manifest.Environment{
