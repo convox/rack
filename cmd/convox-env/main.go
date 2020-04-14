@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"sort"
 	"strings"
 	"time"
 
@@ -32,7 +33,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	env := append(os.Environ(), cenv...)
+	env := mergeEnv(os.Environ(), cenv)
 
 	err = exec(os.Args[1], os.Args[2:], env)
 
@@ -100,6 +101,34 @@ func fetchConvoxEnv() ([]string, error) {
 	}
 
 	return env, nil
+}
+
+func mergeEnv(envs ...[]string) []string {
+	merged := map[string]string{}
+
+	for _, env := range envs {
+		for _, kv := range env {
+			if parts := strings.SplitN(kv, "=", 2); len(parts) == 2 {
+				merged[parts[0]] = parts[1]
+			}
+		}
+	}
+
+	keys := []string{}
+
+	for k := range merged {
+		keys = append(keys, k)
+	}
+
+	sort.Strings(keys)
+
+	final := []string{}
+
+	for _, k := range keys {
+		final = append(final, fmt.Sprintf("%s=%s", k, merged[k]))
+	}
+
+	return final
 }
 
 func S3() *s3.S3 {
