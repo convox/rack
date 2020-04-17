@@ -2,6 +2,7 @@
   {
     "AWSTemplateFormatVersion" : "2010-09-09",
     "Conditions": {
+      "BlankDatabaseSnapshotIdentifier": { "Fn::Equals": [ { "Ref": "DatabaseSnapshotIdentifier"}, "" ] },
       "Encrypted": { "Fn::Equals": [ { "Ref": "Encrypted" }, "true" ] },
       "Private": { "Fn::Equals": [ { "Ref": "Private" }, "true" ] }
     },
@@ -15,6 +16,11 @@
         "Type" : "String",
         "Default" : "app",
         "Description" : "Default database name"
+      },
+      "DatabaseSnapshotIdentifier": {
+        "Type": "String",
+        "Default": "",
+        "Description": "ARN of database snapshot to restore"
       },
       "InstanceType": {
         "Type" : "String",
@@ -107,6 +113,7 @@
           "DBInstanceClass": { "Ref": "InstanceType" },
           "DBInstanceIdentifier": { "Ref": "AWS::StackName" },
           "DBName": { "Ref": "Database" },
+          "DBSnapshotIdentifier": { "Fn::If": [ "BlankDatabaseSnapshotIdentifier", { "Ref": "AWS::NoValue" }, { "Ref": "DatabaseSnapshotIdentifier" } ] },
           "DBSubnetGroupName": { "Ref": "SubnetGroup" },
           "Engine": "mysql",
           "EngineVersion": { "Ref": "EngineVersion" },
