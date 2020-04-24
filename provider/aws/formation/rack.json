@@ -633,11 +633,6 @@
       "Description": "The security groups (comma delimited) to assign to the rack router.",
       "Type": "CommaDelimitedList"
     },
-    "ServiceScalingLogging": {
-      "Default": "Yes",
-      "Description": "More verbose logging of the scaling function into CloudWatch",
-      "Type": "String"
-    },
     "SpotInstanceBid": {
       "Default": "",
       "Description": "Bid price for spot instances",
@@ -1599,7 +1594,6 @@
             "ASG": { "Ref": "Instances" },
             "CLUSTER": { "Ref": "Cluster" },
             "EXTRA": { "Ref": "AutoscaleExtra" },
-            "SERVICE_SCALING_LOGGING": { "Ref": "ServiceScalingLogging" },
             "STACK": { "Ref": "AWS::StackName" }
           }
         },

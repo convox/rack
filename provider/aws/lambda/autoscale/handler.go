@@ -314,12 +314,15 @@ func ci(ii ...*int64) int64 {
 	return 0
 }
 
-func log(format string, a ...interface{}) {
-	if logging, present := os.LookupEnv("SERVICE_SCALING_LOGGING"); !present || present && logging != "No" {
+func debug(format string, a ...interface{}) {
+	if os.Getenv("DEBUG") == "true" {
 		fmt.Printf(format, a...)
 	}
 }
 
+func log(format string, a ...interface{}) {
+	debug(format, a...)
+}
 
 func max(ii ...int64) int64 {
 	m := int64(0)
