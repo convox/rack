@@ -31,8 +31,8 @@ func Handler(ctx context.Context) error {
 		return err
 	}
 
-	fmt.Printf("largest = %+v\n", largest)
-	fmt.Printf("total = %+v\n", total)
+	log("largest = %+v\n", largest)
+	log("total = %+v\n", total)
 
 	desired, err := desiredCapacity(largest, total)
 	if err != nil {
@@ -49,8 +49,8 @@ func Handler(ctx context.Context) error {
 func autoscale(desired int64) error {
 	stack := os.Getenv("STACK")
 
-	fmt.Printf("desired = %+v\n", desired)
-	fmt.Printf("stack = %+v\n", stack)
+	debug("desired = %+v\n", desired)
+	debug("stack = %+v\n", stack)
 
 	ds := fmt.Sprintf("%d", desired)
 
@@ -75,8 +75,8 @@ func autoscale(desired int64) error {
 	for _, p := range res.Stacks[0].Parameters {
 		switch *p.ParameterKey {
 		case "InstanceCount":
-			fmt.Printf("ds = %+v\n", ds)
-			fmt.Printf("*p.ParameterValue = %+v\n", *p.ParameterValue)
+			debug("ds = %+v\n", ds)
+			debug("*p.ParameterValue = %+v\n", *p.ParameterValue)
 
 			if ds == *p.ParameterValue {
 				fmt.Println("no change")
@@ -118,7 +118,7 @@ func clusterMetrics() (*Metrics, *Metrics, error) {
 			return nil, nil, err
 		}
 
-		fmt.Printf("ListServices page: %d\n", len(res.ServiceArns))
+		debug("ListServices page: %d\n", len(res.ServiceArns))
 
 		dres, err := ECS.DescribeServices(&ecs.DescribeServicesInput{
 			Cluster:  aws.String(os.Getenv("CLUSTER")),
@@ -129,7 +129,7 @@ func clusterMetrics() (*Metrics, *Metrics, error) {
 		}
 
 		for _, s := range dres.Services {
-			fmt.Printf("*s.ServiceName = %+v\n", *s.ServiceName)
+			debug("*s.ServiceName = %+v\n", *s.ServiceName)
 
 			for _, d := range s.Deployments {
 				res, err := ECS.DescribeTaskDefinition(&ecs.DescribeTaskDefinitionInput{
@@ -157,9 +157,9 @@ func clusterMetrics() (*Metrics, *Metrics, error) {
 							}
 						}
 
-						fmt.Printf("agent = %+v\n", agent)
-						fmt.Printf("len(cd.PortMappings) = %+v\n", len(cd.PortMappings))
-						fmt.Printf("*s.DesiredCount = %+v\n", *s.DesiredCount)
+						debug("agent = %+v\n", agent)
+						debug("len(cd.PortMappings) = %+v\n", len(cd.PortMappings))
+						debug("*s.DesiredCount = %+v\n", *s.DesiredCount)
 
 						if len(cd.PortMappings) > 0 && !agent {
 							width = *s.DesiredCount
@@ -181,10 +181,10 @@ func clusterMetrics() (*Metrics, *Metrics, error) {
 					}
 				}
 
-				fmt.Printf("cpu = %+v\n", cpu)
-				fmt.Printf("mem = %+v\n", mem)
-				fmt.Printf("width = %+v\n", width)
-				fmt.Printf("largest = %+v\n", largest)
+				debug("cpu = %+v\n", cpu)
+				debug("mem = %+v\n", mem)
+				debug("width = %+v\n", width)
+				debug("largest = %+v\n", largest)
 
 				total.Cpu += (cpu * *s.DesiredCount)
 				total.Memory += (mem * *s.DesiredCount)
@@ -225,7 +225,7 @@ func desiredCapacity(largest, total *Metrics) (int64, error) {
 			return 0, err
 		}
 
-		fmt.Printf("ListContainerInstances page: %d\n", len(res.ContainerInstanceArns))
+		debug("ListContainerInstances page: %d\n", len(res.ContainerInstanceArns))
 
 		totalCount += int64(len(res.ContainerInstanceArns))
 
@@ -258,8 +258,8 @@ func desiredCapacity(largest, total *Metrics) (int64, error) {
 			}
 		}
 
-		fmt.Printf("capacity = %+v\n", capacity)
-		fmt.Printf("single = %+v\n", single)
+		debug("capacity = %+v\n", capacity)
+		debug("single = %+v\n", single)
 
 		if res.NextToken == nil {
 			break
@@ -282,9 +282,9 @@ func desiredCapacity(largest, total *Metrics) (int64, error) {
 	// the number of instances over the amount required to fit the widest service (gen1 loadbalancer-facing)
 	extraWidth := totalCount - largest.Width
 
-	fmt.Printf("extraCapacity = %+v\n", extraCapacity)
-	fmt.Printf("extraFit = %+v\n", extraFit)
-	fmt.Printf("extraWidth = %+v\n", extraWidth)
+	debug("extraCapacity = %+v\n", extraCapacity)
+	debug("extraFit = %+v\n", extraFit)
+	debug("extraWidth = %+v\n", extraWidth)
 
 	// comes from AutoscaleExtra
 	extra, err := strconv.ParseInt(os.Getenv("EXTRA"), 10, 64)
@@ -295,7 +295,7 @@ func desiredCapacity(largest, total *Metrics) (int64, error) {
 	// total desired count is the current instance count minus the smallest calculated extra type plus the number of desired extra instances
 	desired := totalCount - min(extraCapacity, extraFit, extraWidth) + extra
 
-	fmt.Printf("desired = %+v\n", desired)
+	debug("desired = %+v\n", desired)
 
 	// minimum instance count is 3
 	if desired < 3 {
@@ -312,6 +312,16 @@ func ci(ii ...*int64) int64 {
 		}
 	}
 	return 0
+}
+
+func debug(format string, a ...interface{}) {
+	if os.Getenv("DEBUG") == "true" {
+		fmt.Printf(format, a...)
+	}
+}
+
+func log(format string, a ...interface{}) {
+	fmt.Printf(format, a...)
 }
 
 func max(ii ...int64) int64 {
