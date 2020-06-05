@@ -178,11 +178,11 @@ func fetchAvailabilityZones(regions Regions) error {
 func fetchEFS(regions Regions) error {
 	b := surf.NewBrowser()
 
-	if err := b.Open("https://docs.aws.amazon.com/general/latest/gr/rande.html"); err != nil {
+	if err := b.Open("https://docs.aws.amazon.com/general/latest/gr/elasticfilesystem.html"); err != nil {
 		return errors.WithStack(err)
 	}
 
-	rows := b.Find("h2#elasticfilesystem-region+.table .table-contents table tr")
+	rows := b.Find("h2#elasticfilesystem-region+.table-container table tr")
 
 	if rows.Length() < 1 {
 		return errors.WithStack(fmt.Errorf("no efs entries found"))
@@ -210,7 +210,7 @@ func fetchELBAccountIds(regions Regions) error {
 		return errors.WithStack(err)
 	}
 
-	rows := b.Find("h2#access-logging-bucket-permissions~ol:nth-of-type(1) table tr")
+	rows := b.Find("h2#access-logging-bucket-permissions~div.procedure table tr")
 
 	if rows.Length() < 1 {
 		return errors.WithStack(fmt.Errorf("no elb account ids found"))
@@ -239,7 +239,7 @@ func fetchFargate(regions Regions) error {
 		return errors.WithStack(err)
 	}
 
-	rows := b.Find("h1#AWS_Fargate~.table tr")
+	rows := b.Find("table:nth-of-type(1) tr")
 
 	if rows.Length() < 1 {
 		return errors.WithStack(fmt.Errorf("no fargate regions found"))
