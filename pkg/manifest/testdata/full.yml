@@ -45,7 +45,8 @@ services:
       cpu: 512
       memory: 1024
   foo:
-    command: foo
+    command:
+      - foo
     domain: baz.example.org, qux.example.org
     drain: 60
     health:

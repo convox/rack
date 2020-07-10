@@ -96,7 +96,7 @@ func TestManifestLoad(t *testing.T) {
 					Manifest: "Dockerfile",
 					Path:     ".",
 				},
-				Command: manifest.ServiceCommand{"sh", "-c", "foo"},
+				Command: manifest.ServiceCommand{"foo"},
 				Deployment: manifest.ServiceDeployment{
 					Minimum: 0,
 					Maximum: 100,
