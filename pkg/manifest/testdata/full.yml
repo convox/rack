@@ -14,6 +14,7 @@ services:
     build:
       manifest: Dockerfile2
       path: api
+    command: [bin/api, start]
     domain: foo.example.org
     deployment:
       minimum: 25
