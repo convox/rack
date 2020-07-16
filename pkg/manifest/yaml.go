@@ -166,6 +166,32 @@ func (v ServiceBuild) MarshalYAML() (interface{}, error) {
 	return v, nil
 }
 
+func (v *ServiceCommand) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	var w interface{}
+
+	if err := unmarshal(&w); err != nil {
+		return err
+	}
+
+	switch t := w.(type) {
+	case []interface{}:
+		for _, s := range t {
+			switch st := s.(type) {
+			case string:
+				*v = append(*v, st)
+			default:
+				return fmt.Errorf("unknown type for service command: %T", st)
+			}
+		}
+	case string:
+		*v = ServiceCommand{"sh", "-c", t}
+	default:
+		return fmt.Errorf("unknown type for service command: %T", t)
+	}
+
+	return nil
+}
+
 func (v *ServiceDomains) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	var w interface{}
 
@@ -182,7 +208,7 @@ func (v *ServiceDomains) UnmarshalYAML(unmarshal func(interface{}) error) error 
 					*v = append(*v, tst)
 				}
 			default:
-				return fmt.Errorf("unknown type for service domain: %T", s)
+				return fmt.Errorf("unknown type for service domain: %T", st)
 			}
 		}
 	case string:

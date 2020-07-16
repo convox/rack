@@ -1117,8 +1117,12 @@ func (p *Provider) generateTaskDefinition2(app, service string, opts structs.Pro
 		Privileged:        aws.Bool(s.Privileged),
 	}
 
-	if s.Command != "" {
-		cd.Command = []*string{aws.String("sh"), aws.String("-c"), aws.String(s.Command)}
+	if len(s.Command) > 0 {
+		cd.Command = []*string{}
+
+		for _, c := range s.Command {
+			cd.Command = append(cd.Command, aws.String(c))
+		}
 	}
 
 	req := &ecs.RegisterTaskDefinitionInput{

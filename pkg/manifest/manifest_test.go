@@ -34,7 +34,7 @@ func TestManifestLoad(t *testing.T) {
 					Manifest: "Dockerfile2",
 					Path:     "api",
 				},
-				Command: "",
+				Command: manifest.ServiceCommand{"bin/api", "start"},
 				Deployment: manifest.ServiceDeployment{
 					Minimum: 25,
 					Maximum: 65,
@@ -65,7 +65,7 @@ func TestManifestLoad(t *testing.T) {
 			},
 			manifest.Service{
 				Name:    "proxy",
-				Command: "bash",
+				Command: manifest.ServiceCommand{"sh", "-c", "bash"},
 				Deployment: manifest.ServiceDeployment{
 					Minimum: 50,
 					Maximum: 200,
@@ -96,7 +96,7 @@ func TestManifestLoad(t *testing.T) {
 					Manifest: "Dockerfile",
 					Path:     ".",
 				},
-				Command: "foo",
+				Command: manifest.ServiceCommand{"foo"},
 				Deployment: manifest.ServiceDeployment{
 					Minimum: 0,
 					Maximum: 100,
@@ -124,7 +124,6 @@ func TestManifestLoad(t *testing.T) {
 					Manifest: "Dockerfile",
 					Path:     ".",
 				},
-				Command: "",
 				Deployment: manifest.ServiceDeployment{
 					Minimum: 50,
 					Maximum: 200,
@@ -149,7 +148,6 @@ func TestManifestLoad(t *testing.T) {
 					Manifest: "Dockerfile",
 					Path:     ".",
 				},
-				Command: "",
 				Deployment: manifest.ServiceDeployment{
 					Minimum: 50,
 					Maximum: 200,
@@ -184,7 +182,7 @@ func TestManifestLoad(t *testing.T) {
 			},
 			manifest.Service{
 				Name:    "inherit",
-				Command: "inherit",
+				Command: manifest.ServiceCommand{"sh", "-c", "inherit"},
 				Deployment: manifest.ServiceDeployment{
 					Minimum: 50,
 					Maximum: 200,
@@ -261,6 +259,7 @@ func TestManifestLoad(t *testing.T) {
 		"services.api.build",
 		"services.api.build.manifest",
 		"services.api.build.path",
+		"services.api.command",
 		"services.api.deployment",
 		"services.api.deployment.maximum",
 		"services.api.deployment.minimum",
