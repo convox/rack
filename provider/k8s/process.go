@@ -288,12 +288,8 @@ func (p *Provider) podSpecFromService(app, service, release string) (*ac.PodSpec
 		}
 
 		if s, _ := m.Service(service); s != nil {
-			if s.Command != "" {
-				parts, err := shellquote.Split(s.Command)
-				if err != nil {
-					return nil, err
-				}
-				c.Args = parts
+			if len(s.Command) > 0 {
+				c.Args = []string(s.Command)
 			}
 
 			for k, v := range s.EnvironmentDefaults() {

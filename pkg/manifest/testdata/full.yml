@@ -14,6 +14,7 @@ services:
     build:
       manifest: Dockerfile2
       path: api
+    command: [bin/api, start]
     domain: foo.example.org
     deployment:
       minimum: 25
@@ -44,7 +45,8 @@ services:
       cpu: 512
       memory: 1024
   foo:
-    command: foo
+    command:
+      - foo
     domain: baz.example.org, qux.example.org
     drain: 60
     health:
