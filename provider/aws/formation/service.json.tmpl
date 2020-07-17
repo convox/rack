@@ -443,7 +443,7 @@
           "ContainerDefinitions": [
             {
               {{ with .Command }}
-                "Command": [ "sh", "-c", {{ safe . }} ],
+                "Command": [ {{ range . }} {{ safe . }}, {{ end }}, { "Ref": "AWS::NoValue" } ],
               {{ end }}
               "Cpu": { "Ref": "Cpu" },
               "DockerLabels": { "convox.app": "{{$.App}}", "convox.generation": "2", "convox.release": "{{$.Release.Id}}" },
