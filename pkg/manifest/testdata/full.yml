@@ -52,6 +52,7 @@ services:
     health:
       grace: 2
       timeout: 3
+    loadBalancerType: least_outstanding_requests
     port:
       scheme: https
       port: 3000
