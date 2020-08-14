@@ -63,6 +63,12 @@
         "Default": "No",
         "AllowedValues": [ "Yes", "No" ]
       },
+      "LoadBalancerAlgorithm": {
+        "Type": "String",
+        "Default": "round_robin",
+        "Description": "Type of routing algorithm to apply to the load balancer for this application",
+        "AllowedValues": [ "round_robin", "least_outstanding_requests" ]
+      },
       "LogGroup": {
         "Type": "String"
       },
@@ -169,7 +175,7 @@
             "Protocol": "{{ upcase .Port.Scheme }}",
             "TargetGroupAttributes": [
               { "Key": "deregistration_delay.timeout_seconds", "Value": "{{.Drain}}" },
-              { "Key": "load_balancing.algorithm.type", "Value": "{{.LoadBalancerType}}" },
+              { "Key": "load_balancing.algorithm.type", "Value": { "Ref": "LoadBalancerAlgorithm" } },
               { "Key": "stickiness.enabled", "Value": "{{.Sticky}}" }
             ],
             "Tags": [

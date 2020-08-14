@@ -53,7 +53,6 @@ func TestManifestLoad(t *testing.T) {
 					Timeout:  9,
 				},
 				Init:      true,
-				LoadBalancerType:    "round_robin",
 				Port:      manifest.ServicePort{Port: 1000, Scheme: "http"},
 				Resources: []string{"database"},
 				Scale: manifest.ServiceScale{
@@ -83,7 +82,6 @@ func TestManifestLoad(t *testing.T) {
 				Environment: []string{
 					"SECRET",
 				},
-				LoadBalancerType:    "round_robin",
 				Port: manifest.ServicePort{Port: 2000, Scheme: "https"},
 				Scale: manifest.ServiceScale{
 					Count:  manifest.ServiceScaleCount{Min: 1, Max: 1},
@@ -111,7 +109,6 @@ func TestManifestLoad(t *testing.T) {
 					Path:     "/",
 					Timeout:  3,
 				},
-				LoadBalancerType:    "least_outstanding_requests",
 				Port: manifest.ServicePort{Port: 3000, Scheme: "https"},
 				Scale: manifest.ServiceScale{
 					Count:  manifest.ServiceScaleCount{Min: 0, Max: 0},
@@ -138,7 +135,6 @@ func TestManifestLoad(t *testing.T) {
 					Path:     "/",
 					Timeout:  4,
 				},
-				LoadBalancerType:    "round_robin",
 				Scale: manifest.ServiceScale{
 					Count:  manifest.ServiceScaleCount{Min: 1, Max: 1},
 					Cpu:    256,
@@ -163,7 +159,6 @@ func TestManifestLoad(t *testing.T) {
 					Path:     "/",
 					Timeout:  4,
 				},
-				LoadBalancerType:    "round_robin",
 				Scale: manifest.ServiceScale{
 					Count:  manifest.ServiceScaleCount{Min: 1, Max: 5},
 					Cpu:    256,
@@ -204,7 +199,6 @@ func TestManifestLoad(t *testing.T) {
 				Environment: []string{
 					"SECRET",
 				},
-				LoadBalancerType:    "round_robin",
 				Port: manifest.ServicePort{Port: 2000, Scheme: "https"},
 				Scale: manifest.ServiceScale{
 					Count:  manifest.ServiceScaleCount{Min: 1, Max: 1},
@@ -238,7 +232,6 @@ func TestManifestLoad(t *testing.T) {
 					Interval: 5,
 					Timeout:  4,
 				},
-				LoadBalancerType:    "round_robin",
 				Scale: manifest.ServiceScale{
 					Count:  manifest.ServiceScaleCount{Min: 1, Max: 1},
 					Cpu:    256,
@@ -287,7 +280,6 @@ func TestManifestLoad(t *testing.T) {
 		"services.foo.health",
 		"services.foo.health.grace",
 		"services.foo.health.timeout",
-		"services.foo.loadBalancerType",
 		"services.foo.port",
 		"services.foo.port.port",
 		"services.foo.port.scheme",
@@ -385,7 +377,6 @@ func TestManifestLoadSimple(t *testing.T) {
 					Path:     "/",
 					Timeout:  4,
 				},
-				LoadBalancerType: "round_robin",
 				Scale: manifest.ServiceScale{
 					Count:  manifest.ServiceScaleCount{Min: 1, Max: 1},
 					Cpu:    256,
