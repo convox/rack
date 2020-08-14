@@ -385,6 +385,7 @@ func TestManifestLoadSimple(t *testing.T) {
 					Path:     "/",
 					Timeout:  4,
 				},
+				LoadBalancerType: "round_robin",
 				Scale: manifest.ServiceScale{
 					Count:  manifest.ServiceScaleCount{Min: 1, Max: 1},
 					Cpu:    256,
