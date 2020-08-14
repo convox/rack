@@ -66,6 +66,12 @@
       "Default": "No",
       "AllowedValues": [ "Yes", "No" ]
     },
+    "LoadBalancerAlgorithm": {
+      "Type": "String",
+      "Default": "round_robin",
+      "Description": "Type of routing algorithm to apply to the load balancer for this application",
+      "AllowedValues": [ "round_robin", "least_outstanding_requests" ]
+    },
     "LogBucket": {
       "Type": "String",
       "Default": ""
@@ -283,6 +289,7 @@
           "Count": { "Fn::Select": [ 0, { "Ref": "{{ upper .Name }}Formation" } ] },
           "Cpu": { "Fn::Select": [ 1, { "Ref": "{{ upper .Name }}Formation" } ] },
           "Fargate": { "Fn::If": [ "Service{{ upper .Name }}Fargate", "Yes", "No" ] },
+          "LoadBalancerAlgorithm": { "Ref": "LoadBalancerAlgorithm" },
           "LogGroup": { "Ref": "LogGroup" },
           "InternalDomains": { "Ref": "InternalDomains" },
           "Isolate": { "Fn::If": [ "IsolateServices", "Yes", "No" ] },
