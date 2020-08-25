@@ -13,7 +13,8 @@
     "Isolate": { "Fn::And": [ { "Condition": "Private" }, { "Fn::Equals": [ { "Ref": "Isolate" }, "Yes" ] } ] },
     "IsolateServices": { "Fn::Or": [ { "Condition": "FargateServices" }, { "Condition": "Isolate" } ] },
     "Private": { "Fn::Equals": [ { "Ref": "Private" }, "Yes" ] },
-    "RackUrl": { "Fn::Equals": [ { "Ref": "RackUrl" }, "Yes" ] }
+    "RackUrl": { "Fn::Equals": [ { "Ref": "RackUrl" }, "Yes" ] },
+    "ScanImages": { "Fn::Equals": [ { "Ref": "ScanImages" }, "Yes" ] }
   },
   "Outputs": {
     {{ template "balancer-outputs" . }}
@@ -108,6 +109,12 @@
       "Description": "Override the password set for embedded resources",
       "NoEcho": true
     },
+    "ScanImages": {
+      "Type": "String",
+      "Default": "Yes",
+      "Description": "Scan all uploaded images on push",
+      "AllowedValues": [ "Yes", "No" ]
+    },
     "TaskTags": {
       "Type": "String",
       "Default": "No",
@@ -142,6 +149,11 @@
     },
     "Registry": {
       "Type": "AWS::ECR::Repository",
+      "Properties": {
+        "ImageScanningConfiguration": {
+          "scanOnPush": { "Fn::If": [ "ScanImages", { "true" }, { "false" } ] }
+        }
+      },
       "DeletionPolicy": "Retain"
     }
   }
