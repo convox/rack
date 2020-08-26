@@ -38,7 +38,7 @@
     },
     "Version": {
       "Type": "String",
-      "Default": "5.7"
+      "Default": "10.4"
     }
   },
   "Outputs": {
@@ -74,14 +74,14 @@
         "DBInstanceClass": { "Ref": "Class" },
         "DBInstanceIdentifier": { "Ref": "AWS::StackName" },
         "DBName": "app",
-        "DBParameterGroupName": { "Fn::Sub": [ "default.mysql${Base}", {
+        "DBParameterGroupName": { "Fn::Sub": [ "default.mariadb${Base}", {
           "Base": { "Fn::Join": [ ".", [
             { "Fn::Select": [ 0, { "Fn::Split": [ ".", { "Ref": "Version" } ] } ] },
             { "Fn::Select": [ 1, { "Fn::Split": [ ".", { "Ref": "Version" } ] } ] }
           ] ] }
         } ] },
         "DBSubnetGroupName": { "Ref": "SubnetGroup" },
-        "Engine": "mysql",
+        "Engine": "mariadb",
         "EngineVersion": { "Ref": "Version" },
         "Iops": { "Fn::If": [ "BlankIops", { "Ref": "AWS::NoValue" }, { "Ref": "Iops" } ] },
         "MasterUsername": "app",
