@@ -33,8 +33,8 @@ func Update(rack sdk.Interface, c *stdcli.Context) error {
 	}
 
 	if (target == current) {
-		c.Writef("No update to be performed... ")
-		return c.OK()
+		c.Writef("Already on requested version <release>%s</release>", target)
+		return nil
 	}
 
 	url := fmt.Sprintf("https://s3.amazonaws.com/convox/release/%s/cli/%s/%s", target, runtime.GOOS, executableName())
