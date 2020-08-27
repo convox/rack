@@ -16,7 +16,7 @@ kind: PersistentVolumeClaim
 apiVersion: v1
 metadata:
   namespace: {{.Namespace}}
-  name: resource-{{.Name}}-mysql
+  name: resource-{{.Name}}-mariadb
   labels:
     system: convox
     rack: {{.Rack}}
@@ -39,7 +39,7 @@ metadata:
     rack: {{.Rack}}
     app: {{.App}}
     type: resource
-    kind: mysql
+    kind: mariadb
     resource: {{.Name}}
 spec:
   selector:
