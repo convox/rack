@@ -33,7 +33,7 @@ func Update(rack sdk.Interface, c *stdcli.Context) error {
 	}
 
 	if (target == current) {
-		c.Writef("Already on requested version <release>%s</release>\n", target)
+		c.Writef("No update to be performed.\n")
 		return nil
 	}
 
