@@ -1,0 +1,118 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Conditions": {
+    "BlankIops": { "Fn::Equals": [ { "Ref": "Iops" }, "0" ] },
+    "DoubleVersionNumber": { "Fn::Or": [ {"Condition": "Postgres9"} , { "Condition": "MySQL" } ] },
+    "MySQL": { "Fn::Equals": [ { "Ref": "Engine" }, "mysql" ] },
+    "MySQL56": { "Fn::And": [ { "Condition": "MySQL" }  , { "Condition": "Version56" } ] },
+    "MySQL57": { "Fn::And": [ { "Condition": "MySQL" }  , "Fn:Not": [ { "Condition": "Version56" } ] ] },
+    "Postgres": { "Fn::Not": [ { "Condition": "MySQL" } ] },
+    "Postgres9": { "Fn::And": [ { "Condition": "Postgres" }  , { "Condition": "Version9" } ] },
+    "Serverless": { "Fn::Equals": [ { "Ref": "Serverless" }, "Yes" ] },
+    "Version56": { "Fn::Or": [ { "Fn::Equals": [ "Fn::Select": [ 0, { "Fn::Split": [ ".", { "Ref": "Version" } ] } ] ,  "1" } , { "Fn::And": [ "Fn::Equals": [ "Fn::Select": [ 0, { "Fn::Split": [ ".", { "Ref": "Version" } ] } ] ,  "5" ] , "Fn::Equals": [ "Fn::Select": [ 1, { "Fn::Split": [ ".", { "Ref": "Version" } ] } ] ,  "6" ] ] } ] },
+    "Version9": { "Fn::Equals": [ "Fn::Select": [ 0, { "Fn::Split": [ ".", { "Ref": "Version" } ] } ] , "9" ] }
+  },
+  "Parameters": {
+    "Class": {
+      "Type": "String",
+      "Default": "db.t3.medium"
+    },
+    "Engine": {
+      "Type": "String",
+      "AllowedValues": [ "mysql", "postgres" ]
+    },
+    "Iops": {
+      "Type": "Number",
+      "Default": "0"
+    },
+    "Rack": {
+      "MinLength": "1",
+      "Type": "String"
+    },
+    "Serverless": {
+      "Type": "String",
+      "Default": "No",
+      "AllowedValues": [ "Yes", "No" ]
+    }
+    "Storage": {
+      "Type": "Number",
+      "Default": "20"
+    },
+    "Version": {
+      "Type": "String"
+    }
+  },
+  "Outputs": {
+    "Url": { "Value": { "Fn::Sub": "${Engine}://app:${Password}@${Cluster.Endpoint.Address}:${Cluster.Endpoint.Port}/app" } }
+  },
+  "Resources": {
+    "SecurityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": { "Fn::Sub": "${AWS::StackName} security group" },
+        "SecurityGroupIngress": [
+          { "IpProtocol": "tcp", "FromPort": "3306", "ToPort": "3306", "CidrIp": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:VpcCidr" } } }
+        ],
+        "VpcId": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Vpc" } }
+      }
+    },
+    "SubnetGroup": {
+      "Type": "AWS::RDS::DBSubnetGroup",
+      "Properties": {
+        "DBSubnetGroupDescription": { "Fn::Sub": "${AWS::StackName} subnets" },
+        "SubnetIds": [
+          { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Subnet0" } },
+          { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Subnet1" } }
+        ]
+      }
+    },
+    "Cluster": {
+      "Type": "AWS::RDS::DBCluster",
+      "DeletionPolicy": "Snapshot",
+      "Properties": {
+        "AllocatedStorage": { "Ref": "Storage" },
+        "AllowMajorVersionUpgrade": "true",
+        "DBInstanceClass": { "Ref": "Class" },
+        "DBClusterIdentifier": { "Ref": "AWS::StackName" },
+        "DatabaseName": "app",
+        "DBParameterGroupName": { "Fn::Sub": [ "default.aurora${Suffix}${Base}", {
+          "Suffix": {
+            "Fn::If": ["MySQL56", "", { "Fn::If": ["MySQL", "-mysql", "-postgres" }
+          }
+        }, { "Base": { 
+            "Fn::If": { "DoubleVersionNumber", "Fn::Join": [ ".", [
+            { "Fn::Select": [ 0, { "Fn::Split": [ ".", { "Ref": "Version" } ] } ] },
+            { "Fn::Select": [ 1, { "Fn::Split": [ ".", { "Ref": "Version" } ] } ] }
+          ] ] ,
+          "Fn::Select": [ 0, { "Fn::Split": [ ".", { "Ref": "Version" } ] } ]
+          }
+
+
+
+
+
+
+
+
+         }
+        } ] },
+        "DBSubnetGroupName": { "Ref": "SubnetGroup" },
+        "Engine": { "Fn::Sub": [ "aurora${Suffix}", {
+          "Suffix": {
+            "Fn::If": ["MySQL56", "", { "Fn::If": ["MySQL", "-mysql", "-postgres" }
+          }
+        } ] },
+        "EngineMode": { "Fn::If": [ "Serverless", { "serverless" }, { "provisioned" } ] },
+        "Iops": { "Fn::If": [ "BlankIops", { "Ref": "AWS::NoValue" }, { "Ref": "Iops" } ] },
+        "MasterUsername": "app",
+        "Port": "3306",
+        "PubliclyAccessible": "false",
+        "StorageType": { "Fn::If": [ "BlankIops", "gp2", "io1" ] },
+        "VPCSecurityGroups": [ { "Ref": "SecurityGroup" } ]
+      }
+    },
+    "Instance": {
+
+    }
+  }
+}
