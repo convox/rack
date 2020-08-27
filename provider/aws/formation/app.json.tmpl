@@ -142,6 +142,11 @@
     },
     "Registry": {
       "Type": "AWS::ECR::Repository",
+      "Properties": {
+        "ImageScanningConfiguration": {
+          "scanOnPush": "true"
+        }
+      },
       "DeletionPolicy": "Retain"
     }
   }
