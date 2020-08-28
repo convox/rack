@@ -20,6 +20,7 @@ func init() {
 
 func Update(rack sdk.Interface, c *stdcli.Context) error {
 	target := c.Arg(0)
+	current := c.Version()
 
 	// if no version specified, find the latest version
 	if target == "" {
@@ -29,6 +30,11 @@ func Update(rack sdk.Interface, c *stdcli.Context) error {
 		}
 
 		target = v
+	}
+
+	if (target == current) {
+		c.Writef("No update to be performed\n")
+		return nil
 	}
 
 	url := fmt.Sprintf("https://s3.amazonaws.com/convox/release/%s/cli/%s/%s", target, runtime.GOOS, executableName())
