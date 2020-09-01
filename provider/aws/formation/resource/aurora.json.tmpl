@@ -66,16 +66,13 @@
         ]
       }
     },
-    "Cluster": {
+    "AuroraCluster": {
       "Type": "AWS::RDS::DBCluster",
       "DeletionPolicy": "Snapshot",
       "Properties": {
-        "AllocatedStorage": { "Ref": "Storage" },
-        "AllowMajorVersionUpgrade": "true",
-        "DBInstanceClass": { "Ref": "Class" },
         "DBClusterIdentifier": { "Ref": "AWS::StackName" },
         "DatabaseName": "app",
-        "DBParameterGroupName": { "Fn::Sub": [ "default.aurora${Suffix}${Base}", {
+        "DBClusterParameterGroupName": { "Fn::Sub": [ "default.aurora${Suffix}${Base}", {
           "Suffix": {
             "Fn::If": ["MySQL56", "", { "Fn::If": ["MySQL", "-mysql", "-postgres" }
           }
@@ -103,16 +100,77 @@
           }
         } ] },
         "EngineMode": { "Fn::If": [ "Serverless", { "serverless" }, { "provisioned" } ] },
+        "EngineVersion": { "Ref": "Version" },
         "Iops": { "Fn::If": [ "BlankIops", { "Ref": "AWS::NoValue" }, { "Ref": "Iops" } ] },
         "MasterUsername": "app",
+        "MasterUserPassword": { "Ref": "Password" },
         "Port": "3306",
         "PubliclyAccessible": "false",
+        "StorageEncrypted": { "Ref": "Encrypted" },        
         "StorageType": { "Fn::If": [ "BlankIops", "gp2", "io1" ] },
         "VPCSecurityGroups": [ { "Ref": "SecurityGroup" } ]
       }
     },
-    "Instance": {
-
-    }
+    "AuroraInstance1": {
+      "Type": "AWS::RDS::DBInstance",
+      "DeletionPolicy": "Snapshot",
+      "Properties": {
+        "AllocatedStorage": { "Ref": "Storage" },
+        "AllowMajorVersionUpgrade": "true",
+        "DBClusterIdentifier": { "Ref": "AuroraCluster" },
+        "DBInstanceClass": { "Ref": "Class" },
+        "DBInstanceIdentifier": { "Ref": "AWS::StackName" },
+        "DBName": "app",
+        "DBParameterGroupName": { "Fn::Sub": [ "default.mysql${Base}", {
+          "Base": { "Fn::Join": [ ".", [
+            { "Fn::Select": [ 0, { "Fn::Split": [ ".", { "Ref": "Version" } ] } ] },
+            { "Fn::Select": [ 1, { "Fn::Split": [ ".", { "Ref": "Version" } ] } ] }
+          ] ] }
+        } ] },
+        "DBSubnetGroupName": { "Ref": "SubnetGroup" },
+        "Engine": "mysql",
+        "EngineVersion": { "Ref": "Version" },
+        "Iops": { "Fn::If": [ "BlankIops", { "Ref": "AWS::NoValue" }, { "Ref": "Iops" } ] },
+        "MasterUsername": "app",
+        "MasterUserPassword": { "Ref": "Password" },
+        "MultiAZ": { "Ref": "Durable" },
+        "Port": "3306",
+        "PubliclyAccessible": "false",
+        "StorageEncrypted": { "Ref": "Encrypted" },
+        "StorageType": { "Fn::If": [ "BlankIops", "gp2", "io1" ] },
+        "VPCSecurityGroups": [ { "Ref": "SecurityGroup" } ]
+      }
+    },
+    "AuroraInstance2": {
+      "Type": "AWS::RDS::DBInstance",
+      "DeletionPolicy": "Snapshot",
+      "DependsOn": "AuroraInstance1"
+      "Properties": {
+        "AllocatedStorage": { "Ref": "Storage" },
+        "AllowMajorVersionUpgrade": "true",
+        "DBClusterIdentifier": { "Ref": "AuroraCluster" },
+        "DBInstanceClass": { "Ref": "Class" },
+        "DBInstanceIdentifier": { "Ref": "AWS::StackName" },
+        "DBName": "app",
+        "DBParameterGroupName": { "Fn::Sub": [ "default.mysql${Base}", {
+          "Base": { "Fn::Join": [ ".", [
+            { "Fn::Select": [ 0, { "Fn::Split": [ ".", { "Ref": "Version" } ] } ] },
+            { "Fn::Select": [ 1, { "Fn::Split": [ ".", { "Ref": "Version" } ] } ] }
+          ] ] }
+        } ] },
+        "DBSubnetGroupName": { "Ref": "SubnetGroup" },
+        "Engine": "mysql",
+        "EngineVersion": { "Ref": "Version" },
+        "Iops": { "Fn::If": [ "BlankIops", { "Ref": "AWS::NoValue" }, { "Ref": "Iops" } ] },
+        "MasterUsername": "app",
+        "MasterUserPassword": { "Ref": "Password" },
+        "MultiAZ": { "Ref": "Durable" },
+        "Port": "3306",
+        "PubliclyAccessible": "false",
+        "StorageEncrypted": { "Ref": "Encrypted" },
+        "StorageType": { "Fn::If": [ "BlankIops", "gp2", "io1" ] },
+        "VPCSecurityGroups": [ { "Ref": "SecurityGroup" } ]
+      }
+    },
   }
 }
