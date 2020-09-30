@@ -101,7 +101,7 @@
               {
                 "Command": [ "sh", "-c", {{ safe $.Timer.Command }} ],
                 "Cpu": { "Ref": "Cpu" },
-                "DockerLabels": { "convox.app": "{{$.App}}", "convox.generation": "2", "convox.release": "{{$.Release.Id}}" },
+                "DockerLabels": { "convox.app": "{{$.App}}", "convox.generation": "2", "convox.process.type": "timer", "convox.release": "{{$.Release.Id}}" },
                 "Environment": [
                   {{ range $k, $v := .EnvironmentDefaults }}
                     { "Name": "{{$k}}", "Value": {{ safe $v }} },
