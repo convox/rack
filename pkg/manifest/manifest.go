@@ -306,6 +306,10 @@ func (m *Manifest) ApplyDefaults() error {
 		if !m.AttributeSet(fmt.Sprintf("services.%s.sticky", s.Name)) {
 			m.Services[i].Sticky = true
 		}
+
+		if !m.AttributeSet(fmt.Sprintf("services.%s.termination.grace", s.Name)) {
+			m.Services[i].Termination.Grace = 30
+		}
 	}
 
 	return nil
