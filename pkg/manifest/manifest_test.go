@@ -62,6 +62,9 @@ func TestManifestLoad(t *testing.T) {
 				},
 				Sticky: true,
 				Test:   "make  test",
+				Termination: manifest.ServiceTermination{
+					Grace: 45,
+				},
 			},
 			manifest.Service{
 				Name:    "proxy",
@@ -89,6 +92,9 @@ func TestManifestLoad(t *testing.T) {
 					Memory: 1024,
 				},
 				Sticky: true,
+				Termination: manifest.ServiceTermination{
+					Grace: 30,
+				},
 			},
 			manifest.Service{
 				Name: "foo",
@@ -117,6 +123,9 @@ func TestManifestLoad(t *testing.T) {
 				},
 				Singleton: true,
 				Sticky:    false,
+				Termination: manifest.ServiceTermination{
+					Grace: 30,
+				},
 			},
 			manifest.Service{
 				Name: "bar",
@@ -141,6 +150,9 @@ func TestManifestLoad(t *testing.T) {
 					Memory: 512,
 				},
 				Sticky: true,
+				Termination: manifest.ServiceTermination{
+					Grace: 30,
+				},
 			},
 			manifest.Service{
 				Name: "scaler",
@@ -179,6 +191,9 @@ func TestManifestLoad(t *testing.T) {
 					},
 				},
 				Sticky: true,
+				Termination: manifest.ServiceTermination{
+					Grace: 30,
+				},
 			},
 			manifest.Service{
 				Name:    "inherit",
@@ -206,6 +221,9 @@ func TestManifestLoad(t *testing.T) {
 					Memory: 1024,
 				},
 				Sticky: true,
+				Termination: manifest.ServiceTermination{
+					Grace: 30,
+				},
 			},
 			manifest.Service{
 				Name: "agent",
@@ -238,6 +256,9 @@ func TestManifestLoad(t *testing.T) {
 					Memory: 512,
 				},
 				Sticky: true,
+				Termination: manifest.ServiceTermination{
+					Grace: 30,
+				},
 			},
 		},
 	}
@@ -272,6 +293,8 @@ func TestManifestLoad(t *testing.T) {
 		"services.api.resources",
 		"services.api.scale",
 		"services.api.test",
+		"services.api.termination",
+		"services.api.termination.grace",
 		"services.bar",
 		"services.foo",
 		"services.foo.command",
@@ -383,6 +406,9 @@ func TestManifestLoadSimple(t *testing.T) {
 					Memory: 512,
 				},
 				Sticky: true,
+				Termination: manifest.ServiceTermination{
+					Grace: 30,
+				},
 			},
 		},
 	}

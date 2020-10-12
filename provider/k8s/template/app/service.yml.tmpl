@@ -65,6 +65,7 @@ spec:
       hostNetwork: true
       {{ end }}
       shareProcessNamespace: {{.Service.Init}}
+      terminationGracePeriodSeconds: {{$.Service.Termination.Grace}}
       containers:
       - name: main
         {{ with .Service.Command }}
