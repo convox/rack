@@ -81,12 +81,12 @@ func run() error {
 		fargates[i] = fmt.Sprintf(`"Fargate": %q`, yn(region.Fargate))
 	}
 
-	rnMax := max(rns)
-	amiMax := max(amis)
-	efsMax := max(efss)
-	tazMax := max(tazs)
-	elbMax := max(elbs)
-	fargateMax := max(fargates)
+	rnMax := max(rns, 0)
+	amiMax := max(amis, 0)
+	efsMax := max(efss, 0)
+	tazMax := max(tazs, 0)
+	elbMax := max(elbs, 0)
+	fargateMax := max(fargates, 0)
 
 	for i := range names {
 		if regions[names[i]].Ami == "" {
@@ -263,8 +263,33 @@ func fetchFargate(regions Regions) error {
 	return nil
 }
 
-func max(ss []string) int {
-	m := 0
+func printRegions(regions Regions) {
+	rns := []string{}
+	amis := []string{}
+	elbs := []string{}
+
+	for name := range regions {
+		rns = append(rns, name)
+		amis = append(amis, regions[name].Ami)
+		elbs = append(elbs, regions[name].ELBAccountId)
+	}
+
+	sort.Strings(rns)
+
+	rnmax := max(rns, 6)
+	amimax := max(amis, 3)
+	elmax := max(elbs, 12)
+
+	fmt.Printf(fmt.Sprintf("\n%%-%ds  %%-%ds  %%s  %%-5s  %%-%ds  %%s\n", rnmax, amimax, elmax), "region", "ami", "azs", "efs", "elbaccountid", "fargate")
+
+	for _, name := range rns {
+		r := regions[name]
+		fmt.Printf(fmt.Sprintf("%%-%ds  %%-%ds  %%3d  %%-5t  %%-%ds  %%t\n", rnmax, amimax, elmax), name, r.Ami, len(r.AvailabilityZones), r.EFS, r.ELBAccountId, r.Fargate)
+	}
+}
+
+func max(ss []string, min int) int {
+	m := min
 
 	for _, s := range ss {
 		if len(s) > m {
