@@ -520,6 +520,7 @@
                 {{ end }}
                 { "Ref": "AWS::NoValue" }
               ],
+              "StopTimeout": "{{.Termination.Grace}}",
               "Ulimits": [ { "Name": "nofile", "SoftLimit": "1024000", "HardLimit": "1024000" } ]
             }
           ],

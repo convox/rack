@@ -10,26 +10,27 @@ import (
 type Service struct {
 	Name string `yaml:"-"`
 
-	Agent       ServiceAgent      `yaml:"agent,omitempty"`
-	Build       ServiceBuild      `yaml:"build,omitempty"`
-	Command     ServiceCommand    `yaml:"command,omitempty"`
-	Deployment  ServiceDeployment `yaml:"deployment,omitempty"`
-	Domains     ServiceDomains    `yaml:"domain,omitempty"`
-	Drain       int               `yaml:"drain,omitempty"`
-	Environment Environment       `yaml:"environment,omitempty"`
-	Health      ServiceHealth     `yaml:"health,omitempty"`
-	Image       string            `yaml:"image,omitempty"`
-	Init        bool              `yaml:"init,omitempty"`
-	Internal    bool              `yaml:"internal,omitempty"`
-	Links       []string          `yaml:"links,omitempty"`
-	Port        ServicePort       `yaml:"port,omitempty"`
-	Privileged  bool              `yaml:"privileged,omitempty"`
-	Resources   []string          `yaml:"resources,omitempty"`
-	Scale       ServiceScale      `yaml:"scale,omitempty"`
-	Singleton   bool              `yaml:"singleton,omitempty"`
-	Sticky      bool              `yaml:"sticky,omitempty"`
-	Test        string            `yaml:"test,omitempty"`
-	Volumes     []string          `yaml:"volumes,omitempty"`
+	Agent       ServiceAgent       `yaml:"agent,omitempty"`
+	Build       ServiceBuild       `yaml:"build,omitempty"`
+	Command     ServiceCommand     `yaml:"command,omitempty"`
+	Deployment  ServiceDeployment  `yaml:"deployment,omitempty"`
+	Domains     ServiceDomains     `yaml:"domain,omitempty"`
+	Drain       int                `yaml:"drain,omitempty"`
+	Environment Environment        `yaml:"environment,omitempty"`
+	Health      ServiceHealth      `yaml:"health,omitempty"`
+	Image       string             `yaml:"image,omitempty"`
+	Init        bool               `yaml:"init,omitempty"`
+	Internal    bool               `yaml:"internal,omitempty"`
+	Links       []string           `yaml:"links,omitempty"`
+	Port        ServicePort        `yaml:"port,omitempty"`
+	Privileged  bool               `yaml:"privileged,omitempty"`
+	Resources   []string           `yaml:"resources,omitempty"`
+	Scale       ServiceScale       `yaml:"scale,omitempty"`
+	Singleton   bool               `yaml:"singleton,omitempty"`
+	Sticky      bool               `yaml:"sticky,omitempty"`
+	Termination ServiceTermination `yaml:"termination,omitempty"`
+	Test        string             `yaml:"test,omitempty"`
+	Volumes     []string           `yaml:"volumes,omitempty"`
 }
 
 type Services []Service
@@ -98,6 +99,10 @@ type ServiceScaleTargets struct {
 	Custom   ServiceScaleMetrics
 	Memory   int
 	Requests int
+}
+
+type ServiceTermination struct {
+	Grace int `yaml:"grace,omitempty"`
 }
 
 func (s Service) BuildHash(key string) string {

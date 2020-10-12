@@ -30,6 +30,8 @@ services:
       - database
     port: 1000
     scale: 3-10
+    termination:
+      grace: 45
     test: make ${BAR} test
   proxy: &proxy
     command: bash
