@@ -79,7 +79,7 @@ func contentFormatter(group string) syslog.Formatter {
 		line = strings.ReplaceAll(line, "{CONTAINER}", container)
 		line = strings.ReplaceAll(line, "{MESSAGE}", message)
 
-		if (line[len(line)-2:] == "\n") {
+		if (line[len(line)-1:] == "\n") {
 			return line
 		} else {
 			return line + "\n"
