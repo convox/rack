@@ -79,6 +79,10 @@ func contentFormatter(group string) syslog.Formatter {
 		line = strings.ReplaceAll(line, "{CONTAINER}", container)
 		line = strings.ReplaceAll(line, "{MESSAGE}", message)
 
+		for newline := true; newline; newline = strings.HasSuffix(line, "\n") {
+			line = strings.TrimSuffix(line, "\n")
+		}
+
 		return line + "\n"
 	}
 }
