@@ -367,6 +367,14 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 		"Version": p.Version,
 	}
 
+	customTags, err := p.getCustomRackTags(p.Rack)
+	if err != nil {
+		return err
+	} 
+	for k, v := range customTags {
+		tags[k] = v
+	}
+
 	cfid := fmt.Sprintf("%s-%s", time.Now().UTC().Format(helpers.CompactSortableTime), r.Id)
 
 	if err := p.updateStack(p.rackStack(r.App), data, updates, tags, cfid); err != nil {
@@ -376,6 +384,23 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 	p.EventSend("release:promote", structs.EventSendOptions{Data: map[string]string{"app": r.App, "id": r.Id}, Status: options.String("start")})
 
 	return nil
+}
+
+func (p *Provider) getCustomRackTags(rackName string) (map[string]string, error) {
+	stack, err := p.describeStack(rackName)
+	if err != nil {
+		return nil, err
+	}
+
+	tags := stackTags(stack)
+
+	reservedTagNames := []string{"App", "System", "Type", "Version", "Generation", "Name", "Rack"}
+
+	for _, r := range reservedTagNames {
+		delete(tags, r)
+	}
+
+	return tags, nil
 }
 
 func (p *Provider) releasePromoteGeneration1(a *structs.App, r *structs.Release) error {
