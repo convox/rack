@@ -72,7 +72,7 @@
         "Description": { "Ref": "Url" },
         "Handler": "index.handler",
         "Role": { "Fn::GetAtt": [ "Role", "Arn" ] },
-        "Runtime": "nodejs8.10",
+        "Runtime": "nodejs10.x",
         "Timeout": "25",
         "VpcConfig": { "Fn::If": [ "Private",
           { "SecurityGroupIds": [ { "Ref": "SecurityGroup" } ], "SubnetIds": { "Ref": "SubnetsPrivate" } },
