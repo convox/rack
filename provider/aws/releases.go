@@ -367,11 +367,18 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 		"Version": p.Version,
 	}
 
-	customTags, err := p.getCustomRackTags(p.Rack)
+	customRackTags, err := p.getCustomTags(p.Rack)
 	if err != nil {
 		return err
 	} 
-	for k, v := range customTags {
+	customAppTags, err := p.getCustomTags(p.rackStack(r.App))
+	if err != nil {
+		return err
+	} 
+	for k, v := range customRackTags {
+		tags[k] = v
+	}
+	for k, v := range customAppTags {
 		tags[k] = v
 	}
 
@@ -386,7 +393,7 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 	return nil
 }
 
-func (p *Provider) getCustomRackTags(rackName string) (map[string]string, error) {
+func (p *Provider) getCustomTags(rackName string) (map[string]string, error) {
 	stack, err := p.describeStack(rackName)
 	if err != nil {
 		return nil, err
