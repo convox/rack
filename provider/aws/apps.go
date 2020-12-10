@@ -39,9 +39,7 @@ func (p *Provider) AppCancel(name string) error {
 }
 
 func (p *Provider) AppCreate(name string, opts structs.AppCreateOptions) (*structs.App, error) {
-
-	err := validateAppName(name, p.Rack)
-	if err != nil {
+	if err := validateAppName(name, p.Rack); err != nil {
 		return nil, err
 	}
 
