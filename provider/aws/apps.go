@@ -6,6 +6,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"unicode"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -38,6 +39,12 @@ func (p *Provider) AppCancel(name string) error {
 }
 
 func (p *Provider) AppCreate(name string, opts structs.AppCreateOptions) (*structs.App, error) {
+
+	err := validateAppName(name, p.Rack)
+	if err != nil {
+		return nil, err
+	}
+
 	switch generation(opts.Generation) {
 	case "1":
 		return p.appCreateGeneration1(name)
@@ -519,4 +526,24 @@ func (p *Provider) cleanupBucketObject(bucket, key, version string) {
 	if err != nil {
 		fmt.Printf("error: %s\n", err)
 	}
+}
+
+func (p *Provider) validateAppName(name, rack string) error {
+	const hyphen = '-'
+	const underscore = '_'
+
+	if strings.TrimSpace(name) == strings.TrimSpace(rack) {
+		return fmt.Errorf("App name cannot be same as Rack name")
+	}
+
+	for _, r := range name {
+		if !unicode.IsLower(r) && unicode.IsLetter(r) {
+			return fmt.Errorf("App name cannot contain Uppercase characters")
+		}
+		if !unicode.IsLetter(r) && !unicode.IsDigit(r) && r != hyphen && r != underscore {
+			return fmt.Errorf("App name can only contain lowercase letters, numbers, hyphens and underscores")
+		}
+	}
+
+	return nil
 }
