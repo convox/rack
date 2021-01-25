@@ -1251,7 +1251,7 @@
             "Ebs": {
               "Encrypted": { "Fn::If": [ "EncryptEbs", "true", { "Ref": "AWS::NoValue" } ] },
               "VolumeSize": { "Ref": "BuildVolumeSize" },
-              "VolumeType":"gp2"
+              "VolumeType":"gp3"
             }
           },
           { "Fn::If": [ "SwapEnabled",
@@ -1260,7 +1260,7 @@
               "Ebs": {
                 "Encrypted": { "Fn::If": [ "EncryptEbs", "true", { "Ref": "AWS::NoValue" } ] },
                 "VolumeSize": { "Ref": "SwapSize" },
-                "VolumeType":"gp2"
+                "VolumeType":"gp3"
               }
             },
             { "Ref": "AWS::NoValue" }
@@ -1418,7 +1418,7 @@
             "Ebs": {
               "Encrypted": { "Fn::If": [ "EncryptEbs", "true", { "Ref": "AWS::NoValue" } ] },
               "VolumeSize": { "Ref": "VolumeSize" },
-              "VolumeType":"gp2"
+              "VolumeType":"gp3"
             }
           },
           { "Fn::If": [ "SwapEnabled",
@@ -1427,7 +1427,7 @@
               "Ebs": {
                 "Encrypted": { "Fn::If": [ "EncryptEbs", "true", { "Ref": "AWS::NoValue" } ] },
                 "VolumeSize": { "Ref": "SwapSize" },
-                "VolumeType":"gp2"
+                "VolumeType":"gp3"
               }
             },
             { "Ref": "AWS::NoValue" }
@@ -1811,7 +1811,7 @@
             "Ebs": {
               "Encrypted": { "Fn::If": [ "EncryptEbs", "true", { "Ref": "AWS::NoValue" } ] },
               "VolumeSize": { "Ref": "VolumeSize" },
-              "VolumeType":"gp2"
+              "VolumeType":"gp3"
             }
           },
           { "Fn::If": [ "SwapEnabled",
@@ -1820,7 +1820,7 @@
               "Ebs": {
                 "Encrypted": { "Fn::If": [ "EncryptEbs", "true", { "Ref": "AWS::NoValue" } ] },
                 "VolumeSize": { "Ref": "SwapSize" },
-                "VolumeType":"gp2"
+                "VolumeType":"gp3"
               }
             },
             { "Ref": "AWS::NoValue" }
