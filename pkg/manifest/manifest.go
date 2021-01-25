@@ -288,11 +288,17 @@ func (m *Manifest) ApplyDefaults() error {
 		// if no scale attributes set
 		if len(m.AttributesByPrefix(sp)) == 0 {
 			m.Services[i].Scale.Count = ServiceScaleCount{Min: 1, Max: 1}
+			m.Services[i].Scale.Cooldown = ServiceScaleCooldown{In: 60, Out: 60}
 		}
 
 		// if no explicit count attribute set yet has multiple scale attributes other than count
 		if !m.AttributeSet(fmt.Sprintf("%s.count", sp)) && len(m.AttributesByPrefix(sp)) > 1 {
 			m.Services[i].Scale.Count = ServiceScaleCount{Min: 1, Max: 1}
+		}
+
+		// if no explicit cooldown attribute set yet has multiple scale attributes other than cooldown
+		if !m.AttributeSet(fmt.Sprintf("%s.cooldown", sp)) && len(m.AttributesByPrefix(sp)) > 1 {
+			m.Services[i].Scale.Cooldown = ServiceScaleCooldown{In: 60, Out: 60}
 		}
 
 		if m.Services[i].Scale.Cpu == 0 {
