@@ -402,7 +402,7 @@ func (v *ServiceScaleCooldown) UnmarshalYAML(unmarshal func(interface{}) error) 
 		v.In = t
 		v.Out = t
 	case string:
-		ts, err := strconv.Atoi(t.(string))
+		ts, err := strconv.Atoi(t)
 		if err != nil {
 			return err
 		}
