@@ -63,6 +63,9 @@ services:
   bar:
   scaler:
     scale:
+      cooldown:
+        in: 61
+        out: 59
       count: 1-5
       targets:
         cpu: 50
