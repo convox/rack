@@ -56,7 +56,7 @@ func TestManifestLoad(t *testing.T) {
 				Port:      manifest.ServicePort{Port: 1000, Scheme: "http"},
 				Resources: []string{"database"},
 				Scale: manifest.ServiceScale{
-					Cooldown: manifest.ServiceScaleCooldown{In: 60, Out: 60},
+					Cooldown: manifest.ServiceScaleCooldown{Down: 60, Up: 60},
 					Count:    manifest.ServiceScaleCount{Min: 3, Max: 10},
 					Cpu:      256,
 					Memory:   512,
@@ -88,7 +88,7 @@ func TestManifestLoad(t *testing.T) {
 				},
 				Port: manifest.ServicePort{Port: 2000, Scheme: "https"},
 				Scale: manifest.ServiceScale{
-					Cooldown: manifest.ServiceScaleCooldown{In: 60, Out: 60},
+					Cooldown: manifest.ServiceScaleCooldown{Down: 60, Up: 60},
 					Count:    manifest.ServiceScaleCount{Min: 1, Max: 1},
 					Cpu:      512,
 					Memory:   1024,
@@ -119,7 +119,7 @@ func TestManifestLoad(t *testing.T) {
 				},
 				Port: manifest.ServicePort{Port: 3000, Scheme: "https"},
 				Scale: manifest.ServiceScale{
-					Cooldown: manifest.ServiceScaleCooldown{In: 60, Out: 60},
+					Cooldown: manifest.ServiceScaleCooldown{Down: 60, Up: 60},
 					Count:    manifest.ServiceScaleCount{Min: 0, Max: 0},
 					Cpu:      256,
 					Memory:   512,
@@ -148,7 +148,7 @@ func TestManifestLoad(t *testing.T) {
 					Timeout:  4,
 				},
 				Scale: manifest.ServiceScale{
-					Cooldown: manifest.ServiceScaleCooldown{In: 60, Out: 60},
+					Cooldown: manifest.ServiceScaleCooldown{Down: 60, Up: 60},
 					Count:    manifest.ServiceScaleCount{Min: 1, Max: 1},
 					Cpu:      256,
 					Memory:   512,
@@ -176,7 +176,7 @@ func TestManifestLoad(t *testing.T) {
 					Timeout:  4,
 				},
 				Scale: manifest.ServiceScale{
-					Cooldown: manifest.ServiceScaleCooldown{In: 61, Out: 59},
+					Cooldown: manifest.ServiceScaleCooldown{Down: 61, Up: 59},
 					Count:    manifest.ServiceScaleCount{Min: 1, Max: 5},
 					Cpu:      256,
 					Memory:   512,
@@ -221,7 +221,7 @@ func TestManifestLoad(t *testing.T) {
 				},
 				Port: manifest.ServicePort{Port: 2000, Scheme: "https"},
 				Scale: manifest.ServiceScale{
-					Cooldown: manifest.ServiceScaleCooldown{In: 60, Out: 60},
+					Cooldown: manifest.ServiceScaleCooldown{Down: 60, Up: 60},
 					Count:    manifest.ServiceScaleCount{Min: 1, Max: 1},
 					Cpu:      512,
 					Memory:   1024,
@@ -257,7 +257,7 @@ func TestManifestLoad(t *testing.T) {
 					Timeout:  4,
 				},
 				Scale: manifest.ServiceScale{
-					Cooldown: manifest.ServiceScaleCooldown{In: 60, Out: 60},
+					Cooldown: manifest.ServiceScaleCooldown{Down: 60, Up: 60},
 					Count:    manifest.ServiceScaleCount{Min: 1, Max: 1},
 					Cpu:      256,
 					Memory:   512,
@@ -338,8 +338,8 @@ func TestManifestLoad(t *testing.T) {
 		"services.scaler",
 		"services.scaler.scale",
 		"services.scaler.scale.cooldown",
-		"services.scaler.scale.cooldown.in",
-		"services.scaler.scale.cooldown.out",
+		"services.scaler.scale.cooldown.down",
+		"services.scaler.scale.cooldown.up",
 		"services.scaler.scale.count",
 		"services.scaler.scale.targets",
 		"services.scaler.scale.targets.cpu",
@@ -411,7 +411,7 @@ func TestManifestLoadSimple(t *testing.T) {
 					Timeout:  4,
 				},
 				Scale: manifest.ServiceScale{
-					Cooldown: manifest.ServiceScaleCooldown{In: 60, Out: 60},
+					Cooldown: manifest.ServiceScaleCooldown{Down: 60, Up: 60},
 					Count:    manifest.ServiceScaleCount{Min: 1, Max: 1},
 					Cpu:      256,
 					Memory:   512,

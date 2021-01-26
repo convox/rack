@@ -81,8 +81,8 @@ type ServiceScale struct {
 }
 
 type ServiceScaleCooldown struct {
-	In  int
-	Out int
+	Down int
+	Up   int
 }
 
 type ServiceScaleCount struct {

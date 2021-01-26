@@ -399,46 +399,46 @@ func (v *ServiceScaleCooldown) UnmarshalYAML(unmarshal func(interface{}) error) 
 
 	switch t := w.(type) {
 	case int:
-		v.In = t
-		v.Out = t
+		v.Down = t
+		v.Up = t
 	case string:
 		ts, err := strconv.Atoi(t)
 		if err != nil {
 			return err
 		}
-		v.In = ts
-		v.Out = ts
+		v.Down = ts
+		v.Up = ts
 	case map[interface{}]interface{}:
-		if in := t["in"]; in != nil {
-			switch in.(type) {
+		if down := t["down"]; down != nil {
+			switch down.(type) {
 			case int:
-				v.In = in.(int)
+				v.Down = down.(int)
 			case string:
-				ins, err := strconv.Atoi(in.(string))
+				downs, err := strconv.Atoi(down.(string))
 				if err != nil {
 					return err
 				}
-				v.In = ins
+				v.Down = downs
 			default:
-				return fmt.Errorf("invalid scale: %v", w)
+				return fmt.Errorf("invalid cooldown: %v", w)
 			}
 		}
-		if out := t["out"]; out != nil {
-			switch out.(type) {
+		if up := t["up"]; up != nil {
+			switch up.(type) {
 			case int:
-				v.Out = out.(int)
+				v.Up = up.(int)
 			case string:
-				outs, err := strconv.Atoi(out.(string))
+				ups, err := strconv.Atoi(up.(string))
 				if err != nil {
 					return err
 				}
-				v.Out = outs
+				v.Up = ups
 			default:
-				return fmt.Errorf("invalid scale: %v", w)
+				return fmt.Errorf("invalid cooldown: %v", w)
 			}
 		}
 	default:
-		return fmt.Errorf("invalid scale: %v", w)
+		return fmt.Errorf("invalid cooldown: %v", w)
 	}
 
 	return nil

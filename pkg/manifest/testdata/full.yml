@@ -64,8 +64,8 @@ services:
   scaler:
     scale:
       cooldown:
-        in: 61
-        out: 59
+        down: 61
+        up: 59
       count: 1-5
       targets:
         cpu: 50
