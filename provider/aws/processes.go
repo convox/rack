@@ -1047,7 +1047,7 @@ func (p *Provider) generateTaskDefinition2(app, service string, opts structs.Pro
 			host = ros["RouterInternalHost"]
 		}
 
-		senv[fmt.Sprintf("%s_URL", strings.ToUpper(l))] = fmt.Sprintf("https://%s-%s.%s", r.App, l, host)
+		senv[fmt.Sprintf("%s_URL", strings.Replace(strings.ToUpper(l), "-", "_", -1))] = fmt.Sprintf("https://%s-%s.%s", r.App, l, host)
 	}
 
 	if len(s.Resources) > 0 {
@@ -1063,7 +1063,7 @@ func (p *Provider) generateTaskDefinition2(app, service string, opts structs.Pro
 					return nil, err
 				}
 
-				senv[fmt.Sprintf("%s_URL", strings.ToUpper(r))] = stackOutputs(rs)["Url"]
+				senv[fmt.Sprintf("%s_URL", strings.Replace(strings.ToUpper(r), "-", "_", -1))] = stackOutputs(rs)["Url"]
 			}
 		}
 	}

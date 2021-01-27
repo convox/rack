@@ -102,6 +102,9 @@ func formationHelpers() template.FuncMap {
 		"upcase": func(s string) string {
 			return strings.ToUpper(s)
 		},
+		"envname": func(s string string) {
+			return strings.Replace(strings.ToUpper(s), "-", "_", -1)
+		},
 		"upper": func(s string) string {
 			return upperName(s)
 		},

@@ -96,7 +96,7 @@ func (r *Run) Start() error {
 		links := map[string]bool{}
 
 		for _, l := range s.Links {
-			key := fmt.Sprintf("%s_URL", strings.ToUpper(l))
+			key := fmt.Sprintf("%s_URL", strings.Replace(strings.ToUpper(l), "-", "_", -1))
 			links[key] = true
 		}
 
