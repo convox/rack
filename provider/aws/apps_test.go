@@ -307,7 +307,7 @@ var cycleLogFilterLogEventsLimit1 = awsutil.Cycle{
 			"filterPattern": "test",
 			"interleaved": true,
 			"logGroupName": "convox-httpd-LogGroup-L4V203L35WRM",
-			"startTime": 1546300800001
+			"startTime": 1546300800000
 		}`,
 	},
 	Response: awsutil.Response{
