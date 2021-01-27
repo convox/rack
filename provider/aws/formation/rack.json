@@ -416,6 +416,11 @@
       "Description": "The number of api web processes to run",
       "Default": "2"
     },
+    "ApiCpu": {
+      "Type": "String",
+      "Description": "How much CPU should be reserved by the API web process.",
+      "Default": "128"
+    },
     "ApiMemory": {
       "Type": "String",
       "Description": "How much memory should be reserved by the api web process",
@@ -2679,7 +2684,7 @@
         "ContainerDefinitions": [
           {
             "Command": [ "/go/bin/rack" ],
-            "Cpu": "128",
+            "Cpu": { "Ref": "ApiCpu" },
             "DockerLabels": {
               "convox.release": { "Ref": "Version" },
               "rack.AsgSpot": { "Fn::If": [ "SpotInstances", { "Ref": "SpotInstances" }, { "Ref": "AWS::NoValue" } ] },
