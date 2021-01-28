@@ -73,10 +73,16 @@ type ServicePort struct {
 }
 
 type ServiceScale struct {
-	Count   ServiceScaleCount
-	Cpu     int
-	Memory  int
-	Targets ServiceScaleTargets `yaml:"targets,omitempty"`
+	Cooldown ServiceScaleCooldown
+	Count    ServiceScaleCount
+	Cpu      int
+	Memory   int
+	Targets  ServiceScaleTargets `yaml:"targets,omitempty"`
+}
+
+type ServiceScaleCooldown struct {
+	Down int
+	Up   int
 }
 
 type ServiceScaleCount struct {
