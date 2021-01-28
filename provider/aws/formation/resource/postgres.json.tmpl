@@ -94,7 +94,7 @@
         "Port": "5432",
         "PubliclyAccessible": "false",
         "StorageEncrypted": { "Ref": "Encrypted" },
-        "StorageType": { "Fn::If": [ "BlankIops", "gp2", "io1" ] },
+        "StorageType": { "Fn::If": [ "BlankIops", "gp3", "io2" ] },
         "VPCSecurityGroups": [ { "Ref": "SecurityGroup" } ]
       }
     }
