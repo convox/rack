@@ -2500,7 +2500,7 @@
       "DependsOn": [ "Instances" ],
       "Properties": {
         "Cluster": { "Ref": "Cluster" },
-        "DeploymentConfiguration": { "MinimumHealthyPercent": "100", "MaximumPercent": "200" },
+        "DeploymentConfiguration": { "DeploymentCircuitBreaker" : { "Enable": "true", "Rollback": "true" }, "MinimumHealthyPercent": "100", "MaximumPercent": "200" },
         "DesiredCount": "1",
         "PlacementConstraints": [ { "Type": "memberOf", "Expression": "attribute:asg == primary" } ],
         "TaskDefinition": { "Ref": "ApiMonitorTasks" }
@@ -2511,7 +2511,7 @@
       "DependsOn": [ "Instances" ],
       "Properties": {
         "Cluster": { "Ref": "Cluster" },
-        "DeploymentConfiguration": { "MinimumHealthyPercent": "50", "MaximumPercent": "200" },
+        "DeploymentConfiguration": { "DeploymentCircuitBreaker" : { "Enable": "true", "Rollback": "true" }, "MinimumHealthyPercent": "50", "MaximumPercent": "200" },
         "DesiredCount": { "Ref": "ApiCount" },
         "LoadBalancers": [ { "Fn::If": [ "ApiRouterALB",
           { "ContainerName": "web", "ContainerPort": "5443", "TargetGroupArn": { "Ref": "RouterApiTargetGroup" } },
