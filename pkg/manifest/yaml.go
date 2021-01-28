@@ -337,6 +337,13 @@ func (v *ServiceScale) UnmarshalYAML(unmarshal func(interface{}) error) error {
 		}
 		v.Count = c
 	case map[interface{}]interface{}:
+		if w, ok := t["cooldown"].(interface{}); ok {
+			var cd ServiceScaleCooldown
+			if err := remarshal(w, &cd); err != nil {
+				return err
+			}
+			v.Cooldown = cd
+		}
 		if w, ok := t["count"].(interface{}); ok {
 			var c ServiceScaleCount
 			if err := remarshal(w, &c); err != nil {
@@ -378,6 +385,60 @@ func (v *ServiceScaleMetrics) UnmarshalYAML(unmarshal func(interface{}) error) e
 		wv.Namespace = strings.Join(parts[0:len(parts)-1], "/")
 		wv.Name = parts[len(parts)-1]
 		*v = append(*v, wv)
+	}
+
+	return nil
+}
+
+func (v *ServiceScaleCooldown) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	var w interface{}
+
+	if err := unmarshal(&w); err != nil {
+		return err
+	}
+
+	switch t := w.(type) {
+	case int:
+		v.Down = t
+		v.Up = t
+	case string:
+		ts, err := strconv.Atoi(t)
+		if err != nil {
+			return err
+		}
+		v.Down = ts
+		v.Up = ts
+	case map[interface{}]interface{}:
+		if down := t["down"]; down != nil {
+			switch down.(type) {
+			case int:
+				v.Down = down.(int)
+			case string:
+				downs, err := strconv.Atoi(down.(string))
+				if err != nil {
+					return err
+				}
+				v.Down = downs
+			default:
+				return fmt.Errorf("invalid cooldown: %v", w)
+			}
+		}
+		if up := t["up"]; up != nil {
+			switch up.(type) {
+			case int:
+				v.Up = up.(int)
+			case string:
+				ups, err := strconv.Atoi(up.(string))
+				if err != nil {
+					return err
+				}
+				v.Up = ups
+			default:
+				return fmt.Errorf("invalid cooldown: %v", w)
+			}
+		}
+	default:
+		return fmt.Errorf("invalid cooldown: %v", w)
 	}
 
 	return nil
