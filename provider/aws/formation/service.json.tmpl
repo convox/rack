@@ -466,12 +466,12 @@
                   { "Name": "{{$k}}", "Value": {{ safe $v }} },
                 {{ end }}
                 {{ range .Links }}
-                  { "Name": "{{ upcase . }}_URL", "Value": { "Fn::Join": [ ".", [
+                  { "Name": "{{ envname . }}_URL", "Value": { "Fn::Join": [ ".", [
                     "https://{{$.App}}-{{.}}", { "Fn::ImportValue": { "Fn::Sub": "${Rack}:{{ router . $.Manifest }}Host" } }
                   ] ] } },
                 {{ end }}
                 {{ range .Resources }}
-                  { "Name": "{{ upcase . }}_URL", "Value": { "Ref": "Resource{{ upper . }}" } },
+                  { "Name": "{{ envname . }}_URL", "Value": { "Ref": "Resource{{ upper . }}" } },
                 {{ end }}
                 { "Name": "AWS_REGION", "Value": { "Ref": "AWS::Region" } },
                 { "Name": "APP", "Value": "{{$.App}}" },
