@@ -298,8 +298,8 @@
               "PredefinedMetricSpecification": {
                 "PredefinedMetricType": "ECSServiceAverageCPUUtilization"
               },
-              "ScaleInCooldown": "60",
-              "ScaleOutCooldown": "60",
+              "ScaleInCooldown": "{{.Scale.Cooldown.Down}}",
+              "ScaleOutCooldown": "{{.Scale.Cooldown.Up}}",
               "TargetValue": "{{ .Scale.Targets.Cpu }}"
             }
           }
@@ -316,8 +316,8 @@
               "PredefinedMetricSpecification": {
                 "PredefinedMetricType": "ECSServiceAverageMemoryUtilization"
               },
-              "ScaleInCooldown": "60",
-              "ScaleOutCooldown": "60",
+              "ScaleInCooldown": "{{.Scale.Cooldown.Down}}",
+              "ScaleOutCooldown": "{{.Scale.Cooldown.Up}}",
               "TargetValue": "{{ .Scale.Targets.Memory }}"
             }
           }
@@ -335,8 +335,8 @@
                 "PredefinedMetricType": "ALBRequestCountPerTarget",
                 "ResourceLabel": { "Fn::Sub": [ "${Balancer}/${BalancerTargetGroup{{ if .Internal }}Internal{{ end }}.TargetGroupFullName}", { "Balancer": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Router{{ if .Internal }}Internal{{ end }}Name" } } } ] }
               },
-              "ScaleInCooldown": "60",
-              "ScaleOutCooldown": "60",
+              "ScaleInCooldown": "{{.Scale.Cooldown.Down}}",
+              "ScaleOutCooldown": "{{.Scale.Cooldown.Up}}",
               "TargetValue": "{{ .Scale.Targets.Requests }}"
             }
           }
@@ -361,8 +361,8 @@
                 "Namespace": "{{ $t.Namespace }}",
                 "Statistic": "{{ statistic $t.Aggregate }}"
               },
-              "ScaleInCooldown": "60",
-              "ScaleOutCooldown": "60",
+              "ScaleInCooldown": "{{.Scale.Cooldown.Down}}",
+              "ScaleOutCooldown": "{{.Scale.Cooldown.Up}}",
               "TargetValue": "{{ $t.Value }}"
             }
           }
