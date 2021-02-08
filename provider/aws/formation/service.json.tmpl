@@ -361,8 +361,8 @@
                 "Namespace": "{{ $t.Namespace }}",
                 "Statistic": "{{ statistic $t.Aggregate }}"
               },
-              "ScaleInCooldown": "{{.Scale.Cooldown.Down}}",
-              "ScaleOutCooldown": "{{.Scale.Cooldown.Up}}",
+              "ScaleInCooldown": "{{$.Service.Scale.Cooldown.Down}}",
+              "ScaleOutCooldown": "{{$.Service.Scale.Cooldown.Up}}",
               "TargetValue": "{{ $t.Value }}"
             }
           }
