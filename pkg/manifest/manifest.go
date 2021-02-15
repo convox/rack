@@ -4,11 +4,20 @@ import (
 	"fmt"
 	"io"
 	"math/rand"
+	"regexp"
 	"sort"
 	"strings"
 	"time"
 
 	yaml "gopkg.in/yaml.v2"
+)
+
+const (
+	ValidNameDescription = "must contain only lowercase alphanumeric and dashes"
+)
+
+var (
+	nameValidator = regexp.MustCompile(`^[a-z]{1}[a-z0-9-]*$`)
 )
 
 var (
@@ -200,8 +209,8 @@ func (m *Manifest) Validate() error {
 	}
 
 	for _, s := range m.Services {
-		if strings.Contains(s.Name, "_") {
-			return fmt.Errorf("service name cannot contain an underscore")
+		if !nameValidator.MatchString(s.Name) {
+			return fmt.Errorf("service name %s invalid, %s", s.Name, ValidNameDescription)
 		}
 	}
 
