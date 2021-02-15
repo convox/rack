@@ -478,7 +478,7 @@ func TestManifestValidation(t *testing.T) {
 func TestManifestServiceNameValidation(t *testing.T) {
 	m, err := testdataManifest("invalid.4", map[string]string{})
 	require.Nil(t, m)
-	require.EqualError(t, err, "service name cannot contain an underscore")
+	require.EqualError(t, err, "service name web_with_underscore invalid, must contain only lowercase alphanumeric and dashes")
 }
 
 func testdataManifest(name string, env map[string]string) (*manifest.Manifest, error) {
