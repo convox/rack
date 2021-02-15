@@ -199,6 +199,12 @@ func (m *Manifest) Validate() error {
 		return err
 	}
 
+	for _, s := range m.Services {
+		if strings.Contains(s.Name, "_") {
+			return fmt.Errorf("service name cannot contain an underscore")
+		}
+	}
+
 	for _, r := range m.Resources {
 		if strings.TrimSpace(r.Type) == "" {
 			return fmt.Errorf("resource type can not be blank")
