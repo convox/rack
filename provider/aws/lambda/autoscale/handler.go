@@ -253,7 +253,7 @@ func desiredCapacity(largest, total *Metrics) (int64, error) {
 				}
 			}
 
-			if remaining["CPU"] > largest.Cpu && remaining["MEMORY"] > largest.Memory {
+			if remaining["CPU"] >= largest.Cpu && remaining["MEMORY"] >= largest.Memory {
 				extraFit += 1
 			}
 		}
