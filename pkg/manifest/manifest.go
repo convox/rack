@@ -4,11 +4,20 @@ import (
 	"fmt"
 	"io"
 	"math/rand"
+	"regexp"
 	"sort"
 	"strings"
 	"time"
 
 	yaml "gopkg.in/yaml.v2"
+)
+
+const (
+	ValidNameDescription = "must contain only lowercase alphanumeric and dashes"
+)
+
+var (
+	nameValidator = regexp.MustCompile(`^[a-z]{1}[a-z0-9-]*$`)
 )
 
 var (
@@ -197,6 +206,12 @@ func (m *Manifest) ServiceEnvironment(service string) (map[string]string, error)
 func (m *Manifest) Validate() error {
 	if err := m.validateEnv(); err != nil {
 		return err
+	}
+
+	for _, s := range m.Services {
+		if !nameValidator.MatchString(s.Name) {
+			return fmt.Errorf("service name %s invalid, %s", s.Name, ValidNameDescription)
+		}
 	}
 
 	for _, r := range m.Resources {
