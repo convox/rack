@@ -2,12 +2,17 @@
   {
     "AWSTemplateFormatVersion" : "2010-09-09",
     "Conditions": {
-      "Fargate": { "Fn::Equals": [ { "Ref": "Fargate" }, "Yes" ] },
+      "FargateEither": { "Fn::Or": [ { "Condition": "FargateBase" }, { "Condition": "FargateSpot" } ] },
+      "FargateBase": { "Fn::Equals": [ { "Ref": "Fargate" }, "Yes" ] },
+      "FargateSpot": { "Fn::Equals": [ { "Ref": "Fargate" }, "Spot" ] },
       "RackUrl": { "Fn::Equals": [ { "Ref": "RackUrl" }, "Yes" ] }
     },
     "Outputs": {
       "Fargate": {
-        "Value": { "Fn::If": [ "Fargate", "Yes", "No" ] }
+        "Value": { "Fn::If": [ "FargateBase", "Yes", "No" ] }
+      },
+      "FargateSpot": {
+        "Value": { "Fn::If": [ "FargateSpot", "Yes", "No" ] }
       }
     },
     "Parameters" : {
@@ -20,7 +25,7 @@
       "Fargate": {
         "Type": "String",
         "Default": "No",
-        "AllowedValues": [ "Yes", "No" ]
+        "AllowedValues": [ "Yes", "Spot", "No" ]
       },
       "Launcher": {
         "Type": "String"
@@ -73,20 +78,20 @@
         "Properties": {
           "ScheduleExpression": "cron({{.Cron}})",
           "Targets": [ {
-            "Arn": { "Fn::If": [ "Fargate",
+            "Arn": { "Fn::If": [ "FargateEither",
               { "Ref": "Launcher" },
               { "Fn::Sub": [ "arn:${AWS::Partition}:ecs:${AWS::Region}:${AWS::AccountId}:cluster/${Cluster}", { "Cluster": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Cluster" } } } ] }
             ] },
-            "EcsParameters": { "Fn::If": [ "Fargate",
+            "EcsParameters": { "Fn::If": [ "FargateEither",
               { "Ref": "AWS::NoValue" },
               { "TaskCount": "1", "TaskDefinitionArn": { "Ref": "TaskDefinition" } }
             ] },
             "Id": "{{.Name}}",
-            "Input": { "Fn::If": [ "Fargate",
+            "Input": { "Fn::If": [ "FargateEither",
               { "Fn::Join": [ "", [ "{ \"cluster\": \"", { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Cluster" } }, "\", \"taskDefinition\": \"", { "Ref": "TaskDefinition" }, "\" }" ] ] },
               { "Ref": "AWS::NoValue" }
             ] },
-            "RoleArn": { "Fn::If": [ "Fargate",
+            "RoleArn": { "Fn::If": [ "FargatEither",
               { "Ref": "AWS::NoValue" },
               { "Ref": "Role" }
             ] }
@@ -150,12 +155,12 @@
               }
             {{ end }}
           ],
-          "Cpu": { "Fn::If": [ "Fargate", { "Ref": "Cpu" }, { "Ref": "AWS::NoValue" } ] },
+          "Cpu": { "Fn::If": [ "FargateEither", { "Ref": "Cpu" }, { "Ref": "AWS::NoValue" } ] },
           "ExecutionRoleArn": { "Ref": "ExecutionRole" },
           "Family": { "Fn::Sub": "${AWS::StackName}-timer-{{.Name}}" },
-          "Memory": { "Fn::If": [ "Fargate", { "Ref": "Memory" }, { "Ref": "AWS::NoValue" } ] },
-          "NetworkMode": { "Fn::If": [ "Fargate", "awsvpc", { "Ref": "AWS::NoValue" } ] },
-          "RequiresCompatibilities": [ { "Fn::If": [ "Fargate", "FARGATE", { "Ref": "AWS::NoValue" } ] } ],
+          "Memory": { "Fn::If": [ "FargateEither", { "Ref": "Memory" }, { "Ref": "AWS::NoValue" } ] },
+          "NetworkMode": { "Fn::If": [ "FargateEither", "awsvpc", { "Ref": "AWS::NoValue" } ] },
+          "RequiresCompatibilities": [ { "Fn::If": [ "FargateEither", "FARGATE", { "Ref": "AWS::NoValue" } ] } ],
           "TaskRoleArn": { "Ref": "ServiceRole" },
           "Volumes": [
             {{ range $i, $v := ($.Manifest.Service .Service).Volumes }}
