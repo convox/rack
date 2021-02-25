@@ -7,6 +7,8 @@
     "BlankLogBucket": { "Fn::Equals": [ { "Ref": "LogBucket" }, "" ] },
     "BlankLogRetention": { "Fn::Equals": [ { "Ref": "LogRetention" }, "" ] },
     "BlankResourcePassword": { "Fn::Equals": [ { "Ref": "ResourcePassword" }, "" ] },
+    "EC2Services": { "Fn::Not": [ { "Condition": "FargateServiceEither" } ] },
+    "EC2Timers": { "Fn::Not": [ { "Condition": "FargateTimersEither" } ] },
     "FargateServicesEither": { "Fn::Or": [ { "Condition": "FargateServicesBase" }, { "Condition": "FargateServicesSpot" } ] },
     "FargateServicesBase": { "Fn::Equals": [ { "Ref": "FargateServices" }, "Yes" ] },
     "FargateServicesSpot": { "Fn::Equals": [ { "Ref": "FargateServices" }, "Spot" ] },
@@ -368,7 +370,7 @@
             "    cluster: event.cluster,",
             "    taskDefinition: event.taskDefinition,",
             "    count: 1,",
-            { "Fn::If": [ "Fn::Not": [ { "FargateTimersEither" } ],
+            { "Fn::If": [ "EC2Timers",
               "    launchType: 'EC2',",
               ""
             ] },
