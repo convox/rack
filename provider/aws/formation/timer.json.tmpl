@@ -91,7 +91,7 @@
               { "Fn::Join": [ "", [ "{ \"cluster\": \"", { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Cluster" } }, "\", \"taskDefinition\": \"", { "Ref": "TaskDefinition" }, "\" }" ] ] },
               { "Ref": "AWS::NoValue" }
             ] },
-            "RoleArn": { "Fn::If": [ "FargatEither",
+            "RoleArn": { "Fn::If": [ "FargateEither",
               { "Ref": "AWS::NoValue" },
               { "Ref": "Role" }
             ] }
