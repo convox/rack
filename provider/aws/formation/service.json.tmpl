@@ -2,6 +2,7 @@
   {
     "AWSTemplateFormatVersion" : "2010-09-09",
     "Conditions": {
+      "EC2Launch": { "Fn::Not": [ { "Condition": "FargateEither" } ] },
       "FargateEither": { "Fn::Or": [ { "Condition": "FargateBase" }, { "Condition": "FargateSpot" } ] },
       "FargateBase": { "Fn::Equals": [ { "Ref": "Fargate" }, "Yes" ] },
       "FargateSpot": { "Fn::Equals": [ { "Ref": "Fargate" }, "Spot" ] },
@@ -406,6 +407,17 @@
           "DependsOn": "BalancerListenerRule443{{ if .Domain }}Domain0{{ end }}",
         {{ end }}
         "Properties": {
+          "CapacityProviderStrategy" : { "Fn::If": [ "FargateBase",
+            {
+              "CapacityProvider": "FARGATE"
+            },
+            { "Fn::If": [ "FargateSpot",
+              {
+                "CapacityProvider": "FARGATE_SPOT"
+              },
+              { "Ref": "AWS::NoValue" }
+            ] }
+          ] },
           "Cluster": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Cluster" } },
           "DeploymentConfiguration": {
             "MinimumHealthyPercent": "{{$.DeploymentMin}}",
@@ -434,7 +446,7 @@
               ]
             ] },
           {{ end }}
-          "LaunchType": { "Fn::If": [ "FargateBase", "FARGATE", { "Ref": "AWS::NoValue" } ] },
+          "LaunchType": { "Fn::If": [ "EC2Launch", "EC2", { "Ref": "AWS::NoValue" } ] },
           "NetworkConfiguration": { "Fn::If": [ "IsolateServices",
             {
               "AwsvpcConfiguration": {
