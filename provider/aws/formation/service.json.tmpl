@@ -407,14 +407,14 @@
           "DependsOn": "BalancerListenerRule443{{ if .Domain }}Domain0{{ end }}",
         {{ end }}
         "Properties": {
-          "CapacityProviderStrategy" : { "Fn::If": [ "FargateBase",
-            {
+          "CapacityProviderStrategy": { "Fn::If": [ "FargateBase",
+            [{
               "CapacityProvider": "FARGATE"
-            },
+            }],
             { "Fn::If": [ "FargateSpot",
-              {
+              [{
                 "CapacityProvider": "FARGATE_SPOT"
-              },
+              }],
               { "Ref": "AWS::NoValue" }
             ] }
           ] },
