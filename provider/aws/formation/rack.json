@@ -2431,7 +2431,13 @@
       }
     },
     "Cluster": {
-      "Type": "AWS::ECS::Cluster"
+      "Type": "AWS::ECS::Cluster",
+      "Properties": {
+        "CapacityProviders": [
+          "FARGATE",
+          "FARGATE_SPOT"
+        ]
+      }
     },
     "ServiceRole": {
       "Type": "AWS::IAM::Role",
