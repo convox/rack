@@ -2,11 +2,14 @@
   {
     "AWSTemplateFormatVersion" : "2010-09-09",
     "Conditions": {
-      "Fargate": { "Fn::Equals": [ { "Ref": "Fargate" }, "Yes" ] },
+      "EC2Launch": { "Fn::Not": [ { "Condition": "FargateEither" } ] },
+      "FargateEither": { "Fn::Or": [ { "Condition": "FargateBase" }, { "Condition": "FargateSpot" } ] },
+      "FargateBase": { "Fn::Equals": [ { "Ref": "Fargate" }, "Yes" ] },
+      "FargateSpot": { "Fn::Equals": [ { "Ref": "Fargate" }, "Spot" ] },
       "InternalDomains": { "Fn::Equals": [ { "Ref": "InternalDomains" }, "Yes" ] },
       "InternalDomainsAndRouteHttp": { "Fn::And": [ { "Condition": "InternalDomains" }, { "Condition": "RouteHttp" } ] },
       "Isolate": { "Fn::And": [ { "Condition": "Private" }, { "Fn::Equals": [ { "Ref": "Isolate" }, "Yes" ] } ] },
-      "IsolateServices": { "Fn::Or": [ { "Condition": "Fargate" }, { "Condition": "Isolate" } ] },
+      "IsolateServices": { "Fn::Or": [ { "Condition": "FargateEither" }, { "Condition": "Isolate" } ] },
       "Private": { "Fn::Equals": [ { "Ref": "Private" }, "Yes" ] },
       "RackUrl": { "Fn::Equals": [ { "Ref": "RackUrl" }, "Yes" ] },
       "RouteHttp": { "Fn::Equals": [ { "Ref": "RedirectHttps" }, "No" ] },
@@ -28,7 +31,10 @@
         },
       {{ end }}
       "Fargate": {
-        "Value": { "Fn::If": [ "Fargate", "Yes", "No" ] }
+        "Value": { "Fn::If": [ "FargateBase", "Yes", "No" ] }
+      },
+      "FargateSpot": {
+        "Value": { "Fn::If": [ "FargateSpot", "Yes", "No" ] }
       },
       "SecurityGroup": {
         "Condition": "IsolateServices",
@@ -51,7 +57,7 @@
       "Fargate": {
         "Type": "String",
         "Default": "No",
-        "AllowedValues": [ "Yes", "No" ]
+        "AllowedValues": [ "Yes", "Spot", "No" ]
       },
       "InternalDomains": {
         "Type": "String",
@@ -401,6 +407,19 @@
           "DependsOn": "BalancerListenerRule443{{ if .Domain }}Domain0{{ end }}",
         {{ end }}
         "Properties": {
+          "CapacityProviderStrategy": { "Fn::If": [ "FargateBase",
+            [{
+              "CapacityProvider": "FARGATE",
+              "Weight": 1
+            }],
+            { "Fn::If": [ "FargateSpot",
+              [{
+                "CapacityProvider": "FARGATE_SPOT",
+                "Weight": 1
+              }],
+              { "Ref": "AWS::NoValue" }
+            ] }
+          ] },
           "Cluster": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Cluster" } },
           "DeploymentConfiguration": {
             "DeploymentCircuitBreaker" : { "Enable": "true", "Rollback": "true" },
@@ -422,7 +441,7 @@
               "DesiredCount": { "Ref": "Count" },
             {{ end }}
             "SchedulingStrategy": "REPLICA",
-            "PlacementStrategies": { "Fn::If": [ "Fargate",
+            "PlacementStrategies": { "Fn::If": [ "FargateEither",
               { "Ref": "AWS::NoValue" },
               [
                 { "Type": "spread", "Field": "attribute:ecs.availability-zone" },
@@ -430,7 +449,7 @@
               ]
             ] },
           {{ end }}
-          "LaunchType": { "Fn::If": [ "Fargate", "FARGATE", { "Ref": "AWS::NoValue" } ] },
+          "LaunchType": { "Fn::If": [ "EC2Launch", "EC2", { "Ref": "AWS::NoValue" } ] },
           "NetworkConfiguration": { "Fn::If": [ "IsolateServices",
             {
               "AwsvpcConfiguration": {
@@ -532,12 +551,12 @@
               "Ulimits": [ { "Name": "nofile", "SoftLimit": "1024000", "HardLimit": "1024000" } ]
             }
           ],
-          "Cpu": { "Fn::If": [ "Fargate", { "Ref": "Cpu" }, { "Ref": "AWS::NoValue" } ] },
+          "Cpu": { "Fn::If": [ "FargateEither", { "Ref": "Cpu" }, { "Ref": "AWS::NoValue" } ] },
           "ExecutionRoleArn": { "Fn::GetAtt": [ "ExecutionRole", "Arn" ] },
           "Family": { "Fn::Sub": "${AWS::StackName}-service-{{.Name}}" },
-          "Memory": { "Fn::If": [ "Fargate", { "Ref": "Memory" }, { "Ref": "AWS::NoValue" } ] },
+          "Memory": { "Fn::If": [ "FargateEither", { "Ref": "Memory" }, { "Ref": "AWS::NoValue" } ] },
           "NetworkMode": { "Fn::If": [ "IsolateServices", "awsvpc", { "Ref": "AWS::NoValue" } ] },
-          "RequiresCompatibilities": [ { "Fn::If": [ "Fargate", "FARGATE", { "Ref": "AWS::NoValue" } ] } ],
+          "RequiresCompatibilities": [ { "Fn::If": [ "FargateEither", "FARGATE", { "Ref": "AWS::NoValue" } ] } ],
           "TaskRoleArn": { "Ref": "Role" },
           "Volumes": [
             {{ range $i, $v := .Volumes }}
