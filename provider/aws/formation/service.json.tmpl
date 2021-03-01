@@ -409,11 +409,13 @@
         "Properties": {
           "CapacityProviderStrategy": { "Fn::If": [ "FargateBase",
             [{
-              "CapacityProvider": "FARGATE"
+              "CapacityProvider": "FARGATE",
+              "Weight": 1
             }],
             { "Fn::If": [ "FargateSpot",
               [{
-                "CapacityProvider": "FARGATE_SPOT"
+                "CapacityProvider": "FARGATE_SPOT",
+                "Weight": 1
               }],
               { "Ref": "AWS::NoValue" }
             ] }
