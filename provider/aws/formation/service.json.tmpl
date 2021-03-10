@@ -2,6 +2,7 @@
   {
     "AWSTemplateFormatVersion" : "2010-09-09",
     "Conditions": {
+      "CircuitBreaker": { "Fn::Equals": [ { "Ref": "CircuitBreaker" }, "Yes" ] },
       "EC2Launch": { "Fn::Not": [ { "Condition": "FargateEither" } ] },
       "FargateEither": { "Fn::Or": [ { "Condition": "FargateBase" }, { "Condition": "FargateSpot" } ] },
       "FargateBase": { "Fn::Equals": [ { "Ref": "Fargate" }, "Yes" ] },
@@ -48,6 +49,11 @@
       "Certificate": {
         "Type": "String"
       },
+      "CircuitBreaker": {
+        "Type": "String",
+        "Default": "No",
+        "AllowedValues": [ "Yes", "No" ]
+      },      
       "Count": {
         "Type": "Number"
       },
@@ -422,7 +428,10 @@
           ] },
           "Cluster": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Cluster" } },
           "DeploymentConfiguration": {
-            "DeploymentCircuitBreaker" : { "Enable": "true", "Rollback": "true" },
+            "DeploymentCircuitBreaker" : { "Fn::If": ["CircuitBreaker",
+              { "Enable": "true", "Rollback": "true" },
+              { "Ref": "AWS::NoValue" }
+            ] },
             "MinimumHealthyPercent": "{{$.DeploymentMin}}",
             "MaximumPercent": "{{$.DeploymentMax}}"
           },

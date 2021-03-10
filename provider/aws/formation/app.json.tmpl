@@ -7,6 +7,7 @@
     "BlankLogBucket": { "Fn::Equals": [ { "Ref": "LogBucket" }, "" ] },
     "BlankLogRetention": { "Fn::Equals": [ { "Ref": "LogRetention" }, "" ] },
     "BlankResourcePassword": { "Fn::Equals": [ { "Ref": "ResourcePassword" }, "" ] },
+    "CircuitBreaker": { "Fn::Equals": [ { "Ref": "CircuitBreaker" }, "Yes" ] },
     "EC2Services": { "Fn::Not": [ { "Condition": "FargateServicesEither" } ] },
     "EC2Timers": { "Fn::Not": [ { "Condition": "FargateTimersEither" } ] },
     "FargateServicesEither": { "Fn::Or": [ { "Condition": "FargateServicesBase" }, { "Condition": "FargateServicesSpot" } ] },
@@ -51,6 +52,11 @@
   "Parameters" : {
     {{ template "service-params" .Manifest }}
 
+    "CircuitBreaker": {
+      "Type": "String",
+      "Default": "No",
+      "AllowedValues": [ "Yes", "No" ]
+    },
     "FargateServices": {
       "Type": "String",
       "Default": "No",
@@ -315,6 +321,7 @@
           {{ else }}
             "Certificate": { "Ref": "Balancer{{ upper .Name }}Certificate" },
           {{ end }}
+          "CircuitBreaker": { "Ref": "CircuitBreaker" },
           "Count": { "Fn::Select": [ 0, { "Ref": "{{ upper .Name }}Formation" } ] },
           "Cpu": { "Fn::Select": [ 1, { "Ref": "{{ upper .Name }}Formation" } ] },
           "Fargate": { "Fn::If": [ "Service{{ upper .Name }}Fargate", "Yes", { "Fn::If": [ "Service{{ upper .Name }}FargateSpot", "Spot", "No" ] } ] },
