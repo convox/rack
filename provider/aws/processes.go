@@ -20,6 +20,7 @@ import (
 	"github.com/convox/rack/api/cache"
 	"github.com/convox/rack/api/structs"
 	"github.com/convox/rack/manifest"
+	docker "github.com/fsouza/go-dockerclient"
 	shellquote "github.com/kballard/go-shellquote"
 )
 
