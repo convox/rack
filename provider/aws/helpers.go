@@ -419,6 +419,8 @@ func volumeFrom(app, s string) string {
 		return v		
 	case "/sys/fs/cgroup/":
 		return v
+	case "/sys/kernel/debug/":
+		return v
 	case "/var/log/audit/":
 		return v
 	case "/var/run/":

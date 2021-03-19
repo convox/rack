@@ -117,6 +117,8 @@ func systemVolume(v string) bool {
 		return true		
 	case "/sys/fs/cgroup/":
 		return true
+	case "/sys/kernel/debug/":
+		return true
 	case "/var/log/audit":
 		return true
 	case "/var/run/":
