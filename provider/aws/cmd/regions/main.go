@@ -14,7 +14,6 @@ import (
 )
 
 type Region struct {
-	Ami               string
 	AvailabilityZones []string
 	EFS               bool
 	ELBAccountId      string
@@ -32,10 +31,6 @@ func main() {
 func run() error {
 	regions, err := fetchRegions()
 	if err != nil {
-		return errors.WithStack(err)
-	}
-
-	if err := fetchAmis(regions); err != nil {
 		return errors.WithStack(err)
 	}
 
@@ -64,7 +59,6 @@ func run() error {
 	sort.Strings(names)
 
 	rns := make([]string, len(names))
-	amis := make([]string, len(names))
 	efss := make([]string, len(names))
 	tazs := make([]string, len(names))
 	elbs := make([]string, len(names))
@@ -74,7 +68,6 @@ func run() error {
 		region := regions[name]
 
 		rns[i] = fmt.Sprintf("%q:", name)
-		amis[i] = fmt.Sprintf(`"Ami": %q,`, region.Ami)
 		efss[i] = fmt.Sprintf(`"EFS": %q,`, yn(region.EFS))
 		tazs[i] = fmt.Sprintf(`"ThirdAvailabilityZone": %q,`, yn(len(region.AvailabilityZones) > 2))
 		elbs[i] = fmt.Sprintf(`"ELBAccountId": %q,`, region.ELBAccountId)
@@ -82,19 +75,14 @@ func run() error {
 	}
 
 	rnMax := max(rns, 0)
-	amiMax := max(amis, 0)
 	efsMax := max(efss, 0)
 	tazMax := max(tazs, 0)
 	elbMax := max(elbs, 0)
 	fargateMax := max(fargates, 0)
 
 	for i := range names {
-		if regions[names[i]].Ami == "" {
-			continue
-		}
-
-		f := fmt.Sprintf(`      %%-%ds { %%-%ds %%-%ds %%-%ds %%-%ds %%-%ds },`, rnMax, amiMax, efsMax, tazMax, elbMax, fargateMax)
-		fmt.Printf(f, rns[i], amis[i], efss[i], tazs[i], elbs[i], fargates[i])
+		f := fmt.Sprintf(`      %%-%ds { %%-%ds %%-%ds %%-%ds %%-%ds },`, rnMax, efsMax, tazMax, elbMax, fargateMax)
+		fmt.Printf(f, rns[i], efss[i], tazs[i], elbs[i], fargates[i])
 		fmt.Println()
 	}
 
@@ -104,7 +92,8 @@ func run() error {
 func fetchRegions() (Regions, error) {
 	rs := Regions{}
 
-	data, err := exec.Command("aws", "ec2", "describe-regions", "--query", "Regions[].RegionName").CombinedOutput()
+	data, err := exec.Command("aws", "ssm", "get-parameters-by-path", "--path", "/aws/service/global-infrastructure/regions", "--query", "Parameters[].Value"	).CombinedOutput()
+
 	if err != nil {
 		fmt.Printf("string(data): %+v\n", string(data))
 		return nil, errors.WithStack(err)
@@ -123,40 +112,13 @@ func fetchRegions() (Regions, error) {
 	return rs, nil
 }
 
-func fetchAmis(regions Regions) error {
-	var ami string
-
-	for name, region := range regions {
-		data, err := exec.Command("aws", "ssm", "get-parameter", "--name", "/aws/service/ecs/optimized-ami/amazon-linux-2/recommended/image_id", "--query", "Parameter.Value", "--region", name).CombinedOutput()
-		if err != nil {
-			// fmt.Printf("name: %+v\n", name)
-			// fmt.Printf("region: %+v\n", region)
-			// fmt.Printf("string(data): %+v\n", string(data))
-			delete(regions, name)
-			continue
-		}
-
-		if err := json.Unmarshal(data, &ami); err != nil {
-			return errors.WithStack(err)
-		}
-
-		region.Ami = ami
-
-		regions[name] = region
-	}
-
-	return nil
-}
-
 func fetchAvailabilityZones(regions Regions) error {
-	var azs struct {
-		AvailabilityZones []struct {
-			ZoneName string
-		}
-	}
+	var azs []string
 
 	for name, region := range regions {
-		data, err := exec.Command("bash", "-c", fmt.Sprintf("aws ec2 describe-availability-zones --region %s", name)).CombinedOutput()
+
+		data, err := exec.Command("bash", "-c", fmt.Sprintf("aws ssm get-parameters-by-path --path /aws/service/global-infrastructure/regions/%s/availability-zones --query 'Parameters[].Value'", name)).CombinedOutput()
+
 		if err != nil {
 			return errors.WithStack(fmt.Errorf(string(data)))
 		}
@@ -165,8 +127,8 @@ func fetchAvailabilityZones(regions Regions) error {
 			return errors.WithStack(err)
 		}
 
-		for _, az := range azs.AvailabilityZones {
-			region.AvailabilityZones = append(region.AvailabilityZones, az.ZoneName)
+		for _, az := range azs {
+			region.AvailabilityZones = append(region.AvailabilityZones, az)
 		}
 
 		regions[name] = region
@@ -176,29 +138,24 @@ func fetchAvailabilityZones(regions Regions) error {
 }
 
 func fetchEFS(regions Regions) error {
-	b := surf.NewBrowser()
+	data, err := exec.Command("aws", "ssm", "get-parameters-by-path", "--path", "/aws/service/global-infrastructure/services/efs/regions", "--query", "Parameters[].Value"	).CombinedOutput()
 
-	if err := b.Open("https://docs.aws.amazon.com/general/latest/gr/elasticfilesystem.html"); err != nil {
+	if err != nil {
+		fmt.Printf("string(data): %+v\n", string(data))
 		return errors.WithStack(err)
 	}
 
-	rows := b.Find("h2#elasticfilesystem-region+.table-container table tr")
+	var efsRegions []string
 
-	if rows.Length() < 1 {
-		return errors.WithStack(fmt.Errorf("no efs entries found"))
+	if err := json.Unmarshal(data, &efsRegions); err != nil {
+		return errors.WithStack(err)
 	}
 
-	rows.Each(func(i int, s *goquery.Selection) {
-		if i == 0 {
-			return
-		}
-
-		name := strings.TrimSpace(s.Find("td:nth-child(2)").Text())
-
-		region := regions[name]
+	for _, efsRegion := range efsRegions {
+		region := regions[efsRegion]
 		region.EFS = true
-		regions[name] = region
-	})
+		regions[efsRegion] = region
+	}
 
 	return nil
 }
@@ -233,58 +190,48 @@ func fetchELBAccountIds(regions Regions) error {
 }
 
 func fetchFargate(regions Regions) error {
-	b := surf.NewBrowser()
 
-	if err := b.Open("https://docs.aws.amazon.com/AmazonECS/latest/developerguide/AWS_Fargate.html"); err != nil {
+	data, err := exec.Command("aws", "ssm", "get-parameters-by-path", "--path", "/aws/service/global-infrastructure/services/fargate/regions", "--query", "Parameters[].Value"	).CombinedOutput()
+
+	if err != nil {
+		fmt.Printf("string(data): %+v\n", string(data))
 		return errors.WithStack(err)
 	}
 
-	rows := b.Find("table:nth-of-type(1) tr")
+	var fargateRegions []string
 
-	if rows.Length() < 1 {
-		return errors.WithStack(fmt.Errorf("no fargate regions found"))
+	if err := json.Unmarshal(data, &fargateRegions); err != nil {
+		return errors.WithStack(err)
 	}
 
-	rows.Each(func(i int, s *goquery.Selection) {
-		if i == 0 {
-			return
-		}
-
-		name := strings.TrimSpace(s.Find("td:nth-child(2)").Text())
-
-		if !strings.HasSuffix(name, "*") {
-			if region, ok := regions[name]; ok {
-				region.Fargate = true
-				regions[name] = region
-			}
-		}
-	})
+	for _, fargateRegion := range fargateRegions {
+		region := regions[fargateRegion]
+		region.Fargate = true
+		regions[fargateRegion] = region
+	}
 
 	return nil
 }
 
 func printRegions(regions Regions) {
 	rns := []string{}
-	amis := []string{}
 	elbs := []string{}
 
 	for name := range regions {
 		rns = append(rns, name)
-		amis = append(amis, regions[name].Ami)
 		elbs = append(elbs, regions[name].ELBAccountId)
 	}
 
 	sort.Strings(rns)
 
 	rnmax := max(rns, 6)
-	amimax := max(amis, 3)
 	elmax := max(elbs, 12)
 
-	fmt.Printf(fmt.Sprintf("\n%%-%ds  %%-%ds  %%s  %%-5s  %%-%ds  %%s\n", rnmax, amimax, elmax), "region", "ami", "azs", "efs", "elbaccountid", "fargate")
+	fmt.Printf(fmt.Sprintf("\n%%-%ds  %%s  %%-5s  %%-%ds  %%s\n", rnmax, elmax), "region", "azs", "efs", "elbaccountid", "fargate")
 
 	for _, name := range rns {
 		r := regions[name]
-		fmt.Printf(fmt.Sprintf("%%-%ds  %%-%ds  %%3d  %%-5t  %%-%ds  %%t\n", rnmax, amimax, elmax), name, r.Ami, len(r.AvailabilityZones), r.EFS, r.ELBAccountId, r.Fargate)
+		fmt.Printf(fmt.Sprintf("%%-%ds  %%3d  %%-5t  %%-%ds  %%t\n", rnmax, elmax), name, len(r.AvailabilityZones), r.EFS, r.ELBAccountId, r.Fargate)
 	}
 }
 
