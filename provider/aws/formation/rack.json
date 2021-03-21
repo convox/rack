@@ -35,6 +35,10 @@
       "Fn::And": [ { "Condition": "ExistingVpc" }, { "Condition": "InternetGateway" } ]
     },
     "HttpProxy": { "Fn::Not": [ { "Fn::Equals": [ { "Ref": "HttpProxy" }, "" ] } ] },
+    "InstanceARM": { "Fn::Or": [ { "Fn::Equals": [ { "Fn::Select": [ 0, { "Fn::Split": [ "a1", { "Ref": "InstanceType" } ] } ] }, "" ] } , { "Fn::Equals": [ { "Fn::Select": [ 0, { "Fn::Split": [ "r6g", { "Ref": "InstanceType" } ] } ] }, "" ] }, { "Fn::Equals": [ { "Fn::Select": [ 0, { "Fn::Split": [ "m6g", { "Ref": "InstanceType" } ] } ] }, "" ] }, { "Fn::Equals": [ { "Fn::Select": [ 0, { "Fn::Split": [ "c6g", { "Ref": "InstanceType" } ] } ] }, "" ] }, { "Fn::Equals": [ { "Fn::Select": [ 0, { "Fn::Split": [ "t4g", { "Ref": "InstanceType" } ] } ] }, "" ] } ] },
+    "InstanceGPU": { "Fn::Or": [ { "Fn::Equals": [ { "Fn::Select": [ 0, { "Fn::Split": [ "g", { "Ref": "InstanceType" } ] } ] }, "" ] } , { "Fn::Equals": [ { "Fn::Select": [ 0, { "Fn::Split": [ "p", { "Ref": "InstanceType" } ] } ] }, "" ] } ] },
+    "InstanceInferentia": { "Fn::Equals": [ { "Fn::Select": [ 0, { "Fn::Split": [ "inf", { "Ref": "InstanceType" } ] } ] }, "" ] },
+    "Instancex86": { "Fn::Not": [ { "Fn::Or": [ { "Condition": "InstanceARM" }, { "Condition": "InstanceGPU" }, { "Condition": "InstanceInferentia" } ] } ] },
     "Internal": { "Fn::Equals": [ { "Ref": "Internal" }, "Yes" ] },
     "InternetGateway": { "Fn::Not": [ { "Fn::Equals": [ { "Ref": "InternetGateway" }, "" ] } ] },
     "NotExistingVpcAndBlankInternetGateway": { "Fn::Not": [ { "Condition": "ExistingVpcAndBlankInternetGateway" } ] },
@@ -68,29 +72,31 @@
   },
   "Mappings": {
     "RegionConfig": {
-      "af-south-1":     { "Ami": "ami-026b43b3950ea0fda", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "098369216593", "Fargate": "Yes" },
-      "ap-east-1":      { "Ami": "ami-0c60d33adb19fe8a6", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "754344448648", "Fargate": "Yes" },
-      "ap-northeast-1": { "Ami": "ami-0ee0c841e0940c58f", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "582318560864", "Fargate": "No"  },
-      "ap-northeast-2": { "Ami": "ami-098340641fcc77afb", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "600734575887", "Fargate": "Yes" },
-      "ap-northeast-3": { "Ami": "ami-05197fea5cad885c8", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "383597477331", "Fargate": "Yes" },
-      "ap-south-1":     { "Ami": "ami-018ae918c152249f0", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "718504428378", "Fargate": "Yes" },
-      "ap-southeast-1": { "Ami": "ami-002281dd675dedcbf", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "114774131450", "Fargate": "Yes" },
-      "ap-southeast-2": { "Ami": "ami-016f6cf165ef55d02", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "783225319266", "Fargate": "Yes" },
-      "ca-central-1":   { "Ami": "ami-0cde1f5ee149df291", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "985666609251", "Fargate": "No"  },
-      "eu-central-1":   { "Ami": "ami-027d55743533d8658", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "054676820928", "Fargate": "Yes" },
-      "eu-north-1":     { "Ami": "ami-00eba0769e0a0b0ba", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "897822967062", "Fargate": "Yes" },
-      "eu-south-1":     { "Ami": "ami-0391c5de1f6541eee", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "635631232127", "Fargate": "Yes" },
-      "eu-west-1":      { "Ami": "ami-0cdce788baec293cb", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "156460612806", "Fargate": "Yes" },
-      "eu-west-2":      { "Ami": "ami-0a7f94d6f878fdd02", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "652711504416", "Fargate": "Yes" },
-      "eu-west-3":      { "Ami": "ami-08b42a2167e4c521f", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "009996457667", "Fargate": "Yes" },
-      "me-south-1":     { "Ami": "ami-07a7873ed11b1e7b3", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "076674570225", "Fargate": "Yes" },
-      "sa-east-1":      { "Ami": "ami-02b0be10b5499d608", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "507241528517", "Fargate": "Yes" },
-      "us-east-1":      { "Ami": "ami-0ec7896dee795dfa9", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "127311923021", "Fargate": "Yes" },
-      "us-east-2":      { "Ami": "ami-02ef98ccecbf47e86", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "033677994240", "Fargate": "Yes" },
-      "us-west-1":      { "Ami": "ami-0c95b81c98a196de2", "EFS": "Yes", "ThirdAvailabilityZone": "No",  "ELBAccountId": "027434742980", "Fargate": "No"  },
-      "us-west-2":      { "Ami": "ami-006d48b829793b507", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "797873946194", "Fargate": "Yes" },
-      "us-gov-east-1":  { "Ami": "ami-04f633b669ee7b61c", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "190560391635", "Fargate": "Yes" },
-      "us-gov-west-1":  { "Ami": "ami-90704ef1",          "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "048591011584", "Fargate": "Yes" }
+      "af-south-1":     { "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "098369216593", "Fargate": "Yes" },
+      "ap-east-1":      { "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "754344448648", "Fargate": "Yes" },
+      "ap-northeast-1": { "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "582318560864", "Fargate": "Yes" },
+      "ap-northeast-2": { "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "600734575887", "Fargate": "Yes" },
+      "ap-northeast-3": { "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "383597477331", "Fargate": "Yes" },
+      "ap-south-1":     { "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "718504428378", "Fargate": "Yes" },
+      "ap-southeast-1": { "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "114774131450", "Fargate": "Yes" },
+      "ap-southeast-2": { "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "783225319266", "Fargate": "Yes" },
+      "ca-central-1":   { "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "985666609251", "Fargate": "Yes" },
+      "cn-north-1":     { "EFS": "Yes", "ThirdAvailabilityZone": "No",  "ELBAccountId": "638102146993", "Fargate": "Yes" },
+      "cn-northwest-1": { "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "037604701340", "Fargate": "Yes" },
+      "eu-central-1":   { "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "054676820928", "Fargate": "Yes" },
+      "eu-north-1":     { "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "897822967062", "Fargate": "Yes" },
+      "eu-south-1":     { "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "635631232127", "Fargate": "Yes" },
+      "eu-west-1":      { "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "156460612806", "Fargate": "Yes" },
+      "eu-west-2":      { "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "652711504416", "Fargate": "Yes" },
+      "eu-west-3":      { "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "009996457667", "Fargate": "Yes" },
+      "me-south-1":     { "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "076674570225", "Fargate": "Yes" },
+      "sa-east-1":      { "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "507241528517", "Fargate": "Yes" },
+      "us-east-1":      { "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "127311923021", "Fargate": "Yes" },
+      "us-east-2":      { "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "033677994240", "Fargate": "Yes" },
+      "us-gov-east-1":  { "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "190560391635", "Fargate": "Yes" },
+      "us-gov-west-1":  { "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "048591011584", "Fargate": "Yes" },
+      "us-west-1":      { "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "027434742980", "Fargate": "Yes" },
+      "us-west-2":      { "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "797873946194", "Fargate": "Yes" }
     }
   },
   "Outputs": {
@@ -432,6 +438,26 @@
       "Description": "Defines ",
       "Default": "ELB",
       "AllowedValues": [ "ALB", "ELB" ]
+    },
+    "AutomaticX86ECSOptimizedAMI": {
+      "Description": "Latest x86 AMI ID from the SSM",
+      "Type": "AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>",
+      "Default": "/aws/service/ecs/optimized-ami/amazon-linux-2/recommended/image_id"
+    },
+    "AutomaticARM64ECSOptimizedAMI": {
+      "Description": "Latest ARM AMI ID from the SSM",
+      "Type": "AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>",
+      "Default": "/aws/service/ecs/optimized-ami/amazon-linux-2/arm64/recommended/image_id"
+    },
+    "AutomaticGPUECSOptimizedAMI": {
+      "Description": "Latest GPU AMI ID from the SSM",
+      "Type": "AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>",
+      "Default": "/aws/service/ecs/optimized-ami/amazon-linux-2/gpu/recommended/image_id"
+    },
+    "AutomaticInferentiaECSOptimizedAMI": {
+      "Description": "Latest Inferentia AMI ID from the SSM",
+      "Type": "AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>",
+      "Default": "/aws/service/ecs/optimized-ami/amazon-linux-2/inf/recommended/image_id"
     },
     "Autoscale": {
       "Type": "String",
@@ -1260,7 +1286,7 @@
           ] }
         ],
         "IamInstanceProfile": { "Ref": "InstancesProfile" },
-        "ImageId": { "Fn::If": [ "BlankAmi", { "Fn::FindInMap": [ "RegionConfig", { "Ref": "AWS::Region" }, "Ami" ] }, { "Ref": "Ami" } ] },
+        "ImageId": { "Fn::If": [ "BlankAmi", { "Fn::If": [  "Instancex86"  , { "Ref": "AutomaticX86ECSOptimizedAMI" }, { "Fn::If": [ "InstanceARM", { "Ref": "AutomaticARM64ECSOptimizedAMI" }, { "Fn::If" : [ "InstanceGPU", { "Ref": "AutomaticGPUECSOptimizedAMI" }, { "Ref": "AutomaticInferentiaECSOptimizedAMI" } ] } ] } ] }, { "Ref": "Ami" } ] },
         "InstanceMonitoring": true,
         "InstanceType": { "Ref": "BuildInstance" },
         "KeyName": { "Fn::If": [ "BlankKey", { "Ref": "AWS::NoValue" }, { "Ref": "Key" } ] },
@@ -1427,7 +1453,7 @@
           ] }
         ],
         "IamInstanceProfile": { "Ref": "InstancesProfile" },
-        "ImageId": { "Fn::If": [ "BlankAmi", { "Fn::FindInMap": [ "RegionConfig", { "Ref": "AWS::Region" }, "Ami" ] }, { "Ref": "Ami" } ] },
+        "ImageId": { "Fn::If": [ "BlankAmi", { "Fn::If": [  "Instancex86"  , { "Ref": "AutomaticX86ECSOptimizedAMI" }, { "Fn::If": [ "InstanceARM", { "Ref": "AutomaticARM64ECSOptimizedAMI" }, { "Fn::If" : [ "InstanceGPU", { "Ref": "AutomaticGPUECSOptimizedAMI" }, { "Ref": "AutomaticInferentiaECSOptimizedAMI" } ] } ] } ] }, { "Ref": "Ami" } ] },
         "InstanceMonitoring": true,
         "InstanceType": { "Ref": "InstanceType" },
         "KeyName": { "Fn::If": [ "BlankKey", { "Ref": "AWS::NoValue" }, { "Ref": "Key" } ] },
@@ -1820,7 +1846,7 @@
           ] }
         ],
         "IamInstanceProfile": { "Ref": "InstancesProfile" },
-        "ImageId": { "Fn::If": [ "BlankAmi", { "Fn::FindInMap": [ "RegionConfig", { "Ref": "AWS::Region" }, "Ami" ] }, { "Ref": "Ami" } ] },
+        "ImageId": { "Fn::If": [ "BlankAmi", { "Fn::If": [  "Instancex86"  , { "Ref": "AutomaticX86ECSOptimizedAMI" }, { "Fn::If": [ "InstanceARM", { "Ref": "AutomaticARM64ECSOptimizedAMI" }, { "Fn::If" : [ "InstanceGPU", { "Ref": "AutomaticGPUECSOptimizedAMI" }, { "Ref": "AutomaticInferentiaECSOptimizedAMI" } ] } ] } ] }, { "Ref": "Ami" } ] },
         "InstanceMonitoring": true,
         "InstanceType": { "Ref": "InstanceType" },
         "KeyName": { "Fn::If": [ "BlankKey", { "Ref": "AWS::NoValue" }, { "Ref": "Key" } ] },
