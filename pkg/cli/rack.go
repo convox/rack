@@ -387,6 +387,15 @@ func RackUpdate(rack sdk.Interface, c *stdcli.Context) error {
 		if s.Version == "dev" {
 			target = "dev"
 		} else {
+			latest, err := cv.Latest()
+			if err != nil {
+				return err
+			}
+			if s.Version == latest {
+				currentAMI := s.Outputs["CurrentAMI"]
+
+			}
+
 			v, err := cv.Next(s.Version)
 			if err != nil {
 				return err
