@@ -582,6 +582,13 @@
       "Description": "SSH key name for access to cluster instances",
       "Type": "String"
     },
+    "LoadBalancerIdleTimeout": {
+      "Default": "3600",
+      "Description": "The idle timeout value, in seconds. The valid range is 1-4000 seconds. The default is 3600 seconds.",
+      "Type": "Number",
+      "MaxValue": "4000",
+      "MinValue": "1"
+    },
     "LogBucket": {
       "Default": "",
       "Description": "Bucket to receive S3 logs",
@@ -2163,7 +2170,7 @@
           { "Key": "access_logs.s3.enabled", "Value": "true" },
           { "Key": "access_logs.s3.bucket", "Value": { "Fn::If": [ "BlankLogBucket", { "Ref": "Logs" }, { "Ref": "LogBucket" } ] } },
           { "Key": "access_logs.s3.prefix", "Value": { "Fn::Sub": "convox/logs/${AWS::StackName}/alb" } },
-          { "Key": "idle_timeout.timeout_seconds", "Value": "3600" },
+          { "Key": "idle_timeout.timeout_seconds", "Value": { "Ref": "LoadBalancerIdleTimeout" } },
           { "Key": "routing.http.desync_mitigation_mode", "Value": { "Ref": "RouterMitigationMode" } },
           { "Key": "routing.http.drop_invalid_header_fields.enabled", "Value": "true" }
         ],
