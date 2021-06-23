@@ -81,14 +81,6 @@ workflows:
           repo: https://github.com/convox-examples/httpd
           app: httpd
           check: https://httpd-staging.convox.com
-      - deploy:
-          <<: *filter-releases-master
-          <<: *deploy
-          context: staging
-          name: ci/staging/app/site-staging
-          repo: https://github.com/convox/site
-          app: site-staging
-          check: https://site-staging.convox.com
 
 jobs:
   ci:
