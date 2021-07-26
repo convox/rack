@@ -37,6 +37,7 @@ type ProcessListOptions struct {
 }
 
 type ProcessRunOptions struct {
+	Bare        *bool             `header:"Bare" default:"false"`
 	Command     *string           `header:"Command"`
 	Environment map[string]string `header:"Environment"`
 	Height      *int              `header:"Height"`

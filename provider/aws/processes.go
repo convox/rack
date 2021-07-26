@@ -403,15 +403,33 @@ func (p *Provider) ProcessRun(app, service string, opts structs.ProcessRunOption
 	}
 
 	if opts.Command != nil {
+		cmd := []*string{
+			aws.String("sh"),
+			aws.String("-c"),
+			aws.String(*opts.Command),
+		}
+		bare := cb(opts.Bare, false)
+		var env []*ecs.KeyValuePair
+		if bare {
+			args, err := shellquote.Split(*opts.Command)
+			if err != nil {
+				return nil, err
+			}
+			cmd = make([]*string, len(args))
+			for i, a := range args {
+				cmd[i] = aws.String(a)
+			}
+			env = []*ecs.KeyValuePair{
+				{Name: aws.String("COMMAND"), Value: aws.String(*opts.Command)},
+			}
+		}
+
 		req.Overrides = &ecs.TaskOverride{
 			ContainerOverrides: []*ecs.ContainerOverride{
 				{
-					Name: aws.String(service),
-					Command: []*string{
-						aws.String("sh"),
-						aws.String("-c"),
-						aws.String(*opts.Command),
-					},
+					Name:        aws.String(service),
+					Command:     cmd,
+					Environment: env,
 				},
 			},
 		}
