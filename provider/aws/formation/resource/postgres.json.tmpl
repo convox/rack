@@ -6,6 +6,11 @@
     "Version9": { "Fn::Equals": [ { "Fn::Select": [ 0, { "Fn::Split": [ ".", { "Ref": "Version" } ] } ] }, "9" ] }
   },
   "Parameters": {
+    "AutoMinorVersionUpgrade": {
+      "Type" : "String",
+      "Default": "true",
+      "AllowedValues" : [ "true", "false" ]
+    },    
     "Class": {
       "Type": "String",
       "Default": "db.t2.micro"
@@ -72,6 +77,7 @@
       "Properties": {
         "AllocatedStorage": { "Ref": "Storage" },
         "AllowMajorVersionUpgrade": "true",
+        "AutoMinorVersionUpgrade": { "Ref": "AutoMinorVersionUpgrade" },
         "DBInstanceClass": { "Ref": "Class" },
         "DBInstanceIdentifier": { "Ref": "AWS::StackName" },
         "DBName": "app",

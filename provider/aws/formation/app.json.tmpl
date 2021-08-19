@@ -52,6 +52,11 @@
   "Parameters" : {
     {{ template "service-params" .Manifest }}
 
+    "AutoMinorVersionUpgrade": {
+      "Type" : "String",
+      "Default": "true",
+      "AllowedValues" : [ "true", "false" ]
+    },
     "CircuitBreaker": {
       "Type": "String",
       "Default": "No",
@@ -224,6 +229,7 @@
           {{ range $k, $v := (index $ (printf "ResourceParams%s" (upper .Name) ) ) }}
             "{{$k}}": "{{$v}}",
           {{ end }}
+          "AutoMinorVersionUpgrade": { "Ref": "AutoMinorVersionUpgrade" },
           "Password": { "Fn::If": [ "BlankResourcePassword",
             { "Fn::Select": [ 2, { "Fn::Split": [ "/", { "Ref": "AWS::StackId" } ] } ] },
             { "Ref": "ResourcePassword" }
