@@ -1,6 +1,11 @@
 {
   "AWSTemplateFormatVersion" : "2010-09-09",
   "Parameters": {
+    "AutoMinorVersionUpgrade": {
+      "Type" : "String",
+      "Default": "true",
+      "AllowedValues" : [ "true", "false" ]
+    },     
     "Class": {
       "Type": "String",
       "Default": "cache.t2.micro"
@@ -50,7 +55,7 @@
     "CacheCluster": {
       "Type": "AWS::ElastiCache::CacheCluster",
       "Properties": {
-        "AutoMinorVersionUpgrade": true,
+        "AutoMinorVersionUpgrade": { "Ref": "AutoMinorVersionUpgrade" },
         "CacheNodeType": { "Ref": "Class" },
         "CacheSubnetGroupName": { "Ref": "SubnetGroup" },
         "Engine": "memcached",

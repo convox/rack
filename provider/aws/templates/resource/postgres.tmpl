@@ -13,6 +13,11 @@
         "Default": "10",
         "Description": "Allocated storage size (GB)"
       },
+      "AutoMinorVersionUpgrade": {
+        "Type" : "String",
+        "Default": "true",
+        "AllowedValues" : [ "true", "false" ]
+      },
       "Database": {
         "Type": "String",
         "Default": "app",
@@ -124,6 +129,7 @@
         "Type": "AWS::RDS::DBInstance",
         "Properties": {
           "AllocatedStorage": { "Ref": "AllocatedStorage" },
+          "AutoMinorVersionUpgrade": { "Ref": "AutoMinorVersionUpgrade" },
           "DBInstanceClass": { "Ref": "InstanceType" },
           "DBInstanceIdentifier": { "Ref": "AWS::StackName" },
           "DBName": { "Fn::If": [ "BlankDatabaseSnapshotIdentifier", { "Ref": "Database" }, { "Ref": "AWS::NoValue" } ] },
