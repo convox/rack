@@ -4,6 +4,11 @@
     "Encrypted": { "Fn::Equals": [{ "Ref": "Encrypted" }, "true"] }
   },
   "Parameters": {
+    "AutoMinorVersionUpgrade": {
+      "Type" : "String",
+      "Default": "true",
+      "AllowedValues" : [ "true", "false" ]
+    },     
     "Class": {
       "Type": "String",
       "Default": "cache.t2.micro"
@@ -86,7 +91,7 @@
           ]
         },
         "AutomaticFailoverEnabled": { "Ref": "Durable" },
-        "AutoMinorVersionUpgrade": "true",
+        "AutoMinorVersionUpgrade": { "Ref": "AutoMinorVersionUpgrade" },
         "CacheNodeType": { "Ref": "Class" },
         "CacheSubnetGroupName": { "Ref": "SubnetGroup" },
         "Engine": "redis",

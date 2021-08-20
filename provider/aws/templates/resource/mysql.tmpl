@@ -12,6 +12,11 @@
         "Default" : "10",
         "Description" : "Allocated storage size (GB)"
       },
+      "AutoMinorVersionUpgrade": {
+        "Type" : "String",
+        "Default": "true",
+        "AllowedValues" : [ "true", "false" ]
+      },
       "Database": {
         "Type" : "String",
         "Default" : "app",
@@ -110,9 +115,10 @@
           "KmsKeyId": { "Fn::If": [ "Encrypted", { "Ref": "EncryptionKey" }, { "Ref": "AWS::NoValue" } ] },
           "StorageEncrypted": { "Ref": "Encrypted" },
           "AllocatedStorage": { "Ref": "AllocatedStorage" },
+          "AutoMinorVersionUpgrade": { "Ref": "AutoMinorVersionUpgrade" },
           "DBInstanceClass": { "Ref": "InstanceType" },
           "DBInstanceIdentifier": { "Ref": "AWS::StackName" },
-          "DBName": { "Ref": "Database" },
+          "DBName": { "Fn::If": [ "BlankDatabaseSnapshotIdentifier", { "Ref": "Database" }, { "Ref": "AWS::NoValue" } ] },
           "DBSnapshotIdentifier": { "Fn::If": [ "BlankDatabaseSnapshotIdentifier", { "Ref": "AWS::NoValue" }, { "Ref": "DatabaseSnapshotIdentifier" } ] },
           "DBSubnetGroupName": { "Ref": "SubnetGroup" },
           "Engine": "mysql",
