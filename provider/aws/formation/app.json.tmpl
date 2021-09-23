@@ -17,6 +17,7 @@
     "FargateTimersBase": { "Fn::Equals": [ { "Ref": "FargateTimers" }, "Yes" ] },
     "FargateTimersSpot": { "Fn::Equals": [ { "Ref": "FargateTimers" }, "Spot" ] },
     "InternalDomains": { "Fn::Equals": [ { "Ref": "InternalDomains" }, "Yes" ] },
+    "InternalRack": { "Fn::Equals": [ { "Ref": "InternalRack" }, "Yes" ] },
     "Isolate": { "Fn::And": [ { "Condition": "Private" }, { "Fn::Equals": [ { "Ref": "Isolate" }, "Yes" ] } ] },
     "IsolateServices": { "Fn::Or": [ { "Condition": "FargateServicesEither" }, { "Condition": "Isolate" } ] },
     "Private": { "Fn::Equals": [ { "Ref": "Private" }, "Yes" ] },
@@ -79,6 +80,11 @@
     "InternalDomains": {
       "Type": "String",
       "Default": "Yes",
+      "AllowedValues": [ "Yes", "No" ]
+    },
+    "InternalRack": {
+      "Type": "String",
+      "Default": "No",
       "AllowedValues": [ "Yes", "No" ]
     },
     "Isolate": {
@@ -192,7 +198,7 @@
           "Name": { "Fn::Sub": "{{.Name}}.{{$.App}}.${Rack}.convox." },
           "Type": "CNAME",
           "TTL": "3600",
-          "ResourceRecords": [ { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Domain{{ if .Internal }}Internal{{ end }}" } } ]
+          "ResourceRecords": [ { "Fn::If": [ "InternalRack", { "Fn::ImportValue": { "Fn::Sub": "${Rack}:DomainInternal" } }, { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Domain" } } ] } ]
         }
       },
       {{ if not (certificate $.Certificates .Domains) }}
