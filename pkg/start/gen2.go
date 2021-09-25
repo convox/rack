@@ -182,13 +182,15 @@ func (s *Start) Start2(ctx context.Context, w io.Writer, opts Options2) error {
 		return errors.WithStack(err)
 	}
 
-	for _, s := range m.Services {
-		if !services[s.Name] {
-			continue
-		}
+	if (opts.Sync) {
+		for _, s := range m.Services {
+			if !services[s.Name] {
+				continue
+			}
 
-		if s.Build.Path != "" {
-			go opts.watchChanges(ctx, pw, m, s.Name, wd, errch)
+			if s.Build.Path != "" {
+				go opts.watchChanges(ctx, pw, m, s.Name, wd, errch)
+			}
 		}
 	}
 
