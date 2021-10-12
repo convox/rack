@@ -545,23 +545,18 @@ func (p *Provider) containerInstance(id string) (*ecs.ContainerInstance, error) 
 		return ci, nil
 	}
 
+	cluster := p.Cluster
+
+	if (p.Cluster != p.BuildCluster) && (strings.Contains(id, p.BuildCluster)) {
+		cluster = p.BuildCluster
+	}
+
 	res, err := p.describeContainerInstances(&ecs.DescribeContainerInstancesInput{
-		Cluster:            aws.String(p.Cluster),
+		Cluster:            aws.String(cluster),
 		ContainerInstances: []*string{aws.String(id)},
 	})
 	if err != nil {
 		return nil, err
-	}
-
-	// if there were failures, try the build cluster
-	if len(res.Failures) > 0 {
-		res, err = p.describeContainerInstances(&ecs.DescribeContainerInstancesInput{
-			Cluster:            aws.String(p.BuildCluster),
-			ContainerInstances: []*string{aws.String(id)},
-		})
-		if err != nil {
-			return nil, err
-		}
 	}
 
 	if len(res.ContainerInstances) != 1 {
