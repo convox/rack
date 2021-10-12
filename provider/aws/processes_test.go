@@ -1407,14 +1407,14 @@ var cycleProcessStopTask = awsutil.Cycle{
 		Operation:  "AmazonEC2ContainerServiceV20141113.StopTask",
 		Body: `{
 			"cluster": "cluster-test",
-			"task": "arn:aws:ecs:us-east-1:778743527532:task/50b8de99-f94f-4ecd-a98f-5850760f0845"
+			"task": "arn:aws:ecs:us-east-1:778743527532:task/cluster-test/50b8de99-f94f-4ecd-a98f-5850760f0845"
 		}`,
 	},
 	Response: awsutil.Response{
 		StatusCode: 200,
 		Body: `{
 			"task": {
-				"taskArn": "arn:aws:ecs:us-east-1:778743527532:task/014b7e61-cc23-47e8-9dc6-0f51f03ff369"
+				"taskArn": "arn:aws:ecs:us-east-1:778743527532:task/cluster-test/014b7e61-cc23-47e8-9dc6-0f51f03ff369"
 			}
 		}`,
 	},
