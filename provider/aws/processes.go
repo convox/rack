@@ -330,28 +330,30 @@ func (p *Provider) taskProcesses(tasks []string) (structs.Processes, error) {
 				}
 			}
 
-			tres, err := p.describeTasks(&ecs.DescribeTasksInput{
-				Cluster: aws.String(p.BuildCluster),
-				Tasks:   buildTasks,
-			})
+			if len(buildTasks) > 0 {
+				tres, err := p.describeTasks(&ecs.DescribeTasksInput{
+					Cluster: aws.String(p.BuildCluster),
+					Tasks:   buildTasks,
+				})
 
-			if err != nil {
-				log.Error(err)
-				return nil, err
-			}
-
-			for _, task := range tres.Tasks {
-				// workaround for ECS:ListTasks bug that is returning all tasks you specify even if they
-				// are not on the cluster that you specify
-				exists := false
-				for _, t := range ecsTasks {
-					if t.TaskArn != nil && task.TaskArn != nil && *t.TaskArn == *task.TaskArn {
-						exists = true
-						break
-					}
+				if err != nil {
+					log.Error(err)
+					return nil, err
 				}
-				if !exists {
-					ecsTasks = append(ecsTasks, task)
+
+				for _, task := range tres.Tasks {
+					// workaround for ECS:ListTasks bug that is returning all tasks you specify even if they
+					// are not on the cluster that you specify
+					exists := false
+					for _, t := range ecsTasks {
+						if t.TaskArn != nil && task.TaskArn != nil && *t.TaskArn == *task.TaskArn {
+							exists = true
+							break
+						}
+					}
+					if !exists {
+						ecsTasks = append(ecsTasks, task)
+					}
 				}
 			}
 		}
