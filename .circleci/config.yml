@@ -137,7 +137,9 @@ jobs:
       - checkout
       - ci-dependencies
       - run: go install ./cmd/convox
-      - run: make test
+      - run:
+          command: make test
+          no_output_timeout: 20m
       - run: curl -s https://codecov.io/bash | bash
   update:
     docker:
