@@ -162,7 +162,7 @@ func TestProcessListWithBuildCluster(t *testing.T) {
 		cycleProcessDescribeTaskDefinition2,
 		cycleProcessDescribeContainerInstances,
 		cycleProcessDescribeTaskDefinition2,
-		cycleProcessDescribeContainerInstances,
+		cycleProcessDescribeContainerInstancesBuild,
 		cycleProcessDescribeRackInstances,
 	)
 	defer provider.Close()
@@ -283,6 +283,30 @@ var cycleProcessDescribeContainerInstances = awsutil.Cycle{
 			"cluster": "cluster-test",
 			"containerInstances": [
 				"arn:aws:ecs:us-east-1:778743527532:container-instance/cluster-test/e126c67d-fa95-4b09-8b4a-3723932cd2aa"
+			]
+		}`,
+	},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body: `{
+			"failures": [],
+			"containerInstances": [
+				{
+					"ec2InstanceId": "i-5bc45dc2"
+				}
+			]
+		}`,
+	},
+}
+
+var cycleProcessDescribeContainerInstancesBuild = awsutil.Cycle{
+	Request: awsutil.Request{
+		RequestURI: "/",
+		Operation:  "AmazonEC2ContainerServiceV20141113.DescribeContainerInstances",
+		Body: `{
+			"cluster": "cluster-build",
+			"containerInstances": [
+				"arn:aws:ecs:us-east-1:778743527532:container-instance/cluster-build/e126c67d-fa95-4b09-8b4a-3723932cd2aa"
 			]
 		}`,
 	},
@@ -1537,7 +1561,7 @@ var cycleProcessReleaseUpdateItem = awsutil.Cycle{
 var cycleProcessDockerListContainers1 = awsutil.Cycle{
 	Request: awsutil.Request{
 		Method:     "GET",
-		RequestURI: "/containers/json?all=1&filters=%7B%22label%22%3A%5B%22com.amazonaws.ecs.task-arn%3Darn%3Aaws%3Aecs%3Aus-east-1%3A778743527532%3Atask%2F50b8de99-f94f-4ecd-a98f-5850760f0845%22%2C%22convox.release%22%5D%7D",
+		RequestURI: "/containers/json?all=1&filters=%7B%22label%22%3A%5B%22com.amazonaws.ecs.task-arn%3Darn%3Aaws%3Aecs%3Aus-east-1%3A778743527532%3Atask%2Fcluster-test%2F50b8de99-f94f-4ecd-a98f-5850760f0845%22%2C%22convox.release%22%5D%7D",
 		Body:       ``,
 	},
 	Response: awsutil.Response{
@@ -1561,7 +1585,7 @@ var cycleProcessDockerListContainers1 = awsutil.Cycle{
 var cycleProcessDockerListContainers2 = awsutil.Cycle{
 	Request: awsutil.Request{
 		Method:     "GET",
-		RequestURI: "/containers/json?all=1&filters=%7B%22label%22%3A%5B%22com.amazonaws.ecs.task-arn%3Darn%3Aaws%3Aecs%3Aus-east-1%3A778743527532%3Atask%2F50b8de99-f94f-4ecd-a98f-5850760f0846%22%5D%7D",
+		RequestURI: "/containers/json?all=1&filters=%7B%22label%22%3A%5B%22com.amazonaws.ecs.task-arn%3Darn%3Aaws%3Aecs%3Aus-east-1%3A778743527532%3Atask%2Fcluster-test%2F50b8de99-f94f-4ecd-a98f-5850760f0846%22%5D%7D",
 		Body:       ``,
 	},
 	Response: awsutil.Response{
@@ -1585,7 +1609,7 @@ var cycleProcessDockerListContainers2 = awsutil.Cycle{
 var cycleProcessDockerListContainers3 = awsutil.Cycle{
 	Request: awsutil.Request{
 		Method:     "GET",
-		RequestURI: "/containers/json?all=1&filters=%7B%22label%22%3A%5B%22com.amazonaws.ecs.task-arn%3Darn%3Aaws%3Aecs%3Aus-east-1%3A778743527532%3Atask%2F50b8de99-f94f-4ecd-a98f-5850760f0848%22%5D%7D",
+		RequestURI: "/containers/json?all=1&filters=%7B%22label%22%3A%5B%22com.amazonaws.ecs.task-arn%3Darn%3Aaws%3Aecs%3Aus-east-1%3A778743527532%3Atask%2Fcluster-test%2F50b8de99-f94f-4ecd-a98f-5850760f0848%22%5D%7D",
 		Body:       ``,
 	},
 	Response: awsutil.Response{
