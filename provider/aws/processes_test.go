@@ -970,7 +970,7 @@ var cycleProcessListTasksStopped = awsutil.Cycle{
 		StatusCode: 200,
 		Body: `{
 			"taskArns": [
-				"arn:aws:ecs:us-east-1:778743527532:task/50b8de99-f94f-4ecd-a98f-5850760f0845"
+				"arn:aws:ecs:us-east-1:778743527532:task/cluster-test/50b8de99-f94f-4ecd-a98f-5850760f0845"
 			]
 		}`,
 	},
