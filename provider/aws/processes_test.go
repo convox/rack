@@ -595,7 +595,7 @@ var cycleProcessDescribeTasks = awsutil.Cycle{
 		Body: `{
 			"cluster": "cluster-test",
 			"tasks": [
-				"arn:aws:ecs:us-east-1:778743527532:task/50b8de99-f94f-4ecd-a98f-5850760f0845"
+				"arn:aws:ecs:us-east-1:778743527532:task/cluster-test/50b8de99-f94f-4ecd-a98f-5850760f0845"
 			]
 		}`,
 	},
@@ -605,7 +605,7 @@ var cycleProcessDescribeTasks = awsutil.Cycle{
 			"failures": [],
 			"tasks": [
 				{
-					"taskArn": "arn:aws:ecs:us-east-1:778743527532:task/50b8de99-f94f-4ecd-a98f-5850760f0845",
+					"taskArn": "arn:aws:ecs:us-east-1:778743527532:task/cluster-test/50b8de99-f94f-4ecd-a98f-5850760f0845",
 					"overrides": {
 						"containerOverrides": [
 							{
@@ -635,7 +635,7 @@ var cycleProcessDescribeTasksStopped = awsutil.Cycle{
 		Body: `{
 			"cluster": "cluster-test",
 			"tasks": [
-				"arn:aws:ecs:us-east-1:778743527532:task/50b8de99-f94f-4ecd-a98f-5850760f0845"
+				"arn:aws:ecs:us-east-1:778743527532:task/cluster-test/50b8de99-f94f-4ecd-a98f-5850760f0845"
 			]
 		}`,
 	},
@@ -645,7 +645,7 @@ var cycleProcessDescribeTasksStopped = awsutil.Cycle{
 			"failures": [],
 			"tasks": [
 				{
-					"taskArn": "arn:aws:ecs:us-east-1:778743527532:task/50b8de99-f94f-4ecd-a98f-5850760f0845",
+					"taskArn": "arn:aws:ecs:us-east-1:778743527532:task/cluster-test/50b8de99-f94f-4ecd-a98f-5850760f0845",
 					"overrides": {
 						"containerOverrides": [
 							{
@@ -676,10 +676,10 @@ var cycleProcessDescribeTasksAll = awsutil.Cycle{
 		Body: `{
 			"cluster": "cluster-test",
 			"tasks": [
-				"arn:aws:ecs:us-east-1:778743527532:task/50b8de99-f94f-4ecd-a98f-5850760f0846",
-				"arn:aws:ecs:us-east-1:778743527532:task/50b8de99-f94f-4ecd-a98f-5850760f0846",
-				"arn:aws:ecs:us-east-1:778743527532:task/50b8de99-f94f-4ecd-a98f-5850760f0847",
-				"arn:aws:ecs:us-east-1:778743527532:task/50b8de99-f94f-4ecd-a98f-5850760f0845"
+				"arn:aws:ecs:us-east-1:778743527532:task/cluster-test/50b8de99-f94f-4ecd-a98f-5850760f0846",
+				"arn:aws:ecs:us-east-1:778743527532:task/cluster-test/50b8de99-f94f-4ecd-a98f-5850760f0846",
+				"arn:aws:ecs:us-east-1:778743527532:task/cluster-test/50b8de99-f94f-4ecd-a98f-5850760f0847",
+				"arn:aws:ecs:us-east-1:778743527532:task/cluster-test/50b8de99-f94f-4ecd-a98f-5850760f0845"
 			]
 		}`,
 	},
@@ -689,7 +689,7 @@ var cycleProcessDescribeTasksAll = awsutil.Cycle{
 			"failures": [],
 			"tasks": [
 				{
-					"taskArn": "arn:aws:ecs:us-east-1:778743527532:task/50b8de99-f94f-4ecd-a98f-5850760f0846",
+					"taskArn": "arn:aws:ecs:us-east-1:778743527532:task/cluster-test/50b8de99-f94f-4ecd-a98f-5850760f0846",
 					"overrides": {
 						"containerOverrides": []
 					},
@@ -704,7 +704,7 @@ var cycleProcessDescribeTasksAll = awsutil.Cycle{
 					]
 				},
 				{
-					"taskArn": "arn:aws:ecs:us-east-1:778743527532:task/50b8de99-f94f-4ecd-a98f-5850760f0845",
+					"taskArn": "arn:aws:ecs:us-east-1:778743527532:task/cluster-test/50b8de99-f94f-4ecd-a98f-5850760f0845",
 					"overrides": {
 						"containerOverrides": [
 							{
@@ -734,11 +734,11 @@ var cycleProcessDescribeTasksAllWithBuildCluster = awsutil.Cycle{
 		Body: `{
 			"cluster": "cluster-test",
 			"tasks": [
-				"arn:aws:ecs:us-east-1:778743527532:task/50b8de99-f94f-4ecd-a98f-5850760f0846",
-				"arn:aws:ecs:us-east-1:778743527532:task/50b8de99-f94f-4ecd-a98f-5850760f0846",
-				"arn:aws:ecs:us-east-1:778743527532:task/50b8de99-f94f-4ecd-a98f-5850760f0847",
-				"arn:aws:ecs:us-east-1:778743527532:task/50b8de99-f94f-4ecd-a98f-5850760f0845",
-				"arn:aws:ecs:us-east-1:778743527532:task/50b8de99-f94f-4ecd-a98f-5850760f0848"
+				"arn:aws:ecs:us-east-1:778743527532:task/cluster-test/50b8de99-f94f-4ecd-a98f-5850760f0846",
+				"arn:aws:ecs:us-east-1:778743527532:task/cluster-test/50b8de99-f94f-4ecd-a98f-5850760f0846",
+				"arn:aws:ecs:us-east-1:778743527532:task/cluster-test/50b8de99-f94f-4ecd-a98f-5850760f0847",
+				"arn:aws:ecs:us-east-1:778743527532:task/cluster-test/50b8de99-f94f-4ecd-a98f-5850760f0845",
+				"arn:aws:ecs:us-east-1:778743527532:task/cluster-test/50b8de99-f94f-4ecd-a98f-5850760f0848"
 			]
 		}`,
 	},
@@ -748,7 +748,7 @@ var cycleProcessDescribeTasksAllWithBuildCluster = awsutil.Cycle{
 			"failures": [],
 			"tasks": [
 				{
-					"taskArn": "arn:aws:ecs:us-east-1:778743527532:task/50b8de99-f94f-4ecd-a98f-5850760f0846",
+					"taskArn": "arn:aws:ecs:us-east-1:778743527532:task/cluster-test/50b8de99-f94f-4ecd-a98f-5850760f0846",
 					"overrides": {
 						"containerOverrides": []
 					},
@@ -763,7 +763,7 @@ var cycleProcessDescribeTasksAllWithBuildCluster = awsutil.Cycle{
 					]
 				},
 				{
-					"taskArn": "arn:aws:ecs:us-east-1:778743527532:task/50b8de99-f94f-4ecd-a98f-5850760f0845",
+					"taskArn": "arn:aws:ecs:us-east-1:778743527532:task/cluster-test/50b8de99-f94f-4ecd-a98f-5850760f0845",
 					"overrides": {
 						"containerOverrides": [
 							{
@@ -793,11 +793,11 @@ var cycleProcessDescribeTasksAllOnBuildCluster = awsutil.Cycle{
 		Body: `{
 			"cluster": "cluster-build",
 			"tasks": [
-				"arn:aws:ecs:us-east-1:778743527532:task/50b8de99-f94f-4ecd-a98f-5850760f0846",
-				"arn:aws:ecs:us-east-1:778743527532:task/50b8de99-f94f-4ecd-a98f-5850760f0846",
-				"arn:aws:ecs:us-east-1:778743527532:task/50b8de99-f94f-4ecd-a98f-5850760f0847",
-				"arn:aws:ecs:us-east-1:778743527532:task/50b8de99-f94f-4ecd-a98f-5850760f0845",
-				"arn:aws:ecs:us-east-1:778743527532:task/50b8de99-f94f-4ecd-a98f-5850760f0848"
+				"arn:aws:ecs:us-east-1:778743527532:task/cluster-test/50b8de99-f94f-4ecd-a98f-5850760f0846",
+				"arn:aws:ecs:us-east-1:778743527532:task/cluster-test/50b8de99-f94f-4ecd-a98f-5850760f0846",
+				"arn:aws:ecs:us-east-1:778743527532:task/cluster-test/50b8de99-f94f-4ecd-a98f-5850760f0847",
+				"arn:aws:ecs:us-east-1:778743527532:task/cluster-test/50b8de99-f94f-4ecd-a98f-5850760f0845",
+				"arn:aws:ecs:us-east-1:778743527532:task/cluster-test/50b8de99-f94f-4ecd-a98f-5850760f0848"
 			]
 		}`,
 	},
@@ -807,7 +807,7 @@ var cycleProcessDescribeTasksAllOnBuildCluster = awsutil.Cycle{
 			"failures": [],
 			"tasks": [
 				{
-					"taskArn": "arn:aws:ecs:us-east-1:778743527532:task/50b8de99-f94f-4ecd-a98f-5850760f0848",
+					"taskArn": "arn:aws:ecs:us-east-1:778743527532:task/cluster-test/50b8de99-f94f-4ecd-a98f-5850760f0848",
 					"overrides": {
 						"containerOverrides": [
 							{
@@ -935,7 +935,7 @@ var cycleProcessListTasksAll = awsutil.Cycle{
 		StatusCode: 200,
 		Body: `{
 			"taskArns": [
-				"arn:aws:ecs:us-east-1:778743527532:task/50b8de99-f94f-4ecd-a98f-5850760f0845"
+				"arn:aws:ecs:us-east-1:778743527532:task/cluster-test/50b8de99-f94f-4ecd-a98f-5850760f0845"
 			]
 		}`,
 	},
@@ -954,7 +954,7 @@ var cycleProcessListTasksRunning = awsutil.Cycle{
 		StatusCode: 200,
 		Body: `{
 			"taskArns": [
-				"arn:aws:ecs:us-east-1:778743527532:task/50b8de99-f94f-4ecd-a98f-5850760f0845"
+				"arn:aws:ecs:us-east-1:778743527532:task/cluster-test/50b8de99-f94f-4ecd-a98f-5850760f0845"
 			]
 		}`,
 	},
@@ -973,7 +973,7 @@ var cycleProcessListTasksStopped = awsutil.Cycle{
 		StatusCode: 200,
 		Body: `{
 			"taskArns": [
-				"arn:aws:ecs:us-east-1:778743527532:task/50b8de99-f94f-4ecd-a98f-5850760f0845"
+				"arn:aws:ecs:us-east-1:778743527532:task/cluster-test/50b8de99-f94f-4ecd-a98f-5850760f0845"
 			]
 		}`,
 	},
@@ -992,7 +992,7 @@ var cycleProcessListTasksByService1 = awsutil.Cycle{
 		StatusCode: 200,
 		Body: `{
 			"taskArns": [
-				"arn:aws:ecs:us-east-1:778743527532:task/50b8de99-f94f-4ecd-a98f-5850760f0846"
+				"arn:aws:ecs:us-east-1:778743527532:task/cluster-test/50b8de99-f94f-4ecd-a98f-5850760f0846"
 			]
 		}`,
 	},
@@ -1028,7 +1028,7 @@ var cycleProcessListTasksByService2 = awsutil.Cycle{
 		StatusCode: 200,
 		Body: `{
 			"taskArns": [
-				"arn:aws:ecs:us-east-1:778743527532:task/50b8de99-f94f-4ecd-a98f-5850760f0847"
+				"arn:aws:ecs:us-east-1:778743527532:task/cluster-test/50b8de99-f94f-4ecd-a98f-5850760f0847"
 			]
 		}`,
 	},
@@ -1064,7 +1064,7 @@ var cycleProcessListTasksByStarted = awsutil.Cycle{
 		StatusCode: 200,
 		Body: `{
 			"taskArns": [
-				"arn:aws:ecs:us-east-1:778743527532:task/50b8de99-f94f-4ecd-a98f-5850760f0845"
+				"arn:aws:ecs:us-east-1:778743527532:task/cluster-test/50b8de99-f94f-4ecd-a98f-5850760f0845"
 			]
 		}`,
 	},
@@ -1100,7 +1100,7 @@ var cycleProcessListTasksByStack = awsutil.Cycle{
 		StatusCode: 200,
 		Body: `{
 			"taskArns": [
-				"arn:aws:ecs:us-east-1:778743527532:task/50b8de99-f94f-4ecd-a98f-5850760f0846"
+				"arn:aws:ecs:us-east-1:778743527532:task/cluster-test/50b8de99-f94f-4ecd-a98f-5850760f0846"
 			]
 		}`,
 	},
@@ -1136,7 +1136,7 @@ var cycleProcessListTasksBuildCluster = awsutil.Cycle{
 		StatusCode: 200,
 		Body: `{
 			"taskArns": [
-				"arn:aws:ecs:us-east-1:778743527532:task/50b8de99-f94f-4ecd-a98f-5850760f0848"
+				"arn:aws:ecs:us-east-1:778743527532:task/cluster-test/50b8de99-f94f-4ecd-a98f-5850760f0848"
 			]
 		}`,
 	},
@@ -1330,7 +1330,7 @@ var cycleProcessRunTaskAttached = awsutil.Cycle{
 							"taskArn": "arn:aws:ecs:us-east-1:012345678910:task/d8c67b3c-ac87-4ffe-a847-4785bc3a8b55"
 						}
 					],
-					"taskArn": "arn:aws:ecs:us-east-1:778743527532:task/50b8de99-f94f-4ecd-a98f-5850760f0845"
+					"taskArn": "arn:aws:ecs:us-east-1:778743527532:task/cluster-test/50b8de99-f94f-4ecd-a98f-5850760f0845"
 				}
 			]
 		}`,
@@ -1373,7 +1373,7 @@ var cycleProcessRunTaskDetached = awsutil.Cycle{
 							"taskArn": "arn:aws:ecs:us-east-1:012345678910:task/d8c67b3c-ac87-4ffe-a847-4785bc3a8b55"
 						}
 					],
-					"taskArn": "arn:aws:ecs:us-east-1:778743527532:task/50b8de99-f94f-4ecd-a98f-5850760f0845"
+					"taskArn": "arn:aws:ecs:us-east-1:778743527532:task/cluster-test/50b8de99-f94f-4ecd-a98f-5850760f0845"
 				}
 			]
 		}`,
@@ -1386,7 +1386,7 @@ var cycleProcessStopTask = awsutil.Cycle{
 		Operation:  "AmazonEC2ContainerServiceV20141113.StopTask",
 		Body: `{
 			"cluster": "cluster-test",
-			"task": "arn:aws:ecs:us-east-1:778743527532:task/50b8de99-f94f-4ecd-a98f-5850760f0845"
+			"task": "arn:aws:ecs:us-east-1:778743527532:task/cluster-test/50b8de99-f94f-4ecd-a98f-5850760f0845"
 		}`,
 	},
 	Response: awsutil.Response{
@@ -1406,7 +1406,7 @@ var cycleProcessStopTaskReason = awsutil.Cycle{
 		Body: `{
 			"cluster": "cluster-test",
 			"reason": "exit:0",
-			"task": "arn:aws:ecs:us-east-1:778743527532:task/50b8de99-f94f-4ecd-a98f-5850760f0845"
+			"task": "arn:aws:ecs:us-east-1:778743527532:task/cluster-test/50b8de99-f94f-4ecd-a98f-5850760f0845"
 		}`,
 	},
 	Response: awsutil.Response{
@@ -1540,7 +1540,7 @@ var cycleProcessReleaseUpdateItem = awsutil.Cycle{
 var cycleProcessDockerListContainers1 = awsutil.Cycle{
 	Request: awsutil.Request{
 		Method:     "GET",
-		RequestURI: "/containers/json?all=1&filters=%7B%22label%22%3A%5B%22com.amazonaws.ecs.task-arn%3Darn%3Aaws%3Aecs%3Aus-east-1%3A778743527532%3Atask%2F50b8de99-f94f-4ecd-a98f-5850760f0845%22%2C%22convox.release%22%5D%7D",
+		RequestURI: "/containers/json?all=1&filters=%7B%22label%22%3A%5B%22com.amazonaws.ecs.task-arn%3Darn%3Aaws%3Aecs%3Aus-east-1%3A778743527532%3Atask%2Fcluster-test%2F50b8de99-f94f-4ecd-a98f-5850760f0845%22%2C%22convox.release%22%5D%7D",
 		Body:       ``,
 	},
 	Response: awsutil.Response{
@@ -1564,7 +1564,7 @@ var cycleProcessDockerListContainers1 = awsutil.Cycle{
 var cycleProcessDockerListContainers2 = awsutil.Cycle{
 	Request: awsutil.Request{
 		Method:     "GET",
-		RequestURI: "/containers/json?all=1&filters=%7B%22label%22%3A%5B%22com.amazonaws.ecs.task-arn%3Darn%3Aaws%3Aecs%3Aus-east-1%3A778743527532%3Atask%2F50b8de99-f94f-4ecd-a98f-5850760f0846%22%5D%7D",
+		RequestURI: "/containers/json?all=1&filters=%7B%22label%22%3A%5B%22com.amazonaws.ecs.task-arn%3Darn%3Aaws%3Aecs%3Aus-east-1%3A778743527532%3Atask%2Fcluster-test%2F50b8de99-f94f-4ecd-a98f-5850760f0846%22%5D%7D",
 		Body:       ``,
 	},
 	Response: awsutil.Response{
@@ -1588,7 +1588,7 @@ var cycleProcessDockerListContainers2 = awsutil.Cycle{
 var cycleProcessDockerListContainers3 = awsutil.Cycle{
 	Request: awsutil.Request{
 		Method:     "GET",
-		RequestURI: "/containers/json?all=1&filters=%7B%22label%22%3A%5B%22com.amazonaws.ecs.task-arn%3Darn%3Aaws%3Aecs%3Aus-east-1%3A778743527532%3Atask%2F50b8de99-f94f-4ecd-a98f-5850760f0848%22%5D%7D",
+		RequestURI: "/containers/json?all=1&filters=%7B%22label%22%3A%5B%22com.amazonaws.ecs.task-arn%3Darn%3Aaws%3Aecs%3Aus-east-1%3A778743527532%3Atask%2Fcluster-test%2F50b8de99-f94f-4ecd-a98f-5850760f0848%22%5D%7D",
 		Body:       ``,
 	},
 	Response: awsutil.Response{

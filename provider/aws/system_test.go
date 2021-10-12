@@ -963,8 +963,8 @@ var cycleSystemListTasks = awsutil.Cycle{
 		StatusCode: 200,
 		Body: `{
 			"taskArns": [
-				"arn:aws:ecs:us-east-1:778743527532:task/50b8de99-f94f-4ecd-a98f-5850760f0846",
-				"arn:aws:ecs:us-east-1:778743527532:task/50b8de99-f94f-4ecd-a98f-5850760f0845"
+				"arn:aws:ecs:us-east-1:778743527532:task/cluster-test/50b8de99-f94f-4ecd-a98f-5850760f0846",
+				"arn:aws:ecs:us-east-1:778743527532:task/cluster-test/50b8de99-f94f-4ecd-a98f-5850760f0845"
 			]
 		}`,
 	},
@@ -982,7 +982,7 @@ var cycleSystemListTasksAll = awsutil.Cycle{
 		StatusCode: 200,
 		Body: `{
 			"taskArns": [
-				"arn:aws:ecs:us-east-1:778743527532:task/50b8de99-f94f-4ecd-a98f-5850760f0845"
+				"arn:aws:ecs:us-east-1:778743527532:task/cluster-test/50b8de99-f94f-4ecd-a98f-5850760f0845"
 			]
 		}`,
 	},
@@ -995,8 +995,8 @@ var cycleSystemDescribeTasks = awsutil.Cycle{
 		Body: `{
 			"cluster": "cluster-test",
 			"tasks": [
-				"arn:aws:ecs:us-east-1:778743527532:task/50b8de99-f94f-4ecd-a98f-5850760f0846",
-				"arn:aws:ecs:us-east-1:778743527532:task/50b8de99-f94f-4ecd-a98f-5850760f0845"
+				"arn:aws:ecs:us-east-1:778743527532:task/cluster-test/50b8de99-f94f-4ecd-a98f-5850760f0846",
+				"arn:aws:ecs:us-east-1:778743527532:task/cluster-test/50b8de99-f94f-4ecd-a98f-5850760f0845"
 			]
 		}`,
 	},
@@ -1006,7 +1006,7 @@ var cycleSystemDescribeTasks = awsutil.Cycle{
 			"failures": [],
 			"tasks": [
 				{
-					"taskArn": "arn:aws:ecs:us-east-1:778743527532:task/50b8de99-f94f-4ecd-a98f-5850760f0845",
+					"taskArn": "arn:aws:ecs:us-east-1:778743527532:task/cluster-test/50b8de99-f94f-4ecd-a98f-5850760f0845",
 					"overrides": {
 						"containerOverrides": [
 							{
@@ -1036,7 +1036,7 @@ var cycleSystemDescribeTasksAll = awsutil.Cycle{
 		Body: `{
 			"cluster": "cluster-test",
 			"tasks": [
-				"arn:aws:ecs:us-east-1:778743527532:task/50b8de99-f94f-4ecd-a98f-5850760f0845"
+				"arn:aws:ecs:us-east-1:778743527532:task/cluster-test/50b8de99-f94f-4ecd-a98f-5850760f0845"
 			]
 		}`,
 	},
@@ -1046,7 +1046,7 @@ var cycleSystemDescribeTasksAll = awsutil.Cycle{
 			"failures": [],
 			"tasks": [
 				{
-					"taskArn": "arn:aws:ecs:us-east-1:778743527532:task/50b8de99-f94f-4ecd-a98f-5850760f0845",
+					"taskArn": "arn:aws:ecs:us-east-1:778743527532:task/cluster-test/50b8de99-f94f-4ecd-a98f-5850760f0845",
 					"overrides": {
 						"containerOverrides": [
 							{
@@ -1218,7 +1218,7 @@ var cycleSystemDescribeTaskDefinition2 = awsutil.Cycle{
 var cycleSystemDockerListContainers2 = awsutil.Cycle{
 	Request: awsutil.Request{
 		Method:     "GET",
-		RequestURI: "/containers/json?all=1&filters=%7B%22label%22%3A%5B%22com.amazonaws.ecs.task-arn%3Darn%3Aaws%3Aecs%3Aus-east-1%3A778743527532%3Atask%2F50b8de99-f94f-4ecd-a98f-5850760f0845%22%5D%7D",
+		RequestURI: "/containers/json?all=1&filters=%7B%22label%22%3A%5B%22com.amazonaws.ecs.task-arn%3Darn%3Aaws%3Aecs%3Aus-east-1%3A778743527532%3Atask%2Fcluster-test%2F50b8de99-f94f-4ecd-a98f-5850760f0845%22%5D%7D",
 		Operation:  "",
 		Body:       ``,
 	},
@@ -1253,7 +1253,7 @@ var cycleSystemListTasksByStack = awsutil.Cycle{
 		StatusCode: 200,
 		Body: `{
 			"taskArns": [
-				"arn:aws:ecs:us-east-1:778743527532:task/50b8de99-f94f-4ecd-a98f-5850760f0846"
+				"arn:aws:ecs:us-east-1:778743527532:task/cluster-test/50b8de99-f94f-4ecd-a98f-5850760f0846"
 			]
 		}`,
 	},
