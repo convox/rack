@@ -403,7 +403,7 @@ var cycleBuildDescribeContainerInstances = awsutil.Cycle{
 		Body: `{
 			"cluster": "cluster-test",
 			"containerInstances": [
-				"arn:aws:ecs:us-east-1:778743527532:container-instance/cluster-test/e126c67d-fa95-4b09-8b4a-3723932cd2aa"
+				"arn:aws:ecs:us-east-1:778743527532:container-instance/e126c67d-fa95-4b09-8b4a-3723932cd2aa"
 			]
 		}`,
 	},
@@ -693,7 +693,7 @@ var cycleBuildDescribeTasks = awsutil.Cycle{
 					},
 					"lastStatus": "RUNNING",
 					"taskDefinitionArn": "arn:aws:ecs:us-east-1:778743527532:task-definition/convox-myapp-web:34",
-					"containerInstanceArn": "arn:aws:ecs:us-east-1:778743527532:container-instance/cluster-test/e126c67d-fa95-4b09-8b4a-3723932cd2aa",
+					"containerInstanceArn": "arn:aws:ecs:us-east-1:778743527532:container-instance/e126c67d-fa95-4b09-8b4a-3723932cd2aa",
 					"containers": [
 						{
 							"name": "web",
@@ -1208,11 +1208,11 @@ var cycleBuildRunTask = awsutil.Cycle{
 							"containerArn": "arn:aws:ecs:us-east-1:012345678910:container/e1ed7aac-d9b2-4315-8726-d2432bf11868",
 							"lastStatus": "PENDING",
 							"name": "wordpress",
-							"taskArn": "arn:aws:ecs:us-east-1:778743527532:task/cluster-test/50b8de99-f94f-4ecd-a98f-5850760f0845"
+							"taskArn": "arn:aws:ecs:us-east-1:778743527532:task/50b8de99-f94f-4ecd-a98f-5850760f0845"
 						}
 					],
-					"containerInstanceArn": "arn:aws:ecs:us-east-1:778743527532:container-instance/cluster-test/e126c67d-fa95-4b09-8b4a-3723932cd2aa",
-					"taskArn": "arn:aws:ecs:us-east-1:778743527532:task/cluster-test/50b8de99-f94f-4ecd-a98f-5850760f0845"
+					"containerInstanceArn": "arn:aws:ecs:us-east-1:778743527532:container-instance/e126c67d-fa95-4b09-8b4a-3723932cd2aa",
+					"taskArn": "arn:aws:ecs:us-east-1:778743527532:task/50b8de99-f94f-4ecd-a98f-5850760f0845"
 				}
 			]
 		}`,
@@ -1288,11 +1288,11 @@ var cycleBuildRunTaskCluster = awsutil.Cycle{
 							"containerArn": "arn:aws:ecs:us-east-1:012345678910:container/e1ed7aac-d9b2-4315-8726-d2432bf11868",
 							"lastStatus": "PENDING",
 							"name": "wordpress",
-							"taskArn": "arn:aws:ecs:us-east-1:778743527532:task/cluster-build/50b8de99-f94f-4ecd-a98f-5850760f0845"
+							"taskArn": "arn:aws:ecs:us-east-1:778743527532:task/50b8de99-f94f-4ecd-a98f-5850760f0845"
 						}
 					],
-					"containerInstanceArn": "arn:aws:ecs:us-east-1:778743527532:container-instance/cluster-build/e126c67d-fa95-4b09-8b4a-3723932cd2aa",
-					"taskArn": "arn:aws:ecs:us-east-1:778743527532:task/cluster-build/50b8de99-f94f-4ecd-a98f-5850760f0845"
+					"containerInstanceArn": "arn:aws:ecs:us-east-1:778743527532:container-instance/e126c67d-fa95-4b09-8b4a-3723932cd2aa",
+					"taskArn": "arn:aws:ecs:us-east-1:778743527532:task/50b8de99-f94f-4ecd-a98f-5850760f0845"
 				}
 			]
 		}`,
@@ -1302,7 +1302,7 @@ var cycleBuildRunTaskCluster = awsutil.Cycle{
 var cycleBuildDockerListContainers = awsutil.Cycle{
 	Request: awsutil.Request{
 		Method:     "GET",
-		RequestURI: "/containers/json?all=1&filters=%7B%22label%22%3A%5B%22com.amazonaws.ecs.task-arn%3Darn%3Aaws%3Aecs%3Aus-east-1%3A778743527532%3Atask%2Fcluster-test%2F50b8de99-f94f-4ecd-a98f-5850760f0845%22%5D%7D",
+		RequestURI: "/containers/json?all=1&filters=%7B%22label%22%3A%5B%22com.amazonaws.ecs.task-arn%3Darn%3Aaws%3Aecs%3Aus-east-1%3A778743527532%3Atask%2F50b8de99-f94f-4ecd-a98f-5850760f0845%22%5D%7D",
 		Body:       ``,
 	},
 	Response: awsutil.Response{
