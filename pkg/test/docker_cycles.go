@@ -30,7 +30,7 @@ func StubDocker(cycles ...awsutil.Cycle) (s *httptest.Server) {
 func ListECSContainersCycle() awsutil.Cycle {
 	return awsutil.Cycle{
 		Request: awsutil.Request{
-			RequestURI: "/containers/json?filters=%7B%22label%22%3A%5B%22com.amazonaws.ecs.task-arn%3Darn%3Aaws%3Aecs%3Aus-east-1%3A901416387788%3Atask%2Fcluster-test%2F320a8b6a-c243-47d3-a1d1-6db5dfcb3f58%22%2C%22com.amazonaws.ecs.container-name%3Dworker%22%5D%7D",
+			RequestURI: "/containers/json?filters=%7B%22label%22%3A%5B%22com.amazonaws.ecs.task-arn%3Darn%3Aaws%3Aecs%3Aus-east-1%3A901416387788%3Atask%2F320a8b6a-c243-47d3-a1d1-6db5dfcb3f58%22%2C%22com.amazonaws.ecs.container-name%3Dworker%22%5D%7D",
 			Operation:  "",
 			Body:       ``,
 		},
@@ -44,7 +44,7 @@ func ListECSContainersCycle() awsutil.Cycle {
 func ListECSOneoffContainersCycle() awsutil.Cycle {
 	return awsutil.Cycle{
 		Request: awsutil.Request{
-			RequestURI: "/containers/json?filters=%7B%22label%22%3A%5B%22com.amazonaws.ecs.task-arn%3Darn%3Aaws%3Aecs%3Aus-east-1%3A901416387788%3Atask%2Fcluster-test%2Fdbf4506f-6e57-44d5-9cfe-bc6ea10dbacc%22%2C%22com.amazonaws.ecs.container-name%3Dworker%22%5D%7D",
+			RequestURI: "/containers/json?filters=%7B%22label%22%3A%5B%22com.amazonaws.ecs.task-arn%3Darn%3Aaws%3Aecs%3Aus-east-1%3A901416387788%3Atask%2Fdbf4506f-6e57-44d5-9cfe-bc6ea10dbacc%22%2C%22com.amazonaws.ecs.container-name%3Dworker%22%5D%7D",
 			Operation:  "",
 			Body:       ``,
 		},
