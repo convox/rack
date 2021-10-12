@@ -321,27 +321,39 @@ func (p *Provider) taskProcesses(tasks []string) (structs.Processes, error) {
 
 		// list tasks on build cluster too
 		if p.Cluster != p.BuildCluster {
-			tres, err := p.describeTasks(&ecs.DescribeTasksInput{
-				Cluster: aws.String(p.BuildCluster),
-				Tasks:   iptasks,
-			})
-			if err != nil {
-				log.Error(err)
-				return nil, err
+
+			buildTasks := []*string{}
+
+			for _, iptask := range iptasks {
+				if strings.Contains(*iptask, p.BuildCluster) {
+					buildTasks = append(buildTasks, iptask)
+				}
 			}
 
-			for _, task := range tres.Tasks {
-				// workaround for ECS:ListTasks bug that is returning all tasks you specify even if they
-				// are not on the cluster that you specify
-				exists := false
-				for _, t := range ecsTasks {
-					if t.TaskArn != nil && task.TaskArn != nil && *t.TaskArn == *task.TaskArn {
-						exists = true
-						break
-					}
+			if len(buildTasks) > 0 {
+				tres, err := p.describeTasks(&ecs.DescribeTasksInput{
+					Cluster: aws.String(p.BuildCluster),
+					Tasks:   buildTasks,
+				})
+
+				if err != nil {
+					log.Error(err)
+					return nil, err
 				}
-				if !exists {
-					ecsTasks = append(ecsTasks, task)
+
+				for _, task := range tres.Tasks {
+					// workaround for ECS:ListTasks bug that is returning all tasks you specify even if they
+					// are not on the cluster that you specify
+					exists := false
+					for _, t := range ecsTasks {
+						if t.TaskArn != nil && task.TaskArn != nil && *t.TaskArn == *task.TaskArn {
+							exists = true
+							break
+						}
+					}
+					if !exists {
+						ecsTasks = append(ecsTasks, task)
+					}
 				}
 			}
 		}
@@ -535,23 +547,18 @@ func (p *Provider) containerInstance(id string) (*ecs.ContainerInstance, error) 
 		return ci, nil
 	}
 
+	cluster := p.Cluster
+
+	if (p.Cluster != p.BuildCluster) && (strings.Contains(id, p.BuildCluster)) {
+		cluster = p.BuildCluster
+	}
+
 	res, err := p.describeContainerInstances(&ecs.DescribeContainerInstancesInput{
-		Cluster:            aws.String(p.Cluster),
+		Cluster:            aws.String(cluster),
 		ContainerInstances: []*string{aws.String(id)},
 	})
 	if err != nil {
 		return nil, err
-	}
-
-	// if there were failures, try the build cluster
-	if len(res.Failures) > 0 {
-		res, err = p.describeContainerInstances(&ecs.DescribeContainerInstancesInput{
-			Cluster:            aws.String(p.BuildCluster),
-			ContainerInstances: []*string{aws.String(id)},
-		})
-		if err != nil {
-			return nil, err
-		}
 	}
 
 	if len(res.ContainerInstances) != 1 {
@@ -593,24 +600,17 @@ func (p *Provider) describeInstance(id string) (*ec2.Instance, error) {
 }
 
 func (p *Provider) describeTaskInner(arn string) (*ecs.Task, error) {
+	// Default to the cluster
+	cluster := p.Cluster
+	// If the task is in the build cluster, use that
+	if (p.BuildCluster != p.Cluster) && (strings.Contains(arn, p.BuildCluster)) {
+		cluster = p.BuildCluster
+	} 
+
 	res, err := p.describeTasks(&ecs.DescribeTasksInput{
-		Cluster: aws.String(p.Cluster),
+		Cluster: aws.String(cluster),
 		Tasks:   []*string{aws.String(arn)},
 	})
-	if err != nil {
-		return nil, err
-	}
-
-	// check the build cluster too
-	for _, f := range res.Failures {
-		if f.Reason != nil && *f.Reason == "MISSING" && p.BuildCluster != p.Cluster {
-			res, err = p.describeTasks(&ecs.DescribeTasksInput{
-				Cluster: aws.String(p.BuildCluster),
-				Tasks:   []*string{aws.String(arn)},
-			})
-			break
-		}
-	}
 
 	if err != nil {
 		return nil, err
