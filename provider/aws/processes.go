@@ -307,7 +307,7 @@ func (p *Provider) taskProcesses(tasks []string) (structs.Processes, error) {
 			iptasks[i] = &ptasks[i]
 		}
 
-		ecsTasks := make([]*ecs.Task, len(iptasks))
+		ecsTasks := make([]*ecs.Task, 0, len(iptasks))
 
 		primaryTasks, err := p.fetchTasks(p.Cluster, iptasks)
 
@@ -382,7 +382,7 @@ func (p *Provider) fetchTasks(cluster string, tasks []*string) ([]*ecs.Task, err
 		}
 	}
 
-	store := make([]*ecs.Task, len(filteredTasks))
+	store := make([]*ecs.Task, 0, len(filteredTasks))
 
 	if len(filteredTasks) > 0 {
 		tres, err := p.describeTasks(&ecs.DescribeTasksInput{
