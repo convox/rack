@@ -376,7 +376,7 @@ func (p *Provider) taskProcesses(tasks []string) (structs.Processes, error) {
 func (p *Provider) fetchTasks(cluster string, tasks []*string) ([]*ecs.Task, error) {
 	filteredTasks := []*string{}
 
-	for _, task := range filteredTasks {
+	for _, task := range tasks {
 		if strings.Contains(*task, cluster) {
 			filteredTasks = append(filteredTasks, task)
 		}
