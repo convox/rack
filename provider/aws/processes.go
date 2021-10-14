@@ -307,56 +307,31 @@ func (p *Provider) taskProcesses(tasks []string) (structs.Processes, error) {
 			iptasks[i] = &ptasks[i]
 		}
 
-		tres, err := p.describeTasks(&ecs.DescribeTasksInput{
-			Cluster: aws.String(p.Cluster),
-			Tasks:   iptasks,
-		})
+		ecsTasks := make([]*ecs.Task, len(iptasks))
+
+		primaryTasks, err := p.fetchTasks(p.Cluster, iptasks)
+
 		if err != nil {
 			log.Error(err)
 			return nil, err
 		}
 
-		ecsTasks := make([]*ecs.Task, len(tres.Tasks))
-		copy(ecsTasks, tres.Tasks)
-
-		// list tasks on build cluster too
-		if p.Cluster != p.BuildCluster {
-
-			buildTasks := []*string{}
-
-			for _, iptask := range iptasks {
-				if strings.Contains(*iptask, p.BuildCluster) {
-					buildTasks = append(buildTasks, iptask)
-				}
-			}
-
-			if len(buildTasks) > 0 {
-				tres, err := p.describeTasks(&ecs.DescribeTasksInput{
-					Cluster: aws.String(p.BuildCluster),
-					Tasks:   buildTasks,
-				})
-
-				if err != nil {
-					log.Error(err)
-					return nil, err
-				}
-
-				for _, task := range tres.Tasks {
-					// workaround for ECS:ListTasks bug that is returning all tasks you specify even if they
-					// are not on the cluster that you specify
-					exists := false
-					for _, t := range ecsTasks {
-						if t.TaskArn != nil && task.TaskArn != nil && *t.TaskArn == *task.TaskArn {
-							exists = true
-							break
-						}
-					}
-					if !exists {
-						ecsTasks = append(ecsTasks, task)
-					}
-				}
-			}
+		for _, task := range primaryTasks {
+			ecsTasks = append(ecsTasks, task)
 		}
+
+		if p.Cluster != p.BuildCluster {
+			buildTasks, err := p.fetchTasks(p.BuildCluster, iptasks)
+
+			if err != nil {
+				log.Error(err)
+				return nil, err
+			}
+
+			for _, task := range buildTasks {
+				ecsTasks = append(ecsTasks, task)
+			}
+		} 
 
 		for _, task := range ecsTasks {
 			if p.IsTest() {
@@ -396,6 +371,33 @@ func (p *Provider) taskProcesses(tasks []string) (structs.Processes, error) {
 
 	log.Success()
 	return pss, nil
+}
+
+func (p *Provider) fetchTasks(cluster string, tasks []*string) ([]*ecs.Task, error) {
+	filteredTasks := []*string{}
+
+	for _, task := range filteredTasks {
+		if strings.Contains(*task, cluster) {
+			filteredTasks = append(filteredTasks, task)
+		}
+	}
+
+	store := make([]*ecs.Task, len(filteredTasks))
+
+	if len(filteredTasks) > 0 {
+		tres, err := p.describeTasks(&ecs.DescribeTasksInput{
+			Cluster: aws.String(cluster),
+			Tasks:   filteredTasks,
+		})
+
+		if err != nil {
+			return nil, err
+		}
+		for _, task := range tres.Tasks {
+			store = append(store, task)
+		}
+	}
+	return store, nil
 }
 
 // ProcessRun runs a new Process
