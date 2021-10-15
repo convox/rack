@@ -963,8 +963,8 @@ var cycleSystemListTasks = awsutil.Cycle{
 		StatusCode: 200,
 		Body: `{
 			"taskArns": [
-				"arn:aws:ecs:us-east-1:778743527532:task/50b8de99-f94f-4ecd-a98f-5850760f0846",
-				"arn:aws:ecs:us-east-1:778743527532:task/50b8de99-f94f-4ecd-a98f-5850760f0845"
+				"arn:aws:ecs:us-east-1:778743527532:task/cluster-test/50b8de99-f94f-4ecd-a98f-5850760f0846",
+				"arn:aws:ecs:us-east-1:778743527532:task/cluster-test/50b8de99-f94f-4ecd-a98f-5850760f0845"
 			]
 		}`,
 	},
@@ -982,7 +982,7 @@ var cycleSystemListTasksAll = awsutil.Cycle{
 		StatusCode: 200,
 		Body: `{
 			"taskArns": [
-				"arn:aws:ecs:us-east-1:778743527532:task/50b8de99-f94f-4ecd-a98f-5850760f0845"
+				"arn:aws:ecs:us-east-1:778743527532:task/cluster-test/50b8de99-f94f-4ecd-a98f-5850760f0845"
 			]
 		}`,
 	},
@@ -995,8 +995,8 @@ var cycleSystemDescribeTasks = awsutil.Cycle{
 		Body: `{
 			"cluster": "cluster-test",
 			"tasks": [
-				"arn:aws:ecs:us-east-1:778743527532:task/50b8de99-f94f-4ecd-a98f-5850760f0846",
-				"arn:aws:ecs:us-east-1:778743527532:task/50b8de99-f94f-4ecd-a98f-5850760f0845"
+				"arn:aws:ecs:us-east-1:778743527532:task/cluster-test/50b8de99-f94f-4ecd-a98f-5850760f0846",
+				"arn:aws:ecs:us-east-1:778743527532:task/cluster-test/50b8de99-f94f-4ecd-a98f-5850760f0845"
 			]
 		}`,
 	},
@@ -1006,7 +1006,7 @@ var cycleSystemDescribeTasks = awsutil.Cycle{
 			"failures": [],
 			"tasks": [
 				{
-					"taskArn": "arn:aws:ecs:us-east-1:778743527532:task/50b8de99-f94f-4ecd-a98f-5850760f0845",
+					"taskArn": "arn:aws:ecs:us-east-1:778743527532:task/cluster-test/50b8de99-f94f-4ecd-a98f-5850760f0845",
 					"overrides": {
 						"containerOverrides": [
 							{
@@ -1016,7 +1016,7 @@ var cycleSystemDescribeTasks = awsutil.Cycle{
 					},
 					"lastStatus": "RUNNING",
 					"taskDefinitionArn": "arn:aws:ecs:us-east-1:778743527532:task-definition/convox:34",
-					"containerInstanceArn": "arn:aws:ecs:us-east-1:778743527532:container-instance/e126c67d-fa95-4b09-8b4a-3723932cd2aa",
+					"containerInstanceArn": "arn:aws:ecs:us-east-1:778743527532:container-instance/cluster-test/e126c67d-fa95-4b09-8b4a-3723932cd2aa",
 					"containers": [
 						{
 							"name": "web",
@@ -1036,7 +1036,7 @@ var cycleSystemDescribeTasksAll = awsutil.Cycle{
 		Body: `{
 			"cluster": "cluster-test",
 			"tasks": [
-				"arn:aws:ecs:us-east-1:778743527532:task/50b8de99-f94f-4ecd-a98f-5850760f0845"
+				"arn:aws:ecs:us-east-1:778743527532:task/cluster-test/50b8de99-f94f-4ecd-a98f-5850760f0845"
 			]
 		}`,
 	},
@@ -1046,7 +1046,7 @@ var cycleSystemDescribeTasksAll = awsutil.Cycle{
 			"failures": [],
 			"tasks": [
 				{
-					"taskArn": "arn:aws:ecs:us-east-1:778743527532:task/50b8de99-f94f-4ecd-a98f-5850760f0845",
+					"taskArn": "arn:aws:ecs:us-east-1:778743527532:task/cluster-test/50b8de99-f94f-4ecd-a98f-5850760f0845",
 					"overrides": {
 						"containerOverrides": [
 							{
@@ -1056,7 +1056,7 @@ var cycleSystemDescribeTasksAll = awsutil.Cycle{
 					},
 					"lastStatus": "RUNNING",
 					"taskDefinitionArn": "arn:aws:ecs:us-east-1:778743527532:task-definition/convox:34",
-					"containerInstanceArn": "arn:aws:ecs:us-east-1:778743527532:container-instance/e126c67d-fa95-4b09-8b4a-3723932cd2aa",
+					"containerInstanceArn": "arn:aws:ecs:us-east-1:778743527532:container-instance/cluster-test/e126c67d-fa95-4b09-8b4a-3723932cd2aa",
 					"containers": [
 						{
 							"name": "web",
@@ -1123,7 +1123,7 @@ var cycleSystemDescribeContainerInstances = awsutil.Cycle{
 		Body: `{
 			"cluster": "cluster-test",
 			"containerInstances": [
-				"arn:aws:ecs:us-east-1:778743527532:container-instance/e126c67d-fa95-4b09-8b4a-3723932cd2aa"
+				"arn:aws:ecs:us-east-1:778743527532:container-instance/cluster-test/e126c67d-fa95-4b09-8b4a-3723932cd2aa"
 			]
 		}`,
 	},
