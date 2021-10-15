@@ -761,8 +761,7 @@ var cycleProcessDescribeTasksAllWithBuildCluster = awsutil.Cycle{
 				"arn:aws:ecs:us-east-1:778743527532:task/cluster-test/50b8de99-f94f-4ecd-a98f-5850760f0846",
 				"arn:aws:ecs:us-east-1:778743527532:task/cluster-test/50b8de99-f94f-4ecd-a98f-5850760f0846",
 				"arn:aws:ecs:us-east-1:778743527532:task/cluster-test/50b8de99-f94f-4ecd-a98f-5850760f0847",
-				"arn:aws:ecs:us-east-1:778743527532:task/cluster-test/50b8de99-f94f-4ecd-a98f-5850760f0845",
-				"arn:aws:ecs:us-east-1:778743527532:task/cluster-build/50b8de99-f94f-4ecd-a98f-5850760f0848"
+				"arn:aws:ecs:us-east-1:778743527532:task/cluster-test/50b8de99-f94f-4ecd-a98f-5850760f0845"
 				
 			]
 		}`,
