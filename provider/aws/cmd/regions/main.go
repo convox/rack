@@ -15,6 +15,7 @@ import (
 
 type Region struct {
 	Ami               string
+	ArmAmi            string
 	AvailabilityZones []string
 	EFS               bool
 	ELBAccountId      string
@@ -36,6 +37,10 @@ func run() error {
 	}
 
 	if err := fetchAmis(regions); err != nil {
+		return errors.WithStack(err)
+	}
+
+	if err := fetchArmAmis(regions); err != nil {
 		return errors.WithStack(err)
 	}
 
@@ -65,6 +70,7 @@ func run() error {
 
 	rns := make([]string, len(names))
 	amis := make([]string, len(names))
+	aamis := make([]string, len(names))
 	efss := make([]string, len(names))
 	tazs := make([]string, len(names))
 	elbs := make([]string, len(names))
@@ -75,6 +81,7 @@ func run() error {
 
 		rns[i] = fmt.Sprintf("%q:", name)
 		amis[i] = fmt.Sprintf(`"Ami": %q,`, region.Ami)
+		aamis[i] = fmt.Sprintf(`"ArmAmi": %q,`, region.ArmAmi)
 		efss[i] = fmt.Sprintf(`"EFS": %q,`, yn(region.EFS))
 		tazs[i] = fmt.Sprintf(`"ThirdAvailabilityZone": %q,`, yn(len(region.AvailabilityZones) > 2))
 		elbs[i] = fmt.Sprintf(`"ELBAccountId": %q,`, region.ELBAccountId)
@@ -83,6 +90,7 @@ func run() error {
 
 	rnMax := max(rns, 0)
 	amiMax := max(amis, 0)
+	aamiMax := max(aamis, 0)
 	efsMax := max(efss, 0)
 	tazMax := max(tazs, 0)
 	elbMax := max(elbs, 0)
@@ -93,8 +101,8 @@ func run() error {
 			continue
 		}
 
-		f := fmt.Sprintf(`      %%-%ds { %%-%ds %%-%ds %%-%ds %%-%ds %%-%ds },`, rnMax, amiMax, efsMax, tazMax, elbMax, fargateMax)
-		fmt.Printf(f, rns[i], amis[i], efss[i], tazs[i], elbs[i], fargates[i])
+		f := fmt.Sprintf(`      %%-%ds { %%-%ds %%-%ds %%-%ds %%-%ds %%-%ds %%-%ds },`, rnMax, amiMax, aamiMax, efsMax, tazMax, elbMax, fargateMax)
+		fmt.Printf(f, rns[i], amis[i], aamis[i], efss[i], tazs[i], elbs[i], fargates[i])
 		fmt.Println()
 	}
 
@@ -129,9 +137,7 @@ func fetchAmis(regions Regions) error {
 	for name, region := range regions {
 		data, err := exec.Command("aws", "ssm", "get-parameter", "--name", "/aws/service/ecs/optimized-ami/amazon-linux-2/recommended/image_id", "--query", "Parameter.Value", "--region", name).CombinedOutput()
 		if err != nil {
-			// fmt.Printf("name: %+v\n", name)
-			// fmt.Printf("region: %+v\n", region)
-			// fmt.Printf("string(data): %+v\n", string(data))
+			fmt.Printf("error fetching Amd AMI. region=%s error=%s\n", name, err)
 			delete(regions, name)
 			continue
 		}
@@ -141,6 +147,28 @@ func fetchAmis(regions Regions) error {
 		}
 
 		region.Ami = ami
+
+		regions[name] = region
+	}
+
+	return nil
+}
+
+func fetchArmAmis(regions Regions) error {
+	var ami string
+
+	for name, region := range regions {
+		data, err := exec.Command("aws", "ssm", "get-parameter", "--name", "/aws/service/ecs/optimized-ami/amazon-linux-2/arm64/recommended/image_id", "--query", "Parameter.Value", "--region", name).CombinedOutput()
+		if err != nil {
+			fmt.Printf("error fetching Arm AMI. region=%s error=%s\n", name, err)
+			continue
+		}
+
+		if err := json.Unmarshal(data, &ami); err != nil {
+			return errors.WithStack(err)
+		}
+
+		region.ArmAmi = ami
 
 		regions[name] = region
 	}
@@ -235,7 +263,7 @@ func fetchELBAccountIds(regions Regions) error {
 func fetchFargate(regions Regions) error {
 	b := surf.NewBrowser()
 
-	if err := b.Open("https://docs.aws.amazon.com/AmazonECS/latest/developerguide/AWS_Fargate.html"); err != nil {
+	if err := b.Open("https://docs.aws.amazon.com/AmazonECS/latest/developerguide/AWS_Fargate-Regions.html"); err != nil {
 		return errors.WithStack(err)
 	}
 
