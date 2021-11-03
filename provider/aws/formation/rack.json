@@ -35,6 +35,65 @@
       "Fn::And": [ { "Condition": "ExistingVpc" }, { "Condition": "InternetGateway" } ]
     },
     "HttpProxy": { "Fn::Not": [ { "Fn::Equals": [ { "Ref": "HttpProxy" }, "" ] } ] },
+    "InstanceARM": {
+      "Fn::Or": [
+        {
+          "Fn::Equals": [
+            {
+              "Fn::Select": [
+                0,
+                { "Fn::Split": ["a1", { "Ref": "InstanceType" }] }
+              ]
+            },
+            ""
+          ]
+        },
+        {
+          "Fn::Equals": [
+            {
+              "Fn::Select": [
+                0,
+                { "Fn::Split": ["r6g", { "Ref": "InstanceType" }] }
+              ]
+            },
+            ""
+          ]
+        },
+        {
+          "Fn::Equals": [
+            {
+              "Fn::Select": [
+                0,
+                { "Fn::Split": ["m6g", { "Ref": "InstanceType" }] }
+              ]
+            },
+            ""
+          ]
+        },
+        {
+          "Fn::Equals": [
+            {
+              "Fn::Select": [
+                0,
+                { "Fn::Split": ["c6g", { "Ref": "InstanceType" }] }
+              ]
+            },
+            ""
+          ]
+        },
+        {
+          "Fn::Equals": [
+            {
+              "Fn::Select": [
+                0,
+                { "Fn::Split": ["t4g", { "Ref": "InstanceType" }] }
+              ]
+            },
+            ""
+          ]
+        }
+      ]
+    },
     "Internal": { "Fn::Equals": [ { "Ref": "Internal" }, "Yes" ] },
     "InternetGateway": { "Fn::Not": [ { "Fn::Equals": [ { "Ref": "InternetGateway" }, "" ] } ] },
     "NotExistingVpcAndBlankInternetGateway": { "Fn::Not": [ { "Condition": "ExistingVpcAndBlankInternetGateway" } ] },
@@ -68,29 +127,29 @@
   },
   "Mappings": {
     "RegionConfig": {
-      "af-south-1":     { "Ami": "ami-01ac4eeba86f9a8d5", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "098369216593", "Fargate": "Yes" },
-      "ap-east-1":      { "Ami": "ami-09bab3582fd4f92a9", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "754344448648", "Fargate": "Yes" },
-      "ap-northeast-1": { "Ami": "ami-0b155218d6916661a", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "582318560864", "Fargate": "No"  },
-      "ap-northeast-2": { "Ami": "ami-0cacf8fb201c07e6b", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "600734575887", "Fargate": "Yes" },
-      "ap-northeast-3": { "Ami": "ami-025db54f56fda879d", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "383597477331", "Fargate": "Yes" },
-      "ap-south-1":     { "Ami": "ami-0405ea06ab2621cff", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "718504428378", "Fargate": "Yes" },
-      "ap-southeast-1": { "Ami": "ami-0f9e7ad4abf49df6b", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "114774131450", "Fargate": "Yes" },
-      "ap-southeast-2": { "Ami": "ami-0cdf16bb10adcaaa1", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "783225319266", "Fargate": "Yes" },
-      "ca-central-1":   { "Ami": "ami-0a5cfc26b04c4a20e", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "985666609251", "Fargate": "No"  },
-      "eu-central-1":   { "Ami": "ami-0da383d2d6bdb9100", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "054676820928", "Fargate": "Yes" },
-      "eu-north-1":     { "Ami": "ami-02ed85945b0e46f6f", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "897822967062", "Fargate": "Yes" },
-      "eu-south-1":     { "Ami": "ami-00d7a4084bac16c81", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "635631232127", "Fargate": "Yes" },
-      "eu-west-1":      { "Ami": "ami-0fdb1527ad8bf80f7", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "156460612806", "Fargate": "Yes" },
-      "eu-west-2":      { "Ami": "ami-0b5e334d61108a1aa", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "652711504416", "Fargate": "Yes" },
-      "eu-west-3":      { "Ami": "ami-004138ffbf7aad984", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "009996457667", "Fargate": "Yes" },
-      "me-south-1":     { "Ami": "ami-05f7a182e037b82af", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "076674570225", "Fargate": "Yes" },
-      "sa-east-1":      { "Ami": "ami-00f653b3399483762", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "507241528517", "Fargate": "Yes" },
-      "us-east-1":      { "Ami": "ami-04942e54b391af5d0", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "127311923021", "Fargate": "Yes" },
-      "us-east-2":      { "Ami": "ami-0c38a2329ed4dae9a", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "033677994240", "Fargate": "Yes" },
-      "us-west-1":      { "Ami": "ami-0ab1b97c4bbf16bf3", "EFS": "Yes", "ThirdAvailabilityZone": "No",  "ELBAccountId": "027434742980", "Fargate": "No"  },
-      "us-west-2":      { "Ami": "ami-06c73a8827b372409", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "797873946194", "Fargate": "Yes" },
-      "us-gov-east-1":  { "Ami": "ami-04f633b669ee7b61c", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "190560391635", "Fargate": "Yes" },
-      "us-gov-west-1":  { "Ami": "ami-90704ef1",          "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "048591011584", "Fargate": "Yes" }
+      "af-south-1":     { "Ami": "ami-0e71c51acff69c762", "ArmAmi": "",                      "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "098369216593", "Fargate": "Yes" },
+      "ap-east-1":      { "Ami": "ami-0a62b346220ac9a4c", "ArmAmi": "ami-0844b75d3bc347832", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "754344448648", "Fargate": "Yes" },
+      "ap-northeast-1": { "Ami": "ami-0ba46945fe4414e8a", "ArmAmi": "ami-03596ac16ae084511", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "582318560864", "Fargate": "No"  },
+      "ap-northeast-2": { "Ami": "ami-058fe05d80d934d8a", "ArmAmi": "ami-0d1c964e01b69c9c4", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "600734575887", "Fargate": "Yes" },
+      "ap-northeast-3": { "Ami": "ami-00a26a49f38560c39", "ArmAmi": "",                      "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "383597477331", "Fargate": "Yes" },
+      "ap-south-1":     { "Ami": "ami-0ae2f00fa12adfdf8", "ArmAmi": "ami-063dd92e888d1c75c", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "718504428378", "Fargate": "Yes" },
+      "ap-southeast-1": { "Ami": "ami-04e3e68fcfc9ca078", "ArmAmi": "ami-021c4e1f9618b3119", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "114774131450", "Fargate": "Yes" },
+      "ap-southeast-2": { "Ami": "ami-012bb964803d474e5", "ArmAmi": "ami-0f2d4206602a56c27", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "783225319266", "Fargate": "Yes" },
+      "ca-central-1":   { "Ami": "ami-0941553a556a284dc", "ArmAmi": "ami-01866bd198d129564", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "985666609251", "Fargate": "No"  },
+      "eu-central-1":   { "Ami": "ami-09219f0735c86449f", "ArmAmi": "ami-0becc22cd1c303541", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "054676820928", "Fargate": "Yes" },
+      "eu-north-1":     { "Ami": "ami-0898735051d6a03e2", "ArmAmi": "ami-0356e81e07ac1aa76", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "897822967062", "Fargate": "Yes" },
+      "eu-south-1":     { "Ami": "ami-0287efd4023ea25ff", "ArmAmi": "ami-0a1c91dce96b88473", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "635631232127", "Fargate": "Yes" },
+      "eu-west-1":      { "Ami": "ami-06c11ea68c61e5570", "ArmAmi": "ami-0c2511f2e0582024b", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "156460612806", "Fargate": "Yes" },
+      "eu-west-2":      { "Ami": "ami-0a078ce6abe5fcb1b", "ArmAmi": "ami-0c6fa7cace3a84a70", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "652711504416", "Fargate": "Yes" },
+      "eu-west-3":      { "Ami": "ami-06f2ca755fea150d5", "ArmAmi": "ami-0d3b012ab73f94a25", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "009996457667", "Fargate": "Yes" },
+      "me-south-1":     { "Ami": "ami-0a80f099ac41496b7", "ArmAmi": "ami-0cd2c2eef8ea85565", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "076674570225", "Fargate": "Yes" },
+      "sa-east-1":      { "Ami": "ami-08a6250517f5dd2be", "ArmAmi": "ami-04215bcb38f33ad27", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "507241528517", "Fargate": "Yes" },
+      "us-east-1":      { "Ami": "ami-0e43fd2a4ef14f476", "ArmAmi": "ami-0bfc02e7ac93240fd", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "127311923021", "Fargate": "Yes" },
+      "us-east-2":      { "Ami": "ami-023ef2526f4bf79c9", "ArmAmi": "ami-0288951ce92175bdb", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "033677994240", "Fargate": "Yes" },
+      "us-west-1":      { "Ami": "ami-0e92f5873da29c633", "ArmAmi": "ami-00e41e0af4393d3cb", "EFS": "Yes", "ThirdAvailabilityZone": "No",  "ELBAccountId": "027434742980", "Fargate": "No"  },
+      "us-west-2":      { "Ami": "ami-05a7414872af4b564", "ArmAmi": "ami-09ab5d76b117b41b0", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "797873946194", "Fargate": "Yes" },
+      "us-gov-east-1":  { "Ami": "ami-04f633b669ee7b61c", "ArmAmi": "",                      "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "190560391635", "Fargate": "Yes" },
+      "us-gov-west-1":  { "Ami": "ami-90704ef1",          "ArmAmi": "",                      "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "048591011584", "Fargate": "Yes" }
     }
   },
   "Outputs": {
@@ -1267,7 +1326,31 @@
           ] }
         ],
         "IamInstanceProfile": { "Ref": "InstancesProfile" },
-        "ImageId": { "Fn::If": [ "BlankAmi", { "Fn::FindInMap": [ "RegionConfig", { "Ref": "AWS::Region" }, "Ami" ] }, { "Ref": "Ami" } ] },
+        "ImageId": {
+          "Fn::If": [
+            "BlankAmi",
+            {
+              "Fn::If": [
+                "InstanceARM",
+                {
+                  "Fn::FindInMap": [
+                    "RegionConfig",
+                    { "Ref": "AWS::Region" },
+                    "ArmAmi"
+                  ]
+                },
+                {
+                  "Fn::FindInMap": [
+                    "RegionConfig",
+                    { "Ref": "AWS::Region" },
+                    "Ami"
+                  ]
+                }
+              ]
+            },
+            { "Ref": "Ami" }
+          ]
+        },
         "InstanceMonitoring": true,
         "InstanceType": { "Ref": "BuildInstance" },
         "KeyName": { "Fn::If": [ "BlankKey", { "Ref": "AWS::NoValue" }, { "Ref": "Key" } ] },
@@ -1434,7 +1517,31 @@
           ] }
         ],
         "IamInstanceProfile": { "Ref": "InstancesProfile" },
-        "ImageId": { "Fn::If": [ "BlankAmi", { "Fn::FindInMap": [ "RegionConfig", { "Ref": "AWS::Region" }, "Ami" ] }, { "Ref": "Ami" } ] },
+        "ImageId": {
+          "Fn::If": [
+            "BlankAmi",
+            {
+              "Fn::If": [
+                "InstanceARM",
+                {
+                  "Fn::FindInMap": [
+                    "RegionConfig",
+                    { "Ref": "AWS::Region" },
+                    "ArmAmi"
+                  ]
+                },
+                {
+                  "Fn::FindInMap": [
+                    "RegionConfig",
+                    { "Ref": "AWS::Region" },
+                    "Ami"
+                  ]
+                }
+              ]
+            },
+            { "Ref": "Ami" }
+          ]
+        },
         "InstanceMonitoring": true,
         "InstanceType": { "Ref": "InstanceType" },
         "KeyName": { "Fn::If": [ "BlankKey", { "Ref": "AWS::NoValue" }, { "Ref": "Key" } ] },
@@ -1827,7 +1934,31 @@
           ] }
         ],
         "IamInstanceProfile": { "Ref": "InstancesProfile" },
-        "ImageId": { "Fn::If": [ "BlankAmi", { "Fn::FindInMap": [ "RegionConfig", { "Ref": "AWS::Region" }, "Ami" ] }, { "Ref": "Ami" } ] },
+        "ImageId": {
+          "Fn::If": [
+            "BlankAmi",
+            {
+              "Fn::If": [
+                "InstanceARM",
+                {
+                  "Fn::FindInMap": [
+                    "RegionConfig",
+                    { "Ref": "AWS::Region" },
+                    "ArmAmi"
+                  ]
+                },
+                {
+                  "Fn::FindInMap": [
+                    "RegionConfig",
+                    { "Ref": "AWS::Region" },
+                    "Ami"
+                  ]
+                }
+              ]
+            },
+            { "Ref": "Ami" }
+          ]
+        },
         "InstanceMonitoring": true,
         "InstanceType": { "Ref": "InstanceType" },
         "KeyName": { "Fn::If": [ "BlankKey", { "Ref": "AWS::NoValue" }, { "Ref": "Key" } ] },
@@ -2590,10 +2721,19 @@
               { "Name": "RACK", "Value": { "Ref": "AWS::StackName" } },
               { "Name": "STACK_ID", "Value": { "Ref": "AWS::StackId" } }
             ],
-            "Image": { "Fn::If": [ "BlankBuildImage",
-              { "Fn::Sub": "convox/rack:${Version}" },
-              { "Ref": "BuildImage" }
-            ] },
+            "Image": {
+              "Fn::If": [
+                "BlankBuildImage",
+                {
+                  "Fn::If": [
+                    "InstanceARM",
+                    { "Fn::Sub": "heronrs/rackv2:${Version}-arm64" },
+                    { "Fn::Sub": "convox/rack:${Version}" }
+                  ]
+                },
+                { "Ref": "BuildImage" }
+              ]
+            },
             "LinuxParameters": {
               "InitProcessEnabled": "true"
             },
@@ -2670,7 +2810,13 @@
               { "Name": "RACK", "Value": { "Ref": "AWS::StackName" } },
               { "Name": "STACK_ID", "Value": { "Ref": "AWS::StackId" } }
             ],
-            "Image": { "Fn::Sub": "convox/rack:${Version}" },
+            "Image":                 {
+              "Fn::If": [
+                "InstanceARM",
+                { "Fn::Sub": "heronrs/rackv2:${Version}-arm64" },
+                { "Fn::Sub": "convox/rack:${Version}" }
+              ]
+            },
             "LinuxParameters": {
               "InitProcessEnabled": "true"
             },
@@ -2771,7 +2917,13 @@
               { "Name": "RACK", "Value": { "Ref": "AWS::StackName" } },
               { "Name": "STACK_ID", "Value": { "Ref": "AWS::StackId" } }
             ],
-            "Image": { "Fn::Sub": "convox/rack:${Version}" },
+            "Image":                 {
+              "Fn::If": [
+                "InstanceARM",
+                { "Fn::Sub": "heronrs/rackv2:${Version}-arm64" },
+                { "Fn::Sub": "convox/rack:${Version}" }
+              ]
+            },
             "LinuxParameters": {
               "InitProcessEnabled": "true"
             },
