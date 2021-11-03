@@ -2727,7 +2727,7 @@
                 {
                   "Fn::If": [
                     "InstanceARM",
-                    { "Fn::Sub": "convox:rack:${Version}-arm64" },
+                    { "Fn::Sub": "convox/rack:${Version}-arm64" },
                     { "Fn::Sub": "convox/rack:${Version}" }
                   ]
                 },
@@ -2813,7 +2813,7 @@
             "Image":                 {
               "Fn::If": [
                 "InstanceARM",
-                { "Fn::Sub": "convox:rack:${Version}-arm64" },
+                { "Fn::Sub": "convox/rack:${Version}-arm64" },
                 { "Fn::Sub": "convox/rack:${Version}" }
               ]
             },
@@ -2920,7 +2920,7 @@
             "Image":                 {
               "Fn::If": [
                 "InstanceARM",
-                { "Fn::Sub": "convox:rack:${Version}-arm64" },
+                { "Fn::Sub": "convox/rack:${Version}-arm64" },
                 { "Fn::Sub": "convox/rack:${Version}" }
               ]
             },
