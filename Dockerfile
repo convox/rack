@@ -1,6 +1,6 @@
 ## test ########################################################################
 
-FROM golang:1.12 AS test
+FROM golang:1.16 AS test
 
 ARG DOCKER_ARCH=x86_64
 ARG KUBECTL_ARCH=amd64
@@ -16,10 +16,10 @@ RUN curl -Ls https://github.com/mattgreen/watchexec/releases/download/1.8.6/watc
 
 WORKDIR /go/src/github.com/convox/rack
 
-COPY vendor vendor
+COPY . .
+
 RUN go install --ldflags="-s -w" ./vendor/...
 
-COPY . .
 
 ## development #################################################################
 
@@ -48,7 +48,7 @@ CMD ["bin/web"]
 
 ## package #####################################################################
 
-FROM golang:1.12 AS package
+FROM golang:1.16 AS package
 
 RUN apt-get update && apt-get -y install upx-ucl
 

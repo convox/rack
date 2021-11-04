@@ -1,6 +1,6 @@
 ## package #####################################################################
 
-FROM golang:1.12 AS package
+FROM golang:1.16 AS package
 
 RUN apt-get update && apt-get -y install upx-ucl
 
