@@ -1,7 +1,9 @@
 .PHONY: all build clean package package-deps package-export package-gopath release
 
-pkg_darwin  = pkg/convox-darwin-10.6-amd64
+pkg_darwin  = pkg/convox-darwin-10.12-amd64
+pkg_darwin_arm64  = pkg/convox-darwin-10.12-arm64
 pkg_linux   = pkg/convox-linux-amd64
+pkg_linux_arm64   = pkg/convox-linux-amd64
 pkg_windows = pkg/convox-windows-4.0-amd64.exe
 
 sources = $(shell find . -name '*.go')
@@ -17,7 +19,7 @@ clean:
 package: package-deps package-gopath $(pkg_darwin) $(pkg_linux) $(pkg_windows) package-export
 
 package-deps:
-	go get -u github.com/karalabe/xgo
+	go get -u github.com/crazy-max/xgo
 	mkdir -p pkg
 
 # copy finished packages out if running inside a container
@@ -30,14 +32,20 @@ package-gopath:
 
 release: package
 	aws s3 cp $(pkg_darwin) s3://convox/release/$(VERSION)/cli/darwin/convox --acl public-read
+	aws s3 cp $(pkg_darwin_arm64) s3://convox/release/$(VERSION)/cli/darwin/convox-arm64 --acl public-read
 	aws s3 cp $(pkg_linux) s3://convox/release/$(VERSION)/cli/linux/convox --acl public-read
+	aws s3 cp $(pkg_linux_arm64) s3://convox/release/$(VERSION)/cli/linux/convox-arm64 --acl public-read
 	aws s3 cp $(pkg_windows) s3://convox/release/$(VERSION)/cli/windows/convox.exe --acl public-read
 
+
 $(pkg_darwin): $(sources)
-	$(GOPATH)/bin/xgo -branch $(shell git rev-parse HEAD) -out pkg/convox -targets 'darwin/amd64' -ldflags "-X main.version=$(VERSION)" .
+    # cd to root folder because we need go.mod
+	cd ../.. && $(GOPATH)/bin/xgo -branch $(shell git rev-parse HEAD) -pkg cmd/convox -out cmd/convox/pkg/convox -go 1.16.x -targets 'darwin/amd64,darwin/arm64' -ldflags "-X main.version=$(VERSION)" .
 
 $(pkg_linux): $(sources)
-	$(GOPATH)/bin/xgo -branch $(shell git rev-parse HEAD) -out pkg/convox -targets 'linux/amd64' -ldflags "-X main.version=$(VERSION)" .
+    # cd to root folder because we need go.mod
+	cd ../.. && $(GOPATH)/bin/xgo -branch $(shell git rev-parse HEAD) -pkg cmd/convox -out cmd/convox/pkg/convox -go 1.16.x -targets 'linux/amd64,linux/arm64' -ldflags "-X main.version=$(VERSION)" .
 
 $(pkg_windows): $(sources)
-	$(GOPATH)/bin/xgo -branch $(shell git rev-parse HEAD) -out pkg/convox -targets 'windows/amd64' -ldflags "-X main.version=$(VERSION)" .
+    # cd to root folder because we need go.mod
+	cd ../../ && $(GOPATH)/bin/xgo -branch $(shell git rev-parse HEAD) -pkg cmd/convox -out cmd/convox/pkg/convox -go 1.16.x -targets 'windows/amd64' -ldflags "-X main.version=$(VERSION)" .
