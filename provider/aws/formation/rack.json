@@ -148,8 +148,8 @@
       "us-east-2":      { "Ami": "ami-023ef2526f4bf79c9", "ArmAmi": "ami-0288951ce92175bdb", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "033677994240", "Fargate": "Yes" },
       "us-west-1":      { "Ami": "ami-0e92f5873da29c633", "ArmAmi": "ami-00e41e0af4393d3cb", "EFS": "Yes", "ThirdAvailabilityZone": "No",  "ELBAccountId": "027434742980", "Fargate": "No"  },
       "us-west-2":      { "Ami": "ami-05a7414872af4b564", "ArmAmi": "ami-09ab5d76b117b41b0", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "797873946194", "Fargate": "Yes" },
-      "us-gov-east-1":  { "Ami": "ami-04f633b669ee7b61c", "ArmAmi": "",                      "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "190560391635", "Fargate": "Yes" },
-      "us-gov-west-1":  { "Ami": "ami-90704ef1",          "ArmAmi": "",                      "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "048591011584", "Fargate": "Yes" }
+      "us-gov-east-1":  { "Ami": "ami-09c78c4bf3ddfc2c1", "ArmAmi": "ami-00947675fd7f2f13f", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "190560391635", "Fargate": "Yes" },
+      "us-gov-west-1":  { "Ami": "ami-0430cdf9d765c8341", "ArmAmi": "ami-028e37934f000fdb7", "EFS": "Yes", "ThirdAvailabilityZone": "Yes", "ELBAccountId": "048591011584", "Fargate": "Yes" }
     }
   },
   "Outputs": {
