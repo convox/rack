@@ -50,6 +50,11 @@ workflows:
           provider: aws
       - ci:
           <<: *filter-releases-any
+          name: ci/aws/public/arm64
+          provider: aws
+          args: "InstanceType=t4g.small BuildInstance=t4g.small"
+      - ci:
+          <<: *filter-releases-any
           name: ci/aws/private
           provider: aws
           args: Private=Yes
@@ -62,6 +67,7 @@ workflows:
           context: staging
           requires:
             - ci/aws/public
+            - ci/aws/public/arm64
             - ci/aws/private
             # - ci/kaws
           name: ci/staging/rack
@@ -91,7 +97,7 @@ jobs:
         type: string
         default: ""
     docker:
-      - image: circleci/golang:1.12
+      - image: circleci/golang:1.16
     environment:
       PROVIDER: <<parameters.provider>>
       ARGS: <<parameters.args>>
@@ -103,14 +109,14 @@ jobs:
       - ci-uninstall
   cleanup:
     docker:
-      - image: circleci/golang:1.12
+      - image: circleci/golang:1.16
     steps:
       - checkout
       - ci-dependencies
       - run: scripts/ci-cleanup
   cleanup_all:
     docker:
-      - image: circleci/golang:1.12
+      - image: circleci/golang:1.16
     steps:
       - checkout
       - ci-dependencies
@@ -124,14 +130,14 @@ jobs:
       repo:
         type: string
     docker:
-      - image: circleci/golang:1.12
+      - image: circleci/golang:1.16
     steps:
       - checkout
       - ci-dependencies
       - run: ci/deploy.sh <<parameters.repo>> <<parameters.app>> <<parameters.check>>
   test:
     docker:
-      - image: circleci/golang:1.12
+      - image: circleci/golang:1.16
     working_directory: /go/src/github.com/convox/rack
     steps:
       - checkout
@@ -143,7 +149,7 @@ jobs:
       - run: curl -s https://codecov.io/bash | bash
   update:
     docker:
-      - image: circleci/golang:1.12
+      - image: circleci/golang:1.16
     steps:
       - checkout
       - ci-dependencies

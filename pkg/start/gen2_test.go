@@ -36,9 +36,6 @@ func TestStart2(t *testing.T) {
 	e := &exec.MockInterface{}
 	start.Exec = e
 
-	e.On("Execute", "docker", "inspect", "httpd", "--format", "{{json .Config.Env}}").Return([]byte(`["FOO=bar","BAZ=qux"]`), nil)
-	e.On("Execute", "docker", "inspect", "httpd", "--format", "{{.Config.WorkingDir}}").Return([]byte(`/app/foo`), nil)
-
 	cwd, err := os.Getwd()
 	require.NoError(t, err)
 	os.Chdir("testdata/httpd")
@@ -51,26 +48,38 @@ func TestStart2(t *testing.T) {
 
 	buf := bytes.Buffer{}
 
-	opts := start.Options2{
-		App:      "app1",
-		Provider: p,
-		Test:     true,
+	for _, sync := range []bool{true, false} {
+		if sync {
+			e.On("Execute", "docker", "inspect", "httpd", "--format", "{{json .Config.Env}}").Return([]byte(`["FOO=bar","BAZ=qux"]`), nil)
+			e.On("Execute", "docker", "inspect", "httpd", "--format", "{{.Config.WorkingDir}}").Return([]byte(`/app/foo`), nil)
+		}
+
+		opts := start.Options2{
+			App:      "app1",
+			Provider: p,
+			Test:     true,
+			Sync:     true,
+		}
+
+		err = s.Start2(ctx, &buf, opts)
+		require.NoError(t, err)
+
+		require.Equal(t,
+			[]string{
+				"<color3>web   </color3> | log1",
+				"<color3>web   </color3> | log2",
+				"<system>convox</system> | stopping",
+			},
+			strings.Split(strings.TrimSuffix(buf.String(), "\n"), "\n"),
+		)
+
+		p.AssertExpectations(t)
+
+		if sync {
+			e.AssertExpectations(t)
+		}
 	}
 
-	err = s.Start2(ctx, &buf, opts)
-	require.NoError(t, err)
-
-	require.Equal(t,
-		[]string{
-			"<color3>web   </color3> | log1",
-			"<color3>web   </color3> | log2",
-			"<system>convox</system> | stopping",
-		},
-		strings.Split(strings.TrimSuffix(buf.String(), "\n"), "\n"),
-	)
-
-	p.AssertExpectations(t)
-	e.AssertExpectations(t)
 }
 
 func TestStart2Options(t *testing.T) {

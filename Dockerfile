@@ -1,11 +1,14 @@
 ## test ########################################################################
 
-FROM golang:1.12 AS test
+FROM golang:1.16 AS test
 
-RUN curl -s https://download.docker.com/linux/static/stable/x86_64/docker-18.03.1-ce.tgz | \
+ARG DOCKER_ARCH=x86_64
+ARG KUBECTL_ARCH=amd64
+
+RUN curl -s https://download.docker.com/linux/static/stable/${DOCKER_ARCH}/docker-18.03.1-ce.tgz | \
     tar -C /usr/bin --strip-components 1 -xz
 
-RUN curl -Ls https://storage.googleapis.com/kubernetes-release/release/v1.13.0/bin/linux/amd64/kubectl -o /usr/bin/kubectl && \
+RUN curl -Ls https://storage.googleapis.com/kubernetes-release/release/v1.13.0/bin/linux/${KUBECTL_ARCH}/kubectl -o /usr/bin/kubectl && \
     chmod +x /usr/bin/kubectl
 
 RUN curl -Ls https://github.com/mattgreen/watchexec/releases/download/1.8.6/watchexec-1.8.6-x86_64-unknown-linux-gnu.tar.gz | \
@@ -13,10 +16,10 @@ RUN curl -Ls https://github.com/mattgreen/watchexec/releases/download/1.8.6/watc
 
 WORKDIR /go/src/github.com/convox/rack
 
-COPY vendor vendor
+COPY . .
+
 RUN go install --ldflags="-s -w" ./vendor/...
 
-COPY . .
 
 ## development #################################################################
 
@@ -45,7 +48,7 @@ CMD ["bin/web"]
 
 ## package #####################################################################
 
-FROM golang:1.12 AS package
+FROM golang:1.16 AS package
 
 RUN apt-get update && apt-get -y install upx-ucl
 
@@ -60,12 +63,16 @@ RUN make package build compress
 
 FROM ubuntu:18.04
 
+ARG DOCKER_ARCH=x86_64
+ARG KUBECTL_ARCH=amd64
+
+RUN echo "$(uname -a)"
 RUN apt-get -qq update && apt-get -qq -y install curl
 
-RUN curl -s https://download.docker.com/linux/static/stable/x86_64/docker-18.03.1-ce.tgz | \
+RUN curl -s https://download.docker.com/linux/static/stable/${DOCKER_ARCH}/docker-18.03.1-ce.tgz | \
     tar -C /usr/bin --strip-components 1 -xz
 
-RUN curl -Ls https://storage.googleapis.com/kubernetes-release/release/v1.13.0/bin/linux/amd64/kubectl -o /usr/bin/kubectl && \
+RUN curl -Ls https://storage.googleapis.com/kubernetes-release/release/v1.13.0/bin/linux/${KUBECTL_ARCH}/kubectl -o /usr/bin/kubectl && \
     chmod +x /usr/bin/kubectl
 
 ENV DEVELOPMENT=false
