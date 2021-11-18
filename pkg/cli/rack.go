@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"net/url"
@@ -244,6 +245,10 @@ func RackParamsSet(rack sdk.Interface, c *stdcli.Context) error {
 
 		if len(parts) != 2 {
 			return fmt.Errorf("Key=Value expected: %s", arg)
+		}
+
+		if parts[0] == "HighAvailability" {
+			return errors.New("the HighAvailability parameter is only supported during rack installation")
 		}
 
 		opts.Parameters[parts[0]] = parts[1]
