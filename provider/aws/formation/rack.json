@@ -99,11 +99,8 @@
     "InternetGateway": { "Fn::Not": [ { "Fn::Equals": [ { "Ref": "InternetGateway" }, "" ] } ] },
     "NotExistingVpcAndBlankInternetGateway": { "Fn::Not": [ { "Condition": "ExistingVpcAndBlankInternetGateway" } ] },
     "Private": { "Fn::Or": [ { "Condition": "PrivateBuild" }, { "Condition": "PrivateInstances" } ] },
-    "PrivateAndThirdAvailabilityZone": {
-      "Fn::And": [ { "Condition": "Private" }, { "Condition": "ThirdAvailabilityZone" } ]
-    },
     "PrivateAndThirdAvailabilityZoneAndHighAvailability": {
-      "Fn::And": [ { "Condition": "PrivateAndThirdAvailabilityZone" }, { "Condition": "HighAvailability" } ]
+      "Fn::And": [ { "Condition": "Private" }, { "Condition": "ThirdAvailabilityZone" }, { "Condition": "HighAvailability" } ]
     },
     "PrivateApi": { "Fn::Equals": [ { "Ref": "PrivateApi" }, "Yes" ] },
     "PrivateBuild": { "Fn::Or": [ { "Fn::Equals": [ { "Ref": "Private" }, "Yes" ] }, { "Fn::Equals": [ { "Ref": "PrivateBuild" }, "Yes" ] } ] },
