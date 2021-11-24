@@ -19,7 +19,7 @@ clean:
 package: package-deps package-gopath $(pkg_darwin) $(pkg_linux) $(pkg_windows) package-export
 
 package-deps:
-	go get -u github.com/crazy-max/xgo
+	go install github.com/crazy-max/xgo@v0.7.5
 	mkdir -p pkg
 
 # copy finished packages out if running inside a container
