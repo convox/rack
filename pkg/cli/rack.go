@@ -142,6 +142,10 @@ func RackInstall(rack sdk.Interface, c *stdcli.Context) error {
 		opts.Parameters[parts[0]] = parts[1]
 	}
 
+	if err := validateParams(opts.Parameters); err != nil {
+		return err
+	}
+
 	p, err := pv.FromName(c.Arg(0))
 	if err != nil {
 		return err
@@ -252,6 +256,10 @@ func RackParamsSet(rack sdk.Interface, c *stdcli.Context) error {
 		}
 
 		opts.Parameters[parts[0]] = parts[1]
+	}
+
+	if err := validateParams(opts.Parameters); err != nil {
+		return err
 	}
 
 	c.Startf("Updating parameters")
@@ -428,4 +436,14 @@ func RackWait(rack sdk.Interface, c *stdcli.Context) error {
 	}
 
 	return c.OK()
+}
+
+// validateParams validate parameters for install and update rack
+func validateParams(params map[string]string) error {
+	srdown, srup := params["ScheduleRackScaleDown"], params["ScheduleRackScaleUp"]
+	if (srdown == "" || srup == "") && (srdown != "" || srup != "") {
+		return fmt.Errorf("to configure ScheduleAction you need both ScheduleRackScaleDown and ScheduleRackScaleUp parameters")
+	}
+
+	return nil
 }
