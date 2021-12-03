@@ -113,6 +113,12 @@
     "RegionHasEFSAndThirdAvailabilityZoneAndHighAvailability": {
       "Fn::And": [ { "Condition": "RegionHasEFS" }, { "Condition": "ThirdAvailabilityZone" }, { "Condition": "HighAvailability" } ]
     },
+    "SetScheduleRackScale": { "Fn::Not" : [{
+      "Fn::And": [
+        { "Fn::Equals": [ { "Ref": "ScheduleRackScaleDown" }, "" ] },
+        { "Fn::Equals": [ { "Ref": "ScheduleRackScaleUp" }, "" ] }
+      ]}
+    ] },
     "SpotInstances": { "Fn::Not": [ { "Fn::Equals": [ { "Ref": "SpotInstanceBid"}, "" ] } ] },
     "SwapEnabled": { "Fn::Not": [ { "Fn::Equals": [ { "Ref": "SwapSize" }, "0" ] } ] },
     "ThirdAvailabilityZone": { "Fn::And": [
@@ -725,6 +731,16 @@
       "Default": "",
       "Description": "The security groups (comma delimited) to assign to the rack router.",
       "Type": "CommaDelimitedList"
+    },
+    "ScheduleRackScaleDown": {
+      "Type": "String",
+      "Description": "The recurring schedule for when the rack will be shutdown. This format consists of five fields separated by white spaces: [Minute] [Hour] [Day_of_Month] [Month_of_Year] [Day_of_Week]",
+      "Default": ""
+    },
+    "ScheduleRackScaleUp": {
+      "Type": "String",
+      "Description": "The recurring schedule for when the rack will start. This format consists of five fields separated by white spaces: [Minute] [Hour] [Day_of_Month] [Month_of_Year] [Day_of_Week]",
+      "Default": ""
     },
     "SpotInstanceBid": {
       "Default": "",
@@ -1720,6 +1736,49 @@
           ],
           "WaitOnResourceSignals": "true"
         }
+      }
+    },
+    "InstancesScheduleRackScaleDown":{
+      "Type":"AWS::AutoScaling::ScheduledAction",
+      "Condition": "SetScheduleRackScale",
+      "Properties":{
+        "AutoScalingGroupName": { "Ref": "Instances" },
+        "MaxSize": "0",
+        "MinSize": "0",
+        "Recurrence": { "Ref": "ScheduleRackScaleDown" }
+      }
+    },
+    "InstancesScheduleRackScaleUp":{
+      "Type":"AWS::AutoScaling::ScheduledAction",
+      "Condition": "SetScheduleRackScale",
+      "Properties":{
+        "AutoScalingGroupName": { "Ref": "Instances" },
+        "DesiredCapacity" : { "Fn::If": [ "SpotInstances", { "Ref": "AWS::NoValue" }, { "Fn::If": [ "HighAvailability", { "Ref": "InstanceCount"}, "1" ] } ] },
+        "MinSize" : { "Fn::If": [ "SpotInstances", { "Ref": "OnDemandMinCount" }, { "Fn::If": [ "HighAvailability", { "Ref": "InstanceCount"}, "1" ] } ] },
+        "MaxSize" : { "Fn::If": [ "HighAvailability", "1000", "3" ] },
+        "Recurrence": { "Ref": "ScheduleRackScaleUp" }
+      }
+    },
+    "BuildScheduleRackScaleDown":{
+      "Type":"AWS::AutoScaling::ScheduledAction",
+      "Condition": "SetScheduleRackScale",
+      "Properties":{
+        "AutoScalingGroupName": { "Ref": "BuildInstances" },
+        "DesiredCapacity": "0",
+        "MaxSize": "0",
+        "MinSize": "0",
+        "Recurrence": { "Ref": "ScheduleRackScaleDown" }
+      }
+    },
+    "BuildScheduleRackScaleUp":{
+      "Type":"AWS::AutoScaling::ScheduledAction",
+      "Condition": "SetScheduleRackScale",
+      "Properties":{
+        "AutoScalingGroupName": { "Ref": "BuildInstances" },
+        "DesiredCapacity": "1",
+        "MaxSize":"2",
+        "MinSize":"1",
+        "Recurrence": { "Ref": "ScheduleRackScaleUp" }
       }
     },
     "InstancesAutoscaler": {
