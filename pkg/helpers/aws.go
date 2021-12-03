@@ -99,6 +99,11 @@ func CloudformationInstall(cf cloudformationiface.CloudFormationAPI, name, templ
 		TemplateURL: aws.String(template),
 	}
 
+	sadown, saup := params["ScheduledActionDownCron"], params["ScheduledActionUpCron"]
+	if (sadown == "" || saup == "") && (sadown != "" || saup != "") {
+		return fmt.Errorf("to configure ScheduleAction you need both ScheduledActionDownCron and ScheduledActionUpCron parameters")
+	}
+
 	for k, v := range params {
 		req.Parameters = append(req.Parameters, &cloudformation.Parameter{
 			ParameterKey:   aws.String(k),

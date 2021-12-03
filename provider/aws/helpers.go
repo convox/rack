@@ -416,7 +416,7 @@ func volumeFrom(app, s string) string {
 	case "/etc/passwd":
 		return v
 	case "/proc/":
-		return v		
+		return v
 	case "/sys/fs/cgroup/":
 		return v
 	case "/sys/kernel/debug/":
@@ -1243,6 +1243,11 @@ func (p *Provider) taskDefinitionRelease(arn string) (string, error) {
 func (p *Provider) updateStack(name string, template []byte, changes map[string]string, tags map[string]string, id string) error {
 	cache.Clear("describeStacks", nil)
 	cache.Clear("describeStacks", name)
+
+	sadown, saup := changes["ScheduledActionDownCron"], changes["ScheduledActionUpCron"]
+	if (sadown == "" || saup == "") && (sadown != "" || saup != "") {
+		return fmt.Errorf("to configure ScheduleAction you need both ScheduledActionDownCron and ScheduledActionUpCron parameters")
+	}
 
 	req := &cloudformation.UpdateStackInput{
 		Capabilities:     []*string{aws.String("CAPABILITY_IAM")},
