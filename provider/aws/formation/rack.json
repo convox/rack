@@ -113,6 +113,8 @@
     "RegionHasEFSAndThirdAvailabilityZoneAndHighAvailability": {
       "Fn::And": [ { "Condition": "RegionHasEFS" }, { "Condition": "ThirdAvailabilityZone" }, { "Condition": "HighAvailability" } ]
     },
+    "SetScheduledActionDown": { "Fn::Not": [ { "Fn::Equals": [ { "Ref": "ScheduledActionDownCron" }, "" ] } ] },
+    "SetScheduledActionUp": { "Fn::Not": [ { "Fn::Equals": [ { "Ref": "ScheduledActionUpCron" }, "" ] } ] },
     "SpotInstances": { "Fn::Not": [ { "Fn::Equals": [ { "Ref": "SpotInstanceBid"}, "" ] } ] },
     "SwapEnabled": { "Fn::Not": [ { "Fn::Equals": [ { "Ref": "SwapSize" }, "0" ] } ] },
     "ThirdAvailabilityZone": { "Fn::And": [
@@ -725,6 +727,16 @@
       "Default": "",
       "Description": "The security groups (comma delimited) to assign to the rack router.",
       "Type": "CommaDelimitedList"
+    },
+    "ScheduledActionDownCron": {
+      "Type": "String",
+      "Description": "The recurring schedule for when the rack will be shutdown. This format consists of five fields separated by white spaces: [Minute] [Hour] [Day_of_Month] [Month_of_Year] [Day_of_Week]",
+      "Default": "No"
+    },
+    "ScheduledActionUpCron": {
+      "Type": "String",
+      "Description": "The recurring schedule for when the rack will be shutdown. This format consists of five fields separated by white spaces: [Minute] [Hour] [Day_of_Month] [Month_of_Year] [Day_of_Week]",
+      "Default": "No"
     },
     "SpotInstanceBid": {
       "Default": "",
@@ -1720,6 +1732,48 @@
           ],
           "WaitOnResourceSignals": "true"
         }
+      }
+    },
+    "ScheduledActionDown":{
+      "Type":"AWS::AutoScaling::ScheduledAction",
+      "Condition": "SetScheduledActionDown",
+      "Properties":{
+        "AutoScalingGroupName": { "Ref": "Instances" },
+        "MaxSize": "0",
+        "MinSize": "0",
+        "Recurrence": { "Ref": "ScheduledActionDownCron" }
+      }
+    },
+    "ScheduledActionUp":{
+      "Type":"AWS::AutoScaling::ScheduledAction",
+      "Condition": "SetScheduledActionUp",
+      "Properties":{
+        "AutoScalingGroupName": { "Ref": "Instances" },
+        "DesiredCapacity" : { "Fn::If": [ "SpotInstances", { "Ref": "AWS::NoValue" }, { "Fn::If": [ "HighAvailability", { "Ref": "InstanceCount"}, "1" ] } ] },
+        "MinSize" : { "Fn::If": [ "SpotInstances", { "Ref": "OnDemandMinCount" }, { "Fn::If": [ "HighAvailability", { "Ref": "InstanceCount"}, "1" ] } ] },
+        "MaxSize" : { "Fn::If": [ "HighAvailability", "1000", "3" ] },
+        "Recurrence": { "Ref": "ScheduledActionUpCron" }
+      }
+    },
+    "BuildScheduledActionDown":{
+      "Type":"AWS::AutoScaling::ScheduledAction",
+      "Condition": "SetScheduledActionDown",
+      "Properties":{
+        "AutoScalingGroupName": { "Ref": "BuildInstances" },
+        "MaxSize": "0",
+        "MinSize": "0",
+        "Recurrence": { "Ref": "ScheduledActionDownCron" }
+      }
+    },
+    "BuildScheduledActionUp":{
+      "Type":"AWS::AutoScaling::ScheduledAction",
+      "Condition": "SetScheduledActionUp",
+      "Properties":{
+        "AutoScalingGroupName": { "Ref": "BuildInstances" },
+        "DesiredCapacity": "1",
+        "MinSize" : "1",
+        "MaxSize" : "2",
+        "Recurrence": { "Ref": "ScheduledActionUpCron" }
       }
     },
     "InstancesAutoscaler": {
