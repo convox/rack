@@ -3,7 +3,7 @@
 pkg_darwin  = pkg/convox-darwin-amd64
 pkg_darwin_arm64  = pkg/convox-darwin-arm64
 pkg_linux   = pkg/convox-linux-amd64
-pkg_linux_arm64   = pkg/convox-linux-amd64
+pkg_linux_arm64   = pkg/convox-linux-arm64
 pkg_windows = pkg/convox-windows-4.0-amd64.exe
 
 sources = $(shell find . -name '*.go')
@@ -16,7 +16,7 @@ build:
 clean:
 	rm -f pkg/convox-*
 
-package: package-gopath $(pkg_darwin) $(pkg_linux) $(pkg_windows) package-export
+package: package-gopath $(pkg_darwin) $(pkg_darwin_arm64) $(pkg_linux) $(pkg_linux_arm64) $(pkg_windows) package-export
 
 # copy finished packages out if running inside a container
 package-export:
@@ -37,11 +37,17 @@ release: package
 $(pkg_darwin): $(sources)
 	# cd to root folder because we need go.mod
 	cd ../.. && env GOOS=darwin GOARCH=amd64 go build -ldflags "-X main.version=$(VERSION)" -o pkg/convox-darwin-amd64
+
+$(pkg_darwin_arm64): $(sources)
+	# cd to root folder because we need go.mod
 	cd ../.. && env GOOS=darwin GOARCH=arm64 go build -ldflags "-X main.version=$(VERSION)" -o pkg/convox-darwin-arm64
 
 $(pkg_linux): $(sources)
 	# cd to root folder because we need go.mod
 	cd ../.. && env GOOS=linux GOARCH=amd64 go build -ldflags "-X main.version=$(VERSION)" -o pkg/convox-linux-amd64
+
+$(pkg_linux_arm64): $(sources)
+	# cd to root folder because we need go.mod
 	cd ../.. && env GOOS=linux GOARCH=arm64 go build -ldflags "-X main.version=$(VERSION)" -o pkg/convox-linux-arm64
 
 $(pkg_windows): $(sources)
