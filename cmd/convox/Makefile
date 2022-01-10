@@ -24,6 +24,7 @@ package-export:
 
 # copy gopath in if running inside a container
 package-gopath:
+	mkdir -p pkg
 	if [ -f /.dockerenv ]; then tar cz $(GOPATH) | docker run -v $(GOPATH):/gopath -i ubuntu tar xz -C /gopath --strip-components 2; fi
 
 release: package
