@@ -1449,6 +1449,11 @@
             ] },
             "  - /opt/aws/bin/cfn-signal --http-proxy \"", { "Ref": "HttpProxy" }, "\" --stack ", { "Ref": "AWS::StackName" }, " --region ", { "Ref":"AWS::Region" }, " --resource BuildInstances\n"
           ] ] }
+        },
+        "MetadataOptions": {
+          "HttpEndpoint" : "enabled",
+          "HttpPutResponseHopLimit" : 2,
+          "HttpTokens" : "required"
         }
       }
     },
@@ -1657,6 +1662,11 @@
             "  - env $(cat /etc/environment) /usr/bin/aws autoscaling complete-lifecycle-action --region ", { "Ref": "AWS::Region" }, " --instance-id $INSTANCE_ID --lifecycle-hook-name $LIFECYCLE_HOOK --auto-scaling-group-name $ASG_NAME --lifecycle-action-result CONTINUE\n",
             "  - env $(cat /etc/environment) /opt/aws/bin/cfn-signal --http-proxy \"", { "Ref": "HttpProxy" }, "\" --stack ", { "Ref": "AWS::StackName" }, " --region ", { "Ref": "AWS::Region" }, " --resource Instances\n"
           ] ] }
+        },
+        "MetadataOptions": {
+          "HttpEndpoint" : "enabled",
+          "HttpPutResponseHopLimit" : 2,
+          "HttpTokens" : "required"
         }
       }
     },
@@ -2118,6 +2128,11 @@
             "  - env $(cat /etc/environment) /usr/bin/aws autoscaling complete-lifecycle-action --region ", { "Ref": "AWS::Region" }, " --instance-id $INSTANCE_ID --lifecycle-hook-name $LIFECYCLE_HOOK --auto-scaling-group-name $ASG_NAME --lifecycle-action-result CONTINUE\n",
             "  - env $(cat /etc/environment) /opt/aws/bin/cfn-signal --http-proxy \"", { "Ref": "HttpProxy" }, "\" --stack ", { "Ref": "AWS::StackName" }, " --region ", { "Ref": "AWS::Region" }, " --resource SpotInstances\n"
           ] ] }
+        },
+        "MetadataOptions": {
+          "HttpEndpoint" : "enabled",
+          "HttpPutResponseHopLimit" : 2,
+          "HttpTokens" : "required"
         }
       }
     },
