@@ -2707,7 +2707,24 @@
           { "Fn::Sub": "arn:${AWS::Partition}:iam::aws:policy/PowerUserAccess" },
           { "Ref": "ApiPolicy" }
         ],
-        "Path": "/convox/"
+        "Path": "/convox/",
+        "Policies": [
+          {
+            "PolicyName": "ApiRole",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "lambda:GetFunction"
+                  ],
+                  "Resource": "*"
+                }
+              ]
+            }
+          }
+        ]
       }
     },
     "ApiMonitorService": {
