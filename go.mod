@@ -10,12 +10,10 @@ require (
 	github.com/boltdb/bolt v1.3.1
 	github.com/convox/changes v0.0.0-20190306122126-bce25ca20c47
 	github.com/convox/exec v0.0.0-20180905012044-cc13d277f897
-	github.com/convox/hid v0.0.0-20180912192857-c67381b7ffff
 	github.com/convox/logger v0.0.0-20180522214415-e39179955b52
 	github.com/convox/stdapi v0.0.0-20190628182814-148bcf53d167
 	github.com/convox/stdcli v0.0.0-20190326115454-b78bee159e98
 	github.com/convox/stdsdk v0.0.0-20190422120437-3e80a397e377
-	github.com/convox/u2f v0.0.0-20180912192910-a73404142726
 	github.com/convox/version v0.0.0-20160822184233-ffefa0d565d2
 	github.com/docker/docker v1.13.1
 	github.com/docker/go-units v0.3.2
@@ -53,6 +51,7 @@ require (
 	github.com/andybalholm/cascadia v0.0.0-20161224141413-349dd0209470 // indirect
 	github.com/bmizerany/assert v0.0.0-20160611221934-b7ed37b82869 // indirect
 	github.com/convox/inotify v0.0.0-20170313035821-b56f5149b5c6 // indirect
+	github.com/ddollar/go-u2fhost v0.0.0-20200214123511-3ca2df7a0b44
 	github.com/docker/spdystream v0.0.0-20170912183627-bc6354cbbc29 // indirect
 	github.com/elazarl/goproxy v0.0.0-20210801061803-8e322dfb79c4 // indirect
 	github.com/ghodss/yaml v1.0.0 // indirect

@@ -1,0 +1,4 @@
+github.com/karalabe/hid v1.0.0 h1:+/CIMNXhSU/zIJgnIvBD2nKHxS/bnRHhhs9xBryLpPo=
+github.com/karalabe/hid v1.0.0/go.mod h1:Vr51f8rUOLYrfrWDFlV12GGQgM5AT8sVh+2fY4MPeu8=
+github.com/marshallbrekka/go-u2fhost v0.0.0-20200114212649-cc764c209ee9 h1:7dYglvg2+WRsvX//65GyQTYJyooO1HYKGVpKBlIAoms=
+github.com/marshallbrekka/go-u2fhost v0.0.0-20200114212649-cc764c209ee9/go.mod h1:U9kRL9P37LGrkikKWuekWsReXRKe2fkZdRSXpI7pP3A=

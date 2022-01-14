@@ -96,9 +96,6 @@ github.com/convox/changes
 # github.com/convox/exec v0.0.0-20180905012044-cc13d277f897
 ## explicit
 github.com/convox/exec
-# github.com/convox/hid v0.0.0-20180912192857-c67381b7ffff
-## explicit
-github.com/convox/hid
 # github.com/convox/inotify v0.0.0-20170313035821-b56f5149b5c6
 ## explicit
 github.com/convox/inotify
@@ -114,15 +111,14 @@ github.com/convox/stdcli
 # github.com/convox/stdsdk v0.0.0-20190422120437-3e80a397e377
 ## explicit
 github.com/convox/stdsdk
-# github.com/convox/u2f v0.0.0-20180912192910-a73404142726
-## explicit
-github.com/convox/u2f/u2fhid
-github.com/convox/u2f/u2ftoken
 # github.com/convox/version v0.0.0-20160822184233-ffefa0d565d2
 ## explicit
 github.com/convox/version
 # github.com/davecgh/go-spew v1.1.1
 github.com/davecgh/go-spew/spew
+# github.com/ddollar/go-u2fhost v0.0.0-20200214123511-3ca2df7a0b44
+## explicit
+github.com/ddollar/go-u2fhost
 # github.com/docker/docker v1.13.1
 ## explicit
 github.com/docker/docker/builder/dockerignore
@@ -263,9 +259,14 @@ github.com/joho/godotenv
 # github.com/json-iterator/go v1.1.5
 ## explicit
 github.com/json-iterator/go
+# github.com/karalabe/hid v1.0.0
+github.com/karalabe/hid
 # github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
 ## explicit
 github.com/kballard/go-shellquote
+# github.com/marshallbrekka/go-u2fhost v0.0.0-20200114212649-cc764c209ee9
+github.com/marshallbrekka/go-u2fhost/bytes
+github.com/marshallbrekka/go-u2fhost/hid
 # github.com/mattn/go-colorable v0.0.9
 github.com/mattn/go-colorable
 # github.com/mattn/go-isatty v0.0.4
