@@ -1610,17 +1610,6 @@
               { "Ref": "AWS::NoValue" }
             ] },
             "  - until yum install -y aws-cli nfs-utils; do echo \"Waiting for network\"; done;\n",
-            "  - mkdir /volumes\n",
-            { "Fn::If": [ "RegionHasEFS",
-              { "Fn::Join": [ "", [
-                "  - while true; do mount -t nfs -o nfsvers=4.1 $(curl -s --noproxy 169.254.169.254 http://169.254.169.254/latest/meta-data/placement/availability-zone).",
-                { "Ref": "VolumeFilesystem" },
-                ".efs.",
-                { "Ref": "AWS::Region" },
-                ".amazonaws.com:/ /volumes && break; sleep 5; done\n"
-              ] ] },
-              ""
-            ] },
             "  - [ cloud-init-per, instance, docker_storage_setup, /usr/bin/docker-storage-setup ]\n",
             "  - echo ECS_CLUSTER=", { "Ref": "Cluster" }, " >> /etc/ecs/ecs.config\n",
             "  - echo ECS_ENABLE_CONTAINER_METADATA=true >> /etc/ecs/ecs.config\n",
@@ -1651,7 +1640,20 @@
               "  - ", { "Ref": "InstanceRunCommand" }, "\n"
               ] ] }
             ] },
-            "  - export INSTANCE_ID=$(curl -s --noproxy 169.254.169.254 http://169.254.169.254/latest/meta-data/instance-id)\n",
+            "  - export IMDS_TOKEN=$(curl -X PUT 'http://169.254.169.254/latest/api/token' -H 'X-aws-ec2-metadata-token-ttl-seconds: 21600')\n",
+            "  - export INSTANCE_ID=$(curl -H 'X-aws-ec2-metad: $IMDS_TOKEN' http://169.254.169.254/latest/meta-data/instance-id)\n",
+            "  - export AVAILABILITY_ZONE=$(curl -H 'X-aws-ec2-metad: $IMDS_TOKEN' http://169.254.169.254/latest/meta-data/placement/availability-zone)\n",
+            "  - mkdir /volumes\n",
+            { "Fn::If": [ "RegionHasEFS",
+              { "Fn::Join": [ "", [
+                "  - while true; do mount -t nfs -o nfsvers=4.1 $AVAILABILITY_ZONE.",
+                { "Ref": "VolumeFilesystem" },
+                ".efs.",
+                { "Ref": "AWS::Region" },
+                ".amazonaws.com:/ /volumes && break; sleep 5; done\n"
+              ] ] },
+              ""
+            ] },
             "  - export ASG_NAME=$(env $(cat /etc/environment) /usr/bin/aws autoscaling describe-auto-scaling-instances --instance-ids=$INSTANCE_ID --region ", {"Ref":"AWS::Region"}, " --output text --query 'AutoScalingInstances[0].AutoScalingGroupName')\n",
             "  - export LIFECYCLE_HOOK=$(env $(cat /etc/environment) /usr/bin/aws autoscaling describe-lifecycle-hooks --auto-scaling-group-name $ASG_NAME --region ", {"Ref":"AWS::Region"}, " --output text --query \"LifecycleHooks[?contains(LifecycleHookName, '", { "Ref": "AWS::StackName" }, "-InstancesLifecycleLaunching') == \\`true\\`].LifecycleHookName | [0]\")\n",
             "  - env $(cat /etc/environment) /usr/bin/aws autoscaling complete-lifecycle-action --region ", { "Ref": "AWS::Region" }, " --instance-id $INSTANCE_ID --lifecycle-hook-name $LIFECYCLE_HOOK --auto-scaling-group-name $ASG_NAME --lifecycle-action-result CONTINUE\n",
@@ -2070,17 +2072,6 @@
               { "Ref": "AWS::NoValue" }
             ] },
             "  - until yum install -y aws-cli nfs-utils; do echo \"Waiting for network\"; done;\n",
-            "  - mkdir /volumes\n",
-            { "Fn::If": [ "RegionHasEFS",
-              { "Fn::Join": [ "", [
-                "  - while true; do mount -t nfs -o nfsvers=4.1 $(curl -s --noproxy 169.254.169.254 http://169.254.169.254/latest/meta-data/placement/availability-zone).",
-                { "Ref": "VolumeFilesystem" },
-                ".efs.",
-                { "Ref": "AWS::Region" },
-                ".amazonaws.com:/ /volumes && break; sleep 5; done\n"
-              ] ] },
-              ""
-            ] },
             "  - [ cloud-init-per, instance, docker_storage_setup, /usr/bin/docker-storage-setup ]\n",
             "  - echo ECS_CLUSTER=", { "Ref": "Cluster" }, " >> /etc/ecs/ecs.config\n",
             "  - echo ECS_ENABLE_CONTAINER_METADATA=true >> /etc/ecs/ecs.config\n",
@@ -2112,7 +2103,20 @@
               "  - ", { "Ref": "InstanceRunCommand" }, "\n"
               ] ] }
             ] },
-            "  - export INSTANCE_ID=$(curl -s --noproxy 169.254.169.254 http://169.254.169.254/latest/meta-data/instance-id)\n",
+            "  - export IMDS_TOKEN=$(curl -X PUT 'http://169.254.169.254/latest/api/token' -H 'X-aws-ec2-metadata-token-ttl-seconds: 21600')\n",
+            "  - export INSTANCE_ID=$(curl -H 'X-aws-ec2-metad: $IMDS_TOKEN' http://169.254.169.254/latest/meta-data/instance-id)\n",
+            "  - export AVAILABILITY_ZONE=$(curl -H 'X-aws-ec2-metad: $IMDS_TOKEN' http://169.254.169.254/latest/meta-data/placement/availability-zone)\n",
+            "  - mkdir /volumes\n",
+            { "Fn::If": [ "RegionHasEFS",
+              { "Fn::Join": [ "", [
+                "  - while true; do mount -t nfs -o nfsvers=4.1 $AVAILABILITY_ZONE.",
+                { "Ref": "VolumeFilesystem" },
+                ".efs.",
+                { "Ref": "AWS::Region" },
+                ".amazonaws.com:/ /volumes && break; sleep 5; done\n"
+              ] ] },
+              ""
+            ] },
             "  - export ASG_NAME=$(env $(cat /etc/environment) /usr/bin/aws autoscaling describe-auto-scaling-instances --instance-ids=$INSTANCE_ID --region ", {"Ref":"AWS::Region"}, " --output text --query 'AutoScalingInstances[0].AutoScalingGroupName')\n",
             "  - export LIFECYCLE_HOOK=$(env $(cat /etc/environment) /usr/bin/aws autoscaling describe-lifecycle-hooks --auto-scaling-group-name $ASG_NAME --region ", {"Ref":"AWS::Region"}, " --output text --query \"LifecycleHooks[?contains(LifecycleHookName, '", { "Ref": "AWS::StackName" }, "-SpotInstancesLifecycleLaunching') == \\`true\\`].LifecycleHookName | [0]\")\n",
             "  - env $(cat /etc/environment) /usr/bin/aws autoscaling complete-lifecycle-action --region ", { "Ref": "AWS::Region" }, " --instance-id $INSTANCE_ID --lifecycle-hook-name $LIFECYCLE_HOOK --auto-scaling-group-name $ASG_NAME --lifecycle-action-result CONTINUE\n",
