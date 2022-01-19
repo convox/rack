@@ -594,6 +594,13 @@
       "Default": "default",
       "AllowedValues": ["default", "always", "once", "prefer-cached"]
     },
+    "IMDSHttpTokens": {
+      "Type": "String",
+      "Description": "You can set EC2 instances to use only v2 by setting IMDSHttpTokens as 'required', see https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/configuring-instance-metadata-options.html#configuring-IMDS-new-instances",
+      "Default": "optional",
+      "AllowedValues": [ "optional", "required" ]
+
+    },
     "Internal": {
       "Type": "String",
       "Description": "Support applications that are only accessible inside the VPC",
@@ -1381,6 +1388,11 @@
         "InstanceMonitoring": true,
         "InstanceType": { "Ref": "BuildInstance" },
         "KeyName": { "Fn::If": [ "BlankKey", { "Ref": "AWS::NoValue" }, { "Ref": "Key" } ] },
+        "MetadataOptions" : {
+          "HttpEndpoint" : "enabled",
+          "HttpPutResponseHopLimit" : 1,
+          "HttpTokens" : { "Ref": "IMDSHttpTokens"}
+        },
         "PlacementTenancy" : { "Ref": "Tenancy" },
         "SecurityGroups": [ { "Fn::If": [ "BlankInstanceSecurityGroup", { "Ref": "InstancesSecurity" }, { "Ref": "InstanceSecurityGroup" } ] } ],
         "UserData": { "Fn::Base64":
@@ -1572,6 +1584,11 @@
         "InstanceMonitoring": true,
         "InstanceType": { "Ref": "InstanceType" },
         "KeyName": { "Fn::If": [ "BlankKey", { "Ref": "AWS::NoValue" }, { "Ref": "Key" } ] },
+        "MetadataOptions" : {
+          "HttpEndpoint" : "enabled",
+          "HttpPutResponseHopLimit" : 1,
+          "HttpTokens" : { "Ref": "IMDSHttpTokens"}
+        },
         "PlacementTenancy" : { "Ref": "Tenancy" },
         "SecurityGroups": [ { "Fn::If": [ "BlankInstanceSecurityGroup", { "Ref": "InstancesSecurity" }, { "Ref": "InstanceSecurityGroup" } ] } ],
         "UserData": { "Fn::Base64":
@@ -2034,6 +2051,11 @@
         "InstanceMonitoring": true,
         "InstanceType": { "Ref": "InstanceType" },
         "KeyName": { "Fn::If": [ "BlankKey", { "Ref": "AWS::NoValue" }, { "Ref": "Key" } ] },
+        "MetadataOptions" : {
+          "HttpEndpoint" : "enabled",
+          "HttpPutResponseHopLimit" : 1,
+          "HttpTokens" : { "Ref": "IMDSHttpTokens"}
+        },
         "SecurityGroups": [ { "Fn::If": [ "BlankInstanceSecurityGroup", { "Ref": "InstancesSecurity" }, { "Ref": "InstanceSecurityGroup" } ] } ],
         "SpotPrice": { "Ref": "SpotInstanceBid" },
         "UserData": { "Fn::Base64":
