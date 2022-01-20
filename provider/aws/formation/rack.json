@@ -1522,11 +1522,9 @@
         "AutoScalingRollingUpdate": {
           "MaxBatchSize": { "Ref": "InstanceUpdateBatchSize" },
           "MinInstancesInService": "1",
-          "PauseTime" : "PT5M",
           "SuspendProcesses": [
             "ScheduledActions"
-          ],
-          "WaitOnResourceSignals": "true"
+          ]
         }
       }
     },
@@ -1749,11 +1747,9 @@
         "AutoScalingRollingUpdate": {
           "MaxBatchSize": { "Ref": "InstanceUpdateBatchSize" },
           "MinInstancesInService": { "Fn::If": [ "SpotInstances", { "Ref": "OnDemandMinCount" }, { "Fn::If": [ "HighAvailability", { "Ref": "InstanceCount"}, "1" ] } ] },
-          "PauseTime" : "PT5M",
           "SuspendProcesses": [
             "ScheduledActions"
-          ],
-          "WaitOnResourceSignals": "true"
+          ]
         }
       }
     },
@@ -2223,11 +2219,9 @@
             "Ref": "InstanceUpdateBatchSize"
           },
           "MinInstancesInService": "0",
-          "PauseTime": "PT5M",
           "SuspendProcesses": [
             "ScheduledActions"
-          ],
-          "WaitOnResourceSignals": "true"
+          ]
         }
       }
     },
