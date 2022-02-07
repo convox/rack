@@ -1707,7 +1707,7 @@
               { "Fn::Join": [ ",", [
                 { "Ref": "Nat0" },
                 { "Ref": "Nat1" },
-                { "Fn::If": [ "ThirdAvailabilityZone", { "Ref": "Nat2" }, { "Ref": "AWS::NoValue" } ] }
+                { "Fn::If": [ "ThirdAvailabilityZoneAndHighAvailability", { "Ref": "Nat2" }, { "Ref": "AWS::NoValue" } ] }
               ] ] },
               ""
             ] }
@@ -2172,7 +2172,7 @@
               { "Fn::Join": [ ",", [
                 { "Ref": "Nat0" },
                 { "Ref": "Nat1" },
-                { "Fn::If": [ "ThirdAvailabilityZone", { "Ref": "Nat2" }, { "Ref": "AWS::NoValue" } ] }
+                { "Fn::If": [ "ThirdAvailabilityZoneAndHighAvailability", { "Ref": "Nat2" }, { "Ref": "AWS::NoValue" } ] }
               ] ] },
               ""
             ] }
@@ -2184,7 +2184,7 @@
               "Value": { "Fn::Join": [ ",", [
                 { "Ref": "VolumeTarget0" },
                 { "Ref": "VolumeTarget1" },
-                { "Fn::If": [ "ThirdAvailabilityZone", { "Ref": "VolumeTarget2" }, { "Ref": "AWS::NoValue" } ] }
+                { "Fn::If": [ "ThirdAvailabilityZoneAndHighAvailability", { "Ref": "VolumeTarget2" }, { "Ref": "AWS::NoValue" } ] }
               ] ] }
             },
             { "Ref": "AWS::NoValue" }
@@ -2940,7 +2940,7 @@
                 { "Fn::Join": [ ",", [
                   { "Fn::Select": [ 0, { "Fn::GetAZs": "" } ] },
                   { "Fn::Select": [ 1, { "Fn::GetAZs": "" } ] },
-                  { "Fn::If": [ "ThirdAvailabilityZone",
+                  { "Fn::If": [ "ThirdAvailabilityZoneAndHighAvailability",
                     { "Fn::Select": [ 2, { "Fn::GetAZs": "" } ] },
                     { "Ref": "AWS::NoValue" }
                   ] }
@@ -2948,7 +2948,7 @@
                 { "Fn::Join": [ ",", [
                   { "Fn::Select": [ 0, { "Ref": "AvailabilityZones" } ] },
                   { "Fn::Select": [ 1, { "Ref": "AvailabilityZones" } ] },
-                  { "Fn::If": [ "ThirdAvailabilityZone",
+                  { "Fn::If": [ "ThirdAvailabilityZoneAndHighAvailability",
                     { "Fn::Select": [ 2, { "Ref": "AvailabilityZones" } ] },
                     { "Ref": "AWS::NoValue" }
                   ] }
