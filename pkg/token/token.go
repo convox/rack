@@ -4,29 +4,42 @@ package token
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"time"
 
-	"github.com/ddollar/go-u2fhost"
+	"github.com/convox/go-u2fhost"
 )
 
-type authenticationKey struct {
-	AppId     string `json:"appId"`
-	KeyHandle string `json:"keyHandle"`
-	Version   string `json:"version"`
+type clientExtension struct {
+	Appid bool `json:"appid"`
+}
+type authenticationResponse struct {
+	AuthenticatorData string `json:"authenticatorData"`
+	ClientDataJSON    string `json:"clientDataJSON"`
+	Signature         string `json:"signature"`
+	UserHandle        string `json:"userHandle"`
+}
+type webauthnResponse struct {
+	ID                     string                 `json:"id"`
+	RawID                  string                 `json:"rawId"`
+	Type                   string                 `json:"type"`
+	ClientExtensionResults clientExtension        `json:"clientExtensionResults"`
+	Response               authenticationResponse `json:"response"`
 }
 
 type authenticationRequest struct {
-	AppId          string `json:"appId"`
-	Challenge      string `json:"challenge"`
-	RegisteredKeys []authenticationKey
-}
-
-type authenticationResponse struct {
-	ClientData    string `json:"clientData"`
-	KeyHandle     string `json:"keyHandle"`
-	SignatureData string `json:"signatureData"`
+	PublicKey struct {
+		Challenge        string `json:"challenge"`
+		Timeout          int    `json:"timeout"`
+		RpID             string `json:"rpId"`
+		AllowCredentials []struct {
+			Type string `json:"type"`
+			ID   string `json:"id"`
+		} `json:"allowCredentials"`
+		UserVerification string `json:"userVerification"`
+	} `json:"publicKey"`
 }
 
 type tokenResponse struct {
@@ -43,10 +56,14 @@ func Authenticate(req []byte) ([]byte, error) {
 	defer cancel()
 
 	var areq authenticationRequest
-
 	if err := json.Unmarshal(req, &areq); err != nil {
 		return nil, err
 	}
+	chbase64, err := fromStdToWebEnconding(areq.PublicKey.Challenge)
+	if err != nil {
+		return nil, err
+	}
+	areq.PublicKey.Challenge = chbase64
 
 	for _, d := range ds {
 		go authenticateWait(ctx, d, areq, ch)
@@ -60,10 +77,18 @@ func Authenticate(req []byte) ([]byte, error) {
 		}
 
 		if res.Response != nil {
-			ares := authenticationResponse{
-				ClientData:    res.Response.ClientData,
-				KeyHandle:     res.Response.KeyHandle,
-				SignatureData: res.Response.SignatureData,
+			ares := webauthnResponse{
+				ID:    res.Response.KeyHandle,
+				RawID: res.Response.KeyHandle,
+				Type:  "public-key",
+				ClientExtensionResults: clientExtension{
+					Appid: true,
+				},
+				Response: authenticationResponse{
+					AuthenticatorData: res.Response.AuthenticatorData,
+					Signature:         res.Response.SignatureData,
+					ClientDataJSON:    res.Response.ClientData,
+				},
 			}
 
 			data, err := json.Marshal(ares)
@@ -116,12 +141,19 @@ func authenticateDevice(ctx context.Context, d *u2fhost.HidDevice, req authentic
 		case <-ctx.Done():
 			return
 		case <-tick.C:
-			for _, k := range req.RegisteredKeys {
+			for _, k := range req.PublicKey.AllowCredentials {
+				base64kh, err := fromStdToWebEnconding(k.ID)
+				if err != nil {
+					ch <- tokenResponse{Error: err}
+				}
+
+				origin := fmt.Sprintf("https://%s", req.PublicKey.RpID)
 				areq := &u2fhost.AuthenticateRequest{
-					AppId:     k.AppId,
-					Challenge: req.Challenge,
-					Facet:     req.AppId,
-					KeyHandle: k.KeyHandle,
+					AppId:     req.PublicKey.RpID,
+					Challenge: req.PublicKey.Challenge,
+					Facet:     origin,
+					WebAuthn:  true,
+					KeyHandle: base64kh,
 				}
 
 				refresh <- true
@@ -140,4 +172,15 @@ func authenticateDevice(ctx context.Context, d *u2fhost.HidDevice, req authentic
 			}
 		}
 	}
+}
+
+// fromStdToWebEnconding convert the key handle to base64
+// then convert it to rawurl enconding, that is expected by the lib
+func fromStdToWebEnconding(kh string) (string, error) {
+	basehk, err := base64.StdEncoding.DecodeString(kh)
+	if err != nil {
+		return "", fmt.Errorf("base64 key handle: %s", err)
+	}
+
+	return base64.RawURLEncoding.EncodeToString(basehk), nil
 }
