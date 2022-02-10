@@ -14,8 +14,8 @@ build:
 package:
 	mkdir -p pkg/
 	export CGO_ENABLED=0
-	env GOOS=linux GOARCH=amd64 go build -ldflags "-X main.version=$(VERSION)" -o $(pkg_linux)
-	env GOOS=linux GOARCH=arm64 go build -ldflags "-X main.version=$(VERSION)" -o $(pkg_linux_arm64)
+	env GOOS=linux GOARCH=amd64 go build -tags=hidraw -ldflags "-X main.version=$(VERSION)" -o $(pkg_linux)
+	env GOOS=linux GOARCH=arm64 go build -tags=hidraw -ldflags "-X main.version=$(VERSION)" -o $(pkg_linux_arm64)
 	env GOOS=darwin GOARCH=amd64 go build -ldflags "-X main.version=$(VERSION)" -o $(pkg_darwin)
 	env GOOS=darwin GOARCH=arm64 go build -ldflags "-X main.version=$(VERSION)" -o $(pkg_darwin_arm64)
 	env GOOS=windows GOARCH=amd64 go build -ldflags "-X main.version=$(VERSION)" -o $(pkg_windows)
