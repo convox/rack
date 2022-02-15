@@ -877,7 +877,7 @@
         "Handler": "index.external",
         "MemorySize": "128",
         "Role": { "Fn::GetAtt": [ "CustomTopicRole", "Arn" ] },
-        "Runtime": "nodejs12.x",
+        "Runtime": "nodejs14.x",
         "Timeout": "300"
       }
     },
