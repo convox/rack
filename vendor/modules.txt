@@ -85,6 +85,18 @@ github.com/aws/aws-sdk-go/service/sqs
 github.com/aws/aws-sdk-go/service/sqs/sqsiface
 github.com/aws/aws-sdk-go/service/sts
 github.com/aws/aws-sdk-go/service/sts/stsiface
+# github.com/bearsh/hid v1.4.0
+## explicit
+github.com/bearsh/hid
+github.com/bearsh/hid/hidapi
+github.com/bearsh/hid/hidapi/hidapi
+github.com/bearsh/hid/hidapi/libusb
+github.com/bearsh/hid/hidapi/linux
+github.com/bearsh/hid/hidapi/mac
+github.com/bearsh/hid/hidapi/windows
+github.com/bearsh/hid/libusb
+github.com/bearsh/hid/libusb/libusb
+github.com/bearsh/hid/libusb/libusb/os
 # github.com/bmizerany/assert v0.0.0-20160611221934-b7ed37b82869
 ## explicit
 # github.com/boltdb/bolt v1.3.1
@@ -96,6 +108,11 @@ github.com/convox/changes
 # github.com/convox/exec v0.0.0-20180905012044-cc13d277f897
 ## explicit
 github.com/convox/exec
+# github.com/convox/go-u2fhost v0.0.0-20220210143516-c133f566e496
+## explicit
+github.com/convox/go-u2fhost
+github.com/convox/go-u2fhost/bytes
+github.com/convox/go-u2fhost/hid
 # github.com/convox/inotify v0.0.0-20170313035821-b56f5149b5c6
 ## explicit
 github.com/convox/inotify
@@ -116,9 +133,6 @@ github.com/convox/stdsdk
 github.com/convox/version
 # github.com/davecgh/go-spew v1.1.1
 github.com/davecgh/go-spew/spew
-# github.com/ddollar/go-u2fhost v0.0.0-20200214123511-3ca2df7a0b44
-## explicit
-github.com/ddollar/go-u2fhost
 # github.com/docker/docker v1.13.1
 ## explicit
 github.com/docker/docker/builder/dockerignore
@@ -166,7 +180,6 @@ github.com/fsouza/go-dockerclient/external/github.com/opencontainers/runc/libcon
 github.com/fsouza/go-dockerclient/external/golang.org/x/net/context
 github.com/fsouza/go-dockerclient/external/golang.org/x/sys/unix
 # github.com/ghodss/yaml v1.0.0
-## explicit
 github.com/ghodss/yaml
 # github.com/gobuffalo/envy v1.6.12
 github.com/gobuffalo/envy
@@ -187,24 +200,20 @@ github.com/gobwas/glob/syntax/ast
 github.com/gobwas/glob/syntax/lexer
 github.com/gobwas/glob/util/runes
 github.com/gobwas/glob/util/strings
-# github.com/gogo/protobuf v1.1.1
-## explicit
+# github.com/gogo/protobuf v1.2.1
 github.com/gogo/protobuf/proto
 github.com/gogo/protobuf/sortkeys
 # github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b
-## explicit
 github.com/golang/glog
-# github.com/golang/groupcache v0.0.0-20180513044358-24b0969c4cb7
-## explicit
+# github.com/golang/groupcache v0.0.0-20190129154638-5b532d6fd5ef
 github.com/golang/groupcache/lru
-# github.com/golang/protobuf v1.2.0
+# github.com/golang/protobuf v1.3.1
 github.com/golang/protobuf/proto
 github.com/golang/protobuf/ptypes
 github.com/golang/protobuf/ptypes/any
 github.com/golang/protobuf/ptypes/duration
 github.com/golang/protobuf/ptypes/timestamp
 # github.com/google/btree v1.0.0
-## explicit
 github.com/google/btree
 # github.com/google/gofuzz v0.0.0-20170612174753-24818f796faf
 ## explicit
@@ -259,14 +268,9 @@ github.com/joho/godotenv
 # github.com/json-iterator/go v1.1.5
 ## explicit
 github.com/json-iterator/go
-# github.com/karalabe/hid v1.0.0
-github.com/karalabe/hid
 # github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
 ## explicit
 github.com/kballard/go-shellquote
-# github.com/marshallbrekka/go-u2fhost v0.0.0-20200114212649-cc764c209ee9
-github.com/marshallbrekka/go-u2fhost/bytes
-github.com/marshallbrekka/go-u2fhost/hid
 # github.com/mattn/go-colorable v0.0.9
 github.com/mattn/go-colorable
 # github.com/mattn/go-isatty v0.0.4
@@ -277,7 +281,7 @@ github.com/mattn/go-runewidth
 # github.com/miekg/dns v1.1.4
 ## explicit
 github.com/miekg/dns
-# github.com/mitchellh/go-homedir v1.0.0
+# github.com/mitchellh/go-homedir v1.1.0
 ## explicit
 github.com/mitchellh/go-homedir
 # github.com/moby/moby v1.13.1
@@ -335,7 +339,7 @@ github.com/twmb/algoimpl/go/graph/lite
 # github.com/xtgo/uuid v0.0.0-20140804021211-a0b114877d4c
 ## explicit
 github.com/xtgo/uuid
-# golang.org/x/crypto v0.0.0-20190228161510-8dd112bcdc25
+# golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2
 ## explicit
 golang.org/x/crypto/acme
 golang.org/x/crypto/acme/autocert
@@ -349,8 +353,7 @@ golang.org/x/crypto/poly1305
 golang.org/x/crypto/salsa20/salsa
 golang.org/x/crypto/ssh
 golang.org/x/crypto/ssh/terminal
-# golang.org/x/net v0.0.0-20190213061140-3a22650c66bd
-## explicit
+# golang.org/x/net v0.0.0-20190522155817-f3200d17e092
 golang.org/x/net/bpf
 golang.org/x/net/context
 golang.org/x/net/html
@@ -363,8 +366,7 @@ golang.org/x/net/internal/iana
 golang.org/x/net/internal/socket
 golang.org/x/net/ipv4
 golang.org/x/net/ipv6
-# golang.org/x/sys v0.0.0-20190302025703-b6889370fb10
-## explicit
+# golang.org/x/sys v0.0.0-20190422165155-953cdadca894
 golang.org/x/sys/cpu
 golang.org/x/sys/unix
 golang.org/x/sys/windows
@@ -373,8 +375,7 @@ golang.org/x/text/secure/bidirule
 golang.org/x/text/transform
 golang.org/x/text/unicode/bidi
 golang.org/x/text/unicode/norm
-# golang.org/x/time v0.0.0-20180412165947-fbb02b2291d2
-## explicit
+# golang.org/x/time v0.0.0-20190308202827-9d24e82272b4
 golang.org/x/time/rate
 # gopkg.in/cheggaaa/pb.v1 v1.0.28
 ## explicit
