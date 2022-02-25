@@ -1,0 +1,26 @@
+language: go
+
+go:
+  - 1.16.x
+  - 1.17.x
+
+arch:
+  - amd64
+  - arm64
+
+os:
+  - linux
+  - osx
+  - windows
+
+script:
+  - go install ./...
+  - go test -v ./...
+  - if [ "${TRAVIS_OS_NAME}" = "linux" ]; then go install -tags hidraw ./...; fi
+  - if [ "${TRAVIS_OS_NAME}" = "linux" ]; then go test -v -tags hidraw ./...; fi
+
+addons:
+  apt:
+    packages:
+    - pkg-config
+    - libudev-dev
