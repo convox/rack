@@ -422,6 +422,15 @@
             "  });",
             "};"
           ] ] }
+        },
+        "VpcConfig": {
+          "SecurityGroupIds": [
+            { "Fn::ImportValue": { "Fn::Sub": "${Rack}:InstancesSecurityGroup" }}
+          ],
+          "SubnetIds": [
+            { "Fn::ImportValue": { "Fn::Sub": "${Rack}:SubnetPrivate0" }},
+            { "Fn::ImportValue": { "Fn::Sub": "${Rack}:SubnetPrivate1" }}
+          ]
         }
       }
     },
@@ -435,7 +444,10 @@
             { "Effect": "Allow", "Action": [ "sts:AssumeRole" ], "Principal": { "Service": [ "lambda.amazonaws.com" ] } }
           ]
         },
-        "ManagedPolicyArns": [ { "Fn::Sub": "arn:${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole" } ],
+        "ManagedPolicyArns": [
+          { "Fn::Sub": "arn:${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole" },
+          { "Fn::Sub": "arn:${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole" }
+        ],
         "Path": "/convox/",
         "Policies": [
           {
@@ -521,6 +533,39 @@
         { "Key": "system", "Value": "convox" },
         { "Key": "app", "Value": { "Ref": "AWS::StackName" } }
       ]
+    }
+  },
+  "SettingsPolicy": {
+    "Type": "AWS::S3::BucketPolicy",
+    "Properties": {
+      "Bucket": { "Ref": "Settings" },
+      "PolicyDocument": {
+        "Version": "2012-10-17",
+        "Statement": [
+          {
+            "Sid": "AllowSSLRequestsOnly",
+            "Action": "s3:*",
+            "Effect": "Deny",
+            "Resource": [
+              { "Fn::GetAtt": ["Settings", "Arn"]},
+              {
+                "Fn::Sub": [
+                  "${bucket}/*",
+                  {
+                    "bucket": { "Fn::GetAtt": ["Settings", "Arn"] }
+                  }
+                ]
+              }
+            ],
+            "Condition": {
+              "Bool": {
+                "aws:SecureTransport": "false"
+              }
+            },
+            "Principal": "*"
+          }
+        ]
+      }
     }
   },
 {{ end }}
