@@ -27,7 +27,7 @@ require (
 	github.com/headzoo/surf v1.0.0
 	github.com/inconshreveable/go-update v0.0.0-20160112193335-8152e7eb6ccf
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
-	github.com/miekg/dns v1.1.4
+	github.com/miekg/dns v1.1.25
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/mweagle/Sparta v0.8.1-0.20171126182155-ead2872585dc
 	github.com/pkg/errors v0.8.1
@@ -35,7 +35,7 @@ require (
 	github.com/stretchr/testify v1.3.0
 	github.com/stvp/rollbar v0.5.1
 	github.com/twmb/algoimpl v0.0.0-20170717182524-076353e90b94
-	golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2
+	golang.org/x/crypto v0.0.0-20190923035154-9ee001bba392
 	gopkg.in/cheggaaa/pb.v1 v1.0.28
 	gopkg.in/yaml.v2 v2.2.2
 	k8s.io/api v0.0.0-20180628040859-072894a440bd
