@@ -264,8 +264,12 @@ func TestProcessRunDetached(t *testing.T) {
 
 func TestProcessStop(t *testing.T) {
 	provider := StubAwsProvider(
-		cycleProcessListTasksRunning,
-		cycleProcessListTasksStopped,
+		cycleProcessListStackResources,
+		cycleProcessDescribeStacks,
+		cycleProcessListTasksByStack,
+		cycleProcessListTasksByService1,
+		cycleProcessListTasksByService2,
+		cycleProcessListTasksByStarted,
 		cycleProcessStopTask,
 	)
 	defer provider.Close()
@@ -762,7 +766,7 @@ var cycleProcessDescribeTasksAllWithBuildCluster = awsutil.Cycle{
 				"arn:aws:ecs:us-east-1:778743527532:task/cluster-test/50b8de99-f94f-4ecd-a98f-5850760f0846",
 				"arn:aws:ecs:us-east-1:778743527532:task/cluster-test/50b8de99-f94f-4ecd-a98f-5850760f0847",
 				"arn:aws:ecs:us-east-1:778743527532:task/cluster-test/50b8de99-f94f-4ecd-a98f-5850760f0845"
-				
+
 			]
 		}`,
 	},
@@ -1414,26 +1418,6 @@ var cycleProcessStopTask = awsutil.Cycle{
 		Body: `{
 			"task": {
 				"taskArn": "arn:aws:ecs:us-east-1:778743527532:task/cluster-test/014b7e61-cc23-47e8-9dc6-0f51f03ff369"
-			}
-		}`,
-	},
-}
-
-var cycleProcessStopTaskReason = awsutil.Cycle{
-	Request: awsutil.Request{
-		RequestURI: "/",
-		Operation:  "AmazonEC2ContainerServiceV20141113.StopTask",
-		Body: `{
-			"cluster": "cluster-test",
-			"reason": "exit:0",
-			"task": "arn:aws:ecs:us-east-1:778743527532:task/50b8de99-f94f-4ecd-a98f-5850760f0845"
-		}`,
-	},
-	Response: awsutil.Response{
-		StatusCode: 200,
-		Body: `{
-			"task": {
-				"taskArn": "arn:aws:ecs:us-east-1:778743527532:task/014b7e61-cc23-47e8-9dc6-0f51f03ff369"
 			}
 		}`,
 	},
