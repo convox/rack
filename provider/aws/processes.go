@@ -331,7 +331,7 @@ func (p *Provider) taskProcesses(tasks []string) (structs.Processes, error) {
 			for _, task := range buildTasks {
 				ecsTasks = append(ecsTasks, task)
 			}
-		} 
+		}
 
 		for _, task := range ecsTasks {
 			if p.IsTest() {
@@ -457,12 +457,14 @@ func (p *Provider) ProcessRun(app, service string, opts structs.ProcessRunOption
 // ProcessStop stops a Process
 func (p *Provider) ProcessStop(app, pid string) error {
 	log := Logger.At("ProcessStop").Namespace("app=%q pid=%q", app, pid).Start()
+	fmt.Println("aws.ProcessStop:", app, pid)
 
-	arn, err := p.taskArnFromPid(pid)
+	arn, err := p.taskArnFromAppPid(app, pid)
 	if err != nil {
 		log.Error(err)
 		return err
 	}
+	fmt.Println("arn: ", arn)
 
 	_, err = p.ecs().StopTask(&ecs.StopTaskInput{
 		Cluster: aws.String(p.Cluster),
@@ -607,7 +609,7 @@ func (p *Provider) describeTaskInner(arn string) (*ecs.Task, error) {
 	// If the task is in the build cluster, use that
 	if (p.BuildCluster != p.Cluster) && (strings.Contains(arn, p.BuildCluster)) {
 		cluster = p.BuildCluster
-	} 
+	}
 
 	res, err := p.describeTasks(&ecs.DescribeTasksInput{
 		Cluster: aws.String(cluster),
@@ -1137,82 +1139,6 @@ func (p *Provider) generateTaskDefinition2(app, service string, opts structs.Pro
 	return req, nil
 }
 
-// func (p *Provider) processRunAttached(app string, rw io.ReadWriter, opts structs.ProcessRunOptions) (*structs.Process, error) {
-//   if opts.Service == nil {
-//     return nil, fmt.Errorf("must specify a service")
-//   }
-
-//   td, err := p.taskDefinitionForRun(app, rw, opts)
-//   if err != nil {
-//     return nil, err
-//   }
-
-//   timeout := "3600"
-
-//   if opts.Timeout != nil {
-//     timeout = strconv.Itoa(*opts.Timeout)
-//   }
-
-//   req := &ecs.RunTaskInput{
-//     Cluster:        aws.String(p.Cluster),
-//     Count:          aws.Int64(1),
-//     StartedBy:      aws.String(fmt.Sprintf("convox.%s", app)),
-//     TaskDefinition: aws.String(td),
-//   }
-
-//   if opts.Command != nil {
-//     req.Overrides = &ecs.TaskOverride{
-//       ContainerOverrides: []*ecs.ContainerOverride{
-//         {
-//           Name: aws.String(*opts.Service),
-//           Command: []*string{
-//             aws.String("sleep"),
-//             aws.String(timeout),
-//           },
-//           Environment: []*ecs.KeyValuePair{
-//             &ecs.KeyValuePair{Name: aws.String("COMMAND"), Value: aws.String(*opts.Command)},
-//           },
-//         },
-//       },
-//     }
-//   }
-
-//   task, err := p.runTask(req)
-//   if err != nil {
-//     return nil, err
-//   }
-
-//   status, err := p.waitForTask(*task.TaskArn)
-//   if err != nil {
-//     return nil, err
-//   }
-//   if status != "RUNNING" {
-//     return nil, fmt.Errorf("error starting container")
-//   }
-
-//   pid := arnToPid(*task.TaskArn)
-
-//   if opts.Command != nil {
-//     code, err := p.ProcessExec(app, pid, *opts.Command, rw, structs.ProcessExecOptions{
-//       Entrypoint: options.Bool(true),
-//       Height:     opts.Height,
-//       Width:      opts.Width,
-//     })
-//     if err != nil && !strings.Contains(err.Error(), "use of closed network") {
-//       return nil, err
-//     }
-
-//     p.stopTask(*task.TaskArn, fmt.Sprintf("exit:%d", code))
-//   }
-
-//   ps, err := p.ProcessGet(app, pid)
-//   if err != nil {
-//     return nil, err
-//   }
-
-//   return ps, nil
-// }
-
 func (p *Provider) ProcessWait(app, pid string) (int, error) {
 	arn, err := p.taskArnFromPid(pid)
 	if err != nil {
@@ -1330,6 +1256,26 @@ func (p *Provider) stopTask(arn string, reason string) error {
 	}
 
 	return nil
+}
+
+func (p *Provider) taskArnFromAppPid(app, pid string) (string, error) {
+	fmt.Println("loading process for ", app)
+	tasks, err := p.appTaskARNs(app)
+	if err != nil {
+		return "", err
+	}
+
+	for _, t := range tasks {
+		// if arnToPid(arn) == pid {
+		// 	return arn, nil
+		// }
+		fmt.Println("task:", t, pid)
+		if strings.HasSuffix(t, pid) {
+			return t, nil
+		}
+	}
+
+	return "", fmt.Errorf("could not find process")
 }
 
 func (p *Provider) taskArnFromPid(pid string) (string, error) {

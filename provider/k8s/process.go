@@ -194,6 +194,7 @@ func (p *Provider) ProcessRun(app, service string, opts structs.ProcessRunOption
 }
 
 func (p *Provider) ProcessStop(app, pid string) error {
+	fmt.Println("k8s.ProcessStop:", app, pid)
 	if err := p.Cluster.CoreV1().Pods(p.AppNamespace(app)).Delete(pid, nil); err != nil {
 		return err
 	}

@@ -1,6 +1,8 @@
 package cli
 
 import (
+	"fmt"
+
 	"github.com/convox/rack/pkg/helpers"
 	"github.com/convox/rack/pkg/structs"
 	"github.com/convox/rack/sdk"
@@ -68,6 +70,7 @@ func PsInfo(rack sdk.Interface, c *stdcli.Context) error {
 func PsStop(rack sdk.Interface, c *stdcli.Context) error {
 	c.Startf("Stopping <process>%s</process>", c.Arg(0))
 
+	fmt.Printf("rack: %+v\n", rack)
 	if err := rack.ProcessStop(app(c), c.Arg(0)); err != nil {
 		return err
 	}

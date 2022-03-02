@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	"io"
 	"sort"
 	"strconv"
@@ -852,6 +853,7 @@ func (s *Server) ProcessRun(c *stdapi.Context) error {
 }
 
 func (s *Server) ProcessStop(c *stdapi.Context) error {
+	fmt.Println("api.ProcessStop:")
 	if err := s.hook("ProcessStopValidate", c); err != nil {
 		return err
 	}
@@ -1448,4 +1450,3 @@ func (s *Server) SystemUpdate(c *stdapi.Context) error {
 func (s *Server) Workers(c *stdapi.Context) error {
 	return stdapi.Errorf(404, "not available via api")
 }
-

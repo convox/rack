@@ -577,6 +577,7 @@ func (c *Client) ProcessRun(app string, service string, opts structs.ProcessRunO
 }
 
 func (c *Client) ProcessStop(app string, pid string) error {
+	fmt.Println("sdk.ProcessStop:", app, pid)
 	var err error
 
 	ro := stdsdk.RequestOptions{Headers: stdsdk.Headers{}, Params: stdsdk.Params{}, Query: stdsdk.Query{}}
@@ -980,4 +981,3 @@ func (c *Client) Workers() error {
 	err := fmt.Errorf("not available via api")
 	return err
 }
-
