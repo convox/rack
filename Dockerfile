@@ -5,7 +5,7 @@ FROM golang:1.16 AS test
 ARG DOCKER_ARCH=x86_64
 ARG KUBECTL_ARCH=amd64
 
-RUN curl -s https://download.docker.com/linux/static/stable/${DOCKER_ARCH}/docker-18.03.1-ce.tgz | \
+RUN curl -s https://download.docker.com/linux/static/stable/${DOCKER_ARCH}/docker-18.09.9.tgz | \
     tar -C /usr/bin --strip-components 1 -xz
 
 RUN curl -Ls https://storage.googleapis.com/kubernetes-release/release/v1.13.0/bin/linux/${KUBECTL_ARCH}/kubectl -o /usr/bin/kubectl && \
@@ -69,7 +69,9 @@ ARG KUBECTL_ARCH=amd64
 RUN echo "$(uname -a)"
 RUN apt-get -qq update && apt-get -qq -y install curl
 
-RUN curl -s https://download.docker.com/linux/static/stable/${DOCKER_ARCH}/docker-18.03.1-ce.tgz | \
+ENV DOCKER_BUILDKIT=1
+
+RUN curl -s https://download.docker.com/linux/static/stable/${DOCKER_ARCH}/docker-18.09.9.tgz | \
     tar -C /usr/bin --strip-components 1 -xz
 
 RUN curl -Ls https://storage.googleapis.com/kubernetes-release/release/v1.13.0/bin/linux/${KUBECTL_ARCH}/kubectl -o /usr/bin/kubectl && \
