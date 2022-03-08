@@ -868,6 +868,15 @@
       }
     },
     "CustomTopic": {
+      "DependsOn": [
+        "RouteDefault",
+        "RouteDefaultPrivate0",
+        "RouteDefaultPrivate1",
+        "Subnet0Routes",
+        "Subnet1Routes",
+        "SubnetPrivate1Routes",
+        "SubnetPrivate0Routes"
+     ],
       "Type": "AWS::Lambda::Function",
       "Properties": {
         "Code": {
