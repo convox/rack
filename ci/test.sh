@@ -113,7 +113,7 @@ convox deploy -a ci2 --wait
 convox registries
 convox registries add quay.io convox+ci 6D5CJVRM5P3L24OG4AWOYGCDRJLPL0PFQAENZYJ1KGE040YDUGPYKOZYNWFTE5CV
 convox registries | grep quay.io | grep convox+ci
-convox build -a ci2 | grep "Authenticating https://quay.io: Login Succeeded"
+convox build -a ci2 | grep -A 5 "Authenticating https://quay.io" | grep "Login Succeeded"
 convox registries remove quay.io
 convox registries | grep -v quay.io
 
