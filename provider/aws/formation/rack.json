@@ -1421,7 +1421,7 @@
             "  - export NO_PROXY=169.254.169.254\n",
             "  - echo NO_PROXY=169.254.169.254 >> /etc/environment\n",
             { "Fn::If": [ "HttpProxy",
-              { "Fn::Join": ["", ["  - echo \"proxy=", { "Ref": "HttpProxy" }, "/\" >> /etc/yum.conf\n"
+              { "Fn::Join": ["", ["  - echo \"proxy=http://", { "Ref": "HttpProxy" }, "/\" >> /etc/yum.conf\n"
               ] ] },
               { "Ref": "AWS::NoValue" }
             ] },
@@ -1612,7 +1612,7 @@
             "  - export NO_PROXY=169.254.169.254\n",
             "  - echo NO_PROXY=169.254.169.254 >> /etc/environment\n",
             { "Fn::If": [ "HttpProxy",
-              { "Fn::Join": ["", ["  - echo \"proxy=", { "Ref": "HttpProxy" }, "/\" >> /etc/yum.conf\n"
+              { "Fn::Join": ["", ["  - echo \"proxy=http://", { "Ref": "HttpProxy" }, "/\" >> /etc/yum.conf\n"
               ] ] },
               { "Ref": "AWS::NoValue" }
             ] },
@@ -2093,7 +2093,7 @@
             "  - export NO_PROXY=169.254.169.254\n",
             "  - echo NO_PROXY=169.254.169.254 >> /etc/environment\n",
             { "Fn::If": [ "HttpProxy",
-              { "Fn::Join": ["", ["  - echo \"proxy=", { "Ref": "HttpProxy" }, "/\" >> /etc/yum.conf\n"
+              { "Fn::Join": ["", ["  - echo \"proxy=http://", { "Ref": "HttpProxy" }, "/\" >> /etc/yum.conf\n"
               ] ] },
               { "Ref": "AWS::NoValue" }
             ] },
@@ -2829,6 +2829,7 @@
             },
             "Environment": [
               { "Name": "AWS_REGION", "Value": { "Ref": "AWS::Region" } },
+              { "Name": "NO_PROXY", "Value": "169.254.169.254,169.254.170.2,/var/run/docker.sock" },
               { "Name": "HTTP_PROXY", "Value": { "Ref": "HttpProxy" } },
               { "Name": "HTTPS_PROXY", "Value": { "Ref": "HttpProxy" } },
               { "Name": "PASSWORD", "Value": { "Ref": "Password" } },
@@ -2918,6 +2919,7 @@
             "Environment": [
               { "Name": "AWS_REGION", "Value": { "Ref": "AWS::Region" } },
               { "Name": "CLIENT_ID", "Value": { "Ref": "ClientId" } },
+              { "Name": "NO_PROXY", "Value": "169.254.169.254,169.254.170.2,/var/run/docker.sock" },
               { "Name": "HTTP_PROXY", "Value": { "Ref": "HttpProxy" } },
               { "Name": "HTTPS_PROXY", "Value": { "Ref": "HttpProxy" } },
               { "Name": "PASSWORD", "Value": { "Ref": "Password" } },
@@ -3025,6 +3027,7 @@
             "Environment": [
               { "Name": "AWS_REGION", "Value": { "Ref": "AWS::Region" } },
               { "Name": "CLIENT_ID", "Value": { "Ref": "ClientId" } },
+              { "Name": "NO_PROXY", "Value": "169.254.169.254,169.254.170.2,/var/run/docker.sock" },
               { "Name": "HTTP_PROXY", "Value": { "Ref": "HttpProxy" } },
               { "Name": "HTTPS_PROXY", "Value": { "Ref": "HttpProxy" } },
               { "Name": "PASSWORD", "Value": { "Ref": "Password" } },
