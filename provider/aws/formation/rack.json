@@ -445,12 +445,10 @@
       }
     },
     "SubnetPrivate0": {
-      "Condition": "Private",
       "Export": { "Name": { "Fn::Sub": "${AWS::StackName}:SubnetPrivate0" } },
       "Value": { "Ref": "SubnetPrivate0" }
     },
     "SubnetPrivate1": {
-      "Condition": "Private",
       "Export": { "Name": { "Fn::Sub": "${AWS::StackName}:SubnetPrivate1" } },
       "Value": { "Ref": "SubnetPrivate1" }
     },
@@ -845,6 +843,9 @@
             }
           ]
         },
+        "ManagedPolicyArns": [
+          { "Fn::Sub": "arn:${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole" }
+        ],
         "Path": "/convox/",
         "Policies": [
           {
@@ -867,6 +868,15 @@
       }
     },
     "CustomTopic": {
+      "DependsOn": [
+        "RouteDefault",
+        "RouteDefaultPrivate0",
+        "RouteDefaultPrivate1",
+        "Subnet0Routes",
+        "Subnet1Routes",
+        "SubnetPrivate1Routes",
+        "SubnetPrivate0Routes"
+     ],
       "Type": "AWS::Lambda::Function",
       "Properties": {
         "Code": {
@@ -878,7 +888,16 @@
         "MemorySize": "128",
         "Role": { "Fn::GetAtt": [ "CustomTopicRole", "Arn" ] },
         "Runtime": "nodejs14.x",
-        "Timeout": "300"
+        "Timeout": "300",
+        "VpcConfig": {
+          "SecurityGroupIds": [
+            { "Fn::If": [ "BlankInstanceSecurityGroup", { "Ref": "InstancesSecurity" }, { "Ref": "InstanceSecurityGroup" }]}
+          ],
+          "SubnetIds": [
+            {"Ref": "SubnetPrivate0"},
+            {"Ref": "SubnetPrivate1"}
+          ]
+        }
       }
     },
     "Vpc": {
@@ -921,7 +940,6 @@
       }
     },
     "Nat0": {
-      "Condition": "Private",
       "Type": "AWS::EC2::NatGateway",
       "Properties": {
         "AllocationId": { "Fn::GetAtt": [ "NatAddress0", "AllocationId" ] },
@@ -929,7 +947,6 @@
       }
     },
     "Nat1": {
-      "Condition": "Private",
       "Type": "AWS::EC2::NatGateway",
       "Properties": {
         "AllocationId": { "Fn::GetAtt": [ "NatAddress1", "AllocationId" ] },
@@ -945,14 +962,12 @@
       }
     },
     "NatAddress0": {
-      "Condition": "Private",
       "Type": "AWS::EC2::EIP",
       "Properties": {
         "Domain": "vpc"
       }
     },
     "NatAddress1": {
-      "Condition": "Private",
       "Type": "AWS::EC2::EIP",
       "Properties": {
         "Domain": "vpc"
@@ -1051,7 +1066,6 @@
       }
     },
     "SubnetPrivate0": {
-      "Condition": "Private",
       "Type": "AWS::EC2::Subnet",
       "Properties": {
         "Tags": [ { "Key": "Name", "Value": { "Fn::Join": [ " ", [ { "Ref": "AWS::StackName" }, "private", "0" ] ] } } ],
@@ -1067,7 +1081,6 @@
       }
     },
     "SubnetPrivate1": {
-      "Condition": "Private",
       "Type": "AWS::EC2::Subnet",
       "Properties": {
         "Tags": [ { "Key": "Name", "Value": { "Fn::Join": [ " ", [ { "Ref": "AWS::StackName" }, "private", "1" ] ] } } ],
@@ -1125,7 +1138,6 @@
       }
     },
     "RouteTablePrivate0": {
-      "Condition": "Private",
       "DependsOn": [ "Nat0" ],
       "Type": "AWS::EC2::RouteTable",
       "Properties": {
@@ -1139,7 +1151,6 @@
       }
     },
     "RouteTablePrivate1": {
-      "Condition": "Private",
       "DependsOn": [ "Nat1" ],
       "Type": "AWS::EC2::RouteTable",
       "Properties": {
@@ -1167,7 +1178,6 @@
       }
     },
     "RouteDefaultPrivate0": {
-      "Condition": "Private",
       "Type": "AWS::EC2::Route",
       "Properties": {
         "DestinationCidrBlock": "0.0.0.0/0",
@@ -1176,7 +1186,6 @@
       }
     },
     "RouteDefaultPrivate1": {
-      "Condition": "Private",
       "Type": "AWS::EC2::Route",
       "Properties": {
         "DestinationCidrBlock": "0.0.0.0/0",
@@ -1218,7 +1227,6 @@
       }
     },
     "SubnetPrivate0Routes": {
-      "Condition": "Private",
       "Type": "AWS::EC2::SubnetRouteTableAssociation",
       "Properties": {
         "SubnetId": { "Ref": "SubnetPrivate0" },
@@ -1226,7 +1234,6 @@
       }
     },
     "SubnetPrivate1Routes": {
-      "Condition": "Private",
       "Type": "AWS::EC2::SubnetRouteTableAssociation",
       "Properties": {
         "SubnetId": { "Ref": "SubnetPrivate1" },
@@ -1801,7 +1808,16 @@
         "MemorySize": "128",
         "Role": { "Fn::GetAtt": [ "ApiRole", "Arn" ] },
         "Runtime": "go1.x",
-        "Timeout": "60"
+        "Timeout": "60",
+        "VpcConfig": {
+          "SecurityGroupIds": [
+            { "Fn::If": [ "BlankInstanceSecurityGroup", { "Ref": "InstancesSecurity" }, { "Ref": "InstanceSecurityGroup" }]}
+          ],
+          "SubnetIds": [
+            { "Ref": "SubnetPrivate0"},
+            { "Ref": "SubnetPrivate1"}
+          ]
+        }
       }
     },
     "InstancesAutoscalerPermission": {
@@ -1919,7 +1935,16 @@
         "MemorySize": "128",
         "Role": { "Fn::GetAtt": [ "InstancesLifecycleHandlerRole", "Arn" ] },
         "Runtime": "go1.x",
-        "Timeout": "300"
+        "Timeout": "300",
+        "VpcConfig": {
+          "SecurityGroupIds": [
+            { "Fn::If": [ "BlankInstanceSecurityGroup", { "Ref": "InstancesSecurity" }, { "Ref": "InstanceSecurityGroup" }]}
+          ],
+          "SubnetIds": [
+            { "Ref": "SubnetPrivate0"},
+            { "Ref": "SubnetPrivate1"}
+          ]
+        }
       }
     },
     "InstancesLifecycleHandlerPermission": {
@@ -1944,6 +1969,9 @@
             }
           ]
         },
+        "ManagedPolicyArns": [
+          { "Fn::Sub": "arn:${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole" }
+        ],
         "Path": "/convox/",
         "Policies": [
           {
@@ -3109,6 +3137,28 @@
               "Principal": { "AWS": { "Fn::FindInMap": [ "RegionConfig", { "Ref": "AWS::Region" }, "ELBAccountId" ] } },
               "Action": "s3:PutObject",
               "Resource": { "Fn::Sub": "arn:${AWS::Partition}:s3:::${Logs}/*" }
+            },
+            {
+              "Sid": "AllowSSLRequestsOnly",
+              "Action": "s3:*",
+              "Effect": "Deny",
+              "Resource": [
+                { "Fn::GetAtt": ["Logs", "Arn"]},
+                {
+                  "Fn::Sub": [
+                    "${bucket}/*",
+                    {
+                      "bucket": { "Fn::GetAtt": ["Logs", "Arn"] }
+                    }
+                  ]
+                }
+              ],
+              "Condition": {
+                "Bool": {
+                  "aws:SecureTransport": "false"
+                }
+              },
+              "Principal": "*"
             }
           ]
         }
@@ -3131,6 +3181,39 @@
           { "Key": "System", "Value": "convox" },
           { "Key": "Rack", "Value": { "Ref": "AWS::StackName" } }
         ]
+      }
+    },
+    "SettingsPolicy": {
+      "Type": "AWS::S3::BucketPolicy",
+      "Properties": {
+        "Bucket": { "Ref": "Settings" },
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": "AllowSSLRequestsOnly",
+              "Action": "s3:*",
+              "Effect": "Deny",
+              "Resource": [
+                { "Fn::GetAtt": ["Settings", "Arn"]},
+                {
+                  "Fn::Sub": [
+                    "${bucket}/*",
+                    {
+                      "bucket": { "Fn::GetAtt": ["Settings", "Arn"] }
+                    }
+                  ]
+                }
+              ],
+              "Condition": {
+                "Bool": {
+                  "aws:SecureTransport": "false"
+                }
+              },
+              "Principal": "*"
+            }
+          ]
+        }
       }
     }
   }
