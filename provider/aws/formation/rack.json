@@ -406,6 +406,9 @@
     "SpotInstances": {
       "Value": { "Fn::If": [ "SpotInstances", "Yes", "No" ] }
     },
+    "SpotInstancesNoHA": {
+      "Value": { "Fn::If": [ "SpotInstancesNoHA", "Yes", "No" ] }
+    },
     "Subnets": {
       "Value": {
         "Fn::Join": [
@@ -1730,7 +1733,7 @@
       "UpdatePolicy": {
         "AutoScalingRollingUpdate": {
           "MaxBatchSize": { "Ref": "InstanceUpdateBatchSize" },
-          "MinInstancesInService": { "Fn::If": [ "SpotInstances", { "Ref": "OnDemandMinCount" }, { "Fn::If": [ "HighAvailability", { "Ref": "InstanceCount"}, "1" ] } ] },
+          "MinInstancesInService": { "Fn::If": [ "SpotInstancesNoHA", { "Ref": "OnDemandMinCount" }, { "Fn::If": [ "HighAvailability", { "Ref": "InstanceCount"}, "1" ] } ] },
           "PauseTime" : "PT5M",
           "SuspendProcesses": [
             "ScheduledActions"
@@ -1755,7 +1758,7 @@
       "Properties":{
         "AutoScalingGroupName": { "Ref": "Instances" },
         "DesiredCapacity" : { "Fn::If": [ "SpotInstances", { "Ref": "AWS::NoValue" }, { "Fn::If": [ "HighAvailability", { "Ref": "InstanceCount"}, "1" ] } ] },
-        "MinSize" : { "Fn::If": [ "SpotInstances", { "Ref": "OnDemandMinCount" }, { "Fn::If": [ "HighAvailability", { "Ref": "InstanceCount"}, "1" ] } ] },
+        "MinSize" : { "Fn::If": [ "SpotInstancesNoHA", { "Ref": "OnDemandMinCount" }, { "Fn::If": [ "HighAvailability", { "Ref": "InstanceCount"}, "1" ] } ] },
         "MaxSize" : { "Fn::If": [ "HighAvailability", "1000", "3" ] },
         "Recurrence": { "Ref": "ScheduleRackScaleUp" }
       }
