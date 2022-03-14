@@ -120,6 +120,7 @@
       ]}
     ] },
     "SpotInstances": { "Fn::Not": [ { "Fn::Equals": [ { "Ref": "SpotInstanceBid"}, "" ] } ] },
+    "SpotInstancesNoHA": { "Fn::And": [ { "Condition": "SpotInstances" }, { "Condition": "HighAvailability" } ] },
     "SwapEnabled": { "Fn::Not": [ { "Fn::Equals": [ { "Ref": "SwapSize" }, "0" ] } ] },
     "ThirdAvailabilityZone": { "Fn::And": [
       { "Fn::Equals": [ { "Fn::FindInMap": [ "RegionConfig", { "Ref": "AWS::Region" }, "ThirdAvailabilityZone" ] }, "Yes" ] },
@@ -1679,7 +1680,7 @@
         "DesiredCapacity" : { "Fn::If": [ "SpotInstances", { "Ref": "AWS::NoValue" }, { "Fn::If": [ "HighAvailability", { "Ref": "InstanceCount"}, "1" ] } ] },
         "HealthCheckType": "EC2",
         "HealthCheckGracePeriod": "120",
-        "MinSize" : { "Fn::If": [ "SpotInstances", { "Ref": "OnDemandMinCount" }, { "Fn::If": [ "HighAvailability", { "Ref": "InstanceCount"}, "1" ] } ] },
+        "MinSize" : { "Fn::If": [ "SpotInstancesNoHA", { "Ref": "OnDemandMinCount" }, { "Fn::If": [ "HighAvailability", { "Ref": "InstanceCount"}, "1" ] } ] },
         "MaxSize" : { "Fn::If": [ "HighAvailability", "1000", "3" ] },
         "MetricsCollection": [ { "Granularity": "1Minute" } ],
         "TerminationPolicies": [ "NewestInstance" ],
@@ -1729,7 +1730,7 @@
       "UpdatePolicy": {
         "AutoScalingRollingUpdate": {
           "MaxBatchSize": { "Ref": "InstanceUpdateBatchSize" },
-          "MinInstancesInService": { "Fn::If": [ "SpotInstances", { "Ref": "OnDemandMinCount" }, { "Fn::If": [ "HighAvailability", { "Ref": "InstanceCount"}, "1" ] } ] },
+          "MinInstancesInService": { "Fn::If": [ "SpotInstancesNoHA", { "Ref": "OnDemandMinCount" }, { "Fn::If": [ "HighAvailability", { "Ref": "InstanceCount"}, "1" ] } ] },
           "PauseTime" : "PT5M",
           "SuspendProcesses": [
             "ScheduledActions"
@@ -1754,7 +1755,7 @@
       "Properties":{
         "AutoScalingGroupName": { "Ref": "Instances" },
         "DesiredCapacity" : { "Fn::If": [ "SpotInstances", { "Ref": "AWS::NoValue" }, { "Fn::If": [ "HighAvailability", { "Ref": "InstanceCount"}, "1" ] } ] },
-        "MinSize" : { "Fn::If": [ "SpotInstances", { "Ref": "OnDemandMinCount" }, { "Fn::If": [ "HighAvailability", { "Ref": "InstanceCount"}, "1" ] } ] },
+        "MinSize" : { "Fn::If": [ "SpotInstancesNoHA", { "Ref": "OnDemandMinCount" }, { "Fn::If": [ "HighAvailability", { "Ref": "InstanceCount"}, "1" ] } ] },
         "MaxSize" : { "Fn::If": [ "HighAvailability", "1000", "3" ] },
         "Recurrence": { "Ref": "ScheduleRackScaleUp" }
       }
@@ -2769,6 +2770,7 @@
               "rack.EcsPollInterval": { "Ref": "EcsPollInterval" },
               "rack.EncryptionKey": { "Ref": "EncryptionKey" },
               "rack.Fargate": { "Fn::FindInMap": [ "RegionConfig", { "Ref": "AWS::Region" }, "Fargate" ] },
+              "rack.HighAvailability": { "Ref": "HighAvailability" },
               "rack.Internal": { "Ref": "Internal" },
               "rack.InternalOnly": { "Ref": "InternalOnly" },
               "rack.LogBucket": { "Fn::If": [ "BlankLogBucket", { "Ref": "Logs" }, { "Ref": "LogBucket" } ] },
@@ -2858,6 +2860,7 @@
               "rack.EcsPollInterval": { "Ref": "EcsPollInterval" },
               "rack.EncryptionKey": { "Ref": "EncryptionKey" },
               "rack.Fargate": { "Fn::FindInMap": [ "RegionConfig", { "Ref": "AWS::Region" }, "Fargate" ] },
+              "rack.HighAvailability": { "Ref": "HighAvailability" },
               "rack.Internal": { "Ref": "Internal" },
               "rack.InternalOnly": { "Ref": "InternalOnly" },
               "rack.LogBucket": { "Fn::If": [ "BlankLogBucket", { "Ref": "Logs" }, { "Ref": "LogBucket" } ] },
@@ -2965,6 +2968,7 @@
               "rack.EcsPollInterval": { "Ref": "EcsPollInterval" },
               "rack.EncryptionKey": { "Ref": "EncryptionKey" },
               "rack.Fargate": { "Fn::FindInMap": [ "RegionConfig", { "Ref": "AWS::Region" }, "Fargate" ] },
+              "rack.HighAvailability": { "Ref": "HighAvailability" },
               "rack.Internal": { "Ref": "Internal" },
               "rack.InternalOnly": { "Ref": "InternalOnly" },
               "rack.LogBucket": { "Fn::If": [ "BlankLogBucket", { "Ref": "Logs" }, { "Ref": "LogBucket" } ] },
