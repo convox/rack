@@ -873,7 +873,7 @@
       "Properties": {
         "PrivateDnsEnabled": true,
         "VpcEndpointType": "Interface",
-        "ServiceName": "com.amazonaws.us-east-1.cloudformation",
+        "ServiceName": {"Fn::Sub": ["com.amazonaws.${Region}.cloudformation", { "Region": { "Ref": "AWS::Region"}}]},
         "VpcId": {"Ref": "Vpc"},
         "SecurityGroupIds": [{ "Ref": "InstancesSecurity" }],
         "SubnetIds": [{"Ref": "SubnetPrivate0"}, {"Ref": "SubnetPrivate1"}]
@@ -884,7 +884,7 @@
       "Properties": {
         "PrivateDnsEnabled": true,
         "VpcEndpointType": "Interface",
-        "ServiceName": "com.amazonaws.us-east-1.ecs",
+        "ServiceName": {"Fn::Sub": ["com.amazonaws.${Region}.ecs", { "Region": { "Ref": "AWS::Region"}}]},
         "VpcId": {"Ref": "Vpc"},
         "SecurityGroupIds": [{ "Ref": "InstancesSecurity" }],
         "SubnetIds": [{"Ref": "SubnetPrivate0"}, {"Ref": "SubnetPrivate1"}]
@@ -895,7 +895,7 @@
       "Properties": {
         "PrivateDnsEnabled": true,
         "VpcEndpointType": "Interface",
-        "ServiceName": "com.amazonaws.us-east-1.kms",
+        "ServiceName": {"Fn::Sub": ["com.amazonaws.${Region}.kms", { "Region": { "Ref": "AWS::Region"}}]},
         "VpcId": {"Ref": "Vpc"},
         "SecurityGroupIds": [{ "Ref": "InstancesSecurity" }],
         "SubnetIds": [{"Ref": "SubnetPrivate0"}, {"Ref": "SubnetPrivate1"}]
@@ -905,7 +905,7 @@
       "Type": "AWS::EC2::VPCEndpoint",
       "Properties": {
         "VpcEndpointType": "Gateway",
-        "ServiceName": "com.amazonaws.us-east-1.s3",
+        "ServiceName": {"Fn::Sub": ["com.amazonaws.${Region}.s3", { "Region": { "Ref": "AWS::Region"}}]},
         "VpcId": {"Ref": "Vpc"},
         "RouteTableIds": [{ "Ref": "RouteTablePrivate0" }, { "Ref": "RouteTablePrivate1" }]
       }
