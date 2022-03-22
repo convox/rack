@@ -868,16 +868,50 @@
         "TopicName" : { "Fn::Join": ["", [{"Ref":"AWS::StackName"}, "-notifications"]] }
       }
     },
+    "CFEndpoint": {
+      "Type": "AWS::EC2::VPCEndpoint",
+      "Properties": {
+        "PrivateDnsEnabled": true,
+        "VpcEndpointType": "Interface",
+        "ServiceName": "com.amazonaws.us-east-1.cloudformation",
+        "VpcId": {"Ref": "Vpc"},
+        "SecurityGroupIds": [{ "Ref": "InstancesSecurity" }],
+        "SubnetIds": [{"Ref": "SubnetPrivate0"}, {"Ref": "SubnetPrivate1"}]
+      }
+    },
+    "ECSEndpoint": {
+      "Type": "AWS::EC2::VPCEndpoint",
+      "Properties": {
+        "PrivateDnsEnabled": true,
+        "VpcEndpointType": "Interface",
+        "ServiceName": "com.amazonaws.us-east-1.ecs",
+        "VpcId": {"Ref": "Vpc"},
+        "SecurityGroupIds": [{ "Ref": "InstancesSecurity" }],
+        "SubnetIds": [{"Ref": "SubnetPrivate0"}, {"Ref": "SubnetPrivate1"}]
+      }
+    },
+    "KMSEndpoint": {
+      "Type": "AWS::EC2::VPCEndpoint",
+      "Properties": {
+        "PrivateDnsEnabled": true,
+        "VpcEndpointType": "Interface",
+        "ServiceName": "com.amazonaws.us-east-1.kms",
+        "VpcId": {"Ref": "Vpc"},
+        "SecurityGroupIds": [{ "Ref": "InstancesSecurity" }],
+        "SubnetIds": [{"Ref": "SubnetPrivate0"}, {"Ref": "SubnetPrivate1"}]
+      }
+    },
+    "S3Endpoint": {
+      "Type": "AWS::EC2::VPCEndpoint",
+      "Properties": {
+        "VpcEndpointType": "Gateway",
+        "ServiceName": "com.amazonaws.us-east-1.s3",
+        "VpcId": {"Ref": "Vpc"},
+        "RouteTableIds": [{ "Ref": "RouteTablePrivate0" }, { "Ref": "RouteTablePrivate1" }]
+      }
+    },
     "CustomTopic": {
-      "DependsOn": [
-        "RouteDefault",
-        "RouteDefaultPrivate0",
-        "RouteDefaultPrivate1",
-        "Subnet0Routes",
-        "Subnet1Routes",
-        "SubnetPrivate1Routes",
-        "SubnetPrivate0Routes"
-     ],
+      "DependsOn": ["S3Endpoint","KMSEndpoint","CFEndpoint", "SubnetPrivate0Routes", "SubnetPrivate1Routes"],
       "Type": "AWS::Lambda::Function",
       "Properties": {
         "Code": {
@@ -941,6 +975,7 @@
       }
     },
     "Nat0": {
+      "Condition": "Private",
       "Type": "AWS::EC2::NatGateway",
       "Properties": {
         "AllocationId": { "Fn::GetAtt": [ "NatAddress0", "AllocationId" ] },
@@ -948,6 +983,7 @@
       }
     },
     "Nat1": {
+      "Condition": "Private",
       "Type": "AWS::EC2::NatGateway",
       "Properties": {
         "AllocationId": { "Fn::GetAtt": [ "NatAddress1", "AllocationId" ] },
@@ -963,12 +999,14 @@
       }
     },
     "NatAddress0": {
+      "Condition": "Private",
       "Type": "AWS::EC2::EIP",
       "Properties": {
         "Domain": "vpc"
       }
     },
     "NatAddress1": {
+      "Condition": "Private",
       "Type": "AWS::EC2::EIP",
       "Properties": {
         "Domain": "vpc"
@@ -1139,7 +1177,6 @@
       }
     },
     "RouteTablePrivate0": {
-      "DependsOn": [ "Nat0" ],
       "Type": "AWS::EC2::RouteTable",
       "Properties": {
         "Tags": [
@@ -1152,7 +1189,6 @@
       }
     },
     "RouteTablePrivate1": {
-      "DependsOn": [ "Nat1" ],
       "Type": "AWS::EC2::RouteTable",
       "Properties": {
         "Tags": [
@@ -1166,7 +1202,6 @@
     },
     "RouteTablePrivate2": {
       "Condition": "PrivateAndThirdAvailabilityZoneAndHighAvailability",
-      "DependsOn": [ "Nat2" ],
       "Type": "AWS::EC2::RouteTable",
       "Properties": {
         "Tags": [
@@ -1179,6 +1214,7 @@
       }
     },
     "RouteDefaultPrivate0": {
+      "Condition": "Private",
       "Type": "AWS::EC2::Route",
       "Properties": {
         "DestinationCidrBlock": "0.0.0.0/0",
@@ -1187,6 +1223,7 @@
       }
     },
     "RouteDefaultPrivate1": {
+      "Condition": "Private",
       "Type": "AWS::EC2::Route",
       "Properties": {
         "DestinationCidrBlock": "0.0.0.0/0",
