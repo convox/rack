@@ -1714,7 +1714,7 @@
               ] ] }
             ] },
             "  - IMDS_TOKEN=$(curl -X PUT 'http://169.254.169.254/latest/api/token' -H 'X-aws-ec2-metadata-token-ttl-seconds:21600')\n",
-            "  - export INSTANCE_ID=$(curl -s --noproxy 169.254.169.254 'X-aws-ec2-metadata-token:$IMDS_TOKEN' http://169.254.169.254/latest/meta-data/instance-id)\n",
+            "  - export INSTANCE_ID=$(curl -s --noproxy 169.254.169.254 -H 'X-aws-ec2-metadata-token:$IMDS_TOKEN' http://169.254.169.254/latest/meta-data/instance-id)\n",
             "  - export ASG_NAME=$(env $(cat /etc/environment) /usr/bin/aws autoscaling describe-auto-scaling-instances --instance-ids=$INSTANCE_ID --region ", {"Ref":"AWS::Region"}, " --output text --query 'AutoScalingInstances[0].AutoScalingGroupName')\n",
             "  - export LIFECYCLE_HOOK=$(env $(cat /etc/environment) /usr/bin/aws autoscaling describe-lifecycle-hooks --auto-scaling-group-name $ASG_NAME --region ", {"Ref":"AWS::Region"}, " --output text --query \"LifecycleHooks[?contains(LifecycleHookName, '", { "Ref": "AWS::StackName" }, "-InstancesLifecycleLaunching') == \\`true\\`].LifecycleHookName | [0]\")\n",
             "  - env $(cat /etc/environment) /usr/bin/aws autoscaling complete-lifecycle-action --region ", { "Ref": "AWS::Region" }, " --instance-id $INSTANCE_ID --lifecycle-hook-name $LIFECYCLE_HOOK --auto-scaling-group-name $ASG_NAME --lifecycle-action-result CONTINUE\n",
