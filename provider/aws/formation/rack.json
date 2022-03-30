@@ -810,6 +810,7 @@
   },
   "Resources": {
     "EncryptionKey": {
+      "DependsOn": ["S3Endpoint", "KMSEndpoint", "CFEndpoint", "SubnetPrivate0Routes", "SubnetPrivate1Routes"],
       "Type": "Custom::KMSKey",
       "Properties": {
         "ServiceToken": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
@@ -911,7 +912,7 @@
       }
     },
     "CustomTopic": {
-      "DependsOn": ["S3Endpoint","KMSEndpoint","CFEndpoint", "SubnetPrivate0Routes", "SubnetPrivate1Routes"],
+      "DependsOn": ["S3Endpoint", "KMSEndpoint", "CFEndpoint", "SubnetPrivate0Routes", "SubnetPrivate1Routes"],
       "Type": "AWS::Lambda::Function",
       "Properties": {
         "Code": {
