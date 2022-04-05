@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/convox/rack/provider/aws/lambda/formation/handler"
 )
@@ -14,6 +15,9 @@ func die(err error) {
 }
 
 func main() {
+	fmt.Println(">> sleeping for 60 seconds...")
+	time.Sleep(time.Second * 60)
+
 	if len(os.Args) < 2 {
 		die(fmt.Errorf("must specify event as argument"))
 	}
