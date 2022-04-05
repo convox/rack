@@ -68,6 +68,7 @@ func KMS(req Request) *kms.KMS {
 	return kms.New(session.New(), &aws.Config{
 		Credentials: Credentials(&req),
 		Region:      Region(&req),
+		MaxRetries:  aws.Int(10),
 	})
 }
 
