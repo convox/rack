@@ -68,6 +68,10 @@ func KMS(req Request) *kms.KMS {
 	return kms.New(session.New(), &aws.Config{
 		Credentials: Credentials(&req),
 		Region:      Region(&req),
+		// There's a race condition when creating the key where sometimes the VPC KMS interface endpoint is not ready
+		// so we increase the max retries here to make sure it won't fail
+		// this is only used to create and delete a single KMS key for the rack so increasing the retries won't hurt
+		MaxRetries: aws.Int(10),
 	})
 }
 
