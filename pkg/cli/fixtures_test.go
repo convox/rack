@@ -224,6 +224,10 @@ func fxRelease3() *structs.Release {
 	}
 }
 
+func fxReleaseList() structs.Releases {
+	return structs.Releases{*fxRelease(), *fxRelease2(), *fxRelease3()}
+}
+
 func fxResource() *structs.Resource {
 	return &structs.Resource{
 		Name:       "resource1",

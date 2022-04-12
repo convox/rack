@@ -129,7 +129,7 @@ func AppsCancel(rack sdk.Interface, c *stdcli.Context) error {
 		return err
 	}
 
-	c.Writef("Rewriting last active release")
+	c.Writef("Rewriting last active release... ")
 
 	rs, err := rack.ReleaseList(app.Name, structs.ReleaseListOptions{})
 	if err != nil {
@@ -141,6 +141,7 @@ func AppsCancel(rack sdk.Interface, c *stdcli.Context) error {
 			if err != nil {
 				return err
 			}
+			break
 		}
 	}
 
