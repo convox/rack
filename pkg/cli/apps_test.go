@@ -59,14 +59,21 @@ func TestAppsError(t *testing.T) {
 
 func TestAppsCancel(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
+		fxapp := fxApp()
+		fxrelease := fxRelease()
 		i.On("AppCancel", "app1").Return(nil)
+		i.On("AppGet", "app1").Return(fxapp, nil)
+		i.On("ReleaseList", fxapp.Name, structs.ReleaseListOptions{}).Return(fxReleaseList(), nil)
+		i.On("ReleaseCreate", fxapp.Name, structs.ReleaseCreateOptions{
+			Build: &fxrelease.Build, Description: &fxrelease.Description, Env: &fxrelease.Env},
+		).Return(nil, nil)
 
 		res, err := testExecute(e, "apps cancel app1", nil)
 		require.NoError(t, err)
 		require.Equal(t, 0, res.Code)
 		res.RequireStderr(t, []string{""})
 		res.RequireStdout(t, []string{
-			"Cancelling app1... OK",
+			"Cancelling app1... Rewriting last active release... OK",
 		})
 
 		res, err = testExecute(e, "apps cancel -a app1", nil)
@@ -74,25 +81,32 @@ func TestAppsCancel(t *testing.T) {
 		require.Equal(t, 0, res.Code)
 		res.RequireStderr(t, []string{""})
 		res.RequireStdout(t, []string{
-			"Cancelling app1... OK",
+			"Cancelling app1... Rewriting last active release... OK",
 		})
 	})
 }
 
 func TestAppsCancelWait(t *testing.T) {
 	testClientWait(t, 100*time.Millisecond, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("AppCancel", "app1").Return(nil)
+		fxapp := fxApp()
+		fxrelease := fxRelease()
 		opts := structs.LogsOptions{Prefix: options.Bool(true), Since: options.Duration(5 * time.Second)}
+		i.On("AppCancel", "app1").Return(nil)
+		i.On("AppGet", "app1").Return(fxapp, nil).Times(2)
+		i.On("ReleaseList", fxapp.Name, structs.ReleaseListOptions{}).Return(fxReleaseList(), nil)
+		i.On("ReleaseCreate", fxapp.Name, structs.ReleaseCreateOptions{
+			Build: &fxrelease.Build, Description: &fxrelease.Description, Env: &fxrelease.Env},
+		).Return(nil, nil)
 		i.On("AppLogs", "app1", opts).Return(testLogs(fxLogsSystem()), nil)
 		i.On("AppGet", "app1").Return(fxAppRollback(), nil).Times(2)
-		i.On("AppGet", "app1").Return(fxApp(), nil)
+		i.On("AppGet", "app1").Return(fxapp, nil)
 
 		res, err := testExecute(e, "apps cancel app1 --wait", nil)
 		require.NoError(t, err)
 		require.Equal(t, 0, res.Code)
 		res.RequireStderr(t, []string{""})
 		res.RequireStdout(t, []string{
-			"Cancelling app1... ",
+			"Cancelling app1... Rewriting last active release... ",
 			"TIME system/aws/component log1",
 			"TIME system/aws/component log2",
 			"OK",
