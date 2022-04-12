@@ -116,18 +116,38 @@ func Apps(rack sdk.Interface, c *stdcli.Context) error {
 }
 
 func AppsCancel(rack sdk.Interface, c *stdcli.Context) error {
-	app := coalesce(c.Arg(0), app(c))
+	aname := coalesce(c.Arg(0), app(c))
 
-	c.Startf("Cancelling <app>%s</app>", app)
+	c.Startf("Cancelling <app>%s</app>", aname)
 
-	if err := rack.AppCancel(app); err != nil {
+	if err := rack.AppCancel(aname); err != nil {
 		return err
+	}
+
+	app, err := rack.AppGet(aname)
+	if err != nil {
+		return err
+	}
+
+	c.Writef("Rewriting last active release")
+
+	rs, err := rack.ReleaseList(app.Name, structs.ReleaseListOptions{})
+	if err != nil {
+		return err
+	}
+	for _, r := range rs {
+		if app.Release == r.Id {
+			_, err := rack.ReleaseCreate(app.Name, structs.ReleaseCreateOptions{Build: &r.Build, Description: &r.Description, Env: &r.Env})
+			if err != nil {
+				return err
+			}
+		}
 	}
 
 	if c.Bool("wait") {
 		c.Writef("\n")
 
-		if err := helpers.WaitForAppRollbackWithLogsContext(context.Background(), rack, c, app); err != nil {
+		if err := helpers.WaitForAppRollbackWithLogsContext(context.Background(), rack, c, app.Name); err != nil {
 			return err
 		}
 	}
