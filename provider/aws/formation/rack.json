@@ -466,10 +466,7 @@
     },
     "Vpc": {
       "Export": { "Name": { "Fn::Sub": "${AWS::StackName}:Vpc" } },
-      "Value": { "Fn::If": [ "BlankExistingVpc",
-        { "Ref": "Vpc" },
-        { "Ref": "ExistingVpc" }
-      ] }
+      "Value": { "Fn::If": [ "BlankExistingVpc", { "Ref": "Vpc" }, { "Ref": "ExistingVpc" }] }
     },
     "Vpccidr": {
       "Export": { "Name": { "Fn::Sub": "${AWS::StackName}:VpcCidr" } },
@@ -881,7 +878,7 @@
         "PrivateDnsEnabled": true,
         "VpcEndpointType": "Interface",
         "ServiceName": {"Fn::Sub": ["com.amazonaws.${Region}.cloudformation", { "Region": { "Ref": "AWS::Region"}}]},
-        "VpcId": {"Ref": "Vpc"},
+        "VpcId": { "Fn::If": [ "BlankExistingVpc", { "Ref": "Vpc" }, { "Ref": "ExistingVpc" }] },
         "SecurityGroupIds": [{ "Ref": "InstancesSecurity" }],
         "SubnetIds": [{"Ref": "SubnetPrivate0"}, {"Ref": "SubnetPrivate1"}]
       }
@@ -892,7 +889,7 @@
         "PrivateDnsEnabled": true,
         "VpcEndpointType": "Interface",
         "ServiceName": {"Fn::Sub": ["com.amazonaws.${Region}.ecs", { "Region": { "Ref": "AWS::Region"}}]},
-        "VpcId": {"Ref": "Vpc"},
+        "VpcId": { "Fn::If": [ "BlankExistingVpc", { "Ref": "Vpc" }, { "Ref": "ExistingVpc" }] },
         "SecurityGroupIds": [{ "Ref": "InstancesSecurity" }],
         "SubnetIds": [{"Ref": "SubnetPrivate0"}, {"Ref": "SubnetPrivate1"}]
       }
@@ -903,7 +900,7 @@
         "PrivateDnsEnabled": true,
         "VpcEndpointType": "Interface",
         "ServiceName": {"Fn::Sub": ["com.amazonaws.${Region}.kms", { "Region": { "Ref": "AWS::Region"}}]},
-        "VpcId": {"Ref": "Vpc"},
+        "VpcId": { "Fn::If": [ "BlankExistingVpc", { "Ref": "Vpc" }, { "Ref": "ExistingVpc" }] },
         "SecurityGroupIds": [{ "Ref": "InstancesSecurity" }],
         "SubnetIds": [{"Ref": "SubnetPrivate0"}, {"Ref": "SubnetPrivate1"}]
       }
@@ -913,7 +910,7 @@
       "Properties": {
         "VpcEndpointType": "Gateway",
         "ServiceName": {"Fn::Sub": ["com.amazonaws.${Region}.s3", { "Region": { "Ref": "AWS::Region"}}]},
-        "VpcId": {"Ref": "Vpc"},
+        "VpcId": { "Fn::If": [ "BlankExistingVpc", { "Ref": "Vpc" }, { "Ref": "ExistingVpc" }] },
         "RouteTableIds": [{ "Ref": "RouteTablePrivate0" }, { "Ref": "RouteTablePrivate1" }]
       }
     },
