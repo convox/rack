@@ -879,7 +879,7 @@
         "VpcEndpointType": "Interface",
         "ServiceName": {"Fn::Sub": ["com.amazonaws.${Region}.cloudformation", { "Region": { "Ref": "AWS::Region"}}]},
         "VpcId": { "Fn::If": [ "BlankExistingVpc", { "Ref": "Vpc" }, { "Ref": "ExistingVpc" }] },
-        "SecurityGroupIds": [{ "Ref": "InstancesSecurity" }],
+        "SecurityGroupIds": [{ "Fn::If": [ "BlankInstanceSecurityGroup", { "Ref": "InstancesSecurity" }, { "Ref": "InstanceSecurityGroup" } ] }],
         "SubnetIds": [{"Ref": "SubnetPrivate0"}, {"Ref": "SubnetPrivate1"}]
       }
     },
@@ -890,7 +890,7 @@
         "VpcEndpointType": "Interface",
         "ServiceName": {"Fn::Sub": ["com.amazonaws.${Region}.ecs", { "Region": { "Ref": "AWS::Region"}}]},
         "VpcId": { "Fn::If": [ "BlankExistingVpc", { "Ref": "Vpc" }, { "Ref": "ExistingVpc" }] },
-        "SecurityGroupIds": [{ "Ref": "InstancesSecurity" }],
+        "SecurityGroupIds": [{ "Fn::If": [ "BlankInstanceSecurityGroup", { "Ref": "InstancesSecurity" }, { "Ref": "InstanceSecurityGroup" } ] }],
         "SubnetIds": [{"Ref": "SubnetPrivate0"}, {"Ref": "SubnetPrivate1"}]
       }
     },
@@ -901,7 +901,7 @@
         "VpcEndpointType": "Interface",
         "ServiceName": {"Fn::Sub": ["com.amazonaws.${Region}.kms", { "Region": { "Ref": "AWS::Region"}}]},
         "VpcId": { "Fn::If": [ "BlankExistingVpc", { "Ref": "Vpc" }, { "Ref": "ExistingVpc" }] },
-        "SecurityGroupIds": [{ "Ref": "InstancesSecurity" }],
+        "SecurityGroupIds": [{ "Fn::If": [ "BlankInstanceSecurityGroup", { "Ref": "InstancesSecurity" }, { "Ref": "InstanceSecurityGroup" } ] }],
         "SubnetIds": [{"Ref": "SubnetPrivate0"}, {"Ref": "SubnetPrivate1"}]
       }
     },
