@@ -15,6 +15,7 @@
     "BlankInstancePolicy": { "Fn::Equals": [ { "Ref": "InstancePolicy" }, "" ] },
     "BlankInstanceRunCommand": { "Fn::Equals": [ { "Ref": "InstanceRunCommand" }, "" ] },
     "BlankInstanceSecurityGroup": { "Fn::Equals": [ {"Ref": "InstanceSecurityGroup" }, "" ] },
+    "BlankBuildInstanceSecurityGroup": { "Fn::Equals": [ {"Ref": "BuildInstanceSecurityGroup" }, "" ] },
     "BlankInternalSuffix": { "Fn::Equals": [ { "Ref": "InternalSuffix"}, "" ] },
     "BlankInternetGateway": { "Fn::Equals": [ { "Ref": "InternetGateway"}, "" ] },
     "BlankKey": { "Fn::Equals": [ { "Ref": "Key" }, "" ] },
@@ -260,6 +261,13 @@
     "InstancesSecurityGroup": {
       "Export": { "Name": { "Fn::Sub": "${AWS::StackName}:InstancesSecurityGroup" } },
       "Value": { "Fn::If": [ "BlankInstanceSecurityGroup", { "Ref": "InstancesSecurity" }, { "Ref": "InstanceSecurityGroup" } ] }
+    },
+    "BuildInstancesSecurityGroup": {
+      "Export": { "Name": { "Fn::Sub": "${AWS::StackName}:BuildInstancesSecurityGroup" } },
+      "Value": { "Fn::If": [ "BlankBuildInstanceSecurityGroup",
+        { "Fn::If": [ "BlankInstanceSecurityGroup", { "Ref": "InstancesSecurity" }, { "Ref": "InstanceSecurityGroup" } ] },
+        { "Ref": "BuildInstanceSecurityGroup" }
+      ] }
     },
     "Internal": {
       "Value": { "Ref": "Internal" }
@@ -648,6 +656,11 @@
     "InstanceSecurityGroup": {
       "Default": "",
       "Description": "The security group to assign to the ECS instances.  If blank, convox will create a security group open to all IPs in your VPC",
+      "Type": "String"
+    },
+    "BuildInstanceSecurityGroup": {
+      "Default": "",
+      "Description": "The security group to assign to the ECS build instances.  If blank, convox will use the same security group as the instances",
       "Type": "String"
     },
     "InternetGateway": {
@@ -1435,7 +1448,10 @@
           "HttpTokens" : { "Ref": "IMDSHttpTokens"}
         },
         "PlacementTenancy" : { "Ref": "Tenancy" },
-        "SecurityGroups": [ { "Fn::If": [ "BlankInstanceSecurityGroup", { "Ref": "InstancesSecurity" }, { "Ref": "InstanceSecurityGroup" } ] } ],
+        "SecurityGroups": [ { "Fn::If": [ "BlankBuildInstanceSecurityGroup",
+          { "Fn::If": [ "BlankInstanceSecurityGroup", { "Ref": "InstancesSecurity" }, { "Ref": "InstanceSecurityGroup" } ] },
+          { "Ref": "BuildInstanceSecurityGroup" }
+        ] } ],
         "UserData": { "Fn::Base64":
           { "Fn::Join": [ "", [
             "#cloud-config\n",
