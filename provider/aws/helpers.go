@@ -416,7 +416,7 @@ func volumeFrom(app, s string) string {
 	case "/etc/passwd":
 		return v
 	case "/proc/":
-		return v		
+		return v
 	case "/sys/fs/cgroup/":
 		return v
 	case "/sys/kernel/debug/":

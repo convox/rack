@@ -5,5 +5,6 @@ type Object struct {
 }
 
 type ObjectStoreOptions struct {
-	Public *bool `header:"Public"`
+	Public  *bool `header:"Public"`
+	Presign *bool
 }

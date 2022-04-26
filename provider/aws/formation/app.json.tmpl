@@ -529,6 +529,12 @@
           "LogFilePrefix": { "Fn::Sub": "convox/logs/${AWS::StackName}/s3/" }
         }
       ] },
+      "PublicAccessBlockConfiguration": {
+        "BlockPublicAcls" : true,
+        "BlockPublicPolicy" : true,
+        "IgnorePublicAcls" : true,
+        "RestrictPublicBuckets" : true
+      },
       "Tags": [
         { "Key": "system", "Value": "convox" },
         { "Key": "app", "Value": { "Ref": "AWS::StackName" } }
