@@ -147,12 +147,26 @@ func (p *Provider) ObjectStore(app, key string, r io.Reader, opts structs.Object
 	}
 
 	url := fmt.Sprintf("object://%s/%s", app, key)
+	o := &structs.Object{Url: url}
 
 	if opts.Public != nil && *opts.Public {
-		url = res.Location
+		o.Url = res.Location
+		return o, nil
 	}
 
-	o := &structs.Object{Url: url}
+	if opts.Presign != nil && *opts.Presign {
+		req, _ := p.s3().GetObjectRequest(&s3.GetObjectInput{
+			Bucket: aws.String(bucket),
+			Key:    aws.String(key),
+		})
+
+		url, err := req.Presign(10 * time.Minute)
+		if err != nil {
+			return nil, log.Error(err)
+		}
+
+		o.Url = url
+	}
 
 	return o, log.Success()
 }
