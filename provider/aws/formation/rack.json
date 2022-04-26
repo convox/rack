@@ -2829,7 +2829,7 @@
       "DependsOn": [ "Instances" ],
       "Properties": {
         "Cluster": { "Ref": "Cluster" },
-        "DeploymentConfiguration": { "MinimumHealthyPercent": "50", "MaximumPercent": "200" },
+        "DeploymentConfiguration": { "MinimumHealthyPercent": { "Fn::If": [ "HighAvailability", "50", "0" ] }, "MaximumPercent": "200" },
         "DesiredCount": { "Fn::If": [ "HighAvailability", { "Ref": "ApiCount" }, 1 ] },
         "LoadBalancers": [ { "Fn::If": [ "ApiRouterALB",
           { "ContainerName": "web", "ContainerPort": "5443", "TargetGroupArn": { "Ref": "RouterApiTargetGroup" } },
