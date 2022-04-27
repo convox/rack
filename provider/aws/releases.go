@@ -246,7 +246,7 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 			return err
 		}
 
-		ou, err := p.ObjectStore(app, "", bytes.NewReader(data), structs.ObjectStoreOptions{Public: options.Bool(true)})
+		ou, err := p.ObjectStore(app, "", bytes.NewReader(data), structs.ObjectStoreOptions{Presign: options.Bool(true)})
 		if err != nil {
 			return err
 		}
@@ -311,7 +311,7 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 			return err
 		}
 
-		ou, err := p.ObjectStore(app, "", bytes.NewReader(data), structs.ObjectStoreOptions{Public: options.Bool(true)})
+		ou, err := p.ObjectStore(app, "", bytes.NewReader(data), structs.ObjectStoreOptions{Presign: options.Bool(true)})
 		if err != nil {
 			return err
 		}
@@ -334,7 +334,7 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 			return err
 		}
 
-		ou, err := p.ObjectStore(app, "", bytes.NewReader(data), structs.ObjectStoreOptions{Public: options.Bool(true)})
+		ou, err := p.ObjectStore(app, "", bytes.NewReader(data), structs.ObjectStoreOptions{Presign: options.Bool(true)})
 		if err != nil {
 			return err
 		}
@@ -370,11 +370,11 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 	customRackTags, err := p.getCustomTags(p.Rack)
 	if err != nil {
 		return err
-	} 
+	}
 	customAppTags, err := p.getCustomTags(p.rackStack(r.App))
 	if err != nil {
 		return err
-	} 
+	}
 	for k, v := range customRackTags {
 		tags[k] = v
 	}

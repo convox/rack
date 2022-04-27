@@ -8,7 +8,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/convox/rack/pkg/options"
 	"github.com/convox/rack/pkg/structs"
 	"github.com/convox/stdsdk"
 	"github.com/stretchr/testify/mock"
@@ -114,14 +113,9 @@ func TestObjectStore(t *testing.T) {
 	testServer(t, func(c *stdsdk.Client, p *structs.MockProvider) {
 		o1 := fxObject
 		o2 := structs.Object{}
-		opts := structs.ObjectStoreOptions{
-			Public: options.Bool(true),
-		}
+		opts := structs.ObjectStoreOptions{}
 		ro := stdsdk.RequestOptions{
 			Body: strings.NewReader("data"),
-			Headers: stdsdk.Headers{
-				"Public": "true",
-			},
 		}
 		p.On("ObjectStore", "app1", "path/object1.ext", mock.Anything, opts).Return(&o1, nil).Run(func(args mock.Arguments) {
 			data, err := ioutil.ReadAll(args.Get(2).(io.Reader))
