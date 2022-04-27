@@ -103,20 +103,12 @@ func (p *Provider) ObjectStore(app, key string, r io.Reader, opts structs.Object
 		Body:   r,
 	}
 
-	if opts.Public != nil && *opts.Public {
-		req.ACL = aws.String("public-read")
-	}
-
-	res, err := up.Upload(req)
+	_, err := up.Upload(req)
 	if err != nil {
 		return nil, err
 	}
 
 	url := fmt.Sprintf("object://%s/%s", app, key)
-
-	if opts.Public != nil && *opts.Public {
-		url = res.Location
-	}
 
 	o := &structs.Object{Url: url}
 

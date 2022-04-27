@@ -137,22 +137,27 @@ func (p *Provider) ObjectStore(app, key string, r io.Reader, opts structs.Object
 		Body:   r,
 	}
 
-	if opts.Public != nil && *opts.Public {
-		req.ACL = aws.String("public-read")
-	}
-
-	res, err := up.Upload(req)
+	_, err = up.Upload(req)
 	if err != nil {
 		return nil, log.Error(err)
 	}
 
 	url := fmt.Sprintf("object://%s/%s", app, key)
-
-	if opts.Public != nil && *opts.Public {
-		url = res.Location
-	}
-
 	o := &structs.Object{Url: url}
+
+	if opts.Presign != nil && *opts.Presign {
+		req, _ := p.s3().GetObjectRequest(&s3.GetObjectInput{
+			Bucket: aws.String(bucket),
+			Key:    aws.String(key),
+		})
+
+		url, err := req.Presign(10 * time.Minute)
+		if err != nil {
+			return nil, log.Error(err)
+		}
+
+		o.Url = url
+	}
 
 	return o, log.Success()
 }

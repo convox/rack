@@ -3195,6 +3195,12 @@
           { "Ref": "AWS::NoValue" },
           { "Rules": [ { "ExpirationInDays": { "Ref": "LogRetention" }, "Status": "Enabled" } ] }
         ] },
+        "PublicAccessBlockConfiguration": {
+          "BlockPublicAcls" : true,
+          "BlockPublicPolicy" : true,
+          "IgnorePublicAcls" : true,
+          "RestrictPublicBuckets" : true
+        },
         "Tags": [
           { "Key": "System", "Value": "convox" },
           { "Key": "Rack", "Value": { "Ref": "AWS::StackName" } }
@@ -3253,6 +3259,12 @@
         "LoggingConfiguration": {
           "DestinationBucketName": { "Fn::If": [ "BlankLogBucket", { "Ref": "Logs" }, { "Ref": "LogBucket" } ] },
           "LogFilePrefix": { "Fn::Sub": "convox/logs/${AWS::StackName}/s3/" }
+        },
+        "PublicAccessBlockConfiguration": {
+          "BlockPublicAcls" : true,
+          "BlockPublicPolicy" : true,
+          "IgnorePublicAcls" : true,
+          "RestrictPublicBuckets" : true
         },
         "Tags": [
           { "Key": "System", "Value": "convox" },
