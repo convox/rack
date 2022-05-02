@@ -50,6 +50,11 @@ workflows:
           provider: aws
       - ci:
           <<: *filter-releases-any
+          name: ci/aws/public-existing-vpc
+          provider: aws
+          args: "ExistingVpc=vpc-02da0c3c3ba3d43d6 InternetGateway=igw-0edd5906e6dd521c2 Subnet0CIDR=172.0.1.0/24 Subnet1CIDR=172.0.2.0/24 Subnet2CIDR=172.0.3.0/24 SubnetPrivate0CIDR=172.0.4.0/24 SubnetPrivate1CIDR=172.0.5.0/24 SubnetPrivate2CIDR=172.0.6.0/24 VPCCIDR=172.0.0.0/16"
+      - ci:
+          <<: *filter-releases-any
           name: ci/aws/public/arm64
           provider: aws
           args: "InstanceType=t4g.small BuildInstance=t4g.small"
@@ -58,18 +63,14 @@ workflows:
           name: ci/aws/private
           provider: aws
           args: Private=Yes
-      # - ci:
-      #     <<: *filter-releases-any
-      #     name: ci/kaws
-      #     provider: kaws
       - update:
           <<: *filter-releases-master
           context: staging
           requires:
             - ci/aws/public
+            - ci/aws/public-existing-vpc
             - ci/aws/public/arm64
             - ci/aws/private
-            # - ci/kaws
           name: ci/staging/rack
       - deploy:
           <<: *filter-releases-master
