@@ -110,11 +110,13 @@ for region in us-east-1; do
     done
 
     for igw in $(aws ec2 describe-internet-gateways --region $region | jq -r '.InternetGateways[].InternetGatewayId'); do
-      echo "deleting igw: $igw ($region)"
-      for vpc in $(aws ec2 describe-internet-gateways --internet-gateway-id $igw --region $region | jq -r '.InternetGateways[].Attachments[].VpcId'); do
-        aws ec2 detach-internet-gateway --internet-gateway-id $igw --vpc-id $vpc --region $region
-      done
-      aws ec2 delete-internet-gateway --internet-gateway-id $igw --region $region
+        if [[ "$igw" != "igw-0e2ed6542ed5343f2" && "$igw" != "igw-01c3d338eecec02a1" ]]; then # custom ci igws
+            echo "deleting igw: $igw ($region)"
+            for vpc in $(aws ec2 describe-internet-gateways --internet-gateway-id $igw --region $region | jq -r '.InternetGateways[].Attachments[].VpcId'); do
+                aws ec2 detach-internet-gateway --internet-gateway-id $igw --vpc-id $vpc --region $region
+            done
+            aws ec2 delete-internet-gateway --internet-gateway-id $igw --region $region
+        fi
     done
 
     for rtb in $(aws ec2 describe-route-tables --region $region | jq -r '.RouteTables[] | select(.Associations[0].Main!=true) | .RouteTableId'); do
@@ -128,12 +130,14 @@ for region in us-east-1; do
     done
 
     for vpc in $(aws ec2 describe-vpcs --region $region | jq -r '.Vpcs[].VpcId'); do
-      for sg in $(aws ec2 describe-security-groups --region $region --filters "Name=vpc-id,Values=$vpc" | jq -r '.SecurityGroups[] | select(.GroupName!="default") | .GroupId'); do
-        echo "deleting security group: $sg ($region)"
-        aws ec2 delete-security-group --group-id $sg --region $region
-      done
-      echo "deleting vpc: $vpc ($region)"
-      aws ec2 delete-vpc --vpc-id $vpc --region $region
+        if [[ "$vpc" != "vpc-0f18b6d1265717215" && "$vpc" != "vpc-00e18642ac66249c5" ]]; then # custom ci vpcs
+            for sg in $(aws ec2 describe-security-groups --region $region --filters "Name=vpc-id,Values=$vpc" | jq -r '.SecurityGroups[] | select(.GroupName!="default") | .GroupId'); do
+              echo "deleting security group: $sg ($region)"
+              aws ec2 delete-security-group --group-id $sg --region $region
+            done
+            echo "deleting vpc: $vpc ($region)"
+            aws ec2 delete-vpc --vpc-id $vpc --region $region
+        fi
     done
 
     for role in $(aws iam list-roles | jq -r '.Roles[].RoleName'); do
