@@ -107,7 +107,10 @@ jobs:
       - ci-dependencies
       - ci-install
       - ci-test
-      - ci-uninstall
+      - run:
+          command: ci/uninstall.sh
+          no_output_timeout: 90m
+          when: always
   cleanup:
     docker:
       - image: circleci/golang:1.16
