@@ -298,9 +298,13 @@ func desiredCapacity(largest, total *Metrics) (int64, error) {
 	debug("extraWidth = %+v\n", extraWidth)
 
 	// comes from AutoscaleExtra
-	extra, err := strconv.ParseInt(os.Getenv("EXTRA"), 10, 64)
-	if err != nil {
-		return 0, err
+	var extra int64
+	if IsHA == "true" {
+		var err error
+		extra, err = strconv.ParseInt(os.Getenv("EXTRA"), 10, 64)
+		if err != nil {
+			return 0, err
+		}
 	}
 
 	// total desired count is the current instance count minus the smallest calculated extra type plus the number of desired extra instances

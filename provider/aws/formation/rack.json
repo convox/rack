@@ -516,7 +516,7 @@
     },
     "AutoscaleExtra": {
       "Type": "Number",
-      "Description": "The number of instances of extra capacity that autoscale should keep running",
+      "Description": "The number of instances of extra capacity that autoscale should keep running (not used in non HA racks)",
       "Default": "1"
     },
     "AvailabilityZones": {
