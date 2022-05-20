@@ -77,7 +77,7 @@ func (p *Provider) spotReplace() error {
 		return err
 	}
 
-	log.Logf("instanceCount=%d onDemandMin=%d onDemandCount=%d spotCount=%d spotCountRunning=%d", ic, odmin, odc, spc, spcr)
+	log.Logf("instanceCount=%d onDemandMin=%d onDemandCount=%d spotCount=%d spotCountRunning=%d p.HighAvailability=%v", ic, odmin, odc, spc, spcr, p.HighAvailability)
 
 	spotDesired := ic - odmin
 
