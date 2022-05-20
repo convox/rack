@@ -3012,7 +3012,7 @@
               { "Name": "RACK", "Value": { "Ref": "AWS::StackName" } },
               { "Name": "STACK_ID", "Value": { "Ref": "AWS::StackId" } }
             ],
-            "Image":                 {
+            "Image": {
               "Fn::If": [
                 "InstanceARM",
                 { "Fn::Sub": "convox/rack:${Version}-arm64" },
@@ -3121,7 +3121,7 @@
               { "Name": "RACK", "Value": { "Ref": "AWS::StackName" } },
               { "Name": "STACK_ID", "Value": { "Ref": "AWS::StackId" } }
             ],
-            "Image":                 {
+            "Image": {
               "Fn::If": [
                 "InstanceARM",
                 { "Fn::Sub": "convox/rack:${Version}-arm64" },
