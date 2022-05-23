@@ -3,7 +3,10 @@
   "Conditions": {
     "ApiRouterALB": { "Fn::Equals": [ { "Ref": "ApiRouter" }, "ALB" ] },
     "ApiRouterELB": { "Fn::Equals": [ { "Ref": "ApiRouter" }, "ELB" ] },
-    "Autoscale": { "Fn::Equals": [ { "Ref": "Autoscale" }, "Yes" ] },
+    "Autoscale": { "Fn::And": [
+      { "Fn::Equals": [ { "Ref": "Autoscale" }, "Yes" ] },
+      { "Fn::Or": [ { "Condition": "HighAvailability" }, { "Condition": "SpotInstances" } ] }
+    ]},
     "BlankAmi": { "Fn::Equals": [ { "Ref": "Ami" }, "" ] },
     "BlankAvailabilityZones": { "Fn::Equals": [ { "Fn::Join": [ "", { "Ref": "AvailabilityZones" } ] }, "" ] },
     "BlankBuildImage": { "Fn::Equals": [ { "Ref": "BuildImage" }, "" ] },
@@ -581,13 +584,6 @@
       "Description": "Existing VPC ID (if blank a VPC will be created)",
       "Type": "String",
       "Default": ""
-    },
-    "NoHaInstanceCount": {
-      "Default": "1",
-      "Description": "The number of instances in the runtime cluster for no HighAvailable racks",
-      "MinValue": "1",
-      "MaxValue": "3",
-      "Type": "Number"
     },
     "HighAvailability": {
       "AllowedValues": [ "true", "false" ],
@@ -1759,11 +1755,11 @@
           ] ]
         },
         "Cooldown": 5,
-        "DesiredCapacity" : { "Fn::If": [ "SpotInstances", { "Ref": "AWS::NoValue" }, { "Fn::If": [ "HighAvailability", { "Ref": "InstanceCount"}, { "Ref": "NoHaInstanceCount"} ] } ] },
+        "DesiredCapacity" : { "Fn::If": [ "SpotInstances", { "Ref": "AWS::NoValue" }, { "Fn::If": [ "HighAvailability", { "Ref": "InstanceCount"}, { "Ref": "AWS::NoValue" } ] } ] },
         "HealthCheckType": "EC2",
         "HealthCheckGracePeriod": "120",
         "MinSize" : { "Fn::If": [ "SpotInstancesAndHA", { "Ref": "OnDemandMinCount" }, { "Fn::If": [ "HighAvailability", { "Ref": "InstanceCount"}, "1" ] } ] },
-        "MaxSize" : { "Fn::If": [ "HighAvailability", "1000", "3" ] },
+        "MaxSize" : "1000",
         "MetricsCollection": [ { "Granularity": "1Minute" } ],
         "TerminationPolicies": [ "NewestInstance" ],
         "Tags": [
@@ -1836,9 +1832,9 @@
       "Condition": "SetScheduleRackScale",
       "Properties":{
         "AutoScalingGroupName": { "Ref": "Instances" },
-        "DesiredCapacity" : { "Fn::If": [ "SpotInstances", { "Ref": "AWS::NoValue" }, { "Fn::If": [ "HighAvailability", { "Ref": "InstanceCount"}, { "Ref": "NoHaInstanceCount"} ] } ] },
+        "DesiredCapacity" : { "Fn::If": [ "SpotInstances", { "Ref": "AWS::NoValue" }, { "Fn::If": [ "HighAvailability", { "Ref": "InstanceCount"}, { "Ref": "AWS::NoValue" } ] } ] },
         "MinSize" : { "Fn::If": [ "SpotInstancesAndHA", { "Ref": "OnDemandMinCount" }, { "Fn::If": [ "HighAvailability", { "Ref": "InstanceCount"}, "1" ] } ] },
-        "MaxSize" : { "Fn::If": [ "HighAvailability", "1000", "3" ] },
+        "MaxSize" : "1000",
         "Recurrence": { "Ref": "ScheduleRackScaleUp" }
       }
     },
@@ -1877,7 +1873,6 @@
             "ASG": { "Ref": "Instances" },
             "CLUSTER": { "Ref": "Cluster" },
             "EXTRA": { "Ref": "AutoscaleExtra" },
-            "HIGH_AVAILABILITY": { "Ref": "HighAvailability" },
             "STACK": { "Ref": "AWS::StackName" }
           }
         },
@@ -2251,8 +2246,8 @@
         "Cooldown": 5,
         "HealthCheckType": "EC2",
         "HealthCheckGracePeriod": "120",
-        "MinSize" : "0",
-        "MaxSize" : { "Fn::If": [ "HighAvailability", "1000", "3"]},
+        "MinSize": "0",
+        "MaxSize": "1000",
         "MetricsCollection": [ { "Granularity": "1Minute" } ],
         "Tags": [
           {
@@ -2880,7 +2875,6 @@
               "rack.EcsPollInterval": { "Ref": "EcsPollInterval" },
               "rack.EncryptionKey": { "Ref": "EncryptionKey" },
               "rack.Fargate": { "Fn::FindInMap": [ "RegionConfig", { "Ref": "AWS::Region" }, "Fargate" ] },
-              "rack.HighAvailability": { "Ref": "HighAvailability" },
               "rack.Internal": { "Ref": "Internal" },
               "rack.InternalOnly": { "Ref": "InternalOnly" },
               "rack.LogBucket": { "Fn::If": [ "BlankLogBucket", { "Ref": "Logs" }, { "Ref": "LogBucket" } ] },
@@ -2970,7 +2964,6 @@
               "rack.EcsPollInterval": { "Ref": "EcsPollInterval" },
               "rack.EncryptionKey": { "Ref": "EncryptionKey" },
               "rack.Fargate": { "Fn::FindInMap": [ "RegionConfig", { "Ref": "AWS::Region" }, "Fargate" ] },
-              "rack.HighAvailability": { "Ref": "HighAvailability" },
               "rack.Internal": { "Ref": "Internal" },
               "rack.InternalOnly": { "Ref": "InternalOnly" },
               "rack.LogBucket": { "Fn::If": [ "BlankLogBucket", { "Ref": "Logs" }, { "Ref": "LogBucket" } ] },
@@ -3078,7 +3071,6 @@
               "rack.EcsPollInterval": { "Ref": "EcsPollInterval" },
               "rack.EncryptionKey": { "Ref": "EncryptionKey" },
               "rack.Fargate": { "Fn::FindInMap": [ "RegionConfig", { "Ref": "AWS::Region" }, "Fargate" ] },
-              "rack.HighAvailability": { "Ref": "HighAvailability" },
               "rack.Internal": { "Ref": "Internal" },
               "rack.InternalOnly": { "Ref": "InternalOnly" },
               "rack.LogBucket": { "Fn::If": [ "BlankLogBucket", { "Ref": "Logs" }, { "Ref": "LogBucket" } ] },

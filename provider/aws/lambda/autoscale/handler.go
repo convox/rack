@@ -14,16 +14,9 @@ import (
 	"github.com/aws/aws-sdk-go/service/ecs"
 )
 
-const (
-	HAInstanceCountParam   = "InstanceCount"
-	NoHaInstanceCountParam = "NoHaInstanceCount"
-)
-
 var (
-	CloudFormation     = cloudformation.New(session.New(), nil)
-	ECS                = ecs.New(session.New(), nil)
-	InstanceCountParam = HAInstanceCountParam
-	IsHA               = os.Getenv("HIGH_AVAILABILITY")
+	CloudFormation = cloudformation.New(session.New(), nil)
+	ECS            = ecs.New(session.New(), nil)
 )
 
 type Metrics struct {
@@ -79,13 +72,9 @@ func autoscale(desired int64) error {
 		UsePreviousTemplate: aws.Bool(true),
 	}
 
-	if IsHA == "false" {
-		InstanceCountParam = NoHaInstanceCountParam
-	}
-
 	for _, p := range res.Stacks[0].Parameters {
 		switch *p.ParameterKey {
-		case InstanceCountParam:
+		case "InstanceCount":
 			debug("ds = %+v\n", ds)
 			debug("*p.ParameterValue = %+v\n", *p.ParameterValue)
 
@@ -309,12 +298,7 @@ func desiredCapacity(largest, total *Metrics) (int64, error) {
 	debug("desired = %+v\n", desired)
 
 	// minimum instance count is 3
-	if IsHA == "true" && desired < 3 {
-		desired = 3
-	}
-
-	// for no-HA rack the max is 3
-	if IsHA == "false" && desired > 3 {
+	if desired < 3 {
 		desired = 3
 	}
 
