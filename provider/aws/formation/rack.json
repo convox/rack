@@ -88,6 +88,17 @@
             {
               "Fn::Select": [
                 0,
+                { "Fn::Split": ["c7g", { "Ref": "InstanceType" }] }
+              ]
+            },
+            ""
+          ]
+        },
+        {
+          "Fn::Equals": [
+            {
+              "Fn::Select": [
+                0,
                 { "Fn::Split": ["t4g", { "Ref": "InstanceType" }] }
               ]
             },
