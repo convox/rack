@@ -23,7 +23,7 @@ var (
 	CloudFormation     = cloudformation.New(session.New(), nil)
 	ECS                = ecs.New(session.New(), nil)
 	InstanceCountParam = HAInstanceCountParam
-	IsHA               = os.Getenv("HIGH_AVAILABILITY")
+	IsHA               = os.Getenv("HIGH_AVAILABILITY") == "true"
 )
 
 type Metrics struct {
@@ -79,7 +79,7 @@ func autoscale(desired int64) error {
 		UsePreviousTemplate: aws.Bool(true),
 	}
 
-	if IsHA == "false" {
+	if !IsHA {
 		InstanceCountParam = NoHaInstanceCountParam
 	}
 
@@ -308,13 +308,8 @@ func desiredCapacity(largest, total *Metrics) (int64, error) {
 
 	debug("desired = %+v\n", desired)
 
-	// minimum instance count is 3
-	if IsHA == "true" && desired < 3 {
-		desired = 3
-	}
-
-	// for no-HA rack the max is 3
-	if IsHA == "false" && desired > 3 {
+	// minimum instance count is 3 for high available racks
+	if IsHA && desired < 3 {
 		desired = 3
 	}
 
