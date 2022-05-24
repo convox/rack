@@ -77,11 +77,11 @@ func (p *Provider) spotReplace() error {
 		return err
 	}
 
-	log.Logf("instanceCount=%d onDemandMin=%d onDemandCount=%d spotCount=%d spotCountRunning=%d p.HighAvailability=%v", ic, odmin, odc, spc, spcr, p.HighAvailability)
+	log.Logf("instanceCount=%d onDemandMin=%d onDemandCount=%d spotCount=%d spotCountRunning=%d", ic, odmin, odc, spc, spcr)
 
 	spotDesired := ic - odmin
 
-	if spc != spotDesired && p.HighAvailability {
+	if spc != spotDesired {
 		log.Logf("stack=SpotInstances setDesiredCount=%d", spotDesired)
 
 		if err := p.setAsgResourceDesiredCount("SpotInstances", spotDesired); err != nil {
@@ -91,7 +91,7 @@ func (p *Provider) spotReplace() error {
 
 	onDemandDesired := ic - spcr
 
-	if odc != onDemandDesired && p.HighAvailability {
+	if odc != onDemandDesired {
 		log.Logf("stack=Instances setDesiredCount=%d", onDemandDesired)
 
 		if err := p.setAsgResourceDesiredCount("Instances", onDemandDesired); err != nil {

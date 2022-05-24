@@ -1763,7 +1763,7 @@
         "HealthCheckType": "EC2",
         "HealthCheckGracePeriod": "120",
         "MinSize" : { "Fn::If": [ "SpotInstancesAndHA", { "Ref": "OnDemandMinCount" }, { "Fn::If": [ "HighAvailability", { "Ref": "InstanceCount"}, "1" ] } ] },
-        "MaxSize" : { "Fn::If": [ "HighAvailability", "1000", "3" ] },
+        "MaxSize" : "1000",
         "MetricsCollection": [ { "Granularity": "1Minute" } ],
         "TerminationPolicies": [ "NewestInstance" ],
         "Tags": [
@@ -1838,7 +1838,7 @@
         "AutoScalingGroupName": { "Ref": "Instances" },
         "DesiredCapacity" : { "Fn::If": [ "SpotInstances", { "Ref": "AWS::NoValue" }, { "Fn::If": [ "HighAvailability", { "Ref": "InstanceCount"}, { "Ref": "NoHaInstanceCount"} ] } ] },
         "MinSize" : { "Fn::If": [ "SpotInstancesAndHA", { "Ref": "OnDemandMinCount" }, { "Fn::If": [ "HighAvailability", { "Ref": "InstanceCount"}, "1" ] } ] },
-        "MaxSize" : { "Fn::If": [ "HighAvailability", "1000", "3" ] },
+        "MaxSize" : "1000",
         "Recurrence": { "Ref": "ScheduleRackScaleUp" }
       }
     },
@@ -1876,7 +1876,7 @@
           "Variables": {
             "ASG": { "Ref": "Instances" },
             "CLUSTER": { "Ref": "Cluster" },
-            "EXTRA": { "Ref": "AutoscaleExtra" },
+            "EXTRA": { "Fn::If": [ "HighAvailability", { "Ref": "AutoscaleExtra" }, 0]},
             "HIGH_AVAILABILITY": { "Ref": "HighAvailability" },
             "STACK": { "Ref": "AWS::StackName" }
           }
@@ -2251,8 +2251,8 @@
         "Cooldown": 5,
         "HealthCheckType": "EC2",
         "HealthCheckGracePeriod": "120",
-        "MinSize" : "0",
-        "MaxSize" : { "Fn::If": [ "HighAvailability", "1000", "3"]},
+        "MinSize": "0",
+        "MaxSize": "1000",
         "MetricsCollection": [ { "Granularity": "1Minute" } ],
         "Tags": [
           {
@@ -2880,7 +2880,6 @@
               "rack.EcsPollInterval": { "Ref": "EcsPollInterval" },
               "rack.EncryptionKey": { "Ref": "EncryptionKey" },
               "rack.Fargate": { "Fn::FindInMap": [ "RegionConfig", { "Ref": "AWS::Region" }, "Fargate" ] },
-              "rack.HighAvailability": { "Ref": "HighAvailability" },
               "rack.Internal": { "Ref": "Internal" },
               "rack.InternalOnly": { "Ref": "InternalOnly" },
               "rack.LogBucket": { "Fn::If": [ "BlankLogBucket", { "Ref": "Logs" }, { "Ref": "LogBucket" } ] },
@@ -2970,7 +2969,6 @@
               "rack.EcsPollInterval": { "Ref": "EcsPollInterval" },
               "rack.EncryptionKey": { "Ref": "EncryptionKey" },
               "rack.Fargate": { "Fn::FindInMap": [ "RegionConfig", { "Ref": "AWS::Region" }, "Fargate" ] },
-              "rack.HighAvailability": { "Ref": "HighAvailability" },
               "rack.Internal": { "Ref": "Internal" },
               "rack.InternalOnly": { "Ref": "InternalOnly" },
               "rack.LogBucket": { "Fn::If": [ "BlankLogBucket", { "Ref": "Logs" }, { "Ref": "LogBucket" } ] },
@@ -3078,7 +3076,6 @@
               "rack.EcsPollInterval": { "Ref": "EcsPollInterval" },
               "rack.EncryptionKey": { "Ref": "EncryptionKey" },
               "rack.Fargate": { "Fn::FindInMap": [ "RegionConfig", { "Ref": "AWS::Region" }, "Fargate" ] },
-              "rack.HighAvailability": { "Ref": "HighAvailability" },
               "rack.Internal": { "Ref": "Internal" },
               "rack.InternalOnly": { "Ref": "InternalOnly" },
               "rack.LogBucket": { "Fn::If": [ "BlankLogBucket", { "Ref": "Logs" }, { "Ref": "LogBucket" } ] },
