@@ -150,6 +150,7 @@ func (p *Provider) loadParams() error {
 	p.EcsPollInterval = intParam(labels["rack.EcsPollInterval"], 1)
 	p.EncryptionKey = labels["rack.EncryptionKey"]
 	p.Fargate = labels["rack.Fargate"] == "Yes"
+	p.HighAvailability = labels["rack.HighAvailability"] == "true"
 	p.Internal = labels["rack.Internal"] == "Yes"
 	p.InternalOnly = labels["rack.InternalOnly"] == "Yes"
 	p.LogBucket = labels["rack.LogBucket"]
