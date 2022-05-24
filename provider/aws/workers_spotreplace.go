@@ -12,6 +12,7 @@ import (
 )
 
 var (
+	icsParam = "InstanceCount"
 	spotTick = 60 * time.Second
 )
 
@@ -50,7 +51,10 @@ func (p *Provider) spotReplace() error {
 		return nil
 	}
 
-	ics, err := p.stackParameter(p.Rack, "InstanceCount")
+	if !p.HighAvailability {
+		icsParam = "NoHaInstanceCount"
+	}
+	ics, err := p.stackParameter(p.Rack, icsParam)
 	if err != nil {
 		return err
 	}
