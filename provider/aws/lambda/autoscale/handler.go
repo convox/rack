@@ -15,14 +15,13 @@ import (
 )
 
 const (
-	HAInstanceCountParam   = "InstanceCount"
-	NoHaInstanceCountParam = "NoHaInstanceCount"
+	haInstanceCountParam   = "InstanceCount"
+	noHaInstanceCountParam = "NoHaInstanceCount"
 )
 
 var (
 	CloudFormation = cloudformation.New(session.New(), nil)
 	ECS            = ecs.New(session.New(), nil)
-	icParam        = HAInstanceCountParam
 	IsHA           = os.Getenv("HIGH_AVAILABILITY") == "true"
 )
 
@@ -56,8 +55,9 @@ func Handler(ctx context.Context) error {
 func autoscale(desired int64) error {
 	stack := os.Getenv("STACK")
 	ds := fmt.Sprintf("%d", desired)
+	icParam := haInstanceCountParam
 	if !IsHA {
-		icParam = NoHaInstanceCountParam
+		icParam = noHaInstanceCountParam
 	}
 
 	debug("desired (ds) = %+v\n", ds)
@@ -85,8 +85,8 @@ func autoscale(desired int64) error {
 	for _, p := range res.Stacks[0].Parameters {
 		switch *p.ParameterKey {
 		case icParam:
-			debug("param %s = %s\n", icParam, *p.ParameterKey)
-			debug("actual %s param = %+v\n", icParam, *p.ParameterValue)
+			debug("param %s key = %+v\n", icParam, *p.ParameterKey)
+			debug("param %s value = %+v\n", icParam, *p.ParameterValue)
 
 			if ds == *p.ParameterValue {
 				fmt.Println("no change")
