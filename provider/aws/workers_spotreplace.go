@@ -11,8 +11,10 @@ import (
 	"github.com/convox/logger"
 )
 
-var (
-	spotTick = 60 * time.Second
+const (
+	haInstanceCountParam   = "InstanceCount"
+	noHaInstanceCountParam = "NoHaInstanceCount"
+	spotTick               = 60 * time.Second
 )
 
 // Main worker function
@@ -50,7 +52,11 @@ func (p *Provider) spotReplace() error {
 		return nil
 	}
 
-	ics, err := p.stackParameter(p.Rack, "InstanceCount")
+	icParam := haInstanceCountParam
+	if !p.HighAvailability {
+		icParam = noHaInstanceCountParam
+	}
+	ics, err := p.stackParameter(p.Rack, icParam)
 	if err != nil {
 		return err
 	}
@@ -81,7 +87,7 @@ func (p *Provider) spotReplace() error {
 
 	spotDesired := ic - odmin
 
-	if spc != spotDesired && p.HighAvailability {
+	if spc != spotDesired {
 		log.Logf("stack=SpotInstances setDesiredCount=%d", spotDesired)
 
 		if err := p.setAsgResourceDesiredCount("SpotInstances", spotDesired); err != nil {
@@ -91,7 +97,7 @@ func (p *Provider) spotReplace() error {
 
 	onDemandDesired := ic - spcr
 
-	if odc != onDemandDesired && p.HighAvailability {
+	if odc != onDemandDesired {
 		log.Logf("stack=Instances setDesiredCount=%d", onDemandDesired)
 
 		if err := p.setAsgResourceDesiredCount("Instances", onDemandDesired); err != nil {

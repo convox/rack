@@ -14,9 +14,15 @@ import (
 	"github.com/aws/aws-sdk-go/service/ecs"
 )
 
+const (
+	haInstanceCountParam   = "InstanceCount"
+	noHaInstanceCountParam = "NoHaInstanceCount"
+)
+
 var (
 	CloudFormation = cloudformation.New(session.New(), nil)
 	ECS            = ecs.New(session.New(), nil)
+	IsHA           = os.Getenv("HIGH_AVAILABILITY") == "true"
 )
 
 type Metrics struct {
@@ -48,11 +54,15 @@ func Handler(ctx context.Context) error {
 
 func autoscale(desired int64) error {
 	stack := os.Getenv("STACK")
-
-	debug("desired = %+v\n", desired)
-	debug("stack = %+v\n", stack)
-
 	ds := fmt.Sprintf("%d", desired)
+	icParam := haInstanceCountParam
+	if !IsHA {
+		icParam = noHaInstanceCountParam
+	}
+
+	debug("desired (ds) = %+v\n", ds)
+	debug("stack = %+v\n", stack)
+	debug("scale parameter = %+v\n", icParam)
 
 	res, err := CloudFormation.DescribeStacks(&cloudformation.DescribeStacksInput{
 		StackName: aws.String(stack),
@@ -74,9 +84,9 @@ func autoscale(desired int64) error {
 
 	for _, p := range res.Stacks[0].Parameters {
 		switch *p.ParameterKey {
-		case "InstanceCount":
-			debug("ds = %+v\n", ds)
-			debug("*p.ParameterValue = %+v\n", *p.ParameterValue)
+		case icParam:
+			debug("param %s key = %+v\n", icParam, *p.ParameterKey)
+			debug("param %s value = %+v\n", icParam, *p.ParameterValue)
 
 			if ds == *p.ParameterValue {
 				fmt.Println("no change")
@@ -295,13 +305,12 @@ func desiredCapacity(largest, total *Metrics) (int64, error) {
 	// total desired count is the current instance count minus the smallest calculated extra type plus the number of desired extra instances
 	desired := totalCount - min(extraCapacity, extraFit, extraWidth) + extra
 
-	debug("desired = %+v\n", desired)
-
-	// minimum instance count is 3
-	if desired < 3 {
+	// minimum instance count is 3 for high available racks
+	if IsHA && desired < 3 {
 		desired = 3
 	}
 
+	debug("desired = %+v\n", desired)
 	return desired, nil
 }
 
