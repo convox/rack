@@ -161,6 +161,10 @@ func (p *Provider) SystemUpdate(opts structs.SystemUpdateOptions) error {
 	return nil
 }
 
+func (p *Provider) Sync(name string) error {
+	return fmt.Errorf("not supported")
+}
+
 func (p *Provider) systemUpdate(version string) error {
 	if err := p.initializeAtom(); err != nil {
 		return err

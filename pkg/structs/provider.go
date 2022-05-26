@@ -92,7 +92,7 @@ type Provider interface {
 	SystemResourceUpdate(name string, opts ResourceUpdateOptions) (*Resource, error)
 	SystemUninstall(name string, w io.Writer, opts SystemUninstallOptions) error
 	SystemUpdate(opts SystemUpdateOptions) error
-
+	Sync(string) error
 	WithContext(ctx context.Context) Provider
 
 	Workers() error

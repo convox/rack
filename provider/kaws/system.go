@@ -277,6 +277,10 @@ func (p *Provider) SystemUpdate(opts structs.SystemUpdateOptions) error {
 	return nil
 }
 
+func (p *Provider) Sync(name string) error {
+	return fmt.Errorf("not supported")
+}
+
 func (p *Provider) systemTemplate(version string) ([]byte, error) {
 	switch version {
 	case "dev":

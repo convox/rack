@@ -8,6 +8,9 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/aws/aws-sdk-go/aws"
+	ss "github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/convox/rack/pkg/helpers"
 	"github.com/convox/rack/pkg/options"
 	"github.com/convox/rack/pkg/structs"
@@ -69,6 +72,10 @@ func init() {
 		Flags:    append(stdcli.OptionFlags(structs.SystemUninstallOptions{})),
 		Usage:    "<type> <name>",
 		Validate: stdcli.Args(2),
+	})
+
+	register("rack sync", "sync v2 rack API url", RackSync, stdcli.CommandOptions{
+		Flags: []stdcli.Flag{flagRack, stdcli.StringFlag("name", "n", "rack name. Use it for non console managed racks")},
 	})
 
 	register("rack update", "update the rack", RackUpdate, stdcli.CommandOptions{
@@ -421,6 +428,47 @@ func RackUpdate(rack sdk.Interface, c *stdcli.Context) error {
 		if err := helpers.WaitForRackWithLogs(rack, c); err != nil {
 			return err
 		}
+	}
+
+	return c.OK()
+}
+
+func RackSync(rack sdk.Interface, c *stdcli.Context) error {
+	c.Startf("Synchronizing rack API URL...")
+	c.Writef("\n")
+
+	host, err := currentHost(c)
+	if err != nil {
+		c.Fail(err)
+	}
+	rname := currentRack(c, host)
+
+	if c.String("name") != "" {
+		rname = c.String("name")
+		s, err := ss.NewSession(&aws.Config{})
+		if err != nil {
+			return err
+		}
+
+		cf := cloudformation.New(s)
+
+		o, err := cf.DescribeStacks(&cloudformation.DescribeStacksInput{StackName: aws.String(rname)})
+		if err != nil {
+			return err
+		}
+		for _, s := range o.Stacks {
+			for _, o := range s.Outputs {
+				if *o.OutputKey == "Dashboard" {
+					c.Writef("url=%s\n", *o.OutputValue)
+				}
+			}
+		}
+		return c.OK()
+	}
+
+	err = rack.Sync(rname)
+	if err != nil {
+		return err
 	}
 
 	return c.OK()
