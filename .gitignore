@@ -6,5 +6,4 @@ profile.out
 cmd/convox/pkg
 provider/aws/lambda/autoscale/handler
 provider/aws/lambda/autoscale/lambda.zip
-provider/aws/lambda/autoscale/handler
-provider/aws/lambda/autoscale/lambda.zip
+.vscode/

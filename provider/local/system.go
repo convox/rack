@@ -178,6 +178,10 @@ func (p *Provider) SystemUpdate(opts structs.SystemUpdateOptions) error {
 	return nil
 }
 
+func (p *Provider) Sync(name string) error {
+	return fmt.Errorf("not supported")
+}
+
 func (p *Provider) generateCACertificate(version string) error {
 	if err := exec.Command("kubectl", "get", "secret", "ca", "-n", "convox-system").Run(); err == nil {
 		return nil

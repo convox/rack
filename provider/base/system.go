@@ -42,3 +42,7 @@ func (p *Provider) Sync(name string) error {
 func (p *Provider) SystemUpdate(opts structs.SystemUpdateOptions) error {
 	return fmt.Errorf("unimplemented")
 }
+
+func (p *Provider) Sync(name string) error {
+	return fmt.Errorf("not supported")
+}
