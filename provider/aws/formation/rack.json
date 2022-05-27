@@ -207,15 +207,12 @@
       "Value": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] }
     },
     "Dashboard": {
-      "Value": { "Fn::If": [ "ApiRouterALB",
-        { "Fn::Join": [ ".", [
-          "rack",
-          { "Fn::Select": [ 0, { "Fn::Split": [ ".", { "Fn::GetAtt": [ "Router", "DNSName" ] } ] } ] },
-          { "Fn::Select": [ 1, { "Fn::Split": [ ".", { "Fn::GetAtt": [ "Router", "DNSName" ] } ] } ] },
-          "convox.site"
-        ] ] },
-        { "Fn::GetAtt": [ "Balancer", "DNSName" ] }
-      ] }
+      "Value": { "Fn::Join": [ ".", [
+        "rack",
+        { "Fn::Select": [ 0, { "Fn::Split": [ ".", { "Fn::GetAtt": [ "Balancer", "DNSName" ] } ] } ] },
+        { "Fn::Select": [ 1, { "Fn::Split": [ ".", { "Fn::GetAtt": [ "Balancer", "DNSName" ] } ] } ] },
+        "convox.site"
+      ] ] }
     },
     "Domain": {
       "Condition": "PublicRouter",
@@ -1328,15 +1325,12 @@
         "Type": "CNAME",
         "TTL": "3600",
         "ResourceRecords": [
-          { "Fn::If": [ "ApiRouterALB",
-            { "Fn::Join": [ ".", [
-              "rack",
-              { "Fn::Select": [ 0, { "Fn::Split": [ ".", { "Fn::GetAtt": [ "Router", "DNSName" ] } ] } ] },
-              { "Fn::Select": [ 1, { "Fn::Split": [ ".", { "Fn::GetAtt": [ "Router", "DNSName" ] } ] } ] },
-              "convox.site"
-            ] ] },
-            { "Fn::GetAtt": [ "Balancer", "DNSName" ] }
-          ] }
+          { "Fn::Join": [ ".", [
+            "rack",
+            { "Fn::Select": [ 0, { "Fn::Split": [ ".", { "Fn::GetAtt": [ "Balancer", "DNSName" ] } ] } ] },
+            { "Fn::Select": [ 1, { "Fn::Split": [ ".", { "Fn::GetAtt": [ "Balancer", "DNSName" ] } ] } ] },
+            "convox.site"
+          ] ] }
         ]
       }
     },
@@ -2695,10 +2689,32 @@
         ]
       }
     },
+    "BalancerApiCertificate": {
+      "Type": "AWS::CertificateManager::Certificate",
+      "Properties": {
+        "DomainName": { "Fn::Join": [ ".", [
+          "*",
+          { "Fn::Select": [ 0, { "Fn::Split": [ ".", { "Fn::GetAtt": [ "Balancer", "DNSName" ] } ] } ] },
+          { "Fn::Select": [ 1, { "Fn::Split": [ ".", { "Fn::GetAtt": [ "Balancer", "DNSName" ] } ] } ] },
+          "convox.site"
+        ] ] },
+        "DomainValidationOptions": [
+          {
+            "DomainName": { "Fn::Join": [ ".", [
+              "*",
+              { "Fn::Select": [ 0, { "Fn::Split": [ ".", { "Fn::GetAtt": [ "Balancer", "DNSName" ] } ] } ] },
+              { "Fn::Select": [ 1, { "Fn::Split": [ ".", { "Fn::GetAtt": [ "Balancer", "DNSName" ] } ] } ] },
+              "convox.site"
+            ] ] },
+            "ValidationDomain": "convox.site"
+          }
+        ]
+      }
+    },
     "BalancerListener443": {
       "Type": "AWS::ElasticLoadBalancingV2::Listener",
       "Properties": {
-        "Certificates": [ { "CertificateArn": { "Ref": "RouterApiCertificate" } } ],
+        "Certificates": [ { "CertificateArn": { "Ref": "BalancerApiCertificate" } } ],
         "DefaultActions": [ { "Type": "fixed-response", "FixedResponseConfig": { "StatusCode": "404", "MessageBody": "unknown host" } } ],
         "LoadBalancerArn": { "Ref" : "Balancer" },
         "Port": "443",
@@ -2731,8 +2747,8 @@
         "Conditions": [
           { "Field": "host-header", "Values": [ { "Fn::Join": [ ".", [
             "rack",
-            { "Fn::Select": [ 0, { "Fn::Split": [ ".", { "Fn::GetAtt": [ "Router", "DNSName" ] } ] } ] },
-            { "Fn::Select": [ 1, { "Fn::Split": [ ".", { "Fn::GetAtt": [ "Router", "DNSName" ] } ] } ] },
+            { "Fn::Select": [ 0, { "Fn::Split": [ ".", { "Fn::GetAtt": [ "Balancer", "DNSName" ] } ] } ] },
+            { "Fn::Select": [ 1, { "Fn::Split": [ ".", { "Fn::GetAtt": [ "Balancer", "DNSName" ] } ] } ] },
             "convox.site"
           ] ] } ] }
         ],
