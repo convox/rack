@@ -2871,7 +2871,7 @@
     },
     "ApiWebService": {
       "Type": "AWS::ECS::Service",
-      "DependsOn": [ "Instances" ],
+      "DependsOn": [ "Instances", "BalancerListener443" ],
       "Properties": {
         "Cluster": { "Ref": "Cluster" },
         "DeploymentConfiguration": { "MinimumHealthyPercent": { "Fn::If": [ "HighAvailability", "50", "0" ] }, "MaximumPercent": "200" },
