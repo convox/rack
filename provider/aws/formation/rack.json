@@ -3228,13 +3228,44 @@
         }]
       }
     },
+    "CustomerManagedKMS": {
+      "Type" : "AWS::KMS::Key",
+      "Properties" : {
+        "Description" : "Customer Managed KMS (CMK) used by Convox to encrypt the S3 bucket",
+        "EnableKeyRotation" : "true",
+        "KeyPolicy": {
+          "Version": "2012-10-17",
+          "Id": "cmk-s3-log-bucket",
+          "Statement": [
+            {
+              "Sid": "Enable IAM policies",
+              "Effect": "Allow",
+              "Principal": {
+                "AWS": { "Fn::Sub": "arn:aws:iam::${AWS::AccountId}:root" }
+               },
+              "Action": "kms:*",
+              "Resource": "*"
+            }
+          ]
+        },
+        "Tags": [
+          { "Key": "System", "Value": "convox" },
+          { "Key": "Rack", "Value": { "Ref": "AWS::StackName" } }
+        ]
+      }
+    },
     "Logs": {
       "Type": "AWS::S3::Bucket",
       "DeletionPolicy": "Retain",
       "Properties": {
         "AccessControl": "LogDeliveryWrite",
         "BucketEncryption": {
-          "ServerSideEncryptionConfiguration": [ { "ServerSideEncryptionByDefault": { "SSEAlgorithm": "aws:kms" } } ]
+          "ServerSideEncryptionConfiguration": [ {
+            "ServerSideEncryptionByDefault": {
+              "SSEAlgorithm": "aws:kms",
+              "KMSMasterKeyID": { "Ref": "CustomerManagedKMS" }
+            }
+          } ]
         },
         "LifecycleConfiguration": { "Fn::If": [ "BlankLogRetention",
           { "Ref": "AWS::NoValue" },
@@ -3299,7 +3330,12 @@
       "Properties": {
         "AccessControl": "Private",
         "BucketEncryption": {
-          "ServerSideEncryptionConfiguration": [ { "ServerSideEncryptionByDefault": { "SSEAlgorithm": "aws:kms" } } ]
+          "ServerSideEncryptionConfiguration": [ {
+            "ServerSideEncryptionByDefault": {
+              "SSEAlgorithm": "aws:kms",
+              "KMSMasterKeyID": { "Ref": "CustomerManagedKMS" }
+            }
+          } ]
         },
         "LoggingConfiguration": {
           "DestinationBucketName": { "Fn::If": [ "BlankLogBucket", { "Ref": "Logs" }, { "Ref": "LogBucket" } ] },
