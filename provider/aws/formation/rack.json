@@ -1,8 +1,6 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
   "Conditions": {
-    "ApiRouterALB": { "Fn::Equals": [ { "Ref": "ApiRouter" }, "ALB" ] },
-    "ApiRouterELB": { "Fn::Equals": [ { "Ref": "ApiRouter" }, "ELB" ] },
     "Autoscale": { "Fn::Equals": [ { "Ref": "Autoscale" }, "Yes" ] },
     "BlankAmi": { "Fn::Equals": [ { "Ref": "Ami" }, "" ] },
     "BlankAvailabilityZones": { "Fn::Equals": [ { "Fn::Join": [ "", { "Ref": "AvailabilityZones" } ] }, "" ] },
@@ -25,6 +23,10 @@
     "BlankRouterSecurityGroup": { "Fn::Equals": [ { "Fn::Join": [ ",", { "Ref": "RouterSecurityGroup" } ] }, "" ] },
     "BlankRouterInternalSecurityGroup": { "Fn::Equals": [ { "Fn::Join": [ ",", { "Ref": "RouterInternalSecurityGroup" } ] }, "" ] },
     "BlankSslPolicy": { "Fn::Equals": [ { "Ref": "SslPolicy" }, "" ] },
+    "CreateThirdPrivateSubnet": {"Fn::Or": [
+      {"Condition": "PrivateApiAndThirdAvailabilityZoneAndHighAvailability"},
+      {"Condition": "PrivateAndThirdAvailabilityZoneAndHighAvailability"}
+    ]},
     "DedicatedBuilder": { "Fn::Not": [ { "Fn::Equals": [ { "Ref": "BuildInstance" }, "" ] } ] },
     "Development": { "Fn::Equals": [ { "Ref": "Development" }, "Yes" ] },
     "EncryptEbs" : { "Fn::Equals": [ { "Ref": "EncryptEbs" }, "Yes" ] },
@@ -101,9 +103,12 @@
     "NotExistingVpcAndBlankInternetGateway": { "Fn::Not": [ { "Condition": "ExistingVpcAndBlankInternetGateway" } ] },
     "Private": { "Fn::Or": [ { "Condition": "PrivateBuild" }, { "Condition": "PrivateInstances" } ] },
     "PrivateAndThirdAvailabilityZoneAndHighAvailability": {
-      "Fn::And": [ { "Fn::Or": [{ "Condition": "Private" }, { "Condition": "PrivateApi" }] }, { "Condition": "ThirdAvailabilityZone" }, { "Condition": "HighAvailability" } ]
+      "Fn::And": [ { "Condition": "Private" }, { "Condition": "ThirdAvailabilityZone" }, { "Condition": "HighAvailability" } ]
     },
     "PrivateApi": { "Fn::Equals": [ { "Ref": "PrivateApi" }, "Yes" ] },
+    "PrivateApiAndThirdAvailabilityZoneAndHighAvailability": {
+      "Fn::And": [ { "Condition": "PrivateApi" }, { "Condition": "ThirdAvailabilityZone" }, { "Condition": "HighAvailability" } ]
+    },
     "PrivateBuild": { "Fn::Or": [ { "Fn::Equals": [ { "Ref": "Private" }, "Yes" ] }, { "Fn::Equals": [ { "Ref": "PrivateBuild" }, "Yes" ] } ] },
     "PrivateInstances": { "Fn::Equals": [ { "Ref": "Private" }, "Yes" ] },
     "PublicRouter": { "Fn::Equals": [ { "Ref": "InternalOnly" }, "No" ] },
@@ -209,8 +214,8 @@
     "Dashboard": {
       "Value": { "Fn::Join": [ ".", [
         "rack",
-        { "Fn::Select": [ 0, { "Fn::Split": [ ".", { "Fn::GetAtt": [ "Balancer", "DNSName" ] } ] } ] },
-        { "Fn::Select": [ 1, { "Fn::Split": [ ".", { "Fn::GetAtt": [ "Balancer", "DNSName" ] } ] } ] },
+        { "Fn::Select": [ 0, { "Fn::Split": [ ".", { "Fn::GetAtt": [ "ApiBalancer", "DNSName" ] } ] } ] },
+        { "Fn::Select": [ 1, { "Fn::Split": [ ".", { "Fn::GetAtt": [ "ApiBalancer", "DNSName" ] } ] } ] },
         "convox.site"
       ] ] }
     },
@@ -459,7 +464,7 @@
       "Value": { "Ref": "SubnetPrivate1" }
     },
     "SubnetPrivate2": {
-      "Condition": "PrivateAndThirdAvailabilityZoneAndHighAvailability",
+      "Condition": "CreateThirdPrivateSubnet",
       "Export": { "Name": { "Fn::Sub": "${AWS::StackName}:SubnetPrivate2" } },
       "Value": { "Ref": "SubnetPrivate2" }
     },
@@ -1149,7 +1154,7 @@
       }
     },
     "SubnetPrivate2": {
-      "Condition": "PrivateAndThirdAvailabilityZoneAndHighAvailability",
+      "Condition": "CreateThirdPrivateSubnet",
       "Type": "AWS::EC2::Subnet",
       "Properties": {
         "Tags": [ { "Key": "Name", "Value": { "Fn::Join": [ " ", [ { "Ref": "AWS::StackName" }, "private", "2" ] ] } } ],
@@ -1327,8 +1332,8 @@
         "ResourceRecords": [
           { "Fn::Join": [ ".", [
             "rack",
-            { "Fn::Select": [ 0, { "Fn::Split": [ ".", { "Fn::GetAtt": [ "Balancer", "DNSName" ] } ] } ] },
-            { "Fn::Select": [ 1, { "Fn::Split": [ ".", { "Fn::GetAtt": [ "Balancer", "DNSName" ] } ] } ] },
+            { "Fn::Select": [ 0, { "Fn::Split": [ ".", { "Fn::GetAtt": [ "ApiBalancer", "DNSName" ] } ] } ] },
+            { "Fn::Select": [ 1, { "Fn::Split": [ ".", { "Fn::GetAtt": [ "ApiBalancer", "DNSName" ] } ] } ] },
             "convox.site"
           ] ] }
         ]
@@ -2541,42 +2546,6 @@
         ]
       }
     },
-    "RouterApiTargetGroup": {
-      "Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
-      "Condition": "ApiRouterALB",
-      "Properties": {
-        "HealthCheckIntervalSeconds": "5",
-        "HealthCheckTimeoutSeconds": "3",
-        "HealthyThresholdCount": "2",
-        "UnhealthyThresholdCount": "2",
-        "HealthCheckPath": "/check",
-        "Matcher": { "HttpCode": "200" },
-        "Port": "5443",
-        "Protocol": "HTTPS",
-        "TargetGroupAttributes": [
-          { "Key": "deregistration_delay.timeout_seconds", "Value": "30" }
-        ],
-        "TargetType": "instance",
-        "VpcId": { "Fn::If": [ "BlankExistingVpc", { "Ref": "Vpc" }, { "Ref": "ExistingVpc" } ] }
-      }
-    },
-    "RouterApiListenerRule": {
-      "Type": "AWS::ElasticLoadBalancingV2::ListenerRule",
-      "Condition": "ApiRouterALB",
-      "Properties": {
-        "Actions": [ { "Type": "forward", "TargetGroupArn": { "Ref": "RouterApiTargetGroup" } } ],
-        "Conditions": [
-          { "Field": "host-header", "Values": [ { "Fn::Join": [ ".", [
-            "rack",
-            { "Fn::Select": [ 0, { "Fn::Split": [ ".", { "Fn::GetAtt": [ "Router", "DNSName" ] } ] } ] },
-            { "Fn::Select": [ 1, { "Fn::Split": [ ".", { "Fn::GetAtt": [ "Router", "DNSName" ] } ] } ] },
-            "convox.site"
-          ] ] } ] }
-        ],
-        "ListenerArn": { "Ref": "RouterListener443" },
-        "Priority": "1"
-      }
-    },
     "RouterInternal": {
       "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
       "Condition": "Internal",
@@ -2667,43 +2636,45 @@
         ]
       }
     },
-    "Balancer": {
+    "ApiBalancer": {
       "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
       "DependsOn": [ "GatewayAttachment" ],
       "Properties": {
+        "Name": { "Fn::If": [ "PrivateApi", { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" }, "i" ] ] }, { "Ref": "AWS::StackName" } ] },
         "LoadBalancerAttributes": [
           { "Key": "access_logs.s3.enabled", "Value": "false" },
           { "Key": "idle_timeout.timeout_seconds", "Value": { "Ref": "LoadBalancerIdleTimeout" } },
           { "Key": "routing.http.desync_mitigation_mode", "Value": { "Ref": "RouterMitigationMode" } },
           { "Key": "routing.http.drop_invalid_header_fields.enabled", "Value": "true" }
         ],
+        "Scheme": { "Fn::If": [ "PrivateApi", "internal", "internet-facing" ] },
         "Subnets": {
           "Fn::If": [ "PrivateApi",
-            [ { "Ref": "SubnetPrivate0" }, { "Ref": "SubnetPrivate1" }, { "Fn::If": [ "ThirdAvailabilityZoneAndHighAvailability", { "Ref": "SubnetPrivate2" }, { "Ref": "AWS::NoValue" } ] } ],
+            [ { "Ref": "SubnetPrivate0" }, { "Ref": "SubnetPrivate1" }, { "Fn::If": [ "CreateThirdPrivateSubnet", { "Ref": "SubnetPrivate2" }, { "Ref": "AWS::NoValue" } ] } ],
             [ { "Ref": "Subnet0" }, { "Ref": "Subnet1" }, { "Fn::If": [ "ThirdAvailabilityZoneAndHighAvailability", { "Ref": "Subnet2" }, { "Ref": "AWS::NoValue" } ] } ]
           ]
         },
-        "SecurityGroups": [ { "Ref": "BalancerSecurity" } ],
+        "SecurityGroups": [ { "Ref": "ApiBalancerSecurity" } ],
         "Tags": [
           { "Key": "Rack", "Value": { "Ref": "AWS::StackName" } }
         ]
       }
     },
-    "BalancerApiCertificate": {
+    "ApiBalancerCertificate": {
       "Type": "AWS::CertificateManager::Certificate",
       "Properties": {
         "DomainName": { "Fn::Join": [ ".", [
           "*",
-          { "Fn::Select": [ 0, { "Fn::Split": [ ".", { "Fn::GetAtt": [ "Balancer", "DNSName" ] } ] } ] },
-          { "Fn::Select": [ 1, { "Fn::Split": [ ".", { "Fn::GetAtt": [ "Balancer", "DNSName" ] } ] } ] },
+          { "Fn::Select": [ 0, { "Fn::Split": [ ".", { "Fn::GetAtt": [ "ApiBalancer", "DNSName" ] } ] } ] },
+          { "Fn::Select": [ 1, { "Fn::Split": [ ".", { "Fn::GetAtt": [ "ApiBalancer", "DNSName" ] } ] } ] },
           "convox.site"
         ] ] },
         "DomainValidationOptions": [
           {
             "DomainName": { "Fn::Join": [ ".", [
               "*",
-              { "Fn::Select": [ 0, { "Fn::Split": [ ".", { "Fn::GetAtt": [ "Balancer", "DNSName" ] } ] } ] },
-              { "Fn::Select": [ 1, { "Fn::Split": [ ".", { "Fn::GetAtt": [ "Balancer", "DNSName" ] } ] } ] },
+              { "Fn::Select": [ 0, { "Fn::Split": [ ".", { "Fn::GetAtt": [ "ApiBalancer", "DNSName" ] } ] } ] },
+              { "Fn::Select": [ 1, { "Fn::Split": [ ".", { "Fn::GetAtt": [ "ApiBalancer", "DNSName" ] } ] } ] },
               "convox.site"
             ] ] },
             "ValidationDomain": "convox.site"
@@ -2711,19 +2682,20 @@
         ]
       }
     },
-    "BalancerListener443": {
+    "ApiBalancerListener443": {
       "Type": "AWS::ElasticLoadBalancingV2::Listener",
       "Properties": {
-        "Certificates": [ { "CertificateArn": { "Ref": "BalancerApiCertificate" } } ],
+        "Certificates": [ { "CertificateArn": { "Ref": "ApiBalancerCertificate" } } ],
         "DefaultActions": [ { "Type": "fixed-response", "FixedResponseConfig": { "StatusCode": "404", "MessageBody": "unknown host" } } ],
-        "LoadBalancerArn": { "Ref" : "Balancer" },
+        "LoadBalancerArn": { "Ref" : "ApiBalancer" },
         "Port": "443",
         "Protocol": "HTTPS",
         "SslPolicy": { "Fn::If": [ "BlankSslPolicy", { "Ref": "AWS::NoValue" }, { "Ref": "SslPolicy" } ] }
       }
     },
-    "BalancerApiTargetGroup": {
+    "ApiBalancerTargetGroup": {
       "Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
+      "DependsOn": "ApiBalancerListener443",
       "Properties": {
         "HealthCheckIntervalSeconds": "5",
         "HealthCheckTimeoutSeconds": "3",
@@ -2731,7 +2703,7 @@
         "UnhealthyThresholdCount": "2",
         "HealthCheckPath": "/check",
         "Matcher": { "HttpCode": "200" },
-        "Port": "3000",
+        "Port": { "Fn::If": ["PrivateApi", "3100", "4000"] },
         "Protocol": "HTTPS",
         "TargetGroupAttributes": [
           { "Key": "deregistration_delay.timeout_seconds", "Value": "30" }
@@ -2740,25 +2712,24 @@
         "VpcId": { "Fn::If": [ "BlankExistingVpc", { "Ref": "Vpc" }, { "Ref": "ExistingVpc" } ] }
       }
     },
-    "BalancerApiListenerRule": {
+    "ApiBalancerListenerRule": {
       "Type": "AWS::ElasticLoadBalancingV2::ListenerRule",
       "Properties": {
-        "Actions": [ { "Type": "forward", "TargetGroupArn": { "Ref": "BalancerApiTargetGroup" } } ],
+        "Actions": [ { "Type": "forward", "TargetGroupArn": { "Ref": "ApiBalancerTargetGroup" } } ],
         "Conditions": [
           { "Field": "host-header", "Values": [ { "Fn::Join": [ ".", [
             "rack",
-            { "Fn::Select": [ 0, { "Fn::Split": [ ".", { "Fn::GetAtt": [ "Balancer", "DNSName" ] } ] } ] },
-            { "Fn::Select": [ 1, { "Fn::Split": [ ".", { "Fn::GetAtt": [ "Balancer", "DNSName" ] } ] } ] },
+            { "Fn::Select": [ 0, { "Fn::Split": [ ".", { "Fn::GetAtt": [ "ApiBalancer", "DNSName" ] } ] } ] },
+            { "Fn::Select": [ 1, { "Fn::Split": [ ".", { "Fn::GetAtt": [ "ApiBalancer", "DNSName" ] } ] } ] },
             "convox.site"
           ] ] } ] }
         ],
-        "ListenerArn": { "Ref": "BalancerListener443" },
+        "ListenerArn": { "Ref": "ApiBalancerListener443" },
         "Priority": "1"
       }
     },
-    "BalancerSecurity": {
+    "ApiBalancerSecurity": {
       "Type": "AWS::EC2::SecurityGroup",
-      "Condition": "ApiRouterELB",
       "Properties": {
         "GroupDescription": { "Fn::Sub": "${AWS::StackName} balancer" },
         "SecurityGroupIngress": [
@@ -2874,7 +2845,7 @@
         ]
       }
     },
-    "ApiMonitorService": {
+    "ServiceMonitorApi": {
       "Type": "AWS::ECS::Service",
       "DependsOn": [ "Instances" ],
       "Properties": {
@@ -2885,17 +2856,14 @@
         "TaskDefinition": { "Ref": "ApiMonitorTasks" }
       }
     },
-    "ApiWebService": {
+    "ServiceWebApi": {
       "Type": "AWS::ECS::Service",
-      "DependsOn": [ "Instances", "BalancerListener443" ],
+      "DependsOn": [ "Instances", "ApiBalancerListenerRule" ],
       "Properties": {
         "Cluster": { "Ref": "Cluster" },
         "DeploymentConfiguration": { "MinimumHealthyPercent": { "Fn::If": [ "HighAvailability", "50", "0" ] }, "MaximumPercent": "200" },
         "DesiredCount": { "Fn::If": [ "HighAvailability", { "Ref": "ApiCount" }, 1 ] },
-        "LoadBalancers": [ { "Fn::If": [ "ApiRouterALB",
-          { "ContainerName": "web", "ContainerPort": "5443", "TargetGroupArn": { "Ref": "RouterApiTargetGroup" } },
-          { "ContainerName": "web", "ContainerPort": "5443", "TargetGroupArn": { "Ref": "BalancerApiTargetGroup" } }
-        ] } ],
+        "LoadBalancers": [ { "ContainerName": "web", "ContainerPort": "5443", "TargetGroupArn": { "Ref": "ApiBalancerTargetGroup" } }],
         "Role": { "Fn::GetAtt": [ "ServiceRole", "Arn" ] },
         "TaskDefinition": { "Ref": "ApiWebTasks" }
       }
@@ -3178,12 +3146,9 @@
             "MemoryReservation": { "Ref": "ApiMemory" },
             "MountPoints": [ { "SourceVolume": "docker", "ContainerPath": "/var/run/docker.sock" } ],
             "Name": "web",
-            "PortMappings": { "Fn::If": [ "ApiRouterALB",
-              [ { "ContainerPort": "5443", "Protocol": "tcp" } ],
-              { "Fn::If": [ "PrivateApi",
-                [ { "HostPort": "3100", "ContainerPort": "5443", "Protocol": "tcp" } ],
-                [ { "HostPort": "3000", "ContainerPort": "5443", "Protocol": "tcp" } ]
-              ] }
+            "PortMappings": { "Fn::If": [ "PrivateApi",
+              [ { "HostPort": "3100", "ContainerPort": "5443", "Protocol": "tcp" } ],
+              [ { "HostPort": "4000", "ContainerPort": "5443", "Protocol": "tcp" } ]
             ] }
           }
         ],
