@@ -35,6 +35,7 @@
     "ExistingVpcAndInternetGateway": {
       "Fn::And": [ { "Condition": "ExistingVpc" }, { "Condition": "InternetGateway" } ]
     },
+    "CreateVpcEndpoint": { "Fn::Equals": [ { "Ref": "ExistingVpcEndpoint" }, "false" ] },
     "HighAvailability": { "Fn::Equals": [ { "Ref": "HighAvailability" }, "true" ] },
     "HttpProxy": { "Fn::Not": [ { "Fn::Equals": [ { "Ref": "HttpProxy" }, "" ] } ] },
     "InstanceARM": {
@@ -593,6 +594,12 @@
       "Type": "String",
       "Default": ""
     },
+    "ExistingVpcEndpoint": {
+      "AllowedValues": [ "true", "false" ],
+      "Default": "false",
+      "Description": "Mark as true if you already have a VPC Endpoint for cloudformation, ecs, kms and s3",
+      "Type": "String"
+    },
     "NoHaInstanceCount": {
       "Default": "1",
       "Description": "The number of instances in the runtime cluster for no HighAvailable racks",
@@ -844,13 +851,33 @@
   },
   "Resources": {
     "EncryptionKey": {
-      "DependsOn": ["S3Endpoint", "KMSEndpoint", "CFEndpoint", "SubnetPrivate0Routes", "SubnetPrivate1Routes"],
+      "DependsOn": ["SubnetPrivate0Routes", "SubnetPrivate1Routes"],
       "Type": "Custom::KMSKey",
       "Properties": {
         "ServiceToken": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
         "Description": "Convox Master Encryption",
         "KeyUsage": "ENCRYPT_DECRYPT",
         "Rotate": "true"
+      },
+      "Metadata": {
+        "VPCEndpoint": {
+          "Fn::If": [
+            "CreateVpcEndpoint",
+            {
+              "Fn::Join": [
+                "-",
+                [
+                  { "Fn::GetAtt": [ "S3Endpoint", "NetworkInterfaceIds" ] },
+                  { "Fn::GetAtt": [ "KMSEndpoint", "NetworkInterfaceIds" ] },
+                  { "Fn::GetAtt": [ "CFEndpoint", "NetworkInterfaceIds" ] }
+                ]
+              ]
+            },
+            {
+              "Ref": "ExistingVpcEndpoint"
+            }
+          ]
+        }
       }
     },
     "EncryptionKeyAlias": {
@@ -905,6 +932,7 @@
     },
     "CFEndpoint": {
       "Type": "AWS::EC2::VPCEndpoint",
+      "Condition": "CreateVpcEndpoint",
       "Properties": {
         "PrivateDnsEnabled": true,
         "VpcEndpointType": "Interface",
@@ -916,6 +944,7 @@
     },
     "ECSEndpoint": {
       "Type": "AWS::EC2::VPCEndpoint",
+      "Condition": "CreateVpcEndpoint",
       "Properties": {
         "PrivateDnsEnabled": true,
         "VpcEndpointType": "Interface",
@@ -927,6 +956,7 @@
     },
     "KMSEndpoint": {
       "Type": "AWS::EC2::VPCEndpoint",
+      "Condition": "CreateVpcEndpoint",
       "Properties": {
         "PrivateDnsEnabled": true,
         "VpcEndpointType": "Interface",
@@ -938,6 +968,7 @@
     },
     "S3Endpoint": {
       "Type": "AWS::EC2::VPCEndpoint",
+      "Condition": "CreateVpcEndpoint",
       "Properties": {
         "VpcEndpointType": "Gateway",
         "ServiceName": {"Fn::Sub": ["com.amazonaws.${Region}.s3", { "Region": { "Ref": "AWS::Region"}}]},
@@ -946,7 +977,7 @@
       }
     },
     "CustomTopic": {
-      "DependsOn": ["S3Endpoint", "KMSEndpoint", "CFEndpoint", "SubnetPrivate0Routes", "SubnetPrivate1Routes"],
+      "DependsOn": ["SubnetPrivate0Routes", "SubnetPrivate1Routes"],
       "Type": "AWS::Lambda::Function",
       "Properties": {
         "Code": {
@@ -966,6 +997,26 @@
           "SubnetIds": [
             {"Ref": "SubnetPrivate0"},
             {"Ref": "SubnetPrivate1"}
+          ]
+        }
+      },
+      "Metadata": {
+        "VPCEndpoint": {
+          "Fn::If": [
+            "CreateVpcEndpoint",
+            {
+              "Fn::Join": [
+                "-",
+                [
+                  { "Fn::GetAtt": [ "S3Endpoint", "NetworkInterfaceIds" ] },
+                  { "Fn::GetAtt": [ "KMSEndpoint", "NetworkInterfaceIds" ] },
+                  { "Fn::GetAtt": [ "CFEndpoint", "NetworkInterfaceIds" ] }
+                ]
+              ]
+            },
+            {
+              "Ref": "ExistingVpcEndpoint"
+            }
           ]
         }
       }
