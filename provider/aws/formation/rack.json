@@ -35,7 +35,6 @@
     "ExistingVpcAndInternetGateway": {
       "Fn::And": [ { "Condition": "ExistingVpc" }, { "Condition": "InternetGateway" } ]
     },
-    "CreateVpcEndpoint": { "Fn::Equals": [ { "Ref": "ExistingVpcEndpoint" }, "false" ] },
     "HighAvailability": { "Fn::Equals": [ { "Ref": "HighAvailability" }, "true" ] },
     "HttpProxy": { "Fn::Not": [ { "Fn::Equals": [ { "Ref": "HttpProxy" }, "" ] } ] },
     "InstanceARM": {
@@ -594,12 +593,6 @@
       "Type": "String",
       "Default": ""
     },
-    "ExistingVpcEndpoint": {
-      "AllowedValues": [ "true", "false" ],
-      "Default": "false",
-      "Description": "Mark as true if you already have a VPC Endpoint for cloudformation, ecs, kms and s3",
-      "Type": "String"
-    },
     "NoHaInstanceCount": {
       "Default": "1",
       "Description": "The number of instances in the runtime cluster for no HighAvailable racks",
@@ -851,33 +844,13 @@
   },
   "Resources": {
     "EncryptionKey": {
-      "DependsOn": ["SubnetPrivate0Routes", "SubnetPrivate1Routes"],
+      "DependsOn": ["S3Endpoint", "KMSEndpoint", "CFEndpoint", "SubnetPrivate0Routes", "SubnetPrivate1Routes"],
       "Type": "Custom::KMSKey",
       "Properties": {
         "ServiceToken": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
         "Description": "Convox Master Encryption",
         "KeyUsage": "ENCRYPT_DECRYPT",
         "Rotate": "true"
-      },
-      "Metadata": {
-        "VPCEndpoint": {
-          "Fn::If": [
-            "CreateVpcEndpoint",
-            {
-              "Fn::Join": [
-                "-",
-                [
-                  { "Fn::GetAtt": [ "S3Endpoint", "NetworkInterfaceIds" ] },
-                  { "Fn::GetAtt": [ "KMSEndpoint", "NetworkInterfaceIds" ] },
-                  { "Fn::GetAtt": [ "CFEndpoint", "NetworkInterfaceIds" ] }
-                ]
-              ]
-            },
-            {
-              "Ref": "ExistingVpcEndpoint"
-            }
-          ]
-        }
       }
     },
     "EncryptionKeyAlias": {
@@ -930,11 +903,19 @@
         "TopicName" : { "Fn::Join": ["", [{"Ref":"AWS::StackName"}, "-notifications"]] }
       }
     },
+    "ASEndpoint": {
+      "Type": "AWS::EC2::VPCEndpoint",
+      "Properties": {
+        "VpcEndpointType": "Interface",
+        "ServiceName": {"Fn::Sub": ["com.amazonaws.${Region}.autoscaling", { "Region": { "Ref": "AWS::Region"}}]},
+        "VpcId": { "Fn::If": [ "BlankExistingVpc", { "Ref": "Vpc" }, { "Ref": "ExistingVpc" }] },
+        "SecurityGroupIds": [{ "Fn::If": [ "BlankInstanceSecurityGroup", { "Ref": "InstancesSecurity" }, { "Ref": "InstanceSecurityGroup" } ] }],
+        "SubnetIds": [{"Ref": "SubnetPrivate0"}, {"Ref": "SubnetPrivate1"}]
+      }
+    },
     "CFEndpoint": {
       "Type": "AWS::EC2::VPCEndpoint",
-      "Condition": "CreateVpcEndpoint",
       "Properties": {
-        "PrivateDnsEnabled": true,
         "VpcEndpointType": "Interface",
         "ServiceName": {"Fn::Sub": ["com.amazonaws.${Region}.cloudformation", { "Region": { "Ref": "AWS::Region"}}]},
         "VpcId": { "Fn::If": [ "BlankExistingVpc", { "Ref": "Vpc" }, { "Ref": "ExistingVpc" }] },
@@ -944,9 +925,7 @@
     },
     "ECSEndpoint": {
       "Type": "AWS::EC2::VPCEndpoint",
-      "Condition": "CreateVpcEndpoint",
       "Properties": {
-        "PrivateDnsEnabled": true,
         "VpcEndpointType": "Interface",
         "ServiceName": {"Fn::Sub": ["com.amazonaws.${Region}.ecs", { "Region": { "Ref": "AWS::Region"}}]},
         "VpcId": { "Fn::If": [ "BlankExistingVpc", { "Ref": "Vpc" }, { "Ref": "ExistingVpc" }] },
@@ -956,9 +935,7 @@
     },
     "KMSEndpoint": {
       "Type": "AWS::EC2::VPCEndpoint",
-      "Condition": "CreateVpcEndpoint",
       "Properties": {
-        "PrivateDnsEnabled": true,
         "VpcEndpointType": "Interface",
         "ServiceName": {"Fn::Sub": ["com.amazonaws.${Region}.kms", { "Region": { "Ref": "AWS::Region"}}]},
         "VpcId": { "Fn::If": [ "BlankExistingVpc", { "Ref": "Vpc" }, { "Ref": "ExistingVpc" }] },
@@ -968,7 +945,6 @@
     },
     "S3Endpoint": {
       "Type": "AWS::EC2::VPCEndpoint",
-      "Condition": "CreateVpcEndpoint",
       "Properties": {
         "VpcEndpointType": "Gateway",
         "ServiceName": {"Fn::Sub": ["com.amazonaws.${Region}.s3", { "Region": { "Ref": "AWS::Region"}}]},
@@ -977,7 +953,7 @@
       }
     },
     "CustomTopic": {
-      "DependsOn": ["SubnetPrivate0Routes", "SubnetPrivate1Routes"],
+      "DependsOn": ["S3Endpoint", "KMSEndpoint", "CFEndpoint", "SubnetPrivate0Routes", "SubnetPrivate1Routes"],
       "Type": "AWS::Lambda::Function",
       "Properties": {
         "Code": {
@@ -997,26 +973,6 @@
           "SubnetIds": [
             {"Ref": "SubnetPrivate0"},
             {"Ref": "SubnetPrivate1"}
-          ]
-        }
-      },
-      "Metadata": {
-        "VPCEndpoint": {
-          "Fn::If": [
-            "CreateVpcEndpoint",
-            {
-              "Fn::Join": [
-                "-",
-                [
-                  { "Fn::GetAtt": [ "S3Endpoint", "NetworkInterfaceIds" ] },
-                  { "Fn::GetAtt": [ "KMSEndpoint", "NetworkInterfaceIds" ] },
-                  { "Fn::GetAtt": [ "CFEndpoint", "NetworkInterfaceIds" ] }
-                ]
-              ]
-            },
-            {
-              "Ref": "ExistingVpcEndpoint"
-            }
           ]
         }
       }
@@ -1928,6 +1884,7 @@
     "InstancesAutoscaler": {
       "Type": "AWS::Lambda::Function",
       "Condition": "Autoscale",
+      "DependsOn": ["CFEndpoint", "ECSEndpoint"],
       "Properties": {
         "Code": {
           "S3Bucket": { "Fn::Sub": "convox-${AWS::Region}" },
@@ -1936,9 +1893,12 @@
         "Environment": {
           "Variables": {
             "ASG": { "Ref": "Instances" },
+            "CF_ENDPOINT": { "Fn::Select": [ 1, { "Fn::Split": [ ":", { "Fn::Select": [ 0, { "Fn::GetAtt": [ "CFEndpoint", "DnsEntries" ] } ] } ] } ] },
             "CLUSTER": { "Ref": "Cluster" },
+            "ECS_ENDPOINT": { "Fn::Select": [ 1, { "Fn::Split": [ ":", { "Fn::Select": [ 0, { "Fn::GetAtt": [ "ECSEndpoint", "DnsEntries" ] } ] } ] } ] },
             "EXTRA": { "Fn::If": [ "HighAvailability", { "Ref": "AutoscaleExtra" }, 0]},
             "HIGH_AVAILABILITY": { "Ref": "HighAvailability" },
+            "REGION": { "Ref": "AWS::Region" },
             "STACK": { "Ref": "AWS::StackName" }
           }
         },
@@ -2065,8 +2025,11 @@
         "Description": { "Fn::Join": [ "", [ "{\"Cluster\": \"", { "Ref": "Cluster" }, "\", \"Rack\": \"", { "Ref": "AWS::StackName" }, "\"}" ] ] },
         "Environment": {
           "Variables": {
+            "AS_ENDPOINT": { "Fn::Select": [ 1, { "Fn::Split": [ ":", { "Fn::Select": [ 0, { "Fn::GetAtt": [ "ASEndpoint", "DnsEntries" ] } ] } ] } ] },
             "CLUSTER": { "Ref": "Cluster" },
-            "RACK": { "Ref": "AWS::StackName" }
+            "ECS_ENDPOINT": { "Fn::Select": [ 1, { "Fn::Split": [ ":", { "Fn::Select": [ 0, { "Fn::GetAtt": [ "ECSEndpoint", "DnsEntries" ] } ] } ] } ] },
+            "RACK": { "Ref": "AWS::StackName" },
+            "REGION": { "Ref": "AWS::Region" }
           }
         },
         "Handler": "handler",
