@@ -844,7 +844,7 @@
   },
   "Resources": {
     "EncryptionKey": {
-      "DependsOn": ["S3Endpoint", "KMSEndpoint", "CFEndpoint", "SubnetPrivate0Routes", "SubnetPrivate1Routes"],
+      "DependsOn": ["ASEndpoint", "CFEndpoint", "ECSEndpoint", "KMSEndpoint", "S3Endpoint", "SubnetPrivate0Routes", "SubnetPrivate1Routes"],
       "Type": "Custom::KMSKey",
       "Properties": {
         "ServiceToken": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
@@ -953,7 +953,7 @@
       }
     },
     "CustomTopic": {
-      "DependsOn": ["S3Endpoint", "KMSEndpoint", "CFEndpoint", "SubnetPrivate0Routes", "SubnetPrivate1Routes"],
+      "DependsOn": ["ASEndpoint", "CFEndpoint", "ECSEndpoint", "KMSEndpoint", "S3Endpoint", "SubnetPrivate0Routes", "SubnetPrivate1Routes"],
       "Type": "AWS::Lambda::Function",
       "Properties": {
         "Code": {
@@ -961,6 +961,12 @@
           "S3Key": { "Fn::Join": [ "", [ "release/", { "Ref": "Version" }, "/lambda/formation.zip" ] ] }
         },
         "Description": "Convox handler for custom resources",
+        "Environment": {
+          "Variables": {
+            "ECS_ENDPOINT": { "Fn::Select": [ 1, { "Fn::Split": [ ":", { "Fn::Select": [ 0, { "Fn::GetAtt": [ "ECSEndpoint", "DnsEntries" ] } ] } ] } ] },
+            "KMS_ENDPOINT": { "Fn::Select": [ 1, { "Fn::Split": [ ":", { "Fn::Select": [ 0, { "Fn::GetAtt": [ "KMSEndpoint", "DnsEntries" ] } ] } ] } ] }
+          }
+        },
         "Handler": "index.external",
         "MemorySize": "128",
         "Role": { "Fn::GetAtt": [ "CustomTopicRole", "Arn" ] },
@@ -2017,6 +2023,7 @@
     },
     "InstancesLifecycleHandler": {
       "Type": "AWS::Lambda::Function",
+      "DependsOn": ["ASEndpoint", "ECSEndpoint"],
       "Properties": {
         "Code": {
           "S3Bucket": { "Fn::Join": [ "-", [ "convox", { "Ref": "AWS::Region" } ] ] },

@@ -61,6 +61,7 @@ func ECS(req Request) *ecs.ECS {
 		Credentials: Credentials(&req),
 		MaxRetries:  aws.Int(8),
 		Region:      Region(&req),
+		Endpoint:    aws.String(os.Getenv("ECS_ENDPOINT")),
 	})
 }
 
@@ -72,6 +73,7 @@ func KMS(req Request) *kms.KMS {
 		// so we increase the max retries here to make sure it won't fail
 		// this is only used to create and delete a single KMS key for the rack so increasing the retries won't hurt
 		MaxRetries: aws.Int(10),
+		Endpoint:   aws.String(os.Getenv("KMS_ENDPOINT")),
 	})
 }
 
