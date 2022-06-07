@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"os"
 	"strings"
@@ -201,12 +201,14 @@ func HandleRequest(freq Request) error {
 
 func putResponse(rurl string, fres Response) error {
 	data, err := json.Marshal(fres)
-
 	if err != nil {
 		return err
 	}
 
-	req, _ := http.NewRequest("PUT", "", bytes.NewBuffer(data))
+	req, err := http.NewRequest("PUT", "", bytes.NewBuffer(data))
+	if err != nil {
+		return err
+	}
 
 	parts := strings.SplitN(rurl, "/", 4)
 	req.URL.Scheme = parts[0][0 : len(parts[0])-1]
@@ -214,16 +216,13 @@ func putResponse(rurl string, fres Response) error {
 	req.URL.Opaque = fmt.Sprintf("//%s/%s", parts[2], parts[3])
 
 	client := &http.Client{}
-
 	res, err := client.Do(req)
-
 	if err != nil {
 		return err
 	}
 
-	rr, _ := ioutil.ReadAll(res.Body)
-
-	fmt.Printf("string(rr) %+v\n", string(rr))
+	rr, _ := io.ReadAll(res.Body)
+	debug("putResponse body %+v\n", string(rr))
 
 	return nil
 }
@@ -240,5 +239,11 @@ func recoverFailure(req Request) {
 		}
 
 		putResponse(req.ResponseURL, res)
+	}
+}
+
+func debug(format string, a ...interface{}) {
+	if os.Getenv("DEBUG") == "true" {
+		fmt.Printf(format, a...)
 	}
 }
