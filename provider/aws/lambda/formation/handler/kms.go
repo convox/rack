@@ -78,6 +78,7 @@ func KMSKeyDelete(req Request) (string, map[string]string, error) {
 	})
 	// go ahead and mark the delete good if the key is not found or already deleting
 	if ae, ok := err.(awserr.Error); ok {
+		fmt.Println("Disable key exception: ", ae.Code())
 		switch ae.Code() {
 		case "NotFoundException", "KMSInvalidStateException":
 			return req.PhysicalResourceId, nil, nil
@@ -92,6 +93,9 @@ func KMSKeyDelete(req Request) (string, map[string]string, error) {
 		KeyId:               aws.String(req.PhysicalResourceId),
 		PendingWindowInDays: aws.Int64(7),
 	})
+	if err != nil {
+		fmt.Printf("Error scheduling key deletion: %+v\n", err)
+	}
 
 	return req.PhysicalResourceId, nil, nil
 }

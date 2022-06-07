@@ -20,8 +20,8 @@ const (
 )
 
 var (
-	CloudFormation = cloudformation.New(session.New(), nil)
-	ECS            = ecs.New(session.New(), nil)
+	CloudFormation *cloudformation.CloudFormation
+	ECS            *ecs.ECS
 	IsHA           = os.Getenv("HIGH_AVAILABILITY") == "true"
 )
 
@@ -354,5 +354,21 @@ func min(ii ...int64) int64 {
 }
 
 func main() {
+	sessionConfig := &aws.Config{Region: aws.String(os.Getenv("REGION"))}
+	session, err := session.NewSession(sessionConfig)
+	if err != nil {
+		fmt.Printf("Error creating new session: %+v", err)
+		return
+	}
+
+	CloudFormation = cloudformation.New(
+		session,
+		aws.NewConfig().WithEndpoint(os.Getenv("CF_ENDPOINT")).WithRegion(os.Getenv("REGION")),
+	)
+	ECS = ecs.New(
+		session,
+		aws.NewConfig().WithEndpoint(os.Getenv("ECS_ENDPOINT")).WithRegion(os.Getenv("REGION")),
+	)
+
 	lambda.Start(Handler)
 }

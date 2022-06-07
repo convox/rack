@@ -17,8 +17,8 @@ import (
 )
 
 var (
-	AutoScaling = autoscaling.New(session.New(), nil)
-	ECS         = ecs.New(session.New(), nil)
+	AutoScaling *autoscaling.AutoScaling
+	ECS         *ecs.ECS
 )
 
 type Interruption struct {
@@ -42,6 +42,22 @@ type Termination struct {
 }
 
 func main() {
+	sessionConfig := &aws.Config{Region: aws.String(os.Getenv("REGION"))}
+	session, err := session.NewSession(sessionConfig)
+	if err != nil {
+		fmt.Printf("Error creating new session: %+v", err)
+		return
+	}
+
+	AutoScaling = autoscaling.New(
+		session,
+		aws.NewConfig().WithEndpoint(os.Getenv("AS_ENDPOINT")).WithRegion(os.Getenv("REGION")),
+	)
+	ECS = ecs.New(
+		session,
+		aws.NewConfig().WithEndpoint(os.Getenv("ECS_ENDPOINT")).WithRegion(os.Getenv("REGION")),
+	)
+
 	lambda.Start(Handler)
 }
 
