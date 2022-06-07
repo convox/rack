@@ -222,7 +222,7 @@ func putResponse(rurl string, fres Response) error {
 	}
 
 	rr, _ := io.ReadAll(res.Body)
-	fmt.Printf("putResponse body %+v\n", string(rr))
+	debug("putResponse body %+v\n", string(rr))
 
 	return nil
 }
@@ -239,5 +239,11 @@ func recoverFailure(req Request) {
 		}
 
 		putResponse(req.ResponseURL, res)
+	}
+}
+
+func debug(format string, a ...interface{}) {
+	if os.Getenv("DEBUG") == "true" {
+		fmt.Printf(format, a...)
 	}
 }
