@@ -2711,11 +2711,13 @@
     },
     "ApiBalancer": {
       "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
-      "DependsOn": [ "GatewayAttachment" ],
+      "DependsOn": [ "ApiRole", "LogsPolicy" ],
       "Properties": {
         "Name": { "Fn::If": [ "PrivateApi", { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" }, "i" ] ] }, { "Ref": "AWS::StackName" } ] },
         "LoadBalancerAttributes": [
-          { "Key": "access_logs.s3.enabled", "Value": "false" },
+          { "Key": "access_logs.s3.enabled", "Value": "true" },
+          { "Key": "access_logs.s3.bucket", "Value": { "Fn::If": [ "BlankLogBucket", { "Ref": "Logs" }, { "Ref": "LogBucket" } ] } },
+          { "Key": "access_logs.s3.prefix", "Value": { "Fn::Sub": "convox/logs/${AWS::StackName}/alb" } },
           { "Key": "idle_timeout.timeout_seconds", "Value": { "Ref": "LoadBalancerIdleTimeout" } },
           { "Key": "routing.http.desync_mitigation_mode", "Value": { "Ref": "RouterMitigationMode" } },
           { "Key": "routing.http.drop_invalid_header_fields.enabled", "Value": "true" }
@@ -2776,7 +2778,7 @@
         "UnhealthyThresholdCount": "2",
         "HealthCheckPath": "/check",
         "Matcher": { "HttpCode": "200" },
-        "Port": { "Fn::If": ["PrivateApi", "3100", "4000"] },
+        "Port": { "Fn::If": ["PrivateApi", "4100", "4000"] },
         "Protocol": "HTTPS",
         "TargetGroupAttributes": [
           { "Key": "deregistration_delay.timeout_seconds", "Value": "30" }
@@ -3277,7 +3279,7 @@
             "MountPoints": [ { "SourceVolume": "docker", "ContainerPath": "/var/run/docker.sock" } ],
             "Name": "web",
             "PortMappings": { "Fn::If": [ "PrivateApi",
-              [ { "HostPort": "3100", "ContainerPort": "5443", "Protocol": "tcp" } ],
+              [ { "HostPort": "4100", "ContainerPort": "5443", "Protocol": "tcp" } ],
               [ { "HostPort": "4000", "ContainerPort": "5443", "Protocol": "tcp" } ]
             ] }
           }
