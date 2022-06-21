@@ -506,13 +506,18 @@ func RackSync(rack sdk.Interface, c *stdcli.Context) error {
 		if err != nil {
 			return err
 		}
-		for _, s := range o.Stacks {
-			for _, o := range s.Outputs {
-				if *o.OutputKey == "Dashboard" {
-					c.Writef("url=%s\n", *o.OutputValue)
-				}
+
+		if len(o.Stacks) == 0 {
+			return c.Errorf("formation stack with name %s not found", rname)
+		}
+
+		st := o.Stacks[0]
+		for _, o := range st.Outputs {
+			if *o.OutputKey == "Dashboard" {
+				c.Writef("url=%s\n", *o.OutputValue)
 			}
 		}
+
 		return c.OK()
 	}
 
