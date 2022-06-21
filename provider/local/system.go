@@ -160,6 +160,10 @@ func (p *Provider) SystemUninstall(name string, w io.Writer, opts structs.System
 	return nil
 }
 
+func (p *Provider) Sync(name string) error {
+	return fmt.Errorf("not supported")
+}
+
 func (p *Provider) SystemUpdate(opts structs.SystemUpdateOptions) error {
 	if err := p.Provider.SystemUpdate(opts); err != nil {
 		return err
