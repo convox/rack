@@ -3229,21 +3229,56 @@
       }
     },
     "CustomerManagedKMS": {
+      "DependsOn": ["ServiceRole", "SecureEnvironmentRole", "InstancesLifecycleRole", "InstancesLifecycleHandlerRole", "CustomTopicRole", "ApiRole"],
       "Type" : "AWS::KMS::Key",
       "Properties" : {
         "Description" : "Customer Managed KMS (CMK) used by Convox to encrypt the S3 bucket",
-        "EnableKeyRotation" : "true",
+        "EnableKeyRotation": true,
         "KeyPolicy": {
           "Version": "2012-10-17",
           "Id": "cmk-s3-log-bucket",
           "Statement": [
             {
-              "Sid": "Enable IAM policies",
+              "Sid": "key administration",
               "Effect": "Allow",
               "Principal": {
-                "AWS": { "Fn::Sub": "arn:aws:iam::${AWS::AccountId}:root" }
-               },
-              "Action": "kms:*",
+                "AWS": {
+                  "Fn::Sub": "arn:aws:iam::${AWS::AccountId}:root"
+                }
+              },
+              "Action": [
+                "kms:*"
+              ],
+              "Resource": "*"
+            },
+            {
+              "Sid": "key usage",
+              "Effect": "Allow",
+              "Principal": {
+                "AWS": [
+                  { "Fn::GetAtt": ["ServiceRole", "Arn" ]},
+                  { "Fn::GetAtt": ["SecureEnvironmentRole", "Arn" ]},
+                  { "Fn::GetAtt": ["InstancesLifecycleRole", "Arn" ]},
+                  { "Fn::GetAtt": ["InstancesLifecycleHandlerRole", "Arn" ]},
+                  { "Fn::GetAtt": ["CustomTopicRole", "Arn" ]},
+                  { "Fn::GetAtt": ["ApiRole", "Arn" ]},
+                  { "Fn::Join": [
+                    ":",
+                    [
+                      "arn:aws:iam:",
+                      { "Fn::FindInMap": [ "RegionConfig", { "Ref": "AWS::Region" }, "ELBAccountId" ] },
+                      "root"
+                    ]
+                  ] }
+                ]
+              },
+              "Action": [
+                "kms:Encrypt",
+                "kms:Decrypt",
+                "kms:ReEncrypt*",
+                "kms:GenerateDataKey*",
+                "kms:DescribeKey"
+              ],
               "Resource": "*"
             }
           ]
@@ -3257,6 +3292,7 @@
     "Logs": {
       "Type": "AWS::S3::Bucket",
       "DeletionPolicy": "Retain",
+      "DependsOn": "CustomerManagedKMS",
       "Properties": {
         "AccessControl": "LogDeliveryWrite",
         "BucketEncryption": {

@@ -152,7 +152,7 @@
     {{ template "service-resources" . }}
     {{ template "timer-resources" . }}
 
-    {{ template "state" }}
+    {{ template "state" . }}
 
     "ExecutionRole": {
       "Type": "AWS::IAM::Role",
@@ -523,16 +523,42 @@
         "Version": "2012-10-17",
         "Id": "cmk-s3-log-bucket",
         "Statement": [
-          {
-            "Sid": "Enable IAM policies",
-            "Effect": "Allow",
-            "Principal": {
-              "AWS": { "Fn::Sub": "arn:aws:iam::${AWS::AccountId}:root" }
+            {
+              "Sid": "key administration",
+              "Effect": "Allow",
+              "Principal": {
+                "AWS": {
+                  "Fn::Sub": "arn:aws:iam::${AWS::AccountId}:root"
+                }
+              },
+              "Action": [
+                "kms:*"
+              ],
+              "Resource": "*"
             },
-            "Action": "kms:*",
-            "Resource": "*"
-          }
-        ]
+            {
+              "Sid": "key usage",
+              "Effect": "Allow",
+              "Principal": {
+                "AWS": [
+                  { "Fn::GetAtt": ["ExecutionRole", "Arn" ]},
+                  { "Fn::GetAtt": ["ServiceRole", "Arn" ]},
+
+                  {{ if .Manifest.Timers }}
+                    { "Fn::GetAtt": ["TimerRole", "Arn" ]},
+                  {{ end }}
+                ]
+              },
+              "Action": [
+                "kms:Encrypt",
+                "kms:Decrypt",
+                "kms:ReEncrypt*",
+                "kms:GenerateDataKey*",
+                "kms:DescribeKey"
+              ],
+              "Resource": "*"
+            }
+          ]
       },
       "Tags": [
         { "Key": "App", "Value": { "Ref": "AWS::StackName" } }
