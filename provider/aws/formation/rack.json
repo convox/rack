@@ -508,16 +508,21 @@
       "Description": "How much CPU should be reserved by the API web process.",
       "Default": "128"
     },
-    "ApiMemory": {
+    "ApiMonitorMemory": {
       "Type": "String",
-      "Description": "How much memory should be reserved by the api web process",
-      "Default": "256"
+      "Description": "How much memory should be reserved by the api monitor process",
+      "Default": "128"
     },
     "ApiRouter": {
       "Type": "String",
       "Description": "Defines ",
       "Default": "ELB",
       "AllowedValues": [ "ALB", "ELB" ]
+    },
+    "ApiWebMemory": {
+      "Type": "String",
+      "Description": "How much memory should be reserved by the api web process",
+      "Default": "256"
     },
     "Autoscale": {
       "Type": "String",
@@ -3061,7 +3066,7 @@
                 "awslogs-stream-prefix": "service"
               }
             },
-            "Memory": "128",
+            "Memory": { "Ref": "ApiMonitorMemory" },
             "MountPoints": [ { "SourceVolume": "docker", "ContainerPath": "/var/run/docker.sock" } ],
             "Name": "monitor"
           }
@@ -3170,7 +3175,7 @@
                 "awslogs-stream-prefix": "service"
               }
             },
-            "MemoryReservation": { "Ref": "ApiMemory" },
+            "MemoryReservation": { "Ref": "ApiWebMemory" },
             "MountPoints": [ { "SourceVolume": "docker", "ContainerPath": "/var/run/docker.sock" } ],
             "Name": "web",
             "PortMappings": { "Fn::If": [ "ApiRouterALB",

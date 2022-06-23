@@ -151,6 +151,10 @@ func (p *Provider) SystemTemplateRemote(provider, version string) ([]byte, error
 	return data, nil
 }
 
+func (p *Provider) Sync(name string) error {
+	return fmt.Errorf("not supported")
+}
+
 func (p *Provider) SystemUpdate(opts structs.SystemUpdateOptions) error {
 	version := helpers.DefaultString(opts.Version, p.Version)
 
