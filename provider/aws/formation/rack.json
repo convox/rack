@@ -217,6 +217,10 @@
     "CustomTopic": {
       "Value": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] }
     },
+    "CustomerManagedKey": {
+      "Export": { "Name": { "Fn::Sub": "${AWS::StackName}:CustomerManagedKey" } },
+      "Value": { "Ref": "CustomerManagedKey" }
+    },
     "Dashboard": {
       "Value": { "Fn::If": [ "ApiRouterALB",
         { "Fn::Join": [ ".", [
@@ -3228,9 +3232,9 @@
         }]
       }
     },
-    "CustomerManagedKMS": {
-      "Type" : "AWS::KMS::Key",
-      "Properties" : {
+    "CustomerManagedKey": {
+      "Type": "AWS::KMS::Key",
+      "Properties": {
         "Description": { "Fn::Sub": "Customer Managed Key (CMK) used by Convox to encrypt ${AWS::StackName} S3 bucket" },
         "EnableKeyRotation": true,
         "KeyPolicy": {
@@ -3247,28 +3251,6 @@
               },
               "Action": [
                 "kms:*"
-              ],
-              "Resource": "*"
-            },
-            {
-              "Sid": "key usage",
-              "Effect": "Allow",
-              "Principal": {
-                "AWS": [
-                  { "Fn::GetAtt": ["ServiceRole", "Arn" ]},
-                  { "Fn::GetAtt": ["SecureEnvironmentRole", "Arn" ]},
-                  { "Fn::GetAtt": ["InstancesLifecycleRole", "Arn" ]},
-                  { "Fn::GetAtt": ["InstancesLifecycleHandlerRole", "Arn" ]},
-                  { "Fn::GetAtt": ["CustomTopicRole", "Arn" ]},
-                  { "Fn::GetAtt": ["ApiRole", "Arn" ]}
-                ]
-              },
-              "Action": [
-                "kms:Encrypt",
-                "kms:Decrypt",
-                "kms:ReEncrypt*",
-                "kms:GenerateDataKey*",
-                "kms:DescribeKey"
               ],
               "Resource": "*"
             }
@@ -3289,7 +3271,7 @@
           "ServerSideEncryptionConfiguration": [ {
             "ServerSideEncryptionByDefault": {
               "SSEAlgorithm": "aws:kms",
-              "KMSMasterKeyID": { "Ref": "CustomerManagedKMS" }
+              "KMSMasterKeyID": { "Ref": "CustomerManagedKey" }
             }
           } ]
         },
@@ -3298,10 +3280,10 @@
           { "Rules": [ { "ExpirationInDays": { "Ref": "LogRetention" }, "Status": "Enabled" } ] }
         ] },
         "PublicAccessBlockConfiguration": {
-          "BlockPublicAcls" : true,
-          "BlockPublicPolicy" : true,
-          "IgnorePublicAcls" : true,
-          "RestrictPublicBuckets" : true
+          "BlockPublicAcls": true,
+          "BlockPublicPolicy": true,
+          "IgnorePublicAcls": true,
+          "RestrictPublicBuckets": true
         },
         "Tags": [
           { "Key": "System", "Value": "convox" },
@@ -3352,7 +3334,7 @@
           "ServerSideEncryptionConfiguration": [ {
             "ServerSideEncryptionByDefault": {
               "SSEAlgorithm": "aws:kms",
-              "KMSMasterKeyID": { "Ref": "CustomerManagedKMS" }
+              "KMSMasterKeyID": { "Ref": "CustomerManagedKey" }
             }
           } ]
         },
@@ -3361,10 +3343,10 @@
           "LogFilePrefix": { "Fn::Sub": "convox/logs/${AWS::StackName}/s3/" }
         },
         "PublicAccessBlockConfiguration": {
-          "BlockPublicAcls" : true,
-          "BlockPublicPolicy" : true,
-          "IgnorePublicAcls" : true,
-          "RestrictPublicBuckets" : true
+          "BlockPublicAcls": true,
+          "BlockPublicPolicy": true,
+          "IgnorePublicAcls": true,
+          "RestrictPublicBuckets": true
         },
         "Tags": [
           { "Key": "System", "Value": "convox" },
@@ -3420,10 +3402,10 @@
           { "Rules": [ { "ExpirationInDays": { "Ref": "LogRetention" }, "Status": "Enabled" } ] }
         ] },
         "PublicAccessBlockConfiguration": {
-          "BlockPublicAcls" : true,
-          "BlockPublicPolicy" : true,
-          "IgnorePublicAcls" : true,
-          "RestrictPublicBuckets" : true
+          "BlockPublicAcls": true,
+          "BlockPublicPolicy": true,
+          "IgnorePublicAcls": true,
+          "RestrictPublicBuckets": true
         },
         "Tags": [
           { "Key": "System", "Value": "convox" },
