@@ -217,6 +217,14 @@
     "CustomTopic": {
       "Value": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] }
     },
+    "CustomerManagedKey": {
+      "Export": { "Name": { "Fn::Sub": "${AWS::StackName}:CustomerManagedKey" } },
+      "Value": { "Ref": "CustomerManagedKey" }
+    },
+    "CMKPolicy": {
+      "Export": { "Name": { "Fn::Sub": "${AWS::StackName}:CMKPolicy" } },
+      "Value": { "Ref": "CMKPolicy" }
+    },
     "Dashboard": {
       "Value": { "Fn::If": [ "ApiRouterALB",
         { "Fn::Join": [ ".", [
@@ -885,7 +893,8 @@
           ]
         },
         "ManagedPolicyArns": [
-          { "Fn::Sub": "arn:${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole" }
+          { "Fn::Sub": "arn:${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole" },
+          { "Ref": "CMKPolicy" }
         ],
         "Path": "/convox/",
         "Policies": [
@@ -1085,6 +1094,9 @@
             }
           ]
         },
+        "ManagedPolicyArns": [
+          { "Ref": "CMKPolicy" }
+        ],
         "Path": "/convox/",
         "Policies": [
           {
@@ -1405,6 +1417,7 @@
         "ManagedPolicyArns": [
           { "Fn::Sub": "arn:${AWS::Partition}:iam::aws:policy/service-role/AmazonEC2ContainerServiceforEC2Role" },
           { "Fn::Sub": "arn:${AWS::Partition}:iam::aws:policy/AutoScalingFullAccess" },
+          { "Ref": "CMKPolicy" },
           { "Fn::If": [ "BlankInstancePolicy",
             { "Ref": "AWS::NoValue" },
             { "Ref": "InstancePolicy" }
@@ -1982,6 +1995,9 @@
             }
           ]
         },
+        "ManagedPolicyArns": [
+          { "Ref": "CMKPolicy" }
+        ],
         "Path": "/convox/",
         "Policies": [
           {
@@ -2083,7 +2099,8 @@
           ]
         },
         "ManagedPolicyArns": [
-          { "Fn::Sub": "arn:${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole" }
+          { "Fn::Sub": "arn:${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole" },
+          { "Ref": "CMKPolicy" }
         ],
         "Path": "/convox/",
         "Policies": [
@@ -2802,7 +2819,10 @@
           "Statement": [ { "Effect": "Allow", "Principal": { "Service": [ "ecs.amazonaws.com" ] }, "Action": [ "sts:AssumeRole" ] } ],
           "Version": "2012-10-17"
         },
-        "ManagedPolicyArns": [ { "Fn::Sub": "arn:${AWS::Partition}:iam::aws:policy/service-role/AmazonEC2ContainerServiceRole" } ],
+        "ManagedPolicyArns": [
+          { "Fn::Sub": "arn:${AWS::Partition}:iam::aws:policy/service-role/AmazonEC2ContainerServiceRole" },
+          { "Ref": "CMKPolicy" }
+        ],
         "Path": "/convox/"
       }
     },
@@ -2852,7 +2872,8 @@
         },
         "ManagedPolicyArns": [
           { "Fn::Sub": "arn:${AWS::Partition}:iam::aws:policy/PowerUserAccess" },
-          { "Ref": "ApiPolicy" }
+          { "Ref": "ApiPolicy" },
+          { "Ref": "CMKPolicy" }
         ],
         "Path": "/convox/",
         "Policies": [
@@ -3228,9 +3249,32 @@
         }]
       }
     },
-    "CustomerManagedKMS": {
-      "Type" : "AWS::KMS::Key",
-      "Properties" : {
+    "CMKPolicy": {
+      "Type": "AWS::IAM::ManagedPolicy",
+      "Properties": {
+        "Description": "Access to the Customer Managed key for iam roles",
+        "Path": "/convox/",
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Action": [
+                "kms:Encrypt",
+                "kms:Decrypt",
+                "kms:ReEncrypt*",
+                "kms:GenerateDataKey*",
+                "kms:DescribeKey"
+              ],
+              "Resource": "*"
+            }
+          ]
+        }
+      }
+    },
+    "CustomerManagedKey": {
+      "Type": "AWS::KMS::Key",
+      "Properties": {
         "Description": { "Fn::Sub": "Customer Managed Key (CMK) used by Convox to encrypt ${AWS::StackName} S3 bucket" },
         "EnableKeyRotation": true,
         "KeyPolicy": {
@@ -3247,28 +3291,6 @@
               },
               "Action": [
                 "kms:*"
-              ],
-              "Resource": "*"
-            },
-            {
-              "Sid": "key usage",
-              "Effect": "Allow",
-              "Principal": {
-                "AWS": [
-                  { "Fn::GetAtt": ["ServiceRole", "Arn" ]},
-                  { "Fn::GetAtt": ["SecureEnvironmentRole", "Arn" ]},
-                  { "Fn::GetAtt": ["InstancesLifecycleRole", "Arn" ]},
-                  { "Fn::GetAtt": ["InstancesLifecycleHandlerRole", "Arn" ]},
-                  { "Fn::GetAtt": ["CustomTopicRole", "Arn" ]},
-                  { "Fn::GetAtt": ["ApiRole", "Arn" ]}
-                ]
-              },
-              "Action": [
-                "kms:Encrypt",
-                "kms:Decrypt",
-                "kms:ReEncrypt*",
-                "kms:GenerateDataKey*",
-                "kms:DescribeKey"
               ],
               "Resource": "*"
             }
@@ -3289,7 +3311,7 @@
           "ServerSideEncryptionConfiguration": [ {
             "ServerSideEncryptionByDefault": {
               "SSEAlgorithm": "aws:kms",
-              "KMSMasterKeyID": { "Ref": "CustomerManagedKMS" }
+              "KMSMasterKeyID": { "Ref": "CustomerManagedKey" }
             }
           } ]
         },
@@ -3298,10 +3320,10 @@
           { "Rules": [ { "ExpirationInDays": { "Ref": "LogRetention" }, "Status": "Enabled" } ] }
         ] },
         "PublicAccessBlockConfiguration": {
-          "BlockPublicAcls" : true,
-          "BlockPublicPolicy" : true,
-          "IgnorePublicAcls" : true,
-          "RestrictPublicBuckets" : true
+          "BlockPublicAcls": true,
+          "BlockPublicPolicy": true,
+          "IgnorePublicAcls": true,
+          "RestrictPublicBuckets": true
         },
         "Tags": [
           { "Key": "System", "Value": "convox" },
@@ -3352,7 +3374,7 @@
           "ServerSideEncryptionConfiguration": [ {
             "ServerSideEncryptionByDefault": {
               "SSEAlgorithm": "aws:kms",
-              "KMSMasterKeyID": { "Ref": "CustomerManagedKMS" }
+              "KMSMasterKeyID": { "Ref": "CustomerManagedKey" }
             }
           } ]
         },
@@ -3361,10 +3383,10 @@
           "LogFilePrefix": { "Fn::Sub": "convox/logs/${AWS::StackName}/s3/" }
         },
         "PublicAccessBlockConfiguration": {
-          "BlockPublicAcls" : true,
-          "BlockPublicPolicy" : true,
-          "IgnorePublicAcls" : true,
-          "RestrictPublicBuckets" : true
+          "BlockPublicAcls": true,
+          "BlockPublicPolicy": true,
+          "IgnorePublicAcls": true,
+          "RestrictPublicBuckets": true
         },
         "Tags": [
           { "Key": "System", "Value": "convox" },
@@ -3420,10 +3442,10 @@
           { "Rules": [ { "ExpirationInDays": { "Ref": "LogRetention" }, "Status": "Enabled" } ] }
         ] },
         "PublicAccessBlockConfiguration": {
-          "BlockPublicAcls" : true,
-          "BlockPublicPolicy" : true,
-          "IgnorePublicAcls" : true,
-          "RestrictPublicBuckets" : true
+          "BlockPublicAcls": true,
+          "BlockPublicPolicy": true,
+          "IgnorePublicAcls": true,
+          "RestrictPublicBuckets": true
         },
         "Tags": [
           { "Key": "System", "Value": "convox" },

@@ -161,7 +161,10 @@
           "Statement": [ { "Effect": "Allow", "Principal": { "Service": [ "ecs-tasks.amazonaws.com" ] }, "Action": [ "sts:AssumeRole" ] } ],
           "Version": "2012-10-17"
         },
-        "ManagedPolicyArns": [ { "Fn::Sub": "arn:${AWS::Partition}:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy" } ],
+        "ManagedPolicyArns": [
+          { "Fn::Sub": "arn:${AWS::Partition}:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy" },
+          { "Fn::ImportValue": { "Fn::Sub": "${Rack}:CMKPolicy" } }
+        ],
         "Path": "/convox/"
       }
     },
@@ -301,7 +304,10 @@
         "Statement": [ { "Effect": "Allow", "Principal": { "Service": [ "ecs-tasks.amazonaws.com" ] }, "Action": [ "sts:AssumeRole" ] } ],
         "Version": "2012-10-17"
       },
-      "ManagedPolicyArns": [ { "Fn::If": [ "BlankIamPolicy", { "Ref": "AWS::NoValue" }, { "Ref": "IamPolicy" } ] } ],
+      "ManagedPolicyArns": [
+        { "Fn::If": [ "BlankIamPolicy", { "Ref": "AWS::NoValue" }, { "Ref": "IamPolicy" } ] },
+        { "Fn::ImportValue": { "Fn::Sub": "${Rack}:CMKPolicy" } }
+      ],
       "Path": "/convox/",
       "Policies": [ {
         "PolicyName": "convox-env",
@@ -446,7 +452,8 @@
         },
         "ManagedPolicyArns": [
           { "Fn::Sub": "arn:${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole" },
-          { "Fn::Sub": "arn:${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole" }
+          { "Fn::Sub": "arn:${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole" },
+          { "Fn::ImportValue": { "Fn::Sub": "${Rack}:CMKPolicy" } }
         ],
         "Path": "/convox/",
         "Policies": [
@@ -514,59 +521,6 @@
 {{ end }}
 
 {{ define "state" }}
-  "AppCustomerManagedKMS": {
-    "Type" : "AWS::KMS::Key",
-    "Properties" : {
-      "Description": { "Fn::Sub": "Customer Managed Key (CMK) used by Convox to encrypt ${AWS::StackName} S3 bucket" },
-      "EnableKeyRotation" : "true",
-      "KeyPolicy": {
-        "Version": "2012-10-17",
-        "Id": "cmk-s3-log-bucket",
-        "Statement": [
-            {
-              "Sid": "key administration",
-              "Effect": "Allow",
-              "Principal": {
-                "AWS": {
-                  "Fn::Sub": "arn:aws:iam::${AWS::AccountId}:root"
-                }
-              },
-              "Action": [
-                "kms:*"
-              ],
-              "Resource": "*"
-            },
-            {
-              "Sid": "key usage",
-              "Effect": "Allow",
-              "Principal": {
-                "AWS": [
-                  { "Fn::GetAtt": ["ExecutionRole", "Arn" ]},
-
-                  {{ if .Manifest.Timers }}
-                    { "Fn::GetAtt": ["ServiceRole", "Arn" ]},
-                    { "Fn::GetAtt": ["TimerRole", "Arn" ]}
-                  {{ else }}
-                    { "Fn::GetAtt": ["ServiceRole", "Arn" ]}
-                  {{ end }}
-                ]
-              },
-              "Action": [
-                "kms:Encrypt",
-                "kms:Decrypt",
-                "kms:ReEncrypt*",
-                "kms:GenerateDataKey*",
-                "kms:DescribeKey"
-              ],
-              "Resource": "*"
-            }
-          ]
-      },
-      "Tags": [
-        { "Key": "App", "Value": { "Ref": "AWS::StackName" } }
-      ]
-    }
-  },
   "Settings": {
     "Type": "AWS::S3::Bucket",
     "DeletionPolicy": "Retain",
@@ -576,7 +530,7 @@
           "ServerSideEncryptionConfiguration": [ {
             "ServerSideEncryptionByDefault": {
               "SSEAlgorithm": "aws:kms",
-              "KMSMasterKeyID": { "Ref": "AppCustomerManagedKMS" }
+              "KMSMasterKeyID": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:CustomerManagedKey" } }
             }
           } ]
         },
