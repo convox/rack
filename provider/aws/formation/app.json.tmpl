@@ -152,7 +152,7 @@
     {{ template "service-resources" . }}
     {{ template "timer-resources" . }}
 
-    {{ template "state" }}
+    {{ template "state" . }}
 
     "ExecutionRole": {
       "Type": "AWS::IAM::Role",
@@ -385,7 +385,7 @@
                 "  capacityProviderStrategy: [{capacityProvider: 'FARGATE_SPOT'}],",
                 ""
               ] }
-            ] },            
+            ] },
             "    cluster: event.cluster,",
             "    taskDefinition: event.taskDefinition,",
             "    count: 1,",
@@ -514,14 +514,72 @@
 {{ end }}
 
 {{ define "state" }}
+  "AppCustomerManagedKMS": {
+    "Type" : "AWS::KMS::Key",
+    "Properties" : {
+      "Description": { "Fn::Sub": "Customer Managed Key (CMK) used by Convox to encrypt ${AWS::StackName} S3 bucket" },
+      "EnableKeyRotation" : "true",
+      "KeyPolicy": {
+        "Version": "2012-10-17",
+        "Id": "cmk-s3-log-bucket",
+        "Statement": [
+            {
+              "Sid": "key administration",
+              "Effect": "Allow",
+              "Principal": {
+                "AWS": {
+                  "Fn::Sub": "arn:aws:iam::${AWS::AccountId}:root"
+                }
+              },
+              "Action": [
+                "kms:*"
+              ],
+              "Resource": "*"
+            },
+            {
+              "Sid": "key usage",
+              "Effect": "Allow",
+              "Principal": {
+                "AWS": [
+                  { "Fn::GetAtt": ["ExecutionRole", "Arn" ]},
+
+                  {{ if .Manifest.Timers }}
+                    { "Fn::GetAtt": ["ServiceRole", "Arn" ]},
+                    { "Fn::GetAtt": ["TimerRole", "Arn" ]}
+                  {{ else }}
+                    { "Fn::GetAtt": ["ServiceRole", "Arn" ]}
+                  {{ end }}
+                ]
+              },
+              "Action": [
+                "kms:Encrypt",
+                "kms:Decrypt",
+                "kms:ReEncrypt*",
+                "kms:GenerateDataKey*",
+                "kms:DescribeKey"
+              ],
+              "Resource": "*"
+            }
+          ]
+      },
+      "Tags": [
+        { "Key": "App", "Value": { "Ref": "AWS::StackName" } }
+      ]
+    }
+  },
   "Settings": {
     "Type": "AWS::S3::Bucket",
     "DeletionPolicy": "Retain",
     "Properties": {
       "AccessControl": "Private",
       "BucketEncryption": {
-        "ServerSideEncryptionConfiguration": [ { "ServerSideEncryptionByDefault": { "SSEAlgorithm": "aws:kms" } } ]
-      },
+          "ServerSideEncryptionConfiguration": [ {
+            "ServerSideEncryptionByDefault": {
+              "SSEAlgorithm": "aws:kms",
+              "KMSMasterKeyID": { "Ref": "AppCustomerManagedKMS" }
+            }
+          } ]
+        },
       "LoggingConfiguration": { "Fn::If": [ "BlankLogBucket",
         { "Ref": "AWS::NoValue" },
         {
