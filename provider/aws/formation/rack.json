@@ -2511,12 +2511,12 @@
     },
     "Router": {
       "Condition": "PublicRouter",
-      "DependsOn": [ "ApiRole", "LogsPolicy" ],
+      "DependsOn": [ "ApiRole", "ELBLogsPolicy" ],
       "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
       "Properties": {
         "LoadBalancerAttributes": [
           { "Key": "access_logs.s3.enabled", "Value": "true" },
-          { "Key": "access_logs.s3.bucket", "Value": { "Fn::If": [ "BlankLogBucket", { "Ref": "Logs" }, { "Ref": "LogBucket" } ] } },
+          { "Key": "access_logs.s3.bucket", "Value": { "Fn::If": [ "BlankLogBucket", { "Ref": "ELBLogs" }, { "Ref": "LogBucket" } ] } },
           { "Key": "access_logs.s3.prefix", "Value": { "Fn::Sub": "convox/logs/${AWS::StackName}/alb" } },
           { "Key": "idle_timeout.timeout_seconds", "Value": { "Ref": "LoadBalancerIdleTimeout" } },
           { "Key": "routing.http.desync_mitigation_mode", "Value": { "Ref": "RouterMitigationMode" } },
@@ -2631,11 +2631,11 @@
     "RouterInternal": {
       "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
       "Condition": "Internal",
-      "DependsOn": [ "ApiRole", "LogsPolicy" ],
+      "DependsOn": [ "ApiRole", "ELBLogsPolicy" ],
       "Properties": {
         "LoadBalancerAttributes": [
           { "Key": "access_logs.s3.enabled", "Value": "true" },
-          { "Key": "access_logs.s3.bucket", "Value": { "Fn::If": [ "BlankLogBucket", { "Ref": "Logs" }, { "Ref": "LogBucket" } ] } },
+          { "Key": "access_logs.s3.bucket", "Value": { "Fn::If": [ "BlankLogBucket", { "Ref": "ELBLogs" }, { "Ref": "LogBucket" } ] } },
           { "Key": "access_logs.s3.prefix", "Value": { "Fn::Sub": "convox/logs/${AWS::StackName}/alb" } },
           { "Key": "idle_timeout.timeout_seconds", "Value": "3600" }
         ],
@@ -3228,13 +3228,70 @@
         }]
       }
     },
+    "CustomerManagedKMS": {
+      "Type" : "AWS::KMS::Key",
+      "Properties" : {
+        "Description" : "Customer Managed KMS (CMK) used by Convox to encrypt the S3 bucket",
+        "EnableKeyRotation": true,
+        "KeyPolicy": {
+          "Version": "2012-10-17",
+          "Id": "cmk-s3-buckets",
+          "Statement": [
+            {
+              "Sid": "key administration",
+              "Effect": "Allow",
+              "Principal": {
+                "AWS": {
+                  "Fn::Sub": "arn:aws:iam::${AWS::AccountId}:root"
+                }
+              },
+              "Action": [
+                "kms:*"
+              ],
+              "Resource": "*"
+            },
+            {
+              "Sid": "key usage",
+              "Effect": "Allow",
+              "Principal": {
+                "AWS": [
+                  { "Fn::GetAtt": ["ServiceRole", "Arn" ]},
+                  { "Fn::GetAtt": ["SecureEnvironmentRole", "Arn" ]},
+                  { "Fn::GetAtt": ["InstancesLifecycleRole", "Arn" ]},
+                  { "Fn::GetAtt": ["InstancesLifecycleHandlerRole", "Arn" ]},
+                  { "Fn::GetAtt": ["CustomTopicRole", "Arn" ]},
+                  { "Fn::GetAtt": ["ApiRole", "Arn" ]}
+                ]
+              },
+              "Action": [
+                "kms:Encrypt",
+                "kms:Decrypt",
+                "kms:ReEncrypt*",
+                "kms:GenerateDataKey*",
+                "kms:DescribeKey"
+              ],
+              "Resource": "*"
+            }
+          ]
+        },
+        "Tags": [
+          { "Key": "System", "Value": "convox" },
+          { "Key": "Rack", "Value": { "Ref": "AWS::StackName" } }
+        ]
+      }
+    },
     "Logs": {
       "Type": "AWS::S3::Bucket",
       "DeletionPolicy": "Retain",
       "Properties": {
         "AccessControl": "LogDeliveryWrite",
         "BucketEncryption": {
-          "ServerSideEncryptionConfiguration": [ { "ServerSideEncryptionByDefault": { "SSEAlgorithm": "aws:kms" } } ]
+          "ServerSideEncryptionConfiguration": [ {
+            "ServerSideEncryptionByDefault": {
+              "SSEAlgorithm": "aws:kms",
+              "KMSMasterKeyID": { "Ref": "CustomerManagedKMS" }
+            }
+          } ]
         },
         "LifecycleConfiguration": { "Fn::If": [ "BlankLogRetention",
           { "Ref": "AWS::NoValue" },
@@ -3259,13 +3316,6 @@
         "PolicyDocument": {
           "Version": "2012-10-17",
           "Statement": [
-            {
-              "Sid": "ELB log delivery service",
-              "Effect": "Allow",
-              "Principal": { "AWS": { "Fn::FindInMap": [ "RegionConfig", { "Ref": "AWS::Region" }, "ELBAccountId" ] } },
-              "Action": "s3:PutObject",
-              "Resource": { "Fn::Sub": "arn:${AWS::Partition}:s3:::${Logs}/*" }
-            },
             {
               "Sid": "AllowSSLRequestsOnly",
               "Action": "s3:*",
@@ -3299,7 +3349,12 @@
       "Properties": {
         "AccessControl": "Private",
         "BucketEncryption": {
-          "ServerSideEncryptionConfiguration": [ { "ServerSideEncryptionByDefault": { "SSEAlgorithm": "aws:kms" } } ]
+          "ServerSideEncryptionConfiguration": [ {
+            "ServerSideEncryptionByDefault": {
+              "SSEAlgorithm": "aws:kms",
+              "KMSMasterKeyID": { "Ref": "CustomerManagedKMS" }
+            }
+          } ]
         },
         "LoggingConfiguration": {
           "DestinationBucketName": { "Fn::If": [ "BlankLogBucket", { "Ref": "Logs" }, { "Ref": "LogBucket" } ] },
@@ -3335,6 +3390,73 @@
                     "${bucket}/*",
                     {
                       "bucket": { "Fn::GetAtt": ["Settings", "Arn"] }
+                    }
+                  ]
+                }
+              ],
+              "Condition": {
+                "Bool": {
+                  "aws:SecureTransport": "false"
+                }
+              },
+              "Principal": "*"
+            }
+          ]
+        }
+      }
+    },
+    "ELBLogs": {
+      "Type": "AWS::S3::Bucket",
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "AccessControl": "LogDeliveryWrite",
+        "BucketEncryption": {
+          "ServerSideEncryptionConfiguration": [ {
+            "ServerSideEncryptionByDefault": { "SSEAlgorithm": "aws:kms" }
+          } ]
+        },
+        "LifecycleConfiguration": { "Fn::If": [ "BlankLogRetention",
+          { "Ref": "AWS::NoValue" },
+          { "Rules": [ { "ExpirationInDays": { "Ref": "LogRetention" }, "Status": "Enabled" } ] }
+        ] },
+        "PublicAccessBlockConfiguration": {
+          "BlockPublicAcls" : true,
+          "BlockPublicPolicy" : true,
+          "IgnorePublicAcls" : true,
+          "RestrictPublicBuckets" : true
+        },
+        "Tags": [
+          { "Key": "System", "Value": "convox" },
+          { "Key": "Type", "Value": "ELB" },
+          { "Key": "Rack", "Value": { "Ref": "AWS::StackName" } }
+        ]
+      }
+    },
+    "ELBLogsPolicy": {
+      "Type": "AWS::S3::BucketPolicy",
+      "Properties": {
+        "Bucket": { "Ref": "ELBLogs" },
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": "ELB log delivery service",
+              "Effect": "Allow",
+              "Principal": { "AWS": { "Fn::FindInMap": [ "RegionConfig", { "Ref": "AWS::Region" }, "ELBAccountId" ] } },
+              "Action": "s3:PutObject",
+              "Resource": { "Fn::Sub": "arn:${AWS::Partition}:s3:::${ELBLogs}/*" }
+            },
+            {
+              "Sid": "AllowSSLRequestsOnly",
+              "Action": "s3:*",
+              "Effect": "Deny",
+              "Resource": [
+                { "Fn::GetAtt": ["ELBLogs", "Arn"]},
+                {
+                  "Fn::Sub": [
+                    "${bucket}/*",
+                    {
+                      "bucket": { "Fn::GetAtt": ["ELBLogs", "Arn"] }
                     }
                   ]
                 }
