@@ -86,6 +86,9 @@
             }
           ]
         },
+        "ManagedPolicyArns": [
+          { "Fn::ImportValue": { "Fn::Sub": "${Rack}:CMKPolicy" } }
+        ],
         "Path": "/convox/",
         "Policies": [
           {
@@ -125,6 +128,9 @@
             }
           ]
         },
+        "ManagedPolicyArns": [
+          { "Fn::ImportValue": { "Fn::Sub": "${Rack}:CMKPolicy" } }
+        ],
         "Path": "/convox/",
         "Policies": [
           {
@@ -648,6 +654,9 @@
             }
           ]
         },
+        "ManagedPolicyArns": [
+          { "Fn::ImportValue": { "Fn::Sub": "${Rack}:CMKPolicy" } }
+        ],
         "Path": "/convox/",
         "Policies": [
           {
@@ -838,6 +847,9 @@
         ],
         "Version": "2012-10-17"
       },
+      "ManagedPolicyArns": [
+        { "Fn::ImportValue": { "Fn::Sub": "${Rack}:CMKPolicy" } }
+      ],
       "Path": "/convox/",
       "Policies": [
         {
