@@ -291,6 +291,9 @@
     "Internal": {
       "Value": { "Ref": "Internal" }
     },
+    "ELBLogBucket": {
+      "Value": { "Fn::If": [ "BlankLogBucket", { "Ref": "ELBLogs" }, { "Ref": "LogBucket" } ] }
+    },
     "LogBucket": {
       "Value": { "Fn::If": [ "BlankLogBucket", { "Ref": "Logs" }, { "Ref": "LogBucket" } ] }
     },

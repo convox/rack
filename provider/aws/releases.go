@@ -471,6 +471,7 @@ func (p *Provider) releasePromoteGeneration1(a *structs.App, r *structs.Release)
 
 	params["Cluster"] = p.Cluster
 	params["Key"] = p.EncryptionKey
+	params["ELBLogBucket"] = p.ELBLogBucket
 	params["LogBucket"] = p.LogBucket
 	params["Rack"] = p.Rack
 	params["Release"] = r.Id

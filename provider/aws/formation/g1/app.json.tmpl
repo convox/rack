@@ -3,6 +3,7 @@
   "Conditions": {
     {{ template "balancer-conditions" .Manifest }}
     {{ template "process-conditions" .Manifest }}
+    "BlankELBLogBucket": { "Fn::Equals": [ { "Ref": "ELBLogBucket" }, "" ] },
     "BlankLogBucket": { "Fn::Equals": [ { "Ref": "LogBucket" }, "" ] },
     "BlankSecurityGroup": { "Fn::Equals": [ { "Fn::Join": [ ",", { "Ref": "SecurityGroup" } ] }, "" ] },
     "BlankSslPolicy": { "Fn::Equals": [ { "Ref": "SslPolicy" }, "" ] },
@@ -22,6 +23,10 @@
       "Description": "Only allow access to this app from inside the VPC",
       "Default": "No",
       "AllowedValues": [ "Yes", "No" ]
+    },
+    "ELBLogBucket": {
+      "Type": "String",
+      "Default": ""
     },
     "LogBucket": {
       "Type": "String",
@@ -552,12 +557,12 @@
           { "Fn::Join": [ "-", [ "{{ .LoadBalancerName $app.Name }}", "n" ] ] },
           "{{ .LoadBalancerName $app.Name }}"
         ] },
-        "AccessLoggingPolicy": { "Fn::If": [ "BlankLogBucket",
+        "AccessLoggingPolicy": { "Fn::If": [ "BlankELBLogBucket",
           { "Ref": "AWS::NoValue" },
           {
             "EmitInterval": 5,
             "Enabled": true,
-            "S3BucketName": { "Ref": "LogBucket" },
+            "S3BucketName": { "Ref": "ELBLogBucket" },
             "S3BucketPrefix": { "Fn::Sub": "convox/logs/${AWS::StackName}/elb/{{ .LoadBalancerName $app.Name }}" }
           }
         ] },
