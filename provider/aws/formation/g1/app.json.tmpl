@@ -886,7 +886,12 @@
     "Properties": {
       "AccessControl": "Private",
       "BucketEncryption": {
-        "ServerSideEncryptionConfiguration": [ { "ServerSideEncryptionByDefault": { "SSEAlgorithm": "aws:kms" } } ]
+        "ServerSideEncryptionConfiguration": [ {
+          "ServerSideEncryptionByDefault": {
+            "SSEAlgorithm": "aws:kms",
+            "KMSMasterKeyID": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:CustomerManagedKey" } }
+          }
+        } ]
       },
       "LoggingConfiguration": { "Fn::If": [ "BlankLogBucket",
         { "Ref": "AWS::NoValue" },
