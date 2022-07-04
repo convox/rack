@@ -3269,7 +3269,11 @@
                 "kms:GenerateDataKey*",
                 "kms:DescribeKey"
               ],
-              "Resource": "*"
+              "Resource": [
+                { "Ref": "CustomerManagedKey" },
+                { "Ref": "Logs" },
+                { "Ref": "Settings" }
+              ]
             }
           ]
         }
@@ -3296,6 +3300,16 @@
                 "kms:*"
               ],
               "Resource": "*"
+            },
+            {
+              "Sid": "Cloud Trail permissions",
+              "Principal": { "Service": [ "cloudtrail.amazonaws.com" ] },
+              "Action": [
+                "kms:DescribeKey",
+                "kms:GenerateDataKey"
+              ],
+              "Effect": "Allow",
+              "Resource": "*"
             }
           ]
         },
@@ -3312,6 +3326,7 @@
         "AccessControl": "LogDeliveryWrite",
         "BucketEncryption": {
           "ServerSideEncryptionConfiguration": [ {
+            "BucketKeyEnabled": true,
             "ServerSideEncryptionByDefault": {
               "SSEAlgorithm": "aws:kms",
               "KMSMasterKeyID": { "Ref": "CustomerManagedKey" }
@@ -3374,6 +3389,7 @@
       "Properties": {
         "AccessControl": "Private",
         "BucketEncryption": {
+          "BucketKeyEnabled": true,
           "ServerSideEncryptionConfiguration": [ {
             "ServerSideEncryptionByDefault": {
               "SSEAlgorithm": "aws:kms",
