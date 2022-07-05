@@ -3269,7 +3269,9 @@
                 "kms:GenerateDataKey*",
                 "kms:DescribeKey"
               ],
-              "Resource": "*"
+              "Resource": [
+                { "Fn::GetAtt": ["CustomerManagedKey", "Arn"]}
+              ]
             }
           ]
         }
