@@ -528,6 +528,7 @@
       "AccessControl": "Private",
       "BucketEncryption": {
         "ServerSideEncryptionConfiguration": [ {
+          "BucketKeyEnabled": true,
           "ServerSideEncryptionByDefault": {
             "SSEAlgorithm": "aws:kms",
             "KMSMasterKeyID": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:CustomerManagedKey" } }
