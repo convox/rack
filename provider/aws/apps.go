@@ -89,6 +89,7 @@ func (p *Provider) appCreateGeneration1(name string) (*structs.App, error) {
 	}
 
 	params := map[string]string{
+		"ELBLogBucket":   p.ELBLogBucket,
 		"LogBucket":      p.LogBucket,
 		"Private":        "No",
 		"Rack":           p.Rack,

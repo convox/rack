@@ -3,6 +3,7 @@
   "Conditions": {
     {{ template "balancer-conditions" .Manifest }}
     {{ template "process-conditions" .Manifest }}
+    "BlankELBLogBucket": { "Fn::Equals": [ { "Ref": "ELBLogBucket" }, "" ] },
     "BlankLogBucket": { "Fn::Equals": [ { "Ref": "LogBucket" }, "" ] },
     "BlankSecurityGroup": { "Fn::Equals": [ { "Fn::Join": [ ",", { "Ref": "SecurityGroup" } ] }, "" ] },
     "BlankSslPolicy": { "Fn::Equals": [ { "Ref": "SslPolicy" }, "" ] },
@@ -22,6 +23,10 @@
       "Description": "Only allow access to this app from inside the VPC",
       "Default": "No",
       "AllowedValues": [ "Yes", "No" ]
+    },
+    "ELBLogBucket": {
+      "Type": "String",
+      "Default": ""
     },
     "LogBucket": {
       "Type": "String",
@@ -86,6 +91,9 @@
             }
           ]
         },
+        "ManagedPolicyArns": [
+          { "Fn::ImportValue": { "Fn::Sub": "${Rack}:CMKPolicy" } }
+        ],
         "Path": "/convox/",
         "Policies": [
           {
@@ -125,6 +133,9 @@
             }
           ]
         },
+        "ManagedPolicyArns": [
+          { "Fn::ImportValue": { "Fn::Sub": "${Rack}:CMKPolicy" } }
+        ],
         "Path": "/convox/",
         "Policies": [
           {
@@ -546,12 +557,12 @@
           { "Fn::Join": [ "-", [ "{{ .LoadBalancerName $app.Name }}", "n" ] ] },
           "{{ .LoadBalancerName $app.Name }}"
         ] },
-        "AccessLoggingPolicy": { "Fn::If": [ "BlankLogBucket",
+        "AccessLoggingPolicy": { "Fn::If": [ "BlankELBLogBucket",
           { "Ref": "AWS::NoValue" },
           {
             "EmitInterval": 5,
             "Enabled": true,
-            "S3BucketName": { "Ref": "LogBucket" },
+            "S3BucketName": { "Ref": "ELBLogBucket" },
             "S3BucketPrefix": { "Fn::Sub": "convox/logs/${AWS::StackName}/elb/{{ .LoadBalancerName $app.Name }}" }
           }
         ] },
@@ -648,6 +659,9 @@
             }
           ]
         },
+        "ManagedPolicyArns": [
+          { "Fn::ImportValue": { "Fn::Sub": "${Rack}:CMKPolicy" } }
+        ],
         "Path": "/convox/",
         "Policies": [
           {
@@ -838,6 +852,9 @@
         ],
         "Version": "2012-10-17"
       },
+      "ManagedPolicyArns": [
+        { "Fn::ImportValue": { "Fn::Sub": "${Rack}:CMKPolicy" } }
+      ],
       "Path": "/convox/",
       "Policies": [
         {
@@ -874,7 +891,13 @@
     "Properties": {
       "AccessControl": "Private",
       "BucketEncryption": {
-        "ServerSideEncryptionConfiguration": [ { "ServerSideEncryptionByDefault": { "SSEAlgorithm": "aws:kms" } } ]
+        "ServerSideEncryptionConfiguration": [ {
+          "BucketKeyEnabled": true,
+          "ServerSideEncryptionByDefault": {
+            "SSEAlgorithm": "aws:kms",
+            "KMSMasterKeyID": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:CustomerManagedKey" } }
+          }
+        } ]
       },
       "LoggingConfiguration": { "Fn::If": [ "BlankLogBucket",
         { "Ref": "AWS::NoValue" },
