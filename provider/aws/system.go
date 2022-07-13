@@ -366,9 +366,46 @@ func (p *Provider) SystemProcesses(opts structs.SystemProcessesOptions) (structs
 		return nil, err
 	}
 
+	services, err := p.clusterServices()
+	if err != nil {
+		return nil, err
+	}
+
+	serviceNames := []string{}
+	taskToServiceMap := map[string]string{}
+	for _, s := range services {
+		if s.ServiceName != nil && s.TaskDefinition != nil {
+			serviceNames = append(serviceNames, *s.ServiceName)
+			taskToServiceMap[*s.TaskDefinition] = *s.ServiceName
+		}
+	}
+
+	mdqs := p.servicesMetricQueries(serviceNames)
+
+	ms, err := p.cloudwatchMetrics(mdqs, structs.MetricsOptions{
+		Start: aws.Time(time.Now().Add(-5 * time.Minute)),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	mMap := map[string]structs.Metric{}
+	for _, m := range ms {
+		mMap[m.Name] = m
+	}
+
 	for i := range ps {
 		if ps[i].App == "" {
 			ps[i].App = p.Rack
+		}
+
+		if serviceName, has := taskToServiceMap[ps[i].TaskDefinition]; has {
+			if m, has := mMap[serviceMetricsKey("mem", serviceName)]; has && len(m.Values) > 0 {
+				ps[i].Memory = m.Values[len(m.Values)-1].Average
+			}
+			if m, has := mMap[serviceMetricsKey("cpu", serviceName)]; has && len(m.Values) > 0 {
+				ps[i].Cpu = m.Values[len(m.Values)-1].Average
+			}
 		}
 	}
 

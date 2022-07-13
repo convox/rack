@@ -307,6 +307,34 @@ func (p *Provider) systemMetricQueries() []metricDataQuerier {
 	return mdqs
 }
 
+func (p *Provider) servicesMetricQueries(names []string) []metricDataQuerier {
+	mdqs := []metricDataQuerier{}
+
+	for _, name := range names {
+		mdqs = append(mdqs, metricStatistics{
+			Name:      serviceMetricsKey("cpu", name),
+			Namespace: "AWS/ECS",
+			Metric:    "CPUUtilization",
+			Dimensions: map[string]string{
+				"ClusterName": p.Cluster,
+				"ServiceName": name,
+			},
+			Statistics: []string{"Average"},
+		}, metricStatistics{
+			Name:      serviceMetricsKey("mem", name),
+			Namespace: "AWS/ECS",
+			Metric:    "MemoryUtilization",
+			Dimensions: map[string]string{
+				"ClusterName": p.Cluster,
+				"ServiceName": name,
+			},
+			Statistics: []string{"Average"},
+		})
+	}
+
+	return mdqs
+}
+
 type metricDataQuerier interface {
 	MetricDataQueries(period int64, suffix string) []*cloudwatch.MetricDataQuery
 }
