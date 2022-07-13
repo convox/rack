@@ -252,6 +252,8 @@ func TestSystemProcessesList(t *testing.T) {
 		cycleSystemDescribeTaskDefinition,
 		cycleSystemDescribeContainerInstances,
 		cycleSystemDescribeRackInstances,
+		cycleECSListServices,
+		cycleECSDescribeServices,
 		cycleSystemDescribeTaskDefinition2,
 		cycleSystemDescribeContainerInstances,
 	)
@@ -269,6 +271,8 @@ func TestSystemProcessesListAll(t *testing.T) {
 		cycleSystemDescribeTaskDefinition,
 		cycleSystemDescribeContainerInstances,
 		cycleSystemDescribeRackInstances,
+		cycleECSListServices,
+		cycleECSDescribeServices,
 		cycleSystemDescribeTaskDefinition2,
 		cycleSystemDescribeContainerInstances,
 	)
