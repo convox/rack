@@ -208,9 +208,13 @@ func (p *Provider) ProcessList(app string, opts structs.ProcessListOptions) (str
 	for i := range ps {
 		if serviceName, has := taskToServiceMap[ps[i].TaskDefinition]; has {
 			if m, has := mMap[serviceMetricsKey("mem", serviceName)]; has && len(m.Values) > 0 {
+				// normally there should be one point but if multiple points are fetched, pick the latest one
+				// points are sorted in TimestampAscending order
 				ps[i].Memory = m.Values[len(m.Values)-1].Average
 			}
 			if m, has := mMap[serviceMetricsKey("cpu", serviceName)]; has && len(m.Values) > 0 {
+				// normally there should be one point but if multiple points are fetched, pick the latest one
+				// points are sorted in TimestampAscending order
 				ps[i].Cpu = m.Values[len(m.Values)-1].Average
 			}
 		}

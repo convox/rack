@@ -38,7 +38,6 @@ func StubAwsProvider(cycles ...awsutil.Cycle) *AwsStub {
 	os.Setenv("AWS_SECRET_ACCESS_KEY", "test-secret")
 
 	cw := &mockaws.CloudWatchAPI{}
-	//input := &cloudwatch.GetMetricDataInput{MetricDataQueries: []*cloudwatch.MetricDataQuery{}}
 	output := &cloudwatch.GetMetricDataOutput{MetricDataResults: []*cloudwatch.MetricDataResult{}}
 
 	cw.On("GetMetricData", mock.Anything).Return(output, nil)
