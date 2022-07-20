@@ -5,10 +5,13 @@ import (
 	"net/http/httptest"
 	"os"
 
+	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/convox/logger"
+	mockaws "github.com/convox/rack/pkg/mock/aws"
 	"github.com/convox/rack/pkg/structs"
 	"github.com/convox/rack/pkg/test/awsutil"
 	"github.com/convox/rack/provider/aws"
+	"github.com/stretchr/testify/mock"
 )
 
 func init() {
@@ -34,6 +37,11 @@ func StubAwsProvider(cycles ...awsutil.Cycle) *AwsStub {
 	os.Setenv("AWS_ACCESS_KEY_ID", "test-access")
 	os.Setenv("AWS_SECRET_ACCESS_KEY", "test-secret")
 
+	cw := &mockaws.CloudWatchAPI{}
+	output := &cloudwatch.GetMetricDataOutput{MetricDataResults: []*cloudwatch.MetricDataResult{}}
+
+	cw.On("GetMetricData", mock.Anything).Return(output, nil)
+
 	p := &aws.Provider{
 		Region:         "us-test-1",
 		Endpoint:       s.URL,
@@ -46,6 +54,7 @@ func StubAwsProvider(cycles ...awsutil.Cycle) *AwsStub {
 		Rack:           "convox",
 		SettingsBucket: "convox-settings",
 		SkipCache:      true,
+		CloudWatch:     cw,
 	}
 
 	return &AwsStub{p, s}
