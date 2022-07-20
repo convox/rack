@@ -1509,3 +1509,7 @@ func (cr *CronJob) LongName() string {
 	}
 	return prefix + suffix
 }
+
+func serviceMetricsKey(metricType, serviceName string) string {
+	return fmt.Sprintf("service:%s:utilization:%s", metricType, strings.ReplaceAll(serviceName, "-", "_"))
+}

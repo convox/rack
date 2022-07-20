@@ -171,8 +171,53 @@ func (p *Provider) ProcessList(app string, opts structs.ProcessListOptions) (str
 		ps = pss
 	}
 
+	taskDefMap := map[string]bool{}
 	for i := range ps {
 		ps[i].App = app
+		taskDefMap[ps[i].TaskDefinition] = true
+	}
+
+	services, err := p.clusterServices()
+	if err != nil {
+		return nil, err
+	}
+
+	serviceNames := []string{}
+	taskToServiceMap := map[string]string{}
+	for _, s := range services {
+		if s.ServiceName != nil && s.TaskDefinition != nil && taskDefMap[*s.TaskDefinition] {
+			serviceNames = append(serviceNames, *s.ServiceName)
+			taskToServiceMap[*s.TaskDefinition] = *s.ServiceName
+		}
+	}
+
+	mdqs := p.servicesMetricQueries(serviceNames)
+
+	ms, err := p.cloudwatchMetrics(mdqs, structs.MetricsOptions{
+		Start: aws.Time(time.Now().Add(-5 * time.Minute)),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	mMap := map[string]structs.Metric{}
+	for _, m := range ms {
+		mMap[m.Name] = m
+	}
+
+	for i := range ps {
+		if serviceName, has := taskToServiceMap[ps[i].TaskDefinition]; has {
+			if m, has := mMap[serviceMetricsKey("mem", serviceName)]; has && len(m.Values) > 0 {
+				// normally there should be one point but if multiple points are fetched, pick the latest one
+				// points are sorted in TimestampAscending order
+				ps[i].Memory = m.Values[len(m.Values)-1].Average
+			}
+			if m, has := mMap[serviceMetricsKey("cpu", serviceName)]; has && len(m.Values) > 0 {
+				// normally there should be one point but if multiple points are fetched, pick the latest one
+				// points are sorted in TimestampAscending order
+				ps[i].Cpu = m.Values[len(m.Values)-1].Average
+			}
+		}
 	}
 
 	return ps, nil
@@ -683,13 +728,14 @@ func (p *Provider) fetchProcess(task *ecs.Task, psch chan structs.Process, errch
 	}
 
 	ps := structs.Process{
-		Id:      arnToPid(*task.TaskArn),
-		Name:    *container.Name,
-		App:     coalesces(labels["convox.app"], env["APP"]),
-		Release: coalesces(labels["convox.release"], env["RELEASE"]),
-		Image:   *cd.Image,
-		Ports:   ports,
-		Status:  taskStatus(*task.LastStatus),
+		Id:             arnToPid(*task.TaskArn),
+		Name:           *container.Name,
+		App:            coalesces(labels["convox.app"], env["APP"]),
+		Release:        coalesces(labels["convox.release"], env["RELEASE"]),
+		Image:          *cd.Image,
+		Ports:          ports,
+		Status:         taskStatus(*task.LastStatus),
+		TaskDefinition: *task.TaskDefinitionArn,
 	}
 
 	if task.ContainerInstanceArn != nil {
