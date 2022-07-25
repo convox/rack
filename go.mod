@@ -35,7 +35,7 @@ require (
 	github.com/stretchr/testify v1.3.0
 	github.com/stvp/rollbar v0.5.1
 	github.com/twmb/algoimpl v0.0.0-20170717182524-076353e90b94
-	golang.org/x/crypto v0.0.0-20190923035154-9ee001bba392
+	golang.org/x/crypto v0.0.0-20220722155217-630584e8d5aa
 	gopkg.in/cheggaaa/pb.v1 v1.0.28
 	gopkg.in/yaml.v2 v2.2.2
 	k8s.io/api v0.0.0-20180628040859-072894a440bd
@@ -70,6 +70,8 @@ require (
 	github.com/peterbourgon/diskv v2.0.1+incompatible // indirect
 	github.com/segmentio/backo-go v0.0.0-20160424052352-204274ad699c // indirect
 	github.com/xtgo/uuid v0.0.0-20140804021211-a0b114877d4c // indirect
+	golang.org/x/net v0.0.0-20220722155237-a158d28d115b // indirect
+	golang.org/x/sys v0.0.0-20220722155257-8c9f86f7a55f // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	k8s.io/kube-openapi v0.0.0-20180731170545-e3762e86a74c // indirect
 )
