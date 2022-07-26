@@ -61,6 +61,7 @@ type Provider struct {
 	HighAvailability    bool
 	Internal            bool
 	InternalOnly        bool
+	ELBLogBucket        string
 	LogBucket           string
 	NotificationTopic   string
 	OnDemandMinCount    int

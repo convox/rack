@@ -7,6 +7,10 @@ import (
 	"github.com/convox/rack/pkg/structs"
 )
 
+func (p *Provider) Sync(name string) error {
+	return fmt.Errorf("not supported")
+}
+
 func (p *Provider) SystemGet() (*structs.System, error) {
 	return nil, fmt.Errorf("unimplemented")
 }
@@ -37,8 +41,4 @@ func (p *Provider) SystemUninstall(name string, w io.Writer, opts structs.System
 
 func (p *Provider) SystemUpdate(opts structs.SystemUpdateOptions) error {
 	return fmt.Errorf("unimplemented")
-}
-
-func (p *Provider) Sync(name string) error {
-	return fmt.Errorf("not supported")
 }

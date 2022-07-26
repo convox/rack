@@ -161,7 +161,10 @@
           "Statement": [ { "Effect": "Allow", "Principal": { "Service": [ "ecs-tasks.amazonaws.com" ] }, "Action": [ "sts:AssumeRole" ] } ],
           "Version": "2012-10-17"
         },
-        "ManagedPolicyArns": [ { "Fn::Sub": "arn:${AWS::Partition}:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy" } ],
+        "ManagedPolicyArns": [
+          { "Fn::Sub": "arn:${AWS::Partition}:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy" },
+          { "Fn::ImportValue": { "Fn::Sub": "${Rack}:CMKPolicy" } }
+        ],
         "Path": "/convox/"
       }
     },
@@ -301,7 +304,10 @@
         "Statement": [ { "Effect": "Allow", "Principal": { "Service": [ "ecs-tasks.amazonaws.com" ] }, "Action": [ "sts:AssumeRole" ] } ],
         "Version": "2012-10-17"
       },
-      "ManagedPolicyArns": [ { "Fn::If": [ "BlankIamPolicy", { "Ref": "AWS::NoValue" }, { "Ref": "IamPolicy" } ] } ],
+      "ManagedPolicyArns": [
+        { "Fn::If": [ "BlankIamPolicy", { "Ref": "AWS::NoValue" }, { "Ref": "IamPolicy" } ] },
+        { "Fn::ImportValue": { "Fn::Sub": "${Rack}:CMKPolicy" } }
+      ],
       "Path": "/convox/",
       "Policies": [ {
         "PolicyName": "convox-env",
@@ -385,7 +391,7 @@
                 "  capacityProviderStrategy: [{capacityProvider: 'FARGATE_SPOT'}],",
                 ""
               ] }
-            ] },            
+            ] },
             "    cluster: event.cluster,",
             "    taskDefinition: event.taskDefinition,",
             "    count: 1,",
@@ -446,7 +452,8 @@
         },
         "ManagedPolicyArns": [
           { "Fn::Sub": "arn:${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole" },
-          { "Fn::Sub": "arn:${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole" }
+          { "Fn::Sub": "arn:${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole" },
+          { "Fn::ImportValue": { "Fn::Sub": "${Rack}:CMKPolicy" } }
         ],
         "Path": "/convox/",
         "Policies": [
@@ -520,7 +527,13 @@
     "Properties": {
       "AccessControl": "Private",
       "BucketEncryption": {
-        "ServerSideEncryptionConfiguration": [ { "ServerSideEncryptionByDefault": { "SSEAlgorithm": "aws:kms" } } ]
+        "ServerSideEncryptionConfiguration": [ {
+          "BucketKeyEnabled": true,
+          "ServerSideEncryptionByDefault": {
+            "SSEAlgorithm": "aws:kms",
+            "KMSMasterKeyID": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:CustomerManagedKey" } }
+          }
+        } ]
       },
       "LoggingConfiguration": { "Fn::If": [ "BlankLogBucket",
         { "Ref": "AWS::NoValue" },

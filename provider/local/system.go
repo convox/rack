@@ -29,6 +29,10 @@ var (
 	systemTemplates = []string{"registry", "router"}
 )
 
+func (p *Provider) Sync(name string) error {
+	return fmt.Errorf("not supported")
+}
+
 func (p *Provider) SystemHost() string {
 	return fmt.Sprintf("rack.%s", p.Rack)
 }
@@ -172,10 +176,6 @@ func (p *Provider) SystemUpdate(opts structs.SystemUpdateOptions) error {
 	}
 
 	return nil
-}
-
-func (p *Provider) Sync(name string) error {
-	return fmt.Errorf("not supported")
 }
 
 func (p *Provider) generateCACertificate(version string) error {

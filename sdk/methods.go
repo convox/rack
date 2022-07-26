@@ -775,6 +775,10 @@ func (c *Client) ServiceUpdate(app string, name string, opts structs.ServiceUpda
 	return err
 }
 
+func (c *Client) Sync(name string) error {
+	return c.Post(fmt.Sprintf("/racks/%s/sync", name), stdsdk.RequestOptions{}, nil)
+}
+
 func (c *Client) SystemGet() (*structs.System, error) {
 	var err error
 
@@ -974,10 +978,6 @@ func (c *Client) SystemUpdate(opts structs.SystemUpdateOptions) error {
 	err = c.Put(fmt.Sprintf("/system"), ro, nil)
 
 	return err
-}
-
-func (c *Client) Sync(name string) error {
-	return c.Post(fmt.Sprintf("/racks/%s/sync", name), stdsdk.RequestOptions{}, nil)
 }
 
 func (c *Client) Workers() error {

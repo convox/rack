@@ -15,6 +15,10 @@ var (
 	systemTemplates = []string{"custom", "metrics", "rack", "router"}
 )
 
+func (p *Provider) Sync(name string) error {
+	return fmt.Errorf("not supported")
+}
+
 func (p *Provider) SystemGet() (*structs.System, error) {
 	status, err := p.Engine.SystemStatus()
 	if err != nil {
@@ -159,10 +163,6 @@ func (p *Provider) SystemUpdate(opts structs.SystemUpdateOptions) error {
 	}
 
 	return nil
-}
-
-func (p *Provider) Sync(name string) error {
-	return fmt.Errorf("not supported")
 }
 
 func (p *Provider) systemUpdate(version string) error {

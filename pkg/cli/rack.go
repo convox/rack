@@ -68,6 +68,10 @@ func init() {
 		Validate: stdcli.Args(0),
 	})
 
+	register("rack sync", "sync v2 rack API url", RackSync, stdcli.CommandOptions{
+		Flags: []stdcli.Flag{flagRack, stdcli.StringFlag("name", "n", "rack name. Use it for non console managed racks")},
+	})
+
 	registerWithoutProvider("rack uninstall", "uninstall a rack", RackUninstall, stdcli.CommandOptions{
 		Flags:    append(stdcli.OptionFlags(structs.SystemUninstallOptions{})),
 		Usage:    "<type> <name>",
@@ -367,6 +371,52 @@ func RackScale(rack sdk.Interface, c *stdcli.Context) error {
 	return i.Print()
 }
 
+func RackSync(rack sdk.Interface, c *stdcli.Context) error {
+	c.Startf("Synchronizing rack API URL...")
+	c.Writef("\n")
+
+	host, err := currentHost(c)
+	if err != nil {
+		c.Fail(err)
+	}
+	rname := currentRack(c, host)
+
+	if c.String("name") != "" {
+		rname = c.String("name")
+		s, err := ss.NewSession(&aws.Config{})
+		if err != nil {
+			return err
+		}
+
+		cf := cloudformation.New(s)
+
+		o, err := cf.DescribeStacks(&cloudformation.DescribeStacksInput{StackName: aws.String(rname)})
+		if err != nil {
+			return err
+		}
+
+		if len(o.Stacks) == 0 {
+			return c.Errorf("formation stack with name %s not found", rname)
+		}
+
+		st := o.Stacks[0]
+		for _, o := range st.Outputs {
+			if *o.OutputKey == "Dashboard" {
+				c.Writef("url=%s\n", *o.OutputValue)
+			}
+		}
+
+		return c.OK()
+	}
+
+	err = rack.Sync(rname)
+	if err != nil {
+		return err
+	}
+
+	return c.OK()
+}
+
 func RackUninstall(rack sdk.Interface, c *stdcli.Context) error {
 	var opts structs.SystemUninstallOptions
 
@@ -428,52 +478,6 @@ func RackUpdate(rack sdk.Interface, c *stdcli.Context) error {
 		if err := helpers.WaitForRackWithLogs(rack, c); err != nil {
 			return err
 		}
-	}
-
-	return c.OK()
-}
-
-func RackSync(rack sdk.Interface, c *stdcli.Context) error {
-	c.Startf("Synchronizing rack API URL...")
-	c.Writef("\n")
-
-	host, err := currentHost(c)
-	if err != nil {
-		c.Fail(err)
-	}
-	rname := currentRack(c, host)
-
-	if c.String("name") != "" {
-		rname = c.String("name")
-		s, err := ss.NewSession(&aws.Config{})
-		if err != nil {
-			return err
-		}
-
-		cf := cloudformation.New(s)
-
-		o, err := cf.DescribeStacks(&cloudformation.DescribeStacksInput{StackName: aws.String(rname)})
-		if err != nil {
-			return err
-		}
-
-		if len(o.Stacks) == 0 {
-			return c.Errorf("formation stack with name %s not found", rname)
-		}
-
-		st := o.Stacks[0]
-		for _, o := range st.Outputs {
-			if *o.OutputKey == "Dashboard" {
-				c.Writef("url=%s\n", *o.OutputValue)
-			}
-		}
-
-		return c.OK()
-	}
-
-	err = rack.Sync(rname)
-	if err != nil {
-		return err
 	}
 
 	return c.OK()

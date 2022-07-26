@@ -222,6 +222,14 @@
     "CustomTopic": {
       "Value": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] }
     },
+    "CustomerManagedKey": {
+      "Export": { "Name": { "Fn::Sub": "${AWS::StackName}:CustomerManagedKey" } },
+      "Value": { "Ref": "CustomerManagedKey" }
+    },
+    "CMKPolicy": {
+      "Export": { "Name": { "Fn::Sub": "${AWS::StackName}:CMKPolicy" } },
+      "Value": { "Ref": "CMKPolicy" }
+    },
     "Dashboard": {
       "Value": { "Fn::Join": [ ".", [
         "rack",
@@ -284,6 +292,9 @@
     },
     "Internal": {
       "Value": { "Ref": "Internal" }
+    },
+    "ELBLogBucket": {
+      "Value": { "Fn::If": [ "BlankLogBucket", { "Ref": "ELBLogs" }, { "Ref": "LogBucket" } ] }
     },
     "LogBucket": {
       "Value": { "Fn::If": [ "BlankLogBucket", { "Ref": "Logs" }, { "Ref": "LogBucket" } ] }
@@ -510,16 +521,21 @@
       "Description": "How much CPU should be reserved by the API web process.",
       "Default": "128"
     },
-    "ApiMemory": {
+    "ApiMonitorMemory": {
       "Type": "String",
-      "Description": "How much memory should be reserved by the api web process",
-      "Default": "256"
+      "Description": "How much memory should be reserved by the api monitor process",
+      "Default": "128"
     },
     "ApiRouter": {
       "Type": "String",
       "Description": "Defines ",
       "Default": "ELB",
       "AllowedValues": [ "ALB", "ELB" ]
+    },
+    "ApiWebMemory": {
+      "Type": "String",
+      "Description": "How much memory should be reserved by the api web process",
+      "Default": "256"
     },
     "Autoscale": {
       "Type": "String",
@@ -882,7 +898,8 @@
           ]
         },
         "ManagedPolicyArns": [
-          { "Fn::Sub": "arn:${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole" }
+          { "Fn::Sub": "arn:${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole" },
+          { "Ref": "CMKPolicy" }
         ],
         "Path": "/convox/",
         "Policies": [
@@ -1082,6 +1099,9 @@
             }
           ]
         },
+        "ManagedPolicyArns": [
+          { "Ref": "CMKPolicy" }
+        ],
         "Path": "/convox/",
         "Policies": [
           {
@@ -1399,6 +1419,7 @@
         "ManagedPolicyArns": [
           { "Fn::Sub": "arn:${AWS::Partition}:iam::aws:policy/service-role/AmazonEC2ContainerServiceforEC2Role" },
           { "Fn::Sub": "arn:${AWS::Partition}:iam::aws:policy/AutoScalingFullAccess" },
+          { "Ref": "CMKPolicy" },
           { "Fn::If": [ "BlankInstancePolicy",
             { "Ref": "AWS::NoValue" },
             { "Ref": "InstancePolicy" }
@@ -1976,6 +1997,9 @@
             }
           ]
         },
+        "ManagedPolicyArns": [
+          { "Ref": "CMKPolicy" }
+        ],
         "Path": "/convox/",
         "Policies": [
           {
@@ -2077,7 +2101,8 @@
           ]
         },
         "ManagedPolicyArns": [
-          { "Fn::Sub": "arn:${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole" }
+          { "Fn::Sub": "arn:${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole" },
+          { "Ref": "CMKPolicy" }
         ],
         "Path": "/convox/",
         "Policies": [
@@ -2505,12 +2530,12 @@
     },
     "Router": {
       "Condition": "PublicRouter",
-      "DependsOn": [ "ApiRole", "LogsPolicy" ],
+      "DependsOn": [ "ApiRole", "ELBLogsPolicy" ],
       "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
       "Properties": {
         "LoadBalancerAttributes": [
           { "Key": "access_logs.s3.enabled", "Value": "true" },
-          { "Key": "access_logs.s3.bucket", "Value": { "Fn::If": [ "BlankLogBucket", { "Ref": "Logs" }, { "Ref": "LogBucket" } ] } },
+          { "Key": "access_logs.s3.bucket", "Value": { "Fn::If": [ "BlankLogBucket", { "Ref": "ELBLogs" }, { "Ref": "LogBucket" } ] } },
           { "Key": "access_logs.s3.prefix", "Value": { "Fn::Sub": "convox/logs/${AWS::StackName}/alb" } },
           { "Key": "idle_timeout.timeout_seconds", "Value": { "Ref": "LoadBalancerIdleTimeout" } },
           { "Key": "routing.http.desync_mitigation_mode", "Value": { "Ref": "RouterMitigationMode" } },
@@ -2589,11 +2614,11 @@
     "RouterInternal": {
       "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
       "Condition": "Internal",
-      "DependsOn": [ "ApiRole", "LogsPolicy" ],
+      "DependsOn": [ "ApiRole", "ELBLogsPolicy" ],
       "Properties": {
         "LoadBalancerAttributes": [
           { "Key": "access_logs.s3.enabled", "Value": "true" },
-          { "Key": "access_logs.s3.bucket", "Value": { "Fn::If": [ "BlankLogBucket", { "Ref": "Logs" }, { "Ref": "LogBucket" } ] } },
+          { "Key": "access_logs.s3.bucket", "Value": { "Fn::If": [ "BlankLogBucket", { "Ref": "ELBLogs" }, { "Ref": "LogBucket" } ] } },
           { "Key": "access_logs.s3.prefix", "Value": { "Fn::Sub": "convox/logs/${AWS::StackName}/alb" } },
           { "Key": "idle_timeout.timeout_seconds", "Value": "3600" }
         ],
@@ -2815,7 +2840,10 @@
           "Statement": [ { "Effect": "Allow", "Principal": { "Service": [ "ecs.amazonaws.com" ] }, "Action": [ "sts:AssumeRole" ] } ],
           "Version": "2012-10-17"
         },
-        "ManagedPolicyArns": [ { "Fn::Sub": "arn:${AWS::Partition}:iam::aws:policy/service-role/AmazonEC2ContainerServiceRole" } ],
+        "ManagedPolicyArns": [
+          { "Fn::Sub": "arn:${AWS::Partition}:iam::aws:policy/service-role/AmazonEC2ContainerServiceRole" },
+          { "Ref": "CMKPolicy" }
+        ],
         "Path": "/convox/"
       }
     },
@@ -2865,7 +2893,8 @@
         },
         "ManagedPolicyArns": [
           { "Fn::Sub": "arn:${AWS::Partition}:iam::aws:policy/PowerUserAccess" },
-          { "Ref": "ApiPolicy" }
+          { "Ref": "ApiPolicy" },
+          { "Ref": "CMKPolicy" }
         ],
         "Path": "/convox/",
         "Policies": [
@@ -3076,7 +3105,7 @@
                 "awslogs-stream-prefix": "service"
               }
             },
-            "Memory": "128",
+            "Memory": { "Ref": "ApiMonitorMemory" },
             "MountPoints": [ { "SourceVolume": "docker", "ContainerPath": "/var/run/docker.sock" } ],
             "Name": "monitor"
           }
@@ -3185,7 +3214,7 @@
                 "awslogs-stream-prefix": "service"
               }
             },
-            "MemoryReservation": { "Ref": "ApiMemory" },
+            "MemoryReservation": { "Ref": "ApiWebMemory" },
             "MountPoints": [ { "SourceVolume": "docker", "ContainerPath": "/var/run/docker.sock" } ],
             "Name": "web",
             "PortMappings": { "Fn::If": [ "PrivateApi",
@@ -3235,23 +3264,94 @@
         }]
       }
     },
+    "CMKPolicy": {
+      "Type": "AWS::IAM::ManagedPolicy",
+      "Properties": {
+        "Description": "Access to the Customer Managed key for iam roles",
+        "Path": "/convox/",
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Action": [
+                "kms:Encrypt",
+                "kms:Decrypt",
+                "kms:ReEncrypt*",
+                "kms:GenerateDataKey*",
+                "kms:DescribeKey"
+              ],
+              "Resource": [
+                { "Fn::GetAtt": ["CustomerManagedKey", "Arn"]}
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "CustomerManagedKey": {
+      "Type": "AWS::KMS::Key",
+      "Properties": {
+        "Description": { "Fn::Sub": "Customer Managed Key (CMK) used by Convox to encrypt ${AWS::StackName} S3 bucket" },
+        "EnableKeyRotation": true,
+        "KeyPolicy": {
+          "Version": "2012-10-17",
+          "Id": "cmk-s3-buckets",
+          "Statement": [
+            {
+              "Sid": "key administration",
+              "Effect": "Allow",
+              "Principal": {
+                "AWS": {
+                  "Fn::Sub": "arn:aws:iam::${AWS::AccountId}:root"
+                }
+              },
+              "Action": [
+                "kms:*"
+              ],
+              "Resource": "*"
+            },
+            {
+              "Sid": "Cloud Trail permissions",
+              "Principal": { "Service": [ "cloudtrail.amazonaws.com" ] },
+              "Action": [
+                "kms:DescribeKey",
+                "kms:GenerateDataKey"
+              ],
+              "Effect": "Allow",
+              "Resource": "*"
+            }
+          ]
+        },
+        "Tags": [
+          { "Key": "System", "Value": "convox" },
+          { "Key": "Rack", "Value": { "Ref": "AWS::StackName" } }
+        ]
+      }
+    },
     "Logs": {
       "Type": "AWS::S3::Bucket",
       "DeletionPolicy": "Retain",
       "Properties": {
         "AccessControl": "LogDeliveryWrite",
         "BucketEncryption": {
-          "ServerSideEncryptionConfiguration": [ { "ServerSideEncryptionByDefault": { "SSEAlgorithm": "aws:kms" } } ]
+          "ServerSideEncryptionConfiguration": [ {
+            "BucketKeyEnabled": true,
+            "ServerSideEncryptionByDefault": {
+              "SSEAlgorithm": "aws:kms",
+              "KMSMasterKeyID": { "Ref": "CustomerManagedKey" }
+            }
+          } ]
         },
         "LifecycleConfiguration": { "Fn::If": [ "BlankLogRetention",
           { "Ref": "AWS::NoValue" },
           { "Rules": [ { "ExpirationInDays": { "Ref": "LogRetention" }, "Status": "Enabled" } ] }
         ] },
         "PublicAccessBlockConfiguration": {
-          "BlockPublicAcls" : true,
-          "BlockPublicPolicy" : true,
-          "IgnorePublicAcls" : true,
-          "RestrictPublicBuckets" : true
+          "BlockPublicAcls": true,
+          "BlockPublicPolicy": true,
+          "IgnorePublicAcls": true,
+          "RestrictPublicBuckets": true
         },
         "Tags": [
           { "Key": "System", "Value": "convox" },
@@ -3266,13 +3366,6 @@
         "PolicyDocument": {
           "Version": "2012-10-17",
           "Statement": [
-            {
-              "Sid": "ELB log delivery service",
-              "Effect": "Allow",
-              "Principal": { "AWS": { "Fn::FindInMap": [ "RegionConfig", { "Ref": "AWS::Region" }, "ELBAccountId" ] } },
-              "Action": "s3:PutObject",
-              "Resource": { "Fn::Sub": "arn:${AWS::Partition}:s3:::${Logs}/*" }
-            },
             {
               "Sid": "AllowSSLRequestsOnly",
               "Action": "s3:*",
@@ -3306,17 +3399,23 @@
       "Properties": {
         "AccessControl": "Private",
         "BucketEncryption": {
-          "ServerSideEncryptionConfiguration": [ { "ServerSideEncryptionByDefault": { "SSEAlgorithm": "aws:kms" } } ]
+          "ServerSideEncryptionConfiguration": [ {
+            "BucketKeyEnabled": true,
+            "ServerSideEncryptionByDefault": {
+              "SSEAlgorithm": "aws:kms",
+              "KMSMasterKeyID": { "Ref": "CustomerManagedKey" }
+            }
+          } ]
         },
         "LoggingConfiguration": {
           "DestinationBucketName": { "Fn::If": [ "BlankLogBucket", { "Ref": "Logs" }, { "Ref": "LogBucket" } ] },
           "LogFilePrefix": { "Fn::Sub": "convox/logs/${AWS::StackName}/s3/" }
         },
         "PublicAccessBlockConfiguration": {
-          "BlockPublicAcls" : true,
-          "BlockPublicPolicy" : true,
-          "IgnorePublicAcls" : true,
-          "RestrictPublicBuckets" : true
+          "BlockPublicAcls": true,
+          "BlockPublicPolicy": true,
+          "IgnorePublicAcls": true,
+          "RestrictPublicBuckets": true
         },
         "Tags": [
           { "Key": "System", "Value": "convox" },
@@ -3342,6 +3441,73 @@
                     "${bucket}/*",
                     {
                       "bucket": { "Fn::GetAtt": ["Settings", "Arn"] }
+                    }
+                  ]
+                }
+              ],
+              "Condition": {
+                "Bool": {
+                  "aws:SecureTransport": "false"
+                }
+              },
+              "Principal": "*"
+            }
+          ]
+        }
+      }
+    },
+    "ELBLogs": {
+      "Type": "AWS::S3::Bucket",
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "AccessControl": "LogDeliveryWrite",
+        "BucketEncryption": {
+          "ServerSideEncryptionConfiguration": [ {
+            "ServerSideEncryptionByDefault": { "SSEAlgorithm": "aws:kms" }
+          } ]
+        },
+        "LifecycleConfiguration": { "Fn::If": [ "BlankLogRetention",
+          { "Ref": "AWS::NoValue" },
+          { "Rules": [ { "ExpirationInDays": { "Ref": "LogRetention" }, "Status": "Enabled" } ] }
+        ] },
+        "PublicAccessBlockConfiguration": {
+          "BlockPublicAcls": true,
+          "BlockPublicPolicy": true,
+          "IgnorePublicAcls": true,
+          "RestrictPublicBuckets": true
+        },
+        "Tags": [
+          { "Key": "System", "Value": "convox" },
+          { "Key": "Type", "Value": "ELB" },
+          { "Key": "Rack", "Value": { "Ref": "AWS::StackName" } }
+        ]
+      }
+    },
+    "ELBLogsPolicy": {
+      "Type": "AWS::S3::BucketPolicy",
+      "Properties": {
+        "Bucket": { "Ref": "ELBLogs" },
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": "ELB log delivery service",
+              "Effect": "Allow",
+              "Principal": { "AWS": { "Fn::FindInMap": [ "RegionConfig", { "Ref": "AWS::Region" }, "ELBAccountId" ] } },
+              "Action": "s3:PutObject",
+              "Resource": { "Fn::Sub": "arn:${AWS::Partition}:s3:::${ELBLogs}/*" }
+            },
+            {
+              "Sid": "AllowSSLRequestsOnly",
+              "Action": "s3:*",
+              "Effect": "Deny",
+              "Resource": [
+                { "Fn::GetAtt": ["ELBLogs", "Arn"]},
+                {
+                  "Fn::Sub": [
+                    "${bucket}/*",
+                    {
+                      "bucket": { "Fn::GetAtt": ["ELBLogs", "Arn"] }
                     }
                   ]
                 }
