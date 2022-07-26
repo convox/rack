@@ -585,7 +585,7 @@
       "Default": "/aws/service/ecs/optimized-ami/amazon-linux-2/recommended/image_id",
       "Type": "AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>"
     },
-    "DefaultAmiArn": {
+    "DefaultAmiArm": {
       "Default": "/aws/service/ecs/optimized-ami/amazon-linux-2/arm64/recommended/image_id",
       "Type": "AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>"
     },
@@ -1482,7 +1482,7 @@
               "Fn::If": [
                 "InstanceARM",
                 {
-                  "Ref": "DefaultAmiArn"
+                  "Ref": "DefaultAmiArm"
                 },
                 {
                   "Ref": "DefaultAmi"
@@ -1672,7 +1672,7 @@
               "Fn::If": [
                 "InstanceARM",
                 {
-                  "Ref": "DefaultAmiArn"
+                  "Ref": "DefaultAmiArm"
                 },
                 {
                   "Ref": "DefaultAmi"
@@ -2164,7 +2164,7 @@
               "Fn::If": [
                 "InstanceARM",
                 {
-                  "Ref": "DefaultAmiArn"
+                  "Ref": "DefaultAmiArm"
                 },
                 {
                   "Ref": "DefaultAmi"
