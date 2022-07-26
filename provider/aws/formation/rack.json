@@ -2708,7 +2708,7 @@
         "Name": { "Fn::If": [ "PrivateApi", { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" }, "i" ] ] }, { "Ref": "AWS::StackName" } ] },
         "LoadBalancerAttributes": [
           { "Key": "access_logs.s3.enabled", "Value": "true" },
-          { "Key": "access_logs.s3.bucket", "Value": { "Fn::If": [ "BlankLogBucket", { "Ref": "Logs" }, { "Ref": "LogBucket" } ] } },
+          { "Key": "access_logs.s3.bucket", "Value": { "Fn::If": [ "BlankLogBucket", { "Ref": "ELBLogs" }, { "Ref": "LogBucket" } ] } },
           { "Key": "access_logs.s3.prefix", "Value": { "Fn::Sub": "convox/logs/${AWS::StackName}/alb" } },
           { "Key": "idle_timeout.timeout_seconds", "Value": { "Ref": "LoadBalancerIdleTimeout" } },
           { "Key": "routing.http.desync_mitigation_mode", "Value": { "Ref": "RouterMitigationMode" } },
