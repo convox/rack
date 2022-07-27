@@ -24,7 +24,7 @@ require (
 	github.com/convox/stdsdk v0.0.0-20190422120437-3e80a397e377
 	github.com/convox/version v0.0.0-20160822184233-ffefa0d565d2
 	github.com/docker/docker v1.13.1
-	github.com/docker/go-units v0.3.2
+	github.com/docker/go-units v0.4.0
 	github.com/docker/spdystream v0.0.0-20170912183627-bc6354cbbc29 // indirect
 	github.com/dustin/go-humanize v1.0.0
 	github.com/elazarl/goproxy v0.0.0-20210801061803-8e322dfb79c4 // indirect
@@ -32,6 +32,7 @@ require (
 	github.com/fsouza/go-dockerclient v0.0.0-20160427172547-1d4f4ae73768
 	github.com/gobuffalo/packr v1.22.0
 	github.com/gobwas/glob v0.2.3
+	github.com/google/go-cmp v0.5.6 // indirect
 	github.com/google/gofuzz v0.0.0-20170612174753-24818f796faf // indirect
 	github.com/googleapis/gnostic v0.2.0 // indirect
 	github.com/gorilla/mux v1.7.0
@@ -44,6 +45,7 @@ require (
 	github.com/jehiah/go-strftime v0.0.0-20171201141054-1d33003b3869 // indirect
 	github.com/json-iterator/go v1.1.5 // indirect
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
+	github.com/kr/pretty v0.3.0 // indirect
 	github.com/mattn/go-runewidth v0.0.4 // indirect
 	github.com/miekg/dns v1.1.4
 	github.com/mitchellh/go-homedir v1.1.0
@@ -51,16 +53,20 @@ require (
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v0.0.0-20180701023420-4b7aa43c6742 // indirect
 	github.com/mweagle/Sparta v0.8.1-0.20171126182155-ead2872585dc
-	github.com/opencontainers/runc v0.1.1 // indirect
+	github.com/opencontainers/runc v1.1.2 // indirect
 	github.com/peterbourgon/diskv v2.0.1+incompatible // indirect
 	github.com/pkg/errors v0.8.1
 	github.com/segmentio/analytics-go v2.0.1-0.20160426181448-2d840d861c32+incompatible
 	github.com/segmentio/backo-go v0.0.0-20160424052352-204274ad699c // indirect
-	github.com/stretchr/testify v1.3.0
+	github.com/sirupsen/logrus v1.9.0 // indirect
+	github.com/stretchr/testify v1.7.0
 	github.com/stvp/rollbar v0.5.1
 	github.com/twmb/algoimpl v0.0.0-20170717182524-076353e90b94
 	github.com/xtgo/uuid v0.0.0-20140804021211-a0b114877d4c // indirect
 	golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2
+	golang.org/x/net v0.0.0-20220726230323-06994584191e // indirect
+	golang.org/x/sys v0.0.0-20220727055044-e65921a090b8 // indirect
+	google.golang.org/protobuf v1.28.0 // indirect
 	gopkg.in/cheggaaa/pb.v1 v1.0.28
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/yaml.v2 v2.2.2
