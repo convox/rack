@@ -118,7 +118,7 @@ func Apps(rack sdk.Interface, c *stdcli.Context) error {
 func AppsCancel(rack sdk.Interface, c *stdcli.Context) error {
 	aname := coalesce(c.Arg(0), app(c))
 
-	c.Startf("Cancelling deployment of <app>%s</app>\n", aname)
+	c.Writef("Cancelling deployment of <app>%s</app>...\n", aname)
 
 	rl, err := helpers.ReleaseLatest(rack, aname)
 
