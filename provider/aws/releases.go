@@ -347,12 +347,29 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 		return err
 	}
 
+	internal, err := p.stackParameter(p.Rack, "Internal")
+	if err != nil {
+		return err
+	}
+
+	internalOnly, err := p.stackParameter(p.Rack, "InternalOnly")
+	if err != nil {
+		return err
+	}
+
+	anyInternal := "No"
+	
+	if (internal == "Yes" || internalOnly == "Yes") {
+		anyInternal = "Yes"
+	}
+
 	private, err := p.stackParameter(p.Rack, "Private")
 	if err != nil {
 		return err
 	}
 
 	updates := map[string]string{
+		"InternalRack": anyInternal,
 		"LogBucket": p.LogBucket,
 		"Private":   private,
 	}
