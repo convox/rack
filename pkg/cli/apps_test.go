@@ -62,8 +62,8 @@ func TestAppsCancel(t *testing.T) {
 		fxapp := fxApp()
 		fxrelease := fxRelease()
 		i.On("AppCancel", "app1").Return(nil)
-		i.On("ReleaseList", fxapp.Name, structs.ReleaseListOptions{Limit: options.Int(1)}).Return(fxReleaseList(), nil)
-		i.On("ReleaseGet", "app1", fxrelease.Id).Return(fxRelease(), nil)
+		i.On("AppGet", "app1").Return(fxapp, nil)
+		i.On("ReleaseList", fxapp.Name, structs.ReleaseListOptions{}).Return(fxReleaseList(), nil)
 		i.On("ReleaseCreate", fxapp.Name, structs.ReleaseCreateOptions{
 			Build: &fxrelease.Build, Description: &fxrelease.Description, Env: &fxrelease.Env},
 		).Return(nil, nil)
@@ -72,13 +72,17 @@ func TestAppsCancel(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, 0, res.Code)
 		res.RequireStderr(t, []string{""})
-		res.RequireStdout(t, []string{"Cancelling deployment of app1...", "Rewriting last active release... ", "OK"})
+		res.RequireStdout(t, []string{
+			"Cancelling app1... Rewriting last active release... OK",
+		})
 
 		res, err = testExecute(e, "apps cancel -a app1", nil)
 		require.NoError(t, err)
 		require.Equal(t, 0, res.Code)
 		res.RequireStderr(t, []string{""})
-		res.RequireStdout(t, []string{"Cancelling deployment of app1...", "Rewriting last active release... ", "OK"})
+		res.RequireStdout(t, []string{
+			"Cancelling app1... Rewriting last active release... OK",
+		})
 	})
 }
 
@@ -88,9 +92,8 @@ func TestAppsCancelWait(t *testing.T) {
 		fxrelease := fxRelease()
 		opts := structs.LogsOptions{Prefix: options.Bool(true), Since: options.Duration(5 * time.Second)}
 		i.On("AppCancel", "app1").Return(nil)
-		i.On("AppGet", "app1").Return(fxapp, nil).Times(1)
-		i.On("ReleaseList", fxapp.Name, structs.ReleaseListOptions{Limit: options.Int(1)}).Return(fxReleaseList(), nil)
-		i.On("ReleaseGet", "app1", fxrelease.Id).Return(fxRelease(), nil)
+		i.On("AppGet", "app1").Return(fxapp, nil).Times(2)
+		i.On("ReleaseList", fxapp.Name, structs.ReleaseListOptions{}).Return(fxReleaseList(), nil)
 		i.On("ReleaseCreate", fxapp.Name, structs.ReleaseCreateOptions{
 			Build: &fxrelease.Build, Description: &fxrelease.Description, Env: &fxrelease.Env},
 		).Return(nil, nil)
@@ -103,9 +106,7 @@ func TestAppsCancelWait(t *testing.T) {
 		require.Equal(t, 0, res.Code)
 		res.RequireStderr(t, []string{""})
 		res.RequireStdout(t, []string{
-			"Cancelling deployment of app1...",
-			"Rewriting last active release... ",
-			"",
+			"Cancelling app1... Rewriting last active release... ",
 			"TIME system/aws/component log1",
 			"TIME system/aws/component log2",
 			"OK",
