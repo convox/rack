@@ -118,29 +118,37 @@ func Apps(rack sdk.Interface, c *stdcli.Context) error {
 func AppsCancel(rack sdk.Interface, c *stdcli.Context) error {
 	aname := coalesce(c.Arg(0), app(c))
 
-	c.Startf("Cancelling deployment of <app>%s</app>\n", aname)
-
-	rl, err := helpers.ReleaseLatest(rack, aname)
-
-	if err != nil {
-		return fmt.Errorf("failed to fetch last active release - %s", err.Error())
-	}
+	c.Startf("Cancelling <app>%s</app>", aname)
 
 	if err := rack.AppCancel(aname); err != nil {
 		return err
 	}
 
-	c.Writef("Rewriting last active release... \n")
-
-	_, err = rack.ReleaseCreate(aname, structs.ReleaseCreateOptions{Build: &rl.Build, Description: &rl.Description, Env: &rl.Env})
+	app, err := rack.AppGet(aname)
 	if err != nil {
 		return err
+	}
+
+	c.Writef("Rewriting last active release... ")
+
+	rs, err := rack.ReleaseList(app.Name, structs.ReleaseListOptions{})
+	if err != nil {
+		return err
+	}
+	for _, r := range rs {
+		if app.Release == r.Id {
+			_, err := rack.ReleaseCreate(app.Name, structs.ReleaseCreateOptions{Build: &r.Build, Description: &r.Description, Env: &r.Env})
+			if err != nil {
+				return err
+			}
+			break
+		}
 	}
 
 	if c.Bool("wait") {
 		c.Writef("\n")
 
-		if err := helpers.WaitForAppRollbackWithLogsContext(context.Background(), rack, c, aname); err != nil {
+		if err := helpers.WaitForAppRollbackWithLogsContext(context.Background(), rack, c, app.Name); err != nil {
 			return err
 		}
 	}
