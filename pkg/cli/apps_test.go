@@ -115,12 +115,7 @@ func TestAppsCancelWait(t *testing.T) {
 
 func TestAppsCancelError(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		fxapp := fxApp()
-		fxrelease := fxRelease()
-
 		i.On("AppCancel", "app1").Return(fmt.Errorf("err1"))
-		i.On("ReleaseList", fxapp.Name, structs.ReleaseListOptions{Limit: options.Int(1)}).Return(fxReleaseList(), nil)
-		i.On("ReleaseGet", "app1", fxrelease.Id).Return(fxRelease(), nil)
 
 		res, err := testExecute(e, "apps cancel app1", nil)
 		require.NoError(t, err)

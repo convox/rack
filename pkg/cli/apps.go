@@ -120,17 +120,17 @@ func AppsCancel(rack sdk.Interface, c *stdcli.Context) error {
 
 	c.Writef("Cancelling deployment of <app>%s</app>...\n", aname)
 
-	rl, err := helpers.ReleaseLatest(rack, aname)
-
-	if err != nil {
-		return fmt.Errorf("failed to fetch last active release - %s", err.Error())
-	}
-
 	if err := rack.AppCancel(aname); err != nil {
 		return err
 	}
 
 	c.Writef("Rewriting last active release... \n")
+
+	rl, err := helpers.ReleaseLatest(rack, aname)
+
+	if err != nil {
+		return fmt.Errorf("failed to fetch last active release - %s", err.Error())
+	}
 
 	_, err = rack.ReleaseCreate(aname, structs.ReleaseCreateOptions{Build: &rl.Build, Description: &rl.Description, Env: &rl.Env})
 	if err != nil {
