@@ -5,6 +5,7 @@
 
     "BlankIamPolicy": { "Fn::Equals": [ { "Ref": "IamPolicy" }, "" ] },
     "BlankLogBucket": { "Fn::Equals": [ { "Ref": "LogBucket" }, "" ] },
+    "EnableCloudWatch": { "Fn::Equals": [ { "Ref": "EnableCloudWatch" }, "Yes" ] },
     "BlankLogRetention": { "Fn::Equals": [ { "Ref": "LogRetention" }, "" ] },
     "BlankResourcePassword": { "Fn::Equals": [ { "Ref": "ResourcePassword" }, "" ] },
     "CircuitBreaker": { "Fn::Equals": [ { "Ref": "CircuitBreaker" }, "Yes" ] },
@@ -36,6 +37,7 @@
       "Value": { "Fn::If": [ "FargateServicesSpot", "Yes", "No" ] }
     },
     "LogGroup": {
+      "Condition": "EnableCloudWatch",
       "Value": { "Ref": "LogGroup" }
     },
     "Release": {
@@ -60,6 +62,12 @@
     "CircuitBreaker": {
       "Type": "String",
       "Default": "No",
+      "AllowedValues": [ "Yes", "No" ]
+    },
+    "EnableCloudWatch": {
+      "Type": "String",
+      "Description": "Enable CloudWatch log group",
+      "Default": "Yes",
       "AllowedValues": [ "Yes", "No" ]
     },
     "FargateServices": {
@@ -170,6 +178,7 @@
     },
     "LogGroup": {
       "Type": "AWS::Logs::LogGroup",
+      "Condition": "EnableCloudWatch",
       "Properties": {
         "RetentionInDays": { "Fn::If": [ "BlankLogRetention", { "Ref": "AWS::NoValue" }, { "Ref": "LogRetention" } ] }
       }
@@ -341,10 +350,11 @@
           "CircuitBreaker": { "Ref": "CircuitBreaker" },
           "Count": { "Fn::Select": [ 0, { "Ref": "{{ upper .Name }}Formation" } ] },
           "Cpu": { "Fn::Select": [ 1, { "Ref": "{{ upper .Name }}Formation" } ] },
+          "EnableCloudWatch": { "Ref": "EnableCloudWatch" },
           "Fargate": { "Fn::If": [ "Service{{ upper .Name }}Fargate", "Yes", { "Fn::If": [ "Service{{ upper .Name }}FargateSpot", "Spot", "No" ] } ] },
           "LoadBalancerAlgorithm": { "Ref": "LoadBalancerAlgorithm" },
           "LoadBalancerSuccessCodes": { "Ref": "LoadBalancerSuccessCodes" },
-          "LogGroup": { "Ref": "LogGroup" },
+          "LogGroup": { "Fn::If": [ "EnableCloudWatch", { "Ref": "LogGroup" }, { "Ref": "AWS::NoValue" } ] },
           "InternalDomains": { "Ref": "InternalDomains" },
           "Isolate": { "Fn::If": [ "IsolateServices", "Yes", "No" ] },
           "Memory": { "Fn::Select": [ 2, { "Ref": "{{ upper .Name }}Formation" } ] },
@@ -494,10 +504,11 @@
         "NotificationARNs": [ "{{ $.Topic }}" ],
         "Parameters": {
           "Cpu": { "Fn::Select": [ 1, { "Ref": "{{ upper .Service }}Formation" } ] },
+          "EnableCloudWatch": { "Ref": "EnableCloudWatch" },
           "ExecutionRole": { "Fn::GetAtt": [ "ExecutionRole", "Arn" ] },
           "Fargate": { "Fn::If": [ "FargateTimersBase", "Yes", { "Fn::If": [ "FargateTimersSpot", "Spot", "No" ] } ] },
           "Launcher": { "Fn::GetAtt": [ "TimerLauncher", "Arn" ] },
-          "LogGroup": { "Ref": "LogGroup" },
+          "LogGroup": { "Fn::If": [ "EnableCloudWatch", { "Ref": "LogGroup" }, { "Ref": "AWS::NoValue" } ] },
           "Memory": { "Fn::Select": [ 2, { "Ref": "{{ upper .Service }}Formation" } ] },
           "Rack": { "Ref": "Rack" },
           "RackUrl": { "Ref": "RackUrl" },

@@ -27,6 +27,7 @@
     "BlankSslPolicy": { "Fn::Equals": [ { "Ref": "SslPolicy" }, "" ] },
     "DedicatedBuilder": { "Fn::Not": [ { "Fn::Equals": [ { "Ref": "BuildInstance" }, "" ] } ] },
     "Development": { "Fn::Equals": [ { "Ref": "Development" }, "Yes" ] },
+    "EnableCloudWatch": { "Fn::Equals": [ { "Ref": "EnableCloudWatch" }, "Yes" ] },
     "EncryptEbs" : { "Fn::Equals": [ { "Ref": "EncryptEbs" }, "Yes" ] },
     "ExistingVpc": { "Fn::Not": [ { "Fn::Equals": [ { "Ref": "ExistingVpc" }, "" ] } ] },
     "ExistingVpcAndBlankInternetGateway": {
@@ -255,6 +256,10 @@
     "EcsPollInterval": {
       "Value": { "Ref": "EcsPollInterval" }
     },
+    "EnableCloudWatch": {
+      "Export": { "Name": { "Fn::Sub": "${AWS::StackName}:EnableCloudWatch" } },
+      "Value": { "Ref": "EnableCloudWatch" }
+    },
     "EncryptionKey": {
       "Export": { "Name": { "Fn::Sub": "${AWS::StackName}:EncryptionKey" } },
       "Value": { "Ref": "EncryptionKey" }
@@ -298,6 +303,7 @@
       "Value": { "Fn::If": [ "BlankLogBucket", { "Ref": "Logs" }, { "Ref": "LogBucket" } ] }
     },
     "LogGroup": {
+      "Condition": "EnableCloudWatch",
       "Value": { "Ref": "LogGroup" }
     },
     "NatGateways": {
@@ -600,6 +606,12 @@
       "Default": "1",
       "Description": "How often to poll ECS for service events in seconds. Longer intervals may alleviate rate limiting / throttling from ECS."
     },
+    "EnableCloudWatch": {
+      "Type": "String",
+      "Description": "Enable CloudWatch log group",
+      "Default": "Yes",
+      "AllowedValues": [ "Yes", "No" ]
+    },
     "EncryptEbs": {
       "Type": "String",
       "Description": "Enable encryption at rest for EBS volumes",
@@ -886,6 +898,7 @@
     },
     "LogGroup": {
       "Type": "AWS::Logs::LogGroup",
+      "Condition": "EnableCloudWatch",
       "Properties": {
         "RetentionInDays": { "Fn::If": [ "BlankLogRetention", { "Ref": "AWS::NoValue" }, { "Ref": "LogRetention" } ] }
       }
@@ -2922,6 +2935,7 @@
               "rack.DynamoBuilds": { "Ref": "DynamoBuilds" },
               "rack.DynamoReleases": { "Ref": "DynamoReleases" },
               "rack.EcsPollInterval": { "Ref": "EcsPollInterval" },
+              "rack.EnableCloudWatch": { "Ref": "EnableCloudWatch" },
               "rack.EncryptionKey": { "Ref": "EncryptionKey" },
               "rack.Fargate": { "Fn::FindInMap": [ "RegionConfig", { "Ref": "AWS::Region" }, "Fargate" ] },
               "rack.HighAvailability": { "Ref": "HighAvailability" },
@@ -3012,6 +3026,7 @@
               "rack.DynamoBuilds": { "Ref": "DynamoBuilds" },
               "rack.DynamoReleases": { "Ref": "DynamoReleases" },
               "rack.EcsPollInterval": { "Ref": "EcsPollInterval" },
+              "rack.EnableCloudWatch": { "Ref": "EnableCloudWatch" },
               "rack.EncryptionKey": { "Ref": "EncryptionKey" },
               "rack.Fargate": { "Fn::FindInMap": [ "RegionConfig", { "Ref": "AWS::Region" }, "Fargate" ] },
               "rack.HighAvailability": { "Ref": "HighAvailability" },
@@ -3067,12 +3082,24 @@
               "InitProcessEnabled": "true"
             },
             "LogConfiguration": {
-              "LogDriver": "awslogs",
-              "Options": {
-                "awslogs-region": { "Ref": "AWS::Region" },
-                "awslogs-group": { "Ref": "LogGroup" },
-                "awslogs-stream-prefix": "service"
-              }
+              "Fn::If": [
+                "EnableCloudWatch",
+                {
+                  "LogDriver": "awslogs",
+                  "Options": {
+                    "awslogs-region": {
+                      "Ref": "AWS::Region"
+                    },
+                    "awslogs-group": {
+                      "Ref": "LogGroup"
+                    },
+                    "awslogs-stream-prefix": "service"
+                  }
+                },
+                {
+                  "Ref": "AWS::NoValue"
+                }
+              ]
             },
             "Memory": { "Ref": "ApiMonitorMemory" },
             "MountPoints": [ { "SourceVolume": "docker", "ContainerPath": "/var/run/docker.sock" } ],
@@ -3120,6 +3147,7 @@
               "rack.DynamoBuilds": { "Ref": "DynamoBuilds" },
               "rack.DynamoReleases": { "Ref": "DynamoReleases" },
               "rack.EcsPollInterval": { "Ref": "EcsPollInterval" },
+              "rack.EnableCloudWatch": { "Ref": "EnableCloudWatch" },
               "rack.EncryptionKey": { "Ref": "EncryptionKey" },
               "rack.Fargate": { "Fn::FindInMap": [ "RegionConfig", { "Ref": "AWS::Region" }, "Fargate" ] },
               "rack.HighAvailability": { "Ref": "HighAvailability" },
@@ -3176,12 +3204,24 @@
               "InitProcessEnabled": "true"
             },
             "LogConfiguration": {
-              "LogDriver": "awslogs",
-              "Options": {
-                "awslogs-region": { "Ref": "AWS::Region" },
-                "awslogs-group": { "Ref": "LogGroup" },
-                "awslogs-stream-prefix": "service"
-              }
+              "Fn::If": [
+                "EnableCloudWatch",
+                {
+                  "LogDriver": "awslogs",
+                  "Options": {
+                    "awslogs-region": {
+                      "Ref": "AWS::Region"
+                    },
+                    "awslogs-group": {
+                      "Ref": "LogGroup"
+                    },
+                    "awslogs-stream-prefix": "service"
+                  }
+                },
+                {
+                  "Ref": "AWS::NoValue"
+                }
+              ]
             },
             "MemoryReservation": { "Ref": "ApiWebMemory" },
             "MountPoints": [ { "SourceVolume": "docker", "ContainerPath": "/var/run/docker.sock" } ],

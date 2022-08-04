@@ -1439,18 +1439,20 @@ func (p *Provider) taskDefinitionForRun(app, service string, opts structs.Proces
 	}
 
 	group, err := p.stackResource(p.rackStack(app), "LogGroup")
-	if err != nil {
+	if err != nil && !strings.Contains(err.Error(), "resource not found") {
 		return "", err
 	}
 
-	for i := range td.ContainerDefinitions {
-		td.ContainerDefinitions[i].LogConfiguration = &ecs.LogConfiguration{
-			LogDriver: aws.String("awslogs"),
-			Options: map[string]*string{
-				"awslogs-group":         aws.String(*group.PhysicalResourceId),
-				"awslogs-region":        aws.String(p.Region),
-				"awslogs-stream-prefix": aws.String("service"),
-			},
+	if err == nil {
+		for i := range td.ContainerDefinitions {
+			td.ContainerDefinitions[i].LogConfiguration = &ecs.LogConfiguration{
+				LogDriver: aws.String("awslogs"),
+				Options: map[string]*string{
+					"awslogs-group":         aws.String(*group.PhysicalResourceId),
+					"awslogs-region":        aws.String(p.Region),
+					"awslogs-stream-prefix": aws.String("service"),
+				},
+			}
 		}
 	}
 

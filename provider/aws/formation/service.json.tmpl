@@ -4,6 +4,7 @@
     "Conditions": {
       "CircuitBreaker": { "Fn::Equals": [ { "Ref": "CircuitBreaker" }, "Yes" ] },
       "EC2Launch": { "Fn::Not": [ { "Condition": "FargateEither" } ] },
+      "EnableCloudWatch": { "Fn::Equals": [ { "Ref": "EnableCloudWatch" }, "Yes" ] },
       "FargateEither": { "Fn::Or": [ { "Condition": "FargateBase" }, { "Condition": "FargateSpot" } ] },
       "FargateBase": { "Fn::Equals": [ { "Ref": "Fargate" }, "Yes" ] },
       "FargateSpot": { "Fn::Equals": [ { "Ref": "Fargate" }, "Spot" ] },
@@ -53,12 +54,18 @@
         "Type": "String",
         "Default": "No",
         "AllowedValues": [ "Yes", "No" ]
-      },      
+      },
       "Count": {
         "Type": "Number"
       },
       "Cpu": {
         "Type": "Number"
+      },
+      "EnableCloudWatch": {
+        "Type": "String",
+        "Description": "Enable CloudWatch log group",
+        "Default": "Yes",
+        "AllowedValues": [ "Yes", "No" ]
       },
       "Fargate": {
         "Type": "String",
@@ -87,6 +94,7 @@
         "Description": "Specifies the HTTP codes that healthy targets must use when responding to an HTTP health check.  You can specify values between 200 and 499, and the default value is \"200-399,401\". You can specify multiple values (for example, \"200,202\") or a range of values (for example, \"200-299\")."
       },
       "LogGroup": {
+        "Default": "",
         "Type": "String"
       },
       "Memory": {
@@ -130,7 +138,7 @@
       },
       "Settings": {
         "Type": "String"
-      },      
+      },
       "SlowStartDuration": {
         "Type": "String",
         "Default": "0",
@@ -530,12 +538,24 @@
               },
               "Privileged": "{{ .Privileged }}",
               "LogConfiguration": {
-                "LogDriver": "awslogs",
-                "Options": {
-                  "awslogs-region": { "Ref": "AWS::Region" },
-                  "awslogs-group": { "Ref": "LogGroup" },
-                  "awslogs-stream-prefix": "service"
-                }
+                "Fn::If": [
+                  "EnableCloudWatch",
+                  {
+                    "LogDriver": "awslogs",
+                    "Options": {
+                      "awslogs-region": {
+                        "Ref": "AWS::Region"
+                      },
+                      "awslogs-group": {
+                        "Ref": "LogGroup"
+                      },
+                      "awslogs-stream-prefix": "service"
+                    }
+                  },
+                  {
+                    "Ref": "AWS::NoValue"
+                  }
+                ]
               },
               "Memory": { "Ref": "Memory" },
               "MountPoints": [

@@ -57,8 +57,9 @@ func (p *Provider) AppCreate(name string, opts structs.AppCreateOptions) (*struc
 	}
 
 	params := map[string]string{
-		"LogBucket": p.LogBucket,
-		"Rack":      p.Rack,
+		"EnableCloudWatch": p.EnableCloudWatch,
+		"LogBucket":        p.LogBucket,
+		"Rack":             p.Rack,
 	}
 
 	tags := map[string]string{

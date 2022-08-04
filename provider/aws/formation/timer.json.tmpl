@@ -2,6 +2,7 @@
   {
     "AWSTemplateFormatVersion" : "2010-09-09",
     "Conditions": {
+      "EnableCloudWatch": { "Fn::Equals": [ { "Ref": "EnableCloudWatch" }, "Yes" ] },
       "FargateEither": { "Fn::Or": [ { "Condition": "FargateBase" }, { "Condition": "FargateSpot" } ] },
       "FargateBase": { "Fn::Equals": [ { "Ref": "Fargate" }, "Yes" ] },
       "FargateSpot": { "Fn::Equals": [ { "Ref": "Fargate" }, "Spot" ] },
@@ -19,6 +20,12 @@
       "Cpu": {
         "Type": "Number"
       },
+      "EnableCloudWatch": {
+        "Type": "String",
+        "Description": "Enable CloudWatch log group",
+        "Default": "Yes",
+        "AllowedValues": [ "Yes", "No" ]
+      },
       "ExecutionRole": {
         "Type": "String"
       },
@@ -31,6 +38,7 @@
         "Type": "String"
       },
       "LogGroup": {
+        "Default": "",
         "Type": "String"
       },
       "Memory": {
@@ -136,12 +144,24 @@
                 ],
                 "Image": { "Fn::Sub": "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${Registry}:{{.Name}}.{{$.Release.Build}}" },
                 "LogConfiguration": {
-                  "LogDriver": "awslogs",
-                  "Options": {
-                    "awslogs-region": { "Ref": "AWS::Region" },
-                    "awslogs-group": { "Ref": "LogGroup" },
-                    "awslogs-stream-prefix": "timer"
-                  }
+                  "Fn::If": [
+                    "EnableCloudWatch",
+                    {
+                      "LogDriver": "awslogs",
+                      "Options": {
+                        "awslogs-region": {
+                          "Ref": "AWS::Region"
+                        },
+                        "awslogs-group": {
+                          "Ref": "LogGroup"
+                        },
+                        "awslogs-stream-prefix": "timer"
+                      }
+                    },
+                    {
+                      "Ref": "AWS::NoValue"
+                    }
+                  ]
                 },
                 "Memory": { "Ref": "Memory" },
                 "MountPoints": [

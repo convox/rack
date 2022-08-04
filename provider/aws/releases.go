@@ -353,8 +353,9 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 	}
 
 	updates := map[string]string{
-		"LogBucket": p.LogBucket,
-		"Private":   private,
+		"EnableCloudWatch": p.EnableCloudWatch,
+		"LogBucket":        p.LogBucket,
+		"Private":          private,
 	}
 
 	if m.Params != nil {
@@ -472,6 +473,7 @@ func (p *Provider) releasePromoteGeneration1(a *structs.App, r *structs.Release)
 	params["Cluster"] = p.Cluster
 	params["Key"] = p.EncryptionKey
 	params["ELBLogBucket"] = p.ELBLogBucket
+	params["EnableCloudWatch"] = p.EnableCloudWatch
 	params["LogBucket"] = p.LogBucket
 	params["Rack"] = p.Rack
 	params["Release"] = r.Id

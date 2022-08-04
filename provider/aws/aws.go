@@ -56,6 +56,7 @@ type Provider struct {
 	DynamoBuilds        string
 	DynamoReleases      string
 	EcsPollInterval     int
+	EnableCloudWatch    string
 	EncryptionKey       string
 	Fargate             bool
 	HighAvailability    bool
@@ -149,6 +150,7 @@ func (p *Provider) loadParams() error {
 	p.DynamoBuilds = labels["rack.DynamoBuilds"]
 	p.DynamoReleases = labels["rack.DynamoReleases"]
 	p.EcsPollInterval = intParam(labels["rack.EcsPollInterval"], 1)
+	p.EnableCloudWatch = labels["rack.EnableCloudWatch"]
 	p.EncryptionKey = labels["rack.EncryptionKey"]
 	p.Fargate = labels["rack.Fargate"] == "Yes"
 	p.HighAvailability = labels["rack.HighAvailability"] == "true"
