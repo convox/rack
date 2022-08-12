@@ -4,7 +4,8 @@
     "Conditions": {
       "CircuitBreaker": { "Fn::Equals": [ { "Ref": "CircuitBreaker" }, "Yes" ] },
       "EC2Launch": { "Fn::Not": [ { "Condition": "FargateEither" } ] },
-      "EnableCloudWatch": { "Fn::Equals": [ { "Ref": "EnableCloudWatch" }, "Yes" ] },
+      "EnableCloudWatch": { "Fn::Equals": [ { "Ref": "LogDriver" }, "CloudWatch" ] },
+      "EnableSyslog": { "Fn::Equals": [ { "Ref": "LogDriver" }, "Syslog" ] },
       "FargateEither": { "Fn::Or": [ { "Condition": "FargateBase" }, { "Condition": "FargateSpot" } ] },
       "FargateBase": { "Fn::Equals": [ { "Ref": "Fargate" }, "Yes" ] },
       "FargateSpot": { "Fn::Equals": [ { "Ref": "Fargate" }, "Spot" ] },
@@ -61,12 +62,6 @@
       "Cpu": {
         "Type": "Number"
       },
-      "EnableCloudWatch": {
-        "Type": "String",
-        "Description": "Enable CloudWatch log group",
-        "Default": "Yes",
-        "AllowedValues": [ "Yes", "No" ]
-      },
       "Fargate": {
         "Type": "String",
         "Default": "No",
@@ -92,6 +87,12 @@
         "Type": "String",
         "Default": "200-399,401",
         "Description": "Specifies the HTTP codes that healthy targets must use when responding to an HTTP health check.  You can specify values between 200 and 499, and the default value is \"200-399,401\". You can specify multiple values (for example, \"200,202\") or a range of values (for example, \"200-299\")."
+      },
+      "LogDriver": {
+        "Default": "CloudWatch",
+        "Description": "Log driver used by the rack and services to send logs. Default to CloudWatch. You must provide the SyslogDestination when setting as Syslog. It disable logs if blank.",
+        "Type": "String",
+        "AllowedValues": [ "CloudWatch", "Syslog", ""]
       },
       "LogGroup": {
         "Default": "",
@@ -130,12 +131,6 @@
       "Role": {
         "Type": "String"
       },
-      "TaskTags": {
-        "Type": "String",
-        "Default": "No",
-        "Description": "Enable tag propagation to ECS tasks",
-        "AllowedValues": [ "Yes", "No" ]
-      },
       "Settings": {
         "Type": "String"
       },
@@ -144,6 +139,22 @@
         "Default": "0",
         "Description": "The ramp up period during which a newly deployed service will receive an increasing share of traffic. Defaults to 0 seconds (disabled)",
         "AllowedPattern": "^(0|[3-8][0-9]|9[0-9]|[1-8][0-9]{2}|900)$"
+      },
+      "SyslogDestination": {
+        "Type": "String",
+        "Description": "Syslog address destination, you need to pass the protocol to be used, e.g. tcp+tls://logsX.syslog.com:1234",
+        "Default": ""
+      },
+      "SyslogFormat": {
+        "Type": "String",
+        "Description": "Syslog format to sent to SyslogDestination.",
+        "Default": "rfc5424"
+      },
+      "TaskTags": {
+        "Type": "String",
+        "Default": "No",
+        "Description": "Enable tag propagation to ECS tasks",
+        "AllowedValues": [ "Yes", "No" ]
       }
     },
     "Resources": {
@@ -539,21 +550,29 @@
               "Privileged": "{{ .Privileged }}",
               "LogConfiguration": {
                 "Fn::If": [
-                  "EnableCloudWatch",
+                  "EnableSyslog",
                   {
-                    "LogDriver": "awslogs",
+                    "LogDriver": "syslog",
                     "Options": {
-                      "awslogs-region": {
-                        "Ref": "AWS::Region"
-                      },
-                      "awslogs-group": {
-                        "Ref": "LogGroup"
-                      },
-                      "awslogs-stream-prefix": "service"
+                      "syslog-address": { "Ref": "SyslogDestination" },
+                      "syslog-format": { "Ref": "SyslogFormat" }
                     }
                   },
                   {
-                    "Ref": "AWS::NoValue"
+                    "Fn::If": [
+                      "EnableCloudWatch",
+                      {
+                        "LogDriver": "awslogs",
+                        "Options": {
+                          "awslogs-region": { "Ref": "AWS::Region" },
+                          "awslogs-group": { "Ref": "LogGroup" },
+                          "awslogs-stream-prefix": "service"
+                        }
+                      },
+                      {
+                        "Ref": "AWS::NoValue"
+                      }
+                    ]
                   }
                 ]
               },

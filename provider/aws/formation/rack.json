@@ -27,7 +27,8 @@
     "BlankSslPolicy": { "Fn::Equals": [ { "Ref": "SslPolicy" }, "" ] },
     "DedicatedBuilder": { "Fn::Not": [ { "Fn::Equals": [ { "Ref": "BuildInstance" }, "" ] } ] },
     "Development": { "Fn::Equals": [ { "Ref": "Development" }, "Yes" ] },
-    "EnableCloudWatch": { "Fn::Equals": [ { "Ref": "EnableCloudWatch" }, "Yes" ] },
+    "EnableCloudWatch": { "Fn::Equals": [ { "Ref": "LogDriver" }, "CloudWatch" ] },
+    "EnableSyslog": { "Fn::Equals": [ { "Ref": "LogDriver" }, "Syslog" ] },
     "EncryptEbs" : { "Fn::Equals": [ { "Ref": "EncryptEbs" }, "Yes" ] },
     "ExistingVpc": { "Fn::Not": [ { "Fn::Equals": [ { "Ref": "ExistingVpc" }, "" ] } ] },
     "ExistingVpcAndBlankInternetGateway": {
@@ -256,10 +257,6 @@
     "EcsPollInterval": {
       "Value": { "Ref": "EcsPollInterval" }
     },
-    "EnableCloudWatch": {
-      "Export": { "Name": { "Fn::Sub": "${AWS::StackName}:EnableCloudWatch" } },
-      "Value": { "Ref": "EnableCloudWatch" }
-    },
     "EncryptionKey": {
       "Export": { "Name": { "Fn::Sub": "${AWS::StackName}:EncryptionKey" } },
       "Value": { "Ref": "EncryptionKey" }
@@ -301,6 +298,9 @@
     },
     "LogBucket": {
       "Value": { "Fn::If": [ "BlankLogBucket", { "Ref": "Logs" }, { "Ref": "LogBucket" } ] }
+    },
+    "LogDriver": {
+      "Value": { "Ref": "LogDriver" }
     },
     "LogGroup": {
       "Condition": "EnableCloudWatch",
@@ -497,6 +497,12 @@
     "StackId": {
       "Value": { "Ref": "AWS::StackId" }
     },
+    "SyslogDestination": {
+      "Value": { "Ref": "SyslogDestination" }
+    },
+    "SyslogFormat": {
+      "Value": { "Ref": "SyslogFormat" }
+    },
     "Version": {
       "Value": { "Ref": "Version" }
     },
@@ -605,12 +611,6 @@
       "Type": "Number",
       "Default": "1",
       "Description": "How often to poll ECS for service events in seconds. Longer intervals may alleviate rate limiting / throttling from ECS."
-    },
-    "EnableCloudWatch": {
-      "Type": "String",
-      "Description": "Enable CloudWatch log group",
-      "Default": "Yes",
-      "AllowedValues": [ "Yes", "No" ]
     },
     "EncryptEbs": {
       "Type": "String",
@@ -739,6 +739,12 @@
       "Description": "Bucket to receive S3 logs",
       "Type": "String"
     },
+    "LogDriver": {
+      "Default": "CloudWatch",
+      "Description": "Log driver used by the rack and services to send logs. Default to CloudWatch. You must provide the SyslogDestination when setting as Syslog. It disable logs if blank.",
+      "Type": "String",
+      "AllowedValues": [ "CloudWatch", "Syslog", ""]
+    },
     "LogRetention": {
       "Default": "7",
       "Description": "Number of days to keep logs (blank for unlimited)",
@@ -855,6 +861,16 @@
       "Type": "Number",
       "Description": "Default swap volume size in GB",
       "Default": "5"
+    },
+    "SyslogDestination": {
+      "Type": "String",
+      "Description": "Syslog address destination, you need to pass the protocol to be used, e.g. tcp+tls://logsX.syslog.com:1234",
+      "Default": ""
+    },
+    "SyslogFormat": {
+      "Type": "String",
+      "Description": "Syslog format (low case) to sent to SyslogDestination.",
+      "Default": "rfc5424"
     },
     "Version": {
       "Description": "(REQUIRED) Convox release version",
@@ -2935,7 +2951,7 @@
               "rack.DynamoBuilds": { "Ref": "DynamoBuilds" },
               "rack.DynamoReleases": { "Ref": "DynamoReleases" },
               "rack.EcsPollInterval": { "Ref": "EcsPollInterval" },
-              "rack.EnableCloudWatch": { "Ref": "EnableCloudWatch" },
+              "rack.LogDriver": { "Ref": "LogDriver" },
               "rack.EncryptionKey": { "Ref": "EncryptionKey" },
               "rack.Fargate": { "Fn::FindInMap": [ "RegionConfig", { "Ref": "AWS::Region" }, "Fargate" ] },
               "rack.HighAvailability": { "Ref": "HighAvailability" },
@@ -2962,6 +2978,8 @@
                 ] ] },
                 { "Ref": "AWS::NoValue" }
               ] },
+              "rack.SyslogDestination": { "Ref": "SyslogDestination" },
+              "rack.SyslogFormat": { "Ref": "SyslogFormat" },
               "rack.Version": { "Ref": "Version" },
               "rack.Vpc": { "Fn::If": [ "BlankExistingVpc",
                 { "Ref": "Vpc" },
@@ -3026,7 +3044,7 @@
               "rack.DynamoBuilds": { "Ref": "DynamoBuilds" },
               "rack.DynamoReleases": { "Ref": "DynamoReleases" },
               "rack.EcsPollInterval": { "Ref": "EcsPollInterval" },
-              "rack.EnableCloudWatch": { "Ref": "EnableCloudWatch" },
+              "rack.LogDriver": { "Ref": "LogDriver" },
               "rack.EncryptionKey": { "Ref": "EncryptionKey" },
               "rack.Fargate": { "Fn::FindInMap": [ "RegionConfig", { "Ref": "AWS::Region" }, "Fargate" ] },
               "rack.HighAvailability": { "Ref": "HighAvailability" },
@@ -3053,6 +3071,8 @@
                 ] ] },
                 { "Ref": "AWS::NoValue" }
               ] },
+              "rack.SyslogDestination": { "Ref": "SyslogDestination" },
+              "rack.SyslogFormat": { "Ref": "SyslogFormat" },
               "rack.Version": { "Ref": "Version" },
               "rack.Vpc": { "Fn::If": [ "BlankExistingVpc",
                 { "Ref": "Vpc" },
@@ -3083,21 +3103,29 @@
             },
             "LogConfiguration": {
               "Fn::If": [
-                "EnableCloudWatch",
+                "EnableSyslog",
                 {
-                  "LogDriver": "awslogs",
+                  "LogDriver": "syslog",
                   "Options": {
-                    "awslogs-region": {
-                      "Ref": "AWS::Region"
-                    },
-                    "awslogs-group": {
-                      "Ref": "LogGroup"
-                    },
-                    "awslogs-stream-prefix": "service"
+                    "syslog-address": { "Ref": "SyslogDestination" },
+                    "syslog-format": { "Ref": "SyslogFormat" }
                   }
                 },
                 {
-                  "Ref": "AWS::NoValue"
+                  "Fn::If": [
+                    "EnableCloudWatch",
+                    {
+                      "LogDriver": "awslogs",
+                      "Options": {
+                        "awslogs-region": { "Ref": "AWS::Region" },
+                        "awslogs-group": { "Ref": "LogGroup" },
+                        "awslogs-stream-prefix": "service"
+                      }
+                    },
+                    {
+                      "Ref": "AWS::NoValue"
+                    }
+                  ]
                 }
               ]
             },
@@ -3147,7 +3175,7 @@
               "rack.DynamoBuilds": { "Ref": "DynamoBuilds" },
               "rack.DynamoReleases": { "Ref": "DynamoReleases" },
               "rack.EcsPollInterval": { "Ref": "EcsPollInterval" },
-              "rack.EnableCloudWatch": { "Ref": "EnableCloudWatch" },
+              "rack.LogDriver": { "Ref": "LogDriver" },
               "rack.EncryptionKey": { "Ref": "EncryptionKey" },
               "rack.Fargate": { "Fn::FindInMap": [ "RegionConfig", { "Ref": "AWS::Region" }, "Fargate" ] },
               "rack.HighAvailability": { "Ref": "HighAvailability" },
@@ -3175,6 +3203,8 @@
                 ] ] },
                 { "Ref": "AWS::NoValue" }
               ] },
+              "rack.SyslogDestination": { "Ref": "SyslogDestination" },
+              "rack.SyslogFormat": { "Ref": "SyslogFormat" },
               "rack.Version": { "Ref": "Version" },
               "rack.Vpc": { "Fn::If": [ "BlankExistingVpc",
                 { "Ref": "Vpc" },
@@ -3205,21 +3235,29 @@
             },
             "LogConfiguration": {
               "Fn::If": [
-                "EnableCloudWatch",
+                "EnableSyslog",
                 {
-                  "LogDriver": "awslogs",
+                  "LogDriver": "syslog",
                   "Options": {
-                    "awslogs-region": {
-                      "Ref": "AWS::Region"
-                    },
-                    "awslogs-group": {
-                      "Ref": "LogGroup"
-                    },
-                    "awslogs-stream-prefix": "service"
+                    "syslog-address": { "Ref": "SyslogDestination" },
+                    "syslog-format": { "Ref": "SyslogFormat" }
                   }
                 },
                 {
-                  "Ref": "AWS::NoValue"
+                  "Fn::If": [
+                    "EnableCloudWatch",
+                    {
+                      "LogDriver": "awslogs",
+                      "Options": {
+                        "awslogs-region": { "Ref": "AWS::Region" },
+                        "awslogs-group": { "Ref": "LogGroup" },
+                        "awslogs-stream-prefix": "service"
+                      }
+                    },
+                    {
+                      "Ref": "AWS::NoValue"
+                    }
+                  ]
                 }
               ]
             },

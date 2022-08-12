@@ -56,7 +56,6 @@ type Provider struct {
 	DynamoBuilds        string
 	DynamoReleases      string
 	EcsPollInterval     int
-	EnableCloudWatch    string
 	EncryptionKey       string
 	Fargate             bool
 	HighAvailability    bool
@@ -64,6 +63,7 @@ type Provider struct {
 	InternalOnly        bool
 	ELBLogBucket        string
 	LogBucket           string
+	LogDriver           string
 	NotificationTopic   string
 	OnDemandMinCount    int
 	Password            string
@@ -77,6 +77,8 @@ type Provider struct {
 	Subnets             string
 	SubnetsPrivate      string
 	StackId             string
+	SyslogDestination   string
+	SyslogFormat        string
 	Version             string
 	Vpc                 string
 	VpcCidr             string
@@ -150,13 +152,13 @@ func (p *Provider) loadParams() error {
 	p.DynamoBuilds = labels["rack.DynamoBuilds"]
 	p.DynamoReleases = labels["rack.DynamoReleases"]
 	p.EcsPollInterval = intParam(labels["rack.EcsPollInterval"], 1)
-	p.EnableCloudWatch = labels["rack.EnableCloudWatch"]
 	p.EncryptionKey = labels["rack.EncryptionKey"]
 	p.Fargate = labels["rack.Fargate"] == "Yes"
 	p.HighAvailability = labels["rack.HighAvailability"] == "true"
 	p.Internal = labels["rack.Internal"] == "Yes"
 	p.InternalOnly = labels["rack.InternalOnly"] == "Yes"
 	p.LogBucket = labels["rack.LogBucket"]
+	p.LogDriver = labels["rack.LogDriver"]
 	p.NotificationTopic = labels["rack.NotificationTopic"]
 	p.OnDemandMinCount = intParam(labels["rack.OnDemandMinCount"], 2)
 	p.Private = labels["rack.Private"] == "Yes"
@@ -167,6 +169,8 @@ func (p *Provider) loadParams() error {
 	p.SshKey = labels["rack.SshKey"]
 	p.Subnets = labels["rack.Subnets"]
 	p.SubnetsPrivate = labels["rack.SubnetsPrivate"]
+	p.SyslogDestination = labels["rack.SyslogDestination"]
+	p.SyslogFormat = labels["rack.SyslogFormat"]
 	p.Version = labels["rack.Version"]
 	p.Vpc = labels["rack.Vpc"]
 	p.VpcCidr = labels["rack.VpcCidr"]
