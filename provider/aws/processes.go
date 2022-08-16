@@ -192,6 +192,9 @@ func (p *Provider) ProcessList(app string, opts structs.ProcessListOptions) (str
 	}
 
 	mdqs := p.servicesMetricQueries(serviceNames)
+	if len(mdqs) == 0 {
+		return ps, nil
+	}
 
 	ms, err := p.cloudwatchMetrics(mdqs, structs.MetricsOptions{
 		Start: aws.Time(time.Now().Add(-5 * time.Minute)),
