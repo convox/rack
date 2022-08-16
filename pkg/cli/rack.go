@@ -498,5 +498,9 @@ func validateParams(params map[string]string) error {
 		return fmt.Errorf("to configure ScheduleAction you need both ScheduleRackScaleDown and ScheduleRackScaleUp parameters")
 	}
 
+	if params["LogDriver"] == "Syslog" && params["SyslogDestination"] == "" {
+		return fmt.Errorf("to enable Syslog as the LogDriver you must pass SyslogDestination parameter")
+	}
+
 	return nil
 }

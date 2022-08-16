@@ -27,6 +27,8 @@
     "BlankSslPolicy": { "Fn::Equals": [ { "Ref": "SslPolicy" }, "" ] },
     "DedicatedBuilder": { "Fn::Not": [ { "Fn::Equals": [ { "Ref": "BuildInstance" }, "" ] } ] },
     "Development": { "Fn::Equals": [ { "Ref": "Development" }, "Yes" ] },
+    "EnableCloudWatch": { "Fn::Equals": [ { "Ref": "LogDriver" }, "CloudWatch" ] },
+    "EnableSyslog": { "Fn::Equals": [ { "Ref": "LogDriver" }, "Syslog" ] },
     "EncryptEbs" : { "Fn::Equals": [ { "Ref": "EncryptEbs" }, "Yes" ] },
     "ExistingVpc": { "Fn::Not": [ { "Fn::Equals": [ { "Ref": "ExistingVpc" }, "" ] } ] },
     "ExistingVpcAndBlankInternetGateway": {
@@ -297,7 +299,11 @@
     "LogBucket": {
       "Value": { "Fn::If": [ "BlankLogBucket", { "Ref": "Logs" }, { "Ref": "LogBucket" } ] }
     },
+    "LogDriver": {
+      "Value": { "Ref": "LogDriver" }
+    },
     "LogGroup": {
+      "Condition": "EnableCloudWatch",
       "Value": { "Ref": "LogGroup" }
     },
     "NatGateways": {
@@ -490,6 +496,12 @@
     },
     "StackId": {
       "Value": { "Ref": "AWS::StackId" }
+    },
+    "SyslogDestination": {
+      "Value": { "Ref": "SyslogDestination" }
+    },
+    "SyslogFormat": {
+      "Value": { "Ref": "SyslogFormat" }
     },
     "Version": {
       "Value": { "Ref": "Version" }
@@ -727,6 +739,12 @@
       "Description": "Bucket to receive S3 logs",
       "Type": "String"
     },
+    "LogDriver": {
+      "Default": "CloudWatch",
+      "Description": "Log driver used by the rack and services to send logs. Default to CloudWatch. You must provide the SyslogDestination when setting as Syslog. It disable logs if blank.",
+      "Type": "String",
+      "AllowedValues": [ "CloudWatch", "Syslog", ""]
+    },
     "LogRetention": {
       "Default": "7",
       "Description": "Number of days to keep logs (blank for unlimited)",
@@ -844,6 +862,16 @@
       "Description": "Default swap volume size in GB",
       "Default": "5"
     },
+    "SyslogDestination": {
+      "Type": "String",
+      "Description": "Syslog address destination, you need to pass the protocol to be used, e.g. tcp+tls://logsX.syslog.com:1234",
+      "Default": ""
+    },
+    "SyslogFormat": {
+      "Type": "String",
+      "Description": "Syslog format (low case) to sent to SyslogDestination.",
+      "Default": "rfc5424"
+    },
     "Version": {
       "Description": "(REQUIRED) Convox release version",
       "MinLength" : "1",
@@ -886,6 +914,7 @@
     },
     "LogGroup": {
       "Type": "AWS::Logs::LogGroup",
+      "Condition": "EnableCloudWatch",
       "Properties": {
         "RetentionInDays": { "Fn::If": [ "BlankLogRetention", { "Ref": "AWS::NoValue" }, { "Ref": "LogRetention" } ] }
       }
@@ -2922,6 +2951,7 @@
               "rack.DynamoBuilds": { "Ref": "DynamoBuilds" },
               "rack.DynamoReleases": { "Ref": "DynamoReleases" },
               "rack.EcsPollInterval": { "Ref": "EcsPollInterval" },
+              "rack.LogDriver": { "Ref": "LogDriver" },
               "rack.EncryptionKey": { "Ref": "EncryptionKey" },
               "rack.Fargate": { "Fn::FindInMap": [ "RegionConfig", { "Ref": "AWS::Region" }, "Fargate" ] },
               "rack.HighAvailability": { "Ref": "HighAvailability" },
@@ -2948,6 +2978,8 @@
                 ] ] },
                 { "Ref": "AWS::NoValue" }
               ] },
+              "rack.SyslogDestination": { "Ref": "SyslogDestination" },
+              "rack.SyslogFormat": { "Ref": "SyslogFormat" },
               "rack.Version": { "Ref": "Version" },
               "rack.Vpc": { "Fn::If": [ "BlankExistingVpc",
                 { "Ref": "Vpc" },
@@ -3012,6 +3044,7 @@
               "rack.DynamoBuilds": { "Ref": "DynamoBuilds" },
               "rack.DynamoReleases": { "Ref": "DynamoReleases" },
               "rack.EcsPollInterval": { "Ref": "EcsPollInterval" },
+              "rack.LogDriver": { "Ref": "LogDriver" },
               "rack.EncryptionKey": { "Ref": "EncryptionKey" },
               "rack.Fargate": { "Fn::FindInMap": [ "RegionConfig", { "Ref": "AWS::Region" }, "Fargate" ] },
               "rack.HighAvailability": { "Ref": "HighAvailability" },
@@ -3038,6 +3071,8 @@
                 ] ] },
                 { "Ref": "AWS::NoValue" }
               ] },
+              "rack.SyslogDestination": { "Ref": "SyslogDestination" },
+              "rack.SyslogFormat": { "Ref": "SyslogFormat" },
               "rack.Version": { "Ref": "Version" },
               "rack.Vpc": { "Fn::If": [ "BlankExistingVpc",
                 { "Ref": "Vpc" },
@@ -3067,12 +3102,32 @@
               "InitProcessEnabled": "true"
             },
             "LogConfiguration": {
-              "LogDriver": "awslogs",
-              "Options": {
-                "awslogs-region": { "Ref": "AWS::Region" },
-                "awslogs-group": { "Ref": "LogGroup" },
-                "awslogs-stream-prefix": "service"
-              }
+              "Fn::If": [
+                "EnableSyslog",
+                {
+                  "LogDriver": "syslog",
+                  "Options": {
+                    "syslog-address": { "Ref": "SyslogDestination" },
+                    "syslog-format": { "Ref": "SyslogFormat" }
+                  }
+                },
+                {
+                  "Fn::If": [
+                    "EnableCloudWatch",
+                    {
+                      "LogDriver": "awslogs",
+                      "Options": {
+                        "awslogs-region": { "Ref": "AWS::Region" },
+                        "awslogs-group": { "Ref": "LogGroup" },
+                        "awslogs-stream-prefix": "service"
+                      }
+                    },
+                    {
+                      "Ref": "AWS::NoValue"
+                    }
+                  ]
+                }
+              ]
             },
             "Memory": { "Ref": "ApiMonitorMemory" },
             "MountPoints": [ { "SourceVolume": "docker", "ContainerPath": "/var/run/docker.sock" } ],
@@ -3120,6 +3175,7 @@
               "rack.DynamoBuilds": { "Ref": "DynamoBuilds" },
               "rack.DynamoReleases": { "Ref": "DynamoReleases" },
               "rack.EcsPollInterval": { "Ref": "EcsPollInterval" },
+              "rack.LogDriver": { "Ref": "LogDriver" },
               "rack.EncryptionKey": { "Ref": "EncryptionKey" },
               "rack.Fargate": { "Fn::FindInMap": [ "RegionConfig", { "Ref": "AWS::Region" }, "Fargate" ] },
               "rack.HighAvailability": { "Ref": "HighAvailability" },
@@ -3147,6 +3203,8 @@
                 ] ] },
                 { "Ref": "AWS::NoValue" }
               ] },
+              "rack.SyslogDestination": { "Ref": "SyslogDestination" },
+              "rack.SyslogFormat": { "Ref": "SyslogFormat" },
               "rack.Version": { "Ref": "Version" },
               "rack.Vpc": { "Fn::If": [ "BlankExistingVpc",
                 { "Ref": "Vpc" },
@@ -3176,12 +3234,32 @@
               "InitProcessEnabled": "true"
             },
             "LogConfiguration": {
-              "LogDriver": "awslogs",
-              "Options": {
-                "awslogs-region": { "Ref": "AWS::Region" },
-                "awslogs-group": { "Ref": "LogGroup" },
-                "awslogs-stream-prefix": "service"
-              }
+              "Fn::If": [
+                "EnableSyslog",
+                {
+                  "LogDriver": "syslog",
+                  "Options": {
+                    "syslog-address": { "Ref": "SyslogDestination" },
+                    "syslog-format": { "Ref": "SyslogFormat" }
+                  }
+                },
+                {
+                  "Fn::If": [
+                    "EnableCloudWatch",
+                    {
+                      "LogDriver": "awslogs",
+                      "Options": {
+                        "awslogs-region": { "Ref": "AWS::Region" },
+                        "awslogs-group": { "Ref": "LogGroup" },
+                        "awslogs-stream-prefix": "service"
+                      }
+                    },
+                    {
+                      "Ref": "AWS::NoValue"
+                    }
+                  ]
+                }
+              ]
             },
             "MemoryReservation": { "Ref": "ApiWebMemory" },
             "MountPoints": [ { "SourceVolume": "docker", "ContainerPath": "/var/run/docker.sock" } ],
