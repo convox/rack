@@ -353,8 +353,11 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 	}
 
 	updates := map[string]string{
-		"LogBucket": p.LogBucket,
-		"Private":   private,
+		"LogBucket":         p.LogBucket,
+		"LogDriver":         p.LogDriver,
+		"Private":           private,
+		"SyslogDestination": p.SyslogDestination,
+		"SyslogFormat":      p.SyslogFormat,
 	}
 
 	if m.Params != nil {

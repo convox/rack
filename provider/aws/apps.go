@@ -57,8 +57,11 @@ func (p *Provider) AppCreate(name string, opts structs.AppCreateOptions) (*struc
 	}
 
 	params := map[string]string{
-		"LogBucket": p.LogBucket,
-		"Rack":      p.Rack,
+		"LogBucket":         p.LogBucket,
+		"LogDriver":         p.LogDriver,
+		"Rack":              p.Rack,
+		"SyslogDestination": p.SyslogDestination,
+		"SyslogFormat":      p.SyslogFormat,
 	}
 
 	tags := map[string]string{

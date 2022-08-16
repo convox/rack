@@ -10,6 +10,7 @@
     "CircuitBreaker": { "Fn::Equals": [ { "Ref": "CircuitBreaker" }, "Yes" ] },
     "EC2Services": { "Fn::Not": [ { "Condition": "FargateServicesEither" } ] },
     "EC2Timers": { "Fn::Not": [ { "Condition": "FargateTimersEither" } ] },
+    "EnableCloudWatch": { "Fn::Equals": [ { "Ref": "LogDriver" }, "CloudWatch" ] },
     "FargateServicesEither": { "Fn::Or": [ { "Condition": "FargateServicesBase" }, { "Condition": "FargateServicesSpot" } ] },
     "FargateServicesBase": { "Fn::Equals": [ { "Ref": "FargateServices" }, "Yes" ] },
     "FargateServicesSpot": { "Fn::Equals": [ { "Ref": "FargateServices" }, "Spot" ] },
@@ -36,6 +37,7 @@
       "Value": { "Fn::If": [ "FargateServicesSpot", "Yes", "No" ] }
     },
     "LogGroup": {
+      "Condition": "EnableCloudWatch",
       "Value": { "Ref": "LogGroup" }
     },
     "Release": {
@@ -101,6 +103,12 @@
       "Type": "String",
       "Default": ""
     },
+    "LogDriver": {
+      "Default": "CloudWatch",
+      "Description": "Log driver used by the rack and services to send logs. Default to CloudWatch. You must provide the SyslogDestination when setting as Syslog. It disable logs if blank.",
+      "Type": "String",
+      "AllowedValues": [ "CloudWatch", "Syslog", ""]
+    },
     "LogRetention": {
       "Default": "7",
       "Description": "Number of days to keep logs (blank for unlimited)",
@@ -139,6 +147,16 @@
       "Description": "The ramp up period during which a newly deployed service will receive an increasing share of traffic. Defaults to 0 seconds (disabled)",
       "Type": "String"
     },
+    "SyslogDestination": {
+      "Type": "String",
+      "Description": "Syslog address destination, you need to pass the protocol to be used, e.g. tcp+tls://logsX.syslog.com:1234",
+      "Default": ""
+    },
+    "SyslogFormat": {
+      "Type": "String",
+      "Description": "Syslog format to sent to SyslogDestination.",
+      "Default": "rfc5424"
+    },
     "TaskTags": {
       "Type": "String",
       "Default": "No",
@@ -170,6 +188,7 @@
     },
     "LogGroup": {
       "Type": "AWS::Logs::LogGroup",
+      "Condition": "EnableCloudWatch",
       "Properties": {
         "RetentionInDays": { "Fn::If": [ "BlankLogRetention", { "Ref": "AWS::NoValue" }, { "Ref": "LogRetention" } ] }
       }
@@ -344,7 +363,8 @@
           "Fargate": { "Fn::If": [ "Service{{ upper .Name }}Fargate", "Yes", { "Fn::If": [ "Service{{ upper .Name }}FargateSpot", "Spot", "No" ] } ] },
           "LoadBalancerAlgorithm": { "Ref": "LoadBalancerAlgorithm" },
           "LoadBalancerSuccessCodes": { "Ref": "LoadBalancerSuccessCodes" },
-          "LogGroup": { "Ref": "LogGroup" },
+          "LogDriver": { "Ref": "LogDriver" },
+          "LogGroup": { "Fn::If": [ "EnableCloudWatch", { "Ref": "LogGroup" }, { "Ref": "AWS::NoValue" } ] },
           "InternalDomains": { "Ref": "InternalDomains" },
           "Isolate": { "Fn::If": [ "IsolateServices", "Yes", "No" ] },
           "Memory": { "Fn::Select": [ 2, { "Ref": "{{ upper .Name }}Formation" } ] },
@@ -359,6 +379,8 @@
           "Role": { "Fn::GetAtt": [ "ServiceRole", "Arn" ] },
           "Settings": { "Ref": "Settings" },
           "SlowStartDuration": { "Ref": "SlowStartDuration" },
+          "SyslogDestination": { "Ref": "SyslogDestination" },
+          "SyslogFormat": { "Ref": "SyslogFormat" },
           "TaskTags": { "Ref": "TaskTags" }
         },
         "Tags": [
@@ -497,7 +519,8 @@
           "ExecutionRole": { "Fn::GetAtt": [ "ExecutionRole", "Arn" ] },
           "Fargate": { "Fn::If": [ "FargateTimersBase", "Yes", { "Fn::If": [ "FargateTimersSpot", "Spot", "No" ] } ] },
           "Launcher": { "Fn::GetAtt": [ "TimerLauncher", "Arn" ] },
-          "LogGroup": { "Ref": "LogGroup" },
+          "LogDriver": { "Ref": "LogDriver" },
+          "LogGroup": { "Fn::If": [ "EnableCloudWatch", { "Ref": "LogGroup" }, { "Ref": "AWS::NoValue" } ] },
           "Memory": { "Fn::Select": [ 2, { "Ref": "{{ upper .Service }}Formation" } ] },
           "Rack": { "Ref": "Rack" },
           "RackUrl": { "Ref": "RackUrl" },
@@ -508,6 +531,8 @@
           "Role": { "Fn::GetAtt": [ "TimerRole", "Arn" ] },
           "ServiceRole": { "Fn::GetAtt": [ "ServiceRole", "Arn" ] },
           "Settings": { "Ref": "Settings" }
+          "SyslogDestination": { "Ref": "SyslogDestination" }
+          "SyslogFormat": { "Ref": "SyslogFormat" }
         },
         "Tags": [
           { "Key": "App", "Value": "{{ $.App }}" },

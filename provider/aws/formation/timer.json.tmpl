@@ -2,6 +2,8 @@
   {
     "AWSTemplateFormatVersion" : "2010-09-09",
     "Conditions": {
+      "EnableCloudWatch": { "Fn::Equals": [ { "Ref": "LogDriver" }, "CloudWatch" ] },
+      "EnableSyslog": { "Fn::Equals": [ { "Ref": "LogDriver" }, "Syslog" ] },
       "FargateEither": { "Fn::Or": [ { "Condition": "FargateBase" }, { "Condition": "FargateSpot" } ] },
       "FargateBase": { "Fn::Equals": [ { "Ref": "Fargate" }, "Yes" ] },
       "FargateSpot": { "Fn::Equals": [ { "Ref": "Fargate" }, "Spot" ] },
@@ -30,7 +32,14 @@
       "Launcher": {
         "Type": "String"
       },
+      "LogDriver": {
+        "Default": "CloudWatch",
+        "Description": "Log driver used by the rack and services to send logs. Default to CloudWatch. You must provide the SyslogDestination when setting as Syslog. It disable logs if blank.",
+        "Type": "String",
+        "AllowedValues": [ "CloudWatch", "Syslog", ""]
+      },
       "LogGroup": {
+        "Default": "",
         "Type": "String"
       },
       "Memory": {
@@ -61,6 +70,16 @@
       },
       "Settings": {
         "Type": "String"
+      },
+      "SyslogDestination": {
+        "Type": "String",
+        "Description": "Syslog address destination, you need to pass the protocol to be used, e.g. tcp+tls://logsX.syslog.com:1234",
+        "Default": ""
+      },
+      "SyslogFormat": {
+        "Type": "String",
+        "Description": "Syslog format to sent to SyslogDestination.",
+        "Default": "rfc5424"
       }
     },
     "Resources": {
@@ -136,12 +155,32 @@
                 ],
                 "Image": { "Fn::Sub": "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${Registry}:{{.Name}}.{{$.Release.Build}}" },
                 "LogConfiguration": {
-                  "LogDriver": "awslogs",
-                  "Options": {
-                    "awslogs-region": { "Ref": "AWS::Region" },
-                    "awslogs-group": { "Ref": "LogGroup" },
-                    "awslogs-stream-prefix": "timer"
-                  }
+                  "Fn::If": [
+                    "EnableSyslog",
+                    {
+                      "LogDriver": "syslog",
+                      "Options": {
+                        "syslog-address": { "Ref": "SyslogDestination" },
+                        "syslog-format": { "Ref": "SyslogFormat" }
+                      }
+                    },
+                    {
+                      "Fn::If": [
+                        "EnableCloudWatch",
+                        {
+                          "LogDriver": "awslogs",
+                          "Options": {
+                            "awslogs-region": { "Ref": "AWS::Region" },
+                            "awslogs-group": { "Ref": "LogGroup" },
+                            "awslogs-stream-prefix": "service"
+                          }
+                        },
+                        {
+                          "Ref": "AWS::NoValue"
+                        }
+                      ]
+                    }
+                  ]
                 },
                 "Memory": { "Ref": "Memory" },
                 "MountPoints": [
