@@ -23,6 +23,10 @@ var (
 )
 
 func (p *Provider) cloudwatchMetrics(mdqs []metricDataQuerier, opts structs.MetricsOptions) (structs.Metrics, error) {
+	if len(mdqs) == 0 {
+		return nil, fmt.Errorf("can't fetch metrics with empty query")
+	}
+
 	period := ci(opts.Period, 3600)
 
 	req := &cloudwatch.GetMetricDataInput{
