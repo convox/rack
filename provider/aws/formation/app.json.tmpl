@@ -530,8 +530,8 @@
           {{ end }}
           "Role": { "Fn::GetAtt": [ "TimerRole", "Arn" ] },
           "ServiceRole": { "Fn::GetAtt": [ "ServiceRole", "Arn" ] },
-          "Settings": { "Ref": "Settings" }
-          "SyslogDestination": { "Ref": "SyslogDestination" }
+          "Settings": { "Ref": "Settings" },
+          "SyslogDestination": { "Ref": "SyslogDestination" },
           "SyslogFormat": { "Ref": "SyslogFormat" }
         },
         "Tags": [
