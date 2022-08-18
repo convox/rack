@@ -2,6 +2,7 @@ package aws
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"math/rand"
 	"os"
@@ -28,6 +29,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/convox/logger"
+	"github.com/convox/rack/pkg/helpers"
 	"github.com/convox/rack/pkg/metrics"
 	"github.com/convox/rack/pkg/structs"
 )
@@ -55,6 +57,7 @@ type Provider struct {
 	Development         bool
 	DynamoBuilds        string
 	DynamoReleases      string
+	DockerTLS           *helpers.TLSPemCertBytes
 	EcsPollInterval     int
 	EncryptionKey       string
 	Fargate             bool
@@ -175,6 +178,31 @@ func (p *Provider) loadParams() error {
 	p.Vpc = labels["rack.Vpc"]
 	p.VpcCidr = labels["rack.VpcCidr"]
 
+	if v, has := labels["rack.DockerTlsCA"]; has && len(v) > 0 {
+		cacert, err := base64.StdEncoding.DecodeString(labels["rack.DockerTlsCA"])
+		if err != nil {
+			return err
+		}
+		cakey, err := base64.StdEncoding.DecodeString(labels["rack.DockerTlsCAKey"])
+		if err != nil {
+			return err
+		}
+		cert, err := base64.StdEncoding.DecodeString(labels["rack.DockerTlsCert"])
+		if err != nil {
+			return err
+		}
+		key, err := base64.StdEncoding.DecodeString(labels["rack.DockerTlsKey"])
+		if err != nil {
+			return err
+		}
+
+		p.DockerTLS = &helpers.TLSPemCertBytes{
+			CACert: cacert,
+			CAKey:  cakey,
+			Cert:   cert,
+			Key:    key,
+		}
+	}
 	return nil
 }
 
