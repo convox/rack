@@ -542,19 +542,19 @@ func (p *Provider) SystemUpdate(opts structs.SystemUpdateOptions) error {
 		if err != nil {
 			return err
 		}
-	}
-
-	blck, _ := pem.Decode(p.DockerTLS.Cert)
-	cert, err := x509.ParseCertificate(blck.Bytes)
-	if err != nil {
-		return err
-	}
-	// renew certs if certs expires in two months
-	if cert.NotAfter.Add(-1 * 60 * 24 * time.Hour).Before(time.Now()) {
-		// tls certificate with validity of 5 year
-		p.DockerTLS, err = helpers.SelfGeneratedCertsForDocker(5 * 365 * 24 * time.Hour)
+	} else {
+		blck, _ := pem.Decode(p.DockerTLS.Cert)
+		cert, err := x509.ParseCertificate(blck.Bytes)
 		if err != nil {
 			return err
+		}
+		// renew certs if certs expires in two months
+		if cert.NotAfter.Add(-1 * 60 * 24 * time.Hour).Before(time.Now()) {
+			// tls certificate with validity of 5 year
+			p.DockerTLS, err = helpers.SelfGeneratedCertsForDocker(5 * 365 * 24 * time.Hour)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
