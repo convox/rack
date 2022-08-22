@@ -3,10 +3,7 @@ package aws
 import (
 	"bufio"
 	"crypto/tls"
-	"crypto/x509"
-	"encoding/base64"
 	"encoding/json"
-	"encoding/pem"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -231,21 +228,9 @@ func (p *Provider) SystemInstall(w io.Writer, opts structs.SystemInstallOptions)
 
 	password := randomString(30)
 
-	// tls certificate with validity of 5 year
-	tlsCerts, err := helpers.SelfGeneratedCertsForDocker(5 * 365 * 24 * time.Hour)
-	if err != nil {
-		return "", err
-	}
-
-	p.DockerTLS = tlsCerts
-
 	params := map[string]string{
-		"Password":       password,
-		"Version":        version,
-		"DockerTlsCA":    base64.StdEncoding.EncodeToString(p.DockerTLS.CACert),
-		"DockerTlsCAKey": base64.StdEncoding.EncodeToString(p.DockerTLS.CAKey),
-		"DockerTlsCert":  base64.StdEncoding.EncodeToString(p.DockerTLS.Cert),
-		"DockerTlsKey":   base64.StdEncoding.EncodeToString(p.DockerTLS.Key),
+		"Password": password,
+		"Version":  version,
 	}
 
 	if opts.Id != nil {
@@ -273,7 +258,7 @@ func (p *Provider) SystemInstall(w io.Writer, opts structs.SystemInstallOptions)
 		fmt.Fprintf(w, "Preparing... ")
 	}
 
-	err = helpers.CloudformationInstall(cf, name, template, params, tags, func(current, total int) {
+	err := helpers.CloudformationInstall(cf, name, template, params, tags, func(current, total int) {
 		if raw {
 			fmt.Fprintf(w, "{ \"stack\": %q, \"current\": %d, \"total\": %d }\n", name, current, total)
 			return
@@ -535,38 +520,11 @@ func (p *Provider) Sync(name string) error {
 func (p *Provider) SystemUpdate(opts structs.SystemUpdateOptions) error {
 	changes := map[string]string{}
 
-	var err error
-	if p.DockerTLS == nil {
-		// tls certificate with validity of 5 year
-		p.DockerTLS, err = helpers.SelfGeneratedCertsForDocker(5 * 365 * 24 * time.Hour)
-		if err != nil {
-			return err
-		}
-	} else {
-		blck, _ := pem.Decode(p.DockerTLS.Cert)
-		cert, err := x509.ParseCertificate(blck.Bytes)
-		if err != nil {
-			return err
-		}
-		// renew certs if certs expires in two months
-		if cert.NotAfter.Add(-1 * 60 * 24 * time.Hour).Before(time.Now()) {
-			// tls certificate with validity of 5 year
-			p.DockerTLS, err = helpers.SelfGeneratedCertsForDocker(5 * 365 * 24 * time.Hour)
-			if err != nil {
-				return err
-			}
-		}
-	}
-
 	// carry forward values from original custom topic resources
 	params := map[string]string{
 		"AvailabilityZones": p.AvailabilityZones,
 		"KmsKey":            p.CustomEncryptionKey,
 		"SshKey":            p.SshKey,
-		"DockerTlsCA":       base64.StdEncoding.EncodeToString(p.DockerTLS.CACert),
-		"DockerTlsCAKey":    base64.StdEncoding.EncodeToString(p.DockerTLS.CAKey),
-		"DockerTlsCert":     base64.StdEncoding.EncodeToString(p.DockerTLS.Cert),
-		"DockerTlsKey":      base64.StdEncoding.EncodeToString(p.DockerTLS.Key),
 	}
 
 	if opts.Parameters != nil {

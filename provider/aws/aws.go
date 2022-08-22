@@ -29,7 +29,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/convox/logger"
-	"github.com/convox/rack/pkg/helpers"
 	"github.com/convox/rack/pkg/metrics"
 	"github.com/convox/rack/pkg/structs"
 )
@@ -57,7 +56,7 @@ type Provider struct {
 	Development         bool
 	DynamoBuilds        string
 	DynamoReleases      string
-	DockerTLS           *helpers.TLSPemCertBytes
+	DockerTLS           *structs.TLSPemCertBytes
 	EcsPollInterval     int
 	EncryptionKey       string
 	Fargate             bool
@@ -196,7 +195,7 @@ func (p *Provider) loadParams() error {
 			return err
 		}
 
-		p.DockerTLS = &helpers.TLSPemCertBytes{
+		p.DockerTLS = &structs.TLSPemCertBytes{
 			CACert: cacert,
 			CAKey:  cakey,
 			Cert:   cert,
