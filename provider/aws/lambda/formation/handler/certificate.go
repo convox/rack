@@ -18,6 +18,12 @@ func HandleSelfSignedCertificate(req Request) (string, map[string]string, error)
 }
 
 func GeneratedSelfSignedCertsForDocker(req Request) (string, map[string]string, error) {
+	if req.RequestType == "Create" {
+		req.PhysicalResourceId = "cert"
+	} else if req.RequestType == "Delete" {
+		return req.RequestId, map[string]string{}, nil
+	}
+
 	validFor := 3 * 365 * 24 * time.Hour
 	rsaBits := 2048
 
