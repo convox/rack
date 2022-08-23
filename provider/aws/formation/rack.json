@@ -895,11 +895,48 @@
     }
   },
   "Resources": {
-    "DockertTLSCerts": {
+    "DockertTLSCertGenerate": {
       "Type": "Custom::SelfSignedCertificate",
       "Properties": {
         "ServiceToken": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
-        "Description": "Self signed certs for docker"
+        "Description": "Create self signed certs for docker",
+        "Rack": { "Ref": "AWS::StackName" }
+      }
+    },
+    "DockertTLSCA": {
+      "Type": "Custom::SelfSignedCertificateGetter",
+      "Properties": {
+        "ServiceToken": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
+        "Description": "Get tls ca cert docker",
+        "Rack": { "Ref": "AWS::StackName" },
+        "ParameterKey": { "Fn::GetAtt": [ "DockertTLSCertGenerate", "CACertSSMKey" ] }
+      }
+    },
+    "DockertTLSCAKey": {
+      "Type": "Custom::SelfSignedCertificateGetter",
+      "Properties": {
+        "ServiceToken": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
+        "Description": "Get tls ca key docker",
+        "Rack": { "Ref": "AWS::StackName" },
+        "ParameterKey": { "Fn::GetAtt": [ "DockertTLSCertGenerate", "CAKeySSMKey" ] }
+      }
+    },
+    "DockertTLSCert": {
+      "Type": "Custom::SelfSignedCertificateGetter",
+      "Properties": {
+        "ServiceToken": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
+        "Description": "Get tls cert for docker",
+        "Rack": { "Ref": "AWS::StackName" },
+        "ParameterKey": { "Fn::GetAtt": [ "DockertTLSCertGenerate", "CertSSMKey" ] }
+      }
+    },
+    "DockertTLSKey": {
+      "Type": "Custom::SelfSignedCertificateGetter",
+      "Properties": {
+        "ServiceToken": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
+        "Description": "Get tls key for docker",
+        "Rack": { "Ref": "AWS::StackName" },
+        "ParameterKey": { "Fn::GetAtt": [ "DockertTLSCertGenerate", "KeySSMKey" ] }
       }
     },
     "EncryptionKey": {
@@ -1013,8 +1050,18 @@
         "RouteTableIds": [{ "Ref": "RouteTablePrivate0" }, { "Ref": "RouteTablePrivate1" }]
       }
     },
+    "SSMEndpoint": {
+      "Type": "AWS::EC2::VPCEndpoint",
+      "Properties": {
+        "VpcEndpointType": "Interface",
+        "ServiceName": {"Fn::Sub": ["com.amazonaws.${Region}.ssm", { "Region": { "Ref": "AWS::Region"}}]},
+        "VpcId": { "Fn::If": [ "BlankExistingVpc", { "Ref": "Vpc" }, { "Ref": "ExistingVpc" }] },
+        "SecurityGroupIds": [{ "Fn::If": [ "BlankInstanceSecurityGroup", { "Ref": "InstancesSecurity" }, { "Ref": "InstanceSecurityGroup" } ] }],
+        "SubnetIds": [{"Ref": "SubnetPrivate0"}, {"Ref": "SubnetPrivate1"}]
+      }
+    },
     "CustomTopic": {
-      "DependsOn": ["ASEndpoint", "CFEndpoint", "ECSEndpoint", "KMSEndpoint", "S3Endpoint", "SubnetPrivate0Routes", "SubnetPrivate1Routes"],
+      "DependsOn": ["ASEndpoint", "CFEndpoint", "ECSEndpoint", "KMSEndpoint", "S3Endpoint", "SSMEndpoint", "SubnetPrivate0Routes", "SubnetPrivate1Routes"],
       "Type": "AWS::Lambda::Function",
       "Properties": {
         "Code": {
@@ -1025,7 +1072,8 @@
         "Environment": {
           "Variables": {
             "ECS_ENDPOINT": { "Fn::Select": [ 1, { "Fn::Split": [ ":", { "Fn::Select": [ 0, { "Fn::GetAtt": [ "ECSEndpoint", "DnsEntries" ] } ] } ] } ] },
-            "KMS_ENDPOINT": { "Fn::Select": [ 1, { "Fn::Split": [ ":", { "Fn::Select": [ 0, { "Fn::GetAtt": [ "KMSEndpoint", "DnsEntries" ] } ] } ] } ] }
+            "KMS_ENDPOINT": { "Fn::Select": [ 1, { "Fn::Split": [ ":", { "Fn::Select": [ 0, { "Fn::GetAtt": [ "KMSEndpoint", "DnsEntries" ] } ] } ] } ] },
+            "SSM_ENDPOINT": { "Fn::Select": [ 1, { "Fn::Split": [ ":", { "Fn::Select": [ 0, { "Fn::GetAtt": [ "SSMEndpoint", "DnsEntries" ] } ] } ] } ] }
           }
         },
         "Handler": "index.external",
@@ -1581,9 +1629,9 @@
             "  - echo 'ECS_INSTANCE_ATTRIBUTES={\"asg\":\"build\"}' >> /etc/ecs/ecs.config\n",
             "  - echo HTTP_PROXY=", { "Ref": "HttpProxy" }, " >> /etc/ecs/ecs.config\n",
             "  - echo NO_PROXY=169.254.169.254,169.254.170.2,/var/run/docker.sock >> /etc/ecs/ecs.config\n",
-            "  - echo '", { "Fn::GetAtt": [ "DockertTLSCerts", "CACert" ] }, "' | base64 -d > /etc/ca.pem\n",
-            "  - echo '", { "Fn::GetAtt": [ "DockertTLSCerts", "Cert" ] }, "' | base64 -d > /etc/cert.pem\n",
-            "  - echo '", { "Fn::GetAtt": [ "DockertTLSCerts", "Key" ] }, "' | base64 -d > /etc/key.pem\n",
+            "  - echo '", { "Fn::GetAtt": [ "DockertTLSCA", "Value" ] }, "' | base64 -d > /etc/ca.pem\n",
+            "  - echo '", { "Fn::GetAtt": [ "DockertTLSCert", "Value" ] }, "' | base64 -d > /etc/cert.pem\n",
+            "  - echo '", { "Fn::GetAtt": [ "DockertTLSKey", "Value" ] }, "' | base64 -d > /etc/key.pem\n",
             "  - echo 'OPTIONS=\"--default-ulimit nofile=1024000:1024000 --log-opt max-file=2 --log-opt max-size=50m --host=unix:///var/run/docker.sock --host=0.0.0.0:2376 --tls --tlscacert /etc/ca.pem --tlscert /etc/cert.pem --tlskey /etc/key.pem\"' >> /etc/sysconfig/docker\n",
             "  - echo 'ECS_ENGINE_AUTH_DATA={\"index.docker.io\":{\"username\":\"\",\"password\":\"\",\"email\":\"\"}' >> /etc/ecs/ecs.config\n",
             "  - echo 'docker image prune -a --filter=\"until=96h\" --force' > /etc/cron.daily/docker-prune\n",
@@ -1785,9 +1833,9 @@
             "  - echo 'ECS_INSTANCE_ATTRIBUTES={\"asg\":\"primary\"}' >> /etc/ecs/ecs.config\n",
             "  - echo HTTP_PROXY=", { "Ref": "HttpProxy" }, " >> /etc/ecs/ecs.config\n",
             "  - echo NO_PROXY=169.254.169.254,169.254.170.2,/var/run/docker.sock >> /etc/ecs/ecs.config\n",
-            "  - echo '", { "Fn::GetAtt": [ "DockertTLSCerts", "CACert" ] }, "' | base64 -d > /etc/ca.pem\n",
-            "  - echo '", { "Fn::GetAtt": [ "DockertTLSCerts", "Cert" ] }, "' | base64 -d > /etc/cert.pem\n",
-            "  - echo '", { "Fn::GetAtt": [ "DockertTLSCerts", "Key" ] }, "' | base64 -d > /etc/key.pem\n",
+            "  - echo '", { "Fn::GetAtt": [ "DockertTLSCA", "Value" ] }, "' | base64 -d > /etc/ca.pem\n",
+            "  - echo '", { "Fn::GetAtt": [ "DockertTLSCert", "Value" ] }, "' | base64 -d > /etc/cert.pem\n",
+            "  - echo '", { "Fn::GetAtt": [ "DockertTLSKey", "Value" ] }, "' | base64 -d > /etc/key.pem\n",
             "  - echo 'OPTIONS=\"--default-ulimit nofile=1024000:1024000 --log-opt max-file=2 --log-opt max-size=50m --host=unix:///var/run/docker.sock --host=0.0.0.0:2376 --tls --tlscacert /etc/ca.pem --tlscert /etc/cert.pem --tlskey /etc/key.pem\"' >> /etc/sysconfig/docker\n",
             "  - echo 'ECS_ENGINE_AUTH_DATA={\"index.docker.io\":{\"username\":\"\",\"password\":\"\",\"email\":\"\"}' >> /etc/ecs/ecs.config\n",
             "  - echo 'docker image prune -a --filter=\"until=96h\" --force' > /etc/cron.daily/docker-prune\n",
@@ -2281,9 +2329,9 @@
             "  - echo 'ECS_INSTANCE_ATTRIBUTES={\"asg\":\"spot\"}' >> /etc/ecs/ecs.config\n",
             "  - echo HTTP_PROXY=", { "Ref": "HttpProxy" }, " >> /etc/ecs/ecs.config\n",
             "  - echo NO_PROXY=169.254.169.254,169.254.170.2,/var/run/docker.sock >> /etc/ecs/ecs.config\n",
-            "  - echo '", { "Fn::GetAtt": [ "DockertTLSCerts", "CACert" ] }, "' | base64 -d > /etc/ca.pem\n",
-            "  - echo '", { "Fn::GetAtt": [ "DockertTLSCerts", "Cert" ] }, "' | base64 -d > /etc/cert.pem\n",
-            "  - echo '", { "Fn::GetAtt": [ "DockertTLSCerts", "Key" ] }, "' | base64 -d > /etc/key.pem\n",
+            "  - echo '", { "Fn::GetAtt": [ "DockertTLSCA", "Value" ] }, "' | base64 -d > /etc/ca.pem\n",
+            "  - echo '", { "Fn::GetAtt": [ "DockertTLSCert", "Value" ] }, "' | base64 -d > /etc/cert.pem\n",
+            "  - echo '", { "Fn::GetAtt": [ "DockertTLSKey", "Value" ] }, "' | base64 -d > /etc/key.pem\n",
             "  - echo 'OPTIONS=\"--default-ulimit nofile=1024000:1024000 --log-opt max-file=2 --log-opt max-size=50m --host=unix:///var/run/docker.sock --host=0.0.0.0:2376 --tls --tlscacert /etc/ca.pem --tlscert /etc/cert.pem --tlskey /etc/key.pem\"' >> /etc/sysconfig/docker\n",
             "  - echo 'ECS_ENGINE_AUTH_DATA={\"index.docker.io\":{\"username\":\"\",\"password\":\"\",\"email\":\"\"}' >> /etc/ecs/ecs.config\n",
             "  - echo 'docker image prune -a --filter=\"until=96h\" --force' > /etc/cron.daily/docker-prune\n",
@@ -3190,10 +3238,10 @@
               "rack.CustomEncryptionKey": { "Ref": "EncryptionKey" },
               "rack.DynamoBuilds": { "Ref": "DynamoBuilds" },
               "rack.DynamoReleases": { "Ref": "DynamoReleases" },
-              "rack.DockerTlsCA": { "Fn::GetAtt": [ "DockertTLSCerts", "CACert" ] },
-              "rack.DockerTlsCAKey": { "Fn::GetAtt": [ "DockertTLSCerts", "CAKey" ] },
-              "rack.DockerTlsCert": { "Fn::GetAtt": [ "DockertTLSCerts", "Cert" ] },
-              "rack.DockerTlsKey": { "Fn::GetAtt": [ "DockertTLSCerts", "Key" ] },
+              "rack.DockerTlsCA": { "Fn::GetAtt": [ "DockertTLSCA", "Value" ] },
+              "rack.DockerTlsCAKey": { "Fn::GetAtt": [ "DockertTLSCAKey", "Value" ] },
+              "rack.DockerTlsCert": { "Fn::GetAtt": [ "DockertTLSCert", "Value" ] },
+              "rack.DockerTlsKey": { "Fn::GetAtt": [ "DockertTLSKey", "Value" ] },
               "rack.EcsPollInterval": { "Ref": "EcsPollInterval" },
               "rack.LogDriver": { "Ref": "LogDriver" },
               "rack.EncryptionKey": { "Ref": "EncryptionKey" },

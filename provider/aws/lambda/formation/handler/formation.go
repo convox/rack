@@ -176,6 +176,8 @@ func HandleRequest(freq Request) error {
 		physical, outputs, err = HandleKMSKey(freq)
 	case "Custom::SelfSignedCertificate":
 		physical, outputs, err = HandleSelfSignedCertificate(freq)
+	case "Custom::SelfSignedCertificateGetter":
+		physical, outputs, err = HandleSelfSignedCertificateGetter(freq)
 	case "Custom::SNSSubscription":
 		physical, outputs, err = HandleSNSSubcription(freq)
 	default:

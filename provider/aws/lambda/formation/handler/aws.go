@@ -13,6 +13,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/sns"
 	"github.com/aws/aws-sdk-go/service/sqs"
+	"github.com/aws/aws-sdk-go/service/ssm"
 )
 
 func Credentials(req *Request) *credentials.Credentials {
@@ -95,5 +96,14 @@ func SQS() *sqs.SQS {
 	return sqs.New(session.New(), &aws.Config{
 		Credentials: Credentials(nil),
 		Region:      Region(nil),
+	})
+}
+
+func SSM(req Request) *ssm.SSM {
+	return ssm.New(session.New(), &aws.Config{
+		Credentials: Credentials(&req),
+		Region:      Region(&req),
+		MaxRetries:  aws.Int(10),
+		Endpoint:    aws.String(os.Getenv("SSM_ENDPOINT")),
 	})
 }

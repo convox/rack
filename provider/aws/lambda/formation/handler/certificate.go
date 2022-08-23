@@ -6,30 +6,209 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/base64"
+	"encoding/hex"
 	"encoding/pem"
+	"fmt"
 	"math/big"
 	"time"
+
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/ssm"
+)
+
+const (
+	certArnSeperator = "$#$"
 )
 
 func HandleSelfSignedCertificate(req Request) (string, map[string]string, error) {
 	defer recoverFailure(req)
 
-	return GeneratedSelfSignedCertsForDocker(req)
-}
-
-func GeneratedSelfSignedCertsForDocker(req Request) (string, map[string]string, error) {
-	if req.RequestType == "Create" {
-		req.PhysicalResourceId = "cert"
-	} else if req.RequestType == "Delete" {
-		return req.RequestId, map[string]string{}, nil
+	_, ok := req.ResourceProperties["Rack"].(string)
+	if !ok {
+		return "", nil, fmt.Errorf("Rack property is required")
 	}
 
-	validFor := 3 * 365 * 24 * time.Hour
+	switch req.RequestType {
+	case "Create":
+		return CreateSelfSignedCertsForDocker(req)
+	case "Update":
+		return UpdateSelfSignedCertsForDocker(req)
+	case "Delete":
+		return DeleteSelfSignedCertsForDocker(req)
+	}
+	return "", nil, fmt.Errorf("unknown RequestType: %s", req.RequestType)
+}
+
+func HandleSelfSignedCertificateGetter(req Request) (string, map[string]string, error) {
+	defer recoverFailure(req)
+
+	_, ok := req.ResourceProperties["Rack"].(string)
+	if !ok {
+		return "", nil, fmt.Errorf("Rack property is required")
+	}
+
+	switch req.RequestType {
+	case "Create", "Update", "Delete":
+		return GetCertificate(req)
+	}
+	return "", nil, fmt.Errorf("unknown RequestType: %s", req.RequestType)
+}
+
+func CreateSelfSignedCertsForDocker(req Request) (string, map[string]string, error) {
+	certsMap, err := generateSelfSignedCertsForDocker()
+	if err != nil {
+		return "", nil, fmt.Errorf("failed to generate cert: %s", err)
+	}
+
+	rackKey := rackHash(req.ResourceProperties["Rack"].(string))
+
+	ssmClient := SSM(req)
+
+	_, err = ssmClient.PutParameter(&ssm.PutParameterInput{
+		Name:      aws.String(caCertParameterName(rackKey)),
+		Overwrite: aws.Bool(true),
+		Value:     aws.String(certsMap["CACert"]),
+		Type:      aws.String(ssm.ParameterTypeString),
+	})
+	if err != nil {
+		return "", nil, err
+	}
+
+	_, err = ssmClient.PutParameter(&ssm.PutParameterInput{
+		Name:      aws.String(caKeyParameterName(rackKey)),
+		Overwrite: aws.Bool(true),
+		Value:     aws.String(certsMap["CAKey"]),
+		Type:      aws.String(ssm.ParameterTypeString),
+	})
+	if err != nil {
+		return "", nil, err
+	}
+
+	_, err = ssmClient.PutParameter(&ssm.PutParameterInput{
+		Name:      aws.String(certParameterName(rackKey)),
+		Overwrite: aws.Bool(true),
+		Value:     aws.String(certsMap["Cert"]),
+		Type:      aws.String(ssm.ParameterTypeString),
+	})
+	if err != nil {
+		return "", nil, err
+	}
+
+	_, err = ssmClient.PutParameter(&ssm.PutParameterInput{
+		Name:      aws.String(keyParameterName(rackKey)),
+		Overwrite: aws.Bool(true),
+		Value:     aws.String(certsMap["Key"]),
+		Type:      aws.String(ssm.ParameterTypeString),
+	})
+	if err != nil {
+		return "", nil, err
+	}
+
+	return rackKey, map[string]string{
+		"CACertSSMKey": caCertParameterName(rackKey),
+		"CAKeySSMKey":  caKeyParameterName(rackKey),
+		"CertSSMKey":   certParameterName(rackKey),
+		"KeySSMKey":    keyParameterName(rackKey),
+	}, nil
+}
+
+func DeleteSelfSignedCertsForDocker(req Request) (string, map[string]string, error) {
+	rackKey := rackHash(req.ResourceProperties["Rack"].(string))
+	ssmClient := SSM(req)
+
+	ssmClient.DeleteParameter(&ssm.DeleteParameterInput{
+		Name: aws.String(caCertParameterName(rackKey)),
+	})
+	ssmClient.DeleteParameter(&ssm.DeleteParameterInput{
+		Name: aws.String(caKeyParameterName(rackKey)),
+	})
+	ssmClient.DeleteParameter(&ssm.DeleteParameterInput{
+		Name: aws.String(certParameterName(rackKey)),
+	})
+	ssmClient.DeleteParameter(&ssm.DeleteParameterInput{
+		Name: aws.String(keyParameterName(rackKey)),
+	})
+
+	return rackKey, map[string]string{
+		"CACertSSMKey": caCertParameterName(rackKey),
+		"CAKeySSMKey":  caKeyParameterName(rackKey),
+		"CertSSMKey":   certParameterName(rackKey),
+		"KeySSMKey":    keyParameterName(rackKey),
+	}, nil
+}
+
+func GetCertificate(req Request) (string, map[string]string, error) {
+	rackKey := rackHash(req.ResourceProperties["Rack"].(string))
+	key := req.ResourceProperties["ParameterKey"].(string)
+	param, err := SSM(req).GetParameter(&ssm.GetParameterInput{
+		Name: aws.String(key),
+	})
+	if err != nil {
+		return "", nil, err
+	}
+
+	return rackKey, map[string]string{
+		"Value": *param.Parameter.Value,
+	}, nil
+}
+
+func UpdateSelfSignedCertsForDocker(req Request) (string, map[string]string, error) {
+	rackKey := rackHash(req.ResourceProperties["Rack"].(string))
+	ssmClient := SSM(req)
+	param, err := ssmClient.GetParameter(&ssm.GetParameterInput{
+		Name: aws.String(certParameterName(rackKey)),
+	})
+	if err != nil {
+		return CreateSelfSignedCertsForDocker(req)
+	}
+
+	pemBytes, err := base64.StdEncoding.DecodeString(*param.Parameter.Value)
+	if err != nil {
+		return CreateSelfSignedCertsForDocker(req)
+	}
+
+	block, _ := pem.Decode(pemBytes)
+	cert, err := x509.ParseCertificate(block.Bytes)
+	if err != nil {
+		return CreateSelfSignedCertsForDocker(req)
+	}
+
+	// renew if cert expires in 2 months
+	if cert.NotAfter.Before(time.Now().Add(2 * 30 * 24 * time.Hour)) {
+		return CreateSelfSignedCertsForDocker(req)
+	}
+
+	return rackKey, map[string]string{
+		"CACertSSMKey": caCertParameterName(rackKey),
+		"CAKeySSMKey":  caKeyParameterName(rackKey),
+		"CertSSMKey":   certParameterName(rackKey),
+		"KeySSMKey":    keyParameterName(rackKey),
+	}, nil
+}
+
+func caCertParameterName(rack string) string {
+	return fmt.Sprintf("%s-docker-tls-ca-cert", rack)
+}
+
+func caKeyParameterName(rack string) string {
+	return fmt.Sprintf("%s-docker-tls-ca-key", rack)
+}
+
+func certParameterName(rack string) string {
+	return fmt.Sprintf("%s-docker-tls-cert", rack)
+}
+
+func keyParameterName(rack string) string {
+	return fmt.Sprintf("%s-docker-tls-key", rack)
+}
+
+func generateSelfSignedCertsForDocker() (map[string]string, error) {
+	validFor := 365 * 24 * time.Hour
 	rsaBits := 2048
 
 	capriv, err := rsa.GenerateKey(rand.Reader, rsaBits)
 	if err != nil {
-		return req.PhysicalResourceId, nil, err
+		return nil, err
 	}
 
 	notBefore := time.Now().Add(-1 * time.Hour)
@@ -50,23 +229,24 @@ func GeneratedSelfSignedCertsForDocker(req Request) (string, map[string]string, 
 
 	caBytes, err := x509.CreateCertificate(rand.Reader, ca, ca, &capriv.PublicKey, capriv)
 	if err != nil {
-		return req.PhysicalResourceId, nil, err
-	}
-
-	caCertificate, err := x509.ParseCertificate(caBytes)
-	if err != nil {
-		return req.PhysicalResourceId, nil, err
+		return nil, err
 	}
 
 	caPemBytes := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: caBytes})
 
+	caCertificate, err := x509.ParseCertificate(caBytes)
+	if err != nil {
+		return nil, err
+	}
+
 	cakeyBytes := x509.MarshalPKCS1PrivateKey(capriv)
 	if err != nil {
-		return req.PhysicalResourceId, nil, err
+		return nil, err
 	}
+
 	cakeyPemBytes := pem.EncodeToMemory(&pem.Block{Type: "RSA PRIVATE KEY", Bytes: cakeyBytes})
 
-	serverCert := &x509.Certificate{
+	cert := &x509.Certificate{
 		SerialNumber: big.NewInt(2),
 		Subject: pkix.Name{
 			CommonName: "Convox",
@@ -79,28 +259,33 @@ func GeneratedSelfSignedCertsForDocker(req Request) (string, map[string]string, 
 		BasicConstraintsValid: true,
 	}
 
-	serverpriv, err := rsa.GenerateKey(rand.Reader, rsaBits)
+	certpriv, err := rsa.GenerateKey(rand.Reader, rsaBits)
 	if err != nil {
-		return req.PhysicalResourceId, nil, err
+		return nil, err
 	}
 
-	serverBytes, err := x509.CreateCertificate(rand.Reader, serverCert, caCertificate, &serverpriv.PublicKey, capriv)
+	certBytes, err := x509.CreateCertificate(rand.Reader, cert, caCertificate, &certpriv.PublicKey, capriv)
 	if err != nil {
-		return req.PhysicalResourceId, nil, err
+		return nil, err
 	}
 
-	certPemBytes := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: serverBytes})
+	certPemBytes := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: certBytes})
 
-	keyBytes := x509.MarshalPKCS1PrivateKey(serverpriv)
+	keyBytes := x509.MarshalPKCS1PrivateKey(certpriv)
 	if err != nil {
-		return req.PhysicalResourceId, nil, err
+		return nil, err
 	}
+
 	keyPemBytes := pem.EncodeToMemory(&pem.Block{Type: "RSA PRIVATE KEY", Bytes: keyBytes})
 
-	return req.PhysicalResourceId, map[string]string{
+	return map[string]string{
 		"CACert": base64.StdEncoding.EncodeToString(caPemBytes),
 		"CAKey":  base64.StdEncoding.EncodeToString(cakeyPemBytes),
 		"Cert":   base64.StdEncoding.EncodeToString(certPemBytes),
 		"Key":    base64.StdEncoding.EncodeToString(keyPemBytes),
 	}, nil
+}
+
+func rackHash(rack string) string {
+	return hex.EncodeToString([]byte(rack))
 }
