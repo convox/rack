@@ -52,7 +52,10 @@ esac
 
 # app
 cd $root/examples/httpd
-convox apps create ci2 --wait
+if [ "${IS_UPDATE}" == "false" ]; then
+  convox apps create ci2 --wait
+fi
+
 convox apps | grep ci2
 convox apps info ci2 | grep running
 release=$(convox build -a ci2 -d cibuild --id) && [ -n "$release" ]
@@ -191,7 +194,9 @@ case $provider in
 esac
 
 # cleanup
-convox apps delete ci2 --wait
+if [ "${IS_UPDATE}" == "false" ]; then
+  convox apps delete ci2 --wait
+fi
 
 # cleanup (provider-specific)
 case $provider in
