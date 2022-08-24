@@ -9,7 +9,7 @@
       "Type" : "String",
       "Default": "true",
       "AllowedValues" : [ "true", "false" ]
-    },    
+    },
     "Class": {
       "Type": "String",
       "Default": "db.t2.micro"
@@ -95,7 +95,7 @@
         "MultiAZ": { "Ref": "Durable" },
         "Port": "3306",
         "PubliclyAccessible": "false",
-        "StorageEncrypted": { "Ref": "Encrypted" },
+        "StorageEncrypted": { "Fn::If": [ "BlankEncrypted", { "Ref": "AWS::NoValue" }, { "Ref": "Encrypted" } ] },
         "StorageType": { "Fn::If": [ "BlankIops", "gp2", "io2" ] },
         "VPCSecurityGroups": [ { "Ref": "SecurityGroup" } ]
       }

@@ -99,7 +99,7 @@
         "MultiAZ": { "Ref": "Durable" },
         "Port": "5432",
         "PubliclyAccessible": "false",
-        "StorageEncrypted": { "Ref": "Encrypted" },
+        "StorageEncrypted": { "Fn::If": [ "BlankEncrypted", { "Ref": "AWS::NoValue" }, { "Ref": "Encrypted" } ] },
         "StorageType": { "Fn::If": [ "BlankIops", "gp2", "io2" ] },
         "VPCSecurityGroups": [ { "Ref": "SecurityGroup" } ]
       }
