@@ -24,6 +24,30 @@ import (
 	"github.com/convox/rack/pkg/structs"
 )
 
+const (
+	DENY_UPDATE_RESOURCE_POLICY string = `{
+		"Statement" : [
+			{
+				"Effect" : "Deny",
+				"Action" : "Update:Replace",
+				"Principal": "*",
+				"Resource" : "*",
+				"Condition" : {
+					"StringEquals" : {
+						"ResourceType" : ["AWS::RDS::DBInstance"]
+					}
+				}
+			},
+			{
+				"Effect" : "Allow",
+				"Action" : "Update:*",
+				"Principal": "*",
+				"Resource" : "*"
+			}
+		]
+	}`
+)
+
 func (p *Provider) ReleaseCreate(app string, opts structs.ReleaseCreateOptions) (*structs.Release, error) {
 	r := structs.NewRelease(app)
 
@@ -240,6 +264,7 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 		tp["Build"] = b
 	}
 
+	isEncryptedEmpty := true
 	for _, r := range m.Resources {
 		data, err := formationTemplate(fmt.Sprintf("resource/%s", r.Type), map[string]interface{}{})
 		if err != nil {
@@ -257,6 +282,10 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 		}
 
 		for k, v := range r.Options {
+			if k == "encrypted" && v != "" {
+				isEncryptedEmpty = false
+			}
+
 			params[upperName(k)] = v
 		}
 
@@ -387,7 +416,11 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 
 	cfid := fmt.Sprintf("%s-%s", time.Now().UTC().Format(helpers.CompactSortableTime), r.Id)
 
-	if err := p.updateStack(p.rackStack(r.App), data, updates, tags, cfid); err != nil {
+	policy := ""
+	if isEncryptedEmpty {
+		policy = DENY_UPDATE_RESOURCE_POLICY
+	}
+	if err := p.updateStack(p.rackStack(r.App), data, updates, tags, cfid, policy); err != nil {
 		return err
 	}
 
@@ -556,7 +589,7 @@ func (p *Provider) releasePromoteGeneration1(a *structs.App, r *structs.Release)
 		return err
 	}
 
-	if err := p.updateStack(p.rackStack(a.Name), data, params, map[string]string{}, r.Id); err != nil {
+	if err := p.updateStack(p.rackStack(a.Name), data, params, map[string]string{}, r.Id, ""); err != nil {
 		return err
 	}
 

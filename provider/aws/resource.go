@@ -724,7 +724,11 @@ func (p *Provider) updateResource(s *structs.Resource, params map[string]string)
 		"Type":     "resource",
 	}
 
-	if err := p.updateStack(p.rackStack(s.Name), []byte(formation), params, tags, ""); err != nil {
+	policy := ""
+	if params["encrypted"] != "" {
+		policy = DENY_UPDATE_RESOURCE_POLICY
+	}
+	if err := p.updateStack(p.rackStack(s.Name), []byte(formation), params, tags, "", policy); err != nil {
 		return err
 	}
 
