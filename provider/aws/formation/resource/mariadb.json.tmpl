@@ -78,7 +78,7 @@
         "AllowMajorVersionUpgrade": "true",
         "AutoMinorVersionUpgrade": { "Ref": "AutoMinorVersionUpgrade" },
         "DBInstanceClass": { "Ref": "Class" },
-        "DBInstanceIdentifier": { "Ref": "AWS::StackName" },
+        "DBInstanceIdentifier": { "Fn::Sub": "${Rack}-${AWS::StackName}" },
         "DBName": "app",
         "DBParameterGroupName": { "Fn::Sub": [ "default.mariadb${Base}", {
           "Base": { "Fn::Join": [ ".", [
