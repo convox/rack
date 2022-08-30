@@ -26,14 +26,14 @@ var (
 )
 
 type Manifest struct {
-	Environment Environment `yaml:"environment,omitempty"`
-	Params      Params      `yaml:"params,omitempty"`
-	Resources   Resources   `yaml:"resources,omitempty"`
-	Services    Services    `yaml:"services,omitempty"`
-	Timers      Timers      `yaml:"timers,omitempty"`
-
-	attributes map[string]bool
-	env        map[string]string
+	Environment     Environment `yaml:"environment,omitempty"`
+	Params          Params      `yaml:"params,omitempty"`
+	Resources       Resources   `yaml:"resources,omitempty"`
+	Services        Services    `yaml:"services,omitempty"`
+	Timers          Timers      `yaml:"timers,omitempty"`
+	DisableRollback bool        `yaml:"disableRollback"`
+	attributes      map[string]bool
+	env             map[string]string
 }
 
 func init() {

@@ -261,7 +261,7 @@ func (p *Provider) AppUpdate(app string, opts structs.AppUpdateOptions) error {
 		}
 	}
 
-	return p.updateStack(p.rackStack(app), nil, opts.Parameters, map[string]string{}, "")
+	return p.updateStack(p.rackStack(app), nil, opts.Parameters, map[string]string{}, "", false)
 }
 
 func (p *Provider) appFromStack(stack *cloudformation.Stack) (*structs.App, error) {

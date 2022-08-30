@@ -22,9 +22,10 @@ var interpolationBracketRegex = regexp.MustCompile("\\$\\{([0-9A-Za-z_]*)\\}")
 var interpolationDollarRegex = regexp.MustCompile("\\$([0-9A-Za-z_]+)")
 
 type Manifest struct {
-	Version  string             `yaml:"version"`
-	Networks Networks           `yaml:"networks,omitempty"`
-	Services map[string]Service `yaml:"services"`
+	Version         string             `yaml:"version"`
+	Networks        Networks           `yaml:"networks,omitempty"`
+	Services        map[string]Service `yaml:"services"`
+	DisableRollback bool               `yaml:"disableRollback"`
 }
 
 // Load a Manifest from raw data

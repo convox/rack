@@ -240,6 +240,7 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 		tp["Build"] = b
 	}
 
+	// println(">>>>>>>> Entering Resources")
 	for _, r := range m.Resources {
 		data, err := formationTemplate(fmt.Sprintf("resource/%s", r.Type), map[string]interface{}{})
 		if err != nil {
@@ -251,6 +252,7 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 			return err
 		}
 
+		// println(">> resource-url", r.Name, "URL", ou.Url)
 		params, err := p.resourceDefaults(app, r.Name)
 		if err != nil {
 			return err
@@ -387,7 +389,8 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 
 	cfid := fmt.Sprintf("%s-%s", time.Now().UTC().Format(helpers.CompactSortableTime), r.Id)
 
-	if err := p.updateStack(p.rackStack(r.App), data, updates, tags, cfid); err != nil {
+	// println(">>>>>>>>>> replying")
+	if err := p.updateStack(p.rackStack(r.App), data, updates, tags, cfid, m.DisableRollback); err != nil {
 		return err
 	}
 
@@ -556,7 +559,7 @@ func (p *Provider) releasePromoteGeneration1(a *structs.App, r *structs.Release)
 		return err
 	}
 
-	if err := p.updateStack(p.rackStack(a.Name), data, params, map[string]string{}, r.Id); err != nil {
+	if err := p.updateStack(p.rackStack(a.Name), data, params, map[string]string{}, r.Id, m.DisableRollback); err != nil {
 		return err
 	}
 

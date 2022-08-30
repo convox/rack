@@ -724,7 +724,7 @@ func (p *Provider) updateResource(s *structs.Resource, params map[string]string)
 		"Type":     "resource",
 	}
 
-	if err := p.updateStack(p.rackStack(s.Name), []byte(formation), params, tags, ""); err != nil {
+	if err := p.updateStack(p.rackStack(s.Name), []byte(formation), params, tags, "", false); err != nil {
 		return err
 	}
 

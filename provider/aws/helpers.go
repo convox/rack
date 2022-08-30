@@ -1240,14 +1240,16 @@ func (p *Provider) taskDefinitionRelease(arn string) (string, error) {
 // updateStack updates a stack
 //   template is url to a template or empty string to reuse previous
 //   changes is a list of parameter changes to make (does not need to include every param)
-func (p *Provider) updateStack(name string, template []byte, changes map[string]string, tags map[string]string, id string) error {
+func (p *Provider) updateStack(name string, template []byte, changes map[string]string, tags map[string]string, id string, disableRollback bool) error {
 	cache.Clear("describeStacks", nil)
 	cache.Clear("describeStacks", name)
 
+	// fmt.Printf(">>>>> DISABLEROLLBACK=%t\n", disableRollback)
 	req := &cloudformation.UpdateStackInput{
 		Capabilities:     []*string{aws.String("CAPABILITY_IAM")},
 		StackName:        aws.String(name),
 		NotificationARNs: []*string{aws.String(p.CloudformationTopic)},
+		DisableRollback:  &disableRollback,
 	}
 
 	if id != "" {

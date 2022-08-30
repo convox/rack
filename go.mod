@@ -6,7 +6,7 @@ require (
 	github.com/PuerkitoBio/goquery v1.1.0
 	github.com/RackSec/srslog v0.0.0-20170920152354-4d2c753a4ee1
 	github.com/aws/aws-lambda-go v1.2.0
-	github.com/aws/aws-sdk-go v1.25.29
+	github.com/aws/aws-sdk-go v1.44.87
 	github.com/boltdb/bolt v1.3.1
 	github.com/convox/changes v0.0.0-20190306122126-bce25ca20c47
 	github.com/convox/exec v0.0.0-20180905012044-cc13d277f897
@@ -30,14 +30,14 @@ require (
 	github.com/miekg/dns v1.1.25
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/mweagle/Sparta v0.8.1-0.20171126182155-ead2872585dc
-	github.com/pkg/errors v0.8.1
+	github.com/pkg/errors v0.9.1
 	github.com/segmentio/analytics-go v2.0.1-0.20160426181448-2d840d861c32+incompatible
 	github.com/stretchr/testify v1.3.0
 	github.com/stvp/rollbar v0.5.1
 	github.com/twmb/algoimpl v0.0.0-20170717182524-076353e90b94
 	golang.org/x/crypto v0.0.0-20220722155217-630584e8d5aa
 	gopkg.in/cheggaaa/pb.v1 v1.0.28
-	gopkg.in/yaml.v2 v2.2.2
+	gopkg.in/yaml.v2 v2.2.8
 	k8s.io/api v0.0.0-20180628040859-072894a440bd
 	k8s.io/apimachinery v0.0.0-20180621070125-103fd098999d
 	k8s.io/client-go v8.0.0+incompatible
