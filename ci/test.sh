@@ -140,6 +140,14 @@ case $provider in
     ;;
 esac
 
+# timers
+sleep 30
+
+timerLog=$(convox logs -a ci2 --no-follow --since 1m | grep service/cleanup)
+if ! [[ $timerLog == *"Hello Timer"* ]]; then
+  echo "failed"; exit 1;
+fi
+
 # certs
 case $provider in
   aws)

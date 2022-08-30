@@ -2,3 +2,11 @@ services:
   web:
     image: httpd
     port: 80
+  worker:
+    build: ./worker
+    scale: 0
+timers:
+  cleanup:
+    command: ./cmd.sh
+    schedule: "*/1 * * * ?"
+    service: worker
