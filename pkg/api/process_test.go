@@ -1,6 +1,7 @@
 package api_test
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -62,6 +63,31 @@ func TestProcessExec(t *testing.T) {
 		data, err := ioutil.ReadAll(r)
 		require.NoError(t, err)
 		require.Equal(t, "outF1E49A85-0AD7-4AEF-A618-C249C6E6568D:1\n", string(data))
+	})
+}
+
+func TestProcessLogs(t *testing.T) {
+	testServer(t, func(c *stdsdk.Client, p *structs.MockProvider) {
+		opts := structs.LogsOptions{
+			Filter: options.String("test"),
+			Follow: options.Bool(false),
+			Prefix: options.Bool(false),
+			Since:  options.Duration(2 * time.Minute),
+		}
+		ro := stdsdk.RequestOptions{
+			Headers: stdsdk.Headers{
+				"Filter": "test",
+				"Follow": "false",
+				"Prefix": "false",
+				"Since":  "2m",
+			},
+		}
+		p.On("ProcessLogs", "app1", "pid1", opts).Return(ioutil.NopCloser(bytes.NewBuffer([]byte{})), nil)
+		r, err := c.Websocket("/apps/app1/processes/pid1/logs", ro)
+		require.NoError(t, err)
+		data, err := ioutil.ReadAll(r)
+		require.NoError(t, err)
+		require.Equal(t, "", string(data))
 	})
 }
 

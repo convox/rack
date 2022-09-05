@@ -466,6 +466,17 @@ func TestAppsInfoError(t *testing.T) {
 
 }
 
+func TestAppsLock(t *testing.T) {
+	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
+		opts := structs.AppUpdateOptions{Lock: options.Bool(true)}
+		i.On("AppUpdate", "app1", opts).Return(nil)
+		res, err := testExecute(e, "apps lock app1", nil)
+		require.NoError(t, err)
+		require.Equal(t, 0, res.Code)
+		res.RequireStdout(t, []string{"Locking app1... OK"})
+	})
+}
+
 func TestAppsParams(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
 		i.On("SystemGet").Return(fxSystem(), nil)
@@ -662,5 +673,16 @@ func TestAppsRollback(t *testing.T) {
 			fxLogsSystem()[0],
 			fxLogsSystem()[1],
 		})
+	})
+}
+
+func TestAppsUnlock(t *testing.T) {
+	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
+		opts := structs.AppUpdateOptions{Lock: options.Bool(false)}
+		i.On("AppUpdate", "app1", opts).Return(nil)
+		res, err := testExecute(e, "apps unlock app1", nil)
+		require.NoError(t, err)
+		require.Equal(t, 0, res.Code)
+		res.RequireStdout(t, []string{"Unlocking app1... OK"})
 	})
 }
