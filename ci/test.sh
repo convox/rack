@@ -54,6 +54,8 @@ esac
 cd $root/examples/httpd
 if [ "${IS_UPDATE}" == "false" ]; then
   convox apps create ci2 --wait
+else
+  convox deploy -a ci2 --wait
 fi
 
 convox apps | grep ci2
