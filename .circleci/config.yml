@@ -48,10 +48,6 @@ workflows:
           <<: *filter-releases-any
           name: ci/aws/public
           provider: aws
-      - ci-update-downgrade:
-          <<: *filter-releases-any
-          name: ci/aws/update-downgrade
-          provider: aws
       - ci:
           <<: *filter-releases-any
           name: ci/aws/public-existing-vpc
@@ -67,6 +63,18 @@ workflows:
           name: ci/aws/private
           provider: aws
           args: Private=Yes
+      - ci:
+          type: approval
+          <<: *filter-releases-any
+          name: ci/aws/update
+          provider: aws
+          extend: "update"
+      - ci:
+          type: approval
+          <<: *filter-releases-any
+          name: ci/aws/downgrade
+          provider: aws
+          extend: "downgrade"
       - update:
           <<: *filter-releases-master
           context: staging
@@ -93,41 +101,21 @@ jobs:
       args:
         type: string
         default: ""
+      extend:
+        type: string
+        default: "false"
     docker:
       - image: circleci/golang:1.16
     environment:
       PROVIDER: <<parameters.provider>>
       ARGS: <<parameters.args>>
-      IS_UPDATE: "false"
-    steps:
-      - checkout
-      - ci-dependencies
-      - ci-install
-      - ci-test
-      - run:
-          command: ci/uninstall.sh
-          no_output_timeout: 90m
-          when: always
-  ci-update-downgrade:
-    parameters:
-      provider:
-        type: string
-      args:
-        type: string
-        default: ""
-    docker:
-      - image: circleci/golang:1.16
-    environment:
-      PROVIDER: <<parameters.provider>>
-      ARGS: <<parameters.args>>
-      IS_UPDATE: "true"
+      EXTEND: <<parameters.extend>>
     steps:
       - checkout
       - ci-dependencies
       - ci-install
       - ci-apps-create
       - ci-update
-      - ci-test
       - ci-downgrade
       - ci-test
       - run:
