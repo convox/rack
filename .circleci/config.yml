@@ -91,15 +91,7 @@ workflows:
           name: ci/staging/app/docs-staging
           repo: https://github.com/convox/docs
           app: docs-staging
-          check: https://docs-staging.convox.com
-      - deploy:
-          <<: *filter-releases-master
-          <<: *deploy
-          context: staging
-          name: ci/staging/app/httpd
-          repo: https://github.com/convox-examples/httpd
-          app: httpd
-          check: https://httpd-staging.convox.com
+          check: https://docs-staging-web.stagi-route-1l04rz3fpvbt0-2130032241.us-east-1.convox.site/
 
 jobs:
   ci:
