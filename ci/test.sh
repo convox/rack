@@ -52,8 +52,10 @@ esac
 
 # app
 cd $root/examples/httpd
-if [ "${IS_UPDATE}" == "false" ]; then
-  convox apps create ci2 --wait
+
+if [ "${EXTEND}" != "false" ]; then
+  # if update or downgrade test, it will deploy the app again
+  convox deploy -a ci2 --wait
 fi
 
 convox apps | grep ci2
@@ -202,9 +204,7 @@ case $provider in
 esac
 
 # cleanup
-if [ "${IS_UPDATE}" == "false" ]; then
-  convox apps delete ci2 --wait
-fi
+convox apps delete ci2 --wait
 
 # cleanup (provider-specific)
 case $provider in
