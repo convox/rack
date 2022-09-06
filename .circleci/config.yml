@@ -73,14 +73,14 @@ workflows:
           <<: *filter-releases-any
           name: ci/aws/update
           provider: aws
-          extend: "update"
+          action: "update"
       - ci:
           requires:
             - run-additional-tests
           <<: *filter-releases-any
           name: ci/aws/downgrade
           provider: aws
-          extend: "downgrade"
+          action: "downgrade"
       - update:
           <<: *filter-releases-master
           context: staging
@@ -107,15 +107,15 @@ jobs:
       args:
         type: string
         default: ""
-      extend:
+      action:
         type: string
-        default: "false"
+        default: ""
     docker:
       - image: circleci/golang:1.16
     environment:
       PROVIDER: <<parameters.provider>>
       ARGS: <<parameters.args>>
-      EXTEND: <<parameters.extend>>
+      ACTION: <<parameters.action>>
     steps:
       - checkout
       - ci-dependencies

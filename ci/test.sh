@@ -53,7 +53,7 @@ esac
 # app
 cd $root/examples/httpd
 
-if [ "${EXTEND}" != "false" ]; then
+if [ "${ACTION}" != "" ]; then
   # if update or downgrade test, it will deploy the app again
   convox deploy -a ci2 --wait
 fi
