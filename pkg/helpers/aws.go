@@ -359,7 +359,7 @@ func CloudWatchLogsStream(ctx context.Context, cw cloudwatchlogsiface.CloudWatch
 	var start int64
 
 	if opts.Since != nil {
-		start = time.Now().UTC().Add((*opts.Since)*-1).UnixNano() / int64(time.Millisecond)
+		start = time.Now().UTC().Add((*opts.Since)*-1).Unix() * int64(time.Microsecond)
 		req.StartTime = aws.Int64(start)
 	}
 
