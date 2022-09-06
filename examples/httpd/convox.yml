@@ -1,4 +1,9 @@
 services:
   web:
-    image: httpd
+    build: .
     port: 80
+timers:
+  example:
+    command: /usr/local/apache2/timer-cmd.sh
+    schedule: "*/1 * * * ?"
+    service: web
