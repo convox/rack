@@ -1,12 +1,9 @@
 services:
   web:
-    image: httpd
+    build: .
     port: 80
-  worker:
-    build: ./worker
-    scale: 0
 timers:
-  cleanup:
-    command: ./cmd.sh
+  example:
+    command: /usr/local/apache2/timer-cmd.sh
     schedule: "*/1 * * * ?"
-    service: worker
+    service: web
