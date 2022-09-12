@@ -66,17 +66,17 @@ workflows:
       - ci:
           <<: *filter-releases-any
           type: approval
-          name: run-additional-tests
+          name: additional-tests
       - ci:
           requires:
-            - run-additional-tests
+            - additional-tests
           <<: *filter-releases-any
           name: ci/aws/update
           provider: aws
           action: "update"
       - ci:
           requires:
-            - run-additional-tests
+            - additional-tests
           <<: *filter-releases-any
           name: ci/aws/downgrade
           provider: aws
