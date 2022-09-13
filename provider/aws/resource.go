@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"math/rand"
@@ -103,7 +104,7 @@ func (p *Provider) resourceDefaults(app, resource string) (map[string]string, er
 
 	stack, _ := p.appResource(app, fmt.Sprintf("Resource%s", upperName(resource)))
 	if stack == "" {
-		return ds, nil
+		return ds, errors.New("resource not found")
 	}
 
 	s, err := p.describeStack(stack)
