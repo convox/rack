@@ -1,6 +1,6 @@
 .PHONY: all build package release
 
-pkg_darwin  = pkg/convox-darwin-10.16-amd64
+pkg_darwin  = pkg/convox-darwin-amd64
 pkg_darwin_arm64  = pkg/convox-darwin-arm64
 pkg_linux   = pkg/convox-linux-amd64
 pkg_linux_arm64   = pkg/convox-linux-arm64
