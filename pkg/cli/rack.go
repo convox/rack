@@ -9,8 +9,8 @@ import (
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
-	ss "github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
+	pkgcf "github.com/convox/rack/pkg/cloudformation"
 	"github.com/convox/rack/pkg/helpers"
 	"github.com/convox/rack/pkg/options"
 	"github.com/convox/rack/pkg/structs"
@@ -379,14 +379,8 @@ func RackSync(rack sdk.Interface, c *stdcli.Context) error {
 
 	if c.String("name") != "" {
 		rname = c.String("name")
-		s, err := ss.NewSession(&aws.Config{})
-		if err != nil {
-			return err
-		}
 
-		cf := cloudformation.New(s)
-
-		o, err := cf.DescribeStacks(&cloudformation.DescribeStacksInput{StackName: aws.String(rname)})
+		o, err := pkgcf.DescribeStacks(&cloudformation.DescribeStacksInput{StackName: aws.String(rname)})
 		if err != nil {
 			return err
 		}
