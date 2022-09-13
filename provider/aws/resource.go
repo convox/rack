@@ -4,7 +4,6 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"math/rand"
@@ -102,9 +101,9 @@ func (p *Provider) ResourceList(app string) (structs.Resources, error) {
 func (p *Provider) resourceDefaults(app, resource string) (map[string]string, error) {
 	ds := map[string]string{}
 
-	stack, _ := p.appResource(app, fmt.Sprintf("Resource%s", upperName(resource)))
+	stack, err := p.appResource(app, fmt.Sprintf("Resource%s", upperName(resource)))
 	if stack == "" {
-		return ds, errors.New("resource not found")
+		return ds, err
 	}
 
 	s, err := p.describeStack(stack)
