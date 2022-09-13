@@ -22,6 +22,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/aws/aws-sdk-go/service/kms"
+	pkgcf "github.com/convox/rack/pkg/cloudformation"
 	"github.com/convox/rack/pkg/helpers"
 	"github.com/convox/rack/pkg/structs"
 	"github.com/fatih/color"
@@ -286,7 +287,7 @@ func (p *Provider) SystemInstall(w io.Writer, opts structs.SystemInstallOptions)
 		bar.Finish()
 	}
 
-	dres, err := cf.DescribeStacks(&cloudformation.DescribeStacksInput{
+	dres, err := pkgcf.DescribeStacks(&cloudformation.DescribeStacksInput{
 		StackName: aws.String(name),
 	})
 	if err != nil {
@@ -455,7 +456,9 @@ func (p *Provider) SystemUninstall(name string, w io.Writer, opts structs.System
 
 	cf := cloudformation.New(session.New(&aws.Config{}))
 
-	dres, err := cf.DescribeStacks(&cloudformation.DescribeStacksInput{StackName: aws.String(name)})
+	dres, err := pkgcf.DescribeStacks(&cloudformation.DescribeStacksInput{
+		StackName: aws.String(name),
+	})
 	if err != nil {
 		return err
 	}
@@ -663,7 +666,7 @@ func cloudformationProgress(stack, token string, template []byte, w io.Writer) e
 			}
 		}
 
-		dres, err := cf.DescribeStacks(&cloudformation.DescribeStacksInput{
+		dres, err := pkgcf.DescribeStacks(&cloudformation.DescribeStacksInput{
 			StackName: aws.String(stack),
 		})
 		if awsError(err) == "ValidationError" {
@@ -690,14 +693,12 @@ func cloudformationProgress(stack, token string, template []byte, w io.Writer) e
 }
 
 func rackDependencies(name string) ([]string, error) {
-	cf := cloudformation.New(session.New(&aws.Config{}))
-
 	stacks := []string{}
 
 	req := &cloudformation.DescribeStacksInput{}
 
 	for {
-		res, err := cf.DescribeStacks(req)
+		res, err := pkgcf.DescribeStacks(req)
 		if err != nil {
 			return nil, err
 		}

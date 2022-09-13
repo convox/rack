@@ -13,6 +13,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/ecr"
 	"github.com/aws/aws-sdk-go/service/s3"
+	pkgcf "github.com/convox/rack/pkg/cloudformation"
 	"github.com/convox/rack/pkg/helpers"
 	"github.com/convox/rack/pkg/structs"
 )
@@ -400,7 +401,7 @@ func (p *Provider) cleanup(app *structs.App) error {
 	shouldRetry := true
 
 	for i := 0; i < 60; i++ {
-		res, err := p.cloudformation().DescribeStacks(&cloudformation.DescribeStacksInput{
+		res, err := pkgcf.DescribeStacks(&cloudformation.DescribeStacksInput{
 			StackName: aws.String(p.rackStack(app.Name)),
 		})
 
