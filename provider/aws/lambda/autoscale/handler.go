@@ -6,9 +6,11 @@ import (
 	"math"
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/client"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/ecs"
@@ -23,6 +25,7 @@ var (
 	CloudFormation *cloudformation.CloudFormation
 	ECS            *ecs.ECS
 	IsHA           = os.Getenv("HIGH_AVAILABILITY") == "true"
+	maxRetry       = 10
 )
 
 type Metrics struct {
@@ -354,8 +357,20 @@ func min(ii ...int64) int64 {
 }
 
 func main() {
-	sessionConfig := &aws.Config{Region: aws.String(os.Getenv("REGION"))}
-	session, err := session.NewSession(sessionConfig)
+	session, err := session.NewSession(
+		&aws.Config{
+			Region:     aws.String(os.Getenv("REGION")),
+			MaxRetries: aws.Int(maxRetry),
+			LogLevel:   aws.LogLevel(aws.LogDebugWithRequestRetries),
+			Retryer: client.DefaultRetryer{
+				NumMaxRetries:    maxRetry,
+				MinRetryDelay:    1 * time.Second,
+				MaxRetryDelay:    5 * time.Second,
+				MinThrottleDelay: 10 * time.Second,
+				MaxThrottleDelay: 60 * time.Second,
+			},
+		},
+	)
 	if err != nil {
 		fmt.Printf("Error creating new session: %+v", err)
 		return

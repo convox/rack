@@ -19,6 +19,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/cloudformation/cloudformationiface"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs/cloudwatchlogsiface"
+	pkgcf "github.com/convox/rack/pkg/cloudformation"
 	"github.com/convox/rack/pkg/structs"
 	yaml "gopkg.in/yaml.v2"
 )
@@ -71,12 +72,12 @@ func AwsErrorCode(err error) string {
 	return ""
 }
 
-func CloudformationDescribe(cf cloudformationiface.CloudFormationAPI, stack string) (*cloudformation.Stack, error) {
+func CloudformationDescribe(stack string) (*cloudformation.Stack, error) {
 	req := &cloudformation.DescribeStacksInput{
 		StackName: aws.String(stack),
 	}
 
-	res, err := cf.DescribeStacks(req)
+	res, err := pkgcf.DescribeStacks(req)
 	if err != nil {
 		return nil, err
 	}
@@ -154,7 +155,7 @@ func CloudformationInstall(cf cloudformationiface.CloudFormationAPI, name, templ
 	for {
 		time.Sleep(10 * time.Second)
 
-		res, err := cf.DescribeStacks(&cloudformation.DescribeStacksInput{
+		res, err := pkgcf.DescribeStacks(&cloudformation.DescribeStacksInput{
 			StackName: cres.StackId,
 		})
 		if err != nil {
@@ -241,7 +242,7 @@ func CloudformationUpdate(cf cloudformationiface.CloudFormationAPI, stack string
 	params := map[string]bool{}
 	pexisting := map[string]bool{}
 
-	s, err := CloudformationDescribe(cf, stack)
+	s, err := CloudformationDescribe(stack)
 	if err != nil {
 		return err
 	}
