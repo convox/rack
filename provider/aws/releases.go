@@ -251,14 +251,9 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 			return err
 		}
 
-		params, err := p.resourceDefaults(app, r.Name)
-
+		params, err := p.ResourceDefaults(app, r.Name)
 		if err != nil {
-			if !strings.Contains(err.Error(), "resource not found") {
-				return err
-			}
-			// explicitly default to "false" for new resources
-			params["Encrypted"] = "false"
+			return err
 		}
 
 		for k, v := range r.Options {
