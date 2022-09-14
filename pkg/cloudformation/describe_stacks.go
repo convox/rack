@@ -11,14 +11,12 @@ import (
 )
 
 var (
-	cf       *cloudformation.CloudFormation
 	maxRetry = 10
 )
 
 func DescribeStacks(input *cloudformation.DescribeStacksInput) (*cloudformation.DescribeStacksOutput, error) {
 	s, err := session.NewSession(&aws.Config{
 		MaxRetries: aws.Int(maxRetry),
-		LogLevel:   aws.LogLevel(aws.LogDebugWithRequestRetries),
 		Retryer: client.DefaultRetryer{
 			NumMaxRetries:    maxRetry,
 			MinRetryDelay:    1 * time.Second,
@@ -30,7 +28,7 @@ func DescribeStacks(input *cloudformation.DescribeStacksInput) (*cloudformation.
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
-	cf = cloudformation.New(s)
+	cf := cloudformation.New(s)
 
 	res, err := cf.DescribeStacks(input)
 	if err != nil {
