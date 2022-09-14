@@ -177,4 +177,4 @@ commands:
     steps:
       - run:
           command: ci/uninstall.sh
-          no_output_timeout: 90m
+          no_output_timeout: 120m
