@@ -23,7 +23,7 @@ require (
 	github.com/gobuffalo/packr v1.22.0
 	github.com/gobwas/glob v0.2.3
 	github.com/gorilla/mux v1.7.0
-	github.com/gorilla/websocket v1.4.1
+	github.com/gorilla/websocket v1.5.0
 	github.com/headzoo/surf v1.0.0
 	github.com/inconshreveable/go-update v0.0.0-20160112193335-8152e7eb6ccf
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
