@@ -11,9 +11,14 @@ import (
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/client"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/aws/aws-sdk-go/service/ecs"
+)
+
+const (
+	MAX_RETRY = 10
 )
 
 var (
@@ -42,8 +47,20 @@ type Termination struct {
 }
 
 func main() {
-	sessionConfig := &aws.Config{Region: aws.String(os.Getenv("REGION"))}
-	session, err := session.NewSession(sessionConfig)
+	session, err := session.NewSession(
+		&aws.Config{
+			Region:     aws.String(os.Getenv("REGION")),
+			MaxRetries: aws.Int(MAX_RETRY),
+			LogLevel:   aws.LogLevel(aws.LogDebugWithRequestRetries),
+			Retryer: client.DefaultRetryer{
+				NumMaxRetries:    MAX_RETRY,
+				MinRetryDelay:    1 * time.Second,
+				MaxRetryDelay:    5 * time.Second,
+				MinThrottleDelay: 10 * time.Second,
+				MaxThrottleDelay: 60 * time.Second,
+			},
+		},
+	)
 	if err != nil {
 		fmt.Printf("Error creating new session: %+v", err)
 		return

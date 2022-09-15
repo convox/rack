@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/cloudformation/cloudformationiface"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
@@ -16,6 +15,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3/s3iface"
 	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/aws/aws-sdk-go/service/sqs/sqsiface"
+	"github.com/convox/rack/pkg/helpers"
 	"github.com/convox/rack/pkg/structs"
 	"github.com/convox/rack/pkg/templater"
 	"github.com/convox/rack/provider/k8s"
@@ -151,7 +151,7 @@ func (p *Provider) applyOutputs(outputs map[string]string) {
 }
 
 func (p *Provider) initializeAwsServices() error {
-	s, err := session.NewSession()
+	s, err := helpers.NewSession()
 	if err != nil {
 		return err
 	}
