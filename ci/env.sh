@@ -9,3 +9,4 @@ export AWS_DEFAULT_REGION=us-east-1
 export AWS_REGION=us-east-1
 export RACK_NAME=$(cat /tmp/convox-rack-name)
 export VERSION=${VERSION:-${CIRCLE_TAG}}
+export LATEST=$(curl -s https://api.github.com/repos/convox/rack/releases/latest | jq -r '.tag_name')

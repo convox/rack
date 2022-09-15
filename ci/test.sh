@@ -52,7 +52,12 @@ esac
 
 # app
 cd $root/examples/httpd
-convox apps create ci2 --wait
+
+if [ "${ACTION}" != "" ]; then
+  # if update or downgrade test, it will deploy the app again
+  convox deploy -a ci2 --wait
+fi
+
 convox apps | grep ci2
 convox apps info ci2 | grep running
 release=$(convox build -a ci2 -d cibuild --id) && [ -n "$release" ]
