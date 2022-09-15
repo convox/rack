@@ -251,7 +251,7 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 			return err
 		}
 
-		params, err := p.resourceDefaults(app, r.Name)
+		params, err := p.ResourceDefaults(app, r.Name)
 		if err != nil {
 			return err
 		}

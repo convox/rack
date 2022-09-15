@@ -98,11 +98,12 @@ func (p *Provider) ResourceList(app string) (structs.Resources, error) {
 	return rs, nil
 }
 
-func (p *Provider) resourceDefaults(app, resource string) (map[string]string, error) {
+func (p *Provider) ResourceDefaults(app, resource string) (map[string]string, error) {
 	ds := map[string]string{}
 
 	stack, _ := p.appResource(app, fmt.Sprintf("Resource%s", upperName(resource)))
 	if stack == "" {
+		ds["Encrypted"] = "false"
 		return ds, nil
 	}
 
