@@ -3,6 +3,6 @@ set -ex -o pipefail
 
 source $(dirname $0)/env.sh
 
-if [ "${ACTION}" == "downgrade" ] && [ "${VERSION}" != "$(convox api get /system | jq -r '.version')" ]; then
+if [ "${ACTION}" == "downgrade" ]; then
   convox rack update "${LATEST}" --wait
 fi
