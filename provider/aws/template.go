@@ -75,6 +75,13 @@ func formationHelpers() template.FuncMap {
 		"safe": func(s string) template.HTML {
 			return template.HTML(fmt.Sprintf("%q", s))
 		},
+		"safeWhitelist": func(s string) []string {
+			if s == "" {
+				return []string{"0.0.0.0/0"}
+			} else {
+				return strings.Split(s,",")
+			}
+		},
 		"services": func(m *manifest.Manifest) string {
 			if m == nil {
 				return ""
