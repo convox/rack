@@ -6,17 +6,20 @@ import (
 	"math"
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/client"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/ecs"
 )
 
 const (
-	haInstanceCountParam   = "InstanceCount"
-	noHaInstanceCountParam = "NoHaInstanceCount"
+	HA_INSTANCE_COUNT_PARAM    = "InstanceCount"
+	NO_HA_INSTANCE_COUNT_PARAM = "NoHaInstanceCount"
+	MAX_RETRY                  = 10
 )
 
 var (
@@ -55,9 +58,9 @@ func Handler(ctx context.Context) error {
 func autoscale(desired int64) error {
 	stack := os.Getenv("STACK")
 	ds := fmt.Sprintf("%d", desired)
-	icParam := haInstanceCountParam
+	icParam := HA_INSTANCE_COUNT_PARAM
 	if !IsHA {
-		icParam = noHaInstanceCountParam
+		icParam = NO_HA_INSTANCE_COUNT_PARAM
 	}
 
 	debug("desired (ds) = %+v\n", ds)
@@ -354,8 +357,20 @@ func min(ii ...int64) int64 {
 }
 
 func main() {
-	sessionConfig := &aws.Config{Region: aws.String(os.Getenv("REGION"))}
-	session, err := session.NewSession(sessionConfig)
+	session, err := session.NewSession(
+		&aws.Config{
+			Region:     aws.String(os.Getenv("REGION")),
+			MaxRetries: aws.Int(MAX_RETRY),
+			LogLevel:   aws.LogLevel(aws.LogDebugWithRequestRetries),
+			Retryer: client.DefaultRetryer{
+				NumMaxRetries:    MAX_RETRY,
+				MinRetryDelay:    1 * time.Second,
+				MaxRetryDelay:    5 * time.Second,
+				MinThrottleDelay: 10 * time.Second,
+				MaxThrottleDelay: 60 * time.Second,
+			},
+		},
+	)
 	if err != nil {
 		fmt.Printf("Error creating new session: %+v", err)
 		return

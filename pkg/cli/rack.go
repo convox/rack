@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
-	ss "github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/convox/rack/pkg/helpers"
 	"github.com/convox/rack/pkg/options"
@@ -379,7 +378,7 @@ func RackSync(rack sdk.Interface, c *stdcli.Context) error {
 
 	if c.String("name") != "" {
 		rname = c.String("name")
-		s, err := ss.NewSession(&aws.Config{})
+		s, err := helpers.NewSession()
 		if err != nil {
 			return err
 		}
