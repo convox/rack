@@ -16,7 +16,6 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
@@ -25,6 +24,7 @@ import (
 	"github.com/convox/rack/pkg/helpers"
 	"github.com/convox/rack/pkg/structs"
 	"github.com/fatih/color"
+	"github.com/pkg/errors"
 	"golang.org/x/crypto/nacl/secretbox"
 	"gopkg.in/cheggaaa/pb.v1"
 
@@ -252,13 +252,17 @@ func (p *Provider) SystemInstall(w io.Writer, opts structs.SystemInstallOptions)
 
 	var bar *pb.ProgressBar
 
-	cf := cloudformation.New(session.New(&aws.Config{}))
+	s, err := helpers.NewSession()
+	if err != nil {
+		return "", errors.WithStack(err)
+	}
+	cf := cloudformation.New(s)
 
 	if !raw {
 		fmt.Fprintf(w, "Preparing... ")
 	}
 
-	err := helpers.CloudformationInstall(cf, name, template, params, tags, func(current, total int) {
+	err = helpers.CloudformationInstall(cf, name, template, params, tags, func(current, total int) {
 		if raw {
 			fmt.Fprintf(w, "{ \"stack\": %q, \"current\": %d, \"total\": %d }\n", name, current, total)
 			return
@@ -453,7 +457,11 @@ func (p *Provider) SystemUninstall(name string, w io.Writer, opts structs.System
 		return err
 	}
 
-	cf := cloudformation.New(session.New(&aws.Config{}))
+	s, err := helpers.NewSession()
+	if err != nil {
+		return errors.WithStack(err)
+	}
+	cf := cloudformation.New(s)
 
 	dres, err := cf.DescribeStacks(&cloudformation.DescribeStacksInput{StackName: aws.String(name)})
 	if err != nil {
@@ -620,7 +628,11 @@ func cloudformationProgress(stack, token string, template []byte, w io.Writer) e
 		}
 	}
 
-	cf := cloudformation.New(session.New(&aws.Config{}))
+	s, err := helpers.NewSession()
+	if err != nil {
+		return errors.WithStack(err)
+	}
+	cf := cloudformation.New(s)
 
 	if w == nil {
 		w = ioutil.Discard
@@ -690,7 +702,11 @@ func cloudformationProgress(stack, token string, template []byte, w io.Writer) e
 }
 
 func rackDependencies(name string) ([]string, error) {
-	cf := cloudformation.New(session.New(&aws.Config{}))
+	s, err := helpers.NewSession()
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+	cf := cloudformation.New(s)
 
 	stacks := []string{}
 

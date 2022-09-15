@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/acm"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
@@ -28,8 +27,10 @@ import (
 	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/convox/logger"
+	"github.com/convox/rack/pkg/helpers"
 	"github.com/convox/rack/pkg/metrics"
 	"github.com/convox/rack/pkg/structs"
+	"github.com/pkg/errors"
 )
 
 const (
@@ -191,7 +192,12 @@ func (p *Provider) Initialize(opts structs.ProviderOptions) error {
 		go p.Workers()
 	}
 
-	p.CloudWatch = cloudwatch.New(session.New(), p.config())
+	s, err := helpers.NewSession()
+	if err != nil {
+		return errors.WithStack(err)
+	}
+
+	p.CloudWatch = cloudwatch.New(s, p.config())
 
 	return nil
 }
@@ -264,63 +270,123 @@ func (p *Provider) logger(at string) *logger.Logger {
 }
 
 func (p *Provider) acm() *acm.ACM {
-	return acm.New(session.New(), p.config())
+	s, err := helpers.NewSession()
+	if err != nil {
+		panic(errors.WithStack(err))
+	}
+	return acm.New(s, p.config())
 }
 
 func (p *Provider) autoscaling() *autoscaling.AutoScaling {
-	return autoscaling.New(session.New(), p.config())
+	s, err := helpers.NewSession()
+	if err != nil {
+		panic(errors.WithStack(err))
+	}
+	return autoscaling.New(s, p.config())
 }
 
 func (p *Provider) cloudformation() *cloudformation.CloudFormation {
-	return cloudformation.New(session.New(), p.config())
+	s, err := helpers.NewSession()
+	if err != nil {
+		panic(errors.WithStack(err))
+	}
+	return cloudformation.New(s, p.config())
 }
 
 func (p *Provider) cloudwatch() *cloudwatch.CloudWatch {
-	return cloudwatch.New(session.New(), p.config())
+	s, err := helpers.NewSession()
+	if err != nil {
+		panic(errors.WithStack(err))
+	}
+	return cloudwatch.New(s, p.config())
 }
 
 func (p *Provider) cloudwatchlogs() *cloudwatchlogs.CloudWatchLogs {
-	return cloudwatchlogs.New(session.New(), p.config().WithLogLevel(aws.LogOff))
+	s, err := helpers.NewSession()
+	if err != nil {
+		panic(errors.WithStack(err))
+	}
+	return cloudwatchlogs.New(s, p.config().WithLogLevel(aws.LogOff))
 }
 
 func (p *Provider) dynamodb() *dynamodb.DynamoDB {
-	return dynamodb.New(session.New(), p.config())
+	s, err := helpers.NewSession()
+	if err != nil {
+		panic(errors.WithStack(err))
+	}
+	return dynamodb.New(s, p.config())
 }
 
 func (p *Provider) ec2() *ec2.EC2 {
-	return ec2.New(session.New(), p.config())
+	s, err := helpers.NewSession()
+	if err != nil {
+		panic(errors.WithStack(err))
+	}
+	return ec2.New(s, p.config())
 }
 
 func (p *Provider) ecr() *ecr.ECR {
-	return ecr.New(session.New(), p.config())
+	s, err := helpers.NewSession()
+	if err != nil {
+		panic(errors.WithStack(err))
+	}
+	return ecr.New(s, p.config())
 }
 
 func (p *Provider) ecs() *ecs.ECS {
-	return ecs.New(session.New(), p.config())
+	s, err := helpers.NewSession()
+	if err != nil {
+		panic(errors.WithStack(err))
+	}
+	return ecs.New(s, p.config())
 }
 
 func (p *Provider) kms() *kms.KMS {
-	return kms.New(session.New(), p.config())
+	s, err := helpers.NewSession()
+	if err != nil {
+		panic(errors.WithStack(err))
+	}
+	return kms.New(s, p.config())
 }
 
 func (p *Provider) iam() *iam.IAM {
-	return iam.New(session.New(), p.config())
+	s, err := helpers.NewSession()
+	if err != nil {
+		panic(errors.WithStack(err))
+	}
+	return iam.New(s, p.config())
 }
 
 func (p *Provider) s3() *s3.S3 {
-	return s3.New(session.New(), p.config().WithS3ForcePathStyle(true))
+	s, err := helpers.NewSession()
+	if err != nil {
+		panic(errors.WithStack(err))
+	}
+	return s3.New(s, p.config().WithS3ForcePathStyle(true))
 }
 
 func (p *Provider) sns() *sns.SNS {
-	return sns.New(session.New(), p.config())
+	s, err := helpers.NewSession()
+	if err != nil {
+		panic(errors.WithStack(err))
+	}
+	return sns.New(s, p.config())
 }
 
 func (p *Provider) sqs() *sqs.SQS {
-	return sqs.New(session.New(), p.config())
+	s, err := helpers.NewSession()
+	if err != nil {
+		panic(errors.WithStack(err))
+	}
+	return sqs.New(s, p.config())
 }
 
 func (p *Provider) sts() *sts.STS {
-	return sts.New(session.New(), p.config())
+	s, err := helpers.NewSession()
+	if err != nil {
+		panic(errors.WithStack(err))
+	}
+	return sts.New(s, p.config())
 }
 
 // IsTest returns true when we're in test mode
