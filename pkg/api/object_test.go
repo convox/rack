@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"strings"
 	"testing"
 
@@ -57,13 +56,13 @@ func TestObjectExistsError(t *testing.T) {
 func TestObjectFetch(t *testing.T) {
 	testServer(t, func(c *stdsdk.Client, p *structs.MockProvider) {
 		d1 := []byte("test")
-		r1 := ioutil.NopCloser(bytes.NewReader(d1))
+		r1 := io.NopCloser(bytes.NewReader(d1))
 		p.On("ObjectFetch", "app1", "path/object1.ext").Return(r1, nil)
 		res, err := c.GetStream("/apps/app1/objects/path/object1.ext", stdsdk.RequestOptions{})
 		require.NoError(t, err)
 		require.NotNil(t, res)
 		defer res.Body.Close()
-		d2, err := ioutil.ReadAll(res.Body)
+		d2, err := io.ReadAll(res.Body)
 		require.NoError(t, err)
 		require.Equal(t, d1, d2)
 	})
@@ -118,7 +117,7 @@ func TestObjectStore(t *testing.T) {
 			Body: strings.NewReader("data"),
 		}
 		p.On("ObjectStore", "app1", "path/object1.ext", mock.Anything, opts).Return(&o1, nil).Run(func(args mock.Arguments) {
-			data, err := ioutil.ReadAll(args.Get(2).(io.Reader))
+			data, err := io.ReadAll(args.Get(2).(io.Reader))
 			require.NoError(t, err)
 			require.Equal(t, "data", string(data))
 		})

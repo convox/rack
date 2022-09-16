@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/url"
 	"os"
 	"os/exec"
@@ -168,7 +167,7 @@ func (p *Provider) BuildExport(app, id string, w io.Writer) error {
 		return err
 	}
 
-	tmp, err := ioutil.TempDir("", "")
+	tmp, err := os.MkdirTemp("", "")
 	if err != nil {
 		log.Error(err)
 		return err
@@ -499,7 +498,7 @@ func (p *Provider) BuildLogs(app, id string, opts structs.LogsOptions) (io.ReadC
 		case "object":
 			return p.ObjectFetch(app, u.Path)
 		default:
-			return ioutil.NopCloser(strings.NewReader(b.Logs)), nil
+			return io.NopCloser(strings.NewReader(b.Logs)), nil
 		}
 	}
 
@@ -679,7 +678,7 @@ func (p *Provider) buildAuth(build *structs.Build) (string, error) {
 			}
 
 			server, err := ensureRegistryProtocol(r.Server)
-			if (err != nil) {
+			if err != nil {
 				return "", err
 			}
 
@@ -689,7 +688,7 @@ func (p *Provider) buildAuth(build *structs.Build) (string, error) {
 			}
 		default:
 			server, err := ensureRegistryProtocol(r.Server)
-			if (err != nil) {
+			if err != nil {
 				return "", err
 			}
 			auth[server] = authEntry{
@@ -729,7 +728,7 @@ func ensureRegistryProtocol(repo string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if (len(u.Scheme) == 0) {
+	if len(u.Scheme) == 0 {
 		u.Scheme = "https"
 	}
 	return u.String(), nil

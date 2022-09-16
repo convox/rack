@@ -3,7 +3,6 @@ package api_test
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"strings"
 	"testing"
 
@@ -21,13 +20,13 @@ func TestProxy(t *testing.T) {
 		p.On("Proxy", "host", 5000, mock.Anything, structs.ProxyOptions{}).Return(nil).Run(func(args mock.Arguments) {
 			rw := args.Get(2).(io.ReadWriter)
 			rw.Write([]byte("out"))
-			data, err := ioutil.ReadAll(rw)
+			data, err := io.ReadAll(rw)
 			require.NoError(t, err)
 			require.Equal(t, "in", string(data))
 		})
 		r, err := c.Websocket("/proxy/host/5000", ro)
 		require.NoError(t, err)
-		data, err := ioutil.ReadAll(r)
+		data, err := io.ReadAll(r)
 		require.NoError(t, err)
 		require.Equal(t, "out", string(data))
 	})
@@ -38,7 +37,7 @@ func TestProxyError(t *testing.T) {
 		p.On("Proxy", "host", 5000, mock.Anything, structs.ProxyOptions{}).Return(fmt.Errorf("err1"))
 		r, err := c.Websocket("/proxy/host/5000", stdsdk.RequestOptions{})
 		require.NoError(t, err)
-		d, err := ioutil.ReadAll(r)
+		d, err := io.ReadAll(r)
 		require.NoError(t, err)
 		require.Equal(t, []byte("ERROR: err1\n"), d)
 	})

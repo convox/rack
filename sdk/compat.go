@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"math/rand"
 	"strconv"
 
@@ -50,7 +49,7 @@ func (c *Client) BuildCreateUpload(app string, r io.Reader, opts structs.BuildCr
 		ro.Params["config"] = ro.Params["manifest"]
 	}
 
-	data, err := ioutil.ReadAll(r)
+	data, err := io.ReadAll(r)
 	if err != nil {
 		return nil, err
 	}
@@ -67,7 +66,7 @@ func (c *Client) BuildCreateUpload(app string, r io.Reader, opts structs.BuildCr
 }
 
 func (c *Client) BuildImportMultipart(app string, r io.Reader) (*structs.Build, error) {
-	data, err := ioutil.ReadAll(r)
+	data, err := io.ReadAll(r)
 	if err != nil {
 		return nil, err
 	}

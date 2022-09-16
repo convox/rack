@@ -5,7 +5,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"strings"
 	"testing"
@@ -48,7 +47,7 @@ func testClientWait(t *testing.T, wait time.Duration, fn func(*cli.Engine, *mock
 
 	e.Client = i
 
-	tmp, err := ioutil.TempDir("", "")
+	tmp, err := os.MkdirTemp("", "")
 	require.NoError(t, err)
 	e.Settings = tmp
 	// defer os.RemoveAll(tmp)
@@ -96,7 +95,7 @@ func testExecuteContext(ctx context.Context, e *cli.Engine, cmd string, stdin io
 }
 
 func testLogs(logs []string) io.ReadCloser {
-	return ioutil.NopCloser(strings.NewReader(fmt.Sprintf("%s\n", strings.Join(logs, "\n"))))
+	return io.NopCloser(strings.NewReader(fmt.Sprintf("%s\n", strings.Join(logs, "\n"))))
 }
 
 type result struct {

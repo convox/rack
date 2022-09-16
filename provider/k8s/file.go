@@ -2,7 +2,6 @@ package k8s
 
 import (
 	"io"
-	"io/ioutil"
 
 	ac "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -28,7 +27,7 @@ func (p *Provider) FilesDelete(app, pid string, files []string) error {
 		return err
 	}
 
-	if err := exec.Stream(remotecommand.StreamOptions{Stdout: ioutil.Discard}); err != nil {
+	if err := exec.Stream(remotecommand.StreamOptions{Stdout: io.Discard}); err != nil {
 		return err
 	}
 

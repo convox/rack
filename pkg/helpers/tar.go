@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -76,7 +75,7 @@ func Tarball(dir string) ([]byte, error) {
 		return nil, err
 	}
 
-	data, err := ioutil.ReadFile(filepath.Join(sym, ".dockerignore"))
+	data, err := os.ReadFile(filepath.Join(sym, ".dockerignore"))
 	if err != nil && !os.IsNotExist(err) {
 		return nil, err
 	}
@@ -108,7 +107,7 @@ func Tarball(dir string) ([]byte, error) {
 		return nil, err
 	}
 
-	return ioutil.ReadAll(r)
+	return io.ReadAll(r)
 }
 
 func Unarchive(r io.Reader, target string) error {

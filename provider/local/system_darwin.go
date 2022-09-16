@@ -2,7 +2,6 @@ package local
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"os/user"
@@ -65,7 +64,7 @@ func removeOriginalRack(name string) error {
 }
 
 func trustCertificate(name string, data []byte) error {
-	tmp, err := ioutil.TempDir("", "")
+	tmp, err := os.MkdirTemp("", "")
 	if err != nil {
 		return err
 	}
@@ -74,7 +73,7 @@ func trustCertificate(name string, data []byte) error {
 
 	defer os.Remove(crt)
 
-	if err := ioutil.WriteFile(crt, data, 0600); err != nil {
+	if err := os.WriteFile(crt, data, 0600); err != nil {
 		return err
 	}
 

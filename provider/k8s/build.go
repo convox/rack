@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/url"
 	"os"
 	"os/exec"
@@ -146,7 +145,7 @@ func (p *Provider) BuildExport(app, id string, w io.Writer) error {
 		return err
 	}
 
-	tmp, err := ioutil.TempDir("", "")
+	tmp, err := os.MkdirTemp("", "")
 	if err != nil {
 		return err
 	}
@@ -274,7 +273,7 @@ func (p *Provider) BuildImport(app string, r io.Reader) (*structs.Build, error) 
 		}
 
 		if header.Name == "build.json" {
-			data, err := ioutil.ReadAll(tr)
+			data, err := io.ReadAll(tr)
 			if err != nil {
 				return nil, err
 			}
@@ -439,8 +438,6 @@ func (p *Provider) buildAuth(b *structs.Build) ([]byte, error) {
 		Password string
 	}
 
-
-
 	auth := map[string]authEntry{}
 
 	rs, err := p.RegistryList()
@@ -451,7 +448,7 @@ func (p *Provider) buildAuth(b *structs.Build) ([]byte, error) {
 	for _, r := range rs {
 
 		server, err := ensureRegistryProtocol(r.Server)
-		if (err != nil) {
+		if err != nil {
 			return nil, err
 		}
 
@@ -473,7 +470,7 @@ func (p *Provider) buildAuth(b *structs.Build) ([]byte, error) {
 		}
 
 		server, err := ensureRegistryProtocol(repo)
-		if (err != nil) {
+		if err != nil {
 			return nil, err
 		}
 
@@ -496,7 +493,7 @@ func ensureRegistryProtocol(repo string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if (len(u.Scheme) == 0) {
+	if len(u.Scheme) == 0 {
 		u.Scheme = "https"
 	}
 	return u.String(), nil

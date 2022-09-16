@@ -3,7 +3,6 @@ package cli_test
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"strings"
 	"testing"
 
@@ -71,7 +70,7 @@ func TestInstancesSsh(t *testing.T) {
 		i.On("SystemGet").Return(fxSystem(), nil)
 		opts := structs.InstanceShellOptions{}
 		i.On("InstanceShell", "instance1", mock.Anything, opts).Return(4, nil).Run(func(args mock.Arguments) {
-			data, err := ioutil.ReadAll(args.Get(1).(io.Reader))
+			data, err := io.ReadAll(args.Get(1).(io.Reader))
 			require.NoError(t, err)
 			require.Equal(t, "in", string(data))
 			args.Get(1).(io.Writer).Write([]byte("out"))
@@ -104,7 +103,7 @@ func TestInstancesSshClassic(t *testing.T) {
 		i.On("SystemGet").Return(fxSystemClassic(), nil)
 		opts := structs.InstanceShellOptions{}
 		i.On("InstanceShellClassic", "instance1", mock.Anything, opts).Return(4, nil).Run(func(args mock.Arguments) {
-			data, err := ioutil.ReadAll(args.Get(1).(io.Reader))
+			data, err := io.ReadAll(args.Get(1).(io.Reader))
 			require.NoError(t, err)
 			require.Equal(t, "in", string(data))
 			args.Get(1).(io.Writer).Write([]byte("out"))

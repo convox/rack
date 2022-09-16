@@ -3,7 +3,6 @@ package api_test
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"strings"
 	"testing"
 
@@ -51,7 +50,7 @@ func TestFilesDownload(t *testing.T) {
 		res, err := c.GetStream("/apps/app1/processes/pid1/files", opts)
 		require.NoError(t, err)
 		defer res.Body.Close()
-		data, err := ioutil.ReadAll(res.Body)
+		data, err := io.ReadAll(res.Body)
 		require.NoError(t, err)
 		require.Equal(t, "data", string(data))
 	})
@@ -77,7 +76,7 @@ func TestFilesUpload(t *testing.T) {
 			Body: strings.NewReader("data"),
 		}
 		p.On("FilesUpload", "app1", "pid1", mock.Anything).Return(nil).Run(func(args mock.Arguments) {
-			data, err := ioutil.ReadAll(args.Get(2).(io.Reader))
+			data, err := io.ReadAll(args.Get(2).(io.Reader))
 			require.NoError(t, err)
 			require.Equal(t, "data", string(data))
 		})

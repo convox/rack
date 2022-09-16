@@ -76,4 +76,3 @@ func (s *Server) setupRoutes(r stdapi.Router) {
 	r.Route("PUT", "/system", s.SystemUpdate)
 	r.Route("", "", s.Workers)
 }
-

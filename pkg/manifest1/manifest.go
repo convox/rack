@@ -5,8 +5,8 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net"
+	"os"
 	"regexp"
 	"sort"
 	"strconv"
@@ -78,7 +78,7 @@ func Load(data []byte) (*Manifest, error) {
 
 // Load a Manifest from a file
 func LoadFile(path string) (*Manifest, error) {
-	data, err := ioutil.ReadFile(path)
+	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}

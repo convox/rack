@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"strings"
 	"testing"
 	"time"
@@ -54,13 +53,13 @@ func TestProcessExec(t *testing.T) {
 		p.On("ProcessExec", "app1", "pid1", "command", mock.Anything, opts).Return(1, nil).Run(func(args mock.Arguments) {
 			rw := args.Get(3).(io.ReadWriter)
 			rw.Write([]byte("out"))
-			data, err := ioutil.ReadAll(rw)
+			data, err := io.ReadAll(rw)
 			require.NoError(t, err)
 			require.Equal(t, "in", string(data))
 		})
 		r, err := c.Websocket("/apps/app1/processes/pid1/exec", ro)
 		require.NoError(t, err)
-		data, err := ioutil.ReadAll(r)
+		data, err := io.ReadAll(r)
 		require.NoError(t, err)
 		require.Equal(t, "outF1E49A85-0AD7-4AEF-A618-C249C6E6568D:1\n", string(data))
 	})
@@ -82,10 +81,10 @@ func TestProcessLogs(t *testing.T) {
 				"Since":  "2m",
 			},
 		}
-		p.On("ProcessLogs", "app1", "pid1", opts).Return(ioutil.NopCloser(bytes.NewBuffer([]byte{})), nil)
+		p.On("ProcessLogs", "app1", "pid1", opts).Return(io.NopCloser(bytes.NewBuffer([]byte{})), nil)
 		r, err := c.Websocket("/apps/app1/processes/pid1/logs", ro)
 		require.NoError(t, err)
-		data, err := ioutil.ReadAll(r)
+		data, err := io.ReadAll(r)
 		require.NoError(t, err)
 		require.Equal(t, "", string(data))
 	})
@@ -114,7 +113,7 @@ func TestProcessExecError(t *testing.T) {
 		p.On("ProcessExec", "app1", "pid1", "command", mock.Anything, opts).Return(0, fmt.Errorf("err1"))
 		r, err := c.Websocket("/apps/app1/processes/pid1/exec", ro)
 		require.NoError(t, err)
-		d, err := ioutil.ReadAll(r)
+		d, err := io.ReadAll(r)
 		require.NoError(t, err)
 		require.Equal(t, []byte("ERROR: err1\n"), d)
 	})
@@ -125,7 +124,7 @@ func TestProcessExecValidate(t *testing.T) {
 		p.On("AppGet", "app1").Return(nil, fmt.Errorf("no such app: app1"))
 		r, err := c.Websocket("/apps/app1/processes/pid1/exec", stdsdk.RequestOptions{})
 		require.NoError(t, err)
-		data, err := ioutil.ReadAll(r)
+		data, err := io.ReadAll(r)
 		require.NoError(t, err)
 		require.Equal(t, "ERROR: no such app: app1\n", string(data))
 	})

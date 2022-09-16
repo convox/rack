@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"math/rand"
 	"net"
 	"testing"
@@ -115,7 +114,7 @@ func TestResourcesProxy(t *testing.T) {
 
 		cn.Write([]byte("in"))
 
-		data, err := ioutil.ReadAll(cn)
+		data, err := io.ReadAll(cn)
 		require.NoError(t, err)
 		require.Equal(t, "out", string(data))
 
@@ -385,7 +384,7 @@ func TestRackResourcesProxy(t *testing.T) {
 
 		cn.Write([]byte("in"))
 
-		data, err := ioutil.ReadAll(cn)
+		data, err := io.ReadAll(cn)
 		require.NoError(t, err)
 		require.Equal(t, "out", string(data))
 

@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -395,7 +394,7 @@ func checkKubectl() error {
 }
 
 func writeKubeConfig(outputs map[string]string) (string, error) {
-	dir, err := ioutil.TempDir("", "")
+	dir, err := os.MkdirTemp("", "")
 	if err != nil {
 		return "", err
 	}
@@ -428,7 +427,7 @@ users:
         - "-i"
         - %s`, outputs["ClusterEndpoint"], outputs["ClusterCertificateAuthority"], outputs["Cluster"]))
 
-	if err := ioutil.WriteFile(config, data, 0644); err != nil {
+	if err := os.WriteFile(config, data, 0644); err != nil {
 		return "", err
 	}
 
