@@ -14,7 +14,6 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/convox/rack/pkg/helpers"
 	"github.com/convox/rack/pkg/structs"
@@ -79,7 +78,7 @@ func (p *Provider) SystemInstall(w io.Writer, opts structs.SystemInstallOptions)
 
 	var bar *pb.ProgressBar
 
-	s, err := session.NewSession()
+	s, err := helpers.NewSession()
 	if err != nil {
 		return "", err
 	}
@@ -210,7 +209,7 @@ func (p *Provider) SystemTemplate(version string) ([]byte, error) {
 }
 
 func (p *Provider) SystemUninstall(name string, w io.Writer, opts structs.SystemUninstallOptions) error {
-	s, err := session.NewSession()
+	s, err := helpers.NewSession()
 	if err != nil {
 		return err
 	}

@@ -22,6 +22,35 @@ var fxService = structs.Service{
 	},
 }
 
+func TestServiceMetrics(t *testing.T) {
+	testServer(t, func(c *stdsdk.Client, p *structs.MockProvider) {
+		opts := structs.MetricsOptions{
+			Period: options.Int64(65),
+		}
+		ro := stdsdk.RequestOptions{
+			Query: stdsdk.Query{
+				"period": "65",
+			},
+		}
+		resp := structs.Metrics{
+			{
+				Name: "test1",
+				Values: []structs.MetricValue{
+					{
+						Average: 1,
+					},
+				},
+			},
+		}
+		p.On("ServiceMetrics", "app1", "service1", opts).Return(resp, nil)
+
+		out := structs.Metrics{}
+		err := c.Get("/apps/app1/services/service1/metrics", ro, &out)
+		require.NoError(t, err)
+		require.Equal(t, resp, out)
+	})
+}
+
 func TestServiceList(t *testing.T) {
 	testServer(t, func(c *stdsdk.Client, p *structs.MockProvider) {
 		s1 := structs.Services{fxService, fxService}

@@ -15,12 +15,18 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/aws/client"
+	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/cloudformation/cloudformationiface"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs/cloudwatchlogsiface"
 	"github.com/convox/rack/pkg/structs"
 	yaml "gopkg.in/yaml.v2"
+)
+
+const (
+	MAX_RETRY = 10
 )
 
 func AwsCredentialsLoad() error {
@@ -359,7 +365,7 @@ func CloudWatchLogsStream(ctx context.Context, cw cloudwatchlogsiface.CloudWatch
 	var start int64
 
 	if opts.Since != nil {
-		start = time.Now().UTC().Add((*opts.Since)*-1).UnixNano() / int64(time.Millisecond)
+		start = time.Now().UTC().Add((*opts.Since)*-1).Unix() * int64(time.Microsecond)
 		req.StartTime = aws.Int64(start)
 	}
 
@@ -529,4 +535,19 @@ func writeLogEvents(w io.Writer, events []*cloudwatchlogs.FilteredLogEvent, opts
 	}
 
 	return latest, nil
+}
+
+func NewSession() (*session.Session, error) {
+	s, err := session.NewSession(&aws.Config{
+		MaxRetries: aws.Int(MAX_RETRY),
+		Retryer: client.DefaultRetryer{
+			NumMaxRetries:    MAX_RETRY,
+			MinRetryDelay:    1 * time.Second,
+			MaxRetryDelay:    5 * time.Second,
+			MinThrottleDelay: 10 * time.Second,
+			MaxThrottleDelay: 60 * time.Second,
+		},
+	})
+
+	return s, err
 }

@@ -52,7 +52,12 @@ esac
 
 # app
 cd $root/examples/httpd
-convox apps create ci2 --wait
+
+if [ "${ACTION}" != "" ]; then
+  # if update or downgrade test, it will deploy the app again
+  convox deploy -a ci2 --wait
+fi
+
 convox apps | grep ci2
 convox apps info ci2 | grep running
 release=$(convox build -a ci2 -d cibuild --id) && [ -n "$release" ]
@@ -75,7 +80,7 @@ releasee=$(convox env set FOO=bar -a ci2 --id) && [ -n "$releasee" ]
 convox env get FOO -a ci2 | grep bar
 convox releases -a ci2 | grep $releasee
 convox releases info $releasee -a ci2 | grep FOO
-convox releases manifest $releasee -a ci2 | grep "image: httpd"
+convox releases manifest $releasee -a ci2 | grep "build: ."
 convox releases promote $release -a ci2 --wait
 endpoint=$(convox api get /apps/ci2/services | jq -r '.[] | select(.name == "web") | .domain')
 fetch https://$endpoint | grep "It works"
@@ -139,6 +144,14 @@ case $provider in
     fetch https://$endpoint | grep "It works"
     ;;
 esac
+
+# timers
+sleep 30
+
+timerLog=$(convox logs -a ci2 --no-follow --since 1m | grep service/example)
+if ! [[ $timerLog == *"Hello Timer"* ]]; then
+  echo "failed"; exit 1;
+fi
 
 # certs
 case $provider in

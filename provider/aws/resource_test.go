@@ -8,6 +8,35 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestResourceDefaults(t *testing.T) {
+	provider := StubAwsProvider(
+		resourceDefaultsCycleListStackResourcesNotFound,
+		resourceDefaultsCycleListStackResources,
+		resourceDefaultsCycleDescribeStackEncrypted,
+		resourceDefaultsCycleListStackResources,
+		resourceDefaultsCycleDescribeStack,
+	)
+
+	defer provider.Close()
+
+	table := []struct {
+		Name       string
+		ParamValue string
+		Expected   string
+	}{
+		{Name: "new resource", ParamValue: "Encrypted", Expected: "false"},
+		{Name: "existing encrypted resource", ParamValue: "Encrypted", Expected: "true"},
+		{Name: "existing resource encrypted empty", ParamValue: "Encrypted", Expected: ""},
+	}
+
+	for _, r := range table {
+		params, err := provider.ResourceDefaults("myapp", "db")
+
+		assert.Equal(t, params[r.ParamValue], r.Expected, r.Name)
+		assert.Nil(t, err)
+	}
+}
+
 func TestSystemResourceList(t *testing.T) {
 	provider := StubAwsProvider(
 		cycleServiceDescribeStacksList,
@@ -58,10 +87,10 @@ func TestSystemResourceGet(t *testing.T) {
 }
 
 var cycleResourceDescribeStacks = awsutil.Cycle{
-	awsutil.Request{"POST", "/", "", `Action=DescribeStacks&StackName=convox-syslog&Version=2010-05-15`},
-	awsutil.Response{
-		200,
-		`<DescribeStacksResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
+	Request: awsutil.Request{Method: "POST", RequestURI: "/", Operation: "", Body: `Action=DescribeStacks&StackName=convox-syslog&Version=2010-05-15`},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body: `<DescribeStacksResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
 			<DescribeStacksResult>
 				<Stacks>
 					<member>
@@ -120,10 +149,10 @@ var cycleResourceDescribeStacks = awsutil.Cycle{
 }
 
 var cycleServiceDescribeStacksList = awsutil.Cycle{
-	awsutil.Request{"POST", "/", "", `Action=DescribeStacks&Version=2010-05-15`},
-	awsutil.Response{
-		200,
-		`<DescribeStacksResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
+	Request: awsutil.Request{Method: "POST", RequestURI: "/", Operation: "", Body: `Action=DescribeStacks&Version=2010-05-15`},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body: `<DescribeStacksResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
 			<DescribeStacksResult>
 				<Stacks>
 					<member>
@@ -186,10 +215,10 @@ var cycleServiceDescribeStacksList = awsutil.Cycle{
 }
 
 var cycleResourceCreateWebhook = awsutil.Cycle{
-	awsutil.Request{"POST", "/", "", `Action=CreateStack&Capabilities.member.1=CAPABILITY_IAM&Parameters.member.1.ParameterKey=CustomTopic&Parameters.member.1.ParameterValue=&Parameters.member.2.ParameterKey=NotificationTopic&Parameters.member.2.ParameterValue=&Parameters.member.3.ParameterKey=Url&Parameters.member.3.ParameterValue=http%3A%2F%2Fnotifications.example.org%2Fsns%3Fendpoint%3Dhttps%253A%252F%252Fwww.example.com&StackName=convox-mywebhook&Tags.member.1.Key=Name&Tags.member.1.Value=mywebhook&Tags.member.2.Key=Rack&Tags.member.2.Value=convox&Tags.member.3.Key=Resource&Tags.member.3.Value=webhook&Tags.member.4.Key=System&Tags.member.4.Value=convox&Tags.member.5.Key=Type&Tags.member.5.Value=resource&TemplateBody=%0A%7B%0A++%22AWSTemplateFormatVersion%22+%3A+%222010-09-09%22%2C%0A++%22Parameters%22%3A+%7B%0A++++%22Url%22%3A+%7B%0A++++++%22Type%22+%3A+%22String%22%2C%0A++++++%22Description%22+%3A+%22Webhook+URL%2C+e.g.+%27https%3A%2F%2Fgrid.convox.com%2Frack-hook%2F1234%27%22%0A++++%7D%2C%0A++++%22CustomTopic%22%3A+%7B%0A++++++%22Type%22+%3A+%22String%22%2C%0A++++++%22Description%22+%3A+%22%22%0A++++%7D%2C%0A++++%22NotificationTopic%22%3A+%7B%0A++++++%22Type%22+%3A+%22String%22%2C%0A++++++%22Description%22+%3A+%22%22%0A++++%7D%0A++%7D%2C%0A++%22Resources%22%3A+%7B%0A++++%22Notifications%22%3A+%7B%0A++++++%22Type%22+%3A+%22Custom%3A%3ASNSSubscription%22%2C%0A++++++%22Version%22%3A+%221.0%22%2C%0A++++++%22Properties%22%3A+%7B%0A++++++++%22ServiceToken%22%3A+%7B+%22Ref%22%3A+%22CustomTopic%22+%7D%2C%0A++++++++%22TopicArn%22+%3A+%7B+%22Ref%22%3A+%22NotificationTopic%22+%7D%2C%0A++++++++%22Protocol%22+%3A+%22http%22%2C%0A++++++++%22Endpoint%22+%3A+%7B+%22Ref%22%3A+%22Url%22+%7D%0A++++++%7D%0A++++%7D%0A++%7D%2C%0A++%22Outputs%22%3A+%7B%0A++++%22Url%22%3A+%7B%0A++++++%22Value%22%3A+%7B+%22Ref%22%3A+%22Url%22+%7D%0A++++%7D%0A++%7D%0A%7D%0A&Version=2010-05-15`},
-	awsutil.Response{
-		200,
-		`<CreateStackResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
+	Request: awsutil.Request{Method: "POST", RequestURI: "/", Operation: "", Body: `Action=CreateStack&Capabilities.member.1=CAPABILITY_IAM&Parameters.member.1.ParameterKey=CustomTopic&Parameters.member.1.ParameterValue=&Parameters.member.2.ParameterKey=NotificationTopic&Parameters.member.2.ParameterValue=&Parameters.member.3.ParameterKey=Url&Parameters.member.3.ParameterValue=http%3A%2F%2Fnotifications.example.org%2Fsns%3Fendpoint%3Dhttps%253A%252F%252Fwww.example.com&StackName=convox-mywebhook&Tags.member.1.Key=Name&Tags.member.1.Value=mywebhook&Tags.member.2.Key=Rack&Tags.member.2.Value=convox&Tags.member.3.Key=Resource&Tags.member.3.Value=webhook&Tags.member.4.Key=System&Tags.member.4.Value=convox&Tags.member.5.Key=Type&Tags.member.5.Value=resource&TemplateBody=%0A%7B%0A++%22AWSTemplateFormatVersion%22+%3A+%222010-09-09%22%2C%0A++%22Parameters%22%3A+%7B%0A++++%22Url%22%3A+%7B%0A++++++%22Type%22+%3A+%22String%22%2C%0A++++++%22Description%22+%3A+%22Webhook+URL%2C+e.g.+%27https%3A%2F%2Fgrid.convox.com%2Frack-hook%2F1234%27%22%0A++++%7D%2C%0A++++%22CustomTopic%22%3A+%7B%0A++++++%22Type%22+%3A+%22String%22%2C%0A++++++%22Description%22+%3A+%22%22%0A++++%7D%2C%0A++++%22NotificationTopic%22%3A+%7B%0A++++++%22Type%22+%3A+%22String%22%2C%0A++++++%22Description%22+%3A+%22%22%0A++++%7D%0A++%7D%2C%0A++%22Resources%22%3A+%7B%0A++++%22Notifications%22%3A+%7B%0A++++++%22Type%22+%3A+%22Custom%3A%3ASNSSubscription%22%2C%0A++++++%22Version%22%3A+%221.0%22%2C%0A++++++%22Properties%22%3A+%7B%0A++++++++%22ServiceToken%22%3A+%7B+%22Ref%22%3A+%22CustomTopic%22+%7D%2C%0A++++++++%22TopicArn%22+%3A+%7B+%22Ref%22%3A+%22NotificationTopic%22+%7D%2C%0A++++++++%22Protocol%22+%3A+%22http%22%2C%0A++++++++%22Endpoint%22+%3A+%7B+%22Ref%22%3A+%22Url%22+%7D%0A++++++%7D%0A++++%7D%0A++%7D%2C%0A++%22Outputs%22%3A+%7B%0A++++%22Url%22%3A+%7B%0A++++++%22Value%22%3A+%7B+%22Ref%22%3A+%22Url%22+%7D%0A++++%7D%0A++%7D%0A%7D%0A&Version=2010-05-15`},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body: `<CreateStackResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
                                 <CreateStackResult>
                                         <StackId>arn:aws:cloudformation:us-east-1:990037048036:stack/` + "mywebhook" + `/cd77a770-7059-11e6-9f55-50fa5f2588d2</StackId>
                                 </CreateStackResult>
@@ -216,6 +245,132 @@ var cycleResourceCreateNotificationPublish = awsutil.Cycle{
 					<RequestId>f187a3c1-376f-11df-8963-01868b7c937a</RequestId>
 				</ResponseMetadata>
 			</PublishResponse>
+		`,
+	},
+}
+
+var resourceDefaultsCycleListStackResourcesNotFound = awsutil.Cycle{
+	Request: awsutil.Request{
+		Method:     "POST",
+		RequestURI: "/",
+		Body:       "Action=ListStackResources&StackName=convox-myapp&Version=2010-05-15",
+	},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body: `
+		<ListStackResourcesResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
+		<ListStackResourcesResult>
+		  <StackResourceSummaries>
+			<member>
+			  <ResourceStatus>UPDATE_COMPLETE</ResourceStatus>
+			  <LogicalResourceId>ReandomResource</LogicalResourceId>
+			  <LastUpdatedTimestamp>2011-06-21T20:15:58Z</LastUpdatedTimestamp>
+			  <PhysicalResourceId>arnfake</PhysicalResourceId>
+			  <ResourceType>AWS::CloudFormation::Stack</ResourceType>
+			</member>
+		  </StackResourceSummaries>
+		</ListStackResourcesResult>
+		<ResponseMetadata>
+		  <RequestId>2d06e36c-ac1d-11e0-a958-example</RequestId>
+		</ResponseMetadata>
+	  </ListStackResourcesResponse>
+		`,
+	},
+}
+
+var resourceDefaultsCycleListStackResources = awsutil.Cycle{
+	Request: awsutil.Request{
+		Method:     "POST",
+		RequestURI: "/",
+		Body:       "Action=ListStackResources&StackName=convox-myapp&Version=2010-05-15",
+	},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body: `
+		<ListStackResourcesResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
+		<ListStackResourcesResult>
+		  <StackResourceSummaries>
+			<member>
+			  <ResourceStatus>UPDATE_COMPLETE</ResourceStatus>
+			  <LogicalResourceId>ResourceDb</LogicalResourceId>
+			  <LastUpdatedTimestamp>2011-06-21T20:15:58Z</LastUpdatedTimestamp>
+			  <PhysicalResourceId>arnfake</PhysicalResourceId>
+			  <ResourceType>AWS::CloudFormation::Stack</ResourceType>
+			</member>
+		  </StackResourceSummaries>
+		</ListStackResourcesResult>
+		<ResponseMetadata>
+		  <RequestId>2d06e36c-ac1d-11e0-a958-example</RequestId>
+		</ResponseMetadata>
+	  </ListStackResourcesResponse>
+		`,
+	},
+}
+
+var resourceDefaultsCycleDescribeStackEncrypted = awsutil.Cycle{
+	Request: awsutil.Request{
+		Method:     "POST",
+		RequestURI: "/",
+		Body:       "Action=DescribeStacks&StackName=arnfake&Version=2010-05-15",
+	},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body: `
+		<DescribeStacksResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
+			<DescribeStacksResult>
+			<Stacks>
+				<member>
+				<StackName>ResourceDb</StackName>
+				<StackId>arnfake</StackId>
+				<CreationTime>2010-07-27T22:28:28Z</CreationTime>
+				<StackStatus>CREATE_COMPLETE</StackStatus>
+				<Parameters>
+					<member>
+					<ParameterKey>Encrypted</ParameterKey>
+					<ParameterValue>true</ParameterValue>
+					</member>
+				</Parameters>
+				</member>
+			</Stacks>
+			</DescribeStacksResult>
+			<ResponseMetadata>
+			<RequestId>b9b4b068-3a41-11e5-94eb-example</RequestId>
+			</ResponseMetadata>
+		</DescribeStacksResponse>
+		`,
+	},
+}
+
+var resourceDefaultsCycleDescribeStack = awsutil.Cycle{
+	Request: awsutil.Request{
+		Method:     "POST",
+		RequestURI: "/",
+		Body:       "Action=DescribeStacks&StackName=arnfake&Version=2010-05-15",
+	},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body: `
+		<DescribeStacksResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
+			<DescribeStacksResult>
+			<Stacks>
+				<member>
+				<StackName>ResourceDb</StackName>
+				<StackId>arnfake</StackId>
+				<CreationTime>2010-07-27T22:28:28Z</CreationTime>
+				<StackStatus>CREATE_COMPLETE</StackStatus>
+				<Parameters>
+					<member>
+					<ParameterKey>Encrypted</ParameterKey>
+					<ParameterValue></ParameterValue>
+					</member>
+				</Parameters>
+				</member>
+			</Stacks>
+			</DescribeStacksResult>
+			<ResponseMetadata>
+			<RequestId>b9b4b068-3a41-11e5-94eb-example</RequestId>
+			</ResponseMetadata>
+		</DescribeStacksResponse>
 		`,
 	},
 }

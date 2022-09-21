@@ -1,4 +1,28 @@
+resources:
+  postgres:
+    type: postgres
+    options:
+      class: db.t3.micro
+      version: 14
+  mysql:
+    type: mysql
+    options:
+      class: db.t3.micro
+  mariadb:
+    type: mariadb
+    options:
+      class: db.t3.micro
+      version: 10.6
 services:
   web:
-    image: httpd
+    build: .
     port: 80
+    resources:
+      - postgres
+      - mysql
+      - mariadb
+timers:
+  example:
+    command: /usr/local/apache2/timer-cmd.sh
+    schedule: "*/1 * * * ?"
+    service: web
