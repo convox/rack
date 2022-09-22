@@ -1,5 +1,5 @@
 web:
-  image: httpd
+  build: .
   labels:
     - convox.port.443.protocol=tls
   ports:
