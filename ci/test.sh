@@ -145,6 +145,32 @@ case $provider in
     ;;
 esac
 
+# test internal communication
+case $provider in
+  aws)
+  convox apps delete ci1 --wait
+  convox rack params set Internal=Yes
+
+  cd $root/examples/httpd
+  convox apps create ci1 --wait
+  convox apps | grep ci1
+  convox apps info ci1 | grep running
+  convox deploy -a ci1 --wait
+  convox apps info ci1 | grep running
+
+  sleep 60
+
+  rackname=$(convox rack | grep 'Name' | xargs | cut -d ' ' -f2 )
+
+  sleep 10
+  psci1=$(convox api get /apps/ci1/processes | jq -r '.[]|select(.status=="running" and .name == "web")|.id' | head -n 1)
+  psci2=$(convox api get /apps/ci2/processes | jq -r '.[]|select(.status=="running" and .name == "web")|.id' | head -n 1)
+
+  convox exec $psci1 "curl -k https://web.ci2.$rackname.convox" -a ci1 | grep "It works"
+  convox exec $psci2 "curl -k https://web.ci1.$rackname.convox" -a ci2 | grep "It works"
+    ;;
+esac
+
 # timers
 sleep 30
 
@@ -212,3 +238,4 @@ case $provider in
     convox apps delete ci1 --wait
     ;;
 esac
+convox rack params set Internal=No
