@@ -427,6 +427,8 @@ func volumeFrom(app, s string) string {
 		return v
 	case "/var/run/docker.sock":
 		return v
+	case "/var/lib/docker/containers/":
+		return v
 	default:
 		return path.Join("/volumes", app, v)
 	}
