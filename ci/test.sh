@@ -114,6 +114,36 @@ convox ps stop $ps -a ci2
 convox ps -a ci2 | grep -v $ps
 convox deploy -a ci2 --wait
 
+# test apps cancel
+echo "FOO=not-bar" | convox env set -a httpd
+echo "COPY new-feature.html /usr/local/apache2/htdocs/index.html" >> Dockerfile
+echo "ENTRYPOINT sleep 60 && httpd-foreground" >> Dockerfile
+convox deploy # won't use --wait, we want it to run in the background
+
+i=0
+while [ "$(convox apps info -a httpd | grep updating | wc -l)" != "1" ]
+do
+  # exit if takes more than 60 seconds/times
+  if [ $((i++)) -gt 60 ]; then
+    exit 1
+  fi
+  echo "waiting for web to be marked as updating..."
+  sleep 1
+done
+
+echo "app is updating will cancel in 10 secs"
+sleep 10
+
+convox apps cancel -a httpd | grep "OK"
+echo "app deployment canceled"
+
+endpoint=$(convox api get /apps/httpd/services | jq -r '.[] | select(.name == "web") | .domain')
+fetch https://$endpoint | grep "It works"
+echo "still returning the right content"
+
+convox env -a httpd | grep "FOO" | grep "not-bar"
+echo "env var is correctly set"
+
 # registries
 convox registries
 convox registries add quay.io convox+ci 6D5CJVRM5P3L24OG4AWOYGCDRJLPL0PFQAENZYJ1KGE040YDUGPYKOZYNWFTE5CV
