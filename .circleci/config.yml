@@ -16,6 +16,11 @@ defaults:
         ignore: /.*/
       tags:
         only: /[0-9]{14}/
+  filter-forked-prs: &filter-forked-prs
+    filters:
+      branches:
+        # Forked pull requests have CIRCLE_BRANCH set to pull/XXX
+        ignore: /pull\/[0-9]+/
 
 workflows:
   version: 2
@@ -41,7 +46,9 @@ workflows:
                 - master
   test:
     jobs:
-      - test
+      - test:
+          <<: *filter-forked-prs
+          <<: *filter-releases-any
   release:
     jobs:
       - ci:
