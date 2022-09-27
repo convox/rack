@@ -7,7 +7,11 @@ defaults:
   filter-releases-any: &filter-releases-any
     filters:
       branches:
-        ignore: /.*/
+        ignore:
+          - /.*/
+          # don't run release if pull request is from forked PR
+          # it can expose the env vars
+          - /pull\/[0-9]+/
       tags:
         only: /[0-9]{14}.*/
   filter-releases-master: &filter-releases-master
@@ -16,11 +20,6 @@ defaults:
         ignore: /.*/
       tags:
         only: /[0-9]{14}/
-  filter-forked-prs: &filter-forked-prs
-    filters:
-      branches:
-        # Forked pull requests have CIRCLE_BRANCH set to pull/XXX
-        ignore: /pull\/[0-9]+/
 
 workflows:
   version: 2
@@ -46,9 +45,7 @@ workflows:
                 - master
   test:
     jobs:
-      - test:
-          <<: *filter-forked-prs
-          <<: *filter-releases-any
+      - test
   release:
     jobs:
       - ci:
