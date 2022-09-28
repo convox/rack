@@ -115,13 +115,13 @@ convox ps -a ci2 | grep -v $ps
 convox deploy -a ci2 --wait
 
 # test apps cancel
-echo "FOO=not-bar" | convox env set -a httpd
+echo "FOO=not-bar" | convox env set -a ci2
 echo "COPY new-feature.html /usr/local/apache2/htdocs/index.html" >> Dockerfile
 echo "ENTRYPOINT sleep 60 && httpd-foreground" >> Dockerfile
-convox deploy # won't use --wait, we want it to run in the background
+convox deploy -a ci2 # won't use --wait, we want it to run in the background
 
 i=0
-while [ "$(convox apps info -a httpd | grep updating | wc -l)" != "1" ]
+while [ "$(convox apps info -a ci2 | grep updating | wc -l)" != "1" ]
 do
   # exit if takes more than 60 seconds/times
   if [ $((i++)) -gt 60 ]; then
@@ -134,14 +134,14 @@ done
 echo "app is updating will cancel in 10 secs"
 sleep 10
 
-convox apps cancel -a httpd | grep "OK"
+convox apps cancel -a ci2 | grep "OK"
 echo "app deployment canceled"
 
-endpoint=$(convox api get /apps/httpd/services | jq -r '.[] | select(.name == "web") | .domain')
+endpoint=$(convox api get /apps/ci2/services | jq -r '.[] | select(.name == "web") | .domain')
 fetch https://$endpoint | grep "It works"
 echo "still returning the right content"
 
-convox env -a httpd | grep "FOO" | grep "not-bar"
+convox env -a ci2 | grep "FOO" | grep "not-bar"
 echo "env var is correctly set"
 
 # registries
