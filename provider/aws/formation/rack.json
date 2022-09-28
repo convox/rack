@@ -2913,7 +2913,6 @@
     },
     "ApiMonitorService": {
       "Type": "AWS::ECS::Service",
-      "DependsOn": [ "Instances" ],
       "Properties": {
         "Cluster": { "Ref": "Cluster" },
         "DeploymentConfiguration": { "MinimumHealthyPercent": "100", "MaximumPercent": "200" },
@@ -2924,7 +2923,6 @@
     },
     "ApiWebService": {
       "Type": "AWS::ECS::Service",
-      "DependsOn": [ "Instances" ],
       "Properties": {
         "Cluster": { "Ref": "Cluster" },
         "DeploymentConfiguration": { "MinimumHealthyPercent": { "Fn::If": [ "HighAvailability", "50", "0" ] }, "MaximumPercent": "200" },
