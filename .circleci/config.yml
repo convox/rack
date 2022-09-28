@@ -7,7 +7,11 @@ defaults:
   filter-releases-any: &filter-releases-any
     filters:
       branches:
-        ignore: /.*/
+        ignore:
+          - /.*/
+          # don't run release if pull request is from forked PR
+          # it can expose the env vars
+          - /pull\/[0-9]+/
       tags:
         only: /[0-9]{14}.*/
   filter-releases-master: &filter-releases-master
