@@ -2,7 +2,7 @@ package api_test
 
 import (
 	"context"
-	"io/ioutil"
+	"io"
 	"net/http/httptest"
 	"testing"
 
@@ -46,7 +46,7 @@ func TestCheck(t *testing.T) {
 		res, err := c.GetStream("/check", stdsdk.RequestOptions{})
 		require.NoError(t, err)
 		defer res.Body.Close()
-		data, err := ioutil.ReadAll(res.Body)
+		data, err := io.ReadAll(res.Body)
 		require.NoError(t, err)
 		require.Equal(t, "ok", string(data))
 	})

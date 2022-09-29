@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"html/template"
-	"io/ioutil"
 	"math/rand"
 	"net/url"
 	"os"
@@ -189,7 +188,7 @@ func (s *Service) SyncPaths() (map[string]string, error) {
 		dockerFile = s.Dockerfile
 	}
 
-	data, err := ioutil.ReadFile(filepath.Join(s.Build.Context, coalesce(dockerFile, "Dockerfile")))
+	data, err := os.ReadFile(filepath.Join(s.Build.Context, coalesce(dockerFile, "Dockerfile")))
 	if err != nil {
 		return nil, err
 	}
@@ -518,8 +517,8 @@ func (s Service) RegistryImage(appName, buildId string, outputs map[string]strin
 	return fmt.Sprintf("%s/%s-%s:%s", os.Getenv("REGISTRY_HOST"), appName, s.Name, buildId)
 }
 
-//ExtraHostsMap is a convenience method to allow for easier use of the hosts in
-//AWS templates
+// ExtraHostsMap is a convenience method to allow for easier use of the hosts in
+// AWS templates
 func (s Service) ExtraHostsMap() map[string]string {
 	res := map[string]string{}
 	for _, str := range s.ExtraHosts {

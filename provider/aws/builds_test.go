@@ -6,7 +6,6 @@ import (
 	"compress/gzip"
 	"encoding/json"
 	"io"
-	"io/ioutil"
 	"os"
 	"testing"
 	"time"
@@ -173,7 +172,7 @@ func TestBuildExport(t *testing.T) {
 	assert.Equal(t, "build.json", h.Name)
 	assert.Equal(t, int64(437), h.Size)
 
-	data, err := ioutil.ReadAll(tr)
+	data, err := io.ReadAll(tr)
 	assert.NoError(t, err)
 
 	var build structs.Build

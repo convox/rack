@@ -2,6 +2,7 @@ package aws
 
 import (
 	"bytes"
+	crand "crypto/rand"
 	"crypto/rsa"
 	"crypto/sha256"
 	"crypto/x509"
@@ -11,7 +12,7 @@ import (
 	"encoding/pem"
 	"fmt"
 	"html/template"
-	"io/ioutil"
+	"io"
 	"math/big"
 	"math/rand"
 	"net/url"
@@ -21,8 +22,6 @@ import (
 	"sort"
 	"strings"
 	"time"
-
-	crand "crypto/rand"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -200,7 +199,7 @@ func generateId(prefix string, size int) string {
 }
 
 func buildTemplate(name, section string, data interface{}) (string, error) {
-	d, err := ioutil.ReadFile(fmt.Sprintf("provider/aws/templates/%s.tmpl", name))
+	d, err := os.ReadFile(fmt.Sprintf("provider/aws/templates/%s.tmpl", name))
 	if err != nil {
 		return "", err
 	}
@@ -1151,7 +1150,7 @@ func (p *Provider) s3Get(bucket, key string) ([]byte, error) {
 		return nil, err
 	}
 
-	return ioutil.ReadAll(res.Body)
+	return io.ReadAll(res.Body)
 }
 
 func (p *Provider) s3Delete(bucket, key string) error {
@@ -1238,8 +1237,9 @@ func (p *Provider) taskDefinitionRelease(arn string) (string, error) {
 }
 
 // updateStack updates a stack
-//   template is url to a template or empty string to reuse previous
-//   changes is a list of parameter changes to make (does not need to include every param)
+//
+//	template is url to a template or empty string to reuse previous
+//	changes is a list of parameter changes to make (does not need to include every param)
 func (p *Provider) updateStack(name string, template []byte, changes map[string]string, tags map[string]string, id string) error {
 	cache.Clear("describeStacks", nil)
 	cache.Clear("describeStacks", name)

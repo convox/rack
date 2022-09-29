@@ -4,7 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -132,7 +132,7 @@ func (m *Manifest) Build(dir, appName string, s Stream, opts BuildOptions) error
 func buildArgs(dockerfile string) ([]string, error) {
 	args := []string{}
 
-	data, err := ioutil.ReadFile(dockerfile)
+	data, err := os.ReadFile(dockerfile)
 	if err != nil {
 		return nil, err
 	}

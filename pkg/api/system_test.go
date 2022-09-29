@@ -3,7 +3,7 @@ package api_test
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"testing"
 	"time"
 
@@ -68,12 +68,12 @@ func TestSystemGetError(t *testing.T) {
 func TestSystemLogs(t *testing.T) {
 	testServer(t, func(c *stdsdk.Client, p *structs.MockProvider) {
 		d1 := []byte("test")
-		r1 := ioutil.NopCloser(bytes.NewReader(d1))
+		r1 := io.NopCloser(bytes.NewReader(d1))
 		opts := structs.LogsOptions{Since: options.Duration(2 * time.Minute)}
 		p.On("SystemLogs", opts).Return(r1, nil)
 		r2, err := c.Websocket("/system/logs", stdsdk.RequestOptions{})
 		require.NoError(t, err)
-		d2, err := ioutil.ReadAll(r2)
+		d2, err := io.ReadAll(r2)
 		require.NoError(t, err)
 		require.Equal(t, d1, d2)
 	})
@@ -86,7 +86,7 @@ func TestSystemLogsError(t *testing.T) {
 		r1, err := c.Websocket("/system/logs", stdsdk.RequestOptions{})
 		require.NoError(t, err)
 		require.NotNil(t, r1)
-		d1, err := ioutil.ReadAll(r1)
+		d1, err := io.ReadAll(r1)
 		require.NoError(t, err)
 		require.Equal(t, []byte("ERROR: err1\n"), d1)
 	})

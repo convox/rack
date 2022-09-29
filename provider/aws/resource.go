@@ -5,9 +5,9 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"math/rand"
 	"net/url"
+	"os"
 	"sort"
 	"strings"
 	"time"
@@ -415,7 +415,7 @@ func (p *Provider) SystemResourceLink(name, app string) (*structs.Resource, erro
 }
 
 func (p *Provider) SystemResourceTypes() (structs.ResourceTypes, error) {
-	files, err := ioutil.ReadDir("provider/aws/templates/resource/")
+	files, err := os.ReadDir("provider/aws/templates/resource/")
 	if err != nil {
 		return nil, err
 	}
@@ -660,7 +660,7 @@ func (p *Provider) deleteSyslogInterfaces(r *structs.Resource) error {
 	return nil
 }
 
-//resourceApps returns the apps that have been linked with a resource (ignoring apps that have been delete out of band)
+// resourceApps returns the apps that have been linked with a resource (ignoring apps that have been delete out of band)
 func (p *Provider) resourceApps(s structs.Resource) (structs.Apps, error) {
 	stacks, err := p.describeStacks(&cloudformation.DescribeStacksInput{
 		StackName: aws.String(p.rackStack(s.Name)),

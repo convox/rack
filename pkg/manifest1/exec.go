@@ -24,18 +24,18 @@ type Exec struct{}
 
 var DefaultRunner Runner = new(Exec)
 
-//Run synchronously calls the command and pipes the output to the stream,
+// Run synchronously calls the command and pipes the output to the stream,
 func (e *Exec) Run(s Stream, cmd *exec.Cmd, opts RunnerOptions) error {
 	return run(s, cmd, opts)
 }
 
-//RunAsync synchronously calls the command and pipes the output to the stream,
+// RunAsync synchronously calls the command and pipes the output to the stream,
 func (e *Exec) RunAsync(s Stream, cmd *exec.Cmd, done chan error, opts RunnerOptions) {
 	RunAsync(s, cmd, done, opts)
 }
 
-//CombinedOutput synchronously calls the command and returns the output,
-//useful for internal checks
+// CombinedOutput synchronously calls the command and returns the output,
+// useful for internal checks
 func (e *Exec) CombinedOutput(cmd *exec.Cmd) ([]byte, error) {
 	return cmd.CombinedOutput()
 }

@@ -2,7 +2,7 @@ package cli_test
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"testing"
 
@@ -18,7 +18,7 @@ func TestVersion(t *testing.T) {
 		me.On("Execute", "kubectl", "get", "ns", "--selector=system=convox,type=rack", "--output=name").Return([]byte("namespace/dev\n"), nil)
 		e.Executor = me
 
-		err := ioutil.WriteFile(filepath.Join(e.Settings, "host"), []byte("host1"), 0644)
+		err := os.WriteFile(filepath.Join(e.Settings, "host"), []byte("host1"), 0644)
 		require.NoError(t, err)
 
 		i.On("SystemGet").Return(fxSystem(), nil)
@@ -40,7 +40,7 @@ func TestVersionError(t *testing.T) {
 		me.On("Execute", "kubectl", "get", "ns", "--selector=system=convox,type=rack", "--output=name").Return([]byte("namespace/dev\n"), nil)
 		e.Executor = me
 
-		err := ioutil.WriteFile(filepath.Join(e.Settings, "host"), []byte("host1"), 0644)
+		err := os.WriteFile(filepath.Join(e.Settings, "host"), []byte("host1"), 0644)
 		require.NoError(t, err)
 
 		i.On("SystemGet").Return(nil, fmt.Errorf("err1"))

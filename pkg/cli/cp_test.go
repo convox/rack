@@ -3,7 +3,7 @@ package cli_test
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"testing"
 
@@ -39,10 +39,10 @@ func TestCpUploadError(t *testing.T) {
 
 func TestCpDownload(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		tmpd, err := ioutil.TempDir("", "")
+		tmpd, err := os.MkdirTemp("", "")
 		require.NoError(t, err)
 		tmpf := filepath.Join(tmpd, "file")
-		data, err := ioutil.ReadFile("testdata/file.tar")
+		data, err := os.ReadFile("testdata/file.tar")
 		require.NoError(t, err)
 		i.On("FilesDownload", "app1", "0123456789", "/tmp/file").Return(bytes.NewReader(data), nil)
 
@@ -51,9 +51,9 @@ func TestCpDownload(t *testing.T) {
 		require.Equal(t, 0, res.Code)
 		res.RequireStderr(t, []string{""})
 		res.RequireStdout(t, []string{""})
-		odata, err := ioutil.ReadFile("testdata/file")
+		odata, err := os.ReadFile("testdata/file")
 		require.NoError(t, err)
-		ddata, err := ioutil.ReadFile(tmpf)
+		ddata, err := os.ReadFile(tmpf)
 		require.NoError(t, err)
 		require.Equal(t, odata, ddata)
 	})
@@ -61,7 +61,7 @@ func TestCpDownload(t *testing.T) {
 
 func TestCpDownloadError(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		tmpd, err := ioutil.TempDir("", "")
+		tmpd, err := os.MkdirTemp("", "")
 		require.NoError(t, err)
 		tmpf := filepath.Join(tmpd, "file")
 		i.On("FilesDownload", "app1", "0123456789", "/tmp/file").Return(nil, fmt.Errorf("err1"))

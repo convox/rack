@@ -3,7 +3,6 @@ package cli_test
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"strings"
 	"testing"
 
@@ -23,7 +22,7 @@ func TestRun(t *testing.T) {
 		i.On("ProcessGet", "app1", "pid1").Return(fxProcess(), nil)
 		opts := structs.ProcessExecOptions{Entrypoint: options.Bool(true), Tty: options.Bool(false)}
 		i.On("ProcessExec", "app1", "pid1", "bash", mock.Anything, opts).Return(4, nil).Run(func(args mock.Arguments) {
-			data, err := ioutil.ReadAll(args.Get(3).(io.Reader))
+			data, err := io.ReadAll(args.Get(3).(io.Reader))
 			require.NoError(t, err)
 			require.Equal(t, "in", string(data))
 			args.Get(3).(io.Writer).Write([]byte("out"))
@@ -55,7 +54,7 @@ func TestRunClassic(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
 		i.On("SystemGet").Return(fxSystemClassic(), nil)
 		i.On("ProcessRunAttached", "app1", "web", mock.Anything, 7200, structs.ProcessRunOptions{Command: options.String("bash")}).Return(4, nil).Run(func(args mock.Arguments) {
-			data, err := ioutil.ReadAll(args.Get(2).(io.Reader))
+			data, err := io.ReadAll(args.Get(2).(io.Reader))
 			require.NoError(t, err)
 			require.Equal(t, "in", string(data))
 			args.Get(2).(io.Writer).Write([]byte("out"))

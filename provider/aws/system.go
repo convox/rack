@@ -6,9 +6,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
+	"os"
 	"sort"
 	"strconv"
 	"strings"
@@ -555,7 +555,7 @@ func (p *Provider) SystemUpdate(opts structs.SystemUpdateOptions) error {
 
 	if opts.Version != nil {
 		if *opts.Version == "dev" {
-			data, err := ioutil.ReadFile("provider/aws/formation/rack.json")
+			data, err := os.ReadFile("provider/aws/formation/rack.json")
 			if err != nil {
 				return err
 			}
@@ -568,7 +568,7 @@ func (p *Provider) SystemUpdate(opts structs.SystemUpdateOptions) error {
 			}
 			defer res.Body.Close()
 
-			data, err := ioutil.ReadAll(res.Body)
+			data, err := io.ReadAll(res.Body)
 			if err != nil {
 				return err
 			}
@@ -635,7 +635,7 @@ func cloudformationProgress(stack, token string, template []byte, w io.Writer) e
 	cf := cloudformation.New(s)
 
 	if w == nil {
-		w = ioutil.Discard
+		w = io.Discard
 	}
 
 	events := map[string]cloudformation.StackEvent{}

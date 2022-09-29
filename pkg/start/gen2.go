@@ -9,7 +9,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os"
@@ -78,7 +77,7 @@ func (s *Start) Start2(ctx context.Context, w io.Writer, opts Options2) error {
 		}
 	}
 
-	data, err := ioutil.ReadFile(helpers.CoalesceString(opts.Manifest, "convox.yml"))
+	data, err := os.ReadFile(helpers.CoalesceString(opts.Manifest, "convox.yml"))
 	if err != nil {
 		return errors.WithStack(err)
 	}
@@ -182,7 +181,7 @@ func (s *Start) Start2(ctx context.Context, w io.Writer, opts Options2) error {
 		return errors.WithStack(err)
 	}
 
-	if (opts.Sync) {
+	if opts.Sync {
 		for _, s := range m.Services {
 			if !services[s.Name] {
 				continue
@@ -547,7 +546,7 @@ func buildDockerfile(m *manifest.Manifest, root, service string) ([]byte, error)
 		return nil, errors.WithStack(fmt.Errorf("no such file: %s", filepath.Join(s.Build.Path, s.Build.Manifest)))
 	}
 
-	return ioutil.ReadFile(path)
+	return os.ReadFile(path)
 }
 
 func buildIgnores(root, service string) ([]string, error) {

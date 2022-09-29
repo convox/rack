@@ -2,7 +2,7 @@ package sdk
 
 import (
 	"encoding/json"
-	"io/ioutil"
+	"io"
 
 	"github.com/convox/stdsdk"
 )
@@ -18,7 +18,7 @@ func (c *Client) Auth() (string, error) {
 		Id string
 	}
 
-	data, err := ioutil.ReadAll(res.Body)
+	data, err := io.ReadAll(res.Body)
 	if err != nil {
 		return "", err
 	}

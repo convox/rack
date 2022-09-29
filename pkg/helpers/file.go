@@ -1,7 +1,6 @@
 package helpers
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 )
@@ -19,7 +18,7 @@ func WriteFile(filename string, data []byte, mode os.FileMode) error {
 		return err
 	}
 
-	if err := ioutil.WriteFile(filename, data, mode); err != nil {
+	if err := os.WriteFile(filename, data, mode); err != nil {
 		return err
 	}
 

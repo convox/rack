@@ -3,7 +3,7 @@ package cli
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"regexp"
 
@@ -44,7 +44,7 @@ func authenticator(c *stdcli.Context) stdsdk.Authenticator {
 			}
 			defer ares.Body.Close()
 
-			dres, err := ioutil.ReadAll(ares.Body)
+			dres, err := io.ReadAll(ares.Body)
 			if err != nil {
 				return nil, err
 			}
