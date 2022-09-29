@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"math"
 	"net/url"
 	"sort"
@@ -101,7 +100,7 @@ func (p *Provider) ProcessExec(app, pid, command string, rw io.ReadWriter, opts 
 	err = dc.StartExec(eres.ID, docker.StartExecOptions{
 		Detach:       false,
 		Tty:          tty,
-		InputStream:  ioutil.NopCloser(rw),
+		InputStream:  io.NopCloser(rw),
 		OutputStream: rw,
 		ErrorStream:  rw,
 		RawTerminal:  true,

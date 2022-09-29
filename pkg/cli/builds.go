@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"strings"
@@ -189,7 +188,7 @@ func finalizeBuildLogs(rack structs.Provider, c *stdcli.Context, b *structs.Buil
 	}
 	defer r.Close()
 
-	data, err := ioutil.ReadAll(r)
+	data, err := io.ReadAll(r)
 	if err != nil {
 		return err
 	}
@@ -272,7 +271,7 @@ func BuildsImport(rack sdk.Interface, c *stdcli.Context) error {
 		if c.Reader().IsTerminal() {
 			return fmt.Errorf("pipe a file into this command or specify --file")
 		}
-		r = ioutil.NopCloser(c.Reader())
+		r = io.NopCloser(c.Reader())
 	}
 
 	defer r.Close()

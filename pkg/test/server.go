@@ -3,7 +3,7 @@ package test
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -33,7 +33,7 @@ func Server(t *testing.T, stubs ...Http) *httptest.Server {
 					w.Write(serverError(err.Error()))
 				}
 
-				rb, err := ioutil.ReadAll(r.Body)
+				rb, err := io.ReadAll(r.Body)
 
 				if err != nil {
 					w.WriteHeader(503)

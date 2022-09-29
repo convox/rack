@@ -3,7 +3,7 @@ package cli
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
+	"os"
 
 	"github.com/convox/rack/pkg/helpers"
 	"github.com/convox/rack/pkg/options"
@@ -105,12 +105,12 @@ func CertsImport(rack sdk.Interface, c *stdcli.Context) error {
 		return err
 	}
 
-	pub, err := ioutil.ReadFile(c.Arg(0))
+	pub, err := os.ReadFile(c.Arg(0))
 	if err != nil {
 		return err
 	}
 
-	key, err := ioutil.ReadFile(c.Arg(1))
+	key, err := os.ReadFile(c.Arg(1))
 	if err != nil {
 		return err
 	}
@@ -118,7 +118,7 @@ func CertsImport(rack sdk.Interface, c *stdcli.Context) error {
 	var opts structs.CertificateCreateOptions
 
 	if cf := c.String("chain"); cf != "" {
-		chain, err := ioutil.ReadFile(cf)
+		chain, err := os.ReadFile(cf)
 		if err != nil {
 			return err
 		}

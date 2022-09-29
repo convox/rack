@@ -3,10 +3,10 @@ package cli_test
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"os"
 	"path/filepath"
 	"testing"
 	"time"
@@ -103,11 +103,11 @@ func TestRackInstall(t *testing.T) {
 			"line2",
 		})
 
-		data, err := ioutil.ReadFile(filepath.Join(e.Settings, "auth"))
+		data, err := os.ReadFile(filepath.Join(e.Settings, "auth"))
 		require.NoError(t, err)
 		require.Equal(t, fmt.Sprintf("{\n  \"%s\": \"password\"\n}", tsu.Host), string(data))
 
-		data, err = ioutil.ReadFile(filepath.Join(e.Settings, "host"))
+		data, err = os.ReadFile(filepath.Join(e.Settings, "host"))
 		require.NoError(t, err)
 		require.Equal(t, tsu.Host, string(data))
 	})

@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"os/exec"
@@ -271,7 +270,7 @@ func CloudformationUpdate(cf cloudformationiface.CloudFormationAPI, stack string
 		}
 		defer res.Body.Close()
 
-		body, err := ioutil.ReadAll(res.Body)
+		body, err := io.ReadAll(res.Body)
 		if err != nil {
 			return err
 		}

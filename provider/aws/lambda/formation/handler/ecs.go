@@ -2,7 +2,7 @@ package handler
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"math/rand"
 	"net/http"
 	"net/url"
@@ -414,7 +414,7 @@ func fetchEnvironment(req Request, env string) ([]byte, error) {
 	}
 	defer res.Body.Close()
 
-	data, err := ioutil.ReadAll(res.Body)
+	data, err := io.ReadAll(res.Body)
 	if err != nil {
 		return nil, err
 	}
@@ -432,7 +432,7 @@ func fetchEnvironmentS3(req Request, bucket, key string) ([]byte, error) {
 	}
 	defer res.Body.Close()
 
-	return ioutil.ReadAll(res.Body)
+	return io.ReadAll(res.Body)
 }
 
 func generateId(prefix string, size int) string {

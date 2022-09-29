@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sort"
@@ -232,7 +231,7 @@ func AppsImport(rack sdk.Interface, c *stdcli.Context) error {
 		if c.Reader().IsTerminal() {
 			return fmt.Errorf("pipe a file into this command or specify --file")
 		}
-		r = ioutil.NopCloser(c.Reader())
+		r = io.NopCloser(c.Reader())
 	}
 
 	defer r.Close()
@@ -399,7 +398,7 @@ func AppsWait(rack sdk.Interface, c *stdcli.Context) error {
 }
 
 func appExport(rack sdk.Interface, c *stdcli.Context, app string, w io.Writer) error {
-	tmp, err := ioutil.TempDir("", "")
+	tmp, err := os.MkdirTemp("", "")
 	if err != nil {
 		return err
 	}
@@ -423,7 +422,7 @@ func appExport(rack sdk.Interface, c *stdcli.Context, app string, w io.Writer) e
 		return err
 	}
 
-	if err := ioutil.WriteFile(filepath.Join(tmp, "app.json"), data, 0600); err != nil {
+	if err := os.WriteFile(filepath.Join(tmp, "app.json"), data, 0600); err != nil {
 		return err
 	}
 
@@ -437,7 +436,7 @@ func appExport(rack sdk.Interface, c *stdcli.Context, app string, w io.Writer) e
 			return err
 		}
 
-		if err := ioutil.WriteFile(filepath.Join(tmp, "env"), []byte(r.Env), 0600); err != nil {
+		if err := os.WriteFile(filepath.Join(tmp, "env"), []byte(r.Env), 0600); err != nil {
 			return err
 		}
 
@@ -477,7 +476,7 @@ func appExport(rack sdk.Interface, c *stdcli.Context, app string, w io.Writer) e
 }
 
 func appImport(rack sdk.Interface, c *stdcli.Context, app string, r io.Reader) error {
-	tmp, err := ioutil.TempDir("", "")
+	tmp, err := os.MkdirTemp("", "")
 	if err != nil {
 		return err
 	}
@@ -494,7 +493,7 @@ func appImport(rack sdk.Interface, c *stdcli.Context, app string, r io.Reader) e
 
 	var a structs.App
 
-	data, err := ioutil.ReadFile(filepath.Join(tmp, "app.json"))
+	data, err := os.ReadFile(filepath.Join(tmp, "app.json"))
 	if err != nil {
 		return err
 	}
@@ -538,7 +537,7 @@ func appImport(rack sdk.Interface, c *stdcli.Context, app string, r io.Reader) e
 	}
 
 	if _, err := os.Stat(env); !os.IsNotExist(err) {
-		data, err := ioutil.ReadFile(env)
+		data, err := os.ReadFile(env)
 		if err != nil {
 			return err
 		}

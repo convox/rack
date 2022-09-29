@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sort"
@@ -56,7 +55,7 @@ func (r *Run) Start() error {
 	}
 
 	if denv := filepath.Join(r.Dir, ".env"); exists(denv) {
-		data, err := ioutil.ReadFile(denv)
+		data, err := os.ReadFile(denv)
 		if err != nil {
 			return err
 		}

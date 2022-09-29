@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -143,7 +142,7 @@ func (bb *Build) injectConvoxEnv(tag string) error {
 		epdfs += fmt.Sprintf("CMD %s\n", cmdb)
 	}
 
-	tmp, err := ioutil.TempDir("", "")
+	tmp, err := os.MkdirTemp("", "")
 	if err != nil {
 		return err
 	}
@@ -154,7 +153,7 @@ func (bb *Build) injectConvoxEnv(tag string) error {
 
 	epdf := filepath.Join(tmp, "Dockerfile")
 
-	if err := ioutil.WriteFile(epdf, []byte(epdfs), 0644); err != nil {
+	if err := os.WriteFile(epdf, []byte(epdfs), 0644); err != nil {
 		return err
 	}
 

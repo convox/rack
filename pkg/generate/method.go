@@ -3,7 +3,7 @@ package generate
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
+	"os"
 	"reflect"
 	"regexp"
 	"sort"
@@ -43,7 +43,7 @@ type Route struct {
 func Methods() ([]Method, error) {
 	ms := []Method{}
 
-	data, err := ioutil.ReadFile("pkg/structs/provider.go")
+	data, err := os.ReadFile("pkg/structs/provider.go")
 	if err != nil {
 		return nil, err
 	}

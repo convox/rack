@@ -4,7 +4,6 @@ import (
 	"compress/gzip"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -233,13 +232,13 @@ func TestAppsExport(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
 		i.On("AppGet", "app1").Return(fxApp(), nil)
 		i.On("ReleaseGet", "app1", "release1").Return(fxRelease(), nil)
-		bdata, err := ioutil.ReadFile("testdata/build.tgz")
+		bdata, err := os.ReadFile("testdata/build.tgz")
 		require.NoError(t, err)
 		i.On("BuildExport", "app1", "build1", mock.Anything).Return(nil).Run(func(args mock.Arguments) {
 			args.Get(2).(io.Writer).Write(bdata)
 		})
 
-		tmp, err := ioutil.TempDir("", "")
+		tmp, err := os.MkdirTemp("", "")
 		require.NoError(t, err)
 		defer os.RemoveAll(tmp)
 
@@ -264,15 +263,15 @@ func TestAppsExport(t *testing.T) {
 		err = helpers.Unarchive(gz, tmp)
 		require.NoError(t, err)
 
-		data, err := ioutil.ReadFile(filepath.Join(tmp, "app.json"))
+		data, err := os.ReadFile(filepath.Join(tmp, "app.json"))
 		require.NoError(t, err)
 		require.Equal(t, "{\"generation\":\"2\",\"locked\":false,\"name\":\"app1\",\"release\":\"release1\",\"router\":\"\",\"status\":\"running\",\"parameters\":{\"ParamFoo\":\"value1\",\"ParamOther\":\"value2\"}}", string(data))
 
-		data, err = ioutil.ReadFile(filepath.Join(tmp, "env"))
+		data, err = os.ReadFile(filepath.Join(tmp, "env"))
 		require.NoError(t, err)
 		require.Equal(t, "FOO=bar\nBAZ=quux", string(data))
 
-		data, err = ioutil.ReadFile(filepath.Join(tmp, "build.tgz"))
+		data, err = os.ReadFile(filepath.Join(tmp, "build.tgz"))
 		require.NoError(t, err)
 		require.Equal(t, bdata, data)
 	})
@@ -283,10 +282,10 @@ func TestAppsImport(t *testing.T) {
 		i.On("AppCreate", "app1", structs.AppCreateOptions{Generation: options.String("2")}).Return(fxApp(), nil)
 		i.On("AppGet", "app1").Return(&structs.App{Status: "creating"}, nil).Twice()
 		i.On("AppGet", "app1").Return(fxApp(), nil).Twice()
-		bdata, err := ioutil.ReadFile("testdata/build.tgz")
+		bdata, err := os.ReadFile("testdata/build.tgz")
 		require.NoError(t, err)
 		i.On("BuildImport", "app1", mock.Anything).Return(fxBuild(), nil).Run(func(args mock.Arguments) {
-			rdata, err := ioutil.ReadAll(args.Get(1).(io.Reader))
+			rdata, err := io.ReadAll(args.Get(1).(io.Reader))
 			require.NoError(t, err)
 			require.Equal(t, bdata, rdata)
 		})
@@ -337,10 +336,10 @@ func TestAppsImportNoParams(t *testing.T) {
 		i.On("AppCreate", "app1", structs.AppCreateOptions{Generation: options.String("2")}).Return(fxApp(), nil)
 		i.On("AppGet", "app1").Return(&structs.App{Status: "creating"}, nil).Twice()
 		i.On("AppGet", "app1").Return(fxApp(), nil).Twice()
-		bdata, err := ioutil.ReadFile("testdata/build.tgz")
+		bdata, err := os.ReadFile("testdata/build.tgz")
 		require.NoError(t, err)
 		i.On("BuildImport", "app1", mock.Anything).Return(fxBuild(), nil).Run(func(args mock.Arguments) {
-			rdata, err := ioutil.ReadAll(args.Get(1).(io.Reader))
+			rdata, err := io.ReadAll(args.Get(1).(io.Reader))
 			require.NoError(t, err)
 			require.Equal(t, bdata, rdata)
 		})
@@ -366,10 +365,10 @@ func TestAppsImportSameParams(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
 		i.On("AppCreate", "app1", structs.AppCreateOptions{Generation: options.String("2")}).Return(fxApp(), nil)
 		i.On("AppGet", "app1").Return(fxApp(), nil).Twice()
-		bdata, err := ioutil.ReadFile("testdata/build.tgz")
+		bdata, err := os.ReadFile("testdata/build.tgz")
 		require.NoError(t, err)
 		i.On("BuildImport", "app1", mock.Anything).Return(fxBuild(), nil).Run(func(args mock.Arguments) {
-			rdata, err := ioutil.ReadAll(args.Get(1).(io.Reader))
+			rdata, err := io.ReadAll(args.Get(1).(io.Reader))
 			require.NoError(t, err)
 			require.Equal(t, bdata, rdata)
 		})

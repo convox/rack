@@ -5,7 +5,6 @@ import (
 	"crypto/tls"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -27,7 +26,7 @@ func TestHTTPNoHost(t *testing.T) {
 
 		require.Equal(t, 502, res.StatusCode)
 
-		data, err := ioutil.ReadAll(res.Body)
+		data, err := io.ReadAll(res.Body)
 		require.NoError(t, err)
 		require.Equal(t, []byte("no route\n"), data)
 	})
@@ -56,7 +55,7 @@ func TestHTTPRequest(t *testing.T) {
 
 		require.Equal(t, 200, res.StatusCode)
 
-		data, err := ioutil.ReadAll(res.Body)
+		data, err := io.ReadAll(res.Body)
 		require.NoError(t, err)
 		require.Equal(t, []byte("valid"), data)
 	})
@@ -74,7 +73,7 @@ func TestHTTPRequestError(t *testing.T) {
 
 		require.Equal(t, 502, res.StatusCode)
 
-		data, err := ioutil.ReadAll(res.Body)
+		data, err := io.ReadAll(res.Body)
 		require.NoError(t, err)
 		require.Equal(t, []byte("invalid target: ://invalid\n"), data)
 	})
@@ -103,7 +102,7 @@ func TestHTTPRequestHTTPS(t *testing.T) {
 
 		require.Equal(t, 200, res.StatusCode)
 
-		data, err := ioutil.ReadAll(res.Body)
+		data, err := io.ReadAll(res.Body)
 		require.NoError(t, err)
 		require.Equal(t, []byte("valid"), data)
 	})
@@ -125,7 +124,7 @@ func TestHTTPRequestPost(t *testing.T) {
 
 			require.Equal(t, "7", r.Header.Get("Content-Length"))
 
-			data, err := ioutil.ReadAll(r.Body)
+			data, err := io.ReadAll(r.Body)
 			require.NoError(t, err)
 			require.Equal(t, []byte("foo=bar"), data)
 
@@ -140,7 +139,7 @@ func TestHTTPRequestPost(t *testing.T) {
 
 		require.Equal(t, 200, res.StatusCode)
 
-		data, err := ioutil.ReadAll(res.Body)
+		data, err := io.ReadAll(res.Body)
 		require.NoError(t, err)
 		require.Equal(t, []byte("valid"), data)
 	})
@@ -171,7 +170,7 @@ func TestHTTPRequestExistingForwardHeaders(t *testing.T) {
 
 		require.Equal(t, 200, res.StatusCode)
 
-		data, err := ioutil.ReadAll(res.Body)
+		data, err := io.ReadAll(res.Body)
 		require.NoError(t, err)
 		require.Equal(t, []byte("valid"), data)
 	})
@@ -211,7 +210,7 @@ func TestHTTPRequestRedirect(t *testing.T) {
 
 		require.Equal(t, 200, res.StatusCode)
 
-		data, err := ioutil.ReadAll(res.Body)
+		data, err := io.ReadAll(res.Body)
 		require.NoError(t, err)
 		require.Equal(t, []byte("valid"), data)
 	})

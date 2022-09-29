@@ -3,7 +3,7 @@ package cli_test
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"testing"
 
@@ -151,12 +151,12 @@ func TestBuildsError(t *testing.T) {
 
 func TestBuildsExport(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		data, err := ioutil.ReadFile("testdata/build.tgz")
+		data, err := os.ReadFile("testdata/build.tgz")
 		require.NoError(t, err)
 		i.On("BuildExport", "app1", "build1", mock.Anything).Return(nil).Run(func(args mock.Arguments) {
 			args.Get(2).(io.Writer).Write(data)
 		})
-		tmpd, err := ioutil.TempDir("", "")
+		tmpd, err := os.MkdirTemp("", "")
 		require.NoError(t, err)
 		tmpf := filepath.Join(tmpd, "export.tgz")
 
@@ -165,7 +165,7 @@ func TestBuildsExport(t *testing.T) {
 		require.Equal(t, 0, res.Code)
 		res.RequireStderr(t, []string{""})
 		res.RequireStdout(t, []string{"Exporting build... OK"})
-		tdata, err := ioutil.ReadFile(tmpf)
+		tdata, err := os.ReadFile(tmpf)
 		require.NoError(t, err)
 		require.Equal(t, data, tdata)
 	})
@@ -173,7 +173,7 @@ func TestBuildsExport(t *testing.T) {
 
 func TestBuildsExportStdout(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		data, err := ioutil.ReadFile("testdata/build.tgz")
+		data, err := os.ReadFile("testdata/build.tgz")
 		require.NoError(t, err)
 		i.On("BuildExport", "app1", "build1", mock.Anything).Return(nil).Run(func(args mock.Arguments) {
 			args.Get(2).(io.Writer).Write(data)
@@ -201,11 +201,11 @@ func TestBuildsExportError(t *testing.T) {
 
 func TestBuildsImport(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		data, err := ioutil.ReadFile("testdata/build.tgz")
+		data, err := os.ReadFile("testdata/build.tgz")
 		require.NoError(t, err)
 		i.On("SystemGet").Return(fxSystem(), nil)
 		i.On("BuildImport", "app1", mock.Anything).Return(fxBuild(), nil).Run(func(args mock.Arguments) {
-			rdata, err := ioutil.ReadAll(args.Get(1).(io.Reader))
+			rdata, err := io.ReadAll(args.Get(1).(io.Reader))
 			require.NoError(t, err)
 			require.Equal(t, data, rdata)
 		})
@@ -233,11 +233,11 @@ func TestBuildsImportError(t *testing.T) {
 
 func TestBuildsImportClassic(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		data, err := ioutil.ReadFile("testdata/build.tgz")
+		data, err := os.ReadFile("testdata/build.tgz")
 		require.NoError(t, err)
 		i.On("SystemGet").Return(fxSystemClassic(), nil)
 		i.On("BuildImportMultipart", "app1", mock.Anything).Return(fxBuild(), nil).Run(func(args mock.Arguments) {
-			rdata, err := ioutil.ReadAll(args.Get(1).(io.Reader))
+			rdata, err := io.ReadAll(args.Get(1).(io.Reader))
 			require.NoError(t, err)
 			require.Equal(t, data, rdata)
 		})
