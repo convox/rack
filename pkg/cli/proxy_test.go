@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"math/rand"
 	"net"
 	"testing"
@@ -57,7 +56,7 @@ func TestProxy(t *testing.T) {
 
 		cn.Write([]byte("in"))
 
-		data, err := ioutil.ReadAll(cn)
+		data, err := io.ReadAll(cn)
 		require.NoError(t, err)
 		require.Equal(t, "out", string(data))
 
@@ -103,7 +102,7 @@ func TestProxyError(t *testing.T) {
 
 		cn.Write([]byte("in"))
 
-		data, _ := ioutil.ReadAll(cn)
+		data, _ := io.ReadAll(cn)
 		require.Len(t, data, 0)
 
 		cancel()

@@ -2,9 +2,9 @@ package helpers
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 )
 
 func Testdata(name string) ([]byte, error) {
-	return ioutil.ReadFile(fmt.Sprintf("testdata/%s.yml", name))
+	return os.ReadFile(fmt.Sprintf("testdata/%s.yml", name))
 }

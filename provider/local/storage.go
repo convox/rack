@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"strings"
 
 	"github.com/boltdb/bolt"
@@ -126,7 +125,7 @@ func (s *Storage) Write(key string, v interface{}) error {
 
 	switch t := v.(type) {
 	case io.Reader:
-		data, err = ioutil.ReadAll(t)
+		data, err = io.ReadAll(t)
 	default:
 		data, err = json.Marshal(v)
 	}

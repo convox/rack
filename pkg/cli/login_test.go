@@ -2,10 +2,10 @@ package cli_test
 
 import (
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"os"
 	"path/filepath"
 	"testing"
 
@@ -32,11 +32,11 @@ func TestLogin(t *testing.T) {
 		res.RequireStderr(t, []string{""})
 		res.RequireStdout(t, []string{fmt.Sprintf("Authenticating with %s... OK", tsu.Host)})
 
-		data, err := ioutil.ReadFile(filepath.Join(e.Settings, "auth"))
+		data, err := os.ReadFile(filepath.Join(e.Settings, "auth"))
 		require.NoError(t, err)
 		require.Equal(t, fmt.Sprintf("{\n  \"%s\": \"password\"\n}", tsu.Host), string(data))
 
-		data, err = ioutil.ReadFile(filepath.Join(e.Settings, "host"))
+		data, err = os.ReadFile(filepath.Join(e.Settings, "host"))
 		require.NoError(t, err)
 		require.Equal(t, tsu.Host, string(data))
 	})

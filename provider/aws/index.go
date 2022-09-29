@@ -2,7 +2,6 @@ package aws
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"time"
@@ -96,7 +95,7 @@ func (p *Provider) downloadItem(bucket, hash string, item structs.IndexItem, dir
 		return err
 	}
 
-	err = ioutil.WriteFile(file, data, item.Mode)
+	err = os.WriteFile(file, data, item.Mode)
 
 	if err != nil {
 		return err

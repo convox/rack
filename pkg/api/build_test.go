@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"strings"
 	"testing"
 	"time"
@@ -94,7 +93,7 @@ func TestBuildExport(t *testing.T) {
 		res, err := c.GetStream("/apps/app1/builds/build1.tgz", stdsdk.RequestOptions{})
 		require.NoError(t, err)
 		defer res.Body.Close()
-		data, err := ioutil.ReadAll(res.Body)
+		data, err := io.ReadAll(res.Body)
 		require.NoError(t, err)
 		require.Equal(t, "data", string(data))
 	})
@@ -138,7 +137,7 @@ func TestBuildImport(t *testing.T) {
 			Body: strings.NewReader("data"),
 		}
 		p.On("BuildImport", "app1", mock.Anything).Return(&b1, nil).Run(func(args mock.Arguments) {
-			data, err := ioutil.ReadAll(args.Get(1).(io.Reader))
+			data, err := io.ReadAll(args.Get(1).(io.Reader))
 			require.NoError(t, err)
 			require.Equal(t, "data", string(data))
 		})
@@ -161,12 +160,12 @@ func TestBuildImportError(t *testing.T) {
 func TestBuildLogs(t *testing.T) {
 	testServer(t, func(c *stdsdk.Client, p *structs.MockProvider) {
 		d1 := []byte("test")
-		r1 := ioutil.NopCloser(bytes.NewReader(d1))
+		r1 := io.NopCloser(bytes.NewReader(d1))
 		opts := structs.LogsOptions{Since: options.Duration(2 * time.Minute)}
 		p.On("BuildLogs", "app1", "build1", opts).Return(r1, nil)
 		r2, err := c.Websocket("/apps/app1/builds/build1/logs", stdsdk.RequestOptions{})
 		require.NoError(t, err)
-		d2, err := ioutil.ReadAll(r2)
+		d2, err := io.ReadAll(r2)
 		require.NoError(t, err)
 		require.Equal(t, d1, d2)
 	})
@@ -179,7 +178,7 @@ func TestBuildLogsError(t *testing.T) {
 		r1, err := c.Websocket("/apps/app1/builds/build1/logs", stdsdk.RequestOptions{})
 		require.NoError(t, err)
 		require.NotNil(t, r1)
-		d1, err := ioutil.ReadAll(r1)
+		d1, err := io.ReadAll(r1)
 		require.NoError(t, err)
 		require.Equal(t, []byte("ERROR: err1\n"), d1)
 	})

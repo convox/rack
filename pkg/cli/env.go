@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sort"
@@ -82,7 +81,7 @@ func EnvEdit(rack sdk.Interface, c *stdcli.Context) error {
 		return err
 	}
 
-	tmp, err := ioutil.TempDir("", "")
+	tmp, err := os.MkdirTemp("", "")
 	if err != nil {
 		return err
 	}
@@ -110,7 +109,7 @@ func EnvEdit(rack sdk.Interface, c *stdcli.Context) error {
 		return err
 	}
 
-	data, err := ioutil.ReadFile(file)
+	data, err := os.ReadFile(file)
 	if err != nil {
 		return err
 	}

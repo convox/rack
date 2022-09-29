@@ -4,7 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"regexp"
 )
 
@@ -22,7 +22,7 @@ func LinuxRelease() (string, error) {
 func linuxReleaseAttributes() (map[string]string, error) {
 	attrs := map[string]string{}
 
-	data, err := ioutil.ReadFile("/etc/os-release")
+	data, err := os.ReadFile("/etc/os-release")
 	if err != nil {
 		return nil, err
 	}
