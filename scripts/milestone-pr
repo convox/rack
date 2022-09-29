@@ -23,6 +23,7 @@ merge() {
   local ref=$(gethub /repos/convox/rack/pulls/$1 ".head.ref")
   local title=$(gethub /repos/convox/rack/pulls/$1 ".title")
   local body=$(gethub /repos/convox/rack/pulls/$1 ".body")
+  local author=$(gethub /repos/convox/rack/pulls/$1 ".user.login")
   local work="merge-${ref}"
 
   local message="[#${1}] ${title}${nl}${nl}${body}"
@@ -31,7 +32,7 @@ merge() {
   git fetch $remote $ref:$work
   git checkout $work
   git reset --soft $(git merge-base $work $base)
-  git commit -m "$message"
+  git commit -m "$message" --author=$author
   git rebase $base || (git rebase --abort; git checkout $base; die "could not rebase: $pr")
   git checkout $base
   git merge --no-edit $work
