@@ -1578,6 +1578,8 @@
             "  - echo 'ECS_ENGINE_AUTH_DATA={\"index.docker.io\":{\"username\":\"\",\"password\":\"\",\"email\":\"\"}' >> /etc/ecs/ecs.config\n",
             "  - echo 'docker image prune -a --filter=\"until=96h\" --force' > /etc/cron.daily/docker-prune\n",
             "  - chmod +x /etc/cron.daily/docker-prune\n",
+            "  - echo 'docker builder prune -a --filter=\"until=96h\" --force' > /etc/cron.daily/docker-builder-prune\n",
+            "  - chmod +x /etc/cron.daily/docker-builder-prune\n",
             { "Fn::If": [ "HttpProxy",
               { "Fn::Join": ["", ["  - echo \"export HTTP_PROXY=", { "Ref": "HttpProxy" }, "/\" >> /etc/sysconfig/docker\n"
               ] ] },
