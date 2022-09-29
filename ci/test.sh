@@ -116,6 +116,8 @@ convox deploy -a ci2 --wait
 
 # test apps cancel
 echo "FOO=not-bar" | convox env set -a ci2
+
+cp Dockerfile Dockerfile.original # copy current Dockerfile
 echo "COPY new-feature.html /usr/local/apache2/htdocs/index.html" >> Dockerfile
 echo "ENTRYPOINT sleep 60 && httpd-foreground" >> Dockerfile
 convox deploy -a ci2 # won't use --wait, we want it to run in the background
@@ -143,6 +145,8 @@ echo "still returning the right content"
 
 convox env -a ci2 | grep "FOO" | grep "not-bar"
 echo "env var is correctly set"
+
+mv Dockerfile.original Dockerfile # replace the Dockerfile with the original copy
 
 # registries
 convox registries
