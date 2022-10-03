@@ -114,6 +114,40 @@ convox ps stop $ps -a ci2
 convox ps -a ci2 | grep -v $ps
 convox deploy -a ci2 --wait
 
+# test apps cancel
+echo "FOO=not-bar" | convox env set -a ci2
+
+cp Dockerfile Dockerfile.original # copy current Dockerfile
+echo "COPY new-feature.html /usr/local/apache2/htdocs/index.html" >> Dockerfile
+echo "ENTRYPOINT sleep 60 && httpd-foreground" >> Dockerfile
+convox deploy -a ci2 # won't use --wait, we want it to run in the background
+
+i=0
+while [ "$(convox apps info -a ci2 | grep updating | wc -l)" != "1" ]
+do
+  # exit if takes more than 60 seconds/times
+  if [ $((i++)) -gt 60 ]; then
+    exit 1
+  fi
+  echo "waiting for web to be marked as updating..."
+  sleep 1
+done
+
+echo "app is updating will cancel in 10 secs"
+sleep 10
+
+convox apps cancel -a ci2 --wait | grep "OK"
+echo "app deployment canceled"
+
+endpoint=$(convox api get /apps/ci2/services | jq -r '.[] | select(.name == "web") | .domain')
+fetch https://$endpoint | grep "It works"
+echo "still returning the right content"
+
+convox env -a ci2 | grep "FOO" | grep "not-bar"
+echo "env var is correctly set"
+
+mv Dockerfile.original Dockerfile # replace the Dockerfile with the original copy
+
 # registries
 convox registries
 convox registries add quay.io convox+ci 6D5CJVRM5P3L24OG4AWOYGCDRJLPL0PFQAENZYJ1KGE040YDUGPYKOZYNWFTE5CV
@@ -152,7 +186,7 @@ case $provider in
   convox rack params set Internal=Yes
 
   cd $root/examples/httpd
-  convox apps create ci1 --wait
+  convox apps create ci1 -g 1 --wait
   convox apps | grep ci1
   convox apps info ci1 | grep running
   convox deploy -a ci1 --wait
