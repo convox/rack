@@ -9,7 +9,7 @@ if [[ "$(aws iam list-account-aliases | jq -r '.AccountAliases[0]')" != "convox-
   exit 1
 fi
 
-for region in us-east-1; do
+for region in us-east-1 us-east-2; do
   echo "region: $region"
 
   for stack in $(aws cloudformation describe-stacks --region $region | jq -r '.Stacks[].StackName'); do
@@ -53,6 +53,7 @@ for region in us-east-1; do
     eu-west-3) ;;
     sa-east-1) ;;
     us-west-1) ;;
+    us-east-2) ;;
     *)
       for efs in $(aws efs describe-file-systems --region $region | jq -r '.FileSystems[].FileSystemId'); do
         echo "deleting efs: $efs ($region)"
