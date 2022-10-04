@@ -179,31 +179,71 @@ case $provider in
     ;;
 esac
 
-# test internal communication
+# test internal communication and internal apps
 case $provider in
   aws)
-  convox apps delete ci1 --wait
-  convox rack params set Internal=Yes
+    cd $root/examples/internal
+    # test without internal attribute
+    convox apps create internal1 --wait
+    convox deploy -a internal1 --wait
+    convox apps create internal2 --wait
+    convox deploy -a internal2 --wait
 
-  cd $root/examples/httpd
-  convox apps create ci1 --wait
-  convox apps | grep ci1
-  convox apps info ci1 | grep running
-  convox deploy -a ci1 --wait
-  convox apps info ci1 | grep running
+    endpoint=$(convox api get /apps/internal1/services | jq -r '.[] | select(.name == "web") | .domain')
+    fetch https://$endpoint | grep "It works"
+    endpoint=$(convox api get /apps/internal2/services | jq -r '.[] | select(.name == "web") | .domain')
+    fetch https://$endpoint | grep "It works"
 
-  sleep 60
+    rackname=$(convox rack | grep 'Name' | xargs | cut -d ' ' -f2 )
+    ## from internal1 to internal2
+    ps1=$(convox api get /apps/internal1/processes | jq -r '.[]|select(.status=="running" and .name == "web")|.id' | head -n 1)
+    convox exec $ps1 "curl -k https://web.internal2.$rackname.convox" -a internal1 | grep "It works"
 
-  rackname=$(convox rack | grep 'Name' | xargs | cut -d ' ' -f2 )
+    ## from internal2 to internal1
+    ps2=$(convox api get /apps/internal2/processes | jq -r '.[]|select(.status=="running" and .name == "web")|.id' | head -n 1)
+    convox exec $ps2 "curl -k https://web.internal1.$rackname.convox" -a internal2 | grep "It works"
 
-  sleep 10
-  psci1=$(convox api get /apps/ci1/processes | jq -r '.[]|select(.status=="running" and .name == "web")|.id' | head -n 1)
-  psci2=$(convox api get /apps/ci2/processes | jq -r '.[]|select(.status=="running" and .name == "web")|.id' | head -n 1)
+    # test with internal as true
+    mv convox-internal.yml convox.yml
+    convox rack params set Internal=Yes --wait
+    convox deploy -a internal1 --wait
+    convox deploy -a internal2 --wait
 
-  convox exec $psci1 "curl -k https://web.ci2.$rackname.convox" -a ci1 | grep "It works"
-  convox exec $psci2 "curl -k https://web.ci1.$rackname.convox" -a ci2 | grep "It works"
+    ## external communication should not work
+    endpoint=$(convox api get /apps/internal1/services | jq -r '.[] | select(.name == "web") | .domain')
+    curl -ks --max-time 10 https://$endpoint &
+    pid=$!
+    wait $pid
+    code=$?
+    if [ $code -eq 0 ]
+    then
+      echo "internal apps should not be reachable outside of the rack"
+      exit 1
+    fi
 
-  convox rack params set Internal=No
+    endpoint=$(convox api get /apps/internal2/services | jq -r '.[] | select(.name == "web") | .domain')
+    curl -ks --max-time 10 https://$endpoint &
+    pid=$!
+    wait $pid
+    code=$?
+    if [ $code -eq 0 ]
+    then
+      echo "internal apps should not be reachable outside of the rack"
+      exit 1
+    fi
+
+    ## from internal1 to internal2
+    ps1=$(convox api get /apps/internal1/processes | jq -r '.[]|select(.status=="running" and .name == "web")|.id' | head -n 1)
+    convox exec $ps1 "curl -k https://web.internal2.$rackname.convox" -a internal1 | grep "It works"
+
+    ## from internal2 to internal1
+    ps2=$(convox api get /apps/internal2/processes | jq -r '.[]|select(.status=="running" and .name == "web")|.id' | head -n 1)
+    convox exec $ps2 "curl -k https://web.internal1.$rackname.convox" -a internal2 | grep "It works"
+
+    # clean up
+    convox apps delete internal1 --wait
+    convox apps delete internal2 --wait
+    convox rack params set Internal=No --wait
     ;;
 esac
 
