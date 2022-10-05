@@ -9,7 +9,7 @@
       "Type" : "String",
       "Default": "true",
       "AllowedValues" : [ "true", "false" ]
-    },       
+    },
     "Class": {
       "Type": "String",
       "Default": "db.t2.micro"
@@ -47,7 +47,12 @@
     }
   },
   "Outputs": {
-    "Url": { "Value": { "Fn::Sub": "mysql://app:${Password}@${Instance.Endpoint.Address}:${Instance.Endpoint.Port}/app" } }
+    "Url": { "Value": { "Fn::Sub": "mysql://app:${Password}@${Instance.Endpoint.Address}:${Instance.Endpoint.Port}/app" } },
+    "User": { "Value": "app" },
+    "Pass": { "Value": { "Ref": "Password" } },
+    "Host": { "Value": { "Fn::GetAtt": [ "Instance", "Endpoint.Address" ] } },
+    "Port": { "Value": { "Fn::GetAtt": [ "Instance", "Endpoint.Port" ] } },
+    "Name": { "Value": "app" }
   },
   "Resources": {
     "SecurityGroup": {

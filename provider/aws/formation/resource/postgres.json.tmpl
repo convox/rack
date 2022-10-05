@@ -48,7 +48,12 @@
     }
   },
   "Outputs": {
-    "Url": { "Value": { "Fn::Sub": "postgres://app:${Password}@${Instance.Endpoint.Address}:${Instance.Endpoint.Port}/app" } }
+    "Url": { "Value": { "Fn::Sub": "postgres://app:${Password}@${Instance.Endpoint.Address}:${Instance.Endpoint.Port}/app" } },
+    "User": { "Value": "app" },
+    "Pass": { "Value": { "Ref": "Password" } },
+    "Host": { "Value": { "Fn::GetAtt": [ "Instance", "Endpoint.Address" ] } },
+    "Port": { "Value": { "Fn::GetAtt": [ "Instance", "Endpoint.Port" ] } },
+    "Name": { "Value": "app" }
   },
   "Resources": {
     "SecurityGroup": {

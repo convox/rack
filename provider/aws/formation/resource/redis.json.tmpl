@@ -8,7 +8,7 @@
       "Type" : "String",
       "Default": "true",
       "AllowedValues" : [ "true", "false" ]
-    },     
+    },
     "Class": {
       "Type": "String",
       "Default": "cache.t2.micro"
@@ -56,7 +56,12 @@
           }
         ]
       }
-    }
+    },
+    "User": { "Value": "" },
+    "Pass": { "Value": { "Fn::If": ["Encrypted", { "Fn::Sub": ":${Password}@" }, ""] },
+    "Host": { "Value": { "Ref": "ReplicationGroup.PrimaryEndPoint.Address" } },
+    "Port": { "Value": { "Fn::Sub": "${ReplicationGroup.PrimaryEndPoint.Port}/0" } },
+    "Name": { "Value": "" }
   },
   "Resources": {
     "SecurityGroup": {
