@@ -1,11 +1,8 @@
 package structs
 
 import (
-	"fmt"
 	"os"
 	"time"
-
-	"github.com/fsouza/go-dockerclient"
 )
 
 type Instance struct {
@@ -34,18 +31,6 @@ func (i *Instance) Ip() string {
 	}
 
 	return i.PrivateIp
-}
-
-func (i *Instance) DockerHost() string {
-	if h := os.Getenv("TEST_DOCKER_HOST"); h != "" {
-		return h
-	}
-
-	return fmt.Sprintf("http://%s:2376", i.Ip())
-}
-
-func (i *Instance) DockerClient() (*docker.Client, error) {
-	return docker.NewClient(i.DockerHost())
 }
 
 func (ii Instances) Len() int           { return len(ii) }
