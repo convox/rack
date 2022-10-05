@@ -37,3 +37,10 @@ func (c *Certificate) Match(domain string) (bool, error) {
 
 	return false, nil
 }
+
+type TLSPemCertBytes struct {
+	CACert []byte
+	CAKey  []byte
+	Cert   []byte
+	Key    []byte
+}
