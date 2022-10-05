@@ -127,6 +127,26 @@
           "Type": "String",
           "NoEcho": "true"
         },
+        "Resource{{ upper .}}User": {
+          "Type": "String",
+          "NoEcho": "true"
+        },
+        "Resource{{ upper .}}Pass": {
+          "Type": "String",
+          "NoEcho": "true"
+        },
+        "Resource{{ upper .}}Host": {
+          "Type": "String",
+          "NoEcho": "true"
+        },
+        "Resource{{ upper .}}Port": {
+          "Type": "String",
+          "NoEcho": "true"
+        },
+        "Resource{{ upper .}}Name": {
+          "Type": "String",
+          "NoEcho": "true"
+        },
       {{ end }}
       "Role": {
         "Type": "String"
@@ -525,6 +545,11 @@
                 {{ end }}
                 {{ range .Resources }}
                   { "Name": "{{ envname . }}_URL", "Value": { "Ref": "Resource{{ upper . }}" } },
+                  { "Name": "{{ envname . }}_USER", "Value": { "Ref": "Resource{{ upper . }}User" } },
+                  { "Name": "{{ envname . }}_PASS", "Value": { "Ref": "Resource{{ upper . }}Pass" } },
+                  { "Name": "{{ envname . }}_HOST", "Value": { "Ref": "Resource{{ upper . }}Host" } },
+                  { "Name": "{{ envname . }}_PORT", "Value": { "Ref": "Resource{{ upper . }}Port" } },
+                  { "Name": "{{ envname . }}_NAME", "Value": { "Ref": "Resource{{ upper . }}Name" } },
                 {{ end }}
                 { "Name": "AWS_REGION", "Value": { "Ref": "AWS::Region" } },
                 { "Name": "APP", "Value": "{{$.App}}" },

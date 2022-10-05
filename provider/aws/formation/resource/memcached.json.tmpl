@@ -5,7 +5,7 @@
       "Type" : "String",
       "Default": "true",
       "AllowedValues" : [ "true", "false" ]
-    },     
+    },
     "Class": {
       "Type": "String",
       "Default": "cache.t2.micro"
@@ -29,7 +29,12 @@
     }
   },
   "Outputs": {
-    "Url": { "Value": { "Fn::Sub": "${CacheCluster.ConfigurationEndpoint.Address}:${CacheCluster.ConfigurationEndpoint.Port}" } }
+    "Url": { "Value": { "Fn::Sub": "${CacheCluster.ConfigurationEndpoint.Address}:${CacheCluster.ConfigurationEndpoint.Port}" } },
+    "User": { "Value": "" },
+    "Pass": { "Value": "" },
+    "Host": { "Value": { "Ref": "CacheCluster.ConfigurationEndpoint.Address" } },
+    "Port": { "Value": { "Ref": "CacheCluster.ConfigurationEndpoint.Port" } },
+    "Name": { "Value": "" }
   },
   "Resources": {
     "SecurityGroup": {

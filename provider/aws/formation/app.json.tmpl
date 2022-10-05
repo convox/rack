@@ -375,6 +375,11 @@
           "Registry": { "Ref": "Registry" },
           {{ range .Resources }}
             "Resource{{ upper . }}": { "Fn::GetAtt": [ "Resource{{ upper . }}", "Outputs.Url" ] },
+            "Resource{{ upper . }}User": { "Fn::GetAtt": [ "Resource{{ upper . }}", "Outputs.User" ] },
+            "Resource{{ upper . }}Pass": { "Fn::GetAtt": [ "Resource{{ upper . }}", "Outputs.Pass" ] },
+            "Resource{{ upper . }}Host": { "Fn::GetAtt": [ "Resource{{ upper . }}", "Outputs.Host" ] },
+            "Resource{{ upper . }}Port": { "Fn::GetAtt": [ "Resource{{ upper . }}", "Outputs.Port" ] },
+            "Resource{{ upper . }}Name": { "Fn::GetAtt": [ "Resource{{ upper . }}", "Outputs.Name" ] },
           {{ end }}
           "Role": { "Fn::GetAtt": [ "ServiceRole", "Arn" ] },
           "Settings": { "Ref": "Settings" },
@@ -527,6 +532,11 @@
           "Registry": { "Ref": "Registry" },
           {{ range ($.Manifest.Service .Service).Resources }}
             "Resource{{ upper . }}": { "Fn::GetAtt": [ "Resource{{ upper . }}", "Outputs.Url" ] },
+            "Resource{{ upper . }}User": { "Fn::GetAtt": [ "Resource{{ upper . }}", "Outputs.User" ] },
+            "Resource{{ upper . }}Pass": { "Fn::GetAtt": [ "Resource{{ upper . }}", "Outputs.Pass" ] },
+            "Resource{{ upper . }}Host": { "Fn::GetAtt": [ "Resource{{ upper . }}", "Outputs.Host" ] },
+            "Resource{{ upper . }}Port": { "Fn::GetAtt": [ "Resource{{ upper . }}", "Outputs.Port" ] },
+            "Resource{{ upper . }}Name": { "Fn::GetAtt": [ "Resource{{ upper . }}", "Outputs.Name" ] },
           {{ end }}
           "Role": { "Fn::GetAtt": [ "TimerRole", "Arn" ] },
           "ServiceRole": { "Fn::GetAtt": [ "ServiceRole", "Arn" ] },
