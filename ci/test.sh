@@ -177,26 +177,10 @@ case $provider in
 
     ## external communication should not work
     endpoint=$(convox api get /apps/internal1/services | jq -r '.[] | select(.name == "web") | .domain')
-    curl -ks --max-time 10 https://$endpoint &
-    pid=$!
-    wait $pid
-    code=$?
-    if [ $code -eq 0 ]
-    then
-      echo "internal apps should not be reachable outside of the rack"
-      exit 1
-    fi
+    $root/ci/additonal-test/fetch-timeout.sh https://$endpoint "internal apps should not be reachable outside of the rack"
 
     endpoint=$(convox api get /apps/internal2/services | jq -r '.[] | select(.name == "web") | .domain')
-    curl -ks --max-time 10 https://$endpoint &
-    pid=$!
-    wait $pid
-    code=$?
-    if [ $code -eq 0 ]
-    then
-      echo "internal apps should not be reachable outside of the rack"
-      exit 1
-    fi
+    $root/ci/additonal-test/fetch-timeout.sh https://$endpoint "internal apps should not be reachable outside of the rack"
 
     ## from internal1 to internal2
     ps1=$(convox api get /apps/internal1/processes | jq -r '.[]|select(.status=="running" and .name == "web")|.id' | head -n 1)
