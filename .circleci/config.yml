@@ -203,7 +203,7 @@ commands:
     steps:
       - run:
           command: ci/apps-create.sh
-          no_output_timeout: 10m
+          no_output_timeout: 20m
   ci-test:
     steps:
       - run:
