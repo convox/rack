@@ -7,11 +7,17 @@ import (
 	"os"
 	"time"
 
-	"github.com/fsouza/go-dockerclient"
+	docker "github.com/fsouza/go-dockerclient"
 )
 
 func (p *Provider) docker(host string) (*docker.Client, error) {
-	return docker.NewClient(host)
+	if p.DockerTLS == nil {
+		return docker.NewClient(host)
+	}
+
+	// setting ca to nil, allows insecure tls verify for server certificate
+	// since we are generating the certificate without knowing the server ips
+	return docker.NewTLSClientFromBytes(host, p.DockerTLS.Cert, p.DockerTLS.Key, nil)
 }
 
 func (p *Provider) dockerInstance(id string) (*docker.Client, error) {
@@ -50,6 +56,7 @@ func (p *Provider) dockerInstance(id string) (*docker.Client, error) {
 		IdleConnTimeout:       90 * time.Second,
 		TLSHandshakeTimeout:   10 * time.Second,
 		ExpectContinueTimeout: 1 * time.Second,
+		TLSClientConfig:       dc.TLSConfig,
 	}
 
 	return dc, nil
