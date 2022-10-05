@@ -114,6 +114,29 @@ convox ps stop $ps -a ci2
 convox ps -a ci2 | grep -v $ps
 convox deploy -a ci2 --wait
 
+ps=$(convox api get /apps/ci2/processes | jq -r '.[]|select(.status=="running" and .name == "web")|.id' | grep web | head -n 1)
+# postgres resource
+convox exec -a ci2 $ps -- env | grep "POSTGRESS_URL="
+convox exec -a ci2 $ps -- env | grep "POSTGRESS_USER="
+convox exec -a ci2 $ps -- env | grep "POSTGRESS_PASS="
+convox exec -a ci2 $ps -- env | grep "POSTGRESS_HOST="
+convox exec -a ci2 $ps -- env | grep "POSTGRESS_PORT="
+convox exec -a ci2 $ps -- env | grep "POSTGRESS_NAME="
+# mysql resource
+convox exec -a ci2 $ps -- env | grep "MYSQL_URL="
+convox exec -a ci2 $ps -- env | grep "MYSQL_USER="
+convox exec -a ci2 $ps -- env | grep "MYSQL_PASS="
+convox exec -a ci2 $ps -- env | grep "MYSQL_HOST="
+convox exec -a ci2 $ps -- env | grep "MYSQL_PORT="
+convox exec -a ci2 $ps -- env | grep "MYSQL_NAME="
+# mariadb resource
+convox exec -a ci2 $ps -- env | grep "MARIADB_URL="
+convox exec -a ci2 $ps -- env | grep "MARIADB_USER="
+convox exec -a ci2 $ps -- env | grep "MARIADB_PASS="
+convox exec -a ci2 $ps -- env | grep "MARIADB_HOST="
+convox exec -a ci2 $ps -- env | grep "MARIADB_PORT="
+convox exec -a ci2 $ps -- env | grep "MARIADB_NAME="
+
 # registries
 convox registries
 convox registries add quay.io convox+ci 6D5CJVRM5P3L24OG4AWOYGCDRJLPL0PFQAENZYJ1KGE040YDUGPYKOZYNWFTE5CV
