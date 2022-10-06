@@ -10,6 +10,10 @@
       "Type": "String",
       "Default": "cache.t2.micro"
     },
+    "Encrypted": {
+      "Type": "String",
+      "Default": ""
+    },
     "Nodes": {
       "Type": "Number",
       "Default": "1"
@@ -32,8 +36,8 @@
     "Url": { "Value": { "Fn::Sub": "${CacheCluster.ConfigurationEndpoint.Address}:${CacheCluster.ConfigurationEndpoint.Port}" } },
     "User": { "Value": "" },
     "Pass": { "Value": "" },
-    "Host": { "Value": { "Ref": "CacheCluster.ConfigurationEndpoint.Address" } },
-    "Port": { "Value": { "Ref": "CacheCluster.ConfigurationEndpoint.Port" } },
+    "Host": { "Value": { "Fn::GetAtt": [ "CacheCluster", "ConfigurationEndpoint.Address" ] } },
+    "Port": { "Value": { "Fn::GetAtt": [ "CacheCluster", "ConfigurationEndpoint.Port" ] } },
     "Name": { "Value": "" }
   },
   "Resources": {

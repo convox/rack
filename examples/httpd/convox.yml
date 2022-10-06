@@ -13,6 +13,10 @@ resources:
     options:
       class: db.t3.micro
       version: 10.6
+  memcached:
+    type: memcached
+  redis:
+    type: redis
 services:
   web:
     build: .
@@ -21,6 +25,8 @@ services:
       - postgres
       - mysql
       - mariadb
+      - memcached
+      - redis
 timers:
   example:
     command: /usr/local/apache2/timer-cmd.sh
