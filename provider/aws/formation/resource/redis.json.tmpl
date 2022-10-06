@@ -58,8 +58,8 @@
       }
     },
     "User": { "Value": "" },
-    "Pass": { "Value": { "Fn::If": ["Encrypted", { "Fn::Sub": ":${Password}@" }, ""] },
-    "Host": { "Value": { "Ref": "ReplicationGroup.PrimaryEndPoint.Address" } },
+    "Pass": { "Value": { "Fn::If": ["Encrypted", { "Fn::Sub": ":${Password}@" }, ""] } },
+    "Host": { "Value": { "Fn::GetAtt": [ "ReplicationGroup", "PrimaryEndPoint.Address" ] } },
     "Port": { "Value": { "Fn::Sub": "${ReplicationGroup.PrimaryEndPoint.Port}/0" } },
     "Name": { "Value": "" }
   },
