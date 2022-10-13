@@ -313,6 +313,11 @@ func desiredCapacity(largest, total *Metrics) (int64, error) {
 		desired = 3
 	}
 
+	// minimum for non-HA rack is 1
+	if desired <= 0 {
+		desired = 1
+	}
+
 	debug("desired = %+v\n", desired)
 	return desired, nil
 }
