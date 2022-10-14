@@ -224,6 +224,7 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 	tp := map[string]interface{}{
 		"App":          r.App,
 		"Certificates": ccs,
+		"Development":  false,
 		"Manifest":     m,
 		"Password":     p.Password,
 		"Release":      r,
@@ -238,6 +239,7 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 		}
 
 		tp["Build"] = b
+		tp["Development"] = b.Development
 	}
 
 	for _, r := range m.Resources {
@@ -284,6 +286,7 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 			"Manifest":      tp["Manifest"],
 			"Password":      p.Password,
 			"Release":       tp["Release"],
+			"Review":        tp["Development"],
 			"Service":       s,
 		}
 
