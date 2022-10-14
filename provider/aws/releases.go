@@ -284,6 +284,7 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 			"Manifest":      tp["Manifest"],
 			"Password":      p.Password,
 			"Release":       tp["Release"],
+			"Review":        strings.HasPrefix(r.Description, "[Review-App]"),
 			"Service":       s,
 		}
 
