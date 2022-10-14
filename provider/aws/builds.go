@@ -52,6 +52,10 @@ func (p *Provider) BuildCreate(app, url string, opts structs.BuildCreateOptions)
 		b.Description = *opts.Description
 	}
 
+	if opts.Development != nil {
+		b.Development = *opts.Development
+	}
+
 	b.Started = time.Now().UTC()
 
 	if p.IsTest() {

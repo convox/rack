@@ -8,6 +8,7 @@ type Build struct {
 	Id          string `json:"id"`
 	App         string `json:"app"`
 	Description string `json:"description"`
+	Development bool   `json:"development"`
 	Entrypoint  string `json:"entrypoint"`
 	Logs        string `json:"logs"`
 	Manifest    string `json:"manifest"`
