@@ -217,14 +217,16 @@ func TestBuildCreate(t *testing.T) {
 		require.Equal(t, b.Description, c.Form("description"))
 		require.Equal(t, b.Manifest, c.Form("manifest"))
 		require.Equal(t, "true", c.Form("no-cache"))
+		require.Equal(t, "true", c.Form("wildcard-domain"))
 		return c.RenderJSON(b)
 	})
 
 	testServer(t, s, func(c *sdk.Client) {
 		got, err := c.BuildCreate(b.App, "url", structs.BuildCreateOptions{
-			Description: options.String(b.Description),
-			Manifest:    options.String(b.Manifest),
-			NoCache:     options.Bool(true),
+			Description:    options.String(b.Description),
+			Manifest:       options.String(b.Manifest),
+			NoCache:        options.Bool(true),
+			WildcardDomain: options.Bool(true),
 		})
 		require.NoError(t, err)
 		require.Equal(t, b, got)

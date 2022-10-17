@@ -258,7 +258,7 @@
             "Priority": "{{ priority $.App .Name "default" -1 }}"
           }
         },
-        {{ if $.Review }}
+        {{ if $.WildcardDomain }}
         "WildCardCertificate": {
           "Type": "AWS::CertificateManager::Certificate",
           {{ if .Domain }}
@@ -276,7 +276,7 @@
                 "ValidationDomain": "convox.site"
               }
             ],
-            "SubjectAlternativeNames": { "Fn::Join": [ ".", [ "*", "{{$.App}}-{{.Name}}", { "Fn::ImportValue": { "Fn::Sub": "${Rack}:{{ router .Name $.Manifest }}Host" } } ] ] }
+            "SubjectAlternativeNames": [ { "Fn::Join": [ ".", [ "*", "{{$.App}}-{{.Name}}", { "Fn::ImportValue": { "Fn::Sub": "${Rack}:{{ router .Name $.Manifest }}Host" } } ] ] } ]
           }
         },
         "AddListenerCertificates": {
