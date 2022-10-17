@@ -224,7 +224,6 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 	tp := map[string]interface{}{
 		"App":          r.App,
 		"Certificates": ccs,
-		"Development":  false,
 		"Manifest":     m,
 		"Password":     p.Password,
 		"Release":      r,
@@ -239,7 +238,7 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 		}
 
 		tp["Build"] = b
-		tp["Development"] = b.Development
+		tp["WildcardDomain"] = b.WildcardDomain
 	}
 
 	for _, r := range m.Resources {
@@ -279,15 +278,15 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 		}
 
 		stp := map[string]interface{}{
-			"App":           r.App,
-			"Build":         tp["Build"],
-			"DeploymentMin": min,
-			"DeploymentMax": max,
-			"Manifest":      tp["Manifest"],
-			"Password":      p.Password,
-			"Release":       tp["Release"],
-			"Review":        tp["Development"],
-			"Service":       s,
+			"App":            r.App,
+			"Build":          tp["Build"],
+			"DeploymentMin":  min,
+			"DeploymentMax":  max,
+			"Manifest":       tp["Manifest"],
+			"Password":       p.Password,
+			"Release":        tp["Release"],
+			"WildcardDomain": tp["WildcardDomain"],
+			"Service":        s,
 		}
 
 		sarn, err := p.serviceArn(r.App, s.Name)
