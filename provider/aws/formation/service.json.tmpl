@@ -258,7 +258,7 @@
             "Priority": "{{ priority $.App .Name "default" -1 }}"
           }
         },
-        {{ if $.Review }}
+        {{ if $.WildcardDomain }}
         "WildCardCertificate": {
           "Type": "AWS::CertificateManager::Certificate",
           {{ if .Domain }}
