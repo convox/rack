@@ -5,17 +5,17 @@ import (
 )
 
 type Build struct {
-	Id          string `json:"id"`
-	App         string `json:"app"`
-	Description string `json:"description"`
-	Development bool   `json:"development"`
-	Entrypoint  string `json:"entrypoint"`
-	Logs        string `json:"logs"`
-	Manifest    string `json:"manifest"`
-	Process     string `json:"process"`
-	Release     string `json:"release"`
-	Reason      string `json:"reason"`
-	Status      string `json:"status"`
+	Id             string `json:"id"`
+	App            string `json:"app"`
+	Description    string `json:"description"`
+	Entrypoint     string `json:"entrypoint"`
+	Logs           string `json:"logs"`
+	Manifest       string `json:"manifest"`
+	Process        string `json:"process"`
+	Release        string `json:"release"`
+	Reason         string `json:"reason"`
+	Status         string `json:"status"`
+	WildcardDomain bool   `json:"wildcard-domain"`
 
 	Started time.Time `json:"started"`
 	Ended   time.Time `json:"ended"`
@@ -26,10 +26,11 @@ type Build struct {
 type Builds []Build
 
 type BuildCreateOptions struct {
-	Description *string `flag:"description,d" param:"description"`
-	Development *bool   `flag:"development" param:"development"`
-	Manifest    *string `flag:"manifest,m" param:"manifest"`
-	NoCache     *bool   `flag:"no-cache" param:"no-cache"`
+	Description    *string `flag:"description,d" param:"description"`
+	Development    *bool   `flag:"development" param:"development"`
+	Manifest       *string `flag:"manifest,m" param:"manifest"`
+	NoCache        *bool   `flag:"no-cache" param:"no-cache"`
+	WildcardDomain *bool   `flag:"wildcard-domain" param:"wildcard-domain"`
 }
 
 type BuildListOptions struct {

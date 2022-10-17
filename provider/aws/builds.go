@@ -13,6 +13,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -52,8 +53,8 @@ func (p *Provider) BuildCreate(app, url string, opts structs.BuildCreateOptions)
 		b.Description = *opts.Description
 	}
 
-	if opts.Development != nil {
-		b.Development = *opts.Development
+	if opts.WildcardDomain != nil {
+		b.WildcardDomain = *opts.WildcardDomain
 	}
 
 	b.Started = time.Now().UTC()
@@ -622,6 +623,8 @@ func (p *Provider) buildSave(b *structs.Build) error {
 		req.Item["description"] = &dynamodb.AttributeValue{S: aws.String(b.Description)}
 	}
 
+	req.Item["wildcard-domain"] = &dynamodb.AttributeValue{S: aws.String(strconv.FormatBool(b.WildcardDomain))}
+
 	if b.Entrypoint != "" {
 		req.Item["entrypoint"] = &dynamodb.AttributeValue{S: aws.String(b.Entrypoint)}
 	}
@@ -987,19 +990,22 @@ func (p *Provider) buildFromItem(item map[string]*dynamodb.AttributeValue) *stru
 		json.Unmarshal(item["tags"].B, &tags)
 	}
 
+	wildcard, _ := strconv.ParseBool(coalesce(item["wildcard-domain"], "false"))
+
 	return &structs.Build{
-		Id:          id,
-		App:         coalesce(item["app"], ""),
-		Description: coalesce(item["description"], ""),
-		Entrypoint:  coalesce(item["entrypoint"], ""),
-		Manifest:    coalesce(item["manifest"], ""),
-		Logs:        coalesce(item["logs"], ""),
-		Release:     coalesce(item["release"], ""),
-		Reason:      coalesce(item["reason"], ""),
-		Status:      coalesce(item["status"], ""),
-		Started:     started,
-		Ended:       ended,
-		Tags:        tags,
+		Id:             id,
+		App:            coalesce(item["app"], ""),
+		Description:    coalesce(item["description"], ""),
+		Entrypoint:     coalesce(item["entrypoint"], ""),
+		Manifest:       coalesce(item["manifest"], ""),
+		Logs:           coalesce(item["logs"], ""),
+		Release:        coalesce(item["release"], ""),
+		Reason:         coalesce(item["reason"], ""),
+		Status:         coalesce(item["status"], ""),
+		Started:        started,
+		Ended:          ended,
+		Tags:           tags,
+		WildcardDomain: wildcard,
 	}
 }
 
