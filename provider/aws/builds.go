@@ -13,6 +13,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -622,6 +623,8 @@ func (p *Provider) buildSave(b *structs.Build) error {
 		req.Item["description"] = &dynamodb.AttributeValue{S: aws.String(b.Description)}
 	}
 
+	req.Item["development"] = &dynamodb.AttributeValue{S: aws.String(strconv.FormatBool(b.Development))}
+
 	if b.Entrypoint != "" {
 		req.Item["entrypoint"] = &dynamodb.AttributeValue{S: aws.String(b.Entrypoint)}
 	}
@@ -987,10 +990,13 @@ func (p *Provider) buildFromItem(item map[string]*dynamodb.AttributeValue) *stru
 		json.Unmarshal(item["tags"].B, &tags)
 	}
 
+	dev, _ := strconv.ParseBool(coalesce(item["description"], "false"))
+
 	return &structs.Build{
 		Id:          id,
 		App:         coalesce(item["app"], ""),
 		Description: coalesce(item["description"], ""),
+		Development: dev,
 		Entrypoint:  coalesce(item["entrypoint"], ""),
 		Manifest:    coalesce(item["manifest"], ""),
 		Logs:        coalesce(item["logs"], ""),
