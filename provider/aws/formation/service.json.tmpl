@@ -271,8 +271,9 @@
           "Properties": {
             "Actions": [ { "Type": "forward", "TargetGroupArn": { "Ref": "BalancerTargetGroup{{ if .Internal }}Internal{{ end }}" } } ],
             "Conditions": [ { "Field": "host-header", "Values": [
-              { "Fn::Join": [ ".", [ "{{$.App}}-{{.Name}}", { "Fn::ImportValue": { "Fn::Sub": "${Rack}:{{ router .Name $.Manifest }}Host" } } ] ] },
+              { "Fn::Join": [ ".", [ "{{$.App}}-{{.Name}}", { "Fn::ImportValue": { "Fn::Sub": "${Rack}:{{ router .Name $.Manifest }}Host" } } ] ] } {{- if $.WildcardDomain }},
               { "Fn::Join": [".", [ "*", "{{$.App}}-{{.Name}}", { "Fn::ImportValue": { "Fn::Sub": "${Rack}:{{ router .Name $.Manifest }}Host" } } ] ] }
+              {{ end }}
               ] } ],
             "ListenerArn": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:{{ router .Name $.Manifest }}Listener443" } },
             "Priority": "{{ priority $.App .Name "default" -1 }}"
