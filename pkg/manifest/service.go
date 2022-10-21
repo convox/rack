@@ -31,6 +31,7 @@ type Service struct {
 	Termination ServiceTermination `yaml:"termination,omitempty"`
 	Test        string             `yaml:"test,omitempty"`
 	Volumes     []string           `yaml:"volumes,omitempty"`
+	Whitelist   string             `yaml:"whitelist,omitempty"`
 }
 
 type Services []Service

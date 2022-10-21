@@ -258,7 +258,7 @@
           {{ end }}
           "Properties": {
             "Actions": [ { "Type": "forward", "TargetGroupArn": { "Ref": "BalancerTargetGroup{{ if .Internal }}Internal{{ end }}" } } ],
-            "Conditions": [ { "Field": "host-header", "Values": [ { "Fn::Join": [ ".", [ "{{$.App}}-{{.Name}}", { "Fn::ImportValue": { "Fn::Sub": "${Rack}:{{ router .Name $.Manifest }}Host" } } ] ] } ] } ],
+            "Conditions": [ { "Field": "host-header", "Values": [ { "Fn::Join": [ ".", [ "{{$.App}}-{{.Name}}", { "Fn::ImportValue": { "Fn::Sub": "${Rack}:{{ router .Name $.Manifest }}Host" } } ] ] } ] }, { "Field": "source-ip", "SourceIpConfig": { "Values": [ {{ range safeWhitelist .Whitelist }} "{{ . }}", {{ end }} ] } } ],
             "ListenerArn": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:{{ router .Name $.Manifest }}Listener80" } },
             "Priority": "{{ priority $.App .Name "default" -1 }}"
           }
@@ -270,7 +270,7 @@
           {{ end }}
           "Properties": {
             "Actions": [ { "Type": "forward", "TargetGroupArn": { "Ref": "BalancerTargetGroup{{ if .Internal }}Internal{{ end }}" } } ],
-            "Conditions": [ { "Field": "host-header", "Values": [ { "Fn::Join": [ ".", [ "{{$.App}}-{{.Name}}", { "Fn::ImportValue": { "Fn::Sub": "${Rack}:{{ router .Name $.Manifest }}Host" } } ] ] } ] } ],
+            "Conditions": [ { "Field": "host-header", "Values": [ { "Fn::Join": [ ".", [ "{{$.App}}-{{.Name}}", { "Fn::ImportValue": { "Fn::Sub": "${Rack}:{{ router .Name $.Manifest }}Host" } } ] ] } ] }, { "Field": "source-ip", "SourceIpConfig": { "Values": [ {{ range safeWhitelist .Whitelist }} "{{ . }}", {{ end }} ] } } ],
             "ListenerArn": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:{{ router .Name $.Manifest }}Listener443" } },
             "Priority": "{{ priority $.App .Name "default" -1 }}"
           }
@@ -291,7 +291,7 @@
           "Condition": "InternalDomainsAndRouteHttp",
           "Properties": {
             "Actions": [ { "Type": "forward", "TargetGroupArn": { "Ref": "BalancerTargetGroup{{ if .Internal }}Internal{{ end }}" } } ],
-            "Conditions": [ { "Field": "host-header", "Values": [ { "Fn::Sub": "{{.Name}}.{{$.App}}.${Rack}.convox" } ] } ],
+            "Conditions": [ { "Field": "host-header", "Values": [ { "Fn::Sub": "{{.Name}}.{{$.App}}.${Rack}.convox" } ] } , { "Field": "source-ip", "SourceIpConfig": { "Values": [ {{ range safeWhitelist .Whitelist }} "{{ . }}", {{ end }} ] } } ],
             "ListenerArn": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:{{ router .Name $.Manifest }}Listener80" } },
             "Priority": "{{ priority $.App .Name "internal" -1 }}"
           }
@@ -301,7 +301,7 @@
           "Condition": "InternalDomains",
           "Properties": {
             "Actions": [ { "Type": "forward", "TargetGroupArn": { "Ref": "BalancerTargetGroup{{ if .Internal }}Internal{{ end }}" } } ],
-            "Conditions": [ { "Field": "host-header", "Values": [ { "Fn::Sub": "{{.Name}}.{{$.App}}.${Rack}.convox" } ] } ],
+            "Conditions": [ { "Field": "host-header", "Values": [ { "Fn::Sub": "{{.Name}}.{{$.App}}.${Rack}.convox" } ] } , { "Field": "source-ip", "SourceIpConfig": { "Values": [ {{ range safeWhitelist .Whitelist }} "{{ . }}", {{ end }} ] } } ],
             "ListenerArn": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:{{ router .Name $.Manifest }}Listener443" } },
             "Priority": "{{ priority $.App .Name "internal" -1 }}"
           }
@@ -323,7 +323,7 @@
               {{ end }}
               "Properties": {
               "Actions": [ { "Type": "forward", "TargetGroupArn": { "Ref": "BalancerTargetGroup{{ if $.Service.Internal }}Internal{{ end }}" } } ],
-                "Conditions": [ { "Field": "host-header", "Values": [ "{{$domain}}" ] } ],
+                "Conditions": [ { "Field": "host-header", "Values": [ "{{$domain}}" ] } , { "Field": "source-ip", "SourceIpConfig": { "Values": [ {{ range safeWhitelist .Whitelist }} "{{ . }}", {{ end }} ] } } ],
                 "ListenerArn": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:{{ router $.Service.Name $.Manifest }}Listener80" } },
                 "Priority": "{{ priority $.App $.Service.Name $domain $i }}"
               }
@@ -335,7 +335,7 @@
               {{ end }}
               "Properties": {
               "Actions": [ { "Type": "forward", "TargetGroupArn": { "Ref": "BalancerTargetGroup{{ if $.Service.Internal }}Internal{{ end }}" } } ],
-                "Conditions": [ { "Field": "host-header", "Values": [ "{{$domain}}" ] } ],
+                "Conditions": [ { "Field": "host-header", "Values": [ "{{$domain}}" ] } , { "Field": "source-ip", "SourceIpConfig": { "Values": [ {{ range safeWhitelist .Whitelist }} "{{ . }}", {{ end }} ] } } ],
                 "ListenerArn": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:{{ router $.Service.Name $.Manifest }}Listener443" } },
                 "Priority": "{{ priority $.App $.Service.Name $domain $i }}"
               }
