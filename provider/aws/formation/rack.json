@@ -135,6 +135,7 @@
     ] },
     "SpotInstances": { "Fn::Not": [ { "Fn::Equals": [ { "Ref": "SpotInstanceBid"}, "" ] } ] },
     "SpotInstancesAndHA": { "Fn::And": [ { "Condition": "SpotInstances" }, { "Condition": "HighAvailability" } ] },
+    "SpotInstancesAndSetScheduleRack": { "Fn::And": [ { "Condition": "SpotInstances" }, { "Condition": "SetScheduleRackScale" } ] },
     "SwapEnabled": { "Fn::Not": [ { "Fn::Equals": [ { "Ref": "SwapSize" }, "0" ] } ] },
     "ThirdAvailabilityZone": { "Fn::And": [
       { "Fn::Equals": [ { "Fn::FindInMap": [ "RegionConfig", { "Ref": "AWS::Region" }, "ThirdAvailabilityZone" ] }, "Yes" ] },
@@ -1986,6 +1987,28 @@
       "Condition": "SetScheduleRackScale",
       "Properties":{
         "AutoScalingGroupName": { "Ref": "BuildInstances" },
+        "DesiredCapacity": "1",
+        "MaxSize":"2",
+        "MinSize":"1",
+        "Recurrence": { "Ref": "ScheduleRackScaleUp" }
+      }
+    },
+    "SpotScheduleRackScaleDown":{
+      "Type":"AWS::AutoScaling::ScheduledAction",
+      "Condition": "SpotInstancesAndSetScheduleRack",
+      "Properties":{
+        "AutoScalingGroupName": { "Ref": "SpotInstances" },
+        "DesiredCapacity": "0",
+        "MaxSize": "0",
+        "MinSize": "0",
+        "Recurrence": { "Ref": "ScheduleRackScaleDown" }
+      }
+    },
+    "SpotScheduleRackScaleUp":{
+      "Type":"AWS::AutoScaling::ScheduledAction",
+      "Condition": "SpotInstancesAndSetScheduleRack",
+      "Properties":{
+        "AutoScalingGroupName": { "Ref": "SpotInstances" },
         "DesiredCapacity": "1",
         "MaxSize":"2",
         "MinSize":"1",
