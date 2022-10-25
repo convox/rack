@@ -2009,9 +2009,8 @@
       "Condition": "SpotInstancesAndSetScheduleRack",
       "Properties":{
         "AutoScalingGroupName": { "Ref": "SpotInstances" },
-        "DesiredCapacity": "1",
-        "MaxSize":"2",
-        "MinSize":"1",
+        "MinSize": "0",
+        "MaxSize": "1000",
         "Recurrence": { "Ref": "ScheduleRackScaleUp" }
       }
     },
