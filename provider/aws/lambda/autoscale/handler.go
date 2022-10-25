@@ -18,8 +18,10 @@ import (
 
 const (
 	HA_INSTANCE_COUNT_PARAM    = "InstanceCount"
-	NO_HA_INSTANCE_COUNT_PARAM = "NoHaInstanceCount"
 	MAX_RETRY                  = 10
+	MINIMUM_INSTANCE_HA        = 3
+	MINIMUM_INSTANCE_NO_HA     = 1
+	NO_HA_INSTANCE_COUNT_PARAM = "NoHaInstanceCount"
 )
 
 var (
@@ -241,6 +243,12 @@ func desiredCapacity(largest, total *Metrics) (int64, error) {
 		debug("ListContainerInstances page: %d\n", len(res.ContainerInstanceArns))
 
 		totalCount += int64(len(res.ContainerInstanceArns))
+		if totalCount < 1 {
+			if IsHA {
+				return MINIMUM_INSTANCE_HA, nil
+			}
+			return MINIMUM_INSTANCE_NO_HA, nil
+		}
 
 		dres, err := ECS.DescribeContainerInstances(&ecs.DescribeContainerInstancesInput{
 			Cluster:            aws.String(os.Getenv("CLUSTER")),
@@ -308,14 +316,14 @@ func desiredCapacity(largest, total *Metrics) (int64, error) {
 	// total desired count is the current instance count minus the smallest calculated extra type plus the number of desired extra instances
 	desired := totalCount - min(extraCapacity, extraFit, extraWidth) + extra
 
-	// minimum instance count is 3 for high available racks
-	if IsHA && desired < 3 {
-		desired = 3
+	// minimum instance count is MINIMUM_INSTANCE_HA for high available racks
+	if IsHA && desired < MINIMUM_INSTANCE_HA {
+		desired = MINIMUM_INSTANCE_HA
 	}
 
 	// minimum for non-HA rack is 1
-	if desired <= 0 {
-		desired = 1
+	if desired < MINIMUM_INSTANCE_NO_HA {
+		desired = MINIMUM_INSTANCE_NO_HA
 	}
 
 	debug("desired = %+v\n", desired)
