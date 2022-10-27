@@ -85,7 +85,7 @@
       },
       "LoadBalancerSuccessCodes": {
         "Type": "String",
-        "Default": "200-399,401",
+        "Default": "200-399,401,12",
         "Description": "Specifies the HTTP codes that healthy targets must use when responding to an HTTP health check.  You can specify values between 200 and 499, and the default value is \"200-399,401\". You can specify multiple values (for example, \"200,202\") or a range of values (for example, \"200-299\")."
       },
       "LogDriver": {
@@ -232,9 +232,20 @@
             "HealthyThresholdCount": "2",
             "UnhealthyThresholdCount": "2",
             "HealthCheckPath": "{{.Health.Path}}",
-            "Matcher": { "HttpCode": { "Ref": "LoadBalancerSuccessCodes" } },
+            "Matcher": {
+              {{ if eq .Port.Scheme "grpc" }}
+              "GrpcCode": { "Ref": "LoadBalancerSuccessCodes" }
+              {{ else }}
+              "HttpCode": { "Ref": "LoadBalancerSuccessCodes" }
+              {{ end }}
+            },
             "Port": "{{.Port.Port}}",
+            {{ if eq .Port.Scheme "grpc" }}
+            "Protocol": "HTTP",
+            "ProtocolVersion": "GRPC",
+            {{ else }}
             "Protocol": "{{ upcase .Port.Scheme }}",
+            {{ end }}
             "TargetGroupAttributes": [
               { "Key": "deregistration_delay.timeout_seconds", "Value": "{{.Drain}}" },
               { "Key": "load_balancing.algorithm.type", "Value": { "Ref": "LoadBalancerAlgorithm" } },
