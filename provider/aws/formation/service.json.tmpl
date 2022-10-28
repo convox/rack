@@ -270,11 +270,47 @@
           {{ end }}
           "Properties": {
             "Actions": [ { "Type": "forward", "TargetGroupArn": { "Ref": "BalancerTargetGroup{{ if .Internal }}Internal{{ end }}" } } ],
-            "Conditions": [ { "Field": "host-header", "Values": [ { "Fn::Join": [ ".", [ "{{$.App}}-{{.Name}}", { "Fn::ImportValue": { "Fn::Sub": "${Rack}:{{ router .Name $.Manifest }}Host" } } ] ] } ] } ],
+            "Conditions": [ { "Field": "host-header", "Values": [
+              { "Fn::Join": [ ".", [ "{{$.App}}-{{.Name}}", { "Fn::ImportValue": { "Fn::Sub": "${Rack}:{{ router .Name $.Manifest }}Host" } } ] ] } {{- if $.WildcardDomain }},
+              { "Fn::Join": [".", [ "*", "{{$.App}}-{{.Name}}", { "Fn::ImportValue": { "Fn::Sub": "${Rack}:{{ router .Name $.Manifest }}Host" } } ] ] }
+              {{ end }}
+              ] } ],
             "ListenerArn": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:{{ router .Name $.Manifest }}Listener443" } },
             "Priority": "{{ priority $.App .Name "default" -1 }}"
           }
         },
+        {{ if $.WildcardDomain }}
+        "WildCardCertificate": {
+          "Type": "AWS::CertificateManager::Certificate",
+          {{ if .Domain }}
+            "Condition": "InternalDomains",
+          {{ end }}
+          "Properties": {
+            "DomainName": { "Fn::Join": [ ".", [ "*", { "Fn::ImportValue": { "Fn::Sub": "${Rack}:{{ router .Name $.Manifest }}Host" } } ] ] },
+            "DomainValidationOptions": [
+              {
+                "DomainName": { "Fn::Join": [ ".", [ "*", { "Fn::ImportValue": { "Fn::Sub": "${Rack}:{{ router .Name $.Manifest }}Host" } } ] ] },
+                "ValidationDomain": "convox.site"
+              },
+              {
+                "DomainName": { "Fn::Join": [ ".", [ "*", "{{$.App}}-{{.Name}}", { "Fn::ImportValue": { "Fn::Sub": "${Rack}:{{ router .Name $.Manifest }}Host" } } ] ] },
+                "ValidationDomain": "convox.site"
+              }
+            ],
+            "SubjectAlternativeNames": [ { "Fn::Join": [ ".", [ "*", "{{$.App}}-{{.Name}}", { "Fn::ImportValue": { "Fn::Sub": "${Rack}:{{ router .Name $.Manifest }}Host" } } ] ] } ]
+          }
+        },
+        "AddListenerCertificates": {
+          "Type" : "AWS::ElasticLoadBalancingV2::ListenerCertificate",
+          {{ if .Domain }}
+            "Condition": "InternalDomains",
+          {{ end }}
+          "Properties" : {
+              "Certificates" : [ { "CertificateArn" : { "Ref": "WildCardCertificate" } } ],
+              "ListenerArn" : { "Fn::ImportValue": { "Fn::Sub": "${Rack}:{{ router .Name $.Manifest }}Listener443" } }
+            }
+        },
+        {{ end }}
         "RecordSetInternal": {
           "Type": "AWS::Route53::RecordSet",
           "Condition": "InternalDomains",
