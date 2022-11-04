@@ -88,10 +88,10 @@
         "Default": "200-399,401",
         "Description": "Specifies the HTTP codes that healthy targets must use when responding to an HTTP health check.  You can specify values between 200 and 499, and the default value is \"200-399,401\". You can specify multiple values (for example, \"200,202\") or a range of values (for example, \"200-299\")."
       },
-       "LoadBalancerGrpcSuccessCodes": {
+      "LoadBalancerGrpcSuccessCodes": {
         "Type": "String",
         "Default": "12",
-        "Description": "Specifies the GRPC codes that healthy targets must use when responding to an GRPC health check.  You can specify values between 200 and 499, and the default value is \"12\". You can specify multiple values (for example, \"12,13\") or a range of values (for example, \"10-99\")."
+        "Description": "Specifies the GRPC codes that healthy targets must use when responding to an GRPC health check.  You can specify values between 0 and 99, and the default value is \"12\". You can specify multiple values (for example, \"12,13\") or a range of values (for example, \"10-99\")."
       },
       "LogDriver": {
         "Default": "CloudWatch",
