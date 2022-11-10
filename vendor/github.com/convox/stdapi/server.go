@@ -11,7 +11,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-type RecoverFunc func(error)
+type RecoverFunc func(error, *Context)
 
 type Server struct {
 	Check    HandlerFunc
@@ -19,6 +19,7 @@ type Server struct {
 	Logger   *logger.Logger
 	Recover  RecoverFunc
 	Router   *Router
+	Wrapper  func(h http.Handler) http.Handler
 
 	middleware []Middleware
 	server     http.Server
@@ -56,7 +57,15 @@ func (s *Server) Listen(proto, addr string) error {
 		l = tls.NewListener(l, config)
 	}
 
-	s.server = http.Server{Handler: s}
+	var h http.Handler
+
+	if s.Wrapper != nil {
+		h = s.Wrapper(s)
+	} else {
+		h = s
+	}
+
+	s.server = http.Server{Handler: h}
 
 	return s.server.Serve(l)
 }

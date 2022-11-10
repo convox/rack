@@ -21,7 +21,7 @@ func TestSsl(t *testing.T) {
 		require.Equal(t, 0, res.Code)
 		res.RequireStderr(t, []string{""})
 		res.RequireStdout(t, []string{
-			"ENDPOINT    CERTIFICATE  DOMAIN       EXPIRES        ",
+			"ENDPOINT    CERTIFICATE  DOMAIN       EXPIRES",
 			"service1:1  cert1        example.org  2 days from now",
 			"service1:1  cert1        example.org  2 days from now",
 			"service1:1  cert1        example.org  2 days from now",
@@ -54,7 +54,7 @@ func TestSslClassic(t *testing.T) {
 		require.Equal(t, 0, res.Code)
 		res.RequireStderr(t, []string{""})
 		res.RequireStdout(t, []string{
-			"ENDPOINT    CERTIFICATE  DOMAIN       EXPIRES        ",
+			"ENDPOINT    CERTIFICATE  DOMAIN       EXPIRES",
 			"service1:1  cert1        example.org  2 days from now",
 			"service1:1  cert1        example.org  2 days from now",
 			"service1:1  cert1        example.org  2 days from now",
