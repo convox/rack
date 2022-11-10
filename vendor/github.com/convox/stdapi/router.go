@@ -6,7 +6,6 @@ import (
 	"net"
 	"net/http"
 
-	"github.com/gobuffalo/packr"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
 	"github.com/pkg/errors"
@@ -64,11 +63,11 @@ func (rt *Router) Route(method, path string, fn HandlerFunc) Route {
 	}
 }
 
-func (rt *Router) Static(path string, box packr.Box) Route {
+func (rt *Router) Static(path string, files FileSystem) Route {
 	prefix := fmt.Sprintf("%s/", path)
 
 	return Route{
-		Route:  rt.PathPrefix(prefix).Handler(http.StripPrefix(prefix, http.FileServer(box))),
+		Route:  rt.PathPrefix(prefix).Handler(http.StripPrefix(prefix, http.FileServer(files))),
 		Router: rt,
 	}
 }
@@ -118,15 +117,18 @@ func (rt *Router) handle(fn HandlerFunc, c *Context) error {
 		if rt.Server.Recover == nil {
 			return
 		}
-		switch t := recover().(type) {
-		case error:
-			rt.Server.Recover(t)
-		case string:
-			rt.Server.Recover(fmt.Errorf(t))
-		case fmt.Stringer:
-			rt.Server.Recover(fmt.Errorf(t.String()))
-		case nil:
+		err := recover()
+		if err == http.ErrAbortHandler || err == nil {
 			return
+		}
+
+		switch t := err.(type) {
+		case error:
+			rt.Server.Recover(t, c)
+		case string:
+			rt.Server.Recover(fmt.Errorf(t), c)
+		case fmt.Stringer:
+			rt.Server.Recover(fmt.Errorf(t.String()), c)
 		default:
 			panic(t)
 		}

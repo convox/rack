@@ -9,6 +9,7 @@ import (
 	"github.com/convox/rack/pkg/api"
 	"github.com/convox/rack/pkg/structs"
 	"github.com/convox/rack/sdk"
+	"github.com/convox/stdapi"
 	"github.com/convox/stdsdk"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -21,7 +22,7 @@ func TestAuthentication(t *testing.T) {
 	s := api.NewWithProvider(p)
 	s.Logger = logger.Discard
 	s.Password = "pass1"
-	s.Server.Recover = func(err error) {
+	s.Server.Recover = func(err error, c *stdapi.Context) {
 		require.NoError(t, err, "httptest server panic")
 	}
 

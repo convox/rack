@@ -12,6 +12,8 @@ github.com/RackSec/srslog v0.0.0-20170920152354-4d2c753a4ee1 h1:r2B1zeznMFwqSRj3
 github.com/RackSec/srslog v0.0.0-20170920152354-4d2c753a4ee1/go.mod h1:cDLGBht23g0XQdLjzn6xOGXDkLK182YfINAaZEQLCHQ=
 github.com/Sirupsen/logrus v1.0.3 h1:XbmgH2T0Ow2lAHu3IwQTqtwD2NgFdIj5notkpw3BpUM=
 github.com/Sirupsen/logrus v1.0.3/go.mod h1:rmk17hk6i8ZSAJkSDa7nOxamrG+SP4P0mm+DAvExv4U=
+github.com/adrg/xdg v0.2.1 h1:VSVdnH7cQ7V+B33qSJHTCRlNgra1607Q8PzEmnvb2Ic=
+github.com/adrg/xdg v0.2.1/go.mod h1:ZuOshBmzV4Ta+s23hdfFZnBsdzmoR3US0d7ErpqSbTQ=
 github.com/ajg/form v0.0.0-20160822230020-523a5da1a92f/go.mod h1:uL1WgH+h2mgNtvBq0339dVnzXdBETtL2LeUXaIv25UY=
 github.com/alecthomas/template v0.0.0-20160405071501-a0175ee3bccc/go.mod h1:LOuyumcjzFXgccqObfd/Ljyb9UuFJ6TxHnclSeseNhc=
 github.com/alecthomas/units v0.0.0-20151022065526-2efee857e7cf/go.mod h1:ybxpYRFXyAe+OPACYpWeL0wqObRcbAqCMya13uyzqw0=
@@ -46,10 +48,10 @@ github.com/convox/inotify v0.0.0-20170313035821-b56f5149b5c6 h1:bigLg74wAp2d11va
 github.com/convox/inotify v0.0.0-20170313035821-b56f5149b5c6/go.mod h1:JOi7Az72uBLT9D2Qv/6FbUbC9W420st0MMIUgVYUyd0=
 github.com/convox/logger v0.0.0-20180522214415-e39179955b52 h1:HTaloo6by+4NE1A1mRYprWzsOy1PGH2tPGfgZ60dyHU=
 github.com/convox/logger v0.0.0-20180522214415-e39179955b52/go.mod h1:IcbSD+Pq+bQV2z/otiMCHLAYBrDR/jPFopFatrWjlMM=
-github.com/convox/stdapi v0.0.0-20190628182814-148bcf53d167 h1:FCzhvLuYjceNKXaVdiU6rIAFh5TO5I/avqS/vPzIQpc=
-github.com/convox/stdapi v0.0.0-20190628182814-148bcf53d167/go.mod h1:NkUGoKf5tAaHq7MW02AF9mSXSIHCZJ0ZG8+NqRI5t38=
-github.com/convox/stdcli v0.0.0-20190326115454-b78bee159e98 h1:jSUPA5xGpERhDUevVwj8YPXhIbKq+YJPXpF8U9M4p1o=
-github.com/convox/stdcli v0.0.0-20190326115454-b78bee159e98/go.mod h1:D+mhXWLSLHQ+I2zZzYfrSzONMlE6FnPFw9hM4oDcN8Y=
+github.com/convox/stdapi v1.1.3-0.20221110171947-8d98f61e61ed h1:lsw6qfOktQBaF0FEb32+ogvB1S/H3m1W341TuOQ5jnc=
+github.com/convox/stdapi v1.1.3-0.20221110171947-8d98f61e61ed/go.mod h1:7hoZ3oU4j6Zv3V1wRpgUO5eWc+480zYTpYxuTKAbugc=
+github.com/convox/stdcli v0.0.0-20221110070640-8f8fb17bfe20 h1:9t+oXf7ycnO1Cz9AnIEqPLdvbE0b0Yf9Pe5NOukvRN0=
+github.com/convox/stdcli v0.0.0-20221110070640-8f8fb17bfe20/go.mod h1:kLknwv4KTN9f9fZ2DDvG/L9ndXkcijaexIZ0enACvSc=
 github.com/convox/stdsdk v0.0.0-20190422120437-3e80a397e377 h1:PuSJ72MD0mYsMCTvTQ1YydIbQUWtEykNHyweI/vA0PY=
 github.com/convox/stdsdk v0.0.0-20190422120437-3e80a397e377/go.mod h1:y1vtmkDKBkWSQ6e2gPXAyz1NCuWZ2x3vrP/SFeDDNco=
 github.com/convox/version v0.0.0-20160822184233-ffefa0d565d2 h1:tdp/1KHBnbne0yT1yuKnAdOTBHRue9yQ4oON8rzGgZc=
@@ -467,8 +469,9 @@ github.com/spf13/cobra v0.0.3/go.mod h1:1l0Ry5zgKvJasoi3XT1TypsSe7PqH0Sj9dhYf7v3
 github.com/spf13/cobra v1.0.0/go.mod h1:/6GTrnGXV9HjY+aR4k0oJ5tcvakLuG6EuKReYlHNrgE=
 github.com/spf13/jwalterweatherman v1.0.0/go.mod h1:cQK4TGJAtQXfYWX+Ddv3mKDzgVb68N+wFjFa4jdeBTo=
 github.com/spf13/pflag v1.0.2/go.mod h1:DYY7MBk1bdzusC3SYhjObp+wFpr4gzcvqqNjLnInEg4=
-github.com/spf13/pflag v1.0.3 h1:zPAT6CGy6wXeQ7NtTnaTerfKOsV6V6F8agHXFiazDkg=
 github.com/spf13/pflag v1.0.3/go.mod h1:DYY7MBk1bdzusC3SYhjObp+wFpr4gzcvqqNjLnInEg4=
+github.com/spf13/pflag v1.0.5 h1:iy+VFUOCP1a+8yFto/drg2CJ5u0yRoB7fZw3DKv/JXA=
+github.com/spf13/pflag v1.0.5/go.mod h1:McXfInJRrz4CZXVZOBLb0bTZqETkiAhM9Iw0y3An2Bg=
 github.com/spf13/viper v1.2.1/go.mod h1:P4AexN0a+C9tGAnUFNwDMYYZv3pjFuvmeiMyKRaNVlI=
 github.com/spf13/viper v1.3.1/go.mod h1:ZiWeW+zYFKm7srdB9IoDzzZXaJaI5eL9QjNiN/DMA2s=
 github.com/spf13/viper v1.4.0/go.mod h1:PTJ7Z/lr49W6bUbkmS1V3by4uWynFiR9p7+dSq/yZzE=
@@ -511,6 +514,7 @@ golang.org/x/crypto v0.0.0-20190102171810-8d7daa0c54b3/go.mod h1:6SG95UA2DQfeDnf
 golang.org/x/crypto v0.0.0-20190103213133-ff983b9c42bc/go.mod h1:6SG95UA2DQfeDnfUPMdvaQW0Q7yPrPDi9nlGo2tz2b4=
 golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2/go.mod h1:djNgcEr1/C05ACkg1iLfiJU5Ep61QUkGW8qpdssI0+w=
 golang.org/x/crypto v0.0.0-20190923035154-9ee001bba392/go.mod h1:/lpIB1dKB+9EgE3H3cr1v9wB50oz8l4C4h62xy7jSTY=
+golang.org/x/crypto v0.0.0-20200117160349-530e935923ad/go.mod h1:LzIPMQfyMNhhGPhUkYOs5KpL4U8rLKemX1yGLhDgUto=
 golang.org/x/crypto v0.0.0-20220722155217-630584e8d5aa h1:zuSxTR4o9y82ebqCUJYNGJbGPo6sKVl54f/TVDObg1c=
 golang.org/x/crypto v0.0.0-20220722155217-630584e8d5aa/go.mod h1:IxCIyHEi3zRg3s0A5j5BB6A9Jmi73HwBIUl50j+osU4=
 golang.org/x/lint v0.0.0-20181026193005-c67002cb31c3/go.mod h1:UVdnD1Gm6xHRNCYTkRU2/jEulfH38KcIWyp/GAMgvoE=
@@ -566,6 +570,7 @@ golang.org/x/sys v0.0.0-20181206074257-70b957f3b65e/go.mod h1:STP8DvDyc/dI5b8T5h
 golang.org/x/sys v0.0.0-20190102155601-82a175fd1598/go.mod h1:STP8DvDyc/dI5b8T5hshtkjS+E42TnysNCUPdjciGhY=
 golang.org/x/sys v0.0.0-20190116161447-11f53e031339/go.mod h1:STP8DvDyc/dI5b8T5hshtkjS+E42TnysNCUPdjciGhY=
 golang.org/x/sys v0.0.0-20190215142949-d0b11bdaac8a/go.mod h1:STP8DvDyc/dI5b8T5hshtkjS+E42TnysNCUPdjciGhY=
+golang.org/x/sys v0.0.0-20190412213103-97732733099d/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/sys v0.0.0-20190422165155-953cdadca894/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/sys v0.0.0-20190922100055-0a153f010e69/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/sys v0.0.0-20190924154521-2837fb4f24fe/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=

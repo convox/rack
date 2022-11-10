@@ -54,5 +54,7 @@ func (t *Table) widths() []int {
 		}
 	}
 
+	w[len(w)-1] = 0
+
 	return w
 }
