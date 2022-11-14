@@ -20,7 +20,7 @@ func TestCerts(t *testing.T) {
 		require.Equal(t, 0, res.Code)
 		res.RequireStderr(t, []string{""})
 		res.RequireStdout(t, []string{
-			"ID     DOMAIN       EXPIRES        ",
+			"ID     DOMAIN       EXPIRES",
 			"cert1  example.org  2 days from now",
 			"cert1  example.org  2 days from now",
 		})

@@ -20,7 +20,7 @@ func TestServices(t *testing.T) {
 		require.Equal(t, 0, res.Code)
 		res.RequireStderr(t, []string{""})
 		res.RequireStdout(t, []string{
-			"SERVICE   DOMAIN  PORTS  ",
+			"SERVICE   DOMAIN  PORTS",
 			"service1  domain  1:2 1:2",
 			"service1  domain  1:2 1:2",
 		})
@@ -50,7 +50,7 @@ func TestServicesClassic(t *testing.T) {
 		require.Equal(t, 0, res.Code)
 		res.RequireStderr(t, []string{""})
 		res.RequireStdout(t, []string{
-			"SERVICE   DOMAIN  PORTS  ",
+			"SERVICE   DOMAIN  PORTS",
 			"service1  domain  1:2 1:2",
 			"service1  domain  1:2 1:2",
 		})

@@ -54,6 +54,17 @@ func StringFlag(name, short, description string) Flag {
 	}
 }
 
+func StringSliceFlag(name, short, description string) Flag {
+	return Flag{
+		Default:     []string{},
+		Description: description,
+		Name:        name,
+		Short:       short,
+		kind:        "[]string",
+		Value:       []string{},
+	}
+}
+
 func (f *Flag) Set(v string) error {
 	switch f.Type() {
 	case "bool":
@@ -72,6 +83,11 @@ func (f *Flag) Set(v string) error {
 		f.Value = i
 	case "string":
 		f.Value = v
+	case "[]string":
+		if f.Value == nil {
+			f.Value = []string{}
+		}
+		f.Value = append(f.Value.([]string), v)
 	default:
 		return fmt.Errorf("unknown flag type: %s", f.Type())
 	}
@@ -91,7 +107,7 @@ func (f *Flag) Usage(v string) string {
 	switch f.Type() {
 	case "bool":
 		return fmt.Sprintf("%s <u><info></info></u>", v)
-	case "duration", "int", "string":
+	case "duration", "int", "string", "[]string":
 		return fmt.Sprintf("%s <u><info>%s</info></u>", v, f.Name)
 	default:
 		panic(fmt.Sprintf("unknown flag type: %s", f.Type()))
@@ -145,6 +161,8 @@ func typeString(v reflect.Type) string {
 		return "int"
 	case "string":
 		return "string"
+	case "[]string":
+		return "[]string"
 	case "time.Duration":
 		return "duration"
 	default:

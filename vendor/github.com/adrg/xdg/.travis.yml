@@ -1,0 +1,19 @@
+language: go
+go:
+  - 1.11.x
+  - 1.12.x
+  - 1.13.x
+os:
+  - linux
+  - osx
+  - windows
+env:
+  - GO111MODULE=on
+git:
+  autocrlf: false
+before_install:
+  - go get -t -v ./...
+  - go install github.com/golangci/golangci-lint/cmd/golangci-lint
+script:
+  - golangci-lint run --enable-all -D wsl -D gochecknoinits -D gochecknoglobals -D prealloc
+  - go test -v -race ./...

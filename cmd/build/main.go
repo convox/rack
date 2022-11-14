@@ -4,15 +4,28 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/convox/rack/pkg/build"
 	"github.com/convox/rack/pkg/structs"
 	"github.com/convox/rack/sdk"
 )
 
+type StringSlice []string
+
+func (i *StringSlice) String() string {
+	return strings.Join(*i, ",")
+}
+
+func (i *StringSlice) Set(value string) error {
+	*i = append(*i, value)
+	return nil
+}
+
 var (
 	flagApp         string
 	flagAuth        string
+	flagBuildArgs   StringSlice
 	flagCache       string
 	flagDevelopment string
 	flagEnvWrapper  string
@@ -43,6 +56,7 @@ func execute() error {
 
 	fs.StringVar(&flagApp, "app", "example", "app name")
 	fs.StringVar(&flagAuth, "auth", "", "docker auth data (json)")
+	fs.Var(&flagBuildArgs, "build-args", "docker build time args")
 	fs.StringVar(&flagCache, "cache", "true", "use docker cache")
 	fs.StringVar(&flagDevelopment, "development", "false", "create a development build")
 	fs.StringVar(&flagEnvWrapper, "env-wrapper", "false", "wrap with convox-env")
@@ -101,6 +115,7 @@ func execute() error {
 	opts := build.Options{
 		App:         flagApp,
 		Auth:        flagAuth,
+		BuildArgs:   flagBuildArgs,
 		Cache:       flagCache == "true",
 		Development: flagDevelopment == "true",
 		EnvWrapper:  flagEnvWrapper == "true",

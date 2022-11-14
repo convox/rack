@@ -14,6 +14,9 @@ github.com/RackSec/srslog
 # github.com/Sirupsen/logrus v1.0.3
 ## explicit
 github.com/Sirupsen/logrus
+# github.com/adrg/xdg v0.2.1
+## explicit
+github.com/adrg/xdg
 # github.com/andybalholm/cascadia v0.0.0-20161224141413-349dd0209470
 ## explicit
 github.com/andybalholm/cascadia
@@ -120,11 +123,11 @@ github.com/convox/inotify
 # github.com/convox/logger v0.0.0-20180522214415-e39179955b52
 ## explicit
 github.com/convox/logger
-# github.com/convox/stdapi v0.0.0-20190628182814-148bcf53d167
+# github.com/convox/stdapi v1.1.3-0.20221110171947-8d98f61e61ed
 ## explicit; go 1.12
 github.com/convox/stdapi
-# github.com/convox/stdcli v0.0.0-20190326115454-b78bee159e98
-## explicit
+# github.com/convox/stdcli v0.0.0-20221110070640-8f8fb17bfe20
+## explicit; go 1.13
 github.com/convox/stdcli
 # github.com/convox/stdsdk v0.0.0-20190422120437-3e80a397e377
 ## explicit
@@ -341,8 +344,8 @@ github.com/segmentio/analytics-go
 # github.com/segmentio/backo-go v0.0.0-20160424052352-204274ad699c
 ## explicit
 github.com/segmentio/backo-go
-# github.com/spf13/pflag v1.0.3
-## explicit
+# github.com/spf13/pflag v1.0.5
+## explicit; go 1.12
 github.com/spf13/pflag
 # github.com/stretchr/objx v0.1.1
 ## explicit

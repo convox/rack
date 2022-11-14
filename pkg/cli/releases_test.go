@@ -22,9 +22,9 @@ func TestReleases(t *testing.T) {
 		require.Equal(t, 0, res.Code)
 		res.RequireStderr(t, []string{""})
 		res.RequireStdout(t, []string{
-			"ID        STATUS  BUILD   CREATED     DESCRIPTION ",
+			"ID        STATUS  BUILD   CREATED     DESCRIPTION",
 			"release1  active  build1  2 days ago  description1",
-			"release2          build1  2 days ago              ",
+			"release2          build1  2 days ago  ",
 		})
 	})
 }

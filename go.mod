@@ -11,8 +11,8 @@ require (
 	github.com/convox/changes v0.0.0-20190306122126-bce25ca20c47
 	github.com/convox/exec v0.0.0-20180905012044-cc13d277f897
 	github.com/convox/logger v0.0.0-20180522214415-e39179955b52
-	github.com/convox/stdapi v0.0.0-20190628182814-148bcf53d167
-	github.com/convox/stdcli v0.0.0-20190326115454-b78bee159e98
+	github.com/convox/stdapi v1.1.3-0.20221110171947-8d98f61e61ed
+	github.com/convox/stdcli v0.0.0-20221110070640-8f8fb17bfe20
 	github.com/convox/stdsdk v0.0.0-20190422120437-3e80a397e377
 	github.com/convox/version v0.0.0-20160822184233-ffefa0d565d2
 	github.com/docker/docker v1.13.1
@@ -43,6 +43,8 @@ require (
 	k8s.io/client-go v8.0.0+incompatible
 	k8s.io/metrics v0.0.0-20180628054111-6f051017e10b
 )
+
+require github.com/adrg/xdg v0.2.1 // indirect
 
 require (
 	github.com/Azure/go-ansiterm v0.0.0-20170929234023-d6e3b3328b78 // indirect
@@ -89,7 +91,7 @@ require (
 	github.com/rogpeppe/go-internal v1.1.0 // indirect
 	github.com/sebest/xff v0.0.0-20160910043805-6c115e0ffa35 // indirect
 	github.com/segmentio/backo-go v0.0.0-20160424052352-204274ad699c // indirect
-	github.com/spf13/pflag v1.0.3 // indirect
+	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/stretchr/objx v0.1.1 // indirect
 	github.com/xtgo/uuid v0.0.0-20140804021211-a0b114877d4c // indirect
 	golang.org/x/net v0.0.0-20220722155237-a158d28d115b // indirect
