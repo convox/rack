@@ -2,10 +2,13 @@ package stdcli
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/adrg/xdg"
 )
 
 func (e *Engine) LocalSetting(name string) string {
@@ -38,6 +41,15 @@ func (e *Engine) SettingDelete(name string) error {
 	}
 
 	return nil
+}
+
+func (e *Engine) SettingDirectory(name string) (string, error) {
+	dir, err := e.settingFile(name)
+	if err != nil {
+		return "", err
+	}
+
+	return dir, nil
 }
 
 func (e *Engine) SettingRead(name string) (string, error) {
@@ -115,4 +127,21 @@ func (e *Engine) SettingWriteKey(name, key, value string) error {
 	}
 
 	return e.SettingWrite(name, string(data))
+}
+
+func (e *Engine) localSettingDir() string {
+	return fmt.Sprintf(".%s", e.Name)
+}
+
+func (e *Engine) settingFile(name string) (string, error) {
+	if dir := e.Settings; dir != "" {
+		return filepath.Join(dir, name), nil
+	}
+
+	dir, err := xdg.ConfigFile(fmt.Sprintf("%s/%s", e.Name, name))
+	if err != nil {
+		return "", err
+	}
+
+	return dir, nil
 }

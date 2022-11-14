@@ -842,6 +842,20 @@ func (p *Provider) runBuild(build *structs.Build, burl string, opts structs.Buil
 		cache = false
 	}
 
+	buildCmd := []*string{
+		aws.String("build"),
+		aws.String("-method"), aws.String("tgz"),
+		aws.String("-cache"), aws.String(fmt.Sprintf("%t", cache)),
+	}
+	if opts.BuildArgs != nil {
+		for _, v := range *opts.BuildArgs {
+			if len(strings.SplitN(v, "=", 2)) != 2 {
+				return fmt.Errorf("invalid build args")
+			}
+			buildCmd = append(buildCmd, aws.String("-build-args"), aws.String(v))
+		}
+	}
+
 	req := &ecs.RunTaskInput{
 		Cluster:        aws.String(p.BuildCluster),
 		Count:          aws.Int64(1),
@@ -850,12 +864,8 @@ func (p *Provider) runBuild(build *structs.Build, burl string, opts structs.Buil
 		Overrides: &ecs.TaskOverride{
 			ContainerOverrides: []*ecs.ContainerOverride{
 				{
-					Name: aws.String("build"),
-					Command: []*string{
-						aws.String("build"),
-						aws.String("-method"), aws.String("tgz"),
-						aws.String("-cache"), aws.String(fmt.Sprintf("%t", cache)),
-					},
+					Name:    aws.String("build"),
+					Command: buildCmd,
 					Environment: []*ecs.KeyValuePair{
 						{
 							Name:  aws.String("BUILD_APP"),

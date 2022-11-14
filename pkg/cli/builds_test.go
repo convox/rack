@@ -130,9 +130,9 @@ func TestBuilds(t *testing.T) {
 		res.RequireStderr(t, []string{""})
 		res.RequireStdout(t, []string{
 			"ID      STATUS    RELEASE   STARTED     ELAPSED  DESCRIPTION",
-			"build1  complete  release1  2 days ago  2m0s     desc       ",
-			"build4  running             2 days ago                      ",
-			"build3  failed              2 days ago                      ",
+			"build1  complete  release1  2 days ago  2m0s     desc",
+			"build4  running             2 days ago           ",
+			"build3  failed              2 days ago           ",
 		})
 	})
 }
