@@ -16,7 +16,6 @@ import (
 	"github.com/convox/rack/sdk"
 	"github.com/convox/stdcli"
 
-	ss "github.com/aws/aws-sdk-go/aws/session"
 	pv "github.com/convox/rack/provider"
 	cv "github.com/convox/version"
 )
@@ -478,52 +477,6 @@ func RackUpdate(rack sdk.Interface, c *stdcli.Context) error {
 		if err := helpers.WaitForRackWithLogs(rack, c); err != nil {
 			return err
 		}
-	}
-
-	return c.OK()
-}
-
-func RackSync(rack sdk.Interface, c *stdcli.Context) error {
-	c.Startf("Synchronizing rack API URL...")
-	c.Writef("\n")
-
-	host, err := currentHost(c)
-	if err != nil {
-		c.Fail(err)
-	}
-	rname := currentRack(c, host)
-
-	if c.String("name") != "" {
-		rname = c.String("name")
-		s, err := ss.NewSession(&aws.Config{})
-		if err != nil {
-			return err
-		}
-
-		cf := cloudformation.New(s)
-
-		o, err := cf.DescribeStacks(&cloudformation.DescribeStacksInput{StackName: aws.String(rname)})
-		if err != nil {
-			return err
-		}
-
-		if len(o.Stacks) == 0 {
-			return c.Errorf("formation stack with name %s not found", rname)
-		}
-
-		st := o.Stacks[0]
-		for _, o := range st.Outputs {
-			if *o.OutputKey == "Dashboard" {
-				c.Writef("url=%s\n", *o.OutputValue)
-			}
-		}
-
-		return c.OK()
-	}
-
-	err = rack.Sync(rname)
-	if err != nil {
-		return err
 	}
 
 	return c.OK()

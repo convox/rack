@@ -980,10 +980,6 @@ func (c *Client) SystemUpdate(opts structs.SystemUpdateOptions) error {
 	return err
 }
 
-func (c *Client) Sync(name string) error {
-	return c.Post(fmt.Sprintf("/racks/%s/sync", name), stdsdk.RequestOptions{}, nil)
-}
-
 func (c *Client) Workers() error {
 	err := fmt.Errorf("not available via api")
 	return err
