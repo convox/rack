@@ -68,11 +68,11 @@ func main() {
 
 	AutoScaling = autoscaling.New(
 		session,
-		aws.NewConfig().WithEndpoint(os.Getenv("AS_ENDPOINT")).WithRegion(os.Getenv("REGION")),
+		aws.NewConfig().WithRegion(os.Getenv("REGION")),
 	)
 	ECS = ecs.New(
 		session,
-		aws.NewConfig().WithEndpoint(os.Getenv("ECS_ENDPOINT")).WithRegion(os.Getenv("REGION")),
+		aws.NewConfig().WithRegion(os.Getenv("REGION")),
 	)
 
 	lambda.Start(Handler)

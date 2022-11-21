@@ -483,10 +483,12 @@
       }
     },
     "SubnetPrivate0": {
+      "Condition": "Private",
       "Export": { "Name": { "Fn::Sub": "${AWS::StackName}:SubnetPrivate0" } },
       "Value": { "Ref": "SubnetPrivate0" }
     },
     "SubnetPrivate1": {
+      "Condition": "Private",
       "Export": { "Name": { "Fn::Sub": "${AWS::StackName}:SubnetPrivate1" } },
       "Value": { "Ref": "SubnetPrivate1" }
     },
@@ -941,7 +943,6 @@
       }
     },
     "EncryptionKey": {
-      "DependsOn": ["ASEndpoint", "CFEndpoint", "ECSEndpoint", "KMSEndpoint", "S3Endpoint", "SubnetPrivate0Routes", "SubnetPrivate1Routes"],
       "Type": "Custom::KMSKey",
       "Properties": {
         "ServiceToken": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
@@ -1002,67 +1003,7 @@
         "TopicName" : { "Fn::Join": ["", [{"Ref":"AWS::StackName"}, "-notifications"]] }
       }
     },
-    "ASEndpoint": {
-      "Type": "AWS::EC2::VPCEndpoint",
-      "Properties": {
-        "VpcEndpointType": "Interface",
-        "ServiceName": {"Fn::Sub": ["com.amazonaws.${Region}.autoscaling", { "Region": { "Ref": "AWS::Region"}}]},
-        "VpcId": { "Fn::If": [ "BlankExistingVpc", { "Ref": "Vpc" }, { "Ref": "ExistingVpc" }] },
-        "SecurityGroupIds": [{ "Fn::If": [ "BlankInstanceSecurityGroup", { "Ref": "InstancesSecurity" }, { "Ref": "InstanceSecurityGroup" } ] }],
-        "SubnetIds": [{"Ref": "SubnetPrivate0"}, {"Ref": "SubnetPrivate1"}]
-      }
-    },
-    "CFEndpoint": {
-      "Type": "AWS::EC2::VPCEndpoint",
-      "Properties": {
-        "VpcEndpointType": "Interface",
-        "ServiceName": {"Fn::Sub": ["com.amazonaws.${Region}.cloudformation", { "Region": { "Ref": "AWS::Region"}}]},
-        "VpcId": { "Fn::If": [ "BlankExistingVpc", { "Ref": "Vpc" }, { "Ref": "ExistingVpc" }] },
-        "SecurityGroupIds": [{ "Fn::If": [ "BlankInstanceSecurityGroup", { "Ref": "InstancesSecurity" }, { "Ref": "InstanceSecurityGroup" } ] }],
-        "SubnetIds": [{"Ref": "SubnetPrivate0"}, {"Ref": "SubnetPrivate1"}]
-      }
-    },
-    "ECSEndpoint": {
-      "Type": "AWS::EC2::VPCEndpoint",
-      "Properties": {
-        "VpcEndpointType": "Interface",
-        "ServiceName": {"Fn::Sub": ["com.amazonaws.${Region}.ecs", { "Region": { "Ref": "AWS::Region"}}]},
-        "VpcId": { "Fn::If": [ "BlankExistingVpc", { "Ref": "Vpc" }, { "Ref": "ExistingVpc" }] },
-        "SecurityGroupIds": [{ "Fn::If": [ "BlankInstanceSecurityGroup", { "Ref": "InstancesSecurity" }, { "Ref": "InstanceSecurityGroup" } ] }],
-        "SubnetIds": [{"Ref": "SubnetPrivate0"}, {"Ref": "SubnetPrivate1"}]
-      }
-    },
-    "KMSEndpoint": {
-      "Type": "AWS::EC2::VPCEndpoint",
-      "Properties": {
-        "VpcEndpointType": "Interface",
-        "ServiceName": {"Fn::Sub": ["com.amazonaws.${Region}.kms", { "Region": { "Ref": "AWS::Region"}}]},
-        "VpcId": { "Fn::If": [ "BlankExistingVpc", { "Ref": "Vpc" }, { "Ref": "ExistingVpc" }] },
-        "SecurityGroupIds": [{ "Fn::If": [ "BlankInstanceSecurityGroup", { "Ref": "InstancesSecurity" }, { "Ref": "InstanceSecurityGroup" } ] }],
-        "SubnetIds": [{"Ref": "SubnetPrivate0"}, {"Ref": "SubnetPrivate1"}]
-      }
-    },
-    "S3Endpoint": {
-      "Type": "AWS::EC2::VPCEndpoint",
-      "Properties": {
-        "VpcEndpointType": "Gateway",
-        "ServiceName": {"Fn::Sub": ["com.amazonaws.${Region}.s3", { "Region": { "Ref": "AWS::Region"}}]},
-        "VpcId": { "Fn::If": [ "BlankExistingVpc", { "Ref": "Vpc" }, { "Ref": "ExistingVpc" }] },
-        "RouteTableIds": [{ "Ref": "RouteTablePrivate0" }, { "Ref": "RouteTablePrivate1" }]
-      }
-    },
-    "SSMEndpoint": {
-      "Type": "AWS::EC2::VPCEndpoint",
-      "Properties": {
-        "VpcEndpointType": "Interface",
-        "ServiceName": {"Fn::Sub": ["com.amazonaws.${Region}.ssm", { "Region": { "Ref": "AWS::Region"}}]},
-        "VpcId": { "Fn::If": [ "BlankExistingVpc", { "Ref": "Vpc" }, { "Ref": "ExistingVpc" }] },
-        "SecurityGroupIds": [{ "Fn::If": [ "BlankInstanceSecurityGroup", { "Ref": "InstancesSecurity" }, { "Ref": "InstanceSecurityGroup" } ] }],
-        "SubnetIds": [{"Ref": "SubnetPrivate0"}, {"Ref": "SubnetPrivate1"}]
-      }
-    },
     "CustomTopic": {
-      "DependsOn": ["ASEndpoint", "CFEndpoint", "ECSEndpoint", "KMSEndpoint", "S3Endpoint", "SSMEndpoint", "SubnetPrivate0Routes", "SubnetPrivate1Routes"],
       "Type": "AWS::Lambda::Function",
       "Properties": {
         "Code": {
@@ -1070,27 +1011,11 @@
           "S3Key": { "Fn::Join": [ "", [ "release/", { "Ref": "Version" }, "/lambda/formation.zip" ] ] }
         },
         "Description": "Convox handler for custom resources",
-        "Environment": {
-          "Variables": {
-            "ECS_ENDPOINT": { "Fn::Select": [ 1, { "Fn::Split": [ ":", { "Fn::Select": [ 0, { "Fn::GetAtt": [ "ECSEndpoint", "DnsEntries" ] } ] } ] } ] },
-            "KMS_ENDPOINT": { "Fn::Select": [ 1, { "Fn::Split": [ ":", { "Fn::Select": [ 0, { "Fn::GetAtt": [ "KMSEndpoint", "DnsEntries" ] } ] } ] } ] },
-            "SSM_ENDPOINT": { "Fn::Select": [ 1, { "Fn::Split": [ ":", { "Fn::Select": [ 0, { "Fn::GetAtt": [ "SSMEndpoint", "DnsEntries" ] } ] } ] } ] }
-          }
-        },
         "Handler": "index.external",
         "MemorySize": "128",
         "Role": { "Fn::GetAtt": [ "CustomTopicRole", "Arn" ] },
         "Runtime": "nodejs16.x",
-        "Timeout": "300",
-        "VpcConfig": {
-          "SecurityGroupIds": [
-            { "Fn::If": [ "BlankInstanceSecurityGroup", { "Ref": "InstancesSecurity" }, { "Ref": "InstanceSecurityGroup" }]}
-          ],
-          "SubnetIds": [
-            {"Ref": "SubnetPrivate0"},
-            {"Ref": "SubnetPrivate1"}
-          ]
-        }
+        "Timeout": "300"
       }
     },
     "Vpc": {
@@ -1266,6 +1191,7 @@
       }
     },
     "SubnetPrivate0": {
+      "Condition": "Private",
       "Type": "AWS::EC2::Subnet",
       "Properties": {
         "Tags": [ { "Key": "Name", "Value": { "Fn::Join": [ " ", [ { "Ref": "AWS::StackName" }, "private", "0" ] ] } } ],
@@ -1281,6 +1207,7 @@
       }
     },
     "SubnetPrivate1": {
+      "Condition": "Private",
       "Type": "AWS::EC2::Subnet",
       "Properties": {
         "Tags": [ { "Key": "Name", "Value": { "Fn::Join": [ " ", [ { "Ref": "AWS::StackName" }, "private", "1" ] ] } } ],
@@ -1338,6 +1265,7 @@
       }
     },
     "RouteTablePrivate0": {
+      "Condition": "Private",
       "Type": "AWS::EC2::RouteTable",
       "Properties": {
         "Tags": [
@@ -1350,6 +1278,7 @@
       }
     },
     "RouteTablePrivate1": {
+      "Condition": "Private",
       "Type": "AWS::EC2::RouteTable",
       "Properties": {
         "Tags": [
@@ -1426,6 +1355,7 @@
       }
     },
     "SubnetPrivate0Routes": {
+      "Condition": "Private",
       "Type": "AWS::EC2::SubnetRouteTableAssociation",
       "Properties": {
         "SubnetId": { "Ref": "SubnetPrivate0" },
@@ -1433,6 +1363,7 @@
       }
     },
     "SubnetPrivate1Routes": {
+      "Condition": "Private",
       "Type": "AWS::EC2::SubnetRouteTableAssociation",
       "Properties": {
         "SubnetId": { "Ref": "SubnetPrivate1" },
@@ -2017,7 +1948,6 @@
     "InstancesAutoscaler": {
       "Type": "AWS::Lambda::Function",
       "Condition": "Autoscale",
-      "DependsOn": ["CFEndpoint", "ECSEndpoint"],
       "Properties": {
         "Code": {
           "S3Bucket": { "Fn::Sub": "convox-${AWS::Region}" },
@@ -2026,9 +1956,7 @@
         "Environment": {
           "Variables": {
             "ASG": { "Ref": "Instances" },
-            "CF_ENDPOINT": { "Fn::Select": [ 1, { "Fn::Split": [ ":", { "Fn::Select": [ 0, { "Fn::GetAtt": [ "CFEndpoint", "DnsEntries" ] } ] } ] } ] },
             "CLUSTER": { "Ref": "Cluster" },
-            "ECS_ENDPOINT": { "Fn::Select": [ 1, { "Fn::Split": [ ":", { "Fn::Select": [ 0, { "Fn::GetAtt": [ "ECSEndpoint", "DnsEntries" ] } ] } ] } ] },
             "EXTRA": { "Fn::If": [ "HighAvailability", { "Ref": "AutoscaleExtra" }, 0]},
             "HIGH_AVAILABILITY": { "Ref": "HighAvailability" },
             "REGION": { "Ref": "AWS::Region" },
@@ -2039,16 +1967,7 @@
         "MemorySize": "128",
         "Role": { "Fn::GetAtt": [ "ApiRole", "Arn" ] },
         "Runtime": "go1.x",
-        "Timeout": "60",
-        "VpcConfig": {
-          "SecurityGroupIds": [
-            { "Fn::If": [ "BlankInstanceSecurityGroup", { "Ref": "InstancesSecurity" }, { "Ref": "InstanceSecurityGroup" }]}
-          ],
-          "SubnetIds": [
-            { "Ref": "SubnetPrivate0"},
-            { "Ref": "SubnetPrivate1"}
-          ]
-        }
+        "Timeout": "60"
       }
     },
     "InstancesAutoscalerPermission": {
@@ -2153,7 +2072,6 @@
     },
     "InstancesLifecycleHandler": {
       "Type": "AWS::Lambda::Function",
-      "DependsOn": ["ASEndpoint", "ECSEndpoint"],
       "Properties": {
         "Code": {
           "S3Bucket": { "Fn::Join": [ "-", [ "convox", { "Ref": "AWS::Region" } ] ] },
@@ -2162,9 +2080,7 @@
         "Description": { "Fn::Join": [ "", [ "{\"Cluster\": \"", { "Ref": "Cluster" }, "\", \"Rack\": \"", { "Ref": "AWS::StackName" }, "\"}" ] ] },
         "Environment": {
           "Variables": {
-            "AS_ENDPOINT": { "Fn::Select": [ 1, { "Fn::Split": [ ":", { "Fn::Select": [ 0, { "Fn::GetAtt": [ "ASEndpoint", "DnsEntries" ] } ] } ] } ] },
             "CLUSTER": { "Ref": "Cluster" },
-            "ECS_ENDPOINT": { "Fn::Select": [ 1, { "Fn::Split": [ ":", { "Fn::Select": [ 0, { "Fn::GetAtt": [ "ECSEndpoint", "DnsEntries" ] } ] } ] } ] },
             "RACK": { "Ref": "AWS::StackName" },
             "REGION": { "Ref": "AWS::Region" }
           }
@@ -2173,16 +2089,7 @@
         "MemorySize": "128",
         "Role": { "Fn::GetAtt": [ "InstancesLifecycleHandlerRole", "Arn" ] },
         "Runtime": "go1.x",
-        "Timeout": "300",
-        "VpcConfig": {
-          "SecurityGroupIds": [
-            { "Fn::If": [ "BlankInstanceSecurityGroup", { "Ref": "InstancesSecurity" }, { "Ref": "InstanceSecurityGroup" }]}
-          ],
-          "SubnetIds": [
-            { "Ref": "SubnetPrivate0"},
-            { "Ref": "SubnetPrivate1"}
-          ]
-        }
+        "Timeout": "300"
       }
     },
     "InstancesLifecycleHandlerPermission": {
