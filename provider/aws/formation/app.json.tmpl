@@ -461,15 +461,6 @@
             "  });",
             "};"
           ] ] }
-        },
-        "VpcConfig": {
-          "SecurityGroupIds": [
-            { "Fn::ImportValue": { "Fn::Sub": "${Rack}:InstancesSecurityGroup" }}
-          ],
-          "SubnetIds": [
-            { "Fn::ImportValue": { "Fn::Sub": "${Rack}:SubnetPrivate0" }},
-            { "Fn::ImportValue": { "Fn::Sub": "${Rack}:SubnetPrivate1" }}
-          ]
         }
       }
     },
