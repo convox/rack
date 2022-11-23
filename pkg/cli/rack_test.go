@@ -302,7 +302,7 @@ func TestRackReleases(t *testing.T) {
 		require.Equal(t, 0, res.Code)
 		res.RequireStderr(t, []string{""})
 		res.RequireStdout(t, []string{
-			"VERSION   UPDATED   ",
+			"VERSION   UPDATED",
 			"release1  2 days ago",
 			"release1  2 days ago",
 		})

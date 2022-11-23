@@ -44,9 +44,9 @@ func TestRacks(t *testing.T) {
 		require.Equal(t, 0, res.Code)
 		res.RequireStderr(t, []string{""})
 		res.RequireStdout(t, []string{
-			"NAME        STATUS  ",
-			"local/dev   running ",
-			"test/foo    running ",
+			"NAME        STATUS",
+			"local/dev   running",
+			"test/foo    running",
 			"test/other  updating",
 		})
 
@@ -85,8 +85,8 @@ func TestRacksLocalDisable(t *testing.T) {
 		require.Equal(t, 0, res.Code)
 		res.RequireStderr(t, []string{""})
 		res.RequireStdout(t, []string{
-			"NAME        STATUS  ",
-			"test/foo    running ",
+			"NAME        STATUS",
+			"test/foo    running",
 			"test/other  updating",
 		})
 

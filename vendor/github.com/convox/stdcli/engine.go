@@ -3,16 +3,16 @@ package stdcli
 import (
 	"context"
 	"fmt"
-	"path/filepath"
+	"os"
+	"runtime/pprof"
 	"strings"
-
-	homedir "github.com/mitchellh/go-homedir"
 )
 
 type Engine struct {
 	Commands []Command
 	Executor Executor
 	Name     string
+	Profile  string
 	Reader   *Reader
 	Settings string
 	Version  string
@@ -33,6 +33,15 @@ func (e *Engine) Command(command, description string, fn HandlerFunc, opts Comma
 }
 
 func (e *Engine) Execute(args []string) int {
+	if e.Profile != "" {
+		f, err := os.Create(e.Profile)
+		if err != nil {
+			panic(fmt.Sprintf("could not create profile: %s", e.Profile))
+		}
+		pprof.StartCPUProfile(f)
+		defer pprof.StopCPUProfile()
+	}
+
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -74,21 +83,4 @@ func (e *Engine) ExecuteContext(ctx context.Context, args []string) int {
 	}
 
 	return 0
-}
-
-func (e *Engine) settingFile(name string) (string, error) {
-	if dir := e.Settings; dir != "" {
-		return filepath.Join(dir, name), nil
-	}
-
-	home, err := homedir.Dir()
-	if err != nil {
-		return "", err
-	}
-
-	return filepath.Join(home, fmt.Sprintf(".%s", e.Name), name), nil
-}
-
-func (e *Engine) localSettingDir() string {
-	return fmt.Sprintf(".%s", e.Name)
 }
