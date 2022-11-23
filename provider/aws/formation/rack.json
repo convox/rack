@@ -2803,6 +2803,21 @@
         "Priority": "1"
       }
     },
+    "ApiBalancerListenerRuleInternal": {
+      "Type": "AWS::ElasticLoadBalancingV2::ListenerRule",
+      "Properties": {
+        "Actions": [ { "Type": "forward", "TargetGroupArn": { "Ref": "ApiBalancerTargetGroup" } } ],
+        "Conditions": [
+          { "Field": "host-header", "Values": [ { "Fn::Join": [ ".", [
+            "rack",
+            {"Ref": "AWS::StackName"},
+            "convox"
+          ] ] } ] }
+        ],
+        "ListenerArn": { "Ref": "ApiBalancerListener443" },
+        "Priority": "2"
+      }
+    },
     "ApiBalancerSecurity": {
       "Type": "AWS::EC2::SecurityGroup",
       "Properties": {
