@@ -379,13 +379,21 @@
           "RackUrl": { "Ref": "RackUrl" },
           "RedirectHttps": { "Ref": "RedirectHttps" },
           "Registry": { "Ref": "Registry" },
-          {{ range .Resources }}
-            "Resource{{ upper . }}": { "Fn::GetAtt": [ "Resource{{ upper . }}", "Outputs.Url" ] },
-            "Resource{{ upper . }}User": { "Fn::GetAtt": [ "Resource{{ upper . }}", "Outputs.User" ] },
-            "Resource{{ upper . }}Pass": { "Fn::GetAtt": [ "Resource{{ upper . }}", "Outputs.Pass" ] },
-            "Resource{{ upper . }}Host": { "Fn::GetAtt": [ "Resource{{ upper . }}", "Outputs.Host" ] },
-            "Resource{{ upper . }}Port": { "Fn::GetAtt": [ "Resource{{ upper . }}", "Outputs.Port" ] },
-            "Resource{{ upper . }}Name": { "Fn::GetAtt": [ "Resource{{ upper . }}", "Outputs.Name" ] },
+          {{ range $name := .Resources }}
+            {{ range $resource := $.Manifest.Resources }}
+              {{ if eq $name $resource.Name }}
+                {{ if eq $resource.Type "efs" }}
+                  "Resource{{ upper $name }}FileSystemId": { "Fn::GetAtt": [ "Resource{{ upper $name }}", "Outputs.FileSystemId" ] },
+                {{ else }}
+                  "Resource{{ upper $name }}": { "Fn::GetAtt": [ "Resource{{ upper $name }}", "Outputs.Url" ] },
+                  "Resource{{ upper $name }}User": { "Fn::GetAtt": [ "Resource{{ upper $name }}", "Outputs.User" ] },
+                  "Resource{{ upper $name }}Pass": { "Fn::GetAtt": [ "Resource{{ upper $name }}", "Outputs.Pass" ] },
+                  "Resource{{ upper $name }}Host": { "Fn::GetAtt": [ "Resource{{ upper $name }}", "Outputs.Host" ] },
+                  "Resource{{ upper $name }}Port": { "Fn::GetAtt": [ "Resource{{ upper $name }}", "Outputs.Port" ] },
+                  "Resource{{ upper $name }}Name": { "Fn::GetAtt": [ "Resource{{ upper $name }}", "Outputs.Name" ] },
+                {{ end }}
+              {{ end }}
+            {{ end }}
           {{ end }}
           "Role": { "Fn::GetAtt": [ "ServiceRole", "Arn" ] },
           "Settings": { "Ref": "Settings" },

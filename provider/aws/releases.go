@@ -285,8 +285,8 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 			"Manifest":       tp["Manifest"],
 			"Password":       p.Password,
 			"Release":        tp["Release"],
-			"WildcardDomain": tp["WildcardDomain"],
 			"Service":        s,
+			"WildcardDomain": tp["WildcardDomain"],
 		}
 
 		sarn, err := p.serviceArn(r.App, s.Name)
