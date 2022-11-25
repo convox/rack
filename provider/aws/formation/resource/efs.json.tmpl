@@ -12,7 +12,7 @@
   },
   "Parameters": {
     "AutoMinorVersionUpgrade": {
-      "Type" : "String",
+      "Type": "String",
       "Default": ""
     },
     "Encrypted": {
@@ -29,15 +29,29 @@
     },
     "Path": {
       "Type": "String",
-      "Default": "/path"
+      "Default": "/"
     },
     "Rack": {
-      "MinLength": "1",
       "Type": "String"
     }
   },
   "Outputs": {
-    "FileSystemId": { "Value": { "Fn::GetAtt": [ "FileSystem", "FileSystemId" ] } }
+    "AccessPointId": {
+      "Value": {
+        "Fn::GetAtt": [
+          "AccessPoint",
+          "AccessPointId"
+        ]
+      }
+    },
+    "FileSystemId": {
+      "Value": {
+        "Fn::GetAtt": [
+          "FileSystem",
+          "FileSystemId"
+        ]
+      }
+    }
   },
   "Resources": {
     "AccessPoint": {
@@ -47,6 +61,11 @@
           "Ref": "FileSystem"
         },
         "RootDirectory": {
+          "CreationInfo": {
+            "OwnerGid": "1000",
+            "OwnerUid": "1000",
+            "Permissions": "0777"
+          },
           "Path": {
             "Ref": "Path"
           }
@@ -111,13 +130,14 @@
     "MountTargetSecurityGroup": {
       "Type": "AWS::EC2::SecurityGroup",
       "Properties": {
-        "GroupDescription": "FileSystem Security Group",
+        "GroupDescription": {
+          "Fn::Sub": "${Rack} ${AWS::StackName} EFS SG"
+        },
         "VpcId": {
           "Fn::ImportValue": {
             "Fn::Sub": "${Rack}:Vpc"
           }
         },
-        "GroupName": "EFS Resource SG",
         "SecurityGroupIngress": [
           {
             "IpProtocol": "tcp",
@@ -132,7 +152,7 @@
         ]
       }
     },
-    "MountTarget1": {
+    "MountTarget0": {
       "Type": "AWS::EFS::MountTarget",
       "Properties": {
         "FileSystemId": {
@@ -150,7 +170,7 @@
         ]
       }
     },
-    "MountTarget2": {
+    "MountTarget1": {
       "Type": "AWS::EFS::MountTarget",
       "Properties": {
         "FileSystemId": {
@@ -159,6 +179,24 @@
         "SubnetId": {
           "Fn::ImportValue": {
             "Fn::Sub": "${Rack}:Subnet1"
+          }
+        },
+        "SecurityGroups": [
+          {
+            "Ref": "MountTargetSecurityGroup"
+          }
+        ]
+      }
+    },
+    "MountTarget2": {
+      "Type": "AWS::EFS::MountTarget",
+      "Properties": {
+        "FileSystemId": {
+          "Ref": "FileSystem"
+        },
+        "SubnetId": {
+          "Fn::ImportValue": {
+            "Fn::Sub": "${Rack}:Subnet2"
           }
         },
         "SecurityGroups": [
