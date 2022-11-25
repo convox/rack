@@ -1,0 +1,172 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Conditions": {
+    "Encrypted": {
+      "Fn::Equals": [
+        {
+          "Ref": "Encrypted"
+        },
+        "true"
+      ]
+    }
+  },
+  "Parameters": {
+    "AutoMinorVersionUpgrade": {
+      "Type" : "String",
+      "Default": ""
+    },
+    "Encrypted": {
+      "Type": "String",
+      "Default": "false",
+      "AllowedValues": [
+        "true",
+        "false"
+      ]
+    },
+    "Password": {
+      "Type": "String",
+      "Default": ""
+    },
+    "Path": {
+      "Type": "String",
+      "Default": "/path"
+    },
+    "Rack": {
+      "MinLength": "1",
+      "Type": "String"
+    }
+  },
+  "Outputs": {
+    "FileSystemId": { "Value": { "Fn::GetAtt": [ "FileSystem", "FileSystemId" ] } }
+  },
+  "Resources": {
+    "AccessPoint": {
+      "Type": "AWS::EFS::AccessPoint",
+      "Properties": {
+        "FileSystemId": {
+          "Ref": "FileSystem"
+        },
+        "RootDirectory": {
+          "Path": {
+            "Ref": "Path"
+          }
+        }
+      }
+    },
+    "EncryptionKey": {
+      "Type": "AWS::KMS::Key",
+      "Condition": "Encrypted",
+      "Properties": {
+        "Description": {
+          "Ref": "AWS::StackName"
+        },
+        "KeyPolicy": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": "Allow administration of the key",
+              "Effect": "Allow",
+              "Principal": {
+                "AWS": {
+                  "Fn::Sub": "arn:${AWS::Partition}:iam::${AWS::AccountId}:root"
+                }
+              },
+              "Action": [
+                "kms:*"
+              ],
+              "Resource": "*"
+            }
+          ]
+        },
+        "PendingWindowInDays": "7"
+      }
+    },
+    "FileSystem": {
+      "Type": "AWS::EFS::FileSystem",
+      "Properties": {
+        "Encrypted": {
+          "Ref": "Encrypted"
+        },
+        "FileSystemTags": [
+          {
+            "Key": "Rack",
+            "Value": {
+              "Ref": "Rack"
+            }
+          }
+        ],
+        "KmsKeyId": {
+          "Fn::If": [
+            "Encrypted",
+            {
+              "Ref": "EncryptionKey"
+            },
+            {
+              "Ref": "AWS::NoValue"
+            }
+          ]
+        }
+      }
+    },
+    "MountTargetSecurityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "FileSystem Security Group",
+        "VpcId": {
+          "Fn::ImportValue": {
+            "Fn::Sub": "${Rack}:Vpc"
+          }
+        },
+        "GroupName": "EFS Resource SG",
+        "SecurityGroupIngress": [
+          {
+            "IpProtocol": "tcp",
+            "FromPort": 2049,
+            "ToPort": 2049,
+            "CidrIp": {
+              "Fn::ImportValue": {
+                "Fn::Sub": "${Rack}:VpcCidr"
+              }
+            }
+          }
+        ]
+      }
+    },
+    "MountTarget1": {
+      "Type": "AWS::EFS::MountTarget",
+      "Properties": {
+        "FileSystemId": {
+          "Ref": "FileSystem"
+        },
+        "SubnetId": {
+          "Fn::ImportValue": {
+            "Fn::Sub": "${Rack}:Subnet0"
+          }
+        },
+        "SecurityGroups": [
+          {
+            "Ref": "MountTargetSecurityGroup"
+          }
+        ]
+      }
+    },
+    "MountTarget2": {
+      "Type": "AWS::EFS::MountTarget",
+      "Properties": {
+        "FileSystemId": {
+          "Ref": "FileSystem"
+        },
+        "SubnetId": {
+          "Fn::ImportValue": {
+            "Fn::Sub": "${Rack}:Subnet1"
+          }
+        },
+        "SecurityGroups": [
+          {
+            "Ref": "MountTargetSecurityGroup"
+          }
+        ]
+      }
+    }
+  }
+}
