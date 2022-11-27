@@ -77,6 +77,10 @@ func init() {
 		Validate: stdcli.Args(2),
 	})
 
+	register("rack sync", "sync v2 rack API url", RackSync, stdcli.CommandOptions{
+		Flags: []stdcli.Flag{flagRack, stdcli.StringFlag("name", "n", "rack name. Use it for non console managed racks")},
+	})
+
 	register("rack update", "update the rack", RackUpdate, stdcli.CommandOptions{
 		Flags:    []stdcli.Flag{flagRack, flagWait},
 		Validate: stdcli.ArgsMax(1),

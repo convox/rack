@@ -224,6 +224,10 @@ func (c *Context) RenderTemplate(path string, params interface{}) error {
 	return RenderTemplate(c, path, params)
 }
 
+func (c *Context) RenderTemplatePart(path, part string, params interface{}) error {
+	return RenderTemplatePart(c, path, part, params)
+}
+
 func (c *Context) RenderText(t string) error {
 	_, err := c.response.Write([]byte(t))
 	return errors.WithStack(err)

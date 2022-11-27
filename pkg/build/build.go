@@ -25,6 +25,7 @@ import (
 type Options struct {
 	App         string
 	Auth        string
+	BuildArgs   []string
 	Cache       bool
 	Development bool
 	EnvWrapper  bool
@@ -225,6 +226,14 @@ func (bb *Build) buildGeneration1(dir string) error {
 		return err
 	}
 
+	for _, v := range bb.BuildArgs {
+		parts := strings.SplitN(v, "=", 2)
+		if len(parts) != 2 {
+			return fmt.Errorf("invalid build args: %s", v)
+		}
+		env[parts[0]] = parts[1]
+	}
+
 	err = m.Build(dir, bb.App, s, manifest1.BuildOptions{
 		Environment: env,
 		Cache:       bb.Cache,
@@ -256,6 +265,14 @@ func (bb *Build) buildGeneration2(dir string) error {
 	env, err := helpers.AppEnvironment(bb.Provider, bb.App)
 	if err != nil {
 		return err
+	}
+
+	for _, v := range bb.BuildArgs {
+		parts := strings.SplitN(v, "=", 2)
+		if len(parts) != 2 {
+			return fmt.Errorf("invalid build args: %s", v)
+		}
+		env[parts[0]] = parts[1]
 	}
 
 	m, err := manifest.Load(data, env)

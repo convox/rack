@@ -391,11 +391,11 @@ func main() {
 
 	CloudFormation = cloudformation.New(
 		session,
-		aws.NewConfig().WithEndpoint(os.Getenv("CF_ENDPOINT")).WithRegion(os.Getenv("REGION")),
+		aws.NewConfig().WithRegion(os.Getenv("REGION")),
 	)
 	ECS = ecs.New(
 		session,
-		aws.NewConfig().WithEndpoint(os.Getenv("ECS_ENDPOINT")).WithRegion(os.Getenv("REGION")),
+		aws.NewConfig().WithRegion(os.Getenv("REGION")),
 	)
 
 	lambda.Start(Handler)

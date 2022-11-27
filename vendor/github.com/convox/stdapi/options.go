@@ -118,6 +118,9 @@ func unmarshalValue(r *http.Request, u reflect.Value, v string) error {
 	case []string:
 		ss := strings.Split(v, ",")
 		u.Set(reflect.ValueOf(ss))
+	case *[]string:
+		ss := strings.Split(v, ",")
+		u.Set(reflect.ValueOf(&ss))
 	case map[string]string:
 		uv, err := url.ParseQuery(v)
 		if err != nil {
