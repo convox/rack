@@ -615,12 +615,12 @@
                   {{ range $resource := $.Manifest.Resources }}
                     {{ if eq $name $resource.Name }}
                       {{ if not (eq $resource.Type "efs") }}
-                        { "Name": "{{ envname . }}_URL", "Value": { "Ref": "Resource{{ upper . }}" } },
-                        { "Name": "{{ envname . }}_USER", "Value": { "Ref": "Resource{{ upper . }}User" } },
-                        { "Name": "{{ envname . }}_PASS", "Value": { "Ref": "Resource{{ upper . }}Pass" } },
-                        { "Name": "{{ envname . }}_HOST", "Value": { "Ref": "Resource{{ upper . }}Host" } },
-                        { "Name": "{{ envname . }}_PORT", "Value": { "Ref": "Resource{{ upper . }}Port" } },
-                        { "Name": "{{ envname . }}_NAME", "Value": { "Ref": "Resource{{ upper . }}Name" } },
+                        { "Name": "{{ envname $name }}_URL", "Value": { "Ref": "Resource{{ upper $name }}" } },
+                        { "Name": "{{ envname $name }}_USER", "Value": { "Ref": "Resource{{ upper $name }}User" } },
+                        { "Name": "{{ envname $name }}_PASS", "Value": { "Ref": "Resource{{ upper $name }}Pass" } },
+                        { "Name": "{{ envname $name }}_HOST", "Value": { "Ref": "Resource{{ upper $name }}Host" } },
+                        { "Name": "{{ envname $name }}_PORT", "Value": { "Ref": "Resource{{ upper $name }}Port" } },
+                        { "Name": "{{ envname $name }}_NAME", "Value": { "Ref": "Resource{{ upper $name }}Name" } },
                       {{ end }}
                     {{ end }}
                   {{ end }}
@@ -730,7 +730,12 @@
                   {
                     "Name": "{{ $name }}",
                     "EFSVolumeConfiguration": {
-                      "FilesystemId": { "Ref": "Resource{{ upper $name }}FileSystemId" }
+                      "FilesystemId": { "Ref": "Resource{{ upper $name }}FileSystemId" },
+                      "TransitEncryption": "ENABLED",
+                      "AuthorizationConfig": {
+                        "AccessPointId": { "Ref": "Resource{{ upper $name }}AccessPointId" },
+                        "IAM": "DISABLED"
+                      }
                     }
                   },
                 {{ end }}
