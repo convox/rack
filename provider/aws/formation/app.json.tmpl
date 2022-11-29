@@ -384,6 +384,7 @@
               {{ if eq $name $resource.Name }}
                 {{ if eq $resource.Type "efs" }}
                   "Resource{{ upper $name }}FileSystemId": { "Fn::GetAtt": [ "Resource{{ upper $name }}", "Outputs.FileSystemId" ] },
+                  "Resource{{ upper $name }}AccessPointId": { "Fn::GetAtt": [ "Resource{{ upper $name }}", "Outputs.AccessPointId" ] },
                 {{ else }}
                   "Resource{{ upper $name }}": { "Fn::GetAtt": [ "Resource{{ upper $name }}", "Outputs.Url" ] },
                   "Resource{{ upper $name }}User": { "Fn::GetAtt": [ "Resource{{ upper $name }}", "Outputs.User" ] },

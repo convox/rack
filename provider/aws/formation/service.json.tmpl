@@ -131,6 +131,9 @@
         {{ range $resource := $.Manifest.Resources }}
           {{ if eq $name $resource.Name }}
             {{ if eq $resource.Type "efs" }}
+              "Resource{{ upper $name }}AccessPointId": {
+                "Type": "String"
+              },
               "Resource{{ upper $name }}FileSystemId": {
                 "Type": "String"
               },
@@ -681,8 +684,8 @@
                   {{ range $resource := $.Manifest.Resources }}
                     {{ if and (eq $name $resource.Name) (eq $resource.Type "efs") }}
                       {
-                        "containerPath": "/bitnami",
-                        "sourceVolume": "{{ $resource.Name }}"
+                        "ContainerPath": "/bitnami",
+                        "SourceVolume": "{{ $resource.Name }}"
                       },
                     {{ end }}
                   {{ end }}
@@ -725,9 +728,9 @@
               {{ range $resource := $.Manifest.Resources }}
                 {{ if and (eq $name $resource.Name) (eq $resource.Type "efs") }}
                   {
-                    "name": "{{ $name }}",
-                    "efsVolumeConfiguration": {
-                      "fileSystemId": { "Ref": "Resource{{ upper $name }}FileSystemId" }
+                    "Name": "{{ $name }}",
+                    "EFSVolumeConfiguration": {
+                      "FilesystemId": { "Ref": "Resource{{ upper $name }}FileSystemId" }
                     }
                   },
                 {{ end }}

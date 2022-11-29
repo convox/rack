@@ -29,7 +29,7 @@
     },
     "Path": {
       "Type": "String",
-      "Default": "/path"
+      "Default": "/"
     },
     "Rack": {
       "MinLength": "1",
@@ -37,6 +37,7 @@
     }
   },
   "Outputs": {
+    "AccessPointId": { "Value": { "Fn::GetAtt": [ "AccessPoint", "AccessPointId" ] } },
     "FileSystemId": { "Value": { "Fn::GetAtt": [ "FileSystem", "FileSystemId" ] } }
   },
   "Resources": {
@@ -117,7 +118,6 @@
             "Fn::Sub": "${Rack}:Vpc"
           }
         },
-        "GroupName": "EFS Resource SG",
         "SecurityGroupIngress": [
           {
             "IpProtocol": "tcp",
