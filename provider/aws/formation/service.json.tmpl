@@ -730,7 +730,12 @@
                   {
                     "Name": "{{ $name }}",
                     "EFSVolumeConfiguration": {
-                      "FilesystemId": { "Ref": "Resource{{ upper $name }}FileSystemId" }
+                      "FilesystemId": { "Ref": "Resource{{ upper $name }}FileSystemId" },
+                      "TransitEncryption": "ENABLED",
+                      "AuthorizationConfig": {
+                        "AccessPointId": { "Ref": "Resource{{ upper $name }}AccessPointId" },
+                        "IAM": "DISABLED"
+                      }
                     }
                   },
                 {{ end }}
