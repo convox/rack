@@ -485,12 +485,10 @@
       }
     },
     "SubnetPrivate0": {
-      "Condition": "Private",
       "Export": { "Name": { "Fn::Sub": "${AWS::StackName}:SubnetPrivate0" } },
       "Value": { "Ref": "SubnetPrivate0" }
     },
     "SubnetPrivate1": {
-      "Condition": "Private",
       "Export": { "Name": { "Fn::Sub": "${AWS::StackName}:SubnetPrivate1" } },
       "Value": { "Ref": "SubnetPrivate1" }
     },
@@ -1193,7 +1191,6 @@
       }
     },
     "SubnetPrivate0": {
-      "Condition": "Private",
       "Type": "AWS::EC2::Subnet",
       "Properties": {
         "Tags": [ { "Key": "Name", "Value": { "Fn::Join": [ " ", [ { "Ref": "AWS::StackName" }, "private", "0" ] ] } } ],
@@ -1209,7 +1206,6 @@
       }
     },
     "SubnetPrivate1": {
-      "Condition": "Private",
       "Type": "AWS::EC2::Subnet",
       "Properties": {
         "Tags": [ { "Key": "Name", "Value": { "Fn::Join": [ " ", [ { "Ref": "AWS::StackName" }, "private", "1" ] ] } } ],
@@ -1267,7 +1263,6 @@
       }
     },
     "RouteTablePrivate0": {
-      "Condition": "Private",
       "Type": "AWS::EC2::RouteTable",
       "Properties": {
         "Tags": [
@@ -1280,7 +1275,6 @@
       }
     },
     "RouteTablePrivate1": {
-      "Condition": "Private",
       "Type": "AWS::EC2::RouteTable",
       "Properties": {
         "Tags": [
@@ -1357,7 +1351,6 @@
       }
     },
     "SubnetPrivate0Routes": {
-      "Condition": "Private",
       "Type": "AWS::EC2::SubnetRouteTableAssociation",
       "Properties": {
         "SubnetId": { "Ref": "SubnetPrivate0" },
@@ -1365,7 +1358,6 @@
       }
     },
     "SubnetPrivate1Routes": {
-      "Condition": "Private",
       "Type": "AWS::EC2::SubnetRouteTableAssociation",
       "Properties": {
         "SubnetId": { "Ref": "SubnetPrivate1" },
