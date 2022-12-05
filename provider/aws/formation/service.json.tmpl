@@ -612,7 +612,7 @@
                     "https://{{$.App}}-{{.}}", { "Fn::ImportValue": { "Fn::Sub": "${Rack}:{{ router . $.Manifest }}Host" } }
                   ] ] } },
                 {{ end }}
-                {{ range $name := .Resources }}
+                {{ range $name := $resources }}
                   {{ range $resource := $.Manifest.Resources }}
                     {{ if eq $name $resource.Name }}
                       {{ if not (eq $resource.Type "efs") }}
