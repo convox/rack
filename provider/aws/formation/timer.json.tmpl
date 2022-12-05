@@ -142,6 +142,7 @@
         "Properties": {
           "ContainerDefinitions": [
             {{ with $.Manifest.Service .Service }}
+              {{ $resources := .Resources }}
               {
                 "Command": [ "sh", "-c", {{ safe $.Timer.Command }} ],
                 "Cpu": { "Ref": "Cpu" },
@@ -155,8 +156,19 @@
                       "https://{{$.App}}-{{.}}", { "Fn::ImportValue": { "Fn::Sub": "${Rack}:{{ router . $.Manifest }}Host" } }
                     ] ] } },
                   {{ end }}
-                  {{ range .Resources }}
-                    { "Name": "{{ envname . }}_URL", "Value": { "Ref": "Resource{{ upper . }}" } },
+                  {{ range $name := $resources }}
+                    {{ range $resource := $.Manifest.Resources }}
+                      {{ if eq $name $resource.Name }}
+                        {{ if not (eq $resource.Type "efs") }}
+                          { "Name": "{{ envname $name }}_URL", "Value": { "Ref": "Resource{{ upper $name }}" } },
+                          { "Name": "{{ envname $name }}_USER", "Value": { "Ref": "Resource{{ upper $name }}User" } },
+                          { "Name": "{{ envname $name }}_PASS", "Value": { "Ref": "Resource{{ upper $name }}Pass" } },
+                          { "Name": "{{ envname $name }}_HOST", "Value": { "Ref": "Resource{{ upper $name }}Host" } },
+                          { "Name": "{{ envname $name }}_PORT", "Value": { "Ref": "Resource{{ upper $name }}Port" } },
+                          { "Name": "{{ envname $name }}_NAME", "Value": { "Ref": "Resource{{ upper $name }}Name" } },
+                        {{ end }}
+                      {{ end }}
+                    {{ end }}
                   {{ end }}
                   { "Name": "AWS_REGION", "Value": { "Ref": "AWS::Region" } },
                   { "Name": "APP", "Value": "{{$.App}}" },
@@ -205,7 +217,22 @@
                 "Memory": { "Ref": "Memory" },
                 "MountPoints": [
                   {{ range $i, $v := .Volumes }}
-                    { "SourceVolume": "volume-{{$i}}", "ContainerPath": "{{ volumeTo $v }}" },
+                    {{ $volume := splitVolumeLabel $v }}
+                    {{ $name :=  (index $volume 0)}}
+
+                    {{ if stringContains $name $resources }}
+                      {{ range $r := $.Manifest.Resources }}
+                        {{ if and (eq $name $r.Name) (eq $r.Type "efs") }}
+                          {
+                            "ContainerPath": "{{ index $volume 1 }}",
+                            "SourceVolume": "{{ $r.Name }}"
+                          },
+                        {{ end }}
+                      {{ end }}
+
+                    {{ else }}
+                      { "SourceVolume": "volume-{{$i}}", "ContainerPath": "{{ volumeTo $v }}" },
+                    {{ end }}
                   {{ end }}
                   { "Ref": "AWS::NoValue" }
                 ],
@@ -222,8 +249,31 @@
           "RequiresCompatibilities": [ { "Fn::If": [ "FargateEither", "FARGATE", { "Ref": "AWS::NoValue" } ] } ],
           "TaskRoleArn": { "Ref": "ServiceRole" },
           "Volumes": [
+            {{ $resources := ($.Manifest.Service .Service).Resources }}
             {{ range $i, $v := ($.Manifest.Service .Service).Volumes }}
-              { "Name": "volume-{{$i}}", "Host": { "SourcePath": "{{ volumeFrom $.App $v }}" } },
+              {{ $volume := splitVolumeLabel $v }}
+              {{ $name :=  (index $volume 0)}}
+
+              {{ if stringContains $name $resources }}
+                {{ range $r := $.Manifest.Resources }}
+                  {{ if and (eq $name $r.Name) (eq $r.Type "efs") }}
+                    {
+                      "Name": "{{ $name }}",
+                      "EFSVolumeConfiguration": {
+                        "FilesystemId": { "Ref": "Resource{{ upper $name }}FileSystemId" },
+                        "TransitEncryption": "ENABLED",
+                        "AuthorizationConfig": {
+                          "AccessPointId": { "Ref": "Resource{{ upper $name }}AccessPointId" },
+                          "IAM": "DISABLED"
+                        }
+                      }
+                    },
+                  {{ end }}
+                {{ end }}
+
+              {{ else }}
+                { "Name": "volume-{{$i}}", "Host": { "SourcePath": "{{ volumeFrom $.App $v }}" } },
+              {{ end }}
             {{ end }}
             { "Ref": "AWS::NoValue" }
           ]
