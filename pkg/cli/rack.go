@@ -67,10 +67,6 @@ func init() {
 		Validate: stdcli.Args(0),
 	})
 
-	register("rack sync", "sync v2 rack API url", RackSync, stdcli.CommandOptions{
-		Flags: []stdcli.Flag{flagRack, stdcli.StringFlag("name", "n", "rack name. Use it for non console managed racks")},
-	})
-
 	registerWithoutProvider("rack uninstall", "uninstall a rack", RackUninstall, stdcli.CommandOptions{
 		Flags:    append(stdcli.OptionFlags(structs.SystemUninstallOptions{})),
 		Usage:    "<type> <name>",
