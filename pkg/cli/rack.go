@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/url"
+	"os"
 	"sort"
 	"strings"
 
@@ -67,10 +68,6 @@ func init() {
 		Validate: stdcli.Args(0),
 	})
 
-	register("rack sync", "sync v2 rack API url", RackSync, stdcli.CommandOptions{
-		Flags: []stdcli.Flag{flagRack, stdcli.StringFlag("name", "n", "rack name. Use it for non console managed racks")},
-	})
-
 	registerWithoutProvider("rack uninstall", "uninstall a rack", RackUninstall, stdcli.CommandOptions{
 		Flags:    append(stdcli.OptionFlags(structs.SystemUninstallOptions{})),
 		Usage:    "<type> <name>",
@@ -78,7 +75,7 @@ func init() {
 	})
 
 	register("rack sync", "sync v2 rack API url", RackSync, stdcli.CommandOptions{
-		Flags: []stdcli.Flag{flagRack, stdcli.StringFlag("name", "n", "rack name. Use it for non console managed racks")},
+		Flags: []stdcli.Flag{flagRack, stdcli.StringFlag("name", "n", "passing the rack name it will display the Rack API URL")},
 	})
 
 	register("rack update", "update the rack", RackUpdate, stdcli.CommandOptions{
@@ -371,24 +368,27 @@ func RackScale(rack sdk.Interface, c *stdcli.Context) error {
 }
 
 func RackSync(rack sdk.Interface, c *stdcli.Context) error {
-	c.Startf("Synchronizing rack API URL...")
-	c.Writef("\n")
-
-	host, err := currentHost(c)
-	if err != nil {
-		c.Fail(err)
-	}
-	rname := currentRack(c, host)
-
 	if c.String("name") != "" {
-		rname = c.String("name")
+		c.Startf("Fetching rack API URL...")
+		c.Writef("\n")
+
+		if os.Getenv("AWS_REGION") != "" && os.Getenv("AWS_DEFAULT_REGION") != "" {
+			return c.Errorf("region is not defined, please set AWS_DEFAULT_REGION")
+		}
+
+		rname := c.String("name")
+		// deleting the org name
+		parts := strings.Split(rname, "/")
+		if len(parts) == 2 {
+			rname = parts[1]
+		}
+
 		s, err := helpers.NewSession()
 		if err != nil {
 			return err
 		}
 
 		cf := cloudformation.New(s)
-
 		o, err := cf.DescribeStacks(&cloudformation.DescribeStacksInput{StackName: aws.String(rname)})
 		if err != nil {
 			return err
@@ -407,6 +407,15 @@ func RackSync(rack sdk.Interface, c *stdcli.Context) error {
 
 		return c.OK()
 	}
+
+	c.Startf("Synchronizing rack API URL...")
+	c.Writef("\n")
+
+	host, err := currentHost(c)
+	if err != nil {
+		c.Fail(err)
+	}
+	rname := currentRack(c, host)
 
 	err = rack.Sync(rname)
 	if err != nil {
