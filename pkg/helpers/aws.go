@@ -537,7 +537,7 @@ func writeLogEvents(w io.Writer, events []*cloudwatchlogs.FilteredLogEvent, opts
 }
 
 func NewSession() (*session.Session, error) {
-	s, err := session.NewSession(&aws.Config{
+	config := &aws.Config{
 		MaxRetries: aws.Int(MAX_RETRY),
 		Retryer: client.DefaultRetryer{
 			NumMaxRetries:    MAX_RETRY,
@@ -546,7 +546,17 @@ func NewSession() (*session.Session, error) {
 			MinThrottleDelay: 10 * time.Second,
 			MaxThrottleDelay: 60 * time.Second,
 		},
-	})
+	}
+	if os.Getenv("AWS_REGION") != "" || os.Getenv("AWS_DEFAULT_REGION") != "" {
+		region := os.Getenv("AWS_DEFAULT_REGION")
+		if region == "" {
+			region = os.Getenv("AWS_REGION")
+		}
+
+		config.Region = aws.String(region)
+	}
+
+	s, err := session.NewSession(config)
 
 	return s, err
 }
