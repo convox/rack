@@ -11,7 +11,7 @@ var (
 )
 
 func main() {
-	c := cli.New("convox", version)
+	c := cli.New("convox2", version)
 
 	os.Exit(c.Execute(os.Args[1:]))
 }
