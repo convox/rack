@@ -8,6 +8,14 @@
         },
         "true"
       ]
+    },
+    "ThirdAvailabilityZone": {
+      "Fn::Equals": [
+        {
+          "Ref": "ThirdAvailabilityZone"
+        },
+        "true"
+      ]
     }
   },
   "Parameters": {
@@ -43,7 +51,7 @@
       "Type": "String",
       "Default": "0777"
     },
-    "ThirdAvailabilityZoneAndHighAvailability": {
+    "ThirdAvailabilityZone": {
       "Type": "String"
     },
     "Rack": {
@@ -205,6 +213,7 @@
     },
     "MountTarget2": {
       "Type": "AWS::EFS::MountTarget",
+      "Condition": "ThirdAvailabilityZone",
       "Properties": {
         "FileSystemId": {
           "Ref": "FileSystem"
