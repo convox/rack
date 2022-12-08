@@ -23,6 +23,14 @@
         "false"
       ]
     },
+    "OwnerGid": {
+      "Type": "String",
+      "Default": "1000"
+    },
+    "OwnerUid": {
+      "Type": "String",
+      "Default": "1000"
+    },
     "Password": {
       "Type": "String",
       "Default": ""
@@ -30,6 +38,13 @@
     "Path": {
       "Type": "String",
       "Default": "/"
+    },
+    "Permissions": {
+      "Type": "String",
+      "Default": "0777"
+    },
+    "ThirdAvailabilityZoneAndHighAvailability": {
+      "Type": "String"
     },
     "Rack": {
       "Type": "String"
@@ -62,9 +77,9 @@
         },
         "RootDirectory": {
           "CreationInfo": {
-            "OwnerGid": "1000",
-            "OwnerUid": "1000",
-            "Permissions": "0777"
+            "OwnerGid": { "Ref": "OwnerGid" },
+            "OwnerUid": { "Ref": "OwnerUid" },
+            "Permissions": { "Ref": "Permissions" }
           },
           "Path": {
             "Ref": "Path"
