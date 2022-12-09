@@ -563,6 +563,34 @@ func cleanTasksFromStackECSServices(cf *cloudformation.CloudFormation, ecss *ecs
 			serviceArns := resources.ServiceArns
 			if len(serviceArns) > 0 {
 				for _, service := range serviceArns {
+					_, err := ecss.UpdateService(&ecs.UpdateServiceInput{
+						Cluster:      cluster,
+						Service:      service,
+						DesiredCount: aws.Int64(0),
+					})
+
+					if err != nil {
+						return err
+					}
+				}
+
+				runningTasks := 1
+				for runningTasks > 0 {
+					tasks, err := ecss.ListTasks(&ecs.ListTasksInput{
+						Cluster: cluster,
+					})
+
+					if err != nil {
+						return err
+					}
+
+					runningTasks = len(tasks.TaskArns)
+					fmt.Println("Stopping Tasks...")
+
+					time.Sleep(3 * time.Second)
+				}
+
+				for _, service := range serviceArns {
 					fmt.Printf("Draining ECS Service %s... \n", *service)
 
 					_, err := ecss.DeleteService(&ecs.DeleteServiceInput{
