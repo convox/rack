@@ -495,6 +495,19 @@ func (p *Provider) SystemUninstall(name string, w io.Writer, opts structs.System
 		}
 	}
 
+	ecsService := ecs.New(s)
+	for _, d := range deps {
+		// Workaround to uninstall v2 racks:
+		// You can't delete a cluster that contains services. First, update the service
+		// to reduce its desired task count to 0, and then delete the service. For more
+		// information, see UpdateService and DeleteService.
+		err := cleanTasksFromStackECSServices(cf, ecsService, d)
+		if err != nil {
+			return err
+		}
+	}
+
+	// Keep the Stack Uninstalling Process
 	for _, d := range deps {
 		tres, err := cf.GetTemplate(&cloudformation.GetTemplateInput{StackName: aws.String(d)})
 		if err != nil {
@@ -515,6 +528,64 @@ func (p *Provider) SystemUninstall(name string, w io.Writer, opts structs.System
 
 		if err := cloudformationProgress(d, token, []byte(*tres.TemplateBody), w); err != nil {
 			return err
+		}
+	}
+
+	return nil
+}
+
+func cleanTasksFromStackECSServices(cf *cloudformation.CloudFormation, ecss *ecs.ECS, stackName string) error {
+	output, err := cf.DescribeStackResources(&cloudformation.DescribeStackResourcesInput{
+		StackName: aws.String(stackName),
+	})
+
+	if err != nil {
+		return err
+	}
+
+	var clusters []*string
+	for _, resource := range output.StackResources {
+		if *resource.ResourceType == "AWS::ECS::Cluster" {
+			clusters = append(clusters, resource.PhysicalResourceId)
+		}
+	}
+
+	if len(clusters) > 0 {
+		for _, cluster := range clusters {
+			resources, err := ecss.ListServices(&ecs.ListServicesInput{
+				Cluster: cluster,
+			})
+
+			if err != nil {
+				return err
+			}
+
+			serviceArns := resources.ServiceArns
+			if len(serviceArns) > 0 {
+				for _, service := range serviceArns {
+					fmt.Printf("Draining ECS Service %s... \n", *service)
+
+					_, err := ecss.DeleteService(&ecs.DeleteServiceInput{
+						Cluster: cluster,
+						Service: service,
+					})
+
+					if err != nil {
+						return err
+					}
+				}
+
+				err := ecss.WaitUntilServicesInactive(&ecs.DescribeServicesInput{
+					Cluster:  cluster,
+					Services: serviceArns,
+				})
+
+				fmt.Println("ECS Services Deleted...")
+
+				if err != nil {
+					return err
+				}
+			}
 		}
 	}
 
