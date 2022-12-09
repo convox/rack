@@ -495,6 +495,17 @@ func (p *Provider) SystemUninstall(name string, w io.Writer, opts structs.System
 		}
 	}
 
+	asgService := autoscaling.New(s)
+	for _, d := range deps {
+		// Workaround to uninstall v2 racks:
+		// ecs services fails to complete the delete unless asg/instances are deleted
+		err := cleanAsg(cf, asgService, d)
+		if err != nil {
+			return err
+		}
+	}
+
+	// Keep the Stack Uninstalling Process
 	for _, d := range deps {
 		tres, err := cf.GetTemplate(&cloudformation.GetTemplateInput{StackName: aws.String(d)})
 		if err != nil {
@@ -514,6 +525,36 @@ func (p *Provider) SystemUninstall(name string, w io.Writer, opts structs.System
 		}
 
 		if err := cloudformationProgress(d, token, []byte(*tres.TemplateBody), w); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func cleanAsg(cf *cloudformation.CloudFormation, asgservice *autoscaling.AutoScaling, stackName string) error {
+	output, err := cf.DescribeStackResources(&cloudformation.DescribeStackResourcesInput{
+		StackName: aws.String(stackName),
+	})
+
+	if err != nil {
+		return err
+	}
+
+	var asgList []*string
+	for _, resource := range output.StackResources {
+		if *resource.ResourceType == "AWS::AutoScaling::AutoScalingGroup" {
+			asgList = append(asgList, resource.PhysicalResourceId)
+		}
+	}
+
+	for _, as := range asgList {
+		fmt.Println(*as)
+		_, err := asgservice.DeleteAutoScalingGroup(&autoscaling.DeleteAutoScalingGroupInput{
+			AutoScalingGroupName: as,
+			ForceDelete:          aws.Bool(true),
+		})
+		if err != nil {
 			return err
 		}
 	}
