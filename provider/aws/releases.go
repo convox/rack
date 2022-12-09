@@ -241,8 +241,13 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 		tp["WildcardDomain"] = b.WildcardDomain
 	}
 
+	hasThirdAZ := len(strings.Split(p.AvailabilityZones, ",")) == 3
+
 	for _, r := range m.Resources {
-		data, err := formationTemplate(fmt.Sprintf("resource/%s", r.Type), map[string]interface{}{})
+		rtp := map[string]interface{}{
+			"ThirdAvailabilityZone": hasThirdAZ,
+		}
+		data, err := formationTemplate(fmt.Sprintf("resource/%s", r.Type), rtp)
 		if err != nil {
 			return err
 		}

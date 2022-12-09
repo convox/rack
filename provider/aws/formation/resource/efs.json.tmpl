@@ -43,9 +43,6 @@
       "Type": "String",
       "Default": "0777"
     },
-    "ThirdAvailabilityZoneAndHighAvailability": {
-      "Type": "String"
-    },
     "Rack": {
       "Type": "String"
     }
@@ -203,6 +200,7 @@
         ]
       }
     },
+    {{ if .ThirdAvailabilityZone }}
     "MountTarget2": {
       "Type": "AWS::EFS::MountTarget",
       "Properties": {
@@ -221,5 +219,6 @@
         ]
       }
     }
+    {{ end }}
   }
 }
