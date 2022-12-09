@@ -495,13 +495,11 @@ func (p *Provider) SystemUninstall(name string, w io.Writer, opts structs.System
 		}
 	}
 
-	ecsService := ecs.New(s)
+	asgService := autoscaling.New(s)
 	for _, d := range deps {
 		// Workaround to uninstall v2 racks:
-		// You can't delete a cluster that contains services. First, update the service
-		// to reduce its desired task count to 0, and then delete the service. For more
-		// information, see UpdateService and DeleteService.
-		err := cleanTasksFromStackECSServices(cf, ecsService, d)
+		// ecs services fails to complete the delete unless asg/instances are deleted
+		err := cleanAsg(cf, asgService, d)
 		if err != nil {
 			return err
 		}
@@ -534,7 +532,7 @@ func (p *Provider) SystemUninstall(name string, w io.Writer, opts structs.System
 	return nil
 }
 
-func cleanTasksFromStackECSServices(cf *cloudformation.CloudFormation, ecss *ecs.ECS, stackName string) error {
+func cleanAsg(cf *cloudformation.CloudFormation, asgservice *autoscaling.AutoScaling, stackName string) error {
 	output, err := cf.DescribeStackResources(&cloudformation.DescribeStackResourcesInput{
 		StackName: aws.String(stackName),
 	})
@@ -543,77 +541,21 @@ func cleanTasksFromStackECSServices(cf *cloudformation.CloudFormation, ecss *ecs
 		return err
 	}
 
-	var clusters []*string
+	var asgList []*string
 	for _, resource := range output.StackResources {
-		if *resource.ResourceType == "AWS::ECS::Cluster" {
-			clusters = append(clusters, resource.PhysicalResourceId)
+		if *resource.ResourceType == "AWS::AutoScaling::AutoScalingGroup" {
+			asgList = append(asgList, resource.PhysicalResourceId)
 		}
 	}
 
-	if len(clusters) > 0 {
-		for _, cluster := range clusters {
-			resources, err := ecss.ListServices(&ecs.ListServicesInput{
-				Cluster: cluster,
-			})
-
-			if err != nil {
-				return err
-			}
-
-			serviceArns := resources.ServiceArns
-			if len(serviceArns) > 0 {
-				for _, service := range serviceArns {
-					_, err := ecss.UpdateService(&ecs.UpdateServiceInput{
-						Cluster:      cluster,
-						Service:      service,
-						DesiredCount: aws.Int64(0),
-					})
-
-					if err != nil {
-						return err
-					}
-				}
-
-				runningTasks := 1
-				for runningTasks > 0 {
-					tasks, err := ecss.ListTasks(&ecs.ListTasksInput{
-						Cluster: cluster,
-					})
-
-					if err != nil {
-						return err
-					}
-
-					runningTasks = len(tasks.TaskArns)
-					fmt.Println("Stopping Tasks...")
-
-					time.Sleep(3 * time.Second)
-				}
-
-				for _, service := range serviceArns {
-					fmt.Printf("Draining ECS Service %s... \n", *service)
-
-					_, err := ecss.DeleteService(&ecs.DeleteServiceInput{
-						Cluster: cluster,
-						Service: service,
-					})
-
-					if err != nil {
-						return err
-					}
-				}
-
-				err := ecss.WaitUntilServicesInactive(&ecs.DescribeServicesInput{
-					Cluster:  cluster,
-					Services: serviceArns,
-				})
-
-				fmt.Println("ECS Services Deleted...")
-
-				if err != nil {
-					return err
-				}
-			}
+	for _, as := range asgList {
+		fmt.Println(*as)
+		_, err := asgservice.DeleteAutoScalingGroup(&autoscaling.DeleteAutoScalingGroupInput{
+			AutoScalingGroupName: as,
+			ForceDelete:          aws.Bool(true),
+		})
+		if err != nil {
+			return err
 		}
 	}
 
