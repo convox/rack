@@ -196,7 +196,12 @@ func ResourcesProxy(rack sdk.Interface, c *stdcli.Context) error {
 		return fmt.Errorf("no url for resource: %s", r.Name)
 	}
 
-	u, err := url.Parse(r.Url)
+	resourceUrl := r.Url
+	if !strings.HasPrefix(r.Url, "http") {
+		resourceUrl = fmt.Sprintf("http://%s", r.Url)
+	}
+
+	u, err := url.Parse(resourceUrl)
 	if err != nil {
 		return err
 	}
@@ -504,7 +509,12 @@ func RackResourcesProxy(rack sdk.Interface, c *stdcli.Context) error {
 		return fmt.Errorf("no url for resource: %s", r.Name)
 	}
 
-	u, err := url.Parse(r.Url)
+	resourceUrl := r.Url
+	if !strings.HasPrefix(r.Url, "http") {
+		resourceUrl = fmt.Sprintf("http://%s", r.Url)
+	}
+
+	u, err := url.Parse(resourceUrl)
 	if err != nil {
 		return err
 	}
