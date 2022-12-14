@@ -4,7 +4,7 @@
     "Autoscale": {
       "Fn::And": [
         { "Fn::Equals": [ { "Ref": "Autoscale" }, "Yes" ] },
-        { "Fn::Not": ["SpotFleet"] }
+        { "Fn::Not": [ { "Fn::Equals": [ { "Ref": "SpotFleetBid"}, "" ] } ] }
       ]
     },
     "BlankAmi": { "Fn::Equals": [ { "Ref": "Ami" }, "" ] },
@@ -2829,7 +2829,7 @@
           ]
         },
         "ManagedPolicyArns": [
-          { "Fn::Sub": "arn:${AWS::Partition}:iam::aws:policy/service-role/AmazonEC2SpotFleetRole" }
+          { "Fn::Sub": "arn:${AWS::Partition}:iam::aws:policy/service-role/AWSServiceRoleForEC2Spot" }
         ],
         "Path": "/convox/"
       }
