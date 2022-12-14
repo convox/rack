@@ -34,6 +34,8 @@ import (
 const (
 	keyLength   = 32
 	nonceLength = 24
+
+	ParameterNameTags = "Tags"
 )
 
 type envelope struct {
@@ -237,7 +239,10 @@ func (p *Provider) SystemInstall(w io.Writer, opts structs.SystemInstallOptions)
 		params["ClientId"] = *opts.Id
 	}
 
+	var customTags string
 	if opts.Parameters != nil {
+		customTags = opts.Parameters[ParameterNameTags]
+		delete(opts.Parameters, ParameterNameTags)
 		for k, v := range opts.Parameters {
 			params[k] = v
 		}
@@ -246,6 +251,10 @@ func (p *Provider) SystemInstall(w io.Writer, opts structs.SystemInstallOptions)
 	tags := map[string]string{
 		"System": "convox",
 		"Type":   "rack",
+	}
+
+	if err := addCustomTags(tags, customTags); err != nil {
+		return "", errors.WithStack(err)
 	}
 
 	raw := helpers.DefaultBool(opts.Raw, false)
@@ -576,7 +585,10 @@ func (p *Provider) SystemUpdate(opts structs.SystemUpdateOptions) error {
 		"SshKey":            p.SshKey,
 	}
 
+	var customTags string
 	if opts.Parameters != nil {
+		customTags = opts.Parameters[ParameterNameTags]
+		delete(opts.Parameters, ParameterNameTags)
 		for k, v := range opts.Parameters {
 			params[k] = v
 		}
@@ -642,6 +654,10 @@ func (p *Provider) SystemUpdate(opts structs.SystemUpdateOptions) error {
 		"Type":   "rack",
 	}
 
+	if err := addCustomTags(tags, customTags); err != nil {
+		return err
+	}
+
 	if err := p.updateStack(p.Rack, template, params, tags, ""); err != nil {
 		return err
 	}
@@ -649,6 +665,24 @@ func (p *Provider) SystemUpdate(opts structs.SystemUpdateOptions) error {
 	// notify about the update
 	p.EventSend("rack:update", structs.EventSendOptions{Data: changes})
 
+	return nil
+}
+
+func addCustomTags(tags map[string]string, customTags string) error {
+	if customTags == "" {
+		return nil
+	}
+
+	for _, v := range strings.Split(customTags, ",") {
+		parts := strings.SplitN(v, "=", 2)
+		if len(parts) < 2 {
+			return fmt.Errorf("invalid Tags parameter. expected format: 'key1=val1,key2=val2'")
+		}
+
+		if _, has := tags[parts[0]]; !has {
+			tags[parts[0]] = parts[1]
+		}
+	}
 	return nil
 }
 
