@@ -17,16 +17,31 @@ resources:
     type: memcached
   redis:
     type: redis
+  sharedvolume:
+    type: efs
+    options:
+      path: "/app/httpd"
 services:
   web:
     build: .
     port: 80
+    volumes:
+      # Persistent volumes
+      - /my/shared/data
+      - /var/www/html
+      # Host Volumes
+      - /sys/fs/cgroup/:/host/sys/fs/cgroup/
+      - /proc/:/host/proc/
+      - /var/run/docker.sock:/var/run/docker.sock
+      # EFS Resource (shared volumes)
+      - sharedvolume:/app/httpd
     resources:
       - postgres
       - mysql
       - mariadb
       - memcached
       - redis
+      - sharedvolume
 timers:
   example:
     command: /usr/local/apache2/timer-cmd.sh

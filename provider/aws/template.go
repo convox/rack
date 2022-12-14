@@ -114,6 +114,12 @@ func formationHelpers() template.FuncMap {
 		"volumeTo": func(s string) string {
 			return volumeTo(s)
 		},
+		"splitVolumeLabel": func(s string) []string {
+			return splitVolumeLabel(s)
+		},
+		"stringContains": func(main string, subs []string) bool {
+			return stringContains(main, subs)
+		},
 		// generation 1
 		"coalesce": func(ss ...string) string {
 			for _, s := range ss {
@@ -147,6 +153,7 @@ func formationHelpers() template.FuncMap {
 		},
 	}
 }
+
 func formationTemplate(name string, data interface{}) ([]byte, error) {
 	var buf bytes.Buffer
 

@@ -444,6 +444,15 @@ func volumeTo(s string) string {
 	return fmt.Sprintf("invalid volume %q", s)
 }
 
+func splitVolumeLabel(s string) []string {
+	return strings.SplitN(s, ":", 2)
+}
+
+func stringContains(main string, subs []string) bool {
+	joinedS := strings.Join(subs, ";-;")
+	return strings.Contains(joinedS, main)
+}
+
 func dashName(name string) string {
 	// Myapp -> myapp; MyApp -> my-app
 	re := regexp.MustCompile("([a-z])([A-Z])") // lower case letter followed by upper case
