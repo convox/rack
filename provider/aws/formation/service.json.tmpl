@@ -127,31 +127,44 @@
       "Registry": {
         "Type": "String"
       },
-      {{ range .Resources }}
-        "Resource{{ upper .}}": {
-          "Type": "String",
-          "NoEcho": "true"
-        },
-        "Resource{{ upper .}}User": {
-          "Type": "String",
-          "NoEcho": "true"
-        },
-        "Resource{{ upper .}}Pass": {
-          "Type": "String",
-          "NoEcho": "true"
-        },
-        "Resource{{ upper .}}Host": {
-          "Type": "String",
-          "NoEcho": "true"
-        },
-        "Resource{{ upper .}}Port": {
-          "Type": "String",
-          "NoEcho": "true"
-        },
-        "Resource{{ upper .}}Name": {
-          "Type": "String",
-          "NoEcho": "true"
-        },
+      {{ range $name := .Resources }}
+        {{ range $resource := $.Manifest.Resources }}
+          {{ if eq $name $resource.Name }}
+            {{ if eq $resource.Type "efs" }}
+              "Resource{{ upper $name }}AccessPointId": {
+                "Type": "String"
+              },
+              "Resource{{ upper $name }}FileSystemId": {
+                "Type": "String"
+              },
+            {{ else }}
+              "Resource{{ upper $name }}": {
+                "Type": "String",
+                "NoEcho": "true"
+              },
+              "Resource{{ upper $name }}User": {
+                "Type": "String",
+                "NoEcho": "true"
+              },
+              "Resource{{ upper $name }}Pass": {
+                "Type": "String",
+                "NoEcho": "true"
+              },
+              "Resource{{ upper $name }}Host": {
+                "Type": "String",
+                "NoEcho": "true"
+              },
+              "Resource{{ upper $name }}Port": {
+                "Type": "String",
+                "NoEcho": "true"
+              },
+              "Resource{{ upper $name }}Name": {
+                "Type": "String",
+                "NoEcho": "true"
+              },
+            {{ end }}
+          {{ end }}
+        {{ end }}
       {{ end }}
       "Role": {
         "Type": "String"
@@ -582,6 +595,7 @@
       "Tasks": {
         "Type": "AWS::ECS::TaskDefinition",
         "Properties": {
+          {{ $resources := .Resources }}
           "ContainerDefinitions": [
             {
               {{ with .Command }}
@@ -598,13 +612,19 @@
                     "https://{{$.App}}-{{.}}", { "Fn::ImportValue": { "Fn::Sub": "${Rack}:{{ router . $.Manifest }}Host" } }
                   ] ] } },
                 {{ end }}
-                {{ range .Resources }}
-                  { "Name": "{{ envname . }}_URL", "Value": { "Ref": "Resource{{ upper . }}" } },
-                  { "Name": "{{ envname . }}_USER", "Value": { "Ref": "Resource{{ upper . }}User" } },
-                  { "Name": "{{ envname . }}_PASS", "Value": { "Ref": "Resource{{ upper . }}Pass" } },
-                  { "Name": "{{ envname . }}_HOST", "Value": { "Ref": "Resource{{ upper . }}Host" } },
-                  { "Name": "{{ envname . }}_PORT", "Value": { "Ref": "Resource{{ upper . }}Port" } },
-                  { "Name": "{{ envname . }}_NAME", "Value": { "Ref": "Resource{{ upper . }}Name" } },
+                {{ range $name := $resources }}
+                  {{ range $resource := $.Manifest.Resources }}
+                    {{ if eq $name $resource.Name }}
+                      {{ if not (eq $resource.Type "efs") }}
+                        { "Name": "{{ envname $name }}_URL", "Value": { "Ref": "Resource{{ upper $name }}" } },
+                        { "Name": "{{ envname $name }}_USER", "Value": { "Ref": "Resource{{ upper $name }}User" } },
+                        { "Name": "{{ envname $name }}_PASS", "Value": { "Ref": "Resource{{ upper $name }}Pass" } },
+                        { "Name": "{{ envname $name }}_HOST", "Value": { "Ref": "Resource{{ upper $name }}Host" } },
+                        { "Name": "{{ envname $name }}_PORT", "Value": { "Ref": "Resource{{ upper $name }}Port" } },
+                        { "Name": "{{ envname $name }}_NAME", "Value": { "Ref": "Resource{{ upper $name }}Name" } },
+                      {{ end }}
+                    {{ end }}
+                  {{ end }}
                 {{ end }}
                 { "Name": "AWS_REGION", "Value": { "Ref": "AWS::Region" } },
                 { "Name": "APP", "Value": "{{$.App}}" },
@@ -659,7 +679,22 @@
               "Memory": { "Ref": "Memory" },
               "MountPoints": [
                 {{ range $i, $v := .Volumes }}
-                  { "SourceVolume": "volume-{{$i}}", "ContainerPath": "{{ volumeTo $v }}" },
+                  {{ $volume := splitVolumeLabel $v }}
+                  {{ $name :=  (index $volume 0)}}
+
+                  {{ if stringContains $name $resources }}
+                    {{ range $r := $.Manifest.Resources }}
+                      {{ if and (eq $name $r.Name) (eq $r.Type "efs") }}
+                        {
+                          "ContainerPath": "{{ index $volume 1 }}",
+                          "SourceVolume": "{{ $r.Name }}"
+                        },
+                      {{ end }}
+                    {{ end }}
+
+                  {{ else }}
+                    { "SourceVolume": "volume-{{$i}}", "ContainerPath": "{{ volumeTo $v }}" },
+                  {{ end }}
                 {{ end }}
                 { "Ref": "AWS::NoValue" }
               ],
@@ -693,7 +728,29 @@
           "TaskRoleArn": { "Ref": "Role" },
           "Volumes": [
             {{ range $i, $v := .Volumes }}
-              { "Name": "volume-{{$i}}", "Host": { "SourcePath": "{{ volumeFrom $.App $v }}" } },
+              {{ $volume := splitVolumeLabel $v }}
+              {{ $name :=  (index $volume 0)}}
+
+              {{ if stringContains $name $resources }}
+                {{ range $r := $.Manifest.Resources }}
+                  {{ if and (eq $name $r.Name) (eq $r.Type "efs") }}
+                    {
+                      "Name": "{{ $name }}",
+                      "EFSVolumeConfiguration": {
+                        "FilesystemId": { "Ref": "Resource{{ upper $name }}FileSystemId" },
+                        "TransitEncryption": "ENABLED",
+                        "AuthorizationConfig": {
+                          "AccessPointId": { "Ref": "Resource{{ upper $name }}AccessPointId" },
+                          "IAM": "DISABLED"
+                        }
+                      }
+                    },
+                  {{ end }}
+                {{ end }}
+
+              {{ else }}
+                { "Name": "volume-{{$i}}", "Host": { "SourcePath": "{{ volumeFrom $.App $v }}" } },
+              {{ end }}
             {{ end }}
             { "Ref": "AWS::NoValue" }
           ]
