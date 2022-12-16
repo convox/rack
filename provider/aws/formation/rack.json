@@ -149,6 +149,11 @@
         { "Fn::Equals": [ { "Ref": "ScheduleRackScaleUp" }, "" ] }
       ]}
     ] },
+    "SpotFleetOrInstance": {"Fn::Or": [
+      {"Condition": "SpotFleet"},
+      {"Condition": "SpotInstances"}
+    ]},
+    "SpotFleet": { "Fn::Not": [ { "Fn::Equals": [ { "Ref": "SpotFleetBid"}, "" ] } ] },
     "SpotInstances": { "Fn::Not": [ { "Fn::Equals": [ { "Ref": "SpotInstanceBid"}, "" ] } ] },
     "SpotInstancesAndHA": { "Fn::And": [ { "Condition": "SpotInstances" }, { "Condition": "HighAvailability" } ] },
     "SpotInstancesAndSetScheduleRack": { "Fn::And": [ { "Condition": "SpotInstances" }, { "Condition": "SetScheduleRackScale" } ] },
@@ -840,6 +845,16 @@
       "Description": "The recurring schedule for when the rack will start. This format consists of five fields separated by white spaces: [Minute] [Hour] [Day_of_Month] [Month_of_Year] [Day_of_Week]",
       "Default": ""
     },
+    "SpotFleetBid": {
+      "Default": "1",
+      "Description": "Bid for Spot Fleet",
+      "Type": "String"
+    },
+    "SpotFleetInstanceType": {
+      "Default": "t3.medium",
+      "Description": "The type of the instances on SpotFleet",
+      "Type": "String"
+    },
     "SpotInstanceBid": {
       "Default": "",
       "Description": "Bid price for spot instances",
@@ -895,6 +910,23 @@
       "Description": "Syslog format (low case) to sent to SyslogDestination.",
       "Default": "rfc5424"
     },
+    "TargetCapacity": {
+      "Default": "8",
+      "Description": "The number of units to request for SpotFleet",
+      "Type": "Number"
+    },
+    "TargetCapacityType": {
+      "AllowedValues": [ "memory-mib", "units", "vcpu" ],
+      "Default": "units",
+      "Description": "The target capacity type, default is units, options memory-mib or vcpu",
+      "Type": "String"
+    },
+    "Tenancy": {
+      "AllowedValues": [ "default", "dedicated" ],
+      "Default": "default",
+      "Description": "Dedicated Hardware",
+      "Type": "String"
+    },
     "Version": {
       "Description": "(REQUIRED) Convox release version",
       "MinLength" : "1",
@@ -909,12 +941,6 @@
       "Default": "10.0.0.0/16",
       "Description": "VPC CIDR Block",
       "Type": "String"
-    },
-    "Tenancy": {
-      "Type": "String",
-      "Description": "Dedicated Hardware",
-      "Default": "default",
-      "AllowedValues": [ "default", "dedicated" ]
     },
     "WhiteList": {
       "Type": "String",
@@ -2468,6 +2494,360 @@
             "Arn"
           ]
         }
+      }
+    },
+    "SpotFleet": {
+      "Type": "AWS::EC2::SpotFleet",
+      "Properties": {
+        "SpotFleetRequestConfigData": {
+          "IamFleetRole": {
+            "Fn::GetAtt": [
+              "IAMFleetRole",
+              "Arn"
+            ]
+          },
+          "SpotPrice": {
+            "Ref": "SpotFleetBid"
+          },
+          "TargetCapacity": {
+            "Ref": "TargetCapacity"
+          },
+          "LaunchSpecifications": [
+            {
+              "BlockDeviceMappings": [
+                {
+                  "DeviceName": "/dev/xvda",
+                  "Ebs": {
+                    "Encrypted": { "Fn::If": [ "EncryptEbs", "true", { "Ref": "AWS::NoValue" } ] },
+                    "VolumeSize": { "Ref": "VolumeSize" },
+                    "VolumeType":"gp3"
+                  }
+                },
+                { "Fn::If": [ "SwapEnabled",
+                  {
+                    "DeviceName": "/dev/xvdb",
+                    "Ebs": {
+                      "Encrypted": { "Fn::If": [ "EncryptEbs", "true", { "Ref": "AWS::NoValue" } ] },
+                      "VolumeSize": { "Ref": "SwapSize" },
+                      "VolumeType":"gp3"
+                    }
+                  },
+                  { "Ref": "AWS::NoValue" }
+                ] }
+              ],
+              "InstanceType": {
+                "Ref": "InstanceType"
+              },
+              "ImageId": {
+                "Fn::If": [
+                  "BlankAmi",
+                  {
+                    "Fn::If": [
+                      "InstanceARM",
+                      {
+                        "Ref": "DefaultAmiArm"
+                      },
+                      {
+                        "Ref": "DefaultAmi"
+                      }
+                    ]
+                  },
+                  { "Ref": "Ami" }
+                ]
+              },
+              "KeyName": { "Fn::If": [ "BlankKey", { "Ref": "AWS::NoValue" }, { "Ref": "Key" } ] },
+              "Monitoring": {
+                "Enabled": "true"
+              },
+              "SecurityGroups": [
+                {
+                  "Fn::If": [
+                    "BlankInstanceSecurityGroup",
+                    {
+                      "GroupId" : {
+                        "Ref": "InstancesSecurity"
+                      }
+                    },
+                    {
+                      "GroupId" : {
+                        "Ref": "InstanceSecurityGroup"
+                      }
+                    }
+                  ]
+                }
+              ],
+              "SubnetId": {
+                "Fn::If": [
+                  "Private",
+                  {
+                    "Fn::If": [
+                      "ThirdAvailabilityZoneAndHighAvailability",
+                      {
+                        "Fn::Join": [
+                          ",",
+                          [
+                            {
+                              "Ref": "SubnetPrivate0"
+                            },
+                            {
+                              "Ref": "SubnetPrivate1"
+                            },
+                            {
+                              "Ref": "SubnetPrivate2"
+                            }
+                          ]
+                        ]
+                      },
+                      {
+                        "Fn::Join": [
+                          ",",
+                          [
+                            {
+                              "Ref": "SubnetPrivate0"
+                            },
+                            {
+                              "Ref": "SubnetPrivate1"
+                            }
+                          ]
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "Fn::If": [
+                      "ThirdAvailabilityZoneAndHighAvailability",
+                      {
+                        "Fn::Join": [
+                          ",",
+                          [
+                            {
+                              "Ref": "Subnet0"
+                            },
+                            {
+                              "Ref": "Subnet1"
+                            },
+                            {
+                              "Ref": "Subnet2"
+                            }
+                          ]
+                        ]
+                      },
+                      {
+                        "Fn::Join": [
+                          ",",
+                          [
+                            {
+                              "Ref": "Subnet0"
+                            },
+                            {
+                              "Ref": "Subnet1"
+                            }
+                          ]
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              "IamInstanceProfile": {
+                "Arn" : {
+                  "Fn::GetAtt" : [
+                    "InstancesProfile",
+                    "Arn"
+                  ]
+                }
+              },
+              "UserData": { "Fn::Base64":
+                { "Fn::Join": [ "", [
+                  "#!/bin/bash",
+                  "cat <<'EOF' >> /etc/ecs/ecs.config",
+                  "ECS_CLUSTER=your_cluster_name",
+                  "EOF"
+                ] ] }
+              }
+            },
+            {
+              "BlockDeviceMappings": [
+                {
+                  "DeviceName": "/dev/xvda",
+                  "Ebs": {
+                    "Encrypted": { "Fn::If": [ "EncryptEbs", "true", { "Ref": "AWS::NoValue" } ] },
+                    "VolumeSize": { "Ref": "VolumeSize" },
+                    "VolumeType":"gp3"
+                  }
+                },
+                { "Fn::If": [ "SwapEnabled",
+                  {
+                    "DeviceName": "/dev/xvdb",
+                    "Ebs": {
+                      "Encrypted": { "Fn::If": [ "EncryptEbs", "true", { "Ref": "AWS::NoValue" } ] },
+                      "VolumeSize": { "Ref": "SwapSize" },
+                      "VolumeType":"gp3"
+                    }
+                  },
+                  { "Ref": "AWS::NoValue" }
+                ] }
+              ],
+              "InstanceType": {
+                "Ref": "SpotFleetInstanceType"
+              },
+              "ImageId": {
+                "Fn::If": [
+                  "BlankAmi",
+                  {
+                    "Fn::If": [
+                      "InstanceARM",
+                      {
+                        "Ref": "DefaultAmiArm"
+                      },
+                      {
+                        "Ref": "DefaultAmi"
+                      }
+                    ]
+                  },
+                  { "Ref": "Ami" }
+                ]
+              },
+              "KeyName": { "Fn::If": [ "BlankKey", { "Ref": "AWS::NoValue" }, { "Ref": "Key" } ] },
+              "Monitoring": {
+                "Enabled": "true"
+              },
+              "SecurityGroups": [
+                {
+                  "Fn::If": [
+                    "BlankInstanceSecurityGroup",
+                    {
+                      "GroupId" : {
+                        "Ref": "InstancesSecurity"
+                      }
+                    },
+                    {
+                      "GroupId" : {
+                        "Ref": "InstanceSecurityGroup"
+                      }
+                    }
+                  ]
+                }
+              ],
+              "SubnetId": {
+                "Fn::If": [
+                  "Private",
+                  {
+                    "Fn::If": [
+                      "ThirdAvailabilityZoneAndHighAvailability",
+                      {
+                        "Fn::Join": [
+                          ",",
+                          [
+                            {
+                              "Ref": "SubnetPrivate0"
+                            },
+                            {
+                              "Ref": "SubnetPrivate1"
+                            },
+                            {
+                              "Ref": "SubnetPrivate2"
+                            }
+                          ]
+                        ]
+                      },
+                      {
+                        "Fn::Join": [
+                          ",",
+                          [
+                            {
+                              "Ref": "SubnetPrivate0"
+                            },
+                            {
+                              "Ref": "SubnetPrivate1"
+                            }
+                          ]
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "Fn::If": [
+                      "ThirdAvailabilityZoneAndHighAvailability",
+                      {
+                        "Fn::Join": [
+                          ",",
+                          [
+                            {
+                              "Ref": "Subnet0"
+                            },
+                            {
+                              "Ref": "Subnet1"
+                            },
+                            {
+                              "Ref": "Subnet2"
+                            }
+                          ]
+                        ]
+                      },
+                      {
+                        "Fn::Join": [
+                          ",",
+                          [
+                            {
+                              "Ref": "Subnet0"
+                            },
+                            {
+                              "Ref": "Subnet1"
+                            }
+                          ]
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              "IamInstanceProfile": {
+                "Arn" : {
+                  "Fn::GetAtt" : [
+                    "InstancesProfile",
+                    "Arn"
+                  ]
+                }
+              },
+              "UserData": { "Fn::Base64":
+                { "Fn::Join": [ "", [
+                  "#!/bin/bash",
+                  "cat <<'EOF' >> /etc/ecs/ecs.config",
+                  "ECS_CLUSTER=your_cluster_name",
+                  "EOF"
+                ] ] }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "IAMFleetRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": [
+                  "spotfleet.amazonaws.com"
+                ]
+              },
+              "Action": [
+                "sts:AssumeRole"
+              ]
+            }
+          ],
+          "Version": "2012-10-17"
+        },
+        "ManagedPolicyArns": [
+          {
+            "Fn::Sub": "arn:${AWS::Partition}:iam::aws:policy/service-role/AmazonEC2SpotFleetTaggingRole"
+          }
+        ],
+        "Path": "/convox/"
       }
     },
     "VolumeFilesystem": {
