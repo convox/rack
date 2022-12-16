@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"regexp"
 	"sort"
 	"strings"
 	"time"
@@ -173,6 +174,7 @@ func (p *Provider) handleECSEvents() {
 
 func (p *Provider) pollECSEvents() error {
 	prefix := fmt.Sprintf("%s-", p.Rack)
+	isRackApiServiceRegex := regexp.MustCompile(p.RackApiServiceName)
 
 	lreq := &ecs.ListServicesInput{
 		Cluster: aws.String(p.Cluster),
@@ -195,7 +197,7 @@ func (p *Provider) pollECSEvents() error {
 		for _, s := range sres.Services {
 			name := *s.ServiceName
 
-			if !strings.HasPrefix(name, prefix) || !strings.Contains(name, "-Service") {
+			if !strings.HasPrefix(name, prefix) || !strings.Contains(name, "-Service") || isRackApiServiceRegex.MatchString(name) {
 				continue
 			}
 
