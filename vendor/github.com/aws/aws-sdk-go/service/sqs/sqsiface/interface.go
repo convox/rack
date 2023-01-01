@@ -23,37 +23,37 @@ import (
 // can be stubbed out for unit testing your code with the SDK without needing
 // to inject custom request handlers into the SDK's request pipeline.
 //
-//    // myFunc uses an SDK service client to make a request to
-//    // Amazon Simple Queue Service.
-//    func myFunc(svc sqsiface.SQSAPI) bool {
-//        // Make svc.AddPermission request
-//    }
+//	// myFunc uses an SDK service client to make a request to
+//	// Amazon Simple Queue Service.
+//	func myFunc(svc sqsiface.SQSAPI) bool {
+//	    // Make svc.AddPermission request
+//	}
 //
-//    func main() {
-//        sess := session.New()
-//        svc := sqs.New(sess)
+//	func main() {
+//	    sess := session.New()
+//	    svc := sqs.New(sess)
 //
-//        myFunc(svc)
-//    }
+//	    myFunc(svc)
+//	}
 //
 // In your _test.go file:
 //
-//    // Define a mock struct to be used in your unit tests of myFunc.
-//    type mockSQSClient struct {
-//        sqsiface.SQSAPI
-//    }
-//    func (m *mockSQSClient) AddPermission(input *sqs.AddPermissionInput) (*sqs.AddPermissionOutput, error) {
-//        // mock response/functionality
-//    }
+//	// Define a mock struct to be used in your unit tests of myFunc.
+//	type mockSQSClient struct {
+//	    sqsiface.SQSAPI
+//	}
+//	func (m *mockSQSClient) AddPermission(input *sqs.AddPermissionInput) (*sqs.AddPermissionOutput, error) {
+//	    // mock response/functionality
+//	}
 //
-//    func TestMyFunc(t *testing.T) {
-//        // Setup Test
-//        mockSvc := &mockSQSClient{}
+//	func TestMyFunc(t *testing.T) {
+//	    // Setup Test
+//	    mockSvc := &mockSQSClient{}
 //
-//        myfunc(mockSvc)
+//	    myfunc(mockSvc)
 //
-//        // Verify myFunc's functionality
-//    }
+//	    // Verify myFunc's functionality
+//	}
 //
 // It is important to note that this interface will have breaking changes
 // when the service model is updated and adds new API operations, paginators,
@@ -100,6 +100,9 @@ type SQSAPI interface {
 	ListDeadLetterSourceQueuesWithContext(aws.Context, *sqs.ListDeadLetterSourceQueuesInput, ...request.Option) (*sqs.ListDeadLetterSourceQueuesOutput, error)
 	ListDeadLetterSourceQueuesRequest(*sqs.ListDeadLetterSourceQueuesInput) (*request.Request, *sqs.ListDeadLetterSourceQueuesOutput)
 
+	ListDeadLetterSourceQueuesPages(*sqs.ListDeadLetterSourceQueuesInput, func(*sqs.ListDeadLetterSourceQueuesOutput, bool) bool) error
+	ListDeadLetterSourceQueuesPagesWithContext(aws.Context, *sqs.ListDeadLetterSourceQueuesInput, func(*sqs.ListDeadLetterSourceQueuesOutput, bool) bool, ...request.Option) error
+
 	ListQueueTags(*sqs.ListQueueTagsInput) (*sqs.ListQueueTagsOutput, error)
 	ListQueueTagsWithContext(aws.Context, *sqs.ListQueueTagsInput, ...request.Option) (*sqs.ListQueueTagsOutput, error)
 	ListQueueTagsRequest(*sqs.ListQueueTagsInput) (*request.Request, *sqs.ListQueueTagsOutput)
@@ -107,6 +110,9 @@ type SQSAPI interface {
 	ListQueues(*sqs.ListQueuesInput) (*sqs.ListQueuesOutput, error)
 	ListQueuesWithContext(aws.Context, *sqs.ListQueuesInput, ...request.Option) (*sqs.ListQueuesOutput, error)
 	ListQueuesRequest(*sqs.ListQueuesInput) (*request.Request, *sqs.ListQueuesOutput)
+
+	ListQueuesPages(*sqs.ListQueuesInput, func(*sqs.ListQueuesOutput, bool) bool) error
+	ListQueuesPagesWithContext(aws.Context, *sqs.ListQueuesInput, func(*sqs.ListQueuesOutput, bool) bool, ...request.Option) error
 
 	PurgeQueue(*sqs.PurgeQueueInput) (*sqs.PurgeQueueOutput, error)
 	PurgeQueueWithContext(aws.Context, *sqs.PurgeQueueInput, ...request.Option) (*sqs.PurgeQueueOutput, error)
