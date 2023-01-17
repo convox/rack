@@ -156,7 +156,8 @@
         { "Condition": "NotExistingVpcAndBlankInternetGateway" },
         { "Condition": "ThirdAvailabilityZone" }
       ]
-    }
+    },
+    "WhiteListCIDRs": { "Fn::Not": [ { "Fn::Equals": [ { "Ref": "WhiteList" }, "" ] } ] }
   },
   "Mappings": {
     "RegionConfig": {
@@ -895,6 +896,11 @@
       "Description": "Dedicated Hardware",
       "Default": "default",
       "AllowedValues": [ "default", "dedicated" ]
+    },
+    "WhiteList": {
+      "Type": "String",
+      "Description": "Comma delimited list of CIDRs, e.g. `10.0.0.0/24,172.10.0.1/32`, to allow access to the rack api. Maximum 4 CIDR can be specified.",
+      "Default": ""
     }
   },
   "Resources": {
@@ -2789,7 +2795,11 @@
             { "Fn::Select": [ 0, { "Fn::Split": [ ".", { "Fn::GetAtt": [ "ApiBalancer", "DNSName" ] } ] } ] },
             { "Fn::Select": [ 1, { "Fn::Split": [ ".", { "Fn::GetAtt": [ "ApiBalancer", "DNSName" ] } ] } ] },
             "convox.site"
-          ] ] } ] }
+          ] ] } ] },
+          { "Fn::If": [ "WhiteListCIDRs",
+            { "Field": "source-ip", "SourceIpConfig": { "Values": { "Fn::Split": [",", { "Ref": "WhiteList" }] } } },
+            { "Ref": "AWS::NoValue" }
+          ] }
         ],
         "ListenerArn": { "Ref": "ApiBalancerListener443" },
         "Priority": "1"
