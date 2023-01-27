@@ -188,8 +188,8 @@ func RackInstall(rack sdk.Interface, c *stdcli.Context) error {
 		return err
 	}
 
-	if host, _ := c.SettingRead("host"); host == "" {
-		c.SettingWrite("host", u.Host)
+	if err := c.SettingWrite("host", u.Host); err != nil {
+		return err
 	}
 
 	return nil
