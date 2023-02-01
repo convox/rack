@@ -219,14 +219,38 @@ func selfManagedRacks(c *stdcli.Context) ([]rack, error) {
 		return nil, err
 	}
 
-	for name := range rs {
+	for name, host := range rs {
+		status := selfManagedStatus(c, host)
+
 		racks = append(racks, rack{
 			Name:   name,
-			Status: "running",
+			Status: status,
 		})
 	}
 
 	return racks, nil
+}
+
+func selfManagedStatus(c *stdcli.Context, host string) string {
+	status := "unknown"
+
+	auth, err := c.SettingReadKey("auth", host)
+	if err != nil {
+		return status
+	}
+
+	sc, err := sdk.New(fmt.Sprintf("https://convox:%s@%s", auth, host))
+	if err != nil {
+		return status
+	}
+	sc.Authenticator = authenticator(c)
+
+	s, err := sc.SystemGet()
+	if err != nil {
+		return status
+	}
+
+	return s.Status
 }
 
 func selfManagedRackHost(c *stdcli.Context) map[string]string {

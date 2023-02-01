@@ -188,8 +188,12 @@ func RackInstall(rack sdk.Interface, c *stdcli.Context) error {
 		return err
 	}
 
-	if err := c.SettingWrite("host", u.Host); err != nil {
+	if err := c.SettingWriteKey("self-managed", *opts.Name, u.Host); err != nil {
 		return err
+	}
+
+	if host, _ := c.SettingRead("host"); host == "" {
+		c.SettingWrite("host", u.Host)
 	}
 
 	return nil
@@ -427,6 +431,7 @@ func RackSync(rack sdk.Interface, c *stdcli.Context) error {
 
 func RackUninstall(rack sdk.Interface, c *stdcli.Context) error {
 	var opts structs.SystemUninstallOptions
+	name := c.Arg(1)
 
 	if err := c.Options(&opts); err != nil {
 		return err
@@ -445,7 +450,9 @@ func RackUninstall(rack sdk.Interface, c *stdcli.Context) error {
 		return err
 	}
 
-	if err := p.SystemUninstall(c.Arg(1), c, opts); err != nil {
+	c.SettingDeleteKey("self-managed", name)
+
+	if err := p.SystemUninstall(name, c, opts); err != nil {
 		return err
 	}
 

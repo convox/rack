@@ -23,4 +23,6 @@ chmod +x ${GOPATH}/bin/convox
 
 # set ci@convox.com as id
 mkdir -p ~/.convox/
-echo ci@convox.com > ~/.convox/id
+
+# convox config dir path
+echo ci@convox.com > ~/.config/convox2/id
