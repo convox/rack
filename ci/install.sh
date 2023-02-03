@@ -12,3 +12,7 @@ else
 fi
 
 convox instances
+
+# set ci@convox.com as id
+# convox config dir path
+echo ci@convox.com > ~/.config/convox2/id
