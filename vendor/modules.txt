@@ -126,7 +126,7 @@ github.com/convox/logger
 # github.com/convox/stdapi v1.1.3-0.20221110171947-8d98f61e61ed
 ## explicit; go 1.12
 github.com/convox/stdapi
-# github.com/convox/stdcli v0.0.0-20221110070640-8f8fb17bfe20
+# github.com/convox/stdcli v0.0.0-20230203181735-23ed17b69b51
 ## explicit; go 1.13
 github.com/convox/stdcli
 # github.com/convox/stdsdk v0.0.0-20190422120437-3e80a397e377

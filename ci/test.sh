@@ -22,6 +22,7 @@ root="$(cd $(dirname ${0:-})/..; pwd)"
 set -ex
 
 provider=$(convox api get /system | jq -r .provider)
+source $(dirname $0)/env.sh
 
 # cli
 convox version
@@ -32,6 +33,8 @@ convox rack
 sleep 15
 convox rack logs --no-follow | grep service/
 convox rack ps | grep rack
+
+convox racks | grep ${RACK_NAME}
 
 # rack (provider-specific)
 case $provider in

@@ -193,6 +193,10 @@ func (c *Context) SettingWriteKey(name, key, value string) error {
 	return c.engine.SettingWriteKey(name, key, value)
 }
 
+func (c *Context) SettingDeleteKey(name, key string) error {
+	return c.engine.SettingDeleteKey(name, key)
+}
+
 func (c *Context) Table(columns ...string) *Table {
 	return &Table{Columns: columns, Context: c}
 }

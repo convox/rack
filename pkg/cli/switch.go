@@ -2,6 +2,7 @@ package cli
 
 import (
 	"encoding/json"
+	"strings"
 
 	"github.com/convox/rack/sdk"
 	"github.com/convox/stdcli"
@@ -25,7 +26,17 @@ func Switch(rack sdk.Interface, c *stdcli.Context) error {
 			return err
 		}
 
-		rs := hostRacks(c)
+		var rs map[string]string
+		if len(strings.Split(r.Name, "/")) > 1 {
+			rs = hostRacks(c)
+		} else {
+			rs = selfManagedRackHost(c)
+
+			hostname := rs[r.Name]
+			if err := c.SettingWrite("host", hostname); err != nil {
+				return err
+			}
+		}
 
 		rs[host] = r.Name
 

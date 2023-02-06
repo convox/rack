@@ -12,7 +12,7 @@ require (
 	github.com/convox/exec v0.0.0-20180905012044-cc13d277f897
 	github.com/convox/logger v0.0.0-20180522214415-e39179955b52
 	github.com/convox/stdapi v1.1.3-0.20221110171947-8d98f61e61ed
-	github.com/convox/stdcli v0.0.0-20221110070640-8f8fb17bfe20
+	github.com/convox/stdcli v0.0.0-20230203181735-23ed17b69b51
 	github.com/convox/stdsdk v0.0.0-20190422120437-3e80a397e377
 	github.com/convox/version v0.0.0-20160822184233-ffefa0d565d2
 	github.com/docker/docker v1.13.1
