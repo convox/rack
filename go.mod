@@ -3,7 +3,7 @@ module github.com/convox/rack
 go 1.17
 
 require (
-	github.com/PuerkitoBio/goquery v1.1.0
+	github.com/PuerkitoBio/goquery v1.8.0
 	github.com/RackSec/srslog v0.0.0-20170920152354-4d2c753a4ee1
 	github.com/aws/aws-lambda-go v1.2.0
 	github.com/aws/aws-sdk-go v1.25.29
@@ -50,7 +50,7 @@ require (
 	github.com/Azure/go-ansiterm v0.0.0-20170929234023-d6e3b3328b78 // indirect
 	github.com/Microsoft/go-winio v0.4.5 // indirect
 	github.com/Sirupsen/logrus v1.0.3 // indirect
-	github.com/andybalholm/cascadia v0.0.0-20161224141413-349dd0209470 // indirect
+	github.com/andybalholm/cascadia v1.3.1 // indirect
 	github.com/bearsh/hid v1.4.0 // indirect
 	github.com/bmizerany/assert v0.0.0-20160611221934-b7ed37b82869 // indirect
 	github.com/convox/go-u2fhost v0.0.0-20220210143516-c133f566e496
