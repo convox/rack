@@ -5,7 +5,7 @@ go 1.17
 require (
 	github.com/PuerkitoBio/goquery v1.8.0
 	github.com/RackSec/srslog v0.0.0-20170920152354-4d2c753a4ee1
-	github.com/aws/aws-lambda-go v1.2.0
+	github.com/aws/aws-lambda-go v1.37.0
 	github.com/aws/aws-sdk-go v1.25.29
 	github.com/boltdb/bolt v1.3.1
 	github.com/convox/changes v0.0.0-20190306122126-bce25ca20c47
