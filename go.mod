@@ -18,7 +18,7 @@ require (
 	github.com/docker/docker v1.13.1
 	github.com/docker/go-units v0.3.2
 	github.com/dustin/go-humanize v1.0.0
-	github.com/fatih/color v1.7.0
+	github.com/fatih/color v1.13.0
 	github.com/fsouza/go-dockerclient v0.0.0-20160427172547-1d4f4ae73768
 	github.com/gobuffalo/packr v1.22.0
 	github.com/gobwas/glob v0.2.3
@@ -79,8 +79,8 @@ require (
 	github.com/jmespath/go-jmespath v0.0.0-20180206201540-c2b33e8439af // indirect
 	github.com/joho/godotenv v1.3.0 // indirect
 	github.com/json-iterator/go v1.1.5 // indirect
-	github.com/mattn/go-colorable v0.0.9 // indirect
-	github.com/mattn/go-isatty v0.0.4 // indirect
+	github.com/mattn/go-colorable v0.1.9 // indirect
+	github.com/mattn/go-isatty v0.0.14 // indirect
 	github.com/mattn/go-runewidth v0.0.4 // indirect
 	github.com/moby/moby v1.13.1 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
