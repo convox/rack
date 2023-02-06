@@ -5,8 +5,8 @@ github.com/Azure/go-ansiterm/winterm
 # github.com/Microsoft/go-winio v0.4.5
 ## explicit
 github.com/Microsoft/go-winio
-# github.com/PuerkitoBio/goquery v1.1.0
-## explicit
+# github.com/PuerkitoBio/goquery v1.8.0
+## explicit; go 1.13
 github.com/PuerkitoBio/goquery
 # github.com/RackSec/srslog v0.0.0-20170920152354-4d2c753a4ee1
 ## explicit
@@ -17,8 +17,8 @@ github.com/Sirupsen/logrus
 # github.com/adrg/xdg v0.2.1
 ## explicit
 github.com/adrg/xdg
-# github.com/andybalholm/cascadia v0.0.0-20161224141413-349dd0209470
-## explicit
+# github.com/andybalholm/cascadia v1.3.1
+## explicit; go 1.16
 github.com/andybalholm/cascadia
 # github.com/aws/aws-lambda-go v1.2.0
 ## explicit
