@@ -32,7 +32,7 @@ require (
 	github.com/mweagle/Sparta v0.8.1-0.20171126182155-ead2872585dc
 	github.com/pkg/errors v0.8.1
 	github.com/segmentio/analytics-go v2.0.1-0.20160426181448-2d840d861c32+incompatible
-	github.com/stretchr/testify v1.3.0
+	github.com/stretchr/testify v1.8.1
 	github.com/stvp/rollbar v0.5.1
 	github.com/twmb/algoimpl v0.0.0-20170717182524-076353e90b94
 	golang.org/x/crypto v0.0.0-20220722155217-630584e8d5aa
@@ -44,7 +44,10 @@ require (
 	k8s.io/metrics v0.0.0-20180628054111-6f051017e10b
 )
 
-require github.com/adrg/xdg v0.2.1 // indirect
+require (
+	github.com/adrg/xdg v0.2.1 // indirect
+	gopkg.in/yaml.v3 v3.0.1 // indirect
+)
 
 require (
 	github.com/Azure/go-ansiterm v0.0.0-20170929234023-d6e3b3328b78 // indirect
@@ -92,7 +95,7 @@ require (
 	github.com/sebest/xff v0.0.0-20160910043805-6c115e0ffa35 // indirect
 	github.com/segmentio/backo-go v0.0.0-20160424052352-204274ad699c // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
-	github.com/stretchr/objx v0.1.1 // indirect
+	github.com/stretchr/objx v0.5.0 // indirect
 	github.com/xtgo/uuid v0.0.0-20140804021211-a0b114877d4c // indirect
 	golang.org/x/net v0.0.0-20220722155237-a158d28d115b // indirect
 	golang.org/x/sys v0.0.0-20220913153101-76c7481b5158 // indirect
