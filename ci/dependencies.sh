@@ -20,7 +20,3 @@ curl -Ls https://amazon-eks.s3-us-west-2.amazonaws.com/1.12.7/2019-03-27/bin/lin
 # download appropriate cli version
 curl -o ${GOPATH}/bin/convox https://convox.s3.amazonaws.com/release/${VERSION}/cli/linux/convox
 chmod +x ${GOPATH}/bin/convox
-
-# set ci@convox.com as id
-mkdir -p ~/.convox/
-echo ci@convox.com > ~/.convox/id

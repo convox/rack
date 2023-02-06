@@ -129,6 +129,30 @@ func (e *Engine) SettingWriteKey(name, key, value string) error {
 	return e.SettingWrite(name, string(data))
 }
 
+func (e *Engine) SettingDeleteKey(name, key string) error {
+	s, err := e.SettingRead(name)
+	if err != nil {
+		return err
+	}
+
+	data := []byte(coalesce(s, "{}"))
+
+	var kv map[string]string
+
+	if err := json.Unmarshal(data, &kv); err != nil {
+		return err
+	}
+
+	delete(kv, key)
+
+	data, err = json.MarshalIndent(kv, "", "  ")
+	if err != nil {
+		return err
+	}
+
+	return e.SettingWrite(name, string(data))
+}
+
 func (e *Engine) localSettingDir() string {
 	return fmt.Sprintf(".%s", e.Name)
 }

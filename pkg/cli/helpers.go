@@ -206,6 +206,68 @@ func localRacks(c *stdcli.Context) ([]rack, error) {
 	return racks, nil
 }
 
+func selfManagedRacks(c *stdcli.Context) ([]rack, error) {
+	racks := []rack{}
+
+	data, err := c.SettingRead("self-managed")
+	if err != nil {
+		return nil, err
+	}
+	var rs map[string]string
+
+	if err := json.Unmarshal([]byte(data), &rs); err != nil {
+		return nil, err
+	}
+
+	for name, host := range rs {
+		status := selfManagedStatus(c, host)
+
+		racks = append(racks, rack{
+			Name:   name,
+			Status: status,
+		})
+	}
+
+	return racks, nil
+}
+
+func selfManagedStatus(c *stdcli.Context, host string) string {
+	status := "unknown"
+
+	auth, err := c.SettingReadKey("auth", host)
+	if err != nil {
+		return status
+	}
+
+	sc, err := sdk.New(fmt.Sprintf("https://convox:%s@%s", auth, host))
+	if err != nil {
+		return status
+	}
+	sc.Authenticator = authenticator(c)
+
+	s, err := sc.SystemGet()
+	if err != nil {
+		return status
+	}
+
+	return s.Status
+}
+
+func selfManagedRackHost(c *stdcli.Context) map[string]string {
+	data, err := c.SettingRead("self-managed")
+	if err != nil {
+		return map[string]string{}
+	}
+
+	var rs map[string]string
+
+	if err := json.Unmarshal([]byte(data), &rs); err != nil {
+		return map[string]string{}
+	}
+
+	return rs
+}
+
 func matchRack(c *stdcli.Context, name string) (*rack, error) {
 	rs, err := racks(c)
 	if err != nil {
@@ -251,6 +313,9 @@ func racks(c *stdcli.Context) ([]rack, error) {
 	}
 
 	rs = append(rs, lrs...)
+
+	sfr, _ := selfManagedRacks(c)
+	rs = append(rs, sfr...)
 
 	sort.Slice(rs, func(i, j int) bool {
 		return rs[i].Name < rs[j].Name
