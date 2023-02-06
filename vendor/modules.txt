@@ -20,10 +20,11 @@ github.com/adrg/xdg
 # github.com/andybalholm/cascadia v0.0.0-20161224141413-349dd0209470
 ## explicit
 github.com/andybalholm/cascadia
-# github.com/aws/aws-lambda-go v1.2.0
-## explicit
+# github.com/aws/aws-lambda-go v1.37.0
+## explicit; go 1.18
 github.com/aws/aws-lambda-go/events
 github.com/aws/aws-lambda-go/lambda
+github.com/aws/aws-lambda-go/lambda/handlertrace
 github.com/aws/aws-lambda-go/lambda/messages
 github.com/aws/aws-lambda-go/lambdacontext
 # github.com/aws/aws-sdk-go v1.25.29
@@ -350,8 +351,8 @@ github.com/spf13/pflag
 # github.com/stretchr/objx v0.1.1
 ## explicit
 github.com/stretchr/objx
-# github.com/stretchr/testify v1.3.0
-## explicit
+# github.com/stretchr/testify v1.7.2
+## explicit; go 1.13
 github.com/stretchr/testify/assert
 github.com/stretchr/testify/mock
 github.com/stretchr/testify/require
@@ -423,6 +424,9 @@ gopkg.in/inf.v0
 # gopkg.in/yaml.v2 v2.2.2 => github.com/ddollar/yaml v0.0.0-20180504010936-3fb95e32dd8a
 ## explicit
 gopkg.in/yaml.v2
+# gopkg.in/yaml.v3 v3.0.1
+## explicit
+gopkg.in/yaml.v3
 # k8s.io/api v0.0.0-20180628040859-072894a440bd
 ## explicit
 k8s.io/api/admissionregistration/v1alpha1

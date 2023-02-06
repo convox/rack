@@ -5,7 +5,7 @@ go 1.17
 require (
 	github.com/PuerkitoBio/goquery v1.1.0
 	github.com/RackSec/srslog v0.0.0-20170920152354-4d2c753a4ee1
-	github.com/aws/aws-lambda-go v1.2.0
+	github.com/aws/aws-lambda-go v1.37.0
 	github.com/aws/aws-sdk-go v1.25.29
 	github.com/boltdb/bolt v1.3.1
 	github.com/convox/changes v0.0.0-20190306122126-bce25ca20c47
@@ -32,7 +32,7 @@ require (
 	github.com/mweagle/Sparta v0.8.1-0.20171126182155-ead2872585dc
 	github.com/pkg/errors v0.8.1
 	github.com/segmentio/analytics-go v2.0.1-0.20160426181448-2d840d861c32+incompatible
-	github.com/stretchr/testify v1.3.0
+	github.com/stretchr/testify v1.7.2
 	github.com/stvp/rollbar v0.5.1
 	github.com/twmb/algoimpl v0.0.0-20170717182524-076353e90b94
 	golang.org/x/crypto v0.0.0-20220722155217-630584e8d5aa
@@ -44,7 +44,10 @@ require (
 	k8s.io/metrics v0.0.0-20180628054111-6f051017e10b
 )
 
-require github.com/adrg/xdg v0.2.1 // indirect
+require (
+	github.com/adrg/xdg v0.2.1 // indirect
+	gopkg.in/yaml.v3 v3.0.1 // indirect
+)
 
 require (
 	github.com/Azure/go-ansiterm v0.0.0-20170929234023-d6e3b3328b78 // indirect
