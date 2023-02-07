@@ -157,6 +157,7 @@
         { "Condition": "ThirdAvailabilityZone" }
       ]
     },
+    "UseBuildInstancePolicy": { "Fn::Not": [ { "Fn::Equals": [ { "Ref": "BuildInstancePolicy" }, "" ] } ] },
     "WhiteListCIDRs": { "Fn::Not": [ { "Fn::Equals": [ { "Ref": "WhiteList" }, "" ] } ] }
   },
   "Mappings": {
@@ -583,6 +584,11 @@
       "Type": "String",
       "Description": "Instance type for a dedicated build cluster",
       "Default": "t3.small"
+    },
+    "BuildInstancePolicy": {
+      "Default": "",
+      "Description": "ARN of an additional IAM policy to add to the cluster build instances",
+      "Type": "String"
     },
     "BuildMemory": {
       "Type": "String",
@@ -1465,6 +1471,32 @@
         "Roles": [ { "Ref": "InstancesRole" } ]
       }
     },
+    "BuildInstancesRole": {
+      "Condition": "UseBuildInstancePolicy",
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [ { "Effect": "Allow", "Principal": { "Service": [ "ec2.amazonaws.com" ] }, "Action": [ "sts:AssumeRole" ] } ],
+          "Version": "2012-10-17"
+        },
+        "Path": "/convox/",
+        "ManagedPolicyArns": [
+          { "Fn::Sub": "arn:${AWS::Partition}:iam::aws:policy/service-role/AmazonEC2ContainerServiceforEC2Role" },
+          { "Fn::Sub": "arn:${AWS::Partition}:iam::aws:policy/AutoScalingFullAccess" },
+          { "Ref": "CMKPolicy" },
+          { "Ref": "BuildInstancePolicy" }
+        ]
+      }
+    },
+    "BuildInstancesProfile": {
+      "Condition": "UseBuildInstancePolicy",
+      "DependsOn": "ApiRole",
+      "Type": "AWS::IAM::InstanceProfile",
+      "Properties": {
+        "Path": "/convox/",
+        "Roles": [ { "Ref": "BuildInstancesRole" } ]
+      }
+    },
     "BuildCluster": {
       "Condition": "DedicatedBuilder",
       "Type": "AWS::ECS::Cluster"
@@ -1495,7 +1527,7 @@
             { "Ref": "AWS::NoValue" }
           ] }
         ],
-        "IamInstanceProfile": { "Ref": "InstancesProfile" },
+        "IamInstanceProfile": { "Fn::If": [ "UseBuildInstancePolicy", { "Ref": "BuildInstancesProfile" }, { "Ref": "InstancesProfile" } ] },
         "ImageId": {
           "Fn::If": [
             "BlankAmi",
