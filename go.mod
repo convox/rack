@@ -16,7 +16,7 @@ require (
 	github.com/convox/stdsdk v0.0.0-20190422120437-3e80a397e377
 	github.com/convox/version v0.0.0-20160822184233-ffefa0d565d2
 	github.com/docker/docker v1.13.1
-	github.com/docker/go-units v0.3.2
+	github.com/docker/go-units v0.4.0
 	github.com/dustin/go-humanize v1.0.0
 	github.com/fatih/color v1.13.0
 	github.com/fsouza/go-dockerclient v0.0.0-20160427172547-1d4f4ae73768
@@ -46,6 +46,7 @@ require (
 
 require (
 	github.com/adrg/xdg v0.2.1 // indirect
+	google.golang.org/protobuf v1.27.1 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
@@ -68,7 +69,7 @@ require (
 	github.com/gogo/protobuf v1.2.1 // indirect
 	github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b // indirect
 	github.com/golang/groupcache v0.0.0-20190129154638-5b532d6fd5ef // indirect
-	github.com/golang/protobuf v1.3.1 // indirect
+	github.com/golang/protobuf v1.5.0 // indirect
 	github.com/google/btree v1.0.0 // indirect
 	github.com/google/gofuzz v0.0.0-20170612174753-24818f796faf // indirect
 	github.com/googleapis/gnostic v0.2.0 // indirect
@@ -88,7 +89,7 @@ require (
 	github.com/moby/moby v1.13.1 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v0.0.0-20180701023420-4b7aa43c6742 // indirect
-	github.com/opencontainers/runc v0.1.1 // indirect
+	github.com/opencontainers/runc v1.1.2 // indirect
 	github.com/peterbourgon/diskv v2.0.1+incompatible // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/rogpeppe/go-internal v1.1.0 // indirect
