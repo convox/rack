@@ -6,7 +6,7 @@ require (
 	github.com/PuerkitoBio/goquery v1.8.0
 	github.com/RackSec/srslog v0.0.0-20170920152354-4d2c753a4ee1
 	github.com/aws/aws-lambda-go v1.37.0
-	github.com/aws/aws-sdk-go v1.25.29
+	github.com/aws/aws-sdk-go v1.34.0
 	github.com/boltdb/bolt v1.3.1
 	github.com/convox/changes v0.0.0-20190306122126-bce25ca20c47
 	github.com/convox/exec v0.0.0-20180905012044-cc13d277f897
@@ -30,7 +30,7 @@ require (
 	github.com/miekg/dns v1.1.25
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/mweagle/Sparta v0.8.1-0.20171126182155-ead2872585dc
-	github.com/pkg/errors v0.8.1
+	github.com/pkg/errors v0.9.1
 	github.com/segmentio/analytics-go v2.0.1-0.20160426181448-2d840d861c32+incompatible
 	github.com/stretchr/testify v1.8.1
 	github.com/stvp/rollbar v0.5.1
@@ -79,7 +79,7 @@ require (
 	github.com/hashicorp/golang-lru v0.0.0-20180201235237-0fb14efe8c47 // indirect
 	github.com/headzoo/ut v0.0.0-20181013193318-a13b5a7a02ca // indirect
 	github.com/jehiah/go-strftime v0.0.0-20171201141054-1d33003b3869 // indirect
-	github.com/jmespath/go-jmespath v0.0.0-20180206201540-c2b33e8439af // indirect
+	github.com/jmespath/go-jmespath v0.3.0 // indirect
 	github.com/joho/godotenv v1.3.0 // indirect
 	github.com/json-iterator/go v1.1.5 // indirect
 	github.com/mattn/go-colorable v0.1.9 // indirect
