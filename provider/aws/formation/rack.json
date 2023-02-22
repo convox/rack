@@ -2933,13 +2933,9 @@
             {
               "Effect": "Allow",
               "Action": [
-                "iam:DeleteServerCertificate",
                 "iam:*Role",
-                "iam:GetServerCertificate",
-                "iam:ListServerCertificates",
                 "iam:ListPolicyVersions",
-                "iam:*Policy",
-                "iam:UploadServerCertificate"
+                "iam:*Policy"
               ],
               "Resource": [
                 { "Fn::Sub": "arn:${AWS::Partition}:iam::*:instance-profile/convox/*" },
@@ -2947,6 +2943,17 @@
                 { "Fn::Sub": "arn:${AWS::Partition}:iam::*:role/convox/*" },
                 { "Fn::Sub": "arn:${AWS::Partition}:iam::*:user/convox/*" }
               ]
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "iam:DeleteServerCertificate",
+                "iam:DetachRolePolicy",
+                "iam:GetServerCertificate",
+                "iam:ListServerCertificates",
+                "iam:UploadServerCertificate"
+              ],
+              "Resource": [ "*" ]
             }
           ]
         }
