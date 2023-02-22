@@ -2932,26 +2932,20 @@
           "Statement": [
             {
               "Effect": "Allow",
-              "Action": [ "iam:*" ],
-              "Resource": [
-                { "Fn::Sub": "arn:${AWS::Partition}:iam::*:instance-profile/convox/*" },
-                { "Fn::Sub": "arn:${AWS::Partition}:iam::*:policy/convox/*" },
-                { "Fn::Sub": "arn:${AWS::Partition}:iam::*:role/convox/*" },
-                { "Fn::Sub": "arn:${AWS::Partition}:iam::*:user/convox/*" }
-              ]
-            },
-            {
-              "Effect": "Allow",
               "Action": [
                 "iam:DeleteServerCertificate",
                 "iam:DetachRolePolicy",
                 "iam:GetRole",
                 "iam:GetServerCertificate",
                 "iam:ListServerCertificates",
-                "iam:PassRole",
                 "iam:UploadServerCertificate"
               ],
-              "Resource": [ "*" ]
+              "Resource": [
+                { "Fn::Sub": "arn:${AWS::Partition}:iam::*:instance-profile/convox/*" },
+                { "Fn::Sub": "arn:${AWS::Partition}:iam::*:policy/convox/*" },
+                { "Fn::Sub": "arn:${AWS::Partition}:iam::*:role/convox/*" },
+                { "Fn::Sub": "arn:${AWS::Partition}:iam::*:user/convox/*" }
+              ]
             }
           ]
         }
