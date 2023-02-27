@@ -2545,7 +2545,7 @@
                   "PrivateInstances",
                   {
                     "Fn::If": [
-                      "CreateThirdPrivateSubnet",
+                      "ThirdAvailabilityZoneAndHighAvailability",
                       {
                         "Fn::Sub": "${SubnetPrivate0},${SubnetPrivate1},${SubnetPrivate2}"
                       },
@@ -2699,7 +2699,7 @@
                   "PrivateInstances",
                   {
                     "Fn::If": [
-                      "CreateThirdPrivateSubnet",
+                      "ThirdAvailabilityZoneAndHighAvailability",
                       {
                         "Fn::Sub": "${SubnetPrivate0},${SubnetPrivate1},${SubnetPrivate2}"
                       },
