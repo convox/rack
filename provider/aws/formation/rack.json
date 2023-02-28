@@ -2665,36 +2665,6 @@
               "Monitoring": {
                 "Enabled": "true"
               },
-              "NetworkInterfaces" : [
-                {
-                  "AssociatePublicIpAddress": { "Fn::If": [ "PrivateInstances", false, true ] },
-                  "DeviceIndex": 0,
-                  "Groups": [
-                    {
-                      "Fn::If": [
-                        "BlankInstanceSecurityGroup",
-                        {
-                          "Ref": "InstancesSecurity"
-                        },
-                        {
-                          "Ref": "InstanceSecurityGroup"
-                        }
-                      ]
-                    }
-                  ],
-                  "SubnetId": {
-                    "Fn::If": [
-                      "Private",
-                      {
-                        "Ref": "SubnetPrivate0"
-                      },
-                      {
-                        "Ref": "Subnet0"
-                      }
-                    ]
-                  }
-                }
-              ],
               "Placement": {
                 "AvailabilityZone" : { "Fn::If": [ "BlankAvailabilityZones",
                   { "Fn::Join": [ ",", [
@@ -2716,6 +2686,23 @@
                 ] },
                 "Tenancy" : { "Ref": "Tenancy" }
               },
+              "SecurityGroups": [
+                {
+                  "Fn::If": [
+                    "BlankInstanceSecurityGroup",
+                    {
+                      "GroupId" : {
+                        "Ref": "InstancesSecurity"
+                      }
+                    },
+                    {
+                      "GroupId" : {
+                        "Ref": "InstanceSecurityGroup"
+                      }
+                    }
+                  ]
+                }
+              ],
               "SubnetId": {
                 "Fn::If": [
                   "PrivateInstances",
