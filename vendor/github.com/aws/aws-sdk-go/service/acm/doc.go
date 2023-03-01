@@ -3,18 +3,16 @@
 // Package acm provides the client and types for making API
 // requests to AWS Certificate Manager.
 //
-// Welcome to the AWS Certificate Manager (ACM) API documentation.
-//
-// You can use ACM to manage SSL/TLS certificates for your AWS-based websites
-// and applications. For general information about using ACM, see the AWS Certificate
-// Manager User Guide (https://docs.aws.amazon.com/acm/latest/userguide/).
+// You can use Certificate Manager (ACM) to manage SSL/TLS certificates for
+// your Amazon Web Services-based websites and applications. For more information
+// about using ACM, see the Certificate Manager User Guide (https://docs.aws.amazon.com/acm/latest/userguide/).
 //
 // See https://docs.aws.amazon.com/goto/WebAPI/acm-2015-12-08 for more information on this service.
 //
 // See acm package documentation for more information.
 // https://docs.aws.amazon.com/sdk-for-go/api/service/acm/
 //
-// Using the Client
+// # Using the Client
 //
 // To contact AWS Certificate Manager with the SDK use the New function to create
 // a new service client. With that client you can make API requests to the service.
