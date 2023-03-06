@@ -2936,7 +2936,11 @@
           "Statement": [
             {
               "Effect": "Allow",
-              "Action": [ "iam:*" ],
+              "Action": [
+                "iam:*Role",
+                "iam:ListPolicyVersions",
+                "iam:*Policy"
+              ],
               "Resource": [
                 { "Fn::Sub": "arn:${AWS::Partition}:iam::*:instance-profile/convox/*" },
                 { "Fn::Sub": "arn:${AWS::Partition}:iam::*:policy/convox/*" },
@@ -2949,10 +2953,8 @@
               "Action": [
                 "iam:DeleteServerCertificate",
                 "iam:DetachRolePolicy",
-                "iam:GetRole",
                 "iam:GetServerCertificate",
                 "iam:ListServerCertificates",
-                "iam:PassRole",
                 "iam:UploadServerCertificate"
               ],
               "Resource": [ "*" ]
