@@ -2706,28 +2706,14 @@
               "SubnetId": {
                 "Fn::If": [
                   "PrivateInstances",
-                  {
-                    "Fn::If": [
-                      "ThirdAvailabilityZoneAndHighAvailability",
-                      {
-                        "Fn::Sub": "${SubnetPrivate0},${SubnetPrivate1},${SubnetPrivate2}"
-                      },
-                      {
-                        "Fn::Sub": "${SubnetPrivate0},${SubnetPrivate1}"
-                      }
-                    ]
-                  },
-                  {
-                    "Fn::If": [
-                      "ThirdAvailabilityZoneAndHighAvailability",
-                      {
-                        "Fn::Sub": "${Subnet0},${Subnet1},${Subnet2}"
-                      },
-                      {
-                        "Fn::Sub": "${Subnet0},${Subnet1}"
-                      }
-                    ]
-                  }
+                  { "Fn::Join": [ ",", [
+                    { "Ref": "SubnetPrivate0" },
+                    { "Ref": "SubnetPrivate1" }
+                  ] ] },
+                  { "Fn::Join": [ ",", [
+                    { "Ref": "Subnet0" },
+                    { "Ref": "Subnet1" }
+                  ] ] }
                 ]
               },
               "TagSpecifications": [
