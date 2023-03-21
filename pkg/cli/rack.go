@@ -59,6 +59,16 @@ func init() {
 		Validate: stdcli.Args(0),
 	})
 
+	register("rack runtimes", "list of attachable runtime integrations", RackRuntimes, stdcli.CommandOptions{
+		Flags:    []stdcli.Flag{flagRack},
+		Validate: stdcli.Args(0),
+	})
+
+	register("rack runtime attach", "attach runtime integration", RackRuntimeAttach, stdcli.CommandOptions{
+		Flags:    []stdcli.Flag{flagRack},
+		Validate: stdcli.Args(1),
+	})
+
 	register("rack scale", "scale the rack", RackScale, stdcli.CommandOptions{
 		Flags: []stdcli.Flag{
 			flagRack,
@@ -330,6 +340,70 @@ func RackReleases(rack sdk.Interface, c *stdcli.Context) error {
 	}
 
 	return t.Print()
+}
+
+func RackRuntimes(rack sdk.Interface, c *stdcli.Context) error {
+	host, err := currentHost(c)
+	if err != nil {
+		c.Fail(err)
+	}
+
+	rname := currentRack(c, host)
+
+	endpoint, err := currentEndpoint(c, "")
+	if err != nil {
+		return err
+	}
+
+	p, err := sdk.New(endpoint)
+	if err != nil {
+		return err
+	}
+
+	p.Authenticator = authenticator(c)
+	p.Session = currentSession(c)
+
+	rs, err := p.Runtimes(rname)
+	if err != nil {
+		return err
+	}
+
+	t := c.Table("ID", "TITLE")
+	for _, r := range rs {
+		t.AddRow(r.Id, r.Title)
+	}
+
+	return t.Print()
+}
+
+func RackRuntimeAttach(rack sdk.Interface, c *stdcli.Context) error {
+	host, err := currentHost(c)
+	if err != nil {
+		c.Fail(err)
+	}
+
+	rname := currentRack(c, host)
+
+	endpoint, err := currentEndpoint(c, "")
+	if err != nil {
+		return err
+	}
+
+	p, err := sdk.New(endpoint)
+	if err != nil {
+		return err
+	}
+
+	p.Authenticator = authenticator(c)
+	p.Session = currentSession(c)
+
+	if err := p.RuntimeAttach(rname, structs.RuntimeAttachOptions{
+		Runtime: &c.Args[0],
+	}); err != nil {
+		return err
+	}
+
+	return c.OK()
 }
 
 func RackScale(rack sdk.Interface, c *stdcli.Context) error {
