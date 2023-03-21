@@ -7,3 +7,4 @@ cmd/convox/pkg
 provider/aws/lambda/autoscale/handler
 provider/aws/lambda/autoscale/lambda.zip
 .vscode/
+.DS_Store
