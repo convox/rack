@@ -725,6 +725,31 @@ func (c *Client) ResourceList(app string) (structs.Resources, error) {
 	return v, err
 }
 
+func (c *Client) Runtimes(rackOrgSlug string) (structs.Runtimes, error) {
+	var err error
+
+	ro := stdsdk.RequestOptions{Headers: stdsdk.Headers{}, Params: stdsdk.Params{}, Query: stdsdk.Query{}}
+
+	var v structs.Runtimes
+
+	err = c.Get(fmt.Sprintf("/racks/%s/runtimes", rackOrgSlug), ro, &v)
+
+	return v, err
+}
+
+func (c *Client) RuntimeAttach(rackOrgSlug string, opts structs.RuntimeAttachOptions) error {
+	var err error
+
+	ro, err := stdsdk.MarshalOptions(opts)
+	if err != nil {
+		return err
+	}
+
+	err = c.Put(fmt.Sprintf("/racks/%s/runtimes", rackOrgSlug), ro, nil)
+
+	return err
+}
+
 func (c *Client) ServiceList(app string) (structs.Services, error) {
 	var err error
 

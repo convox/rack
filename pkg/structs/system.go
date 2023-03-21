@@ -38,3 +38,14 @@ type SystemUpdateOptions struct {
 	Type       *string           `param:"type"`
 	Version    *string           `param:"version"`
 }
+
+type Runtime struct {
+	Id    string `json:"id"`
+	Title string `json:"title"`
+}
+
+type Runtimes []Runtime
+
+type RuntimeAttachOptions struct {
+	Runtime *string `param:"runtime"`
+}
