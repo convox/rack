@@ -31,7 +31,7 @@
     "Development": { "Fn::Equals": [ { "Ref": "Development" }, "Yes" ] },
     "EnableCloudWatch": { "Fn::Equals": [ { "Ref": "LogDriver" }, "CloudWatch" ] },
     "EnableSyslog": { "Fn::Equals": [ { "Ref": "LogDriver" }, "Syslog" ] },
-    "EncryptEbs" : { "Fn::Equals": [ { "Ref": "EncryptEbs" }, "Yes" ] },
+    "EncryptEbs": { "Fn::Equals": [ { "Ref": "EncryptEbs" }, "Yes" ] },
     "ExistingVpc": { "Fn::Not": [ { "Fn::Equals": [ { "Ref": "ExistingVpc" }, "" ] } ] },
     "ExistingVpcAndBlankInternetGateway": {
       "Fn::And": [ { "Condition": "ExistingVpc" }, { "Condition": "BlankInternetGateway" } ]
@@ -143,7 +143,7 @@
     "RegionHasEFSAndThirdAvailabilityZoneAndHighAvailability": {
       "Fn::And": [ { "Condition": "RegionHasEFS" }, { "Condition": "ThirdAvailabilityZone" }, { "Condition": "HighAvailability" } ]
     },
-    "SetScheduleRackScale": { "Fn::Not" : [{
+    "SetScheduleRackScale": { "Fn::Not": [{
       "Fn::And": [
         { "Fn::Equals": [ { "Ref": "ScheduleRackScaleDown" }, "" ] },
         { "Fn::Equals": [ { "Ref": "ScheduleRackScaleUp" }, "" ] }
@@ -355,7 +355,7 @@
       }
     },
     "NotificationTopic": {
-      "Value" : { "Ref": "NotificationTopic" }
+      "Value": { "Ref": "NotificationTopic" }
     },
     "OnDemandMinCount": {
       "Value": { "Ref": "OnDemandMinCount" }
@@ -2963,6 +2963,14 @@
         }
       }
     },
+    "RackApiSecret": {
+      "Type": "AWS::SSM::Parameter",
+      "Properties": {
+        "Name": { "Fn::Sub": "${AWS::StackName}RackApiSecret" },
+        "Type": "String",
+        "Value": { "Ref": "Password" }
+      }
+    },
     "ApiRole": {
       "Type": "AWS::IAM::Role",
       "Properties": {
@@ -2991,6 +2999,24 @@
                     "lambda:GetFunction"
                   ],
                   "Resource": "*"
+                }
+              ]
+            }
+          },
+          {
+            "PolicyName": "SecretApiRole",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "ssm:GetParameters",
+                    "kms:Decrypt"
+                  ],
+                  "Resource": [
+                    { "Fn::Sub": "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}RackApiSecret" }
+                  ]
                 }
               ]
             }
@@ -3076,7 +3102,6 @@
               { "Name": "NO_PROXY", "Value": "169.254.169.254,169.254.170.2,/var/run/docker.sock" },
               { "Name": "HTTP_PROXY", "Value": { "Ref": "HttpProxy" } },
               { "Name": "HTTPS_PROXY", "Value": { "Ref": "HttpProxy" } },
-              { "Name": "PASSWORD", "Value": { "Ref": "Password" } },
               { "Name": "PROVIDER", "Value": "aws" },
               { "Name": "RACK", "Value": { "Ref": "AWS::StackName" } },
               { "Name": "STACK_ID", "Value": { "Ref": "AWS::StackId" } }
@@ -3102,9 +3127,14 @@
               { "SourceVolume": "config", "ContainerPath": "/etc/sysconfig/docker" },
               { "SourceVolume": "docker", "ContainerPath": "/var/run/docker.sock" }
             ],
-            "Name": "build"
+            "Name": "build",
+            "Secrets": [{
+              "Name": "PASSWORD",
+              "ValueFrom": { "Fn::Sub": "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}RackApiSecret" }
+            }]
           }
         ],
+        "ExecutionRoleArn": { "Fn::GetAtt": [ "ApiRole", "Arn" ] },
         "Family": { "Fn::Sub": "${AWS::StackName}-build" },
         "TaskRoleArn": { "Fn::GetAtt": [ "ApiRole", "Arn" ] },
         "Volumes": [
@@ -3307,7 +3337,6 @@
               { "Name": "NO_PROXY", "Value": "169.254.169.254,169.254.170.2,/var/run/docker.sock" },
               { "Name": "HTTP_PROXY", "Value": { "Ref": "HttpProxy" } },
               { "Name": "HTTPS_PROXY", "Value": { "Ref": "HttpProxy" } },
-              { "Name": "PASSWORD", "Value": { "Ref": "Password" } },
               { "Name": "PROVIDER", "Value": "aws" },
               { "Name": "RACK", "Value": { "Ref": "AWS::StackName" } },
               { "Name": "STACK_ID", "Value": { "Ref": "AWS::StackId" } }
@@ -3356,9 +3385,14 @@
             "PortMappings": { "Fn::If": [ "PrivateApi",
               [ { "HostPort": "4100", "ContainerPort": "5443", "Protocol": "tcp" } ],
               [ { "HostPort": "4000", "ContainerPort": "5443", "Protocol": "tcp" } ]
-            ] }
+            ] },
+            "Secrets": [{
+              "Name": "PASSWORD",
+              "ValueFrom": { "Fn::Sub": "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}RackApiSecret" }
+            }]
           }
         ],
+        "ExecutionRoleArn": { "Fn::GetAtt": [ "ApiRole", "Arn" ] },
         "Family": { "Fn::Sub": "${AWS::StackName}-web" },
         "TaskRoleArn": { "Fn::GetAtt": [ "ApiRole", "Arn" ] },
         "Volumes": [ { "Name": "docker", "Host": { "SourcePath": "/var/run/docker.sock" } } ]
