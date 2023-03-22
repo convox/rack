@@ -3045,6 +3045,15 @@
                   "Resource": [
                     { "Fn::Sub": "arn:${AWS::Partition}:iam::*:instance-profile/convox/*" }
                   ]
+                },
+                {
+                  "Action": [
+                    "iam:CreatePolicyVersion"
+                  ],
+                  "Effect": "Allow",
+                  "Resource": [
+                    { "Fn::Sub": "arn:${AWS::Partition}:iam::*:policy/convox/*" }
+                  ]
                 }
               ]
             }
