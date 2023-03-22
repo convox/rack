@@ -2982,7 +2982,6 @@
           "Version": "2012-10-17"
         },
         "ManagedPolicyArns": [
-          { "Fn::Sub": "arn:${AWS::Partition}:iam::aws:policy/PowerUserAccess" },
           { "Ref": "ApiPolicy" },
           { "Ref": "CMKPolicy" }
         ],
@@ -2996,7 +2995,48 @@
                 {
                   "Effect": "Allow",
                   "Action": [
-                    "lambda:GetFunction"
+                    "acm:*",
+                    "autoscaling:*",
+                    "cloudformation:*",
+                    "dynamodb:*",
+                    "ecs:*",
+                    "ecr:*",
+                    "ec2:AccountAttributes",
+                    "ec2:AuthorizeSecurityGroupIngress",
+                    "ec2:CreateKeyPair",
+                    "ec2:CreateSecurityGroup",
+                    "ec2:CreateTags",
+                    "ec2:DescribeAccountAttributes",
+                    "ec2:DescribeAvailabilityZones",
+                    "ec2:DescribeImages",
+                    "ec2:DescribeInstances",
+                    "ec2:DescribeInternetGateways",
+                    "ec2:DescribeSecurityGroups",
+                    "ec2:DescribeSubnets",
+                    "ec2:DescribeVpcs",
+                    "elasticfilesystem:*",
+                    "elasticloadbalancing:*",
+                    "events:*",
+                    "lambda:AddPermission",
+                    "lambda:CreateFunction",
+                    "lambda:GetFunction",
+                    "lambda:GetFunctionCodeSigningConfig",
+                    "lambda:GetRuntimeManagementConfig",
+                    "logs:*",
+                    "rds:*",
+                    "route53:*",
+                    "s3:CreateBucket",
+                    "s3:GetBucketPolicy",
+                    "s3:PutBucketLogging",
+                    "s3:PutBucketPolicy",
+                    "s3:PutBucketPublicAccessBlock",
+                    "s3:PutBucketTagging",
+                    "s3:PutEncryptionConfiguration",
+                    "s3:PutLifecycleConfiguration",
+                    "sns:*",
+                    "sqs:*",
+                    "ssm:*",
+                    "sts:AssumeRole"
                   ],
                   "Resource": "*"
                 }
