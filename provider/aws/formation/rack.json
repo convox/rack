@@ -2935,29 +2935,25 @@
           "Version": "2012-10-17",
           "Statement": [
             {
-              "Effect": "Allow",
               "Action": [
-                "iam:*Role",
-                "iam:ListPolicyVersions",
-                "iam:*Policy"
+                "iam:CreateRole",
+                "iam:GetRole",
+                "iam:GetRolePolicy",
+                "iam:PutRolePolicy",
+                "iam:AttachRolePolicy",
+                "iam:DetachRolePolicy",
+                "iam:UploadServerCertificate",
+                "iam:GetServerCertificate",
+                "iam:ListServerCertificates",
+                "iam:DeleteServerCertificate"
               ],
+              "Effect": "Allow",
               "Resource": [
                 { "Fn::Sub": "arn:${AWS::Partition}:iam::*:instance-profile/convox/*" },
                 { "Fn::Sub": "arn:${AWS::Partition}:iam::*:policy/convox/*" },
                 { "Fn::Sub": "arn:${AWS::Partition}:iam::*:role/convox/*" },
                 { "Fn::Sub": "arn:${AWS::Partition}:iam::*:user/convox/*" }
               ]
-            },
-            {
-              "Effect": "Allow",
-              "Action": [
-                "iam:DeleteServerCertificate",
-                "iam:DetachRolePolicy",
-                "iam:GetServerCertificate",
-                "iam:ListServerCertificates",
-                "iam:UploadServerCertificate"
-              ],
-              "Resource": [ "*" ]
             }
           ]
         }
@@ -2982,7 +2978,6 @@
           "Version": "2012-10-17"
         },
         "ManagedPolicyArns": [
-          { "Fn::Sub": "arn:${AWS::Partition}:iam::aws:policy/PowerUserAccess" },
           { "Ref": "ApiPolicy" },
           { "Ref": "CMKPolicy" }
         ],
@@ -2996,9 +2991,57 @@
                 {
                   "Effect": "Allow",
                   "Action": [
-                    "lambda:GetFunction"
+                      "cloudformation:*",
+                      "sns:*",
+                      "ecs:*",
+                      "ecr:*",
+                      "autoscaling:*",
+                      "logs:*",
+                      "events:*",
+                      "sqs:*",
+                      "elasticloadbalancing:*",
+                      "ssm:*",
+                      "dynamodb:*",
+                      "s3:PutBucketTagging",
+                      "s3:PutLifecycleConfiguration",
+                      "s3:PutBucketPolicy",
+                      "s3:GetBucketPolicy",
+                      "s3:PutBucketLogging",
+                      "s3:PutBucketPublicAccessBlock",
+                      "s3:PutEncryptionConfiguration",
+                      "s3:CreateBucket",
+                      "acm:*",
+                      "sts:AssumeRole",
+                      "lambda:AddPermission",
+                      "lambda:GetFunction",
+                      "lambda:GetFunctionCodeSigningConfig",
+                      "lambda:GetRuntimeManagementConfig",
+                      "lambda:CreateFunction",
+                      "route53:*",
+                      "rds:*",
+                      "elasticfilesystem:*"
                   ],
                   "Resource": "*"
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                      "ec2:DescribeInstances",
+                      "ec2:DescribeImages",
+                      "ec2:DescribeInternetGateways",
+                      "ec2:DescribeVpcs",
+                      "ec2:DescribeAvailabilityZones",
+                      "ec2:DescribeSecurityGroups",
+                      "ec2:DescribeSubnets",
+                      "ec2:DescribeAccountAttributes",
+                      "ec2:AuthorizeSecurityGroupIngress",
+                      "ec2:CreateTags",
+                      "ec2:CreateSecurityGroup",
+                      "ec2:CreateKeyPair"
+                  ],
+                  "Resource": [
+                    { "Fn::Sub": "arn:${AWS::Partition}:iam::*:instance-profile/convox/*" }
+                  ]
                 }
               ]
             }
