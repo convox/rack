@@ -3022,6 +3022,7 @@
                     "lambda:GetFunction",
                     "lambda:GetFunctionCodeSigningConfig",
                     "lambda:GetRuntimeManagementConfig",
+                    "lambda:UpdateFunctionCode",
                     "logs:*",
                     "rds:*",
                     "route53:*",
