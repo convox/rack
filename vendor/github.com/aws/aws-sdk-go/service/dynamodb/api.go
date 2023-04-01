@@ -5,6 +5,7 @@ package dynamodb
 import (
 	"fmt"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -14,6 +15,101 @@ import (
 	"github.com/aws/aws-sdk-go/private/protocol"
 	"github.com/aws/aws-sdk-go/private/protocol/jsonrpc"
 )
+
+const opBatchExecuteStatement = "BatchExecuteStatement"
+
+// BatchExecuteStatementRequest generates a "aws/request.Request" representing the
+// client's request for the BatchExecuteStatement operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See BatchExecuteStatement for more information on using the BatchExecuteStatement
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//	// Example sending a request using the BatchExecuteStatementRequest method.
+//	req, resp := client.BatchExecuteStatementRequest(params)
+//
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/BatchExecuteStatement
+func (c *DynamoDB) BatchExecuteStatementRequest(input *BatchExecuteStatementInput) (req *request.Request, output *BatchExecuteStatementOutput) {
+	op := &request.Operation{
+		Name:       opBatchExecuteStatement,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &BatchExecuteStatementInput{}
+	}
+
+	output = &BatchExecuteStatementOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// BatchExecuteStatement API operation for Amazon DynamoDB.
+//
+// This operation allows you to perform batch reads or writes on data stored
+// in DynamoDB, using PartiQL. Each read statement in a BatchExecuteStatement
+// must specify an equality condition on all key attributes. This enforces that
+// each SELECT statement in a batch returns at most a single item.
+//
+// The entire batch must consist of either read statements or write statements,
+// you cannot mix both in one batch.
+//
+// A HTTP 200 response does not mean that all statements in the BatchExecuteStatement
+// succeeded. Error details for individual statements can be found under the
+// Error (https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_BatchStatementResponse.html#DDB-Type-BatchStatementResponse-Error)
+// field of the BatchStatementResponse for each statement.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon DynamoDB's
+// API operation BatchExecuteStatement for usage and error information.
+//
+// Returned Error Types:
+//
+//   - RequestLimitExceeded
+//     Throughput exceeds the current throughput quota for your account. Please
+//     contact Amazon Web Services Support (https://aws.amazon.com/support) to request
+//     a quota increase.
+//
+//   - InternalServerError
+//     An error occurred on the server side.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/BatchExecuteStatement
+func (c *DynamoDB) BatchExecuteStatement(input *BatchExecuteStatementInput) (*BatchExecuteStatementOutput, error) {
+	req, out := c.BatchExecuteStatementRequest(input)
+	return out, req.Send()
+}
+
+// BatchExecuteStatementWithContext is the same as BatchExecuteStatement with the addition of
+// the ability to pass a context and additional request options.
+//
+// See BatchExecuteStatement for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *DynamoDB) BatchExecuteStatementWithContext(ctx aws.Context, input *BatchExecuteStatementInput, opts ...request.Option) (*BatchExecuteStatementOutput, error) {
+	req, out := c.BatchExecuteStatementRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
 
 const opBatchGetItem = "BatchGetItem"
 
@@ -31,14 +127,13 @@ const opBatchGetItem = "BatchGetItem"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the BatchGetItemRequest method.
+//	req, resp := client.BatchGetItemRequest(params)
 //
-//    // Example sending a request using the BatchGetItemRequest method.
-//    req, resp := client.BatchGetItemRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/BatchGetItem
 func (c *DynamoDB) BatchGetItemRequest(input *BatchGetItemInput) (req *request.Request, output *BatchGetItemOutput) {
@@ -60,26 +155,30 @@ func (c *DynamoDB) BatchGetItemRequest(input *BatchGetItemInput) (req *request.R
 
 	output = &BatchGetItemOutput{}
 	req = c.newRequest(op, input, output)
-	if aws.BoolValue(req.Config.EnableEndpointDiscovery) {
-		de := discovererDescribeEndpoints{
-			Required:      false,
-			EndpointCache: c.endpointCache,
-			Params: map[string]*string{
-				"op": aws.String(req.Operation.Name),
-			},
-			Client: c,
-		}
-
-		for k, v := range de.Params {
-			if v == nil {
-				delete(de.Params, k)
+	// if custom endpoint for the request is set to a non empty string,
+	// we skip the endpoint discovery workflow.
+	if req.Config.Endpoint == nil || *req.Config.Endpoint == "" {
+		if aws.BoolValue(req.Config.EnableEndpointDiscovery) {
+			de := discovererDescribeEndpoints{
+				Required:      false,
+				EndpointCache: c.endpointCache,
+				Params: map[string]*string{
+					"op": aws.String(req.Operation.Name),
+				},
+				Client: c,
 			}
-		}
 
-		req.Handlers.Build.PushFrontNamed(request.NamedHandler{
-			Name: "crr.endpointdiscovery",
-			Fn:   de.Handler,
-		})
+			for k, v := range de.Params {
+				if v == nil {
+					delete(de.Params, k)
+				}
+			}
+
+			req.Handlers.Build.PushFrontNamed(request.NamedHandler{
+				Name: "crr.endpointdiscovery",
+				Fn:   de.Handler,
+			})
+		}
 	}
 	return
 }
@@ -143,26 +242,27 @@ func (c *DynamoDB) BatchGetItemRequest(input *BatchGetItemInput) (req *request.R
 // See the AWS API reference guide for Amazon DynamoDB's
 // API operation BatchGetItem for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeProvisionedThroughputExceededException "ProvisionedThroughputExceededException"
-//   Your request rate is too high. The AWS SDKs for DynamoDB automatically retry
-//   requests that receive this exception. Your request is eventually successful,
-//   unless your retry queue is too large to finish. Reduce the frequency of requests
-//   and use exponential backoff. For more information, go to Error Retries and
-//   Exponential Backoff (https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Programming.Errors.html#Programming.Errors.RetryAndBackoff)
-//   in the Amazon DynamoDB Developer Guide.
+// Returned Error Types:
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
-//   The operation tried to access a nonexistent table or index. The resource
-//   might not be specified correctly, or its status might not be ACTIVE.
+//   - ProvisionedThroughputExceededException
+//     Your request rate is too high. The Amazon Web Services SDKs for DynamoDB
+//     automatically retry requests that receive this exception. Your request is
+//     eventually successful, unless your retry queue is too large to finish. Reduce
+//     the frequency of requests and use exponential backoff. For more information,
+//     go to Error Retries and Exponential Backoff (https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Programming.Errors.html#Programming.Errors.RetryAndBackoff)
+//     in the Amazon DynamoDB Developer Guide.
 //
-//   * ErrCodeRequestLimitExceeded "RequestLimitExceeded"
-//   Throughput exceeds the current throughput limit for your account. Please
-//   contact AWS Support at AWS Support (https://aws.amazon.com/support) to request
-//   a limit increase.
+//   - ResourceNotFoundException
+//     The operation tried to access a nonexistent table or index. The resource
+//     might not be specified correctly, or its status might not be ACTIVE.
 //
-//   * ErrCodeInternalServerError "InternalServerError"
-//   An error occurred on the server side.
+//   - RequestLimitExceeded
+//     Throughput exceeds the current throughput quota for your account. Please
+//     contact Amazon Web Services Support (https://aws.amazon.com/support) to request
+//     a quota increase.
+//
+//   - InternalServerError
+//     An error occurred on the server side.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/BatchGetItem
 func (c *DynamoDB) BatchGetItem(input *BatchGetItemInput) (*BatchGetItemOutput, error) {
@@ -194,15 +294,14 @@ func (c *DynamoDB) BatchGetItemWithContext(ctx aws.Context, input *BatchGetItemI
 //
 // Note: This operation can generate multiple requests to a service.
 //
-//    // Example iterating over at most 3 pages of a BatchGetItem operation.
-//    pageNum := 0
-//    err := client.BatchGetItemPages(params,
-//        func(page *dynamodb.BatchGetItemOutput, lastPage bool) bool {
-//            pageNum++
-//            fmt.Println(page)
-//            return pageNum <= 3
-//        })
-//
+//	// Example iterating over at most 3 pages of a BatchGetItem operation.
+//	pageNum := 0
+//	err := client.BatchGetItemPages(params,
+//	    func(page *dynamodb.BatchGetItemOutput, lastPage bool) bool {
+//	        pageNum++
+//	        fmt.Println(page)
+//	        return pageNum <= 3
+//	    })
 func (c *DynamoDB) BatchGetItemPages(input *BatchGetItemInput, fn func(*BatchGetItemOutput, bool) bool) error {
 	return c.BatchGetItemPagesWithContext(aws.BackgroundContext(), input, fn)
 }
@@ -229,10 +328,12 @@ func (c *DynamoDB) BatchGetItemPagesWithContext(ctx aws.Context, input *BatchGet
 		},
 	}
 
-	cont := true
-	for p.Next() && cont {
-		cont = fn(p.Page().(*BatchGetItemOutput), !p.HasNextPage())
+	for p.Next() {
+		if !fn(p.Page().(*BatchGetItemOutput), !p.HasNextPage()) {
+			break
+		}
 	}
+
 	return p.Err()
 }
 
@@ -252,14 +353,13 @@ const opBatchWriteItem = "BatchWriteItem"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the BatchWriteItemRequest method.
+//	req, resp := client.BatchWriteItemRequest(params)
 //
-//    // Example sending a request using the BatchWriteItemRequest method.
-//    req, resp := client.BatchWriteItemRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/BatchWriteItem
 func (c *DynamoDB) BatchWriteItemRequest(input *BatchWriteItemInput) (req *request.Request, output *BatchWriteItemOutput) {
@@ -275,26 +375,30 @@ func (c *DynamoDB) BatchWriteItemRequest(input *BatchWriteItemInput) (req *reque
 
 	output = &BatchWriteItemOutput{}
 	req = c.newRequest(op, input, output)
-	if aws.BoolValue(req.Config.EnableEndpointDiscovery) {
-		de := discovererDescribeEndpoints{
-			Required:      false,
-			EndpointCache: c.endpointCache,
-			Params: map[string]*string{
-				"op": aws.String(req.Operation.Name),
-			},
-			Client: c,
-		}
-
-		for k, v := range de.Params {
-			if v == nil {
-				delete(de.Params, k)
+	// if custom endpoint for the request is set to a non empty string,
+	// we skip the endpoint discovery workflow.
+	if req.Config.Endpoint == nil || *req.Config.Endpoint == "" {
+		if aws.BoolValue(req.Config.EnableEndpointDiscovery) {
+			de := discovererDescribeEndpoints{
+				Required:      false,
+				EndpointCache: c.endpointCache,
+				Params: map[string]*string{
+					"op": aws.String(req.Operation.Name),
+				},
+				Client: c,
 			}
-		}
 
-		req.Handlers.Build.PushFrontNamed(request.NamedHandler{
-			Name: "crr.endpointdiscovery",
-			Fn:   de.Handler,
-		})
+			for k, v := range de.Params {
+				if v == nil {
+					delete(de.Params, k)
+				}
+			}
+
+			req.Handlers.Build.PushFrontNamed(request.NamedHandler{
+				Name: "crr.endpointdiscovery",
+				Fn:   de.Handler,
+			})
+		}
 	}
 	return
 }
@@ -302,11 +406,17 @@ func (c *DynamoDB) BatchWriteItemRequest(input *BatchWriteItemInput) (req *reque
 // BatchWriteItem API operation for Amazon DynamoDB.
 //
 // The BatchWriteItem operation puts or deletes multiple items in one or more
-// tables. A single call to BatchWriteItem can write up to 16 MB of data, which
-// can comprise as many as 25 put or delete requests. Individual items to be
-// written can be as large as 400 KB.
+// tables. A single call to BatchWriteItem can transmit up to 16MB of data over
+// the network, consisting of up to 25 item put or delete operations. While
+// individual items can be up to 400 KB once stored, it's important to note
+// that an item's representation might be greater than 400KB while being sent
+// in DynamoDB's JSON format for the API call. For more details on this distinction,
+// see Naming Rules and Data Types (https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/HowItWorks.NamingRulesDataTypes.html).
 //
-// BatchWriteItem cannot update items. To update items, use the UpdateItem action.
+// BatchWriteItem cannot update items. If you perform a BatchWriteItem operation
+// on an existing item, that item's values will be overwritten by the operation
+// and it will appear like it was updated. To update items, we recommend you
+// use the UpdateItem action.
 //
 // The individual PutItem and DeleteItem operations specified in BatchWriteItem
 // are atomic; however BatchWriteItem as a whole is not. If any requested operations
@@ -353,24 +463,24 @@ func (c *DynamoDB) BatchWriteItemRequest(input *BatchWriteItemInput) (req *reque
 // If one or more of the following is true, DynamoDB rejects the entire batch
 // write operation:
 //
-//    * One or more tables specified in the BatchWriteItem request does not
-//    exist.
+//   - One or more tables specified in the BatchWriteItem request does not
+//     exist.
 //
-//    * Primary key attributes specified on an item in the request do not match
-//    those in the corresponding table's primary key schema.
+//   - Primary key attributes specified on an item in the request do not match
+//     those in the corresponding table's primary key schema.
 //
-//    * You try to perform multiple operations on the same item in the same
-//    BatchWriteItem request. For example, you cannot put and delete the same
-//    item in the same BatchWriteItem request.
+//   - You try to perform multiple operations on the same item in the same
+//     BatchWriteItem request. For example, you cannot put and delete the same
+//     item in the same BatchWriteItem request.
 //
-//    * Your request contains at least two items with identical hash and range
-//    keys (which essentially is two put operations).
+//   - Your request contains at least two items with identical hash and range
+//     keys (which essentially is two put operations).
 //
-//    * There are more than 25 requests in the batch.
+//   - There are more than 25 requests in the batch.
 //
-//    * Any individual item in a batch exceeds 400 KB.
+//   - Any individual item in a batch exceeds 400 KB.
 //
-//    * The total request size exceeds 16 MB.
+//   - The total request size exceeds 16 MB.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -379,30 +489,31 @@ func (c *DynamoDB) BatchWriteItemRequest(input *BatchWriteItemInput) (req *reque
 // See the AWS API reference guide for Amazon DynamoDB's
 // API operation BatchWriteItem for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeProvisionedThroughputExceededException "ProvisionedThroughputExceededException"
-//   Your request rate is too high. The AWS SDKs for DynamoDB automatically retry
-//   requests that receive this exception. Your request is eventually successful,
-//   unless your retry queue is too large to finish. Reduce the frequency of requests
-//   and use exponential backoff. For more information, go to Error Retries and
-//   Exponential Backoff (https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Programming.Errors.html#Programming.Errors.RetryAndBackoff)
-//   in the Amazon DynamoDB Developer Guide.
+// Returned Error Types:
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
-//   The operation tried to access a nonexistent table or index. The resource
-//   might not be specified correctly, or its status might not be ACTIVE.
+//   - ProvisionedThroughputExceededException
+//     Your request rate is too high. The Amazon Web Services SDKs for DynamoDB
+//     automatically retry requests that receive this exception. Your request is
+//     eventually successful, unless your retry queue is too large to finish. Reduce
+//     the frequency of requests and use exponential backoff. For more information,
+//     go to Error Retries and Exponential Backoff (https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Programming.Errors.html#Programming.Errors.RetryAndBackoff)
+//     in the Amazon DynamoDB Developer Guide.
 //
-//   * ErrCodeItemCollectionSizeLimitExceededException "ItemCollectionSizeLimitExceededException"
-//   An item collection is too large. This exception is only returned for tables
-//   that have one or more local secondary indexes.
+//   - ResourceNotFoundException
+//     The operation tried to access a nonexistent table or index. The resource
+//     might not be specified correctly, or its status might not be ACTIVE.
 //
-//   * ErrCodeRequestLimitExceeded "RequestLimitExceeded"
-//   Throughput exceeds the current throughput limit for your account. Please
-//   contact AWS Support at AWS Support (https://aws.amazon.com/support) to request
-//   a limit increase.
+//   - ItemCollectionSizeLimitExceededException
+//     An item collection is too large. This exception is only returned for tables
+//     that have one or more local secondary indexes.
 //
-//   * ErrCodeInternalServerError "InternalServerError"
-//   An error occurred on the server side.
+//   - RequestLimitExceeded
+//     Throughput exceeds the current throughput quota for your account. Please
+//     contact Amazon Web Services Support (https://aws.amazon.com/support) to request
+//     a quota increase.
+//
+//   - InternalServerError
+//     An error occurred on the server side.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/BatchWriteItem
 func (c *DynamoDB) BatchWriteItem(input *BatchWriteItemInput) (*BatchWriteItemOutput, error) {
@@ -442,14 +553,13 @@ const opCreateBackup = "CreateBackup"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the CreateBackupRequest method.
+//	req, resp := client.CreateBackupRequest(params)
 //
-//    // Example sending a request using the CreateBackupRequest method.
-//    req, resp := client.CreateBackupRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/CreateBackup
 func (c *DynamoDB) CreateBackupRequest(input *CreateBackupInput) (req *request.Request, output *CreateBackupOutput) {
@@ -465,26 +575,30 @@ func (c *DynamoDB) CreateBackupRequest(input *CreateBackupInput) (req *request.R
 
 	output = &CreateBackupOutput{}
 	req = c.newRequest(op, input, output)
-	if aws.BoolValue(req.Config.EnableEndpointDiscovery) {
-		de := discovererDescribeEndpoints{
-			Required:      false,
-			EndpointCache: c.endpointCache,
-			Params: map[string]*string{
-				"op": aws.String(req.Operation.Name),
-			},
-			Client: c,
-		}
-
-		for k, v := range de.Params {
-			if v == nil {
-				delete(de.Params, k)
+	// if custom endpoint for the request is set to a non empty string,
+	// we skip the endpoint discovery workflow.
+	if req.Config.Endpoint == nil || *req.Config.Endpoint == "" {
+		if aws.BoolValue(req.Config.EnableEndpointDiscovery) {
+			de := discovererDescribeEndpoints{
+				Required:      false,
+				EndpointCache: c.endpointCache,
+				Params: map[string]*string{
+					"op": aws.String(req.Operation.Name),
+				},
+				Client: c,
 			}
-		}
 
-		req.Handlers.Build.PushFrontNamed(request.NamedHandler{
-			Name: "crr.endpointdiscovery",
-			Fn:   de.Handler,
-		})
+			for k, v := range de.Params {
+				if v == nil {
+					delete(de.Params, k)
+				}
+			}
+
+			req.Handlers.Build.PushFrontNamed(request.NamedHandler{
+				Name: "crr.endpointdiscovery",
+				Fn:   de.Handler,
+			})
+		}
 	}
 	return
 }
@@ -513,13 +627,13 @@ func (c *DynamoDB) CreateBackupRequest(input *CreateBackupInput) (req *request.R
 //
 // Along with data, the following are also included on the backups:
 //
-//    * Global secondary indexes (GSIs)
+//   - Global secondary indexes (GSIs)
 //
-//    * Local secondary indexes (LSIs)
+//   - Local secondary indexes (LSIs)
 //
-//    * Streams
+//   - Streams
 //
-//    * Provisioned read and write capacity
+//   - Provisioned read and write capacity
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -528,37 +642,42 @@ func (c *DynamoDB) CreateBackupRequest(input *CreateBackupInput) (req *request.R
 // See the AWS API reference guide for Amazon DynamoDB's
 // API operation CreateBackup for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeTableNotFoundException "TableNotFoundException"
-//   A source table with the name TableName does not currently exist within the
-//   subscriber's account.
+// Returned Error Types:
 //
-//   * ErrCodeTableInUseException "TableInUseException"
-//   A target table with the specified name is either being created or deleted.
+//   - TableNotFoundException
+//     A source table with the name TableName does not currently exist within the
+//     subscriber's account or the subscriber is operating in the wrong Amazon Web
+//     Services Region.
 //
-//   * ErrCodeContinuousBackupsUnavailableException "ContinuousBackupsUnavailableException"
-//   Backups have not yet been enabled for this table.
+//   - TableInUseException
+//     A target table with the specified name is either being created or deleted.
 //
-//   * ErrCodeBackupInUseException "BackupInUseException"
-//   There is another ongoing conflicting backup control plane operation on the
-//   table. The backup is either being created, deleted or restored to a table.
+//   - ContinuousBackupsUnavailableException
+//     Backups have not yet been enabled for this table.
 //
-//   * ErrCodeLimitExceededException "LimitExceededException"
-//   There is no limit to the number of daily on-demand backups that can be taken.
+//   - BackupInUseException
+//     There is another ongoing conflicting backup control plane operation on the
+//     table. The backup is either being created, deleted or restored to a table.
 //
-//   Up to 50 simultaneous table operations are allowed per account. These operations
-//   include CreateTable, UpdateTable, DeleteTable,UpdateTimeToLive, RestoreTableFromBackup,
-//   and RestoreTableToPointInTime.
+//   - LimitExceededException
+//     There is no limit to the number of daily on-demand backups that can be taken.
 //
-//   The only exception is when you are creating a table with one or more secondary
-//   indexes. You can have up to 25 such requests running at a time; however,
-//   if the table or index specifications are complex, DynamoDB might temporarily
-//   reduce the number of concurrent operations.
+//     For most purposes, up to 500 simultaneous table operations are allowed per
+//     account. These operations include CreateTable, UpdateTable, DeleteTable,UpdateTimeToLive,
+//     RestoreTableFromBackup, and RestoreTableToPointInTime.
 //
-//   There is a soft account limit of 256 tables.
+//     When you are creating a table with one or more secondary indexes, you can
+//     have up to 250 such requests running at a time. However, if the table or
+//     index specifications are complex, then DynamoDB might temporarily reduce
+//     the number of concurrent operations.
 //
-//   * ErrCodeInternalServerError "InternalServerError"
-//   An error occurred on the server side.
+//     When importing into DynamoDB, up to 50 simultaneous import table operations
+//     are allowed per account.
+//
+//     There is a soft account quota of 2,500 tables.
+//
+//   - InternalServerError
+//     An error occurred on the server side.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/CreateBackup
 func (c *DynamoDB) CreateBackup(input *CreateBackupInput) (*CreateBackupOutput, error) {
@@ -598,14 +717,13 @@ const opCreateGlobalTable = "CreateGlobalTable"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the CreateGlobalTableRequest method.
+//	req, resp := client.CreateGlobalTableRequest(params)
 //
-//    // Example sending a request using the CreateGlobalTableRequest method.
-//    req, resp := client.CreateGlobalTableRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/CreateGlobalTable
 func (c *DynamoDB) CreateGlobalTableRequest(input *CreateGlobalTableInput) (req *request.Request, output *CreateGlobalTableOutput) {
@@ -621,26 +739,30 @@ func (c *DynamoDB) CreateGlobalTableRequest(input *CreateGlobalTableInput) (req 
 
 	output = &CreateGlobalTableOutput{}
 	req = c.newRequest(op, input, output)
-	if aws.BoolValue(req.Config.EnableEndpointDiscovery) {
-		de := discovererDescribeEndpoints{
-			Required:      false,
-			EndpointCache: c.endpointCache,
-			Params: map[string]*string{
-				"op": aws.String(req.Operation.Name),
-			},
-			Client: c,
-		}
-
-		for k, v := range de.Params {
-			if v == nil {
-				delete(de.Params, k)
+	// if custom endpoint for the request is set to a non empty string,
+	// we skip the endpoint discovery workflow.
+	if req.Config.Endpoint == nil || *req.Config.Endpoint == "" {
+		if aws.BoolValue(req.Config.EnableEndpointDiscovery) {
+			de := discovererDescribeEndpoints{
+				Required:      false,
+				EndpointCache: c.endpointCache,
+				Params: map[string]*string{
+					"op": aws.String(req.Operation.Name),
+				},
+				Client: c,
 			}
-		}
 
-		req.Handlers.Build.PushFrontNamed(request.NamedHandler{
-			Name: "crr.endpointdiscovery",
-			Fn:   de.Handler,
-		})
+			for k, v := range de.Params {
+				if v == nil {
+					delete(de.Params, k)
+				}
+			}
+
+			req.Handlers.Build.PushFrontNamed(request.NamedHandler{
+				Name: "crr.endpointdiscovery",
+				Fn:   de.Handler,
+			})
+		}
 	}
 	return
 }
@@ -651,25 +773,41 @@ func (c *DynamoDB) CreateGlobalTableRequest(input *CreateGlobalTableInput) (req 
 // relationship between two or more DynamoDB tables with the same table name
 // in the provided Regions.
 //
+// This operation only applies to Version 2017.11.29 (Legacy) (https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/globaltables.V1.html)
+// of global tables. We recommend using Version 2019.11.21 (Current) (https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/globaltables.V2.html)
+// when creating new global tables, as it provides greater flexibility, higher
+// efficiency and consumes less write capacity than 2017.11.29 (Legacy). To
+// determine which version you are using, see Determining the version (https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/globaltables.DetermineVersion.html).
+// To update existing global tables from version 2017.11.29 (Legacy) to version
+// 2019.11.21 (Current), see Updating global tables (https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/V2globaltables_upgrade.html).
+//
 // If you want to add a new replica table to a global table, each of the following
 // conditions must be true:
 //
-//    * The table must have the same primary key as all of the other replicas.
+//   - The table must have the same primary key as all of the other replicas.
 //
-//    * The table must have the same name as all of the other replicas.
+//   - The table must have the same name as all of the other replicas.
 //
-//    * The table must have DynamoDB Streams enabled, with the stream containing
-//    both the new and the old images of the item.
+//   - The table must have DynamoDB Streams enabled, with the stream containing
+//     both the new and the old images of the item.
 //
-//    * None of the replica tables in the global table can contain any data.
+//   - None of the replica tables in the global table can contain any data.
 //
 // If global secondary indexes are specified, then the following conditions
 // must also be met:
 //
-//    * The global secondary indexes must have the same name.
+//   - The global secondary indexes must have the same name.
 //
-//    * The global secondary indexes must have the same hash key and sort key
-//    (if present).
+//   - The global secondary indexes must have the same hash key and sort key
+//     (if present).
+//
+// If local secondary indexes are specified, then the following conditions must
+// also be met:
+//
+//   - The local secondary indexes must have the same name.
+//
+//   - The local secondary indexes must have the same hash key and sort key
+//     (if present).
 //
 // Write capacity settings should be set consistently across your replica tables
 // and secondary indexes. DynamoDB strongly recommends enabling auto scaling
@@ -688,30 +826,35 @@ func (c *DynamoDB) CreateGlobalTableRequest(input *CreateGlobalTableInput) (req 
 // See the AWS API reference guide for Amazon DynamoDB's
 // API operation CreateGlobalTable for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeLimitExceededException "LimitExceededException"
-//   There is no limit to the number of daily on-demand backups that can be taken.
+// Returned Error Types:
 //
-//   Up to 50 simultaneous table operations are allowed per account. These operations
-//   include CreateTable, UpdateTable, DeleteTable,UpdateTimeToLive, RestoreTableFromBackup,
-//   and RestoreTableToPointInTime.
+//   - LimitExceededException
+//     There is no limit to the number of daily on-demand backups that can be taken.
 //
-//   The only exception is when you are creating a table with one or more secondary
-//   indexes. You can have up to 25 such requests running at a time; however,
-//   if the table or index specifications are complex, DynamoDB might temporarily
-//   reduce the number of concurrent operations.
+//     For most purposes, up to 500 simultaneous table operations are allowed per
+//     account. These operations include CreateTable, UpdateTable, DeleteTable,UpdateTimeToLive,
+//     RestoreTableFromBackup, and RestoreTableToPointInTime.
 //
-//   There is a soft account limit of 256 tables.
+//     When you are creating a table with one or more secondary indexes, you can
+//     have up to 250 such requests running at a time. However, if the table or
+//     index specifications are complex, then DynamoDB might temporarily reduce
+//     the number of concurrent operations.
 //
-//   * ErrCodeInternalServerError "InternalServerError"
-//   An error occurred on the server side.
+//     When importing into DynamoDB, up to 50 simultaneous import table operations
+//     are allowed per account.
 //
-//   * ErrCodeGlobalTableAlreadyExistsException "GlobalTableAlreadyExistsException"
-//   The specified global table already exists.
+//     There is a soft account quota of 2,500 tables.
 //
-//   * ErrCodeTableNotFoundException "TableNotFoundException"
-//   A source table with the name TableName does not currently exist within the
-//   subscriber's account.
+//   - InternalServerError
+//     An error occurred on the server side.
+//
+//   - GlobalTableAlreadyExistsException
+//     The specified global table already exists.
+//
+//   - TableNotFoundException
+//     A source table with the name TableName does not currently exist within the
+//     subscriber's account or the subscriber is operating in the wrong Amazon Web
+//     Services Region.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/CreateGlobalTable
 func (c *DynamoDB) CreateGlobalTable(input *CreateGlobalTableInput) (*CreateGlobalTableOutput, error) {
@@ -751,14 +894,13 @@ const opCreateTable = "CreateTable"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the CreateTableRequest method.
+//	req, resp := client.CreateTableRequest(params)
 //
-//    // Example sending a request using the CreateTableRequest method.
-//    req, resp := client.CreateTableRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/CreateTable
 func (c *DynamoDB) CreateTableRequest(input *CreateTableInput) (req *request.Request, output *CreateTableOutput) {
@@ -774,35 +916,40 @@ func (c *DynamoDB) CreateTableRequest(input *CreateTableInput) (req *request.Req
 
 	output = &CreateTableOutput{}
 	req = c.newRequest(op, input, output)
-	if aws.BoolValue(req.Config.EnableEndpointDiscovery) {
-		de := discovererDescribeEndpoints{
-			Required:      false,
-			EndpointCache: c.endpointCache,
-			Params: map[string]*string{
-				"op": aws.String(req.Operation.Name),
-			},
-			Client: c,
-		}
-
-		for k, v := range de.Params {
-			if v == nil {
-				delete(de.Params, k)
+	// if custom endpoint for the request is set to a non empty string,
+	// we skip the endpoint discovery workflow.
+	if req.Config.Endpoint == nil || *req.Config.Endpoint == "" {
+		if aws.BoolValue(req.Config.EnableEndpointDiscovery) {
+			de := discovererDescribeEndpoints{
+				Required:      false,
+				EndpointCache: c.endpointCache,
+				Params: map[string]*string{
+					"op": aws.String(req.Operation.Name),
+				},
+				Client: c,
 			}
-		}
 
-		req.Handlers.Build.PushFrontNamed(request.NamedHandler{
-			Name: "crr.endpointdiscovery",
-			Fn:   de.Handler,
-		})
+			for k, v := range de.Params {
+				if v == nil {
+					delete(de.Params, k)
+				}
+			}
+
+			req.Handlers.Build.PushFrontNamed(request.NamedHandler{
+				Name: "crr.endpointdiscovery",
+				Fn:   de.Handler,
+			})
+		}
 	}
 	return
 }
 
 // CreateTable API operation for Amazon DynamoDB.
 //
-// The CreateTable operation adds a new table to your account. In an AWS account,
-// table names must be unique within each Region. That is, you can have two
-// tables with same name if you create the tables in different Regions.
+// The CreateTable operation adds a new table to your account. In an Amazon
+// Web Services account, table names must be unique within each Region. That
+// is, you can have two tables with same name if you create the tables in different
+// Regions.
 //
 // CreateTable is an asynchronous operation. Upon receiving a CreateTable request,
 // DynamoDB immediately returns a response with a TableStatus of CREATING. After
@@ -823,28 +970,32 @@ func (c *DynamoDB) CreateTableRequest(input *CreateTableInput) (req *request.Req
 // See the AWS API reference guide for Amazon DynamoDB's
 // API operation CreateTable for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeResourceInUseException "ResourceInUseException"
-//   The operation conflicts with the resource's availability. For example, you
-//   attempted to recreate an existing table, or tried to delete a table currently
-//   in the CREATING state.
+// Returned Error Types:
 //
-//   * ErrCodeLimitExceededException "LimitExceededException"
-//   There is no limit to the number of daily on-demand backups that can be taken.
+//   - ResourceInUseException
+//     The operation conflicts with the resource's availability. For example, you
+//     attempted to recreate an existing table, or tried to delete a table currently
+//     in the CREATING state.
 //
-//   Up to 50 simultaneous table operations are allowed per account. These operations
-//   include CreateTable, UpdateTable, DeleteTable,UpdateTimeToLive, RestoreTableFromBackup,
-//   and RestoreTableToPointInTime.
+//   - LimitExceededException
+//     There is no limit to the number of daily on-demand backups that can be taken.
 //
-//   The only exception is when you are creating a table with one or more secondary
-//   indexes. You can have up to 25 such requests running at a time; however,
-//   if the table or index specifications are complex, DynamoDB might temporarily
-//   reduce the number of concurrent operations.
+//     For most purposes, up to 500 simultaneous table operations are allowed per
+//     account. These operations include CreateTable, UpdateTable, DeleteTable,UpdateTimeToLive,
+//     RestoreTableFromBackup, and RestoreTableToPointInTime.
 //
-//   There is a soft account limit of 256 tables.
+//     When you are creating a table with one or more secondary indexes, you can
+//     have up to 250 such requests running at a time. However, if the table or
+//     index specifications are complex, then DynamoDB might temporarily reduce
+//     the number of concurrent operations.
 //
-//   * ErrCodeInternalServerError "InternalServerError"
-//   An error occurred on the server side.
+//     When importing into DynamoDB, up to 50 simultaneous import table operations
+//     are allowed per account.
+//
+//     There is a soft account quota of 2,500 tables.
+//
+//   - InternalServerError
+//     An error occurred on the server side.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/CreateTable
 func (c *DynamoDB) CreateTable(input *CreateTableInput) (*CreateTableOutput, error) {
@@ -884,14 +1035,13 @@ const opDeleteBackup = "DeleteBackup"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the DeleteBackupRequest method.
+//	req, resp := client.DeleteBackupRequest(params)
 //
-//    // Example sending a request using the DeleteBackupRequest method.
-//    req, resp := client.DeleteBackupRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/DeleteBackup
 func (c *DynamoDB) DeleteBackupRequest(input *DeleteBackupInput) (req *request.Request, output *DeleteBackupOutput) {
@@ -907,26 +1057,30 @@ func (c *DynamoDB) DeleteBackupRequest(input *DeleteBackupInput) (req *request.R
 
 	output = &DeleteBackupOutput{}
 	req = c.newRequest(op, input, output)
-	if aws.BoolValue(req.Config.EnableEndpointDiscovery) {
-		de := discovererDescribeEndpoints{
-			Required:      false,
-			EndpointCache: c.endpointCache,
-			Params: map[string]*string{
-				"op": aws.String(req.Operation.Name),
-			},
-			Client: c,
-		}
-
-		for k, v := range de.Params {
-			if v == nil {
-				delete(de.Params, k)
+	// if custom endpoint for the request is set to a non empty string,
+	// we skip the endpoint discovery workflow.
+	if req.Config.Endpoint == nil || *req.Config.Endpoint == "" {
+		if aws.BoolValue(req.Config.EnableEndpointDiscovery) {
+			de := discovererDescribeEndpoints{
+				Required:      false,
+				EndpointCache: c.endpointCache,
+				Params: map[string]*string{
+					"op": aws.String(req.Operation.Name),
+				},
+				Client: c,
 			}
-		}
 
-		req.Handlers.Build.PushFrontNamed(request.NamedHandler{
-			Name: "crr.endpointdiscovery",
-			Fn:   de.Handler,
-		})
+			for k, v := range de.Params {
+				if v == nil {
+					delete(de.Params, k)
+				}
+			}
+
+			req.Handlers.Build.PushFrontNamed(request.NamedHandler{
+				Name: "crr.endpointdiscovery",
+				Fn:   de.Handler,
+			})
+		}
 	}
 	return
 }
@@ -944,30 +1098,34 @@ func (c *DynamoDB) DeleteBackupRequest(input *DeleteBackupInput) (req *request.R
 // See the AWS API reference guide for Amazon DynamoDB's
 // API operation DeleteBackup for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeBackupNotFoundException "BackupNotFoundException"
-//   Backup not found for the given BackupARN.
+// Returned Error Types:
 //
-//   * ErrCodeBackupInUseException "BackupInUseException"
-//   There is another ongoing conflicting backup control plane operation on the
-//   table. The backup is either being created, deleted or restored to a table.
+//   - BackupNotFoundException
+//     Backup not found for the given BackupARN.
 //
-//   * ErrCodeLimitExceededException "LimitExceededException"
-//   There is no limit to the number of daily on-demand backups that can be taken.
+//   - BackupInUseException
+//     There is another ongoing conflicting backup control plane operation on the
+//     table. The backup is either being created, deleted or restored to a table.
 //
-//   Up to 50 simultaneous table operations are allowed per account. These operations
-//   include CreateTable, UpdateTable, DeleteTable,UpdateTimeToLive, RestoreTableFromBackup,
-//   and RestoreTableToPointInTime.
+//   - LimitExceededException
+//     There is no limit to the number of daily on-demand backups that can be taken.
 //
-//   The only exception is when you are creating a table with one or more secondary
-//   indexes. You can have up to 25 such requests running at a time; however,
-//   if the table or index specifications are complex, DynamoDB might temporarily
-//   reduce the number of concurrent operations.
+//     For most purposes, up to 500 simultaneous table operations are allowed per
+//     account. These operations include CreateTable, UpdateTable, DeleteTable,UpdateTimeToLive,
+//     RestoreTableFromBackup, and RestoreTableToPointInTime.
 //
-//   There is a soft account limit of 256 tables.
+//     When you are creating a table with one or more secondary indexes, you can
+//     have up to 250 such requests running at a time. However, if the table or
+//     index specifications are complex, then DynamoDB might temporarily reduce
+//     the number of concurrent operations.
 //
-//   * ErrCodeInternalServerError "InternalServerError"
-//   An error occurred on the server side.
+//     When importing into DynamoDB, up to 50 simultaneous import table operations
+//     are allowed per account.
+//
+//     There is a soft account quota of 2,500 tables.
+//
+//   - InternalServerError
+//     An error occurred on the server side.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/DeleteBackup
 func (c *DynamoDB) DeleteBackup(input *DeleteBackupInput) (*DeleteBackupOutput, error) {
@@ -1007,14 +1165,13 @@ const opDeleteItem = "DeleteItem"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the DeleteItemRequest method.
+//	req, resp := client.DeleteItemRequest(params)
 //
-//    // Example sending a request using the DeleteItemRequest method.
-//    req, resp := client.DeleteItemRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/DeleteItem
 func (c *DynamoDB) DeleteItemRequest(input *DeleteItemInput) (req *request.Request, output *DeleteItemOutput) {
@@ -1030,26 +1187,30 @@ func (c *DynamoDB) DeleteItemRequest(input *DeleteItemInput) (req *request.Reque
 
 	output = &DeleteItemOutput{}
 	req = c.newRequest(op, input, output)
-	if aws.BoolValue(req.Config.EnableEndpointDiscovery) {
-		de := discovererDescribeEndpoints{
-			Required:      false,
-			EndpointCache: c.endpointCache,
-			Params: map[string]*string{
-				"op": aws.String(req.Operation.Name),
-			},
-			Client: c,
-		}
-
-		for k, v := range de.Params {
-			if v == nil {
-				delete(de.Params, k)
+	// if custom endpoint for the request is set to a non empty string,
+	// we skip the endpoint discovery workflow.
+	if req.Config.Endpoint == nil || *req.Config.Endpoint == "" {
+		if aws.BoolValue(req.Config.EnableEndpointDiscovery) {
+			de := discovererDescribeEndpoints{
+				Required:      false,
+				EndpointCache: c.endpointCache,
+				Params: map[string]*string{
+					"op": aws.String(req.Operation.Name),
+				},
+				Client: c,
 			}
-		}
 
-		req.Handlers.Build.PushFrontNamed(request.NamedHandler{
-			Name: "crr.endpointdiscovery",
-			Fn:   de.Handler,
-		})
+			for k, v := range de.Params {
+				if v == nil {
+					delete(de.Params, k)
+				}
+			}
+
+			req.Handlers.Build.PushFrontNamed(request.NamedHandler{
+				Name: "crr.endpointdiscovery",
+				Fn:   de.Handler,
+			})
+		}
 	}
 	return
 }
@@ -1078,36 +1239,37 @@ func (c *DynamoDB) DeleteItemRequest(input *DeleteItemInput) (req *request.Reque
 // See the AWS API reference guide for Amazon DynamoDB's
 // API operation DeleteItem for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeConditionalCheckFailedException "ConditionalCheckFailedException"
-//   A condition specified in the operation could not be evaluated.
+// Returned Error Types:
 //
-//   * ErrCodeProvisionedThroughputExceededException "ProvisionedThroughputExceededException"
-//   Your request rate is too high. The AWS SDKs for DynamoDB automatically retry
-//   requests that receive this exception. Your request is eventually successful,
-//   unless your retry queue is too large to finish. Reduce the frequency of requests
-//   and use exponential backoff. For more information, go to Error Retries and
-//   Exponential Backoff (https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Programming.Errors.html#Programming.Errors.RetryAndBackoff)
-//   in the Amazon DynamoDB Developer Guide.
+//   - ConditionalCheckFailedException
+//     A condition specified in the operation could not be evaluated.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
-//   The operation tried to access a nonexistent table or index. The resource
-//   might not be specified correctly, or its status might not be ACTIVE.
+//   - ProvisionedThroughputExceededException
+//     Your request rate is too high. The Amazon Web Services SDKs for DynamoDB
+//     automatically retry requests that receive this exception. Your request is
+//     eventually successful, unless your retry queue is too large to finish. Reduce
+//     the frequency of requests and use exponential backoff. For more information,
+//     go to Error Retries and Exponential Backoff (https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Programming.Errors.html#Programming.Errors.RetryAndBackoff)
+//     in the Amazon DynamoDB Developer Guide.
 //
-//   * ErrCodeItemCollectionSizeLimitExceededException "ItemCollectionSizeLimitExceededException"
-//   An item collection is too large. This exception is only returned for tables
-//   that have one or more local secondary indexes.
+//   - ResourceNotFoundException
+//     The operation tried to access a nonexistent table or index. The resource
+//     might not be specified correctly, or its status might not be ACTIVE.
 //
-//   * ErrCodeTransactionConflictException "TransactionConflictException"
-//   Operation was rejected because there is an ongoing transaction for the item.
+//   - ItemCollectionSizeLimitExceededException
+//     An item collection is too large. This exception is only returned for tables
+//     that have one or more local secondary indexes.
 //
-//   * ErrCodeRequestLimitExceeded "RequestLimitExceeded"
-//   Throughput exceeds the current throughput limit for your account. Please
-//   contact AWS Support at AWS Support (https://aws.amazon.com/support) to request
-//   a limit increase.
+//   - TransactionConflictException
+//     Operation was rejected because there is an ongoing transaction for the item.
 //
-//   * ErrCodeInternalServerError "InternalServerError"
-//   An error occurred on the server side.
+//   - RequestLimitExceeded
+//     Throughput exceeds the current throughput quota for your account. Please
+//     contact Amazon Web Services Support (https://aws.amazon.com/support) to request
+//     a quota increase.
+//
+//   - InternalServerError
+//     An error occurred on the server side.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/DeleteItem
 func (c *DynamoDB) DeleteItem(input *DeleteItemInput) (*DeleteItemOutput, error) {
@@ -1147,14 +1309,13 @@ const opDeleteTable = "DeleteTable"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the DeleteTableRequest method.
+//	req, resp := client.DeleteTableRequest(params)
 //
-//    // Example sending a request using the DeleteTableRequest method.
-//    req, resp := client.DeleteTableRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/DeleteTable
 func (c *DynamoDB) DeleteTableRequest(input *DeleteTableInput) (req *request.Request, output *DeleteTableOutput) {
@@ -1170,26 +1331,30 @@ func (c *DynamoDB) DeleteTableRequest(input *DeleteTableInput) (req *request.Req
 
 	output = &DeleteTableOutput{}
 	req = c.newRequest(op, input, output)
-	if aws.BoolValue(req.Config.EnableEndpointDiscovery) {
-		de := discovererDescribeEndpoints{
-			Required:      false,
-			EndpointCache: c.endpointCache,
-			Params: map[string]*string{
-				"op": aws.String(req.Operation.Name),
-			},
-			Client: c,
-		}
-
-		for k, v := range de.Params {
-			if v == nil {
-				delete(de.Params, k)
+	// if custom endpoint for the request is set to a non empty string,
+	// we skip the endpoint discovery workflow.
+	if req.Config.Endpoint == nil || *req.Config.Endpoint == "" {
+		if aws.BoolValue(req.Config.EnableEndpointDiscovery) {
+			de := discovererDescribeEndpoints{
+				Required:      false,
+				EndpointCache: c.endpointCache,
+				Params: map[string]*string{
+					"op": aws.String(req.Operation.Name),
+				},
+				Client: c,
 			}
-		}
 
-		req.Handlers.Build.PushFrontNamed(request.NamedHandler{
-			Name: "crr.endpointdiscovery",
-			Fn:   de.Handler,
-		})
+			for k, v := range de.Params {
+				if v == nil {
+					delete(de.Params, k)
+				}
+			}
+
+			req.Handlers.Build.PushFrontNamed(request.NamedHandler{
+				Name: "crr.endpointdiscovery",
+				Fn:   de.Handler,
+			})
+		}
 	}
 	return
 }
@@ -1202,6 +1367,9 @@ func (c *DynamoDB) DeleteTableRequest(input *DeleteTableInput) (req *request.Req
 // a table is in CREATING or UPDATING states, then DynamoDB returns a ResourceInUseException.
 // If the specified table does not exist, DynamoDB returns a ResourceNotFoundException.
 // If table is already in the DELETING state, no error is returned.
+//
+// This operation only applies to Version 2019.11.21 (Current) (https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/globaltables.V2.html)
+// of global tables.
 //
 // DynamoDB might continue to accept data read and write operations, such as
 // GetItem and PutItem, on a table in the DELETING state until the table deletion
@@ -1222,32 +1390,36 @@ func (c *DynamoDB) DeleteTableRequest(input *DeleteTableInput) (req *request.Req
 // See the AWS API reference guide for Amazon DynamoDB's
 // API operation DeleteTable for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeResourceInUseException "ResourceInUseException"
-//   The operation conflicts with the resource's availability. For example, you
-//   attempted to recreate an existing table, or tried to delete a table currently
-//   in the CREATING state.
+// Returned Error Types:
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
-//   The operation tried to access a nonexistent table or index. The resource
-//   might not be specified correctly, or its status might not be ACTIVE.
+//   - ResourceInUseException
+//     The operation conflicts with the resource's availability. For example, you
+//     attempted to recreate an existing table, or tried to delete a table currently
+//     in the CREATING state.
 //
-//   * ErrCodeLimitExceededException "LimitExceededException"
-//   There is no limit to the number of daily on-demand backups that can be taken.
+//   - ResourceNotFoundException
+//     The operation tried to access a nonexistent table or index. The resource
+//     might not be specified correctly, or its status might not be ACTIVE.
 //
-//   Up to 50 simultaneous table operations are allowed per account. These operations
-//   include CreateTable, UpdateTable, DeleteTable,UpdateTimeToLive, RestoreTableFromBackup,
-//   and RestoreTableToPointInTime.
+//   - LimitExceededException
+//     There is no limit to the number of daily on-demand backups that can be taken.
 //
-//   The only exception is when you are creating a table with one or more secondary
-//   indexes. You can have up to 25 such requests running at a time; however,
-//   if the table or index specifications are complex, DynamoDB might temporarily
-//   reduce the number of concurrent operations.
+//     For most purposes, up to 500 simultaneous table operations are allowed per
+//     account. These operations include CreateTable, UpdateTable, DeleteTable,UpdateTimeToLive,
+//     RestoreTableFromBackup, and RestoreTableToPointInTime.
 //
-//   There is a soft account limit of 256 tables.
+//     When you are creating a table with one or more secondary indexes, you can
+//     have up to 250 such requests running at a time. However, if the table or
+//     index specifications are complex, then DynamoDB might temporarily reduce
+//     the number of concurrent operations.
 //
-//   * ErrCodeInternalServerError "InternalServerError"
-//   An error occurred on the server side.
+//     When importing into DynamoDB, up to 50 simultaneous import table operations
+//     are allowed per account.
+//
+//     There is a soft account quota of 2,500 tables.
+//
+//   - InternalServerError
+//     An error occurred on the server side.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/DeleteTable
 func (c *DynamoDB) DeleteTable(input *DeleteTableInput) (*DeleteTableOutput, error) {
@@ -1287,14 +1459,13 @@ const opDescribeBackup = "DescribeBackup"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the DescribeBackupRequest method.
+//	req, resp := client.DescribeBackupRequest(params)
 //
-//    // Example sending a request using the DescribeBackupRequest method.
-//    req, resp := client.DescribeBackupRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/DescribeBackup
 func (c *DynamoDB) DescribeBackupRequest(input *DescribeBackupInput) (req *request.Request, output *DescribeBackupOutput) {
@@ -1310,26 +1481,30 @@ func (c *DynamoDB) DescribeBackupRequest(input *DescribeBackupInput) (req *reque
 
 	output = &DescribeBackupOutput{}
 	req = c.newRequest(op, input, output)
-	if aws.BoolValue(req.Config.EnableEndpointDiscovery) {
-		de := discovererDescribeEndpoints{
-			Required:      false,
-			EndpointCache: c.endpointCache,
-			Params: map[string]*string{
-				"op": aws.String(req.Operation.Name),
-			},
-			Client: c,
-		}
-
-		for k, v := range de.Params {
-			if v == nil {
-				delete(de.Params, k)
+	// if custom endpoint for the request is set to a non empty string,
+	// we skip the endpoint discovery workflow.
+	if req.Config.Endpoint == nil || *req.Config.Endpoint == "" {
+		if aws.BoolValue(req.Config.EnableEndpointDiscovery) {
+			de := discovererDescribeEndpoints{
+				Required:      false,
+				EndpointCache: c.endpointCache,
+				Params: map[string]*string{
+					"op": aws.String(req.Operation.Name),
+				},
+				Client: c,
 			}
-		}
 
-		req.Handlers.Build.PushFrontNamed(request.NamedHandler{
-			Name: "crr.endpointdiscovery",
-			Fn:   de.Handler,
-		})
+			for k, v := range de.Params {
+				if v == nil {
+					delete(de.Params, k)
+				}
+			}
+
+			req.Handlers.Build.PushFrontNamed(request.NamedHandler{
+				Name: "crr.endpointdiscovery",
+				Fn:   de.Handler,
+			})
+		}
 	}
 	return
 }
@@ -1347,12 +1522,13 @@ func (c *DynamoDB) DescribeBackupRequest(input *DescribeBackupInput) (req *reque
 // See the AWS API reference guide for Amazon DynamoDB's
 // API operation DescribeBackup for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeBackupNotFoundException "BackupNotFoundException"
-//   Backup not found for the given BackupARN.
+// Returned Error Types:
 //
-//   * ErrCodeInternalServerError "InternalServerError"
-//   An error occurred on the server side.
+//   - BackupNotFoundException
+//     Backup not found for the given BackupARN.
+//
+//   - InternalServerError
+//     An error occurred on the server side.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/DescribeBackup
 func (c *DynamoDB) DescribeBackup(input *DescribeBackupInput) (*DescribeBackupOutput, error) {
@@ -1392,14 +1568,13 @@ const opDescribeContinuousBackups = "DescribeContinuousBackups"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the DescribeContinuousBackupsRequest method.
+//	req, resp := client.DescribeContinuousBackupsRequest(params)
 //
-//    // Example sending a request using the DescribeContinuousBackupsRequest method.
-//    req, resp := client.DescribeContinuousBackupsRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/DescribeContinuousBackups
 func (c *DynamoDB) DescribeContinuousBackupsRequest(input *DescribeContinuousBackupsInput) (req *request.Request, output *DescribeContinuousBackupsOutput) {
@@ -1415,26 +1590,30 @@ func (c *DynamoDB) DescribeContinuousBackupsRequest(input *DescribeContinuousBac
 
 	output = &DescribeContinuousBackupsOutput{}
 	req = c.newRequest(op, input, output)
-	if aws.BoolValue(req.Config.EnableEndpointDiscovery) {
-		de := discovererDescribeEndpoints{
-			Required:      false,
-			EndpointCache: c.endpointCache,
-			Params: map[string]*string{
-				"op": aws.String(req.Operation.Name),
-			},
-			Client: c,
-		}
-
-		for k, v := range de.Params {
-			if v == nil {
-				delete(de.Params, k)
+	// if custom endpoint for the request is set to a non empty string,
+	// we skip the endpoint discovery workflow.
+	if req.Config.Endpoint == nil || *req.Config.Endpoint == "" {
+		if aws.BoolValue(req.Config.EnableEndpointDiscovery) {
+			de := discovererDescribeEndpoints{
+				Required:      false,
+				EndpointCache: c.endpointCache,
+				Params: map[string]*string{
+					"op": aws.String(req.Operation.Name),
+				},
+				Client: c,
 			}
-		}
 
-		req.Handlers.Build.PushFrontNamed(request.NamedHandler{
-			Name: "crr.endpointdiscovery",
-			Fn:   de.Handler,
-		})
+			for k, v := range de.Params {
+				if v == nil {
+					delete(de.Params, k)
+				}
+			}
+
+			req.Handlers.Build.PushFrontNamed(request.NamedHandler{
+				Name: "crr.endpointdiscovery",
+				Fn:   de.Handler,
+			})
+		}
 	}
 	return
 }
@@ -1462,13 +1641,15 @@ func (c *DynamoDB) DescribeContinuousBackupsRequest(input *DescribeContinuousBac
 // See the AWS API reference guide for Amazon DynamoDB's
 // API operation DescribeContinuousBackups for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeTableNotFoundException "TableNotFoundException"
-//   A source table with the name TableName does not currently exist within the
-//   subscriber's account.
+// Returned Error Types:
 //
-//   * ErrCodeInternalServerError "InternalServerError"
-//   An error occurred on the server side.
+//   - TableNotFoundException
+//     A source table with the name TableName does not currently exist within the
+//     subscriber's account or the subscriber is operating in the wrong Amazon Web
+//     Services Region.
+//
+//   - InternalServerError
+//     An error occurred on the server side.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/DescribeContinuousBackups
 func (c *DynamoDB) DescribeContinuousBackups(input *DescribeContinuousBackupsInput) (*DescribeContinuousBackupsOutput, error) {
@@ -1492,6 +1673,90 @@ func (c *DynamoDB) DescribeContinuousBackupsWithContext(ctx aws.Context, input *
 	return out, req.Send()
 }
 
+const opDescribeContributorInsights = "DescribeContributorInsights"
+
+// DescribeContributorInsightsRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeContributorInsights operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DescribeContributorInsights for more information on using the DescribeContributorInsights
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//	// Example sending a request using the DescribeContributorInsightsRequest method.
+//	req, resp := client.DescribeContributorInsightsRequest(params)
+//
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/DescribeContributorInsights
+func (c *DynamoDB) DescribeContributorInsightsRequest(input *DescribeContributorInsightsInput) (req *request.Request, output *DescribeContributorInsightsOutput) {
+	op := &request.Operation{
+		Name:       opDescribeContributorInsights,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DescribeContributorInsightsInput{}
+	}
+
+	output = &DescribeContributorInsightsOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// DescribeContributorInsights API operation for Amazon DynamoDB.
+//
+// Returns information about contributor insights for a given table or global
+// secondary index.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon DynamoDB's
+// API operation DescribeContributorInsights for usage and error information.
+//
+// Returned Error Types:
+//
+//   - ResourceNotFoundException
+//     The operation tried to access a nonexistent table or index. The resource
+//     might not be specified correctly, or its status might not be ACTIVE.
+//
+//   - InternalServerError
+//     An error occurred on the server side.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/DescribeContributorInsights
+func (c *DynamoDB) DescribeContributorInsights(input *DescribeContributorInsightsInput) (*DescribeContributorInsightsOutput, error) {
+	req, out := c.DescribeContributorInsightsRequest(input)
+	return out, req.Send()
+}
+
+// DescribeContributorInsightsWithContext is the same as DescribeContributorInsights with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DescribeContributorInsights for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *DynamoDB) DescribeContributorInsightsWithContext(ctx aws.Context, input *DescribeContributorInsightsInput, opts ...request.Option) (*DescribeContributorInsightsOutput, error) {
+	req, out := c.DescribeContributorInsightsRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opDescribeEndpoints = "DescribeEndpoints"
 
 // DescribeEndpointsRequest generates a "aws/request.Request" representing the
@@ -1508,14 +1773,13 @@ const opDescribeEndpoints = "DescribeEndpoints"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the DescribeEndpointsRequest method.
+//	req, resp := client.DescribeEndpointsRequest(params)
 //
-//    // Example sending a request using the DescribeEndpointsRequest method.
-//    req, resp := client.DescribeEndpointsRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/DescribeEndpoints
 func (c *DynamoDB) DescribeEndpointsRequest(input *DescribeEndpointsInput) (req *request.Request, output *DescribeEndpointsOutput) {
@@ -1536,7 +1800,10 @@ func (c *DynamoDB) DescribeEndpointsRequest(input *DescribeEndpointsInput) (req 
 
 // DescribeEndpoints API operation for Amazon DynamoDB.
 //
-// Returns the regional endpoint information.
+// Returns the regional endpoint information. This action must be included in
+// your VPC endpoint policies, or access to the DescribeEndpoints API will be
+// denied. For more information on policy permissions, please see Internetwork
+// traffic privacy (https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/inter-network-traffic-privacy.html#inter-network-traffic-DescribeEndpoints).
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -1572,6 +1839,7 @@ type discovererDescribeEndpoints struct {
 	EndpointCache *crr.EndpointCache
 	Params        map[string]*string
 	Key           string
+	req           *request.Request
 }
 
 func (d *discovererDescribeEndpoints) Discover() (crr.Endpoint, error) {
@@ -1591,8 +1859,19 @@ func (d *discovererDescribeEndpoints) Discover() (crr.Endpoint, error) {
 			continue
 		}
 
+		address := *e.Address
+
+		var scheme string
+		if idx := strings.Index(address, "://"); idx != -1 {
+			scheme = address[:idx]
+		}
+
+		if len(scheme) == 0 {
+			address = fmt.Sprintf("%s://%s", d.req.HTTPRequest.URL.Scheme, address)
+		}
+
 		cachedInMinutes := aws.Int64Value(e.CachePeriodInMinutes)
-		u, err := url.Parse(*e.Address)
+		u, err := url.Parse(address)
 		if err != nil {
 			continue
 		}
@@ -1613,6 +1892,7 @@ func (d *discovererDescribeEndpoints) Discover() (crr.Endpoint, error) {
 func (d *discovererDescribeEndpoints) Handler(r *request.Request) {
 	endpointKey := crr.BuildEndpointKey(d.Params)
 	d.Key = endpointKey
+	d.req = r
 
 	endpoint, err := d.EndpointCache.Get(d, endpointKey, d.Required)
 	if err != nil {
@@ -1623,6 +1903,105 @@ func (d *discovererDescribeEndpoints) Handler(r *request.Request) {
 	if endpoint.URL != nil && len(endpoint.URL.String()) > 0 {
 		r.HTTPRequest.URL = endpoint.URL
 	}
+}
+
+const opDescribeExport = "DescribeExport"
+
+// DescribeExportRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeExport operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DescribeExport for more information on using the DescribeExport
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//	// Example sending a request using the DescribeExportRequest method.
+//	req, resp := client.DescribeExportRequest(params)
+//
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/DescribeExport
+func (c *DynamoDB) DescribeExportRequest(input *DescribeExportInput) (req *request.Request, output *DescribeExportOutput) {
+	op := &request.Operation{
+		Name:       opDescribeExport,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DescribeExportInput{}
+	}
+
+	output = &DescribeExportOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// DescribeExport API operation for Amazon DynamoDB.
+//
+// Describes an existing table export.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon DynamoDB's
+// API operation DescribeExport for usage and error information.
+//
+// Returned Error Types:
+//
+//   - ExportNotFoundException
+//     The specified export was not found.
+//
+//   - LimitExceededException
+//     There is no limit to the number of daily on-demand backups that can be taken.
+//
+//     For most purposes, up to 500 simultaneous table operations are allowed per
+//     account. These operations include CreateTable, UpdateTable, DeleteTable,UpdateTimeToLive,
+//     RestoreTableFromBackup, and RestoreTableToPointInTime.
+//
+//     When you are creating a table with one or more secondary indexes, you can
+//     have up to 250 such requests running at a time. However, if the table or
+//     index specifications are complex, then DynamoDB might temporarily reduce
+//     the number of concurrent operations.
+//
+//     When importing into DynamoDB, up to 50 simultaneous import table operations
+//     are allowed per account.
+//
+//     There is a soft account quota of 2,500 tables.
+//
+//   - InternalServerError
+//     An error occurred on the server side.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/DescribeExport
+func (c *DynamoDB) DescribeExport(input *DescribeExportInput) (*DescribeExportOutput, error) {
+	req, out := c.DescribeExportRequest(input)
+	return out, req.Send()
+}
+
+// DescribeExportWithContext is the same as DescribeExport with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DescribeExport for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *DynamoDB) DescribeExportWithContext(ctx aws.Context, input *DescribeExportInput, opts ...request.Option) (*DescribeExportOutput, error) {
+	req, out := c.DescribeExportRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
 }
 
 const opDescribeGlobalTable = "DescribeGlobalTable"
@@ -1641,14 +2020,13 @@ const opDescribeGlobalTable = "DescribeGlobalTable"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the DescribeGlobalTableRequest method.
+//	req, resp := client.DescribeGlobalTableRequest(params)
 //
-//    // Example sending a request using the DescribeGlobalTableRequest method.
-//    req, resp := client.DescribeGlobalTableRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/DescribeGlobalTable
 func (c *DynamoDB) DescribeGlobalTableRequest(input *DescribeGlobalTableInput) (req *request.Request, output *DescribeGlobalTableOutput) {
@@ -1664,26 +2042,30 @@ func (c *DynamoDB) DescribeGlobalTableRequest(input *DescribeGlobalTableInput) (
 
 	output = &DescribeGlobalTableOutput{}
 	req = c.newRequest(op, input, output)
-	if aws.BoolValue(req.Config.EnableEndpointDiscovery) {
-		de := discovererDescribeEndpoints{
-			Required:      false,
-			EndpointCache: c.endpointCache,
-			Params: map[string]*string{
-				"op": aws.String(req.Operation.Name),
-			},
-			Client: c,
-		}
-
-		for k, v := range de.Params {
-			if v == nil {
-				delete(de.Params, k)
+	// if custom endpoint for the request is set to a non empty string,
+	// we skip the endpoint discovery workflow.
+	if req.Config.Endpoint == nil || *req.Config.Endpoint == "" {
+		if aws.BoolValue(req.Config.EnableEndpointDiscovery) {
+			de := discovererDescribeEndpoints{
+				Required:      false,
+				EndpointCache: c.endpointCache,
+				Params: map[string]*string{
+					"op": aws.String(req.Operation.Name),
+				},
+				Client: c,
 			}
-		}
 
-		req.Handlers.Build.PushFrontNamed(request.NamedHandler{
-			Name: "crr.endpointdiscovery",
-			Fn:   de.Handler,
-		})
+			for k, v := range de.Params {
+				if v == nil {
+					delete(de.Params, k)
+				}
+			}
+
+			req.Handlers.Build.PushFrontNamed(request.NamedHandler{
+				Name: "crr.endpointdiscovery",
+				Fn:   de.Handler,
+			})
+		}
 	}
 	return
 }
@@ -1692,6 +2074,14 @@ func (c *DynamoDB) DescribeGlobalTableRequest(input *DescribeGlobalTableInput) (
 //
 // Returns information about the specified global table.
 //
+// This operation only applies to Version 2017.11.29 (Legacy) (https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/globaltables.V1.html)
+// of global tables. We recommend using Version 2019.11.21 (Current) (https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/globaltables.V2.html)
+// when creating new global tables, as it provides greater flexibility, higher
+// efficiency and consumes less write capacity than 2017.11.29 (Legacy). To
+// determine which version you are using, see Determining the version (https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/globaltables.DetermineVersion.html).
+// To update existing global tables from version 2017.11.29 (Legacy) to version
+// 2019.11.21 (Current), see Updating global tables (https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/V2globaltables_upgrade.html).
+//
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
 // the error.
@@ -1699,12 +2089,13 @@ func (c *DynamoDB) DescribeGlobalTableRequest(input *DescribeGlobalTableInput) (
 // See the AWS API reference guide for Amazon DynamoDB's
 // API operation DescribeGlobalTable for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInternalServerError "InternalServerError"
-//   An error occurred on the server side.
+// Returned Error Types:
 //
-//   * ErrCodeGlobalTableNotFoundException "GlobalTableNotFoundException"
-//   The specified global table does not exist.
+//   - InternalServerError
+//     An error occurred on the server side.
+//
+//   - GlobalTableNotFoundException
+//     The specified global table does not exist.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/DescribeGlobalTable
 func (c *DynamoDB) DescribeGlobalTable(input *DescribeGlobalTableInput) (*DescribeGlobalTableOutput, error) {
@@ -1744,14 +2135,13 @@ const opDescribeGlobalTableSettings = "DescribeGlobalTableSettings"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the DescribeGlobalTableSettingsRequest method.
+//	req, resp := client.DescribeGlobalTableSettingsRequest(params)
 //
-//    // Example sending a request using the DescribeGlobalTableSettingsRequest method.
-//    req, resp := client.DescribeGlobalTableSettingsRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/DescribeGlobalTableSettings
 func (c *DynamoDB) DescribeGlobalTableSettingsRequest(input *DescribeGlobalTableSettingsInput) (req *request.Request, output *DescribeGlobalTableSettingsOutput) {
@@ -1767,26 +2157,30 @@ func (c *DynamoDB) DescribeGlobalTableSettingsRequest(input *DescribeGlobalTable
 
 	output = &DescribeGlobalTableSettingsOutput{}
 	req = c.newRequest(op, input, output)
-	if aws.BoolValue(req.Config.EnableEndpointDiscovery) {
-		de := discovererDescribeEndpoints{
-			Required:      false,
-			EndpointCache: c.endpointCache,
-			Params: map[string]*string{
-				"op": aws.String(req.Operation.Name),
-			},
-			Client: c,
-		}
-
-		for k, v := range de.Params {
-			if v == nil {
-				delete(de.Params, k)
+	// if custom endpoint for the request is set to a non empty string,
+	// we skip the endpoint discovery workflow.
+	if req.Config.Endpoint == nil || *req.Config.Endpoint == "" {
+		if aws.BoolValue(req.Config.EnableEndpointDiscovery) {
+			de := discovererDescribeEndpoints{
+				Required:      false,
+				EndpointCache: c.endpointCache,
+				Params: map[string]*string{
+					"op": aws.String(req.Operation.Name),
+				},
+				Client: c,
 			}
-		}
 
-		req.Handlers.Build.PushFrontNamed(request.NamedHandler{
-			Name: "crr.endpointdiscovery",
-			Fn:   de.Handler,
-		})
+			for k, v := range de.Params {
+				if v == nil {
+					delete(de.Params, k)
+				}
+			}
+
+			req.Handlers.Build.PushFrontNamed(request.NamedHandler{
+				Name: "crr.endpointdiscovery",
+				Fn:   de.Handler,
+			})
+		}
 	}
 	return
 }
@@ -1795,6 +2189,14 @@ func (c *DynamoDB) DescribeGlobalTableSettingsRequest(input *DescribeGlobalTable
 //
 // Describes Region-specific settings for a global table.
 //
+// This operation only applies to Version 2017.11.29 (Legacy) (https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/globaltables.V1.html)
+// of global tables. We recommend using Version 2019.11.21 (Current) (https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/globaltables.V2.html)
+// when creating new global tables, as it provides greater flexibility, higher
+// efficiency and consumes less write capacity than 2017.11.29 (Legacy). To
+// determine which version you are using, see Determining the version (https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/globaltables.DetermineVersion.html).
+// To update existing global tables from version 2017.11.29 (Legacy) to version
+// 2019.11.21 (Current), see Updating global tables (https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/V2globaltables_upgrade.html).
+//
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
 // the error.
@@ -1802,12 +2204,13 @@ func (c *DynamoDB) DescribeGlobalTableSettingsRequest(input *DescribeGlobalTable
 // See the AWS API reference guide for Amazon DynamoDB's
 // API operation DescribeGlobalTableSettings for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeGlobalTableNotFoundException "GlobalTableNotFoundException"
-//   The specified global table does not exist.
+// Returned Error Types:
 //
-//   * ErrCodeInternalServerError "InternalServerError"
-//   An error occurred on the server side.
+//   - GlobalTableNotFoundException
+//     The specified global table does not exist.
+//
+//   - InternalServerError
+//     An error occurred on the server side.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/DescribeGlobalTableSettings
 func (c *DynamoDB) DescribeGlobalTableSettings(input *DescribeGlobalTableSettingsInput) (*DescribeGlobalTableSettingsOutput, error) {
@@ -1831,6 +2234,192 @@ func (c *DynamoDB) DescribeGlobalTableSettingsWithContext(ctx aws.Context, input
 	return out, req.Send()
 }
 
+const opDescribeImport = "DescribeImport"
+
+// DescribeImportRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeImport operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DescribeImport for more information on using the DescribeImport
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//	// Example sending a request using the DescribeImportRequest method.
+//	req, resp := client.DescribeImportRequest(params)
+//
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/DescribeImport
+func (c *DynamoDB) DescribeImportRequest(input *DescribeImportInput) (req *request.Request, output *DescribeImportOutput) {
+	op := &request.Operation{
+		Name:       opDescribeImport,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DescribeImportInput{}
+	}
+
+	output = &DescribeImportOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// DescribeImport API operation for Amazon DynamoDB.
+//
+// Represents the properties of the import.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon DynamoDB's
+// API operation DescribeImport for usage and error information.
+//
+// Returned Error Types:
+//   - ImportNotFoundException
+//     The specified import was not found.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/DescribeImport
+func (c *DynamoDB) DescribeImport(input *DescribeImportInput) (*DescribeImportOutput, error) {
+	req, out := c.DescribeImportRequest(input)
+	return out, req.Send()
+}
+
+// DescribeImportWithContext is the same as DescribeImport with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DescribeImport for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *DynamoDB) DescribeImportWithContext(ctx aws.Context, input *DescribeImportInput, opts ...request.Option) (*DescribeImportOutput, error) {
+	req, out := c.DescribeImportRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opDescribeKinesisStreamingDestination = "DescribeKinesisStreamingDestination"
+
+// DescribeKinesisStreamingDestinationRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeKinesisStreamingDestination operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DescribeKinesisStreamingDestination for more information on using the DescribeKinesisStreamingDestination
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//	// Example sending a request using the DescribeKinesisStreamingDestinationRequest method.
+//	req, resp := client.DescribeKinesisStreamingDestinationRequest(params)
+//
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/DescribeKinesisStreamingDestination
+func (c *DynamoDB) DescribeKinesisStreamingDestinationRequest(input *DescribeKinesisStreamingDestinationInput) (req *request.Request, output *DescribeKinesisStreamingDestinationOutput) {
+	op := &request.Operation{
+		Name:       opDescribeKinesisStreamingDestination,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DescribeKinesisStreamingDestinationInput{}
+	}
+
+	output = &DescribeKinesisStreamingDestinationOutput{}
+	req = c.newRequest(op, input, output)
+	// if custom endpoint for the request is set to a non empty string,
+	// we skip the endpoint discovery workflow.
+	if req.Config.Endpoint == nil || *req.Config.Endpoint == "" {
+		if aws.BoolValue(req.Config.EnableEndpointDiscovery) {
+			de := discovererDescribeEndpoints{
+				Required:      false,
+				EndpointCache: c.endpointCache,
+				Params: map[string]*string{
+					"op": aws.String(req.Operation.Name),
+				},
+				Client: c,
+			}
+
+			for k, v := range de.Params {
+				if v == nil {
+					delete(de.Params, k)
+				}
+			}
+
+			req.Handlers.Build.PushFrontNamed(request.NamedHandler{
+				Name: "crr.endpointdiscovery",
+				Fn:   de.Handler,
+			})
+		}
+	}
+	return
+}
+
+// DescribeKinesisStreamingDestination API operation for Amazon DynamoDB.
+//
+// Returns information about the status of Kinesis streaming.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon DynamoDB's
+// API operation DescribeKinesisStreamingDestination for usage and error information.
+//
+// Returned Error Types:
+//
+//   - ResourceNotFoundException
+//     The operation tried to access a nonexistent table or index. The resource
+//     might not be specified correctly, or its status might not be ACTIVE.
+//
+//   - InternalServerError
+//     An error occurred on the server side.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/DescribeKinesisStreamingDestination
+func (c *DynamoDB) DescribeKinesisStreamingDestination(input *DescribeKinesisStreamingDestinationInput) (*DescribeKinesisStreamingDestinationOutput, error) {
+	req, out := c.DescribeKinesisStreamingDestinationRequest(input)
+	return out, req.Send()
+}
+
+// DescribeKinesisStreamingDestinationWithContext is the same as DescribeKinesisStreamingDestination with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DescribeKinesisStreamingDestination for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *DynamoDB) DescribeKinesisStreamingDestinationWithContext(ctx aws.Context, input *DescribeKinesisStreamingDestinationInput, opts ...request.Option) (*DescribeKinesisStreamingDestinationOutput, error) {
+	req, out := c.DescribeKinesisStreamingDestinationRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opDescribeLimits = "DescribeLimits"
 
 // DescribeLimitsRequest generates a "aws/request.Request" representing the
@@ -1847,14 +2436,13 @@ const opDescribeLimits = "DescribeLimits"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the DescribeLimitsRequest method.
+//	req, resp := client.DescribeLimitsRequest(params)
 //
-//    // Example sending a request using the DescribeLimitsRequest method.
-//    req, resp := client.DescribeLimitsRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/DescribeLimits
 func (c *DynamoDB) DescribeLimitsRequest(input *DescribeLimitsInput) (req *request.Request, output *DescribeLimitsOutput) {
@@ -1870,53 +2458,59 @@ func (c *DynamoDB) DescribeLimitsRequest(input *DescribeLimitsInput) (req *reque
 
 	output = &DescribeLimitsOutput{}
 	req = c.newRequest(op, input, output)
-	if aws.BoolValue(req.Config.EnableEndpointDiscovery) {
-		de := discovererDescribeEndpoints{
-			Required:      false,
-			EndpointCache: c.endpointCache,
-			Params: map[string]*string{
-				"op": aws.String(req.Operation.Name),
-			},
-			Client: c,
-		}
-
-		for k, v := range de.Params {
-			if v == nil {
-				delete(de.Params, k)
+	// if custom endpoint for the request is set to a non empty string,
+	// we skip the endpoint discovery workflow.
+	if req.Config.Endpoint == nil || *req.Config.Endpoint == "" {
+		if aws.BoolValue(req.Config.EnableEndpointDiscovery) {
+			de := discovererDescribeEndpoints{
+				Required:      false,
+				EndpointCache: c.endpointCache,
+				Params: map[string]*string{
+					"op": aws.String(req.Operation.Name),
+				},
+				Client: c,
 			}
-		}
 
-		req.Handlers.Build.PushFrontNamed(request.NamedHandler{
-			Name: "crr.endpointdiscovery",
-			Fn:   de.Handler,
-		})
+			for k, v := range de.Params {
+				if v == nil {
+					delete(de.Params, k)
+				}
+			}
+
+			req.Handlers.Build.PushFrontNamed(request.NamedHandler{
+				Name: "crr.endpointdiscovery",
+				Fn:   de.Handler,
+			})
+		}
 	}
 	return
 }
 
 // DescribeLimits API operation for Amazon DynamoDB.
 //
-// Returns the current provisioned-capacity limits for your AWS account in a
-// Region, both for the Region as a whole and for any one DynamoDB table that
-// you create there.
+// Returns the current provisioned-capacity quotas for your Amazon Web Services
+// account in a Region, both for the Region as a whole and for any one DynamoDB
+// table that you create there.
 //
-// When you establish an AWS account, the account has initial limits on the
-// maximum read capacity units and write capacity units that you can provision
-// across all of your DynamoDB tables in a given Region. Also, there are per-table
-// limits that apply when you create a table there. For more information, see
-// Limits (https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Limits.html)
+// When you establish an Amazon Web Services account, the account has initial
+// quotas on the maximum read capacity units and write capacity units that you
+// can provision across all of your DynamoDB tables in a given Region. Also,
+// there are per-table quotas that apply when you create a table there. For
+// more information, see Service, Account, and Table Quotas (https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Limits.html)
 // page in the Amazon DynamoDB Developer Guide.
 //
-// Although you can increase these limits by filing a case at AWS Support Center
-// (https://console.aws.amazon.com/support/home#/), obtaining the increase is
-// not instantaneous. The DescribeLimits action lets you write code to compare
-// the capacity you are currently using to those limits imposed by your account
-// so that you have enough time to apply for an increase before you hit a limit.
+// Although you can increase these quotas by filing a case at Amazon Web Services
+// Support Center (https://console.aws.amazon.com/support/home#/), obtaining
+// the increase is not instantaneous. The DescribeLimits action lets you write
+// code to compare the capacity you are currently using to those quotas imposed
+// by your account so that you have enough time to apply for an increase before
+// you hit a quota.
 //
-// For example, you could use one of the AWS SDKs to do the following:
+// For example, you could use one of the Amazon Web Services SDKs to do the
+// following:
 //
 // Call DescribeLimits for a particular Region to obtain your current account
-// limits on provisioned capacity there.
+// quotas on provisioned capacity there.
 //
 // Create a variable to hold the aggregate read capacity units provisioned for
 // all your tables in that Region, and one to hold the aggregate write capacity
@@ -1926,29 +2520,29 @@ func (c *DynamoDB) DescribeLimitsRequest(input *DescribeLimitsInput) (req *reque
 //
 // For each table name listed by ListTables, do the following:
 //
-//    * Call DescribeTable with the table name.
+//   - Call DescribeTable with the table name.
 //
-//    * Use the data returned by DescribeTable to add the read capacity units
-//    and write capacity units provisioned for the table itself to your variables.
+//   - Use the data returned by DescribeTable to add the read capacity units
+//     and write capacity units provisioned for the table itself to your variables.
 //
-//    * If the table has one or more global secondary indexes (GSIs), loop over
-//    these GSIs and add their provisioned capacity values to your variables
-//    as well.
+//   - If the table has one or more global secondary indexes (GSIs), loop over
+//     these GSIs and add their provisioned capacity values to your variables
+//     as well.
 //
-// Report the account limits for that Region returned by DescribeLimits, along
+// Report the account quotas for that Region returned by DescribeLimits, along
 // with the total current provisioned capacity levels you have calculated.
 //
 // This will let you see whether you are getting close to your account-level
-// limits.
+// quotas.
 //
-// The per-table limits apply only when you are creating a new table. They restrict
+// The per-table quotas apply only when you are creating a new table. They restrict
 // the sum of the provisioned capacity of the new table itself and all its global
 // secondary indexes.
 //
 // For existing tables and their GSIs, DynamoDB doesn't let you increase provisioned
-// capacity extremely rapidly. But the only upper limit that applies is that
-// the aggregate provisioned capacity over all your tables and GSIs cannot exceed
-// either of the per-account limits.
+// capacity extremely rapidly, but the only quota that applies is that the aggregate
+// provisioned capacity over all your tables and GSIs cannot exceed either of
+// the per-account quotas.
 //
 // DescribeLimits should only be called periodically. You can expect throttling
 // errors if you call it more than once in a minute.
@@ -1962,9 +2556,9 @@ func (c *DynamoDB) DescribeLimitsRequest(input *DescribeLimitsInput) (req *reque
 // See the AWS API reference guide for Amazon DynamoDB's
 // API operation DescribeLimits for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInternalServerError "InternalServerError"
-//   An error occurred on the server side.
+// Returned Error Types:
+//   - InternalServerError
+//     An error occurred on the server side.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/DescribeLimits
 func (c *DynamoDB) DescribeLimits(input *DescribeLimitsInput) (*DescribeLimitsOutput, error) {
@@ -2004,14 +2598,13 @@ const opDescribeTable = "DescribeTable"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the DescribeTableRequest method.
+//	req, resp := client.DescribeTableRequest(params)
 //
-//    // Example sending a request using the DescribeTableRequest method.
-//    req, resp := client.DescribeTableRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/DescribeTable
 func (c *DynamoDB) DescribeTableRequest(input *DescribeTableInput) (req *request.Request, output *DescribeTableOutput) {
@@ -2027,26 +2620,30 @@ func (c *DynamoDB) DescribeTableRequest(input *DescribeTableInput) (req *request
 
 	output = &DescribeTableOutput{}
 	req = c.newRequest(op, input, output)
-	if aws.BoolValue(req.Config.EnableEndpointDiscovery) {
-		de := discovererDescribeEndpoints{
-			Required:      false,
-			EndpointCache: c.endpointCache,
-			Params: map[string]*string{
-				"op": aws.String(req.Operation.Name),
-			},
-			Client: c,
-		}
-
-		for k, v := range de.Params {
-			if v == nil {
-				delete(de.Params, k)
+	// if custom endpoint for the request is set to a non empty string,
+	// we skip the endpoint discovery workflow.
+	if req.Config.Endpoint == nil || *req.Config.Endpoint == "" {
+		if aws.BoolValue(req.Config.EnableEndpointDiscovery) {
+			de := discovererDescribeEndpoints{
+				Required:      false,
+				EndpointCache: c.endpointCache,
+				Params: map[string]*string{
+					"op": aws.String(req.Operation.Name),
+				},
+				Client: c,
 			}
-		}
 
-		req.Handlers.Build.PushFrontNamed(request.NamedHandler{
-			Name: "crr.endpointdiscovery",
-			Fn:   de.Handler,
-		})
+			for k, v := range de.Params {
+				if v == nil {
+					delete(de.Params, k)
+				}
+			}
+
+			req.Handlers.Build.PushFrontNamed(request.NamedHandler{
+				Name: "crr.endpointdiscovery",
+				Fn:   de.Handler,
+			})
+		}
 	}
 	return
 }
@@ -2056,6 +2653,9 @@ func (c *DynamoDB) DescribeTableRequest(input *DescribeTableInput) (req *request
 // Returns information about the table, including the current status of the
 // table, when it was created, the primary key schema, and any indexes on the
 // table.
+//
+// This operation only applies to Version 2019.11.21 (Current) (https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/globaltables.V2.html)
+// of global tables.
 //
 // If you issue a DescribeTable request immediately after a CreateTable request,
 // DynamoDB might return a ResourceNotFoundException. This is because DescribeTable
@@ -2070,13 +2670,14 @@ func (c *DynamoDB) DescribeTableRequest(input *DescribeTableInput) (req *request
 // See the AWS API reference guide for Amazon DynamoDB's
 // API operation DescribeTable for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
-//   The operation tried to access a nonexistent table or index. The resource
-//   might not be specified correctly, or its status might not be ACTIVE.
+// Returned Error Types:
 //
-//   * ErrCodeInternalServerError "InternalServerError"
-//   An error occurred on the server side.
+//   - ResourceNotFoundException
+//     The operation tried to access a nonexistent table or index. The resource
+//     might not be specified correctly, or its status might not be ACTIVE.
+//
+//   - InternalServerError
+//     An error occurred on the server side.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/DescribeTable
 func (c *DynamoDB) DescribeTable(input *DescribeTableInput) (*DescribeTableOutput, error) {
@@ -2100,6 +2701,92 @@ func (c *DynamoDB) DescribeTableWithContext(ctx aws.Context, input *DescribeTabl
 	return out, req.Send()
 }
 
+const opDescribeTableReplicaAutoScaling = "DescribeTableReplicaAutoScaling"
+
+// DescribeTableReplicaAutoScalingRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeTableReplicaAutoScaling operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DescribeTableReplicaAutoScaling for more information on using the DescribeTableReplicaAutoScaling
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//	// Example sending a request using the DescribeTableReplicaAutoScalingRequest method.
+//	req, resp := client.DescribeTableReplicaAutoScalingRequest(params)
+//
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/DescribeTableReplicaAutoScaling
+func (c *DynamoDB) DescribeTableReplicaAutoScalingRequest(input *DescribeTableReplicaAutoScalingInput) (req *request.Request, output *DescribeTableReplicaAutoScalingOutput) {
+	op := &request.Operation{
+		Name:       opDescribeTableReplicaAutoScaling,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DescribeTableReplicaAutoScalingInput{}
+	}
+
+	output = &DescribeTableReplicaAutoScalingOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// DescribeTableReplicaAutoScaling API operation for Amazon DynamoDB.
+//
+// Describes auto scaling settings across replicas of the global table at once.
+//
+// This operation only applies to Version 2019.11.21 (Current) (https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/globaltables.V2.html)
+// of global tables.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon DynamoDB's
+// API operation DescribeTableReplicaAutoScaling for usage and error information.
+//
+// Returned Error Types:
+//
+//   - ResourceNotFoundException
+//     The operation tried to access a nonexistent table or index. The resource
+//     might not be specified correctly, or its status might not be ACTIVE.
+//
+//   - InternalServerError
+//     An error occurred on the server side.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/DescribeTableReplicaAutoScaling
+func (c *DynamoDB) DescribeTableReplicaAutoScaling(input *DescribeTableReplicaAutoScalingInput) (*DescribeTableReplicaAutoScalingOutput, error) {
+	req, out := c.DescribeTableReplicaAutoScalingRequest(input)
+	return out, req.Send()
+}
+
+// DescribeTableReplicaAutoScalingWithContext is the same as DescribeTableReplicaAutoScaling with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DescribeTableReplicaAutoScaling for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *DynamoDB) DescribeTableReplicaAutoScalingWithContext(ctx aws.Context, input *DescribeTableReplicaAutoScalingInput, opts ...request.Option) (*DescribeTableReplicaAutoScalingOutput, error) {
+	req, out := c.DescribeTableReplicaAutoScalingRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opDescribeTimeToLive = "DescribeTimeToLive"
 
 // DescribeTimeToLiveRequest generates a "aws/request.Request" representing the
@@ -2116,14 +2803,13 @@ const opDescribeTimeToLive = "DescribeTimeToLive"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the DescribeTimeToLiveRequest method.
+//	req, resp := client.DescribeTimeToLiveRequest(params)
 //
-//    // Example sending a request using the DescribeTimeToLiveRequest method.
-//    req, resp := client.DescribeTimeToLiveRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/DescribeTimeToLive
 func (c *DynamoDB) DescribeTimeToLiveRequest(input *DescribeTimeToLiveInput) (req *request.Request, output *DescribeTimeToLiveOutput) {
@@ -2139,26 +2825,30 @@ func (c *DynamoDB) DescribeTimeToLiveRequest(input *DescribeTimeToLiveInput) (re
 
 	output = &DescribeTimeToLiveOutput{}
 	req = c.newRequest(op, input, output)
-	if aws.BoolValue(req.Config.EnableEndpointDiscovery) {
-		de := discovererDescribeEndpoints{
-			Required:      false,
-			EndpointCache: c.endpointCache,
-			Params: map[string]*string{
-				"op": aws.String(req.Operation.Name),
-			},
-			Client: c,
-		}
-
-		for k, v := range de.Params {
-			if v == nil {
-				delete(de.Params, k)
+	// if custom endpoint for the request is set to a non empty string,
+	// we skip the endpoint discovery workflow.
+	if req.Config.Endpoint == nil || *req.Config.Endpoint == "" {
+		if aws.BoolValue(req.Config.EnableEndpointDiscovery) {
+			de := discovererDescribeEndpoints{
+				Required:      false,
+				EndpointCache: c.endpointCache,
+				Params: map[string]*string{
+					"op": aws.String(req.Operation.Name),
+				},
+				Client: c,
 			}
-		}
 
-		req.Handlers.Build.PushFrontNamed(request.NamedHandler{
-			Name: "crr.endpointdiscovery",
-			Fn:   de.Handler,
-		})
+			for k, v := range de.Params {
+				if v == nil {
+					delete(de.Params, k)
+				}
+			}
+
+			req.Handlers.Build.PushFrontNamed(request.NamedHandler{
+				Name: "crr.endpointdiscovery",
+				Fn:   de.Handler,
+			})
+		}
 	}
 	return
 }
@@ -2174,13 +2864,14 @@ func (c *DynamoDB) DescribeTimeToLiveRequest(input *DescribeTimeToLiveInput) (re
 // See the AWS API reference guide for Amazon DynamoDB's
 // API operation DescribeTimeToLive for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
-//   The operation tried to access a nonexistent table or index. The resource
-//   might not be specified correctly, or its status might not be ACTIVE.
+// Returned Error Types:
 //
-//   * ErrCodeInternalServerError "InternalServerError"
-//   An error occurred on the server side.
+//   - ResourceNotFoundException
+//     The operation tried to access a nonexistent table or index. The resource
+//     might not be specified correctly, or its status might not be ACTIVE.
+//
+//   - InternalServerError
+//     An error occurred on the server side.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/DescribeTimeToLive
 func (c *DynamoDB) DescribeTimeToLive(input *DescribeTimeToLiveInput) (*DescribeTimeToLiveOutput, error) {
@@ -2204,6 +2895,743 @@ func (c *DynamoDB) DescribeTimeToLiveWithContext(ctx aws.Context, input *Describ
 	return out, req.Send()
 }
 
+const opDisableKinesisStreamingDestination = "DisableKinesisStreamingDestination"
+
+// DisableKinesisStreamingDestinationRequest generates a "aws/request.Request" representing the
+// client's request for the DisableKinesisStreamingDestination operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DisableKinesisStreamingDestination for more information on using the DisableKinesisStreamingDestination
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//	// Example sending a request using the DisableKinesisStreamingDestinationRequest method.
+//	req, resp := client.DisableKinesisStreamingDestinationRequest(params)
+//
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/DisableKinesisStreamingDestination
+func (c *DynamoDB) DisableKinesisStreamingDestinationRequest(input *DisableKinesisStreamingDestinationInput) (req *request.Request, output *DisableKinesisStreamingDestinationOutput) {
+	op := &request.Operation{
+		Name:       opDisableKinesisStreamingDestination,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DisableKinesisStreamingDestinationInput{}
+	}
+
+	output = &DisableKinesisStreamingDestinationOutput{}
+	req = c.newRequest(op, input, output)
+	// if custom endpoint for the request is set to a non empty string,
+	// we skip the endpoint discovery workflow.
+	if req.Config.Endpoint == nil || *req.Config.Endpoint == "" {
+		if aws.BoolValue(req.Config.EnableEndpointDiscovery) {
+			de := discovererDescribeEndpoints{
+				Required:      false,
+				EndpointCache: c.endpointCache,
+				Params: map[string]*string{
+					"op": aws.String(req.Operation.Name),
+				},
+				Client: c,
+			}
+
+			for k, v := range de.Params {
+				if v == nil {
+					delete(de.Params, k)
+				}
+			}
+
+			req.Handlers.Build.PushFrontNamed(request.NamedHandler{
+				Name: "crr.endpointdiscovery",
+				Fn:   de.Handler,
+			})
+		}
+	}
+	return
+}
+
+// DisableKinesisStreamingDestination API operation for Amazon DynamoDB.
+//
+// Stops replication from the DynamoDB table to the Kinesis data stream. This
+// is done without deleting either of the resources.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon DynamoDB's
+// API operation DisableKinesisStreamingDestination for usage and error information.
+//
+// Returned Error Types:
+//
+//   - InternalServerError
+//     An error occurred on the server side.
+//
+//   - LimitExceededException
+//     There is no limit to the number of daily on-demand backups that can be taken.
+//
+//     For most purposes, up to 500 simultaneous table operations are allowed per
+//     account. These operations include CreateTable, UpdateTable, DeleteTable,UpdateTimeToLive,
+//     RestoreTableFromBackup, and RestoreTableToPointInTime.
+//
+//     When you are creating a table with one or more secondary indexes, you can
+//     have up to 250 such requests running at a time. However, if the table or
+//     index specifications are complex, then DynamoDB might temporarily reduce
+//     the number of concurrent operations.
+//
+//     When importing into DynamoDB, up to 50 simultaneous import table operations
+//     are allowed per account.
+//
+//     There is a soft account quota of 2,500 tables.
+//
+//   - ResourceInUseException
+//     The operation conflicts with the resource's availability. For example, you
+//     attempted to recreate an existing table, or tried to delete a table currently
+//     in the CREATING state.
+//
+//   - ResourceNotFoundException
+//     The operation tried to access a nonexistent table or index. The resource
+//     might not be specified correctly, or its status might not be ACTIVE.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/DisableKinesisStreamingDestination
+func (c *DynamoDB) DisableKinesisStreamingDestination(input *DisableKinesisStreamingDestinationInput) (*DisableKinesisStreamingDestinationOutput, error) {
+	req, out := c.DisableKinesisStreamingDestinationRequest(input)
+	return out, req.Send()
+}
+
+// DisableKinesisStreamingDestinationWithContext is the same as DisableKinesisStreamingDestination with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DisableKinesisStreamingDestination for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *DynamoDB) DisableKinesisStreamingDestinationWithContext(ctx aws.Context, input *DisableKinesisStreamingDestinationInput, opts ...request.Option) (*DisableKinesisStreamingDestinationOutput, error) {
+	req, out := c.DisableKinesisStreamingDestinationRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opEnableKinesisStreamingDestination = "EnableKinesisStreamingDestination"
+
+// EnableKinesisStreamingDestinationRequest generates a "aws/request.Request" representing the
+// client's request for the EnableKinesisStreamingDestination operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See EnableKinesisStreamingDestination for more information on using the EnableKinesisStreamingDestination
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//	// Example sending a request using the EnableKinesisStreamingDestinationRequest method.
+//	req, resp := client.EnableKinesisStreamingDestinationRequest(params)
+//
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/EnableKinesisStreamingDestination
+func (c *DynamoDB) EnableKinesisStreamingDestinationRequest(input *EnableKinesisStreamingDestinationInput) (req *request.Request, output *EnableKinesisStreamingDestinationOutput) {
+	op := &request.Operation{
+		Name:       opEnableKinesisStreamingDestination,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &EnableKinesisStreamingDestinationInput{}
+	}
+
+	output = &EnableKinesisStreamingDestinationOutput{}
+	req = c.newRequest(op, input, output)
+	// if custom endpoint for the request is set to a non empty string,
+	// we skip the endpoint discovery workflow.
+	if req.Config.Endpoint == nil || *req.Config.Endpoint == "" {
+		if aws.BoolValue(req.Config.EnableEndpointDiscovery) {
+			de := discovererDescribeEndpoints{
+				Required:      false,
+				EndpointCache: c.endpointCache,
+				Params: map[string]*string{
+					"op": aws.String(req.Operation.Name),
+				},
+				Client: c,
+			}
+
+			for k, v := range de.Params {
+				if v == nil {
+					delete(de.Params, k)
+				}
+			}
+
+			req.Handlers.Build.PushFrontNamed(request.NamedHandler{
+				Name: "crr.endpointdiscovery",
+				Fn:   de.Handler,
+			})
+		}
+	}
+	return
+}
+
+// EnableKinesisStreamingDestination API operation for Amazon DynamoDB.
+//
+// Starts table data replication to the specified Kinesis data stream at a timestamp
+// chosen during the enable workflow. If this operation doesn't return results
+// immediately, use DescribeKinesisStreamingDestination to check if streaming
+// to the Kinesis data stream is ACTIVE.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon DynamoDB's
+// API operation EnableKinesisStreamingDestination for usage and error information.
+//
+// Returned Error Types:
+//
+//   - InternalServerError
+//     An error occurred on the server side.
+//
+//   - LimitExceededException
+//     There is no limit to the number of daily on-demand backups that can be taken.
+//
+//     For most purposes, up to 500 simultaneous table operations are allowed per
+//     account. These operations include CreateTable, UpdateTable, DeleteTable,UpdateTimeToLive,
+//     RestoreTableFromBackup, and RestoreTableToPointInTime.
+//
+//     When you are creating a table with one or more secondary indexes, you can
+//     have up to 250 such requests running at a time. However, if the table or
+//     index specifications are complex, then DynamoDB might temporarily reduce
+//     the number of concurrent operations.
+//
+//     When importing into DynamoDB, up to 50 simultaneous import table operations
+//     are allowed per account.
+//
+//     There is a soft account quota of 2,500 tables.
+//
+//   - ResourceInUseException
+//     The operation conflicts with the resource's availability. For example, you
+//     attempted to recreate an existing table, or tried to delete a table currently
+//     in the CREATING state.
+//
+//   - ResourceNotFoundException
+//     The operation tried to access a nonexistent table or index. The resource
+//     might not be specified correctly, or its status might not be ACTIVE.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/EnableKinesisStreamingDestination
+func (c *DynamoDB) EnableKinesisStreamingDestination(input *EnableKinesisStreamingDestinationInput) (*EnableKinesisStreamingDestinationOutput, error) {
+	req, out := c.EnableKinesisStreamingDestinationRequest(input)
+	return out, req.Send()
+}
+
+// EnableKinesisStreamingDestinationWithContext is the same as EnableKinesisStreamingDestination with the addition of
+// the ability to pass a context and additional request options.
+//
+// See EnableKinesisStreamingDestination for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *DynamoDB) EnableKinesisStreamingDestinationWithContext(ctx aws.Context, input *EnableKinesisStreamingDestinationInput, opts ...request.Option) (*EnableKinesisStreamingDestinationOutput, error) {
+	req, out := c.EnableKinesisStreamingDestinationRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opExecuteStatement = "ExecuteStatement"
+
+// ExecuteStatementRequest generates a "aws/request.Request" representing the
+// client's request for the ExecuteStatement operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See ExecuteStatement for more information on using the ExecuteStatement
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//	// Example sending a request using the ExecuteStatementRequest method.
+//	req, resp := client.ExecuteStatementRequest(params)
+//
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/ExecuteStatement
+func (c *DynamoDB) ExecuteStatementRequest(input *ExecuteStatementInput) (req *request.Request, output *ExecuteStatementOutput) {
+	op := &request.Operation{
+		Name:       opExecuteStatement,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &ExecuteStatementInput{}
+	}
+
+	output = &ExecuteStatementOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// ExecuteStatement API operation for Amazon DynamoDB.
+//
+// This operation allows you to perform reads and singleton writes on data stored
+// in DynamoDB, using PartiQL.
+//
+// For PartiQL reads (SELECT statement), if the total number of processed items
+// exceeds the maximum dataset size limit of 1 MB, the read stops and results
+// are returned to the user as a LastEvaluatedKey value to continue the read
+// in a subsequent operation. If the filter criteria in WHERE clause does not
+// match any data, the read will return an empty result set.
+//
+// A single SELECT statement response can return up to the maximum number of
+// items (if using the Limit parameter) or a maximum of 1 MB of data (and then
+// apply any filtering to the results using WHERE clause). If LastEvaluatedKey
+// is present in the response, you need to paginate the result set. If NextToken
+// is present, you need to paginate the result set and include NextToken.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon DynamoDB's
+// API operation ExecuteStatement for usage and error information.
+//
+// Returned Error Types:
+//
+//   - ConditionalCheckFailedException
+//     A condition specified in the operation could not be evaluated.
+//
+//   - ProvisionedThroughputExceededException
+//     Your request rate is too high. The Amazon Web Services SDKs for DynamoDB
+//     automatically retry requests that receive this exception. Your request is
+//     eventually successful, unless your retry queue is too large to finish. Reduce
+//     the frequency of requests and use exponential backoff. For more information,
+//     go to Error Retries and Exponential Backoff (https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Programming.Errors.html#Programming.Errors.RetryAndBackoff)
+//     in the Amazon DynamoDB Developer Guide.
+//
+//   - ResourceNotFoundException
+//     The operation tried to access a nonexistent table or index. The resource
+//     might not be specified correctly, or its status might not be ACTIVE.
+//
+//   - ItemCollectionSizeLimitExceededException
+//     An item collection is too large. This exception is only returned for tables
+//     that have one or more local secondary indexes.
+//
+//   - TransactionConflictException
+//     Operation was rejected because there is an ongoing transaction for the item.
+//
+//   - RequestLimitExceeded
+//     Throughput exceeds the current throughput quota for your account. Please
+//     contact Amazon Web Services Support (https://aws.amazon.com/support) to request
+//     a quota increase.
+//
+//   - InternalServerError
+//     An error occurred on the server side.
+//
+//   - DuplicateItemException
+//     There was an attempt to insert an item with the same primary key as an item
+//     that already exists in the DynamoDB table.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/ExecuteStatement
+func (c *DynamoDB) ExecuteStatement(input *ExecuteStatementInput) (*ExecuteStatementOutput, error) {
+	req, out := c.ExecuteStatementRequest(input)
+	return out, req.Send()
+}
+
+// ExecuteStatementWithContext is the same as ExecuteStatement with the addition of
+// the ability to pass a context and additional request options.
+//
+// See ExecuteStatement for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *DynamoDB) ExecuteStatementWithContext(ctx aws.Context, input *ExecuteStatementInput, opts ...request.Option) (*ExecuteStatementOutput, error) {
+	req, out := c.ExecuteStatementRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opExecuteTransaction = "ExecuteTransaction"
+
+// ExecuteTransactionRequest generates a "aws/request.Request" representing the
+// client's request for the ExecuteTransaction operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See ExecuteTransaction for more information on using the ExecuteTransaction
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//	// Example sending a request using the ExecuteTransactionRequest method.
+//	req, resp := client.ExecuteTransactionRequest(params)
+//
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/ExecuteTransaction
+func (c *DynamoDB) ExecuteTransactionRequest(input *ExecuteTransactionInput) (req *request.Request, output *ExecuteTransactionOutput) {
+	op := &request.Operation{
+		Name:       opExecuteTransaction,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &ExecuteTransactionInput{}
+	}
+
+	output = &ExecuteTransactionOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// ExecuteTransaction API operation for Amazon DynamoDB.
+//
+// This operation allows you to perform transactional reads or writes on data
+// stored in DynamoDB, using PartiQL.
+//
+// The entire transaction must consist of either read statements or write statements,
+// you cannot mix both in one transaction. The EXISTS function is an exception
+// and can be used to check the condition of specific attributes of the item
+// in a similar manner to ConditionCheck in the TransactWriteItems (https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/transaction-apis.html#transaction-apis-txwriteitems)
+// API.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon DynamoDB's
+// API operation ExecuteTransaction for usage and error information.
+//
+// Returned Error Types:
+//
+//   - ResourceNotFoundException
+//     The operation tried to access a nonexistent table or index. The resource
+//     might not be specified correctly, or its status might not be ACTIVE.
+//
+//   - TransactionCanceledException
+//     The entire transaction request was canceled.
+//
+//     DynamoDB cancels a TransactWriteItems request under the following circumstances:
+//
+//   - A condition in one of the condition expressions is not met.
+//
+//   - A table in the TransactWriteItems request is in a different account
+//     or region.
+//
+//   - More than one action in the TransactWriteItems operation targets the
+//     same item.
+//
+//   - There is insufficient provisioned capacity for the transaction to be
+//     completed.
+//
+//   - An item size becomes too large (larger than 400 KB), or a local secondary
+//     index (LSI) becomes too large, or a similar validation error occurs because
+//     of changes made by the transaction.
+//
+//   - There is a user error, such as an invalid data format.
+//
+//     DynamoDB cancels a TransactGetItems request under the following circumstances:
+//
+//   - There is an ongoing TransactGetItems operation that conflicts with a
+//     concurrent PutItem, UpdateItem, DeleteItem or TransactWriteItems request.
+//     In this case the TransactGetItems operation fails with a TransactionCanceledException.
+//
+//   - A table in the TransactGetItems request is in a different account or
+//     region.
+//
+//   - There is insufficient provisioned capacity for the transaction to be
+//     completed.
+//
+//   - There is a user error, such as an invalid data format.
+//
+//     If using Java, DynamoDB lists the cancellation reasons on the CancellationReasons
+//     property. This property is not set for other languages. Transaction cancellation
+//     reasons are ordered in the order of requested items, if an item has no error
+//     it will have None code and Null message.
+//
+//     Cancellation reason codes and possible error messages:
+//
+//   - No Errors: Code: None Message: null
+//
+//   - Conditional Check Failed: Code: ConditionalCheckFailed Message: The
+//     conditional request failed.
+//
+//   - Item Collection Size Limit Exceeded: Code: ItemCollectionSizeLimitExceeded
+//     Message: Collection size exceeded.
+//
+//   - Transaction Conflict: Code: TransactionConflict Message: Transaction
+//     is ongoing for the item.
+//
+//   - Provisioned Throughput Exceeded: Code: ProvisionedThroughputExceeded
+//     Messages: The level of configured provisioned throughput for the table
+//     was exceeded. Consider increasing your provisioning level with the UpdateTable
+//     API. This Message is received when provisioned throughput is exceeded
+//     is on a provisioned DynamoDB table. The level of configured provisioned
+//     throughput for one or more global secondary indexes of the table was exceeded.
+//     Consider increasing your provisioning level for the under-provisioned
+//     global secondary indexes with the UpdateTable API. This message is returned
+//     when provisioned throughput is exceeded is on a provisioned GSI.
+//
+//   - Throttling Error: Code: ThrottlingError Messages: Throughput exceeds
+//     the current capacity of your table or index. DynamoDB is automatically
+//     scaling your table or index so please try again shortly. If exceptions
+//     persist, check if you have a hot key: https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/bp-partition-key-design.html.
+//     This message is returned when writes get throttled on an On-Demand table
+//     as DynamoDB is automatically scaling the table. Throughput exceeds the
+//     current capacity for one or more global secondary indexes. DynamoDB is
+//     automatically scaling your index so please try again shortly. This message
+//     is returned when writes get throttled on an On-Demand GSI as DynamoDB
+//     is automatically scaling the GSI.
+//
+//   - Validation Error: Code: ValidationError Messages: One or more parameter
+//     values were invalid. The update expression attempted to update the secondary
+//     index key beyond allowed size limits. The update expression attempted
+//     to update the secondary index key to unsupported type. An operand in the
+//     update expression has an incorrect data type. Item size to update has
+//     exceeded the maximum allowed size. Number overflow. Attempting to store
+//     a number with magnitude larger than supported range. Type mismatch for
+//     attribute to update. Nesting Levels have exceeded supported limits. The
+//     document path provided in the update expression is invalid for update.
+//     The provided expression refers to an attribute that does not exist in
+//     the item.
+//
+//   - TransactionInProgressException
+//     The transaction with the given request token is already in progress.
+//
+//     Recommended Settings
+//
+//     This is a general recommendation for handling the TransactionInProgressException.
+//     These settings help ensure that the client retries will trigger completion
+//     of the ongoing TransactWriteItems request.
+//
+//   - Set clientExecutionTimeout to a value that allows at least one retry
+//     to be processed after 5 seconds have elapsed since the first attempt for
+//     the TransactWriteItems operation.
+//
+//   - Set socketTimeout to a value a little lower than the requestTimeout
+//     setting.
+//
+//   - requestTimeout should be set based on the time taken for the individual
+//     retries of a single HTTP request for your use case, but setting it to
+//     1 second or higher should work well to reduce chances of retries and TransactionInProgressException
+//     errors.
+//
+//   - Use exponential backoff when retrying and tune backoff if needed.
+//
+//     Assuming default retry policy (https://github.com/aws/aws-sdk-java/blob/fd409dee8ae23fb8953e0bb4dbde65536a7e0514/aws-java-sdk-core/src/main/java/com/amazonaws/retry/PredefinedRetryPolicies.java#L97),
+//     example timeout settings based on the guidelines above are as follows:
+//
+//     Example timeline:
+//
+//   - 0-1000 first attempt
+//
+//   - 1000-1500 first sleep/delay (default retry policy uses 500 ms as base
+//     delay for 4xx errors)
+//
+//   - 1500-2500 second attempt
+//
+//   - 2500-3500 second sleep/delay (500 * 2, exponential backoff)
+//
+//   - 3500-4500 third attempt
+//
+//   - 4500-6500 third sleep/delay (500 * 2^2)
+//
+//   - 6500-7500 fourth attempt (this can trigger inline recovery since 5 seconds
+//     have elapsed since the first attempt reached TC)
+//
+//   - IdempotentParameterMismatchException
+//     DynamoDB rejected the request because you retried a request with a different
+//     payload but with an idempotent token that was already used.
+//
+//   - ProvisionedThroughputExceededException
+//     Your request rate is too high. The Amazon Web Services SDKs for DynamoDB
+//     automatically retry requests that receive this exception. Your request is
+//     eventually successful, unless your retry queue is too large to finish. Reduce
+//     the frequency of requests and use exponential backoff. For more information,
+//     go to Error Retries and Exponential Backoff (https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Programming.Errors.html#Programming.Errors.RetryAndBackoff)
+//     in the Amazon DynamoDB Developer Guide.
+//
+//   - RequestLimitExceeded
+//     Throughput exceeds the current throughput quota for your account. Please
+//     contact Amazon Web Services Support (https://aws.amazon.com/support) to request
+//     a quota increase.
+//
+//   - InternalServerError
+//     An error occurred on the server side.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/ExecuteTransaction
+func (c *DynamoDB) ExecuteTransaction(input *ExecuteTransactionInput) (*ExecuteTransactionOutput, error) {
+	req, out := c.ExecuteTransactionRequest(input)
+	return out, req.Send()
+}
+
+// ExecuteTransactionWithContext is the same as ExecuteTransaction with the addition of
+// the ability to pass a context and additional request options.
+//
+// See ExecuteTransaction for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *DynamoDB) ExecuteTransactionWithContext(ctx aws.Context, input *ExecuteTransactionInput, opts ...request.Option) (*ExecuteTransactionOutput, error) {
+	req, out := c.ExecuteTransactionRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opExportTableToPointInTime = "ExportTableToPointInTime"
+
+// ExportTableToPointInTimeRequest generates a "aws/request.Request" representing the
+// client's request for the ExportTableToPointInTime operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See ExportTableToPointInTime for more information on using the ExportTableToPointInTime
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//	// Example sending a request using the ExportTableToPointInTimeRequest method.
+//	req, resp := client.ExportTableToPointInTimeRequest(params)
+//
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/ExportTableToPointInTime
+func (c *DynamoDB) ExportTableToPointInTimeRequest(input *ExportTableToPointInTimeInput) (req *request.Request, output *ExportTableToPointInTimeOutput) {
+	op := &request.Operation{
+		Name:       opExportTableToPointInTime,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &ExportTableToPointInTimeInput{}
+	}
+
+	output = &ExportTableToPointInTimeOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// ExportTableToPointInTime API operation for Amazon DynamoDB.
+//
+// Exports table data to an S3 bucket. The table must have point in time recovery
+// enabled, and you can export data from any time within the point in time recovery
+// window.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon DynamoDB's
+// API operation ExportTableToPointInTime for usage and error information.
+//
+// Returned Error Types:
+//
+//   - TableNotFoundException
+//     A source table with the name TableName does not currently exist within the
+//     subscriber's account or the subscriber is operating in the wrong Amazon Web
+//     Services Region.
+//
+//   - PointInTimeRecoveryUnavailableException
+//     Point in time recovery has not yet been enabled for this source table.
+//
+//   - LimitExceededException
+//     There is no limit to the number of daily on-demand backups that can be taken.
+//
+//     For most purposes, up to 500 simultaneous table operations are allowed per
+//     account. These operations include CreateTable, UpdateTable, DeleteTable,UpdateTimeToLive,
+//     RestoreTableFromBackup, and RestoreTableToPointInTime.
+//
+//     When you are creating a table with one or more secondary indexes, you can
+//     have up to 250 such requests running at a time. However, if the table or
+//     index specifications are complex, then DynamoDB might temporarily reduce
+//     the number of concurrent operations.
+//
+//     When importing into DynamoDB, up to 50 simultaneous import table operations
+//     are allowed per account.
+//
+//     There is a soft account quota of 2,500 tables.
+//
+//   - InvalidExportTimeException
+//     The specified ExportTime is outside of the point in time recovery window.
+//
+//   - ExportConflictException
+//     There was a conflict when writing to the specified S3 bucket.
+//
+//   - InternalServerError
+//     An error occurred on the server side.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/ExportTableToPointInTime
+func (c *DynamoDB) ExportTableToPointInTime(input *ExportTableToPointInTimeInput) (*ExportTableToPointInTimeOutput, error) {
+	req, out := c.ExportTableToPointInTimeRequest(input)
+	return out, req.Send()
+}
+
+// ExportTableToPointInTimeWithContext is the same as ExportTableToPointInTime with the addition of
+// the ability to pass a context and additional request options.
+//
+// See ExportTableToPointInTime for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *DynamoDB) ExportTableToPointInTimeWithContext(ctx aws.Context, input *ExportTableToPointInTimeInput, opts ...request.Option) (*ExportTableToPointInTimeOutput, error) {
+	req, out := c.ExportTableToPointInTimeRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opGetItem = "GetItem"
 
 // GetItemRequest generates a "aws/request.Request" representing the
@@ -2220,14 +3648,13 @@ const opGetItem = "GetItem"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the GetItemRequest method.
+//	req, resp := client.GetItemRequest(params)
 //
-//    // Example sending a request using the GetItemRequest method.
-//    req, resp := client.GetItemRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/GetItem
 func (c *DynamoDB) GetItemRequest(input *GetItemInput) (req *request.Request, output *GetItemOutput) {
@@ -2243,26 +3670,30 @@ func (c *DynamoDB) GetItemRequest(input *GetItemInput) (req *request.Request, ou
 
 	output = &GetItemOutput{}
 	req = c.newRequest(op, input, output)
-	if aws.BoolValue(req.Config.EnableEndpointDiscovery) {
-		de := discovererDescribeEndpoints{
-			Required:      false,
-			EndpointCache: c.endpointCache,
-			Params: map[string]*string{
-				"op": aws.String(req.Operation.Name),
-			},
-			Client: c,
-		}
-
-		for k, v := range de.Params {
-			if v == nil {
-				delete(de.Params, k)
+	// if custom endpoint for the request is set to a non empty string,
+	// we skip the endpoint discovery workflow.
+	if req.Config.Endpoint == nil || *req.Config.Endpoint == "" {
+		if aws.BoolValue(req.Config.EnableEndpointDiscovery) {
+			de := discovererDescribeEndpoints{
+				Required:      false,
+				EndpointCache: c.endpointCache,
+				Params: map[string]*string{
+					"op": aws.String(req.Operation.Name),
+				},
+				Client: c,
 			}
-		}
 
-		req.Handlers.Build.PushFrontNamed(request.NamedHandler{
-			Name: "crr.endpointdiscovery",
-			Fn:   de.Handler,
-		})
+			for k, v := range de.Params {
+				if v == nil {
+					delete(de.Params, k)
+				}
+			}
+
+			req.Handlers.Build.PushFrontNamed(request.NamedHandler{
+				Name: "crr.endpointdiscovery",
+				Fn:   de.Handler,
+			})
+		}
 	}
 	return
 }
@@ -2285,26 +3716,27 @@ func (c *DynamoDB) GetItemRequest(input *GetItemInput) (req *request.Request, ou
 // See the AWS API reference guide for Amazon DynamoDB's
 // API operation GetItem for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeProvisionedThroughputExceededException "ProvisionedThroughputExceededException"
-//   Your request rate is too high. The AWS SDKs for DynamoDB automatically retry
-//   requests that receive this exception. Your request is eventually successful,
-//   unless your retry queue is too large to finish. Reduce the frequency of requests
-//   and use exponential backoff. For more information, go to Error Retries and
-//   Exponential Backoff (https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Programming.Errors.html#Programming.Errors.RetryAndBackoff)
-//   in the Amazon DynamoDB Developer Guide.
+// Returned Error Types:
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
-//   The operation tried to access a nonexistent table or index. The resource
-//   might not be specified correctly, or its status might not be ACTIVE.
+//   - ProvisionedThroughputExceededException
+//     Your request rate is too high. The Amazon Web Services SDKs for DynamoDB
+//     automatically retry requests that receive this exception. Your request is
+//     eventually successful, unless your retry queue is too large to finish. Reduce
+//     the frequency of requests and use exponential backoff. For more information,
+//     go to Error Retries and Exponential Backoff (https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Programming.Errors.html#Programming.Errors.RetryAndBackoff)
+//     in the Amazon DynamoDB Developer Guide.
 //
-//   * ErrCodeRequestLimitExceeded "RequestLimitExceeded"
-//   Throughput exceeds the current throughput limit for your account. Please
-//   contact AWS Support at AWS Support (https://aws.amazon.com/support) to request
-//   a limit increase.
+//   - ResourceNotFoundException
+//     The operation tried to access a nonexistent table or index. The resource
+//     might not be specified correctly, or its status might not be ACTIVE.
 //
-//   * ErrCodeInternalServerError "InternalServerError"
-//   An error occurred on the server side.
+//   - RequestLimitExceeded
+//     Throughput exceeds the current throughput quota for your account. Please
+//     contact Amazon Web Services Support (https://aws.amazon.com/support) to request
+//     a quota increase.
+//
+//   - InternalServerError
+//     An error occurred on the server side.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/GetItem
 func (c *DynamoDB) GetItem(input *GetItemInput) (*GetItemOutput, error) {
@@ -2328,6 +3760,109 @@ func (c *DynamoDB) GetItemWithContext(ctx aws.Context, input *GetItemInput, opts
 	return out, req.Send()
 }
 
+const opImportTable = "ImportTable"
+
+// ImportTableRequest generates a "aws/request.Request" representing the
+// client's request for the ImportTable operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See ImportTable for more information on using the ImportTable
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//	// Example sending a request using the ImportTableRequest method.
+//	req, resp := client.ImportTableRequest(params)
+//
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/ImportTable
+func (c *DynamoDB) ImportTableRequest(input *ImportTableInput) (req *request.Request, output *ImportTableOutput) {
+	op := &request.Operation{
+		Name:       opImportTable,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &ImportTableInput{}
+	}
+
+	output = &ImportTableOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// ImportTable API operation for Amazon DynamoDB.
+//
+// Imports table data from an S3 bucket.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon DynamoDB's
+// API operation ImportTable for usage and error information.
+//
+// Returned Error Types:
+//
+//   - ResourceInUseException
+//     The operation conflicts with the resource's availability. For example, you
+//     attempted to recreate an existing table, or tried to delete a table currently
+//     in the CREATING state.
+//
+//   - LimitExceededException
+//     There is no limit to the number of daily on-demand backups that can be taken.
+//
+//     For most purposes, up to 500 simultaneous table operations are allowed per
+//     account. These operations include CreateTable, UpdateTable, DeleteTable,UpdateTimeToLive,
+//     RestoreTableFromBackup, and RestoreTableToPointInTime.
+//
+//     When you are creating a table with one or more secondary indexes, you can
+//     have up to 250 such requests running at a time. However, if the table or
+//     index specifications are complex, then DynamoDB might temporarily reduce
+//     the number of concurrent operations.
+//
+//     When importing into DynamoDB, up to 50 simultaneous import table operations
+//     are allowed per account.
+//
+//     There is a soft account quota of 2,500 tables.
+//
+//   - ImportConflictException
+//     There was a conflict when importing from the specified S3 source. This can
+//     occur when the current import conflicts with a previous import request that
+//     had the same client token.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/ImportTable
+func (c *DynamoDB) ImportTable(input *ImportTableInput) (*ImportTableOutput, error) {
+	req, out := c.ImportTableRequest(input)
+	return out, req.Send()
+}
+
+// ImportTableWithContext is the same as ImportTable with the addition of
+// the ability to pass a context and additional request options.
+//
+// See ImportTable for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *DynamoDB) ImportTableWithContext(ctx aws.Context, input *ImportTableInput, opts ...request.Option) (*ImportTableOutput, error) {
+	req, out := c.ImportTableRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opListBackups = "ListBackups"
 
 // ListBackupsRequest generates a "aws/request.Request" representing the
@@ -2344,14 +3879,13 @@ const opListBackups = "ListBackups"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the ListBackupsRequest method.
+//	req, resp := client.ListBackupsRequest(params)
 //
-//    // Example sending a request using the ListBackupsRequest method.
-//    req, resp := client.ListBackupsRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/ListBackups
 func (c *DynamoDB) ListBackupsRequest(input *ListBackupsInput) (req *request.Request, output *ListBackupsOutput) {
@@ -2367,39 +3901,43 @@ func (c *DynamoDB) ListBackupsRequest(input *ListBackupsInput) (req *request.Req
 
 	output = &ListBackupsOutput{}
 	req = c.newRequest(op, input, output)
-	if aws.BoolValue(req.Config.EnableEndpointDiscovery) {
-		de := discovererDescribeEndpoints{
-			Required:      false,
-			EndpointCache: c.endpointCache,
-			Params: map[string]*string{
-				"op": aws.String(req.Operation.Name),
-			},
-			Client: c,
-		}
-
-		for k, v := range de.Params {
-			if v == nil {
-				delete(de.Params, k)
+	// if custom endpoint for the request is set to a non empty string,
+	// we skip the endpoint discovery workflow.
+	if req.Config.Endpoint == nil || *req.Config.Endpoint == "" {
+		if aws.BoolValue(req.Config.EnableEndpointDiscovery) {
+			de := discovererDescribeEndpoints{
+				Required:      false,
+				EndpointCache: c.endpointCache,
+				Params: map[string]*string{
+					"op": aws.String(req.Operation.Name),
+				},
+				Client: c,
 			}
-		}
 
-		req.Handlers.Build.PushFrontNamed(request.NamedHandler{
-			Name: "crr.endpointdiscovery",
-			Fn:   de.Handler,
-		})
+			for k, v := range de.Params {
+				if v == nil {
+					delete(de.Params, k)
+				}
+			}
+
+			req.Handlers.Build.PushFrontNamed(request.NamedHandler{
+				Name: "crr.endpointdiscovery",
+				Fn:   de.Handler,
+			})
+		}
 	}
 	return
 }
 
 // ListBackups API operation for Amazon DynamoDB.
 //
-// List backups associated with an AWS account. To list backups for a given
-// table, specify TableName. ListBackups returns a paginated list of results
-// with at most 1 MB worth of items in a page. You can also specify a limit
-// for the maximum number of entries to be returned in a page.
+// List backups associated with an Amazon Web Services account. To list backups
+// for a given table, specify TableName. ListBackups returns a paginated list
+// of results with at most 1 MB worth of items in a page. You can also specify
+// a maximum number of entries to be returned in a page.
 //
 // In the request, start time is inclusive, but end time is exclusive. Note
-// that these limits are for the time at which the original backup was requested.
+// that these boundaries are for the time at which the original backup was requested.
 //
 // You can call ListBackups a maximum of five times per second.
 //
@@ -2410,9 +3948,9 @@ func (c *DynamoDB) ListBackupsRequest(input *ListBackupsInput) (req *request.Req
 // See the AWS API reference guide for Amazon DynamoDB's
 // API operation ListBackups for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInternalServerError "InternalServerError"
-//   An error occurred on the server side.
+// Returned Error Types:
+//   - InternalServerError
+//     An error occurred on the server side.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/ListBackups
 func (c *DynamoDB) ListBackups(input *ListBackupsInput) (*ListBackupsOutput, error) {
@@ -2436,6 +3974,300 @@ func (c *DynamoDB) ListBackupsWithContext(ctx aws.Context, input *ListBackupsInp
 	return out, req.Send()
 }
 
+const opListContributorInsights = "ListContributorInsights"
+
+// ListContributorInsightsRequest generates a "aws/request.Request" representing the
+// client's request for the ListContributorInsights operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See ListContributorInsights for more information on using the ListContributorInsights
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//	// Example sending a request using the ListContributorInsightsRequest method.
+//	req, resp := client.ListContributorInsightsRequest(params)
+//
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/ListContributorInsights
+func (c *DynamoDB) ListContributorInsightsRequest(input *ListContributorInsightsInput) (req *request.Request, output *ListContributorInsightsOutput) {
+	op := &request.Operation{
+		Name:       opListContributorInsights,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+		Paginator: &request.Paginator{
+			InputTokens:     []string{"NextToken"},
+			OutputTokens:    []string{"NextToken"},
+			LimitToken:      "MaxResults",
+			TruncationToken: "",
+		},
+	}
+
+	if input == nil {
+		input = &ListContributorInsightsInput{}
+	}
+
+	output = &ListContributorInsightsOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// ListContributorInsights API operation for Amazon DynamoDB.
+//
+// Returns a list of ContributorInsightsSummary for a table and all its global
+// secondary indexes.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon DynamoDB's
+// API operation ListContributorInsights for usage and error information.
+//
+// Returned Error Types:
+//
+//   - ResourceNotFoundException
+//     The operation tried to access a nonexistent table or index. The resource
+//     might not be specified correctly, or its status might not be ACTIVE.
+//
+//   - InternalServerError
+//     An error occurred on the server side.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/ListContributorInsights
+func (c *DynamoDB) ListContributorInsights(input *ListContributorInsightsInput) (*ListContributorInsightsOutput, error) {
+	req, out := c.ListContributorInsightsRequest(input)
+	return out, req.Send()
+}
+
+// ListContributorInsightsWithContext is the same as ListContributorInsights with the addition of
+// the ability to pass a context and additional request options.
+//
+// See ListContributorInsights for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *DynamoDB) ListContributorInsightsWithContext(ctx aws.Context, input *ListContributorInsightsInput, opts ...request.Option) (*ListContributorInsightsOutput, error) {
+	req, out := c.ListContributorInsightsRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+// ListContributorInsightsPages iterates over the pages of a ListContributorInsights operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See ListContributorInsights method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//	// Example iterating over at most 3 pages of a ListContributorInsights operation.
+//	pageNum := 0
+//	err := client.ListContributorInsightsPages(params,
+//	    func(page *dynamodb.ListContributorInsightsOutput, lastPage bool) bool {
+//	        pageNum++
+//	        fmt.Println(page)
+//	        return pageNum <= 3
+//	    })
+func (c *DynamoDB) ListContributorInsightsPages(input *ListContributorInsightsInput, fn func(*ListContributorInsightsOutput, bool) bool) error {
+	return c.ListContributorInsightsPagesWithContext(aws.BackgroundContext(), input, fn)
+}
+
+// ListContributorInsightsPagesWithContext same as ListContributorInsightsPages except
+// it takes a Context and allows setting request options on the pages.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *DynamoDB) ListContributorInsightsPagesWithContext(ctx aws.Context, input *ListContributorInsightsInput, fn func(*ListContributorInsightsOutput, bool) bool, opts ...request.Option) error {
+	p := request.Pagination{
+		NewRequest: func() (*request.Request, error) {
+			var inCpy *ListContributorInsightsInput
+			if input != nil {
+				tmp := *input
+				inCpy = &tmp
+			}
+			req, _ := c.ListContributorInsightsRequest(inCpy)
+			req.SetContext(ctx)
+			req.ApplyOptions(opts...)
+			return req, nil
+		},
+	}
+
+	for p.Next() {
+		if !fn(p.Page().(*ListContributorInsightsOutput), !p.HasNextPage()) {
+			break
+		}
+	}
+
+	return p.Err()
+}
+
+const opListExports = "ListExports"
+
+// ListExportsRequest generates a "aws/request.Request" representing the
+// client's request for the ListExports operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See ListExports for more information on using the ListExports
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//	// Example sending a request using the ListExportsRequest method.
+//	req, resp := client.ListExportsRequest(params)
+//
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/ListExports
+func (c *DynamoDB) ListExportsRequest(input *ListExportsInput) (req *request.Request, output *ListExportsOutput) {
+	op := &request.Operation{
+		Name:       opListExports,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+		Paginator: &request.Paginator{
+			InputTokens:     []string{"NextToken"},
+			OutputTokens:    []string{"NextToken"},
+			LimitToken:      "MaxResults",
+			TruncationToken: "",
+		},
+	}
+
+	if input == nil {
+		input = &ListExportsInput{}
+	}
+
+	output = &ListExportsOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// ListExports API operation for Amazon DynamoDB.
+//
+// Lists completed exports within the past 90 days.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon DynamoDB's
+// API operation ListExports for usage and error information.
+//
+// Returned Error Types:
+//
+//   - LimitExceededException
+//     There is no limit to the number of daily on-demand backups that can be taken.
+//
+//     For most purposes, up to 500 simultaneous table operations are allowed per
+//     account. These operations include CreateTable, UpdateTable, DeleteTable,UpdateTimeToLive,
+//     RestoreTableFromBackup, and RestoreTableToPointInTime.
+//
+//     When you are creating a table with one or more secondary indexes, you can
+//     have up to 250 such requests running at a time. However, if the table or
+//     index specifications are complex, then DynamoDB might temporarily reduce
+//     the number of concurrent operations.
+//
+//     When importing into DynamoDB, up to 50 simultaneous import table operations
+//     are allowed per account.
+//
+//     There is a soft account quota of 2,500 tables.
+//
+//   - InternalServerError
+//     An error occurred on the server side.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/ListExports
+func (c *DynamoDB) ListExports(input *ListExportsInput) (*ListExportsOutput, error) {
+	req, out := c.ListExportsRequest(input)
+	return out, req.Send()
+}
+
+// ListExportsWithContext is the same as ListExports with the addition of
+// the ability to pass a context and additional request options.
+//
+// See ListExports for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *DynamoDB) ListExportsWithContext(ctx aws.Context, input *ListExportsInput, opts ...request.Option) (*ListExportsOutput, error) {
+	req, out := c.ListExportsRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+// ListExportsPages iterates over the pages of a ListExports operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See ListExports method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//	// Example iterating over at most 3 pages of a ListExports operation.
+//	pageNum := 0
+//	err := client.ListExportsPages(params,
+//	    func(page *dynamodb.ListExportsOutput, lastPage bool) bool {
+//	        pageNum++
+//	        fmt.Println(page)
+//	        return pageNum <= 3
+//	    })
+func (c *DynamoDB) ListExportsPages(input *ListExportsInput, fn func(*ListExportsOutput, bool) bool) error {
+	return c.ListExportsPagesWithContext(aws.BackgroundContext(), input, fn)
+}
+
+// ListExportsPagesWithContext same as ListExportsPages except
+// it takes a Context and allows setting request options on the pages.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *DynamoDB) ListExportsPagesWithContext(ctx aws.Context, input *ListExportsInput, fn func(*ListExportsOutput, bool) bool, opts ...request.Option) error {
+	p := request.Pagination{
+		NewRequest: func() (*request.Request, error) {
+			var inCpy *ListExportsInput
+			if input != nil {
+				tmp := *input
+				inCpy = &tmp
+			}
+			req, _ := c.ListExportsRequest(inCpy)
+			req.SetContext(ctx)
+			req.ApplyOptions(opts...)
+			return req, nil
+		},
+	}
+
+	for p.Next() {
+		if !fn(p.Page().(*ListExportsOutput), !p.HasNextPage()) {
+			break
+		}
+	}
+
+	return p.Err()
+}
+
 const opListGlobalTables = "ListGlobalTables"
 
 // ListGlobalTablesRequest generates a "aws/request.Request" representing the
@@ -2452,14 +4284,13 @@ const opListGlobalTables = "ListGlobalTables"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the ListGlobalTablesRequest method.
+//	req, resp := client.ListGlobalTablesRequest(params)
 //
-//    // Example sending a request using the ListGlobalTablesRequest method.
-//    req, resp := client.ListGlobalTablesRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/ListGlobalTables
 func (c *DynamoDB) ListGlobalTablesRequest(input *ListGlobalTablesInput) (req *request.Request, output *ListGlobalTablesOutput) {
@@ -2475,26 +4306,30 @@ func (c *DynamoDB) ListGlobalTablesRequest(input *ListGlobalTablesInput) (req *r
 
 	output = &ListGlobalTablesOutput{}
 	req = c.newRequest(op, input, output)
-	if aws.BoolValue(req.Config.EnableEndpointDiscovery) {
-		de := discovererDescribeEndpoints{
-			Required:      false,
-			EndpointCache: c.endpointCache,
-			Params: map[string]*string{
-				"op": aws.String(req.Operation.Name),
-			},
-			Client: c,
-		}
-
-		for k, v := range de.Params {
-			if v == nil {
-				delete(de.Params, k)
+	// if custom endpoint for the request is set to a non empty string,
+	// we skip the endpoint discovery workflow.
+	if req.Config.Endpoint == nil || *req.Config.Endpoint == "" {
+		if aws.BoolValue(req.Config.EnableEndpointDiscovery) {
+			de := discovererDescribeEndpoints{
+				Required:      false,
+				EndpointCache: c.endpointCache,
+				Params: map[string]*string{
+					"op": aws.String(req.Operation.Name),
+				},
+				Client: c,
 			}
-		}
 
-		req.Handlers.Build.PushFrontNamed(request.NamedHandler{
-			Name: "crr.endpointdiscovery",
-			Fn:   de.Handler,
-		})
+			for k, v := range de.Params {
+				if v == nil {
+					delete(de.Params, k)
+				}
+			}
+
+			req.Handlers.Build.PushFrontNamed(request.NamedHandler{
+				Name: "crr.endpointdiscovery",
+				Fn:   de.Handler,
+			})
+		}
 	}
 	return
 }
@@ -2503,6 +4338,14 @@ func (c *DynamoDB) ListGlobalTablesRequest(input *ListGlobalTablesInput) (req *r
 //
 // Lists all global tables that have a replica in the specified Region.
 //
+// This operation only applies to Version 2017.11.29 (Legacy) (https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/globaltables.V1.html)
+// of global tables. We recommend using Version 2019.11.21 (Current) (https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/globaltables.V2.html)
+// when creating new global tables, as it provides greater flexibility, higher
+// efficiency and consumes less write capacity than 2017.11.29 (Legacy). To
+// determine which version you are using, see Determining the version (https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/globaltables.DetermineVersion.html).
+// To update existing global tables from version 2017.11.29 (Legacy) to version
+// 2019.11.21 (Current), see Updating global tables (https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/V2globaltables_upgrade.html).
+//
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
 // the error.
@@ -2510,9 +4353,9 @@ func (c *DynamoDB) ListGlobalTablesRequest(input *ListGlobalTablesInput) (req *r
 // See the AWS API reference guide for Amazon DynamoDB's
 // API operation ListGlobalTables for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInternalServerError "InternalServerError"
-//   An error occurred on the server side.
+// Returned Error Types:
+//   - InternalServerError
+//     An error occurred on the server side.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/ListGlobalTables
 func (c *DynamoDB) ListGlobalTables(input *ListGlobalTablesInput) (*ListGlobalTablesOutput, error) {
@@ -2536,6 +4379,156 @@ func (c *DynamoDB) ListGlobalTablesWithContext(ctx aws.Context, input *ListGloba
 	return out, req.Send()
 }
 
+const opListImports = "ListImports"
+
+// ListImportsRequest generates a "aws/request.Request" representing the
+// client's request for the ListImports operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See ListImports for more information on using the ListImports
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//	// Example sending a request using the ListImportsRequest method.
+//	req, resp := client.ListImportsRequest(params)
+//
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/ListImports
+func (c *DynamoDB) ListImportsRequest(input *ListImportsInput) (req *request.Request, output *ListImportsOutput) {
+	op := &request.Operation{
+		Name:       opListImports,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+		Paginator: &request.Paginator{
+			InputTokens:     []string{"NextToken"},
+			OutputTokens:    []string{"NextToken"},
+			LimitToken:      "PageSize",
+			TruncationToken: "",
+		},
+	}
+
+	if input == nil {
+		input = &ListImportsInput{}
+	}
+
+	output = &ListImportsOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// ListImports API operation for Amazon DynamoDB.
+//
+// Lists completed imports within the past 90 days.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon DynamoDB's
+// API operation ListImports for usage and error information.
+//
+// Returned Error Types:
+//
+//   - LimitExceededException
+//     There is no limit to the number of daily on-demand backups that can be taken.
+//
+//     For most purposes, up to 500 simultaneous table operations are allowed per
+//     account. These operations include CreateTable, UpdateTable, DeleteTable,UpdateTimeToLive,
+//     RestoreTableFromBackup, and RestoreTableToPointInTime.
+//
+//     When you are creating a table with one or more secondary indexes, you can
+//     have up to 250 such requests running at a time. However, if the table or
+//     index specifications are complex, then DynamoDB might temporarily reduce
+//     the number of concurrent operations.
+//
+//     When importing into DynamoDB, up to 50 simultaneous import table operations
+//     are allowed per account.
+//
+//     There is a soft account quota of 2,500 tables.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/ListImports
+func (c *DynamoDB) ListImports(input *ListImportsInput) (*ListImportsOutput, error) {
+	req, out := c.ListImportsRequest(input)
+	return out, req.Send()
+}
+
+// ListImportsWithContext is the same as ListImports with the addition of
+// the ability to pass a context and additional request options.
+//
+// See ListImports for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *DynamoDB) ListImportsWithContext(ctx aws.Context, input *ListImportsInput, opts ...request.Option) (*ListImportsOutput, error) {
+	req, out := c.ListImportsRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+// ListImportsPages iterates over the pages of a ListImports operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See ListImports method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//	// Example iterating over at most 3 pages of a ListImports operation.
+//	pageNum := 0
+//	err := client.ListImportsPages(params,
+//	    func(page *dynamodb.ListImportsOutput, lastPage bool) bool {
+//	        pageNum++
+//	        fmt.Println(page)
+//	        return pageNum <= 3
+//	    })
+func (c *DynamoDB) ListImportsPages(input *ListImportsInput, fn func(*ListImportsOutput, bool) bool) error {
+	return c.ListImportsPagesWithContext(aws.BackgroundContext(), input, fn)
+}
+
+// ListImportsPagesWithContext same as ListImportsPages except
+// it takes a Context and allows setting request options on the pages.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *DynamoDB) ListImportsPagesWithContext(ctx aws.Context, input *ListImportsInput, fn func(*ListImportsOutput, bool) bool, opts ...request.Option) error {
+	p := request.Pagination{
+		NewRequest: func() (*request.Request, error) {
+			var inCpy *ListImportsInput
+			if input != nil {
+				tmp := *input
+				inCpy = &tmp
+			}
+			req, _ := c.ListImportsRequest(inCpy)
+			req.SetContext(ctx)
+			req.ApplyOptions(opts...)
+			return req, nil
+		},
+	}
+
+	for p.Next() {
+		if !fn(p.Page().(*ListImportsOutput), !p.HasNextPage()) {
+			break
+		}
+	}
+
+	return p.Err()
+}
+
 const opListTables = "ListTables"
 
 // ListTablesRequest generates a "aws/request.Request" representing the
@@ -2552,14 +4545,13 @@ const opListTables = "ListTables"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the ListTablesRequest method.
+//	req, resp := client.ListTablesRequest(params)
 //
-//    // Example sending a request using the ListTablesRequest method.
-//    req, resp := client.ListTablesRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/ListTables
 func (c *DynamoDB) ListTablesRequest(input *ListTablesInput) (req *request.Request, output *ListTablesOutput) {
@@ -2581,26 +4573,30 @@ func (c *DynamoDB) ListTablesRequest(input *ListTablesInput) (req *request.Reque
 
 	output = &ListTablesOutput{}
 	req = c.newRequest(op, input, output)
-	if aws.BoolValue(req.Config.EnableEndpointDiscovery) {
-		de := discovererDescribeEndpoints{
-			Required:      false,
-			EndpointCache: c.endpointCache,
-			Params: map[string]*string{
-				"op": aws.String(req.Operation.Name),
-			},
-			Client: c,
-		}
-
-		for k, v := range de.Params {
-			if v == nil {
-				delete(de.Params, k)
+	// if custom endpoint for the request is set to a non empty string,
+	// we skip the endpoint discovery workflow.
+	if req.Config.Endpoint == nil || *req.Config.Endpoint == "" {
+		if aws.BoolValue(req.Config.EnableEndpointDiscovery) {
+			de := discovererDescribeEndpoints{
+				Required:      false,
+				EndpointCache: c.endpointCache,
+				Params: map[string]*string{
+					"op": aws.String(req.Operation.Name),
+				},
+				Client: c,
 			}
-		}
 
-		req.Handlers.Build.PushFrontNamed(request.NamedHandler{
-			Name: "crr.endpointdiscovery",
-			Fn:   de.Handler,
-		})
+			for k, v := range de.Params {
+				if v == nil {
+					delete(de.Params, k)
+				}
+			}
+
+			req.Handlers.Build.PushFrontNamed(request.NamedHandler{
+				Name: "crr.endpointdiscovery",
+				Fn:   de.Handler,
+			})
+		}
 	}
 	return
 }
@@ -2618,9 +4614,9 @@ func (c *DynamoDB) ListTablesRequest(input *ListTablesInput) (req *request.Reque
 // See the AWS API reference guide for Amazon DynamoDB's
 // API operation ListTables for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInternalServerError "InternalServerError"
-//   An error occurred on the server side.
+// Returned Error Types:
+//   - InternalServerError
+//     An error occurred on the server side.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/ListTables
 func (c *DynamoDB) ListTables(input *ListTablesInput) (*ListTablesOutput, error) {
@@ -2652,15 +4648,14 @@ func (c *DynamoDB) ListTablesWithContext(ctx aws.Context, input *ListTablesInput
 //
 // Note: This operation can generate multiple requests to a service.
 //
-//    // Example iterating over at most 3 pages of a ListTables operation.
-//    pageNum := 0
-//    err := client.ListTablesPages(params,
-//        func(page *dynamodb.ListTablesOutput, lastPage bool) bool {
-//            pageNum++
-//            fmt.Println(page)
-//            return pageNum <= 3
-//        })
-//
+//	// Example iterating over at most 3 pages of a ListTables operation.
+//	pageNum := 0
+//	err := client.ListTablesPages(params,
+//	    func(page *dynamodb.ListTablesOutput, lastPage bool) bool {
+//	        pageNum++
+//	        fmt.Println(page)
+//	        return pageNum <= 3
+//	    })
 func (c *DynamoDB) ListTablesPages(input *ListTablesInput, fn func(*ListTablesOutput, bool) bool) error {
 	return c.ListTablesPagesWithContext(aws.BackgroundContext(), input, fn)
 }
@@ -2687,10 +4682,12 @@ func (c *DynamoDB) ListTablesPagesWithContext(ctx aws.Context, input *ListTables
 		},
 	}
 
-	cont := true
-	for p.Next() && cont {
-		cont = fn(p.Page().(*ListTablesOutput), !p.HasNextPage())
+	for p.Next() {
+		if !fn(p.Page().(*ListTablesOutput), !p.HasNextPage()) {
+			break
+		}
 	}
+
 	return p.Err()
 }
 
@@ -2710,14 +4707,13 @@ const opListTagsOfResource = "ListTagsOfResource"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the ListTagsOfResourceRequest method.
+//	req, resp := client.ListTagsOfResourceRequest(params)
 //
-//    // Example sending a request using the ListTagsOfResourceRequest method.
-//    req, resp := client.ListTagsOfResourceRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/ListTagsOfResource
 func (c *DynamoDB) ListTagsOfResourceRequest(input *ListTagsOfResourceInput) (req *request.Request, output *ListTagsOfResourceOutput) {
@@ -2733,26 +4729,30 @@ func (c *DynamoDB) ListTagsOfResourceRequest(input *ListTagsOfResourceInput) (re
 
 	output = &ListTagsOfResourceOutput{}
 	req = c.newRequest(op, input, output)
-	if aws.BoolValue(req.Config.EnableEndpointDiscovery) {
-		de := discovererDescribeEndpoints{
-			Required:      false,
-			EndpointCache: c.endpointCache,
-			Params: map[string]*string{
-				"op": aws.String(req.Operation.Name),
-			},
-			Client: c,
-		}
-
-		for k, v := range de.Params {
-			if v == nil {
-				delete(de.Params, k)
+	// if custom endpoint for the request is set to a non empty string,
+	// we skip the endpoint discovery workflow.
+	if req.Config.Endpoint == nil || *req.Config.Endpoint == "" {
+		if aws.BoolValue(req.Config.EnableEndpointDiscovery) {
+			de := discovererDescribeEndpoints{
+				Required:      false,
+				EndpointCache: c.endpointCache,
+				Params: map[string]*string{
+					"op": aws.String(req.Operation.Name),
+				},
+				Client: c,
 			}
-		}
 
-		req.Handlers.Build.PushFrontNamed(request.NamedHandler{
-			Name: "crr.endpointdiscovery",
-			Fn:   de.Handler,
-		})
+			for k, v := range de.Params {
+				if v == nil {
+					delete(de.Params, k)
+				}
+			}
+
+			req.Handlers.Build.PushFrontNamed(request.NamedHandler{
+				Name: "crr.endpointdiscovery",
+				Fn:   de.Handler,
+			})
+		}
 	}
 	return
 }
@@ -2772,13 +4772,14 @@ func (c *DynamoDB) ListTagsOfResourceRequest(input *ListTagsOfResourceInput) (re
 // See the AWS API reference guide for Amazon DynamoDB's
 // API operation ListTagsOfResource for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
-//   The operation tried to access a nonexistent table or index. The resource
-//   might not be specified correctly, or its status might not be ACTIVE.
+// Returned Error Types:
 //
-//   * ErrCodeInternalServerError "InternalServerError"
-//   An error occurred on the server side.
+//   - ResourceNotFoundException
+//     The operation tried to access a nonexistent table or index. The resource
+//     might not be specified correctly, or its status might not be ACTIVE.
+//
+//   - InternalServerError
+//     An error occurred on the server side.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/ListTagsOfResource
 func (c *DynamoDB) ListTagsOfResource(input *ListTagsOfResourceInput) (*ListTagsOfResourceOutput, error) {
@@ -2818,14 +4819,13 @@ const opPutItem = "PutItem"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the PutItemRequest method.
+//	req, resp := client.PutItemRequest(params)
 //
-//    // Example sending a request using the PutItemRequest method.
-//    req, resp := client.PutItemRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/PutItem
 func (c *DynamoDB) PutItemRequest(input *PutItemInput) (req *request.Request, output *PutItemOutput) {
@@ -2841,26 +4841,30 @@ func (c *DynamoDB) PutItemRequest(input *PutItemInput) (req *request.Request, ou
 
 	output = &PutItemOutput{}
 	req = c.newRequest(op, input, output)
-	if aws.BoolValue(req.Config.EnableEndpointDiscovery) {
-		de := discovererDescribeEndpoints{
-			Required:      false,
-			EndpointCache: c.endpointCache,
-			Params: map[string]*string{
-				"op": aws.String(req.Operation.Name),
-			},
-			Client: c,
-		}
-
-		for k, v := range de.Params {
-			if v == nil {
-				delete(de.Params, k)
+	// if custom endpoint for the request is set to a non empty string,
+	// we skip the endpoint discovery workflow.
+	if req.Config.Endpoint == nil || *req.Config.Endpoint == "" {
+		if aws.BoolValue(req.Config.EnableEndpointDiscovery) {
+			de := discovererDescribeEndpoints{
+				Required:      false,
+				EndpointCache: c.endpointCache,
+				Params: map[string]*string{
+					"op": aws.String(req.Operation.Name),
+				},
+				Client: c,
 			}
-		}
 
-		req.Handlers.Build.PushFrontNamed(request.NamedHandler{
-			Name: "crr.endpointdiscovery",
-			Fn:   de.Handler,
-		})
+			for k, v := range de.Params {
+				if v == nil {
+					delete(de.Params, k)
+				}
+			}
+
+			req.Handlers.Build.PushFrontNamed(request.NamedHandler{
+				Name: "crr.endpointdiscovery",
+				Fn:   de.Handler,
+			})
+		}
 	}
 	return
 }
@@ -2875,33 +4879,15 @@ func (c *DynamoDB) PutItemRequest(input *PutItemInput) (req *request.Request, ou
 // values. You can return the item's attribute values in the same operation,
 // using the ReturnValues parameter.
 //
-// This topic provides general information about the PutItem API.
-//
-// For information on how to call the PutItem API using the AWS SDK in specific
-// languages, see the following:
-//
-//    * PutItem in the AWS Command Line Interface (http://docs.aws.amazon.com/goto/aws-cli/dynamodb-2012-08-10/PutItem)
-//
-//    * PutItem in the AWS SDK for .NET (http://docs.aws.amazon.com/goto/DotNetSDKV3/dynamodb-2012-08-10/PutItem)
-//
-//    * PutItem in the AWS SDK for C++ (http://docs.aws.amazon.com/goto/SdkForCpp/dynamodb-2012-08-10/PutItem)
-//
-//    * PutItem in the AWS SDK for Go (http://docs.aws.amazon.com/goto/SdkForGoV1/dynamodb-2012-08-10/PutItem)
-//
-//    * PutItem in the AWS SDK for Java (http://docs.aws.amazon.com/goto/SdkForJava/dynamodb-2012-08-10/PutItem)
-//
-//    * PutItem in the AWS SDK for JavaScript (http://docs.aws.amazon.com/goto/AWSJavaScriptSDK/dynamodb-2012-08-10/PutItem)
-//
-//    * PutItem in the AWS SDK for PHP V3 (http://docs.aws.amazon.com/goto/SdkForPHPV3/dynamodb-2012-08-10/PutItem)
-//
-//    * PutItem in the AWS SDK for Python (http://docs.aws.amazon.com/goto/boto3/dynamodb-2012-08-10/PutItem)
-//
-//    * PutItem in the AWS SDK for Ruby V2 (http://docs.aws.amazon.com/goto/SdkForRubyV2/dynamodb-2012-08-10/PutItem)
-//
 // When you add an item, the primary key attributes are the only required attributes.
-// Attribute values cannot be null. String and Binary type attributes must have
-// lengths greater than zero. Set type attributes cannot be empty. Requests
-// with empty values will be rejected with a ValidationException exception.
+//
+// Empty String and Binary attribute values are allowed. Attribute values of
+// type String and Binary must have a length greater than zero if the attribute
+// is used as a key attribute for a table or index. Set type attributes cannot
+// be empty.
+//
+// Invalid Requests with empty values will be rejected with a ValidationException
+// exception.
 //
 // To prevent a new item from replacing an existing item, use a conditional
 // expression that contains the attribute_not_exists function with the name
@@ -2919,36 +4905,37 @@ func (c *DynamoDB) PutItemRequest(input *PutItemInput) (req *request.Request, ou
 // See the AWS API reference guide for Amazon DynamoDB's
 // API operation PutItem for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeConditionalCheckFailedException "ConditionalCheckFailedException"
-//   A condition specified in the operation could not be evaluated.
+// Returned Error Types:
 //
-//   * ErrCodeProvisionedThroughputExceededException "ProvisionedThroughputExceededException"
-//   Your request rate is too high. The AWS SDKs for DynamoDB automatically retry
-//   requests that receive this exception. Your request is eventually successful,
-//   unless your retry queue is too large to finish. Reduce the frequency of requests
-//   and use exponential backoff. For more information, go to Error Retries and
-//   Exponential Backoff (https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Programming.Errors.html#Programming.Errors.RetryAndBackoff)
-//   in the Amazon DynamoDB Developer Guide.
+//   - ConditionalCheckFailedException
+//     A condition specified in the operation could not be evaluated.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
-//   The operation tried to access a nonexistent table or index. The resource
-//   might not be specified correctly, or its status might not be ACTIVE.
+//   - ProvisionedThroughputExceededException
+//     Your request rate is too high. The Amazon Web Services SDKs for DynamoDB
+//     automatically retry requests that receive this exception. Your request is
+//     eventually successful, unless your retry queue is too large to finish. Reduce
+//     the frequency of requests and use exponential backoff. For more information,
+//     go to Error Retries and Exponential Backoff (https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Programming.Errors.html#Programming.Errors.RetryAndBackoff)
+//     in the Amazon DynamoDB Developer Guide.
 //
-//   * ErrCodeItemCollectionSizeLimitExceededException "ItemCollectionSizeLimitExceededException"
-//   An item collection is too large. This exception is only returned for tables
-//   that have one or more local secondary indexes.
+//   - ResourceNotFoundException
+//     The operation tried to access a nonexistent table or index. The resource
+//     might not be specified correctly, or its status might not be ACTIVE.
 //
-//   * ErrCodeTransactionConflictException "TransactionConflictException"
-//   Operation was rejected because there is an ongoing transaction for the item.
+//   - ItemCollectionSizeLimitExceededException
+//     An item collection is too large. This exception is only returned for tables
+//     that have one or more local secondary indexes.
 //
-//   * ErrCodeRequestLimitExceeded "RequestLimitExceeded"
-//   Throughput exceeds the current throughput limit for your account. Please
-//   contact AWS Support at AWS Support (https://aws.amazon.com/support) to request
-//   a limit increase.
+//   - TransactionConflictException
+//     Operation was rejected because there is an ongoing transaction for the item.
 //
-//   * ErrCodeInternalServerError "InternalServerError"
-//   An error occurred on the server side.
+//   - RequestLimitExceeded
+//     Throughput exceeds the current throughput quota for your account. Please
+//     contact Amazon Web Services Support (https://aws.amazon.com/support) to request
+//     a quota increase.
+//
+//   - InternalServerError
+//     An error occurred on the server side.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/PutItem
 func (c *DynamoDB) PutItem(input *PutItemInput) (*PutItemOutput, error) {
@@ -2988,14 +4975,13 @@ const opQuery = "Query"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the QueryRequest method.
+//	req, resp := client.QueryRequest(params)
 //
-//    // Example sending a request using the QueryRequest method.
-//    req, resp := client.QueryRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/Query
 func (c *DynamoDB) QueryRequest(input *QueryInput) (req *request.Request, output *QueryOutput) {
@@ -3017,35 +5003,40 @@ func (c *DynamoDB) QueryRequest(input *QueryInput) (req *request.Request, output
 
 	output = &QueryOutput{}
 	req = c.newRequest(op, input, output)
-	if aws.BoolValue(req.Config.EnableEndpointDiscovery) {
-		de := discovererDescribeEndpoints{
-			Required:      false,
-			EndpointCache: c.endpointCache,
-			Params: map[string]*string{
-				"op": aws.String(req.Operation.Name),
-			},
-			Client: c,
-		}
-
-		for k, v := range de.Params {
-			if v == nil {
-				delete(de.Params, k)
+	// if custom endpoint for the request is set to a non empty string,
+	// we skip the endpoint discovery workflow.
+	if req.Config.Endpoint == nil || *req.Config.Endpoint == "" {
+		if aws.BoolValue(req.Config.EnableEndpointDiscovery) {
+			de := discovererDescribeEndpoints{
+				Required:      false,
+				EndpointCache: c.endpointCache,
+				Params: map[string]*string{
+					"op": aws.String(req.Operation.Name),
+				},
+				Client: c,
 			}
-		}
 
-		req.Handlers.Build.PushFrontNamed(request.NamedHandler{
-			Name: "crr.endpointdiscovery",
-			Fn:   de.Handler,
-		})
+			for k, v := range de.Params {
+				if v == nil {
+					delete(de.Params, k)
+				}
+			}
+
+			req.Handlers.Build.PushFrontNamed(request.NamedHandler{
+				Name: "crr.endpointdiscovery",
+				Fn:   de.Handler,
+			})
+		}
 	}
 	return
 }
 
 // Query API operation for Amazon DynamoDB.
 //
-// The Query operation finds items based on primary key values. You can query
-// any table or secondary index that has a composite primary key (a partition
-// key and a sort key).
+// You must provide the name of the partition key attribute and a single value
+// for that attribute. Query returns all items with that partition key value.
+// Optionally, you can provide a sort key attribute and use a comparison operator
+// to refine the search results.
 //
 // Use the KeyConditionExpression parameter to provide a specific value for
 // the partition key. The Query operation will return all of the items from
@@ -3099,26 +5090,27 @@ func (c *DynamoDB) QueryRequest(input *QueryInput) (req *request.Request, output
 // See the AWS API reference guide for Amazon DynamoDB's
 // API operation Query for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeProvisionedThroughputExceededException "ProvisionedThroughputExceededException"
-//   Your request rate is too high. The AWS SDKs for DynamoDB automatically retry
-//   requests that receive this exception. Your request is eventually successful,
-//   unless your retry queue is too large to finish. Reduce the frequency of requests
-//   and use exponential backoff. For more information, go to Error Retries and
-//   Exponential Backoff (https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Programming.Errors.html#Programming.Errors.RetryAndBackoff)
-//   in the Amazon DynamoDB Developer Guide.
+// Returned Error Types:
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
-//   The operation tried to access a nonexistent table or index. The resource
-//   might not be specified correctly, or its status might not be ACTIVE.
+//   - ProvisionedThroughputExceededException
+//     Your request rate is too high. The Amazon Web Services SDKs for DynamoDB
+//     automatically retry requests that receive this exception. Your request is
+//     eventually successful, unless your retry queue is too large to finish. Reduce
+//     the frequency of requests and use exponential backoff. For more information,
+//     go to Error Retries and Exponential Backoff (https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Programming.Errors.html#Programming.Errors.RetryAndBackoff)
+//     in the Amazon DynamoDB Developer Guide.
 //
-//   * ErrCodeRequestLimitExceeded "RequestLimitExceeded"
-//   Throughput exceeds the current throughput limit for your account. Please
-//   contact AWS Support at AWS Support (https://aws.amazon.com/support) to request
-//   a limit increase.
+//   - ResourceNotFoundException
+//     The operation tried to access a nonexistent table or index. The resource
+//     might not be specified correctly, or its status might not be ACTIVE.
 //
-//   * ErrCodeInternalServerError "InternalServerError"
-//   An error occurred on the server side.
+//   - RequestLimitExceeded
+//     Throughput exceeds the current throughput quota for your account. Please
+//     contact Amazon Web Services Support (https://aws.amazon.com/support) to request
+//     a quota increase.
+//
+//   - InternalServerError
+//     An error occurred on the server side.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/Query
 func (c *DynamoDB) Query(input *QueryInput) (*QueryOutput, error) {
@@ -3150,15 +5142,14 @@ func (c *DynamoDB) QueryWithContext(ctx aws.Context, input *QueryInput, opts ...
 //
 // Note: This operation can generate multiple requests to a service.
 //
-//    // Example iterating over at most 3 pages of a Query operation.
-//    pageNum := 0
-//    err := client.QueryPages(params,
-//        func(page *dynamodb.QueryOutput, lastPage bool) bool {
-//            pageNum++
-//            fmt.Println(page)
-//            return pageNum <= 3
-//        })
-//
+//	// Example iterating over at most 3 pages of a Query operation.
+//	pageNum := 0
+//	err := client.QueryPages(params,
+//	    func(page *dynamodb.QueryOutput, lastPage bool) bool {
+//	        pageNum++
+//	        fmt.Println(page)
+//	        return pageNum <= 3
+//	    })
 func (c *DynamoDB) QueryPages(input *QueryInput, fn func(*QueryOutput, bool) bool) error {
 	return c.QueryPagesWithContext(aws.BackgroundContext(), input, fn)
 }
@@ -3185,10 +5176,12 @@ func (c *DynamoDB) QueryPagesWithContext(ctx aws.Context, input *QueryInput, fn 
 		},
 	}
 
-	cont := true
-	for p.Next() && cont {
-		cont = fn(p.Page().(*QueryOutput), !p.HasNextPage())
+	for p.Next() {
+		if !fn(p.Page().(*QueryOutput), !p.HasNextPage()) {
+			break
+		}
 	}
+
 	return p.Err()
 }
 
@@ -3208,14 +5201,13 @@ const opRestoreTableFromBackup = "RestoreTableFromBackup"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the RestoreTableFromBackupRequest method.
+//	req, resp := client.RestoreTableFromBackupRequest(params)
 //
-//    // Example sending a request using the RestoreTableFromBackupRequest method.
-//    req, resp := client.RestoreTableFromBackupRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/RestoreTableFromBackup
 func (c *DynamoDB) RestoreTableFromBackupRequest(input *RestoreTableFromBackupInput) (req *request.Request, output *RestoreTableFromBackupOutput) {
@@ -3231,26 +5223,30 @@ func (c *DynamoDB) RestoreTableFromBackupRequest(input *RestoreTableFromBackupIn
 
 	output = &RestoreTableFromBackupOutput{}
 	req = c.newRequest(op, input, output)
-	if aws.BoolValue(req.Config.EnableEndpointDiscovery) {
-		de := discovererDescribeEndpoints{
-			Required:      false,
-			EndpointCache: c.endpointCache,
-			Params: map[string]*string{
-				"op": aws.String(req.Operation.Name),
-			},
-			Client: c,
-		}
-
-		for k, v := range de.Params {
-			if v == nil {
-				delete(de.Params, k)
+	// if custom endpoint for the request is set to a non empty string,
+	// we skip the endpoint discovery workflow.
+	if req.Config.Endpoint == nil || *req.Config.Endpoint == "" {
+		if aws.BoolValue(req.Config.EnableEndpointDiscovery) {
+			de := discovererDescribeEndpoints{
+				Required:      false,
+				EndpointCache: c.endpointCache,
+				Params: map[string]*string{
+					"op": aws.String(req.Operation.Name),
+				},
+				Client: c,
 			}
-		}
 
-		req.Handlers.Build.PushFrontNamed(request.NamedHandler{
-			Name: "crr.endpointdiscovery",
-			Fn:   de.Handler,
-		})
+			for k, v := range de.Params {
+				if v == nil {
+					delete(de.Params, k)
+				}
+			}
+
+			req.Handlers.Build.PushFrontNamed(request.NamedHandler{
+				Name: "crr.endpointdiscovery",
+				Fn:   de.Handler,
+			})
+		}
 	}
 	return
 }
@@ -3264,17 +5260,17 @@ func (c *DynamoDB) RestoreTableFromBackupRequest(input *RestoreTableFromBackupIn
 //
 // You must manually set up the following on the restored table:
 //
-//    * Auto scaling policies
+//   - Auto scaling policies
 //
-//    * IAM policies
+//   - IAM policies
 //
-//    * Amazon CloudWatch metrics and alarms
+//   - Amazon CloudWatch metrics and alarms
 //
-//    * Tags
+//   - Tags
 //
-//    * Stream settings
+//   - Stream settings
 //
-//    * Time to Live (TTL) settings
+//   - Time to Live (TTL) settings
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -3283,36 +5279,40 @@ func (c *DynamoDB) RestoreTableFromBackupRequest(input *RestoreTableFromBackupIn
 // See the AWS API reference guide for Amazon DynamoDB's
 // API operation RestoreTableFromBackup for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeTableAlreadyExistsException "TableAlreadyExistsException"
-//   A target table with the specified name already exists.
+// Returned Error Types:
 //
-//   * ErrCodeTableInUseException "TableInUseException"
-//   A target table with the specified name is either being created or deleted.
+//   - TableAlreadyExistsException
+//     A target table with the specified name already exists.
 //
-//   * ErrCodeBackupNotFoundException "BackupNotFoundException"
-//   Backup not found for the given BackupARN.
+//   - TableInUseException
+//     A target table with the specified name is either being created or deleted.
 //
-//   * ErrCodeBackupInUseException "BackupInUseException"
-//   There is another ongoing conflicting backup control plane operation on the
-//   table. The backup is either being created, deleted or restored to a table.
+//   - BackupNotFoundException
+//     Backup not found for the given BackupARN.
 //
-//   * ErrCodeLimitExceededException "LimitExceededException"
-//   There is no limit to the number of daily on-demand backups that can be taken.
+//   - BackupInUseException
+//     There is another ongoing conflicting backup control plane operation on the
+//     table. The backup is either being created, deleted or restored to a table.
 //
-//   Up to 50 simultaneous table operations are allowed per account. These operations
-//   include CreateTable, UpdateTable, DeleteTable,UpdateTimeToLive, RestoreTableFromBackup,
-//   and RestoreTableToPointInTime.
+//   - LimitExceededException
+//     There is no limit to the number of daily on-demand backups that can be taken.
 //
-//   The only exception is when you are creating a table with one or more secondary
-//   indexes. You can have up to 25 such requests running at a time; however,
-//   if the table or index specifications are complex, DynamoDB might temporarily
-//   reduce the number of concurrent operations.
+//     For most purposes, up to 500 simultaneous table operations are allowed per
+//     account. These operations include CreateTable, UpdateTable, DeleteTable,UpdateTimeToLive,
+//     RestoreTableFromBackup, and RestoreTableToPointInTime.
 //
-//   There is a soft account limit of 256 tables.
+//     When you are creating a table with one or more secondary indexes, you can
+//     have up to 250 such requests running at a time. However, if the table or
+//     index specifications are complex, then DynamoDB might temporarily reduce
+//     the number of concurrent operations.
 //
-//   * ErrCodeInternalServerError "InternalServerError"
-//   An error occurred on the server side.
+//     When importing into DynamoDB, up to 50 simultaneous import table operations
+//     are allowed per account.
+//
+//     There is a soft account quota of 2,500 tables.
+//
+//   - InternalServerError
+//     An error occurred on the server side.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/RestoreTableFromBackup
 func (c *DynamoDB) RestoreTableFromBackup(input *RestoreTableFromBackupInput) (*RestoreTableFromBackupOutput, error) {
@@ -3352,14 +5352,13 @@ const opRestoreTableToPointInTime = "RestoreTableToPointInTime"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the RestoreTableToPointInTimeRequest method.
+//	req, resp := client.RestoreTableToPointInTimeRequest(params)
 //
-//    // Example sending a request using the RestoreTableToPointInTimeRequest method.
-//    req, resp := client.RestoreTableToPointInTimeRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/RestoreTableToPointInTime
 func (c *DynamoDB) RestoreTableToPointInTimeRequest(input *RestoreTableToPointInTimeInput) (req *request.Request, output *RestoreTableToPointInTimeOutput) {
@@ -3375,26 +5374,30 @@ func (c *DynamoDB) RestoreTableToPointInTimeRequest(input *RestoreTableToPointIn
 
 	output = &RestoreTableToPointInTimeOutput{}
 	req = c.newRequest(op, input, output)
-	if aws.BoolValue(req.Config.EnableEndpointDiscovery) {
-		de := discovererDescribeEndpoints{
-			Required:      false,
-			EndpointCache: c.endpointCache,
-			Params: map[string]*string{
-				"op": aws.String(req.Operation.Name),
-			},
-			Client: c,
-		}
-
-		for k, v := range de.Params {
-			if v == nil {
-				delete(de.Params, k)
+	// if custom endpoint for the request is set to a non empty string,
+	// we skip the endpoint discovery workflow.
+	if req.Config.Endpoint == nil || *req.Config.Endpoint == "" {
+		if aws.BoolValue(req.Config.EnableEndpointDiscovery) {
+			de := discovererDescribeEndpoints{
+				Required:      false,
+				EndpointCache: c.endpointCache,
+				Params: map[string]*string{
+					"op": aws.String(req.Operation.Name),
+				},
+				Client: c,
 			}
-		}
 
-		req.Handlers.Build.PushFrontNamed(request.NamedHandler{
-			Name: "crr.endpointdiscovery",
-			Fn:   de.Handler,
-		})
+			for k, v := range de.Params {
+				if v == nil {
+					delete(de.Params, k)
+				}
+			}
+
+			req.Handlers.Build.PushFrontNamed(request.NamedHandler{
+				Name: "crr.endpointdiscovery",
+				Fn:   de.Handler,
+			})
+		}
 	}
 	return
 }
@@ -3413,30 +5416,30 @@ func (c *DynamoDB) RestoreTableToPointInTimeRequest(input *RestoreTableToPointIn
 // Along with data, the following are also included on the new restored table
 // using point in time recovery:
 //
-//    * Global secondary indexes (GSIs)
+//   - Global secondary indexes (GSIs)
 //
-//    * Local secondary indexes (LSIs)
+//   - Local secondary indexes (LSIs)
 //
-//    * Provisioned read and write capacity
+//   - Provisioned read and write capacity
 //
-//    * Encryption settings All these settings come from the current settings
-//    of the source table at the time of restore.
+//   - Encryption settings All these settings come from the current settings
+//     of the source table at the time of restore.
 //
 // You must manually set up the following on the restored table:
 //
-//    * Auto scaling policies
+//   - Auto scaling policies
 //
-//    * IAM policies
+//   - IAM policies
 //
-//    * Amazon CloudWatch metrics and alarms
+//   - Amazon CloudWatch metrics and alarms
 //
-//    * Tags
+//   - Tags
 //
-//    * Stream settings
+//   - Stream settings
 //
-//    * Time to Live (TTL) settings
+//   - Time to Live (TTL) settings
 //
-//    * Point in time recovery settings
+//   - Point in time recovery settings
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -3445,40 +5448,45 @@ func (c *DynamoDB) RestoreTableToPointInTimeRequest(input *RestoreTableToPointIn
 // See the AWS API reference guide for Amazon DynamoDB's
 // API operation RestoreTableToPointInTime for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeTableAlreadyExistsException "TableAlreadyExistsException"
-//   A target table with the specified name already exists.
+// Returned Error Types:
 //
-//   * ErrCodeTableNotFoundException "TableNotFoundException"
-//   A source table with the name TableName does not currently exist within the
-//   subscriber's account.
+//   - TableAlreadyExistsException
+//     A target table with the specified name already exists.
 //
-//   * ErrCodeTableInUseException "TableInUseException"
-//   A target table with the specified name is either being created or deleted.
+//   - TableNotFoundException
+//     A source table with the name TableName does not currently exist within the
+//     subscriber's account or the subscriber is operating in the wrong Amazon Web
+//     Services Region.
 //
-//   * ErrCodeLimitExceededException "LimitExceededException"
-//   There is no limit to the number of daily on-demand backups that can be taken.
+//   - TableInUseException
+//     A target table with the specified name is either being created or deleted.
 //
-//   Up to 50 simultaneous table operations are allowed per account. These operations
-//   include CreateTable, UpdateTable, DeleteTable,UpdateTimeToLive, RestoreTableFromBackup,
-//   and RestoreTableToPointInTime.
+//   - LimitExceededException
+//     There is no limit to the number of daily on-demand backups that can be taken.
 //
-//   The only exception is when you are creating a table with one or more secondary
-//   indexes. You can have up to 25 such requests running at a time; however,
-//   if the table or index specifications are complex, DynamoDB might temporarily
-//   reduce the number of concurrent operations.
+//     For most purposes, up to 500 simultaneous table operations are allowed per
+//     account. These operations include CreateTable, UpdateTable, DeleteTable,UpdateTimeToLive,
+//     RestoreTableFromBackup, and RestoreTableToPointInTime.
 //
-//   There is a soft account limit of 256 tables.
+//     When you are creating a table with one or more secondary indexes, you can
+//     have up to 250 such requests running at a time. However, if the table or
+//     index specifications are complex, then DynamoDB might temporarily reduce
+//     the number of concurrent operations.
 //
-//   * ErrCodeInvalidRestoreTimeException "InvalidRestoreTimeException"
-//   An invalid restore time was specified. RestoreDateTime must be between EarliestRestorableDateTime
-//   and LatestRestorableDateTime.
+//     When importing into DynamoDB, up to 50 simultaneous import table operations
+//     are allowed per account.
 //
-//   * ErrCodePointInTimeRecoveryUnavailableException "PointInTimeRecoveryUnavailableException"
-//   Point in time recovery has not yet been enabled for this source table.
+//     There is a soft account quota of 2,500 tables.
 //
-//   * ErrCodeInternalServerError "InternalServerError"
-//   An error occurred on the server side.
+//   - InvalidRestoreTimeException
+//     An invalid restore time was specified. RestoreDateTime must be between EarliestRestorableDateTime
+//     and LatestRestorableDateTime.
+//
+//   - PointInTimeRecoveryUnavailableException
+//     Point in time recovery has not yet been enabled for this source table.
+//
+//   - InternalServerError
+//     An error occurred on the server side.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/RestoreTableToPointInTime
 func (c *DynamoDB) RestoreTableToPointInTime(input *RestoreTableToPointInTimeInput) (*RestoreTableToPointInTimeOutput, error) {
@@ -3518,14 +5526,13 @@ const opScan = "Scan"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the ScanRequest method.
+//	req, resp := client.ScanRequest(params)
 //
-//    // Example sending a request using the ScanRequest method.
-//    req, resp := client.ScanRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/Scan
 func (c *DynamoDB) ScanRequest(input *ScanInput) (req *request.Request, output *ScanOutput) {
@@ -3547,26 +5554,30 @@ func (c *DynamoDB) ScanRequest(input *ScanInput) (req *request.Request, output *
 
 	output = &ScanOutput{}
 	req = c.newRequest(op, input, output)
-	if aws.BoolValue(req.Config.EnableEndpointDiscovery) {
-		de := discovererDescribeEndpoints{
-			Required:      false,
-			EndpointCache: c.endpointCache,
-			Params: map[string]*string{
-				"op": aws.String(req.Operation.Name),
-			},
-			Client: c,
-		}
-
-		for k, v := range de.Params {
-			if v == nil {
-				delete(de.Params, k)
+	// if custom endpoint for the request is set to a non empty string,
+	// we skip the endpoint discovery workflow.
+	if req.Config.Endpoint == nil || *req.Config.Endpoint == "" {
+		if aws.BoolValue(req.Config.EnableEndpointDiscovery) {
+			de := discovererDescribeEndpoints{
+				Required:      false,
+				EndpointCache: c.endpointCache,
+				Params: map[string]*string{
+					"op": aws.String(req.Operation.Name),
+				},
+				Client: c,
 			}
-		}
 
-		req.Handlers.Build.PushFrontNamed(request.NamedHandler{
-			Name: "crr.endpointdiscovery",
-			Fn:   de.Handler,
-		})
+			for k, v := range de.Params {
+				if v == nil {
+					delete(de.Params, k)
+				}
+			}
+
+			req.Handlers.Build.PushFrontNamed(request.NamedHandler{
+				Name: "crr.endpointdiscovery",
+				Fn:   de.Handler,
+			})
+		}
 	}
 	return
 }
@@ -3609,26 +5620,27 @@ func (c *DynamoDB) ScanRequest(input *ScanInput) (req *request.Request, output *
 // See the AWS API reference guide for Amazon DynamoDB's
 // API operation Scan for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeProvisionedThroughputExceededException "ProvisionedThroughputExceededException"
-//   Your request rate is too high. The AWS SDKs for DynamoDB automatically retry
-//   requests that receive this exception. Your request is eventually successful,
-//   unless your retry queue is too large to finish. Reduce the frequency of requests
-//   and use exponential backoff. For more information, go to Error Retries and
-//   Exponential Backoff (https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Programming.Errors.html#Programming.Errors.RetryAndBackoff)
-//   in the Amazon DynamoDB Developer Guide.
+// Returned Error Types:
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
-//   The operation tried to access a nonexistent table or index. The resource
-//   might not be specified correctly, or its status might not be ACTIVE.
+//   - ProvisionedThroughputExceededException
+//     Your request rate is too high. The Amazon Web Services SDKs for DynamoDB
+//     automatically retry requests that receive this exception. Your request is
+//     eventually successful, unless your retry queue is too large to finish. Reduce
+//     the frequency of requests and use exponential backoff. For more information,
+//     go to Error Retries and Exponential Backoff (https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Programming.Errors.html#Programming.Errors.RetryAndBackoff)
+//     in the Amazon DynamoDB Developer Guide.
 //
-//   * ErrCodeRequestLimitExceeded "RequestLimitExceeded"
-//   Throughput exceeds the current throughput limit for your account. Please
-//   contact AWS Support at AWS Support (https://aws.amazon.com/support) to request
-//   a limit increase.
+//   - ResourceNotFoundException
+//     The operation tried to access a nonexistent table or index. The resource
+//     might not be specified correctly, or its status might not be ACTIVE.
 //
-//   * ErrCodeInternalServerError "InternalServerError"
-//   An error occurred on the server side.
+//   - RequestLimitExceeded
+//     Throughput exceeds the current throughput quota for your account. Please
+//     contact Amazon Web Services Support (https://aws.amazon.com/support) to request
+//     a quota increase.
+//
+//   - InternalServerError
+//     An error occurred on the server side.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/Scan
 func (c *DynamoDB) Scan(input *ScanInput) (*ScanOutput, error) {
@@ -3660,15 +5672,14 @@ func (c *DynamoDB) ScanWithContext(ctx aws.Context, input *ScanInput, opts ...re
 //
 // Note: This operation can generate multiple requests to a service.
 //
-//    // Example iterating over at most 3 pages of a Scan operation.
-//    pageNum := 0
-//    err := client.ScanPages(params,
-//        func(page *dynamodb.ScanOutput, lastPage bool) bool {
-//            pageNum++
-//            fmt.Println(page)
-//            return pageNum <= 3
-//        })
-//
+//	// Example iterating over at most 3 pages of a Scan operation.
+//	pageNum := 0
+//	err := client.ScanPages(params,
+//	    func(page *dynamodb.ScanOutput, lastPage bool) bool {
+//	        pageNum++
+//	        fmt.Println(page)
+//	        return pageNum <= 3
+//	    })
 func (c *DynamoDB) ScanPages(input *ScanInput, fn func(*ScanOutput, bool) bool) error {
 	return c.ScanPagesWithContext(aws.BackgroundContext(), input, fn)
 }
@@ -3695,10 +5706,12 @@ func (c *DynamoDB) ScanPagesWithContext(ctx aws.Context, input *ScanInput, fn fu
 		},
 	}
 
-	cont := true
-	for p.Next() && cont {
-		cont = fn(p.Page().(*ScanOutput), !p.HasNextPage())
+	for p.Next() {
+		if !fn(p.Page().(*ScanOutput), !p.HasNextPage()) {
+			break
+		}
 	}
+
 	return p.Err()
 }
 
@@ -3718,14 +5731,13 @@ const opTagResource = "TagResource"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the TagResourceRequest method.
+//	req, resp := client.TagResourceRequest(params)
 //
-//    // Example sending a request using the TagResourceRequest method.
-//    req, resp := client.TagResourceRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/TagResource
 func (c *DynamoDB) TagResourceRequest(input *TagResourceInput) (req *request.Request, output *TagResourceOutput) {
@@ -3742,26 +5754,30 @@ func (c *DynamoDB) TagResourceRequest(input *TagResourceInput) (req *request.Req
 	output = &TagResourceOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
-	if aws.BoolValue(req.Config.EnableEndpointDiscovery) {
-		de := discovererDescribeEndpoints{
-			Required:      false,
-			EndpointCache: c.endpointCache,
-			Params: map[string]*string{
-				"op": aws.String(req.Operation.Name),
-			},
-			Client: c,
-		}
-
-		for k, v := range de.Params {
-			if v == nil {
-				delete(de.Params, k)
+	// if custom endpoint for the request is set to a non empty string,
+	// we skip the endpoint discovery workflow.
+	if req.Config.Endpoint == nil || *req.Config.Endpoint == "" {
+		if aws.BoolValue(req.Config.EnableEndpointDiscovery) {
+			de := discovererDescribeEndpoints{
+				Required:      false,
+				EndpointCache: c.endpointCache,
+				Params: map[string]*string{
+					"op": aws.String(req.Operation.Name),
+				},
+				Client: c,
 			}
-		}
 
-		req.Handlers.Build.PushFrontNamed(request.NamedHandler{
-			Name: "crr.endpointdiscovery",
-			Fn:   de.Handler,
-		})
+			for k, v := range de.Params {
+				if v == nil {
+					delete(de.Params, k)
+				}
+			}
+
+			req.Handlers.Build.PushFrontNamed(request.NamedHandler{
+				Name: "crr.endpointdiscovery",
+				Fn:   de.Handler,
+			})
+		}
 	}
 	return
 }
@@ -3783,32 +5799,36 @@ func (c *DynamoDB) TagResourceRequest(input *TagResourceInput) (req *request.Req
 // See the AWS API reference guide for Amazon DynamoDB's
 // API operation TagResource for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeLimitExceededException "LimitExceededException"
-//   There is no limit to the number of daily on-demand backups that can be taken.
+// Returned Error Types:
 //
-//   Up to 50 simultaneous table operations are allowed per account. These operations
-//   include CreateTable, UpdateTable, DeleteTable,UpdateTimeToLive, RestoreTableFromBackup,
-//   and RestoreTableToPointInTime.
+//   - LimitExceededException
+//     There is no limit to the number of daily on-demand backups that can be taken.
 //
-//   The only exception is when you are creating a table with one or more secondary
-//   indexes. You can have up to 25 such requests running at a time; however,
-//   if the table or index specifications are complex, DynamoDB might temporarily
-//   reduce the number of concurrent operations.
+//     For most purposes, up to 500 simultaneous table operations are allowed per
+//     account. These operations include CreateTable, UpdateTable, DeleteTable,UpdateTimeToLive,
+//     RestoreTableFromBackup, and RestoreTableToPointInTime.
 //
-//   There is a soft account limit of 256 tables.
+//     When you are creating a table with one or more secondary indexes, you can
+//     have up to 250 such requests running at a time. However, if the table or
+//     index specifications are complex, then DynamoDB might temporarily reduce
+//     the number of concurrent operations.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
-//   The operation tried to access a nonexistent table or index. The resource
-//   might not be specified correctly, or its status might not be ACTIVE.
+//     When importing into DynamoDB, up to 50 simultaneous import table operations
+//     are allowed per account.
 //
-//   * ErrCodeInternalServerError "InternalServerError"
-//   An error occurred on the server side.
+//     There is a soft account quota of 2,500 tables.
 //
-//   * ErrCodeResourceInUseException "ResourceInUseException"
-//   The operation conflicts with the resource's availability. For example, you
-//   attempted to recreate an existing table, or tried to delete a table currently
-//   in the CREATING state.
+//   - ResourceNotFoundException
+//     The operation tried to access a nonexistent table or index. The resource
+//     might not be specified correctly, or its status might not be ACTIVE.
+//
+//   - InternalServerError
+//     An error occurred on the server side.
+//
+//   - ResourceInUseException
+//     The operation conflicts with the resource's availability. For example, you
+//     attempted to recreate an existing table, or tried to delete a table currently
+//     in the CREATING state.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/TagResource
 func (c *DynamoDB) TagResource(input *TagResourceInput) (*TagResourceOutput, error) {
@@ -3848,14 +5868,13 @@ const opTransactGetItems = "TransactGetItems"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the TransactGetItemsRequest method.
+//	req, resp := client.TransactGetItemsRequest(params)
 //
-//    // Example sending a request using the TransactGetItemsRequest method.
-//    req, resp := client.TransactGetItemsRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/TransactGetItems
 func (c *DynamoDB) TransactGetItemsRequest(input *TransactGetItemsInput) (req *request.Request, output *TransactGetItemsOutput) {
@@ -3871,26 +5890,30 @@ func (c *DynamoDB) TransactGetItemsRequest(input *TransactGetItemsInput) (req *r
 
 	output = &TransactGetItemsOutput{}
 	req = c.newRequest(op, input, output)
-	if aws.BoolValue(req.Config.EnableEndpointDiscovery) {
-		de := discovererDescribeEndpoints{
-			Required:      false,
-			EndpointCache: c.endpointCache,
-			Params: map[string]*string{
-				"op": aws.String(req.Operation.Name),
-			},
-			Client: c,
-		}
-
-		for k, v := range de.Params {
-			if v == nil {
-				delete(de.Params, k)
+	// if custom endpoint for the request is set to a non empty string,
+	// we skip the endpoint discovery workflow.
+	if req.Config.Endpoint == nil || *req.Config.Endpoint == "" {
+		if aws.BoolValue(req.Config.EnableEndpointDiscovery) {
+			de := discovererDescribeEndpoints{
+				Required:      false,
+				EndpointCache: c.endpointCache,
+				Params: map[string]*string{
+					"op": aws.String(req.Operation.Name),
+				},
+				Client: c,
 			}
-		}
 
-		req.Handlers.Build.PushFrontNamed(request.NamedHandler{
-			Name: "crr.endpointdiscovery",
-			Fn:   de.Handler,
-		})
+			for k, v := range de.Params {
+				if v == nil {
+					delete(de.Params, k)
+				}
+			}
+
+			req.Handlers.Build.PushFrontNamed(request.NamedHandler{
+				Name: "crr.endpointdiscovery",
+				Fn:   de.Handler,
+			})
+		}
 	}
 	return
 }
@@ -3899,34 +5922,25 @@ func (c *DynamoDB) TransactGetItemsRequest(input *TransactGetItemsInput) (req *r
 //
 // TransactGetItems is a synchronous operation that atomically retrieves multiple
 // items from one or more tables (but not from indexes) in a single account
-// and Region. A TransactGetItems call can contain up to 25 TransactGetItem
+// and Region. A TransactGetItems call can contain up to 100 TransactGetItem
 // objects, each of which contains a Get structure that specifies an item to
 // retrieve from a table in the account and Region. A call to TransactGetItems
-// cannot retrieve items from tables in more than one AWS account or Region.
-// The aggregate size of the items in the transaction cannot exceed 4 MB.
-//
-// All AWS Regions and AWS GovCloud (US) support up to 25 items per transaction
-// with up to 4 MB of data, except the following AWS Regions:
-//
-//    * China (Beijing)
-//
-//    * China (Ningxia)
-//
-// The China (Beijing) and China (Ningxia) Regions support up to 10 items per
-// transaction with up to 4 MB of data.
+// cannot retrieve items from tables in more than one Amazon Web Services account
+// or Region. The aggregate size of the items in the transaction cannot exceed
+// 4 MB.
 //
 // DynamoDB rejects the entire TransactGetItems request if any of the following
 // is true:
 //
-//    * A conflicting operation is in the process of updating an item to be
-//    read.
+//   - A conflicting operation is in the process of updating an item to be
+//     read.
 //
-//    * There is insufficient provisioned capacity for the transaction to be
-//    completed.
+//   - There is insufficient provisioned capacity for the transaction to be
+//     completed.
 //
-//    * There is a user error, such as an invalid data format.
+//   - There is a user error, such as an invalid data format.
 //
-//    * The aggregate size of the items in the transaction cannot exceed 4 MB.
+//   - The aggregate size of the items in the transaction exceeded 4 MB.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -3935,112 +5949,114 @@ func (c *DynamoDB) TransactGetItemsRequest(input *TransactGetItemsInput) (req *r
 // See the AWS API reference guide for Amazon DynamoDB's
 // API operation TransactGetItems for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
-//   The operation tried to access a nonexistent table or index. The resource
-//   might not be specified correctly, or its status might not be ACTIVE.
+// Returned Error Types:
 //
-//   * ErrCodeTransactionCanceledException "TransactionCanceledException"
-//   The entire transaction request was canceled.
+//   - ResourceNotFoundException
+//     The operation tried to access a nonexistent table or index. The resource
+//     might not be specified correctly, or its status might not be ACTIVE.
 //
-//   DynamoDB cancels a TransactWriteItems request under the following circumstances:
+//   - TransactionCanceledException
+//     The entire transaction request was canceled.
 //
-//      * A condition in one of the condition expressions is not met.
+//     DynamoDB cancels a TransactWriteItems request under the following circumstances:
 //
-//      * A table in the TransactWriteItems request is in a different account
-//      or region.
+//   - A condition in one of the condition expressions is not met.
 //
-//      * More than one action in the TransactWriteItems operation targets the
-//      same item.
+//   - A table in the TransactWriteItems request is in a different account
+//     or region.
 //
-//      * There is insufficient provisioned capacity for the transaction to be
-//      completed.
+//   - More than one action in the TransactWriteItems operation targets the
+//     same item.
 //
-//      * An item size becomes too large (larger than 400 KB), or a local secondary
-//      index (LSI) becomes too large, or a similar validation error occurs because
-//      of changes made by the transaction.
+//   - There is insufficient provisioned capacity for the transaction to be
+//     completed.
 //
-//      * The aggregate size of the items in the transaction exceeds 4 MBs.
+//   - An item size becomes too large (larger than 400 KB), or a local secondary
+//     index (LSI) becomes too large, or a similar validation error occurs because
+//     of changes made by the transaction.
 //
-//      * There is a user error, such as an invalid data format.
+//   - There is a user error, such as an invalid data format.
 //
-//   DynamoDB cancels a TransactGetItems request under the following circumstances:
+//     DynamoDB cancels a TransactGetItems request under the following circumstances:
 //
-//      * There is an ongoing TransactGetItems operation that conflicts with a
-//      concurrent PutItem, UpdateItem, DeleteItem or TransactWriteItems request.
-//      In this case the TransactGetItems operation fails with a TransactionCanceledException.
+//   - There is an ongoing TransactGetItems operation that conflicts with a
+//     concurrent PutItem, UpdateItem, DeleteItem or TransactWriteItems request.
+//     In this case the TransactGetItems operation fails with a TransactionCanceledException.
 //
-//      * A table in the TransactGetItems request is in a different account or
-//      region.
+//   - A table in the TransactGetItems request is in a different account or
+//     region.
 //
-//      * There is insufficient provisioned capacity for the transaction to be
-//      completed.
+//   - There is insufficient provisioned capacity for the transaction to be
+//     completed.
 //
-//      * The aggregate size of the items in the transaction exceeds 4 MBs.
+//   - There is a user error, such as an invalid data format.
 //
-//      * There is a user error, such as an invalid data format.
+//     If using Java, DynamoDB lists the cancellation reasons on the CancellationReasons
+//     property. This property is not set for other languages. Transaction cancellation
+//     reasons are ordered in the order of requested items, if an item has no error
+//     it will have None code and Null message.
 //
-//   If using Java, DynamoDB lists the cancellation reasons on the CancellationReasons
-//   property. This property is not set for other languages. Transaction cancellation
-//   reasons are ordered in the order of requested items, if an item has no error
-//   it will have NONE code and Null message.
+//     Cancellation reason codes and possible error messages:
 //
-//   Cancellation reason codes and possible error messages:
+//   - No Errors: Code: None Message: null
 //
-//      * No Errors: Code: NONE Message: null
+//   - Conditional Check Failed: Code: ConditionalCheckFailed Message: The
+//     conditional request failed.
 //
-//      * Conditional Check Failed: Code: ConditionalCheckFailed Message: The
-//      conditional request failed.
+//   - Item Collection Size Limit Exceeded: Code: ItemCollectionSizeLimitExceeded
+//     Message: Collection size exceeded.
 //
-//      * Item Collection Size Limit Exceeded: Code: ItemCollectionSizeLimitExceeded
-//      Message: Collection size exceeded.
+//   - Transaction Conflict: Code: TransactionConflict Message: Transaction
+//     is ongoing for the item.
 //
-//      * Transaction Conflict: Code: TransactionConflict Message: Transaction
-//      is ongoing for the item.
+//   - Provisioned Throughput Exceeded: Code: ProvisionedThroughputExceeded
+//     Messages: The level of configured provisioned throughput for the table
+//     was exceeded. Consider increasing your provisioning level with the UpdateTable
+//     API. This Message is received when provisioned throughput is exceeded
+//     is on a provisioned DynamoDB table. The level of configured provisioned
+//     throughput for one or more global secondary indexes of the table was exceeded.
+//     Consider increasing your provisioning level for the under-provisioned
+//     global secondary indexes with the UpdateTable API. This message is returned
+//     when provisioned throughput is exceeded is on a provisioned GSI.
 //
-//      * Provisioned Throughput Exceeded: Code: ProvisionedThroughputExceeded
-//      Messages: The level of configured provisioned throughput for the table
-//      was exceeded. Consider increasing your provisioning level with the UpdateTable
-//      API. This Message is received when provisioned throughput is exceeded
-//      is on a provisioned DynamoDB table. The level of configured provisioned
-//      throughput for one or more global secondary indexes of the table was exceeded.
-//      Consider increasing your provisioning level for the under-provisioned
-//      global secondary indexes with the UpdateTable API. This message is returned
-//      when provisioned throughput is exceeded is on a provisioned GSI.
+//   - Throttling Error: Code: ThrottlingError Messages: Throughput exceeds
+//     the current capacity of your table or index. DynamoDB is automatically
+//     scaling your table or index so please try again shortly. If exceptions
+//     persist, check if you have a hot key: https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/bp-partition-key-design.html.
+//     This message is returned when writes get throttled on an On-Demand table
+//     as DynamoDB is automatically scaling the table. Throughput exceeds the
+//     current capacity for one or more global secondary indexes. DynamoDB is
+//     automatically scaling your index so please try again shortly. This message
+//     is returned when writes get throttled on an On-Demand GSI as DynamoDB
+//     is automatically scaling the GSI.
 //
-//      * Throttling Error: Code: ThrottlingError Messages: Throughput exceeds
-//      the current capacity of your table or index. DynamoDB is automatically
-//      scaling your table or index so please try again shortly. If exceptions
-//      persist, check if you have a hot key: https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/bp-partition-key-design.html.
-//      This message is returned when writes get throttled on an On-Demand table
-//      as DynamoDB is automatically scaling the table. Throughput exceeds the
-//      current capacity for one or more global secondary indexes. DynamoDB is
-//      automatically scaling your index so please try again shortly. This message
-//      is returned when when writes get throttled on an On-Demand GSI as DynamoDB
-//      is automatically scaling the GSI.
+//   - Validation Error: Code: ValidationError Messages: One or more parameter
+//     values were invalid. The update expression attempted to update the secondary
+//     index key beyond allowed size limits. The update expression attempted
+//     to update the secondary index key to unsupported type. An operand in the
+//     update expression has an incorrect data type. Item size to update has
+//     exceeded the maximum allowed size. Number overflow. Attempting to store
+//     a number with magnitude larger than supported range. Type mismatch for
+//     attribute to update. Nesting Levels have exceeded supported limits. The
+//     document path provided in the update expression is invalid for update.
+//     The provided expression refers to an attribute that does not exist in
+//     the item.
 //
-//      * Validation Error: Code: ValidationError Messages: One or more parameter
-//      values were invalid. The update expression attempted to update the secondary
-//      index key beyond allowed size limits. The update expression attempted
-//      to update the secondary index key to unsupported type. An operand in the
-//      update expression has an incorrect data type. Item size to update has
-//      exceeded the maximum allowed size. Number overflow. Attempting to store
-//      a number with magnitude larger than supported range. Type mismatch for
-//      attribute to update. Nesting Levels have exceeded supported limits. The
-//      document path provided in the update expression is invalid for update.
-//      The provided expression refers to an attribute that does not exist in
-//      the item.
+//   - ProvisionedThroughputExceededException
+//     Your request rate is too high. The Amazon Web Services SDKs for DynamoDB
+//     automatically retry requests that receive this exception. Your request is
+//     eventually successful, unless your retry queue is too large to finish. Reduce
+//     the frequency of requests and use exponential backoff. For more information,
+//     go to Error Retries and Exponential Backoff (https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Programming.Errors.html#Programming.Errors.RetryAndBackoff)
+//     in the Amazon DynamoDB Developer Guide.
 //
-//   * ErrCodeProvisionedThroughputExceededException "ProvisionedThroughputExceededException"
-//   Your request rate is too high. The AWS SDKs for DynamoDB automatically retry
-//   requests that receive this exception. Your request is eventually successful,
-//   unless your retry queue is too large to finish. Reduce the frequency of requests
-//   and use exponential backoff. For more information, go to Error Retries and
-//   Exponential Backoff (https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Programming.Errors.html#Programming.Errors.RetryAndBackoff)
-//   in the Amazon DynamoDB Developer Guide.
+//   - RequestLimitExceeded
+//     Throughput exceeds the current throughput quota for your account. Please
+//     contact Amazon Web Services Support (https://aws.amazon.com/support) to request
+//     a quota increase.
 //
-//   * ErrCodeInternalServerError "InternalServerError"
-//   An error occurred on the server side.
+//   - InternalServerError
+//     An error occurred on the server side.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/TransactGetItems
 func (c *DynamoDB) TransactGetItems(input *TransactGetItemsInput) (*TransactGetItemsOutput, error) {
@@ -4080,14 +6096,13 @@ const opTransactWriteItems = "TransactWriteItems"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the TransactWriteItemsRequest method.
+//	req, resp := client.TransactWriteItemsRequest(params)
 //
-//    // Example sending a request using the TransactWriteItemsRequest method.
-//    req, resp := client.TransactWriteItemsRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/TransactWriteItems
 func (c *DynamoDB) TransactWriteItemsRequest(input *TransactWriteItemsInput) (req *request.Request, output *TransactWriteItemsOutput) {
@@ -4103,96 +6118,90 @@ func (c *DynamoDB) TransactWriteItemsRequest(input *TransactWriteItemsInput) (re
 
 	output = &TransactWriteItemsOutput{}
 	req = c.newRequest(op, input, output)
-	if aws.BoolValue(req.Config.EnableEndpointDiscovery) {
-		de := discovererDescribeEndpoints{
-			Required:      false,
-			EndpointCache: c.endpointCache,
-			Params: map[string]*string{
-				"op": aws.String(req.Operation.Name),
-			},
-			Client: c,
-		}
-
-		for k, v := range de.Params {
-			if v == nil {
-				delete(de.Params, k)
+	// if custom endpoint for the request is set to a non empty string,
+	// we skip the endpoint discovery workflow.
+	if req.Config.Endpoint == nil || *req.Config.Endpoint == "" {
+		if aws.BoolValue(req.Config.EnableEndpointDiscovery) {
+			de := discovererDescribeEndpoints{
+				Required:      false,
+				EndpointCache: c.endpointCache,
+				Params: map[string]*string{
+					"op": aws.String(req.Operation.Name),
+				},
+				Client: c,
 			}
-		}
 
-		req.Handlers.Build.PushFrontNamed(request.NamedHandler{
-			Name: "crr.endpointdiscovery",
-			Fn:   de.Handler,
-		})
+			for k, v := range de.Params {
+				if v == nil {
+					delete(de.Params, k)
+				}
+			}
+
+			req.Handlers.Build.PushFrontNamed(request.NamedHandler{
+				Name: "crr.endpointdiscovery",
+				Fn:   de.Handler,
+			})
+		}
 	}
 	return
 }
 
 // TransactWriteItems API operation for Amazon DynamoDB.
 //
-// TransactWriteItems is a synchronous write operation that groups up to 25
+// TransactWriteItems is a synchronous write operation that groups up to 100
 // action requests. These actions can target items in different tables, but
-// not in different AWS accounts or Regions, and no two actions can target the
-// same item. For example, you cannot both ConditionCheck and Update the same
-// item. The aggregate size of the items in the transaction cannot exceed 4
-// MB.
-//
-// All AWS Regions and AWS GovCloud (US) support up to 25 items per transaction
-// with up to 4 MB of data, except the following AWS Regions:
-//
-//    * China (Beijing)
-//
-//    * China (Ningxia)
-//
-// The China (Beijing) and China (Ningxia) Regions support up to 10 items per
-// transaction with up to 4 MB of data.
+// not in different Amazon Web Services accounts or Regions, and no two actions
+// can target the same item. For example, you cannot both ConditionCheck and
+// Update the same item. The aggregate size of the items in the transaction
+// cannot exceed 4 MB.
 //
 // The actions are completed atomically so that either all of them succeed,
 // or all of them fail. They are defined by the following objects:
 //
-//    * Put — Initiates a PutItem operation to write a new item. This structure
-//    specifies the primary key of the item to be written, the name of the table
-//    to write it in, an optional condition expression that must be satisfied
-//    for the write to succeed, a list of the item's attributes, and a field
-//    indicating whether to retrieve the item's attributes if the condition
-//    is not met.
+//   - Put — Initiates a PutItem operation to write a new item. This structure
+//     specifies the primary key of the item to be written, the name of the table
+//     to write it in, an optional condition expression that must be satisfied
+//     for the write to succeed, a list of the item's attributes, and a field
+//     indicating whether to retrieve the item's attributes if the condition
+//     is not met.
 //
-//    * Update — Initiates an UpdateItem operation to update an existing item.
-//    This structure specifies the primary key of the item to be updated, the
-//    name of the table where it resides, an optional condition expression that
-//    must be satisfied for the update to succeed, an expression that defines
-//    one or more attributes to be updated, and a field indicating whether to
-//    retrieve the item's attributes if the condition is not met.
+//   - Update — Initiates an UpdateItem operation to update an existing item.
+//     This structure specifies the primary key of the item to be updated, the
+//     name of the table where it resides, an optional condition expression that
+//     must be satisfied for the update to succeed, an expression that defines
+//     one or more attributes to be updated, and a field indicating whether to
+//     retrieve the item's attributes if the condition is not met.
 //
-//    * Delete — Initiates a DeleteItem operation to delete an existing item.
-//    This structure specifies the primary key of the item to be deleted, the
-//    name of the table where it resides, an optional condition expression that
-//    must be satisfied for the deletion to succeed, and a field indicating
-//    whether to retrieve the item's attributes if the condition is not met.
+//   - Delete — Initiates a DeleteItem operation to delete an existing item.
+//     This structure specifies the primary key of the item to be deleted, the
+//     name of the table where it resides, an optional condition expression that
+//     must be satisfied for the deletion to succeed, and a field indicating
+//     whether to retrieve the item's attributes if the condition is not met.
 //
-//    * ConditionCheck — Applies a condition to an item that is not being
-//    modified by the transaction. This structure specifies the primary key
-//    of the item to be checked, the name of the table where it resides, a condition
-//    expression that must be satisfied for the transaction to succeed, and
-//    a field indicating whether to retrieve the item's attributes if the condition
-//    is not met.
+//   - ConditionCheck — Applies a condition to an item that is not being
+//     modified by the transaction. This structure specifies the primary key
+//     of the item to be checked, the name of the table where it resides, a condition
+//     expression that must be satisfied for the transaction to succeed, and
+//     a field indicating whether to retrieve the item's attributes if the condition
+//     is not met.
 //
 // DynamoDB rejects the entire TransactWriteItems request if any of the following
 // is true:
 //
-//    * A condition in one of the condition expressions is not met.
+//   - A condition in one of the condition expressions is not met.
 //
-//    * An ongoing operation is in the process of updating the same item.
+//   - An ongoing operation is in the process of updating the same item.
 //
-//    * There is insufficient provisioned capacity for the transaction to be
-//    completed.
+//   - There is insufficient provisioned capacity for the transaction to be
+//     completed.
 //
-//    * An item size becomes too large (bigger than 400 KB), a local secondary
-//    index (LSI) becomes too large, or a similar validation error occurs because
-//    of changes made by the transaction.
+//   - An item size becomes too large (bigger than 400 KB), a local secondary
+//     index (LSI) becomes too large, or a similar validation error occurs because
+//     of changes made by the transaction.
 //
-//    * The aggregate size of the items in the transaction exceeds 4 MB.
+//   - The aggregate size of the items in the transaction exceeds 4 MB.
 //
-//    * There is a user error, such as an invalid data format.
+//   - There is a user error, such as an invalid data format.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -4201,119 +6210,162 @@ func (c *DynamoDB) TransactWriteItemsRequest(input *TransactWriteItemsInput) (re
 // See the AWS API reference guide for Amazon DynamoDB's
 // API operation TransactWriteItems for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
-//   The operation tried to access a nonexistent table or index. The resource
-//   might not be specified correctly, or its status might not be ACTIVE.
+// Returned Error Types:
 //
-//   * ErrCodeTransactionCanceledException "TransactionCanceledException"
-//   The entire transaction request was canceled.
+//   - ResourceNotFoundException
+//     The operation tried to access a nonexistent table or index. The resource
+//     might not be specified correctly, or its status might not be ACTIVE.
 //
-//   DynamoDB cancels a TransactWriteItems request under the following circumstances:
+//   - TransactionCanceledException
+//     The entire transaction request was canceled.
 //
-//      * A condition in one of the condition expressions is not met.
+//     DynamoDB cancels a TransactWriteItems request under the following circumstances:
 //
-//      * A table in the TransactWriteItems request is in a different account
-//      or region.
+//   - A condition in one of the condition expressions is not met.
 //
-//      * More than one action in the TransactWriteItems operation targets the
-//      same item.
+//   - A table in the TransactWriteItems request is in a different account
+//     or region.
 //
-//      * There is insufficient provisioned capacity for the transaction to be
-//      completed.
+//   - More than one action in the TransactWriteItems operation targets the
+//     same item.
 //
-//      * An item size becomes too large (larger than 400 KB), or a local secondary
-//      index (LSI) becomes too large, or a similar validation error occurs because
-//      of changes made by the transaction.
+//   - There is insufficient provisioned capacity for the transaction to be
+//     completed.
 //
-//      * The aggregate size of the items in the transaction exceeds 4 MBs.
+//   - An item size becomes too large (larger than 400 KB), or a local secondary
+//     index (LSI) becomes too large, or a similar validation error occurs because
+//     of changes made by the transaction.
 //
-//      * There is a user error, such as an invalid data format.
+//   - There is a user error, such as an invalid data format.
 //
-//   DynamoDB cancels a TransactGetItems request under the following circumstances:
+//     DynamoDB cancels a TransactGetItems request under the following circumstances:
 //
-//      * There is an ongoing TransactGetItems operation that conflicts with a
-//      concurrent PutItem, UpdateItem, DeleteItem or TransactWriteItems request.
-//      In this case the TransactGetItems operation fails with a TransactionCanceledException.
+//   - There is an ongoing TransactGetItems operation that conflicts with a
+//     concurrent PutItem, UpdateItem, DeleteItem or TransactWriteItems request.
+//     In this case the TransactGetItems operation fails with a TransactionCanceledException.
 //
-//      * A table in the TransactGetItems request is in a different account or
-//      region.
+//   - A table in the TransactGetItems request is in a different account or
+//     region.
 //
-//      * There is insufficient provisioned capacity for the transaction to be
-//      completed.
+//   - There is insufficient provisioned capacity for the transaction to be
+//     completed.
 //
-//      * The aggregate size of the items in the transaction exceeds 4 MBs.
+//   - There is a user error, such as an invalid data format.
 //
-//      * There is a user error, such as an invalid data format.
+//     If using Java, DynamoDB lists the cancellation reasons on the CancellationReasons
+//     property. This property is not set for other languages. Transaction cancellation
+//     reasons are ordered in the order of requested items, if an item has no error
+//     it will have None code and Null message.
 //
-//   If using Java, DynamoDB lists the cancellation reasons on the CancellationReasons
-//   property. This property is not set for other languages. Transaction cancellation
-//   reasons are ordered in the order of requested items, if an item has no error
-//   it will have NONE code and Null message.
+//     Cancellation reason codes and possible error messages:
 //
-//   Cancellation reason codes and possible error messages:
+//   - No Errors: Code: None Message: null
 //
-//      * No Errors: Code: NONE Message: null
+//   - Conditional Check Failed: Code: ConditionalCheckFailed Message: The
+//     conditional request failed.
 //
-//      * Conditional Check Failed: Code: ConditionalCheckFailed Message: The
-//      conditional request failed.
+//   - Item Collection Size Limit Exceeded: Code: ItemCollectionSizeLimitExceeded
+//     Message: Collection size exceeded.
 //
-//      * Item Collection Size Limit Exceeded: Code: ItemCollectionSizeLimitExceeded
-//      Message: Collection size exceeded.
+//   - Transaction Conflict: Code: TransactionConflict Message: Transaction
+//     is ongoing for the item.
 //
-//      * Transaction Conflict: Code: TransactionConflict Message: Transaction
-//      is ongoing for the item.
+//   - Provisioned Throughput Exceeded: Code: ProvisionedThroughputExceeded
+//     Messages: The level of configured provisioned throughput for the table
+//     was exceeded. Consider increasing your provisioning level with the UpdateTable
+//     API. This Message is received when provisioned throughput is exceeded
+//     is on a provisioned DynamoDB table. The level of configured provisioned
+//     throughput for one or more global secondary indexes of the table was exceeded.
+//     Consider increasing your provisioning level for the under-provisioned
+//     global secondary indexes with the UpdateTable API. This message is returned
+//     when provisioned throughput is exceeded is on a provisioned GSI.
 //
-//      * Provisioned Throughput Exceeded: Code: ProvisionedThroughputExceeded
-//      Messages: The level of configured provisioned throughput for the table
-//      was exceeded. Consider increasing your provisioning level with the UpdateTable
-//      API. This Message is received when provisioned throughput is exceeded
-//      is on a provisioned DynamoDB table. The level of configured provisioned
-//      throughput for one or more global secondary indexes of the table was exceeded.
-//      Consider increasing your provisioning level for the under-provisioned
-//      global secondary indexes with the UpdateTable API. This message is returned
-//      when provisioned throughput is exceeded is on a provisioned GSI.
+//   - Throttling Error: Code: ThrottlingError Messages: Throughput exceeds
+//     the current capacity of your table or index. DynamoDB is automatically
+//     scaling your table or index so please try again shortly. If exceptions
+//     persist, check if you have a hot key: https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/bp-partition-key-design.html.
+//     This message is returned when writes get throttled on an On-Demand table
+//     as DynamoDB is automatically scaling the table. Throughput exceeds the
+//     current capacity for one or more global secondary indexes. DynamoDB is
+//     automatically scaling your index so please try again shortly. This message
+//     is returned when writes get throttled on an On-Demand GSI as DynamoDB
+//     is automatically scaling the GSI.
 //
-//      * Throttling Error: Code: ThrottlingError Messages: Throughput exceeds
-//      the current capacity of your table or index. DynamoDB is automatically
-//      scaling your table or index so please try again shortly. If exceptions
-//      persist, check if you have a hot key: https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/bp-partition-key-design.html.
-//      This message is returned when writes get throttled on an On-Demand table
-//      as DynamoDB is automatically scaling the table. Throughput exceeds the
-//      current capacity for one or more global secondary indexes. DynamoDB is
-//      automatically scaling your index so please try again shortly. This message
-//      is returned when when writes get throttled on an On-Demand GSI as DynamoDB
-//      is automatically scaling the GSI.
+//   - Validation Error: Code: ValidationError Messages: One or more parameter
+//     values were invalid. The update expression attempted to update the secondary
+//     index key beyond allowed size limits. The update expression attempted
+//     to update the secondary index key to unsupported type. An operand in the
+//     update expression has an incorrect data type. Item size to update has
+//     exceeded the maximum allowed size. Number overflow. Attempting to store
+//     a number with magnitude larger than supported range. Type mismatch for
+//     attribute to update. Nesting Levels have exceeded supported limits. The
+//     document path provided in the update expression is invalid for update.
+//     The provided expression refers to an attribute that does not exist in
+//     the item.
 //
-//      * Validation Error: Code: ValidationError Messages: One or more parameter
-//      values were invalid. The update expression attempted to update the secondary
-//      index key beyond allowed size limits. The update expression attempted
-//      to update the secondary index key to unsupported type. An operand in the
-//      update expression has an incorrect data type. Item size to update has
-//      exceeded the maximum allowed size. Number overflow. Attempting to store
-//      a number with magnitude larger than supported range. Type mismatch for
-//      attribute to update. Nesting Levels have exceeded supported limits. The
-//      document path provided in the update expression is invalid for update.
-//      The provided expression refers to an attribute that does not exist in
-//      the item.
+//   - TransactionInProgressException
+//     The transaction with the given request token is already in progress.
 //
-//   * ErrCodeTransactionInProgressException "TransactionInProgressException"
-//   The transaction with the given request token is already in progress.
+//     Recommended Settings
 //
-//   * ErrCodeIdempotentParameterMismatchException "IdempotentParameterMismatchException"
-//   DynamoDB rejected the request because you retried a request with a different
-//   payload but with an idempotent token that was already used.
+//     This is a general recommendation for handling the TransactionInProgressException.
+//     These settings help ensure that the client retries will trigger completion
+//     of the ongoing TransactWriteItems request.
 //
-//   * ErrCodeProvisionedThroughputExceededException "ProvisionedThroughputExceededException"
-//   Your request rate is too high. The AWS SDKs for DynamoDB automatically retry
-//   requests that receive this exception. Your request is eventually successful,
-//   unless your retry queue is too large to finish. Reduce the frequency of requests
-//   and use exponential backoff. For more information, go to Error Retries and
-//   Exponential Backoff (https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Programming.Errors.html#Programming.Errors.RetryAndBackoff)
-//   in the Amazon DynamoDB Developer Guide.
+//   - Set clientExecutionTimeout to a value that allows at least one retry
+//     to be processed after 5 seconds have elapsed since the first attempt for
+//     the TransactWriteItems operation.
 //
-//   * ErrCodeInternalServerError "InternalServerError"
-//   An error occurred on the server side.
+//   - Set socketTimeout to a value a little lower than the requestTimeout
+//     setting.
+//
+//   - requestTimeout should be set based on the time taken for the individual
+//     retries of a single HTTP request for your use case, but setting it to
+//     1 second or higher should work well to reduce chances of retries and TransactionInProgressException
+//     errors.
+//
+//   - Use exponential backoff when retrying and tune backoff if needed.
+//
+//     Assuming default retry policy (https://github.com/aws/aws-sdk-java/blob/fd409dee8ae23fb8953e0bb4dbde65536a7e0514/aws-java-sdk-core/src/main/java/com/amazonaws/retry/PredefinedRetryPolicies.java#L97),
+//     example timeout settings based on the guidelines above are as follows:
+//
+//     Example timeline:
+//
+//   - 0-1000 first attempt
+//
+//   - 1000-1500 first sleep/delay (default retry policy uses 500 ms as base
+//     delay for 4xx errors)
+//
+//   - 1500-2500 second attempt
+//
+//   - 2500-3500 second sleep/delay (500 * 2, exponential backoff)
+//
+//   - 3500-4500 third attempt
+//
+//   - 4500-6500 third sleep/delay (500 * 2^2)
+//
+//   - 6500-7500 fourth attempt (this can trigger inline recovery since 5 seconds
+//     have elapsed since the first attempt reached TC)
+//
+//   - IdempotentParameterMismatchException
+//     DynamoDB rejected the request because you retried a request with a different
+//     payload but with an idempotent token that was already used.
+//
+//   - ProvisionedThroughputExceededException
+//     Your request rate is too high. The Amazon Web Services SDKs for DynamoDB
+//     automatically retry requests that receive this exception. Your request is
+//     eventually successful, unless your retry queue is too large to finish. Reduce
+//     the frequency of requests and use exponential backoff. For more information,
+//     go to Error Retries and Exponential Backoff (https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Programming.Errors.html#Programming.Errors.RetryAndBackoff)
+//     in the Amazon DynamoDB Developer Guide.
+//
+//   - RequestLimitExceeded
+//     Throughput exceeds the current throughput quota for your account. Please
+//     contact Amazon Web Services Support (https://aws.amazon.com/support) to request
+//     a quota increase.
+//
+//   - InternalServerError
+//     An error occurred on the server side.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/TransactWriteItems
 func (c *DynamoDB) TransactWriteItems(input *TransactWriteItemsInput) (*TransactWriteItemsOutput, error) {
@@ -4353,14 +6405,13 @@ const opUntagResource = "UntagResource"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the UntagResourceRequest method.
+//	req, resp := client.UntagResourceRequest(params)
 //
-//    // Example sending a request using the UntagResourceRequest method.
-//    req, resp := client.UntagResourceRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/UntagResource
 func (c *DynamoDB) UntagResourceRequest(input *UntagResourceInput) (req *request.Request, output *UntagResourceOutput) {
@@ -4377,26 +6428,30 @@ func (c *DynamoDB) UntagResourceRequest(input *UntagResourceInput) (req *request
 	output = &UntagResourceOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
-	if aws.BoolValue(req.Config.EnableEndpointDiscovery) {
-		de := discovererDescribeEndpoints{
-			Required:      false,
-			EndpointCache: c.endpointCache,
-			Params: map[string]*string{
-				"op": aws.String(req.Operation.Name),
-			},
-			Client: c,
-		}
-
-		for k, v := range de.Params {
-			if v == nil {
-				delete(de.Params, k)
+	// if custom endpoint for the request is set to a non empty string,
+	// we skip the endpoint discovery workflow.
+	if req.Config.Endpoint == nil || *req.Config.Endpoint == "" {
+		if aws.BoolValue(req.Config.EnableEndpointDiscovery) {
+			de := discovererDescribeEndpoints{
+				Required:      false,
+				EndpointCache: c.endpointCache,
+				Params: map[string]*string{
+					"op": aws.String(req.Operation.Name),
+				},
+				Client: c,
 			}
-		}
 
-		req.Handlers.Build.PushFrontNamed(request.NamedHandler{
-			Name: "crr.endpointdiscovery",
-			Fn:   de.Handler,
-		})
+			for k, v := range de.Params {
+				if v == nil {
+					delete(de.Params, k)
+				}
+			}
+
+			req.Handlers.Build.PushFrontNamed(request.NamedHandler{
+				Name: "crr.endpointdiscovery",
+				Fn:   de.Handler,
+			})
+		}
 	}
 	return
 }
@@ -4416,32 +6471,36 @@ func (c *DynamoDB) UntagResourceRequest(input *UntagResourceInput) (req *request
 // See the AWS API reference guide for Amazon DynamoDB's
 // API operation UntagResource for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeLimitExceededException "LimitExceededException"
-//   There is no limit to the number of daily on-demand backups that can be taken.
+// Returned Error Types:
 //
-//   Up to 50 simultaneous table operations are allowed per account. These operations
-//   include CreateTable, UpdateTable, DeleteTable,UpdateTimeToLive, RestoreTableFromBackup,
-//   and RestoreTableToPointInTime.
+//   - LimitExceededException
+//     There is no limit to the number of daily on-demand backups that can be taken.
 //
-//   The only exception is when you are creating a table with one or more secondary
-//   indexes. You can have up to 25 such requests running at a time; however,
-//   if the table or index specifications are complex, DynamoDB might temporarily
-//   reduce the number of concurrent operations.
+//     For most purposes, up to 500 simultaneous table operations are allowed per
+//     account. These operations include CreateTable, UpdateTable, DeleteTable,UpdateTimeToLive,
+//     RestoreTableFromBackup, and RestoreTableToPointInTime.
 //
-//   There is a soft account limit of 256 tables.
+//     When you are creating a table with one or more secondary indexes, you can
+//     have up to 250 such requests running at a time. However, if the table or
+//     index specifications are complex, then DynamoDB might temporarily reduce
+//     the number of concurrent operations.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
-//   The operation tried to access a nonexistent table or index. The resource
-//   might not be specified correctly, or its status might not be ACTIVE.
+//     When importing into DynamoDB, up to 50 simultaneous import table operations
+//     are allowed per account.
 //
-//   * ErrCodeInternalServerError "InternalServerError"
-//   An error occurred on the server side.
+//     There is a soft account quota of 2,500 tables.
 //
-//   * ErrCodeResourceInUseException "ResourceInUseException"
-//   The operation conflicts with the resource's availability. For example, you
-//   attempted to recreate an existing table, or tried to delete a table currently
-//   in the CREATING state.
+//   - ResourceNotFoundException
+//     The operation tried to access a nonexistent table or index. The resource
+//     might not be specified correctly, or its status might not be ACTIVE.
+//
+//   - InternalServerError
+//     An error occurred on the server side.
+//
+//   - ResourceInUseException
+//     The operation conflicts with the resource's availability. For example, you
+//     attempted to recreate an existing table, or tried to delete a table currently
+//     in the CREATING state.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/UntagResource
 func (c *DynamoDB) UntagResource(input *UntagResourceInput) (*UntagResourceOutput, error) {
@@ -4481,14 +6540,13 @@ const opUpdateContinuousBackups = "UpdateContinuousBackups"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the UpdateContinuousBackupsRequest method.
+//	req, resp := client.UpdateContinuousBackupsRequest(params)
 //
-//    // Example sending a request using the UpdateContinuousBackupsRequest method.
-//    req, resp := client.UpdateContinuousBackupsRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/UpdateContinuousBackups
 func (c *DynamoDB) UpdateContinuousBackupsRequest(input *UpdateContinuousBackupsInput) (req *request.Request, output *UpdateContinuousBackupsOutput) {
@@ -4504,26 +6562,30 @@ func (c *DynamoDB) UpdateContinuousBackupsRequest(input *UpdateContinuousBackups
 
 	output = &UpdateContinuousBackupsOutput{}
 	req = c.newRequest(op, input, output)
-	if aws.BoolValue(req.Config.EnableEndpointDiscovery) {
-		de := discovererDescribeEndpoints{
-			Required:      false,
-			EndpointCache: c.endpointCache,
-			Params: map[string]*string{
-				"op": aws.String(req.Operation.Name),
-			},
-			Client: c,
-		}
-
-		for k, v := range de.Params {
-			if v == nil {
-				delete(de.Params, k)
+	// if custom endpoint for the request is set to a non empty string,
+	// we skip the endpoint discovery workflow.
+	if req.Config.Endpoint == nil || *req.Config.Endpoint == "" {
+		if aws.BoolValue(req.Config.EnableEndpointDiscovery) {
+			de := discovererDescribeEndpoints{
+				Required:      false,
+				EndpointCache: c.endpointCache,
+				Params: map[string]*string{
+					"op": aws.String(req.Operation.Name),
+				},
+				Client: c,
 			}
-		}
 
-		req.Handlers.Build.PushFrontNamed(request.NamedHandler{
-			Name: "crr.endpointdiscovery",
-			Fn:   de.Handler,
-		})
+			for k, v := range de.Params {
+				if v == nil {
+					delete(de.Params, k)
+				}
+			}
+
+			req.Handlers.Build.PushFrontNamed(request.NamedHandler{
+				Name: "crr.endpointdiscovery",
+				Fn:   de.Handler,
+			})
+		}
 	}
 	return
 }
@@ -4549,16 +6611,18 @@ func (c *DynamoDB) UpdateContinuousBackupsRequest(input *UpdateContinuousBackups
 // See the AWS API reference guide for Amazon DynamoDB's
 // API operation UpdateContinuousBackups for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeTableNotFoundException "TableNotFoundException"
-//   A source table with the name TableName does not currently exist within the
-//   subscriber's account.
+// Returned Error Types:
 //
-//   * ErrCodeContinuousBackupsUnavailableException "ContinuousBackupsUnavailableException"
-//   Backups have not yet been enabled for this table.
+//   - TableNotFoundException
+//     A source table with the name TableName does not currently exist within the
+//     subscriber's account or the subscriber is operating in the wrong Amazon Web
+//     Services Region.
 //
-//   * ErrCodeInternalServerError "InternalServerError"
-//   An error occurred on the server side.
+//   - ContinuousBackupsUnavailableException
+//     Backups have not yet been enabled for this table.
+//
+//   - InternalServerError
+//     An error occurred on the server side.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/UpdateContinuousBackups
 func (c *DynamoDB) UpdateContinuousBackups(input *UpdateContinuousBackupsInput) (*UpdateContinuousBackupsOutput, error) {
@@ -4582,6 +6646,96 @@ func (c *DynamoDB) UpdateContinuousBackupsWithContext(ctx aws.Context, input *Up
 	return out, req.Send()
 }
 
+const opUpdateContributorInsights = "UpdateContributorInsights"
+
+// UpdateContributorInsightsRequest generates a "aws/request.Request" representing the
+// client's request for the UpdateContributorInsights operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See UpdateContributorInsights for more information on using the UpdateContributorInsights
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//	// Example sending a request using the UpdateContributorInsightsRequest method.
+//	req, resp := client.UpdateContributorInsightsRequest(params)
+//
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/UpdateContributorInsights
+func (c *DynamoDB) UpdateContributorInsightsRequest(input *UpdateContributorInsightsInput) (req *request.Request, output *UpdateContributorInsightsOutput) {
+	op := &request.Operation{
+		Name:       opUpdateContributorInsights,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &UpdateContributorInsightsInput{}
+	}
+
+	output = &UpdateContributorInsightsOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// UpdateContributorInsights API operation for Amazon DynamoDB.
+//
+// Updates the status for contributor insights for a specific table or index.
+// CloudWatch Contributor Insights for DynamoDB graphs display the partition
+// key and (if applicable) sort key of frequently accessed items and frequently
+// throttled items in plaintext. If you require the use of Amazon Web Services
+// Key Management Service (KMS) to encrypt this table’s partition key and
+// sort key data with an Amazon Web Services managed key or customer managed
+// key, you should not enable CloudWatch Contributor Insights for DynamoDB for
+// this table.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon DynamoDB's
+// API operation UpdateContributorInsights for usage and error information.
+//
+// Returned Error Types:
+//
+//   - ResourceNotFoundException
+//     The operation tried to access a nonexistent table or index. The resource
+//     might not be specified correctly, or its status might not be ACTIVE.
+//
+//   - InternalServerError
+//     An error occurred on the server side.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/UpdateContributorInsights
+func (c *DynamoDB) UpdateContributorInsights(input *UpdateContributorInsightsInput) (*UpdateContributorInsightsOutput, error) {
+	req, out := c.UpdateContributorInsightsRequest(input)
+	return out, req.Send()
+}
+
+// UpdateContributorInsightsWithContext is the same as UpdateContributorInsights with the addition of
+// the ability to pass a context and additional request options.
+//
+// See UpdateContributorInsights for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *DynamoDB) UpdateContributorInsightsWithContext(ctx aws.Context, input *UpdateContributorInsightsInput, opts ...request.Option) (*UpdateContributorInsightsOutput, error) {
+	req, out := c.UpdateContributorInsightsRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opUpdateGlobalTable = "UpdateGlobalTable"
 
 // UpdateGlobalTableRequest generates a "aws/request.Request" representing the
@@ -4598,14 +6752,13 @@ const opUpdateGlobalTable = "UpdateGlobalTable"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the UpdateGlobalTableRequest method.
+//	req, resp := client.UpdateGlobalTableRequest(params)
 //
-//    // Example sending a request using the UpdateGlobalTableRequest method.
-//    req, resp := client.UpdateGlobalTableRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/UpdateGlobalTable
 func (c *DynamoDB) UpdateGlobalTableRequest(input *UpdateGlobalTableInput) (req *request.Request, output *UpdateGlobalTableOutput) {
@@ -4621,26 +6774,30 @@ func (c *DynamoDB) UpdateGlobalTableRequest(input *UpdateGlobalTableInput) (req 
 
 	output = &UpdateGlobalTableOutput{}
 	req = c.newRequest(op, input, output)
-	if aws.BoolValue(req.Config.EnableEndpointDiscovery) {
-		de := discovererDescribeEndpoints{
-			Required:      false,
-			EndpointCache: c.endpointCache,
-			Params: map[string]*string{
-				"op": aws.String(req.Operation.Name),
-			},
-			Client: c,
-		}
-
-		for k, v := range de.Params {
-			if v == nil {
-				delete(de.Params, k)
+	// if custom endpoint for the request is set to a non empty string,
+	// we skip the endpoint discovery workflow.
+	if req.Config.Endpoint == nil || *req.Config.Endpoint == "" {
+		if aws.BoolValue(req.Config.EnableEndpointDiscovery) {
+			de := discovererDescribeEndpoints{
+				Required:      false,
+				EndpointCache: c.endpointCache,
+				Params: map[string]*string{
+					"op": aws.String(req.Operation.Name),
+				},
+				Client: c,
 			}
-		}
 
-		req.Handlers.Build.PushFrontNamed(request.NamedHandler{
-			Name: "crr.endpointdiscovery",
-			Fn:   de.Handler,
-		})
+			for k, v := range de.Params {
+				if v == nil {
+					delete(de.Params, k)
+				}
+			}
+
+			req.Handlers.Build.PushFrontNamed(request.NamedHandler{
+				Name: "crr.endpointdiscovery",
+				Fn:   de.Handler,
+			})
+		}
 	}
 	return
 }
@@ -4653,6 +6810,19 @@ func (c *DynamoDB) UpdateGlobalTableRequest(input *UpdateGlobalTableInput) (req 
 // schema, have DynamoDB Streams enabled, and have the same provisioned and
 // maximum write capacity units.
 //
+// This operation only applies to Version 2017.11.29 (Legacy) (https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/globaltables.V1.html)
+// of global tables. We recommend using Version 2019.11.21 (Current) (https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/globaltables.V2.html)
+// when creating new global tables, as it provides greater flexibility, higher
+// efficiency and consumes less write capacity than 2017.11.29 (Legacy). To
+// determine which version you are using, see Determining the version (https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/globaltables.DetermineVersion.html).
+// To update existing global tables from version 2017.11.29 (Legacy) to version
+// 2019.11.21 (Current), see Updating global tables (https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/V2globaltables_upgrade.html).
+//
+// This operation only applies to Version 2017.11.29 (https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/globaltables.V1.html)
+// of global tables. If you are using global tables Version 2019.11.21 (https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/globaltables.V2.html)
+// you can use DescribeTable (https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_DescribeTable.html)
+// instead.
+//
 // Although you can use UpdateGlobalTable to add replicas and remove replicas
 // in a single request, for simplicity we recommend that you issue separate
 // requests for adding or removing replicas.
@@ -4660,13 +6830,13 @@ func (c *DynamoDB) UpdateGlobalTableRequest(input *UpdateGlobalTableInput) (req 
 // If global secondary indexes are specified, then the following conditions
 // must also be met:
 //
-//    * The global secondary indexes must have the same name.
+//   - The global secondary indexes must have the same name.
 //
-//    * The global secondary indexes must have the same hash key and sort key
-//    (if present).
+//   - The global secondary indexes must have the same hash key and sort key
+//     (if present).
 //
-//    * The global secondary indexes must have the same provisioned and maximum
-//    write capacity units.
+//   - The global secondary indexes must have the same provisioned and maximum
+//     write capacity units.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -4675,22 +6845,24 @@ func (c *DynamoDB) UpdateGlobalTableRequest(input *UpdateGlobalTableInput) (req 
 // See the AWS API reference guide for Amazon DynamoDB's
 // API operation UpdateGlobalTable for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInternalServerError "InternalServerError"
-//   An error occurred on the server side.
+// Returned Error Types:
 //
-//   * ErrCodeGlobalTableNotFoundException "GlobalTableNotFoundException"
-//   The specified global table does not exist.
+//   - InternalServerError
+//     An error occurred on the server side.
 //
-//   * ErrCodeReplicaAlreadyExistsException "ReplicaAlreadyExistsException"
-//   The specified replica is already part of the global table.
+//   - GlobalTableNotFoundException
+//     The specified global table does not exist.
 //
-//   * ErrCodeReplicaNotFoundException "ReplicaNotFoundException"
-//   The specified replica is no longer part of the global table.
+//   - ReplicaAlreadyExistsException
+//     The specified replica is already part of the global table.
 //
-//   * ErrCodeTableNotFoundException "TableNotFoundException"
-//   A source table with the name TableName does not currently exist within the
-//   subscriber's account.
+//   - ReplicaNotFoundException
+//     The specified replica is no longer part of the global table.
+//
+//   - TableNotFoundException
+//     A source table with the name TableName does not currently exist within the
+//     subscriber's account or the subscriber is operating in the wrong Amazon Web
+//     Services Region.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/UpdateGlobalTable
 func (c *DynamoDB) UpdateGlobalTable(input *UpdateGlobalTableInput) (*UpdateGlobalTableOutput, error) {
@@ -4730,14 +6902,13 @@ const opUpdateGlobalTableSettings = "UpdateGlobalTableSettings"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the UpdateGlobalTableSettingsRequest method.
+//	req, resp := client.UpdateGlobalTableSettingsRequest(params)
 //
-//    // Example sending a request using the UpdateGlobalTableSettingsRequest method.
-//    req, resp := client.UpdateGlobalTableSettingsRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/UpdateGlobalTableSettings
 func (c *DynamoDB) UpdateGlobalTableSettingsRequest(input *UpdateGlobalTableSettingsInput) (req *request.Request, output *UpdateGlobalTableSettingsOutput) {
@@ -4753,26 +6924,30 @@ func (c *DynamoDB) UpdateGlobalTableSettingsRequest(input *UpdateGlobalTableSett
 
 	output = &UpdateGlobalTableSettingsOutput{}
 	req = c.newRequest(op, input, output)
-	if aws.BoolValue(req.Config.EnableEndpointDiscovery) {
-		de := discovererDescribeEndpoints{
-			Required:      false,
-			EndpointCache: c.endpointCache,
-			Params: map[string]*string{
-				"op": aws.String(req.Operation.Name),
-			},
-			Client: c,
-		}
-
-		for k, v := range de.Params {
-			if v == nil {
-				delete(de.Params, k)
+	// if custom endpoint for the request is set to a non empty string,
+	// we skip the endpoint discovery workflow.
+	if req.Config.Endpoint == nil || *req.Config.Endpoint == "" {
+		if aws.BoolValue(req.Config.EnableEndpointDiscovery) {
+			de := discovererDescribeEndpoints{
+				Required:      false,
+				EndpointCache: c.endpointCache,
+				Params: map[string]*string{
+					"op": aws.String(req.Operation.Name),
+				},
+				Client: c,
 			}
-		}
 
-		req.Handlers.Build.PushFrontNamed(request.NamedHandler{
-			Name: "crr.endpointdiscovery",
-			Fn:   de.Handler,
-		})
+			for k, v := range de.Params {
+				if v == nil {
+					delete(de.Params, k)
+				}
+			}
+
+			req.Handlers.Build.PushFrontNamed(request.NamedHandler{
+				Name: "crr.endpointdiscovery",
+				Fn:   de.Handler,
+			})
+		}
 	}
 	return
 }
@@ -4781,6 +6956,14 @@ func (c *DynamoDB) UpdateGlobalTableSettingsRequest(input *UpdateGlobalTableSett
 //
 // Updates settings for a global table.
 //
+// This operation only applies to Version 2017.11.29 (Legacy) (https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/globaltables.V1.html)
+// of global tables. We recommend using Version 2019.11.21 (Current) (https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/globaltables.V2.html)
+// when creating new global tables, as it provides greater flexibility, higher
+// efficiency and consumes less write capacity than 2017.11.29 (Legacy). To
+// determine which version you are using, see Determining the version (https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/globaltables.DetermineVersion.html).
+// To update existing global tables from version 2017.11.29 (Legacy) to version
+// 2019.11.21 (Current), see Updating global tables (https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/V2globaltables_upgrade.html).
+//
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
 // the error.
@@ -4788,37 +6971,41 @@ func (c *DynamoDB) UpdateGlobalTableSettingsRequest(input *UpdateGlobalTableSett
 // See the AWS API reference guide for Amazon DynamoDB's
 // API operation UpdateGlobalTableSettings for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeGlobalTableNotFoundException "GlobalTableNotFoundException"
-//   The specified global table does not exist.
+// Returned Error Types:
 //
-//   * ErrCodeReplicaNotFoundException "ReplicaNotFoundException"
-//   The specified replica is no longer part of the global table.
+//   - GlobalTableNotFoundException
+//     The specified global table does not exist.
 //
-//   * ErrCodeIndexNotFoundException "IndexNotFoundException"
-//   The operation tried to access a nonexistent index.
+//   - ReplicaNotFoundException
+//     The specified replica is no longer part of the global table.
 //
-//   * ErrCodeLimitExceededException "LimitExceededException"
-//   There is no limit to the number of daily on-demand backups that can be taken.
+//   - IndexNotFoundException
+//     The operation tried to access a nonexistent index.
 //
-//   Up to 50 simultaneous table operations are allowed per account. These operations
-//   include CreateTable, UpdateTable, DeleteTable,UpdateTimeToLive, RestoreTableFromBackup,
-//   and RestoreTableToPointInTime.
+//   - LimitExceededException
+//     There is no limit to the number of daily on-demand backups that can be taken.
 //
-//   The only exception is when you are creating a table with one or more secondary
-//   indexes. You can have up to 25 such requests running at a time; however,
-//   if the table or index specifications are complex, DynamoDB might temporarily
-//   reduce the number of concurrent operations.
+//     For most purposes, up to 500 simultaneous table operations are allowed per
+//     account. These operations include CreateTable, UpdateTable, DeleteTable,UpdateTimeToLive,
+//     RestoreTableFromBackup, and RestoreTableToPointInTime.
 //
-//   There is a soft account limit of 256 tables.
+//     When you are creating a table with one or more secondary indexes, you can
+//     have up to 250 such requests running at a time. However, if the table or
+//     index specifications are complex, then DynamoDB might temporarily reduce
+//     the number of concurrent operations.
 //
-//   * ErrCodeResourceInUseException "ResourceInUseException"
-//   The operation conflicts with the resource's availability. For example, you
-//   attempted to recreate an existing table, or tried to delete a table currently
-//   in the CREATING state.
+//     When importing into DynamoDB, up to 50 simultaneous import table operations
+//     are allowed per account.
 //
-//   * ErrCodeInternalServerError "InternalServerError"
-//   An error occurred on the server side.
+//     There is a soft account quota of 2,500 tables.
+//
+//   - ResourceInUseException
+//     The operation conflicts with the resource's availability. For example, you
+//     attempted to recreate an existing table, or tried to delete a table currently
+//     in the CREATING state.
+//
+//   - InternalServerError
+//     An error occurred on the server side.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/UpdateGlobalTableSettings
 func (c *DynamoDB) UpdateGlobalTableSettings(input *UpdateGlobalTableSettingsInput) (*UpdateGlobalTableSettingsOutput, error) {
@@ -4858,14 +7045,13 @@ const opUpdateItem = "UpdateItem"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the UpdateItemRequest method.
+//	req, resp := client.UpdateItemRequest(params)
 //
-//    // Example sending a request using the UpdateItemRequest method.
-//    req, resp := client.UpdateItemRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/UpdateItem
 func (c *DynamoDB) UpdateItemRequest(input *UpdateItemInput) (req *request.Request, output *UpdateItemOutput) {
@@ -4881,26 +7067,30 @@ func (c *DynamoDB) UpdateItemRequest(input *UpdateItemInput) (req *request.Reque
 
 	output = &UpdateItemOutput{}
 	req = c.newRequest(op, input, output)
-	if aws.BoolValue(req.Config.EnableEndpointDiscovery) {
-		de := discovererDescribeEndpoints{
-			Required:      false,
-			EndpointCache: c.endpointCache,
-			Params: map[string]*string{
-				"op": aws.String(req.Operation.Name),
-			},
-			Client: c,
-		}
-
-		for k, v := range de.Params {
-			if v == nil {
-				delete(de.Params, k)
+	// if custom endpoint for the request is set to a non empty string,
+	// we skip the endpoint discovery workflow.
+	if req.Config.Endpoint == nil || *req.Config.Endpoint == "" {
+		if aws.BoolValue(req.Config.EnableEndpointDiscovery) {
+			de := discovererDescribeEndpoints{
+				Required:      false,
+				EndpointCache: c.endpointCache,
+				Params: map[string]*string{
+					"op": aws.String(req.Operation.Name),
+				},
+				Client: c,
 			}
-		}
 
-		req.Handlers.Build.PushFrontNamed(request.NamedHandler{
-			Name: "crr.endpointdiscovery",
-			Fn:   de.Handler,
-		})
+			for k, v := range de.Params {
+				if v == nil {
+					delete(de.Params, k)
+				}
+			}
+
+			req.Handlers.Build.PushFrontNamed(request.NamedHandler{
+				Name: "crr.endpointdiscovery",
+				Fn:   de.Handler,
+			})
+		}
 	}
 	return
 }
@@ -4923,36 +7113,37 @@ func (c *DynamoDB) UpdateItemRequest(input *UpdateItemInput) (req *request.Reque
 // See the AWS API reference guide for Amazon DynamoDB's
 // API operation UpdateItem for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeConditionalCheckFailedException "ConditionalCheckFailedException"
-//   A condition specified in the operation could not be evaluated.
+// Returned Error Types:
 //
-//   * ErrCodeProvisionedThroughputExceededException "ProvisionedThroughputExceededException"
-//   Your request rate is too high. The AWS SDKs for DynamoDB automatically retry
-//   requests that receive this exception. Your request is eventually successful,
-//   unless your retry queue is too large to finish. Reduce the frequency of requests
-//   and use exponential backoff. For more information, go to Error Retries and
-//   Exponential Backoff (https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Programming.Errors.html#Programming.Errors.RetryAndBackoff)
-//   in the Amazon DynamoDB Developer Guide.
+//   - ConditionalCheckFailedException
+//     A condition specified in the operation could not be evaluated.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
-//   The operation tried to access a nonexistent table or index. The resource
-//   might not be specified correctly, or its status might not be ACTIVE.
+//   - ProvisionedThroughputExceededException
+//     Your request rate is too high. The Amazon Web Services SDKs for DynamoDB
+//     automatically retry requests that receive this exception. Your request is
+//     eventually successful, unless your retry queue is too large to finish. Reduce
+//     the frequency of requests and use exponential backoff. For more information,
+//     go to Error Retries and Exponential Backoff (https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Programming.Errors.html#Programming.Errors.RetryAndBackoff)
+//     in the Amazon DynamoDB Developer Guide.
 //
-//   * ErrCodeItemCollectionSizeLimitExceededException "ItemCollectionSizeLimitExceededException"
-//   An item collection is too large. This exception is only returned for tables
-//   that have one or more local secondary indexes.
+//   - ResourceNotFoundException
+//     The operation tried to access a nonexistent table or index. The resource
+//     might not be specified correctly, or its status might not be ACTIVE.
 //
-//   * ErrCodeTransactionConflictException "TransactionConflictException"
-//   Operation was rejected because there is an ongoing transaction for the item.
+//   - ItemCollectionSizeLimitExceededException
+//     An item collection is too large. This exception is only returned for tables
+//     that have one or more local secondary indexes.
 //
-//   * ErrCodeRequestLimitExceeded "RequestLimitExceeded"
-//   Throughput exceeds the current throughput limit for your account. Please
-//   contact AWS Support at AWS Support (https://aws.amazon.com/support) to request
-//   a limit increase.
+//   - TransactionConflictException
+//     Operation was rejected because there is an ongoing transaction for the item.
 //
-//   * ErrCodeInternalServerError "InternalServerError"
-//   An error occurred on the server side.
+//   - RequestLimitExceeded
+//     Throughput exceeds the current throughput quota for your account. Please
+//     contact Amazon Web Services Support (https://aws.amazon.com/support) to request
+//     a quota increase.
+//
+//   - InternalServerError
+//     An error occurred on the server side.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/UpdateItem
 func (c *DynamoDB) UpdateItem(input *UpdateItemInput) (*UpdateItemOutput, error) {
@@ -4992,14 +7183,13 @@ const opUpdateTable = "UpdateTable"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the UpdateTableRequest method.
+//	req, resp := client.UpdateTableRequest(params)
 //
-//    // Example sending a request using the UpdateTableRequest method.
-//    req, resp := client.UpdateTableRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/UpdateTable
 func (c *DynamoDB) UpdateTableRequest(input *UpdateTableInput) (req *request.Request, output *UpdateTableOutput) {
@@ -5015,26 +7205,30 @@ func (c *DynamoDB) UpdateTableRequest(input *UpdateTableInput) (req *request.Req
 
 	output = &UpdateTableOutput{}
 	req = c.newRequest(op, input, output)
-	if aws.BoolValue(req.Config.EnableEndpointDiscovery) {
-		de := discovererDescribeEndpoints{
-			Required:      false,
-			EndpointCache: c.endpointCache,
-			Params: map[string]*string{
-				"op": aws.String(req.Operation.Name),
-			},
-			Client: c,
-		}
-
-		for k, v := range de.Params {
-			if v == nil {
-				delete(de.Params, k)
+	// if custom endpoint for the request is set to a non empty string,
+	// we skip the endpoint discovery workflow.
+	if req.Config.Endpoint == nil || *req.Config.Endpoint == "" {
+		if aws.BoolValue(req.Config.EnableEndpointDiscovery) {
+			de := discovererDescribeEndpoints{
+				Required:      false,
+				EndpointCache: c.endpointCache,
+				Params: map[string]*string{
+					"op": aws.String(req.Operation.Name),
+				},
+				Client: c,
 			}
-		}
 
-		req.Handlers.Build.PushFrontNamed(request.NamedHandler{
-			Name: "crr.endpointdiscovery",
-			Fn:   de.Handler,
-		})
+			for k, v := range de.Params {
+				if v == nil {
+					delete(de.Params, k)
+				}
+			}
+
+			req.Handlers.Build.PushFrontNamed(request.NamedHandler{
+				Name: "crr.endpointdiscovery",
+				Fn:   de.Handler,
+			})
+		}
 	}
 	return
 }
@@ -5044,16 +7238,17 @@ func (c *DynamoDB) UpdateTableRequest(input *UpdateTableInput) (req *request.Req
 // Modifies the provisioned throughput settings, global secondary indexes, or
 // DynamoDB Streams settings for a given table.
 //
+// This operation only applies to Version 2019.11.21 (Current) (https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/globaltables.V2.html)
+// of global tables.
+//
 // You can only perform one of the following operations at once:
 //
-//    * Modify the provisioned throughput settings of the table.
+//   - Modify the provisioned throughput settings of the table.
 //
-//    * Enable or disable DynamoDB Streams on the table.
+//   - Remove a global secondary index from the table.
 //
-//    * Remove a global secondary index from the table.
-//
-//    * Create a new global secondary index on the table. After the index begins
-//    backfilling, you can use UpdateTable to perform other operations.
+//   - Create a new global secondary index on the table. After the index begins
+//     backfilling, you can use UpdateTable to perform other operations.
 //
 // UpdateTable is an asynchronous operation; while it is executing, the table
 // status changes from ACTIVE to UPDATING. While it is UPDATING, you cannot
@@ -5067,32 +7262,36 @@ func (c *DynamoDB) UpdateTableRequest(input *UpdateTableInput) (req *request.Req
 // See the AWS API reference guide for Amazon DynamoDB's
 // API operation UpdateTable for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeResourceInUseException "ResourceInUseException"
-//   The operation conflicts with the resource's availability. For example, you
-//   attempted to recreate an existing table, or tried to delete a table currently
-//   in the CREATING state.
+// Returned Error Types:
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
-//   The operation tried to access a nonexistent table or index. The resource
-//   might not be specified correctly, or its status might not be ACTIVE.
+//   - ResourceInUseException
+//     The operation conflicts with the resource's availability. For example, you
+//     attempted to recreate an existing table, or tried to delete a table currently
+//     in the CREATING state.
 //
-//   * ErrCodeLimitExceededException "LimitExceededException"
-//   There is no limit to the number of daily on-demand backups that can be taken.
+//   - ResourceNotFoundException
+//     The operation tried to access a nonexistent table or index. The resource
+//     might not be specified correctly, or its status might not be ACTIVE.
 //
-//   Up to 50 simultaneous table operations are allowed per account. These operations
-//   include CreateTable, UpdateTable, DeleteTable,UpdateTimeToLive, RestoreTableFromBackup,
-//   and RestoreTableToPointInTime.
+//   - LimitExceededException
+//     There is no limit to the number of daily on-demand backups that can be taken.
 //
-//   The only exception is when you are creating a table with one or more secondary
-//   indexes. You can have up to 25 such requests running at a time; however,
-//   if the table or index specifications are complex, DynamoDB might temporarily
-//   reduce the number of concurrent operations.
+//     For most purposes, up to 500 simultaneous table operations are allowed per
+//     account. These operations include CreateTable, UpdateTable, DeleteTable,UpdateTimeToLive,
+//     RestoreTableFromBackup, and RestoreTableToPointInTime.
 //
-//   There is a soft account limit of 256 tables.
+//     When you are creating a table with one or more secondary indexes, you can
+//     have up to 250 such requests running at a time. However, if the table or
+//     index specifications are complex, then DynamoDB might temporarily reduce
+//     the number of concurrent operations.
 //
-//   * ErrCodeInternalServerError "InternalServerError"
-//   An error occurred on the server side.
+//     When importing into DynamoDB, up to 50 simultaneous import table operations
+//     are allowed per account.
+//
+//     There is a soft account quota of 2,500 tables.
+//
+//   - InternalServerError
+//     An error occurred on the server side.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/UpdateTable
 func (c *DynamoDB) UpdateTable(input *UpdateTableInput) (*UpdateTableOutput, error) {
@@ -5116,6 +7315,114 @@ func (c *DynamoDB) UpdateTableWithContext(ctx aws.Context, input *UpdateTableInp
 	return out, req.Send()
 }
 
+const opUpdateTableReplicaAutoScaling = "UpdateTableReplicaAutoScaling"
+
+// UpdateTableReplicaAutoScalingRequest generates a "aws/request.Request" representing the
+// client's request for the UpdateTableReplicaAutoScaling operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See UpdateTableReplicaAutoScaling for more information on using the UpdateTableReplicaAutoScaling
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//	// Example sending a request using the UpdateTableReplicaAutoScalingRequest method.
+//	req, resp := client.UpdateTableReplicaAutoScalingRequest(params)
+//
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/UpdateTableReplicaAutoScaling
+func (c *DynamoDB) UpdateTableReplicaAutoScalingRequest(input *UpdateTableReplicaAutoScalingInput) (req *request.Request, output *UpdateTableReplicaAutoScalingOutput) {
+	op := &request.Operation{
+		Name:       opUpdateTableReplicaAutoScaling,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &UpdateTableReplicaAutoScalingInput{}
+	}
+
+	output = &UpdateTableReplicaAutoScalingOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// UpdateTableReplicaAutoScaling API operation for Amazon DynamoDB.
+//
+// Updates auto scaling settings on your global tables at once.
+//
+// This operation only applies to Version 2019.11.21 (Current) (https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/globaltables.V2.html)
+// of global tables.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon DynamoDB's
+// API operation UpdateTableReplicaAutoScaling for usage and error information.
+//
+// Returned Error Types:
+//
+//   - ResourceNotFoundException
+//     The operation tried to access a nonexistent table or index. The resource
+//     might not be specified correctly, or its status might not be ACTIVE.
+//
+//   - ResourceInUseException
+//     The operation conflicts with the resource's availability. For example, you
+//     attempted to recreate an existing table, or tried to delete a table currently
+//     in the CREATING state.
+//
+//   - LimitExceededException
+//     There is no limit to the number of daily on-demand backups that can be taken.
+//
+//     For most purposes, up to 500 simultaneous table operations are allowed per
+//     account. These operations include CreateTable, UpdateTable, DeleteTable,UpdateTimeToLive,
+//     RestoreTableFromBackup, and RestoreTableToPointInTime.
+//
+//     When you are creating a table with one or more secondary indexes, you can
+//     have up to 250 such requests running at a time. However, if the table or
+//     index specifications are complex, then DynamoDB might temporarily reduce
+//     the number of concurrent operations.
+//
+//     When importing into DynamoDB, up to 50 simultaneous import table operations
+//     are allowed per account.
+//
+//     There is a soft account quota of 2,500 tables.
+//
+//   - InternalServerError
+//     An error occurred on the server side.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/UpdateTableReplicaAutoScaling
+func (c *DynamoDB) UpdateTableReplicaAutoScaling(input *UpdateTableReplicaAutoScalingInput) (*UpdateTableReplicaAutoScalingOutput, error) {
+	req, out := c.UpdateTableReplicaAutoScalingRequest(input)
+	return out, req.Send()
+}
+
+// UpdateTableReplicaAutoScalingWithContext is the same as UpdateTableReplicaAutoScaling with the addition of
+// the ability to pass a context and additional request options.
+//
+// See UpdateTableReplicaAutoScaling for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *DynamoDB) UpdateTableReplicaAutoScalingWithContext(ctx aws.Context, input *UpdateTableReplicaAutoScalingInput, opts ...request.Option) (*UpdateTableReplicaAutoScalingOutput, error) {
+	req, out := c.UpdateTableReplicaAutoScalingRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opUpdateTimeToLive = "UpdateTimeToLive"
 
 // UpdateTimeToLiveRequest generates a "aws/request.Request" representing the
@@ -5132,14 +7439,13 @@ const opUpdateTimeToLive = "UpdateTimeToLive"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the UpdateTimeToLiveRequest method.
+//	req, resp := client.UpdateTimeToLiveRequest(params)
 //
-//    // Example sending a request using the UpdateTimeToLiveRequest method.
-//    req, resp := client.UpdateTimeToLiveRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/UpdateTimeToLive
 func (c *DynamoDB) UpdateTimeToLiveRequest(input *UpdateTimeToLiveInput) (req *request.Request, output *UpdateTimeToLiveOutput) {
@@ -5155,26 +7461,30 @@ func (c *DynamoDB) UpdateTimeToLiveRequest(input *UpdateTimeToLiveInput) (req *r
 
 	output = &UpdateTimeToLiveOutput{}
 	req = c.newRequest(op, input, output)
-	if aws.BoolValue(req.Config.EnableEndpointDiscovery) {
-		de := discovererDescribeEndpoints{
-			Required:      false,
-			EndpointCache: c.endpointCache,
-			Params: map[string]*string{
-				"op": aws.String(req.Operation.Name),
-			},
-			Client: c,
-		}
-
-		for k, v := range de.Params {
-			if v == nil {
-				delete(de.Params, k)
+	// if custom endpoint for the request is set to a non empty string,
+	// we skip the endpoint discovery workflow.
+	if req.Config.Endpoint == nil || *req.Config.Endpoint == "" {
+		if aws.BoolValue(req.Config.EnableEndpointDiscovery) {
+			de := discovererDescribeEndpoints{
+				Required:      false,
+				EndpointCache: c.endpointCache,
+				Params: map[string]*string{
+					"op": aws.String(req.Operation.Name),
+				},
+				Client: c,
 			}
-		}
 
-		req.Handlers.Build.PushFrontNamed(request.NamedHandler{
-			Name: "crr.endpointdiscovery",
-			Fn:   de.Handler,
-		})
+			for k, v := range de.Params {
+				if v == nil {
+					delete(de.Params, k)
+				}
+			}
+
+			req.Handlers.Build.PushFrontNamed(request.NamedHandler{
+				Name: "crr.endpointdiscovery",
+				Fn:   de.Handler,
+			})
+		}
 	}
 	return
 }
@@ -5217,32 +7527,36 @@ func (c *DynamoDB) UpdateTimeToLiveRequest(input *UpdateTimeToLiveInput) (req *r
 // See the AWS API reference guide for Amazon DynamoDB's
 // API operation UpdateTimeToLive for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeResourceInUseException "ResourceInUseException"
-//   The operation conflicts with the resource's availability. For example, you
-//   attempted to recreate an existing table, or tried to delete a table currently
-//   in the CREATING state.
+// Returned Error Types:
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
-//   The operation tried to access a nonexistent table or index. The resource
-//   might not be specified correctly, or its status might not be ACTIVE.
+//   - ResourceInUseException
+//     The operation conflicts with the resource's availability. For example, you
+//     attempted to recreate an existing table, or tried to delete a table currently
+//     in the CREATING state.
 //
-//   * ErrCodeLimitExceededException "LimitExceededException"
-//   There is no limit to the number of daily on-demand backups that can be taken.
+//   - ResourceNotFoundException
+//     The operation tried to access a nonexistent table or index. The resource
+//     might not be specified correctly, or its status might not be ACTIVE.
 //
-//   Up to 50 simultaneous table operations are allowed per account. These operations
-//   include CreateTable, UpdateTable, DeleteTable,UpdateTimeToLive, RestoreTableFromBackup,
-//   and RestoreTableToPointInTime.
+//   - LimitExceededException
+//     There is no limit to the number of daily on-demand backups that can be taken.
 //
-//   The only exception is when you are creating a table with one or more secondary
-//   indexes. You can have up to 25 such requests running at a time; however,
-//   if the table or index specifications are complex, DynamoDB might temporarily
-//   reduce the number of concurrent operations.
+//     For most purposes, up to 500 simultaneous table operations are allowed per
+//     account. These operations include CreateTable, UpdateTable, DeleteTable,UpdateTimeToLive,
+//     RestoreTableFromBackup, and RestoreTableToPointInTime.
 //
-//   There is a soft account limit of 256 tables.
+//     When you are creating a table with one or more secondary indexes, you can
+//     have up to 250 such requests running at a time. However, if the table or
+//     index specifications are complex, then DynamoDB might temporarily reduce
+//     the number of concurrent operations.
 //
-//   * ErrCodeInternalServerError "InternalServerError"
-//   An error occurred on the server side.
+//     When importing into DynamoDB, up to 50 simultaneous import table operations
+//     are allowed per account.
+//
+//     There is a soft account quota of 2,500 tables.
+//
+//   - InternalServerError
+//     An error occurred on the server side.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/UpdateTimeToLive
 func (c *DynamoDB) UpdateTimeToLive(input *UpdateTimeToLiveInput) (*UpdateTimeToLiveOutput, error) {
@@ -5266,6 +7580,64 @@ func (c *DynamoDB) UpdateTimeToLiveWithContext(ctx aws.Context, input *UpdateTim
 	return out, req.Send()
 }
 
+// Contains details of a table archival operation.
+type ArchivalSummary struct {
+	_ struct{} `type:"structure"`
+
+	// The Amazon Resource Name (ARN) of the backup the table was archived to, when
+	// applicable in the archival reason. If you wish to restore this backup to
+	// the same table name, you will need to delete the original table.
+	ArchivalBackupArn *string `min:"37" type:"string"`
+
+	// The date and time when table archival was initiated by DynamoDB, in UNIX
+	// epoch time format.
+	ArchivalDateTime *time.Time `type:"timestamp"`
+
+	// The reason DynamoDB archived the table. Currently, the only possible value
+	// is:
+	//
+	//    * INACCESSIBLE_ENCRYPTION_CREDENTIALS - The table was archived due to
+	//    the table's KMS key being inaccessible for more than seven days. An On-Demand
+	//    backup was created at the archival time.
+	ArchivalReason *string `type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ArchivalSummary) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ArchivalSummary) GoString() string {
+	return s.String()
+}
+
+// SetArchivalBackupArn sets the ArchivalBackupArn field's value.
+func (s *ArchivalSummary) SetArchivalBackupArn(v string) *ArchivalSummary {
+	s.ArchivalBackupArn = &v
+	return s
+}
+
+// SetArchivalDateTime sets the ArchivalDateTime field's value.
+func (s *ArchivalSummary) SetArchivalDateTime(v time.Time) *ArchivalSummary {
+	s.ArchivalDateTime = &v
+	return s
+}
+
+// SetArchivalReason sets the ArchivalReason field's value.
+func (s *ArchivalSummary) SetArchivalReason(v string) *ArchivalSummary {
+	s.ArchivalReason = &v
+	return s
+}
+
 // Represents an attribute for describing the key schema for the table and indexes.
 type AttributeDefinition struct {
 	_ struct{} `type:"structure"`
@@ -5287,12 +7659,20 @@ type AttributeDefinition struct {
 	AttributeType *string `type:"string" required:"true" enum:"ScalarAttributeType"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s AttributeDefinition) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s AttributeDefinition) GoString() string {
 	return s.String()
 }
@@ -5341,7 +7721,6 @@ type AttributeValue struct {
 	// An attribute of type Binary. For example:
 	//
 	// "B": "dGhpcyB0ZXh0IGlzIGJhc2U2NC1lbmNvZGVk"
-	//
 	// B is automatically base64 encoded/decoded by the SDK.
 	B []byte `type:"blob"`
 
@@ -5357,7 +7736,7 @@ type AttributeValue struct {
 
 	// An attribute of type List. For example:
 	//
-	// "L": [ {"S": "Cookies"} , {"S": "Coffee"}, {"N", "3.14159"}]
+	// "L": [ {"S": "Cookies"} , {"S": "Coffee"}, {"N": "3.14159"}]
 	L []*AttributeValue `type:"list"`
 
 	// An attribute of type Map. For example:
@@ -5399,12 +7778,20 @@ type AttributeValue struct {
 	SS []*string `type:"list"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s AttributeValue) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s AttributeValue) GoString() string {
 	return s.String()
 }
@@ -5533,9 +7920,9 @@ type AttributeValueUpdate struct {
 	//
 	//    * DELETE - Nothing happens; there is no attribute to delete.
 	//
-	//    * ADD - DynamoDB creates an item with the supplied primary key and number
-	//    (or set of numbers) for the attribute value. The only data types allowed
-	//    are number and number set; no other data types can be specified.
+	//    * ADD - DynamoDB creates a new item with the supplied primary key and
+	//    number (or set) for the attribute value. The only data types allowed are
+	//    number, number set, string set or binary set.
 	Action *string `type:"string" enum:"AttributeAction"`
 
 	// Represents the data for an attribute.
@@ -5548,12 +7935,20 @@ type AttributeValueUpdate struct {
 	Value *AttributeValue `type:"structure"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s AttributeValueUpdate) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s AttributeValueUpdate) GoString() string {
 	return s.String()
 }
@@ -5581,12 +7976,20 @@ type AutoScalingPolicyDescription struct {
 	TargetTrackingScalingPolicyConfiguration *AutoScalingTargetTrackingScalingPolicyConfigurationDescription `type:"structure"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s AutoScalingPolicyDescription) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s AutoScalingPolicyDescription) GoString() string {
 	return s.String()
 }
@@ -5603,7 +8006,7 @@ func (s *AutoScalingPolicyDescription) SetTargetTrackingScalingPolicyConfigurati
 	return s
 }
 
-// Represents the autoscaling policy to be modified.
+// Represents the auto scaling policy to be modified.
 type AutoScalingPolicyUpdate struct {
 	_ struct{} `type:"structure"`
 
@@ -5616,12 +8019,20 @@ type AutoScalingPolicyUpdate struct {
 	TargetTrackingScalingPolicyConfiguration *AutoScalingTargetTrackingScalingPolicyConfigurationUpdate `type:"structure" required:"true"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s AutoScalingPolicyUpdate) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s AutoScalingPolicyUpdate) GoString() string {
 	return s.String()
 }
@@ -5659,15 +8070,15 @@ func (s *AutoScalingPolicyUpdate) SetTargetTrackingScalingPolicyConfiguration(v 
 	return s
 }
 
-// Represents the autoscaling settings for a global table or global secondary
+// Represents the auto scaling settings for a global table or global secondary
 // index.
 type AutoScalingSettingsDescription struct {
 	_ struct{} `type:"structure"`
 
-	// Disabled autoscaling for this global table or global secondary index.
+	// Disabled auto scaling for this global table or global secondary index.
 	AutoScalingDisabled *bool `type:"boolean"`
 
-	// Role ARN used for configuring autoScaling policy.
+	// Role ARN used for configuring the auto scaling policy.
 	AutoScalingRoleArn *string `type:"string"`
 
 	// The maximum capacity units that a global table or global secondary index
@@ -5682,12 +8093,20 @@ type AutoScalingSettingsDescription struct {
 	ScalingPolicies []*AutoScalingPolicyDescription `type:"list"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s AutoScalingSettingsDescription) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s AutoScalingSettingsDescription) GoString() string {
 	return s.String()
 }
@@ -5722,15 +8141,15 @@ func (s *AutoScalingSettingsDescription) SetScalingPolicies(v []*AutoScalingPoli
 	return s
 }
 
-// Represents the autoscaling settings to be modified for a global table or
+// Represents the auto scaling settings to be modified for a global table or
 // global secondary index.
 type AutoScalingSettingsUpdate struct {
 	_ struct{} `type:"structure"`
 
-	// Disabled autoscaling for this global table or global secondary index.
+	// Disabled auto scaling for this global table or global secondary index.
 	AutoScalingDisabled *bool `type:"boolean"`
 
-	// Role ARN used for configuring autoscaling policy.
+	// Role ARN used for configuring auto scaling policy.
 	AutoScalingRoleArn *string `min:"1" type:"string"`
 
 	// The maximum capacity units that a global table or global secondary index
@@ -5746,12 +8165,20 @@ type AutoScalingSettingsUpdate struct {
 	ScalingPolicyUpdate *AutoScalingPolicyUpdate `type:"structure"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s AutoScalingSettingsUpdate) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s AutoScalingSettingsUpdate) GoString() string {
 	return s.String()
 }
@@ -5826,7 +8253,7 @@ type AutoScalingTargetTrackingScalingPolicyConfigurationDescription struct {
 	// subsequent scale in requests until it has expired. You should scale in conservatively
 	// to protect your application's availability. However, if another alarm triggers
 	// a scale out policy during the cooldown period after a scale-in, application
-	// autoscaling scales out your scalable target immediately.
+	// auto scaling scales out your scalable target immediately.
 	ScaleInCooldown *int64 `type:"integer"`
 
 	// The amount of time, in seconds, after a scale out activity completes before
@@ -5843,12 +8270,20 @@ type AutoScalingTargetTrackingScalingPolicyConfigurationDescription struct {
 	TargetValue *float64 `type:"double" required:"true"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s AutoScalingTargetTrackingScalingPolicyConfigurationDescription) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s AutoScalingTargetTrackingScalingPolicyConfigurationDescription) GoString() string {
 	return s.String()
 }
@@ -5894,7 +8329,7 @@ type AutoScalingTargetTrackingScalingPolicyConfigurationUpdate struct {
 	// subsequent scale in requests until it has expired. You should scale in conservatively
 	// to protect your application's availability. However, if another alarm triggers
 	// a scale out policy during the cooldown period after a scale-in, application
-	// autoscaling scales out your scalable target immediately.
+	// auto scaling scales out your scalable target immediately.
 	ScaleInCooldown *int64 `type:"integer"`
 
 	// The amount of time, in seconds, after a scale out activity completes before
@@ -5911,12 +8346,20 @@ type AutoScalingTargetTrackingScalingPolicyConfigurationUpdate struct {
 	TargetValue *float64 `type:"double" required:"true"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s AutoScalingTargetTrackingScalingPolicyConfigurationUpdate) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s AutoScalingTargetTrackingScalingPolicyConfigurationUpdate) GoString() string {
 	return s.String()
 }
@@ -5973,12 +8416,20 @@ type BackupDescription struct {
 	SourceTableFeatureDetails *SourceTableFeatureDetails `type:"structure"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s BackupDescription) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s BackupDescription) GoString() string {
 	return s.String()
 }
@@ -6024,7 +8475,8 @@ type BackupDetails struct {
 	// BackupName is a required field
 	BackupName *string `min:"3" type:"string" required:"true"`
 
-	// Size of the backup in bytes.
+	// Size of the backup in bytes. DynamoDB updates this value approximately every
+	// six hours. Recent changes might not be reflected in this value.
 	BackupSizeBytes *int64 `type:"long"`
 
 	// Backup can be in one of the following states: CREATING, ACTIVE, DELETED.
@@ -6041,18 +8493,26 @@ type BackupDetails struct {
 	//    no additional cost). System backups allow you to restore the deleted table
 	//    to the state it was in just before the point of deletion.
 	//
-	//    * AWS_BACKUP - On-demand backup created by you from AWS Backup service.
+	//    * AWS_BACKUP - On-demand backup created by you from Backup service.
 	//
 	// BackupType is a required field
 	BackupType *string `type:"string" required:"true" enum:"BackupType"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s BackupDetails) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s BackupDetails) GoString() string {
 	return s.String()
 }
@@ -6099,6 +8559,135 @@ func (s *BackupDetails) SetBackupType(v string) *BackupDetails {
 	return s
 }
 
+// There is another ongoing conflicting backup control plane operation on the
+// table. The backup is either being created, deleted or restored to a table.
+type BackupInUseException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s BackupInUseException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s BackupInUseException) GoString() string {
+	return s.String()
+}
+
+func newErrorBackupInUseException(v protocol.ResponseMetadata) error {
+	return &BackupInUseException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *BackupInUseException) Code() string {
+	return "BackupInUseException"
+}
+
+// Message returns the exception's message.
+func (s *BackupInUseException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *BackupInUseException) OrigErr() error {
+	return nil
+}
+
+func (s *BackupInUseException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *BackupInUseException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *BackupInUseException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
+// Backup not found for the given BackupARN.
+type BackupNotFoundException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s BackupNotFoundException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s BackupNotFoundException) GoString() string {
+	return s.String()
+}
+
+func newErrorBackupNotFoundException(v protocol.ResponseMetadata) error {
+	return &BackupNotFoundException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *BackupNotFoundException) Code() string {
+	return "BackupNotFoundException"
+}
+
+// Message returns the exception's message.
+func (s *BackupNotFoundException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *BackupNotFoundException) OrigErr() error {
+	return nil
+}
+
+func (s *BackupNotFoundException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *BackupNotFoundException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *BackupNotFoundException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
 // Contains details for the backup.
 type BackupSummary struct {
 	_ struct{} `type:"structure"`
@@ -6131,7 +8720,7 @@ type BackupSummary struct {
 	//    no additional cost). System backups allow you to restore the deleted table
 	//    to the state it was in just before the point of deletion.
 	//
-	//    * AWS_BACKUP - On-demand backup created by you from AWS Backup service.
+	//    * AWS_BACKUP - On-demand backup created by you from Backup service.
 	BackupType *string `type:"string" enum:"BackupType"`
 
 	// ARN associated with the table.
@@ -6144,12 +8733,20 @@ type BackupSummary struct {
 	TableName *string `min:"3" type:"string"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s BackupSummary) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s BackupSummary) GoString() string {
 	return s.String()
 }
@@ -6214,6 +8811,127 @@ func (s *BackupSummary) SetTableName(v string) *BackupSummary {
 	return s
 }
 
+type BatchExecuteStatementInput struct {
+	_ struct{} `type:"structure"`
+
+	// Determines the level of detail about either provisioned or on-demand throughput
+	// consumption that is returned in the response:
+	//
+	//    * INDEXES - The response includes the aggregate ConsumedCapacity for the
+	//    operation, together with ConsumedCapacity for each table and secondary
+	//    index that was accessed. Note that some operations, such as GetItem and
+	//    BatchGetItem, do not access any indexes at all. In these cases, specifying
+	//    INDEXES will only return ConsumedCapacity information for table(s).
+	//
+	//    * TOTAL - The response includes only the aggregate ConsumedCapacity for
+	//    the operation.
+	//
+	//    * NONE - No ConsumedCapacity details are included in the response.
+	ReturnConsumedCapacity *string `type:"string" enum:"ReturnConsumedCapacity"`
+
+	// The list of PartiQL statements representing the batch to run.
+	//
+	// Statements is a required field
+	Statements []*BatchStatementRequest `min:"1" type:"list" required:"true"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s BatchExecuteStatementInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s BatchExecuteStatementInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *BatchExecuteStatementInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "BatchExecuteStatementInput"}
+	if s.Statements == nil {
+		invalidParams.Add(request.NewErrParamRequired("Statements"))
+	}
+	if s.Statements != nil && len(s.Statements) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Statements", 1))
+	}
+	if s.Statements != nil {
+		for i, v := range s.Statements {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "Statements", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetReturnConsumedCapacity sets the ReturnConsumedCapacity field's value.
+func (s *BatchExecuteStatementInput) SetReturnConsumedCapacity(v string) *BatchExecuteStatementInput {
+	s.ReturnConsumedCapacity = &v
+	return s
+}
+
+// SetStatements sets the Statements field's value.
+func (s *BatchExecuteStatementInput) SetStatements(v []*BatchStatementRequest) *BatchExecuteStatementInput {
+	s.Statements = v
+	return s
+}
+
+type BatchExecuteStatementOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The capacity units consumed by the entire operation. The values of the list
+	// are ordered according to the ordering of the statements.
+	ConsumedCapacity []*ConsumedCapacity `type:"list"`
+
+	// The response to each PartiQL statement in the batch.
+	Responses []*BatchStatementResponse `type:"list"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s BatchExecuteStatementOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s BatchExecuteStatementOutput) GoString() string {
+	return s.String()
+}
+
+// SetConsumedCapacity sets the ConsumedCapacity field's value.
+func (s *BatchExecuteStatementOutput) SetConsumedCapacity(v []*ConsumedCapacity) *BatchExecuteStatementOutput {
+	s.ConsumedCapacity = v
+	return s
+}
+
+// SetResponses sets the Responses field's value.
+func (s *BatchExecuteStatementOutput) SetResponses(v []*BatchStatementResponse) *BatchExecuteStatementOutput {
+	s.Responses = v
+	return s
+}
+
 // Represents the input of a BatchGetItem operation.
 type BatchGetItemInput struct {
 	_ struct{} `type:"structure"`
@@ -6269,8 +8987,8 @@ type BatchGetItemInput struct {
 	// RequestItems is a required field
 	RequestItems map[string]*KeysAndAttributes `min:"1" type:"map" required:"true"`
 
-	// Determines the level of detail about provisioned throughput consumption that
-	// is returned in the response:
+	// Determines the level of detail about either provisioned or on-demand throughput
+	// consumption that is returned in the response:
 	//
 	//    * INDEXES - The response includes the aggregate ConsumedCapacity for the
 	//    operation, together with ConsumedCapacity for each table and secondary
@@ -6285,12 +9003,20 @@ type BatchGetItemInput struct {
 	ReturnConsumedCapacity *string `type:"string" enum:"ReturnConsumedCapacity"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s BatchGetItemInput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s BatchGetItemInput) GoString() string {
 	return s.String()
 }
@@ -6374,12 +9100,20 @@ type BatchGetItemOutput struct {
 	UnprocessedKeys map[string]*KeysAndAttributes `min:"1" type:"map"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s BatchGetItemOutput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s BatchGetItemOutput) GoString() string {
 	return s.String()
 }
@@ -6399,6 +9133,168 @@ func (s *BatchGetItemOutput) SetResponses(v map[string][]map[string]*AttributeVa
 // SetUnprocessedKeys sets the UnprocessedKeys field's value.
 func (s *BatchGetItemOutput) SetUnprocessedKeys(v map[string]*KeysAndAttributes) *BatchGetItemOutput {
 	s.UnprocessedKeys = v
+	return s
+}
+
+// An error associated with a statement in a PartiQL batch that was run.
+type BatchStatementError struct {
+	_ struct{} `type:"structure"`
+
+	// The error code associated with the failed PartiQL batch statement.
+	Code *string `type:"string" enum:"BatchStatementErrorCodeEnum"`
+
+	// The error message associated with the PartiQL batch response.
+	Message *string `type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s BatchStatementError) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s BatchStatementError) GoString() string {
+	return s.String()
+}
+
+// SetCode sets the Code field's value.
+func (s *BatchStatementError) SetCode(v string) *BatchStatementError {
+	s.Code = &v
+	return s
+}
+
+// SetMessage sets the Message field's value.
+func (s *BatchStatementError) SetMessage(v string) *BatchStatementError {
+	s.Message = &v
+	return s
+}
+
+// A PartiQL batch statement request.
+type BatchStatementRequest struct {
+	_ struct{} `type:"structure"`
+
+	// The read consistency of the PartiQL batch request.
+	ConsistentRead *bool `type:"boolean"`
+
+	// The parameters associated with a PartiQL statement in the batch request.
+	Parameters []*AttributeValue `min:"1" type:"list"`
+
+	// A valid PartiQL statement.
+	//
+	// Statement is a required field
+	Statement *string `min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s BatchStatementRequest) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s BatchStatementRequest) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *BatchStatementRequest) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "BatchStatementRequest"}
+	if s.Parameters != nil && len(s.Parameters) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Parameters", 1))
+	}
+	if s.Statement == nil {
+		invalidParams.Add(request.NewErrParamRequired("Statement"))
+	}
+	if s.Statement != nil && len(*s.Statement) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Statement", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetConsistentRead sets the ConsistentRead field's value.
+func (s *BatchStatementRequest) SetConsistentRead(v bool) *BatchStatementRequest {
+	s.ConsistentRead = &v
+	return s
+}
+
+// SetParameters sets the Parameters field's value.
+func (s *BatchStatementRequest) SetParameters(v []*AttributeValue) *BatchStatementRequest {
+	s.Parameters = v
+	return s
+}
+
+// SetStatement sets the Statement field's value.
+func (s *BatchStatementRequest) SetStatement(v string) *BatchStatementRequest {
+	s.Statement = &v
+	return s
+}
+
+// A PartiQL batch statement response..
+type BatchStatementResponse struct {
+	_ struct{} `type:"structure"`
+
+	// The error associated with a failed PartiQL batch statement.
+	Error *BatchStatementError `type:"structure"`
+
+	// A DynamoDB item associated with a BatchStatementResponse
+	Item map[string]*AttributeValue `type:"map"`
+
+	// The table name associated with a failed PartiQL batch statement.
+	TableName *string `min:"3" type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s BatchStatementResponse) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s BatchStatementResponse) GoString() string {
+	return s.String()
+}
+
+// SetError sets the Error field's value.
+func (s *BatchStatementResponse) SetError(v *BatchStatementError) *BatchStatementResponse {
+	s.Error = v
+	return s
+}
+
+// SetItem sets the Item field's value.
+func (s *BatchStatementResponse) SetItem(v map[string]*AttributeValue) *BatchStatementResponse {
+	s.Item = v
+	return s
+}
+
+// SetTableName sets the TableName field's value.
+func (s *BatchStatementResponse) SetTableName(v string) *BatchStatementResponse {
+	s.TableName = &v
 	return s
 }
 
@@ -6432,8 +9328,8 @@ type BatchWriteItemInput struct {
 	// RequestItems is a required field
 	RequestItems map[string][]*WriteRequest `min:"1" type:"map" required:"true"`
 
-	// Determines the level of detail about provisioned throughput consumption that
-	// is returned in the response:
+	// Determines the level of detail about either provisioned or on-demand throughput
+	// consumption that is returned in the response:
 	//
 	//    * INDEXES - The response includes the aggregate ConsumedCapacity for the
 	//    operation, together with ConsumedCapacity for each table and secondary
@@ -6454,12 +9350,20 @@ type BatchWriteItemInput struct {
 	ReturnItemCollectionMetrics *string `type:"string" enum:"ReturnItemCollectionMetrics"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s BatchWriteItemInput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s BatchWriteItemInput) GoString() string {
 	return s.String()
 }
@@ -6532,8 +9436,8 @@ type BatchWriteItemOutput struct {
 
 	// A map of tables and requests against those tables that were not processed.
 	// The UnprocessedItems value is in the same form as RequestItems, so you can
-	// provide this value directly to a subsequent BatchGetItem operation. For more
-	// information, see RequestItems in the Request Parameters section.
+	// provide this value directly to a subsequent BatchWriteItem operation. For
+	// more information, see RequestItems in the Request Parameters section.
 	//
 	// Each UnprocessedItems entry consists of a table name and, for that table,
 	// a list of operations to perform (DeleteRequest or PutRequest).
@@ -6558,12 +9462,20 @@ type BatchWriteItemOutput struct {
 	UnprocessedItems map[string][]*WriteRequest `min:"1" type:"map"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s BatchWriteItemOutput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s BatchWriteItemOutput) GoString() string {
 	return s.String()
 }
@@ -6586,7 +9498,12 @@ func (s *BatchWriteItemOutput) SetUnprocessedItems(v map[string][]*WriteRequest)
 	return s
 }
 
-// Contains the details for the read/write capacity mode.
+// Contains the details for the read/write capacity mode. This page talks about
+// PROVISIONED and PAY_PER_REQUEST billing modes. For more information about
+// these modes, see Read/write capacity mode (https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/HowItWorks.ReadWriteCapacityMode.html).
+//
+// You may need to switch to on-demand mode at least once in order to return
+// a BillingModeSummary response.
 type BillingModeSummary struct {
 	_ struct{} `type:"structure"`
 
@@ -6605,12 +9522,20 @@ type BillingModeSummary struct {
 	LastUpdateToPayPerRequestDateTime *time.Time `type:"timestamp"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s BillingModeSummary) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s BillingModeSummary) GoString() string {
 	return s.String()
 }
@@ -6644,12 +9569,20 @@ type CancellationReason struct {
 	Message *string `type:"string"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s CancellationReason) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s CancellationReason) GoString() string {
 	return s.String()
 }
@@ -6687,12 +9620,20 @@ type Capacity struct {
 	WriteCapacityUnits *float64 `type:"double"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s Capacity) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s Capacity) GoString() string {
 	return s.String()
 }
@@ -6717,14 +9658,14 @@ func (s *Capacity) SetWriteCapacityUnits(v float64) *Capacity {
 
 // Represents the selection criteria for a Query or Scan operation:
 //
-//    * For a Query operation, Condition is used for specifying the KeyConditions
-//    to use when querying a table or an index. For KeyConditions, only the
-//    following comparison operators are supported: EQ | LE | LT | GE | GT |
-//    BEGINS_WITH | BETWEEN Condition is also used in a QueryFilter, which evaluates
-//    the query results and returns only the desired values.
+//   - For a Query operation, Condition is used for specifying the KeyConditions
+//     to use when querying a table or an index. For KeyConditions, only the
+//     following comparison operators are supported: EQ | LE | LT | GE | GT |
+//     BEGINS_WITH | BETWEEN Condition is also used in a QueryFilter, which evaluates
+//     the query results and returns only the desired values.
 //
-//    * For a Scan operation, Condition is used in a ScanFilter, which evaluates
-//    the scan results and returns only the desired values.
+//   - For a Scan operation, Condition is used in a ScanFilter, which evaluates
+//     the scan results and returns only the desired values.
 type Condition struct {
 	_ struct{} `type:"structure"`
 
@@ -6861,12 +9802,20 @@ type Condition struct {
 	ComparisonOperator *string `type:"string" required:"true" enum:"ComparisonOperator"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s Condition) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s Condition) GoString() string {
 	return s.String()
 }
@@ -6897,19 +9846,25 @@ func (s *Condition) SetComparisonOperator(v string) *Condition {
 }
 
 // Represents a request to perform a check that an item exists or to check the
-// condition of specific attributes of the item..
+// condition of specific attributes of the item.
 type ConditionCheck struct {
 	_ struct{} `type:"structure"`
 
 	// A condition that must be satisfied in order for a conditional update to succeed.
+	// For more information, see Condition expressions (https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Expressions.ConditionExpressions.html)
+	// in the Amazon DynamoDB Developer Guide.
 	//
 	// ConditionExpression is a required field
 	ConditionExpression *string `type:"string" required:"true"`
 
-	// One or more substitution tokens for attribute names in an expression.
+	// One or more substitution tokens for attribute names in an expression. For
+	// more information, see Expression attribute names (https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Expressions.ExpressionAttributeNames.html)
+	// in the Amazon DynamoDB Developer Guide.
 	ExpressionAttributeNames map[string]*string `type:"map"`
 
-	// One or more values that can be substituted in an expression.
+	// One or more values that can be substituted in an expression. For more information,
+	// see Condition expressions (https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Expressions.ConditionExpressions.html)
+	// in the Amazon DynamoDB Developer Guide.
 	ExpressionAttributeValues map[string]*AttributeValue `type:"map"`
 
 	// The primary key of the item to be checked. Each element consists of an attribute
@@ -6929,12 +9884,20 @@ type ConditionCheck struct {
 	TableName *string `min:"3" type:"string" required:"true"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s ConditionCheck) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s ConditionCheck) GoString() string {
 	return s.String()
 }
@@ -6997,6 +9960,71 @@ func (s *ConditionCheck) SetTableName(v string) *ConditionCheck {
 	return s
 }
 
+// A condition specified in the operation could not be evaluated.
+type ConditionalCheckFailedException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	// The conditional request failed.
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ConditionalCheckFailedException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ConditionalCheckFailedException) GoString() string {
+	return s.String()
+}
+
+func newErrorConditionalCheckFailedException(v protocol.ResponseMetadata) error {
+	return &ConditionalCheckFailedException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *ConditionalCheckFailedException) Code() string {
+	return "ConditionalCheckFailedException"
+}
+
+// Message returns the exception's message.
+func (s *ConditionalCheckFailedException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *ConditionalCheckFailedException) OrigErr() error {
+	return nil
+}
+
+func (s *ConditionalCheckFailedException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *ConditionalCheckFailedException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *ConditionalCheckFailedException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
 // The capacity units consumed by an operation. The data returned includes the
 // total provisioned throughput consumed, along with statistics for the table
 // and any indexes involved in the operation. ConsumedCapacity is only returned
@@ -7028,12 +10056,20 @@ type ConsumedCapacity struct {
 	WriteCapacityUnits *float64 `type:"double"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s ConsumedCapacity) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s ConsumedCapacity) GoString() string {
 	return s.String()
 }
@@ -7094,12 +10130,20 @@ type ContinuousBackupsDescription struct {
 	PointInTimeRecoveryDescription *PointInTimeRecoveryDescription `type:"structure"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s ContinuousBackupsDescription) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s ContinuousBackupsDescription) GoString() string {
 	return s.String()
 }
@@ -7113,6 +10157,121 @@ func (s *ContinuousBackupsDescription) SetContinuousBackupsStatus(v string) *Con
 // SetPointInTimeRecoveryDescription sets the PointInTimeRecoveryDescription field's value.
 func (s *ContinuousBackupsDescription) SetPointInTimeRecoveryDescription(v *PointInTimeRecoveryDescription) *ContinuousBackupsDescription {
 	s.PointInTimeRecoveryDescription = v
+	return s
+}
+
+// Backups have not yet been enabled for this table.
+type ContinuousBackupsUnavailableException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ContinuousBackupsUnavailableException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ContinuousBackupsUnavailableException) GoString() string {
+	return s.String()
+}
+
+func newErrorContinuousBackupsUnavailableException(v protocol.ResponseMetadata) error {
+	return &ContinuousBackupsUnavailableException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *ContinuousBackupsUnavailableException) Code() string {
+	return "ContinuousBackupsUnavailableException"
+}
+
+// Message returns the exception's message.
+func (s *ContinuousBackupsUnavailableException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *ContinuousBackupsUnavailableException) OrigErr() error {
+	return nil
+}
+
+func (s *ContinuousBackupsUnavailableException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *ContinuousBackupsUnavailableException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *ContinuousBackupsUnavailableException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
+// Represents a Contributor Insights summary entry.
+type ContributorInsightsSummary struct {
+	_ struct{} `type:"structure"`
+
+	// Describes the current status for contributor insights for the given table
+	// and index, if applicable.
+	ContributorInsightsStatus *string `type:"string" enum:"ContributorInsightsStatus"`
+
+	// Name of the index associated with the summary, if any.
+	IndexName *string `min:"3" type:"string"`
+
+	// Name of the table associated with the summary.
+	TableName *string `min:"3" type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ContributorInsightsSummary) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ContributorInsightsSummary) GoString() string {
+	return s.String()
+}
+
+// SetContributorInsightsStatus sets the ContributorInsightsStatus field's value.
+func (s *ContributorInsightsSummary) SetContributorInsightsStatus(v string) *ContributorInsightsSummary {
+	s.ContributorInsightsStatus = &v
+	return s
+}
+
+// SetIndexName sets the IndexName field's value.
+func (s *ContributorInsightsSummary) SetIndexName(v string) *ContributorInsightsSummary {
+	s.IndexName = &v
+	return s
+}
+
+// SetTableName sets the TableName field's value.
+func (s *ContributorInsightsSummary) SetTableName(v string) *ContributorInsightsSummary {
+	s.TableName = &v
 	return s
 }
 
@@ -7130,12 +10289,20 @@ type CreateBackupInput struct {
 	TableName *string `min:"3" type:"string" required:"true"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s CreateBackupInput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s CreateBackupInput) GoString() string {
 	return s.String()
 }
@@ -7181,12 +10348,20 @@ type CreateBackupOutput struct {
 	BackupDetails *BackupDetails `type:"structure"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s CreateBackupOutput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s CreateBackupOutput) GoString() string {
 	return s.String()
 }
@@ -7221,18 +10396,26 @@ type CreateGlobalSecondaryIndexAction struct {
 	// Represents the provisioned throughput settings for the specified global secondary
 	// index.
 	//
-	// For current minimum and maximum provisioned throughput values, see Limits
-	// (https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Limits.html)
+	// For current minimum and maximum provisioned throughput values, see Service,
+	// Account, and Table Quotas (https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Limits.html)
 	// in the Amazon DynamoDB Developer Guide.
 	ProvisionedThroughput *ProvisionedThroughput `type:"structure"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s CreateGlobalSecondaryIndexAction) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s CreateGlobalSecondaryIndexAction) GoString() string {
 	return s.String()
 }
@@ -7320,12 +10503,20 @@ type CreateGlobalTableInput struct {
 	ReplicationGroup []*Replica `type:"list" required:"true"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s CreateGlobalTableInput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s CreateGlobalTableInput) GoString() string {
 	return s.String()
 }
@@ -7368,12 +10559,20 @@ type CreateGlobalTableOutput struct {
 	GlobalTableDescription *GlobalTableDescription `type:"structure"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s CreateGlobalTableOutput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s CreateGlobalTableOutput) GoString() string {
 	return s.String()
 }
@@ -7388,18 +10587,26 @@ func (s *CreateGlobalTableOutput) SetGlobalTableDescription(v *GlobalTableDescri
 type CreateReplicaAction struct {
 	_ struct{} `type:"structure"`
 
-	// The region of the replica to be added.
+	// The Region of the replica to be added.
 	//
 	// RegionName is a required field
 	RegionName *string `type:"string" required:"true"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s CreateReplicaAction) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s CreateReplicaAction) GoString() string {
 	return s.String()
 }
@@ -7423,6 +10630,112 @@ func (s *CreateReplicaAction) SetRegionName(v string) *CreateReplicaAction {
 	return s
 }
 
+// Represents a replica to be created.
+type CreateReplicationGroupMemberAction struct {
+	_ struct{} `type:"structure"`
+
+	// Replica-specific global secondary index settings.
+	GlobalSecondaryIndexes []*ReplicaGlobalSecondaryIndex `min:"1" type:"list"`
+
+	// The KMS key that should be used for KMS encryption in the new replica. To
+	// specify a key, use its key ID, Amazon Resource Name (ARN), alias name, or
+	// alias ARN. Note that you should only provide this parameter if the key is
+	// different from the default DynamoDB KMS key alias/aws/dynamodb.
+	KMSMasterKeyId *string `type:"string"`
+
+	// Replica-specific provisioned throughput. If not specified, uses the source
+	// table's provisioned throughput settings.
+	ProvisionedThroughputOverride *ProvisionedThroughputOverride `type:"structure"`
+
+	// The Region where the new replica will be created.
+	//
+	// RegionName is a required field
+	RegionName *string `type:"string" required:"true"`
+
+	// Replica-specific table class. If not specified, uses the source table's table
+	// class.
+	TableClassOverride *string `type:"string" enum:"TableClass"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s CreateReplicationGroupMemberAction) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s CreateReplicationGroupMemberAction) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateReplicationGroupMemberAction) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateReplicationGroupMemberAction"}
+	if s.GlobalSecondaryIndexes != nil && len(s.GlobalSecondaryIndexes) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("GlobalSecondaryIndexes", 1))
+	}
+	if s.RegionName == nil {
+		invalidParams.Add(request.NewErrParamRequired("RegionName"))
+	}
+	if s.GlobalSecondaryIndexes != nil {
+		for i, v := range s.GlobalSecondaryIndexes {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "GlobalSecondaryIndexes", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+	if s.ProvisionedThroughputOverride != nil {
+		if err := s.ProvisionedThroughputOverride.Validate(); err != nil {
+			invalidParams.AddNested("ProvisionedThroughputOverride", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetGlobalSecondaryIndexes sets the GlobalSecondaryIndexes field's value.
+func (s *CreateReplicationGroupMemberAction) SetGlobalSecondaryIndexes(v []*ReplicaGlobalSecondaryIndex) *CreateReplicationGroupMemberAction {
+	s.GlobalSecondaryIndexes = v
+	return s
+}
+
+// SetKMSMasterKeyId sets the KMSMasterKeyId field's value.
+func (s *CreateReplicationGroupMemberAction) SetKMSMasterKeyId(v string) *CreateReplicationGroupMemberAction {
+	s.KMSMasterKeyId = &v
+	return s
+}
+
+// SetProvisionedThroughputOverride sets the ProvisionedThroughputOverride field's value.
+func (s *CreateReplicationGroupMemberAction) SetProvisionedThroughputOverride(v *ProvisionedThroughputOverride) *CreateReplicationGroupMemberAction {
+	s.ProvisionedThroughputOverride = v
+	return s
+}
+
+// SetRegionName sets the RegionName field's value.
+func (s *CreateReplicationGroupMemberAction) SetRegionName(v string) *CreateReplicationGroupMemberAction {
+	s.RegionName = &v
+	return s
+}
+
+// SetTableClassOverride sets the TableClassOverride field's value.
+func (s *CreateReplicationGroupMemberAction) SetTableClassOverride(v string) *CreateReplicationGroupMemberAction {
+	s.TableClassOverride = &v
+	return s
+}
+
 // Represents the input of a CreateTable operation.
 type CreateTableInput struct {
 	_ struct{} `type:"structure"`
@@ -7435,12 +10748,16 @@ type CreateTableInput struct {
 	// Controls how you are charged for read and write throughput and how you manage
 	// capacity. This setting can be changed later.
 	//
-	//    * PROVISIONED - Sets the billing mode to PROVISIONED. We recommend using
-	//    PROVISIONED for predictable workloads.
+	//    * PROVISIONED - We recommend using PROVISIONED for predictable workloads.
+	//    PROVISIONED sets the billing mode to Provisioned Mode (https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/HowItWorks.ReadWriteCapacityMode.html#HowItWorks.ProvisionedThroughput.Manual).
 	//
-	//    * PAY_PER_REQUEST - Sets the billing mode to PAY_PER_REQUEST. We recommend
-	//    using PAY_PER_REQUEST for unpredictable workloads.
+	//    * PAY_PER_REQUEST - We recommend using PAY_PER_REQUEST for unpredictable
+	//    workloads. PAY_PER_REQUEST sets the billing mode to On-Demand Mode (https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/HowItWorks.ReadWriteCapacityMode.html#HowItWorks.OnDemand).
 	BillingMode *string `type:"string" enum:"BillingMode"`
+
+	// Indicates whether deletion protection is to be enabled (true) or disabled
+	// (false) on the table.
+	DeletionProtectionEnabled *bool `type:"boolean"`
 
 	// One or more global secondary indexes (the maximum is 20) to be created on
 	// the table. Each global secondary index in the array includes the following:
@@ -7536,8 +10853,8 @@ type CreateTableInput struct {
 	// If you set BillingMode as PROVISIONED, you must specify this property. If
 	// you set BillingMode as PAY_PER_REQUEST, you cannot specify this property.
 	//
-	// For current minimum and maximum provisioned throughput values, see Limits
-	// (https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Limits.html)
+	// For current minimum and maximum provisioned throughput values, see Service,
+	// Account, and Table Quotas (https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Limits.html)
 	// in the Amazon DynamoDB Developer Guide.
 	ProvisionedThroughput *ProvisionedThroughput `type:"structure"`
 
@@ -7559,6 +10876,9 @@ type CreateTableInput struct {
 	//    are written to the stream.
 	StreamSpecification *StreamSpecification `type:"structure"`
 
+	// The table class of the new table. Valid values are STANDARD and STANDARD_INFREQUENT_ACCESS.
+	TableClass *string `type:"string" enum:"TableClass"`
+
 	// The name of the table to create.
 	//
 	// TableName is a required field
@@ -7569,12 +10889,20 @@ type CreateTableInput struct {
 	Tags []*Tag `type:"list"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s CreateTableInput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s CreateTableInput) GoString() string {
 	return s.String()
 }
@@ -7642,6 +10970,11 @@ func (s *CreateTableInput) Validate() error {
 			invalidParams.AddNested("ProvisionedThroughput", err.(request.ErrInvalidParams))
 		}
 	}
+	if s.StreamSpecification != nil {
+		if err := s.StreamSpecification.Validate(); err != nil {
+			invalidParams.AddNested("StreamSpecification", err.(request.ErrInvalidParams))
+		}
+	}
 	if s.Tags != nil {
 		for i, v := range s.Tags {
 			if v == nil {
@@ -7668,6 +11001,12 @@ func (s *CreateTableInput) SetAttributeDefinitions(v []*AttributeDefinition) *Cr
 // SetBillingMode sets the BillingMode field's value.
 func (s *CreateTableInput) SetBillingMode(v string) *CreateTableInput {
 	s.BillingMode = &v
+	return s
+}
+
+// SetDeletionProtectionEnabled sets the DeletionProtectionEnabled field's value.
+func (s *CreateTableInput) SetDeletionProtectionEnabled(v bool) *CreateTableInput {
+	s.DeletionProtectionEnabled = &v
 	return s
 }
 
@@ -7707,6 +11046,12 @@ func (s *CreateTableInput) SetStreamSpecification(v *StreamSpecification) *Creat
 	return s
 }
 
+// SetTableClass sets the TableClass field's value.
+func (s *CreateTableInput) SetTableClass(v string) *CreateTableInput {
+	s.TableClass = &v
+	return s
+}
+
 // SetTableName sets the TableName field's value.
 func (s *CreateTableInput) SetTableName(v string) *CreateTableInput {
 	s.TableName = &v
@@ -7727,12 +11072,20 @@ type CreateTableOutput struct {
 	TableDescription *TableDescription `type:"structure"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s CreateTableOutput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s CreateTableOutput) GoString() string {
 	return s.String()
 }
@@ -7740,6 +11093,66 @@ func (s CreateTableOutput) GoString() string {
 // SetTableDescription sets the TableDescription field's value.
 func (s *CreateTableOutput) SetTableDescription(v *TableDescription) *CreateTableOutput {
 	s.TableDescription = v
+	return s
+}
+
+// Processing options for the CSV file being imported.
+type CsvOptions struct {
+	_ struct{} `type:"structure"`
+
+	// The delimiter used for separating items in the CSV file being imported.
+	Delimiter *string `min:"1" type:"string"`
+
+	// List of the headers used to specify a common header for all source CSV files
+	// being imported. If this field is specified then the first line of each CSV
+	// file is treated as data instead of the header. If this field is not specified
+	// the the first line of each CSV file is treated as the header.
+	HeaderList []*string `min:"1" type:"list"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s CsvOptions) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s CsvOptions) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CsvOptions) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CsvOptions"}
+	if s.Delimiter != nil && len(*s.Delimiter) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Delimiter", 1))
+	}
+	if s.HeaderList != nil && len(s.HeaderList) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("HeaderList", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetDelimiter sets the Delimiter field's value.
+func (s *CsvOptions) SetDelimiter(v string) *CsvOptions {
+	s.Delimiter = &v
+	return s
+}
+
+// SetHeaderList sets the HeaderList field's value.
+func (s *CsvOptions) SetHeaderList(v []*string) *CsvOptions {
+	s.HeaderList = v
 	return s
 }
 
@@ -7773,12 +11186,20 @@ type Delete struct {
 	TableName *string `min:"3" type:"string" required:"true"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s Delete) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s Delete) GoString() string {
 	return s.String()
 }
@@ -7847,12 +11268,20 @@ type DeleteBackupInput struct {
 	BackupArn *string `min:"37" type:"string" required:"true"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DeleteBackupInput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DeleteBackupInput) GoString() string {
 	return s.String()
 }
@@ -7886,12 +11315,20 @@ type DeleteBackupOutput struct {
 	BackupDescription *BackupDescription `type:"structure"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DeleteBackupOutput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DeleteBackupOutput) GoString() string {
 	return s.String()
 }
@@ -7912,12 +11349,20 @@ type DeleteGlobalSecondaryIndexAction struct {
 	IndexName *string `min:"3" type:"string" required:"true"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DeleteGlobalSecondaryIndexAction) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DeleteGlobalSecondaryIndexAction) GoString() string {
 	return s.String()
 }
@@ -8037,7 +11482,7 @@ type DeleteItemInput struct {
 	// A map of attribute names to AttributeValue objects, representing the primary
 	// key of the item to delete.
 	//
-	// For the primary key, you must provide all of the attributes. For example,
+	// For the primary key, you must provide all of the key attributes. For example,
 	// with a simple primary key, you only need to provide a value for the partition
 	// key. For a composite primary key, you must provide values for both the partition
 	// key and the sort key.
@@ -8045,8 +11490,8 @@ type DeleteItemInput struct {
 	// Key is a required field
 	Key map[string]*AttributeValue `type:"map" required:"true"`
 
-	// Determines the level of detail about provisioned throughput consumption that
-	// is returned in the response:
+	// Determines the level of detail about either provisioned or on-demand throughput
+	// consumption that is returned in the response:
 	//
 	//    * INDEXES - The response includes the aggregate ConsumedCapacity for the
 	//    operation, together with ConsumedCapacity for each table and secondary
@@ -8074,6 +11519,10 @@ type DeleteItemInput struct {
 	//
 	//    * ALL_OLD - The content of the old item is returned.
 	//
+	// There is no additional cost associated with requesting a return value aside
+	// from the small network and processing overhead of receiving a larger response.
+	// No read capacity units are consumed.
+	//
 	// The ReturnValues parameter is used by several DynamoDB operations; however,
 	// DeleteItem does not recognize any values other than NONE or ALL_OLD.
 	ReturnValues *string `type:"string" enum:"ReturnValue"`
@@ -8084,12 +11533,20 @@ type DeleteItemInput struct {
 	TableName *string `min:"3" type:"string" required:"true"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DeleteItemInput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DeleteItemInput) GoString() string {
 	return s.String()
 }
@@ -8186,7 +11643,7 @@ type DeleteItemOutput struct {
 	// includes the total provisioned throughput consumed, along with statistics
 	// for the table and any indexes involved in the operation. ConsumedCapacity
 	// is only returned if the ReturnConsumedCapacity parameter was specified. For
-	// more information, see Provisioned Mode (https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/ProvisionedThroughputIntro.html)
+	// more information, see Provisioned Throughput (https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/ProvisionedThroughputIntro.html)
 	// in the Amazon DynamoDB Developer Guide.
 	ConsumedCapacity *ConsumedCapacity `type:"structure"`
 
@@ -8211,12 +11668,20 @@ type DeleteItemOutput struct {
 	ItemCollectionMetrics *ItemCollectionMetrics `type:"structure"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DeleteItemOutput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DeleteItemOutput) GoString() string {
 	return s.String()
 }
@@ -8243,18 +11708,26 @@ func (s *DeleteItemOutput) SetItemCollectionMetrics(v *ItemCollectionMetrics) *D
 type DeleteReplicaAction struct {
 	_ struct{} `type:"structure"`
 
-	// The region of the replica to be removed.
+	// The Region of the replica to be removed.
 	//
 	// RegionName is a required field
 	RegionName *string `type:"string" required:"true"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DeleteReplicaAction) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DeleteReplicaAction) GoString() string {
 	return s.String()
 }
@@ -8278,6 +11751,53 @@ func (s *DeleteReplicaAction) SetRegionName(v string) *DeleteReplicaAction {
 	return s
 }
 
+// Represents a replica to be deleted.
+type DeleteReplicationGroupMemberAction struct {
+	_ struct{} `type:"structure"`
+
+	// The Region where the replica exists.
+	//
+	// RegionName is a required field
+	RegionName *string `type:"string" required:"true"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DeleteReplicationGroupMemberAction) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DeleteReplicationGroupMemberAction) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteReplicationGroupMemberAction) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteReplicationGroupMemberAction"}
+	if s.RegionName == nil {
+		invalidParams.Add(request.NewErrParamRequired("RegionName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetRegionName sets the RegionName field's value.
+func (s *DeleteReplicationGroupMemberAction) SetRegionName(v string) *DeleteReplicationGroupMemberAction {
+	s.RegionName = &v
+	return s
+}
+
 // Represents a request to perform a DeleteItem operation on an item.
 type DeleteRequest struct {
 	_ struct{} `type:"structure"`
@@ -8290,12 +11810,20 @@ type DeleteRequest struct {
 	Key map[string]*AttributeValue `type:"map" required:"true"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DeleteRequest) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DeleteRequest) GoString() string {
 	return s.String()
 }
@@ -8316,12 +11844,20 @@ type DeleteTableInput struct {
 	TableName *string `min:"3" type:"string" required:"true"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DeleteTableInput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DeleteTableInput) GoString() string {
 	return s.String()
 }
@@ -8356,12 +11892,20 @@ type DeleteTableOutput struct {
 	TableDescription *TableDescription `type:"structure"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DeleteTableOutput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DeleteTableOutput) GoString() string {
 	return s.String()
 }
@@ -8381,12 +11925,20 @@ type DescribeBackupInput struct {
 	BackupArn *string `min:"37" type:"string" required:"true"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DescribeBackupInput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DescribeBackupInput) GoString() string {
 	return s.String()
 }
@@ -8420,12 +11972,20 @@ type DescribeBackupOutput struct {
 	BackupDescription *BackupDescription `type:"structure"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DescribeBackupOutput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DescribeBackupOutput) GoString() string {
 	return s.String()
 }
@@ -8446,12 +12006,20 @@ type DescribeContinuousBackupsInput struct {
 	TableName *string `min:"3" type:"string" required:"true"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DescribeContinuousBackupsInput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DescribeContinuousBackupsInput) GoString() string {
 	return s.String()
 }
@@ -8486,12 +12054,20 @@ type DescribeContinuousBackupsOutput struct {
 	ContinuousBackupsDescription *ContinuousBackupsDescription `type:"structure"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DescribeContinuousBackupsOutput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DescribeContinuousBackupsOutput) GoString() string {
 	return s.String()
 }
@@ -8502,16 +12078,176 @@ func (s *DescribeContinuousBackupsOutput) SetContinuousBackupsDescription(v *Con
 	return s
 }
 
+type DescribeContributorInsightsInput struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the global secondary index to describe, if applicable.
+	IndexName *string `min:"3" type:"string"`
+
+	// The name of the table to describe.
+	//
+	// TableName is a required field
+	TableName *string `min:"3" type:"string" required:"true"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DescribeContributorInsightsInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DescribeContributorInsightsInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeContributorInsightsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeContributorInsightsInput"}
+	if s.IndexName != nil && len(*s.IndexName) < 3 {
+		invalidParams.Add(request.NewErrParamMinLen("IndexName", 3))
+	}
+	if s.TableName == nil {
+		invalidParams.Add(request.NewErrParamRequired("TableName"))
+	}
+	if s.TableName != nil && len(*s.TableName) < 3 {
+		invalidParams.Add(request.NewErrParamMinLen("TableName", 3))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetIndexName sets the IndexName field's value.
+func (s *DescribeContributorInsightsInput) SetIndexName(v string) *DescribeContributorInsightsInput {
+	s.IndexName = &v
+	return s
+}
+
+// SetTableName sets the TableName field's value.
+func (s *DescribeContributorInsightsInput) SetTableName(v string) *DescribeContributorInsightsInput {
+	s.TableName = &v
+	return s
+}
+
+type DescribeContributorInsightsOutput struct {
+	_ struct{} `type:"structure"`
+
+	// List of names of the associated contributor insights rules.
+	ContributorInsightsRuleList []*string `type:"list"`
+
+	// Current status of contributor insights.
+	ContributorInsightsStatus *string `type:"string" enum:"ContributorInsightsStatus"`
+
+	// Returns information about the last failure that was encountered.
+	//
+	// The most common exceptions for a FAILED status are:
+	//
+	//    * LimitExceededException - Per-account Amazon CloudWatch Contributor Insights
+	//    rule limit reached. Please disable Contributor Insights for other tables/indexes
+	//    OR disable Contributor Insights rules before retrying.
+	//
+	//    * AccessDeniedException - Amazon CloudWatch Contributor Insights rules
+	//    cannot be modified due to insufficient permissions.
+	//
+	//    * AccessDeniedException - Failed to create service-linked role for Contributor
+	//    Insights due to insufficient permissions.
+	//
+	//    * InternalServerError - Failed to create Amazon CloudWatch Contributor
+	//    Insights rules. Please retry request.
+	FailureException *FailureException `type:"structure"`
+
+	// The name of the global secondary index being described.
+	IndexName *string `min:"3" type:"string"`
+
+	// Timestamp of the last time the status was changed.
+	LastUpdateDateTime *time.Time `type:"timestamp"`
+
+	// The name of the table being described.
+	TableName *string `min:"3" type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DescribeContributorInsightsOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DescribeContributorInsightsOutput) GoString() string {
+	return s.String()
+}
+
+// SetContributorInsightsRuleList sets the ContributorInsightsRuleList field's value.
+func (s *DescribeContributorInsightsOutput) SetContributorInsightsRuleList(v []*string) *DescribeContributorInsightsOutput {
+	s.ContributorInsightsRuleList = v
+	return s
+}
+
+// SetContributorInsightsStatus sets the ContributorInsightsStatus field's value.
+func (s *DescribeContributorInsightsOutput) SetContributorInsightsStatus(v string) *DescribeContributorInsightsOutput {
+	s.ContributorInsightsStatus = &v
+	return s
+}
+
+// SetFailureException sets the FailureException field's value.
+func (s *DescribeContributorInsightsOutput) SetFailureException(v *FailureException) *DescribeContributorInsightsOutput {
+	s.FailureException = v
+	return s
+}
+
+// SetIndexName sets the IndexName field's value.
+func (s *DescribeContributorInsightsOutput) SetIndexName(v string) *DescribeContributorInsightsOutput {
+	s.IndexName = &v
+	return s
+}
+
+// SetLastUpdateDateTime sets the LastUpdateDateTime field's value.
+func (s *DescribeContributorInsightsOutput) SetLastUpdateDateTime(v time.Time) *DescribeContributorInsightsOutput {
+	s.LastUpdateDateTime = &v
+	return s
+}
+
+// SetTableName sets the TableName field's value.
+func (s *DescribeContributorInsightsOutput) SetTableName(v string) *DescribeContributorInsightsOutput {
+	s.TableName = &v
+	return s
+}
+
 type DescribeEndpointsInput struct {
 	_ struct{} `type:"structure"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DescribeEndpointsInput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DescribeEndpointsInput) GoString() string {
 	return s.String()
 }
@@ -8525,12 +12261,20 @@ type DescribeEndpointsOutput struct {
 	Endpoints []*Endpoint `type:"list" required:"true"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DescribeEndpointsOutput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DescribeEndpointsOutput) GoString() string {
 	return s.String()
 }
@@ -8538,6 +12282,86 @@ func (s DescribeEndpointsOutput) GoString() string {
 // SetEndpoints sets the Endpoints field's value.
 func (s *DescribeEndpointsOutput) SetEndpoints(v []*Endpoint) *DescribeEndpointsOutput {
 	s.Endpoints = v
+	return s
+}
+
+type DescribeExportInput struct {
+	_ struct{} `type:"structure"`
+
+	// The Amazon Resource Name (ARN) associated with the export.
+	//
+	// ExportArn is a required field
+	ExportArn *string `min:"37" type:"string" required:"true"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DescribeExportInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DescribeExportInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeExportInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeExportInput"}
+	if s.ExportArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("ExportArn"))
+	}
+	if s.ExportArn != nil && len(*s.ExportArn) < 37 {
+		invalidParams.Add(request.NewErrParamMinLen("ExportArn", 37))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetExportArn sets the ExportArn field's value.
+func (s *DescribeExportInput) SetExportArn(v string) *DescribeExportInput {
+	s.ExportArn = &v
+	return s
+}
+
+type DescribeExportOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Represents the properties of the export.
+	ExportDescription *ExportDescription `type:"structure"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DescribeExportOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DescribeExportOutput) GoString() string {
+	return s.String()
+}
+
+// SetExportDescription sets the ExportDescription field's value.
+func (s *DescribeExportOutput) SetExportDescription(v *ExportDescription) *DescribeExportOutput {
+	s.ExportDescription = v
 	return s
 }
 
@@ -8550,12 +12374,20 @@ type DescribeGlobalTableInput struct {
 	GlobalTableName *string `min:"3" type:"string" required:"true"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DescribeGlobalTableInput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DescribeGlobalTableInput) GoString() string {
 	return s.String()
 }
@@ -8589,12 +12421,20 @@ type DescribeGlobalTableOutput struct {
 	GlobalTableDescription *GlobalTableDescription `type:"structure"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DescribeGlobalTableOutput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DescribeGlobalTableOutput) GoString() string {
 	return s.String()
 }
@@ -8614,12 +12454,20 @@ type DescribeGlobalTableSettingsInput struct {
 	GlobalTableName *string `min:"3" type:"string" required:"true"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DescribeGlobalTableSettingsInput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DescribeGlobalTableSettingsInput) GoString() string {
 	return s.String()
 }
@@ -8656,12 +12504,20 @@ type DescribeGlobalTableSettingsOutput struct {
 	ReplicaSettings []*ReplicaSettingsDescription `type:"list"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DescribeGlobalTableSettingsOutput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DescribeGlobalTableSettingsOutput) GoString() string {
 	return s.String()
 }
@@ -8678,17 +12534,199 @@ func (s *DescribeGlobalTableSettingsOutput) SetReplicaSettings(v []*ReplicaSetti
 	return s
 }
 
+type DescribeImportInput struct {
+	_ struct{} `type:"structure"`
+
+	// The Amazon Resource Name (ARN) associated with the table you're importing
+	// to.
+	//
+	// ImportArn is a required field
+	ImportArn *string `min:"37" type:"string" required:"true"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DescribeImportInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DescribeImportInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeImportInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeImportInput"}
+	if s.ImportArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("ImportArn"))
+	}
+	if s.ImportArn != nil && len(*s.ImportArn) < 37 {
+		invalidParams.Add(request.NewErrParamMinLen("ImportArn", 37))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetImportArn sets the ImportArn field's value.
+func (s *DescribeImportInput) SetImportArn(v string) *DescribeImportInput {
+	s.ImportArn = &v
+	return s
+}
+
+type DescribeImportOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Represents the properties of the table created for the import, and parameters
+	// of the import. The import parameters include import status, how many items
+	// were processed, and how many errors were encountered.
+	//
+	// ImportTableDescription is a required field
+	ImportTableDescription *ImportTableDescription `type:"structure" required:"true"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DescribeImportOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DescribeImportOutput) GoString() string {
+	return s.String()
+}
+
+// SetImportTableDescription sets the ImportTableDescription field's value.
+func (s *DescribeImportOutput) SetImportTableDescription(v *ImportTableDescription) *DescribeImportOutput {
+	s.ImportTableDescription = v
+	return s
+}
+
+type DescribeKinesisStreamingDestinationInput struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the table being described.
+	//
+	// TableName is a required field
+	TableName *string `min:"3" type:"string" required:"true"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DescribeKinesisStreamingDestinationInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DescribeKinesisStreamingDestinationInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeKinesisStreamingDestinationInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeKinesisStreamingDestinationInput"}
+	if s.TableName == nil {
+		invalidParams.Add(request.NewErrParamRequired("TableName"))
+	}
+	if s.TableName != nil && len(*s.TableName) < 3 {
+		invalidParams.Add(request.NewErrParamMinLen("TableName", 3))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetTableName sets the TableName field's value.
+func (s *DescribeKinesisStreamingDestinationInput) SetTableName(v string) *DescribeKinesisStreamingDestinationInput {
+	s.TableName = &v
+	return s
+}
+
+type DescribeKinesisStreamingDestinationOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The list of replica structures for the table being described.
+	KinesisDataStreamDestinations []*KinesisDataStreamDestination `type:"list"`
+
+	// The name of the table being described.
+	TableName *string `min:"3" type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DescribeKinesisStreamingDestinationOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DescribeKinesisStreamingDestinationOutput) GoString() string {
+	return s.String()
+}
+
+// SetKinesisDataStreamDestinations sets the KinesisDataStreamDestinations field's value.
+func (s *DescribeKinesisStreamingDestinationOutput) SetKinesisDataStreamDestinations(v []*KinesisDataStreamDestination) *DescribeKinesisStreamingDestinationOutput {
+	s.KinesisDataStreamDestinations = v
+	return s
+}
+
+// SetTableName sets the TableName field's value.
+func (s *DescribeKinesisStreamingDestinationOutput) SetTableName(v string) *DescribeKinesisStreamingDestinationOutput {
+	s.TableName = &v
+	return s
+}
+
 // Represents the input of a DescribeLimits operation. Has no content.
 type DescribeLimitsInput struct {
 	_ struct{} `type:"structure"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DescribeLimitsInput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DescribeLimitsInput) GoString() string {
 	return s.String()
 }
@@ -8716,12 +12754,20 @@ type DescribeLimitsOutput struct {
 	TableMaxWriteCapacityUnits *int64 `min:"1" type:"long"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DescribeLimitsOutput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DescribeLimitsOutput) GoString() string {
 	return s.String()
 }
@@ -8760,12 +12806,20 @@ type DescribeTableInput struct {
 	TableName *string `min:"3" type:"string" required:"true"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DescribeTableInput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DescribeTableInput) GoString() string {
 	return s.String()
 }
@@ -8800,12 +12854,20 @@ type DescribeTableOutput struct {
 	Table *TableDescription `type:"structure"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DescribeTableOutput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DescribeTableOutput) GoString() string {
 	return s.String()
 }
@@ -8813,6 +12875,86 @@ func (s DescribeTableOutput) GoString() string {
 // SetTable sets the Table field's value.
 func (s *DescribeTableOutput) SetTable(v *TableDescription) *DescribeTableOutput {
 	s.Table = v
+	return s
+}
+
+type DescribeTableReplicaAutoScalingInput struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the table.
+	//
+	// TableName is a required field
+	TableName *string `min:"3" type:"string" required:"true"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DescribeTableReplicaAutoScalingInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DescribeTableReplicaAutoScalingInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeTableReplicaAutoScalingInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeTableReplicaAutoScalingInput"}
+	if s.TableName == nil {
+		invalidParams.Add(request.NewErrParamRequired("TableName"))
+	}
+	if s.TableName != nil && len(*s.TableName) < 3 {
+		invalidParams.Add(request.NewErrParamMinLen("TableName", 3))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetTableName sets the TableName field's value.
+func (s *DescribeTableReplicaAutoScalingInput) SetTableName(v string) *DescribeTableReplicaAutoScalingInput {
+	s.TableName = &v
+	return s
+}
+
+type DescribeTableReplicaAutoScalingOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Represents the auto scaling properties of the table.
+	TableAutoScalingDescription *TableAutoScalingDescription `type:"structure"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DescribeTableReplicaAutoScalingOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DescribeTableReplicaAutoScalingOutput) GoString() string {
+	return s.String()
+}
+
+// SetTableAutoScalingDescription sets the TableAutoScalingDescription field's value.
+func (s *DescribeTableReplicaAutoScalingOutput) SetTableAutoScalingDescription(v *TableAutoScalingDescription) *DescribeTableReplicaAutoScalingOutput {
+	s.TableAutoScalingDescription = v
 	return s
 }
 
@@ -8825,12 +12967,20 @@ type DescribeTimeToLiveInput struct {
 	TableName *string `min:"3" type:"string" required:"true"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DescribeTimeToLiveInput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DescribeTimeToLiveInput) GoString() string {
 	return s.String()
 }
@@ -8864,12 +13014,20 @@ type DescribeTimeToLiveOutput struct {
 	TimeToLiveDescription *TimeToLiveDescription `type:"structure"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DescribeTimeToLiveOutput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DescribeTimeToLiveOutput) GoString() string {
 	return s.String()
 }
@@ -8877,6 +13035,301 @@ func (s DescribeTimeToLiveOutput) GoString() string {
 // SetTimeToLiveDescription sets the TimeToLiveDescription field's value.
 func (s *DescribeTimeToLiveOutput) SetTimeToLiveDescription(v *TimeToLiveDescription) *DescribeTimeToLiveOutput {
 	s.TimeToLiveDescription = v
+	return s
+}
+
+type DisableKinesisStreamingDestinationInput struct {
+	_ struct{} `type:"structure"`
+
+	// The ARN for a Kinesis data stream.
+	//
+	// StreamArn is a required field
+	StreamArn *string `min:"37" type:"string" required:"true"`
+
+	// The name of the DynamoDB table.
+	//
+	// TableName is a required field
+	TableName *string `min:"3" type:"string" required:"true"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DisableKinesisStreamingDestinationInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DisableKinesisStreamingDestinationInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DisableKinesisStreamingDestinationInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DisableKinesisStreamingDestinationInput"}
+	if s.StreamArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("StreamArn"))
+	}
+	if s.StreamArn != nil && len(*s.StreamArn) < 37 {
+		invalidParams.Add(request.NewErrParamMinLen("StreamArn", 37))
+	}
+	if s.TableName == nil {
+		invalidParams.Add(request.NewErrParamRequired("TableName"))
+	}
+	if s.TableName != nil && len(*s.TableName) < 3 {
+		invalidParams.Add(request.NewErrParamMinLen("TableName", 3))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetStreamArn sets the StreamArn field's value.
+func (s *DisableKinesisStreamingDestinationInput) SetStreamArn(v string) *DisableKinesisStreamingDestinationInput {
+	s.StreamArn = &v
+	return s
+}
+
+// SetTableName sets the TableName field's value.
+func (s *DisableKinesisStreamingDestinationInput) SetTableName(v string) *DisableKinesisStreamingDestinationInput {
+	s.TableName = &v
+	return s
+}
+
+type DisableKinesisStreamingDestinationOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The current status of the replication.
+	DestinationStatus *string `type:"string" enum:"DestinationStatus"`
+
+	// The ARN for the specific Kinesis data stream.
+	StreamArn *string `min:"37" type:"string"`
+
+	// The name of the table being modified.
+	TableName *string `min:"3" type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DisableKinesisStreamingDestinationOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DisableKinesisStreamingDestinationOutput) GoString() string {
+	return s.String()
+}
+
+// SetDestinationStatus sets the DestinationStatus field's value.
+func (s *DisableKinesisStreamingDestinationOutput) SetDestinationStatus(v string) *DisableKinesisStreamingDestinationOutput {
+	s.DestinationStatus = &v
+	return s
+}
+
+// SetStreamArn sets the StreamArn field's value.
+func (s *DisableKinesisStreamingDestinationOutput) SetStreamArn(v string) *DisableKinesisStreamingDestinationOutput {
+	s.StreamArn = &v
+	return s
+}
+
+// SetTableName sets the TableName field's value.
+func (s *DisableKinesisStreamingDestinationOutput) SetTableName(v string) *DisableKinesisStreamingDestinationOutput {
+	s.TableName = &v
+	return s
+}
+
+// There was an attempt to insert an item with the same primary key as an item
+// that already exists in the DynamoDB table.
+type DuplicateItemException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DuplicateItemException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DuplicateItemException) GoString() string {
+	return s.String()
+}
+
+func newErrorDuplicateItemException(v protocol.ResponseMetadata) error {
+	return &DuplicateItemException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *DuplicateItemException) Code() string {
+	return "DuplicateItemException"
+}
+
+// Message returns the exception's message.
+func (s *DuplicateItemException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *DuplicateItemException) OrigErr() error {
+	return nil
+}
+
+func (s *DuplicateItemException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *DuplicateItemException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *DuplicateItemException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
+type EnableKinesisStreamingDestinationInput struct {
+	_ struct{} `type:"structure"`
+
+	// The ARN for a Kinesis data stream.
+	//
+	// StreamArn is a required field
+	StreamArn *string `min:"37" type:"string" required:"true"`
+
+	// The name of the DynamoDB table.
+	//
+	// TableName is a required field
+	TableName *string `min:"3" type:"string" required:"true"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s EnableKinesisStreamingDestinationInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s EnableKinesisStreamingDestinationInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *EnableKinesisStreamingDestinationInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "EnableKinesisStreamingDestinationInput"}
+	if s.StreamArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("StreamArn"))
+	}
+	if s.StreamArn != nil && len(*s.StreamArn) < 37 {
+		invalidParams.Add(request.NewErrParamMinLen("StreamArn", 37))
+	}
+	if s.TableName == nil {
+		invalidParams.Add(request.NewErrParamRequired("TableName"))
+	}
+	if s.TableName != nil && len(*s.TableName) < 3 {
+		invalidParams.Add(request.NewErrParamMinLen("TableName", 3))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetStreamArn sets the StreamArn field's value.
+func (s *EnableKinesisStreamingDestinationInput) SetStreamArn(v string) *EnableKinesisStreamingDestinationInput {
+	s.StreamArn = &v
+	return s
+}
+
+// SetTableName sets the TableName field's value.
+func (s *EnableKinesisStreamingDestinationInput) SetTableName(v string) *EnableKinesisStreamingDestinationInput {
+	s.TableName = &v
+	return s
+}
+
+type EnableKinesisStreamingDestinationOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The current status of the replication.
+	DestinationStatus *string `type:"string" enum:"DestinationStatus"`
+
+	// The ARN for the specific Kinesis data stream.
+	StreamArn *string `min:"37" type:"string"`
+
+	// The name of the table being modified.
+	TableName *string `min:"3" type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s EnableKinesisStreamingDestinationOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s EnableKinesisStreamingDestinationOutput) GoString() string {
+	return s.String()
+}
+
+// SetDestinationStatus sets the DestinationStatus field's value.
+func (s *EnableKinesisStreamingDestinationOutput) SetDestinationStatus(v string) *EnableKinesisStreamingDestinationOutput {
+	s.DestinationStatus = &v
+	return s
+}
+
+// SetStreamArn sets the StreamArn field's value.
+func (s *EnableKinesisStreamingDestinationOutput) SetStreamArn(v string) *EnableKinesisStreamingDestinationOutput {
+	s.StreamArn = &v
+	return s
+}
+
+// SetTableName sets the TableName field's value.
+func (s *EnableKinesisStreamingDestinationOutput) SetTableName(v string) *EnableKinesisStreamingDestinationOutput {
+	s.TableName = &v
 	return s
 }
 
@@ -8895,12 +13348,20 @@ type Endpoint struct {
 	CachePeriodInMinutes *int64 `type:"long" required:"true"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s Endpoint) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s Endpoint) GoString() string {
 	return s.String()
 }
@@ -8917,22 +13378,344 @@ func (s *Endpoint) SetCachePeriodInMinutes(v int64) *Endpoint {
 	return s
 }
 
+type ExecuteStatementInput struct {
+	_ struct{} `type:"structure"`
+
+	// The consistency of a read operation. If set to true, then a strongly consistent
+	// read is used; otherwise, an eventually consistent read is used.
+	ConsistentRead *bool `type:"boolean"`
+
+	// The maximum number of items to evaluate (not necessarily the number of matching
+	// items). If DynamoDB processes the number of items up to the limit while processing
+	// the results, it stops the operation and returns the matching values up to
+	// that point, along with a key in LastEvaluatedKey to apply in a subsequent
+	// operation so you can pick up where you left off. Also, if the processed dataset
+	// size exceeds 1 MB before DynamoDB reaches this limit, it stops the operation
+	// and returns the matching values up to the limit, and a key in LastEvaluatedKey
+	// to apply in a subsequent operation to continue the operation.
+	Limit *int64 `min:"1" type:"integer"`
+
+	// Set this value to get remaining results, if NextToken was returned in the
+	// statement response.
+	NextToken *string `min:"1" type:"string"`
+
+	// The parameters for the PartiQL statement, if any.
+	Parameters []*AttributeValue `min:"1" type:"list"`
+
+	// Determines the level of detail about either provisioned or on-demand throughput
+	// consumption that is returned in the response:
+	//
+	//    * INDEXES - The response includes the aggregate ConsumedCapacity for the
+	//    operation, together with ConsumedCapacity for each table and secondary
+	//    index that was accessed. Note that some operations, such as GetItem and
+	//    BatchGetItem, do not access any indexes at all. In these cases, specifying
+	//    INDEXES will only return ConsumedCapacity information for table(s).
+	//
+	//    * TOTAL - The response includes only the aggregate ConsumedCapacity for
+	//    the operation.
+	//
+	//    * NONE - No ConsumedCapacity details are included in the response.
+	ReturnConsumedCapacity *string `type:"string" enum:"ReturnConsumedCapacity"`
+
+	// The PartiQL statement representing the operation to run.
+	//
+	// Statement is a required field
+	Statement *string `min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ExecuteStatementInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ExecuteStatementInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ExecuteStatementInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ExecuteStatementInput"}
+	if s.Limit != nil && *s.Limit < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("Limit", 1))
+	}
+	if s.NextToken != nil && len(*s.NextToken) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("NextToken", 1))
+	}
+	if s.Parameters != nil && len(s.Parameters) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Parameters", 1))
+	}
+	if s.Statement == nil {
+		invalidParams.Add(request.NewErrParamRequired("Statement"))
+	}
+	if s.Statement != nil && len(*s.Statement) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Statement", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetConsistentRead sets the ConsistentRead field's value.
+func (s *ExecuteStatementInput) SetConsistentRead(v bool) *ExecuteStatementInput {
+	s.ConsistentRead = &v
+	return s
+}
+
+// SetLimit sets the Limit field's value.
+func (s *ExecuteStatementInput) SetLimit(v int64) *ExecuteStatementInput {
+	s.Limit = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ExecuteStatementInput) SetNextToken(v string) *ExecuteStatementInput {
+	s.NextToken = &v
+	return s
+}
+
+// SetParameters sets the Parameters field's value.
+func (s *ExecuteStatementInput) SetParameters(v []*AttributeValue) *ExecuteStatementInput {
+	s.Parameters = v
+	return s
+}
+
+// SetReturnConsumedCapacity sets the ReturnConsumedCapacity field's value.
+func (s *ExecuteStatementInput) SetReturnConsumedCapacity(v string) *ExecuteStatementInput {
+	s.ReturnConsumedCapacity = &v
+	return s
+}
+
+// SetStatement sets the Statement field's value.
+func (s *ExecuteStatementInput) SetStatement(v string) *ExecuteStatementInput {
+	s.Statement = &v
+	return s
+}
+
+type ExecuteStatementOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The capacity units consumed by an operation. The data returned includes the
+	// total provisioned throughput consumed, along with statistics for the table
+	// and any indexes involved in the operation. ConsumedCapacity is only returned
+	// if the request asked for it. For more information, see Provisioned Throughput
+	// (https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/ProvisionedThroughputIntro.html)
+	// in the Amazon DynamoDB Developer Guide.
+	ConsumedCapacity *ConsumedCapacity `type:"structure"`
+
+	// If a read operation was used, this property will contain the result of the
+	// read operation; a map of attribute names and their values. For the write
+	// operations this value will be empty.
+	Items []map[string]*AttributeValue `type:"list"`
+
+	// The primary key of the item where the operation stopped, inclusive of the
+	// previous result set. Use this value to start a new operation, excluding this
+	// value in the new request. If LastEvaluatedKey is empty, then the "last page"
+	// of results has been processed and there is no more data to be retrieved.
+	// If LastEvaluatedKey is not empty, it does not necessarily mean that there
+	// is more data in the result set. The only way to know when you have reached
+	// the end of the result set is when LastEvaluatedKey is empty.
+	LastEvaluatedKey map[string]*AttributeValue `type:"map"`
+
+	// If the response of a read request exceeds the response payload limit DynamoDB
+	// will set this value in the response. If set, you can use that this value
+	// in the subsequent request to get the remaining results.
+	NextToken *string `min:"1" type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ExecuteStatementOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ExecuteStatementOutput) GoString() string {
+	return s.String()
+}
+
+// SetConsumedCapacity sets the ConsumedCapacity field's value.
+func (s *ExecuteStatementOutput) SetConsumedCapacity(v *ConsumedCapacity) *ExecuteStatementOutput {
+	s.ConsumedCapacity = v
+	return s
+}
+
+// SetItems sets the Items field's value.
+func (s *ExecuteStatementOutput) SetItems(v []map[string]*AttributeValue) *ExecuteStatementOutput {
+	s.Items = v
+	return s
+}
+
+// SetLastEvaluatedKey sets the LastEvaluatedKey field's value.
+func (s *ExecuteStatementOutput) SetLastEvaluatedKey(v map[string]*AttributeValue) *ExecuteStatementOutput {
+	s.LastEvaluatedKey = v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ExecuteStatementOutput) SetNextToken(v string) *ExecuteStatementOutput {
+	s.NextToken = &v
+	return s
+}
+
+type ExecuteTransactionInput struct {
+	_ struct{} `type:"structure"`
+
+	// Set this value to get remaining results, if NextToken was returned in the
+	// statement response.
+	ClientRequestToken *string `min:"1" type:"string" idempotencyToken:"true"`
+
+	// Determines the level of detail about either provisioned or on-demand throughput
+	// consumption that is returned in the response. For more information, see TransactGetItems
+	// (https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_TransactGetItems.html)
+	// and TransactWriteItems (https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_TransactWriteItems.html).
+	ReturnConsumedCapacity *string `type:"string" enum:"ReturnConsumedCapacity"`
+
+	// The list of PartiQL statements representing the transaction to run.
+	//
+	// TransactStatements is a required field
+	TransactStatements []*ParameterizedStatement `min:"1" type:"list" required:"true"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ExecuteTransactionInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ExecuteTransactionInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ExecuteTransactionInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ExecuteTransactionInput"}
+	if s.ClientRequestToken != nil && len(*s.ClientRequestToken) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ClientRequestToken", 1))
+	}
+	if s.TransactStatements == nil {
+		invalidParams.Add(request.NewErrParamRequired("TransactStatements"))
+	}
+	if s.TransactStatements != nil && len(s.TransactStatements) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("TransactStatements", 1))
+	}
+	if s.TransactStatements != nil {
+		for i, v := range s.TransactStatements {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "TransactStatements", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetClientRequestToken sets the ClientRequestToken field's value.
+func (s *ExecuteTransactionInput) SetClientRequestToken(v string) *ExecuteTransactionInput {
+	s.ClientRequestToken = &v
+	return s
+}
+
+// SetReturnConsumedCapacity sets the ReturnConsumedCapacity field's value.
+func (s *ExecuteTransactionInput) SetReturnConsumedCapacity(v string) *ExecuteTransactionInput {
+	s.ReturnConsumedCapacity = &v
+	return s
+}
+
+// SetTransactStatements sets the TransactStatements field's value.
+func (s *ExecuteTransactionInput) SetTransactStatements(v []*ParameterizedStatement) *ExecuteTransactionInput {
+	s.TransactStatements = v
+	return s
+}
+
+type ExecuteTransactionOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The capacity units consumed by the entire operation. The values of the list
+	// are ordered according to the ordering of the statements.
+	ConsumedCapacity []*ConsumedCapacity `type:"list"`
+
+	// The response to a PartiQL transaction.
+	Responses []*ItemResponse `min:"1" type:"list"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ExecuteTransactionOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ExecuteTransactionOutput) GoString() string {
+	return s.String()
+}
+
+// SetConsumedCapacity sets the ConsumedCapacity field's value.
+func (s *ExecuteTransactionOutput) SetConsumedCapacity(v []*ConsumedCapacity) *ExecuteTransactionOutput {
+	s.ConsumedCapacity = v
+	return s
+}
+
+// SetResponses sets the Responses field's value.
+func (s *ExecuteTransactionOutput) SetResponses(v []*ItemResponse) *ExecuteTransactionOutput {
+	s.Responses = v
+	return s
+}
+
 // Represents a condition to be compared with an attribute value. This condition
-// can be used with DeleteItem, PutItem or UpdateItem operations; if the comparison
+// can be used with DeleteItem, PutItem, or UpdateItem operations; if the comparison
 // evaluates to true, the operation succeeds; if not, the operation fails. You
 // can use ExpectedAttributeValue in one of two different ways:
 //
-//    * Use AttributeValueList to specify one or more values to compare against
-//    an attribute. Use ComparisonOperator to specify how you want to perform
-//    the comparison. If the comparison evaluates to true, then the conditional
-//    operation succeeds.
+//   - Use AttributeValueList to specify one or more values to compare against
+//     an attribute. Use ComparisonOperator to specify how you want to perform
+//     the comparison. If the comparison evaluates to true, then the conditional
+//     operation succeeds.
 //
-//    * Use Value to specify a value that DynamoDB will compare against an attribute.
-//    If the values match, then ExpectedAttributeValue evaluates to true and
-//    the conditional operation succeeds. Optionally, you can also set Exists
-//    to false, indicating that you do not expect to find the attribute value
-//    in the table. In this case, the conditional operation succeeds only if
-//    the comparison evaluates to false.
+//   - Use Value to specify a value that DynamoDB will compare against an attribute.
+//     If the values match, then ExpectedAttributeValue evaluates to true and
+//     the conditional operation succeeds. Optionally, you can also set Exists
+//     to false, indicating that you do not expect to find the attribute value
+//     in the table. In this case, the conditional operation succeeds only if
+//     the comparison evaluates to false.
 //
 // Value and Exists are incompatible with AttributeValueList and ComparisonOperator.
 // Note that if you use both sets of parameters at once, DynamoDB will return
@@ -9103,12 +13886,20 @@ type ExpectedAttributeValue struct {
 	Value *AttributeValue `type:"structure"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s ExpectedAttributeValue) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s ExpectedAttributeValue) GoString() string {
 	return s.String()
 }
@@ -9134,6 +13925,601 @@ func (s *ExpectedAttributeValue) SetExists(v bool) *ExpectedAttributeValue {
 // SetValue sets the Value field's value.
 func (s *ExpectedAttributeValue) SetValue(v *AttributeValue) *ExpectedAttributeValue {
 	s.Value = v
+	return s
+}
+
+// There was a conflict when writing to the specified S3 bucket.
+type ExportConflictException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ExportConflictException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ExportConflictException) GoString() string {
+	return s.String()
+}
+
+func newErrorExportConflictException(v protocol.ResponseMetadata) error {
+	return &ExportConflictException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *ExportConflictException) Code() string {
+	return "ExportConflictException"
+}
+
+// Message returns the exception's message.
+func (s *ExportConflictException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *ExportConflictException) OrigErr() error {
+	return nil
+}
+
+func (s *ExportConflictException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *ExportConflictException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *ExportConflictException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
+// Represents the properties of the exported table.
+type ExportDescription struct {
+	_ struct{} `type:"structure"`
+
+	// The billable size of the table export.
+	BilledSizeBytes *int64 `type:"long"`
+
+	// The client token that was provided for the export task. A client token makes
+	// calls to ExportTableToPointInTimeInput idempotent, meaning that multiple
+	// identical calls have the same effect as one single call.
+	ClientToken *string `type:"string"`
+
+	// The time at which the export task completed.
+	EndTime *time.Time `type:"timestamp"`
+
+	// The Amazon Resource Name (ARN) of the table export.
+	ExportArn *string `min:"37" type:"string"`
+
+	// The format of the exported data. Valid values for ExportFormat are DYNAMODB_JSON
+	// or ION.
+	ExportFormat *string `type:"string" enum:"ExportFormat"`
+
+	// The name of the manifest file for the export task.
+	ExportManifest *string `type:"string"`
+
+	// Export can be in one of the following states: IN_PROGRESS, COMPLETED, or
+	// FAILED.
+	ExportStatus *string `type:"string" enum:"ExportStatus"`
+
+	// Point in time from which table data was exported.
+	ExportTime *time.Time `type:"timestamp"`
+
+	// Status code for the result of the failed export.
+	FailureCode *string `type:"string"`
+
+	// Export failure reason description.
+	FailureMessage *string `type:"string"`
+
+	// The number of items exported.
+	ItemCount *int64 `type:"long"`
+
+	// The name of the Amazon S3 bucket containing the export.
+	S3Bucket *string `type:"string"`
+
+	// The ID of the Amazon Web Services account that owns the bucket containing
+	// the export.
+	S3BucketOwner *string `type:"string"`
+
+	// The Amazon S3 bucket prefix used as the file name and path of the exported
+	// snapshot.
+	S3Prefix *string `type:"string"`
+
+	// Type of encryption used on the bucket where export data is stored. Valid
+	// values for S3SseAlgorithm are:
+	//
+	//    * AES256 - server-side encryption with Amazon S3 managed keys
+	//
+	//    * KMS - server-side encryption with KMS managed keys
+	S3SseAlgorithm *string `type:"string" enum:"S3SseAlgorithm"`
+
+	// The ID of the KMS managed key used to encrypt the S3 bucket where export
+	// data is stored (if applicable).
+	S3SseKmsKeyId *string `min:"1" type:"string"`
+
+	// The time at which the export task began.
+	StartTime *time.Time `type:"timestamp"`
+
+	// The Amazon Resource Name (ARN) of the table that was exported.
+	TableArn *string `type:"string"`
+
+	// Unique ID of the table that was exported.
+	TableId *string `type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ExportDescription) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ExportDescription) GoString() string {
+	return s.String()
+}
+
+// SetBilledSizeBytes sets the BilledSizeBytes field's value.
+func (s *ExportDescription) SetBilledSizeBytes(v int64) *ExportDescription {
+	s.BilledSizeBytes = &v
+	return s
+}
+
+// SetClientToken sets the ClientToken field's value.
+func (s *ExportDescription) SetClientToken(v string) *ExportDescription {
+	s.ClientToken = &v
+	return s
+}
+
+// SetEndTime sets the EndTime field's value.
+func (s *ExportDescription) SetEndTime(v time.Time) *ExportDescription {
+	s.EndTime = &v
+	return s
+}
+
+// SetExportArn sets the ExportArn field's value.
+func (s *ExportDescription) SetExportArn(v string) *ExportDescription {
+	s.ExportArn = &v
+	return s
+}
+
+// SetExportFormat sets the ExportFormat field's value.
+func (s *ExportDescription) SetExportFormat(v string) *ExportDescription {
+	s.ExportFormat = &v
+	return s
+}
+
+// SetExportManifest sets the ExportManifest field's value.
+func (s *ExportDescription) SetExportManifest(v string) *ExportDescription {
+	s.ExportManifest = &v
+	return s
+}
+
+// SetExportStatus sets the ExportStatus field's value.
+func (s *ExportDescription) SetExportStatus(v string) *ExportDescription {
+	s.ExportStatus = &v
+	return s
+}
+
+// SetExportTime sets the ExportTime field's value.
+func (s *ExportDescription) SetExportTime(v time.Time) *ExportDescription {
+	s.ExportTime = &v
+	return s
+}
+
+// SetFailureCode sets the FailureCode field's value.
+func (s *ExportDescription) SetFailureCode(v string) *ExportDescription {
+	s.FailureCode = &v
+	return s
+}
+
+// SetFailureMessage sets the FailureMessage field's value.
+func (s *ExportDescription) SetFailureMessage(v string) *ExportDescription {
+	s.FailureMessage = &v
+	return s
+}
+
+// SetItemCount sets the ItemCount field's value.
+func (s *ExportDescription) SetItemCount(v int64) *ExportDescription {
+	s.ItemCount = &v
+	return s
+}
+
+// SetS3Bucket sets the S3Bucket field's value.
+func (s *ExportDescription) SetS3Bucket(v string) *ExportDescription {
+	s.S3Bucket = &v
+	return s
+}
+
+// SetS3BucketOwner sets the S3BucketOwner field's value.
+func (s *ExportDescription) SetS3BucketOwner(v string) *ExportDescription {
+	s.S3BucketOwner = &v
+	return s
+}
+
+// SetS3Prefix sets the S3Prefix field's value.
+func (s *ExportDescription) SetS3Prefix(v string) *ExportDescription {
+	s.S3Prefix = &v
+	return s
+}
+
+// SetS3SseAlgorithm sets the S3SseAlgorithm field's value.
+func (s *ExportDescription) SetS3SseAlgorithm(v string) *ExportDescription {
+	s.S3SseAlgorithm = &v
+	return s
+}
+
+// SetS3SseKmsKeyId sets the S3SseKmsKeyId field's value.
+func (s *ExportDescription) SetS3SseKmsKeyId(v string) *ExportDescription {
+	s.S3SseKmsKeyId = &v
+	return s
+}
+
+// SetStartTime sets the StartTime field's value.
+func (s *ExportDescription) SetStartTime(v time.Time) *ExportDescription {
+	s.StartTime = &v
+	return s
+}
+
+// SetTableArn sets the TableArn field's value.
+func (s *ExportDescription) SetTableArn(v string) *ExportDescription {
+	s.TableArn = &v
+	return s
+}
+
+// SetTableId sets the TableId field's value.
+func (s *ExportDescription) SetTableId(v string) *ExportDescription {
+	s.TableId = &v
+	return s
+}
+
+// The specified export was not found.
+type ExportNotFoundException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ExportNotFoundException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ExportNotFoundException) GoString() string {
+	return s.String()
+}
+
+func newErrorExportNotFoundException(v protocol.ResponseMetadata) error {
+	return &ExportNotFoundException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *ExportNotFoundException) Code() string {
+	return "ExportNotFoundException"
+}
+
+// Message returns the exception's message.
+func (s *ExportNotFoundException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *ExportNotFoundException) OrigErr() error {
+	return nil
+}
+
+func (s *ExportNotFoundException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *ExportNotFoundException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *ExportNotFoundException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
+// Summary information about an export task.
+type ExportSummary struct {
+	_ struct{} `type:"structure"`
+
+	// The Amazon Resource Name (ARN) of the export.
+	ExportArn *string `min:"37" type:"string"`
+
+	// Export can be in one of the following states: IN_PROGRESS, COMPLETED, or
+	// FAILED.
+	ExportStatus *string `type:"string" enum:"ExportStatus"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ExportSummary) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ExportSummary) GoString() string {
+	return s.String()
+}
+
+// SetExportArn sets the ExportArn field's value.
+func (s *ExportSummary) SetExportArn(v string) *ExportSummary {
+	s.ExportArn = &v
+	return s
+}
+
+// SetExportStatus sets the ExportStatus field's value.
+func (s *ExportSummary) SetExportStatus(v string) *ExportSummary {
+	s.ExportStatus = &v
+	return s
+}
+
+type ExportTableToPointInTimeInput struct {
+	_ struct{} `type:"structure"`
+
+	// Providing a ClientToken makes the call to ExportTableToPointInTimeInput idempotent,
+	// meaning that multiple identical calls have the same effect as one single
+	// call.
+	//
+	// A client token is valid for 8 hours after the first request that uses it
+	// is completed. After 8 hours, any request with the same client token is treated
+	// as a new request. Do not resubmit the same request with the same client token
+	// for more than 8 hours, or the result might not be idempotent.
+	//
+	// If you submit a request with the same client token but a change in other
+	// parameters within the 8-hour idempotency window, DynamoDB returns an ImportConflictException.
+	ClientToken *string `type:"string" idempotencyToken:"true"`
+
+	// The format for the exported data. Valid values for ExportFormat are DYNAMODB_JSON
+	// or ION.
+	ExportFormat *string `type:"string" enum:"ExportFormat"`
+
+	// Time in the past from which to export table data, counted in seconds from
+	// the start of the Unix epoch. The table export will be a snapshot of the table's
+	// state at this point in time.
+	ExportTime *time.Time `type:"timestamp"`
+
+	// The name of the Amazon S3 bucket to export the snapshot to.
+	//
+	// S3Bucket is a required field
+	S3Bucket *string `type:"string" required:"true"`
+
+	// The ID of the Amazon Web Services account that owns the bucket the export
+	// will be stored in.
+	S3BucketOwner *string `type:"string"`
+
+	// The Amazon S3 bucket prefix to use as the file name and path of the exported
+	// snapshot.
+	S3Prefix *string `type:"string"`
+
+	// Type of encryption used on the bucket where export data will be stored. Valid
+	// values for S3SseAlgorithm are:
+	//
+	//    * AES256 - server-side encryption with Amazon S3 managed keys
+	//
+	//    * KMS - server-side encryption with KMS managed keys
+	S3SseAlgorithm *string `type:"string" enum:"S3SseAlgorithm"`
+
+	// The ID of the KMS managed key used to encrypt the S3 bucket where export
+	// data will be stored (if applicable).
+	S3SseKmsKeyId *string `min:"1" type:"string"`
+
+	// The Amazon Resource Name (ARN) associated with the table to export.
+	//
+	// TableArn is a required field
+	TableArn *string `type:"string" required:"true"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ExportTableToPointInTimeInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ExportTableToPointInTimeInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ExportTableToPointInTimeInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ExportTableToPointInTimeInput"}
+	if s.S3Bucket == nil {
+		invalidParams.Add(request.NewErrParamRequired("S3Bucket"))
+	}
+	if s.S3SseKmsKeyId != nil && len(*s.S3SseKmsKeyId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("S3SseKmsKeyId", 1))
+	}
+	if s.TableArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("TableArn"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetClientToken sets the ClientToken field's value.
+func (s *ExportTableToPointInTimeInput) SetClientToken(v string) *ExportTableToPointInTimeInput {
+	s.ClientToken = &v
+	return s
+}
+
+// SetExportFormat sets the ExportFormat field's value.
+func (s *ExportTableToPointInTimeInput) SetExportFormat(v string) *ExportTableToPointInTimeInput {
+	s.ExportFormat = &v
+	return s
+}
+
+// SetExportTime sets the ExportTime field's value.
+func (s *ExportTableToPointInTimeInput) SetExportTime(v time.Time) *ExportTableToPointInTimeInput {
+	s.ExportTime = &v
+	return s
+}
+
+// SetS3Bucket sets the S3Bucket field's value.
+func (s *ExportTableToPointInTimeInput) SetS3Bucket(v string) *ExportTableToPointInTimeInput {
+	s.S3Bucket = &v
+	return s
+}
+
+// SetS3BucketOwner sets the S3BucketOwner field's value.
+func (s *ExportTableToPointInTimeInput) SetS3BucketOwner(v string) *ExportTableToPointInTimeInput {
+	s.S3BucketOwner = &v
+	return s
+}
+
+// SetS3Prefix sets the S3Prefix field's value.
+func (s *ExportTableToPointInTimeInput) SetS3Prefix(v string) *ExportTableToPointInTimeInput {
+	s.S3Prefix = &v
+	return s
+}
+
+// SetS3SseAlgorithm sets the S3SseAlgorithm field's value.
+func (s *ExportTableToPointInTimeInput) SetS3SseAlgorithm(v string) *ExportTableToPointInTimeInput {
+	s.S3SseAlgorithm = &v
+	return s
+}
+
+// SetS3SseKmsKeyId sets the S3SseKmsKeyId field's value.
+func (s *ExportTableToPointInTimeInput) SetS3SseKmsKeyId(v string) *ExportTableToPointInTimeInput {
+	s.S3SseKmsKeyId = &v
+	return s
+}
+
+// SetTableArn sets the TableArn field's value.
+func (s *ExportTableToPointInTimeInput) SetTableArn(v string) *ExportTableToPointInTimeInput {
+	s.TableArn = &v
+	return s
+}
+
+type ExportTableToPointInTimeOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Contains a description of the table export.
+	ExportDescription *ExportDescription `type:"structure"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ExportTableToPointInTimeOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ExportTableToPointInTimeOutput) GoString() string {
+	return s.String()
+}
+
+// SetExportDescription sets the ExportDescription field's value.
+func (s *ExportTableToPointInTimeOutput) SetExportDescription(v *ExportDescription) *ExportTableToPointInTimeOutput {
+	s.ExportDescription = v
+	return s
+}
+
+// Represents a failure a contributor insights operation.
+type FailureException struct {
+	_ struct{} `type:"structure"`
+
+	// Description of the failure.
+	ExceptionDescription *string `type:"string"`
+
+	// Exception name.
+	ExceptionName *string `type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s FailureException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s FailureException) GoString() string {
+	return s.String()
+}
+
+// SetExceptionDescription sets the ExceptionDescription field's value.
+func (s *FailureException) SetExceptionDescription(v string) *FailureException {
+	s.ExceptionDescription = &v
+	return s
+}
+
+// SetExceptionName sets the ExceptionName field's value.
+func (s *FailureException) SetExceptionName(v string) *FailureException {
+	s.ExceptionName = &v
 	return s
 }
 
@@ -9165,12 +14551,20 @@ type Get struct {
 	TableName *string `min:"3" type:"string" required:"true"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s Get) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s Get) GoString() string {
 	return s.String()
 }
@@ -9292,8 +14686,8 @@ type GetItemInput struct {
 	// in the Amazon DynamoDB Developer Guide.
 	ProjectionExpression *string `type:"string"`
 
-	// Determines the level of detail about provisioned throughput consumption that
-	// is returned in the response:
+	// Determines the level of detail about either provisioned or on-demand throughput
+	// consumption that is returned in the response:
 	//
 	//    * INDEXES - The response includes the aggregate ConsumedCapacity for the
 	//    operation, together with ConsumedCapacity for each table and secondary
@@ -9313,12 +14707,20 @@ type GetItemInput struct {
 	TableName *string `min:"3" type:"string" required:"true"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s GetItemInput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s GetItemInput) GoString() string {
 	return s.String()
 }
@@ -9395,7 +14797,7 @@ type GetItemOutput struct {
 	// the total provisioned throughput consumed, along with statistics for the
 	// table and any indexes involved in the operation. ConsumedCapacity is only
 	// returned if the ReturnConsumedCapacity parameter was specified. For more
-	// information, see Read/Write Capacity Mode (https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/ProvisionedThroughputIntro.html)
+	// information, see Provisioned Throughput (https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/ProvisionedThroughput.html#ItemSizeCalculations.Reads)
 	// in the Amazon DynamoDB Developer Guide.
 	ConsumedCapacity *ConsumedCapacity `type:"structure"`
 
@@ -9403,12 +14805,20 @@ type GetItemOutput struct {
 	Item map[string]*AttributeValue `type:"map"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s GetItemOutput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s GetItemOutput) GoString() string {
 	return s.String()
 }
@@ -9443,7 +14853,7 @@ type GlobalSecondaryIndex struct {
 	//    * RANGE - sort key
 	//
 	// The partition key of an item is also known as its hash attribute. The term
-	// "hash attribute" derives from DynamoDB' usage of an internal hash function
+	// "hash attribute" derives from DynamoDB's usage of an internal hash function
 	// to evenly distribute data items across partitions, based on their partition
 	// key values.
 	//
@@ -9464,18 +14874,26 @@ type GlobalSecondaryIndex struct {
 	// Represents the provisioned throughput settings for the specified global secondary
 	// index.
 	//
-	// For current minimum and maximum provisioned throughput values, see Limits
-	// (https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Limits.html)
+	// For current minimum and maximum provisioned throughput values, see Service,
+	// Account, and Table Quotas (https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Limits.html)
 	// in the Amazon DynamoDB Developer Guide.
 	ProvisionedThroughput *ProvisionedThroughput `type:"structure"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s GlobalSecondaryIndex) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s GlobalSecondaryIndex) GoString() string {
 	return s.String()
 }
@@ -9549,6 +14967,67 @@ func (s *GlobalSecondaryIndex) SetProvisionedThroughput(v *ProvisionedThroughput
 	return s
 }
 
+// Represents the auto scaling settings of a global secondary index for a global
+// table that will be modified.
+type GlobalSecondaryIndexAutoScalingUpdate struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the global secondary index.
+	IndexName *string `min:"3" type:"string"`
+
+	// Represents the auto scaling settings to be modified for a global table or
+	// global secondary index.
+	ProvisionedWriteCapacityAutoScalingUpdate *AutoScalingSettingsUpdate `type:"structure"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s GlobalSecondaryIndexAutoScalingUpdate) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s GlobalSecondaryIndexAutoScalingUpdate) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GlobalSecondaryIndexAutoScalingUpdate) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GlobalSecondaryIndexAutoScalingUpdate"}
+	if s.IndexName != nil && len(*s.IndexName) < 3 {
+		invalidParams.Add(request.NewErrParamMinLen("IndexName", 3))
+	}
+	if s.ProvisionedWriteCapacityAutoScalingUpdate != nil {
+		if err := s.ProvisionedWriteCapacityAutoScalingUpdate.Validate(); err != nil {
+			invalidParams.AddNested("ProvisionedWriteCapacityAutoScalingUpdate", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetIndexName sets the IndexName field's value.
+func (s *GlobalSecondaryIndexAutoScalingUpdate) SetIndexName(v string) *GlobalSecondaryIndexAutoScalingUpdate {
+	s.IndexName = &v
+	return s
+}
+
+// SetProvisionedWriteCapacityAutoScalingUpdate sets the ProvisionedWriteCapacityAutoScalingUpdate field's value.
+func (s *GlobalSecondaryIndexAutoScalingUpdate) SetProvisionedWriteCapacityAutoScalingUpdate(v *AutoScalingSettingsUpdate) *GlobalSecondaryIndexAutoScalingUpdate {
+	s.ProvisionedWriteCapacityAutoScalingUpdate = v
+	return s
+}
+
 // Represents the properties of a global secondary index.
 type GlobalSecondaryIndexDescription struct {
 	_ struct{} `type:"structure"`
@@ -9559,6 +15038,11 @@ type GlobalSecondaryIndexDescription struct {
 	// key cannot have any duplicate values.) If an item can be added to the index,
 	// DynamoDB will do so. After all items have been processed, the backfilling
 	// operation is complete and Backfilling is false.
+	//
+	// You can delete an index that is being created during the Backfilling phase
+	// when IndexStatus is set to CREATING and Backfilling is true. You can't delete
+	// the index that is being created when IndexStatus is set to CREATING and Backfilling
+	// is false.
 	//
 	// For indexes that were created during a CreateTable operation, the Backfilling
 	// attribute does not appear in the DescribeTable output.
@@ -9598,7 +15082,7 @@ type GlobalSecondaryIndexDescription struct {
 	//    * RANGE - sort key
 	//
 	// The partition key of an item is also known as its hash attribute. The term
-	// "hash attribute" derives from DynamoDB' usage of an internal hash function
+	// "hash attribute" derives from DynamoDB's usage of an internal hash function
 	// to evenly distribute data items across partitions, based on their partition
 	// key values.
 	//
@@ -9615,18 +15099,26 @@ type GlobalSecondaryIndexDescription struct {
 	// Represents the provisioned throughput settings for the specified global secondary
 	// index.
 	//
-	// For current minimum and maximum provisioned throughput values, see Limits
-	// (https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Limits.html)
+	// For current minimum and maximum provisioned throughput values, see Service,
+	// Account, and Table Quotas (https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Limits.html)
 	// in the Amazon DynamoDB Developer Guide.
 	ProvisionedThroughput *ProvisionedThroughputDescription `type:"structure"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s GlobalSecondaryIndexDescription) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s GlobalSecondaryIndexDescription) GoString() string {
 	return s.String()
 }
@@ -9701,7 +15193,7 @@ type GlobalSecondaryIndexInfo struct {
 	//    * RANGE - sort key
 	//
 	// The partition key of an item is also known as its hash attribute. The term
-	// "hash attribute" derives from DynamoDB' usage of an internal hash function
+	// "hash attribute" derives from DynamoDB's usage of an internal hash function
 	// to evenly distribute data items across partitions, based on their partition
 	// key values.
 	//
@@ -9720,12 +15212,20 @@ type GlobalSecondaryIndexInfo struct {
 	ProvisionedThroughput *ProvisionedThroughput `type:"structure"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s GlobalSecondaryIndexInfo) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s GlobalSecondaryIndexInfo) GoString() string {
 	return s.String()
 }
@@ -9756,12 +15256,12 @@ func (s *GlobalSecondaryIndexInfo) SetProvisionedThroughput(v *ProvisionedThroug
 
 // Represents one of the following:
 //
-//    * A new global secondary index to be added to an existing table.
+//   - A new global secondary index to be added to an existing table.
 //
-//    * New provisioned throughput parameters for an existing global secondary
-//    index.
+//   - New provisioned throughput parameters for an existing global secondary
+//     index.
 //
-//    * An existing global secondary index to be removed from an existing table.
+//   - An existing global secondary index to be removed from an existing table.
 type GlobalSecondaryIndexUpdate struct {
 	_ struct{} `type:"structure"`
 
@@ -9787,12 +15287,20 @@ type GlobalSecondaryIndexUpdate struct {
 	Update *UpdateGlobalSecondaryIndexAction `type:"structure"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s GlobalSecondaryIndexUpdate) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s GlobalSecondaryIndexUpdate) GoString() string {
 	return s.String()
 }
@@ -9847,16 +15355,24 @@ type GlobalTable struct {
 	// The global table name.
 	GlobalTableName *string `min:"3" type:"string"`
 
-	// The regions where the global table has replicas.
+	// The Regions where the global table has replicas.
 	ReplicationGroup []*Replica `type:"list"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s GlobalTable) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s GlobalTable) GoString() string {
 	return s.String()
 }
@@ -9871,6 +15387,70 @@ func (s *GlobalTable) SetGlobalTableName(v string) *GlobalTable {
 func (s *GlobalTable) SetReplicationGroup(v []*Replica) *GlobalTable {
 	s.ReplicationGroup = v
 	return s
+}
+
+// The specified global table already exists.
+type GlobalTableAlreadyExistsException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s GlobalTableAlreadyExistsException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s GlobalTableAlreadyExistsException) GoString() string {
+	return s.String()
+}
+
+func newErrorGlobalTableAlreadyExistsException(v protocol.ResponseMetadata) error {
+	return &GlobalTableAlreadyExistsException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *GlobalTableAlreadyExistsException) Code() string {
+	return "GlobalTableAlreadyExistsException"
+}
+
+// Message returns the exception's message.
+func (s *GlobalTableAlreadyExistsException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *GlobalTableAlreadyExistsException) OrigErr() error {
+	return nil
+}
+
+func (s *GlobalTableAlreadyExistsException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *GlobalTableAlreadyExistsException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *GlobalTableAlreadyExistsException) RequestID() string {
+	return s.RespMetadata.RequestID
 }
 
 // Contains details about the global table.
@@ -9897,16 +15477,24 @@ type GlobalTableDescription struct {
 	//    * ACTIVE - The global table is ready for use.
 	GlobalTableStatus *string `type:"string" enum:"GlobalTableStatus"`
 
-	// The regions where the global table has replicas.
+	// The Regions where the global table has replicas.
 	ReplicationGroup []*ReplicaDescription `type:"list"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s GlobalTableDescription) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s GlobalTableDescription) GoString() string {
 	return s.String()
 }
@@ -9952,7 +15540,7 @@ type GlobalTableGlobalSecondaryIndexSettingsUpdate struct {
 	// IndexName is a required field
 	IndexName *string `min:"3" type:"string" required:"true"`
 
-	// AutoScaling settings for managing a global secondary index's write capacity
+	// Auto scaling settings for managing a global secondary index's write capacity
 	// units.
 	ProvisionedWriteCapacityAutoScalingSettingsUpdate *AutoScalingSettingsUpdate `type:"structure"`
 
@@ -9961,12 +15549,20 @@ type GlobalTableGlobalSecondaryIndexSettingsUpdate struct {
 	ProvisionedWriteCapacityUnits *int64 `min:"1" type:"long"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s GlobalTableGlobalSecondaryIndexSettingsUpdate) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s GlobalTableGlobalSecondaryIndexSettingsUpdate) GoString() string {
 	return s.String()
 }
@@ -10013,6 +15609,1036 @@ func (s *GlobalTableGlobalSecondaryIndexSettingsUpdate) SetProvisionedWriteCapac
 	return s
 }
 
+// The specified global table does not exist.
+type GlobalTableNotFoundException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s GlobalTableNotFoundException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s GlobalTableNotFoundException) GoString() string {
+	return s.String()
+}
+
+func newErrorGlobalTableNotFoundException(v protocol.ResponseMetadata) error {
+	return &GlobalTableNotFoundException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *GlobalTableNotFoundException) Code() string {
+	return "GlobalTableNotFoundException"
+}
+
+// Message returns the exception's message.
+func (s *GlobalTableNotFoundException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *GlobalTableNotFoundException) OrigErr() error {
+	return nil
+}
+
+func (s *GlobalTableNotFoundException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *GlobalTableNotFoundException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *GlobalTableNotFoundException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
+// DynamoDB rejected the request because you retried a request with a different
+// payload but with an idempotent token that was already used.
+type IdempotentParameterMismatchException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	Message_ *string `locationName:"Message" type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s IdempotentParameterMismatchException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s IdempotentParameterMismatchException) GoString() string {
+	return s.String()
+}
+
+func newErrorIdempotentParameterMismatchException(v protocol.ResponseMetadata) error {
+	return &IdempotentParameterMismatchException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *IdempotentParameterMismatchException) Code() string {
+	return "IdempotentParameterMismatchException"
+}
+
+// Message returns the exception's message.
+func (s *IdempotentParameterMismatchException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *IdempotentParameterMismatchException) OrigErr() error {
+	return nil
+}
+
+func (s *IdempotentParameterMismatchException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *IdempotentParameterMismatchException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *IdempotentParameterMismatchException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
+// There was a conflict when importing from the specified S3 source. This can
+// occur when the current import conflicts with a previous import request that
+// had the same client token.
+type ImportConflictException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ImportConflictException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ImportConflictException) GoString() string {
+	return s.String()
+}
+
+func newErrorImportConflictException(v protocol.ResponseMetadata) error {
+	return &ImportConflictException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *ImportConflictException) Code() string {
+	return "ImportConflictException"
+}
+
+// Message returns the exception's message.
+func (s *ImportConflictException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *ImportConflictException) OrigErr() error {
+	return nil
+}
+
+func (s *ImportConflictException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *ImportConflictException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *ImportConflictException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
+// The specified import was not found.
+type ImportNotFoundException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ImportNotFoundException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ImportNotFoundException) GoString() string {
+	return s.String()
+}
+
+func newErrorImportNotFoundException(v protocol.ResponseMetadata) error {
+	return &ImportNotFoundException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *ImportNotFoundException) Code() string {
+	return "ImportNotFoundException"
+}
+
+// Message returns the exception's message.
+func (s *ImportNotFoundException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *ImportNotFoundException) OrigErr() error {
+	return nil
+}
+
+func (s *ImportNotFoundException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *ImportNotFoundException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *ImportNotFoundException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
+// Summary information about the source file for the import.
+type ImportSummary struct {
+	_ struct{} `type:"structure"`
+
+	// The Amazon Resource Number (ARN) of the Cloudwatch Log Group associated with
+	// this import task.
+	CloudWatchLogGroupArn *string `min:"1" type:"string"`
+
+	// The time at which this import task ended. (Does this include the successful
+	// complete creation of the table it was imported to?)
+	EndTime *time.Time `type:"timestamp"`
+
+	// The Amazon Resource Number (ARN) corresponding to the import request.
+	ImportArn *string `min:"37" type:"string"`
+
+	// The status of the import operation.
+	ImportStatus *string `type:"string" enum:"ImportStatus"`
+
+	// The format of the source data. Valid values are CSV, DYNAMODB_JSON or ION.
+	InputFormat *string `type:"string" enum:"InputFormat"`
+
+	// The path and S3 bucket of the source file that is being imported. This includes
+	// the S3Bucket (required), S3KeyPrefix (optional) and S3BucketOwner (optional
+	// if the bucket is owned by the requester).
+	S3BucketSource *S3BucketSource `type:"structure"`
+
+	// The time at which this import task began.
+	StartTime *time.Time `type:"timestamp"`
+
+	// The Amazon Resource Number (ARN) of the table being imported into.
+	TableArn *string `type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ImportSummary) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ImportSummary) GoString() string {
+	return s.String()
+}
+
+// SetCloudWatchLogGroupArn sets the CloudWatchLogGroupArn field's value.
+func (s *ImportSummary) SetCloudWatchLogGroupArn(v string) *ImportSummary {
+	s.CloudWatchLogGroupArn = &v
+	return s
+}
+
+// SetEndTime sets the EndTime field's value.
+func (s *ImportSummary) SetEndTime(v time.Time) *ImportSummary {
+	s.EndTime = &v
+	return s
+}
+
+// SetImportArn sets the ImportArn field's value.
+func (s *ImportSummary) SetImportArn(v string) *ImportSummary {
+	s.ImportArn = &v
+	return s
+}
+
+// SetImportStatus sets the ImportStatus field's value.
+func (s *ImportSummary) SetImportStatus(v string) *ImportSummary {
+	s.ImportStatus = &v
+	return s
+}
+
+// SetInputFormat sets the InputFormat field's value.
+func (s *ImportSummary) SetInputFormat(v string) *ImportSummary {
+	s.InputFormat = &v
+	return s
+}
+
+// SetS3BucketSource sets the S3BucketSource field's value.
+func (s *ImportSummary) SetS3BucketSource(v *S3BucketSource) *ImportSummary {
+	s.S3BucketSource = v
+	return s
+}
+
+// SetStartTime sets the StartTime field's value.
+func (s *ImportSummary) SetStartTime(v time.Time) *ImportSummary {
+	s.StartTime = &v
+	return s
+}
+
+// SetTableArn sets the TableArn field's value.
+func (s *ImportSummary) SetTableArn(v string) *ImportSummary {
+	s.TableArn = &v
+	return s
+}
+
+// Represents the properties of the table being imported into.
+type ImportTableDescription struct {
+	_ struct{} `type:"structure"`
+
+	// The client token that was provided for the import task. Reusing the client
+	// token on retry makes a call to ImportTable idempotent.
+	ClientToken *string `type:"string"`
+
+	// The Amazon Resource Number (ARN) of the Cloudwatch Log Group associated with
+	// the target table.
+	CloudWatchLogGroupArn *string `min:"1" type:"string"`
+
+	// The time at which the creation of the table associated with this import task
+	// completed.
+	EndTime *time.Time `type:"timestamp"`
+
+	// The number of errors occurred on importing the source file into the target
+	// table.
+	ErrorCount *int64 `type:"long"`
+
+	// The error code corresponding to the failure that the import job ran into
+	// during execution.
+	FailureCode *string `type:"string"`
+
+	// The error message corresponding to the failure that the import job ran into
+	// during execution.
+	FailureMessage *string `type:"string"`
+
+	// The Amazon Resource Number (ARN) corresponding to the import request.
+	ImportArn *string `min:"37" type:"string"`
+
+	// The status of the import.
+	ImportStatus *string `type:"string" enum:"ImportStatus"`
+
+	// The number of items successfully imported into the new table.
+	ImportedItemCount *int64 `type:"long"`
+
+	// The compression options for the data that has been imported into the target
+	// table. The values are NONE, GZIP, or ZSTD.
+	InputCompressionType *string `type:"string" enum:"InputCompressionType"`
+
+	// The format of the source data going into the target table.
+	InputFormat *string `type:"string" enum:"InputFormat"`
+
+	// The format options for the data that was imported into the target table.
+	// There is one value, CsvOption.
+	InputFormatOptions *InputFormatOptions `type:"structure"`
+
+	// The total number of items processed from the source file.
+	ProcessedItemCount *int64 `type:"long"`
+
+	// The total size of data processed from the source file, in Bytes.
+	ProcessedSizeBytes *int64 `type:"long"`
+
+	// Values for the S3 bucket the source file is imported from. Includes bucket
+	// name (required), key prefix (optional) and bucket account owner ID (optional).
+	S3BucketSource *S3BucketSource `type:"structure"`
+
+	// The time when this import task started.
+	StartTime *time.Time `type:"timestamp"`
+
+	// The Amazon Resource Number (ARN) of the table being imported into.
+	TableArn *string `type:"string"`
+
+	// The parameters for the new table that is being imported into.
+	TableCreationParameters *TableCreationParameters `type:"structure"`
+
+	// The table id corresponding to the table created by import table process.
+	TableId *string `type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ImportTableDescription) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ImportTableDescription) GoString() string {
+	return s.String()
+}
+
+// SetClientToken sets the ClientToken field's value.
+func (s *ImportTableDescription) SetClientToken(v string) *ImportTableDescription {
+	s.ClientToken = &v
+	return s
+}
+
+// SetCloudWatchLogGroupArn sets the CloudWatchLogGroupArn field's value.
+func (s *ImportTableDescription) SetCloudWatchLogGroupArn(v string) *ImportTableDescription {
+	s.CloudWatchLogGroupArn = &v
+	return s
+}
+
+// SetEndTime sets the EndTime field's value.
+func (s *ImportTableDescription) SetEndTime(v time.Time) *ImportTableDescription {
+	s.EndTime = &v
+	return s
+}
+
+// SetErrorCount sets the ErrorCount field's value.
+func (s *ImportTableDescription) SetErrorCount(v int64) *ImportTableDescription {
+	s.ErrorCount = &v
+	return s
+}
+
+// SetFailureCode sets the FailureCode field's value.
+func (s *ImportTableDescription) SetFailureCode(v string) *ImportTableDescription {
+	s.FailureCode = &v
+	return s
+}
+
+// SetFailureMessage sets the FailureMessage field's value.
+func (s *ImportTableDescription) SetFailureMessage(v string) *ImportTableDescription {
+	s.FailureMessage = &v
+	return s
+}
+
+// SetImportArn sets the ImportArn field's value.
+func (s *ImportTableDescription) SetImportArn(v string) *ImportTableDescription {
+	s.ImportArn = &v
+	return s
+}
+
+// SetImportStatus sets the ImportStatus field's value.
+func (s *ImportTableDescription) SetImportStatus(v string) *ImportTableDescription {
+	s.ImportStatus = &v
+	return s
+}
+
+// SetImportedItemCount sets the ImportedItemCount field's value.
+func (s *ImportTableDescription) SetImportedItemCount(v int64) *ImportTableDescription {
+	s.ImportedItemCount = &v
+	return s
+}
+
+// SetInputCompressionType sets the InputCompressionType field's value.
+func (s *ImportTableDescription) SetInputCompressionType(v string) *ImportTableDescription {
+	s.InputCompressionType = &v
+	return s
+}
+
+// SetInputFormat sets the InputFormat field's value.
+func (s *ImportTableDescription) SetInputFormat(v string) *ImportTableDescription {
+	s.InputFormat = &v
+	return s
+}
+
+// SetInputFormatOptions sets the InputFormatOptions field's value.
+func (s *ImportTableDescription) SetInputFormatOptions(v *InputFormatOptions) *ImportTableDescription {
+	s.InputFormatOptions = v
+	return s
+}
+
+// SetProcessedItemCount sets the ProcessedItemCount field's value.
+func (s *ImportTableDescription) SetProcessedItemCount(v int64) *ImportTableDescription {
+	s.ProcessedItemCount = &v
+	return s
+}
+
+// SetProcessedSizeBytes sets the ProcessedSizeBytes field's value.
+func (s *ImportTableDescription) SetProcessedSizeBytes(v int64) *ImportTableDescription {
+	s.ProcessedSizeBytes = &v
+	return s
+}
+
+// SetS3BucketSource sets the S3BucketSource field's value.
+func (s *ImportTableDescription) SetS3BucketSource(v *S3BucketSource) *ImportTableDescription {
+	s.S3BucketSource = v
+	return s
+}
+
+// SetStartTime sets the StartTime field's value.
+func (s *ImportTableDescription) SetStartTime(v time.Time) *ImportTableDescription {
+	s.StartTime = &v
+	return s
+}
+
+// SetTableArn sets the TableArn field's value.
+func (s *ImportTableDescription) SetTableArn(v string) *ImportTableDescription {
+	s.TableArn = &v
+	return s
+}
+
+// SetTableCreationParameters sets the TableCreationParameters field's value.
+func (s *ImportTableDescription) SetTableCreationParameters(v *TableCreationParameters) *ImportTableDescription {
+	s.TableCreationParameters = v
+	return s
+}
+
+// SetTableId sets the TableId field's value.
+func (s *ImportTableDescription) SetTableId(v string) *ImportTableDescription {
+	s.TableId = &v
+	return s
+}
+
+type ImportTableInput struct {
+	_ struct{} `type:"structure"`
+
+	// Providing a ClientToken makes the call to ImportTableInput idempotent, meaning
+	// that multiple identical calls have the same effect as one single call.
+	//
+	// A client token is valid for 8 hours after the first request that uses it
+	// is completed. After 8 hours, any request with the same client token is treated
+	// as a new request. Do not resubmit the same request with the same client token
+	// for more than 8 hours, or the result might not be idempotent.
+	//
+	// If you submit a request with the same client token but a change in other
+	// parameters within the 8-hour idempotency window, DynamoDB returns an IdempotentParameterMismatch
+	// exception.
+	ClientToken *string `type:"string" idempotencyToken:"true"`
+
+	// Type of compression to be used on the input coming from the imported table.
+	InputCompressionType *string `type:"string" enum:"InputCompressionType"`
+
+	// The format of the source data. Valid values for ImportFormat are CSV, DYNAMODB_JSON
+	// or ION.
+	//
+	// InputFormat is a required field
+	InputFormat *string `type:"string" required:"true" enum:"InputFormat"`
+
+	// Additional properties that specify how the input is formatted,
+	InputFormatOptions *InputFormatOptions `type:"structure"`
+
+	// The S3 bucket that provides the source for the import.
+	//
+	// S3BucketSource is a required field
+	S3BucketSource *S3BucketSource `type:"structure" required:"true"`
+
+	// Parameters for the table to import the data into.
+	//
+	// TableCreationParameters is a required field
+	TableCreationParameters *TableCreationParameters `type:"structure" required:"true"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ImportTableInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ImportTableInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ImportTableInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ImportTableInput"}
+	if s.InputFormat == nil {
+		invalidParams.Add(request.NewErrParamRequired("InputFormat"))
+	}
+	if s.S3BucketSource == nil {
+		invalidParams.Add(request.NewErrParamRequired("S3BucketSource"))
+	}
+	if s.TableCreationParameters == nil {
+		invalidParams.Add(request.NewErrParamRequired("TableCreationParameters"))
+	}
+	if s.InputFormatOptions != nil {
+		if err := s.InputFormatOptions.Validate(); err != nil {
+			invalidParams.AddNested("InputFormatOptions", err.(request.ErrInvalidParams))
+		}
+	}
+	if s.S3BucketSource != nil {
+		if err := s.S3BucketSource.Validate(); err != nil {
+			invalidParams.AddNested("S3BucketSource", err.(request.ErrInvalidParams))
+		}
+	}
+	if s.TableCreationParameters != nil {
+		if err := s.TableCreationParameters.Validate(); err != nil {
+			invalidParams.AddNested("TableCreationParameters", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetClientToken sets the ClientToken field's value.
+func (s *ImportTableInput) SetClientToken(v string) *ImportTableInput {
+	s.ClientToken = &v
+	return s
+}
+
+// SetInputCompressionType sets the InputCompressionType field's value.
+func (s *ImportTableInput) SetInputCompressionType(v string) *ImportTableInput {
+	s.InputCompressionType = &v
+	return s
+}
+
+// SetInputFormat sets the InputFormat field's value.
+func (s *ImportTableInput) SetInputFormat(v string) *ImportTableInput {
+	s.InputFormat = &v
+	return s
+}
+
+// SetInputFormatOptions sets the InputFormatOptions field's value.
+func (s *ImportTableInput) SetInputFormatOptions(v *InputFormatOptions) *ImportTableInput {
+	s.InputFormatOptions = v
+	return s
+}
+
+// SetS3BucketSource sets the S3BucketSource field's value.
+func (s *ImportTableInput) SetS3BucketSource(v *S3BucketSource) *ImportTableInput {
+	s.S3BucketSource = v
+	return s
+}
+
+// SetTableCreationParameters sets the TableCreationParameters field's value.
+func (s *ImportTableInput) SetTableCreationParameters(v *TableCreationParameters) *ImportTableInput {
+	s.TableCreationParameters = v
+	return s
+}
+
+type ImportTableOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Represents the properties of the table created for the import, and parameters
+	// of the import. The import parameters include import status, how many items
+	// were processed, and how many errors were encountered.
+	//
+	// ImportTableDescription is a required field
+	ImportTableDescription *ImportTableDescription `type:"structure" required:"true"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ImportTableOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ImportTableOutput) GoString() string {
+	return s.String()
+}
+
+// SetImportTableDescription sets the ImportTableDescription field's value.
+func (s *ImportTableOutput) SetImportTableDescription(v *ImportTableDescription) *ImportTableOutput {
+	s.ImportTableDescription = v
+	return s
+}
+
+// The operation tried to access a nonexistent index.
+type IndexNotFoundException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s IndexNotFoundException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s IndexNotFoundException) GoString() string {
+	return s.String()
+}
+
+func newErrorIndexNotFoundException(v protocol.ResponseMetadata) error {
+	return &IndexNotFoundException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *IndexNotFoundException) Code() string {
+	return "IndexNotFoundException"
+}
+
+// Message returns the exception's message.
+func (s *IndexNotFoundException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *IndexNotFoundException) OrigErr() error {
+	return nil
+}
+
+func (s *IndexNotFoundException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *IndexNotFoundException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *IndexNotFoundException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
+// The format options for the data that was imported into the target table.
+// There is one value, CsvOption.
+type InputFormatOptions struct {
+	_ struct{} `type:"structure"`
+
+	// The options for imported source files in CSV format. The values are Delimiter
+	// and HeaderList.
+	Csv *CsvOptions `type:"structure"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s InputFormatOptions) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s InputFormatOptions) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *InputFormatOptions) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "InputFormatOptions"}
+	if s.Csv != nil {
+		if err := s.Csv.Validate(); err != nil {
+			invalidParams.AddNested("Csv", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetCsv sets the Csv field's value.
+func (s *InputFormatOptions) SetCsv(v *CsvOptions) *InputFormatOptions {
+	s.Csv = v
+	return s
+}
+
+// An error occurred on the server side.
+type InternalServerError struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	// The server encountered an internal error trying to fulfill the request.
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s InternalServerError) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s InternalServerError) GoString() string {
+	return s.String()
+}
+
+func newErrorInternalServerError(v protocol.ResponseMetadata) error {
+	return &InternalServerError{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *InternalServerError) Code() string {
+	return "InternalServerError"
+}
+
+// Message returns the exception's message.
+func (s *InternalServerError) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *InternalServerError) OrigErr() error {
+	return nil
+}
+
+func (s *InternalServerError) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *InternalServerError) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *InternalServerError) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
+// The specified ExportTime is outside of the point in time recovery window.
+type InvalidExportTimeException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s InvalidExportTimeException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s InvalidExportTimeException) GoString() string {
+	return s.String()
+}
+
+func newErrorInvalidExportTimeException(v protocol.ResponseMetadata) error {
+	return &InvalidExportTimeException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *InvalidExportTimeException) Code() string {
+	return "InvalidExportTimeException"
+}
+
+// Message returns the exception's message.
+func (s *InvalidExportTimeException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *InvalidExportTimeException) OrigErr() error {
+	return nil
+}
+
+func (s *InvalidExportTimeException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *InvalidExportTimeException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *InvalidExportTimeException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
+// An invalid restore time was specified. RestoreDateTime must be between EarliestRestorableDateTime
+// and LatestRestorableDateTime.
+type InvalidRestoreTimeException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s InvalidRestoreTimeException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s InvalidRestoreTimeException) GoString() string {
+	return s.String()
+}
+
+func newErrorInvalidRestoreTimeException(v protocol.ResponseMetadata) error {
+	return &InvalidRestoreTimeException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *InvalidRestoreTimeException) Code() string {
+	return "InvalidRestoreTimeException"
+}
+
+// Message returns the exception's message.
+func (s *InvalidRestoreTimeException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *InvalidRestoreTimeException) OrigErr() error {
+	return nil
+}
+
+func (s *InvalidRestoreTimeException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *InvalidRestoreTimeException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *InvalidRestoreTimeException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
 // Information about item collections, if any, that were affected by the operation.
 // ItemCollectionMetrics is only returned if the request asked for it. If the
 // table does not have any local secondary indexes, this information is not
@@ -10036,12 +16662,20 @@ type ItemCollectionMetrics struct {
 	SizeEstimateRangeGB []*float64 `type:"list"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s ItemCollectionMetrics) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s ItemCollectionMetrics) GoString() string {
 	return s.String()
 }
@@ -10058,6 +16692,73 @@ func (s *ItemCollectionMetrics) SetSizeEstimateRangeGB(v []*float64) *ItemCollec
 	return s
 }
 
+// An item collection is too large. This exception is only returned for tables
+// that have one or more local secondary indexes.
+type ItemCollectionSizeLimitExceededException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	// The total size of an item collection has exceeded the maximum limit of 10
+	// gigabytes.
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ItemCollectionSizeLimitExceededException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ItemCollectionSizeLimitExceededException) GoString() string {
+	return s.String()
+}
+
+func newErrorItemCollectionSizeLimitExceededException(v protocol.ResponseMetadata) error {
+	return &ItemCollectionSizeLimitExceededException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *ItemCollectionSizeLimitExceededException) Code() string {
+	return "ItemCollectionSizeLimitExceededException"
+}
+
+// Message returns the exception's message.
+func (s *ItemCollectionSizeLimitExceededException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *ItemCollectionSizeLimitExceededException) OrigErr() error {
+	return nil
+}
+
+func (s *ItemCollectionSizeLimitExceededException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *ItemCollectionSizeLimitExceededException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *ItemCollectionSizeLimitExceededException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
 // Details for the requested item.
 type ItemResponse struct {
 	_ struct{} `type:"structure"`
@@ -10066,12 +16767,20 @@ type ItemResponse struct {
 	Item map[string]*AttributeValue `type:"map"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s ItemResponse) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s ItemResponse) GoString() string {
 	return s.String()
 }
@@ -10108,7 +16817,7 @@ type KeySchemaElement struct {
 	//    * RANGE - sort key
 	//
 	// The partition key of an item is also known as its hash attribute. The term
-	// "hash attribute" derives from DynamoDB' usage of an internal hash function
+	// "hash attribute" derives from DynamoDB's usage of an internal hash function
 	// to evenly distribute data items across partitions, based on their partition
 	// key values.
 	//
@@ -10120,12 +16829,20 @@ type KeySchemaElement struct {
 	KeyType *string `type:"string" required:"true" enum:"KeyType"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s KeySchemaElement) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s KeySchemaElement) GoString() string {
 	return s.String()
 }
@@ -10236,12 +16953,20 @@ type KeysAndAttributes struct {
 	ProjectionExpression *string `type:"string"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s KeysAndAttributes) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s KeysAndAttributes) GoString() string {
 	return s.String()
 }
@@ -10295,6 +17020,135 @@ func (s *KeysAndAttributes) SetProjectionExpression(v string) *KeysAndAttributes
 	return s
 }
 
+// Describes a Kinesis data stream destination.
+type KinesisDataStreamDestination struct {
+	_ struct{} `type:"structure"`
+
+	// The current status of replication.
+	DestinationStatus *string `type:"string" enum:"DestinationStatus"`
+
+	// The human-readable string that corresponds to the replica status.
+	DestinationStatusDescription *string `type:"string"`
+
+	// The ARN for a specific Kinesis data stream.
+	StreamArn *string `min:"37" type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s KinesisDataStreamDestination) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s KinesisDataStreamDestination) GoString() string {
+	return s.String()
+}
+
+// SetDestinationStatus sets the DestinationStatus field's value.
+func (s *KinesisDataStreamDestination) SetDestinationStatus(v string) *KinesisDataStreamDestination {
+	s.DestinationStatus = &v
+	return s
+}
+
+// SetDestinationStatusDescription sets the DestinationStatusDescription field's value.
+func (s *KinesisDataStreamDestination) SetDestinationStatusDescription(v string) *KinesisDataStreamDestination {
+	s.DestinationStatusDescription = &v
+	return s
+}
+
+// SetStreamArn sets the StreamArn field's value.
+func (s *KinesisDataStreamDestination) SetStreamArn(v string) *KinesisDataStreamDestination {
+	s.StreamArn = &v
+	return s
+}
+
+// There is no limit to the number of daily on-demand backups that can be taken.
+//
+// For most purposes, up to 500 simultaneous table operations are allowed per
+// account. These operations include CreateTable, UpdateTable, DeleteTable,UpdateTimeToLive,
+// RestoreTableFromBackup, and RestoreTableToPointInTime.
+//
+// When you are creating a table with one or more secondary indexes, you can
+// have up to 250 such requests running at a time. However, if the table or
+// index specifications are complex, then DynamoDB might temporarily reduce
+// the number of concurrent operations.
+//
+// When importing into DynamoDB, up to 50 simultaneous import table operations
+// are allowed per account.
+//
+// There is a soft account quota of 2,500 tables.
+type LimitExceededException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	// Too many operations for a given subscriber.
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s LimitExceededException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s LimitExceededException) GoString() string {
+	return s.String()
+}
+
+func newErrorLimitExceededException(v protocol.ResponseMetadata) error {
+	return &LimitExceededException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *LimitExceededException) Code() string {
+	return "LimitExceededException"
+}
+
+// Message returns the exception's message.
+func (s *LimitExceededException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *LimitExceededException) OrigErr() error {
+	return nil
+}
+
+func (s *LimitExceededException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *LimitExceededException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *LimitExceededException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
 type ListBackupsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -10302,7 +17156,8 @@ type ListBackupsInput struct {
 	//
 	// Where BackupType can be:
 	//
-	//    * USER - On-demand backup created by you.
+	//    * USER - On-demand backup created by you. (The default setting if no other
+	//    backup types are specified.)
 	//
 	//    * SYSTEM - On-demand backup automatically created by DynamoDB.
 	//
@@ -10329,12 +17184,20 @@ type ListBackupsInput struct {
 	TimeRangeUpperBound *time.Time `type:"timestamp"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s ListBackupsInput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s ListBackupsInput) GoString() string {
 	return s.String()
 }
@@ -10414,12 +17277,20 @@ type ListBackupsOutput struct {
 	LastEvaluatedBackupArn *string `min:"37" type:"string"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s ListBackupsOutput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s ListBackupsOutput) GoString() string {
 	return s.String()
 }
@@ -10436,25 +17307,246 @@ func (s *ListBackupsOutput) SetLastEvaluatedBackupArn(v string) *ListBackupsOutp
 	return s
 }
 
+type ListContributorInsightsInput struct {
+	_ struct{} `type:"structure"`
+
+	// Maximum number of results to return per page.
+	MaxResults *int64 `type:"integer"`
+
+	// A token to for the desired page, if there is one.
+	NextToken *string `type:"string"`
+
+	// The name of the table.
+	TableName *string `min:"3" type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ListContributorInsightsInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ListContributorInsightsInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListContributorInsightsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListContributorInsightsInput"}
+	if s.TableName != nil && len(*s.TableName) < 3 {
+		invalidParams.Add(request.NewErrParamMinLen("TableName", 3))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetMaxResults sets the MaxResults field's value.
+func (s *ListContributorInsightsInput) SetMaxResults(v int64) *ListContributorInsightsInput {
+	s.MaxResults = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ListContributorInsightsInput) SetNextToken(v string) *ListContributorInsightsInput {
+	s.NextToken = &v
+	return s
+}
+
+// SetTableName sets the TableName field's value.
+func (s *ListContributorInsightsInput) SetTableName(v string) *ListContributorInsightsInput {
+	s.TableName = &v
+	return s
+}
+
+type ListContributorInsightsOutput struct {
+	_ struct{} `type:"structure"`
+
+	// A list of ContributorInsightsSummary.
+	ContributorInsightsSummaries []*ContributorInsightsSummary `type:"list"`
+
+	// A token to go to the next page if there is one.
+	NextToken *string `type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ListContributorInsightsOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ListContributorInsightsOutput) GoString() string {
+	return s.String()
+}
+
+// SetContributorInsightsSummaries sets the ContributorInsightsSummaries field's value.
+func (s *ListContributorInsightsOutput) SetContributorInsightsSummaries(v []*ContributorInsightsSummary) *ListContributorInsightsOutput {
+	s.ContributorInsightsSummaries = v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ListContributorInsightsOutput) SetNextToken(v string) *ListContributorInsightsOutput {
+	s.NextToken = &v
+	return s
+}
+
+type ListExportsInput struct {
+	_ struct{} `type:"structure"`
+
+	// Maximum number of results to return per page.
+	MaxResults *int64 `min:"1" type:"integer"`
+
+	// An optional string that, if supplied, must be copied from the output of a
+	// previous call to ListExports. When provided in this manner, the API fetches
+	// the next page of results.
+	NextToken *string `type:"string"`
+
+	// The Amazon Resource Name (ARN) associated with the exported table.
+	TableArn *string `type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ListExportsInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ListExportsInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListExportsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListExportsInput"}
+	if s.MaxResults != nil && *s.MaxResults < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("MaxResults", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetMaxResults sets the MaxResults field's value.
+func (s *ListExportsInput) SetMaxResults(v int64) *ListExportsInput {
+	s.MaxResults = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ListExportsInput) SetNextToken(v string) *ListExportsInput {
+	s.NextToken = &v
+	return s
+}
+
+// SetTableArn sets the TableArn field's value.
+func (s *ListExportsInput) SetTableArn(v string) *ListExportsInput {
+	s.TableArn = &v
+	return s
+}
+
+type ListExportsOutput struct {
+	_ struct{} `type:"structure"`
+
+	// A list of ExportSummary objects.
+	ExportSummaries []*ExportSummary `type:"list"`
+
+	// If this value is returned, there are additional results to be displayed.
+	// To retrieve them, call ListExports again, with NextToken set to this value.
+	NextToken *string `type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ListExportsOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ListExportsOutput) GoString() string {
+	return s.String()
+}
+
+// SetExportSummaries sets the ExportSummaries field's value.
+func (s *ListExportsOutput) SetExportSummaries(v []*ExportSummary) *ListExportsOutput {
+	s.ExportSummaries = v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ListExportsOutput) SetNextToken(v string) *ListExportsOutput {
+	s.NextToken = &v
+	return s
+}
+
 type ListGlobalTablesInput struct {
 	_ struct{} `type:"structure"`
 
 	// The first global table name that this operation will evaluate.
 	ExclusiveStartGlobalTableName *string `min:"3" type:"string"`
 
-	// The maximum number of table names to return.
+	// The maximum number of table names to return, if the parameter is not specified
+	// DynamoDB defaults to 100.
+	//
+	// If the number of global tables DynamoDB finds reaches this limit, it stops
+	// the operation and returns the table names collected up to that point, with
+	// a table name in the LastEvaluatedGlobalTableName to apply in a subsequent
+	// operation to the ExclusiveStartGlobalTableName parameter.
 	Limit *int64 `min:"1" type:"integer"`
 
 	// Lists the global tables in a specific Region.
 	RegionName *string `type:"string"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s ListGlobalTablesInput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s ListGlobalTablesInput) GoString() string {
 	return s.String()
 }
@@ -10503,12 +17595,20 @@ type ListGlobalTablesOutput struct {
 	LastEvaluatedGlobalTableName *string `min:"3" type:"string"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s ListGlobalTablesOutput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s ListGlobalTablesOutput) GoString() string {
 	return s.String()
 }
@@ -10522,6 +17622,115 @@ func (s *ListGlobalTablesOutput) SetGlobalTables(v []*GlobalTable) *ListGlobalTa
 // SetLastEvaluatedGlobalTableName sets the LastEvaluatedGlobalTableName field's value.
 func (s *ListGlobalTablesOutput) SetLastEvaluatedGlobalTableName(v string) *ListGlobalTablesOutput {
 	s.LastEvaluatedGlobalTableName = &v
+	return s
+}
+
+type ListImportsInput struct {
+	_ struct{} `type:"structure"`
+
+	// An optional string that, if supplied, must be copied from the output of a
+	// previous call to ListImports. When provided in this manner, the API fetches
+	// the next page of results.
+	NextToken *string `min:"112" type:"string"`
+
+	// The number of ImportSummary objects returned in a single page.
+	PageSize *int64 `min:"1" type:"integer"`
+
+	// The Amazon Resource Name (ARN) associated with the table that was imported
+	// to.
+	TableArn *string `type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ListImportsInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ListImportsInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListImportsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListImportsInput"}
+	if s.NextToken != nil && len(*s.NextToken) < 112 {
+		invalidParams.Add(request.NewErrParamMinLen("NextToken", 112))
+	}
+	if s.PageSize != nil && *s.PageSize < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("PageSize", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ListImportsInput) SetNextToken(v string) *ListImportsInput {
+	s.NextToken = &v
+	return s
+}
+
+// SetPageSize sets the PageSize field's value.
+func (s *ListImportsInput) SetPageSize(v int64) *ListImportsInput {
+	s.PageSize = &v
+	return s
+}
+
+// SetTableArn sets the TableArn field's value.
+func (s *ListImportsInput) SetTableArn(v string) *ListImportsInput {
+	s.TableArn = &v
+	return s
+}
+
+type ListImportsOutput struct {
+	_ struct{} `type:"structure"`
+
+	// A list of ImportSummary objects.
+	ImportSummaryList []*ImportSummary `type:"list"`
+
+	// If this value is returned, there are additional results to be displayed.
+	// To retrieve them, call ListImports again, with NextToken set to this value.
+	NextToken *string `min:"112" type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ListImportsOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ListImportsOutput) GoString() string {
+	return s.String()
+}
+
+// SetImportSummaryList sets the ImportSummaryList field's value.
+func (s *ListImportsOutput) SetImportSummaryList(v []*ImportSummary) *ListImportsOutput {
+	s.ImportSummaryList = v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ListImportsOutput) SetNextToken(v string) *ListImportsOutput {
+	s.NextToken = &v
 	return s
 }
 
@@ -10539,12 +17748,20 @@ type ListTablesInput struct {
 	Limit *int64 `min:"1" type:"integer"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s ListTablesInput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s ListTablesInput) GoString() string {
 	return s.String()
 }
@@ -10598,12 +17815,20 @@ type ListTablesOutput struct {
 	TableNames []*string `type:"list"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s ListTablesOutput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s ListTablesOutput) GoString() string {
 	return s.String()
 }
@@ -10635,12 +17860,20 @@ type ListTagsOfResourceInput struct {
 	ResourceArn *string `min:"1" type:"string" required:"true"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s ListTagsOfResourceInput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s ListTagsOfResourceInput) GoString() string {
 	return s.String()
 }
@@ -10685,12 +17918,20 @@ type ListTagsOfResourceOutput struct {
 	Tags []*Tag `type:"list"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s ListTagsOfResourceOutput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s ListTagsOfResourceOutput) GoString() string {
 	return s.String()
 }
@@ -10725,7 +17966,7 @@ type LocalSecondaryIndex struct {
 	//    * RANGE - sort key
 	//
 	// The partition key of an item is also known as its hash attribute. The term
-	// "hash attribute" derives from DynamoDB' usage of an internal hash function
+	// "hash attribute" derives from DynamoDB's usage of an internal hash function
 	// to evenly distribute data items across partitions, based on their partition
 	// key values.
 	//
@@ -10744,12 +17985,20 @@ type LocalSecondaryIndex struct {
 	Projection *Projection `type:"structure" required:"true"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s LocalSecondaryIndex) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s LocalSecondaryIndex) GoString() string {
 	return s.String()
 }
@@ -10839,7 +18088,7 @@ type LocalSecondaryIndexDescription struct {
 	//    * RANGE - sort key
 	//
 	// The partition key of an item is also known as its hash attribute. The term
-	// "hash attribute" derives from DynamoDB' usage of an internal hash function
+	// "hash attribute" derives from DynamoDB's usage of an internal hash function
 	// to evenly distribute data items across partitions, based on their partition
 	// key values.
 	//
@@ -10854,12 +18103,20 @@ type LocalSecondaryIndexDescription struct {
 	Projection *Projection `type:"structure"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s LocalSecondaryIndexDescription) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s LocalSecondaryIndexDescription) GoString() string {
 	return s.String()
 }
@@ -10916,7 +18173,7 @@ type LocalSecondaryIndexInfo struct {
 	//    * RANGE - sort key
 	//
 	// The partition key of an item is also known as its hash attribute. The term
-	// "hash attribute" derives from DynamoDB' usage of an internal hash function
+	// "hash attribute" derives from DynamoDB's usage of an internal hash function
 	// to evenly distribute data items across partitions, based on their partition
 	// key values.
 	//
@@ -10931,12 +18188,20 @@ type LocalSecondaryIndexInfo struct {
 	Projection *Projection `type:"structure"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s LocalSecondaryIndexInfo) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s LocalSecondaryIndexInfo) GoString() string {
 	return s.String()
 }
@@ -10959,12 +18224,74 @@ func (s *LocalSecondaryIndexInfo) SetProjection(v *Projection) *LocalSecondaryIn
 	return s
 }
 
+// Represents a PartiQL statment that uses parameters.
+type ParameterizedStatement struct {
+	_ struct{} `type:"structure"`
+
+	// The parameter values.
+	Parameters []*AttributeValue `min:"1" type:"list"`
+
+	// A PartiQL statment that uses parameters.
+	//
+	// Statement is a required field
+	Statement *string `min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ParameterizedStatement) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ParameterizedStatement) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ParameterizedStatement) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ParameterizedStatement"}
+	if s.Parameters != nil && len(s.Parameters) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Parameters", 1))
+	}
+	if s.Statement == nil {
+		invalidParams.Add(request.NewErrParamRequired("Statement"))
+	}
+	if s.Statement != nil && len(*s.Statement) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Statement", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetParameters sets the Parameters field's value.
+func (s *ParameterizedStatement) SetParameters(v []*AttributeValue) *ParameterizedStatement {
+	s.Parameters = v
+	return s
+}
+
+// SetStatement sets the Statement field's value.
+func (s *ParameterizedStatement) SetStatement(v string) *ParameterizedStatement {
+	s.Statement = &v
+	return s
+}
+
 // The description of the point in time settings applied to the table.
 type PointInTimeRecoveryDescription struct {
 	_ struct{} `type:"structure"`
 
-	// Specifies the earliest point in time you can restore your table to. It You
-	// can restore your table to any point in time during the last 35 days.
+	// Specifies the earliest point in time you can restore your table to. You can
+	// restore your table to any point in time during the last 35 days.
 	EarliestRestorableDateTime *time.Time `type:"timestamp"`
 
 	// LatestRestorableDateTime is typically 5 minutes before the current time.
@@ -10972,20 +18299,26 @@ type PointInTimeRecoveryDescription struct {
 
 	// The current state of point in time recovery:
 	//
-	//    * ENABLING - Point in time recovery is being enabled.
-	//
 	//    * ENABLED - Point in time recovery is enabled.
 	//
 	//    * DISABLED - Point in time recovery is disabled.
 	PointInTimeRecoveryStatus *string `type:"string" enum:"PointInTimeRecoveryStatus"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s PointInTimeRecoveryDescription) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s PointInTimeRecoveryDescription) GoString() string {
 	return s.String()
 }
@@ -11019,12 +18352,20 @@ type PointInTimeRecoverySpecification struct {
 	PointInTimeRecoveryEnabled *bool `type:"boolean" required:"true"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s PointInTimeRecoverySpecification) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s PointInTimeRecoverySpecification) GoString() string {
 	return s.String()
 }
@@ -11048,6 +18389,70 @@ func (s *PointInTimeRecoverySpecification) SetPointInTimeRecoveryEnabled(v bool)
 	return s
 }
 
+// Point in time recovery has not yet been enabled for this source table.
+type PointInTimeRecoveryUnavailableException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s PointInTimeRecoveryUnavailableException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s PointInTimeRecoveryUnavailableException) GoString() string {
+	return s.String()
+}
+
+func newErrorPointInTimeRecoveryUnavailableException(v protocol.ResponseMetadata) error {
+	return &PointInTimeRecoveryUnavailableException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *PointInTimeRecoveryUnavailableException) Code() string {
+	return "PointInTimeRecoveryUnavailableException"
+}
+
+// Message returns the exception's message.
+func (s *PointInTimeRecoveryUnavailableException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *PointInTimeRecoveryUnavailableException) OrigErr() error {
+	return nil
+}
+
+func (s *PointInTimeRecoveryUnavailableException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *PointInTimeRecoveryUnavailableException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *PointInTimeRecoveryUnavailableException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
 // Represents attributes that are copied (projected) from the table into an
 // index. These are in addition to the primary key attributes and index key
 // attributes, which are automatically projected.
@@ -11057,7 +18462,7 @@ type Projection struct {
 	// Represents the non-key attribute names which will be projected into the index.
 	//
 	// For local secondary indexes, the total count of NonKeyAttributes summed across
-	// all of the local secondary indexes, must not exceed 20. If you project the
+	// all of the local secondary indexes, must not exceed 100. If you project the
 	// same attribute into two different indexes, this counts as two distinct attributes
 	// when determining the total.
 	NonKeyAttributes []*string `min:"1" type:"list"`
@@ -11066,19 +18471,27 @@ type Projection struct {
 	//
 	//    * KEYS_ONLY - Only the index and primary keys are projected into the index.
 	//
-	//    * INCLUDE - Only the specified table attributes are projected into the
-	//    index. The list of projected attributes are in NonKeyAttributes.
+	//    * INCLUDE - In addition to the attributes described in KEYS_ONLY, the
+	//    secondary index will include other non-key attributes that you specify.
 	//
 	//    * ALL - All of the table attributes are projected into the index.
 	ProjectionType *string `type:"string" enum:"ProjectionType"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s Projection) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s Projection) GoString() string {
 	return s.String()
 }
@@ -11111,8 +18524,8 @@ func (s *Projection) SetProjectionType(v string) *Projection {
 // Represents the provisioned throughput settings for a specified table or index.
 // The settings can be modified using the UpdateTable operation.
 //
-// For current minimum and maximum provisioned throughput values, see Limits
-// (https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Limits.html)
+// For current minimum and maximum provisioned throughput values, see Service,
+// Account, and Table Quotas (https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Limits.html)
 // in the Amazon DynamoDB Developer Guide.
 type ProvisionedThroughput struct {
 	_ struct{} `type:"structure"`
@@ -11138,12 +18551,20 @@ type ProvisionedThroughput struct {
 	WriteCapacityUnits *int64 `min:"1" type:"long" required:"true"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s ProvisionedThroughput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s ProvisionedThroughput) GoString() string {
 	return s.String()
 }
@@ -11195,7 +18616,7 @@ type ProvisionedThroughputDescription struct {
 
 	// The number of provisioned throughput decreases for this table during this
 	// UTC calendar day. For current maximums on provisioned throughput decreases,
-	// see Limits (https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Limits.html)
+	// see Service, Account, and Table Quotas (https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Limits.html)
 	// in the Amazon DynamoDB Developer Guide.
 	NumberOfDecreasesToday *int64 `min:"1" type:"long"`
 
@@ -11210,12 +18631,20 @@ type ProvisionedThroughputDescription struct {
 	WriteCapacityUnits *int64 `type:"long"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s ProvisionedThroughputDescription) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s ProvisionedThroughputDescription) GoString() string {
 	return s.String()
 }
@@ -11247,6 +18676,123 @@ func (s *ProvisionedThroughputDescription) SetReadCapacityUnits(v int64) *Provis
 // SetWriteCapacityUnits sets the WriteCapacityUnits field's value.
 func (s *ProvisionedThroughputDescription) SetWriteCapacityUnits(v int64) *ProvisionedThroughputDescription {
 	s.WriteCapacityUnits = &v
+	return s
+}
+
+// Your request rate is too high. The Amazon Web Services SDKs for DynamoDB
+// automatically retry requests that receive this exception. Your request is
+// eventually successful, unless your retry queue is too large to finish. Reduce
+// the frequency of requests and use exponential backoff. For more information,
+// go to Error Retries and Exponential Backoff (https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Programming.Errors.html#Programming.Errors.RetryAndBackoff)
+// in the Amazon DynamoDB Developer Guide.
+type ProvisionedThroughputExceededException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	// You exceeded your maximum allowed provisioned throughput.
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ProvisionedThroughputExceededException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ProvisionedThroughputExceededException) GoString() string {
+	return s.String()
+}
+
+func newErrorProvisionedThroughputExceededException(v protocol.ResponseMetadata) error {
+	return &ProvisionedThroughputExceededException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *ProvisionedThroughputExceededException) Code() string {
+	return "ProvisionedThroughputExceededException"
+}
+
+// Message returns the exception's message.
+func (s *ProvisionedThroughputExceededException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *ProvisionedThroughputExceededException) OrigErr() error {
+	return nil
+}
+
+func (s *ProvisionedThroughputExceededException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *ProvisionedThroughputExceededException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *ProvisionedThroughputExceededException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
+// Replica-specific provisioned throughput settings. If not specified, uses
+// the source table's provisioned throughput settings.
+type ProvisionedThroughputOverride struct {
+	_ struct{} `type:"structure"`
+
+	// Replica-specific read capacity units. If not specified, uses the source table's
+	// read capacity settings.
+	ReadCapacityUnits *int64 `min:"1" type:"long"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ProvisionedThroughputOverride) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ProvisionedThroughputOverride) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ProvisionedThroughputOverride) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ProvisionedThroughputOverride"}
+	if s.ReadCapacityUnits != nil && *s.ReadCapacityUnits < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("ReadCapacityUnits", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetReadCapacityUnits sets the ReadCapacityUnits field's value.
+func (s *ProvisionedThroughputOverride) SetReadCapacityUnits(v int64) *ProvisionedThroughputOverride {
+	s.ReadCapacityUnits = &v
 	return s
 }
 
@@ -11283,12 +18829,20 @@ type Put struct {
 	TableName *string `min:"3" type:"string" required:"true"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s Put) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s Put) GoString() string {
 	return s.String()
 }
@@ -11451,6 +19005,10 @@ type PutItemInput struct {
 	// types for those attributes must match those of the schema in the table's
 	// attribute definition.
 	//
+	// Empty String and Binary attribute values are allowed. Attribute values of
+	// type String and Binary must have a length greater than zero if the attribute
+	// is used as a key attribute for a table or index.
+	//
 	// For more information about primary keys, see Primary Key (https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/HowItWorks.CoreComponents.html#HowItWorks.CoreComponents.PrimaryKey)
 	// in the Amazon DynamoDB Developer Guide.
 	//
@@ -11459,8 +19017,8 @@ type PutItemInput struct {
 	// Item is a required field
 	Item map[string]*AttributeValue `type:"map" required:"true"`
 
-	// Determines the level of detail about provisioned throughput consumption that
-	// is returned in the response:
+	// Determines the level of detail about either provisioned or on-demand throughput
+	// consumption that is returned in the response:
 	//
 	//    * INDEXES - The response includes the aggregate ConsumedCapacity for the
 	//    operation, together with ConsumedCapacity for each table and secondary
@@ -11490,6 +19048,12 @@ type PutItemInput struct {
 	//    * ALL_OLD - If PutItem overwrote an attribute name-value pair, then the
 	//    content of the old item is returned.
 	//
+	// The values returned are strongly consistent.
+	//
+	// There is no additional cost associated with requesting a return value aside
+	// from the small network and processing overhead of receiving a larger response.
+	// No read capacity units are consumed.
+	//
 	// The ReturnValues parameter is used by several DynamoDB operations; however,
 	// PutItem does not recognize any values other than NONE or ALL_OLD.
 	ReturnValues *string `type:"string" enum:"ReturnValue"`
@@ -11500,12 +19064,20 @@ type PutItemInput struct {
 	TableName *string `min:"3" type:"string" required:"true"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s PutItemInput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s PutItemInput) GoString() string {
 	return s.String()
 }
@@ -11602,7 +19174,7 @@ type PutItemOutput struct {
 	// the total provisioned throughput consumed, along with statistics for the
 	// table and any indexes involved in the operation. ConsumedCapacity is only
 	// returned if the ReturnConsumedCapacity parameter was specified. For more
-	// information, see Read/Write Capacity Mode (https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/ProvisionedThroughputIntro.html)
+	// information, see Provisioned Throughput (https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/ProvisionedThroughputIntro.html)
 	// in the Amazon DynamoDB Developer Guide.
 	ConsumedCapacity *ConsumedCapacity `type:"structure"`
 
@@ -11627,12 +19199,20 @@ type PutItemOutput struct {
 	ItemCollectionMetrics *ItemCollectionMetrics `type:"structure"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s PutItemOutput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s PutItemOutput) GoString() string {
 	return s.String()
 }
@@ -11662,19 +19242,27 @@ type PutRequest struct {
 	// A map of attribute name to attribute values, representing the primary key
 	// of an item to be processed by PutItem. All of the table's primary key attributes
 	// must be specified, and their data types must match those of the table's key
-	// schema. If any attributes are present in the item which are part of an index
+	// schema. If any attributes are present in the item that are part of an index
 	// key schema for the table, their types must match the index key schema.
 	//
 	// Item is a required field
 	Item map[string]*AttributeValue `type:"map" required:"true"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s PutRequest) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s PutRequest) GoString() string {
 	return s.String()
 }
@@ -11784,7 +19372,7 @@ type QueryInput struct {
 	// A FilterExpression is applied after the items have already been read; the
 	// process of filtering does not consume any additional read capacity units.
 	//
-	// For more information, see Filter Expressions (https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/QueryAndScan.html#FilteringResults)
+	// For more information, see Filter Expressions (https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/QueryAndScan.html#Query.FilterExpression)
 	// in the Amazon DynamoDB Developer Guide.
 	FilterExpression *string `type:"string"`
 
@@ -11897,8 +19485,8 @@ type QueryInput struct {
 	// in the Amazon DynamoDB Developer Guide.
 	QueryFilter map[string]*Condition `type:"map"`
 
-	// Determines the level of detail about provisioned throughput consumption that
-	// is returned in the response:
+	// Determines the level of detail about either provisioned or on-demand throughput
+	// consumption that is returned in the response:
 	//
 	//    * INDEXES - The response includes the aggregate ConsumedCapacity for the
 	//    operation, together with ConsumedCapacity for each table and secondary
@@ -11944,10 +19532,11 @@ type QueryInput struct {
 	//    to specifying ALL_ATTRIBUTES.
 	//
 	//    * COUNT - Returns the number of matching items, rather than the matching
-	//    items themselves.
+	//    items themselves. Note that this uses the same quantity of read capacity
+	//    units as getting the items, and is subject to the same item size calculations.
 	//
-	//    * SPECIFIC_ATTRIBUTES - Returns only the attributes listed in AttributesToGet.
-	//    This return value is equivalent to specifying AttributesToGet without
+	//    * SPECIFIC_ATTRIBUTES - Returns only the attributes listed in ProjectionExpression.
+	//    This return value is equivalent to specifying ProjectionExpression without
 	//    specifying any value for Select. If you query or scan a local secondary
 	//    index and request only attributes that are projected into that index,
 	//    the operation will read only the index and not the table. If any of the
@@ -11958,12 +19547,12 @@ type QueryInput struct {
 	//    are projected into the index. Global secondary index queries cannot fetch
 	//    attributes from the parent table.
 	//
-	// If neither Select nor AttributesToGet are specified, DynamoDB defaults to
-	// ALL_ATTRIBUTES when accessing a table, and ALL_PROJECTED_ATTRIBUTES when
-	// accessing an index. You cannot use both Select and AttributesToGet together
+	// If neither Select nor ProjectionExpression are specified, DynamoDB defaults
+	// to ALL_ATTRIBUTES when accessing a table, and ALL_PROJECTED_ATTRIBUTES when
+	// accessing an index. You cannot use both Select and ProjectionExpression together
 	// in a single request, unless the value for Select is SPECIFIC_ATTRIBUTES.
-	// (This usage is equivalent to specifying AttributesToGet without any value
-	// for Select.)
+	// (This usage is equivalent to specifying ProjectionExpression without any
+	// value for Select.)
 	//
 	// If you use the ProjectionExpression parameter, then the value for Select
 	// can only be SPECIFIC_ATTRIBUTES. Any other value for Select will return an
@@ -11976,12 +19565,20 @@ type QueryInput struct {
 	TableName *string `min:"3" type:"string" required:"true"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s QueryInput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s QueryInput) GoString() string {
 	return s.String()
 }
@@ -12181,12 +19778,20 @@ type QueryOutput struct {
 	ScannedCount *int64 `type:"integer"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s QueryOutput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s QueryOutput) GoString() string {
 	return s.String()
 }
@@ -12225,16 +19830,24 @@ func (s *QueryOutput) SetScannedCount(v int64) *QueryOutput {
 type Replica struct {
 	_ struct{} `type:"structure"`
 
-	// The region where the replica needs to be created.
+	// The Region where the replica needs to be created.
 	RegionName *string `type:"string"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s Replica) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s Replica) GoString() string {
 	return s.String()
 }
@@ -12245,27 +19858,592 @@ func (s *Replica) SetRegionName(v string) *Replica {
 	return s
 }
 
+// The specified replica is already part of the global table.
+type ReplicaAlreadyExistsException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ReplicaAlreadyExistsException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ReplicaAlreadyExistsException) GoString() string {
+	return s.String()
+}
+
+func newErrorReplicaAlreadyExistsException(v protocol.ResponseMetadata) error {
+	return &ReplicaAlreadyExistsException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *ReplicaAlreadyExistsException) Code() string {
+	return "ReplicaAlreadyExistsException"
+}
+
+// Message returns the exception's message.
+func (s *ReplicaAlreadyExistsException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *ReplicaAlreadyExistsException) OrigErr() error {
+	return nil
+}
+
+func (s *ReplicaAlreadyExistsException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *ReplicaAlreadyExistsException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *ReplicaAlreadyExistsException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
+// Represents the auto scaling settings of the replica.
+type ReplicaAutoScalingDescription struct {
+	_ struct{} `type:"structure"`
+
+	// Replica-specific global secondary index auto scaling settings.
+	GlobalSecondaryIndexes []*ReplicaGlobalSecondaryIndexAutoScalingDescription `type:"list"`
+
+	// The Region where the replica exists.
+	RegionName *string `type:"string"`
+
+	// Represents the auto scaling settings for a global table or global secondary
+	// index.
+	ReplicaProvisionedReadCapacityAutoScalingSettings *AutoScalingSettingsDescription `type:"structure"`
+
+	// Represents the auto scaling settings for a global table or global secondary
+	// index.
+	ReplicaProvisionedWriteCapacityAutoScalingSettings *AutoScalingSettingsDescription `type:"structure"`
+
+	// The current state of the replica:
+	//
+	//    * CREATING - The replica is being created.
+	//
+	//    * UPDATING - The replica is being updated.
+	//
+	//    * DELETING - The replica is being deleted.
+	//
+	//    * ACTIVE - The replica is ready for use.
+	ReplicaStatus *string `type:"string" enum:"ReplicaStatus"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ReplicaAutoScalingDescription) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ReplicaAutoScalingDescription) GoString() string {
+	return s.String()
+}
+
+// SetGlobalSecondaryIndexes sets the GlobalSecondaryIndexes field's value.
+func (s *ReplicaAutoScalingDescription) SetGlobalSecondaryIndexes(v []*ReplicaGlobalSecondaryIndexAutoScalingDescription) *ReplicaAutoScalingDescription {
+	s.GlobalSecondaryIndexes = v
+	return s
+}
+
+// SetRegionName sets the RegionName field's value.
+func (s *ReplicaAutoScalingDescription) SetRegionName(v string) *ReplicaAutoScalingDescription {
+	s.RegionName = &v
+	return s
+}
+
+// SetReplicaProvisionedReadCapacityAutoScalingSettings sets the ReplicaProvisionedReadCapacityAutoScalingSettings field's value.
+func (s *ReplicaAutoScalingDescription) SetReplicaProvisionedReadCapacityAutoScalingSettings(v *AutoScalingSettingsDescription) *ReplicaAutoScalingDescription {
+	s.ReplicaProvisionedReadCapacityAutoScalingSettings = v
+	return s
+}
+
+// SetReplicaProvisionedWriteCapacityAutoScalingSettings sets the ReplicaProvisionedWriteCapacityAutoScalingSettings field's value.
+func (s *ReplicaAutoScalingDescription) SetReplicaProvisionedWriteCapacityAutoScalingSettings(v *AutoScalingSettingsDescription) *ReplicaAutoScalingDescription {
+	s.ReplicaProvisionedWriteCapacityAutoScalingSettings = v
+	return s
+}
+
+// SetReplicaStatus sets the ReplicaStatus field's value.
+func (s *ReplicaAutoScalingDescription) SetReplicaStatus(v string) *ReplicaAutoScalingDescription {
+	s.ReplicaStatus = &v
+	return s
+}
+
+// Represents the auto scaling settings of a replica that will be modified.
+type ReplicaAutoScalingUpdate struct {
+	_ struct{} `type:"structure"`
+
+	// The Region where the replica exists.
+	//
+	// RegionName is a required field
+	RegionName *string `type:"string" required:"true"`
+
+	// Represents the auto scaling settings of global secondary indexes that will
+	// be modified.
+	ReplicaGlobalSecondaryIndexUpdates []*ReplicaGlobalSecondaryIndexAutoScalingUpdate `type:"list"`
+
+	// Represents the auto scaling settings to be modified for a global table or
+	// global secondary index.
+	ReplicaProvisionedReadCapacityAutoScalingUpdate *AutoScalingSettingsUpdate `type:"structure"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ReplicaAutoScalingUpdate) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ReplicaAutoScalingUpdate) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ReplicaAutoScalingUpdate) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ReplicaAutoScalingUpdate"}
+	if s.RegionName == nil {
+		invalidParams.Add(request.NewErrParamRequired("RegionName"))
+	}
+	if s.ReplicaGlobalSecondaryIndexUpdates != nil {
+		for i, v := range s.ReplicaGlobalSecondaryIndexUpdates {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "ReplicaGlobalSecondaryIndexUpdates", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+	if s.ReplicaProvisionedReadCapacityAutoScalingUpdate != nil {
+		if err := s.ReplicaProvisionedReadCapacityAutoScalingUpdate.Validate(); err != nil {
+			invalidParams.AddNested("ReplicaProvisionedReadCapacityAutoScalingUpdate", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetRegionName sets the RegionName field's value.
+func (s *ReplicaAutoScalingUpdate) SetRegionName(v string) *ReplicaAutoScalingUpdate {
+	s.RegionName = &v
+	return s
+}
+
+// SetReplicaGlobalSecondaryIndexUpdates sets the ReplicaGlobalSecondaryIndexUpdates field's value.
+func (s *ReplicaAutoScalingUpdate) SetReplicaGlobalSecondaryIndexUpdates(v []*ReplicaGlobalSecondaryIndexAutoScalingUpdate) *ReplicaAutoScalingUpdate {
+	s.ReplicaGlobalSecondaryIndexUpdates = v
+	return s
+}
+
+// SetReplicaProvisionedReadCapacityAutoScalingUpdate sets the ReplicaProvisionedReadCapacityAutoScalingUpdate field's value.
+func (s *ReplicaAutoScalingUpdate) SetReplicaProvisionedReadCapacityAutoScalingUpdate(v *AutoScalingSettingsUpdate) *ReplicaAutoScalingUpdate {
+	s.ReplicaProvisionedReadCapacityAutoScalingUpdate = v
+	return s
+}
+
 // Contains the details of the replica.
 type ReplicaDescription struct {
 	_ struct{} `type:"structure"`
 
-	// The name of the region.
+	// Replica-specific global secondary index settings.
+	GlobalSecondaryIndexes []*ReplicaGlobalSecondaryIndexDescription `type:"list"`
+
+	// The KMS key of the replica that will be used for KMS encryption.
+	KMSMasterKeyId *string `type:"string"`
+
+	// Replica-specific provisioned throughput. If not described, uses the source
+	// table's provisioned throughput settings.
+	ProvisionedThroughputOverride *ProvisionedThroughputOverride `type:"structure"`
+
+	// The name of the Region.
 	RegionName *string `type:"string"`
+
+	// The time at which the replica was first detected as inaccessible. To determine
+	// cause of inaccessibility check the ReplicaStatus property.
+	ReplicaInaccessibleDateTime *time.Time `type:"timestamp"`
+
+	// The current state of the replica:
+	//
+	//    * CREATING - The replica is being created.
+	//
+	//    * UPDATING - The replica is being updated.
+	//
+	//    * DELETING - The replica is being deleted.
+	//
+	//    * ACTIVE - The replica is ready for use.
+	//
+	//    * REGION_DISABLED - The replica is inaccessible because the Amazon Web
+	//    Services Region has been disabled. If the Amazon Web Services Region remains
+	//    inaccessible for more than 20 hours, DynamoDB will remove this replica
+	//    from the replication group. The replica will not be deleted and replication
+	//    will stop from and to this region.
+	//
+	//    * INACCESSIBLE_ENCRYPTION_CREDENTIALS - The KMS key used to encrypt the
+	//    table is inaccessible. If the KMS key remains inaccessible for more than
+	//    20 hours, DynamoDB will remove this replica from the replication group.
+	//    The replica will not be deleted and replication will stop from and to
+	//    this region.
+	ReplicaStatus *string `type:"string" enum:"ReplicaStatus"`
+
+	// Detailed information about the replica status.
+	ReplicaStatusDescription *string `type:"string"`
+
+	// Specifies the progress of a Create, Update, or Delete action on the replica
+	// as a percentage.
+	ReplicaStatusPercentProgress *string `type:"string"`
+
+	// Contains details of the table class.
+	ReplicaTableClassSummary *TableClassSummary `type:"structure"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s ReplicaDescription) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s ReplicaDescription) GoString() string {
 	return s.String()
+}
+
+// SetGlobalSecondaryIndexes sets the GlobalSecondaryIndexes field's value.
+func (s *ReplicaDescription) SetGlobalSecondaryIndexes(v []*ReplicaGlobalSecondaryIndexDescription) *ReplicaDescription {
+	s.GlobalSecondaryIndexes = v
+	return s
+}
+
+// SetKMSMasterKeyId sets the KMSMasterKeyId field's value.
+func (s *ReplicaDescription) SetKMSMasterKeyId(v string) *ReplicaDescription {
+	s.KMSMasterKeyId = &v
+	return s
+}
+
+// SetProvisionedThroughputOverride sets the ProvisionedThroughputOverride field's value.
+func (s *ReplicaDescription) SetProvisionedThroughputOverride(v *ProvisionedThroughputOverride) *ReplicaDescription {
+	s.ProvisionedThroughputOverride = v
+	return s
 }
 
 // SetRegionName sets the RegionName field's value.
 func (s *ReplicaDescription) SetRegionName(v string) *ReplicaDescription {
 	s.RegionName = &v
+	return s
+}
+
+// SetReplicaInaccessibleDateTime sets the ReplicaInaccessibleDateTime field's value.
+func (s *ReplicaDescription) SetReplicaInaccessibleDateTime(v time.Time) *ReplicaDescription {
+	s.ReplicaInaccessibleDateTime = &v
+	return s
+}
+
+// SetReplicaStatus sets the ReplicaStatus field's value.
+func (s *ReplicaDescription) SetReplicaStatus(v string) *ReplicaDescription {
+	s.ReplicaStatus = &v
+	return s
+}
+
+// SetReplicaStatusDescription sets the ReplicaStatusDescription field's value.
+func (s *ReplicaDescription) SetReplicaStatusDescription(v string) *ReplicaDescription {
+	s.ReplicaStatusDescription = &v
+	return s
+}
+
+// SetReplicaStatusPercentProgress sets the ReplicaStatusPercentProgress field's value.
+func (s *ReplicaDescription) SetReplicaStatusPercentProgress(v string) *ReplicaDescription {
+	s.ReplicaStatusPercentProgress = &v
+	return s
+}
+
+// SetReplicaTableClassSummary sets the ReplicaTableClassSummary field's value.
+func (s *ReplicaDescription) SetReplicaTableClassSummary(v *TableClassSummary) *ReplicaDescription {
+	s.ReplicaTableClassSummary = v
+	return s
+}
+
+// Represents the properties of a replica global secondary index.
+type ReplicaGlobalSecondaryIndex struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the global secondary index.
+	//
+	// IndexName is a required field
+	IndexName *string `min:"3" type:"string" required:"true"`
+
+	// Replica table GSI-specific provisioned throughput. If not specified, uses
+	// the source table GSI's read capacity settings.
+	ProvisionedThroughputOverride *ProvisionedThroughputOverride `type:"structure"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ReplicaGlobalSecondaryIndex) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ReplicaGlobalSecondaryIndex) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ReplicaGlobalSecondaryIndex) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ReplicaGlobalSecondaryIndex"}
+	if s.IndexName == nil {
+		invalidParams.Add(request.NewErrParamRequired("IndexName"))
+	}
+	if s.IndexName != nil && len(*s.IndexName) < 3 {
+		invalidParams.Add(request.NewErrParamMinLen("IndexName", 3))
+	}
+	if s.ProvisionedThroughputOverride != nil {
+		if err := s.ProvisionedThroughputOverride.Validate(); err != nil {
+			invalidParams.AddNested("ProvisionedThroughputOverride", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetIndexName sets the IndexName field's value.
+func (s *ReplicaGlobalSecondaryIndex) SetIndexName(v string) *ReplicaGlobalSecondaryIndex {
+	s.IndexName = &v
+	return s
+}
+
+// SetProvisionedThroughputOverride sets the ProvisionedThroughputOverride field's value.
+func (s *ReplicaGlobalSecondaryIndex) SetProvisionedThroughputOverride(v *ProvisionedThroughputOverride) *ReplicaGlobalSecondaryIndex {
+	s.ProvisionedThroughputOverride = v
+	return s
+}
+
+// Represents the auto scaling configuration for a replica global secondary
+// index.
+type ReplicaGlobalSecondaryIndexAutoScalingDescription struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the global secondary index.
+	IndexName *string `min:"3" type:"string"`
+
+	// The current state of the replica global secondary index:
+	//
+	//    * CREATING - The index is being created.
+	//
+	//    * UPDATING - The table/index configuration is being updated. The table/index
+	//    remains available for data operations when UPDATING
+	//
+	//    * DELETING - The index is being deleted.
+	//
+	//    * ACTIVE - The index is ready for use.
+	IndexStatus *string `type:"string" enum:"IndexStatus"`
+
+	// Represents the auto scaling settings for a global table or global secondary
+	// index.
+	ProvisionedReadCapacityAutoScalingSettings *AutoScalingSettingsDescription `type:"structure"`
+
+	// Represents the auto scaling settings for a global table or global secondary
+	// index.
+	ProvisionedWriteCapacityAutoScalingSettings *AutoScalingSettingsDescription `type:"structure"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ReplicaGlobalSecondaryIndexAutoScalingDescription) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ReplicaGlobalSecondaryIndexAutoScalingDescription) GoString() string {
+	return s.String()
+}
+
+// SetIndexName sets the IndexName field's value.
+func (s *ReplicaGlobalSecondaryIndexAutoScalingDescription) SetIndexName(v string) *ReplicaGlobalSecondaryIndexAutoScalingDescription {
+	s.IndexName = &v
+	return s
+}
+
+// SetIndexStatus sets the IndexStatus field's value.
+func (s *ReplicaGlobalSecondaryIndexAutoScalingDescription) SetIndexStatus(v string) *ReplicaGlobalSecondaryIndexAutoScalingDescription {
+	s.IndexStatus = &v
+	return s
+}
+
+// SetProvisionedReadCapacityAutoScalingSettings sets the ProvisionedReadCapacityAutoScalingSettings field's value.
+func (s *ReplicaGlobalSecondaryIndexAutoScalingDescription) SetProvisionedReadCapacityAutoScalingSettings(v *AutoScalingSettingsDescription) *ReplicaGlobalSecondaryIndexAutoScalingDescription {
+	s.ProvisionedReadCapacityAutoScalingSettings = v
+	return s
+}
+
+// SetProvisionedWriteCapacityAutoScalingSettings sets the ProvisionedWriteCapacityAutoScalingSettings field's value.
+func (s *ReplicaGlobalSecondaryIndexAutoScalingDescription) SetProvisionedWriteCapacityAutoScalingSettings(v *AutoScalingSettingsDescription) *ReplicaGlobalSecondaryIndexAutoScalingDescription {
+	s.ProvisionedWriteCapacityAutoScalingSettings = v
+	return s
+}
+
+// Represents the auto scaling settings of a global secondary index for a replica
+// that will be modified.
+type ReplicaGlobalSecondaryIndexAutoScalingUpdate struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the global secondary index.
+	IndexName *string `min:"3" type:"string"`
+
+	// Represents the auto scaling settings to be modified for a global table or
+	// global secondary index.
+	ProvisionedReadCapacityAutoScalingUpdate *AutoScalingSettingsUpdate `type:"structure"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ReplicaGlobalSecondaryIndexAutoScalingUpdate) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ReplicaGlobalSecondaryIndexAutoScalingUpdate) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ReplicaGlobalSecondaryIndexAutoScalingUpdate) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ReplicaGlobalSecondaryIndexAutoScalingUpdate"}
+	if s.IndexName != nil && len(*s.IndexName) < 3 {
+		invalidParams.Add(request.NewErrParamMinLen("IndexName", 3))
+	}
+	if s.ProvisionedReadCapacityAutoScalingUpdate != nil {
+		if err := s.ProvisionedReadCapacityAutoScalingUpdate.Validate(); err != nil {
+			invalidParams.AddNested("ProvisionedReadCapacityAutoScalingUpdate", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetIndexName sets the IndexName field's value.
+func (s *ReplicaGlobalSecondaryIndexAutoScalingUpdate) SetIndexName(v string) *ReplicaGlobalSecondaryIndexAutoScalingUpdate {
+	s.IndexName = &v
+	return s
+}
+
+// SetProvisionedReadCapacityAutoScalingUpdate sets the ProvisionedReadCapacityAutoScalingUpdate field's value.
+func (s *ReplicaGlobalSecondaryIndexAutoScalingUpdate) SetProvisionedReadCapacityAutoScalingUpdate(v *AutoScalingSettingsUpdate) *ReplicaGlobalSecondaryIndexAutoScalingUpdate {
+	s.ProvisionedReadCapacityAutoScalingUpdate = v
+	return s
+}
+
+// Represents the properties of a replica global secondary index.
+type ReplicaGlobalSecondaryIndexDescription struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the global secondary index.
+	IndexName *string `min:"3" type:"string"`
+
+	// If not described, uses the source table GSI's read capacity settings.
+	ProvisionedThroughputOverride *ProvisionedThroughputOverride `type:"structure"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ReplicaGlobalSecondaryIndexDescription) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ReplicaGlobalSecondaryIndexDescription) GoString() string {
+	return s.String()
+}
+
+// SetIndexName sets the IndexName field's value.
+func (s *ReplicaGlobalSecondaryIndexDescription) SetIndexName(v string) *ReplicaGlobalSecondaryIndexDescription {
+	s.IndexName = &v
+	return s
+}
+
+// SetProvisionedThroughputOverride sets the ProvisionedThroughputOverride field's value.
+func (s *ReplicaGlobalSecondaryIndexDescription) SetProvisionedThroughputOverride(v *ProvisionedThroughputOverride) *ReplicaGlobalSecondaryIndexDescription {
+	s.ProvisionedThroughputOverride = v
 	return s
 }
 
@@ -12290,7 +20468,7 @@ type ReplicaGlobalSecondaryIndexSettingsDescription struct {
 	//    * ACTIVE - The global secondary index is ready for use.
 	IndexStatus *string `type:"string" enum:"IndexStatus"`
 
-	// Autoscaling settings for a global secondary index replica's read capacity
+	// Auto scaling settings for a global secondary index replica's read capacity
 	// units.
 	ProvisionedReadCapacityAutoScalingSettings *AutoScalingSettingsDescription `type:"structure"`
 
@@ -12298,7 +20476,7 @@ type ReplicaGlobalSecondaryIndexSettingsDescription struct {
 	// DynamoDB returns a ThrottlingException.
 	ProvisionedReadCapacityUnits *int64 `min:"1" type:"long"`
 
-	// AutoScaling settings for a global secondary index replica's write capacity
+	// Auto scaling settings for a global secondary index replica's write capacity
 	// units.
 	ProvisionedWriteCapacityAutoScalingSettings *AutoScalingSettingsDescription `type:"structure"`
 
@@ -12307,12 +20485,20 @@ type ReplicaGlobalSecondaryIndexSettingsDescription struct {
 	ProvisionedWriteCapacityUnits *int64 `min:"1" type:"long"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s ReplicaGlobalSecondaryIndexSettingsDescription) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s ReplicaGlobalSecondaryIndexSettingsDescription) GoString() string {
 	return s.String()
 }
@@ -12364,7 +20550,7 @@ type ReplicaGlobalSecondaryIndexSettingsUpdate struct {
 	// IndexName is a required field
 	IndexName *string `min:"3" type:"string" required:"true"`
 
-	// Autoscaling settings for managing a global secondary index replica's read
+	// Auto scaling settings for managing a global secondary index replica's read
 	// capacity units.
 	ProvisionedReadCapacityAutoScalingSettingsUpdate *AutoScalingSettingsUpdate `type:"structure"`
 
@@ -12373,12 +20559,20 @@ type ReplicaGlobalSecondaryIndexSettingsUpdate struct {
 	ProvisionedReadCapacityUnits *int64 `min:"1" type:"long"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s ReplicaGlobalSecondaryIndexSettingsUpdate) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s ReplicaGlobalSecondaryIndexSettingsUpdate) GoString() string {
 	return s.String()
 }
@@ -12425,11 +20619,75 @@ func (s *ReplicaGlobalSecondaryIndexSettingsUpdate) SetProvisionedReadCapacityUn
 	return s
 }
 
+// The specified replica is no longer part of the global table.
+type ReplicaNotFoundException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ReplicaNotFoundException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ReplicaNotFoundException) GoString() string {
+	return s.String()
+}
+
+func newErrorReplicaNotFoundException(v protocol.ResponseMetadata) error {
+	return &ReplicaNotFoundException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *ReplicaNotFoundException) Code() string {
+	return "ReplicaNotFoundException"
+}
+
+// Message returns the exception's message.
+func (s *ReplicaNotFoundException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *ReplicaNotFoundException) OrigErr() error {
+	return nil
+}
+
+func (s *ReplicaNotFoundException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *ReplicaNotFoundException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *ReplicaNotFoundException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
 // Represents the properties of a replica.
 type ReplicaSettingsDescription struct {
 	_ struct{} `type:"structure"`
 
-	// The region name of the replica.
+	// The Region name of the replica.
 	//
 	// RegionName is a required field
 	RegionName *string `type:"string" required:"true"`
@@ -12440,7 +20698,7 @@ type ReplicaSettingsDescription struct {
 	// Replica global secondary index settings for the global table.
 	ReplicaGlobalSecondaryIndexSettings []*ReplicaGlobalSecondaryIndexSettingsDescription `type:"list"`
 
-	// Autoscaling settings for a global table replica's read capacity units.
+	// Auto scaling settings for a global table replica's read capacity units.
 	ReplicaProvisionedReadCapacityAutoScalingSettings *AutoScalingSettingsDescription `type:"structure"`
 
 	// The maximum number of strongly consistent reads consumed per second before
@@ -12449,7 +20707,7 @@ type ReplicaSettingsDescription struct {
 	// in the Amazon DynamoDB Developer Guide.
 	ReplicaProvisionedReadCapacityUnits *int64 `type:"long"`
 
-	// AutoScaling settings for a global table replica's write capacity units.
+	// Auto scaling settings for a global table replica's write capacity units.
 	ReplicaProvisionedWriteCapacityAutoScalingSettings *AutoScalingSettingsDescription `type:"structure"`
 
 	// The maximum number of writes consumed per second before DynamoDB returns
@@ -12458,24 +20716,35 @@ type ReplicaSettingsDescription struct {
 	// in the Amazon DynamoDB Developer Guide.
 	ReplicaProvisionedWriteCapacityUnits *int64 `type:"long"`
 
-	// The current state of the region:
+	// The current state of the Region:
 	//
-	//    * CREATING - The region is being created.
+	//    * CREATING - The Region is being created.
 	//
-	//    * UPDATING - The region is being updated.
+	//    * UPDATING - The Region is being updated.
 	//
-	//    * DELETING - The region is being deleted.
+	//    * DELETING - The Region is being deleted.
 	//
-	//    * ACTIVE - The region is ready for use.
+	//    * ACTIVE - The Region is ready for use.
 	ReplicaStatus *string `type:"string" enum:"ReplicaStatus"`
+
+	// Contains details of the table class.
+	ReplicaTableClassSummary *TableClassSummary `type:"structure"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s ReplicaSettingsDescription) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s ReplicaSettingsDescription) GoString() string {
 	return s.String()
 }
@@ -12528,11 +20797,17 @@ func (s *ReplicaSettingsDescription) SetReplicaStatus(v string) *ReplicaSettings
 	return s
 }
 
-// Represents the settings for a global table in a region that will be modified.
+// SetReplicaTableClassSummary sets the ReplicaTableClassSummary field's value.
+func (s *ReplicaSettingsDescription) SetReplicaTableClassSummary(v *TableClassSummary) *ReplicaSettingsDescription {
+	s.ReplicaTableClassSummary = v
+	return s
+}
+
+// Represents the settings for a global table in a Region that will be modified.
 type ReplicaSettingsUpdate struct {
 	_ struct{} `type:"structure"`
 
-	// The region of the replica to be added.
+	// The Region of the replica to be added.
 	//
 	// RegionName is a required field
 	RegionName *string `type:"string" required:"true"`
@@ -12541,7 +20816,7 @@ type ReplicaSettingsUpdate struct {
 	// will be modified.
 	ReplicaGlobalSecondaryIndexSettingsUpdate []*ReplicaGlobalSecondaryIndexSettingsUpdate `min:"1" type:"list"`
 
-	// Autoscaling settings for managing a global table replica's read capacity
+	// Auto scaling settings for managing a global table replica's read capacity
 	// units.
 	ReplicaProvisionedReadCapacityAutoScalingSettingsUpdate *AutoScalingSettingsUpdate `type:"structure"`
 
@@ -12550,14 +20825,26 @@ type ReplicaSettingsUpdate struct {
 	// Read and Write Requirements (https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/WorkingWithTables.html#ProvisionedThroughput)
 	// in the Amazon DynamoDB Developer Guide.
 	ReplicaProvisionedReadCapacityUnits *int64 `min:"1" type:"long"`
+
+	// Replica-specific table class. If not specified, uses the source table's table
+	// class.
+	ReplicaTableClass *string `type:"string" enum:"TableClass"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s ReplicaSettingsUpdate) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s ReplicaSettingsUpdate) GoString() string {
 	return s.String()
 }
@@ -12620,13 +20907,19 @@ func (s *ReplicaSettingsUpdate) SetReplicaProvisionedReadCapacityUnits(v int64) 
 	return s
 }
 
+// SetReplicaTableClass sets the ReplicaTableClass field's value.
+func (s *ReplicaSettingsUpdate) SetReplicaTableClass(v string) *ReplicaSettingsUpdate {
+	s.ReplicaTableClass = &v
+	return s
+}
+
 // Represents one of the following:
 //
-//    * A new replica to be added to an existing global table.
+//   - A new replica to be added to an existing global table.
 //
-//    * New parameters for an existing replica.
+//   - New parameters for an existing replica.
 //
-//    * An existing replica to be removed from an existing global table.
+//   - An existing replica to be removed from an existing global table.
 type ReplicaUpdate struct {
 	_ struct{} `type:"structure"`
 
@@ -12637,12 +20930,20 @@ type ReplicaUpdate struct {
 	Delete *DeleteReplicaAction `type:"structure"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s ReplicaUpdate) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s ReplicaUpdate) GoString() string {
 	return s.String()
 }
@@ -12679,6 +20980,294 @@ func (s *ReplicaUpdate) SetDelete(v *DeleteReplicaAction) *ReplicaUpdate {
 	return s
 }
 
+// Represents one of the following:
+//
+//   - A new replica to be added to an existing regional table or global table.
+//     This request invokes the CreateTableReplica action in the destination
+//     Region.
+//
+//   - New parameters for an existing replica. This request invokes the UpdateTable
+//     action in the destination Region.
+//
+//   - An existing replica to be deleted. The request invokes the DeleteTableReplica
+//     action in the destination Region, deleting the replica and all if its
+//     items in the destination Region.
+//
+// When you manually remove a table or global table replica, you do not automatically
+// remove any associated scalable targets, scaling policies, or CloudWatch alarms.
+type ReplicationGroupUpdate struct {
+	_ struct{} `type:"structure"`
+
+	// The parameters required for creating a replica for the table.
+	Create *CreateReplicationGroupMemberAction `type:"structure"`
+
+	// The parameters required for deleting a replica for the table.
+	Delete *DeleteReplicationGroupMemberAction `type:"structure"`
+
+	// The parameters required for updating a replica for the table.
+	Update *UpdateReplicationGroupMemberAction `type:"structure"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ReplicationGroupUpdate) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ReplicationGroupUpdate) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ReplicationGroupUpdate) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ReplicationGroupUpdate"}
+	if s.Create != nil {
+		if err := s.Create.Validate(); err != nil {
+			invalidParams.AddNested("Create", err.(request.ErrInvalidParams))
+		}
+	}
+	if s.Delete != nil {
+		if err := s.Delete.Validate(); err != nil {
+			invalidParams.AddNested("Delete", err.(request.ErrInvalidParams))
+		}
+	}
+	if s.Update != nil {
+		if err := s.Update.Validate(); err != nil {
+			invalidParams.AddNested("Update", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetCreate sets the Create field's value.
+func (s *ReplicationGroupUpdate) SetCreate(v *CreateReplicationGroupMemberAction) *ReplicationGroupUpdate {
+	s.Create = v
+	return s
+}
+
+// SetDelete sets the Delete field's value.
+func (s *ReplicationGroupUpdate) SetDelete(v *DeleteReplicationGroupMemberAction) *ReplicationGroupUpdate {
+	s.Delete = v
+	return s
+}
+
+// SetUpdate sets the Update field's value.
+func (s *ReplicationGroupUpdate) SetUpdate(v *UpdateReplicationGroupMemberAction) *ReplicationGroupUpdate {
+	s.Update = v
+	return s
+}
+
+// Throughput exceeds the current throughput quota for your account. Please
+// contact Amazon Web Services Support (https://aws.amazon.com/support) to request
+// a quota increase.
+type RequestLimitExceeded struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s RequestLimitExceeded) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s RequestLimitExceeded) GoString() string {
+	return s.String()
+}
+
+func newErrorRequestLimitExceeded(v protocol.ResponseMetadata) error {
+	return &RequestLimitExceeded{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *RequestLimitExceeded) Code() string {
+	return "RequestLimitExceeded"
+}
+
+// Message returns the exception's message.
+func (s *RequestLimitExceeded) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *RequestLimitExceeded) OrigErr() error {
+	return nil
+}
+
+func (s *RequestLimitExceeded) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *RequestLimitExceeded) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *RequestLimitExceeded) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
+// The operation conflicts with the resource's availability. For example, you
+// attempted to recreate an existing table, or tried to delete a table currently
+// in the CREATING state.
+type ResourceInUseException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	// The resource which is being attempted to be changed is in use.
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ResourceInUseException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ResourceInUseException) GoString() string {
+	return s.String()
+}
+
+func newErrorResourceInUseException(v protocol.ResponseMetadata) error {
+	return &ResourceInUseException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *ResourceInUseException) Code() string {
+	return "ResourceInUseException"
+}
+
+// Message returns the exception's message.
+func (s *ResourceInUseException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *ResourceInUseException) OrigErr() error {
+	return nil
+}
+
+func (s *ResourceInUseException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *ResourceInUseException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *ResourceInUseException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
+// The operation tried to access a nonexistent table or index. The resource
+// might not be specified correctly, or its status might not be ACTIVE.
+type ResourceNotFoundException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	// The resource which is being requested does not exist.
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ResourceNotFoundException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ResourceNotFoundException) GoString() string {
+	return s.String()
+}
+
+func newErrorResourceNotFoundException(v protocol.ResponseMetadata) error {
+	return &ResourceNotFoundException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *ResourceNotFoundException) Code() string {
+	return "ResourceNotFoundException"
+}
+
+// Message returns the exception's message.
+func (s *ResourceNotFoundException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *ResourceNotFoundException) OrigErr() error {
+	return nil
+}
+
+func (s *ResourceNotFoundException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *ResourceNotFoundException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *ResourceNotFoundException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
 // Contains details for the restore.
 type RestoreSummary struct {
 	_ struct{} `type:"structure"`
@@ -12693,19 +21282,27 @@ type RestoreSummary struct {
 	// RestoreInProgress is a required field
 	RestoreInProgress *bool `type:"boolean" required:"true"`
 
-	// ARN of the backup from which the table was restored.
+	// The Amazon Resource Name (ARN) of the backup from which the table was restored.
 	SourceBackupArn *string `min:"37" type:"string"`
 
-	// ARN of the source table of the backup that is being restored.
+	// The ARN of the source table of the backup that is being restored.
 	SourceTableArn *string `type:"string"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s RestoreSummary) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s RestoreSummary) GoString() string {
 	return s.String()
 }
@@ -12742,18 +21339,45 @@ type RestoreTableFromBackupInput struct {
 	// BackupArn is a required field
 	BackupArn *string `min:"37" type:"string" required:"true"`
 
+	// The billing mode of the restored table.
+	BillingModeOverride *string `type:"string" enum:"BillingMode"`
+
+	// List of global secondary indexes for the restored table. The indexes provided
+	// should match existing secondary indexes. You can choose to exclude some or
+	// all of the indexes at the time of restore.
+	GlobalSecondaryIndexOverride []*GlobalSecondaryIndex `type:"list"`
+
+	// List of local secondary indexes for the restored table. The indexes provided
+	// should match existing secondary indexes. You can choose to exclude some or
+	// all of the indexes at the time of restore.
+	LocalSecondaryIndexOverride []*LocalSecondaryIndex `type:"list"`
+
+	// Provisioned throughput settings for the restored table.
+	ProvisionedThroughputOverride *ProvisionedThroughput `type:"structure"`
+
+	// The new server-side encryption settings for the restored table.
+	SSESpecificationOverride *SSESpecification `type:"structure"`
+
 	// The name of the new table to which the backup must be restored.
 	//
 	// TargetTableName is a required field
 	TargetTableName *string `min:"3" type:"string" required:"true"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s RestoreTableFromBackupInput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s RestoreTableFromBackupInput) GoString() string {
 	return s.String()
 }
@@ -12773,6 +21397,31 @@ func (s *RestoreTableFromBackupInput) Validate() error {
 	if s.TargetTableName != nil && len(*s.TargetTableName) < 3 {
 		invalidParams.Add(request.NewErrParamMinLen("TargetTableName", 3))
 	}
+	if s.GlobalSecondaryIndexOverride != nil {
+		for i, v := range s.GlobalSecondaryIndexOverride {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "GlobalSecondaryIndexOverride", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+	if s.LocalSecondaryIndexOverride != nil {
+		for i, v := range s.LocalSecondaryIndexOverride {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "LocalSecondaryIndexOverride", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+	if s.ProvisionedThroughputOverride != nil {
+		if err := s.ProvisionedThroughputOverride.Validate(); err != nil {
+			invalidParams.AddNested("ProvisionedThroughputOverride", err.(request.ErrInvalidParams))
+		}
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -12783,6 +21432,36 @@ func (s *RestoreTableFromBackupInput) Validate() error {
 // SetBackupArn sets the BackupArn field's value.
 func (s *RestoreTableFromBackupInput) SetBackupArn(v string) *RestoreTableFromBackupInput {
 	s.BackupArn = &v
+	return s
+}
+
+// SetBillingModeOverride sets the BillingModeOverride field's value.
+func (s *RestoreTableFromBackupInput) SetBillingModeOverride(v string) *RestoreTableFromBackupInput {
+	s.BillingModeOverride = &v
+	return s
+}
+
+// SetGlobalSecondaryIndexOverride sets the GlobalSecondaryIndexOverride field's value.
+func (s *RestoreTableFromBackupInput) SetGlobalSecondaryIndexOverride(v []*GlobalSecondaryIndex) *RestoreTableFromBackupInput {
+	s.GlobalSecondaryIndexOverride = v
+	return s
+}
+
+// SetLocalSecondaryIndexOverride sets the LocalSecondaryIndexOverride field's value.
+func (s *RestoreTableFromBackupInput) SetLocalSecondaryIndexOverride(v []*LocalSecondaryIndex) *RestoreTableFromBackupInput {
+	s.LocalSecondaryIndexOverride = v
+	return s
+}
+
+// SetProvisionedThroughputOverride sets the ProvisionedThroughputOverride field's value.
+func (s *RestoreTableFromBackupInput) SetProvisionedThroughputOverride(v *ProvisionedThroughput) *RestoreTableFromBackupInput {
+	s.ProvisionedThroughputOverride = v
+	return s
+}
+
+// SetSSESpecificationOverride sets the SSESpecificationOverride field's value.
+func (s *RestoreTableFromBackupInput) SetSSESpecificationOverride(v *SSESpecification) *RestoreTableFromBackupInput {
+	s.SSESpecificationOverride = v
 	return s
 }
 
@@ -12799,12 +21478,20 @@ type RestoreTableFromBackupOutput struct {
 	TableDescription *TableDescription `type:"structure"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s RestoreTableFromBackupOutput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s RestoreTableFromBackupOutput) GoString() string {
 	return s.String()
 }
@@ -12818,13 +21505,34 @@ func (s *RestoreTableFromBackupOutput) SetTableDescription(v *TableDescription) 
 type RestoreTableToPointInTimeInput struct {
 	_ struct{} `type:"structure"`
 
+	// The billing mode of the restored table.
+	BillingModeOverride *string `type:"string" enum:"BillingMode"`
+
+	// List of global secondary indexes for the restored table. The indexes provided
+	// should match existing secondary indexes. You can choose to exclude some or
+	// all of the indexes at the time of restore.
+	GlobalSecondaryIndexOverride []*GlobalSecondaryIndex `type:"list"`
+
+	// List of local secondary indexes for the restored table. The indexes provided
+	// should match existing secondary indexes. You can choose to exclude some or
+	// all of the indexes at the time of restore.
+	LocalSecondaryIndexOverride []*LocalSecondaryIndex `type:"list"`
+
+	// Provisioned throughput settings for the restored table.
+	ProvisionedThroughputOverride *ProvisionedThroughput `type:"structure"`
+
 	// Time in the past to restore the table to.
 	RestoreDateTime *time.Time `type:"timestamp"`
 
+	// The new server-side encryption settings for the restored table.
+	SSESpecificationOverride *SSESpecification `type:"structure"`
+
+	// The DynamoDB table that will be restored. This value is an Amazon Resource
+	// Name (ARN).
+	SourceTableArn *string `type:"string"`
+
 	// Name of the source table that is being restored.
-	//
-	// SourceTableName is a required field
-	SourceTableName *string `min:"3" type:"string" required:"true"`
+	SourceTableName *string `min:"3" type:"string"`
 
 	// The name of the new table to which it must be restored to.
 	//
@@ -12836,12 +21544,20 @@ type RestoreTableToPointInTimeInput struct {
 	UseLatestRestorableTime *bool `type:"boolean"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s RestoreTableToPointInTimeInput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s RestoreTableToPointInTimeInput) GoString() string {
 	return s.String()
 }
@@ -12849,9 +21565,6 @@ func (s RestoreTableToPointInTimeInput) GoString() string {
 // Validate inspects the fields of the type to determine if they are valid.
 func (s *RestoreTableToPointInTimeInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "RestoreTableToPointInTimeInput"}
-	if s.SourceTableName == nil {
-		invalidParams.Add(request.NewErrParamRequired("SourceTableName"))
-	}
 	if s.SourceTableName != nil && len(*s.SourceTableName) < 3 {
 		invalidParams.Add(request.NewErrParamMinLen("SourceTableName", 3))
 	}
@@ -12861,6 +21574,31 @@ func (s *RestoreTableToPointInTimeInput) Validate() error {
 	if s.TargetTableName != nil && len(*s.TargetTableName) < 3 {
 		invalidParams.Add(request.NewErrParamMinLen("TargetTableName", 3))
 	}
+	if s.GlobalSecondaryIndexOverride != nil {
+		for i, v := range s.GlobalSecondaryIndexOverride {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "GlobalSecondaryIndexOverride", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+	if s.LocalSecondaryIndexOverride != nil {
+		for i, v := range s.LocalSecondaryIndexOverride {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "LocalSecondaryIndexOverride", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+	if s.ProvisionedThroughputOverride != nil {
+		if err := s.ProvisionedThroughputOverride.Validate(); err != nil {
+			invalidParams.AddNested("ProvisionedThroughputOverride", err.(request.ErrInvalidParams))
+		}
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -12868,9 +21606,45 @@ func (s *RestoreTableToPointInTimeInput) Validate() error {
 	return nil
 }
 
+// SetBillingModeOverride sets the BillingModeOverride field's value.
+func (s *RestoreTableToPointInTimeInput) SetBillingModeOverride(v string) *RestoreTableToPointInTimeInput {
+	s.BillingModeOverride = &v
+	return s
+}
+
+// SetGlobalSecondaryIndexOverride sets the GlobalSecondaryIndexOverride field's value.
+func (s *RestoreTableToPointInTimeInput) SetGlobalSecondaryIndexOverride(v []*GlobalSecondaryIndex) *RestoreTableToPointInTimeInput {
+	s.GlobalSecondaryIndexOverride = v
+	return s
+}
+
+// SetLocalSecondaryIndexOverride sets the LocalSecondaryIndexOverride field's value.
+func (s *RestoreTableToPointInTimeInput) SetLocalSecondaryIndexOverride(v []*LocalSecondaryIndex) *RestoreTableToPointInTimeInput {
+	s.LocalSecondaryIndexOverride = v
+	return s
+}
+
+// SetProvisionedThroughputOverride sets the ProvisionedThroughputOverride field's value.
+func (s *RestoreTableToPointInTimeInput) SetProvisionedThroughputOverride(v *ProvisionedThroughput) *RestoreTableToPointInTimeInput {
+	s.ProvisionedThroughputOverride = v
+	return s
+}
+
 // SetRestoreDateTime sets the RestoreDateTime field's value.
 func (s *RestoreTableToPointInTimeInput) SetRestoreDateTime(v time.Time) *RestoreTableToPointInTimeInput {
 	s.RestoreDateTime = &v
+	return s
+}
+
+// SetSSESpecificationOverride sets the SSESpecificationOverride field's value.
+func (s *RestoreTableToPointInTimeInput) SetSSESpecificationOverride(v *SSESpecification) *RestoreTableToPointInTimeInput {
+	s.SSESpecificationOverride = v
+	return s
+}
+
+// SetSourceTableArn sets the SourceTableArn field's value.
+func (s *RestoreTableToPointInTimeInput) SetSourceTableArn(v string) *RestoreTableToPointInTimeInput {
+	s.SourceTableArn = &v
 	return s
 }
 
@@ -12899,12 +21673,20 @@ type RestoreTableToPointInTimeOutput struct {
 	TableDescription *TableDescription `type:"structure"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s RestoreTableToPointInTimeOutput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s RestoreTableToPointInTimeOutput) GoString() string {
 	return s.String()
 }
@@ -12915,17 +21697,90 @@ func (s *RestoreTableToPointInTimeOutput) SetTableDescription(v *TableDescriptio
 	return s
 }
 
+// The S3 bucket that is being imported from.
+type S3BucketSource struct {
+	_ struct{} `type:"structure"`
+
+	// The S3 bucket that is being imported from.
+	//
+	// S3Bucket is a required field
+	S3Bucket *string `type:"string" required:"true"`
+
+	// The account number of the S3 bucket that is being imported from. If the bucket
+	// is owned by the requester this is optional.
+	S3BucketOwner *string `type:"string"`
+
+	// The key prefix shared by all S3 Objects that are being imported.
+	S3KeyPrefix *string `type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s S3BucketSource) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s S3BucketSource) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *S3BucketSource) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "S3BucketSource"}
+	if s.S3Bucket == nil {
+		invalidParams.Add(request.NewErrParamRequired("S3Bucket"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetS3Bucket sets the S3Bucket field's value.
+func (s *S3BucketSource) SetS3Bucket(v string) *S3BucketSource {
+	s.S3Bucket = &v
+	return s
+}
+
+// SetS3BucketOwner sets the S3BucketOwner field's value.
+func (s *S3BucketSource) SetS3BucketOwner(v string) *S3BucketSource {
+	s.S3BucketOwner = &v
+	return s
+}
+
+// SetS3KeyPrefix sets the S3KeyPrefix field's value.
+func (s *S3BucketSource) SetS3KeyPrefix(v string) *S3BucketSource {
+	s.S3KeyPrefix = &v
+	return s
+}
+
 // The description of the server-side encryption status on the specified table.
 type SSEDescription struct {
 	_ struct{} `type:"structure"`
 
-	// The KMS customer master key (CMK) ARN used for the KMS encryption.
+	// Indicates the time, in UNIX epoch date format, when DynamoDB detected that
+	// the table's KMS key was inaccessible. This attribute will automatically be
+	// cleared when DynamoDB detects that the table's KMS key is accessible again.
+	// DynamoDB will initiate the table archival process when table's KMS key remains
+	// inaccessible for more than seven days from this date.
+	InaccessibleEncryptionDateTime *time.Time `type:"timestamp"`
+
+	// The KMS key ARN used for the KMS encryption.
 	KMSMasterKeyArn *string `type:"string"`
 
 	// Server-side encryption type. The only supported value is:
 	//
-	//    * KMS - Server-side encryption which uses AWS Key Management Service.
-	//    Key is stored in your account and is managed by AWS KMS (KMS charges apply).
+	//    * KMS - Server-side encryption that uses Key Management Service. The key
+	//    is stored in your account and is managed by KMS (KMS charges apply).
 	SSEType *string `type:"string" enum:"SSEType"`
 
 	// Represents the current state of server-side encryption. The only supported
@@ -12937,14 +21792,28 @@ type SSEDescription struct {
 	Status *string `type:"string" enum:"SSEStatus"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s SSEDescription) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s SSEDescription) GoString() string {
 	return s.String()
+}
+
+// SetInaccessibleEncryptionDateTime sets the InaccessibleEncryptionDateTime field's value.
+func (s *SSEDescription) SetInaccessibleEncryptionDateTime(v time.Time) *SSEDescription {
+	s.InaccessibleEncryptionDateTime = &v
+	return s
 }
 
 // SetKMSMasterKeyArn sets the KMSMasterKeyArn field's value.
@@ -12969,31 +21838,40 @@ func (s *SSEDescription) SetStatus(v string) *SSEDescription {
 type SSESpecification struct {
 	_ struct{} `type:"structure"`
 
-	// Indicates whether server-side encryption is done using an AWS managed CMK
-	// or an AWS owned CMK. If enabled (true), server-side encryption type is set
-	// to KMS and an AWS managed CMK is used (AWS KMS charges apply). If disabled
-	// (false) or not specified, server-side encryption is set to AWS owned CMK.
+	// Indicates whether server-side encryption is done using an Amazon Web Services
+	// managed key or an Amazon Web Services owned key. If enabled (true), server-side
+	// encryption type is set to KMS and an Amazon Web Services managed key is used
+	// (KMS charges apply). If disabled (false) or not specified, server-side encryption
+	// is set to Amazon Web Services owned key.
 	Enabled *bool `type:"boolean"`
 
-	// The KMS Customer Master Key (CMK) which should be used for the KMS encryption.
-	// To specify a CMK, use its key ID, Amazon Resource Name (ARN), alias name,
-	// or alias ARN. Note that you should only provide this parameter if the key
-	// is different from the default DynamoDB Customer Master Key alias/aws/dynamodb.
+	// The KMS key that should be used for the KMS encryption. To specify a key,
+	// use its key ID, Amazon Resource Name (ARN), alias name, or alias ARN. Note
+	// that you should only provide this parameter if the key is different from
+	// the default DynamoDB key alias/aws/dynamodb.
 	KMSMasterKeyId *string `type:"string"`
 
 	// Server-side encryption type. The only supported value is:
 	//
-	//    * KMS - Server-side encryption which uses AWS Key Management Service.
-	//    Key is stored in your account and is managed by AWS KMS (KMS charges apply).
+	//    * KMS - Server-side encryption that uses Key Management Service. The key
+	//    is stored in your account and is managed by KMS (KMS charges apply).
 	SSEType *string `type:"string" enum:"SSEType"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s SSESpecification) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s SSESpecification) GoString() string {
 	return s.String()
 }
@@ -13123,7 +22001,7 @@ type ScanInput struct {
 	// A FilterExpression is applied after the items have already been read; the
 	// process of filtering does not consume any additional read capacity units.
 	//
-	// For more information, see Filter Expressions (https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/QueryAndScan.html#FilteringResults)
+	// For more information, see Filter Expressions (https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/QueryAndScan.html#Query.FilterExpression)
 	// in the Amazon DynamoDB Developer Guide.
 	FilterExpression *string `type:"string"`
 
@@ -13156,8 +22034,8 @@ type ScanInput struct {
 	// in the Amazon DynamoDB Developer Guide.
 	ProjectionExpression *string `type:"string"`
 
-	// Determines the level of detail about provisioned throughput consumption that
-	// is returned in the response:
+	// Determines the level of detail about either provisioned or on-demand throughput
+	// consumption that is returned in the response:
 	//
 	//    * INDEXES - The response includes the aggregate ConsumedCapacity for the
 	//    operation, together with ConsumedCapacity for each table and secondary
@@ -13211,10 +22089,11 @@ type ScanInput struct {
 	//    to specifying ALL_ATTRIBUTES.
 	//
 	//    * COUNT - Returns the number of matching items, rather than the matching
-	//    items themselves.
+	//    items themselves. Note that this uses the same quantity of read capacity
+	//    units as getting the items, and is subject to the same item size calculations.
 	//
-	//    * SPECIFIC_ATTRIBUTES - Returns only the attributes listed in AttributesToGet.
-	//    This return value is equivalent to specifying AttributesToGet without
+	//    * SPECIFIC_ATTRIBUTES - Returns only the attributes listed in ProjectionExpression.
+	//    This return value is equivalent to specifying ProjectionExpression without
 	//    specifying any value for Select. If you query or scan a local secondary
 	//    index and request only attributes that are projected into that index,
 	//    the operation reads only the index and not the table. If any of the requested
@@ -13225,12 +22104,12 @@ type ScanInput struct {
 	//    into the index. Global secondary index queries cannot fetch attributes
 	//    from the parent table.
 	//
-	// If neither Select nor AttributesToGet are specified, DynamoDB defaults to
-	// ALL_ATTRIBUTES when accessing a table, and ALL_PROJECTED_ATTRIBUTES when
-	// accessing an index. You cannot use both Select and AttributesToGet together
+	// If neither Select nor ProjectionExpression are specified, DynamoDB defaults
+	// to ALL_ATTRIBUTES when accessing a table, and ALL_PROJECTED_ATTRIBUTES when
+	// accessing an index. You cannot use both Select and ProjectionExpression together
 	// in a single request, unless the value for Select is SPECIFIC_ATTRIBUTES.
-	// (This usage is equivalent to specifying AttributesToGet without any value
-	// for Select.)
+	// (This usage is equivalent to specifying ProjectionExpression without any
+	// value for Select.)
 	//
 	// If you use the ProjectionExpression parameter, then the value for Select
 	// can only be SPECIFIC_ATTRIBUTES. Any other value for Select will return an
@@ -13257,12 +22136,20 @@ type ScanInput struct {
 	TotalSegments *int64 `min:"1" type:"integer"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s ScanInput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s ScanInput) GoString() string {
 	return s.String()
 }
@@ -13409,7 +22296,7 @@ type ScanOutput struct {
 	// the total provisioned throughput consumed, along with statistics for the
 	// table and any indexes involved in the operation. ConsumedCapacity is only
 	// returned if the ReturnConsumedCapacity parameter was specified. For more
-	// information, see Provisioned Throughput (https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/ProvisionedThroughputIntro.html)
+	// information, see Provisioned Throughput (https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/ProvisionedThroughput.html#ItemSizeCalculations.Reads)
 	// in the Amazon DynamoDB Developer Guide.
 	ConsumedCapacity *ConsumedCapacity `type:"structure"`
 
@@ -13448,12 +22335,20 @@ type ScanOutput struct {
 	ScannedCount *int64 `type:"integer"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s ScanOutput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s ScanOutput) GoString() string {
 	return s.String()
 }
@@ -13502,7 +22397,7 @@ type SourceTableDetails struct {
 	//    We recommend using PAY_PER_REQUEST for unpredictable workloads.
 	BillingMode *string `type:"string" enum:"BillingMode"`
 
-	// Number of items in the table. Please note this is an approximate value.
+	// Number of items in the table. Note that this is an approximate value.
 	ItemCount *int64 `type:"long"`
 
 	// Schema of the table.
@@ -13533,16 +22428,24 @@ type SourceTableDetails struct {
 	// TableName is a required field
 	TableName *string `min:"3" type:"string" required:"true"`
 
-	// Size of the table in bytes. Please note this is an approximate value.
+	// Size of the table in bytes. Note that this is an approximate value.
 	TableSizeBytes *int64 `type:"long"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s SourceTableDetails) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s SourceTableDetails) GoString() string {
 	return s.String()
 }
@@ -13607,7 +22510,7 @@ type SourceTableFeatureDetails struct {
 	_ struct{} `type:"structure"`
 
 	// Represents the GSI properties for the table when the backup was created.
-	// It includes the IndexName, KeySchema, Projection and ProvisionedThroughput
+	// It includes the IndexName, KeySchema, Projection, and ProvisionedThroughput
 	// for the GSIs on the table at the time of backup.
 	GlobalSecondaryIndexes []*GlobalSecondaryIndexInfo `type:"list"`
 
@@ -13627,12 +22530,20 @@ type SourceTableFeatureDetails struct {
 	TimeToLiveDescription *TimeToLiveDescription `type:"structure"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s SourceTableFeatureDetails) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s SourceTableFeatureDetails) GoString() string {
 	return s.String()
 }
@@ -13673,7 +22584,9 @@ type StreamSpecification struct {
 
 	// Indicates whether DynamoDB Streams is enabled (true) or disabled (false)
 	// on the table.
-	StreamEnabled *bool `type:"boolean"`
+	//
+	// StreamEnabled is a required field
+	StreamEnabled *bool `type:"boolean" required:"true"`
 
 	// When an item in the table is modified, StreamViewType determines what information
 	// is written to the stream for this table. Valid values for StreamViewType
@@ -13693,14 +22606,35 @@ type StreamSpecification struct {
 	StreamViewType *string `type:"string" enum:"StreamViewType"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s StreamSpecification) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s StreamSpecification) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *StreamSpecification) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "StreamSpecification"}
+	if s.StreamEnabled == nil {
+		invalidParams.Add(request.NewErrParamRequired("StreamEnabled"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // SetStreamEnabled sets the StreamEnabled field's value.
@@ -13715,9 +22649,335 @@ func (s *StreamSpecification) SetStreamViewType(v string) *StreamSpecification {
 	return s
 }
 
+// A target table with the specified name already exists.
+type TableAlreadyExistsException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s TableAlreadyExistsException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s TableAlreadyExistsException) GoString() string {
+	return s.String()
+}
+
+func newErrorTableAlreadyExistsException(v protocol.ResponseMetadata) error {
+	return &TableAlreadyExistsException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *TableAlreadyExistsException) Code() string {
+	return "TableAlreadyExistsException"
+}
+
+// Message returns the exception's message.
+func (s *TableAlreadyExistsException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *TableAlreadyExistsException) OrigErr() error {
+	return nil
+}
+
+func (s *TableAlreadyExistsException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *TableAlreadyExistsException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *TableAlreadyExistsException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
+// Represents the auto scaling configuration for a global table.
+type TableAutoScalingDescription struct {
+	_ struct{} `type:"structure"`
+
+	// Represents replicas of the global table.
+	Replicas []*ReplicaAutoScalingDescription `type:"list"`
+
+	// The name of the table.
+	TableName *string `min:"3" type:"string"`
+
+	// The current state of the table:
+	//
+	//    * CREATING - The table is being created.
+	//
+	//    * UPDATING - The table is being updated.
+	//
+	//    * DELETING - The table is being deleted.
+	//
+	//    * ACTIVE - The table is ready for use.
+	TableStatus *string `type:"string" enum:"TableStatus"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s TableAutoScalingDescription) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s TableAutoScalingDescription) GoString() string {
+	return s.String()
+}
+
+// SetReplicas sets the Replicas field's value.
+func (s *TableAutoScalingDescription) SetReplicas(v []*ReplicaAutoScalingDescription) *TableAutoScalingDescription {
+	s.Replicas = v
+	return s
+}
+
+// SetTableName sets the TableName field's value.
+func (s *TableAutoScalingDescription) SetTableName(v string) *TableAutoScalingDescription {
+	s.TableName = &v
+	return s
+}
+
+// SetTableStatus sets the TableStatus field's value.
+func (s *TableAutoScalingDescription) SetTableStatus(v string) *TableAutoScalingDescription {
+	s.TableStatus = &v
+	return s
+}
+
+// Contains details of the table class.
+type TableClassSummary struct {
+	_ struct{} `type:"structure"`
+
+	// The date and time at which the table class was last updated.
+	LastUpdateDateTime *time.Time `type:"timestamp"`
+
+	// The table class of the specified table. Valid values are STANDARD and STANDARD_INFREQUENT_ACCESS.
+	TableClass *string `type:"string" enum:"TableClass"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s TableClassSummary) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s TableClassSummary) GoString() string {
+	return s.String()
+}
+
+// SetLastUpdateDateTime sets the LastUpdateDateTime field's value.
+func (s *TableClassSummary) SetLastUpdateDateTime(v time.Time) *TableClassSummary {
+	s.LastUpdateDateTime = &v
+	return s
+}
+
+// SetTableClass sets the TableClass field's value.
+func (s *TableClassSummary) SetTableClass(v string) *TableClassSummary {
+	s.TableClass = &v
+	return s
+}
+
+// The parameters for the table created as part of the import operation.
+type TableCreationParameters struct {
+	_ struct{} `type:"structure"`
+
+	// The attributes of the table created as part of the import operation.
+	//
+	// AttributeDefinitions is a required field
+	AttributeDefinitions []*AttributeDefinition `type:"list" required:"true"`
+
+	// The billing mode for provisioning the table created as part of the import
+	// operation.
+	BillingMode *string `type:"string" enum:"BillingMode"`
+
+	// The Global Secondary Indexes (GSI) of the table to be created as part of
+	// the import operation.
+	GlobalSecondaryIndexes []*GlobalSecondaryIndex `type:"list"`
+
+	// The primary key and option sort key of the table created as part of the import
+	// operation.
+	//
+	// KeySchema is a required field
+	KeySchema []*KeySchemaElement `min:"1" type:"list" required:"true"`
+
+	// Represents the provisioned throughput settings for a specified table or index.
+	// The settings can be modified using the UpdateTable operation.
+	//
+	// For current minimum and maximum provisioned throughput values, see Service,
+	// Account, and Table Quotas (https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Limits.html)
+	// in the Amazon DynamoDB Developer Guide.
+	ProvisionedThroughput *ProvisionedThroughput `type:"structure"`
+
+	// Represents the settings used to enable server-side encryption.
+	SSESpecification *SSESpecification `type:"structure"`
+
+	// The name of the table created as part of the import operation.
+	//
+	// TableName is a required field
+	TableName *string `min:"3" type:"string" required:"true"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s TableCreationParameters) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s TableCreationParameters) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *TableCreationParameters) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "TableCreationParameters"}
+	if s.AttributeDefinitions == nil {
+		invalidParams.Add(request.NewErrParamRequired("AttributeDefinitions"))
+	}
+	if s.KeySchema == nil {
+		invalidParams.Add(request.NewErrParamRequired("KeySchema"))
+	}
+	if s.KeySchema != nil && len(s.KeySchema) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("KeySchema", 1))
+	}
+	if s.TableName == nil {
+		invalidParams.Add(request.NewErrParamRequired("TableName"))
+	}
+	if s.TableName != nil && len(*s.TableName) < 3 {
+		invalidParams.Add(request.NewErrParamMinLen("TableName", 3))
+	}
+	if s.AttributeDefinitions != nil {
+		for i, v := range s.AttributeDefinitions {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "AttributeDefinitions", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+	if s.GlobalSecondaryIndexes != nil {
+		for i, v := range s.GlobalSecondaryIndexes {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "GlobalSecondaryIndexes", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+	if s.KeySchema != nil {
+		for i, v := range s.KeySchema {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "KeySchema", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+	if s.ProvisionedThroughput != nil {
+		if err := s.ProvisionedThroughput.Validate(); err != nil {
+			invalidParams.AddNested("ProvisionedThroughput", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetAttributeDefinitions sets the AttributeDefinitions field's value.
+func (s *TableCreationParameters) SetAttributeDefinitions(v []*AttributeDefinition) *TableCreationParameters {
+	s.AttributeDefinitions = v
+	return s
+}
+
+// SetBillingMode sets the BillingMode field's value.
+func (s *TableCreationParameters) SetBillingMode(v string) *TableCreationParameters {
+	s.BillingMode = &v
+	return s
+}
+
+// SetGlobalSecondaryIndexes sets the GlobalSecondaryIndexes field's value.
+func (s *TableCreationParameters) SetGlobalSecondaryIndexes(v []*GlobalSecondaryIndex) *TableCreationParameters {
+	s.GlobalSecondaryIndexes = v
+	return s
+}
+
+// SetKeySchema sets the KeySchema field's value.
+func (s *TableCreationParameters) SetKeySchema(v []*KeySchemaElement) *TableCreationParameters {
+	s.KeySchema = v
+	return s
+}
+
+// SetProvisionedThroughput sets the ProvisionedThroughput field's value.
+func (s *TableCreationParameters) SetProvisionedThroughput(v *ProvisionedThroughput) *TableCreationParameters {
+	s.ProvisionedThroughput = v
+	return s
+}
+
+// SetSSESpecification sets the SSESpecification field's value.
+func (s *TableCreationParameters) SetSSESpecification(v *SSESpecification) *TableCreationParameters {
+	s.SSESpecification = v
+	return s
+}
+
+// SetTableName sets the TableName field's value.
+func (s *TableCreationParameters) SetTableName(v string) *TableCreationParameters {
+	s.TableName = &v
+	return s
+}
+
 // Represents the properties of a table.
 type TableDescription struct {
 	_ struct{} `type:"structure"`
+
+	// Contains information about the table archive.
+	ArchivalSummary *ArchivalSummary `type:"structure"`
 
 	// An array of AttributeDefinition objects. Each of these objects describes
 	// one attribute in the table and index key schema.
@@ -13736,14 +22996,23 @@ type TableDescription struct {
 	// format.
 	CreationDateTime *time.Time `type:"timestamp"`
 
+	// Indicates whether deletion protection is enabled (true) or disabled (false)
+	// on the table.
+	DeletionProtectionEnabled *bool `type:"boolean"`
+
 	// The global secondary indexes, if any, on the table. Each index is scoped
 	// to a given partition key value. Each element is composed of:
 	//
 	//    * Backfilling - If true, then the index is currently in the backfilling
 	//    phase. Backfilling occurs only when a new global secondary index is added
-	//    to the table; it is the process by which DynamoDB populates the new index
+	//    to the table. It is the process by which DynamoDB populates the new index
 	//    with data from the table. (This attribute does not appear for indexes
-	//    that were created during a CreateTable operation.)
+	//    that were created during a CreateTable operation.) You can delete an index
+	//    that is being created during the Backfilling phase when IndexStatus is
+	//    set to CREATING and Backfilling is true. You can't delete the index that
+	//    is being created when IndexStatus is set to CREATING and Backfilling is
+	//    false. (This attribute does not appear for indexes that were created during
+	//    a CreateTable operation.)
 	//
 	//    * IndexName - The name of the global secondary index.
 	//
@@ -13768,14 +23037,14 @@ type TableDescription struct {
 	//    and index key attributes, which are automatically projected. Each attribute
 	//    specification is composed of: ProjectionType - One of the following: KEYS_ONLY
 	//    - Only the index and primary keys are projected into the index. INCLUDE
-	//    - Only the specified table attributes are projected into the index. The
-	//    list of projected attributes are in NonKeyAttributes. ALL - All of the
-	//    table attributes are projected into the index. NonKeyAttributes - A list
-	//    of one or more non-key attribute names that are projected into the secondary
-	//    index. The total count of attributes provided in NonKeyAttributes, summed
-	//    across all of the secondary indexes, must not exceed 20. If you project
-	//    the same attribute into two different indexes, this counts as two distinct
-	//    attributes when determining the total.
+	//    - In addition to the attributes described in KEYS_ONLY, the secondary
+	//    index will include other non-key attributes that you specify. ALL - All
+	//    of the table attributes are projected into the index. NonKeyAttributes
+	//    - A list of one or more non-key attribute names that are projected into
+	//    the secondary index. The total count of attributes provided in NonKeyAttributes,
+	//    summed across all of the secondary indexes, must not exceed 100. If you
+	//    project the same attribute into two different indexes, this counts as
+	//    two distinct attributes when determining the total.
 	//
 	//    * ProvisionedThroughput - The provisioned throughput settings for the
 	//    global secondary index, consisting of read and write capacity units, along
@@ -13784,6 +23053,10 @@ type TableDescription struct {
 	// If the table is in the DELETING state, no information about indexes will
 	// be returned.
 	GlobalSecondaryIndexes []*GlobalSecondaryIndexDescription `type:"list"`
+
+	// Represents the version of global tables (https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/GlobalTables.html)
+	// in use, if the table is replicated across Amazon Web Services Regions.
+	GlobalTableVersion *string `type:"string"`
 
 	// The number of items in the specified table. DynamoDB updates this value approximately
 	// every six hours. Recent changes might not be reflected in this value.
@@ -13817,11 +23090,11 @@ type TableDescription struct {
 	// However, the combination of the following three elements is guaranteed to
 	// be unique:
 	//
-	//    * the AWS customer ID.
+	//    * Amazon Web Services customer ID
 	//
-	//    * the table name.
+	//    * Table name
 	//
-	//    * the StreamLabel.
+	//    * StreamLabel
 	LatestStreamLabel *string `type:"string"`
 
 	// Represents one or more local secondary indexes on the table. Each index is
@@ -13842,11 +23115,11 @@ type TableDescription struct {
 	//    specification is composed of: ProjectionType - One of the following: KEYS_ONLY
 	//    - Only the index and primary keys are projected into the index. INCLUDE
 	//    - Only the specified table attributes are projected into the index. The
-	//    list of projected attributes are in NonKeyAttributes. ALL - All of the
+	//    list of projected attributes is in NonKeyAttributes. ALL - All of the
 	//    table attributes are projected into the index. NonKeyAttributes - A list
 	//    of one or more non-key attribute names that are projected into the secondary
 	//    index. The total count of attributes provided in NonKeyAttributes, summed
-	//    across all of the secondary indexes, must not exceed 20. If you project
+	//    across all of the secondary indexes, must not exceed 100. If you project
 	//    the same attribute into two different indexes, this counts as two distinct
 	//    attributes when determining the total.
 	//
@@ -13866,6 +23139,9 @@ type TableDescription struct {
 	// write capacity units, along with data about increases and decreases.
 	ProvisionedThroughput *ProvisionedThroughputDescription `type:"structure"`
 
+	// Represents replicas of the table.
+	Replicas []*ReplicaDescription `type:"list"`
+
 	// Contains details for the restore.
 	RestoreSummary *RestoreSummary `type:"structure"`
 
@@ -13877,6 +23153,9 @@ type TableDescription struct {
 
 	// The Amazon Resource Name (ARN) that uniquely identifies the table.
 	TableArn *string `type:"string"`
+
+	// Contains details of the table class.
+	TableClassSummary *TableClassSummary `type:"structure"`
 
 	// Unique identifier for the table for which the backup was created.
 	TableId *string `type:"string"`
@@ -13893,22 +23172,48 @@ type TableDescription struct {
 	//
 	//    * CREATING - The table is being created.
 	//
-	//    * UPDATING - The table is being updated.
+	//    * UPDATING - The table/index configuration is being updated. The table/index
+	//    remains available for data operations when UPDATING.
 	//
 	//    * DELETING - The table is being deleted.
 	//
 	//    * ACTIVE - The table is ready for use.
+	//
+	//    * INACCESSIBLE_ENCRYPTION_CREDENTIALS - The KMS key used to encrypt the
+	//    table in inaccessible. Table operations may fail due to failure to use
+	//    the KMS key. DynamoDB will initiate the table archival process when a
+	//    table's KMS key remains inaccessible for more than seven days.
+	//
+	//    * ARCHIVING - The table is being archived. Operations are not allowed
+	//    until archival is complete.
+	//
+	//    * ARCHIVED - The table has been archived. See the ArchivalReason for more
+	//    information.
 	TableStatus *string `type:"string" enum:"TableStatus"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s TableDescription) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s TableDescription) GoString() string {
 	return s.String()
+}
+
+// SetArchivalSummary sets the ArchivalSummary field's value.
+func (s *TableDescription) SetArchivalSummary(v *ArchivalSummary) *TableDescription {
+	s.ArchivalSummary = v
+	return s
 }
 
 // SetAttributeDefinitions sets the AttributeDefinitions field's value.
@@ -13929,9 +23234,21 @@ func (s *TableDescription) SetCreationDateTime(v time.Time) *TableDescription {
 	return s
 }
 
+// SetDeletionProtectionEnabled sets the DeletionProtectionEnabled field's value.
+func (s *TableDescription) SetDeletionProtectionEnabled(v bool) *TableDescription {
+	s.DeletionProtectionEnabled = &v
+	return s
+}
+
 // SetGlobalSecondaryIndexes sets the GlobalSecondaryIndexes field's value.
 func (s *TableDescription) SetGlobalSecondaryIndexes(v []*GlobalSecondaryIndexDescription) *TableDescription {
 	s.GlobalSecondaryIndexes = v
+	return s
+}
+
+// SetGlobalTableVersion sets the GlobalTableVersion field's value.
+func (s *TableDescription) SetGlobalTableVersion(v string) *TableDescription {
+	s.GlobalTableVersion = &v
 	return s
 }
 
@@ -13971,6 +23288,12 @@ func (s *TableDescription) SetProvisionedThroughput(v *ProvisionedThroughputDesc
 	return s
 }
 
+// SetReplicas sets the Replicas field's value.
+func (s *TableDescription) SetReplicas(v []*ReplicaDescription) *TableDescription {
+	s.Replicas = v
+	return s
+}
+
 // SetRestoreSummary sets the RestoreSummary field's value.
 func (s *TableDescription) SetRestoreSummary(v *RestoreSummary) *TableDescription {
 	s.RestoreSummary = v
@@ -13992,6 +23315,12 @@ func (s *TableDescription) SetStreamSpecification(v *StreamSpecification) *Table
 // SetTableArn sets the TableArn field's value.
 func (s *TableDescription) SetTableArn(v string) *TableDescription {
 	s.TableArn = &v
+	return s
+}
+
+// SetTableClassSummary sets the TableClassSummary field's value.
+func (s *TableDescription) SetTableClassSummary(v *TableClassSummary) *TableDescription {
+	s.TableClassSummary = v
 	return s
 }
 
@@ -14019,13 +23348,144 @@ func (s *TableDescription) SetTableStatus(v string) *TableDescription {
 	return s
 }
 
+// A target table with the specified name is either being created or deleted.
+type TableInUseException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s TableInUseException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s TableInUseException) GoString() string {
+	return s.String()
+}
+
+func newErrorTableInUseException(v protocol.ResponseMetadata) error {
+	return &TableInUseException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *TableInUseException) Code() string {
+	return "TableInUseException"
+}
+
+// Message returns the exception's message.
+func (s *TableInUseException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *TableInUseException) OrigErr() error {
+	return nil
+}
+
+func (s *TableInUseException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *TableInUseException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *TableInUseException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
+// A source table with the name TableName does not currently exist within the
+// subscriber's account or the subscriber is operating in the wrong Amazon Web
+// Services Region.
+type TableNotFoundException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s TableNotFoundException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s TableNotFoundException) GoString() string {
+	return s.String()
+}
+
+func newErrorTableNotFoundException(v protocol.ResponseMetadata) error {
+	return &TableNotFoundException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *TableNotFoundException) Code() string {
+	return "TableNotFoundException"
+}
+
+// Message returns the exception's message.
+func (s *TableNotFoundException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *TableNotFoundException) OrigErr() error {
+	return nil
+}
+
+func (s *TableNotFoundException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *TableNotFoundException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *TableNotFoundException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
 // Describes a tag. A tag is a key-value pair. You can add up to 50 tags to
 // a single DynamoDB table.
 //
-// AWS-assigned tag names and values are automatically assigned the aws: prefix,
-// which the user cannot assign. AWS-assigned tag names do not count towards
-// the tag limit of 50. User-assigned tag names have the prefix user: in the
-// Cost Allocation Report. You cannot backdate the application of a tag.
+// Amazon Web Services-assigned tag names and values are automatically assigned
+// the aws: prefix, which the user cannot assign. Amazon Web Services-assigned
+// tag names do not count towards the tag limit of 50. User-assigned tag names
+// have the prefix user: in the Cost Allocation Report. You cannot backdate
+// the application of a tag.
 //
 // For an overview on tagging DynamoDB resources, see Tagging for DynamoDB (https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Tagging.html)
 // in the Amazon DynamoDB Developer Guide.
@@ -14045,12 +23505,20 @@ type Tag struct {
 	Value *string `type:"string" required:"true"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s Tag) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s Tag) GoString() string {
 	return s.String()
 }
@@ -14101,12 +23569,20 @@ type TagResourceInput struct {
 	Tags []*Tag `type:"list" required:"true"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s TagResourceInput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s TagResourceInput) GoString() string {
 	return s.String()
 }
@@ -14156,12 +23632,20 @@ type TagResourceOutput struct {
 	_ struct{} `type:"structure"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s TagResourceOutput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s TagResourceOutput) GoString() string {
 	return s.String()
 }
@@ -14177,12 +23661,20 @@ type TimeToLiveDescription struct {
 	TimeToLiveStatus *string `type:"string" enum:"TimeToLiveStatus"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s TimeToLiveDescription) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s TimeToLiveDescription) GoString() string {
 	return s.String()
 }
@@ -14217,12 +23709,20 @@ type TimeToLiveSpecification struct {
 	Enabled *bool `type:"boolean" required:"true"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s TimeToLiveSpecification) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s TimeToLiveSpecification) GoString() string {
 	return s.String()
 }
@@ -14270,12 +23770,20 @@ type TransactGetItem struct {
 	Get *Get `type:"structure" required:"true"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s TransactGetItem) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s TransactGetItem) GoString() string {
 	return s.String()
 }
@@ -14312,19 +23820,27 @@ type TransactGetItemsInput struct {
 	// is valid.
 	ReturnConsumedCapacity *string `type:"string" enum:"ReturnConsumedCapacity"`
 
-	// An ordered array of up to 25 TransactGetItem objects, each of which contains
+	// An ordered array of up to 100 TransactGetItem objects, each of which contains
 	// a Get structure.
 	//
 	// TransactItems is a required field
 	TransactItems []*TransactGetItem `min:"1" type:"list" required:"true"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s TransactGetItemsInput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s TransactGetItemsInput) GoString() string {
 	return s.String()
 }
@@ -14376,7 +23892,7 @@ type TransactGetItemsOutput struct {
 	// consumed by the TransactGetItems call in that table.
 	ConsumedCapacity []*ConsumedCapacity `type:"list"`
 
-	// An ordered array of up to 25 ItemResponse objects, each of which corresponds
+	// An ordered array of up to 100 ItemResponse objects, each of which corresponds
 	// to the TransactGetItem object in the same position in the TransactItems array.
 	// Each ItemResponse object contains a Map of the name-value pairs that are
 	// the projected attributes of the requested item.
@@ -14387,12 +23903,20 @@ type TransactGetItemsOutput struct {
 	Responses []*ItemResponse `min:"1" type:"list"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s TransactGetItemsOutput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s TransactGetItemsOutput) GoString() string {
 	return s.String()
 }
@@ -14427,12 +23951,20 @@ type TransactWriteItem struct {
 	Update *Update `type:"structure"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s TransactWriteItem) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s TransactWriteItem) GoString() string {
 	return s.String()
 }
@@ -14500,7 +24032,7 @@ type TransactWriteItemsInput struct {
 	//
 	// Although multiple identical calls using the same client request token produce
 	// the same result on the server (no side effects), the responses to the calls
-	// might not be the same. If the ReturnConsumedCapacity> parameter is set, then
+	// might not be the same. If the ReturnConsumedCapacity parameter is set, then
 	// the initial TransactWriteItems call returns the amount of write capacity
 	// units consumed in making the changes. Subsequent TransactWriteItems calls
 	// with the same client token return the number of read capacity units consumed
@@ -14517,8 +24049,8 @@ type TransactWriteItemsInput struct {
 	// exception.
 	ClientRequestToken *string `min:"1" type:"string" idempotencyToken:"true"`
 
-	// Determines the level of detail about provisioned throughput consumption that
-	// is returned in the response:
+	// Determines the level of detail about either provisioned or on-demand throughput
+	// consumption that is returned in the response:
 	//
 	//    * INDEXES - The response includes the aggregate ConsumedCapacity for the
 	//    operation, together with ConsumedCapacity for each table and secondary
@@ -14538,21 +24070,29 @@ type TransactWriteItemsInput struct {
 	// NONE (the default), no statistics are returned.
 	ReturnItemCollectionMetrics *string `type:"string" enum:"ReturnItemCollectionMetrics"`
 
-	// An ordered array of up to 25 TransactWriteItem objects, each of which contains
+	// An ordered array of up to 100 TransactWriteItem objects, each of which contains
 	// a ConditionCheck, Put, Update, or Delete object. These can operate on items
-	// in different tables, but the tables must reside in the same AWS account and
-	// Region, and no two of them can operate on the same item.
+	// in different tables, but the tables must reside in the same Amazon Web Services
+	// account and Region, and no two of them can operate on the same item.
 	//
 	// TransactItems is a required field
 	TransactItems []*TransactWriteItem `min:"1" type:"list" required:"true"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s TransactWriteItemsInput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s TransactWriteItemsInput) GoString() string {
 	return s.String()
 }
@@ -14624,12 +24164,20 @@ type TransactWriteItemsOutput struct {
 	ItemCollectionMetrics map[string][]*ItemCollectionMetrics `type:"map"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s TransactWriteItemsOutput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s TransactWriteItemsOutput) GoString() string {
 	return s.String()
 }
@@ -14644,6 +24192,326 @@ func (s *TransactWriteItemsOutput) SetConsumedCapacity(v []*ConsumedCapacity) *T
 func (s *TransactWriteItemsOutput) SetItemCollectionMetrics(v map[string][]*ItemCollectionMetrics) *TransactWriteItemsOutput {
 	s.ItemCollectionMetrics = v
 	return s
+}
+
+// The entire transaction request was canceled.
+//
+// DynamoDB cancels a TransactWriteItems request under the following circumstances:
+//
+//   - A condition in one of the condition expressions is not met.
+//
+//   - A table in the TransactWriteItems request is in a different account
+//     or region.
+//
+//   - More than one action in the TransactWriteItems operation targets the
+//     same item.
+//
+//   - There is insufficient provisioned capacity for the transaction to be
+//     completed.
+//
+//   - An item size becomes too large (larger than 400 KB), or a local secondary
+//     index (LSI) becomes too large, or a similar validation error occurs because
+//     of changes made by the transaction.
+//
+//   - There is a user error, such as an invalid data format.
+//
+// DynamoDB cancels a TransactGetItems request under the following circumstances:
+//
+//   - There is an ongoing TransactGetItems operation that conflicts with a
+//     concurrent PutItem, UpdateItem, DeleteItem or TransactWriteItems request.
+//     In this case the TransactGetItems operation fails with a TransactionCanceledException.
+//
+//   - A table in the TransactGetItems request is in a different account or
+//     region.
+//
+//   - There is insufficient provisioned capacity for the transaction to be
+//     completed.
+//
+//   - There is a user error, such as an invalid data format.
+//
+// If using Java, DynamoDB lists the cancellation reasons on the CancellationReasons
+// property. This property is not set for other languages. Transaction cancellation
+// reasons are ordered in the order of requested items, if an item has no error
+// it will have None code and Null message.
+//
+// Cancellation reason codes and possible error messages:
+//
+//   - No Errors: Code: None Message: null
+//
+//   - Conditional Check Failed: Code: ConditionalCheckFailed Message: The
+//     conditional request failed.
+//
+//   - Item Collection Size Limit Exceeded: Code: ItemCollectionSizeLimitExceeded
+//     Message: Collection size exceeded.
+//
+//   - Transaction Conflict: Code: TransactionConflict Message: Transaction
+//     is ongoing for the item.
+//
+//   - Provisioned Throughput Exceeded: Code: ProvisionedThroughputExceeded
+//     Messages: The level of configured provisioned throughput for the table
+//     was exceeded. Consider increasing your provisioning level with the UpdateTable
+//     API. This Message is received when provisioned throughput is exceeded
+//     is on a provisioned DynamoDB table. The level of configured provisioned
+//     throughput for one or more global secondary indexes of the table was exceeded.
+//     Consider increasing your provisioning level for the under-provisioned
+//     global secondary indexes with the UpdateTable API. This message is returned
+//     when provisioned throughput is exceeded is on a provisioned GSI.
+//
+//   - Throttling Error: Code: ThrottlingError Messages: Throughput exceeds
+//     the current capacity of your table or index. DynamoDB is automatically
+//     scaling your table or index so please try again shortly. If exceptions
+//     persist, check if you have a hot key: https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/bp-partition-key-design.html.
+//     This message is returned when writes get throttled on an On-Demand table
+//     as DynamoDB is automatically scaling the table. Throughput exceeds the
+//     current capacity for one or more global secondary indexes. DynamoDB is
+//     automatically scaling your index so please try again shortly. This message
+//     is returned when writes get throttled on an On-Demand GSI as DynamoDB
+//     is automatically scaling the GSI.
+//
+//   - Validation Error: Code: ValidationError Messages: One or more parameter
+//     values were invalid. The update expression attempted to update the secondary
+//     index key beyond allowed size limits. The update expression attempted
+//     to update the secondary index key to unsupported type. An operand in the
+//     update expression has an incorrect data type. Item size to update has
+//     exceeded the maximum allowed size. Number overflow. Attempting to store
+//     a number with magnitude larger than supported range. Type mismatch for
+//     attribute to update. Nesting Levels have exceeded supported limits. The
+//     document path provided in the update expression is invalid for update.
+//     The provided expression refers to an attribute that does not exist in
+//     the item.
+type TransactionCanceledException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	// A list of cancellation reasons.
+	CancellationReasons []*CancellationReason `min:"1" type:"list"`
+
+	Message_ *string `locationName:"Message" type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s TransactionCanceledException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s TransactionCanceledException) GoString() string {
+	return s.String()
+}
+
+func newErrorTransactionCanceledException(v protocol.ResponseMetadata) error {
+	return &TransactionCanceledException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *TransactionCanceledException) Code() string {
+	return "TransactionCanceledException"
+}
+
+// Message returns the exception's message.
+func (s *TransactionCanceledException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *TransactionCanceledException) OrigErr() error {
+	return nil
+}
+
+func (s *TransactionCanceledException) Error() string {
+	return fmt.Sprintf("%s: %s\n%s", s.Code(), s.Message(), s.String())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *TransactionCanceledException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *TransactionCanceledException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
+// Operation was rejected because there is an ongoing transaction for the item.
+type TransactionConflictException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s TransactionConflictException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s TransactionConflictException) GoString() string {
+	return s.String()
+}
+
+func newErrorTransactionConflictException(v protocol.ResponseMetadata) error {
+	return &TransactionConflictException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *TransactionConflictException) Code() string {
+	return "TransactionConflictException"
+}
+
+// Message returns the exception's message.
+func (s *TransactionConflictException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *TransactionConflictException) OrigErr() error {
+	return nil
+}
+
+func (s *TransactionConflictException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *TransactionConflictException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *TransactionConflictException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
+// The transaction with the given request token is already in progress.
+//
+// # Recommended Settings
+//
+// This is a general recommendation for handling the TransactionInProgressException.
+// These settings help ensure that the client retries will trigger completion
+// of the ongoing TransactWriteItems request.
+//
+//   - Set clientExecutionTimeout to a value that allows at least one retry
+//     to be processed after 5 seconds have elapsed since the first attempt for
+//     the TransactWriteItems operation.
+//
+//   - Set socketTimeout to a value a little lower than the requestTimeout
+//     setting.
+//
+//   - requestTimeout should be set based on the time taken for the individual
+//     retries of a single HTTP request for your use case, but setting it to
+//     1 second or higher should work well to reduce chances of retries and TransactionInProgressException
+//     errors.
+//
+//   - Use exponential backoff when retrying and tune backoff if needed.
+//
+// Assuming default retry policy (https://github.com/aws/aws-sdk-java/blob/fd409dee8ae23fb8953e0bb4dbde65536a7e0514/aws-java-sdk-core/src/main/java/com/amazonaws/retry/PredefinedRetryPolicies.java#L97),
+// example timeout settings based on the guidelines above are as follows:
+//
+// Example timeline:
+//
+//   - 0-1000 first attempt
+//
+//   - 1000-1500 first sleep/delay (default retry policy uses 500 ms as base
+//     delay for 4xx errors)
+//
+//   - 1500-2500 second attempt
+//
+//   - 2500-3500 second sleep/delay (500 * 2, exponential backoff)
+//
+//   - 3500-4500 third attempt
+//
+//   - 4500-6500 third sleep/delay (500 * 2^2)
+//
+//   - 6500-7500 fourth attempt (this can trigger inline recovery since 5 seconds
+//     have elapsed since the first attempt reached TC)
+type TransactionInProgressException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	Message_ *string `locationName:"Message" type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s TransactionInProgressException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s TransactionInProgressException) GoString() string {
+	return s.String()
+}
+
+func newErrorTransactionInProgressException(v protocol.ResponseMetadata) error {
+	return &TransactionInProgressException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *TransactionInProgressException) Code() string {
+	return "TransactionInProgressException"
+}
+
+// Message returns the exception's message.
+func (s *TransactionInProgressException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *TransactionInProgressException) OrigErr() error {
+	return nil
+}
+
+func (s *TransactionInProgressException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *TransactionInProgressException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *TransactionInProgressException) RequestID() string {
+	return s.RespMetadata.RequestID
 }
 
 type UntagResourceInput struct {
@@ -14662,12 +24530,20 @@ type UntagResourceInput struct {
 	TagKeys []*string `type:"list" required:"true"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s UntagResourceInput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s UntagResourceInput) GoString() string {
 	return s.String()
 }
@@ -14707,12 +24583,20 @@ type UntagResourceOutput struct {
 	_ struct{} `type:"structure"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s UntagResourceOutput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s UntagResourceOutput) GoString() string {
 	return s.String()
 }
@@ -14753,12 +24637,20 @@ type Update struct {
 	UpdateExpression *string `type:"string" required:"true"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s Update) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s Update) GoString() string {
 	return s.String()
 }
@@ -14841,12 +24733,20 @@ type UpdateContinuousBackupsInput struct {
 	TableName *string `min:"3" type:"string" required:"true"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s UpdateContinuousBackupsInput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s UpdateContinuousBackupsInput) GoString() string {
 	return s.String()
 }
@@ -14895,12 +24795,20 @@ type UpdateContinuousBackupsOutput struct {
 	ContinuousBackupsDescription *ContinuousBackupsDescription `type:"structure"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s UpdateContinuousBackupsOutput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s UpdateContinuousBackupsOutput) GoString() string {
 	return s.String()
 }
@@ -14908,6 +24816,130 @@ func (s UpdateContinuousBackupsOutput) GoString() string {
 // SetContinuousBackupsDescription sets the ContinuousBackupsDescription field's value.
 func (s *UpdateContinuousBackupsOutput) SetContinuousBackupsDescription(v *ContinuousBackupsDescription) *UpdateContinuousBackupsOutput {
 	s.ContinuousBackupsDescription = v
+	return s
+}
+
+type UpdateContributorInsightsInput struct {
+	_ struct{} `type:"structure"`
+
+	// Represents the contributor insights action.
+	//
+	// ContributorInsightsAction is a required field
+	ContributorInsightsAction *string `type:"string" required:"true" enum:"ContributorInsightsAction"`
+
+	// The global secondary index name, if applicable.
+	IndexName *string `min:"3" type:"string"`
+
+	// The name of the table.
+	//
+	// TableName is a required field
+	TableName *string `min:"3" type:"string" required:"true"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s UpdateContributorInsightsInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s UpdateContributorInsightsInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UpdateContributorInsightsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UpdateContributorInsightsInput"}
+	if s.ContributorInsightsAction == nil {
+		invalidParams.Add(request.NewErrParamRequired("ContributorInsightsAction"))
+	}
+	if s.IndexName != nil && len(*s.IndexName) < 3 {
+		invalidParams.Add(request.NewErrParamMinLen("IndexName", 3))
+	}
+	if s.TableName == nil {
+		invalidParams.Add(request.NewErrParamRequired("TableName"))
+	}
+	if s.TableName != nil && len(*s.TableName) < 3 {
+		invalidParams.Add(request.NewErrParamMinLen("TableName", 3))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetContributorInsightsAction sets the ContributorInsightsAction field's value.
+func (s *UpdateContributorInsightsInput) SetContributorInsightsAction(v string) *UpdateContributorInsightsInput {
+	s.ContributorInsightsAction = &v
+	return s
+}
+
+// SetIndexName sets the IndexName field's value.
+func (s *UpdateContributorInsightsInput) SetIndexName(v string) *UpdateContributorInsightsInput {
+	s.IndexName = &v
+	return s
+}
+
+// SetTableName sets the TableName field's value.
+func (s *UpdateContributorInsightsInput) SetTableName(v string) *UpdateContributorInsightsInput {
+	s.TableName = &v
+	return s
+}
+
+type UpdateContributorInsightsOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The status of contributor insights
+	ContributorInsightsStatus *string `type:"string" enum:"ContributorInsightsStatus"`
+
+	// The name of the global secondary index, if applicable.
+	IndexName *string `min:"3" type:"string"`
+
+	// The name of the table.
+	TableName *string `min:"3" type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s UpdateContributorInsightsOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s UpdateContributorInsightsOutput) GoString() string {
+	return s.String()
+}
+
+// SetContributorInsightsStatus sets the ContributorInsightsStatus field's value.
+func (s *UpdateContributorInsightsOutput) SetContributorInsightsStatus(v string) *UpdateContributorInsightsOutput {
+	s.ContributorInsightsStatus = &v
+	return s
+}
+
+// SetIndexName sets the IndexName field's value.
+func (s *UpdateContributorInsightsOutput) SetIndexName(v string) *UpdateContributorInsightsOutput {
+	s.IndexName = &v
+	return s
+}
+
+// SetTableName sets the TableName field's value.
+func (s *UpdateContributorInsightsOutput) SetTableName(v string) *UpdateContributorInsightsOutput {
+	s.TableName = &v
 	return s
 }
 
@@ -14924,20 +24956,28 @@ type UpdateGlobalSecondaryIndexAction struct {
 	// Represents the provisioned throughput settings for the specified global secondary
 	// index.
 	//
-	// For current minimum and maximum provisioned throughput values, see Limits
-	// (https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Limits.html)
+	// For current minimum and maximum provisioned throughput values, see Service,
+	// Account, and Table Quotas (https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Limits.html)
 	// in the Amazon DynamoDB Developer Guide.
 	//
 	// ProvisionedThroughput is a required field
 	ProvisionedThroughput *ProvisionedThroughput `type:"structure" required:"true"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s UpdateGlobalSecondaryIndexAction) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s UpdateGlobalSecondaryIndexAction) GoString() string {
 	return s.String()
 }
@@ -14992,12 +25032,20 @@ type UpdateGlobalTableInput struct {
 	ReplicaUpdates []*ReplicaUpdate `type:"list" required:"true"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s UpdateGlobalTableInput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s UpdateGlobalTableInput) GoString() string {
 	return s.String()
 }
@@ -15050,12 +25098,20 @@ type UpdateGlobalTableOutput struct {
 	GlobalTableDescription *GlobalTableDescription `type:"structure"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s UpdateGlobalTableOutput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s UpdateGlobalTableOutput) GoString() string {
 	return s.String()
 }
@@ -15071,6 +25127,12 @@ type UpdateGlobalTableSettingsInput struct {
 
 	// The billing mode of the global table. If GlobalTableBillingMode is not specified,
 	// the global table defaults to PROVISIONED capacity billing mode.
+	//
+	//    * PROVISIONED - We recommend using PROVISIONED for predictable workloads.
+	//    PROVISIONED sets the billing mode to Provisioned Mode (https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/HowItWorks.ReadWriteCapacityMode.html#HowItWorks.ProvisionedThroughput.Manual).
+	//
+	//    * PAY_PER_REQUEST - We recommend using PAY_PER_REQUEST for unpredictable
+	//    workloads. PAY_PER_REQUEST sets the billing mode to On-Demand Mode (https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/HowItWorks.ReadWriteCapacityMode.html#HowItWorks.OnDemand).
 	GlobalTableBillingMode *string `type:"string" enum:"BillingMode"`
 
 	// Represents the settings of a global secondary index for a global table that
@@ -15094,12 +25156,20 @@ type UpdateGlobalTableSettingsInput struct {
 	ReplicaSettingsUpdate []*ReplicaSettingsUpdate `min:"1" type:"list"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s UpdateGlobalTableSettingsInput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s UpdateGlobalTableSettingsInput) GoString() string {
 	return s.String()
 }
@@ -15200,12 +25270,20 @@ type UpdateGlobalTableSettingsOutput struct {
 	ReplicaSettings []*ReplicaSettingsDescription `type:"list"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s UpdateGlobalTableSettingsOutput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s UpdateGlobalTableSettingsOutput) GoString() string {
 	return s.String()
 }
@@ -15327,8 +25405,8 @@ type UpdateItemInput struct {
 	// Key is a required field
 	Key map[string]*AttributeValue `type:"map" required:"true"`
 
-	// Determines the level of detail about provisioned throughput consumption that
-	// is returned in the response:
+	// Determines the level of detail about either provisioned or on-demand throughput
+	// consumption that is returned in the response:
 	//
 	//    * INDEXES - The response includes the aggregate ConsumedCapacity for the
 	//    operation, together with ConsumedCapacity for each table and secondary
@@ -15349,7 +25427,8 @@ type UpdateItemInput struct {
 	ReturnItemCollectionMetrics *string `type:"string" enum:"ReturnItemCollectionMetrics"`
 
 	// Use ReturnValues if you want to get the item attributes as they appear before
-	// or after they are updated. For UpdateItem, the valid values are:
+	// or after they are successfully updated. For UpdateItem, the valid values
+	// are:
 	//
 	//    * NONE - If ReturnValues is not specified, or if its value is NONE, then
 	//    nothing is returned. (This setting is the default for ReturnValues.)
@@ -15438,12 +25517,20 @@ type UpdateItemInput struct {
 	UpdateExpression *string `type:"string"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s UpdateItemInput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s UpdateItemInput) GoString() string {
 	return s.String()
 }
@@ -15546,15 +25633,16 @@ type UpdateItemOutput struct {
 	// A map of attribute values as they appear before or after the UpdateItem operation,
 	// as determined by the ReturnValues parameter.
 	//
-	// The Attributes map is only present if ReturnValues was specified as something
-	// other than NONE in the request. Each element represents one attribute.
+	// The Attributes map is only present if the update was successful and ReturnValues
+	// was specified as something other than NONE in the request. Each element represents
+	// one attribute.
 	Attributes map[string]*AttributeValue `type:"map"`
 
 	// The capacity units consumed by the UpdateItem operation. The data returned
 	// includes the total provisioned throughput consumed, along with statistics
 	// for the table and any indexes involved in the operation. ConsumedCapacity
 	// is only returned if the ReturnConsumedCapacity parameter was specified. For
-	// more information, see Provisioned Throughput (https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/ProvisionedThroughputIntro.html)
+	// more information, see Provisioned Throughput (https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/ProvisionedThroughput.html#ItemSizeCalculations.Reads)
 	// in the Amazon DynamoDB Developer Guide.
 	ConsumedCapacity *ConsumedCapacity `type:"structure"`
 
@@ -15579,12 +25667,20 @@ type UpdateItemOutput struct {
 	ItemCollectionMetrics *ItemCollectionMetrics `type:"structure"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s UpdateItemOutput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s UpdateItemOutput) GoString() string {
 	return s.String()
 }
@@ -15607,6 +25703,112 @@ func (s *UpdateItemOutput) SetItemCollectionMetrics(v *ItemCollectionMetrics) *U
 	return s
 }
 
+// Represents a replica to be modified.
+type UpdateReplicationGroupMemberAction struct {
+	_ struct{} `type:"structure"`
+
+	// Replica-specific global secondary index settings.
+	GlobalSecondaryIndexes []*ReplicaGlobalSecondaryIndex `min:"1" type:"list"`
+
+	// The KMS key of the replica that should be used for KMS encryption. To specify
+	// a key, use its key ID, Amazon Resource Name (ARN), alias name, or alias ARN.
+	// Note that you should only provide this parameter if the key is different
+	// from the default DynamoDB KMS key alias/aws/dynamodb.
+	KMSMasterKeyId *string `type:"string"`
+
+	// Replica-specific provisioned throughput. If not specified, uses the source
+	// table's provisioned throughput settings.
+	ProvisionedThroughputOverride *ProvisionedThroughputOverride `type:"structure"`
+
+	// The Region where the replica exists.
+	//
+	// RegionName is a required field
+	RegionName *string `type:"string" required:"true"`
+
+	// Replica-specific table class. If not specified, uses the source table's table
+	// class.
+	TableClassOverride *string `type:"string" enum:"TableClass"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s UpdateReplicationGroupMemberAction) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s UpdateReplicationGroupMemberAction) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UpdateReplicationGroupMemberAction) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UpdateReplicationGroupMemberAction"}
+	if s.GlobalSecondaryIndexes != nil && len(s.GlobalSecondaryIndexes) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("GlobalSecondaryIndexes", 1))
+	}
+	if s.RegionName == nil {
+		invalidParams.Add(request.NewErrParamRequired("RegionName"))
+	}
+	if s.GlobalSecondaryIndexes != nil {
+		for i, v := range s.GlobalSecondaryIndexes {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "GlobalSecondaryIndexes", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+	if s.ProvisionedThroughputOverride != nil {
+		if err := s.ProvisionedThroughputOverride.Validate(); err != nil {
+			invalidParams.AddNested("ProvisionedThroughputOverride", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetGlobalSecondaryIndexes sets the GlobalSecondaryIndexes field's value.
+func (s *UpdateReplicationGroupMemberAction) SetGlobalSecondaryIndexes(v []*ReplicaGlobalSecondaryIndex) *UpdateReplicationGroupMemberAction {
+	s.GlobalSecondaryIndexes = v
+	return s
+}
+
+// SetKMSMasterKeyId sets the KMSMasterKeyId field's value.
+func (s *UpdateReplicationGroupMemberAction) SetKMSMasterKeyId(v string) *UpdateReplicationGroupMemberAction {
+	s.KMSMasterKeyId = &v
+	return s
+}
+
+// SetProvisionedThroughputOverride sets the ProvisionedThroughputOverride field's value.
+func (s *UpdateReplicationGroupMemberAction) SetProvisionedThroughputOverride(v *ProvisionedThroughputOverride) *UpdateReplicationGroupMemberAction {
+	s.ProvisionedThroughputOverride = v
+	return s
+}
+
+// SetRegionName sets the RegionName field's value.
+func (s *UpdateReplicationGroupMemberAction) SetRegionName(v string) *UpdateReplicationGroupMemberAction {
+	s.RegionName = &v
+	return s
+}
+
+// SetTableClassOverride sets the TableClassOverride field's value.
+func (s *UpdateReplicationGroupMemberAction) SetTableClassOverride(v string) *UpdateReplicationGroupMemberAction {
+	s.TableClassOverride = &v
+	return s
+}
+
 // Represents the input of an UpdateTable operation.
 type UpdateTableInput struct {
 	_ struct{} `type:"structure"`
@@ -15622,12 +25824,16 @@ type UpdateTableInput struct {
 	// values are estimated based on the consumed read and write capacity of your
 	// table and global secondary indexes over the past 30 minutes.
 	//
-	//    * PROVISIONED - Sets the billing mode to PROVISIONED. We recommend using
-	//    PROVISIONED for predictable workloads.
+	//    * PROVISIONED - We recommend using PROVISIONED for predictable workloads.
+	//    PROVISIONED sets the billing mode to Provisioned Mode (https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/HowItWorks.ReadWriteCapacityMode.html#HowItWorks.ProvisionedThroughput.Manual).
 	//
-	//    * PAY_PER_REQUEST - Sets the billing mode to PAY_PER_REQUEST. We recommend
-	//    using PAY_PER_REQUEST for unpredictable workloads.
+	//    * PAY_PER_REQUEST - We recommend using PAY_PER_REQUEST for unpredictable
+	//    workloads. PAY_PER_REQUEST sets the billing mode to On-Demand Mode (https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/HowItWorks.ReadWriteCapacityMode.html#HowItWorks.OnDemand).
 	BillingMode *string `type:"string" enum:"BillingMode"`
+
+	// Indicates whether deletion protection is to be enabled (true) or disabled
+	// (false) on the table.
+	DeletionProtectionEnabled *bool `type:"boolean"`
 
 	// An array of one or more global secondary indexes for the table. For each
 	// index in the array, you can request one action:
@@ -15639,12 +25845,21 @@ type UpdateTableInput struct {
 	//
 	//    * Delete - remove a global secondary index from the table.
 	//
+	// You can create or delete only one global secondary index per UpdateTable
+	// operation.
+	//
 	// For more information, see Managing Global Secondary Indexes (https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/GSI.OnlineOps.html)
 	// in the Amazon DynamoDB Developer Guide.
 	GlobalSecondaryIndexUpdates []*GlobalSecondaryIndexUpdate `type:"list"`
 
 	// The new provisioned throughput settings for the specified table or index.
 	ProvisionedThroughput *ProvisionedThroughput `type:"structure"`
+
+	// A list of replica update actions (create, delete, or update) for the table.
+	//
+	// This property only applies to Version 2019.11.21 (Current) (https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/globaltables.V2.html)
+	// of global tables.
+	ReplicaUpdates []*ReplicationGroupUpdate `min:"1" type:"list"`
 
 	// The new server-side encryption settings for the specified table.
 	SSESpecification *SSESpecification `type:"structure"`
@@ -15656,18 +25871,30 @@ type UpdateTableInput struct {
 	// doesn't have a stream.
 	StreamSpecification *StreamSpecification `type:"structure"`
 
+	// The table class of the table to be updated. Valid values are STANDARD and
+	// STANDARD_INFREQUENT_ACCESS.
+	TableClass *string `type:"string" enum:"TableClass"`
+
 	// The name of the table to be updated.
 	//
 	// TableName is a required field
 	TableName *string `min:"3" type:"string" required:"true"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s UpdateTableInput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s UpdateTableInput) GoString() string {
 	return s.String()
 }
@@ -15675,6 +25902,9 @@ func (s UpdateTableInput) GoString() string {
 // Validate inspects the fields of the type to determine if they are valid.
 func (s *UpdateTableInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "UpdateTableInput"}
+	if s.ReplicaUpdates != nil && len(s.ReplicaUpdates) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ReplicaUpdates", 1))
+	}
 	if s.TableName == nil {
 		invalidParams.Add(request.NewErrParamRequired("TableName"))
 	}
@@ -15706,6 +25936,21 @@ func (s *UpdateTableInput) Validate() error {
 			invalidParams.AddNested("ProvisionedThroughput", err.(request.ErrInvalidParams))
 		}
 	}
+	if s.ReplicaUpdates != nil {
+		for i, v := range s.ReplicaUpdates {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "ReplicaUpdates", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+	if s.StreamSpecification != nil {
+		if err := s.StreamSpecification.Validate(); err != nil {
+			invalidParams.AddNested("StreamSpecification", err.(request.ErrInvalidParams))
+		}
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -15725,6 +25970,12 @@ func (s *UpdateTableInput) SetBillingMode(v string) *UpdateTableInput {
 	return s
 }
 
+// SetDeletionProtectionEnabled sets the DeletionProtectionEnabled field's value.
+func (s *UpdateTableInput) SetDeletionProtectionEnabled(v bool) *UpdateTableInput {
+	s.DeletionProtectionEnabled = &v
+	return s
+}
+
 // SetGlobalSecondaryIndexUpdates sets the GlobalSecondaryIndexUpdates field's value.
 func (s *UpdateTableInput) SetGlobalSecondaryIndexUpdates(v []*GlobalSecondaryIndexUpdate) *UpdateTableInput {
 	s.GlobalSecondaryIndexUpdates = v
@@ -15737,6 +25988,12 @@ func (s *UpdateTableInput) SetProvisionedThroughput(v *ProvisionedThroughput) *U
 	return s
 }
 
+// SetReplicaUpdates sets the ReplicaUpdates field's value.
+func (s *UpdateTableInput) SetReplicaUpdates(v []*ReplicationGroupUpdate) *UpdateTableInput {
+	s.ReplicaUpdates = v
+	return s
+}
+
 // SetSSESpecification sets the SSESpecification field's value.
 func (s *UpdateTableInput) SetSSESpecification(v *SSESpecification) *UpdateTableInput {
 	s.SSESpecification = v
@@ -15746,6 +26003,12 @@ func (s *UpdateTableInput) SetSSESpecification(v *SSESpecification) *UpdateTable
 // SetStreamSpecification sets the StreamSpecification field's value.
 func (s *UpdateTableInput) SetStreamSpecification(v *StreamSpecification) *UpdateTableInput {
 	s.StreamSpecification = v
+	return s
+}
+
+// SetTableClass sets the TableClass field's value.
+func (s *UpdateTableInput) SetTableClass(v string) *UpdateTableInput {
+	s.TableClass = &v
 	return s
 }
 
@@ -15763,12 +26026,20 @@ type UpdateTableOutput struct {
 	TableDescription *TableDescription `type:"structure"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s UpdateTableOutput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s UpdateTableOutput) GoString() string {
 	return s.String()
 }
@@ -15776,6 +26047,147 @@ func (s UpdateTableOutput) GoString() string {
 // SetTableDescription sets the TableDescription field's value.
 func (s *UpdateTableOutput) SetTableDescription(v *TableDescription) *UpdateTableOutput {
 	s.TableDescription = v
+	return s
+}
+
+type UpdateTableReplicaAutoScalingInput struct {
+	_ struct{} `type:"structure"`
+
+	// Represents the auto scaling settings of the global secondary indexes of the
+	// replica to be updated.
+	GlobalSecondaryIndexUpdates []*GlobalSecondaryIndexAutoScalingUpdate `min:"1" type:"list"`
+
+	// Represents the auto scaling settings to be modified for a global table or
+	// global secondary index.
+	ProvisionedWriteCapacityAutoScalingUpdate *AutoScalingSettingsUpdate `type:"structure"`
+
+	// Represents the auto scaling settings of replicas of the table that will be
+	// modified.
+	ReplicaUpdates []*ReplicaAutoScalingUpdate `min:"1" type:"list"`
+
+	// The name of the global table to be updated.
+	//
+	// TableName is a required field
+	TableName *string `min:"3" type:"string" required:"true"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s UpdateTableReplicaAutoScalingInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s UpdateTableReplicaAutoScalingInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UpdateTableReplicaAutoScalingInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UpdateTableReplicaAutoScalingInput"}
+	if s.GlobalSecondaryIndexUpdates != nil && len(s.GlobalSecondaryIndexUpdates) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("GlobalSecondaryIndexUpdates", 1))
+	}
+	if s.ReplicaUpdates != nil && len(s.ReplicaUpdates) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ReplicaUpdates", 1))
+	}
+	if s.TableName == nil {
+		invalidParams.Add(request.NewErrParamRequired("TableName"))
+	}
+	if s.TableName != nil && len(*s.TableName) < 3 {
+		invalidParams.Add(request.NewErrParamMinLen("TableName", 3))
+	}
+	if s.GlobalSecondaryIndexUpdates != nil {
+		for i, v := range s.GlobalSecondaryIndexUpdates {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "GlobalSecondaryIndexUpdates", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+	if s.ProvisionedWriteCapacityAutoScalingUpdate != nil {
+		if err := s.ProvisionedWriteCapacityAutoScalingUpdate.Validate(); err != nil {
+			invalidParams.AddNested("ProvisionedWriteCapacityAutoScalingUpdate", err.(request.ErrInvalidParams))
+		}
+	}
+	if s.ReplicaUpdates != nil {
+		for i, v := range s.ReplicaUpdates {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "ReplicaUpdates", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetGlobalSecondaryIndexUpdates sets the GlobalSecondaryIndexUpdates field's value.
+func (s *UpdateTableReplicaAutoScalingInput) SetGlobalSecondaryIndexUpdates(v []*GlobalSecondaryIndexAutoScalingUpdate) *UpdateTableReplicaAutoScalingInput {
+	s.GlobalSecondaryIndexUpdates = v
+	return s
+}
+
+// SetProvisionedWriteCapacityAutoScalingUpdate sets the ProvisionedWriteCapacityAutoScalingUpdate field's value.
+func (s *UpdateTableReplicaAutoScalingInput) SetProvisionedWriteCapacityAutoScalingUpdate(v *AutoScalingSettingsUpdate) *UpdateTableReplicaAutoScalingInput {
+	s.ProvisionedWriteCapacityAutoScalingUpdate = v
+	return s
+}
+
+// SetReplicaUpdates sets the ReplicaUpdates field's value.
+func (s *UpdateTableReplicaAutoScalingInput) SetReplicaUpdates(v []*ReplicaAutoScalingUpdate) *UpdateTableReplicaAutoScalingInput {
+	s.ReplicaUpdates = v
+	return s
+}
+
+// SetTableName sets the TableName field's value.
+func (s *UpdateTableReplicaAutoScalingInput) SetTableName(v string) *UpdateTableReplicaAutoScalingInput {
+	s.TableName = &v
+	return s
+}
+
+type UpdateTableReplicaAutoScalingOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Returns information about the auto scaling settings of a table with replicas.
+	TableAutoScalingDescription *TableAutoScalingDescription `type:"structure"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s UpdateTableReplicaAutoScalingOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s UpdateTableReplicaAutoScalingOutput) GoString() string {
+	return s.String()
+}
+
+// SetTableAutoScalingDescription sets the TableAutoScalingDescription field's value.
+func (s *UpdateTableReplicaAutoScalingOutput) SetTableAutoScalingDescription(v *TableAutoScalingDescription) *UpdateTableReplicaAutoScalingOutput {
+	s.TableAutoScalingDescription = v
 	return s
 }
 
@@ -15795,12 +26207,20 @@ type UpdateTimeToLiveInput struct {
 	TimeToLiveSpecification *TimeToLiveSpecification `type:"structure" required:"true"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s UpdateTimeToLiveInput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s UpdateTimeToLiveInput) GoString() string {
 	return s.String()
 }
@@ -15848,12 +26268,20 @@ type UpdateTimeToLiveOutput struct {
 	TimeToLiveSpecification *TimeToLiveSpecification `type:"structure"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s UpdateTimeToLiveOutput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s UpdateTimeToLiveOutput) GoString() string {
 	return s.String()
 }
@@ -15866,8 +26294,8 @@ func (s *UpdateTimeToLiveOutput) SetTimeToLiveSpecification(v *TimeToLiveSpecifi
 
 // Represents an operation to perform - either DeleteItem or PutItem. You can
 // only request one of these operations, not both, in a single WriteRequest.
-// If you do need to perform both of these operations, you will need to provide
-// two separate WriteRequest objects.
+// If you do need to perform both of these operations, you need to provide two
+// separate WriteRequest objects.
 type WriteRequest struct {
 	_ struct{} `type:"structure"`
 
@@ -15878,12 +26306,20 @@ type WriteRequest struct {
 	PutRequest *PutRequest `type:"structure"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s WriteRequest) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s WriteRequest) GoString() string {
 	return s.String()
 }
@@ -15911,6 +26347,15 @@ const (
 	AttributeActionDelete = "DELETE"
 )
 
+// AttributeAction_Values returns all elements of the AttributeAction enum
+func AttributeAction_Values() []string {
+	return []string{
+		AttributeActionAdd,
+		AttributeActionPut,
+		AttributeActionDelete,
+	}
+}
+
 const (
 	// BackupStatusCreating is a BackupStatus enum value
 	BackupStatusCreating = "CREATING"
@@ -15922,6 +26367,15 @@ const (
 	BackupStatusAvailable = "AVAILABLE"
 )
 
+// BackupStatus_Values returns all elements of the BackupStatus enum
+func BackupStatus_Values() []string {
+	return []string{
+		BackupStatusCreating,
+		BackupStatusDeleted,
+		BackupStatusAvailable,
+	}
+}
+
 const (
 	// BackupTypeUser is a BackupType enum value
 	BackupTypeUser = "USER"
@@ -15932,6 +26386,15 @@ const (
 	// BackupTypeAwsBackup is a BackupType enum value
 	BackupTypeAwsBackup = "AWS_BACKUP"
 )
+
+// BackupType_Values returns all elements of the BackupType enum
+func BackupType_Values() []string {
+	return []string{
+		BackupTypeUser,
+		BackupTypeSystem,
+		BackupTypeAwsBackup,
+	}
+}
 
 const (
 	// BackupTypeFilterUser is a BackupTypeFilter enum value
@@ -15947,6 +26410,68 @@ const (
 	BackupTypeFilterAll = "ALL"
 )
 
+// BackupTypeFilter_Values returns all elements of the BackupTypeFilter enum
+func BackupTypeFilter_Values() []string {
+	return []string{
+		BackupTypeFilterUser,
+		BackupTypeFilterSystem,
+		BackupTypeFilterAwsBackup,
+		BackupTypeFilterAll,
+	}
+}
+
+const (
+	// BatchStatementErrorCodeEnumConditionalCheckFailed is a BatchStatementErrorCodeEnum enum value
+	BatchStatementErrorCodeEnumConditionalCheckFailed = "ConditionalCheckFailed"
+
+	// BatchStatementErrorCodeEnumItemCollectionSizeLimitExceeded is a BatchStatementErrorCodeEnum enum value
+	BatchStatementErrorCodeEnumItemCollectionSizeLimitExceeded = "ItemCollectionSizeLimitExceeded"
+
+	// BatchStatementErrorCodeEnumRequestLimitExceeded is a BatchStatementErrorCodeEnum enum value
+	BatchStatementErrorCodeEnumRequestLimitExceeded = "RequestLimitExceeded"
+
+	// BatchStatementErrorCodeEnumValidationError is a BatchStatementErrorCodeEnum enum value
+	BatchStatementErrorCodeEnumValidationError = "ValidationError"
+
+	// BatchStatementErrorCodeEnumProvisionedThroughputExceeded is a BatchStatementErrorCodeEnum enum value
+	BatchStatementErrorCodeEnumProvisionedThroughputExceeded = "ProvisionedThroughputExceeded"
+
+	// BatchStatementErrorCodeEnumTransactionConflict is a BatchStatementErrorCodeEnum enum value
+	BatchStatementErrorCodeEnumTransactionConflict = "TransactionConflict"
+
+	// BatchStatementErrorCodeEnumThrottlingError is a BatchStatementErrorCodeEnum enum value
+	BatchStatementErrorCodeEnumThrottlingError = "ThrottlingError"
+
+	// BatchStatementErrorCodeEnumInternalServerError is a BatchStatementErrorCodeEnum enum value
+	BatchStatementErrorCodeEnumInternalServerError = "InternalServerError"
+
+	// BatchStatementErrorCodeEnumResourceNotFound is a BatchStatementErrorCodeEnum enum value
+	BatchStatementErrorCodeEnumResourceNotFound = "ResourceNotFound"
+
+	// BatchStatementErrorCodeEnumAccessDenied is a BatchStatementErrorCodeEnum enum value
+	BatchStatementErrorCodeEnumAccessDenied = "AccessDenied"
+
+	// BatchStatementErrorCodeEnumDuplicateItem is a BatchStatementErrorCodeEnum enum value
+	BatchStatementErrorCodeEnumDuplicateItem = "DuplicateItem"
+)
+
+// BatchStatementErrorCodeEnum_Values returns all elements of the BatchStatementErrorCodeEnum enum
+func BatchStatementErrorCodeEnum_Values() []string {
+	return []string{
+		BatchStatementErrorCodeEnumConditionalCheckFailed,
+		BatchStatementErrorCodeEnumItemCollectionSizeLimitExceeded,
+		BatchStatementErrorCodeEnumRequestLimitExceeded,
+		BatchStatementErrorCodeEnumValidationError,
+		BatchStatementErrorCodeEnumProvisionedThroughputExceeded,
+		BatchStatementErrorCodeEnumTransactionConflict,
+		BatchStatementErrorCodeEnumThrottlingError,
+		BatchStatementErrorCodeEnumInternalServerError,
+		BatchStatementErrorCodeEnumResourceNotFound,
+		BatchStatementErrorCodeEnumAccessDenied,
+		BatchStatementErrorCodeEnumDuplicateItem,
+	}
+}
+
 const (
 	// BillingModeProvisioned is a BillingMode enum value
 	BillingModeProvisioned = "PROVISIONED"
@@ -15954,6 +26479,14 @@ const (
 	// BillingModePayPerRequest is a BillingMode enum value
 	BillingModePayPerRequest = "PAY_PER_REQUEST"
 )
+
+// BillingMode_Values returns all elements of the BillingMode enum
+func BillingMode_Values() []string {
+	return []string{
+		BillingModeProvisioned,
+		BillingModePayPerRequest,
+	}
+}
 
 const (
 	// ComparisonOperatorEq is a ComparisonOperator enum value
@@ -15996,6 +26529,25 @@ const (
 	ComparisonOperatorBeginsWith = "BEGINS_WITH"
 )
 
+// ComparisonOperator_Values returns all elements of the ComparisonOperator enum
+func ComparisonOperator_Values() []string {
+	return []string{
+		ComparisonOperatorEq,
+		ComparisonOperatorNe,
+		ComparisonOperatorIn,
+		ComparisonOperatorLe,
+		ComparisonOperatorLt,
+		ComparisonOperatorGe,
+		ComparisonOperatorGt,
+		ComparisonOperatorBetween,
+		ComparisonOperatorNotNull,
+		ComparisonOperatorNull,
+		ComparisonOperatorContains,
+		ComparisonOperatorNotContains,
+		ComparisonOperatorBeginsWith,
+	}
+}
+
 const (
 	// ConditionalOperatorAnd is a ConditionalOperator enum value
 	ConditionalOperatorAnd = "AND"
@@ -16004,6 +26556,14 @@ const (
 	ConditionalOperatorOr = "OR"
 )
 
+// ConditionalOperator_Values returns all elements of the ConditionalOperator enum
+func ConditionalOperator_Values() []string {
+	return []string{
+		ConditionalOperatorAnd,
+		ConditionalOperatorOr,
+	}
+}
+
 const (
 	// ContinuousBackupsStatusEnabled is a ContinuousBackupsStatus enum value
 	ContinuousBackupsStatusEnabled = "ENABLED"
@@ -16011,6 +26571,122 @@ const (
 	// ContinuousBackupsStatusDisabled is a ContinuousBackupsStatus enum value
 	ContinuousBackupsStatusDisabled = "DISABLED"
 )
+
+// ContinuousBackupsStatus_Values returns all elements of the ContinuousBackupsStatus enum
+func ContinuousBackupsStatus_Values() []string {
+	return []string{
+		ContinuousBackupsStatusEnabled,
+		ContinuousBackupsStatusDisabled,
+	}
+}
+
+const (
+	// ContributorInsightsActionEnable is a ContributorInsightsAction enum value
+	ContributorInsightsActionEnable = "ENABLE"
+
+	// ContributorInsightsActionDisable is a ContributorInsightsAction enum value
+	ContributorInsightsActionDisable = "DISABLE"
+)
+
+// ContributorInsightsAction_Values returns all elements of the ContributorInsightsAction enum
+func ContributorInsightsAction_Values() []string {
+	return []string{
+		ContributorInsightsActionEnable,
+		ContributorInsightsActionDisable,
+	}
+}
+
+const (
+	// ContributorInsightsStatusEnabling is a ContributorInsightsStatus enum value
+	ContributorInsightsStatusEnabling = "ENABLING"
+
+	// ContributorInsightsStatusEnabled is a ContributorInsightsStatus enum value
+	ContributorInsightsStatusEnabled = "ENABLED"
+
+	// ContributorInsightsStatusDisabling is a ContributorInsightsStatus enum value
+	ContributorInsightsStatusDisabling = "DISABLING"
+
+	// ContributorInsightsStatusDisabled is a ContributorInsightsStatus enum value
+	ContributorInsightsStatusDisabled = "DISABLED"
+
+	// ContributorInsightsStatusFailed is a ContributorInsightsStatus enum value
+	ContributorInsightsStatusFailed = "FAILED"
+)
+
+// ContributorInsightsStatus_Values returns all elements of the ContributorInsightsStatus enum
+func ContributorInsightsStatus_Values() []string {
+	return []string{
+		ContributorInsightsStatusEnabling,
+		ContributorInsightsStatusEnabled,
+		ContributorInsightsStatusDisabling,
+		ContributorInsightsStatusDisabled,
+		ContributorInsightsStatusFailed,
+	}
+}
+
+const (
+	// DestinationStatusEnabling is a DestinationStatus enum value
+	DestinationStatusEnabling = "ENABLING"
+
+	// DestinationStatusActive is a DestinationStatus enum value
+	DestinationStatusActive = "ACTIVE"
+
+	// DestinationStatusDisabling is a DestinationStatus enum value
+	DestinationStatusDisabling = "DISABLING"
+
+	// DestinationStatusDisabled is a DestinationStatus enum value
+	DestinationStatusDisabled = "DISABLED"
+
+	// DestinationStatusEnableFailed is a DestinationStatus enum value
+	DestinationStatusEnableFailed = "ENABLE_FAILED"
+)
+
+// DestinationStatus_Values returns all elements of the DestinationStatus enum
+func DestinationStatus_Values() []string {
+	return []string{
+		DestinationStatusEnabling,
+		DestinationStatusActive,
+		DestinationStatusDisabling,
+		DestinationStatusDisabled,
+		DestinationStatusEnableFailed,
+	}
+}
+
+const (
+	// ExportFormatDynamodbJson is a ExportFormat enum value
+	ExportFormatDynamodbJson = "DYNAMODB_JSON"
+
+	// ExportFormatIon is a ExportFormat enum value
+	ExportFormatIon = "ION"
+)
+
+// ExportFormat_Values returns all elements of the ExportFormat enum
+func ExportFormat_Values() []string {
+	return []string{
+		ExportFormatDynamodbJson,
+		ExportFormatIon,
+	}
+}
+
+const (
+	// ExportStatusInProgress is a ExportStatus enum value
+	ExportStatusInProgress = "IN_PROGRESS"
+
+	// ExportStatusCompleted is a ExportStatus enum value
+	ExportStatusCompleted = "COMPLETED"
+
+	// ExportStatusFailed is a ExportStatus enum value
+	ExportStatusFailed = "FAILED"
+)
+
+// ExportStatus_Values returns all elements of the ExportStatus enum
+func ExportStatus_Values() []string {
+	return []string{
+		ExportStatusInProgress,
+		ExportStatusCompleted,
+		ExportStatusFailed,
+	}
+}
 
 const (
 	// GlobalTableStatusCreating is a GlobalTableStatus enum value
@@ -16026,6 +26702,44 @@ const (
 	GlobalTableStatusUpdating = "UPDATING"
 )
 
+// GlobalTableStatus_Values returns all elements of the GlobalTableStatus enum
+func GlobalTableStatus_Values() []string {
+	return []string{
+		GlobalTableStatusCreating,
+		GlobalTableStatusActive,
+		GlobalTableStatusDeleting,
+		GlobalTableStatusUpdating,
+	}
+}
+
+const (
+	// ImportStatusInProgress is a ImportStatus enum value
+	ImportStatusInProgress = "IN_PROGRESS"
+
+	// ImportStatusCompleted is a ImportStatus enum value
+	ImportStatusCompleted = "COMPLETED"
+
+	// ImportStatusCancelling is a ImportStatus enum value
+	ImportStatusCancelling = "CANCELLING"
+
+	// ImportStatusCancelled is a ImportStatus enum value
+	ImportStatusCancelled = "CANCELLED"
+
+	// ImportStatusFailed is a ImportStatus enum value
+	ImportStatusFailed = "FAILED"
+)
+
+// ImportStatus_Values returns all elements of the ImportStatus enum
+func ImportStatus_Values() []string {
+	return []string{
+		ImportStatusInProgress,
+		ImportStatusCompleted,
+		ImportStatusCancelling,
+		ImportStatusCancelled,
+		ImportStatusFailed,
+	}
+}
+
 const (
 	// IndexStatusCreating is a IndexStatus enum value
 	IndexStatusCreating = "CREATING"
@@ -16040,6 +26754,56 @@ const (
 	IndexStatusActive = "ACTIVE"
 )
 
+// IndexStatus_Values returns all elements of the IndexStatus enum
+func IndexStatus_Values() []string {
+	return []string{
+		IndexStatusCreating,
+		IndexStatusUpdating,
+		IndexStatusDeleting,
+		IndexStatusActive,
+	}
+}
+
+const (
+	// InputCompressionTypeGzip is a InputCompressionType enum value
+	InputCompressionTypeGzip = "GZIP"
+
+	// InputCompressionTypeZstd is a InputCompressionType enum value
+	InputCompressionTypeZstd = "ZSTD"
+
+	// InputCompressionTypeNone is a InputCompressionType enum value
+	InputCompressionTypeNone = "NONE"
+)
+
+// InputCompressionType_Values returns all elements of the InputCompressionType enum
+func InputCompressionType_Values() []string {
+	return []string{
+		InputCompressionTypeGzip,
+		InputCompressionTypeZstd,
+		InputCompressionTypeNone,
+	}
+}
+
+const (
+	// InputFormatDynamodbJson is a InputFormat enum value
+	InputFormatDynamodbJson = "DYNAMODB_JSON"
+
+	// InputFormatIon is a InputFormat enum value
+	InputFormatIon = "ION"
+
+	// InputFormatCsv is a InputFormat enum value
+	InputFormatCsv = "CSV"
+)
+
+// InputFormat_Values returns all elements of the InputFormat enum
+func InputFormat_Values() []string {
+	return []string{
+		InputFormatDynamodbJson,
+		InputFormatIon,
+		InputFormatCsv,
+	}
+}
+
 const (
 	// KeyTypeHash is a KeyType enum value
 	KeyTypeHash = "HASH"
@@ -16048,6 +26812,14 @@ const (
 	KeyTypeRange = "RANGE"
 )
 
+// KeyType_Values returns all elements of the KeyType enum
+func KeyType_Values() []string {
+	return []string{
+		KeyTypeHash,
+		KeyTypeRange,
+	}
+}
+
 const (
 	// PointInTimeRecoveryStatusEnabled is a PointInTimeRecoveryStatus enum value
 	PointInTimeRecoveryStatusEnabled = "ENABLED"
@@ -16055,6 +26827,14 @@ const (
 	// PointInTimeRecoveryStatusDisabled is a PointInTimeRecoveryStatus enum value
 	PointInTimeRecoveryStatusDisabled = "DISABLED"
 )
+
+// PointInTimeRecoveryStatus_Values returns all elements of the PointInTimeRecoveryStatus enum
+func PointInTimeRecoveryStatus_Values() []string {
+	return []string{
+		PointInTimeRecoveryStatusEnabled,
+		PointInTimeRecoveryStatusDisabled,
+	}
+}
 
 const (
 	// ProjectionTypeAll is a ProjectionType enum value
@@ -16067,9 +26847,21 @@ const (
 	ProjectionTypeInclude = "INCLUDE"
 )
 
+// ProjectionType_Values returns all elements of the ProjectionType enum
+func ProjectionType_Values() []string {
+	return []string{
+		ProjectionTypeAll,
+		ProjectionTypeKeysOnly,
+		ProjectionTypeInclude,
+	}
+}
+
 const (
 	// ReplicaStatusCreating is a ReplicaStatus enum value
 	ReplicaStatusCreating = "CREATING"
+
+	// ReplicaStatusCreationFailed is a ReplicaStatus enum value
+	ReplicaStatusCreationFailed = "CREATION_FAILED"
 
 	// ReplicaStatusUpdating is a ReplicaStatus enum value
 	ReplicaStatusUpdating = "UPDATING"
@@ -16079,21 +26871,40 @@ const (
 
 	// ReplicaStatusActive is a ReplicaStatus enum value
 	ReplicaStatusActive = "ACTIVE"
+
+	// ReplicaStatusRegionDisabled is a ReplicaStatus enum value
+	ReplicaStatusRegionDisabled = "REGION_DISABLED"
+
+	// ReplicaStatusInaccessibleEncryptionCredentials is a ReplicaStatus enum value
+	ReplicaStatusInaccessibleEncryptionCredentials = "INACCESSIBLE_ENCRYPTION_CREDENTIALS"
 )
 
-// Determines the level of detail about provisioned throughput consumption that
-// is returned in the response:
+// ReplicaStatus_Values returns all elements of the ReplicaStatus enum
+func ReplicaStatus_Values() []string {
+	return []string{
+		ReplicaStatusCreating,
+		ReplicaStatusCreationFailed,
+		ReplicaStatusUpdating,
+		ReplicaStatusDeleting,
+		ReplicaStatusActive,
+		ReplicaStatusRegionDisabled,
+		ReplicaStatusInaccessibleEncryptionCredentials,
+	}
+}
+
+// Determines the level of detail about either provisioned or on-demand throughput
+// consumption that is returned in the response:
 //
-//    * INDEXES - The response includes the aggregate ConsumedCapacity for the
-//    operation, together with ConsumedCapacity for each table and secondary
-//    index that was accessed. Note that some operations, such as GetItem and
-//    BatchGetItem, do not access any indexes at all. In these cases, specifying
-//    INDEXES will only return ConsumedCapacity information for table(s).
+//   - INDEXES - The response includes the aggregate ConsumedCapacity for the
+//     operation, together with ConsumedCapacity for each table and secondary
+//     index that was accessed. Note that some operations, such as GetItem and
+//     BatchGetItem, do not access any indexes at all. In these cases, specifying
+//     INDEXES will only return ConsumedCapacity information for table(s).
 //
-//    * TOTAL - The response includes only the aggregate ConsumedCapacity for
-//    the operation.
+//   - TOTAL - The response includes only the aggregate ConsumedCapacity for
+//     the operation.
 //
-//    * NONE - No ConsumedCapacity details are included in the response.
+//   - NONE - No ConsumedCapacity details are included in the response.
 const (
 	// ReturnConsumedCapacityIndexes is a ReturnConsumedCapacity enum value
 	ReturnConsumedCapacityIndexes = "INDEXES"
@@ -16105,6 +26916,15 @@ const (
 	ReturnConsumedCapacityNone = "NONE"
 )
 
+// ReturnConsumedCapacity_Values returns all elements of the ReturnConsumedCapacity enum
+func ReturnConsumedCapacity_Values() []string {
+	return []string{
+		ReturnConsumedCapacityIndexes,
+		ReturnConsumedCapacityTotal,
+		ReturnConsumedCapacityNone,
+	}
+}
+
 const (
 	// ReturnItemCollectionMetricsSize is a ReturnItemCollectionMetrics enum value
 	ReturnItemCollectionMetricsSize = "SIZE"
@@ -16112,6 +26932,14 @@ const (
 	// ReturnItemCollectionMetricsNone is a ReturnItemCollectionMetrics enum value
 	ReturnItemCollectionMetricsNone = "NONE"
 )
+
+// ReturnItemCollectionMetrics_Values returns all elements of the ReturnItemCollectionMetrics enum
+func ReturnItemCollectionMetrics_Values() []string {
+	return []string{
+		ReturnItemCollectionMetricsSize,
+		ReturnItemCollectionMetricsNone,
+	}
+}
 
 const (
 	// ReturnValueNone is a ReturnValue enum value
@@ -16130,6 +26958,17 @@ const (
 	ReturnValueUpdatedNew = "UPDATED_NEW"
 )
 
+// ReturnValue_Values returns all elements of the ReturnValue enum
+func ReturnValue_Values() []string {
+	return []string{
+		ReturnValueNone,
+		ReturnValueAllOld,
+		ReturnValueUpdatedOld,
+		ReturnValueAllNew,
+		ReturnValueUpdatedNew,
+	}
+}
+
 const (
 	// ReturnValuesOnConditionCheckFailureAllOld is a ReturnValuesOnConditionCheckFailure enum value
 	ReturnValuesOnConditionCheckFailureAllOld = "ALL_OLD"
@@ -16137,6 +26976,30 @@ const (
 	// ReturnValuesOnConditionCheckFailureNone is a ReturnValuesOnConditionCheckFailure enum value
 	ReturnValuesOnConditionCheckFailureNone = "NONE"
 )
+
+// ReturnValuesOnConditionCheckFailure_Values returns all elements of the ReturnValuesOnConditionCheckFailure enum
+func ReturnValuesOnConditionCheckFailure_Values() []string {
+	return []string{
+		ReturnValuesOnConditionCheckFailureAllOld,
+		ReturnValuesOnConditionCheckFailureNone,
+	}
+}
+
+const (
+	// S3SseAlgorithmAes256 is a S3SseAlgorithm enum value
+	S3SseAlgorithmAes256 = "AES256"
+
+	// S3SseAlgorithmKms is a S3SseAlgorithm enum value
+	S3SseAlgorithmKms = "KMS"
+)
+
+// S3SseAlgorithm_Values returns all elements of the S3SseAlgorithm enum
+func S3SseAlgorithm_Values() []string {
+	return []string{
+		S3SseAlgorithmAes256,
+		S3SseAlgorithmKms,
+	}
+}
 
 const (
 	// SSEStatusEnabling is a SSEStatus enum value
@@ -16155,6 +27018,17 @@ const (
 	SSEStatusUpdating = "UPDATING"
 )
 
+// SSEStatus_Values returns all elements of the SSEStatus enum
+func SSEStatus_Values() []string {
+	return []string{
+		SSEStatusEnabling,
+		SSEStatusEnabled,
+		SSEStatusDisabling,
+		SSEStatusDisabled,
+		SSEStatusUpdating,
+	}
+}
+
 const (
 	// SSETypeAes256 is a SSEType enum value
 	SSETypeAes256 = "AES256"
@@ -16162,6 +27036,14 @@ const (
 	// SSETypeKms is a SSEType enum value
 	SSETypeKms = "KMS"
 )
+
+// SSEType_Values returns all elements of the SSEType enum
+func SSEType_Values() []string {
+	return []string{
+		SSETypeAes256,
+		SSETypeKms,
+	}
+}
 
 const (
 	// ScalarAttributeTypeS is a ScalarAttributeType enum value
@@ -16173,6 +27055,15 @@ const (
 	// ScalarAttributeTypeB is a ScalarAttributeType enum value
 	ScalarAttributeTypeB = "B"
 )
+
+// ScalarAttributeType_Values returns all elements of the ScalarAttributeType enum
+func ScalarAttributeType_Values() []string {
+	return []string{
+		ScalarAttributeTypeS,
+		ScalarAttributeTypeN,
+		ScalarAttributeTypeB,
+	}
+}
 
 const (
 	// SelectAllAttributes is a Select enum value
@@ -16188,6 +27079,16 @@ const (
 	SelectCount = "COUNT"
 )
 
+// Select_Values returns all elements of the Select enum
+func Select_Values() []string {
+	return []string{
+		SelectAllAttributes,
+		SelectAllProjectedAttributes,
+		SelectSpecificAttributes,
+		SelectCount,
+	}
+}
+
 const (
 	// StreamViewTypeNewImage is a StreamViewType enum value
 	StreamViewTypeNewImage = "NEW_IMAGE"
@@ -16202,6 +27103,32 @@ const (
 	StreamViewTypeKeysOnly = "KEYS_ONLY"
 )
 
+// StreamViewType_Values returns all elements of the StreamViewType enum
+func StreamViewType_Values() []string {
+	return []string{
+		StreamViewTypeNewImage,
+		StreamViewTypeOldImage,
+		StreamViewTypeNewAndOldImages,
+		StreamViewTypeKeysOnly,
+	}
+}
+
+const (
+	// TableClassStandard is a TableClass enum value
+	TableClassStandard = "STANDARD"
+
+	// TableClassStandardInfrequentAccess is a TableClass enum value
+	TableClassStandardInfrequentAccess = "STANDARD_INFREQUENT_ACCESS"
+)
+
+// TableClass_Values returns all elements of the TableClass enum
+func TableClass_Values() []string {
+	return []string{
+		TableClassStandard,
+		TableClassStandardInfrequentAccess,
+	}
+}
+
 const (
 	// TableStatusCreating is a TableStatus enum value
 	TableStatusCreating = "CREATING"
@@ -16214,7 +27141,29 @@ const (
 
 	// TableStatusActive is a TableStatus enum value
 	TableStatusActive = "ACTIVE"
+
+	// TableStatusInaccessibleEncryptionCredentials is a TableStatus enum value
+	TableStatusInaccessibleEncryptionCredentials = "INACCESSIBLE_ENCRYPTION_CREDENTIALS"
+
+	// TableStatusArchiving is a TableStatus enum value
+	TableStatusArchiving = "ARCHIVING"
+
+	// TableStatusArchived is a TableStatus enum value
+	TableStatusArchived = "ARCHIVED"
 )
+
+// TableStatus_Values returns all elements of the TableStatus enum
+func TableStatus_Values() []string {
+	return []string{
+		TableStatusCreating,
+		TableStatusUpdating,
+		TableStatusDeleting,
+		TableStatusActive,
+		TableStatusInaccessibleEncryptionCredentials,
+		TableStatusArchiving,
+		TableStatusArchived,
+	}
+}
 
 const (
 	// TimeToLiveStatusEnabling is a TimeToLiveStatus enum value
@@ -16229,3 +27178,13 @@ const (
 	// TimeToLiveStatusDisabled is a TimeToLiveStatus enum value
 	TimeToLiveStatusDisabled = "DISABLED"
 )
+
+// TimeToLiveStatus_Values returns all elements of the TimeToLiveStatus enum
+func TimeToLiveStatus_Values() []string {
+	return []string{
+		TimeToLiveStatusEnabling,
+		TimeToLiveStatusDisabling,
+		TimeToLiveStatusEnabled,
+		TimeToLiveStatusDisabled,
+	}
+}

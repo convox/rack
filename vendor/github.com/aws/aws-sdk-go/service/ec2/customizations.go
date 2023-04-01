@@ -26,8 +26,12 @@ func init() {
 
 		// only set the retryer on request if config doesn't have a retryer
 		if r.Config.Retryer == nil && (r.Operation.Name == opModifyNetworkInterfaceAttribute || r.Operation.Name == opAssignPrivateIpAddresses) {
+			maxRetries := client.DefaultRetryerMaxNumRetries
+			if m := r.Config.MaxRetries; m != nil && *m != aws.UseServiceDefaultRetries {
+				maxRetries = *m
+			}
 			r.Retryer = client.DefaultRetryer{
-				NumMaxRetries:    client.DefaultRetryerMaxNumRetries,
+				NumMaxRetries:    maxRetries,
 				MinRetryDelay:    customRetryerMinRetryDelay,
 				MinThrottleDelay: customRetryerMinRetryDelay,
 				MaxRetryDelay:    customRetryerMaxRetryDelay,
@@ -64,6 +68,10 @@ func fillPresignedURL(r *request.Request) {
 		func(opt *endpoints.Options) {
 			opt.DisableSSL = aws.BoolValue(cfg.DisableSSL)
 			opt.UseDualStack = aws.BoolValue(cfg.UseDualStack)
+			opt.UseDualStackEndpoint = cfg.UseDualStackEndpoint
+			opt.UseFIPSEndpoint = cfg.UseFIPSEndpoint
+			opt.Logger = r.Config.Logger
+			opt.LogDeprecated = r.Config.LogLevel.Matches(aws.LogDebugWithDeprecated)
 		},
 	)
 	if err != nil {
