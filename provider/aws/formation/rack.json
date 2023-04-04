@@ -2982,7 +2982,6 @@
           "Version": "2012-10-17"
         },
         "ManagedPolicyArns": [
-          { "Fn::Sub": "arn:${AWS::Partition}:iam::aws:policy/PowerUserAccess" },
           { "Ref": "ApiPolicy" },
           { "Ref": "CMKPolicy" }
         ],
@@ -2996,7 +2995,28 @@
                 {
                   "Effect": "Allow",
                   "Action": [
-                    "lambda:GetFunction"
+                    "acm:*",
+                    "autoscaling:*",
+                    "cloudformation:*",
+                    "cloudwatch:*",
+                    "dynamodb:*",
+                    "ecs:*",
+                    "ecr:*",
+                    "ec2:*",
+                    "elasticache:*",
+                    "elasticfilesystem:*",
+                    "elasticloadbalancing:*",
+                    "events:*",
+                    "kms:*",
+                    "lambda:*",
+                    "logs:*",
+                    "rds:*",
+                    "route53:*",
+                    "s3:*",
+                    "sns:*",
+                    "sqs:*",
+                    "ssm:*",
+                    "sts:*"
                   ],
                   "Resource": "*"
                 }
