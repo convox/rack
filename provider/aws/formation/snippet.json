@@ -1,0 +1,293 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Conditions": {
+    "SpotFleet": {
+      "Fn::And": [
+        {"Fn::Equals": [{"Ref": "SpotInstanceBid"}, ""]},
+        {"Fn::Not": [{"Fn::Equals": [{"Ref": "SpotFleetMaxPrice"}, ""]}]}
+      ]
+    },
+    "SpotFleetAllowedInstanceTypes": {
+      "Fn::Not": [ { "Fn::Equals": [ { "Fn::Join": [ ",", { "Ref": "SpotFleetAllowedInstanceTypes" } ] }, "" ] } ]
+    },
+    "SpotFleetExcludedInstanceTypes": {
+      "Fn::And": [
+        { "Fn::Not": [ { "Fn::Equals": [{ "Fn::Join": [ ",", { "Ref": "SpotFleetExcludedInstanceTypes" } ] }, "" ] } ] },
+        { "Fn::Equals": [ { "Fn::Join": [ ",", { "Ref": "SpotFleetAllowedInstanceTypes" } ] }, "" ] }
+      ]
+    }
+  },
+  "Parameters": {
+    "SpotFleetAllowedInstanceTypes": {
+      "Type": "CommaDelimitedList",
+      "Description": "Comma-separated list of allowed instance types in the Spot Fleet. It can not be used with SpotFleetExcludedInstanceTypes, it takes precedent over it. The following are examples: m5.8xlarge, c5*.*, m5a.*, r*, *3*."
+    },
+    "SpotFleetExcludedInstanceTypes": {
+      "Type": "CommaDelimitedList",
+      "Description": "Comma-separated list of excluded instance types in the Spot Fleet. . It can not be used with SpotFleetAllowedInstanceTypes. The following are examples: m5.8xlarge, c5*.*, m5a.*, r*, *3*."
+    },
+    "SpotFleetAllocationStrategy": {
+      "Type": "String",
+      "AllowedValues": [
+        "lowestPrice",
+        "diversified",
+        "capacityOptimized"
+      ],
+      "Description": "The Spot Fleet allocation strategy",
+      "Default": "lowestPrice"
+    },
+    "SpotFleetMaxPrice": {
+      "Type": "String",
+      "Description": "The maximum Spot bid price for instances in the Spot Fleet",
+      "Default": ""
+    },
+    "SpotFleetTargetCapacity": {
+      "Type": "Number",
+      "Description": "The desired capacity for instances in the Spot Fleet",
+      "Default": 4
+    },
+    "SpotFleetTargetType": {
+      "Type": "String",
+      "AllowedValues": [
+        "memory-mib",
+        "units",
+        "vcpu"
+      ],
+      "Description": "The unit type used for the Spot Fleet target capacity",
+      "Default": "units"
+    }
+  },
+  "Resources": {
+    "InstancesLaunchTemplate": {
+      "Type" : "AWS::EC2::LaunchTemplate",
+      "Properties" : {
+        "LaunchTemplateData" : {
+          "BlockDeviceMappings": [
+            {
+              "DeviceName": "/dev/xvda",
+              "Ebs": {
+                "Encrypted": { "Fn::If": [ "EncryptEbs", "true", { "Ref": "AWS::NoValue" } ] },
+                "VolumeSize": { "Ref": "VolumeSize" },
+                "VolumeType":"gp3"
+              }
+            },
+            { "Fn::If": [ "SwapEnabled",
+              {
+                "DeviceName": "/dev/xvdb",
+                "Ebs": {
+                  "Encrypted": { "Fn::If": [ "EncryptEbs", "true", { "Ref": "AWS::NoValue" } ] },
+                  "VolumeSize": { "Ref": "SwapSize" },
+                  "VolumeType":"gp3"
+                }
+              },
+              { "Ref": "AWS::NoValue" }
+            ] }
+          ],
+          "IamInstanceProfile" : {
+            "Arn": {"Fn::GetAtt" : ["InstancesProfile", "Arn"] }
+          },
+          "ImageId": {
+            "Fn::If": [
+              "BlankAmi",
+              {
+                "Fn::If": [
+                  "InstanceARM",
+                  {
+                    "Ref": "DefaultAmiArm"
+                  },
+                  {
+                    "Ref": "DefaultAmi"
+                  }
+                ]
+              },
+              { "Ref": "Ami" }
+            ]
+          },
+          "InstanceType" : {
+            "Ref": "InstanceType"
+          },
+          "KeyName" : {
+            "Fn::If": [ "BlankKey", { "Ref": "AWS::NoValue" }, { "Ref": "Key" } ]
+          },
+          "MetadataOptions" : {
+            "HttpEndpoint" : "enabled",
+            "HttpTokens" : { "Ref": "IMDSHttpTokens"}
+          },
+          "Monitoring" : {
+            "Enabled" : true
+          },
+          "NetworkInterfaces" : [{
+            "DeviceIndex": 0,
+            "Groups" : [
+              { "Fn::If": [ "BlankInstanceSecurityGroup", { "Ref": "InstancesSecurity" }, { "Ref": "InstanceSecurityGroup" } ] }
+            ],
+            "AssociatePublicIpAddress": { "Fn::If": [ "PrivateInstances", false, true ] }
+          }],
+          "Placement" : {
+            "Tenancy" : { "Ref": "Tenancy" }
+          },
+          "UserData": "REDACTED"
+        }
+      }
+    },
+    "SpotFleet": {
+      "Condition": "SpotFleet",
+      "Type": "AWS::EC2::EC2Fleet",
+      "Properties": {
+        "LaunchTemplateConfigs": [
+          {
+            "LaunchTemplateSpecification" : {
+              "LaunchTemplateId" : { "Ref": "InstancesLaunchTemplate" },
+              "Version": { "Fn::GetAtt": [ "InstancesLaunchTemplate", "LatestVersionNumber" ] }
+            },
+            "Overrides" : [
+              {
+                "InstanceRequirements": {
+                  "AllowedInstanceTypes": {
+                    "Fn::If": [
+                      "SpotFleetAllowedInstanceTypes",
+                      {
+                        "Ref": "SpotFleetAllowedInstanceTypes"
+                      },
+                      {
+                        "Ref": "AWS::NoValue"
+                      }
+                    ]
+                  },
+                  "BurstablePerformance": "included",
+                  "ExcludedInstanceTypes": {
+                    "Fn::If": [
+                      "SpotFleetExcludedInstanceTypes",
+                      {
+                        "Ref": "SpotFleetExcludedInstanceTypes"
+                      },
+                      {
+                        "Ref": "AWS::NoValue"
+                      }
+                    ]
+                  },
+                  "MemoryMiB": {
+                    "Min" : 0
+                  },
+                  "VCpuCount": {
+                    "Min" : 0
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "SpotOptions": {
+          "AllocationStrategy" : { "Ref": "SpotFleetAllocationStrategy" },
+          "MaxTotalPrice": { "Ref": "SpotFleetMaxPrice" }
+        },
+        "TagSpecifications": [
+          {
+            "ResourceType" : "fleet",
+            "Tags": [
+              {
+                "Key": "Name",
+                "Value": {
+                  "Ref": "AWS::StackName"
+                }
+              },
+              {
+                "Key": "Rack",
+                "Value": {
+                  "Ref": "AWS::StackName"
+                }
+              },
+              {
+                "Key": "GatewayAttachment",
+                "Value": {
+                  "Fn::If": [
+                    "ExistingVpc",
+                    "existing",
+                    {
+                      "Ref": "GatewayAttachment"
+                    }
+                  ]
+                }
+              },
+              {
+                "Key": "NatGateways",
+                "Value": {
+                  "Fn::If": [
+                    "PrivateInstances",
+                    {
+                      "Fn::Join": [
+                        ",",
+                        [
+                          {
+                            "Ref": "Nat0"
+                          },
+                          {
+                            "Ref": "Nat1"
+                          },
+                          {
+                            "Fn::If": [
+                              "ThirdAvailabilityZoneAndHighAvailability",
+                              {
+                                "Ref": "Nat2"
+                              },
+                              {
+                                "Ref": "AWS::NoValue"
+                              }
+                            ]
+                          }
+                        ]
+                      ]
+                    },
+                    ""
+                  ]
+                }
+              },
+              {
+                "Fn::If": [
+                  "RegionHasEFS",
+                  {
+                    "Key": "VolumeTargets",
+                    "Value": {
+                      "Fn::Join": [
+                        ",",
+                        [
+                          {
+                            "Ref": "VolumeTarget0"
+                          },
+                          {
+                            "Ref": "VolumeTarget1"
+                          },
+                          {
+                            "Fn::If": [
+                              "ThirdAvailabilityZoneAndHighAvailability",
+                              {
+                                "Ref": "VolumeTarget2"
+                              },
+                              {
+                                "Ref": "AWS::NoValue"
+                              }
+                            ]
+                          }
+                        ]
+                      ]
+                    }
+                  },
+                  {
+                    "Ref": "AWS::NoValue"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "TargetCapacitySpecification": {
+          "DefaultTargetCapacityType" : "spot",
+          "OnDemandTargetCapacity" : 0,
+          "SpotTargetCapacity" : { "Ref": "SpotFleetTargetCapacity" },
+          "TargetCapacityUnitType" : { "Ref": "SpotFleetTargetType" },
+          "TotalTargetCapacity" : { "Ref": "SpotFleetTargetCapacity" }
+        }
+      }
+    }
+  }
+}

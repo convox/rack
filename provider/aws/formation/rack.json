@@ -2599,6 +2599,196 @@
         }
       }
     },
+    "SpotFleetLT": {
+      "Type" : "AWS::EC2::LaunchTemplate",
+      "Properties" : {
+        "LaunchTemplateData" : {
+          "BlockDeviceMappings": [
+            {
+              "DeviceName": "/dev/xvda",
+              "Ebs": {
+                "Encrypted": { "Fn::If": [ "EncryptEbs", "true", { "Ref": "AWS::NoValue" } ] },
+                "VolumeSize": { "Ref": "VolumeSize" },
+                "VolumeType":"gp3"
+              }
+            },
+            { "Fn::If": [ "SwapEnabled",
+              {
+                "DeviceName": "/dev/xvdb",
+                "Ebs": {
+                  "Encrypted": { "Fn::If": [ "EncryptEbs", "true", { "Ref": "AWS::NoValue" } ] },
+                  "VolumeSize": { "Ref": "SwapSize" },
+                  "VolumeType":"gp3"
+                }
+              },
+              { "Ref": "AWS::NoValue" }
+            ] }
+          ],
+          "IamInstanceProfile" : {
+            "Arn": {"Fn::GetAtt" : ["InstancesProfile", "Arn"] }
+          },
+          "ImageId": {
+            "Fn::If": [
+              "BlankAmi",
+              {
+                "Fn::If": [
+                  "InstanceARM",
+                  {
+                    "Ref": "DefaultAmiArm"
+                  },
+                  {
+                    "Ref": "DefaultAmi"
+                  }
+                ]
+              },
+              { "Ref": "Ami" }
+            ]
+          },
+          "InstanceRequirements": {
+            "AllowedInstanceTypes": {
+              "Fn::If": [
+                "SpotFleetAllowedInstanceTypes",
+                {
+                  "Ref": "SpotFleetAllowedInstanceTypes"
+                },
+                {
+                  "Ref": "AWS::NoValue"
+                }
+              ]
+            },
+            "BurstablePerformance": "included",
+            "ExcludedInstanceTypes": {
+              "Fn::If": [
+                "SpotFleetExcludedInstanceTypes",
+                {
+                  "Ref": "SpotFleetExcludedInstanceTypes"
+                },
+                {
+                  "Ref": "AWS::NoValue"
+                }
+              ]
+            },
+            "MemoryMiB": {
+              "Min" : 0
+            },
+            "VCpuCount": {
+              "Min" : 0
+            }
+          },
+          "KeyName" : {
+            "Fn::If": [ "BlankKey", { "Ref": "AWS::NoValue" }, { "Ref": "Key" } ]
+          },
+          "MetadataOptions" : {
+            "HttpEndpoint" : "enabled",
+            "HttpTokens" : { "Ref": "IMDSHttpTokens"}
+          },
+          "Monitoring" : {
+            "Enabled" : true
+          },
+          "NetworkInterfaces" : [{
+            "DeviceIndex": 0,
+            "Groups" : [
+              { "Fn::If": [ "BlankInstanceSecurityGroup", { "Ref": "InstancesSecurity" }, { "Ref": "InstanceSecurityGroup" } ] }
+            ],
+            "AssociatePublicIpAddress": { "Fn::If": [ "PrivateInstances", false, true ] }
+          }],
+          "Placement" : {
+            "Tenancy" : { "Ref": "Tenancy" }
+          },
+          "UserData": { "Fn::Base64":
+            { "Fn::Join": [ "", [
+              "#cloud-config\n",
+              "repo_upgrade_exclude:\n",
+              "  - kernel*\n",
+              "packages:\n",
+              "  - aws-cfn-bootstrap\n",
+              "mounts:\n",
+              { "Fn::If": [ "SwapEnabled",
+                "  - ['/dev/xvdb', 'none', 'swap', 'sw', '0', '0']\n",
+                { "Ref": "AWS::NoValue" }
+              ] },
+              "bootcmd:\n",
+              { "Fn::If": [ "SwapEnabled",
+                { "Fn::Join": [ "", [
+                  "  - mkswap /dev/xvdb\n",
+                  "  - swapon /dev/xvdb\n"
+                ] ] },
+                { "Ref": "AWS::NoValue" }
+              ] },
+              "  - export http_proxy=", { "Ref": "HttpProxy" }, "\n",
+              "  - echo http_proxy=", { "Ref": "HttpProxy" }, " >> /etc/environment\n",
+              "  - export https_proxy=", { "Ref": "HttpProxy" }, "\n",
+              "  - echo https_proxy=", { "Ref": "HttpProxy" }, " >> /etc/environment\n",
+              "  - export HTTP_PROXY=", { "Ref": "HttpProxy" }, "\n",
+              "  - echo HTTP_PROXY=", { "Ref": "HttpProxy" }, " >> /etc/environment\n",
+              "  - export HTTPS_PROXY=", { "Ref": "HttpProxy" }, "\n",
+              "  - echo HTTPS_PROXY=", { "Ref": "HttpProxy" }, " >> /etc/environment\n",
+              "  - export NO_PROXY=169.254.169.254\n",
+              "  - echo NO_PROXY=169.254.169.254 >> /etc/environment\n",
+              { "Fn::If": [ "HttpProxy",
+                { "Fn::Join": ["", ["  - echo \"proxy=http://", { "Ref": "HttpProxy" }, "/\" >> /etc/yum.conf\n"
+                ] ] },
+                { "Ref": "AWS::NoValue" }
+              ] },
+              "  - until yum install -y aws-cli nfs-utils; do echo \"Waiting for network\"; done;\n",
+              "  - until yum install -y amazon-cloudwatch-agent; do echo \"Waiting for network\"; done;\n",
+              "  - export IMDS_TOKEN=$(curl -X PUT 'http://169.254.169.254/latest/api/token' -H 'X-aws-ec2-metadata-token-ttl-seconds:21600')\n",
+              "  - mkdir /volumes\n",
+              { "Fn::If": [ "RegionHasEFS",
+                { "Fn::Join": [ "", [
+                  "  - while true; do mount -t nfs -o nfsvers=4.1 $(curl -s --noproxy 169.254.169.254 -H \"X-aws-ec2-metadata-token:$IMDS_TOKEN\" http://169.254.169.254/latest/meta-data/placement/availability-zone).",
+                  { "Ref": "VolumeFilesystem" },
+                  ".efs.",
+                  { "Ref": "AWS::Region" },
+                  ".amazonaws.com:/ /volumes && break; sleep 5; done\n"
+                ] ] },
+                ""
+              ] },
+              "  - [ cloud-init-per, instance, docker_storage_setup, /usr/bin/docker-storage-setup ]\n",
+              "  - echo ECS_CLUSTER=", { "Ref": "Cluster" }, " >> /etc/ecs/ecs.config\n",
+              "  - echo ECS_ENABLE_CONTAINER_METADATA=true >> /etc/ecs/ecs.config\n",
+              "  - echo ECS_ENGINE_AUTH_TYPE=docker >> /etc/ecs/ecs.config\n",
+              "  - echo 'ECS_INSTANCE_ATTRIBUTES={\"asg\":\"primary\"}' >> /etc/ecs/ecs.config\n",
+              "  - echo HTTP_PROXY=", { "Ref": "HttpProxy" }, " >> /etc/ecs/ecs.config\n",
+              "  - echo NO_PROXY=169.254.169.254,169.254.170.2,/var/run/docker.sock >> /etc/ecs/ecs.config\n",
+              "  - echo '", { "Fn::GetAtt": [ "DockertTLSCA", "Value" ] }, "' | base64 -d > /etc/ca.pem\n",
+              "  - echo '", { "Fn::GetAtt": [ "DockertTLSCert", "Value" ] }, "' | base64 -d > /etc/cert.pem\n",
+              "  - echo '", { "Fn::GetAtt": [ "DockertTLSKey", "Value" ] }, "' | base64 -d > /etc/key.pem\n",
+              "  - echo 'OPTIONS=\"--default-ulimit nofile=1024000:1024000 --log-opt max-file=2 --log-opt max-size=50m --host=unix:///var/run/docker.sock --host=0.0.0.0:2376 --tls --tlscacert /etc/ca.pem --tlscert /etc/cert.pem --tlskey /etc/key.pem\"' >> /etc/sysconfig/docker\n",
+              "  - echo 'ECS_ENGINE_AUTH_DATA={\"index.docker.io\":{\"username\":\"\",\"password\":\"\",\"email\":\"\"}' >> /etc/ecs/ecs.config\n",
+              "  - echo 'docker image prune -a --filter=\"until=96h\" --force' > /etc/cron.daily/docker-prune\n",
+              "  - chmod +x /etc/cron.daily/docker-prune\n",
+              { "Fn::If": [ "HttpProxy",
+                { "Fn::Join": ["", ["  - echo \"export HTTP_PROXY=", { "Ref": "HttpProxy" }, "/\" >> /etc/sysconfig/docker\n"
+                ] ] },
+                { "Ref": "AWS::NoValue" }
+              ] },
+              "  - echo -e '/var/log/docker {\\n  rotate 7\\n  daily\\n  nocompress\\n  copytruncate\\n}' >> /etc/logrotate.d/docker\n",
+              { "Fn::If": [ "BlankInstanceBootCommand",
+                { "Ref": "AWS::NoValue" },
+                { "Fn::Join": [ "", [
+                "  - ", { "Ref": "InstanceBootCommand" }, "\n"
+                ] ] }
+              ] },
+              "runcmd:\n",
+              { "Fn::If": [ "BlankInstanceRunCommand",
+                { "Ref": "AWS::NoValue" },
+                { "Fn::Join": [ "", [
+                "  - ", { "Ref": "InstanceRunCommand" }, "\n"
+                ] ] }
+              ] },
+              "  - sudo yum install -y amazon-cloudwatch-agent",
+              "  - export IMDS_TOKEN=$(curl -X PUT 'http://169.254.169.254/latest/api/token' -H 'X-aws-ec2-metadata-token-ttl-seconds:21600')\n",
+              "  - export INSTANCE_ID=$(curl -s --noproxy 169.254.169.254 -H \"X-aws-ec2-metadata-token:$IMDS_TOKEN\" http://169.254.169.254/latest/meta-data/instance-id)\n",
+              "  - export ASG_NAME=$(env $(cat /etc/environment) /usr/bin/aws autoscaling describe-auto-scaling-instances --instance-ids=$INSTANCE_ID --region ", {"Ref":"AWS::Region"}, " --output text --query 'AutoScalingInstances[0].AutoScalingGroupName')\n",
+              "  - export LIFECYCLE_HOOK=$(env $(cat /etc/environment) /usr/bin/aws autoscaling describe-lifecycle-hooks --auto-scaling-group-name $ASG_NAME --region ", {"Ref":"AWS::Region"}, " --output text --query \"LifecycleHooks[?contains(LifecycleHookName, '", { "Ref": "AWS::StackName" }, "-InstancesLifecycleLaunching') == \\`true\\`].LifecycleHookName | [0]\")\n",
+              "  - env $(cat /etc/environment) /usr/bin/aws autoscaling complete-lifecycle-action --region ", { "Ref": "AWS::Region" }, " --instance-id $INSTANCE_ID --lifecycle-hook-name $LIFECYCLE_HOOK --auto-scaling-group-name $ASG_NAME --lifecycle-action-result CONTINUE\n",
+              "  - env $(cat /etc/environment) /opt/aws/bin/cfn-signal --http-proxy \"", { "Ref": "HttpProxy" }, "\" --stack ", { "Ref": "AWS::StackName" }, " --region ", { "Ref": "AWS::Region" }, " --resource Instances\n"
+            ] ] }
+          }
+        }
+      }
+    },
     "SpotFleet": {
       "Condition": "SpotFleet",
       "Type": "AWS::EC2::EC2Fleet",
@@ -2606,49 +2796,13 @@
         "LaunchTemplateConfigs": [
           {
             "LaunchTemplateSpecification" : {
-              "LaunchTemplateId" : { "Ref": "InstancesLaunchTemplate" },
-              "Version": { "Fn::GetAtt": [ "InstancesLaunchTemplate", "LatestVersionNumber" ] }
-            },
-            "Overrides" : [
-              {
-                "InstanceRequirements": {
-                  "AllowedInstanceTypes": {
-                    "Fn::If": [
-                      "SpotFleetAllowedInstanceTypes",
-                      {
-                        "Ref": "SpotFleetAllowedInstanceTypes"
-                      },
-                      {
-                        "Ref": "AWS::NoValue"
-                      }
-                    ]
-                  },
-                  "BurstablePerformance": "included",
-                  "ExcludedInstanceTypes": {
-                    "Fn::If": [
-                      "SpotFleetExcludedInstanceTypes",
-                      {
-                        "Ref": "SpotFleetExcludedInstanceTypes"
-                      },
-                      {
-                        "Ref": "AWS::NoValue"
-                      }
-                    ]
-                  },
-                  "MemoryMiB": {
-                    "Min" : 0
-                  },
-                  "VCpuCount": {
-                    "Min" : 0
-                  }
-                }
-              }
-            ]
+              "LaunchTemplateId" : { "Ref": "SpotFleetLT" },
+              "Version": { "Fn::GetAtt": [ "SpotFleetLT", "LatestVersionNumber" ] }
+            }
           }
         ],
         "SpotOptions": {
-          "AllocationStrategy" : { "Ref": "SpotFleetAllocationStrategy" },
-          "MaxTotalPrice": { "Ref": "SpotFleetMaxPrice" }
+          "AllocationStrategy" : "lowestPrice"
         },
         "TagSpecifications": [
           {
@@ -2751,10 +2905,10 @@
         ],
         "TargetCapacitySpecification": {
           "DefaultTargetCapacityType" : "spot",
-          "OnDemandTargetCapacity" : 0,
-          "SpotTargetCapacity" : { "Ref": "SpotFleetTargetCapacity" },
-          "TargetCapacityUnitType" : { "Ref": "SpotFleetTargetType" },
-          "TotalTargetCapacity" : { "Ref": "SpotFleetTargetCapacity" }
+          "OnDemandTargetCapacity" : 2,
+          "SpotTargetCapacity" : 2,
+          "TargetCapacityUnitType" : "units",
+          "TotalTargetCapacity" : 4
         }
       }
     },
