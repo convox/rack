@@ -2938,8 +2938,11 @@
               "Effect": "Allow",
               "Action": [
                 "iam:*Role",
+                "iam:*Policy",
+                "iam:CreatePolicyVersion",
+                "iam:GetPolicyVersion",
                 "iam:ListPolicyVersions",
-                "iam:*Policy"
+                "iam:SetDefaultPolicyVersion"
               ],
               "Resource": [
                 { "Fn::Sub": "arn:${AWS::Partition}:iam::*:instance-profile/convox/*" },
