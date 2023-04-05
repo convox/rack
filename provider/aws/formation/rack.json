@@ -3006,8 +3006,10 @@
               "Action": [
                 "iam:*Role",
                 "iam:*Policy",
-                "iam:GetInstanceProfile",
-                "iam:ListPolicyVersions"
+                "iam:CreatePolicyVersion",
+                "iam:GetPolicyVersion",
+                "iam:ListPolicyVersions",
+                "iam:SetDefaultPolicyVersion"
               ],
               "Resource": [
                 { "Fn::Sub": "arn:${AWS::Partition}:iam::*:instance-profile/convox/*" },
