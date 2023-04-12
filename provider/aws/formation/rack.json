@@ -778,6 +778,11 @@
       "Default": "3",
       "AllowedValues": [ "2", "3" ]
     },
+    "NoHAAutoscaleExtra": {
+      "Type": "Number",
+      "Description": "When HighAvailability is set to false, the autoscale will maintain a certain number of extra capacity instances running on racks that are not configured for high availability",
+      "Default": "0"
+    },
     "OnDemandMinCount": {
       "Default": "3",
       "Description": "The minimum number of on-demand instances in the runtime cluster",
@@ -2008,7 +2013,7 @@
           "Variables": {
             "ASG": { "Ref": "Instances" },
             "CLUSTER": { "Ref": "Cluster" },
-            "EXTRA": { "Fn::If": [ "HighAvailability", { "Ref": "AutoscaleExtra" }, 0]},
+            "EXTRA": { "Fn::If": [ "HighAvailability", { "Ref": "AutoscaleExtra" }, { "Ref": "NoHAAutoscaleExtra" }]},
             "HIGH_AVAILABILITY": { "Ref": "HighAvailability" },
             "REGION": { "Ref": "AWS::Region" },
             "STACK": { "Ref": "AWS::StackName" }
