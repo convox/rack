@@ -3592,6 +3592,13 @@
       "DeletionPolicy": "Retain",
       "Properties": {
         "AccessControl": "LogDeliveryWrite",
+        "OwnershipControls": {
+          "Rules": [
+            {
+              "ObjectOwnership": "BucketOwnerPreferred"
+            }
+          ]
+        },
         "BucketEncryption": {
           "ServerSideEncryptionConfiguration": [ {
             "BucketKeyEnabled": true,
@@ -3656,6 +3663,13 @@
       "DeletionPolicy": "Retain",
       "Properties": {
         "AccessControl": "Private",
+        "OwnershipControls": {
+          "Rules": [
+            {
+              "ObjectOwnership": "BucketOwnerPreferred"
+            }
+          ]
+        },
         "BucketEncryption": {
           "ServerSideEncryptionConfiguration": [ {
             "BucketKeyEnabled": true,
@@ -3719,6 +3733,13 @@
       "DeletionPolicy": "Retain",
       "Properties": {
         "AccessControl": "LogDeliveryWrite",
+        "OwnershipControls": {
+          "Rules": [
+            {
+              "ObjectOwnership": "BucketOwnerPreferred"
+            }
+          ]
+        },
         "BucketEncryption": {
           "ServerSideEncryptionConfiguration": [ {
             "ServerSideEncryptionByDefault": { "SSEAlgorithm": "aws:kms" }
