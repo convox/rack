@@ -13,6 +13,12 @@ fi
 
 convox instances
 
+cnt=$(convox instances | grep "^.*$" -c)
+
+if [ "2" -gt "$cnt" ]; then
+  exit 1;
+fi
+
 # set ci@convox.com as id
 # convox config dir path
 echo ci@convox.com > ~/.config/convox2/id
