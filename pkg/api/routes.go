@@ -3,6 +3,8 @@ package api
 import "github.com/convox/stdapi"
 
 func (s *Server) setupRoutes(r stdapi.Router) {
+	r.Use(s.Authorize)
+
 	r.Route("POST", "/apps/{name}/cancel", s.AppCancel)
 	r.Route("POST", "/apps", s.AppCreate)
 	r.Route("DELETE", "/apps/{name}", s.AppDelete)
