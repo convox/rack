@@ -2927,7 +2927,7 @@
         "Path": "/convox/"
       }
     },
-    "ApiPolicy": {
+    "ApiPolicyV2": {
       "Type": "AWS::IAM::ManagedPolicy",
       "Properties": {
         "Path": "/convox/",
@@ -2937,9 +2937,41 @@
             {
               "Effect": "Allow",
               "Action": [
-                "iam:*Role",
+                "iam:AttachRolePolicy",
+                "iam:CreateAccessKey",
+                "iam:CreatePolicy",
+                "iam:CreatePolicyVersion",
+                "iam:CreateRole",
+                "iam:CreateUser",
+                "iam:DeletePolicy",
+                "iam:DeletePolicyVersion",
+                "iam:DeleteRole",
+                "iam:DeleteRolePolicy",
+                "iam:DetachRolePolicy",
+                "iam:DeleteUser",
+                "iam:DeleteUserPolicy",
+                "iam:GetInstanceProfile",
+                "iam:GetPolicy",
+                "iam:GetPolicyVersion",
+                "iam:GetRole",
+                "iam:GetRolePolicy",
+                "iam:GetUser",
+                "iam:GetUserPolicy",
+                "iam:ListAccessKeys",
                 "iam:ListPolicyVersions",
-                "iam:*Policy"
+                "iam:ListRoles",
+                "iam:ListUsers",
+                "iam:PassRole",
+                "iam:PutRolePolicy",
+                "iam:PutUserPolicy",
+                "iam:SetDefaultPolicyVersion",
+                "iam:TagPolicy",
+                "iam:TagRole",
+                "iam:TagUser",
+                "iam:UntagPolicy",
+                "iam:UntagRole",
+                "iam:UntagUser",
+                "iam:UpdateAssumeRolePolicy"
               ],
               "Resource": [
                 { "Fn::Sub": "arn:${AWS::Partition}:iam::*:instance-profile/convox/*" },
@@ -2952,7 +2984,6 @@
               "Effect": "Allow",
               "Action": [
                 "iam:DeleteServerCertificate",
-                "iam:DetachRolePolicy",
                 "iam:GetServerCertificate",
                 "iam:ListServerCertificates",
                 "iam:UploadServerCertificate"
@@ -2983,7 +3014,7 @@
         },
         "ManagedPolicyArns": [
           { "Fn::Sub": "arn:${AWS::Partition}:iam::aws:policy/PowerUserAccess" },
-          { "Ref": "ApiPolicy" },
+          { "Ref": "ApiPolicyV2" },
           { "Ref": "CMKPolicy" }
         ],
         "Path": "/convox/",
