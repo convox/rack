@@ -2927,6 +2927,58 @@
         "Path": "/convox/"
       }
     },
+    "ApiPolicyV2": {
+      "Type": "AWS::IAM::ManagedPolicy",
+      "Properties": {
+        "Path": "/convox/",
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Action": [
+                "iam:AttachRolePolicy",
+                "iam:CreateTag",
+                "iam:CreateRole",
+                "iam:CreatePolicyVersion",
+                "iam:DeletePolicyVersion",
+                "iam:DeleteRole",
+                "iam:DeleteRolePolicy",
+                "iam:DeleteTags",
+                "iam:DetachRolePolicy",
+                "iam:GetInstanceProfile",
+                "iam:GetPolicyVersion",
+                "iam:GetRole",
+                "iam:GetRolePolicy",
+                "iam:ListRoles",
+                "iam:ListPolicyVersions",
+                "iam:PassRole",
+                "iam:PutRolePolicy",
+                "iam:SetDefaultPolicyVersion",
+                "iam:TagRole",
+                "iam:UntagRole"
+              ],
+              "Resource": [
+                { "Fn::Sub": "arn:${AWS::Partition}:iam::*:instance-profile/convox/*" },
+                { "Fn::Sub": "arn:${AWS::Partition}:iam::*:policy/convox/*" },
+                { "Fn::Sub": "arn:${AWS::Partition}:iam::*:role/convox/*" },
+                { "Fn::Sub": "arn:${AWS::Partition}:iam::*:user/convox/*" }
+              ]
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "iam:DeleteServerCertificate",
+                "iam:GetServerCertificate",
+                "iam:ListServerCertificates",
+                "iam:UploadServerCertificate"
+              ],
+              "Resource": [ "*" ]
+            }
+          ]
+        }
+      }
+    },
     "ApiPolicy": {
       "Type": "AWS::IAM::ManagedPolicy",
       "Properties": {
@@ -2983,6 +3035,7 @@
         },
         "ManagedPolicyArns": [
           { "Fn::Sub": "arn:${AWS::Partition}:iam::aws:policy/PowerUserAccess" },
+          { "Ref": "ApiPolicyV2" },
           { "Ref": "ApiPolicy" },
           { "Ref": "CMKPolicy" }
         ],
