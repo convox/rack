@@ -10,7 +10,30 @@ import (
 )
 
 var (
-	skipParams     = []string{}
+	skipParams = []string{
+		"Ami",
+		"ClientId",
+		"InstanceKey",
+		"ApiAccessKey",
+		"ApiSecretKey",
+		"ApiPassword",
+		"DatabasePassword",
+		"ApiToken",
+		"BuildInstanceKey",
+		"BuildAccessKey",
+		"BuildSecretKey",
+		"BuildPassword",
+		"S3BucketAccessKey",
+		"S3BucketSecretKey",
+		"S3BucketName",
+		"DatabaseUser",
+		"DatabaseUrl",
+		"DatabaseName",
+		"DatabasePort",
+		"PrivateSubnetId",
+		"VPCId",
+		"SecurityGroupId",
+	}
 	redactedParams = strings.Join(skipParams, ",")
 	fileName       = "telemetry-sync.json"
 )
