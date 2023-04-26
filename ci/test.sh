@@ -306,11 +306,21 @@ case $provider in
     convox rack resources url cilog | grep tcp://syslog2.convox.com
     convox rack resources delete cilog --wait
     convox rack resources create postgres --name pgdb --wait
+    convox rack resources create s3 --wait
     convox rack resources | grep pgdb | grep postgres
     dburl=$(convox rack resources url pgdb)
     convox rack resources update pgdb BackupRetentionPeriod=2 --wait
     [ "$dburl" == "$(convox rack resources url pgdb)" ]
     convox rack resources delete pgdb --wait
+
+    # other rack resources
+    convox rack resources create memcached --wait
+    convox rack resources create postgres --wait
+    convox rack resources create redis --wait
+    convox rack resources create s3 --wait
+    convox rack resources create sns --wait
+    convox rack resources create sqs --wait
+    convox rack resources create mysql --wait
     ;;
 esac
 
