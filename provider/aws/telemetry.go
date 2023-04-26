@@ -62,7 +62,6 @@ var (
 		"PrivateApiSecurityGroup",
 		"PrivateBuild",
 		"RouterInternalSecurityGroup",
-		"RouterMitigationMode",
 		"RouterSecurityGroup",
 		"ScheduleRackScaleDown",
 		"ScheduleRackScaleUp",
