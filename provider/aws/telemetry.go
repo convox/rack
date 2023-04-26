@@ -10,36 +10,92 @@ import (
 )
 
 var (
-	skipParams = []string{
+	skipParams = strings.Join([]string{
+		"DefaultAmi",
+		"DefaultAmiArm",
+	}, ",")
+
+	redactedParams = strings.Join([]string{
 		"Ami",
+		"ApiCount",
+		"ApiCpu",
+		"ApiMonitorMemory",
+		"ApiRouter",
+		"ApiWebMemory",
+		"Autoscale",
+		"AvailabilityZones",
+		"BuildCpu",
+		"BuildImage",
+		"BuildInstance",
+		"BuildInstancePolicy",
+		"BuildMemory",
+		"BuildVolumeSize",
 		"ClientId",
-		"InstanceKey",
-		"ApiAccessKey",
-		"ApiSecretKey",
-		"ApiPassword",
-		"DatabasePassword",
-		"ApiToken",
-		"BuildInstanceKey",
-		"BuildAccessKey",
-		"BuildSecretKey",
-		"BuildPassword",
-		"S3BucketAccessKey",
-		"S3BucketSecretKey",
-		"S3BucketName",
-		"DatabaseUser",
-		"DatabaseUrl",
-		"DatabaseName",
-		"DatabasePort",
-		"PrivateSubnetId",
-		"VPCId",
-		"SecurityGroupId",
-	}
-	redactedParams = strings.Join(skipParams, ",")
-	fileName       = "telemetry-sync.json"
+		"Development",
+		"EcsPollInterval",
+		"EncryptEbs",
+		"Encryption",
+		"ExistingVpc",
+		"HighAvailability",
+		"HttpProxy",
+		"ImagePullBehavior",
+		"IMDSHttpTokens",
+		"Internal",
+		"InternalOnly",
+		"InternalSuffix",
+		"InstanceBootCommand",
+		"InstanceRunCommand",
+		"InstanceType",
+		"InstanceUpdateBatchSize",
+		"InstancePolicy",
+		"InstanceSecurityGroup",
+		"BuildInstanceSecurityGroup",
+		"InternetGateway",
+		"Key",
+		"LogBucket",
+		"LogDriver",
+		"LogRetention",
+		"Password",
+		"Private",
+		"PrivateApi",
+		"PrivateApiSecurityGroup",
+		"PrivateBuild",
+		"RouterInternalSecurityGroup",
+		"RouterMitigationMode",
+		"RouterSecurityGroup",
+		"ScheduleRackScaleDown",
+		"ScheduleRackScaleUp",
+		"SpotInstanceBid",
+		"SslPolicy",
+		"Subnet0CIDR",
+		"Subnet1CIDR",
+		"Subnet2CIDR",
+		"SubnetPrivate0CIDR",
+		"SubnetPrivate1CIDR",
+		"SubnetPrivate2CIDR",
+		"SwapSize",
+		"SyslogDestination",
+		"SyslogFormat",
+		"Version",
+		"VPCCIDR",
+		"Tenancy",
+		"WhiteList",
+	}, ",")
+
+	fileName = "telemetry-sync.json"
 )
 
+// check if telemetry param is on/off
 func (p *Provider) RackParamsToSync(params map[string]string) map[string]string {
 	var log = logger.New("ns=workers.heartbeat")
+
+	// remove skipped params
+	var filteredParams map[string]string
+	for k, v := range params {
+		if !strings.Contains(skipParams, k) {
+			filteredParams[k] = v
+		}
+	}
 
 	// check if telemetry sync file exists in settings s3 bucket
 	exists, err := p.SettingExists(fileName)
@@ -50,7 +106,7 @@ func (p *Provider) RackParamsToSync(params map[string]string) map[string]string 
 
 	// creates if it doesn't exist yet
 	if !exists {
-		err = p.createNewSyncFile(params)
+		err = p.createNewSyncFile(filteredParams)
 		if err != nil {
 			log.Error(err)
 			return map[string]string{}
@@ -82,7 +138,7 @@ func (p *Provider) RackParamsToSync(params map[string]string) map[string]string 
 	// create map of params that will be sync to segment
 	toSync := make(map[string]string)
 	for _, s := range nSync {
-		if val, ok := params[s]; ok {
+		if val, ok := filteredParams[s]; ok {
 			if strings.Contains(redactedParams, s) {
 				toSync[s] = hashParamValue(val)
 			} else {
