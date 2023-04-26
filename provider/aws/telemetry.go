@@ -13,6 +13,7 @@ var (
 	skipParams = strings.Join([]string{
 		"DefaultAmi",
 		"DefaultAmiArm",
+		"Telemetry",
 	}, ",")
 
 	redactedParams = strings.Join([]string{

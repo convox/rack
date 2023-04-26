@@ -910,6 +910,12 @@
       "Description": "VPC CIDR Block",
       "Type": "String"
     },
+    "Telemetry": {
+      "AllowedValues": [ "true", "false" ],
+      "Default": "true",
+      "Description": "Activate telemetry data tracking.",
+      "Type": "String"
+    },
     "Tenancy": {
       "Type": "String",
       "Description": "Dedicated Hardware",
