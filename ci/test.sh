@@ -195,7 +195,7 @@ esac
 # gen1
 case $provider in
   aws)
-    cd $root/examples/httpd
+    cd $root/examples/gen1
     convox apps create ci1 -g 1 --wait
     convox deploy -a ci1 --wait
     convox services -a ci1 | grep web | grep elb.amazonaws.com | grep 443:80
