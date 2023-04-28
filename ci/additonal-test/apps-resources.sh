@@ -1,13 +1,6 @@
 #!/bin/bash
 
-#  create and deploy the app "full-convox-yaml"
-cd $root/examples/full-convox-yaml
-convox apps create ci2 --wait
-convox apps | grep ci2
-convox apps info ci2 | grep running
-convox deploy -a ci2 --wait
-convox apps info ci2 | grep running
-
+# Check if the apps resources are available within the app
 ps=$(convox api get /apps/ci2/processes | jq -r '.[]|select(.status=="running")|.id' | head -n 1)
 
 # postgres resource
