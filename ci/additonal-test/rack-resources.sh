@@ -1,4 +1,7 @@
 #!/bin/bash
+
+set -ex -o pipefail
+
 declare -a RESOURCES=("s3" "sns" "sqs" "mysql")
 
 # syslog resource

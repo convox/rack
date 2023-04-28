@@ -36,7 +36,7 @@ if [ "${ACTION}" == "full-convox-yaml" ]; then
   $root/ci/additonal-test/rack-resources.sh &
   rack_resources_pid=$!
 
-  $root/ci/additonal-test/timer.sh &
+  $root/ci/additonal-test/timers.sh &
   timer_pid=$!
 
   # Wait for all background processes to complete
@@ -48,6 +48,10 @@ if [ "${ACTION}" == "full-convox-yaml" ]; then
 
   wait $timer_pid
   timer_exit_code=$?
+
+  echo "apps_resources_exit_code: $apps_resources_exit_code"
+  echo "rack_resources_exit_code: $rack_resources_exit_code"
+  echo "timer_exit_code: $timer_exit_code"
 
   # Check exit codes and exit with code 1 if any of them are non-zero
   if [ $apps_resources_exit_code -ne 0 ] || [ $rack_resources_exit_code -ne 0 ] || [ $timer_exit_code -ne 0 ]; then
