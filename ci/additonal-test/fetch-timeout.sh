@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -x -o pipefail
+
 # $1 is the http address
 # $2 is the error message
 

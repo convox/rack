@@ -1,4 +1,7 @@
 #!/bin/bash
+
+set -ex -o pipefail
+
 declare -a RESOURCES=("s3" "sns" "sqs" "mysql")
 
 # syslog resource
@@ -10,9 +13,6 @@ convox rack resources link cilog -a ci2 --wait
 convox rack resources info cilog | grep Apps | grep ci2
 convox rack resources unlink cilog -a ci2 --wait
 convox rack resources info cilog | grep -v Apps
-convox rack resources link cilog -a ci1 --wait
-convox rack resources info cilog | grep Apps | grep ci1
-convox rack resources unlink cilog -a ci1 --wait
 convox rack resources info cilog | grep -v Apps
 convox rack resources update cilog Url=tcp://syslog2.convox.com --wait
 convox rack resources info cilog | grep syslog2.convox.com
