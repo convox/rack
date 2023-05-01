@@ -912,7 +912,7 @@
     },
     "Telemetry": {
       "AllowedValues": [ "true", "false" ],
-      "Default": "true",
+      "Default": "false",
       "Description": "Activate telemetry data tracking.",
       "Type": "String"
     },
