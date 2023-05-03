@@ -17,6 +17,7 @@ var (
 		"DefaultAmiArm",
 		"Password",
 		"Telemetry",
+		"Version",
 	}, ",")
 
 	redactedParams = strings.Join([]string{
@@ -78,7 +79,6 @@ var (
 		"SwapSize",
 		"SyslogDestination",
 		"SyslogFormat",
-		"Version",
 		"VPCCIDR",
 		"Tenancy",
 		"WhiteList",
