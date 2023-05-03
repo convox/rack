@@ -3226,6 +3226,7 @@
               "rack.SyslogDestination": { "Ref": "SyslogDestination" },
               "rack.SyslogFormat": { "Ref": "SyslogFormat" },
               "rack.Version": { "Ref": "Version" },
+              "rack.Telemetry": { "Ref": "Telemetry" },
               "rack.Vpc": { "Fn::If": [ "BlankExistingVpc",
                 { "Ref": "Vpc" },
                 { "Ref": "ExistingVpc" }
