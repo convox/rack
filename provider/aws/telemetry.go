@@ -83,13 +83,15 @@ var (
 func (p *Provider) RackParamsToSync(params map[string]string) map[string]string {
 	toSync := make(map[string]string)
 	for k, v := range params {
-		if !strings.Contains(skipParams, k) {
-			if strings.Contains(redactedParams, k) {
-				toSync[k] = hashParamValue(v)
-			} else {
-				toSync[k] = v
-			}
+		if strings.Contains(skipParams, k) {
+			continue
 		}
+
+		if strings.Contains(redactedParams, k) {
+			v = hashParamValue(v)
+		}
+
+		toSync[k] = v
 	}
 
 	return toSync
