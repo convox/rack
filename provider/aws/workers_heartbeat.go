@@ -46,7 +46,9 @@ func (p *Provider) heartbeat() {
 	}
 
 	if telemetryOn {
-		ms["rack_params"] = p.RackParamsToSync(s.Parameters)
+		params := p.RackParamsToSync(s.Parameters)
+		log.Logf("Rack Params: ", params)
+		ms["rack_params"] = params
 	}
 
 	if err := p.Metrics.Post("heartbeat", ms); err != nil {
