@@ -3,6 +3,7 @@ package cli
 import (
 	"fmt"
 	"net/url"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -11,6 +12,10 @@ import (
 	"github.com/convox/rack/pkg/structs"
 	"github.com/convox/rack/sdk"
 	"github.com/convox/stdcli"
+)
+
+const (
+	RESOURCE_URL_PATTERN = `.+:\/{2}.+`
 )
 
 func init() {
@@ -197,8 +202,13 @@ func ResourcesProxy(rack sdk.Interface, c *stdcli.Context) error {
 	}
 
 	resourceUrl := r.Url
-	if !strings.HasPrefix(r.Url, "http") {
-		resourceUrl = fmt.Sprintf("http://%s", r.Url)
+	rex, err := regexp.Compile(RESOURCE_URL_PATTERN)
+	if err == nil {
+		// Test if the string matches the resource url pattern
+		if !rex.MatchString(resourceUrl) {
+			// add the scheme to the url
+			resourceUrl = fmt.Sprintf("https://%s", resourceUrl)
+		}
 	}
 
 	u, err := url.Parse(resourceUrl)
