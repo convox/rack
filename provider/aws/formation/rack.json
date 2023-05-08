@@ -913,7 +913,7 @@
     "Telemetry": {
       "AllowedValues": [ "true", "false" ],
       "Default": "false",
-      "Description": "Activate telemetry data tracking.",
+      "Description": "Activate tracking rack parameters. This data will be send to convox infrastruture to help platform stability",
       "Type": "String"
     },
     "Tenancy": {

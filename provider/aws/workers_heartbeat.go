@@ -37,13 +37,7 @@ func (p *Provider) heartbeat() {
 		"version":        s.Version,
 	}
 
-	telemetryOn := true
-	_, ok := s.Parameters["Telemetry"]
-	if ok {
-		if s.Parameters["Telemetry"] == "false" {
-			telemetryOn = false
-		}
-	}
+	telemetryOn := s.Parameters["Telemetry"] == "true"
 
 	if telemetryOn {
 		params := p.RackParamsToSync(s.Version, s.Parameters)
