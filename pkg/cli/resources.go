@@ -15,6 +15,7 @@ import (
 )
 
 const (
+	// RESOURCE_URL_PATTERN is used to check if the resrouce URL starts with http:// or https://
 	RESOURCE_URL_PATTERN = `.+:\/{2}.+`
 )
 
@@ -206,7 +207,7 @@ func ResourcesProxy(rack sdk.Interface, c *stdcli.Context) error {
 	if err == nil {
 		// Test if the string matches the resource url pattern
 		if !rex.MatchString(resourceUrl) {
-			// add the scheme to the url
+			// add the scheme to the url, if missing
 			resourceUrl = fmt.Sprintf("https://%s", resourceUrl)
 		}
 	}
