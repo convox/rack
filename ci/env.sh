@@ -5,6 +5,7 @@ if [ ! -f /tmp/convox-rack-name ]; then
   echo "ci-${CIRCLE_BUILD_NUM}-$(date +"%H%M")" > /tmp/convox-rack-name
 fi
 
+export CONVOX_LOCAL=disable
 export AWS_DEFAULT_REGION=us-east-1
 export AWS_REGION=us-east-1
 export RACK_NAME=$(cat /tmp/convox-rack-name)
