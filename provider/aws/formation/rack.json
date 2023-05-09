@@ -2943,6 +2943,7 @@
                 "iam:CreatePolicyVersion",
                 "iam:CreateRole",
                 "iam:CreateUser",
+                "iam:DeleteAccessKey",
                 "iam:DeletePolicy",
                 "iam:DeletePolicyVersion",
                 "iam:DeleteRole",
