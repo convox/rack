@@ -915,6 +915,12 @@
       "Description": "VPC CIDR Block",
       "Type": "String"
     },
+    "Telemetry": {
+      "AllowedValues": [ "true", "false" ],
+      "Default": "false",
+      "Description": "Activate tracking rack parameters. This data will be send to convox infrastruture to help platform stability",
+      "Type": "String"
+    },
     "Tenancy": {
       "Type": "String",
       "Description": "Dedicated Hardware",
@@ -3292,6 +3298,7 @@
               "rack.SyslogDestination": { "Ref": "SyslogDestination" },
               "rack.SyslogFormat": { "Ref": "SyslogFormat" },
               "rack.Version": { "Ref": "Version" },
+              "rack.Telemetry": { "Ref": "Telemetry" },
               "rack.Vpc": { "Fn::If": [ "BlankExistingVpc",
                 { "Ref": "Vpc" },
                 { "Ref": "ExistingVpc" }
