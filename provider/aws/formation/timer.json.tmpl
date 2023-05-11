@@ -250,6 +250,7 @@
                   { "Ref": "AWS::NoValue" }
                 ],
                 "Name": "{{$.Timer.Name}}",
+                "Privileged": "{{ .Privileged }}",
                 "Ulimits": [ { "Name": "nofile", "SoftLimit": "1024000", "HardLimit": "1024000" } ]
               }
             {{ end }}
