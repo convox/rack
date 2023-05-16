@@ -239,6 +239,17 @@ func fxResource() *structs.Resource {
 	}
 }
 
+func fxResourceEmpty() *structs.Resource {
+	return &structs.Resource{
+		Name:       "resource1",
+		Parameters: map[string]string{"k1": "v1", "k2": "v2", "Url": "other.example.org/path"},
+		Status:     "status",
+		Type:       "type",
+		Url:        "example.org/path",
+		Apps:       structs.Apps{*fxApp(), *fxApp()},
+	}
+}
+
 func fxResourceType() structs.ResourceType {
 	return structs.ResourceType{
 		Name: "type1",
