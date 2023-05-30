@@ -72,8 +72,8 @@ mocks: generate-provider
 	mockery -case underscore -dir vendor/github.com/aws/aws-sdk-go/service/cloudwatch/cloudwatchiface -outpkg aws -output pkg/mock/aws -name CloudWatchAPI
 	mockery -case underscore -dir vendor/github.com/convox/stdcli -outpkg stdcli -output pkg/mock/stdcli -name Executor
 
-package:
-	$(GOPATH)/bin/packr
+# package:
+# 	$(GOPATH)/bin/packr
 
 regions:
 	@aws-vault exec convox-release-standard go run provider/aws/cmd/regions/main.go
