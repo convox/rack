@@ -72,8 +72,8 @@ mocks: generate-provider
 	mockery -case underscore -dir vendor/github.com/aws/aws-sdk-go/service/cloudwatch/cloudwatchiface -outpkg aws -output pkg/mock/aws -name CloudWatchAPI
 	mockery -case underscore -dir vendor/github.com/convox/stdcli -outpkg stdcli -output pkg/mock/stdcli -name Executor
 
-package:
-	$(GOPATH)/bin/packr
+# package:
+# 	$(GOPATH)/bin/packr
 
 regions:
 	@aws-vault exec convox-release-standard go run provider/aws/cmd/regions/main.go
@@ -81,7 +81,7 @@ regions:
 
 release:
 	test -n "$(VERSION)" # VERSION
-	git tag $(VERSION) -s -m $(VERSION)
+	git tag $(VERSION) -m $(VERSION)
 	git push origin refs/tags/$(VERSION)
 
 release-all: release-version release-cli release-image release-provider
@@ -90,10 +90,8 @@ release-cli: release-version package
 	make -C cmd/convox release VERSION=$(VERSION)
 
 release-image: release-version package
-	docker buildx build --platform linux/amd64 -t convox/rack:$(VERSION) --pull .
-	docker push convox/rack:$(VERSION)
-	docker buildx build --platform linux/arm64 -t convox/rack:$(VERSION)-arm64 --pull -f Dockerfile.arm .
-	docker push convox/rack:$(VERSION)-arm64
+	docker buildx build --platform linux/amd64 -t convox/rack:$(VERSION) --pull --push .
+	docker buildx build --platform linux/arm64 -t convox/rack:$(VERSION)-arm64 --pull --push -f Dockerfile.arm .
 
 release-provider: release-version package
 	make -C provider release VERSION=$(VERSION)

@@ -49,7 +49,7 @@ jobs:
         run: go get -u github.com/gobuffalo/packr/packr
       - name: release
         run: make release-all
-      - name:
-        run: go run version/main.go create "${VERSION}"
+      - name: create version
+        run: go run cmd/version/main.go create "${VERSION}"
       - name: notify slack
         run: TYPE=release ci/slack.sh
