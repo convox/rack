@@ -13,10 +13,10 @@ build:
 
 package:
 	mkdir -p pkg/
-	env CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -tags=hidraw -ldflags "-X main.version=$(VERSION)" -o $(pkg_linux)
-	env CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -tags=hidraw -ldflags "-X main.version=$(VERSION)" -o $(pkg_linux_arm64)
-	env CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -ldflags "-X main.version=$(VERSION)" -o $(pkg_darwin_arm64)
-	env CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -ldflags "-X main.version=$(VERSION)" -o $(pkg_windows)
+	env CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -mod=vendor -tags=hidraw -ldflags "-X main.version=$(VERSION)" -o $(pkg_linux)
+	env CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -mod=vendor -tags=hidraw -ldflags "-X main.version=$(VERSION)" -o $(pkg_linux_arm64)
+	env CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -mod=vendor -ldflags "-X main.version=$(VERSION)" -o $(pkg_darwin_arm64)
+	env CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -mod=vendor -ldflags "-X main.version=$(VERSION)" -o $(pkg_windows)
 
 	go install github.com/crazy-max/xgo@v0.7.5
 	if [ -f /.dockerenv ]; then tar cz $(GOPATH) | docker run -v $(GOPATH):/gopath -i ubuntu tar xz -C /gopath --strip-components 2; fi
