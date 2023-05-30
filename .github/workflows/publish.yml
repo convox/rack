@@ -28,6 +28,6 @@ jobs:
       - name: publish the artifacts
         run: ci/publish_arifacts.sh
       - name: publish the release
-        run: go run version/main.go -publish update "${VERSION}"
+        run: go run cmd/version/main.go -publish update "${VERSION}"
       - name: notify slack
         run: TYPE=publish ci/slack.sh
