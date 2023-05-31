@@ -18,6 +18,7 @@ jobs:
         uses: CircleCI-Public/trigger-circleci-pipeline-action@v1.0
         env:
           CCI_TOKEN: ${{ secrets.CCI_TOKEN }}
+          TARGET_TAG: ${{ github.ref }}
       - name: golang-1.17
         uses: actions/setup-go@v3
         with:
