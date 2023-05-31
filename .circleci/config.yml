@@ -61,9 +61,9 @@ workflows:
     jobs:
       - test
   release:
-    when: << pipeline.parameters.GHA_Action >>
     jobs:
       - ci:
+          <<: *filter-releases-any
           name: ci/aws/public
           provider: aws
       - ci:

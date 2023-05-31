@@ -9,53 +9,53 @@ jobs:
     if: github.repository == 'convox/rack'
     runs-on: ubuntu-latest
     steps:
-      - name: checkout
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
       - name: circleci trigger for e2e tests
         id: convox
         uses: CircleCI-Public/trigger-circleci-pipeline-action@v1.1.0
         env:
           CCI_TOKEN: ${{ secrets.CCI_TOKEN }}
           TARGET_TAG: ${{ github.ref }}
-      - name: golang-1.17
-        uses: actions/setup-go@v3
-        with:
-          go-version: '1.17.13'
-      - name: go path
-        run: |
-          mkdir -p ${HOME}/go
-          echo "GOPATH=${HOME}/go" >> $GITHUB_ENV
-      - name: version
-        run: echo "VERSION=$(echo ${{ github.ref }} | awk -F/ '{print $3}')" >> $GITHUB_ENV
-      - name: changelog
-        id: changelog
-        run: |
-          changelog=$(git log --pretty="* %s" ...$(git describe --abbrev=0 HEAD~))
-          echo ${changelog}
-          changelog="${changelog//'%'/'%25'}"
-          changelog="${changelog//$'\n'/'%0A'}"
-          changelog="${changelog//$'\r'/'%0D'}"
-          echo "::set-output name=text::${changelog}"
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
-      - name: login
-        run: docker login --username "${DOCKER_USERNAME}" --password "${DOCKER_PASSWORD}"
-        env:
-          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
-          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
-      - name: secrets
-        run: ci/secrets.sh
-        env:
-          SECRETS: ${{ toJson(secrets) }}
-      - name: install packr
-        run: go get -u github.com/gobuffalo/packr/packr
-      - name: release
-        run: make release-all
-      - name: create version
-        run: go run cmd/version/main.go create "${VERSION}"
-      - name: notify slack
-        run: TYPE=release ci/slack.sh
+      # - name: checkout
+      #   uses: actions/checkout@v3
+      #   with:
+      #     fetch-depth: 0
+      # - name: golang-1.17
+      #   uses: actions/setup-go@v3
+      #   with:
+      #     go-version: '1.17.13'
+      # - name: go path
+      #   run: |
+      #     mkdir -p ${HOME}/go
+      #     echo "GOPATH=${HOME}/go" >> $GITHUB_ENV
+      # - name: version
+      #   run: echo "VERSION=$(echo ${{ github.ref }} | awk -F/ '{print $3}')" >> $GITHUB_ENV
+      # - name: changelog
+      #   id: changelog
+      #   run: |
+      #     changelog=$(git log --pretty="* %s" ...$(git describe --abbrev=0 HEAD~))
+      #     echo ${changelog}
+      #     changelog="${changelog//'%'/'%25'}"
+      #     changelog="${changelog//$'\n'/'%0A'}"
+      #     changelog="${changelog//$'\r'/'%0D'}"
+      #     echo "::set-output name=text::${changelog}"
+      # - name: Set up QEMU
+      #   uses: docker/setup-qemu-action@v2
+      # - name: Set up Docker Buildx
+      #   uses: docker/setup-buildx-action@v2
+      # - name: login
+      #   run: docker login --username "${DOCKER_USERNAME}" --password "${DOCKER_PASSWORD}"
+      #   env:
+      #     DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+      #     DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+      # - name: secrets
+      #   run: ci/secrets.sh
+      #   env:
+      #     SECRETS: ${{ toJson(secrets) }}
+      # - name: install packr
+      #   run: go get -u github.com/gobuffalo/packr/packr
+      # - name: release
+      #   run: make release-all
+      # - name: create version
+      #   run: go run cmd/version/main.go create "${VERSION}"
+      # - name: notify slack
+      #   run: TYPE=release ci/slack.sh
