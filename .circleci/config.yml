@@ -78,6 +78,11 @@ workflows:
           args: "InstanceType=t4g.small BuildInstance=t4g.small"
       - ci:
           <<: *filter-releases-any
+          name: ci/aws/public/full-convox-yaml
+          provider: aws
+          action: "full-convox-yaml"
+      - ci:
+          <<: *filter-releases-any
           name: ci/aws/private
           provider: aws
           args: Private=Yes
@@ -99,23 +104,6 @@ workflows:
           name: ci/aws/downgrade
           provider: aws
           action: "downgrade"
-      - update:
-          <<: *filter-releases-master
-          context: staging
-          requires:
-            - ci/aws/public
-            - ci/aws/public-existing-vpc
-            - ci/aws/public/arm64
-            - ci/aws/private
-          name: ci/staging/rack
-      - deploy:
-          <<: *filter-releases-master
-          <<: *deploy
-          context: staging
-          name: ci/staging/app/docs-staging
-          repo: https://github.com/convox/docs
-          app: docs-staging
-          check: https://docs-staging-web.stagi-route-1l04rz3fpvbt0-2130032241.us-east-1.convox.site/
 
 jobs:
   ci:
