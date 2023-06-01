@@ -10,7 +10,7 @@ parameters:
   GHA_Action:
     type: string
     default: ""
-  GHA_Tag:
+  GHA_Meta:
     type: string
     default: ""
 
