@@ -11,6 +11,14 @@ binaries = $(addprefix $(GOPATH)/bin/, $(commands))
 sources  = $(shell find . -name '*.go')
 statics  = $(addprefix $(GOPATH)/bin/, $(injects))
 
+DEV ?= true
+
+ifeq ($(DEV), false)
+VERSION := $(shell date +%Y%m%d%H%M%S)
+else ifndef VERSION
+VERSION := $(shell date +%Y%m%d%H%M%S)-dev
+endif
+
 all: build
 
 build: $(binaries) $(statics)
@@ -71,16 +79,19 @@ regions:
 	@aws-vault exec convox-release-standard go run provider/aws/cmd/regions/main.go
 	@aws-vault exec convox-release-govcloud go run provider/aws/cmd/regions/main.go
 
-release: release-version release-cli release-image release-provider
+release:
+	test -n "$(VERSION)" # VERSION
+	git tag $(VERSION) -m $(VERSION)
+	git push origin refs/tags/$(VERSION)
+
+release-all: release-version release-cli release-image release-provider
 
 release-cli: release-version package
 	make -C cmd/convox release VERSION=$(VERSION)
 
 release-image: release-version package
-	docker buildx build --platform linux/amd64 -t convox/rack:$(VERSION) --pull .
-	docker push convox/rack:$(VERSION)
-	docker buildx build --platform linux/arm64 -t convox/rack:$(VERSION)-arm64 --pull -f Dockerfile.arm .
-	docker push convox/rack:$(VERSION)-arm64
+	docker buildx build --platform linux/amd64 -t convox/rack:$(VERSION) --pull --push .
+	docker buildx build --platform linux/arm64 -t convox/rack:$(VERSION)-arm64 --pull --push -f Dockerfile.arm .
 
 release-provider: release-version package
 	make -C provider release VERSION=$(VERSION)
