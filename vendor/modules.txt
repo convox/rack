@@ -185,9 +185,6 @@ github.com/fsouza/go-dockerclient/external/github.com/hashicorp/go-cleanhttp
 github.com/fsouza/go-dockerclient/external/github.com/opencontainers/runc/libcontainer/user
 github.com/fsouza/go-dockerclient/external/golang.org/x/net/context
 github.com/fsouza/go-dockerclient/external/golang.org/x/sys/unix
-# github.com/ghodss/yaml v1.0.0
-## explicit
-github.com/ghodss/yaml
 # github.com/gobuffalo/envy v1.6.12
 ## explicit
 github.com/gobuffalo/envy
@@ -230,6 +227,13 @@ github.com/golang/protobuf/ptypes/timestamp
 # github.com/google/btree v1.0.0
 ## explicit
 github.com/google/btree
+# github.com/google/go-cmp v0.3.0
+## explicit; go 1.8
+github.com/google/go-cmp/cmp
+github.com/google/go-cmp/cmp/internal/diff
+github.com/google/go-cmp/cmp/internal/flags
+github.com/google/go-cmp/cmp/internal/function
+github.com/google/go-cmp/cmp/internal/value
 # github.com/google/gofuzz v0.0.0-20170612174753-24818f796faf
 ## explicit
 github.com/google/gofuzz
@@ -257,7 +261,7 @@ github.com/gorilla/websocket
 ## explicit
 github.com/gregjones/httpcache
 github.com/gregjones/httpcache/diskcache
-# github.com/hashicorp/golang-lru v0.0.0-20180201235237-0fb14efe8c47
+# github.com/hashicorp/golang-lru v0.5.0
 ## explicit
 github.com/hashicorp/golang-lru
 github.com/hashicorp/golang-lru/simplelru
@@ -312,7 +316,7 @@ github.com/moby/moby/pkg/fileutils
 # github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd
 ## explicit
 github.com/modern-go/concurrent
-# github.com/modern-go/reflect2 v0.0.0-20180701023420-4b7aa43c6742
+# github.com/modern-go/reflect2 v1.0.1
 ## explicit
 github.com/modern-go/reflect2
 # github.com/mweagle/Sparta v0.8.1-0.20171126182155-ead2872585dc
@@ -421,7 +425,7 @@ gopkg.in/cheggaaa/pb.v1
 # gopkg.in/inf.v0 v0.9.1
 ## explicit
 gopkg.in/inf.v0
-# gopkg.in/yaml.v2 v2.2.2 => github.com/ddollar/yaml v0.0.0-20180504010936-3fb95e32dd8a
+# gopkg.in/yaml.v2 v2.2.4 => github.com/ddollar/yaml v0.0.0-20180504010936-3fb95e32dd8a
 ## explicit
 gopkg.in/yaml.v2
 # gopkg.in/yaml.v3 v3.0.1
@@ -458,8 +462,8 @@ k8s.io/api/settings/v1alpha1
 k8s.io/api/storage/v1
 k8s.io/api/storage/v1alpha1
 k8s.io/api/storage/v1beta1
-# k8s.io/apimachinery v0.0.0-20180621070125-103fd098999d
-## explicit
+# k8s.io/apimachinery v0.15.7
+## explicit; go 1.12
 k8s.io/apimachinery/pkg/api/errors
 k8s.io/apimachinery/pkg/api/meta
 k8s.io/apimachinery/pkg/api/resource
@@ -491,6 +495,7 @@ k8s.io/apimachinery/pkg/util/httpstream/spdy
 k8s.io/apimachinery/pkg/util/intstr
 k8s.io/apimachinery/pkg/util/json
 k8s.io/apimachinery/pkg/util/mergepatch
+k8s.io/apimachinery/pkg/util/naming
 k8s.io/apimachinery/pkg/util/net
 k8s.io/apimachinery/pkg/util/remotecommand
 k8s.io/apimachinery/pkg/util/runtime
@@ -571,7 +576,10 @@ k8s.io/client-go/util/exec
 k8s.io/client-go/util/flowcontrol
 k8s.io/client-go/util/integer
 k8s.io/client-go/util/retry
-# k8s.io/kube-openapi v0.0.0-20180731170545-e3762e86a74c
+# k8s.io/klog v0.3.1
+## explicit
+k8s.io/klog
+# k8s.io/kube-openapi v0.0.0-20190228160746-b3a7cee44a30
 ## explicit
 k8s.io/kube-openapi/pkg/util/proto
 # k8s.io/metrics v0.0.0-20180628054111-6f051017e10b
@@ -583,5 +591,8 @@ k8s.io/metrics/pkg/client/clientset_generated/clientset
 k8s.io/metrics/pkg/client/clientset_generated/clientset/scheme
 k8s.io/metrics/pkg/client/clientset_generated/clientset/typed/metrics/v1alpha1
 k8s.io/metrics/pkg/client/clientset_generated/clientset/typed/metrics/v1beta1
+# sigs.k8s.io/yaml v1.1.0
+## explicit
+sigs.k8s.io/yaml
 # gopkg.in/yaml.v2 => github.com/ddollar/yaml v0.0.0-20180504010936-3fb95e32dd8a
 # github.com/fsouza/go-dockerclient => github.com/heronrs/go-dockerclient v0.0.1
