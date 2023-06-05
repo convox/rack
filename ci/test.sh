@@ -24,6 +24,44 @@ set -ex
 provider=$(convox api get /system | jq -r .provider)
 source $(dirname $0)/env.sh
 
+# tests to be run on a full convox.yaml app
+# these tests include:
+# - apps resources
+# - rack resources
+# - timer
+if [ "${ACTION}" == "full-convox-yaml" ]; then
+  $root/ci/additonal-test/apps-resources.sh &
+  apps_resources_pid=$!
+
+  $root/ci/additonal-test/rack-resources.sh &
+  rack_resources_pid=$!
+
+  $root/ci/additonal-test/timers.sh &
+  timer_pid=$!
+
+  # Wait for all background processes to complete
+  wait $apps_resources_pid
+  apps_resources_exit_code=$?
+
+  wait $rack_resources_pid
+  rack_resources_exit_code=$?
+
+  wait $timer_pid
+  timer_exit_code=$?
+
+  echo "apps_resources_exit_code: $apps_resources_exit_code"
+  echo "rack_resources_exit_code: $rack_resources_exit_code"
+  echo "timer_exit_code: $timer_exit_code"
+
+  # Check exit codes and exit with code 1 if any of them are non-zero
+  if [ $apps_resources_exit_code -ne 0 ] || [ $rack_resources_exit_code -ne 0 ] || [ $timer_exit_code -ne 0 ]; then
+    echo "One or more scripts failed"
+    exit 1
+  fi
+
+  exit 0
+fi
+
 # cli
 convox version
 
@@ -116,28 +154,6 @@ cat /tmp/file2 | grep foo
 convox ps stop $ps -a ci2
 convox ps -a ci2 | grep -v $ps
 convox deploy -a ci2 --wait
-ps=$(convox api get /apps/ci2/processes | jq -r '.[]|select(.status=="running")|.id' | head -n 1)
-# postgres resource
-convox exec -a ci2 $ps -- env | grep "POSTGRES_URL"
-convox exec -a ci2 $ps -- env | grep "POSTGRES_USER"
-convox exec -a ci2 $ps -- env | grep "POSTGRES_PASS"
-convox exec -a ci2 $ps -- env | grep "POSTGRES_HOST"
-convox exec -a ci2 $ps -- env | grep "POSTGRES_PORT"
-convox exec -a ci2 $ps -- env | grep "POSTGRES_NAME"
-# mysql resource
-convox exec -a ci2 $ps -- env | grep "MYSQL_URL"
-convox exec -a ci2 $ps -- env | grep "MYSQL_USER"
-convox exec -a ci2 $ps -- env | grep "MYSQL_PASS"
-convox exec -a ci2 $ps -- env | grep "MYSQL_HOST"
-convox exec -a ci2 $ps -- env | grep "MYSQL_PORT"
-convox exec -a ci2 $ps -- env | grep "MYSQL_NAME"
-# mariadb resource
-convox exec -a ci2 $ps -- env | grep "MARIADB_URL"
-convox exec -a ci2 $ps -- env | grep "MARIADB_USER"
-convox exec -a ci2 $ps -- env | grep "MARIADB_PASS"
-convox exec -a ci2 $ps -- env | grep "MARIADB_HOST"
-convox exec -a ci2 $ps -- env | grep "MARIADB_PORT"
-convox exec -a ci2 $ps -- env | grep "MARIADB_NAME"
 
 # test apps cancel
 echo "FOO=not-bar" | convox env set -a ci2
@@ -195,7 +211,7 @@ esac
 # gen1
 case $provider in
   aws)
-    cd $root/examples/httpd
+    cd $root/examples/gen1
     convox apps create ci1 -g 1 --wait
     convox deploy -a ci1 --wait
     convox services -a ci1 | grep web | grep elb.amazonaws.com | grep 443:80
@@ -256,14 +272,6 @@ case $provider in
     ;;
 esac
 
-# timers
-sleep 30
-
-timerLog=$(convox logs -a ci2 --no-follow --since 1m | grep service/example)
-if ! [[ $timerLog == *"Hello Timer"* ]]; then
-  echo "failed"; exit 1;
-fi
-
 # certs
 case $provider in
   aws)
@@ -283,34 +291,6 @@ case $provider in
     convox ssl -a ci1 | grep web:443 | grep $certo
     sleep 30
     convox certs delete $cert
-    ;;
-esac
-
-# rack resources
-case $provider in
-  aws)
-    convox rack resources create syslog Url=tcp://syslog.convox.com --name cilog --wait
-    convox rack resources | grep cilog | grep syslog
-    convox rack resources info cilog | grep -v Apps
-    convox rack resources url cilog | grep tcp://syslog.convox.com
-    convox rack resources link cilog -a ci2 --wait
-    convox rack resources info cilog | grep Apps | grep ci2
-    convox rack resources unlink cilog -a ci2 --wait
-    convox rack resources info cilog | grep -v Apps
-    convox rack resources link cilog -a ci1 --wait
-    convox rack resources info cilog | grep Apps | grep ci1
-    convox rack resources unlink cilog -a ci1 --wait
-    convox rack resources info cilog | grep -v Apps
-    convox rack resources update cilog Url=tcp://syslog2.convox.com --wait
-    convox rack resources info cilog | grep syslog2.convox.com
-    convox rack resources url cilog | grep tcp://syslog2.convox.com
-    convox rack resources delete cilog --wait
-    convox rack resources create postgres --name pgdb --wait
-    convox rack resources | grep pgdb | grep postgres
-    dburl=$(convox rack resources url pgdb)
-    convox rack resources update pgdb BackupRetentionPeriod=2 --wait
-    [ "$dburl" == "$(convox rack resources url pgdb)" ]
-    convox rack resources delete pgdb --wait
     ;;
 esac
 
