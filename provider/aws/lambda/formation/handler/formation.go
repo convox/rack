@@ -178,6 +178,8 @@ func HandleRequest(freq Request) error {
 		physical, outputs, err = HandleSelfSignedCertificate(freq)
 	case "Custom::SelfSignedCertificateGetter":
 		physical, outputs, err = HandleSelfSignedCertificateGetter(freq)
+	case "Custom::SGIngresses":
+		physical, outputs, err = HandleSGIngress(freq)
 	case "Custom::SNSSubscription":
 		physical, outputs, err = HandleSNSSubcription(freq)
 	default:
