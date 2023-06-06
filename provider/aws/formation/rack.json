@@ -1515,6 +1515,7 @@
       "Type": "AWS::ECS::Cluster"
     },
     "BuildLaunchTemplate": {
+      "Condition": "DedicatedBuilder",
       "Type" : "AWS::EC2::LaunchTemplate",
       "Properties" : {
         "LaunchTemplateData" : {
