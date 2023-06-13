@@ -1084,15 +1084,6 @@
         "VpcId": { "Ref": "Vpc" }
       }
     },
-    "ExistingGatewayAttachment": {
-      "Type": "AWS::EC2::VPCGatewayAttachment",
-      "Condition": "ExistingVpcAndInternetGateway",
-      "DeletionPolicy": "Retain",
-      "Properties": {
-        "InternetGatewayId": { "Ref": "InternetGateway" },
-        "VpcId": { "Ref": "ExistingVpc" }
-      }
-    },
     "Nat0": {
       "Condition": "Private",
       "Type": "AWS::EC2::NatGateway",
