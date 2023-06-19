@@ -2921,11 +2921,7 @@
             { "Fn::Select": [ 0, { "Fn::Split": [ ".", { "Fn::GetAtt": [ "ApiBalancer", "DNSName" ] } ] } ] },
             { "Fn::Select": [ 1, { "Fn::Split": [ ".", { "Fn::GetAtt": [ "ApiBalancer", "DNSName" ] } ] } ] },
             "convox.site"
-          ] ] } ] },
-          { "Fn::If": [ "WhiteListCIDRs",
-            { "Field": "source-ip", "SourceIpConfig": { "Values": { "Fn::Split": [",", { "Ref": "WhiteList" }] } } },
-            { "Ref": "AWS::NoValue" }
-          ] }
+          ] ] } ] }
         ],
         "ListenerArn": { "Ref": "ApiBalancerListener443" },
         "Priority": "1"
@@ -2946,6 +2942,14 @@
         "Priority": "2"
       }
     },
+    "WhiteListSGIngresses": {
+      "Type": "Custom::SGIngresses",
+      "Properties": {
+        "ServiceToken": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
+        "SecurityGroupID": { "Ref": "ApiBalancerSecurity" },
+        "Ips": { "Ref": "WhiteList" }
+      }
+    },
     "ApiBalancerSecurity": {
       "Type": "AWS::EC2::SecurityGroup",
       "Properties": {
@@ -2957,7 +2961,10 @@
                 { "Ref": "VPCCIDR" },
                 { "Ref": "AWS::NoValue" }
               ] },
-              "0.0.0.0/0"
+              { "Fn::If": [ "WhiteListCIDRs",
+                { "Ref": "AWS::NoValue" },
+                "0.0.0.0/0"
+              ] }
             ] },
             "SourceSecurityGroupId": { "Fn::If": [ "PrivateApi",
               { "Fn::If": [ "BlankPrivateApiSecurityGroup",
