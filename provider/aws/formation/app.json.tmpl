@@ -330,6 +330,9 @@
       },
       "ManagedPolicyArns": [
         { "Fn::If": [ "BlankIamPolicy", { "Ref": "AWS::NoValue" }, { "Ref": "IamPolicy" } ] },
+        {{ range $name := .Policies }}
+          { "Ref": "{{ . }}" },
+        {{ end }}
         { "Fn::ImportValue": { "Fn::Sub": "${Rack}:CMKPolicy" } }
       ],
       "Path": "/convox/",
