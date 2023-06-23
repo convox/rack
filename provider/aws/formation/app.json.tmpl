@@ -330,9 +330,6 @@
       },
       "ManagedPolicyArns": [
         { "Fn::If": [ "BlankIamPolicy", { "Ref": "AWS::NoValue" }, { "Ref": "IamPolicy" } ] },
-        {{ range $name := .Policies }}
-          { "Ref": "{{ . }}" },
-        {{ end }}
         { "Fn::ImportValue": { "Fn::Sub": "${Rack}:CMKPolicy" } }
       ],
       "Path": "/convox/",
@@ -377,6 +374,7 @@
           "InternalDomains": { "Ref": "InternalDomains" },
           "Isolate": { "Fn::If": [ "IsolateServices", "Yes", "No" ] },
           "Memory": { "Fn::Select": [ 2, { "Ref": "{{ upper .Name }}Formation" } ] },
+          "Policies": "{{ join .Policies "," }}",
           "Private": { "Ref": "Private" },
           "Rack": { "Ref": "Rack" },
           "RackUrl": { "Ref": "RackUrl" },
