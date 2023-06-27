@@ -1,8 +1,10 @@
 package api
 
 import (
+	"net/http"
 	"reflect"
 
+	"github.com/convox/rack/pkg/jwt"
 	"github.com/convox/rack/pkg/structs"
 	"github.com/convox/rack/provider"
 	"github.com/convox/stdapi"
@@ -12,6 +14,7 @@ type Server struct {
 	*stdapi.Server
 	Password string
 	Provider structs.Provider
+	JwtMngr  *jwt.JwtManager
 }
 
 func New() (*Server, error) {
@@ -28,9 +31,15 @@ func NewWithProvider(p structs.Provider) *Server {
 		panic(err)
 	}
 
+	key, err := p.SystemJwtSignKey()
+	if err != nil {
+		panic(err)
+	}
+
 	s := &Server{
 		Provider: p,
 		Server:   stdapi.New("api", "api"),
+		JwtMngr:  jwt.NewJwtManager(key),
 	}
 
 	s.Server.Router.Router = s.Server.Router.Router.SkipClean(true)
@@ -54,11 +63,19 @@ func NewWithProvider(p structs.Provider) *Server {
 
 func (s *Server) authenticate(next stdapi.HandlerFunc) stdapi.HandlerFunc {
 	return func(c *stdapi.Context) error {
-		if _, pass, _ := c.Request().BasicAuth(); s.Password != "" && s.Password != pass {
-			return stdapi.Errorf(401, "invalid authentication")
+		username, pass, _ := c.Request().BasicAuth()
+		if username == "jwt" && s.JwtMngr != nil {
+			data, err := s.JwtMngr.Verify(pass)
+			if err != nil {
+				return stdapi.Errorf(http.StatusUnauthorized, "invalid authentication: %s", err)
+			}
+			c.Set(structs.ConvoxRoleParam, data.Role)
+		} else {
+			if s.Password != "" && s.Password != pass {
+				return stdapi.Errorf(http.StatusUnauthorized, "invalid authentication")
+			}
+			SetReadWriteRole(c)
 		}
-
-		SetReadWriteRole(c)
 
 		return next(c)
 	}

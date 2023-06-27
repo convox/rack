@@ -4,12 +4,9 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/convox/rack/pkg/structs"
 	"github.com/convox/stdapi"
 )
-
-const ConvoxRoleParam = "CONVOX_ROLE"
-const ConvoxRoleRead = "r"
-const ConvoxRoleReadWrite = "rw"
 
 func (s *Server) Authorize(next stdapi.HandlerFunc) stdapi.HandlerFunc {
 	return func(c *stdapi.Context) error {
@@ -28,7 +25,7 @@ func (s *Server) Authorize(next stdapi.HandlerFunc) stdapi.HandlerFunc {
 }
 
 func CanRead(c *stdapi.Context) bool {
-	if d := c.Get(ConvoxRoleParam); d != nil {
+	if d := c.Get(structs.ConvoxRoleParam); d != nil {
 		v, _ := d.(string)
 		return strings.Contains(v, "r")
 	}
@@ -36,7 +33,7 @@ func CanRead(c *stdapi.Context) bool {
 }
 
 func CanWrite(c *stdapi.Context) bool {
-	if d := c.Get(ConvoxRoleParam); d != nil {
+	if d := c.Get(structs.ConvoxRoleParam); d != nil {
 		v, _ := d.(string)
 		return strings.Contains(v, "w")
 	}
@@ -44,9 +41,9 @@ func CanWrite(c *stdapi.Context) bool {
 }
 
 func SetReadRole(c *stdapi.Context) {
-	c.Set(ConvoxRoleParam, ConvoxRoleRead)
+	c.Set(structs.ConvoxRoleParam, structs.ConvoxRoleRead)
 }
 
 func SetReadWriteRole(c *stdapi.Context) {
-	c.Set(ConvoxRoleParam, ConvoxRoleReadWrite)
+	c.Set(structs.ConvoxRoleParam, structs.ConvoxRoleReadWrite)
 }
