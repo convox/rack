@@ -57,6 +57,10 @@ func (p *Provider) BuildCreate(app, url string, opts structs.BuildCreateOptions)
 		b.WildcardDomain = *opts.WildcardDomain
 	}
 
+	if opts.GitSha != nil {
+		b.GitSha = *opts.GitSha
+	}
+
 	b.Started = time.Now().UTC()
 
 	if p.IsTest() {
@@ -617,6 +621,10 @@ func (p *Provider) buildSave(b *structs.Build) error {
 			"created": {S: aws.String(b.Started.Format(sortableTime))},
 		},
 		TableName: aws.String(p.DynamoBuilds),
+	}
+
+	if b.GitSha != "" {
+		req.Item["git-sha"] = &dynamodb.AttributeValue{S: aws.String(b.GitSha)}
 	}
 
 	if b.Description != "" {

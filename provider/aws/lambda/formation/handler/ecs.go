@@ -286,6 +286,12 @@ func ECSTaskDefinitionCreate(req Request) (string, map[string]string, error) {
 				Value: aws.String(v),
 			})
 		}
+		if v, ok := req.ResourceProperties["BuildGitSha"].(string); ok {
+			r.ContainerDefinitions[i].Environment = append(r.ContainerDefinitions[i].Environment, &ecs.KeyValuePair{
+				Name:  aws.String("BUILD_GIT_SHA"),
+				Value: aws.String(v),
+			})
+		}
 		if v, ok := req.ResourceProperties["BuildDescription"].(string); ok {
 			r.ContainerDefinitions[i].Environment = append(r.ContainerDefinitions[i].Environment, &ecs.KeyValuePair{
 				Name:  aws.String("BUILD_DESCRIPTION"),

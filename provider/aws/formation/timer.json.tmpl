@@ -195,6 +195,7 @@
                   ] },
                   { "Name": "RELEASE", "Value": "{{$.Release.Id}}" },
                   { "Name": "BUILD", "Value": "{{$.Build.Id}}" },
+                  { "Name": "BUILD_GIT_SHA", "Value": {{ safe $.Build.GitSha }} },
                   { "Name": "BUILD_DESCRIPTION", "Value": {{ safe $.Build.Description }} },
                   { "Name": "SERVICE", "Value": "{{.Name}}" }
                 ],
