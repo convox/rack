@@ -9,6 +9,7 @@ type System struct {
 	Outputs    map[string]string `json:"outputs,omitempty"`
 	Parameters map[string]string `json:"parameters,omitempty"`
 	Provider   string            `json:"provider"`
+	RackDomain string            `json:"rack-domain"`
 	Region     string            `json:"region"`
 	Status     string            `json:"status"`
 	Type       string            `json:"type"`
@@ -37,6 +38,19 @@ type SystemUpdateOptions struct {
 	Parameters map[string]string `param:"parameters"`
 	Type       *string           `param:"type"`
 	Version    *string           `param:"version"`
+}
+
+type SystemJwtOptions struct {
+	Role           *string `param:"role"`
+	DurationInHour *string `param:"durationInHour"`
+}
+
+type SystemJwt struct {
+	Token string `json:"token"`
+}
+
+type RackData struct {
+	Host string `json:"host"`
 }
 
 type Runtime struct {

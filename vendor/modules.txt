@@ -214,6 +214,9 @@ github.com/gobwas/glob/util/strings
 ## explicit
 github.com/gogo/protobuf/proto
 github.com/gogo/protobuf/sortkeys
+# github.com/golang-jwt/jwt/v4 v4.5.0
+## explicit; go 1.16
+github.com/golang-jwt/jwt/v4
 # github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b
 ## explicit
 github.com/golang/glog
@@ -336,6 +339,9 @@ github.com/pmezard/go-difflib/difflib
 github.com/rogpeppe/go-internal/modfile
 github.com/rogpeppe/go-internal/module
 github.com/rogpeppe/go-internal/semver
+# github.com/satori/go.uuid v1.2.0
+## explicit
+github.com/satori/go.uuid
 # github.com/sebest/xff v0.0.0-20160910043805-6c115e0ffa35
 ## explicit
 github.com/sebest/xff

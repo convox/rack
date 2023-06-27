@@ -18,6 +18,7 @@ import (
 func TestAuthentication(t *testing.T) {
 	p := &structs.MockProvider{}
 	p.On("Initialize", mock.Anything).Return(nil)
+	p.On("SystemJwtSignKey").Return("", nil)
 
 	s := api.NewWithProvider(p)
 	s.Logger = logger.Discard
