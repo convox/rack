@@ -608,6 +608,18 @@ func (c *Client) Proxy(host string, port int, rw io.ReadWriter, opts structs.Pro
 	return err
 }
 
+func (c *Client) RackHost(rackOrgSlug string) (structs.RackData, error) {
+	var err error
+
+	ro := stdsdk.RequestOptions{Headers: stdsdk.Headers{}, Params: stdsdk.Params{}, Query: stdsdk.Query{}}
+
+	var v structs.RackData
+
+	err = c.Get(fmt.Sprintf("/racks/%s/host", rackOrgSlug), ro, &v)
+
+	return v, err
+}
+
 func (c *Client) RegistryAdd(server string, username string, password string) (*structs.Registry, error) {
 	var err error
 
@@ -815,6 +827,27 @@ func (c *Client) SystemGet() (*structs.System, error) {
 func (c *Client) SystemInstall(w io.Writer, opts structs.SystemInstallOptions) (string, error) {
 	err := fmt.Errorf("not available via api")
 	return "", err
+}
+
+func (*Client) SystemJwtSignKey() (string, error) {
+	err := fmt.Errorf("not available via api")
+	return "", err
+}
+
+func (c *Client) SystemJwtSignKeyRotate() (string, error) {
+	err := c.Put("/system/jwt/rotate", stdsdk.RequestOptions{}, nil)
+	return "", err
+}
+
+func (c *Client) SystemJwtToken(opts structs.SystemJwtOptions) (*structs.SystemJwt, error) {
+	ro, err := stdsdk.MarshalOptions(opts)
+	if err != nil {
+		return nil, err
+	}
+
+	v := &structs.SystemJwt{}
+	err = c.Post("/system/jwt/token", ro, v)
+	return v, err
 }
 
 func (c *Client) SystemLogs(opts structs.LogsOptions) (io.ReadCloser, error) {

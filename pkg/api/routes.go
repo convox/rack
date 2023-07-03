@@ -3,6 +3,8 @@ package api
 import "github.com/convox/stdapi"
 
 func (s *Server) setupRoutes(r stdapi.Router) {
+	r.Use(s.Authorize)
+
 	r.Route("POST", "/apps/{name}/cancel", s.AppCancel)
 	r.Route("POST", "/apps", s.AppCreate)
 	r.Route("DELETE", "/apps/{name}", s.AppDelete)
@@ -60,6 +62,8 @@ func (s *Server) setupRoutes(r stdapi.Router) {
 	r.Route("PUT", "/apps/{app}/services/{name}", s.ServiceUpdate)
 	r.Route("GET", "/system", s.SystemGet)
 	r.Route("", "", s.SystemInstall)
+	r.Route("PUT", "/system/jwt/rotate", s.SystemJwtSignKeyRotate)
+	r.Route("POST", "/system/jwt/token", s.SystemJwtToken)
 	r.Route("SOCKET", "/system/logs", s.SystemLogs)
 	r.Route("GET", "/system/metrics", s.SystemMetrics)
 	r.Route("GET", "/system/processes", s.SystemProcesses)

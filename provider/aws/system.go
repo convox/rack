@@ -3,6 +3,7 @@ package aws
 import (
 	"bufio"
 	"crypto/tls"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -21,10 +22,12 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/aws/aws-sdk-go/service/kms"
+	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/convox/rack/pkg/helpers"
 	"github.com/convox/rack/pkg/structs"
 	"github.com/fatih/color"
 	"github.com/pkg/errors"
+	uuid "github.com/satori/go.uuid"
 	"golang.org/x/crypto/nacl/secretbox"
 	"gopkg.in/cheggaaa/pb.v1"
 
@@ -35,7 +38,8 @@ const (
 	keyLength   = 32
 	nonceLength = 24
 
-	ParameterNameTags = "Tags"
+	ConvoxJwtSsmKeyName = "convox-jwt-key"
+	ParameterNameTags   = "Tags"
 )
 
 type envelope struct {
@@ -197,6 +201,7 @@ func (p *Provider) SystemGet() (*structs.System, error) {
 		Outputs:    outputs,
 		Parameters: params,
 		Provider:   "aws",
+		RackDomain: outputs["RackDomain"],
 		Region:     p.Region,
 		Status:     status,
 		Type:       params["InstanceType"],
@@ -330,6 +335,55 @@ func (p *Provider) SystemInstall(w io.Writer, opts structs.SystemInstallOptions)
 	}
 
 	return ep, nil
+}
+
+func (p *Provider) SystemJwtSignKey() (string, error) {
+	s, err := p.ssm().GetParameter(&ssm.GetParameterInput{
+		Name:           aws.String(ConvoxJwtSsmKeyName),
+		WithDecryption: aws.Bool(true),
+	})
+	if err != nil && helpers.AwsErrorCode(err) != ssm.ErrCodeParameterNotFound {
+		return "", err
+	}
+
+	if s == nil || s.Parameter == nil || s.Parameter.Value == nil {
+		return p.SystemJwtSignKeyRotate()
+	}
+
+	return *s.Parameter.Value, nil
+}
+
+func (p *Provider) SystemJwtSignKeyRotate() (string, error) {
+	td, err := p.stackResource(p.Rack, "ServiceWebApi")
+	if err != nil {
+		return "", err
+	}
+
+	key, err := p.updateJwtSignKey()
+	if err != nil {
+		return "", err
+	}
+
+	parts := strings.Split(*td.PhysicalResourceId, "/")
+
+	// restart the containers
+	_, err = p.ecs().UpdateService(&ecs.UpdateServiceInput{
+		Cluster:            &p.Cluster,
+		Service:            &parts[len(parts)-1],
+		ForceNewDeployment: aws.Bool(true),
+	})
+	return key, err
+}
+
+func (p *Provider) updateJwtSignKey() (string, error) {
+	key := base64.StdEncoding.EncodeToString(uuid.NewV4().Bytes())
+	_, err := p.ssm().PutParameter(&ssm.PutParameterInput{
+		Name:      aws.String(ConvoxJwtSsmKeyName),
+		Overwrite: aws.Bool(true),
+		Type:      aws.String("SecureString"),
+		Value:     aws.String(key),
+	})
+	return key, err
 }
 
 // SystemLogs streams logs for the Rack

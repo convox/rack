@@ -19,6 +19,7 @@ func testServer(t *testing.T, fn func(*stdsdk.Client, *structs.MockProvider)) {
 	p := &structs.MockProvider{}
 	p.On("Initialize", mock.Anything).Return(nil)
 	p.On("WithContext", mock.Anything).Return(p).Maybe()
+	p.On("SystemJwtSignKey").Return("", nil)
 
 	s := api.NewWithProvider(p)
 	s.Logger = logger.Discard

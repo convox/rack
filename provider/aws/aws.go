@@ -26,6 +26,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/sns"
 	"github.com/aws/aws-sdk-go/service/sqs"
+	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/convox/logger"
 	"github.com/convox/rack/pkg/helpers"
@@ -416,6 +417,14 @@ func (p *Provider) sts() *sts.STS {
 		panic(errors.WithStack(err))
 	}
 	return sts.New(s, p.config())
+}
+
+func (p *Provider) ssm() *ssm.SSM {
+	s, err := helpers.NewSession()
+	if err != nil {
+		panic(errors.WithStack(err))
+	}
+	return ssm.New(s, p.config())
 }
 
 // IsTest returns true when we're in test mode

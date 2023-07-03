@@ -5,6 +5,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/convox/rack/pkg/structs"
 	"github.com/convox/stdapi"
@@ -1174,6 +1175,41 @@ func (s *Server) SystemGet(c *stdapi.Context) error {
 
 func (s *Server) SystemInstall(c *stdapi.Context) error {
 	return stdapi.Errorf(404, "not available via api")
+}
+
+func (s *Server) SystemJwtSignKeyRotate(c *stdapi.Context) error {
+	_, err := s.provider(c).WithContext(c.Context()).SystemJwtSignKeyRotate()
+	if err != nil {
+		return err
+	}
+	return c.RenderOK()
+}
+
+func (s *Server) SystemJwtToken(c *stdapi.Context) error {
+	role := c.Value("role")
+	durationInHour, err := strconv.Atoi(c.Value("durationInHour"))
+	if err != nil {
+		return stdapi.Errorf(404, "invalid duration")
+	}
+
+	var tk string
+
+	switch role {
+	case "read":
+		tk, err = s.JwtMngr.ReadToken(time.Hour * time.Duration(durationInHour))
+		if err != nil {
+			return err
+		}
+	case "write":
+		tk, err = s.JwtMngr.WriteToken(time.Hour * time.Duration(durationInHour))
+		if err != nil {
+			return err
+		}
+	}
+
+	return c.RenderJSON(map[string]string{
+		"token": tk,
+	})
 }
 
 func (s *Server) SystemLogs(c *stdapi.Context) error {
