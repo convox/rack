@@ -170,7 +170,7 @@ func TestBuildExport(t *testing.T) {
 	h, err := tr.Next()
 	assert.NoError(t, err)
 	assert.Equal(t, "build.json", h.Name)
-	assert.Equal(t, int64(465), h.Size)
+	assert.Equal(t, int64(482), h.Size)
 
 	data, err := io.ReadAll(tr)
 	assert.NoError(t, err)

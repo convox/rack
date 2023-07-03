@@ -925,6 +925,7 @@ func (p *Provider) generateTaskDefinition1(app, service string, opts structs.Pro
 		"APP":               app,
 		"AWS_REGION":        p.Region,
 		"BUILD":             b.Id,
+		"BUILD_GIT_SHA":     b.GitSha,
 		"BUILD_DESCRIPTION": b.Description,
 		"LOG_GROUP":         a.Outputs["LogGroup"],
 		"PROCESS":           service,
@@ -1130,6 +1131,7 @@ func (p *Provider) generateTaskDefinition2(app, service string, opts structs.Pro
 	senv["AWS_REGION"] = p.Region
 	senv["APP"] = r.App
 	senv["BUILD"] = b.Id
+	senv["BUILD_GIT_SHA"] = b.GitSha
 	senv["BUILD_DESCRIPTION"] = b.Description
 	senv["CONVOX_ENV_KEY"] = p.EncryptionKey
 	senv["CONVOX_ENV_URL"] = fmt.Sprintf("s3://%s/releases/%s/env", settings, release)

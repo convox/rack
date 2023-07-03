@@ -629,6 +629,7 @@
                 { "Name": "AWS_REGION", "Value": { "Ref": "AWS::Region" } },
                 { "Name": "APP", "Value": "{{$.App}}" },
                 { "Name": "BUILD", "Value": "{{$.Build.Id}}" },
+                { "Name": "BUILD_GIT_SHA", "Value": {{ safe $.Build.GitSha }} },
                 { "Name": "BUILD_DESCRIPTION", "Value": {{ safe $.Build.Description }} },
                 { "Name": "CONVOX_ENV_KEY", "Value": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:EncryptionKey" } } },
                 { "Name": "CONVOX_ENV_URL", "Value": { "Fn::Sub": "s3://${Settings}/releases/{{$.Release.Id}}/env" } },
