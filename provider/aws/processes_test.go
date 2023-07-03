@@ -1277,6 +1277,10 @@ var cycleProcessRegisterTaskDefinitionDetached = awsutil.Cycle{
 							"value": "test desc"
 						},
 						{
+							"name": "BUILD_GIT_SHA",
+							"value": ""
+						},
+						{
 							"name": "LOG_GROUP",
 							"value": ""
 						},

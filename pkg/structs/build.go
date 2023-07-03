@@ -9,6 +9,7 @@ type Build struct {
 	App            string `json:"app"`
 	Description    string `json:"description"`
 	Entrypoint     string `json:"entrypoint"`
+	GitSha         string `json:"git-sha"`
 	Logs           string `json:"logs"`
 	Manifest       string `json:"manifest"`
 	Process        string `json:"process"`
@@ -32,6 +33,8 @@ type BuildCreateOptions struct {
 	Manifest       *string   `flag:"manifest,m" param:"manifest"`
 	NoCache        *bool     `flag:"no-cache" param:"no-cache"`
 	WildcardDomain *bool     `flag:"wildcard-domain" param:"wildcard-domain"`
+
+	GitSha *string `param:"git-sha"`
 }
 
 type BuildListOptions struct {
