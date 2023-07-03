@@ -27,9 +27,11 @@ type Interface interface {
 	InstanceShellClassic(string, io.ReadWriter, structs.InstanceShellOptions) (int, error)
 	ProcessRunAttached(string, string, io.ReadWriter, int, structs.ProcessRunOptions) (int, error)
 	ProcessRunDetached(string, string, structs.ProcessRunOptions) (string, error)
+	RackHost(rackOrgSlug string) (structs.RackData, error)
 	RegistryRemoveClassic(string) error
 	ResourceCreateClassic(string, structs.ResourceCreateOptions) (*structs.Resource, error)
 	ResourceUpdateClassic(string, structs.ResourceUpdateOptions) (*structs.Resource, error)
+	SystemJwtToken(opts structs.SystemJwtOptions) (*structs.SystemJwt, error)
 	SystemResourceCreateClassic(string, structs.ResourceCreateOptions) (*structs.Resource, error)
 	SystemResourceDeleteClassic(string) error
 	SystemResourceGetClassic(string) (*structs.Resource, error)
