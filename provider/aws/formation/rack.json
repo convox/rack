@@ -2604,6 +2604,7 @@
       "Type": "AWS::SQS::QueuePolicy",
       "Properties": {
         "Queues": [ { "Ref": "AccountEvents" } ],
+        "SqsManagedSseEnabled": true,
         "PolicyDocument": {
           "Version": "2012-10-17",
           "Statement": [
@@ -2639,6 +2640,7 @@
       "Type": "AWS::SQS::QueuePolicy",
       "Properties": {
         "Queues": [ { "Ref": "CloudformationEvents" } ],
+        "SqsManagedSseEnabled": true,
         "PolicyDocument": {
           "Version": "2012-10-17",
           "Statement": [
