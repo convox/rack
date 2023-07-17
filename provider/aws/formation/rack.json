@@ -2607,7 +2607,10 @@
       }
     },
     "AccountEvents": {
-      "Type": "AWS::SQS::Queue"
+      "Type": "AWS::SQS::Queue",
+      "Properties": {
+        "SqsManagedSseEnabled": true
+      }
     },
     "AccountEventsPolicy": {
       "Type": "AWS::SQS::QueuePolicy",
@@ -2642,7 +2645,10 @@
       }
     },
     "CloudformationEvents": {
-      "Type": "AWS::SQS::Queue"
+      "Type": "AWS::SQS::Queue",
+      "Properties": {
+        "SqsManagedSseEnabled": true
+      }
     },
     "CloudformationEventsPolicy": {
       "Type": "AWS::SQS::QueuePolicy",
