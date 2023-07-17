@@ -3,6 +3,7 @@
     "AWSTemplateFormatVersion" : "2010-09-09",
     "Conditions": {
       "CircuitBreaker": { "Fn::Equals": [ { "Ref": "CircuitBreaker" }, "Yes" ] },
+      "DedicatedRole": { "Fn::Not":[{"Fn::Equals":[{"Ref":"Policies"},""]} ] },
       "EC2Launch": { "Fn::Not": [ { "Condition": "FargateEither" } ] },
       "EnableCloudWatch": { "Fn::Equals": [ { "Ref": "LogDriver" }, "CloudWatch" ] },
       "EnableSyslog": { "Fn::Equals": [ { "Ref": "LogDriver" }, "Syslog" ] },
@@ -105,6 +106,10 @@
       },
       "Memory": {
         "Type": "Number"
+      },
+      "Policies": {
+        "Description": "It will create a new role to be used instead of 'Role' parameter.",
+        "Type": "String"
       },
       "Private": {
         "Type": "String",
@@ -592,6 +597,28 @@
           "TaskDefinition": { "Ref": "Tasks" }
         }
       },
+      "DedicatedRole": {
+        "Condition": "DedicatedRole",
+        "Type": "AWS::IAM::Role",
+        "Properties": {
+          "AssumeRolePolicyDocument": {
+            "Statement": [ { "Effect": "Allow", "Principal": { "Service": [ "ecs-tasks.amazonaws.com" ] }, "Action": [ "sts:AssumeRole" ] } ],
+            "Version": "2012-10-17"
+          },
+          "ManagedPolicyArns": {"Fn::Split":[",",{"Fn::Join":[",",[{"Ref":"Policies"},{"Fn::ImportValue":{"Fn::Sub":"${Rack}:CMKPolicy"}}]]}]},
+          "Path": "/convox/",
+          "Policies": [ {
+            "PolicyName": "convox-env",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                { "Effect": "Allow", "Action": "s3:GetObject", "Resource": { "Fn::Sub": "arn:${AWS::Partition}:s3:::${Settings}/*" } },
+                { "Effect": "Allow", "Action": "kms:Decrypt", "Resource": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:EncryptionKey" } } }
+              ]
+            }
+          } ]
+        }
+      },
       "Tasks": {
         "Type": "AWS::ECS::TaskDefinition",
         "Properties": {
@@ -629,6 +656,7 @@
                 { "Name": "AWS_REGION", "Value": { "Ref": "AWS::Region" } },
                 { "Name": "APP", "Value": "{{$.App}}" },
                 { "Name": "BUILD", "Value": "{{$.Build.Id}}" },
+                { "Name": "BUILD_GIT_SHA", "Value": {{ safe $.Build.GitSha }} },
                 { "Name": "BUILD_DESCRIPTION", "Value": {{ safe $.Build.Description }} },
                 { "Name": "CONVOX_ENV_KEY", "Value": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:EncryptionKey" } } },
                 { "Name": "CONVOX_ENV_URL", "Value": { "Fn::Sub": "s3://${Settings}/releases/{{$.Release.Id}}/env" } },
@@ -725,7 +753,7 @@
           "Memory": { "Fn::If": [ "FargateEither", { "Ref": "Memory" }, { "Ref": "AWS::NoValue" } ] },
           "NetworkMode": { "Fn::If": [ "IsolateServices", "awsvpc", { "Ref": "AWS::NoValue" } ] },
           "RequiresCompatibilities": [ { "Fn::If": [ "FargateEither", "FARGATE", { "Ref": "AWS::NoValue" } ] } ],
-          "TaskRoleArn": { "Ref": "Role" },
+          "TaskRoleArn": { "Fn::If": [ "DedicatedRole", { "Fn::GetAtt": [ "DedicatedRole", "Arn" ] }, { "Ref": "Role" } ] },
           "Volumes": [
             {{ range $i, $v := .Volumes }}
               {{ $volume := splitVolumeLabel $v }}

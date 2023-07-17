@@ -172,3 +172,10 @@ func (p *Provider) systemUpdate(version string) error {
 
 	return nil
 }
+
+func (p *Provider) SystemJwtSignKey() (string, error) {
+	return "", fmt.Errorf("unimplemented")
+}
+func (p *Provider) SystemJwtSignKeyRotate() (string, error) {
+	return "", fmt.Errorf("unimplemented")
+}

@@ -370,6 +370,15 @@
     "Rack": {
       "Value": { "Ref": "AWS::StackName" }
     },
+    "RackDomain": {
+      "Value": { 
+        "Fn::Join": [ ".", [
+          "rack",
+          { "Fn::Select": [ 0, { "Fn::Split": [ ".", { "Fn::GetAtt": [ "ApiBalancer", "DNSName" ] } ] } ] },
+          { "Fn::Select": [ 1, { "Fn::Split": [ ".", { "Fn::GetAtt": [ "ApiBalancer", "DNSName" ] } ] } ] },
+          "convox.site"
+        ] ] }
+    },
     "RouterCertificate": {
       "Condition": "PublicRouter",
       "Export": { "Name": { "Fn::Sub": "${AWS::StackName}:RouterCertificate" } },

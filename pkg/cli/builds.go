@@ -103,6 +103,15 @@ func build(rack sdk.Interface, c *stdcli.Context, development bool) (*structs.Bu
 		}
 	}
 
+	dir := coalesce(c.Arg(0), ".")
+	if data, err := c.Execute("git", "-C", dir, "rev-parse", "HEAD"); err == nil {
+		opts.GitSha = options.String(strings.TrimSpace(string(data)))
+	}
+
+	if os.Getenv("PROVIDER") == "test" {
+		opts.GitSha = nil
+	}
+
 	c.Startf("Packaging source")
 
 	data, err := helpers.Tarball(coalesce(c.Arg(0), "."))

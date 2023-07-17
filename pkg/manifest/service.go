@@ -22,6 +22,7 @@ type Service struct {
 	Init        bool               `yaml:"init,omitempty"`
 	Internal    bool               `yaml:"internal,omitempty"`
 	Links       []string           `yaml:"links,omitempty"`
+	Policies    []string           `yaml:"policies,omitempty"`
 	Port        ServicePort        `yaml:"port,omitempty"`
 	Privileged  bool               `yaml:"privileged,omitempty"`
 	Resources   []string           `yaml:"resources,omitempty"`

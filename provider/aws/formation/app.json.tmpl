@@ -374,6 +374,7 @@
           "InternalDomains": { "Ref": "InternalDomains" },
           "Isolate": { "Fn::If": [ "IsolateServices", "Yes", "No" ] },
           "Memory": { "Fn::Select": [ 2, { "Ref": "{{ upper .Name }}Formation" } ] },
+          "Policies": "{{ join .Policies "," }}",
           "Private": { "Ref": "Private" },
           "Rack": { "Ref": "Rack" },
           "RackUrl": { "Ref": "RackUrl" },
