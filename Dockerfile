@@ -61,7 +61,7 @@ RUN make package build compress
 
 ## production ##################################################################
 
-FROM ubuntu:18.04
+FROM ubuntu:22.04
 
 ARG DOCKER_ARCH=x86_64
 ARG KUBECTL_ARCH=amd64
