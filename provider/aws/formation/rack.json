@@ -2962,7 +2962,14 @@
       "Properties": {
         "ServiceToken": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
         "SecurityGroupID": { "Ref": "ApiBalancerSecurity" },
-        "Ips": { "Ref": "WhiteList" }
+        "Ips": { "Ref": "WhiteList" },
+        "SgIDs": { "Fn::Join": [ ",",[
+          { "Fn::If": [ "BlankInstanceSecurityGroup", { "Ref": "InstancesSecurity" }, { "Ref": "InstanceSecurityGroup" } ] },
+          { "Fn::If": [ "BlankBuildInstanceSecurityGroup",
+            { "Fn::If": [ "BlankInstanceSecurityGroup", { "Ref": "InstancesSecurity" }, { "Ref": "InstanceSecurityGroup" } ] },
+            { "Ref": "BuildInstanceSecurityGroup" }
+          ] }
+        ]]}
       }
     },
     "ApiBalancerSecurity": {

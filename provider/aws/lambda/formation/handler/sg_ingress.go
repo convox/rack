@@ -52,20 +52,24 @@ func SGIngressUpdate(req Request) (string, map[string]string, error) {
 func sgIngressApply(req Request) error {
 	sgId := aws.String(req.ResourceProperties["SecurityGroupID"].(string))
 	newIpStrs := strings.Split(req.ResourceProperties["Ips"].(string), ",")
+	newSgStrs := strings.Split(req.ResourceProperties["SgIDs"].(string), ",")
 
 	res, err := EC2(req).DescribeSecurityGroups(&ec2.DescribeSecurityGroupsInput{
 		GroupIds: []*string{sgId},
 	})
 	if err != nil {
+		fmt.Println("1")
 		return err
 	}
 
 	var ipPermissions []*ec2.IpPermission
 	for _, group := range res.SecurityGroups {
 		ipPermissions = group.IpPermissions
+
 	}
 
 	var prevIps []*ec2.IpRange
+	var prevSgIDs []string
 	for i := range ipPermissions {
 		if ipPermissions[i].IpProtocol != nil && *ipPermissions[i].IpProtocol == "tcp" &&
 			ipPermissions[i].FromPort != nil && *ipPermissions[i].FromPort == 443 &&
@@ -75,6 +79,11 @@ func sgIngressApply(req Request) error {
 					prevIps = append(prevIps, &ec2.IpRange{
 						CidrIp: ipRange.CidrIp,
 					})
+				}
+			}
+			for _, idGroupPair := range ipPermissions[i].UserIdGroupPairs {
+				if idGroupPair.Description != nil && strings.Contains(*idGroupPair.Description, CONVOX_MANAGED) && idGroupPair.GroupId != nil {
+					prevSgIDs = append(prevSgIDs, *idGroupPair.GroupId)
 				}
 			}
 		}
@@ -93,6 +102,7 @@ func sgIngressApply(req Request) error {
 			},
 		})
 		if err != nil {
+			fmt.Println("2")
 			return err
 		}
 	}
@@ -121,6 +131,72 @@ func sgIngressApply(req Request) error {
 			},
 		})
 		if err != nil {
+			fmt.Println("3")
+			return err
+		}
+	}
+
+	prevSgMap := map[string]int{}
+	for _, id := range prevSgIDs {
+		prevSgMap[id] = 1
+	}
+
+	var newGrpPairs []*ec2.UserIdGroupPair
+	for _, id := range newSgStrs {
+		id = strings.TrimSpace(id)
+		if id != "" {
+			if _, has := prevSgMap[id]; !has {
+				newGrpPairs = append(newGrpPairs, &ec2.UserIdGroupPair{
+					Description: aws.String(CONVOX_MANAGED),
+					GroupId:     aws.String(id),
+				})
+			} else {
+				prevSgMap[id] = 2
+			}
+		}
+	}
+
+	if len(newGrpPairs) > 0 {
+		_, err = EC2(req).AuthorizeSecurityGroupIngress(&ec2.AuthorizeSecurityGroupIngressInput{
+			GroupId: sgId,
+			IpPermissions: []*ec2.IpPermission{
+				{
+					FromPort:         aws.Int64(443),
+					ToPort:           aws.Int64(443),
+					IpProtocol:       aws.String("tcp"),
+					UserIdGroupPairs: newGrpPairs,
+				},
+			},
+		})
+		if err != nil {
+			fmt.Println("4")
+			return err
+		}
+	}
+
+	var deleteGrpPairs []*ec2.UserIdGroupPair
+	for id, val := range prevSgMap {
+		if val == 1 {
+			deleteGrpPairs = append(deleteGrpPairs, &ec2.UserIdGroupPair{
+				GroupId: aws.String(id),
+			})
+		}
+	}
+
+	if len(deleteGrpPairs) > 0 {
+		_, err = EC2(req).RevokeSecurityGroupIngress(&ec2.RevokeSecurityGroupIngressInput{
+			GroupId: sgId,
+			IpPermissions: []*ec2.IpPermission{
+				{
+					FromPort:         aws.Int64(443),
+					ToPort:           aws.Int64(443),
+					IpProtocol:       aws.String("tcp"),
+					UserIdGroupPairs: deleteGrpPairs,
+				},
+			},
+		})
+		if err != nil {
+			fmt.Println("5")
 			return err
 		}
 	}
