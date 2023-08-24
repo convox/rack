@@ -2963,21 +2963,28 @@
         "ServiceToken": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
         "SecurityGroupID": { "Ref": "ApiBalancerSecurity" },
         "Ips": {
-        "Fn::Join":[ ",",
-          [{ "Ref": "WhiteList" }, {
-          "Fn::If": [
-            "Private",
-            { "Fn::Join": [
-              ",",
-              [
-                { "Ref": "NatAddress0" },
-                { "Ref": "NatAddress1" },
-                { "Fn::If": [ "ThirdAvailabilityZoneAndHighAvailability", { "Ref": "NatAddress2" }, { "Ref": "AWS::NoValue" } ] }
-              ]
+          "Fn::Join":[ ",",
+          [
+            { "Fn::If": [ "WhiteListCIDRs",
+                { "Ref": "WhiteList" },
+                { "Ref": "AWS::NoValue" }
             ]},
-            ""
-          ]
-        }]]},
+            {
+              "Fn::If": [
+                "Private",
+                { "Fn::Join": [
+                  ",",
+                  [
+                    { "Fn::Join": [ "", [ { "Ref": "NatAddress0" }, "/32"]]},
+                    { "Fn::Join": [ "", [ { "Ref": "NatAddress1" }, "/32"]]},
+                    { "Fn::If": [ "ThirdAvailabilityZoneAndHighAvailability", { "Fn::Join": [ "", [ { "Ref": "NatAddress2" }, "/32"]]}, { "Ref": "AWS::NoValue" } ] }
+                  ]
+                ]},
+                { "Ref": "AWS::NoValue" }
+              ]
+            }
+          ]]
+        },
         "SgIDs": { "Fn::Join": [ ",",[
           { "Fn::If": [ "BlankInstanceSecurityGroup", { "Ref": "InstancesSecurity" }, { "Ref": "InstanceSecurityGroup" } ] },
           { "Fn::If": [ "BlankBuildInstanceSecurityGroup",
