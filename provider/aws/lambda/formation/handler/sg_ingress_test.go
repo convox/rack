@@ -39,6 +39,23 @@ func TestSGIngress2(t *testing.T) {
 	}
 }
 
+func TestSGIngress4(t *testing.T) {
+	if os.Getenv("MANUAL_TEST") != "true" {
+		t.Skip()
+	}
+
+	err := sgIngressApply(Request{
+		ResourceProperties: map[string]interface{}{
+			"SecurityGroupID": "sg-019eb79e77bba7daa",
+			"Ips":             "10.0.0.0/16,173.0.0.0/8",
+			"SgIDs":           "",
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestSGIngress3(t *testing.T) {
 	if os.Getenv("MANUAL_TEST") != "true" {
 		t.Skip()

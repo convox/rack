@@ -69,6 +69,7 @@ func sgIngressApply(req Request) error {
 	}
 
 	var prevIps []*ec2.IpRange
+	var userDefinedIps []*ec2.IpRange
 	var prevSgIDs []string
 	var userDefinedSgIDs []string
 	for i := range ipPermissions {
@@ -79,6 +80,10 @@ func sgIngressApply(req Request) error {
 			for _, ipRange := range ipPermissions[i].IpRanges {
 				if ipRange.Description != nil && strings.Contains(*ipRange.Description, CONVOX_MANAGED) {
 					prevIps = append(prevIps, &ec2.IpRange{
+						CidrIp: ipRange.CidrIp,
+					})
+				} else {
+					userDefinedIps = append(userDefinedIps, &ec2.IpRange{
 						CidrIp: ipRange.CidrIp,
 					})
 				}
@@ -94,21 +99,16 @@ func sgIngressApply(req Request) error {
 		}
 	}
 
-	if len(prevIps) > 0 {
-		_, err = EC2(req).RevokeSecurityGroupIngress(&ec2.RevokeSecurityGroupIngressInput{
-			GroupId: sgId,
-			IpPermissions: []*ec2.IpPermission{
-				{
-					FromPort:   aws.Int64(443),
-					ToPort:     aws.Int64(443),
-					IpProtocol: aws.String("tcp"),
-					IpRanges:   prevIps,
-				},
-			},
-		})
-		if err != nil {
-			fmt.Println("2")
-			return err
+	prevIpMap := map[string]int{}
+	for i := range prevIps {
+		if prevIps[i].CidrIp != nil {
+			prevIpMap[*prevIps[i].CidrIp] = 1
+		}
+	}
+
+	for i := range userDefinedIps {
+		if userDefinedIps[i].CidrIp != nil {
+			prevIpMap[*userDefinedIps[i].CidrIp] = 2 // not to be touched
 		}
 	}
 
@@ -116,10 +116,13 @@ func sgIngressApply(req Request) error {
 	for _, ipStr := range newIpStrs {
 		cidr := strings.TrimSpace(ipStr)
 		if cidr != "" {
-			newIps = append(newIps, &ec2.IpRange{
-				CidrIp:      aws.String(cidr),
-				Description: aws.String(CONVOX_MANAGED),
-			})
+			if _, has := prevIpMap[cidr]; !has {
+				newIps = append(newIps, &ec2.IpRange{
+					CidrIp:      aws.String(cidr),
+					Description: aws.String(CONVOX_MANAGED),
+				})
+			}
+			prevIpMap[cidr] = 3
 		}
 	}
 
@@ -137,6 +140,32 @@ func sgIngressApply(req Request) error {
 		})
 		if err != nil {
 			fmt.Println("3")
+			return err
+		}
+	}
+
+	var deleteIps []*ec2.IpRange
+	for i := range prevIps {
+		if prevIps[i].CidrIp != nil {
+			if val, _ := prevIpMap[*prevIps[i].CidrIp]; val == 1 {
+				deleteIps = append(deleteIps, prevIps[i])
+			}
+		}
+	}
+	if len(deleteIps) > 0 {
+		_, err = EC2(req).RevokeSecurityGroupIngress(&ec2.RevokeSecurityGroupIngressInput{
+			GroupId: sgId,
+			IpPermissions: []*ec2.IpPermission{
+				{
+					FromPort:   aws.Int64(443),
+					ToPort:     aws.Int64(443),
+					IpProtocol: aws.String("tcp"),
+					IpRanges:   deleteIps,
+				},
+			},
+		})
+		if err != nil {
+			fmt.Println("2")
 			return err
 		}
 	}
