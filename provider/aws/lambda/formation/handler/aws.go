@@ -29,7 +29,7 @@ func Credentials(req *Request) *credentials.Credentials {
 		return credentials.NewStaticCredentials(os.Getenv("AWS_ACCESS"), os.Getenv("AWS_SECRET"), "")
 	}
 
-	// return credentials.NewCredentials(&credentials.EC2RoleProvider{})
+	// return credentials.NewSharedCredentials("", "")
 	return credentials.NewEnvCredentials()
 }
 
