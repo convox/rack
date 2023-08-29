@@ -58,7 +58,6 @@ func sgIngressApply(req Request) error {
 		GroupIds: []*string{sgId},
 	})
 	if err != nil {
-		fmt.Println("1")
 		return err
 	}
 
@@ -139,7 +138,6 @@ func sgIngressApply(req Request) error {
 			},
 		})
 		if err != nil {
-			fmt.Println("3")
 			return err
 		}
 	}
@@ -147,11 +145,15 @@ func sgIngressApply(req Request) error {
 	var deleteIps []*ec2.IpRange
 	for i := range prevIps {
 		if prevIps[i].CidrIp != nil {
-			if val, _ := prevIpMap[*prevIps[i].CidrIp]; val == 1 {
+			if val := prevIpMap[*prevIps[i].CidrIp]; val == 1 {
+				if *prevIps[i].CidrIp == "0.0.0.0/0" && len(req.ResourceProperties["Ips"].(string)) == 0 {
+					continue
+				}
 				deleteIps = append(deleteIps, prevIps[i])
 			}
 		}
 	}
+
 	if len(deleteIps) > 0 {
 		_, err = EC2(req).RevokeSecurityGroupIngress(&ec2.RevokeSecurityGroupIngressInput{
 			GroupId: sgId,
@@ -165,7 +167,6 @@ func sgIngressApply(req Request) error {
 			},
 		})
 		if err != nil {
-			fmt.Println("2")
 			return err
 		}
 	}
@@ -207,7 +208,6 @@ func sgIngressApply(req Request) error {
 			},
 		})
 		if err != nil {
-			fmt.Println("4")
 			return err
 		}
 	}
