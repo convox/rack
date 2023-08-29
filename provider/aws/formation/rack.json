@@ -29,6 +29,9 @@
     ]},
     "DedicatedBuilder": { "Fn::Not": [ { "Fn::Equals": [ { "Ref": "BuildInstance" }, "" ] } ] },
     "Development": { "Fn::Equals": [ { "Ref": "Development" }, "Yes" ] },
+    "EnableALBPort80": {
+      "Fn::And": [ { "Condition": "PublicRouter" }, { "Condition": { "Fn::Equals": [ { "Ref": "DisableALBPort80" }, "No" ] } } ]
+    },
     "EnableCloudWatch": { "Fn::Equals": [ { "Ref": "LogDriver" }, "CloudWatch" ] },
     "EnableSyslog": { "Fn::Equals": [ { "Ref": "LogDriver" }, "Syslog" ] },
     "EncryptEbs": { "Fn::Equals": [ { "Ref": "EncryptEbs" }, "Yes" ] },
@@ -394,7 +397,7 @@
       ] ] }
     },
     "RouterListener80": {
-      "Condition": "PublicRouter",
+      "Condition": "EnableALBPort80",
       "Export": { "Name": { "Fn::Sub": "${AWS::StackName}:RouterListener80" } },
       "Value": { "Ref": "RouterListener80" }
     },
@@ -636,6 +639,12 @@
     "Development": {
       "Type": "String",
       "Description": "Development mode",
+      "Default": "No",
+      "AllowedValues": [ "Yes", "No" ]
+    },
+    "DisableALBPort80": {
+      "Type": "String",
+      "Description": "Disable exposing 80 port on ALB",
       "Default": "No",
       "AllowedValues": [ "Yes", "No" ]
     },
@@ -2715,7 +2724,7 @@
     },
     "RouterListener80": {
       "Type": "AWS::ElasticLoadBalancingV2::Listener",
-      "Condition": "PublicRouter",
+      "Condition": "EnableALBPort80",
       "Properties": {
         "DefaultActions": [ { "Type": "redirect", "RedirectConfig": { "Protocol": "HTTPS", "Port": "443", "StatusCode": "HTTP_301" } } ],
         "LoadBalancerArn": { "Ref" : "Router" },
