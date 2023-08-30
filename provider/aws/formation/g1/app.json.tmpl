@@ -890,6 +890,13 @@
     "DeletionPolicy": "Retain",
     "Properties": {
       "AccessControl": "Private",
+      "OwnershipControls": {
+        "Rules": [
+          {
+            "ObjectOwnership": "BucketOwnerPreferred"
+          }
+        ]
+      },
       "BucketEncryption": {
         "ServerSideEncryptionConfiguration": [ {
           "BucketKeyEnabled": true,
