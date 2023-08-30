@@ -873,6 +873,13 @@
     "DeletionPolicy": "Retain",
     "Properties": {
       "AccessControl": "Private",
+      "OwnershipControls": {
+        "Rules": [
+          {
+            "ObjectOwnership": "BucketOwnerPreferred"
+          }
+        ]
+      },
       "BucketEncryption": {
         "ServerSideEncryptionConfiguration": [ { "ServerSideEncryptionByDefault": { "SSEAlgorithm": "aws:kms" } } ]
       },
