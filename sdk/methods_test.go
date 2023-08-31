@@ -429,7 +429,7 @@ func TestCertificateCreate(t *testing.T) {
 	}
 
 	s := stdapi.New("api", "api")
-	s.Route("POST", fmt.Sprintf("/certificates"), func(c *stdapi.Context) error {
+	s.Route("POST", "/certificates", func(c *stdapi.Context) error {
 		require.Equal(t, "chain", c.Form("chain"))
 		require.Equal(t, "public", c.Form("pub"))
 		require.Equal(t, "private", c.Form("key"))
@@ -466,7 +466,7 @@ func TestCertificateGenerate(t *testing.T) {
 	}
 
 	s := stdapi.New("api", "api")
-	s.Route("POST", fmt.Sprintf("/certificates/generate"), func(c *stdapi.Context) error {
+	s.Route("POST", "/certificates/generate", func(c *stdapi.Context) error {
 		require.Equal(t, "convox.xom", c.Form("domains"))
 		return c.RenderJSON(certResp)
 	})
@@ -486,7 +486,7 @@ func TestCertificateList(t *testing.T) {
 	}}
 
 	s := stdapi.New("api", "api")
-	s.Route("GET", fmt.Sprintf("/certificates"), func(c *stdapi.Context) error {
+	s.Route("GET", "/certificates", func(c *stdapi.Context) error {
 		return c.RenderJSON(certResp)
 	})
 
@@ -507,7 +507,7 @@ func TestEventSend(t *testing.T) {
 		Status: options.String("running"),
 	}
 	s := stdapi.New("api", "api")
-	s.Route("POST", fmt.Sprintf("/events"), func(c *stdapi.Context) error {
+	s.Route("POST", "/events", func(c *stdapi.Context) error {
 		require.Equal(t, "hello=world", c.Form("data"))
 		require.Equal(t, *opts.Error, c.Form("error"))
 		require.Equal(t, *opts.Status, c.Form("status"))
@@ -590,7 +590,7 @@ func TestInstanceList(t *testing.T) {
 	}}
 
 	s := stdapi.New("api", "api")
-	s.Route("GET", fmt.Sprintf("/instances"), func(c *stdapi.Context) error {
+	s.Route("GET", "/instances", func(c *stdapi.Context) error {
 		return c.RenderJSON(is)
 	})
 
@@ -864,7 +864,7 @@ func TestRegistryAdd(t *testing.T) {
 		Password: "password",
 	}
 	s := stdapi.New("api", "api")
-	s.Route("POST", fmt.Sprintf("/registries"), func(c *stdapi.Context) error {
+	s.Route("POST", "/registries", func(c *stdapi.Context) error {
 		require.Equal(t, rs.Server, c.Form("server"))
 		require.Equal(t, rs.Username, c.Form("username"))
 		require.Equal(t, rs.Password, c.Form("password"))
@@ -885,7 +885,7 @@ func TestRegistryList(t *testing.T) {
 		Password: "password",
 	}}
 	s := stdapi.New("api", "api")
-	s.Route("GET", fmt.Sprintf("/registries"), func(c *stdapi.Context) error {
+	s.Route("GET", "/registries", func(c *stdapi.Context) error {
 		return c.RenderJSON(rs)
 	})
 
@@ -1168,7 +1168,7 @@ func TestSystemGet(t *testing.T) {
 		Version:    "version",
 	}
 	s := stdapi.New("api", "api")
-	s.Route("GET", fmt.Sprintf("/system"), func(c *stdapi.Context) error {
+	s.Route("GET", "/system", func(c *stdapi.Context) error {
 		return c.RenderJSON(ss)
 	})
 
@@ -1184,7 +1184,7 @@ func TestSystemLogs(t *testing.T) {
 	s.Route("GET", "/racks", func(c *stdapi.Context) error {
 		return c.RenderOK()
 	})
-	s.Route("SOCKET", fmt.Sprintf("/system/logs"), func(c *stdapi.Context) error {
+	s.Route("SOCKET", "/system/logs", func(c *stdapi.Context) error {
 		require.Equal(t, "test", c.Header("Filter"))
 		return c.Websocket().WriteMessage(websocket.TextMessage, []byte("data"))
 	})
@@ -1222,7 +1222,7 @@ func TestSystemMetrics(t *testing.T) {
 	}
 
 	s := stdapi.New("api", "api")
-	s.Route("GET", fmt.Sprintf("/system/metrics"), func(c *stdapi.Context) error {
+	s.Route("GET", "/system/metrics", func(c *stdapi.Context) error {
 		require.Equal(t, "120", c.Query("period"))
 		require.Equal(t, startTime.Format("20060102.150405.000000000"), c.Query("start"))
 		return c.RenderJSON(ms)
@@ -1258,7 +1258,7 @@ func TestSystemProcesses(t *testing.T) {
 	}
 
 	s := stdapi.New("api", "api")
-	s.Route("GET", fmt.Sprintf("/system/processes"), func(c *stdapi.Context) error {
+	s.Route("GET", "/system/processes", func(c *stdapi.Context) error {
 		require.Equal(t, "true", c.Query("all"))
 		return c.RenderJSON(ps)
 	})
@@ -1283,7 +1283,7 @@ func TestSystemReleases(t *testing.T) {
 	}}
 
 	s := stdapi.New("api", "api")
-	s.Route("GET", fmt.Sprintf("/system/releases"), func(c *stdapi.Context) error {
+	s.Route("GET", "/system/releases", func(c *stdapi.Context) error {
 		return c.RenderJSON(rs)
 	})
 
@@ -1304,7 +1304,7 @@ func TestSystemResourceCreate(t *testing.T) {
 		Apps:       structs.Apps{{Name: "app1"}},
 	}
 	s := stdapi.New("api", "api")
-	s.Route("POST", fmt.Sprintf("/resources"), func(c *stdapi.Context) error {
+	s.Route("POST", "/resources", func(c *stdapi.Context) error {
 		require.Equal(t, rs.Type, c.Form("kind"))
 		require.Equal(t, rs.Name, c.Form("name"))
 		require.Equal(t, "hello=world", c.Form("parameters"))
@@ -1391,7 +1391,7 @@ func TestSystemResourceList(t *testing.T) {
 		Apps:       structs.Apps{{Name: "app1"}},
 	}}
 	s := stdapi.New("api", "api")
-	s.Route("GET", fmt.Sprintf("/resources"), func(c *stdapi.Context) error {
+	s.Route("GET", "/resources", func(c *stdapi.Context) error {
 		return c.RenderJSON(rs)
 	})
 
@@ -1415,7 +1415,7 @@ func TestSystemResourceTypes(t *testing.T) {
 		},
 	}}
 	s := stdapi.New("api", "api")
-	s.Route("OPTIONS", fmt.Sprintf("/resources"), func(c *stdapi.Context) error {
+	s.Route("OPTIONS", "/resources", func(c *stdapi.Context) error {
 		return c.RenderJSON(rs)
 	})
 
@@ -1475,7 +1475,7 @@ func TestSystemResourceUpdate(t *testing.T) {
 
 func TestSystemUpdate(t *testing.T) {
 	s := stdapi.New("api", "api")
-	s.Route("PUT", fmt.Sprintf("/system"), func(c *stdapi.Context) error {
+	s.Route("PUT", "/system", func(c *stdapi.Context) error {
 		require.Equal(t, "2", c.Form("count"))
 		require.Equal(t, "hello=world", c.Form("parameters"))
 		require.Equal(t, "type", c.Form("type"))

@@ -80,7 +80,7 @@ func (p *Process) GenerateArgs(opts *ArgOptions) ([]string, error) {
 
 	for _, e := range p.service.Environment {
 		if e.Needed && e.Value == "" {
-			args = append(args, "-e", fmt.Sprintf("%s", e.Name))
+			args = append(args, "-e", e.Name)
 		} else {
 			if ev, ok := userEnv[e.Name]; ok {
 				args = append(args, "-e", fmt.Sprintf("%s=%s", e.Name, ev))
