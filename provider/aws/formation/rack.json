@@ -2,6 +2,7 @@
   "AWSTemplateFormatVersion": "2010-09-09",
   "Conditions": {
     "Autoscale": { "Fn::Equals": [ { "Ref": "Autoscale" }, "Yes" ] },
+    "ScaleToZero": { "Fn::Equals": [ { "Ref": "ScaleToZero" }, "Yes" ] },
     "BlankAmi": { "Fn::Equals": [ { "Ref": "Ami" }, "" ] },
     "BlankAvailabilityZones": { "Fn::Equals": [ { "Fn::Join": [ "", { "Ref": "AvailabilityZones" } ] }, "" ] },
     "BlankBuildImage": { "Fn::Equals": [ { "Ref": "BuildImage" }, "" ] },
@@ -575,6 +576,12 @@
       "Default": "256"
     },
     "Autoscale": {
+      "Type": "String",
+      "Description": "Autoscale rack instances",
+      "Default": "Yes",
+      "AllowedValues": [ "Yes", "No" ]
+    },
+    "ScaleToZero": {
       "Type": "String",
       "Description": "Autoscale rack instances",
       "Default": "Yes",
@@ -1693,11 +1700,11 @@
           ] ]
         },
         "Cooldown": 5,
-        "DesiredCapacity": "1",
+        "DesiredCapacity": {"Fn::If": ["ScaleToZero", "0", "1"]},
         "HealthCheckType": "EC2",
         "HealthCheckGracePeriod": "120",
-        "MinSize" : "1",
-        "MaxSize" : "2",
+        "MinSize" : {"Fn::If": ["ScaleToZero", "0", "1"]},
+        "MaxSize" : {"Fn::If": ["ScaleToZero", "0", "2"]},
         "MetricsCollection": [ { "Granularity": "1Minute" } ],
         "Tags": [
           {
@@ -1923,11 +1930,11 @@
           ] ]
         },
         "Cooldown": 5,
-        "DesiredCapacity" : { "Fn::If": [ "SpotInstancesAndHA", { "Ref": "AWS::NoValue" }, { "Fn::If": [ "HighAvailability", { "Ref": "InstanceCount"}, { "Ref": "NoHaInstanceCount"} ] } ] },
+        "DesiredCapacity" : {"Fn::If": ["ScaleToZero", "0", { "Fn::If": [ "SpotInstancesAndHA", { "Ref": "AWS::NoValue" }, { "Fn::If": [ "HighAvailability", { "Ref": "InstanceCount"}, { "Ref": "NoHaInstanceCount"} ] } ] }]},
         "HealthCheckType": "EC2",
         "HealthCheckGracePeriod": "120",
-        "MinSize" : { "Fn::If": [ "SpotInstancesAndHA", { "Ref": "OnDemandMinCount" }, { "Fn::If": [ "HighAvailability", { "Ref": "InstanceCount"}, "1" ] } ] },
-        "MaxSize" : "1000",
+        "MinSize" : {"Fn::If": ["ScaleToZero", "0", { "Fn::If": [ "SpotInstancesAndHA", { "Ref": "OnDemandMinCount" }, { "Fn::If": [ "HighAvailability", { "Ref": "InstanceCount"}, "1" ] } ] } ] },
+        "MaxSize" : {"Fn::If": ["ScaleToZero", "0", "1000"]},
         "MetricsCollection": [ { "Granularity": "1Minute" } ],
         "TerminationPolicies": [ "NewestInstance" ],
         "Tags": [
@@ -2448,7 +2455,7 @@
         "HealthCheckType": "EC2",
         "HealthCheckGracePeriod": "120",
         "MinSize": "0",
-        "MaxSize": "1000",
+        "MaxSize": {"Fn::If": ["ScaleToZero", "0", "1000"]},
         "MetricsCollection": [ { "Granularity": "1Minute" } ],
         "Tags": [
           {
