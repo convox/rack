@@ -37,7 +37,7 @@ func (c *IngressController) Client() kubernetes.Interface {
 }
 
 func (c *IngressController) ListOptions(opts *am.ListOptions) {
-	opts.LabelSelector = fmt.Sprintf("system=convox")
+	opts.LabelSelector = "system=convox"
 	opts.ResourceVersion = ""
 }
 

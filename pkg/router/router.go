@@ -318,7 +318,7 @@ func (r *Router) setupHTTPAutocert() error {
 		Prompt: autocert.AcceptTOS,
 	}
 
-	ln, err := tls.Listen("tcp", fmt.Sprintf(":443"), &tls.Config{
+	ln, err := tls.Listen("tcp", ":443", &tls.Config{
 		GetCertificate: r.generateCertificateAutocert(m),
 	})
 	if err != nil {
