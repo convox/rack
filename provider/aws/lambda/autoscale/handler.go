@@ -8,25 +8,30 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/adhocore/gronx"
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/client"
 	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/ecs"
 )
 
 const (
-	HA_INSTANCE_COUNT_PARAM    = "InstanceCount"
-	MAX_RETRY                  = 10
-	MINIMUM_INSTANCE_HA        = 3
-	MINIMUM_INSTANCE_NO_HA     = 1
-	NO_HA_INSTANCE_COUNT_PARAM = "NoHaInstanceCount"
+	HA_INSTANCE_COUNT_PARAM        = "InstanceCount"
+	MAX_RETRY                      = 10
+	MINIMUM_INSTANCE_HA            = 3
+	MINIMUM_INSTANCE_NO_HA         = 1
+	NO_HA_INSTANCE_COUNT_PARAM     = "NoHaInstanceCount"
+	SCHEDULE_RACK_SCALE_DOWN_PARAM = "ScheduleRackScaleDown"
+	SCHEDULE_RACK_SCALE_UP_PARAM   = "ScheduleRackScaleUp"
 )
 
 var (
 	CloudFormation *cloudformation.CloudFormation
 	ECS            *ecs.ECS
+	ASG            *autoscaling.AutoScaling
 	IsHA           = os.Getenv("HIGH_AVAILABILITY") == "true"
 )
 
@@ -78,6 +83,29 @@ func autoscale(desired int64) error {
 
 	if len(res.Stacks) < 1 {
 		return fmt.Errorf("could not find stack: %s", stack)
+	}
+
+	// check if rack schedule down period
+	scaleDownExpr := ""
+	scaleUpExpr := ""
+	for _, p := range res.Stacks[0].Parameters {
+		switch *p.ParameterKey {
+		case SCHEDULE_RACK_SCALE_DOWN_PARAM:
+			if p.ParameterValue != nil && len(*p.ParameterValue) > 0 {
+				debug("param %s value = %+v\n", *p.ParameterKey, *p.ParameterValue)
+				scaleDownExpr = *p.ParameterValue
+			}
+		case SCHEDULE_RACK_SCALE_UP_PARAM:
+			if p.ParameterValue != nil && len(*p.ParameterValue) > 0 {
+				debug("param %s value = %+v\n", *p.ParameterKey, *p.ParameterValue)
+				scaleUpExpr = *p.ParameterValue
+			}
+		}
+	}
+
+	if isScaleDownStage(scaleUpExpr, scaleDownExpr) {
+		fmt.Println("scaling ignored because it is in scale down period")
+		return nil
 	}
 
 	req := &cloudformation.UpdateStackInput{
@@ -330,6 +358,29 @@ func desiredCapacity(largest, total *Metrics) (int64, error) {
 	return desired, nil
 }
 
+func isScaleDownStage(upExpr, downExpr string) bool {
+	gron := gronx.New()
+
+	if !gron.IsValid(upExpr) || !gron.IsValid(downExpr) {
+		return false
+	}
+
+	upPrev, err := gronx.PrevTick(upExpr, true)
+	if err != nil {
+		log("error:", err)
+		return false
+	}
+
+	downPrev, err := gronx.PrevTick(downExpr, true)
+	if err != nil {
+		log("error:", err)
+		return false
+	}
+
+	// if last run is scaledown then true
+	return upPrev.Before(downPrev)
+}
+
 func ci(ii ...*int64) int64 {
 	for _, i := range ii {
 		if i != nil && *i > 0 {
@@ -394,6 +445,11 @@ func main() {
 		aws.NewConfig().WithRegion(os.Getenv("REGION")),
 	)
 	ECS = ecs.New(
+		session,
+		aws.NewConfig().WithRegion(os.Getenv("REGION")),
+	)
+
+	ASG = autoscaling.New(
 		session,
 		aws.NewConfig().WithRegion(os.Getenv("REGION")),
 	)

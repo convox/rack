@@ -45,6 +45,7 @@ require (
 )
 
 require (
+	github.com/adhocore/gronx v1.6.5 // indirect
 	github.com/adrg/xdg v0.2.1 // indirect
 	github.com/golang-jwt/jwt/v4 v4.5.0 // indirect
 	github.com/satori/go.uuid v1.2.0 // indirect
