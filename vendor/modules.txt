@@ -14,6 +14,9 @@ github.com/RackSec/srslog
 # github.com/Sirupsen/logrus v1.0.3
 ## explicit
 github.com/Sirupsen/logrus
+# github.com/adhocore/gronx v1.6.5
+## explicit; go 1.13
+github.com/adhocore/gronx
 # github.com/adrg/xdg v0.2.1
 ## explicit
 github.com/adrg/xdg
