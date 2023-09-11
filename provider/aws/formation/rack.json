@@ -1851,7 +1851,7 @@
               "  - mkdir /volumes\n",
               { "Fn::If": [ "RegionHasEFS",
                 { "Fn::Join": [ "", [
-                  "  - while true; do mount -t nfs -o nfsvers=4.1 $(curl -s --noproxy 169.254.169.254 -H \"X-aws-ec2-metadata-token:$IMDS_TOKEN\" http://169.254.169.254/latest/meta-data/placement/availability-zone).",
+                  "  - while true; do mount -t nfs -o nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport $(curl -s --noproxy 169.254.169.254 -H \"X-aws-ec2-metadata-token:$IMDS_TOKEN\" http://169.254.169.254/latest/meta-data/placement/availability-zone).",
                   { "Ref": "VolumeFilesystem" },
                   ".efs.",
                   { "Ref": "AWS::Region" },
@@ -2371,7 +2371,7 @@
               "  - mkdir /volumes\n",
               { "Fn::If": [ "RegionHasEFS",
                 { "Fn::Join": [ "", [
-                  "  - while true; do mount -t nfs -o nfsvers=4.1 $(curl -s --noproxy 169.254.169.254 -H \"X-aws-ec2-metadata-token:$IMDS_TOKEN\" http://169.254.169.254/latest/meta-data/placement/availability-zone).",
+                  "  - while true; do mount -t nfs -o nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport $(curl -s --noproxy 169.254.169.254 -H \"X-aws-ec2-metadata-token:$IMDS_TOKEN\" http://169.254.169.254/latest/meta-data/placement/availability-zone).",
                   { "Ref": "VolumeFilesystem" },
                   ".efs.",
                   { "Ref": "AWS::Region" },
