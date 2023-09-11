@@ -5,6 +5,7 @@
     "BlankAmi": { "Fn::Equals": [ { "Ref": "Ami" }, "" ] },
     "BlankAvailabilityZones": { "Fn::Equals": [ { "Fn::Join": [ "", { "Ref": "AvailabilityZones" } ] }, "" ] },
     "BlankBuildImage": { "Fn::Equals": [ { "Ref": "BuildImage" }, "" ] },
+    "BlankCpuCredits": { "Fn::Equals": [ { "Ref": "CpuCredits" }, "" ] },
     "BlankExistingVpc": { "Fn::Equals": [ { "Ref": "ExistingVpc" }, "" ] },
     "BlankExistingVpcAndThirdAvailabilityZone": {
       "Fn::And": [ { "Condition": "BlankExistingVpc" }, { "Condition": "ThirdAvailabilityZone" } ]
@@ -627,6 +628,12 @@
       "Type": "String",
       "Description": "Anonymous identifier",
       "Default": ""
+    },
+    "CpuCredits": {
+      "Type": "String",
+      "Description": "The credit option for CPU usage of a T instance",
+      "Default": "",
+      "AllowedValues": [ "standard", "unlimited", "" ]
     },
     "DefaultAmi": {
       "Default": "/aws/service/ecs/optimized-ami/amazon-linux-2/recommended/image_id",
@@ -1755,6 +1762,7 @@
       "Type" : "AWS::EC2::LaunchTemplate",
       "Properties" : {
         "LaunchTemplateData" : {
+          "CreditSpecification": { "Fn::If": ["BlankCpuCredits", { "Ref": "AWS::NoValue" }, { "CpuCredits": { "Ref": "CpuCredits" }}]},
           "BlockDeviceMappings": [
             {
               "DeviceName": "/dev/xvda",
