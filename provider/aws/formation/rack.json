@@ -1,6 +1,7 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
   "Conditions": {
+    "AllowALBPort80": { "Fn::Equals": [ { "Ref": "DisableALBPort80" }, "No" ] },
     "Autoscale": { "Fn::Equals": [ { "Ref": "Autoscale" }, "Yes" ] },
     "BlankAmi": { "Fn::Equals": [ { "Ref": "Ami" }, "" ] },
     "BlankAvailabilityZones": { "Fn::Equals": [ { "Fn::Join": [ "", { "Ref": "AvailabilityZones" } ] }, "" ] },
@@ -31,7 +32,7 @@
     "DedicatedBuilder": { "Fn::Not": [ { "Fn::Equals": [ { "Ref": "BuildInstance" }, "" ] } ] },
     "Development": { "Fn::Equals": [ { "Ref": "Development" }, "Yes" ] },
     "EnableALBPort80": {
-      "Fn::And": [ { "Condition": "PublicRouter" }, { "Condition": { "Fn::Equals": [ { "Ref": "DisableALBPort80" }, "No" ] } } ]
+      "Fn::And": [ { "Condition": "PublicRouter" }, { "Condition": "AllowALBPort80" } ]
     },
     "EnableCloudWatch": { "Fn::Equals": [ { "Ref": "LogDriver" }, "CloudWatch" ] },
     "EnableSyslog": { "Fn::Equals": [ { "Ref": "LogDriver" }, "Syslog" ] },
