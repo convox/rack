@@ -367,13 +367,13 @@ func isScaleDownStage(upExpr, downExpr string) bool {
 
 	upPrev, err := gronx.PrevTick(upExpr, true)
 	if err != nil {
-		log("error:", err)
+		log("error: %s", err)
 		return false
 	}
 
 	downPrev, err := gronx.PrevTick(downExpr, true)
 	if err != nil {
-		log("error:", err)
+		log("error: %s", err)
 		return false
 	}
 
