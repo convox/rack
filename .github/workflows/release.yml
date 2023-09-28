@@ -45,8 +45,6 @@ jobs:
         run: ci/secrets.sh
         env:
           SECRETS: ${{ toJson(secrets) }}
-      - name: install packr
-        run: go get -u github.com/gobuffalo/packr/packr
       - name: release
         run: make release-all
       - name: create relase version
