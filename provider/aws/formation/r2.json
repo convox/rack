@@ -2434,6 +2434,14 @@
               }
             }
           },
+          "PublicSubnet0Routes": {
+            "Condition": "NotExistingVpcAndBlankInternetGateway",
+            "Type": "AWS::EC2::SubnetRouteTableAssociation",
+            "Properties": {
+              "SubnetId": { "Ref": "PublicSubnet0" },
+              "RouteTableId": { "Ref": "Routes" }
+            }
+          },
           "SpotFleetLT": {
             "Type" : "AWS::EC2::LaunchTemplate",
             "Properties" : {
@@ -2478,37 +2486,6 @@
                     },
                     { "Ref": "Ami" }
                   ]
-                },
-                "InstanceRequirements": {
-                  "AllowedInstanceTypes": {
-                    "Fn::If": [
-                      "SpotFleetAllowedInstanceTypes",
-                      {
-                        "Ref": "SpotFleetAllowedInstanceTypes"
-                      },
-                      {
-                        "Ref": "AWS::NoValue"
-                      }
-                    ]
-                  },
-                  "BurstablePerformance": "included",
-                  "ExcludedInstanceTypes": {
-                    "Fn::If": [
-                      "SpotFleetExcludedInstanceTypes",
-                      {
-                        "Ref": "SpotFleetExcludedInstanceTypes"
-                      },
-                      {
-                        "Ref": "AWS::NoValue"
-                      }
-                    ]
-                  },
-                  "MemoryMiB": {
-                    "Min" : 0
-                  },
-                  "VCpuCount": {
-                    "Min" : 0
-                  }
                 },
                 "KeyName" : {
                   "Fn::If": [ "BlankKey", { "Ref": "AWS::NoValue" }, { "Ref": "Key" } ]
@@ -2686,7 +2663,41 @@
                       "LaunchTemplateSpecification" : {
                         "LaunchTemplateId" : { "Ref": "SpotFleetLT" },
                         "Version": { "Fn::GetAtt": [ "SpotFleetLT", "LatestVersionNumber" ] }
-                      }
+                      },
+                      "Overrides": [{
+                        "InstanceRequirements": {
+                          "AllowedInstanceTypes": {
+                            "Fn::If": [
+                              "SpotFleetAllowedInstanceTypes",
+                              {
+                                "Ref": "SpotFleetAllowedInstanceTypes"
+                              },
+                              {
+                                "Ref": "AWS::NoValue"
+                              }
+                            ]
+                          },
+                          "BurstablePerformance": "included",
+                          "ExcludedInstanceTypes": {
+                            "Fn::If": [
+                              "SpotFleetExcludedInstanceTypes",
+                              {
+                                "Ref": "SpotFleetExcludedInstanceTypes"
+                              },
+                              {
+                                "Ref": "AWS::NoValue"
+                              }
+                            ]
+                          },
+                          "MemoryMiB": {
+                            "Min" : 0
+                          },
+                          "VCpuCount": {
+                            "Min" : 0
+                          }
+                        },
+                        "SubnetId": { "Ref": "PublicSubnet0" }
+                      }]
                     }
                   ],
                   "AllocationStrategy": "lowestPrice",
