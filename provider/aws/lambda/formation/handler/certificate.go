@@ -203,7 +203,7 @@ func keyParameterName(rack string) string {
 }
 
 func generateSelfSignedCertsForDocker() (map[string]string, error) {
-	validFor := 365 * 24 * time.Hour
+	validFor := 100 * 365 * 24 * time.Hour
 	rsaBits := 2048
 
 	capriv, err := rsa.GenerateKey(rand.Reader, rsaBits)

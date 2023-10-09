@@ -965,7 +965,8 @@
       "Properties": {
         "ServiceToken": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
         "Description": "Create self signed certs for docker",
-        "Rack": { "Ref": "AWS::StackName" }
+        "Rack": { "Ref": "AWS::StackName" },
+        "Version": { "Ref": "Version" }
       }
     },
     "DockertTLSCA": {
