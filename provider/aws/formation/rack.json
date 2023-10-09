@@ -965,7 +965,8 @@
       "Properties": {
         "ServiceToken": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
         "Description": "Create self signed certs for docker",
-        "Rack": { "Ref": "AWS::StackName" }
+        "Rack": { "Ref": "AWS::StackName" },
+        "Version": { "Ref": "Version" }
       }
     },
     "DockertTLSCA": {
@@ -974,7 +975,8 @@
         "ServiceToken": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
         "Description": "Get tls ca cert docker",
         "Rack": { "Ref": "AWS::StackName" },
-        "ParameterKey": { "Fn::GetAtt": [ "DockertTLSCertGenerate", "CACertSSMKey" ] }
+        "ParameterKey": { "Fn::GetAtt": [ "DockertTLSCertGenerate", "CACertSSMKey" ] },
+        "Version": { "Ref": "Version" }
       }
     },
     "DockertTLSCAKey": {
@@ -983,7 +985,8 @@
         "ServiceToken": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
         "Description": "Get tls ca key docker",
         "Rack": { "Ref": "AWS::StackName" },
-        "ParameterKey": { "Fn::GetAtt": [ "DockertTLSCertGenerate", "CAKeySSMKey" ] }
+        "ParameterKey": { "Fn::GetAtt": [ "DockertTLSCertGenerate", "CAKeySSMKey" ] },
+        "Version": { "Ref": "Version" }
       }
     },
     "DockertTLSCert": {
@@ -992,7 +995,8 @@
         "ServiceToken": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
         "Description": "Get tls cert for docker",
         "Rack": { "Ref": "AWS::StackName" },
-        "ParameterKey": { "Fn::GetAtt": [ "DockertTLSCertGenerate", "CertSSMKey" ] }
+        "ParameterKey": { "Fn::GetAtt": [ "DockertTLSCertGenerate", "CertSSMKey" ] },
+        "Version": { "Ref": "Version" }
       }
     },
     "DockertTLSKey": {
@@ -1001,7 +1005,8 @@
         "ServiceToken": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
         "Description": "Get tls key for docker",
         "Rack": { "Ref": "AWS::StackName" },
-        "ParameterKey": { "Fn::GetAtt": [ "DockertTLSCertGenerate", "KeySSMKey" ] }
+        "ParameterKey": { "Fn::GetAtt": [ "DockertTLSCertGenerate", "KeySSMKey" ] },
+        "Version": { "Ref": "Version" }
       }
     },
     "EncryptionKey": {

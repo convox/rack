@@ -104,6 +104,16 @@ func CreateSelfSignedCertsForDocker(req Request) (string, map[string]string, err
 		return "", nil, err
 	}
 
+	_, err = ssmClient.PutParameter(&ssm.PutParameterInput{
+		Name:      aws.String(versionParameterName(rackKey)),
+		Overwrite: aws.Bool(true),
+		Value:     aws.String(req.ResourceProperties["Version"].(string)),
+		Type:      aws.String(ssm.ParameterTypeString),
+	})
+	if err != nil {
+		return "", nil, err
+	}
+
 	return rackKey, map[string]string{
 		"CACertSSMKey": caCertParameterName(rackKey),
 		"CAKeySSMKey":  caKeyParameterName(rackKey),
@@ -156,9 +166,10 @@ func UpdateSelfSignedCertsForDocker(req Request) (string, map[string]string, err
 	rackKey := rackHash(req.ResourceProperties["Rack"].(string))
 	ssmClient := SSM(req)
 	param, err := ssmClient.GetParameter(&ssm.GetParameterInput{
-		Name: aws.String(certParameterName(rackKey)),
+		Name: aws.String(versionParameterName(rackKey)),
 	})
-	if err != nil {
+	if err != nil || param.Parameter == nil || param.Parameter.Value == nil ||
+		*param.Parameter.Value != req.ResourceProperties["Version"].(string) {
 		return CreateSelfSignedCertsForDocker(req)
 	}
 
@@ -202,8 +213,12 @@ func keyParameterName(rack string) string {
 	return fmt.Sprintf("%s-docker-tls-key", rack)
 }
 
+func versionParameterName(rack string) string {
+	return fmt.Sprintf("%s-version-track", rack)
+}
+
 func generateSelfSignedCertsForDocker() (map[string]string, error) {
-	validFor := 365 * 24 * time.Hour
+	validFor := 100 * 365 * 24 * time.Hour
 	rsaBits := 2048
 
 	capriv, err := rsa.GenerateKey(rand.Reader, rsaBits)
