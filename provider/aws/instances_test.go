@@ -91,7 +91,7 @@ func describeContainerInstancesResponse() string {
 }
 
 var cycleInstanceDescribeInstances = awsutil.Cycle{
-	awsutil.Request{"POST", "/", "", `Action=DescribeInstances&Filter.1.Name=tag%3ARack&Filter.1.Value.1=convox&Filter.2.Name=tag%3Aaws%3Acloudformation%3Alogical-id&Filter.2.Value.1=Instances&Filter.2.Value.2=SpotInstances&Filter.3.Name=instance-state-name&Filter.3.Value.1=pending&Filter.3.Value.2=running&Filter.3.Value.3=shutting-down&Filter.3.Value.4=stopping&Version=2016-11-15`},
+	awsutil.Request{"POST", "/", "", `Action=DescribeInstances&Filter.1.Name=tag%3ARack&Filter.1.Value.1=convox&Filter.2.Name=instance-state-name&Filter.2.Value.1=pending&Filter.2.Value.2=running&Filter.2.Value.3=shutting-down&Filter.2.Value.4=stopping&Version=2016-11-15`},
 	awsutil.Response{200, describeInstancesResponse()},
 }
 
