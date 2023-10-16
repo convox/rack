@@ -3120,9 +3120,9 @@
                 "iam:UpdateAssumeRolePolicy"
               ],
               "Resource": [
-                { "Fn::Sub": "arn:${AWS::Partition}:iam::*:instance-profile/convox/*" },
-                { "Fn::Sub": "arn:${AWS::Partition}:iam::*:policy/convox/*" },
-                { "Fn::Sub": "arn:${AWS::Partition}:iam::*:role/convox/*" },
+                { "Fn::Sub": "arn:${AWS::Partition}:iam::*:instance-profile/*" },
+                { "Fn::Sub": "arn:${AWS::Partition}:iam::*:policy/*" },
+                { "Fn::Sub": "arn:${AWS::Partition}:iam::*:role/*" },
                 { "Fn::Sub": "arn:${AWS::Partition}:iam::*:user/convox/*" }
               ]
             },
