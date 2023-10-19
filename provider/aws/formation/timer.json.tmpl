@@ -104,6 +104,11 @@
       "Settings": {
         "Type": "String"
       },
+      "State": {
+        "Type": "String",
+        "Default": "ENABLED",
+         "AllowedValues": [ "ENABLED", "DISABLED" ]
+      },
       "SyslogDestination": {
         "Type": "String",
         "Description": "Syslog address destination, you need to pass the protocol to be used, e.g. tcp+tls://logsX.syslog.com:1234",
@@ -129,6 +134,7 @@
         "Type": "AWS::Events::Rule",
         "Properties": {
           "ScheduleExpression": "cron({{.Cron}})",
+          "State": { "Ref": "State" },
           "Targets": [ {
             "Arn": { "Fn::If": [ "FargateEither",
               { "Ref": "Launcher" },
