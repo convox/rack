@@ -18,6 +18,19 @@ type Interface struct {
 	mock.Mock
 }
 
+func (_m *Interface) SyncInstancesIpInSecurityGroup() error {
+	ret := _m.Called()
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func() error); ok {
+		r1 = rf()
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r1
+}
+
 // AppCancel provides a mock function with given fields: name
 func (_m *Interface) AppCancel(name string) error {
 	ret := _m.Called(name)

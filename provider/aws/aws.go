@@ -73,6 +73,8 @@ type Provider struct {
 	Password            string
 	Private             bool
 	PrivateBuild        bool
+	WhiteListSpecified  bool
+	ApiBalancerSecurity string
 	Rack                string
 	RackApiServiceName  string
 	SecurityGroup       string
@@ -150,6 +152,7 @@ func (p *Provider) loadParams() error {
 	p.AsgSpot = labels["rack.AsgSpot"]
 	p.AsgStandard = labels["rack.AsgStandard"]
 	p.AvailabilityZones = labels["rack.AvailabilityZones"]
+	p.ApiBalancerSecurity = labels["rack.ApiBalancerSecurity"]
 	p.BuildCluster = labels["rack.BuildCluster"]
 	p.CloudformationTopic = labels["rack.CloudformationTopic"]
 	p.Cluster = labels["rack.Cluster"]
@@ -180,6 +183,7 @@ func (p *Provider) loadParams() error {
 	p.Version = labels["rack.Version"]
 	p.Vpc = labels["rack.Vpc"]
 	p.VpcCidr = labels["rack.VpcCidr"]
+	p.WhiteListSpecified = labels["rack.WhiteListSpecified"] == "Yes"
 
 	if v, has := labels["rack.DockerTlsCA"]; has && len(v) > 0 {
 		cacert, err := base64.StdEncoding.DecodeString(labels["rack.DockerTlsCA"])

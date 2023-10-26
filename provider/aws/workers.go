@@ -6,6 +6,7 @@ func (p *Provider) Workers() error {
 	go p.workerHeartbeat()
 	go p.workerMonitor()
 	go p.workerSpotReplace()
+	go p.workerSyncInstanceIPs()
 
 	return nil
 }

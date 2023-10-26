@@ -1459,6 +1459,15 @@ func (s *Server) SystemResourceUpdate(c *stdapi.Context) error {
 	return c.RenderJSON(v)
 }
 
+func (s *Server) SystemSyncInstancesIp(c *stdapi.Context) error {
+	err := s.provider(c).WithContext(c.Context()).SyncInstancesIpInSecurityGroup()
+	if err != nil {
+		return err
+	}
+
+	return c.RenderOK()
+}
+
 func (s *Server) SystemUninstall(c *stdapi.Context) error {
 	return stdapi.Errorf(404, "not available via api")
 }
