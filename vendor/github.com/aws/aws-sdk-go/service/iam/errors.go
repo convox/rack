@@ -17,7 +17,7 @@ const (
 	//
 	// The request was rejected because the most recent credential report has expired.
 	// To generate a new credential report, use GenerateCredentialReport. For more
-	// information about credential report expiration, see Getting Credential Reports
+	// information about credential report expiration, see Getting credential reports
 	// (https://docs.aws.amazon.com/IAM/latest/UserGuide/credential-reports.html)
 	// in the IAM User Guide.
 	ErrCodeCredentialReportExpiredException = "ReportExpired"
@@ -117,7 +117,8 @@ const (
 	// "LimitExceeded".
 	//
 	// The request was rejected because it attempted to create resources beyond
-	// the current AWS account limits. The error message describes the limit exceeded.
+	// the current Amazon Web Services account limits. The error message describes
+	// the limit exceeded.
 	ErrCodeLimitExceededException = "LimitExceeded"
 
 	// ErrCodeMalformedCertificateException for service response error code
@@ -158,8 +159,8 @@ const (
 	// ErrCodePolicyNotAttachableException for service response error code
 	// "PolicyNotAttachable".
 	//
-	// The request failed because AWS service role policies can only be attached
-	// to the service-linked role for that service.
+	// The request failed because Amazon Web Services service role policies can
+	// only be attached to the service-linked role for that service.
 	ErrCodePolicyNotAttachableException = "PolicyNotAttachable"
 
 	// ErrCodeReportGenerationLimitExceededException for service response error code
@@ -185,7 +186,8 @@ const (
 	// ErrCodeUnmodifiableEntityException for service response error code
 	// "UnmodifiableEntity".
 	//
-	// The request was rejected because only the service that depends on the service-linked
+	// The request was rejected because service-linked roles are protected Amazon
+	// Web Services resources. Only the service that depends on the service-linked
 	// role can modify or delete the role on your behalf. The error message includes
 	// the name of the service that depends on this service-linked role. You must
 	// request the change through that service.
