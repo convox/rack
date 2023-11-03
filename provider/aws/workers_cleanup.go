@@ -265,7 +265,21 @@ func (p *Provider) SyncInstancesIpInSecurityGroup() error {
 		for _, r := range res.Reservations {
 			for _, i := range r.Instances {
 				if i.PublicIpAddress != nil && *i.PublicIpAddress != "" {
-					ipHash[*i.PublicIpAddress+"/32"] = true
+					if p.InstancesIpToIncludInWhiteListing == "Both" {
+						ipHash[*i.PublicIpAddress+"/32"] = true
+					} else if p.InstancesIpToIncludInWhiteListing != "None" {
+						isBuild := false
+						for _, tg := range i.Tags {
+							if tg != nil && cs(tg.Key, "") == "Purpose" && cs(tg.Value, "") == "Build" {
+								isBuild = true
+							}
+						}
+						if p.InstancesIpToIncludInWhiteListing == "Build" && isBuild {
+							ipHash[*i.PublicIpAddress+"/32"] = true
+						} else if p.InstancesIpToIncludInWhiteListing == "Workload" && !isBuild {
+							ipHash[*i.PublicIpAddress+"/32"] = true
+						}
+					}
 				}
 			}
 		}

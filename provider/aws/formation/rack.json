@@ -141,9 +141,11 @@
     "PrivateBuild": { "Fn::Or": [ { "Fn::Equals": [ { "Ref": "Private" }, "Yes" ] }, { "Fn::Equals": [ { "Ref": "PrivateBuild" }, "Yes" ] } ] },
     "PrivateInstances": { "Fn::Equals": [ { "Ref": "Private" }, "Yes" ] },
     "PublicBuild": { "Fn::Not": [ { "Condition": "PrivateBuild" } ] },
-    "PublicBuildAndWhiteList": { "Fn::And": [ { "Condition": "PublicBuild" }, { "Condition": "WhiteListCIDRs" } ] },
+    "PublicBuildInclude": { "Fn::Or": [ { "Fn::Equals": [ { "Ref": "InstancesIpToIncludInWhiteListing" }, "Both" ] }, { "Fn::Equals": [ { "Ref": "InstancesIpToIncludInWhiteListing" }, "Build" ] } ] },
+    "PublicBuildAndWhiteList": { "Fn::And": [ { "Condition": "PublicBuild" }, { "Condition": "WhiteListCIDRs" }, { "Condition": "PublicBuildInclude" } ] },
     "PublicInstances": { "Fn::Not": [ { "Condition": "PrivateInstances" } ] },
-    "PublicInstancesAndWhiteList": { "Fn::And": [ { "Condition": "PublicInstances" }, { "Condition": "WhiteListCIDRs" } ] },
+    "PublicInstanceInclude": { "Fn::Or": [ { "Fn::Equals": [ { "Ref": "InstancesIpToIncludInWhiteListing" }, "Both" ] }, { "Fn::Equals": [ { "Ref": "InstancesIpToIncludInWhiteListing" }, "Workload" ] } ] },
+    "PublicInstancesAndWhiteList": { "Fn::And": [ { "Condition": "PublicInstances" }, { "Condition": "WhiteListCIDRs" }, {"Condition": "PublicInstanceInclude"} ] },
     "PublicRouter": { "Fn::Equals": [ { "Ref": "InternalOnly" }, "No" ] },
     "RegionHasEFS": { "Fn::Equals": [
       { "Fn::FindInMap": [ "RegionConfig", { "Ref": "AWS::Region" }, "EFS" ] },
@@ -743,6 +745,12 @@
       "Description": "The number of instances in the runtime cluster for high available racks",
       "MinValue": "3",
       "Type": "Number"
+    },
+    "InstancesIpToIncludInWhiteListing": {
+      "Type": "String",
+      "Description": "Instances Ip to be auto included in whitelisting when rack is public",
+      "Default": "Both",
+      "AllowedValues": [ "Both", "Build", "Workload", "None"]
     },
     "InstanceType": {
       "Default": "t3.small",
@@ -1746,6 +1754,11 @@
           {
             "Key": "Rack",
             "Value": { "Ref": "AWS::StackName" },
+            "PropagateAtLaunch": true
+          },
+          {
+            "Key": "Purpose",
+            "Value": "Build",
             "PropagateAtLaunch": true
           },
           {
@@ -3273,6 +3286,7 @@
               "rack.EncryptionKey": { "Ref": "EncryptionKey" },
               "rack.Fargate": { "Fn::FindInMap": [ "RegionConfig", { "Ref": "AWS::Region" }, "Fargate" ] },
               "rack.HighAvailability": { "Ref": "HighAvailability" },
+              "rack.InstancesIpToIncludInWhiteListing": { "Ref": "InstancesIpToIncludInWhiteListing" },
               "rack.Internal": { "Ref": "Internal" },
               "rack.InternalOnly": { "Ref": "InternalOnly" },
               "rack.LogBucket": { "Fn::If": [ "BlankLogBucket", { "Ref": "Logs" }, { "Ref": "LogBucket" } ] },
@@ -3372,6 +3386,7 @@
               "rack.EncryptionKey": { "Ref": "EncryptionKey" },
               "rack.Fargate": { "Fn::FindInMap": [ "RegionConfig", { "Ref": "AWS::Region" }, "Fargate" ] },
               "rack.HighAvailability": { "Ref": "HighAvailability" },
+              "rack.InstancesIpToIncludInWhiteListing": { "Ref": "InstancesIpToIncludInWhiteListing" },
               "rack.Internal": { "Ref": "Internal" },
               "rack.InternalOnly": { "Ref": "InternalOnly" },
               "rack.LogBucket": { "Fn::If": [ "BlankLogBucket", { "Ref": "Logs" }, { "Ref": "LogBucket" } ] },
@@ -3511,6 +3526,7 @@
               "rack.EncryptionKey": { "Ref": "EncryptionKey" },
               "rack.Fargate": { "Fn::FindInMap": [ "RegionConfig", { "Ref": "AWS::Region" }, "Fargate" ] },
               "rack.HighAvailability": { "Ref": "HighAvailability" },
+              "rack.InstancesIpToIncludInWhiteListing": { "Ref": "InstancesIpToIncludInWhiteListing" },
               "rack.Internal": { "Ref": "Internal" },
               "rack.InternalOnly": { "Ref": "InternalOnly" },
               "rack.LogBucket": { "Fn::If": [ "BlankLogBucket", { "Ref": "Logs" }, { "Ref": "LogBucket" } ] },
