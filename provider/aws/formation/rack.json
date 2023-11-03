@@ -799,6 +799,12 @@
       "Description": "Number of days to keep logs (blank for unlimited)",
       "Type": "String"
     },
+    "MaintainTimerState": {
+      "Type": "String",
+      "Description": "Explicitly maintain time state. If use disable the timer, it will keep it disbaled",
+      "Default": "No",
+      "AllowedValues": [ "Yes", "No" ]
+    },
     "MaxAvailabilityZones": {
       "Type": "Number",
       "Default": "3",
@@ -3479,6 +3485,7 @@
               "rack.Internal": { "Ref": "Internal" },
               "rack.InternalOnly": { "Ref": "InternalOnly" },
               "rack.LogBucket": { "Fn::If": [ "BlankLogBucket", { "Ref": "Logs" }, { "Ref": "LogBucket" } ] },
+              "rack.MaintainTimerState": { "Ref": "MaintainTimerState" },
               "rack.NotificationTopic": { "Ref": "NotificationTopic" },
               "rack.OnDemandMinCount": { "Ref": "OnDemandMinCount" },
               "rack.Private": { "Ref": "Private" },
