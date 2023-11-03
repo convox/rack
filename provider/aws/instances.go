@@ -49,12 +49,20 @@ func (p *Provider) InstanceList() (structs.Instances, error) {
 	err := p.ec2().DescribeInstancesPages(req, func(res *ec2.DescribeInstancesOutput, last bool) bool {
 		for _, r := range res.Reservations {
 			for _, i := range r.Instances {
-				ihash[cs(i.InstanceId, "")] = structs.Instance{
-					Id:        cs(i.InstanceId, ""),
-					PrivateIp: cs(i.PrivateIpAddress, ""),
-					PublicIp:  cs(i.PublicIpAddress, ""),
-					Status:    "",
-					Started:   ct(i.LaunchTime, time.Time{}),
+				isBuild := false
+				for _, tg := range i.Tags {
+					if tg != nil && cs(tg.Key, "") == "Purpose" && cs(tg.Value, "") == "Build" {
+						isBuild = true
+					}
+				}
+				if !isBuild {
+					ihash[cs(i.InstanceId, "")] = structs.Instance{
+						Id:        cs(i.InstanceId, ""),
+						PrivateIp: cs(i.PrivateIpAddress, ""),
+						PublicIp:  cs(i.PublicIpAddress, ""),
+						Status:    "",
+						Started:   ct(i.LaunchTime, time.Time{}),
+					}
 				}
 			}
 		}

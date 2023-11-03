@@ -948,7 +948,7 @@
     "SpotFleetMinOnDemandCount": {
       "Type": "Number",
       "Description": "Spot fleet's minimum on demand instance count",
-      "Default": 0
+      "Default": 1
     },
     "SpotFleetTargetType": {
       "Type": "String",
@@ -2059,11 +2059,11 @@
           ] ]
         },
         "Cooldown": 5,
-        "DesiredCapacity" : { "Fn::If": [ "SpotFleet", "0", { "Fn::If": [ "SpotInstancesAndHA", { "Ref": "AWS::NoValue" }, { "Fn::If": [ "HighAvailability", { "Ref": "InstanceCount"}, { "Ref": "NoHaInstanceCount"} ] } ] }]},
+        "DesiredCapacity" : { "Fn::If": [ "SpotFleet", { "Ref": "SpotFleetMinOnDemandCount" }, { "Fn::If": [ "SpotInstancesAndHA", { "Ref": "AWS::NoValue" }, { "Fn::If": [ "HighAvailability", { "Ref": "InstanceCount"}, { "Ref": "NoHaInstanceCount"} ] } ] }]},
         "HealthCheckType": "EC2",
         "HealthCheckGracePeriod": "120",
-        "MinSize" : { "Fn::If": [ "SpotFleet", "0", { "Fn::If": [ "SpotInstancesAndHA", { "Ref": "OnDemandMinCount" }, { "Fn::If": [ "HighAvailability", { "Ref": "InstanceCount"}, "1" ] } ] }]},
-        "MaxSize" : { "Fn::If": [ "SpotFleet", "0", "1000"]},
+        "MinSize" : { "Fn::If": [ "SpotFleet", { "Ref": "SpotFleetMinOnDemandCount" }, { "Fn::If": [ "SpotInstancesAndHA", { "Ref": "OnDemandMinCount" }, { "Fn::If": [ "HighAvailability", { "Ref": "InstanceCount"}, "1" ] } ] }]},
+        "MaxSize" : { "Fn::If": [ "SpotFleet", { "Ref": "SpotFleetMinOnDemandCount" }, "1000"]},
         "MetricsCollection": [ { "Granularity": "1Minute" } ],
         "TerminationPolicies": [ "NewestInstance" ],
         "Tags": [
@@ -2908,9 +2908,13 @@
               "  - sudo yum install -y amazon-cloudwatch-agent",
               "  - export IMDS_TOKEN=$(curl -X PUT 'http://169.254.169.254/latest/api/token' -H 'X-aws-ec2-metadata-token-ttl-seconds:21600')\n",
               "  - export INSTANCE_ID=$(curl -s --noproxy 169.254.169.254 -H \"X-aws-ec2-metadata-token:$IMDS_TOKEN\" http://169.254.169.254/latest/meta-data/instance-id)\n",
-              "  - export ASG_NAME=$(env $(cat /etc/environment) /usr/bin/aws autoscaling describe-auto-scaling-instances --instance-ids=$INSTANCE_ID --region ", {"Ref":"AWS::Region"}, " --output text --query 'AutoScalingInstances[0].AutoScalingGroupName')\n",
-              "  - export LIFECYCLE_HOOK=$(env $(cat /etc/environment) /usr/bin/aws autoscaling describe-lifecycle-hooks --auto-scaling-group-name $ASG_NAME --region ", {"Ref":"AWS::Region"}, " --output text --query \"LifecycleHooks[?contains(LifecycleHookName, '", { "Ref": "AWS::StackName" }, "-InstancesLifecycleLaunching') == \\`true\\`].LifecycleHookName | [0]\")\n",
-              "  - env $(cat /etc/environment) /usr/bin/aws autoscaling complete-lifecycle-action --region ", { "Ref": "AWS::Region" }, " --instance-id $INSTANCE_ID --lifecycle-hook-name $LIFECYCLE_HOOK --auto-scaling-group-name $ASG_NAME --lifecycle-action-result CONTINUE\n",
+              { "Fn::If": [ "PublicInstancesAndWhiteList",
+                { "Fn::Join": [ "", [
+                  "  - export IP=$(curl -s --noproxy 169.254.169.254 -H \"X-aws-ec2-metadata-token:$IMDS_TOKEN\" http://169.254.169.254/latest/meta-data/public-ipv4)\n",
+                  "  - env $(cat /etc/environment) /usr/bin/aws ec2 authorize-security-group-ingress --group-id ", { "Ref": "ApiBalancerSecurity" }," --ip-permissions IpProtocol=tcp,FromPort=443,ToPort=443,IpRanges=\"[{CidrIp=${IP}/32,Description='CONVOX_INSTANCE'}]\" --region ", {"Ref":"AWS::Region"}, " | true\n"
+                ] ] },
+                { "Ref": "AWS::NoValue" }
+              ] },
               "  - env $(cat /etc/environment) /opt/aws/bin/cfn-signal --http-proxy \"", { "Ref": "HttpProxy" }, "\" --stack ", { "Ref": "AWS::StackName" }, " --region ", { "Ref": "AWS::Region" }, " --resource Instances\n"
             ] ] }
           }
@@ -3076,7 +3080,7 @@
             }
           ],
           "TargetCapacity": { "Fn::If": [ "HighAvailability", { "Ref": "InstanceCount"}, { "Ref": "NoHaInstanceCount"} ] },
-          "OnDemandTargetCapacity": { "Ref": "SpotFleetMinOnDemandCount" },
+          "OnDemandTargetCapacity": 0,
           "SpotMaxTotalPrice": { "Ref": "SpotFleetMaxPrice" },
           "TargetCapacityUnitType": { "Ref": "SpotFleetTargetType" },
           "Type": "maintain"
@@ -3714,7 +3718,7 @@
         "Cluster": { "Ref": "Cluster" },
         "DeploymentConfiguration": { "MinimumHealthyPercent": "100", "MaximumPercent": "200" },
         "DesiredCount": "1",
-        "PlacementConstraints": [ { "Fn::If": ["SpotFleet", { "Ref": "AWS::NoValue" }, { "Type": "memberOf", "Expression": "attribute:asg == primary" }] } ],
+        "PlacementConstraints": [ { "Type": "memberOf", "Expression": "attribute:asg == primary" } ],
         "TaskDefinition": { "Ref": "ApiMonitorTasks" }
       }
     },
@@ -3726,6 +3730,7 @@
         "DeploymentConfiguration": { "MinimumHealthyPercent": { "Fn::If": [ "HighAvailability", "50", "0" ] }, "MaximumPercent": "200" },
         "DesiredCount": { "Fn::If": [ "HighAvailability", { "Ref": "ApiCount" }, 1 ] },
         "LoadBalancers": [ { "ContainerName": "web", "ContainerPort": "5443", "TargetGroupArn": { "Ref": "ApiBalancerTargetGroup" } }],
+        "PlacementConstraints": [ { "Fn::If": ["SpotFleet", { "Type": "memberOf", "Expression": "attribute:asg == primary" }, { "Ref": "AWS::NoValue" }] } ], 
         "Role": { "Fn::GetAtt": [ "ServiceRole", "Arn" ] },
         "TaskDefinition": { "Ref": "ApiWebTasks" }
       }
