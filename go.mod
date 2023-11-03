@@ -5,6 +5,7 @@ go 1.17
 require (
 	github.com/PuerkitoBio/goquery v1.8.0
 	github.com/RackSec/srslog v0.0.0-20170920152354-4d2c753a4ee1
+	github.com/adhocore/gronx v1.6.5
 	github.com/aws/aws-lambda-go v1.37.0
 	github.com/aws/aws-sdk-go v1.25.29
 	github.com/boltdb/bolt v1.3.1
@@ -22,6 +23,7 @@ require (
 	github.com/fsouza/go-dockerclient v0.0.0-20160427172547-1d4f4ae73768
 	github.com/gobuffalo/packr v1.22.0
 	github.com/gobwas/glob v0.2.3
+	github.com/golang-jwt/jwt/v4 v4.5.0
 	github.com/gorilla/mux v1.7.0
 	github.com/gorilla/websocket v1.5.0
 	github.com/headzoo/surf v1.0.0
@@ -31,6 +33,7 @@ require (
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/mweagle/Sparta v0.8.1-0.20171126182155-ead2872585dc
 	github.com/pkg/errors v0.8.1
+	github.com/satori/go.uuid v1.2.0
 	github.com/segmentio/analytics-go v2.0.1-0.20160426181448-2d840d861c32+incompatible
 	github.com/stretchr/testify v1.8.1
 	github.com/stvp/rollbar v0.5.1
@@ -45,10 +48,7 @@ require (
 )
 
 require (
-	github.com/adhocore/gronx v1.6.5 // indirect
 	github.com/adrg/xdg v0.2.1 // indirect
-	github.com/golang-jwt/jwt/v4 v4.5.0 // indirect
-	github.com/satori/go.uuid v1.2.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 

@@ -129,6 +129,9 @@
         "Type": "AWS::Events::Rule",
         "Properties": {
           "ScheduleExpression": "cron({{.Cron}})",
+          {{ if $.TimeState }}
+          "State": "{{$.TimeState}}",
+          {{ end }}
           "Targets": [ {
             "Arn": { "Fn::If": [ "FargateEither",
               { "Ref": "Launcher" },
