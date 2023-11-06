@@ -2,7 +2,8 @@
   "AWSTemplateFormatVersion": "2010-09-09",
   "Conditions": {
     "BlankEncrypted": { "Fn::Equals": [ { "Ref": "Encrypted" }, "" ] },
-    "BlankIops": { "Fn::Equals": [ { "Ref": "Iops" }, "0" ] }
+    "BlankIops": { "Fn::Equals": [ { "Ref": "Iops" }, "0" ] },
+    "BlankPreferredBackupWindow": { "Fn::Equals": [ { "Ref": "PreferredBackupWindow" }, "" ] }
   },
   "Parameters": {
     "AutoMinorVersionUpgrade": {
@@ -10,9 +11,18 @@
       "Default": "true",
       "AllowedValues" : [ "true", "false" ]
     },
+    "BackupRetentionPeriod": {
+      "Type": "Number",
+      "Default": "1"
+    },
     "Class": {
       "Type": "String",
       "Default": "db.t2.micro"
+    },
+    "DeletionProtection": {
+      "Type": "String",
+      "Default": "false",
+      "AllowedValues": [ "true", "false" ]
     },
     "Durable": {
       "Type": "String",
@@ -32,6 +42,10 @@
       "MinLength": "8",
       "NoEcho": true,
       "Type": "String"
+    },
+    "PreferredBackupWindow": {
+      "Type": "String",
+      "Default": ""
     },
     "Rack": {
       "MinLength": "1",
@@ -82,6 +96,7 @@
         "AllocatedStorage": { "Ref": "Storage" },
         "AllowMajorVersionUpgrade": "true",
         "AutoMinorVersionUpgrade": { "Ref": "AutoMinorVersionUpgrade" },
+        "BackupRetentionPeriod": { "Ref": "BackupRetentionPeriod" },
         "DBInstanceClass": { "Ref": "Class" },
         "DBInstanceIdentifier": { "Ref": "AWS::StackName" },
         "DBName": "app",
@@ -92,6 +107,7 @@
           ] ] }
         } ] },
         "DBSubnetGroupName": { "Ref": "SubnetGroup" },
+        "DeletionProtection": { "Ref": "DeletionProtection" },
         "Engine": "mysql",
         "EngineVersion": { "Ref": "Version" },
         "Iops": { "Fn::If": [ "BlankIops", { "Ref": "AWS::NoValue" }, { "Ref": "Iops" } ] },
@@ -99,6 +115,7 @@
         "MasterUserPassword": { "Ref": "Password" },
         "MultiAZ": { "Ref": "Durable" },
         "Port": "3306",
+        "PreferredBackupWindow": { "Fn::If": [ "BlankPreferredBackupWindow", { "Ref": "AWS::NoValue" }, { "Ref": "PreferredBackupWindow" } ] },
         "PubliclyAccessible": "false",
         "StorageEncrypted": { "Ref": "Encrypted" },
         "StorageType": { "Fn::If": [ "BlankIops", "gp2", "io2" ] },
