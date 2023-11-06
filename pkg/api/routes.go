@@ -78,5 +78,6 @@ func (s *Server) setupRoutes(r stdapi.Router) {
 	r.Route("PUT", "/resources/{name}", s.SystemResourceUpdate)
 	r.Route("", "", s.SystemUninstall)
 	r.Route("PUT", "/system", s.SystemUpdate)
+	r.Route("GET", "/system/sync/whitelist/instances/ip", s.SystemSyncInstancesIp)
 	r.Route("", "", s.Workers)
 }

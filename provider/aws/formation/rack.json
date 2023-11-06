@@ -140,6 +140,12 @@
     },
     "PrivateBuild": { "Fn::Or": [ { "Fn::Equals": [ { "Ref": "Private" }, "Yes" ] }, { "Fn::Equals": [ { "Ref": "PrivateBuild" }, "Yes" ] } ] },
     "PrivateInstances": { "Fn::Equals": [ { "Ref": "Private" }, "Yes" ] },
+    "PublicBuild": { "Fn::Not": [ { "Condition": "PrivateBuild" } ] },
+    "PublicBuildInclude": { "Fn::Or": [ { "Fn::Equals": [ { "Ref": "InstancesIpToIncludInWhiteListing" }, "Both" ] }, { "Fn::Equals": [ { "Ref": "InstancesIpToIncludInWhiteListing" }, "Build" ] } ] },
+    "PublicBuildAndWhiteList": { "Fn::And": [ { "Condition": "PublicBuild" }, { "Condition": "WhiteListCIDRs" }, { "Condition": "PublicBuildInclude" } ] },
+    "PublicInstances": { "Fn::Not": [ { "Condition": "PrivateInstances" } ] },
+    "PublicInstanceInclude": { "Fn::Or": [ { "Fn::Equals": [ { "Ref": "InstancesIpToIncludInWhiteListing" }, "Both" ] }, { "Fn::Equals": [ { "Ref": "InstancesIpToIncludInWhiteListing" }, "Workload" ] } ] },
+    "PublicInstancesAndWhiteList": { "Fn::And": [ { "Condition": "PublicInstances" }, { "Condition": "WhiteListCIDRs" }, {"Condition": "PublicInstanceInclude"} ] },
     "PublicRouter": { "Fn::Equals": [ { "Ref": "InternalOnly" }, "No" ] },
     "RegionHasEFS": { "Fn::Equals": [
       { "Fn::FindInMap": [ "RegionConfig", { "Ref": "AWS::Region" }, "EFS" ] },
@@ -739,6 +745,12 @@
       "Description": "The number of instances in the runtime cluster for high available racks",
       "MinValue": "3",
       "Type": "Number"
+    },
+    "InstancesIpToIncludInWhiteListing": {
+      "Type": "String",
+      "Description": "Instances Ip to be auto included in whitelisting when rack is public",
+      "Default": "Both",
+      "AllowedValues": [ "Both", "Build", "Workload", "None"]
     },
     "InstanceType": {
       "Default": "t3.small",
@@ -1500,6 +1512,7 @@
           { "Fn::Sub": "arn:${AWS::Partition}:iam::aws:policy/service-role/AmazonEC2ContainerServiceforEC2Role" },
           { "Fn::Sub": "arn:${AWS::Partition}:iam::aws:policy/AutoScalingFullAccess" },
           { "Ref": "CMKPolicy" },
+          { "Ref": "SecurityGroupPolicy"},
           { "Fn::If": [ "BlankInstancePolicy",
             { "Ref": "AWS::NoValue" },
             { "Ref": "InstancePolicy" }
@@ -1528,6 +1541,7 @@
           { "Fn::Sub": "arn:${AWS::Partition}:iam::aws:policy/service-role/AmazonEC2ContainerServiceforEC2Role" },
           { "Fn::Sub": "arn:${AWS::Partition}:iam::aws:policy/AutoScalingFullAccess" },
           { "Ref": "CMKPolicy" },
+          { "Ref": "SecurityGroupPolicy"},
           { "Ref": "BuildInstancePolicy" }
         ]
       }
@@ -1689,6 +1703,16 @@
                 "  - ", { "Ref": "InstanceRunCommand" }, "\n"
                 ] ] }
               ] },
+              "  - until yum install -y aws-cli; do echo \"Waiting for network\"; done;\n",
+              "  - export IMDS_TOKEN=$(curl -X PUT 'http://169.254.169.254/latest/api/token' -H 'X-aws-ec2-metadata-token-ttl-seconds:21600')\n",
+              "  - export INSTANCE_ID=$(curl -s --noproxy 169.254.169.254 -H \"X-aws-ec2-metadata-token:$IMDS_TOKEN\" http://169.254.169.254/latest/meta-data/instance-id)\n",
+              { "Fn::If": [ "PublicBuildAndWhiteList",
+                { "Fn::Join": [ "", [
+                  "  - export IP=$(curl -s --noproxy 169.254.169.254 -H \"X-aws-ec2-metadata-token:$IMDS_TOKEN\" http://169.254.169.254/latest/meta-data/public-ipv4)\n",
+                  "  - env $(cat /etc/environment) /usr/bin/aws ec2 authorize-security-group-ingress --group-id ", { "Ref": "ApiBalancerSecurity" }," --ip-permissions IpProtocol=tcp,FromPort=443,ToPort=443,IpRanges=\"[{CidrIp=${IP}/32,Description='CONVOX_INSTANCE'}]\" --region ", {"Ref":"AWS::Region"}, " | true\n"
+                ] ] },
+                { "Ref": "AWS::NoValue" }
+              ] },
               "  - /opt/aws/bin/cfn-signal --http-proxy \"", { "Ref": "HttpProxy" }, "\" --stack ", { "Ref": "AWS::StackName" }, " --region ", { "Ref":"AWS::Region" }, " --resource BuildInstances\n"
             ] ] }
           }
@@ -1730,6 +1754,11 @@
           {
             "Key": "Rack",
             "Value": { "Ref": "AWS::StackName" },
+            "PropagateAtLaunch": true
+          },
+          {
+            "Key": "Purpose",
+            "Value": "Build",
             "PropagateAtLaunch": true
           },
           {
@@ -1921,6 +1950,13 @@
               "  - export ASG_NAME=$(env $(cat /etc/environment) /usr/bin/aws autoscaling describe-auto-scaling-instances --instance-ids=$INSTANCE_ID --region ", {"Ref":"AWS::Region"}, " --output text --query 'AutoScalingInstances[0].AutoScalingGroupName')\n",
               "  - export LIFECYCLE_HOOK=$(env $(cat /etc/environment) /usr/bin/aws autoscaling describe-lifecycle-hooks --auto-scaling-group-name $ASG_NAME --region ", {"Ref":"AWS::Region"}, " --output text --query \"LifecycleHooks[?contains(LifecycleHookName, '", { "Ref": "AWS::StackName" }, "-InstancesLifecycleLaunching') == \\`true\\`].LifecycleHookName | [0]\")\n",
               "  - env $(cat /etc/environment) /usr/bin/aws autoscaling complete-lifecycle-action --region ", { "Ref": "AWS::Region" }, " --instance-id $INSTANCE_ID --lifecycle-hook-name $LIFECYCLE_HOOK --auto-scaling-group-name $ASG_NAME --lifecycle-action-result CONTINUE\n",
+              { "Fn::If": [ "PublicInstancesAndWhiteList",
+                { "Fn::Join": [ "", [
+                  "  - export IP=$(curl -s --noproxy 169.254.169.254 -H \"X-aws-ec2-metadata-token:$IMDS_TOKEN\" http://169.254.169.254/latest/meta-data/public-ipv4)\n",
+                  "  - env $(cat /etc/environment) /usr/bin/aws ec2 authorize-security-group-ingress --group-id ", { "Ref": "ApiBalancerSecurity" }," --ip-permissions IpProtocol=tcp,FromPort=443,ToPort=443,IpRanges=\"[{CidrIp=${IP}/32,Description='CONVOX_INSTANCE'}]\" --region ", {"Ref":"AWS::Region"}, " | true\n"
+                ] ] },
+                { "Ref": "AWS::NoValue" }
+              ] },
               "  - env $(cat /etc/environment) /opt/aws/bin/cfn-signal --http-proxy \"", { "Ref": "HttpProxy" }, "\" --stack ", { "Ref": "AWS::StackName" }, " --region ", { "Ref": "AWS::Region" }, " --resource Instances\n"
             ] ] }
           }
@@ -2442,6 +2478,13 @@
               "  - export ASG_NAME=$(env $(cat /etc/environment) /usr/bin/aws autoscaling describe-auto-scaling-instances --instance-ids=$INSTANCE_ID --region ", {"Ref":"AWS::Region"}, " --output text --query 'AutoScalingInstances[0].AutoScalingGroupName')\n",
               "  - export LIFECYCLE_HOOK=$(env $(cat /etc/environment) /usr/bin/aws autoscaling describe-lifecycle-hooks --auto-scaling-group-name $ASG_NAME --region ", {"Ref":"AWS::Region"}, " --output text --query \"LifecycleHooks[?contains(LifecycleHookName, '", { "Ref": "AWS::StackName" }, "-SpotInstancesLifecycleLaunching') == \\`true\\`].LifecycleHookName | [0]\")\n",
               "  - env $(cat /etc/environment) /usr/bin/aws autoscaling complete-lifecycle-action --region ", { "Ref": "AWS::Region" }, " --instance-id $INSTANCE_ID --lifecycle-hook-name $LIFECYCLE_HOOK --auto-scaling-group-name $ASG_NAME --lifecycle-action-result CONTINUE\n",
+              { "Fn::If": [ "PublicInstancesAndWhiteList",
+                { "Fn::Join": [ "", [
+                  "  - export IP=$(curl -s --noproxy 169.254.169.254 -H \"X-aws-ec2-metadata-token:$IMDS_TOKEN\" http://169.254.169.254/latest/meta-data/public-ipv4)\n",
+                  "  - env $(cat /etc/environment) /usr/bin/aws ec2 authorize-security-group-ingress --group-id ", { "Ref": "ApiBalancerSecurity" }," --ip-permissions IpProtocol=tcp,FromPort=443,ToPort=443,IpRanges=\"[{CidrIp=${IP}/32,Description='CONVOX_INSTANCE'}]\" --region ", {"Ref":"AWS::Region"}, " | true\n"
+                ] ] },
+                { "Ref": "AWS::NoValue" }
+              ] },
               "  - env $(cat /etc/environment) /opt/aws/bin/cfn-signal --http-proxy \"", { "Ref": "HttpProxy" }, "\" --stack ", { "Ref": "AWS::StackName" }, " --region ", { "Ref": "AWS::Region" }, " --resource SpotInstances\n"
             ] ] }
           }
@@ -3232,6 +3275,7 @@
             "Cpu": { "Ref": "BuildCpu" },
             "DockerLabels": {
               "convox.release": { "Ref": "Version" },
+              "rack.ApiBalancerSecurity": { "Ref": "ApiBalancerSecurity" },
               "rack.BuildCluster": { "Fn::If": [ "DedicatedBuilder", { "Ref": "BuildCluster" }, { "Ref": "Cluster" } ] },
               "rack.CloudformationTopic": { "Ref": "CloudformationTopic" },
               "rack.Cluster": { "Ref": "Cluster" },
@@ -3242,6 +3286,7 @@
               "rack.EncryptionKey": { "Ref": "EncryptionKey" },
               "rack.Fargate": { "Fn::FindInMap": [ "RegionConfig", { "Ref": "AWS::Region" }, "Fargate" ] },
               "rack.HighAvailability": { "Ref": "HighAvailability" },
+              "rack.InstancesIpToIncludInWhiteListing": { "Ref": "InstancesIpToIncludInWhiteListing" },
               "rack.Internal": { "Ref": "Internal" },
               "rack.InternalOnly": { "Ref": "InternalOnly" },
               "rack.LogBucket": { "Fn::If": [ "BlankLogBucket", { "Ref": "Logs" }, { "Ref": "LogBucket" } ] },
@@ -3272,7 +3317,8 @@
                 { "Ref": "Vpc" },
                 { "Ref": "ExistingVpc" }
               ] },
-              "rack.VpcCidr": { "Ref": "VPCCIDR" }
+              "rack.VpcCidr": { "Ref": "VPCCIDR" },
+              "rack.WhiteListSpecified": { "Fn::If": [ "WhiteListCIDRs", "Yes", "No"] }
             },
             "Environment": [
               { "Name": "AWS_REGION", "Value": { "Ref": "AWS::Region" } },
@@ -3329,6 +3375,7 @@
             "Cpu": "64",
             "DockerLabels": {
               "convox.release": { "Ref": "Version" },
+              "rack.ApiBalancerSecurity": { "Ref": "ApiBalancerSecurity" },
               "rack.BuildCluster": { "Fn::If": [ "DedicatedBuilder", { "Ref": "BuildCluster" }, { "Ref": "Cluster" } ] },
               "rack.CloudformationTopic": { "Ref": "CloudformationTopic" },
               "rack.Cluster": { "Ref": "Cluster" },
@@ -3339,6 +3386,7 @@
               "rack.EncryptionKey": { "Ref": "EncryptionKey" },
               "rack.Fargate": { "Fn::FindInMap": [ "RegionConfig", { "Ref": "AWS::Region" }, "Fargate" ] },
               "rack.HighAvailability": { "Ref": "HighAvailability" },
+              "rack.InstancesIpToIncludInWhiteListing": { "Ref": "InstancesIpToIncludInWhiteListing" },
               "rack.Internal": { "Ref": "Internal" },
               "rack.InternalOnly": { "Ref": "InternalOnly" },
               "rack.LogBucket": { "Fn::If": [ "BlankLogBucket", { "Ref": "Logs" }, { "Ref": "LogBucket" } ] },
@@ -3371,7 +3419,8 @@
                 { "Ref": "Vpc" },
                 { "Ref": "ExistingVpc" }
               ] },
-              "rack.VpcCidr": { "Ref": "VPCCIDR" }
+              "rack.VpcCidr": { "Ref": "VPCCIDR" },
+              "rack.WhiteListSpecified": { "Fn::If": [ "WhiteListCIDRs", "Yes", "No"] }
             },
             "Environment": [
               { "Name": "AWS_REGION", "Value": { "Ref": "AWS::Region" } },
@@ -3443,6 +3492,7 @@
               "convox.release": { "Ref": "Version" },
               "rack.AsgSpot": { "Fn::If": [ "SpotInstances", { "Ref": "SpotInstances" }, { "Ref": "AWS::NoValue" } ] },
               "rack.AsgStandard": { "Ref": "Instances" },
+              "rack.ApiBalancerSecurity": { "Ref": "ApiBalancerSecurity" },
               "rack.AvailabilityZones": { "Fn::If": [ "BlankAvailabilityZones",
                 { "Fn::Join": [ ",", [
                   { "Fn::Select": [ 0, { "Fn::GetAZs": "" } ] },
@@ -3476,6 +3526,7 @@
               "rack.EncryptionKey": { "Ref": "EncryptionKey" },
               "rack.Fargate": { "Fn::FindInMap": [ "RegionConfig", { "Ref": "AWS::Region" }, "Fargate" ] },
               "rack.HighAvailability": { "Ref": "HighAvailability" },
+              "rack.InstancesIpToIncludInWhiteListing": { "Ref": "InstancesIpToIncludInWhiteListing" },
               "rack.Internal": { "Ref": "Internal" },
               "rack.InternalOnly": { "Ref": "InternalOnly" },
               "rack.LogBucket": { "Fn::If": [ "BlankLogBucket", { "Ref": "Logs" }, { "Ref": "LogBucket" } ] },
@@ -3507,7 +3558,8 @@
                 { "Ref": "Vpc" },
                 { "Ref": "ExistingVpc" }
               ] },
-              "rack.VpcCidr": { "Ref": "VPCCIDR" }
+              "rack.VpcCidr": { "Ref": "VPCCIDR" },
+              "rack.WhiteListSpecified": { "Fn::If": [ "WhiteListCIDRs", "Yes", "No"] }
             },
             "Environment": [
               { "Name": "AWS_REGION", "Value": { "Ref": "AWS::Region" } },
@@ -3742,6 +3794,33 @@
                 }
               },
               "Principal": "*"
+            }
+          ]
+        }
+      }
+    },
+    "SecurityGroupPolicy": {
+      "Type": "AWS::IAM::ManagedPolicy",
+      "Properties": {
+        "Description": "Access to the Security group for iam roles",
+        "Path": "/convox/",
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Action": [
+                "ec2:AuthorizeSecurityGroupIngress"
+              ],
+              "Resource": [
+                { "Fn::Sub": [
+                  "${part1}/${sg}",
+                 {
+                   "sg": { "Ref": "ApiBalancerSecurity" },
+                   "part1": { "Fn::Sub": "arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:security-group" }
+                 }
+                ]}
+              ]
             }
           ]
         }

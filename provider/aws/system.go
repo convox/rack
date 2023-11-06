@@ -648,6 +648,11 @@ func (p *Provider) SystemUpdate(opts structs.SystemUpdateOptions) error {
 		}
 	}
 
+	if v, has := params["WhiteList"]; has {
+		p.WhiteListSpecified = len(v) > 0
+		p.SyncInstancesIpInSecurityGroup()
+	}
+
 	if opts.Count != nil {
 		params["InstanceCount"] = strconv.Itoa(*opts.Count)
 		changes["count"] = strconv.Itoa(*opts.Count)

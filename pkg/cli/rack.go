@@ -103,6 +103,11 @@ func init() {
 		Flags: []stdcli.Flag{flagRack, stdcli.StringFlag("name", "n", "passing the rack name it will display the Rack API URL")},
 	})
 
+	register("rack sync whitelist instances ip", "sync  whitelist instances ips in security group", RackSyncWhiteListInstancesIp, stdcli.CommandOptions{
+		Flags:    []stdcli.Flag{flagRack},
+		Validate: stdcli.Args(0),
+	})
+
 	register("rack update", "update the rack", RackUpdate, stdcli.CommandOptions{
 		Flags:    []stdcli.Flag{flagRack, flagWait},
 		Validate: stdcli.ArgsMax(1),
@@ -630,6 +635,15 @@ func RackWait(rack sdk.Interface, c *stdcli.Context) error {
 	c.Writef("\n")
 
 	if err := helpers.WaitForRackWithLogs(rack, c); err != nil {
+		return err
+	}
+
+	return c.OK()
+}
+
+func RackSyncWhiteListInstancesIp(rack sdk.Interface, c *stdcli.Context) error {
+	err := rack.SyncInstancesIpInSecurityGroup()
+	if err != nil {
 		return err
 	}
 

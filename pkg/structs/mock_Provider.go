@@ -111,6 +111,20 @@ func (_m *MockProvider) AppList() (Apps, error) {
 	return r0, r1
 }
 
+
+func (_m *MockProvider) SyncInstancesIpInSecurityGroup() error {
+	ret := _m.Called()
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func() error); ok {
+		r1 = rf()
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r1
+}
+
 // AppLogs provides a mock function with given fields: name, opts
 func (_m *MockProvider) AppLogs(name string, opts LogsOptions) (io.ReadCloser, error) {
 	ret := _m.Called(name, opts)
