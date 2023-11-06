@@ -47,49 +47,51 @@ type Provider struct {
 	Region   string
 	Endpoint string
 
-	AsgSpot             string
-	AsgStandard         string
-	AvailabilityZones   string
-	BuildCluster        string
-	ClientId            string
-	CloudformationTopic string
-	Cluster             string
-	CustomEncryptionKey string
-	Development         bool
-	DynamoBuilds        string
-	DynamoReleases      string
-	DockerTLS           *structs.TLSPemCertBytes
-	EcsPollInterval     int
-	EncryptionKey       string
-	Fargate             bool
-	HighAvailability    bool
-	Internal            bool
-	InternalOnly        bool
-	ELBLogBucket        string
-	LogBucket           string
-	LogDriver           string
-	NotificationTopic   string
-	OnDemandMinCount    int
-	Password            string
-	Private             bool
-	PrivateBuild        bool
-	Rack                string
-	RackApiServiceName  string
-	SecurityGroup       string
-	SettingsBucket      string
-	SshKey              string
-	SpotInstances       bool
-	Subnets             string
-	SubnetsPrivate      string
-	StackId             string
-	SyslogDestination   string
-	SyslogFormat        string
-	Version             string
-	Vpc                 string
-	VpcCidr             string
-
-	Metrics   *metrics.Metrics
-	SkipCache bool
+	AsgSpot                           string
+	AsgStandard                       string
+	AvailabilityZones                 string
+	BuildCluster                      string
+	ClientId                          string
+	CloudformationTopic               string
+	Cluster                           string
+	CustomEncryptionKey               string
+	Development                       bool
+	DynamoBuilds                      string
+	DynamoReleases                    string
+	DockerTLS                         *structs.TLSPemCertBytes
+	EcsPollInterval                   int
+	EncryptionKey                     string
+	Fargate                           bool
+	HighAvailability                  bool
+	InstancesIpToIncludInWhiteListing string
+	Internal                          bool
+	InternalOnly                      bool
+	ELBLogBucket                      string
+	LogBucket                         string
+	LogDriver                         string
+	NotificationTopic                 string
+	OnDemandMinCount                  int
+	Password                          string
+	Private                           bool
+	PrivateBuild                      bool
+	ApiBalancerSecurity               string
+	Rack                              string
+	RackApiServiceName                string
+	SecurityGroup                     string
+	SettingsBucket                    string
+	SshKey                            string
+	SpotInstances                     bool
+	Subnets                           string
+	SubnetsPrivate                    string
+	StackId                           string
+	SyslogDestination                 string
+	SyslogFormat                      string
+	Version                           string
+	Vpc                               string
+	VpcCidr                           string
+	WhiteListSpecified                bool
+	Metrics                           *metrics.Metrics
+	SkipCache                         bool
 
 	CloudWatch cloudwatchiface.CloudWatchAPI
 
@@ -150,6 +152,7 @@ func (p *Provider) loadParams() error {
 	p.AsgSpot = labels["rack.AsgSpot"]
 	p.AsgStandard = labels["rack.AsgStandard"]
 	p.AvailabilityZones = labels["rack.AvailabilityZones"]
+	p.ApiBalancerSecurity = labels["rack.ApiBalancerSecurity"]
 	p.BuildCluster = labels["rack.BuildCluster"]
 	p.CloudformationTopic = labels["rack.CloudformationTopic"]
 	p.Cluster = labels["rack.Cluster"]
@@ -160,6 +163,7 @@ func (p *Provider) loadParams() error {
 	p.EncryptionKey = labels["rack.EncryptionKey"]
 	p.Fargate = labels["rack.Fargate"] == "Yes"
 	p.HighAvailability = labels["rack.HighAvailability"] == "true"
+	p.InstancesIpToIncludInWhiteListing = labels["rack.InstancesIpToIncludInWhiteListing"]
 	p.Internal = labels["rack.Internal"] == "Yes"
 	p.InternalOnly = labels["rack.InternalOnly"] == "Yes"
 	p.LogBucket = labels["rack.LogBucket"]
@@ -180,6 +184,7 @@ func (p *Provider) loadParams() error {
 	p.Version = labels["rack.Version"]
 	p.Vpc = labels["rack.Vpc"]
 	p.VpcCidr = labels["rack.VpcCidr"]
+	p.WhiteListSpecified = labels["rack.WhiteListSpecified"] == "Yes"
 
 	if v, has := labels["rack.DockerTlsCA"]; has && len(v) > 0 {
 		cacert, err := base64.StdEncoding.DecodeString(labels["rack.DockerTlsCA"])

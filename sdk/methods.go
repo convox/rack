@@ -1042,3 +1042,13 @@ func (c *Client) Workers() error {
 	err := fmt.Errorf("not available via api")
 	return err
 }
+
+func (c *Client) SyncInstancesIpInSecurityGroup() error {
+	var err error
+
+	ro := stdsdk.RequestOptions{Headers: stdsdk.Headers{}, Params: stdsdk.Params{}, Query: stdsdk.Query{}}
+
+	err = c.Get(fmt.Sprintf("/system/sync/whitelist/instances/ip"), ro, nil)
+
+	return err
+}

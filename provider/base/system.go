@@ -49,3 +49,7 @@ func (p *Provider) SystemJwtSignKey() (string, error) {
 func (p *Provider) SystemJwtSignKeyRotate() (string, error) {
 	return "", fmt.Errorf("unimplemented")
 }
+
+func (p *Provider) SyncInstancesIpInSecurityGroup() error {
+	return fmt.Errorf("unimplemented")
+}

@@ -95,6 +95,7 @@ type Provider interface {
 	SystemUninstall(name string, w io.Writer, opts SystemUninstallOptions) error
 	SystemUpdate(opts SystemUpdateOptions) error
 	Sync(string) error
+	SyncInstancesIpInSecurityGroup() error
 	WithContext(ctx context.Context) Provider
 	Workers() error
 }
