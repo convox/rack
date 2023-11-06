@@ -21,6 +21,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/ecr"
 	"github.com/aws/aws-sdk-go/service/ecs"
+	"github.com/aws/aws-sdk-go/service/eventbridge"
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/kms"
 	"github.com/aws/aws-sdk-go/service/s3"
@@ -69,6 +70,7 @@ type Provider struct {
 	ELBLogBucket                      string
 	LogBucket                         string
 	LogDriver                         string
+	MaintainTimerState                bool
 	NotificationTopic                 string
 	OnDemandMinCount                  int
 	Password                          string
@@ -168,6 +170,7 @@ func (p *Provider) loadParams() error {
 	p.InternalOnly = labels["rack.InternalOnly"] == "Yes"
 	p.LogBucket = labels["rack.LogBucket"]
 	p.LogDriver = labels["rack.LogDriver"]
+	p.MaintainTimerState = labels["rack.MaintainTimerState"] == "Yes"
 	p.NotificationTopic = labels["rack.NotificationTopic"]
 	p.OnDemandMinCount = intParam(labels["rack.OnDemandMinCount"], 2)
 	p.Private = labels["rack.Private"] == "Yes"
@@ -374,6 +377,14 @@ func (p *Provider) ecs() *ecs.ECS {
 		panic(errors.WithStack(err))
 	}
 	return ecs.New(s, p.config())
+}
+
+func (p *Provider) eventbridge() *eventbridge.EventBridge {
+	s, err := helpers.NewSession()
+	if err != nil {
+		panic(errors.WithStack(err))
+	}
+	return eventbridge.New(s, p.config())
 }
 
 func (p *Provider) kms() *kms.KMS {

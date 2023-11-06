@@ -82,6 +82,7 @@ github.com/aws/aws-sdk-go/service/ec2
 github.com/aws/aws-sdk-go/service/ecr
 github.com/aws/aws-sdk-go/service/ecr/ecriface
 github.com/aws/aws-sdk-go/service/ecs
+github.com/aws/aws-sdk-go/service/eventbridge
 github.com/aws/aws-sdk-go/service/iam
 github.com/aws/aws-sdk-go/service/kms
 github.com/aws/aws-sdk-go/service/s3
