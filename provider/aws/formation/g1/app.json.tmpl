@@ -100,7 +100,46 @@
             "PolicyName": "Administrator",
             "PolicyDocument": {
               "Version": "2012-10-17",
-              "Statement": [ { "Effect": "Allow", "Action": "*", "Resource": "*" } ]
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "ecr:CreateRepository",
+                    "ecr:DeleteRepository",
+                    "ecs:UpdateService",
+                    "ecs:DeleteService",
+                    "ecs:RegisterTaskDefinition",
+                    "ecs:DeregisterTaskDefinition",
+                    "ecs:ListTasks",
+                    "ec2:DeleteSubnet",
+                    "ec2:CreateSubnet",
+                    "ec2:DeleteNatGateway",
+                    "ec2:DescribeNatGateways",
+                    "ec2:DeleteRoute",
+                    "ec2:DescribeSecurityGroups",
+                    "ec2:AuthorizeSecurityGroupIngress",
+                    "ec2:RevokeSecurityGroupIngress",
+                    "kms:CreateKey",
+                    "kms:EnableKeyRotation",
+                    "kms:DisableKey",
+                    "kms:DisableKeyRotation",
+                    "kms:DescribeKey",
+                    "kms:ScheduleKeyDeletion",
+                    "kms:EnableKey",
+                    "s3:GetObject",
+                    "sns:ListSubscriptions",
+                    "sns:ListSubscriptionsByTopic",
+                    "sns:Subscribe",
+                    "sns:Unsubscribe",
+                    "ssm:PutParameter",
+                    "ssm:DeleteParameter",
+                    "ssm:DeleteParameters",
+                    "ssm:GetParameter",
+                    "sqs:*"
+                  ],
+                  "Resource": "*"
+                }
+              ]
             }
           }
         ]
