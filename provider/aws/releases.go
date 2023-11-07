@@ -12,8 +12,10 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/ecs"
+	"github.com/aws/aws-sdk-go/service/eventbridge"
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/convox/rack/pkg/crypt"
@@ -328,12 +330,20 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 
 	for _, t := range m.Timers {
 		ttp := map[string]interface{}{
-			"App":      r.App,
-			"Build":    tp["Build"],
-			"Manifest": tp["Manifest"],
-			"Password": p.Password,
-			"Release":  tp["Release"],
-			"Timer":    t,
+			"App":       r.App,
+			"Build":     tp["Build"],
+			"Manifest":  tp["Manifest"],
+			"Password":  p.Password,
+			"Release":   tp["Release"],
+			"Timer":     t,
+			"TimeState": "",
+		}
+
+		if p.MaintainTimerState {
+			ttp["TimeState"], err = p.getTimerState(app, t.Name)
+			if err != nil {
+				return err
+			}
 		}
 
 		data, err := formationTemplate("timer", ttp)
@@ -885,4 +895,39 @@ func (p *Provider) resolveLinks(a *structs.App, m *manifest1.Manifest, r *struct
 	}
 
 	return m, nil
+}
+
+func (p *Provider) getTimerState(app, timerName string) (string, error) {
+	ars, err := p.describeStackResources(&cloudformation.DescribeStackResourcesInput{
+		StackName: aws.String(p.rackStack(app)),
+	})
+	if err != nil {
+		return "", err
+	}
+
+	arsns := map[string]string{}
+
+	for _, ar := range ars.StackResources {
+		arsns[cs(ar.LogicalResourceId, "")] = cs(ar.PhysicalResourceId, "")
+	}
+
+	timerOut, err := p.describeStackResources(&cloudformation.DescribeStackResourcesInput{
+		StackName: aws.String(arsns[fmt.Sprintf("Timer%s", upperName(timerName))]),
+	})
+	if err != nil {
+		return "", err
+	}
+
+	for _, to := range timerOut.StackResources {
+		if cs(to.LogicalResourceId, "") == "Timer" {
+			resp, err := p.eventbridge().DescribeRule(&eventbridge.DescribeRuleInput{
+				Name: to.PhysicalResourceId,
+			})
+			if err != nil {
+				return "", err
+			}
+			return *resp.State, nil
+		}
+	}
+	return "", fmt.Errorf("Timer rule not found")
 }
