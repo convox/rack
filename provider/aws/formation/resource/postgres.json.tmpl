@@ -20,11 +20,6 @@
       "Type": "String",
       "Default": "db.t2.micro"
     },
-    "DeletionProtection": {
-      "Type": "String",
-      "Default": "false",
-      "AllowedValues": [ "true", "false" ]
-    },
     "Durable": {
       "Type": "String",
       "Default": "false",
@@ -111,7 +106,6 @@
           ] }
         } ] },
         "DBSubnetGroupName": { "Ref": "SubnetGroup" },
-        "DeletionProtection": { "Ref": "DeletionProtection" },
         "Engine": "postgres",
         "EngineVersion": { "Ref": "Version" },
         "Iops": { "Fn::If": [ "BlankIops", { "Ref": "AWS::NoValue" }, { "Ref": "Iops" } ] },
