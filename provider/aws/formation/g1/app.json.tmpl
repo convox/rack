@@ -97,7 +97,7 @@
         "Path": "/convox/",
         "Policies": [
           {
-            "PolicyName": "Administrator",
+            "PolicyName": "ResourceManage",
             "PolicyDocument": {
               "Version": "2012-10-17",
               "Statement": [
@@ -119,6 +119,28 @@
                     "ec2:DescribeSecurityGroups",
                     "ec2:AuthorizeSecurityGroupIngress",
                     "ec2:RevokeSecurityGroupIngress",
+                    "sns:ListSubscriptions",
+                    "sns:ListSubscriptionsByTopic",
+                    "sns:Subscribe",
+                    "sns:Unsubscribe",
+                    "ssm:PutParameter",
+                    "ssm:DeleteParameter",
+                    "ssm:DeleteParameters",
+                    "ssm:GetParameter"
+                  ],
+                  "Resource": "*"
+                }
+              ]
+            }
+          },
+          {
+            "PolicyName": "KMSKeyManage",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
                     "kms:CreateKey",
                     "kms:EnableKeyRotation",
                     "kms:DisableKey",
@@ -128,17 +150,22 @@
                     "kms:EnableKey",
                     "kms:Encrypt",
                     "kms:Decrypt",
-                    "kms:GenerateDataKey",
-                    "s3:GetObject",
-                    "sns:ListSubscriptions",
-                    "sns:ListSubscriptionsByTopic",
-                    "sns:Subscribe",
-                    "sns:Unsubscribe",
-                    "ssm:PutParameter",
-                    "ssm:DeleteParameter",
-                    "ssm:DeleteParameters",
-                    "ssm:GetParameter",
-                    "sqs:*"
+                    "kms:GenerateDataKey"
+                  ],
+                  "Resource": "*"
+                }
+              ]
+            }
+          },
+          {
+            "PolicyName": "S3read",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "s3:GetObject*"
                   ],
                   "Resource": "*"
                 }
