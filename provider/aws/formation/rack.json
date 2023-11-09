@@ -253,6 +253,10 @@
       "Export": { "Name": { "Fn::Sub": "${AWS::StackName}:CustomerManagedKey" } },
       "Value": { "Ref": "CustomerManagedKey" }
     },
+    "CustomerManagedKeyArn": {
+      "Export": { "Name": { "Fn::Sub": "${AWS::StackName}:CustomerManagedKeyArn" } },
+      "Value": { "Fn::GetAtt": ["CustomerManagedKey", "Arn"]}
+    },
     "CMKPolicy": {
       "Export": { "Name": { "Fn::Sub": "${AWS::StackName}:CMKPolicy" } },
       "Value": { "Ref": "CMKPolicy" }
@@ -1070,7 +1074,7 @@
         "Path": "/convox/",
         "Policies": [
           {
-            "PolicyName": "Administrator",
+            "PolicyName": "ResourceManage",
             "PolicyDocument": {
               "Version": "2012-10-17",
               "Statement": [
@@ -1092,17 +1096,6 @@
                     "ec2:DescribeSecurityGroups",
                     "ec2:AuthorizeSecurityGroupIngress",
                     "ec2:RevokeSecurityGroupIngress",
-                    "kms:CreateKey",
-                    "kms:EnableKeyRotation",
-                    "kms:DisableKey",
-                    "kms:DisableKeyRotation",
-                    "kms:DescribeKey",
-                    "kms:ScheduleKeyDeletion",
-                    "kms:EnableKey",
-                    "kms:Encrypt",
-                    "kms:Decrypt",
-                    "kms:GenerateDataKey",
-                    "s3:GetObject",
                     "sns:ListSubscriptions",
                     "sns:ListSubscriptionsByTopic",
                     "sns:Subscribe",
@@ -1110,8 +1103,63 @@
                     "ssm:PutParameter",
                     "ssm:DeleteParameter",
                     "ssm:DeleteParameters",
-                    "ssm:GetParameter",
-                    "sqs:*"
+                    "ssm:GetParameter"
+                  ],
+                  "Resource": "*"
+                }
+              ]
+            }
+          },
+          {
+            "PolicyName": "KMSKeyManage",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "kms:CreateKey",
+                    "kms:EnableKeyRotation",
+                    "kms:DisableKey",
+                    "kms:DisableKeyRotation",
+                    "kms:DescribeKey",
+                    "kms:ScheduleKeyDeletion",
+                    "kms:EnableKey"
+                  ],
+                  "Resource": "*"
+                }
+              ]
+            }
+          },
+          {
+            "PolicyName": "KMSEncryptDecrypt",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "kms:Encrypt",
+                    "kms:Decrypt",
+                    "kms:GenerateDataKey"
+                  ],
+                  "Resource": [
+                    { "Fn::GetAtt": ["CustomerManagedKey", "Arn"]},
+                    { "Ref": "EncryptionKey" }
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "PolicyName": "S3read",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "s3:GetObject*"
                   ],
                   "Resource": "*"
                 }
