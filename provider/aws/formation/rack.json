@@ -172,6 +172,8 @@
         {"Fn::Not": [{"Fn::Equals": [{"Ref": "SpotFleetMaxPrice"}, ""]}]}
       ]
     },
+    "SpotFleetAndHA": { "Fn::And": [ { "Condition": "SpotFleet" }, { "Condition": "HighAvailability" } ] },
+    "SpotFleetMinOnDemandCountIsOne": { "Fn::Equals": [ { "Ref": "SpotFleetMinOnDemandCount" }, "1" ] },
     "SpotFleetAllowedInstanceTypes": {
       "Fn::Not": [ { "Fn::Equals": [ { "Fn::Join": [ ",", { "Ref": "SpotFleetAllowedInstanceTypes" } ] }, "" ] } ]
     },
@@ -2059,11 +2061,24 @@
           ] ]
         },
         "Cooldown": 5,
-        "DesiredCapacity" : { "Fn::If": [ "SpotFleet", { "Ref": "SpotFleetMinOnDemandCount" }, { "Fn::If": [ "SpotInstancesAndHA", { "Ref": "AWS::NoValue" }, { "Fn::If": [ "HighAvailability", { "Ref": "InstanceCount"}, { "Ref": "NoHaInstanceCount"} ] } ] }]},
+        "DesiredCapacity" : { "Fn::If": [
+          "SpotFleet",
+          { "Fn::If": [ "SpotFleetMinOnDemandCountIsOne", { "Fn::If": [ "SpotFleetAndHA", "2", "1" ] }, { "Ref": "SpotFleetMinOnDemandCount" }]},
+          { "Fn::If": [ "SpotInstancesAndHA", { "Ref": "AWS::NoValue" }, { "Fn::If": [ "HighAvailability", { "Ref": "InstanceCount"}, { "Ref": "NoHaInstanceCount"} ] } ] }
+        ]},
         "HealthCheckType": "EC2",
         "HealthCheckGracePeriod": "120",
-        "MinSize" : { "Fn::If": [ "SpotFleet", { "Ref": "SpotFleetMinOnDemandCount" }, { "Fn::If": [ "SpotInstancesAndHA", { "Ref": "OnDemandMinCount" }, { "Fn::If": [ "HighAvailability", { "Ref": "InstanceCount"}, "1" ] } ] }]},
-        "MaxSize" : { "Fn::If": [ "SpotFleet", { "Ref": "SpotFleetMinOnDemandCount" }, "1000"]},
+        "MinSize" : {
+          "Fn::If": [
+            "SpotFleet",
+            { "Fn::If": [ "SpotFleetMinOnDemandCountIsOne", { "Fn::If": [ "SpotFleetAndHA", "2", "1" ] }, { "Ref": "SpotFleetMinOnDemandCount" }]},
+            { "Fn::If": [ "SpotInstancesAndHA", { "Ref": "OnDemandMinCount" }, { "Fn::If": [ "HighAvailability", { "Ref": "InstanceCount"}, "1" ] } ] }
+        ]},
+        "MaxSize" : { "Fn::If": [
+          "SpotFleet",
+          { "Fn::If": [ "SpotFleetMinOnDemandCountIsOne", { "Fn::If": [ "SpotFleetAndHA", "2", "1" ] }, { "Ref": "SpotFleetMinOnDemandCount" }]},
+          "1000"
+        ]},
         "MetricsCollection": [ { "Granularity": "1Minute" } ],
         "TerminationPolicies": [ "NewestInstance" ],
         "Tags": [
