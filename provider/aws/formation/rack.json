@@ -2135,7 +2135,7 @@
         "Handler": "handler",
         "MemorySize": "128",
         "Role": { "Fn::GetAtt": [ "ApiRole", "Arn" ] },
-        "Runtime": "go1.x",
+        "Runtime": "provided.al2",
         "Timeout": "60"
       }
     },
@@ -2257,7 +2257,7 @@
         "Handler": "handler",
         "MemorySize": "128",
         "Role": { "Fn::GetAtt": [ "InstancesLifecycleHandlerRole", "Arn" ] },
-        "Runtime": "go1.x",
+        "Runtime": "provided.al2",
         "Timeout": "300"
       }
     },
