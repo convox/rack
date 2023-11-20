@@ -90,8 +90,8 @@ release-cli: release-version package
 	make -C cmd/convox release VERSION=$(VERSION)
 
 release-image: release-version package
-	docker buildx build --platform linux/amd64 -t convox/rack:$(VERSION) --pull --push .
-	docker buildx build --platform linux/arm64 -t convox/rack:$(VERSION)-arm64 --pull --push -f Dockerfile.arm .
+	docker buildx build --platform linux/amd64 -t convox/rack:$(VERSION) --no-cache --pull --push .
+	docker buildx build --platform linux/arm64 -t convox/rack:$(VERSION)-arm64 --no-cache --pull --push -f Dockerfile.arm .
 
 release-provider: release-version package
 	make -C provider release VERSION=$(VERSION)
