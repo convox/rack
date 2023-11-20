@@ -736,6 +736,13 @@
       "Default": "optional",
       "AllowedValues": [ "optional", "required" ]
     },
+    "IMDSHttpPutResponseHopLimit": {
+      "Type": "Number",
+      "Description": "The desired HTTP PUT response hop limit for instance metadata requests. The larger the number, the further instance metadata requests can travel",
+      "Default": "1",
+      "MaxValue": "64",
+      "MinValue": "1"
+    },
     "Internal": {
       "Type": "String",
       "Description": "Support applications that are only accessible inside the VPC",
@@ -1758,7 +1765,8 @@
           },
           "MetadataOptions" : {
             "HttpEndpoint" : "enabled",
-            "HttpTokens" : { "Ref": "IMDSHttpTokens"}
+            "HttpTokens" : { "Ref": "IMDSHttpTokens"},
+            "HttpPutResponseHopLimit" : { "Ref": "IMDSHttpPutResponseHopLimit" }
           },
           "Monitoring" : {
             "Enabled" : true
@@ -1992,7 +2000,8 @@
           },
           "MetadataOptions" : {
             "HttpEndpoint" : "enabled",
-            "HttpTokens" : { "Ref": "IMDSHttpTokens"}
+            "HttpTokens" : { "Ref": "IMDSHttpTokens"},
+            "HttpPutResponseHopLimit" : { "Ref": "IMDSHttpPutResponseHopLimit" }
           },
           "Monitoring" : {
             "Enabled" : true
@@ -2532,7 +2541,8 @@
           },
           "MetadataOptions" : {
             "HttpEndpoint" : "enabled",
-            "HttpTokens" : { "Ref": "IMDSHttpTokens"}
+            "HttpTokens" : { "Ref": "IMDSHttpTokens"},
+            "HttpPutResponseHopLimit" : { "Ref": "IMDSHttpPutResponseHopLimit" }
           },
           "Monitoring" : {
             "Enabled" : true
