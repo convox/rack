@@ -42,7 +42,6 @@ func (p *Provider) InstanceList() (structs.Instances, error) {
 	req := &ec2.DescribeInstancesInput{
 		Filters: []*ec2.Filter{
 			{Name: aws.String("tag:Rack"), Values: []*string{aws.String(p.Rack)}},
-			{Name: aws.String("tag:aws:cloudformation:logical-id"), Values: []*string{aws.String("Instances"), aws.String("SpotInstances")}},
 			{Name: aws.String("instance-state-name"), Values: []*string{aws.String("pending"), aws.String("running"), aws.String("shutting-down"), aws.String("stopping")}},
 		},
 	}
@@ -50,12 +49,20 @@ func (p *Provider) InstanceList() (structs.Instances, error) {
 	err := p.ec2().DescribeInstancesPages(req, func(res *ec2.DescribeInstancesOutput, last bool) bool {
 		for _, r := range res.Reservations {
 			for _, i := range r.Instances {
-				ihash[cs(i.InstanceId, "")] = structs.Instance{
-					Id:        cs(i.InstanceId, ""),
-					PrivateIp: cs(i.PrivateIpAddress, ""),
-					PublicIp:  cs(i.PublicIpAddress, ""),
-					Status:    "",
-					Started:   ct(i.LaunchTime, time.Time{}),
+				isBuild := false
+				for _, tg := range i.Tags {
+					if tg != nil && cs(tg.Key, "") == "Purpose" && cs(tg.Value, "") == "Build" {
+						isBuild = true
+					}
+				}
+				if !isBuild {
+					ihash[cs(i.InstanceId, "")] = structs.Instance{
+						Id:        cs(i.InstanceId, ""),
+						PrivateIp: cs(i.PrivateIpAddress, ""),
+						PublicIp:  cs(i.PublicIpAddress, ""),
+						Status:    "",
+						Started:   ct(i.LaunchTime, time.Time{}),
+					}
 				}
 			}
 		}
