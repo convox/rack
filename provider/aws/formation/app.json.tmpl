@@ -20,6 +20,7 @@
     "InternalDomains": { "Fn::Equals": [ { "Ref": "InternalDomains" }, "Yes" ] },
     "Isolate": { "Fn::And": [ { "Condition": "Private" }, { "Fn::Equals": [ { "Ref": "Isolate" }, "Yes" ] } ] },
     "IsolateServices": { "Fn::Or": [ { "Condition": "FargateServicesEither" }, { "Condition": "Isolate" } ] },
+    "PlaceLambdaInVpcCond": { "Fn::Equals": [ { "Ref": "PlaceLambdaInVpc" }, "Yes" ] },
     "Private": { "Fn::Equals": [ { "Ref": "Private" }, "Yes" ] },
     "RackUrl": { "Fn::Equals": [ { "Ref": "RackUrl" }, "Yes" ] }
   },
@@ -118,6 +119,12 @@
       "Default": "7",
       "Description": "Number of days to keep logs (blank for unlimited)",
       "Type": "String"
+    },
+    "PlaceLambdaInVpc": {
+      "Type": "String",
+      "Description": "Place lambda in vpc",
+      "Default": "No",
+      "AllowedValues": [ "Yes", "No" ]
     },
     "Private": {
       "Type": "String",
@@ -471,7 +478,19 @@
             "  });",
             "};"
           ] ] }
-        }
+        },
+        "VpcConfig": { "Fn::If": [ "PlaceLambdaInVpcCond",
+          {
+            "SecurityGroupIds": [
+              { "Fn::ImportValue": { "Fn::Sub": "${Rack}:InstancesSecurityGroup" }}
+            ],
+            "SubnetIds": { "Fn::If": [ "Private",
+              [{ "Fn::ImportValue": { "Fn::Sub": "${Rack}:SubnetPrivate0" } }, { "Fn::ImportValue": { "Fn::Sub": "${Rack}:SubnetPrivate1" } }],
+              [{ "Fn::ImportValue": { "Fn::Sub": "${Rack}:Subnet0" } }, { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Subnet1" } }]
+            ] }
+          },
+          { "Ref": "AWS::NoValue" }
+        ]}
       }
     },
     "TimerRole": {
