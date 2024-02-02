@@ -1850,21 +1850,20 @@
                 ] ] }
               ] },
               "runcmd:\n",
+              "  - until yum install -y aws-cli; do echo \"Waiting for network\"; done;\n",
+              "  - export IMDS_TOKEN=$(curl -X PUT 'http://169.254.169.254/latest/api/token' -H 'X-aws-ec2-metadata-token-ttl-seconds:21600')\n",
+              { "Fn::If": [ "PublicBuildAndWhiteList",
+                { "Fn::Join": [ "", [
+                  "  - export IP=$(curl -s --noproxy 169.254.169.254 -H \"X-aws-ec2-metadata-token:$IMDS_TOKEN\" http://169.254.169.254/latest/meta-data/public-ipv4) || true\n",
+                  "  - env $(cat /etc/environment) /usr/bin/aws ec2 authorize-security-group-ingress --group-id ", { "Ref": "ApiBalancerSecurity" }," --ip-permissions IpProtocol=tcp,FromPort=443,ToPort=443,IpRanges=\"[{CidrIp=${IP}/32,Description='CONVOX_INSTANCE'}]\" --region ", {"Ref":"AWS::Region"}, " || true\n"
+                ] ] },
+                { "Ref": "AWS::NoValue" }
+              ] },
               { "Fn::If": [ "BlankInstanceRunCommand",
                 { "Ref": "AWS::NoValue" },
                 { "Fn::Join": [ "", [
                 "  - ", { "Ref": "InstanceRunCommand" }, "\n"
                 ] ] }
-              ] },
-              "  - until yum install -y aws-cli; do echo \"Waiting for network\"; done;\n",
-              "  - export IMDS_TOKEN=$(curl -X PUT 'http://169.254.169.254/latest/api/token' -H 'X-aws-ec2-metadata-token-ttl-seconds:21600')\n",
-              "  - export INSTANCE_ID=$(curl -s --noproxy 169.254.169.254 -H \"X-aws-ec2-metadata-token:$IMDS_TOKEN\" http://169.254.169.254/latest/meta-data/instance-id)\n",
-              { "Fn::If": [ "PublicBuildAndWhiteList",
-                { "Fn::Join": [ "", [
-                  "  - export IP=$(curl -s --noproxy 169.254.169.254 -H \"X-aws-ec2-metadata-token:$IMDS_TOKEN\" http://169.254.169.254/latest/meta-data/public-ipv4)\n",
-                  "  - env $(cat /etc/environment) /usr/bin/aws ec2 authorize-security-group-ingress --group-id ", { "Ref": "ApiBalancerSecurity" }," --ip-permissions IpProtocol=tcp,FromPort=443,ToPort=443,IpRanges=\"[{CidrIp=${IP}/32,Description='CONVOX_INSTANCE'}]\" --region ", {"Ref":"AWS::Region"}, " | true\n"
-                ] ] },
-                { "Ref": "AWS::NoValue" }
               ] },
               "  - /opt/aws/bin/cfn-signal --http-proxy \"", { "Ref": "HttpProxy" }, "\" --stack ", { "Ref": "AWS::StackName" }, " --region ", { "Ref":"AWS::Region" }, " --resource BuildInstances\n"
             ] ] }
@@ -2092,25 +2091,25 @@
                 ] ] }
               ] },
               "runcmd:\n",
+              "  - sudo yum install -y amazon-cloudwatch-agent\n",
+              "  - export IMDS_TOKEN=$(curl -X PUT 'http://169.254.169.254/latest/api/token' -H 'X-aws-ec2-metadata-token-ttl-seconds:21600')\n",
+              { "Fn::If": [ "PublicInstancesAndWhiteList",
+                { "Fn::Join": [ "", [
+                  "  - export IP=$(curl -s --noproxy 169.254.169.254 -H \"X-aws-ec2-metadata-token:$IMDS_TOKEN\" http://169.254.169.254/latest/meta-data/public-ipv4) || true\n",
+                  "  - env $(cat /etc/environment) /usr/bin/aws ec2 authorize-security-group-ingress --group-id ", { "Ref": "ApiBalancerSecurity" }," --ip-permissions IpProtocol=tcp,FromPort=443,ToPort=443,IpRanges=\"[{CidrIp=${IP}/32,Description='CONVOX_INSTANCE'}]\" --region ", {"Ref":"AWS::Region"}, " || true\n"
+                ] ] },
+                { "Ref": "AWS::NoValue" }
+              ] },
               { "Fn::If": [ "BlankInstanceRunCommand",
                 { "Ref": "AWS::NoValue" },
                 { "Fn::Join": [ "", [
                 "  - ", { "Ref": "InstanceRunCommand" }, "\n"
                 ] ] }
               ] },
-              "  - sudo yum install -y amazon-cloudwatch-agent\n",
-              "  - export IMDS_TOKEN=$(curl -X PUT 'http://169.254.169.254/latest/api/token' -H 'X-aws-ec2-metadata-token-ttl-seconds:21600')\n",
-              "  - export INSTANCE_ID=$(curl -s --noproxy 169.254.169.254 -H \"X-aws-ec2-metadata-token:$IMDS_TOKEN\" http://169.254.169.254/latest/meta-data/instance-id)\n",
+              "  - export INSTANCE_ID=$(curl -s --noproxy 169.254.169.254 -H \"X-aws-ec2-metadata-token:$IMDS_TOKEN\" http://169.254.169.254/latest/meta-data/instance-id) || true\n",
               "  - export ASG_NAME=$(env $(cat /etc/environment) /usr/bin/aws autoscaling describe-auto-scaling-instances --instance-ids=$INSTANCE_ID --region ", {"Ref":"AWS::Region"}, " --output text --query 'AutoScalingInstances[0].AutoScalingGroupName')\n",
               "  - export LIFECYCLE_HOOK=$(env $(cat /etc/environment) /usr/bin/aws autoscaling describe-lifecycle-hooks --auto-scaling-group-name $ASG_NAME --region ", {"Ref":"AWS::Region"}, " --output text --query \"LifecycleHooks[?contains(LifecycleHookName, '", { "Ref": "AWS::StackName" }, "-InstancesLifecycleLaunching') == \\`true\\`].LifecycleHookName | [0]\")\n",
               "  - env $(cat /etc/environment) /usr/bin/aws autoscaling complete-lifecycle-action --region ", { "Ref": "AWS::Region" }, " --instance-id $INSTANCE_ID --lifecycle-hook-name $LIFECYCLE_HOOK --auto-scaling-group-name $ASG_NAME --lifecycle-action-result CONTINUE\n",
-              { "Fn::If": [ "PublicInstancesAndWhiteList",
-                { "Fn::Join": [ "", [
-                  "  - export IP=$(curl -s --noproxy 169.254.169.254 -H \"X-aws-ec2-metadata-token:$IMDS_TOKEN\" http://169.254.169.254/latest/meta-data/public-ipv4)\n",
-                  "  - env $(cat /etc/environment) /usr/bin/aws ec2 authorize-security-group-ingress --group-id ", { "Ref": "ApiBalancerSecurity" }," --ip-permissions IpProtocol=tcp,FromPort=443,ToPort=443,IpRanges=\"[{CidrIp=${IP}/32,Description='CONVOX_INSTANCE'}]\" --region ", {"Ref":"AWS::Region"}, " | true\n"
-                ] ] },
-                { "Ref": "AWS::NoValue" }
-              ] },
               "  - env $(cat /etc/environment) /opt/aws/bin/cfn-signal --http-proxy \"", { "Ref": "HttpProxy" }, "\" --stack ", { "Ref": "AWS::StackName" }, " --region ", { "Ref": "AWS::Region" }, " --resource Instances\n"
             ] ] }
           }
@@ -2634,25 +2633,25 @@
                 ] ] }
               ] },
               "runcmd:\n",
+              "  - sudo yum install -y amazon-cloudwatch-agent\n",
+              "  - export IMDS_TOKEN=$(curl -X PUT 'http://169.254.169.254/latest/api/token' -H 'X-aws-ec2-metadata-token-ttl-seconds:21600')\n",
+              { "Fn::If": [ "PublicInstancesAndWhiteList",
+                { "Fn::Join": [ "", [
+                  "  - export IP=$(curl -s --noproxy 169.254.169.254 -H \"X-aws-ec2-metadata-token:$IMDS_TOKEN\" http://169.254.169.254/latest/meta-data/public-ipv4) || true\n",
+                  "  - env $(cat /etc/environment) /usr/bin/aws ec2 authorize-security-group-ingress --group-id ", { "Ref": "ApiBalancerSecurity" }," --ip-permissions IpProtocol=tcp,FromPort=443,ToPort=443,IpRanges=\"[{CidrIp=${IP}/32,Description='CONVOX_INSTANCE'}]\" --region ", {"Ref":"AWS::Region"}, " || true\n"
+                ] ] },
+                { "Ref": "AWS::NoValue" }
+              ] },
               { "Fn::If": [ "BlankInstanceRunCommand",
                 { "Ref": "AWS::NoValue" },
                 { "Fn::Join": [ "", [
                 "  - ", { "Ref": "InstanceRunCommand" }, "\n"
                 ] ] }
               ] },
-              "  - sudo yum install -y amazon-cloudwatch-agent\n",
-              "  - export IMDS_TOKEN=$(curl -X PUT 'http://169.254.169.254/latest/api/token' -H 'X-aws-ec2-metadata-token-ttl-seconds:21600')\n",
               "  - export INSTANCE_ID=$(curl -s --noproxy 169.254.169.254 -H \"X-aws-ec2-metadata-token:$IMDS_TOKEN\" http://169.254.169.254/latest/meta-data/instance-id)\n",
               "  - export ASG_NAME=$(env $(cat /etc/environment) /usr/bin/aws autoscaling describe-auto-scaling-instances --instance-ids=$INSTANCE_ID --region ", {"Ref":"AWS::Region"}, " --output text --query 'AutoScalingInstances[0].AutoScalingGroupName')\n",
               "  - export LIFECYCLE_HOOK=$(env $(cat /etc/environment) /usr/bin/aws autoscaling describe-lifecycle-hooks --auto-scaling-group-name $ASG_NAME --region ", {"Ref":"AWS::Region"}, " --output text --query \"LifecycleHooks[?contains(LifecycleHookName, '", { "Ref": "AWS::StackName" }, "-SpotInstancesLifecycleLaunching') == \\`true\\`].LifecycleHookName | [0]\")\n",
               "  - env $(cat /etc/environment) /usr/bin/aws autoscaling complete-lifecycle-action --region ", { "Ref": "AWS::Region" }, " --instance-id $INSTANCE_ID --lifecycle-hook-name $LIFECYCLE_HOOK --auto-scaling-group-name $ASG_NAME --lifecycle-action-result CONTINUE\n",
-              { "Fn::If": [ "PublicInstancesAndWhiteList",
-                { "Fn::Join": [ "", [
-                  "  - export IP=$(curl -s --noproxy 169.254.169.254 -H \"X-aws-ec2-metadata-token:$IMDS_TOKEN\" http://169.254.169.254/latest/meta-data/public-ipv4)\n",
-                  "  - env $(cat /etc/environment) /usr/bin/aws ec2 authorize-security-group-ingress --group-id ", { "Ref": "ApiBalancerSecurity" }," --ip-permissions IpProtocol=tcp,FromPort=443,ToPort=443,IpRanges=\"[{CidrIp=${IP}/32,Description='CONVOX_INSTANCE'}]\" --region ", {"Ref":"AWS::Region"}, " | true\n"
-                ] ] },
-                { "Ref": "AWS::NoValue" }
-              ] },
               "  - env $(cat /etc/environment) /opt/aws/bin/cfn-signal --http-proxy \"", { "Ref": "HttpProxy" }, "\" --stack ", { "Ref": "AWS::StackName" }, " --region ", { "Ref": "AWS::Region" }, " --resource SpotInstances\n"
             ] ] }
           }
@@ -2990,21 +2989,20 @@
                 ] ] }
               ] },
               "runcmd:\n",
+              "  - sudo yum install -y amazon-cloudwatch-agent\n",
+              "  - export IMDS_TOKEN=$(curl -X PUT 'http://169.254.169.254/latest/api/token' -H 'X-aws-ec2-metadata-token-ttl-seconds:21600')\n",
+              { "Fn::If": [ "PublicInstancesAndWhiteList",
+                { "Fn::Join": [ "", [
+                  "  - export IP=$(curl -s --noproxy 169.254.169.254 -H \"X-aws-ec2-metadata-token:$IMDS_TOKEN\" http://169.254.169.254/latest/meta-data/public-ipv4) || true\n",
+                  "  - env $(cat /etc/environment) /usr/bin/aws ec2 authorize-security-group-ingress --group-id ", { "Ref": "ApiBalancerSecurity" }," --ip-permissions IpProtocol=tcp,FromPort=443,ToPort=443,IpRanges=\"[{CidrIp=${IP}/32,Description='CONVOX_INSTANCE'}]\" --region ", {"Ref":"AWS::Region"}, " || true\n"
+                ] ] },
+                { "Ref": "AWS::NoValue" }
+              ] },
               { "Fn::If": [ "BlankInstanceRunCommand",
                 { "Ref": "AWS::NoValue" },
                 { "Fn::Join": [ "", [
                 "  - ", { "Ref": "InstanceRunCommand" }, "\n"
                 ] ] }
-              ] },
-              "  - sudo yum install -y amazon-cloudwatch-agent\n",
-              "  - export IMDS_TOKEN=$(curl -X PUT 'http://169.254.169.254/latest/api/token' -H 'X-aws-ec2-metadata-token-ttl-seconds:21600')\n",
-              "  - export INSTANCE_ID=$(curl -s --noproxy 169.254.169.254 -H \"X-aws-ec2-metadata-token:$IMDS_TOKEN\" http://169.254.169.254/latest/meta-data/instance-id)\n",
-              { "Fn::If": [ "PublicInstancesAndWhiteList",
-                { "Fn::Join": [ "", [
-                  "  - export IP=$(curl -s --noproxy 169.254.169.254 -H \"X-aws-ec2-metadata-token:$IMDS_TOKEN\" http://169.254.169.254/latest/meta-data/public-ipv4)\n",
-                  "  - env $(cat /etc/environment) /usr/bin/aws ec2 authorize-security-group-ingress --group-id ", { "Ref": "ApiBalancerSecurity" }," --ip-permissions IpProtocol=tcp,FromPort=443,ToPort=443,IpRanges=\"[{CidrIp=${IP}/32,Description='CONVOX_INSTANCE'}]\" --region ", {"Ref":"AWS::Region"}, " | true\n"
-                ] ] },
-                { "Ref": "AWS::NoValue" }
               ] },
               "  - env $(cat /etc/environment) /opt/aws/bin/cfn-signal --http-proxy \"", { "Ref": "HttpProxy" }, "\" --stack ", { "Ref": "AWS::StackName" }, " --region ", { "Ref": "AWS::Region" }, " --resource Instances\n"
             ] ] }
