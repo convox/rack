@@ -4,6 +4,7 @@
     "BlankEncrypted": { "Fn::Equals": [ { "Ref": "Encrypted" }, "" ] },
     "BlankIops": { "Fn::Equals": [ { "Ref": "Iops" }, "0" ] },
     "BlankPreferredBackupWindow": { "Fn::Equals": [ { "Ref": "PreferredBackupWindow" }, "" ] },
+    "BlankParameterGroupName": { "Fn::Equals": [ { "Ref": "ParameterGroupName" }, "" ] },
     "Version9": { "Fn::Equals": [ { "Fn::Select": [ 0, { "Fn::Split": [ ".", { "Ref": "Version" } ] } ] }, "9" ] }
   },
   "Parameters": {
@@ -43,6 +44,10 @@
       "MinLength": "8",
       "NoEcho": true,
       "Type": "String"
+    },
+    "ParameterGroupName": {
+      "Type" : "String",
+      "Default": ""
     },
     "PreferredBackupWindow": {
       "Type": "String",
@@ -101,15 +106,15 @@
         "DBInstanceClass": { "Ref": "Class" },
         "DBInstanceIdentifier": { "Ref": "AWS::StackName" },
         "DBName": "app",
-        "DBParameterGroupName": { "Fn::Sub": [ "default.postgres${Base}", {
-          "Base": { "Fn::If": [ "Version9",
-            { "Fn::Join": [ ".", [
-              { "Fn::Select": [ 0, { "Fn::Split": [ ".", { "Ref": "Version" } ] } ] },
-              { "Fn::Select": [ 1, { "Fn::Split": [ ".", { "Ref": "Version" } ] } ] }
-            ] ] },
-            { "Fn::Select": [ 0, { "Fn::Split": [ ".", { "Ref": "Version" } ] } ] }
-          ] }
-        } ] },
+        "DBParameterGroupName": { "Fn::If": [ "BlankParameterGroupName", { "Fn::If": [ "Version9",
+              { "Fn::Join": [ ".", [
+                { "Fn::Select": [ 0, { "Fn::Split": [ ".", { "Ref": "Version" } ] } ] },
+                { "Fn::Select": [ 1, { "Fn::Split": [ ".", { "Ref": "Version" } ] } ] }
+              ] ] },
+              { "Fn::Select": [ 0, { "Fn::Split": [ ".", { "Ref": "Version" } ] } ] }
+            ] }
+          } ] },
+        { "Ref": "ParameterGroupName" } ] },
         "DBSubnetGroupName": { "Ref": "SubnetGroup" },
         "DeletionProtection": { "Ref": "DeletionProtection" },
         "Engine": "postgres",
