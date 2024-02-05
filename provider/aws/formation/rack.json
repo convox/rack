@@ -130,6 +130,8 @@
     "Internal": { "Fn::Equals": [ { "Ref": "Internal" }, "Yes" ] },
     "InternetGateway": { "Fn::Not": [ { "Fn::Equals": [ { "Ref": "InternetGateway" }, "" ] } ] },
     "NotExistingVpcAndBlankInternetGateway": { "Fn::Not": [ { "Condition": "ExistingVpcAndBlankInternetGateway" } ] },
+    "PlaceLambdaInVpcCond": { "Fn::Equals": [ { "Ref": "PlaceLambdaInVpc" }, "Yes" ] },
+    "PrivateAndPlaceLambdaInVpc": { "Fn::And": [ { "Condition": "PrivateInstances" }, { "Condition": "PlaceLambdaInVpcCond" } ] },
     "Private": { "Fn::Or": [ { "Condition": "PrivateBuild" }, { "Condition": "PrivateInstances" } ] },
     "PrivateAndThirdAvailabilityZoneAndHighAvailability": {
       "Fn::And": [ { "Condition": "Private" }, { "Condition": "ThirdAvailabilityZone" }, { "Condition": "HighAvailability" } ]
@@ -870,6 +872,12 @@
       "MaxLength": "50",
       "NoEcho": true
     },
+    "PlaceLambdaInVpc": {
+      "Type": "String",
+      "Description": "Place lambda in vpc",
+      "Default": "No",
+      "AllowedValues": [ "Yes", "No" ]
+    },
     "Private": {
       "Type": "String",
       "Description": "Create non publicly routable resources",
@@ -1246,7 +1254,16 @@
         "MemorySize": "128",
         "Role": { "Fn::GetAtt": [ "CustomTopicRole", "Arn" ] },
         "Runtime": "nodejs16.x",
-        "Timeout": "300"
+        "Timeout": "300",
+        "VpcConfig": { "Fn::If": [ "PrivateAndPlaceLambdaInVpc",
+          {
+            "SecurityGroupIds": [
+              { "Fn::If": [ "BlankInstanceSecurityGroup", { "Ref": "InstancesSecurity" }, { "Ref": "InstanceSecurityGroup" }]}
+            ],
+            "SubnetIds": [{ "Ref": "SubnetPrivate0" }, { "Ref": "SubnetPrivate1" }]
+          },
+          { "Ref": "AWS::NoValue" }]
+        }
       }
     },
     "Vpc": {
@@ -2296,7 +2313,16 @@
         "MemorySize": "128",
         "Role": { "Fn::GetAtt": [ "ApiRole", "Arn" ] },
         "Runtime": "provided.al2",
-        "Timeout": "60"
+        "Timeout": "60",
+        "VpcConfig": { "Fn::If": [ "PrivateAndPlaceLambdaInVpc",
+          {
+            "SecurityGroupIds": [
+              { "Fn::If": [ "BlankInstanceSecurityGroup", { "Ref": "InstancesSecurity" }, { "Ref": "InstanceSecurityGroup" }]}
+            ],
+            "SubnetIds": [{ "Ref": "SubnetPrivate0" }, { "Ref": "SubnetPrivate1" }]
+          },
+          { "Ref": "AWS::NoValue" }]
+        }
       }
     },
     "InstancesAutoscalerPermission": {
@@ -2418,7 +2444,16 @@
         "MemorySize": "128",
         "Role": { "Fn::GetAtt": [ "InstancesLifecycleHandlerRole", "Arn" ] },
         "Runtime": "provided.al2",
-        "Timeout": "300"
+        "Timeout": "300",
+        "VpcConfig": { "Fn::If": [ "PrivateAndPlaceLambdaInVpc",
+          {
+            "SecurityGroupIds": [
+              { "Fn::If": [ "BlankInstanceSecurityGroup", { "Ref": "InstancesSecurity" }, { "Ref": "InstanceSecurityGroup" }]}
+            ],
+            "SubnetIds": [{ "Ref": "SubnetPrivate0" }, { "Ref": "SubnetPrivate1" }]
+          },
+          { "Ref": "AWS::NoValue" }]
+        }
       }
     },
     "InstancesLifecycleHandlerPermission": {
