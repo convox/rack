@@ -369,9 +369,15 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 		return err
 	}
 
+	lambdaInVpc, err := p.stackParameter(p.Rack, "PlaceLambdaInVpc")
+	if err != nil {
+		return err
+	}
+
 	updates := map[string]string{
 		"LogBucket":         p.LogBucket,
 		"LogDriver":         p.LogDriver,
+		"PlaceLambdaInVpc":  lambdaInVpc,
 		"Private":           private,
 		"SyslogDestination": p.SyslogDestination,
 		"SyslogFormat":      p.SyslogFormat,
