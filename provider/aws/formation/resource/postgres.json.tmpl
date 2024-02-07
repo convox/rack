@@ -112,8 +112,7 @@
                 { "Fn::Select": [ 1, { "Fn::Split": [ ".", { "Ref": "Version" } ] } ] }
               ] ] },
               { "Fn::Select": [ 0, { "Fn::Split": [ ".", { "Ref": "Version" } ] } ] }
-            ] }
-          } ] },
+            ] },
         { "Ref": "ParameterGroupName" } ] },
         "DBSubnetGroupName": { "Ref": "SubnetGroup" },
         "DeletionProtection": { "Ref": "DeletionProtection" },
