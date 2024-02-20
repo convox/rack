@@ -35,6 +35,7 @@
       "Fn::And": [ { "Condition": "PublicRouter" }, { "Condition": "AllowALBPort80" } ]
     },
     "EnableCloudWatch": { "Fn::Equals": [ { "Ref": "LogDriver" }, "CloudWatch" ] },
+    "EnableContainerReadonlyRootFilesystem": { "Fn::Equals": [ { "Ref": "EnableContainerReadonlyRootFilesystem" }, "Yes" ] },
     "EnableSyslog": { "Fn::Equals": [ { "Ref": "LogDriver" }, "Syslog" ] },
     "EncryptEbs": { "Fn::Equals": [ { "Ref": "EncryptEbs" }, "Yes" ] },
     "ExistingVpc": { "Fn::Not": [ { "Fn::Equals": [ { "Ref": "ExistingVpc" }, "" ] } ] },
@@ -691,6 +692,11 @@
       "Type": "Number",
       "Default": "1",
       "Description": "How often to poll ECS for service events in seconds. Longer intervals may alleviate rate limiting / throttling from ECS."
+    },
+    "EnableContainerReadonlyRootFilesystem": {
+      "Type": "String",
+      "Default": "No",
+      "AllowedValues": [ "Yes", "No" ]
     },
     "EncryptEbs": {
       "Type": "String",
@@ -3865,6 +3871,7 @@
         "ContainerDefinitions": [
           {
             "Cpu": { "Ref": "BuildCpu" },
+            "ReadonlyRootFilesystem": { "Fn::If": [ "EnableContainerReadonlyRootFilesystem", "true", "false" ] },
             "DockerLabels": {
               "convox.release": { "Ref": "Version" },
               "rack.ApiBalancerSecurity": { "Ref": "ApiBalancerSecurity" },
@@ -3965,6 +3972,7 @@
           {
             "Command": [ "/go/bin/monitor" ],
             "Cpu": "64",
+            "ReadonlyRootFilesystem": { "Fn::If": [ "EnableContainerReadonlyRootFilesystem", "true", "false" ] },
             "DockerLabels": {
               "convox.release": { "Ref": "Version" },
               "rack.ApiBalancerSecurity": { "Ref": "ApiBalancerSecurity" },
@@ -4080,6 +4088,7 @@
           {
             "Command": [ "/go/bin/rack" ],
             "Cpu": { "Ref": "ApiCpu" },
+            "ReadonlyRootFilesystem": { "Fn::If": [ "EnableContainerReadonlyRootFilesystem", "true", "false" ] },
             "DockerLabels": {
               "convox.release": { "Ref": "Version" },
               "rack.AsgSpot": { "Fn::If": [ "SpotInstances", { "Ref": "SpotInstances" }, { "Ref": "AWS::NoValue" } ] },

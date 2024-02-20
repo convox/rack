@@ -374,13 +374,19 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 		return err
 	}
 
+	readonlyRootFilesystem, err := p.stackParameter(p.Rack, "EnableContainerReadonlyRootFilesystem")
+	if err != nil {
+		return err
+	}
+
 	updates := map[string]string{
-		"LogBucket":         p.LogBucket,
-		"LogDriver":         p.LogDriver,
-		"PlaceLambdaInVpc":  lambdaInVpc,
-		"Private":           private,
-		"SyslogDestination": p.SyslogDestination,
-		"SyslogFormat":      p.SyslogFormat,
+		"LogBucket":              p.LogBucket,
+		"LogDriver":              p.LogDriver,
+		"PlaceLambdaInVpc":       lambdaInVpc,
+		"Private":                private,
+		"SyslogDestination":      p.SyslogDestination,
+		"SyslogFormat":           p.SyslogFormat,
+		"ReadonlyRootFilesystem": readonlyRootFilesystem,
 	}
 
 	if m.Params != nil {
