@@ -7,7 +7,8 @@
       "FargateEither": { "Fn::Or": [ { "Condition": "FargateBase" }, { "Condition": "FargateSpot" } ] },
       "FargateBase": { "Fn::Equals": [ { "Ref": "Fargate" }, "Yes" ] },
       "FargateSpot": { "Fn::Equals": [ { "Ref": "Fargate" }, "Spot" ] },
-      "RackUrl": { "Fn::Equals": [ { "Ref": "RackUrl" }, "Yes" ] }
+      "RackUrl": { "Fn::Equals": [ { "Ref": "RackUrl" }, "Yes" ] },
+      "ReadonlyRootFilesystem": { "Fn::Equals": [ { "Ref": "ReadonlyRootFilesystem" }, "Yes" ] }
     },
     "Outputs": {
       "Fargate": {
@@ -23,6 +24,11 @@
       },
       "ExecutionRole": {
         "Type": "String"
+      },
+      "EnableContainerReadonlyRootFilesystem": {
+        "Type": "String",
+        "Default": "No",
+        "AllowedValues": [ "Yes", "No" ]
       },
       "Fargate": {
         "Type": "String",
@@ -49,6 +55,11 @@
         "Type": "String"
       },
       "RackUrl": {
+        "Type": "String",
+        "Default": "No",
+        "AllowedValues": [ "Yes", "No" ]
+      },
+      "ReadonlyRootFilesystem": {
         "Type": "String",
         "Default": "No",
         "AllowedValues": [ "Yes", "No" ]
@@ -162,6 +173,7 @@
               {
                 "Command": [ "sh", "-c", {{ safe $.Timer.Command }} ],
                 "Cpu": { "Ref": "Cpu" },
+                "ReadonlyRootFilesystem": { "Fn::If": [ "ReadonlyRootFilesystem", "true", "false" ] },
                 "DockerLabels": { "convox.app": "{{$.App}}", "convox.generation": "2", "convox.process.type": "timer", "convox.release": "{{$.Release.Id}}" },
                 "Environment": [
                   {{ range $k, $v := .EnvironmentDefaults }}

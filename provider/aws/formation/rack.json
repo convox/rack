@@ -171,6 +171,7 @@
     "PublicInstanceInclude": { "Fn::Or": [ { "Fn::Equals": [ { "Ref": "InstancesIpToIncludInWhiteListing" }, "Both" ] }, { "Fn::Equals": [ { "Ref": "InstancesIpToIncludInWhiteListing" }, "Workload" ] } ] },
     "PublicInstancesAndWhiteList": { "Fn::And": [ { "Condition": "PublicInstances" }, { "Condition": "WhiteListCIDRs" }, {"Condition": "PublicInstanceInclude"} ] },
     "PublicRouter": { "Fn::Equals": [ { "Ref": "InternalOnly" }, "No" ] },
+    "EnableContainerReadonlyRootFilesystem": { "Fn::Equals": [ { "Ref": "EnableContainerReadonlyRootFilesystem" }, "Yes" ] },
     "RegionHasEFS": { "Fn::Equals": [
       { "Fn::FindInMap": [ "RegionConfig", { "Ref": "AWS::Region" }, "EFS" ] },
       "Yes"
@@ -713,6 +714,11 @@
       "Type": "Number",
       "Default": "1",
       "Description": "How often to poll ECS for service events in seconds. Longer intervals may alleviate rate limiting / throttling from ECS."
+    },
+    "EnableContainerReadonlyRootFilesystem": {
+      "Type": "String",
+      "Default": "No",
+      "AllowedValues": [ "Yes", "No" ]
     },
     "EncryptEbs": {
       "Type": "String",
@@ -3887,6 +3893,7 @@
         "ContainerDefinitions": [
           {
             "Cpu": { "Ref": "BuildCpu" },
+            "ReadonlyRootFilesystem": { "Fn::If": [ "EnableContainerReadonlyRootFilesystem", "true", "false" ] },
             "DockerLabels": {
               "convox.release": { "Ref": "Version" },
               "rack.ApiBalancerSecurity": { "Ref": "ApiBalancerSecurity" },
@@ -3987,6 +3994,7 @@
           {
             "Command": [ "/go/bin/monitor" ],
             "Cpu": "64",
+            "ReadonlyRootFilesystem": { "Fn::If": [ "EnableContainerReadonlyRootFilesystem", "true", "false" ] },
             "DockerLabels": {
               "convox.release": { "Ref": "Version" },
               "rack.ApiBalancerSecurity": { "Ref": "ApiBalancerSecurity" },
@@ -4102,6 +4110,7 @@
           {
             "Command": [ "/go/bin/rack" ],
             "Cpu": { "Ref": "ApiCpu" },
+            "ReadonlyRootFilesystem": { "Fn::If": [ "EnableContainerReadonlyRootFilesystem", "true", "false" ] },
             "DockerLabels": {
               "convox.release": { "Ref": "Version" },
               "rack.AsgSpot": { "Fn::If": [ "SpotInstances", { "Ref": "SpotInstances" }, { "Ref": "AWS::NoValue" } ] },
