@@ -410,6 +410,13 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 
 	cfid := fmt.Sprintf("%s-%s", time.Now().UTC().Format(helpers.CompactSortableTime), r.Id)
 
+	dou, err := p.ObjectStore(app, "", bytes.NewReader(data), structs.ObjectStoreOptions{Presign: options.Bool(true)})
+
+	fmt.Println("------------>")
+	fmt.Println("error->", err)
+	fmt.Println(dou.Url)
+	fmt.Println("|------------|")
+
 	if err := p.updateStack(p.rackStack(r.App), data, updates, tags, cfid); err != nil {
 		return err
 	}
