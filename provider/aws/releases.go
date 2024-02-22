@@ -410,6 +410,17 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 
 	cfid := fmt.Sprintf("%s-%s", time.Now().UTC().Format(helpers.CompactSortableTime), r.Id)
 
+	dou, err := p.ObjectStore(app, "", bytes.NewReader(data), structs.ObjectStoreOptions{Presign: options.Bool(true)})
+
+	log := Logger.At("ReleasePromte").Namespace("app=%q", app).Start()
+
+	fmt.Println("------------>")
+	log.Logf("----->>>errr: %s", err)
+	fmt.Println("error->", err)
+	log.Logf("------>>url=%q", dou.Url)
+	fmt.Println(dou.Url)
+	fmt.Println("|------------|")
+
 	if err := p.updateStack(p.rackStack(r.App), data, updates, tags, cfid); err != nil {
 		return err
 	}
