@@ -75,7 +75,29 @@
             {
               "Fn::Select": [
                 0,
+                { "Fn::Split": ["r7g", { "Ref": "InstanceType" }] }
+              ]
+            },
+            ""
+          ]
+        },
+        {
+          "Fn::Equals": [
+            {
+              "Fn::Select": [
+                0,
                 { "Fn::Split": ["m6g", { "Ref": "InstanceType" }] }
+              ]
+            },
+            ""
+          ]
+        },
+        {
+          "Fn::Equals": [
+            {
+              "Fn::Select": [
+                0,
+                { "Fn::Split": ["m7g", { "Ref": "InstanceType" }] }
               ]
             },
             ""
