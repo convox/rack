@@ -1,6 +1,6 @@
 module github.com/convox/rack
 
-go 1.17
+go 1.18
 
 require (
 	github.com/PuerkitoBio/goquery v1.8.0
@@ -48,7 +48,25 @@ require (
 )
 
 require (
+	github.com/BurntSushi/toml v0.3.1 // indirect
 	github.com/adrg/xdg v0.2.1 // indirect
+	github.com/gobuffalo/buffalo-plugins v1.11.0 // indirect
+	github.com/gobuffalo/events v1.1.9 // indirect
+	github.com/gobuffalo/flect v0.0.0-20190117212819-a62e61d96794 // indirect
+	github.com/gobuffalo/genny v0.0.0-20190112155932-f31a84fcacf5 // indirect
+	github.com/gobuffalo/logger v0.0.0-20181127160119-5b956e21995c // indirect
+	github.com/gobuffalo/mapi v1.0.1 // indirect
+	github.com/gobuffalo/meta v0.0.0-20190120163247-50bbb1fa260d // indirect
+	github.com/gobuffalo/packr/v2 v2.0.0-rc.15 // indirect
+	github.com/inconshreveable/mousetrap v1.0.0 // indirect
+	github.com/karrick/godirwalk v1.7.8 // indirect
+	github.com/konsorten/go-windows-terminal-sequences v1.0.3 // indirect
+	github.com/markbates/oncer v0.0.0-20181203154359-bf2de49a0be2 // indirect
+	github.com/markbates/safe v1.0.1 // indirect
+	github.com/sirupsen/logrus v1.6.0 // indirect
+	github.com/spf13/cobra v1.0.0 // indirect
+	golang.org/x/sync v0.0.0-20190423024810-112230192c58 // indirect
+	golang.org/x/tools v0.0.0-20190907020128-2ca718005c18 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
