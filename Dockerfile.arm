@@ -1,10 +1,8 @@
 ## package #####################################################################
 
-FROM golang:1.17 AS package
+FROM golang:1.18 AS package
 
 RUN apt-get update && apt-get -y install upx-ucl
-
-RUN go get -u github.com/gobuffalo/packr/packr
 
 WORKDIR /go/src/github.com/convox/rack
 
