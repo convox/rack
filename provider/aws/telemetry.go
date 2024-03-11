@@ -29,7 +29,7 @@ var (
 		"ClientId",
 		"ExistingVpc",
 		"HttpProxy",
-		"InternalSuffix",
+		"InternalRouterSuffix",
 		"InstanceBootCommand",
 		"InstanceRunCommand",
 		"InstancePolicy",
