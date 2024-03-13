@@ -73,7 +73,7 @@ mocks: generate-provider
 	mockery -case underscore -dir vendor/github.com/convox/stdcli -outpkg stdcli -output pkg/mock/stdcli -name Executor
 
 package:
-	$(GOPATH)/bin/packr
+	go run -mod=vendor vendor/github.com/gobuffalo/packr/packr/main.go
 
 regions:
 	@aws-vault exec convox-release-standard go run provider/aws/cmd/regions/main.go
