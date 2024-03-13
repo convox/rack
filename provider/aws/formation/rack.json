@@ -923,6 +923,18 @@
       "Default": "No",
       "AllowedValues": [ "Yes", "No" ]
     },
+    "PruneOlderImagesInHour": {
+      "Type": "Number",
+      "Description": "To prune docker images older than this specified hours",
+      "MinValue": "1",
+      "Default": "96"
+    },
+    "PruneOlderImagesCronRunFreq": {
+      "Type": "String",
+      "Description": "Cron frequecy to prune docker older images",
+      "Default": "daily",
+      "AllowedValues": [ "hourly", "daily", "weekly" ]
+    },
     "RouterInternalSecurityGroup": {
       "Default": "",
       "Description": "The security groups (comma delimited) to assign to the internal rack router.",
@@ -1872,10 +1884,10 @@
               "  - echo '", { "Fn::GetAtt": [ "DockertTLSKey", "Value" ] }, "' | base64 -d > /etc/key.pem\n",
               "  - echo 'OPTIONS=\"--default-ulimit nofile=1024000:1024000 --log-opt max-file=2 --log-opt max-size=50m --host=unix:///var/run/docker.sock --host=0.0.0.0:2376 --tls --tlscacert /etc/ca.pem --tlscert /etc/cert.pem --tlskey /etc/key.pem\"' >> /etc/sysconfig/docker\n",
               "  - echo 'ECS_ENGINE_AUTH_DATA={\"index.docker.io\":{\"username\":\"\",\"password\":\"\",\"email\":\"\"}' >> /etc/ecs/ecs.config\n",
-              "  - echo 'docker image prune -a --filter=\"until=96h\" --force' > /etc/cron.daily/docker-prune\n",
-              "  - chmod +x /etc/cron.daily/docker-prune\n",
-              "  - echo 'docker builder prune -a --filter=\"until=96h\" --force' > /etc/cron.daily/docker-builder-prune\n",
-              "  - chmod +x /etc/cron.daily/docker-builder-prune\n",
+              "  - echo 'docker image prune -a --filter=\"until=", { "Ref": "PruneOlderImagesInHour" }, "h\" --force' > /etc/cron.", { "Ref": "PruneOlderImagesCronRunFreq" }, "/docker-prune\n",
+              "  - chmod +x /etc/cron.", { "Ref": "PruneOlderImagesCronRunFreq" }, "/docker-prune\n",
+              "  - echo 'docker builder prune -a --filter=\"until=", { "Ref": "PruneOlderImagesInHour" }, "h\" --force' > /etc/cron.", { "Ref": "PruneOlderImagesCronRunFreq" }, "/docker-builder-prune\n",
+              "  - chmod +x /etc/cron.", { "Ref": "PruneOlderImagesCronRunFreq" }, "/docker-builder-prune\n",
               { "Fn::If": [ "HttpProxy",
                 { "Fn::Join": ["", ["  - echo \"export HTTP_PROXY=", { "Ref": "HttpProxy" }, "/\" >> /etc/sysconfig/docker\n"
                 ] ] },
@@ -2115,8 +2127,8 @@
               "  - echo '", { "Fn::GetAtt": [ "DockertTLSKey", "Value" ] }, "' | base64 -d > /etc/key.pem\n",
               "  - echo 'OPTIONS=\"--default-ulimit nofile=1024000:1024000 --log-opt max-file=2 --log-opt max-size=50m --host=unix:///var/run/docker.sock --host=0.0.0.0:2376 --tls --tlscacert /etc/ca.pem --tlscert /etc/cert.pem --tlskey /etc/key.pem\"' >> /etc/sysconfig/docker\n",
               "  - echo 'ECS_ENGINE_AUTH_DATA={\"index.docker.io\":{\"username\":\"\",\"password\":\"\",\"email\":\"\"}' >> /etc/ecs/ecs.config\n",
-              "  - echo 'docker image prune -a --filter=\"until=96h\" --force' > /etc/cron.daily/docker-prune\n",
-              "  - chmod +x /etc/cron.daily/docker-prune\n",
+              "  - echo 'docker image prune -a --filter=\"until=", { "Ref": "PruneOlderImagesInHour" }, "h\" --force' > /etc/cron.", { "Ref": "PruneOlderImagesCronRunFreq" }, "/docker-prune\n",
+              "  - chmod +x /etc/cron.", { "Ref": "PruneOlderImagesCronRunFreq" }, "/docker-prune\n",
               { "Fn::If": [ "HttpProxy",
                 { "Fn::Join": ["", ["  - echo \"export HTTP_PROXY=", { "Ref": "HttpProxy" }, "/\" >> /etc/sysconfig/docker\n"
                 ] ] },
@@ -2675,8 +2687,8 @@
               "  - echo '", { "Fn::GetAtt": [ "DockertTLSKey", "Value" ] }, "' | base64 -d > /etc/key.pem\n",
               "  - echo 'OPTIONS=\"--default-ulimit nofile=1024000:1024000 --log-opt max-file=2 --log-opt max-size=50m --host=unix:///var/run/docker.sock --host=0.0.0.0:2376 --tls --tlscacert /etc/ca.pem --tlscert /etc/cert.pem --tlskey /etc/key.pem\"' >> /etc/sysconfig/docker\n",
               "  - echo 'ECS_ENGINE_AUTH_DATA={\"index.docker.io\":{\"username\":\"\",\"password\":\"\",\"email\":\"\"}' >> /etc/ecs/ecs.config\n",
-              "  - echo 'docker image prune -a --filter=\"until=96h\" --force' > /etc/cron.daily/docker-prune\n",
-              "  - chmod +x /etc/cron.daily/docker-prune\n",
+              "  - echo 'docker image prune -a --filter=\"until=", { "Ref": "PruneOlderImagesInHour" }, "h\" --force' > /etc/cron.", { "Ref": "PruneOlderImagesCronRunFreq" }, "/docker-prune\n",
+              "  - chmod +x /etc/cron.", { "Ref": "PruneOlderImagesCronRunFreq" }, "/docker-prune\n",
               { "Fn::If": [ "HttpProxy",
                 { "Fn::Join": ["", ["  - echo \"export HTTP_PROXY=", { "Ref": "HttpProxy" }, "/\" >> /etc/sysconfig/docker\n"
                 ] ] },
@@ -3031,8 +3043,8 @@
               "  - echo '", { "Fn::GetAtt": [ "DockertTLSKey", "Value" ] }, "' | base64 -d > /etc/key.pem\n",
               "  - echo 'OPTIONS=\"--default-ulimit nofile=1024000:1024000 --log-opt max-file=2 --log-opt max-size=50m --host=unix:///var/run/docker.sock --host=0.0.0.0:2376 --tls --tlscacert /etc/ca.pem --tlscert /etc/cert.pem --tlskey /etc/key.pem\"' >> /etc/sysconfig/docker\n",
               "  - echo 'ECS_ENGINE_AUTH_DATA={\"index.docker.io\":{\"username\":\"\",\"password\":\"\",\"email\":\"\"}' >> /etc/ecs/ecs.config\n",
-              "  - echo 'docker image prune -a --filter=\"until=96h\" --force' > /etc/cron.daily/docker-prune\n",
-              "  - chmod +x /etc/cron.daily/docker-prune\n",
+              "  - echo 'docker image prune -a --filter=\"until=", { "Ref": "PruneOlderImagesInHour" }, "h\" --force' > /etc/cron.", { "Ref": "PruneOlderImagesCronRunFreq" }, "/docker-prune\n",
+              "  - chmod +x /etc/cron.", { "Ref": "PruneOlderImagesCronRunFreq" }, "/docker-prune\n",
               { "Fn::If": [ "HttpProxy",
                 { "Fn::Join": ["", ["  - echo \"export HTTP_PROXY=", { "Ref": "HttpProxy" }, "/\" >> /etc/sysconfig/docker\n"
                 ] ] },
