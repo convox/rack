@@ -117,7 +117,7 @@ jobs:
         type: string
         default: ""
     docker:
-      - image: circleci/golang:1.17
+      - image: cimg/go:1.18.0
     environment:
       PROVIDER: <<parameters.provider>>
       ARGS: <<parameters.args>>
@@ -136,14 +136,14 @@ jobs:
           when: always
   cleanup:
     docker:
-      - image: circleci/golang:1.17
+      - image: cimg/go:1.18.0
     steps:
       - checkout
       - ci-dependencies
       - run: scripts/ci-cleanup
   cleanup_all:
     docker:
-      - image: circleci/golang:1.17
+      - image: cimg/go:1.18.0
     steps:
       - checkout
       - ci-dependencies
@@ -157,15 +157,15 @@ jobs:
       repo:
         type: string
     docker:
-      - image: circleci/golang:1.17
+      - image: cimg/go:1.18.0
     steps:
       - checkout
       - ci-dependencies
       - run: ci/deploy.sh <<parameters.repo>> <<parameters.app>> <<parameters.check>>
   test:
     docker:
-      - image: circleci/golang:1.17
-    working_directory: /go/src/github.com/convox/rack
+      - image: cimg/go:1.18.0
+    # working_directory: /go/src/github.com/convox/rack
     steps:
       - checkout
       - ci-dependencies
@@ -176,7 +176,7 @@ jobs:
       - run: curl -s https://codecov.io/bash | bash
   update:
     docker:
-      - image: circleci/golang:1.17
+      - image: cimg/go:1.18.0
     steps:
       - checkout
       - ci-dependencies

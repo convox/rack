@@ -1,6 +1,6 @@
 ## test ########################################################################
 
-FROM golang:1.17 AS test
+FROM golang:1.18 AS test
 
 ARG DOCKER_ARCH=x86_64
 ARG KUBECTL_ARCH=amd64
@@ -18,7 +18,7 @@ WORKDIR /go/src/github.com/convox/rack
 
 COPY . .
 
-RUN go install --ldflags="-s -w" ./vendor/...
+RUN go build -mod=vendor --ldflags="-s -w" $(go list -mod=vendor ./vendor/...)
 
 
 ## development #################################################################
@@ -48,11 +48,9 @@ CMD ["bin/web"]
 
 ## package #####################################################################
 
-FROM golang:1.17 AS package
+FROM golang:1.18 AS package
 
 RUN apt-get update && apt-get -y install upx-ucl
-
-RUN go get -u github.com/gobuffalo/packr/packr
 
 WORKDIR /go/src/github.com/convox/rack
 

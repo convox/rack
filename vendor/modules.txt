@@ -2,6 +2,9 @@
 ## explicit
 github.com/Azure/go-ansiterm
 github.com/Azure/go-ansiterm/winterm
+# github.com/BurntSushi/toml v0.3.1
+## explicit
+github.com/BurntSushi/toml
 # github.com/Microsoft/go-winio v0.4.5
 ## explicit
 github.com/Microsoft/go-winio
@@ -192,15 +195,52 @@ github.com/fsouza/go-dockerclient/external/golang.org/x/sys/unix
 # github.com/ghodss/yaml v1.0.0
 ## explicit
 github.com/ghodss/yaml
+# github.com/gobuffalo/buffalo-plugins v1.11.0
+## explicit
+github.com/gobuffalo/buffalo-plugins/plugins
+github.com/gobuffalo/buffalo-plugins/plugins/plugdeps
 # github.com/gobuffalo/envy v1.6.12
 ## explicit
 github.com/gobuffalo/envy
+# github.com/gobuffalo/events v1.1.9
+## explicit
+github.com/gobuffalo/events
+# github.com/gobuffalo/flect v0.0.0-20190117212819-a62e61d96794
+## explicit
+github.com/gobuffalo/flect
+github.com/gobuffalo/flect/name
+# github.com/gobuffalo/genny v0.0.0-20190112155932-f31a84fcacf5
+## explicit
+github.com/gobuffalo/genny
+github.com/gobuffalo/genny/movinglater/gotools
+github.com/gobuffalo/genny/movinglater/gotools/goimports
+github.com/gobuffalo/genny/movinglater/gotools/gomods
+# github.com/gobuffalo/logger v0.0.0-20181127160119-5b956e21995c
+## explicit
+github.com/gobuffalo/logger
+# github.com/gobuffalo/mapi v1.0.1
+## explicit
+github.com/gobuffalo/mapi
+# github.com/gobuffalo/meta v0.0.0-20190120163247-50bbb1fa260d
+## explicit
+github.com/gobuffalo/meta
 # github.com/gobuffalo/packd v0.0.0-20181212173646-eca3b8fd6687
 ## explicit
 github.com/gobuffalo/packd
 # github.com/gobuffalo/packr v1.22.0
 ## explicit
 github.com/gobuffalo/packr
+github.com/gobuffalo/packr/builder
+github.com/gobuffalo/packr/packr
+github.com/gobuffalo/packr/packr/cmd
+# github.com/gobuffalo/packr/v2 v2.0.0-rc.15
+## explicit
+github.com/gobuffalo/packr/v2/file
+github.com/gobuffalo/packr/v2/file/resolver
+github.com/gobuffalo/packr/v2/file/resolver/encoding/hex
+github.com/gobuffalo/packr/v2/jam/parser
+github.com/gobuffalo/packr/v2/jam/store
+github.com/gobuffalo/packr/v2/plog
 # github.com/gobuffalo/syncx v0.0.0-20181120194010-558ac7de985f
 ## explicit
 github.com/gobuffalo/syncx
@@ -283,6 +323,9 @@ github.com/headzoo/surf/util
 github.com/inconshreveable/go-update
 github.com/inconshreveable/go-update/internal/binarydist
 github.com/inconshreveable/go-update/internal/osext
+# github.com/inconshreveable/mousetrap v1.0.0
+## explicit
+github.com/inconshreveable/mousetrap
 # github.com/jehiah/go-strftime v0.0.0-20171201141054-1d33003b3869
 ## explicit
 github.com/jehiah/go-strftime
@@ -295,9 +338,21 @@ github.com/joho/godotenv
 # github.com/json-iterator/go v1.1.5
 ## explicit
 github.com/json-iterator/go
+# github.com/karrick/godirwalk v1.7.8
+## explicit
+github.com/karrick/godirwalk
 # github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
 ## explicit
 github.com/kballard/go-shellquote
+# github.com/konsorten/go-windows-terminal-sequences v1.0.3
+## explicit
+github.com/konsorten/go-windows-terminal-sequences
+# github.com/markbates/oncer v0.0.0-20181203154359-bf2de49a0be2
+## explicit
+github.com/markbates/oncer
+# github.com/markbates/safe v1.0.1
+## explicit
+github.com/markbates/safe
 # github.com/mattn/go-colorable v0.1.9
 ## explicit; go 1.13
 github.com/mattn/go-colorable
@@ -355,6 +410,12 @@ github.com/segmentio/analytics-go
 # github.com/segmentio/backo-go v0.0.0-20160424052352-204274ad699c
 ## explicit
 github.com/segmentio/backo-go
+# github.com/sirupsen/logrus v1.6.0
+## explicit; go 1.13
+github.com/sirupsen/logrus
+# github.com/spf13/cobra v1.0.0
+## explicit; go 1.12
+github.com/spf13/cobra
 # github.com/spf13/pflag v1.0.5
 ## explicit; go 1.12
 github.com/spf13/pflag
@@ -406,6 +467,9 @@ golang.org/x/net/internal/iana
 golang.org/x/net/internal/socket
 golang.org/x/net/ipv4
 golang.org/x/net/ipv6
+# golang.org/x/sync v0.0.0-20190423024810-112230192c58
+## explicit
+golang.org/x/sync/errgroup
 # golang.org/x/sys v0.0.0-20220913153101-76c7481b5158
 ## explicit; go 1.17
 golang.org/x/sys/cpu
@@ -425,6 +489,19 @@ golang.org/x/text/unicode/norm
 # golang.org/x/time v0.0.0-20190308202827-9d24e82272b4
 ## explicit
 golang.org/x/time/rate
+# golang.org/x/tools v0.0.0-20190907020128-2ca718005c18
+## explicit; go 1.11
+golang.org/x/tools/go/ast/astutil
+golang.org/x/tools/go/gcexportdata
+golang.org/x/tools/go/internal/gcimporter
+golang.org/x/tools/go/internal/packagesdriver
+golang.org/x/tools/go/packages
+golang.org/x/tools/imports
+golang.org/x/tools/internal/fastwalk
+golang.org/x/tools/internal/gopathwalk
+golang.org/x/tools/internal/imports
+golang.org/x/tools/internal/module
+golang.org/x/tools/internal/semver
 # gopkg.in/cheggaaa/pb.v1 v1.0.28
 ## explicit
 gopkg.in/cheggaaa/pb.v1
