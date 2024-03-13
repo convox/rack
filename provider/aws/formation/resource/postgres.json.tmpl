@@ -106,13 +106,17 @@
         "DBInstanceClass": { "Ref": "Class" },
         "DBInstanceIdentifier": { "Ref": "AWS::StackName" },
         "DBName": "app",
-        "DBParameterGroupName": { "Fn::If": [ "BlankParameterGroupName", { "Fn::If": [ "Version9",
-              { "Fn::Join": [ ".", [
-                { "Fn::Select": [ 0, { "Fn::Split": [ ".", { "Ref": "Version" } ] } ] },
-                { "Fn::Select": [ 1, { "Fn::Split": [ ".", { "Ref": "Version" } ] } ] }
-              ] ] },
-              { "Fn::Select": [ 0, { "Fn::Split": [ ".", { "Ref": "Version" } ] } ] }
-            ] },
+        "DBParameterGroupName": { "Fn::If": [ "BlankParameterGroupName",
+        { "Fn::Sub": [ "default.postgres${Base}", {
+          "Base": { "Fn::If": [ "Version9",
+            { "Fn::Join": [ ".", [
+              { "Fn::Select": [ 0, { "Fn::Split": [ ".", { "Ref": "Version" } ] } ] },
+              { "Fn::Select": [ 1, { "Fn::Split": [ ".", { "Ref": "Version" } ] } ] }
+            ] ] },
+            { "Fn::Select": [ 0, { "Fn::Split": [ ".", { "Ref": "Version" } ] } ] }
+          ] }
+        } ] }
+        ,
         { "Ref": "ParameterGroupName" } ] },
         "DBSubnetGroupName": { "Ref": "SubnetGroup" },
         "DeletionProtection": { "Ref": "DeletionProtection" },
