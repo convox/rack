@@ -16,7 +16,7 @@
       "IsolateServices": { "Fn::Or": [ { "Condition": "FargateEither" }, { "Condition": "Isolate" } ] },
       "Private": { "Fn::Equals": [ { "Ref": "Private" }, "Yes" ] },
       "RackUrl": { "Fn::Equals": [ { "Ref": "RackUrl" }, "Yes" ] },
-      "ReadonlyRootFilesystem": { "Fn::Equals": [ { "Ref": "ReadonlyRootFilesystem" }, "Yes" ] },
+      "EnableContainerReadonlyRootFilesystem": { "Fn::Equals": [ { "Ref": "EnableContainerReadonlyRootFilesystem" }, "Yes" ] },
       "RouteHttp": { "Fn::Equals": [ { "Ref": "RedirectHttps" }, "No" ] },
       "TaskTags": { "Fn::Equals": [ { "Ref": "TaskTags" }, "Yes" ] }
     },
@@ -126,11 +126,6 @@
         "Type": "String"
       },
       "RackUrl": {
-        "Type": "String",
-        "Default": "No",
-        "AllowedValues": [ "Yes", "No" ]
-      },
-      "ReadonlyRootFilesystem": {
         "Type": "String",
         "Default": "No",
         "AllowedValues": [ "Yes", "No" ]
@@ -759,7 +754,7 @@
             }
           ],
           "Cpu": { "Fn::If": [ "FargateEither", { "Ref": "Cpu" }, { "Ref": "AWS::NoValue" } ] },
-          "ReadonlyRootFilesystem": { "Fn::If": [ "ReadonlyRootFilesystem", "true", "false" ] },
+          "ReadonlyRootFilesystem": { "Fn::If": [ "EnableContainerReadonlyRootFilesystem", "true", "false" ] },
           "ExecutionRoleArn": { "Fn::GetAtt": [ "ExecutionRole", "Arn" ] },
           "Family": { "Fn::Sub": "${AWS::StackName}-service-{{.Name}}" },
           "Memory": { "Fn::If": [ "FargateEither", { "Ref": "Memory" }, { "Ref": "AWS::NoValue" } ] },

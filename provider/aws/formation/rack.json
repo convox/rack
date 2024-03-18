@@ -3893,7 +3893,6 @@
         "ContainerDefinitions": [
           {
             "Cpu": { "Ref": "BuildCpu" },
-            "ReadonlyRootFilesystem": { "Fn::If": [ "EnableContainerReadonlyRootFilesystem", "true", "false" ] },
             "DockerLabels": {
               "convox.release": { "Ref": "Version" },
               "rack.ApiBalancerSecurity": { "Ref": "ApiBalancerSecurity" },
