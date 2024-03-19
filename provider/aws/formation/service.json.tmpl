@@ -635,6 +635,7 @@
                 "Command": [ {{ range . }} {{ safe . }}, {{ end }} { "Ref": "AWS::NoValue" } ],
               {{ end }}
               "Cpu": { "Ref": "Cpu" },
+              "ReadonlyRootFilesystem": { "Fn::If": [ "EnableContainerReadonlyRootFilesystem", "true", "false" ] },
               "DockerLabels": { "convox.app": "{{$.App}}", "convox.generation": "2", "convox.process.type": "service", "convox.release": "{{$.Release.Id}}" },
               "Environment": [
                 {{ range $k, $v := .EnvironmentDefaults }}
@@ -754,7 +755,6 @@
             }
           ],
           "Cpu": { "Fn::If": [ "FargateEither", { "Ref": "Cpu" }, { "Ref": "AWS::NoValue" } ] },
-          "ReadonlyRootFilesystem": { "Fn::If": [ "EnableContainerReadonlyRootFilesystem", "true", "false" ] },
           "ExecutionRoleArn": { "Fn::GetAtt": [ "ExecutionRole", "Arn" ] },
           "Family": { "Fn::Sub": "${AWS::StackName}-service-{{.Name}}" },
           "Memory": { "Fn::If": [ "FargateEither", { "Ref": "Memory" }, { "Ref": "AWS::NoValue" } ] },

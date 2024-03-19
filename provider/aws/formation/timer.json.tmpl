@@ -168,6 +168,7 @@
               {
                 "Command": [ "sh", "-c", {{ safe $.Timer.Command }} ],
                 "Cpu": { "Ref": "Cpu" },
+                "ReadonlyRootFilesystem": { "Fn::If": [ "EnableContainerReadonlyRootFilesystem", "true", "false" ] },
                 "DockerLabels": { "convox.app": "{{$.App}}", "convox.generation": "2", "convox.process.type": "timer", "convox.release": "{{$.Release.Id}}" },
                 "Environment": [
                   {{ range $k, $v := .EnvironmentDefaults }}
@@ -266,7 +267,6 @@
             {{ end }}
           ],
           "Cpu": { "Fn::If": [ "FargateEither", { "Ref": "Cpu" }, { "Ref": "AWS::NoValue" } ] },
-          "ReadonlyRootFilesystem": { "Fn::If": [ "EnableContainerReadonlyRootFilesystem", "true", "false" ] },
           "ExecutionRoleArn": { "Ref": "ExecutionRole" },
           "Family": { "Fn::Sub": "${AWS::StackName}-timer-{{.Name}}" },
           "Memory": { "Fn::If": [ "FargateEither", { "Ref": "Memory" }, { "Ref": "AWS::NoValue" } ] },
