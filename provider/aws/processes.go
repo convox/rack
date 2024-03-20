@@ -363,9 +363,7 @@ func (p *Provider) taskProcesses(tasks []string) (structs.Processes, error) {
 			return nil, err
 		}
 
-		for _, task := range primaryTasks {
-			ecsTasks = append(ecsTasks, task)
-		}
+		ecsTasks = append(ecsTasks, primaryTasks...)
 
 		if p.Cluster != p.BuildCluster {
 			buildTasks, err := p.fetchTasks(p.BuildCluster, iptasks)
@@ -375,9 +373,7 @@ func (p *Provider) taskProcesses(tasks []string) (structs.Processes, error) {
 				return nil, err
 			}
 
-			for _, task := range buildTasks {
-				ecsTasks = append(ecsTasks, task)
-			}
+			ecsTasks = append(ecsTasks, buildTasks...)
 		}
 
 		for _, task := range ecsTasks {
@@ -440,9 +436,7 @@ func (p *Provider) fetchTasks(cluster string, tasks []*string) ([]*ecs.Task, err
 		if err != nil {
 			return nil, err
 		}
-		for _, task := range tres.Tasks {
-			store = append(store, task)
-		}
+		store = append(store, tres.Tasks...)
 	}
 	return store, nil
 }
