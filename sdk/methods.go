@@ -31,7 +31,7 @@ func (c *Client) AppCreate(name string, opts structs.AppCreateOptions) (*structs
 
 	var v *structs.App
 
-	err = c.Post(fmt.Sprintf("/apps"), ro, &v)
+	err = c.Post("/apps", ro, &v)
 
 	return v, err
 }
@@ -65,7 +65,7 @@ func (c *Client) AppList() (structs.Apps, error) {
 
 	var v structs.Apps
 
-	err = c.Get(fmt.Sprintf("/apps"), ro, &v)
+	err = c.Get("/apps", ro, &v)
 
 	return v, err
 }
@@ -237,7 +237,7 @@ func (c *Client) CapacityGet() (*structs.Capacity, error) {
 
 	var v *structs.Capacity
 
-	err = c.Get(fmt.Sprintf("/system/capacity"), ro, &v)
+	err = c.Get("/system/capacity", ro, &v)
 
 	return v, err
 }
@@ -267,7 +267,7 @@ func (c *Client) CertificateCreate(pub string, key string, opts structs.Certific
 
 	var v *structs.Certificate
 
-	err = c.Post(fmt.Sprintf("/certificates"), ro, &v)
+	err = c.Post("/certificates", ro, &v)
 
 	return v, err
 }
@@ -291,7 +291,7 @@ func (c *Client) CertificateGenerate(domains []string) (*structs.Certificate, er
 
 	var v *structs.Certificate
 
-	err = c.Post(fmt.Sprintf("/certificates/generate"), ro, &v)
+	err = c.Post("/certificates/generate", ro, &v)
 
 	return v, err
 }
@@ -303,7 +303,7 @@ func (c *Client) CertificateList() (structs.Certificates, error) {
 
 	var v structs.Certificates
 
-	err = c.Get(fmt.Sprintf("/certificates"), ro, &v)
+	err = c.Get("/certificates", ro, &v)
 
 	return v, err
 }
@@ -318,7 +318,7 @@ func (c *Client) EventSend(action string, opts structs.EventSendOptions) error {
 
 	ro.Params["action"] = action
 
-	err = c.Post(fmt.Sprintf("/events"), ro, nil)
+	err = c.Post("/events", ro, nil)
 
 	return err
 }
@@ -376,7 +376,7 @@ func (c *Client) InstanceKeyroll() error {
 
 	ro := stdsdk.RequestOptions{Headers: stdsdk.Headers{}, Params: stdsdk.Params{}, Query: stdsdk.Query{}}
 
-	err = c.Post(fmt.Sprintf("/instances/keyroll"), ro, nil)
+	err = c.Post("/instances/keyroll", ro, nil)
 
 	return err
 }
@@ -388,7 +388,7 @@ func (c *Client) InstanceList() (structs.Instances, error) {
 
 	var v structs.Instances
 
-	err = c.Get(fmt.Sprintf("/instances"), ro, &v)
+	err = c.Get("/instances", ro, &v)
 
 	return v, err
 }
@@ -631,7 +631,7 @@ func (c *Client) RegistryAdd(server string, username string, password string) (*
 
 	var v *structs.Registry
 
-	err = c.Post(fmt.Sprintf("/registries"), ro, &v)
+	err = c.Post("/registries", ro, &v)
 
 	return v, err
 }
@@ -643,7 +643,7 @@ func (c *Client) RegistryList() (structs.Registries, error) {
 
 	var v structs.Registries
 
-	err = c.Get(fmt.Sprintf("/registries"), ro, &v)
+	err = c.Get("/registries", ro, &v)
 
 	return v, err
 }
@@ -819,7 +819,7 @@ func (c *Client) SystemGet() (*structs.System, error) {
 
 	var v *structs.System
 
-	err = c.Get(fmt.Sprintf("/system"), ro, &v)
+	err = c.Get("/system", ro, &v)
 
 	return v, err
 }
@@ -860,7 +860,7 @@ func (c *Client) SystemLogs(opts structs.LogsOptions) (io.ReadCloser, error) {
 
 	var v io.ReadCloser
 
-	r, err := c.Websocket(fmt.Sprintf("/system/logs"), ro)
+	r, err := c.Websocket("/system/logs", ro)
 	if err != nil {
 		return nil, err
 	}
@@ -880,7 +880,7 @@ func (c *Client) SystemMetrics(opts structs.MetricsOptions) (structs.Metrics, er
 
 	var v structs.Metrics
 
-	err = c.Get(fmt.Sprintf("/system/metrics"), ro, &v)
+	err = c.Get("/system/metrics", ro, &v)
 
 	return v, err
 }
@@ -895,7 +895,7 @@ func (c *Client) SystemProcesses(opts structs.SystemProcessesOptions) (structs.P
 
 	var v structs.Processes
 
-	err = c.Get(fmt.Sprintf("/system/processes"), ro, &v)
+	err = c.Get("/system/processes", ro, &v)
 
 	return v, err
 }
@@ -907,7 +907,7 @@ func (c *Client) SystemReleases() (structs.Releases, error) {
 
 	var v structs.Releases
 
-	err = c.Get(fmt.Sprintf("/system/releases"), ro, &v)
+	err = c.Get("/system/releases", ro, &v)
 
 	return v, err
 }
@@ -924,7 +924,7 @@ func (c *Client) SystemResourceCreate(kind string, opts structs.ResourceCreateOp
 
 	var v *structs.Resource
 
-	err = c.Post(fmt.Sprintf("/resources"), ro, &v)
+	err = c.Post("/resources", ro, &v)
 
 	return v, err
 }
@@ -972,7 +972,7 @@ func (c *Client) SystemResourceList() (structs.Resources, error) {
 
 	var v structs.Resources
 
-	err = c.Get(fmt.Sprintf("/resources"), ro, &v)
+	err = c.Get("/resources", ro, &v)
 
 	return v, err
 }
@@ -984,7 +984,7 @@ func (c *Client) SystemResourceTypes() (structs.ResourceTypes, error) {
 
 	var v structs.ResourceTypes
 
-	err = c.Options(fmt.Sprintf("/resources"), ro, &v)
+	err = c.Options("/resources", ro, &v)
 
 	return v, err
 }
@@ -1033,7 +1033,7 @@ func (c *Client) SystemUpdate(opts structs.SystemUpdateOptions) error {
 		return err
 	}
 
-	err = c.Put(fmt.Sprintf("/system"), ro, nil)
+	err = c.Put("/system", ro, nil)
 
 	return err
 }

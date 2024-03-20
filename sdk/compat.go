@@ -120,7 +120,7 @@ func (c *Client) CertificateCreateClassic(pub string, key string, opts structs.C
 
 	var v *structs.Certificate
 
-	err = c.Post(fmt.Sprintf("/certificates"), ro, &v)
+	err = c.Post("/certificates", ro, &v)
 
 	return v, err
 }
@@ -375,7 +375,7 @@ func (c *Client) SystemResourceCreateClassic(kind string, opts structs.ResourceC
 
 	var v *structs.Resource
 
-	err = c.Post(fmt.Sprintf("/resources"), ro, &v)
+	err = c.Post("/resources", ro, &v)
 
 	return v, err
 }
@@ -423,7 +423,7 @@ func (c *Client) SystemResourceListClassic() (structs.Resources, error) {
 
 	var v structs.Resources
 
-	err = c.Get(fmt.Sprintf("/resources"), ro, &v)
+	err = c.Get("/resources", ro, &v)
 
 	return v, err
 }
@@ -435,7 +435,7 @@ func (c *Client) SystemResourceTypesClassic() (structs.ResourceTypes, error) {
 
 	var v structs.ResourceTypes
 
-	err = c.Options(fmt.Sprintf("/resources"), ro, &v)
+	err = c.Options("/resources", ro, &v)
 
 	return v, err
 }
