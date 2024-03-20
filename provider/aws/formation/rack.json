@@ -3966,9 +3966,12 @@
               "InitProcessEnabled": "true"
             },
             "Memory": { "Ref": "BuildMemory" },
+            "ReadonlyRootFilesystem": { "Fn::If": [ "EnableContainerReadonlyRootFilesystem", "true", "false" ] },
             "MountPoints": [
               { "SourceVolume": "config", "ContainerPath": "/etc/sysconfig/docker" },
-              { "SourceVolume": "docker", "ContainerPath": "/var/run/docker.sock" }
+              { "SourceVolume": "docker", "ContainerPath": "/var/run/docker.sock" },
+              { "SourceVolume": "home", "ContainerPath": "/root/" },
+              { "SourceVolume": "temp", "ContainerPath": "/tmp/" }
             ],
             "Name": "build",
             "Secrets": [{
@@ -3982,7 +3985,9 @@
         "TaskRoleArn": { "Fn::GetAtt": [ "ApiRole", "Arn" ] },
         "Volumes": [
           { "Name": "config", "Host": { "SourcePath": "/etc/sysconfig/docker" } },
-          { "Name": "docker", "Host": { "SourcePath": "/var/run/docker.sock" } }
+          { "Name": "docker", "Host": { "SourcePath": "/var/run/docker.sock" } },
+          { "Name": "home" },
+          { "Name": "temp" }
         ]
       }
     },
@@ -4093,13 +4098,21 @@
               ]
             },
             "Memory": { "Ref": "ApiMonitorMemory" },
-            "MountPoints": [ { "SourceVolume": "docker", "ContainerPath": "/var/run/docker.sock" } ],
+            "MountPoints": [
+              { "SourceVolume": "docker", "ContainerPath": "/var/run/docker.sock" },
+              { "SourceVolume": "home", "ContainerPath": "/root/" },
+              { "SourceVolume": "temp", "ContainerPath": "/tmp/" }
+            ],
             "Name": "monitor"
           }
         ],
         "Family": { "Fn::Sub": "${AWS::StackName}-monitor" },
         "TaskRoleArn": { "Fn::GetAtt": [ "ApiRole", "Arn" ] },
-        "Volumes": [ { "Name": "docker", "Host": { "SourcePath": "/var/run/docker.sock" } } ]
+        "Volumes": [
+          { "Name": "docker", "Host": { "SourcePath": "/var/run/docker.sock" } },
+          { "Name": "home" },
+          { "Name": "temp" }
+        ]
       }
     },
     "ApiWebTasks": {
@@ -4233,7 +4246,11 @@
               ]
             },
             "MemoryReservation": { "Ref": "ApiWebMemory" },
-            "MountPoints": [ { "SourceVolume": "docker", "ContainerPath": "/var/run/docker.sock" } ],
+            "MountPoints": [
+              { "SourceVolume": "docker", "ContainerPath": "/var/run/docker.sock" },
+              { "SourceVolume": "home", "ContainerPath": "/root/" },
+              { "SourceVolume": "temp", "ContainerPath": "/tmp/" }
+            ],
             "Name": "web",
             "PortMappings": { "Fn::If": [ "PrivateApi",
               [ { "HostPort": "4100", "ContainerPort": "5443", "Protocol": "tcp" } ],
@@ -4248,7 +4265,11 @@
         "ExecutionRoleArn": { "Fn::GetAtt": [ "ApiRole", "Arn" ] },
         "Family": { "Fn::Sub": "${AWS::StackName}-web" },
         "TaskRoleArn": { "Fn::GetAtt": [ "ApiRole", "Arn" ] },
-        "Volumes": [ { "Name": "docker", "Host": { "SourcePath": "/var/run/docker.sock" } } ]
+        "Volumes": [
+          { "Name": "docker", "Host": { "SourcePath": "/var/run/docker.sock" } },
+          { "Name": "home" },
+          { "Name": "temp" }
+        ]
       }
     },
     "DynamoBuilds": {
