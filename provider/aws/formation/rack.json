@@ -711,6 +711,18 @@
       "Default": "No",
       "AllowedValues": [ "Yes", "No" ]
     },
+    "DynamoDbTableDeletionProtectionEnabled": {
+      "Type": "String",
+      "Description": "Determines if a dynamodb table is protected from deletion. When enabled, the table cannot be deleted by any user or process. This setting is disabled by default.",
+      "Default": "false",
+      "AllowedValues": [ "true", "false" ]
+    },
+    "DynamoDbTablePointInTimeRecoveryEnabled" : {
+      "Type": "String",
+      "Description": "Indicates whether point in time recovery is enabled or disabled on the dynamodb table.",
+      "Default": "false",
+      "AllowedValues": [ "true", "false" ]
+    },
     "EcsPollInterval": {
       "Type": "Number",
       "Default": "1",
@@ -4310,6 +4322,8 @@
           { "AttributeName": "created", "AttributeType": "S" }
         ],
         "BillingMode": "PAY_PER_REQUEST",
+        "DeletionProtectionEnabled": { "Ref": "DynamoDbTableDeletionProtectionEnabled" },
+        "PointInTimeRecoverySpecification": { "PointInTimeRecoveryEnabled": { "Ref": "DynamoDbTablePointInTimeRecoveryEnabled" } },
         "KeySchema": [ { "AttributeName": "id", "KeyType": "HASH" } ],
         "GlobalSecondaryIndexes": [ {
           "IndexName": "app.created",
@@ -4328,6 +4342,8 @@
           { "AttributeName": "created", "AttributeType": "S" }
         ],
         "BillingMode": "PAY_PER_REQUEST",
+        "DeletionProtectionEnabled": { "Ref": "DynamoDbTableDeletionProtectionEnabled" },
+        "PointInTimeRecoverySpecification": { "PointInTimeRecoveryEnabled": { "Ref": "DynamoDbTablePointInTimeRecoveryEnabled" } },
         "KeySchema": [ { "AttributeName": "id", "KeyType": "HASH" } ],
         "GlobalSecondaryIndexes": [{
           "IndexName": "app.created",
