@@ -722,6 +722,12 @@
       "Default": "No",
       "AllowedValues": [ "Yes", "No" ]
     },
+    "EnableS3Versioning": {
+      "Type": "String",
+      "Description": "Enable s3 bucket versioning. This affects all the buckets created for this rack.",
+      "Default": "Suspended",
+      "AllowedValues": [ "Enabled", "Suspended"]
+    },
     "EncryptEbs": {
       "Type": "String",
       "Description": "Enable encryption at rest for EBS volumes",
@@ -4416,9 +4422,13 @@
             }
           } ]
         },
+        "VersioningConfiguration": { "Status" : {"Ref": "EnableS3Versioning" } },
         "LifecycleConfiguration": { "Fn::If": [ "BlankLogRetention",
-          { "Ref": "AWS::NoValue" },
-          { "Rules": [ { "ExpirationInDays": { "Ref": "LogRetention" }, "Status": "Enabled" } ] }
+          { "Rules": [ { "NoncurrentVersionExpiration": { "NewerNoncurrentVersions" : 1, "NoncurrentDays" : 365 }, "Status": "Enabled" } ] },
+          { "Rules": [ 
+            { "ExpirationInDays": { "Ref": "LogRetention" }, "Status": "Enabled" },
+            { "NoncurrentVersionExpiration": { "NewerNoncurrentVersions" : 1, "NoncurrentDays" : 365 }, "Status": "Enabled" }
+            ] }
         ] },
         "PublicAccessBlockConfiguration": {
           "BlockPublicAcls": true,
@@ -4514,6 +4524,8 @@
             }
           } ]
         },
+        "VersioningConfiguration": { "Status" : {"Ref": "EnableS3Versioning" } },
+        "LifecycleConfiguration": { "Rules": [ { "NoncurrentVersionExpiration": { "NewerNoncurrentVersions" : 1, "NoncurrentDays" : 365 }, "Status": "Enabled" } ] },
         "LoggingConfiguration": {
           "DestinationBucketName": { "Fn::If": [ "BlankLogBucket", { "Ref": "Logs" }, { "Ref": "LogBucket" } ] },
           "LogFilePrefix": { "Fn::Sub": "convox/logs/${AWS::StackName}/s3/" }
@@ -4580,9 +4592,10 @@
             "ServerSideEncryptionByDefault": { "SSEAlgorithm": "aws:kms" }
           } ]
         },
+        "VersioningConfiguration": { "Status" : {"Ref": "EnableS3Versioning" } },
         "LifecycleConfiguration": { "Fn::If": [ "BlankLogRetention",
-          { "Ref": "AWS::NoValue" },
-          { "Rules": [ { "ExpirationInDays": { "Ref": "LogRetention" }, "Status": "Enabled" } ] }
+          { "Rules": [ { "NoncurrentVersionExpiration": { "NewerNoncurrentVersions" : 1, "NoncurrentDays" : 365 }, "Status": "Enabled" } ] },
+          { "Rules": [ { "ExpirationInDays": { "Ref": "LogRetention" }, "Status": "Enabled" }, { "NoncurrentVersionExpiration": { "NewerNoncurrentVersions" : 1, "NoncurrentDays" : 365 }, "Status": "Enabled" } ] }
         ] },
         "PublicAccessBlockConfiguration": {
           "BlockPublicAcls": true,
