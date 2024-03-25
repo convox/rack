@@ -36,6 +36,7 @@
     },
     "EnableCloudWatch": { "Fn::Equals": [ { "Ref": "LogDriver" }, "CloudWatch" ] },
     "EnableSyslog": { "Fn::Equals": [ { "Ref": "LogDriver" }, "Syslog" ] },
+    "EnableSharedEFSVolumeEncryptionCond": { "Fn::Equals": [ { "Ref": "EnableSharedEFSVolumeEncryption" }, "true" ] },
     "EncryptEbs": { "Fn::Equals": [ { "Ref": "EncryptEbs" }, "Yes" ] },
     "ExistingVpc": { "Fn::Not": [ { "Fn::Equals": [ { "Ref": "ExistingVpc" }, "" ] } ] },
     "ExistingVpcAndBlankInternetGateway": {
@@ -730,6 +731,12 @@
       "Description": "Existing VPC ID (if blank a VPC will be created)",
       "Type": "String",
       "Default": ""
+    },
+    "EnableSharedEFSVolumeEncryption": {
+      "Type": "String",
+      "Description": "This will enable aws kms encryption on shared efs volume. Enabling this will remove exsiting data and recreate the efs volume.",
+      "Default": "false",
+      "AllowedValues": [ "true", "false" ]
     },
     "NoHaInstanceCount": {
       "Default": "1",
@@ -3237,6 +3244,8 @@
       "Type": "AWS::EFS::FileSystem",
       "Condition": "RegionHasEFS",
       "Properties": {
+        "KmsKeyId": { "Fn::If": [ "EnableSharedEFSVolumeEncryptionCond", { "Ref": "CustomerManagedKey" }, { "Ref": "AWS::NoValue" }]},
+        "Encrypted":  { "Fn::If": [ "EnableSharedEFSVolumeEncryptionCond", { "Ref": "EnableSharedEFSVolumeEncryption" }, { "Ref": "AWS::NoValue" }]},
         "FileSystemTags": [
           { "Key": "Name", "Value": { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" }, "shared-volumes" ] ] } }
         ]
