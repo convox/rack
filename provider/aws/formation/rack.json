@@ -717,6 +717,7 @@
     },
     "EnableContainerReadonlyRootFilesystem": {
       "Type": "String",
+      "Description": "Enable container readonly root filesystem. Enabling this will remove write access to the root filesystem.",
       "Default": "No",
       "AllowedValues": [ "Yes", "No" ]
     },
