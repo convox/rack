@@ -66,6 +66,11 @@
       "Default": "No",
       "AllowedValues": [ "Yes", "No" ]
     },
+    "EnableContainerReadonlyRootFilesystem": {
+      "Type": "String",
+      "Default": "No",
+      "AllowedValues": [ "Yes", "No" ]
+    },
     "FargateServices": {
       "Type": "String",
       "Default": "No",
@@ -371,6 +376,7 @@
             "Certificate": { "Ref": "Balancer{{ upper .Name }}Certificate" },
           {{ end }}
           "CircuitBreaker": { "Ref": "CircuitBreaker" },
+          "EnableContainerReadonlyRootFilesystem": { "Ref": "EnableContainerReadonlyRootFilesystem" },
           "Count": { "Fn::Select": [ 0, { "Ref": "{{ upper .Name }}Formation" } ] },
           "Cpu": { "Fn::Select": [ 1, { "Ref": "{{ upper .Name }}Formation" } ] },
           "Fargate": { "Fn::If": [ "Service{{ upper .Name }}Fargate", "Yes", { "Fn::If": [ "Service{{ upper .Name }}FargateSpot", "Spot", "No" ] } ] },

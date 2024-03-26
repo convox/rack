@@ -16,6 +16,7 @@
       "IsolateServices": { "Fn::Or": [ { "Condition": "FargateEither" }, { "Condition": "Isolate" } ] },
       "Private": { "Fn::Equals": [ { "Ref": "Private" }, "Yes" ] },
       "RackUrl": { "Fn::Equals": [ { "Ref": "RackUrl" }, "Yes" ] },
+      "EnableContainerReadonlyRootFilesystem": { "Fn::Equals": [ { "Ref": "EnableContainerReadonlyRootFilesystem" }, "Yes" ] },
       "RouteHttp": { "Fn::Equals": [ { "Ref": "RedirectHttps" }, "No" ] },
       "TaskTags": { "Fn::Equals": [ { "Ref": "TaskTags" }, "Yes" ] }
     },
@@ -62,6 +63,11 @@
       },
       "Cpu": {
         "Type": "Number"
+      },
+      "EnableContainerReadonlyRootFilesystem": {
+        "Type": "String",
+        "Default": "No",
+        "AllowedValues": [ "Yes", "No" ]
       },
       "Fargate": {
         "Type": "String",
@@ -629,6 +635,7 @@
                 "Command": [ {{ range . }} {{ safe . }}, {{ end }} { "Ref": "AWS::NoValue" } ],
               {{ end }}
               "Cpu": { "Ref": "Cpu" },
+              "ReadonlyRootFilesystem": { "Fn::If": [ "EnableContainerReadonlyRootFilesystem", "true", "false" ] },
               "DockerLabels": { "convox.app": "{{$.App}}", "convox.generation": "2", "convox.process.type": "service", "convox.release": "{{$.Release.Id}}" },
               "Environment": [
                 {{ range $k, $v := .EnvironmentDefaults }}
