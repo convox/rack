@@ -4002,6 +4002,34 @@
                 { "Ref": "BuildImage" }
               ]
             },
+            "LogConfiguration": {
+              "Fn::If": [
+                "EnableSyslog",
+                {
+                  "LogDriver": "syslog",
+                  "Options": {
+                    "syslog-address": { "Ref": "SyslogDestination" },
+                    "syslog-format": { "Ref": "SyslogFormat" }
+                  }
+                },
+                {
+                  "Fn::If": [
+                    "EnableCloudWatch",
+                    {
+                      "LogDriver": "awslogs",
+                      "Options": {
+                        "awslogs-region": { "Ref": "AWS::Region" },
+                        "awslogs-group": { "Ref": "LogGroup" },
+                        "awslogs-stream-prefix": "build"
+                      }
+                    },
+                    {
+                      "Ref": "AWS::NoValue"
+                    }
+                  ]
+                }
+              ]
+            },
             "LinuxParameters": {
               "InitProcessEnabled": "true"
             },
