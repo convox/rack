@@ -234,7 +234,7 @@
         "Condition": "InternalDomains",
         "Properties": {
           "HostedZoneId": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:HostedZone" } },
-          "Name": { "Fn::Sub": "{{.Name}}.{{$.App}}.${Rack}.convox." },
+          "Name": { "Fn::Sub": "internal-{{.Name}}.{{$.App}}.${Rack}.convox." },
           "Type": "CNAME",
           "TTL": "3600",
           "ResourceRecords": [ { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Domain{{ if .Internal }}Internal{{ end }}" } } ]
@@ -361,6 +361,9 @@
   {{ range .Manifest.Services }}
     "Service{{ upper .Name }}": {
       "Type": "AWS::CloudFormation::Stack",
+      {{ if .Port.Port }}
+      "DependsOn": "RecordSet{{ upper .Name }}Internal",
+      {{ end }}
       "Properties": {
         "NotificationARNs": [ "{{ $.Topic }}" ],
         "Parameters": {
