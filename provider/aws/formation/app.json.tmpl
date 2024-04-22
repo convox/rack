@@ -234,7 +234,7 @@
         "Condition": "InternalDomains",
         "Properties": {
           "HostedZoneId": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:HostedZone" } },
-          "Name": { "Fn::Sub": "{{.Name}}.{{$.App}}.${Rack}.convox." },
+          "Name": { "Fn::Sub": "deprecated-{{.Name}}.{{$.App}}.${Rack}.convox." },
           "Type": "CNAME",
           "TTL": "3600",
           "ResourceRecords": [ { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Domain{{ if .Internal }}Internal{{ end }}" } } ]
