@@ -204,6 +204,11 @@
         "Default": "No",
         "Description": "Enable tag propagation to ECS tasks",
         "AllowedValues": [ "Yes", "No" ]
+      },
+      "DependsOn": {
+        "Type": "String",
+        "Description": "Parameter to provide explicit dependency",
+        "Default": ""
       }
     },
     "Resources": {

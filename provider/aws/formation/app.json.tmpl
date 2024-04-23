@@ -361,9 +361,6 @@
   {{ range .Manifest.Services }}
     "Service{{ upper .Name }}": {
       "Type": "AWS::CloudFormation::Stack",
-      {{ if .Port.Port }}
-      "DependsOn": "RecordSet{{ upper .Name }}Internal",
-      {{ end }}
       "Properties": {
         "NotificationARNs": [ "{{ $.Topic }}" ],
         "Parameters": {
@@ -419,6 +416,9 @@
           "SlowStartDuration": { "Ref": "SlowStartDuration" },
           "SyslogDestination": { "Ref": "SyslogDestination" },
           "SyslogFormat": { "Ref": "SyslogFormat" },
+          {{ if .Port.Port }}
+          "DependsOn": { "Fn::If": [ "InternalDomains", { "Ref": "RecordSet{{ upper .Name }}Internal" }, "no" ]},
+          {{ end }}
           "TaskTags": { "Ref": "TaskTags" }
         },
         "Tags": [
