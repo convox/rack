@@ -231,7 +231,6 @@
     {{ if .Port.Port }}
       "RecordSet{{ upper .Name }}Internal": {
         "Type": "AWS::Route53::RecordSet",
-        "Condition": "InternalDomains",
         "Properties": {
           "HostedZoneId": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:HostedZone" } },
           "Name": { "Fn::Sub": "internal-{{.Name}}.{{$.App}}.${Rack}.convox." },
@@ -361,6 +360,7 @@
   {{ range .Manifest.Services }}
     "Service{{ upper .Name }}": {
       "Type": "AWS::CloudFormation::Stack",
+      "DependsOn": "RecordSet{{ upper .Name }}Internal",
       "Properties": {
         "NotificationARNs": [ "{{ $.Topic }}" ],
         "Parameters": {
