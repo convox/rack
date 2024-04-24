@@ -249,23 +249,44 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 		rtp := map[string]interface{}{
 			"ThirdAvailabilityZone": hasThirdAZ,
 		}
-		data, err := formationTemplate(fmt.Sprintf("resource/%s", r.Type), rtp)
-		if err != nil {
-			return err
+
+		var data []byte
+		var params map[string]string
+
+		if r.Options["noUpdate"] == "true" {
+			data, params, err = p.getResourceTemplateAndParams(app, r.Name)
+			if err != nil {
+				return err
+			}
+
+			// these params are set from the app itself, so remove from params
+			removeParamKeys := []string{
+				"Rack",
+				"Password",
+				"AutoMinorVersionUpgrade",
+			}
+			for _, k := range removeParamKeys {
+				delete(params, k)
+			}
+		} else {
+			data, err = formationTemplate(fmt.Sprintf("resource/%s", r.Type), rtp)
+			if err != nil {
+				return err
+			}
+
+			params, err = p.ResourceDefaults(app, r.Name)
+			if err != nil {
+				return err
+			}
+
+			for k, v := range r.Options {
+				params[upperName(k)] = v
+			}
 		}
 
 		ou, err := p.ObjectStore(app, "", bytes.NewReader(data), structs.ObjectStoreOptions{Presign: options.Bool(true)})
 		if err != nil {
 			return err
-		}
-
-		params, err := p.ResourceDefaults(app, r.Name)
-		if err != nil {
-			return err
-		}
-
-		for k, v := range r.Options {
-			params[upperName(k)] = v
 		}
 
 		tp[fmt.Sprintf("ResourceParams%s", upperName(r.Name))] = params
@@ -942,4 +963,38 @@ func (p *Provider) getTimerState(app, timerName string) (string, error) {
 		}
 	}
 	return "", fmt.Errorf("Timer rule not found")
+}
+
+func (p *Provider) getResourceTemplateAndParams(app, resourceName string) ([]byte, map[string]string, error) {
+	ars, err := p.describeStackResources(&cloudformation.DescribeStackResourcesInput{
+		StackName: aws.String(p.rackStack(app)),
+	})
+	if err != nil {
+		return nil, nil, err
+	}
+
+	arsns := map[string]string{}
+
+	for _, ar := range ars.StackResources {
+		arsns[cs(ar.LogicalResourceId, "")] = cs(ar.PhysicalResourceId, "")
+	}
+
+	stack := arsns[fmt.Sprintf("Resource%s", upperName(resourceName))]
+
+	tmplBody, err := p.stackTemplate(stack)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	res, err := p.describeStack(stack)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	params := map[string]string{}
+	for _, p := range res.Parameters {
+		params[*p.ParameterKey] = *p.ParameterValue
+	}
+
+	return tmplBody, params, nil
 }
