@@ -360,7 +360,9 @@
   {{ range .Manifest.Services }}
     "Service{{ upper .Name }}": {
       "Type": "AWS::CloudFormation::Stack",
+      {{ if .Port.Port }}
       "DependsOn": "RecordSet{{ upper .Name }}Internal",
+      {{ end }}
       "Properties": {
         "NotificationARNs": [ "{{ $.Topic }}" ],
         "Parameters": {
