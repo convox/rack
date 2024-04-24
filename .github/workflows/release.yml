@@ -49,8 +49,8 @@ jobs:
         run: make release-all
       - name: create relase version
         run: go run cmd/release/main.go create "${VERSION}"
-      - name: notify slack
-        run: TYPE=release ci/slack.sh
+      # - name: notify slack
+      #   run: TYPE=release ci/slack.sh
       - name: circleci trigger for e2e tests
         id: convox
         uses: CircleCI-Public/trigger-circleci-pipeline-action@v1.1.0
