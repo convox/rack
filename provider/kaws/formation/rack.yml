@@ -283,7 +283,7 @@ Resources:
           }
       Handler: index.main
       Role: !GetAtt DomainMapperRole.Arn
-      Runtime: nodejs16.x
+      Runtime: nodejs20.x
   DomainMapperRole:
     Type: AWS::IAM::Role
     Condition: BaseDomainBlank
