@@ -666,9 +666,7 @@ func (p *Provider) describeStacks(input *cloudformation.DescribeStacksInput) ([]
 
 	err := p.cloudformation().DescribeStacksPages(input,
 		func(page *cloudformation.DescribeStacksOutput, lastPage bool) bool {
-			for _, stack := range page.Stacks {
-				stacks = append(stacks, stack)
-			}
+			stacks = append(stacks, page.Stacks...)
 			return true
 		},
 	)
