@@ -284,6 +284,29 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 			}
 		}
 
+		if sourceDB := params[upperName("readSourceDB")]; sourceDB != "" {
+			if rName := strings.TrimPrefix(sourceDB, "#convox.resources."); rName != sourceDB {
+				exist := false
+				if rName != r.Name {
+					for i := range m.Resources {
+						if m.Resources[i].Name == rName {
+							exist = true
+							if m.Resources[i].Type != r.Type {
+								return fmt.Errorf("resource type mismatch for readSourceDB")
+							}
+							params[upperName("readSourceDB")], err = p.getResourceDBIdentifier(app, rName)
+							if err != nil {
+								return err
+							}
+						}
+					}
+				}
+				if !exist {
+					return fmt.Errorf("invalid resource name for readSourceDB")
+				}
+			}
+		}
+
 		ou, err := p.ObjectStore(app, "", bytes.NewReader(data), structs.ObjectStoreOptions{Presign: options.Bool(true)})
 		if err != nil {
 			return err
@@ -997,4 +1020,35 @@ func (p *Provider) getResourceTemplateAndParams(app, resourceName string) ([]byt
 	}
 
 	return tmplBody, params, nil
+}
+
+func (p *Provider) getResourceDBIdentifier(app, resourceName string) (string, error) {
+	ars, err := p.describeStackResources(&cloudformation.DescribeStackResourcesInput{
+		StackName: aws.String(p.rackStack(app)),
+	})
+	if err != nil {
+		return "", err
+	}
+
+	arsns := map[string]string{}
+
+	for _, ar := range ars.StackResources {
+		arsns[cs(ar.LogicalResourceId, "")] = cs(ar.PhysicalResourceId, "")
+	}
+
+	stack := arsns[fmt.Sprintf("Resource%s", upperName(resourceName))]
+	res, err := p.describeStackResources(&cloudformation.DescribeStackResourcesInput{
+		StackName: aws.String(stack),
+	})
+	if err != nil {
+		return "", err
+	}
+
+	for _, r := range res.StackResources {
+		if *r.ResourceType == "AWS::RDS::DBInstance" {
+			return *r.PhysicalResourceId, nil
+		}
+	}
+
+	return "", fmt.Errorf("db instance not found")
 }

@@ -4,7 +4,9 @@
     "BlankEncrypted": { "Fn::Equals": [ { "Ref": "Encrypted" }, "" ] },
     "BlankIops": { "Fn::Equals": [ { "Ref": "Iops" }, "0" ] },
     "BlankParameterGroupName": { "Fn::Equals": [ { "Ref": "ParameterGroupName" }, "" ] },
-    "BlankPreferredBackupWindow": { "Fn::Equals": [ { "Ref": "PreferredBackupWindow" }, "" ] }
+    "BlankPreferredBackupWindow": { "Fn::Equals": [ { "Ref": "PreferredBackupWindow" }, "" ] },
+    "IsReadReplica": { "Fn::Not": [ { "Fn::Equals": [ { "Ref": "ReadSourceDB" }, "" ] }]},
+    "BlankPreferredBackupWindowOrReadReplica": { "Fn::Or": [ { "Condition": "BlankPreferredBackupWindow" }, { "Condition": "IsReadReplica" } ] }
   },
   "Parameters": {
     "AutoMinorVersionUpgrade": {
@@ -56,6 +58,10 @@
       "MinLength": "1",
       "Type": "String"
     },
+    "ReadSourceDB": {
+      "Type": "String",
+      "Default": ""
+    },
     "Storage": {
       "Type": "Number",
       "Default": "20"
@@ -101,10 +107,10 @@
         "AllocatedStorage": { "Ref": "Storage" },
         "AllowMajorVersionUpgrade": "true",
         "AutoMinorVersionUpgrade": { "Ref": "AutoMinorVersionUpgrade" },
-        "BackupRetentionPeriod": { "Ref": "BackupRetentionPeriod" },
+        "BackupRetentionPeriod": { "Fn::If": [ "IsReadReplica", { "Ref": "AWS::NoValue" }, { "Ref": "BackupRetentionPeriod" } ] },
         "DBInstanceClass": { "Ref": "Class" },
         "DBInstanceIdentifier": { "Ref": "AWS::StackName" },
-        "DBName": "app",
+        "DBName": { "Fn::If": [ "IsReadReplica", { "Ref": "AWS::NoValue" }, "app" ] },
         "DBParameterGroupName": { "Fn::If": [ "BlankParameterGroupName", { "Fn::Sub": [ "default.mariadb${Base}", {
             "Base": { "Fn::Join": [ ".", [
               { "Fn::Select": [ 0, { "Fn::Split": [ ".", { "Ref": "Version" } ] } ] },
@@ -112,19 +118,20 @@
             ] ] }
           } ] },
         { "Ref": "ParameterGroupName" } ] },
-        "DBSubnetGroupName": { "Ref": "SubnetGroup" },
+        "DBSubnetGroupName": { "Fn::If": [ "IsReadReplica", { "Ref": "AWS::NoValue" }, { "Ref": "SubnetGroup" } ] },
         "DeletionProtection": { "Ref": "DeletionProtection" },
         "Engine": "mariadb",
         "EngineVersion": { "Ref": "Version" },
         "Iops": { "Fn::If": [ "BlankIops", { "Ref": "AWS::NoValue" }, { "Ref": "Iops" } ] },
-        "MasterUsername": "app",
-        "MasterUserPassword": { "Ref": "Password" },
+        "MasterUsername": { "Fn::If": [ "IsReadReplica", { "Ref": "AWS::NoValue" }, "app" ] },
+        "MasterUserPassword": { "Fn::If": [ "IsReadReplica", { "Ref": "AWS::NoValue" }, { "Ref": "Password" } ] },
         "MultiAZ": { "Ref": "Durable" },
         "Port": "3306",
-        "PreferredBackupWindow": { "Fn::If": [ "BlankPreferredBackupWindow", { "Ref": "AWS::NoValue" }, { "Ref": "PreferredBackupWindow" } ] },
+        "PreferredBackupWindow": { "Fn::If": [ "BlankPreferredBackupWindowOrReadReplica", { "Ref": "AWS::NoValue" }, { "Ref": "PreferredBackupWindow" } ] },
         "PubliclyAccessible": "false",
         "StorageEncrypted": { "Ref": "Encrypted" },
         "StorageType": { "Fn::If": [ "BlankIops", "gp2", "io2" ] },
+        "SourceDBInstanceIdentifier": { "Fn::If": [ "IsReadReplica", { "Ref": "ReadSourceDB" }, { "Ref": "AWS::NoValue" } ] },
         "VPCSecurityGroups": [ { "Ref": "SecurityGroup" } ]
       }
     }
