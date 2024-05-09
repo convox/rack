@@ -148,7 +148,7 @@ func TestCertificateCreateClassic(t *testing.T) {
 	}
 
 	s := stdapi.New("api", "api")
-	s.Route("POST", fmt.Sprintf("/certificates"), func(c *stdapi.Context) error {
+	s.Route("POST", "/certificates", func(c *stdapi.Context) error {
 		require.Equal(t, "chain", c.Form("chain"))
 		require.Equal(t, "public", c.Form("public"))
 		require.Equal(t, "private", c.Form("private"))
