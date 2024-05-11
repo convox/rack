@@ -138,6 +138,7 @@ func Unarchive(r io.Reader, target string) error {
 			if err != nil {
 				return err
 			}
+			defer fd.Close()
 
 			if _, err := io.Copy(fd, tr); err != nil {
 				return err
