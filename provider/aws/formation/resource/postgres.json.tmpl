@@ -4,8 +4,11 @@
     "BlankEncrypted": { "Fn::Equals": [ { "Ref": "Encrypted" }, "" ] },
     "BlankIops": { "Fn::Equals": [ { "Ref": "Iops" }, "0" ] },
     "BlankPreferredBackupWindow": { "Fn::Equals": [ { "Ref": "PreferredBackupWindow" }, "" ] },
+    "NotBlankSnapshot": { "Fn::Not": [ { "Fn::Equals": [ { "Ref": "Snapshot" }, "" ] } ] },
+    "SnapshotOrReadOrPromoted": { "Fn::Or": [ { "Condition": "ReadReplicaOrPromoted" }, { "Condition": "NotBlankSnapshot" } ] },
     "IsReadReplica": { "Fn::Not": [ { "Fn::Equals": [ { "Ref": "ReadSourceDB" }, "" ] }]},
-    "BlankPreferredBackupWindowOrReadReplica": { "Fn::Or": [ { "Condition": "BlankPreferredBackupWindow" }, { "Condition": "IsReadReplica" } ] },
+    "IsPromotedFromReplica": { "Fn::Not": [ { "Fn::Equals": [ { "Ref": "PromotedFromReplica" }, "" ] }]},
+    "ReadReplicaOrPromoted": { "Fn::Or": [ { "Condition": "IsPromotedFromReplica" }, { "Condition": "IsReadReplica" } ] },
     "BlankParameterGroupName": { "Fn::Equals": [ { "Ref": "ParameterGroupName" }, "" ] },
     "Version9": { "Fn::Equals": [ { "Fn::Select": [ 0, { "Fn::Split": [ ".", { "Ref": "Version" } ] } ] }, "9" ] }
   },
@@ -63,6 +66,14 @@
       "Type": "String",
       "Default": ""
     },
+    "PromotedFromReplica": {
+      "Type": "String",
+      "Default": ""
+    },
+    "Snapshot": {
+      "Type" : "String",
+      "Default": ""
+    },
     "Storage": {
       "Type": "Number",
       "Default": "20"
@@ -111,7 +122,7 @@
         "BackupRetentionPeriod": { "Fn::If": [ "IsReadReplica", { "Ref": "AWS::NoValue" }, { "Ref": "BackupRetentionPeriod" } ] },
         "DBInstanceClass": { "Ref": "Class" },
         "DBInstanceIdentifier": { "Ref": "AWS::StackName" },
-        "DBName": { "Fn::If": [ "IsReadReplica", { "Ref": "AWS::NoValue" }, "app" ] },
+        "DBName": { "Fn::If": [ "SnapshotOrReadOrPromoted", { "Ref": "AWS::NoValue" }, "app" ] },
         "DBParameterGroupName": { "Fn::If": [ "BlankParameterGroupName",
         { "Fn::Sub": [ "default.postgres${Base}", {
           "Base": { "Fn::If": [ "Version9",
@@ -124,18 +135,19 @@
         } ] }
         ,
         { "Ref": "ParameterGroupName" } ] },
-        "DBSubnetGroupName": { "Fn::If": [ "IsReadReplica", { "Ref": "AWS::NoValue" }, { "Ref": "SubnetGroup" } ] },
+        "DBSubnetGroupName": { "Fn::If": [ "ReadReplicaOrPromoted", { "Ref": "AWS::NoValue" }, { "Ref": "SubnetGroup" } ] },
+        "DBSnapshotIdentifier": { "Fn::If": [ "NotBlankSnapshot", { "Ref": "Snapshot" }, { "Ref": "AWS::NoValue" } ] },
         "DeletionProtection": { "Ref": "DeletionProtection" },
         "Engine": "postgres",
         "EngineVersion": { "Ref": "Version" },
         "Iops": { "Fn::If": [ "BlankIops", { "Ref": "AWS::NoValue" }, { "Ref": "Iops" } ] },
-        "MasterUsername": { "Fn::If": [ "IsReadReplica", { "Ref": "AWS::NoValue" }, "app" ] },
-        "MasterUserPassword": { "Fn::If": [ "IsReadReplica", { "Ref": "AWS::NoValue" }, { "Ref": "Password" } ] },
+        "MasterUsername": { "Fn::If": [ "SnapshotOrReadOrPromoted", { "Ref": "AWS::NoValue" }, "app" ] },
+        "MasterUserPassword": { "Fn::If": [ "SnapshotOrReadOrPromoted", { "Ref": "AWS::NoValue" }, { "Ref": "Password" } ] },
         "MultiAZ": { "Ref": "Durable" },
         "Port": "5432",
         "PreferredBackupWindow": { "Fn::If": [ "BlankPreferredBackupWindowOrReadReplica", { "Ref": "AWS::NoValue" }, { "Ref": "PreferredBackupWindow" } ] },
         "PubliclyAccessible": "false",
-        "StorageEncrypted": { "Ref": "Encrypted" },
+        "StorageEncrypted": { "Fn::If": [ "NotBlankSnapshot", { "Ref": "AWS::NoValue" }, { "Ref": "Encrypted" } ] },
         "StorageType": { "Fn::If": [ "BlankIops", "gp2", "io2" ] },
         "SourceDBInstanceIdentifier": { "Fn::If": [ "IsReadReplica", { "Ref": "ReadSourceDB" }, { "Ref": "AWS::NoValue" } ] },
         "VPCSecurityGroups": [ { "Ref": "SecurityGroup" } ]

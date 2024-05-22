@@ -1052,3 +1052,39 @@ func (c *Client) SyncInstancesIpInSecurityGroup() error {
 
 	return err
 }
+
+func (c *Client) SetDBDeletionProtectionAndCreateSnapShot(app, resource, snapshot string) (string, error) {
+	var err error
+
+	ro := stdsdk.RequestOptions{Headers: stdsdk.Headers{}, Params: stdsdk.Params{}, Query: stdsdk.Query{}}
+
+	ro.Params["app"] = app
+
+	var v string
+
+	err = c.Post(fmt.Sprintf("/apps/%s/resources/%s/deletion-protection-and-snapshot/%s", app, resource, snapshot), ro, &v)
+
+	return v, err
+}
+
+func (c *Client) IsDBSnapshotComplete(snapshot string) (bool, error) {
+	var err error
+
+	ro := stdsdk.RequestOptions{Headers: stdsdk.Headers{}, Params: stdsdk.Params{}, Query: stdsdk.Query{}}
+
+	var v bool
+
+	err = c.Get(fmt.Sprintf("/rds/snapshots/%s", snapshot), ro, &v)
+
+	return v, err
+}
+
+func (c *Client) DeleteDB(resource string) error {
+	var err error
+
+	ro := stdsdk.RequestOptions{Headers: stdsdk.Headers{}, Params: stdsdk.Params{}, Query: stdsdk.Query{}}
+
+	err = c.Delete(fmt.Sprintf("/rds/%s", resource), ro, nil)
+
+	return err
+}
