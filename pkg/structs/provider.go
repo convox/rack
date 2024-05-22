@@ -71,6 +71,10 @@ type Provider interface {
 	ResourceGet(app, name string) (*Resource, error)
 	ResourceList(app string) (Resources, error)
 
+	SetDBDeletionProtectionAndCreateSnapShot(app, resource, snapshot string) (string, error)
+	IsDBSnapshotComplete(snapshot string) (bool, error)
+	DeleteDB(resource string) error
+
 	ServiceList(app string) (Services, error)
 	ServiceMetrics(app, name string, opts MetricsOptions) (Metrics, error)
 	ServiceRestart(app, name string) error

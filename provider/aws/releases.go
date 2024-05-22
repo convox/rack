@@ -200,6 +200,23 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 		return err
 	}
 
+	isRdsIngoreStep := false
+	for _, r := range m.Resources {
+		if opts.Xignore != nil && *opts.Xignore == r.Name {
+			isRdsIngoreStep = true
+		}
+	}
+
+	if isRdsIngoreStep {
+		var temp manifest.Resources
+		for _, r := range m.Resources {
+			if *opts.Xignore != r.Name {
+				temp = append(temp, r)
+			}
+		}
+		m.Resources = temp
+	}
+
 	for _, s := range m.Services {
 		if s.Internal && !p.Internal {
 			return fmt.Errorf("rack does not support internal services")
@@ -246,6 +263,11 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 	hasThirdAZ := len(strings.Split(p.AvailabilityZones, ",")) == 3
 
 	for _, r := range m.Resources {
+
+		if opts.Xrds != nil && *opts.Xrds == r.Name && opts.Xsnapshot != nil {
+			r.Options["snapshot"] = *opts.Xsnapshot
+		}
+
 		rtp := map[string]interface{}{
 			"ThirdAvailabilityZone": hasThirdAZ,
 		}
@@ -253,7 +275,7 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 		var data []byte
 		var params map[string]string
 
-		if r.Options["noUpdate"] == "true" {
+		if r.Options["noUpdate"] == "xtruex" {
 			data, params, err = p.getResourceTemplateAndParams(app, r.Name)
 			if err != nil {
 				return err

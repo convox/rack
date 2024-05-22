@@ -7,7 +7,9 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
+	"github.com/convox/rack/pkg/helpers"
 	"github.com/convox/rack/pkg/options"
 	"github.com/convox/rack/pkg/structs"
 	"github.com/convox/rack/sdk"
@@ -126,6 +128,20 @@ func init() {
 
 	register("rack resources url", "get url for a resource", RackResourcesUrl, stdcli.CommandOptions{
 		Flags:     []stdcli.Flag{flagRack},
+		Invisible: true,
+		Usage:     "<resource>",
+		Validate:  stdcli.Args(1),
+	})
+
+	register("resources fix cf", "fix CF rds resource", ResourcesFixCf, stdcli.CommandOptions{
+		Flags:     []stdcli.Flag{stdcli.StringFlag("snapshot", "", "db snapshot name"), flagRack, flagApp},
+		Invisible: true,
+		Usage:     "<resource>",
+		Validate:  stdcli.Args(1),
+	})
+
+	register("resources db delete", "delete db", ResourcesDeleteDB, stdcli.CommandOptions{
+		Flags:     []stdcli.Flag{flagRack, flagApp},
 		Invisible: true,
 		Usage:     "<resource>",
 		Validate:  stdcli.Args(1),
@@ -691,4 +707,122 @@ func RackResourcesUrl(rack sdk.Interface, c *stdcli.Context) error {
 	fmt.Fprintf(c, "%s\n", r.Url)
 
 	return nil
+}
+
+func ResourcesFixCf(rack sdk.Interface, c *stdcli.Context) error {
+	appName := app(c)
+	resourceName := c.Arg(0)
+	snapshot := c.String("snapshot")
+	oldDb := ""
+	var err error
+	if snapshot == "" {
+		snapshot = fmt.Sprintf("%s-%s-%d", appName, resourceName, time.Now().Unix())
+		c.Writef("Creating snapshot: %s\n", snapshot)
+		if oldDb, err = rack.SetDBDeletionProtectionAndCreateSnapShot(appName, resourceName, snapshot); err != nil {
+			return err
+		}
+	} else {
+		snapshot = fmt.Sprintf("%s-%s-%d", appName, resourceName, time.Now().Unix())
+		c.Writef("Using snapshot: %s\n", snapshot)
+		if oldDb, err = rack.SetDBDeletionProtectionAndCreateSnapShot(appName, resourceName, snapshot); err != nil && strings.Contains(err.Error(), "db error") {
+			return err
+		}
+	}
+
+	rs, err := rack.ReleaseList(appName, structs.ReleaseListOptions{Limit: options.Int(1)})
+	if err != nil {
+		return err
+	}
+
+	if len(rs) == 0 {
+		return fmt.Errorf("no releases to promote")
+	}
+
+	releaseId := rs[0].Id
+
+	a, err := rack.AppGet(appName)
+	if err != nil {
+		return err
+	}
+
+	if a.Status != "running" {
+		c.Startf("Waiting for app to be ready")
+		if err := helpers.WaitForAppRunning(rack, appName); err != nil {
+			return err
+		}
+		c.OK()
+	}
+
+	c.Writef("DB identifier: %s\n", oldDb)
+
+	c.Startf("Promoting <release>%s</release> to remove resource: %s", releaseId, resourceName)
+	if err := rack.ReleasePromote(appName, releaseId, structs.ReleasePromoteOptions{
+		Xignore: &resourceName,
+	}); err != nil {
+		return err
+	}
+	c.Writef("\n")
+	if err := helpers.WaitForAppWithLogs(rack, c, appName); err != nil && !strings.Contains(err.Error(), "rollback") {
+		return err
+	}
+	c.OK()
+
+	c.Startf("Waiting for app to be ready")
+	if err := helpers.WaitForAppRunning(rack, appName); err != nil {
+		return err
+	}
+	c.OK()
+
+	c.Startf("Waiting for snapshot to be ready")
+	for {
+		complete, err := rack.IsDBSnapshotComplete(snapshot)
+		if err != nil {
+			return err
+		}
+
+		if complete {
+			break
+		}
+		time.Sleep(30 * time.Second)
+	}
+	c.OK()
+
+	c.Startf("Promoting <release>%s</release> to recreate resource: %s", releaseId, resourceName)
+	if err := rack.ReleasePromote(appName, releaseId, structs.ReleasePromoteOptions{
+		Xrds:      &resourceName,
+		Xsnapshot: &snapshot,
+	}); err != nil {
+		return err
+	}
+
+	c.Writef("\n")
+	if err := helpers.WaitForAppWithLogs(rack, c, appName); err != nil {
+		return err
+	}
+	c.OK()
+
+	c.Startf("Promoting <release>%s</release> to rsync the resource: %s", releaseId, resourceName)
+	if err := rack.ReleasePromote(appName, releaseId, structs.ReleasePromoteOptions{}); err != nil {
+		return err
+	}
+
+	c.Writef("\n")
+	if err := helpers.WaitForAppWithLogs(rack, c, appName); err != nil {
+		return err
+	}
+	c.OK()
+
+	c.Writef("\n")
+
+	c.Writef("Resource is fixed. Manually delete the old db if everything is alright: convox resources db delete %s", oldDb)
+
+	return nil
+}
+
+func ResourcesDeleteDB(rack sdk.Interface, c *stdcli.Context) error {
+	resourceName := c.Arg(0)
+	if err := rack.DeleteDB(resourceName); err != nil {
+		return err
+	}
+	return c.OK()
 }
