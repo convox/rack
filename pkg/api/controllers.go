@@ -1493,3 +1493,32 @@ func (s *Server) SystemUpdate(c *stdapi.Context) error {
 func (s *Server) Workers(c *stdapi.Context) error {
 	return stdapi.Errorf(404, "not available via api")
 }
+
+func (s *Server) IsDBSnapshotComplete(c *stdapi.Context) error {
+	snapshot := c.Var("snapshot")
+
+	v, err := s.provider(c).WithContext(c.Context()).IsDBSnapshotComplete(snapshot)
+	if err != nil {
+		return err
+	}
+
+	return c.RenderJSON(v)
+}
+
+func (s *Server) SetDBDeletionProtectionAndCreateSnapShot(c *stdapi.Context) error {
+	app := c.Var("app")
+	resource := c.Var("resource")
+	snapshot := c.Var("snapshot")
+
+	v, err := s.provider(c).WithContext(c.Context()).SetDBDeletionProtectionAndCreateSnapShot(app, resource, snapshot)
+	if err != nil {
+		return err
+	}
+
+	return c.RenderJSON(v)
+}
+
+func (s *Server) DeleteDB(c *stdapi.Context) error {
+	resource := c.Var("resource")
+	return s.provider(c).WithContext(c.Context()).DeleteDB(resource)
+}

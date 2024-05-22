@@ -24,6 +24,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/eventbridge"
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/kms"
+	"github.com/aws/aws-sdk-go/service/rds"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/sns"
 	"github.com/aws/aws-sdk-go/service/sqs"
@@ -361,6 +362,14 @@ func (p *Provider) ec2() *ec2.EC2 {
 		panic(errors.WithStack(err))
 	}
 	return ec2.New(s, p.config())
+}
+
+func (p *Provider) rds() *rds.RDS {
+	s, err := helpers.NewSession()
+	if err != nil {
+		panic(errors.WithStack(err))
+	}
+	return rds.New(s, p.config())
 }
 
 func (p *Provider) ecr() *ecr.ECR {

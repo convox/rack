@@ -18,19 +18,6 @@ type Interface struct {
 	mock.Mock
 }
 
-func (_m *Interface) SyncInstancesIpInSecurityGroup() error {
-	ret := _m.Called()
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func() error); ok {
-		r1 = rf()
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r1
-}
-
 // AppCancel provides a mock function with given fields: name
 func (_m *Interface) AppCancel(name string) error {
 	ret := _m.Called(name)
@@ -589,6 +576,20 @@ func (_m *Interface) CertificateList() (structs.Certificates, error) {
 	return r0, r1
 }
 
+// DeleteDB provides a mock function with given fields: resource
+func (_m *Interface) DeleteDB(resource string) error {
+	ret := _m.Called(resource)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(string) error); ok {
+		r0 = rf(resource)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // EnvironmentSet provides a mock function with given fields: _a0, _a1
 func (_m *Interface) EnvironmentSet(_a0 string, _a1 []byte) (*structs.Release, error) {
 	ret := _m.Called(_a0, _a1)
@@ -856,6 +857,27 @@ func (_m *Interface) InstanceTerminate(id string) error {
 	}
 
 	return r0
+}
+
+// IsDBSnapshotComplete provides a mock function with given fields: snapshot
+func (_m *Interface) IsDBSnapshotComplete(snapshot string) (bool, error) {
+	ret := _m.Called(snapshot)
+
+	var r0 bool
+	if rf, ok := ret.Get(0).(func(string) bool); ok {
+		r0 = rf(snapshot)
+	} else {
+		r0 = ret.Get(0).(bool)
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(string) error); ok {
+		r1 = rf(snapshot)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
 }
 
 // ObjectDelete provides a mock function with given fields: app, key
@@ -1489,6 +1511,27 @@ func (_m *Interface) ServiceUpdate(app string, name string, opts structs.Service
 	return r0
 }
 
+// SetDBDeletionProtectionAndCreateSnapShot provides a mock function with given fields: app, resource, snapshot
+func (_m *Interface) SetDBDeletionProtectionAndCreateSnapShot(app string, resource string, snapshot string) (string, error) {
+	ret := _m.Called(app, resource, snapshot)
+
+	var r0 string
+	if rf, ok := ret.Get(0).(func(string, string, string) string); ok {
+		r0 = rf(app, resource, snapshot)
+	} else {
+		r0 = ret.Get(0).(string)
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(string, string, string) error); ok {
+		r1 = rf(app, resource, snapshot)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // Sync provides a mock function with given fields: _a0
 func (_m *Interface) Sync(_a0 string) error {
 	ret := _m.Called(_a0)
@@ -1496,6 +1539,20 @@ func (_m *Interface) Sync(_a0 string) error {
 	var r0 error
 	if rf, ok := ret.Get(0).(func(string) error); ok {
 		r0 = rf(_a0)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// SyncInstancesIpInSecurityGroup provides a mock function with given fields:
+func (_m *Interface) SyncInstancesIpInSecurityGroup() error {
+	ret := _m.Called()
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func() error); ok {
+		r0 = rf()
 	} else {
 		r0 = ret.Error(0)
 	}
