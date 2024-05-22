@@ -27,12 +27,15 @@ type ReleaseListOptions struct {
 }
 
 type ReleasePromoteOptions struct {
-	Development *bool `param:"development"`
-	Force       *bool `param:"force"`
-	Idle        *bool `param:"idle"`
-	Min         *int  `param:"min"`
-	Max         *int  `param:"max"`
-	Timeout     *int  `param:"timeout"`
+	Development *bool   `param:"development"`
+	Force       *bool   `param:"force"`
+	Idle        *bool   `param:"idle"`
+	Min         *int    `param:"min"`
+	Max         *int    `param:"max"`
+	Timeout     *int    `param:"timeout"`
+	Xrds        *string `param:"xrds"`
+	Xignore     *string `param:"xignore"`
+	Xsnapshot   *string `param:"xsnapshot"`
 }
 
 func NewRelease(app string) *Release {
