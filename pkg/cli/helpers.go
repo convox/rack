@@ -13,6 +13,7 @@ import (
 	"sort"
 	"strings"
 	"time"
+	"unicode"
 
 	"github.com/convox/rack/pkg/helpers"
 	"github.com/convox/rack/pkg/structs"
@@ -431,4 +432,15 @@ func waitForResourceRunning(rack sdk.Interface, c *stdcli.Context, resource stri
 
 		return r.Status == "running", nil
 	})
+}
+
+// only letter and digits will be kept
+func filterString(input string) string {
+	var builder strings.Builder
+	for _, r := range input {
+		if unicode.IsLetter(r) || unicode.IsDigit(r) {
+			builder.WriteRune(r)
+		}
+	}
+	return builder.String()
 }
