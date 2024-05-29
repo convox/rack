@@ -483,7 +483,7 @@
             "      }",
             "    }",
             "  };",
-            "  const client = new ECSClient({ region: 'REGION' });",
+            "  const client = new ECSClient({ region: process.env.AWS_REGION, maxAttempts: 10 });",
             "  const command = new RunTaskCommand(params);",
             "  try {",
             "    const data = await client.send(command);",
