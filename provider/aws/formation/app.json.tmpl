@@ -445,7 +445,8 @@
         "Timeout": 60,
         "Code": {
           "ZipFile": { "Fn::Join": [ "\n", [
-            "exports.handler = function(event, context, cb) {",
+            "const { ECSClient, RunTaskCommand } = require('@aws-sdk/client-ecs')",
+            "exports.handler = async function(event, context, cb) {",
             "  var params = {",
             { "Fn::If": [ "FargateTimersBase",
               "  capacityProviderStrategy: [{capacityProvider: 'FARGATE'}],",
@@ -482,12 +483,14 @@
             "      }",
             "    }",
             "  };",
-            "  var aws = require('aws-sdk');",
-            "  var ecs = new aws.ECS({maxRetries:10});",
-            "  ecs.runTask(params, function (err, res) {",
-            "    console.log('res', res);",
-            "    cb(err);",
-            "  });",
+            "  const ecsClient = new ECSClient({maxRetries:10});",
+            "  try {",
+            "    const command = new RunTaskCommand(params);",
+            "    const response = await ecsClient.send(command);",
+            "    cb(null);",
+            "  } catch (error) {",
+            "    cb(error);",
+            "  }",
             "};"
           ] ] }
         },
