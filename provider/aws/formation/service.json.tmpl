@@ -508,7 +508,7 @@
           }
         },
       {{ end }}
-      {{ if .Autoscale }}
+      {{ if $.Autoscale }}
         "AutoscalingTarget": {
           "Type": "AWS::ApplicationAutoScaling::ScalableTarget",
           "Properties": {
@@ -568,7 +568,7 @@
           {{ if .Agent.Enabled }}
             "SchedulingStrategy": "DAEMON",
           {{ else }}
-            {{ if .Autoscale }}
+            {{ if $.Autoscale }}
               {{ with $.CurrentDesiredCount }}
                 "DesiredCount": "{{.}}",
               {{ else }}

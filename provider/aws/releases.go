@@ -352,8 +352,14 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 			max = *opts.Max
 		}
 
+		autoscale, err := p.stackParameter(p.Rack, "Autoscale")
+		if err != nil {
+			return err
+		}
+
 		stp := map[string]interface{}{
 			"App":            r.App,
+			"Autoscale":      autoscale == "Yes",
 			"Build":          tp["Build"],
 			"DeploymentMin":  min,
 			"DeploymentMax":  max,
