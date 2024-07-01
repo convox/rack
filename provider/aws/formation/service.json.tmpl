@@ -568,15 +568,7 @@
           {{ if .Agent.Enabled }}
             "SchedulingStrategy": "DAEMON",
           {{ else }}
-            {{ if $.Autoscale }}
-              {{ with $.CurrentDesiredCount }}
-                "DesiredCount": "{{.}}",
-              {{ else }}
-                "DesiredCount": "{{$.Service.Scale.Count.Min}}",
-              {{ end }}
-            {{ else }}
-              "DesiredCount": { "Ref": "Count" },
-            {{ end }}
+            "DesiredCount": { "Ref": "Count" },
             "SchedulingStrategy": "REPLICA",
             "PlacementStrategies": { "Fn::If": [ "FargateEither",
               { "Ref": "AWS::NoValue" },
