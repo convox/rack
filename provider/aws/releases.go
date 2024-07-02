@@ -340,7 +340,7 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 		tp[fmt.Sprintf("ResourceTemplate%s", upperName(r.Name))] = ou.Url
 	}
 
-	for _, s := range m.Services {
+	for i, s := range m.Services {
 		min := s.Deployment.Minimum
 		max := s.Deployment.Maximum
 
@@ -352,14 +352,19 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 			max = *opts.Max
 		}
 
-		autoscale, err := p.stackParameter(p.Rack, "Autoscale")
+		stackAutoscale, err := p.stackParameter(p.Rack, "Autoscale")
 		if err != nil {
 			return err
 		}
 
+		autoscale := false
+		if stackAutoscale == "Yes" && s.Scale.Count.Min < s.Scale.Count.Max {
+			autoscale = true
+		}
+
 		stp := map[string]interface{}{
 			"App":            r.App,
-			"Autoscale":      autoscale == "Yes",
+			"Autoscale":      autoscale,
 			"Build":          tp["Build"],
 			"DeploymentMin":  min,
 			"DeploymentMax":  max,
@@ -369,6 +374,18 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 			"Service":        s,
 			"WildcardDomain": tp["WildcardDomain"],
 		}
+
+		data, err := formationTemplate("service", stp)
+		if err != nil {
+			return err
+		}
+
+		ou, err := p.ObjectStore(app, "", bytes.NewReader(data), structs.ObjectStoreOptions{Presign: options.Bool(true)})
+		if err != nil {
+			return err
+		}
+
+		tp[fmt.Sprintf("ServiceTemplate%s", upperName(s.Name))] = ou.Url
 
 		sarn, err := p.serviceArn(r.App, s.Name)
 		if err != nil {
@@ -384,22 +401,12 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 				return err
 			}
 
-			if len(res.Services) == 1 && res.Services[0].DesiredCount != nil {
-				stp["CurrentDesiredCount"] = *res.Services[0].DesiredCount
+			// when autoscale is on set m.Services[i].Scale.Count.Min to desired count
+			// since this is used to service count param from app
+			if autoscale && len(res.Services) == 1 && res.Services[0].DesiredCount != nil {
+				m.Services[i].Scale.Count.Min = int(*res.Services[0].DesiredCount)
 			}
 		}
-
-		data, err := formationTemplate("service", stp)
-		if err != nil {
-			return err
-		}
-
-		ou, err := p.ObjectStore(app, "", bytes.NewReader(data), structs.ObjectStoreOptions{Presign: options.Bool(true)})
-		if err != nil {
-			return err
-		}
-
-		tp[fmt.Sprintf("ServiceTemplate%s", upperName(s.Name))] = ou.Url
 	}
 
 	for _, t := range m.Timers {
@@ -433,6 +440,7 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 		tp[fmt.Sprintf("TimerTemplate%s", upperName(t.Name))] = ou.Url
 	}
 
+	// m.Services[i].Scale.Count.Min is mutated if service autoscaling is used
 	data, err := formationTemplate("app", tp)
 	if err != nil {
 		return err
