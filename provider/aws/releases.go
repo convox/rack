@@ -358,7 +358,7 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 		}
 
 		autoscale := false
-		if stackAutoscale == "Yes" && s.Scale.Count.Min < s.Scale.Count.Max {
+		if stackAutoscale == "Yes" {
 			autoscale = true
 		}
 
