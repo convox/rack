@@ -364,8 +364,10 @@ func CloudWatchLogsStream(ctx context.Context, cw cloudwatchlogsiface.CloudWatch
 	var start int64
 
 	if opts.Since != nil {
-		start = time.Now().UTC().Add((*opts.Since)*-1).Unix() * int64(time.Microsecond)
+		start = time.Now().UTC().Add((*opts.Since) * -1).UnixMilli()
 		req.StartTime = aws.Int64(start)
+	} else {
+		req.StartTime = aws.Int64(time.Now().UTC().Add(-1 * time.Hour).UnixMilli())
 	}
 
 	if stream != "" {
@@ -390,10 +392,18 @@ func CloudWatchLogsStream(ctx context.Context, cw cloudwatchlogsiface.CloudWatch
 			if err != nil {
 				switch AwsErrorCode(err) {
 				case "ThrottlingException", "ResourceNotFoundException":
-					time.Sleep(1 * time.Second)
+					time.Sleep(3 * time.Second)
 					continue
 				default:
 					return err
+				}
+			}
+
+			if res != nil {
+				if res.NextToken != nil {
+					time.Sleep(2 * time.Second)
+				} else if len(res.Events) == 0 {
+					time.Sleep(5 * time.Second)
 				}
 			}
 

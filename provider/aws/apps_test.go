@@ -98,6 +98,7 @@ func TestAppLogs(t *testing.T) {
 		Follow: options.Bool(false),
 		Filter: options.String("test"),
 		Prefix: options.Bool(true),
+		Since:  options.Duration(time.Since(time.Date(2011, 1, 1, 0, 0, 0, 0, time.UTC))),
 	})
 
 	io.Copy(buf, r)
@@ -403,7 +404,8 @@ var cycleLogFilterLogEvents1 = awsutil.Cycle{
 		Body: `{
 			"filterPattern": "test",
 			"interleaved": true,
-			"logGroupName": "convox-httpd-LogGroup-L4V203L35WRM"
+			"logGroupName": "convox-httpd-LogGroup-L4V203L35WRM",
+			"startTime": 1293840000000
 		}`,
 	},
 	Response: awsutil.Response{
@@ -459,7 +461,8 @@ var cycleLogFilterLogEvents2 = awsutil.Cycle{
 			"filterPattern": "test",
 			"interleaved": true,
 			"logGroupName": "convox-httpd-LogGroup-L4V203L35WRM",
-			"nextToken": "ZNUEPl7FcQuXbIH4Swk9D9eFu2XBg-ijZIZlvzz4ea9zZRjw-MMtQtvcoMdmq4T29K7Q6Y1e_KvyfpcT_f_tUw"
+			"nextToken": "ZNUEPl7FcQuXbIH4Swk9D9eFu2XBg-ijZIZlvzz4ea9zZRjw-MMtQtvcoMdmq4T29K7Q6Y1e_KvyfpcT_f_tUw",
+			"startTime": 1293840000000
 		}`,
 	},
 	Response: awsutil.Response{
