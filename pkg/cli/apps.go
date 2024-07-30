@@ -576,10 +576,16 @@ func appImport(rack sdk.Interface, c *stdcli.Context, app string, r io.Reader) e
 
 		change := false
 
+		// Remove app unique parameters from being copied over
+		uniqueParams := []string{"Rack","LogBucket","ResourcePassword"}
+
+		for _,val := range uniqueParams{
+			delete(a.Parameters, val);
+		}
+
 		for k, v := range a.Parameters {
 			if v != ae.Parameters[k] {
 				change = true
-				break
 			}
 		}
 
