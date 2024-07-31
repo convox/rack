@@ -182,6 +182,10 @@ func HandleRequest(freq Request) error {
 		physical, outputs, err = HandleSGIngress(freq)
 	case "Custom::SNSSubscription":
 		physical, outputs, err = HandleSNSSubcription(freq)
+	case "Custom::MathMax":
+		physical, outputs, err = HandleMathMax(freq)
+	case "Custom::MathMin":
+		physical, outputs, err = HandleMathMin(freq)
 	default:
 		physical = ""
 		err = fmt.Errorf("unknown ResourceType: %s", freq.ResourceType)
