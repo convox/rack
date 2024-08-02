@@ -524,7 +524,7 @@
           }
         },
       {{ end }}
-      {{ if $.Autoscale }}
+      {{ if and ($.Autoscale) (not .Agent.Enabled) }}
         "AutoscalingTarget": {
           "Type": "AWS::ApplicationAutoScaling::ScalableTarget",
           "Properties": {
