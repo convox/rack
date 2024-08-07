@@ -296,6 +296,7 @@
       "Value": { "Ref": "Cluster" }
     },
     "CustomTopic": {
+      "Export": { "Name": { "Fn::Sub": "${AWS::StackName}:CustomTopic" } },
       "Value": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] }
     },
     "CustomerManagedKey": {

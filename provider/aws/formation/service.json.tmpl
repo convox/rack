@@ -212,6 +212,22 @@
       }
     },
     "Resources": {
+      "MinCount": {
+        "Type": "Custom::MathMin",
+        "Properties": {
+          "ServiceToken": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:CustomTopic" } },
+          "X": "{{.Scale.Count.Min}}",
+          "Y": { "Ref": "Count" }
+        }
+      },
+      "MaxCount": {
+        "Type": "Custom::MathMax",
+        "Properties": {
+          "ServiceToken": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:CustomTopic" } },
+          "X": "{{.Scale.Count.Max}}",
+          "Y": { "Ref": "Count" }
+        }
+      },
       "AutoscalingRole": {
         "Type": "AWS::IAM::Role",
         "Properties": {
@@ -508,12 +524,12 @@
           }
         },
       {{ end }}
-      {{ if $.Autoscale }}
+      {{ if and ($.Autoscale) (not .Agent.Enabled) }}
         "AutoscalingTarget": {
           "Type": "AWS::ApplicationAutoScaling::ScalableTarget",
           "Properties": {
-            "MaxCapacity": "{{.Scale.Count.Max}}",
-            "MinCapacity": "{{.Scale.Count.Min}}",
+            "MaxCapacity": { "Fn::GetAtt": [ "MaxCount", "Value" ] },
+            "MinCapacity": { "Fn::GetAtt": [ "MinCount", "Value" ] },
             "ResourceId": { "Fn::Sub": [ "service/${Cluster}/${Service.Name}", { "Cluster": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Cluster" } } } ] },
             "RoleARN": { "Fn::GetAtt": [ "AutoscalingRole", "Arn" ] },
             "ScalableDimension": "ecs:service:DesiredCount",

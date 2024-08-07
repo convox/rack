@@ -14,7 +14,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
-	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/aws/aws-sdk-go/service/eventbridge"
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/s3"
@@ -340,7 +339,7 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 		tp[fmt.Sprintf("ResourceTemplate%s", upperName(r.Name))] = ou.Url
 	}
 
-	for i, s := range m.Services {
+	for _, s := range m.Services {
 		min := s.Deployment.Minimum
 		max := s.Deployment.Maximum
 
@@ -386,27 +385,6 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 		}
 
 		tp[fmt.Sprintf("ServiceTemplate%s", upperName(s.Name))] = ou.Url
-
-		sarn, err := p.serviceArn(r.App, s.Name)
-		if err != nil {
-			return err
-		}
-
-		if sarn != "" {
-			res, err := p.describeServices(&ecs.DescribeServicesInput{
-				Cluster:  aws.String(p.Cluster),
-				Services: []*string{aws.String(sarn)},
-			})
-			if err != nil {
-				return err
-			}
-
-			// when autoscale is on set m.Services[i].Scale.Count.Min to desired count
-			// since this is used to service count param from app
-			if autoscale && len(res.Services) == 1 && res.Services[0].DesiredCount != nil {
-				m.Services[i].Scale.Count.Min = int(*res.Services[0].DesiredCount)
-			}
-		}
 	}
 
 	for _, t := range m.Timers {
@@ -440,7 +418,6 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 		tp[fmt.Sprintf("TimerTemplate%s", upperName(t.Name))] = ou.Url
 	}
 
-	// m.Services[i].Scale.Count.Min is mutated if service autoscaling is used
 	data, err := formationTemplate("app", tp)
 	if err != nil {
 		return err

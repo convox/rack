@@ -260,23 +260,5 @@ func (p *Provider) ServiceUpdate(app, name string, opts structs.ServiceUpdateOpt
 		return err
 	}
 
-	if opts.Count != nil {
-		sarn, err := p.serviceArn(app, name)
-		if err != nil {
-			return err
-		}
-
-		if sarn != "" {
-			_, err := p.ecs().UpdateService(&ecs.UpdateServiceInput{
-				Cluster:      aws.String(p.Cluster),
-				Service:      aws.String(sarn),
-				DesiredCount: aws.Int64(int64(*opts.Count)),
-			})
-			if err != nil {
-				return err
-			}
-		}
-	}
-
 	return nil
 }
