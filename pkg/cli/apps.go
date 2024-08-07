@@ -412,7 +412,7 @@ func appExport(rack sdk.Interface, c *stdcli.Context, app string, w io.Writer) e
 	}
 
 	// Remove app unique parameters before exporting app
-	uniqueParams := []string{"Rack","LogBucket","ResourcePassword"}
+	uniqueParams := []string{"Rack","LogBucket","ResourcePassword","ParamPassword"}
 
 	for _,param := range uniqueParams{
 		delete(a.Parameters, param);
@@ -587,6 +587,7 @@ func appImport(rack sdk.Interface, c *stdcli.Context, app string, r io.Reader) e
 		for k, v := range a.Parameters {
 			if v != ae.Parameters[k] {
 				change = true
+				break
 			}
 		}
 
