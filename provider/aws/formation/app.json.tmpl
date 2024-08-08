@@ -85,6 +85,11 @@
       "Type": "String",
       "Default": ""
     },
+    "IgnoreManualScaleCount": {
+      "Type": "String",
+      "Default": "No",
+      "AllowedValues": [ "Yes", "No" ]
+    },
     "InternalDomains": {
       "Type": "String",
       "Default": "Yes",
@@ -389,6 +394,7 @@
           "LogGroup": { "Fn::If": [ "EnableCloudWatch", { "Ref": "LogGroup" }, { "Ref": "AWS::NoValue" } ] },
           "InternalDomains": { "Ref": "InternalDomains" },
           "Isolate": { "Fn::If": [ "IsolateServices", "Yes", "No" ] },
+          "IgnoreManualScaleCount": { "Ref": "IgnoreManualScaleCount" },
           "Memory": { "Fn::Select": [ 2, { "Ref": "{{ upper .Name }}Formation" } ] },
           "Policies": "{{ join .Policies "," }}",
           "Private": { "Ref": "Private" },
