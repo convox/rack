@@ -17,6 +17,7 @@
       "Private": { "Fn::Equals": [ { "Ref": "Private" }, "Yes" ] },
       "RackUrl": { "Fn::Equals": [ { "Ref": "RackUrl" }, "Yes" ] },
       "EnableContainerReadonlyRootFilesystem": { "Fn::Equals": [ { "Ref": "EnableContainerReadonlyRootFilesystem" }, "Yes" ] },
+      "EnableIgnoreManualScaleCount": { "Fn::Equals": [ { "Ref": "IgnoreManualScaleCount" }, "Yes" ] },
       "RouteHttp": { "Fn::Equals": [ { "Ref": "RedirectHttps" }, "No" ] },
       "TaskTags": { "Fn::Equals": [ { "Ref": "TaskTags" }, "Yes" ] }
     },
@@ -73,6 +74,11 @@
         "Type": "String",
         "Default": "No",
         "AllowedValues": [ "Yes", "Spot", "No" ]
+      },
+      "IgnoreManualScaleCount": {
+        "Type": "String",
+        "Default": "No",
+        "AllowedValues": [ "Yes", "No" ]
       },
       "InternalDomains": {
         "Type": "String",
@@ -217,7 +223,7 @@
         "Properties": {
           "ServiceToken": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:CustomTopic" } },
           "X": "{{.Scale.Count.Min}}",
-          "Y": { "Ref": "Count" }
+          "Y": { "Fn::If": [ "EnableIgnoreManualScaleCount", "{{.Scale.Count.Min}}", { "Ref": "Count" } ] }
         }
       },
       "MaxCount": {
@@ -225,7 +231,7 @@
         "Properties": {
           "ServiceToken": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:CustomTopic" } },
           "X": "{{.Scale.Count.Max}}",
-          "Y": { "Ref": "Count" }
+          "Y": { "Fn::If": [ "EnableIgnoreManualScaleCount", "{{.Scale.Count.Max}}", { "Ref": "Count" } ] }
         }
       },
       "AutoscalingRole": {
@@ -584,7 +590,7 @@
           {{ if .Agent.Enabled }}
             "SchedulingStrategy": "DAEMON",
           {{ else }}
-            "DesiredCount": { "Ref": "Count" },
+            "DesiredCount": { "Fn::If": [ "EnableIgnoreManualScaleCount", { "Ref": "AWS::NoValue" }, { "Ref": "Count" } ] },
             "SchedulingStrategy": "REPLICA",
             "PlacementStrategies": { "Fn::If": [ "FargateEither",
               { "Ref": "AWS::NoValue" },
