@@ -1123,7 +1123,12 @@ func (p *Provider) generateTaskDefinition2(app, service string, opts structs.Pro
 					return nil, err
 				}
 
-				senv[fmt.Sprintf("%s_URL", strings.Replace(strings.ToUpper(r), "-", "_", -1))] = stackOutputs(rs)["Url"]
+				ResourceEnvVariables := map[string]string{"URL":"Url","NAME":"Name","HOST":"Host","PASS":"Pass","PORT":"Port","USER":"User"}
+				ResourceName := strings.Replace(strings.ToUpper(r), "-", "_", -1)
+
+				for k,v := range ResourceEnvVariables{
+					senv[fmt.Sprintf("%s_%s", ResourceName, k)] = stackOutputs(rs)[v]
+				}
 			}
 		}
 	}
