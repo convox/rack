@@ -631,6 +631,7 @@ func (p *Provider) Sync(name string) error {
 
 func (p *Provider) SystemUpdate(opts structs.SystemUpdateOptions) error {
 	changes := map[string]string{}
+	hasOtherChange := false
 
 	// carry forward values from original custom topic resources
 	params := map[string]string{
@@ -646,21 +647,25 @@ func (p *Provider) SystemUpdate(opts structs.SystemUpdateOptions) error {
 		for k, v := range opts.Parameters {
 			params[k] = v
 		}
+		hasOtherChange = true
 	}
 
 	if v, has := params["WhiteList"]; has {
 		p.WhiteListSpecified = len(v) > 0
 		p.SyncInstancesIpInSecurityGroup()
+		hasOtherChange = true
 	}
 
 	if opts.Count != nil {
 		params["InstanceCount"] = strconv.Itoa(*opts.Count)
 		changes["count"] = strconv.Itoa(*opts.Count)
+		hasOtherChange = true
 	}
 
 	if opts.Type != nil {
 		params["InstanceType"] = *opts.Type
 		changes["type"] = *opts.Type
+		hasOtherChange = true
 	}
 
 	var template []byte
@@ -695,6 +700,17 @@ func (p *Provider) SystemUpdate(opts structs.SystemUpdateOptions) error {
 
 	// if there is a version update then record it
 	if v, ok := changes["version"]; ok {
+		if !hasOtherChange {
+			rDetails, err := p.SystemGet()
+			if err != nil {
+				return err
+			}
+
+			// check rack already in that version or not
+			if rDetails.Version == v {
+				return nil
+			}
+		}
 		_, err := p.dynamodb().PutItem(&dynamodb.PutItemInput{
 			Item: map[string]*dynamodb.AttributeValue{
 				"id":      {S: aws.String(v)},
