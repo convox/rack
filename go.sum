@@ -57,6 +57,8 @@ github.com/convox/stdcli v0.0.0-20230203181735-23ed17b69b51 h1:03Yia3LZwsHUovVEP
 github.com/convox/stdcli v0.0.0-20230203181735-23ed17b69b51/go.mod h1:kLknwv4KTN9f9fZ2DDvG/L9ndXkcijaexIZ0enACvSc=
 github.com/convox/stdsdk v0.0.0-20190422120437-3e80a397e377 h1:PuSJ72MD0mYsMCTvTQ1YydIbQUWtEykNHyweI/vA0PY=
 github.com/convox/stdsdk v0.0.0-20190422120437-3e80a397e377/go.mod h1:y1vtmkDKBkWSQ6e2gPXAyz1NCuWZ2x3vrP/SFeDDNco=
+github.com/convox/stdsdk v0.0.2 h1:WPJ697SzzawzUBz5hW8i9VbWqwN9DM7aSfusb9USCi8=
+github.com/convox/stdsdk v0.0.2/go.mod h1:y1vtmkDKBkWSQ6e2gPXAyz1NCuWZ2x3vrP/SFeDDNco=
 github.com/convox/version v0.0.0-20160822184233-ffefa0d565d2 h1:tdp/1KHBnbne0yT1yuKnAdOTBHRue9yQ4oON8rzGgZc=
 github.com/convox/version v0.0.0-20160822184233-ffefa0d565d2/go.mod h1:s8HHEf4LLsmPppeubX/A5bz1JpLYkDXbu+ciuYMTk8A=
 github.com/coreos/bbolt v1.3.2/go.mod h1:iRUV2dpdMOn7Bo10OQBFzIJO9kkE559Wcmn+qkEiiKk=
