@@ -138,7 +138,7 @@ github.com/convox/stdapi
 # github.com/convox/stdcli v0.0.0-20230203181735-23ed17b69b51
 ## explicit; go 1.13
 github.com/convox/stdcli
-# github.com/convox/stdsdk v0.0.0-20190422120437-3e80a397e377
+# github.com/convox/stdsdk v0.0.2
 ## explicit
 github.com/convox/stdsdk
 # github.com/convox/version v0.0.0-20160822184233-ffefa0d565d2
