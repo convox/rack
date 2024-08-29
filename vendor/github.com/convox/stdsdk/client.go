@@ -179,9 +179,7 @@ func (c *Client) Delete(path string, opts RequestOptions, out interface{}) error
 }
 
 func (c *Client) Websocket(path string, opts RequestOptions) (io.ReadCloser, error) {
-	var u url.URL
-
-	u = *c.Endpoint
+	u := *c.Endpoint
 
 	u.Scheme = "wss"
 
@@ -218,64 +216,13 @@ func (c *Client) Websocket(path string, opts RequestOptions) (io.ReadCloser, err
 
 	h.Set("Content-Type", ct)
 
-	go copyToWebsocket(c.ctx, ws, or)
-	go copyFromWebsocket(c.ctx, w, ws)
+	adapterWs := NewAdapterWs(ws)
+
+	go copyToWS(c.ctx, adapterWs, or)
+	go copyFromWS(c.ctx, adapterWs, w)
+	go WsKeepAlivePing(c.ctx, adapterWs)
 
 	return r, nil
-}
-
-func copyToWebsocket(ctx context.Context, ws *websocket.Conn, r io.Reader) {
-	if r == nil {
-		return
-	}
-
-	// used as eof
-	defer ws.WriteMessage(websocket.BinaryMessage, []byte{})
-
-	buf := make([]byte, 1024)
-
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		default:
-			n, err := r.Read(buf)
-			switch err {
-			case io.EOF:
-				return
-			case nil:
-				ws.WriteMessage(websocket.TextMessage, buf[0:n])
-			default:
-				return
-			}
-		}
-	}
-}
-
-func copyFromWebsocket(ctx context.Context, w io.WriteCloser, ws *websocket.Conn) {
-	defer w.Close()
-
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		default:
-			code, data, err := ws.ReadMessage()
-			switch err {
-			case io.EOF:
-				return
-			case nil:
-				switch code {
-				case websocket.TextMessage:
-					w.Write(data)
-				case websocket.BinaryMessage: // interpreted as eof
-					return
-				}
-			default:
-				return
-			}
-		}
-	}
 }
 
 func (c *Client) Request(method, path string, opts RequestOptions) (*http.Request, error) {
