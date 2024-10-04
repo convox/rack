@@ -872,7 +872,7 @@ func (p *Provider) resolveLinks(a *structs.App, m *manifest1.Manifest, r *struct
 		}
 
 		entry.Exports = make(map[string]string)
-		linkableEnvs := make([]string, len(entry.Environment))
+		linkableEnvs := make([]string, 0, len(entry.Environment))
 		for _, env := range entry.Environment {
 			linkableEnvs = append(linkableEnvs, fmt.Sprintf("%s=%s", env.Name, env.Value))
 		}
