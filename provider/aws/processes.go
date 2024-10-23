@@ -1092,7 +1092,7 @@ func (p *Provider) generateTaskDefinition2(app, service string, opts structs.Pro
 	}
 
 	aps := stackParameters(as)
-	// aos := stackOutputs(as)
+	aos := stackOutputs(as)
 
 	senv := s.EnvironmentDefaults()
 
@@ -1209,15 +1209,21 @@ func (p *Provider) generateTaskDefinition2(app, service string, opts structs.Pro
 	nestedStackName := describeStackOutput.Stacks[0].StackName
 
 	ts, err := p.stackResource(*nestedStackName, "DedicatedRole")
-	if err != nil {
+	if err != nil && !strings.Contains(err.Error(), "resource not found") {
 		return nil, err
+	}
+
+	var taskRoleArn *string
+	if ts != nil {
+		taskRoleArn = aws.String(fmt.Sprintf("convox/%s", *ts.PhysicalResourceId))
+	} else {
+		taskRoleArn = aws.String(aos["ServiceRole"])
 	}
 
 	req := &ecs.RegisterTaskDefinitionInput{
 		ContainerDefinitions: []*ecs.ContainerDefinition{cd},
 		Family:               aws.String(fmt.Sprintf("%s-%s-%s", p.Rack, app, service)),
-		// TaskRoleArn:          aws.String(aos["ServiceRole"]),
-		TaskRoleArn: aws.String(*ts.PhysicalResourceId),
+		TaskRoleArn:          taskRoleArn,
 		Volumes:              vs,
 	}
 
