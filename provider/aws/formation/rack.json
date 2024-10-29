@@ -787,6 +787,11 @@
       "Default": "default",
       "AllowedValues": ["default", "always", "once", "prefer-cached"]
     },
+    "EcsContainerStopTimeout": {
+      "Type": "String",
+      "Description": "The behavior used to customize the timeout on when a container is forcibly stopped by sending a SIGTERM signal to the container. See ECS_CONTAINER_STOP_TIMEOUT https://docs.aws.amazon.com/AmazonECS/latest/developerguide/ecs-agent-config.html",
+      "Default": "10m"
+    },
     "IMDSHttpTokens": {
       "Type": "String",
       "Description": "You can set EC2 instances to use only v2 by setting IMDSHttpTokens as 'required', see https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/configuring-instance-metadata-options.html#configuring-IMDS-new-instances",
@@ -1923,6 +1928,7 @@
               ] },
               "  - echo ECS_CLUSTER=", { "Ref": "BuildCluster" }, " >> /etc/ecs/ecs.config\n",
               "  - echo ECS_IMAGE_PULL_BEHAVIOR=", { "Ref": "ImagePullBehavior" }, " >> /etc/ecs/ecs.config\n",
+              "  - echo ECS_CONTAINER_STOP_TIMEOUT=", { "Ref": "EcsContainerStopTimeout" }, " >> /etc/ecs/ecs.config\n",
               "  - echo ECS_ENGINE_AUTH_TYPE=docker >> /etc/ecs/ecs.config\n",
               "  - echo 'ECS_INSTANCE_ATTRIBUTES={\"asg\":\"build\"}' >> /etc/ecs/ecs.config\n",
               "  - echo HTTP_PROXY=", { "Ref": "HttpProxy" }, " >> /etc/ecs/ecs.config\n",
@@ -2165,6 +2171,7 @@
               ] },
               "  - [ cloud-init-per, instance, docker_storage_setup, /usr/bin/docker-storage-setup ]\n",
               "  - echo ECS_CLUSTER=", { "Ref": "Cluster" }, " >> /etc/ecs/ecs.config\n",
+              "  - echo ECS_CONTAINER_STOP_TIMEOUT=", { "Ref": "EcsContainerStopTimeout" }, " >> /etc/ecs/ecs.config\n",
               "  - echo ECS_ENABLE_CONTAINER_METADATA=true >> /etc/ecs/ecs.config\n",
               "  - echo ECS_ENGINE_AUTH_TYPE=docker >> /etc/ecs/ecs.config\n",
               "  - echo 'ECS_INSTANCE_ATTRIBUTES={\"asg\":\"primary\"}' >> /etc/ecs/ecs.config\n",
@@ -2724,6 +2731,7 @@
               ] },
               "  - [ cloud-init-per, instance, docker_storage_setup, /usr/bin/docker-storage-setup ]\n",
               "  - echo ECS_CLUSTER=", { "Ref": "Cluster" }, " >> /etc/ecs/ecs.config\n",
+              "  - echo ECS_CONTAINER_STOP_TIMEOUT=", { "Ref": "EcsContainerStopTimeout" }, " >> /etc/ecs/ecs.config\n",
               "  - echo ECS_ENABLE_CONTAINER_METADATA=true >> /etc/ecs/ecs.config\n",
               "  - echo ECS_ENABLE_SPOT_INSTANCE_DRAINING=true >> /etc/ecs/ecs.config\n",
               "  - echo ECS_ENGINE_AUTH_TYPE=docker >> /etc/ecs/ecs.config\n",
@@ -3080,6 +3088,7 @@
               ] },
               "  - [ cloud-init-per, instance, docker_storage_setup, /usr/bin/docker-storage-setup ]\n",
               "  - echo ECS_CLUSTER=", { "Ref": "Cluster" }, " >> /etc/ecs/ecs.config\n",
+              "  - echo ECS_CONTAINER_STOP_TIMEOUT=", { "Ref": "EcsContainerStopTimeout" }, " >> /etc/ecs/ecs.config\n",
               "  - echo ECS_ENABLE_CONTAINER_METADATA=true >> /etc/ecs/ecs.config\n",
               "  - echo ECS_ENABLE_SPOT_INSTANCE_DRAINING=true >> /etc/ecs/ecs.config\n",
               "  - echo ECS_ENGINE_AUTH_TYPE=docker >> /etc/ecs/ecs.config\n",
