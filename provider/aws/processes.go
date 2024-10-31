@@ -13,6 +13,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/ecs"
@@ -1123,10 +1124,10 @@ func (p *Provider) generateTaskDefinition2(app, service string, opts structs.Pro
 					return nil, err
 				}
 
-				ResourceEnvVariables := map[string]string{"URL":"Url","NAME":"Name","HOST":"Host","PASS":"Pass","PORT":"Port","USER":"User"}
+				ResourceEnvVariables := map[string]string{"URL": "Url", "NAME": "Name", "HOST": "Host", "PASS": "Pass", "PORT": "Port", "USER": "User"}
 				ResourceName := strings.Replace(strings.ToUpper(r), "-", "_", -1)
 
-				for k,v := range ResourceEnvVariables{
+				for k, v := range ResourceEnvVariables {
 					senv[fmt.Sprintf("%s_%s", ResourceName, k)] = stackOutputs(rs)[v]
 				}
 			}
@@ -1191,10 +1192,38 @@ func (p *Provider) generateTaskDefinition2(app, service string, opts structs.Pro
 		}
 	}
 
+	td, err := p.stackResource(fmt.Sprintf("%s-%s", p.Rack, app), "ServiceWeb")
+	if err != nil {
+		return nil, err
+	}
+
+	nestedStackID := td.PhysicalResourceId
+
+	describeStackOutput, err := p.cloudformation().DescribeStacks(&cloudformation.DescribeStacksInput{
+		StackName: nestedStackID,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	nestedStackName := describeStackOutput.Stacks[0].StackName
+
+	ts, err := p.stackResource(*nestedStackName, "DedicatedRole")
+	if err != nil && !strings.Contains(err.Error(), "resource not found") {
+		return nil, err
+	}
+
+	var taskRoleArn *string
+	if ts != nil {
+		taskRoleArn = aws.String(fmt.Sprintf("convox/%s", *ts.PhysicalResourceId))
+	} else {
+		taskRoleArn = aws.String(aos["ServiceRole"])
+	}
+
 	req := &ecs.RegisterTaskDefinitionInput{
 		ContainerDefinitions: []*ecs.ContainerDefinition{cd},
 		Family:               aws.String(fmt.Sprintf("%s-%s-%s", p.Rack, app, service)),
-		TaskRoleArn:          aws.String(aos["ServiceRole"]),
+		TaskRoleArn:          taskRoleArn,
 		Volumes:              vs,
 	}
 
