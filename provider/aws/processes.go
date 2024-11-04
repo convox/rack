@@ -1192,7 +1192,7 @@ func (p *Provider) generateTaskDefinition2(app, service string, opts structs.Pro
 		}
 	}
 
-	td, err := p.stackResource(fmt.Sprintf("%s-%s", p.Rack, app), "ServiceWeb")
+	td, err := p.stackResource(fmt.Sprintf("%s-%s", p.Rack, app), fmt.Sprintf("Service%s", upperName(service)))
 	if err != nil {
 		return nil, err
 	}
