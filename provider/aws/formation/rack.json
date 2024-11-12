@@ -790,7 +790,8 @@
     },
     "EcsContainerStopTimeout": {
       "Type": "String",
-      "Description": "The behavior used to customize the timeout on when a container is forcibly stopped by sending a SIGTERM signal to the container. See ECS_CONTAINER_STOP_TIMEOUT https://docs.aws.amazon.com/AmazonECS/latest/developerguide/ecs-agent-config.html"
+      "Description": "The behavior used to customize the timeout on when a container is forcibly stopped by sending a SIGTERM signal to the container. See ECS_CONTAINER_STOP_TIMEOUT https://docs.aws.amazon.com/AmazonECS/latest/developerguide/ecs-agent-config.html",
+      "Default": ""
     },
     "IMDSHttpTokens": {
       "Type": "String",
