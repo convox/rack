@@ -47,7 +47,7 @@ func (p *Provider) spotReplace() error {
 
 	// only modify spot instances when running or converging
 	switch system.Status {
-	case "running", "converging", "rollback":
+	case "running", "converging":
 	default:
 		return nil
 	}
@@ -86,6 +86,9 @@ func (p *Provider) spotReplace() error {
 	log.Logf("instanceCount=%d onDemandMin=%d onDemandCount=%d spotCount=%d spotCountRunning=%d", ic, odmin, odc, spc, spcr)
 
 	spotDesired := ic - odmin
+	if spotDesired <= 0 {
+		return nil
+	}
 
 	if spc != spotDesired {
 		log.Logf("stack=SpotInstances setDesiredCount=%d", spotDesired)
