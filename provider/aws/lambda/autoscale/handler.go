@@ -92,12 +92,10 @@ func autoscale(desired int64) error {
 		switch *p.ParameterKey {
 		case SCHEDULE_RACK_SCALE_DOWN_PARAM:
 			if p.ParameterValue != nil && len(*p.ParameterValue) > 0 {
-				debug("param %s value = %+v\n", *p.ParameterKey, *p.ParameterValue)
 				scaleDownExpr = *p.ParameterValue
 			}
 		case SCHEDULE_RACK_SCALE_UP_PARAM:
 			if p.ParameterValue != nil && len(*p.ParameterValue) > 0 {
-				debug("param %s value = %+v\n", *p.ParameterKey, *p.ParameterValue)
 				scaleUpExpr = *p.ParameterValue
 			}
 		}
@@ -118,9 +116,6 @@ func autoscale(desired int64) error {
 	for _, p := range res.Stacks[0].Parameters {
 		switch *p.ParameterKey {
 		case icParam:
-			debug("param %s key = %+v\n", icParam, *p.ParameterKey)
-			debug("param %s value = %+v\n", icParam, *p.ParameterValue)
-
 			if ds == *p.ParameterValue {
 				fmt.Println("no change")
 				return nil
@@ -160,9 +155,6 @@ func clusterMetrics() (*Metrics, *Metrics, error) {
 		if err != nil {
 			return nil, nil, err
 		}
-
-		debug("ListServices page: %d\n", len(res.ServiceArns))
-
 		dres, err := ECS.DescribeServices(&ecs.DescribeServicesInput{
 			Cluster:  aws.String(os.Getenv("CLUSTER")),
 			Services: res.ServiceArns,
@@ -172,7 +164,6 @@ func clusterMetrics() (*Metrics, *Metrics, error) {
 		}
 
 		for _, s := range dres.Services {
-			debug("*s.ServiceName = %+v\n", *s.ServiceName)
 
 			for _, d := range s.Deployments {
 				res, err := ECS.DescribeTaskDefinition(&ecs.DescribeTaskDefinitionInput{
@@ -201,7 +192,6 @@ func clusterMetrics() (*Metrics, *Metrics, error) {
 						}
 
 						debug("agent = %+v\n", agent)
-						debug("len(cd.PortMappings) = %+v\n", len(cd.PortMappings))
 						debug("*s.DesiredCount = %+v\n", *s.DesiredCount)
 
 						if len(cd.PortMappings) > 0 && !agent {
@@ -267,8 +257,6 @@ func desiredCapacity(largest, total *Metrics) (int64, error) {
 		if err != nil {
 			return 0, err
 		}
-
-		debug("ListContainerInstances page: %d\n", len(res.ContainerInstanceArns))
 
 		totalCount += int64(len(res.ContainerInstanceArns))
 		if totalCount < 1 {
