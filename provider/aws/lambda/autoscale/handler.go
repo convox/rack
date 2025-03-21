@@ -413,7 +413,7 @@ func main() {
 		&aws.Config{
 			Region:     aws.String(os.Getenv("REGION")),
 			MaxRetries: aws.Int(MAX_RETRY),
-			LogLevel:   aws.LogLevel(aws.LogDebugWithRequestRetries),
+			LogLevel:   aws.LogLevel(aws.LogOff),
 			Retryer: client.DefaultRetryer{
 				NumMaxRetries:    MAX_RETRY,
 				MinRetryDelay:    1 * time.Second,
