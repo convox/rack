@@ -128,7 +128,7 @@ func (s Service) EnvironmentDefaults() map[string]string {
 	defaults := map[string]string{}
 
 	for _, e := range s.Environment {
-		switch parts := strings.Split(e, "="); len(parts) {
+		switch parts := strings.SplitN(e, "=", 2); len(parts) {
 		case 2:
 			defaults[parts[0]] = parts[1]
 		}
