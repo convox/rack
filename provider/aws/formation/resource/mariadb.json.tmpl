@@ -99,7 +99,13 @@
         "SecurityGroupIngress": [
           { "IpProtocol": "tcp", "FromPort": "3306", "ToPort": "3306", "CidrIp": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:VpcCidr" } } }
         ],
-        "VpcId": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Vpc" } }
+        "VpcId": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Vpc" } },
+        "Tags": [
+          {{ range $key, $value := .Tags }}
+          { "Key": "{{ $key }}", "Value": "{{ $value }}" },
+          {{ end }}
+          { "Key": "Name", "Value": "{{.Name}}" }
+        ]
       }
     },
     "SubnetGroup": {
@@ -109,6 +115,12 @@
         "SubnetIds": [
           { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Subnet0" } },
           { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Subnet1" } }
+        ],
+        "Tags": [
+          {{ range $key, $value := .Tags }}
+          { "Key": "{{ $key }}", "Value": "{{ $value }}" },
+          {{ end }}
+          { "Key": "Name", "Value": "{{.Name}}" }
         ]
       }
     },
@@ -145,7 +157,13 @@
         "StorageEncrypted": { "Fn::If": [ "NotBlankSnapshot", { "Ref": "AWS::NoValue" }, { "Ref": "Encrypted" } ] },
         "StorageType": { "Fn::If": [ "BlankIops", "gp2", "io2" ] },
         "SourceDBInstanceIdentifier": { "Fn::If": [ "IsReadReplica", { "Ref": "ReadSourceDB" }, { "Ref": "AWS::NoValue" } ] },
-        "VPCSecurityGroups": [ { "Ref": "SecurityGroup" } ]
+        "VPCSecurityGroups": [ { "Ref": "SecurityGroup" } ],
+        "Tags": [
+          {{ range $key, $value := .Tags }}
+          { "Key": "{{ $key }}", "Value": "{{ $value }}" },
+          {{ end }}
+          { "Key": "Name", "Value": "{{.Name}}" }
+        ]
       }
     }
   }
