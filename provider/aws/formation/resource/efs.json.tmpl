@@ -81,7 +81,13 @@
           "Path": {
             "Ref": "Path"
           }
-        }
+        },
+        "AccessPointTags": [
+          {{ range $key, $value := .Tags }}
+          { "Key": "{{ $key }}", "Value": "{{ $value }}" },
+          {{ end }}
+          { "Key": "Name", "Value": "{{.Name}}" }
+        ]
       }
     },
     "EncryptionKey": {
@@ -109,7 +115,13 @@
             }
           ]
         },
-        "PendingWindowInDays": "7"
+        "PendingWindowInDays": "7",
+        "Tags": [
+          {{ range $key, $value := .Tags }}
+          { "Key": "{{ $key }}", "Value": "{{ $value }}" },
+          {{ end }}
+          { "Key": "Name", "Value": "{{.Name}}" }
+        ]
       }
     },
     "FileSystem": {
@@ -136,7 +148,13 @@
               "Ref": "AWS::NoValue"
             }
           ]
-        }
+        },
+        "Tags": [
+          {{ range $key, $value := .Tags }}
+          { "Key": "{{ $key }}", "Value": "{{ $value }}" },
+          {{ end }}
+          { "Key": "Name", "Value": "{{.Name}}" }
+        ]
       }
     },
     "MountTargetSecurityGroup": {
@@ -161,6 +179,12 @@
               }
             }
           }
+        ],
+        "Tags": [
+          {{ range $key, $value := .Tags }}
+          { "Key": "{{ $key }}", "Value": "{{ $value }}" },
+          {{ end }}
+          { "Key": "Name", "Value": "{{.Name}}" }
         ]
       }
     },

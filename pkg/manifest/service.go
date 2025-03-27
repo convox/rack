@@ -29,6 +29,7 @@ type Service struct {
 	Scale       ServiceScale       `yaml:"scale,omitempty"`
 	Singleton   bool               `yaml:"singleton,omitempty"`
 	Sticky      bool               `yaml:"sticky,omitempty"`
+	Tags        map[string]string  `yaml:"tags,omitempty"`
 	Termination ServiceTermination `yaml:"termination,omitempty"`
 	Test        string             `yaml:"test,omitempty"`
 	Volumes     []string           `yaml:"volumes,omitempty"`
