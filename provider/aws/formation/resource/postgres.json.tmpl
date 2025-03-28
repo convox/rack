@@ -25,7 +25,7 @@
     },
     "Class": {
       "Type": "String",
-      "Default": "db.t2.micro"
+      "Default": "db.t3.micro"
     },
     "DeletionProtection": {
       "Type": "String",
@@ -100,6 +100,12 @@
         "SecurityGroupIngress": [
           { "IpProtocol": "tcp", "FromPort": "5432", "ToPort": "5432", "CidrIp": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:VpcCidr" } } }
         ],
+        "Tags": [
+          {{ range $key, $value := .Tags }}
+          { "Key": "{{ $key }}", "Value": "{{ $value }}" },
+          {{ end }}
+          { "Key": "Name", "Value": "{{.Name}}" }
+        ],
         "VpcId": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Vpc" } }
       }
     },
@@ -110,6 +116,12 @@
         "SubnetIds": [
           { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Subnet0" } },
           { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Subnet1" } }
+        ],
+        "Tags": [
+          {{ range $key, $value := .Tags }}
+          { "Key": "{{ $key }}", "Value": "{{ $value }}" },
+          {{ end }}
+          { "Key": "Name", "Value": "{{.Name}}" }
         ]
       }
     },
@@ -151,6 +163,12 @@
         "StorageEncrypted": { "Fn::If": [ "NotBlankSnapshot", { "Ref": "AWS::NoValue" }, { "Ref": "Encrypted" } ] },
         "StorageType": { "Fn::If": [ "BlankIops", "gp2", "io2" ] },
         "SourceDBInstanceIdentifier": { "Fn::If": [ "IsReadReplica", { "Ref": "ReadSourceDB" }, { "Ref": "AWS::NoValue" } ] },
+        "Tags": [
+          {{ range $key, $value := .Tags }}
+          { "Key": "{{ $key }}", "Value": "{{ $value }}" },
+          {{ end }}
+          { "Key": "Name", "Value": "{{.Name}}" }
+        ],
         "VPCSecurityGroups": [ { "Ref": "SecurityGroup" } ]
       }
     }
