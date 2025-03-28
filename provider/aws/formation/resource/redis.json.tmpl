@@ -71,7 +71,13 @@
         "SecurityGroupIngress": [
           { "IpProtocol": "tcp", "FromPort": "6379", "ToPort": "6379", "CidrIp": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:VpcCidr" } } }
         ],
-        "VpcId": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Vpc" } }
+        "VpcId": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Vpc" } },
+        "Tags": [
+          {{ range $key, $value := .Tags }}
+          { "Key": "{{ $key }}", "Value": "{{ $value }}" },
+          {{ end }}
+          { "Key": "Name", "Value": "{{.Name}}" }
+        ]
       }
     },
     "SubnetGroup": {
@@ -81,6 +87,12 @@
         "SubnetIds": [
           { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Subnet0" } },
           { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Subnet1" } }
+        ],
+        "Tags": [
+          {{ range $key, $value := .Tags }}
+          { "Key": "{{ $key }}", "Value": "{{ $value }}" },
+          {{ end }}
+          { "Key": "Name", "Value": "{{.Name}}" }
         ]
       }
     },
@@ -105,7 +117,13 @@
         "Port": "6379",
         "ReplicationGroupDescription": { "Ref": "AWS::StackName" },
         "SecurityGroupIds": [ { "Ref": "SecurityGroup" } ],
-        "TransitEncryptionEnabled": { "Ref": "Encrypted" }
+        "TransitEncryptionEnabled": { "Ref": "Encrypted" },
+        "Tags": [
+          {{ range $key, $value := .Tags }}
+          { "Key": "{{ $key }}", "Value": "{{ $value }}" },
+          {{ end }}
+          { "Key": "Name", "Value": "{{.Name}}" }
+        ]
       }
     }
   }
