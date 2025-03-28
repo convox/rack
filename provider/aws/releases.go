@@ -270,7 +270,9 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 		}
 
 		rtp := map[string]interface{}{
+			"Name":                  r.Name,
 			"ThirdAvailabilityZone": hasThirdAZ,
+			"Tags":                  r.Tags,
 		}
 
 		var data []byte
@@ -371,6 +373,7 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 			"Password":       p.Password,
 			"Release":        tp["Release"],
 			"Service":        s,
+			"Tags":           s.Tags,
 			"WildcardDomain": tp["WildcardDomain"],
 		}
 
