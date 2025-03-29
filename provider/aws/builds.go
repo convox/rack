@@ -864,11 +864,44 @@ func (p *Provider) runBuild(build *structs.Build, burl string, opts structs.Buil
 		}
 	}
 
+	snet0, err := p.stackResource(p.Rack, "Subnet0")
+	if err != nil {
+		log.Error(err)
+		return err
+	}
+
+	snet1, err := p.stackResource(p.Rack, "Subnet1")
+	if err != nil {
+		log.Error(err)
+		return err
+	}
+
+	subnets := []*string{
+		snet0.PhysicalResourceId,
+		snet1.PhysicalResourceId,
+	}
+
+	stackFargateBuild, err := p.stackParameter(p.Rack, "FargateBuild")
+	if err != nil {
+		return err
+	}
+
+	launchType := aws.String("EC2")
+	nc := &ecs.NetworkConfiguration{}
+	if stackFargateBuild == "Yes" {
+		launchType = aws.String("FARGATE")
+		nc.AwsvpcConfiguration = &ecs.AwsVpcConfiguration{
+			Subnets: subnets,
+		}
+	}
+
 	req := &ecs.RunTaskInput{
-		Cluster:        aws.String(p.BuildCluster),
-		Count:          aws.Int64(1),
-		StartedBy:      aws.String(fmt.Sprintf("convox.%s", build.App)),
-		TaskDefinition: aws.String(td),
+		Cluster:              aws.String(p.BuildCluster),
+		Count:                aws.Int64(1),
+		StartedBy:            aws.String(fmt.Sprintf("convox.%s", build.App)),
+		TaskDefinition:       aws.String(td),
+		LaunchType:           launchType,
+		NetworkConfiguration: nc,
 		Overrides: &ecs.TaskOverride{
 			ContainerOverrides: []*ecs.ContainerOverride{
 				{
