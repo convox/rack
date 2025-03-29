@@ -790,6 +790,75 @@ func (p *Provider) authECR(host, access, secret string) (string, string, error) 
 	return parts[0], parts[1], nil
 }
 
+// Helper function to prepare launch configuration
+func (p *Provider) prepareLaunchConfiguration() (*string, *ecs.NetworkConfiguration, error) {
+	stackFargateBuild, err := p.stackParameter(p.Rack, "FargateBuild")
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if stackFargateBuild != "Yes" {
+		return aws.String("EC2"), nil, nil
+	}
+
+	// Fetch subnets and security groups
+	subnets, err := p.fetchSubnets()
+	if err != nil {
+		return nil, nil, err
+	}
+	secGroups, err := p.fetchSecurityGroups()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// Configure Fargate-specific network settings
+	nc := &ecs.NetworkConfiguration{
+		AwsvpcConfiguration: &ecs.AwsVpcConfiguration{
+			Subnets:        subnets,
+			SecurityGroups: secGroups,
+		},
+	}
+
+	return aws.String("FARGATE"), nc, nil
+}
+
+// Helper function to fetch subnets
+func (p *Provider) fetchSubnets() ([]*string, error) {
+	subnets := []*string{}
+	for _, subnet := range []string{"Subnet0", "Subnet1", "SubnetPrivate0", "SubnetPrivate1"} {
+		res, _ := p.stackResource(p.Rack, subnet)
+		if res != nil && res.PhysicalResourceId != nil {
+			subnets = append(subnets, res.PhysicalResourceId)
+		}
+	}
+
+	if len(subnets) == 0 {
+		return nil, fmt.Errorf("no subnets found for Fargate")
+	}
+
+	return subnets, nil
+}
+
+// Helper function to fetch security groups
+func (p *Provider) fetchSecurityGroups() ([]*string, error) {
+	biSecGroup, _ := p.stackParameter(p.Rack, "BuildInstanceSecurityGroup")
+	if biSecGroup != "" {
+		return []*string{aws.String(biSecGroup)}, nil
+	}
+
+	iSecGroup, _ := p.stackParameter(p.Rack, "InstanceSecurityGroup")
+	if iSecGroup != "" {
+		return []*string{aws.String(iSecGroup)}, nil
+	}
+
+	is, _ := p.stackResource(p.Rack, "InstancesSecurity")
+	if is != nil && is.PhysicalResourceId != nil {
+		return []*string{is.PhysicalResourceId}, nil
+	}
+
+	return nil, fmt.Errorf("no security groups found for Fargate")
+}
+
 func (p *Provider) runBuild(build *structs.Build, burl string, opts structs.BuildCreateOptions) error {
 	log := Logger.At("runBuild").Namespace("url=%q", burl).Start()
 
@@ -864,11 +933,19 @@ func (p *Provider) runBuild(build *structs.Build, burl string, opts structs.Buil
 		}
 	}
 
+	// Determine launch type and network configuration
+	launchType, nc, err := p.prepareLaunchConfiguration()
+	if err != nil {
+		Logger.Error(err)
+		return err
+	}
+
 	req := &ecs.RunTaskInput{
 		Cluster:        aws.String(p.BuildCluster),
 		Count:          aws.Int64(1),
 		StartedBy:      aws.String(fmt.Sprintf("convox.%s", build.App)),
 		TaskDefinition: aws.String(td),
+		LaunchType:     launchType,
 		Overrides: &ecs.TaskOverride{
 			ContainerOverrides: []*ecs.ContainerOverride{
 				{
@@ -927,6 +1004,9 @@ func (p *Provider) runBuild(build *structs.Build, burl string, opts structs.Buil
 				},
 			},
 		},
+	}
+	if nc.AwsvpcConfiguration != nil {
+		req.NetworkConfiguration = nc
 	}
 
 	task, err := p.runTask(req)
