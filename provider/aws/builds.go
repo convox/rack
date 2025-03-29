@@ -864,11 +864,73 @@ func (p *Provider) runBuild(build *structs.Build, burl string, opts structs.Buil
 		}
 	}
 
+	stackFargateBuild, err := p.stackParameter(p.Rack, "FargateBuild")
+	if err != nil {
+		return err
+	}
+
+	launchType := aws.String("EC2")
+	nc := &ecs.NetworkConfiguration{}
+	if stackFargateBuild == "Yes" {
+		secGroups, subnets := []*string{}, []*string{}
+		snet0, err := p.stackResource(p.Rack, "Subnet0")
+		if err != nil {
+			log.Error(err)
+			return err
+		}
+		if snet0 != nil && snet0.PhysicalResourceId != nil {
+			subnets = append(subnets, snet0.PhysicalResourceId)
+		}
+
+		snet1, err := p.stackResource(p.Rack, "Subnet1")
+		if err != nil {
+			log.Error(err)
+			return err
+		}
+		if snet1 != nil && snet1.PhysicalResourceId != nil {
+			subnets = append(subnets, snet1.PhysicalResourceId)
+		}
+
+		pnet0, err := p.stackResource(p.Rack, "SubnetPrivate0")
+		if err != nil {
+			log.Error(err)
+			return err
+		}
+		if pnet0 != nil && pnet0.PhysicalResourceId != nil {
+			subnets = append(subnets, pnet0.PhysicalResourceId)
+		}
+
+		pnet1, err := p.stackResource(p.Rack, "SubnetPrivate1")
+		if err != nil {
+			log.Error(err)
+			return err
+		}
+		if pnet1 != nil && pnet1.PhysicalResourceId != nil {
+			subnets = append(subnets, pnet1.PhysicalResourceId)
+		}
+
+		biSecGroup, err := p.stackResource(p.Rack, "BuildInstanceSecurityGroup")
+		if err != nil {
+			log.Error(err)
+			return err
+		}
+		if biSecGroup != nil && biSecGroup.PhysicalResourceId != nil {
+			secGroups = append(secGroups, biSecGroup.PhysicalResourceId)
+		}
+
+		launchType = aws.String("FARGATE")
+		nc.AwsvpcConfiguration = &ecs.AwsVpcConfiguration{
+			Subnets:        subnets,
+			SecurityGroups: secGroups,
+		}
+	}
+
 	req := &ecs.RunTaskInput{
 		Cluster:        aws.String(p.BuildCluster),
 		Count:          aws.Int64(1),
 		StartedBy:      aws.String(fmt.Sprintf("convox.%s", build.App)),
 		TaskDefinition: aws.String(td),
+		LaunchType:     launchType,
 		Overrides: &ecs.TaskOverride{
 			ContainerOverrides: []*ecs.ContainerOverride{
 				{
@@ -927,6 +989,9 @@ func (p *Provider) runBuild(build *structs.Build, burl string, opts structs.Buil
 				},
 			},
 		},
+	}
+	if nc.AwsvpcConfiguration != nil {
+		req.NetworkConfiguration = nc
 	}
 
 	task, err := p.runTask(req)
