@@ -46,6 +46,17 @@
     "ExistingVpcAndInternetGateway": {
       "Fn::And": [ { "Condition": "ExistingVpc" }, { "Condition": "InternetGateway" } ]
     },
+    "BuildUsingFargate": {
+      "Fn::And": [
+        {
+          "Fn::Equals": [
+            { "Fn::FindInMap": [ "RegionConfig", { "Ref": "AWS::Region" }, "Fargate" ] },
+            "Yes"
+          ]
+        },
+        { "Fn::Equals": [ { "Ref": "FargateBuild" }, "Yes" ] }
+      ]
+    },
     "HighAvailability": { "Fn::Equals": [ { "Ref": "HighAvailability" }, "true" ] },
     "HttpProxy": { "Fn::Not": [ { "Fn::Equals": [ { "Ref": "HttpProxy" }, "" ] } ] },
     "InstanceARM": {
@@ -433,7 +444,7 @@
       "Value": { "Ref": "AWS::StackName" }
     },
     "RackDomain": {
-      "Value": { 
+      "Value": {
         "Fn::Join": [ ".", [
           "rack",
           { "Fn::Select": [ 0, { "Fn::Split": [ ".", { "Fn::GetAtt": [ "ApiBalancer", "DNSName" ] } ] } ] },
@@ -764,6 +775,12 @@
       "Description": "This will enable aws kms encryption on shared efs volume. Enabling this will remove exsiting data and recreate the efs volume.",
       "Default": "false",
       "AllowedValues": [ "true", "false" ]
+    },
+    "FargateBuild": {
+      "Type": "String",
+      "Description": "Use Fargate for build instances",
+      "Default": "No",
+      "AllowedValues": [ "Yes", "No" ]
     },
     "NoHaInstanceCount": {
       "Default": "1",
@@ -3000,7 +3017,7 @@
                 { "Key": "Name", "Value": { "Ref": "AWS::StackName" }},
                 { "Key": "Rack", "Value": { "Ref": "AWS::StackName" }},
                 { "Key": "GatewayAttachment", "Value": { "Fn::If": [ "ExistingVpc", "existing",{ "Ref": "GatewayAttachment"}]}},
-                { "Key": "NatGateways", "Value": { "Fn::If": 
+                { "Key": "NatGateways", "Value": { "Fn::If":
                   [  "PrivateInstances",
                       {
                         "Fn::Join": [
@@ -3262,7 +3279,7 @@
                 { "Key": "Name", "Value": { "Ref": "AWS::StackName" }},
                 { "Key": "Rack", "Value": { "Ref": "AWS::StackName" }},
                 { "Key": "GatewayAttachment", "Value": { "Fn::If": [ "ExistingVpc", "existing",{ "Ref": "GatewayAttachment"}]}},
-                { "Key": "NatGateways", "Value": { "Fn::If": 
+                { "Key": "NatGateways", "Value": { "Fn::If":
                   [  "PrivateInstances",
                       {
                         "Fn::Join": [
@@ -3968,7 +3985,7 @@
         "DeploymentConfiguration": { "MinimumHealthyPercent": { "Fn::If": [ "HighAvailability", "50", "0" ] }, "MaximumPercent": "200" },
         "DesiredCount": { "Fn::If": [ "HighAvailability", { "Ref": "ApiCount" }, 1 ] },
         "LoadBalancers": [ { "ContainerName": "web", "ContainerPort": "5443", "TargetGroupArn": { "Ref": "ApiBalancerTargetGroup" } }],
-        "PlacementConstraints": [ { "Fn::If": ["SpotFleet", { "Type": "memberOf", "Expression": "attribute:asg == primary" }, { "Ref": "AWS::NoValue" }] } ], 
+        "PlacementConstraints": [ { "Fn::If": ["SpotFleet", { "Type": "memberOf", "Expression": "attribute:asg == primary" }, { "Ref": "AWS::NoValue" }] } ],
         "Role": { "Fn::GetAtt": [ "ServiceRole", "Arn" ] },
         "TaskDefinition": { "Ref": "ApiWebTasks" }
       }
@@ -3976,9 +3993,14 @@
     "ApiBuildTasks": {
       "Type": "AWS::ECS::TaskDefinition",
       "Properties": {
+        "RequiresCompatibilities": [
+          { "Fn::If": [ "BuildUsingFargate", "FARGATE", "EC2" ] }
+        ],
+        "NetworkMode": { "Fn::If": [ "BuildUsingFargate", "awsvpc", "bridge" ] },
+        "Cpu": { "Ref": "BuildCpu" },
+        "Memory": { "Ref": "BuildMemory" },
         "ContainerDefinitions": [
           {
-            "Cpu": { "Ref": "BuildCpu" },
             "DockerLabels": {
               "convox.release": { "Ref": "Version" },
               "rack.ApiBalancerSecurity": { "Ref": "ApiBalancerSecurity" },
@@ -4079,14 +4101,19 @@
             "LinuxParameters": {
               "InitProcessEnabled": "true"
             },
-            "Memory": { "Ref": "BuildMemory" },
             "ReadonlyRootFilesystem": { "Fn::If": [ "EnableContainerReadonlyRootFilesystem", "true", "false" ] },
-            "MountPoints": [
-              { "SourceVolume": "config", "ContainerPath": "/etc/sysconfig/docker" },
-              { "SourceVolume": "docker", "ContainerPath": "/var/run/docker.sock" },
-              { "SourceVolume": "home", "ContainerPath": "/root/" },
-              { "SourceVolume": "temp", "ContainerPath": "/tmp/" }
-            ],
+            "MountPoints": {
+              "Fn::If": [
+                "BuildUsingFargate",
+                { "Ref": "AWS::NoValue" },
+                [
+                  { "SourceVolume": "config", "ContainerPath": "/etc/sysconfig/docker" },
+                  { "SourceVolume": "docker", "ContainerPath": "/var/run/docker.sock" },
+                  { "SourceVolume": "home", "ContainerPath": "/root/" },
+                  { "SourceVolume": "temp", "ContainerPath": "/tmp/" }
+                ]
+              ]
+            },
             "Name": "build",
             "Secrets": [{
               "Name": "PASSWORD",
@@ -4097,12 +4124,18 @@
         "ExecutionRoleArn": { "Fn::GetAtt": [ "ApiRole", "Arn" ] },
         "Family": { "Fn::Sub": "${AWS::StackName}-build" },
         "TaskRoleArn": { "Fn::GetAtt": [ "ApiRole", "Arn" ] },
-        "Volumes": [
-          { "Name": "config", "Host": { "SourcePath": "/etc/sysconfig/docker" } },
-          { "Name": "docker", "Host": { "SourcePath": "/var/run/docker.sock" } },
-          { "Name": "home" },
-          { "Name": "temp" }
-        ]
+        "Volumes": {
+          "Fn::If": [
+            "BuildUsingFargate",
+            { "Ref": "AWS::NoValue" },
+            [
+              { "Name": "config", "Host": { "SourcePath": "/etc/sysconfig/docker" } },
+              { "Name": "docker", "Host": { "SourcePath": "/var/run/docker.sock" } },
+              { "Name": "home" },
+              { "Name": "temp" }
+            ]
+          ]
+        }
       }
     },
     "ApiMonitorTasks": {
@@ -4515,7 +4548,7 @@
         "VersioningConfiguration": { "Status" : {"Ref": "EnableS3Versioning" } },
         "LifecycleConfiguration": { "Fn::If": [ "BlankLogRetention",
           { "Rules": [ { "NoncurrentVersionExpiration": { "NewerNoncurrentVersions" : 1, "NoncurrentDays" : 365 }, "Status": "Enabled" } ] },
-          { "Rules": [ 
+          { "Rules": [
             { "ExpirationInDays": { "Ref": "LogRetention" }, "Status": "Enabled" },
             { "NoncurrentVersionExpiration": { "NewerNoncurrentVersions" : 1, "NoncurrentDays" : 365 }, "Status": "Enabled" }
             ] }
