@@ -34,7 +34,7 @@ clean-package:
 	find . -name '*-packr.go' -delete
 
 compress: $(binaries) $(statics)
-	upx-ucl -1 $^
+	upx -1 $^
 
 dev:
 	test -n "$(RACK)" # RACK

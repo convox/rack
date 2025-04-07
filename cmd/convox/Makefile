@@ -21,7 +21,7 @@ package:
 
 	go install github.com/crazy-max/xgo@v0.7.5
 	if [ -f /.dockerenv ]; then tar cz $(GOPATH) | docker run -v $(GOPATH):/gopath -i ubuntu tar xz -C /gopath --strip-components 2; fi
-	cd ../.. && $(GOPATH)/bin/xgo -branch $(shell git rev-parse HEAD) -pkg cmd/convox -out cmd/convox/pkg/convox -go 1.18.x -targets 'darwin/amd64' -ldflags "-X main.version=$(VERSION)" .
+	cd ../.. && $(GOPATH)/bin/xgo -branch $(shell git rev-parse HEAD) -pkg cmd/convox -out cmd/convox/pkg/convox -go 1.23.x -targets 'darwin/amd64' -ldflags "-X main.version=$(VERSION)" .
 	if [ -f /.dockerenv ]; then mkdir -p pkg && docker run -v $(GOPATH):/gopath -i ubuntu tar czv /gopath/src/github.com/convox/rack/cmd/convox/pkg | tar xzv -C pkg --strip-components 8; fi
 
 release: package

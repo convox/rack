@@ -1,6 +1,6 @@
 ## test ########################################################################
 
-FROM golang:1.18 AS test
+FROM golang:1.23-bookworm AS test
 
 ARG DOCKER_ARCH=x86_64
 ARG KUBECTL_ARCH=amd64
@@ -48,9 +48,11 @@ CMD ["bin/web"]
 
 ## package #####################################################################
 
-FROM golang:1.18 AS package
+FROM golang:1.23-bookworm AS package
 
-RUN apt-get update && apt-get -y install upx-ucl
+RUN apt-get update && apt-get install -y software-properties-common && \
+    add-apt-repository contrib && add-apt-repository non-free && \
+    apt-get update && apt-get install -y upx
 
 WORKDIR /go/src/github.com/convox/rack
 
