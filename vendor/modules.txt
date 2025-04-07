@@ -14,9 +14,6 @@ github.com/PuerkitoBio/goquery
 # github.com/RackSec/srslog v0.0.0-20170920152354-4d2c753a4ee1
 ## explicit
 github.com/RackSec/srslog
-# github.com/Sirupsen/logrus v1.0.3
-## explicit
-github.com/Sirupsen/logrus
 # github.com/adhocore/gronx v1.6.5
 ## explicit; go 1.13
 github.com/adhocore/gronx
@@ -115,8 +112,8 @@ github.com/bearsh/hid/libusb/libusb/os
 # github.com/boltdb/bolt v1.3.1
 ## explicit
 github.com/boltdb/bolt
-# github.com/convox/changes v0.0.0-20190306122126-bce25ca20c47
-## explicit
+# github.com/convox/changes v0.0.0-20250404235107-ec2c7374fea5
+## explicit; go 1.23
 github.com/convox/changes
 # github.com/convox/exec v0.0.0-20180905012044-cc13d277f897
 ## explicit
@@ -147,7 +144,7 @@ github.com/convox/version
 # github.com/davecgh/go-spew v1.1.1
 ## explicit
 github.com/davecgh/go-spew/spew
-# github.com/docker/docker v1.13.1
+# github.com/docker/docker v1.4.2-0.20200323100002-91437e70a02d
 ## explicit
 github.com/docker/docker/builder/dockerignore
 github.com/docker/docker/pkg/archive
@@ -155,9 +152,13 @@ github.com/docker/docker/pkg/fileutils
 github.com/docker/docker/pkg/idtools
 github.com/docker/docker/pkg/ioutils
 github.com/docker/docker/pkg/longpath
+github.com/docker/docker/pkg/mount
 github.com/docker/docker/pkg/pools
 github.com/docker/docker/pkg/promise
 github.com/docker/docker/pkg/system
+# github.com/docker/engine v1.4.2-0.20190717161051-705d9623b7c1
+## explicit
+github.com/docker/engine/pkg/fileutils
 # github.com/docker/go-units v0.3.2
 ## explicit
 github.com/docker/go-units
@@ -345,9 +346,6 @@ github.com/karrick/godirwalk
 # github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
 ## explicit
 github.com/kballard/go-shellquote
-# github.com/konsorten/go-windows-terminal-sequences v1.0.3
-## explicit
-github.com/konsorten/go-windows-terminal-sequences
 # github.com/markbates/oncer v0.0.0-20181203154359-bf2de49a0be2
 ## explicit
 github.com/markbates/oncer
@@ -369,9 +367,6 @@ github.com/miekg/dns
 # github.com/mitchellh/go-homedir v1.1.0
 ## explicit
 github.com/mitchellh/go-homedir
-# github.com/moby/moby v1.13.1
-## explicit
-github.com/moby/moby/pkg/fileutils
 # github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd
 ## explicit
 github.com/modern-go/concurrent
@@ -388,7 +383,7 @@ github.com/opencontainers/runc/libcontainer/user
 # github.com/peterbourgon/diskv v2.0.1+incompatible
 ## explicit
 github.com/peterbourgon/diskv
-# github.com/pkg/errors v0.8.1
+# github.com/pkg/errors v0.9.1
 ## explicit
 github.com/pkg/errors
 # github.com/pmezard/go-difflib v1.0.0
@@ -411,7 +406,7 @@ github.com/segmentio/analytics-go
 # github.com/segmentio/backo-go v0.0.0-20160424052352-204274ad699c
 ## explicit
 github.com/segmentio/backo-go
-# github.com/sirupsen/logrus v1.6.0
+# github.com/sirupsen/logrus v1.9.3
 ## explicit; go 1.13
 github.com/sirupsen/logrus
 # github.com/spf13/cobra v1.0.0
@@ -471,10 +466,9 @@ golang.org/x/net/ipv6
 # golang.org/x/sync v0.0.0-20190423024810-112230192c58
 ## explicit
 golang.org/x/sync/errgroup
-# golang.org/x/sys v0.0.0-20220913153101-76c7481b5158
-## explicit; go 1.17
+# golang.org/x/sys v0.32.0
+## explicit; go 1.23.0
 golang.org/x/sys/cpu
-golang.org/x/sys/internal/unsafeheader
 golang.org/x/sys/plan9
 golang.org/x/sys/unix
 golang.org/x/sys/windows
