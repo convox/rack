@@ -1,6 +1,6 @@
 ## test ########################################################################
 
-FROM golang:1.18 AS test
+FROM golang:1.23 AS test
 
 ARG DOCKER_ARCH=x86_64
 ARG KUBECTL_ARCH=amd64
@@ -48,7 +48,7 @@ CMD ["bin/web"]
 
 ## package #####################################################################
 
-FROM golang:1.18 AS package
+FROM golang:1.23 AS package
 
 RUN apt-get update && apt-get -y install upx-ucl
 
