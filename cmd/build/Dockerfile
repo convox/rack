@@ -1,4 +1,4 @@
-FROM golang:1.18
+FROM golang:1.23
 
 RUN curl -s https://download.docker.com/linux/static/stable/x86_64/docker-18.03.1-ce.tgz | \
     tar -C /usr/bin --strip-components 1 -xz
