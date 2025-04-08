@@ -1,34 +1,44 @@
-// +build windows
-
-package system
+package system // import "github.com/docker/docker/pkg/system"
 
 import (
 	"os"
-	"path/filepath"
 	"regexp"
-	"strings"
 	"syscall"
 	"unsafe"
 
-	winio "github.com/Microsoft/go-winio"
+	"golang.org/x/sys/windows"
 )
 
-// MkdirAllWithACL is a wrapper for MkdirAll that creates a directory
-// ACL'd for Builtin Administrators and Local System.
-func MkdirAllWithACL(path string, perm os.FileMode) error {
-	return mkdirall(path, true)
+// SddlAdministratorsLocalSystem is local administrators plus NT AUTHORITY\System.
+const SddlAdministratorsLocalSystem = "D:P(A;OICI;GA;;;BA)(A;OICI;GA;;;SY)"
+
+// volumePath is a regular expression to check if a path is a Windows
+// volume path (e.g., "\\?\Volume{4c1b02c1-d990-11dc-99ae-806e6f6e6963}"
+// or "\\?\Volume{4c1b02c1-d990-11dc-99ae-806e6f6e6963}\").
+var volumePath = regexp.MustCompile(`^\\\\\?\\Volume{[a-z0-9-]+}\\?$`)
+
+// MkdirAllWithACL is a custom version of os.MkdirAll modified for use on Windows
+// so that it is both volume path aware, and can create a directory with
+// an appropriate SDDL defined ACL.
+func MkdirAllWithACL(path string, _ os.FileMode, sddl string) error {
+	sa, err := makeSecurityAttributes(sddl)
+	if err != nil {
+		return &os.PathError{Op: "mkdirall", Path: path, Err: err}
+	}
+	return mkdirall(path, sa)
 }
 
-// MkdirAll implementation that is volume path aware for Windows.
+// MkdirAll is a custom version of os.MkdirAll that is volume path aware for
+// Windows. It can be used as a drop-in replacement for os.MkdirAll.
 func MkdirAll(path string, _ os.FileMode) error {
-	return mkdirall(path, false)
+	return mkdirall(path, nil)
 }
 
 // mkdirall is a custom version of os.MkdirAll modified for use on Windows
 // so that it is both volume path aware, and can create a directory with
 // a DACL.
-func mkdirall(path string, adminAndLocalSystem bool) error {
-	if re := regexp.MustCompile(`^\\\\\?\\Volume{[a-z0-9-]+}$`); re.MatchString(path) {
+func mkdirall(path string, perm *windows.SecurityAttributes) error {
+	if volumePath.MatchString(path) {
 		return nil
 	}
 
@@ -41,11 +51,7 @@ func mkdirall(path string, adminAndLocalSystem bool) error {
 		if dir.IsDir() {
 			return nil
 		}
-		return &os.PathError{
-			Op:   "mkdir",
-			Path: path,
-			Err:  syscall.ENOTDIR,
-		}
+		return &os.PathError{Op: "mkdir", Path: path, Err: syscall.ENOTDIR}
 	}
 
 	// Slow path: make sure parent exists and then call Mkdir for path.
@@ -60,20 +66,15 @@ func mkdirall(path string, adminAndLocalSystem bool) error {
 	}
 
 	if j > 1 {
-		// Create parent
-		err = mkdirall(path[0:j-1], false)
+		// Create parent.
+		err = mkdirall(fixRootDirectory(path[:j-1]), perm)
 		if err != nil {
 			return err
 		}
 	}
 
-	// Parent now exists; invoke os.Mkdir or mkdirWithACL and use its result.
-	if adminAndLocalSystem {
-		err = mkdirWithACL(path)
-	} else {
-		err = os.Mkdir(path, 0)
-	}
-
+	// Parent now exists; invoke Mkdir and use its result.
+	err = mkdirWithACL(path, perm)
 	if err != nil {
 		// Handle arguments like "foo/." by
 		// double-checking that directory doesn't exist.
@@ -89,148 +90,46 @@ func mkdirall(path string, adminAndLocalSystem bool) error {
 // mkdirWithACL creates a new directory. If there is an error, it will be of
 // type *PathError. .
 //
-// This is a modified and combined version of os.Mkdir and syscall.Mkdir
+// This is a modified and combined version of os.Mkdir and windows.Mkdir
 // in golang to cater for creating a directory am ACL permitting full
 // access, with inheritance, to any subfolder/file for Built-in Administrators
 // and Local System.
-func mkdirWithACL(name string) error {
-	sa := syscall.SecurityAttributes{Length: 0}
-	sddl := "D:P(A;OICI;GA;;;BA)(A;OICI;GA;;;SY)"
-	sd, err := winio.SddlToSecurityDescriptor(sddl)
-	if err != nil {
-		return &os.PathError{Op: "mkdir", Path: name, Err: err}
+func mkdirWithACL(name string, sa *windows.SecurityAttributes) error {
+	if sa == nil {
+		return os.Mkdir(name, 0)
 	}
-	sa.Length = uint32(unsafe.Sizeof(sa))
-	sa.InheritHandle = 1
-	sa.SecurityDescriptor = uintptr(unsafe.Pointer(&sd[0]))
 
-	namep, err := syscall.UTF16PtrFromString(name)
+	namep, err := windows.UTF16PtrFromString(name)
 	if err != nil {
 		return &os.PathError{Op: "mkdir", Path: name, Err: err}
 	}
 
-	e := syscall.CreateDirectory(namep, &sa)
-	if e != nil {
-		return &os.PathError{Op: "mkdir", Path: name, Err: e}
+	err = windows.CreateDirectory(namep, sa)
+	if err != nil {
+		return &os.PathError{Op: "mkdir", Path: name, Err: err}
 	}
 	return nil
 }
 
-// IsAbs is a platform-specific wrapper for filepath.IsAbs. On Windows,
-// golang filepath.IsAbs does not consider a path \windows\system32 as absolute
-// as it doesn't start with a drive-letter/colon combination. However, in
-// docker we need to verify things such as WORKDIR /windows/system32 in
-// a Dockerfile (which gets translated to \windows\system32 when being processed
-// by the daemon. This SHOULD be treated as absolute from a docker processing
-// perspective.
-func IsAbs(path string) bool {
-	if !filepath.IsAbs(path) {
-		if !strings.HasPrefix(path, string(os.PathSeparator)) {
-			return false
+// fixRootDirectory fixes a reference to a drive's root directory to
+// have the required trailing slash.
+func fixRootDirectory(p string) string {
+	if len(p) == len(`\\?\c:`) {
+		if os.IsPathSeparator(p[0]) && os.IsPathSeparator(p[1]) && p[2] == '?' && os.IsPathSeparator(p[3]) && p[5] == ':' {
+			return p + `\`
 		}
 	}
-	return true
+	return p
 }
 
-// The origin of the functions below here are the golang OS and syscall packages,
-// slightly modified to only cope with files, not directories due to the
-// specific use case.
-//
-// The alteration is to allow a file on Windows to be opened with
-// FILE_FLAG_SEQUENTIAL_SCAN (particular for docker load), to avoid eating
-// the standby list, particularly when accessing large files such as layer.tar.
-
-// CreateSequential creates the named file with mode 0666 (before umask), truncating
-// it if it already exists. If successful, methods on the returned
-// File can be used for I/O; the associated file descriptor has mode
-// O_RDWR.
-// If there is an error, it will be of type *PathError.
-func CreateSequential(name string) (*os.File, error) {
-	return OpenFileSequential(name, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0)
-}
-
-// OpenSequential opens the named file for reading. If successful, methods on
-// the returned file can be used for reading; the associated file
-// descriptor has mode O_RDONLY.
-// If there is an error, it will be of type *PathError.
-func OpenSequential(name string) (*os.File, error) {
-	return OpenFileSequential(name, os.O_RDONLY, 0)
-}
-
-// OpenFileSequential is the generalized open call; most users will use Open
-// or Create instead.
-// If there is an error, it will be of type *PathError.
-func OpenFileSequential(name string, flag int, _ os.FileMode) (*os.File, error) {
-	if name == "" {
-		return nil, &os.PathError{Op: "open", Path: name, Err: syscall.ENOENT}
-	}
-	r, errf := syscallOpenFileSequential(name, flag, 0)
-	if errf == nil {
-		return r, nil
-	}
-	return nil, &os.PathError{Op: "open", Path: name, Err: errf}
-}
-
-func syscallOpenFileSequential(name string, flag int, _ os.FileMode) (file *os.File, err error) {
-	r, e := syscallOpenSequential(name, flag|syscall.O_CLOEXEC, 0)
-	if e != nil {
-		return nil, e
-	}
-	return os.NewFile(uintptr(r), name), nil
-}
-
-func makeInheritSa() *syscall.SecurityAttributes {
-	var sa syscall.SecurityAttributes
+func makeSecurityAttributes(sddl string) (*windows.SecurityAttributes, error) {
+	var sa windows.SecurityAttributes
 	sa.Length = uint32(unsafe.Sizeof(sa))
 	sa.InheritHandle = 1
-	return &sa
-}
-
-func syscallOpenSequential(path string, mode int, _ uint32) (fd syscall.Handle, err error) {
-	if len(path) == 0 {
-		return syscall.InvalidHandle, syscall.ERROR_FILE_NOT_FOUND
-	}
-	pathp, err := syscall.UTF16PtrFromString(path)
+	var err error
+	sa.SecurityDescriptor, err = windows.SecurityDescriptorFromString(sddl)
 	if err != nil {
-		return syscall.InvalidHandle, err
+		return nil, err
 	}
-	var access uint32
-	switch mode & (syscall.O_RDONLY | syscall.O_WRONLY | syscall.O_RDWR) {
-	case syscall.O_RDONLY:
-		access = syscall.GENERIC_READ
-	case syscall.O_WRONLY:
-		access = syscall.GENERIC_WRITE
-	case syscall.O_RDWR:
-		access = syscall.GENERIC_READ | syscall.GENERIC_WRITE
-	}
-	if mode&syscall.O_CREAT != 0 {
-		access |= syscall.GENERIC_WRITE
-	}
-	if mode&syscall.O_APPEND != 0 {
-		access &^= syscall.GENERIC_WRITE
-		access |= syscall.FILE_APPEND_DATA
-	}
-	sharemode := uint32(syscall.FILE_SHARE_READ | syscall.FILE_SHARE_WRITE)
-	var sa *syscall.SecurityAttributes
-	if mode&syscall.O_CLOEXEC == 0 {
-		sa = makeInheritSa()
-	}
-	var createmode uint32
-	switch {
-	case mode&(syscall.O_CREAT|syscall.O_EXCL) == (syscall.O_CREAT | syscall.O_EXCL):
-		createmode = syscall.CREATE_NEW
-	case mode&(syscall.O_CREAT|syscall.O_TRUNC) == (syscall.O_CREAT | syscall.O_TRUNC):
-		createmode = syscall.CREATE_ALWAYS
-	case mode&syscall.O_CREAT == syscall.O_CREAT:
-		createmode = syscall.OPEN_ALWAYS
-	case mode&syscall.O_TRUNC == syscall.O_TRUNC:
-		createmode = syscall.TRUNCATE_EXISTING
-	default:
-		createmode = syscall.OPEN_EXISTING
-	}
-	// Use FILE_FLAG_SEQUENTIAL_SCAN rather than FILE_ATTRIBUTE_NORMAL as implemented in golang.
-	//https://msdn.microsoft.com/en-us/library/windows/desktop/aa363858(v=vs.85).aspx
-	const fileFlagSequentialScan = 0x08000000 // FILE_FLAG_SEQUENTIAL_SCAN
-	h, e := syscall.CreateFile(pathp, access, sharemode, sa, createmode, fileFlagSequentialScan, 0)
-	return h, e
+	return &sa, nil
 }

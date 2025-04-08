@@ -1,15 +1,15 @@
-package archive
+package archive // import "github.com/docker/docker/pkg/archive"
 
 import (
 	"archive/tar"
+	"context"
 	"errors"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
 
-	"github.com/Sirupsen/logrus"
+	"github.com/containerd/log"
 	"github.com/docker/docker/pkg/system"
 )
 
@@ -28,7 +28,7 @@ var (
 // filepath stdlib packages) ends with a trailing `/.` or `/`. If the cleaned
 // path already ends in a `.` path segment, then another is not added. If the
 // clean path already ends in a path separator, then another is not added.
-func PreserveTrailingDotOrSeparator(cleanedPath, originalPath string) string {
+func PreserveTrailingDotOrSeparator(cleanedPath string, originalPath string) string {
 	// Ensure paths are in platform semantics
 	cleanedPath = normalizePath(cleanedPath)
 	originalPath = normalizePath(originalPath)
@@ -59,7 +59,7 @@ func assertsDirectory(path string) bool {
 // hasTrailingPathSeparator returns whether the given
 // path ends with the system's path separator character.
 func hasTrailingPathSeparator(path string) bool {
-	return len(path) > 0 && os.IsPathSeparator(path[len(path)-1])
+	return len(path) > 0 && path[len(path)-1] == filepath.Separator
 }
 
 // specifiesCurrentDir returns whether the given path specifies
@@ -72,10 +72,10 @@ func specifiesCurrentDir(path string) bool {
 // basename by first cleaning the path but preserves a trailing "." if the
 // original path specified the current directory.
 func SplitPathDirEntry(path string) (dir, base string) {
-	cleanedPath := filepath.Clean(normalizePath(path))
+	cleanedPath := filepath.Clean(filepath.FromSlash(path))
 
 	if specifiesCurrentDir(path) {
-		cleanedPath += string(filepath.Separator) + "."
+		cleanedPath += string(os.PathSeparator) + "."
 	}
 
 	return filepath.Dir(cleanedPath), filepath.Base(cleanedPath)
@@ -106,19 +106,24 @@ func TarResourceRebase(sourcePath, rebaseName string) (content io.ReadCloser, er
 	// Separate the source path between its directory and
 	// the entry in that directory which we are archiving.
 	sourceDir, sourceBase := SplitPathDirEntry(sourcePath)
+	opts := TarResourceRebaseOpts(sourceBase, rebaseName)
 
+	log.G(context.TODO()).Debugf("copying %q from %q", sourceBase, sourceDir)
+	return TarWithOptions(sourceDir, opts)
+}
+
+// TarResourceRebaseOpts does not preform the Tar, but instead just creates the rebase
+// parameters to be sent to TarWithOptions (the TarOptions struct)
+func TarResourceRebaseOpts(sourceBase string, rebaseName string) *TarOptions {
 	filter := []string{sourceBase}
-
-	logrus.Debugf("copying %q from %q", sourceBase, sourceDir)
-
-	return TarWithOptions(sourceDir, &TarOptions{
+	return &TarOptions{
 		Compression:      Uncompressed,
 		IncludeFiles:     filter,
 		IncludeSourceDir: true,
 		RebaseNames: map[string]string{
 			sourceBase: rebaseName,
 		},
-	})
+	}
 }
 
 // CopyInfo holds basic info about the source
@@ -218,7 +223,7 @@ func CopyInfoDestinationPath(path string) (info CopyInfo, err error) {
 		// Ensure destination parent dir exists.
 		dstParent, _ := SplitPathDirEntry(path)
 
-		parentDirStat, err := os.Lstat(dstParent)
+		parentDirStat, err := os.Stat(dstParent)
 		if err != nil {
 			return CopyInfo{}, err
 		}
@@ -256,7 +261,7 @@ func PrepareArchiveCopy(srcContent io.Reader, srcInfo, dstInfo CopyInfo) (dstDir
 		// The destination exists as a directory. No alteration
 		// to srcContent is needed as its contents can be
 		// simply extracted to the destination directory.
-		return dstInfo.Path, ioutil.NopCloser(srcContent), nil
+		return dstInfo.Path, io.NopCloser(srcContent), nil
 	case dstInfo.Exists && srcInfo.IsDir:
 		// The destination exists as some type of file and the source
 		// content is a directory. This is an error condition since
@@ -299,7 +304,6 @@ func PrepareArchiveCopy(srcContent io.Reader, srcInfo, dstInfo CopyInfo) (dstDir
 		}
 		return dstDir, RebaseArchiveEntries(srcContent, srcBase, dstBase), nil
 	}
-
 }
 
 // RebaseArchiveEntries rewrites the given srcContent archive replacing
@@ -331,13 +335,34 @@ func RebaseArchiveEntries(srcContent io.Reader, oldBase, newBase string) io.Read
 				return
 			}
 
+			// srcContent tar stream, as served by TarWithOptions(), is
+			// definitely in PAX format, but tar.Next() mistakenly guesses it
+			// as USTAR, which creates a problem: if the newBase is >100
+			// characters long, WriteHeader() returns an error like
+			// "archive/tar: cannot encode header: Format specifies USTAR; and USTAR cannot encode Name=...".
+			//
+			// To fix, set the format to PAX here. See docker/for-linux issue #484.
+			hdr.Format = tar.FormatPAX
 			hdr.Name = strings.Replace(hdr.Name, oldBase, newBase, 1)
+			if hdr.Typeflag == tar.TypeLink {
+				hdr.Linkname = strings.Replace(hdr.Linkname, oldBase, newBase, 1)
+			}
 
 			if err = rebasedTar.WriteHeader(hdr); err != nil {
 				w.CloseWithError(err)
 				return
 			}
 
+			// Ignoring GoSec G110. See https://github.com/securego/gosec/pull/433
+			// and https://cure53.de/pentest-report_opa.pdf, which recommends to
+			// replace io.Copy with io.CopyN7. The latter allows to specify the
+			// maximum number of bytes that should be read. By properly defining
+			// the limit, it can be assured that a GZip compression bomb cannot
+			// easily cause a Denial-of-Service.
+			// After reviewing with @tonistiigi and @cpuguy83, this should not
+			// affect us, because here we do not read into memory, hence should
+			// not be vulnerable to this code consuming memory.
+			//nolint:gosec // G110: Potential DoS vulnerability via decompression bomb (gosec)
 			if _, err = io.Copy(rebasedTar, srcTar); err != nil {
 				w.CloseWithError(err)
 				return
@@ -426,7 +451,8 @@ func ResolveHostSourcePath(path string, followLink bool) (resolvedPath, rebaseNa
 		// resolvedDirPath will have been cleaned (no trailing path separators) so
 		// we can manually join it with the base path element.
 		resolvedPath = resolvedDirPath + string(filepath.Separator) + basePath
-		if hasTrailingPathSeparator(path) && filepath.Base(path) != filepath.Base(resolvedPath) {
+		if hasTrailingPathSeparator(path) &&
+			filepath.Base(path) != filepath.Base(resolvedPath) {
 			rebaseName = filepath.Base(path)
 		}
 	}
@@ -439,11 +465,13 @@ func GetRebaseName(path, resolvedPath string) (string, string) {
 	// linkTarget will have been cleaned (no trailing path separators and dot) so
 	// we can manually join it with them
 	var rebaseName string
-	if specifiesCurrentDir(path) && !specifiesCurrentDir(resolvedPath) {
+	if specifiesCurrentDir(path) &&
+		!specifiesCurrentDir(resolvedPath) {
 		resolvedPath += string(filepath.Separator) + "."
 	}
 
-	if hasTrailingPathSeparator(path) && !hasTrailingPathSeparator(resolvedPath) {
+	if hasTrailingPathSeparator(path) &&
+		!hasTrailingPathSeparator(resolvedPath) {
 		resolvedPath += string(filepath.Separator)
 	}
 

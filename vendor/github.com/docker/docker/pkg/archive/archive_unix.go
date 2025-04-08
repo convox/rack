@@ -1,21 +1,28 @@
-// +build !windows
+//go:build !windows
 
-package archive
+package archive // import "github.com/docker/docker/pkg/archive"
 
 import (
 	"archive/tar"
 	"errors"
 	"os"
 	"path/filepath"
+	"runtime"
+	"strings"
 	"syscall"
 
+	"github.com/docker/docker/pkg/idtools"
 	"github.com/docker/docker/pkg/system"
-	rsystem "github.com/opencontainers/runc/libcontainer/system"
+	"golang.org/x/sys/unix"
 )
 
-// fixVolumePathPrefix does platform specific processing to ensure that if
-// the path being passed in is not in a volume path format, convert it to one.
-func fixVolumePathPrefix(srcPath string) string {
+func init() {
+	sysStat = statUnix
+}
+
+// addLongPathPrefix adds the Windows long path prefix to the path provided if
+// it does not already have it. It is a no-op on platforms other than Windows.
+func addLongPathPrefix(srcPath string) string {
 	return srcPath
 }
 
@@ -24,82 +31,85 @@ func fixVolumePathPrefix(srcPath string) string {
 // can't use filepath.Join(srcPath,include) because this will clean away
 // a trailing "." or "/" which may be important.
 func getWalkRoot(srcPath string, include string) string {
-	return srcPath + string(filepath.Separator) + include
-}
-
-// CanonicalTarNameForPath returns platform-specific filepath
-// to canonical posix-style path for tar archival. p is relative
-// path.
-func CanonicalTarNameForPath(p string) (string, error) {
-	return p, nil // already unix-style
+	return strings.TrimSuffix(srcPath, string(filepath.Separator)) + string(filepath.Separator) + include
 }
 
 // chmodTarEntry is used to adjust the file permissions used in tar header based
 // on the platform the archival is done.
-
 func chmodTarEntry(perm os.FileMode) os.FileMode {
 	return perm // noop for unix as golang APIs provide perm bits correctly
 }
 
-func setHeaderForSpecialDevice(hdr *tar.Header, ta *tarAppender, name string, stat interface{}) (inode uint64, err error) {
-	s, ok := stat.(*syscall.Stat_t)
+// statUnix populates hdr from system-dependent fields of fi without performing
+// any OS lookups.
+func statUnix(fi os.FileInfo, hdr *tar.Header) error {
+	// Devmajor and Devminor are only needed for special devices.
 
+	// In FreeBSD, RDev for regular files is -1 (unless overridden by FS):
+	// https://cgit.freebsd.org/src/tree/sys/kern/vfs_default.c?h=stable/13#n1531
+	// (NODEV is -1: https://cgit.freebsd.org/src/tree/sys/sys/param.h?h=stable/13#n241).
+
+	// ZFS in particular does not override the default:
+	// https://cgit.freebsd.org/src/tree/sys/contrib/openzfs/module/os/freebsd/zfs/zfs_vnops_os.c?h=stable/13#n2027
+
+	// Since `Stat_t.Rdev` is uint64, the cast turns -1 into (2^64 - 1).
+	// Such large values cannot be encoded in a tar header.
+	if runtime.GOOS == "freebsd" && hdr.Typeflag != tar.TypeBlock && hdr.Typeflag != tar.TypeChar {
+		return nil
+	}
+	s, ok := fi.Sys().(*syscall.Stat_t)
 	if !ok {
-		err = errors.New("cannot convert stat value to syscall.Stat_t")
-		return
+		return nil
 	}
 
-	inode = uint64(s.Ino)
+	hdr.Uid = int(s.Uid)
+	hdr.Gid = int(s.Gid)
 
-	// Currently go does not fill in the major/minors
-	if s.Mode&syscall.S_IFBLK != 0 ||
-		s.Mode&syscall.S_IFCHR != 0 {
-		hdr.Devmajor = int64(major(uint64(s.Rdev)))
-		hdr.Devminor = int64(minor(uint64(s.Rdev)))
+	if s.Mode&unix.S_IFBLK != 0 ||
+		s.Mode&unix.S_IFCHR != 0 {
+		hdr.Devmajor = int64(unix.Major(uint64(s.Rdev))) //nolint: unconvert
+		hdr.Devminor = int64(unix.Minor(uint64(s.Rdev))) //nolint: unconvert
+	}
+
+	return nil
+}
+
+func getInodeFromStat(stat interface{}) (inode uint64, err error) {
+	s, ok := stat.(*syscall.Stat_t)
+
+	if ok {
+		inode = s.Ino
 	}
 
 	return
 }
 
-func getFileUIDGID(stat interface{}) (int, int, error) {
+func getFileUIDGID(stat interface{}) (idtools.Identity, error) {
 	s, ok := stat.(*syscall.Stat_t)
 
 	if !ok {
-		return -1, -1, errors.New("cannot convert stat value to syscall.Stat_t")
+		return idtools.Identity{}, errors.New("cannot convert stat value to syscall.Stat_t")
 	}
-	return int(s.Uid), int(s.Gid), nil
-}
-
-func major(device uint64) uint64 {
-	return (device >> 8) & 0xfff
-}
-
-func minor(device uint64) uint64 {
-	return (device & 0xff) | ((device >> 12) & 0xfff00)
+	return idtools.Identity{UID: int(s.Uid), GID: int(s.Gid)}, nil
 }
 
 // handleTarTypeBlockCharFifo is an OS-specific helper function used by
-// createTarFile to handle the following types of header: Block; Char; Fifo
+// createTarFile to handle the following types of header: Block; Char; Fifo.
+//
+// Creating device nodes is not supported when running in a user namespace,
+// produces a [syscall.EPERM] in most cases.
 func handleTarTypeBlockCharFifo(hdr *tar.Header, path string) error {
-	if rsystem.RunningInUserNS() {
-		// cannot create a device if running in user namespace
-		return nil
-	}
-
-	mode := uint32(hdr.Mode & 07777)
+	mode := uint32(hdr.Mode & 0o7777)
 	switch hdr.Typeflag {
 	case tar.TypeBlock:
-		mode |= syscall.S_IFBLK
+		mode |= unix.S_IFBLK
 	case tar.TypeChar:
-		mode |= syscall.S_IFCHR
+		mode |= unix.S_IFCHR
 	case tar.TypeFifo:
-		mode |= syscall.S_IFIFO
+		mode |= unix.S_IFIFO
 	}
 
-	if err := system.Mknod(path, mode, int(system.Mkdev(hdr.Devmajor, hdr.Devminor))); err != nil {
-		return err
-	}
-	return nil
+	return system.Mknod(path, mode, int(system.Mkdev(hdr.Devmajor, hdr.Devminor)))
 }
 
 func handleLChmod(hdr *tar.Header, path string, hdrInfo os.FileInfo) error {

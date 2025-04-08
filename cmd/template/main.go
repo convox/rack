@@ -4,9 +4,6 @@ import (
 	"fmt"
 	"os"
 	"strings"
-
-	"github.com/convox/rack/provider/kaws"
-	"github.com/convox/rack/provider/local"
 )
 
 type templater interface {
@@ -25,18 +22,6 @@ func run() error {
 	}
 
 	switch os.Args[1] {
-	case "kaws":
-		p, err := kaws.FromEnv()
-		if err != nil {
-			return err
-		}
-		return template(p, os.Args[2])
-	case "local":
-		p, err := local.FromEnv()
-		if err != nil {
-			return err
-		}
-		return template(p, os.Args[2])
 	default:
 		return fmt.Errorf("unknown provider: %s", os.Args[1])
 	}

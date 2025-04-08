@@ -1,10 +1,7 @@
 .PHONY: all build builder clean clean-package compress dev generate mocks package release release-cli release-image release-provider release-version version-gen test test-docker
 
-commands = atom build monitor rack router
+commands = build monitor rack
 injects  = convox-env
-
-# commands = build rack router
-# injects  =
 
 assets   = $(wildcard assets/*)
 binaries = $(addprefix $(GOPATH)/bin/, $(commands))
@@ -55,9 +52,6 @@ generate:
 	go run cmd/generate/main.go controllers > pkg/api/controllers.go
 	go run cmd/generate/main.go routes > pkg/api/routes.go
 	go run cmd/generate/main.go sdk > sdk/methods.go
-	make -C pkg/atom generate
-	make -C provider/k8s generate
-	make -C provider/kaws generate
 
 generate-provider:
 	go run cmd/generate/main.go controllers > pkg/api/controllers.go
