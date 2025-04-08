@@ -1,11 +1,11 @@
 package token_test
 
 import (
+	"encoding/json"
 	"testing"
 
 	"github.com/convox/rack/pkg/token"
 	"github.com/stretchr/testify/require"
-	"k8s.io/apimachinery/pkg/util/json"
 )
 
 func TestAuthenticateError(t *testing.T) {
