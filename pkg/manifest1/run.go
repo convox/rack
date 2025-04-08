@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/convox/rack/pkg/sync"
-	"github.com/docker/docker/builder/dockerignore"
+	"github.com/moby/patternmatcher/ignorefile"
 )
 
 type Run struct {
@@ -190,7 +190,7 @@ func (r *Run) Start() error {
 					return err
 				}
 				defer fd.Close()
-				ignores, err = dockerignore.ReadAll(fd)
+				ignores, err = ignorefile.ReadAll(fd)
 				if err != nil {
 					return err
 				}

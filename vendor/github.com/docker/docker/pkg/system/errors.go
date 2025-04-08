@@ -1,10 +1,6 @@
-package system
+package system // import "github.com/docker/docker/pkg/system"
 
-import (
-	"errors"
-)
+import "errors"
 
-var (
-	// ErrNotSupportedPlatform means the platform is not supported.
-	ErrNotSupportedPlatform = errors.New("platform and architecture is not supported")
-)
+// ErrNotSupportedPlatform means the platform is not supported.
+var ErrNotSupportedPlatform = errors.New("platform and architecture is not supported")
