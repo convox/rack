@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/convox/rack/pkg/helpers"
 	"github.com/convox/rack/pkg/options"
 	"github.com/convox/rack/pkg/structs"
 	"github.com/convox/rack/pkg/test/awsutil"
@@ -108,6 +109,17 @@ func TestAppLogs(t *testing.T) {
 }
 
 func TestAppLogsSince(t *testing.T) {
+	oldNow := helpers.TimeNow
+	helpers.TimeNow = func() time.Time {
+		return time.Date(2025, 4, 9, 22, 0, 0, 0, time.UTC)
+	}
+	defer func() { helpers.TimeNow = oldNow }()
+
+	mockedNow := helpers.TimeNow()
+	wantThen := time.Date(2019, 1, 1, 0, 0, 0, 0, time.UTC)
+
+	since := mockedNow.Sub(wantThen)
+
 	provider := StubAwsProvider(
 		cycleListAppStackResources,
 		cycleLogFilterLogEventsLimit1,
@@ -115,15 +127,14 @@ func TestAppLogsSince(t *testing.T) {
 	)
 	defer provider.Close()
 
-	buf := &bytes.Buffer{}
-
 	r, err := provider.AppLogs("httpd", structs.LogsOptions{
 		Follow: options.Bool(false),
 		Filter: options.String("test"),
 		Prefix: options.Bool(true),
-		Since:  options.Duration(time.Since(time.Date(2019, 1, 1, 0, 0, 0, 0, time.UTC))),
+		Since:  options.Duration(since),
 	})
 
+	buf := &bytes.Buffer{}
 	io.Copy(buf, r)
 
 	assert.NoError(t, err)
@@ -339,9 +350,9 @@ var cycleLogFilterLogEventsLimit1 = awsutil.Cycle{
 			],
 			"searchedLogStreams": [
 				{
-					"searchedCompletely": false, 
+					"searchedCompletely": false,
 					"logStreamName": "stream1"
-				}, 
+				},
 				{
 					"searchedCompletely": false,
 					"logStreamName": "stream2"
@@ -385,9 +396,9 @@ var cycleLogFilterLogEventsLimit2 = awsutil.Cycle{
 			],
 			"searchedLogStreams": [
 				{
-					"searchedCompletely": true, 
+					"searchedCompletely": true,
 					"logStreamName": "stream1"
-				}, 
+				},
 				{
 					"searchedCompletely": false,
 					"logStreamName": "stream2"
@@ -436,9 +447,9 @@ var cycleLogFilterLogEvents1 = awsutil.Cycle{
 			],
 			"searchedLogStreams": [
 				{
-					"searchedCompletely": false, 
+					"searchedCompletely": false,
 					"logStreamName": "stream1"
-				}, 
+				},
 				{
 					"searchedCompletely": false,
 					"logStreamName": "stream2"
@@ -486,9 +497,9 @@ var cycleLogFilterLogEvents2 = awsutil.Cycle{
 			],
 			"searchedLogStreams": [
 				{
-					"searchedCompletely": true, 
+					"searchedCompletely": true,
 					"logStreamName": "stream1"
-				}, 
+				},
 				{
 					"searchedCompletely": false,
 					"logStreamName": "stream2"
