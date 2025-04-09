@@ -348,6 +348,8 @@ func CloudWatchLogsSubscribe(ctx context.Context, cw cloudwatchlogsiface.CloudWa
 	return r, nil
 }
 
+var TimeNow = time.Now // defaults to the real clock
+
 func CloudWatchLogsStream(ctx context.Context, cw cloudwatchlogsiface.CloudWatchLogsAPI, w io.WriteCloser, group, stream string, opts structs.LogsOptions) error {
 	defer w.Close()
 
@@ -364,10 +366,10 @@ func CloudWatchLogsStream(ctx context.Context, cw cloudwatchlogsiface.CloudWatch
 	var start int64
 
 	if opts.Since != nil {
-		start = time.Now().UTC().Add((*opts.Since) * -1).UnixMilli()
+		start = TimeNow().UTC().Add((*opts.Since) * -1).UnixMilli()
 		req.StartTime = aws.Int64(start)
 	} else {
-		req.StartTime = aws.Int64(time.Now().UTC().Add(-1 * time.Hour).UnixMilli())
+		req.StartTime = aws.Int64(TimeNow().UTC().Add(-1 * time.Hour).UnixMilli())
 	}
 
 	if stream != "" {
