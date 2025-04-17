@@ -1,26 +1,36 @@
 package build
 
 import (
-	"bufio"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
-
-	"github.com/convox/rack/pkg/options"
-	"github.com/convox/rack/pkg/structs"
-	shellquote "github.com/kballard/go-shellquote"
 )
 
-func (bb *Build) build(path, dockerfile string, tag string, env map[string]string) error {
-	if path == "" {
-		return fmt.Errorf("must have path to build")
+// loginForDocker performs Docker registry login using docker CLI
+func loginForDocker(bb *Build, auth map[string]struct {
+	Username string
+	Password string
+}) error {
+	for host, entry := range auth {
+		buf := &strings.Builder{}
+
+		err := bb.Exec.Stream(buf, strings.NewReader(entry.Password), "docker", "login", "-u", entry.Username, "--password-stdin", host)
+
+		bb.Printf("Authenticating %s: %s\n", host, strings.TrimSpace(buf.String()))
+
+		if err != nil {
+			return err
+		}
 	}
 
-	df := filepath.Join(path, dockerfile)
+	return nil
+}
 
+// buildWithDocker builds a Docker image using the Docker CLI
+func (bb *Build) buildWithDocker(path, dockerfile string, tag string, env map[string]string) error {
 	args := []string{"build"}
 
 	if !bb.Cache {
@@ -28,10 +38,10 @@ func (bb *Build) build(path, dockerfile string, tag string, env map[string]strin
 	}
 
 	args = append(args, "-t", tag)
-	args = append(args, "-f", df)
+	args = append(args, "-f", dockerfile)
 	args = append(args, "--network", "host")
 
-	ba, err := bb.buildArgs(df, env)
+	ba, err := bb.buildArgs(dockerfile, env)
 	if err != nil {
 		return err
 	}
@@ -44,66 +54,46 @@ func (bb *Build) build(path, dockerfile string, tag string, env map[string]strin
 		return err
 	}
 
-	data, err := bb.Exec.Execute("docker", "inspect", tag, "--format", "{{json .Config.Entrypoint}}")
+	return nil
+}
+
+// pull retrieves an image from a Docker registry
+func (bb *Build) pull(image string) error {
+	fmt.Fprintf(bb.writer, "Running: docker pull %s\n", image)
+
+	data, err := bb.Exec.Execute("docker", "pull", image)
 	if err != nil {
-		return err
-	}
-
-	var ep []string
-
-	if err := json.Unmarshal(data, &ep); err != nil {
-		return err
-	}
-
-	if ep != nil {
-		opts := structs.BuildUpdateOptions{
-			Entrypoint: options.String(shellquote.Join(ep...)),
-		}
-
-		if _, err := bb.Provider.BuildUpdate(bb.App, bb.Id, opts); err != nil {
-			return err
-		}
+		return errors.New(strings.TrimSpace(string(data)))
 	}
 
 	return nil
 }
 
-func (bb *Build) buildArgs(dockerfile string, env map[string]string) ([]string, error) {
-	fd, err := os.Open(dockerfile)
+// push sends an image to a Docker registry
+func (bb *Build) push(tag string) error {
+	fmt.Fprintf(bb.writer, "Running: docker push %s\n", tag)
+
+	data, err := bb.Exec.Execute("docker", "push", tag)
 	if err != nil {
-		return nil, err
-	}
-	defer fd.Close()
-
-	s := bufio.NewScanner(fd)
-
-	args := []string{}
-
-	for s.Scan() {
-		fields := strings.Fields(strings.TrimSpace(s.Text()))
-
-		if len(fields) < 2 {
-			continue
-		}
-
-		parts := strings.Split(fields[1], "=")
-
-		switch fields[0] {
-		case "FROM":
-			if bb.Development && strings.Contains(strings.ToLower(s.Text()), "as development") {
-				args = append(args, "--target", "development")
-			}
-		case "ARG":
-			k := strings.TrimSpace(parts[0])
-			if v, ok := env[k]; ok {
-				args = append(args, "--build-arg", fmt.Sprintf("%s=%s", k, v))
-			}
-		}
+		return errors.New(strings.TrimSpace(string(data)))
 	}
 
-	return args, nil
+	return nil
 }
 
+// tag adds a tag to an existing Docker image
+func (bb *Build) tag(from, to string) error {
+	fmt.Fprintf(bb.writer, "Running: docker tag %s %s\n", from, to)
+
+	data, err := bb.Exec.Execute("docker", "tag", from, to)
+	if err != nil {
+		return errors.New(strings.TrimSpace(string(data)))
+	}
+
+	return nil
+}
+
+// injectConvoxEnv adds the convox-env executable to a Docker image
 func (bb *Build) injectConvoxEnv(tag string) error {
 	fmt.Fprintf(bb.writer, "Injecting: convox-env\n")
 
@@ -157,42 +147,9 @@ func (bb *Build) injectConvoxEnv(tag string) error {
 		return err
 	}
 
-	data, err = bb.Exec.Execute("docker", "build", "-t", tag, tmp)
+	_, err = bb.Exec.Execute("docker", "build", "-t", tag, tmp)
 	if err != nil {
 		return err
-	}
-
-	return nil
-}
-
-func (bb *Build) pull(tag string) error {
-	fmt.Fprintf(bb.writer, "Running: docker pull %s\n", tag)
-
-	data, err := bb.Exec.Execute("docker", "pull", tag)
-	if err != nil {
-		return errors.New(strings.TrimSpace(string(data)))
-	}
-
-	return nil
-}
-
-func (bb *Build) push(tag string) error {
-	fmt.Fprintf(bb.writer, "Running: docker push %s\n", tag)
-
-	data, err := bb.Exec.Execute("docker", "push", tag)
-	if err != nil {
-		return errors.New(strings.TrimSpace(string(data)))
-	}
-
-	return nil
-}
-
-func (bb *Build) tag(from, to string) error {
-	fmt.Fprintf(bb.writer, "Running: docker tag %s %s\n", from, to)
-
-	data, err := bb.Exec.Execute("docker", "tag", from, to)
-	if err != nil {
-		return errors.New(strings.TrimSpace(string(data)))
 	}
 
 	return nil

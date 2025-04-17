@@ -19,7 +19,17 @@ func TestTest(t *testing.T) {
 		i.On("ObjectStore", "app1", mock.AnythingOfType("string"), mock.Anything, structs.ObjectStoreOptions{}).Return(&fxObject, nil).Run(func(args mock.Arguments) {
 			require.Regexp(t, `tmp/[0-9a-f]{30}\.tgz`, args.Get(1).(string))
 		})
-		i.On("BuildCreate", "app1", "object://test", structs.BuildCreateOptions{Development: options.Bool(true), Description: options.String("foo")}).Return(fxBuild(), nil)
+		i.On("BuildCreate",
+			"app1",
+			"object://test",
+			mock.MatchedBy(func(o structs.BuildCreateOptions) bool {
+				if o.Development == nil || *o.Development != true {
+					return false
+				}
+
+				return o.Description != nil && *o.Description == "foo"
+			}),
+		).Return(fxBuild(), nil)
 		i.On("BuildLogs", "app1", "build1", structs.LogsOptions{}).Return(testLogs(fxLogs()), nil)
 		i.On("BuildGet", "app1", "build1").Return(fxBuildRunning(), nil).Once()
 		i.On("BuildGet", "app1", "build4").Return(fxBuild(), nil)
@@ -58,7 +68,17 @@ func TestTestFail(t *testing.T) {
 		i.On("ObjectStore", "app1", mock.AnythingOfType("string"), mock.Anything, structs.ObjectStoreOptions{}).Return(&fxObject, nil).Run(func(args mock.Arguments) {
 			require.Regexp(t, `tmp/[0-9a-f]{30}\.tgz`, args.Get(1).(string))
 		})
-		i.On("BuildCreate", "app1", "object://test", structs.BuildCreateOptions{Development: options.Bool(true), Description: options.String("foo")}).Return(fxBuild(), nil)
+		i.On("BuildCreate",
+			"app1",
+			"object://test",
+			mock.MatchedBy(func(o structs.BuildCreateOptions) bool {
+				if o.Development == nil || *o.Development != true {
+					return false
+				}
+
+				return o.Description != nil && *o.Description == "foo"
+			}),
+		).Return(fxBuild(), nil)
 		i.On("BuildLogs", "app1", "build1", structs.LogsOptions{}).Return(testLogs(fxLogs()), nil)
 		i.On("BuildGet", "app1", "build1").Return(fxBuildRunning(), nil).Once()
 		i.On("BuildGet", "app1", "build4").Return(fxBuild(), nil)

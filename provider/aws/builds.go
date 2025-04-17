@@ -920,20 +920,6 @@ func (p *Provider) runBuild(build *structs.Build, burl string, opts structs.Buil
 		cache = false
 	}
 
-	buildCmd := []*string{
-		aws.String("build"),
-		aws.String("-method"), aws.String("tgz"),
-		aws.String("-cache"), aws.String(fmt.Sprintf("%t", cache)),
-	}
-	if opts.BuildArgs != nil {
-		for _, v := range *opts.BuildArgs {
-			if len(strings.SplitN(v, "=", 2)) != 2 {
-				return fmt.Errorf("invalid build args")
-			}
-			buildCmd = append(buildCmd, aws.String("-build-args"), aws.String(v))
-		}
-	}
-
 	// Determine launch type and network configuration
 	launchType, nc, err := p.prepareLaunchConfiguration()
 	if err != nil {
@@ -949,6 +935,97 @@ func (p *Provider) runBuild(build *structs.Build, burl string, opts structs.Buil
 	log.Logf("launchType=%q", *launchType)
 	log.Logf("networkConfiguration=%q", nc)
 
+	// Prepare build command based on whether using Fargate (Kaniko) or EC2 (Docker)
+	var buildCmd []*string
+	var env []*ecs.KeyValuePair
+
+	// Base environment variables for all build types
+	env = append(env, []*ecs.KeyValuePair{
+		{
+			Name:  aws.String("BUILD_APP"),
+			Value: aws.String(build.App),
+		},
+		{
+			Name:  aws.String("BUILD_AUTH"),
+			Value: aws.String(auth),
+		},
+		{
+			Name:  aws.String("BUILD_DEVELOPMENT"),
+			Value: aws.String(fmt.Sprintf("%t", cb(opts.Development, false))),
+		},
+		{
+			Name:  aws.String("BUILD_ENV_WRAPPER"),
+			Value: aws.String("true"),
+		},
+		{
+			Name:  aws.String("BUILD_GENERATION"),
+			Value: aws.String(a.Tags["Generation"]),
+		},
+		{
+			Name:  aws.String("BUILD_ID"),
+			Value: aws.String(build.Id),
+		},
+		{
+			Name:  aws.String("BUILD_MANIFEST"),
+			Value: aws.String(cs(opts.Manifest, "")),
+		},
+		{
+			Name:  aws.String("BUILD_PUSH"),
+			Value: aws.String(push),
+		},
+		{
+			Name:  aws.String("BUILD_URL"),
+			Value: aws.String(burl),
+		},
+		{
+			Name:  aws.String("HTTP_PROXY"),
+			Value: aws.String(os.Getenv("HTTP_PROXY")),
+		},
+		{
+			Name:  aws.String("RACK_URL"),
+			Value: aws.String(rackUrl),
+		},
+		{
+			Name:  aws.String("RELEASE"),
+			Value: aws.String(build.Id),
+		},
+	}...)
+
+	if *launchType == "FARGATE" {
+		// Use Kaniko for Fargate builds
+		log.Step("build").Logf("using Kaniko for Fargate build")
+
+		// Kaniko requires different command flags
+		buildCmd = []*string{
+			aws.String("build"),
+			aws.String("-method"), aws.String("kaniko"),
+			aws.String("-cache"), aws.String(fmt.Sprintf("%t", cache)),
+		}
+
+		// Add Kaniko-specific environment variables
+		env = append(env, &ecs.KeyValuePair{
+			Name:  aws.String("BUILD_ENGINE"),
+			Value: aws.String("kaniko"),
+		})
+	} else {
+		// Use Docker for EC2 builds (original behavior)
+		buildCmd = []*string{
+			aws.String("build"),
+			aws.String("-method"), aws.String("tgz"),
+			aws.String("-cache"), aws.String(fmt.Sprintf("%t", cache)),
+		}
+	}
+
+	// Add build args if provided
+	if opts.BuildArgs != nil {
+		for _, v := range *opts.BuildArgs {
+			if len(strings.SplitN(v, "=", 2)) != 2 {
+				return fmt.Errorf("invalid build args")
+			}
+			buildCmd = append(buildCmd, aws.String("-build-args"), aws.String(v))
+		}
+	}
+
 	req := &ecs.RunTaskInput{
 		Cluster:        aws.String(p.BuildCluster),
 		Count:          aws.Int64(1),
@@ -958,58 +1035,9 @@ func (p *Provider) runBuild(build *structs.Build, burl string, opts structs.Buil
 		Overrides: &ecs.TaskOverride{
 			ContainerOverrides: []*ecs.ContainerOverride{
 				{
-					Name:    aws.String("build"),
-					Command: buildCmd,
-					Environment: []*ecs.KeyValuePair{
-						{
-							Name:  aws.String("BUILD_APP"),
-							Value: aws.String(build.App),
-						},
-						{
-							Name:  aws.String("BUILD_AUTH"),
-							Value: aws.String(auth),
-						},
-						{
-							Name:  aws.String("BUILD_DEVELOPMENT"),
-							Value: aws.String(fmt.Sprintf("%t", cb(opts.Development, false))),
-						},
-						{
-							Name:  aws.String("BUILD_ENV_WRAPPER"),
-							Value: aws.String("true"),
-						},
-						{
-							Name:  aws.String("BUILD_GENERATION"),
-							Value: aws.String(a.Tags["Generation"]),
-						},
-						{
-							Name:  aws.String("BUILD_ID"),
-							Value: aws.String(build.Id),
-						},
-						{
-							Name:  aws.String("BUILD_MANIFEST"),
-							Value: aws.String(cs(opts.Manifest, "")),
-						},
-						{
-							Name:  aws.String("BUILD_PUSH"),
-							Value: aws.String(push),
-						},
-						{
-							Name:  aws.String("BUILD_URL"),
-							Value: aws.String(burl),
-						},
-						{
-							Name:  aws.String("HTTP_PROXY"),
-							Value: aws.String(os.Getenv("HTTP_PROXY")),
-						},
-						{
-							Name:  aws.String("RACK_URL"),
-							Value: aws.String(rackUrl),
-						},
-						{
-							Name:  aws.String("RELEASE"),
-							Value: aws.String(build.Id),
-						},
-					},
+					Name:        aws.String("build"),
+					Command:     buildCmd,
+					Environment: env,
 				},
 			},
 		},
