@@ -83,7 +83,7 @@
         },
         "Handler": "handler",
         "Role": { "Fn::GetAtt": [ "Role", "Arn" ] },
-        "Runtime": "provided.al2",
+        "Runtime": "provided.al2023",
         "Timeout": "25",
         "VpcConfig": { "Fn::If": [ "Private",
           { "SecurityGroupIds": [ { "Ref": "SecurityGroup" } ], "SubnetIds": { "Ref": "SubnetsPrivate" } },

@@ -433,7 +433,7 @@
       "Value": { "Ref": "AWS::StackName" }
     },
     "RackDomain": {
-      "Value": { 
+      "Value": {
         "Fn::Join": [ ".", [
           "rack",
           { "Fn::Select": [ 0, { "Fn::Split": [ ".", { "Fn::GetAtt": [ "ApiBalancer", "DNSName" ] } ] } ] },
@@ -2412,7 +2412,7 @@
         "Handler": "handler",
         "MemorySize": "128",
         "Role": { "Fn::GetAtt": [ "ApiRole", "Arn" ] },
-        "Runtime": "provided.al2",
+        "Runtime": "provided.al2023",
         "Timeout": "60",
         "VpcConfig": { "Fn::If": [ "PrivateAndPlaceLambdaInVpc",
           {
@@ -2543,7 +2543,7 @@
         "Handler": "handler",
         "MemorySize": "128",
         "Role": { "Fn::GetAtt": [ "InstancesLifecycleHandlerRole", "Arn" ] },
-        "Runtime": "provided.al2",
+        "Runtime": "provided.al2023",
         "Timeout": "300",
         "VpcConfig": { "Fn::If": [ "PrivateAndPlaceLambdaInVpc",
           {
@@ -3000,7 +3000,7 @@
                 { "Key": "Name", "Value": { "Ref": "AWS::StackName" }},
                 { "Key": "Rack", "Value": { "Ref": "AWS::StackName" }},
                 { "Key": "GatewayAttachment", "Value": { "Fn::If": [ "ExistingVpc", "existing",{ "Ref": "GatewayAttachment"}]}},
-                { "Key": "NatGateways", "Value": { "Fn::If": 
+                { "Key": "NatGateways", "Value": { "Fn::If":
                   [  "PrivateInstances",
                       {
                         "Fn::Join": [
@@ -3262,7 +3262,7 @@
                 { "Key": "Name", "Value": { "Ref": "AWS::StackName" }},
                 { "Key": "Rack", "Value": { "Ref": "AWS::StackName" }},
                 { "Key": "GatewayAttachment", "Value": { "Fn::If": [ "ExistingVpc", "existing",{ "Ref": "GatewayAttachment"}]}},
-                { "Key": "NatGateways", "Value": { "Fn::If": 
+                { "Key": "NatGateways", "Value": { "Fn::If":
                   [  "PrivateInstances",
                       {
                         "Fn::Join": [
@@ -3968,7 +3968,7 @@
         "DeploymentConfiguration": { "MinimumHealthyPercent": { "Fn::If": [ "HighAvailability", "50", "0" ] }, "MaximumPercent": "200" },
         "DesiredCount": { "Fn::If": [ "HighAvailability", { "Ref": "ApiCount" }, 1 ] },
         "LoadBalancers": [ { "ContainerName": "web", "ContainerPort": "5443", "TargetGroupArn": { "Ref": "ApiBalancerTargetGroup" } }],
-        "PlacementConstraints": [ { "Fn::If": ["SpotFleet", { "Type": "memberOf", "Expression": "attribute:asg == primary" }, { "Ref": "AWS::NoValue" }] } ], 
+        "PlacementConstraints": [ { "Fn::If": ["SpotFleet", { "Type": "memberOf", "Expression": "attribute:asg == primary" }, { "Ref": "AWS::NoValue" }] } ],
         "Role": { "Fn::GetAtt": [ "ServiceRole", "Arn" ] },
         "TaskDefinition": { "Ref": "ApiWebTasks" }
       }
@@ -4515,7 +4515,7 @@
         "VersioningConfiguration": { "Status" : {"Ref": "EnableS3Versioning" } },
         "LifecycleConfiguration": { "Fn::If": [ "BlankLogRetention",
           { "Rules": [ { "NoncurrentVersionExpiration": { "NewerNoncurrentVersions" : 1, "NoncurrentDays" : 365 }, "Status": "Enabled" } ] },
-          { "Rules": [ 
+          { "Rules": [
             { "ExpirationInDays": { "Ref": "LogRetention" }, "Status": "Enabled" },
             { "NoncurrentVersionExpiration": { "NewerNoncurrentVersions" : 1, "NoncurrentDays" : 365 }, "Status": "Enabled" }
             ] }
