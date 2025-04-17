@@ -6,7 +6,7 @@ lambda.zip: handler
 	zip -r lambda.zip bootstrap
 
 handler: *.go
-	GOOS=linux GOARCH=amd64 go build -o bootstrap
+	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -ldflags="-extldflags=-static" -o bootstrap
 
 clean:
 	rm -f lambda.zip bootstrap
