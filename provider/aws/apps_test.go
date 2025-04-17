@@ -86,6 +86,17 @@ func TestAppGet(t *testing.T) {
 }
 
 func TestAppLogs(t *testing.T) {
+	oldNow := helpers.TimeNow
+	helpers.TimeNow = func() time.Time {
+		return time.Date(2025, 4, 9, 22, 0, 0, 0, time.UTC)
+	}
+	defer func() { helpers.TimeNow = oldNow }()
+
+	mockedNow := helpers.TimeNow()
+	wantThen := time.Date(2011, 1, 1, 0, 0, 0, 0, time.UTC)
+
+	since := mockedNow.Sub(wantThen)
+
 	provider := StubAwsProvider(
 		cycleListAppStackResources,
 		cycleLogFilterLogEvents1,
@@ -99,7 +110,7 @@ func TestAppLogs(t *testing.T) {
 		Follow: options.Bool(false),
 		Filter: options.String("test"),
 		Prefix: options.Bool(true),
-		Since:  options.Duration(time.Since(time.Date(2011, 1, 1, 0, 0, 0, 0, time.UTC))),
+		Since:  options.Duration(since),
 	})
 
 	io.Copy(buf, r)

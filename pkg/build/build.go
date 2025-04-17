@@ -1,6 +1,7 @@
 package build
 
 import (
+	"bufio"
 	"bytes"
 	"compress/gzip"
 	"encoding/json"
@@ -32,6 +33,7 @@ type Options struct {
 	Generation  string
 	Id          string
 	Manifest    string
+	Method      string
 	Output      io.Writer
 	Push        string
 	Rack        string
@@ -58,6 +60,11 @@ func New(opts Options) (*Build, error) {
 		default:
 			b.Manifest = "docker-compose.yml"
 		}
+	}
+
+	// Default to tgz method if not specified
+	if b.Method == "" {
+		b.Method = "tgz"
 	}
 
 	r, err := sdk.NewFromEnv()
@@ -164,6 +171,7 @@ func (bb *Build) execute() error {
 	return nil
 }
 
+// login handles authentication for both Docker and Kaniko builds
 func (bb *Build) login() error {
 	var auth map[string]struct {
 		Username string
@@ -174,19 +182,13 @@ func (bb *Build) login() error {
 		return err
 	}
 
-	for host, entry := range auth {
-		buf := &bytes.Buffer{}
-
-		err := bb.Exec.Stream(buf, strings.NewReader(entry.Password), "docker", "login", "-u", entry.Username, "--password-stdin", host)
-
-		bb.Printf("Authenticating %s: %s\n", host, strings.TrimSpace(buf.String()))
-
-		if err != nil {
-			return err
-		}
+	// For Kaniko, write Docker config.json instead of using docker login
+	if bb.Method == "kaniko" {
+		return loginForKaniko(auth)
 	}
 
-	return nil
+	// Standard Docker login for non-Kaniko builds
+	return loginForDocker(bb, auth)
 }
 
 func (bb *Build) buildGeneration1(dir string) error {
@@ -420,4 +422,58 @@ func (bb *Build) fail(buildError error) error {
 	}
 
 	return buildError
+}
+
+// build calls the appropriate builder based on the method
+func (bb *Build) build(path, dockerfile string, tag string, env map[string]string) error {
+	if path == "" {
+		return fmt.Errorf("must have path to build")
+	}
+
+	df := filepath.Join(path, dockerfile)
+
+	// Choose build implementation based on method
+	switch bb.Method {
+	case "kaniko":
+		return bb.buildWithKaniko(path, df, tag, env)
+	default:
+		return bb.buildWithDocker(path, df, tag, env)
+	}
+}
+
+// Common function for extracting build args from Dockerfile
+func (bb *Build) buildArgs(dockerfile string, env map[string]string) ([]string, error) {
+	fd, err := os.Open(dockerfile)
+	if err != nil {
+		return nil, err
+	}
+	defer fd.Close()
+
+	s := bufio.NewScanner(fd)
+
+	args := []string{}
+
+	for s.Scan() {
+		fields := strings.Fields(strings.TrimSpace(s.Text()))
+
+		if len(fields) < 2 {
+			continue
+		}
+
+		parts := strings.Split(fields[1], "=")
+
+		switch fields[0] {
+		case "FROM":
+			if bb.Development && strings.Contains(strings.ToLower(s.Text()), "as development") {
+				args = append(args, "--target", "development")
+			}
+		case "ARG":
+			k := strings.TrimSpace(parts[0])
+			if v, ok := env[k]; ok {
+				args = append(args, "--build-arg", fmt.Sprintf("%s=%s", k, v))
+			}
+		}
+	}
+
+	return args, nil
 }

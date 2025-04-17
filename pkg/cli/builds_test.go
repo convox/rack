@@ -9,7 +9,6 @@ import (
 
 	"github.com/convox/rack/pkg/cli"
 	mocksdk "github.com/convox/rack/pkg/mock/sdk"
-	"github.com/convox/rack/pkg/options"
 	"github.com/convox/rack/pkg/structs"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -21,7 +20,13 @@ func TestBuild(t *testing.T) {
 		i.On("ObjectStore", "app1", mock.AnythingOfType("string"), mock.Anything, structs.ObjectStoreOptions{}).Return(&fxObject, nil).Run(func(args mock.Arguments) {
 			require.Regexp(t, `tmp/[0-9a-f]{30}\.tgz`, args.Get(1).(string))
 		})
-		i.On("BuildCreate", "app1", "object://test", structs.BuildCreateOptions{Description: options.String("foo")}).Return(fxBuild(), nil)
+		i.On("BuildCreate",
+			"app1",
+			"object://test",
+			mock.MatchedBy(func(o structs.BuildCreateOptions) bool {
+				return o.Description != nil && *o.Description == "foo"
+			}),
+		).Return(fxBuild(), nil)
 		i.On("BuildLogs", "app1", "build1", structs.LogsOptions{}).Return(testLogs(fxLogs()), nil).Once()
 		i.On("BuildGet", "app1", "build1").Return(fxBuildRunning(), nil).Once()
 		i.On("BuildGet", "app1", "build4").Return(fxBuild(), nil)
@@ -49,7 +54,13 @@ func TestBuildFinalizeLogs(t *testing.T) {
 		i.On("ObjectStore", "app1", mock.AnythingOfType("string"), mock.Anything, structs.ObjectStoreOptions{}).Return(&fxObject, nil).Run(func(args mock.Arguments) {
 			require.Regexp(t, `tmp/[0-9a-f]{30}\.tgz`, args.Get(1).(string))
 		})
-		i.On("BuildCreate", "app1", "object://test", structs.BuildCreateOptions{Description: options.String("foo")}).Return(fxBuild(), nil)
+		i.On("BuildCreate",
+			"app1",
+			"object://test",
+			mock.MatchedBy(func(o structs.BuildCreateOptions) bool {
+				return o.Description != nil && *o.Description == "foo"
+			}),
+		).Return(fxBuild(), nil)
 		i.On("BuildLogs", "app1", "build1", structs.LogsOptions{}).Return(testLogs(fxLogs()), nil).Once()
 		i.On("BuildGet", "app1", "build1").Return(fxBuildRunning(), nil).Once()
 		i.On("BuildGet", "app1", "build4").Return(fxBuild(), nil)
@@ -78,7 +89,13 @@ func TestBuildError(t *testing.T) {
 		i.On("ObjectStore", "app1", mock.AnythingOfType("string"), mock.Anything, structs.ObjectStoreOptions{}).Return(&fxObject, nil).Run(func(args mock.Arguments) {
 			require.Regexp(t, `tmp/[0-9a-f]{30}\.tgz`, args.Get(1).(string))
 		})
-		i.On("BuildCreate", "app1", "object://test", structs.BuildCreateOptions{Description: options.String("foo")}).Return(nil, fmt.Errorf("err1"))
+		i.On("BuildCreate",
+			"app1",
+			"object://test",
+			mock.MatchedBy(func(o structs.BuildCreateOptions) bool {
+				return o.Description != nil && *o.Description == "foo"
+			}),
+		).Return(nil, fmt.Errorf("err1"))
 
 		res, err := testExecute(e, "build ./testdata/httpd -a app1 -d foo", nil)
 		require.NoError(t, err)
@@ -95,7 +112,13 @@ func TestBuildError(t *testing.T) {
 func TestBuildClassic(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
 		i.On("SystemGet").Return(fxSystemClassic(), nil)
-		i.On("BuildCreateUpload", "app1", mock.Anything, structs.BuildCreateOptions{Description: options.String("foo")}).Return(fxBuild(), nil)
+		i.On("BuildCreateUpload",
+			"app1",
+			mock.Anything,
+			mock.MatchedBy(func(o structs.BuildCreateOptions) bool {
+				return o.Description != nil && *o.Description == "foo"
+			}),
+		).Return(fxBuild(), nil)
 		i.On("BuildLogs", "app1", "build1", structs.LogsOptions{}).Return(testLogs(fxLogs()), nil)
 		i.On("BuildGet", "app1", "build1").Return(fxBuildRunning(), nil).Once()
 		i.On("BuildGet", "app1", "build4").Return(fxBuild(), nil)

@@ -63,7 +63,7 @@ func execute() error {
 	fs.StringVar(&flagGeneration, "generation", "", "app generation")
 	fs.StringVar(&flagID, "id", "latest", "build id")
 	fs.StringVar(&flagManifest, "manifest", "", "path to app manifest")
-	fs.StringVar(&flagMethod, "method", "", "source method")
+	fs.StringVar(&flagMethod, "method", "tgz", "source method")
 	fs.StringVar(&flagPush, "push", "", "push to registry")
 	fs.StringVar(&flagRack, "rack", "convox", "rack name")
 	fs.StringVar(&flagUrl, "url", "", "source url")
@@ -100,6 +100,10 @@ func execute() error {
 		flagManifest = v
 	}
 
+	if v := os.Getenv("BUILD_ENGINE"); v != "" {
+		flagMethod = v
+	}
+
 	if v := os.Getenv("BUILD_PUSH"); v != "" {
 		flagPush = v
 	}
@@ -122,6 +126,7 @@ func execute() error {
 		Generation:  flagGeneration,
 		Id:          flagID,
 		Manifest:    flagManifest,
+		Method:      flagMethod,
 		Push:        flagPush,
 		Rack:        flagRack,
 		Source:      flagUrl,
