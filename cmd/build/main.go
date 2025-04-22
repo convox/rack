@@ -36,6 +36,7 @@ var (
 	flagPush        string
 	flagRack        string
 	flagUrl         string
+	flagRuntime     string
 
 	currentBuild    *structs.Build
 	currentLogs     string
@@ -67,6 +68,7 @@ func execute() error {
 	fs.StringVar(&flagPush, "push", "", "push to registry")
 	fs.StringVar(&flagRack, "rack", "convox", "rack name")
 	fs.StringVar(&flagUrl, "url", "", "source url")
+	fs.StringVar(&flagRuntime, "runtime", "ec2", "source runtime")
 
 	if err := fs.Parse(os.Args[1:]); err != nil {
 		return err
@@ -112,6 +114,10 @@ func execute() error {
 		flagUrl = v
 	}
 
+	if v := os.Getenv("BUILD_RUNTIME"); v != "" {
+		flagRuntime = v
+	}
+
 	opts := build.Options{
 		App:         flagApp,
 		Auth:        flagAuth,
@@ -125,6 +131,7 @@ func execute() error {
 		Push:        flagPush,
 		Rack:        flagRack,
 		Source:      flagUrl,
+		Runtime:     flagRuntime,
 	}
 
 	b, err := build.New(opts)

@@ -157,7 +157,7 @@ func (bb *Build) injectConvoxEnv(tag string) error {
 		return err
 	}
 
-	data, err = bb.Exec.Execute("docker", "build", "-t", tag, tmp)
+	_, err = bb.Exec.Execute("docker", "build", "-t", tag, tmp)
 	if err != nil {
 		return err
 	}
