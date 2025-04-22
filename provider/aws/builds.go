@@ -793,7 +793,17 @@ func (p *Provider) authECR(host, access, secret string) (string, string, error) 
 func (p *Provider) runBuild(build *structs.Build, burl string, opts structs.BuildCreateOptions) error {
 	log := Logger.At("runBuild").Namespace("url=%q", burl).Start()
 
-	br, err := p.stackResource(p.Rack, "ApiBuildTasks")
+	buildTaskName := "ApiBuildTasks"
+	buildType, err := p.stackParameter(p.Rack, "BuildMethod")
+	if err != nil {
+		log.Error(err)
+		return err
+	}
+	if buildType == "fargate" {
+		buildTaskName = "ApiBuildFargate"
+	}
+
+	br, err := p.stackResource(p.Rack, buildTaskName)
 	if err != nil {
 		log.Error(err)
 		return err
