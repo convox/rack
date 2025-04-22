@@ -26,6 +26,14 @@
     "BlankRouterSecurityGroup": { "Fn::Equals": [ { "Fn::Join": [ ",", { "Ref": "RouterSecurityGroup" } ] }, "" ] },
     "BlankRouterInternalSecurityGroup": { "Fn::Equals": [ { "Fn::Join": [ ",", { "Ref": "RouterInternalSecurityGroup" } ] }, "" ] },
     "BlankSslPolicy": { "Fn::Equals": [ { "Ref": "SslPolicy" }, "" ] },
+    "UseBuildInstance": { "Fn::Or": [
+      { "Fn::Not": [ { "Condition": "RegionHasEFS" } ] },
+      { "Fn::Equals": [ { "Ref": "BuildMethod" }, "ec2" ] }
+    ]},
+    "UseFargateBuild": { "Fn::And": [
+      { "Condition": "RegionHasEFS" },
+      { "Fn::Equals": [ { "Ref": "BuildMethod" }, "fargate" ] }
+    ]},
     "CreateThirdPrivateSubnet": {"Fn::Or": [
       {"Condition": "PrivateApiAndThirdAvailabilityZoneAndHighAvailability"},
       {"Condition": "PrivateAndThirdAvailabilityZoneAndHighAvailability"}
@@ -671,6 +679,12 @@
       "Default": "",
       "Description": "ARN of an additional IAM policy to add to the cluster build instances",
       "Type": "String"
+    },
+    "BuildMethod": {
+      "Type": "String",
+      "Description": "Which build process to use, ec2 will use the build instance, fargate will use a fargate task",
+      "Default": "ec2",
+      "AllowedValues": [ "ec2", "fargate" ]
     },
     "BuildMemory": {
       "Type": "String",
@@ -3945,6 +3959,36 @@
                 }
               ]
             }
+          },
+          {
+            "PolicyName": "EcrBuildAccess",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "ecr:GetAuthorizationToken",
+                    "ecr:BatchCheckLayerAvailability",
+                    "ecr:BatchGetImage",
+                    "ecr:InitiateLayerUpload",
+                    "ecr:UploadLayerPart",
+                    "ecr:CompleteLayerUpload",
+                    "ecr:PutImage"
+                  ],
+                  "Resource": "*"
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "ecr-public:GetAuthorizationToken",
+                    "ecr-public:BatchCheckLayerAvailability",
+                    "ecr-public:BatchGetImage"
+                  ],
+                  "Resource": "*"
+                }
+              ]
+            }
           }
         ]
       }
@@ -3974,6 +4018,7 @@
       }
     },
     "ApiBuildTasks": {
+      "Condition": "UseBuildInstance",
       "Type": "AWS::ECS::TaskDefinition",
       "Properties": {
         "ContainerDefinitions": [
@@ -4103,6 +4148,115 @@
           { "Name": "home" },
           { "Name": "temp" }
         ]
+      }
+    },
+    "ApiBuildFargate": {
+      "Condition": "UseFargateBuild",
+      "Type": "AWS::ECS::TaskDefinition",
+      "Properties": {
+        "RequiresCompatibilities": ["FARGATE"],
+        "NetworkMode": "awsvpc",
+        "ContainerDefinitions": [
+          {
+            "Cpu": { "Ref": "BuildCpu" },
+            "DockerLabels": {
+              "convox.release": { "Ref": "Version" },
+              "rack.ApiBalancerSecurity": { "Ref": "ApiBalancerSecurity" },
+              "rack.BuildCluster": { "Fn::If": [ "DedicatedBuilder", { "Ref": "BuildCluster" }, { "Ref": "Cluster" } ] },
+              "rack.CloudformationTopic": { "Ref": "CloudformationTopic" },
+              "rack.Cluster": { "Ref": "Cluster" },
+              "rack.DynamoBuilds": { "Ref": "DynamoBuilds" },
+              "rack.DynamoReleases": { "Ref": "DynamoReleases" },
+              "rack.EcsPollInterval": { "Ref": "EcsPollInterval" },
+              "rack.LogDriver": { "Ref": "LogDriver" },
+              "rack.EncryptionKey": { "Ref": "EncryptionKey" },
+              "rack.Fargate": { "Fn::FindInMap": [ "RegionConfig", { "Ref": "AWS::Region" }, "Fargate" ] },
+              "rack.HighAvailability": { "Ref": "HighAvailability" },
+              "rack.InstancesIpToIncludInWhiteListing": { "Ref": "InstancesIpToIncludInWhiteListing" },
+              "rack.Internal": { "Ref": "Internal" },
+              "rack.InternalOnly": { "Ref": "InternalOnly" },
+              "rack.LogBucket": { "Fn::If": [ "BlankLogBucket", { "Ref": "Logs" }, { "Ref": "LogBucket" } ] },
+              "rack.NotificationTopic": { "Ref": "NotificationTopic" },
+              "rack.OnDemandMinCount": { "Ref": "OnDemandMinCount" },
+              "rack.Private": { "Ref": "Private" },
+              "rack.PrivateBuild": { "Ref": "PrivateBuild" },
+              "rack.SecurityGroup": { "Fn::If": [ "BlankInstanceSecurityGroup", { "Ref": "InstancesSecurity" }, { "Ref": "InstanceSecurityGroup" } ] },
+              "rack.SettingsBucket": { "Ref": "Settings" },
+              "rack.SpotInstances": { "Fn::If": [ "SpotInstances", "Yes", "No" ] },
+              "rack.Subnets": { "Fn::Join": [ ",", [
+                { "Ref": "Subnet0" },
+                { "Ref": "Subnet1" },
+                { "Fn::If": [ "ThirdAvailabilityZoneAndHighAvailability", { "Ref": "Subnet2" }, { "Ref": "AWS::NoValue" } ] }
+              ] ] },
+              "rack.SubnetsPrivate": { "Fn::If": [ "Private",
+                { "Fn::Join": [ ",", [
+                  { "Ref": "SubnetPrivate0" },
+                  { "Ref": "SubnetPrivate1" },
+                  { "Fn::If": [ "ThirdAvailabilityZoneAndHighAvailability", { "Ref": "SubnetPrivate2" }, { "Ref": "AWS::NoValue" } ] }
+                ] ] },
+                { "Ref": "AWS::NoValue" }
+              ] },
+              "rack.SyslogDestination": { "Ref": "SyslogDestination" },
+              "rack.SyslogFormat": { "Ref": "SyslogFormat" },
+              "rack.Version": { "Ref": "Version" },
+              "rack.Vpc": { "Fn::If": [ "BlankExistingVpc",
+                { "Ref": "Vpc" },
+                { "Ref": "ExistingVpc" }
+              ] },
+              "rack.VpcCidr": { "Ref": "VPCCIDR" },
+              "rack.WhiteListSpecified": { "Fn::If": [ "WhiteListCIDRs", "Yes", "No"] }
+            },
+            "Environment": [
+              { "Name": "AWS_REGION", "Value": { "Ref": "AWS::Region" } },
+              { "Name": "NO_PROXY", "Value": "169.254.169.254,169.254.170.2,/var/run/docker.sock" },
+              { "Name": "HTTP_PROXY", "Value": { "Ref": "HttpProxy" } },
+              { "Name": "HTTPS_PROXY", "Value": { "Ref": "HttpProxy" } },
+              { "Name": "PROVIDER", "Value": "aws" },
+              { "Name": "RACK", "Value": { "Ref": "AWS::StackName" } },
+              { "Name": "STACK_ID", "Value": { "Ref": "AWS::StackId" } },
+              { "Name": "BUILD_RUNTIME", "Value": "daemonless" }
+            ],
+            "Image": { "Fn::Sub": "convox/build:${Version}" },
+            "LogConfiguration": {
+              "Fn::If": [
+                "EnableSyslog",
+                {
+                  "LogDriver": "syslog",
+                  "Options": {
+                    "syslog-address": { "Ref": "SyslogDestination" },
+                    "syslog-format": { "Ref": "SyslogFormat" }
+                  }
+                },
+                {
+                  "Fn::If": [
+                    "EnableCloudWatch",
+                    {
+                      "LogDriver": "awslogs",
+                      "Options": {
+                        "awslogs-region": { "Ref": "AWS::Region" },
+                        "awslogs-group": { "Ref": "LogGroup" },
+                        "awslogs-stream-prefix": "build"
+                      }
+                    },
+                    {
+                      "Ref": "AWS::NoValue"
+                    }
+                  ]
+                }
+              ]
+            },
+            "Memory": { "Ref": "BuildMemory" },
+            "ReadonlyRootFilesystem": { "Fn::If": [ "EnableContainerReadonlyRootFilesystem", "true", "false" ] },
+            "Name": "build",
+            "Secrets": [{
+              "Name": "PASSWORD",
+              "ValueFrom": { "Fn::Sub": "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}RackApiSecret" }
+            }]
+          }
+        ],
+        "ExecutionRoleArn": { "Fn::GetAtt": [ "ApiRole", "Arn" ] },
+        "Family": { "Fn::Sub": "${AWS::StackName}-build" },
+        "TaskRoleArn": { "Fn::GetAtt": [ "ApiRole", "Arn" ] }
       }
     },
     "ApiMonitorTasks": {
