@@ -29,4 +29,5 @@ COPY --from=package /usr/local/bin/crane /usr/local/bin/crane
 COPY --from=package /go/bin/build /usr/local/bin/
 COPY --from=package /go/bin/convox-env /usr/local/bin/
 
-ENV PATH=$PATH:/usr/local/bin
+ENTRYPOINT ["/usr/local/bin/build"]
+CMD ["-h"]

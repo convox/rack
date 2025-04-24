@@ -947,12 +947,21 @@ func (p *Provider) runBuild(build *structs.Build, burl string, opts structs.Buil
 	}
 
 	// Prepare build command based on whether using Fargate (Kaniko) or EC2 (Docker)
-	buildCmd := []*string{
-		aws.String("build"),
-		aws.String("-method"), aws.String("tgz"),
-		aws.String("-cache"), aws.String(fmt.Sprintf("%t", cache)),
-	}
+	var buildCmd []*string
 	var env []*ecs.KeyValuePair
+
+	if buildMethod == "fargate" {
+		buildCmd = []*string{
+			aws.String("-method"), aws.String("tgz"),
+			aws.String("-cache"), aws.String(fmt.Sprintf("%t", cache)),
+		}
+	} else {
+		buildCmd = []*string{
+			aws.String("build"),
+			aws.String("-method"), aws.String("tgz"),
+			aws.String("-cache"), aws.String(fmt.Sprintf("%t", cache)),
+		}
+	}
 
 	// Base environment variables for all build types
 	env = append(env, []*ecs.KeyValuePair{
