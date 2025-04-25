@@ -1,5 +1,7 @@
 FROM golang:1.23-bookworm AS package
 
+ENV PATH=$PATH:/go/bin
+
 # Add backports to get upx-ucl in Bookworm
 RUN echo "deb http://deb.debian.org/debian bookworm-backports main" > /etc/apt/sources.list.d/backports.list && \
     apt-get update && apt-get install -y -t bookworm-backports upx-ucl
@@ -23,10 +25,10 @@ RUN curl -sL "https://github.com/google/go-containerregistry/releases/download/$
 FROM gcr.io/kaniko-project/executor:debug
 
 # Copy crane
-COPY --from=package /usr/local/bin/crane /usr/local/bin/crane
+COPY --from=package /usr/local/bin/crane /busybox
 
-# copy the Convox tools
-COPY --from=package /go/bin/build /usr/local/bin/
-COPY --from=package /go/bin/convox-env /usr/local/bin/
+# Copy the build output
+COPY --from=package /go/bin/build /busybox/
+COPY --from=package /go/bin/convox-env /busybox/
 
-ENV PATH=$PATH:/usr/local/bin
+CMD ["/busybox/build"]

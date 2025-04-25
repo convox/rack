@@ -103,7 +103,7 @@ test-docker:
 	docker run -it convox/rack:test make test
 
 $(binaries): $(GOPATH)/bin/%: $(sources)
-	go install --ldflags="-s -w" ./cmd/$*
+	env CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -mod=vendor -tags=hidraw -ldflags="-extldflags=-static" -o $@ ./cmd/$*
 
 $(statics): $(GOPATH)/bin/%: $(sources)
 	env CGO_ENABLED=0 go install --ldflags '-extldflags "-static" -s -w' ./cmd/$*
