@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"sync"
 
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ecr"
@@ -25,40 +26,54 @@ import (
 	"github.com/kballard/go-shellquote"
 )
 
-const (
-	kanikoTarPath   = "/workspace/%s.tar"
-	injectedTarPath = "/workspace/injected-%s.tar"
-	convoxEnvPath   = "/busybox/convox-env"
-)
+// workspaceDir is the directory baked into the builder image that Kaniko writes to.
+const workspaceDir = "/workspace"
+const convoxEnvBinary = "/busybox/convox-env"
+
+// tarPathFor generates a safe on‑disk tar filename for an image tag by replacing
+// characters that are illegal in file names.
+func tarPathFor(tag string) string {
+	safe := strings.NewReplacer("/", "_", ":", "_").Replace(tag)
+	return filepath.Join(workspaceDir, safe+".tar")
+}
+
+func injectedTarPathFor(tag string) string {
+	safe := strings.NewReplacer("/", "_", ":", "_").Replace(tag)
+	return filepath.Join(workspaceDir, "injected-"+safe+".tar")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Top‑level build entrypoint for generation‑2 / daemonless.
+// ──────────────────────────────────────────────────────────────────────────────
 
 func (bb *Build) buildGeneration2Daemonless(dir string) error {
 	config := filepath.Join(dir, bb.Manifest)
-
 	if _, err := os.Stat(config); os.IsNotExist(err) {
 		return fmt.Errorf("no such file: %s", bb.Manifest)
 	}
 
 	data, err := os.ReadFile(config)
 	if err != nil {
-		return err
+		return fmt.Errorf("reading manifest: %w", err)
 	}
 
 	env, err := helpers.AppEnvironment(bb.Provider, bb.App)
 	if err != nil {
-		return err
+		return fmt.Errorf("loading app env: %w", err)
 	}
 
+	// merge CLI‑supplied build args into env map so buildArgs() picks them up
 	for _, v := range bb.BuildArgs {
 		parts := strings.SplitN(v, "=", 2)
 		if len(parts) != 2 {
-			return fmt.Errorf("invalid build args: %s", v)
+			return fmt.Errorf("invalid build arg: %s", v)
 		}
 		env[parts[0]] = parts[1]
 	}
 
 	m, err := manifest.Load(data, env)
 	if err != nil {
-		return err
+		return fmt.Errorf("loading manifest: %w", err)
 	}
 
 	prefix := fmt.Sprintf("%s/%s", bb.Rack, bb.App)
@@ -85,9 +100,10 @@ func (bb *Build) buildGeneration2Daemonless(dir string) error {
 		}
 	}
 
+	// ─── Build phases ────────────────────────────────────────────────────────
+
 	for hash, b := range builds {
 		bb.Printf("Building: %s\n", b.Path)
-
 		if err := bb.buildDaemonless(filepath.Join(dir, b.Path), b.Manifest, hash, env); err != nil {
 			return err
 		}
@@ -99,13 +115,13 @@ func (bb *Build) buildGeneration2Daemonless(dir string) error {
 		}
 	}
 
-	tagfroms := []string{}
+	tagFroms := make([]string, 0, len(tags))
 	for from := range tags {
-		tagfroms = append(tagfroms, from)
+		tagFroms = append(tagFroms, from)
 	}
+	sort.Strings(tagFroms)
 
-	sort.Strings(tagfroms)
-	for _, from := range tagfroms {
+	for _, from := range tagFroms {
 		tos := tags[from]
 
 		if bb.EnvWrapper {
@@ -116,7 +132,6 @@ func (bb *Build) buildGeneration2Daemonless(dir string) error {
 
 		for _, to := range tos {
 			destination := pushes[to]
-
 			if err := bb.tagAndPushDaemonless(from, destination); err != nil {
 				return err
 			}
@@ -126,27 +141,21 @@ func (bb *Build) buildGeneration2Daemonless(dir string) error {
 	return nil
 }
 
-func (bb *Build) buildDaemonless(path, dockerfile string, tag string, env map[string]string) error {
-	fmt.Printf("Path: %s\n", path)
-	fmt.Printf("Dockerfile: %s\n", dockerfile)
-	fmt.Printf("Tag: %s\n", tag)
-	fmt.Printf("Env: %v\n", env)
+// buildDaemonless builds a single Dockerfile context with Kaniko and stores the
+// resulting OCI‑image tarball in workspaceDir.
+func (bb *Build) buildDaemonless(path, dockerfile, tag string, env map[string]string) error {
+	bb.Printf("Kaniko build: context=%s dockerfile=%s tag=%s\n", path, dockerfile, tag)
 
-	// make sure this is the directory you’ve mounted into the Kaniko container
-	// Kaniko expects a “dir://” prefix for local contexts:
 	contextDir := "dir://" + path
-	bb.Printf("Using Kaniko to build %s in %s", tag, contextDir)
+	tarPath := tarPathFor(tag)
 
-	useCache := "--cache=false"
-	tarPath := fmt.Sprintf(kanikoTarPath, tag)
-	fmt.Printf("building to %s\n", tarPath)
-	buildArgs := []string{
+	args := []string{
 		"--dockerfile", dockerfile,
 		"--context", contextDir,
 		"--tarPath", tarPath,
 		"--destination", tag,
-		useCache,
 		"--no-push",
+		"--cache=false",
 	}
 
 	df := filepath.Join(path, dockerfile)
@@ -154,34 +163,28 @@ func (bb *Build) buildDaemonless(path, dockerfile string, tag string, env map[st
 	if err != nil {
 		return err
 	}
-	buildArgs = append(buildArgs, ba...)
+	args = append(args, ba...)
 
-	fmt.Printf("calling kaniko with args: %s\n", buildArgs)
-	err = bb.Exec.Run(bb.writer, "/kaniko/executor", buildArgs...)
-	if err != nil {
+	if err := bb.Exec.Run(bb.writer, "/kaniko/executor", args...); err != nil {
 		return err
 	}
 
-	bb.Printf("Running Kaniko build...")
-
-	// Load image from Kaniko output to extract entrypoint
+	// Extract entrypoint for release metadata
 	img, err := tarball.ImageFromPath(tarPath, nil)
 	if err != nil {
-		return fmt.Errorf("buildDaemonless: loading image from Kaniko %s tar: %w", tarPath, err)
+		return fmt.Errorf("loading kaniko image tar: %w", err)
 	}
 
 	cfg, err := img.ConfigFile()
 	if err != nil {
-		return fmt.Errorf("reading config: %w", err)
+		return fmt.Errorf("reading image config: %w", err)
 	}
 
-	fmt.Printf("Entrypoint: %v\n", cfg.Config.Entrypoint)
-	if cfg.Config.Entrypoint != nil {
-		opts := structs.BuildUpdateOptions{
-			Entrypoint: options.String(shellquote.Join(cfg.Config.Entrypoint...)),
-		}
-
-		if _, err := bb.Provider.BuildUpdate(bb.App, bb.Id, opts); err != nil {
+	if ep := cfg.Config.Entrypoint; ep != nil {
+		_, err = bb.Provider.BuildUpdate(bb.App, bb.Id, structs.BuildUpdateOptions{
+			Entrypoint: options.String(shellquote.Join(ep...)),
+		})
+		if err != nil {
 			return fmt.Errorf("saving entrypoint: %w", err)
 		}
 	}
@@ -189,162 +192,158 @@ func (bb *Build) buildDaemonless(path, dockerfile string, tag string, env map[st
 	return nil
 }
 
+// injectConvoxEnvDaemonless mutates the already‑built tarball by prepending the
+// /convox-env wrapper and rewriting the entrypoint.
 func (bb *Build) injectConvoxEnvDaemonless(tag string) error {
-	bb.Printf("Injecting convox-env into image built by Kaniko...")
+	originalTar := tarPathFor(tag)
+	injectedTar := injectedTarPathFor(tag)
 
-	// Prepare paths
-	originalTarPath := fmt.Sprintf(kanikoTarPath, tag)
-	toTarPath := fmt.Sprintf(injectedTarPath, tag)
+	bb.Printf("Injecting convox-env into %s → %s\n", originalTar, injectedTar)
 
-	bb.Printf("Original image tarball: %s", originalTarPath)
-	bb.Printf("Injected image tarball: %s", toTarPath)
-
-	// Load the original image built by Kaniko
-	img, err := tarball.ImageFromPath(originalTarPath, nil)
+	img, err := tarball.ImageFromPath(originalTar, nil)
 	if err != nil {
-		return fmt.Errorf("loading original Kaniko image tarball: %w", err)
+		return fmt.Errorf("load image: %w", err)
 	}
 
-	// Read convox-env binary from disk
-	bin, err := os.ReadFile(convoxEnvPath)
+	bin, err := os.ReadFile(convoxEnvBinary)
 	if err != nil {
-		return fmt.Errorf("reading convox-env binary: %w", err)
+		return fmt.Errorf("read %s: %w", convoxEnvBinary, err)
 	}
 
-	// Create a new layer that adds convox-env
 	layer, err := tarball.LayerFromOpener(func() (io.ReadCloser, error) {
 		return io.NopCloser(bytes.NewReader(singleFileTar("/convox-env", bin))), nil
 	})
 	if err != nil {
-		return fmt.Errorf("creating new layer for convox-env: %w", err)
+		return fmt.Errorf("create layer: %w", err)
 	}
 
-	// Get current image config
 	cfg, err := img.ConfigFile()
 	if err != nil {
-		return fmt.Errorf("reading image config: %w", err)
+		return fmt.Errorf("config: %w", err)
 	}
-
-	// Modify entrypoint to add convox-env
+	// adjust entrypoint first, then apply in single mutate.Config call later
 	cfg.Config.Entrypoint = append([]string{"/convox-env"}, cfg.Config.Entrypoint...)
 
-	// Apply mutations: add new layer and update config
-	img, err = mutate.Append(img, mutate.Addendum{Layer: layer})
-	if err != nil {
-		return fmt.Errorf("appending convox-env layer: %w", err)
-	}
-
+	// apply config update
 	img, err = mutate.Config(img, cfg.Config)
 	if err != nil {
-		return fmt.Errorf("mutating image config: %w", err)
+		return fmt.Errorf("mutate config: %w", err)
 	}
 
-	// Prepare the new reference for the injected tarball
+	// append new layer
+	img, err = mutate.Append(img, mutate.Addendum{Layer: layer})
+	if err != nil {
+		return fmt.Errorf("append layer: %w", err)
+	}
+
 	ref, err := name.NewTag(tag)
 	if err != nil {
-		return fmt.Errorf("parsing tag: %w", err)
+		return fmt.Errorf("parse tag: %w", err)
 	}
 
-	// Write the modified image to a NEW tarball
-	bb.Printf("Writing mutated image tarball to: %s", toTarPath)
-
-	if err := tarball.WriteToFile(toTarPath, ref, img); err != nil {
-		return fmt.Errorf("writing injected tarball: %w", err)
+	if err := tarball.WriteToFile(injectedTar, ref, img); err != nil {
+		return fmt.Errorf("write injected tar: %w", err)
 	}
 
-	bb.Printf("Successfully injected convox-env and saved to: %s", toTarPath)
-
+	bb.Printf("convox-env injected successfully")
 	return nil
 }
 
+// pullDaemonless pulls a remote image to the local cache so that later we can
+// re‑tag and push it. Uses registry auth when needed.
+func (bb *Build) pullDaemonless(tag string) error {
+	bb.Printf("Pulling %s\n", tag)
+	auth, err := ecrAuthenticator()
+	if err != nil {
+		return err
+	}
+	if _, err := crane.Pull(tag, crane.WithAuth(auth)); err != nil {
+		return fmt.Errorf("pull: %w", err)
+	}
+	return nil
+}
+
+func (bb *Build) tagAndPushDaemonless(from, to string) error {
+	bb.Printf("Tagging & pushing %s → %s\n", from, to)
+
+	imgTar := tarPathFor(from)
+	img, err := tarball.ImageFromPath(imgTar, nil)
+	if err != nil {
+		return fmt.Errorf("load tar: %w", err)
+	}
+
+	auth, err := ecrAuthenticator()
+	if err != nil {
+		return err
+	}
+	if err := crane.Push(img, to, crane.WithAuth(auth)); err != nil {
+		return fmt.Errorf("push: %w", err)
+	}
+
+	bb.Printf("Pushed %s\n", to)
+	return nil
+}
+
+// ---------------------------------------------------------------------------
+// ECR authentication helpers
+// ---------------------------------------------------------------------------
+
+var (
+	ecrOnce sync.Once
+	ecrAuth authn.Authenticator
+	ecrErr  error
+)
+
+func ecrAuthenticator() (authn.Authenticator, error) {
+	ecrOnce.Do(func() {
+		sess, err := session.NewSession()
+		if err != nil {
+			ecrErr = fmt.Errorf("aws session: %w", err)
+			return
+		}
+
+		svc := ecr.New(sess)
+		out, err := svc.GetAuthorizationToken(nil)
+		if err != nil {
+			ecrErr = fmt.Errorf("ecr auth token: %w", err)
+			return
+		}
+		if len(out.AuthorizationData) == 0 {
+			ecrErr = fmt.Errorf("empty authorization data")
+			return
+		}
+
+		token, err := base64.StdEncoding.DecodeString(*out.AuthorizationData[0].AuthorizationToken)
+		if err != nil {
+			ecrErr = fmt.Errorf("decode token: %w", err)
+			return
+		}
+		parts := strings.SplitN(string(token), ":", 2)
+		if len(parts) != 2 {
+			ecrErr = fmt.Errorf("invalid token format")
+			return
+		}
+
+		ecrAuth = &authn.Basic{Username: parts[0], Password: parts[1]}
+	})
+
+	return ecrAuth, ecrErr
+}
+
+// singleFileTar returns a tar stream containing a single file at path.
 func singleFileTar(path string, data []byte) []byte {
 	buf := new(bytes.Buffer)
 	tw := tar.NewWriter(buf)
 	defer tw.Close()
 
 	hdr := &tar.Header{
-		Name:     path[1:], // strip leading slash
+		Name:     strings.TrimPrefix(path, "/"),
 		Mode:     0755,
 		Size:     int64(len(data)),
 		Typeflag: tar.TypeReg,
 	}
-	tw.WriteHeader(hdr)
-	tw.Write(data)
+	_ = tw.WriteHeader(hdr)
+	_, _ = tw.Write(data)
 
 	return buf.Bytes()
-}
-
-func (b *Build) pullDaemonless(tag string) error {
-	b.Printf("Pulling: %s\n", tag)
-
-	// Fetch ECR auth token
-	authenticator, err := ecrAuthenticator()
-	if err != nil {
-		return fmt.Errorf("tagAndPushDaemonless: failed to authenticate to ECR: %w", err)
-	}
-
-	_, err = crane.Pull(tag, crane.WithAuth(authenticator))
-	if err != nil {
-		return fmt.Errorf("pull failed: %w", err)
-	}
-
-	return nil
-}
-
-func (b *Build) tagAndPushDaemonless(from, to string) error {
-	b.Printf("Tagging: %s → %s\n", from, to)
-
-	// Load image
-	tarPath := fmt.Sprintf(kanikoTarPath, from)
-	img, err := tarball.ImageFromPath(tarPath, nil)
-	if err != nil {
-		return fmt.Errorf("tagAndPushDaemonless: loading image from Kaniko tar: %w", err)
-	}
-
-	// Fetch ECR auth token
-	authenticator, err := ecrAuthenticator()
-	if err != nil {
-		return fmt.Errorf("tagAndPushDaemonless: failed to authenticate to ECR: %w", err)
-	}
-
-	// Push the image with ECR auth
-	if err := crane.Push(img, to, crane.WithAuth(authenticator)); err != nil {
-		return fmt.Errorf("tagAndPushDaemonless: failed to push image: %w", err)
-	}
-
-	b.Printf("Successfully pushed image to %s\n", to)
-	return nil
-}
-
-func ecrAuthenticator() (authn.Authenticator, error) {
-	sess, err := session.NewSession()
-	if err != nil {
-		return nil, fmt.Errorf("creating aws session: %w", err)
-	}
-
-	svc := ecr.New(sess)
-	authTokenOutput, err := svc.GetAuthorizationToken(nil)
-	if err != nil {
-		return nil, fmt.Errorf("getting ECR auth token: %w", err)
-	}
-
-	if len(authTokenOutput.AuthorizationData) == 0 {
-		return nil, fmt.Errorf("no authorization data returned")
-	}
-
-	authData := authTokenOutput.AuthorizationData[0]
-	token, err := base64.StdEncoding.DecodeString(*authData.AuthorizationToken)
-	if err != nil {
-		return nil, fmt.Errorf("decoding authorization token: %w", err)
-	}
-
-	parts := strings.SplitN(string(token), ":", 2)
-	if len(parts) != 2 {
-		return nil, fmt.Errorf("invalid authorization token format")
-	}
-
-	return &authn.Basic{
-		Username: parts[0],
-		Password: parts[1],
-	}, nil
 }
