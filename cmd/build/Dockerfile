@@ -24,6 +24,9 @@ RUN curl -sL "https://github.com/google/go-containerregistry/releases/download/$
 # Kaniko runtime
 FROM gcr.io/kaniko-project/executor:debug
 
+# Create /tmp so Kaniko can write
+RUN mkdir -p /tmp && chmod 1777 /tmp
+
 # Copy crane
 COPY --from=package /usr/local/bin/crane /busybox
 

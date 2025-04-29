@@ -46,6 +46,8 @@ var (
 )
 
 func main() {
+	fmt.Println("Initializing build...")
+
 	if err := execute(); err != nil {
 		fmt.Fprintf(os.Stderr, "ERROR: %s\n", err)
 		os.Exit(1)
@@ -133,6 +135,7 @@ func execute() error {
 		Source:      flagUrl,
 		Runtime:     flagRuntime,
 	}
+	fmt.Printf("Build options: %+v\n", opts)
 
 	b, err := build.New(opts)
 	if err != nil {
