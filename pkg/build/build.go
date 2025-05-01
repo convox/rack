@@ -145,7 +145,7 @@ func (bb *Build) execute() error {
 
 	objReader, err := bb.Provider.ObjectFetch(u.Host, u.Path)
 	if err != nil {
-		return fmt.Errorf("fetching source object: %w", err)
+		return err
 	}
 	gz, err := gzip.NewReader(objReader)
 	if err != nil {
