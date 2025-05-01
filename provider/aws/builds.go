@@ -988,8 +988,10 @@ func (p *Provider) runBuild(build *structs.Build, burl string, opts structs.Buil
 		return err
 	}
 
-	if err := p.waitForContainer(task); err != nil {
-		return err
+	if buildMethod == "ec2" {
+		if err := p.waitForContainer(task); err != nil {
+			return err
+		}
 	}
 
 	return nil
