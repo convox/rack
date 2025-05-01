@@ -127,6 +127,7 @@ func (s *Start) Start2(ctx context.Context, w io.Writer, opts Options2) error {
 			bopts.Manifest = options.String(opts.Manifest)
 		}
 
+		fmt.Printf("Start2: calling BuildCreate with %s\n", o.Url)
 		b, err := opts.Provider.BuildCreate(opts.App, o.Url, bopts)
 		if err != nil {
 			return errors.WithStack(err)

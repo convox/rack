@@ -135,14 +135,17 @@ func releasePromote(rack sdk.Interface, c *stdcli.Context, app, id string) error
 		return fmt.Errorf("no release to promote")
 	}
 
+	fmt.Printf("Getting release %s...", id)
 	a, err := rack.AppGet(app)
 	if err != nil {
 		return err
 	}
 
+	fmt.Printf("Promoting release %s...", id)
 	if a.Status != "running" {
 		c.Startf("Waiting for app to be ready")
 
+		fmt.Printf("Waiting for app %s to be running...", app)
 		if err := helpers.WaitForAppRunning(rack, app); err != nil {
 			return err
 		}

@@ -38,14 +38,17 @@ var regexpECRImage = regexp.MustCompile(`(\d+)\.dkr\.ecr\.([^.]+)\.amazonaws\.co
 var regexpStackID = regexp.MustCompile(`arn:[^:]+:cloudformation:([^.]+):(\d+):stack/([^.]+)/([^.]+)`)
 
 func (p *Provider) BuildCreate(app, url string, opts structs.BuildCreateOptions) (*structs.Build, error) {
+	fmt.Printf("provider/aws: BuildCreate\n")
 	log := Logger.At("BuildCreate").Namespace("app=%q url=%q", app, url).Start()
 
+	fmt.Printf("Getting app %q\n", app)
 	_, err := p.AppGet(app)
 	if err != nil {
 		log.Error(err)
 		return nil, err
 	}
 
+	fmt.Printf("New build %q\n", app)
 	b := structs.NewBuild(app)
 
 	if opts.Description != nil {
@@ -68,16 +71,19 @@ func (p *Provider) BuildCreate(app, url string, opts structs.BuildCreateOptions)
 		b.Ended = time.Unix(1473028892, 0).UTC()
 	}
 
+	fmt.Printf("buildSave %q\n", app)
 	if err := p.buildSave(b); err != nil {
 		log.Error(err)
 		return nil, err
 	}
 
+	fmt.Printf("runBuild %q\n", app)
 	if err := p.runBuild(b, url, opts); err != nil {
 		log.Error(err)
 		return nil, err
 	}
 
+	fmt.Printf("log.Success %q\n", app)
 	return b, log.Success()
 }
 
@@ -988,8 +994,10 @@ func (p *Provider) runBuild(build *structs.Build, burl string, opts structs.Buil
 		return err
 	}
 
-	if err := p.waitForContainer(task); err != nil {
-		return err
+	if buildMethod == "ec2" {
+		if err := p.waitForContainer(task); err != nil {
+			return err
+		}
 	}
 
 	return nil

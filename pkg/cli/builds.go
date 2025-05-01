@@ -128,6 +128,7 @@ func build(rack sdk.Interface, c *stdcli.Context, development bool) (*structs.Bu
 
 	var b *structs.Build
 
+	fmt.Printf("Rack version: %s\n", s.Version)
 	if s.Version < "20180708231844" {
 		c.Startf("Starting build")
 
@@ -153,7 +154,7 @@ func build(rack sdk.Interface, c *stdcli.Context, development bool) (*structs.Bu
 		c.OK()
 
 		c.Startf("Starting build")
-
+		fmt.Printf("BuildCreate URL: %s\n", o.Url)
 		b, err = rack.BuildCreate(app(c), o.Url, opts)
 		if err != nil {
 			return nil, err
@@ -162,6 +163,7 @@ func build(rack sdk.Interface, c *stdcli.Context, development bool) (*structs.Bu
 
 	c.OK()
 
+	fmt.Printf("Getting logs for build %s...", b.Id)
 	r, err := rack.BuildLogs(app(c), b.Id, structs.LogsOptions{})
 	if err != nil {
 		return nil, err

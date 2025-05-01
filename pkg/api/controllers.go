@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	"io"
 	"sort"
 	"strconv"
@@ -179,6 +180,7 @@ func (s *Server) AppUpdate(c *stdapi.Context) error {
 }
 
 func (s *Server) BuildCreate(c *stdapi.Context) error {
+	fmt.Printf("api: BuildCreate\n")
 	if err := s.hook("BuildCreateValidate", c); err != nil {
 		return err
 	}

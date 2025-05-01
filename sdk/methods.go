@@ -119,6 +119,7 @@ func (c *Client) AppUpdate(name string, opts structs.AppUpdateOptions) error {
 }
 
 func (c *Client) BuildCreate(app string, url string, opts structs.BuildCreateOptions) (*structs.Build, error) {
+	fmt.Println("sdk/methods: BuildCreate")
 	var err error
 
 	ro, err := stdsdk.MarshalOptions(opts)
@@ -131,6 +132,7 @@ func (c *Client) BuildCreate(app string, url string, opts structs.BuildCreateOpt
 	var v *structs.Build
 
 	err = c.Post(fmt.Sprintf("/apps/%s/builds", app), ro, &v)
+	fmt.Printf("sdk/methods: BuildCreate err: %v\n", err)
 
 	return v, err
 }

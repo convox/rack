@@ -25,11 +25,13 @@ func Deploy(rack sdk.Interface, c *stdcli.Context) error {
 		c.Writer().Stdout = c.Writer().Stderr
 	}
 
+	fmt.Printf("Creating build...")
 	b, err := build(rack, c, false)
 	if err != nil {
 		return err
 	}
 
+	fmt.Printf("Promoting build...")
 	if err := releasePromote(rack, c, app(c), b.Release); err != nil {
 		return err
 	}
