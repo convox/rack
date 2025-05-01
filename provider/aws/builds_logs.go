@@ -3,13 +3,12 @@ package aws
 // BuildLogs implementation that supports three transports:
 //   * docker logs (EC2 builder by default)
 //   * CloudWatch Logs (preferred when rack parameter LogDriver=CloudWatch)
-//   * ECS Exec   (Fargate fallback when CloudWatch disabled but EnableExecuteCommand=true)
+//   * returns an error if neither is available
 
 import (
 	"fmt"
 	"io"
 	"net/url"
-	"reflect"
 	"strings"
 	"time"
 
@@ -39,24 +38,98 @@ func (p *Provider) BuildLogs(app, id string, opts structs.LogsOptions) (io.ReadC
 		return nil, err
 	}
 
+	// ── create a channel that closes when the task stops ────────────────
+	done := make(chan struct{})
+	go p.waitTaskStopped(*task.TaskArn, done) // non-blocking
+
+	// EC2 path (docker logs)
 	if aws.StringValue(task.LaunchType) == "EC2" {
 		return p.tailDockerLogs(task)
 	}
 
+	// Fargate path
 	if p.cloudWatchEnabled() {
-		grp, stream, cerr := p.cwStreamForTask(task, "build")
-		if cerr != nil {
-			return nil, cerr
+		group, stream, err := p.cwStreamForTask(task, "build")
+		if err != nil {
+			return nil, err
 		}
-
-		return p.followCW(grp, stream)
-	}
-
-	if p.ecsExecEnabled(task) {
-		return p.followExec(task)
+		return p.followCW(group, stream, done)
 	}
 
 	return nil, fmt.Errorf("cloudwatch disabled and ecs-exec not enabled; unable to stream logs for fargate task")
+}
+
+// waitTaskStopped waits for the specified task to reach the "STOPPED" status.
+func (p *Provider) waitTaskStopped(taskArn string, done chan<- struct{}) {
+	for {
+		td, err := p.describeTask(taskArn)
+		if err == nil && aws.StringValue(td.LastStatus) == "STOPPED" {
+			close(done)
+			return
+		}
+		time.Sleep(2 * time.Second)
+	}
+}
+
+// followCW streams log events from an AWS CloudWatch Logs log group and log stream.
+func (p *Provider) followCW(group, stream string, done <-chan struct{}) (io.ReadCloser, error) {
+	cw := p.cwlogs()
+	pr, pw := io.Pipe()
+
+	go func() {
+		defer pw.Close()
+
+		var prevToken, token *string
+		for {
+			out, err := cw.GetLogEvents(&cloudwatchlogs.GetLogEventsInput{
+				LogGroupName:  aws.String(group),
+				LogStreamName: aws.String(stream),
+				NextToken:     token,
+				StartFromHead: aws.Bool(true),
+			})
+
+			// stream not yet created → keep retrying
+			if isNotFound(err) {
+				time.Sleep(2 * time.Second)
+				continue
+			}
+			if err != nil {
+				pw.CloseWithError(err)
+				return
+			}
+
+			// emit any new events
+			for _, e := range out.Events {
+				fmt.Fprintln(pw, aws.StringValue(e.Message))
+			}
+
+			prevToken, token = token, out.NextForwardToken
+
+			// nothing new AND task finished → we’re done
+			if aws.StringValue(prevToken) == aws.StringValue(token) {
+				select {
+				case <-done:
+					return
+				default:
+				}
+			}
+
+			time.Sleep(2 * time.Second)
+		}
+	}()
+
+	return pr, nil
+}
+
+// isNotFound checks if the provided error is a "ResourceNotFoundException" error.
+func isNotFound(err error) bool {
+	if err == nil {
+		return false
+	}
+	if ae, ok := err.(awserr.Error); ok && ae.Code() == "ResourceNotFoundException" {
+		return true
+	}
+	return false
 }
 
 // historicLogs returns logs for completed builds (object:// or plain URL)
@@ -80,6 +153,7 @@ func (p *Provider) cloudWatchEnabled() bool {
 	return v == "CloudWatch"
 }
 
+// cwStreamForTask retrieves the CloudWatch log group and log stream name for a given ECS task.
 func (p *Provider) cwStreamForTask(task *ecs.Task, prefix string) (group, stream string, err error) {
 	// 1. Describe the task-definition to grab log-driver options
 	td, err := p.ecs().DescribeTaskDefinition(&ecs.DescribeTaskDefinitionInput{
@@ -113,46 +187,6 @@ func (p *Provider) cwStreamForTask(task *ecs.Task, prefix string) (group, stream
 // cwlogs returns a CloudWatch Logs client bound to the rack’s AWS config.
 func (p *Provider) cwlogs() *cloudwatchlogs.CloudWatchLogs {
 	return cloudwatchlogs.New(session.New(), p.config())
-}
-
-func (p *Provider) followCW(group, stream string) (io.ReadCloser, error) {
-	cw := p.cwlogs()
-	pr, pw := io.Pipe()
-
-	go func() {
-		defer pw.Close()
-
-		var token *string
-		for {
-			out, err := cw.GetLogEvents(&cloudwatchlogs.GetLogEventsInput{
-				LogGroupName:  aws.String(group),
-				LogStreamName: aws.String(stream),
-				NextToken:     token,
-				StartFromHead: aws.Bool(true),
-			})
-
-			if err != nil {
-				// If stream not yet created, wait and retry
-				if awsErr, ok := err.(awserr.Error); ok &&
-					awsErr.Code() == "ResourceNotFoundException" {
-					time.Sleep(2 * time.Second)
-					continue
-				}
-				pw.CloseWithError(err)
-				return
-			}
-
-			for _, e := range out.Events {
-				if _, err := fmt.Fprintln(pw, aws.StringValue(e.Message)); err != nil {
-					return
-				}
-			}
-			token = out.NextForwardToken
-			time.Sleep(2 * time.Second)
-		}
-	}()
-
-	return pr, nil
 }
 
 // tailDockerLogs attaches to the EC2 builder container and streams all logs.
@@ -193,34 +227,4 @@ func (p *Provider) tailDockerLogs(task *ecs.Task) (io.ReadCloser, error) {
 		})
 	}()
 	return pr, nil
-}
-
-// followExec starts an ECS Exec session and streams the build log file.
-func (p *Provider) followExec(task *ecs.Task) (io.ReadCloser, error) {
-	// Simplified placeholder that runs cat+tail over /var/log/convox-build.log.
-	// TODO: implement full SSM websocket stream.
-	return nil, fmt.Errorf("ecs exec streaming not yet implemented")
-}
-
-// ecsExecEnabled returns true when the *task definition* has
-// EnableExecuteCommand set, without requiring that field to exist
-// in the AWS SDK structs used at compile-time.
-func (p *Provider) ecsExecEnabled(task *ecs.Task) bool {
-	// Fallback-safe: if we cannot describe the task definition,
-	// treat Exec as disabled.
-	tdOut, err := p.ecs().DescribeTaskDefinition(&ecs.DescribeTaskDefinitionInput{
-		TaskDefinition: task.TaskDefinitionArn,
-	})
-	if err != nil || tdOut.TaskDefinition == nil {
-		return false
-	}
-
-	// Use reflection so the code compiles even when the struct
-	// type in the current SDK lacks the field.
-	v := reflect.ValueOf(tdOut.TaskDefinition).Elem() // ecs.TaskDefinition
-	f := v.FieldByName("EnableExecuteCommand")
-	if !f.IsValid() || f.IsZero() {
-		return false // field missing or the pointer is nil/false
-	}
-	return f.Elem().Bool()
 }

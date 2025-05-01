@@ -103,7 +103,6 @@ func (bb *Build) buildGeneration2Daemonless(dir string) error {
 	// ─── Build phases ────────────────────────────────────────────────────────
 
 	for hash, b := range builds {
-		bb.Printf("Building: %s\n", b.Path)
 		if err := bb.buildDaemonless(filepath.Join(dir, b.Path), b.Manifest, hash, env); err != nil {
 			return err
 		}
@@ -144,8 +143,6 @@ func (bb *Build) buildGeneration2Daemonless(dir string) error {
 // buildDaemonless builds a single Dockerfile context with Kaniko and stores the
 // resulting OCI‑image tarball in workspaceDir.
 func (bb *Build) buildDaemonless(path, dockerfile, tag string, env map[string]string) error {
-	bb.Printf("Kaniko build: context=%s dockerfile=%s tag=%s\n", path, dockerfile, tag)
-
 	contextDir := "dir://" + path
 	tarPath := tarPathFor(tag)
 
@@ -195,10 +192,10 @@ func (bb *Build) buildDaemonless(path, dockerfile, tag string, env map[string]st
 // injectConvoxEnvDaemonless mutates the already‑built tarball by prepending the
 // /convox-env wrapper and rewriting the entrypoint.
 func (bb *Build) injectConvoxEnvDaemonless(tag string) error {
+	bb.Printf("Injecting: convox-env\n")
+
 	originalTar := tarPathFor(tag)
 	injectedTar := injectedTarPathFor(tag)
-
-	bb.Printf("Injecting convox-env into %s → %s\n", originalTar, injectedTar)
 
 	img, err := tarball.ImageFromPath(originalTar, nil)
 	if err != nil {
@@ -245,14 +242,14 @@ func (bb *Build) injectConvoxEnvDaemonless(tag string) error {
 		return fmt.Errorf("write injected tar: %w", err)
 	}
 
-	bb.Printf("convox-env injected successfully")
 	return nil
 }
 
 // pullDaemonless pulls a remote image to the local cache so that later we can
 // re‑tag and push it. Uses registry auth when needed.
 func (bb *Build) pullDaemonless(tag string) error {
-	bb.Printf("Pulling %s\n", tag)
+	bb.Printf("Running: docker pull %s\n", tag)
+
 	auth, err := ecrAuthenticator()
 	if err != nil {
 		return err
@@ -264,7 +261,7 @@ func (bb *Build) pullDaemonless(tag string) error {
 }
 
 func (bb *Build) tagAndPushDaemonless(from, to string) error {
-	bb.Printf("Tagging & pushing %s → %s\n", from, to)
+	bb.Printf("Running: tag and push %s\n", to)
 
 	imgTar := tarPathFor(from)
 	img, err := tarball.ImageFromPath(imgTar, nil)

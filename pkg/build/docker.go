@@ -81,7 +81,6 @@ func (bb *Build) buildGeneration2(dir string) error {
 
 	// 1) docker build for each unique hash
 	for hash, b := range builds {
-		bb.Printf("Building: %s\n", b.Path)
 		if err := bb.build(filepath.Join(dir, b.Path), b.Manifest, hash, env); err != nil {
 			return err // already wrapped upstream
 		}
