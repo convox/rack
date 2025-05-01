@@ -23,12 +23,11 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/ecr"
 	"github.com/aws/aws-sdk-go/service/ecs"
-	docker "github.com/fsouza/go-dockerclient"
-
 	"github.com/convox/rack/pkg/manifest"
 	"github.com/convox/rack/pkg/manifest1"
 	"github.com/convox/rack/pkg/options"
 	"github.com/convox/rack/pkg/structs"
+	docker "github.com/fsouza/go-dockerclient"
 )
 
 // ECR host is formatted like 123456789012.dkr.ecr.us-east-1.amazonaws.com
@@ -442,76 +441,6 @@ func (p *Provider) BuildImport(app string, r io.Reader) (*structs.Build, error) 
 	log.Successf("build=%q release=%q", targetBuild.Id, rr.Id)
 
 	return targetBuild, nil
-}
-
-// BuildLogs streams the logs for a Build to an io.Writer
-func (p *Provider) BuildLogs(app, id string, opts structs.LogsOptions) (io.ReadCloser, error) {
-	b, err := p.BuildGet(app, id)
-	if err != nil {
-		return nil, err
-	}
-
-	switch b.Status {
-	case "running":
-		task, err := p.describeTask(b.Tags["task"])
-		if err != nil {
-			return nil, err
-		}
-
-		ci, err := p.containerInstance(*task.ContainerInstanceArn)
-		if err != nil {
-			return nil, err
-		}
-
-		dc, err := p.dockerInstance(*ci.Ec2InstanceId)
-		if err != nil {
-			return nil, err
-		}
-
-		cs, err := dc.ListContainers(docker.ListContainersOptions{
-			All: true,
-			Filters: map[string][]string{
-				"label": {fmt.Sprintf("com.amazonaws.ecs.task-arn=%s", *task.TaskArn)},
-			},
-		})
-		if err != nil {
-			return nil, err
-		}
-		if len(cs) != 1 {
-			return nil, fmt.Errorf("could not find container for task: %s", *task.TaskArn)
-		}
-
-		r, w := io.Pipe()
-
-		go func() {
-			defer w.Close()
-			dc.Logs(docker.LogsOptions{
-				Container:         cs[0].ID,
-				OutputStream:      w,
-				ErrorStream:       w,
-				InactivityTimeout: 20 * time.Minute,
-				Follow:            true,
-				Stdout:            true,
-				Stderr:            true,
-			})
-		}()
-
-		return r, nil
-	default:
-		u, err := url.Parse(b.Logs)
-		if err != nil {
-			return nil, err
-		}
-
-		switch u.Scheme {
-		case "object":
-			return p.ObjectFetch(app, u.Path)
-		default:
-			return io.NopCloser(strings.NewReader(b.Logs)), nil
-		}
-	}
-
-	return nil, fmt.Errorf("unreachable")
 }
 
 // BuildList returns a list of the latest builds, with the length specified in limit
