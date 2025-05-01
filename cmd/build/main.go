@@ -135,7 +135,6 @@ func execute() error {
 		Source:      flagUrl,
 		Runtime:     flagRuntime,
 	}
-	fmt.Printf("Build options: %+v\n", opts)
 
 	b, err := build.New(opts)
 	if err != nil {

@@ -29,7 +29,6 @@ func (p *Provider) BuildLogs(app, id string, opts structs.LogsOptions) (io.ReadC
 		return nil, err
 	}
 
-	fmt.Printf("Build status: %s", b.Status)
 	// Finished builds keep existing object:// behaviour
 	if b.Status != "running" {
 		return p.historicLogs(b)
@@ -39,26 +38,20 @@ func (p *Provider) BuildLogs(app, id string, opts structs.LogsOptions) (io.ReadC
 	if err != nil {
 		return nil, err
 	}
-	fmt.Printf("Launch type: %s", aws.StringValue(task.LaunchType))
 
 	if aws.StringValue(task.LaunchType) == "EC2" {
-		fmt.Printf("EC2 launch type, streaming logs from docker")
-
 		return p.tailDockerLogs(task)
 	}
 
 	if p.cloudWatchEnabled() {
-		fmt.Printf("CloudWatch enabled, streaming logs from CloudWatch")
 		grp, stream, cerr := p.cwStreamForTask(task, "build")
 		if cerr != nil {
-			fmt.Printf("CloudWatch error: %s", cerr)
 			return nil, cerr
 		}
 
 		return p.followCW(grp, stream)
 	}
 
-	fmt.Printf("Fargate launch type, streaming logs from ECS Exec")
 	if p.ecsExecEnabled(task) {
 		return p.followExec(task)
 	}
@@ -83,7 +76,6 @@ func (p *Provider) historicLogs(b *structs.Build) (io.ReadCloser, error) {
 // cloudWatchEnabled checks stack parameter EnableCloudWatch == "Yes"
 func (p *Provider) cloudWatchEnabled() bool {
 	v, _ := p.stackParameter(p.Rack, "LogDriver")
-	fmt.Printf("LogDriver: %s", v)
 
 	return v == "CloudWatch"
 }
