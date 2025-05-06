@@ -725,7 +725,6 @@ func (p *Provider) prepareLaunchConfiguration(buildMethod string) (*string, *ecs
 		return aws.String("EC2"), nil, nil
 	}
 
-	// Fetch subnets and security groups
 	subnets, err := p.fetchSubnets()
 	if err != nil {
 		return nil, nil, err
@@ -854,7 +853,6 @@ func (p *Provider) runBuild(build *structs.Build, burl string, opts structs.Buil
 		cache = false
 	}
 
-	// Determine launch type and network configuration
 	launchType, nc, err := p.prepareLaunchConfiguration(buildMethod)
 	if err != nil {
 		log.Error(err)
@@ -875,7 +873,6 @@ func (p *Provider) runBuild(build *structs.Build, burl string, opts structs.Buil
 		log.Logf("networkConfiguration: nil or incomplete")
 	}
 
-	// Prepare build command based on whether using Fargate (Kaniko) or EC2 (Docker)
 	buildCmd := []*string{
 		aws.String("build"),
 		aws.String("-method"), aws.String("tgz"),
@@ -935,7 +932,6 @@ func (p *Provider) runBuild(build *structs.Build, burl string, opts structs.Buil
 		},
 	}...)
 
-	// Add build args if provided
 	if opts.BuildArgs != nil {
 		for _, v := range *opts.BuildArgs {
 			if len(strings.SplitN(v, "=", 2)) != 2 {

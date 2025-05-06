@@ -28,6 +28,8 @@ import (
 
 // workspaceDir is the directory baked into the builder image that Kaniko writes to.
 const workspaceDir = "/workspace"
+
+// convoxEnvBinary is the path to the convox-env binary in the builder image.
 const convoxEnvBinary = "/busybox/convox-env"
 
 // tarPathFor generates a safe on‑disk tar filename for an image tag by replacing
@@ -41,10 +43,6 @@ func injectedTarPathFor(tag string) string {
 	safe := strings.NewReplacer("/", "_", ":", "_").Replace(tag)
 	return filepath.Join(workspaceDir, "injected-"+safe+".tar")
 }
-
-// ──────────────────────────────────────────────────────────────────────────────
-// Top‑level build entrypoint for generation‑2 / daemonless.
-// ──────────────────────────────────────────────────────────────────────────────
 
 func (bb *Build) buildGeneration2Daemonless(dir string) error {
 	config := filepath.Join(dir, bb.Manifest)
@@ -62,7 +60,6 @@ func (bb *Build) buildGeneration2Daemonless(dir string) error {
 		return fmt.Errorf("loading app env: %w", err)
 	}
 
-	// merge CLI‑supplied build args into env map so buildArgs() picks them up
 	for _, v := range bb.BuildArgs {
 		parts := strings.SplitN(v, "=", 2)
 		if len(parts) != 2 {
@@ -99,8 +96,6 @@ func (bb *Build) buildGeneration2Daemonless(dir string) error {
 			pushes[to] = fmt.Sprintf("%s:%s.%s", bb.Push, s.Name, bb.Id)
 		}
 	}
-
-	// ─── Build phases ────────────────────────────────────────────────────────
 
 	for hash, b := range builds {
 		bb.Printf("Building: %s\n", b.Path)
@@ -168,7 +163,6 @@ func (bb *Build) buildDaemonless(path, dockerfile, tag string, env map[string]st
 		return err
 	}
 
-	// Extract entrypoint for release metadata
 	img, err := tarball.ImageFromPath(tarPath, nil)
 	if err != nil {
 		return fmt.Errorf("loading kaniko image tar: %w", err)
@@ -223,13 +217,11 @@ func (bb *Build) injectConvoxEnvDaemonless(tag string) error {
 	// adjust entrypoint first, then apply in single mutate.Config call later
 	cfg.Config.Entrypoint = append([]string{"/convox-env"}, cfg.Config.Entrypoint...)
 
-	// apply config update
 	img, err = mutate.Config(img, cfg.Config)
 	if err != nil {
 		return fmt.Errorf("mutate config: %w", err)
 	}
 
-	// append new layer
 	img, err = mutate.Append(img, mutate.Addendum{Layer: layer})
 	if err != nil {
 		return fmt.Errorf("append layer: %w", err)
@@ -282,10 +274,6 @@ func (bb *Build) tagAndPushDaemonless(from, to string) error {
 	bb.Printf("Pushed %s\n", to)
 	return nil
 }
-
-// ---------------------------------------------------------------------------
-// ECR authentication helpers
-// ---------------------------------------------------------------------------
 
 var (
 	ecrOnce sync.Once

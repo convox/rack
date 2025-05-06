@@ -682,7 +682,7 @@
     },
     "BuildMethod": {
       "Type": "String",
-      "Description": "Which build process to use, ec2 will use the build instance, fargate will use a fargate task",
+      "Description": "Choose the build process: EC2 uses a build instance; Fargate uses a Fargate task. For Fargate, set FargateBuildCpu and FargateBuildMemory.",
       "Default": "ec2",
       "AllowedValues": [ "ec2", "fargate" ]
     },
@@ -778,6 +778,16 @@
       "Description": "This will enable aws kms encryption on shared efs volume. Enabling this will remove exsiting data and recreate the efs volume.",
       "Default": "false",
       "AllowedValues": [ "true", "false" ]
+    },
+    "FargateBuildCpu": {
+      "Type": "String",
+      "Description": "How much cpu should be reserved by the builder. Only used when BuildMethod is set to fargate",
+      "Default": ""
+    },
+    "FargateBuildMemory": {
+      "Type": "String",
+      "Description": "How much memory should be reserved by the builder. Only used when BuildMethod is set to fargate",
+      "Default": ""
     },
     "NoHaInstanceCount": {
       "Default": "1",
@@ -4156,8 +4166,8 @@
       "Properties": {
         "RequiresCompatibilities": ["FARGATE"],
         "NetworkMode": "awsvpc",
-        "Cpu": { "Ref": "BuildCpu" },
-        "Memory": { "Ref": "BuildMemory" },
+        "Cpu": { "Ref": "FargateBuildCpu" },
+        "Memory": { "Ref": "FargateBuildMemory" },
         "ContainerDefinitions": [
           {
             "DockerLabels": {

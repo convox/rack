@@ -20,14 +20,11 @@ import (
 	"github.com/convox/rack/sdk"
 )
 
-// Runtime constants allow us to avoid magic‑strings sprinkled everywhere
 const (
 	RuntimeDaemonless = "daemonless"
 )
 
 // Options holds the parameters for a single build execution
-// (mirrors CLI/environment flags one‑for‑one).
-// NOTE: keep struct tags aligned with main.go when you add new fields.
 type Options struct {
 	App         string
 	Auth        string
@@ -45,21 +42,20 @@ type Options struct {
 	Runtime     string
 }
 
-// Build represents a build session.  A value is short‑lived and NOT safe for reuse.
+// Build represents a build session
 type Build struct {
 	Options
 	Exec     exec.Interface
 	Provider structs.Provider
 
-	logs   bytes.Buffer // collected build output
-	writer io.Writer    // tee to Output + logs
+	logs   bytes.Buffer
+	writer io.Writer
 }
 
 // New prepares a Build instance but does NOT start any long‑running work.
 func New(opts Options) (*Build, error) {
 	b := &Build{Options: opts}
 
-	// sane defaults ----------------------------------------------------------
 	if b.Manifest == "" {
 		if b.Generation == "2" {
 			b.Manifest = "convox.yml"
@@ -68,7 +64,6 @@ func New(opts Options) (*Build, error) {
 		}
 	}
 
-	// dependencies -----------------------------------------------------------
 	client, err := sdk.NewFromEnv()
 	if err != nil {
 		return nil, fmt.Errorf("initialising provider: %w", err)
@@ -77,7 +72,6 @@ func New(opts Options) (*Build, error) {
 
 	b.Exec = &exec.Exec{}
 
-	// log fan‑out: always capture into buffer + optionally caller‑supplied writer
 	if opts.Output != nil {
 		b.writer = io.MultiWriter(opts.Output, &b.logs)
 	} else {
@@ -90,34 +84,27 @@ func New(opts Options) (*Build, error) {
 // Execute runs the entire build pipeline; it is the public entrypoint.
 func (bb *Build) Execute() error {
 	if err := bb.execute(); err != nil {
-		return bb.fail(err) // fail() already logs + updates provider
+		return bb.fail(err)
 	}
 	return nil
 }
 
-// printf helper that always targets the build‐scoped writer
-func (bb *Build) Printf(format string, args ...interface{}) { // nolint: revive  — this is intentional
+// Printf helper that always targets the build‐scoped writer
+func (bb *Build) Printf(format string, args ...interface{}) {
 	fmt.Fprintf(bb.writer, format, args...)
 }
 
-// ---------------------------------------------------------------------------
-// private helpers below
-// ---------------------------------------------------------------------------
-
 func (bb *Build) execute() error {
-	// 1. verify build exists --------------------------------------------------
 	if _, err := bb.Provider.BuildGet(bb.App, bb.Id); err != nil {
 		return fmt.Errorf("checking build record: %w", err)
 	}
 
-	// 2. optional docker login (classic runtime only) ------------------------
 	if bb.Runtime != RuntimeDaemonless {
 		if err := bb.login(); err != nil {
-			return err // already wrapped inside login()
+			return err
 		}
 	}
 
-	// 3. workspace prep ------------------------------------------------------
 	dir, err := os.MkdirTemp("", "convox-build-")
 	if err != nil {
 		return fmt.Errorf("creating temp dir: %w", err)
@@ -134,7 +121,6 @@ func (bb *Build) execute() error {
 	}
 	defer func() { _ = os.Chdir(cwd) }()
 
-	// 4. fetch & unarchive source -------------------------------------------
 	u, err := url.Parse(bb.Source)
 	if err != nil {
 		return fmt.Errorf("parsing source url: %w", err)
@@ -155,7 +141,6 @@ func (bb *Build) execute() error {
 		return fmt.Errorf("unarchive source: %w", err)
 	}
 
-	// 5. save manifest contents for audit ------------------------------------
 	manifestBytes, err := os.ReadFile(bb.Manifest)
 	if err != nil {
 		return fmt.Errorf("reading manifest %s: %w", bb.Manifest, err)
@@ -166,7 +151,6 @@ func (bb *Build) execute() error {
 		return fmt.Errorf("persist manifest: %w", err)
 	}
 
-	// 6. route to generation/runtime implementation --------------------------
 	switch {
 	case bb.Generation == "2" && bb.Runtime == RuntimeDaemonless:
 		if err := bb.buildGeneration2Daemonless("."); err != nil {
@@ -182,13 +166,12 @@ func (bb *Build) execute() error {
 		}
 	}
 
-	// 7. mark success --------------------------------------------------------
 	return bb.success()
 }
 
 // login performs docker login for each registry entry in Auth JSON.
 func (bb *Build) login() error {
-	if strings.TrimSpace(bb.Auth) == "" { // nothing to do
+	if strings.TrimSpace(bb.Auth) == "" {
 		return nil
 	}
 
@@ -209,10 +192,6 @@ func (bb *Build) login() error {
 	}
 	return nil
 }
-
-// ---------------------------------------------------------------------------
-// Generation‑specific helpers (generation 1 delegated here for brevity)
-// ---------------------------------------------------------------------------
 
 func (bb *Build) buildGeneration1(dir string) error {
 	dcy := filepath.Join(dir, bb.Manifest)
@@ -235,7 +214,6 @@ func (bb *Build) buildGeneration1(dir string) error {
 		return verrs[0]
 	}
 
-	// set up streaming of log lines from manifest build
 	lines := make(chan string)
 	go func() {
 		for l := range lines {
@@ -257,24 +235,18 @@ func (bb *Build) buildGeneration1(dir string) error {
 	}
 
 	if err := m.Build(dir, bb.App, lines, manifest1.BuildOptions{Environment: env, Cache: bb.Cache}); err != nil {
-		return err // manifest already emits details to logs
+		return err
 	}
 
 	return m.Push(bb.Push, bb.App, bb.Id, lines)
 }
 
-// ---------------------------------------------------------------------------
-// success / failure helpers --------------------------------------------------
-// ---------------------------------------------------------------------------
-
 func (bb *Build) success() error {
-	// upload logs ------------------------------------------------------------
 	obj, err := bb.Provider.ObjectStore(bb.App, fmt.Sprintf("build/%s/logs", bb.Id), bytes.NewReader(bb.logs.Bytes()), structs.ObjectStoreOptions{})
 	if err != nil {
 		return fmt.Errorf("store logs: %w", err)
 	}
 
-	// close out build --------------------------------------------------------
 	if _, err := bb.Provider.BuildUpdate(bb.App, bb.Id, structs.BuildUpdateOptions{
 		Ended: options.Time(time.Now().UTC()),
 		Logs:  options.String(obj.Url),
@@ -282,7 +254,6 @@ func (bb *Build) success() error {
 		return fmt.Errorf("final build update: %w", err)
 	}
 
-	// create release ---------------------------------------------------------
 	rel, err := bb.Provider.ReleaseCreate(bb.App, structs.ReleaseCreateOptions{Build: options.String(bb.Id)})
 	if err != nil {
 		return fmt.Errorf("create release: %w", err)
@@ -294,12 +265,12 @@ func (bb *Build) success() error {
 	}); err != nil {
 		return fmt.Errorf("link release: %w", err)
 	}
-
 	bb.Provider.EventSend("build:create", structs.EventSendOptions{Data: map[string]string{"app": bb.App, "id": bb.Id, "release_id": rel.Id}})
+
 	return nil
 }
 
-func (bb *Build) fail(buildErr error) error { // always returns buildErr
+func (bb *Build) fail(buildErr error) error {
 	bb.Printf("ERROR: %s\n", buildErr)
 
 	bb.Provider.EventSend("build:create", structs.EventSendOptions{
@@ -318,5 +289,5 @@ func (bb *Build) fail(buildErr error) error { // always returns buildErr
 		Status: options.String("failed"),
 	})
 
-	return buildErr // propagate original error for caller handling
+	return buildErr
 }

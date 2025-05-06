@@ -46,8 +46,6 @@ var (
 )
 
 func main() {
-	fmt.Println("Initializing build...")
-
 	if err := execute(); err != nil {
 		fmt.Fprintf(os.Stderr, "ERROR: %s\n", err)
 		os.Exit(1)

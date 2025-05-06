@@ -1,8 +1,5 @@
 package build
 
-// NOTE: classic‑runtime builder helpers (Docker‑in‑Docker).  This file is only
-// compiled when BUILD_RUNTIME != "daemonless".
-
 import (
 	"bufio"
 	"encoding/json"
@@ -21,10 +18,6 @@ import (
 	shellquote "github.com/kballard/go-shellquote"
 )
 
-// -----------------------------------------------------------------------------
-// top‑level Generation‑2 dispatcher (Docker runtime)
-// -----------------------------------------------------------------------------
-
 func (bb *Build) buildGeneration2(dir string) error {
 	configPath := filepath.Join(dir, bb.Manifest)
 	if _, err := os.Stat(configPath); os.IsNotExist(err) {
@@ -40,7 +33,6 @@ func (bb *Build) buildGeneration2(dir string) error {
 	if err != nil {
 		return fmt.Errorf("load app env: %w", err)
 	}
-	// merge CLI‑provided build args → env map (overrides runtime env)
 	for _, v := range bb.BuildArgs {
 		parts := strings.SplitN(v, "=", 2)
 		if len(parts) != 2 {
@@ -56,7 +48,6 @@ func (bb *Build) buildGeneration2(dir string) error {
 
 	prefix := fmt.Sprintf("%s/%s", bb.Rack, bb.App)
 
-	// work sets
 	builds := map[string]manifest.ServiceBuild{}
 	pulls := map[string]struct{}{}
 	pushes := map[string]string{}
@@ -79,23 +70,20 @@ func (bb *Build) buildGeneration2(dir string) error {
 		}
 	}
 
-	// 1) docker build for each unique hash
 	for hash, b := range builds {
 		bb.Printf("Building: %s\n", b.Path)
 
 		if err := bb.build(filepath.Join(dir, b.Path), b.Manifest, hash, env); err != nil {
-			return err // already wrapped upstream
+			return err
 		}
 	}
 
-	// 2) docker pull for external images
 	for image := range pulls {
 		if err := bb.pull(image); err != nil {
 			return err
 		}
 	}
 
-	// 3) docker tag (+ optional env injection)
 	tagSrcs := keys(tags)
 	sort.Strings(tagSrcs)
 
@@ -112,7 +100,6 @@ func (bb *Build) buildGeneration2(dir string) error {
 		}
 	}
 
-	// 4) docker push if requested
 	pushSrcs := keys(pushes)
 	sort.Strings(pushSrcs)
 	for _, src := range pushSrcs {
@@ -127,10 +114,6 @@ func (bb *Build) buildGeneration2(dir string) error {
 
 	return nil
 }
-
-// -----------------------------------------------------------------------------
-// docker build helper
-// -----------------------------------------------------------------------------
 
 func (bb *Build) build(path, dockerfile, tag string, env map[string]string) error {
 	if path == "" {
@@ -148,7 +131,7 @@ func (bb *Build) build(path, dockerfile, tag string, env map[string]string) erro
 
 	ba, err := bb.buildArgs(df, env)
 	if err != nil {
-		return err // already wrapped inside buildArgs
+		return err
 	}
 	args = append(args, ba...)
 	args = append(args, path)
@@ -157,7 +140,6 @@ func (bb *Build) build(path, dockerfile, tag string, env map[string]string) erro
 		return fmt.Errorf("docker build %s: %w", path, err)
 	}
 
-	// extract entrypoint for later release info
 	data, err := bb.Exec.Execute("docker", "inspect", tag, "--format", "{{json .Config.Entrypoint}}")
 	if err != nil {
 		return fmt.Errorf("docker inspect entrypoint: %w", err)
@@ -178,10 +160,6 @@ func (bb *Build) build(path, dockerfile, tag string, env map[string]string) erro
 
 	return nil
 }
-
-// -----------------------------------------------------------------------------
-// docker build‑arg helper
-// -----------------------------------------------------------------------------
 
 var (
 	reArg  = regexp.MustCompile(`(?i)^\s*ARG\s+([^=\s]+)`)
@@ -223,10 +201,6 @@ func (bb *Build) buildArgs(dockerfile string, env map[string]string) ([]string, 
 	return args, nil
 }
 
-// -----------------------------------------------------------------------------
-// misc helpers
-// -----------------------------------------------------------------------------
-
 func (bb *Build) injectConvoxEnv(tag string) error {
 	bb.Printf("Injecting: convox-env\n")
 
@@ -258,7 +232,7 @@ func (bb *Build) injectConvoxEnv(tag string) error {
 
 	dockerfile := fmt.Sprintf("FROM %s\nCOPY ./convox-env /convox-env\nENTRYPOINT %s\n", tag, epJSON)
 	if cmd != nil {
-		cmdJSON, _ := json.Marshal(cmd) // cannot error
+		cmdJSON, _ := json.Marshal(cmd)
 		dockerfile += fmt.Sprintf("CMD %s\n", cmdJSON)
 	}
 
@@ -307,7 +281,6 @@ func (bb *Build) tag(from, to string) error {
 	return nil
 }
 
-// keys returns map keys as slice.
 func keys[M ~map[K]V, K comparable, V any](m M) []K {
 	ks := make([]K, 0, len(m))
 	for k := range m {
