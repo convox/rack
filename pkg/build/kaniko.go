@@ -26,8 +26,8 @@ import (
 	"github.com/kballard/go-shellquote"
 )
 
-// workspaceDir is the directory baked into the builder image that Kaniko writes to.
-const workspaceDir = "/workspace"
+// kanikoWorkspaceDir is the directory baked into the builder image that Kaniko writes to.
+const kanikoWorkspaceDir = "/workspace"
 
 // convoxEnvBinary is the path to the convox-env binary in the builder image.
 const convoxEnvBinary = "/busybox/convox-env"
@@ -36,12 +36,12 @@ const convoxEnvBinary = "/busybox/convox-env"
 // characters that are illegal in file names.
 func tarPathFor(tag string) string {
 	safe := strings.NewReplacer("/", "_", ":", "_").Replace(tag)
-	return filepath.Join(workspaceDir, safe+".tar")
+	return filepath.Join(kanikoWorkspaceDir, safe+".tar")
 }
 
 func injectedTarPathFor(tag string) string {
 	safe := strings.NewReplacer("/", "_", ":", "_").Replace(tag)
-	return filepath.Join(workspaceDir, "injected-"+safe+".tar")
+	return filepath.Join(kanikoWorkspaceDir, "injected-"+safe+".tar")
 }
 
 func (bb *Build) buildGeneration2Daemonless(dir string) error {
@@ -148,6 +148,7 @@ func (bb *Build) buildDaemonless(path, dockerfile, tag string, env map[string]st
 		"--context", contextDir,
 		"--tarPath", tarPath,
 		"--destination", tag,
+		"--ignore-path=" + path,
 		"--no-push",
 		"--cache=false",
 	}

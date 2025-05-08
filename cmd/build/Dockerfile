@@ -22,7 +22,7 @@ RUN curl -sL "https://github.com/google/go-containerregistry/releases/download/$
     rm go-containerregistry.tar.gz
 
 # Kaniko runtime
-FROM gcr.io/kaniko-project/executor:debug
+FROM gcr.io/kaniko-project/executor:v1.23.2-debug
 
 # Create /tmp so Kaniko can write
 RUN mkdir -p /tmp && chmod 1777 /tmp
