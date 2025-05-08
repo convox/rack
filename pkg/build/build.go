@@ -99,27 +99,35 @@ func (bb *Build) execute() error {
 		return fmt.Errorf("checking build record: %w", err)
 	}
 
+	// for daemonless builds, use the workspace directory
+	// for daemonful builds, use a temp directory
+	dir := kanikoWorkspaceDir
+	targetDir := dir
 	if bb.Runtime != RuntimeDaemonless {
-		if err := bb.login(); err != nil {
+		err := bb.login()
+		if err != nil {
 			return err
 		}
-	}
 
-	dir, err := os.MkdirTemp("", "convox-build-")
-	if err != nil {
-		return fmt.Errorf("creating temp dir: %w", err)
-	}
-	// ensure cleanup *and* cwd restore even on panic
-	defer os.RemoveAll(dir)
+		dir, err = os.MkdirTemp("", "")
+		if err != nil {
+			return fmt.Errorf("creating temp dir: %w", err)
+		}
+		// ensure cleanup *and* cwd restore even on panic
+		defer os.RemoveAll(dir)
 
-	cwd, err := os.Getwd()
-	if err != nil {
-		return fmt.Errorf("detecting cwd: %w", err)
+		cwd, err := os.Getwd()
+		if err != nil {
+			return fmt.Errorf("detecting cwd: %w", err)
+		}
+		if err := os.Chdir(dir); err != nil {
+			return fmt.Errorf("chdir to workspace: %w", err)
+		}
+		defer func() { _ = os.Chdir(cwd) }()
+
+		// for non-daemonless builds, we need to use the current working directory as the target
+		targetDir = "."
 	}
-	if err := os.Chdir(dir); err != nil {
-		return fmt.Errorf("chdir to workspace: %w", err)
-	}
-	defer func() { _ = os.Chdir(cwd) }()
 
 	u, err := url.Parse(bb.Source)
 	if err != nil {
@@ -137,7 +145,7 @@ func (bb *Build) execute() error {
 	if err != nil {
 		return fmt.Errorf("opening source gzip: %w", err)
 	}
-	if err := helpers.Unarchive(gz, "."); err != nil {
+	if err := helpers.Unarchive(gz, targetDir); err != nil {
 		return fmt.Errorf("unarchive source: %w", err)
 	}
 
@@ -153,7 +161,7 @@ func (bb *Build) execute() error {
 
 	switch {
 	case bb.Generation == "2" && bb.Runtime == RuntimeDaemonless:
-		if err := bb.buildGeneration2Daemonless("."); err != nil {
+		if err := bb.buildGeneration2Daemonless(dir); err != nil {
 			return err
 		}
 	case bb.Generation == "2":
