@@ -68,6 +68,11 @@ workflows:
           provider: aws
       - ci:
           <<: *filter-releases-any
+          name: ci/aws/fargate/public
+          provider: aws
+          args: "BuildMethod=fargate FargateBuildCpu=1024 FargateBuildMemory=2048"
+      - ci:
+          <<: *filter-releases-any
           name: ci/aws/public-existing-vpc
           provider: aws
           args: "ExistingVpc=vpc-00e18642ac66249c5 InternetGateway=igw-0e2ed6542ed5343f2 Subnet0CIDR=172.0.1.0/24 Subnet1CIDR=172.0.2.0/24 Subnet2CIDR=172.0.3.0/24 SubnetPrivate0CIDR=172.0.4.0/24 SubnetPrivate1CIDR=172.0.5.0/24 SubnetPrivate2CIDR=172.0.6.0/24 VPCCIDR=172.0.0.0/16"
