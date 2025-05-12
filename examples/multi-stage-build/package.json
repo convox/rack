@@ -1,0 +1,16 @@
+{
+    "name": "multi-stage-test",
+    "version": "1.0.0",
+    "description": "Test app for multi-stage builds",
+    "main": "server.js",
+    "scripts": {
+      "start": "node server.js"
+    },
+    "dependencies": {
+      "express": "^4.17.1"
+    },
+    "devDependencies": {
+      "webpack": "^5.65.0",
+      "webpack-cli": "^4.9.1"
+    }
+  }
