@@ -24,6 +24,15 @@ set -ex
 provider=$(convox api get /system | jq -r .provider)
 source $(dirname $0)/env.sh
 
+# get the rack parameters to check if the rack is using Fargate or EC2 to build
+# If BuildMethod is set to fargate, the build will be done in Fargate
+# If BuildMethod is ec2 or empty, the build will be done in EC2
+buildMethod=$(convox rack params | grep BuildMethod | awk '{print $2}')
+if [ -z "$buildMethod" ]; then
+  buildMethod="ec2"  # Default to ec2 if not set
+fi
+echo "Build method detected: $buildMethod"
+
 # tests to be run on a full convox.yaml app
 # these tests include:
 # - apps resources
@@ -107,7 +116,12 @@ build=$(convox api get /apps/ci2/builds | jq -r ".[0].id") && [ -n "$build" ]
 convox builds -a ci2 | grep $build
 convox builds info $build -a ci2 | grep $build
 convox builds info $build -a ci2 | grep cibuild
-convox builds logs $build -a ci2 | grep "Running: docker push"
+if [ "$buildMethod" == "fargate" ]; then
+  script -c "convox builds logs $build -a ci2" /tmp/build_logs.out > /dev/null
+  cat /tmp/build_logs.out | grep "Running: tag and push"
+else
+  convox builds logs $build -a ci2 | grep "Running: docker push"
+fi
 convox builds export $build -a ci2 -f /tmp/build.tgz
 releasei=$(convox builds import -a ci2 -f /tmp/build.tgz --id) && [ -n "$releasei" ]
 buildi=$(convox api get /apps/ci2/releases/$releasei | jq -r ".build") && [ -n "$buildi" ]
@@ -190,12 +204,14 @@ echo "env var is correctly set"
 mv Dockerfile.original Dockerfile # replace the Dockerfile with the original copy
 
 # registries
-convox registries
-convox registries add quay.io convox+ci 6D5CJVRM5P3L24OG4AWOYGCDRJLPL0PFQAENZYJ1KGE040YDUGPYKOZYNWFTE5CV
-convox registries | grep quay.io | grep convox+ci
-convox build -a ci2 | grep -A 5 "Authenticating https://quay.io" | grep "Login Succeeded"
-convox registries remove quay.io
-convox registries | grep -v quay.io
+if [ "$buildMethod" != "fargate" ]; then
+  convox registries
+  convox registries add quay.io convox+ci 6D5CJVRM5P3L24OG4AWOYGCDRJLPL0PFQAENZYJ1KGE040YDUGPYKOZYNWFTE5CV
+  convox registries | grep quay.io | grep convox+ci
+  convox build -a ci2 | grep -A 5 "Authenticating https://quay.io" | grep "Login Succeeded"
+  convox registries remove quay.io
+  convox registries | grep -v quay.io
+fi
 
 # app (provider-specific)
 case $provider in
