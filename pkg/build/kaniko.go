@@ -258,8 +258,12 @@ func (bb *Build) pullDaemonless(tag string) error {
 func (bb *Build) tagAndPushDaemonless(from, to string) error {
 	bb.Printf("Running: tag and push %s\n", to)
 
-	imgTar := tarPathFor(from)
+	imgTar := injectedTarPathFor(from)
 	img, err := tarball.ImageFromPath(imgTar, nil)
+	if err != nil && os.IsNotExist(err) {
+		imgTar = tarPathFor(from)
+		img, err = tarball.ImageFromPath(imgTar, nil)
+	}
 	if err != nil {
 		return fmt.Errorf("load tar: %w", err)
 	}
