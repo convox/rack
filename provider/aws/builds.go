@@ -23,12 +23,11 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/ecr"
 	"github.com/aws/aws-sdk-go/service/ecs"
-	docker "github.com/fsouza/go-dockerclient"
-
 	"github.com/convox/rack/pkg/manifest"
 	"github.com/convox/rack/pkg/manifest1"
 	"github.com/convox/rack/pkg/options"
 	"github.com/convox/rack/pkg/structs"
+	docker "github.com/fsouza/go-dockerclient"
 )
 
 // ECR host is formatted like 123456789012.dkr.ecr.us-east-1.amazonaws.com
@@ -444,76 +443,6 @@ func (p *Provider) BuildImport(app string, r io.Reader) (*structs.Build, error) 
 	return targetBuild, nil
 }
 
-// BuildLogs streams the logs for a Build to an io.Writer
-func (p *Provider) BuildLogs(app, id string, opts structs.LogsOptions) (io.ReadCloser, error) {
-	b, err := p.BuildGet(app, id)
-	if err != nil {
-		return nil, err
-	}
-
-	switch b.Status {
-	case "running":
-		task, err := p.describeTask(b.Tags["task"])
-		if err != nil {
-			return nil, err
-		}
-
-		ci, err := p.containerInstance(*task.ContainerInstanceArn)
-		if err != nil {
-			return nil, err
-		}
-
-		dc, err := p.dockerInstance(*ci.Ec2InstanceId)
-		if err != nil {
-			return nil, err
-		}
-
-		cs, err := dc.ListContainers(docker.ListContainersOptions{
-			All: true,
-			Filters: map[string][]string{
-				"label": {fmt.Sprintf("com.amazonaws.ecs.task-arn=%s", *task.TaskArn)},
-			},
-		})
-		if err != nil {
-			return nil, err
-		}
-		if len(cs) != 1 {
-			return nil, fmt.Errorf("could not find container for task: %s", *task.TaskArn)
-		}
-
-		r, w := io.Pipe()
-
-		go func() {
-			defer w.Close()
-			dc.Logs(docker.LogsOptions{
-				Container:         cs[0].ID,
-				OutputStream:      w,
-				ErrorStream:       w,
-				InactivityTimeout: 20 * time.Minute,
-				Follow:            true,
-				Stdout:            true,
-				Stderr:            true,
-			})
-		}()
-
-		return r, nil
-	default:
-		u, err := url.Parse(b.Logs)
-		if err != nil {
-			return nil, err
-		}
-
-		switch u.Scheme {
-		case "object":
-			return p.ObjectFetch(app, u.Path)
-		default:
-			return io.NopCloser(strings.NewReader(b.Logs)), nil
-		}
-	}
-
-	return nil, fmt.Errorf("unreachable")
-}
-
 // BuildList returns a list of the latest builds, with the length specified in limit
 func (p *Provider) BuildList(app string, opts structs.BuildListOptions) (structs.Builds, error) {
 	a, err := p.AppGet(app)
@@ -790,10 +719,84 @@ func (p *Provider) authECR(host, access, secret string) (string, string, error) 
 	return parts[0], parts[1], nil
 }
 
+// Helper function to prepare launch configuration
+func (p *Provider) prepareLaunchConfiguration(buildMethod string) (*string, *ecs.NetworkConfiguration, error) {
+	if buildMethod == "ec2" {
+		return aws.String("EC2"), nil, nil
+	}
+
+	subnets, err := p.fetchSubnets()
+	if err != nil {
+		return nil, nil, err
+	}
+	secGroups, err := p.fetchSecurityGroups()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// Configure Fargate-specific network settings
+	nc := &ecs.NetworkConfiguration{
+		AwsvpcConfiguration: &ecs.AwsVpcConfiguration{
+			AssignPublicIp: aws.String("ENABLED"),
+			Subnets:        subnets,
+			SecurityGroups: secGroups,
+		},
+	}
+
+	return aws.String("FARGATE"), nc, nil
+}
+
+// Helper function to fetch subnets
+func (p *Provider) fetchSubnets() ([]*string, error) {
+	subnets := []*string{}
+	for _, subnet := range []string{"Subnet0", "Subnet1", "SubnetPrivate0", "SubnetPrivate1"} {
+		res, _ := p.stackResource(p.Rack, subnet)
+		if res != nil && res.PhysicalResourceId != nil {
+			subnets = append(subnets, res.PhysicalResourceId)
+		}
+	}
+
+	if len(subnets) == 0 {
+		return nil, fmt.Errorf("no subnets found for Fargate")
+	}
+
+	return subnets, nil
+}
+
+// Helper function to fetch security groups
+func (p *Provider) fetchSecurityGroups() ([]*string, error) {
+	biSecGroup, _ := p.stackParameter(p.Rack, "BuildInstanceSecurityGroup")
+	if biSecGroup != "" {
+		return []*string{aws.String(biSecGroup)}, nil
+	}
+
+	iSecGroup, _ := p.stackParameter(p.Rack, "InstanceSecurityGroup")
+	if iSecGroup != "" {
+		return []*string{aws.String(iSecGroup)}, nil
+	}
+
+	is, _ := p.stackResource(p.Rack, "InstancesSecurity")
+	if is != nil && is.PhysicalResourceId != nil {
+		return []*string{is.PhysicalResourceId}, nil
+	}
+
+	return nil, fmt.Errorf("no security groups found for Fargate")
+}
+
 func (p *Provider) runBuild(build *structs.Build, burl string, opts structs.BuildCreateOptions) error {
 	log := Logger.At("runBuild").Namespace("url=%q", burl).Start()
 
-	br, err := p.stackResource(p.Rack, "ApiBuildTasks")
+	buildTaskName := "ApiBuildTasks"
+	buildMethod, err := p.stackParameter(p.Rack, "BuildMethod")
+	if err != nil {
+		log.Error(err)
+		return err
+	}
+	if buildMethod == "fargate" {
+		buildTaskName = "ApiBuildFargate"
+	}
+
+	br, err := p.stackResource(p.Rack, buildTaskName)
 	if err != nil {
 		log.Error(err)
 		return err
@@ -850,11 +853,85 @@ func (p *Provider) runBuild(build *structs.Build, burl string, opts structs.Buil
 		cache = false
 	}
 
+	launchType, nc, err := p.prepareLaunchConfiguration(buildMethod)
+	if err != nil {
+		log.Error(err)
+		return err
+	}
+	if launchType == nil {
+		log.Errorf("no launch type found for build %q", buildMethod)
+		return fmt.Errorf("no launch type found")
+	}
+
+	log.Logf("launchType=%q", *launchType)
+	if nc != nil && nc.AwsvpcConfiguration != nil {
+		log.Logf("networkConfiguration: AssignPublicIp=%s, Subnets=%v, SecurityGroups=%v",
+			aws.StringValue(nc.AwsvpcConfiguration.AssignPublicIp),
+			aws.StringValueSlice(nc.AwsvpcConfiguration.Subnets),
+			aws.StringValueSlice(nc.AwsvpcConfiguration.SecurityGroups))
+	} else {
+		log.Logf("networkConfiguration: nil or incomplete")
+	}
+
 	buildCmd := []*string{
 		aws.String("build"),
 		aws.String("-method"), aws.String("tgz"),
 		aws.String("-cache"), aws.String(fmt.Sprintf("%t", cache)),
 	}
+	var env []*ecs.KeyValuePair
+
+	// Base environment variables for all build types
+	env = append(env, []*ecs.KeyValuePair{
+		{
+			Name:  aws.String("BUILD_APP"),
+			Value: aws.String(build.App),
+		},
+		{
+			Name:  aws.String("BUILD_AUTH"),
+			Value: aws.String(auth),
+		},
+		{
+			Name:  aws.String("BUILD_DEVELOPMENT"),
+			Value: aws.String(fmt.Sprintf("%t", cb(opts.Development, false))),
+		},
+		{
+			Name:  aws.String("BUILD_ENV_WRAPPER"),
+			Value: aws.String("true"),
+		},
+		{
+			Name:  aws.String("BUILD_GENERATION"),
+			Value: aws.String(a.Tags["Generation"]),
+		},
+		{
+			Name:  aws.String("BUILD_ID"),
+			Value: aws.String(build.Id),
+		},
+		{
+			Name:  aws.String("BUILD_MANIFEST"),
+			Value: aws.String(cs(opts.Manifest, "")),
+		},
+		{
+			Name:  aws.String("BUILD_PUSH"),
+			Value: aws.String(push),
+		},
+		{
+			Name:  aws.String("BUILD_URL"),
+			Value: aws.String(burl),
+		},
+		{
+			Name:  aws.String("HTTP_PROXY"),
+			Value: aws.String(os.Getenv("HTTP_PROXY")),
+		},
+		{
+			Name:  aws.String("RACK_URL"),
+			Value: aws.String(rackUrl),
+		},
+		{
+			Name:  aws.String("RELEASE"),
+			Value: aws.String(build.Id),
+		},
+	}...)
+
 	if opts.BuildArgs != nil {
 		for _, v := range *opts.BuildArgs {
 			if len(strings.SplitN(v, "=", 2)) != 2 {
@@ -869,64 +946,19 @@ func (p *Provider) runBuild(build *structs.Build, burl string, opts structs.Buil
 		Count:          aws.Int64(1),
 		StartedBy:      aws.String(fmt.Sprintf("convox.%s", build.App)),
 		TaskDefinition: aws.String(td),
+		LaunchType:     launchType,
 		Overrides: &ecs.TaskOverride{
 			ContainerOverrides: []*ecs.ContainerOverride{
 				{
-					Name:    aws.String("build"),
-					Command: buildCmd,
-					Environment: []*ecs.KeyValuePair{
-						{
-							Name:  aws.String("BUILD_APP"),
-							Value: aws.String(build.App),
-						},
-						{
-							Name:  aws.String("BUILD_AUTH"),
-							Value: aws.String(auth),
-						},
-						{
-							Name:  aws.String("BUILD_DEVELOPMENT"),
-							Value: aws.String(fmt.Sprintf("%t", cb(opts.Development, false))),
-						},
-						{
-							Name:  aws.String("BUILD_ENV_WRAPPER"),
-							Value: aws.String("true"),
-						},
-						{
-							Name:  aws.String("BUILD_GENERATION"),
-							Value: aws.String(a.Tags["Generation"]),
-						},
-						{
-							Name:  aws.String("BUILD_ID"),
-							Value: aws.String(build.Id),
-						},
-						{
-							Name:  aws.String("BUILD_MANIFEST"),
-							Value: aws.String(cs(opts.Manifest, "")),
-						},
-						{
-							Name:  aws.String("BUILD_PUSH"),
-							Value: aws.String(push),
-						},
-						{
-							Name:  aws.String("BUILD_URL"),
-							Value: aws.String(burl),
-						},
-						{
-							Name:  aws.String("HTTP_PROXY"),
-							Value: aws.String(os.Getenv("HTTP_PROXY")),
-						},
-						{
-							Name:  aws.String("RACK_URL"),
-							Value: aws.String(rackUrl),
-						},
-						{
-							Name:  aws.String("RELEASE"),
-							Value: aws.String(build.Id),
-						},
-					},
+					Name:        aws.String("build"),
+					Command:     buildCmd,
+					Environment: env,
 				},
 			},
 		},
+	}
+	if nc != nil && nc.AwsvpcConfiguration != nil {
+		req.NetworkConfiguration = nc
 	}
 
 	task, err := p.runTask(req)
@@ -952,8 +984,10 @@ func (p *Provider) runBuild(build *structs.Build, burl string, opts structs.Buil
 		return err
 	}
 
-	if err := p.waitForContainer(task); err != nil {
-		return err
+	if buildMethod == "ec2" {
+		if err := p.waitForContainer(task); err != nil {
+			return err
+		}
 	}
 
 	return nil

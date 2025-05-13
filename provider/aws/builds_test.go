@@ -682,6 +682,7 @@ var cycleBuildDescribeTasks = awsutil.Cycle{
 			"failures": [],
 			"tasks": [
 				{
+					"launchType": "EC2",
 					"taskArn": "arn:aws:ecs:us-east-1:778743527532:task/50b8de99-f94f-4ecd-a98f-5850760f0845",
 					"overrides": {
 						"containerOverrides": [

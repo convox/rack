@@ -21,8 +21,7 @@ all: build
 build: $(binaries) $(statics)
 
 builder:
-	docker build -t convox/build:$(USER) -f cmd/build/Dockerfile .
-	docker push convox/build:$(USER)
+	docker buildx build --platform linux/amd64 -t convox/build:$(VERSION) --no-cache --pull --push -f cmd/build/Dockerfile .
 
 clean: clean-package
 	make -C cmd/convox clean
@@ -78,7 +77,7 @@ release:
 	git tag $(VERSION) -m $(VERSION)
 	git push origin refs/tags/$(VERSION)
 
-release-all: release-version release-cli release-image release-provider
+release-all: release-version release-cli release-image builder release-provider
 
 release-cli: release-version package
 	make -C cmd/convox release VERSION=$(VERSION)
@@ -104,7 +103,7 @@ test-docker:
 	docker run -it convox/rack:test make test
 
 $(binaries): $(GOPATH)/bin/%: $(sources)
-	go install --ldflags="-s -w" ./cmd/$*
+	env CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -mod=vendor -tags=hidraw -ldflags="-extldflags=-static" -o $@ ./cmd/$*
 
 $(statics): $(GOPATH)/bin/%: $(sources)
 	env CGO_ENABLED=0 go install --ldflags '-extldflags "-static" -s -w' ./cmd/$*
