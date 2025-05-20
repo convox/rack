@@ -22,6 +22,7 @@ build: $(binaries) $(statics)
 
 builder:
 	docker buildx build --platform linux/amd64 -t convox/build:$(VERSION) --no-cache --pull --push -f cmd/build/Dockerfile .
+	docker buildx build --platform linux/arm64 -t convox/build:$(VERSION)-arm64 --no-cache --pull --push -f cmd/build/Dockerfile.arm .
 
 clean: clean-package
 	make -C cmd/convox clean
@@ -103,7 +104,7 @@ test-docker:
 	docker run -it convox/rack:test make test
 
 $(binaries): $(GOPATH)/bin/%: $(sources)
-	env CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -mod=vendor -tags=hidraw -ldflags="-extldflags=-static" -o $@ ./cmd/$*
+	env CGO_ENABLED=0 GOOS=linux go build -mod=vendor -tags=hidraw -ldflags="-extldflags=-static" -o $@ ./cmd/$*
 
 $(statics): $(GOPATH)/bin/%: $(sources)
 	env CGO_ENABLED=0 go install --ldflags '-extldflags "-static" -s -w' ./cmd/$*
