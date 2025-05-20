@@ -39,6 +39,12 @@
       {"Condition": "PrivateAndThirdAvailabilityZoneAndHighAvailability"}
     ]},
     "DedicatedBuilder": { "Fn::Not": [ { "Fn::Equals": [ { "Ref": "BuildInstance" }, "" ] } ] },
+    "DedicatedBuilderAS": {
+      "Fn::And": [
+        { "Condition": "DedicatedBuilder" },
+        { "Fn::Not": [ { "Condition": "UseFargateBuild" } ] }
+      ]
+    },
     "Development": { "Fn::Equals": [ { "Ref": "Development" }, "Yes" ] },
     "EnableALBPort80": {
       "Fn::And": [ { "Condition": "PublicRouter" }, { "Condition": "AllowALBPort80" } ]
@@ -295,7 +301,7 @@
       "Value": { "Ref": "AWS::Region" }
     },
     "BuildAutoscalingGroup": {
-      "Value": { "Fn::If": [ "DedicatedBuilder", { "Ref": "BuildInstances" }, { "Ref": "Instances" } ] }
+      "Value": { "Fn::If": [ "DedicatedBuilderAS", { "Ref": "BuildInstances" }, { "Ref": "Instances" } ] }
     },
     "BuildCluster": {
       "Value": { "Fn::If": [ "DedicatedBuilder", { "Ref": "BuildCluster" }, { "Ref": "Cluster" } ] }
@@ -2007,7 +2013,7 @@
       }
     },
     "BuildInstances": {
-      "Condition": "DedicatedBuilder",
+      "Condition": "DedicatedBuilderAS",
       "Type": "AWS::AutoScaling::AutoScalingGroup",
       "Properties" : {
         "LaunchTemplate" : {
@@ -4227,7 +4233,19 @@
               { "Name": "STACK_ID", "Value": { "Ref": "AWS::StackId" } },
               { "Name": "BUILD_RUNTIME", "Value": "daemonless" }
             ],
-            "Image": { "Fn::Sub": "convox/build:${Version}" },
+            "Image": {
+              "Fn::If": [
+                "BlankBuildImage",
+                {
+                  "Fn::If": [
+                    "InstanceARM",
+                    { "Fn::Sub": "convox/build:${Version}-arm64" },
+                    { "Fn::Sub": "convox/build:${Version}" }
+                  ]
+                },
+                { "Ref": "BuildImage" }
+              ]
+            },
             "LogConfiguration": {
               "Fn::If": [
                 "EnableSyslog",
@@ -4264,6 +4282,15 @@
             }]
           }
         ],
+        "RuntimePlatform": {
+          "CpuArchitecture" : {
+            "Fn::If": [
+              "InstanceARM",
+              "ARM64",
+              "X86_64"
+            ]
+          }
+        },
         "ExecutionRoleArn": { "Fn::GetAtt": [ "ApiRole", "Arn" ] },
         "Family": { "Fn::Sub": "${AWS::StackName}-build" },
         "TaskRoleArn": { "Fn::GetAtt": [ "ApiRole", "Arn" ] }
