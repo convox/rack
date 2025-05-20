@@ -4227,7 +4227,19 @@
               { "Name": "STACK_ID", "Value": { "Ref": "AWS::StackId" } },
               { "Name": "BUILD_RUNTIME", "Value": "daemonless" }
             ],
-            "Image": { "Fn::Sub": "convox/build:${Version}" },
+            "Image": {
+              "Fn::If": [
+                "BlankBuildImage",
+                {
+                  "Fn::If": [
+                    "InstanceARM",
+                    { "Fn::Sub": "convox/build:${Version}-arm64" },
+                    { "Fn::Sub": "convox/build:${Version}" }
+                  ]
+                },
+                { "Ref": "BuildImage" }
+              ]
+            },
             "LogConfiguration": {
               "Fn::If": [
                 "EnableSyslog",
