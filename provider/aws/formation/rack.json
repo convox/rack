@@ -3895,7 +3895,8 @@
                 { "Fn::Sub": "arn:${AWS::Partition}:iam::*:instance-profile/*" },
                 { "Fn::Sub": "arn:${AWS::Partition}:iam::*:policy/*" },
                 { "Fn::Sub": "arn:${AWS::Partition}:iam::*:role/*" },
-                { "Fn::Sub": "arn:${AWS::Partition}:iam::*:user/convox/*" }
+                { "Fn::Sub": "arn:${AWS::Partition}:iam::*:user/convox/*" },
+                { "Fn::Sub": "arn:${AWS::Partition}:iam::*:user/*" }
               ]
             },
             {
