@@ -1,136 +1,132 @@
 {{ define "resource" }}
-  {
-    "AWSTemplateFormatVersion" : "2010-09-09",
-    "Conditions": {
-      "Topic": { "Fn::Not": [ { "Fn::Equals": [ { "Ref": "Topic" }, "" ] } ] },
-      "Versioning": { "Fn::Equals": [ { "Ref": "Versioning" }, "true" ] }
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Conditions": {
+    "Topic":     { "Fn::Not": [ { "Fn::Equals": [ { "Ref": "Topic" }, "" ] } ] },
+    "Versioning":{ "Fn::Equals": [ { "Ref": "Versioning" }, "true" ] }
+  },
+
+  "Parameters": {
+    "Topic": {
+      "Type": "String",
+      "Default": "",
+      "Description": "SNS resource name for change notifications"
     },
-    "Parameters": {
-      "Topic": {
-        "Type" : "String",
-        "Default": "",
-        "Description" : "SNS resource name for change notifications"
-      },
-      "Versioning": {
-        "Type" : "String",
-        "Default": "false",
-        "Description" : "Enable versioning"
-      }
-    },
-    "Resources": {
-      "Bucket": {
-        "Type": "AWS::S3::Bucket",
-        "Properties": {
-          "AccessControl": "Private",
-          "OwnershipControls": {
-            "Rules": [
-              {
-                "ObjectOwnership": "BucketOwnerPreferred"
-              }
-            ]
-          },
-          "BucketEncryption": {
-            "ServerSideEncryptionConfiguration": [ { "ServerSideEncryptionByDefault": { "SSEAlgorithm": "aws:kms" } } ]
-          },
-          "BucketName": { "Ref": "AWS::StackName" },
-          "NotificationConfiguration": {
-            "Fn::If": [ "Topic",
-              {
-                "TopicConfigurations": [
-                  {
-                    "Event": "s3:ObjectCreated:*",
-                    "Topic": { "Fn::Sub": "arn:${AWS::Partition}:sns:${AWS::Region}:${AWS::AccountId}:${Topic}" }
-                  },
-                  {
-                    "Event": "s3:ObjectRemoved:*",
-                    "Topic": { "Fn::Sub": "arn:${AWS::Partition}:sns:${AWS::Region}:${AWS::AccountId}:${Topic}" }
-                  }
-                ]
-              },
-              { "Ref" : "AWS::NoValue" }
-            ]
-          },
-          "VersioningConfiguration": { "Fn::If": [ "Versioning",
-            { "Status": "Enabled" },
-            { "Ref": "AWS::NoValue" }
-          ] },
-          "Tags": [
+    "Versioning": {
+      "Type": "String",
+      "Default": "false",
+      "Description": "Enable versioning"
+    }
+  },
+  "Resources": {
+    "Bucket": {
+      "Type": "AWS::S3::Bucket",
+      "Properties": {
+        "AccessControl": "Private",
+        "OwnershipControls": { "Rules": [ { "ObjectOwnership": "BucketOwnerPreferred" } ] },
+        "BucketEncryption": {
+          "ServerSideEncryptionConfiguration": [
+            { "ServerSideEncryptionByDefault": { "SSEAlgorithm": "aws:kms" } }
+          ]
+        },
+        "BucketName": { "Ref": "AWS::StackName" },
+        "NotificationConfiguration": {
+          "Fn::If": [ "Topic",
+            {
+              "TopicConfigurations": [
+                {
+                  "Event": "s3:ObjectCreated:*",
+                  "Topic": { "Fn::Sub": "arn:${AWS::Partition}:sns:${AWS::Region}:${AWS::AccountId}:${Topic}" }
+                },
+                {
+                  "Event": "s3:ObjectRemoved:*",
+                  "Topic": { "Fn::Sub": "arn:${AWS::Partition}:sns:${AWS::Region}:${AWS::AccountId}:${Topic}" }
+                }
+              ]
+            },
+            { "Ref" : "AWS::NoValue" }
+          ]
+        },
+        "VersioningConfiguration": { "Fn::If": [ "Versioning",
+          { "Status": "Enabled" },
+          { "Ref": "AWS::NoValue" }
+        ] },
+        "Tags": [
             {{/*
             HACK: Referencing TopicPolicy for a tag implicitly creates the TopicPolicy before the Bucket.
             This fixes a Bucket provisioning error when it can't validate permissions on the topic.
             This is a workaround since DependsOn must be static and will error on conditional Resources that don't exist.
             */}}
-            { "Fn::If": ["Topic",
-              { "Key": "TopicPolicy", "Value": { "Ref": "TopicPolicy" } },
-              { "Ref": "AWS::NoValue" }
-            ]}
-          ]
-        }
-      },
-      "TopicPolicy": {
-        "Condition": "Topic",
-        "Type": "AWS::SNS::TopicPolicy",
-        "Properties" : {
-          "PolicyDocument" : {
-            "Version": "2008-10-17",
-            "Id": "SNSTopicPolicy",
-            "Statement": [{
-              "Sid": "1",
-              "Effect": "Allow",
-              "Principal": {
-                "AWS": "*"
-              },
-              "Action": [
-                "SNS:Publish"
-              ],
-              "Resource": { "Fn::Sub": "arn:${AWS::Partition}:sns:${AWS::Region}:${AWS::AccountId}:${Topic}" },
-              "Condition": {
-                "ArnLike": {
-                  "aws:SourceArn": { "Fn::Sub": "arn:${AWS::Partition}:s3:*:*:${AWS::StackName}" }
-                }
+          { "Fn::If": [ "Topic",
+            { "Key": "TopicPolicy", "Value": { "Ref": "TopicPolicy" } },
+            { "Ref": "AWS::NoValue" }
+          ]}
+        ]
+      }
+    },
+    "TopicPolicy": {
+      "Condition": "Topic",
+      "Type": "AWS::SNS::TopicPolicy",
+      "Properties": {
+        "PolicyDocument": {
+          "Version": "2008-10-17",
+          "Id": "SNSTopicPolicy",
+          "Statement": [{
+            "Sid": "AllowBucketPublish",
+            "Effect": "Allow",
+            "Principal": { "AWS": "*" },
+            "Action": "SNS:Publish",
+            "Resource": { "Fn::Sub": "arn:${AWS::Partition}:sns:${AWS::Region}:${AWS::AccountId}:${Topic}" },
+            "Condition": {
+              "ArnLike": {
+                "aws:SourceArn": { "Fn::Sub": "arn:${AWS::Partition}:s3:*:*:${AWS::StackName}" }
               }
-            }]
-          },
-          "Topics": [ { "Fn::Sub": "arn:${AWS::Partition}:sns:${AWS::Region}:${AWS::AccountId}:${Topic}" } ]
-        }
-      },
-      "User": {
-        "Type": "AWS::IAM::User",
-        "Properties": {
-          "Path": "/convox/",
-          "Policies": [{
-            "PolicyName" : "S3Access",
-            "PolicyDocument" : {
-              "Statement": [{
+            }
+          }]
+        },
+        "Topics": [ { "Fn::Sub": "arn:${AWS::Partition}:sns:${AWS::Region}:${AWS::AccountId}:${Topic}" } ]
+      }
+    },
+    "User": {
+      "Type": "AWS::IAM::User",
+      "Properties": {
+        "Path": "/convox/",
+        "Policies": [{
+          "PolicyName": "S3Access",
+          "PolicyDocument": {
+            "Statement": [
+              {
                 "Effect": "Allow",
                 "Action": "s3:ListBucket",
                 "Resource": { "Fn::Sub": "arn:${AWS::Partition}:s3:::${AWS::StackName}" }
-              },{
+              },
+              {
                 "Effect": "Allow",
                 "Action": "s3:*",
                 "Resource": { "Fn::Sub": "arn:${AWS::Partition}:s3:::${AWS::StackName}/*" }
-              }]
-            }
-          }]
-        }
-      },
-      "AccessKey": {
-        "Type": "AWS::IAM::AccessKey",
-        "Properties": {
-          "UserName": { "Ref": "User" }
-        }
+              }
+            ]
+          }
+        }]
       }
     },
-    "Outputs": {
-      "Bucket": {
-        "Value": { "Ref": "Bucket" }
-      },
-      "AccessKey": {
-        "Value": { "Ref": "AccessKey" }
-      },
-      "SecretAccessKey": {
-        "Value": { "Fn::GetAtt": ["AccessKey", "SecretAccessKey"] }
+    "AccessKey": {
+      "Type": "AWS::IAM::AccessKey",
+      "Properties": {
+        "UserName": { "Ref": "User" }
       }
     }
+  },
+  "Outputs": {
+    "Bucket": {
+    "Value": { "Ref": "Bucket" }
+    },
+    "AccessKey": {
+    "Value": { "Ref": "AccessKey" }
+    },
+    "SecretAccessKey": {
+      "Value": { "Fn::GetAtt": [ "AccessKey", "SecretAccessKey" ] }
+    }
   }
+}
 {{ end }}
