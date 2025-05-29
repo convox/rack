@@ -44,6 +44,7 @@ func (p *Provider) ProcessExec(app, pid, command string, rw io.ReadWriter, opts 
 			break
 		}
 	}
+	log.Logf("pidFound=%t", pidFound)
 
 	if !pidFound {
 		return -1, errorNotFound(fmt.Sprintf("process id not found for %s", app))
@@ -53,15 +54,18 @@ func (p *Provider) ProcessExec(app, pid, command string, rw io.ReadWriter, opts 
 	if err != nil {
 		return -1, err
 	}
+	log.Logf("dockerClientFromPid=%s", dc.Endpoint())
 
 	c, err := p.dockerContainerFromPid(pid)
 	if err != nil {
 		return -1, err
 	}
+	log.Logf("dockerContainerFromPid=%s", c.ID)
 
 	cmd := []string{"sh", "-c", command}
 
-	tty := cb(opts.Tty, true)
+	tty := true
+	log.Logf("tty=%t", tty)
 
 	if opts.Entrypoint != nil && *opts.Entrypoint {
 		cmd = append(c.Config.Entrypoint, cmd...)
@@ -116,6 +120,7 @@ func (p *Provider) ProcessExec(app, pid, command string, rw io.ReadWriter, opts 
 	if err != nil {
 		return -1, log.Error(err)
 	}
+	log.Logf("InspectExec=%+v", ires)
 
 	return ires.ExitCode, log.Success()
 }
