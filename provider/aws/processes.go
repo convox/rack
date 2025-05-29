@@ -104,7 +104,7 @@ func (p *Provider) ProcessExec(app, pid, command string, rw io.ReadWriter, opts 
 		InputStream:  io.NopCloser(rw),
 		OutputStream: rw,
 		ErrorStream:  rw,
-		RawTerminal:  true,
+		RawTerminal:  tty,
 		Success:      success,
 	})
 
