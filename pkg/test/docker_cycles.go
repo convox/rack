@@ -12,11 +12,12 @@ Create a test server that mocks an Docker request/response cycle,
 suitable for a single test
 
 Example:
-		s := StubDocker(ListContainersCycle())
-		defer s.Close()
 
-		d, _ := Docker(test.TestConfig.DockerHost)
-		d.ListContainers(...)
+	s := StubDocker(ListContainersCycle())
+	defer s.Close()
+
+	d, _ := Docker(test.TestConfig.DockerHost)
+	d.ListContainers(...)
 */
 func StubDocker(cycles ...awsutil.Cycle) (s *httptest.Server) {
 	handler := awsutil.NewHandler(cycles)
@@ -145,7 +146,7 @@ func inspectResponse(id string) string {
         "OnBuild": null,
         "OpenStdin": false,
         "StdinOnce": false,
-        "Tty": false,
+        "Tty": true,
         "User": "",
         "Volumes": null,
         "WorkingDir": "",
