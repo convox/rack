@@ -44,31 +44,37 @@ func (p *Provider) ProcessExec(app, pid, command string, rw io.ReadWriter, opts 
 			break
 		}
 	}
+	log.Logf("pidFound: %t", pidFound)
+	log.Logf("pid: %s", pid)
 
 	if !pidFound {
+		log.Error(err)
+
 		return -1, errorNotFound(fmt.Sprintf("process id not found for %s", app))
 	}
 
 	dc, err := p.dockerClientFromPid(pid)
 	if err != nil {
-		return -1, err
+		return -1, log.Error(err)
 	}
 
 	c, err := p.dockerContainerFromPid(pid)
 	if err != nil {
-		return -1, err
+		return -1, log.Error(err)
 	}
+	log.Logf("container: %s", c.ID)
 
 	cmd := []string{"sh", "-c", command}
 
 	tty := cb(opts.Tty, true)
+	log.Logf("tty: %t", tty)
 
 	if opts.Entrypoint != nil && *opts.Entrypoint {
 		cmd = append(c.Config.Entrypoint, cmd...)
 	} else {
 		a, err := p.AppGet(app)
 		if err != nil {
-			return -1, err
+			return -1, log.Error(err)
 		}
 
 		if a.Tags["Generation"] == "2" {
@@ -76,6 +82,7 @@ func (p *Provider) ProcessExec(app, pid, command string, rw io.ReadWriter, opts 
 		}
 	}
 
+	log.Logf("Command: %s", commandString(cmd))
 	eres, err := dc.CreateExec(docker.CreateExecOptions{
 		AttachStdin:  true,
 		AttachStdout: true,
@@ -93,7 +100,10 @@ func (p *Provider) ProcessExec(app, pid, command string, rw io.ReadWriter, opts 
 	go func() {
 		<-success
 		if opts.Height != nil && opts.Width != nil {
-			dc.ResizeExecTTY(eres.ID, *opts.Height, *opts.Width)
+			err := dc.ResizeExecTTY(eres.ID, *opts.Height, *opts.Width)
+			if err != nil {
+				log.Error(err)
+			}
 		}
 		success <- struct{}{}
 	}()
@@ -104,7 +114,7 @@ func (p *Provider) ProcessExec(app, pid, command string, rw io.ReadWriter, opts 
 		InputStream:  io.NopCloser(rw),
 		OutputStream: rw,
 		ErrorStream:  rw,
-		RawTerminal:  true,
+		RawTerminal:  tty,
 		Success:      success,
 	})
 
@@ -116,6 +126,7 @@ func (p *Provider) ProcessExec(app, pid, command string, rw io.ReadWriter, opts 
 	if err != nil {
 		return -1, log.Error(err)
 	}
+	log.Logf("ExitCode: %d", ires.ExitCode)
 
 	return ires.ExitCode, log.Success()
 }

@@ -2,7 +2,6 @@ package cli
 
 import (
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/convox/rack/pkg/helpers"
@@ -111,10 +110,8 @@ func Run(rack sdk.Interface, c *stdcli.Context) error {
 		Width:      opts.Width,
 	}
 
-	if !stdcli.IsTerminal(os.Stdin) {
-		eopts.Tty = options.Bool(false)
-	}
-
+	eopts.Tty = options.Bool(true)
+	fmt.Printf("=======> Options: %+v\n", eopts)
 	code, err := rack.ProcessExec(app(c), ps.Id, command, c, eopts)
 	if err != nil {
 		return err
