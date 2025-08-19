@@ -57,7 +57,7 @@ func (p *Provider) ServiceList(app string) (structs.Services, error) {
 		endpoint := a.Outputs[fmt.Sprintf("Service%sEndpoint", upperName(ms.Name))]
 		cert := a.Outputs[fmt.Sprintf("Service%sCertificate", upperName(ms.Name))]
 
-		if endpoint == "" {
+		if endpoint == "" || ms.InternalAndExternal {
 			sr, err := p.stackResource(p.rackStack(app), fmt.Sprintf("Service%s", upperName(ms.Name)))
 			if err != nil && !strings.HasPrefix(err.Error(), "resource not found") {
 				return nil, err
@@ -73,6 +73,9 @@ func (p *Provider) ServiceList(app string) (structs.Services, error) {
 
 				cert = outputs["Certificate"]
 				endpoint = outputs["Endpoint"]
+				if ms.InternalAndExternal {
+					endpoint = fmt.Sprintf("%s(internal), %s(external)", outputs["Endpoint"], outputs["EndpointExternal"])
+				}
 			}
 		}
 
