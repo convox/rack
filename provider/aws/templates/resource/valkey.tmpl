@@ -22,15 +22,9 @@
         "Default": "false",
         "AllowedValues": [ "true", "false" ]
       },
-      "Engine": {
-        "Type": "String",
-        "Default": "redis",
-        "AllowedValues": [ "redis", "valkey" ],
-        "Description": "The cache engine to use (redis or valkey)"
-      },
       "EngineVersion": {
         "Type": "String",
-        "Default": "7.0",
+        "Default": "8.1",
         "Description": "The version of the cache engine"
       },
       "InstanceType": {
@@ -101,7 +95,7 @@
           "AutoMinorVersionUpgrade": true,
           "CacheNodeType": { "Ref": "InstanceType" },
           "CacheSubnetGroupName": { "Ref": "CacheSubnetGroup" },
-          "Engine": { "Ref": "Engine" },
+          "Engine": "valkey",
           "EngineVersion": { "Ref": "EngineVersion" },
           "NumCacheClusters": { "Ref": "NumCacheClusters" },
           "Port": "6379",

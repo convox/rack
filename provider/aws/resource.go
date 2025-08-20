@@ -160,7 +160,7 @@ func (p *Provider) SystemResourceCreate(kind string, opts structs.ResourceCreate
 	var req *cloudformation.CreateStackInput
 
 	switch s.Type {
-	case "memcached", "mysql", "postgres", "redis", "sqs":
+	case "memcached", "mysql", "postgres", "redis", "valkey", "sqs":
 		req, err = p.createResource(s)
 	case "s3":
 		if s.Parameters["Topic"] != "" {
@@ -300,7 +300,7 @@ func (p *Provider) SystemResourceGet(name string) (*structs.Resource, error) {
 		s.Url = fmt.Sprintf("mysql://%s:%s@%s:%s/%s", outputs["EnvMysqlUsername"], outputs["EnvMysqlPassword"], outputs["Port3306TcpAddr"], outputs["Port3306TcpPort"], outputs["EnvMysqlDatabase"])
 	case "postgres":
 		s.Url = fmt.Sprintf("postgres://%s:%s@%s:%s/%s", outputs["EnvPostgresUsername"], outputs["EnvPostgresPassword"], outputs["Port5432TcpAddr"], outputs["Port5432TcpPort"], outputs["EnvPostgresDatabase"])
-	case "redis":
+	case "redis", "valkey":
 		s.Url = fmt.Sprintf("redis://%s:%s/%s", outputs["Port6379TcpAddr"], outputs["Port6379TcpPort"], outputs["EnvRedisDatabase"])
 	case "s3":
 		s.Url = fmt.Sprintf("s3://%s:%s@%s", outputs["AccessKey"], outputs["SecretAccessKey"], outputs["Bucket"])
