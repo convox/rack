@@ -570,7 +570,7 @@
                 "Priority": "{{ priority $.App $.Service.Name $domain $i }}"
               }
             },
-            {{ if .InternalAndExternal }}
+            {{ if $.Service.InternalAndExternal }}
             "BalancerListenerRule80Domain{{$i}}External": {
               "Type": "AWS::ElasticLoadBalancingV2::ListenerRule",
               "Condition": "RouteHttp",
