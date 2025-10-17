@@ -208,6 +208,14 @@ func (p *Provider) SystemGet() (*structs.System, error) {
 		Version:    version,
 	}
 
+	r.Parameters[ParameterNameTags] = ""
+	for k, v := range stackTags(stack) {
+		if r.Parameters[ParameterNameTags] != "" {
+			r.Parameters[ParameterNameTags] += ","
+		}
+		r.Parameters[ParameterNameTags] += fmt.Sprintf("%s=%s", k, v)
+	}
+
 	log.Success()
 	return r, nil
 }
