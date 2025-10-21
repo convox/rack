@@ -1524,3 +1524,19 @@ func (cr *CronJob) LongName() string {
 func serviceMetricsKey(metricType, serviceName string) string {
 	return fmt.Sprintf("service:%s:utilization:%s", metricType, strings.ReplaceAll(serviceName, "-", "_"))
 }
+
+// yamlFixEnforce ensures that certain resource versions are in float format
+// yaml auto converts float-looking strings to floats, which can cause issues
+// for example "6.0" being converted to 6
+// This function enforces the float format by adding ".0" if missing for specific resource types
+func resourceFloatVersionYamlFixEnforce(rType string, v string) string {
+	switch rType {
+	case "memcached", "redis", "valkey":
+		if !strings.Contains(v, ".") {
+			return fmt.Sprintf("%s.0", v)
+		}
+		return v
+	default:
+		return v
+	}
+}
