@@ -13,7 +13,7 @@ RUN make build compress
 
 ## production ##################################################################
 
-FROM ubuntu:22.04
+FROM ubuntu:24.04
 
 ARG DOCKER_ARCH=x86_64
 ARG KUBECTL_ARCH=amd64
