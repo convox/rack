@@ -306,6 +306,9 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 
 			for k, v := range r.Options {
 				params[upperName(k)] = v
+				if k == "version" {
+					params[upperName(k)] = resourceFloatVersionYamlFixEnforce(r.Type, v)
+				}
 			}
 		}
 
