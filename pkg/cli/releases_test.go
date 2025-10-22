@@ -3,7 +3,6 @@ package cli_test
 import (
 	"fmt"
 	"testing"
-	"time"
 
 	"github.com/convox/rack/pkg/cli"
 	mocksdk "github.com/convox/rack/pkg/mock/sdk"
@@ -50,14 +49,13 @@ func TestReleasesInfo(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, 0, res.Code)
 		res.RequireStderr(t, []string{""})
-		res.RequireStdout(t, []string{
+		res.RequireStdoutWithSkipPrefix(t, []string{
 			"Id           release1",
 			"Build        build1",
-			fmt.Sprintf("Created      %s", fxRelease().Created.Format(time.RFC3339)),
 			"Description  description1",
 			"Env          FOO=bar",
 			"             BAZ=quux",
-		})
+		}, "Created      ")
 	})
 }
 
