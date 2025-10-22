@@ -113,3 +113,17 @@ func (r *result) RequireStdout(t *testing.T, lines []string) {
 	stdout := strings.Split(strings.TrimSuffix(r.Stdout, "\n"), "\n")
 	require.Equal(t, lines, stdout)
 }
+
+func (r *result) RequireStdoutWithSkipPrefix(t *testing.T, lines []string, skipPrefix string) {
+	stdout := strings.Split(strings.TrimSuffix(r.Stdout, "\n"), "\n")
+
+	finalStdout := make([]string, 0, len(stdout))
+	for i := range stdout {
+		if strings.HasPrefix(stdout[i], skipPrefix) {
+			continue
+		}
+		finalStdout = append(finalStdout, stdout[i])
+	}
+
+	require.Equal(t, lines, finalStdout)
+}

@@ -40,7 +40,7 @@ func TestSystemGet(t *testing.T) {
 		Type:       "t2.small",
 		Version:    "dev",
 		Outputs:    map[string]string{},
-		Parameters: map[string]string{"Autoscale": "No", "SubnetPrivate2CIDR": "10.0.6.0/24", "Subnet0CIDR": "10.0.1.0/24", "Encryption": "Yes", "Development": "Yes", "Private": "No", "InstanceUpdateBatchSize": "1", "InstanceRunCommand": "", "ExistingVpc": "", "PrivateApi": "No", "ContainerDisk": "10", "Ami": "", "VolumeSize": "50", "Tenancy": "default", "Version": "dev", "VPCCIDR": "10.0.0.0/16", "Subnet2CIDR": "10.0.3.0/24", "InstanceType": "t2.small", "Password": "****", "Key": "convox-keypair-4415", "ApiCpu": "128", "SwapSize": "5", "ApiMemory": "128", "SubnetPrivate0CIDR": "10.0.4.0/24", "InstanceCount": "3", "InstanceBootCommand": "", "Internal": "No", "Subnet1CIDR": "10.0.2.0/24", "ClientId": "nmert38iwdsrj362jdf", "SubnetPrivate1CIDR": "10.0.5.0/24"},
+		Parameters: map[string]string{"Autoscale": "No", "SubnetPrivate2CIDR": "10.0.6.0/24", "Subnet0CIDR": "10.0.1.0/24", "Encryption": "Yes", "Development": "Yes", "Private": "No", "InstanceUpdateBatchSize": "1", "InstanceRunCommand": "", "ExistingVpc": "", "PrivateApi": "No", "ContainerDisk": "10", "Ami": "", "VolumeSize": "50", "Tags": "", "Tenancy": "default", "Version": "dev", "VPCCIDR": "10.0.0.0/16", "Subnet2CIDR": "10.0.3.0/24", "InstanceType": "t2.small", "Password": "****", "Key": "convox-keypair-4415", "ApiCpu": "128", "SwapSize": "5", "ApiMemory": "128", "SubnetPrivate0CIDR": "10.0.4.0/24", "InstanceCount": "3", "InstanceBootCommand": "", "Internal": "No", "Subnet1CIDR": "10.0.2.0/24", "ClientId": "nmert38iwdsrj362jdf", "SubnetPrivate1CIDR": "10.0.5.0/24"},
 	}, s)
 }
 
@@ -64,7 +64,7 @@ func TestSystemGetConverging(t *testing.T) {
 		Type:       "t2.small",
 		Version:    "dev",
 		Outputs:    map[string]string{},
-		Parameters: map[string]string{"Autoscale": "No", "SubnetPrivate2CIDR": "10.0.6.0/24", "Subnet0CIDR": "10.0.1.0/24", "Encryption": "Yes", "Development": "Yes", "Private": "No", "InstanceUpdateBatchSize": "1", "InstanceRunCommand": "", "ExistingVpc": "", "PrivateApi": "No", "ContainerDisk": "10", "Ami": "", "VolumeSize": "50", "Tenancy": "default", "Version": "dev", "VPCCIDR": "10.0.0.0/16", "Subnet2CIDR": "10.0.3.0/24", "InstanceType": "t2.small", "Password": "****", "Key": "convox-keypair-4415", "ApiCpu": "128", "SwapSize": "5", "ApiMemory": "128", "SubnetPrivate0CIDR": "10.0.4.0/24", "InstanceCount": "3", "InstanceBootCommand": "", "Internal": "No", "Subnet1CIDR": "10.0.2.0/24", "ClientId": "nmert38iwdsrj362jdf", "SubnetPrivate1CIDR": "10.0.5.0/24"},
+		Parameters: map[string]string{"Autoscale": "No", "SubnetPrivate2CIDR": "10.0.6.0/24", "Subnet0CIDR": "10.0.1.0/24", "Encryption": "Yes", "Development": "Yes", "Private": "No", "InstanceUpdateBatchSize": "1", "InstanceRunCommand": "", "ExistingVpc": "", "PrivateApi": "No", "ContainerDisk": "10", "Ami": "", "VolumeSize": "50", "Tags": "", "Tenancy": "default", "Version": "dev", "VPCCIDR": "10.0.0.0/16", "Subnet2CIDR": "10.0.3.0/24", "InstanceType": "t2.small", "Password": "****", "Key": "convox-keypair-4415", "ApiCpu": "128", "SwapSize": "5", "ApiMemory": "128", "SubnetPrivate0CIDR": "10.0.4.0/24", "InstanceCount": "3", "InstanceBootCommand": "", "Internal": "No", "Subnet1CIDR": "10.0.2.0/24", "ClientId": "nmert38iwdsrj362jdf", "SubnetPrivate1CIDR": "10.0.5.0/24"},
 	}, s)
 }
 
