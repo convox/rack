@@ -89,7 +89,7 @@ func (p *Provider) workerMonitor() {
 			delete(disconnectedInstances, i.Id)
 		}
 
-		log.Logf(ii.log())
+		log.Logf("%s", ii.log())
 	}
 }
 
