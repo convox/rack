@@ -1,6 +1,6 @@
 ## package #####################################################################
 
-FROM golang:1.23 AS package
+FROM golang:1.24.10 AS package
 
 # Add backports to get upx-ucl in Bookworm
 RUN echo "deb http://deb.debian.org/debian bookworm-backports main" > /etc/apt/sources.list.d/backports.list && \
