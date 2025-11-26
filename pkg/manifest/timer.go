@@ -8,9 +8,10 @@ import (
 type Timer struct {
 	Name string `yaml:"-"`
 
-	Command  string `yaml:"command"`
-	Schedule string `yaml:"schedule"`
-	Service  string `yaml:"service"`
+	Command  string   `yaml:"command"`
+	Schedule string   `yaml:"schedule"`
+	Service  string   `yaml:"service"`
+	Policies []string `yaml:"policies,omitempty"`
 }
 
 type Timers []Timer
