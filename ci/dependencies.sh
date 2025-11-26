@@ -4,7 +4,12 @@ set -ex -o pipefail
 source $(dirname $0)/env.sh
 
 # install utilities
-sudo apt-get update && sudo apt-get -y install awscli jq
+sudo apt-get update && sudo apt-get -y install unzip jq curl
+
+# install aws cli
+curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+unzip awscliv2.zip
+sudo ./aws/install
 
 # install docker
 curl -s https://download.docker.com/linux/static/stable/x86_64/docker-18.09.6.tgz | sudo tar -C /usr/bin --strip-components 1 -xz
