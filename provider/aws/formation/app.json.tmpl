@@ -571,6 +571,11 @@
           "LogDriver": { "Ref": "LogDriver" },
           "LogGroup": { "Fn::If": [ "EnableCloudWatch", { "Ref": "LogGroup" }, { "Ref": "AWS::NoValue" } ] },
           "Memory": { "Fn::Select": [ 2, { "Ref": "{{ upper .Service }}Formation" } ] },
+          {{ if gt (len .Policies) 0 }}
+          "Policies": "{{ join .Policies "," }}",
+          {{ else }}
+          "Policies": "{{ join ($.Manifest.Service .Service).Policies "," }}",
+          {{ end }}
           "Rack": { "Ref": "Rack" },
           "RackUrl": { "Ref": "RackUrl" },
           "Registry": { "Ref": "Registry" },
