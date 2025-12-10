@@ -1,6 +1,6 @@
 module github.com/convox/rack
 
-go 1.24.10
+go 1.24.11
 
 require (
 	github.com/RackSec/srslog v0.0.0-20170920152354-4d2c753a4ee1
@@ -36,7 +36,7 @@ require (
 	github.com/stretchr/testify v1.9.0
 	github.com/stvp/rollbar v0.5.1
 	github.com/twmb/algoimpl v0.0.0-20170717182524-076353e90b94
-	golang.org/x/crypto v0.38.0
+	golang.org/x/crypto v0.46.0
 	gopkg.in/cheggaaa/pb.v1 v1.0.28
 	gopkg.in/yaml.v2 v2.4.0
 )
@@ -100,8 +100,8 @@ require (
 	github.com/xtgo/uuid v0.0.0-20140804021211-a0b114877d4c // indirect
 	golang.org/x/mod v0.22.0 // indirect
 	golang.org/x/sync v0.10.0 // indirect
-	golang.org/x/sys v0.33.0 // indirect
-	golang.org/x/term v0.32.0 // indirect
+	golang.org/x/sys v0.39.0 // indirect
+	golang.org/x/term v0.38.0 // indirect
 	golang.org/x/tools v0.29.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	gotest.tools/v3 v3.5.2 // indirect
