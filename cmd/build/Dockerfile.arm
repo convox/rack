@@ -1,4 +1,4 @@
-FROM golang:1.24.10-bookworm AS package
+FROM golang:1.24.11-bookworm AS package
 
 ARG DOCKER_ARCH=aarch64
 ENV PATH=$PATH:/go/bin
