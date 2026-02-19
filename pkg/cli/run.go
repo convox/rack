@@ -22,6 +22,7 @@ func init() {
 			flagRack,
 			flagApp,
 			stdcli.BoolFlag("detach", "d", "run process in the background"),
+			stdcli.BoolFlag("bare", "b", "run the command directly on the instance without running in a shell"),
 			stdcli.IntFlag("timeout", "t", "timeout"),
 			entrypoint,
 		),
@@ -52,6 +53,8 @@ func Run(rack sdk.Interface, c *stdcli.Context) error {
 	if t := c.Int("timeout"); t > 0 {
 		timeout = t
 	}
+
+	opts.Bare = options.Bool(c.Bool("bare"))
 
 	if w, h, err := c.TerminalSize(); err == nil {
 		opts.Height = options.Int(h)
