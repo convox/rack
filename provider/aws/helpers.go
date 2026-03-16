@@ -1335,20 +1335,28 @@ func (p *Provider) updateStack(name string, template []byte, changes map[string]
 		}
 	}
 
-	req.Tags = stack.Tags
-
-	tks := []string{}
-
-	for key := range tags {
-		tks = append(tks, key)
+	// Merge existing stack tags with input tags, deduplicating by key.
+	// Input tags override existing stack tags. Skip aws: prefixed tags.
+	tagMap := map[string]string{}
+	for _, t := range stack.Tags {
+		if !strings.HasPrefix(aws.StringValue(t.Key), "aws:") {
+			tagMap[aws.StringValue(t.Key)] = aws.StringValue(t.Value)
+		}
+	}
+	for k, v := range tags {
+		tagMap[k] = v
 	}
 
+	tks := []string{}
+	for key := range tagMap {
+		tks = append(tks, key)
+	}
 	sort.Strings(tks)
 
 	for _, key := range tks {
 		req.Tags = append(req.Tags, &cloudformation.Tag{
 			Key:   aws.String(key),
-			Value: aws.String(tags[key]),
+			Value: aws.String(tagMap[key]),
 		})
 	}
 
