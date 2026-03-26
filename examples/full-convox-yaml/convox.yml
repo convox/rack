@@ -15,8 +15,12 @@ resources:
       version: 10.6
   memcached:
     type: memcached
+    options:
+      class: cache.t3.micro
   redis:
     type: redis
+    options:
+      class: cache.t3.micro
   sharedvolume:
     type: efs
     options:
