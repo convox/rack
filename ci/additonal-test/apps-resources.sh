@@ -34,5 +34,3 @@ convox exec -a ci2 $ps -- env | grep "REDIS_PORT"
 convox exec -a ci2 $ps -- env | grep "MEMCACHED_URL"
 convox exec -a ci2 $ps -- env | grep "MEMCACHED_HOST"
 convox exec -a ci2 $ps -- env | grep "MEMCACHED_PORT"
-# efs resource
-convox exec -a ci2 $ps -- env | grep "SHAREDVOLUME_URL"
