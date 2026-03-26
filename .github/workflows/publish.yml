@@ -12,11 +12,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: golang-1.24.11
-        uses: actions/setup-go@v3
+      - name: golang
+        uses: actions/setup-go@v4
+        with:
+          go-version-file: go.mod
       - name: version
         run: echo "VERSION=${{ github.event.inputs.version }}" >> $GITHUB_ENV
       - name: secrets

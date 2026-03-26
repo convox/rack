@@ -15,7 +15,7 @@ sudo ./aws/install
 curl -s https://download.docker.com/linux/static/stable/x86_64/docker-18.09.6.tgz | sudo tar -C /usr/bin --strip-components 1 -xz
 
 # install kubectl
-curl -Ls https://storage.googleapis.com/kubernetes-release/release/v1.13.0/bin/linux/amd64/kubectl -o /tmp/kubectl && \
+curl -Ls https://storage.googleapis.com/kubernetes-release/release/v1.28.15/bin/linux/amd64/kubectl -o /tmp/kubectl && \
 	sudo mv /tmp/kubectl /usr/bin/kubectl && sudo chmod +x /usr/bin/kubectl
 
 # install aws-iam-authenticator

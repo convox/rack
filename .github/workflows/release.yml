@@ -10,11 +10,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: golang-1.24.11
-        uses: actions/setup-go@v3
+      - name: golang
+        uses: actions/setup-go@v4
+        with:
+          go-version-file: go.mod
       - name: go path
         run: |
           mkdir -p ${HOME}/go
@@ -29,11 +31,11 @@ jobs:
           changelog="${changelog//'%'/'%25'}"
           changelog="${changelog//$'\n'/'%0A'}"
           changelog="${changelog//$'\r'/'%0D'}"
-          echo "::set-output name=text::${changelog}"
+          echo "text=${changelog}" >> $GITHUB_OUTPUT
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
+        uses: docker/setup-qemu-action@v3
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
       - name: login
         run: docker login --username "${DOCKER_USERNAME}" --password "${DOCKER_PASSWORD}"
         env:
