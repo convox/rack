@@ -6,7 +6,7 @@ require (
 	github.com/RackSec/srslog v0.0.0-20170920152354-4d2c753a4ee1
 	github.com/adhocore/gronx v1.6.5
 	github.com/aws/aws-lambda-go v1.37.0
-	github.com/aws/aws-sdk-go v1.25.29
+	github.com/aws/aws-sdk-go v1.55.8
 	github.com/boltdb/bolt v1.3.1
 	github.com/convox/changes v0.0.0-20250404235107-ec2c7374fea5
 	github.com/convox/exec v0.0.0-20180905012044-cc13d277f897
@@ -73,7 +73,7 @@ require (
 	github.com/gorilla/sessions v1.4.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/jehiah/go-strftime v0.0.0-20171201141054-1d33003b3869 // indirect
-	github.com/jmespath/go-jmespath v0.0.0-20180206201540-c2b33e8439af // indirect
+	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/joho/godotenv v1.3.0 // indirect
 	github.com/karrick/godirwalk v1.7.8 // indirect
 	github.com/klauspost/compress v1.17.11 // indirect
