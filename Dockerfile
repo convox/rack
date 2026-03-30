@@ -26,7 +26,7 @@ ENV DOCKER_BUILDKIT=1
 RUN curl -s https://download.docker.com/linux/static/stable/${DOCKER_ARCH}/docker-18.09.9.tgz | \
     tar -C /usr/bin --strip-components 1 -xz
 
-RUN curl -Ls https://storage.googleapis.com/kubernetes-release/release/v1.13.0/bin/linux/${KUBECTL_ARCH}/kubectl -o /usr/bin/kubectl && \
+RUN curl -Ls https://storage.googleapis.com/kubernetes-release/release/v1.28.15/bin/linux/${KUBECTL_ARCH}/kubectl -o /usr/bin/kubectl && \
     chmod +x /usr/bin/kubectl
 
 ENV DEVELOPMENT=false

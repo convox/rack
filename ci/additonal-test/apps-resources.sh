@@ -26,3 +26,11 @@ convox exec -a ci2 $ps -- env | grep "MARIADB_PASS"
 convox exec -a ci2 $ps -- env | grep "MARIADB_HOST"
 convox exec -a ci2 $ps -- env | grep "MARIADB_PORT"
 convox exec -a ci2 $ps -- env | grep "MARIADB_NAME"
+# redis resource
+convox exec -a ci2 $ps -- env | grep "REDIS_URL"
+convox exec -a ci2 $ps -- env | grep "REDIS_HOST"
+convox exec -a ci2 $ps -- env | grep "REDIS_PORT"
+# memcached resource
+convox exec -a ci2 $ps -- env | grep "MEMCACHED_URL"
+convox exec -a ci2 $ps -- env | grep "MEMCACHED_HOST"
+convox exec -a ci2 $ps -- env | grep "MEMCACHED_PORT"
