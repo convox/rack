@@ -1,4 +1,4 @@
-.PHONY: all build builder clean clean-package compress dev generate mocks package release release-cli release-image release-provider release-version version-gen test test-docker
+.PHONY: all build builder clean compress dev generate mocks release release-cli release-image release-provider release-version version-gen test test-docker
 
 commands = build monitor rack
 injects  = convox-env
@@ -24,11 +24,8 @@ builder:
 	docker buildx build --platform linux/amd64 -t convox/build:$(VERSION) --no-cache --pull --push -f cmd/build/Dockerfile .
 	docker buildx build --platform linux/arm64 -t convox/build:$(VERSION)-arm64 --no-cache --pull --push -f cmd/build/Dockerfile.arm .
 
-clean: clean-package
+clean:
 	make -C cmd/convox clean
-
-clean-package:
-	find . -name '*-packr.go' -delete
 
 compress: $(binaries) $(statics)
 	upx-ucl -1 $^
@@ -66,9 +63,6 @@ mocks: generate-provider
 	mockery -case underscore -dir vendor/github.com/aws/aws-sdk-go/service/cloudwatch/cloudwatchiface -outpkg aws -output pkg/mock/aws -name CloudWatchAPI
 	mockery -case underscore -dir vendor/github.com/convox/stdcli -outpkg stdcli -output pkg/mock/stdcli -name Executor
 
-package:
-	go run -mod=vendor vendor/github.com/gobuffalo/packr/packr/main.go
-
 regions:
 	@aws-vault exec convox-release-standard go run provider/aws/cmd/regions/main.go
 	@aws-vault exec convox-release-govcloud go run provider/aws/cmd/regions/main.go
@@ -80,14 +74,14 @@ release:
 
 release-all: release-version release-cli release-image builder release-provider
 
-release-cli: release-version package
+release-cli: release-version
 	make -C cmd/convox release VERSION=$(VERSION)
 
-release-image: release-version package
+release-image: release-version
 	docker buildx build --platform linux/amd64 -t convox/rack:$(VERSION) --no-cache --pull --push .
 	docker buildx build --platform linux/arm64 -t convox/rack:$(VERSION)-arm64 --no-cache --pull --push -f Dockerfile.arm .
 
-release-provider: release-version package
+release-provider: release-version
 	make -C provider release VERSION=$(VERSION)
 
 release-version:
