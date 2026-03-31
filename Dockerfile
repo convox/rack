@@ -26,6 +26,14 @@ ENV DOCKER_BUILDKIT=1
 RUN curl -s https://download.docker.com/linux/static/stable/${DOCKER_ARCH}/docker-29.3.1.tgz | \
     tar -C /usr/bin --strip-components 1 -xz
 
+# Install docker-buildx plugin (required by Docker 29.x for BuildKit builds)
+ARG BUILDX_VERSION=0.22.0
+RUN mkdir -p /usr/local/lib/docker/cli-plugins && \
+    BUILDX_ARCH=$(case ${DOCKER_ARCH} in x86_64) echo amd64;; aarch64) echo arm64;; esac) && \
+    curl -sL https://github.com/docker/buildx/releases/download/v${BUILDX_VERSION}/buildx-v${BUILDX_VERSION}.linux-${BUILDX_ARCH} \
+      -o /usr/local/lib/docker/cli-plugins/docker-buildx && \
+    chmod +x /usr/local/lib/docker/cli-plugins/docker-buildx
+
 RUN curl -Ls https://storage.googleapis.com/kubernetes-release/release/v1.28.15/bin/linux/${KUBECTL_ARCH}/kubectl -o /usr/bin/kubectl && \
     chmod +x /usr/bin/kubectl
 
