@@ -23,7 +23,7 @@ RUN apt-get -qq update && apt-get -qq -y install curl
 
 ENV DOCKER_BUILDKIT=1
 
-RUN curl -s https://download.docker.com/linux/static/stable/${DOCKER_ARCH}/docker-18.09.9.tgz | \
+RUN curl -s https://download.docker.com/linux/static/stable/${DOCKER_ARCH}/docker-29.3.1.tgz | \
     tar -C /usr/bin --strip-components 1 -xz
 
 RUN curl -Ls https://storage.googleapis.com/kubernetes-release/release/v1.28.15/bin/linux/${KUBECTL_ARCH}/kubectl -o /usr/bin/kubectl && \
