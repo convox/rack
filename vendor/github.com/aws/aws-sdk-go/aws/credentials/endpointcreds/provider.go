@@ -31,6 +31,8 @@ package endpointcreds
 
 import (
 	"encoding/json"
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -69,7 +71,37 @@ type Provider struct {
 
 	// Optional authorization token value if set will be used as the value of
 	// the Authorization header of the endpoint credential request.
+	//
+	// When constructed from environment, the provider will use the value of
+	// AWS_CONTAINER_AUTHORIZATION_TOKEN environment variable as the token
+	//
+	// Will be overridden if AuthorizationTokenProvider is configured
 	AuthorizationToken string
+
+	// Optional auth provider func to dynamically load the auth token from a file
+	// everytime a credential is retrieved
+	//
+	// When constructed from environment, the provider will read and use the content
+	// of the file pointed to by AWS_CONTAINER_AUTHORIZATION_TOKEN_FILE environment variable
+	// as the auth token everytime credentials are retrieved
+	//
+	// Will override AuthorizationToken if configured
+	AuthorizationTokenProvider AuthTokenProvider
+}
+
+// AuthTokenProvider defines an interface to dynamically load a value to be passed
+// for the Authorization header of a credentials request.
+type AuthTokenProvider interface {
+	GetToken() (string, error)
+}
+
+// TokenProviderFunc is a func type implementing AuthTokenProvider interface
+// and enables customizing token provider behavior
+type TokenProviderFunc func() (string, error)
+
+// GetToken func retrieves auth token according to TokenProviderFunc implementation
+func (p TokenProviderFunc) GetToken() (string, error) {
+	return p()
 }
 
 // NewProviderClient returns a credentials Provider for retrieving AWS credentials
@@ -116,7 +148,13 @@ func (p *Provider) IsExpired() bool {
 // Retrieve will attempt to request the credentials from the endpoint the Provider
 // was configured for. And error will be returned if the retrieval fails.
 func (p *Provider) Retrieve() (credentials.Value, error) {
-	resp, err := p.getCredentials()
+	return p.RetrieveWithContext(aws.BackgroundContext())
+}
+
+// RetrieveWithContext will attempt to request the credentials from the endpoint the Provider
+// was configured for. And error will be returned if the retrieval fails.
+func (p *Provider) RetrieveWithContext(ctx credentials.Context) (credentials.Value, error) {
+	resp, err := p.getCredentials(ctx)
 	if err != nil {
 		return credentials.Value{ProviderName: ProviderName},
 			awserr.New("CredentialsEndpointError", "failed to load credentials", err)
@@ -148,7 +186,7 @@ type errorOutput struct {
 	Message string `json:"message"`
 }
 
-func (p *Provider) getCredentials() (*getCredentialsOutput, error) {
+func (p *Provider) getCredentials(ctx aws.Context) (*getCredentialsOutput, error) {
 	op := &request.Operation{
 		Name:       "GetCredentials",
 		HTTPMethod: "GET",
@@ -156,8 +194,22 @@ func (p *Provider) getCredentials() (*getCredentialsOutput, error) {
 
 	out := &getCredentialsOutput{}
 	req := p.Client.NewRequest(op, nil, out)
+	req.SetContext(ctx)
 	req.HTTPRequest.Header.Set("Accept", "application/json")
-	if authToken := p.AuthorizationToken; len(authToken) != 0 {
+
+	authToken := p.AuthorizationToken
+	var err error
+	if p.AuthorizationTokenProvider != nil {
+		authToken, err = p.AuthorizationTokenProvider.GetToken()
+		if err != nil {
+			return nil, fmt.Errorf("get authorization token: %v", err)
+		}
+	}
+
+	if strings.ContainsAny(authToken, "\r\n") {
+		return nil, fmt.Errorf("authorization token contains invalid newline sequence")
+	}
+	if len(authToken) != 0 {
 		req.HTTPRequest.Header.Set("Authorization", authToken)
 	}
 

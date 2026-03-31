@@ -1,3 +1,5 @@
+// Deprecated: aws-sdk-go is deprecated. Use aws-sdk-go-v2.
+// See https://aws.amazon.com/blogs/developer/announcing-end-of-support-for-aws-sdk-for-go-v1-on-july-31-2025/.
 package corehandlers
 
 import (
@@ -161,7 +163,7 @@ func handleSendError(r *request.Request, err error) {
 	}
 	// Catch all request errors, and let the default retrier determine
 	// if the error is retryable.
-	r.Error = awserr.New("RequestError", "send request failed", err)
+	r.Error = awserr.New(request.ErrCodeRequestError, "send request failed", err)
 
 	// Override the error with a context canceled error, if that was canceled.
 	ctx := r.Context()
@@ -178,7 +180,7 @@ func handleSendError(r *request.Request, err error) {
 var ValidateResponseHandler = request.NamedHandler{Name: "core.ValidateResponseHandler", Fn: func(r *request.Request) {
 	if r.HTTPResponse.StatusCode == 0 || r.HTTPResponse.StatusCode >= 300 {
 		// this may be replaced by an UnmarshalError handler
-		r.Error = awserr.New("UnknownError", "unknown error", nil)
+		r.Error = awserr.New("UnknownError", "unknown error", r.Error)
 	}
 }}
 
@@ -225,6 +227,8 @@ var ValidateEndpointHandler = request.NamedHandler{Name: "core.ValidateEndpointH
 	if r.ClientInfo.SigningRegion == "" && aws.StringValue(r.Config.Region) == "" {
 		r.Error = aws.ErrMissingRegion
 	} else if r.ClientInfo.Endpoint == "" {
+		// Was any endpoint provided by the user, or one was derived by the
+		// SDK's endpoint resolver?
 		r.Error = aws.ErrMissingEndpoint
 	}
 }}
