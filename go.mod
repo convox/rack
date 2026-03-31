@@ -20,7 +20,6 @@ require (
 	github.com/dustin/go-humanize v1.0.0
 	github.com/fatih/color v1.15.0
 	github.com/fsouza/go-dockerclient v0.0.0-20160427172547-1d4f4ae73768
-	github.com/gobuffalo/packr v1.22.0
 	github.com/gobwas/glob v0.2.3
 	github.com/golang-jwt/jwt/v4 v4.5.2
 	github.com/gorilla/mux v1.8.1
@@ -44,7 +43,6 @@ require (
 require (
 	github.com/AdaLogics/go-fuzz-headers v0.0.0-20230811130428-ced1acdcaa24 // indirect
 	github.com/Azure/go-ansiterm v0.0.0-20230124172434-306776ec8161 // indirect
-	github.com/BurntSushi/toml v0.3.1 // indirect
 	github.com/adrg/xdg v0.2.1 // indirect
 	github.com/bearsh/hid v1.4.0 // indirect
 	github.com/bmizerany/assert v0.0.0-20160611221934-b7ed37b82869 // indirect
@@ -57,29 +55,13 @@ require (
 	github.com/docker/distribution v2.8.3+incompatible // indirect
 	github.com/docker/docker-credential-helpers v0.8.2 // indirect
 	github.com/docker/engine v1.4.2-0.20190717161051-705d9623b7c1 // indirect
-	github.com/gobuffalo/buffalo-plugins v1.11.0 // indirect
-	github.com/gobuffalo/envy v1.6.12 // indirect
-	github.com/gobuffalo/events v1.1.9 // indirect
-	github.com/gobuffalo/flect v0.0.0-20190117212819-a62e61d96794 // indirect
-	github.com/gobuffalo/genny v0.0.0-20190112155932-f31a84fcacf5 // indirect
-	github.com/gobuffalo/logger v0.0.0-20181127160119-5b956e21995c // indirect
-	github.com/gobuffalo/mapi v1.0.1 // indirect
-	github.com/gobuffalo/meta v0.0.0-20190120163247-50bbb1fa260d // indirect
-	github.com/gobuffalo/packd v0.0.0-20181212173646-eca3b8fd6687 // indirect
-	github.com/gobuffalo/packr/v2 v2.0.0-rc.15 // indirect
-	github.com/gobuffalo/syncx v0.0.0-20181120194010-558ac7de985f // indirect
 	github.com/google/go-containerregistry v0.20.3
 	github.com/gorilla/securecookie v1.1.2 // indirect
 	github.com/gorilla/sessions v1.4.0 // indirect
-	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/jehiah/go-strftime v0.0.0-20171201141054-1d33003b3869 // indirect
 	github.com/jmespath/go-jmespath v0.0.0-20180206201540-c2b33e8439af // indirect
-	github.com/joho/godotenv v1.3.0 // indirect
-	github.com/karrick/godirwalk v1.7.8 // indirect
 	github.com/klauspost/compress v1.17.11 // indirect
 	github.com/kr/pretty v0.3.0 // indirect
-	github.com/markbates/oncer v0.0.0-20181203154359-bf2de49a0be2 // indirect
-	github.com/markbates/safe v1.0.1 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.17 // indirect
 	github.com/mattn/go-runewidth v0.0.4 // indirect
@@ -93,16 +75,13 @@ require (
 	github.com/sebest/xff v0.0.0-20160910043805-6c115e0ffa35 // indirect
 	github.com/segmentio/backo-go v0.0.0-20160424052352-204274ad699c // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
-	github.com/spf13/cobra v1.8.1 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/stretchr/objx v0.5.2 // indirect
 	github.com/vbatts/tar-split v0.11.6 // indirect
 	github.com/xtgo/uuid v0.0.0-20140804021211-a0b114877d4c // indirect
-	golang.org/x/mod v0.22.0 // indirect
 	golang.org/x/sync v0.10.0 // indirect
 	golang.org/x/sys v0.39.0 // indirect
 	golang.org/x/term v0.38.0 // indirect
-	golang.org/x/tools v0.29.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	gotest.tools/v3 v3.5.2 // indirect
 )
