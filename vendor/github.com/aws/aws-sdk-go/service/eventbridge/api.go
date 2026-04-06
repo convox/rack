@@ -29,14 +29,13 @@ const opActivateEventSource = "ActivateEventSource"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the ActivateEventSourceRequest method.
+//	req, resp := client.ActivateEventSourceRequest(params)
 //
-//    // Example sending a request using the ActivateEventSourceRequest method.
-//    req, resp := client.ActivateEventSourceRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/eventbridge-2015-10-07/ActivateEventSource
 func (c *EventBridge) ActivateEventSourceRequest(input *ActivateEventSourceInput) (req *request.Request, output *ActivateEventSourceOutput) {
@@ -61,8 +60,6 @@ func (c *EventBridge) ActivateEventSourceRequest(input *ActivateEventSourceInput
 // Activates a partner event source that has been deactivated. Once activated,
 // your matching event bus will start receiving events from the event source.
 //
-// This operation is performed by AWS customers, not by SaaS partners.
-//
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
 // the error.
@@ -70,15 +67,22 @@ func (c *EventBridge) ActivateEventSourceRequest(input *ActivateEventSourceInput
 // See the AWS API reference guide for Amazon EventBridge's
 // API operation ActivateEventSource for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
-//   An entity that you specified doesn't exist.
+// Returned Error Types:
 //
-//   * ErrCodeInvalidStateException "InvalidStateException"
-//   The specified state isn't a valid state for an event source.
+//   - ResourceNotFoundException
+//     An entity that you specified does not exist.
 //
-//   * ErrCodeInternalException "InternalException"
-//   This exception occurs due to unexpected causes.
+//   - ConcurrentModificationException
+//     There is concurrent modification on a rule, target, archive, or replay.
+//
+//   - InvalidStateException
+//     The specified state is not a valid state for an event source.
+//
+//   - InternalException
+//     This exception occurs due to unexpected causes.
+//
+//   - OperationDisabledException
+//     The operation you are attempting is not available in this region.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/eventbridge-2015-10-07/ActivateEventSource
 func (c *EventBridge) ActivateEventSource(input *ActivateEventSourceInput) (*ActivateEventSourceOutput, error) {
@@ -102,6 +106,487 @@ func (c *EventBridge) ActivateEventSourceWithContext(ctx aws.Context, input *Act
 	return out, req.Send()
 }
 
+const opCancelReplay = "CancelReplay"
+
+// CancelReplayRequest generates a "aws/request.Request" representing the
+// client's request for the CancelReplay operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See CancelReplay for more information on using the CancelReplay
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//	// Example sending a request using the CancelReplayRequest method.
+//	req, resp := client.CancelReplayRequest(params)
+//
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/eventbridge-2015-10-07/CancelReplay
+func (c *EventBridge) CancelReplayRequest(input *CancelReplayInput) (req *request.Request, output *CancelReplayOutput) {
+	op := &request.Operation{
+		Name:       opCancelReplay,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &CancelReplayInput{}
+	}
+
+	output = &CancelReplayOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// CancelReplay API operation for Amazon EventBridge.
+//
+// Cancels the specified replay.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon EventBridge's
+// API operation CancelReplay for usage and error information.
+//
+// Returned Error Types:
+//
+//   - ResourceNotFoundException
+//     An entity that you specified does not exist.
+//
+//   - ConcurrentModificationException
+//     There is concurrent modification on a rule, target, archive, or replay.
+//
+//   - IllegalStatusException
+//     An error occurred because a replay can be canceled only when the state is
+//     Running or Starting.
+//
+//   - InternalException
+//     This exception occurs due to unexpected causes.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/eventbridge-2015-10-07/CancelReplay
+func (c *EventBridge) CancelReplay(input *CancelReplayInput) (*CancelReplayOutput, error) {
+	req, out := c.CancelReplayRequest(input)
+	return out, req.Send()
+}
+
+// CancelReplayWithContext is the same as CancelReplay with the addition of
+// the ability to pass a context and additional request options.
+//
+// See CancelReplay for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *EventBridge) CancelReplayWithContext(ctx aws.Context, input *CancelReplayInput, opts ...request.Option) (*CancelReplayOutput, error) {
+	req, out := c.CancelReplayRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opCreateApiDestination = "CreateApiDestination"
+
+// CreateApiDestinationRequest generates a "aws/request.Request" representing the
+// client's request for the CreateApiDestination operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See CreateApiDestination for more information on using the CreateApiDestination
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//	// Example sending a request using the CreateApiDestinationRequest method.
+//	req, resp := client.CreateApiDestinationRequest(params)
+//
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/eventbridge-2015-10-07/CreateApiDestination
+func (c *EventBridge) CreateApiDestinationRequest(input *CreateApiDestinationInput) (req *request.Request, output *CreateApiDestinationOutput) {
+	op := &request.Operation{
+		Name:       opCreateApiDestination,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &CreateApiDestinationInput{}
+	}
+
+	output = &CreateApiDestinationOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// CreateApiDestination API operation for Amazon EventBridge.
+//
+// Creates an API destination, which is an HTTP invocation endpoint configured
+// as a target for events.
+//
+// API destinations do not support private destinations, such as interface VPC
+// endpoints.
+//
+// For more information, see API destinations (https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-api-destinations.html)
+// in the EventBridge User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon EventBridge's
+// API operation CreateApiDestination for usage and error information.
+//
+// Returned Error Types:
+//
+//   - ResourceAlreadyExistsException
+//     The resource you are trying to create already exists.
+//
+//   - ResourceNotFoundException
+//     An entity that you specified does not exist.
+//
+//   - LimitExceededException
+//     The request failed because it attempted to create resource beyond the allowed
+//     service quota.
+//
+//   - InternalException
+//     This exception occurs due to unexpected causes.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/eventbridge-2015-10-07/CreateApiDestination
+func (c *EventBridge) CreateApiDestination(input *CreateApiDestinationInput) (*CreateApiDestinationOutput, error) {
+	req, out := c.CreateApiDestinationRequest(input)
+	return out, req.Send()
+}
+
+// CreateApiDestinationWithContext is the same as CreateApiDestination with the addition of
+// the ability to pass a context and additional request options.
+//
+// See CreateApiDestination for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *EventBridge) CreateApiDestinationWithContext(ctx aws.Context, input *CreateApiDestinationInput, opts ...request.Option) (*CreateApiDestinationOutput, error) {
+	req, out := c.CreateApiDestinationRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opCreateArchive = "CreateArchive"
+
+// CreateArchiveRequest generates a "aws/request.Request" representing the
+// client's request for the CreateArchive operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See CreateArchive for more information on using the CreateArchive
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//	// Example sending a request using the CreateArchiveRequest method.
+//	req, resp := client.CreateArchiveRequest(params)
+//
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/eventbridge-2015-10-07/CreateArchive
+func (c *EventBridge) CreateArchiveRequest(input *CreateArchiveInput) (req *request.Request, output *CreateArchiveOutput) {
+	op := &request.Operation{
+		Name:       opCreateArchive,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &CreateArchiveInput{}
+	}
+
+	output = &CreateArchiveOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// CreateArchive API operation for Amazon EventBridge.
+//
+// Creates an archive of events with the specified settings. When you create
+// an archive, incoming events might not immediately start being sent to the
+// archive. Allow a short period of time for changes to take effect. If you
+// do not specify a pattern to filter events sent to the archive, all events
+// are sent to the archive except replayed events. Replayed events are not sent
+// to an archive.
+//
+// Archives and schema discovery are not supported for event buses encrypted
+// using a customer managed key. EventBridge returns an error if:
+//
+//   - You call CreateArchive (https://docs.aws.amazon.com/eventbridge/latest/APIReference/API_CreateArchive.html)
+//     on an event bus set to use a customer managed key for encryption.
+//
+//   - You call CreateDiscoverer (https://docs.aws.amazon.com/eventbridge/latest/schema-reference/v1-discoverers.html#CreateDiscoverer)
+//     on an event bus set to use a customer managed key for encryption.
+//
+//   - You call UpdatedEventBus (https://docs.aws.amazon.com/eventbridge/latest/APIReference/API_UpdatedEventBus.html)
+//     to set a customer managed key on an event bus with an archives or schema
+//     discovery enabled.
+//
+// To enable archives or schema discovery on an event bus, choose to use an
+// Amazon Web Services owned key. For more information, see Data encryption
+// in EventBridge (https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-encryption.html)
+// in the Amazon EventBridge User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon EventBridge's
+// API operation CreateArchive for usage and error information.
+//
+// Returned Error Types:
+//
+//   - ConcurrentModificationException
+//     There is concurrent modification on a rule, target, archive, or replay.
+//
+//   - ResourceAlreadyExistsException
+//     The resource you are trying to create already exists.
+//
+//   - ResourceNotFoundException
+//     An entity that you specified does not exist.
+//
+//   - InternalException
+//     This exception occurs due to unexpected causes.
+//
+//   - LimitExceededException
+//     The request failed because it attempted to create resource beyond the allowed
+//     service quota.
+//
+//   - InvalidEventPatternException
+//     The event pattern is not valid.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/eventbridge-2015-10-07/CreateArchive
+func (c *EventBridge) CreateArchive(input *CreateArchiveInput) (*CreateArchiveOutput, error) {
+	req, out := c.CreateArchiveRequest(input)
+	return out, req.Send()
+}
+
+// CreateArchiveWithContext is the same as CreateArchive with the addition of
+// the ability to pass a context and additional request options.
+//
+// See CreateArchive for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *EventBridge) CreateArchiveWithContext(ctx aws.Context, input *CreateArchiveInput, opts ...request.Option) (*CreateArchiveOutput, error) {
+	req, out := c.CreateArchiveRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opCreateConnection = "CreateConnection"
+
+// CreateConnectionRequest generates a "aws/request.Request" representing the
+// client's request for the CreateConnection operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See CreateConnection for more information on using the CreateConnection
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//	// Example sending a request using the CreateConnectionRequest method.
+//	req, resp := client.CreateConnectionRequest(params)
+//
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/eventbridge-2015-10-07/CreateConnection
+func (c *EventBridge) CreateConnectionRequest(input *CreateConnectionInput) (req *request.Request, output *CreateConnectionOutput) {
+	op := &request.Operation{
+		Name:       opCreateConnection,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &CreateConnectionInput{}
+	}
+
+	output = &CreateConnectionOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// CreateConnection API operation for Amazon EventBridge.
+//
+// Creates a connection. A connection defines the authorization type and credentials
+// to use for authorization with an API destination HTTP endpoint.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon EventBridge's
+// API operation CreateConnection for usage and error information.
+//
+// Returned Error Types:
+//
+//   - ResourceAlreadyExistsException
+//     The resource you are trying to create already exists.
+//
+//   - LimitExceededException
+//     The request failed because it attempted to create resource beyond the allowed
+//     service quota.
+//
+//   - InternalException
+//     This exception occurs due to unexpected causes.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/eventbridge-2015-10-07/CreateConnection
+func (c *EventBridge) CreateConnection(input *CreateConnectionInput) (*CreateConnectionOutput, error) {
+	req, out := c.CreateConnectionRequest(input)
+	return out, req.Send()
+}
+
+// CreateConnectionWithContext is the same as CreateConnection with the addition of
+// the ability to pass a context and additional request options.
+//
+// See CreateConnection for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *EventBridge) CreateConnectionWithContext(ctx aws.Context, input *CreateConnectionInput, opts ...request.Option) (*CreateConnectionOutput, error) {
+	req, out := c.CreateConnectionRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opCreateEndpoint = "CreateEndpoint"
+
+// CreateEndpointRequest generates a "aws/request.Request" representing the
+// client's request for the CreateEndpoint operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See CreateEndpoint for more information on using the CreateEndpoint
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//	// Example sending a request using the CreateEndpointRequest method.
+//	req, resp := client.CreateEndpointRequest(params)
+//
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/eventbridge-2015-10-07/CreateEndpoint
+func (c *EventBridge) CreateEndpointRequest(input *CreateEndpointInput) (req *request.Request, output *CreateEndpointOutput) {
+	op := &request.Operation{
+		Name:       opCreateEndpoint,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &CreateEndpointInput{}
+	}
+
+	output = &CreateEndpointOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// CreateEndpoint API operation for Amazon EventBridge.
+//
+// Creates a global endpoint. Global endpoints improve your application's availability
+// by making it regional-fault tolerant. To do this, you define a primary and
+// secondary Region with event buses in each Region. You also create a Amazon
+// Route 53 health check that will tell EventBridge to route events to the secondary
+// Region when an "unhealthy" state is encountered and events will be routed
+// back to the primary Region when the health check reports a "healthy" state.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon EventBridge's
+// API operation CreateEndpoint for usage and error information.
+//
+// Returned Error Types:
+//
+//   - ResourceAlreadyExistsException
+//     The resource you are trying to create already exists.
+//
+//   - LimitExceededException
+//     The request failed because it attempted to create resource beyond the allowed
+//     service quota.
+//
+//   - InternalException
+//     This exception occurs due to unexpected causes.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/eventbridge-2015-10-07/CreateEndpoint
+func (c *EventBridge) CreateEndpoint(input *CreateEndpointInput) (*CreateEndpointOutput, error) {
+	req, out := c.CreateEndpointRequest(input)
+	return out, req.Send()
+}
+
+// CreateEndpointWithContext is the same as CreateEndpoint with the addition of
+// the ability to pass a context and additional request options.
+//
+// See CreateEndpoint for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *EventBridge) CreateEndpointWithContext(ctx aws.Context, input *CreateEndpointInput, opts ...request.Option) (*CreateEndpointOutput, error) {
+	req, out := c.CreateEndpointRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opCreateEventBus = "CreateEventBus"
 
 // CreateEventBusRequest generates a "aws/request.Request" representing the
@@ -118,14 +603,13 @@ const opCreateEventBus = "CreateEventBus"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the CreateEventBusRequest method.
+//	req, resp := client.CreateEventBusRequest(params)
 //
-//    // Example sending a request using the CreateEventBusRequest method.
-//    req, resp := client.CreateEventBusRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/eventbridge-2015-10-07/CreateEventBus
 func (c *EventBridge) CreateEventBusRequest(input *CreateEventBusInput) (req *request.Request, output *CreateEventBusOutput) {
@@ -147,11 +631,9 @@ func (c *EventBridge) CreateEventBusRequest(input *CreateEventBusInput) (req *re
 // CreateEventBus API operation for Amazon EventBridge.
 //
 // Creates a new event bus within your account. This can be a custom event bus
-// which you can use to receive events from your own custom applications and
-// services, or it can be a partner event bus which can be matched to a partner
-// event source.
-//
-// This operation is used by AWS customers, not by SaaS partners.
+// which you can use to receive events from your custom applications and services,
+// or it can be a partner event bus which can be matched to a partner event
+// source.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -160,24 +642,29 @@ func (c *EventBridge) CreateEventBusRequest(input *CreateEventBusInput) (req *re
 // See the AWS API reference guide for Amazon EventBridge's
 // API operation CreateEventBus for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeResourceAlreadyExistsException "ResourceAlreadyExistsException"
-//   The resource that you're trying to create already exists.
+// Returned Error Types:
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
-//   An entity that you specified doesn't exist.
+//   - ResourceAlreadyExistsException
+//     The resource you are trying to create already exists.
 //
-//   * ErrCodeInvalidStateException "InvalidStateException"
-//   The specified state isn't a valid state for an event source.
+//   - ResourceNotFoundException
+//     An entity that you specified does not exist.
 //
-//   * ErrCodeInternalException "InternalException"
-//   This exception occurs due to unexpected causes.
+//   - InvalidStateException
+//     The specified state is not a valid state for an event source.
 //
-//   * ErrCodeConcurrentModificationException "ConcurrentModificationException"
-//   There is concurrent modification on a resource.
+//   - InternalException
+//     This exception occurs due to unexpected causes.
 //
-//   * ErrCodeLimitExceededException "LimitExceededException"
-//   You tried to create more resources than is allowed.
+//   - ConcurrentModificationException
+//     There is concurrent modification on a rule, target, archive, or replay.
+//
+//   - LimitExceededException
+//     The request failed because it attempted to create resource beyond the allowed
+//     service quota.
+//
+//   - OperationDisabledException
+//     The operation you are attempting is not available in this region.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/eventbridge-2015-10-07/CreateEventBus
 func (c *EventBridge) CreateEventBus(input *CreateEventBusInput) (*CreateEventBusOutput, error) {
@@ -217,14 +704,13 @@ const opCreatePartnerEventSource = "CreatePartnerEventSource"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the CreatePartnerEventSourceRequest method.
+//	req, resp := client.CreatePartnerEventSourceRequest(params)
 //
-//    // Example sending a request using the CreatePartnerEventSourceRequest method.
-//    req, resp := client.CreatePartnerEventSourceRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/eventbridge-2015-10-07/CreatePartnerEventSource
 func (c *EventBridge) CreatePartnerEventSourceRequest(input *CreatePartnerEventSourceInput) (req *request.Request, output *CreatePartnerEventSourceOutput) {
@@ -245,35 +731,41 @@ func (c *EventBridge) CreatePartnerEventSourceRequest(input *CreatePartnerEventS
 
 // CreatePartnerEventSource API operation for Amazon EventBridge.
 //
-// Called by an SaaS partner to create a partner event source.
+// Called by an SaaS partner to create a partner event source. This operation
+// is not used by Amazon Web Services customers.
 //
-// This operation is not used by AWS customers.
+// Each partner event source can be used by one Amazon Web Services account
+// to create a matching partner event bus in that Amazon Web Services account.
+// A SaaS partner must create one partner event source for each Amazon Web Services
+// account that wants to receive those event types.
 //
-// Each partner event source can be used by one AWS account to create a matching
-// partner event bus in that AWS account. A SaaS partner must create one partner
-// event source for each AWS account that wants to receive those event types.
+// A partner event source creates events based on resources within the SaaS
+// partner's service or application.
 //
-// A partner event source creates events based on resources in the SaaS partner's
-// service or application.
-//
-// An AWS account that creates a partner event bus that matches the partner
-// event source can use that event bus to receive events from the partner, and
-// then process them using AWS Events rules and targets.
+// An Amazon Web Services account that creates a partner event bus that matches
+// the partner event source can use that event bus to receive events from the
+// partner, and then process them using Amazon Web Services Events rules and
+// targets.
 //
 // Partner event source names follow this format:
 //
-// aws.partner/partner_name/event_namespace/event_name
+// partner_name/event_namespace/event_name
 //
-//    * partner_name is determined during partner registration and identifies
-//    the partner to AWS customers.
+//   - partner_name is determined during partner registration, and identifies
+//     the partner to Amazon Web Services customers.
 //
-//    * For event_namespace, we recommend that partners use a string that identifies
-//    the AWS customer within the partner's system. This should not be the customer's
-//    AWS account ID.
+//   - event_namespace is determined by the partner, and is a way for the partner
+//     to categorize their events.
 //
-//    * event_name is determined by the partner, and should uniquely identify
-//    an event-generating resource within the partner system. This should help
-//    AWS customers decide whether to create an event bus to receive these events.
+//   - event_name is determined by the partner, and should uniquely identify
+//     an event-generating resource within the partner system. The event_name
+//     must be unique across all Amazon Web Services customers. This is because
+//     the event source is a shared resource between the partner and customer
+//     accounts, and each partner event source unique in the partner account.
+//
+// The combination of event_namespace and event_name should help Amazon Web
+// Services customers decide whether to create an event bus to receive these
+// events.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -282,18 +774,23 @@ func (c *EventBridge) CreatePartnerEventSourceRequest(input *CreatePartnerEventS
 // See the AWS API reference guide for Amazon EventBridge's
 // API operation CreatePartnerEventSource for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeResourceAlreadyExistsException "ResourceAlreadyExistsException"
-//   The resource that you're trying to create already exists.
+// Returned Error Types:
 //
-//   * ErrCodeInternalException "InternalException"
-//   This exception occurs due to unexpected causes.
+//   - ResourceAlreadyExistsException
+//     The resource you are trying to create already exists.
 //
-//   * ErrCodeConcurrentModificationException "ConcurrentModificationException"
-//   There is concurrent modification on a resource.
+//   - InternalException
+//     This exception occurs due to unexpected causes.
 //
-//   * ErrCodeLimitExceededException "LimitExceededException"
-//   You tried to create more resources than is allowed.
+//   - ConcurrentModificationException
+//     There is concurrent modification on a rule, target, archive, or replay.
+//
+//   - LimitExceededException
+//     The request failed because it attempted to create resource beyond the allowed
+//     service quota.
+//
+//   - OperationDisabledException
+//     The operation you are attempting is not available in this region.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/eventbridge-2015-10-07/CreatePartnerEventSource
 func (c *EventBridge) CreatePartnerEventSource(input *CreatePartnerEventSourceInput) (*CreatePartnerEventSourceOutput, error) {
@@ -333,14 +830,13 @@ const opDeactivateEventSource = "DeactivateEventSource"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the DeactivateEventSourceRequest method.
+//	req, resp := client.DeactivateEventSourceRequest(params)
 //
-//    // Example sending a request using the DeactivateEventSourceRequest method.
-//    req, resp := client.DeactivateEventSourceRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/eventbridge-2015-10-07/DeactivateEventSource
 func (c *EventBridge) DeactivateEventSourceRequest(input *DeactivateEventSourceInput) (req *request.Request, output *DeactivateEventSourceOutput) {
@@ -362,13 +858,13 @@ func (c *EventBridge) DeactivateEventSourceRequest(input *DeactivateEventSourceI
 
 // DeactivateEventSource API operation for Amazon EventBridge.
 //
-// An AWS customer uses this operation to temporarily stop receiving events
-// from the specified partner event source. The matching event bus isn't deleted.
+// You can use this operation to temporarily stop receiving events from the
+// specified partner event source. The matching event bus is not deleted.
 //
 // When you deactivate a partner event source, the source goes into PENDING
-// state. If it remains in PENDING state for more than two weeks, it's deleted.
+// state. If it remains in PENDING state for more than two weeks, it is deleted.
 //
-// To activate a deactivated partner event source, use ActivateEventSource.
+// To activate a deactivated partner event source, use ActivateEventSource (https://docs.aws.amazon.com/eventbridge/latest/APIReference/API_ActivateEventSource.html).
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -377,15 +873,22 @@ func (c *EventBridge) DeactivateEventSourceRequest(input *DeactivateEventSourceI
 // See the AWS API reference guide for Amazon EventBridge's
 // API operation DeactivateEventSource for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
-//   An entity that you specified doesn't exist.
+// Returned Error Types:
 //
-//   * ErrCodeInvalidStateException "InvalidStateException"
-//   The specified state isn't a valid state for an event source.
+//   - ResourceNotFoundException
+//     An entity that you specified does not exist.
 //
-//   * ErrCodeInternalException "InternalException"
-//   This exception occurs due to unexpected causes.
+//   - ConcurrentModificationException
+//     There is concurrent modification on a rule, target, archive, or replay.
+//
+//   - InvalidStateException
+//     The specified state is not a valid state for an event source.
+//
+//   - InternalException
+//     This exception occurs due to unexpected causes.
+//
+//   - OperationDisabledException
+//     The operation you are attempting is not available in this region.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/eventbridge-2015-10-07/DeactivateEventSource
 func (c *EventBridge) DeactivateEventSource(input *DeactivateEventSourceInput) (*DeactivateEventSourceOutput, error) {
@@ -409,6 +912,439 @@ func (c *EventBridge) DeactivateEventSourceWithContext(ctx aws.Context, input *D
 	return out, req.Send()
 }
 
+const opDeauthorizeConnection = "DeauthorizeConnection"
+
+// DeauthorizeConnectionRequest generates a "aws/request.Request" representing the
+// client's request for the DeauthorizeConnection operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DeauthorizeConnection for more information on using the DeauthorizeConnection
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//	// Example sending a request using the DeauthorizeConnectionRequest method.
+//	req, resp := client.DeauthorizeConnectionRequest(params)
+//
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/eventbridge-2015-10-07/DeauthorizeConnection
+func (c *EventBridge) DeauthorizeConnectionRequest(input *DeauthorizeConnectionInput) (req *request.Request, output *DeauthorizeConnectionOutput) {
+	op := &request.Operation{
+		Name:       opDeauthorizeConnection,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DeauthorizeConnectionInput{}
+	}
+
+	output = &DeauthorizeConnectionOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// DeauthorizeConnection API operation for Amazon EventBridge.
+//
+// Removes all authorization parameters from the connection. This lets you remove
+// the secret from the connection so you can reuse it without having to create
+// a new connection.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon EventBridge's
+// API operation DeauthorizeConnection for usage and error information.
+//
+// Returned Error Types:
+//
+//   - ConcurrentModificationException
+//     There is concurrent modification on a rule, target, archive, or replay.
+//
+//   - ResourceNotFoundException
+//     An entity that you specified does not exist.
+//
+//   - InternalException
+//     This exception occurs due to unexpected causes.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/eventbridge-2015-10-07/DeauthorizeConnection
+func (c *EventBridge) DeauthorizeConnection(input *DeauthorizeConnectionInput) (*DeauthorizeConnectionOutput, error) {
+	req, out := c.DeauthorizeConnectionRequest(input)
+	return out, req.Send()
+}
+
+// DeauthorizeConnectionWithContext is the same as DeauthorizeConnection with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DeauthorizeConnection for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *EventBridge) DeauthorizeConnectionWithContext(ctx aws.Context, input *DeauthorizeConnectionInput, opts ...request.Option) (*DeauthorizeConnectionOutput, error) {
+	req, out := c.DeauthorizeConnectionRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opDeleteApiDestination = "DeleteApiDestination"
+
+// DeleteApiDestinationRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteApiDestination operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DeleteApiDestination for more information on using the DeleteApiDestination
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//	// Example sending a request using the DeleteApiDestinationRequest method.
+//	req, resp := client.DeleteApiDestinationRequest(params)
+//
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/eventbridge-2015-10-07/DeleteApiDestination
+func (c *EventBridge) DeleteApiDestinationRequest(input *DeleteApiDestinationInput) (req *request.Request, output *DeleteApiDestinationOutput) {
+	op := &request.Operation{
+		Name:       opDeleteApiDestination,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DeleteApiDestinationInput{}
+	}
+
+	output = &DeleteApiDestinationOutput{}
+	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
+	return
+}
+
+// DeleteApiDestination API operation for Amazon EventBridge.
+//
+// Deletes the specified API destination.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon EventBridge's
+// API operation DeleteApiDestination for usage and error information.
+//
+// Returned Error Types:
+//
+//   - ConcurrentModificationException
+//     There is concurrent modification on a rule, target, archive, or replay.
+//
+//   - ResourceNotFoundException
+//     An entity that you specified does not exist.
+//
+//   - InternalException
+//     This exception occurs due to unexpected causes.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/eventbridge-2015-10-07/DeleteApiDestination
+func (c *EventBridge) DeleteApiDestination(input *DeleteApiDestinationInput) (*DeleteApiDestinationOutput, error) {
+	req, out := c.DeleteApiDestinationRequest(input)
+	return out, req.Send()
+}
+
+// DeleteApiDestinationWithContext is the same as DeleteApiDestination with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DeleteApiDestination for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *EventBridge) DeleteApiDestinationWithContext(ctx aws.Context, input *DeleteApiDestinationInput, opts ...request.Option) (*DeleteApiDestinationOutput, error) {
+	req, out := c.DeleteApiDestinationRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opDeleteArchive = "DeleteArchive"
+
+// DeleteArchiveRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteArchive operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DeleteArchive for more information on using the DeleteArchive
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//	// Example sending a request using the DeleteArchiveRequest method.
+//	req, resp := client.DeleteArchiveRequest(params)
+//
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/eventbridge-2015-10-07/DeleteArchive
+func (c *EventBridge) DeleteArchiveRequest(input *DeleteArchiveInput) (req *request.Request, output *DeleteArchiveOutput) {
+	op := &request.Operation{
+		Name:       opDeleteArchive,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DeleteArchiveInput{}
+	}
+
+	output = &DeleteArchiveOutput{}
+	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
+	return
+}
+
+// DeleteArchive API operation for Amazon EventBridge.
+//
+// Deletes the specified archive.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon EventBridge's
+// API operation DeleteArchive for usage and error information.
+//
+// Returned Error Types:
+//
+//   - ConcurrentModificationException
+//     There is concurrent modification on a rule, target, archive, or replay.
+//
+//   - ResourceNotFoundException
+//     An entity that you specified does not exist.
+//
+//   - InternalException
+//     This exception occurs due to unexpected causes.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/eventbridge-2015-10-07/DeleteArchive
+func (c *EventBridge) DeleteArchive(input *DeleteArchiveInput) (*DeleteArchiveOutput, error) {
+	req, out := c.DeleteArchiveRequest(input)
+	return out, req.Send()
+}
+
+// DeleteArchiveWithContext is the same as DeleteArchive with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DeleteArchive for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *EventBridge) DeleteArchiveWithContext(ctx aws.Context, input *DeleteArchiveInput, opts ...request.Option) (*DeleteArchiveOutput, error) {
+	req, out := c.DeleteArchiveRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opDeleteConnection = "DeleteConnection"
+
+// DeleteConnectionRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteConnection operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DeleteConnection for more information on using the DeleteConnection
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//	// Example sending a request using the DeleteConnectionRequest method.
+//	req, resp := client.DeleteConnectionRequest(params)
+//
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/eventbridge-2015-10-07/DeleteConnection
+func (c *EventBridge) DeleteConnectionRequest(input *DeleteConnectionInput) (req *request.Request, output *DeleteConnectionOutput) {
+	op := &request.Operation{
+		Name:       opDeleteConnection,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DeleteConnectionInput{}
+	}
+
+	output = &DeleteConnectionOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// DeleteConnection API operation for Amazon EventBridge.
+//
+// Deletes a connection.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon EventBridge's
+// API operation DeleteConnection for usage and error information.
+//
+// Returned Error Types:
+//
+//   - ConcurrentModificationException
+//     There is concurrent modification on a rule, target, archive, or replay.
+//
+//   - ResourceNotFoundException
+//     An entity that you specified does not exist.
+//
+//   - InternalException
+//     This exception occurs due to unexpected causes.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/eventbridge-2015-10-07/DeleteConnection
+func (c *EventBridge) DeleteConnection(input *DeleteConnectionInput) (*DeleteConnectionOutput, error) {
+	req, out := c.DeleteConnectionRequest(input)
+	return out, req.Send()
+}
+
+// DeleteConnectionWithContext is the same as DeleteConnection with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DeleteConnection for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *EventBridge) DeleteConnectionWithContext(ctx aws.Context, input *DeleteConnectionInput, opts ...request.Option) (*DeleteConnectionOutput, error) {
+	req, out := c.DeleteConnectionRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opDeleteEndpoint = "DeleteEndpoint"
+
+// DeleteEndpointRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteEndpoint operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DeleteEndpoint for more information on using the DeleteEndpoint
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//	// Example sending a request using the DeleteEndpointRequest method.
+//	req, resp := client.DeleteEndpointRequest(params)
+//
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/eventbridge-2015-10-07/DeleteEndpoint
+func (c *EventBridge) DeleteEndpointRequest(input *DeleteEndpointInput) (req *request.Request, output *DeleteEndpointOutput) {
+	op := &request.Operation{
+		Name:       opDeleteEndpoint,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DeleteEndpointInput{}
+	}
+
+	output = &DeleteEndpointOutput{}
+	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
+	return
+}
+
+// DeleteEndpoint API operation for Amazon EventBridge.
+//
+// Delete an existing global endpoint. For more information about global endpoints,
+// see Making applications Regional-fault tolerant with global endpoints and
+// event replication (https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-global-endpoints.html)
+// in the Amazon EventBridge User Guide .
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon EventBridge's
+// API operation DeleteEndpoint for usage and error information.
+//
+// Returned Error Types:
+//
+//   - ConcurrentModificationException
+//     There is concurrent modification on a rule, target, archive, or replay.
+//
+//   - ResourceNotFoundException
+//     An entity that you specified does not exist.
+//
+//   - InternalException
+//     This exception occurs due to unexpected causes.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/eventbridge-2015-10-07/DeleteEndpoint
+func (c *EventBridge) DeleteEndpoint(input *DeleteEndpointInput) (*DeleteEndpointOutput, error) {
+	req, out := c.DeleteEndpointRequest(input)
+	return out, req.Send()
+}
+
+// DeleteEndpointWithContext is the same as DeleteEndpoint with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DeleteEndpoint for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *EventBridge) DeleteEndpointWithContext(ctx aws.Context, input *DeleteEndpointInput, opts ...request.Option) (*DeleteEndpointOutput, error) {
+	req, out := c.DeleteEndpointRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opDeleteEventBus = "DeleteEventBus"
 
 // DeleteEventBusRequest generates a "aws/request.Request" representing the
@@ -425,14 +1361,13 @@ const opDeleteEventBus = "DeleteEventBus"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the DeleteEventBusRequest method.
+//	req, resp := client.DeleteEventBusRequest(params)
 //
-//    // Example sending a request using the DeleteEventBusRequest method.
-//    req, resp := client.DeleteEventBusRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/eventbridge-2015-10-07/DeleteEventBus
 func (c *EventBridge) DeleteEventBusRequest(input *DeleteEventBusInput) (req *request.Request, output *DeleteEventBusOutput) {
@@ -455,10 +1390,8 @@ func (c *EventBridge) DeleteEventBusRequest(input *DeleteEventBusInput) (req *re
 // DeleteEventBus API operation for Amazon EventBridge.
 //
 // Deletes the specified custom event bus or partner event bus. All rules associated
-// with this event bus are also deleted. You can't delete your account's default
+// with this event bus need to be deleted. You can't delete your account's default
 // event bus.
-//
-// This operation is performed by AWS customers, not by SaaS partners.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -467,9 +1400,13 @@ func (c *EventBridge) DeleteEventBusRequest(input *DeleteEventBusInput) (req *re
 // See the AWS API reference guide for Amazon EventBridge's
 // API operation DeleteEventBus for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInternalException "InternalException"
-//   This exception occurs due to unexpected causes.
+// Returned Error Types:
+//
+//   - InternalException
+//     This exception occurs due to unexpected causes.
+//
+//   - ConcurrentModificationException
+//     There is concurrent modification on a rule, target, archive, or replay.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/eventbridge-2015-10-07/DeleteEventBus
 func (c *EventBridge) DeleteEventBus(input *DeleteEventBusInput) (*DeleteEventBusOutput, error) {
@@ -509,14 +1446,13 @@ const opDeletePartnerEventSource = "DeletePartnerEventSource"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the DeletePartnerEventSourceRequest method.
+//	req, resp := client.DeletePartnerEventSourceRequest(params)
 //
-//    // Example sending a request using the DeletePartnerEventSourceRequest method.
-//    req, resp := client.DeletePartnerEventSourceRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/eventbridge-2015-10-07/DeletePartnerEventSource
 func (c *EventBridge) DeletePartnerEventSourceRequest(input *DeletePartnerEventSourceInput) (req *request.Request, output *DeletePartnerEventSourceOutput) {
@@ -539,10 +1475,10 @@ func (c *EventBridge) DeletePartnerEventSourceRequest(input *DeletePartnerEventS
 // DeletePartnerEventSource API operation for Amazon EventBridge.
 //
 // This operation is used by SaaS partners to delete a partner event source.
-// AWS customers don't use this operation.
+// This operation is not used by Amazon Web Services customers.
 //
 // When you delete an event source, the status of the corresponding partner
-// event bus in the AWS customer account becomes DELETED.
+// event bus in the Amazon Web Services customer account becomes DELETED.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -551,9 +1487,16 @@ func (c *EventBridge) DeletePartnerEventSourceRequest(input *DeletePartnerEventS
 // See the AWS API reference guide for Amazon EventBridge's
 // API operation DeletePartnerEventSource for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInternalException "InternalException"
-//   This exception occurs due to unexpected causes.
+// Returned Error Types:
+//
+//   - InternalException
+//     This exception occurs due to unexpected causes.
+//
+//   - ConcurrentModificationException
+//     There is concurrent modification on a rule, target, archive, or replay.
+//
+//   - OperationDisabledException
+//     The operation you are attempting is not available in this region.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/eventbridge-2015-10-07/DeletePartnerEventSource
 func (c *EventBridge) DeletePartnerEventSource(input *DeletePartnerEventSourceInput) (*DeletePartnerEventSourceOutput, error) {
@@ -593,14 +1536,13 @@ const opDeleteRule = "DeleteRule"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the DeleteRuleRequest method.
+//	req, resp := client.DeleteRuleRequest(params)
 //
-//    // Example sending a request using the DeleteRuleRequest method.
-//    req, resp := client.DeleteRuleRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/eventbridge-2015-10-07/DeleteRule
 func (c *EventBridge) DeleteRuleRequest(input *DeleteRuleInput) (req *request.Request, output *DeleteRuleOutput) {
@@ -624,16 +1566,21 @@ func (c *EventBridge) DeleteRuleRequest(input *DeleteRuleInput) (req *request.Re
 //
 // Deletes the specified rule.
 //
-// Before you can delete the rule, you must remove all targets, using RemoveTargets.
+// Before you can delete the rule, you must remove all targets, using RemoveTargets
+// (https://docs.aws.amazon.com/eventbridge/latest/APIReference/API_RemoveTargets.html).
 //
 // When you delete a rule, incoming events might continue to match to the deleted
 // rule. Allow a short period of time for changes to take effect.
 //
-// Managed rules are rules created and managed by another AWS service on your
-// behalf. These rules are created by those other AWS services to support functionality
-// in those services. You can delete these rules using the Force option, but
-// you should do so only if you're sure that the other service isn't still using
-// that rule.
+// If you call delete rule multiple times for the same rule, all calls will
+// succeed. When you call delete rule for a non-existent custom eventbus, ResourceNotFoundException
+// is returned.
+//
+// Managed rules are rules created and managed by another Amazon Web Services
+// service on your behalf. These rules are created by those other Amazon Web
+// Services services to support functionality in those services. You can delete
+// these rules using the Force option, but you should do so only if you are
+// sure the other service is not still using that rule.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -642,22 +1589,24 @@ func (c *EventBridge) DeleteRuleRequest(input *DeleteRuleInput) (req *request.Re
 // See the AWS API reference guide for Amazon EventBridge's
 // API operation DeleteRule for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeConcurrentModificationException "ConcurrentModificationException"
-//   There is concurrent modification on a resource.
+// Returned Error Types:
 //
-//   * ErrCodeManagedRuleException "ManagedRuleException"
-//   An AWS service created this rule on behalf of your account. That service
-//   manages it. If you see this error in response to DeleteRule or RemoveTargets,
-//   you can use the Force parameter in those calls to delete the rule or remove
-//   targets from the rule. You can't modify these managed rules by using DisableRule,
-//   EnableRule, PutTargets, PutRule, TagResource, or UntagResource.
+//   - ConcurrentModificationException
+//     There is concurrent modification on a rule, target, archive, or replay.
 //
-//   * ErrCodeInternalException "InternalException"
-//   This exception occurs due to unexpected causes.
+//   - ManagedRuleException
+//     This rule was created by an Amazon Web Services service on behalf of your
+//     account. It is managed by that service. If you see this error in response
+//     to DeleteRule or RemoveTargets, you can use the Force parameter in those
+//     calls to delete the rule or remove targets from the rule. You cannot modify
+//     these managed rules by using DisableRule, EnableRule, PutTargets, PutRule,
+//     TagResource, or UntagResource.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
-//   An entity that you specified doesn't exist.
+//   - InternalException
+//     This exception occurs due to unexpected causes.
+//
+//   - ResourceNotFoundException
+//     An entity that you specified does not exist.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/eventbridge-2015-10-07/DeleteRule
 func (c *EventBridge) DeleteRule(input *DeleteRuleInput) (*DeleteRuleOutput, error) {
@@ -681,6 +1630,340 @@ func (c *EventBridge) DeleteRuleWithContext(ctx aws.Context, input *DeleteRuleIn
 	return out, req.Send()
 }
 
+const opDescribeApiDestination = "DescribeApiDestination"
+
+// DescribeApiDestinationRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeApiDestination operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DescribeApiDestination for more information on using the DescribeApiDestination
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//	// Example sending a request using the DescribeApiDestinationRequest method.
+//	req, resp := client.DescribeApiDestinationRequest(params)
+//
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/eventbridge-2015-10-07/DescribeApiDestination
+func (c *EventBridge) DescribeApiDestinationRequest(input *DescribeApiDestinationInput) (req *request.Request, output *DescribeApiDestinationOutput) {
+	op := &request.Operation{
+		Name:       opDescribeApiDestination,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DescribeApiDestinationInput{}
+	}
+
+	output = &DescribeApiDestinationOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// DescribeApiDestination API operation for Amazon EventBridge.
+//
+// Retrieves details about an API destination.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon EventBridge's
+// API operation DescribeApiDestination for usage and error information.
+//
+// Returned Error Types:
+//
+//   - ResourceNotFoundException
+//     An entity that you specified does not exist.
+//
+//   - InternalException
+//     This exception occurs due to unexpected causes.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/eventbridge-2015-10-07/DescribeApiDestination
+func (c *EventBridge) DescribeApiDestination(input *DescribeApiDestinationInput) (*DescribeApiDestinationOutput, error) {
+	req, out := c.DescribeApiDestinationRequest(input)
+	return out, req.Send()
+}
+
+// DescribeApiDestinationWithContext is the same as DescribeApiDestination with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DescribeApiDestination for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *EventBridge) DescribeApiDestinationWithContext(ctx aws.Context, input *DescribeApiDestinationInput, opts ...request.Option) (*DescribeApiDestinationOutput, error) {
+	req, out := c.DescribeApiDestinationRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opDescribeArchive = "DescribeArchive"
+
+// DescribeArchiveRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeArchive operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DescribeArchive for more information on using the DescribeArchive
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//	// Example sending a request using the DescribeArchiveRequest method.
+//	req, resp := client.DescribeArchiveRequest(params)
+//
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/eventbridge-2015-10-07/DescribeArchive
+func (c *EventBridge) DescribeArchiveRequest(input *DescribeArchiveInput) (req *request.Request, output *DescribeArchiveOutput) {
+	op := &request.Operation{
+		Name:       opDescribeArchive,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DescribeArchiveInput{}
+	}
+
+	output = &DescribeArchiveOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// DescribeArchive API operation for Amazon EventBridge.
+//
+// Retrieves details about an archive.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon EventBridge's
+// API operation DescribeArchive for usage and error information.
+//
+// Returned Error Types:
+//
+//   - ResourceAlreadyExistsException
+//     The resource you are trying to create already exists.
+//
+//   - ResourceNotFoundException
+//     An entity that you specified does not exist.
+//
+//   - InternalException
+//     This exception occurs due to unexpected causes.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/eventbridge-2015-10-07/DescribeArchive
+func (c *EventBridge) DescribeArchive(input *DescribeArchiveInput) (*DescribeArchiveOutput, error) {
+	req, out := c.DescribeArchiveRequest(input)
+	return out, req.Send()
+}
+
+// DescribeArchiveWithContext is the same as DescribeArchive with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DescribeArchive for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *EventBridge) DescribeArchiveWithContext(ctx aws.Context, input *DescribeArchiveInput, opts ...request.Option) (*DescribeArchiveOutput, error) {
+	req, out := c.DescribeArchiveRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opDescribeConnection = "DescribeConnection"
+
+// DescribeConnectionRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeConnection operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DescribeConnection for more information on using the DescribeConnection
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//	// Example sending a request using the DescribeConnectionRequest method.
+//	req, resp := client.DescribeConnectionRequest(params)
+//
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/eventbridge-2015-10-07/DescribeConnection
+func (c *EventBridge) DescribeConnectionRequest(input *DescribeConnectionInput) (req *request.Request, output *DescribeConnectionOutput) {
+	op := &request.Operation{
+		Name:       opDescribeConnection,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DescribeConnectionInput{}
+	}
+
+	output = &DescribeConnectionOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// DescribeConnection API operation for Amazon EventBridge.
+//
+// Retrieves details about a connection.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon EventBridge's
+// API operation DescribeConnection for usage and error information.
+//
+// Returned Error Types:
+//
+//   - ResourceNotFoundException
+//     An entity that you specified does not exist.
+//
+//   - InternalException
+//     This exception occurs due to unexpected causes.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/eventbridge-2015-10-07/DescribeConnection
+func (c *EventBridge) DescribeConnection(input *DescribeConnectionInput) (*DescribeConnectionOutput, error) {
+	req, out := c.DescribeConnectionRequest(input)
+	return out, req.Send()
+}
+
+// DescribeConnectionWithContext is the same as DescribeConnection with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DescribeConnection for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *EventBridge) DescribeConnectionWithContext(ctx aws.Context, input *DescribeConnectionInput, opts ...request.Option) (*DescribeConnectionOutput, error) {
+	req, out := c.DescribeConnectionRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opDescribeEndpoint = "DescribeEndpoint"
+
+// DescribeEndpointRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeEndpoint operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DescribeEndpoint for more information on using the DescribeEndpoint
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//	// Example sending a request using the DescribeEndpointRequest method.
+//	req, resp := client.DescribeEndpointRequest(params)
+//
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/eventbridge-2015-10-07/DescribeEndpoint
+func (c *EventBridge) DescribeEndpointRequest(input *DescribeEndpointInput) (req *request.Request, output *DescribeEndpointOutput) {
+	op := &request.Operation{
+		Name:       opDescribeEndpoint,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DescribeEndpointInput{}
+	}
+
+	output = &DescribeEndpointOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// DescribeEndpoint API operation for Amazon EventBridge.
+//
+// Get the information about an existing global endpoint. For more information
+// about global endpoints, see Making applications Regional-fault tolerant with
+// global endpoints and event replication (https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-global-endpoints.html)
+// in the Amazon EventBridge User Guide .
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon EventBridge's
+// API operation DescribeEndpoint for usage and error information.
+//
+// Returned Error Types:
+//
+//   - ResourceNotFoundException
+//     An entity that you specified does not exist.
+//
+//   - InternalException
+//     This exception occurs due to unexpected causes.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/eventbridge-2015-10-07/DescribeEndpoint
+func (c *EventBridge) DescribeEndpoint(input *DescribeEndpointInput) (*DescribeEndpointOutput, error) {
+	req, out := c.DescribeEndpointRequest(input)
+	return out, req.Send()
+}
+
+// DescribeEndpointWithContext is the same as DescribeEndpoint with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DescribeEndpoint for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *EventBridge) DescribeEndpointWithContext(ctx aws.Context, input *DescribeEndpointInput, opts ...request.Option) (*DescribeEndpointOutput, error) {
+	req, out := c.DescribeEndpointRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opDescribeEventBus = "DescribeEventBus"
 
 // DescribeEventBusRequest generates a "aws/request.Request" representing the
@@ -697,14 +1980,13 @@ const opDescribeEventBus = "DescribeEventBus"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the DescribeEventBusRequest method.
+//	req, resp := client.DescribeEventBusRequest(params)
 //
-//    // Example sending a request using the DescribeEventBusRequest method.
-//    req, resp := client.DescribeEventBusRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/eventbridge-2015-10-07/DescribeEventBus
 func (c *EventBridge) DescribeEventBusRequest(input *DescribeEventBusInput) (req *request.Request, output *DescribeEventBusOutput) {
@@ -726,14 +2008,15 @@ func (c *EventBridge) DescribeEventBusRequest(input *DescribeEventBusInput) (req
 // DescribeEventBus API operation for Amazon EventBridge.
 //
 // Displays details about an event bus in your account. This can include the
-// external AWS accounts that are permitted to write events to your default
-// event bus, and the associated policy. For custom event buses and partner
-// event buses, it displays the name, ARN, policy, state, and creation time.
+// external Amazon Web Services accounts that are permitted to write events
+// to your default event bus, and the associated policy. For custom event buses
+// and partner event buses, it displays the name, ARN, policy, state, and creation
+// time.
 //
 // To enable your account to receive events from other accounts on its default
-// event bus, use PutPermission.
+// event bus, use PutPermission (https://docs.aws.amazon.com/eventbridge/latest/APIReference/API_PutPermission.html).
 //
-// For more information about partner event buses, see CreateEventBus.
+// For more information about partner event buses, see CreateEventBus (https://docs.aws.amazon.com/eventbridge/latest/APIReference/API_CreateEventBus.html).
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -742,12 +2025,13 @@ func (c *EventBridge) DescribeEventBusRequest(input *DescribeEventBusInput) (req
 // See the AWS API reference guide for Amazon EventBridge's
 // API operation DescribeEventBus for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
-//   An entity that you specified doesn't exist.
+// Returned Error Types:
 //
-//   * ErrCodeInternalException "InternalException"
-//   This exception occurs due to unexpected causes.
+//   - ResourceNotFoundException
+//     An entity that you specified does not exist.
+//
+//   - InternalException
+//     This exception occurs due to unexpected causes.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/eventbridge-2015-10-07/DescribeEventBus
 func (c *EventBridge) DescribeEventBus(input *DescribeEventBusInput) (*DescribeEventBusOutput, error) {
@@ -787,14 +2071,13 @@ const opDescribeEventSource = "DescribeEventSource"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the DescribeEventSourceRequest method.
+//	req, resp := client.DescribeEventSourceRequest(params)
 //
-//    // Example sending a request using the DescribeEventSourceRequest method.
-//    req, resp := client.DescribeEventSourceRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/eventbridge-2015-10-07/DescribeEventSource
 func (c *EventBridge) DescribeEventSourceRequest(input *DescribeEventSourceInput) (req *request.Request, output *DescribeEventSourceOutput) {
@@ -818,8 +2101,6 @@ func (c *EventBridge) DescribeEventSourceRequest(input *DescribeEventSourceInput
 // This operation lists details about a partner event source that is shared
 // with your account.
 //
-// This operation is run by AWS customers, not by SaaS partners.
-//
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
 // the error.
@@ -827,12 +2108,16 @@ func (c *EventBridge) DescribeEventSourceRequest(input *DescribeEventSourceInput
 // See the AWS API reference guide for Amazon EventBridge's
 // API operation DescribeEventSource for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
-//   An entity that you specified doesn't exist.
+// Returned Error Types:
 //
-//   * ErrCodeInternalException "InternalException"
-//   This exception occurs due to unexpected causes.
+//   - ResourceNotFoundException
+//     An entity that you specified does not exist.
+//
+//   - InternalException
+//     This exception occurs due to unexpected causes.
+//
+//   - OperationDisabledException
+//     The operation you are attempting is not available in this region.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/eventbridge-2015-10-07/DescribeEventSource
 func (c *EventBridge) DescribeEventSource(input *DescribeEventSourceInput) (*DescribeEventSourceOutput, error) {
@@ -872,14 +2157,13 @@ const opDescribePartnerEventSource = "DescribePartnerEventSource"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the DescribePartnerEventSourceRequest method.
+//	req, resp := client.DescribePartnerEventSourceRequest(params)
 //
-//    // Example sending a request using the DescribePartnerEventSourceRequest method.
-//    req, resp := client.DescribePartnerEventSourceRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/eventbridge-2015-10-07/DescribePartnerEventSource
 func (c *EventBridge) DescribePartnerEventSourceRequest(input *DescribePartnerEventSourceInput) (req *request.Request, output *DescribePartnerEventSourceOutput) {
@@ -901,9 +2185,9 @@ func (c *EventBridge) DescribePartnerEventSourceRequest(input *DescribePartnerEv
 // DescribePartnerEventSource API operation for Amazon EventBridge.
 //
 // An SaaS partner can use this operation to list details about a partner event
-// source that they have created.
-//
-// AWS customers do not use this operation. Instead, AWS customers can use DescribeEventSource
+// source that they have created. Amazon Web Services customers do not use this
+// operation. Instead, Amazon Web Services customers can use DescribeEventSource
+// (https://docs.aws.amazon.com/eventbridge/latest/APIReference/API_DescribeEventSource.html)
 // to see details about a partner event source that is shared with them.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -913,12 +2197,16 @@ func (c *EventBridge) DescribePartnerEventSourceRequest(input *DescribePartnerEv
 // See the AWS API reference guide for Amazon EventBridge's
 // API operation DescribePartnerEventSource for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
-//   An entity that you specified doesn't exist.
+// Returned Error Types:
 //
-//   * ErrCodeInternalException "InternalException"
-//   This exception occurs due to unexpected causes.
+//   - ResourceNotFoundException
+//     An entity that you specified does not exist.
+//
+//   - InternalException
+//     This exception occurs due to unexpected causes.
+//
+//   - OperationDisabledException
+//     The operation you are attempting is not available in this region.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/eventbridge-2015-10-07/DescribePartnerEventSource
 func (c *EventBridge) DescribePartnerEventSource(input *DescribePartnerEventSourceInput) (*DescribePartnerEventSourceOutput, error) {
@@ -942,6 +2230,96 @@ func (c *EventBridge) DescribePartnerEventSourceWithContext(ctx aws.Context, inp
 	return out, req.Send()
 }
 
+const opDescribeReplay = "DescribeReplay"
+
+// DescribeReplayRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeReplay operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DescribeReplay for more information on using the DescribeReplay
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//	// Example sending a request using the DescribeReplayRequest method.
+//	req, resp := client.DescribeReplayRequest(params)
+//
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/eventbridge-2015-10-07/DescribeReplay
+func (c *EventBridge) DescribeReplayRequest(input *DescribeReplayInput) (req *request.Request, output *DescribeReplayOutput) {
+	op := &request.Operation{
+		Name:       opDescribeReplay,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DescribeReplayInput{}
+	}
+
+	output = &DescribeReplayOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// DescribeReplay API operation for Amazon EventBridge.
+//
+// Retrieves details about a replay. Use DescribeReplay to determine the progress
+// of a running replay. A replay processes events to replay based on the time
+// in the event, and replays them using 1 minute intervals. If you use StartReplay
+// and specify an EventStartTime and an EventEndTime that covers a 20 minute
+// time range, the events are replayed from the first minute of that 20 minute
+// range first. Then the events from the second minute are replayed. You can
+// use DescribeReplay to determine the progress of a replay. The value returned
+// for EventLastReplayedTime indicates the time within the specified time range
+// associated with the last event replayed.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon EventBridge's
+// API operation DescribeReplay for usage and error information.
+//
+// Returned Error Types:
+//
+//   - ResourceNotFoundException
+//     An entity that you specified does not exist.
+//
+//   - InternalException
+//     This exception occurs due to unexpected causes.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/eventbridge-2015-10-07/DescribeReplay
+func (c *EventBridge) DescribeReplay(input *DescribeReplayInput) (*DescribeReplayOutput, error) {
+	req, out := c.DescribeReplayRequest(input)
+	return out, req.Send()
+}
+
+// DescribeReplayWithContext is the same as DescribeReplay with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DescribeReplay for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *EventBridge) DescribeReplayWithContext(ctx aws.Context, input *DescribeReplayInput, opts ...request.Option) (*DescribeReplayOutput, error) {
+	req, out := c.DescribeReplayRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opDescribeRule = "DescribeRule"
 
 // DescribeRuleRequest generates a "aws/request.Request" representing the
@@ -958,14 +2336,13 @@ const opDescribeRule = "DescribeRule"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the DescribeRuleRequest method.
+//	req, resp := client.DescribeRuleRequest(params)
 //
-//    // Example sending a request using the DescribeRuleRequest method.
-//    req, resp := client.DescribeRuleRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/eventbridge-2015-10-07/DescribeRule
 func (c *EventBridge) DescribeRuleRequest(input *DescribeRuleInput) (req *request.Request, output *DescribeRuleOutput) {
@@ -988,8 +2365,8 @@ func (c *EventBridge) DescribeRuleRequest(input *DescribeRuleInput) (req *reques
 //
 // Describes the specified rule.
 //
-// DescribeRule doesn't list the targets of a rule. To see the targets associated
-// with a rule, use ListTargetsByRule.
+// DescribeRule does not list the targets of a rule. To see the targets associated
+// with a rule, use ListTargetsByRule (https://docs.aws.amazon.com/eventbridge/latest/APIReference/API_ListTargetsByRule.html).
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -998,12 +2375,13 @@ func (c *EventBridge) DescribeRuleRequest(input *DescribeRuleInput) (req *reques
 // See the AWS API reference guide for Amazon EventBridge's
 // API operation DescribeRule for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
-//   An entity that you specified doesn't exist.
+// Returned Error Types:
 //
-//   * ErrCodeInternalException "InternalException"
-//   This exception occurs due to unexpected causes.
+//   - ResourceNotFoundException
+//     An entity that you specified does not exist.
+//
+//   - InternalException
+//     This exception occurs due to unexpected causes.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/eventbridge-2015-10-07/DescribeRule
 func (c *EventBridge) DescribeRule(input *DescribeRuleInput) (*DescribeRuleOutput, error) {
@@ -1043,14 +2421,13 @@ const opDisableRule = "DisableRule"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the DisableRuleRequest method.
+//	req, resp := client.DisableRuleRequest(params)
 //
-//    // Example sending a request using the DisableRuleRequest method.
-//    req, resp := client.DisableRuleRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/eventbridge-2015-10-07/DisableRule
 func (c *EventBridge) DisableRuleRequest(input *DisableRuleInput) (req *request.Request, output *DisableRuleOutput) {
@@ -1072,8 +2449,8 @@ func (c *EventBridge) DisableRuleRequest(input *DisableRuleInput) (req *request.
 
 // DisableRule API operation for Amazon EventBridge.
 //
-// Disables the specified rule. A disabled rule won't match any events and won't
-// self-trigger if it has a schedule expression.
+// Disables the specified rule. A disabled rule won't match any events, and
+// won't self-trigger if it has a schedule expression.
 //
 // When you disable a rule, incoming events might continue to match to the disabled
 // rule. Allow a short period of time for changes to take effect.
@@ -1085,22 +2462,24 @@ func (c *EventBridge) DisableRuleRequest(input *DisableRuleInput) (req *request.
 // See the AWS API reference guide for Amazon EventBridge's
 // API operation DisableRule for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
-//   An entity that you specified doesn't exist.
+// Returned Error Types:
 //
-//   * ErrCodeConcurrentModificationException "ConcurrentModificationException"
-//   There is concurrent modification on a resource.
+//   - ResourceNotFoundException
+//     An entity that you specified does not exist.
 //
-//   * ErrCodeManagedRuleException "ManagedRuleException"
-//   An AWS service created this rule on behalf of your account. That service
-//   manages it. If you see this error in response to DeleteRule or RemoveTargets,
-//   you can use the Force parameter in those calls to delete the rule or remove
-//   targets from the rule. You can't modify these managed rules by using DisableRule,
-//   EnableRule, PutTargets, PutRule, TagResource, or UntagResource.
+//   - ConcurrentModificationException
+//     There is concurrent modification on a rule, target, archive, or replay.
 //
-//   * ErrCodeInternalException "InternalException"
-//   This exception occurs due to unexpected causes.
+//   - ManagedRuleException
+//     This rule was created by an Amazon Web Services service on behalf of your
+//     account. It is managed by that service. If you see this error in response
+//     to DeleteRule or RemoveTargets, you can use the Force parameter in those
+//     calls to delete the rule or remove targets from the rule. You cannot modify
+//     these managed rules by using DisableRule, EnableRule, PutTargets, PutRule,
+//     TagResource, or UntagResource.
+//
+//   - InternalException
+//     This exception occurs due to unexpected causes.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/eventbridge-2015-10-07/DisableRule
 func (c *EventBridge) DisableRule(input *DisableRuleInput) (*DisableRuleOutput, error) {
@@ -1140,14 +2519,13 @@ const opEnableRule = "EnableRule"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the EnableRuleRequest method.
+//	req, resp := client.EnableRuleRequest(params)
 //
-//    // Example sending a request using the EnableRuleRequest method.
-//    req, resp := client.EnableRuleRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/eventbridge-2015-10-07/EnableRule
 func (c *EventBridge) EnableRuleRequest(input *EnableRuleInput) (req *request.Request, output *EnableRuleOutput) {
@@ -1169,7 +2547,7 @@ func (c *EventBridge) EnableRuleRequest(input *EnableRuleInput) (req *request.Re
 
 // EnableRule API operation for Amazon EventBridge.
 //
-// Enables the specified rule. If the rule doesn't exist, the operation fails.
+// Enables the specified rule. If the rule does not exist, the operation fails.
 //
 // When you enable a rule, incoming events might not immediately start matching
 // to a newly enabled rule. Allow a short period of time for changes to take
@@ -1182,22 +2560,24 @@ func (c *EventBridge) EnableRuleRequest(input *EnableRuleInput) (req *request.Re
 // See the AWS API reference guide for Amazon EventBridge's
 // API operation EnableRule for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
-//   An entity that you specified doesn't exist.
+// Returned Error Types:
 //
-//   * ErrCodeConcurrentModificationException "ConcurrentModificationException"
-//   There is concurrent modification on a resource.
+//   - ResourceNotFoundException
+//     An entity that you specified does not exist.
 //
-//   * ErrCodeManagedRuleException "ManagedRuleException"
-//   An AWS service created this rule on behalf of your account. That service
-//   manages it. If you see this error in response to DeleteRule or RemoveTargets,
-//   you can use the Force parameter in those calls to delete the rule or remove
-//   targets from the rule. You can't modify these managed rules by using DisableRule,
-//   EnableRule, PutTargets, PutRule, TagResource, or UntagResource.
+//   - ConcurrentModificationException
+//     There is concurrent modification on a rule, target, archive, or replay.
 //
-//   * ErrCodeInternalException "InternalException"
-//   This exception occurs due to unexpected causes.
+//   - ManagedRuleException
+//     This rule was created by an Amazon Web Services service on behalf of your
+//     account. It is managed by that service. If you see this error in response
+//     to DeleteRule or RemoveTargets, you can use the Force parameter in those
+//     calls to delete the rule or remove targets from the rule. You cannot modify
+//     these managed rules by using DisableRule, EnableRule, PutTargets, PutRule,
+//     TagResource, or UntagResource.
+//
+//   - InternalException
+//     This exception occurs due to unexpected causes.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/eventbridge-2015-10-07/EnableRule
 func (c *EventBridge) EnableRule(input *EnableRuleInput) (*EnableRuleOutput, error) {
@@ -1221,6 +2601,326 @@ func (c *EventBridge) EnableRuleWithContext(ctx aws.Context, input *EnableRuleIn
 	return out, req.Send()
 }
 
+const opListApiDestinations = "ListApiDestinations"
+
+// ListApiDestinationsRequest generates a "aws/request.Request" representing the
+// client's request for the ListApiDestinations operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See ListApiDestinations for more information on using the ListApiDestinations
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//	// Example sending a request using the ListApiDestinationsRequest method.
+//	req, resp := client.ListApiDestinationsRequest(params)
+//
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/eventbridge-2015-10-07/ListApiDestinations
+func (c *EventBridge) ListApiDestinationsRequest(input *ListApiDestinationsInput) (req *request.Request, output *ListApiDestinationsOutput) {
+	op := &request.Operation{
+		Name:       opListApiDestinations,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &ListApiDestinationsInput{}
+	}
+
+	output = &ListApiDestinationsOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// ListApiDestinations API operation for Amazon EventBridge.
+//
+// Retrieves a list of API destination in the account in the current Region.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon EventBridge's
+// API operation ListApiDestinations for usage and error information.
+//
+// Returned Error Types:
+//   - InternalException
+//     This exception occurs due to unexpected causes.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/eventbridge-2015-10-07/ListApiDestinations
+func (c *EventBridge) ListApiDestinations(input *ListApiDestinationsInput) (*ListApiDestinationsOutput, error) {
+	req, out := c.ListApiDestinationsRequest(input)
+	return out, req.Send()
+}
+
+// ListApiDestinationsWithContext is the same as ListApiDestinations with the addition of
+// the ability to pass a context and additional request options.
+//
+// See ListApiDestinations for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *EventBridge) ListApiDestinationsWithContext(ctx aws.Context, input *ListApiDestinationsInput, opts ...request.Option) (*ListApiDestinationsOutput, error) {
+	req, out := c.ListApiDestinationsRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opListArchives = "ListArchives"
+
+// ListArchivesRequest generates a "aws/request.Request" representing the
+// client's request for the ListArchives operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See ListArchives for more information on using the ListArchives
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//	// Example sending a request using the ListArchivesRequest method.
+//	req, resp := client.ListArchivesRequest(params)
+//
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/eventbridge-2015-10-07/ListArchives
+func (c *EventBridge) ListArchivesRequest(input *ListArchivesInput) (req *request.Request, output *ListArchivesOutput) {
+	op := &request.Operation{
+		Name:       opListArchives,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &ListArchivesInput{}
+	}
+
+	output = &ListArchivesOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// ListArchives API operation for Amazon EventBridge.
+//
+// Lists your archives. You can either list all the archives or you can provide
+// a prefix to match to the archive names. Filter parameters are exclusive.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon EventBridge's
+// API operation ListArchives for usage and error information.
+//
+// Returned Error Types:
+//
+//   - ResourceNotFoundException
+//     An entity that you specified does not exist.
+//
+//   - InternalException
+//     This exception occurs due to unexpected causes.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/eventbridge-2015-10-07/ListArchives
+func (c *EventBridge) ListArchives(input *ListArchivesInput) (*ListArchivesOutput, error) {
+	req, out := c.ListArchivesRequest(input)
+	return out, req.Send()
+}
+
+// ListArchivesWithContext is the same as ListArchives with the addition of
+// the ability to pass a context and additional request options.
+//
+// See ListArchives for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *EventBridge) ListArchivesWithContext(ctx aws.Context, input *ListArchivesInput, opts ...request.Option) (*ListArchivesOutput, error) {
+	req, out := c.ListArchivesRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opListConnections = "ListConnections"
+
+// ListConnectionsRequest generates a "aws/request.Request" representing the
+// client's request for the ListConnections operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See ListConnections for more information on using the ListConnections
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//	// Example sending a request using the ListConnectionsRequest method.
+//	req, resp := client.ListConnectionsRequest(params)
+//
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/eventbridge-2015-10-07/ListConnections
+func (c *EventBridge) ListConnectionsRequest(input *ListConnectionsInput) (req *request.Request, output *ListConnectionsOutput) {
+	op := &request.Operation{
+		Name:       opListConnections,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &ListConnectionsInput{}
+	}
+
+	output = &ListConnectionsOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// ListConnections API operation for Amazon EventBridge.
+//
+// Retrieves a list of connections from the account.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon EventBridge's
+// API operation ListConnections for usage and error information.
+//
+// Returned Error Types:
+//   - InternalException
+//     This exception occurs due to unexpected causes.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/eventbridge-2015-10-07/ListConnections
+func (c *EventBridge) ListConnections(input *ListConnectionsInput) (*ListConnectionsOutput, error) {
+	req, out := c.ListConnectionsRequest(input)
+	return out, req.Send()
+}
+
+// ListConnectionsWithContext is the same as ListConnections with the addition of
+// the ability to pass a context and additional request options.
+//
+// See ListConnections for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *EventBridge) ListConnectionsWithContext(ctx aws.Context, input *ListConnectionsInput, opts ...request.Option) (*ListConnectionsOutput, error) {
+	req, out := c.ListConnectionsRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opListEndpoints = "ListEndpoints"
+
+// ListEndpointsRequest generates a "aws/request.Request" representing the
+// client's request for the ListEndpoints operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See ListEndpoints for more information on using the ListEndpoints
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//	// Example sending a request using the ListEndpointsRequest method.
+//	req, resp := client.ListEndpointsRequest(params)
+//
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/eventbridge-2015-10-07/ListEndpoints
+func (c *EventBridge) ListEndpointsRequest(input *ListEndpointsInput) (req *request.Request, output *ListEndpointsOutput) {
+	op := &request.Operation{
+		Name:       opListEndpoints,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &ListEndpointsInput{}
+	}
+
+	output = &ListEndpointsOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// ListEndpoints API operation for Amazon EventBridge.
+//
+// List the global endpoints associated with this account. For more information
+// about global endpoints, see Making applications Regional-fault tolerant with
+// global endpoints and event replication (https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-global-endpoints.html)
+// in the Amazon EventBridge User Guide .
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon EventBridge's
+// API operation ListEndpoints for usage and error information.
+//
+// Returned Error Types:
+//   - InternalException
+//     This exception occurs due to unexpected causes.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/eventbridge-2015-10-07/ListEndpoints
+func (c *EventBridge) ListEndpoints(input *ListEndpointsInput) (*ListEndpointsOutput, error) {
+	req, out := c.ListEndpointsRequest(input)
+	return out, req.Send()
+}
+
+// ListEndpointsWithContext is the same as ListEndpoints with the addition of
+// the ability to pass a context and additional request options.
+//
+// See ListEndpoints for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *EventBridge) ListEndpointsWithContext(ctx aws.Context, input *ListEndpointsInput, opts ...request.Option) (*ListEndpointsOutput, error) {
+	req, out := c.ListEndpointsRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opListEventBuses = "ListEventBuses"
 
 // ListEventBusesRequest generates a "aws/request.Request" representing the
@@ -1237,14 +2937,13 @@ const opListEventBuses = "ListEventBuses"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the ListEventBusesRequest method.
+//	req, resp := client.ListEventBusesRequest(params)
 //
-//    // Example sending a request using the ListEventBusesRequest method.
-//    req, resp := client.ListEventBusesRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/eventbridge-2015-10-07/ListEventBuses
 func (c *EventBridge) ListEventBusesRequest(input *ListEventBusesInput) (req *request.Request, output *ListEventBusesOutput) {
@@ -1268,8 +2967,6 @@ func (c *EventBridge) ListEventBusesRequest(input *ListEventBusesInput) (req *re
 // Lists all the event buses in your account, including the default event bus,
 // custom event buses, and partner event buses.
 //
-// This operation is run by AWS customers, not by SaaS partners.
-//
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
 // the error.
@@ -1277,9 +2974,9 @@ func (c *EventBridge) ListEventBusesRequest(input *ListEventBusesInput) (req *re
 // See the AWS API reference guide for Amazon EventBridge's
 // API operation ListEventBuses for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInternalException "InternalException"
-//   This exception occurs due to unexpected causes.
+// Returned Error Types:
+//   - InternalException
+//     This exception occurs due to unexpected causes.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/eventbridge-2015-10-07/ListEventBuses
 func (c *EventBridge) ListEventBuses(input *ListEventBusesInput) (*ListEventBusesOutput, error) {
@@ -1319,14 +3016,13 @@ const opListEventSources = "ListEventSources"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the ListEventSourcesRequest method.
+//	req, resp := client.ListEventSourcesRequest(params)
 //
-//    // Example sending a request using the ListEventSourcesRequest method.
-//    req, resp := client.ListEventSourcesRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/eventbridge-2015-10-07/ListEventSources
 func (c *EventBridge) ListEventSourcesRequest(input *ListEventSourcesInput) (req *request.Request, output *ListEventSourcesOutput) {
@@ -1348,10 +3044,8 @@ func (c *EventBridge) ListEventSourcesRequest(input *ListEventSourcesInput) (req
 // ListEventSources API operation for Amazon EventBridge.
 //
 // You can use this to see all the partner event sources that have been shared
-// with your AWS account. For more information about partner event sources,
-// see CreateEventBus.
-//
-// This operation is run by AWS customers, not by SaaS partners.
+// with your Amazon Web Services account. For more information about partner
+// event sources, see CreateEventBus (https://docs.aws.amazon.com/eventbridge/latest/APIReference/API_CreateEventBus.html).
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -1360,9 +3054,13 @@ func (c *EventBridge) ListEventSourcesRequest(input *ListEventSourcesInput) (req
 // See the AWS API reference guide for Amazon EventBridge's
 // API operation ListEventSources for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInternalException "InternalException"
-//   This exception occurs due to unexpected causes.
+// Returned Error Types:
+//
+//   - InternalException
+//     This exception occurs due to unexpected causes.
+//
+//   - OperationDisabledException
+//     The operation you are attempting is not available in this region.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/eventbridge-2015-10-07/ListEventSources
 func (c *EventBridge) ListEventSources(input *ListEventSourcesInput) (*ListEventSourcesOutput, error) {
@@ -1402,14 +3100,13 @@ const opListPartnerEventSourceAccounts = "ListPartnerEventSourceAccounts"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the ListPartnerEventSourceAccountsRequest method.
+//	req, resp := client.ListPartnerEventSourceAccountsRequest(params)
 //
-//    // Example sending a request using the ListPartnerEventSourceAccountsRequest method.
-//    req, resp := client.ListPartnerEventSourceAccountsRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/eventbridge-2015-10-07/ListPartnerEventSourceAccounts
 func (c *EventBridge) ListPartnerEventSourceAccountsRequest(input *ListPartnerEventSourceAccountsInput) (req *request.Request, output *ListPartnerEventSourceAccountsOutput) {
@@ -1430,10 +3127,9 @@ func (c *EventBridge) ListPartnerEventSourceAccountsRequest(input *ListPartnerEv
 
 // ListPartnerEventSourceAccounts API operation for Amazon EventBridge.
 //
-// An SaaS partner can use this operation to display the AWS account ID that
-// a particular partner event source name is associated with.
-//
-// This operation is used by SaaS partners, not by AWS customers.
+// An SaaS partner can use this operation to display the Amazon Web Services
+// account ID that a particular partner event source name is associated with.
+// This operation is not used by Amazon Web Services customers.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -1442,12 +3138,16 @@ func (c *EventBridge) ListPartnerEventSourceAccountsRequest(input *ListPartnerEv
 // See the AWS API reference guide for Amazon EventBridge's
 // API operation ListPartnerEventSourceAccounts for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
-//   An entity that you specified doesn't exist.
+// Returned Error Types:
 //
-//   * ErrCodeInternalException "InternalException"
-//   This exception occurs due to unexpected causes.
+//   - ResourceNotFoundException
+//     An entity that you specified does not exist.
+//
+//   - InternalException
+//     This exception occurs due to unexpected causes.
+//
+//   - OperationDisabledException
+//     The operation you are attempting is not available in this region.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/eventbridge-2015-10-07/ListPartnerEventSourceAccounts
 func (c *EventBridge) ListPartnerEventSourceAccounts(input *ListPartnerEventSourceAccountsInput) (*ListPartnerEventSourceAccountsOutput, error) {
@@ -1487,14 +3187,13 @@ const opListPartnerEventSources = "ListPartnerEventSources"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the ListPartnerEventSourcesRequest method.
+//	req, resp := client.ListPartnerEventSourcesRequest(params)
 //
-//    // Example sending a request using the ListPartnerEventSourcesRequest method.
-//    req, resp := client.ListPartnerEventSourcesRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/eventbridge-2015-10-07/ListPartnerEventSources
 func (c *EventBridge) ListPartnerEventSourcesRequest(input *ListPartnerEventSourcesInput) (req *request.Request, output *ListPartnerEventSourcesOutput) {
@@ -1516,9 +3215,8 @@ func (c *EventBridge) ListPartnerEventSourcesRequest(input *ListPartnerEventSour
 // ListPartnerEventSources API operation for Amazon EventBridge.
 //
 // An SaaS partner can use this operation to list all the partner event source
-// names that they have created.
-//
-// This operation is not used by AWS customers.
+// names that they have created. This operation is not used by Amazon Web Services
+// customers.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -1527,9 +3225,13 @@ func (c *EventBridge) ListPartnerEventSourcesRequest(input *ListPartnerEventSour
 // See the AWS API reference guide for Amazon EventBridge's
 // API operation ListPartnerEventSources for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInternalException "InternalException"
-//   This exception occurs due to unexpected causes.
+// Returned Error Types:
+//
+//   - InternalException
+//     This exception occurs due to unexpected causes.
+//
+//   - OperationDisabledException
+//     The operation you are attempting is not available in this region.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/eventbridge-2015-10-07/ListPartnerEventSources
 func (c *EventBridge) ListPartnerEventSources(input *ListPartnerEventSourcesInput) (*ListPartnerEventSourcesOutput, error) {
@@ -1553,6 +3255,85 @@ func (c *EventBridge) ListPartnerEventSourcesWithContext(ctx aws.Context, input 
 	return out, req.Send()
 }
 
+const opListReplays = "ListReplays"
+
+// ListReplaysRequest generates a "aws/request.Request" representing the
+// client's request for the ListReplays operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See ListReplays for more information on using the ListReplays
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//	// Example sending a request using the ListReplaysRequest method.
+//	req, resp := client.ListReplaysRequest(params)
+//
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/eventbridge-2015-10-07/ListReplays
+func (c *EventBridge) ListReplaysRequest(input *ListReplaysInput) (req *request.Request, output *ListReplaysOutput) {
+	op := &request.Operation{
+		Name:       opListReplays,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &ListReplaysInput{}
+	}
+
+	output = &ListReplaysOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// ListReplays API operation for Amazon EventBridge.
+//
+// Lists your replays. You can either list all the replays or you can provide
+// a prefix to match to the replay names. Filter parameters are exclusive.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon EventBridge's
+// API operation ListReplays for usage and error information.
+//
+// Returned Error Types:
+//   - InternalException
+//     This exception occurs due to unexpected causes.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/eventbridge-2015-10-07/ListReplays
+func (c *EventBridge) ListReplays(input *ListReplaysInput) (*ListReplaysOutput, error) {
+	req, out := c.ListReplaysRequest(input)
+	return out, req.Send()
+}
+
+// ListReplaysWithContext is the same as ListReplays with the addition of
+// the ability to pass a context and additional request options.
+//
+// See ListReplays for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *EventBridge) ListReplaysWithContext(ctx aws.Context, input *ListReplaysInput, opts ...request.Option) (*ListReplaysOutput, error) {
+	req, out := c.ListReplaysRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opListRuleNamesByTarget = "ListRuleNamesByTarget"
 
 // ListRuleNamesByTargetRequest generates a "aws/request.Request" representing the
@@ -1569,14 +3350,13 @@ const opListRuleNamesByTarget = "ListRuleNamesByTarget"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the ListRuleNamesByTargetRequest method.
+//	req, resp := client.ListRuleNamesByTargetRequest(params)
 //
-//    // Example sending a request using the ListRuleNamesByTargetRequest method.
-//    req, resp := client.ListRuleNamesByTargetRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/eventbridge-2015-10-07/ListRuleNamesByTarget
 func (c *EventBridge) ListRuleNamesByTargetRequest(input *ListRuleNamesByTargetInput) (req *request.Request, output *ListRuleNamesByTargetOutput) {
@@ -1597,8 +3377,10 @@ func (c *EventBridge) ListRuleNamesByTargetRequest(input *ListRuleNamesByTargetI
 
 // ListRuleNamesByTarget API operation for Amazon EventBridge.
 //
-// Lists the rules for the specified target. You can see which rules can invoke
-// a specific target in your account.
+// Lists the rules for the specified target. You can see which of the rules
+// in Amazon EventBridge can invoke a specific target in your account.
+//
+// The maximum number of results per page for requests is 100.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -1607,12 +3389,13 @@ func (c *EventBridge) ListRuleNamesByTargetRequest(input *ListRuleNamesByTargetI
 // See the AWS API reference guide for Amazon EventBridge's
 // API operation ListRuleNamesByTarget for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInternalException "InternalException"
-//   This exception occurs due to unexpected causes.
+// Returned Error Types:
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
-//   An entity that you specified doesn't exist.
+//   - InternalException
+//     This exception occurs due to unexpected causes.
+//
+//   - ResourceNotFoundException
+//     An entity that you specified does not exist.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/eventbridge-2015-10-07/ListRuleNamesByTarget
 func (c *EventBridge) ListRuleNamesByTarget(input *ListRuleNamesByTargetInput) (*ListRuleNamesByTargetOutput, error) {
@@ -1652,14 +3435,13 @@ const opListRules = "ListRules"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the ListRulesRequest method.
+//	req, resp := client.ListRulesRequest(params)
 //
-//    // Example sending a request using the ListRulesRequest method.
-//    req, resp := client.ListRulesRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/eventbridge-2015-10-07/ListRules
 func (c *EventBridge) ListRulesRequest(input *ListRulesInput) (req *request.Request, output *ListRulesOutput) {
@@ -1680,11 +3462,13 @@ func (c *EventBridge) ListRulesRequest(input *ListRulesInput) (req *request.Requ
 
 // ListRules API operation for Amazon EventBridge.
 //
-// Lists your EventBridge rules. You can either list all the rules or provide
-// a prefix to match to the rule names.
+// Lists your Amazon EventBridge rules. You can either list all the rules or
+// you can provide a prefix to match to the rule names.
 //
-// ListRules doesn't list the targets of a rule. To see the targets associated
-// with a rule, use ListTargetsByRule.
+// The maximum number of results per page for requests is 100.
+//
+// ListRules does not list the targets of a rule. To see the targets associated
+// with a rule, use ListTargetsByRule (https://docs.aws.amazon.com/eventbridge/latest/APIReference/API_ListTargetsByRule.html).
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -1693,12 +3477,13 @@ func (c *EventBridge) ListRulesRequest(input *ListRulesInput) (req *request.Requ
 // See the AWS API reference guide for Amazon EventBridge's
 // API operation ListRules for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInternalException "InternalException"
-//   This exception occurs due to unexpected causes.
+// Returned Error Types:
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
-//   An entity that you specified doesn't exist.
+//   - InternalException
+//     This exception occurs due to unexpected causes.
+//
+//   - ResourceNotFoundException
+//     An entity that you specified does not exist.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/eventbridge-2015-10-07/ListRules
 func (c *EventBridge) ListRules(input *ListRulesInput) (*ListRulesOutput, error) {
@@ -1738,14 +3523,13 @@ const opListTagsForResource = "ListTagsForResource"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the ListTagsForResourceRequest method.
+//	req, resp := client.ListTagsForResourceRequest(params)
 //
-//    // Example sending a request using the ListTagsForResourceRequest method.
-//    req, resp := client.ListTagsForResourceRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/eventbridge-2015-10-07/ListTagsForResource
 func (c *EventBridge) ListTagsForResourceRequest(input *ListTagsForResourceInput) (req *request.Request, output *ListTagsForResourceOutput) {
@@ -1767,7 +3551,7 @@ func (c *EventBridge) ListTagsForResourceRequest(input *ListTagsForResourceInput
 // ListTagsForResource API operation for Amazon EventBridge.
 //
 // Displays the tags associated with an EventBridge resource. In EventBridge,
-// rules can be tagged.
+// rules and event buses can be tagged.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -1776,12 +3560,13 @@ func (c *EventBridge) ListTagsForResourceRequest(input *ListTagsForResourceInput
 // See the AWS API reference guide for Amazon EventBridge's
 // API operation ListTagsForResource for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
-//   An entity that you specified doesn't exist.
+// Returned Error Types:
 //
-//   * ErrCodeInternalException "InternalException"
-//   This exception occurs due to unexpected causes.
+//   - ResourceNotFoundException
+//     An entity that you specified does not exist.
+//
+//   - InternalException
+//     This exception occurs due to unexpected causes.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/eventbridge-2015-10-07/ListTagsForResource
 func (c *EventBridge) ListTagsForResource(input *ListTagsForResourceInput) (*ListTagsForResourceOutput, error) {
@@ -1821,14 +3606,13 @@ const opListTargetsByRule = "ListTargetsByRule"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the ListTargetsByRuleRequest method.
+//	req, resp := client.ListTargetsByRuleRequest(params)
 //
-//    // Example sending a request using the ListTargetsByRuleRequest method.
-//    req, resp := client.ListTargetsByRuleRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/eventbridge-2015-10-07/ListTargetsByRule
 func (c *EventBridge) ListTargetsByRuleRequest(input *ListTargetsByRuleInput) (req *request.Request, output *ListTargetsByRuleOutput) {
@@ -1851,6 +3635,8 @@ func (c *EventBridge) ListTargetsByRuleRequest(input *ListTargetsByRuleInput) (r
 //
 // Lists the targets assigned to the specified rule.
 //
+// The maximum number of results per page for requests is 100.
+//
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
 // the error.
@@ -1858,12 +3644,13 @@ func (c *EventBridge) ListTargetsByRuleRequest(input *ListTargetsByRuleInput) (r
 // See the AWS API reference guide for Amazon EventBridge's
 // API operation ListTargetsByRule for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
-//   An entity that you specified doesn't exist.
+// Returned Error Types:
 //
-//   * ErrCodeInternalException "InternalException"
-//   This exception occurs due to unexpected causes.
+//   - ResourceNotFoundException
+//     An entity that you specified does not exist.
+//
+//   - InternalException
+//     This exception occurs due to unexpected causes.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/eventbridge-2015-10-07/ListTargetsByRule
 func (c *EventBridge) ListTargetsByRule(input *ListTargetsByRuleInput) (*ListTargetsByRuleOutput, error) {
@@ -1903,14 +3690,13 @@ const opPutEvents = "PutEvents"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the PutEventsRequest method.
+//	req, resp := client.PutEventsRequest(params)
 //
-//    // Example sending a request using the PutEventsRequest method.
-//    req, resp := client.PutEventsRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/eventbridge-2015-10-07/PutEvents
 func (c *EventBridge) PutEventsRequest(input *PutEventsInput) (req *request.Request, output *PutEventsOutput) {
@@ -1931,8 +3717,21 @@ func (c *EventBridge) PutEventsRequest(input *PutEventsInput) (req *request.Requ
 
 // PutEvents API operation for Amazon EventBridge.
 //
-// Sends custom events to EventBridge so that they can be matched to rules.
-// These events can be from your custom applications and services.
+// Sends custom events to Amazon EventBridge so that they can be matched to
+// rules.
+//
+// The maximum size for a PutEvents event entry is 256 KB. Entry size is calculated
+// including the event and any necessary characters and keys of the JSON representation
+// of the event. To learn more, see Calculating PutEvents event entry size (https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-putevent-size.html)
+// in the Amazon EventBridge User Guide
+//
+// PutEvents accepts the data in JSON format. For the JSON number (integer)
+// data type, the constraints are: a minimum value of -9,223,372,036,854,775,808
+// and a maximum value of 9,223,372,036,854,775,807.
+//
+// PutEvents will only process nested JSON up to 1100 levels deep.
+//
+// This AWS SDK does not support calling multi-region endpoints with SigV4a authentication.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -1941,9 +3740,9 @@ func (c *EventBridge) PutEventsRequest(input *PutEventsInput) (req *request.Requ
 // See the AWS API reference guide for Amazon EventBridge's
 // API operation PutEvents for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInternalException "InternalException"
-//   This exception occurs due to unexpected causes.
+// Returned Error Types:
+//   - InternalException
+//     This exception occurs due to unexpected causes.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/eventbridge-2015-10-07/PutEvents
 func (c *EventBridge) PutEvents(input *PutEventsInput) (*PutEventsOutput, error) {
@@ -1983,14 +3782,13 @@ const opPutPartnerEvents = "PutPartnerEvents"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the PutPartnerEventsRequest method.
+//	req, resp := client.PutPartnerEventsRequest(params)
 //
-//    // Example sending a request using the PutPartnerEventsRequest method.
-//    req, resp := client.PutPartnerEventsRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/eventbridge-2015-10-07/PutPartnerEvents
 func (c *EventBridge) PutPartnerEventsRequest(input *PutPartnerEventsInput) (req *request.Request, output *PutPartnerEventsOutput) {
@@ -2012,10 +3810,11 @@ func (c *EventBridge) PutPartnerEventsRequest(input *PutPartnerEventsInput) (req
 // PutPartnerEvents API operation for Amazon EventBridge.
 //
 // This is used by SaaS partners to write events to a customer's partner event
-// bus.
+// bus. Amazon Web Services customers do not use this operation.
 //
-// AWS customers do not use this operation. Instead, AWS customers can use PutEvents
-// to write custom events from their own applications to an event bus.
+// For information on calculating event batch size, see Calculating EventBridge
+// PutEvents event entry size (https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-putevent-size.html)
+// in the EventBridge User Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -2024,9 +3823,13 @@ func (c *EventBridge) PutPartnerEventsRequest(input *PutPartnerEventsInput) (req
 // See the AWS API reference guide for Amazon EventBridge's
 // API operation PutPartnerEvents for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInternalException "InternalException"
-//   This exception occurs due to unexpected causes.
+// Returned Error Types:
+//
+//   - InternalException
+//     This exception occurs due to unexpected causes.
+//
+//   - OperationDisabledException
+//     The operation you are attempting is not available in this region.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/eventbridge-2015-10-07/PutPartnerEvents
 func (c *EventBridge) PutPartnerEvents(input *PutPartnerEventsInput) (*PutPartnerEventsOutput, error) {
@@ -2066,14 +3869,13 @@ const opPutPermission = "PutPermission"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the PutPermissionRequest method.
+//	req, resp := client.PutPermissionRequest(params)
 //
-//    // Example sending a request using the PutPermissionRequest method.
-//    req, resp := client.PutPermissionRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/eventbridge-2015-10-07/PutPermission
 func (c *EventBridge) PutPermissionRequest(input *PutPermissionInput) (req *request.Request, output *PutPermissionOutput) {
@@ -2095,26 +3897,27 @@ func (c *EventBridge) PutPermissionRequest(input *PutPermissionInput) (req *requ
 
 // PutPermission API operation for Amazon EventBridge.
 //
-// Running PutPermission permits the specified AWS account or AWS organization
-// to put events to the specified event bus. Rules in your account are triggered
+// Running PutPermission permits the specified Amazon Web Services account or
+// Amazon Web Services organization to put events to the specified event bus.
+// Amazon EventBridge (CloudWatch Events) rules in your account are triggered
 // by these events arriving to an event bus in your account.
 //
 // For another account to send events to your account, that external account
-// must have a rule with your account's event bus as a target.
+// must have an EventBridge rule with your account's event bus as a target.
 //
-// To enable multiple AWS accounts to put events to an event bus, run PutPermission
-// once for each of these accounts. Or, if all the accounts are members of the
-// same AWS organization, you can run PutPermission once specifying Principal
-// as "*" and specifying the AWS organization ID in Condition, to grant permissions
-// to all accounts in that organization.
+// To enable multiple Amazon Web Services accounts to put events to your event
+// bus, run PutPermission once for each of these accounts. Or, if all the accounts
+// are members of the same Amazon Web Services organization, you can run PutPermission
+// once specifying Principal as "*" and specifying the Amazon Web Services organization
+// ID in Condition, to grant permissions to all accounts in that organization.
 //
 // If you grant permissions using an organization, then accounts in that organization
 // must specify a RoleArn with proper permissions when they use PutTarget to
 // add your account's event bus as a target. For more information, see Sending
-// and Receiving Events Between AWS Accounts (https://docs.aws.amazon.com/eventbridge/latest/userguide/eventbridge-cross-account-event-delivery.html)
+// and Receiving Events Between Amazon Web Services Accounts (https://docs.aws.amazon.com/eventbridge/latest/userguide/eventbridge-cross-account-event-delivery.html)
 // in the Amazon EventBridge User Guide.
 //
-// The permission policy on an event bus can't exceed 10 KB in size.
+// The permission policy on the event bus cannot exceed 10 KB in size.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -2123,18 +3926,22 @@ func (c *EventBridge) PutPermissionRequest(input *PutPermissionInput) (req *requ
 // See the AWS API reference guide for Amazon EventBridge's
 // API operation PutPermission for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
-//   An entity that you specified doesn't exist.
+// Returned Error Types:
 //
-//   * ErrCodePolicyLengthExceededException "PolicyLengthExceededException"
-//   The event bus policy is too long. For more information, see the limits.
+//   - ResourceNotFoundException
+//     An entity that you specified does not exist.
 //
-//   * ErrCodeInternalException "InternalException"
-//   This exception occurs due to unexpected causes.
+//   - PolicyLengthExceededException
+//     The event bus policy is too long. For more information, see the limits.
 //
-//   * ErrCodeConcurrentModificationException "ConcurrentModificationException"
-//   There is concurrent modification on a resource.
+//   - InternalException
+//     This exception occurs due to unexpected causes.
+//
+//   - ConcurrentModificationException
+//     There is concurrent modification on a rule, target, archive, or replay.
+//
+//   - OperationDisabledException
+//     The operation you are attempting is not available in this region.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/eventbridge-2015-10-07/PutPermission
 func (c *EventBridge) PutPermission(input *PutPermissionInput) (*PutPermissionOutput, error) {
@@ -2174,14 +3981,13 @@ const opPutRule = "PutRule"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the PutRuleRequest method.
+//	req, resp := client.PutRuleRequest(params)
 //
-//    // Example sending a request using the PutRuleRequest method.
-//    req, resp := client.PutRuleRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/eventbridge-2015-10-07/PutRule
 func (c *EventBridge) PutRuleRequest(input *PutRuleInput) (req *request.Request, output *PutRuleOutput) {
@@ -2202,19 +4008,20 @@ func (c *EventBridge) PutRuleRequest(input *PutRuleInput) (req *request.Request,
 
 // PutRule API operation for Amazon EventBridge.
 //
-// Creates or updates the specified rule. Rules are enabled by default or based
-// on value of the state. You can disable a rule using DisableRule.
+// Creates or updates the specified rule. Rules are enabled by default, or based
+// on value of the state. You can disable a rule using DisableRule (https://docs.aws.amazon.com/eventbridge/latest/APIReference/API_DisableRule.html).
 //
 // A single rule watches for events from a single event bus. Events generated
-// by AWS services go to your account's default event bus. Events generated
-// by SaaS partner services or applications go to the matching partner event
-// bus. If you have custom applications or services, you can specify whether
+// by Amazon Web Services services go to your account's default event bus. Events
+// generated by SaaS partner services or applications go to the matching partner
+// event bus. If you have custom applications or services, you can specify whether
 // their events go to your default event bus or a custom event bus that you
-// have created. For more information, see CreateEventBus.
+// have created. For more information, see CreateEventBus (https://docs.aws.amazon.com/eventbridge/latest/APIReference/API_CreateEventBus.html).
 //
-// If you're updating an existing rule, the rule is replaced with what you specify
-// in this PutRule command. If you omit arguments in PutRule, the old values
-// for those arguments aren't kept. Instead, they're replaced with null values.
+// If you are updating an existing rule, the rule is replaced with what you
+// specify in this PutRule command. If you omit arguments in PutRule, the old
+// values for those arguments are not kept. Instead, they are replaced with
+// null values.
 //
 // When you create or update a rule, incoming events might not immediately start
 // matching to new or updated rules. Allow a short period of time for changes
@@ -2235,21 +4042,22 @@ func (c *EventBridge) PutRuleRequest(input *PutRuleInput) (req *request.Request,
 //
 // If you are updating an existing rule, any tags you specify in the PutRule
 // operation are ignored. To update the tags of an existing rule, use TagResource
-// and UntagResource.
+// (https://docs.aws.amazon.com/eventbridge/latest/APIReference/API_TagResource.html)
+// and UntagResource (https://docs.aws.amazon.com/eventbridge/latest/APIReference/API_UntagResource.html).
 //
-// Most services in AWS treat : or / as the same character in Amazon Resource
-// Names (ARNs). However, EventBridge uses an exact match in event patterns
-// and rules. Be sure to use the correct ARN characters when creating event
-// patterns so that they match the ARN syntax in the event that you want to
-// match.
+// Most services in Amazon Web Services treat : or / as the same character in
+// Amazon Resource Names (ARNs). However, EventBridge uses an exact match in
+// event patterns and rules. Be sure to use the correct ARN characters when
+// creating event patterns so that they match the ARN syntax in the event you
+// want to match.
 //
-// In EventBridge, you could create rules that lead to infinite loops, where
-// a rule is fired repeatedly. For example, a rule might detect that ACLs have
-// changed on an S3 bucket, and trigger software to change them to the desired
-// state. If you don't write the rule carefully, the subsequent change to the
-// ACLs fires the rule again, creating an infinite loop.
+// In EventBridge, it is possible to create rules that lead to infinite loops,
+// where a rule is fired repeatedly. For example, a rule might detect that ACLs
+// have changed on an S3 bucket, and trigger software to change them to the
+// desired state. If the rule is not written carefully, the subsequent change
+// to the ACLs fires the rule again, creating an infinite loop.
 //
-// To prevent this, write the rules so that the triggered actions don't refire
+// To prevent this, write the rules so that the triggered actions do not re-fire
 // the same rule. For example, your rule could fire only if ACLs are found to
 // be in a bad state, instead of after any change.
 //
@@ -2264,28 +4072,31 @@ func (c *EventBridge) PutRuleRequest(input *PutRuleInput) (req *request.Request,
 // See the AWS API reference guide for Amazon EventBridge's
 // API operation PutRule for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidEventPatternException "InvalidEventPatternException"
-//   The event pattern isn't valid.
+// Returned Error Types:
 //
-//   * ErrCodeLimitExceededException "LimitExceededException"
-//   You tried to create more resources than is allowed.
+//   - InvalidEventPatternException
+//     The event pattern is not valid.
 //
-//   * ErrCodeConcurrentModificationException "ConcurrentModificationException"
-//   There is concurrent modification on a resource.
+//   - LimitExceededException
+//     The request failed because it attempted to create resource beyond the allowed
+//     service quota.
 //
-//   * ErrCodeManagedRuleException "ManagedRuleException"
-//   An AWS service created this rule on behalf of your account. That service
-//   manages it. If you see this error in response to DeleteRule or RemoveTargets,
-//   you can use the Force parameter in those calls to delete the rule or remove
-//   targets from the rule. You can't modify these managed rules by using DisableRule,
-//   EnableRule, PutTargets, PutRule, TagResource, or UntagResource.
+//   - ConcurrentModificationException
+//     There is concurrent modification on a rule, target, archive, or replay.
 //
-//   * ErrCodeInternalException "InternalException"
-//   This exception occurs due to unexpected causes.
+//   - ManagedRuleException
+//     This rule was created by an Amazon Web Services service on behalf of your
+//     account. It is managed by that service. If you see this error in response
+//     to DeleteRule or RemoveTargets, you can use the Force parameter in those
+//     calls to delete the rule or remove targets from the rule. You cannot modify
+//     these managed rules by using DisableRule, EnableRule, PutTargets, PutRule,
+//     TagResource, or UntagResource.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
-//   An entity that you specified doesn't exist.
+//   - InternalException
+//     This exception occurs due to unexpected causes.
+//
+//   - ResourceNotFoundException
+//     An entity that you specified does not exist.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/eventbridge-2015-10-07/PutRule
 func (c *EventBridge) PutRule(input *PutRuleInput) (*PutRuleOutput, error) {
@@ -2325,14 +4136,13 @@ const opPutTargets = "PutTargets"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the PutTargetsRequest method.
+//	req, resp := client.PutTargetsRequest(params)
 //
-//    // Example sending a request using the PutTargetsRequest method.
-//    req, resp := client.PutTargetsRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/eventbridge-2015-10-07/PutTargets
 func (c *EventBridge) PutTargetsRequest(input *PutTargetsInput) (req *request.Request, output *PutTargetsOutput) {
@@ -2354,45 +4164,28 @@ func (c *EventBridge) PutTargetsRequest(input *PutTargetsInput) (req *request.Re
 // PutTargets API operation for Amazon EventBridge.
 //
 // Adds the specified targets to the specified rule, or updates the targets
-// if they're already associated with the rule.
+// if they are already associated with the rule.
 //
 // Targets are the resources that are invoked when a rule is triggered.
 //
-// You can configure the following as targets in EventBridge:
+// The maximum number of entries per request is 10.
 //
-//    * EC2 instances
+// Each rule can have up to five (5) targets associated with it at one time.
 //
-//    * SSM Run Command
+// For a list of services you can configure as targets for events, see EventBridge
+// targets (https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-targets.html)
+// in the Amazon EventBridge User Guide .
 //
-//    * SSM Automation
+// Creating rules with built-in targets is supported only in the Amazon Web
+// Services Management Console. The built-in targets are:
 //
-//    * AWS Lambda functions
+//   - Amazon EBS CreateSnapshot API call
 //
-//    * Data streams in Amazon Kinesis Data Streams
+//   - Amazon EC2 RebootInstances API call
 //
-//    * Data delivery streams in Amazon Kinesis Data Firehose
+//   - Amazon EC2 StopInstances API call
 //
-//    * Amazon ECS tasks
-//
-//    * AWS Step Functions state machines
-//
-//    * AWS Batch jobs
-//
-//    * AWS CodeBuild projects
-//
-//    * Pipelines in AWS CodePipeline
-//
-//    * Amazon Inspector assessment templates
-//
-//    * Amazon SNS topics
-//
-//    * Amazon SQS queues, including FIFO queues
-//
-//    * The default event bus of another AWS account
-//
-// Creating rules with built-in targets is supported only on the AWS Management
-// Console. The built-in targets are EC2 CreateSnapshot API call, EC2 RebootInstances
-// API call, EC2 StopInstances API call, and EC2 TerminateInstances API call.
+//   - Amazon EC2 TerminateInstances API call
 //
 // For some target types, PutTargets provides target-specific parameters. If
 // the target is a Kinesis data stream, you can optionally specify which shard
@@ -2401,49 +4194,63 @@ func (c *EventBridge) PutTargetsRequest(input *PutTargetsInput) (req *request.Re
 // field.
 //
 // To be able to make API calls against the resources that you own, Amazon EventBridge
-// needs the appropriate permissions. For AWS Lambda and Amazon SNS resources,
-// EventBridge relies on resource-based policies. For EC2 instances, Kinesis
-// data streams, and AWS Step Functions state machines, EventBridge relies on
-// IAM roles that you specify in the RoleARN argument in PutTargets. For more
-// information, see Authentication and Access Control (https://docs.aws.amazon.com/eventbridge/latest/userguide/auth-and-access-control-eventbridge.html)
-// in the Amazon EventBridge User Guide.
+// needs the appropriate permissions:
 //
-// If another AWS account is in the same Region and has granted you permission
-// (using PutPermission), you can send events to that account. Set that account's
-// event bus as a target of the rules in your account. To send the matched events
-// to the other account, specify that account's event bus as the Arn value when
-// you run PutTargets. If your account sends events to another account, your
-// account is charged for each sent event. Each event sent to another account
-// is charged as a custom event. The account receiving the event isn't charged.
-// For more information, see Amazon EventBridge Pricing (https://aws.amazon.com/eventbridge/pricing/).
+//   - For Lambda and Amazon SNS resources, EventBridge relies on resource-based
+//     policies.
 //
-// If you're setting an event bus in another account as the target and that
+//   - For EC2 instances, Kinesis Data Streams, Step Functions state machines
+//     and API Gateway APIs, EventBridge relies on IAM roles that you specify
+//     in the RoleARN argument in PutTargets.
+//
+// For more information, see Authentication and Access Control (https://docs.aws.amazon.com/eventbridge/latest/userguide/auth-and-access-control-eventbridge.html)
+// in the Amazon EventBridge User Guide .
+//
+// If another Amazon Web Services account is in the same region and has granted
+// you permission (using PutPermission), you can send events to that account.
+// Set that account's event bus as a target of the rules in your account. To
+// send the matched events to the other account, specify that account's event
+// bus as the Arn value when you run PutTargets. If your account sends events
+// to another account, your account is charged for each sent event. Each event
+// sent to another account is charged as a custom event. The account receiving
+// the event is not charged. For more information, see Amazon EventBridge Pricing
+// (http://aws.amazon.com/eventbridge/pricing/).
+//
+// Input, InputPath, and InputTransformer are not available with PutTarget if
+// the target is an event bus of a different Amazon Web Services account.
+//
+// If you are setting the event bus of another account as the target, and that
 // account granted permission to your account through an organization instead
-// of directly by the account ID, you must specify a RoleArn with proper permissions
-// in the Target structure. For more information, see Sending and Receiving
-// Events Between AWS Accounts (https://docs.aws.amazon.com/eventbridge/latest/userguide/eventbridge-cross-account-event-delivery.html)
+// of directly by the account ID, then you must specify a RoleArn with proper
+// permissions in the Target structure. For more information, see Sending and
+// Receiving Events Between Amazon Web Services Accounts (https://docs.aws.amazon.com/eventbridge/latest/userguide/eventbridge-cross-account-event-delivery.html)
 // in the Amazon EventBridge User Guide.
 //
-// For more information about enabling cross-account events, see PutPermission.
+// If you have an IAM role on a cross-account event bus target, a PutTargets
+// call without a role on the same target (same Id and Arn) will not remove
+// the role.
+//
+// For more information about enabling cross-account events, see PutPermission
+// (https://docs.aws.amazon.com/eventbridge/latest/APIReference/API_PutPermission.html).
 //
 // Input, InputPath, and InputTransformer are mutually exclusive and optional
 // parameters of a target. When a rule is triggered due to a matched event:
 //
-//    * If none of the following arguments are specified for a target, the entire
-//    event is passed to the target in JSON format (unless the target is Amazon
-//    EC2 Run Command or Amazon ECS task, in which case nothing from the event
-//    is passed to the target).
+//   - If none of the following arguments are specified for a target, then
+//     the entire event is passed to the target in JSON format (unless the target
+//     is Amazon EC2 Run Command or Amazon ECS task, in which case nothing from
+//     the event is passed to the target).
 //
-//    * If Input is specified in the form of valid JSON, then the matched event
-//    is overridden with this constant.
+//   - If Input is specified in the form of valid JSON, then the matched event
+//     is overridden with this constant.
 //
-//    * If InputPath is specified in the form of JSONPath (for example, $.detail),
-//    only the part of the event specified in the path is passed to the target
-//    (for example, only the detail part of the event is passed).
+//   - If InputPath is specified in the form of JSONPath (for example, $.detail),
+//     then only the part of the event specified in the path is passed to the
+//     target (for example, only the detail part of the event is passed).
 //
-//    * If InputTransformer is specified, one or more specified JSONPaths are
-//    extracted from the event and used as values in a template that you specify
-//    as the input to the target.
+//   - If InputTransformer is specified, then one or more specified JSONPaths
+//     are extracted from the event and used as values in a template that you
+//     specify as the input to the target.
 //
 // When you specify InputPath or InputTransformer, you must use JSON dot notation,
 // not bracket notation.
@@ -2453,7 +4260,7 @@ func (c *EventBridge) PutTargetsRequest(input *PutTargetsInput) (req *request.Re
 // of time for changes to take effect.
 //
 // This action can partially fail if too many requests are made at the same
-// time. If that happens, FailedEntryCount is nonzero in the response, and each
+// time. If that happens, FailedEntryCount is non-zero in the response and each
 // entry in FailedEntries provides the ID of the failed target and the error
 // code.
 //
@@ -2464,25 +4271,28 @@ func (c *EventBridge) PutTargetsRequest(input *PutTargetsInput) (req *request.Re
 // See the AWS API reference guide for Amazon EventBridge's
 // API operation PutTargets for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
-//   An entity that you specified doesn't exist.
+// Returned Error Types:
 //
-//   * ErrCodeConcurrentModificationException "ConcurrentModificationException"
-//   There is concurrent modification on a resource.
+//   - ResourceNotFoundException
+//     An entity that you specified does not exist.
 //
-//   * ErrCodeLimitExceededException "LimitExceededException"
-//   You tried to create more resources than is allowed.
+//   - ConcurrentModificationException
+//     There is concurrent modification on a rule, target, archive, or replay.
 //
-//   * ErrCodeManagedRuleException "ManagedRuleException"
-//   An AWS service created this rule on behalf of your account. That service
-//   manages it. If you see this error in response to DeleteRule or RemoveTargets,
-//   you can use the Force parameter in those calls to delete the rule or remove
-//   targets from the rule. You can't modify these managed rules by using DisableRule,
-//   EnableRule, PutTargets, PutRule, TagResource, or UntagResource.
+//   - LimitExceededException
+//     The request failed because it attempted to create resource beyond the allowed
+//     service quota.
 //
-//   * ErrCodeInternalException "InternalException"
-//   This exception occurs due to unexpected causes.
+//   - ManagedRuleException
+//     This rule was created by an Amazon Web Services service on behalf of your
+//     account. It is managed by that service. If you see this error in response
+//     to DeleteRule or RemoveTargets, you can use the Force parameter in those
+//     calls to delete the rule or remove targets from the rule. You cannot modify
+//     these managed rules by using DisableRule, EnableRule, PutTargets, PutRule,
+//     TagResource, or UntagResource.
+//
+//   - InternalException
+//     This exception occurs due to unexpected causes.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/eventbridge-2015-10-07/PutTargets
 func (c *EventBridge) PutTargets(input *PutTargetsInput) (*PutTargetsOutput, error) {
@@ -2522,14 +4332,13 @@ const opRemovePermission = "RemovePermission"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the RemovePermissionRequest method.
+//	req, resp := client.RemovePermissionRequest(params)
 //
-//    // Example sending a request using the RemovePermissionRequest method.
-//    req, resp := client.RemovePermissionRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/eventbridge-2015-10-07/RemovePermission
 func (c *EventBridge) RemovePermissionRequest(input *RemovePermissionInput) (req *request.Request, output *RemovePermissionOutput) {
@@ -2551,10 +4360,11 @@ func (c *EventBridge) RemovePermissionRequest(input *RemovePermissionInput) (req
 
 // RemovePermission API operation for Amazon EventBridge.
 //
-// Revokes the permission of another AWS account to be able to put events to
-// the specified event bus. Specify the account to revoke by the StatementId
-// value that you associated with the account when you granted it permission
-// with PutPermission. You can find the StatementId by using DescribeEventBus.
+// Revokes the permission of another Amazon Web Services account to be able
+// to put events to the specified event bus. Specify the account to revoke by
+// the StatementId value that you associated with the account when you granted
+// it permission with PutPermission. You can find the StatementId by using DescribeEventBus
+// (https://docs.aws.amazon.com/eventbridge/latest/APIReference/API_DescribeEventBus.html).
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -2563,15 +4373,19 @@ func (c *EventBridge) RemovePermissionRequest(input *RemovePermissionInput) (req
 // See the AWS API reference guide for Amazon EventBridge's
 // API operation RemovePermission for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
-//   An entity that you specified doesn't exist.
+// Returned Error Types:
 //
-//   * ErrCodeInternalException "InternalException"
-//   This exception occurs due to unexpected causes.
+//   - ResourceNotFoundException
+//     An entity that you specified does not exist.
 //
-//   * ErrCodeConcurrentModificationException "ConcurrentModificationException"
-//   There is concurrent modification on a resource.
+//   - InternalException
+//     This exception occurs due to unexpected causes.
+//
+//   - ConcurrentModificationException
+//     There is concurrent modification on a rule, target, archive, or replay.
+//
+//   - OperationDisabledException
+//     The operation you are attempting is not available in this region.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/eventbridge-2015-10-07/RemovePermission
 func (c *EventBridge) RemovePermission(input *RemovePermissionInput) (*RemovePermissionOutput, error) {
@@ -2611,14 +4425,13 @@ const opRemoveTargets = "RemoveTargets"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the RemoveTargetsRequest method.
+//	req, resp := client.RemoveTargetsRequest(params)
 //
-//    // Example sending a request using the RemoveTargetsRequest method.
-//    req, resp := client.RemoveTargetsRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/eventbridge-2015-10-07/RemoveTargets
 func (c *EventBridge) RemoveTargetsRequest(input *RemoveTargetsInput) (req *request.Request, output *RemoveTargetsOutput) {
@@ -2642,6 +4455,10 @@ func (c *EventBridge) RemoveTargetsRequest(input *RemoveTargetsInput) (req *requ
 // Removes the specified targets from the specified rule. When the rule is triggered,
 // those targets are no longer be invoked.
 //
+// A successful execution of RemoveTargets doesn't guarantee all targets are
+// removed from the rule, it means that the target(s) listed in the request
+// are removed.
+//
 // When you remove a target, when the associated rule triggers, removed targets
 // might continue to be invoked. Allow a short period of time for changes to
 // take effect.
@@ -2651,6 +4468,8 @@ func (c *EventBridge) RemoveTargetsRequest(input *RemoveTargetsInput) (req *requ
 // entry in FailedEntries provides the ID of the failed target and the error
 // code.
 //
+// The maximum number of entries per request is 10.
+//
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
 // the error.
@@ -2658,22 +4477,24 @@ func (c *EventBridge) RemoveTargetsRequest(input *RemoveTargetsInput) (req *requ
 // See the AWS API reference guide for Amazon EventBridge's
 // API operation RemoveTargets for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
-//   An entity that you specified doesn't exist.
+// Returned Error Types:
 //
-//   * ErrCodeConcurrentModificationException "ConcurrentModificationException"
-//   There is concurrent modification on a resource.
+//   - ResourceNotFoundException
+//     An entity that you specified does not exist.
 //
-//   * ErrCodeManagedRuleException "ManagedRuleException"
-//   An AWS service created this rule on behalf of your account. That service
-//   manages it. If you see this error in response to DeleteRule or RemoveTargets,
-//   you can use the Force parameter in those calls to delete the rule or remove
-//   targets from the rule. You can't modify these managed rules by using DisableRule,
-//   EnableRule, PutTargets, PutRule, TagResource, or UntagResource.
+//   - ConcurrentModificationException
+//     There is concurrent modification on a rule, target, archive, or replay.
 //
-//   * ErrCodeInternalException "InternalException"
-//   This exception occurs due to unexpected causes.
+//   - ManagedRuleException
+//     This rule was created by an Amazon Web Services service on behalf of your
+//     account. It is managed by that service. If you see this error in response
+//     to DeleteRule or RemoveTargets, you can use the Force parameter in those
+//     calls to delete the rule or remove targets from the rule. You cannot modify
+//     these managed rules by using DisableRule, EnableRule, PutTargets, PutRule,
+//     TagResource, or UntagResource.
+//
+//   - InternalException
+//     This exception occurs due to unexpected causes.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/eventbridge-2015-10-07/RemoveTargets
 func (c *EventBridge) RemoveTargets(input *RemoveTargetsInput) (*RemoveTargetsOutput, error) {
@@ -2697,6 +4518,106 @@ func (c *EventBridge) RemoveTargetsWithContext(ctx aws.Context, input *RemoveTar
 	return out, req.Send()
 }
 
+const opStartReplay = "StartReplay"
+
+// StartReplayRequest generates a "aws/request.Request" representing the
+// client's request for the StartReplay operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See StartReplay for more information on using the StartReplay
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//	// Example sending a request using the StartReplayRequest method.
+//	req, resp := client.StartReplayRequest(params)
+//
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/eventbridge-2015-10-07/StartReplay
+func (c *EventBridge) StartReplayRequest(input *StartReplayInput) (req *request.Request, output *StartReplayOutput) {
+	op := &request.Operation{
+		Name:       opStartReplay,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &StartReplayInput{}
+	}
+
+	output = &StartReplayOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// StartReplay API operation for Amazon EventBridge.
+//
+// Starts the specified replay. Events are not necessarily replayed in the exact
+// same order that they were added to the archive. A replay processes events
+// to replay based on the time in the event, and replays them using 1 minute
+// intervals. If you specify an EventStartTime and an EventEndTime that covers
+// a 20 minute time range, the events are replayed from the first minute of
+// that 20 minute range first. Then the events from the second minute are replayed.
+// You can use DescribeReplay to determine the progress of a replay. The value
+// returned for EventLastReplayedTime indicates the time within the specified
+// time range associated with the last event replayed.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon EventBridge's
+// API operation StartReplay for usage and error information.
+//
+// Returned Error Types:
+//
+//   - ResourceNotFoundException
+//     An entity that you specified does not exist.
+//
+//   - ResourceAlreadyExistsException
+//     The resource you are trying to create already exists.
+//
+//   - InvalidEventPatternException
+//     The event pattern is not valid.
+//
+//   - LimitExceededException
+//     The request failed because it attempted to create resource beyond the allowed
+//     service quota.
+//
+//   - InternalException
+//     This exception occurs due to unexpected causes.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/eventbridge-2015-10-07/StartReplay
+func (c *EventBridge) StartReplay(input *StartReplayInput) (*StartReplayOutput, error) {
+	req, out := c.StartReplayRequest(input)
+	return out, req.Send()
+}
+
+// StartReplayWithContext is the same as StartReplay with the addition of
+// the ability to pass a context and additional request options.
+//
+// See StartReplay for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *EventBridge) StartReplayWithContext(ctx aws.Context, input *StartReplayInput, opts ...request.Option) (*StartReplayOutput, error) {
+	req, out := c.StartReplayRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opTagResource = "TagResource"
 
 // TagResourceRequest generates a "aws/request.Request" representing the
@@ -2713,14 +4634,13 @@ const opTagResource = "TagResource"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the TagResourceRequest method.
+//	req, resp := client.TagResourceRequest(params)
 //
-//    // Example sending a request using the TagResourceRequest method.
-//    req, resp := client.TagResourceRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/eventbridge-2015-10-07/TagResource
 func (c *EventBridge) TagResourceRequest(input *TagResourceInput) (req *request.Request, output *TagResourceOutput) {
@@ -2745,17 +4665,17 @@ func (c *EventBridge) TagResourceRequest(input *TagResourceInput) (req *request.
 // Assigns one or more tags (key-value pairs) to the specified EventBridge resource.
 // Tags can help you organize and categorize your resources. You can also use
 // them to scope user permissions by granting a user permission to access or
-// change only resources with certain tag values. In EventBridge, rules can
-// be tagged.
+// change only resources with certain tag values. In EventBridge, rules and
+// event buses can be tagged.
 //
-// Tags don't have any semantic meaning to AWS and are interpreted strictly
-// as strings of characters.
+// Tags don't have any semantic meaning to Amazon Web Services and are interpreted
+// strictly as strings of characters.
 //
-// You can use the TagResource action with a rule that already has tags. If
-// you specify a new tag key for the rule, this tag is appended to the list
-// of tags associated with the rule. If you specify a tag key that is already
-// associated with the rule, the new tag value that you specify replaces the
-// previous value for that tag.
+// You can use the TagResource action with a resource that already has tags.
+// If you specify a new tag key, this tag is appended to the list of tags associated
+// with the resource. If you specify a tag key that is already associated with
+// the resource, the new tag value that you specify replaces the previous value
+// for that tag.
 //
 // You can associate as many as 50 tags with a resource.
 //
@@ -2766,22 +4686,24 @@ func (c *EventBridge) TagResourceRequest(input *TagResourceInput) (req *request.
 // See the AWS API reference guide for Amazon EventBridge's
 // API operation TagResource for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
-//   An entity that you specified doesn't exist.
+// Returned Error Types:
 //
-//   * ErrCodeConcurrentModificationException "ConcurrentModificationException"
-//   There is concurrent modification on a resource.
+//   - ResourceNotFoundException
+//     An entity that you specified does not exist.
 //
-//   * ErrCodeInternalException "InternalException"
-//   This exception occurs due to unexpected causes.
+//   - ConcurrentModificationException
+//     There is concurrent modification on a rule, target, archive, or replay.
 //
-//   * ErrCodeManagedRuleException "ManagedRuleException"
-//   An AWS service created this rule on behalf of your account. That service
-//   manages it. If you see this error in response to DeleteRule or RemoveTargets,
-//   you can use the Force parameter in those calls to delete the rule or remove
-//   targets from the rule. You can't modify these managed rules by using DisableRule,
-//   EnableRule, PutTargets, PutRule, TagResource, or UntagResource.
+//   - InternalException
+//     This exception occurs due to unexpected causes.
+//
+//   - ManagedRuleException
+//     This rule was created by an Amazon Web Services service on behalf of your
+//     account. It is managed by that service. If you see this error in response
+//     to DeleteRule or RemoveTargets, you can use the Force parameter in those
+//     calls to delete the rule or remove targets from the rule. You cannot modify
+//     these managed rules by using DisableRule, EnableRule, PutTargets, PutRule,
+//     TagResource, or UntagResource.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/eventbridge-2015-10-07/TagResource
 func (c *EventBridge) TagResource(input *TagResourceInput) (*TagResourceOutput, error) {
@@ -2821,14 +4743,13 @@ const opTestEventPattern = "TestEventPattern"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the TestEventPatternRequest method.
+//	req, resp := client.TestEventPatternRequest(params)
 //
-//    // Example sending a request using the TestEventPatternRequest method.
-//    req, resp := client.TestEventPatternRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/eventbridge-2015-10-07/TestEventPattern
 func (c *EventBridge) TestEventPatternRequest(input *TestEventPatternInput) (req *request.Request, output *TestEventPatternOutput) {
@@ -2851,11 +4772,11 @@ func (c *EventBridge) TestEventPatternRequest(input *TestEventPatternInput) (req
 //
 // Tests whether the specified event pattern matches the provided event.
 //
-// Most services in AWS treat : or / as the same character in Amazon Resource
-// Names (ARNs). However, EventBridge uses an exact match in event patterns
-// and rules. Be sure to use the correct ARN characters when creating event
-// patterns so that they match the ARN syntax in the event that you want to
-// match.
+// Most services in Amazon Web Services treat : or / as the same character in
+// Amazon Resource Names (ARNs). However, EventBridge uses an exact match in
+// event patterns and rules. Be sure to use the correct ARN characters when
+// creating event patterns so that they match the ARN syntax in the event you
+// want to match.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -2864,12 +4785,13 @@ func (c *EventBridge) TestEventPatternRequest(input *TestEventPatternInput) (req
 // See the AWS API reference guide for Amazon EventBridge's
 // API operation TestEventPattern for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidEventPatternException "InvalidEventPatternException"
-//   The event pattern isn't valid.
+// Returned Error Types:
 //
-//   * ErrCodeInternalException "InternalException"
-//   This exception occurs due to unexpected causes.
+//   - InvalidEventPatternException
+//     The event pattern is not valid.
+//
+//   - InternalException
+//     This exception occurs due to unexpected causes.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/eventbridge-2015-10-07/TestEventPattern
 func (c *EventBridge) TestEventPattern(input *TestEventPatternInput) (*TestEventPatternOutput, error) {
@@ -2909,14 +4831,13 @@ const opUntagResource = "UntagResource"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the UntagResourceRequest method.
+//	req, resp := client.UntagResourceRequest(params)
 //
-//    // Example sending a request using the UntagResourceRequest method.
-//    req, resp := client.UntagResourceRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/eventbridge-2015-10-07/UntagResource
 func (c *EventBridge) UntagResourceRequest(input *UntagResourceInput) (req *request.Request, output *UntagResourceOutput) {
@@ -2938,8 +4859,8 @@ func (c *EventBridge) UntagResourceRequest(input *UntagResourceInput) (req *requ
 
 // UntagResource API operation for Amazon EventBridge.
 //
-// Removes one or more tags from the specified EventBridge resource. In EventBridge,
-// rules can be tagged.
+// Removes one or more tags from the specified EventBridge resource. In Amazon
+// EventBridge (CloudWatch Events), rules and event buses can be tagged.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -2948,22 +4869,24 @@ func (c *EventBridge) UntagResourceRequest(input *UntagResourceInput) (req *requ
 // See the AWS API reference guide for Amazon EventBridge's
 // API operation UntagResource for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
-//   An entity that you specified doesn't exist.
+// Returned Error Types:
 //
-//   * ErrCodeInternalException "InternalException"
-//   This exception occurs due to unexpected causes.
+//   - ResourceNotFoundException
+//     An entity that you specified does not exist.
 //
-//   * ErrCodeConcurrentModificationException "ConcurrentModificationException"
-//   There is concurrent modification on a resource.
+//   - InternalException
+//     This exception occurs due to unexpected causes.
 //
-//   * ErrCodeManagedRuleException "ManagedRuleException"
-//   An AWS service created this rule on behalf of your account. That service
-//   manages it. If you see this error in response to DeleteRule or RemoveTargets,
-//   you can use the Force parameter in those calls to delete the rule or remove
-//   targets from the rule. You can't modify these managed rules by using DisableRule,
-//   EnableRule, PutTargets, PutRule, TagResource, or UntagResource.
+//   - ConcurrentModificationException
+//     There is concurrent modification on a rule, target, archive, or replay.
+//
+//   - ManagedRuleException
+//     This rule was created by an Amazon Web Services service on behalf of your
+//     account. It is managed by that service. If you see this error in response
+//     to DeleteRule or RemoveTargets, you can use the Force parameter in those
+//     calls to delete the rule or remove targets from the rule. You cannot modify
+//     these managed rules by using DisableRule, EnableRule, PutTargets, PutRule,
+//     TagResource, or UntagResource.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/eventbridge-2015-10-07/UntagResource
 func (c *EventBridge) UntagResource(input *UntagResourceInput) (*UntagResourceOutput, error) {
@@ -2987,6 +4910,452 @@ func (c *EventBridge) UntagResourceWithContext(ctx aws.Context, input *UntagReso
 	return out, req.Send()
 }
 
+const opUpdateApiDestination = "UpdateApiDestination"
+
+// UpdateApiDestinationRequest generates a "aws/request.Request" representing the
+// client's request for the UpdateApiDestination operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See UpdateApiDestination for more information on using the UpdateApiDestination
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//	// Example sending a request using the UpdateApiDestinationRequest method.
+//	req, resp := client.UpdateApiDestinationRequest(params)
+//
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/eventbridge-2015-10-07/UpdateApiDestination
+func (c *EventBridge) UpdateApiDestinationRequest(input *UpdateApiDestinationInput) (req *request.Request, output *UpdateApiDestinationOutput) {
+	op := &request.Operation{
+		Name:       opUpdateApiDestination,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &UpdateApiDestinationInput{}
+	}
+
+	output = &UpdateApiDestinationOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// UpdateApiDestination API operation for Amazon EventBridge.
+//
+// Updates an API destination.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon EventBridge's
+// API operation UpdateApiDestination for usage and error information.
+//
+// Returned Error Types:
+//
+//   - ConcurrentModificationException
+//     There is concurrent modification on a rule, target, archive, or replay.
+//
+//   - ResourceNotFoundException
+//     An entity that you specified does not exist.
+//
+//   - InternalException
+//     This exception occurs due to unexpected causes.
+//
+//   - LimitExceededException
+//     The request failed because it attempted to create resource beyond the allowed
+//     service quota.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/eventbridge-2015-10-07/UpdateApiDestination
+func (c *EventBridge) UpdateApiDestination(input *UpdateApiDestinationInput) (*UpdateApiDestinationOutput, error) {
+	req, out := c.UpdateApiDestinationRequest(input)
+	return out, req.Send()
+}
+
+// UpdateApiDestinationWithContext is the same as UpdateApiDestination with the addition of
+// the ability to pass a context and additional request options.
+//
+// See UpdateApiDestination for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *EventBridge) UpdateApiDestinationWithContext(ctx aws.Context, input *UpdateApiDestinationInput, opts ...request.Option) (*UpdateApiDestinationOutput, error) {
+	req, out := c.UpdateApiDestinationRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opUpdateArchive = "UpdateArchive"
+
+// UpdateArchiveRequest generates a "aws/request.Request" representing the
+// client's request for the UpdateArchive operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See UpdateArchive for more information on using the UpdateArchive
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//	// Example sending a request using the UpdateArchiveRequest method.
+//	req, resp := client.UpdateArchiveRequest(params)
+//
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/eventbridge-2015-10-07/UpdateArchive
+func (c *EventBridge) UpdateArchiveRequest(input *UpdateArchiveInput) (req *request.Request, output *UpdateArchiveOutput) {
+	op := &request.Operation{
+		Name:       opUpdateArchive,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &UpdateArchiveInput{}
+	}
+
+	output = &UpdateArchiveOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// UpdateArchive API operation for Amazon EventBridge.
+//
+// Updates the specified archive.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon EventBridge's
+// API operation UpdateArchive for usage and error information.
+//
+// Returned Error Types:
+//
+//   - ConcurrentModificationException
+//     There is concurrent modification on a rule, target, archive, or replay.
+//
+//   - ResourceNotFoundException
+//     An entity that you specified does not exist.
+//
+//   - InternalException
+//     This exception occurs due to unexpected causes.
+//
+//   - LimitExceededException
+//     The request failed because it attempted to create resource beyond the allowed
+//     service quota.
+//
+//   - InvalidEventPatternException
+//     The event pattern is not valid.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/eventbridge-2015-10-07/UpdateArchive
+func (c *EventBridge) UpdateArchive(input *UpdateArchiveInput) (*UpdateArchiveOutput, error) {
+	req, out := c.UpdateArchiveRequest(input)
+	return out, req.Send()
+}
+
+// UpdateArchiveWithContext is the same as UpdateArchive with the addition of
+// the ability to pass a context and additional request options.
+//
+// See UpdateArchive for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *EventBridge) UpdateArchiveWithContext(ctx aws.Context, input *UpdateArchiveInput, opts ...request.Option) (*UpdateArchiveOutput, error) {
+	req, out := c.UpdateArchiveRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opUpdateConnection = "UpdateConnection"
+
+// UpdateConnectionRequest generates a "aws/request.Request" representing the
+// client's request for the UpdateConnection operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See UpdateConnection for more information on using the UpdateConnection
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//	// Example sending a request using the UpdateConnectionRequest method.
+//	req, resp := client.UpdateConnectionRequest(params)
+//
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/eventbridge-2015-10-07/UpdateConnection
+func (c *EventBridge) UpdateConnectionRequest(input *UpdateConnectionInput) (req *request.Request, output *UpdateConnectionOutput) {
+	op := &request.Operation{
+		Name:       opUpdateConnection,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &UpdateConnectionInput{}
+	}
+
+	output = &UpdateConnectionOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// UpdateConnection API operation for Amazon EventBridge.
+//
+// Updates settings for a connection.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon EventBridge's
+// API operation UpdateConnection for usage and error information.
+//
+// Returned Error Types:
+//
+//   - ConcurrentModificationException
+//     There is concurrent modification on a rule, target, archive, or replay.
+//
+//   - ResourceNotFoundException
+//     An entity that you specified does not exist.
+//
+//   - InternalException
+//     This exception occurs due to unexpected causes.
+//
+//   - LimitExceededException
+//     The request failed because it attempted to create resource beyond the allowed
+//     service quota.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/eventbridge-2015-10-07/UpdateConnection
+func (c *EventBridge) UpdateConnection(input *UpdateConnectionInput) (*UpdateConnectionOutput, error) {
+	req, out := c.UpdateConnectionRequest(input)
+	return out, req.Send()
+}
+
+// UpdateConnectionWithContext is the same as UpdateConnection with the addition of
+// the ability to pass a context and additional request options.
+//
+// See UpdateConnection for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *EventBridge) UpdateConnectionWithContext(ctx aws.Context, input *UpdateConnectionInput, opts ...request.Option) (*UpdateConnectionOutput, error) {
+	req, out := c.UpdateConnectionRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opUpdateEndpoint = "UpdateEndpoint"
+
+// UpdateEndpointRequest generates a "aws/request.Request" representing the
+// client's request for the UpdateEndpoint operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See UpdateEndpoint for more information on using the UpdateEndpoint
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//	// Example sending a request using the UpdateEndpointRequest method.
+//	req, resp := client.UpdateEndpointRequest(params)
+//
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/eventbridge-2015-10-07/UpdateEndpoint
+func (c *EventBridge) UpdateEndpointRequest(input *UpdateEndpointInput) (req *request.Request, output *UpdateEndpointOutput) {
+	op := &request.Operation{
+		Name:       opUpdateEndpoint,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &UpdateEndpointInput{}
+	}
+
+	output = &UpdateEndpointOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// UpdateEndpoint API operation for Amazon EventBridge.
+//
+// Update an existing endpoint. For more information about global endpoints,
+// see Making applications Regional-fault tolerant with global endpoints and
+// event replication (https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-global-endpoints.html)
+// in the Amazon EventBridge User Guide .
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon EventBridge's
+// API operation UpdateEndpoint for usage and error information.
+//
+// Returned Error Types:
+//
+//   - ResourceNotFoundException
+//     An entity that you specified does not exist.
+//
+//   - ConcurrentModificationException
+//     There is concurrent modification on a rule, target, archive, or replay.
+//
+//   - InternalException
+//     This exception occurs due to unexpected causes.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/eventbridge-2015-10-07/UpdateEndpoint
+func (c *EventBridge) UpdateEndpoint(input *UpdateEndpointInput) (*UpdateEndpointOutput, error) {
+	req, out := c.UpdateEndpointRequest(input)
+	return out, req.Send()
+}
+
+// UpdateEndpointWithContext is the same as UpdateEndpoint with the addition of
+// the ability to pass a context and additional request options.
+//
+// See UpdateEndpoint for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *EventBridge) UpdateEndpointWithContext(ctx aws.Context, input *UpdateEndpointInput, opts ...request.Option) (*UpdateEndpointOutput, error) {
+	req, out := c.UpdateEndpointRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opUpdateEventBus = "UpdateEventBus"
+
+// UpdateEventBusRequest generates a "aws/request.Request" representing the
+// client's request for the UpdateEventBus operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See UpdateEventBus for more information on using the UpdateEventBus
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//	// Example sending a request using the UpdateEventBusRequest method.
+//	req, resp := client.UpdateEventBusRequest(params)
+//
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/eventbridge-2015-10-07/UpdateEventBus
+func (c *EventBridge) UpdateEventBusRequest(input *UpdateEventBusInput) (req *request.Request, output *UpdateEventBusOutput) {
+	op := &request.Operation{
+		Name:       opUpdateEventBus,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &UpdateEventBusInput{}
+	}
+
+	output = &UpdateEventBusOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// UpdateEventBus API operation for Amazon EventBridge.
+//
+// Updates the specified event bus.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon EventBridge's
+// API operation UpdateEventBus for usage and error information.
+//
+// Returned Error Types:
+//
+//   - ResourceNotFoundException
+//     An entity that you specified does not exist.
+//
+//   - InternalException
+//     This exception occurs due to unexpected causes.
+//
+//   - ConcurrentModificationException
+//     There is concurrent modification on a rule, target, archive, or replay.
+//
+//   - OperationDisabledException
+//     The operation you are attempting is not available in this region.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/eventbridge-2015-10-07/UpdateEventBus
+func (c *EventBridge) UpdateEventBus(input *UpdateEventBusInput) (*UpdateEventBusOutput, error) {
+	req, out := c.UpdateEventBusRequest(input)
+	return out, req.Send()
+}
+
+// UpdateEventBusWithContext is the same as UpdateEventBus with the addition of
+// the ability to pass a context and additional request options.
+//
+// See UpdateEventBus for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *EventBridge) UpdateEventBusWithContext(ctx aws.Context, input *UpdateEventBusInput, opts ...request.Option) (*UpdateEventBusOutput, error) {
+	req, out := c.UpdateEventBusRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 type ActivateEventSourceInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2996,12 +5365,20 @@ type ActivateEventSourceInput struct {
 	Name *string `min:"1" type:"string" required:"true"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s ActivateEventSourceInput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s ActivateEventSourceInput) GoString() string {
 	return s.String()
 }
@@ -3032,17 +5409,279 @@ type ActivateEventSourceOutput struct {
 	_ struct{} `type:"structure"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s ActivateEventSourceOutput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s ActivateEventSourceOutput) GoString() string {
 	return s.String()
 }
 
-// This structure specifies the VPC subnets and security groups for the task
+// Contains details about an API destination.
+type ApiDestination struct {
+	_ struct{} `type:"structure"`
+
+	// The ARN of the API destination.
+	ApiDestinationArn *string `min:"1" type:"string"`
+
+	// The state of the API destination.
+	ApiDestinationState *string `type:"string" enum:"ApiDestinationState"`
+
+	// The ARN of the connection specified for the API destination.
+	ConnectionArn *string `min:"1" type:"string"`
+
+	// A time stamp for the time that the API destination was created.
+	CreationTime *time.Time `type:"timestamp"`
+
+	// The method to use to connect to the HTTP endpoint.
+	HttpMethod *string `type:"string" enum:"ApiDestinationHttpMethod"`
+
+	// The URL to the endpoint for the API destination.
+	InvocationEndpoint *string `min:"1" type:"string"`
+
+	// The maximum number of invocations per second to send to the HTTP endpoint.
+	InvocationRateLimitPerSecond *int64 `min:"1" type:"integer"`
+
+	// A time stamp for the time that the API destination was last modified.
+	LastModifiedTime *time.Time `type:"timestamp"`
+
+	// The name of the API destination.
+	Name *string `min:"1" type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ApiDestination) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ApiDestination) GoString() string {
+	return s.String()
+}
+
+// SetApiDestinationArn sets the ApiDestinationArn field's value.
+func (s *ApiDestination) SetApiDestinationArn(v string) *ApiDestination {
+	s.ApiDestinationArn = &v
+	return s
+}
+
+// SetApiDestinationState sets the ApiDestinationState field's value.
+func (s *ApiDestination) SetApiDestinationState(v string) *ApiDestination {
+	s.ApiDestinationState = &v
+	return s
+}
+
+// SetConnectionArn sets the ConnectionArn field's value.
+func (s *ApiDestination) SetConnectionArn(v string) *ApiDestination {
+	s.ConnectionArn = &v
+	return s
+}
+
+// SetCreationTime sets the CreationTime field's value.
+func (s *ApiDestination) SetCreationTime(v time.Time) *ApiDestination {
+	s.CreationTime = &v
+	return s
+}
+
+// SetHttpMethod sets the HttpMethod field's value.
+func (s *ApiDestination) SetHttpMethod(v string) *ApiDestination {
+	s.HttpMethod = &v
+	return s
+}
+
+// SetInvocationEndpoint sets the InvocationEndpoint field's value.
+func (s *ApiDestination) SetInvocationEndpoint(v string) *ApiDestination {
+	s.InvocationEndpoint = &v
+	return s
+}
+
+// SetInvocationRateLimitPerSecond sets the InvocationRateLimitPerSecond field's value.
+func (s *ApiDestination) SetInvocationRateLimitPerSecond(v int64) *ApiDestination {
+	s.InvocationRateLimitPerSecond = &v
+	return s
+}
+
+// SetLastModifiedTime sets the LastModifiedTime field's value.
+func (s *ApiDestination) SetLastModifiedTime(v time.Time) *ApiDestination {
+	s.LastModifiedTime = &v
+	return s
+}
+
+// SetName sets the Name field's value.
+func (s *ApiDestination) SetName(v string) *ApiDestination {
+	s.Name = &v
+	return s
+}
+
+// Contains the GraphQL operation to be parsed and executed, if the event target
+// is an AppSync API.
+type AppSyncParameters struct {
+	_ struct{} `type:"structure"`
+
+	// The GraphQL operation; that is, the query, mutation, or subscription to be
+	// parsed and executed by the GraphQL service.
+	//
+	// For more information, see Operations (https://docs.aws.amazon.com/appsync/latest/devguide/graphql-architecture.html#graphql-operations)
+	// in the AppSync User Guide.
+	//
+	// GraphQLOperation is a sensitive parameter and its value will be
+	// replaced with "sensitive" in string returned by AppSyncParameters's
+	// String and GoString methods.
+	GraphQLOperation *string `min:"1" type:"string" sensitive:"true"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s AppSyncParameters) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s AppSyncParameters) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *AppSyncParameters) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "AppSyncParameters"}
+	if s.GraphQLOperation != nil && len(*s.GraphQLOperation) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("GraphQLOperation", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetGraphQLOperation sets the GraphQLOperation field's value.
+func (s *AppSyncParameters) SetGraphQLOperation(v string) *AppSyncParameters {
+	s.GraphQLOperation = &v
+	return s
+}
+
+// An Archive object that contains details about an archive.
+type Archive struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the archive.
+	ArchiveName *string `min:"1" type:"string"`
+
+	// The time stamp for the time that the archive was created.
+	CreationTime *time.Time `type:"timestamp"`
+
+	// The number of events in the archive.
+	EventCount *int64 `type:"long"`
+
+	// The ARN of the event bus associated with the archive. Only events from this
+	// event bus are sent to the archive.
+	EventSourceArn *string `min:"1" type:"string"`
+
+	// The number of days to retain events in the archive before they are deleted.
+	RetentionDays *int64 `type:"integer"`
+
+	// The size of the archive, in bytes.
+	SizeBytes *int64 `type:"long"`
+
+	// The current state of the archive.
+	State *string `type:"string" enum:"ArchiveState"`
+
+	// A description for the reason that the archive is in the current state.
+	StateReason *string `type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s Archive) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s Archive) GoString() string {
+	return s.String()
+}
+
+// SetArchiveName sets the ArchiveName field's value.
+func (s *Archive) SetArchiveName(v string) *Archive {
+	s.ArchiveName = &v
+	return s
+}
+
+// SetCreationTime sets the CreationTime field's value.
+func (s *Archive) SetCreationTime(v time.Time) *Archive {
+	s.CreationTime = &v
+	return s
+}
+
+// SetEventCount sets the EventCount field's value.
+func (s *Archive) SetEventCount(v int64) *Archive {
+	s.EventCount = &v
+	return s
+}
+
+// SetEventSourceArn sets the EventSourceArn field's value.
+func (s *Archive) SetEventSourceArn(v string) *Archive {
+	s.EventSourceArn = &v
+	return s
+}
+
+// SetRetentionDays sets the RetentionDays field's value.
+func (s *Archive) SetRetentionDays(v int64) *Archive {
+	s.RetentionDays = &v
+	return s
+}
+
+// SetSizeBytes sets the SizeBytes field's value.
+func (s *Archive) SetSizeBytes(v int64) *Archive {
+	s.SizeBytes = &v
+	return s
+}
+
+// SetState sets the State field's value.
+func (s *Archive) SetState(v string) *Archive {
+	s.State = &v
+	return s
+}
+
+// SetStateReason sets the StateReason field's value.
+func (s *Archive) SetStateReason(v string) *Archive {
+	s.StateReason = &v
+	return s
+}
+
+// This structure specifies the VPC subnets and security groups for the task,
 // and whether a public IP address is to be used. This structure is relevant
 // only for ECS tasks that use the awsvpc network mode.
 type AwsVpcConfiguration struct {
@@ -3055,7 +5694,7 @@ type AwsVpcConfiguration struct {
 
 	// Specifies the security groups associated with the task. These security groups
 	// must all be in the same VPC. You can specify as many as five security groups.
-	// If you don't specify a security group, the default security group for the
+	// If you do not specify a security group, the default security group for the
 	// VPC is used.
 	SecurityGroups []*string `type:"list"`
 
@@ -3066,12 +5705,20 @@ type AwsVpcConfiguration struct {
 	Subnets []*string `type:"list" required:"true"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s AwsVpcConfiguration) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s AwsVpcConfiguration) GoString() string {
 	return s.String()
 }
@@ -3110,7 +5757,7 @@ func (s *AwsVpcConfiguration) SetSubnets(v []*string) *AwsVpcConfiguration {
 // The array properties for the submitted job, such as the size of the array.
 // The array size can be between 2 and 10,000. If you specify array properties
 // for a job, it becomes an array job. This parameter is used only if the target
-// is an AWS Batch job.
+// is an Batch job.
 type BatchArrayProperties struct {
 	_ struct{} `type:"structure"`
 
@@ -3119,12 +5766,20 @@ type BatchArrayProperties struct {
 	Size *int64 `type:"integer"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s BatchArrayProperties) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s BatchArrayProperties) GoString() string {
 	return s.String()
 }
@@ -3135,41 +5790,49 @@ func (s *BatchArrayProperties) SetSize(v int64) *BatchArrayProperties {
 	return s
 }
 
-// The custom parameters to be used when the target is an AWS Batch job.
+// The custom parameters to be used when the target is an Batch job.
 type BatchParameters struct {
 	_ struct{} `type:"structure"`
 
 	// The array properties for the submitted job, such as the size of the array.
 	// The array size can be between 2 and 10,000. If you specify array properties
 	// for a job, it becomes an array job. This parameter is used only if the target
-	// is an AWS Batch job.
+	// is an Batch job.
 	ArrayProperties *BatchArrayProperties `type:"structure"`
 
-	// The ARN or name of the job definition to use if the event target is an AWS
-	// Batch job. This job definition must already exist.
+	// The ARN or name of the job definition to use if the event target is an Batch
+	// job. This job definition must already exist.
 	//
 	// JobDefinition is a required field
 	JobDefinition *string `type:"string" required:"true"`
 
-	// The name to use for this execution of the job, if the target is an AWS Batch
+	// The name to use for this execution of the job, if the target is an Batch
 	// job.
 	//
 	// JobName is a required field
 	JobName *string `type:"string" required:"true"`
 
-	// The retry strategy to use for failed jobs if the target is an AWS Batch job.
+	// The retry strategy to use for failed jobs, if the target is an Batch job.
 	// The retry strategy is the number of times to retry the failed job execution.
 	// Valid values are 1–10. When you specify a retry strategy here, it overrides
 	// the retry strategy defined in the job definition.
 	RetryStrategy *BatchRetryStrategy `type:"structure"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s BatchParameters) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s BatchParameters) GoString() string {
 	return s.String()
 }
@@ -3214,7 +5877,7 @@ func (s *BatchParameters) SetRetryStrategy(v *BatchRetryStrategy) *BatchParamete
 	return s
 }
 
-// The retry strategy to use for failed jobs if the target is an AWS Batch job.
+// The retry strategy to use for failed jobs, if the target is an Batch job.
 // If you specify a retry strategy here, it overrides the retry strategy defined
 // in the job definition.
 type BatchRetryStrategy struct {
@@ -3225,12 +5888,20 @@ type BatchRetryStrategy struct {
 	Attempts *int64 `type:"integer"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s BatchRetryStrategy) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s BatchRetryStrategy) GoString() string {
 	return s.String()
 }
@@ -3241,38 +5912,285 @@ func (s *BatchRetryStrategy) SetAttempts(v int64) *BatchRetryStrategy {
 	return s
 }
 
-// A JSON string that you can use to limit the event bus permissions that you're
+type CancelReplayInput struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the replay to cancel.
+	//
+	// ReplayName is a required field
+	ReplayName *string `min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s CancelReplayInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s CancelReplayInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CancelReplayInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CancelReplayInput"}
+	if s.ReplayName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ReplayName"))
+	}
+	if s.ReplayName != nil && len(*s.ReplayName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ReplayName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetReplayName sets the ReplayName field's value.
+func (s *CancelReplayInput) SetReplayName(v string) *CancelReplayInput {
+	s.ReplayName = &v
+	return s
+}
+
+type CancelReplayOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The ARN of the replay to cancel.
+	ReplayArn *string `min:"1" type:"string"`
+
+	// The current state of the replay.
+	State *string `type:"string" enum:"ReplayState"`
+
+	// The reason that the replay is in the current state.
+	StateReason *string `type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s CancelReplayOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s CancelReplayOutput) GoString() string {
+	return s.String()
+}
+
+// SetReplayArn sets the ReplayArn field's value.
+func (s *CancelReplayOutput) SetReplayArn(v string) *CancelReplayOutput {
+	s.ReplayArn = &v
+	return s
+}
+
+// SetState sets the State field's value.
+func (s *CancelReplayOutput) SetState(v string) *CancelReplayOutput {
+	s.State = &v
+	return s
+}
+
+// SetStateReason sets the StateReason field's value.
+func (s *CancelReplayOutput) SetStateReason(v string) *CancelReplayOutput {
+	s.StateReason = &v
+	return s
+}
+
+// The details of a capacity provider strategy. To learn more, see CapacityProviderStrategyItem
+// (https://docs.aws.amazon.com/AmazonECS/latest/APIReference/API_CapacityProviderStrategyItem.html)
+// in the Amazon ECS API Reference.
+type CapacityProviderStrategyItem struct {
+	_ struct{} `type:"structure"`
+
+	// The base value designates how many tasks, at a minimum, to run on the specified
+	// capacity provider. Only one capacity provider in a capacity provider strategy
+	// can have a base defined. If no value is specified, the default value of 0
+	// is used.
+	Base *int64 `locationName:"base" type:"integer"`
+
+	// The short name of the capacity provider.
+	//
+	// CapacityProvider is a required field
+	CapacityProvider *string `locationName:"capacityProvider" min:"1" type:"string" required:"true"`
+
+	// The weight value designates the relative percentage of the total number of
+	// tasks launched that should use the specified capacity provider. The weight
+	// value is taken into consideration after the base value, if defined, is satisfied.
+	Weight *int64 `locationName:"weight" type:"integer"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s CapacityProviderStrategyItem) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s CapacityProviderStrategyItem) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CapacityProviderStrategyItem) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CapacityProviderStrategyItem"}
+	if s.CapacityProvider == nil {
+		invalidParams.Add(request.NewErrParamRequired("CapacityProvider"))
+	}
+	if s.CapacityProvider != nil && len(*s.CapacityProvider) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("CapacityProvider", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetBase sets the Base field's value.
+func (s *CapacityProviderStrategyItem) SetBase(v int64) *CapacityProviderStrategyItem {
+	s.Base = &v
+	return s
+}
+
+// SetCapacityProvider sets the CapacityProvider field's value.
+func (s *CapacityProviderStrategyItem) SetCapacityProvider(v string) *CapacityProviderStrategyItem {
+	s.CapacityProvider = &v
+	return s
+}
+
+// SetWeight sets the Weight field's value.
+func (s *CapacityProviderStrategyItem) SetWeight(v int64) *CapacityProviderStrategyItem {
+	s.Weight = &v
+	return s
+}
+
+// There is concurrent modification on a rule, target, archive, or replay.
+type ConcurrentModificationException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ConcurrentModificationException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ConcurrentModificationException) GoString() string {
+	return s.String()
+}
+
+func newErrorConcurrentModificationException(v protocol.ResponseMetadata) error {
+	return &ConcurrentModificationException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *ConcurrentModificationException) Code() string {
+	return "ConcurrentModificationException"
+}
+
+// Message returns the exception's message.
+func (s *ConcurrentModificationException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *ConcurrentModificationException) OrigErr() error {
+	return nil
+}
+
+func (s *ConcurrentModificationException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *ConcurrentModificationException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *ConcurrentModificationException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
+// A JSON string which you can use to limit the event bus permissions you are
 // granting to only accounts that fulfill the condition. Currently, the only
-// supported condition is membership in a certain AWS organization. The string
-// must contain Type, Key, and Value fields. The Value field specifies the ID
-// of the AWS organization. The following is an example value for Condition:
+// supported condition is membership in a certain Amazon Web Services organization.
+// The string must contain Type, Key, and Value fields. The Value field specifies
+// the ID of the Amazon Web Services organization. Following is an example value
+// for Condition:
 //
 // '{"Type" : "StringEquals", "Key": "aws:PrincipalOrgID", "Value": "o-1234567890"}'
 type Condition struct {
 	_ struct{} `type:"structure"`
 
-	// The key for the condition. Currently, the only supported key is aws:PrincipalOrgID.
+	// Specifies the key for the condition. Currently the only supported key is
+	// aws:PrincipalOrgID.
 	//
 	// Key is a required field
 	Key *string `type:"string" required:"true"`
 
-	// The type of condition. Currently, the only supported value is StringEquals.
+	// Specifies the type of condition. Currently the only supported value is StringEquals.
 	//
 	// Type is a required field
 	Type *string `type:"string" required:"true"`
 
-	// The value for the key. Currently, this must be the ID of the organization.
+	// Specifies the value for the key. Currently, this must be the ID of the organization.
 	//
 	// Value is a required field
 	Value *string `type:"string" required:"true"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s Condition) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s Condition) GoString() string {
 	return s.String()
 }
@@ -3314,33 +6232,1713 @@ func (s *Condition) SetValue(v string) *Condition {
 	return s
 }
 
-type CreateEventBusInput struct {
+// Contains information about a connection.
+type Connection struct {
 	_ struct{} `type:"structure"`
 
-	// If you're creating a partner event bus, this specifies the partner event
-	// source that the new event bus will be matched with.
-	EventSourceName *string `min:"1" type:"string"`
+	// The authorization type specified for the connection.
+	//
+	// OAUTH tokens are refreshed when a 401 or 407 response is returned.
+	AuthorizationType *string `type:"string" enum:"ConnectionAuthorizationType"`
 
-	// The name of the new event bus.
+	// The ARN of the connection.
+	ConnectionArn *string `min:"1" type:"string"`
+
+	// The state of the connection.
+	ConnectionState *string `type:"string" enum:"ConnectionState"`
+
+	// A time stamp for the time that the connection was created.
+	CreationTime *time.Time `type:"timestamp"`
+
+	// A time stamp for the time that the connection was last authorized.
+	LastAuthorizedTime *time.Time `type:"timestamp"`
+
+	// A time stamp for the time that the connection was last modified.
+	LastModifiedTime *time.Time `type:"timestamp"`
+
+	// The name of the connection.
+	Name *string `min:"1" type:"string"`
+
+	// The reason that the connection is in the connection state.
+	StateReason *string `type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s Connection) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s Connection) GoString() string {
+	return s.String()
+}
+
+// SetAuthorizationType sets the AuthorizationType field's value.
+func (s *Connection) SetAuthorizationType(v string) *Connection {
+	s.AuthorizationType = &v
+	return s
+}
+
+// SetConnectionArn sets the ConnectionArn field's value.
+func (s *Connection) SetConnectionArn(v string) *Connection {
+	s.ConnectionArn = &v
+	return s
+}
+
+// SetConnectionState sets the ConnectionState field's value.
+func (s *Connection) SetConnectionState(v string) *Connection {
+	s.ConnectionState = &v
+	return s
+}
+
+// SetCreationTime sets the CreationTime field's value.
+func (s *Connection) SetCreationTime(v time.Time) *Connection {
+	s.CreationTime = &v
+	return s
+}
+
+// SetLastAuthorizedTime sets the LastAuthorizedTime field's value.
+func (s *Connection) SetLastAuthorizedTime(v time.Time) *Connection {
+	s.LastAuthorizedTime = &v
+	return s
+}
+
+// SetLastModifiedTime sets the LastModifiedTime field's value.
+func (s *Connection) SetLastModifiedTime(v time.Time) *Connection {
+	s.LastModifiedTime = &v
+	return s
+}
+
+// SetName sets the Name field's value.
+func (s *Connection) SetName(v string) *Connection {
+	s.Name = &v
+	return s
+}
+
+// SetStateReason sets the StateReason field's value.
+func (s *Connection) SetStateReason(v string) *Connection {
+	s.StateReason = &v
+	return s
+}
+
+// Contains the authorization parameters for the connection if API Key is specified
+// as the authorization type.
+type ConnectionApiKeyAuthResponseParameters struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the header to use for the APIKeyValue used for authorization.
+	ApiKeyName *string `min:"1" type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ConnectionApiKeyAuthResponseParameters) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ConnectionApiKeyAuthResponseParameters) GoString() string {
+	return s.String()
+}
+
+// SetApiKeyName sets the ApiKeyName field's value.
+func (s *ConnectionApiKeyAuthResponseParameters) SetApiKeyName(v string) *ConnectionApiKeyAuthResponseParameters {
+	s.ApiKeyName = &v
+	return s
+}
+
+// Contains the authorization parameters to use for the connection.
+type ConnectionAuthResponseParameters struct {
+	_ struct{} `type:"structure"`
+
+	// The API Key parameters to use for authorization.
+	ApiKeyAuthParameters *ConnectionApiKeyAuthResponseParameters `type:"structure"`
+
+	// The authorization parameters for Basic authorization.
+	BasicAuthParameters *ConnectionBasicAuthResponseParameters `type:"structure"`
+
+	// Additional parameters for the connection that are passed through with every
+	// invocation to the HTTP endpoint.
+	InvocationHttpParameters *ConnectionHttpParameters `type:"structure"`
+
+	// The OAuth parameters to use for authorization.
+	OAuthParameters *ConnectionOAuthResponseParameters `type:"structure"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ConnectionAuthResponseParameters) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ConnectionAuthResponseParameters) GoString() string {
+	return s.String()
+}
+
+// SetApiKeyAuthParameters sets the ApiKeyAuthParameters field's value.
+func (s *ConnectionAuthResponseParameters) SetApiKeyAuthParameters(v *ConnectionApiKeyAuthResponseParameters) *ConnectionAuthResponseParameters {
+	s.ApiKeyAuthParameters = v
+	return s
+}
+
+// SetBasicAuthParameters sets the BasicAuthParameters field's value.
+func (s *ConnectionAuthResponseParameters) SetBasicAuthParameters(v *ConnectionBasicAuthResponseParameters) *ConnectionAuthResponseParameters {
+	s.BasicAuthParameters = v
+	return s
+}
+
+// SetInvocationHttpParameters sets the InvocationHttpParameters field's value.
+func (s *ConnectionAuthResponseParameters) SetInvocationHttpParameters(v *ConnectionHttpParameters) *ConnectionAuthResponseParameters {
+	s.InvocationHttpParameters = v
+	return s
+}
+
+// SetOAuthParameters sets the OAuthParameters field's value.
+func (s *ConnectionAuthResponseParameters) SetOAuthParameters(v *ConnectionOAuthResponseParameters) *ConnectionAuthResponseParameters {
+	s.OAuthParameters = v
+	return s
+}
+
+// Contains the authorization parameters for the connection if Basic is specified
+// as the authorization type.
+type ConnectionBasicAuthResponseParameters struct {
+	_ struct{} `type:"structure"`
+
+	// The user name to use for Basic authorization.
+	Username *string `min:"1" type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ConnectionBasicAuthResponseParameters) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ConnectionBasicAuthResponseParameters) GoString() string {
+	return s.String()
+}
+
+// SetUsername sets the Username field's value.
+func (s *ConnectionBasicAuthResponseParameters) SetUsername(v string) *ConnectionBasicAuthResponseParameters {
+	s.Username = &v
+	return s
+}
+
+// Additional parameter included in the body. You can include up to 100 additional
+// body parameters per request. An event payload cannot exceed 64 KB.
+type ConnectionBodyParameter struct {
+	_ struct{} `type:"structure"`
+
+	// Specified whether the value is secret.
+	IsValueSecret *bool `type:"boolean"`
+
+	// The key for the parameter.
+	Key *string `type:"string"`
+
+	// The value associated with the key.
 	//
-	// The names of custom event buses can't contain the / character. You can't
-	// use the name default for a custom event bus because this name is already
-	// used for your account's default event bus.
+	// Value is a sensitive parameter and its value will be
+	// replaced with "sensitive" in string returned by ConnectionBodyParameter's
+	// String and GoString methods.
+	Value *string `type:"string" sensitive:"true"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ConnectionBodyParameter) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ConnectionBodyParameter) GoString() string {
+	return s.String()
+}
+
+// SetIsValueSecret sets the IsValueSecret field's value.
+func (s *ConnectionBodyParameter) SetIsValueSecret(v bool) *ConnectionBodyParameter {
+	s.IsValueSecret = &v
+	return s
+}
+
+// SetKey sets the Key field's value.
+func (s *ConnectionBodyParameter) SetKey(v string) *ConnectionBodyParameter {
+	s.Key = &v
+	return s
+}
+
+// SetValue sets the Value field's value.
+func (s *ConnectionBodyParameter) SetValue(v string) *ConnectionBodyParameter {
+	s.Value = &v
+	return s
+}
+
+// Additional parameter included in the header. You can include up to 100 additional
+// header parameters per request. An event payload cannot exceed 64 KB.
+type ConnectionHeaderParameter struct {
+	_ struct{} `type:"structure"`
+
+	// Specified whether the value is a secret.
+	IsValueSecret *bool `type:"boolean"`
+
+	// The key for the parameter.
+	Key *string `type:"string"`
+
+	// The value associated with the key.
 	//
-	// If this is a partner event bus, the name must exactly match the name of the
-	// partner event source that this event bus is matched to. This name will include
-	// the / character.
+	// Value is a sensitive parameter and its value will be
+	// replaced with "sensitive" in string returned by ConnectionHeaderParameter's
+	// String and GoString methods.
+	Value *string `type:"string" sensitive:"true"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ConnectionHeaderParameter) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ConnectionHeaderParameter) GoString() string {
+	return s.String()
+}
+
+// SetIsValueSecret sets the IsValueSecret field's value.
+func (s *ConnectionHeaderParameter) SetIsValueSecret(v bool) *ConnectionHeaderParameter {
+	s.IsValueSecret = &v
+	return s
+}
+
+// SetKey sets the Key field's value.
+func (s *ConnectionHeaderParameter) SetKey(v string) *ConnectionHeaderParameter {
+	s.Key = &v
+	return s
+}
+
+// SetValue sets the Value field's value.
+func (s *ConnectionHeaderParameter) SetValue(v string) *ConnectionHeaderParameter {
+	s.Value = &v
+	return s
+}
+
+// Contains additional parameters for the connection.
+type ConnectionHttpParameters struct {
+	_ struct{} `type:"structure"`
+
+	// Contains additional body string parameters for the connection.
+	BodyParameters []*ConnectionBodyParameter `type:"list"`
+
+	// Contains additional header parameters for the connection.
+	HeaderParameters []*ConnectionHeaderParameter `type:"list"`
+
+	// Contains additional query string parameters for the connection.
+	QueryStringParameters []*ConnectionQueryStringParameter `type:"list"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ConnectionHttpParameters) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ConnectionHttpParameters) GoString() string {
+	return s.String()
+}
+
+// SetBodyParameters sets the BodyParameters field's value.
+func (s *ConnectionHttpParameters) SetBodyParameters(v []*ConnectionBodyParameter) *ConnectionHttpParameters {
+	s.BodyParameters = v
+	return s
+}
+
+// SetHeaderParameters sets the HeaderParameters field's value.
+func (s *ConnectionHttpParameters) SetHeaderParameters(v []*ConnectionHeaderParameter) *ConnectionHttpParameters {
+	s.HeaderParameters = v
+	return s
+}
+
+// SetQueryStringParameters sets the QueryStringParameters field's value.
+func (s *ConnectionHttpParameters) SetQueryStringParameters(v []*ConnectionQueryStringParameter) *ConnectionHttpParameters {
+	s.QueryStringParameters = v
+	return s
+}
+
+// Contains the client response parameters for the connection when OAuth is
+// specified as the authorization type.
+type ConnectionOAuthClientResponseParameters struct {
+	_ struct{} `type:"structure"`
+
+	// The client ID associated with the response to the connection request.
+	ClientID *string `min:"1" type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ConnectionOAuthClientResponseParameters) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ConnectionOAuthClientResponseParameters) GoString() string {
+	return s.String()
+}
+
+// SetClientID sets the ClientID field's value.
+func (s *ConnectionOAuthClientResponseParameters) SetClientID(v string) *ConnectionOAuthClientResponseParameters {
+	s.ClientID = &v
+	return s
+}
+
+// Contains the response parameters when OAuth is specified as the authorization
+// type.
+type ConnectionOAuthResponseParameters struct {
+	_ struct{} `type:"structure"`
+
+	// The URL to the HTTP endpoint that authorized the request.
+	AuthorizationEndpoint *string `min:"1" type:"string"`
+
+	// A ConnectionOAuthClientResponseParameters object that contains details about
+	// the client parameters returned when OAuth is specified as the authorization
+	// type.
+	ClientParameters *ConnectionOAuthClientResponseParameters `type:"structure"`
+
+	// The method used to connect to the HTTP endpoint.
+	HttpMethod *string `type:"string" enum:"ConnectionOAuthHttpMethod"`
+
+	// The additional HTTP parameters used for the OAuth authorization request.
+	OAuthHttpParameters *ConnectionHttpParameters `type:"structure"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ConnectionOAuthResponseParameters) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ConnectionOAuthResponseParameters) GoString() string {
+	return s.String()
+}
+
+// SetAuthorizationEndpoint sets the AuthorizationEndpoint field's value.
+func (s *ConnectionOAuthResponseParameters) SetAuthorizationEndpoint(v string) *ConnectionOAuthResponseParameters {
+	s.AuthorizationEndpoint = &v
+	return s
+}
+
+// SetClientParameters sets the ClientParameters field's value.
+func (s *ConnectionOAuthResponseParameters) SetClientParameters(v *ConnectionOAuthClientResponseParameters) *ConnectionOAuthResponseParameters {
+	s.ClientParameters = v
+	return s
+}
+
+// SetHttpMethod sets the HttpMethod field's value.
+func (s *ConnectionOAuthResponseParameters) SetHttpMethod(v string) *ConnectionOAuthResponseParameters {
+	s.HttpMethod = &v
+	return s
+}
+
+// SetOAuthHttpParameters sets the OAuthHttpParameters field's value.
+func (s *ConnectionOAuthResponseParameters) SetOAuthHttpParameters(v *ConnectionHttpParameters) *ConnectionOAuthResponseParameters {
+	s.OAuthHttpParameters = v
+	return s
+}
+
+// Additional query string parameter for the connection. You can include up
+// to 100 additional query string parameters per request. Each additional parameter
+// counts towards the event payload size, which cannot exceed 64 KB.
+type ConnectionQueryStringParameter struct {
+	_ struct{} `type:"structure"`
+
+	// Specifies whether the value is secret.
+	IsValueSecret *bool `type:"boolean"`
+
+	// The key for a query string parameter.
+	Key *string `type:"string"`
+
+	// The value associated with the key for the query string parameter.
+	//
+	// Value is a sensitive parameter and its value will be
+	// replaced with "sensitive" in string returned by ConnectionQueryStringParameter's
+	// String and GoString methods.
+	Value *string `type:"string" sensitive:"true"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ConnectionQueryStringParameter) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ConnectionQueryStringParameter) GoString() string {
+	return s.String()
+}
+
+// SetIsValueSecret sets the IsValueSecret field's value.
+func (s *ConnectionQueryStringParameter) SetIsValueSecret(v bool) *ConnectionQueryStringParameter {
+	s.IsValueSecret = &v
+	return s
+}
+
+// SetKey sets the Key field's value.
+func (s *ConnectionQueryStringParameter) SetKey(v string) *ConnectionQueryStringParameter {
+	s.Key = &v
+	return s
+}
+
+// SetValue sets the Value field's value.
+func (s *ConnectionQueryStringParameter) SetValue(v string) *ConnectionQueryStringParameter {
+	s.Value = &v
+	return s
+}
+
+type CreateApiDestinationInput struct {
+	_ struct{} `type:"structure"`
+
+	// The ARN of the connection to use for the API destination. The destination
+	// endpoint must support the authorization type specified for the connection.
+	//
+	// ConnectionArn is a required field
+	ConnectionArn *string `min:"1" type:"string" required:"true"`
+
+	// A description for the API destination to create.
+	Description *string `type:"string"`
+
+	// The method to use for the request to the HTTP invocation endpoint.
+	//
+	// HttpMethod is a required field
+	HttpMethod *string `type:"string" required:"true" enum:"ApiDestinationHttpMethod"`
+
+	// The URL to the HTTP invocation endpoint for the API destination.
+	//
+	// InvocationEndpoint is a required field
+	InvocationEndpoint *string `min:"1" type:"string" required:"true"`
+
+	// The maximum number of requests per second to send to the HTTP invocation
+	// endpoint.
+	InvocationRateLimitPerSecond *int64 `min:"1" type:"integer"`
+
+	// The name for the API destination to create.
 	//
 	// Name is a required field
 	Name *string `min:"1" type:"string" required:"true"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s CreateApiDestinationInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s CreateApiDestinationInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateApiDestinationInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateApiDestinationInput"}
+	if s.ConnectionArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("ConnectionArn"))
+	}
+	if s.ConnectionArn != nil && len(*s.ConnectionArn) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ConnectionArn", 1))
+	}
+	if s.HttpMethod == nil {
+		invalidParams.Add(request.NewErrParamRequired("HttpMethod"))
+	}
+	if s.InvocationEndpoint == nil {
+		invalidParams.Add(request.NewErrParamRequired("InvocationEndpoint"))
+	}
+	if s.InvocationEndpoint != nil && len(*s.InvocationEndpoint) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("InvocationEndpoint", 1))
+	}
+	if s.InvocationRateLimitPerSecond != nil && *s.InvocationRateLimitPerSecond < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("InvocationRateLimitPerSecond", 1))
+	}
+	if s.Name == nil {
+		invalidParams.Add(request.NewErrParamRequired("Name"))
+	}
+	if s.Name != nil && len(*s.Name) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Name", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetConnectionArn sets the ConnectionArn field's value.
+func (s *CreateApiDestinationInput) SetConnectionArn(v string) *CreateApiDestinationInput {
+	s.ConnectionArn = &v
+	return s
+}
+
+// SetDescription sets the Description field's value.
+func (s *CreateApiDestinationInput) SetDescription(v string) *CreateApiDestinationInput {
+	s.Description = &v
+	return s
+}
+
+// SetHttpMethod sets the HttpMethod field's value.
+func (s *CreateApiDestinationInput) SetHttpMethod(v string) *CreateApiDestinationInput {
+	s.HttpMethod = &v
+	return s
+}
+
+// SetInvocationEndpoint sets the InvocationEndpoint field's value.
+func (s *CreateApiDestinationInput) SetInvocationEndpoint(v string) *CreateApiDestinationInput {
+	s.InvocationEndpoint = &v
+	return s
+}
+
+// SetInvocationRateLimitPerSecond sets the InvocationRateLimitPerSecond field's value.
+func (s *CreateApiDestinationInput) SetInvocationRateLimitPerSecond(v int64) *CreateApiDestinationInput {
+	s.InvocationRateLimitPerSecond = &v
+	return s
+}
+
+// SetName sets the Name field's value.
+func (s *CreateApiDestinationInput) SetName(v string) *CreateApiDestinationInput {
+	s.Name = &v
+	return s
+}
+
+type CreateApiDestinationOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The ARN of the API destination that was created by the request.
+	ApiDestinationArn *string `min:"1" type:"string"`
+
+	// The state of the API destination that was created by the request.
+	ApiDestinationState *string `type:"string" enum:"ApiDestinationState"`
+
+	// A time stamp indicating the time that the API destination was created.
+	CreationTime *time.Time `type:"timestamp"`
+
+	// A time stamp indicating the time that the API destination was last modified.
+	LastModifiedTime *time.Time `type:"timestamp"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s CreateApiDestinationOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s CreateApiDestinationOutput) GoString() string {
+	return s.String()
+}
+
+// SetApiDestinationArn sets the ApiDestinationArn field's value.
+func (s *CreateApiDestinationOutput) SetApiDestinationArn(v string) *CreateApiDestinationOutput {
+	s.ApiDestinationArn = &v
+	return s
+}
+
+// SetApiDestinationState sets the ApiDestinationState field's value.
+func (s *CreateApiDestinationOutput) SetApiDestinationState(v string) *CreateApiDestinationOutput {
+	s.ApiDestinationState = &v
+	return s
+}
+
+// SetCreationTime sets the CreationTime field's value.
+func (s *CreateApiDestinationOutput) SetCreationTime(v time.Time) *CreateApiDestinationOutput {
+	s.CreationTime = &v
+	return s
+}
+
+// SetLastModifiedTime sets the LastModifiedTime field's value.
+func (s *CreateApiDestinationOutput) SetLastModifiedTime(v time.Time) *CreateApiDestinationOutput {
+	s.LastModifiedTime = &v
+	return s
+}
+
+type CreateArchiveInput struct {
+	_ struct{} `type:"structure"`
+
+	// The name for the archive to create.
+	//
+	// ArchiveName is a required field
+	ArchiveName *string `min:"1" type:"string" required:"true"`
+
+	// A description for the archive.
+	Description *string `type:"string"`
+
+	// An event pattern to use to filter events sent to the archive.
+	EventPattern *string `type:"string"`
+
+	// The ARN of the event bus that sends events to the archive.
+	//
+	// EventSourceArn is a required field
+	EventSourceArn *string `min:"1" type:"string" required:"true"`
+
+	// The number of days to retain events for. Default value is 0. If set to 0,
+	// events are retained indefinitely
+	RetentionDays *int64 `type:"integer"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s CreateArchiveInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s CreateArchiveInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateArchiveInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateArchiveInput"}
+	if s.ArchiveName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ArchiveName"))
+	}
+	if s.ArchiveName != nil && len(*s.ArchiveName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ArchiveName", 1))
+	}
+	if s.EventSourceArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("EventSourceArn"))
+	}
+	if s.EventSourceArn != nil && len(*s.EventSourceArn) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("EventSourceArn", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetArchiveName sets the ArchiveName field's value.
+func (s *CreateArchiveInput) SetArchiveName(v string) *CreateArchiveInput {
+	s.ArchiveName = &v
+	return s
+}
+
+// SetDescription sets the Description field's value.
+func (s *CreateArchiveInput) SetDescription(v string) *CreateArchiveInput {
+	s.Description = &v
+	return s
+}
+
+// SetEventPattern sets the EventPattern field's value.
+func (s *CreateArchiveInput) SetEventPattern(v string) *CreateArchiveInput {
+	s.EventPattern = &v
+	return s
+}
+
+// SetEventSourceArn sets the EventSourceArn field's value.
+func (s *CreateArchiveInput) SetEventSourceArn(v string) *CreateArchiveInput {
+	s.EventSourceArn = &v
+	return s
+}
+
+// SetRetentionDays sets the RetentionDays field's value.
+func (s *CreateArchiveInput) SetRetentionDays(v int64) *CreateArchiveInput {
+	s.RetentionDays = &v
+	return s
+}
+
+type CreateArchiveOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The ARN of the archive that was created.
+	ArchiveArn *string `min:"1" type:"string"`
+
+	// The time at which the archive was created.
+	CreationTime *time.Time `type:"timestamp"`
+
+	// The state of the archive that was created.
+	State *string `type:"string" enum:"ArchiveState"`
+
+	// The reason that the archive is in the state.
+	StateReason *string `type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s CreateArchiveOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s CreateArchiveOutput) GoString() string {
+	return s.String()
+}
+
+// SetArchiveArn sets the ArchiveArn field's value.
+func (s *CreateArchiveOutput) SetArchiveArn(v string) *CreateArchiveOutput {
+	s.ArchiveArn = &v
+	return s
+}
+
+// SetCreationTime sets the CreationTime field's value.
+func (s *CreateArchiveOutput) SetCreationTime(v time.Time) *CreateArchiveOutput {
+	s.CreationTime = &v
+	return s
+}
+
+// SetState sets the State field's value.
+func (s *CreateArchiveOutput) SetState(v string) *CreateArchiveOutput {
+	s.State = &v
+	return s
+}
+
+// SetStateReason sets the StateReason field's value.
+func (s *CreateArchiveOutput) SetStateReason(v string) *CreateArchiveOutput {
+	s.StateReason = &v
+	return s
+}
+
+// Contains the API key authorization parameters for the connection.
+type CreateConnectionApiKeyAuthRequestParameters struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the API key to use for authorization.
+	//
+	// ApiKeyName is a required field
+	ApiKeyName *string `min:"1" type:"string" required:"true"`
+
+	// The value for the API key to use for authorization.
+	//
+	// ApiKeyValue is a sensitive parameter and its value will be
+	// replaced with "sensitive" in string returned by CreateConnectionApiKeyAuthRequestParameters's
+	// String and GoString methods.
+	//
+	// ApiKeyValue is a required field
+	ApiKeyValue *string `min:"1" type:"string" required:"true" sensitive:"true"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s CreateConnectionApiKeyAuthRequestParameters) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s CreateConnectionApiKeyAuthRequestParameters) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateConnectionApiKeyAuthRequestParameters) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateConnectionApiKeyAuthRequestParameters"}
+	if s.ApiKeyName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ApiKeyName"))
+	}
+	if s.ApiKeyName != nil && len(*s.ApiKeyName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApiKeyName", 1))
+	}
+	if s.ApiKeyValue == nil {
+		invalidParams.Add(request.NewErrParamRequired("ApiKeyValue"))
+	}
+	if s.ApiKeyValue != nil && len(*s.ApiKeyValue) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApiKeyValue", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetApiKeyName sets the ApiKeyName field's value.
+func (s *CreateConnectionApiKeyAuthRequestParameters) SetApiKeyName(v string) *CreateConnectionApiKeyAuthRequestParameters {
+	s.ApiKeyName = &v
+	return s
+}
+
+// SetApiKeyValue sets the ApiKeyValue field's value.
+func (s *CreateConnectionApiKeyAuthRequestParameters) SetApiKeyValue(v string) *CreateConnectionApiKeyAuthRequestParameters {
+	s.ApiKeyValue = &v
+	return s
+}
+
+// Contains the authorization parameters for the connection.
+type CreateConnectionAuthRequestParameters struct {
+	_ struct{} `type:"structure"`
+
+	// A CreateConnectionApiKeyAuthRequestParameters object that contains the API
+	// key authorization parameters to use for the connection.
+	ApiKeyAuthParameters *CreateConnectionApiKeyAuthRequestParameters `type:"structure"`
+
+	// A CreateConnectionBasicAuthRequestParameters object that contains the Basic
+	// authorization parameters to use for the connection.
+	BasicAuthParameters *CreateConnectionBasicAuthRequestParameters `type:"structure"`
+
+	// A ConnectionHttpParameters object that contains the API key authorization
+	// parameters to use for the connection. Note that if you include additional
+	// parameters for the target of a rule via HttpParameters, including query strings,
+	// the parameters added for the connection take precedence.
+	InvocationHttpParameters *ConnectionHttpParameters `type:"structure"`
+
+	// A CreateConnectionOAuthRequestParameters object that contains the OAuth authorization
+	// parameters to use for the connection.
+	OAuthParameters *CreateConnectionOAuthRequestParameters `type:"structure"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s CreateConnectionAuthRequestParameters) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s CreateConnectionAuthRequestParameters) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateConnectionAuthRequestParameters) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateConnectionAuthRequestParameters"}
+	if s.ApiKeyAuthParameters != nil {
+		if err := s.ApiKeyAuthParameters.Validate(); err != nil {
+			invalidParams.AddNested("ApiKeyAuthParameters", err.(request.ErrInvalidParams))
+		}
+	}
+	if s.BasicAuthParameters != nil {
+		if err := s.BasicAuthParameters.Validate(); err != nil {
+			invalidParams.AddNested("BasicAuthParameters", err.(request.ErrInvalidParams))
+		}
+	}
+	if s.OAuthParameters != nil {
+		if err := s.OAuthParameters.Validate(); err != nil {
+			invalidParams.AddNested("OAuthParameters", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetApiKeyAuthParameters sets the ApiKeyAuthParameters field's value.
+func (s *CreateConnectionAuthRequestParameters) SetApiKeyAuthParameters(v *CreateConnectionApiKeyAuthRequestParameters) *CreateConnectionAuthRequestParameters {
+	s.ApiKeyAuthParameters = v
+	return s
+}
+
+// SetBasicAuthParameters sets the BasicAuthParameters field's value.
+func (s *CreateConnectionAuthRequestParameters) SetBasicAuthParameters(v *CreateConnectionBasicAuthRequestParameters) *CreateConnectionAuthRequestParameters {
+	s.BasicAuthParameters = v
+	return s
+}
+
+// SetInvocationHttpParameters sets the InvocationHttpParameters field's value.
+func (s *CreateConnectionAuthRequestParameters) SetInvocationHttpParameters(v *ConnectionHttpParameters) *CreateConnectionAuthRequestParameters {
+	s.InvocationHttpParameters = v
+	return s
+}
+
+// SetOAuthParameters sets the OAuthParameters field's value.
+func (s *CreateConnectionAuthRequestParameters) SetOAuthParameters(v *CreateConnectionOAuthRequestParameters) *CreateConnectionAuthRequestParameters {
+	s.OAuthParameters = v
+	return s
+}
+
+// Contains the Basic authorization parameters to use for the connection.
+type CreateConnectionBasicAuthRequestParameters struct {
+	_ struct{} `type:"structure"`
+
+	// The password associated with the user name to use for Basic authorization.
+	//
+	// Password is a sensitive parameter and its value will be
+	// replaced with "sensitive" in string returned by CreateConnectionBasicAuthRequestParameters's
+	// String and GoString methods.
+	//
+	// Password is a required field
+	Password *string `min:"1" type:"string" required:"true" sensitive:"true"`
+
+	// The user name to use for Basic authorization.
+	//
+	// Username is a required field
+	Username *string `min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s CreateConnectionBasicAuthRequestParameters) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s CreateConnectionBasicAuthRequestParameters) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateConnectionBasicAuthRequestParameters) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateConnectionBasicAuthRequestParameters"}
+	if s.Password == nil {
+		invalidParams.Add(request.NewErrParamRequired("Password"))
+	}
+	if s.Password != nil && len(*s.Password) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Password", 1))
+	}
+	if s.Username == nil {
+		invalidParams.Add(request.NewErrParamRequired("Username"))
+	}
+	if s.Username != nil && len(*s.Username) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Username", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetPassword sets the Password field's value.
+func (s *CreateConnectionBasicAuthRequestParameters) SetPassword(v string) *CreateConnectionBasicAuthRequestParameters {
+	s.Password = &v
+	return s
+}
+
+// SetUsername sets the Username field's value.
+func (s *CreateConnectionBasicAuthRequestParameters) SetUsername(v string) *CreateConnectionBasicAuthRequestParameters {
+	s.Username = &v
+	return s
+}
+
+type CreateConnectionInput struct {
+	_ struct{} `type:"structure"`
+
+	// A CreateConnectionAuthRequestParameters object that contains the authorization
+	// parameters to use to authorize with the endpoint.
+	//
+	// AuthParameters is a required field
+	AuthParameters *CreateConnectionAuthRequestParameters `type:"structure" required:"true"`
+
+	// The type of authorization to use for the connection.
+	//
+	// OAUTH tokens are refreshed when a 401 or 407 response is returned.
+	//
+	// AuthorizationType is a required field
+	AuthorizationType *string `type:"string" required:"true" enum:"ConnectionAuthorizationType"`
+
+	// A description for the connection to create.
+	Description *string `type:"string"`
+
+	// The name for the connection to create.
+	//
+	// Name is a required field
+	Name *string `min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s CreateConnectionInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s CreateConnectionInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateConnectionInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateConnectionInput"}
+	if s.AuthParameters == nil {
+		invalidParams.Add(request.NewErrParamRequired("AuthParameters"))
+	}
+	if s.AuthorizationType == nil {
+		invalidParams.Add(request.NewErrParamRequired("AuthorizationType"))
+	}
+	if s.Name == nil {
+		invalidParams.Add(request.NewErrParamRequired("Name"))
+	}
+	if s.Name != nil && len(*s.Name) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Name", 1))
+	}
+	if s.AuthParameters != nil {
+		if err := s.AuthParameters.Validate(); err != nil {
+			invalidParams.AddNested("AuthParameters", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetAuthParameters sets the AuthParameters field's value.
+func (s *CreateConnectionInput) SetAuthParameters(v *CreateConnectionAuthRequestParameters) *CreateConnectionInput {
+	s.AuthParameters = v
+	return s
+}
+
+// SetAuthorizationType sets the AuthorizationType field's value.
+func (s *CreateConnectionInput) SetAuthorizationType(v string) *CreateConnectionInput {
+	s.AuthorizationType = &v
+	return s
+}
+
+// SetDescription sets the Description field's value.
+func (s *CreateConnectionInput) SetDescription(v string) *CreateConnectionInput {
+	s.Description = &v
+	return s
+}
+
+// SetName sets the Name field's value.
+func (s *CreateConnectionInput) SetName(v string) *CreateConnectionInput {
+	s.Name = &v
+	return s
+}
+
+// Contains the Basic authorization parameters to use for the connection.
+type CreateConnectionOAuthClientRequestParameters struct {
+	_ struct{} `type:"structure"`
+
+	// The client ID to use for OAuth authorization for the connection.
+	//
+	// ClientID is a required field
+	ClientID *string `min:"1" type:"string" required:"true"`
+
+	// The client secret associated with the client ID to use for OAuth authorization
+	// for the connection.
+	//
+	// ClientSecret is a sensitive parameter and its value will be
+	// replaced with "sensitive" in string returned by CreateConnectionOAuthClientRequestParameters's
+	// String and GoString methods.
+	//
+	// ClientSecret is a required field
+	ClientSecret *string `min:"1" type:"string" required:"true" sensitive:"true"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s CreateConnectionOAuthClientRequestParameters) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s CreateConnectionOAuthClientRequestParameters) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateConnectionOAuthClientRequestParameters) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateConnectionOAuthClientRequestParameters"}
+	if s.ClientID == nil {
+		invalidParams.Add(request.NewErrParamRequired("ClientID"))
+	}
+	if s.ClientID != nil && len(*s.ClientID) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ClientID", 1))
+	}
+	if s.ClientSecret == nil {
+		invalidParams.Add(request.NewErrParamRequired("ClientSecret"))
+	}
+	if s.ClientSecret != nil && len(*s.ClientSecret) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ClientSecret", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetClientID sets the ClientID field's value.
+func (s *CreateConnectionOAuthClientRequestParameters) SetClientID(v string) *CreateConnectionOAuthClientRequestParameters {
+	s.ClientID = &v
+	return s
+}
+
+// SetClientSecret sets the ClientSecret field's value.
+func (s *CreateConnectionOAuthClientRequestParameters) SetClientSecret(v string) *CreateConnectionOAuthClientRequestParameters {
+	s.ClientSecret = &v
+	return s
+}
+
+// Contains the OAuth authorization parameters to use for the connection.
+type CreateConnectionOAuthRequestParameters struct {
+	_ struct{} `type:"structure"`
+
+	// The URL to the authorization endpoint when OAuth is specified as the authorization
+	// type.
+	//
+	// AuthorizationEndpoint is a required field
+	AuthorizationEndpoint *string `min:"1" type:"string" required:"true"`
+
+	// A CreateConnectionOAuthClientRequestParameters object that contains the client
+	// parameters for OAuth authorization.
+	//
+	// ClientParameters is a required field
+	ClientParameters *CreateConnectionOAuthClientRequestParameters `type:"structure" required:"true"`
+
+	// The method to use for the authorization request.
+	//
+	// HttpMethod is a required field
+	HttpMethod *string `type:"string" required:"true" enum:"ConnectionOAuthHttpMethod"`
+
+	// A ConnectionHttpParameters object that contains details about the additional
+	// parameters to use for the connection.
+	OAuthHttpParameters *ConnectionHttpParameters `type:"structure"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s CreateConnectionOAuthRequestParameters) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s CreateConnectionOAuthRequestParameters) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateConnectionOAuthRequestParameters) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateConnectionOAuthRequestParameters"}
+	if s.AuthorizationEndpoint == nil {
+		invalidParams.Add(request.NewErrParamRequired("AuthorizationEndpoint"))
+	}
+	if s.AuthorizationEndpoint != nil && len(*s.AuthorizationEndpoint) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("AuthorizationEndpoint", 1))
+	}
+	if s.ClientParameters == nil {
+		invalidParams.Add(request.NewErrParamRequired("ClientParameters"))
+	}
+	if s.HttpMethod == nil {
+		invalidParams.Add(request.NewErrParamRequired("HttpMethod"))
+	}
+	if s.ClientParameters != nil {
+		if err := s.ClientParameters.Validate(); err != nil {
+			invalidParams.AddNested("ClientParameters", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetAuthorizationEndpoint sets the AuthorizationEndpoint field's value.
+func (s *CreateConnectionOAuthRequestParameters) SetAuthorizationEndpoint(v string) *CreateConnectionOAuthRequestParameters {
+	s.AuthorizationEndpoint = &v
+	return s
+}
+
+// SetClientParameters sets the ClientParameters field's value.
+func (s *CreateConnectionOAuthRequestParameters) SetClientParameters(v *CreateConnectionOAuthClientRequestParameters) *CreateConnectionOAuthRequestParameters {
+	s.ClientParameters = v
+	return s
+}
+
+// SetHttpMethod sets the HttpMethod field's value.
+func (s *CreateConnectionOAuthRequestParameters) SetHttpMethod(v string) *CreateConnectionOAuthRequestParameters {
+	s.HttpMethod = &v
+	return s
+}
+
+// SetOAuthHttpParameters sets the OAuthHttpParameters field's value.
+func (s *CreateConnectionOAuthRequestParameters) SetOAuthHttpParameters(v *ConnectionHttpParameters) *CreateConnectionOAuthRequestParameters {
+	s.OAuthHttpParameters = v
+	return s
+}
+
+type CreateConnectionOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The ARN of the connection that was created by the request.
+	ConnectionArn *string `min:"1" type:"string"`
+
+	// The state of the connection that was created by the request.
+	ConnectionState *string `type:"string" enum:"ConnectionState"`
+
+	// A time stamp for the time that the connection was created.
+	CreationTime *time.Time `type:"timestamp"`
+
+	// A time stamp for the time that the connection was last updated.
+	LastModifiedTime *time.Time `type:"timestamp"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s CreateConnectionOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s CreateConnectionOutput) GoString() string {
+	return s.String()
+}
+
+// SetConnectionArn sets the ConnectionArn field's value.
+func (s *CreateConnectionOutput) SetConnectionArn(v string) *CreateConnectionOutput {
+	s.ConnectionArn = &v
+	return s
+}
+
+// SetConnectionState sets the ConnectionState field's value.
+func (s *CreateConnectionOutput) SetConnectionState(v string) *CreateConnectionOutput {
+	s.ConnectionState = &v
+	return s
+}
+
+// SetCreationTime sets the CreationTime field's value.
+func (s *CreateConnectionOutput) SetCreationTime(v time.Time) *CreateConnectionOutput {
+	s.CreationTime = &v
+	return s
+}
+
+// SetLastModifiedTime sets the LastModifiedTime field's value.
+func (s *CreateConnectionOutput) SetLastModifiedTime(v time.Time) *CreateConnectionOutput {
+	s.LastModifiedTime = &v
+	return s
+}
+
+type CreateEndpointInput struct {
+	_ struct{} `type:"structure"`
+
+	// A description of the global endpoint.
+	Description *string `type:"string"`
+
+	// Define the event buses used.
+	//
+	// The names of the event buses must be identical in each Region.
+	//
+	// EventBuses is a required field
+	EventBuses []*EndpointEventBus `min:"2" type:"list" required:"true"`
+
+	// The name of the global endpoint. For example, "Name":"us-east-2-custom_bus_A-endpoint".
+	//
+	// Name is a required field
+	Name *string `min:"1" type:"string" required:"true"`
+
+	// Enable or disable event replication. The default state is ENABLED which means
+	// you must supply a RoleArn. If you don't have a RoleArn or you don't want
+	// event replication enabled, set the state to DISABLED.
+	ReplicationConfig *ReplicationConfig `type:"structure"`
+
+	// The ARN of the role used for replication.
+	RoleArn *string `min:"1" type:"string"`
+
+	// Configure the routing policy, including the health check and secondary Region..
+	//
+	// RoutingConfig is a required field
+	RoutingConfig *RoutingConfig `type:"structure" required:"true"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s CreateEndpointInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s CreateEndpointInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateEndpointInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateEndpointInput"}
+	if s.EventBuses == nil {
+		invalidParams.Add(request.NewErrParamRequired("EventBuses"))
+	}
+	if s.EventBuses != nil && len(s.EventBuses) < 2 {
+		invalidParams.Add(request.NewErrParamMinLen("EventBuses", 2))
+	}
+	if s.Name == nil {
+		invalidParams.Add(request.NewErrParamRequired("Name"))
+	}
+	if s.Name != nil && len(*s.Name) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Name", 1))
+	}
+	if s.RoleArn != nil && len(*s.RoleArn) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RoleArn", 1))
+	}
+	if s.RoutingConfig == nil {
+		invalidParams.Add(request.NewErrParamRequired("RoutingConfig"))
+	}
+	if s.EventBuses != nil {
+		for i, v := range s.EventBuses {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "EventBuses", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+	if s.RoutingConfig != nil {
+		if err := s.RoutingConfig.Validate(); err != nil {
+			invalidParams.AddNested("RoutingConfig", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetDescription sets the Description field's value.
+func (s *CreateEndpointInput) SetDescription(v string) *CreateEndpointInput {
+	s.Description = &v
+	return s
+}
+
+// SetEventBuses sets the EventBuses field's value.
+func (s *CreateEndpointInput) SetEventBuses(v []*EndpointEventBus) *CreateEndpointInput {
+	s.EventBuses = v
+	return s
+}
+
+// SetName sets the Name field's value.
+func (s *CreateEndpointInput) SetName(v string) *CreateEndpointInput {
+	s.Name = &v
+	return s
+}
+
+// SetReplicationConfig sets the ReplicationConfig field's value.
+func (s *CreateEndpointInput) SetReplicationConfig(v *ReplicationConfig) *CreateEndpointInput {
+	s.ReplicationConfig = v
+	return s
+}
+
+// SetRoleArn sets the RoleArn field's value.
+func (s *CreateEndpointInput) SetRoleArn(v string) *CreateEndpointInput {
+	s.RoleArn = &v
+	return s
+}
+
+// SetRoutingConfig sets the RoutingConfig field's value.
+func (s *CreateEndpointInput) SetRoutingConfig(v *RoutingConfig) *CreateEndpointInput {
+	s.RoutingConfig = v
+	return s
+}
+
+type CreateEndpointOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The ARN of the endpoint that was created by this request.
+	Arn *string `min:"1" type:"string"`
+
+	// The event buses used by this request.
+	EventBuses []*EndpointEventBus `min:"2" type:"list"`
+
+	// The name of the endpoint that was created by this request.
+	Name *string `min:"1" type:"string"`
+
+	// Whether event replication was enabled or disabled by this request.
+	ReplicationConfig *ReplicationConfig `type:"structure"`
+
+	// The ARN of the role used by event replication for this request.
+	RoleArn *string `min:"1" type:"string"`
+
+	// The routing configuration defined by this request.
+	RoutingConfig *RoutingConfig `type:"structure"`
+
+	// The state of the endpoint that was created by this request.
+	State *string `type:"string" enum:"EndpointState"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s CreateEndpointOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s CreateEndpointOutput) GoString() string {
+	return s.String()
+}
+
+// SetArn sets the Arn field's value.
+func (s *CreateEndpointOutput) SetArn(v string) *CreateEndpointOutput {
+	s.Arn = &v
+	return s
+}
+
+// SetEventBuses sets the EventBuses field's value.
+func (s *CreateEndpointOutput) SetEventBuses(v []*EndpointEventBus) *CreateEndpointOutput {
+	s.EventBuses = v
+	return s
+}
+
+// SetName sets the Name field's value.
+func (s *CreateEndpointOutput) SetName(v string) *CreateEndpointOutput {
+	s.Name = &v
+	return s
+}
+
+// SetReplicationConfig sets the ReplicationConfig field's value.
+func (s *CreateEndpointOutput) SetReplicationConfig(v *ReplicationConfig) *CreateEndpointOutput {
+	s.ReplicationConfig = v
+	return s
+}
+
+// SetRoleArn sets the RoleArn field's value.
+func (s *CreateEndpointOutput) SetRoleArn(v string) *CreateEndpointOutput {
+	s.RoleArn = &v
+	return s
+}
+
+// SetRoutingConfig sets the RoutingConfig field's value.
+func (s *CreateEndpointOutput) SetRoutingConfig(v *RoutingConfig) *CreateEndpointOutput {
+	s.RoutingConfig = v
+	return s
+}
+
+// SetState sets the State field's value.
+func (s *CreateEndpointOutput) SetState(v string) *CreateEndpointOutput {
+	s.State = &v
+	return s
+}
+
+type CreateEventBusInput struct {
+	_ struct{} `type:"structure"`
+
+	// Configuration details of the Amazon SQS queue for EventBridge to use as a
+	// dead-letter queue (DLQ).
+	//
+	// For more information, see Event retry policy and using dead-letter queues
+	// (eventbridge/latest/userguide/eb-rule-dlq.html) in the EventBridge User Guide.
+	DeadLetterConfig *DeadLetterConfig `type:"structure"`
+
+	// The event bus description.
+	Description *string `type:"string"`
+
+	// If you are creating a partner event bus, this specifies the partner event
+	// source that the new event bus will be matched with.
+	EventSourceName *string `min:"1" type:"string"`
+
+	// The identifier of the KMS customer managed key for EventBridge to use, if
+	// you choose to use a customer managed key to encrypt events on this event
+	// bus. The identifier can be the key Amazon Resource Name (ARN), KeyId, key
+	// alias, or key alias ARN.
+	//
+	// If you do not specify a customer managed key identifier, EventBridge uses
+	// an Amazon Web Services owned key to encrypt events on the event bus.
+	//
+	// For more information, see Managing keys (https://docs.aws.amazon.com/kms/latest/developerguide/getting-started.html)
+	// in the Key Management Service Developer Guide.
+	//
+	// Archives and schema discovery are not supported for event buses encrypted
+	// using a customer managed key. EventBridge returns an error if:
+	//
+	//    * You call CreateArchive (https://docs.aws.amazon.com/eventbridge/latest/APIReference/API_CreateArchive.html)
+	//    on an event bus set to use a customer managed key for encryption.
+	//
+	//    * You call CreateDiscoverer (https://docs.aws.amazon.com/eventbridge/latest/schema-reference/v1-discoverers.html#CreateDiscoverer)
+	//    on an event bus set to use a customer managed key for encryption.
+	//
+	//    * You call UpdatedEventBus (https://docs.aws.amazon.com/eventbridge/latest/APIReference/API_UpdatedEventBus.html)
+	//    to set a customer managed key on an event bus with an archives or schema
+	//    discovery enabled.
+	//
+	// To enable archives or schema discovery on an event bus, choose to use an
+	// Amazon Web Services owned key. For more information, see Data encryption
+	// in EventBridge (https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-encryption.html)
+	// in the Amazon EventBridge User Guide.
+	KmsKeyIdentifier *string `type:"string"`
+
+	// The name of the new event bus.
+	//
+	// Custom event bus names can't contain the / character, but you can use the
+	// / character in partner event bus names. In addition, for partner event buses,
+	// the name must exactly match the name of the partner event source that this
+	// event bus is matched to.
+	//
+	// You can't use the name default for a custom event bus, as this name is already
+	// used for your account's default event bus.
+	//
+	// Name is a required field
+	Name *string `min:"1" type:"string" required:"true"`
+
+	// Tags to associate with the event bus.
+	Tags []*Tag `type:"list"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s CreateEventBusInput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s CreateEventBusInput) GoString() string {
 	return s.String()
 }
@@ -3357,6 +7955,21 @@ func (s *CreateEventBusInput) Validate() error {
 	if s.Name != nil && len(*s.Name) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("Name", 1))
 	}
+	if s.DeadLetterConfig != nil {
+		if err := s.DeadLetterConfig.Validate(); err != nil {
+			invalidParams.AddNested("DeadLetterConfig", err.(request.ErrInvalidParams))
+		}
+	}
+	if s.Tags != nil {
+		for i, v := range s.Tags {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "Tags", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -3364,9 +7977,27 @@ func (s *CreateEventBusInput) Validate() error {
 	return nil
 }
 
+// SetDeadLetterConfig sets the DeadLetterConfig field's value.
+func (s *CreateEventBusInput) SetDeadLetterConfig(v *DeadLetterConfig) *CreateEventBusInput {
+	s.DeadLetterConfig = v
+	return s
+}
+
+// SetDescription sets the Description field's value.
+func (s *CreateEventBusInput) SetDescription(v string) *CreateEventBusInput {
+	s.Description = &v
+	return s
+}
+
 // SetEventSourceName sets the EventSourceName field's value.
 func (s *CreateEventBusInput) SetEventSourceName(v string) *CreateEventBusInput {
 	s.EventSourceName = &v
+	return s
+}
+
+// SetKmsKeyIdentifier sets the KmsKeyIdentifier field's value.
+func (s *CreateEventBusInput) SetKmsKeyIdentifier(v string) *CreateEventBusInput {
+	s.KmsKeyIdentifier = &v
 	return s
 }
 
@@ -3376,21 +8007,64 @@ func (s *CreateEventBusInput) SetName(v string) *CreateEventBusInput {
 	return s
 }
 
+// SetTags sets the Tags field's value.
+func (s *CreateEventBusInput) SetTags(v []*Tag) *CreateEventBusInput {
+	s.Tags = v
+	return s
+}
+
 type CreateEventBusOutput struct {
 	_ struct{} `type:"structure"`
 
+	// Configuration details of the Amazon SQS queue for EventBridge to use as a
+	// dead-letter queue (DLQ).
+	//
+	// For more information, see Event retry policy and using dead-letter queues
+	// (eventbridge/latest/userguide/eb-rule-dlq.html) in the EventBridge User Guide.
+	DeadLetterConfig *DeadLetterConfig `type:"structure"`
+
+	// The event bus description.
+	Description *string `type:"string"`
+
 	// The ARN of the new event bus.
 	EventBusArn *string `type:"string"`
+
+	// The identifier of the KMS customer managed key for EventBridge to use to
+	// encrypt events on this event bus, if one has been specified.
+	//
+	// For more information, see Data encryption in EventBridge (https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-encryption.html)
+	// in the Amazon EventBridge User Guide.
+	KmsKeyIdentifier *string `type:"string"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s CreateEventBusOutput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s CreateEventBusOutput) GoString() string {
 	return s.String()
+}
+
+// SetDeadLetterConfig sets the DeadLetterConfig field's value.
+func (s *CreateEventBusOutput) SetDeadLetterConfig(v *DeadLetterConfig) *CreateEventBusOutput {
+	s.DeadLetterConfig = v
+	return s
+}
+
+// SetDescription sets the Description field's value.
+func (s *CreateEventBusOutput) SetDescription(v string) *CreateEventBusOutput {
+	s.Description = &v
+	return s
 }
 
 // SetEventBusArn sets the EventBusArn field's value.
@@ -3399,30 +8073,44 @@ func (s *CreateEventBusOutput) SetEventBusArn(v string) *CreateEventBusOutput {
 	return s
 }
 
+// SetKmsKeyIdentifier sets the KmsKeyIdentifier field's value.
+func (s *CreateEventBusOutput) SetKmsKeyIdentifier(v string) *CreateEventBusOutput {
+	s.KmsKeyIdentifier = &v
+	return s
+}
+
 type CreatePartnerEventSourceInput struct {
 	_ struct{} `type:"structure"`
 
-	// The AWS account ID of the customer who is permitted to create a matching
+	// The Amazon Web Services account ID that is permitted to create a matching
 	// partner event bus for this partner event source.
 	//
 	// Account is a required field
 	Account *string `min:"12" type:"string" required:"true"`
 
 	// The name of the partner event source. This name must be unique and must be
-	// in the format partner_name/event_namespace/event_name . The AWS account that
-	// wants to use this partner event source must create a partner event bus with
-	// a name that matches the name of the partner event source.
+	// in the format partner_name/event_namespace/event_name . The Amazon Web Services
+	// account that wants to use this partner event source must create a partner
+	// event bus with a name that matches the name of the partner event source.
 	//
 	// Name is a required field
 	Name *string `min:"1" type:"string" required:"true"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s CreatePartnerEventSourceInput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s CreatePartnerEventSourceInput) GoString() string {
 	return s.String()
 }
@@ -3468,12 +8156,20 @@ type CreatePartnerEventSourceOutput struct {
 	EventSourceArn *string `type:"string"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s CreatePartnerEventSourceOutput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s CreatePartnerEventSourceOutput) GoString() string {
 	return s.String()
 }
@@ -3493,12 +8189,20 @@ type DeactivateEventSourceInput struct {
 	Name *string `min:"1" type:"string" required:"true"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DeactivateEventSourceInput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DeactivateEventSourceInput) GoString() string {
 	return s.String()
 }
@@ -3529,13 +8233,517 @@ type DeactivateEventSourceOutput struct {
 	_ struct{} `type:"structure"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DeactivateEventSourceOutput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DeactivateEventSourceOutput) GoString() string {
+	return s.String()
+}
+
+// Configuration details of the Amazon SQS queue for EventBridge to use as a
+// dead-letter queue (DLQ).
+//
+// For more information, see Event retry policy and using dead-letter queues
+// (eventbridge/latest/userguide/eb-rule-dlq.html) in the EventBridge User Guide.
+type DeadLetterConfig struct {
+	_ struct{} `type:"structure"`
+
+	// The ARN of the SQS queue specified as the target for the dead-letter queue.
+	Arn *string `min:"1" type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DeadLetterConfig) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DeadLetterConfig) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeadLetterConfig) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeadLetterConfig"}
+	if s.Arn != nil && len(*s.Arn) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Arn", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetArn sets the Arn field's value.
+func (s *DeadLetterConfig) SetArn(v string) *DeadLetterConfig {
+	s.Arn = &v
+	return s
+}
+
+type DeauthorizeConnectionInput struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the connection to remove authorization from.
+	//
+	// Name is a required field
+	Name *string `min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DeauthorizeConnectionInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DeauthorizeConnectionInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeauthorizeConnectionInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeauthorizeConnectionInput"}
+	if s.Name == nil {
+		invalidParams.Add(request.NewErrParamRequired("Name"))
+	}
+	if s.Name != nil && len(*s.Name) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Name", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetName sets the Name field's value.
+func (s *DeauthorizeConnectionInput) SetName(v string) *DeauthorizeConnectionInput {
+	s.Name = &v
+	return s
+}
+
+type DeauthorizeConnectionOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The ARN of the connection that authorization was removed from.
+	ConnectionArn *string `min:"1" type:"string"`
+
+	// The state of the connection.
+	ConnectionState *string `type:"string" enum:"ConnectionState"`
+
+	// A time stamp for the time that the connection was created.
+	CreationTime *time.Time `type:"timestamp"`
+
+	// A time stamp for the time that the connection was last authorized.
+	LastAuthorizedTime *time.Time `type:"timestamp"`
+
+	// A time stamp for the time that the connection was last updated.
+	LastModifiedTime *time.Time `type:"timestamp"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DeauthorizeConnectionOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DeauthorizeConnectionOutput) GoString() string {
+	return s.String()
+}
+
+// SetConnectionArn sets the ConnectionArn field's value.
+func (s *DeauthorizeConnectionOutput) SetConnectionArn(v string) *DeauthorizeConnectionOutput {
+	s.ConnectionArn = &v
+	return s
+}
+
+// SetConnectionState sets the ConnectionState field's value.
+func (s *DeauthorizeConnectionOutput) SetConnectionState(v string) *DeauthorizeConnectionOutput {
+	s.ConnectionState = &v
+	return s
+}
+
+// SetCreationTime sets the CreationTime field's value.
+func (s *DeauthorizeConnectionOutput) SetCreationTime(v time.Time) *DeauthorizeConnectionOutput {
+	s.CreationTime = &v
+	return s
+}
+
+// SetLastAuthorizedTime sets the LastAuthorizedTime field's value.
+func (s *DeauthorizeConnectionOutput) SetLastAuthorizedTime(v time.Time) *DeauthorizeConnectionOutput {
+	s.LastAuthorizedTime = &v
+	return s
+}
+
+// SetLastModifiedTime sets the LastModifiedTime field's value.
+func (s *DeauthorizeConnectionOutput) SetLastModifiedTime(v time.Time) *DeauthorizeConnectionOutput {
+	s.LastModifiedTime = &v
+	return s
+}
+
+type DeleteApiDestinationInput struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the destination to delete.
+	//
+	// Name is a required field
+	Name *string `min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DeleteApiDestinationInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DeleteApiDestinationInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteApiDestinationInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteApiDestinationInput"}
+	if s.Name == nil {
+		invalidParams.Add(request.NewErrParamRequired("Name"))
+	}
+	if s.Name != nil && len(*s.Name) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Name", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetName sets the Name field's value.
+func (s *DeleteApiDestinationInput) SetName(v string) *DeleteApiDestinationInput {
+	s.Name = &v
+	return s
+}
+
+type DeleteApiDestinationOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DeleteApiDestinationOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DeleteApiDestinationOutput) GoString() string {
+	return s.String()
+}
+
+type DeleteArchiveInput struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the archive to delete.
+	//
+	// ArchiveName is a required field
+	ArchiveName *string `min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DeleteArchiveInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DeleteArchiveInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteArchiveInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteArchiveInput"}
+	if s.ArchiveName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ArchiveName"))
+	}
+	if s.ArchiveName != nil && len(*s.ArchiveName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ArchiveName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetArchiveName sets the ArchiveName field's value.
+func (s *DeleteArchiveInput) SetArchiveName(v string) *DeleteArchiveInput {
+	s.ArchiveName = &v
+	return s
+}
+
+type DeleteArchiveOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DeleteArchiveOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DeleteArchiveOutput) GoString() string {
+	return s.String()
+}
+
+type DeleteConnectionInput struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the connection to delete.
+	//
+	// Name is a required field
+	Name *string `min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DeleteConnectionInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DeleteConnectionInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteConnectionInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteConnectionInput"}
+	if s.Name == nil {
+		invalidParams.Add(request.NewErrParamRequired("Name"))
+	}
+	if s.Name != nil && len(*s.Name) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Name", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetName sets the Name field's value.
+func (s *DeleteConnectionInput) SetName(v string) *DeleteConnectionInput {
+	s.Name = &v
+	return s
+}
+
+type DeleteConnectionOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The ARN of the connection that was deleted.
+	ConnectionArn *string `min:"1" type:"string"`
+
+	// The state of the connection before it was deleted.
+	ConnectionState *string `type:"string" enum:"ConnectionState"`
+
+	// A time stamp for the time that the connection was created.
+	CreationTime *time.Time `type:"timestamp"`
+
+	// A time stamp for the time that the connection was last authorized before
+	// it wa deleted.
+	LastAuthorizedTime *time.Time `type:"timestamp"`
+
+	// A time stamp for the time that the connection was last modified before it
+	// was deleted.
+	LastModifiedTime *time.Time `type:"timestamp"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DeleteConnectionOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DeleteConnectionOutput) GoString() string {
+	return s.String()
+}
+
+// SetConnectionArn sets the ConnectionArn field's value.
+func (s *DeleteConnectionOutput) SetConnectionArn(v string) *DeleteConnectionOutput {
+	s.ConnectionArn = &v
+	return s
+}
+
+// SetConnectionState sets the ConnectionState field's value.
+func (s *DeleteConnectionOutput) SetConnectionState(v string) *DeleteConnectionOutput {
+	s.ConnectionState = &v
+	return s
+}
+
+// SetCreationTime sets the CreationTime field's value.
+func (s *DeleteConnectionOutput) SetCreationTime(v time.Time) *DeleteConnectionOutput {
+	s.CreationTime = &v
+	return s
+}
+
+// SetLastAuthorizedTime sets the LastAuthorizedTime field's value.
+func (s *DeleteConnectionOutput) SetLastAuthorizedTime(v time.Time) *DeleteConnectionOutput {
+	s.LastAuthorizedTime = &v
+	return s
+}
+
+// SetLastModifiedTime sets the LastModifiedTime field's value.
+func (s *DeleteConnectionOutput) SetLastModifiedTime(v time.Time) *DeleteConnectionOutput {
+	s.LastModifiedTime = &v
+	return s
+}
+
+type DeleteEndpointInput struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the endpoint you want to delete. For example, "Name":"us-east-2-custom_bus_A-endpoint"..
+	//
+	// Name is a required field
+	Name *string `min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DeleteEndpointInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DeleteEndpointInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteEndpointInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteEndpointInput"}
+	if s.Name == nil {
+		invalidParams.Add(request.NewErrParamRequired("Name"))
+	}
+	if s.Name != nil && len(*s.Name) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Name", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetName sets the Name field's value.
+func (s *DeleteEndpointInput) SetName(v string) *DeleteEndpointInput {
+	s.Name = &v
+	return s
+}
+
+type DeleteEndpointOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DeleteEndpointOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DeleteEndpointOutput) GoString() string {
 	return s.String()
 }
 
@@ -3548,12 +8756,20 @@ type DeleteEventBusInput struct {
 	Name *string `min:"1" type:"string" required:"true"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DeleteEventBusInput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DeleteEventBusInput) GoString() string {
 	return s.String()
 }
@@ -3584,12 +8800,20 @@ type DeleteEventBusOutput struct {
 	_ struct{} `type:"structure"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DeleteEventBusOutput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DeleteEventBusOutput) GoString() string {
 	return s.String()
 }
@@ -3597,8 +8821,8 @@ func (s DeleteEventBusOutput) GoString() string {
 type DeletePartnerEventSourceInput struct {
 	_ struct{} `type:"structure"`
 
-	// The AWS account ID of the AWS customer that the event source was created
-	// for.
+	// The Amazon Web Services account ID of the Amazon Web Services customer that
+	// the event source was created for.
 	//
 	// Account is a required field
 	Account *string `min:"12" type:"string" required:"true"`
@@ -3609,12 +8833,20 @@ type DeletePartnerEventSourceInput struct {
 	Name *string `min:"1" type:"string" required:"true"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DeletePartnerEventSourceInput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DeletePartnerEventSourceInput) GoString() string {
 	return s.String()
 }
@@ -3657,12 +8889,20 @@ type DeletePartnerEventSourceOutput struct {
 	_ struct{} `type:"structure"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DeletePartnerEventSourceOutput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DeletePartnerEventSourceOutput) GoString() string {
 	return s.String()
 }
@@ -3670,15 +8910,15 @@ func (s DeletePartnerEventSourceOutput) GoString() string {
 type DeleteRuleInput struct {
 	_ struct{} `type:"structure"`
 
-	// The event bus associated with the rule. If you omit this, the default event
-	// bus is used.
+	// The name or ARN of the event bus associated with the rule. If you omit this,
+	// the default event bus is used.
 	EventBusName *string `min:"1" type:"string"`
 
-	// If this is a managed rule, created by an AWS service on your behalf, you
-	// must specify Force as True to delete the rule. This parameter is ignored
-	// for rules that are not managed rules. You can check whether a rule is a managed
-	// rule by using DescribeRule or ListRules and checking the ManagedBy field
-	// of the response.
+	// If this is a managed rule, created by an Amazon Web Services service on your
+	// behalf, you must specify Force as True to delete the rule. This parameter
+	// is ignored for rules that are not managed rules. You can check whether a
+	// rule is a managed rule by using DescribeRule or ListRules and checking the
+	// ManagedBy field of the response.
 	Force *bool `type:"boolean"`
 
 	// The name of the rule.
@@ -3687,12 +8927,20 @@ type DeleteRuleInput struct {
 	Name *string `min:"1" type:"string" required:"true"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DeleteRuleInput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DeleteRuleInput) GoString() string {
 	return s.String()
 }
@@ -3738,30 +8986,758 @@ type DeleteRuleOutput struct {
 	_ struct{} `type:"structure"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DeleteRuleOutput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DeleteRuleOutput) GoString() string {
 	return s.String()
+}
+
+type DescribeApiDestinationInput struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the API destination to retrieve.
+	//
+	// Name is a required field
+	Name *string `min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DescribeApiDestinationInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DescribeApiDestinationInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeApiDestinationInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeApiDestinationInput"}
+	if s.Name == nil {
+		invalidParams.Add(request.NewErrParamRequired("Name"))
+	}
+	if s.Name != nil && len(*s.Name) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Name", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetName sets the Name field's value.
+func (s *DescribeApiDestinationInput) SetName(v string) *DescribeApiDestinationInput {
+	s.Name = &v
+	return s
+}
+
+type DescribeApiDestinationOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The ARN of the API destination retrieved.
+	ApiDestinationArn *string `min:"1" type:"string"`
+
+	// The state of the API destination retrieved.
+	ApiDestinationState *string `type:"string" enum:"ApiDestinationState"`
+
+	// The ARN of the connection specified for the API destination retrieved.
+	ConnectionArn *string `min:"1" type:"string"`
+
+	// A time stamp for the time that the API destination was created.
+	CreationTime *time.Time `type:"timestamp"`
+
+	// The description for the API destination retrieved.
+	Description *string `type:"string"`
+
+	// The method to use to connect to the HTTP endpoint.
+	HttpMethod *string `type:"string" enum:"ApiDestinationHttpMethod"`
+
+	// The URL to use to connect to the HTTP endpoint.
+	InvocationEndpoint *string `min:"1" type:"string"`
+
+	// The maximum number of invocations per second to specified for the API destination.
+	// Note that if you set the invocation rate maximum to a value lower the rate
+	// necessary to send all events received on to the destination HTTP endpoint,
+	// some events may not be delivered within the 24-hour retry window. If you
+	// plan to set the rate lower than the rate necessary to deliver all events,
+	// consider using a dead-letter queue to catch events that are not delivered
+	// within 24 hours.
+	InvocationRateLimitPerSecond *int64 `min:"1" type:"integer"`
+
+	// A time stamp for the time that the API destination was last modified.
+	LastModifiedTime *time.Time `type:"timestamp"`
+
+	// The name of the API destination retrieved.
+	Name *string `min:"1" type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DescribeApiDestinationOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DescribeApiDestinationOutput) GoString() string {
+	return s.String()
+}
+
+// SetApiDestinationArn sets the ApiDestinationArn field's value.
+func (s *DescribeApiDestinationOutput) SetApiDestinationArn(v string) *DescribeApiDestinationOutput {
+	s.ApiDestinationArn = &v
+	return s
+}
+
+// SetApiDestinationState sets the ApiDestinationState field's value.
+func (s *DescribeApiDestinationOutput) SetApiDestinationState(v string) *DescribeApiDestinationOutput {
+	s.ApiDestinationState = &v
+	return s
+}
+
+// SetConnectionArn sets the ConnectionArn field's value.
+func (s *DescribeApiDestinationOutput) SetConnectionArn(v string) *DescribeApiDestinationOutput {
+	s.ConnectionArn = &v
+	return s
+}
+
+// SetCreationTime sets the CreationTime field's value.
+func (s *DescribeApiDestinationOutput) SetCreationTime(v time.Time) *DescribeApiDestinationOutput {
+	s.CreationTime = &v
+	return s
+}
+
+// SetDescription sets the Description field's value.
+func (s *DescribeApiDestinationOutput) SetDescription(v string) *DescribeApiDestinationOutput {
+	s.Description = &v
+	return s
+}
+
+// SetHttpMethod sets the HttpMethod field's value.
+func (s *DescribeApiDestinationOutput) SetHttpMethod(v string) *DescribeApiDestinationOutput {
+	s.HttpMethod = &v
+	return s
+}
+
+// SetInvocationEndpoint sets the InvocationEndpoint field's value.
+func (s *DescribeApiDestinationOutput) SetInvocationEndpoint(v string) *DescribeApiDestinationOutput {
+	s.InvocationEndpoint = &v
+	return s
+}
+
+// SetInvocationRateLimitPerSecond sets the InvocationRateLimitPerSecond field's value.
+func (s *DescribeApiDestinationOutput) SetInvocationRateLimitPerSecond(v int64) *DescribeApiDestinationOutput {
+	s.InvocationRateLimitPerSecond = &v
+	return s
+}
+
+// SetLastModifiedTime sets the LastModifiedTime field's value.
+func (s *DescribeApiDestinationOutput) SetLastModifiedTime(v time.Time) *DescribeApiDestinationOutput {
+	s.LastModifiedTime = &v
+	return s
+}
+
+// SetName sets the Name field's value.
+func (s *DescribeApiDestinationOutput) SetName(v string) *DescribeApiDestinationOutput {
+	s.Name = &v
+	return s
+}
+
+type DescribeArchiveInput struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the archive to retrieve.
+	//
+	// ArchiveName is a required field
+	ArchiveName *string `min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DescribeArchiveInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DescribeArchiveInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeArchiveInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeArchiveInput"}
+	if s.ArchiveName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ArchiveName"))
+	}
+	if s.ArchiveName != nil && len(*s.ArchiveName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ArchiveName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetArchiveName sets the ArchiveName field's value.
+func (s *DescribeArchiveInput) SetArchiveName(v string) *DescribeArchiveInput {
+	s.ArchiveName = &v
+	return s
+}
+
+type DescribeArchiveOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The ARN of the archive.
+	ArchiveArn *string `min:"1" type:"string"`
+
+	// The name of the archive.
+	ArchiveName *string `min:"1" type:"string"`
+
+	// The time at which the archive was created.
+	CreationTime *time.Time `type:"timestamp"`
+
+	// The description of the archive.
+	Description *string `type:"string"`
+
+	// The number of events in the archive.
+	EventCount *int64 `type:"long"`
+
+	// The event pattern used to filter events sent to the archive.
+	EventPattern *string `type:"string"`
+
+	// The ARN of the event source associated with the archive.
+	EventSourceArn *string `min:"1" type:"string"`
+
+	// The number of days to retain events for in the archive.
+	RetentionDays *int64 `type:"integer"`
+
+	// The size of the archive in bytes.
+	SizeBytes *int64 `type:"long"`
+
+	// The state of the archive.
+	State *string `type:"string" enum:"ArchiveState"`
+
+	// The reason that the archive is in the state.
+	StateReason *string `type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DescribeArchiveOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DescribeArchiveOutput) GoString() string {
+	return s.String()
+}
+
+// SetArchiveArn sets the ArchiveArn field's value.
+func (s *DescribeArchiveOutput) SetArchiveArn(v string) *DescribeArchiveOutput {
+	s.ArchiveArn = &v
+	return s
+}
+
+// SetArchiveName sets the ArchiveName field's value.
+func (s *DescribeArchiveOutput) SetArchiveName(v string) *DescribeArchiveOutput {
+	s.ArchiveName = &v
+	return s
+}
+
+// SetCreationTime sets the CreationTime field's value.
+func (s *DescribeArchiveOutput) SetCreationTime(v time.Time) *DescribeArchiveOutput {
+	s.CreationTime = &v
+	return s
+}
+
+// SetDescription sets the Description field's value.
+func (s *DescribeArchiveOutput) SetDescription(v string) *DescribeArchiveOutput {
+	s.Description = &v
+	return s
+}
+
+// SetEventCount sets the EventCount field's value.
+func (s *DescribeArchiveOutput) SetEventCount(v int64) *DescribeArchiveOutput {
+	s.EventCount = &v
+	return s
+}
+
+// SetEventPattern sets the EventPattern field's value.
+func (s *DescribeArchiveOutput) SetEventPattern(v string) *DescribeArchiveOutput {
+	s.EventPattern = &v
+	return s
+}
+
+// SetEventSourceArn sets the EventSourceArn field's value.
+func (s *DescribeArchiveOutput) SetEventSourceArn(v string) *DescribeArchiveOutput {
+	s.EventSourceArn = &v
+	return s
+}
+
+// SetRetentionDays sets the RetentionDays field's value.
+func (s *DescribeArchiveOutput) SetRetentionDays(v int64) *DescribeArchiveOutput {
+	s.RetentionDays = &v
+	return s
+}
+
+// SetSizeBytes sets the SizeBytes field's value.
+func (s *DescribeArchiveOutput) SetSizeBytes(v int64) *DescribeArchiveOutput {
+	s.SizeBytes = &v
+	return s
+}
+
+// SetState sets the State field's value.
+func (s *DescribeArchiveOutput) SetState(v string) *DescribeArchiveOutput {
+	s.State = &v
+	return s
+}
+
+// SetStateReason sets the StateReason field's value.
+func (s *DescribeArchiveOutput) SetStateReason(v string) *DescribeArchiveOutput {
+	s.StateReason = &v
+	return s
+}
+
+type DescribeConnectionInput struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the connection to retrieve.
+	//
+	// Name is a required field
+	Name *string `min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DescribeConnectionInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DescribeConnectionInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeConnectionInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeConnectionInput"}
+	if s.Name == nil {
+		invalidParams.Add(request.NewErrParamRequired("Name"))
+	}
+	if s.Name != nil && len(*s.Name) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Name", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetName sets the Name field's value.
+func (s *DescribeConnectionInput) SetName(v string) *DescribeConnectionInput {
+	s.Name = &v
+	return s
+}
+
+type DescribeConnectionOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The parameters to use for authorization for the connection.
+	AuthParameters *ConnectionAuthResponseParameters `type:"structure"`
+
+	// The type of authorization specified for the connection.
+	AuthorizationType *string `type:"string" enum:"ConnectionAuthorizationType"`
+
+	// The ARN of the connection retrieved.
+	ConnectionArn *string `min:"1" type:"string"`
+
+	// The state of the connection retrieved.
+	ConnectionState *string `type:"string" enum:"ConnectionState"`
+
+	// A time stamp for the time that the connection was created.
+	CreationTime *time.Time `type:"timestamp"`
+
+	// The description for the connection retrieved.
+	Description *string `type:"string"`
+
+	// A time stamp for the time that the connection was last authorized.
+	LastAuthorizedTime *time.Time `type:"timestamp"`
+
+	// A time stamp for the time that the connection was last modified.
+	LastModifiedTime *time.Time `type:"timestamp"`
+
+	// The name of the connection retrieved.
+	Name *string `min:"1" type:"string"`
+
+	// The ARN of the secret created from the authorization parameters specified
+	// for the connection.
+	SecretArn *string `min:"20" type:"string"`
+
+	// The reason that the connection is in the current connection state.
+	StateReason *string `type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DescribeConnectionOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DescribeConnectionOutput) GoString() string {
+	return s.String()
+}
+
+// SetAuthParameters sets the AuthParameters field's value.
+func (s *DescribeConnectionOutput) SetAuthParameters(v *ConnectionAuthResponseParameters) *DescribeConnectionOutput {
+	s.AuthParameters = v
+	return s
+}
+
+// SetAuthorizationType sets the AuthorizationType field's value.
+func (s *DescribeConnectionOutput) SetAuthorizationType(v string) *DescribeConnectionOutput {
+	s.AuthorizationType = &v
+	return s
+}
+
+// SetConnectionArn sets the ConnectionArn field's value.
+func (s *DescribeConnectionOutput) SetConnectionArn(v string) *DescribeConnectionOutput {
+	s.ConnectionArn = &v
+	return s
+}
+
+// SetConnectionState sets the ConnectionState field's value.
+func (s *DescribeConnectionOutput) SetConnectionState(v string) *DescribeConnectionOutput {
+	s.ConnectionState = &v
+	return s
+}
+
+// SetCreationTime sets the CreationTime field's value.
+func (s *DescribeConnectionOutput) SetCreationTime(v time.Time) *DescribeConnectionOutput {
+	s.CreationTime = &v
+	return s
+}
+
+// SetDescription sets the Description field's value.
+func (s *DescribeConnectionOutput) SetDescription(v string) *DescribeConnectionOutput {
+	s.Description = &v
+	return s
+}
+
+// SetLastAuthorizedTime sets the LastAuthorizedTime field's value.
+func (s *DescribeConnectionOutput) SetLastAuthorizedTime(v time.Time) *DescribeConnectionOutput {
+	s.LastAuthorizedTime = &v
+	return s
+}
+
+// SetLastModifiedTime sets the LastModifiedTime field's value.
+func (s *DescribeConnectionOutput) SetLastModifiedTime(v time.Time) *DescribeConnectionOutput {
+	s.LastModifiedTime = &v
+	return s
+}
+
+// SetName sets the Name field's value.
+func (s *DescribeConnectionOutput) SetName(v string) *DescribeConnectionOutput {
+	s.Name = &v
+	return s
+}
+
+// SetSecretArn sets the SecretArn field's value.
+func (s *DescribeConnectionOutput) SetSecretArn(v string) *DescribeConnectionOutput {
+	s.SecretArn = &v
+	return s
+}
+
+// SetStateReason sets the StateReason field's value.
+func (s *DescribeConnectionOutput) SetStateReason(v string) *DescribeConnectionOutput {
+	s.StateReason = &v
+	return s
+}
+
+type DescribeEndpointInput struct {
+	_ struct{} `type:"structure"`
+
+	// The primary Region of the endpoint you want to get information about. For
+	// example "HomeRegion": "us-east-1".
+	HomeRegion *string `min:"9" type:"string"`
+
+	// The name of the endpoint you want to get information about. For example,
+	// "Name":"us-east-2-custom_bus_A-endpoint".
+	//
+	// Name is a required field
+	Name *string `min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DescribeEndpointInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DescribeEndpointInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeEndpointInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeEndpointInput"}
+	if s.HomeRegion != nil && len(*s.HomeRegion) < 9 {
+		invalidParams.Add(request.NewErrParamMinLen("HomeRegion", 9))
+	}
+	if s.Name == nil {
+		invalidParams.Add(request.NewErrParamRequired("Name"))
+	}
+	if s.Name != nil && len(*s.Name) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Name", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetHomeRegion sets the HomeRegion field's value.
+func (s *DescribeEndpointInput) SetHomeRegion(v string) *DescribeEndpointInput {
+	s.HomeRegion = &v
+	return s
+}
+
+// SetName sets the Name field's value.
+func (s *DescribeEndpointInput) SetName(v string) *DescribeEndpointInput {
+	s.Name = &v
+	return s
+}
+
+type DescribeEndpointOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The ARN of the endpoint you asked for information about.
+	Arn *string `min:"1" type:"string"`
+
+	// The time the endpoint you asked for information about was created.
+	CreationTime *time.Time `type:"timestamp"`
+
+	// The description of the endpoint you asked for information about.
+	Description *string `type:"string"`
+
+	// The ID of the endpoint you asked for information about.
+	EndpointId *string `min:"1" type:"string"`
+
+	// The URL of the endpoint you asked for information about.
+	EndpointUrl *string `min:"1" type:"string"`
+
+	// The event buses being used by the endpoint you asked for information about.
+	EventBuses []*EndpointEventBus `min:"2" type:"list"`
+
+	// The last time the endpoint you asked for information about was modified.
+	LastModifiedTime *time.Time `type:"timestamp"`
+
+	// The name of the endpoint you asked for information about.
+	Name *string `min:"1" type:"string"`
+
+	// Whether replication is enabled or disabled for the endpoint you asked for
+	// information about.
+	ReplicationConfig *ReplicationConfig `type:"structure"`
+
+	// The ARN of the role used by the endpoint you asked for information about.
+	RoleArn *string `min:"1" type:"string"`
+
+	// The routing configuration of the endpoint you asked for information about.
+	RoutingConfig *RoutingConfig `type:"structure"`
+
+	// The current state of the endpoint you asked for information about.
+	State *string `type:"string" enum:"EndpointState"`
+
+	// The reason the endpoint you asked for information about is in its current
+	// state.
+	StateReason *string `min:"1" type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DescribeEndpointOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DescribeEndpointOutput) GoString() string {
+	return s.String()
+}
+
+// SetArn sets the Arn field's value.
+func (s *DescribeEndpointOutput) SetArn(v string) *DescribeEndpointOutput {
+	s.Arn = &v
+	return s
+}
+
+// SetCreationTime sets the CreationTime field's value.
+func (s *DescribeEndpointOutput) SetCreationTime(v time.Time) *DescribeEndpointOutput {
+	s.CreationTime = &v
+	return s
+}
+
+// SetDescription sets the Description field's value.
+func (s *DescribeEndpointOutput) SetDescription(v string) *DescribeEndpointOutput {
+	s.Description = &v
+	return s
+}
+
+// SetEndpointId sets the EndpointId field's value.
+func (s *DescribeEndpointOutput) SetEndpointId(v string) *DescribeEndpointOutput {
+	s.EndpointId = &v
+	return s
+}
+
+// SetEndpointUrl sets the EndpointUrl field's value.
+func (s *DescribeEndpointOutput) SetEndpointUrl(v string) *DescribeEndpointOutput {
+	s.EndpointUrl = &v
+	return s
+}
+
+// SetEventBuses sets the EventBuses field's value.
+func (s *DescribeEndpointOutput) SetEventBuses(v []*EndpointEventBus) *DescribeEndpointOutput {
+	s.EventBuses = v
+	return s
+}
+
+// SetLastModifiedTime sets the LastModifiedTime field's value.
+func (s *DescribeEndpointOutput) SetLastModifiedTime(v time.Time) *DescribeEndpointOutput {
+	s.LastModifiedTime = &v
+	return s
+}
+
+// SetName sets the Name field's value.
+func (s *DescribeEndpointOutput) SetName(v string) *DescribeEndpointOutput {
+	s.Name = &v
+	return s
+}
+
+// SetReplicationConfig sets the ReplicationConfig field's value.
+func (s *DescribeEndpointOutput) SetReplicationConfig(v *ReplicationConfig) *DescribeEndpointOutput {
+	s.ReplicationConfig = v
+	return s
+}
+
+// SetRoleArn sets the RoleArn field's value.
+func (s *DescribeEndpointOutput) SetRoleArn(v string) *DescribeEndpointOutput {
+	s.RoleArn = &v
+	return s
+}
+
+// SetRoutingConfig sets the RoutingConfig field's value.
+func (s *DescribeEndpointOutput) SetRoutingConfig(v *RoutingConfig) *DescribeEndpointOutput {
+	s.RoutingConfig = v
+	return s
+}
+
+// SetState sets the State field's value.
+func (s *DescribeEndpointOutput) SetState(v string) *DescribeEndpointOutput {
+	s.State = &v
+	return s
+}
+
+// SetStateReason sets the StateReason field's value.
+func (s *DescribeEndpointOutput) SetStateReason(v string) *DescribeEndpointOutput {
+	s.StateReason = &v
+	return s
 }
 
 type DescribeEventBusInput struct {
 	_ struct{} `type:"structure"`
 
-	// The name of the event bus to show details for. If you omit this, the default
-	// event bus is displayed.
+	// The name or ARN of the event bus to show details for. If you omit this, the
+	// default event bus is displayed.
 	Name *string `min:"1" type:"string"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DescribeEventBusInput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DescribeEventBusInput) GoString() string {
 	return s.String()
 }
@@ -3792,6 +9768,29 @@ type DescribeEventBusOutput struct {
 	// the current account.
 	Arn *string `type:"string"`
 
+	// The time the event bus was created.
+	CreationTime *time.Time `type:"timestamp"`
+
+	// Configuration details of the Amazon SQS queue for EventBridge to use as a
+	// dead-letter queue (DLQ).
+	//
+	// For more information, see Event retry policy and using dead-letter queues
+	// (eventbridge/latest/userguide/eb-rule-dlq.html) in the EventBridge User Guide.
+	DeadLetterConfig *DeadLetterConfig `type:"structure"`
+
+	// The event bus description.
+	Description *string `type:"string"`
+
+	// The identifier of the KMS customer managed key for EventBridge to use to
+	// encrypt events on this event bus, if one has been specified.
+	//
+	// For more information, see Data encryption in EventBridge (https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-encryption.html)
+	// in the Amazon EventBridge User Guide.
+	KmsKeyIdentifier *string `type:"string"`
+
+	// The time the event bus was last modified.
+	LastModifiedTime *time.Time `type:"timestamp"`
+
 	// The name of the event bus. Currently, this is always default.
 	Name *string `type:"string"`
 
@@ -3799,12 +9798,20 @@ type DescribeEventBusOutput struct {
 	Policy *string `type:"string"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DescribeEventBusOutput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DescribeEventBusOutput) GoString() string {
 	return s.String()
 }
@@ -3812,6 +9819,36 @@ func (s DescribeEventBusOutput) GoString() string {
 // SetArn sets the Arn field's value.
 func (s *DescribeEventBusOutput) SetArn(v string) *DescribeEventBusOutput {
 	s.Arn = &v
+	return s
+}
+
+// SetCreationTime sets the CreationTime field's value.
+func (s *DescribeEventBusOutput) SetCreationTime(v time.Time) *DescribeEventBusOutput {
+	s.CreationTime = &v
+	return s
+}
+
+// SetDeadLetterConfig sets the DeadLetterConfig field's value.
+func (s *DescribeEventBusOutput) SetDeadLetterConfig(v *DeadLetterConfig) *DescribeEventBusOutput {
+	s.DeadLetterConfig = v
+	return s
+}
+
+// SetDescription sets the Description field's value.
+func (s *DescribeEventBusOutput) SetDescription(v string) *DescribeEventBusOutput {
+	s.Description = &v
+	return s
+}
+
+// SetKmsKeyIdentifier sets the KmsKeyIdentifier field's value.
+func (s *DescribeEventBusOutput) SetKmsKeyIdentifier(v string) *DescribeEventBusOutput {
+	s.KmsKeyIdentifier = &v
+	return s
+}
+
+// SetLastModifiedTime sets the LastModifiedTime field's value.
+func (s *DescribeEventBusOutput) SetLastModifiedTime(v time.Time) *DescribeEventBusOutput {
+	s.LastModifiedTime = &v
 	return s
 }
 
@@ -3836,12 +9873,20 @@ type DescribeEventSourceInput struct {
 	Name *string `min:"1" type:"string" required:"true"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DescribeEventSourceInput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DescribeEventSourceInput) GoString() string {
 	return s.String()
 }
@@ -3880,27 +9925,35 @@ type DescribeEventSourceOutput struct {
 	// The date and time that the event source was created.
 	CreationTime *time.Time `type:"timestamp"`
 
-	// The date and time that the event source will expire if you don't create a
-	// matching event bus.
+	// The date and time that the event source will expire if you do not create
+	// a matching event bus.
 	ExpirationTime *time.Time `type:"timestamp"`
 
 	// The name of the partner event source.
 	Name *string `type:"string"`
 
-	// The state of the event source. If it's ACTIVE, you have already created a
-	// matching event bus for this event source, and that event bus is active. If
-	// it's PENDING, either you haven't yet created a matching event bus, or that
-	// event bus is deactivated. If it's DELETED, you have created a matching event
-	// bus, but the event source has since been deleted.
+	// The state of the event source. If it is ACTIVE, you have already created
+	// a matching event bus for this event source, and that event bus is active.
+	// If it is PENDING, either you haven't yet created a matching event bus, or
+	// that event bus is deactivated. If it is DELETED, you have created a matching
+	// event bus, but the event source has since been deleted.
 	State *string `type:"string" enum:"EventSourceState"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DescribeEventSourceOutput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DescribeEventSourceOutput) GoString() string {
 	return s.String()
 }
@@ -3950,12 +10003,20 @@ type DescribePartnerEventSourceInput struct {
 	Name *string `min:"1" type:"string" required:"true"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DescribePartnerEventSourceInput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DescribePartnerEventSourceInput) GoString() string {
 	return s.String()
 }
@@ -3992,12 +10053,20 @@ type DescribePartnerEventSourceOutput struct {
 	Name *string `type:"string"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DescribePartnerEventSourceOutput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DescribePartnerEventSourceOutput) GoString() string {
 	return s.String()
 }
@@ -4014,11 +10083,190 @@ func (s *DescribePartnerEventSourceOutput) SetName(v string) *DescribePartnerEve
 	return s
 }
 
+type DescribeReplayInput struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the replay to retrieve.
+	//
+	// ReplayName is a required field
+	ReplayName *string `min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DescribeReplayInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DescribeReplayInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeReplayInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeReplayInput"}
+	if s.ReplayName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ReplayName"))
+	}
+	if s.ReplayName != nil && len(*s.ReplayName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ReplayName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetReplayName sets the ReplayName field's value.
+func (s *DescribeReplayInput) SetReplayName(v string) *DescribeReplayInput {
+	s.ReplayName = &v
+	return s
+}
+
+type DescribeReplayOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The description of the replay.
+	Description *string `type:"string"`
+
+	// A ReplayDestination object that contains details about the replay.
+	Destination *ReplayDestination `type:"structure"`
+
+	// The time stamp for the last event that was replayed from the archive.
+	EventEndTime *time.Time `type:"timestamp"`
+
+	// The time that the event was last replayed.
+	EventLastReplayedTime *time.Time `type:"timestamp"`
+
+	// The ARN of the archive events were replayed from.
+	EventSourceArn *string `min:"1" type:"string"`
+
+	// The time stamp of the first event that was last replayed from the archive.
+	EventStartTime *time.Time `type:"timestamp"`
+
+	// The ARN of the replay.
+	ReplayArn *string `min:"1" type:"string"`
+
+	// A time stamp for the time that the replay stopped.
+	ReplayEndTime *time.Time `type:"timestamp"`
+
+	// The name of the replay.
+	ReplayName *string `min:"1" type:"string"`
+
+	// A time stamp for the time that the replay started.
+	ReplayStartTime *time.Time `type:"timestamp"`
+
+	// The current state of the replay.
+	State *string `type:"string" enum:"ReplayState"`
+
+	// The reason that the replay is in the current state.
+	StateReason *string `type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DescribeReplayOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DescribeReplayOutput) GoString() string {
+	return s.String()
+}
+
+// SetDescription sets the Description field's value.
+func (s *DescribeReplayOutput) SetDescription(v string) *DescribeReplayOutput {
+	s.Description = &v
+	return s
+}
+
+// SetDestination sets the Destination field's value.
+func (s *DescribeReplayOutput) SetDestination(v *ReplayDestination) *DescribeReplayOutput {
+	s.Destination = v
+	return s
+}
+
+// SetEventEndTime sets the EventEndTime field's value.
+func (s *DescribeReplayOutput) SetEventEndTime(v time.Time) *DescribeReplayOutput {
+	s.EventEndTime = &v
+	return s
+}
+
+// SetEventLastReplayedTime sets the EventLastReplayedTime field's value.
+func (s *DescribeReplayOutput) SetEventLastReplayedTime(v time.Time) *DescribeReplayOutput {
+	s.EventLastReplayedTime = &v
+	return s
+}
+
+// SetEventSourceArn sets the EventSourceArn field's value.
+func (s *DescribeReplayOutput) SetEventSourceArn(v string) *DescribeReplayOutput {
+	s.EventSourceArn = &v
+	return s
+}
+
+// SetEventStartTime sets the EventStartTime field's value.
+func (s *DescribeReplayOutput) SetEventStartTime(v time.Time) *DescribeReplayOutput {
+	s.EventStartTime = &v
+	return s
+}
+
+// SetReplayArn sets the ReplayArn field's value.
+func (s *DescribeReplayOutput) SetReplayArn(v string) *DescribeReplayOutput {
+	s.ReplayArn = &v
+	return s
+}
+
+// SetReplayEndTime sets the ReplayEndTime field's value.
+func (s *DescribeReplayOutput) SetReplayEndTime(v time.Time) *DescribeReplayOutput {
+	s.ReplayEndTime = &v
+	return s
+}
+
+// SetReplayName sets the ReplayName field's value.
+func (s *DescribeReplayOutput) SetReplayName(v string) *DescribeReplayOutput {
+	s.ReplayName = &v
+	return s
+}
+
+// SetReplayStartTime sets the ReplayStartTime field's value.
+func (s *DescribeReplayOutput) SetReplayStartTime(v time.Time) *DescribeReplayOutput {
+	s.ReplayStartTime = &v
+	return s
+}
+
+// SetState sets the State field's value.
+func (s *DescribeReplayOutput) SetState(v string) *DescribeReplayOutput {
+	s.State = &v
+	return s
+}
+
+// SetStateReason sets the StateReason field's value.
+func (s *DescribeReplayOutput) SetStateReason(v string) *DescribeReplayOutput {
+	s.StateReason = &v
+	return s
+}
+
 type DescribeRuleInput struct {
 	_ struct{} `type:"structure"`
 
-	// The event bus associated with the rule. If you omit this, the default event
-	// bus is used.
+	// The name or ARN of the event bus associated with the rule. If you omit this,
+	// the default event bus is used.
 	EventBusName *string `min:"1" type:"string"`
 
 	// The name of the rule.
@@ -4027,12 +10275,20 @@ type DescribeRuleInput struct {
 	Name *string `min:"1" type:"string" required:"true"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DescribeRuleInput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DescribeRuleInput) GoString() string {
 	return s.String()
 }
@@ -4074,18 +10330,26 @@ type DescribeRuleOutput struct {
 	// The Amazon Resource Name (ARN) of the rule.
 	Arn *string `min:"1" type:"string"`
 
+	// The account ID of the user that created the rule. If you use PutRule to put
+	// a rule on an event bus in another account, the other account is the owner
+	// of the rule, and the rule ARN includes the account ID for that account. However,
+	// the value for CreatedBy is the account ID as the account that created the
+	// rule in the other account.
+	CreatedBy *string `min:"1" type:"string"`
+
 	// The description of the rule.
 	Description *string `type:"string"`
 
-	// The event bus associated with the rule.
+	// The name of the event bus associated with the rule.
 	EventBusName *string `min:"1" type:"string"`
 
-	// The event pattern. For more information, see Event Patterns (https://docs.aws.amazon.com/eventbridge/latest/userguide/eventbridge-and-event-patterns.html)
-	// in the Amazon EventBridge User Guide.
+	// The event pattern. For more information, see Events and Event Patterns (https://docs.aws.amazon.com/eventbridge/latest/userguide/eventbridge-and-event-patterns.html)
+	// in the Amazon EventBridge User Guide .
 	EventPattern *string `type:"string"`
 
-	// If this is a managed rule, created by an AWS service on your behalf, this
-	// field displays the principal name of the AWS service that created the rule.
+	// If this is a managed rule, created by an Amazon Web Services service on your
+	// behalf, this field displays the principal name of the Amazon Web Services
+	// service that created the rule.
 	ManagedBy *string `min:"1" type:"string"`
 
 	// The name of the rule.
@@ -4094,19 +10358,27 @@ type DescribeRuleOutput struct {
 	// The Amazon Resource Name (ARN) of the IAM role associated with the rule.
 	RoleArn *string `min:"1" type:"string"`
 
-	// The scheduling expression: for example, "cron(0 20 * * ? *)" or "rate(5 minutes)".
+	// The scheduling expression. For example, "cron(0 20 * * ? *)", "rate(5 minutes)".
 	ScheduleExpression *string `type:"string"`
 
 	// Specifies whether the rule is enabled or disabled.
 	State *string `type:"string" enum:"RuleState"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DescribeRuleOutput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DescribeRuleOutput) GoString() string {
 	return s.String()
 }
@@ -4114,6 +10386,12 @@ func (s DescribeRuleOutput) GoString() string {
 // SetArn sets the Arn field's value.
 func (s *DescribeRuleOutput) SetArn(v string) *DescribeRuleOutput {
 	s.Arn = &v
+	return s
+}
+
+// SetCreatedBy sets the CreatedBy field's value.
+func (s *DescribeRuleOutput) SetCreatedBy(v string) *DescribeRuleOutput {
+	s.CreatedBy = &v
 	return s
 }
 
@@ -4168,8 +10446,8 @@ func (s *DescribeRuleOutput) SetState(v string) *DescribeRuleOutput {
 type DisableRuleInput struct {
 	_ struct{} `type:"structure"`
 
-	// The event bus associated with the rule. If you omit this, the default event
-	// bus is used.
+	// The name or ARN of the event bus associated with the rule. If you omit this,
+	// the default event bus is used.
 	EventBusName *string `min:"1" type:"string"`
 
 	// The name of the rule.
@@ -4178,12 +10456,20 @@ type DisableRuleInput struct {
 	Name *string `min:"1" type:"string" required:"true"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DisableRuleInput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DisableRuleInput) GoString() string {
 	return s.String()
 }
@@ -4223,12 +10509,20 @@ type DisableRuleOutput struct {
 	_ struct{} `type:"structure"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DisableRuleOutput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DisableRuleOutput) GoString() string {
 	return s.String()
 }
@@ -4237,33 +10531,75 @@ func (s DisableRuleOutput) GoString() string {
 type EcsParameters struct {
 	_ struct{} `type:"structure"`
 
+	// The capacity provider strategy to use for the task.
+	//
+	// If a capacityProviderStrategy is specified, the launchType parameter must
+	// be omitted. If no capacityProviderStrategy or launchType is specified, the
+	// defaultCapacityProviderStrategy for the cluster is used.
+	CapacityProviderStrategy []*CapacityProviderStrategyItem `type:"list"`
+
+	// Specifies whether to enable Amazon ECS managed tags for the task. For more
+	// information, see Tagging Your Amazon ECS Resources (https://docs.aws.amazon.com/AmazonECS/latest/developerguide/ecs-using-tags.html)
+	// in the Amazon Elastic Container Service Developer Guide.
+	EnableECSManagedTags *bool `type:"boolean"`
+
+	// Whether or not to enable the execute command functionality for the containers
+	// in this task. If true, this enables execute command functionality on all
+	// containers in the task.
+	EnableExecuteCommand *bool `type:"boolean"`
+
 	// Specifies an ECS task group for the task. The maximum length is 255 characters.
 	Group *string `type:"string"`
 
 	// Specifies the launch type on which your task is running. The launch type
 	// that you specify here must match one of the launch type (compatibilities)
 	// of the target task. The FARGATE value is supported only in the Regions where
-	// AWS Fargate with Amazon ECS is supported. For more information, see AWS Fargate
-	// on Amazon ECS (https://docs.aws.amazon.com/AmazonECS/latest/developerguide/AWS-Fargate.html)
+	// Fargate with Amazon ECS is supported. For more information, see Fargate on
+	// Amazon ECS (https://docs.aws.amazon.com/AmazonECS/latest/developerguide/AWS-Fargate.html)
 	// in the Amazon Elastic Container Service Developer Guide.
 	LaunchType *string `type:"string" enum:"LaunchType"`
 
-	// Use this structure if the ECS task uses the awsvpc network mode. This structure
-	// specifies the VPC subnets and security groups associated with the task and
-	// whether a public IP address is to be used. This structure is required if
-	// LaunchType is FARGATE because the awsvpc mode is required for Fargate tasks.
+	// Use this structure if the Amazon ECS task uses the awsvpc network mode. This
+	// structure specifies the VPC subnets and security groups associated with the
+	// task, and whether a public IP address is to be used. This structure is required
+	// if LaunchType is FARGATE because the awsvpc mode is required for Fargate
+	// tasks.
 	//
-	// If you specify NetworkConfiguration when the target ECS task doesn't use
+	// If you specify NetworkConfiguration when the target ECS task does not use
 	// the awsvpc network mode, the task fails.
 	NetworkConfiguration *NetworkConfiguration `type:"structure"`
+
+	// An array of placement constraint objects to use for the task. You can specify
+	// up to 10 constraints per task (including constraints in the task definition
+	// and those specified at runtime).
+	PlacementConstraints []*PlacementConstraint `type:"list"`
+
+	// The placement strategy objects to use for the task. You can specify a maximum
+	// of five strategy rules per task.
+	PlacementStrategy []*PlacementStrategy `type:"list"`
 
 	// Specifies the platform version for the task. Specify only the numeric portion
 	// of the platform version, such as 1.1.0.
 	//
 	// This structure is used only if LaunchType is FARGATE. For more information
-	// about valid platform versions, see AWS Fargate Platform Versions (https://docs.aws.amazon.com/AmazonECS/latest/developerguide/platform_versions.html)
+	// about valid platform versions, see Fargate Platform Versions (https://docs.aws.amazon.com/AmazonECS/latest/developerguide/platform_versions.html)
 	// in the Amazon Elastic Container Service Developer Guide.
 	PlatformVersion *string `type:"string"`
+
+	// Specifies whether to propagate the tags from the task definition to the task.
+	// If no value is specified, the tags are not propagated. Tags can only be propagated
+	// to the task during task creation. To add tags to a task after task creation,
+	// use the TagResource API action.
+	PropagateTags *string `type:"string" enum:"PropagateTags"`
+
+	// The reference ID to use for the task.
+	ReferenceId *string `type:"string"`
+
+	// The metadata that you apply to the task to help you categorize and organize
+	// them. Each tag consists of a key and an optional value, both of which you
+	// define. To learn more, see RunTask (https://docs.aws.amazon.com/AmazonECS/latest/APIReference/API_RunTask.html#ECS-RunTask-request-tags)
+	// in the Amazon ECS API Reference.
+	Tags []*Tag `type:"list"`
 
 	// The number of tasks to create based on TaskDefinition. The default is 1.
 	TaskCount *int64 `min:"1" type:"integer"`
@@ -4275,12 +10611,20 @@ type EcsParameters struct {
 	TaskDefinitionArn *string `min:"1" type:"string" required:"true"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s EcsParameters) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s EcsParameters) GoString() string {
 	return s.String()
 }
@@ -4297,9 +10641,29 @@ func (s *EcsParameters) Validate() error {
 	if s.TaskDefinitionArn != nil && len(*s.TaskDefinitionArn) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("TaskDefinitionArn", 1))
 	}
+	if s.CapacityProviderStrategy != nil {
+		for i, v := range s.CapacityProviderStrategy {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "CapacityProviderStrategy", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
 	if s.NetworkConfiguration != nil {
 		if err := s.NetworkConfiguration.Validate(); err != nil {
 			invalidParams.AddNested("NetworkConfiguration", err.(request.ErrInvalidParams))
+		}
+	}
+	if s.Tags != nil {
+		for i, v := range s.Tags {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "Tags", i), err.(request.ErrInvalidParams))
+			}
 		}
 	}
 
@@ -4307,6 +10671,24 @@ func (s *EcsParameters) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetCapacityProviderStrategy sets the CapacityProviderStrategy field's value.
+func (s *EcsParameters) SetCapacityProviderStrategy(v []*CapacityProviderStrategyItem) *EcsParameters {
+	s.CapacityProviderStrategy = v
+	return s
+}
+
+// SetEnableECSManagedTags sets the EnableECSManagedTags field's value.
+func (s *EcsParameters) SetEnableECSManagedTags(v bool) *EcsParameters {
+	s.EnableECSManagedTags = &v
+	return s
+}
+
+// SetEnableExecuteCommand sets the EnableExecuteCommand field's value.
+func (s *EcsParameters) SetEnableExecuteCommand(v bool) *EcsParameters {
+	s.EnableExecuteCommand = &v
+	return s
 }
 
 // SetGroup sets the Group field's value.
@@ -4327,9 +10709,39 @@ func (s *EcsParameters) SetNetworkConfiguration(v *NetworkConfiguration) *EcsPar
 	return s
 }
 
+// SetPlacementConstraints sets the PlacementConstraints field's value.
+func (s *EcsParameters) SetPlacementConstraints(v []*PlacementConstraint) *EcsParameters {
+	s.PlacementConstraints = v
+	return s
+}
+
+// SetPlacementStrategy sets the PlacementStrategy field's value.
+func (s *EcsParameters) SetPlacementStrategy(v []*PlacementStrategy) *EcsParameters {
+	s.PlacementStrategy = v
+	return s
+}
+
 // SetPlatformVersion sets the PlatformVersion field's value.
 func (s *EcsParameters) SetPlatformVersion(v string) *EcsParameters {
 	s.PlatformVersion = &v
+	return s
+}
+
+// SetPropagateTags sets the PropagateTags field's value.
+func (s *EcsParameters) SetPropagateTags(v string) *EcsParameters {
+	s.PropagateTags = &v
+	return s
+}
+
+// SetReferenceId sets the ReferenceId field's value.
+func (s *EcsParameters) SetReferenceId(v string) *EcsParameters {
+	s.ReferenceId = &v
+	return s
+}
+
+// SetTags sets the Tags field's value.
+func (s *EcsParameters) SetTags(v []*Tag) *EcsParameters {
+	s.Tags = v
 	return s
 }
 
@@ -4348,8 +10760,8 @@ func (s *EcsParameters) SetTaskDefinitionArn(v string) *EcsParameters {
 type EnableRuleInput struct {
 	_ struct{} `type:"structure"`
 
-	// The event bus associated with the rule. If you omit this, the default event
-	// bus is used.
+	// The name or ARN of the event bus associated with the rule. If you omit this,
+	// the default event bus is used.
 	EventBusName *string `min:"1" type:"string"`
 
 	// The name of the rule.
@@ -4358,12 +10770,20 @@ type EnableRuleInput struct {
 	Name *string `min:"1" type:"string" required:"true"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s EnableRuleInput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s EnableRuleInput) GoString() string {
 	return s.String()
 }
@@ -4403,42 +10823,266 @@ type EnableRuleOutput struct {
 	_ struct{} `type:"structure"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s EnableRuleOutput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s EnableRuleOutput) GoString() string {
 	return s.String()
 }
 
-// An event bus receives events from a source and routes them to rules associated
-// with that event bus. Your account's default event bus receives rules from
-// AWS services. A custom event bus can receive rules from AWS services as well
-// as your custom applications and services. A partner event bus receives events
-// from an event source created by an SaaS partner. These events come from the
-// partners services or applications.
+// A global endpoint used to improve your application's availability by making
+// it regional-fault tolerant. For more information about global endpoints,
+// see Making applications Regional-fault tolerant with global endpoints and
+// event replication (https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-global-endpoints.html)
+// in the Amazon EventBridge User Guide .
+type Endpoint struct {
+	_ struct{} `type:"structure"`
+
+	// The ARN of the endpoint.
+	Arn *string `min:"1" type:"string"`
+
+	// The time the endpoint was created.
+	CreationTime *time.Time `type:"timestamp"`
+
+	// A description for the endpoint.
+	Description *string `type:"string"`
+
+	// The URL subdomain of the endpoint. For example, if the URL for Endpoint is
+	// https://abcde.veo.endpoints.event.amazonaws.com, then the EndpointId is abcde.veo.
+	EndpointId *string `min:"1" type:"string"`
+
+	// The URL of the endpoint.
+	EndpointUrl *string `min:"1" type:"string"`
+
+	// The event buses being used by the endpoint.
+	EventBuses []*EndpointEventBus `min:"2" type:"list"`
+
+	// The last time the endpoint was modified.
+	LastModifiedTime *time.Time `type:"timestamp"`
+
+	// The name of the endpoint.
+	Name *string `min:"1" type:"string"`
+
+	// Whether event replication was enabled or disabled for this endpoint. The
+	// default state is ENABLED which means you must supply a RoleArn. If you don't
+	// have a RoleArn or you don't want event replication enabled, set the state
+	// to DISABLED.
+	ReplicationConfig *ReplicationConfig `type:"structure"`
+
+	// The ARN of the role used by event replication for the endpoint.
+	RoleArn *string `min:"1" type:"string"`
+
+	// The routing configuration of the endpoint.
+	RoutingConfig *RoutingConfig `type:"structure"`
+
+	// The current state of the endpoint.
+	State *string `type:"string" enum:"EndpointState"`
+
+	// The reason the endpoint is in its current state.
+	StateReason *string `min:"1" type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s Endpoint) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s Endpoint) GoString() string {
+	return s.String()
+}
+
+// SetArn sets the Arn field's value.
+func (s *Endpoint) SetArn(v string) *Endpoint {
+	s.Arn = &v
+	return s
+}
+
+// SetCreationTime sets the CreationTime field's value.
+func (s *Endpoint) SetCreationTime(v time.Time) *Endpoint {
+	s.CreationTime = &v
+	return s
+}
+
+// SetDescription sets the Description field's value.
+func (s *Endpoint) SetDescription(v string) *Endpoint {
+	s.Description = &v
+	return s
+}
+
+// SetEndpointId sets the EndpointId field's value.
+func (s *Endpoint) SetEndpointId(v string) *Endpoint {
+	s.EndpointId = &v
+	return s
+}
+
+// SetEndpointUrl sets the EndpointUrl field's value.
+func (s *Endpoint) SetEndpointUrl(v string) *Endpoint {
+	s.EndpointUrl = &v
+	return s
+}
+
+// SetEventBuses sets the EventBuses field's value.
+func (s *Endpoint) SetEventBuses(v []*EndpointEventBus) *Endpoint {
+	s.EventBuses = v
+	return s
+}
+
+// SetLastModifiedTime sets the LastModifiedTime field's value.
+func (s *Endpoint) SetLastModifiedTime(v time.Time) *Endpoint {
+	s.LastModifiedTime = &v
+	return s
+}
+
+// SetName sets the Name field's value.
+func (s *Endpoint) SetName(v string) *Endpoint {
+	s.Name = &v
+	return s
+}
+
+// SetReplicationConfig sets the ReplicationConfig field's value.
+func (s *Endpoint) SetReplicationConfig(v *ReplicationConfig) *Endpoint {
+	s.ReplicationConfig = v
+	return s
+}
+
+// SetRoleArn sets the RoleArn field's value.
+func (s *Endpoint) SetRoleArn(v string) *Endpoint {
+	s.RoleArn = &v
+	return s
+}
+
+// SetRoutingConfig sets the RoutingConfig field's value.
+func (s *Endpoint) SetRoutingConfig(v *RoutingConfig) *Endpoint {
+	s.RoutingConfig = v
+	return s
+}
+
+// SetState sets the State field's value.
+func (s *Endpoint) SetState(v string) *Endpoint {
+	s.State = &v
+	return s
+}
+
+// SetStateReason sets the StateReason field's value.
+func (s *Endpoint) SetStateReason(v string) *Endpoint {
+	s.StateReason = &v
+	return s
+}
+
+// The event buses the endpoint is associated with.
+type EndpointEventBus struct {
+	_ struct{} `type:"structure"`
+
+	// The ARN of the event bus the endpoint is associated with.
+	//
+	// EventBusArn is a required field
+	EventBusArn *string `min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s EndpointEventBus) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s EndpointEventBus) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *EndpointEventBus) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "EndpointEventBus"}
+	if s.EventBusArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("EventBusArn"))
+	}
+	if s.EventBusArn != nil && len(*s.EventBusArn) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("EventBusArn", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetEventBusArn sets the EventBusArn field's value.
+func (s *EndpointEventBus) SetEventBusArn(v string) *EndpointEventBus {
+	s.EventBusArn = &v
+	return s
+}
+
+// An event bus receives events from a source, uses rules to evaluate them,
+// applies any configured input transformation, and routes them to the appropriate
+// target(s). Your account's default event bus receives events from Amazon Web
+// Services services. A custom event bus can receive events from your custom
+// applications and services. A partner event bus receives events from an event
+// source created by an SaaS partner. These events come from the partners services
+// or applications.
 type EventBus struct {
 	_ struct{} `type:"structure"`
 
 	// The ARN of the event bus.
 	Arn *string `type:"string"`
 
+	// The time the event bus was created.
+	CreationTime *time.Time `type:"timestamp"`
+
+	// The event bus description.
+	Description *string `type:"string"`
+
+	// The time the event bus was last modified.
+	LastModifiedTime *time.Time `type:"timestamp"`
+
 	// The name of the event bus.
 	Name *string `type:"string"`
 
-	// The permissions policy of the event bus, describing which other AWS accounts
-	// can write events to this event bus.
+	// The permissions policy of the event bus, describing which other Amazon Web
+	// Services accounts can write events to this event bus.
 	Policy *string `type:"string"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s EventBus) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s EventBus) GoString() string {
 	return s.String()
 }
@@ -4446,6 +11090,24 @@ func (s EventBus) GoString() string {
 // SetArn sets the Arn field's value.
 func (s *EventBus) SetArn(v string) *EventBus {
 	s.Arn = &v
+	return s
+}
+
+// SetCreationTime sets the CreationTime field's value.
+func (s *EventBus) SetCreationTime(v time.Time) *EventBus {
+	s.CreationTime = &v
+	return s
+}
+
+// SetDescription sets the Description field's value.
+func (s *EventBus) SetDescription(v string) *EventBus {
+	s.Description = &v
+	return s
+}
+
+// SetLastModifiedTime sets the LastModifiedTime field's value.
+func (s *EventBus) SetLastModifiedTime(v time.Time) *EventBus {
+	s.LastModifiedTime = &v
 	return s
 }
 
@@ -4462,8 +11124,8 @@ func (s *EventBus) SetPolicy(v string) *EventBus {
 }
 
 // A partner event source is created by an SaaS partner. If a customer creates
-// a partner event bus that matches this event source, that AWS account can
-// receive events from the partner's applications or services.
+// a partner event bus that matches this event source, that Amazon Web Services
+// account can receive events from the partner's applications or services.
 type EventSource struct {
 	_ struct{} `type:"structure"`
 
@@ -4473,30 +11135,38 @@ type EventSource struct {
 	// The name of the partner that created the event source.
 	CreatedBy *string `type:"string"`
 
-	// The date and time when the event source was created.
+	// The date and time the event source was created.
 	CreationTime *time.Time `type:"timestamp"`
 
-	// The date and time when the event source will expire if the AWS account doesn't
-	// create a matching event bus for it.
+	// The date and time that the event source will expire, if the Amazon Web Services
+	// account doesn't create a matching event bus for it.
 	ExpirationTime *time.Time `type:"timestamp"`
 
 	// The name of the event source.
 	Name *string `type:"string"`
 
-	// The state of the event source. If it's ACTIVE, you have already created a
-	// matching event bus for this event source, and that event bus is active. If
-	// it's PENDING, either you haven't yet created a matching event bus, or that
-	// event bus is deactivated. If it's DELETED, you have created a matching event
-	// bus, but the event source has since been deleted.
+	// The state of the event source. If it is ACTIVE, you have already created
+	// a matching event bus for this event source, and that event bus is active.
+	// If it is PENDING, either you haven't yet created a matching event bus, or
+	// that event bus is deactivated. If it is DELETED, you have created a matching
+	// event bus, but the event source has since been deleted.
 	State *string `type:"string" enum:"EventSourceState"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s EventSource) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s EventSource) GoString() string {
 	return s.String()
 }
@@ -4537,33 +11207,224 @@ func (s *EventSource) SetState(v string) *EventSource {
 	return s
 }
 
+// The failover configuration for an endpoint. This includes what triggers failover
+// and what happens when it's triggered.
+type FailoverConfig struct {
+	_ struct{} `type:"structure"`
+
+	// The main Region of the endpoint.
+	//
+	// Primary is a required field
+	Primary *Primary `type:"structure" required:"true"`
+
+	// The Region that events are routed to when failover is triggered or event
+	// replication is enabled.
+	//
+	// Secondary is a required field
+	Secondary *Secondary `type:"structure" required:"true"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s FailoverConfig) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s FailoverConfig) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *FailoverConfig) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "FailoverConfig"}
+	if s.Primary == nil {
+		invalidParams.Add(request.NewErrParamRequired("Primary"))
+	}
+	if s.Secondary == nil {
+		invalidParams.Add(request.NewErrParamRequired("Secondary"))
+	}
+	if s.Primary != nil {
+		if err := s.Primary.Validate(); err != nil {
+			invalidParams.AddNested("Primary", err.(request.ErrInvalidParams))
+		}
+	}
+	if s.Secondary != nil {
+		if err := s.Secondary.Validate(); err != nil {
+			invalidParams.AddNested("Secondary", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetPrimary sets the Primary field's value.
+func (s *FailoverConfig) SetPrimary(v *Primary) *FailoverConfig {
+	s.Primary = v
+	return s
+}
+
+// SetSecondary sets the Secondary field's value.
+func (s *FailoverConfig) SetSecondary(v *Secondary) *FailoverConfig {
+	s.Secondary = v
+	return s
+}
+
+// These are custom parameter to be used when the target is an API Gateway APIs
+// or EventBridge ApiDestinations. In the latter case, these are merged with
+// any InvocationParameters specified on the Connection, with any values from
+// the Connection taking precedence.
+type HttpParameters struct {
+	_ struct{} `type:"structure"`
+
+	// The headers that need to be sent as part of request invoking the API Gateway
+	// API or EventBridge ApiDestination.
+	HeaderParameters map[string]*string `type:"map"`
+
+	// The path parameter values to be used to populate API Gateway API or EventBridge
+	// ApiDestination path wildcards ("*").
+	PathParameterValues []*string `type:"list"`
+
+	// The query string keys/values that need to be sent as part of request invoking
+	// the API Gateway API or EventBridge ApiDestination.
+	QueryStringParameters map[string]*string `type:"map"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s HttpParameters) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s HttpParameters) GoString() string {
+	return s.String()
+}
+
+// SetHeaderParameters sets the HeaderParameters field's value.
+func (s *HttpParameters) SetHeaderParameters(v map[string]*string) *HttpParameters {
+	s.HeaderParameters = v
+	return s
+}
+
+// SetPathParameterValues sets the PathParameterValues field's value.
+func (s *HttpParameters) SetPathParameterValues(v []*string) *HttpParameters {
+	s.PathParameterValues = v
+	return s
+}
+
+// SetQueryStringParameters sets the QueryStringParameters field's value.
+func (s *HttpParameters) SetQueryStringParameters(v map[string]*string) *HttpParameters {
+	s.QueryStringParameters = v
+	return s
+}
+
+// An error occurred because a replay can be canceled only when the state is
+// Running or Starting.
+type IllegalStatusException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s IllegalStatusException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s IllegalStatusException) GoString() string {
+	return s.String()
+}
+
+func newErrorIllegalStatusException(v protocol.ResponseMetadata) error {
+	return &IllegalStatusException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *IllegalStatusException) Code() string {
+	return "IllegalStatusException"
+}
+
+// Message returns the exception's message.
+func (s *IllegalStatusException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *IllegalStatusException) OrigErr() error {
+	return nil
+}
+
+func (s *IllegalStatusException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *IllegalStatusException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *IllegalStatusException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
 // Contains the parameters needed for you to provide custom input to a target
 // based on one or more pieces of data extracted from the event.
 type InputTransformer struct {
 	_ struct{} `type:"structure"`
 
 	// Map of JSON paths to be extracted from the event. You can then insert these
-	// in the template in InputTemplate to produce the output to be sent to the
-	// target.
+	// in the template in InputTemplate to produce the output you want to be sent
+	// to the target.
 	//
 	// InputPathsMap is an array key-value pairs, where each value is a valid JSON
-	// path. You can have as many as 10 key-value pairs. You must use JSON dot notation,
-	// not bracket notation.
+	// path. You can have as many as 100 key-value pairs. You must use JSON dot
+	// notation, not bracket notation.
 	//
-	// The keys can't start with "AWS".
+	// The keys cannot start with "Amazon Web Services."
 	InputPathsMap map[string]*string `type:"map"`
 
 	// Input template where you specify placeholders that will be filled with the
 	// values of the keys from InputPathsMap to customize the data sent to the target.
-	// Enclose each InputPathsMaps value in brackets: <value>. The InputTemplate
-	// must be valid JSON.
+	// Enclose each InputPathsMaps value in brackets: <value>
 	//
 	// If InputTemplate is a JSON object (surrounded by curly braces), the following
 	// restrictions apply:
 	//
-	//    * The placeholder can't be used as an object key
-	//
-	//    * Object values can't include quote marks
+	//    * The placeholder cannot be used as an object key.
 	//
 	// The following example shows the syntax for using InputPathsMap and InputTemplate.
 	//
@@ -4590,16 +11451,38 @@ type InputTransformer struct {
 	//
 	// }
 	//
+	// The InputTemplate can also be valid JSON with varibles in quotes or out,
+	// as in the following example:
+	//
+	// "InputTransformer":
+	//
+	// {
+	//
+	// "InputPathsMap": {"instance": "$.detail.instance","status": "$.detail.status"},
+	//
+	// "InputTemplate": '{"myInstance": <instance>,"myStatus": "<instance> is in
+	// state \"<status>\""}'
+	//
+	// }
+	//
 	// InputTemplate is a required field
 	InputTemplate *string `min:"1" type:"string" required:"true"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s InputTransformer) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s InputTransformer) GoString() string {
 	return s.String()
 }
@@ -4632,10 +11515,202 @@ func (s *InputTransformer) SetInputTemplate(v string) *InputTransformer {
 	return s
 }
 
+// This exception occurs due to unexpected causes.
+type InternalException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s InternalException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s InternalException) GoString() string {
+	return s.String()
+}
+
+func newErrorInternalException(v protocol.ResponseMetadata) error {
+	return &InternalException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *InternalException) Code() string {
+	return "InternalException"
+}
+
+// Message returns the exception's message.
+func (s *InternalException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *InternalException) OrigErr() error {
+	return nil
+}
+
+func (s *InternalException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *InternalException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *InternalException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
+// The event pattern is not valid.
+type InvalidEventPatternException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s InvalidEventPatternException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s InvalidEventPatternException) GoString() string {
+	return s.String()
+}
+
+func newErrorInvalidEventPatternException(v protocol.ResponseMetadata) error {
+	return &InvalidEventPatternException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *InvalidEventPatternException) Code() string {
+	return "InvalidEventPatternException"
+}
+
+// Message returns the exception's message.
+func (s *InvalidEventPatternException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *InvalidEventPatternException) OrigErr() error {
+	return nil
+}
+
+func (s *InvalidEventPatternException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *InvalidEventPatternException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *InvalidEventPatternException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
+// The specified state is not a valid state for an event source.
+type InvalidStateException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s InvalidStateException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s InvalidStateException) GoString() string {
+	return s.String()
+}
+
+func newErrorInvalidStateException(v protocol.ResponseMetadata) error {
+	return &InvalidStateException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *InvalidStateException) Code() string {
+	return "InvalidStateException"
+}
+
+// Message returns the exception's message.
+func (s *InvalidStateException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *InvalidStateException) OrigErr() error {
+	return nil
+}
+
+func (s *InvalidStateException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *InvalidStateException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *InvalidStateException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
 // This object enables you to specify a JSON path to extract from the event
-// and use as the partition key for the Amazon Kinesis data stream so that you
-// can control the shard that the event goes to. If you don't include this parameter,
-// the default is to use the eventId as the partition key.
+// and use as the partition key for the Amazon Kinesis data stream, so that
+// you can control the shard to which the event goes. If you do not include
+// this parameter, the default is to use the eventId as the partition key.
 type KinesisParameters struct {
 	_ struct{} `type:"structure"`
 
@@ -4647,12 +11722,20 @@ type KinesisParameters struct {
 	PartitionKeyPath *string `type:"string" required:"true"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s KinesisParameters) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s KinesisParameters) GoString() string {
 	return s.String()
 }
@@ -4676,12 +11759,578 @@ func (s *KinesisParameters) SetPartitionKeyPath(v string) *KinesisParameters {
 	return s
 }
 
+// The request failed because it attempted to create resource beyond the allowed
+// service quota.
+type LimitExceededException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s LimitExceededException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s LimitExceededException) GoString() string {
+	return s.String()
+}
+
+func newErrorLimitExceededException(v protocol.ResponseMetadata) error {
+	return &LimitExceededException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *LimitExceededException) Code() string {
+	return "LimitExceededException"
+}
+
+// Message returns the exception's message.
+func (s *LimitExceededException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *LimitExceededException) OrigErr() error {
+	return nil
+}
+
+func (s *LimitExceededException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *LimitExceededException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *LimitExceededException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
+type ListApiDestinationsInput struct {
+	_ struct{} `type:"structure"`
+
+	// The ARN of the connection specified for the API destination.
+	ConnectionArn *string `min:"1" type:"string"`
+
+	// The maximum number of API destinations to include in the response.
+	Limit *int64 `min:"1" type:"integer"`
+
+	// A name prefix to filter results returned. Only API destinations with a name
+	// that starts with the prefix are returned.
+	NamePrefix *string `min:"1" type:"string"`
+
+	// The token returned by a previous call to retrieve the next set of results.
+	NextToken *string `min:"1" type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ListApiDestinationsInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ListApiDestinationsInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListApiDestinationsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListApiDestinationsInput"}
+	if s.ConnectionArn != nil && len(*s.ConnectionArn) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ConnectionArn", 1))
+	}
+	if s.Limit != nil && *s.Limit < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("Limit", 1))
+	}
+	if s.NamePrefix != nil && len(*s.NamePrefix) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("NamePrefix", 1))
+	}
+	if s.NextToken != nil && len(*s.NextToken) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("NextToken", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetConnectionArn sets the ConnectionArn field's value.
+func (s *ListApiDestinationsInput) SetConnectionArn(v string) *ListApiDestinationsInput {
+	s.ConnectionArn = &v
+	return s
+}
+
+// SetLimit sets the Limit field's value.
+func (s *ListApiDestinationsInput) SetLimit(v int64) *ListApiDestinationsInput {
+	s.Limit = &v
+	return s
+}
+
+// SetNamePrefix sets the NamePrefix field's value.
+func (s *ListApiDestinationsInput) SetNamePrefix(v string) *ListApiDestinationsInput {
+	s.NamePrefix = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ListApiDestinationsInput) SetNextToken(v string) *ListApiDestinationsInput {
+	s.NextToken = &v
+	return s
+}
+
+type ListApiDestinationsOutput struct {
+	_ struct{} `type:"structure"`
+
+	// An array of ApiDestination objects that include information about an API
+	// destination.
+	ApiDestinations []*ApiDestination `type:"list"`
+
+	// A token you can use in a subsequent request to retrieve the next set of results.
+	NextToken *string `min:"1" type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ListApiDestinationsOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ListApiDestinationsOutput) GoString() string {
+	return s.String()
+}
+
+// SetApiDestinations sets the ApiDestinations field's value.
+func (s *ListApiDestinationsOutput) SetApiDestinations(v []*ApiDestination) *ListApiDestinationsOutput {
+	s.ApiDestinations = v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ListApiDestinationsOutput) SetNextToken(v string) *ListApiDestinationsOutput {
+	s.NextToken = &v
+	return s
+}
+
+type ListArchivesInput struct {
+	_ struct{} `type:"structure"`
+
+	// The ARN of the event source associated with the archive.
+	EventSourceArn *string `min:"1" type:"string"`
+
+	// The maximum number of results to return.
+	Limit *int64 `min:"1" type:"integer"`
+
+	// A name prefix to filter the archives returned. Only archives with name that
+	// match the prefix are returned.
+	NamePrefix *string `min:"1" type:"string"`
+
+	// The token returned by a previous call to retrieve the next set of results.
+	NextToken *string `min:"1" type:"string"`
+
+	// The state of the archive.
+	State *string `type:"string" enum:"ArchiveState"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ListArchivesInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ListArchivesInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListArchivesInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListArchivesInput"}
+	if s.EventSourceArn != nil && len(*s.EventSourceArn) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("EventSourceArn", 1))
+	}
+	if s.Limit != nil && *s.Limit < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("Limit", 1))
+	}
+	if s.NamePrefix != nil && len(*s.NamePrefix) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("NamePrefix", 1))
+	}
+	if s.NextToken != nil && len(*s.NextToken) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("NextToken", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetEventSourceArn sets the EventSourceArn field's value.
+func (s *ListArchivesInput) SetEventSourceArn(v string) *ListArchivesInput {
+	s.EventSourceArn = &v
+	return s
+}
+
+// SetLimit sets the Limit field's value.
+func (s *ListArchivesInput) SetLimit(v int64) *ListArchivesInput {
+	s.Limit = &v
+	return s
+}
+
+// SetNamePrefix sets the NamePrefix field's value.
+func (s *ListArchivesInput) SetNamePrefix(v string) *ListArchivesInput {
+	s.NamePrefix = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ListArchivesInput) SetNextToken(v string) *ListArchivesInput {
+	s.NextToken = &v
+	return s
+}
+
+// SetState sets the State field's value.
+func (s *ListArchivesInput) SetState(v string) *ListArchivesInput {
+	s.State = &v
+	return s
+}
+
+type ListArchivesOutput struct {
+	_ struct{} `type:"structure"`
+
+	// An array of Archive objects that include details about an archive.
+	Archives []*Archive `type:"list"`
+
+	// The token returned by a previous call to retrieve the next set of results.
+	NextToken *string `min:"1" type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ListArchivesOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ListArchivesOutput) GoString() string {
+	return s.String()
+}
+
+// SetArchives sets the Archives field's value.
+func (s *ListArchivesOutput) SetArchives(v []*Archive) *ListArchivesOutput {
+	s.Archives = v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ListArchivesOutput) SetNextToken(v string) *ListArchivesOutput {
+	s.NextToken = &v
+	return s
+}
+
+type ListConnectionsInput struct {
+	_ struct{} `type:"structure"`
+
+	// The state of the connection.
+	ConnectionState *string `type:"string" enum:"ConnectionState"`
+
+	// The maximum number of connections to return.
+	Limit *int64 `min:"1" type:"integer"`
+
+	// A name prefix to filter results returned. Only connections with a name that
+	// starts with the prefix are returned.
+	NamePrefix *string `min:"1" type:"string"`
+
+	// The token returned by a previous call to retrieve the next set of results.
+	NextToken *string `min:"1" type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ListConnectionsInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ListConnectionsInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListConnectionsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListConnectionsInput"}
+	if s.Limit != nil && *s.Limit < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("Limit", 1))
+	}
+	if s.NamePrefix != nil && len(*s.NamePrefix) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("NamePrefix", 1))
+	}
+	if s.NextToken != nil && len(*s.NextToken) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("NextToken", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetConnectionState sets the ConnectionState field's value.
+func (s *ListConnectionsInput) SetConnectionState(v string) *ListConnectionsInput {
+	s.ConnectionState = &v
+	return s
+}
+
+// SetLimit sets the Limit field's value.
+func (s *ListConnectionsInput) SetLimit(v int64) *ListConnectionsInput {
+	s.Limit = &v
+	return s
+}
+
+// SetNamePrefix sets the NamePrefix field's value.
+func (s *ListConnectionsInput) SetNamePrefix(v string) *ListConnectionsInput {
+	s.NamePrefix = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ListConnectionsInput) SetNextToken(v string) *ListConnectionsInput {
+	s.NextToken = &v
+	return s
+}
+
+type ListConnectionsOutput struct {
+	_ struct{} `type:"structure"`
+
+	// An array of connections objects that include details about the connections.
+	Connections []*Connection `type:"list"`
+
+	// A token you can use in a subsequent request to retrieve the next set of results.
+	NextToken *string `min:"1" type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ListConnectionsOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ListConnectionsOutput) GoString() string {
+	return s.String()
+}
+
+// SetConnections sets the Connections field's value.
+func (s *ListConnectionsOutput) SetConnections(v []*Connection) *ListConnectionsOutput {
+	s.Connections = v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ListConnectionsOutput) SetNextToken(v string) *ListConnectionsOutput {
+	s.NextToken = &v
+	return s
+}
+
+type ListEndpointsInput struct {
+	_ struct{} `type:"structure"`
+
+	// The primary Region of the endpoints associated with this account. For example
+	// "HomeRegion": "us-east-1".
+	HomeRegion *string `min:"9" type:"string"`
+
+	// The maximum number of results returned by the call.
+	MaxResults *int64 `min:"1" type:"integer"`
+
+	// A value that will return a subset of the endpoints associated with this account.
+	// For example, "NamePrefix": "ABC" will return all endpoints with "ABC" in
+	// the name.
+	NamePrefix *string `min:"1" type:"string"`
+
+	// If nextToken is returned, there are more results available. The value of
+	// nextToken is a unique pagination token for each page. Make the call again
+	// using the returned token to retrieve the next page. Keep all other arguments
+	// unchanged. Each pagination token expires after 24 hours. Using an expired
+	// pagination token will return an HTTP 400 InvalidToken error.
+	NextToken *string `min:"1" type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ListEndpointsInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ListEndpointsInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListEndpointsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListEndpointsInput"}
+	if s.HomeRegion != nil && len(*s.HomeRegion) < 9 {
+		invalidParams.Add(request.NewErrParamMinLen("HomeRegion", 9))
+	}
+	if s.MaxResults != nil && *s.MaxResults < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("MaxResults", 1))
+	}
+	if s.NamePrefix != nil && len(*s.NamePrefix) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("NamePrefix", 1))
+	}
+	if s.NextToken != nil && len(*s.NextToken) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("NextToken", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetHomeRegion sets the HomeRegion field's value.
+func (s *ListEndpointsInput) SetHomeRegion(v string) *ListEndpointsInput {
+	s.HomeRegion = &v
+	return s
+}
+
+// SetMaxResults sets the MaxResults field's value.
+func (s *ListEndpointsInput) SetMaxResults(v int64) *ListEndpointsInput {
+	s.MaxResults = &v
+	return s
+}
+
+// SetNamePrefix sets the NamePrefix field's value.
+func (s *ListEndpointsInput) SetNamePrefix(v string) *ListEndpointsInput {
+	s.NamePrefix = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ListEndpointsInput) SetNextToken(v string) *ListEndpointsInput {
+	s.NextToken = &v
+	return s
+}
+
+type ListEndpointsOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The endpoints returned by the call.
+	Endpoints []*Endpoint `type:"list"`
+
+	// If nextToken is returned, there are more results available. The value of
+	// nextToken is a unique pagination token for each page. Make the call again
+	// using the returned token to retrieve the next page. Keep all other arguments
+	// unchanged. Each pagination token expires after 24 hours. Using an expired
+	// pagination token will return an HTTP 400 InvalidToken error.
+	NextToken *string `min:"1" type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ListEndpointsOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ListEndpointsOutput) GoString() string {
+	return s.String()
+}
+
+// SetEndpoints sets the Endpoints field's value.
+func (s *ListEndpointsOutput) SetEndpoints(v []*Endpoint) *ListEndpointsOutput {
+	s.Endpoints = v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ListEndpointsOutput) SetNextToken(v string) *ListEndpointsOutput {
+	s.NextToken = &v
+	return s
+}
+
 type ListEventBusesInput struct {
 	_ struct{} `type:"structure"`
 
 	// Specifying this limits the number of results returned by this operation.
-	// The operation also returns a NextToken that you can use in a subsequent operation
-	// to retrieve the next set of results.
+	// The operation also returns a NextToken which you can use in a subsequent
+	// operation to retrieve the next set of results.
 	Limit *int64 `min:"1" type:"integer"`
 
 	// Specifying this limits the results to only those event buses with names that
@@ -4692,12 +12341,20 @@ type ListEventBusesInput struct {
 	NextToken *string `min:"1" type:"string"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s ListEventBusesInput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s ListEventBusesInput) GoString() string {
 	return s.String()
 }
@@ -4750,12 +12407,20 @@ type ListEventBusesOutput struct {
 	NextToken *string `min:"1" type:"string"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s ListEventBusesOutput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s ListEventBusesOutput) GoString() string {
 	return s.String()
 }
@@ -4776,8 +12441,8 @@ type ListEventSourcesInput struct {
 	_ struct{} `type:"structure"`
 
 	// Specifying this limits the number of results returned by this operation.
-	// The operation also returns a NextToken that you can use in a subsequent operation
-	// to retrieve the next set of results.
+	// The operation also returns a NextToken which you can use in a subsequent
+	// operation to retrieve the next set of results.
 	Limit *int64 `min:"1" type:"integer"`
 
 	// Specifying this limits the results to only those partner event sources with
@@ -4788,12 +12453,20 @@ type ListEventSourcesInput struct {
 	NextToken *string `min:"1" type:"string"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s ListEventSourcesInput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s ListEventSourcesInput) GoString() string {
 	return s.String()
 }
@@ -4846,12 +12519,20 @@ type ListEventSourcesOutput struct {
 	NextToken *string `min:"1" type:"string"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s ListEventSourcesOutput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s ListEventSourcesOutput) GoString() string {
 	return s.String()
 }
@@ -4877,8 +12558,8 @@ type ListPartnerEventSourceAccountsInput struct {
 	EventSourceName *string `min:"1" type:"string" required:"true"`
 
 	// Specifying this limits the number of results returned by this operation.
-	// The operation also returns a NextToken that you can use in a subsequent operation
-	// to retrieve the next set of results.
+	// The operation also returns a NextToken which you can use in a subsequent
+	// operation to retrieve the next set of results.
 	Limit *int64 `min:"1" type:"integer"`
 
 	// The token returned by a previous call to this operation. Specifying this
@@ -4886,12 +12567,20 @@ type ListPartnerEventSourceAccountsInput struct {
 	NextToken *string `min:"1" type:"string"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s ListPartnerEventSourceAccountsInput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s ListPartnerEventSourceAccountsInput) GoString() string {
 	return s.String()
 }
@@ -4947,12 +12636,20 @@ type ListPartnerEventSourceAccountsOutput struct {
 	PartnerEventSourceAccounts []*PartnerEventSourceAccount `type:"list"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s ListPartnerEventSourceAccountsOutput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s ListPartnerEventSourceAccountsOutput) GoString() string {
 	return s.String()
 }
@@ -4973,7 +12670,7 @@ type ListPartnerEventSourcesInput struct {
 	_ struct{} `type:"structure"`
 
 	// pecifying this limits the number of results returned by this operation. The
-	// operation also returns a NextToken that you can use in a subsequent operation
+	// operation also returns a NextToken which you can use in a subsequent operation
 	// to retrieve the next set of results.
 	Limit *int64 `min:"1" type:"integer"`
 
@@ -4988,12 +12685,20 @@ type ListPartnerEventSourcesInput struct {
 	NextToken *string `min:"1" type:"string"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s ListPartnerEventSourcesInput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s ListPartnerEventSourcesInput) GoString() string {
 	return s.String()
 }
@@ -5049,12 +12754,20 @@ type ListPartnerEventSourcesOutput struct {
 	PartnerEventSources []*PartnerEventSource `type:"list"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s ListPartnerEventSourcesOutput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s ListPartnerEventSourcesOutput) GoString() string {
 	return s.String()
 }
@@ -5071,11 +12784,141 @@ func (s *ListPartnerEventSourcesOutput) SetPartnerEventSources(v []*PartnerEvent
 	return s
 }
 
+type ListReplaysInput struct {
+	_ struct{} `type:"structure"`
+
+	// The ARN of the archive from which the events are replayed.
+	EventSourceArn *string `min:"1" type:"string"`
+
+	// The maximum number of replays to retrieve.
+	Limit *int64 `min:"1" type:"integer"`
+
+	// A name prefix to filter the replays returned. Only replays with name that
+	// match the prefix are returned.
+	NamePrefix *string `min:"1" type:"string"`
+
+	// The token returned by a previous call to retrieve the next set of results.
+	NextToken *string `min:"1" type:"string"`
+
+	// The state of the replay.
+	State *string `type:"string" enum:"ReplayState"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ListReplaysInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ListReplaysInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListReplaysInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListReplaysInput"}
+	if s.EventSourceArn != nil && len(*s.EventSourceArn) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("EventSourceArn", 1))
+	}
+	if s.Limit != nil && *s.Limit < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("Limit", 1))
+	}
+	if s.NamePrefix != nil && len(*s.NamePrefix) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("NamePrefix", 1))
+	}
+	if s.NextToken != nil && len(*s.NextToken) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("NextToken", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetEventSourceArn sets the EventSourceArn field's value.
+func (s *ListReplaysInput) SetEventSourceArn(v string) *ListReplaysInput {
+	s.EventSourceArn = &v
+	return s
+}
+
+// SetLimit sets the Limit field's value.
+func (s *ListReplaysInput) SetLimit(v int64) *ListReplaysInput {
+	s.Limit = &v
+	return s
+}
+
+// SetNamePrefix sets the NamePrefix field's value.
+func (s *ListReplaysInput) SetNamePrefix(v string) *ListReplaysInput {
+	s.NamePrefix = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ListReplaysInput) SetNextToken(v string) *ListReplaysInput {
+	s.NextToken = &v
+	return s
+}
+
+// SetState sets the State field's value.
+func (s *ListReplaysInput) SetState(v string) *ListReplaysInput {
+	s.State = &v
+	return s
+}
+
+type ListReplaysOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The token returned by a previous call to retrieve the next set of results.
+	NextToken *string `min:"1" type:"string"`
+
+	// An array of Replay objects that contain information about the replay.
+	Replays []*Replay `type:"list"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ListReplaysOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ListReplaysOutput) GoString() string {
+	return s.String()
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ListReplaysOutput) SetNextToken(v string) *ListReplaysOutput {
+	s.NextToken = &v
+	return s
+}
+
+// SetReplays sets the Replays field's value.
+func (s *ListReplaysOutput) SetReplays(v []*Replay) *ListReplaysOutput {
+	s.Replays = v
+	return s
+}
+
 type ListRuleNamesByTargetInput struct {
 	_ struct{} `type:"structure"`
 
-	// Limits the results to show only the rules associated with the specified event
-	// bus.
+	// The name or ARN of the event bus to list rules for. If you omit this, the
+	// default event bus is used.
 	EventBusName *string `min:"1" type:"string"`
 
 	// The maximum number of results to return.
@@ -5090,12 +12933,20 @@ type ListRuleNamesByTargetInput struct {
 	TargetArn *string `min:"1" type:"string" required:"true"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s ListRuleNamesByTargetInput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s ListRuleNamesByTargetInput) GoString() string {
 	return s.String()
 }
@@ -5160,12 +13011,20 @@ type ListRuleNamesByTargetOutput struct {
 	RuleNames []*string `type:"list"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s ListRuleNamesByTargetOutput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s ListRuleNamesByTargetOutput) GoString() string {
 	return s.String()
 }
@@ -5185,8 +13044,8 @@ func (s *ListRuleNamesByTargetOutput) SetRuleNames(v []*string) *ListRuleNamesBy
 type ListRulesInput struct {
 	_ struct{} `type:"structure"`
 
-	// Limits the results to show only the rules associated with the specified event
-	// bus.
+	// The name or ARN of the event bus to list the rules for. If you omit this,
+	// the default event bus is used.
 	EventBusName *string `min:"1" type:"string"`
 
 	// The maximum number of results to return.
@@ -5199,12 +13058,20 @@ type ListRulesInput struct {
 	NextToken *string `min:"1" type:"string"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s ListRulesInput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s ListRulesInput) GoString() string {
 	return s.String()
 }
@@ -5266,12 +13133,20 @@ type ListRulesOutput struct {
 	Rules []*Rule `type:"list"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s ListRulesOutput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s ListRulesOutput) GoString() string {
 	return s.String()
 }
@@ -5291,18 +13166,26 @@ func (s *ListRulesOutput) SetRules(v []*Rule) *ListRulesOutput {
 type ListTagsForResourceInput struct {
 	_ struct{} `type:"structure"`
 
-	// The ARN of the rule for which you want to view tags.
+	// The ARN of the EventBridge resource for which you want to view tags.
 	//
 	// ResourceARN is a required field
 	ResourceARN *string `min:"1" type:"string" required:"true"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s ListTagsForResourceInput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s ListTagsForResourceInput) GoString() string {
 	return s.String()
 }
@@ -5332,16 +13215,24 @@ func (s *ListTagsForResourceInput) SetResourceARN(v string) *ListTagsForResource
 type ListTagsForResourceOutput struct {
 	_ struct{} `type:"structure"`
 
-	// The list of tag keys and values associated with the rule that you specified.
+	// The list of tag keys and values associated with the resource you specified
 	Tags []*Tag `type:"list"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s ListTagsForResourceOutput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s ListTagsForResourceOutput) GoString() string {
 	return s.String()
 }
@@ -5355,8 +13246,8 @@ func (s *ListTagsForResourceOutput) SetTags(v []*Tag) *ListTagsForResourceOutput
 type ListTargetsByRuleInput struct {
 	_ struct{} `type:"structure"`
 
-	// The event bus associated with the rule. If you omit this, the default event
-	// bus is used.
+	// The name or ARN of the event bus associated with the rule. If you omit this,
+	// the default event bus is used.
 	EventBusName *string `min:"1" type:"string"`
 
 	// The maximum number of results to return.
@@ -5371,12 +13262,20 @@ type ListTargetsByRuleInput struct {
 	Rule *string `min:"1" type:"string" required:"true"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s ListTargetsByRuleInput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s ListTargetsByRuleInput) GoString() string {
 	return s.String()
 }
@@ -5441,12 +13340,20 @@ type ListTargetsByRuleOutput struct {
 	Targets []*Target `min:"1" type:"list"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s ListTargetsByRuleOutput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s ListTargetsByRuleOutput) GoString() string {
 	return s.String()
 }
@@ -5463,22 +13370,99 @@ func (s *ListTargetsByRuleOutput) SetTargets(v []*Target) *ListTargetsByRuleOutp
 	return s
 }
 
+// This rule was created by an Amazon Web Services service on behalf of your
+// account. It is managed by that service. If you see this error in response
+// to DeleteRule or RemoveTargets, you can use the Force parameter in those
+// calls to delete the rule or remove targets from the rule. You cannot modify
+// these managed rules by using DisableRule, EnableRule, PutTargets, PutRule,
+// TagResource, or UntagResource.
+type ManagedRuleException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ManagedRuleException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ManagedRuleException) GoString() string {
+	return s.String()
+}
+
+func newErrorManagedRuleException(v protocol.ResponseMetadata) error {
+	return &ManagedRuleException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *ManagedRuleException) Code() string {
+	return "ManagedRuleException"
+}
+
+// Message returns the exception's message.
+func (s *ManagedRuleException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *ManagedRuleException) OrigErr() error {
+	return nil
+}
+
+func (s *ManagedRuleException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *ManagedRuleException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *ManagedRuleException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
 // This structure specifies the network configuration for an ECS task.
 type NetworkConfiguration struct {
 	_ struct{} `type:"structure"`
 
 	// Use this structure to specify the VPC subnets and security groups for the
-	// task and whether a public IP address is to be used. This structure is relevant
+	// task, and whether a public IP address is to be used. This structure is relevant
 	// only for ECS tasks that use the awsvpc network mode.
 	AwsvpcConfiguration *AwsVpcConfiguration `locationName:"awsvpcConfiguration" type:"structure"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s NetworkConfiguration) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s NetworkConfiguration) GoString() string {
 	return s.String()
 }
@@ -5504,9 +13488,73 @@ func (s *NetworkConfiguration) SetAwsvpcConfiguration(v *AwsVpcConfiguration) *N
 	return s
 }
 
+// The operation you are attempting is not available in this region.
+type OperationDisabledException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s OperationDisabledException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s OperationDisabledException) GoString() string {
+	return s.String()
+}
+
+func newErrorOperationDisabledException(v protocol.ResponseMetadata) error {
+	return &OperationDisabledException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *OperationDisabledException) Code() string {
+	return "OperationDisabledException"
+}
+
+// Message returns the exception's message.
+func (s *OperationDisabledException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *OperationDisabledException) OrigErr() error {
+	return nil
+}
+
+func (s *OperationDisabledException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *OperationDisabledException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *OperationDisabledException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
 // A partner event source is created by an SaaS partner. If a customer creates
-// a partner event bus that matches this event source, that AWS account can
-// receive events from the partner's applications or services.
+// a partner event bus that matches this event source, that Amazon Web Services
+// account can receive events from the partner's applications or services.
 type PartnerEventSource struct {
 	_ struct{} `type:"structure"`
 
@@ -5517,12 +13565,20 @@ type PartnerEventSource struct {
 	Name *string `type:"string"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s PartnerEventSource) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s PartnerEventSource) GoString() string {
 	return s.String()
 }
@@ -5539,34 +13595,44 @@ func (s *PartnerEventSource) SetName(v string) *PartnerEventSource {
 	return s
 }
 
-// The AWS account that a partner event source has been offered to.
+// The Amazon Web Services account that a partner event source has been offered
+// to.
 type PartnerEventSourceAccount struct {
 	_ struct{} `type:"structure"`
 
-	// The AWS account ID that the partner event source was offered to.
+	// The Amazon Web Services account ID that the partner event source was offered
+	// to.
 	Account *string `min:"12" type:"string"`
 
-	// The date and time when the event source was created.
+	// The date and time the event source was created.
 	CreationTime *time.Time `type:"timestamp"`
 
-	// The date and time when the event source will expire if the AWS account doesn't
-	// create a matching event bus for it.
+	// The date and time that the event source will expire, if the Amazon Web Services
+	// account doesn't create a matching event bus for it.
 	ExpirationTime *time.Time `type:"timestamp"`
 
-	// The state of the event source. If it's ACTIVE, you have already created a
-	// matching event bus for this event source, and that event bus is active. If
-	// it's PENDING, either you haven't yet created a matching event bus, or that
-	// event bus is deactivated. If it's DELETED, you have created a matching event
-	// bus, but the event source has since been deleted.
+	// The state of the event source. If it is ACTIVE, you have already created
+	// a matching event bus for this event source, and that event bus is active.
+	// If it is PENDING, either you haven't yet created a matching event bus, or
+	// that event bus is deactivated. If it is DELETED, you have created a matching
+	// event bus, but the event source has since been deleted.
 	State *string `type:"string" enum:"EventSourceState"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s PartnerEventSourceAccount) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s PartnerEventSourceAccount) GoString() string {
 	return s.String()
 }
@@ -5595,8 +13661,233 @@ func (s *PartnerEventSourceAccount) SetState(v string) *PartnerEventSourceAccoun
 	return s
 }
 
+// An object representing a constraint on task placement. To learn more, see
+// Task Placement Constraints (https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-placement-constraints.html)
+// in the Amazon Elastic Container Service Developer Guide.
+type PlacementConstraint struct {
+	_ struct{} `type:"structure"`
+
+	// A cluster query language expression to apply to the constraint. You cannot
+	// specify an expression if the constraint type is distinctInstance. To learn
+	// more, see Cluster Query Language (https://docs.aws.amazon.com/AmazonECS/latest/developerguide/cluster-query-language.html)
+	// in the Amazon Elastic Container Service Developer Guide.
+	Expression *string `locationName:"expression" type:"string"`
+
+	// The type of constraint. Use distinctInstance to ensure that each task in
+	// a particular group is running on a different container instance. Use memberOf
+	// to restrict the selection to a group of valid candidates.
+	Type *string `locationName:"type" type:"string" enum:"PlacementConstraintType"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s PlacementConstraint) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s PlacementConstraint) GoString() string {
+	return s.String()
+}
+
+// SetExpression sets the Expression field's value.
+func (s *PlacementConstraint) SetExpression(v string) *PlacementConstraint {
+	s.Expression = &v
+	return s
+}
+
+// SetType sets the Type field's value.
+func (s *PlacementConstraint) SetType(v string) *PlacementConstraint {
+	s.Type = &v
+	return s
+}
+
+// The task placement strategy for a task or service. To learn more, see Task
+// Placement Strategies (https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-placement-strategies.html)
+// in the Amazon Elastic Container Service Service Developer Guide.
+type PlacementStrategy struct {
+	_ struct{} `type:"structure"`
+
+	// The field to apply the placement strategy against. For the spread placement
+	// strategy, valid values are instanceId (or host, which has the same effect),
+	// or any platform or custom attribute that is applied to a container instance,
+	// such as attribute:ecs.availability-zone. For the binpack placement strategy,
+	// valid values are cpu and memory. For the random placement strategy, this
+	// field is not used.
+	Field *string `locationName:"field" type:"string"`
+
+	// The type of placement strategy. The random placement strategy randomly places
+	// tasks on available candidates. The spread placement strategy spreads placement
+	// across available candidates evenly based on the field parameter. The binpack
+	// strategy places tasks on available candidates that have the least available
+	// amount of the resource that is specified with the field parameter. For example,
+	// if you binpack on memory, a task is placed on the instance with the least
+	// amount of remaining memory (but still enough to run the task).
+	Type *string `locationName:"type" type:"string" enum:"PlacementStrategyType"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s PlacementStrategy) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s PlacementStrategy) GoString() string {
+	return s.String()
+}
+
+// SetField sets the Field field's value.
+func (s *PlacementStrategy) SetField(v string) *PlacementStrategy {
+	s.Field = &v
+	return s
+}
+
+// SetType sets the Type field's value.
+func (s *PlacementStrategy) SetType(v string) *PlacementStrategy {
+	s.Type = &v
+	return s
+}
+
+// The event bus policy is too long. For more information, see the limits.
+type PolicyLengthExceededException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s PolicyLengthExceededException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s PolicyLengthExceededException) GoString() string {
+	return s.String()
+}
+
+func newErrorPolicyLengthExceededException(v protocol.ResponseMetadata) error {
+	return &PolicyLengthExceededException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *PolicyLengthExceededException) Code() string {
+	return "PolicyLengthExceededException"
+}
+
+// Message returns the exception's message.
+func (s *PolicyLengthExceededException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *PolicyLengthExceededException) OrigErr() error {
+	return nil
+}
+
+func (s *PolicyLengthExceededException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *PolicyLengthExceededException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *PolicyLengthExceededException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
+// The primary Region of the endpoint.
+type Primary struct {
+	_ struct{} `type:"structure"`
+
+	// The ARN of the health check used by the endpoint to determine whether failover
+	// is triggered.
+	//
+	// HealthCheck is a required field
+	HealthCheck *string `min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s Primary) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s Primary) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *Primary) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "Primary"}
+	if s.HealthCheck == nil {
+		invalidParams.Add(request.NewErrParamRequired("HealthCheck"))
+	}
+	if s.HealthCheck != nil && len(*s.HealthCheck) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("HealthCheck", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetHealthCheck sets the HealthCheck field's value.
+func (s *Primary) SetHealthCheck(v string) *Primary {
+	s.HealthCheck = &v
+	return s
+}
+
 type PutEventsInput struct {
 	_ struct{} `type:"structure"`
+
+	// The URL subdomain of the endpoint. For example, if the URL for Endpoint is
+	// https://abcde.veo.endpoints.event.amazonaws.com, then the EndpointId is abcde.veo.
+	//
+	// When using Java, you must include auth-crt on the class path.
+	//
+	// This AWS SDK does not support calling multi-region endpoints with SigV4a authentication.
+	EndpointId *string `min:"1" type:"string"`
 
 	// The entry that defines an event in your system. You can specify several parameters
 	// for the entry such as the source and type of the event, resources associated
@@ -5606,12 +13897,20 @@ type PutEventsInput struct {
 	Entries []*PutEventsRequestEntry `min:"1" type:"list" required:"true"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s PutEventsInput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s PutEventsInput) GoString() string {
 	return s.String()
 }
@@ -5619,6 +13918,9 @@ func (s PutEventsInput) GoString() string {
 // Validate inspects the fields of the type to determine if they are valid.
 func (s *PutEventsInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "PutEventsInput"}
+	if s.EndpointId != nil && len(*s.EndpointId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("EndpointId", 1))
+	}
 	if s.Entries == nil {
 		invalidParams.Add(request.NewErrParamRequired("Entries"))
 	}
@@ -5642,6 +13944,12 @@ func (s *PutEventsInput) Validate() error {
 	return nil
 }
 
+// SetEndpointId sets the EndpointId field's value.
+func (s *PutEventsInput) SetEndpointId(v string) *PutEventsInput {
+	s.EndpointId = &v
+	return s
+}
+
 // SetEntries sets the Entries field's value.
 func (s *PutEventsInput) SetEntries(v []*PutEventsRequestEntry) *PutEventsInput {
 	s.Entries = v
@@ -5654,18 +13962,29 @@ type PutEventsOutput struct {
 	// The successfully and unsuccessfully ingested events results. If the ingestion
 	// was successful, the entry has the event ID in it. Otherwise, you can use
 	// the error code and error message to identify the problem with the entry.
+	//
+	// For each record, the index of the response element is the same as the index
+	// in the request array.
 	Entries []*PutEventsResultEntry `type:"list"`
 
 	// The number of failed entries.
 	FailedEntryCount *int64 `type:"integer"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s PutEventsOutput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s PutEventsOutput) GoString() string {
 	return s.String()
 }
@@ -5686,38 +14005,77 @@ func (s *PutEventsOutput) SetFailedEntryCount(v int64) *PutEventsOutput {
 type PutEventsRequestEntry struct {
 	_ struct{} `type:"structure"`
 
-	// A valid JSON object. There is no other schema imposed. The JSON object can
-	// contain fields and nested subobjects.
+	// A valid JSON object. There is no other schema imposed. The JSON object may
+	// contain fields and nested sub-objects.
 	//
-	// This field is required.
+	// Detail, DetailType, and Source are required for EventBridge to successfully
+	// send an event to an event bus. If you include event entries in a request
+	// that do not include each of those properties, EventBridge fails that entry.
+	// If you submit a request in which none of the entries have each of these properties,
+	// EventBridge fails the entire request.
 	Detail *string `type:"string"`
 
-	// Free-form string used to decide which fields to expect in the event detail.
-	// This field is required.
+	// Free-form string, with a maximum of 128 characters, used to decide what fields
+	// to expect in the event detail.
+	//
+	// Detail, DetailType, and Source are required for EventBridge to successfully
+	// send an event to an event bus. If you include event entries in a request
+	// that do not include each of those properties, EventBridge fails that entry.
+	// If you submit a request in which none of the entries have each of these properties,
+	// EventBridge fails the entire request.
 	DetailType *string `type:"string"`
 
-	// The event bus that will receive the event. Only the rules that are associated
-	// with this event bus can match the event.
+	// The name or ARN of the event bus to receive the event. Only the rules that
+	// are associated with this event bus are used to match the event. If you omit
+	// this, the default event bus is used.
+	//
+	// If you're using a global endpoint with a custom bus, you can enter either
+	// the name or Amazon Resource Name (ARN) of the event bus in either the primary
+	// or secondary Region here. EventBridge then determines the corresponding event
+	// bus in the other Region based on the endpoint referenced by the EndpointId.
+	// Specifying the event bus ARN is preferred.
 	EventBusName *string `min:"1" type:"string"`
 
-	// AWS resources, identified by Amazon Resource Name (ARN), that the event primarily
-	// concerns. Any number, including zero, can be present.
+	// Amazon Web Services resources, identified by Amazon Resource Name (ARN),
+	// which the event primarily concerns. Any number, including zero, may be present.
 	Resources []*string `type:"list"`
 
-	// The source of the event. This field is required.
+	// The source of the event.
+	//
+	// Detail, DetailType, and Source are required for EventBridge to successfully
+	// send an event to an event bus. If you include event entries in a request
+	// that do not include each of those properties, EventBridge fails that entry.
+	// If you submit a request in which none of the entries have each of these properties,
+	// EventBridge fails the entire request.
 	Source *string `type:"string"`
 
-	// The timestamp of the event, per RFC3339 (https://www.rfc-editor.org/rfc/rfc3339.txt).
-	// If no timestamp is provided, the timestamp of the PutEvents call is used.
+	// The time stamp of the event, per RFC3339 (https://www.rfc-editor.org/rfc/rfc3339.txt).
+	// If no time stamp is provided, the time stamp of the PutEvents (https://docs.aws.amazon.com/eventbridge/latest/APIReference/API_PutEvents.html)
+	// call is used.
 	Time *time.Time `type:"timestamp"`
+
+	// An X-Ray trace header, which is an http header (X-Amzn-Trace-Id) that contains
+	// the trace-id associated with the event.
+	//
+	// To learn more about X-Ray trace headers, see Tracing header (https://docs.aws.amazon.com/xray/latest/devguide/xray-concepts.html#xray-concepts-tracingheader)
+	// in the X-Ray Developer Guide.
+	TraceHeader *string `min:"1" type:"string"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s PutEventsRequestEntry) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s PutEventsRequestEntry) GoString() string {
 	return s.String()
 }
@@ -5727,6 +14085,9 @@ func (s *PutEventsRequestEntry) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "PutEventsRequestEntry"}
 	if s.EventBusName != nil && len(*s.EventBusName) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("EventBusName", 1))
+	}
+	if s.TraceHeader != nil && len(*s.TraceHeader) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("TraceHeader", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -5771,11 +14132,52 @@ func (s *PutEventsRequestEntry) SetTime(v time.Time) *PutEventsRequestEntry {
 	return s
 }
 
-// Represents an event that failed to be submitted.
+// SetTraceHeader sets the TraceHeader field's value.
+func (s *PutEventsRequestEntry) SetTraceHeader(v string) *PutEventsRequestEntry {
+	s.TraceHeader = &v
+	return s
+}
+
+// Represents the results of an event submitted to an event bus.
+//
+// If the submission was successful, the entry has the event ID in it. Otherwise,
+// you can use the error code and error message to identify the problem with
+// the entry.
+//
+// For information about the errors that are common to all actions, see Common
+// Errors (https://docs.aws.amazon.com/eventbridge/latest/APIReference/CommonErrors.html).
 type PutEventsResultEntry struct {
 	_ struct{} `type:"structure"`
 
 	// The error code that indicates why the event submission failed.
+	//
+	// Retryable errors include:
+	//
+	//    * InternalFailure (https://docs.aws.amazon.com/eventbridge/latest/APIReference/CommonErrors.html)
+	//    The request processing has failed because of an unknown error, exception
+	//    or failure.
+	//
+	//    * ThrottlingException (https://docs.aws.amazon.com/eventbridge/latest/APIReference/CommonErrors.html)
+	//    The request was denied due to request throttling.
+	//
+	// Non-retryable errors include:
+	//
+	//    * AccessDeniedException (https://docs.aws.amazon.com/eventbridge/latest/APIReference/CommonErrors.html)
+	//    You do not have sufficient access to perform this action.
+	//
+	//    * InvalidAccountIdException The account ID provided is not valid.
+	//
+	//    * InvalidArgument A specified parameter is not valid.
+	//
+	//    * MalformedDetail The JSON provided is not valid.
+	//
+	//    * RedactionFailure Redacting the CloudTrail event failed.
+	//
+	//    * NotAuthorizedForSourceException You do not have permissions to publish
+	//    events with this source onto this event bus.
+	//
+	//    * NotAuthorizedForDetailTypeException You do not have permissions to publish
+	//    events with this detail type onto this event bus.
 	ErrorCode *string `type:"string"`
 
 	// The error message that explains why the event submission failed.
@@ -5785,12 +14187,20 @@ type PutEventsResultEntry struct {
 	EventId *string `type:"string"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s PutEventsResultEntry) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s PutEventsResultEntry) GoString() string {
 	return s.String()
 }
@@ -5822,12 +14232,20 @@ type PutPartnerEventsInput struct {
 	Entries []*PutPartnerEventsRequestEntry `min:"1" type:"list" required:"true"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s PutPartnerEventsInput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s PutPartnerEventsInput) GoString() string {
 	return s.String()
 }
@@ -5840,6 +14258,16 @@ func (s *PutPartnerEventsInput) Validate() error {
 	}
 	if s.Entries != nil && len(s.Entries) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("Entries", 1))
+	}
+	if s.Entries != nil {
+		for i, v := range s.Entries {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "Entries", i), err.(request.ErrInvalidParams))
+			}
+		}
 	}
 
 	if invalidParams.Len() > 0 {
@@ -5857,21 +14285,34 @@ func (s *PutPartnerEventsInput) SetEntries(v []*PutPartnerEventsRequestEntry) *P
 type PutPartnerEventsOutput struct {
 	_ struct{} `type:"structure"`
 
-	// The list of events from this operation that were successfully written to
-	// the partner event bus.
+	// The results for each event entry the partner submitted in this request. If
+	// the event was successfully submitted, the entry has the event ID in it. Otherwise,
+	// you can use the error code and error message to identify the problem with
+	// the entry.
+	//
+	// For each record, the index of the response element is the same as the index
+	// in the request array.
 	Entries []*PutPartnerEventsResultEntry `type:"list"`
 
-	// The number of events from this operation that couldn't be written to the
+	// The number of events from this operation that could not be written to the
 	// partner event bus.
 	FailedEntryCount *int64 `type:"integer"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s PutPartnerEventsOutput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s PutPartnerEventsOutput) GoString() string {
 	return s.String()
 }
@@ -5892,33 +14333,72 @@ func (s *PutPartnerEventsOutput) SetFailedEntryCount(v int64) *PutPartnerEventsO
 type PutPartnerEventsRequestEntry struct {
 	_ struct{} `type:"structure"`
 
-	// A valid JSON object. There is no other schema imposed. The JSON object can
-	// contain fields and nested subobjects. This field is required.
+	// A valid JSON string. There is no other schema imposed. The JSON string may
+	// contain fields and nested sub-objects.
+	//
+	// Detail, DetailType, and Source are required for EventBridge to successfully
+	// send an event to an event bus. If you include event entries in a request
+	// that do not include each of those properties, EventBridge fails that entry.
+	// If you submit a request in which none of the entries have each of these properties,
+	// EventBridge fails the entire request.
 	Detail *string `type:"string"`
 
-	// A free-form string used to decide which fields to expect in the event detail.
-	// This field is required.
+	// A free-form string, with a maximum of 128 characters, used to decide what
+	// fields to expect in the event detail.
+	//
+	// Detail, DetailType, and Source are required for EventBridge to successfully
+	// send an event to an event bus. If you include event entries in a request
+	// that do not include each of those properties, EventBridge fails that entry.
+	// If you submit a request in which none of the entries have each of these properties,
+	// EventBridge fails the entire request.
 	DetailType *string `type:"string"`
 
-	// AWS resources, identified by Amazon Resource Name (ARN), that the event primarily
-	// concerns. Any number, including zero, can be present.
+	// Amazon Web Services resources, identified by Amazon Resource Name (ARN),
+	// which the event primarily concerns. Any number, including zero, may be present.
 	Resources []*string `type:"list"`
 
-	// The event source that is generating the evntry. This field is required.
-	Source *string `type:"string"`
+	// The event source that is generating the entry.
+	//
+	// Detail, DetailType, and Source are required for EventBridge to successfully
+	// send an event to an event bus. If you include event entries in a request
+	// that do not include each of those properties, EventBridge fails that entry.
+	// If you submit a request in which none of the entries have each of these properties,
+	// EventBridge fails the entire request.
+	Source *string `min:"1" type:"string"`
 
 	// The date and time of the event.
 	Time *time.Time `type:"timestamp"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s PutPartnerEventsRequestEntry) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s PutPartnerEventsRequestEntry) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *PutPartnerEventsRequestEntry) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "PutPartnerEventsRequestEntry"}
+	if s.Source != nil && len(*s.Source) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Source", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // SetDetail sets the Detail field's value.
@@ -5951,7 +14431,10 @@ func (s *PutPartnerEventsRequestEntry) SetTime(v time.Time) *PutPartnerEventsReq
 	return s
 }
 
-// Represents an event that a partner tried to generate but failed.
+// The result of an event entry the partner submitted in this request. If the
+// event was successfully submitted, the entry has the event ID in it. Otherwise,
+// you can use the error code and error message to identify the problem with
+// the entry.
 type PutPartnerEventsResultEntry struct {
 	_ struct{} `type:"structure"`
 
@@ -5965,12 +14448,20 @@ type PutPartnerEventsResultEntry struct {
 	EventId *string `type:"string"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s PutPartnerEventsResultEntry) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s PutPartnerEventsResultEntry) GoString() string {
 	return s.String()
 }
@@ -5996,56 +14487,64 @@ func (s *PutPartnerEventsResultEntry) SetEventId(v string) *PutPartnerEventsResu
 type PutPermissionInput struct {
 	_ struct{} `type:"structure"`
 
-	// The action that you're enabling the other account to perform. Currently,
-	// this must be events:PutEvents.
-	//
-	// Action is a required field
-	Action *string `min:"1" type:"string" required:"true"`
+	// The action that you are enabling the other account to perform.
+	Action *string `min:"1" type:"string"`
 
 	// This parameter enables you to limit the permission to accounts that fulfill
-	// a certain condition, such as being a member of a certain AWS organization.
-	// For more information about AWS Organizations, see What Is AWS Organizations?
-	// (https://docs.aws.amazon.com/organizations/latest/userguide/orgs_introduction.html)
-	// in the AWS Organizations User Guide.
+	// a certain condition, such as being a member of a certain Amazon Web Services
+	// organization. For more information about Amazon Web Services Organizations,
+	// see What Is Amazon Web Services Organizations (https://docs.aws.amazon.com/organizations/latest/userguide/orgs_introduction.html)
+	// in the Amazon Web Services Organizations User Guide.
 	//
-	// If you specify Condition with an AWS organization ID and specify "*" as the
-	// value for Principal, you grant permission to all the accounts in the named
-	// organization.
+	// If you specify Condition with an Amazon Web Services organization ID, and
+	// specify "*" as the value for Principal, you grant permission to all the accounts
+	// in the named organization.
 	//
-	// The Condition is a JSON string that must contain Type, Key, and Value fields.
+	// The Condition is a JSON string which must contain Type, Key, and Value fields.
 	Condition *Condition `type:"structure"`
 
-	// The event bus associated with the rule. If you omit this, the default event
-	// bus is used.
+	// The name of the event bus associated with the rule. If you omit this, the
+	// default event bus is used.
 	EventBusName *string `min:"1" type:"string"`
 
-	// The 12-digit AWS account ID that you are permitting to put events to your
-	// default event bus. Specify "*" to permit any account to put events to your
-	// default event bus.
+	// A JSON string that describes the permission policy statement. You can include
+	// a Policy parameter in the request instead of using the StatementId, Action,
+	// Principal, or Condition parameters.
+	Policy *string `type:"string"`
+
+	// The 12-digit Amazon Web Services account ID that you are permitting to put
+	// events to your default event bus. Specify "*" to permit any account to put
+	// events to your default event bus.
 	//
 	// If you specify "*" without specifying Condition, avoid creating rules that
-	// might match undesirable events. To create more secure rules, make sure that
+	// may match undesirable events. To create more secure rules, make sure that
 	// the event pattern for each rule contains an account field with a specific
-	// account ID to receive events from. Rules that have an account field match
-	// events sent only from accounts that are listed in the rule's account field.
-	//
-	// Principal is a required field
-	Principal *string `min:"1" type:"string" required:"true"`
+	// account ID from which to receive events. Rules with an account field do not
+	// match any events sent from other accounts.
+	Principal *string `min:"1" type:"string"`
 
-	// An identifier string for the external account that you're granting permissions
+	// An identifier string for the external account that you are granting permissions
 	// to. If you later want to revoke the permission for this external account,
-	// specify this StatementId when you run RemovePermission.
+	// specify this StatementId when you run RemovePermission (https://docs.aws.amazon.com/eventbridge/latest/APIReference/API_RemovePermission.html).
 	//
-	// StatementId is a required field
-	StatementId *string `min:"1" type:"string" required:"true"`
+	// Each StatementId must be unique.
+	StatementId *string `min:"1" type:"string"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s PutPermissionInput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s PutPermissionInput) GoString() string {
 	return s.String()
 }
@@ -6053,23 +14552,14 @@ func (s PutPermissionInput) GoString() string {
 // Validate inspects the fields of the type to determine if they are valid.
 func (s *PutPermissionInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "PutPermissionInput"}
-	if s.Action == nil {
-		invalidParams.Add(request.NewErrParamRequired("Action"))
-	}
 	if s.Action != nil && len(*s.Action) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("Action", 1))
 	}
 	if s.EventBusName != nil && len(*s.EventBusName) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("EventBusName", 1))
 	}
-	if s.Principal == nil {
-		invalidParams.Add(request.NewErrParamRequired("Principal"))
-	}
 	if s.Principal != nil && len(*s.Principal) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("Principal", 1))
-	}
-	if s.StatementId == nil {
-		invalidParams.Add(request.NewErrParamRequired("StatementId"))
 	}
 	if s.StatementId != nil && len(*s.StatementId) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("StatementId", 1))
@@ -6104,6 +14594,12 @@ func (s *PutPermissionInput) SetEventBusName(v string) *PutPermissionInput {
 	return s
 }
 
+// SetPolicy sets the Policy field's value.
+func (s *PutPermissionInput) SetPolicy(v string) *PutPermissionInput {
+	s.Policy = &v
+	return s
+}
+
 // SetPrincipal sets the Principal field's value.
 func (s *PutPermissionInput) SetPrincipal(v string) *PutPermissionInput {
 	s.Principal = &v
@@ -6120,12 +14616,20 @@ type PutPermissionOutput struct {
 	_ struct{} `type:"structure"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s PutPermissionOutput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s PutPermissionOutput) GoString() string {
 	return s.String()
 }
@@ -6136,41 +14640,74 @@ type PutRuleInput struct {
 	// A description of the rule.
 	Description *string `type:"string"`
 
-	// The event bus to associate with this rule. If you omit this, the default
-	// event bus is used.
+	// The name or ARN of the event bus to associate with this rule. If you omit
+	// this, the default event bus is used.
 	EventBusName *string `min:"1" type:"string"`
 
-	// The event pattern. For more information, see Event Patterns (https://docs.aws.amazon.com/eventbridge/latest/userguide/eventbridge-and-event-patterns.html)
-	// in the Amazon EventBridge User Guide.
+	// The event pattern. For more information, see Amazon EventBridge event patterns
+	// (https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-event-patterns.html)
+	// in the Amazon EventBridge User Guide .
 	EventPattern *string `type:"string"`
 
-	// The name of the rule that you're creating or updating.
-	//
-	// A rule can't have the same name as another rule in the same Region or on
-	// the same event bus.
+	// The name of the rule that you are creating or updating.
 	//
 	// Name is a required field
 	Name *string `min:"1" type:"string" required:"true"`
 
 	// The Amazon Resource Name (ARN) of the IAM role associated with the rule.
+	//
+	// If you're setting an event bus in another account as the target and that
+	// account granted permission to your account through an organization instead
+	// of directly by the account ID, you must specify a RoleArn with proper permissions
+	// in the Target structure, instead of here in this parameter.
 	RoleArn *string `min:"1" type:"string"`
 
-	// The scheduling expression: for example, "cron(0 20 * * ? *)" or "rate(5 minutes)".
+	// The scheduling expression. For example, "cron(0 20 * * ? *)" or "rate(5 minutes)".
 	ScheduleExpression *string `type:"string"`
 
-	// Indicates whether the rule is enabled or disabled.
+	// The state of the rule.
+	//
+	// Valid values include:
+	//
+	//    * DISABLED: The rule is disabled. EventBridge does not match any events
+	//    against the rule.
+	//
+	//    * ENABLED: The rule is enabled. EventBridge matches events against the
+	//    rule, except for Amazon Web Services management events delivered through
+	//    CloudTrail.
+	//
+	//    * ENABLED_WITH_ALL_CLOUDTRAIL_MANAGEMENT_EVENTS: The rule is enabled for
+	//    all events, including Amazon Web Services management events delivered
+	//    through CloudTrail. Management events provide visibility into management
+	//    operations that are performed on resources in your Amazon Web Services
+	//    account. These are also known as control plane operations. For more information,
+	//    see Logging management events (https://docs.aws.amazon.com/awscloudtrail/latest/userguide/logging-management-events-with-cloudtrail.html#logging-management-events)
+	//    in the CloudTrail User Guide, and Filtering management events from Amazon
+	//    Web Services services (https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-service-event.html#eb-service-event-cloudtrail)
+	//    in the Amazon EventBridge User Guide . This value is only valid for rules
+	//    on the default (https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-what-is-how-it-works-concepts.html#eb-bus-concepts-buses)
+	//    event bus or custom event buses (https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-create-event-bus.html).
+	//    It does not apply to partner event buses (https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-saas.html).
 	State *string `type:"string" enum:"RuleState"`
 
 	// The list of key-value pairs to associate with the rule.
 	Tags []*Tag `type:"list"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s PutRuleInput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s PutRuleInput) GoString() string {
 	return s.String()
 }
@@ -6262,12 +14799,20 @@ type PutRuleOutput struct {
 	RuleArn *string `min:"1" type:"string"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s PutRuleOutput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s PutRuleOutput) GoString() string {
 	return s.String()
 }
@@ -6281,8 +14826,8 @@ func (s *PutRuleOutput) SetRuleArn(v string) *PutRuleOutput {
 type PutTargetsInput struct {
 	_ struct{} `type:"structure"`
 
-	// The name of the event bus associated with the rule. If you omit this, the
-	// default event bus is used.
+	// The name or ARN of the event bus associated with the rule. If you omit this,
+	// the default event bus is used.
 	EventBusName *string `min:"1" type:"string"`
 
 	// The name of the rule.
@@ -6296,12 +14841,20 @@ type PutTargetsInput struct {
 	Targets []*Target `min:"1" type:"list" required:"true"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s PutTargetsInput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s PutTargetsInput) GoString() string {
 	return s.String()
 }
@@ -6369,12 +14922,20 @@ type PutTargetsOutput struct {
 	FailedEntryCount *int64 `type:"integer"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s PutTargetsOutput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s PutTargetsOutput) GoString() string {
 	return s.String()
 }
@@ -6407,12 +14968,20 @@ type PutTargetsResultEntry struct {
 	TargetId *string `min:"1" type:"string"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s PutTargetsResultEntry) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s PutTargetsResultEntry) GoString() string {
 	return s.String()
 }
@@ -6435,6 +15004,139 @@ func (s *PutTargetsResultEntry) SetTargetId(v string) *PutTargetsResultEntry {
 	return s
 }
 
+// These are custom parameters to be used when the target is a Amazon Redshift
+// cluster to invoke the Amazon Redshift Data API ExecuteStatement based on
+// EventBridge events.
+type RedshiftDataParameters struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the database. Required when authenticating using temporary credentials.
+	//
+	// Database is a required field
+	Database *string `min:"1" type:"string" required:"true"`
+
+	// The database user name. Required when authenticating using temporary credentials.
+	DbUser *string `min:"1" type:"string"`
+
+	// The name or ARN of the secret that enables access to the database. Required
+	// when authenticating using Amazon Web Services Secrets Manager.
+	SecretManagerArn *string `min:"1" type:"string"`
+
+	// The SQL statement text to run.
+	//
+	// Sql is a sensitive parameter and its value will be
+	// replaced with "sensitive" in string returned by RedshiftDataParameters's
+	// String and GoString methods.
+	Sql *string `min:"1" type:"string" sensitive:"true"`
+
+	// One or more SQL statements to run. The SQL statements are run as a single
+	// transaction. They run serially in the order of the array. Subsequent SQL
+	// statements don't start until the previous statement in the array completes.
+	// If any SQL statement fails, then because they are run as one transaction,
+	// all work is rolled back.
+	//
+	// Sqls is a sensitive parameter and its value will be
+	// replaced with "sensitive" in string returned by RedshiftDataParameters's
+	// String and GoString methods.
+	Sqls []*string `type:"list" sensitive:"true"`
+
+	// The name of the SQL statement. You can name the SQL statement when you create
+	// it to identify the query.
+	StatementName *string `min:"1" type:"string"`
+
+	// Indicates whether to send an event back to EventBridge after the SQL statement
+	// runs.
+	WithEvent *bool `type:"boolean"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s RedshiftDataParameters) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s RedshiftDataParameters) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *RedshiftDataParameters) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "RedshiftDataParameters"}
+	if s.Database == nil {
+		invalidParams.Add(request.NewErrParamRequired("Database"))
+	}
+	if s.Database != nil && len(*s.Database) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Database", 1))
+	}
+	if s.DbUser != nil && len(*s.DbUser) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("DbUser", 1))
+	}
+	if s.SecretManagerArn != nil && len(*s.SecretManagerArn) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("SecretManagerArn", 1))
+	}
+	if s.Sql != nil && len(*s.Sql) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Sql", 1))
+	}
+	if s.StatementName != nil && len(*s.StatementName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("StatementName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetDatabase sets the Database field's value.
+func (s *RedshiftDataParameters) SetDatabase(v string) *RedshiftDataParameters {
+	s.Database = &v
+	return s
+}
+
+// SetDbUser sets the DbUser field's value.
+func (s *RedshiftDataParameters) SetDbUser(v string) *RedshiftDataParameters {
+	s.DbUser = &v
+	return s
+}
+
+// SetSecretManagerArn sets the SecretManagerArn field's value.
+func (s *RedshiftDataParameters) SetSecretManagerArn(v string) *RedshiftDataParameters {
+	s.SecretManagerArn = &v
+	return s
+}
+
+// SetSql sets the Sql field's value.
+func (s *RedshiftDataParameters) SetSql(v string) *RedshiftDataParameters {
+	s.Sql = &v
+	return s
+}
+
+// SetSqls sets the Sqls field's value.
+func (s *RedshiftDataParameters) SetSqls(v []*string) *RedshiftDataParameters {
+	s.Sqls = v
+	return s
+}
+
+// SetStatementName sets the StatementName field's value.
+func (s *RedshiftDataParameters) SetStatementName(v string) *RedshiftDataParameters {
+	s.StatementName = &v
+	return s
+}
+
+// SetWithEvent sets the WithEvent field's value.
+func (s *RedshiftDataParameters) SetWithEvent(v bool) *RedshiftDataParameters {
+	s.WithEvent = &v
+	return s
+}
+
 type RemovePermissionInput struct {
 	_ struct{} `type:"structure"`
 
@@ -6442,19 +15144,28 @@ type RemovePermissionInput struct {
 	// default event bus is used.
 	EventBusName *string `min:"1" type:"string"`
 
+	// Specifies whether to remove all permissions.
+	RemoveAllPermissions *bool `type:"boolean"`
+
 	// The statement ID corresponding to the account that is no longer allowed to
 	// put events to the default event bus.
-	//
-	// StatementId is a required field
-	StatementId *string `min:"1" type:"string" required:"true"`
+	StatementId *string `min:"1" type:"string"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s RemovePermissionInput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s RemovePermissionInput) GoString() string {
 	return s.String()
 }
@@ -6464,9 +15175,6 @@ func (s *RemovePermissionInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "RemovePermissionInput"}
 	if s.EventBusName != nil && len(*s.EventBusName) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("EventBusName", 1))
-	}
-	if s.StatementId == nil {
-		invalidParams.Add(request.NewErrParamRequired("StatementId"))
 	}
 	if s.StatementId != nil && len(*s.StatementId) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("StatementId", 1))
@@ -6484,6 +15192,12 @@ func (s *RemovePermissionInput) SetEventBusName(v string) *RemovePermissionInput
 	return s
 }
 
+// SetRemoveAllPermissions sets the RemoveAllPermissions field's value.
+func (s *RemovePermissionInput) SetRemoveAllPermissions(v bool) *RemovePermissionInput {
+	s.RemoveAllPermissions = &v
+	return s
+}
+
 // SetStatementId sets the StatementId field's value.
 func (s *RemovePermissionInput) SetStatementId(v string) *RemovePermissionInput {
 	s.StatementId = &v
@@ -6494,12 +15208,20 @@ type RemovePermissionOutput struct {
 	_ struct{} `type:"structure"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s RemovePermissionOutput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s RemovePermissionOutput) GoString() string {
 	return s.String()
 }
@@ -6507,14 +15229,15 @@ func (s RemovePermissionOutput) GoString() string {
 type RemoveTargetsInput struct {
 	_ struct{} `type:"structure"`
 
-	// The name of the event bus associated with the rule.
+	// The name or ARN of the event bus associated with the rule. If you omit this,
+	// the default event bus is used.
 	EventBusName *string `min:"1" type:"string"`
 
-	// If this is a managed rule created by an AWS service on your behalf, you must
-	// specify Force as True to remove targets. This parameter is ignored for rules
-	// that aren't managed rules. You can check whether a rule is a managed rule
-	// by using DescribeRule or ListRules and checking the ManagedBy field of the
-	// response.
+	// If this is a managed rule, created by an Amazon Web Services service on your
+	// behalf, you must specify Force as True to remove targets. This parameter
+	// is ignored for rules that are not managed rules. You can check whether a
+	// rule is a managed rule by using DescribeRule or ListRules and checking the
+	// ManagedBy field of the response.
 	Force *bool `type:"boolean"`
 
 	// The IDs of the targets to remove from the rule.
@@ -6528,12 +15251,20 @@ type RemoveTargetsInput struct {
 	Rule *string `min:"1" type:"string" required:"true"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s RemoveTargetsInput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s RemoveTargetsInput) GoString() string {
 	return s.String()
 }
@@ -6597,12 +15328,20 @@ type RemoveTargetsOutput struct {
 	FailedEntryCount *int64 `type:"integer"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s RemoveTargetsOutput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s RemoveTargetsOutput) GoString() string {
 	return s.String()
 }
@@ -6635,12 +15374,20 @@ type RemoveTargetsResultEntry struct {
 	TargetId *string `min:"1" type:"string"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s RemoveTargetsResultEntry) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s RemoveTargetsResultEntry) GoString() string {
 	return s.String()
 }
@@ -6663,6 +15410,441 @@ func (s *RemoveTargetsResultEntry) SetTargetId(v string) *RemoveTargetsResultEnt
 	return s
 }
 
+// A Replay object that contains details about a replay.
+type Replay struct {
+	_ struct{} `type:"structure"`
+
+	// A time stamp for the time to start replaying events. Any event with a creation
+	// time prior to the EventEndTime specified is replayed.
+	EventEndTime *time.Time `type:"timestamp"`
+
+	// A time stamp for the time that the last event was replayed.
+	EventLastReplayedTime *time.Time `type:"timestamp"`
+
+	// The ARN of the archive to replay event from.
+	EventSourceArn *string `min:"1" type:"string"`
+
+	// A time stamp for the time to start replaying events. This is determined by
+	// the time in the event as described in Time (https://docs.aws.amazon.com/eventbridge/latest/APIReference/API_PutEventsRequestEntry.html#eventbridge-Type-PutEventsRequestEntry-Time).
+	EventStartTime *time.Time `type:"timestamp"`
+
+	// A time stamp for the time that the replay completed.
+	ReplayEndTime *time.Time `type:"timestamp"`
+
+	// The name of the replay.
+	ReplayName *string `min:"1" type:"string"`
+
+	// A time stamp for the time that the replay started.
+	ReplayStartTime *time.Time `type:"timestamp"`
+
+	// The current state of the replay.
+	State *string `type:"string" enum:"ReplayState"`
+
+	// A description of why the replay is in the current state.
+	StateReason *string `type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s Replay) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s Replay) GoString() string {
+	return s.String()
+}
+
+// SetEventEndTime sets the EventEndTime field's value.
+func (s *Replay) SetEventEndTime(v time.Time) *Replay {
+	s.EventEndTime = &v
+	return s
+}
+
+// SetEventLastReplayedTime sets the EventLastReplayedTime field's value.
+func (s *Replay) SetEventLastReplayedTime(v time.Time) *Replay {
+	s.EventLastReplayedTime = &v
+	return s
+}
+
+// SetEventSourceArn sets the EventSourceArn field's value.
+func (s *Replay) SetEventSourceArn(v string) *Replay {
+	s.EventSourceArn = &v
+	return s
+}
+
+// SetEventStartTime sets the EventStartTime field's value.
+func (s *Replay) SetEventStartTime(v time.Time) *Replay {
+	s.EventStartTime = &v
+	return s
+}
+
+// SetReplayEndTime sets the ReplayEndTime field's value.
+func (s *Replay) SetReplayEndTime(v time.Time) *Replay {
+	s.ReplayEndTime = &v
+	return s
+}
+
+// SetReplayName sets the ReplayName field's value.
+func (s *Replay) SetReplayName(v string) *Replay {
+	s.ReplayName = &v
+	return s
+}
+
+// SetReplayStartTime sets the ReplayStartTime field's value.
+func (s *Replay) SetReplayStartTime(v time.Time) *Replay {
+	s.ReplayStartTime = &v
+	return s
+}
+
+// SetState sets the State field's value.
+func (s *Replay) SetState(v string) *Replay {
+	s.State = &v
+	return s
+}
+
+// SetStateReason sets the StateReason field's value.
+func (s *Replay) SetStateReason(v string) *Replay {
+	s.StateReason = &v
+	return s
+}
+
+// A ReplayDestination object that contains details about a replay.
+type ReplayDestination struct {
+	_ struct{} `type:"structure"`
+
+	// The ARN of the event bus to replay event to. You can replay events only to
+	// the event bus specified to create the archive.
+	//
+	// Arn is a required field
+	Arn *string `min:"1" type:"string" required:"true"`
+
+	// A list of ARNs for rules to replay events to.
+	FilterArns []*string `type:"list"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ReplayDestination) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ReplayDestination) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ReplayDestination) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ReplayDestination"}
+	if s.Arn == nil {
+		invalidParams.Add(request.NewErrParamRequired("Arn"))
+	}
+	if s.Arn != nil && len(*s.Arn) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Arn", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetArn sets the Arn field's value.
+func (s *ReplayDestination) SetArn(v string) *ReplayDestination {
+	s.Arn = &v
+	return s
+}
+
+// SetFilterArns sets the FilterArns field's value.
+func (s *ReplayDestination) SetFilterArns(v []*string) *ReplayDestination {
+	s.FilterArns = v
+	return s
+}
+
+// Endpoints can replicate all events to the secondary Region.
+type ReplicationConfig struct {
+	_ struct{} `type:"structure"`
+
+	// The state of event replication.
+	State *string `type:"string" enum:"ReplicationState"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ReplicationConfig) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ReplicationConfig) GoString() string {
+	return s.String()
+}
+
+// SetState sets the State field's value.
+func (s *ReplicationConfig) SetState(v string) *ReplicationConfig {
+	s.State = &v
+	return s
+}
+
+// The resource you are trying to create already exists.
+type ResourceAlreadyExistsException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ResourceAlreadyExistsException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ResourceAlreadyExistsException) GoString() string {
+	return s.String()
+}
+
+func newErrorResourceAlreadyExistsException(v protocol.ResponseMetadata) error {
+	return &ResourceAlreadyExistsException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *ResourceAlreadyExistsException) Code() string {
+	return "ResourceAlreadyExistsException"
+}
+
+// Message returns the exception's message.
+func (s *ResourceAlreadyExistsException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *ResourceAlreadyExistsException) OrigErr() error {
+	return nil
+}
+
+func (s *ResourceAlreadyExistsException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *ResourceAlreadyExistsException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *ResourceAlreadyExistsException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
+// An entity that you specified does not exist.
+type ResourceNotFoundException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ResourceNotFoundException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ResourceNotFoundException) GoString() string {
+	return s.String()
+}
+
+func newErrorResourceNotFoundException(v protocol.ResponseMetadata) error {
+	return &ResourceNotFoundException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *ResourceNotFoundException) Code() string {
+	return "ResourceNotFoundException"
+}
+
+// Message returns the exception's message.
+func (s *ResourceNotFoundException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *ResourceNotFoundException) OrigErr() error {
+	return nil
+}
+
+func (s *ResourceNotFoundException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *ResourceNotFoundException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *ResourceNotFoundException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
+// A RetryPolicy object that includes information about the retry policy settings.
+type RetryPolicy struct {
+	_ struct{} `type:"structure"`
+
+	// The maximum amount of time, in seconds, to continue to make retry attempts.
+	MaximumEventAgeInSeconds *int64 `min:"60" type:"integer"`
+
+	// The maximum number of retry attempts to make before the request fails. Retry
+	// attempts continue until either the maximum number of attempts is made or
+	// until the duration of the MaximumEventAgeInSeconds is met.
+	MaximumRetryAttempts *int64 `type:"integer"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s RetryPolicy) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s RetryPolicy) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *RetryPolicy) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "RetryPolicy"}
+	if s.MaximumEventAgeInSeconds != nil && *s.MaximumEventAgeInSeconds < 60 {
+		invalidParams.Add(request.NewErrParamMinValue("MaximumEventAgeInSeconds", 60))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetMaximumEventAgeInSeconds sets the MaximumEventAgeInSeconds field's value.
+func (s *RetryPolicy) SetMaximumEventAgeInSeconds(v int64) *RetryPolicy {
+	s.MaximumEventAgeInSeconds = &v
+	return s
+}
+
+// SetMaximumRetryAttempts sets the MaximumRetryAttempts field's value.
+func (s *RetryPolicy) SetMaximumRetryAttempts(v int64) *RetryPolicy {
+	s.MaximumRetryAttempts = &v
+	return s
+}
+
+// The routing configuration of the endpoint.
+type RoutingConfig struct {
+	_ struct{} `type:"structure"`
+
+	// The failover configuration for an endpoint. This includes what triggers failover
+	// and what happens when it's triggered.
+	//
+	// FailoverConfig is a required field
+	FailoverConfig *FailoverConfig `type:"structure" required:"true"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s RoutingConfig) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s RoutingConfig) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *RoutingConfig) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "RoutingConfig"}
+	if s.FailoverConfig == nil {
+		invalidParams.Add(request.NewErrParamRequired("FailoverConfig"))
+	}
+	if s.FailoverConfig != nil {
+		if err := s.FailoverConfig.Validate(); err != nil {
+			invalidParams.AddNested("FailoverConfig", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetFailoverConfig sets the FailoverConfig field's value.
+func (s *RoutingConfig) SetFailoverConfig(v *FailoverConfig) *RoutingConfig {
+	s.FailoverConfig = v
+	return s
+}
+
 // Contains information about a rule in Amazon EventBridge.
 type Rule struct {
 	_ struct{} `type:"structure"`
@@ -6673,36 +15855,76 @@ type Rule struct {
 	// The description of the rule.
 	Description *string `type:"string"`
 
-	// The event bus associated with the rule.
+	// The name or ARN of the event bus associated with the rule. If you omit this,
+	// the default event bus is used.
 	EventBusName *string `min:"1" type:"string"`
 
-	// The event pattern of the rule. For more information, see Event Patterns (https://docs.aws.amazon.com/eventbridge/latest/userguide/eventbridge-and-event-patterns.html)
-	// in the Amazon EventBridge User Guide.
+	// The event pattern of the rule. For more information, see Events and Event
+	// Patterns (https://docs.aws.amazon.com/eventbridge/latest/userguide/eventbridge-and-event-patterns.html)
+	// in the Amazon EventBridge User Guide .
 	EventPattern *string `type:"string"`
 
-	// If an AWS service created the rule on behalf of your account, this field
-	// displays the principal name of the service that created the rule.
+	// If the rule was created on behalf of your account by an Amazon Web Services
+	// service, this field displays the principal name of the service that created
+	// the rule.
 	ManagedBy *string `min:"1" type:"string"`
 
 	// The name of the rule.
 	Name *string `min:"1" type:"string"`
 
 	// The Amazon Resource Name (ARN) of the role that is used for target invocation.
+	//
+	// If you're setting an event bus in another account as the target and that
+	// account granted permission to your account through an organization instead
+	// of directly by the account ID, you must specify a RoleArn with proper permissions
+	// in the Target structure, instead of here in this parameter.
 	RoleArn *string `min:"1" type:"string"`
 
-	// The scheduling expression: for example, "cron(0 20 * * ? *)" or "rate(5 minutes)".
+	// The scheduling expression. For example, "cron(0 20 * * ? *)", "rate(5 minutes)".
+	// For more information, see Creating an Amazon EventBridge rule that runs on
+	// a schedule (https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-create-rule-schedule.html).
 	ScheduleExpression *string `type:"string"`
 
 	// The state of the rule.
+	//
+	// Valid values include:
+	//
+	//    * DISABLED: The rule is disabled. EventBridge does not match any events
+	//    against the rule.
+	//
+	//    * ENABLED: The rule is enabled. EventBridge matches events against the
+	//    rule, except for Amazon Web Services management events delivered through
+	//    CloudTrail.
+	//
+	//    * ENABLED_WITH_ALL_CLOUDTRAIL_MANAGEMENT_EVENTS: The rule is enabled for
+	//    all events, including Amazon Web Services management events delivered
+	//    through CloudTrail. Management events provide visibility into management
+	//    operations that are performed on resources in your Amazon Web Services
+	//    account. These are also known as control plane operations. For more information,
+	//    see Logging management events (https://docs.aws.amazon.com/awscloudtrail/latest/userguide/logging-management-events-with-cloudtrail.html#logging-management-events)
+	//    in the CloudTrail User Guide, and Filtering management events from Amazon
+	//    Web Services services (https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-service-event.html#eb-service-event-cloudtrail)
+	//    in the Amazon EventBridge User Guide . This value is only valid for rules
+	//    on the default (https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-what-is-how-it-works-concepts.html#eb-bus-concepts-buses)
+	//    event bus or custom event buses (https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-create-event-bus.html).
+	//    It does not apply to partner event buses (https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-saas.html).
 	State *string `type:"string" enum:"RuleState"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s Rule) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s Rule) GoString() string {
 	return s.String()
 }
@@ -6773,12 +15995,20 @@ type RunCommandParameters struct {
 	RunCommandTargets []*RunCommandTarget `min:"1" type:"list" required:"true"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s RunCommandParameters) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s RunCommandParameters) GoString() string {
 	return s.String()
 }
@@ -6817,7 +16047,7 @@ func (s *RunCommandParameters) SetRunCommandTargets(v []*RunCommandTarget) *RunC
 
 // Information about the EC2 instances that are to be sent the command, specified
 // as key-value pairs. Each RunCommandTarget block can include only one key,
-// but this key can specify multiple values.
+// but this key may specify multiple values.
 type RunCommandTarget struct {
 	_ struct{} `type:"structure"`
 
@@ -6833,12 +16063,20 @@ type RunCommandTarget struct {
 	Values []*string `min:"1" type:"list" required:"true"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s RunCommandTarget) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s RunCommandTarget) GoString() string {
 	return s.String()
 }
@@ -6877,6 +16115,176 @@ func (s *RunCommandTarget) SetValues(v []*string) *RunCommandTarget {
 	return s
 }
 
+// Name/Value pair of a parameter to start execution of a SageMaker Model Building
+// Pipeline.
+type SageMakerPipelineParameter struct {
+	_ struct{} `type:"structure"`
+
+	// Name of parameter to start execution of a SageMaker Model Building Pipeline.
+	//
+	// Name is a required field
+	Name *string `min:"1" type:"string" required:"true"`
+
+	// Value of parameter to start execution of a SageMaker Model Building Pipeline.
+	//
+	// Value is a required field
+	Value *string `type:"string" required:"true"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s SageMakerPipelineParameter) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s SageMakerPipelineParameter) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *SageMakerPipelineParameter) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "SageMakerPipelineParameter"}
+	if s.Name == nil {
+		invalidParams.Add(request.NewErrParamRequired("Name"))
+	}
+	if s.Name != nil && len(*s.Name) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Name", 1))
+	}
+	if s.Value == nil {
+		invalidParams.Add(request.NewErrParamRequired("Value"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetName sets the Name field's value.
+func (s *SageMakerPipelineParameter) SetName(v string) *SageMakerPipelineParameter {
+	s.Name = &v
+	return s
+}
+
+// SetValue sets the Value field's value.
+func (s *SageMakerPipelineParameter) SetValue(v string) *SageMakerPipelineParameter {
+	s.Value = &v
+	return s
+}
+
+// These are custom parameters to use when the target is a SageMaker Model Building
+// Pipeline that starts based on EventBridge events.
+type SageMakerPipelineParameters struct {
+	_ struct{} `type:"structure"`
+
+	// List of Parameter names and values for SageMaker Model Building Pipeline
+	// execution.
+	PipelineParameterList []*SageMakerPipelineParameter `type:"list"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s SageMakerPipelineParameters) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s SageMakerPipelineParameters) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *SageMakerPipelineParameters) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "SageMakerPipelineParameters"}
+	if s.PipelineParameterList != nil {
+		for i, v := range s.PipelineParameterList {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "PipelineParameterList", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetPipelineParameterList sets the PipelineParameterList field's value.
+func (s *SageMakerPipelineParameters) SetPipelineParameterList(v []*SageMakerPipelineParameter) *SageMakerPipelineParameters {
+	s.PipelineParameterList = v
+	return s
+}
+
+// The secondary Region that processes events when failover is triggered or
+// replication is enabled.
+type Secondary struct {
+	_ struct{} `type:"structure"`
+
+	// Defines the secondary Region.
+	//
+	// Route is a required field
+	Route *string `min:"9" type:"string" required:"true"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s Secondary) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s Secondary) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *Secondary) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "Secondary"}
+	if s.Route == nil {
+		invalidParams.Add(request.NewErrParamRequired("Route"))
+	}
+	if s.Route != nil && len(*s.Route) < 9 {
+		invalidParams.Add(request.NewErrParamMinLen("Route", 9))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetRoute sets the Route field's value.
+func (s *Secondary) SetRoute(v string) *Secondary {
+	s.Route = &v
+	return s
+}
+
 // This structure includes the custom parameter to be used when the target is
 // an SQS FIFO queue.
 type SqsParameters struct {
@@ -6886,12 +16294,20 @@ type SqsParameters struct {
 	MessageGroupId *string `type:"string"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s SqsParameters) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s SqsParameters) GoString() string {
 	return s.String()
 }
@@ -6902,13 +16318,196 @@ func (s *SqsParameters) SetMessageGroupId(v string) *SqsParameters {
 	return s
 }
 
-// A key-value pair associated with an AWS resource. In EventBridge, rules support
-// tagging.
+type StartReplayInput struct {
+	_ struct{} `type:"structure"`
+
+	// A description for the replay to start.
+	Description *string `type:"string"`
+
+	// A ReplayDestination object that includes details about the destination for
+	// the replay.
+	//
+	// Destination is a required field
+	Destination *ReplayDestination `type:"structure" required:"true"`
+
+	// A time stamp for the time to stop replaying events. Only events that occurred
+	// between the EventStartTime and EventEndTime are replayed.
+	//
+	// EventEndTime is a required field
+	EventEndTime *time.Time `type:"timestamp" required:"true"`
+
+	// The ARN of the archive to replay events from.
+	//
+	// EventSourceArn is a required field
+	EventSourceArn *string `min:"1" type:"string" required:"true"`
+
+	// A time stamp for the time to start replaying events. Only events that occurred
+	// between the EventStartTime and EventEndTime are replayed.
+	//
+	// EventStartTime is a required field
+	EventStartTime *time.Time `type:"timestamp" required:"true"`
+
+	// The name of the replay to start.
+	//
+	// ReplayName is a required field
+	ReplayName *string `min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s StartReplayInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s StartReplayInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *StartReplayInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "StartReplayInput"}
+	if s.Destination == nil {
+		invalidParams.Add(request.NewErrParamRequired("Destination"))
+	}
+	if s.EventEndTime == nil {
+		invalidParams.Add(request.NewErrParamRequired("EventEndTime"))
+	}
+	if s.EventSourceArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("EventSourceArn"))
+	}
+	if s.EventSourceArn != nil && len(*s.EventSourceArn) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("EventSourceArn", 1))
+	}
+	if s.EventStartTime == nil {
+		invalidParams.Add(request.NewErrParamRequired("EventStartTime"))
+	}
+	if s.ReplayName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ReplayName"))
+	}
+	if s.ReplayName != nil && len(*s.ReplayName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ReplayName", 1))
+	}
+	if s.Destination != nil {
+		if err := s.Destination.Validate(); err != nil {
+			invalidParams.AddNested("Destination", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetDescription sets the Description field's value.
+func (s *StartReplayInput) SetDescription(v string) *StartReplayInput {
+	s.Description = &v
+	return s
+}
+
+// SetDestination sets the Destination field's value.
+func (s *StartReplayInput) SetDestination(v *ReplayDestination) *StartReplayInput {
+	s.Destination = v
+	return s
+}
+
+// SetEventEndTime sets the EventEndTime field's value.
+func (s *StartReplayInput) SetEventEndTime(v time.Time) *StartReplayInput {
+	s.EventEndTime = &v
+	return s
+}
+
+// SetEventSourceArn sets the EventSourceArn field's value.
+func (s *StartReplayInput) SetEventSourceArn(v string) *StartReplayInput {
+	s.EventSourceArn = &v
+	return s
+}
+
+// SetEventStartTime sets the EventStartTime field's value.
+func (s *StartReplayInput) SetEventStartTime(v time.Time) *StartReplayInput {
+	s.EventStartTime = &v
+	return s
+}
+
+// SetReplayName sets the ReplayName field's value.
+func (s *StartReplayInput) SetReplayName(v string) *StartReplayInput {
+	s.ReplayName = &v
+	return s
+}
+
+type StartReplayOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The ARN of the replay.
+	ReplayArn *string `min:"1" type:"string"`
+
+	// The time at which the replay started.
+	ReplayStartTime *time.Time `type:"timestamp"`
+
+	// The state of the replay.
+	State *string `type:"string" enum:"ReplayState"`
+
+	// The reason that the replay is in the state.
+	StateReason *string `type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s StartReplayOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s StartReplayOutput) GoString() string {
+	return s.String()
+}
+
+// SetReplayArn sets the ReplayArn field's value.
+func (s *StartReplayOutput) SetReplayArn(v string) *StartReplayOutput {
+	s.ReplayArn = &v
+	return s
+}
+
+// SetReplayStartTime sets the ReplayStartTime field's value.
+func (s *StartReplayOutput) SetReplayStartTime(v time.Time) *StartReplayOutput {
+	s.ReplayStartTime = &v
+	return s
+}
+
+// SetState sets the State field's value.
+func (s *StartReplayOutput) SetState(v string) *StartReplayOutput {
+	s.State = &v
+	return s
+}
+
+// SetStateReason sets the StateReason field's value.
+func (s *StartReplayOutput) SetStateReason(v string) *StartReplayOutput {
+	s.StateReason = &v
+	return s
+}
+
+// A key-value pair associated with an Amazon Web Services resource. In EventBridge,
+// rules and event buses support tagging.
 type Tag struct {
 	_ struct{} `type:"structure"`
 
-	// A string that you can use to assign a value. The combination of tag keys
-	// and values can help you organize and categorize your resources.
+	// A string you can use to assign a value. The combination of tag keys and values
+	// can help you organize and categorize your resources.
 	//
 	// Key is a required field
 	Key *string `min:"1" type:"string" required:"true"`
@@ -6919,12 +16518,20 @@ type Tag struct {
 	Value *string `type:"string" required:"true"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s Tag) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s Tag) GoString() string {
 	return s.String()
 }
@@ -6963,23 +16570,31 @@ func (s *Tag) SetValue(v string) *Tag {
 type TagResourceInput struct {
 	_ struct{} `type:"structure"`
 
-	// The ARN of the rule that you're adding tags to.
+	// The ARN of the EventBridge resource that you're adding tags to.
 	//
 	// ResourceARN is a required field
 	ResourceARN *string `min:"1" type:"string" required:"true"`
 
-	// The list of key-value pairs to associate with the rule.
+	// The list of key-value pairs to associate with the resource.
 	//
 	// Tags is a required field
 	Tags []*Tag `type:"list" required:"true"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s TagResourceInput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s TagResourceInput) GoString() string {
 	return s.String()
 }
@@ -7029,46 +16644,75 @@ type TagResourceOutput struct {
 	_ struct{} `type:"structure"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s TagResourceOutput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s TagResourceOutput) GoString() string {
 	return s.String()
 }
 
 // Targets are the resources to be invoked when a rule is triggered. For a complete
-// list of services and resources that can be set as a target, see PutTargets.
+// list of services and resources that can be set as a target, see PutTargets
+// (https://docs.aws.amazon.com/eventbridge/latest/APIReference/API_PutTargets.html).
 //
-// If you're setting the event bus of another account as the target and that
+// If you are setting the event bus of another account as the target, and that
 // account granted permission to your account through an organization instead
-// of directly by the account ID, you must specify a RoleArn with proper permissions
-// in the Target structure. For more information, see Sending and Receiving
-// Events Between AWS Accounts (https://docs.aws.amazon.com/eventbridge/latest/userguide/eventbridge-cross-account-event-delivery.html)
+// of directly by the account ID, then you must specify a RoleArn with proper
+// permissions in the Target structure. For more information, see Sending and
+// Receiving Events Between Amazon Web Services Accounts (https://docs.aws.amazon.com/eventbridge/latest/userguide/eventbridge-cross-account-event-delivery.html)
 // in the Amazon EventBridge User Guide.
 type Target struct {
 	_ struct{} `type:"structure"`
+
+	// Contains the GraphQL operation to be parsed and executed, if the event target
+	// is an AppSync API.
+	AppSyncParameters *AppSyncParameters `type:"structure"`
 
 	// The Amazon Resource Name (ARN) of the target.
 	//
 	// Arn is a required field
 	Arn *string `min:"1" type:"string" required:"true"`
 
-	// If the event target is an AWS Batch job, this contains the job definition,
-	// job name, and other parameters. For more information, see Jobs (https://docs.aws.amazon.com/batch/latest/userguide/jobs.html)
-	// in the AWS Batch User Guide.
+	// If the event target is an Batch job, this contains the job definition, job
+	// name, and other parameters. For more information, see Jobs (https://docs.aws.amazon.com/batch/latest/userguide/jobs.html)
+	// in the Batch User Guide.
 	BatchParameters *BatchParameters `type:"structure"`
 
-	// Contains the Amazon ECS task definition and task count to be used if the
+	// The DeadLetterConfig that defines the target queue to send dead-letter queue
+	// events to.
+	DeadLetterConfig *DeadLetterConfig `type:"structure"`
+
+	// Contains the Amazon ECS task definition and task count to be used, if the
 	// event target is an Amazon ECS task. For more information about Amazon ECS
 	// tasks, see Task Definitions (https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_defintions.html)
 	// in the Amazon EC2 Container Service Developer Guide.
 	EcsParameters *EcsParameters `type:"structure"`
 
-	// A name for the target. Use a string that will help you identify the target.
-	// Each target associated with a rule must have an Id unique for that rule.
+	// Contains the HTTP parameters to use when the target is a API Gateway endpoint
+	// or EventBridge ApiDestination.
+	//
+	// If you specify an API Gateway API or EventBridge ApiDestination as a target,
+	// you can use this parameter to specify headers, path parameters, and query
+	// string keys/values as part of your target invoking request. If you're using
+	// ApiDestinations, the corresponding Connection can also have these values
+	// configured. In case of any conflicting keys, values from the Connection take
+	// precedence.
+	HttpParameters *HttpParameters `type:"structure"`
+
+	// The ID of the target within the specified rule. Use this ID to reference
+	// the target when updating the rule. We recommend using a memorable and unique
+	// string.
 	//
 	// Id is a required field
 	Id *string `min:"1" type:"string" required:"true"`
@@ -7079,8 +16723,8 @@ type Target struct {
 	Input *string `type:"string"`
 
 	// The value of the JSONPath that is used for extracting part of the matched
-	// event when passing it to the target. You must use JSON dot notation, not
-	// bracket notation. For more information about JSON paths, see JSONPath (http://goessner.net/articles/JsonPath/).
+	// event when passing it to the target. You may use JSON dot notation or bracket
+	// notation. For more information about JSON paths, see JSONPath (http://goessner.net/articles/JsonPath/).
 	InputPath *string `type:"string"`
 
 	// Settings to enable you to provide custom input to a target based on certain
@@ -7088,10 +16732,22 @@ type Target struct {
 	// then use that data to send customized input to the target.
 	InputTransformer *InputTransformer `type:"structure"`
 
-	// The custom parameter that you can use to control the shard assignment when
-	// the target is a Kinesis data stream. If you don't include this parameter,
-	// the default is to use the eventId as the partition key.
+	// The custom parameter you can use to control the shard assignment, when the
+	// target is a Kinesis data stream. If you do not include this parameter, the
+	// default is to use the eventId as the partition key.
 	KinesisParameters *KinesisParameters `type:"structure"`
+
+	// Contains the Amazon Redshift Data API parameters to use when the target is
+	// a Amazon Redshift cluster.
+	//
+	// If you specify a Amazon Redshift Cluster as a Target, you can use this to
+	// specify parameters to invoke the Amazon Redshift Data API ExecuteStatement
+	// based on EventBridge events.
+	RedshiftDataParameters *RedshiftDataParameters `type:"structure"`
+
+	// The RetryPolicy object that contains the retry policy configuration to use
+	// for the dead-letter queue.
+	RetryPolicy *RetryPolicy `type:"structure"`
 
 	// The Amazon Resource Name (ARN) of the IAM role to be used for this target
 	// when the rule is triggered. If one rule triggers multiple targets, you can
@@ -7101,6 +16757,14 @@ type Target struct {
 	// Parameters used when you are using the rule to invoke Amazon EC2 Run Command.
 	RunCommandParameters *RunCommandParameters `type:"structure"`
 
+	// Contains the SageMaker Model Building Pipeline parameters to start execution
+	// of a SageMaker Model Building Pipeline.
+	//
+	// If you specify a SageMaker Model Building Pipeline as a target, you can use
+	// this to specify parameters to start a pipeline execution based on EventBridge
+	// events.
+	SageMakerPipelineParameters *SageMakerPipelineParameters `type:"structure"`
+
 	// Contains the message group ID to use when the target is a FIFO queue.
 	//
 	// If you specify an SQS FIFO queue as a target, the queue must have content-based
@@ -7108,12 +16772,20 @@ type Target struct {
 	SqsParameters *SqsParameters `type:"structure"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s Target) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s Target) GoString() string {
 	return s.String()
 }
@@ -7136,9 +16808,19 @@ func (s *Target) Validate() error {
 	if s.RoleArn != nil && len(*s.RoleArn) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("RoleArn", 1))
 	}
+	if s.AppSyncParameters != nil {
+		if err := s.AppSyncParameters.Validate(); err != nil {
+			invalidParams.AddNested("AppSyncParameters", err.(request.ErrInvalidParams))
+		}
+	}
 	if s.BatchParameters != nil {
 		if err := s.BatchParameters.Validate(); err != nil {
 			invalidParams.AddNested("BatchParameters", err.(request.ErrInvalidParams))
+		}
+	}
+	if s.DeadLetterConfig != nil {
+		if err := s.DeadLetterConfig.Validate(); err != nil {
+			invalidParams.AddNested("DeadLetterConfig", err.(request.ErrInvalidParams))
 		}
 	}
 	if s.EcsParameters != nil {
@@ -7156,9 +16838,24 @@ func (s *Target) Validate() error {
 			invalidParams.AddNested("KinesisParameters", err.(request.ErrInvalidParams))
 		}
 	}
+	if s.RedshiftDataParameters != nil {
+		if err := s.RedshiftDataParameters.Validate(); err != nil {
+			invalidParams.AddNested("RedshiftDataParameters", err.(request.ErrInvalidParams))
+		}
+	}
+	if s.RetryPolicy != nil {
+		if err := s.RetryPolicy.Validate(); err != nil {
+			invalidParams.AddNested("RetryPolicy", err.(request.ErrInvalidParams))
+		}
+	}
 	if s.RunCommandParameters != nil {
 		if err := s.RunCommandParameters.Validate(); err != nil {
 			invalidParams.AddNested("RunCommandParameters", err.(request.ErrInvalidParams))
+		}
+	}
+	if s.SageMakerPipelineParameters != nil {
+		if err := s.SageMakerPipelineParameters.Validate(); err != nil {
+			invalidParams.AddNested("SageMakerPipelineParameters", err.(request.ErrInvalidParams))
 		}
 	}
 
@@ -7166,6 +16863,12 @@ func (s *Target) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetAppSyncParameters sets the AppSyncParameters field's value.
+func (s *Target) SetAppSyncParameters(v *AppSyncParameters) *Target {
+	s.AppSyncParameters = v
+	return s
 }
 
 // SetArn sets the Arn field's value.
@@ -7180,9 +16883,21 @@ func (s *Target) SetBatchParameters(v *BatchParameters) *Target {
 	return s
 }
 
+// SetDeadLetterConfig sets the DeadLetterConfig field's value.
+func (s *Target) SetDeadLetterConfig(v *DeadLetterConfig) *Target {
+	s.DeadLetterConfig = v
+	return s
+}
+
 // SetEcsParameters sets the EcsParameters field's value.
 func (s *Target) SetEcsParameters(v *EcsParameters) *Target {
 	s.EcsParameters = v
+	return s
+}
+
+// SetHttpParameters sets the HttpParameters field's value.
+func (s *Target) SetHttpParameters(v *HttpParameters) *Target {
+	s.HttpParameters = v
 	return s
 }
 
@@ -7216,6 +16931,18 @@ func (s *Target) SetKinesisParameters(v *KinesisParameters) *Target {
 	return s
 }
 
+// SetRedshiftDataParameters sets the RedshiftDataParameters field's value.
+func (s *Target) SetRedshiftDataParameters(v *RedshiftDataParameters) *Target {
+	s.RedshiftDataParameters = v
+	return s
+}
+
+// SetRetryPolicy sets the RetryPolicy field's value.
+func (s *Target) SetRetryPolicy(v *RetryPolicy) *Target {
+	s.RetryPolicy = v
+	return s
+}
+
 // SetRoleArn sets the RoleArn field's value.
 func (s *Target) SetRoleArn(v string) *Target {
 	s.RoleArn = &v
@@ -7228,6 +16955,12 @@ func (s *Target) SetRunCommandParameters(v *RunCommandParameters) *Target {
 	return s
 }
 
+// SetSageMakerPipelineParameters sets the SageMakerPipelineParameters field's value.
+func (s *Target) SetSageMakerPipelineParameters(v *SageMakerPipelineParameters) *Target {
+	s.SageMakerPipelineParameters = v
+	return s
+}
+
 // SetSqsParameters sets the SqsParameters field's value.
 func (s *Target) SetSqsParameters(v *SqsParameters) *Target {
 	s.SqsParameters = v
@@ -7237,24 +16970,48 @@ func (s *Target) SetSqsParameters(v *SqsParameters) *Target {
 type TestEventPatternInput struct {
 	_ struct{} `type:"structure"`
 
-	// The event, in JSON format, to test against the event pattern.
+	// The event, in JSON format, to test against the event pattern. The JSON must
+	// follow the format specified in Amazon Web Services Events (https://docs.aws.amazon.com/eventbridge/latest/userguide/aws-events.html),
+	// and the following fields are mandatory:
+	//
+	//    * id
+	//
+	//    * account
+	//
+	//    * source
+	//
+	//    * time
+	//
+	//    * region
+	//
+	//    * resources
+	//
+	//    * detail-type
 	//
 	// Event is a required field
 	Event *string `type:"string" required:"true"`
 
-	// The event pattern. For more information, see Event Patterns (https://docs.aws.amazon.com/eventbridge/latest/userguide/eventbridge-and-event-patterns.html)
-	// in the Amazon EventBridge User Guide.
+	// The event pattern. For more information, see Events and Event Patterns (https://docs.aws.amazon.com/eventbridge/latest/userguide/eventbridge-and-event-patterns.html)
+	// in the Amazon EventBridge User Guide .
 	//
 	// EventPattern is a required field
 	EventPattern *string `type:"string" required:"true"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s TestEventPatternInput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s TestEventPatternInput) GoString() string {
 	return s.String()
 }
@@ -7294,12 +17051,20 @@ type TestEventPatternOutput struct {
 	Result *bool `type:"boolean"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s TestEventPatternOutput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s TestEventPatternOutput) GoString() string {
 	return s.String()
 }
@@ -7313,7 +17078,7 @@ func (s *TestEventPatternOutput) SetResult(v bool) *TestEventPatternOutput {
 type UntagResourceInput struct {
 	_ struct{} `type:"structure"`
 
-	// The ARN of the rule that you're removing tags from.
+	// The ARN of the EventBridge resource from which you are removing tags.
 	//
 	// ResourceARN is a required field
 	ResourceARN *string `min:"1" type:"string" required:"true"`
@@ -7324,12 +17089,20 @@ type UntagResourceInput struct {
 	TagKeys []*string `type:"list" required:"true"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s UntagResourceInput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s UntagResourceInput) GoString() string {
 	return s.String()
 }
@@ -7369,14 +17142,1303 @@ type UntagResourceOutput struct {
 	_ struct{} `type:"structure"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s UntagResourceOutput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s UntagResourceOutput) GoString() string {
 	return s.String()
+}
+
+type UpdateApiDestinationInput struct {
+	_ struct{} `type:"structure"`
+
+	// The ARN of the connection to use for the API destination.
+	ConnectionArn *string `min:"1" type:"string"`
+
+	// The name of the API destination to update.
+	Description *string `type:"string"`
+
+	// The method to use for the API destination.
+	HttpMethod *string `type:"string" enum:"ApiDestinationHttpMethod"`
+
+	// The URL to the endpoint to use for the API destination.
+	InvocationEndpoint *string `min:"1" type:"string"`
+
+	// The maximum number of invocations per second to send to the API destination.
+	InvocationRateLimitPerSecond *int64 `min:"1" type:"integer"`
+
+	// The name of the API destination to update.
+	//
+	// Name is a required field
+	Name *string `min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s UpdateApiDestinationInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s UpdateApiDestinationInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UpdateApiDestinationInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UpdateApiDestinationInput"}
+	if s.ConnectionArn != nil && len(*s.ConnectionArn) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ConnectionArn", 1))
+	}
+	if s.InvocationEndpoint != nil && len(*s.InvocationEndpoint) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("InvocationEndpoint", 1))
+	}
+	if s.InvocationRateLimitPerSecond != nil && *s.InvocationRateLimitPerSecond < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("InvocationRateLimitPerSecond", 1))
+	}
+	if s.Name == nil {
+		invalidParams.Add(request.NewErrParamRequired("Name"))
+	}
+	if s.Name != nil && len(*s.Name) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Name", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetConnectionArn sets the ConnectionArn field's value.
+func (s *UpdateApiDestinationInput) SetConnectionArn(v string) *UpdateApiDestinationInput {
+	s.ConnectionArn = &v
+	return s
+}
+
+// SetDescription sets the Description field's value.
+func (s *UpdateApiDestinationInput) SetDescription(v string) *UpdateApiDestinationInput {
+	s.Description = &v
+	return s
+}
+
+// SetHttpMethod sets the HttpMethod field's value.
+func (s *UpdateApiDestinationInput) SetHttpMethod(v string) *UpdateApiDestinationInput {
+	s.HttpMethod = &v
+	return s
+}
+
+// SetInvocationEndpoint sets the InvocationEndpoint field's value.
+func (s *UpdateApiDestinationInput) SetInvocationEndpoint(v string) *UpdateApiDestinationInput {
+	s.InvocationEndpoint = &v
+	return s
+}
+
+// SetInvocationRateLimitPerSecond sets the InvocationRateLimitPerSecond field's value.
+func (s *UpdateApiDestinationInput) SetInvocationRateLimitPerSecond(v int64) *UpdateApiDestinationInput {
+	s.InvocationRateLimitPerSecond = &v
+	return s
+}
+
+// SetName sets the Name field's value.
+func (s *UpdateApiDestinationInput) SetName(v string) *UpdateApiDestinationInput {
+	s.Name = &v
+	return s
+}
+
+type UpdateApiDestinationOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The ARN of the API destination that was updated.
+	ApiDestinationArn *string `min:"1" type:"string"`
+
+	// The state of the API destination that was updated.
+	ApiDestinationState *string `type:"string" enum:"ApiDestinationState"`
+
+	// A time stamp for the time that the API destination was created.
+	CreationTime *time.Time `type:"timestamp"`
+
+	// A time stamp for the time that the API destination was last modified.
+	LastModifiedTime *time.Time `type:"timestamp"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s UpdateApiDestinationOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s UpdateApiDestinationOutput) GoString() string {
+	return s.String()
+}
+
+// SetApiDestinationArn sets the ApiDestinationArn field's value.
+func (s *UpdateApiDestinationOutput) SetApiDestinationArn(v string) *UpdateApiDestinationOutput {
+	s.ApiDestinationArn = &v
+	return s
+}
+
+// SetApiDestinationState sets the ApiDestinationState field's value.
+func (s *UpdateApiDestinationOutput) SetApiDestinationState(v string) *UpdateApiDestinationOutput {
+	s.ApiDestinationState = &v
+	return s
+}
+
+// SetCreationTime sets the CreationTime field's value.
+func (s *UpdateApiDestinationOutput) SetCreationTime(v time.Time) *UpdateApiDestinationOutput {
+	s.CreationTime = &v
+	return s
+}
+
+// SetLastModifiedTime sets the LastModifiedTime field's value.
+func (s *UpdateApiDestinationOutput) SetLastModifiedTime(v time.Time) *UpdateApiDestinationOutput {
+	s.LastModifiedTime = &v
+	return s
+}
+
+type UpdateArchiveInput struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the archive to update.
+	//
+	// ArchiveName is a required field
+	ArchiveName *string `min:"1" type:"string" required:"true"`
+
+	// The description for the archive.
+	Description *string `type:"string"`
+
+	// The event pattern to use to filter events sent to the archive.
+	EventPattern *string `type:"string"`
+
+	// The number of days to retain events in the archive.
+	RetentionDays *int64 `type:"integer"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s UpdateArchiveInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s UpdateArchiveInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UpdateArchiveInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UpdateArchiveInput"}
+	if s.ArchiveName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ArchiveName"))
+	}
+	if s.ArchiveName != nil && len(*s.ArchiveName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ArchiveName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetArchiveName sets the ArchiveName field's value.
+func (s *UpdateArchiveInput) SetArchiveName(v string) *UpdateArchiveInput {
+	s.ArchiveName = &v
+	return s
+}
+
+// SetDescription sets the Description field's value.
+func (s *UpdateArchiveInput) SetDescription(v string) *UpdateArchiveInput {
+	s.Description = &v
+	return s
+}
+
+// SetEventPattern sets the EventPattern field's value.
+func (s *UpdateArchiveInput) SetEventPattern(v string) *UpdateArchiveInput {
+	s.EventPattern = &v
+	return s
+}
+
+// SetRetentionDays sets the RetentionDays field's value.
+func (s *UpdateArchiveInput) SetRetentionDays(v int64) *UpdateArchiveInput {
+	s.RetentionDays = &v
+	return s
+}
+
+type UpdateArchiveOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The ARN of the archive.
+	ArchiveArn *string `min:"1" type:"string"`
+
+	// The time at which the archive was updated.
+	CreationTime *time.Time `type:"timestamp"`
+
+	// The state of the archive.
+	State *string `type:"string" enum:"ArchiveState"`
+
+	// The reason that the archive is in the current state.
+	StateReason *string `type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s UpdateArchiveOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s UpdateArchiveOutput) GoString() string {
+	return s.String()
+}
+
+// SetArchiveArn sets the ArchiveArn field's value.
+func (s *UpdateArchiveOutput) SetArchiveArn(v string) *UpdateArchiveOutput {
+	s.ArchiveArn = &v
+	return s
+}
+
+// SetCreationTime sets the CreationTime field's value.
+func (s *UpdateArchiveOutput) SetCreationTime(v time.Time) *UpdateArchiveOutput {
+	s.CreationTime = &v
+	return s
+}
+
+// SetState sets the State field's value.
+func (s *UpdateArchiveOutput) SetState(v string) *UpdateArchiveOutput {
+	s.State = &v
+	return s
+}
+
+// SetStateReason sets the StateReason field's value.
+func (s *UpdateArchiveOutput) SetStateReason(v string) *UpdateArchiveOutput {
+	s.StateReason = &v
+	return s
+}
+
+// Contains the API key authorization parameters to use to update the connection.
+type UpdateConnectionApiKeyAuthRequestParameters struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the API key to use for authorization.
+	ApiKeyName *string `min:"1" type:"string"`
+
+	// The value associated with teh API key to use for authorization.
+	//
+	// ApiKeyValue is a sensitive parameter and its value will be
+	// replaced with "sensitive" in string returned by UpdateConnectionApiKeyAuthRequestParameters's
+	// String and GoString methods.
+	ApiKeyValue *string `min:"1" type:"string" sensitive:"true"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s UpdateConnectionApiKeyAuthRequestParameters) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s UpdateConnectionApiKeyAuthRequestParameters) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UpdateConnectionApiKeyAuthRequestParameters) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UpdateConnectionApiKeyAuthRequestParameters"}
+	if s.ApiKeyName != nil && len(*s.ApiKeyName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApiKeyName", 1))
+	}
+	if s.ApiKeyValue != nil && len(*s.ApiKeyValue) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApiKeyValue", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetApiKeyName sets the ApiKeyName field's value.
+func (s *UpdateConnectionApiKeyAuthRequestParameters) SetApiKeyName(v string) *UpdateConnectionApiKeyAuthRequestParameters {
+	s.ApiKeyName = &v
+	return s
+}
+
+// SetApiKeyValue sets the ApiKeyValue field's value.
+func (s *UpdateConnectionApiKeyAuthRequestParameters) SetApiKeyValue(v string) *UpdateConnectionApiKeyAuthRequestParameters {
+	s.ApiKeyValue = &v
+	return s
+}
+
+// Contains the additional parameters to use for the connection.
+type UpdateConnectionAuthRequestParameters struct {
+	_ struct{} `type:"structure"`
+
+	// A UpdateConnectionApiKeyAuthRequestParameters object that contains the authorization
+	// parameters for API key authorization.
+	ApiKeyAuthParameters *UpdateConnectionApiKeyAuthRequestParameters `type:"structure"`
+
+	// A UpdateConnectionBasicAuthRequestParameters object that contains the authorization
+	// parameters for Basic authorization.
+	BasicAuthParameters *UpdateConnectionBasicAuthRequestParameters `type:"structure"`
+
+	// A ConnectionHttpParameters object that contains the additional parameters
+	// to use for the connection.
+	InvocationHttpParameters *ConnectionHttpParameters `type:"structure"`
+
+	// A UpdateConnectionOAuthRequestParameters object that contains the authorization
+	// parameters for OAuth authorization.
+	OAuthParameters *UpdateConnectionOAuthRequestParameters `type:"structure"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s UpdateConnectionAuthRequestParameters) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s UpdateConnectionAuthRequestParameters) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UpdateConnectionAuthRequestParameters) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UpdateConnectionAuthRequestParameters"}
+	if s.ApiKeyAuthParameters != nil {
+		if err := s.ApiKeyAuthParameters.Validate(); err != nil {
+			invalidParams.AddNested("ApiKeyAuthParameters", err.(request.ErrInvalidParams))
+		}
+	}
+	if s.BasicAuthParameters != nil {
+		if err := s.BasicAuthParameters.Validate(); err != nil {
+			invalidParams.AddNested("BasicAuthParameters", err.(request.ErrInvalidParams))
+		}
+	}
+	if s.OAuthParameters != nil {
+		if err := s.OAuthParameters.Validate(); err != nil {
+			invalidParams.AddNested("OAuthParameters", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetApiKeyAuthParameters sets the ApiKeyAuthParameters field's value.
+func (s *UpdateConnectionAuthRequestParameters) SetApiKeyAuthParameters(v *UpdateConnectionApiKeyAuthRequestParameters) *UpdateConnectionAuthRequestParameters {
+	s.ApiKeyAuthParameters = v
+	return s
+}
+
+// SetBasicAuthParameters sets the BasicAuthParameters field's value.
+func (s *UpdateConnectionAuthRequestParameters) SetBasicAuthParameters(v *UpdateConnectionBasicAuthRequestParameters) *UpdateConnectionAuthRequestParameters {
+	s.BasicAuthParameters = v
+	return s
+}
+
+// SetInvocationHttpParameters sets the InvocationHttpParameters field's value.
+func (s *UpdateConnectionAuthRequestParameters) SetInvocationHttpParameters(v *ConnectionHttpParameters) *UpdateConnectionAuthRequestParameters {
+	s.InvocationHttpParameters = v
+	return s
+}
+
+// SetOAuthParameters sets the OAuthParameters field's value.
+func (s *UpdateConnectionAuthRequestParameters) SetOAuthParameters(v *UpdateConnectionOAuthRequestParameters) *UpdateConnectionAuthRequestParameters {
+	s.OAuthParameters = v
+	return s
+}
+
+// Contains the Basic authorization parameters for the connection.
+type UpdateConnectionBasicAuthRequestParameters struct {
+	_ struct{} `type:"structure"`
+
+	// The password associated with the user name to use for Basic authorization.
+	//
+	// Password is a sensitive parameter and its value will be
+	// replaced with "sensitive" in string returned by UpdateConnectionBasicAuthRequestParameters's
+	// String and GoString methods.
+	Password *string `min:"1" type:"string" sensitive:"true"`
+
+	// The user name to use for Basic authorization.
+	Username *string `min:"1" type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s UpdateConnectionBasicAuthRequestParameters) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s UpdateConnectionBasicAuthRequestParameters) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UpdateConnectionBasicAuthRequestParameters) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UpdateConnectionBasicAuthRequestParameters"}
+	if s.Password != nil && len(*s.Password) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Password", 1))
+	}
+	if s.Username != nil && len(*s.Username) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Username", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetPassword sets the Password field's value.
+func (s *UpdateConnectionBasicAuthRequestParameters) SetPassword(v string) *UpdateConnectionBasicAuthRequestParameters {
+	s.Password = &v
+	return s
+}
+
+// SetUsername sets the Username field's value.
+func (s *UpdateConnectionBasicAuthRequestParameters) SetUsername(v string) *UpdateConnectionBasicAuthRequestParameters {
+	s.Username = &v
+	return s
+}
+
+type UpdateConnectionInput struct {
+	_ struct{} `type:"structure"`
+
+	// The authorization parameters to use for the connection.
+	AuthParameters *UpdateConnectionAuthRequestParameters `type:"structure"`
+
+	// The type of authorization to use for the connection.
+	AuthorizationType *string `type:"string" enum:"ConnectionAuthorizationType"`
+
+	// A description for the connection.
+	Description *string `type:"string"`
+
+	// The name of the connection to update.
+	//
+	// Name is a required field
+	Name *string `min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s UpdateConnectionInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s UpdateConnectionInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UpdateConnectionInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UpdateConnectionInput"}
+	if s.Name == nil {
+		invalidParams.Add(request.NewErrParamRequired("Name"))
+	}
+	if s.Name != nil && len(*s.Name) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Name", 1))
+	}
+	if s.AuthParameters != nil {
+		if err := s.AuthParameters.Validate(); err != nil {
+			invalidParams.AddNested("AuthParameters", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetAuthParameters sets the AuthParameters field's value.
+func (s *UpdateConnectionInput) SetAuthParameters(v *UpdateConnectionAuthRequestParameters) *UpdateConnectionInput {
+	s.AuthParameters = v
+	return s
+}
+
+// SetAuthorizationType sets the AuthorizationType field's value.
+func (s *UpdateConnectionInput) SetAuthorizationType(v string) *UpdateConnectionInput {
+	s.AuthorizationType = &v
+	return s
+}
+
+// SetDescription sets the Description field's value.
+func (s *UpdateConnectionInput) SetDescription(v string) *UpdateConnectionInput {
+	s.Description = &v
+	return s
+}
+
+// SetName sets the Name field's value.
+func (s *UpdateConnectionInput) SetName(v string) *UpdateConnectionInput {
+	s.Name = &v
+	return s
+}
+
+// Contains the OAuth authorization parameters to use for the connection.
+type UpdateConnectionOAuthClientRequestParameters struct {
+	_ struct{} `type:"structure"`
+
+	// The client ID to use for OAuth authorization.
+	ClientID *string `min:"1" type:"string"`
+
+	// The client secret assciated with the client ID to use for OAuth authorization.
+	//
+	// ClientSecret is a sensitive parameter and its value will be
+	// replaced with "sensitive" in string returned by UpdateConnectionOAuthClientRequestParameters's
+	// String and GoString methods.
+	ClientSecret *string `min:"1" type:"string" sensitive:"true"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s UpdateConnectionOAuthClientRequestParameters) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s UpdateConnectionOAuthClientRequestParameters) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UpdateConnectionOAuthClientRequestParameters) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UpdateConnectionOAuthClientRequestParameters"}
+	if s.ClientID != nil && len(*s.ClientID) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ClientID", 1))
+	}
+	if s.ClientSecret != nil && len(*s.ClientSecret) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ClientSecret", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetClientID sets the ClientID field's value.
+func (s *UpdateConnectionOAuthClientRequestParameters) SetClientID(v string) *UpdateConnectionOAuthClientRequestParameters {
+	s.ClientID = &v
+	return s
+}
+
+// SetClientSecret sets the ClientSecret field's value.
+func (s *UpdateConnectionOAuthClientRequestParameters) SetClientSecret(v string) *UpdateConnectionOAuthClientRequestParameters {
+	s.ClientSecret = &v
+	return s
+}
+
+// Contains the OAuth request parameters to use for the connection.
+type UpdateConnectionOAuthRequestParameters struct {
+	_ struct{} `type:"structure"`
+
+	// The URL to the authorization endpoint when OAuth is specified as the authorization
+	// type.
+	AuthorizationEndpoint *string `min:"1" type:"string"`
+
+	// A UpdateConnectionOAuthClientRequestParameters object that contains the client
+	// parameters to use for the connection when OAuth is specified as the authorization
+	// type.
+	ClientParameters *UpdateConnectionOAuthClientRequestParameters `type:"structure"`
+
+	// The method used to connect to the HTTP endpoint.
+	HttpMethod *string `type:"string" enum:"ConnectionOAuthHttpMethod"`
+
+	// The additional HTTP parameters used for the OAuth authorization request.
+	OAuthHttpParameters *ConnectionHttpParameters `type:"structure"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s UpdateConnectionOAuthRequestParameters) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s UpdateConnectionOAuthRequestParameters) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UpdateConnectionOAuthRequestParameters) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UpdateConnectionOAuthRequestParameters"}
+	if s.AuthorizationEndpoint != nil && len(*s.AuthorizationEndpoint) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("AuthorizationEndpoint", 1))
+	}
+	if s.ClientParameters != nil {
+		if err := s.ClientParameters.Validate(); err != nil {
+			invalidParams.AddNested("ClientParameters", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetAuthorizationEndpoint sets the AuthorizationEndpoint field's value.
+func (s *UpdateConnectionOAuthRequestParameters) SetAuthorizationEndpoint(v string) *UpdateConnectionOAuthRequestParameters {
+	s.AuthorizationEndpoint = &v
+	return s
+}
+
+// SetClientParameters sets the ClientParameters field's value.
+func (s *UpdateConnectionOAuthRequestParameters) SetClientParameters(v *UpdateConnectionOAuthClientRequestParameters) *UpdateConnectionOAuthRequestParameters {
+	s.ClientParameters = v
+	return s
+}
+
+// SetHttpMethod sets the HttpMethod field's value.
+func (s *UpdateConnectionOAuthRequestParameters) SetHttpMethod(v string) *UpdateConnectionOAuthRequestParameters {
+	s.HttpMethod = &v
+	return s
+}
+
+// SetOAuthHttpParameters sets the OAuthHttpParameters field's value.
+func (s *UpdateConnectionOAuthRequestParameters) SetOAuthHttpParameters(v *ConnectionHttpParameters) *UpdateConnectionOAuthRequestParameters {
+	s.OAuthHttpParameters = v
+	return s
+}
+
+type UpdateConnectionOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The ARN of the connection that was updated.
+	ConnectionArn *string `min:"1" type:"string"`
+
+	// The state of the connection that was updated.
+	ConnectionState *string `type:"string" enum:"ConnectionState"`
+
+	// A time stamp for the time that the connection was created.
+	CreationTime *time.Time `type:"timestamp"`
+
+	// A time stamp for the time that the connection was last authorized.
+	LastAuthorizedTime *time.Time `type:"timestamp"`
+
+	// A time stamp for the time that the connection was last modified.
+	LastModifiedTime *time.Time `type:"timestamp"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s UpdateConnectionOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s UpdateConnectionOutput) GoString() string {
+	return s.String()
+}
+
+// SetConnectionArn sets the ConnectionArn field's value.
+func (s *UpdateConnectionOutput) SetConnectionArn(v string) *UpdateConnectionOutput {
+	s.ConnectionArn = &v
+	return s
+}
+
+// SetConnectionState sets the ConnectionState field's value.
+func (s *UpdateConnectionOutput) SetConnectionState(v string) *UpdateConnectionOutput {
+	s.ConnectionState = &v
+	return s
+}
+
+// SetCreationTime sets the CreationTime field's value.
+func (s *UpdateConnectionOutput) SetCreationTime(v time.Time) *UpdateConnectionOutput {
+	s.CreationTime = &v
+	return s
+}
+
+// SetLastAuthorizedTime sets the LastAuthorizedTime field's value.
+func (s *UpdateConnectionOutput) SetLastAuthorizedTime(v time.Time) *UpdateConnectionOutput {
+	s.LastAuthorizedTime = &v
+	return s
+}
+
+// SetLastModifiedTime sets the LastModifiedTime field's value.
+func (s *UpdateConnectionOutput) SetLastModifiedTime(v time.Time) *UpdateConnectionOutput {
+	s.LastModifiedTime = &v
+	return s
+}
+
+type UpdateEndpointInput struct {
+	_ struct{} `type:"structure"`
+
+	// A description for the endpoint.
+	Description *string `type:"string"`
+
+	// Define event buses used for replication.
+	EventBuses []*EndpointEventBus `min:"2" type:"list"`
+
+	// The name of the endpoint you want to update.
+	//
+	// Name is a required field
+	Name *string `min:"1" type:"string" required:"true"`
+
+	// Whether event replication was enabled or disabled by this request.
+	ReplicationConfig *ReplicationConfig `type:"structure"`
+
+	// The ARN of the role used by event replication for this request.
+	RoleArn *string `min:"1" type:"string"`
+
+	// Configure the routing policy, including the health check and secondary Region.
+	RoutingConfig *RoutingConfig `type:"structure"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s UpdateEndpointInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s UpdateEndpointInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UpdateEndpointInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UpdateEndpointInput"}
+	if s.EventBuses != nil && len(s.EventBuses) < 2 {
+		invalidParams.Add(request.NewErrParamMinLen("EventBuses", 2))
+	}
+	if s.Name == nil {
+		invalidParams.Add(request.NewErrParamRequired("Name"))
+	}
+	if s.Name != nil && len(*s.Name) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Name", 1))
+	}
+	if s.RoleArn != nil && len(*s.RoleArn) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RoleArn", 1))
+	}
+	if s.EventBuses != nil {
+		for i, v := range s.EventBuses {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "EventBuses", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+	if s.RoutingConfig != nil {
+		if err := s.RoutingConfig.Validate(); err != nil {
+			invalidParams.AddNested("RoutingConfig", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetDescription sets the Description field's value.
+func (s *UpdateEndpointInput) SetDescription(v string) *UpdateEndpointInput {
+	s.Description = &v
+	return s
+}
+
+// SetEventBuses sets the EventBuses field's value.
+func (s *UpdateEndpointInput) SetEventBuses(v []*EndpointEventBus) *UpdateEndpointInput {
+	s.EventBuses = v
+	return s
+}
+
+// SetName sets the Name field's value.
+func (s *UpdateEndpointInput) SetName(v string) *UpdateEndpointInput {
+	s.Name = &v
+	return s
+}
+
+// SetReplicationConfig sets the ReplicationConfig field's value.
+func (s *UpdateEndpointInput) SetReplicationConfig(v *ReplicationConfig) *UpdateEndpointInput {
+	s.ReplicationConfig = v
+	return s
+}
+
+// SetRoleArn sets the RoleArn field's value.
+func (s *UpdateEndpointInput) SetRoleArn(v string) *UpdateEndpointInput {
+	s.RoleArn = &v
+	return s
+}
+
+// SetRoutingConfig sets the RoutingConfig field's value.
+func (s *UpdateEndpointInput) SetRoutingConfig(v *RoutingConfig) *UpdateEndpointInput {
+	s.RoutingConfig = v
+	return s
+}
+
+type UpdateEndpointOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The ARN of the endpoint you updated in this request.
+	Arn *string `min:"1" type:"string"`
+
+	// The ID of the endpoint you updated in this request.
+	EndpointId *string `min:"1" type:"string"`
+
+	// The URL of the endpoint you updated in this request.
+	EndpointUrl *string `min:"1" type:"string"`
+
+	// The event buses used for replication for the endpoint you updated in this
+	// request.
+	EventBuses []*EndpointEventBus `min:"2" type:"list"`
+
+	// The name of the endpoint you updated in this request.
+	Name *string `min:"1" type:"string"`
+
+	// Whether event replication was enabled or disabled for the endpoint you updated
+	// in this request.
+	ReplicationConfig *ReplicationConfig `type:"structure"`
+
+	// The ARN of the role used by event replication for the endpoint you updated
+	// in this request.
+	RoleArn *string `min:"1" type:"string"`
+
+	// The routing configuration you updated in this request.
+	RoutingConfig *RoutingConfig `type:"structure"`
+
+	// The state of the endpoint you updated in this request.
+	State *string `type:"string" enum:"EndpointState"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s UpdateEndpointOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s UpdateEndpointOutput) GoString() string {
+	return s.String()
+}
+
+// SetArn sets the Arn field's value.
+func (s *UpdateEndpointOutput) SetArn(v string) *UpdateEndpointOutput {
+	s.Arn = &v
+	return s
+}
+
+// SetEndpointId sets the EndpointId field's value.
+func (s *UpdateEndpointOutput) SetEndpointId(v string) *UpdateEndpointOutput {
+	s.EndpointId = &v
+	return s
+}
+
+// SetEndpointUrl sets the EndpointUrl field's value.
+func (s *UpdateEndpointOutput) SetEndpointUrl(v string) *UpdateEndpointOutput {
+	s.EndpointUrl = &v
+	return s
+}
+
+// SetEventBuses sets the EventBuses field's value.
+func (s *UpdateEndpointOutput) SetEventBuses(v []*EndpointEventBus) *UpdateEndpointOutput {
+	s.EventBuses = v
+	return s
+}
+
+// SetName sets the Name field's value.
+func (s *UpdateEndpointOutput) SetName(v string) *UpdateEndpointOutput {
+	s.Name = &v
+	return s
+}
+
+// SetReplicationConfig sets the ReplicationConfig field's value.
+func (s *UpdateEndpointOutput) SetReplicationConfig(v *ReplicationConfig) *UpdateEndpointOutput {
+	s.ReplicationConfig = v
+	return s
+}
+
+// SetRoleArn sets the RoleArn field's value.
+func (s *UpdateEndpointOutput) SetRoleArn(v string) *UpdateEndpointOutput {
+	s.RoleArn = &v
+	return s
+}
+
+// SetRoutingConfig sets the RoutingConfig field's value.
+func (s *UpdateEndpointOutput) SetRoutingConfig(v *RoutingConfig) *UpdateEndpointOutput {
+	s.RoutingConfig = v
+	return s
+}
+
+// SetState sets the State field's value.
+func (s *UpdateEndpointOutput) SetState(v string) *UpdateEndpointOutput {
+	s.State = &v
+	return s
+}
+
+type UpdateEventBusInput struct {
+	_ struct{} `type:"structure"`
+
+	// Configuration details of the Amazon SQS queue for EventBridge to use as a
+	// dead-letter queue (DLQ).
+	//
+	// For more information, see Event retry policy and using dead-letter queues
+	// (eventbridge/latest/userguide/eb-rule-dlq.html) in the EventBridge User Guide.
+	DeadLetterConfig *DeadLetterConfig `type:"structure"`
+
+	// The event bus description.
+	Description *string `type:"string"`
+
+	// The identifier of the KMS customer managed key for EventBridge to use, if
+	// you choose to use a customer managed key to encrypt events on this event
+	// bus. The identifier can be the key Amazon Resource Name (ARN), KeyId, key
+	// alias, or key alias ARN.
+	//
+	// If you do not specify a customer managed key identifier, EventBridge uses
+	// an Amazon Web Services owned key to encrypt events on the event bus.
+	//
+	// For more information, see Managing keys (https://docs.aws.amazon.com/kms/latest/developerguide/getting-started.html)
+	// in the Key Management Service Developer Guide.
+	//
+	// Archives and schema discovery are not supported for event buses encrypted
+	// using a customer managed key. EventBridge returns an error if:
+	//
+	//    * You call CreateArchive (https://docs.aws.amazon.com/eventbridge/latest/APIReference/API_CreateArchive.html)
+	//    on an event bus set to use a customer managed key for encryption.
+	//
+	//    * You call CreateDiscoverer (https://docs.aws.amazon.com/eventbridge/latest/schema-reference/v1-discoverers.html#CreateDiscoverer)
+	//    on an event bus set to use a customer managed key for encryption.
+	//
+	//    * You call UpdatedEventBus (https://docs.aws.amazon.com/eventbridge/latest/APIReference/API_UpdatedEventBus.html)
+	//    to set a customer managed key on an event bus with an archives or schema
+	//    discovery enabled.
+	//
+	// To enable archives or schema discovery on an event bus, choose to use an
+	// Amazon Web Services owned key. For more information, see Data encryption
+	// in EventBridge (https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-encryption.html)
+	// in the Amazon EventBridge User Guide.
+	KmsKeyIdentifier *string `type:"string"`
+
+	// The name of the event bus.
+	Name *string `min:"1" type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s UpdateEventBusInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s UpdateEventBusInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UpdateEventBusInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UpdateEventBusInput"}
+	if s.Name != nil && len(*s.Name) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Name", 1))
+	}
+	if s.DeadLetterConfig != nil {
+		if err := s.DeadLetterConfig.Validate(); err != nil {
+			invalidParams.AddNested("DeadLetterConfig", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetDeadLetterConfig sets the DeadLetterConfig field's value.
+func (s *UpdateEventBusInput) SetDeadLetterConfig(v *DeadLetterConfig) *UpdateEventBusInput {
+	s.DeadLetterConfig = v
+	return s
+}
+
+// SetDescription sets the Description field's value.
+func (s *UpdateEventBusInput) SetDescription(v string) *UpdateEventBusInput {
+	s.Description = &v
+	return s
+}
+
+// SetKmsKeyIdentifier sets the KmsKeyIdentifier field's value.
+func (s *UpdateEventBusInput) SetKmsKeyIdentifier(v string) *UpdateEventBusInput {
+	s.KmsKeyIdentifier = &v
+	return s
+}
+
+// SetName sets the Name field's value.
+func (s *UpdateEventBusInput) SetName(v string) *UpdateEventBusInput {
+	s.Name = &v
+	return s
+}
+
+type UpdateEventBusOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The event bus Amazon Resource Name (ARN).
+	Arn *string `type:"string"`
+
+	// Configuration details of the Amazon SQS queue for EventBridge to use as a
+	// dead-letter queue (DLQ).
+	//
+	// For more information, see Event retry policy and using dead-letter queues
+	// (eventbridge/latest/userguide/eb-rule-dlq.html) in the EventBridge User Guide.
+	DeadLetterConfig *DeadLetterConfig `type:"structure"`
+
+	// The event bus description.
+	Description *string `type:"string"`
+
+	// The identifier of the KMS customer managed key for EventBridge to use to
+	// encrypt events on this event bus, if one has been specified.
+	//
+	// For more information, see Data encryption in EventBridge (https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-encryption.html)
+	// in the Amazon EventBridge User Guide.
+	KmsKeyIdentifier *string `type:"string"`
+
+	// The event bus name.
+	Name *string `min:"1" type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s UpdateEventBusOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s UpdateEventBusOutput) GoString() string {
+	return s.String()
+}
+
+// SetArn sets the Arn field's value.
+func (s *UpdateEventBusOutput) SetArn(v string) *UpdateEventBusOutput {
+	s.Arn = &v
+	return s
+}
+
+// SetDeadLetterConfig sets the DeadLetterConfig field's value.
+func (s *UpdateEventBusOutput) SetDeadLetterConfig(v *DeadLetterConfig) *UpdateEventBusOutput {
+	s.DeadLetterConfig = v
+	return s
+}
+
+// SetDescription sets the Description field's value.
+func (s *UpdateEventBusOutput) SetDescription(v string) *UpdateEventBusOutput {
+	s.Description = &v
+	return s
+}
+
+// SetKmsKeyIdentifier sets the KmsKeyIdentifier field's value.
+func (s *UpdateEventBusOutput) SetKmsKeyIdentifier(v string) *UpdateEventBusOutput {
+	s.KmsKeyIdentifier = &v
+	return s
+}
+
+// SetName sets the Name field's value.
+func (s *UpdateEventBusOutput) SetName(v string) *UpdateEventBusOutput {
+	s.Name = &v
+	return s
+}
+
+const (
+	// ApiDestinationHttpMethodPost is a ApiDestinationHttpMethod enum value
+	ApiDestinationHttpMethodPost = "POST"
+
+	// ApiDestinationHttpMethodGet is a ApiDestinationHttpMethod enum value
+	ApiDestinationHttpMethodGet = "GET"
+
+	// ApiDestinationHttpMethodHead is a ApiDestinationHttpMethod enum value
+	ApiDestinationHttpMethodHead = "HEAD"
+
+	// ApiDestinationHttpMethodOptions is a ApiDestinationHttpMethod enum value
+	ApiDestinationHttpMethodOptions = "OPTIONS"
+
+	// ApiDestinationHttpMethodPut is a ApiDestinationHttpMethod enum value
+	ApiDestinationHttpMethodPut = "PUT"
+
+	// ApiDestinationHttpMethodPatch is a ApiDestinationHttpMethod enum value
+	ApiDestinationHttpMethodPatch = "PATCH"
+
+	// ApiDestinationHttpMethodDelete is a ApiDestinationHttpMethod enum value
+	ApiDestinationHttpMethodDelete = "DELETE"
+)
+
+// ApiDestinationHttpMethod_Values returns all elements of the ApiDestinationHttpMethod enum
+func ApiDestinationHttpMethod_Values() []string {
+	return []string{
+		ApiDestinationHttpMethodPost,
+		ApiDestinationHttpMethodGet,
+		ApiDestinationHttpMethodHead,
+		ApiDestinationHttpMethodOptions,
+		ApiDestinationHttpMethodPut,
+		ApiDestinationHttpMethodPatch,
+		ApiDestinationHttpMethodDelete,
+	}
+}
+
+const (
+	// ApiDestinationStateActive is a ApiDestinationState enum value
+	ApiDestinationStateActive = "ACTIVE"
+
+	// ApiDestinationStateInactive is a ApiDestinationState enum value
+	ApiDestinationStateInactive = "INACTIVE"
+)
+
+// ApiDestinationState_Values returns all elements of the ApiDestinationState enum
+func ApiDestinationState_Values() []string {
+	return []string{
+		ApiDestinationStateActive,
+		ApiDestinationStateInactive,
+	}
+}
+
+const (
+	// ArchiveStateEnabled is a ArchiveState enum value
+	ArchiveStateEnabled = "ENABLED"
+
+	// ArchiveStateDisabled is a ArchiveState enum value
+	ArchiveStateDisabled = "DISABLED"
+
+	// ArchiveStateCreating is a ArchiveState enum value
+	ArchiveStateCreating = "CREATING"
+
+	// ArchiveStateUpdating is a ArchiveState enum value
+	ArchiveStateUpdating = "UPDATING"
+
+	// ArchiveStateCreateFailed is a ArchiveState enum value
+	ArchiveStateCreateFailed = "CREATE_FAILED"
+
+	// ArchiveStateUpdateFailed is a ArchiveState enum value
+	ArchiveStateUpdateFailed = "UPDATE_FAILED"
+)
+
+// ArchiveState_Values returns all elements of the ArchiveState enum
+func ArchiveState_Values() []string {
+	return []string{
+		ArchiveStateEnabled,
+		ArchiveStateDisabled,
+		ArchiveStateCreating,
+		ArchiveStateUpdating,
+		ArchiveStateCreateFailed,
+		ArchiveStateUpdateFailed,
+	}
 }
 
 const (
@@ -7386,6 +18448,126 @@ const (
 	// AssignPublicIpDisabled is a AssignPublicIp enum value
 	AssignPublicIpDisabled = "DISABLED"
 )
+
+// AssignPublicIp_Values returns all elements of the AssignPublicIp enum
+func AssignPublicIp_Values() []string {
+	return []string{
+		AssignPublicIpEnabled,
+		AssignPublicIpDisabled,
+	}
+}
+
+const (
+	// ConnectionAuthorizationTypeBasic is a ConnectionAuthorizationType enum value
+	ConnectionAuthorizationTypeBasic = "BASIC"
+
+	// ConnectionAuthorizationTypeOauthClientCredentials is a ConnectionAuthorizationType enum value
+	ConnectionAuthorizationTypeOauthClientCredentials = "OAUTH_CLIENT_CREDENTIALS"
+
+	// ConnectionAuthorizationTypeApiKey is a ConnectionAuthorizationType enum value
+	ConnectionAuthorizationTypeApiKey = "API_KEY"
+)
+
+// ConnectionAuthorizationType_Values returns all elements of the ConnectionAuthorizationType enum
+func ConnectionAuthorizationType_Values() []string {
+	return []string{
+		ConnectionAuthorizationTypeBasic,
+		ConnectionAuthorizationTypeOauthClientCredentials,
+		ConnectionAuthorizationTypeApiKey,
+	}
+}
+
+const (
+	// ConnectionOAuthHttpMethodGet is a ConnectionOAuthHttpMethod enum value
+	ConnectionOAuthHttpMethodGet = "GET"
+
+	// ConnectionOAuthHttpMethodPost is a ConnectionOAuthHttpMethod enum value
+	ConnectionOAuthHttpMethodPost = "POST"
+
+	// ConnectionOAuthHttpMethodPut is a ConnectionOAuthHttpMethod enum value
+	ConnectionOAuthHttpMethodPut = "PUT"
+)
+
+// ConnectionOAuthHttpMethod_Values returns all elements of the ConnectionOAuthHttpMethod enum
+func ConnectionOAuthHttpMethod_Values() []string {
+	return []string{
+		ConnectionOAuthHttpMethodGet,
+		ConnectionOAuthHttpMethodPost,
+		ConnectionOAuthHttpMethodPut,
+	}
+}
+
+const (
+	// ConnectionStateCreating is a ConnectionState enum value
+	ConnectionStateCreating = "CREATING"
+
+	// ConnectionStateUpdating is a ConnectionState enum value
+	ConnectionStateUpdating = "UPDATING"
+
+	// ConnectionStateDeleting is a ConnectionState enum value
+	ConnectionStateDeleting = "DELETING"
+
+	// ConnectionStateAuthorized is a ConnectionState enum value
+	ConnectionStateAuthorized = "AUTHORIZED"
+
+	// ConnectionStateDeauthorized is a ConnectionState enum value
+	ConnectionStateDeauthorized = "DEAUTHORIZED"
+
+	// ConnectionStateAuthorizing is a ConnectionState enum value
+	ConnectionStateAuthorizing = "AUTHORIZING"
+
+	// ConnectionStateDeauthorizing is a ConnectionState enum value
+	ConnectionStateDeauthorizing = "DEAUTHORIZING"
+)
+
+// ConnectionState_Values returns all elements of the ConnectionState enum
+func ConnectionState_Values() []string {
+	return []string{
+		ConnectionStateCreating,
+		ConnectionStateUpdating,
+		ConnectionStateDeleting,
+		ConnectionStateAuthorized,
+		ConnectionStateDeauthorized,
+		ConnectionStateAuthorizing,
+		ConnectionStateDeauthorizing,
+	}
+}
+
+const (
+	// EndpointStateActive is a EndpointState enum value
+	EndpointStateActive = "ACTIVE"
+
+	// EndpointStateCreating is a EndpointState enum value
+	EndpointStateCreating = "CREATING"
+
+	// EndpointStateUpdating is a EndpointState enum value
+	EndpointStateUpdating = "UPDATING"
+
+	// EndpointStateDeleting is a EndpointState enum value
+	EndpointStateDeleting = "DELETING"
+
+	// EndpointStateCreateFailed is a EndpointState enum value
+	EndpointStateCreateFailed = "CREATE_FAILED"
+
+	// EndpointStateUpdateFailed is a EndpointState enum value
+	EndpointStateUpdateFailed = "UPDATE_FAILED"
+
+	// EndpointStateDeleteFailed is a EndpointState enum value
+	EndpointStateDeleteFailed = "DELETE_FAILED"
+)
+
+// EndpointState_Values returns all elements of the EndpointState enum
+func EndpointState_Values() []string {
+	return []string{
+		EndpointStateActive,
+		EndpointStateCreating,
+		EndpointStateUpdating,
+		EndpointStateDeleting,
+		EndpointStateCreateFailed,
+		EndpointStateUpdateFailed,
+		EndpointStateDeleteFailed,
+	}
+}
 
 const (
 	// EventSourceStatePending is a EventSourceState enum value
@@ -7398,13 +18580,130 @@ const (
 	EventSourceStateDeleted = "DELETED"
 )
 
+// EventSourceState_Values returns all elements of the EventSourceState enum
+func EventSourceState_Values() []string {
+	return []string{
+		EventSourceStatePending,
+		EventSourceStateActive,
+		EventSourceStateDeleted,
+	}
+}
+
 const (
 	// LaunchTypeEc2 is a LaunchType enum value
 	LaunchTypeEc2 = "EC2"
 
 	// LaunchTypeFargate is a LaunchType enum value
 	LaunchTypeFargate = "FARGATE"
+
+	// LaunchTypeExternal is a LaunchType enum value
+	LaunchTypeExternal = "EXTERNAL"
 )
+
+// LaunchType_Values returns all elements of the LaunchType enum
+func LaunchType_Values() []string {
+	return []string{
+		LaunchTypeEc2,
+		LaunchTypeFargate,
+		LaunchTypeExternal,
+	}
+}
+
+const (
+	// PlacementConstraintTypeDistinctInstance is a PlacementConstraintType enum value
+	PlacementConstraintTypeDistinctInstance = "distinctInstance"
+
+	// PlacementConstraintTypeMemberOf is a PlacementConstraintType enum value
+	PlacementConstraintTypeMemberOf = "memberOf"
+)
+
+// PlacementConstraintType_Values returns all elements of the PlacementConstraintType enum
+func PlacementConstraintType_Values() []string {
+	return []string{
+		PlacementConstraintTypeDistinctInstance,
+		PlacementConstraintTypeMemberOf,
+	}
+}
+
+const (
+	// PlacementStrategyTypeRandom is a PlacementStrategyType enum value
+	PlacementStrategyTypeRandom = "random"
+
+	// PlacementStrategyTypeSpread is a PlacementStrategyType enum value
+	PlacementStrategyTypeSpread = "spread"
+
+	// PlacementStrategyTypeBinpack is a PlacementStrategyType enum value
+	PlacementStrategyTypeBinpack = "binpack"
+)
+
+// PlacementStrategyType_Values returns all elements of the PlacementStrategyType enum
+func PlacementStrategyType_Values() []string {
+	return []string{
+		PlacementStrategyTypeRandom,
+		PlacementStrategyTypeSpread,
+		PlacementStrategyTypeBinpack,
+	}
+}
+
+const (
+	// PropagateTagsTaskDefinition is a PropagateTags enum value
+	PropagateTagsTaskDefinition = "TASK_DEFINITION"
+)
+
+// PropagateTags_Values returns all elements of the PropagateTags enum
+func PropagateTags_Values() []string {
+	return []string{
+		PropagateTagsTaskDefinition,
+	}
+}
+
+const (
+	// ReplayStateStarting is a ReplayState enum value
+	ReplayStateStarting = "STARTING"
+
+	// ReplayStateRunning is a ReplayState enum value
+	ReplayStateRunning = "RUNNING"
+
+	// ReplayStateCancelling is a ReplayState enum value
+	ReplayStateCancelling = "CANCELLING"
+
+	// ReplayStateCompleted is a ReplayState enum value
+	ReplayStateCompleted = "COMPLETED"
+
+	// ReplayStateCancelled is a ReplayState enum value
+	ReplayStateCancelled = "CANCELLED"
+
+	// ReplayStateFailed is a ReplayState enum value
+	ReplayStateFailed = "FAILED"
+)
+
+// ReplayState_Values returns all elements of the ReplayState enum
+func ReplayState_Values() []string {
+	return []string{
+		ReplayStateStarting,
+		ReplayStateRunning,
+		ReplayStateCancelling,
+		ReplayStateCompleted,
+		ReplayStateCancelled,
+		ReplayStateFailed,
+	}
+}
+
+const (
+	// ReplicationStateEnabled is a ReplicationState enum value
+	ReplicationStateEnabled = "ENABLED"
+
+	// ReplicationStateDisabled is a ReplicationState enum value
+	ReplicationStateDisabled = "DISABLED"
+)
+
+// ReplicationState_Values returns all elements of the ReplicationState enum
+func ReplicationState_Values() []string {
+	return []string{
+		ReplicationStateEnabled,
+		ReplicationStateDisabled,
+	}
+}
 
 const (
 	// RuleStateEnabled is a RuleState enum value
@@ -7412,4 +18711,16 @@ const (
 
 	// RuleStateDisabled is a RuleState enum value
 	RuleStateDisabled = "DISABLED"
+
+	// RuleStateEnabledWithAllCloudtrailManagementEvents is a RuleState enum value
+	RuleStateEnabledWithAllCloudtrailManagementEvents = "ENABLED_WITH_ALL_CLOUDTRAIL_MANAGEMENT_EVENTS"
 )
+
+// RuleState_Values returns all elements of the RuleState enum
+func RuleState_Values() []string {
+	return []string{
+		RuleStateEnabled,
+		RuleStateDisabled,
+		RuleStateEnabledWithAllCloudtrailManagementEvents,
+	}
+}

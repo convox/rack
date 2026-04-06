@@ -2,13 +2,24 @@
 
 package eventbridge
 
+import (
+	"github.com/aws/aws-sdk-go/private/protocol"
+)
+
 const (
 
 	// ErrCodeConcurrentModificationException for service response error code
 	// "ConcurrentModificationException".
 	//
-	// There is concurrent modification on a resource.
+	// There is concurrent modification on a rule, target, archive, or replay.
 	ErrCodeConcurrentModificationException = "ConcurrentModificationException"
+
+	// ErrCodeIllegalStatusException for service response error code
+	// "IllegalStatusException".
+	//
+	// An error occurred because a replay can be canceled only when the state is
+	// Running or Starting.
+	ErrCodeIllegalStatusException = "IllegalStatusException"
 
 	// ErrCodeInternalException for service response error code
 	// "InternalException".
@@ -19,30 +30,38 @@ const (
 	// ErrCodeInvalidEventPatternException for service response error code
 	// "InvalidEventPatternException".
 	//
-	// The event pattern isn't valid.
+	// The event pattern is not valid.
 	ErrCodeInvalidEventPatternException = "InvalidEventPatternException"
 
 	// ErrCodeInvalidStateException for service response error code
 	// "InvalidStateException".
 	//
-	// The specified state isn't a valid state for an event source.
+	// The specified state is not a valid state for an event source.
 	ErrCodeInvalidStateException = "InvalidStateException"
 
 	// ErrCodeLimitExceededException for service response error code
 	// "LimitExceededException".
 	//
-	// You tried to create more resources than is allowed.
+	// The request failed because it attempted to create resource beyond the allowed
+	// service quota.
 	ErrCodeLimitExceededException = "LimitExceededException"
 
 	// ErrCodeManagedRuleException for service response error code
 	// "ManagedRuleException".
 	//
-	// An AWS service created this rule on behalf of your account. That service
-	// manages it. If you see this error in response to DeleteRule or RemoveTargets,
-	// you can use the Force parameter in those calls to delete the rule or remove
-	// targets from the rule. You can't modify these managed rules by using DisableRule,
-	// EnableRule, PutTargets, PutRule, TagResource, or UntagResource.
+	// This rule was created by an Amazon Web Services service on behalf of your
+	// account. It is managed by that service. If you see this error in response
+	// to DeleteRule or RemoveTargets, you can use the Force parameter in those
+	// calls to delete the rule or remove targets from the rule. You cannot modify
+	// these managed rules by using DisableRule, EnableRule, PutTargets, PutRule,
+	// TagResource, or UntagResource.
 	ErrCodeManagedRuleException = "ManagedRuleException"
+
+	// ErrCodeOperationDisabledException for service response error code
+	// "OperationDisabledException".
+	//
+	// The operation you are attempting is not available in this region.
+	ErrCodeOperationDisabledException = "OperationDisabledException"
 
 	// ErrCodePolicyLengthExceededException for service response error code
 	// "PolicyLengthExceededException".
@@ -53,12 +72,26 @@ const (
 	// ErrCodeResourceAlreadyExistsException for service response error code
 	// "ResourceAlreadyExistsException".
 	//
-	// The resource that you're trying to create already exists.
+	// The resource you are trying to create already exists.
 	ErrCodeResourceAlreadyExistsException = "ResourceAlreadyExistsException"
 
 	// ErrCodeResourceNotFoundException for service response error code
 	// "ResourceNotFoundException".
 	//
-	// An entity that you specified doesn't exist.
+	// An entity that you specified does not exist.
 	ErrCodeResourceNotFoundException = "ResourceNotFoundException"
 )
+
+var exceptionFromCode = map[string]func(protocol.ResponseMetadata) error{
+	"ConcurrentModificationException": newErrorConcurrentModificationException,
+	"IllegalStatusException":          newErrorIllegalStatusException,
+	"InternalException":               newErrorInternalException,
+	"InvalidEventPatternException":    newErrorInvalidEventPatternException,
+	"InvalidStateException":           newErrorInvalidStateException,
+	"LimitExceededException":          newErrorLimitExceededException,
+	"ManagedRuleException":            newErrorManagedRuleException,
+	"OperationDisabledException":      newErrorOperationDisabledException,
+	"PolicyLengthExceededException":   newErrorPolicyLengthExceededException,
+	"ResourceAlreadyExistsException":  newErrorResourceAlreadyExistsException,
+	"ResourceNotFoundException":       newErrorResourceNotFoundException,
+}

@@ -12,22 +12,22 @@
 // With DynamoDB, you can create database tables that can store and retrieve
 // any amount of data, and serve any level of request traffic. You can scale
 // up or scale down your tables' throughput capacity without downtime or performance
-// degradation, and use the AWS Management Console to monitor resource utilization
-// and performance metrics.
+// degradation, and use the Amazon Web Services Management Console to monitor
+// resource utilization and performance metrics.
 //
 // DynamoDB automatically spreads the data and traffic for your tables over
 // a sufficient number of servers to handle your throughput and storage requirements,
 // while maintaining consistent and fast performance. All of your data is stored
 // on solid state disks (SSDs) and automatically replicated across multiple
-// Availability Zones in an AWS region, providing built-in high availability
-// and data durability.
+// Availability Zones in an Amazon Web Services Region, providing built-in high
+// availability and data durability.
 //
 // See https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10 for more information on this service.
 //
 // See dynamodb package documentation for more information.
 // https://docs.aws.amazon.com/sdk-for-go/api/service/dynamodb/
 //
-// Using the Client
+// # Using the Client
 //
 // To contact Amazon DynamoDB with the SDK use the New function to create
 // a new service client. With that client you can make API requests to the service.
@@ -42,4 +42,7 @@
 // See the Amazon DynamoDB client DynamoDB for more
 // information on creating client for this service.
 // https://docs.aws.amazon.com/sdk-for-go/api/service/dynamodb/#New
+//
+// Deprecated: aws-sdk-go is deprecated. Use aws-sdk-go-v2.
+// See https://aws.amazon.com/blogs/developer/announcing-end-of-support-for-aws-sdk-for-go-v1-on-july-31-2025/.
 package dynamodb

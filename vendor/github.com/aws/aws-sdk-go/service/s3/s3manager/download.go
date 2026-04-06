@@ -86,16 +86,17 @@ func WithDownloaderRequestOptions(opts ...request.Option) func(*Downloader) {
 // interface.
 //
 // Example:
-//     // The session the S3 Downloader will use
-//     sess := session.Must(session.NewSession())
 //
-//     // Create a downloader with the session and default options
-//     downloader := s3manager.NewDownloader(sess)
+//	// The session the S3 Downloader will use
+//	sess := session.Must(session.NewSession())
 //
-//     // Create a downloader with the session and custom options
-//     downloader := s3manager.NewDownloader(sess, func(d *s3manager.Downloader) {
-//          d.PartSize = 64 * 1024 * 1024 // 64MB per part
-//     })
+//	// Create a downloader with the session and default options
+//	downloader := s3manager.NewDownloader(sess)
+//
+//	// Create a downloader with the session and custom options
+//	downloader := s3manager.NewDownloader(sess, func(d *s3manager.Downloader) {
+//	     d.PartSize = 64 * 1024 * 1024 // 64MB per part
+//	})
 func NewDownloader(c client.ConfigProvider, options ...func(*Downloader)) *Downloader {
 	return newDownloader(s3.New(c), options...)
 }
@@ -120,19 +121,20 @@ func newDownloader(client s3iface.S3API, options ...func(*Downloader)) *Download
 // to make S3 API calls.
 //
 // Example:
-//     // The session the S3 Downloader will use
-//     sess := session.Must(session.NewSession())
 //
-//     // The S3 client the S3 Downloader will use
-//     s3Svc := s3.New(sess)
+//	// The session the S3 Downloader will use
+//	sess := session.Must(session.NewSession())
 //
-//     // Create a downloader with the s3 client and default options
-//     downloader := s3manager.NewDownloaderWithClient(s3Svc)
+//	// The S3 client the S3 Downloader will use
+//	s3Svc := s3.New(sess)
 //
-//     // Create a downloader with the s3 client and custom options
-//     downloader := s3manager.NewDownloaderWithClient(s3Svc, func(d *s3manager.Downloader) {
-//          d.PartSize = 64 * 1024 * 1024 // 64MB per part
-//     })
+//	// Create a downloader with the s3 client and default options
+//	downloader := s3manager.NewDownloaderWithClient(s3Svc)
+//
+//	// Create a downloader with the s3 client and custom options
+//	downloader := s3manager.NewDownloaderWithClient(s3Svc, func(d *s3manager.Downloader) {
+//	     d.PartSize = 64 * 1024 * 1024 // 64MB per part
+//	})
 func NewDownloaderWithClient(svc s3iface.S3API, options ...func(*Downloader)) *Downloader {
 	return newDownloader(svc, options...)
 }
@@ -192,6 +194,10 @@ func (d Downloader) Download(w io.WriterAt, input *s3.GetObjectInput, options ..
 // to perform a single GetObjectInput request for that object's range. This will
 // caused the part size, and concurrency configurations to be ignored.
 func (d Downloader) DownloadWithContext(ctx aws.Context, w io.WriterAt, input *s3.GetObjectInput, options ...func(*Downloader)) (n int64, err error) {
+	if err := validateSupportedARNType(aws.StringValue(input.Bucket)); err != nil {
+		return 0, err
+	}
+
 	impl := downloader{w: w, in: input, cfg: d, ctx: ctx}
 
 	for _, option := range options {
@@ -219,6 +225,7 @@ func (d Downloader) DownloadWithContext(ctx aws.Context, w io.WriterAt, input *s
 // to the io.WriterAt specificed in the iterator.
 //
 // Example:
+//
 //	svc := s3manager.NewDownloader(session)
 //
 //	fooFile, err := os.Open("/tmp/foo.file")
@@ -283,13 +290,15 @@ type downloader struct {
 	in *s3.GetObjectInput
 	w  io.WriterAt
 
-	wg sync.WaitGroup
-	m  sync.Mutex
+	wg   sync.WaitGroup
+	m    sync.Mutex
+	once sync.Once
 
 	pos        int64
 	totalBytes int64
 	written    int64
 	err        error
+	etag       string
 
 	partBodyMaxRetries int
 }
@@ -417,6 +426,9 @@ func (d *downloader) downloadChunk(chunk dlchunk) error {
 
 	// Get the next byte range of data
 	in.Range = aws.String(chunk.ByteRange())
+	if in.VersionId == nil && d.etag != "" {
+		in.IfMatch = aws.String(d.etag)
+	}
 
 	var n int64
 	var err error
@@ -459,8 +471,15 @@ func (d *downloader) tryDownloadChunk(in *s3.GetObjectInput, w io.Writer) (int64
 		return 0, err
 	}
 	d.setTotalBytes(resp) // Set total if not yet set.
+	d.once.Do(func() {
+		d.etag = aws.StringValue(resp.ETag)
+	})
 
-	n, err := io.Copy(w, resp.Body)
+	var src io.Reader = resp.Body
+	if d.cfg.BufferProvider != nil {
+		src = &suppressWriterAt{suppressed: src}
+	}
+	n, err := io.Copy(w, src)
 	resp.Body.Close()
 	if err != nil {
 		return n, &errReadingBody{err: err}

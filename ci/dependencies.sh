@@ -12,7 +12,14 @@ unzip awscliv2.zip
 sudo ./aws/install
 
 # install docker
-curl -s https://download.docker.com/linux/static/stable/x86_64/docker-18.09.6.tgz | sudo tar -C /usr/bin --strip-components 1 -xz
+curl -s https://download.docker.com/linux/static/stable/x86_64/docker-29.3.1.tgz | sudo tar -C /usr/bin --strip-components 1 -xz
+
+# install docker-buildx plugin (required by Docker 29.x for BuildKit builds)
+BUILDX_VERSION=0.22.0
+sudo mkdir -p /usr/local/lib/docker/cli-plugins
+sudo curl -sL https://github.com/docker/buildx/releases/download/v${BUILDX_VERSION}/buildx-v${BUILDX_VERSION}.linux-amd64 \
+  -o /usr/local/lib/docker/cli-plugins/docker-buildx
+sudo chmod +x /usr/local/lib/docker/cli-plugins/docker-buildx
 
 # install kubectl
 curl -Ls https://storage.googleapis.com/kubernetes-release/release/v1.28.15/bin/linux/amd64/kubectl -o /tmp/kubectl && \

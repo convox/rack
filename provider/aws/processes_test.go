@@ -1382,24 +1382,7 @@ var cycleProcessRunTaskDetached = awsutil.Cycle{
 	Request: awsutil.Request{
 		RequestURI: "/",
 		Operation:  "AmazonEC2ContainerServiceV20141113.RunTask",
-		Body: `{
-			"cluster": "cluster-test",
-			"count": 1,
-			"overrides": {
-				"containerOverrides": [
-					{
-						"command": [
-							"sh",
-							"-c",
-							"ls test"
-						],
-						"name": "web"
-					}
-				]
-			},
-			"startedBy": "convox.myapp",
-			"taskDefinition": "arn:aws:ecs:us-east-1:012345678910:task-definition/hello_world:4"
-		}`,
+		Body:       `/\{("clientToken":"[^"]+",)?"cluster":"cluster-test","count":1,"overrides":\{"containerOverrides":\[\{"command":\["sh","-c","ls test"\],"name":"web"\}\]\},"startedBy":"convox\.myapp","taskDefinition":"arn:aws:ecs:us-east-1:012345678910:task-definition/hello_world:4"\}/`,
 	},
 	Response: awsutil.Response{
 		StatusCode: 200,

@@ -3,13 +3,22 @@
 package cloudwatchlogs
 
 import (
+	"bytes"
 	"fmt"
+	"io"
+	"sync"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/awsutil"
+	"github.com/aws/aws-sdk-go/aws/client"
 	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/private/protocol"
+	"github.com/aws/aws-sdk-go/private/protocol/eventstream"
+	"github.com/aws/aws-sdk-go/private/protocol/eventstream/eventstreamapi"
 	"github.com/aws/aws-sdk-go/private/protocol/jsonrpc"
+	"github.com/aws/aws-sdk-go/private/protocol/rest"
 )
 
 const opAssociateKmsKey = "AssociateKmsKey"
@@ -28,14 +37,13 @@ const opAssociateKmsKey = "AssociateKmsKey"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the AssociateKmsKeyRequest method.
+//	req, resp := client.AssociateKmsKeyRequest(params)
 //
-//    // Example sending a request using the AssociateKmsKeyRequest method.
-//    req, resp := client.AssociateKmsKeyRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/AssociateKmsKey
 func (c *CloudWatchLogs) AssociateKmsKeyRequest(input *AssociateKmsKeyInput) (req *request.Request, output *AssociateKmsKeyOutput) {
@@ -57,20 +65,50 @@ func (c *CloudWatchLogs) AssociateKmsKeyRequest(input *AssociateKmsKeyInput) (re
 
 // AssociateKmsKey API operation for Amazon CloudWatch Logs.
 //
-// Associates the specified AWS Key Management Service (AWS KMS) customer master
-// key (CMK) with the specified log group.
+// Associates the specified KMS key with either one log group in the account,
+// or with all stored CloudWatch Logs query insights results in the account.
 //
-// Associating an AWS KMS CMK with a log group overrides any existing associations
-// between the log group and a CMK. After a CMK is associated with a log group,
-// all newly ingested data for the log group is encrypted using the CMK. This
-// association is stored as long as the data encrypted with the CMK is still
-// within Amazon CloudWatch Logs. This enables Amazon CloudWatch Logs to decrypt
-// this data whenever it is requested.
+// When you use AssociateKmsKey, you specify either the logGroupName parameter
+// or the resourceIdentifier parameter. You can't specify both of those parameters
+// in the same operation.
 //
-// Note that it can take up to 5 minutes for this operation to take effect.
+//   - Specify the logGroupName parameter to cause all log events stored in
+//     the log group to be encrypted with that key. Only the log events ingested
+//     after the key is associated are encrypted with that key. Associating a
+//     KMS key with a log group overrides any existing associations between the
+//     log group and a KMS key. After a KMS key is associated with a log group,
+//     all newly ingested data for the log group is encrypted using the KMS key.
+//     This association is stored as long as the data encrypted with the KMS
+//     key is still within CloudWatch Logs. This enables CloudWatch Logs to decrypt
+//     this data whenever it is requested. Associating a key with a log group
+//     does not cause the results of queries of that log group to be encrypted
+//     with that key. To have query results encrypted with a KMS key, you must
+//     use an AssociateKmsKey operation with the resourceIdentifier parameter
+//     that specifies a query-result resource.
 //
-// If you attempt to associate a CMK with a log group but the CMK does not exist
-// or the CMK is disabled, you will receive an InvalidParameterException error.
+//   - Specify the resourceIdentifier parameter with a query-result resource,
+//     to use that key to encrypt the stored results of all future StartQuery
+//     (https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_StartQuery.html)
+//     operations in the account. The response from a GetQueryResults (https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_GetQueryResults.html)
+//     operation will still return the query results in plain text. Even if you
+//     have not associated a key with your query results, the query results are
+//     encrypted when stored, using the default CloudWatch Logs method. If you
+//     run a query from a monitoring account that queries logs in a source account,
+//     the query results key from the monitoring account, if any, is used.
+//
+// If you delete the key that is used to encrypt log events or log group query
+// results, then all the associated stored log events or query results that
+// were encrypted with that key will be unencryptable and unusable.
+//
+// CloudWatch Logs supports only symmetric KMS keys. Do not use an associate
+// an asymmetric KMS key with your log group or query results. For more information,
+// see Using Symmetric and Asymmetric Keys (https://docs.aws.amazon.com/kms/latest/developerguide/symmetric-asymmetric.html).
+//
+// It can take up to 5 minutes for this operation to take effect.
+//
+// If you attempt to associate a KMS key with a log group but the KMS key does
+// not exist or the KMS key is disabled, you receive an InvalidParameterException
+// error.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -79,18 +117,19 @@ func (c *CloudWatchLogs) AssociateKmsKeyRequest(input *AssociateKmsKeyInput) (re
 // See the AWS API reference guide for Amazon CloudWatch Logs's
 // API operation AssociateKmsKey for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
-//   A parameter is specified incorrectly.
+// Returned Error Types:
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
-//   The specified resource does not exist.
+//   - InvalidParameterException
+//     A parameter is specified incorrectly.
 //
-//   * ErrCodeOperationAbortedException "OperationAbortedException"
-//   Multiple requests to update the same resource were in conflict.
+//   - ResourceNotFoundException
+//     The specified resource does not exist.
 //
-//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
-//   The service cannot complete the request.
+//   - OperationAbortedException
+//     Multiple concurrent requests to update the same resource were in conflict.
+//
+//   - ServiceUnavailableException
+//     The service cannot complete the request.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/AssociateKmsKey
 func (c *CloudWatchLogs) AssociateKmsKey(input *AssociateKmsKeyInput) (*AssociateKmsKeyOutput, error) {
@@ -130,14 +169,13 @@ const opCancelExportTask = "CancelExportTask"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the CancelExportTaskRequest method.
+//	req, resp := client.CancelExportTaskRequest(params)
 //
-//    // Example sending a request using the CancelExportTaskRequest method.
-//    req, resp := client.CancelExportTaskRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/CancelExportTask
 func (c *CloudWatchLogs) CancelExportTaskRequest(input *CancelExportTaskInput) (req *request.Request, output *CancelExportTaskOutput) {
@@ -170,18 +208,19 @@ func (c *CloudWatchLogs) CancelExportTaskRequest(input *CancelExportTaskInput) (
 // See the AWS API reference guide for Amazon CloudWatch Logs's
 // API operation CancelExportTask for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
-//   A parameter is specified incorrectly.
+// Returned Error Types:
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
-//   The specified resource does not exist.
+//   - InvalidParameterException
+//     A parameter is specified incorrectly.
 //
-//   * ErrCodeInvalidOperationException "InvalidOperationException"
-//   The operation is not valid on the specified resource.
+//   - ResourceNotFoundException
+//     The specified resource does not exist.
 //
-//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
-//   The service cannot complete the request.
+//   - InvalidOperationException
+//     The operation is not valid on the specified resource.
+//
+//   - ServiceUnavailableException
+//     The service cannot complete the request.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/CancelExportTask
 func (c *CloudWatchLogs) CancelExportTask(input *CancelExportTaskInput) (*CancelExportTaskOutput, error) {
@@ -205,6 +244,137 @@ func (c *CloudWatchLogs) CancelExportTaskWithContext(ctx aws.Context, input *Can
 	return out, req.Send()
 }
 
+const opCreateDelivery = "CreateDelivery"
+
+// CreateDeliveryRequest generates a "aws/request.Request" representing the
+// client's request for the CreateDelivery operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See CreateDelivery for more information on using the CreateDelivery
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//	// Example sending a request using the CreateDeliveryRequest method.
+//	req, resp := client.CreateDeliveryRequest(params)
+//
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/CreateDelivery
+func (c *CloudWatchLogs) CreateDeliveryRequest(input *CreateDeliveryInput) (req *request.Request, output *CreateDeliveryOutput) {
+	op := &request.Operation{
+		Name:       opCreateDelivery,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &CreateDeliveryInput{}
+	}
+
+	output = &CreateDeliveryOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// CreateDelivery API operation for Amazon CloudWatch Logs.
+//
+// Creates a delivery. A delivery is a connection between a logical delivery
+// source and a logical delivery destination that you have already created.
+//
+// Only some Amazon Web Services services support being configured as a delivery
+// source using this operation. These services are listed as Supported [V2 Permissions]
+// in the table at Enabling logging from Amazon Web Services services. (https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/AWS-logs-and-resource-policy.html)
+//
+// A delivery destination can represent a log group in CloudWatch Logs, an Amazon
+// S3 bucket, or a delivery stream in Firehose.
+//
+// To configure logs delivery between a supported Amazon Web Services service
+// and a destination, you must do the following:
+//
+//   - Create a delivery source, which is a logical object that represents
+//     the resource that is actually sending the logs. For more information,
+//     see PutDeliverySource (https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_PutDeliverySource.html).
+//
+//   - Create a delivery destination, which is a logical object that represents
+//     the actual delivery destination. For more information, see PutDeliveryDestination
+//     (https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_PutDeliveryDestination.html).
+//
+//   - If you are delivering logs cross-account, you must use PutDeliveryDestinationPolicy
+//     (https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_PutDeliveryDestinationPolicy.html)
+//     in the destination account to assign an IAM policy to the destination.
+//     This policy allows delivery to that destination.
+//
+//   - Use CreateDelivery to create a delivery by pairing exactly one delivery
+//     source and one delivery destination.
+//
+// You can configure a single delivery source to send logs to multiple destinations
+// by creating multiple deliveries. You can also create multiple deliveries
+// to configure multiple delivery sources to send logs to the same delivery
+// destination.
+//
+// You can't update an existing delivery. You can only create and delete deliveries.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon CloudWatch Logs's
+// API operation CreateDelivery for usage and error information.
+//
+// Returned Error Types:
+//
+//   - ServiceUnavailableException
+//     The service cannot complete the request.
+//
+//   - ConflictException
+//     This operation attempted to create a resource that already exists.
+//
+//   - ResourceNotFoundException
+//     The specified resource does not exist.
+//
+//   - ValidationException
+//     One of the parameters for the request is not valid.
+//
+//   - AccessDeniedException
+//     You don't have sufficient permissions to perform this action.
+//
+//   - ServiceQuotaExceededException
+//     This request exceeds a service quota.
+//
+//   - ThrottlingException
+//     The request was throttled because of quota limits.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/CreateDelivery
+func (c *CloudWatchLogs) CreateDelivery(input *CreateDeliveryInput) (*CreateDeliveryOutput, error) {
+	req, out := c.CreateDeliveryRequest(input)
+	return out, req.Send()
+}
+
+// CreateDeliveryWithContext is the same as CreateDelivery with the addition of
+// the ability to pass a context and additional request options.
+//
+// See CreateDelivery for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *CloudWatchLogs) CreateDeliveryWithContext(ctx aws.Context, input *CreateDeliveryInput, opts ...request.Option) (*CreateDeliveryOutput, error) {
+	req, out := c.CreateDeliveryRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opCreateExportTask = "CreateExportTask"
 
 // CreateExportTaskRequest generates a "aws/request.Request" representing the
@@ -221,14 +391,13 @@ const opCreateExportTask = "CreateExportTask"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the CreateExportTaskRequest method.
+//	req, resp := client.CreateExportTaskRequest(params)
 //
-//    // Example sending a request using the CreateExportTaskRequest method.
-//    req, resp := client.CreateExportTaskRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/CreateExportTask
 func (c *CloudWatchLogs) CreateExportTaskRequest(input *CreateExportTaskInput) (req *request.Request, output *CreateExportTaskOutput) {
@@ -249,21 +418,30 @@ func (c *CloudWatchLogs) CreateExportTaskRequest(input *CreateExportTaskInput) (
 
 // CreateExportTask API operation for Amazon CloudWatch Logs.
 //
-// Creates an export task, which allows you to efficiently export data from
-// a log group to an Amazon S3 bucket.
+// Creates an export task so that you can efficiently export data from a log
+// group to an Amazon S3 bucket. When you perform a CreateExportTask operation,
+// you must use credentials that have permission to write to the S3 bucket that
+// you specify as the destination.
+//
+// Exporting log data to S3 buckets that are encrypted by KMS is supported.
+// Exporting log data to Amazon S3 buckets that have S3 Object Lock enabled
+// with a retention period is also supported.
+//
+// Exporting to S3 buckets that are encrypted with AES-256 is supported.
 //
 // This is an asynchronous call. If all the required information is provided,
 // this operation initiates an export task and responds with the ID of the task.
-// After the task has started, you can use DescribeExportTasks to get the status
-// of the export task. Each account can only have one active (RUNNING or PENDING)
-// export task at a time. To cancel an export task, use CancelExportTask.
+// After the task has started, you can use DescribeExportTasks (https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_DescribeExportTasks.html)
+// to get the status of the export task. Each account can only have one active
+// (RUNNING or PENDING) export task at a time. To cancel an export task, use
+// CancelExportTask (https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_CancelExportTask.html).
 //
 // You can export logs from multiple log groups or multiple time ranges to the
-// same S3 bucket. To separate out log data for each export task, you can specify
-// a prefix to be used as the Amazon S3 key prefix for all exported objects.
+// same S3 bucket. To separate log data for each export task, specify a prefix
+// to be used as the Amazon S3 key prefix for all exported objects.
 //
-// Exporting to S3 buckets that are encrypted with AES-256 is supported. Exporting
-// to S3 buckets encrypted with SSE-KMS is not supported.
+// Time-based sorting on chunks of log data inside an exported file is not guaranteed.
+// You can sort the exported log field data by using Linux utilities.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -272,24 +450,25 @@ func (c *CloudWatchLogs) CreateExportTaskRequest(input *CreateExportTaskInput) (
 // See the AWS API reference guide for Amazon CloudWatch Logs's
 // API operation CreateExportTask for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
-//   A parameter is specified incorrectly.
+// Returned Error Types:
 //
-//   * ErrCodeLimitExceededException "LimitExceededException"
-//   You have reached the maximum number of resources that can be created.
+//   - InvalidParameterException
+//     A parameter is specified incorrectly.
 //
-//   * ErrCodeOperationAbortedException "OperationAbortedException"
-//   Multiple requests to update the same resource were in conflict.
+//   - LimitExceededException
+//     You have reached the maximum number of resources that can be created.
 //
-//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
-//   The service cannot complete the request.
+//   - OperationAbortedException
+//     Multiple concurrent requests to update the same resource were in conflict.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
-//   The specified resource does not exist.
+//   - ServiceUnavailableException
+//     The service cannot complete the request.
 //
-//   * ErrCodeResourceAlreadyExistsException "ResourceAlreadyExistsException"
-//   The specified resource already exists.
+//   - ResourceNotFoundException
+//     The specified resource does not exist.
+//
+//   - ResourceAlreadyExistsException
+//     The specified resource already exists.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/CreateExportTask
 func (c *CloudWatchLogs) CreateExportTask(input *CreateExportTaskInput) (*CreateExportTaskOutput, error) {
@@ -313,6 +492,125 @@ func (c *CloudWatchLogs) CreateExportTaskWithContext(ctx aws.Context, input *Cre
 	return out, req.Send()
 }
 
+const opCreateLogAnomalyDetector = "CreateLogAnomalyDetector"
+
+// CreateLogAnomalyDetectorRequest generates a "aws/request.Request" representing the
+// client's request for the CreateLogAnomalyDetector operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See CreateLogAnomalyDetector for more information on using the CreateLogAnomalyDetector
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//	// Example sending a request using the CreateLogAnomalyDetectorRequest method.
+//	req, resp := client.CreateLogAnomalyDetectorRequest(params)
+//
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/CreateLogAnomalyDetector
+func (c *CloudWatchLogs) CreateLogAnomalyDetectorRequest(input *CreateLogAnomalyDetectorInput) (req *request.Request, output *CreateLogAnomalyDetectorOutput) {
+	op := &request.Operation{
+		Name:       opCreateLogAnomalyDetector,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &CreateLogAnomalyDetectorInput{}
+	}
+
+	output = &CreateLogAnomalyDetectorOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// CreateLogAnomalyDetector API operation for Amazon CloudWatch Logs.
+//
+// Creates an anomaly detector that regularly scans one or more log groups and
+// look for patterns and anomalies in the logs.
+//
+// An anomaly detector can help surface issues by automatically discovering
+// anomalies in your log event traffic. An anomaly detector uses machine learning
+// algorithms to scan log events and find patterns. A pattern is a shared text
+// structure that recurs among your log fields. Patterns provide a useful tool
+// for analyzing large sets of logs because a large number of log events can
+// often be compressed into a few patterns.
+//
+// The anomaly detector uses pattern recognition to find anomalies, which are
+// unusual log events. It uses the evaluationFrequency to compare current log
+// events and patterns with trained baselines.
+//
+// Fields within a pattern are called tokens. Fields that vary within a pattern,
+// such as a request ID or timestamp, are referred to as dynamic tokens and
+// represented by <*>.
+//
+// The following is an example of a pattern:
+//
+// [INFO] Request time: <*> ms
+//
+// This pattern represents log events like [INFO] Request time: 327 ms and other
+// similar log events that differ only by the number, in this csse 327. When
+// the pattern is displayed, the different numbers are replaced by <*>
+//
+// Any parts of log events that are masked as sensitive data are not scanned
+// for anomalies. For more information about masking sensitive data, see Help
+// protect sensitive log data with masking (https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/mask-sensitive-log-data.html).
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon CloudWatch Logs's
+// API operation CreateLogAnomalyDetector for usage and error information.
+//
+// Returned Error Types:
+//
+//   - InvalidParameterException
+//     A parameter is specified incorrectly.
+//
+//   - ResourceNotFoundException
+//     The specified resource does not exist.
+//
+//   - ServiceUnavailableException
+//     The service cannot complete the request.
+//
+//   - OperationAbortedException
+//     Multiple concurrent requests to update the same resource were in conflict.
+//
+//   - LimitExceededException
+//     You have reached the maximum number of resources that can be created.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/CreateLogAnomalyDetector
+func (c *CloudWatchLogs) CreateLogAnomalyDetector(input *CreateLogAnomalyDetectorInput) (*CreateLogAnomalyDetectorOutput, error) {
+	req, out := c.CreateLogAnomalyDetectorRequest(input)
+	return out, req.Send()
+}
+
+// CreateLogAnomalyDetectorWithContext is the same as CreateLogAnomalyDetector with the addition of
+// the ability to pass a context and additional request options.
+//
+// See CreateLogAnomalyDetector for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *CloudWatchLogs) CreateLogAnomalyDetectorWithContext(ctx aws.Context, input *CreateLogAnomalyDetectorInput, opts ...request.Option) (*CreateLogAnomalyDetectorOutput, error) {
+	req, out := c.CreateLogAnomalyDetectorRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opCreateLogGroup = "CreateLogGroup"
 
 // CreateLogGroupRequest generates a "aws/request.Request" representing the
@@ -329,14 +627,13 @@ const opCreateLogGroup = "CreateLogGroup"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the CreateLogGroupRequest method.
+//	req, resp := client.CreateLogGroupRequest(params)
 //
-//    // Example sending a request using the CreateLogGroupRequest method.
-//    req, resp := client.CreateLogGroupRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/CreateLogGroup
 func (c *CloudWatchLogs) CreateLogGroupRequest(input *CreateLogGroupInput) (req *request.Request, output *CreateLogGroupOutput) {
@@ -358,28 +655,38 @@ func (c *CloudWatchLogs) CreateLogGroupRequest(input *CreateLogGroupInput) (req 
 
 // CreateLogGroup API operation for Amazon CloudWatch Logs.
 //
-// Creates a log group with the specified name.
-//
-// You can create up to 5000 log groups per account.
+// Creates a log group with the specified name. You can create up to 1,000,000
+// log groups per Region per account.
 //
 // You must use the following guidelines when naming a log group:
 //
-//    * Log group names must be unique within a region for an AWS account.
+//   - Log group names must be unique within a Region for an Amazon Web Services
+//     account.
 //
-//    * Log group names can be between 1 and 512 characters long.
+//   - Log group names can be between 1 and 512 characters long.
 //
-//    * Log group names consist of the following characters: a-z, A-Z, 0-9,
-//    '_' (underscore), '-' (hyphen), '/' (forward slash), and '.' (period).
+//   - Log group names consist of the following characters: a-z, A-Z, 0-9,
+//     '_' (underscore), '-' (hyphen), '/' (forward slash), '.' (period), and
+//     '#' (number sign)
 //
-// If you associate a AWS Key Management Service (AWS KMS) customer master key
-// (CMK) with the log group, ingested data is encrypted using the CMK. This
-// association is stored as long as the data encrypted with the CMK is still
-// within Amazon CloudWatch Logs. This enables Amazon CloudWatch Logs to decrypt
-// this data whenever it is requested.
+//   - Log group names can't start with the string aws/
 //
-// If you attempt to associate a CMK with the log group but the CMK does not
-// exist or the CMK is disabled, you will receive an InvalidParameterException
+// When you create a log group, by default the log events in the log group do
+// not expire. To set a retention policy so that events expire and are deleted
+// after a specified time, use PutRetentionPolicy (https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_PutRetentionPolicy.html).
+//
+// If you associate an KMS key with the log group, ingested data is encrypted
+// using the KMS key. This association is stored as long as the data encrypted
+// with the KMS key is still within CloudWatch Logs. This enables CloudWatch
+// Logs to decrypt this data whenever it is requested.
+//
+// If you attempt to associate a KMS key with the log group but the KMS key
+// does not exist or the KMS key is disabled, you receive an InvalidParameterException
 // error.
+//
+// CloudWatch Logs supports only symmetric KMS keys. Do not associate an asymmetric
+// KMS key with your log group. For more information, see Using Symmetric and
+// Asymmetric Keys (https://docs.aws.amazon.com/kms/latest/developerguide/symmetric-asymmetric.html).
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -388,21 +695,22 @@ func (c *CloudWatchLogs) CreateLogGroupRequest(input *CreateLogGroupInput) (req 
 // See the AWS API reference guide for Amazon CloudWatch Logs's
 // API operation CreateLogGroup for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
-//   A parameter is specified incorrectly.
+// Returned Error Types:
 //
-//   * ErrCodeResourceAlreadyExistsException "ResourceAlreadyExistsException"
-//   The specified resource already exists.
+//   - InvalidParameterException
+//     A parameter is specified incorrectly.
 //
-//   * ErrCodeLimitExceededException "LimitExceededException"
-//   You have reached the maximum number of resources that can be created.
+//   - ResourceAlreadyExistsException
+//     The specified resource already exists.
 //
-//   * ErrCodeOperationAbortedException "OperationAbortedException"
-//   Multiple requests to update the same resource were in conflict.
+//   - LimitExceededException
+//     You have reached the maximum number of resources that can be created.
 //
-//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
-//   The service cannot complete the request.
+//   - OperationAbortedException
+//     Multiple concurrent requests to update the same resource were in conflict.
+//
+//   - ServiceUnavailableException
+//     The service cannot complete the request.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/CreateLogGroup
 func (c *CloudWatchLogs) CreateLogGroup(input *CreateLogGroupInput) (*CreateLogGroupOutput, error) {
@@ -442,14 +750,13 @@ const opCreateLogStream = "CreateLogStream"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the CreateLogStreamRequest method.
+//	req, resp := client.CreateLogStreamRequest(params)
 //
-//    // Example sending a request using the CreateLogStreamRequest method.
-//    req, resp := client.CreateLogStreamRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/CreateLogStream
 func (c *CloudWatchLogs) CreateLogStreamRequest(input *CreateLogStreamInput) (req *request.Request, output *CreateLogStreamOutput) {
@@ -471,18 +778,21 @@ func (c *CloudWatchLogs) CreateLogStreamRequest(input *CreateLogStreamInput) (re
 
 // CreateLogStream API operation for Amazon CloudWatch Logs.
 //
-// Creates a log stream for the specified log group.
+// Creates a log stream for the specified log group. A log stream is a sequence
+// of log events that originate from a single source, such as an application
+// instance or a resource that is being monitored.
 //
 // There is no limit on the number of log streams that you can create for a
-// log group.
+// log group. There is a limit of 50 TPS on CreateLogStream operations, after
+// which transactions are throttled.
 //
 // You must use the following guidelines when naming a log stream:
 //
-//    * Log stream names must be unique within the log group.
+//   - Log stream names must be unique within the log group.
 //
-//    * Log stream names can be between 1 and 512 characters long.
+//   - Log stream names can be between 1 and 512 characters long.
 //
-//    * The ':' (colon) and '*' (asterisk) characters are not allowed.
+//   - Don't use ':' (colon) or '*' (asterisk) characters.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -491,18 +801,19 @@ func (c *CloudWatchLogs) CreateLogStreamRequest(input *CreateLogStreamInput) (re
 // See the AWS API reference guide for Amazon CloudWatch Logs's
 // API operation CreateLogStream for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
-//   A parameter is specified incorrectly.
+// Returned Error Types:
 //
-//   * ErrCodeResourceAlreadyExistsException "ResourceAlreadyExistsException"
-//   The specified resource already exists.
+//   - InvalidParameterException
+//     A parameter is specified incorrectly.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
-//   The specified resource does not exist.
+//   - ResourceAlreadyExistsException
+//     The specified resource already exists.
 //
-//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
-//   The service cannot complete the request.
+//   - ResourceNotFoundException
+//     The specified resource does not exist.
+//
+//   - ServiceUnavailableException
+//     The service cannot complete the request.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/CreateLogStream
 func (c *CloudWatchLogs) CreateLogStream(input *CreateLogStreamInput) (*CreateLogStreamOutput, error) {
@@ -526,6 +837,588 @@ func (c *CloudWatchLogs) CreateLogStreamWithContext(ctx aws.Context, input *Crea
 	return out, req.Send()
 }
 
+const opDeleteAccountPolicy = "DeleteAccountPolicy"
+
+// DeleteAccountPolicyRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteAccountPolicy operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DeleteAccountPolicy for more information on using the DeleteAccountPolicy
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//	// Example sending a request using the DeleteAccountPolicyRequest method.
+//	req, resp := client.DeleteAccountPolicyRequest(params)
+//
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/DeleteAccountPolicy
+func (c *CloudWatchLogs) DeleteAccountPolicyRequest(input *DeleteAccountPolicyInput) (req *request.Request, output *DeleteAccountPolicyOutput) {
+	op := &request.Operation{
+		Name:       opDeleteAccountPolicy,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DeleteAccountPolicyInput{}
+	}
+
+	output = &DeleteAccountPolicyOutput{}
+	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
+	return
+}
+
+// DeleteAccountPolicy API operation for Amazon CloudWatch Logs.
+//
+// Deletes a CloudWatch Logs account policy. This stops the policy from applying
+// to all log groups or a subset of log groups in the account. Log-group level
+// policies will still be in effect.
+//
+// To use this operation, you must be signed on with the correct permissions
+// depending on the type of policy that you are deleting.
+//
+//   - To delete a data protection policy, you must have the logs:DeleteDataProtectionPolicy
+//     and logs:DeleteAccountPolicy permissions.
+//
+//   - To delete a subscription filter policy, you must have the logs:DeleteSubscriptionFilter
+//     and logs:DeleteAccountPolicy permissions.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon CloudWatch Logs's
+// API operation DeleteAccountPolicy for usage and error information.
+//
+// Returned Error Types:
+//
+//   - InvalidParameterException
+//     A parameter is specified incorrectly.
+//
+//   - ResourceNotFoundException
+//     The specified resource does not exist.
+//
+//   - ServiceUnavailableException
+//     The service cannot complete the request.
+//
+//   - OperationAbortedException
+//     Multiple concurrent requests to update the same resource were in conflict.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/DeleteAccountPolicy
+func (c *CloudWatchLogs) DeleteAccountPolicy(input *DeleteAccountPolicyInput) (*DeleteAccountPolicyOutput, error) {
+	req, out := c.DeleteAccountPolicyRequest(input)
+	return out, req.Send()
+}
+
+// DeleteAccountPolicyWithContext is the same as DeleteAccountPolicy with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DeleteAccountPolicy for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *CloudWatchLogs) DeleteAccountPolicyWithContext(ctx aws.Context, input *DeleteAccountPolicyInput, opts ...request.Option) (*DeleteAccountPolicyOutput, error) {
+	req, out := c.DeleteAccountPolicyRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opDeleteDataProtectionPolicy = "DeleteDataProtectionPolicy"
+
+// DeleteDataProtectionPolicyRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteDataProtectionPolicy operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DeleteDataProtectionPolicy for more information on using the DeleteDataProtectionPolicy
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//	// Example sending a request using the DeleteDataProtectionPolicyRequest method.
+//	req, resp := client.DeleteDataProtectionPolicyRequest(params)
+//
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/DeleteDataProtectionPolicy
+func (c *CloudWatchLogs) DeleteDataProtectionPolicyRequest(input *DeleteDataProtectionPolicyInput) (req *request.Request, output *DeleteDataProtectionPolicyOutput) {
+	op := &request.Operation{
+		Name:       opDeleteDataProtectionPolicy,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DeleteDataProtectionPolicyInput{}
+	}
+
+	output = &DeleteDataProtectionPolicyOutput{}
+	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
+	return
+}
+
+// DeleteDataProtectionPolicy API operation for Amazon CloudWatch Logs.
+//
+// Deletes the data protection policy from the specified log group.
+//
+// For more information about data protection policies, see PutDataProtectionPolicy
+// (https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_PutDataProtectionPolicy.html).
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon CloudWatch Logs's
+// API operation DeleteDataProtectionPolicy for usage and error information.
+//
+// Returned Error Types:
+//
+//   - InvalidParameterException
+//     A parameter is specified incorrectly.
+//
+//   - OperationAbortedException
+//     Multiple concurrent requests to update the same resource were in conflict.
+//
+//   - ResourceNotFoundException
+//     The specified resource does not exist.
+//
+//   - ServiceUnavailableException
+//     The service cannot complete the request.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/DeleteDataProtectionPolicy
+func (c *CloudWatchLogs) DeleteDataProtectionPolicy(input *DeleteDataProtectionPolicyInput) (*DeleteDataProtectionPolicyOutput, error) {
+	req, out := c.DeleteDataProtectionPolicyRequest(input)
+	return out, req.Send()
+}
+
+// DeleteDataProtectionPolicyWithContext is the same as DeleteDataProtectionPolicy with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DeleteDataProtectionPolicy for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *CloudWatchLogs) DeleteDataProtectionPolicyWithContext(ctx aws.Context, input *DeleteDataProtectionPolicyInput, opts ...request.Option) (*DeleteDataProtectionPolicyOutput, error) {
+	req, out := c.DeleteDataProtectionPolicyRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opDeleteDelivery = "DeleteDelivery"
+
+// DeleteDeliveryRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteDelivery operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DeleteDelivery for more information on using the DeleteDelivery
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//	// Example sending a request using the DeleteDeliveryRequest method.
+//	req, resp := client.DeleteDeliveryRequest(params)
+//
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/DeleteDelivery
+func (c *CloudWatchLogs) DeleteDeliveryRequest(input *DeleteDeliveryInput) (req *request.Request, output *DeleteDeliveryOutput) {
+	op := &request.Operation{
+		Name:       opDeleteDelivery,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DeleteDeliveryInput{}
+	}
+
+	output = &DeleteDeliveryOutput{}
+	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
+	return
+}
+
+// DeleteDelivery API operation for Amazon CloudWatch Logs.
+//
+// Deletes s delivery. A delivery is a connection between a logical delivery
+// source and a logical delivery destination. Deleting a delivery only deletes
+// the connection between the delivery source and delivery destination. It does
+// not delete the delivery destination or the delivery source.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon CloudWatch Logs's
+// API operation DeleteDelivery for usage and error information.
+//
+// Returned Error Types:
+//
+//   - ResourceNotFoundException
+//     The specified resource does not exist.
+//
+//   - ServiceUnavailableException
+//     The service cannot complete the request.
+//
+//   - ConflictException
+//     This operation attempted to create a resource that already exists.
+//
+//   - ValidationException
+//     One of the parameters for the request is not valid.
+//
+//   - ServiceQuotaExceededException
+//     This request exceeds a service quota.
+//
+//   - ThrottlingException
+//     The request was throttled because of quota limits.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/DeleteDelivery
+func (c *CloudWatchLogs) DeleteDelivery(input *DeleteDeliveryInput) (*DeleteDeliveryOutput, error) {
+	req, out := c.DeleteDeliveryRequest(input)
+	return out, req.Send()
+}
+
+// DeleteDeliveryWithContext is the same as DeleteDelivery with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DeleteDelivery for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *CloudWatchLogs) DeleteDeliveryWithContext(ctx aws.Context, input *DeleteDeliveryInput, opts ...request.Option) (*DeleteDeliveryOutput, error) {
+	req, out := c.DeleteDeliveryRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opDeleteDeliveryDestination = "DeleteDeliveryDestination"
+
+// DeleteDeliveryDestinationRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteDeliveryDestination operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DeleteDeliveryDestination for more information on using the DeleteDeliveryDestination
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//	// Example sending a request using the DeleteDeliveryDestinationRequest method.
+//	req, resp := client.DeleteDeliveryDestinationRequest(params)
+//
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/DeleteDeliveryDestination
+func (c *CloudWatchLogs) DeleteDeliveryDestinationRequest(input *DeleteDeliveryDestinationInput) (req *request.Request, output *DeleteDeliveryDestinationOutput) {
+	op := &request.Operation{
+		Name:       opDeleteDeliveryDestination,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DeleteDeliveryDestinationInput{}
+	}
+
+	output = &DeleteDeliveryDestinationOutput{}
+	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
+	return
+}
+
+// DeleteDeliveryDestination API operation for Amazon CloudWatch Logs.
+//
+// Deletes a delivery destination. A delivery is a connection between a logical
+// delivery source and a logical delivery destination.
+//
+// You can't delete a delivery destination if any current deliveries are associated
+// with it. To find whether any deliveries are associated with this delivery
+// destination, use the DescribeDeliveries (https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_DescribeDeliveries.html)
+// operation and check the deliveryDestinationArn field in the results.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon CloudWatch Logs's
+// API operation DeleteDeliveryDestination for usage and error information.
+//
+// Returned Error Types:
+//
+//   - ResourceNotFoundException
+//     The specified resource does not exist.
+//
+//   - ServiceUnavailableException
+//     The service cannot complete the request.
+//
+//   - ConflictException
+//     This operation attempted to create a resource that already exists.
+//
+//   - ValidationException
+//     One of the parameters for the request is not valid.
+//
+//   - ServiceQuotaExceededException
+//     This request exceeds a service quota.
+//
+//   - ThrottlingException
+//     The request was throttled because of quota limits.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/DeleteDeliveryDestination
+func (c *CloudWatchLogs) DeleteDeliveryDestination(input *DeleteDeliveryDestinationInput) (*DeleteDeliveryDestinationOutput, error) {
+	req, out := c.DeleteDeliveryDestinationRequest(input)
+	return out, req.Send()
+}
+
+// DeleteDeliveryDestinationWithContext is the same as DeleteDeliveryDestination with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DeleteDeliveryDestination for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *CloudWatchLogs) DeleteDeliveryDestinationWithContext(ctx aws.Context, input *DeleteDeliveryDestinationInput, opts ...request.Option) (*DeleteDeliveryDestinationOutput, error) {
+	req, out := c.DeleteDeliveryDestinationRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opDeleteDeliveryDestinationPolicy = "DeleteDeliveryDestinationPolicy"
+
+// DeleteDeliveryDestinationPolicyRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteDeliveryDestinationPolicy operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DeleteDeliveryDestinationPolicy for more information on using the DeleteDeliveryDestinationPolicy
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//	// Example sending a request using the DeleteDeliveryDestinationPolicyRequest method.
+//	req, resp := client.DeleteDeliveryDestinationPolicyRequest(params)
+//
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/DeleteDeliveryDestinationPolicy
+func (c *CloudWatchLogs) DeleteDeliveryDestinationPolicyRequest(input *DeleteDeliveryDestinationPolicyInput) (req *request.Request, output *DeleteDeliveryDestinationPolicyOutput) {
+	op := &request.Operation{
+		Name:       opDeleteDeliveryDestinationPolicy,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DeleteDeliveryDestinationPolicyInput{}
+	}
+
+	output = &DeleteDeliveryDestinationPolicyOutput{}
+	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
+	return
+}
+
+// DeleteDeliveryDestinationPolicy API operation for Amazon CloudWatch Logs.
+//
+// Deletes a delivery destination policy. For more information about these policies,
+// see PutDeliveryDestinationPolicy (https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_PutDeliveryDestinationPolicy.html).
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon CloudWatch Logs's
+// API operation DeleteDeliveryDestinationPolicy for usage and error information.
+//
+// Returned Error Types:
+//
+//   - ServiceUnavailableException
+//     The service cannot complete the request.
+//
+//   - ValidationException
+//     One of the parameters for the request is not valid.
+//
+//   - ResourceNotFoundException
+//     The specified resource does not exist.
+//
+//   - ConflictException
+//     This operation attempted to create a resource that already exists.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/DeleteDeliveryDestinationPolicy
+func (c *CloudWatchLogs) DeleteDeliveryDestinationPolicy(input *DeleteDeliveryDestinationPolicyInput) (*DeleteDeliveryDestinationPolicyOutput, error) {
+	req, out := c.DeleteDeliveryDestinationPolicyRequest(input)
+	return out, req.Send()
+}
+
+// DeleteDeliveryDestinationPolicyWithContext is the same as DeleteDeliveryDestinationPolicy with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DeleteDeliveryDestinationPolicy for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *CloudWatchLogs) DeleteDeliveryDestinationPolicyWithContext(ctx aws.Context, input *DeleteDeliveryDestinationPolicyInput, opts ...request.Option) (*DeleteDeliveryDestinationPolicyOutput, error) {
+	req, out := c.DeleteDeliveryDestinationPolicyRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opDeleteDeliverySource = "DeleteDeliverySource"
+
+// DeleteDeliverySourceRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteDeliverySource operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DeleteDeliverySource for more information on using the DeleteDeliverySource
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//	// Example sending a request using the DeleteDeliverySourceRequest method.
+//	req, resp := client.DeleteDeliverySourceRequest(params)
+//
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/DeleteDeliverySource
+func (c *CloudWatchLogs) DeleteDeliverySourceRequest(input *DeleteDeliverySourceInput) (req *request.Request, output *DeleteDeliverySourceOutput) {
+	op := &request.Operation{
+		Name:       opDeleteDeliverySource,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DeleteDeliverySourceInput{}
+	}
+
+	output = &DeleteDeliverySourceOutput{}
+	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
+	return
+}
+
+// DeleteDeliverySource API operation for Amazon CloudWatch Logs.
+//
+// Deletes a delivery source. A delivery is a connection between a logical delivery
+// source and a logical delivery destination.
+//
+// You can't delete a delivery source if any current deliveries are associated
+// with it. To find whether any deliveries are associated with this delivery
+// source, use the DescribeDeliveries (https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_DescribeDeliveries.html)
+// operation and check the deliverySourceName field in the results.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon CloudWatch Logs's
+// API operation DeleteDeliverySource for usage and error information.
+//
+// Returned Error Types:
+//
+//   - ResourceNotFoundException
+//     The specified resource does not exist.
+//
+//   - ServiceUnavailableException
+//     The service cannot complete the request.
+//
+//   - ConflictException
+//     This operation attempted to create a resource that already exists.
+//
+//   - ValidationException
+//     One of the parameters for the request is not valid.
+//
+//   - ServiceQuotaExceededException
+//     This request exceeds a service quota.
+//
+//   - ThrottlingException
+//     The request was throttled because of quota limits.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/DeleteDeliverySource
+func (c *CloudWatchLogs) DeleteDeliverySource(input *DeleteDeliverySourceInput) (*DeleteDeliverySourceOutput, error) {
+	req, out := c.DeleteDeliverySourceRequest(input)
+	return out, req.Send()
+}
+
+// DeleteDeliverySourceWithContext is the same as DeleteDeliverySource with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DeleteDeliverySource for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *CloudWatchLogs) DeleteDeliverySourceWithContext(ctx aws.Context, input *DeleteDeliverySourceInput, opts ...request.Option) (*DeleteDeliverySourceOutput, error) {
+	req, out := c.DeleteDeliverySourceRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opDeleteDestination = "DeleteDestination"
 
 // DeleteDestinationRequest generates a "aws/request.Request" representing the
@@ -542,14 +1435,13 @@ const opDeleteDestination = "DeleteDestination"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the DeleteDestinationRequest method.
+//	req, resp := client.DeleteDestinationRequest(params)
 //
-//    // Example sending a request using the DeleteDestinationRequest method.
-//    req, resp := client.DeleteDestinationRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/DeleteDestination
 func (c *CloudWatchLogs) DeleteDestinationRequest(input *DeleteDestinationInput) (req *request.Request, output *DeleteDestinationOutput) {
@@ -582,18 +1474,19 @@ func (c *CloudWatchLogs) DeleteDestinationRequest(input *DeleteDestinationInput)
 // See the AWS API reference guide for Amazon CloudWatch Logs's
 // API operation DeleteDestination for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
-//   A parameter is specified incorrectly.
+// Returned Error Types:
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
-//   The specified resource does not exist.
+//   - InvalidParameterException
+//     A parameter is specified incorrectly.
 //
-//   * ErrCodeOperationAbortedException "OperationAbortedException"
-//   Multiple requests to update the same resource were in conflict.
+//   - ResourceNotFoundException
+//     The specified resource does not exist.
 //
-//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
-//   The service cannot complete the request.
+//   - OperationAbortedException
+//     Multiple concurrent requests to update the same resource were in conflict.
+//
+//   - ServiceUnavailableException
+//     The service cannot complete the request.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/DeleteDestination
 func (c *CloudWatchLogs) DeleteDestination(input *DeleteDestinationInput) (*DeleteDestinationOutput, error) {
@@ -617,6 +1510,95 @@ func (c *CloudWatchLogs) DeleteDestinationWithContext(ctx aws.Context, input *De
 	return out, req.Send()
 }
 
+const opDeleteLogAnomalyDetector = "DeleteLogAnomalyDetector"
+
+// DeleteLogAnomalyDetectorRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteLogAnomalyDetector operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DeleteLogAnomalyDetector for more information on using the DeleteLogAnomalyDetector
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//	// Example sending a request using the DeleteLogAnomalyDetectorRequest method.
+//	req, resp := client.DeleteLogAnomalyDetectorRequest(params)
+//
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/DeleteLogAnomalyDetector
+func (c *CloudWatchLogs) DeleteLogAnomalyDetectorRequest(input *DeleteLogAnomalyDetectorInput) (req *request.Request, output *DeleteLogAnomalyDetectorOutput) {
+	op := &request.Operation{
+		Name:       opDeleteLogAnomalyDetector,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DeleteLogAnomalyDetectorInput{}
+	}
+
+	output = &DeleteLogAnomalyDetectorOutput{}
+	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
+	return
+}
+
+// DeleteLogAnomalyDetector API operation for Amazon CloudWatch Logs.
+//
+// Deletes the specified CloudWatch Logs anomaly detector.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon CloudWatch Logs's
+// API operation DeleteLogAnomalyDetector for usage and error information.
+//
+// Returned Error Types:
+//
+//   - InvalidParameterException
+//     A parameter is specified incorrectly.
+//
+//   - ResourceNotFoundException
+//     The specified resource does not exist.
+//
+//   - ServiceUnavailableException
+//     The service cannot complete the request.
+//
+//   - OperationAbortedException
+//     Multiple concurrent requests to update the same resource were in conflict.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/DeleteLogAnomalyDetector
+func (c *CloudWatchLogs) DeleteLogAnomalyDetector(input *DeleteLogAnomalyDetectorInput) (*DeleteLogAnomalyDetectorOutput, error) {
+	req, out := c.DeleteLogAnomalyDetectorRequest(input)
+	return out, req.Send()
+}
+
+// DeleteLogAnomalyDetectorWithContext is the same as DeleteLogAnomalyDetector with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DeleteLogAnomalyDetector for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *CloudWatchLogs) DeleteLogAnomalyDetectorWithContext(ctx aws.Context, input *DeleteLogAnomalyDetectorInput, opts ...request.Option) (*DeleteLogAnomalyDetectorOutput, error) {
+	req, out := c.DeleteLogAnomalyDetectorRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opDeleteLogGroup = "DeleteLogGroup"
 
 // DeleteLogGroupRequest generates a "aws/request.Request" representing the
@@ -633,14 +1615,13 @@ const opDeleteLogGroup = "DeleteLogGroup"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the DeleteLogGroupRequest method.
+//	req, resp := client.DeleteLogGroupRequest(params)
 //
-//    // Example sending a request using the DeleteLogGroupRequest method.
-//    req, resp := client.DeleteLogGroupRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/DeleteLogGroup
 func (c *CloudWatchLogs) DeleteLogGroupRequest(input *DeleteLogGroupInput) (req *request.Request, output *DeleteLogGroupOutput) {
@@ -672,18 +1653,19 @@ func (c *CloudWatchLogs) DeleteLogGroupRequest(input *DeleteLogGroupInput) (req 
 // See the AWS API reference guide for Amazon CloudWatch Logs's
 // API operation DeleteLogGroup for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
-//   A parameter is specified incorrectly.
+// Returned Error Types:
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
-//   The specified resource does not exist.
+//   - InvalidParameterException
+//     A parameter is specified incorrectly.
 //
-//   * ErrCodeOperationAbortedException "OperationAbortedException"
-//   Multiple requests to update the same resource were in conflict.
+//   - ResourceNotFoundException
+//     The specified resource does not exist.
 //
-//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
-//   The service cannot complete the request.
+//   - OperationAbortedException
+//     Multiple concurrent requests to update the same resource were in conflict.
+//
+//   - ServiceUnavailableException
+//     The service cannot complete the request.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/DeleteLogGroup
 func (c *CloudWatchLogs) DeleteLogGroup(input *DeleteLogGroupInput) (*DeleteLogGroupOutput, error) {
@@ -723,14 +1705,13 @@ const opDeleteLogStream = "DeleteLogStream"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the DeleteLogStreamRequest method.
+//	req, resp := client.DeleteLogStreamRequest(params)
 //
-//    // Example sending a request using the DeleteLogStreamRequest method.
-//    req, resp := client.DeleteLogStreamRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/DeleteLogStream
 func (c *CloudWatchLogs) DeleteLogStreamRequest(input *DeleteLogStreamInput) (req *request.Request, output *DeleteLogStreamOutput) {
@@ -762,18 +1743,19 @@ func (c *CloudWatchLogs) DeleteLogStreamRequest(input *DeleteLogStreamInput) (re
 // See the AWS API reference guide for Amazon CloudWatch Logs's
 // API operation DeleteLogStream for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
-//   A parameter is specified incorrectly.
+// Returned Error Types:
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
-//   The specified resource does not exist.
+//   - InvalidParameterException
+//     A parameter is specified incorrectly.
 //
-//   * ErrCodeOperationAbortedException "OperationAbortedException"
-//   Multiple requests to update the same resource were in conflict.
+//   - ResourceNotFoundException
+//     The specified resource does not exist.
 //
-//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
-//   The service cannot complete the request.
+//   - OperationAbortedException
+//     Multiple concurrent requests to update the same resource were in conflict.
+//
+//   - ServiceUnavailableException
+//     The service cannot complete the request.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/DeleteLogStream
 func (c *CloudWatchLogs) DeleteLogStream(input *DeleteLogStreamInput) (*DeleteLogStreamOutput, error) {
@@ -813,14 +1795,13 @@ const opDeleteMetricFilter = "DeleteMetricFilter"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the DeleteMetricFilterRequest method.
+//	req, resp := client.DeleteMetricFilterRequest(params)
 //
-//    // Example sending a request using the DeleteMetricFilterRequest method.
-//    req, resp := client.DeleteMetricFilterRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/DeleteMetricFilter
 func (c *CloudWatchLogs) DeleteMetricFilterRequest(input *DeleteMetricFilterInput) (req *request.Request, output *DeleteMetricFilterOutput) {
@@ -851,18 +1832,19 @@ func (c *CloudWatchLogs) DeleteMetricFilterRequest(input *DeleteMetricFilterInpu
 // See the AWS API reference guide for Amazon CloudWatch Logs's
 // API operation DeleteMetricFilter for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
-//   A parameter is specified incorrectly.
+// Returned Error Types:
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
-//   The specified resource does not exist.
+//   - InvalidParameterException
+//     A parameter is specified incorrectly.
 //
-//   * ErrCodeOperationAbortedException "OperationAbortedException"
-//   Multiple requests to update the same resource were in conflict.
+//   - ResourceNotFoundException
+//     The specified resource does not exist.
 //
-//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
-//   The service cannot complete the request.
+//   - OperationAbortedException
+//     Multiple concurrent requests to update the same resource were in conflict.
+//
+//   - ServiceUnavailableException
+//     The service cannot complete the request.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/DeleteMetricFilter
 func (c *CloudWatchLogs) DeleteMetricFilter(input *DeleteMetricFilterInput) (*DeleteMetricFilterOutput, error) {
@@ -886,6 +1868,97 @@ func (c *CloudWatchLogs) DeleteMetricFilterWithContext(ctx aws.Context, input *D
 	return out, req.Send()
 }
 
+const opDeleteQueryDefinition = "DeleteQueryDefinition"
+
+// DeleteQueryDefinitionRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteQueryDefinition operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DeleteQueryDefinition for more information on using the DeleteQueryDefinition
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//	// Example sending a request using the DeleteQueryDefinitionRequest method.
+//	req, resp := client.DeleteQueryDefinitionRequest(params)
+//
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/DeleteQueryDefinition
+func (c *CloudWatchLogs) DeleteQueryDefinitionRequest(input *DeleteQueryDefinitionInput) (req *request.Request, output *DeleteQueryDefinitionOutput) {
+	op := &request.Operation{
+		Name:       opDeleteQueryDefinition,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DeleteQueryDefinitionInput{}
+	}
+
+	output = &DeleteQueryDefinitionOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// DeleteQueryDefinition API operation for Amazon CloudWatch Logs.
+//
+// Deletes a saved CloudWatch Logs Insights query definition. A query definition
+// contains details about a saved CloudWatch Logs Insights query.
+//
+// Each DeleteQueryDefinition operation can delete one query definition.
+//
+// You must have the logs:DeleteQueryDefinition permission to be able to perform
+// this operation.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon CloudWatch Logs's
+// API operation DeleteQueryDefinition for usage and error information.
+//
+// Returned Error Types:
+//
+//   - InvalidParameterException
+//     A parameter is specified incorrectly.
+//
+//   - ResourceNotFoundException
+//     The specified resource does not exist.
+//
+//   - ServiceUnavailableException
+//     The service cannot complete the request.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/DeleteQueryDefinition
+func (c *CloudWatchLogs) DeleteQueryDefinition(input *DeleteQueryDefinitionInput) (*DeleteQueryDefinitionOutput, error) {
+	req, out := c.DeleteQueryDefinitionRequest(input)
+	return out, req.Send()
+}
+
+// DeleteQueryDefinitionWithContext is the same as DeleteQueryDefinition with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DeleteQueryDefinition for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *CloudWatchLogs) DeleteQueryDefinitionWithContext(ctx aws.Context, input *DeleteQueryDefinitionInput, opts ...request.Option) (*DeleteQueryDefinitionOutput, error) {
+	req, out := c.DeleteQueryDefinitionRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opDeleteResourcePolicy = "DeleteResourcePolicy"
 
 // DeleteResourcePolicyRequest generates a "aws/request.Request" representing the
@@ -902,14 +1975,13 @@ const opDeleteResourcePolicy = "DeleteResourcePolicy"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the DeleteResourcePolicyRequest method.
+//	req, resp := client.DeleteResourcePolicyRequest(params)
 //
-//    // Example sending a request using the DeleteResourcePolicyRequest method.
-//    req, resp := client.DeleteResourcePolicyRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/DeleteResourcePolicy
 func (c *CloudWatchLogs) DeleteResourcePolicyRequest(input *DeleteResourcePolicyInput) (req *request.Request, output *DeleteResourcePolicyOutput) {
@@ -941,15 +2013,16 @@ func (c *CloudWatchLogs) DeleteResourcePolicyRequest(input *DeleteResourcePolicy
 // See the AWS API reference guide for Amazon CloudWatch Logs's
 // API operation DeleteResourcePolicy for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
-//   A parameter is specified incorrectly.
+// Returned Error Types:
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
-//   The specified resource does not exist.
+//   - InvalidParameterException
+//     A parameter is specified incorrectly.
 //
-//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
-//   The service cannot complete the request.
+//   - ResourceNotFoundException
+//     The specified resource does not exist.
+//
+//   - ServiceUnavailableException
+//     The service cannot complete the request.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/DeleteResourcePolicy
 func (c *CloudWatchLogs) DeleteResourcePolicy(input *DeleteResourcePolicyInput) (*DeleteResourcePolicyOutput, error) {
@@ -989,14 +2062,13 @@ const opDeleteRetentionPolicy = "DeleteRetentionPolicy"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the DeleteRetentionPolicyRequest method.
+//	req, resp := client.DeleteRetentionPolicyRequest(params)
 //
-//    // Example sending a request using the DeleteRetentionPolicyRequest method.
-//    req, resp := client.DeleteRetentionPolicyRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/DeleteRetentionPolicy
 func (c *CloudWatchLogs) DeleteRetentionPolicyRequest(input *DeleteRetentionPolicyInput) (req *request.Request, output *DeleteRetentionPolicyOutput) {
@@ -1030,18 +2102,19 @@ func (c *CloudWatchLogs) DeleteRetentionPolicyRequest(input *DeleteRetentionPoli
 // See the AWS API reference guide for Amazon CloudWatch Logs's
 // API operation DeleteRetentionPolicy for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
-//   A parameter is specified incorrectly.
+// Returned Error Types:
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
-//   The specified resource does not exist.
+//   - InvalidParameterException
+//     A parameter is specified incorrectly.
 //
-//   * ErrCodeOperationAbortedException "OperationAbortedException"
-//   Multiple requests to update the same resource were in conflict.
+//   - ResourceNotFoundException
+//     The specified resource does not exist.
 //
-//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
-//   The service cannot complete the request.
+//   - OperationAbortedException
+//     Multiple concurrent requests to update the same resource were in conflict.
+//
+//   - ServiceUnavailableException
+//     The service cannot complete the request.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/DeleteRetentionPolicy
 func (c *CloudWatchLogs) DeleteRetentionPolicy(input *DeleteRetentionPolicyInput) (*DeleteRetentionPolicyOutput, error) {
@@ -1081,14 +2154,13 @@ const opDeleteSubscriptionFilter = "DeleteSubscriptionFilter"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the DeleteSubscriptionFilterRequest method.
+//	req, resp := client.DeleteSubscriptionFilterRequest(params)
 //
-//    // Example sending a request using the DeleteSubscriptionFilterRequest method.
-//    req, resp := client.DeleteSubscriptionFilterRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/DeleteSubscriptionFilter
 func (c *CloudWatchLogs) DeleteSubscriptionFilterRequest(input *DeleteSubscriptionFilterInput) (req *request.Request, output *DeleteSubscriptionFilterOutput) {
@@ -1119,18 +2191,19 @@ func (c *CloudWatchLogs) DeleteSubscriptionFilterRequest(input *DeleteSubscripti
 // See the AWS API reference guide for Amazon CloudWatch Logs's
 // API operation DeleteSubscriptionFilter for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
-//   A parameter is specified incorrectly.
+// Returned Error Types:
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
-//   The specified resource does not exist.
+//   - InvalidParameterException
+//     A parameter is specified incorrectly.
 //
-//   * ErrCodeOperationAbortedException "OperationAbortedException"
-//   Multiple requests to update the same resource were in conflict.
+//   - ResourceNotFoundException
+//     The specified resource does not exist.
 //
-//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
-//   The service cannot complete the request.
+//   - OperationAbortedException
+//     Multiple concurrent requests to update the same resource were in conflict.
+//
+//   - ServiceUnavailableException
+//     The service cannot complete the request.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/DeleteSubscriptionFilter
 func (c *CloudWatchLogs) DeleteSubscriptionFilter(input *DeleteSubscriptionFilterInput) (*DeleteSubscriptionFilterOutput, error) {
@@ -1154,6 +2227,542 @@ func (c *CloudWatchLogs) DeleteSubscriptionFilterWithContext(ctx aws.Context, in
 	return out, req.Send()
 }
 
+const opDescribeAccountPolicies = "DescribeAccountPolicies"
+
+// DescribeAccountPoliciesRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeAccountPolicies operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DescribeAccountPolicies for more information on using the DescribeAccountPolicies
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//	// Example sending a request using the DescribeAccountPoliciesRequest method.
+//	req, resp := client.DescribeAccountPoliciesRequest(params)
+//
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/DescribeAccountPolicies
+func (c *CloudWatchLogs) DescribeAccountPoliciesRequest(input *DescribeAccountPoliciesInput) (req *request.Request, output *DescribeAccountPoliciesOutput) {
+	op := &request.Operation{
+		Name:       opDescribeAccountPolicies,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DescribeAccountPoliciesInput{}
+	}
+
+	output = &DescribeAccountPoliciesOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// DescribeAccountPolicies API operation for Amazon CloudWatch Logs.
+//
+// Returns a list of all CloudWatch Logs account policies in the account.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon CloudWatch Logs's
+// API operation DescribeAccountPolicies for usage and error information.
+//
+// Returned Error Types:
+//
+//   - InvalidParameterException
+//     A parameter is specified incorrectly.
+//
+//   - OperationAbortedException
+//     Multiple concurrent requests to update the same resource were in conflict.
+//
+//   - ResourceNotFoundException
+//     The specified resource does not exist.
+//
+//   - ServiceUnavailableException
+//     The service cannot complete the request.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/DescribeAccountPolicies
+func (c *CloudWatchLogs) DescribeAccountPolicies(input *DescribeAccountPoliciesInput) (*DescribeAccountPoliciesOutput, error) {
+	req, out := c.DescribeAccountPoliciesRequest(input)
+	return out, req.Send()
+}
+
+// DescribeAccountPoliciesWithContext is the same as DescribeAccountPolicies with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DescribeAccountPolicies for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *CloudWatchLogs) DescribeAccountPoliciesWithContext(ctx aws.Context, input *DescribeAccountPoliciesInput, opts ...request.Option) (*DescribeAccountPoliciesOutput, error) {
+	req, out := c.DescribeAccountPoliciesRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opDescribeDeliveries = "DescribeDeliveries"
+
+// DescribeDeliveriesRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeDeliveries operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DescribeDeliveries for more information on using the DescribeDeliveries
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//	// Example sending a request using the DescribeDeliveriesRequest method.
+//	req, resp := client.DescribeDeliveriesRequest(params)
+//
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/DescribeDeliveries
+func (c *CloudWatchLogs) DescribeDeliveriesRequest(input *DescribeDeliveriesInput) (req *request.Request, output *DescribeDeliveriesOutput) {
+	op := &request.Operation{
+		Name:       opDescribeDeliveries,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+		Paginator: &request.Paginator{
+			InputTokens:     []string{"nextToken"},
+			OutputTokens:    []string{"nextToken"},
+			LimitToken:      "limit",
+			TruncationToken: "",
+		},
+	}
+
+	if input == nil {
+		input = &DescribeDeliveriesInput{}
+	}
+
+	output = &DescribeDeliveriesOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// DescribeDeliveries API operation for Amazon CloudWatch Logs.
+//
+// Retrieves a list of the deliveries that have been created in the account.
+//
+// A delivery is a connection between a delivery source (https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_PutDeliverySource.html)
+// and a delivery destination (https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_PutDeliveryDestination.html).
+//
+// A delivery source represents an Amazon Web Services resource that sends logs
+// to an logs delivery destination. The destination can be CloudWatch Logs,
+// Amazon S3, or Firehose. Only some Amazon Web Services services support being
+// configured as a delivery source. These services are listed in Enable logging
+// from Amazon Web Services services. (https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/AWS-logs-and-resource-policy.html)
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon CloudWatch Logs's
+// API operation DescribeDeliveries for usage and error information.
+//
+// Returned Error Types:
+//
+//   - ServiceUnavailableException
+//     The service cannot complete the request.
+//
+//   - ServiceQuotaExceededException
+//     This request exceeds a service quota.
+//
+//   - ValidationException
+//     One of the parameters for the request is not valid.
+//
+//   - ThrottlingException
+//     The request was throttled because of quota limits.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/DescribeDeliveries
+func (c *CloudWatchLogs) DescribeDeliveries(input *DescribeDeliveriesInput) (*DescribeDeliveriesOutput, error) {
+	req, out := c.DescribeDeliveriesRequest(input)
+	return out, req.Send()
+}
+
+// DescribeDeliveriesWithContext is the same as DescribeDeliveries with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DescribeDeliveries for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *CloudWatchLogs) DescribeDeliveriesWithContext(ctx aws.Context, input *DescribeDeliveriesInput, opts ...request.Option) (*DescribeDeliveriesOutput, error) {
+	req, out := c.DescribeDeliveriesRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+// DescribeDeliveriesPages iterates over the pages of a DescribeDeliveries operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See DescribeDeliveries method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//	// Example iterating over at most 3 pages of a DescribeDeliveries operation.
+//	pageNum := 0
+//	err := client.DescribeDeliveriesPages(params,
+//	    func(page *cloudwatchlogs.DescribeDeliveriesOutput, lastPage bool) bool {
+//	        pageNum++
+//	        fmt.Println(page)
+//	        return pageNum <= 3
+//	    })
+func (c *CloudWatchLogs) DescribeDeliveriesPages(input *DescribeDeliveriesInput, fn func(*DescribeDeliveriesOutput, bool) bool) error {
+	return c.DescribeDeliveriesPagesWithContext(aws.BackgroundContext(), input, fn)
+}
+
+// DescribeDeliveriesPagesWithContext same as DescribeDeliveriesPages except
+// it takes a Context and allows setting request options on the pages.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *CloudWatchLogs) DescribeDeliveriesPagesWithContext(ctx aws.Context, input *DescribeDeliveriesInput, fn func(*DescribeDeliveriesOutput, bool) bool, opts ...request.Option) error {
+	p := request.Pagination{
+		EndPageOnSameToken: true,
+		NewRequest: func() (*request.Request, error) {
+			var inCpy *DescribeDeliveriesInput
+			if input != nil {
+				tmp := *input
+				inCpy = &tmp
+			}
+			req, _ := c.DescribeDeliveriesRequest(inCpy)
+			req.SetContext(ctx)
+			req.ApplyOptions(opts...)
+			return req, nil
+		},
+	}
+
+	for p.Next() {
+		if !fn(p.Page().(*DescribeDeliveriesOutput), !p.HasNextPage()) {
+			break
+		}
+	}
+
+	return p.Err()
+}
+
+const opDescribeDeliveryDestinations = "DescribeDeliveryDestinations"
+
+// DescribeDeliveryDestinationsRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeDeliveryDestinations operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DescribeDeliveryDestinations for more information on using the DescribeDeliveryDestinations
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//	// Example sending a request using the DescribeDeliveryDestinationsRequest method.
+//	req, resp := client.DescribeDeliveryDestinationsRequest(params)
+//
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/DescribeDeliveryDestinations
+func (c *CloudWatchLogs) DescribeDeliveryDestinationsRequest(input *DescribeDeliveryDestinationsInput) (req *request.Request, output *DescribeDeliveryDestinationsOutput) {
+	op := &request.Operation{
+		Name:       opDescribeDeliveryDestinations,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+		Paginator: &request.Paginator{
+			InputTokens:     []string{"nextToken"},
+			OutputTokens:    []string{"nextToken"},
+			LimitToken:      "limit",
+			TruncationToken: "",
+		},
+	}
+
+	if input == nil {
+		input = &DescribeDeliveryDestinationsInput{}
+	}
+
+	output = &DescribeDeliveryDestinationsOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// DescribeDeliveryDestinations API operation for Amazon CloudWatch Logs.
+//
+// Retrieves a list of the delivery destinations that have been created in the
+// account.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon CloudWatch Logs's
+// API operation DescribeDeliveryDestinations for usage and error information.
+//
+// Returned Error Types:
+//
+//   - ServiceUnavailableException
+//     The service cannot complete the request.
+//
+//   - ServiceQuotaExceededException
+//     This request exceeds a service quota.
+//
+//   - ValidationException
+//     One of the parameters for the request is not valid.
+//
+//   - ThrottlingException
+//     The request was throttled because of quota limits.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/DescribeDeliveryDestinations
+func (c *CloudWatchLogs) DescribeDeliveryDestinations(input *DescribeDeliveryDestinationsInput) (*DescribeDeliveryDestinationsOutput, error) {
+	req, out := c.DescribeDeliveryDestinationsRequest(input)
+	return out, req.Send()
+}
+
+// DescribeDeliveryDestinationsWithContext is the same as DescribeDeliveryDestinations with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DescribeDeliveryDestinations for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *CloudWatchLogs) DescribeDeliveryDestinationsWithContext(ctx aws.Context, input *DescribeDeliveryDestinationsInput, opts ...request.Option) (*DescribeDeliveryDestinationsOutput, error) {
+	req, out := c.DescribeDeliveryDestinationsRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+// DescribeDeliveryDestinationsPages iterates over the pages of a DescribeDeliveryDestinations operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See DescribeDeliveryDestinations method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//	// Example iterating over at most 3 pages of a DescribeDeliveryDestinations operation.
+//	pageNum := 0
+//	err := client.DescribeDeliveryDestinationsPages(params,
+//	    func(page *cloudwatchlogs.DescribeDeliveryDestinationsOutput, lastPage bool) bool {
+//	        pageNum++
+//	        fmt.Println(page)
+//	        return pageNum <= 3
+//	    })
+func (c *CloudWatchLogs) DescribeDeliveryDestinationsPages(input *DescribeDeliveryDestinationsInput, fn func(*DescribeDeliveryDestinationsOutput, bool) bool) error {
+	return c.DescribeDeliveryDestinationsPagesWithContext(aws.BackgroundContext(), input, fn)
+}
+
+// DescribeDeliveryDestinationsPagesWithContext same as DescribeDeliveryDestinationsPages except
+// it takes a Context and allows setting request options on the pages.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *CloudWatchLogs) DescribeDeliveryDestinationsPagesWithContext(ctx aws.Context, input *DescribeDeliveryDestinationsInput, fn func(*DescribeDeliveryDestinationsOutput, bool) bool, opts ...request.Option) error {
+	p := request.Pagination{
+		EndPageOnSameToken: true,
+		NewRequest: func() (*request.Request, error) {
+			var inCpy *DescribeDeliveryDestinationsInput
+			if input != nil {
+				tmp := *input
+				inCpy = &tmp
+			}
+			req, _ := c.DescribeDeliveryDestinationsRequest(inCpy)
+			req.SetContext(ctx)
+			req.ApplyOptions(opts...)
+			return req, nil
+		},
+	}
+
+	for p.Next() {
+		if !fn(p.Page().(*DescribeDeliveryDestinationsOutput), !p.HasNextPage()) {
+			break
+		}
+	}
+
+	return p.Err()
+}
+
+const opDescribeDeliverySources = "DescribeDeliverySources"
+
+// DescribeDeliverySourcesRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeDeliverySources operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DescribeDeliverySources for more information on using the DescribeDeliverySources
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//	// Example sending a request using the DescribeDeliverySourcesRequest method.
+//	req, resp := client.DescribeDeliverySourcesRequest(params)
+//
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/DescribeDeliverySources
+func (c *CloudWatchLogs) DescribeDeliverySourcesRequest(input *DescribeDeliverySourcesInput) (req *request.Request, output *DescribeDeliverySourcesOutput) {
+	op := &request.Operation{
+		Name:       opDescribeDeliverySources,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+		Paginator: &request.Paginator{
+			InputTokens:     []string{"nextToken"},
+			OutputTokens:    []string{"nextToken"},
+			LimitToken:      "limit",
+			TruncationToken: "",
+		},
+	}
+
+	if input == nil {
+		input = &DescribeDeliverySourcesInput{}
+	}
+
+	output = &DescribeDeliverySourcesOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// DescribeDeliverySources API operation for Amazon CloudWatch Logs.
+//
+// Retrieves a list of the delivery sources that have been created in the account.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon CloudWatch Logs's
+// API operation DescribeDeliverySources for usage and error information.
+//
+// Returned Error Types:
+//
+//   - ServiceUnavailableException
+//     The service cannot complete the request.
+//
+//   - ServiceQuotaExceededException
+//     This request exceeds a service quota.
+//
+//   - ValidationException
+//     One of the parameters for the request is not valid.
+//
+//   - ThrottlingException
+//     The request was throttled because of quota limits.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/DescribeDeliverySources
+func (c *CloudWatchLogs) DescribeDeliverySources(input *DescribeDeliverySourcesInput) (*DescribeDeliverySourcesOutput, error) {
+	req, out := c.DescribeDeliverySourcesRequest(input)
+	return out, req.Send()
+}
+
+// DescribeDeliverySourcesWithContext is the same as DescribeDeliverySources with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DescribeDeliverySources for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *CloudWatchLogs) DescribeDeliverySourcesWithContext(ctx aws.Context, input *DescribeDeliverySourcesInput, opts ...request.Option) (*DescribeDeliverySourcesOutput, error) {
+	req, out := c.DescribeDeliverySourcesRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+// DescribeDeliverySourcesPages iterates over the pages of a DescribeDeliverySources operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See DescribeDeliverySources method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//	// Example iterating over at most 3 pages of a DescribeDeliverySources operation.
+//	pageNum := 0
+//	err := client.DescribeDeliverySourcesPages(params,
+//	    func(page *cloudwatchlogs.DescribeDeliverySourcesOutput, lastPage bool) bool {
+//	        pageNum++
+//	        fmt.Println(page)
+//	        return pageNum <= 3
+//	    })
+func (c *CloudWatchLogs) DescribeDeliverySourcesPages(input *DescribeDeliverySourcesInput, fn func(*DescribeDeliverySourcesOutput, bool) bool) error {
+	return c.DescribeDeliverySourcesPagesWithContext(aws.BackgroundContext(), input, fn)
+}
+
+// DescribeDeliverySourcesPagesWithContext same as DescribeDeliverySourcesPages except
+// it takes a Context and allows setting request options on the pages.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *CloudWatchLogs) DescribeDeliverySourcesPagesWithContext(ctx aws.Context, input *DescribeDeliverySourcesInput, fn func(*DescribeDeliverySourcesOutput, bool) bool, opts ...request.Option) error {
+	p := request.Pagination{
+		EndPageOnSameToken: true,
+		NewRequest: func() (*request.Request, error) {
+			var inCpy *DescribeDeliverySourcesInput
+			if input != nil {
+				tmp := *input
+				inCpy = &tmp
+			}
+			req, _ := c.DescribeDeliverySourcesRequest(inCpy)
+			req.SetContext(ctx)
+			req.ApplyOptions(opts...)
+			return req, nil
+		},
+	}
+
+	for p.Next() {
+		if !fn(p.Page().(*DescribeDeliverySourcesOutput), !p.HasNextPage()) {
+			break
+		}
+	}
+
+	return p.Err()
+}
+
 const opDescribeDestinations = "DescribeDestinations"
 
 // DescribeDestinationsRequest generates a "aws/request.Request" representing the
@@ -1170,14 +2779,13 @@ const opDescribeDestinations = "DescribeDestinations"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the DescribeDestinationsRequest method.
+//	req, resp := client.DescribeDestinationsRequest(params)
 //
-//    // Example sending a request using the DescribeDestinationsRequest method.
-//    req, resp := client.DescribeDestinationsRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/DescribeDestinations
 func (c *CloudWatchLogs) DescribeDestinationsRequest(input *DescribeDestinationsInput) (req *request.Request, output *DescribeDestinationsOutput) {
@@ -1214,12 +2822,13 @@ func (c *CloudWatchLogs) DescribeDestinationsRequest(input *DescribeDestinations
 // See the AWS API reference guide for Amazon CloudWatch Logs's
 // API operation DescribeDestinations for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
-//   A parameter is specified incorrectly.
+// Returned Error Types:
 //
-//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
-//   The service cannot complete the request.
+//   - InvalidParameterException
+//     A parameter is specified incorrectly.
+//
+//   - ServiceUnavailableException
+//     The service cannot complete the request.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/DescribeDestinations
 func (c *CloudWatchLogs) DescribeDestinations(input *DescribeDestinationsInput) (*DescribeDestinationsOutput, error) {
@@ -1251,15 +2860,14 @@ func (c *CloudWatchLogs) DescribeDestinationsWithContext(ctx aws.Context, input 
 //
 // Note: This operation can generate multiple requests to a service.
 //
-//    // Example iterating over at most 3 pages of a DescribeDestinations operation.
-//    pageNum := 0
-//    err := client.DescribeDestinationsPages(params,
-//        func(page *cloudwatchlogs.DescribeDestinationsOutput, lastPage bool) bool {
-//            pageNum++
-//            fmt.Println(page)
-//            return pageNum <= 3
-//        })
-//
+//	// Example iterating over at most 3 pages of a DescribeDestinations operation.
+//	pageNum := 0
+//	err := client.DescribeDestinationsPages(params,
+//	    func(page *cloudwatchlogs.DescribeDestinationsOutput, lastPage bool) bool {
+//	        pageNum++
+//	        fmt.Println(page)
+//	        return pageNum <= 3
+//	    })
 func (c *CloudWatchLogs) DescribeDestinationsPages(input *DescribeDestinationsInput, fn func(*DescribeDestinationsOutput, bool) bool) error {
 	return c.DescribeDestinationsPagesWithContext(aws.BackgroundContext(), input, fn)
 }
@@ -1287,10 +2895,12 @@ func (c *CloudWatchLogs) DescribeDestinationsPagesWithContext(ctx aws.Context, i
 		},
 	}
 
-	cont := true
-	for p.Next() && cont {
-		cont = fn(p.Page().(*DescribeDestinationsOutput), !p.HasNextPage())
+	for p.Next() {
+		if !fn(p.Page().(*DescribeDestinationsOutput), !p.HasNextPage()) {
+			break
+		}
 	}
+
 	return p.Err()
 }
 
@@ -1310,14 +2920,13 @@ const opDescribeExportTasks = "DescribeExportTasks"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the DescribeExportTasksRequest method.
+//	req, resp := client.DescribeExportTasksRequest(params)
 //
-//    // Example sending a request using the DescribeExportTasksRequest method.
-//    req, resp := client.DescribeExportTasksRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/DescribeExportTasks
 func (c *CloudWatchLogs) DescribeExportTasksRequest(input *DescribeExportTasksInput) (req *request.Request, output *DescribeExportTasksOutput) {
@@ -1348,12 +2957,13 @@ func (c *CloudWatchLogs) DescribeExportTasksRequest(input *DescribeExportTasksIn
 // See the AWS API reference guide for Amazon CloudWatch Logs's
 // API operation DescribeExportTasks for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
-//   A parameter is specified incorrectly.
+// Returned Error Types:
 //
-//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
-//   The service cannot complete the request.
+//   - InvalidParameterException
+//     A parameter is specified incorrectly.
+//
+//   - ServiceUnavailableException
+//     The service cannot complete the request.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/DescribeExportTasks
 func (c *CloudWatchLogs) DescribeExportTasks(input *DescribeExportTasksInput) (*DescribeExportTasksOutput, error) {
@@ -1393,14 +3003,13 @@ const opDescribeLogGroups = "DescribeLogGroups"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the DescribeLogGroupsRequest method.
+//	req, resp := client.DescribeLogGroupsRequest(params)
 //
-//    // Example sending a request using the DescribeLogGroupsRequest method.
-//    req, resp := client.DescribeLogGroupsRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/DescribeLogGroups
 func (c *CloudWatchLogs) DescribeLogGroupsRequest(input *DescribeLogGroupsInput) (req *request.Request, output *DescribeLogGroupsOutput) {
@@ -1430,6 +3039,17 @@ func (c *CloudWatchLogs) DescribeLogGroupsRequest(input *DescribeLogGroupsInput)
 // Lists the specified log groups. You can list all your log groups or filter
 // the results by prefix. The results are ASCII-sorted by log group name.
 //
+// CloudWatch Logs doesn’t support IAM policies that control access to the
+// DescribeLogGroups action by using the aws:ResourceTag/key-name condition
+// key. Other CloudWatch Logs actions do support the use of the aws:ResourceTag/key-name
+// condition key to control access. For more information about using tags to
+// control access, see Controlling access to Amazon Web Services resources using
+// tags (https://docs.aws.amazon.com/IAM/latest/UserGuide/access_tags.html).
+//
+// If you are using CloudWatch cross-account observability, you can use this
+// operation in a monitoring account and view data from the linked source accounts.
+// For more information, see CloudWatch cross-account observability (https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/CloudWatch-Unified-Cross-Account.html).
+//
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
 // the error.
@@ -1437,12 +3057,13 @@ func (c *CloudWatchLogs) DescribeLogGroupsRequest(input *DescribeLogGroupsInput)
 // See the AWS API reference guide for Amazon CloudWatch Logs's
 // API operation DescribeLogGroups for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
-//   A parameter is specified incorrectly.
+// Returned Error Types:
 //
-//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
-//   The service cannot complete the request.
+//   - InvalidParameterException
+//     A parameter is specified incorrectly.
+//
+//   - ServiceUnavailableException
+//     The service cannot complete the request.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/DescribeLogGroups
 func (c *CloudWatchLogs) DescribeLogGroups(input *DescribeLogGroupsInput) (*DescribeLogGroupsOutput, error) {
@@ -1474,15 +3095,14 @@ func (c *CloudWatchLogs) DescribeLogGroupsWithContext(ctx aws.Context, input *De
 //
 // Note: This operation can generate multiple requests to a service.
 //
-//    // Example iterating over at most 3 pages of a DescribeLogGroups operation.
-//    pageNum := 0
-//    err := client.DescribeLogGroupsPages(params,
-//        func(page *cloudwatchlogs.DescribeLogGroupsOutput, lastPage bool) bool {
-//            pageNum++
-//            fmt.Println(page)
-//            return pageNum <= 3
-//        })
-//
+//	// Example iterating over at most 3 pages of a DescribeLogGroups operation.
+//	pageNum := 0
+//	err := client.DescribeLogGroupsPages(params,
+//	    func(page *cloudwatchlogs.DescribeLogGroupsOutput, lastPage bool) bool {
+//	        pageNum++
+//	        fmt.Println(page)
+//	        return pageNum <= 3
+//	    })
 func (c *CloudWatchLogs) DescribeLogGroupsPages(input *DescribeLogGroupsInput, fn func(*DescribeLogGroupsOutput, bool) bool) error {
 	return c.DescribeLogGroupsPagesWithContext(aws.BackgroundContext(), input, fn)
 }
@@ -1510,10 +3130,12 @@ func (c *CloudWatchLogs) DescribeLogGroupsPagesWithContext(ctx aws.Context, inpu
 		},
 	}
 
-	cont := true
-	for p.Next() && cont {
-		cont = fn(p.Page().(*DescribeLogGroupsOutput), !p.HasNextPage())
+	for p.Next() {
+		if !fn(p.Page().(*DescribeLogGroupsOutput), !p.HasNextPage()) {
+			break
+		}
 	}
+
 	return p.Err()
 }
 
@@ -1533,14 +3155,13 @@ const opDescribeLogStreams = "DescribeLogStreams"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the DescribeLogStreamsRequest method.
+//	req, resp := client.DescribeLogStreamsRequest(params)
 //
-//    // Example sending a request using the DescribeLogStreamsRequest method.
-//    req, resp := client.DescribeLogStreamsRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/DescribeLogStreams
 func (c *CloudWatchLogs) DescribeLogStreamsRequest(input *DescribeLogStreamsInput) (req *request.Request, output *DescribeLogStreamsOutput) {
@@ -1571,8 +3192,16 @@ func (c *CloudWatchLogs) DescribeLogStreamsRequest(input *DescribeLogStreamsInpu
 // streams or filter the results by prefix. You can also control how the results
 // are ordered.
 //
+// You can specify the log group to search by using either logGroupIdentifier
+// or logGroupName. You must include one of these two parameters, but you can't
+// include both.
+//
 // This operation has a limit of five transactions per second, after which transactions
 // are throttled.
+//
+// If you are using CloudWatch cross-account observability, you can use this
+// operation in a monitoring account and view data from the linked source accounts.
+// For more information, see CloudWatch cross-account observability (https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/CloudWatch-Unified-Cross-Account.html).
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -1581,15 +3210,16 @@ func (c *CloudWatchLogs) DescribeLogStreamsRequest(input *DescribeLogStreamsInpu
 // See the AWS API reference guide for Amazon CloudWatch Logs's
 // API operation DescribeLogStreams for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
-//   A parameter is specified incorrectly.
+// Returned Error Types:
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
-//   The specified resource does not exist.
+//   - InvalidParameterException
+//     A parameter is specified incorrectly.
 //
-//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
-//   The service cannot complete the request.
+//   - ResourceNotFoundException
+//     The specified resource does not exist.
+//
+//   - ServiceUnavailableException
+//     The service cannot complete the request.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/DescribeLogStreams
 func (c *CloudWatchLogs) DescribeLogStreams(input *DescribeLogStreamsInput) (*DescribeLogStreamsOutput, error) {
@@ -1621,15 +3251,14 @@ func (c *CloudWatchLogs) DescribeLogStreamsWithContext(ctx aws.Context, input *D
 //
 // Note: This operation can generate multiple requests to a service.
 //
-//    // Example iterating over at most 3 pages of a DescribeLogStreams operation.
-//    pageNum := 0
-//    err := client.DescribeLogStreamsPages(params,
-//        func(page *cloudwatchlogs.DescribeLogStreamsOutput, lastPage bool) bool {
-//            pageNum++
-//            fmt.Println(page)
-//            return pageNum <= 3
-//        })
-//
+//	// Example iterating over at most 3 pages of a DescribeLogStreams operation.
+//	pageNum := 0
+//	err := client.DescribeLogStreamsPages(params,
+//	    func(page *cloudwatchlogs.DescribeLogStreamsOutput, lastPage bool) bool {
+//	        pageNum++
+//	        fmt.Println(page)
+//	        return pageNum <= 3
+//	    })
 func (c *CloudWatchLogs) DescribeLogStreamsPages(input *DescribeLogStreamsInput, fn func(*DescribeLogStreamsOutput, bool) bool) error {
 	return c.DescribeLogStreamsPagesWithContext(aws.BackgroundContext(), input, fn)
 }
@@ -1657,10 +3286,12 @@ func (c *CloudWatchLogs) DescribeLogStreamsPagesWithContext(ctx aws.Context, inp
 		},
 	}
 
-	cont := true
-	for p.Next() && cont {
-		cont = fn(p.Page().(*DescribeLogStreamsOutput), !p.HasNextPage())
+	for p.Next() {
+		if !fn(p.Page().(*DescribeLogStreamsOutput), !p.HasNextPage()) {
+			break
+		}
 	}
+
 	return p.Err()
 }
 
@@ -1680,14 +3311,13 @@ const opDescribeMetricFilters = "DescribeMetricFilters"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the DescribeMetricFiltersRequest method.
+//	req, resp := client.DescribeMetricFiltersRequest(params)
 //
-//    // Example sending a request using the DescribeMetricFiltersRequest method.
-//    req, resp := client.DescribeMetricFiltersRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/DescribeMetricFilters
 func (c *CloudWatchLogs) DescribeMetricFiltersRequest(input *DescribeMetricFiltersInput) (req *request.Request, output *DescribeMetricFiltersOutput) {
@@ -1714,8 +3344,8 @@ func (c *CloudWatchLogs) DescribeMetricFiltersRequest(input *DescribeMetricFilte
 
 // DescribeMetricFilters API operation for Amazon CloudWatch Logs.
 //
-// Lists the specified metric filters. You can list all the metric filters or
-// filter the results by log name, prefix, metric name, or metric namespace.
+// Lists the specified metric filters. You can list all of the metric filters
+// or filter the results by log name, prefix, metric name, or metric namespace.
 // The results are ASCII-sorted by filter name.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -1725,15 +3355,16 @@ func (c *CloudWatchLogs) DescribeMetricFiltersRequest(input *DescribeMetricFilte
 // See the AWS API reference guide for Amazon CloudWatch Logs's
 // API operation DescribeMetricFilters for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
-//   A parameter is specified incorrectly.
+// Returned Error Types:
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
-//   The specified resource does not exist.
+//   - InvalidParameterException
+//     A parameter is specified incorrectly.
 //
-//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
-//   The service cannot complete the request.
+//   - ResourceNotFoundException
+//     The specified resource does not exist.
+//
+//   - ServiceUnavailableException
+//     The service cannot complete the request.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/DescribeMetricFilters
 func (c *CloudWatchLogs) DescribeMetricFilters(input *DescribeMetricFiltersInput) (*DescribeMetricFiltersOutput, error) {
@@ -1765,15 +3396,14 @@ func (c *CloudWatchLogs) DescribeMetricFiltersWithContext(ctx aws.Context, input
 //
 // Note: This operation can generate multiple requests to a service.
 //
-//    // Example iterating over at most 3 pages of a DescribeMetricFilters operation.
-//    pageNum := 0
-//    err := client.DescribeMetricFiltersPages(params,
-//        func(page *cloudwatchlogs.DescribeMetricFiltersOutput, lastPage bool) bool {
-//            pageNum++
-//            fmt.Println(page)
-//            return pageNum <= 3
-//        })
-//
+//	// Example iterating over at most 3 pages of a DescribeMetricFilters operation.
+//	pageNum := 0
+//	err := client.DescribeMetricFiltersPages(params,
+//	    func(page *cloudwatchlogs.DescribeMetricFiltersOutput, lastPage bool) bool {
+//	        pageNum++
+//	        fmt.Println(page)
+//	        return pageNum <= 3
+//	    })
 func (c *CloudWatchLogs) DescribeMetricFiltersPages(input *DescribeMetricFiltersInput, fn func(*DescribeMetricFiltersOutput, bool) bool) error {
 	return c.DescribeMetricFiltersPagesWithContext(aws.BackgroundContext(), input, fn)
 }
@@ -1801,10 +3431,12 @@ func (c *CloudWatchLogs) DescribeMetricFiltersPagesWithContext(ctx aws.Context, 
 		},
 	}
 
-	cont := true
-	for p.Next() && cont {
-		cont = fn(p.Page().(*DescribeMetricFiltersOutput), !p.HasNextPage())
+	for p.Next() {
+		if !fn(p.Page().(*DescribeMetricFiltersOutput), !p.HasNextPage()) {
+			break
+		}
 	}
+
 	return p.Err()
 }
 
@@ -1824,14 +3456,13 @@ const opDescribeQueries = "DescribeQueries"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the DescribeQueriesRequest method.
+//	req, resp := client.DescribeQueriesRequest(params)
 //
-//    // Example sending a request using the DescribeQueriesRequest method.
-//    req, resp := client.DescribeQueriesRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/DescribeQueries
 func (c *CloudWatchLogs) DescribeQueriesRequest(input *DescribeQueriesInput) (req *request.Request, output *DescribeQueriesOutput) {
@@ -1852,10 +3483,9 @@ func (c *CloudWatchLogs) DescribeQueriesRequest(input *DescribeQueriesInput) (re
 
 // DescribeQueries API operation for Amazon CloudWatch Logs.
 //
-// Returns a list of CloudWatch Logs Insights queries that are scheduled, executing,
-// or have been executed recently in this account. You can request all queries,
-// or limit it to queries of a specific log group or queries with a certain
-// status.
+// Returns a list of CloudWatch Logs Insights queries that are scheduled, running,
+// or have been run recently in this account. You can request all queries or
+// limit it to queries of a specific log group or queries with a certain status.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -1864,15 +3494,16 @@ func (c *CloudWatchLogs) DescribeQueriesRequest(input *DescribeQueriesInput) (re
 // See the AWS API reference guide for Amazon CloudWatch Logs's
 // API operation DescribeQueries for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
-//   A parameter is specified incorrectly.
+// Returned Error Types:
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
-//   The specified resource does not exist.
+//   - InvalidParameterException
+//     A parameter is specified incorrectly.
 //
-//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
-//   The service cannot complete the request.
+//   - ResourceNotFoundException
+//     The specified resource does not exist.
+//
+//   - ServiceUnavailableException
+//     The service cannot complete the request.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/DescribeQueries
 func (c *CloudWatchLogs) DescribeQueries(input *DescribeQueriesInput) (*DescribeQueriesOutput, error) {
@@ -1896,6 +3527,93 @@ func (c *CloudWatchLogs) DescribeQueriesWithContext(ctx aws.Context, input *Desc
 	return out, req.Send()
 }
 
+const opDescribeQueryDefinitions = "DescribeQueryDefinitions"
+
+// DescribeQueryDefinitionsRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeQueryDefinitions operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DescribeQueryDefinitions for more information on using the DescribeQueryDefinitions
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//	// Example sending a request using the DescribeQueryDefinitionsRequest method.
+//	req, resp := client.DescribeQueryDefinitionsRequest(params)
+//
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/DescribeQueryDefinitions
+func (c *CloudWatchLogs) DescribeQueryDefinitionsRequest(input *DescribeQueryDefinitionsInput) (req *request.Request, output *DescribeQueryDefinitionsOutput) {
+	op := &request.Operation{
+		Name:       opDescribeQueryDefinitions,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DescribeQueryDefinitionsInput{}
+	}
+
+	output = &DescribeQueryDefinitionsOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// DescribeQueryDefinitions API operation for Amazon CloudWatch Logs.
+//
+// This operation returns a paginated list of your saved CloudWatch Logs Insights
+// query definitions. You can retrieve query definitions from the current account
+// or from a source account that is linked to the current account.
+//
+// You can use the queryDefinitionNamePrefix parameter to limit the results
+// to only the query definitions that have names that start with a certain string.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon CloudWatch Logs's
+// API operation DescribeQueryDefinitions for usage and error information.
+//
+// Returned Error Types:
+//
+//   - InvalidParameterException
+//     A parameter is specified incorrectly.
+//
+//   - ServiceUnavailableException
+//     The service cannot complete the request.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/DescribeQueryDefinitions
+func (c *CloudWatchLogs) DescribeQueryDefinitions(input *DescribeQueryDefinitionsInput) (*DescribeQueryDefinitionsOutput, error) {
+	req, out := c.DescribeQueryDefinitionsRequest(input)
+	return out, req.Send()
+}
+
+// DescribeQueryDefinitionsWithContext is the same as DescribeQueryDefinitions with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DescribeQueryDefinitions for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *CloudWatchLogs) DescribeQueryDefinitionsWithContext(ctx aws.Context, input *DescribeQueryDefinitionsInput, opts ...request.Option) (*DescribeQueryDefinitionsOutput, error) {
+	req, out := c.DescribeQueryDefinitionsRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opDescribeResourcePolicies = "DescribeResourcePolicies"
 
 // DescribeResourcePoliciesRequest generates a "aws/request.Request" representing the
@@ -1912,14 +3630,13 @@ const opDescribeResourcePolicies = "DescribeResourcePolicies"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the DescribeResourcePoliciesRequest method.
+//	req, resp := client.DescribeResourcePoliciesRequest(params)
 //
-//    // Example sending a request using the DescribeResourcePoliciesRequest method.
-//    req, resp := client.DescribeResourcePoliciesRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/DescribeResourcePolicies
 func (c *CloudWatchLogs) DescribeResourcePoliciesRequest(input *DescribeResourcePoliciesInput) (req *request.Request, output *DescribeResourcePoliciesOutput) {
@@ -1949,12 +3666,13 @@ func (c *CloudWatchLogs) DescribeResourcePoliciesRequest(input *DescribeResource
 // See the AWS API reference guide for Amazon CloudWatch Logs's
 // API operation DescribeResourcePolicies for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
-//   A parameter is specified incorrectly.
+// Returned Error Types:
 //
-//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
-//   The service cannot complete the request.
+//   - InvalidParameterException
+//     A parameter is specified incorrectly.
+//
+//   - ServiceUnavailableException
+//     The service cannot complete the request.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/DescribeResourcePolicies
 func (c *CloudWatchLogs) DescribeResourcePolicies(input *DescribeResourcePoliciesInput) (*DescribeResourcePoliciesOutput, error) {
@@ -1994,14 +3712,13 @@ const opDescribeSubscriptionFilters = "DescribeSubscriptionFilters"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the DescribeSubscriptionFiltersRequest method.
+//	req, resp := client.DescribeSubscriptionFiltersRequest(params)
 //
-//    // Example sending a request using the DescribeSubscriptionFiltersRequest method.
-//    req, resp := client.DescribeSubscriptionFiltersRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/DescribeSubscriptionFilters
 func (c *CloudWatchLogs) DescribeSubscriptionFiltersRequest(input *DescribeSubscriptionFiltersInput) (req *request.Request, output *DescribeSubscriptionFiltersOutput) {
@@ -2039,15 +3756,16 @@ func (c *CloudWatchLogs) DescribeSubscriptionFiltersRequest(input *DescribeSubsc
 // See the AWS API reference guide for Amazon CloudWatch Logs's
 // API operation DescribeSubscriptionFilters for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
-//   A parameter is specified incorrectly.
+// Returned Error Types:
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
-//   The specified resource does not exist.
+//   - InvalidParameterException
+//     A parameter is specified incorrectly.
 //
-//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
-//   The service cannot complete the request.
+//   - ResourceNotFoundException
+//     The specified resource does not exist.
+//
+//   - ServiceUnavailableException
+//     The service cannot complete the request.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/DescribeSubscriptionFilters
 func (c *CloudWatchLogs) DescribeSubscriptionFilters(input *DescribeSubscriptionFiltersInput) (*DescribeSubscriptionFiltersOutput, error) {
@@ -2079,15 +3797,14 @@ func (c *CloudWatchLogs) DescribeSubscriptionFiltersWithContext(ctx aws.Context,
 //
 // Note: This operation can generate multiple requests to a service.
 //
-//    // Example iterating over at most 3 pages of a DescribeSubscriptionFilters operation.
-//    pageNum := 0
-//    err := client.DescribeSubscriptionFiltersPages(params,
-//        func(page *cloudwatchlogs.DescribeSubscriptionFiltersOutput, lastPage bool) bool {
-//            pageNum++
-//            fmt.Println(page)
-//            return pageNum <= 3
-//        })
-//
+//	// Example iterating over at most 3 pages of a DescribeSubscriptionFilters operation.
+//	pageNum := 0
+//	err := client.DescribeSubscriptionFiltersPages(params,
+//	    func(page *cloudwatchlogs.DescribeSubscriptionFiltersOutput, lastPage bool) bool {
+//	        pageNum++
+//	        fmt.Println(page)
+//	        return pageNum <= 3
+//	    })
 func (c *CloudWatchLogs) DescribeSubscriptionFiltersPages(input *DescribeSubscriptionFiltersInput, fn func(*DescribeSubscriptionFiltersOutput, bool) bool) error {
 	return c.DescribeSubscriptionFiltersPagesWithContext(aws.BackgroundContext(), input, fn)
 }
@@ -2115,10 +3832,12 @@ func (c *CloudWatchLogs) DescribeSubscriptionFiltersPagesWithContext(ctx aws.Con
 		},
 	}
 
-	cont := true
-	for p.Next() && cont {
-		cont = fn(p.Page().(*DescribeSubscriptionFiltersOutput), !p.HasNextPage())
+	for p.Next() {
+		if !fn(p.Page().(*DescribeSubscriptionFiltersOutput), !p.HasNextPage()) {
+			break
+		}
 	}
+
 	return p.Err()
 }
 
@@ -2138,14 +3857,13 @@ const opDisassociateKmsKey = "DisassociateKmsKey"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the DisassociateKmsKeyRequest method.
+//	req, resp := client.DisassociateKmsKeyRequest(params)
 //
-//    // Example sending a request using the DisassociateKmsKeyRequest method.
-//    req, resp := client.DisassociateKmsKeyRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/DisassociateKmsKey
 func (c *CloudWatchLogs) DisassociateKmsKeyRequest(input *DisassociateKmsKeyInput) (req *request.Request, output *DisassociateKmsKeyOutput) {
@@ -2167,15 +3885,30 @@ func (c *CloudWatchLogs) DisassociateKmsKeyRequest(input *DisassociateKmsKeyInpu
 
 // DisassociateKmsKey API operation for Amazon CloudWatch Logs.
 //
-// Disassociates the associated AWS Key Management Service (AWS KMS) customer
-// master key (CMK) from the specified log group.
+// Disassociates the specified KMS key from the specified log group or from
+// all CloudWatch Logs Insights query results in the account.
 //
-// After the AWS KMS CMK is disassociated from the log group, AWS CloudWatch
-// Logs stops encrypting newly ingested data for the log group. All previously
-// ingested data remains encrypted, and AWS CloudWatch Logs requires permissions
-// for the CMK whenever the encrypted data is requested.
+// When you use DisassociateKmsKey, you specify either the logGroupName parameter
+// or the resourceIdentifier parameter. You can't specify both of those parameters
+// in the same operation.
 //
-// Note that it can take up to 5 minutes for this operation to take effect.
+//   - Specify the logGroupName parameter to stop using the KMS key to encrypt
+//     future log events ingested and stored in the log group. Instead, they
+//     will be encrypted with the default CloudWatch Logs method. The log events
+//     that were ingested while the key was associated with the log group are
+//     still encrypted with that key. Therefore, CloudWatch Logs will need permissions
+//     for the key whenever that data is accessed.
+//
+//   - Specify the resourceIdentifier parameter with the query-result resource
+//     to stop using the KMS key to encrypt the results of all future StartQuery
+//     (https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_StartQuery.html)
+//     operations in the account. They will instead be encrypted with the default
+//     CloudWatch Logs method. The results from queries that ran while the key
+//     was associated with the account are still encrypted with that key. Therefore,
+//     CloudWatch Logs will need permissions for the key whenever that data is
+//     accessed.
+//
+// It can take up to 5 minutes for this operation to take effect.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -2184,18 +3917,19 @@ func (c *CloudWatchLogs) DisassociateKmsKeyRequest(input *DisassociateKmsKeyInpu
 // See the AWS API reference guide for Amazon CloudWatch Logs's
 // API operation DisassociateKmsKey for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
-//   A parameter is specified incorrectly.
+// Returned Error Types:
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
-//   The specified resource does not exist.
+//   - InvalidParameterException
+//     A parameter is specified incorrectly.
 //
-//   * ErrCodeOperationAbortedException "OperationAbortedException"
-//   Multiple requests to update the same resource were in conflict.
+//   - ResourceNotFoundException
+//     The specified resource does not exist.
 //
-//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
-//   The service cannot complete the request.
+//   - OperationAbortedException
+//     Multiple concurrent requests to update the same resource were in conflict.
+//
+//   - ServiceUnavailableException
+//     The service cannot complete the request.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/DisassociateKmsKey
 func (c *CloudWatchLogs) DisassociateKmsKey(input *DisassociateKmsKeyInput) (*DisassociateKmsKeyOutput, error) {
@@ -2235,14 +3969,13 @@ const opFilterLogEvents = "FilterLogEvents"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the FilterLogEventsRequest method.
+//	req, resp := client.FilterLogEventsRequest(params)
 //
-//    // Example sending a request using the FilterLogEventsRequest method.
-//    req, resp := client.FilterLogEventsRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/FilterLogEvents
 func (c *CloudWatchLogs) FilterLogEventsRequest(input *FilterLogEventsInput) (req *request.Request, output *FilterLogEventsOutput) {
@@ -2273,11 +4006,26 @@ func (c *CloudWatchLogs) FilterLogEventsRequest(input *FilterLogEventsInput) (re
 // or filter the results using a filter pattern, a time range, and the name
 // of the log stream.
 //
+// You must have the logs:FilterLogEvents permission to perform this operation.
+//
+// You can specify the log group to search by using either logGroupIdentifier
+// or logGroupName. You must include one of these two parameters, but you can't
+// include both.
+//
 // By default, this operation returns as many log events as can fit in 1 MB
-// (up to 10,000 log events), or all the events found within the time range
-// that you specify. If the results include a token, then there are more log
-// events available, and you can get additional results by specifying the token
-// in a subsequent call.
+// (up to 10,000 log events) or all the events found within the specified time
+// range. If the results include a token, that means there are more log events
+// available. You can get additional results by specifying the token in a subsequent
+// call. This operation can return empty results while there are more log events
+// available through the token.
+//
+// The returned log events are sorted by event timestamp, the timestamp when
+// the event was ingested by CloudWatch Logs, and the ID of the PutLogEvents
+// request.
+//
+// If you are using CloudWatch cross-account observability, you can use this
+// operation in a monitoring account and view data from the linked source accounts.
+// For more information, see CloudWatch cross-account observability (https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/CloudWatch-Unified-Cross-Account.html).
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -2286,15 +4034,16 @@ func (c *CloudWatchLogs) FilterLogEventsRequest(input *FilterLogEventsInput) (re
 // See the AWS API reference guide for Amazon CloudWatch Logs's
 // API operation FilterLogEvents for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
-//   A parameter is specified incorrectly.
+// Returned Error Types:
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
-//   The specified resource does not exist.
+//   - InvalidParameterException
+//     A parameter is specified incorrectly.
 //
-//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
-//   The service cannot complete the request.
+//   - ResourceNotFoundException
+//     The specified resource does not exist.
+//
+//   - ServiceUnavailableException
+//     The service cannot complete the request.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/FilterLogEvents
 func (c *CloudWatchLogs) FilterLogEvents(input *FilterLogEventsInput) (*FilterLogEventsOutput, error) {
@@ -2326,15 +4075,14 @@ func (c *CloudWatchLogs) FilterLogEventsWithContext(ctx aws.Context, input *Filt
 //
 // Note: This operation can generate multiple requests to a service.
 //
-//    // Example iterating over at most 3 pages of a FilterLogEvents operation.
-//    pageNum := 0
-//    err := client.FilterLogEventsPages(params,
-//        func(page *cloudwatchlogs.FilterLogEventsOutput, lastPage bool) bool {
-//            pageNum++
-//            fmt.Println(page)
-//            return pageNum <= 3
-//        })
-//
+//	// Example iterating over at most 3 pages of a FilterLogEvents operation.
+//	pageNum := 0
+//	err := client.FilterLogEventsPages(params,
+//	    func(page *cloudwatchlogs.FilterLogEventsOutput, lastPage bool) bool {
+//	        pageNum++
+//	        fmt.Println(page)
+//	        return pageNum <= 3
+//	    })
 func (c *CloudWatchLogs) FilterLogEventsPages(input *FilterLogEventsInput, fn func(*FilterLogEventsOutput, bool) bool) error {
 	return c.FilterLogEventsPagesWithContext(aws.BackgroundContext(), input, fn)
 }
@@ -2362,11 +4110,561 @@ func (c *CloudWatchLogs) FilterLogEventsPagesWithContext(ctx aws.Context, input 
 		},
 	}
 
-	cont := true
-	for p.Next() && cont {
-		cont = fn(p.Page().(*FilterLogEventsOutput), !p.HasNextPage())
+	for p.Next() {
+		if !fn(p.Page().(*FilterLogEventsOutput), !p.HasNextPage()) {
+			break
+		}
 	}
+
 	return p.Err()
+}
+
+const opGetDataProtectionPolicy = "GetDataProtectionPolicy"
+
+// GetDataProtectionPolicyRequest generates a "aws/request.Request" representing the
+// client's request for the GetDataProtectionPolicy operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See GetDataProtectionPolicy for more information on using the GetDataProtectionPolicy
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//	// Example sending a request using the GetDataProtectionPolicyRequest method.
+//	req, resp := client.GetDataProtectionPolicyRequest(params)
+//
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/GetDataProtectionPolicy
+func (c *CloudWatchLogs) GetDataProtectionPolicyRequest(input *GetDataProtectionPolicyInput) (req *request.Request, output *GetDataProtectionPolicyOutput) {
+	op := &request.Operation{
+		Name:       opGetDataProtectionPolicy,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &GetDataProtectionPolicyInput{}
+	}
+
+	output = &GetDataProtectionPolicyOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// GetDataProtectionPolicy API operation for Amazon CloudWatch Logs.
+//
+// Returns information about a log group data protection policy.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon CloudWatch Logs's
+// API operation GetDataProtectionPolicy for usage and error information.
+//
+// Returned Error Types:
+//
+//   - InvalidParameterException
+//     A parameter is specified incorrectly.
+//
+//   - OperationAbortedException
+//     Multiple concurrent requests to update the same resource were in conflict.
+//
+//   - ResourceNotFoundException
+//     The specified resource does not exist.
+//
+//   - ServiceUnavailableException
+//     The service cannot complete the request.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/GetDataProtectionPolicy
+func (c *CloudWatchLogs) GetDataProtectionPolicy(input *GetDataProtectionPolicyInput) (*GetDataProtectionPolicyOutput, error) {
+	req, out := c.GetDataProtectionPolicyRequest(input)
+	return out, req.Send()
+}
+
+// GetDataProtectionPolicyWithContext is the same as GetDataProtectionPolicy with the addition of
+// the ability to pass a context and additional request options.
+//
+// See GetDataProtectionPolicy for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *CloudWatchLogs) GetDataProtectionPolicyWithContext(ctx aws.Context, input *GetDataProtectionPolicyInput, opts ...request.Option) (*GetDataProtectionPolicyOutput, error) {
+	req, out := c.GetDataProtectionPolicyRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opGetDelivery = "GetDelivery"
+
+// GetDeliveryRequest generates a "aws/request.Request" representing the
+// client's request for the GetDelivery operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See GetDelivery for more information on using the GetDelivery
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//	// Example sending a request using the GetDeliveryRequest method.
+//	req, resp := client.GetDeliveryRequest(params)
+//
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/GetDelivery
+func (c *CloudWatchLogs) GetDeliveryRequest(input *GetDeliveryInput) (req *request.Request, output *GetDeliveryOutput) {
+	op := &request.Operation{
+		Name:       opGetDelivery,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &GetDeliveryInput{}
+	}
+
+	output = &GetDeliveryOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// GetDelivery API operation for Amazon CloudWatch Logs.
+//
+// Returns complete information about one logical delivery. A delivery is a
+// connection between a delivery source (https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_PutDeliverySource.html)
+// and a delivery destination (https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_PutDeliveryDestination.html).
+//
+// A delivery source represents an Amazon Web Services resource that sends logs
+// to an logs delivery destination. The destination can be CloudWatch Logs,
+// Amazon S3, or Firehose. Only some Amazon Web Services services support being
+// configured as a delivery source. These services are listed in Enable logging
+// from Amazon Web Services services. (https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/AWS-logs-and-resource-policy.html)
+//
+// You need to specify the delivery id in this operation. You can find the IDs
+// of the deliveries in your account with the DescribeDeliveries (https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_DescribeDeliveries.html)
+// operation.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon CloudWatch Logs's
+// API operation GetDelivery for usage and error information.
+//
+// Returned Error Types:
+//
+//   - ResourceNotFoundException
+//     The specified resource does not exist.
+//
+//   - ServiceUnavailableException
+//     The service cannot complete the request.
+//
+//   - ValidationException
+//     One of the parameters for the request is not valid.
+//
+//   - ServiceQuotaExceededException
+//     This request exceeds a service quota.
+//
+//   - ThrottlingException
+//     The request was throttled because of quota limits.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/GetDelivery
+func (c *CloudWatchLogs) GetDelivery(input *GetDeliveryInput) (*GetDeliveryOutput, error) {
+	req, out := c.GetDeliveryRequest(input)
+	return out, req.Send()
+}
+
+// GetDeliveryWithContext is the same as GetDelivery with the addition of
+// the ability to pass a context and additional request options.
+//
+// See GetDelivery for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *CloudWatchLogs) GetDeliveryWithContext(ctx aws.Context, input *GetDeliveryInput, opts ...request.Option) (*GetDeliveryOutput, error) {
+	req, out := c.GetDeliveryRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opGetDeliveryDestination = "GetDeliveryDestination"
+
+// GetDeliveryDestinationRequest generates a "aws/request.Request" representing the
+// client's request for the GetDeliveryDestination operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See GetDeliveryDestination for more information on using the GetDeliveryDestination
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//	// Example sending a request using the GetDeliveryDestinationRequest method.
+//	req, resp := client.GetDeliveryDestinationRequest(params)
+//
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/GetDeliveryDestination
+func (c *CloudWatchLogs) GetDeliveryDestinationRequest(input *GetDeliveryDestinationInput) (req *request.Request, output *GetDeliveryDestinationOutput) {
+	op := &request.Operation{
+		Name:       opGetDeliveryDestination,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &GetDeliveryDestinationInput{}
+	}
+
+	output = &GetDeliveryDestinationOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// GetDeliveryDestination API operation for Amazon CloudWatch Logs.
+//
+// Retrieves complete information about one delivery destination.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon CloudWatch Logs's
+// API operation GetDeliveryDestination for usage and error information.
+//
+// Returned Error Types:
+//
+//   - ResourceNotFoundException
+//     The specified resource does not exist.
+//
+//   - ServiceUnavailableException
+//     The service cannot complete the request.
+//
+//   - ValidationException
+//     One of the parameters for the request is not valid.
+//
+//   - ServiceQuotaExceededException
+//     This request exceeds a service quota.
+//
+//   - ThrottlingException
+//     The request was throttled because of quota limits.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/GetDeliveryDestination
+func (c *CloudWatchLogs) GetDeliveryDestination(input *GetDeliveryDestinationInput) (*GetDeliveryDestinationOutput, error) {
+	req, out := c.GetDeliveryDestinationRequest(input)
+	return out, req.Send()
+}
+
+// GetDeliveryDestinationWithContext is the same as GetDeliveryDestination with the addition of
+// the ability to pass a context and additional request options.
+//
+// See GetDeliveryDestination for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *CloudWatchLogs) GetDeliveryDestinationWithContext(ctx aws.Context, input *GetDeliveryDestinationInput, opts ...request.Option) (*GetDeliveryDestinationOutput, error) {
+	req, out := c.GetDeliveryDestinationRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opGetDeliveryDestinationPolicy = "GetDeliveryDestinationPolicy"
+
+// GetDeliveryDestinationPolicyRequest generates a "aws/request.Request" representing the
+// client's request for the GetDeliveryDestinationPolicy operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See GetDeliveryDestinationPolicy for more information on using the GetDeliveryDestinationPolicy
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//	// Example sending a request using the GetDeliveryDestinationPolicyRequest method.
+//	req, resp := client.GetDeliveryDestinationPolicyRequest(params)
+//
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/GetDeliveryDestinationPolicy
+func (c *CloudWatchLogs) GetDeliveryDestinationPolicyRequest(input *GetDeliveryDestinationPolicyInput) (req *request.Request, output *GetDeliveryDestinationPolicyOutput) {
+	op := &request.Operation{
+		Name:       opGetDeliveryDestinationPolicy,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &GetDeliveryDestinationPolicyInput{}
+	}
+
+	output = &GetDeliveryDestinationPolicyOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// GetDeliveryDestinationPolicy API operation for Amazon CloudWatch Logs.
+//
+// Retrieves the delivery destination policy assigned to the delivery destination
+// that you specify. For more information about delivery destinations and their
+// policies, see PutDeliveryDestinationPolicy (https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_PutDeliveryDestinationPolicy.html).
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon CloudWatch Logs's
+// API operation GetDeliveryDestinationPolicy for usage and error information.
+//
+// Returned Error Types:
+//
+//   - ServiceUnavailableException
+//     The service cannot complete the request.
+//
+//   - ValidationException
+//     One of the parameters for the request is not valid.
+//
+//   - ResourceNotFoundException
+//     The specified resource does not exist.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/GetDeliveryDestinationPolicy
+func (c *CloudWatchLogs) GetDeliveryDestinationPolicy(input *GetDeliveryDestinationPolicyInput) (*GetDeliveryDestinationPolicyOutput, error) {
+	req, out := c.GetDeliveryDestinationPolicyRequest(input)
+	return out, req.Send()
+}
+
+// GetDeliveryDestinationPolicyWithContext is the same as GetDeliveryDestinationPolicy with the addition of
+// the ability to pass a context and additional request options.
+//
+// See GetDeliveryDestinationPolicy for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *CloudWatchLogs) GetDeliveryDestinationPolicyWithContext(ctx aws.Context, input *GetDeliveryDestinationPolicyInput, opts ...request.Option) (*GetDeliveryDestinationPolicyOutput, error) {
+	req, out := c.GetDeliveryDestinationPolicyRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opGetDeliverySource = "GetDeliverySource"
+
+// GetDeliverySourceRequest generates a "aws/request.Request" representing the
+// client's request for the GetDeliverySource operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See GetDeliverySource for more information on using the GetDeliverySource
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//	// Example sending a request using the GetDeliverySourceRequest method.
+//	req, resp := client.GetDeliverySourceRequest(params)
+//
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/GetDeliverySource
+func (c *CloudWatchLogs) GetDeliverySourceRequest(input *GetDeliverySourceInput) (req *request.Request, output *GetDeliverySourceOutput) {
+	op := &request.Operation{
+		Name:       opGetDeliverySource,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &GetDeliverySourceInput{}
+	}
+
+	output = &GetDeliverySourceOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// GetDeliverySource API operation for Amazon CloudWatch Logs.
+//
+// Retrieves complete information about one delivery source.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon CloudWatch Logs's
+// API operation GetDeliverySource for usage and error information.
+//
+// Returned Error Types:
+//
+//   - ResourceNotFoundException
+//     The specified resource does not exist.
+//
+//   - ServiceUnavailableException
+//     The service cannot complete the request.
+//
+//   - ValidationException
+//     One of the parameters for the request is not valid.
+//
+//   - ServiceQuotaExceededException
+//     This request exceeds a service quota.
+//
+//   - ThrottlingException
+//     The request was throttled because of quota limits.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/GetDeliverySource
+func (c *CloudWatchLogs) GetDeliverySource(input *GetDeliverySourceInput) (*GetDeliverySourceOutput, error) {
+	req, out := c.GetDeliverySourceRequest(input)
+	return out, req.Send()
+}
+
+// GetDeliverySourceWithContext is the same as GetDeliverySource with the addition of
+// the ability to pass a context and additional request options.
+//
+// See GetDeliverySource for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *CloudWatchLogs) GetDeliverySourceWithContext(ctx aws.Context, input *GetDeliverySourceInput, opts ...request.Option) (*GetDeliverySourceOutput, error) {
+	req, out := c.GetDeliverySourceRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opGetLogAnomalyDetector = "GetLogAnomalyDetector"
+
+// GetLogAnomalyDetectorRequest generates a "aws/request.Request" representing the
+// client's request for the GetLogAnomalyDetector operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See GetLogAnomalyDetector for more information on using the GetLogAnomalyDetector
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//	// Example sending a request using the GetLogAnomalyDetectorRequest method.
+//	req, resp := client.GetLogAnomalyDetectorRequest(params)
+//
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/GetLogAnomalyDetector
+func (c *CloudWatchLogs) GetLogAnomalyDetectorRequest(input *GetLogAnomalyDetectorInput) (req *request.Request, output *GetLogAnomalyDetectorOutput) {
+	op := &request.Operation{
+		Name:       opGetLogAnomalyDetector,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &GetLogAnomalyDetectorInput{}
+	}
+
+	output = &GetLogAnomalyDetectorOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// GetLogAnomalyDetector API operation for Amazon CloudWatch Logs.
+//
+// Retrieves information about the log anomaly detector that you specify.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon CloudWatch Logs's
+// API operation GetLogAnomalyDetector for usage and error information.
+//
+// Returned Error Types:
+//
+//   - InvalidParameterException
+//     A parameter is specified incorrectly.
+//
+//   - ResourceNotFoundException
+//     The specified resource does not exist.
+//
+//   - ServiceUnavailableException
+//     The service cannot complete the request.
+//
+//   - OperationAbortedException
+//     Multiple concurrent requests to update the same resource were in conflict.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/GetLogAnomalyDetector
+func (c *CloudWatchLogs) GetLogAnomalyDetector(input *GetLogAnomalyDetectorInput) (*GetLogAnomalyDetectorOutput, error) {
+	req, out := c.GetLogAnomalyDetectorRequest(input)
+	return out, req.Send()
+}
+
+// GetLogAnomalyDetectorWithContext is the same as GetLogAnomalyDetector with the addition of
+// the ability to pass a context and additional request options.
+//
+// See GetLogAnomalyDetector for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *CloudWatchLogs) GetLogAnomalyDetectorWithContext(ctx aws.Context, input *GetLogAnomalyDetectorInput, opts ...request.Option) (*GetLogAnomalyDetectorOutput, error) {
+	req, out := c.GetLogAnomalyDetectorRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
 }
 
 const opGetLogEvents = "GetLogEvents"
@@ -2385,14 +4683,13 @@ const opGetLogEvents = "GetLogEvents"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the GetLogEventsRequest method.
+//	req, resp := client.GetLogEventsRequest(params)
 //
-//    // Example sending a request using the GetLogEventsRequest method.
-//    req, resp := client.GetLogEventsRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/GetLogEvents
 func (c *CloudWatchLogs) GetLogEventsRequest(input *GetLogEventsInput) (req *request.Request, output *GetLogEventsOutput) {
@@ -2419,12 +4716,22 @@ func (c *CloudWatchLogs) GetLogEventsRequest(input *GetLogEventsInput) (req *req
 
 // GetLogEvents API operation for Amazon CloudWatch Logs.
 //
-// Lists log events from the specified log stream. You can list all the log
+// Lists log events from the specified log stream. You can list all of the log
 // events or filter using a time range.
 //
 // By default, this operation returns as many log events as can fit in a response
 // size of 1MB (up to 10,000 log events). You can get additional log events
-// by specifying one of the tokens in a subsequent call.
+// by specifying one of the tokens in a subsequent call. This operation can
+// return empty results while there are more log events available through the
+// token.
+//
+// If you are using CloudWatch cross-account observability, you can use this
+// operation in a monitoring account and view data from the linked source accounts.
+// For more information, see CloudWatch cross-account observability (https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/CloudWatch-Unified-Cross-Account.html).
+//
+// You can specify the log group to search by using either logGroupIdentifier
+// or logGroupName. You must include one of these two parameters, but you can't
+// include both.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -2433,15 +4740,16 @@ func (c *CloudWatchLogs) GetLogEventsRequest(input *GetLogEventsInput) (req *req
 // See the AWS API reference guide for Amazon CloudWatch Logs's
 // API operation GetLogEvents for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
-//   A parameter is specified incorrectly.
+// Returned Error Types:
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
-//   The specified resource does not exist.
+//   - InvalidParameterException
+//     A parameter is specified incorrectly.
 //
-//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
-//   The service cannot complete the request.
+//   - ResourceNotFoundException
+//     The specified resource does not exist.
+//
+//   - ServiceUnavailableException
+//     The service cannot complete the request.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/GetLogEvents
 func (c *CloudWatchLogs) GetLogEvents(input *GetLogEventsInput) (*GetLogEventsOutput, error) {
@@ -2473,15 +4781,14 @@ func (c *CloudWatchLogs) GetLogEventsWithContext(ctx aws.Context, input *GetLogE
 //
 // Note: This operation can generate multiple requests to a service.
 //
-//    // Example iterating over at most 3 pages of a GetLogEvents operation.
-//    pageNum := 0
-//    err := client.GetLogEventsPages(params,
-//        func(page *cloudwatchlogs.GetLogEventsOutput, lastPage bool) bool {
-//            pageNum++
-//            fmt.Println(page)
-//            return pageNum <= 3
-//        })
-//
+//	// Example iterating over at most 3 pages of a GetLogEvents operation.
+//	pageNum := 0
+//	err := client.GetLogEventsPages(params,
+//	    func(page *cloudwatchlogs.GetLogEventsOutput, lastPage bool) bool {
+//	        pageNum++
+//	        fmt.Println(page)
+//	        return pageNum <= 3
+//	    })
 func (c *CloudWatchLogs) GetLogEventsPages(input *GetLogEventsInput, fn func(*GetLogEventsOutput, bool) bool) error {
 	return c.GetLogEventsPagesWithContext(aws.BackgroundContext(), input, fn)
 }
@@ -2509,10 +4816,12 @@ func (c *CloudWatchLogs) GetLogEventsPagesWithContext(ctx aws.Context, input *Ge
 		},
 	}
 
-	cont := true
-	for p.Next() && cont {
-		cont = fn(p.Page().(*GetLogEventsOutput), !p.HasNextPage())
+	for p.Next() {
+		if !fn(p.Page().(*GetLogEventsOutput), !p.HasNextPage()) {
+			break
+		}
 	}
+
 	return p.Err()
 }
 
@@ -2532,14 +4841,13 @@ const opGetLogGroupFields = "GetLogGroupFields"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the GetLogGroupFieldsRequest method.
+//	req, resp := client.GetLogGroupFieldsRequest(params)
 //
-//    // Example sending a request using the GetLogGroupFieldsRequest method.
-//    req, resp := client.GetLogGroupFieldsRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/GetLogGroupFields
 func (c *CloudWatchLogs) GetLogGroupFieldsRequest(input *GetLogGroupFieldsInput) (req *request.Request, output *GetLogGroupFieldsOutput) {
@@ -2561,14 +4869,24 @@ func (c *CloudWatchLogs) GetLogGroupFieldsRequest(input *GetLogGroupFieldsInput)
 // GetLogGroupFields API operation for Amazon CloudWatch Logs.
 //
 // Returns a list of the fields that are included in log events in the specified
-// log group, along with the percentage of log events that contain each field.
+// log group. Includes the percentage of log events that contain each field.
 // The search is limited to a time period that you specify.
 //
+// You can specify the log group to search by using either logGroupIdentifier
+// or logGroupName. You must specify one of these parameters, but you can't
+// specify both.
+//
 // In the results, fields that start with @ are fields generated by CloudWatch
-// Logs. For example, @timestamp is the timestamp of each log event.
+// Logs. For example, @timestamp is the timestamp of each log event. For more
+// information about the fields that are generated by CloudWatch logs, see Supported
+// Logs and Discovered Fields (https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/CWL_AnalyzeLogData-discoverable-fields.html).
 //
 // The response results are sorted by the frequency percentage, starting with
 // the highest percentage.
+//
+// If you are using CloudWatch cross-account observability, you can use this
+// operation in a monitoring account and view data from the linked source accounts.
+// For more information, see CloudWatch cross-account observability (https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/CloudWatch-Unified-Cross-Account.html).
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -2577,18 +4895,19 @@ func (c *CloudWatchLogs) GetLogGroupFieldsRequest(input *GetLogGroupFieldsInput)
 // See the AWS API reference guide for Amazon CloudWatch Logs's
 // API operation GetLogGroupFields for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
-//   A parameter is specified incorrectly.
+// Returned Error Types:
 //
-//   * ErrCodeLimitExceededException "LimitExceededException"
-//   You have reached the maximum number of resources that can be created.
+//   - InvalidParameterException
+//     A parameter is specified incorrectly.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
-//   The specified resource does not exist.
+//   - LimitExceededException
+//     You have reached the maximum number of resources that can be created.
 //
-//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
-//   The service cannot complete the request.
+//   - ResourceNotFoundException
+//     The specified resource does not exist.
+//
+//   - ServiceUnavailableException
+//     The service cannot complete the request.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/GetLogGroupFields
 func (c *CloudWatchLogs) GetLogGroupFields(input *GetLogGroupFieldsInput) (*GetLogGroupFieldsOutput, error) {
@@ -2628,14 +4947,13 @@ const opGetLogRecord = "GetLogRecord"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the GetLogRecordRequest method.
+//	req, resp := client.GetLogRecordRequest(params)
 //
-//    // Example sending a request using the GetLogRecordRequest method.
-//    req, resp := client.GetLogRecordRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/GetLogRecord
 func (c *CloudWatchLogs) GetLogRecordRequest(input *GetLogRecordInput) (req *request.Request, output *GetLogRecordOutput) {
@@ -2656,12 +4974,12 @@ func (c *CloudWatchLogs) GetLogRecordRequest(input *GetLogRecordInput) (req *req
 
 // GetLogRecord API operation for Amazon CloudWatch Logs.
 //
-// Retrieves all the fields and values of a single log event. All fields are
-// retrieved, even if the original query that produced the logRecordPointer
+// Retrieves all of the fields and values of a single log event. All fields
+// are retrieved, even if the original query that produced the logRecordPointer
 // retrieved only a subset of fields. Fields are returned as field name/field
 // value pairs.
 //
-// Additionally, the entire unparsed log event is returned within @message.
+// The full unparsed log event is returned within @message.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -2670,18 +4988,19 @@ func (c *CloudWatchLogs) GetLogRecordRequest(input *GetLogRecordInput) (req *req
 // See the AWS API reference guide for Amazon CloudWatch Logs's
 // API operation GetLogRecord for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
-//   A parameter is specified incorrectly.
+// Returned Error Types:
 //
-//   * ErrCodeLimitExceededException "LimitExceededException"
-//   You have reached the maximum number of resources that can be created.
+//   - InvalidParameterException
+//     A parameter is specified incorrectly.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
-//   The specified resource does not exist.
+//   - LimitExceededException
+//     You have reached the maximum number of resources that can be created.
 //
-//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
-//   The service cannot complete the request.
+//   - ResourceNotFoundException
+//     The specified resource does not exist.
+//
+//   - ServiceUnavailableException
+//     The service cannot complete the request.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/GetLogRecord
 func (c *CloudWatchLogs) GetLogRecord(input *GetLogRecordInput) (*GetLogRecordOutput, error) {
@@ -2721,14 +5040,13 @@ const opGetQueryResults = "GetQueryResults"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the GetQueryResultsRequest method.
+//	req, resp := client.GetQueryResultsRequest(params)
 //
-//    // Example sending a request using the GetQueryResultsRequest method.
-//    req, resp := client.GetQueryResultsRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/GetQueryResults
 func (c *CloudWatchLogs) GetQueryResultsRequest(input *GetQueryResultsInput) (req *request.Request, output *GetQueryResultsOutput) {
@@ -2751,15 +5069,23 @@ func (c *CloudWatchLogs) GetQueryResultsRequest(input *GetQueryResultsInput) (re
 //
 // Returns the results from the specified query.
 //
-// Only the fields requested in the query are returned, along with a @ptr field
+// Only the fields requested in the query are returned, along with a @ptr field,
 // which is the identifier for the log record. You can use the value of @ptr
-// in a operation to get the full log record.
+// in a GetLogRecord (https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_GetLogRecord.html)
+// operation to get the full log record.
 //
-// GetQueryResults does not start a query execution. To run a query, use .
+// GetQueryResults does not start running a query. To run a query, use StartQuery
+// (https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_StartQuery.html).
+// For more information about how long results of previous queries are available,
+// see CloudWatch Logs quotas (https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/cloudwatch_limits_cwl.html).
 //
 // If the value of the Status field in the output is Running, this operation
 // returns only partial results. If you see a value of Scheduled or Running
 // for the status, you can retry the operation later to see the final results.
+//
+// If you are using CloudWatch cross-account observability, you can use this
+// operation in a monitoring account to start queries in linked source accounts.
+// For more information, see CloudWatch cross-account observability (https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/CloudWatch-Unified-Cross-Account.html).
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -2768,15 +5094,16 @@ func (c *CloudWatchLogs) GetQueryResultsRequest(input *GetQueryResultsInput) (re
 // See the AWS API reference guide for Amazon CloudWatch Logs's
 // API operation GetQueryResults for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
-//   A parameter is specified incorrectly.
+// Returned Error Types:
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
-//   The specified resource does not exist.
+//   - InvalidParameterException
+//     A parameter is specified incorrectly.
 //
-//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
-//   The service cannot complete the request.
+//   - ResourceNotFoundException
+//     The specified resource does not exist.
+//
+//   - ServiceUnavailableException
+//     The service cannot complete the request.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/GetQueryResults
 func (c *CloudWatchLogs) GetQueryResults(input *GetQueryResultsInput) (*GetQueryResultsOutput, error) {
@@ -2800,6 +5127,386 @@ func (c *CloudWatchLogs) GetQueryResultsWithContext(ctx aws.Context, input *GetQ
 	return out, req.Send()
 }
 
+const opListAnomalies = "ListAnomalies"
+
+// ListAnomaliesRequest generates a "aws/request.Request" representing the
+// client's request for the ListAnomalies operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See ListAnomalies for more information on using the ListAnomalies
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//	// Example sending a request using the ListAnomaliesRequest method.
+//	req, resp := client.ListAnomaliesRequest(params)
+//
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/ListAnomalies
+func (c *CloudWatchLogs) ListAnomaliesRequest(input *ListAnomaliesInput) (req *request.Request, output *ListAnomaliesOutput) {
+	op := &request.Operation{
+		Name:       opListAnomalies,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+		Paginator: &request.Paginator{
+			InputTokens:     []string{"nextToken"},
+			OutputTokens:    []string{"nextToken"},
+			LimitToken:      "limit",
+			TruncationToken: "",
+		},
+	}
+
+	if input == nil {
+		input = &ListAnomaliesInput{}
+	}
+
+	output = &ListAnomaliesOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// ListAnomalies API operation for Amazon CloudWatch Logs.
+//
+// Returns a list of anomalies that log anomaly detectors have found. For details
+// about the structure format of each anomaly object that is returned, see the
+// example in this section.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon CloudWatch Logs's
+// API operation ListAnomalies for usage and error information.
+//
+// Returned Error Types:
+//
+//   - InvalidParameterException
+//     A parameter is specified incorrectly.
+//
+//   - ResourceNotFoundException
+//     The specified resource does not exist.
+//
+//   - ServiceUnavailableException
+//     The service cannot complete the request.
+//
+//   - OperationAbortedException
+//     Multiple concurrent requests to update the same resource were in conflict.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/ListAnomalies
+func (c *CloudWatchLogs) ListAnomalies(input *ListAnomaliesInput) (*ListAnomaliesOutput, error) {
+	req, out := c.ListAnomaliesRequest(input)
+	return out, req.Send()
+}
+
+// ListAnomaliesWithContext is the same as ListAnomalies with the addition of
+// the ability to pass a context and additional request options.
+//
+// See ListAnomalies for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *CloudWatchLogs) ListAnomaliesWithContext(ctx aws.Context, input *ListAnomaliesInput, opts ...request.Option) (*ListAnomaliesOutput, error) {
+	req, out := c.ListAnomaliesRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+// ListAnomaliesPages iterates over the pages of a ListAnomalies operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See ListAnomalies method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//	// Example iterating over at most 3 pages of a ListAnomalies operation.
+//	pageNum := 0
+//	err := client.ListAnomaliesPages(params,
+//	    func(page *cloudwatchlogs.ListAnomaliesOutput, lastPage bool) bool {
+//	        pageNum++
+//	        fmt.Println(page)
+//	        return pageNum <= 3
+//	    })
+func (c *CloudWatchLogs) ListAnomaliesPages(input *ListAnomaliesInput, fn func(*ListAnomaliesOutput, bool) bool) error {
+	return c.ListAnomaliesPagesWithContext(aws.BackgroundContext(), input, fn)
+}
+
+// ListAnomaliesPagesWithContext same as ListAnomaliesPages except
+// it takes a Context and allows setting request options on the pages.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *CloudWatchLogs) ListAnomaliesPagesWithContext(ctx aws.Context, input *ListAnomaliesInput, fn func(*ListAnomaliesOutput, bool) bool, opts ...request.Option) error {
+	p := request.Pagination{
+		EndPageOnSameToken: true,
+		NewRequest: func() (*request.Request, error) {
+			var inCpy *ListAnomaliesInput
+			if input != nil {
+				tmp := *input
+				inCpy = &tmp
+			}
+			req, _ := c.ListAnomaliesRequest(inCpy)
+			req.SetContext(ctx)
+			req.ApplyOptions(opts...)
+			return req, nil
+		},
+	}
+
+	for p.Next() {
+		if !fn(p.Page().(*ListAnomaliesOutput), !p.HasNextPage()) {
+			break
+		}
+	}
+
+	return p.Err()
+}
+
+const opListLogAnomalyDetectors = "ListLogAnomalyDetectors"
+
+// ListLogAnomalyDetectorsRequest generates a "aws/request.Request" representing the
+// client's request for the ListLogAnomalyDetectors operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See ListLogAnomalyDetectors for more information on using the ListLogAnomalyDetectors
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//	// Example sending a request using the ListLogAnomalyDetectorsRequest method.
+//	req, resp := client.ListLogAnomalyDetectorsRequest(params)
+//
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/ListLogAnomalyDetectors
+func (c *CloudWatchLogs) ListLogAnomalyDetectorsRequest(input *ListLogAnomalyDetectorsInput) (req *request.Request, output *ListLogAnomalyDetectorsOutput) {
+	op := &request.Operation{
+		Name:       opListLogAnomalyDetectors,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+		Paginator: &request.Paginator{
+			InputTokens:     []string{"nextToken"},
+			OutputTokens:    []string{"nextToken"},
+			LimitToken:      "limit",
+			TruncationToken: "",
+		},
+	}
+
+	if input == nil {
+		input = &ListLogAnomalyDetectorsInput{}
+	}
+
+	output = &ListLogAnomalyDetectorsOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// ListLogAnomalyDetectors API operation for Amazon CloudWatch Logs.
+//
+// Retrieves a list of the log anomaly detectors in the account.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon CloudWatch Logs's
+// API operation ListLogAnomalyDetectors for usage and error information.
+//
+// Returned Error Types:
+//
+//   - InvalidParameterException
+//     A parameter is specified incorrectly.
+//
+//   - ResourceNotFoundException
+//     The specified resource does not exist.
+//
+//   - ServiceUnavailableException
+//     The service cannot complete the request.
+//
+//   - OperationAbortedException
+//     Multiple concurrent requests to update the same resource were in conflict.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/ListLogAnomalyDetectors
+func (c *CloudWatchLogs) ListLogAnomalyDetectors(input *ListLogAnomalyDetectorsInput) (*ListLogAnomalyDetectorsOutput, error) {
+	req, out := c.ListLogAnomalyDetectorsRequest(input)
+	return out, req.Send()
+}
+
+// ListLogAnomalyDetectorsWithContext is the same as ListLogAnomalyDetectors with the addition of
+// the ability to pass a context and additional request options.
+//
+// See ListLogAnomalyDetectors for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *CloudWatchLogs) ListLogAnomalyDetectorsWithContext(ctx aws.Context, input *ListLogAnomalyDetectorsInput, opts ...request.Option) (*ListLogAnomalyDetectorsOutput, error) {
+	req, out := c.ListLogAnomalyDetectorsRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+// ListLogAnomalyDetectorsPages iterates over the pages of a ListLogAnomalyDetectors operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See ListLogAnomalyDetectors method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//	// Example iterating over at most 3 pages of a ListLogAnomalyDetectors operation.
+//	pageNum := 0
+//	err := client.ListLogAnomalyDetectorsPages(params,
+//	    func(page *cloudwatchlogs.ListLogAnomalyDetectorsOutput, lastPage bool) bool {
+//	        pageNum++
+//	        fmt.Println(page)
+//	        return pageNum <= 3
+//	    })
+func (c *CloudWatchLogs) ListLogAnomalyDetectorsPages(input *ListLogAnomalyDetectorsInput, fn func(*ListLogAnomalyDetectorsOutput, bool) bool) error {
+	return c.ListLogAnomalyDetectorsPagesWithContext(aws.BackgroundContext(), input, fn)
+}
+
+// ListLogAnomalyDetectorsPagesWithContext same as ListLogAnomalyDetectorsPages except
+// it takes a Context and allows setting request options on the pages.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *CloudWatchLogs) ListLogAnomalyDetectorsPagesWithContext(ctx aws.Context, input *ListLogAnomalyDetectorsInput, fn func(*ListLogAnomalyDetectorsOutput, bool) bool, opts ...request.Option) error {
+	p := request.Pagination{
+		EndPageOnSameToken: true,
+		NewRequest: func() (*request.Request, error) {
+			var inCpy *ListLogAnomalyDetectorsInput
+			if input != nil {
+				tmp := *input
+				inCpy = &tmp
+			}
+			req, _ := c.ListLogAnomalyDetectorsRequest(inCpy)
+			req.SetContext(ctx)
+			req.ApplyOptions(opts...)
+			return req, nil
+		},
+	}
+
+	for p.Next() {
+		if !fn(p.Page().(*ListLogAnomalyDetectorsOutput), !p.HasNextPage()) {
+			break
+		}
+	}
+
+	return p.Err()
+}
+
+const opListTagsForResource = "ListTagsForResource"
+
+// ListTagsForResourceRequest generates a "aws/request.Request" representing the
+// client's request for the ListTagsForResource operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See ListTagsForResource for more information on using the ListTagsForResource
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//	// Example sending a request using the ListTagsForResourceRequest method.
+//	req, resp := client.ListTagsForResourceRequest(params)
+//
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/ListTagsForResource
+func (c *CloudWatchLogs) ListTagsForResourceRequest(input *ListTagsForResourceInput) (req *request.Request, output *ListTagsForResourceOutput) {
+	op := &request.Operation{
+		Name:       opListTagsForResource,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &ListTagsForResourceInput{}
+	}
+
+	output = &ListTagsForResourceOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// ListTagsForResource API operation for Amazon CloudWatch Logs.
+//
+// Displays the tags associated with a CloudWatch Logs resource. Currently,
+// log groups and destinations support tagging.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon CloudWatch Logs's
+// API operation ListTagsForResource for usage and error information.
+//
+// Returned Error Types:
+//
+//   - InvalidParameterException
+//     A parameter is specified incorrectly.
+//
+//   - ResourceNotFoundException
+//     The specified resource does not exist.
+//
+//   - ServiceUnavailableException
+//     The service cannot complete the request.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/ListTagsForResource
+func (c *CloudWatchLogs) ListTagsForResource(input *ListTagsForResourceInput) (*ListTagsForResourceOutput, error) {
+	req, out := c.ListTagsForResourceRequest(input)
+	return out, req.Send()
+}
+
+// ListTagsForResourceWithContext is the same as ListTagsForResource with the addition of
+// the ability to pass a context and additional request options.
+//
+// See ListTagsForResource for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *CloudWatchLogs) ListTagsForResourceWithContext(ctx aws.Context, input *ListTagsForResourceInput, opts ...request.Option) (*ListTagsForResourceOutput, error) {
+	req, out := c.ListTagsForResourceRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opListTagsLogGroup = "ListTagsLogGroup"
 
 // ListTagsLogGroupRequest generates a "aws/request.Request" representing the
@@ -2816,17 +5523,21 @@ const opListTagsLogGroup = "ListTagsLogGroup"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the ListTagsLogGroupRequest method.
+//	req, resp := client.ListTagsLogGroupRequest(params)
 //
-//    // Example sending a request using the ListTagsLogGroupRequest method.
-//    req, resp := client.ListTagsLogGroupRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/ListTagsLogGroup
+//
+// Deprecated: Please use the generic tagging API ListTagsForResource
 func (c *CloudWatchLogs) ListTagsLogGroupRequest(input *ListTagsLogGroupInput) (req *request.Request, output *ListTagsLogGroupOutput) {
+	if c.Client.Config.Logger != nil {
+		c.Client.Config.Logger.Log("This operation, ListTagsLogGroup, has been deprecated")
+	}
 	op := &request.Operation{
 		Name:       opListTagsLogGroup,
 		HTTPMethod: "POST",
@@ -2844,6 +5555,10 @@ func (c *CloudWatchLogs) ListTagsLogGroupRequest(input *ListTagsLogGroupInput) (
 
 // ListTagsLogGroup API operation for Amazon CloudWatch Logs.
 //
+// The ListTagsLogGroup operation is on the path to deprecation. We recommend
+// that you use ListTagsForResource (https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_ListTagsForResource.html)
+// instead.
+//
 // Lists the tags for the specified log group.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -2853,14 +5568,17 @@ func (c *CloudWatchLogs) ListTagsLogGroupRequest(input *ListTagsLogGroupInput) (
 // See the AWS API reference guide for Amazon CloudWatch Logs's
 // API operation ListTagsLogGroup for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
-//   The specified resource does not exist.
+// Returned Error Types:
 //
-//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
-//   The service cannot complete the request.
+//   - ResourceNotFoundException
+//     The specified resource does not exist.
+//
+//   - ServiceUnavailableException
+//     The service cannot complete the request.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/ListTagsLogGroup
+//
+// Deprecated: Please use the generic tagging API ListTagsForResource
 func (c *CloudWatchLogs) ListTagsLogGroup(input *ListTagsLogGroupInput) (*ListTagsLogGroupOutput, error) {
 	req, out := c.ListTagsLogGroupRequest(input)
 	return out, req.Send()
@@ -2875,8 +5593,658 @@ func (c *CloudWatchLogs) ListTagsLogGroup(input *ListTagsLogGroupInput) (*ListTa
 // the context is nil a panic will occur. In the future the SDK may create
 // sub-contexts for http.Requests. See https://golang.org/pkg/context/
 // for more information on using Contexts.
+//
+// Deprecated: Please use the generic tagging API ListTagsForResource
 func (c *CloudWatchLogs) ListTagsLogGroupWithContext(ctx aws.Context, input *ListTagsLogGroupInput, opts ...request.Option) (*ListTagsLogGroupOutput, error) {
 	req, out := c.ListTagsLogGroupRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opPutAccountPolicy = "PutAccountPolicy"
+
+// PutAccountPolicyRequest generates a "aws/request.Request" representing the
+// client's request for the PutAccountPolicy operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See PutAccountPolicy for more information on using the PutAccountPolicy
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//	// Example sending a request using the PutAccountPolicyRequest method.
+//	req, resp := client.PutAccountPolicyRequest(params)
+//
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/PutAccountPolicy
+func (c *CloudWatchLogs) PutAccountPolicyRequest(input *PutAccountPolicyInput) (req *request.Request, output *PutAccountPolicyOutput) {
+	op := &request.Operation{
+		Name:       opPutAccountPolicy,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &PutAccountPolicyInput{}
+	}
+
+	output = &PutAccountPolicyOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// PutAccountPolicy API operation for Amazon CloudWatch Logs.
+//
+// Creates an account-level data protection policy or subscription filter policy
+// that applies to all log groups or a subset of log groups in the account.
+//
+// # Data protection policy
+//
+// A data protection policy can help safeguard sensitive data that's ingested
+// by your log groups by auditing and masking the sensitive log data. Each account
+// can have only one account-level data protection policy.
+//
+// Sensitive data is detected and masked when it is ingested into a log group.
+// When you set a data protection policy, log events ingested into the log groups
+// before that time are not masked.
+//
+// If you use PutAccountPolicy to create a data protection policy for your whole
+// account, it applies to both existing log groups and all log groups that are
+// created later in this account. The account-level policy is applied to existing
+// log groups with eventual consistency. It might take up to 5 minutes before
+// sensitive data in existing log groups begins to be masked.
+//
+// By default, when a user views a log event that includes masked data, the
+// sensitive data is replaced by asterisks. A user who has the logs:Unmask permission
+// can use a GetLogEvents (https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_GetLogEvents.html)
+// or FilterLogEvents (https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_FilterLogEvents.html)
+// operation with the unmask parameter set to true to view the unmasked log
+// events. Users with the logs:Unmask can also view unmasked data in the CloudWatch
+// Logs console by running a CloudWatch Logs Insights query with the unmask
+// query command.
+//
+// For more information, including a list of types of data that can be audited
+// and masked, see Protect sensitive log data with masking (https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/mask-sensitive-log-data.html).
+//
+// To use the PutAccountPolicy operation for a data protection policy, you must
+// be signed on with the logs:PutDataProtectionPolicy and logs:PutAccountPolicy
+// permissions.
+//
+// The PutAccountPolicy operation applies to all log groups in the account.
+// You can use PutDataProtectionPolicy (https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_PutDataProtectionPolicy.html)
+// to create a data protection policy that applies to just one log group. If
+// a log group has its own data protection policy and the account also has an
+// account-level data protection policy, then the two policies are cumulative.
+// Any sensitive term specified in either policy is masked.
+//
+// # Subscription filter policy
+//
+// A subscription filter policy sets up a real-time feed of log events from
+// CloudWatch Logs to other Amazon Web Services services. Account-level subscription
+// filter policies apply to both existing log groups and log groups that are
+// created later in this account. Supported destinations are Kinesis Data Streams,
+// Firehose, and Lambda. When log events are sent to the receiving service,
+// they are Base64 encoded and compressed with the GZIP format.
+//
+// The following destinations are supported for subscription filters:
+//
+//   - An Kinesis Data Streams data stream in the same account as the subscription
+//     policy, for same-account delivery.
+//
+//   - An Firehose data stream in the same account as the subscription policy,
+//     for same-account delivery.
+//
+//   - A Lambda function in the same account as the subscription policy, for
+//     same-account delivery.
+//
+//   - A logical destination in a different account created with PutDestination
+//     (https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_PutDestination.html),
+//     for cross-account delivery. Kinesis Data Streams and Firehose are supported
+//     as logical destinations.
+//
+// Each account can have one account-level subscription filter policy. If you
+// are updating an existing filter, you must specify the correct name in PolicyName.
+// To perform a PutAccountPolicy subscription filter operation for any destination
+// except a Lambda function, you must also have the iam:PassRole permission.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon CloudWatch Logs's
+// API operation PutAccountPolicy for usage and error information.
+//
+// Returned Error Types:
+//
+//   - InvalidParameterException
+//     A parameter is specified incorrectly.
+//
+//   - OperationAbortedException
+//     Multiple concurrent requests to update the same resource were in conflict.
+//
+//   - ServiceUnavailableException
+//     The service cannot complete the request.
+//
+//   - LimitExceededException
+//     You have reached the maximum number of resources that can be created.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/PutAccountPolicy
+func (c *CloudWatchLogs) PutAccountPolicy(input *PutAccountPolicyInput) (*PutAccountPolicyOutput, error) {
+	req, out := c.PutAccountPolicyRequest(input)
+	return out, req.Send()
+}
+
+// PutAccountPolicyWithContext is the same as PutAccountPolicy with the addition of
+// the ability to pass a context and additional request options.
+//
+// See PutAccountPolicy for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *CloudWatchLogs) PutAccountPolicyWithContext(ctx aws.Context, input *PutAccountPolicyInput, opts ...request.Option) (*PutAccountPolicyOutput, error) {
+	req, out := c.PutAccountPolicyRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opPutDataProtectionPolicy = "PutDataProtectionPolicy"
+
+// PutDataProtectionPolicyRequest generates a "aws/request.Request" representing the
+// client's request for the PutDataProtectionPolicy operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See PutDataProtectionPolicy for more information on using the PutDataProtectionPolicy
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//	// Example sending a request using the PutDataProtectionPolicyRequest method.
+//	req, resp := client.PutDataProtectionPolicyRequest(params)
+//
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/PutDataProtectionPolicy
+func (c *CloudWatchLogs) PutDataProtectionPolicyRequest(input *PutDataProtectionPolicyInput) (req *request.Request, output *PutDataProtectionPolicyOutput) {
+	op := &request.Operation{
+		Name:       opPutDataProtectionPolicy,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &PutDataProtectionPolicyInput{}
+	}
+
+	output = &PutDataProtectionPolicyOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// PutDataProtectionPolicy API operation for Amazon CloudWatch Logs.
+//
+// Creates a data protection policy for the specified log group. A data protection
+// policy can help safeguard sensitive data that's ingested by the log group
+// by auditing and masking the sensitive log data.
+//
+// Sensitive data is detected and masked when it is ingested into the log group.
+// When you set a data protection policy, log events ingested into the log group
+// before that time are not masked.
+//
+// By default, when a user views a log event that includes masked data, the
+// sensitive data is replaced by asterisks. A user who has the logs:Unmask permission
+// can use a GetLogEvents (https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_GetLogEvents.html)
+// or FilterLogEvents (https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_FilterLogEvents.html)
+// operation with the unmask parameter set to true to view the unmasked log
+// events. Users with the logs:Unmask can also view unmasked data in the CloudWatch
+// Logs console by running a CloudWatch Logs Insights query with the unmask
+// query command.
+//
+// For more information, including a list of types of data that can be audited
+// and masked, see Protect sensitive log data with masking (https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/mask-sensitive-log-data.html).
+//
+// The PutDataProtectionPolicy operation applies to only the specified log group.
+// You can also use PutAccountPolicy (https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_PutAccountPolicy.html)
+// to create an account-level data protection policy that applies to all log
+// groups in the account, including both existing log groups and log groups
+// that are created level. If a log group has its own data protection policy
+// and the account also has an account-level data protection policy, then the
+// two policies are cumulative. Any sensitive term specified in either policy
+// is masked.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon CloudWatch Logs's
+// API operation PutDataProtectionPolicy for usage and error information.
+//
+// Returned Error Types:
+//
+//   - InvalidParameterException
+//     A parameter is specified incorrectly.
+//
+//   - LimitExceededException
+//     You have reached the maximum number of resources that can be created.
+//
+//   - OperationAbortedException
+//     Multiple concurrent requests to update the same resource were in conflict.
+//
+//   - ResourceNotFoundException
+//     The specified resource does not exist.
+//
+//   - ServiceUnavailableException
+//     The service cannot complete the request.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/PutDataProtectionPolicy
+func (c *CloudWatchLogs) PutDataProtectionPolicy(input *PutDataProtectionPolicyInput) (*PutDataProtectionPolicyOutput, error) {
+	req, out := c.PutDataProtectionPolicyRequest(input)
+	return out, req.Send()
+}
+
+// PutDataProtectionPolicyWithContext is the same as PutDataProtectionPolicy with the addition of
+// the ability to pass a context and additional request options.
+//
+// See PutDataProtectionPolicy for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *CloudWatchLogs) PutDataProtectionPolicyWithContext(ctx aws.Context, input *PutDataProtectionPolicyInput, opts ...request.Option) (*PutDataProtectionPolicyOutput, error) {
+	req, out := c.PutDataProtectionPolicyRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opPutDeliveryDestination = "PutDeliveryDestination"
+
+// PutDeliveryDestinationRequest generates a "aws/request.Request" representing the
+// client's request for the PutDeliveryDestination operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See PutDeliveryDestination for more information on using the PutDeliveryDestination
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//	// Example sending a request using the PutDeliveryDestinationRequest method.
+//	req, resp := client.PutDeliveryDestinationRequest(params)
+//
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/PutDeliveryDestination
+func (c *CloudWatchLogs) PutDeliveryDestinationRequest(input *PutDeliveryDestinationInput) (req *request.Request, output *PutDeliveryDestinationOutput) {
+	op := &request.Operation{
+		Name:       opPutDeliveryDestination,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &PutDeliveryDestinationInput{}
+	}
+
+	output = &PutDeliveryDestinationOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// PutDeliveryDestination API operation for Amazon CloudWatch Logs.
+//
+// Creates or updates a logical delivery destination. A delivery destination
+// is an Amazon Web Services resource that represents an Amazon Web Services
+// service that logs can be sent to. CloudWatch Logs, Amazon S3, and Firehose
+// are supported as logs delivery destinations.
+//
+// To configure logs delivery between a supported Amazon Web Services service
+// and a destination, you must do the following:
+//
+//   - Create a delivery source, which is a logical object that represents
+//     the resource that is actually sending the logs. For more information,
+//     see PutDeliverySource (https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_PutDeliverySource.html).
+//
+//   - Use PutDeliveryDestination to create a delivery destination, which is
+//     a logical object that represents the actual delivery destination.
+//
+//   - If you are delivering logs cross-account, you must use PutDeliveryDestinationPolicy
+//     (https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_PutDeliveryDestinationPolicy.html)
+//     in the destination account to assign an IAM policy to the destination.
+//     This policy allows delivery to that destination.
+//
+//   - Use CreateDelivery to create a delivery by pairing exactly one delivery
+//     source and one delivery destination. For more information, see CreateDelivery
+//     (https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_CreateDelivery.html).
+//
+// You can configure a single delivery source to send logs to multiple destinations
+// by creating multiple deliveries. You can also create multiple deliveries
+// to configure multiple delivery sources to send logs to the same delivery
+// destination.
+//
+// Only some Amazon Web Services services support being configured as a delivery
+// source. These services are listed as Supported [V2 Permissions] in the table
+// at Enabling logging from Amazon Web Services services. (https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/AWS-logs-and-resource-policy.html)
+//
+// If you use this operation to update an existing delivery destination, all
+// the current delivery destination parameters are overwritten with the new
+// parameter values that you specify.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon CloudWatch Logs's
+// API operation PutDeliveryDestination for usage and error information.
+//
+// Returned Error Types:
+//
+//   - ServiceUnavailableException
+//     The service cannot complete the request.
+//
+//   - ConflictException
+//     This operation attempted to create a resource that already exists.
+//
+//   - ValidationException
+//     One of the parameters for the request is not valid.
+//
+//   - ServiceQuotaExceededException
+//     This request exceeds a service quota.
+//
+//   - ThrottlingException
+//     The request was throttled because of quota limits.
+//
+//   - ResourceNotFoundException
+//     The specified resource does not exist.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/PutDeliveryDestination
+func (c *CloudWatchLogs) PutDeliveryDestination(input *PutDeliveryDestinationInput) (*PutDeliveryDestinationOutput, error) {
+	req, out := c.PutDeliveryDestinationRequest(input)
+	return out, req.Send()
+}
+
+// PutDeliveryDestinationWithContext is the same as PutDeliveryDestination with the addition of
+// the ability to pass a context and additional request options.
+//
+// See PutDeliveryDestination for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *CloudWatchLogs) PutDeliveryDestinationWithContext(ctx aws.Context, input *PutDeliveryDestinationInput, opts ...request.Option) (*PutDeliveryDestinationOutput, error) {
+	req, out := c.PutDeliveryDestinationRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opPutDeliveryDestinationPolicy = "PutDeliveryDestinationPolicy"
+
+// PutDeliveryDestinationPolicyRequest generates a "aws/request.Request" representing the
+// client's request for the PutDeliveryDestinationPolicy operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See PutDeliveryDestinationPolicy for more information on using the PutDeliveryDestinationPolicy
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//	// Example sending a request using the PutDeliveryDestinationPolicyRequest method.
+//	req, resp := client.PutDeliveryDestinationPolicyRequest(params)
+//
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/PutDeliveryDestinationPolicy
+func (c *CloudWatchLogs) PutDeliveryDestinationPolicyRequest(input *PutDeliveryDestinationPolicyInput) (req *request.Request, output *PutDeliveryDestinationPolicyOutput) {
+	op := &request.Operation{
+		Name:       opPutDeliveryDestinationPolicy,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &PutDeliveryDestinationPolicyInput{}
+	}
+
+	output = &PutDeliveryDestinationPolicyOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// PutDeliveryDestinationPolicy API operation for Amazon CloudWatch Logs.
+//
+// Creates and assigns an IAM policy that grants permissions to CloudWatch Logs
+// to deliver logs cross-account to a specified destination in this account.
+// To configure the delivery of logs from an Amazon Web Services service in
+// another account to a logs delivery destination in the current account, you
+// must do the following:
+//
+//   - Create a delivery source, which is a logical object that represents
+//     the resource that is actually sending the logs. For more information,
+//     see PutDeliverySource (https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_PutDeliverySource.html).
+//
+//   - Create a delivery destination, which is a logical object that represents
+//     the actual delivery destination. For more information, see PutDeliveryDestination
+//     (https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_PutDeliveryDestination.html).
+//
+//   - Use this operation in the destination account to assign an IAM policy
+//     to the destination. This policy allows delivery to that destination.
+//
+//   - Create a delivery by pairing exactly one delivery source and one delivery
+//     destination. For more information, see CreateDelivery (https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_CreateDelivery.html).
+//
+// Only some Amazon Web Services services support being configured as a delivery
+// source. These services are listed as Supported [V2 Permissions] in the table
+// at Enabling logging from Amazon Web Services services. (https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/AWS-logs-and-resource-policy.html)
+//
+// The contents of the policy must include two statements. One statement enables
+// general logs delivery, and the other allows delivery to the chosen destination.
+// See the examples for the needed policies.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon CloudWatch Logs's
+// API operation PutDeliveryDestinationPolicy for usage and error information.
+//
+// Returned Error Types:
+//
+//   - ServiceUnavailableException
+//     The service cannot complete the request.
+//
+//   - ValidationException
+//     One of the parameters for the request is not valid.
+//
+//   - ResourceNotFoundException
+//     The specified resource does not exist.
+//
+//   - ConflictException
+//     This operation attempted to create a resource that already exists.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/PutDeliveryDestinationPolicy
+func (c *CloudWatchLogs) PutDeliveryDestinationPolicy(input *PutDeliveryDestinationPolicyInput) (*PutDeliveryDestinationPolicyOutput, error) {
+	req, out := c.PutDeliveryDestinationPolicyRequest(input)
+	return out, req.Send()
+}
+
+// PutDeliveryDestinationPolicyWithContext is the same as PutDeliveryDestinationPolicy with the addition of
+// the ability to pass a context and additional request options.
+//
+// See PutDeliveryDestinationPolicy for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *CloudWatchLogs) PutDeliveryDestinationPolicyWithContext(ctx aws.Context, input *PutDeliveryDestinationPolicyInput, opts ...request.Option) (*PutDeliveryDestinationPolicyOutput, error) {
+	req, out := c.PutDeliveryDestinationPolicyRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opPutDeliverySource = "PutDeliverySource"
+
+// PutDeliverySourceRequest generates a "aws/request.Request" representing the
+// client's request for the PutDeliverySource operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See PutDeliverySource for more information on using the PutDeliverySource
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//	// Example sending a request using the PutDeliverySourceRequest method.
+//	req, resp := client.PutDeliverySourceRequest(params)
+//
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/PutDeliverySource
+func (c *CloudWatchLogs) PutDeliverySourceRequest(input *PutDeliverySourceInput) (req *request.Request, output *PutDeliverySourceOutput) {
+	op := &request.Operation{
+		Name:       opPutDeliverySource,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &PutDeliverySourceInput{}
+	}
+
+	output = &PutDeliverySourceOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// PutDeliverySource API operation for Amazon CloudWatch Logs.
+//
+// Creates or updates a logical delivery source. A delivery source represents
+// an Amazon Web Services resource that sends logs to an logs delivery destination.
+// The destination can be CloudWatch Logs, Amazon S3, or Firehose.
+//
+// To configure logs delivery between a delivery destination and an Amazon Web
+// Services service that is supported as a delivery source, you must do the
+// following:
+//
+//   - Use PutDeliverySource to create a delivery source, which is a logical
+//     object that represents the resource that is actually sending the logs.
+//
+//   - Use PutDeliveryDestination to create a delivery destination, which is
+//     a logical object that represents the actual delivery destination. For
+//     more information, see PutDeliveryDestination (https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_PutDeliveryDestination.html).
+//
+//   - If you are delivering logs cross-account, you must use PutDeliveryDestinationPolicy
+//     (https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_PutDeliveryDestinationPolicy.html)
+//     in the destination account to assign an IAM policy to the destination.
+//     This policy allows delivery to that destination.
+//
+//   - Use CreateDelivery to create a delivery by pairing exactly one delivery
+//     source and one delivery destination. For more information, see CreateDelivery
+//     (https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_CreateDelivery.html).
+//
+// You can configure a single delivery source to send logs to multiple destinations
+// by creating multiple deliveries. You can also create multiple deliveries
+// to configure multiple delivery sources to send logs to the same delivery
+// destination.
+//
+// Only some Amazon Web Services services support being configured as a delivery
+// source. These services are listed as Supported [V2 Permissions] in the table
+// at Enabling logging from Amazon Web Services services. (https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/AWS-logs-and-resource-policy.html)
+//
+// If you use this operation to update an existing delivery source, all the
+// current delivery source parameters are overwritten with the new parameter
+// values that you specify.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon CloudWatch Logs's
+// API operation PutDeliverySource for usage and error information.
+//
+// Returned Error Types:
+//
+//   - ServiceUnavailableException
+//     The service cannot complete the request.
+//
+//   - ConflictException
+//     This operation attempted to create a resource that already exists.
+//
+//   - ValidationException
+//     One of the parameters for the request is not valid.
+//
+//   - ServiceQuotaExceededException
+//     This request exceeds a service quota.
+//
+//   - ResourceNotFoundException
+//     The specified resource does not exist.
+//
+//   - ThrottlingException
+//     The request was throttled because of quota limits.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/PutDeliverySource
+func (c *CloudWatchLogs) PutDeliverySource(input *PutDeliverySourceInput) (*PutDeliverySourceOutput, error) {
+	req, out := c.PutDeliverySourceRequest(input)
+	return out, req.Send()
+}
+
+// PutDeliverySourceWithContext is the same as PutDeliverySource with the addition of
+// the ability to pass a context and additional request options.
+//
+// See PutDeliverySource for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *CloudWatchLogs) PutDeliverySourceWithContext(ctx aws.Context, input *PutDeliverySourceInput, opts ...request.Option) (*PutDeliverySourceOutput, error) {
+	req, out := c.PutDeliverySourceRequest(input)
 	req.SetContext(ctx)
 	req.ApplyOptions(opts...)
 	return out, req.Send()
@@ -2898,14 +6266,13 @@ const opPutDestination = "PutDestination"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the PutDestinationRequest method.
+//	req, resp := client.PutDestinationRequest(params)
 //
-//    // Example sending a request using the PutDestinationRequest method.
-//    req, resp := client.PutDestinationRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/PutDestination
 func (c *CloudWatchLogs) PutDestinationRequest(input *PutDestinationInput) (req *request.Request, output *PutDestinationOutput) {
@@ -2926,17 +6293,22 @@ func (c *CloudWatchLogs) PutDestinationRequest(input *PutDestinationInput) (req 
 
 // PutDestination API operation for Amazon CloudWatch Logs.
 //
-// Creates or updates a destination. A destination encapsulates a physical resource
-// (such as an Amazon Kinesis stream) and enables you to subscribe to a real-time
-// stream of log events for a different account, ingested using PutLogEvents.
-// A destination can be an Amazon Kinesis stream, Amazon Kinesis Data Firehose
-// strea, or an AWS Lambda function.
+// Creates or updates a destination. This operation is used only to create destinations
+// for cross-account subscriptions.
+//
+// A destination encapsulates a physical resource (such as an Amazon Kinesis
+// stream). With a destination, you can subscribe to a real-time stream of log
+// events for a different account, ingested using PutLogEvents (https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_PutLogEvents.html).
 //
 // Through an access policy, a destination controls what is written to it. By
 // default, PutDestination does not set any access policy with the destination,
-// which means a cross-account user cannot call PutSubscriptionFilter against
-// this destination. To enable this, the destination owner must call PutDestinationPolicy
+// which means a cross-account user cannot call PutSubscriptionFilter (https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_PutSubscriptionFilter.html)
+// against this destination. To enable this, the destination owner must call
+// PutDestinationPolicy (https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_PutDestinationPolicy.html)
 // after PutDestination.
+//
+// To perform a PutDestination operation, you must also have the iam:PassRole
+// permission.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -2945,15 +6317,16 @@ func (c *CloudWatchLogs) PutDestinationRequest(input *PutDestinationInput) (req 
 // See the AWS API reference guide for Amazon CloudWatch Logs's
 // API operation PutDestination for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
-//   A parameter is specified incorrectly.
+// Returned Error Types:
 //
-//   * ErrCodeOperationAbortedException "OperationAbortedException"
-//   Multiple requests to update the same resource were in conflict.
+//   - InvalidParameterException
+//     A parameter is specified incorrectly.
 //
-//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
-//   The service cannot complete the request.
+//   - OperationAbortedException
+//     Multiple concurrent requests to update the same resource were in conflict.
+//
+//   - ServiceUnavailableException
+//     The service cannot complete the request.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/PutDestination
 func (c *CloudWatchLogs) PutDestination(input *PutDestinationInput) (*PutDestinationOutput, error) {
@@ -2993,14 +6366,13 @@ const opPutDestinationPolicy = "PutDestinationPolicy"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the PutDestinationPolicyRequest method.
+//	req, resp := client.PutDestinationPolicyRequest(params)
 //
-//    // Example sending a request using the PutDestinationPolicyRequest method.
-//    req, resp := client.PutDestinationPolicyRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/PutDestinationPolicy
 func (c *CloudWatchLogs) PutDestinationPolicyRequest(input *PutDestinationPolicyInput) (req *request.Request, output *PutDestinationPolicyOutput) {
@@ -3034,15 +6406,16 @@ func (c *CloudWatchLogs) PutDestinationPolicyRequest(input *PutDestinationPolicy
 // See the AWS API reference guide for Amazon CloudWatch Logs's
 // API operation PutDestinationPolicy for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
-//   A parameter is specified incorrectly.
+// Returned Error Types:
 //
-//   * ErrCodeOperationAbortedException "OperationAbortedException"
-//   Multiple requests to update the same resource were in conflict.
+//   - InvalidParameterException
+//     A parameter is specified incorrectly.
 //
-//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
-//   The service cannot complete the request.
+//   - OperationAbortedException
+//     Multiple concurrent requests to update the same resource were in conflict.
+//
+//   - ServiceUnavailableException
+//     The service cannot complete the request.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/PutDestinationPolicy
 func (c *CloudWatchLogs) PutDestinationPolicy(input *PutDestinationPolicyInput) (*PutDestinationPolicyOutput, error) {
@@ -3082,14 +6455,13 @@ const opPutLogEvents = "PutLogEvents"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the PutLogEventsRequest method.
+//	req, resp := client.PutLogEventsRequest(params)
 //
-//    // Example sending a request using the PutLogEventsRequest method.
-//    req, resp := client.PutLogEventsRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/PutLogEvents
 func (c *CloudWatchLogs) PutLogEventsRequest(input *PutLogEventsInput) (req *request.Request, output *PutLogEventsOutput) {
@@ -3112,37 +6484,44 @@ func (c *CloudWatchLogs) PutLogEventsRequest(input *PutLogEventsInput) (req *req
 //
 // Uploads a batch of log events to the specified log stream.
 //
-// You must include the sequence token obtained from the response of the previous
-// call. An upload in a newly created log stream does not require a sequence
-// token. You can also get the sequence token using DescribeLogStreams. If you
-// call PutLogEvents twice within a narrow time period using the same value
-// for sequenceToken, both calls may be successful, or one may be rejected.
+// The sequence token is now ignored in PutLogEvents actions. PutLogEvents actions
+// are always accepted and never return InvalidSequenceTokenException or DataAlreadyAcceptedException
+// even if the sequence token is not valid. You can use parallel PutLogEvents
+// actions on the same log stream.
 //
 // The batch of events must satisfy the following constraints:
 //
-//    * The maximum batch size is 1,048,576 bytes, and this size is calculated
-//    as the sum of all event messages in UTF-8, plus 26 bytes for each log
-//    event.
+//   - The maximum batch size is 1,048,576 bytes. This size is calculated as
+//     the sum of all event messages in UTF-8, plus 26 bytes for each log event.
 //
-//    * None of the log events in the batch can be more than 2 hours in the
-//    future.
+//   - None of the log events in the batch can be more than 2 hours in the
+//     future.
 //
-//    * None of the log events in the batch can be older than 14 days or older
-//    than the retention period of the log group.
+//   - None of the log events in the batch can be more than 14 days in the
+//     past. Also, none of the log events can be from earlier than the retention
+//     period of the log group.
 //
-//    * The log events in the batch must be in chronological ordered by their
-//    timestamp. The timestamp is the time the event occurred, expressed as
-//    the number of milliseconds after Jan 1, 1970 00:00:00 UTC. (In AWS Tools
-//    for PowerShell and the AWS SDK for .NET, the timestamp is specified in
-//    .NET format: yyyy-mm-ddThh:mm:ss. For example, 2017-09-15T13:45:30.)
+//   - The log events in the batch must be in chronological order by their
+//     timestamp. The timestamp is the time that the event occurred, expressed
+//     as the number of milliseconds after Jan 1, 1970 00:00:00 UTC. (In Amazon
+//     Web Services Tools for PowerShell and the Amazon Web Services SDK for
+//     .NET, the timestamp is specified in .NET format: yyyy-mm-ddThh:mm:ss.
+//     For example, 2017-09-15T13:45:30.)
 //
-//    * The maximum number of log events in a batch is 10,000.
+//   - A batch of log events in a single request cannot span more than 24 hours.
+//     Otherwise, the operation fails.
 //
-//    * A batch of log events in a single request cannot span more than 24 hours.
-//    Otherwise, the operation fails.
+//   - Each log event can be no larger than 256 KB.
+//
+//   - The maximum number of log events in a batch is 10,000.
+//
+//   - The quota of five requests per second per log stream has been removed.
+//     Instead, PutLogEvents actions are throttled based on a per-second per-account
+//     quota. You can request an increase to the per-second throttling quota
+//     by using the Service Quotas service.
 //
 // If a call to PutLogEvents returns "UnrecognizedClientException" the most
-// likely cause is an invalid AWS access key ID or secret key.
+// likely cause is a non-valid Amazon Web Services access key ID or secret key.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -3151,24 +6530,33 @@ func (c *CloudWatchLogs) PutLogEventsRequest(input *PutLogEventsInput) (req *req
 // See the AWS API reference guide for Amazon CloudWatch Logs's
 // API operation PutLogEvents for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
-//   A parameter is specified incorrectly.
+// Returned Error Types:
 //
-//   * ErrCodeInvalidSequenceTokenException "InvalidSequenceTokenException"
-//   The sequence token is not valid.
+//   - InvalidParameterException
+//     A parameter is specified incorrectly.
 //
-//   * ErrCodeDataAlreadyAcceptedException "DataAlreadyAcceptedException"
-//   The event was already logged.
+//   - InvalidSequenceTokenException
+//     The sequence token is not valid. You can get the correct sequence token in
+//     the expectedSequenceToken field in the InvalidSequenceTokenException message.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
-//   The specified resource does not exist.
+//     PutLogEvents actions are now always accepted and never return InvalidSequenceTokenException
+//     regardless of receiving an invalid sequence token.
 //
-//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
-//   The service cannot complete the request.
+//   - DataAlreadyAcceptedException
+//     The event was already logged.
 //
-//   * ErrCodeUnrecognizedClientException "UnrecognizedClientException"
-//   The most likely cause is an invalid AWS access key ID or secret key.
+//     PutLogEvents actions are now always accepted and never return DataAlreadyAcceptedException
+//     regardless of whether a given batch of log events has already been accepted.
+//
+//   - ResourceNotFoundException
+//     The specified resource does not exist.
+//
+//   - ServiceUnavailableException
+//     The service cannot complete the request.
+//
+//   - UnrecognizedClientException
+//     The most likely cause is an Amazon Web Services access key ID or secret key
+//     that's not valid.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/PutLogEvents
 func (c *CloudWatchLogs) PutLogEvents(input *PutLogEventsInput) (*PutLogEventsOutput, error) {
@@ -3208,14 +6596,13 @@ const opPutMetricFilter = "PutMetricFilter"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the PutMetricFilterRequest method.
+//	req, resp := client.PutMetricFilterRequest(params)
 //
-//    // Example sending a request using the PutMetricFilterRequest method.
-//    req, resp := client.PutMetricFilterRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/PutMetricFilter
 func (c *CloudWatchLogs) PutMetricFilterRequest(input *PutMetricFilterInput) (req *request.Request, output *PutMetricFilterOutput) {
@@ -3238,11 +6625,26 @@ func (c *CloudWatchLogs) PutMetricFilterRequest(input *PutMetricFilterInput) (re
 // PutMetricFilter API operation for Amazon CloudWatch Logs.
 //
 // Creates or updates a metric filter and associates it with the specified log
-// group. Metric filters allow you to configure rules to extract metric data
-// from log events ingested through PutLogEvents.
+// group. With metric filters, you can configure rules to extract metric data
+// from log events ingested through PutLogEvents (https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_PutLogEvents.html).
 //
 // The maximum number of metric filters that can be associated with a log group
 // is 100.
+//
+// When you create a metric filter, you can also optionally assign a unit and
+// dimensions to the metric that is created.
+//
+// Metrics extracted from log events are charged as custom metrics. To prevent
+// unexpected high charges, do not specify high-cardinality fields such as IPAddress
+// or requestID as dimensions. Each different value found for a dimension is
+// treated as a separate metric and accrues charges as a separate custom metric.
+//
+// CloudWatch Logs might disable a metric filter if it generates 1,000 different
+// name/value pairs for your specified dimensions within one hour.
+//
+// You can also set up a billing alarm to alert you if your charges are higher
+// than expected. For more information, see Creating a Billing Alarm to Monitor
+// Your Estimated Amazon Web Services Charges (https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/monitor_estimated_charges_with_cloudwatch.html).
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -3251,21 +6653,22 @@ func (c *CloudWatchLogs) PutMetricFilterRequest(input *PutMetricFilterInput) (re
 // See the AWS API reference guide for Amazon CloudWatch Logs's
 // API operation PutMetricFilter for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
-//   A parameter is specified incorrectly.
+// Returned Error Types:
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
-//   The specified resource does not exist.
+//   - InvalidParameterException
+//     A parameter is specified incorrectly.
 //
-//   * ErrCodeOperationAbortedException "OperationAbortedException"
-//   Multiple requests to update the same resource were in conflict.
+//   - ResourceNotFoundException
+//     The specified resource does not exist.
 //
-//   * ErrCodeLimitExceededException "LimitExceededException"
-//   You have reached the maximum number of resources that can be created.
+//   - OperationAbortedException
+//     Multiple concurrent requests to update the same resource were in conflict.
 //
-//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
-//   The service cannot complete the request.
+//   - LimitExceededException
+//     You have reached the maximum number of resources that can be created.
+//
+//   - ServiceUnavailableException
+//     The service cannot complete the request.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/PutMetricFilter
 func (c *CloudWatchLogs) PutMetricFilter(input *PutMetricFilterInput) (*PutMetricFilterOutput, error) {
@@ -3289,6 +6692,106 @@ func (c *CloudWatchLogs) PutMetricFilterWithContext(ctx aws.Context, input *PutM
 	return out, req.Send()
 }
 
+const opPutQueryDefinition = "PutQueryDefinition"
+
+// PutQueryDefinitionRequest generates a "aws/request.Request" representing the
+// client's request for the PutQueryDefinition operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See PutQueryDefinition for more information on using the PutQueryDefinition
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//	// Example sending a request using the PutQueryDefinitionRequest method.
+//	req, resp := client.PutQueryDefinitionRequest(params)
+//
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/PutQueryDefinition
+func (c *CloudWatchLogs) PutQueryDefinitionRequest(input *PutQueryDefinitionInput) (req *request.Request, output *PutQueryDefinitionOutput) {
+	op := &request.Operation{
+		Name:       opPutQueryDefinition,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &PutQueryDefinitionInput{}
+	}
+
+	output = &PutQueryDefinitionOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// PutQueryDefinition API operation for Amazon CloudWatch Logs.
+//
+// Creates or updates a query definition for CloudWatch Logs Insights. For more
+// information, see Analyzing Log Data with CloudWatch Logs Insights (https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/AnalyzingLogData.html).
+//
+// To update a query definition, specify its queryDefinitionId in your request.
+// The values of name, queryString, and logGroupNames are changed to the values
+// that you specify in your update operation. No current values are retained
+// from the current query definition. For example, imagine updating a current
+// query definition that includes log groups. If you don't specify the logGroupNames
+// parameter in your update operation, the query definition changes to contain
+// no log groups.
+//
+// You must have the logs:PutQueryDefinition permission to be able to perform
+// this operation.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon CloudWatch Logs's
+// API operation PutQueryDefinition for usage and error information.
+//
+// Returned Error Types:
+//
+//   - InvalidParameterException
+//     A parameter is specified incorrectly.
+//
+//   - LimitExceededException
+//     You have reached the maximum number of resources that can be created.
+//
+//   - ResourceNotFoundException
+//     The specified resource does not exist.
+//
+//   - ServiceUnavailableException
+//     The service cannot complete the request.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/PutQueryDefinition
+func (c *CloudWatchLogs) PutQueryDefinition(input *PutQueryDefinitionInput) (*PutQueryDefinitionOutput, error) {
+	req, out := c.PutQueryDefinitionRequest(input)
+	return out, req.Send()
+}
+
+// PutQueryDefinitionWithContext is the same as PutQueryDefinition with the addition of
+// the ability to pass a context and additional request options.
+//
+// See PutQueryDefinition for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *CloudWatchLogs) PutQueryDefinitionWithContext(ctx aws.Context, input *PutQueryDefinitionInput, opts ...request.Option) (*PutQueryDefinitionOutput, error) {
+	req, out := c.PutQueryDefinitionRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opPutResourcePolicy = "PutResourcePolicy"
 
 // PutResourcePolicyRequest generates a "aws/request.Request" representing the
@@ -3305,14 +6808,13 @@ const opPutResourcePolicy = "PutResourcePolicy"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the PutResourcePolicyRequest method.
+//	req, resp := client.PutResourcePolicyRequest(params)
 //
-//    // Example sending a request using the PutResourcePolicyRequest method.
-//    req, resp := client.PutResourcePolicyRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/PutResourcePolicy
 func (c *CloudWatchLogs) PutResourcePolicyRequest(input *PutResourcePolicyInput) (req *request.Request, output *PutResourcePolicyOutput) {
@@ -3333,9 +6835,9 @@ func (c *CloudWatchLogs) PutResourcePolicyRequest(input *PutResourcePolicyInput)
 
 // PutResourcePolicy API operation for Amazon CloudWatch Logs.
 //
-// Creates or updates a resource policy allowing other AWS services to put log
-// events to this account, such as Amazon Route 53. An account can have up to
-// 10 resource policies per region.
+// Creates or updates a resource policy allowing other Amazon Web Services services
+// to put log events to this account, such as Amazon Route 53. An account can
+// have up to 10 resource policies per Amazon Web Services Region.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -3344,15 +6846,16 @@ func (c *CloudWatchLogs) PutResourcePolicyRequest(input *PutResourcePolicyInput)
 // See the AWS API reference guide for Amazon CloudWatch Logs's
 // API operation PutResourcePolicy for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
-//   A parameter is specified incorrectly.
+// Returned Error Types:
 //
-//   * ErrCodeLimitExceededException "LimitExceededException"
-//   You have reached the maximum number of resources that can be created.
+//   - InvalidParameterException
+//     A parameter is specified incorrectly.
 //
-//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
-//   The service cannot complete the request.
+//   - LimitExceededException
+//     You have reached the maximum number of resources that can be created.
+//
+//   - ServiceUnavailableException
+//     The service cannot complete the request.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/PutResourcePolicy
 func (c *CloudWatchLogs) PutResourcePolicy(input *PutResourcePolicyInput) (*PutResourcePolicyOutput, error) {
@@ -3392,14 +6895,13 @@ const opPutRetentionPolicy = "PutRetentionPolicy"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the PutRetentionPolicyRequest method.
+//	req, resp := client.PutRetentionPolicyRequest(params)
 //
-//    // Example sending a request using the PutRetentionPolicyRequest method.
-//    req, resp := client.PutRetentionPolicyRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/PutRetentionPolicy
 func (c *CloudWatchLogs) PutRetentionPolicyRequest(input *PutRetentionPolicyInput) (req *request.Request, output *PutRetentionPolicyOutput) {
@@ -3421,9 +6923,27 @@ func (c *CloudWatchLogs) PutRetentionPolicyRequest(input *PutRetentionPolicyInpu
 
 // PutRetentionPolicy API operation for Amazon CloudWatch Logs.
 //
-// Sets the retention of the specified log group. A retention policy allows
-// you to configure the number of days for which to retain log events in the
-// specified log group.
+// Sets the retention of the specified log group. With a retention policy, you
+// can configure the number of days for which to retain log events in the specified
+// log group.
+//
+// CloudWatch Logs doesn’t immediately delete log events when they reach their
+// retention setting. It typically takes up to 72 hours after that before log
+// events are deleted, but in rare situations might take longer.
+//
+// To illustrate, imagine that you change a log group to have a longer retention
+// setting when it contains log events that are past the expiration date, but
+// haven’t been deleted. Those log events will take up to 72 hours to be deleted
+// after the new retention date is reached. To make sure that log data is deleted
+// permanently, keep a log group at its lower retention setting until 72 hours
+// after the previous retention period ends. Alternatively, wait to change the
+// retention setting until you confirm that the earlier log events are deleted.
+//
+// When log events reach their retention setting they are marked for deletion.
+// After they are marked for deletion, they do not add to your archival storage
+// costs anymore, even if they are not actually deleted until later. These log
+// events marked for deletion are also not included when you use an API to retrieve
+// the storedBytes value to see how many bytes a log group is storing.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -3432,18 +6952,19 @@ func (c *CloudWatchLogs) PutRetentionPolicyRequest(input *PutRetentionPolicyInpu
 // See the AWS API reference guide for Amazon CloudWatch Logs's
 // API operation PutRetentionPolicy for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
-//   A parameter is specified incorrectly.
+// Returned Error Types:
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
-//   The specified resource does not exist.
+//   - InvalidParameterException
+//     A parameter is specified incorrectly.
 //
-//   * ErrCodeOperationAbortedException "OperationAbortedException"
-//   Multiple requests to update the same resource were in conflict.
+//   - ResourceNotFoundException
+//     The specified resource does not exist.
 //
-//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
-//   The service cannot complete the request.
+//   - OperationAbortedException
+//     Multiple concurrent requests to update the same resource were in conflict.
+//
+//   - ServiceUnavailableException
+//     The service cannot complete the request.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/PutRetentionPolicy
 func (c *CloudWatchLogs) PutRetentionPolicy(input *PutRetentionPolicyInput) (*PutRetentionPolicyOutput, error) {
@@ -3483,14 +7004,13 @@ const opPutSubscriptionFilter = "PutSubscriptionFilter"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the PutSubscriptionFilterRequest method.
+//	req, resp := client.PutSubscriptionFilterRequest(params)
 //
-//    // Example sending a request using the PutSubscriptionFilterRequest method.
-//    req, resp := client.PutSubscriptionFilterRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/PutSubscriptionFilter
 func (c *CloudWatchLogs) PutSubscriptionFilterRequest(input *PutSubscriptionFilterInput) (req *request.Request, output *PutSubscriptionFilterOutput) {
@@ -3513,26 +7033,33 @@ func (c *CloudWatchLogs) PutSubscriptionFilterRequest(input *PutSubscriptionFilt
 // PutSubscriptionFilter API operation for Amazon CloudWatch Logs.
 //
 // Creates or updates a subscription filter and associates it with the specified
-// log group. Subscription filters allow you to subscribe to a real-time stream
-// of log events ingested through PutLogEvents and have them delivered to a
-// specific destination. Currently, the supported destinations are:
+// log group. With subscription filters, you can subscribe to a real-time stream
+// of log events ingested through PutLogEvents (https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_PutLogEvents.html)
+// and have them delivered to a specific destination. When log events are sent
+// to the receiving service, they are Base64 encoded and compressed with the
+// GZIP format.
 //
-//    * An Amazon Kinesis stream belonging to the same account as the subscription
-//    filter, for same-account delivery.
+// The following destinations are supported for subscription filters:
 //
-//    * A logical destination that belongs to a different account, for cross-account
-//    delivery.
+//   - An Amazon Kinesis data stream belonging to the same account as the subscription
+//     filter, for same-account delivery.
 //
-//    * An Amazon Kinesis Firehose delivery stream that belongs to the same
-//    account as the subscription filter, for same-account delivery.
+//   - A logical destination created with PutDestination (https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_PutDestination.html)
+//     that belongs to a different account, for cross-account delivery. We currently
+//     support Kinesis Data Streams and Firehose as logical destinations.
 //
-//    * An AWS Lambda function that belongs to the same account as the subscription
-//    filter, for same-account delivery.
+//   - An Amazon Kinesis Data Firehose delivery stream that belongs to the
+//     same account as the subscription filter, for same-account delivery.
 //
-// There can only be one subscription filter associated with a log group. If
-// you are updating an existing filter, you must specify the correct name in
-// filterName. Otherwise, the call fails because you cannot associate a second
-// filter with a log group.
+//   - An Lambda function that belongs to the same account as the subscription
+//     filter, for same-account delivery.
+//
+// Each log group can have up to two subscription filters associated with it.
+// If you are updating an existing filter, you must specify the correct name
+// in filterName.
+//
+// To perform a PutSubscriptionFilter operation for any destination except a
+// Lambda function, you must also have the iam:PassRole permission.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -3541,21 +7068,22 @@ func (c *CloudWatchLogs) PutSubscriptionFilterRequest(input *PutSubscriptionFilt
 // See the AWS API reference guide for Amazon CloudWatch Logs's
 // API operation PutSubscriptionFilter for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
-//   A parameter is specified incorrectly.
+// Returned Error Types:
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
-//   The specified resource does not exist.
+//   - InvalidParameterException
+//     A parameter is specified incorrectly.
 //
-//   * ErrCodeOperationAbortedException "OperationAbortedException"
-//   Multiple requests to update the same resource were in conflict.
+//   - ResourceNotFoundException
+//     The specified resource does not exist.
 //
-//   * ErrCodeLimitExceededException "LimitExceededException"
-//   You have reached the maximum number of resources that can be created.
+//   - OperationAbortedException
+//     Multiple concurrent requests to update the same resource were in conflict.
 //
-//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
-//   The service cannot complete the request.
+//   - LimitExceededException
+//     You have reached the maximum number of resources that can be created.
+//
+//   - ServiceUnavailableException
+//     The service cannot complete the request.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/PutSubscriptionFilter
 func (c *CloudWatchLogs) PutSubscriptionFilter(input *PutSubscriptionFilterInput) (*PutSubscriptionFilterOutput, error) {
@@ -3579,6 +7107,336 @@ func (c *CloudWatchLogs) PutSubscriptionFilterWithContext(ctx aws.Context, input
 	return out, req.Send()
 }
 
+const opStartLiveTail = "StartLiveTail"
+
+// StartLiveTailRequest generates a "aws/request.Request" representing the
+// client's request for the StartLiveTail operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See StartLiveTail for more information on using the StartLiveTail
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//	// Example sending a request using the StartLiveTailRequest method.
+//	req, resp := client.StartLiveTailRequest(params)
+//
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/StartLiveTail
+func (c *CloudWatchLogs) StartLiveTailRequest(input *StartLiveTailInput) (req *request.Request, output *StartLiveTailOutput) {
+	op := &request.Operation{
+		Name:       opStartLiveTail,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &StartLiveTailInput{}
+	}
+
+	output = &StartLiveTailOutput{}
+	req = c.newRequest(op, input, output)
+
+	es := NewStartLiveTailEventStream()
+	output.eventStream = es
+
+	req.Handlers.Send.Swap(client.LogHTTPResponseHandler.Name, client.LogHTTPResponseHeaderHandler)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, rest.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBack(es.runOutputStream)
+	es.output = output
+	req.Handlers.Unmarshal.PushBack(es.recvInitialEvent)
+	req.Handlers.Unmarshal.PushBack(es.runOnStreamPartClose)
+	req.Handlers.Build.PushBackNamed(protocol.NewHostPrefixHandler("streaming-", nil))
+	req.Handlers.Build.PushBackNamed(protocol.ValidateEndpointHostHandler)
+	return
+}
+
+// StartLiveTail API operation for Amazon CloudWatch Logs.
+//
+// Starts a Live Tail streaming session for one or more log groups. A Live Tail
+// session returns a stream of log events that have been recently ingested in
+// the log groups. For more information, see Use Live Tail to view logs in near
+// real time (https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/CloudWatchLogs_LiveTail.html).
+//
+// The response to this operation is a response stream, over which the server
+// sends live log events and the client receives them.
+//
+// The following objects are sent over the stream:
+//
+//   - A single LiveTailSessionStart (https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_LiveTailSessionStart.html)
+//     object is sent at the start of the session.
+//
+//   - Every second, a LiveTailSessionUpdate (https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_LiveTailSessionUpdate.html)
+//     object is sent. Each of these objects contains an array of the actual
+//     log events. If no new log events were ingested in the past second, the
+//     LiveTailSessionUpdate object will contain an empty array. The array of
+//     log events contained in a LiveTailSessionUpdate can include as many as
+//     500 log events. If the number of log events matching the request exceeds
+//     500 per second, the log events are sampled down to 500 log events to be
+//     included in each LiveTailSessionUpdate object. If your client consumes
+//     the log events slower than the server produces them, CloudWatch Logs buffers
+//     up to 10 LiveTailSessionUpdate events or 5000 log events, after which
+//     it starts dropping the oldest events.
+//
+//   - A SessionStreamingException (https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_SessionStreamingException.html)
+//     object is returned if an unknown error occurs on the server side.
+//
+//   - A SessionTimeoutException (https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_SessionTimeoutException.html)
+//     object is returned when the session times out, after it has been kept
+//     open for three hours.
+//
+// You can end a session before it times out by closing the session stream or
+// by closing the client that is receiving the stream. The session also ends
+// if the established connection between the client and the server breaks.
+//
+// For examples of using an SDK to start a Live Tail session, see Start a Live
+// Tail session using an Amazon Web Services SDK (https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/example_cloudwatch-logs_StartLiveTail_section.html).
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon CloudWatch Logs's
+// API operation StartLiveTail for usage and error information.
+//
+// Returned Error Types:
+//
+//   - AccessDeniedException
+//     You don't have sufficient permissions to perform this action.
+//
+//   - InvalidParameterException
+//     A parameter is specified incorrectly.
+//
+//   - ResourceNotFoundException
+//     The specified resource does not exist.
+//
+//   - LimitExceededException
+//     You have reached the maximum number of resources that can be created.
+//
+//   - InvalidOperationException
+//     The operation is not valid on the specified resource.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/StartLiveTail
+func (c *CloudWatchLogs) StartLiveTail(input *StartLiveTailInput) (*StartLiveTailOutput, error) {
+	req, out := c.StartLiveTailRequest(input)
+	return out, req.Send()
+}
+
+// StartLiveTailWithContext is the same as StartLiveTail with the addition of
+// the ability to pass a context and additional request options.
+//
+// See StartLiveTail for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *CloudWatchLogs) StartLiveTailWithContext(ctx aws.Context, input *StartLiveTailInput, opts ...request.Option) (*StartLiveTailOutput, error) {
+	req, out := c.StartLiveTailRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+var _ awserr.Error
+var _ time.Time
+
+// StartLiveTailEventStream provides the event stream handling for the StartLiveTail.
+//
+// For testing and mocking the event stream this type should be initialized via
+// the NewStartLiveTailEventStream constructor function. Using the functional options
+// to pass in nested mock behavior.
+type StartLiveTailEventStream struct {
+
+	// Reader is the EventStream reader for the StartLiveTailResponseStream
+	// events. This value is automatically set by the SDK when the API call is made
+	// Use this member when unit testing your code with the SDK to mock out the
+	// EventStream Reader.
+	//
+	// Must not be nil.
+	Reader StartLiveTailResponseStreamReader
+
+	outputReader io.ReadCloser
+	output       *StartLiveTailOutput
+
+	done      chan struct{}
+	closeOnce sync.Once
+	err       *eventstreamapi.OnceError
+}
+
+// NewStartLiveTailEventStream initializes an StartLiveTailEventStream.
+// This function should only be used for testing and mocking the StartLiveTailEventStream
+// stream within your application.
+//
+// The Reader member must be set before reading events from the stream.
+//
+//	es := NewStartLiveTailEventStream(func(o *StartLiveTailEventStream){
+//	    es.Reader = myMockStreamReader
+//	})
+func NewStartLiveTailEventStream(opts ...func(*StartLiveTailEventStream)) *StartLiveTailEventStream {
+	es := &StartLiveTailEventStream{
+		done: make(chan struct{}),
+		err:  eventstreamapi.NewOnceError(),
+	}
+
+	for _, fn := range opts {
+		fn(es)
+	}
+
+	return es
+}
+
+func (es *StartLiveTailEventStream) runOnStreamPartClose(r *request.Request) {
+	if es.done == nil {
+		return
+	}
+	go es.waitStreamPartClose()
+
+}
+
+func (es *StartLiveTailEventStream) waitStreamPartClose() {
+	var outputErrCh <-chan struct{}
+	if v, ok := es.Reader.(interface{ ErrorSet() <-chan struct{} }); ok {
+		outputErrCh = v.ErrorSet()
+	}
+	var outputClosedCh <-chan struct{}
+	if v, ok := es.Reader.(interface{ Closed() <-chan struct{} }); ok {
+		outputClosedCh = v.Closed()
+	}
+
+	select {
+	case <-es.done:
+	case <-outputErrCh:
+		es.err.SetError(es.Reader.Err())
+		es.Close()
+	case <-outputClosedCh:
+		if err := es.Reader.Err(); err != nil {
+			es.err.SetError(es.Reader.Err())
+		}
+		es.Close()
+	}
+}
+
+type eventTypeForStartLiveTailEventStreamOutputEvent struct {
+	unmarshalerForEvent func(string) (eventstreamapi.Unmarshaler, error)
+	output              *StartLiveTailOutput
+}
+
+func (e eventTypeForStartLiveTailEventStreamOutputEvent) UnmarshalerForEventName(eventType string) (eventstreamapi.Unmarshaler, error) {
+	if eventType == "initial-response" {
+		return e.output, nil
+	}
+	return e.unmarshalerForEvent(eventType)
+}
+
+// Events returns a channel to read events from.
+//
+// These events are:
+//
+//   - LiveTailSessionStart
+//   - LiveTailSessionUpdate
+//   - StartLiveTailResponseStreamUnknownEvent
+func (es *StartLiveTailEventStream) Events() <-chan StartLiveTailResponseStreamEvent {
+	return es.Reader.Events()
+}
+
+func (es *StartLiveTailEventStream) runOutputStream(r *request.Request) {
+	var opts []func(*eventstream.Decoder)
+	if r.Config.Logger != nil && r.Config.LogLevel.Matches(aws.LogDebugWithEventStreamBody) {
+		opts = append(opts, eventstream.DecodeWithLogger(r.Config.Logger))
+	}
+
+	unmarshalerForEvent := unmarshalerForStartLiveTailResponseStreamEvent{
+		metadata: protocol.ResponseMetadata{
+			StatusCode: r.HTTPResponse.StatusCode,
+			RequestID:  r.RequestID,
+		},
+	}.UnmarshalerForEventName
+	unmarshalerForEvent = eventTypeForStartLiveTailEventStreamOutputEvent{
+		unmarshalerForEvent: unmarshalerForEvent,
+		output:              es.output,
+	}.UnmarshalerForEventName
+
+	decoder := eventstream.NewDecoder(r.HTTPResponse.Body, opts...)
+	eventReader := eventstreamapi.NewEventReader(decoder,
+		protocol.HandlerPayloadUnmarshal{
+			Unmarshalers: r.Handlers.UnmarshalStream,
+		},
+		unmarshalerForEvent,
+	)
+
+	es.outputReader = r.HTTPResponse.Body
+	es.Reader = newReadStartLiveTailResponseStream(eventReader)
+}
+func (es *StartLiveTailEventStream) recvInitialEvent(r *request.Request) {
+	// Wait for the initial response event, which must be the first
+	// event to be received from the API.
+	select {
+	case event, ok := <-es.Events():
+		if !ok {
+			return
+		}
+
+		v, ok := event.(*StartLiveTailOutput)
+		if !ok || v == nil {
+			r.Error = awserr.New(
+				request.ErrCodeSerialization,
+				fmt.Sprintf("invalid event, %T, expect %T, %v",
+					event, (*StartLiveTailOutput)(nil), v),
+				nil,
+			)
+			return
+		}
+
+		*es.output = *v
+		es.output.eventStream = es
+	}
+}
+
+// Close closes the stream. This will also cause the stream to be closed.
+// Close must be called when done using the stream API. Not calling Close
+// may result in resource leaks.
+//
+// You can use the closing of the Reader's Events channel to terminate your
+// application's read from the API's stream.
+func (es *StartLiveTailEventStream) Close() (err error) {
+	es.closeOnce.Do(es.safeClose)
+	return es.Err()
+}
+
+func (es *StartLiveTailEventStream) safeClose() {
+	if es.done != nil {
+		close(es.done)
+	}
+
+	es.Reader.Close()
+	if es.outputReader != nil {
+		es.outputReader.Close()
+	}
+}
+
+// Err returns any error that occurred while reading or writing EventStream
+// Events from the service API's response. Returns nil if there were no errors.
+func (es *StartLiveTailEventStream) Err() error {
+	if err := es.err.Err(); err != nil {
+		return err
+	}
+	if err := es.Reader.Err(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 const opStartQuery = "StartQuery"
 
 // StartQueryRequest generates a "aws/request.Request" representing the
@@ -3595,14 +7453,13 @@ const opStartQuery = "StartQuery"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the StartQueryRequest method.
+//	req, resp := client.StartQueryRequest(params)
 //
-//    // Example sending a request using the StartQueryRequest method.
-//    req, resp := client.StartQueryRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/StartQuery
 func (c *CloudWatchLogs) StartQueryRequest(input *StartQueryInput) (req *request.Request, output *StartQueryOutput) {
@@ -3624,13 +7481,32 @@ func (c *CloudWatchLogs) StartQueryRequest(input *StartQueryInput) (req *request
 // StartQuery API operation for Amazon CloudWatch Logs.
 //
 // Schedules a query of a log group using CloudWatch Logs Insights. You specify
-// the log group and time range to query, and the query string to use.
+// the log group and time range to query and the query string to use.
 //
 // For more information, see CloudWatch Logs Insights Query Syntax (https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/CWL_QuerySyntax.html).
 //
-// Queries time out after 15 minutes of execution. If your queries are timing
-// out, reduce the time range being searched, or partition your query into a
+// After you run a query using StartQuery, the query results are stored by CloudWatch
+// Logs. You can use GetQueryResults (https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_GetQueryResults.html)
+// to retrieve the results of a query, using the queryId that StartQuery returns.
+//
+// If you have associated a KMS key with the query results in this account,
+// then StartQuery (https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_StartQuery.html)
+// uses that key to encrypt the results when it stores them. If no key is associated
+// with query results, the query results are encrypted with the default CloudWatch
+// Logs encryption method.
+//
+// Queries time out after 60 minutes of runtime. If your queries are timing
+// out, reduce the time range being searched or partition your query into a
 // number of queries.
+//
+// If you are using CloudWatch cross-account observability, you can use this
+// operation in a monitoring account to start a query in a linked source account.
+// For more information, see CloudWatch cross-account observability (https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/CloudWatch-Unified-Cross-Account.html).
+// For a cross-account StartQuery operation, the query definition must be defined
+// in the monitoring account.
+//
+// You can have up to 30 concurrent CloudWatch Logs insights queries, including
+// queries that have been added to dashboards.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -3639,25 +7515,26 @@ func (c *CloudWatchLogs) StartQueryRequest(input *StartQueryInput) (req *request
 // See the AWS API reference guide for Amazon CloudWatch Logs's
 // API operation StartQuery for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeMalformedQueryException "MalformedQueryException"
-//   The query string is not valid. Details about this error are displayed in
-//   a QueryCompileError object. For more information, see .
+// Returned Error Types:
 //
-//   For more information about valid query syntax, see CloudWatch Logs Insights
-//   Query Syntax (https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/CWL_QuerySyntax.html).
+//   - MalformedQueryException
+//     The query string is not valid. Details about this error are displayed in
+//     a QueryCompileError object. For more information, see QueryCompileError (https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_QueryCompileError.html).
 //
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
-//   A parameter is specified incorrectly.
+//     For more information about valid query syntax, see CloudWatch Logs Insights
+//     Query Syntax (https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/CWL_QuerySyntax.html).
 //
-//   * ErrCodeLimitExceededException "LimitExceededException"
-//   You have reached the maximum number of resources that can be created.
+//   - InvalidParameterException
+//     A parameter is specified incorrectly.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
-//   The specified resource does not exist.
+//   - LimitExceededException
+//     You have reached the maximum number of resources that can be created.
 //
-//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
-//   The service cannot complete the request.
+//   - ResourceNotFoundException
+//     The specified resource does not exist.
+//
+//   - ServiceUnavailableException
+//     The service cannot complete the request.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/StartQuery
 func (c *CloudWatchLogs) StartQuery(input *StartQueryInput) (*StartQueryOutput, error) {
@@ -3697,14 +7574,13 @@ const opStopQuery = "StopQuery"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the StopQueryRequest method.
+//	req, resp := client.StopQueryRequest(params)
 //
-//    // Example sending a request using the StopQueryRequest method.
-//    req, resp := client.StopQueryRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/StopQuery
 func (c *CloudWatchLogs) StopQueryRequest(input *StopQueryInput) (req *request.Request, output *StopQueryOutput) {
@@ -3736,15 +7612,16 @@ func (c *CloudWatchLogs) StopQueryRequest(input *StopQueryInput) (req *request.R
 // See the AWS API reference guide for Amazon CloudWatch Logs's
 // API operation StopQuery for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
-//   A parameter is specified incorrectly.
+// Returned Error Types:
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
-//   The specified resource does not exist.
+//   - InvalidParameterException
+//     A parameter is specified incorrectly.
 //
-//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
-//   The service cannot complete the request.
+//   - ResourceNotFoundException
+//     The specified resource does not exist.
+//
+//   - ServiceUnavailableException
+//     The service cannot complete the request.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/StopQuery
 func (c *CloudWatchLogs) StopQuery(input *StopQueryInput) (*StopQueryOutput, error) {
@@ -3784,17 +7661,21 @@ const opTagLogGroup = "TagLogGroup"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the TagLogGroupRequest method.
+//	req, resp := client.TagLogGroupRequest(params)
 //
-//    // Example sending a request using the TagLogGroupRequest method.
-//    req, resp := client.TagLogGroupRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/TagLogGroup
+//
+// Deprecated: Please use the generic tagging API TagResource
 func (c *CloudWatchLogs) TagLogGroupRequest(input *TagLogGroupInput) (req *request.Request, output *TagLogGroupOutput) {
+	if c.Client.Config.Logger != nil {
+		c.Client.Config.Logger.Log("This operation, TagLogGroup, has been deprecated")
+	}
 	op := &request.Operation{
 		Name:       opTagLogGroup,
 		HTTPMethod: "POST",
@@ -3813,14 +7694,23 @@ func (c *CloudWatchLogs) TagLogGroupRequest(input *TagLogGroupInput) (req *reque
 
 // TagLogGroup API operation for Amazon CloudWatch Logs.
 //
+// The TagLogGroup operation is on the path to deprecation. We recommend that
+// you use TagResource (https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_TagResource.html)
+// instead.
+//
 // Adds or updates the specified tags for the specified log group.
 //
-// To list the tags for a log group, use ListTagsLogGroup. To remove tags, use
-// UntagLogGroup.
+// To list the tags for a log group, use ListTagsForResource (https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_ListTagsForResource.html).
+// To remove tags, use UntagResource (https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_UntagResource.html).
 //
 // For more information about tags, see Tag Log Groups in Amazon CloudWatch
-// Logs (https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/log-group-tagging.html)
+// Logs (https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/Working-with-log-groups-and-streams.html#log-group-tagging)
 // in the Amazon CloudWatch Logs User Guide.
+//
+// CloudWatch Logs doesn’t support IAM policies that prevent users from assigning
+// specified tags to log groups using the aws:Resource/key-name or aws:TagKeys
+// condition keys. For more information about using tags to control access,
+// see Controlling access to Amazon Web Services resources using tags (https://docs.aws.amazon.com/IAM/latest/UserGuide/access_tags.html).
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -3829,14 +7719,17 @@ func (c *CloudWatchLogs) TagLogGroupRequest(input *TagLogGroupInput) (req *reque
 // See the AWS API reference guide for Amazon CloudWatch Logs's
 // API operation TagLogGroup for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
-//   The specified resource does not exist.
+// Returned Error Types:
 //
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
-//   A parameter is specified incorrectly.
+//   - ResourceNotFoundException
+//     The specified resource does not exist.
+//
+//   - InvalidParameterException
+//     A parameter is specified incorrectly.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/TagLogGroup
+//
+// Deprecated: Please use the generic tagging API TagResource
 func (c *CloudWatchLogs) TagLogGroup(input *TagLogGroupInput) (*TagLogGroupOutput, error) {
 	req, out := c.TagLogGroupRequest(input)
 	return out, req.Send()
@@ -3851,8 +7744,116 @@ func (c *CloudWatchLogs) TagLogGroup(input *TagLogGroupInput) (*TagLogGroupOutpu
 // the context is nil a panic will occur. In the future the SDK may create
 // sub-contexts for http.Requests. See https://golang.org/pkg/context/
 // for more information on using Contexts.
+//
+// Deprecated: Please use the generic tagging API TagResource
 func (c *CloudWatchLogs) TagLogGroupWithContext(ctx aws.Context, input *TagLogGroupInput, opts ...request.Option) (*TagLogGroupOutput, error) {
 	req, out := c.TagLogGroupRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opTagResource = "TagResource"
+
+// TagResourceRequest generates a "aws/request.Request" representing the
+// client's request for the TagResource operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See TagResource for more information on using the TagResource
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//	// Example sending a request using the TagResourceRequest method.
+//	req, resp := client.TagResourceRequest(params)
+//
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/TagResource
+func (c *CloudWatchLogs) TagResourceRequest(input *TagResourceInput) (req *request.Request, output *TagResourceOutput) {
+	op := &request.Operation{
+		Name:       opTagResource,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &TagResourceInput{}
+	}
+
+	output = &TagResourceOutput{}
+	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
+	return
+}
+
+// TagResource API operation for Amazon CloudWatch Logs.
+//
+// Assigns one or more tags (key-value pairs) to the specified CloudWatch Logs
+// resource. Currently, the only CloudWatch Logs resources that can be tagged
+// are log groups and destinations.
+//
+// Tags can help you organize and categorize your resources. You can also use
+// them to scope user permissions by granting a user permission to access or
+// change only resources with certain tag values.
+//
+// Tags don't have any semantic meaning to Amazon Web Services and are interpreted
+// strictly as strings of characters.
+//
+// You can use the TagResource action with a resource that already has tags.
+// If you specify a new tag key for the alarm, this tag is appended to the list
+// of tags associated with the alarm. If you specify a tag key that is already
+// associated with the alarm, the new tag value that you specify replaces the
+// previous value for that tag.
+//
+// You can associate as many as 50 tags with a CloudWatch Logs resource.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon CloudWatch Logs's
+// API operation TagResource for usage and error information.
+//
+// Returned Error Types:
+//
+//   - InvalidParameterException
+//     A parameter is specified incorrectly.
+//
+//   - ResourceNotFoundException
+//     The specified resource does not exist.
+//
+//   - ServiceUnavailableException
+//     The service cannot complete the request.
+//
+//   - TooManyTagsException
+//     A resource can have no more than 50 tags.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/TagResource
+func (c *CloudWatchLogs) TagResource(input *TagResourceInput) (*TagResourceOutput, error) {
+	req, out := c.TagResourceRequest(input)
+	return out, req.Send()
+}
+
+// TagResourceWithContext is the same as TagResource with the addition of
+// the ability to pass a context and additional request options.
+//
+// See TagResource for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *CloudWatchLogs) TagResourceWithContext(ctx aws.Context, input *TagResourceInput, opts ...request.Option) (*TagResourceOutput, error) {
+	req, out := c.TagResourceRequest(input)
 	req.SetContext(ctx)
 	req.ApplyOptions(opts...)
 	return out, req.Send()
@@ -3874,14 +7875,13 @@ const opTestMetricFilter = "TestMetricFilter"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the TestMetricFilterRequest method.
+//	req, resp := client.TestMetricFilterRequest(params)
 //
-//    // Example sending a request using the TestMetricFilterRequest method.
-//    req, resp := client.TestMetricFilterRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/TestMetricFilter
 func (c *CloudWatchLogs) TestMetricFilterRequest(input *TestMetricFilterInput) (req *request.Request, output *TestMetricFilterOutput) {
@@ -3913,12 +7913,13 @@ func (c *CloudWatchLogs) TestMetricFilterRequest(input *TestMetricFilterInput) (
 // See the AWS API reference guide for Amazon CloudWatch Logs's
 // API operation TestMetricFilter for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
-//   A parameter is specified incorrectly.
+// Returned Error Types:
 //
-//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
-//   The service cannot complete the request.
+//   - InvalidParameterException
+//     A parameter is specified incorrectly.
+//
+//   - ServiceUnavailableException
+//     The service cannot complete the request.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/TestMetricFilter
 func (c *CloudWatchLogs) TestMetricFilter(input *TestMetricFilterInput) (*TestMetricFilterOutput, error) {
@@ -3958,17 +7959,21 @@ const opUntagLogGroup = "UntagLogGroup"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the UntagLogGroupRequest method.
+//	req, resp := client.UntagLogGroupRequest(params)
 //
-//    // Example sending a request using the UntagLogGroupRequest method.
-//    req, resp := client.UntagLogGroupRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/UntagLogGroup
+//
+// Deprecated: Please use the generic tagging API UntagResource
 func (c *CloudWatchLogs) UntagLogGroupRequest(input *UntagLogGroupInput) (req *request.Request, output *UntagLogGroupOutput) {
+	if c.Client.Config.Logger != nil {
+		c.Client.Config.Logger.Log("This operation, UntagLogGroup, has been deprecated")
+	}
 	op := &request.Operation{
 		Name:       opUntagLogGroup,
 		HTTPMethod: "POST",
@@ -3987,10 +7992,18 @@ func (c *CloudWatchLogs) UntagLogGroupRequest(input *UntagLogGroupInput) (req *r
 
 // UntagLogGroup API operation for Amazon CloudWatch Logs.
 //
+// The UntagLogGroup operation is on the path to deprecation. We recommend that
+// you use UntagResource (https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_UntagResource.html)
+// instead.
+//
 // Removes the specified tags from the specified log group.
 //
-// To list the tags for a log group, use ListTagsLogGroup. To add tags, use
-// UntagLogGroup.
+// To list the tags for a log group, use ListTagsForResource (https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_ListTagsForResource.html).
+// To add tags, use TagResource (https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_TagResource.html).
+//
+// CloudWatch Logs doesn’t support IAM policies that prevent users from assigning
+// specified tags to log groups using the aws:Resource/key-name or aws:TagKeys
+// condition keys.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -3999,11 +8012,13 @@ func (c *CloudWatchLogs) UntagLogGroupRequest(input *UntagLogGroupInput) (req *r
 // See the AWS API reference guide for Amazon CloudWatch Logs's
 // API operation UntagLogGroup for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
-//   The specified resource does not exist.
+// Returned Error Types:
+//   - ResourceNotFoundException
+//     The specified resource does not exist.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/UntagLogGroup
+//
+// Deprecated: Please use the generic tagging API UntagResource
 func (c *CloudWatchLogs) UntagLogGroup(input *UntagLogGroupInput) (*UntagLogGroupOutput, error) {
 	req, out := c.UntagLogGroupRequest(input)
 	return out, req.Send()
@@ -4018,6 +8033,8 @@ func (c *CloudWatchLogs) UntagLogGroup(input *UntagLogGroupInput) (*UntagLogGrou
 // the context is nil a panic will occur. In the future the SDK may create
 // sub-contexts for http.Requests. See https://golang.org/pkg/context/
 // for more information on using Contexts.
+//
+// Deprecated: Please use the generic tagging API UntagResource
 func (c *CloudWatchLogs) UntagLogGroupWithContext(ctx aws.Context, input *UntagLogGroupInput, opts ...request.Option) (*UntagLogGroupOutput, error) {
 	req, out := c.UntagLogGroupRequest(input)
 	req.SetContext(ctx)
@@ -4025,28 +8042,848 @@ func (c *CloudWatchLogs) UntagLogGroupWithContext(ctx aws.Context, input *UntagL
 	return out, req.Send()
 }
 
+const opUntagResource = "UntagResource"
+
+// UntagResourceRequest generates a "aws/request.Request" representing the
+// client's request for the UntagResource operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See UntagResource for more information on using the UntagResource
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//	// Example sending a request using the UntagResourceRequest method.
+//	req, resp := client.UntagResourceRequest(params)
+//
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/UntagResource
+func (c *CloudWatchLogs) UntagResourceRequest(input *UntagResourceInput) (req *request.Request, output *UntagResourceOutput) {
+	op := &request.Operation{
+		Name:       opUntagResource,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &UntagResourceInput{}
+	}
+
+	output = &UntagResourceOutput{}
+	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
+	return
+}
+
+// UntagResource API operation for Amazon CloudWatch Logs.
+//
+// Removes one or more tags from the specified resource.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon CloudWatch Logs's
+// API operation UntagResource for usage and error information.
+//
+// Returned Error Types:
+//
+//   - InvalidParameterException
+//     A parameter is specified incorrectly.
+//
+//   - ResourceNotFoundException
+//     The specified resource does not exist.
+//
+//   - ServiceUnavailableException
+//     The service cannot complete the request.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/UntagResource
+func (c *CloudWatchLogs) UntagResource(input *UntagResourceInput) (*UntagResourceOutput, error) {
+	req, out := c.UntagResourceRequest(input)
+	return out, req.Send()
+}
+
+// UntagResourceWithContext is the same as UntagResource with the addition of
+// the ability to pass a context and additional request options.
+//
+// See UntagResource for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *CloudWatchLogs) UntagResourceWithContext(ctx aws.Context, input *UntagResourceInput, opts ...request.Option) (*UntagResourceOutput, error) {
+	req, out := c.UntagResourceRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opUpdateAnomaly = "UpdateAnomaly"
+
+// UpdateAnomalyRequest generates a "aws/request.Request" representing the
+// client's request for the UpdateAnomaly operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See UpdateAnomaly for more information on using the UpdateAnomaly
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//	// Example sending a request using the UpdateAnomalyRequest method.
+//	req, resp := client.UpdateAnomalyRequest(params)
+//
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/UpdateAnomaly
+func (c *CloudWatchLogs) UpdateAnomalyRequest(input *UpdateAnomalyInput) (req *request.Request, output *UpdateAnomalyOutput) {
+	op := &request.Operation{
+		Name:       opUpdateAnomaly,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &UpdateAnomalyInput{}
+	}
+
+	output = &UpdateAnomalyOutput{}
+	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
+	return
+}
+
+// UpdateAnomaly API operation for Amazon CloudWatch Logs.
+//
+// Use this operation to suppress anomaly detection for a specified anomaly
+// or pattern. If you suppress an anomaly, CloudWatch Logs won’t report new
+// occurrences of that anomaly and won't update that anomaly with new data.
+// If you suppress a pattern, CloudWatch Logs won’t report any anomalies related
+// to that pattern.
+//
+// You must specify either anomalyId or patternId, but you can't specify both
+// parameters in the same operation.
+//
+// If you have previously used this operation to suppress detection of a pattern
+// or anomaly, you can use it again to cause CloudWatch Logs to end the suppression.
+// To do this, use this operation and specify the anomaly or pattern to stop
+// suppressing, and omit the suppressionType and suppressionPeriod parameters.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon CloudWatch Logs's
+// API operation UpdateAnomaly for usage and error information.
+//
+// Returned Error Types:
+//
+//   - InvalidParameterException
+//     A parameter is specified incorrectly.
+//
+//   - ResourceNotFoundException
+//     The specified resource does not exist.
+//
+//   - ServiceUnavailableException
+//     The service cannot complete the request.
+//
+//   - OperationAbortedException
+//     Multiple concurrent requests to update the same resource were in conflict.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/UpdateAnomaly
+func (c *CloudWatchLogs) UpdateAnomaly(input *UpdateAnomalyInput) (*UpdateAnomalyOutput, error) {
+	req, out := c.UpdateAnomalyRequest(input)
+	return out, req.Send()
+}
+
+// UpdateAnomalyWithContext is the same as UpdateAnomaly with the addition of
+// the ability to pass a context and additional request options.
+//
+// See UpdateAnomaly for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *CloudWatchLogs) UpdateAnomalyWithContext(ctx aws.Context, input *UpdateAnomalyInput, opts ...request.Option) (*UpdateAnomalyOutput, error) {
+	req, out := c.UpdateAnomalyRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opUpdateLogAnomalyDetector = "UpdateLogAnomalyDetector"
+
+// UpdateLogAnomalyDetectorRequest generates a "aws/request.Request" representing the
+// client's request for the UpdateLogAnomalyDetector operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See UpdateLogAnomalyDetector for more information on using the UpdateLogAnomalyDetector
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//	// Example sending a request using the UpdateLogAnomalyDetectorRequest method.
+//	req, resp := client.UpdateLogAnomalyDetectorRequest(params)
+//
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/UpdateLogAnomalyDetector
+func (c *CloudWatchLogs) UpdateLogAnomalyDetectorRequest(input *UpdateLogAnomalyDetectorInput) (req *request.Request, output *UpdateLogAnomalyDetectorOutput) {
+	op := &request.Operation{
+		Name:       opUpdateLogAnomalyDetector,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &UpdateLogAnomalyDetectorInput{}
+	}
+
+	output = &UpdateLogAnomalyDetectorOutput{}
+	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
+	return
+}
+
+// UpdateLogAnomalyDetector API operation for Amazon CloudWatch Logs.
+//
+// Updates an existing log anomaly detector.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon CloudWatch Logs's
+// API operation UpdateLogAnomalyDetector for usage and error information.
+//
+// Returned Error Types:
+//
+//   - InvalidParameterException
+//     A parameter is specified incorrectly.
+//
+//   - ResourceNotFoundException
+//     The specified resource does not exist.
+//
+//   - ServiceUnavailableException
+//     The service cannot complete the request.
+//
+//   - OperationAbortedException
+//     Multiple concurrent requests to update the same resource were in conflict.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/UpdateLogAnomalyDetector
+func (c *CloudWatchLogs) UpdateLogAnomalyDetector(input *UpdateLogAnomalyDetectorInput) (*UpdateLogAnomalyDetectorOutput, error) {
+	req, out := c.UpdateLogAnomalyDetectorRequest(input)
+	return out, req.Send()
+}
+
+// UpdateLogAnomalyDetectorWithContext is the same as UpdateLogAnomalyDetector with the addition of
+// the ability to pass a context and additional request options.
+//
+// See UpdateLogAnomalyDetector for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *CloudWatchLogs) UpdateLogAnomalyDetectorWithContext(ctx aws.Context, input *UpdateLogAnomalyDetectorInput, opts ...request.Option) (*UpdateLogAnomalyDetectorOutput, error) {
+	req, out := c.UpdateLogAnomalyDetectorRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+// You don't have sufficient permissions to perform this action.
+type AccessDeniedException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s AccessDeniedException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s AccessDeniedException) GoString() string {
+	return s.String()
+}
+
+func newErrorAccessDeniedException(v protocol.ResponseMetadata) error {
+	return &AccessDeniedException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *AccessDeniedException) Code() string {
+	return "AccessDeniedException"
+}
+
+// Message returns the exception's message.
+func (s *AccessDeniedException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *AccessDeniedException) OrigErr() error {
+	return nil
+}
+
+func (s *AccessDeniedException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *AccessDeniedException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *AccessDeniedException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
+// A structure that contains information about one CloudWatch Logs account policy.
+type AccountPolicy struct {
+	_ struct{} `type:"structure"`
+
+	// The Amazon Web Services account ID that the policy applies to.
+	AccountId *string `locationName:"accountId" min:"12" type:"string"`
+
+	// The date and time that this policy was most recently updated.
+	LastUpdatedTime *int64 `locationName:"lastUpdatedTime" type:"long"`
+
+	// The policy document for this account policy.
+	//
+	// The JSON specified in policyDocument can be up to 30,720 characters.
+	PolicyDocument *string `locationName:"policyDocument" type:"string"`
+
+	// The name of the account policy.
+	PolicyName *string `locationName:"policyName" type:"string"`
+
+	// The type of policy for this account policy.
+	PolicyType *string `locationName:"policyType" type:"string" enum:"PolicyType"`
+
+	// The scope of the account policy.
+	Scope *string `locationName:"scope" type:"string" enum:"Scope"`
+
+	// The log group selection criteria for this subscription filter policy.
+	SelectionCriteria *string `locationName:"selectionCriteria" type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s AccountPolicy) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s AccountPolicy) GoString() string {
+	return s.String()
+}
+
+// SetAccountId sets the AccountId field's value.
+func (s *AccountPolicy) SetAccountId(v string) *AccountPolicy {
+	s.AccountId = &v
+	return s
+}
+
+// SetLastUpdatedTime sets the LastUpdatedTime field's value.
+func (s *AccountPolicy) SetLastUpdatedTime(v int64) *AccountPolicy {
+	s.LastUpdatedTime = &v
+	return s
+}
+
+// SetPolicyDocument sets the PolicyDocument field's value.
+func (s *AccountPolicy) SetPolicyDocument(v string) *AccountPolicy {
+	s.PolicyDocument = &v
+	return s
+}
+
+// SetPolicyName sets the PolicyName field's value.
+func (s *AccountPolicy) SetPolicyName(v string) *AccountPolicy {
+	s.PolicyName = &v
+	return s
+}
+
+// SetPolicyType sets the PolicyType field's value.
+func (s *AccountPolicy) SetPolicyType(v string) *AccountPolicy {
+	s.PolicyType = &v
+	return s
+}
+
+// SetScope sets the Scope field's value.
+func (s *AccountPolicy) SetScope(v string) *AccountPolicy {
+	s.Scope = &v
+	return s
+}
+
+// SetSelectionCriteria sets the SelectionCriteria field's value.
+func (s *AccountPolicy) SetSelectionCriteria(v string) *AccountPolicy {
+	s.SelectionCriteria = &v
+	return s
+}
+
+// This structure represents one anomaly that has been found by a logs anomaly
+// detector.
+//
+// For more information about patterns and anomalies, see CreateLogAnomalyDetector
+// (https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_CreateLogAnomalyDetector.html).
+type Anomaly struct {
+	_ struct{} `type:"structure"`
+
+	// Specifies whether this anomaly is still ongoing.
+	//
+	// Active is a required field
+	Active *bool `locationName:"active" type:"boolean" required:"true"`
+
+	// The ARN of the anomaly detector that identified this anomaly.
+	//
+	// AnomalyDetectorArn is a required field
+	AnomalyDetectorArn *string `locationName:"anomalyDetectorArn" min:"1" type:"string" required:"true"`
+
+	// The unique ID that CloudWatch Logs assigned to this anomaly.
+	//
+	// AnomalyId is a required field
+	AnomalyId *string `locationName:"anomalyId" min:"36" type:"string" required:"true"`
+
+	// A human-readable description of the anomaly. This description is generated
+	// by CloudWatch Logs.
+	//
+	// Description is a required field
+	Description *string `locationName:"description" min:"1" type:"string" required:"true"`
+
+	// The date and time when the anomaly detector first saw this anomaly. It is
+	// specified as epoch time, which is the number of seconds since January 1,
+	// 1970, 00:00:00 UTC.
+	//
+	// FirstSeen is a required field
+	FirstSeen *int64 `locationName:"firstSeen" type:"long" required:"true"`
+
+	// A map showing times when the anomaly detector ran, and the number of occurrences
+	// of this anomaly that were detected at each of those runs. The times are specified
+	// in epoch time, which is the number of seconds since January 1, 1970, 00:00:00
+	// UTC.
+	//
+	// Histogram is a required field
+	Histogram map[string]*int64 `locationName:"histogram" type:"map" required:"true"`
+
+	// If this anomaly is suppressed, this field is true if the suppression is because
+	// the pattern is suppressed. If false, then only this particular anomaly is
+	// suppressed.
+	IsPatternLevelSuppression *bool `locationName:"isPatternLevelSuppression" type:"boolean"`
+
+	// The date and time when the anomaly detector most recently saw this anomaly.
+	// It is specified as epoch time, which is the number of seconds since January
+	// 1, 1970, 00:00:00 UTC.
+	//
+	// LastSeen is a required field
+	LastSeen *int64 `locationName:"lastSeen" type:"long" required:"true"`
+
+	// An array of ARNS of the log groups that contained log events considered to
+	// be part of this anomaly.
+	//
+	// LogGroupArnList is a required field
+	LogGroupArnList []*string `locationName:"logGroupArnList" type:"list" required:"true"`
+
+	// An array of sample log event messages that are considered to be part of this
+	// anomaly.
+	//
+	// LogSamples is a required field
+	LogSamples []*LogEvent `locationName:"logSamples" type:"list" required:"true"`
+
+	// The ID of the pattern used to help identify this anomaly.
+	//
+	// PatternId is a required field
+	PatternId *string `locationName:"patternId" min:"32" type:"string" required:"true"`
+
+	// The pattern used to help identify this anomaly, in regular expression format.
+	PatternRegex *string `locationName:"patternRegex" min:"1" type:"string"`
+
+	// The pattern used to help identify this anomaly, in string format.
+	//
+	// PatternString is a required field
+	PatternString *string `locationName:"patternString" min:"1" type:"string" required:"true"`
+
+	// An array of structures where each structure contains information about one
+	// token that makes up the pattern.
+	//
+	// PatternTokens is a required field
+	PatternTokens []*PatternToken `locationName:"patternTokens" type:"list" required:"true"`
+
+	// The priority level of this anomaly, as determined by CloudWatch Logs. Priority
+	// is computed based on log severity labels such as FATAL and ERROR and the
+	// amount of deviation from the baseline. Possible values are HIGH, MEDIUM,
+	// and LOW.
+	Priority *string `locationName:"priority" min:"1" type:"string"`
+
+	// Indicates the current state of this anomaly. If it is still being treated
+	// as an anomaly, the value is Active. If you have suppressed this anomaly by
+	// using the UpdateAnomaly (https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_UpdateAnomaly.html)
+	// operation, the value is Suppressed. If this behavior is now considered to
+	// be normal, the value is Baseline.
+	//
+	// State is a required field
+	State *string `locationName:"state" type:"string" required:"true" enum:"State"`
+
+	// Indicates whether this anomaly is currently suppressed. To suppress an anomaly,
+	// use UpdateAnomaly (https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_UpdateAnomaly.html).
+	Suppressed *bool `locationName:"suppressed" type:"boolean"`
+
+	// If the anomaly is suppressed, this indicates when it was suppressed.
+	SuppressedDate *int64 `locationName:"suppressedDate" type:"long"`
+
+	// If the anomaly is suppressed, this indicates when the suppression will end.
+	// If this value is 0, the anomaly was suppressed with no expiration, with the
+	// INFINITE value.
+	SuppressedUntil *int64 `locationName:"suppressedUntil" type:"long"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s Anomaly) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s Anomaly) GoString() string {
+	return s.String()
+}
+
+// SetActive sets the Active field's value.
+func (s *Anomaly) SetActive(v bool) *Anomaly {
+	s.Active = &v
+	return s
+}
+
+// SetAnomalyDetectorArn sets the AnomalyDetectorArn field's value.
+func (s *Anomaly) SetAnomalyDetectorArn(v string) *Anomaly {
+	s.AnomalyDetectorArn = &v
+	return s
+}
+
+// SetAnomalyId sets the AnomalyId field's value.
+func (s *Anomaly) SetAnomalyId(v string) *Anomaly {
+	s.AnomalyId = &v
+	return s
+}
+
+// SetDescription sets the Description field's value.
+func (s *Anomaly) SetDescription(v string) *Anomaly {
+	s.Description = &v
+	return s
+}
+
+// SetFirstSeen sets the FirstSeen field's value.
+func (s *Anomaly) SetFirstSeen(v int64) *Anomaly {
+	s.FirstSeen = &v
+	return s
+}
+
+// SetHistogram sets the Histogram field's value.
+func (s *Anomaly) SetHistogram(v map[string]*int64) *Anomaly {
+	s.Histogram = v
+	return s
+}
+
+// SetIsPatternLevelSuppression sets the IsPatternLevelSuppression field's value.
+func (s *Anomaly) SetIsPatternLevelSuppression(v bool) *Anomaly {
+	s.IsPatternLevelSuppression = &v
+	return s
+}
+
+// SetLastSeen sets the LastSeen field's value.
+func (s *Anomaly) SetLastSeen(v int64) *Anomaly {
+	s.LastSeen = &v
+	return s
+}
+
+// SetLogGroupArnList sets the LogGroupArnList field's value.
+func (s *Anomaly) SetLogGroupArnList(v []*string) *Anomaly {
+	s.LogGroupArnList = v
+	return s
+}
+
+// SetLogSamples sets the LogSamples field's value.
+func (s *Anomaly) SetLogSamples(v []*LogEvent) *Anomaly {
+	s.LogSamples = v
+	return s
+}
+
+// SetPatternId sets the PatternId field's value.
+func (s *Anomaly) SetPatternId(v string) *Anomaly {
+	s.PatternId = &v
+	return s
+}
+
+// SetPatternRegex sets the PatternRegex field's value.
+func (s *Anomaly) SetPatternRegex(v string) *Anomaly {
+	s.PatternRegex = &v
+	return s
+}
+
+// SetPatternString sets the PatternString field's value.
+func (s *Anomaly) SetPatternString(v string) *Anomaly {
+	s.PatternString = &v
+	return s
+}
+
+// SetPatternTokens sets the PatternTokens field's value.
+func (s *Anomaly) SetPatternTokens(v []*PatternToken) *Anomaly {
+	s.PatternTokens = v
+	return s
+}
+
+// SetPriority sets the Priority field's value.
+func (s *Anomaly) SetPriority(v string) *Anomaly {
+	s.Priority = &v
+	return s
+}
+
+// SetState sets the State field's value.
+func (s *Anomaly) SetState(v string) *Anomaly {
+	s.State = &v
+	return s
+}
+
+// SetSuppressed sets the Suppressed field's value.
+func (s *Anomaly) SetSuppressed(v bool) *Anomaly {
+	s.Suppressed = &v
+	return s
+}
+
+// SetSuppressedDate sets the SuppressedDate field's value.
+func (s *Anomaly) SetSuppressedDate(v int64) *Anomaly {
+	s.SuppressedDate = &v
+	return s
+}
+
+// SetSuppressedUntil sets the SuppressedUntil field's value.
+func (s *Anomaly) SetSuppressedUntil(v int64) *Anomaly {
+	s.SuppressedUntil = &v
+	return s
+}
+
+// Contains information about one anomaly detector in the account.
+type AnomalyDetector struct {
+	_ struct{} `type:"structure"`
+
+	// The ARN of the anomaly detector.
+	AnomalyDetectorArn *string `locationName:"anomalyDetectorArn" min:"1" type:"string"`
+
+	// Specifies the current status of the anomaly detector. To pause an anomaly
+	// detector, use the enabled parameter in the UpdateLogAnomalyDetector (https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_UpdateLogAnomalyDetector.html)
+	// operation.
+	AnomalyDetectorStatus *string `locationName:"anomalyDetectorStatus" type:"string" enum:"AnomalyDetectorStatus"`
+
+	// The number of days used as the life cycle of anomalies. After this time,
+	// anomalies are automatically baselined and the anomaly detector model will
+	// treat new occurrences of similar event as normal.
+	AnomalyVisibilityTime *int64 `locationName:"anomalyVisibilityTime" min:"7" type:"long"`
+
+	// The date and time when this anomaly detector was created.
+	CreationTimeStamp *int64 `locationName:"creationTimeStamp" type:"long"`
+
+	// The name of the anomaly detector.
+	DetectorName *string `locationName:"detectorName" min:"1" type:"string"`
+
+	// Specifies how often the anomaly detector runs and look for anomalies.
+	EvaluationFrequency *string `locationName:"evaluationFrequency" type:"string" enum:"EvaluationFrequency"`
+
+	// A symbolic description of how CloudWatch Logs should interpret the data in
+	// each log event. For example, a log event can contain timestamps, IP addresses,
+	// strings, and so on. You use the filter pattern to specify what to look for
+	// in the log event message.
+	FilterPattern *string `locationName:"filterPattern" type:"string"`
+
+	// The ID of the KMS key assigned to this anomaly detector, if any.
+	KmsKeyId *string `locationName:"kmsKeyId" type:"string"`
+
+	// The date and time when this anomaly detector was most recently modified.
+	LastModifiedTimeStamp *int64 `locationName:"lastModifiedTimeStamp" type:"long"`
+
+	// A list of the ARNs of the log groups that this anomaly detector watches.
+	LogGroupArnList []*string `locationName:"logGroupArnList" type:"list"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s AnomalyDetector) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s AnomalyDetector) GoString() string {
+	return s.String()
+}
+
+// SetAnomalyDetectorArn sets the AnomalyDetectorArn field's value.
+func (s *AnomalyDetector) SetAnomalyDetectorArn(v string) *AnomalyDetector {
+	s.AnomalyDetectorArn = &v
+	return s
+}
+
+// SetAnomalyDetectorStatus sets the AnomalyDetectorStatus field's value.
+func (s *AnomalyDetector) SetAnomalyDetectorStatus(v string) *AnomalyDetector {
+	s.AnomalyDetectorStatus = &v
+	return s
+}
+
+// SetAnomalyVisibilityTime sets the AnomalyVisibilityTime field's value.
+func (s *AnomalyDetector) SetAnomalyVisibilityTime(v int64) *AnomalyDetector {
+	s.AnomalyVisibilityTime = &v
+	return s
+}
+
+// SetCreationTimeStamp sets the CreationTimeStamp field's value.
+func (s *AnomalyDetector) SetCreationTimeStamp(v int64) *AnomalyDetector {
+	s.CreationTimeStamp = &v
+	return s
+}
+
+// SetDetectorName sets the DetectorName field's value.
+func (s *AnomalyDetector) SetDetectorName(v string) *AnomalyDetector {
+	s.DetectorName = &v
+	return s
+}
+
+// SetEvaluationFrequency sets the EvaluationFrequency field's value.
+func (s *AnomalyDetector) SetEvaluationFrequency(v string) *AnomalyDetector {
+	s.EvaluationFrequency = &v
+	return s
+}
+
+// SetFilterPattern sets the FilterPattern field's value.
+func (s *AnomalyDetector) SetFilterPattern(v string) *AnomalyDetector {
+	s.FilterPattern = &v
+	return s
+}
+
+// SetKmsKeyId sets the KmsKeyId field's value.
+func (s *AnomalyDetector) SetKmsKeyId(v string) *AnomalyDetector {
+	s.KmsKeyId = &v
+	return s
+}
+
+// SetLastModifiedTimeStamp sets the LastModifiedTimeStamp field's value.
+func (s *AnomalyDetector) SetLastModifiedTimeStamp(v int64) *AnomalyDetector {
+	s.LastModifiedTimeStamp = &v
+	return s
+}
+
+// SetLogGroupArnList sets the LogGroupArnList field's value.
+func (s *AnomalyDetector) SetLogGroupArnList(v []*string) *AnomalyDetector {
+	s.LogGroupArnList = v
+	return s
+}
+
 type AssociateKmsKeyInput struct {
 	_ struct{} `type:"structure"`
 
-	// The Amazon Resource Name (ARN) of the CMK to use when encrypting log data.
-	// For more information, see Amazon Resource Names - AWS Key Management Service
-	// (AWS KMS) (https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html#arn-syntax-kms).
+	// The Amazon Resource Name (ARN) of the KMS key to use when encrypting log
+	// data. This must be a symmetric KMS key. For more information, see Amazon
+	// Resource Names (https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html#arn-syntax-kms)
+	// and Using Symmetric and Asymmetric Keys (https://docs.aws.amazon.com/kms/latest/developerguide/symmetric-asymmetric.html).
 	//
 	// KmsKeyId is a required field
 	KmsKeyId *string `locationName:"kmsKeyId" type:"string" required:"true"`
 
 	// The name of the log group.
 	//
-	// LogGroupName is a required field
-	LogGroupName *string `locationName:"logGroupName" min:"1" type:"string" required:"true"`
+	// In your AssociateKmsKey operation, you must specify either the resourceIdentifier
+	// parameter or the logGroup parameter, but you can't specify both.
+	LogGroupName *string `locationName:"logGroupName" min:"1" type:"string"`
+
+	// Specifies the target for this operation. You must specify one of the following:
+	//
+	//    * Specify the following ARN to have future GetQueryResults (https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_GetQueryResults.html)
+	//    operations in this account encrypt the results with the specified KMS
+	//    key. Replace REGION and ACCOUNT_ID with your Region and account ID. arn:aws:logs:REGION:ACCOUNT_ID:query-result:*
+	//
+	//    * Specify the ARN of a log group to have CloudWatch Logs use the KMS key
+	//    to encrypt log events that are ingested and stored by that log group.
+	//    The log group ARN must be in the following format. Replace REGION and
+	//    ACCOUNT_ID with your Region and account ID. arn:aws:logs:REGION:ACCOUNT_ID:log-group:LOG_GROUP_NAME
+	//
+	// In your AssociateKmsKey operation, you must specify either the resourceIdentifier
+	// parameter or the logGroup parameter, but you can't specify both.
+	ResourceIdentifier *string `locationName:"resourceIdentifier" min:"1" type:"string"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s AssociateKmsKeyInput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s AssociateKmsKeyInput) GoString() string {
 	return s.String()
 }
@@ -4057,11 +8894,11 @@ func (s *AssociateKmsKeyInput) Validate() error {
 	if s.KmsKeyId == nil {
 		invalidParams.Add(request.NewErrParamRequired("KmsKeyId"))
 	}
-	if s.LogGroupName == nil {
-		invalidParams.Add(request.NewErrParamRequired("LogGroupName"))
-	}
 	if s.LogGroupName != nil && len(*s.LogGroupName) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("LogGroupName", 1))
+	}
+	if s.ResourceIdentifier != nil && len(*s.ResourceIdentifier) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ResourceIdentifier", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -4082,16 +8919,30 @@ func (s *AssociateKmsKeyInput) SetLogGroupName(v string) *AssociateKmsKeyInput {
 	return s
 }
 
+// SetResourceIdentifier sets the ResourceIdentifier field's value.
+func (s *AssociateKmsKeyInput) SetResourceIdentifier(v string) *AssociateKmsKeyInput {
+	s.ResourceIdentifier = &v
+	return s
+}
+
 type AssociateKmsKeyOutput struct {
 	_ struct{} `type:"structure"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s AssociateKmsKeyOutput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s AssociateKmsKeyOutput) GoString() string {
 	return s.String()
 }
@@ -4105,12 +8956,20 @@ type CancelExportTaskInput struct {
 	TaskId *string `locationName:"taskId" min:"1" type:"string" required:"true"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s CancelExportTaskInput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s CancelExportTaskInput) GoString() string {
 	return s.String()
 }
@@ -4141,21 +9000,202 @@ type CancelExportTaskOutput struct {
 	_ struct{} `type:"structure"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s CancelExportTaskOutput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s CancelExportTaskOutput) GoString() string {
 	return s.String()
+}
+
+// This operation attempted to create a resource that already exists.
+type ConflictException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ConflictException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ConflictException) GoString() string {
+	return s.String()
+}
+
+func newErrorConflictException(v protocol.ResponseMetadata) error {
+	return &ConflictException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *ConflictException) Code() string {
+	return "ConflictException"
+}
+
+// Message returns the exception's message.
+func (s *ConflictException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *ConflictException) OrigErr() error {
+	return nil
+}
+
+func (s *ConflictException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *ConflictException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *ConflictException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
+type CreateDeliveryInput struct {
+	_ struct{} `type:"structure"`
+
+	// The ARN of the delivery destination to use for this delivery.
+	//
+	// DeliveryDestinationArn is a required field
+	DeliveryDestinationArn *string `locationName:"deliveryDestinationArn" type:"string" required:"true"`
+
+	// The name of the delivery source to use for this delivery.
+	//
+	// DeliverySourceName is a required field
+	DeliverySourceName *string `locationName:"deliverySourceName" min:"1" type:"string" required:"true"`
+
+	// An optional list of key-value pairs to associate with the resource.
+	//
+	// For more information about tagging, see Tagging Amazon Web Services resources
+	// (https://docs.aws.amazon.com/general/latest/gr/aws_tagging.html)
+	Tags map[string]*string `locationName:"tags" min:"1" type:"map"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s CreateDeliveryInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s CreateDeliveryInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateDeliveryInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateDeliveryInput"}
+	if s.DeliveryDestinationArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("DeliveryDestinationArn"))
+	}
+	if s.DeliverySourceName == nil {
+		invalidParams.Add(request.NewErrParamRequired("DeliverySourceName"))
+	}
+	if s.DeliverySourceName != nil && len(*s.DeliverySourceName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("DeliverySourceName", 1))
+	}
+	if s.Tags != nil && len(s.Tags) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Tags", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetDeliveryDestinationArn sets the DeliveryDestinationArn field's value.
+func (s *CreateDeliveryInput) SetDeliveryDestinationArn(v string) *CreateDeliveryInput {
+	s.DeliveryDestinationArn = &v
+	return s
+}
+
+// SetDeliverySourceName sets the DeliverySourceName field's value.
+func (s *CreateDeliveryInput) SetDeliverySourceName(v string) *CreateDeliveryInput {
+	s.DeliverySourceName = &v
+	return s
+}
+
+// SetTags sets the Tags field's value.
+func (s *CreateDeliveryInput) SetTags(v map[string]*string) *CreateDeliveryInput {
+	s.Tags = v
+	return s
+}
+
+type CreateDeliveryOutput struct {
+	_ struct{} `type:"structure"`
+
+	// A structure that contains information about the delivery that you just created.
+	Delivery *Delivery `locationName:"delivery" type:"structure"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s CreateDeliveryOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s CreateDeliveryOutput) GoString() string {
+	return s.String()
+}
+
+// SetDelivery sets the Delivery field's value.
+func (s *CreateDeliveryOutput) SetDelivery(v *Delivery) *CreateDeliveryOutput {
+	s.Delivery = v
+	return s
 }
 
 type CreateExportTaskInput struct {
 	_ struct{} `type:"structure"`
 
 	// The name of S3 bucket for the exported log data. The bucket must be in the
-	// same AWS region.
+	// same Amazon Web Services Region.
 	//
 	// Destination is a required field
 	Destination *string `locationName:"destination" min:"1" type:"string" required:"true"`
@@ -4187,16 +9227,27 @@ type CreateExportTaskInput struct {
 	// after Jan 1, 1970 00:00:00 UTC. Events with a timestamp later than this time
 	// are not exported.
 	//
+	// You must specify a time that is not earlier than when this log group was
+	// created.
+	//
 	// To is a required field
 	To *int64 `locationName:"to" type:"long" required:"true"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s CreateExportTaskInput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s CreateExportTaskInput) GoString() string {
 	return s.String()
 }
@@ -4284,12 +9335,20 @@ type CreateExportTaskOutput struct {
 	TaskId *string `locationName:"taskId" min:"1" type:"string"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s CreateExportTaskOutput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s CreateExportTaskOutput) GoString() string {
 	return s.String()
 }
@@ -4300,29 +9359,221 @@ func (s *CreateExportTaskOutput) SetTaskId(v string) *CreateExportTaskOutput {
 	return s
 }
 
+type CreateLogAnomalyDetectorInput struct {
+	_ struct{} `type:"structure"`
+
+	// The number of days to have visibility on an anomaly. After this time period
+	// has elapsed for an anomaly, it will be automatically baselined and the anomaly
+	// detector will treat new occurrences of a similar anomaly as normal. Therefore,
+	// if you do not correct the cause of an anomaly during the time period specified
+	// in anomalyVisibilityTime, it will be considered normal going forward and
+	// will not be detected as an anomaly.
+	AnomalyVisibilityTime *int64 `locationName:"anomalyVisibilityTime" min:"7" type:"long"`
+
+	// A name for this anomaly detector.
+	DetectorName *string `locationName:"detectorName" min:"1" type:"string"`
+
+	// Specifies how often the anomaly detector is to run and look for anomalies.
+	// Set this value according to the frequency that the log group receives new
+	// logs. For example, if the log group receives new log events every 10 minutes,
+	// then 15 minutes might be a good setting for evaluationFrequency .
+	EvaluationFrequency *string `locationName:"evaluationFrequency" type:"string" enum:"EvaluationFrequency"`
+
+	// You can use this parameter to limit the anomaly detection model to examine
+	// only log events that match the pattern you specify here. For more information,
+	// see Filter and Pattern Syntax (https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/FilterAndPatternSyntax.html).
+	FilterPattern *string `locationName:"filterPattern" type:"string"`
+
+	// Optionally assigns a KMS key to secure this anomaly detector and its findings.
+	// If a key is assigned, the anomalies found and the model used by this detector
+	// are encrypted at rest with the key. If a key is assigned to an anomaly detector,
+	// a user must have permissions for both this key and for the anomaly detector
+	// to retrieve information about the anomalies that it finds.
+	//
+	// For more information about using a KMS key and to see the required IAM policy,
+	// see Use a KMS key with an anomaly detector (https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/LogsAnomalyDetection-KMS.html).
+	KmsKeyId *string `locationName:"kmsKeyId" type:"string"`
+
+	// An array containing the ARN of the log group that this anomaly detector will
+	// watch. You can specify only one log group ARN.
+	//
+	// LogGroupArnList is a required field
+	LogGroupArnList []*string `locationName:"logGroupArnList" type:"list" required:"true"`
+
+	// An optional list of key-value pairs to associate with the resource.
+	//
+	// For more information about tagging, see Tagging Amazon Web Services resources
+	// (https://docs.aws.amazon.com/general/latest/gr/aws_tagging.html)
+	Tags map[string]*string `locationName:"tags" min:"1" type:"map"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s CreateLogAnomalyDetectorInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s CreateLogAnomalyDetectorInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateLogAnomalyDetectorInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateLogAnomalyDetectorInput"}
+	if s.AnomalyVisibilityTime != nil && *s.AnomalyVisibilityTime < 7 {
+		invalidParams.Add(request.NewErrParamMinValue("AnomalyVisibilityTime", 7))
+	}
+	if s.DetectorName != nil && len(*s.DetectorName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("DetectorName", 1))
+	}
+	if s.LogGroupArnList == nil {
+		invalidParams.Add(request.NewErrParamRequired("LogGroupArnList"))
+	}
+	if s.Tags != nil && len(s.Tags) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Tags", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetAnomalyVisibilityTime sets the AnomalyVisibilityTime field's value.
+func (s *CreateLogAnomalyDetectorInput) SetAnomalyVisibilityTime(v int64) *CreateLogAnomalyDetectorInput {
+	s.AnomalyVisibilityTime = &v
+	return s
+}
+
+// SetDetectorName sets the DetectorName field's value.
+func (s *CreateLogAnomalyDetectorInput) SetDetectorName(v string) *CreateLogAnomalyDetectorInput {
+	s.DetectorName = &v
+	return s
+}
+
+// SetEvaluationFrequency sets the EvaluationFrequency field's value.
+func (s *CreateLogAnomalyDetectorInput) SetEvaluationFrequency(v string) *CreateLogAnomalyDetectorInput {
+	s.EvaluationFrequency = &v
+	return s
+}
+
+// SetFilterPattern sets the FilterPattern field's value.
+func (s *CreateLogAnomalyDetectorInput) SetFilterPattern(v string) *CreateLogAnomalyDetectorInput {
+	s.FilterPattern = &v
+	return s
+}
+
+// SetKmsKeyId sets the KmsKeyId field's value.
+func (s *CreateLogAnomalyDetectorInput) SetKmsKeyId(v string) *CreateLogAnomalyDetectorInput {
+	s.KmsKeyId = &v
+	return s
+}
+
+// SetLogGroupArnList sets the LogGroupArnList field's value.
+func (s *CreateLogAnomalyDetectorInput) SetLogGroupArnList(v []*string) *CreateLogAnomalyDetectorInput {
+	s.LogGroupArnList = v
+	return s
+}
+
+// SetTags sets the Tags field's value.
+func (s *CreateLogAnomalyDetectorInput) SetTags(v map[string]*string) *CreateLogAnomalyDetectorInput {
+	s.Tags = v
+	return s
+}
+
+type CreateLogAnomalyDetectorOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The ARN of the log anomaly detector that you just created.
+	AnomalyDetectorArn *string `locationName:"anomalyDetectorArn" min:"1" type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s CreateLogAnomalyDetectorOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s CreateLogAnomalyDetectorOutput) GoString() string {
+	return s.String()
+}
+
+// SetAnomalyDetectorArn sets the AnomalyDetectorArn field's value.
+func (s *CreateLogAnomalyDetectorOutput) SetAnomalyDetectorArn(v string) *CreateLogAnomalyDetectorOutput {
+	s.AnomalyDetectorArn = &v
+	return s
+}
+
 type CreateLogGroupInput struct {
 	_ struct{} `type:"structure"`
 
-	// The Amazon Resource Name (ARN) of the CMK to use when encrypting log data.
-	// For more information, see Amazon Resource Names - AWS Key Management Service
-	// (AWS KMS) (https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html#arn-syntax-kms).
+	// The Amazon Resource Name (ARN) of the KMS key to use when encrypting log
+	// data. For more information, see Amazon Resource Names (https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html#arn-syntax-kms).
 	KmsKeyId *string `locationName:"kmsKeyId" type:"string"`
 
-	// The name of the log group.
+	// Use this parameter to specify the log group class for this log group. There
+	// are two classes:
+	//
+	//    * The Standard log class supports all CloudWatch Logs features.
+	//
+	//    * The Infrequent Access log class supports a subset of CloudWatch Logs
+	//    features and incurs lower costs.
+	//
+	// If you omit this parameter, the default of STANDARD is used.
+	//
+	// The value of logGroupClass can't be changed after a log group is created.
+	//
+	// For details about the features supported by each class, see Log classes (https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/CloudWatch_Logs_Log_Classes.html)
+	LogGroupClass *string `locationName:"logGroupClass" type:"string" enum:"LogGroupClass"`
+
+	// A name for the log group.
 	//
 	// LogGroupName is a required field
 	LogGroupName *string `locationName:"logGroupName" min:"1" type:"string" required:"true"`
 
 	// The key-value pairs to use for the tags.
+	//
+	// You can grant users access to certain log groups while preventing them from
+	// accessing other log groups. To do so, tag your groups and use IAM policies
+	// that refer to those tags. To assign tags when you create a log group, you
+	// must have either the logs:TagResource or logs:TagLogGroup permission. For
+	// more information about tagging, see Tagging Amazon Web Services resources
+	// (https://docs.aws.amazon.com/general/latest/gr/aws_tagging.html). For more
+	// information about using tags to control access, see Controlling access to
+	// Amazon Web Services resources using tags (https://docs.aws.amazon.com/IAM/latest/UserGuide/access_tags.html).
 	Tags map[string]*string `locationName:"tags" min:"1" type:"map"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s CreateLogGroupInput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s CreateLogGroupInput) GoString() string {
 	return s.String()
 }
@@ -4352,6 +9603,12 @@ func (s *CreateLogGroupInput) SetKmsKeyId(v string) *CreateLogGroupInput {
 	return s
 }
 
+// SetLogGroupClass sets the LogGroupClass field's value.
+func (s *CreateLogGroupInput) SetLogGroupClass(v string) *CreateLogGroupInput {
+	s.LogGroupClass = &v
+	return s
+}
+
 // SetLogGroupName sets the LogGroupName field's value.
 func (s *CreateLogGroupInput) SetLogGroupName(v string) *CreateLogGroupInput {
 	s.LogGroupName = &v
@@ -4368,12 +9625,20 @@ type CreateLogGroupOutput struct {
 	_ struct{} `type:"structure"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s CreateLogGroupOutput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s CreateLogGroupOutput) GoString() string {
 	return s.String()
 }
@@ -4392,12 +9657,20 @@ type CreateLogStreamInput struct {
 	LogStreamName *string `locationName:"logStreamName" min:"1" type:"string" required:"true"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s CreateLogStreamInput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s CreateLogStreamInput) GoString() string {
 	return s.String()
 }
@@ -4440,13 +9713,533 @@ type CreateLogStreamOutput struct {
 	_ struct{} `type:"structure"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s CreateLogStreamOutput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s CreateLogStreamOutput) GoString() string {
+	return s.String()
+}
+
+// The event was already logged.
+//
+// PutLogEvents actions are now always accepted and never return DataAlreadyAcceptedException
+// regardless of whether a given batch of log events has already been accepted.
+type DataAlreadyAcceptedException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	ExpectedSequenceToken *string `locationName:"expectedSequenceToken" min:"1" type:"string"`
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DataAlreadyAcceptedException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DataAlreadyAcceptedException) GoString() string {
+	return s.String()
+}
+
+func newErrorDataAlreadyAcceptedException(v protocol.ResponseMetadata) error {
+	return &DataAlreadyAcceptedException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *DataAlreadyAcceptedException) Code() string {
+	return "DataAlreadyAcceptedException"
+}
+
+// Message returns the exception's message.
+func (s *DataAlreadyAcceptedException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *DataAlreadyAcceptedException) OrigErr() error {
+	return nil
+}
+
+func (s *DataAlreadyAcceptedException) Error() string {
+	return fmt.Sprintf("%s: %s\n%s", s.Code(), s.Message(), s.String())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *DataAlreadyAcceptedException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *DataAlreadyAcceptedException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
+type DeleteAccountPolicyInput struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the policy to delete.
+	//
+	// PolicyName is a required field
+	PolicyName *string `locationName:"policyName" type:"string" required:"true"`
+
+	// The type of policy to delete.
+	//
+	// PolicyType is a required field
+	PolicyType *string `locationName:"policyType" type:"string" required:"true" enum:"PolicyType"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DeleteAccountPolicyInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DeleteAccountPolicyInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteAccountPolicyInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteAccountPolicyInput"}
+	if s.PolicyName == nil {
+		invalidParams.Add(request.NewErrParamRequired("PolicyName"))
+	}
+	if s.PolicyType == nil {
+		invalidParams.Add(request.NewErrParamRequired("PolicyType"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetPolicyName sets the PolicyName field's value.
+func (s *DeleteAccountPolicyInput) SetPolicyName(v string) *DeleteAccountPolicyInput {
+	s.PolicyName = &v
+	return s
+}
+
+// SetPolicyType sets the PolicyType field's value.
+func (s *DeleteAccountPolicyInput) SetPolicyType(v string) *DeleteAccountPolicyInput {
+	s.PolicyType = &v
+	return s
+}
+
+type DeleteAccountPolicyOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DeleteAccountPolicyOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DeleteAccountPolicyOutput) GoString() string {
+	return s.String()
+}
+
+type DeleteDataProtectionPolicyInput struct {
+	_ struct{} `type:"structure"`
+
+	// The name or ARN of the log group that you want to delete the data protection
+	// policy for.
+	//
+	// LogGroupIdentifier is a required field
+	LogGroupIdentifier *string `locationName:"logGroupIdentifier" min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DeleteDataProtectionPolicyInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DeleteDataProtectionPolicyInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteDataProtectionPolicyInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteDataProtectionPolicyInput"}
+	if s.LogGroupIdentifier == nil {
+		invalidParams.Add(request.NewErrParamRequired("LogGroupIdentifier"))
+	}
+	if s.LogGroupIdentifier != nil && len(*s.LogGroupIdentifier) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("LogGroupIdentifier", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetLogGroupIdentifier sets the LogGroupIdentifier field's value.
+func (s *DeleteDataProtectionPolicyInput) SetLogGroupIdentifier(v string) *DeleteDataProtectionPolicyInput {
+	s.LogGroupIdentifier = &v
+	return s
+}
+
+type DeleteDataProtectionPolicyOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DeleteDataProtectionPolicyOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DeleteDataProtectionPolicyOutput) GoString() string {
+	return s.String()
+}
+
+type DeleteDeliveryDestinationInput struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the delivery destination that you want to delete. You can find
+	// a list of delivery destionation names by using the DescribeDeliveryDestinations
+	// (https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_DescribeDeliveryDestinations.html)
+	// operation.
+	//
+	// Name is a required field
+	Name *string `locationName:"name" min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DeleteDeliveryDestinationInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DeleteDeliveryDestinationInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteDeliveryDestinationInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteDeliveryDestinationInput"}
+	if s.Name == nil {
+		invalidParams.Add(request.NewErrParamRequired("Name"))
+	}
+	if s.Name != nil && len(*s.Name) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Name", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetName sets the Name field's value.
+func (s *DeleteDeliveryDestinationInput) SetName(v string) *DeleteDeliveryDestinationInput {
+	s.Name = &v
+	return s
+}
+
+type DeleteDeliveryDestinationOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DeleteDeliveryDestinationOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DeleteDeliveryDestinationOutput) GoString() string {
+	return s.String()
+}
+
+type DeleteDeliveryDestinationPolicyInput struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the delivery destination that you want to delete the policy for.
+	//
+	// DeliveryDestinationName is a required field
+	DeliveryDestinationName *string `locationName:"deliveryDestinationName" min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DeleteDeliveryDestinationPolicyInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DeleteDeliveryDestinationPolicyInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteDeliveryDestinationPolicyInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteDeliveryDestinationPolicyInput"}
+	if s.DeliveryDestinationName == nil {
+		invalidParams.Add(request.NewErrParamRequired("DeliveryDestinationName"))
+	}
+	if s.DeliveryDestinationName != nil && len(*s.DeliveryDestinationName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("DeliveryDestinationName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetDeliveryDestinationName sets the DeliveryDestinationName field's value.
+func (s *DeleteDeliveryDestinationPolicyInput) SetDeliveryDestinationName(v string) *DeleteDeliveryDestinationPolicyInput {
+	s.DeliveryDestinationName = &v
+	return s
+}
+
+type DeleteDeliveryDestinationPolicyOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DeleteDeliveryDestinationPolicyOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DeleteDeliveryDestinationPolicyOutput) GoString() string {
+	return s.String()
+}
+
+type DeleteDeliveryInput struct {
+	_ struct{} `type:"structure"`
+
+	// The unique ID of the delivery to delete. You can find the ID of a delivery
+	// with the DescribeDeliveries (https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_DescribeDeliveries.html)
+	// operation.
+	//
+	// Id is a required field
+	Id *string `locationName:"id" min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DeleteDeliveryInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DeleteDeliveryInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteDeliveryInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteDeliveryInput"}
+	if s.Id == nil {
+		invalidParams.Add(request.NewErrParamRequired("Id"))
+	}
+	if s.Id != nil && len(*s.Id) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Id", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetId sets the Id field's value.
+func (s *DeleteDeliveryInput) SetId(v string) *DeleteDeliveryInput {
+	s.Id = &v
+	return s
+}
+
+type DeleteDeliveryOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DeleteDeliveryOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DeleteDeliveryOutput) GoString() string {
+	return s.String()
+}
+
+type DeleteDeliverySourceInput struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the delivery source that you want to delete.
+	//
+	// Name is a required field
+	Name *string `locationName:"name" min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DeleteDeliverySourceInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DeleteDeliverySourceInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteDeliverySourceInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteDeliverySourceInput"}
+	if s.Name == nil {
+		invalidParams.Add(request.NewErrParamRequired("Name"))
+	}
+	if s.Name != nil && len(*s.Name) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Name", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetName sets the Name field's value.
+func (s *DeleteDeliverySourceInput) SetName(v string) *DeleteDeliverySourceInput {
+	s.Name = &v
+	return s
+}
+
+type DeleteDeliverySourceOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DeleteDeliverySourceOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DeleteDeliverySourceOutput) GoString() string {
 	return s.String()
 }
 
@@ -4459,12 +10252,20 @@ type DeleteDestinationInput struct {
 	DestinationName *string `locationName:"destinationName" min:"1" type:"string" required:"true"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DeleteDestinationInput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DeleteDestinationInput) GoString() string {
 	return s.String()
 }
@@ -4495,13 +10296,94 @@ type DeleteDestinationOutput struct {
 	_ struct{} `type:"structure"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DeleteDestinationOutput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DeleteDestinationOutput) GoString() string {
+	return s.String()
+}
+
+type DeleteLogAnomalyDetectorInput struct {
+	_ struct{} `type:"structure"`
+
+	// The ARN of the anomaly detector to delete. You can find the ARNs of log anomaly
+	// detectors in your account by using the ListLogAnomalyDetectors (https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_ListLogAnomalyDetectors.html)
+	// operation.
+	//
+	// AnomalyDetectorArn is a required field
+	AnomalyDetectorArn *string `locationName:"anomalyDetectorArn" min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DeleteLogAnomalyDetectorInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DeleteLogAnomalyDetectorInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteLogAnomalyDetectorInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteLogAnomalyDetectorInput"}
+	if s.AnomalyDetectorArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("AnomalyDetectorArn"))
+	}
+	if s.AnomalyDetectorArn != nil && len(*s.AnomalyDetectorArn) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("AnomalyDetectorArn", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetAnomalyDetectorArn sets the AnomalyDetectorArn field's value.
+func (s *DeleteLogAnomalyDetectorInput) SetAnomalyDetectorArn(v string) *DeleteLogAnomalyDetectorInput {
+	s.AnomalyDetectorArn = &v
+	return s
+}
+
+type DeleteLogAnomalyDetectorOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DeleteLogAnomalyDetectorOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DeleteLogAnomalyDetectorOutput) GoString() string {
 	return s.String()
 }
 
@@ -4514,12 +10396,20 @@ type DeleteLogGroupInput struct {
 	LogGroupName *string `locationName:"logGroupName" min:"1" type:"string" required:"true"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DeleteLogGroupInput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DeleteLogGroupInput) GoString() string {
 	return s.String()
 }
@@ -4550,12 +10440,20 @@ type DeleteLogGroupOutput struct {
 	_ struct{} `type:"structure"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DeleteLogGroupOutput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DeleteLogGroupOutput) GoString() string {
 	return s.String()
 }
@@ -4574,12 +10472,20 @@ type DeleteLogStreamInput struct {
 	LogStreamName *string `locationName:"logStreamName" min:"1" type:"string" required:"true"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DeleteLogStreamInput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DeleteLogStreamInput) GoString() string {
 	return s.String()
 }
@@ -4622,12 +10528,20 @@ type DeleteLogStreamOutput struct {
 	_ struct{} `type:"structure"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DeleteLogStreamOutput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DeleteLogStreamOutput) GoString() string {
 	return s.String()
 }
@@ -4646,12 +10560,20 @@ type DeleteMetricFilterInput struct {
 	LogGroupName *string `locationName:"logGroupName" min:"1" type:"string" required:"true"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DeleteMetricFilterInput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DeleteMetricFilterInput) GoString() string {
 	return s.String()
 }
@@ -4694,14 +10616,102 @@ type DeleteMetricFilterOutput struct {
 	_ struct{} `type:"structure"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DeleteMetricFilterOutput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DeleteMetricFilterOutput) GoString() string {
 	return s.String()
+}
+
+type DeleteQueryDefinitionInput struct {
+	_ struct{} `type:"structure"`
+
+	// The ID of the query definition that you want to delete. You can use DescribeQueryDefinitions
+	// (https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_DescribeQueryDefinitions.html)
+	// to retrieve the IDs of your saved query definitions.
+	//
+	// QueryDefinitionId is a required field
+	QueryDefinitionId *string `locationName:"queryDefinitionId" type:"string" required:"true"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DeleteQueryDefinitionInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DeleteQueryDefinitionInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteQueryDefinitionInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteQueryDefinitionInput"}
+	if s.QueryDefinitionId == nil {
+		invalidParams.Add(request.NewErrParamRequired("QueryDefinitionId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetQueryDefinitionId sets the QueryDefinitionId field's value.
+func (s *DeleteQueryDefinitionInput) SetQueryDefinitionId(v string) *DeleteQueryDefinitionInput {
+	s.QueryDefinitionId = &v
+	return s
+}
+
+type DeleteQueryDefinitionOutput struct {
+	_ struct{} `type:"structure"`
+
+	// A value of TRUE indicates that the operation succeeded. FALSE indicates that
+	// the operation failed.
+	Success *bool `locationName:"success" type:"boolean"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DeleteQueryDefinitionOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DeleteQueryDefinitionOutput) GoString() string {
+	return s.String()
+}
+
+// SetSuccess sets the Success field's value.
+func (s *DeleteQueryDefinitionOutput) SetSuccess(v bool) *DeleteQueryDefinitionOutput {
+	s.Success = &v
+	return s
 }
 
 type DeleteResourcePolicyInput struct {
@@ -4711,12 +10721,20 @@ type DeleteResourcePolicyInput struct {
 	PolicyName *string `locationName:"policyName" type:"string"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DeleteResourcePolicyInput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DeleteResourcePolicyInput) GoString() string {
 	return s.String()
 }
@@ -4731,12 +10749,20 @@ type DeleteResourcePolicyOutput struct {
 	_ struct{} `type:"structure"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DeleteResourcePolicyOutput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DeleteResourcePolicyOutput) GoString() string {
 	return s.String()
 }
@@ -4750,12 +10776,20 @@ type DeleteRetentionPolicyInput struct {
 	LogGroupName *string `locationName:"logGroupName" min:"1" type:"string" required:"true"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DeleteRetentionPolicyInput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DeleteRetentionPolicyInput) GoString() string {
 	return s.String()
 }
@@ -4786,12 +10820,20 @@ type DeleteRetentionPolicyOutput struct {
 	_ struct{} `type:"structure"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DeleteRetentionPolicyOutput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DeleteRetentionPolicyOutput) GoString() string {
 	return s.String()
 }
@@ -4810,12 +10852,20 @@ type DeleteSubscriptionFilterInput struct {
 	LogGroupName *string `locationName:"logGroupName" min:"1" type:"string" required:"true"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DeleteSubscriptionFilterInput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DeleteSubscriptionFilterInput) GoString() string {
 	return s.String()
 }
@@ -4858,14 +10908,775 @@ type DeleteSubscriptionFilterOutput struct {
 	_ struct{} `type:"structure"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DeleteSubscriptionFilterOutput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DeleteSubscriptionFilterOutput) GoString() string {
 	return s.String()
+}
+
+// This structure contains information about one delivery in your account.
+//
+// A delivery is a connection between a logical delivery source and a logical
+// delivery destination.
+//
+// For more information, see CreateDelivery (https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_CreateDelivery.html).
+//
+// You can't update an existing delivery. You can only create and delete deliveries.
+type Delivery struct {
+	_ struct{} `type:"structure"`
+
+	// The Amazon Resource Name (ARN) that uniquely identifies this delivery.
+	Arn *string `locationName:"arn" type:"string"`
+
+	// The ARN of the delivery destination that is associated with this delivery.
+	DeliveryDestinationArn *string `locationName:"deliveryDestinationArn" type:"string"`
+
+	// Displays whether the delivery destination associated with this delivery is
+	// CloudWatch Logs, Amazon S3, or Firehose.
+	DeliveryDestinationType *string `locationName:"deliveryDestinationType" type:"string" enum:"DeliveryDestinationType"`
+
+	// The name of the delivery source that is associated with this delivery.
+	DeliverySourceName *string `locationName:"deliverySourceName" min:"1" type:"string"`
+
+	// The unique ID that identifies this delivery in your account.
+	Id *string `locationName:"id" min:"1" type:"string"`
+
+	// The tags that have been assigned to this delivery.
+	Tags map[string]*string `locationName:"tags" min:"1" type:"map"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s Delivery) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s Delivery) GoString() string {
+	return s.String()
+}
+
+// SetArn sets the Arn field's value.
+func (s *Delivery) SetArn(v string) *Delivery {
+	s.Arn = &v
+	return s
+}
+
+// SetDeliveryDestinationArn sets the DeliveryDestinationArn field's value.
+func (s *Delivery) SetDeliveryDestinationArn(v string) *Delivery {
+	s.DeliveryDestinationArn = &v
+	return s
+}
+
+// SetDeliveryDestinationType sets the DeliveryDestinationType field's value.
+func (s *Delivery) SetDeliveryDestinationType(v string) *Delivery {
+	s.DeliveryDestinationType = &v
+	return s
+}
+
+// SetDeliverySourceName sets the DeliverySourceName field's value.
+func (s *Delivery) SetDeliverySourceName(v string) *Delivery {
+	s.DeliverySourceName = &v
+	return s
+}
+
+// SetId sets the Id field's value.
+func (s *Delivery) SetId(v string) *Delivery {
+	s.Id = &v
+	return s
+}
+
+// SetTags sets the Tags field's value.
+func (s *Delivery) SetTags(v map[string]*string) *Delivery {
+	s.Tags = v
+	return s
+}
+
+// This structure contains information about one delivery destination in your
+// account. A delivery destination is an Amazon Web Services resource that represents
+// an Amazon Web Services service that logs can be sent to. CloudWatch Logs,
+// Amazon S3, are supported as Firehose delivery destinations.
+//
+// To configure logs delivery between a supported Amazon Web Services service
+// and a destination, you must do the following:
+//
+//   - Create a delivery source, which is a logical object that represents
+//     the resource that is actually sending the logs. For more information,
+//     see PutDeliverySource (https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_PutDeliverySource.html).
+//
+//   - Create a delivery destination, which is a logical object that represents
+//     the actual delivery destination.
+//
+//   - If you are delivering logs cross-account, you must use PutDeliveryDestinationPolicy
+//     (https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_PutDeliveryDestinationPolicy.html)
+//     in the destination account to assign an IAM policy to the destination.
+//     This policy allows delivery to that destination.
+//
+//   - Create a delivery by pairing exactly one delivery source and one delivery
+//     destination. For more information, see CreateDelivery (https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_CreateDelivery.html).
+//
+// You can configure a single delivery source to send logs to multiple destinations
+// by creating multiple deliveries. You can also create multiple deliveries
+// to configure multiple delivery sources to send logs to the same delivery
+// destination.
+type DeliveryDestination struct {
+	_ struct{} `type:"structure"`
+
+	// The Amazon Resource Name (ARN) that uniquely identifies this delivery destination.
+	Arn *string `locationName:"arn" type:"string"`
+
+	// A structure that contains the ARN of the Amazon Web Services resource that
+	// will receive the logs.
+	DeliveryDestinationConfiguration *DeliveryDestinationConfiguration `locationName:"deliveryDestinationConfiguration" type:"structure"`
+
+	// Displays whether this delivery destination is CloudWatch Logs, Amazon S3,
+	// or Firehose.
+	DeliveryDestinationType *string `locationName:"deliveryDestinationType" type:"string" enum:"DeliveryDestinationType"`
+
+	// The name of this delivery destination.
+	Name *string `locationName:"name" min:"1" type:"string"`
+
+	// The format of the logs that are sent to this delivery destination.
+	OutputFormat *string `locationName:"outputFormat" type:"string" enum:"OutputFormat"`
+
+	// The tags that have been assigned to this delivery destination.
+	Tags map[string]*string `locationName:"tags" min:"1" type:"map"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DeliveryDestination) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DeliveryDestination) GoString() string {
+	return s.String()
+}
+
+// SetArn sets the Arn field's value.
+func (s *DeliveryDestination) SetArn(v string) *DeliveryDestination {
+	s.Arn = &v
+	return s
+}
+
+// SetDeliveryDestinationConfiguration sets the DeliveryDestinationConfiguration field's value.
+func (s *DeliveryDestination) SetDeliveryDestinationConfiguration(v *DeliveryDestinationConfiguration) *DeliveryDestination {
+	s.DeliveryDestinationConfiguration = v
+	return s
+}
+
+// SetDeliveryDestinationType sets the DeliveryDestinationType field's value.
+func (s *DeliveryDestination) SetDeliveryDestinationType(v string) *DeliveryDestination {
+	s.DeliveryDestinationType = &v
+	return s
+}
+
+// SetName sets the Name field's value.
+func (s *DeliveryDestination) SetName(v string) *DeliveryDestination {
+	s.Name = &v
+	return s
+}
+
+// SetOutputFormat sets the OutputFormat field's value.
+func (s *DeliveryDestination) SetOutputFormat(v string) *DeliveryDestination {
+	s.OutputFormat = &v
+	return s
+}
+
+// SetTags sets the Tags field's value.
+func (s *DeliveryDestination) SetTags(v map[string]*string) *DeliveryDestination {
+	s.Tags = v
+	return s
+}
+
+// A structure that contains information about one logs delivery destination.
+type DeliveryDestinationConfiguration struct {
+	_ struct{} `type:"structure"`
+
+	// The ARN of the Amazon Web Services destination that this delivery destination
+	// represents. That Amazon Web Services destination can be a log group in CloudWatch
+	// Logs, an Amazon S3 bucket, or a delivery stream in Firehose.
+	//
+	// DestinationResourceArn is a required field
+	DestinationResourceArn *string `locationName:"destinationResourceArn" type:"string" required:"true"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DeliveryDestinationConfiguration) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DeliveryDestinationConfiguration) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeliveryDestinationConfiguration) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeliveryDestinationConfiguration"}
+	if s.DestinationResourceArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("DestinationResourceArn"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetDestinationResourceArn sets the DestinationResourceArn field's value.
+func (s *DeliveryDestinationConfiguration) SetDestinationResourceArn(v string) *DeliveryDestinationConfiguration {
+	s.DestinationResourceArn = &v
+	return s
+}
+
+// This structure contains information about one delivery source in your account.
+// A delivery source is an Amazon Web Services resource that sends logs to an
+// Amazon Web Services destination. The destination can be CloudWatch Logs,
+// Amazon S3, or Firehose.
+//
+// Only some Amazon Web Services services support being configured as a delivery
+// source. These services are listed as Supported [V2 Permissions] in the table
+// at Enabling logging from Amazon Web Services services. (https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/AWS-logs-and-resource-policy.html)
+//
+// To configure logs delivery between a supported Amazon Web Services service
+// and a destination, you must do the following:
+//
+//   - Create a delivery source, which is a logical object that represents
+//     the resource that is actually sending the logs. For more information,
+//     see PutDeliverySource (https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_PutDeliverySource.html).
+//
+//   - Create a delivery destination, which is a logical object that represents
+//     the actual delivery destination. For more information, see PutDeliveryDestination
+//     (https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_PutDeliveryDestination.html).
+//
+//   - If you are delivering logs cross-account, you must use PutDeliveryDestinationPolicy
+//     (https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_PutDeliveryDestinationPolicy.html)
+//     in the destination account to assign an IAM policy to the destination.
+//     This policy allows delivery to that destination.
+//
+//   - Create a delivery by pairing exactly one delivery source and one delivery
+//     destination. For more information, see CreateDelivery (https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_CreateDelivery.html).
+//
+// You can configure a single delivery source to send logs to multiple destinations
+// by creating multiple deliveries. You can also create multiple deliveries
+// to configure multiple delivery sources to send logs to the same delivery
+// destination.
+type DeliverySource struct {
+	_ struct{} `type:"structure"`
+
+	// The Amazon Resource Name (ARN) that uniquely identifies this delivery source.
+	Arn *string `locationName:"arn" type:"string"`
+
+	// The type of log that the source is sending. For valid values for this parameter,
+	// see the documentation for the source service.
+	LogType *string `locationName:"logType" min:"1" type:"string"`
+
+	// The unique name of the delivery source.
+	Name *string `locationName:"name" min:"1" type:"string"`
+
+	// This array contains the ARN of the Amazon Web Services resource that sends
+	// logs and is represented by this delivery source. Currently, only one ARN
+	// can be in the array.
+	ResourceArns []*string `locationName:"resourceArns" type:"list"`
+
+	// The Amazon Web Services service that is sending logs.
+	Service *string `locationName:"service" min:"1" type:"string"`
+
+	// The tags that have been assigned to this delivery source.
+	Tags map[string]*string `locationName:"tags" min:"1" type:"map"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DeliverySource) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DeliverySource) GoString() string {
+	return s.String()
+}
+
+// SetArn sets the Arn field's value.
+func (s *DeliverySource) SetArn(v string) *DeliverySource {
+	s.Arn = &v
+	return s
+}
+
+// SetLogType sets the LogType field's value.
+func (s *DeliverySource) SetLogType(v string) *DeliverySource {
+	s.LogType = &v
+	return s
+}
+
+// SetName sets the Name field's value.
+func (s *DeliverySource) SetName(v string) *DeliverySource {
+	s.Name = &v
+	return s
+}
+
+// SetResourceArns sets the ResourceArns field's value.
+func (s *DeliverySource) SetResourceArns(v []*string) *DeliverySource {
+	s.ResourceArns = v
+	return s
+}
+
+// SetService sets the Service field's value.
+func (s *DeliverySource) SetService(v string) *DeliverySource {
+	s.Service = &v
+	return s
+}
+
+// SetTags sets the Tags field's value.
+func (s *DeliverySource) SetTags(v map[string]*string) *DeliverySource {
+	s.Tags = v
+	return s
+}
+
+type DescribeAccountPoliciesInput struct {
+	_ struct{} `type:"structure"`
+
+	// If you are using an account that is set up as a monitoring account for CloudWatch
+	// unified cross-account observability, you can use this to specify the account
+	// ID of a source account. If you do, the operation returns the account policy
+	// for the specified account. Currently, you can specify only one account ID
+	// in this parameter.
+	//
+	// If you omit this parameter, only the policy in the current account is returned.
+	AccountIdentifiers []*string `locationName:"accountIdentifiers" type:"list"`
+
+	// Use this parameter to limit the returned policies to only the policy with
+	// the name that you specify.
+	PolicyName *string `locationName:"policyName" type:"string"`
+
+	// Use this parameter to limit the returned policies to only the policies that
+	// match the policy type that you specify.
+	//
+	// PolicyType is a required field
+	PolicyType *string `locationName:"policyType" type:"string" required:"true" enum:"PolicyType"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DescribeAccountPoliciesInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DescribeAccountPoliciesInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeAccountPoliciesInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeAccountPoliciesInput"}
+	if s.PolicyType == nil {
+		invalidParams.Add(request.NewErrParamRequired("PolicyType"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetAccountIdentifiers sets the AccountIdentifiers field's value.
+func (s *DescribeAccountPoliciesInput) SetAccountIdentifiers(v []*string) *DescribeAccountPoliciesInput {
+	s.AccountIdentifiers = v
+	return s
+}
+
+// SetPolicyName sets the PolicyName field's value.
+func (s *DescribeAccountPoliciesInput) SetPolicyName(v string) *DescribeAccountPoliciesInput {
+	s.PolicyName = &v
+	return s
+}
+
+// SetPolicyType sets the PolicyType field's value.
+func (s *DescribeAccountPoliciesInput) SetPolicyType(v string) *DescribeAccountPoliciesInput {
+	s.PolicyType = &v
+	return s
+}
+
+type DescribeAccountPoliciesOutput struct {
+	_ struct{} `type:"structure"`
+
+	// An array of structures that contain information about the CloudWatch Logs
+	// account policies that match the specified filters.
+	AccountPolicies []*AccountPolicy `locationName:"accountPolicies" type:"list"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DescribeAccountPoliciesOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DescribeAccountPoliciesOutput) GoString() string {
+	return s.String()
+}
+
+// SetAccountPolicies sets the AccountPolicies field's value.
+func (s *DescribeAccountPoliciesOutput) SetAccountPolicies(v []*AccountPolicy) *DescribeAccountPoliciesOutput {
+	s.AccountPolicies = v
+	return s
+}
+
+type DescribeDeliveriesInput struct {
+	_ struct{} `type:"structure"`
+
+	// Optionally specify the maximum number of deliveries to return in the response.
+	Limit *int64 `locationName:"limit" min:"1" type:"integer"`
+
+	// The token for the next set of items to return. The token expires after 24
+	// hours.
+	NextToken *string `locationName:"nextToken" min:"1" type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DescribeDeliveriesInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DescribeDeliveriesInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeDeliveriesInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeDeliveriesInput"}
+	if s.Limit != nil && *s.Limit < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("Limit", 1))
+	}
+	if s.NextToken != nil && len(*s.NextToken) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("NextToken", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetLimit sets the Limit field's value.
+func (s *DescribeDeliveriesInput) SetLimit(v int64) *DescribeDeliveriesInput {
+	s.Limit = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *DescribeDeliveriesInput) SetNextToken(v string) *DescribeDeliveriesInput {
+	s.NextToken = &v
+	return s
+}
+
+type DescribeDeliveriesOutput struct {
+	_ struct{} `type:"structure"`
+
+	// An array of structures. Each structure contains information about one delivery
+	// in the account.
+	Deliveries []*Delivery `locationName:"deliveries" type:"list"`
+
+	// The token for the next set of items to return. The token expires after 24
+	// hours.
+	NextToken *string `locationName:"nextToken" min:"1" type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DescribeDeliveriesOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DescribeDeliveriesOutput) GoString() string {
+	return s.String()
+}
+
+// SetDeliveries sets the Deliveries field's value.
+func (s *DescribeDeliveriesOutput) SetDeliveries(v []*Delivery) *DescribeDeliveriesOutput {
+	s.Deliveries = v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *DescribeDeliveriesOutput) SetNextToken(v string) *DescribeDeliveriesOutput {
+	s.NextToken = &v
+	return s
+}
+
+type DescribeDeliveryDestinationsInput struct {
+	_ struct{} `type:"structure"`
+
+	// Optionally specify the maximum number of delivery destinations to return
+	// in the response.
+	Limit *int64 `locationName:"limit" min:"1" type:"integer"`
+
+	// The token for the next set of items to return. The token expires after 24
+	// hours.
+	NextToken *string `locationName:"nextToken" min:"1" type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DescribeDeliveryDestinationsInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DescribeDeliveryDestinationsInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeDeliveryDestinationsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeDeliveryDestinationsInput"}
+	if s.Limit != nil && *s.Limit < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("Limit", 1))
+	}
+	if s.NextToken != nil && len(*s.NextToken) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("NextToken", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetLimit sets the Limit field's value.
+func (s *DescribeDeliveryDestinationsInput) SetLimit(v int64) *DescribeDeliveryDestinationsInput {
+	s.Limit = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *DescribeDeliveryDestinationsInput) SetNextToken(v string) *DescribeDeliveryDestinationsInput {
+	s.NextToken = &v
+	return s
+}
+
+type DescribeDeliveryDestinationsOutput struct {
+	_ struct{} `type:"structure"`
+
+	// An array of structures. Each structure contains information about one delivery
+	// destination in the account.
+	DeliveryDestinations []*DeliveryDestination `locationName:"deliveryDestinations" type:"list"`
+
+	// The token for the next set of items to return. The token expires after 24
+	// hours.
+	NextToken *string `locationName:"nextToken" min:"1" type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DescribeDeliveryDestinationsOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DescribeDeliveryDestinationsOutput) GoString() string {
+	return s.String()
+}
+
+// SetDeliveryDestinations sets the DeliveryDestinations field's value.
+func (s *DescribeDeliveryDestinationsOutput) SetDeliveryDestinations(v []*DeliveryDestination) *DescribeDeliveryDestinationsOutput {
+	s.DeliveryDestinations = v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *DescribeDeliveryDestinationsOutput) SetNextToken(v string) *DescribeDeliveryDestinationsOutput {
+	s.NextToken = &v
+	return s
+}
+
+type DescribeDeliverySourcesInput struct {
+	_ struct{} `type:"structure"`
+
+	// Optionally specify the maximum number of delivery sources to return in the
+	// response.
+	Limit *int64 `locationName:"limit" min:"1" type:"integer"`
+
+	// The token for the next set of items to return. The token expires after 24
+	// hours.
+	NextToken *string `locationName:"nextToken" min:"1" type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DescribeDeliverySourcesInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DescribeDeliverySourcesInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeDeliverySourcesInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeDeliverySourcesInput"}
+	if s.Limit != nil && *s.Limit < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("Limit", 1))
+	}
+	if s.NextToken != nil && len(*s.NextToken) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("NextToken", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetLimit sets the Limit field's value.
+func (s *DescribeDeliverySourcesInput) SetLimit(v int64) *DescribeDeliverySourcesInput {
+	s.Limit = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *DescribeDeliverySourcesInput) SetNextToken(v string) *DescribeDeliverySourcesInput {
+	s.NextToken = &v
+	return s
+}
+
+type DescribeDeliverySourcesOutput struct {
+	_ struct{} `type:"structure"`
+
+	// An array of structures. Each structure contains information about one delivery
+	// source in the account.
+	DeliverySources []*DeliverySource `locationName:"deliverySources" type:"list"`
+
+	// The token for the next set of items to return. The token expires after 24
+	// hours.
+	NextToken *string `locationName:"nextToken" min:"1" type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DescribeDeliverySourcesOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DescribeDeliverySourcesOutput) GoString() string {
+	return s.String()
+}
+
+// SetDeliverySources sets the DeliverySources field's value.
+func (s *DescribeDeliverySourcesOutput) SetDeliverySources(v []*DeliverySource) *DescribeDeliverySourcesOutput {
+	s.DeliverySources = v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *DescribeDeliverySourcesOutput) SetNextToken(v string) *DescribeDeliverySourcesOutput {
+	s.NextToken = &v
+	return s
 }
 
 type DescribeDestinationsInput struct {
@@ -4875,7 +11686,7 @@ type DescribeDestinationsInput struct {
 	DestinationNamePrefix *string `min:"1" type:"string"`
 
 	// The maximum number of items returned. If you don't specify a value, the default
-	// is up to 50 items.
+	// maximum value of 50 items is used.
 	Limit *int64 `locationName:"limit" min:"1" type:"integer"`
 
 	// The token for the next set of items to return. (You received this token from
@@ -4883,12 +11694,20 @@ type DescribeDestinationsInput struct {
 	NextToken *string `locationName:"nextToken" min:"1" type:"string"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DescribeDestinationsInput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DescribeDestinationsInput) GoString() string {
 	return s.String()
 }
@@ -4941,12 +11760,20 @@ type DescribeDestinationsOutput struct {
 	NextToken *string `locationName:"nextToken" min:"1" type:"string"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DescribeDestinationsOutput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DescribeDestinationsOutput) GoString() string {
 	return s.String()
 }
@@ -4978,17 +11805,25 @@ type DescribeExportTasksInput struct {
 	// results to zero or more export tasks.
 	StatusCode *string `locationName:"statusCode" type:"string" enum:"ExportTaskStatusCode"`
 
-	// The ID of the export task. Specifying a task ID filters the results to zero
-	// or one export tasks.
+	// The ID of the export task. Specifying a task ID filters the results to one
+	// or zero export tasks.
 	TaskId *string `locationName:"taskId" min:"1" type:"string"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DescribeExportTasksInput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DescribeExportTasksInput) GoString() string {
 	return s.String()
 }
@@ -5047,12 +11882,20 @@ type DescribeExportTasksOutput struct {
 	NextToken *string `locationName:"nextToken" min:"1" type:"string"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DescribeExportTasksOutput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DescribeExportTasksOutput) GoString() string {
 	return s.String()
 }
@@ -5072,11 +11915,49 @@ func (s *DescribeExportTasksOutput) SetNextToken(v string) *DescribeExportTasksO
 type DescribeLogGroupsInput struct {
 	_ struct{} `type:"structure"`
 
+	// When includeLinkedAccounts is set to True, use this parameter to specify
+	// the list of accounts to search. You can specify as many as 20 account IDs
+	// in the array.
+	AccountIdentifiers []*string `locationName:"accountIdentifiers" type:"list"`
+
+	// If you are using a monitoring account, set this to True to have the operation
+	// return log groups in the accounts listed in accountIdentifiers.
+	//
+	// If this parameter is set to true and accountIdentifiers contains a null value,
+	// the operation returns all log groups in the monitoring account and all log
+	// groups in all source accounts that are linked to the monitoring account.
+	IncludeLinkedAccounts *bool `locationName:"includeLinkedAccounts" type:"boolean"`
+
 	// The maximum number of items returned. If you don't specify a value, the default
 	// is up to 50 items.
 	Limit *int64 `locationName:"limit" min:"1" type:"integer"`
 
+	// Specifies the log group class for this log group. There are two classes:
+	//
+	//    * The Standard log class supports all CloudWatch Logs features.
+	//
+	//    * The Infrequent Access log class supports a subset of CloudWatch Logs
+	//    features and incurs lower costs.
+	//
+	// For details about the features supported by each class, see Log classes (https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/CloudWatch_Logs_Log_Classes.html)
+	LogGroupClass *string `locationName:"logGroupClass" type:"string" enum:"LogGroupClass"`
+
+	// If you specify a string for this parameter, the operation returns only log
+	// groups that have names that match the string based on a case-sensitive substring
+	// search. For example, if you specify Foo, log groups named FooBar, aws/Foo,
+	// and GroupFoo would match, but foo, F/o/o and Froo would not match.
+	//
+	// If you specify logGroupNamePattern in your request, then only arn, creationTime,
+	// and logGroupName are included in the response.
+	//
+	// logGroupNamePattern and logGroupNamePrefix are mutually exclusive. Only one
+	// of these parameters can be passed.
+	LogGroupNamePattern *string `locationName:"logGroupNamePattern" type:"string"`
+
 	// The prefix to match.
+	//
+	// logGroupNamePrefix and logGroupNamePattern are mutually exclusive. Only one
+	// of these parameters can be passed.
 	LogGroupNamePrefix *string `locationName:"logGroupNamePrefix" min:"1" type:"string"`
 
 	// The token for the next set of items to return. (You received this token from
@@ -5084,12 +11965,20 @@ type DescribeLogGroupsInput struct {
 	NextToken *string `locationName:"nextToken" min:"1" type:"string"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DescribeLogGroupsInput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DescribeLogGroupsInput) GoString() string {
 	return s.String()
 }
@@ -5113,9 +12002,33 @@ func (s *DescribeLogGroupsInput) Validate() error {
 	return nil
 }
 
+// SetAccountIdentifiers sets the AccountIdentifiers field's value.
+func (s *DescribeLogGroupsInput) SetAccountIdentifiers(v []*string) *DescribeLogGroupsInput {
+	s.AccountIdentifiers = v
+	return s
+}
+
+// SetIncludeLinkedAccounts sets the IncludeLinkedAccounts field's value.
+func (s *DescribeLogGroupsInput) SetIncludeLinkedAccounts(v bool) *DescribeLogGroupsInput {
+	s.IncludeLinkedAccounts = &v
+	return s
+}
+
 // SetLimit sets the Limit field's value.
 func (s *DescribeLogGroupsInput) SetLimit(v int64) *DescribeLogGroupsInput {
 	s.Limit = &v
+	return s
+}
+
+// SetLogGroupClass sets the LogGroupClass field's value.
+func (s *DescribeLogGroupsInput) SetLogGroupClass(v string) *DescribeLogGroupsInput {
+	s.LogGroupClass = &v
+	return s
+}
+
+// SetLogGroupNamePattern sets the LogGroupNamePattern field's value.
+func (s *DescribeLogGroupsInput) SetLogGroupNamePattern(v string) *DescribeLogGroupsInput {
+	s.LogGroupNamePattern = &v
 	return s
 }
 
@@ -5135,6 +12048,9 @@ type DescribeLogGroupsOutput struct {
 	_ struct{} `type:"structure"`
 
 	// The log groups.
+	//
+	// If the retentionInDays value is not included for a log group, then that log
+	// group's events do not expire.
 	LogGroups []*LogGroup `locationName:"logGroups" type:"list"`
 
 	// The token for the next set of items to return. The token expires after 24
@@ -5142,12 +12058,20 @@ type DescribeLogGroupsOutput struct {
 	NextToken *string `locationName:"nextToken" min:"1" type:"string"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DescribeLogGroupsOutput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DescribeLogGroupsOutput) GoString() string {
 	return s.String()
 }
@@ -5176,14 +12100,21 @@ type DescribeLogStreamsInput struct {
 	// is up to 50 items.
 	Limit *int64 `locationName:"limit" min:"1" type:"integer"`
 
+	// Specify either the name or ARN of the log group to view. If the log group
+	// is in a source account and you are using a monitoring account, you must use
+	// the log group ARN.
+	//
+	// You must include either logGroupIdentifier or logGroupName, but not both.
+	LogGroupIdentifier *string `locationName:"logGroupIdentifier" min:"1" type:"string"`
+
 	// The name of the log group.
 	//
-	// LogGroupName is a required field
-	LogGroupName *string `locationName:"logGroupName" min:"1" type:"string" required:"true"`
+	// You must include either logGroupIdentifier or logGroupName, but not both.
+	LogGroupName *string `locationName:"logGroupName" min:"1" type:"string"`
 
 	// The prefix to match.
 	//
-	// If orderBy is LastEventTime,you cannot specify this parameter.
+	// If orderBy is LastEventTime, you cannot specify this parameter.
 	LogStreamNamePrefix *string `locationName:"logStreamNamePrefix" min:"1" type:"string"`
 
 	// The token for the next set of items to return. (You received this token from
@@ -5199,18 +12130,26 @@ type DescribeLogStreamsInput struct {
 	//
 	// lastEventTimestamp represents the time of the most recent log event in the
 	// log stream in CloudWatch Logs. This number is expressed as the number of
-	// milliseconds after Jan 1, 1970 00:00:00 UTC. lastEventTimeStamp updates on
+	// milliseconds after Jan 1, 1970 00:00:00 UTC. lastEventTimestamp updates on
 	// an eventual consistency basis. It typically updates in less than an hour
-	// from ingestion, but may take longer in some rare situations.
+	// from ingestion, but in rare situations might take longer.
 	OrderBy *string `locationName:"orderBy" type:"string" enum:"OrderBy"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DescribeLogStreamsInput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DescribeLogStreamsInput) GoString() string {
 	return s.String()
 }
@@ -5221,8 +12160,8 @@ func (s *DescribeLogStreamsInput) Validate() error {
 	if s.Limit != nil && *s.Limit < 1 {
 		invalidParams.Add(request.NewErrParamMinValue("Limit", 1))
 	}
-	if s.LogGroupName == nil {
-		invalidParams.Add(request.NewErrParamRequired("LogGroupName"))
+	if s.LogGroupIdentifier != nil && len(*s.LogGroupIdentifier) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("LogGroupIdentifier", 1))
 	}
 	if s.LogGroupName != nil && len(*s.LogGroupName) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("LogGroupName", 1))
@@ -5249,6 +12188,12 @@ func (s *DescribeLogStreamsInput) SetDescending(v bool) *DescribeLogStreamsInput
 // SetLimit sets the Limit field's value.
 func (s *DescribeLogStreamsInput) SetLimit(v int64) *DescribeLogStreamsInput {
 	s.Limit = &v
+	return s
+}
+
+// SetLogGroupIdentifier sets the LogGroupIdentifier field's value.
+func (s *DescribeLogStreamsInput) SetLogGroupIdentifier(v string) *DescribeLogStreamsInput {
+	s.LogGroupIdentifier = &v
 	return s
 }
 
@@ -5287,12 +12232,20 @@ type DescribeLogStreamsOutput struct {
 	NextToken *string `locationName:"nextToken" min:"1" type:"string"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DescribeLogStreamsOutput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DescribeLogStreamsOutput) GoString() string {
 	return s.String()
 }
@@ -5312,7 +12265,8 @@ func (s *DescribeLogStreamsOutput) SetNextToken(v string) *DescribeLogStreamsOut
 type DescribeMetricFiltersInput struct {
 	_ struct{} `type:"structure"`
 
-	// The prefix to match.
+	// The prefix to match. CloudWatch Logs uses the value that you set here only
+	// if you also include the logGroupName parameter in your request.
 	FilterNamePrefix *string `locationName:"filterNamePrefix" min:"1" type:"string"`
 
 	// The maximum number of items returned. If you don't specify a value, the default
@@ -5337,12 +12291,20 @@ type DescribeMetricFiltersInput struct {
 	NextToken *string `locationName:"nextToken" min:"1" type:"string"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DescribeMetricFiltersInput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DescribeMetricFiltersInput) GoString() string {
 	return s.String()
 }
@@ -5416,12 +12378,20 @@ type DescribeMetricFiltersOutput struct {
 	NextToken *string `locationName:"nextToken" min:"1" type:"string"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DescribeMetricFiltersOutput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DescribeMetricFiltersOutput) GoString() string {
 	return s.String()
 }
@@ -5456,12 +12426,20 @@ type DescribeQueriesInput struct {
 	Status *string `locationName:"status" type:"string" enum:"QueryStatus"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DescribeQueriesInput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DescribeQueriesInput) GoString() string {
 	return s.String()
 }
@@ -5520,12 +12498,20 @@ type DescribeQueriesOutput struct {
 	Queries []*QueryInfo `locationName:"queries" type:"list"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DescribeQueriesOutput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DescribeQueriesOutput) GoString() string {
 	return s.String()
 }
@@ -5542,6 +12528,117 @@ func (s *DescribeQueriesOutput) SetQueries(v []*QueryInfo) *DescribeQueriesOutpu
 	return s
 }
 
+type DescribeQueryDefinitionsInput struct {
+	_ struct{} `type:"structure"`
+
+	// Limits the number of returned query definitions to the specified number.
+	MaxResults *int64 `locationName:"maxResults" min:"1" type:"integer"`
+
+	// The token for the next set of items to return. The token expires after 24
+	// hours.
+	NextToken *string `locationName:"nextToken" min:"1" type:"string"`
+
+	// Use this parameter to filter your results to only the query definitions that
+	// have names that start with the prefix you specify.
+	QueryDefinitionNamePrefix *string `locationName:"queryDefinitionNamePrefix" min:"1" type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DescribeQueryDefinitionsInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DescribeQueryDefinitionsInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeQueryDefinitionsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeQueryDefinitionsInput"}
+	if s.MaxResults != nil && *s.MaxResults < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("MaxResults", 1))
+	}
+	if s.NextToken != nil && len(*s.NextToken) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("NextToken", 1))
+	}
+	if s.QueryDefinitionNamePrefix != nil && len(*s.QueryDefinitionNamePrefix) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("QueryDefinitionNamePrefix", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetMaxResults sets the MaxResults field's value.
+func (s *DescribeQueryDefinitionsInput) SetMaxResults(v int64) *DescribeQueryDefinitionsInput {
+	s.MaxResults = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *DescribeQueryDefinitionsInput) SetNextToken(v string) *DescribeQueryDefinitionsInput {
+	s.NextToken = &v
+	return s
+}
+
+// SetQueryDefinitionNamePrefix sets the QueryDefinitionNamePrefix field's value.
+func (s *DescribeQueryDefinitionsInput) SetQueryDefinitionNamePrefix(v string) *DescribeQueryDefinitionsInput {
+	s.QueryDefinitionNamePrefix = &v
+	return s
+}
+
+type DescribeQueryDefinitionsOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The token for the next set of items to return. The token expires after 24
+	// hours.
+	NextToken *string `locationName:"nextToken" min:"1" type:"string"`
+
+	// The list of query definitions that match your request.
+	QueryDefinitions []*QueryDefinition `locationName:"queryDefinitions" type:"list"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DescribeQueryDefinitionsOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DescribeQueryDefinitionsOutput) GoString() string {
+	return s.String()
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *DescribeQueryDefinitionsOutput) SetNextToken(v string) *DescribeQueryDefinitionsOutput {
+	s.NextToken = &v
+	return s
+}
+
+// SetQueryDefinitions sets the QueryDefinitions field's value.
+func (s *DescribeQueryDefinitionsOutput) SetQueryDefinitions(v []*QueryDefinition) *DescribeQueryDefinitionsOutput {
+	s.QueryDefinitions = v
+	return s
+}
+
 type DescribeResourcePoliciesInput struct {
 	_ struct{} `type:"structure"`
 
@@ -5554,12 +12651,20 @@ type DescribeResourcePoliciesInput struct {
 	NextToken *string `locationName:"nextToken" min:"1" type:"string"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DescribeResourcePoliciesInput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DescribeResourcePoliciesInput) GoString() string {
 	return s.String()
 }
@@ -5603,12 +12708,20 @@ type DescribeResourcePoliciesOutput struct {
 	ResourcePolicies []*ResourcePolicy `locationName:"resourcePolicies" type:"list"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DescribeResourcePoliciesOutput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DescribeResourcePoliciesOutput) GoString() string {
 	return s.String()
 }
@@ -5645,12 +12758,20 @@ type DescribeSubscriptionFiltersInput struct {
 	NextToken *string `locationName:"nextToken" min:"1" type:"string"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DescribeSubscriptionFiltersInput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DescribeSubscriptionFiltersInput) GoString() string {
 	return s.String()
 }
@@ -5715,12 +12836,20 @@ type DescribeSubscriptionFiltersOutput struct {
 	SubscriptionFilters []*SubscriptionFilter `locationName:"subscriptionFilters" type:"list"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DescribeSubscriptionFiltersOutput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DescribeSubscriptionFiltersOutput) GoString() string {
 	return s.String()
 }
@@ -5741,8 +12870,8 @@ func (s *DescribeSubscriptionFiltersOutput) SetSubscriptionFilters(v []*Subscrip
 type Destination struct {
 	_ struct{} `type:"structure"`
 
-	// An IAM policy document that governs which AWS accounts can create subscription
-	// filters against this destination.
+	// An IAM policy document that governs which Amazon Web Services accounts can
+	// create subscription filters against this destination.
 	AccessPolicy *string `locationName:"accessPolicy" min:"1" type:"string"`
 
 	// The ARN of this destination.
@@ -5758,17 +12887,25 @@ type Destination struct {
 	// A role for impersonation, used when delivering log events to the target.
 	RoleArn *string `locationName:"roleArn" min:"1" type:"string"`
 
-	// The Amazon Resource Name (ARN) of the physical target to where the log events
+	// The Amazon Resource Name (ARN) of the physical target where the log events
 	// are delivered (for example, a Kinesis stream).
 	TargetArn *string `locationName:"targetArn" min:"1" type:"string"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s Destination) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s Destination) GoString() string {
 	return s.String()
 }
@@ -5814,16 +12951,43 @@ type DisassociateKmsKeyInput struct {
 
 	// The name of the log group.
 	//
-	// LogGroupName is a required field
-	LogGroupName *string `locationName:"logGroupName" min:"1" type:"string" required:"true"`
+	// In your DisassociateKmsKey operation, you must specify either the resourceIdentifier
+	// parameter or the logGroup parameter, but you can't specify both.
+	LogGroupName *string `locationName:"logGroupName" min:"1" type:"string"`
+
+	// Specifies the target for this operation. You must specify one of the following:
+	//
+	//    * Specify the ARN of a log group to stop having CloudWatch Logs use the
+	//    KMS key to encrypt log events that are ingested and stored by that log
+	//    group. After you run this operation, CloudWatch Logs encrypts ingested
+	//    log events with the default CloudWatch Logs method. The log group ARN
+	//    must be in the following format. Replace REGION and ACCOUNT_ID with your
+	//    Region and account ID. arn:aws:logs:REGION:ACCOUNT_ID:log-group:LOG_GROUP_NAME
+	//
+	//    * Specify the following ARN to stop using this key to encrypt the results
+	//    of future StartQuery (https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_StartQuery.html)
+	//    operations in this account. Replace REGION and ACCOUNT_ID with your Region
+	//    and account ID. arn:aws:logs:REGION:ACCOUNT_ID:query-result:*
+	//
+	// In your DisssociateKmsKey operation, you must specify either the resourceIdentifier
+	// parameter or the logGroup parameter, but you can't specify both.
+	ResourceIdentifier *string `locationName:"resourceIdentifier" min:"1" type:"string"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DisassociateKmsKeyInput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DisassociateKmsKeyInput) GoString() string {
 	return s.String()
 }
@@ -5831,11 +12995,11 @@ func (s DisassociateKmsKeyInput) GoString() string {
 // Validate inspects the fields of the type to determine if they are valid.
 func (s *DisassociateKmsKeyInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "DisassociateKmsKeyInput"}
-	if s.LogGroupName == nil {
-		invalidParams.Add(request.NewErrParamRequired("LogGroupName"))
-	}
 	if s.LogGroupName != nil && len(*s.LogGroupName) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("LogGroupName", 1))
+	}
+	if s.ResourceIdentifier != nil && len(*s.ResourceIdentifier) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ResourceIdentifier", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -5850,16 +13014,30 @@ func (s *DisassociateKmsKeyInput) SetLogGroupName(v string) *DisassociateKmsKeyI
 	return s
 }
 
+// SetResourceIdentifier sets the ResourceIdentifier field's value.
+func (s *DisassociateKmsKeyInput) SetResourceIdentifier(v string) *DisassociateKmsKeyInput {
+	s.ResourceIdentifier = &v
+	return s
+}
+
 type DisassociateKmsKeyOutput struct {
 	_ struct{} `type:"structure"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DisassociateKmsKeyOutput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s DisassociateKmsKeyOutput) GoString() string {
 	return s.String()
 }
@@ -5868,13 +13046,13 @@ func (s DisassociateKmsKeyOutput) GoString() string {
 type ExportTask struct {
 	_ struct{} `type:"structure"`
 
-	// The name of Amazon S3 bucket to which the log data was exported.
+	// The name of the S3 bucket to which the log data was exported.
 	Destination *string `locationName:"destination" min:"1" type:"string"`
 
 	// The prefix that was used as the start of Amazon S3 key for every object exported.
 	DestinationPrefix *string `locationName:"destinationPrefix" type:"string"`
 
-	// Execution info about the export task.
+	// Execution information about the export task.
 	ExecutionInfo *ExportTaskExecutionInfo `locationName:"executionInfo" type:"structure"`
 
 	// The start time, expressed as the number of milliseconds after Jan 1, 1970
@@ -5898,12 +13076,20 @@ type ExportTask struct {
 	To *int64 `locationName:"to" type:"long"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s ExportTask) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s ExportTask) GoString() string {
 	return s.String()
 }
@@ -5975,12 +13161,20 @@ type ExportTaskExecutionInfo struct {
 	CreationTime *int64 `locationName:"creationTime" type:"long"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s ExportTaskExecutionInfo) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s ExportTaskExecutionInfo) GoString() string {
 	return s.String()
 }
@@ -6008,12 +13202,20 @@ type ExportTaskStatus struct {
 	Message *string `locationName:"message" type:"string"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s ExportTaskStatus) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s ExportTaskStatus) GoString() string {
 	return s.String()
 }
@@ -6044,15 +13246,15 @@ type FilterLogEventsInput struct {
 	// If not provided, all the events are matched.
 	FilterPattern *string `locationName:"filterPattern" type:"string"`
 
-	// If the value is true, the operation makes a best effort to provide responses
-	// that contain events from multiple log streams within the log group, interleaved
-	// in a single response. If the value is false, all the matched log events in
-	// the first log stream are searched first, then those in the next log stream,
-	// and so on. The default is false.
+	// If the value is true, the operation attempts to provide responses that contain
+	// events from multiple log streams within the log group, interleaved in a single
+	// response. If the value is false, all the matched log events in the first
+	// log stream are searched first, then those in the next log stream, and so
+	// on.
 	//
-	// IMPORTANT: Starting on June 17, 2019, this parameter will be ignored and
-	// the value will be assumed to be true. The response from this operation will
-	// always interleave events from multiple log streams within a log group.
+	// Important As of June 17, 2019, this parameter is ignored and the value is
+	// assumed to be true. The response from this operation always interleaves events
+	// from multiple log streams within a log group.
 	//
 	// Deprecated: Starting on June 17, 2019, this parameter will be ignored and the value will be assumed to be true. The response from this operation will always interleave events from multiple log streams within a log group.
 	Interleaved *bool `locationName:"interleaved" deprecated:"true" type:"boolean"`
@@ -6060,10 +13262,17 @@ type FilterLogEventsInput struct {
 	// The maximum number of events to return. The default is 10,000 events.
 	Limit *int64 `locationName:"limit" min:"1" type:"integer"`
 
+	// Specify either the name or ARN of the log group to view log events from.
+	// If the log group is in a source account and you are using a monitoring account,
+	// you must use the log group ARN.
+	//
+	// You must include either logGroupIdentifier or logGroupName, but not both.
+	LogGroupIdentifier *string `locationName:"logGroupIdentifier" min:"1" type:"string"`
+
 	// The name of the log group to search.
 	//
-	// LogGroupName is a required field
-	LogGroupName *string `locationName:"logGroupName" min:"1" type:"string" required:"true"`
+	// You must include either logGroupIdentifier or logGroupName, but not both.
+	LogGroupName *string `locationName:"logGroupName" min:"1" type:"string"`
 
 	// Filters the results to include only events from log streams that have names
 	// starting with this prefix.
@@ -6087,14 +13296,29 @@ type FilterLogEventsInput struct {
 	// Jan 1, 1970 00:00:00 UTC. Events with a timestamp before this time are not
 	// returned.
 	StartTime *int64 `locationName:"startTime" type:"long"`
+
+	// Specify true to display the log event fields with all sensitive data unmasked
+	// and visible. The default is false.
+	//
+	// To use this operation with this parameter, you must be signed into an account
+	// with the logs:Unmask permission.
+	Unmask *bool `locationName:"unmask" type:"boolean"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s FilterLogEventsInput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s FilterLogEventsInput) GoString() string {
 	return s.String()
 }
@@ -6105,8 +13329,8 @@ func (s *FilterLogEventsInput) Validate() error {
 	if s.Limit != nil && *s.Limit < 1 {
 		invalidParams.Add(request.NewErrParamMinValue("Limit", 1))
 	}
-	if s.LogGroupName == nil {
-		invalidParams.Add(request.NewErrParamRequired("LogGroupName"))
+	if s.LogGroupIdentifier != nil && len(*s.LogGroupIdentifier) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("LogGroupIdentifier", 1))
 	}
 	if s.LogGroupName != nil && len(*s.LogGroupName) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("LogGroupName", 1))
@@ -6151,6 +13375,12 @@ func (s *FilterLogEventsInput) SetLimit(v int64) *FilterLogEventsInput {
 	return s
 }
 
+// SetLogGroupIdentifier sets the LogGroupIdentifier field's value.
+func (s *FilterLogEventsInput) SetLogGroupIdentifier(v string) *FilterLogEventsInput {
+	s.LogGroupIdentifier = &v
+	return s
+}
+
 // SetLogGroupName sets the LogGroupName field's value.
 func (s *FilterLogEventsInput) SetLogGroupName(v string) *FilterLogEventsInput {
 	s.LogGroupName = &v
@@ -6181,6 +13411,12 @@ func (s *FilterLogEventsInput) SetStartTime(v int64) *FilterLogEventsInput {
 	return s
 }
 
+// SetUnmask sets the Unmask field's value.
+func (s *FilterLogEventsInput) SetUnmask(v bool) *FilterLogEventsInput {
+	s.Unmask = &v
+	return s
+}
+
 type FilterLogEventsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -6191,17 +13427,28 @@ type FilterLogEventsOutput struct {
 	// after 24 hours.
 	NextToken *string `locationName:"nextToken" min:"1" type:"string"`
 
+	// Important As of May 15, 2020, this parameter is no longer supported. This
+	// parameter returns an empty list.
+	//
 	// Indicates which log streams have been searched and whether each has been
 	// searched completely.
 	SearchedLogStreams []*SearchedLogStream `locationName:"searchedLogStreams" type:"list"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s FilterLogEventsOutput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s FilterLogEventsOutput) GoString() string {
 	return s.String()
 }
@@ -6246,12 +13493,20 @@ type FilteredLogEvent struct {
 	Timestamp *int64 `locationName:"timestamp" type:"long"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s FilteredLogEvent) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s FilteredLogEvent) GoString() string {
 	return s.String()
 }
@@ -6286,6 +13541,592 @@ func (s *FilteredLogEvent) SetTimestamp(v int64) *FilteredLogEvent {
 	return s
 }
 
+type GetDataProtectionPolicyInput struct {
+	_ struct{} `type:"structure"`
+
+	// The name or ARN of the log group that contains the data protection policy
+	// that you want to see.
+	//
+	// LogGroupIdentifier is a required field
+	LogGroupIdentifier *string `locationName:"logGroupIdentifier" min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s GetDataProtectionPolicyInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s GetDataProtectionPolicyInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetDataProtectionPolicyInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetDataProtectionPolicyInput"}
+	if s.LogGroupIdentifier == nil {
+		invalidParams.Add(request.NewErrParamRequired("LogGroupIdentifier"))
+	}
+	if s.LogGroupIdentifier != nil && len(*s.LogGroupIdentifier) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("LogGroupIdentifier", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetLogGroupIdentifier sets the LogGroupIdentifier field's value.
+func (s *GetDataProtectionPolicyInput) SetLogGroupIdentifier(v string) *GetDataProtectionPolicyInput {
+	s.LogGroupIdentifier = &v
+	return s
+}
+
+type GetDataProtectionPolicyOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The date and time that this policy was most recently updated.
+	LastUpdatedTime *int64 `locationName:"lastUpdatedTime" type:"long"`
+
+	// The log group name or ARN that you specified in your request.
+	LogGroupIdentifier *string `locationName:"logGroupIdentifier" min:"1" type:"string"`
+
+	// The data protection policy document for this log group.
+	PolicyDocument *string `locationName:"policyDocument" type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s GetDataProtectionPolicyOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s GetDataProtectionPolicyOutput) GoString() string {
+	return s.String()
+}
+
+// SetLastUpdatedTime sets the LastUpdatedTime field's value.
+func (s *GetDataProtectionPolicyOutput) SetLastUpdatedTime(v int64) *GetDataProtectionPolicyOutput {
+	s.LastUpdatedTime = &v
+	return s
+}
+
+// SetLogGroupIdentifier sets the LogGroupIdentifier field's value.
+func (s *GetDataProtectionPolicyOutput) SetLogGroupIdentifier(v string) *GetDataProtectionPolicyOutput {
+	s.LogGroupIdentifier = &v
+	return s
+}
+
+// SetPolicyDocument sets the PolicyDocument field's value.
+func (s *GetDataProtectionPolicyOutput) SetPolicyDocument(v string) *GetDataProtectionPolicyOutput {
+	s.PolicyDocument = &v
+	return s
+}
+
+type GetDeliveryDestinationInput struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the delivery destination that you want to retrieve.
+	//
+	// Name is a required field
+	Name *string `locationName:"name" min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s GetDeliveryDestinationInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s GetDeliveryDestinationInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetDeliveryDestinationInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetDeliveryDestinationInput"}
+	if s.Name == nil {
+		invalidParams.Add(request.NewErrParamRequired("Name"))
+	}
+	if s.Name != nil && len(*s.Name) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Name", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetName sets the Name field's value.
+func (s *GetDeliveryDestinationInput) SetName(v string) *GetDeliveryDestinationInput {
+	s.Name = &v
+	return s
+}
+
+type GetDeliveryDestinationOutput struct {
+	_ struct{} `type:"structure"`
+
+	// A structure containing information about the delivery destination.
+	DeliveryDestination *DeliveryDestination `locationName:"deliveryDestination" type:"structure"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s GetDeliveryDestinationOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s GetDeliveryDestinationOutput) GoString() string {
+	return s.String()
+}
+
+// SetDeliveryDestination sets the DeliveryDestination field's value.
+func (s *GetDeliveryDestinationOutput) SetDeliveryDestination(v *DeliveryDestination) *GetDeliveryDestinationOutput {
+	s.DeliveryDestination = v
+	return s
+}
+
+type GetDeliveryDestinationPolicyInput struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the delivery destination that you want to retrieve the policy
+	// of.
+	//
+	// DeliveryDestinationName is a required field
+	DeliveryDestinationName *string `locationName:"deliveryDestinationName" min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s GetDeliveryDestinationPolicyInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s GetDeliveryDestinationPolicyInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetDeliveryDestinationPolicyInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetDeliveryDestinationPolicyInput"}
+	if s.DeliveryDestinationName == nil {
+		invalidParams.Add(request.NewErrParamRequired("DeliveryDestinationName"))
+	}
+	if s.DeliveryDestinationName != nil && len(*s.DeliveryDestinationName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("DeliveryDestinationName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetDeliveryDestinationName sets the DeliveryDestinationName field's value.
+func (s *GetDeliveryDestinationPolicyInput) SetDeliveryDestinationName(v string) *GetDeliveryDestinationPolicyInput {
+	s.DeliveryDestinationName = &v
+	return s
+}
+
+type GetDeliveryDestinationPolicyOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The IAM policy for this delivery destination.
+	Policy *Policy `locationName:"policy" type:"structure"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s GetDeliveryDestinationPolicyOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s GetDeliveryDestinationPolicyOutput) GoString() string {
+	return s.String()
+}
+
+// SetPolicy sets the Policy field's value.
+func (s *GetDeliveryDestinationPolicyOutput) SetPolicy(v *Policy) *GetDeliveryDestinationPolicyOutput {
+	s.Policy = v
+	return s
+}
+
+type GetDeliveryInput struct {
+	_ struct{} `type:"structure"`
+
+	// The ID of the delivery that you want to retrieve.
+	//
+	// Id is a required field
+	Id *string `locationName:"id" min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s GetDeliveryInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s GetDeliveryInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetDeliveryInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetDeliveryInput"}
+	if s.Id == nil {
+		invalidParams.Add(request.NewErrParamRequired("Id"))
+	}
+	if s.Id != nil && len(*s.Id) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Id", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetId sets the Id field's value.
+func (s *GetDeliveryInput) SetId(v string) *GetDeliveryInput {
+	s.Id = &v
+	return s
+}
+
+type GetDeliveryOutput struct {
+	_ struct{} `type:"structure"`
+
+	// A structure that contains information about the delivery.
+	Delivery *Delivery `locationName:"delivery" type:"structure"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s GetDeliveryOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s GetDeliveryOutput) GoString() string {
+	return s.String()
+}
+
+// SetDelivery sets the Delivery field's value.
+func (s *GetDeliveryOutput) SetDelivery(v *Delivery) *GetDeliveryOutput {
+	s.Delivery = v
+	return s
+}
+
+type GetDeliverySourceInput struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the delivery source that you want to retrieve.
+	//
+	// Name is a required field
+	Name *string `locationName:"name" min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s GetDeliverySourceInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s GetDeliverySourceInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetDeliverySourceInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetDeliverySourceInput"}
+	if s.Name == nil {
+		invalidParams.Add(request.NewErrParamRequired("Name"))
+	}
+	if s.Name != nil && len(*s.Name) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Name", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetName sets the Name field's value.
+func (s *GetDeliverySourceInput) SetName(v string) *GetDeliverySourceInput {
+	s.Name = &v
+	return s
+}
+
+type GetDeliverySourceOutput struct {
+	_ struct{} `type:"structure"`
+
+	// A structure containing information about the delivery source.
+	DeliverySource *DeliverySource `locationName:"deliverySource" type:"structure"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s GetDeliverySourceOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s GetDeliverySourceOutput) GoString() string {
+	return s.String()
+}
+
+// SetDeliverySource sets the DeliverySource field's value.
+func (s *GetDeliverySourceOutput) SetDeliverySource(v *DeliverySource) *GetDeliverySourceOutput {
+	s.DeliverySource = v
+	return s
+}
+
+type GetLogAnomalyDetectorInput struct {
+	_ struct{} `type:"structure"`
+
+	// The ARN of the anomaly detector to retrieve information about. You can find
+	// the ARNs of log anomaly detectors in your account by using the ListLogAnomalyDetectors
+	// (https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_ListLogAnomalyDetectors.html)
+	// operation.
+	//
+	// AnomalyDetectorArn is a required field
+	AnomalyDetectorArn *string `locationName:"anomalyDetectorArn" min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s GetLogAnomalyDetectorInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s GetLogAnomalyDetectorInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetLogAnomalyDetectorInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetLogAnomalyDetectorInput"}
+	if s.AnomalyDetectorArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("AnomalyDetectorArn"))
+	}
+	if s.AnomalyDetectorArn != nil && len(*s.AnomalyDetectorArn) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("AnomalyDetectorArn", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetAnomalyDetectorArn sets the AnomalyDetectorArn field's value.
+func (s *GetLogAnomalyDetectorInput) SetAnomalyDetectorArn(v string) *GetLogAnomalyDetectorInput {
+	s.AnomalyDetectorArn = &v
+	return s
+}
+
+type GetLogAnomalyDetectorOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Specifies whether the anomaly detector is currently active. To change its
+	// status, use the enabled parameter in the UpdateLogAnomalyDetector (https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_UpdateLogAnomalyDetector.html)
+	// operation.
+	AnomalyDetectorStatus *string `locationName:"anomalyDetectorStatus" type:"string" enum:"AnomalyDetectorStatus"`
+
+	// The number of days used as the life cycle of anomalies. After this time,
+	// anomalies are automatically baselined and the anomaly detector model will
+	// treat new occurrences of similar event as normal.
+	AnomalyVisibilityTime *int64 `locationName:"anomalyVisibilityTime" min:"7" type:"long"`
+
+	// The date and time when this anomaly detector was created.
+	CreationTimeStamp *int64 `locationName:"creationTimeStamp" type:"long"`
+
+	// The name of the log anomaly detector
+	DetectorName *string `locationName:"detectorName" min:"1" type:"string"`
+
+	// Specifies how often the anomaly detector runs and look for anomalies. Set
+	// this value according to the frequency that the log group receives new logs.
+	// For example, if the log group receives new log events every 10 minutes, then
+	// setting evaluationFrequency to FIFTEEN_MIN might be appropriate.
+	EvaluationFrequency *string `locationName:"evaluationFrequency" type:"string" enum:"EvaluationFrequency"`
+
+	// A symbolic description of how CloudWatch Logs should interpret the data in
+	// each log event. For example, a log event can contain timestamps, IP addresses,
+	// strings, and so on. You use the filter pattern to specify what to look for
+	// in the log event message.
+	FilterPattern *string `locationName:"filterPattern" type:"string"`
+
+	// The ID of the KMS key assigned to this anomaly detector, if any.
+	KmsKeyId *string `locationName:"kmsKeyId" type:"string"`
+
+	// The date and time when this anomaly detector was most recently modified.
+	LastModifiedTimeStamp *int64 `locationName:"lastModifiedTimeStamp" type:"long"`
+
+	// An array of structures, where each structure contains the ARN of a log group
+	// associated with this anomaly detector.
+	LogGroupArnList []*string `locationName:"logGroupArnList" type:"list"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s GetLogAnomalyDetectorOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s GetLogAnomalyDetectorOutput) GoString() string {
+	return s.String()
+}
+
+// SetAnomalyDetectorStatus sets the AnomalyDetectorStatus field's value.
+func (s *GetLogAnomalyDetectorOutput) SetAnomalyDetectorStatus(v string) *GetLogAnomalyDetectorOutput {
+	s.AnomalyDetectorStatus = &v
+	return s
+}
+
+// SetAnomalyVisibilityTime sets the AnomalyVisibilityTime field's value.
+func (s *GetLogAnomalyDetectorOutput) SetAnomalyVisibilityTime(v int64) *GetLogAnomalyDetectorOutput {
+	s.AnomalyVisibilityTime = &v
+	return s
+}
+
+// SetCreationTimeStamp sets the CreationTimeStamp field's value.
+func (s *GetLogAnomalyDetectorOutput) SetCreationTimeStamp(v int64) *GetLogAnomalyDetectorOutput {
+	s.CreationTimeStamp = &v
+	return s
+}
+
+// SetDetectorName sets the DetectorName field's value.
+func (s *GetLogAnomalyDetectorOutput) SetDetectorName(v string) *GetLogAnomalyDetectorOutput {
+	s.DetectorName = &v
+	return s
+}
+
+// SetEvaluationFrequency sets the EvaluationFrequency field's value.
+func (s *GetLogAnomalyDetectorOutput) SetEvaluationFrequency(v string) *GetLogAnomalyDetectorOutput {
+	s.EvaluationFrequency = &v
+	return s
+}
+
+// SetFilterPattern sets the FilterPattern field's value.
+func (s *GetLogAnomalyDetectorOutput) SetFilterPattern(v string) *GetLogAnomalyDetectorOutput {
+	s.FilterPattern = &v
+	return s
+}
+
+// SetKmsKeyId sets the KmsKeyId field's value.
+func (s *GetLogAnomalyDetectorOutput) SetKmsKeyId(v string) *GetLogAnomalyDetectorOutput {
+	s.KmsKeyId = &v
+	return s
+}
+
+// SetLastModifiedTimeStamp sets the LastModifiedTimeStamp field's value.
+func (s *GetLogAnomalyDetectorOutput) SetLastModifiedTimeStamp(v int64) *GetLogAnomalyDetectorOutput {
+	s.LastModifiedTimeStamp = &v
+	return s
+}
+
+// SetLogGroupArnList sets the LogGroupArnList field's value.
+func (s *GetLogAnomalyDetectorOutput) SetLogGroupArnList(v []*string) *GetLogAnomalyDetectorOutput {
+	s.LogGroupArnList = v
+	return s
+}
+
 type GetLogEventsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -6294,15 +14135,22 @@ type GetLogEventsInput struct {
 	// this time are not included.
 	EndTime *int64 `locationName:"endTime" type:"long"`
 
-	// The maximum number of log events returned. If you don't specify a value,
-	// the maximum is as many log events as can fit in a response size of 1 MB,
-	// up to 10,000 log events.
+	// The maximum number of log events returned. If you don't specify a limit,
+	// the default is as many log events as can fit in a response size of 1 MB (up
+	// to 10,000 log events).
 	Limit *int64 `locationName:"limit" min:"1" type:"integer"`
+
+	// Specify either the name or ARN of the log group to view events from. If the
+	// log group is in a source account and you are using a monitoring account,
+	// you must use the log group ARN.
+	//
+	// You must include either logGroupIdentifier or logGroupName, but not both.
+	LogGroupIdentifier *string `locationName:"logGroupIdentifier" min:"1" type:"string"`
 
 	// The name of the log group.
 	//
-	// LogGroupName is a required field
-	LogGroupName *string `locationName:"logGroupName" min:"1" type:"string" required:"true"`
+	// You must include either logGroupIdentifier or logGroupName, but not both.
+	LogGroupName *string `locationName:"logGroupName" min:"1" type:"string"`
 
 	// The name of the log stream.
 	//
@@ -6317,7 +14165,8 @@ type GetLogEventsInput struct {
 	// value is false, the latest log events are returned first. The default value
 	// is false.
 	//
-	// If you are using nextToken in this operation, you must specify true for startFromHead.
+	// If you are using a previous nextForwardToken value as the nextToken in this
+	// operation, you must specify true for startFromHead.
 	StartFromHead *bool `locationName:"startFromHead" type:"boolean"`
 
 	// The start of the time range, expressed as the number of milliseconds after
@@ -6325,14 +14174,29 @@ type GetLogEventsInput struct {
 	// than this time are included. Events with a timestamp earlier than this time
 	// are not included.
 	StartTime *int64 `locationName:"startTime" type:"long"`
+
+	// Specify true to display the log event fields with all sensitive data unmasked
+	// and visible. The default is false.
+	//
+	// To use this operation with this parameter, you must be signed into an account
+	// with the logs:Unmask permission.
+	Unmask *bool `locationName:"unmask" type:"boolean"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s GetLogEventsInput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s GetLogEventsInput) GoString() string {
 	return s.String()
 }
@@ -6343,8 +14207,8 @@ func (s *GetLogEventsInput) Validate() error {
 	if s.Limit != nil && *s.Limit < 1 {
 		invalidParams.Add(request.NewErrParamMinValue("Limit", 1))
 	}
-	if s.LogGroupName == nil {
-		invalidParams.Add(request.NewErrParamRequired("LogGroupName"))
+	if s.LogGroupIdentifier != nil && len(*s.LogGroupIdentifier) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("LogGroupIdentifier", 1))
 	}
 	if s.LogGroupName != nil && len(*s.LogGroupName) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("LogGroupName", 1))
@@ -6374,6 +14238,12 @@ func (s *GetLogEventsInput) SetEndTime(v int64) *GetLogEventsInput {
 // SetLimit sets the Limit field's value.
 func (s *GetLogEventsInput) SetLimit(v int64) *GetLogEventsInput {
 	s.Limit = &v
+	return s
+}
+
+// SetLogGroupIdentifier sets the LogGroupIdentifier field's value.
+func (s *GetLogEventsInput) SetLogGroupIdentifier(v string) *GetLogEventsInput {
+	s.LogGroupIdentifier = &v
 	return s
 }
 
@@ -6407,6 +14277,12 @@ func (s *GetLogEventsInput) SetStartTime(v int64) *GetLogEventsInput {
 	return s
 }
 
+// SetUnmask sets the Unmask field's value.
+func (s *GetLogEventsInput) SetUnmask(v bool) *GetLogEventsInput {
+	s.Unmask = &v
+	return s
+}
+
 type GetLogEventsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -6414,22 +14290,30 @@ type GetLogEventsOutput struct {
 	Events []*OutputLogEvent `locationName:"events" type:"list"`
 
 	// The token for the next set of items in the backward direction. The token
-	// expires after 24 hours. This token will never be null. If you have reached
-	// the end of the stream, it will return the same token you passed in.
+	// expires after 24 hours. This token is not null. If you have reached the end
+	// of the stream, it returns the same token you passed in.
 	NextBackwardToken *string `locationName:"nextBackwardToken" min:"1" type:"string"`
 
 	// The token for the next set of items in the forward direction. The token expires
-	// after 24 hours. If you have reached the end of the stream, it will return
-	// the same token you passed in.
+	// after 24 hours. If you have reached the end of the stream, it returns the
+	// same token you passed in.
 	NextForwardToken *string `locationName:"nextForwardToken" min:"1" type:"string"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s GetLogEventsOutput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s GetLogEventsOutput) GoString() string {
 	return s.String()
 }
@@ -6455,26 +14339,41 @@ func (s *GetLogEventsOutput) SetNextForwardToken(v string) *GetLogEventsOutput {
 type GetLogGroupFieldsInput struct {
 	_ struct{} `type:"structure"`
 
+	// Specify either the name or ARN of the log group to view. If the log group
+	// is in a source account and you are using a monitoring account, you must specify
+	// the ARN.
+	//
+	// You must include either logGroupIdentifier or logGroupName, but not both.
+	LogGroupIdentifier *string `locationName:"logGroupIdentifier" min:"1" type:"string"`
+
 	// The name of the log group to search.
 	//
-	// LogGroupName is a required field
-	LogGroupName *string `locationName:"logGroupName" min:"1" type:"string" required:"true"`
+	// You must include either logGroupIdentifier or logGroupName, but not both.
+	LogGroupName *string `locationName:"logGroupName" min:"1" type:"string"`
 
 	// The time to set as the center of the query. If you specify time, the 8 minutes
 	// before and 8 minutes after this time are searched. If you omit time, the
-	// past 15 minutes are queried.
+	// most recent 15 minutes up to the current time are searched.
 	//
-	// The time value is specified as epoch time, the number of seconds since January
-	// 1, 1970, 00:00:00 UTC.
+	// The time value is specified as epoch time, which is the number of seconds
+	// since January 1, 1970, 00:00:00 UTC.
 	Time *int64 `locationName:"time" type:"long"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s GetLogGroupFieldsInput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s GetLogGroupFieldsInput) GoString() string {
 	return s.String()
 }
@@ -6482,8 +14381,8 @@ func (s GetLogGroupFieldsInput) GoString() string {
 // Validate inspects the fields of the type to determine if they are valid.
 func (s *GetLogGroupFieldsInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "GetLogGroupFieldsInput"}
-	if s.LogGroupName == nil {
-		invalidParams.Add(request.NewErrParamRequired("LogGroupName"))
+	if s.LogGroupIdentifier != nil && len(*s.LogGroupIdentifier) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("LogGroupIdentifier", 1))
 	}
 	if s.LogGroupName != nil && len(*s.LogGroupName) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("LogGroupName", 1))
@@ -6493,6 +14392,12 @@ func (s *GetLogGroupFieldsInput) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetLogGroupIdentifier sets the LogGroupIdentifier field's value.
+func (s *GetLogGroupFieldsInput) SetLogGroupIdentifier(v string) *GetLogGroupFieldsInput {
+	s.LogGroupIdentifier = &v
+	return s
 }
 
 // SetLogGroupName sets the LogGroupName field's value.
@@ -6516,12 +14421,20 @@ type GetLogGroupFieldsOutput struct {
 	LogGroupFields []*LogGroupField `locationName:"logGroupFields" type:"list"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s GetLogGroupFieldsOutput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s GetLogGroupFieldsOutput) GoString() string {
 	return s.String()
 }
@@ -6542,14 +14455,29 @@ type GetLogRecordInput struct {
 	//
 	// LogRecordPointer is a required field
 	LogRecordPointer *string `locationName:"logRecordPointer" type:"string" required:"true"`
+
+	// Specify true to display the log event fields with all sensitive data unmasked
+	// and visible. The default is false.
+	//
+	// To use this operation with this parameter, you must be signed into an account
+	// with the logs:Unmask permission.
+	Unmask *bool `locationName:"unmask" type:"boolean"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s GetLogRecordInput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s GetLogRecordInput) GoString() string {
 	return s.String()
 }
@@ -6573,6 +14501,12 @@ func (s *GetLogRecordInput) SetLogRecordPointer(v string) *GetLogRecordInput {
 	return s
 }
 
+// SetUnmask sets the Unmask field's value.
+func (s *GetLogRecordInput) SetUnmask(v bool) *GetLogRecordInput {
+	s.Unmask = &v
+	return s
+}
+
 type GetLogRecordOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -6580,12 +14514,20 @@ type GetLogRecordOutput struct {
 	LogRecord map[string]*string `locationName:"logRecord" type:"map"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s GetLogRecordOutput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s GetLogRecordOutput) GoString() string {
 	return s.String()
 }
@@ -6605,12 +14547,20 @@ type GetQueryResultsInput struct {
 	QueryId *string `locationName:"queryId" type:"string" required:"true"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s GetQueryResultsInput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s GetQueryResultsInput) GoString() string {
 	return s.String()
 }
@@ -6637,6 +14587,12 @@ func (s *GetQueryResultsInput) SetQueryId(v string) *GetQueryResultsInput {
 type GetQueryResultsOutput struct {
 	_ struct{} `type:"structure"`
 
+	// If you associated an KMS key with the CloudWatch Logs Insights query results
+	// in this account, this field displays the ARN of the key that's used to encrypt
+	// the query results when StartQuery (https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_StartQuery.html)
+	// stores them.
+	EncryptionKey *string `locationName:"encryptionKey" type:"string"`
+
 	// The log events that matched the query criteria during the most recent time
 	// it ran.
 	//
@@ -6647,26 +14603,41 @@ type GetQueryResultsOutput struct {
 
 	// Includes the number of log events scanned by the query, the number of log
 	// events that matched the query criteria, and the total number of bytes in
-	// the log events that were scanned.
+	// the scanned log events. These values reflect the full raw results of the
+	// query.
 	Statistics *QueryStatistics `locationName:"statistics" type:"structure"`
 
 	// The status of the most recent running of the query. Possible values are Cancelled,
 	// Complete, Failed, Running, Scheduled, Timeout, and Unknown.
 	//
-	// Queries time out after 15 minutes of execution. To avoid having your queries
-	// time out, reduce the time range being searched, or partition your query into
+	// Queries time out after 60 minutes of runtime. To avoid having your queries
+	// time out, reduce the time range being searched or partition your query into
 	// a number of queries.
 	Status *string `locationName:"status" type:"string" enum:"QueryStatus"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s GetQueryResultsOutput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s GetQueryResultsOutput) GoString() string {
 	return s.String()
+}
+
+// SetEncryptionKey sets the EncryptionKey field's value.
+func (s *GetQueryResultsOutput) SetEncryptionKey(v string) *GetQueryResultsOutput {
+	s.EncryptionKey = &v
+	return s
 }
 
 // SetResults sets the Results field's value.
@@ -6692,7 +14663,7 @@ func (s *GetQueryResultsOutput) SetStatus(v string) *GetQueryResultsOutput {
 type InputLogEvent struct {
 	_ struct{} `type:"structure"`
 
-	// The raw event message.
+	// The raw event message. Each log event can be no larger than 256 KB.
 	//
 	// Message is a required field
 	Message *string `locationName:"message" min:"1" type:"string" required:"true"`
@@ -6704,12 +14675,20 @@ type InputLogEvent struct {
 	Timestamp *int64 `locationName:"timestamp" type:"long" required:"true"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s InputLogEvent) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s InputLogEvent) GoString() string {
 	return s.String()
 }
@@ -6745,8 +14724,594 @@ func (s *InputLogEvent) SetTimestamp(v int64) *InputLogEvent {
 	return s
 }
 
-type ListTagsLogGroupInput struct {
+// The operation is not valid on the specified resource.
+type InvalidOperationException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s InvalidOperationException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s InvalidOperationException) GoString() string {
+	return s.String()
+}
+
+func newErrorInvalidOperationException(v protocol.ResponseMetadata) error {
+	return &InvalidOperationException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *InvalidOperationException) Code() string {
+	return "InvalidOperationException"
+}
+
+// Message returns the exception's message.
+func (s *InvalidOperationException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *InvalidOperationException) OrigErr() error {
+	return nil
+}
+
+func (s *InvalidOperationException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *InvalidOperationException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *InvalidOperationException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
+// A parameter is specified incorrectly.
+type InvalidParameterException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s InvalidParameterException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s InvalidParameterException) GoString() string {
+	return s.String()
+}
+
+func newErrorInvalidParameterException(v protocol.ResponseMetadata) error {
+	return &InvalidParameterException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *InvalidParameterException) Code() string {
+	return "InvalidParameterException"
+}
+
+// Message returns the exception's message.
+func (s *InvalidParameterException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *InvalidParameterException) OrigErr() error {
+	return nil
+}
+
+func (s *InvalidParameterException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *InvalidParameterException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *InvalidParameterException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
+// The sequence token is not valid. You can get the correct sequence token in
+// the expectedSequenceToken field in the InvalidSequenceTokenException message.
+//
+// PutLogEvents actions are now always accepted and never return InvalidSequenceTokenException
+// regardless of receiving an invalid sequence token.
+type InvalidSequenceTokenException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	ExpectedSequenceToken *string `locationName:"expectedSequenceToken" min:"1" type:"string"`
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s InvalidSequenceTokenException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s InvalidSequenceTokenException) GoString() string {
+	return s.String()
+}
+
+func newErrorInvalidSequenceTokenException(v protocol.ResponseMetadata) error {
+	return &InvalidSequenceTokenException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *InvalidSequenceTokenException) Code() string {
+	return "InvalidSequenceTokenException"
+}
+
+// Message returns the exception's message.
+func (s *InvalidSequenceTokenException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *InvalidSequenceTokenException) OrigErr() error {
+	return nil
+}
+
+func (s *InvalidSequenceTokenException) Error() string {
+	return fmt.Sprintf("%s: %s\n%s", s.Code(), s.Message(), s.String())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *InvalidSequenceTokenException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *InvalidSequenceTokenException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
+// You have reached the maximum number of resources that can be created.
+type LimitExceededException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s LimitExceededException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s LimitExceededException) GoString() string {
+	return s.String()
+}
+
+func newErrorLimitExceededException(v protocol.ResponseMetadata) error {
+	return &LimitExceededException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *LimitExceededException) Code() string {
+	return "LimitExceededException"
+}
+
+// Message returns the exception's message.
+func (s *LimitExceededException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *LimitExceededException) OrigErr() error {
+	return nil
+}
+
+func (s *LimitExceededException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *LimitExceededException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *LimitExceededException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
+type ListAnomaliesInput struct {
 	_ struct{} `type:"structure"`
+
+	// Use this to optionally limit the results to only the anomalies found by a
+	// certain anomaly detector.
+	AnomalyDetectorArn *string `locationName:"anomalyDetectorArn" min:"1" type:"string"`
+
+	// The maximum number of items to return. If you don't specify a value, the
+	// default maximum value of 50 items is used.
+	Limit *int64 `locationName:"limit" min:"1" type:"integer"`
+
+	// The token for the next set of items to return. The token expires after 24
+	// hours.
+	NextToken *string `locationName:"nextToken" min:"1" type:"string"`
+
+	// You can specify this parameter if you want to the operation to return only
+	// anomalies that are currently either suppressed or unsuppressed.
+	SuppressionState *string `locationName:"suppressionState" type:"string" enum:"SuppressionState"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ListAnomaliesInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ListAnomaliesInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListAnomaliesInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListAnomaliesInput"}
+	if s.AnomalyDetectorArn != nil && len(*s.AnomalyDetectorArn) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("AnomalyDetectorArn", 1))
+	}
+	if s.Limit != nil && *s.Limit < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("Limit", 1))
+	}
+	if s.NextToken != nil && len(*s.NextToken) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("NextToken", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetAnomalyDetectorArn sets the AnomalyDetectorArn field's value.
+func (s *ListAnomaliesInput) SetAnomalyDetectorArn(v string) *ListAnomaliesInput {
+	s.AnomalyDetectorArn = &v
+	return s
+}
+
+// SetLimit sets the Limit field's value.
+func (s *ListAnomaliesInput) SetLimit(v int64) *ListAnomaliesInput {
+	s.Limit = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ListAnomaliesInput) SetNextToken(v string) *ListAnomaliesInput {
+	s.NextToken = &v
+	return s
+}
+
+// SetSuppressionState sets the SuppressionState field's value.
+func (s *ListAnomaliesInput) SetSuppressionState(v string) *ListAnomaliesInput {
+	s.SuppressionState = &v
+	return s
+}
+
+type ListAnomaliesOutput struct {
+	_ struct{} `type:"structure"`
+
+	// An array of structures, where each structure contains information about one
+	// anomaly that a log anomaly detector has found.
+	Anomalies []*Anomaly `locationName:"anomalies" type:"list"`
+
+	// The token for the next set of items to return. The token expires after 24
+	// hours.
+	NextToken *string `locationName:"nextToken" min:"1" type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ListAnomaliesOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ListAnomaliesOutput) GoString() string {
+	return s.String()
+}
+
+// SetAnomalies sets the Anomalies field's value.
+func (s *ListAnomaliesOutput) SetAnomalies(v []*Anomaly) *ListAnomaliesOutput {
+	s.Anomalies = v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ListAnomaliesOutput) SetNextToken(v string) *ListAnomaliesOutput {
+	s.NextToken = &v
+	return s
+}
+
+type ListLogAnomalyDetectorsInput struct {
+	_ struct{} `type:"structure"`
+
+	// Use this to optionally filter the results to only include anomaly detectors
+	// that are associated with the specified log group.
+	FilterLogGroupArn *string `locationName:"filterLogGroupArn" min:"1" type:"string"`
+
+	// The maximum number of items to return. If you don't specify a value, the
+	// default maximum value of 50 items is used.
+	Limit *int64 `locationName:"limit" min:"1" type:"integer"`
+
+	// The token for the next set of items to return. The token expires after 24
+	// hours.
+	NextToken *string `locationName:"nextToken" min:"1" type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ListLogAnomalyDetectorsInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ListLogAnomalyDetectorsInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListLogAnomalyDetectorsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListLogAnomalyDetectorsInput"}
+	if s.FilterLogGroupArn != nil && len(*s.FilterLogGroupArn) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("FilterLogGroupArn", 1))
+	}
+	if s.Limit != nil && *s.Limit < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("Limit", 1))
+	}
+	if s.NextToken != nil && len(*s.NextToken) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("NextToken", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetFilterLogGroupArn sets the FilterLogGroupArn field's value.
+func (s *ListLogAnomalyDetectorsInput) SetFilterLogGroupArn(v string) *ListLogAnomalyDetectorsInput {
+	s.FilterLogGroupArn = &v
+	return s
+}
+
+// SetLimit sets the Limit field's value.
+func (s *ListLogAnomalyDetectorsInput) SetLimit(v int64) *ListLogAnomalyDetectorsInput {
+	s.Limit = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ListLogAnomalyDetectorsInput) SetNextToken(v string) *ListLogAnomalyDetectorsInput {
+	s.NextToken = &v
+	return s
+}
+
+type ListLogAnomalyDetectorsOutput struct {
+	_ struct{} `type:"structure"`
+
+	// An array of structures, where each structure in the array contains information
+	// about one anomaly detector.
+	AnomalyDetectors []*AnomalyDetector `locationName:"anomalyDetectors" type:"list"`
+
+	// The token for the next set of items to return. The token expires after 24
+	// hours.
+	NextToken *string `locationName:"nextToken" min:"1" type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ListLogAnomalyDetectorsOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ListLogAnomalyDetectorsOutput) GoString() string {
+	return s.String()
+}
+
+// SetAnomalyDetectors sets the AnomalyDetectors field's value.
+func (s *ListLogAnomalyDetectorsOutput) SetAnomalyDetectors(v []*AnomalyDetector) *ListLogAnomalyDetectorsOutput {
+	s.AnomalyDetectors = v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ListLogAnomalyDetectorsOutput) SetNextToken(v string) *ListLogAnomalyDetectorsOutput {
+	s.NextToken = &v
+	return s
+}
+
+type ListTagsForResourceInput struct {
+	_ struct{} `type:"structure"`
+
+	// The ARN of the resource that you want to view tags for.
+	//
+	// The ARN format of a log group is arn:aws:logs:Region:account-id:log-group:log-group-name
+	//
+	// The ARN format of a destination is arn:aws:logs:Region:account-id:destination:destination-name
+	//
+	// For more information about ARN format, see CloudWatch Logs resources and
+	// operations (https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/iam-access-control-overview-cwl.html).
+	//
+	// ResourceArn is a required field
+	ResourceArn *string `locationName:"resourceArn" min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ListTagsForResourceInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ListTagsForResourceInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListTagsForResourceInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListTagsForResourceInput"}
+	if s.ResourceArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("ResourceArn"))
+	}
+	if s.ResourceArn != nil && len(*s.ResourceArn) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ResourceArn", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetResourceArn sets the ResourceArn field's value.
+func (s *ListTagsForResourceInput) SetResourceArn(v string) *ListTagsForResourceInput {
+	s.ResourceArn = &v
+	return s
+}
+
+type ListTagsForResourceOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The list of tags associated with the requested resource.>
+	Tags map[string]*string `locationName:"tags" min:"1" type:"map"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ListTagsForResourceOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ListTagsForResourceOutput) GoString() string {
+	return s.String()
+}
+
+// SetTags sets the Tags field's value.
+func (s *ListTagsForResourceOutput) SetTags(v map[string]*string) *ListTagsForResourceOutput {
+	s.Tags = v
+	return s
+}
+
+// Deprecated: Please use the generic tagging API model ListTagsForResourceRequest and ListTagsForResourceResponse
+type ListTagsLogGroupInput struct {
+	_ struct{} `deprecated:"true" type:"structure"`
 
 	// The name of the log group.
 	//
@@ -6754,12 +15319,20 @@ type ListTagsLogGroupInput struct {
 	LogGroupName *string `locationName:"logGroupName" min:"1" type:"string" required:"true"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s ListTagsLogGroupInput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s ListTagsLogGroupInput) GoString() string {
 	return s.String()
 }
@@ -6786,19 +15359,28 @@ func (s *ListTagsLogGroupInput) SetLogGroupName(v string) *ListTagsLogGroupInput
 	return s
 }
 
+// Deprecated: Please use the generic tagging API model ListTagsForResourceRequest and ListTagsForResourceResponse
 type ListTagsLogGroupOutput struct {
-	_ struct{} `type:"structure"`
+	_ struct{} `deprecated:"true" type:"structure"`
 
 	// The tags for the log group.
 	Tags map[string]*string `locationName:"tags" min:"1" type:"map"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s ListTagsLogGroupOutput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s ListTagsLogGroupOutput) GoString() string {
 	return s.String()
 }
@@ -6809,19 +15391,405 @@ func (s *ListTagsLogGroupOutput) SetTags(v map[string]*string) *ListTagsLogGroup
 	return s
 }
 
+// This object contains the information for one log event returned in a Live
+// Tail stream.
+type LiveTailSessionLogEvent struct {
+	_ struct{} `type:"structure"`
+
+	// The timestamp specifying when this log event was ingested into the log group.
+	IngestionTime *int64 `locationName:"ingestionTime" type:"long"`
+
+	// The name or ARN of the log group that ingested this log event.
+	LogGroupIdentifier *string `locationName:"logGroupIdentifier" min:"1" type:"string"`
+
+	// The name of the log stream that ingested this log event.
+	LogStreamName *string `locationName:"logStreamName" min:"1" type:"string"`
+
+	// The log event message text.
+	Message *string `locationName:"message" min:"1" type:"string"`
+
+	// The timestamp specifying when this log event was created.
+	Timestamp *int64 `locationName:"timestamp" type:"long"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s LiveTailSessionLogEvent) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s LiveTailSessionLogEvent) GoString() string {
+	return s.String()
+}
+
+// SetIngestionTime sets the IngestionTime field's value.
+func (s *LiveTailSessionLogEvent) SetIngestionTime(v int64) *LiveTailSessionLogEvent {
+	s.IngestionTime = &v
+	return s
+}
+
+// SetLogGroupIdentifier sets the LogGroupIdentifier field's value.
+func (s *LiveTailSessionLogEvent) SetLogGroupIdentifier(v string) *LiveTailSessionLogEvent {
+	s.LogGroupIdentifier = &v
+	return s
+}
+
+// SetLogStreamName sets the LogStreamName field's value.
+func (s *LiveTailSessionLogEvent) SetLogStreamName(v string) *LiveTailSessionLogEvent {
+	s.LogStreamName = &v
+	return s
+}
+
+// SetMessage sets the Message field's value.
+func (s *LiveTailSessionLogEvent) SetMessage(v string) *LiveTailSessionLogEvent {
+	s.Message = &v
+	return s
+}
+
+// SetTimestamp sets the Timestamp field's value.
+func (s *LiveTailSessionLogEvent) SetTimestamp(v int64) *LiveTailSessionLogEvent {
+	s.Timestamp = &v
+	return s
+}
+
+// This object contains the metadata for one LiveTailSessionUpdate structure.
+// It indicates whether that update includes only a sample of 500 log events
+// out of a larger number of ingested log events, or if it contains all of the
+// matching log events ingested during that second of time.
+type LiveTailSessionMetadata struct {
+	_ struct{} `type:"structure"`
+
+	// If this is true, then more than 500 log events matched the request for this
+	// update, and the sessionResults includes a sample of 500 of those events.
+	//
+	// If this is false, then 500 or fewer log events matched the request for this
+	// update, so no sampling was necessary. In this case, the sessionResults array
+	// includes all log events that matched your request during this time.
+	Sampled *bool `locationName:"sampled" type:"boolean"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s LiveTailSessionMetadata) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s LiveTailSessionMetadata) GoString() string {
+	return s.String()
+}
+
+// SetSampled sets the Sampled field's value.
+func (s *LiveTailSessionMetadata) SetSampled(v bool) *LiveTailSessionMetadata {
+	s.Sampled = &v
+	return s
+}
+
+// This object contains information about this Live Tail session, including
+// the log groups included and the log stream filters, if any.
+type LiveTailSessionStart struct {
+	_ struct{} `type:"structure"`
+
+	// An optional pattern to filter the results to include only log events that
+	// match the pattern. For example, a filter pattern of error 404 displays only
+	// log events that include both error and 404.
+	//
+	// For more information about filter pattern syntax, see Filter and Pattern
+	// Syntax (https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/FilterAndPatternSyntax.html).
+	LogEventFilterPattern *string `locationName:"logEventFilterPattern" type:"string"`
+
+	// An array of the names and ARNs of the log groups included in this Live Tail
+	// session.
+	LogGroupIdentifiers []*string `locationName:"logGroupIdentifiers" min:"1" type:"list"`
+
+	// If your StartLiveTail operation request included a logStreamNamePrefixes
+	// parameter that filtered the session to only include log streams that have
+	// names that start with certain prefixes, these prefixes are listed here.
+	LogStreamNamePrefixes []*string `locationName:"logStreamNamePrefixes" min:"1" type:"list"`
+
+	// If your StartLiveTail operation request included a logStreamNames parameter
+	// that filtered the session to only include certain log streams, these streams
+	// are listed here.
+	LogStreamNames []*string `locationName:"logStreamNames" min:"1" type:"list"`
+
+	// The unique ID generated by CloudWatch Logs to identify this Live Tail session
+	// request.
+	RequestId *string `locationName:"requestId" type:"string"`
+
+	// The unique ID generated by CloudWatch Logs to identify this Live Tail session.
+	SessionId *string `locationName:"sessionId" type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s LiveTailSessionStart) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s LiveTailSessionStart) GoString() string {
+	return s.String()
+}
+
+// SetLogEventFilterPattern sets the LogEventFilterPattern field's value.
+func (s *LiveTailSessionStart) SetLogEventFilterPattern(v string) *LiveTailSessionStart {
+	s.LogEventFilterPattern = &v
+	return s
+}
+
+// SetLogGroupIdentifiers sets the LogGroupIdentifiers field's value.
+func (s *LiveTailSessionStart) SetLogGroupIdentifiers(v []*string) *LiveTailSessionStart {
+	s.LogGroupIdentifiers = v
+	return s
+}
+
+// SetLogStreamNamePrefixes sets the LogStreamNamePrefixes field's value.
+func (s *LiveTailSessionStart) SetLogStreamNamePrefixes(v []*string) *LiveTailSessionStart {
+	s.LogStreamNamePrefixes = v
+	return s
+}
+
+// SetLogStreamNames sets the LogStreamNames field's value.
+func (s *LiveTailSessionStart) SetLogStreamNames(v []*string) *LiveTailSessionStart {
+	s.LogStreamNames = v
+	return s
+}
+
+// SetRequestId sets the RequestId field's value.
+func (s *LiveTailSessionStart) SetRequestId(v string) *LiveTailSessionStart {
+	s.RequestId = &v
+	return s
+}
+
+// SetSessionId sets the SessionId field's value.
+func (s *LiveTailSessionStart) SetSessionId(v string) *LiveTailSessionStart {
+	s.SessionId = &v
+	return s
+}
+
+// The LiveTailSessionStart is and event in the StartLiveTailResponseStream group of events.
+func (s *LiveTailSessionStart) eventStartLiveTailResponseStream() {}
+
+// UnmarshalEvent unmarshals the EventStream Message into the LiveTailSessionStart value.
+// This method is only used internally within the SDK's EventStream handling.
+func (s *LiveTailSessionStart) UnmarshalEvent(
+	payloadUnmarshaler protocol.PayloadUnmarshaler,
+	msg eventstream.Message,
+) error {
+	if err := payloadUnmarshaler.UnmarshalPayload(
+		bytes.NewReader(msg.Payload), s,
+	); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MarshalEvent marshals the type into an stream event value. This method
+// should only used internally within the SDK's EventStream handling.
+func (s *LiveTailSessionStart) MarshalEvent(pm protocol.PayloadMarshaler) (msg eventstream.Message, err error) {
+	msg.Headers.Set(eventstreamapi.MessageTypeHeader, eventstream.StringValue(eventstreamapi.EventMessageType))
+	var buf bytes.Buffer
+	if err = pm.MarshalPayload(&buf, s); err != nil {
+		return eventstream.Message{}, err
+	}
+	msg.Payload = buf.Bytes()
+	return msg, err
+}
+
+// This object contains the log events and metadata for a Live Tail session.
+type LiveTailSessionUpdate struct {
+	_ struct{} `type:"structure"`
+
+	// This object contains the session metadata for a Live Tail session.
+	SessionMetadata *LiveTailSessionMetadata `locationName:"sessionMetadata" type:"structure"`
+
+	// An array, where each member of the array includes the information for one
+	// log event in the Live Tail session.
+	//
+	// A sessionResults array can include as many as 500 log events. If the number
+	// of log events matching the request exceeds 500 per second, the log events
+	// are sampled down to 500 log events to be included in each sessionUpdate structure.
+	SessionResults []*LiveTailSessionLogEvent `locationName:"sessionResults" type:"list"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s LiveTailSessionUpdate) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s LiveTailSessionUpdate) GoString() string {
+	return s.String()
+}
+
+// SetSessionMetadata sets the SessionMetadata field's value.
+func (s *LiveTailSessionUpdate) SetSessionMetadata(v *LiveTailSessionMetadata) *LiveTailSessionUpdate {
+	s.SessionMetadata = v
+	return s
+}
+
+// SetSessionResults sets the SessionResults field's value.
+func (s *LiveTailSessionUpdate) SetSessionResults(v []*LiveTailSessionLogEvent) *LiveTailSessionUpdate {
+	s.SessionResults = v
+	return s
+}
+
+// The LiveTailSessionUpdate is and event in the StartLiveTailResponseStream group of events.
+func (s *LiveTailSessionUpdate) eventStartLiveTailResponseStream() {}
+
+// UnmarshalEvent unmarshals the EventStream Message into the LiveTailSessionUpdate value.
+// This method is only used internally within the SDK's EventStream handling.
+func (s *LiveTailSessionUpdate) UnmarshalEvent(
+	payloadUnmarshaler protocol.PayloadUnmarshaler,
+	msg eventstream.Message,
+) error {
+	if err := payloadUnmarshaler.UnmarshalPayload(
+		bytes.NewReader(msg.Payload), s,
+	); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MarshalEvent marshals the type into an stream event value. This method
+// should only used internally within the SDK's EventStream handling.
+func (s *LiveTailSessionUpdate) MarshalEvent(pm protocol.PayloadMarshaler) (msg eventstream.Message, err error) {
+	msg.Headers.Set(eventstreamapi.MessageTypeHeader, eventstream.StringValue(eventstreamapi.EventMessageType))
+	var buf bytes.Buffer
+	if err = pm.MarshalPayload(&buf, s); err != nil {
+		return eventstream.Message{}, err
+	}
+	msg.Payload = buf.Bytes()
+	return msg, err
+}
+
+// This structure contains the information for one sample log event that is
+// associated with an anomaly found by a log anomaly detector.
+type LogEvent struct {
+	_ struct{} `type:"structure"`
+
+	// The message content of the log event.
+	Message *string `locationName:"message" min:"1" type:"string"`
+
+	// The time stamp of the log event.
+	Timestamp *int64 `locationName:"timestamp" type:"long"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s LogEvent) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s LogEvent) GoString() string {
+	return s.String()
+}
+
+// SetMessage sets the Message field's value.
+func (s *LogEvent) SetMessage(v string) *LogEvent {
+	s.Message = &v
+	return s
+}
+
+// SetTimestamp sets the Timestamp field's value.
+func (s *LogEvent) SetTimestamp(v int64) *LogEvent {
+	s.Timestamp = &v
+	return s
+}
+
 // Represents a log group.
 type LogGroup struct {
 	_ struct{} `type:"structure"`
 
-	// The Amazon Resource Name (ARN) of the log group.
+	// The Amazon Resource Name (ARN) of the log group. This version of the ARN
+	// includes a trailing :* after the log group name.
+	//
+	// Use this version to refer to the ARN in IAM policies when specifying permissions
+	// for most API actions. The exception is when specifying permissions for TagResource
+	// (https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_TagResource.html),
+	// UntagResource (https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_UntagResource.html),
+	// and ListTagsForResource (https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_ListTagsForResource.html).
+	// The permissions for those three actions require the ARN version that doesn't
+	// include a trailing :*.
 	Arn *string `locationName:"arn" type:"string"`
 
 	// The creation time of the log group, expressed as the number of milliseconds
 	// after Jan 1, 1970 00:00:00 UTC.
 	CreationTime *int64 `locationName:"creationTime" type:"long"`
 
-	// The Amazon Resource Name (ARN) of the CMK to use when encrypting log data.
+	// Displays whether this log group has a protection policy, or whether it had
+	// one in the past. For more information, see PutDataProtectionPolicy (https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_PutDataProtectionPolicy.html).
+	DataProtectionStatus *string `locationName:"dataProtectionStatus" type:"string" enum:"DataProtectionStatus"`
+
+	// Displays all the properties that this log group has inherited from account-level
+	// settings.
+	InheritedProperties []*string `locationName:"inheritedProperties" type:"list" enum:"InheritedProperty"`
+
+	// The Amazon Resource Name (ARN) of the KMS key to use when encrypting log
+	// data.
 	KmsKeyId *string `locationName:"kmsKeyId" type:"string"`
+
+	// The Amazon Resource Name (ARN) of the log group. This version of the ARN
+	// doesn't include a trailing :* after the log group name.
+	//
+	// Use this version to refer to the ARN in the following situations:
+	//
+	//    * In the logGroupIdentifier input field in many CloudWatch Logs APIs.
+	//
+	//    * In the resourceArn field in tagging APIs
+	//
+	//    * In IAM policies, when specifying permissions for TagResource (https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_TagResource.html),
+	//    UntagResource (https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_UntagResource.html),
+	//    and ListTagsForResource (https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_ListTagsForResource.html).
+	LogGroupArn *string `locationName:"logGroupArn" type:"string"`
+
+	// This specifies the log group class for this log group. There are two classes:
+	//
+	//    * The Standard log class supports all CloudWatch Logs features.
+	//
+	//    * The Infrequent Access log class supports a subset of CloudWatch Logs
+	//    features and incurs lower costs.
+	//
+	// For details about the features supported by each class, see Log classes (https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/CloudWatch_Logs_Log_Classes.html)
+	LogGroupClass *string `locationName:"logGroupClass" type:"string" enum:"LogGroupClass"`
 
 	// The name of the log group.
 	LogGroupName *string `locationName:"logGroupName" min:"1" type:"string"`
@@ -6831,19 +15799,30 @@ type LogGroup struct {
 
 	// The number of days to retain the log events in the specified log group. Possible
 	// values are: 1, 3, 5, 7, 14, 30, 60, 90, 120, 150, 180, 365, 400, 545, 731,
-	// 1827, and 3653.
+	// 1096, 1827, 2192, 2557, 2922, 3288, and 3653.
+	//
+	// To set a log group so that its log events do not expire, use DeleteRetentionPolicy
+	// (https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_DeleteRetentionPolicy.html).
 	RetentionInDays *int64 `locationName:"retentionInDays" type:"integer"`
 
 	// The number of bytes stored.
 	StoredBytes *int64 `locationName:"storedBytes" type:"long"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s LogGroup) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s LogGroup) GoString() string {
 	return s.String()
 }
@@ -6860,9 +15839,33 @@ func (s *LogGroup) SetCreationTime(v int64) *LogGroup {
 	return s
 }
 
+// SetDataProtectionStatus sets the DataProtectionStatus field's value.
+func (s *LogGroup) SetDataProtectionStatus(v string) *LogGroup {
+	s.DataProtectionStatus = &v
+	return s
+}
+
+// SetInheritedProperties sets the InheritedProperties field's value.
+func (s *LogGroup) SetInheritedProperties(v []*string) *LogGroup {
+	s.InheritedProperties = v
+	return s
+}
+
 // SetKmsKeyId sets the KmsKeyId field's value.
 func (s *LogGroup) SetKmsKeyId(v string) *LogGroup {
 	s.KmsKeyId = &v
+	return s
+}
+
+// SetLogGroupArn sets the LogGroupArn field's value.
+func (s *LogGroup) SetLogGroupArn(v string) *LogGroup {
+	s.LogGroupArn = &v
+	return s
+}
+
+// SetLogGroupClass sets the LogGroupClass field's value.
+func (s *LogGroup) SetLogGroupClass(v string) *LogGroup {
+	s.LogGroupClass = &v
 	return s
 }
 
@@ -6902,12 +15905,20 @@ type LogGroupField struct {
 	Percent *int64 `locationName:"percent" type:"integer"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s LogGroupField) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s LogGroupField) GoString() string {
 	return s.String()
 }
@@ -6943,12 +15954,14 @@ type LogStream struct {
 	// The time of the most recent log event in the log stream in CloudWatch Logs.
 	// This number is expressed as the number of milliseconds after Jan 1, 1970
 	// 00:00:00 UTC. The lastEventTime value updates on an eventual consistency
-	// basis. It typically updates in less than an hour from ingestion, but may
-	// take longer in some rare situations.
+	// basis. It typically updates in less than an hour from ingestion, but in rare
+	// situations might take longer.
 	LastEventTimestamp *int64 `locationName:"lastEventTimestamp" type:"long"`
 
 	// The ingestion time, expressed as the number of milliseconds after Jan 1,
-	// 1970 00:00:00 UTC.
+	// 1970 00:00:00 UTC The lastIngestionTime value updates on an eventual consistency
+	// basis. It typically updates in less than an hour after ingestion, but in
+	// rare situations might take longer.
 	LastIngestionTime *int64 `locationName:"lastIngestionTime" type:"long"`
 
 	// The name of the log stream.
@@ -6956,23 +15969,35 @@ type LogStream struct {
 
 	// The number of bytes stored.
 	//
-	// IMPORTANT: Starting on June 17, 2019, this parameter will be deprecated for
-	// log streams, and will be reported as zero. This change applies only to log
-	// streams. The storedBytes parameter for log groups is not affected.
+	// Important: As of June 17, 2019, this parameter is no longer supported for
+	// log streams, and is always reported as zero. This change applies only to
+	// log streams. The storedBytes parameter for log groups is not affected.
 	//
 	// Deprecated: Starting on June 17, 2019, this parameter will be deprecated for log streams, and will be reported as zero. This change applies only to log streams. The storedBytes parameter for log groups is not affected.
 	StoredBytes *int64 `locationName:"storedBytes" deprecated:"true" type:"long"`
 
 	// The sequence token.
+	//
+	// The sequence token is now ignored in PutLogEvents actions. PutLogEvents actions
+	// are always accepted regardless of receiving an invalid sequence token. You
+	// don't need to obtain uploadSequenceToken to use a PutLogEvents action.
 	UploadSequenceToken *string `locationName:"uploadSequenceToken" min:"1" type:"string"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s LogStream) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s LogStream) GoString() string {
 	return s.String()
 }
@@ -7025,6 +16050,77 @@ func (s *LogStream) SetUploadSequenceToken(v string) *LogStream {
 	return s
 }
 
+// The query string is not valid. Details about this error are displayed in
+// a QueryCompileError object. For more information, see QueryCompileError (https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_QueryCompileError.html).
+//
+// For more information about valid query syntax, see CloudWatch Logs Insights
+// Query Syntax (https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/CWL_QuerySyntax.html).
+type MalformedQueryException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	Message_ *string `locationName:"message" type:"string"`
+
+	// Reserved.
+	QueryCompileError *QueryCompileError `locationName:"queryCompileError" type:"structure"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s MalformedQueryException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s MalformedQueryException) GoString() string {
+	return s.String()
+}
+
+func newErrorMalformedQueryException(v protocol.ResponseMetadata) error {
+	return &MalformedQueryException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *MalformedQueryException) Code() string {
+	return "MalformedQueryException"
+}
+
+// Message returns the exception's message.
+func (s *MalformedQueryException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *MalformedQueryException) OrigErr() error {
+	return nil
+}
+
+func (s *MalformedQueryException) Error() string {
+	return fmt.Sprintf("%s: %s\n%s", s.Code(), s.Message(), s.String())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *MalformedQueryException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *MalformedQueryException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
 // Metric filters express how CloudWatch Logs would extract metric observations
 // from ingested log events and transform them into metric data in a CloudWatch
 // metric.
@@ -7039,7 +16135,7 @@ type MetricFilter struct {
 	FilterName *string `locationName:"filterName" min:"1" type:"string"`
 
 	// A symbolic description of how CloudWatch Logs should interpret the data in
-	// each log event. For example, a log event may contain timestamps, IP addresses,
+	// each log event. For example, a log event can contain timestamps, IP addresses,
 	// strings, and so on. You use the filter pattern to specify what to look for
 	// in the log event message.
 	FilterPattern *string `locationName:"filterPattern" type:"string"`
@@ -7051,12 +16147,20 @@ type MetricFilter struct {
 	MetricTransformations []*MetricTransformation `locationName:"metricTransformations" min:"1" type:"list"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s MetricFilter) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s MetricFilter) GoString() string {
 	return s.String()
 }
@@ -7105,12 +16209,20 @@ type MetricFilterMatchRecord struct {
 	ExtractedValues map[string]*string `locationName:"extractedValues" type:"map"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s MetricFilterMatchRecord) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s MetricFilterMatchRecord) GoString() string {
 	return s.String()
 }
@@ -7142,12 +16254,31 @@ type MetricTransformation struct {
 	// This value can be null.
 	DefaultValue *float64 `locationName:"defaultValue" type:"double"`
 
+	// The fields to use as dimensions for the metric. One metric filter can include
+	// as many as three dimensions.
+	//
+	// Metrics extracted from log events are charged as custom metrics. To prevent
+	// unexpected high charges, do not specify high-cardinality fields such as IPAddress
+	// or requestID as dimensions. Each different value found for a dimension is
+	// treated as a separate metric and accrues charges as a separate custom metric.
+	//
+	// CloudWatch Logs disables a metric filter if it generates 1000 different name/value
+	// pairs for your specified dimensions within a certain amount of time. This
+	// helps to prevent accidental high charges.
+	//
+	// You can also set up a billing alarm to alert you if your charges are higher
+	// than expected. For more information, see Creating a Billing Alarm to Monitor
+	// Your Estimated Amazon Web Services Charges (https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/monitor_estimated_charges_with_cloudwatch.html).
+	Dimensions map[string]*string `locationName:"dimensions" type:"map"`
+
 	// The name of the CloudWatch metric.
 	//
 	// MetricName is a required field
 	MetricName *string `locationName:"metricName" type:"string" required:"true"`
 
-	// The namespace of the CloudWatch metric.
+	// A custom namespace to contain your metric in CloudWatch. Use namespaces to
+	// group together metrics that are similar. For more information, see Namespaces
+	// (https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/cloudwatch_concepts.html#Namespace).
 	//
 	// MetricNamespace is a required field
 	MetricNamespace *string `locationName:"metricNamespace" type:"string" required:"true"`
@@ -7157,14 +16288,25 @@ type MetricTransformation struct {
 	//
 	// MetricValue is a required field
 	MetricValue *string `locationName:"metricValue" type:"string" required:"true"`
+
+	// The unit to assign to the metric. If you omit this, the unit is set as None.
+	Unit *string `locationName:"unit" type:"string" enum:"StandardUnit"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s MetricTransformation) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s MetricTransformation) GoString() string {
 	return s.String()
 }
@@ -7194,6 +16336,12 @@ func (s *MetricTransformation) SetDefaultValue(v float64) *MetricTransformation 
 	return s
 }
 
+// SetDimensions sets the Dimensions field's value.
+func (s *MetricTransformation) SetDimensions(v map[string]*string) *MetricTransformation {
+	s.Dimensions = v
+	return s
+}
+
 // SetMetricName sets the MetricName field's value.
 func (s *MetricTransformation) SetMetricName(v string) *MetricTransformation {
 	s.MetricName = &v
@@ -7212,6 +16360,76 @@ func (s *MetricTransformation) SetMetricValue(v string) *MetricTransformation {
 	return s
 }
 
+// SetUnit sets the Unit field's value.
+func (s *MetricTransformation) SetUnit(v string) *MetricTransformation {
+	s.Unit = &v
+	return s
+}
+
+// Multiple concurrent requests to update the same resource were in conflict.
+type OperationAbortedException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s OperationAbortedException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s OperationAbortedException) GoString() string {
+	return s.String()
+}
+
+func newErrorOperationAbortedException(v protocol.ResponseMetadata) error {
+	return &OperationAbortedException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *OperationAbortedException) Code() string {
+	return "OperationAbortedException"
+}
+
+// Message returns the exception's message.
+func (s *OperationAbortedException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *OperationAbortedException) OrigErr() error {
+	return nil
+}
+
+func (s *OperationAbortedException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *OperationAbortedException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *OperationAbortedException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
 // Represents a log event.
 type OutputLogEvent struct {
 	_ struct{} `type:"structure"`
@@ -7228,12 +16446,20 @@ type OutputLogEvent struct {
 	Timestamp *int64 `locationName:"timestamp" type:"long"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s OutputLogEvent) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s OutputLogEvent) GoString() string {
 	return s.String()
 }
@@ -7256,6 +16482,801 @@ func (s *OutputLogEvent) SetTimestamp(v int64) *OutputLogEvent {
 	return s
 }
 
+// A tructures that contains information about one pattern token related to
+// an anomaly.
+//
+// For more information about patterns and tokens, see CreateLogAnomalyDetector
+// (https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_CreateLogAnomalyDetector.html).
+type PatternToken struct {
+	_ struct{} `type:"structure"`
+
+	// For a dynamic token, this indicates where in the pattern that this token
+	// appears, related to other dynamic tokens. The dynamic token that appears
+	// first has a value of 1, the one that appears second is 2, and so on.
+	DynamicTokenPosition *int64 `locationName:"dynamicTokenPosition" type:"integer"`
+
+	// Contains the values found for a dynamic token, and the number of times each
+	// value was found.
+	Enumerations map[string]*int64 `locationName:"enumerations" type:"map"`
+
+	// Specifies whether this is a dynamic token.
+	IsDynamic *bool `locationName:"isDynamic" type:"boolean"`
+
+	// The string represented by this token. If this is a dynamic token, the value
+	// will be <*>
+	TokenString *string `locationName:"tokenString" min:"1" type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s PatternToken) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s PatternToken) GoString() string {
+	return s.String()
+}
+
+// SetDynamicTokenPosition sets the DynamicTokenPosition field's value.
+func (s *PatternToken) SetDynamicTokenPosition(v int64) *PatternToken {
+	s.DynamicTokenPosition = &v
+	return s
+}
+
+// SetEnumerations sets the Enumerations field's value.
+func (s *PatternToken) SetEnumerations(v map[string]*int64) *PatternToken {
+	s.Enumerations = v
+	return s
+}
+
+// SetIsDynamic sets the IsDynamic field's value.
+func (s *PatternToken) SetIsDynamic(v bool) *PatternToken {
+	s.IsDynamic = &v
+	return s
+}
+
+// SetTokenString sets the TokenString field's value.
+func (s *PatternToken) SetTokenString(v string) *PatternToken {
+	s.TokenString = &v
+	return s
+}
+
+// A structure that contains information about one delivery destination policy.
+type Policy struct {
+	_ struct{} `type:"structure"`
+
+	// The contents of the delivery destination policy.
+	DeliveryDestinationPolicy *string `locationName:"deliveryDestinationPolicy" min:"1" type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s Policy) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s Policy) GoString() string {
+	return s.String()
+}
+
+// SetDeliveryDestinationPolicy sets the DeliveryDestinationPolicy field's value.
+func (s *Policy) SetDeliveryDestinationPolicy(v string) *Policy {
+	s.DeliveryDestinationPolicy = &v
+	return s
+}
+
+type PutAccountPolicyInput struct {
+	_ struct{} `type:"structure"`
+
+	// Specify the policy, in JSON.
+	//
+	// Data protection policy
+	//
+	// A data protection policy must include two JSON blocks:
+	//
+	//    * The first block must include both a DataIdentifer array and an Operation
+	//    property with an Audit action. The DataIdentifer array lists the types
+	//    of sensitive data that you want to mask. For more information about the
+	//    available options, see Types of data that you can mask (https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/mask-sensitive-log-data-types.html).
+	//    The Operation property with an Audit action is required to find the sensitive
+	//    data terms. This Audit action must contain a FindingsDestination object.
+	//    You can optionally use that FindingsDestination object to list one or
+	//    more destinations to send audit findings to. If you specify destinations
+	//    such as log groups, Firehose streams, and S3 buckets, they must already
+	//    exist.
+	//
+	//    * The second block must include both a DataIdentifer array and an Operation
+	//    property with an Deidentify action. The DataIdentifer array must exactly
+	//    match the DataIdentifer array in the first block of the policy. The Operation
+	//    property with the Deidentify action is what actually masks the data, and
+	//    it must contain the "MaskConfig": {} object. The "MaskConfig": {} object
+	//    must be empty.
+	//
+	// For an example data protection policy, see the Examples section on this page.
+	//
+	// The contents of the two DataIdentifer arrays must match exactly.
+	//
+	// In addition to the two JSON blocks, the policyDocument can also include Name,
+	// Description, and Version fields. The Name is different than the operation's
+	// policyName parameter, and is used as a dimension when CloudWatch Logs reports
+	// audit findings metrics to CloudWatch.
+	//
+	// The JSON specified in policyDocument can be up to 30,720 characters long.
+	//
+	// Subscription filter policy
+	//
+	// A subscription filter policy can include the following attributes in a JSON
+	// block:
+	//
+	//    * DestinationArn The ARN of the destination to deliver log events to.
+	//    Supported destinations are: An Kinesis Data Streams data stream in the
+	//    same account as the subscription policy, for same-account delivery. An
+	//    Firehose data stream in the same account as the subscription policy, for
+	//    same-account delivery. A Lambda function in the same account as the subscription
+	//    policy, for same-account delivery. A logical destination in a different
+	//    account created with PutDestination (https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_PutDestination.html),
+	//    for cross-account delivery. Kinesis Data Streams and Firehose are supported
+	//    as logical destinations.
+	//
+	//    * RoleArn The ARN of an IAM role that grants CloudWatch Logs permissions
+	//    to deliver ingested log events to the destination stream. You don't need
+	//    to provide the ARN when you are working with a logical destination for
+	//    cross-account delivery.
+	//
+	//    * FilterPattern A filter pattern for subscribing to a filtered stream
+	//    of log events.
+	//
+	//    * DistributionThe method used to distribute log data to the destination.
+	//    By default, log data is grouped by log stream, but the grouping can be
+	//    set to Random for a more even distribution. This property is only applicable
+	//    when the destination is an Kinesis Data Streams data stream.
+	//
+	// PolicyDocument is a required field
+	PolicyDocument *string `locationName:"policyDocument" type:"string" required:"true"`
+
+	// A name for the policy. This must be unique within the account.
+	//
+	// PolicyName is a required field
+	PolicyName *string `locationName:"policyName" type:"string" required:"true"`
+
+	// The type of policy that you're creating or updating.
+	//
+	// PolicyType is a required field
+	PolicyType *string `locationName:"policyType" type:"string" required:"true" enum:"PolicyType"`
+
+	// Currently the only valid value for this parameter is ALL, which specifies
+	// that the data protection policy applies to all log groups in the account.
+	// If you omit this parameter, the default of ALL is used.
+	Scope *string `locationName:"scope" type:"string" enum:"Scope"`
+
+	// Use this parameter to apply the subscription filter policy to a subset of
+	// log groups in the account. Currently, the only supported filter is LogGroupName
+	// NOT IN []. The selectionCriteria string can be up to 25KB in length. The
+	// length is determined by using its UTF-8 bytes.
+	//
+	// Using the selectionCriteria parameter is useful to help prevent infinite
+	// loops. For more information, see Log recursion prevention (https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/Subscriptions-recursion-prevention.html).
+	//
+	// Specifing selectionCriteria is valid only when you specify SUBSCRIPTION_FILTER_POLICY
+	// for policyType.
+	SelectionCriteria *string `locationName:"selectionCriteria" type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s PutAccountPolicyInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s PutAccountPolicyInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *PutAccountPolicyInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "PutAccountPolicyInput"}
+	if s.PolicyDocument == nil {
+		invalidParams.Add(request.NewErrParamRequired("PolicyDocument"))
+	}
+	if s.PolicyName == nil {
+		invalidParams.Add(request.NewErrParamRequired("PolicyName"))
+	}
+	if s.PolicyType == nil {
+		invalidParams.Add(request.NewErrParamRequired("PolicyType"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetPolicyDocument sets the PolicyDocument field's value.
+func (s *PutAccountPolicyInput) SetPolicyDocument(v string) *PutAccountPolicyInput {
+	s.PolicyDocument = &v
+	return s
+}
+
+// SetPolicyName sets the PolicyName field's value.
+func (s *PutAccountPolicyInput) SetPolicyName(v string) *PutAccountPolicyInput {
+	s.PolicyName = &v
+	return s
+}
+
+// SetPolicyType sets the PolicyType field's value.
+func (s *PutAccountPolicyInput) SetPolicyType(v string) *PutAccountPolicyInput {
+	s.PolicyType = &v
+	return s
+}
+
+// SetScope sets the Scope field's value.
+func (s *PutAccountPolicyInput) SetScope(v string) *PutAccountPolicyInput {
+	s.Scope = &v
+	return s
+}
+
+// SetSelectionCriteria sets the SelectionCriteria field's value.
+func (s *PutAccountPolicyInput) SetSelectionCriteria(v string) *PutAccountPolicyInput {
+	s.SelectionCriteria = &v
+	return s
+}
+
+type PutAccountPolicyOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The account policy that you created.
+	AccountPolicy *AccountPolicy `locationName:"accountPolicy" type:"structure"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s PutAccountPolicyOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s PutAccountPolicyOutput) GoString() string {
+	return s.String()
+}
+
+// SetAccountPolicy sets the AccountPolicy field's value.
+func (s *PutAccountPolicyOutput) SetAccountPolicy(v *AccountPolicy) *PutAccountPolicyOutput {
+	s.AccountPolicy = v
+	return s
+}
+
+type PutDataProtectionPolicyInput struct {
+	_ struct{} `type:"structure"`
+
+	// Specify either the log group name or log group ARN.
+	//
+	// LogGroupIdentifier is a required field
+	LogGroupIdentifier *string `locationName:"logGroupIdentifier" min:"1" type:"string" required:"true"`
+
+	// Specify the data protection policy, in JSON.
+	//
+	// This policy must include two JSON blocks:
+	//
+	//    * The first block must include both a DataIdentifer array and an Operation
+	//    property with an Audit action. The DataIdentifer array lists the types
+	//    of sensitive data that you want to mask. For more information about the
+	//    available options, see Types of data that you can mask (https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/mask-sensitive-log-data-types.html).
+	//    The Operation property with an Audit action is required to find the sensitive
+	//    data terms. This Audit action must contain a FindingsDestination object.
+	//    You can optionally use that FindingsDestination object to list one or
+	//    more destinations to send audit findings to. If you specify destinations
+	//    such as log groups, Firehose streams, and S3 buckets, they must already
+	//    exist.
+	//
+	//    * The second block must include both a DataIdentifer array and an Operation
+	//    property with an Deidentify action. The DataIdentifer array must exactly
+	//    match the DataIdentifer array in the first block of the policy. The Operation
+	//    property with the Deidentify action is what actually masks the data, and
+	//    it must contain the "MaskConfig": {} object. The "MaskConfig": {} object
+	//    must be empty.
+	//
+	// For an example data protection policy, see the Examples section on this page.
+	//
+	// The contents of the two DataIdentifer arrays must match exactly.
+	//
+	// In addition to the two JSON blocks, the policyDocument can also include Name,
+	// Description, and Version fields. The Name is used as a dimension when CloudWatch
+	// Logs reports audit findings metrics to CloudWatch.
+	//
+	// The JSON specified in policyDocument can be up to 30,720 characters.
+	//
+	// PolicyDocument is a required field
+	PolicyDocument *string `locationName:"policyDocument" type:"string" required:"true"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s PutDataProtectionPolicyInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s PutDataProtectionPolicyInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *PutDataProtectionPolicyInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "PutDataProtectionPolicyInput"}
+	if s.LogGroupIdentifier == nil {
+		invalidParams.Add(request.NewErrParamRequired("LogGroupIdentifier"))
+	}
+	if s.LogGroupIdentifier != nil && len(*s.LogGroupIdentifier) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("LogGroupIdentifier", 1))
+	}
+	if s.PolicyDocument == nil {
+		invalidParams.Add(request.NewErrParamRequired("PolicyDocument"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetLogGroupIdentifier sets the LogGroupIdentifier field's value.
+func (s *PutDataProtectionPolicyInput) SetLogGroupIdentifier(v string) *PutDataProtectionPolicyInput {
+	s.LogGroupIdentifier = &v
+	return s
+}
+
+// SetPolicyDocument sets the PolicyDocument field's value.
+func (s *PutDataProtectionPolicyInput) SetPolicyDocument(v string) *PutDataProtectionPolicyInput {
+	s.PolicyDocument = &v
+	return s
+}
+
+type PutDataProtectionPolicyOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The date and time that this policy was most recently updated.
+	LastUpdatedTime *int64 `locationName:"lastUpdatedTime" type:"long"`
+
+	// The log group name or ARN that you specified in your request.
+	LogGroupIdentifier *string `locationName:"logGroupIdentifier" min:"1" type:"string"`
+
+	// The data protection policy used for this log group.
+	PolicyDocument *string `locationName:"policyDocument" type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s PutDataProtectionPolicyOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s PutDataProtectionPolicyOutput) GoString() string {
+	return s.String()
+}
+
+// SetLastUpdatedTime sets the LastUpdatedTime field's value.
+func (s *PutDataProtectionPolicyOutput) SetLastUpdatedTime(v int64) *PutDataProtectionPolicyOutput {
+	s.LastUpdatedTime = &v
+	return s
+}
+
+// SetLogGroupIdentifier sets the LogGroupIdentifier field's value.
+func (s *PutDataProtectionPolicyOutput) SetLogGroupIdentifier(v string) *PutDataProtectionPolicyOutput {
+	s.LogGroupIdentifier = &v
+	return s
+}
+
+// SetPolicyDocument sets the PolicyDocument field's value.
+func (s *PutDataProtectionPolicyOutput) SetPolicyDocument(v string) *PutDataProtectionPolicyOutput {
+	s.PolicyDocument = &v
+	return s
+}
+
+type PutDeliveryDestinationInput struct {
+	_ struct{} `type:"structure"`
+
+	// A structure that contains the ARN of the Amazon Web Services resource that
+	// will receive the logs.
+	//
+	// DeliveryDestinationConfiguration is a required field
+	DeliveryDestinationConfiguration *DeliveryDestinationConfiguration `locationName:"deliveryDestinationConfiguration" type:"structure" required:"true"`
+
+	// A name for this delivery destination. This name must be unique for all delivery
+	// destinations in your account.
+	//
+	// Name is a required field
+	Name *string `locationName:"name" min:"1" type:"string" required:"true"`
+
+	// The format for the logs that this delivery destination will receive.
+	OutputFormat *string `locationName:"outputFormat" type:"string" enum:"OutputFormat"`
+
+	// An optional list of key-value pairs to associate with the resource.
+	//
+	// For more information about tagging, see Tagging Amazon Web Services resources
+	// (https://docs.aws.amazon.com/general/latest/gr/aws_tagging.html)
+	Tags map[string]*string `locationName:"tags" min:"1" type:"map"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s PutDeliveryDestinationInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s PutDeliveryDestinationInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *PutDeliveryDestinationInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "PutDeliveryDestinationInput"}
+	if s.DeliveryDestinationConfiguration == nil {
+		invalidParams.Add(request.NewErrParamRequired("DeliveryDestinationConfiguration"))
+	}
+	if s.Name == nil {
+		invalidParams.Add(request.NewErrParamRequired("Name"))
+	}
+	if s.Name != nil && len(*s.Name) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Name", 1))
+	}
+	if s.Tags != nil && len(s.Tags) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Tags", 1))
+	}
+	if s.DeliveryDestinationConfiguration != nil {
+		if err := s.DeliveryDestinationConfiguration.Validate(); err != nil {
+			invalidParams.AddNested("DeliveryDestinationConfiguration", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetDeliveryDestinationConfiguration sets the DeliveryDestinationConfiguration field's value.
+func (s *PutDeliveryDestinationInput) SetDeliveryDestinationConfiguration(v *DeliveryDestinationConfiguration) *PutDeliveryDestinationInput {
+	s.DeliveryDestinationConfiguration = v
+	return s
+}
+
+// SetName sets the Name field's value.
+func (s *PutDeliveryDestinationInput) SetName(v string) *PutDeliveryDestinationInput {
+	s.Name = &v
+	return s
+}
+
+// SetOutputFormat sets the OutputFormat field's value.
+func (s *PutDeliveryDestinationInput) SetOutputFormat(v string) *PutDeliveryDestinationInput {
+	s.OutputFormat = &v
+	return s
+}
+
+// SetTags sets the Tags field's value.
+func (s *PutDeliveryDestinationInput) SetTags(v map[string]*string) *PutDeliveryDestinationInput {
+	s.Tags = v
+	return s
+}
+
+type PutDeliveryDestinationOutput struct {
+	_ struct{} `type:"structure"`
+
+	// A structure containing information about the delivery destination that you
+	// just created or updated.
+	DeliveryDestination *DeliveryDestination `locationName:"deliveryDestination" type:"structure"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s PutDeliveryDestinationOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s PutDeliveryDestinationOutput) GoString() string {
+	return s.String()
+}
+
+// SetDeliveryDestination sets the DeliveryDestination field's value.
+func (s *PutDeliveryDestinationOutput) SetDeliveryDestination(v *DeliveryDestination) *PutDeliveryDestinationOutput {
+	s.DeliveryDestination = v
+	return s
+}
+
+type PutDeliveryDestinationPolicyInput struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the delivery destination to assign this policy to.
+	//
+	// DeliveryDestinationName is a required field
+	DeliveryDestinationName *string `locationName:"deliveryDestinationName" min:"1" type:"string" required:"true"`
+
+	// The contents of the policy.
+	//
+	// DeliveryDestinationPolicy is a required field
+	DeliveryDestinationPolicy *string `locationName:"deliveryDestinationPolicy" min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s PutDeliveryDestinationPolicyInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s PutDeliveryDestinationPolicyInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *PutDeliveryDestinationPolicyInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "PutDeliveryDestinationPolicyInput"}
+	if s.DeliveryDestinationName == nil {
+		invalidParams.Add(request.NewErrParamRequired("DeliveryDestinationName"))
+	}
+	if s.DeliveryDestinationName != nil && len(*s.DeliveryDestinationName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("DeliveryDestinationName", 1))
+	}
+	if s.DeliveryDestinationPolicy == nil {
+		invalidParams.Add(request.NewErrParamRequired("DeliveryDestinationPolicy"))
+	}
+	if s.DeliveryDestinationPolicy != nil && len(*s.DeliveryDestinationPolicy) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("DeliveryDestinationPolicy", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetDeliveryDestinationName sets the DeliveryDestinationName field's value.
+func (s *PutDeliveryDestinationPolicyInput) SetDeliveryDestinationName(v string) *PutDeliveryDestinationPolicyInput {
+	s.DeliveryDestinationName = &v
+	return s
+}
+
+// SetDeliveryDestinationPolicy sets the DeliveryDestinationPolicy field's value.
+func (s *PutDeliveryDestinationPolicyInput) SetDeliveryDestinationPolicy(v string) *PutDeliveryDestinationPolicyInput {
+	s.DeliveryDestinationPolicy = &v
+	return s
+}
+
+type PutDeliveryDestinationPolicyOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The contents of the policy that you just created.
+	Policy *Policy `locationName:"policy" type:"structure"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s PutDeliveryDestinationPolicyOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s PutDeliveryDestinationPolicyOutput) GoString() string {
+	return s.String()
+}
+
+// SetPolicy sets the Policy field's value.
+func (s *PutDeliveryDestinationPolicyOutput) SetPolicy(v *Policy) *PutDeliveryDestinationPolicyOutput {
+	s.Policy = v
+	return s
+}
+
+type PutDeliverySourceInput struct {
+	_ struct{} `type:"structure"`
+
+	// Defines the type of log that the source is sending.
+	//
+	//    * For Amazon CodeWhisperer, the valid value is EVENT_LOGS.
+	//
+	//    * For IAM Identity Centerr, the valid value is ERROR_LOGS.
+	//
+	//    * For Amazon WorkMail, the valid values are ACCESS_CONTROL_LOGS, AUTHENTICATION_LOGS,
+	//    WORKMAIL_AVAILABILITY_PROVIDER_LOGS, and WORKMAIL_MAILBOX_ACCESS_LOGS.
+	//
+	// LogType is a required field
+	LogType *string `locationName:"logType" min:"1" type:"string" required:"true"`
+
+	// A name for this delivery source. This name must be unique for all delivery
+	// sources in your account.
+	//
+	// Name is a required field
+	Name *string `locationName:"name" min:"1" type:"string" required:"true"`
+
+	// The ARN of the Amazon Web Services resource that is generating and sending
+	// logs. For example, arn:aws:workmail:us-east-1:123456789012:organization/m-1234EXAMPLEabcd1234abcd1234abcd1234
+	//
+	// ResourceArn is a required field
+	ResourceArn *string `locationName:"resourceArn" type:"string" required:"true"`
+
+	// An optional list of key-value pairs to associate with the resource.
+	//
+	// For more information about tagging, see Tagging Amazon Web Services resources
+	// (https://docs.aws.amazon.com/general/latest/gr/aws_tagging.html)
+	Tags map[string]*string `locationName:"tags" min:"1" type:"map"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s PutDeliverySourceInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s PutDeliverySourceInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *PutDeliverySourceInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "PutDeliverySourceInput"}
+	if s.LogType == nil {
+		invalidParams.Add(request.NewErrParamRequired("LogType"))
+	}
+	if s.LogType != nil && len(*s.LogType) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("LogType", 1))
+	}
+	if s.Name == nil {
+		invalidParams.Add(request.NewErrParamRequired("Name"))
+	}
+	if s.Name != nil && len(*s.Name) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Name", 1))
+	}
+	if s.ResourceArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("ResourceArn"))
+	}
+	if s.Tags != nil && len(s.Tags) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Tags", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetLogType sets the LogType field's value.
+func (s *PutDeliverySourceInput) SetLogType(v string) *PutDeliverySourceInput {
+	s.LogType = &v
+	return s
+}
+
+// SetName sets the Name field's value.
+func (s *PutDeliverySourceInput) SetName(v string) *PutDeliverySourceInput {
+	s.Name = &v
+	return s
+}
+
+// SetResourceArn sets the ResourceArn field's value.
+func (s *PutDeliverySourceInput) SetResourceArn(v string) *PutDeliverySourceInput {
+	s.ResourceArn = &v
+	return s
+}
+
+// SetTags sets the Tags field's value.
+func (s *PutDeliverySourceInput) SetTags(v map[string]*string) *PutDeliverySourceInput {
+	s.Tags = v
+	return s
+}
+
+type PutDeliverySourceOutput struct {
+	_ struct{} `type:"structure"`
+
+	// A structure containing information about the delivery source that was just
+	// created or updated.
+	DeliverySource *DeliverySource `locationName:"deliverySource" type:"structure"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s PutDeliverySourceOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s PutDeliverySourceOutput) GoString() string {
+	return s.String()
+}
+
+// SetDeliverySource sets the DeliverySource field's value.
+func (s *PutDeliverySourceOutput) SetDeliverySource(v *DeliverySource) *PutDeliverySourceOutput {
+	s.DeliverySource = v
+	return s
+}
+
 type PutDestinationInput struct {
 	_ struct{} `type:"structure"`
 
@@ -7270,18 +17291,32 @@ type PutDestinationInput struct {
 	// RoleArn is a required field
 	RoleArn *string `locationName:"roleArn" min:"1" type:"string" required:"true"`
 
+	// An optional list of key-value pairs to associate with the resource.
+	//
+	// For more information about tagging, see Tagging Amazon Web Services resources
+	// (https://docs.aws.amazon.com/general/latest/gr/aws_tagging.html)
+	Tags map[string]*string `locationName:"tags" min:"1" type:"map"`
+
 	// The ARN of an Amazon Kinesis stream to which to deliver matching log events.
 	//
 	// TargetArn is a required field
 	TargetArn *string `locationName:"targetArn" min:"1" type:"string" required:"true"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s PutDestinationInput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s PutDestinationInput) GoString() string {
 	return s.String()
 }
@@ -7300,6 +17335,9 @@ func (s *PutDestinationInput) Validate() error {
 	}
 	if s.RoleArn != nil && len(*s.RoleArn) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("RoleArn", 1))
+	}
+	if s.Tags != nil && len(s.Tags) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Tags", 1))
 	}
 	if s.TargetArn == nil {
 		invalidParams.Add(request.NewErrParamRequired("TargetArn"))
@@ -7326,6 +17364,12 @@ func (s *PutDestinationInput) SetRoleArn(v string) *PutDestinationInput {
 	return s
 }
 
+// SetTags sets the Tags field's value.
+func (s *PutDestinationInput) SetTags(v map[string]*string) *PutDestinationInput {
+	s.Tags = v
+	return s
+}
+
 // SetTargetArn sets the TargetArn field's value.
 func (s *PutDestinationInput) SetTargetArn(v string) *PutDestinationInput {
 	s.TargetArn = &v
@@ -7339,12 +17383,20 @@ type PutDestinationOutput struct {
 	Destination *Destination `locationName:"destination" type:"structure"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s PutDestinationOutput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s PutDestinationOutput) GoString() string {
 	return s.String()
 }
@@ -7359,7 +17411,7 @@ type PutDestinationPolicyInput struct {
 	_ struct{} `type:"structure"`
 
 	// An IAM policy document that authorizes cross-account users to deliver their
-	// log events to the associated destination.
+	// log events to the associated destination. This can be up to 5120 bytes.
 	//
 	// AccessPolicy is a required field
 	AccessPolicy *string `locationName:"accessPolicy" min:"1" type:"string" required:"true"`
@@ -7368,14 +17420,34 @@ type PutDestinationPolicyInput struct {
 	//
 	// DestinationName is a required field
 	DestinationName *string `locationName:"destinationName" min:"1" type:"string" required:"true"`
+
+	// Specify true if you are updating an existing destination policy to grant
+	// permission to an organization ID instead of granting permission to individual
+	// Amazon Web Services accounts. Before you update a destination policy this
+	// way, you must first update the subscription filters in the accounts that
+	// send logs to this destination. If you do not, the subscription filters might
+	// stop working. By specifying true for forceUpdate, you are affirming that
+	// you have already updated the subscription filters. For more information,
+	// see Updating an existing cross-account subscription (https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/Cross-Account-Log_Subscription-Update.html)
+	//
+	// If you omit this parameter, the default of false is used.
+	ForceUpdate *bool `locationName:"forceUpdate" type:"boolean"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s PutDestinationPolicyInput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s PutDestinationPolicyInput) GoString() string {
 	return s.String()
 }
@@ -7414,16 +17486,30 @@ func (s *PutDestinationPolicyInput) SetDestinationName(v string) *PutDestination
 	return s
 }
 
+// SetForceUpdate sets the ForceUpdate field's value.
+func (s *PutDestinationPolicyInput) SetForceUpdate(v bool) *PutDestinationPolicyInput {
+	s.ForceUpdate = &v
+	return s
+}
+
 type PutDestinationPolicyOutput struct {
 	_ struct{} `type:"structure"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s PutDestinationPolicyOutput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s PutDestinationPolicyOutput) GoString() string {
 	return s.String()
 }
@@ -7447,19 +17533,28 @@ type PutLogEventsInput struct {
 	LogStreamName *string `locationName:"logStreamName" min:"1" type:"string" required:"true"`
 
 	// The sequence token obtained from the response of the previous PutLogEvents
-	// call. An upload in a newly created log stream does not require a sequence
-	// token. You can also get the sequence token using DescribeLogStreams. If you
-	// call PutLogEvents twice within a narrow time period using the same value
-	// for sequenceToken, both calls may be successful, or one may be rejected.
+	// call.
+	//
+	// The sequenceToken parameter is now ignored in PutLogEvents actions. PutLogEvents
+	// actions are now accepted and never return InvalidSequenceTokenException or
+	// DataAlreadyAcceptedException even if the sequence token is not valid.
 	SequenceToken *string `locationName:"sequenceToken" min:"1" type:"string"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s PutLogEventsInput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s PutLogEventsInput) GoString() string {
 	return s.String()
 }
@@ -7533,18 +17628,34 @@ type PutLogEventsOutput struct {
 	_ struct{} `type:"structure"`
 
 	// The next sequence token.
+	//
+	// This field has been deprecated.
+	//
+	// The sequence token is now ignored in PutLogEvents actions. PutLogEvents actions
+	// are always accepted even if the sequence token is not valid. You can use
+	// parallel PutLogEvents actions on the same log stream and you do not need
+	// to wait for the response of a previous PutLogEvents action to obtain the
+	// nextSequenceToken value.
 	NextSequenceToken *string `locationName:"nextSequenceToken" min:"1" type:"string"`
 
 	// The rejected events.
 	RejectedLogEventsInfo *RejectedLogEventsInfo `locationName:"rejectedLogEventsInfo" type:"structure"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s PutLogEventsOutput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s PutLogEventsOutput) GoString() string {
 	return s.String()
 }
@@ -7585,12 +17696,20 @@ type PutMetricFilterInput struct {
 	MetricTransformations []*MetricTransformation `locationName:"metricTransformations" min:"1" type:"list" required:"true"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s PutMetricFilterInput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s PutMetricFilterInput) GoString() string {
 	return s.String()
 }
@@ -7664,14 +17783,164 @@ type PutMetricFilterOutput struct {
 	_ struct{} `type:"structure"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s PutMetricFilterOutput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s PutMetricFilterOutput) GoString() string {
 	return s.String()
+}
+
+type PutQueryDefinitionInput struct {
+	_ struct{} `type:"structure"`
+
+	// Used as an idempotency token, to avoid returning an exception if the service
+	// receives the same request twice because of a network error.
+	ClientToken *string `locationName:"clientToken" min:"36" type:"string" idempotencyToken:"true"`
+
+	// Use this parameter to include specific log groups as part of your query definition.
+	//
+	// If you are updating a query definition and you omit this parameter, then
+	// the updated definition will contain no log groups.
+	LogGroupNames []*string `locationName:"logGroupNames" type:"list"`
+
+	// A name for the query definition. If you are saving numerous query definitions,
+	// we recommend that you name them. This way, you can find the ones you want
+	// by using the first part of the name as a filter in the queryDefinitionNamePrefix
+	// parameter of DescribeQueryDefinitions (https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_DescribeQueryDefinitions.html).
+	//
+	// Name is a required field
+	Name *string `locationName:"name" min:"1" type:"string" required:"true"`
+
+	// If you are updating a query definition, use this parameter to specify the
+	// ID of the query definition that you want to update. You can use DescribeQueryDefinitions
+	// (https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_DescribeQueryDefinitions.html)
+	// to retrieve the IDs of your saved query definitions.
+	//
+	// If you are creating a query definition, do not specify this parameter. CloudWatch
+	// generates a unique ID for the new query definition and include it in the
+	// response to this operation.
+	QueryDefinitionId *string `locationName:"queryDefinitionId" type:"string"`
+
+	// The query string to use for this definition. For more information, see CloudWatch
+	// Logs Insights Query Syntax (https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/CWL_QuerySyntax.html).
+	//
+	// QueryString is a required field
+	QueryString *string `locationName:"queryString" min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s PutQueryDefinitionInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s PutQueryDefinitionInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *PutQueryDefinitionInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "PutQueryDefinitionInput"}
+	if s.ClientToken != nil && len(*s.ClientToken) < 36 {
+		invalidParams.Add(request.NewErrParamMinLen("ClientToken", 36))
+	}
+	if s.Name == nil {
+		invalidParams.Add(request.NewErrParamRequired("Name"))
+	}
+	if s.Name != nil && len(*s.Name) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Name", 1))
+	}
+	if s.QueryString == nil {
+		invalidParams.Add(request.NewErrParamRequired("QueryString"))
+	}
+	if s.QueryString != nil && len(*s.QueryString) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("QueryString", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetClientToken sets the ClientToken field's value.
+func (s *PutQueryDefinitionInput) SetClientToken(v string) *PutQueryDefinitionInput {
+	s.ClientToken = &v
+	return s
+}
+
+// SetLogGroupNames sets the LogGroupNames field's value.
+func (s *PutQueryDefinitionInput) SetLogGroupNames(v []*string) *PutQueryDefinitionInput {
+	s.LogGroupNames = v
+	return s
+}
+
+// SetName sets the Name field's value.
+func (s *PutQueryDefinitionInput) SetName(v string) *PutQueryDefinitionInput {
+	s.Name = &v
+	return s
+}
+
+// SetQueryDefinitionId sets the QueryDefinitionId field's value.
+func (s *PutQueryDefinitionInput) SetQueryDefinitionId(v string) *PutQueryDefinitionInput {
+	s.QueryDefinitionId = &v
+	return s
+}
+
+// SetQueryString sets the QueryString field's value.
+func (s *PutQueryDefinitionInput) SetQueryString(v string) *PutQueryDefinitionInput {
+	s.QueryString = &v
+	return s
+}
+
+type PutQueryDefinitionOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The ID of the query definition.
+	QueryDefinitionId *string `locationName:"queryDefinitionId" type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s PutQueryDefinitionOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s PutQueryDefinitionOutput) GoString() string {
+	return s.String()
+}
+
+// SetQueryDefinitionId sets the QueryDefinitionId field's value.
+func (s *PutQueryDefinitionOutput) SetQueryDefinitionId(v string) *PutQueryDefinitionOutput {
+	s.QueryDefinitionId = &v
+	return s
 }
 
 type PutResourcePolicyInput struct {
@@ -7685,21 +17954,40 @@ type PutResourcePolicyInput struct {
 	// to put DNS query logs in to the specified log group. Replace "logArn" with
 	// the ARN of your CloudWatch Logs resource, such as a log group or log stream.
 	//
+	// CloudWatch Logs also supports aws:SourceArn (https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_condition-keys.html#condition-keys-sourcearn)
+	// and aws:SourceAccount (https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_condition-keys.html#condition-keys-sourceaccount)
+	// condition context keys.
+	//
+	// In the example resource policy, you would replace the value of SourceArn
+	// with the resource making the call from Route 53 to CloudWatch Logs. You would
+	// also replace the value of SourceAccount with the Amazon Web Services account
+	// ID making that call.
+	//
 	// { "Version": "2012-10-17", "Statement": [ { "Sid": "Route53LogsToCloudWatchLogs",
 	// "Effect": "Allow", "Principal": { "Service": [ "route53.amazonaws.com" ]
-	// }, "Action":"logs:PutLogEvents", "Resource": "logArn" } ] }
+	// }, "Action": "logs:PutLogEvents", "Resource": "logArn", "Condition": { "ArnLike":
+	// { "aws:SourceArn": "myRoute53ResourceArn" }, "StringEquals": { "aws:SourceAccount":
+	// "myAwsAccountId" } } } ] }
 	PolicyDocument *string `locationName:"policyDocument" min:"1" type:"string"`
 
 	// Name of the new policy. This parameter is required.
 	PolicyName *string `locationName:"policyName" type:"string"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s PutResourcePolicyInput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s PutResourcePolicyInput) GoString() string {
 	return s.String()
 }
@@ -7736,12 +18024,20 @@ type PutResourcePolicyOutput struct {
 	ResourcePolicy *ResourcePolicy `locationName:"resourcePolicy" type:"structure"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s PutResourcePolicyOutput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s PutResourcePolicyOutput) GoString() string {
 	return s.String()
 }
@@ -7762,18 +18058,29 @@ type PutRetentionPolicyInput struct {
 
 	// The number of days to retain the log events in the specified log group. Possible
 	// values are: 1, 3, 5, 7, 14, 30, 60, 90, 120, 150, 180, 365, 400, 545, 731,
-	// 1827, and 3653.
+	// 1096, 1827, 2192, 2557, 2922, 3288, and 3653.
+	//
+	// To set a log group so that its log events do not expire, use DeleteRetentionPolicy
+	// (https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_DeleteRetentionPolicy.html).
 	//
 	// RetentionInDays is a required field
 	RetentionInDays *int64 `locationName:"retentionInDays" type:"integer" required:"true"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s PutRetentionPolicyInput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s PutRetentionPolicyInput) GoString() string {
 	return s.String()
 }
@@ -7813,12 +18120,20 @@ type PutRetentionPolicyOutput struct {
 	_ struct{} `type:"structure"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s PutRetentionPolicyOutput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s PutRetentionPolicyOutput) GoString() string {
 	return s.String()
 }
@@ -7833,27 +18148,30 @@ type PutSubscriptionFilterInput struct {
 	//    filter, for same-account delivery.
 	//
 	//    * A logical destination (specified using an ARN) belonging to a different
-	//    account, for cross-account delivery.
+	//    account, for cross-account delivery. If you're setting up a cross-account
+	//    subscription, the destination must have an IAM policy associated with
+	//    it. The IAM policy must allow the sender to send logs to the destination.
+	//    For more information, see PutDestinationPolicy (https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_PutDestinationPolicy.html).
 	//
-	//    * An Amazon Kinesis Firehose delivery stream belonging to the same account
+	//    * A Kinesis Data Firehose delivery stream belonging to the same account
 	//    as the subscription filter, for same-account delivery.
 	//
-	//    * An AWS Lambda function belonging to the same account as the subscription
+	//    * A Lambda function belonging to the same account as the subscription
 	//    filter, for same-account delivery.
 	//
 	// DestinationArn is a required field
 	DestinationArn *string `locationName:"destinationArn" min:"1" type:"string" required:"true"`
 
-	// The method used to distribute log data to the destination. By default log
+	// The method used to distribute log data to the destination. By default, log
 	// data is grouped by log stream, but the grouping can be set to random for
 	// a more even distribution. This property is only applicable when the destination
-	// is an Amazon Kinesis stream.
+	// is an Amazon Kinesis data stream.
 	Distribution *string `locationName:"distribution" type:"string" enum:"Distribution"`
 
 	// A name for the subscription filter. If you are updating an existing filter,
-	// you must specify the correct name in filterName. Otherwise, the call fails
-	// because you cannot associate a second filter with a log group. To find the
-	// name of the filter currently associated with a log group, use DescribeSubscriptionFilters.
+	// you must specify the correct name in filterName. To find the name of the
+	// filter currently associated with a log group, use DescribeSubscriptionFilters
+	// (https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_DescribeSubscriptionFilters.html).
 	//
 	// FilterName is a required field
 	FilterName *string `locationName:"filterName" min:"1" type:"string" required:"true"`
@@ -7875,12 +18193,20 @@ type PutSubscriptionFilterInput struct {
 	RoleArn *string `locationName:"roleArn" min:"1" type:"string"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s PutSubscriptionFilterInput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s PutSubscriptionFilterInput) GoString() string {
 	return s.String()
 }
@@ -7959,12 +18285,20 @@ type PutSubscriptionFilterOutput struct {
 	_ struct{} `type:"structure"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s PutSubscriptionFilterOutput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s PutSubscriptionFilterOutput) GoString() string {
 	return s.String()
 }
@@ -7980,12 +18314,20 @@ type QueryCompileError struct {
 	Message *string `locationName:"message" type:"string"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s QueryCompileError) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s QueryCompileError) GoString() string {
 	return s.String()
 }
@@ -8013,12 +18355,20 @@ type QueryCompileErrorLocation struct {
 	StartCharOffset *int64 `locationName:"startCharOffset" type:"integer"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s QueryCompileErrorLocation) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s QueryCompileErrorLocation) GoString() string {
 	return s.String()
 }
@@ -8032,6 +18382,77 @@ func (s *QueryCompileErrorLocation) SetEndCharOffset(v int64) *QueryCompileError
 // SetStartCharOffset sets the StartCharOffset field's value.
 func (s *QueryCompileErrorLocation) SetStartCharOffset(v int64) *QueryCompileErrorLocation {
 	s.StartCharOffset = &v
+	return s
+}
+
+// This structure contains details about a saved CloudWatch Logs Insights query
+// definition.
+type QueryDefinition struct {
+	_ struct{} `type:"structure"`
+
+	// The date that the query definition was most recently modified.
+	LastModified *int64 `locationName:"lastModified" type:"long"`
+
+	// If this query definition contains a list of log groups that it is limited
+	// to, that list appears here.
+	LogGroupNames []*string `locationName:"logGroupNames" type:"list"`
+
+	// The name of the query definition.
+	Name *string `locationName:"name" min:"1" type:"string"`
+
+	// The unique ID of the query definition.
+	QueryDefinitionId *string `locationName:"queryDefinitionId" type:"string"`
+
+	// The query string to use for this definition. For more information, see CloudWatch
+	// Logs Insights Query Syntax (https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/CWL_QuerySyntax.html).
+	QueryString *string `locationName:"queryString" min:"1" type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s QueryDefinition) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s QueryDefinition) GoString() string {
+	return s.String()
+}
+
+// SetLastModified sets the LastModified field's value.
+func (s *QueryDefinition) SetLastModified(v int64) *QueryDefinition {
+	s.LastModified = &v
+	return s
+}
+
+// SetLogGroupNames sets the LogGroupNames field's value.
+func (s *QueryDefinition) SetLogGroupNames(v []*string) *QueryDefinition {
+	s.LogGroupNames = v
+	return s
+}
+
+// SetName sets the Name field's value.
+func (s *QueryDefinition) SetName(v string) *QueryDefinition {
+	s.Name = &v
+	return s
+}
+
+// SetQueryDefinitionId sets the QueryDefinitionId field's value.
+func (s *QueryDefinition) SetQueryDefinitionId(v string) *QueryDefinition {
+	s.QueryDefinitionId = &v
+	return s
+}
+
+// SetQueryString sets the QueryString field's value.
+func (s *QueryDefinition) SetQueryString(v string) *QueryDefinition {
+	s.QueryString = &v
 	return s
 }
 
@@ -8057,12 +18478,20 @@ type QueryInfo struct {
 	Status *string `locationName:"status" type:"string" enum:"QueryStatus"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s QueryInfo) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s QueryInfo) GoString() string {
 	return s.String()
 }
@@ -8113,12 +18542,20 @@ type QueryStatistics struct {
 	RecordsScanned *float64 `locationName:"recordsScanned" type:"double"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s QueryStatistics) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s QueryStatistics) GoString() string {
 	return s.String()
 }
@@ -8148,19 +18585,27 @@ type RejectedLogEventsInfo struct {
 	// The expired log events.
 	ExpiredLogEventEndIndex *int64 `locationName:"expiredLogEventEndIndex" type:"integer"`
 
-	// The log events that are too new.
+	// The index of the first log event that is too new. This field is inclusive.
 	TooNewLogEventStartIndex *int64 `locationName:"tooNewLogEventStartIndex" type:"integer"`
 
-	// The log events that are too old.
+	// The index of the last log event that is too old. This field is exclusive.
 	TooOldLogEventEndIndex *int64 `locationName:"tooOldLogEventEndIndex" type:"integer"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s RejectedLogEventsInfo) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s RejectedLogEventsInfo) GoString() string {
 	return s.String()
 }
@@ -8183,6 +18628,134 @@ func (s *RejectedLogEventsInfo) SetTooOldLogEventEndIndex(v int64) *RejectedLogE
 	return s
 }
 
+// The specified resource already exists.
+type ResourceAlreadyExistsException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ResourceAlreadyExistsException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ResourceAlreadyExistsException) GoString() string {
+	return s.String()
+}
+
+func newErrorResourceAlreadyExistsException(v protocol.ResponseMetadata) error {
+	return &ResourceAlreadyExistsException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *ResourceAlreadyExistsException) Code() string {
+	return "ResourceAlreadyExistsException"
+}
+
+// Message returns the exception's message.
+func (s *ResourceAlreadyExistsException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *ResourceAlreadyExistsException) OrigErr() error {
+	return nil
+}
+
+func (s *ResourceAlreadyExistsException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *ResourceAlreadyExistsException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *ResourceAlreadyExistsException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
+// The specified resource does not exist.
+type ResourceNotFoundException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ResourceNotFoundException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ResourceNotFoundException) GoString() string {
+	return s.String()
+}
+
+func newErrorResourceNotFoundException(v protocol.ResponseMetadata) error {
+	return &ResourceNotFoundException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *ResourceNotFoundException) Code() string {
+	return "ResourceNotFoundException"
+}
+
+// Message returns the exception's message.
+func (s *ResourceNotFoundException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *ResourceNotFoundException) OrigErr() error {
+	return nil
+}
+
+func (s *ResourceNotFoundException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *ResourceNotFoundException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *ResourceNotFoundException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
 // A policy enabling one or more entities to put logs to a log group in this
 // account.
 type ResourcePolicy struct {
@@ -8199,12 +18772,20 @@ type ResourcePolicy struct {
 	PolicyName *string `locationName:"policyName" type:"string"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s ResourcePolicy) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s ResourcePolicy) GoString() string {
 	return s.String()
 }
@@ -8229,6 +18810,9 @@ func (s *ResourcePolicy) SetPolicyName(v string) *ResourcePolicy {
 
 // Contains one field from one log event returned by a CloudWatch Logs Insights
 // query, along with the value of that field.
+//
+// For more information about the fields that are generated by CloudWatch logs,
+// see Supported Logs and Discovered Fields (https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/CWL_AnalyzeLogData-discoverable-fields.html).
 type ResultField struct {
 	_ struct{} `type:"structure"`
 
@@ -8239,12 +18823,20 @@ type ResultField struct {
 	Value *string `locationName:"value" type:"string"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s ResultField) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s ResultField) GoString() string {
 	return s.String()
 }
@@ -8272,12 +18864,20 @@ type SearchedLogStream struct {
 	SearchedCompletely *bool `locationName:"searchedCompletely" type:"boolean"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s SearchedLogStream) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s SearchedLogStream) GoString() string {
 	return s.String()
 }
@@ -8294,6 +18894,650 @@ func (s *SearchedLogStream) SetSearchedCompletely(v bool) *SearchedLogStream {
 	return s
 }
 
+// This request exceeds a service quota.
+type ServiceQuotaExceededException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ServiceQuotaExceededException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ServiceQuotaExceededException) GoString() string {
+	return s.String()
+}
+
+func newErrorServiceQuotaExceededException(v protocol.ResponseMetadata) error {
+	return &ServiceQuotaExceededException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *ServiceQuotaExceededException) Code() string {
+	return "ServiceQuotaExceededException"
+}
+
+// Message returns the exception's message.
+func (s *ServiceQuotaExceededException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *ServiceQuotaExceededException) OrigErr() error {
+	return nil
+}
+
+func (s *ServiceQuotaExceededException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *ServiceQuotaExceededException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *ServiceQuotaExceededException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
+// The service cannot complete the request.
+type ServiceUnavailableException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ServiceUnavailableException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ServiceUnavailableException) GoString() string {
+	return s.String()
+}
+
+func newErrorServiceUnavailableException(v protocol.ResponseMetadata) error {
+	return &ServiceUnavailableException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *ServiceUnavailableException) Code() string {
+	return "ServiceUnavailableException"
+}
+
+// Message returns the exception's message.
+func (s *ServiceUnavailableException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *ServiceUnavailableException) OrigErr() error {
+	return nil
+}
+
+func (s *ServiceUnavailableException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *ServiceUnavailableException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *ServiceUnavailableException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
+// his exception is returned if an unknown error occurs during a Live Tail session.
+type SessionStreamingException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s SessionStreamingException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s SessionStreamingException) GoString() string {
+	return s.String()
+}
+
+// The SessionStreamingException is and event in the StartLiveTailResponseStream group of events.
+func (s *SessionStreamingException) eventStartLiveTailResponseStream() {}
+
+// UnmarshalEvent unmarshals the EventStream Message into the SessionStreamingException value.
+// This method is only used internally within the SDK's EventStream handling.
+func (s *SessionStreamingException) UnmarshalEvent(
+	payloadUnmarshaler protocol.PayloadUnmarshaler,
+	msg eventstream.Message,
+) error {
+	if err := payloadUnmarshaler.UnmarshalPayload(
+		bytes.NewReader(msg.Payload), s,
+	); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MarshalEvent marshals the type into an stream event value. This method
+// should only used internally within the SDK's EventStream handling.
+func (s *SessionStreamingException) MarshalEvent(pm protocol.PayloadMarshaler) (msg eventstream.Message, err error) {
+	msg.Headers.Set(eventstreamapi.MessageTypeHeader, eventstream.StringValue(eventstreamapi.ExceptionMessageType))
+	var buf bytes.Buffer
+	if err = pm.MarshalPayload(&buf, s); err != nil {
+		return eventstream.Message{}, err
+	}
+	msg.Payload = buf.Bytes()
+	return msg, err
+}
+
+func newErrorSessionStreamingException(v protocol.ResponseMetadata) error {
+	return &SessionStreamingException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *SessionStreamingException) Code() string {
+	return "SessionStreamingException"
+}
+
+// Message returns the exception's message.
+func (s *SessionStreamingException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *SessionStreamingException) OrigErr() error {
+	return nil
+}
+
+func (s *SessionStreamingException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *SessionStreamingException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *SessionStreamingException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
+// This exception is returned in a Live Tail stream when the Live Tail session
+// times out. Live Tail sessions time out after three hours.
+type SessionTimeoutException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s SessionTimeoutException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s SessionTimeoutException) GoString() string {
+	return s.String()
+}
+
+// The SessionTimeoutException is and event in the StartLiveTailResponseStream group of events.
+func (s *SessionTimeoutException) eventStartLiveTailResponseStream() {}
+
+// UnmarshalEvent unmarshals the EventStream Message into the SessionTimeoutException value.
+// This method is only used internally within the SDK's EventStream handling.
+func (s *SessionTimeoutException) UnmarshalEvent(
+	payloadUnmarshaler protocol.PayloadUnmarshaler,
+	msg eventstream.Message,
+) error {
+	if err := payloadUnmarshaler.UnmarshalPayload(
+		bytes.NewReader(msg.Payload), s,
+	); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MarshalEvent marshals the type into an stream event value. This method
+// should only used internally within the SDK's EventStream handling.
+func (s *SessionTimeoutException) MarshalEvent(pm protocol.PayloadMarshaler) (msg eventstream.Message, err error) {
+	msg.Headers.Set(eventstreamapi.MessageTypeHeader, eventstream.StringValue(eventstreamapi.ExceptionMessageType))
+	var buf bytes.Buffer
+	if err = pm.MarshalPayload(&buf, s); err != nil {
+		return eventstream.Message{}, err
+	}
+	msg.Payload = buf.Bytes()
+	return msg, err
+}
+
+func newErrorSessionTimeoutException(v protocol.ResponseMetadata) error {
+	return &SessionTimeoutException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *SessionTimeoutException) Code() string {
+	return "SessionTimeoutException"
+}
+
+// Message returns the exception's message.
+func (s *SessionTimeoutException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *SessionTimeoutException) OrigErr() error {
+	return nil
+}
+
+func (s *SessionTimeoutException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *SessionTimeoutException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *SessionTimeoutException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
+type StartLiveTailInput struct {
+	_ struct{} `type:"structure"`
+
+	// An optional pattern to use to filter the results to include only log events
+	// that match the pattern. For example, a filter pattern of error 404 causes
+	// only log events that include both error and 404 to be included in the Live
+	// Tail stream.
+	//
+	// Regular expression filter patterns are supported.
+	//
+	// For more information about filter pattern syntax, see Filter and Pattern
+	// Syntax (https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/FilterAndPatternSyntax.html).
+	LogEventFilterPattern *string `locationName:"logEventFilterPattern" type:"string"`
+
+	// An array where each item in the array is a log group to include in the Live
+	// Tail session.
+	//
+	// Specify each log group by its ARN.
+	//
+	// If you specify an ARN, the ARN can't end with an asterisk (*).
+	//
+	// You can include up to 10 log groups.
+	//
+	// LogGroupIdentifiers is a required field
+	LogGroupIdentifiers []*string `locationName:"logGroupIdentifiers" min:"1" type:"list" required:"true"`
+
+	// If you specify this parameter, then only log events in the log streams that
+	// have names that start with the prefixes that you specify here are included
+	// in the Live Tail session.
+	//
+	// If you specify this field, you can't also specify the logStreamNames field.
+	//
+	// You can specify this parameter only if you specify only one log group in
+	// logGroupIdentifiers.
+	LogStreamNamePrefixes []*string `locationName:"logStreamNamePrefixes" min:"1" type:"list"`
+
+	// If you specify this parameter, then only log events in the log streams that
+	// you specify here are included in the Live Tail session.
+	//
+	// If you specify this field, you can't also specify the logStreamNamePrefixes
+	// field.
+	//
+	// You can specify this parameter only if you specify only one log group in
+	// logGroupIdentifiers.
+	LogStreamNames []*string `locationName:"logStreamNames" min:"1" type:"list"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s StartLiveTailInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s StartLiveTailInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *StartLiveTailInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "StartLiveTailInput"}
+	if s.LogGroupIdentifiers == nil {
+		invalidParams.Add(request.NewErrParamRequired("LogGroupIdentifiers"))
+	}
+	if s.LogGroupIdentifiers != nil && len(s.LogGroupIdentifiers) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("LogGroupIdentifiers", 1))
+	}
+	if s.LogStreamNamePrefixes != nil && len(s.LogStreamNamePrefixes) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("LogStreamNamePrefixes", 1))
+	}
+	if s.LogStreamNames != nil && len(s.LogStreamNames) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("LogStreamNames", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetLogEventFilterPattern sets the LogEventFilterPattern field's value.
+func (s *StartLiveTailInput) SetLogEventFilterPattern(v string) *StartLiveTailInput {
+	s.LogEventFilterPattern = &v
+	return s
+}
+
+// SetLogGroupIdentifiers sets the LogGroupIdentifiers field's value.
+func (s *StartLiveTailInput) SetLogGroupIdentifiers(v []*string) *StartLiveTailInput {
+	s.LogGroupIdentifiers = v
+	return s
+}
+
+// SetLogStreamNamePrefixes sets the LogStreamNamePrefixes field's value.
+func (s *StartLiveTailInput) SetLogStreamNamePrefixes(v []*string) *StartLiveTailInput {
+	s.LogStreamNamePrefixes = v
+	return s
+}
+
+// SetLogStreamNames sets the LogStreamNames field's value.
+func (s *StartLiveTailInput) SetLogStreamNames(v []*string) *StartLiveTailInput {
+	s.LogStreamNames = v
+	return s
+}
+
+type StartLiveTailOutput struct {
+	_ struct{} `type:"structure"`
+
+	eventStream *StartLiveTailEventStream
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s StartLiveTailOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s StartLiveTailOutput) GoString() string {
+	return s.String()
+}
+
+// GetStream returns the type to interact with the event stream.
+func (s *StartLiveTailOutput) GetStream() *StartLiveTailEventStream {
+	return s.eventStream
+}
+
+// The StartLiveTailOutput is and event in the StartLiveTailResponseStream group of events.
+func (s *StartLiveTailOutput) eventStartLiveTailResponseStream() {}
+
+// UnmarshalEvent unmarshals the EventStream Message into the StartLiveTailOutput value.
+// This method is only used internally within the SDK's EventStream handling.
+func (s *StartLiveTailOutput) UnmarshalEvent(
+	payloadUnmarshaler protocol.PayloadUnmarshaler,
+	msg eventstream.Message,
+) error {
+	if err := payloadUnmarshaler.UnmarshalPayload(
+		bytes.NewReader(msg.Payload), s,
+	); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MarshalEvent marshals the type into an stream event value. This method
+// should only used internally within the SDK's EventStream handling.
+func (s *StartLiveTailOutput) MarshalEvent(pm protocol.PayloadMarshaler) (msg eventstream.Message, err error) {
+	msg.Headers.Set(eventstreamapi.MessageTypeHeader, eventstream.StringValue(eventstreamapi.EventMessageType))
+	var buf bytes.Buffer
+	if err = pm.MarshalPayload(&buf, s); err != nil {
+		return eventstream.Message{}, err
+	}
+	msg.Payload = buf.Bytes()
+	return msg, err
+}
+
+// StartLiveTailResponseStreamEvent groups together all EventStream
+// events writes for StartLiveTailResponseStream.
+//
+// These events are:
+//
+//   - LiveTailSessionStart
+//   - LiveTailSessionUpdate
+type StartLiveTailResponseStreamEvent interface {
+	eventStartLiveTailResponseStream()
+	eventstreamapi.Marshaler
+	eventstreamapi.Unmarshaler
+}
+
+// StartLiveTailResponseStreamReader provides the interface for reading to the stream. The
+// default implementation for this interface will be StartLiveTailResponseStream.
+//
+// The reader's Close method must allow multiple concurrent calls.
+//
+// These events are:
+//
+//   - LiveTailSessionStart
+//   - LiveTailSessionUpdate
+//   - StartLiveTailResponseStreamUnknownEvent
+type StartLiveTailResponseStreamReader interface {
+	// Returns a channel of events as they are read from the event stream.
+	Events() <-chan StartLiveTailResponseStreamEvent
+
+	// Close will stop the reader reading events from the stream.
+	Close() error
+
+	// Returns any error that has occurred while reading from the event stream.
+	Err() error
+}
+
+type readStartLiveTailResponseStream struct {
+	eventReader *eventstreamapi.EventReader
+	stream      chan StartLiveTailResponseStreamEvent
+	err         *eventstreamapi.OnceError
+
+	done      chan struct{}
+	closeOnce sync.Once
+}
+
+func newReadStartLiveTailResponseStream(eventReader *eventstreamapi.EventReader) *readStartLiveTailResponseStream {
+	r := &readStartLiveTailResponseStream{
+		eventReader: eventReader,
+		stream:      make(chan StartLiveTailResponseStreamEvent),
+		done:        make(chan struct{}),
+		err:         eventstreamapi.NewOnceError(),
+	}
+	go r.readEventStream()
+
+	return r
+}
+
+// Close will close the underlying event stream reader.
+func (r *readStartLiveTailResponseStream) Close() error {
+	r.closeOnce.Do(r.safeClose)
+	return r.Err()
+}
+
+func (r *readStartLiveTailResponseStream) ErrorSet() <-chan struct{} {
+	return r.err.ErrorSet()
+}
+
+func (r *readStartLiveTailResponseStream) Closed() <-chan struct{} {
+	return r.done
+}
+
+func (r *readStartLiveTailResponseStream) safeClose() {
+	close(r.done)
+}
+
+func (r *readStartLiveTailResponseStream) Err() error {
+	return r.err.Err()
+}
+
+func (r *readStartLiveTailResponseStream) Events() <-chan StartLiveTailResponseStreamEvent {
+	return r.stream
+}
+
+func (r *readStartLiveTailResponseStream) readEventStream() {
+	defer r.Close()
+	defer close(r.stream)
+
+	for {
+		event, err := r.eventReader.ReadEvent()
+		if err != nil {
+			if err == io.EOF {
+				return
+			}
+			select {
+			case <-r.done:
+				// If closed already ignore the error
+				return
+			default:
+			}
+			if _, ok := err.(*eventstreamapi.UnknownMessageTypeError); ok {
+				continue
+			}
+			r.err.SetError(err)
+			return
+		}
+
+		select {
+		case r.stream <- event.(StartLiveTailResponseStreamEvent):
+		case <-r.done:
+			return
+		}
+	}
+}
+
+type unmarshalerForStartLiveTailResponseStreamEvent struct {
+	metadata protocol.ResponseMetadata
+}
+
+func (u unmarshalerForStartLiveTailResponseStreamEvent) UnmarshalerForEventName(eventType string) (eventstreamapi.Unmarshaler, error) {
+	switch eventType {
+	case "sessionStart":
+		return &LiveTailSessionStart{}, nil
+	case "sessionUpdate":
+		return &LiveTailSessionUpdate{}, nil
+	case "SessionStreamingException":
+		return newErrorSessionStreamingException(u.metadata).(eventstreamapi.Unmarshaler), nil
+	case "SessionTimeoutException":
+		return newErrorSessionTimeoutException(u.metadata).(eventstreamapi.Unmarshaler), nil
+	default:
+		return &StartLiveTailResponseStreamUnknownEvent{Type: eventType}, nil
+	}
+}
+
+// StartLiveTailResponseStreamUnknownEvent provides a failsafe event for the
+// StartLiveTailResponseStream group of events when an unknown event is received.
+type StartLiveTailResponseStreamUnknownEvent struct {
+	Type    string
+	Message eventstream.Message
+}
+
+// The StartLiveTailResponseStreamUnknownEvent is and event in the StartLiveTailResponseStream
+// group of events.
+func (s *StartLiveTailResponseStreamUnknownEvent) eventStartLiveTailResponseStream() {}
+
+// MarshalEvent marshals the type into an stream event value. This method
+// should only used internally within the SDK's EventStream handling.
+func (e *StartLiveTailResponseStreamUnknownEvent) MarshalEvent(pm protocol.PayloadMarshaler) (
+	msg eventstream.Message, err error,
+) {
+	return e.Message.Clone(), nil
+}
+
+// UnmarshalEvent unmarshals the EventStream Message into the StartLiveTailResponseStream value.
+// This method is only used internally within the SDK's EventStream handling.
+func (e *StartLiveTailResponseStreamUnknownEvent) UnmarshalEvent(
+	payloadUnmarshaler protocol.PayloadUnmarshaler,
+	msg eventstream.Message,
+) error {
+	e.Message = msg.Clone()
+	return nil
+}
+
 type StartQueryInput struct {
 	_ struct{} `type:"structure"`
 
@@ -8306,18 +19550,32 @@ type StartQueryInput struct {
 
 	// The maximum number of log events to return in the query. If the query string
 	// uses the fields command, only the specified fields and their values are returned.
+	// The default is 1000.
 	Limit *int64 `locationName:"limit" min:"1" type:"integer"`
+
+	// The list of log groups to query. You can include up to 50 log groups.
+	//
+	// You can specify them by the log group name or ARN. If a log group that you're
+	// querying is in a source account and you're using a monitoring account, you
+	// must specify the ARN of the log group here. The query definition must also
+	// be defined in the monitoring account.
+	//
+	// If you specify an ARN, the ARN can't end with an asterisk (*).
+	//
+	// A StartQuery operation must include exactly one of the following parameters:
+	// logGroupName, logGroupNames, or logGroupIdentifiers.
+	LogGroupIdentifiers []*string `locationName:"logGroupIdentifiers" type:"list"`
 
 	// The log group on which to perform the query.
 	//
-	// A StartQuery operation must include a logGroupNames or a logGroupName parameter,
-	// but not both.
+	// A StartQuery operation must include exactly one of the following parameters:
+	// logGroupName, logGroupNames, or logGroupIdentifiers.
 	LogGroupName *string `locationName:"logGroupName" min:"1" type:"string"`
 
-	// The list of log groups to be queried. You can include up to 20 log groups.
+	// The list of log groups to be queried. You can include up to 50 log groups.
 	//
-	// A StartQuery operation must include a logGroupNames or a logGroupName parameter,
-	// but not both.
+	// A StartQuery operation must include exactly one of the following parameters:
+	// logGroupName, logGroupNames, or logGroupIdentifiers.
 	LogGroupNames []*string `locationName:"logGroupNames" type:"list"`
 
 	// The query string to use. For more information, see CloudWatch Logs Insights
@@ -8334,12 +19592,20 @@ type StartQueryInput struct {
 	StartTime *int64 `locationName:"startTime" type:"long" required:"true"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s StartQueryInput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s StartQueryInput) GoString() string {
 	return s.String()
 }
@@ -8381,6 +19647,12 @@ func (s *StartQueryInput) SetLimit(v int64) *StartQueryInput {
 	return s
 }
 
+// SetLogGroupIdentifiers sets the LogGroupIdentifiers field's value.
+func (s *StartQueryInput) SetLogGroupIdentifiers(v []*string) *StartQueryInput {
+	s.LogGroupIdentifiers = v
+	return s
+}
+
 // SetLogGroupName sets the LogGroupName field's value.
 func (s *StartQueryInput) SetLogGroupName(v string) *StartQueryInput {
 	s.LogGroupName = &v
@@ -8412,12 +19684,20 @@ type StartQueryOutput struct {
 	QueryId *string `locationName:"queryId" type:"string"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s StartQueryOutput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s StartQueryOutput) GoString() string {
 	return s.String()
 }
@@ -8431,19 +19711,26 @@ func (s *StartQueryOutput) SetQueryId(v string) *StartQueryOutput {
 type StopQueryInput struct {
 	_ struct{} `type:"structure"`
 
-	// The ID number of the query to stop. If necessary, you can use DescribeQueries
-	// to find this ID number.
+	// The ID number of the query to stop. To find this ID number, use DescribeQueries.
 	//
 	// QueryId is a required field
 	QueryId *string `locationName:"queryId" type:"string" required:"true"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s StopQueryInput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s StopQueryInput) GoString() string {
 	return s.String()
 }
@@ -8474,12 +19761,20 @@ type StopQueryOutput struct {
 	Success *bool `locationName:"success" type:"boolean"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s StopQueryOutput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s StopQueryOutput) GoString() string {
 	return s.String()
 }
@@ -8509,7 +19804,7 @@ type SubscriptionFilter struct {
 	FilterName *string `locationName:"filterName" min:"1" type:"string"`
 
 	// A symbolic description of how CloudWatch Logs should interpret the data in
-	// each log event. For example, a log event may contain timestamps, IP addresses,
+	// each log event. For example, a log event can contain timestamps, IP addresses,
 	// strings, and so on. You use the filter pattern to specify what to look for
 	// in the log event message.
 	FilterPattern *string `locationName:"filterPattern" type:"string"`
@@ -8520,12 +19815,20 @@ type SubscriptionFilter struct {
 	RoleArn *string `locationName:"roleArn" min:"1" type:"string"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s SubscriptionFilter) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s SubscriptionFilter) GoString() string {
 	return s.String()
 }
@@ -8572,8 +19875,52 @@ func (s *SubscriptionFilter) SetRoleArn(v string) *SubscriptionFilter {
 	return s
 }
 
-type TagLogGroupInput struct {
+// If you are suppressing an anomaly temporariliy, this structure defines how
+// long the suppression period is to be.
+type SuppressionPeriod struct {
 	_ struct{} `type:"structure"`
+
+	// Specifies whether the value of value is in seconds, minutes, or hours.
+	SuppressionUnit *string `locationName:"suppressionUnit" type:"string" enum:"SuppressionUnit"`
+
+	// Specifies the number of seconds, minutes or hours to suppress this anomaly.
+	// There is no maximum.
+	Value *int64 `locationName:"value" type:"integer"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s SuppressionPeriod) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s SuppressionPeriod) GoString() string {
+	return s.String()
+}
+
+// SetSuppressionUnit sets the SuppressionUnit field's value.
+func (s *SuppressionPeriod) SetSuppressionUnit(v string) *SuppressionPeriod {
+	s.SuppressionUnit = &v
+	return s
+}
+
+// SetValue sets the Value field's value.
+func (s *SuppressionPeriod) SetValue(v int64) *SuppressionPeriod {
+	s.Value = &v
+	return s
+}
+
+// Deprecated: Please use the generic tagging API model TagResourceRequest
+type TagLogGroupInput struct {
+	_ struct{} `deprecated:"true" type:"structure"`
 
 	// The name of the log group.
 	//
@@ -8586,12 +19933,20 @@ type TagLogGroupInput struct {
 	Tags map[string]*string `locationName:"tags" min:"1" type:"map" required:"true"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s TagLogGroupInput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s TagLogGroupInput) GoString() string {
 	return s.String()
 }
@@ -8634,13 +19989,116 @@ type TagLogGroupOutput struct {
 	_ struct{} `type:"structure"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s TagLogGroupOutput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s TagLogGroupOutput) GoString() string {
+	return s.String()
+}
+
+type TagResourceInput struct {
+	_ struct{} `type:"structure"`
+
+	// The ARN of the resource that you're adding tags to.
+	//
+	// The ARN format of a log group is arn:aws:logs:Region:account-id:log-group:log-group-name
+	//
+	// The ARN format of a destination is arn:aws:logs:Region:account-id:destination:destination-name
+	//
+	// For more information about ARN format, see CloudWatch Logs resources and
+	// operations (https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/iam-access-control-overview-cwl.html).
+	//
+	// ResourceArn is a required field
+	ResourceArn *string `locationName:"resourceArn" min:"1" type:"string" required:"true"`
+
+	// The list of key-value pairs to associate with the resource.
+	//
+	// Tags is a required field
+	Tags map[string]*string `locationName:"tags" min:"1" type:"map" required:"true"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s TagResourceInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s TagResourceInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *TagResourceInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "TagResourceInput"}
+	if s.ResourceArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("ResourceArn"))
+	}
+	if s.ResourceArn != nil && len(*s.ResourceArn) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ResourceArn", 1))
+	}
+	if s.Tags == nil {
+		invalidParams.Add(request.NewErrParamRequired("Tags"))
+	}
+	if s.Tags != nil && len(s.Tags) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Tags", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetResourceArn sets the ResourceArn field's value.
+func (s *TagResourceInput) SetResourceArn(v string) *TagResourceInput {
+	s.ResourceArn = &v
+	return s
+}
+
+// SetTags sets the Tags field's value.
+func (s *TagResourceInput) SetTags(v map[string]*string) *TagResourceInput {
+	s.Tags = v
+	return s
+}
+
+type TagResourceOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s TagResourceOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s TagResourceOutput) GoString() string {
 	return s.String()
 }
 
@@ -8648,7 +20106,7 @@ type TestMetricFilterInput struct {
 	_ struct{} `type:"structure"`
 
 	// A symbolic description of how CloudWatch Logs should interpret the data in
-	// each log event. For example, a log event may contain timestamps, IP addresses,
+	// each log event. For example, a log event can contain timestamps, IP addresses,
 	// strings, and so on. You use the filter pattern to specify what to look for
 	// in the log event message.
 	//
@@ -8661,12 +20119,20 @@ type TestMetricFilterInput struct {
 	LogEventMessages []*string `locationName:"logEventMessages" min:"1" type:"list" required:"true"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s TestMetricFilterInput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s TestMetricFilterInput) GoString() string {
 	return s.String()
 }
@@ -8709,12 +20175,20 @@ type TestMetricFilterOutput struct {
 	Matches []*MetricFilterMatchRecord `locationName:"matches" type:"list"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s TestMetricFilterOutput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s TestMetricFilterOutput) GoString() string {
 	return s.String()
 }
@@ -8725,8 +20199,205 @@ func (s *TestMetricFilterOutput) SetMatches(v []*MetricFilterMatchRecord) *TestM
 	return s
 }
 
+// The request was throttled because of quota limits.
+type ThrottlingException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ThrottlingException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ThrottlingException) GoString() string {
+	return s.String()
+}
+
+func newErrorThrottlingException(v protocol.ResponseMetadata) error {
+	return &ThrottlingException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *ThrottlingException) Code() string {
+	return "ThrottlingException"
+}
+
+// Message returns the exception's message.
+func (s *ThrottlingException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *ThrottlingException) OrigErr() error {
+	return nil
+}
+
+func (s *ThrottlingException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *ThrottlingException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *ThrottlingException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
+// A resource can have no more than 50 tags.
+type TooManyTagsException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	Message_ *string `locationName:"message" type:"string"`
+
+	// The name of the resource.
+	ResourceName *string `locationName:"resourceName" min:"1" type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s TooManyTagsException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s TooManyTagsException) GoString() string {
+	return s.String()
+}
+
+func newErrorTooManyTagsException(v protocol.ResponseMetadata) error {
+	return &TooManyTagsException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *TooManyTagsException) Code() string {
+	return "TooManyTagsException"
+}
+
+// Message returns the exception's message.
+func (s *TooManyTagsException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *TooManyTagsException) OrigErr() error {
+	return nil
+}
+
+func (s *TooManyTagsException) Error() string {
+	return fmt.Sprintf("%s: %s\n%s", s.Code(), s.Message(), s.String())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *TooManyTagsException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *TooManyTagsException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
+// The most likely cause is an Amazon Web Services access key ID or secret key
+// that's not valid.
+type UnrecognizedClientException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s UnrecognizedClientException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s UnrecognizedClientException) GoString() string {
+	return s.String()
+}
+
+func newErrorUnrecognizedClientException(v protocol.ResponseMetadata) error {
+	return &UnrecognizedClientException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *UnrecognizedClientException) Code() string {
+	return "UnrecognizedClientException"
+}
+
+// Message returns the exception's message.
+func (s *UnrecognizedClientException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *UnrecognizedClientException) OrigErr() error {
+	return nil
+}
+
+func (s *UnrecognizedClientException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *UnrecognizedClientException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *UnrecognizedClientException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
+// Deprecated: Please use the generic tagging API model UntagResourceRequest
 type UntagLogGroupInput struct {
-	_ struct{} `type:"structure"`
+	_ struct{} `deprecated:"true" type:"structure"`
 
 	// The name of the log group.
 	//
@@ -8739,12 +20410,20 @@ type UntagLogGroupInput struct {
 	Tags []*string `locationName:"tags" min:"1" type:"list" required:"true"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s UntagLogGroupInput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s UntagLogGroupInput) GoString() string {
 	return s.String()
 }
@@ -8787,14 +20466,499 @@ type UntagLogGroupOutput struct {
 	_ struct{} `type:"structure"`
 }
 
-// String returns the string representation
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s UntagLogGroupOutput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
 func (s UntagLogGroupOutput) GoString() string {
 	return s.String()
+}
+
+type UntagResourceInput struct {
+	_ struct{} `type:"structure"`
+
+	// The ARN of the CloudWatch Logs resource that you're removing tags from.
+	//
+	// The ARN format of a log group is arn:aws:logs:Region:account-id:log-group:log-group-name
+	//
+	// The ARN format of a destination is arn:aws:logs:Region:account-id:destination:destination-name
+	//
+	// For more information about ARN format, see CloudWatch Logs resources and
+	// operations (https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/iam-access-control-overview-cwl.html).
+	//
+	// ResourceArn is a required field
+	ResourceArn *string `locationName:"resourceArn" min:"1" type:"string" required:"true"`
+
+	// The list of tag keys to remove from the resource.
+	//
+	// TagKeys is a required field
+	TagKeys []*string `locationName:"tagKeys" type:"list" required:"true"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s UntagResourceInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s UntagResourceInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UntagResourceInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UntagResourceInput"}
+	if s.ResourceArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("ResourceArn"))
+	}
+	if s.ResourceArn != nil && len(*s.ResourceArn) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ResourceArn", 1))
+	}
+	if s.TagKeys == nil {
+		invalidParams.Add(request.NewErrParamRequired("TagKeys"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetResourceArn sets the ResourceArn field's value.
+func (s *UntagResourceInput) SetResourceArn(v string) *UntagResourceInput {
+	s.ResourceArn = &v
+	return s
+}
+
+// SetTagKeys sets the TagKeys field's value.
+func (s *UntagResourceInput) SetTagKeys(v []*string) *UntagResourceInput {
+	s.TagKeys = v
+	return s
+}
+
+type UntagResourceOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s UntagResourceOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s UntagResourceOutput) GoString() string {
+	return s.String()
+}
+
+type UpdateAnomalyInput struct {
+	_ struct{} `type:"structure"`
+
+	// The ARN of the anomaly detector that this operation is to act on.
+	//
+	// AnomalyDetectorArn is a required field
+	AnomalyDetectorArn *string `locationName:"anomalyDetectorArn" min:"1" type:"string" required:"true"`
+
+	// If you are suppressing or unsuppressing an anomaly, specify its unique ID
+	// here. You can find anomaly IDs by using the ListAnomalies (https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_ListAnomalies.html)
+	// operation.
+	AnomalyId *string `locationName:"anomalyId" min:"36" type:"string"`
+
+	// If you are suppressing or unsuppressing an pattern, specify its unique ID
+	// here. You can find pattern IDs by using the ListAnomalies (https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_ListAnomalies.html)
+	// operation.
+	PatternId *string `locationName:"patternId" min:"32" type:"string"`
+
+	// If you are temporarily suppressing an anomaly or pattern, use this structure
+	// to specify how long the suppression is to last.
+	SuppressionPeriod *SuppressionPeriod `locationName:"suppressionPeriod" type:"structure"`
+
+	// Use this to specify whether the suppression to be temporary or infinite.
+	// If you specify LIMITED, you must also specify a suppressionPeriod. If you
+	// specify INFINITE, any value for suppressionPeriod is ignored.
+	SuppressionType *string `locationName:"suppressionType" type:"string" enum:"SuppressionType"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s UpdateAnomalyInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s UpdateAnomalyInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UpdateAnomalyInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UpdateAnomalyInput"}
+	if s.AnomalyDetectorArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("AnomalyDetectorArn"))
+	}
+	if s.AnomalyDetectorArn != nil && len(*s.AnomalyDetectorArn) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("AnomalyDetectorArn", 1))
+	}
+	if s.AnomalyId != nil && len(*s.AnomalyId) < 36 {
+		invalidParams.Add(request.NewErrParamMinLen("AnomalyId", 36))
+	}
+	if s.PatternId != nil && len(*s.PatternId) < 32 {
+		invalidParams.Add(request.NewErrParamMinLen("PatternId", 32))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetAnomalyDetectorArn sets the AnomalyDetectorArn field's value.
+func (s *UpdateAnomalyInput) SetAnomalyDetectorArn(v string) *UpdateAnomalyInput {
+	s.AnomalyDetectorArn = &v
+	return s
+}
+
+// SetAnomalyId sets the AnomalyId field's value.
+func (s *UpdateAnomalyInput) SetAnomalyId(v string) *UpdateAnomalyInput {
+	s.AnomalyId = &v
+	return s
+}
+
+// SetPatternId sets the PatternId field's value.
+func (s *UpdateAnomalyInput) SetPatternId(v string) *UpdateAnomalyInput {
+	s.PatternId = &v
+	return s
+}
+
+// SetSuppressionPeriod sets the SuppressionPeriod field's value.
+func (s *UpdateAnomalyInput) SetSuppressionPeriod(v *SuppressionPeriod) *UpdateAnomalyInput {
+	s.SuppressionPeriod = v
+	return s
+}
+
+// SetSuppressionType sets the SuppressionType field's value.
+func (s *UpdateAnomalyInput) SetSuppressionType(v string) *UpdateAnomalyInput {
+	s.SuppressionType = &v
+	return s
+}
+
+type UpdateAnomalyOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s UpdateAnomalyOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s UpdateAnomalyOutput) GoString() string {
+	return s.String()
+}
+
+type UpdateLogAnomalyDetectorInput struct {
+	_ struct{} `type:"structure"`
+
+	// The ARN of the anomaly detector that you want to update.
+	//
+	// AnomalyDetectorArn is a required field
+	AnomalyDetectorArn *string `locationName:"anomalyDetectorArn" min:"1" type:"string" required:"true"`
+
+	// The number of days to use as the life cycle of anomalies. After this time,
+	// anomalies are automatically baselined and the anomaly detector model will
+	// treat new occurrences of similar event as normal. Therefore, if you do not
+	// correct the cause of an anomaly during this time, it will be considered normal
+	// going forward and will not be detected.
+	AnomalyVisibilityTime *int64 `locationName:"anomalyVisibilityTime" min:"7" type:"long"`
+
+	// Use this parameter to pause or restart the anomaly detector.
+	//
+	// Enabled is a required field
+	Enabled *bool `locationName:"enabled" type:"boolean" required:"true"`
+
+	// Specifies how often the anomaly detector runs and look for anomalies. Set
+	// this value according to the frequency that the log group receives new logs.
+	// For example, if the log group receives new log events every 10 minutes, then
+	// setting evaluationFrequency to FIFTEEN_MIN might be appropriate.
+	EvaluationFrequency *string `locationName:"evaluationFrequency" type:"string" enum:"EvaluationFrequency"`
+
+	// A symbolic description of how CloudWatch Logs should interpret the data in
+	// each log event. For example, a log event can contain timestamps, IP addresses,
+	// strings, and so on. You use the filter pattern to specify what to look for
+	// in the log event message.
+	FilterPattern *string `locationName:"filterPattern" type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s UpdateLogAnomalyDetectorInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s UpdateLogAnomalyDetectorInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UpdateLogAnomalyDetectorInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UpdateLogAnomalyDetectorInput"}
+	if s.AnomalyDetectorArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("AnomalyDetectorArn"))
+	}
+	if s.AnomalyDetectorArn != nil && len(*s.AnomalyDetectorArn) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("AnomalyDetectorArn", 1))
+	}
+	if s.AnomalyVisibilityTime != nil && *s.AnomalyVisibilityTime < 7 {
+		invalidParams.Add(request.NewErrParamMinValue("AnomalyVisibilityTime", 7))
+	}
+	if s.Enabled == nil {
+		invalidParams.Add(request.NewErrParamRequired("Enabled"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetAnomalyDetectorArn sets the AnomalyDetectorArn field's value.
+func (s *UpdateLogAnomalyDetectorInput) SetAnomalyDetectorArn(v string) *UpdateLogAnomalyDetectorInput {
+	s.AnomalyDetectorArn = &v
+	return s
+}
+
+// SetAnomalyVisibilityTime sets the AnomalyVisibilityTime field's value.
+func (s *UpdateLogAnomalyDetectorInput) SetAnomalyVisibilityTime(v int64) *UpdateLogAnomalyDetectorInput {
+	s.AnomalyVisibilityTime = &v
+	return s
+}
+
+// SetEnabled sets the Enabled field's value.
+func (s *UpdateLogAnomalyDetectorInput) SetEnabled(v bool) *UpdateLogAnomalyDetectorInput {
+	s.Enabled = &v
+	return s
+}
+
+// SetEvaluationFrequency sets the EvaluationFrequency field's value.
+func (s *UpdateLogAnomalyDetectorInput) SetEvaluationFrequency(v string) *UpdateLogAnomalyDetectorInput {
+	s.EvaluationFrequency = &v
+	return s
+}
+
+// SetFilterPattern sets the FilterPattern field's value.
+func (s *UpdateLogAnomalyDetectorInput) SetFilterPattern(v string) *UpdateLogAnomalyDetectorInput {
+	s.FilterPattern = &v
+	return s
+}
+
+type UpdateLogAnomalyDetectorOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s UpdateLogAnomalyDetectorOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s UpdateLogAnomalyDetectorOutput) GoString() string {
+	return s.String()
+}
+
+// One of the parameters for the request is not valid.
+type ValidationException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ValidationException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ValidationException) GoString() string {
+	return s.String()
+}
+
+func newErrorValidationException(v protocol.ResponseMetadata) error {
+	return &ValidationException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *ValidationException) Code() string {
+	return "ValidationException"
+}
+
+// Message returns the exception's message.
+func (s *ValidationException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *ValidationException) OrigErr() error {
+	return nil
+}
+
+func (s *ValidationException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *ValidationException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *ValidationException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
+const (
+	// AnomalyDetectorStatusInitializing is a AnomalyDetectorStatus enum value
+	AnomalyDetectorStatusInitializing = "INITIALIZING"
+
+	// AnomalyDetectorStatusTraining is a AnomalyDetectorStatus enum value
+	AnomalyDetectorStatusTraining = "TRAINING"
+
+	// AnomalyDetectorStatusAnalyzing is a AnomalyDetectorStatus enum value
+	AnomalyDetectorStatusAnalyzing = "ANALYZING"
+
+	// AnomalyDetectorStatusFailed is a AnomalyDetectorStatus enum value
+	AnomalyDetectorStatusFailed = "FAILED"
+
+	// AnomalyDetectorStatusDeleted is a AnomalyDetectorStatus enum value
+	AnomalyDetectorStatusDeleted = "DELETED"
+
+	// AnomalyDetectorStatusPaused is a AnomalyDetectorStatus enum value
+	AnomalyDetectorStatusPaused = "PAUSED"
+)
+
+// AnomalyDetectorStatus_Values returns all elements of the AnomalyDetectorStatus enum
+func AnomalyDetectorStatus_Values() []string {
+	return []string{
+		AnomalyDetectorStatusInitializing,
+		AnomalyDetectorStatusTraining,
+		AnomalyDetectorStatusAnalyzing,
+		AnomalyDetectorStatusFailed,
+		AnomalyDetectorStatusDeleted,
+		AnomalyDetectorStatusPaused,
+	}
+}
+
+const (
+	// DataProtectionStatusActivated is a DataProtectionStatus enum value
+	DataProtectionStatusActivated = "ACTIVATED"
+
+	// DataProtectionStatusDeleted is a DataProtectionStatus enum value
+	DataProtectionStatusDeleted = "DELETED"
+
+	// DataProtectionStatusArchived is a DataProtectionStatus enum value
+	DataProtectionStatusArchived = "ARCHIVED"
+
+	// DataProtectionStatusDisabled is a DataProtectionStatus enum value
+	DataProtectionStatusDisabled = "DISABLED"
+)
+
+// DataProtectionStatus_Values returns all elements of the DataProtectionStatus enum
+func DataProtectionStatus_Values() []string {
+	return []string{
+		DataProtectionStatusActivated,
+		DataProtectionStatusDeleted,
+		DataProtectionStatusArchived,
+		DataProtectionStatusDisabled,
+	}
+}
+
+const (
+	// DeliveryDestinationTypeS3 is a DeliveryDestinationType enum value
+	DeliveryDestinationTypeS3 = "S3"
+
+	// DeliveryDestinationTypeCwl is a DeliveryDestinationType enum value
+	DeliveryDestinationTypeCwl = "CWL"
+
+	// DeliveryDestinationTypeFh is a DeliveryDestinationType enum value
+	DeliveryDestinationTypeFh = "FH"
+)
+
+// DeliveryDestinationType_Values returns all elements of the DeliveryDestinationType enum
+func DeliveryDestinationType_Values() []string {
+	return []string{
+		DeliveryDestinationTypeS3,
+		DeliveryDestinationTypeCwl,
+		DeliveryDestinationTypeFh,
+	}
 }
 
 // The method used to distribute log data to the destination, which can be either
@@ -8806,6 +20970,46 @@ const (
 	// DistributionByLogStream is a Distribution enum value
 	DistributionByLogStream = "ByLogStream"
 )
+
+// Distribution_Values returns all elements of the Distribution enum
+func Distribution_Values() []string {
+	return []string{
+		DistributionRandom,
+		DistributionByLogStream,
+	}
+}
+
+const (
+	// EvaluationFrequencyOneMin is a EvaluationFrequency enum value
+	EvaluationFrequencyOneMin = "ONE_MIN"
+
+	// EvaluationFrequencyFiveMin is a EvaluationFrequency enum value
+	EvaluationFrequencyFiveMin = "FIVE_MIN"
+
+	// EvaluationFrequencyTenMin is a EvaluationFrequency enum value
+	EvaluationFrequencyTenMin = "TEN_MIN"
+
+	// EvaluationFrequencyFifteenMin is a EvaluationFrequency enum value
+	EvaluationFrequencyFifteenMin = "FIFTEEN_MIN"
+
+	// EvaluationFrequencyThirtyMin is a EvaluationFrequency enum value
+	EvaluationFrequencyThirtyMin = "THIRTY_MIN"
+
+	// EvaluationFrequencyOneHour is a EvaluationFrequency enum value
+	EvaluationFrequencyOneHour = "ONE_HOUR"
+)
+
+// EvaluationFrequency_Values returns all elements of the EvaluationFrequency enum
+func EvaluationFrequency_Values() []string {
+	return []string{
+		EvaluationFrequencyOneMin,
+		EvaluationFrequencyFiveMin,
+		EvaluationFrequencyTenMin,
+		EvaluationFrequencyFifteenMin,
+		EvaluationFrequencyThirtyMin,
+		EvaluationFrequencyOneHour,
+	}
+}
 
 const (
 	// ExportTaskStatusCodeCancelled is a ExportTaskStatusCode enum value
@@ -8827,6 +21031,46 @@ const (
 	ExportTaskStatusCodeRunning = "RUNNING"
 )
 
+// ExportTaskStatusCode_Values returns all elements of the ExportTaskStatusCode enum
+func ExportTaskStatusCode_Values() []string {
+	return []string{
+		ExportTaskStatusCodeCancelled,
+		ExportTaskStatusCodeCompleted,
+		ExportTaskStatusCodeFailed,
+		ExportTaskStatusCodePending,
+		ExportTaskStatusCodePendingCancel,
+		ExportTaskStatusCodeRunning,
+	}
+}
+
+const (
+	// InheritedPropertyAccountDataProtection is a InheritedProperty enum value
+	InheritedPropertyAccountDataProtection = "ACCOUNT_DATA_PROTECTION"
+)
+
+// InheritedProperty_Values returns all elements of the InheritedProperty enum
+func InheritedProperty_Values() []string {
+	return []string{
+		InheritedPropertyAccountDataProtection,
+	}
+}
+
+const (
+	// LogGroupClassStandard is a LogGroupClass enum value
+	LogGroupClassStandard = "STANDARD"
+
+	// LogGroupClassInfrequentAccess is a LogGroupClass enum value
+	LogGroupClassInfrequentAccess = "INFREQUENT_ACCESS"
+)
+
+// LogGroupClass_Values returns all elements of the LogGroupClass enum
+func LogGroupClass_Values() []string {
+	return []string{
+		LogGroupClassStandard,
+		LogGroupClassInfrequentAccess,
+	}
+}
+
 const (
 	// OrderByLogStreamName is a OrderBy enum value
 	OrderByLogStreamName = "LogStreamName"
@@ -8834,6 +21078,58 @@ const (
 	// OrderByLastEventTime is a OrderBy enum value
 	OrderByLastEventTime = "LastEventTime"
 )
+
+// OrderBy_Values returns all elements of the OrderBy enum
+func OrderBy_Values() []string {
+	return []string{
+		OrderByLogStreamName,
+		OrderByLastEventTime,
+	}
+}
+
+const (
+	// OutputFormatJson is a OutputFormat enum value
+	OutputFormatJson = "json"
+
+	// OutputFormatPlain is a OutputFormat enum value
+	OutputFormatPlain = "plain"
+
+	// OutputFormatW3c is a OutputFormat enum value
+	OutputFormatW3c = "w3c"
+
+	// OutputFormatRaw is a OutputFormat enum value
+	OutputFormatRaw = "raw"
+
+	// OutputFormatParquet is a OutputFormat enum value
+	OutputFormatParquet = "parquet"
+)
+
+// OutputFormat_Values returns all elements of the OutputFormat enum
+func OutputFormat_Values() []string {
+	return []string{
+		OutputFormatJson,
+		OutputFormatPlain,
+		OutputFormatW3c,
+		OutputFormatRaw,
+		OutputFormatParquet,
+	}
+}
+
+const (
+	// PolicyTypeDataProtectionPolicy is a PolicyType enum value
+	PolicyTypeDataProtectionPolicy = "DATA_PROTECTION_POLICY"
+
+	// PolicyTypeSubscriptionFilterPolicy is a PolicyType enum value
+	PolicyTypeSubscriptionFilterPolicy = "SUBSCRIPTION_FILTER_POLICY"
+)
+
+// PolicyType_Values returns all elements of the PolicyType enum
+func PolicyType_Values() []string {
+	return []string{
+		PolicyTypeDataProtectionPolicy,
+		PolicyTypeSubscriptionFilterPolicy,
+	}
+}
 
 const (
 	// QueryStatusScheduled is a QueryStatus enum value
@@ -8850,4 +21146,223 @@ const (
 
 	// QueryStatusCancelled is a QueryStatus enum value
 	QueryStatusCancelled = "Cancelled"
+
+	// QueryStatusTimeout is a QueryStatus enum value
+	QueryStatusTimeout = "Timeout"
+
+	// QueryStatusUnknown is a QueryStatus enum value
+	QueryStatusUnknown = "Unknown"
 )
+
+// QueryStatus_Values returns all elements of the QueryStatus enum
+func QueryStatus_Values() []string {
+	return []string{
+		QueryStatusScheduled,
+		QueryStatusRunning,
+		QueryStatusComplete,
+		QueryStatusFailed,
+		QueryStatusCancelled,
+		QueryStatusTimeout,
+		QueryStatusUnknown,
+	}
+}
+
+const (
+	// ScopeAll is a Scope enum value
+	ScopeAll = "ALL"
+)
+
+// Scope_Values returns all elements of the Scope enum
+func Scope_Values() []string {
+	return []string{
+		ScopeAll,
+	}
+}
+
+const (
+	// StandardUnitSeconds is a StandardUnit enum value
+	StandardUnitSeconds = "Seconds"
+
+	// StandardUnitMicroseconds is a StandardUnit enum value
+	StandardUnitMicroseconds = "Microseconds"
+
+	// StandardUnitMilliseconds is a StandardUnit enum value
+	StandardUnitMilliseconds = "Milliseconds"
+
+	// StandardUnitBytes is a StandardUnit enum value
+	StandardUnitBytes = "Bytes"
+
+	// StandardUnitKilobytes is a StandardUnit enum value
+	StandardUnitKilobytes = "Kilobytes"
+
+	// StandardUnitMegabytes is a StandardUnit enum value
+	StandardUnitMegabytes = "Megabytes"
+
+	// StandardUnitGigabytes is a StandardUnit enum value
+	StandardUnitGigabytes = "Gigabytes"
+
+	// StandardUnitTerabytes is a StandardUnit enum value
+	StandardUnitTerabytes = "Terabytes"
+
+	// StandardUnitBits is a StandardUnit enum value
+	StandardUnitBits = "Bits"
+
+	// StandardUnitKilobits is a StandardUnit enum value
+	StandardUnitKilobits = "Kilobits"
+
+	// StandardUnitMegabits is a StandardUnit enum value
+	StandardUnitMegabits = "Megabits"
+
+	// StandardUnitGigabits is a StandardUnit enum value
+	StandardUnitGigabits = "Gigabits"
+
+	// StandardUnitTerabits is a StandardUnit enum value
+	StandardUnitTerabits = "Terabits"
+
+	// StandardUnitPercent is a StandardUnit enum value
+	StandardUnitPercent = "Percent"
+
+	// StandardUnitCount is a StandardUnit enum value
+	StandardUnitCount = "Count"
+
+	// StandardUnitBytesSecond is a StandardUnit enum value
+	StandardUnitBytesSecond = "Bytes/Second"
+
+	// StandardUnitKilobytesSecond is a StandardUnit enum value
+	StandardUnitKilobytesSecond = "Kilobytes/Second"
+
+	// StandardUnitMegabytesSecond is a StandardUnit enum value
+	StandardUnitMegabytesSecond = "Megabytes/Second"
+
+	// StandardUnitGigabytesSecond is a StandardUnit enum value
+	StandardUnitGigabytesSecond = "Gigabytes/Second"
+
+	// StandardUnitTerabytesSecond is a StandardUnit enum value
+	StandardUnitTerabytesSecond = "Terabytes/Second"
+
+	// StandardUnitBitsSecond is a StandardUnit enum value
+	StandardUnitBitsSecond = "Bits/Second"
+
+	// StandardUnitKilobitsSecond is a StandardUnit enum value
+	StandardUnitKilobitsSecond = "Kilobits/Second"
+
+	// StandardUnitMegabitsSecond is a StandardUnit enum value
+	StandardUnitMegabitsSecond = "Megabits/Second"
+
+	// StandardUnitGigabitsSecond is a StandardUnit enum value
+	StandardUnitGigabitsSecond = "Gigabits/Second"
+
+	// StandardUnitTerabitsSecond is a StandardUnit enum value
+	StandardUnitTerabitsSecond = "Terabits/Second"
+
+	// StandardUnitCountSecond is a StandardUnit enum value
+	StandardUnitCountSecond = "Count/Second"
+
+	// StandardUnitNone is a StandardUnit enum value
+	StandardUnitNone = "None"
+)
+
+// StandardUnit_Values returns all elements of the StandardUnit enum
+func StandardUnit_Values() []string {
+	return []string{
+		StandardUnitSeconds,
+		StandardUnitMicroseconds,
+		StandardUnitMilliseconds,
+		StandardUnitBytes,
+		StandardUnitKilobytes,
+		StandardUnitMegabytes,
+		StandardUnitGigabytes,
+		StandardUnitTerabytes,
+		StandardUnitBits,
+		StandardUnitKilobits,
+		StandardUnitMegabits,
+		StandardUnitGigabits,
+		StandardUnitTerabits,
+		StandardUnitPercent,
+		StandardUnitCount,
+		StandardUnitBytesSecond,
+		StandardUnitKilobytesSecond,
+		StandardUnitMegabytesSecond,
+		StandardUnitGigabytesSecond,
+		StandardUnitTerabytesSecond,
+		StandardUnitBitsSecond,
+		StandardUnitKilobitsSecond,
+		StandardUnitMegabitsSecond,
+		StandardUnitGigabitsSecond,
+		StandardUnitTerabitsSecond,
+		StandardUnitCountSecond,
+		StandardUnitNone,
+	}
+}
+
+const (
+	// StateActive is a State enum value
+	StateActive = "Active"
+
+	// StateSuppressed is a State enum value
+	StateSuppressed = "Suppressed"
+
+	// StateBaseline is a State enum value
+	StateBaseline = "Baseline"
+)
+
+// State_Values returns all elements of the State enum
+func State_Values() []string {
+	return []string{
+		StateActive,
+		StateSuppressed,
+		StateBaseline,
+	}
+}
+
+const (
+	// SuppressionStateSuppressed is a SuppressionState enum value
+	SuppressionStateSuppressed = "SUPPRESSED"
+
+	// SuppressionStateUnsuppressed is a SuppressionState enum value
+	SuppressionStateUnsuppressed = "UNSUPPRESSED"
+)
+
+// SuppressionState_Values returns all elements of the SuppressionState enum
+func SuppressionState_Values() []string {
+	return []string{
+		SuppressionStateSuppressed,
+		SuppressionStateUnsuppressed,
+	}
+}
+
+const (
+	// SuppressionTypeLimited is a SuppressionType enum value
+	SuppressionTypeLimited = "LIMITED"
+
+	// SuppressionTypeInfinite is a SuppressionType enum value
+	SuppressionTypeInfinite = "INFINITE"
+)
+
+// SuppressionType_Values returns all elements of the SuppressionType enum
+func SuppressionType_Values() []string {
+	return []string{
+		SuppressionTypeLimited,
+		SuppressionTypeInfinite,
+	}
+}
+
+const (
+	// SuppressionUnitSeconds is a SuppressionUnit enum value
+	SuppressionUnitSeconds = "SECONDS"
+
+	// SuppressionUnitMinutes is a SuppressionUnit enum value
+	SuppressionUnitMinutes = "MINUTES"
+
+	// SuppressionUnitHours is a SuppressionUnit enum value
+	SuppressionUnitHours = "HOURS"
+)
+
+// SuppressionUnit_Values returns all elements of the SuppressionUnit enum
+func SuppressionUnit_Values() []string {
+	return []string{
+		SuppressionUnitSeconds,
+		SuppressionUnitMinutes,
+		SuppressionUnitHours,
+	}
+}

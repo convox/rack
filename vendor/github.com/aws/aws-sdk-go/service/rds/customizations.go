@@ -15,6 +15,7 @@ func init() {
 		opCreateDBInstanceReadReplica,
 		opCopyDBClusterSnapshot,
 		opCreateDBCluster,
+		opStartDBInstanceAutomatedBackupsReplication,
 	}
 	initRequest = func(r *request.Request) {
 		for _, operation := range ops {
@@ -27,10 +28,11 @@ func init() {
 
 func fillPresignedURL(r *request.Request) {
 	fns := map[string]func(r *request.Request){
-		opCopyDBSnapshot:              copyDBSnapshotPresign,
-		opCreateDBInstanceReadReplica: createDBInstanceReadReplicaPresign,
-		opCopyDBClusterSnapshot:       copyDBClusterSnapshotPresign,
-		opCreateDBCluster:             createDBClusterPresign,
+		opCopyDBSnapshot:                             copyDBSnapshotPresign,
+		opCreateDBInstanceReadReplica:                createDBInstanceReadReplicaPresign,
+		opCopyDBClusterSnapshot:                      copyDBClusterSnapshotPresign,
+		opCreateDBCluster:                            createDBClusterPresign,
+		opStartDBInstanceAutomatedBackupsReplication: startDBInstanceAutomatedBackupsReplicationPresign,
 	}
 	if !r.ParamsFilled() {
 		return
@@ -109,6 +111,23 @@ func createDBClusterPresign(r *request.Request) {
 	originParams.PreSignedUrl = presignURL(r, originParams.SourceRegion, newParams)
 }
 
+func startDBInstanceAutomatedBackupsReplicationPresign(r *request.Request) {
+	originParams := r.Params.(*StartDBInstanceAutomatedBackupsReplicationInput)
+
+	if originParams.SourceRegion == nil || originParams.PreSignedUrl != nil || originParams.DestinationRegion != nil {
+		return
+	}
+
+	originParams.DestinationRegion = r.Config.Region
+	// preSignedUrl is not required for instances in the same region.
+	if *originParams.SourceRegion == *originParams.DestinationRegion {
+		return
+	}
+
+	newParams := awsutil.CopyOf(r.Params).(*StartDBInstanceAutomatedBackupsReplicationInput)
+	originParams.PreSignedUrl = presignURL(r, originParams.SourceRegion, newParams)
+}
+
 // presignURL will presign the request by using SoureRegion to sign with. SourceRegion is not
 // sent to the service, and is only used to not have the SDKs parsing ARNs.
 func presignURL(r *request.Request, sourceRegion *string, newParams interface{}) *string {
@@ -118,10 +137,14 @@ func presignURL(r *request.Request, sourceRegion *string, newParams interface{})
 
 	clientInfo := r.ClientInfo
 	resolved, err := r.Config.EndpointResolver.EndpointFor(
-		clientInfo.ServiceName, aws.StringValue(cfg.Region),
+		EndpointsID, aws.StringValue(cfg.Region),
 		func(opt *endpoints.Options) {
 			opt.DisableSSL = aws.BoolValue(cfg.DisableSSL)
 			opt.UseDualStack = aws.BoolValue(cfg.UseDualStack)
+			opt.UseDualStackEndpoint = cfg.UseDualStackEndpoint
+			opt.UseFIPSEndpoint = cfg.UseFIPSEndpoint
+			opt.Logger = r.Config.Logger
+			opt.LogDeprecated = r.Config.LogLevel.Matches(aws.LogDebugWithDeprecated)
 		},
 	)
 	if err != nil {

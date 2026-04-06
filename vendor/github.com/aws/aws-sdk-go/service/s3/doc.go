@@ -8,7 +8,7 @@
 // See s3 package documentation for more information.
 // https://docs.aws.amazon.com/sdk-for-go/api/service/s3/
 //
-// Using the Client
+// # Using the Client
 //
 // To contact Amazon Simple Storage Service with the SDK use the New function to create
 // a new service client. With that client you can make API requests to the service.
@@ -23,4 +23,7 @@
 // See the Amazon Simple Storage Service client S3 for more
 // information on creating client for this service.
 // https://docs.aws.amazon.com/sdk-for-go/api/service/s3/#New
+//
+// Deprecated: aws-sdk-go is deprecated. Use aws-sdk-go-v2.
+// See https://aws.amazon.com/blogs/developer/announcing-end-of-support-for-aws-sdk-for-go-v1-on-july-31-2025/.
 package s3
