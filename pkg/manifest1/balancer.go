@@ -102,7 +102,7 @@ func (mb ManifestBalancer) FirstPort() string {
 
 func (mb ManifestBalancer) Ports() []string {
 	pp := mb.Entry.TCPPorts()
-	sp := make([]string, len(pp))
+	sp := make([]string, 0, len(pp))
 
 	for _, p := range pp {
 		sp = append(sp, strconv.Itoa(p.Balancer))
