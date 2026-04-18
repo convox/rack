@@ -23,6 +23,7 @@ type Service struct {
 	Internal            bool               `yaml:"internal,omitempty"`
 	InternalAndExternal bool               `yaml:"internalAndExternal,omitempty"`
 	Links               []string           `yaml:"links,omitempty"`
+	NLB                 []ServiceNLBPort   `yaml:"nlb,omitempty"`
 	Policies            []string           `yaml:"policies,omitempty"`
 	Port                ServicePort        `yaml:"port,omitempty"`
 	Privileged          bool               `yaml:"privileged,omitempty"`
@@ -46,6 +47,13 @@ type ServiceAgent struct {
 type ServiceAgentPort struct {
 	Port     int    `yaml:"port,omitempty"`
 	Protocol string `yaml:"protocol,omitempty"`
+}
+
+type ServiceNLBPort struct {
+	Port          int    `yaml:"port"`
+	Protocol      string `yaml:"protocol,omitempty"`
+	ContainerPort int    `yaml:"containerPort,omitempty"`
+	Scheme        string `yaml:"scheme,omitempty"`
 }
 
 type ServiceBuild struct {

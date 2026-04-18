@@ -1,0 +1,8 @@
+services:
+  api:
+    image: example/api
+    nlb:
+      - port: 8443
+        containerPort: 3000
+      - port: 8443
+        containerPort: 4000

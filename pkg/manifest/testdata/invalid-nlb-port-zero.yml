@@ -1,0 +1,5 @@
+services:
+  api:
+    image: example/api
+    nlb:
+      - port: 0

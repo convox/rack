@@ -1,0 +1,7 @@
+services:
+  api:
+    image: example/api
+    agent:
+      enabled: true
+    nlb:
+      - port: 8443
