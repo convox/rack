@@ -208,6 +208,7 @@ func (m *Manifest) Validate() error {
 		return err
 	}
 
+	nlbPortOwner := map[int]string{}
 	for _, s := range m.Services {
 		if !nameValidator.MatchString(s.Name) {
 			return fmt.Errorf("service name %s invalid, %s", s.Name, ValidNameDescription)
@@ -241,6 +242,10 @@ func (m *Manifest) Validate() error {
 			if seenContainerPorts[np.ContainerPort] {
 				return fmt.Errorf("service %s: nlb containerPort %d used by multiple nlb listeners", s.Name, np.ContainerPort)
 			}
+			if owner, ok := nlbPortOwner[np.Port]; ok && owner != s.Name {
+				return fmt.Errorf("nlb port %d declared by services %s and %s; rack NLB listener is shared, each port must be unique across services", np.Port, owner, s.Name)
+			}
+			nlbPortOwner[np.Port] = s.Name
 			seenPorts[np.Port] = np.ContainerPort
 			seenContainerPorts[np.ContainerPort] = true
 		}
@@ -370,11 +375,11 @@ func (m *Manifest) ApplyDefaults() error {
 
 		for j := range m.Services[i].NLB {
 			np := &m.Services[i].NLB[j]
-			np.Protocol = strings.ToLower(np.Protocol)
+			np.Protocol = strings.ToLower(strings.TrimSpace(np.Protocol))
 			if np.Protocol == "" {
 				np.Protocol = "tcp"
 			}
-			np.Scheme = strings.ToLower(np.Scheme)
+			np.Scheme = strings.ToLower(strings.TrimSpace(np.Scheme))
 			if np.Scheme == "" {
 				np.Scheme = "public"
 			}

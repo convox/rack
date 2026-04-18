@@ -803,7 +803,7 @@
             },
             { "Ref": "AWS::NoValue" }
           ] },
-          {{ if .Port.Port }}
+          {{ if or .Port.Port .NLB }}
             "HealthCheckGracePeriodSeconds": "{{.Health.Grace}}",
           {{ end }}
           {{ if or .Port.Port .NLB }}
@@ -821,7 +821,9 @@
           {{ end }}
           {{ if .Port.Port }}
             {{ if not .InternalAndExternal }}
+              {{ if not .NLB }}
             "Role": { "Fn::If": [ "IsolateServices", { "Ref": "AWS::NoValue" }, { "Fn::ImportValue": { "Fn::Sub": "${Rack}:ServiceRole" } } ] },
+              {{ end }}
             {{ end }}
           {{ end }}
           "TaskDefinition": { "Ref": "Tasks" }

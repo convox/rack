@@ -219,3 +219,17 @@ func TestManifestLoadNLBCoexistsWithALBPort(t *testing.T) {
 		t.Errorf("expected 1 NLB port=3000, got %+v", s.NLB)
 	}
 }
+
+func TestManifestLoadNLBCrossServicePortConflict(t *testing.T) {
+	_, err := loadBytes(t, []byte(`services:
+  api:
+    image: x
+    nlb:
+      - port: 8443
+  web:
+    image: x
+    nlb:
+      - port: 8443
+`))
+	requireErrContains(t, err, "nlb port 8443 declared by services")
+}
