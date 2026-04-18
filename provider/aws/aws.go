@@ -71,6 +71,8 @@ type Provider struct {
 	ELBLogBucket                      string
 	LogBucket                         string
 	LogDriver                         string
+	NLB                               bool
+	NLBInternal                       bool
 	NotificationTopic                 string
 	OnDemandMinCount                  int
 	Password                          string
@@ -172,6 +174,8 @@ func (p *Provider) loadParams() error {
 	p.LogBucket = labels["rack.LogBucket"]
 	p.LogDriver = labels["rack.LogDriver"]
 	p.MaintainTimerState = labels["rack.MaintainTimerState"] == "Yes"
+	p.NLB = labels["rack.NLB"] == "Yes"
+	p.NLBInternal = labels["rack.NLBInternal"] == "Yes"
 	p.NotificationTopic = labels["rack.NotificationTopic"]
 	p.OnDemandMinCount = intParam(labels["rack.OnDemandMinCount"], 2)
 	p.Private = labels["rack.Private"] == "Yes"
