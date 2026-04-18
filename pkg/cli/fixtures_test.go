@@ -327,3 +327,40 @@ func fxSystemInternal() *structs.System {
 		Version:    "20180901000000",
 	}
 }
+
+func fxSystemNLB() *structs.System {
+	return &structs.System{
+		Count:  1,
+		Domain: "domain",
+		Name:   "name",
+		Outputs: map[string]string{
+			"NLBHost": "nlb-host.elb.region.amazonaws.com",
+			"NLBEIP0": "203.0.113.10",
+			"NLBEIP1": "203.0.113.11",
+			"NLBEIP2": "203.0.113.12",
+		},
+		Parameters: map[string]string{"Autoscale": "Yes", "ParamFoo": "value1", "ParamOther": "value2"},
+		Provider:   "provider",
+		Region:     "region",
+		Status:     "running",
+		Type:       "type",
+		Version:    "21000101000000",
+	}
+}
+
+func fxSystemNLBInternal() *structs.System {
+	return &structs.System{
+		Count:  1,
+		Domain: "domain",
+		Name:   "name",
+		Outputs: map[string]string{
+			"NLBInternalHost": "nlb-internal-host.elb.region.amazonaws.com",
+		},
+		Parameters: map[string]string{"Autoscale": "Yes", "ParamFoo": "value1", "ParamOther": "value2"},
+		Provider:   "provider",
+		Region:     "region",
+		Status:     "running",
+		Type:       "type",
+		Version:    "21000101000000",
+	}
+}

@@ -187,6 +187,21 @@ func TestManifestLoadNLBNullAndEmpty(t *testing.T) {
 	}
 }
 
+func TestManifestLoadNLBDuplicateContainerPort(t *testing.T) {
+	data := []byte(`services:
+  api:
+    image: x
+    nlb:
+      - port: 8080
+        containerPort: 443
+      - port: 9090
+        containerPort: 443
+`)
+	if _, err := manifest.Load(data, nil); err == nil {
+		t.Fatal("expected error for duplicate containerPort across nlb listeners")
+	}
+}
+
 func TestManifestLoadNLBCoexistsWithALBPort(t *testing.T) {
 	// port:3000/http on ALB + NLB listener on 3000 targeting same container port — allowed
 	m, err := loadBytes(t, []byte(`services:
