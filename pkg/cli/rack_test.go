@@ -71,6 +71,46 @@ func TestRackInternal(t *testing.T) {
 	})
 }
 
+func TestRackNLB(t *testing.T) {
+	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
+		i.On("SystemGet").Return(fxSystemNLB(), nil)
+
+		res, err := testExecute(e, "rack", nil)
+		require.NoError(t, err)
+		require.Equal(t, 0, res.Code)
+		res.RequireStderr(t, []string{""})
+		res.RequireStdout(t, []string{
+			"Name      name",
+			"Provider  provider",
+			"Region    region",
+			"Router    domain",
+			"NLB       nlb-host.elb.region.amazonaws.com (203.0.113.10, 203.0.113.11, 203.0.113.12)",
+			"Status    running",
+			"Version   21000101000000",
+		})
+	})
+}
+
+func TestRackNLBInternal(t *testing.T) {
+	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
+		i.On("SystemGet").Return(fxSystemNLBInternal(), nil)
+
+		res, err := testExecute(e, "rack", nil)
+		require.NoError(t, err)
+		require.Equal(t, 0, res.Code)
+		res.RequireStderr(t, []string{""})
+		res.RequireStdout(t, []string{
+			"Name          name",
+			"Provider      provider",
+			"Region        region",
+			"Router        domain",
+			"NLB Internal  nlb-internal-host.elb.region.amazonaws.com",
+			"Status        running",
+			"Version       21000101000000",
+		})
+	})
+}
+
 func TestRackInstall(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
 		ts := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

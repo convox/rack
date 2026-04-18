@@ -142,6 +142,23 @@ func Rack(rack sdk.Interface, c *stdcli.Context) error {
 		}
 	}
 
+	if nlb := s.Outputs["NLBHost"]; nlb != "" {
+		var eips []string
+		for _, k := range []string{"NLBEIP0", "NLBEIP1", "NLBEIP2"} {
+			if v := s.Outputs[k]; v != "" {
+				eips = append(eips, v)
+			}
+		}
+		if len(eips) > 0 {
+			i.Add("NLB", fmt.Sprintf("%s (%s)", nlb, strings.Join(eips, ", ")))
+		} else {
+			i.Add("NLB", nlb)
+		}
+	}
+	if nlbi := s.Outputs["NLBInternalHost"]; nlbi != "" {
+		i.Add("NLB Internal", nlbi)
+	}
+
 	i.Add("Status", s.Status)
 	i.Add("Version", s.Version)
 
@@ -349,6 +366,14 @@ func RackParamsSet(rack sdk.Interface, c *stdcli.Context) error {
 	} else {
 		if err := rack.SystemUpdate(opts); err != nil {
 			return err
+		}
+	}
+
+	// If NLB/NLBInternal was just enabled, hint about provisioning time.
+	for _, k := range []string{"NLB", "NLBInternal"} {
+		if next, ok := opts.Parameters[k]; ok && next == "Yes" && s.Parameters[k] != "Yes" {
+			c.Writef("NLB provisioning typically takes 5-10 minutes; check status with 'convox rack'.\n")
+			break
 		}
 	}
 

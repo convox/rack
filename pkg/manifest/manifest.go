@@ -218,6 +218,7 @@ func (m *Manifest) Validate() error {
 		}
 
 		seenPorts := map[int]int{}
+		seenContainerPorts := map[int]bool{}
 		for _, np := range s.NLB {
 			if np.Port < 1 || np.Port > 65535 {
 				return fmt.Errorf("service %s: nlb port %d out of range", s.Name, np.Port)
@@ -237,7 +238,11 @@ func (m *Manifest) Validate() error {
 				}
 				return fmt.Errorf("service %s: duplicate nlb port %d", s.Name, np.Port)
 			}
+			if seenContainerPorts[np.ContainerPort] {
+				return fmt.Errorf("service %s: nlb containerPort %d used by multiple nlb listeners", s.Name, np.ContainerPort)
+			}
 			seenPorts[np.Port] = np.ContainerPort
+			seenContainerPorts[np.ContainerPort] = true
 		}
 	}
 

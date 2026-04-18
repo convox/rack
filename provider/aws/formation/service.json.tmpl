@@ -229,6 +229,37 @@
       }
     },
     "Resources": {
+      {{ $drain := .Drain }}
+      {{ $svcName := .Name }}
+      {{ $svcPort := .Port.Port }}
+      {{ range .NLB }}
+      "NLBTargetGroup{{ .Port }}": {
+        "Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
+        "Properties": {
+          "Port": {{ .Port }},
+          "Protocol": "{{ upcase .Protocol }}",
+          "TargetType": { "Fn::If": [ "IsolateServices", "ip", "instance" ] },
+          "VpcId": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Vpc" } },
+          "HealthCheckProtocol": "TCP",
+          "HealthCheckPort": "traffic-port",
+          "TargetGroupAttributes": [
+            { "Key": "deregistration_delay.timeout_seconds", "Value": "{{ $drain }}" },
+            { "Key": "preserve_client_ip.enabled", "Value": "false" }
+          ]
+        }
+      },
+      "NLBListener{{ .Port }}": {
+        "Type": "AWS::ElasticLoadBalancingV2::Listener",
+        "Properties": {
+          "DefaultActions": [
+            { "Type": "forward", "TargetGroupArn": { "Ref": "NLBTargetGroup{{ .Port }}" } }
+          ],
+          "LoadBalancerArn": { "Fn::ImportValue": { "Fn::Sub": "{{ if eq .Scheme "internal" }}${Rack}:NLBInternalArn{{ else }}${Rack}:NLBArn{{ end }}" } },
+          "Port": {{ .Port }},
+          "Protocol": "{{ upcase .Protocol }}"
+        }
+      },
+      {{ end }}
       "MinCount": {
         "Type": "Custom::MathMin",
         "Properties": {
@@ -703,6 +734,9 @@
             {{ if .Port.Port }}
               { "IpProtocol": "tcp", "FromPort": "{{.Port.Port}}", "ToPort": "{{.Port.Port}}", "SourceSecurityGroupId": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Router{{ if .Internal }}Internal{{ end }}SecurityGroup" } } }
             {{ end }}
+            {{ range $i, $nlb := .NLB }}{{ if or $svcPort (gt $i 0) }},{{ end }}
+              { "IpProtocol": "tcp", "FromPort": {{ $nlb.ContainerPort }}, "ToPort": {{ $nlb.ContainerPort }}, "CidrIp": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:VpcCidr" } } }
+            {{ end }}
           ],
           "Tags": [ { "Key": "Name", "Value": { "Fn::Sub": "${AWS::StackName}-service" } } ],
           "VpcId": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Vpc" } }
@@ -771,10 +805,21 @@
           ] },
           {{ if .Port.Port }}
             "HealthCheckGracePeriodSeconds": "{{.Health.Grace}}",
-            "LoadBalancers": [ { "ContainerName": "{{.Name}}", "ContainerPort": "{{.Port.Port}}", "TargetGroupArn": { "Ref": "BalancerTargetGroup{{ if .Internal }}Internal{{ end }}" } } {{ if .InternalAndExternal }},
-            { "ContainerName": "{{.Name}}", "ContainerPort": "{{.Port.Port}}", "TargetGroupArn": { "Ref": "BalancerTargetGroupExternal" } }
-            {{ end }}
+          {{ end }}
+          {{ if or .Port.Port .NLB }}
+            "LoadBalancers": [
+              {{ if .Port.Port }}
+              { "ContainerName": "{{.Name}}", "ContainerPort": "{{.Port.Port}}", "TargetGroupArn": { "Ref": "BalancerTargetGroup{{ if .Internal }}Internal{{ end }}" } }
+              {{ if .InternalAndExternal }},
+              { "ContainerName": "{{.Name}}", "ContainerPort": "{{.Port.Port}}", "TargetGroupArn": { "Ref": "BalancerTargetGroupExternal" } }
+              {{ end }}
+              {{ end }}
+              {{ range $i, $nlb := .NLB }}{{ if or $svcPort (gt $i 0) }},{{ end }}
+              { "ContainerName": "{{ $svcName }}", "ContainerPort": {{ $nlb.ContainerPort }}, "TargetGroupArn": { "Ref": "NLBTargetGroup{{ $nlb.Port }}" } }
+              {{ end }}
             ],
+          {{ end }}
+          {{ if .Port.Port }}
             {{ if not .InternalAndExternal }}
             "Role": { "Fn::If": [ "IsolateServices", { "Ref": "AWS::NoValue" }, { "Fn::ImportValue": { "Fn::Sub": "${Rack}:ServiceRole" } } ] },
             {{ end }}
@@ -927,6 +972,12 @@
                     "Protocol": "{{.Protocol}}"
                   },
                 {{ end }}
+                {{ range .NLB }}{{ if ne .ContainerPort $svcPort }}
+                  {
+                    "ContainerPort": "{{.ContainerPort}}",
+                    "Protocol": "tcp"
+                  },
+                {{ end }}{{ end }}
                 { "Ref": "AWS::NoValue" }
               ],
               "StopTimeout": "{{.Termination.Grace}}",
