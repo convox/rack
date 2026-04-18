@@ -638,6 +638,10 @@ func (p *Provider) Sync(name string) error {
 }
 
 func (p *Provider) SystemUpdate(opts structs.SystemUpdateOptions) error {
+	if err := p.validateNLBParams(opts); err != nil {
+		return err
+	}
+
 	changes := map[string]string{}
 	hasOtherChange := false
 
