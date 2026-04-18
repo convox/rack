@@ -1,0 +1,6 @@
+services:
+  api:
+    image: example/api
+    nlb:
+      - port: 8443
+        protocol: udp

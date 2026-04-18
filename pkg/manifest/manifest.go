@@ -212,6 +212,33 @@ func (m *Manifest) Validate() error {
 		if !nameValidator.MatchString(s.Name) {
 			return fmt.Errorf("service name %s invalid, %s", s.Name, ValidNameDescription)
 		}
+
+		if len(s.NLB) > 0 && s.Agent.Enabled {
+			return fmt.Errorf("service %s: agent mode is incompatible with nlb ports", s.Name)
+		}
+
+		seenPorts := map[int]int{}
+		for _, np := range s.NLB {
+			if np.Port < 1 || np.Port > 65535 {
+				return fmt.Errorf("service %s: nlb port %d out of range", s.Name, np.Port)
+			}
+			if np.ContainerPort < 1 || np.ContainerPort > 65535 {
+				return fmt.Errorf("service %s: nlb containerPort %d out of range", s.Name, np.ContainerPort)
+			}
+			if np.Protocol != "tcp" {
+				return fmt.Errorf("service %s nlb port %d: only tcp protocol is currently supported", s.Name, np.Port)
+			}
+			if np.Scheme != "public" && np.Scheme != "internal" {
+				return fmt.Errorf("service %s nlb port %d: scheme must be public or internal, got %q", s.Name, np.Port, np.Scheme)
+			}
+			if existing, ok := seenPorts[np.Port]; ok {
+				if existing != np.ContainerPort {
+					return fmt.Errorf("service %s: nlb port %d declared with conflicting containerPort values", s.Name, np.Port)
+				}
+				return fmt.Errorf("service %s: duplicate nlb port %d", s.Name, np.Port)
+			}
+			seenPorts[np.Port] = np.ContainerPort
+		}
 	}
 
 	for _, r := range m.Resources {
@@ -334,6 +361,21 @@ func (m *Manifest) ApplyDefaults() error {
 
 		if s.InternalAndExternal {
 			m.Services[i].Internal = true
+		}
+
+		for j := range m.Services[i].NLB {
+			np := &m.Services[i].NLB[j]
+			np.Protocol = strings.ToLower(np.Protocol)
+			if np.Protocol == "" {
+				np.Protocol = "tcp"
+			}
+			np.Scheme = strings.ToLower(np.Scheme)
+			if np.Scheme == "" {
+				np.Scheme = "public"
+			}
+			if np.ContainerPort == 0 {
+				np.ContainerPort = np.Port
+			}
 		}
 	}
 

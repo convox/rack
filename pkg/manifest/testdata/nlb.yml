@@ -1,0 +1,13 @@
+services:
+  api:
+    image: example/api
+    port: http:3000
+    nlb:
+      - port: 8443
+        protocol: tcp
+        containerPort: 8443
+        scheme: public
+      - port: 50051
+        protocol: tcp
+        containerPort: 50051
+        scheme: internal
