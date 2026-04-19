@@ -2558,6 +2558,7 @@
       "Condition": "Autoscale",
       "Properties": {
         "ScheduleExpression": "cron(*/1 * * * ? *)",
+        "State": "ENABLED",
         "Targets": [ { "Id": "InstancesAutoscaler", "Arn": { "Fn::GetAtt": [ "InstancesAutoscaler", "Arn" ] } } ]
       }
     },

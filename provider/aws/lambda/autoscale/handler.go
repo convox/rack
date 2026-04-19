@@ -28,6 +28,19 @@ const (
 	SCHEDULE_RACK_SCALE_UP_PARAM   = "ScheduleRackScaleUp"
 )
 
+// shouldAutoscale returns true only for CloudFormation stack states where it is
+// safe and meaningful to call UpdateStack. Any in-progress, failed, or
+// rollback state returns false — including UPDATE_ROLLBACK_COMPLETE, which is
+// technically stable but indicates an unresolved prior failure.
+func shouldAutoscale(status string) bool {
+	switch status {
+	case cloudformation.StackStatusCreateComplete, cloudformation.StackStatusUpdateComplete:
+		return true
+	default:
+		return false
+	}
+}
+
 var (
 	CloudFormation *cloudformation.CloudFormation
 	ECS            *ecs.ECS
@@ -83,6 +96,12 @@ func autoscale(desired int64) error {
 
 	if len(res.Stacks) < 1 {
 		return fmt.Errorf("could not find stack: %s", stack)
+	}
+
+	stackStatus := aws.StringValue(res.Stacks[0].StackStatus)
+	if !shouldAutoscale(stackStatus) {
+		fmt.Printf("skipping autoscale: stack %s is %s\n", stack, stackStatus)
+		return nil
 	}
 
 	// check if rack schedule down period
