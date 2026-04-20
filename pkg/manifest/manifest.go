@@ -18,6 +18,13 @@ const (
 
 var (
 	nameValidator = regexp.MustCompile(`^[a-z]{1}[a-z0-9-]*$`)
+
+	// nlbCertARNPattern accepts ACM certificate ARNs and IAM server-certificate
+	// ARNs across all AWS partitions (aws, aws-cn, aws-us-gov).
+	nlbCertARNPattern = regexp.MustCompile(
+		`^arn:aws[-a-z]*:acm:[a-z0-9-]+:\d{12}:certificate/[a-zA-Z0-9-]+$|` +
+			`^arn:aws[-a-z]*:iam::\d{12}:server-certificate/.+$`,
+	)
 )
 
 var (
@@ -208,9 +215,55 @@ func (m *Manifest) Validate() error {
 		return err
 	}
 
+	nlbPortOwner := map[int]string{}
 	for _, s := range m.Services {
 		if !nameValidator.MatchString(s.Name) {
 			return fmt.Errorf("service name %s invalid, %s", s.Name, ValidNameDescription)
+		}
+
+		if len(s.NLB) > 0 && s.Agent.Enabled {
+			return fmt.Errorf("service %s: agent mode is incompatible with nlb ports", s.Name)
+		}
+
+		seenPorts := map[int]int{}
+		seenContainerPorts := map[int]bool{}
+		for _, np := range s.NLB {
+			if np.Port < 1 || np.Port > 65535 {
+				return fmt.Errorf("service %s: nlb port %d out of range", s.Name, np.Port)
+			}
+			if np.ContainerPort < 1 || np.ContainerPort > 65535 {
+				return fmt.Errorf("service %s: nlb containerPort %d out of range", s.Name, np.ContainerPort)
+			}
+			if np.Protocol != "tcp" && np.Protocol != "tls" {
+				return fmt.Errorf("service %s nlb port %d: protocol must be tcp or tls, got %q", s.Name, np.Port, np.Protocol)
+			}
+			if np.Protocol == "tls" && np.Certificate == "" {
+				return fmt.Errorf("service %s nlb port %d: protocol tls requires a certificate (provide an ACM ARN; run 'convox certs list' to see available ARNs)", s.Name, np.Port)
+			}
+			if np.Protocol != "tls" && np.Certificate != "" {
+				return fmt.Errorf("service %s nlb port %d: certificate is only valid with protocol: tls", s.Name, np.Port)
+			}
+			if np.Certificate != "" && !nlbCertARNPattern.MatchString(np.Certificate) {
+				return fmt.Errorf("service %s nlb port %d: certificate must be a full ACM or IAM server-certificate ARN, got %q (run 'convox certs list' to see available ARNs)", s.Name, np.Port, np.Certificate)
+			}
+			if np.Scheme != "public" && np.Scheme != "internal" {
+				return fmt.Errorf("service %s nlb port %d: scheme must be public or internal, got %q", s.Name, np.Port, np.Scheme)
+			}
+			if existing, ok := seenPorts[np.Port]; ok {
+				if existing != np.ContainerPort {
+					return fmt.Errorf("service %s: nlb port %d declared with conflicting containerPort values", s.Name, np.Port)
+				}
+				return fmt.Errorf("service %s: duplicate nlb port %d", s.Name, np.Port)
+			}
+			if seenContainerPorts[np.ContainerPort] {
+				return fmt.Errorf("service %s: nlb containerPort %d used by multiple nlb listeners", s.Name, np.ContainerPort)
+			}
+			if owner, ok := nlbPortOwner[np.Port]; ok && owner != s.Name {
+				return fmt.Errorf("nlb port %d declared by services %s and %s; rack NLB listener is shared, each port must be unique across services", np.Port, owner, s.Name)
+			}
+			nlbPortOwner[np.Port] = s.Name
+			seenPorts[np.Port] = np.ContainerPort
+			seenContainerPorts[np.ContainerPort] = true
 		}
 	}
 
@@ -334,6 +387,21 @@ func (m *Manifest) ApplyDefaults() error {
 
 		if s.InternalAndExternal {
 			m.Services[i].Internal = true
+		}
+
+		for j := range m.Services[i].NLB {
+			np := &m.Services[i].NLB[j]
+			np.Protocol = strings.ToLower(strings.TrimSpace(np.Protocol))
+			if np.Protocol == "" {
+				np.Protocol = "tcp"
+			}
+			np.Scheme = strings.ToLower(strings.TrimSpace(np.Scheme))
+			if np.Scheme == "" {
+				np.Scheme = "public"
+			}
+			if np.ContainerPort == 0 {
+				np.ContainerPort = np.Port
+			}
 		}
 	}
 

@@ -21,6 +21,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/ecs"
+	"github.com/aws/aws-sdk-go/service/eventbridge"
 	"github.com/aws/aws-sdk-go/service/kms"
 	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/convox/rack/pkg/helpers"
@@ -566,6 +567,9 @@ func (p *Provider) SystemUninstall(name string, w io.Writer, opts structs.System
 		}
 	}
 
+	ebService := eventbridge.New(s)
+	disableAutoscalerRule(cf, ebService, name, w)
+
 	asgService := autoscaling.New(s)
 	for _, d := range deps {
 		// Workaround to uninstall v2 racks:
@@ -633,11 +637,46 @@ func cleanAsg(cf *cloudformation.CloudFormation, asgservice *autoscaling.AutoSca
 	return nil
 }
 
+// disableAutoscalerRule best-effort disables the InstancesAutoscalerEvent
+// EventBridge rule defined by the rack stack. Stops the autoscaler Lambda
+// from issuing UpdateStack while SystemUninstall is force-deleting ASGs.
+//
+// Errors are logged to w and swallowed — uninstall should proceed even if the
+// rule can't be disabled. Worst case: the caller proceeds without the
+// optimization and (for racks pre-dating the Lambda status check) may see
+// one UPDATE_ROLLBACK_COMPLETE cycle before cleanAsg completes.
+//
+// stackName is the rack stack (or any stack); app stacks don't have this
+// logical resource, so DescribeStackResource errors and the helper no-ops.
+func disableAutoscalerRule(cf *cloudformation.CloudFormation, ev *eventbridge.EventBridge, stackName string, w io.Writer) {
+	out, err := cf.DescribeStackResource(&cloudformation.DescribeStackResourceInput{
+		StackName:         aws.String(stackName),
+		LogicalResourceId: aws.String("InstancesAutoscalerEvent"),
+	})
+	if err != nil {
+		fmt.Fprintf(w, "skip autoscaler disable (%s): %s\n", stackName, err)
+		return
+	}
+	if out.StackResourceDetail == nil || out.StackResourceDetail.PhysicalResourceId == nil {
+		return
+	}
+	ruleName := aws.StringValue(out.StackResourceDetail.PhysicalResourceId)
+	if _, err := ev.DisableRule(&eventbridge.DisableRuleInput{Name: aws.String(ruleName)}); err != nil {
+		fmt.Fprintf(w, "skip autoscaler disable (%s): %s\n", ruleName, err)
+		return
+	}
+	fmt.Fprintf(w, "disabled autoscaler rule: %s\n", ruleName)
+}
+
 func (p *Provider) Sync(name string) error {
 	return fmt.Errorf("not supported")
 }
 
 func (p *Provider) SystemUpdate(opts structs.SystemUpdateOptions) error {
+	if err := p.validateNLBParams(opts); err != nil {
+		return err
+	}
+
 	changes := map[string]string{}
 	hasOtherChange := false
 

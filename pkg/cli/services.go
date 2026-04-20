@@ -41,7 +41,21 @@ func Services(rack sdk.Interface, c *stdcli.Context) error {
 		}
 	}
 
-	t := c.Table("SERVICE", "DOMAIN", "PORTS")
+	// NLB PORTS column only renders when at least one service declares nlb: ports.
+	// Keeps pre-NLB and non-NLB-using racks on the original 3-column output.
+	hasNlb := false
+	for _, s := range ss {
+		if len(s.Nlb) > 0 {
+			hasNlb = true
+			break
+		}
+	}
+
+	headers := []string{"SERVICE", "DOMAIN", "PORTS"}
+	if hasNlb {
+		headers = append(headers, "NLB PORTS")
+	}
+	t := c.Table(headers...)
 
 	for _, s := range ss {
 		ports := []string{}
@@ -56,7 +70,24 @@ func Services(rack sdk.Interface, c *stdcli.Context) error {
 			ports = append(ports, port)
 		}
 
-		t.AddRow(s.Name, s.Domain, strings.Join(ports, " "))
+		row := []string{s.Name, s.Domain, strings.Join(ports, " ")}
+
+		if hasNlb {
+			nlbs := []string{}
+			for _, np := range s.Nlb {
+				cell := fmt.Sprintf("%d:%d", np.Port, np.ContainerPort)
+				if np.Protocol == "tls" {
+					cell += "/tls"
+				}
+				if np.Scheme == "internal" {
+					cell += "(internal)"
+				}
+				nlbs = append(nlbs, cell)
+			}
+			row = append(row, strings.Join(nlbs, " "))
+		}
+
+		t.AddRow(row...)
 	}
 
 	return t.Print()

@@ -228,6 +228,14 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 		}
 	}
 
+	if err := p.validateNLBSchemeMatch(m); err != nil {
+		return err
+	}
+
+	if err := certPreflight(m, &providerCertChecker{p: p}); err != nil {
+		return err
+	}
+
 	cs, err := p.CertificateList()
 	if err != nil {
 		return err
@@ -1072,4 +1080,25 @@ func (p *Provider) getResourceDBIdentifier(app, resourceName string) (string, er
 	}
 
 	return "", fmt.Errorf("db instance not found")
+}
+
+// validateNLBSchemeMatch rejects releases whose manifest declares NLB ports whose
+// scheme (public/internal) does not have the corresponding rack NLB enabled.
+// Called early in release promote, before any CF or DynamoDB writes.
+func (p *Provider) validateNLBSchemeMatch(m *manifest.Manifest) error {
+	for _, s := range m.Services {
+		for _, np := range s.NLB {
+			switch np.Scheme {
+			case "public":
+				if !p.NLB {
+					return fmt.Errorf("service %s declares public nlb port %d but rack does not have NLB enabled; run 'convox rack params set NLB=Yes' first", s.Name, np.Port)
+				}
+			case "internal":
+				if !p.NLBInternal {
+					return fmt.Errorf("service %s declares internal nlb port %d but rack does not have NLBInternal enabled; run 'convox rack params set Internal=Yes NLBInternal=Yes' first", s.Name, np.Port)
+				}
+			}
+		}
+	}
+	return nil
 }

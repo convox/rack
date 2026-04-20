@@ -1,0 +1,9 @@
+services:
+  api:
+    image: example/api
+    nlb:
+      - port: 8080
+        protocol: tcp
+        containerPort: 8080
+        scheme: public
+        certificate: arn:aws:acm:us-east-1:123456789012:certificate/abc

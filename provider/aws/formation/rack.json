@@ -12,6 +12,12 @@
       "Fn::And": [ { "Condition": "BlankExistingVpc" }, { "Condition": "ThirdAvailabilityZone" } ]
     },
     "HasEcsContainerStopTimeout": { "Fn::Not": [ { "Fn::Equals": [ { "Ref": "EcsContainerStopTimeout" }, "" ] } ] } ,
+    "HasNLB": { "Fn::Not": [ { "Fn::Equals": [ { "Ref": "NLB" }, "No" ] } ] },
+    "HasNLBInternal": { "Fn::Not": [ { "Fn::Equals": [ { "Ref": "NLBInternal" }, "No" ] } ] },
+    "HasNLBAndThirdAZAndHA": { "Fn::And": [
+      { "Condition": "HasNLB" },
+      { "Condition": "ThirdAvailabilityZoneAndHighAvailability" }
+    ] },
     "BlankInstanceBootCommand": { "Fn::Equals": [ { "Ref": "InstanceBootCommand" }, "" ] },
     "BlankInstancePolicy": { "Fn::Equals": [ { "Ref": "InstancePolicy" }, "" ] },
     "BlankInstanceRunCommand": { "Fn::Equals": [ { "Ref": "InstanceRunCommand" }, "" ] },
@@ -429,6 +435,51 @@
           ""
         ]
       }
+    },
+    "NLBArn": {
+      "Condition": "HasNLB",
+      "Export": { "Name": { "Fn::Sub": "${AWS::StackName}:NLBArn" } },
+      "Value": { "Ref": "NLBRouter" }
+    },
+    "NLBCanonicalHostedZoneID": {
+      "Condition": "HasNLB",
+      "Export": { "Name": { "Fn::Sub": "${AWS::StackName}:NLBCanonicalHostedZoneID" } },
+      "Value": { "Fn::GetAtt": [ "NLBRouter", "CanonicalHostedZoneID" ] }
+    },
+    "NLBEIP0": {
+      "Condition": "HasNLB",
+      "Export": { "Name": { "Fn::Sub": "${AWS::StackName}:NLBEIP0" } },
+      "Value": { "Ref": "NLBAddress0" }
+    },
+    "NLBEIP1": {
+      "Condition": "HasNLB",
+      "Export": { "Name": { "Fn::Sub": "${AWS::StackName}:NLBEIP1" } },
+      "Value": { "Ref": "NLBAddress1" }
+    },
+    "NLBEIP2": {
+      "Condition": "HasNLBAndThirdAZAndHA",
+      "Export": { "Name": { "Fn::Sub": "${AWS::StackName}:NLBEIP2" } },
+      "Value": { "Ref": "NLBAddress2" }
+    },
+    "NLBHost": {
+      "Condition": "HasNLB",
+      "Export": { "Name": { "Fn::Sub": "${AWS::StackName}:NLBHost" } },
+      "Value": { "Fn::GetAtt": [ "NLBRouter", "DNSName" ] }
+    },
+    "NLBInternalArn": {
+      "Condition": "HasNLBInternal",
+      "Export": { "Name": { "Fn::Sub": "${AWS::StackName}:NLBInternalArn" } },
+      "Value": { "Ref": "NLBRouterInternal" }
+    },
+    "NLBInternalCanonicalHostedZoneID": {
+      "Condition": "HasNLBInternal",
+      "Export": { "Name": { "Fn::Sub": "${AWS::StackName}:NLBInternalCanonicalHostedZoneID" } },
+      "Value": { "Fn::GetAtt": [ "NLBRouterInternal", "CanonicalHostedZoneID" ] }
+    },
+    "NLBInternalHost": {
+      "Condition": "HasNLBInternal",
+      "Export": { "Name": { "Fn::Sub": "${AWS::StackName}:NLBInternalHost" } },
+      "Value": { "Fn::GetAtt": [ "NLBRouterInternal", "DNSName" ] }
     },
     "NotificationTopic": {
       "Value": { "Ref": "NotificationTopic" }
@@ -945,6 +996,18 @@
       "Default": "3",
       "AllowedValues": [ "2", "3" ]
     },
+    "NLB": {
+      "Type": "String",
+      "Default": "No",
+      "AllowedValues": [ "Yes", "No" ],
+      "Description": "Create a public Network Load Balancer for services that opt in"
+    },
+    "NLBInternal": {
+      "Type": "String",
+      "Default": "No",
+      "AllowedValues": [ "Yes", "No" ],
+      "Description": "Create an internal Network Load Balancer for services that opt in (requires Internal=Yes)"
+    },
     "NoHAAutoscaleExtra": {
       "Type": "Number",
       "Description": "When HighAvailability is set to false, the autoscale will maintain a certain number of extra capacity instances running on racks that are not configured for high availability",
@@ -1457,6 +1520,30 @@
       "Type": "AWS::EC2::EIP",
       "Properties": {
         "Domain": "vpc"
+      }
+    },
+    "NLBAddress0": {
+      "Type": "AWS::EC2::EIP",
+      "Condition": "HasNLB",
+      "Properties": {
+        "Domain": "vpc",
+        "Tags": [ { "Key": "Rack", "Value": { "Ref": "AWS::StackName" } } ]
+      }
+    },
+    "NLBAddress1": {
+      "Type": "AWS::EC2::EIP",
+      "Condition": "HasNLB",
+      "Properties": {
+        "Domain": "vpc",
+        "Tags": [ { "Key": "Rack", "Value": { "Ref": "AWS::StackName" } } ]
+      }
+    },
+    "NLBAddress2": {
+      "Type": "AWS::EC2::EIP",
+      "Condition": "HasNLBAndThirdAZAndHA",
+      "Properties": {
+        "Domain": "vpc",
+        "Tags": [ { "Key": "Rack", "Value": { "Ref": "AWS::StackName" } } ]
       }
     },
     "SecureEnvironmentRole": {
@@ -2471,6 +2558,7 @@
       "Condition": "Autoscale",
       "Properties": {
         "ScheduleExpression": "cron(*/1 * * * ? *)",
+        "State": "ENABLED",
         "Targets": [ { "Id": "InstancesAutoscaler", "Arn": { "Fn::GetAtt": [ "InstancesAutoscaler", "Arn" ] } } ]
       }
     },
@@ -3650,6 +3738,54 @@
         ]
       }
     },
+    "NLBRouter": {
+      "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
+      "Condition": "HasNLB",
+      "Properties": {
+        "Type": "network",
+        "Scheme": "internet-facing",
+        "SubnetMappings": [
+          { "SubnetId": { "Ref": "Subnet0" }, "AllocationId": { "Fn::GetAtt": [ "NLBAddress0", "AllocationId" ] } },
+          { "SubnetId": { "Ref": "Subnet1" }, "AllocationId": { "Fn::GetAtt": [ "NLBAddress1", "AllocationId" ] } },
+          { "Fn::If": [ "HasNLBAndThirdAZAndHA",
+            { "SubnetId": { "Ref": "Subnet2" }, "AllocationId": { "Fn::GetAtt": [ "NLBAddress2", "AllocationId" ] } },
+            { "Ref": "AWS::NoValue" }
+          ] }
+        ],
+        "Tags": [
+          { "Key": "Rack", "Value": { "Ref": "AWS::StackName" } }
+        ]
+      }
+    },
+    "NLBRouterInternal": {
+      "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
+      "Condition": "HasNLBInternal",
+      "Properties": {
+        "Type": "network",
+        "Scheme": "internal",
+        "SubnetMappings": { "Fn::If": [ "Private",
+          [
+            { "SubnetId": { "Ref": "SubnetPrivate0" } },
+            { "SubnetId": { "Ref": "SubnetPrivate1" } },
+            { "Fn::If": [ "ThirdAvailabilityZoneAndHighAvailability",
+              { "SubnetId": { "Ref": "SubnetPrivate2" } },
+              { "Ref": "AWS::NoValue" }
+            ] }
+          ],
+          [
+            { "SubnetId": { "Ref": "Subnet0" } },
+            { "SubnetId": { "Ref": "Subnet1" } },
+            { "Fn::If": [ "ThirdAvailabilityZoneAndHighAvailability",
+              { "SubnetId": { "Ref": "Subnet2" } },
+              { "Ref": "AWS::NoValue" }
+            ] }
+          ]
+        ] },
+        "Tags": [
+          { "Key": "Rack", "Value": { "Ref": "AWS::StackName" } }
+        ]
+      }
+    },
     "ApiBalancer": {
       "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
       "DependsOn": [ "ApiRole", "LogsPolicy" ],
@@ -4065,6 +4201,8 @@
               "rack.Internal": { "Ref": "Internal" },
               "rack.InternalOnly": { "Ref": "InternalOnly" },
               "rack.LogBucket": { "Fn::If": [ "BlankLogBucket", { "Ref": "Logs" }, { "Ref": "LogBucket" } ] },
+              "rack.NLB": { "Ref": "NLB" },
+              "rack.NLBInternal": { "Ref": "NLBInternal" },
               "rack.NotificationTopic": { "Ref": "NotificationTopic" },
               "rack.OnDemandMinCount": { "Ref": "OnDemandMinCount" },
               "rack.Private": { "Ref": "Private" },
@@ -4201,6 +4339,8 @@
               "rack.Internal": { "Ref": "Internal" },
               "rack.InternalOnly": { "Ref": "InternalOnly" },
               "rack.LogBucket": { "Fn::If": [ "BlankLogBucket", { "Ref": "Logs" }, { "Ref": "LogBucket" } ] },
+              "rack.NLB": { "Ref": "NLB" },
+              "rack.NLBInternal": { "Ref": "NLBInternal" },
               "rack.NotificationTopic": { "Ref": "NotificationTopic" },
               "rack.OnDemandMinCount": { "Ref": "OnDemandMinCount" },
               "rack.Private": { "Ref": "Private" },
@@ -4329,6 +4469,8 @@
               "rack.Internal": { "Ref": "Internal" },
               "rack.InternalOnly": { "Ref": "InternalOnly" },
               "rack.LogBucket": { "Fn::If": [ "BlankLogBucket", { "Ref": "Logs" }, { "Ref": "LogBucket" } ] },
+              "rack.NLB": { "Ref": "NLB" },
+              "rack.NLBInternal": { "Ref": "NLBInternal" },
               "rack.NotificationTopic": { "Ref": "NotificationTopic" },
               "rack.OnDemandMinCount": { "Ref": "OnDemandMinCount" },
               "rack.Private": { "Ref": "Private" },
@@ -4479,6 +4621,8 @@
               "rack.InternalOnly": { "Ref": "InternalOnly" },
               "rack.LogBucket": { "Fn::If": [ "BlankLogBucket", { "Ref": "Logs" }, { "Ref": "LogBucket" } ] },
               "rack.MaintainTimerState": { "Ref": "MaintainTimerState" },
+              "rack.NLB": { "Ref": "NLB" },
+              "rack.NLBInternal": { "Ref": "NLBInternal" },
               "rack.NotificationTopic": { "Ref": "NotificationTopic" },
               "rack.OnDemandMinCount": { "Ref": "OnDemandMinCount" },
               "rack.Private": { "Ref": "Private" },

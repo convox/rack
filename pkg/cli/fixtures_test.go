@@ -274,6 +274,27 @@ func fxService() *structs.Service {
 	}
 }
 
+func fxServiceNLB() *structs.Service {
+	s := fxService()
+	s.Nlb = []structs.ServiceNlbPort{
+		{Port: 8443, Protocol: "tcp", ContainerPort: 8443, Scheme: "public"},
+		{Port: 9443, Protocol: "tcp", ContainerPort: 8080, Scheme: "internal"},
+	}
+	return s
+}
+
+func fxServiceNLBTLS() *structs.Service {
+	s := fxService()
+	s.Nlb = []structs.ServiceNlbPort{
+		{
+			Port: 8443, Protocol: "tls", ContainerPort: 8080, Scheme: "public",
+			Certificate: "arn:aws:acm:us-east-1:123456789012:certificate/abc",
+		},
+		{Port: 9443, Protocol: "tcp", ContainerPort: 8080, Scheme: "internal"},
+	}
+	return s
+}
+
 func fxSystem() *structs.System {
 	return &structs.System{
 		Count:      1,
@@ -325,5 +346,42 @@ func fxSystemInternal() *structs.System {
 		Status:     "running",
 		Type:       "type",
 		Version:    "20180901000000",
+	}
+}
+
+func fxSystemNLB() *structs.System {
+	return &structs.System{
+		Count:  1,
+		Domain: "domain",
+		Name:   "name",
+		Outputs: map[string]string{
+			"NLBHost": "nlb-host.elb.region.amazonaws.com",
+			"NLBEIP0": "203.0.113.10",
+			"NLBEIP1": "203.0.113.11",
+			"NLBEIP2": "203.0.113.12",
+		},
+		Parameters: map[string]string{"Autoscale": "Yes", "ParamFoo": "value1", "ParamOther": "value2"},
+		Provider:   "provider",
+		Region:     "region",
+		Status:     "running",
+		Type:       "type",
+		Version:    "21000101000000",
+	}
+}
+
+func fxSystemNLBInternal() *structs.System {
+	return &structs.System{
+		Count:  1,
+		Domain: "domain",
+		Name:   "name",
+		Outputs: map[string]string{
+			"NLBInternalHost": "nlb-internal-host.elb.region.amazonaws.com",
+		},
+		Parameters: map[string]string{"Autoscale": "Yes", "ParamFoo": "value1", "ParamOther": "value2"},
+		Provider:   "provider",
+		Region:     "region",
+		Status:     "running",
+		Type:       "type",
+		Version:    "21000101000000",
 	}
 }

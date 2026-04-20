@@ -9,3 +9,4 @@ provider/aws/lambda/autoscale/lambda.zip
 provider/aws/lambda/autoscale/bootstrap
 .vscode/
 .DS_Store
+.claude/
