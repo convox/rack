@@ -237,7 +237,7 @@
         "Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
         "Properties": {
           "Port": {{ .Port }},
-          "Protocol": "{{ upcase .Protocol }}",
+          "Protocol": "{{ if eq .Protocol "tls" }}TCP{{ else }}{{ upcase .Protocol }}{{ end }}",
           "TargetType": { "Fn::If": [ "IsolateServices", "ip", "instance" ] },
           "VpcId": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Vpc" } },
           "HealthCheckProtocol": "TCP",

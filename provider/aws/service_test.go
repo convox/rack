@@ -255,3 +255,72 @@ func TestServiceTemplateNLBTLSListenerIAMCert(t *testing.T) {
 	require.True(t, strings.Contains(string(listener),
 		"arn:aws:iam::123456789012:server-certificate/my-server-cert"))
 }
+
+// TestServiceTemplateNLBTLSTargetGroupIsTCP guards the design invariant that
+// NLB TLS terminates at the listener and the target group forwards plaintext
+// TCP to the backend container. Regression against a past bug where the TG
+// copied the listener protocol verbatim and rendered as TLS, causing AWS to
+// re-encrypt to the backend and breaking any plaintext container.
+func TestServiceTemplateNLBTLSTargetGroupIsTCP(t *testing.T) {
+	m, err := loadManifestFromTestdata(t, "nlb-tls")
+	require.NoError(t, err)
+	rendered := renderServiceTemplate(t, m, "api")
+	tg := extractResource(t, rendered, "NLBTargetGroup443")
+
+	var parsed struct {
+		Properties struct {
+			Protocol string
+			Port     int
+		}
+	}
+	require.NoError(t, json.Unmarshal(tg, &parsed))
+	require.Equal(t, "TCP", parsed.Properties.Protocol,
+		"NLB TLS target group must forward plaintext TCP to the backend")
+	require.Equal(t, 443, parsed.Properties.Port)
+}
+
+// TestServiceTemplateNLBTCPTargetGroupIsTCP guards that the TCP-listener path
+// still renders TG Protocol=TCP. Catches a future bug where the new
+// if/else conditional reverses the TCP case.
+func TestServiceTemplateNLBTCPTargetGroupIsTCP(t *testing.T) {
+	m, err := loadManifestFromTestdata(t, "nlb")
+	require.NoError(t, err)
+	rendered := renderServiceTemplate(t, m, "api")
+	tg := extractResource(t, rendered, "NLBTargetGroup8443")
+
+	var parsed struct {
+		Properties struct {
+			Protocol string
+		}
+	}
+	require.NoError(t, json.Unmarshal(tg, &parsed))
+	require.Equal(t, "TCP", parsed.Properties.Protocol)
+}
+
+// TestServiceTemplateNLBMixedTCPAndTLSTargetGroupsBothTCP asserts that when
+// a single service mixes TCP and TLS NLB listeners, both target groups
+// render as Protocol=TCP. Confirms the conditional fires per-iteration
+// rather than based on a service-wide state.
+func TestServiceTemplateNLBMixedTCPAndTLSTargetGroupsBothTCP(t *testing.T) {
+	m, err := loadManifestFromTestdata(t, "nlb-tls-mixed")
+	require.NoError(t, err)
+	rendered := renderServiceTemplate(t, m, "api")
+
+	tlsTG := extractResource(t, rendered, "NLBTargetGroup443")
+	tcpTG := extractResource(t, rendered, "NLBTargetGroup8080")
+
+	var parseTG = func(raw json.RawMessage) string {
+		var parsed struct {
+			Properties struct {
+				Protocol string
+			}
+		}
+		require.NoError(t, json.Unmarshal(raw, &parsed))
+		return parsed.Properties.Protocol
+	}
+
+	require.Equal(t, "TCP", parseTG(tlsTG),
+		"TLS-listener target group must still be Protocol=TCP")
+	require.Equal(t, "TCP", parseTG(tcpTG),
+		"TCP-listener target group must be Protocol=TCP (unchanged)")
+}
