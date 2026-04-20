@@ -120,6 +120,8 @@ func (p *Provider) ServiceList(app string) (structs.Services, error) {
 			return nil, err
 		}
 
+		s.Nlb = manifestToServiceNlbPorts(ms.NLB)
+
 		ss = append(ss, s)
 	}
 
@@ -264,4 +266,23 @@ func (p *Provider) ServiceUpdate(app, name string, opts structs.ServiceUpdateOpt
 	}
 
 	return nil
+}
+
+// manifestToServiceNlbPorts copies NLB port declarations from the release manifest
+// into the wire struct. The loop preserves input slice order (no sort). Kept as a
+// helper so it is directly testable without standing up the full ServiceList
+// harness (AppGet, ReleaseGet, AppEnvironment, CertificateList, stackResource).
+// NLB ports come straight from the manifest; no CF read needed because
+// validateNLBSchemeMatch at release-promote time keeps manifest and live CF in sync.
+func manifestToServiceNlbPorts(ports []manifest.ServiceNLBPort) []structs.ServiceNlbPort {
+	var out []structs.ServiceNlbPort
+	for _, p := range ports {
+		out = append(out, structs.ServiceNlbPort{
+			ContainerPort: p.ContainerPort,
+			Port:          p.Port,
+			Protocol:      p.Protocol,
+			Scheme:        p.Scheme,
+		})
+	}
+	return out
 }

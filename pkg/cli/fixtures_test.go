@@ -274,6 +274,15 @@ func fxService() *structs.Service {
 	}
 }
 
+func fxServiceNLB() *structs.Service {
+	s := fxService()
+	s.Nlb = []structs.ServiceNlbPort{
+		{Port: 8443, Protocol: "tcp", ContainerPort: 8443, Scheme: "public"},
+		{Port: 9443, Protocol: "tcp", ContainerPort: 8080, Scheme: "internal"},
+	}
+	return s
+}
+
 func fxSystem() *structs.System {
 	return &structs.System{
 		Count:      1,
