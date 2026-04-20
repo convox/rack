@@ -20,6 +20,7 @@ type ServiceNlbPort struct {
 	Port          int    `json:"port"`
 	Protocol      string `json:"protocol"`
 	Scheme        string `json:"scheme"`
+	Certificate   string `json:"certificate"`
 }
 
 type ServicePort struct {

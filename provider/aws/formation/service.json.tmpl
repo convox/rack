@@ -257,6 +257,12 @@
           "LoadBalancerArn": { "Fn::ImportValue": { "Fn::Sub": "{{ if eq .Scheme "internal" }}${Rack}:NLBInternalArn{{ else }}${Rack}:NLBArn{{ end }}" } },
           "Port": {{ .Port }},
           "Protocol": "{{ upcase .Protocol }}"
+          {{ if eq .Protocol "tls" }},
+          "SslPolicy": "ELBSecurityPolicy-TLS13-1-2-2021-06",
+          "Certificates": [
+            { "CertificateArn": "{{ .Certificate }}" }
+          ]
+          {{ end }}
         }
       },
       {{ end }}

@@ -232,6 +232,10 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 		return err
 	}
 
+	if err := certPreflight(m, &providerCertChecker{p: p}); err != nil {
+		return err
+	}
+
 	cs, err := p.CertificateList()
 	if err != nil {
 		return err
