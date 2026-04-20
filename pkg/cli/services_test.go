@@ -115,6 +115,23 @@ func TestServicesAllWithNLB(t *testing.T) {
 	})
 }
 
+func TestServicesWithNLBTLS(t *testing.T) {
+	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
+		i.On("SystemGet").Return(fxSystem(), nil)
+		i.On("ServiceList", "app1").Return(structs.Services{*fxServiceNLBTLS(), *fxService()}, nil)
+
+		res, err := testExecute(e, "services -a app1", nil)
+		require.NoError(t, err)
+		require.Equal(t, 0, res.Code)
+		res.RequireStderr(t, []string{""})
+		res.RequireStdout(t, []string{
+			"SERVICE   DOMAIN  PORTS    NLB PORTS",
+			"service1  domain  1:2 1:2  8443:8080/tls 9443:8080(internal)",
+			"service1  domain  1:2 1:2  ",
+		})
+	})
+}
+
 func TestServicesMixedSchemes(t *testing.T) {
 	t.Run("public first preserves order", func(t *testing.T) {
 		testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {

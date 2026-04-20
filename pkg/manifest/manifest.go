@@ -18,6 +18,13 @@ const (
 
 var (
 	nameValidator = regexp.MustCompile(`^[a-z]{1}[a-z0-9-]*$`)
+
+	// nlbCertARNPattern accepts ACM certificate ARNs and IAM server-certificate
+	// ARNs across all AWS partitions (aws, aws-cn, aws-us-gov).
+	nlbCertARNPattern = regexp.MustCompile(
+		`^arn:aws[-a-z]*:acm:[a-z0-9-]+:\d{12}:certificate/[a-zA-Z0-9-]+$|` +
+			`^arn:aws[-a-z]*:iam::\d{12}:server-certificate/.+$`,
+	)
 )
 
 var (
@@ -227,8 +234,17 @@ func (m *Manifest) Validate() error {
 			if np.ContainerPort < 1 || np.ContainerPort > 65535 {
 				return fmt.Errorf("service %s: nlb containerPort %d out of range", s.Name, np.ContainerPort)
 			}
-			if np.Protocol != "tcp" {
-				return fmt.Errorf("service %s nlb port %d: only tcp protocol is currently supported", s.Name, np.Port)
+			if np.Protocol != "tcp" && np.Protocol != "tls" {
+				return fmt.Errorf("service %s nlb port %d: protocol must be tcp or tls, got %q", s.Name, np.Port, np.Protocol)
+			}
+			if np.Protocol == "tls" && np.Certificate == "" {
+				return fmt.Errorf("service %s nlb port %d: protocol tls requires a certificate (provide an ACM ARN; run 'convox certs list' to see available ARNs)", s.Name, np.Port)
+			}
+			if np.Protocol != "tls" && np.Certificate != "" {
+				return fmt.Errorf("service %s nlb port %d: certificate is only valid with protocol: tls", s.Name, np.Port)
+			}
+			if np.Certificate != "" && !nlbCertARNPattern.MatchString(np.Certificate) {
+				return fmt.Errorf("service %s nlb port %d: certificate must be a full ACM or IAM server-certificate ARN, got %q (run 'convox certs list' to see available ARNs)", s.Name, np.Port, np.Certificate)
 			}
 			if np.Scheme != "public" && np.Scheme != "internal" {
 				return fmt.Errorf("service %s nlb port %d: scheme must be public or internal, got %q", s.Name, np.Port, np.Scheme)

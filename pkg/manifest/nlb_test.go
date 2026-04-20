@@ -67,17 +67,12 @@ func TestManifestLoadNLBConflictingContainerPort(t *testing.T) {
 
 func TestManifestLoadNLBBadProtocolUDP(t *testing.T) {
 	_, err := loadFixture(t, "invalid-nlb-bad-proto.yml")
-	requireErrContains(t, err, "only tcp protocol is currently supported")
-}
-
-func TestManifestLoadNLBBadProtocolTLS(t *testing.T) {
-	_, err := loadFixture(t, "invalid-nlb-bad-tls.yml")
-	requireErrContains(t, err, "only tcp protocol is currently supported")
+	requireErrContains(t, err, "protocol must be tcp or tls")
 }
 
 func TestManifestLoadNLBBadProtocolTCPUDP(t *testing.T) {
 	_, err := loadFixture(t, "invalid-nlb-bad-tcpudp.yml")
-	requireErrContains(t, err, "only tcp protocol is currently supported")
+	requireErrContains(t, err, "protocol must be tcp or tls")
 }
 
 func TestManifestLoadNLBBadScheme(t *testing.T) {
@@ -232,4 +227,96 @@ func TestManifestLoadNLBCrossServicePortConflict(t *testing.T) {
       - port: 8443
 `))
 	requireErrContains(t, err, "nlb port 8443 declared by services")
+}
+
+func TestManifestLoadNLBTLS(t *testing.T) {
+	m, err := loadFixture(t, "nlb-tls.yml")
+	if err != nil {
+		t.Fatalf("valid tls manifest failed to load: %v", err)
+	}
+	s, _ := m.Service("api")
+	if len(s.NLB) != 1 {
+		t.Fatalf("expected 1 nlb port, got %d", len(s.NLB))
+	}
+	np := s.NLB[0]
+	if np.Port != 443 || np.Protocol != "tls" || np.ContainerPort != 8080 || np.Scheme != "public" {
+		t.Errorf("nlb[0] mismatch: %+v", np)
+	}
+	if np.Certificate != "arn:aws:acm:us-east-1:123456789012:certificate/00000000-0000-0000-0000-000000000001" {
+		t.Errorf("certificate mismatch: got %q", np.Certificate)
+	}
+}
+
+func TestManifestLoadNLBTLSWithIAMCert(t *testing.T) {
+	m, err := loadFixture(t, "nlb-tls-iam.yml")
+	if err != nil {
+		t.Fatalf("valid iam tls manifest failed to load: %v", err)
+	}
+	s, _ := m.Service("api")
+	np := s.NLB[0]
+	if np.Protocol != "tls" {
+		t.Errorf("protocol = %q, want tls", np.Protocol)
+	}
+	if np.Certificate != "arn:aws:iam::123456789012:server-certificate/my-server-cert" {
+		t.Errorf("certificate mismatch: got %q", np.Certificate)
+	}
+}
+
+func TestManifestLoadNLBTLSInternal(t *testing.T) {
+	m, err := loadFixture(t, "nlb-tls-internal.yml")
+	if err != nil {
+		t.Fatalf("valid internal tls manifest failed to load: %v", err)
+	}
+	s, _ := m.Service("api")
+	np := s.NLB[0]
+	if np.Protocol != "tls" {
+		t.Errorf("protocol = %q, want tls", np.Protocol)
+	}
+	if np.Scheme != "internal" {
+		t.Errorf("scheme = %q, want internal", np.Scheme)
+	}
+	if np.Certificate == "" {
+		t.Errorf("expected certificate, got empty")
+	}
+}
+
+func TestManifestLoadNLBMixedTLSAndTCP(t *testing.T) {
+	m, err := loadFixture(t, "nlb-tls-mixed.yml")
+	if err != nil {
+		t.Fatalf("valid mixed manifest failed to load: %v", err)
+	}
+	s, _ := m.Service("api")
+	if len(s.NLB) != 2 {
+		t.Fatalf("expected 2 nlb ports, got %d", len(s.NLB))
+	}
+	if s.NLB[0].Protocol != "tls" || s.NLB[0].Certificate == "" {
+		t.Errorf("nlb[0] tls mismatch: %+v", s.NLB[0])
+	}
+	if s.NLB[1].Protocol != "tcp" || s.NLB[1].Certificate != "" {
+		t.Errorf("nlb[1] tcp mismatch: %+v", s.NLB[1])
+	}
+}
+
+func TestManifestValidateNLBTLSNoCert(t *testing.T) {
+	_, err := loadFixture(t, "invalid-nlb-tls-no-cert.yml")
+	requireErrContains(t, err, "protocol tls requires a certificate")
+	requireErrContains(t, err, "convox certs list")
+}
+
+func TestManifestValidateNLBTLSBadARN(t *testing.T) {
+	_, err := loadFixture(t, "invalid-nlb-tls-bad-arn.yml")
+	requireErrContains(t, err, "must be a full ACM or IAM server-certificate ARN")
+}
+
+func TestManifestValidateNLBTCPWithCert(t *testing.T) {
+	_, err := loadFixture(t, "invalid-nlb-tcp-with-cert.yml")
+	requireErrContains(t, err, "certificate is only valid with protocol: tls")
+}
+
+func TestManifestValidateNLBValidatorOrderingProtocolWinsOverCert(t *testing.T) {
+	_, err := loadFixture(t, "invalid-nlb-tls-validator-order.yml")
+	requireErrContains(t, err, "protocol must be tcp or tls")
+	if err != nil && strings.Contains(err.Error(), "certificate is only valid with protocol: tls") {
+		t.Errorf("validator ordering broken: got cert-error before protocol-error: %v", err)
+	}
 }

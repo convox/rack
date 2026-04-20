@@ -283,6 +283,18 @@ func fxServiceNLB() *structs.Service {
 	return s
 }
 
+func fxServiceNLBTLS() *structs.Service {
+	s := fxService()
+	s.Nlb = []structs.ServiceNlbPort{
+		{
+			Port: 8443, Protocol: "tls", ContainerPort: 8080, Scheme: "public",
+			Certificate: "arn:aws:acm:us-east-1:123456789012:certificate/abc",
+		},
+		{Port: 9443, Protocol: "tcp", ContainerPort: 8080, Scheme: "internal"},
+	}
+	return s
+}
+
 func fxSystem() *structs.System {
 	return &structs.System{
 		Count:      1,

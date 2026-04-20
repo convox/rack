@@ -2,5 +2,7 @@ services:
   api:
     image: example/api
     nlb:
-      - port: 8443
+      - port: 443
         protocol: tls
+        containerPort: 8080
+        scheme: public

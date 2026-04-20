@@ -1,0 +1,9 @@
+services:
+  api:
+    image: example/api
+    nlb:
+      - port: 443
+        protocol: tls
+        containerPort: 8080
+        scheme: public
+        certificate: cert-short-id-not-allowed

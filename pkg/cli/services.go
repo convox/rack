@@ -76,6 +76,9 @@ func Services(rack sdk.Interface, c *stdcli.Context) error {
 			nlbs := []string{}
 			for _, np := range s.Nlb {
 				cell := fmt.Sprintf("%d:%d", np.Port, np.ContainerPort)
+				if np.Protocol == "tls" {
+					cell += "/tls"
+				}
 				if np.Scheme == "internal" {
 					cell += "(internal)"
 				}

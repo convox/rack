@@ -54,6 +54,7 @@ type ServiceNLBPort struct {
 	Protocol      string `yaml:"protocol,omitempty"`
 	ContainerPort int    `yaml:"containerPort,omitempty"`
 	Scheme        string `yaml:"scheme,omitempty"`
+	Certificate   string `yaml:"certificate,omitempty"`
 }
 
 type ServiceBuild struct {
