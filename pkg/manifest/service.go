@@ -50,11 +50,14 @@ type ServiceAgentPort struct {
 }
 
 type ServiceNLBPort struct {
-	Port          int    `yaml:"port"`
-	Protocol      string `yaml:"protocol,omitempty"`
-	ContainerPort int    `yaml:"containerPort,omitempty"`
-	Scheme        string `yaml:"scheme,omitempty"`
-	Certificate   string `yaml:"certificate,omitempty"`
+	Port             int      `yaml:"port"`
+	Protocol         string   `yaml:"protocol,omitempty"`
+	ContainerPort    int      `yaml:"containerPort,omitempty"`
+	Scheme           string   `yaml:"scheme,omitempty"`
+	Certificate      string   `yaml:"certificate,omitempty"`
+	CrossZone        *bool    `yaml:"cross_zone,omitempty"`
+	AllowCIDR        []string `yaml:"allow_cidr,omitempty"`
+	PreserveClientIP *bool    `yaml:"preserve_client_ip,omitempty"`
 }
 
 type ServiceBuild struct {
@@ -189,4 +192,37 @@ func (s Service) Autoscale() bool {
 	}
 
 	return false
+}
+
+// CrossZoneValue returns "", "true", or "false". Empty means inherit from the
+// load balancer; the template omits the target-group attribute so AWS uses the
+// NLB's LB-level setting.
+func (np ServiceNLBPort) CrossZoneValue() string {
+	if np.CrossZone == nil {
+		return ""
+	}
+	if *np.CrossZone {
+		return "true"
+	}
+	return "false"
+}
+
+// PreserveClientIPValue returns "true" or "false" based on per-port override
+// or the scheme-appropriate rack default. publicDefault and internalDefault are
+// "Yes"/"No" strings as loaded from docker labels on the rack task definition.
+func (np ServiceNLBPort) PreserveClientIPValue(publicDefault, internalDefault string) string {
+	if np.PreserveClientIP != nil {
+		if *np.PreserveClientIP {
+			return "true"
+		}
+		return "false"
+	}
+	def := publicDefault
+	if np.Scheme == "internal" {
+		def = internalDefault
+	}
+	if def == "Yes" {
+		return "true"
+	}
+	return "false"
 }

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"math/rand"
+	"net"
 	"regexp"
 	"sort"
 	"strings"
@@ -248,6 +249,23 @@ func (m *Manifest) Validate() error {
 			}
 			if np.Scheme != "public" && np.Scheme != "internal" {
 				return fmt.Errorf("service %s nlb port %d: scheme must be public or internal, got %q", s.Name, np.Port, np.Scheme)
+			}
+			seenAllowCIDR := map[string]bool{}
+			for _, c := range np.AllowCIDR {
+				ip, ipnet, err := net.ParseCIDR(c)
+				if err != nil {
+					return fmt.Errorf("service %s nlb port %d: allow_cidr entry %q is not a valid IPv4 CIDR (e.g. 10.0.0.0/16)", s.Name, np.Port, c)
+				}
+				if ip.To4() == nil {
+					return fmt.Errorf("service %s nlb port %d: allow_cidr entry %q is not a valid IPv4 CIDR (IPv6 not supported)", s.Name, np.Port, c)
+				}
+				if ipnet.String() != c {
+					return fmt.Errorf("service %s nlb port %d: allow_cidr entry %q is not canonical; use %q instead", s.Name, np.Port, c, ipnet.String())
+				}
+				if seenAllowCIDR[c] {
+					return fmt.Errorf("service %s nlb port %d: allow_cidr contains duplicate entry: %s", s.Name, np.Port, c)
+				}
+				seenAllowCIDR[c] = true
 			}
 			if existing, ok := seenPorts[np.Port]; ok {
 				if existing != np.ContainerPort {

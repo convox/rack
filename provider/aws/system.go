@@ -543,6 +543,10 @@ func (p *Provider) SystemUninstall(name string, w io.Writer, opts structs.System
 		return fmt.Errorf("could not find rack: %s", name)
 	}
 
+	if err := p.validateNLBUninstall(name); err != nil {
+		return err
+	}
+
 	deps, err := rackDependencies(name)
 	if err != nil {
 		return err

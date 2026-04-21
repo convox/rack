@@ -73,6 +73,9 @@ type Provider struct {
 	LogDriver                         string
 	NLB                               bool
 	NLBInternal                       bool
+	NLBPreserveClientIP               bool
+	NLBInternalPreserveClientIP       bool
+	InstanceSecurityGroup             string
 	NotificationTopic                 string
 	OnDemandMinCount                  int
 	Password                          string
@@ -176,6 +179,9 @@ func (p *Provider) loadParams() error {
 	p.MaintainTimerState = labels["rack.MaintainTimerState"] == "Yes"
 	p.NLB = labels["rack.NLB"] == "Yes"
 	p.NLBInternal = labels["rack.NLBInternal"] == "Yes"
+	p.NLBPreserveClientIP = labels["rack.NLBPreserveClientIP"] == "Yes"
+	p.NLBInternalPreserveClientIP = labels["rack.NLBInternalPreserveClientIP"] == "Yes"
+	p.InstanceSecurityGroup = labels["rack.InstanceSecurityGroup"]
 	p.NotificationTopic = labels["rack.NotificationTopic"]
 	p.OnDemandMinCount = intParam(labels["rack.OnDemandMinCount"], 2)
 	p.Private = labels["rack.Private"] == "Yes"
