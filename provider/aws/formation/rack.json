@@ -18,6 +18,56 @@
       { "Condition": "HasNLB" },
       { "Condition": "ThirdAvailabilityZoneAndHighAvailability" }
     ] },
+    "NLBCrossZoneEnabled":                 { "Fn::Equals": [ { "Ref": "NLBCrossZone" }, "Yes" ] },
+    "NLBInternalCrossZoneEnabled":         { "Fn::Equals": [ { "Ref": "NLBInternalCrossZone" }, "Yes" ] },
+    "NLBPreserveClientIPEnabled":          { "Fn::Equals": [ { "Ref": "NLBPreserveClientIP" }, "Yes" ] },
+    "NLBInternalPreserveClientIPEnabled":  { "Fn::Equals": [ { "Ref": "NLBInternalPreserveClientIP" }, "Yes" ] },
+    "NLBDeletionProtectionEnabled":        { "Fn::Equals": [ { "Ref": "NLBDeletionProtection" }, "Yes" ] },
+    "NLBInternalDeletionProtectionEnabled":{ "Fn::Equals": [ { "Ref": "NLBInternalDeletionProtection" }, "Yes" ] },
+    "NLBInternalAllowCIDRBlank":           { "Fn::Equals": [ { "Ref": "NLBInternalAllowCIDR" }, "" ] },
+    "HasNLBAllowCIDRSlot0": { "Fn::And": [
+      { "Condition": "HasNLB" },
+      { "Fn::Not": [ { "Fn::Equals": [ { "Fn::Select": [ 0, { "Fn::Split": [ ",", { "Fn::Join": [ ",", [ { "Ref": "NLBAllowCIDR" }, ",,,,," ] ] } ] } ] }, "" ] } ] }
+    ] },
+    "HasNLBAllowCIDRSlot1": { "Fn::And": [
+      { "Condition": "HasNLB" },
+      { "Fn::Not": [ { "Fn::Equals": [ { "Fn::Select": [ 1, { "Fn::Split": [ ",", { "Fn::Join": [ ",", [ { "Ref": "NLBAllowCIDR" }, ",,,,," ] ] } ] } ] }, "" ] } ] }
+    ] },
+    "HasNLBAllowCIDRSlot2": { "Fn::And": [
+      { "Condition": "HasNLB" },
+      { "Fn::Not": [ { "Fn::Equals": [ { "Fn::Select": [ 2, { "Fn::Split": [ ",", { "Fn::Join": [ ",", [ { "Ref": "NLBAllowCIDR" }, ",,,,," ] ] } ] } ] }, "" ] } ] }
+    ] },
+    "HasNLBAllowCIDRSlot3": { "Fn::And": [
+      { "Condition": "HasNLB" },
+      { "Fn::Not": [ { "Fn::Equals": [ { "Fn::Select": [ 3, { "Fn::Split": [ ",", { "Fn::Join": [ ",", [ { "Ref": "NLBAllowCIDR" }, ",,,,," ] ] } ] } ] }, "" ] } ] }
+    ] },
+    "HasNLBAllowCIDRSlot4": { "Fn::And": [
+      { "Condition": "HasNLB" },
+      { "Fn::Not": [ { "Fn::Equals": [ { "Fn::Select": [ 4, { "Fn::Split": [ ",", { "Fn::Join": [ ",", [ { "Ref": "NLBAllowCIDR" }, ",,,,," ] ] } ] } ] }, "" ] } ] }
+    ] },
+    "HasNLBInternalAllowCIDRSlot0": { "Fn::And": [
+      { "Condition": "HasNLBInternal" },
+      { "Fn::Or": [
+        { "Condition": "NLBInternalAllowCIDRBlank" },
+        { "Fn::Not": [ { "Fn::Equals": [ { "Fn::Select": [ 0, { "Fn::Split": [ ",", { "Fn::Join": [ ",", [ { "Ref": "NLBInternalAllowCIDR" }, ",,,,," ] ] } ] } ] }, "" ] } ] }
+      ] }
+    ] },
+    "HasNLBInternalAllowCIDRSlot1": { "Fn::And": [
+      { "Condition": "HasNLBInternal" },
+      { "Fn::Not": [ { "Fn::Equals": [ { "Fn::Select": [ 1, { "Fn::Split": [ ",", { "Fn::Join": [ ",", [ { "Ref": "NLBInternalAllowCIDR" }, ",,,,," ] ] } ] } ] }, "" ] } ] }
+    ] },
+    "HasNLBInternalAllowCIDRSlot2": { "Fn::And": [
+      { "Condition": "HasNLBInternal" },
+      { "Fn::Not": [ { "Fn::Equals": [ { "Fn::Select": [ 2, { "Fn::Split": [ ",", { "Fn::Join": [ ",", [ { "Ref": "NLBInternalAllowCIDR" }, ",,,,," ] ] } ] } ] }, "" ] } ] }
+    ] },
+    "HasNLBInternalAllowCIDRSlot3": { "Fn::And": [
+      { "Condition": "HasNLBInternal" },
+      { "Fn::Not": [ { "Fn::Equals": [ { "Fn::Select": [ 3, { "Fn::Split": [ ",", { "Fn::Join": [ ",", [ { "Ref": "NLBInternalAllowCIDR" }, ",,,,," ] ] } ] } ] }, "" ] } ] }
+    ] },
+    "HasNLBInternalAllowCIDRSlot4": { "Fn::And": [
+      { "Condition": "HasNLBInternal" },
+      { "Fn::Not": [ { "Fn::Equals": [ { "Fn::Select": [ 4, { "Fn::Split": [ ",", { "Fn::Join": [ ",", [ { "Ref": "NLBInternalAllowCIDR" }, ",,,,," ] ] } ] } ] }, "" ] } ] }
+    ] },
     "BlankInstanceBootCommand": { "Fn::Equals": [ { "Ref": "InstanceBootCommand" }, "" ] },
     "BlankInstancePolicy": { "Fn::Equals": [ { "Ref": "InstancePolicy" }, "" ] },
     "BlankInstanceRunCommand": { "Fn::Equals": [ { "Ref": "InstanceRunCommand" }, "" ] },
@@ -480,6 +530,16 @@
       "Condition": "HasNLBInternal",
       "Export": { "Name": { "Fn::Sub": "${AWS::StackName}:NLBInternalHost" } },
       "Value": { "Fn::GetAtt": [ "NLBRouterInternal", "DNSName" ] }
+    },
+    "NLBSecurityGroup": {
+      "Condition": "HasNLB",
+      "Export": { "Name": { "Fn::Sub": "${AWS::StackName}:NLBSecurityGroup" } },
+      "Value": { "Ref": "NLBSecurity" }
+    },
+    "NLBInternalSecurityGroup": {
+      "Condition": "HasNLBInternal",
+      "Export": { "Name": { "Fn::Sub": "${AWS::StackName}:NLBInternalSecurityGroup" } },
+      "Value": { "Ref": "NLBInternalSecurity" }
     },
     "NotificationTopic": {
       "Value": { "Ref": "NotificationTopic" }
@@ -1007,6 +1067,52 @@
       "Default": "No",
       "AllowedValues": [ "Yes", "No" ],
       "Description": "Create an internal Network Load Balancer for services that opt in (requires Internal=Yes)"
+    },
+    "NLBCrossZone": {
+      "Type": "String",
+      "Default": "No",
+      "AllowedValues": [ "Yes", "No" ],
+      "Description": "Enable cross-zone load balancing on the public NLB. Off by default to match AWS default; enabling incurs cross-AZ data transfer charges"
+    },
+    "NLBInternalCrossZone": {
+      "Type": "String",
+      "Default": "No",
+      "AllowedValues": [ "Yes", "No" ],
+      "Description": "Enable cross-zone load balancing on the internal NLB"
+    },
+    "NLBAllowCIDR": {
+      "Type": "String",
+      "Default": "0.0.0.0/0",
+      "Description": "Comma-delimited list of CIDRs permitted to reach public NLB listeners. Default 0.0.0.0/0. Maximum 5 CIDRs"
+    },
+    "NLBInternalAllowCIDR": {
+      "Type": "String",
+      "Default": "",
+      "Description": "Comma-delimited list of CIDRs permitted to reach internal NLB listeners. Empty = VPC CIDR only. Maximum 5 CIDRs. Setting this REPLACES the VPC CIDR fallback; include your VPC CIDR explicitly if you need in-rack reachability"
+    },
+    "NLBPreserveClientIP": {
+      "Type": "String",
+      "Default": "No",
+      "AllowedValues": [ "Yes", "No" ],
+      "Description": "Forward real client IP to public NLB target tasks. Off by default. Cannot be enabled on a rack with a customer-supplied InstanceSecurityGroup"
+    },
+    "NLBInternalPreserveClientIP": {
+      "Type": "String",
+      "Default": "No",
+      "AllowedValues": [ "Yes", "No" ],
+      "Description": "Forward real client IP to internal NLB target tasks. Same customer-SG caveat as NLBPreserveClientIP"
+    },
+    "NLBDeletionProtection": {
+      "Type": "String",
+      "Default": "No",
+      "AllowedValues": [ "Yes", "No" ],
+      "Description": "Block accidental deletion of the public NLB. Must be disabled before NLB=No or rack uninstall"
+    },
+    "NLBInternalDeletionProtection": {
+      "Type": "String",
+      "Default": "No",
+      "AllowedValues": [ "Yes", "No" ],
+      "Description": "Block accidental deletion of the internal NLB"
     },
     "NoHAAutoscaleExtra": {
       "Type": "Number",
@@ -3744,6 +3850,13 @@
       "Properties": {
         "Type": "network",
         "Scheme": "internet-facing",
+        "SecurityGroups": [ { "Ref": "NLBSecurity" } ],
+        "LoadBalancerAttributes": [
+          { "Key": "load_balancing.cross_zone.enabled",
+            "Value": { "Fn::If": [ "NLBCrossZoneEnabled", "true", "false" ] } },
+          { "Key": "deletion_protection.enabled",
+            "Value": { "Fn::If": [ "NLBDeletionProtectionEnabled", "true", "false" ] } }
+        ],
         "SubnetMappings": [
           { "SubnetId": { "Ref": "Subnet0" }, "AllocationId": { "Fn::GetAtt": [ "NLBAddress0", "AllocationId" ] } },
           { "SubnetId": { "Ref": "Subnet1" }, "AllocationId": { "Fn::GetAtt": [ "NLBAddress1", "AllocationId" ] } },
@@ -3763,6 +3876,13 @@
       "Properties": {
         "Type": "network",
         "Scheme": "internal",
+        "SecurityGroups": [ { "Ref": "NLBInternalSecurity" } ],
+        "LoadBalancerAttributes": [
+          { "Key": "load_balancing.cross_zone.enabled",
+            "Value": { "Fn::If": [ "NLBInternalCrossZoneEnabled", "true", "false" ] } },
+          { "Key": "deletion_protection.enabled",
+            "Value": { "Fn::If": [ "NLBInternalDeletionProtectionEnabled", "true", "false" ] } }
+        ],
         "SubnetMappings": { "Fn::If": [ "Private",
           [
             { "SubnetId": { "Ref": "SubnetPrivate0" } },
@@ -3784,6 +3904,135 @@
         "Tags": [
           { "Key": "Rack", "Value": { "Ref": "AWS::StackName" } }
         ]
+      }
+    },
+    "NLBSecurity": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Condition": "HasNLB",
+      "Properties": {
+        "GroupDescription": { "Fn::Sub": "${AWS::StackName} public NLB" },
+        "VpcId": { "Fn::If": [ "BlankExistingVpc", { "Ref": "Vpc" }, { "Ref": "ExistingVpc" } ] },
+        "Tags": [ { "Key": "Name", "Value": { "Fn::Sub": "${AWS::StackName}-nlb" } } ]
+      }
+    },
+    "NLBInternalSecurity": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Condition": "HasNLBInternal",
+      "Properties": {
+        "GroupDescription": { "Fn::Sub": "${AWS::StackName} internal NLB" },
+        "VpcId": { "Fn::If": [ "BlankExistingVpc", { "Ref": "Vpc" }, { "Ref": "ExistingVpc" } ] },
+        "Tags": [ { "Key": "Name", "Value": { "Fn::Sub": "${AWS::StackName}-nlb-internal" } } ]
+      }
+    },
+    "InstancesSecurityNLBIngress": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Condition": "HasNLB",
+      "Properties": {
+        "GroupId": { "Ref": "InstancesSecurity" },
+        "IpProtocol": "-1",
+        "SourceSecurityGroupId": { "Ref": "NLBSecurity" }
+      }
+    },
+    "InstancesSecurityNLBInternalIngress": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Condition": "HasNLBInternal",
+      "Properties": {
+        "GroupId": { "Ref": "InstancesSecurity" },
+        "IpProtocol": "-1",
+        "SourceSecurityGroupId": { "Ref": "NLBInternalSecurity" }
+      }
+    },
+    "NLBAllowCIDRSlot0Ingress": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Condition": "HasNLBAllowCIDRSlot0",
+      "Properties": {
+        "GroupId": { "Ref": "NLBSecurity" },
+        "IpProtocol": "-1",
+        "CidrIp": { "Fn::Select": [ 0, { "Fn::Split": [ ",", { "Fn::Join": [ ",", [ { "Ref": "NLBAllowCIDR" }, ",,,,," ] ] } ] } ] }
+      }
+    },
+    "NLBAllowCIDRSlot1Ingress": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Condition": "HasNLBAllowCIDRSlot1",
+      "Properties": {
+        "GroupId": { "Ref": "NLBSecurity" },
+        "IpProtocol": "-1",
+        "CidrIp": { "Fn::Select": [ 1, { "Fn::Split": [ ",", { "Fn::Join": [ ",", [ { "Ref": "NLBAllowCIDR" }, ",,,,," ] ] } ] } ] }
+      }
+    },
+    "NLBAllowCIDRSlot2Ingress": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Condition": "HasNLBAllowCIDRSlot2",
+      "Properties": {
+        "GroupId": { "Ref": "NLBSecurity" },
+        "IpProtocol": "-1",
+        "CidrIp": { "Fn::Select": [ 2, { "Fn::Split": [ ",", { "Fn::Join": [ ",", [ { "Ref": "NLBAllowCIDR" }, ",,,,," ] ] } ] } ] }
+      }
+    },
+    "NLBAllowCIDRSlot3Ingress": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Condition": "HasNLBAllowCIDRSlot3",
+      "Properties": {
+        "GroupId": { "Ref": "NLBSecurity" },
+        "IpProtocol": "-1",
+        "CidrIp": { "Fn::Select": [ 3, { "Fn::Split": [ ",", { "Fn::Join": [ ",", [ { "Ref": "NLBAllowCIDR" }, ",,,,," ] ] } ] } ] }
+      }
+    },
+    "NLBAllowCIDRSlot4Ingress": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Condition": "HasNLBAllowCIDRSlot4",
+      "Properties": {
+        "GroupId": { "Ref": "NLBSecurity" },
+        "IpProtocol": "-1",
+        "CidrIp": { "Fn::Select": [ 4, { "Fn::Split": [ ",", { "Fn::Join": [ ",", [ { "Ref": "NLBAllowCIDR" }, ",,,,," ] ] } ] } ] }
+      }
+    },
+    "NLBInternalAllowCIDRSlot0Ingress": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Condition": "HasNLBInternalAllowCIDRSlot0",
+      "Properties": {
+        "GroupId": { "Ref": "NLBInternalSecurity" },
+        "IpProtocol": "-1",
+        "CidrIp": { "Fn::If": [ "NLBInternalAllowCIDRBlank",
+          { "Ref": "VPCCIDR" },
+          { "Fn::Select": [ 0, { "Fn::Split": [ ",", { "Fn::Join": [ ",", [ { "Ref": "NLBInternalAllowCIDR" }, ",,,,," ] ] } ] } ] }
+        ] }
+      }
+    },
+    "NLBInternalAllowCIDRSlot1Ingress": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Condition": "HasNLBInternalAllowCIDRSlot1",
+      "Properties": {
+        "GroupId": { "Ref": "NLBInternalSecurity" },
+        "IpProtocol": "-1",
+        "CidrIp": { "Fn::Select": [ 1, { "Fn::Split": [ ",", { "Fn::Join": [ ",", [ { "Ref": "NLBInternalAllowCIDR" }, ",,,,," ] ] } ] } ] }
+      }
+    },
+    "NLBInternalAllowCIDRSlot2Ingress": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Condition": "HasNLBInternalAllowCIDRSlot2",
+      "Properties": {
+        "GroupId": { "Ref": "NLBInternalSecurity" },
+        "IpProtocol": "-1",
+        "CidrIp": { "Fn::Select": [ 2, { "Fn::Split": [ ",", { "Fn::Join": [ ",", [ { "Ref": "NLBInternalAllowCIDR" }, ",,,,," ] ] } ] } ] }
+      }
+    },
+    "NLBInternalAllowCIDRSlot3Ingress": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Condition": "HasNLBInternalAllowCIDRSlot3",
+      "Properties": {
+        "GroupId": { "Ref": "NLBInternalSecurity" },
+        "IpProtocol": "-1",
+        "CidrIp": { "Fn::Select": [ 3, { "Fn::Split": [ ",", { "Fn::Join": [ ",", [ { "Ref": "NLBInternalAllowCIDR" }, ",,,,," ] ] } ] } ] }
+      }
+    },
+    "NLBInternalAllowCIDRSlot4Ingress": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Condition": "HasNLBInternalAllowCIDRSlot4",
+      "Properties": {
+        "GroupId": { "Ref": "NLBInternalSecurity" },
+        "IpProtocol": "-1",
+        "CidrIp": { "Fn::Select": [ 4, { "Fn::Split": [ ",", { "Fn::Join": [ ",", [ { "Ref": "NLBInternalAllowCIDR" }, ",,,,," ] ] } ] } ] }
       }
     },
     "ApiBalancer": {
@@ -4203,6 +4452,9 @@
               "rack.LogBucket": { "Fn::If": [ "BlankLogBucket", { "Ref": "Logs" }, { "Ref": "LogBucket" } ] },
               "rack.NLB": { "Ref": "NLB" },
               "rack.NLBInternal": { "Ref": "NLBInternal" },
+              "rack.NLBPreserveClientIP":         { "Ref": "NLBPreserveClientIP" },
+              "rack.NLBInternalPreserveClientIP": { "Ref": "NLBInternalPreserveClientIP" },
+              "rack.InstanceSecurityGroup":       { "Ref": "InstanceSecurityGroup" },
               "rack.NotificationTopic": { "Ref": "NotificationTopic" },
               "rack.OnDemandMinCount": { "Ref": "OnDemandMinCount" },
               "rack.Private": { "Ref": "Private" },
@@ -4341,6 +4593,9 @@
               "rack.LogBucket": { "Fn::If": [ "BlankLogBucket", { "Ref": "Logs" }, { "Ref": "LogBucket" } ] },
               "rack.NLB": { "Ref": "NLB" },
               "rack.NLBInternal": { "Ref": "NLBInternal" },
+              "rack.NLBPreserveClientIP":         { "Ref": "NLBPreserveClientIP" },
+              "rack.NLBInternalPreserveClientIP": { "Ref": "NLBInternalPreserveClientIP" },
+              "rack.InstanceSecurityGroup":       { "Ref": "InstanceSecurityGroup" },
               "rack.NotificationTopic": { "Ref": "NotificationTopic" },
               "rack.OnDemandMinCount": { "Ref": "OnDemandMinCount" },
               "rack.Private": { "Ref": "Private" },
@@ -4471,6 +4726,9 @@
               "rack.LogBucket": { "Fn::If": [ "BlankLogBucket", { "Ref": "Logs" }, { "Ref": "LogBucket" } ] },
               "rack.NLB": { "Ref": "NLB" },
               "rack.NLBInternal": { "Ref": "NLBInternal" },
+              "rack.NLBPreserveClientIP":         { "Ref": "NLBPreserveClientIP" },
+              "rack.NLBInternalPreserveClientIP": { "Ref": "NLBInternalPreserveClientIP" },
+              "rack.InstanceSecurityGroup":       { "Ref": "InstanceSecurityGroup" },
               "rack.NotificationTopic": { "Ref": "NotificationTopic" },
               "rack.OnDemandMinCount": { "Ref": "OnDemandMinCount" },
               "rack.Private": { "Ref": "Private" },
@@ -4623,6 +4881,9 @@
               "rack.MaintainTimerState": { "Ref": "MaintainTimerState" },
               "rack.NLB": { "Ref": "NLB" },
               "rack.NLBInternal": { "Ref": "NLBInternal" },
+              "rack.NLBPreserveClientIP":         { "Ref": "NLBPreserveClientIP" },
+              "rack.NLBInternalPreserveClientIP": { "Ref": "NLBInternalPreserveClientIP" },
+              "rack.InstanceSecurityGroup":       { "Ref": "InstanceSecurityGroup" },
               "rack.NotificationTopic": { "Ref": "NotificationTopic" },
               "rack.OnDemandMinCount": { "Ref": "OnDemandMinCount" },
               "rack.Private": { "Ref": "Private" },

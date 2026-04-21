@@ -82,6 +82,19 @@ func Services(rack sdk.Interface, c *stdcli.Context) error {
 				if np.Scheme == "internal" {
 					cell += "(internal)"
 				}
+				var attrs []string
+				if np.CrossZone != nil {
+					attrs = append(attrs, fmt.Sprintf("cz=%t", *np.CrossZone))
+				}
+				if len(np.AllowCIDR) > 0 {
+					attrs = append(attrs, fmt.Sprintf("allow=%d", len(np.AllowCIDR)))
+				}
+				if np.PreserveClientIP != nil {
+					attrs = append(attrs, fmt.Sprintf("pcip=%t", *np.PreserveClientIP))
+				}
+				if len(attrs) > 0 {
+					cell += "[" + strings.Join(attrs, " ") + "]"
+				}
 				nlbs = append(nlbs, cell)
 			}
 			row = append(row, strings.Join(nlbs, " "))

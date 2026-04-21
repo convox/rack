@@ -320,3 +320,166 @@ func TestManifestValidateNLBValidatorOrderingProtocolWinsOverCert(t *testing.T) 
 		t.Errorf("validator ordering broken: got cert-error before protocol-error: %v", err)
 	}
 }
+
+func TestManifestLoadNLBNewFields(t *testing.T) {
+	m, err := loadBytes(t, []byte(`services:
+  api:
+    image: x
+    nlb:
+      - port: 8443
+        cross_zone: true
+        allow_cidr: ["203.0.113.0/24", "198.51.100.5/32"]
+        preserve_client_ip: false
+`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	s, _ := m.Service("api")
+	if s.NLB[0].CrossZone == nil || *s.NLB[0].CrossZone != true {
+		t.Errorf("CrossZone: want true, got %v", s.NLB[0].CrossZone)
+	}
+	if len(s.NLB[0].AllowCIDR) != 2 {
+		t.Fatalf("AllowCIDR: want 2 entries, got %+v", s.NLB[0].AllowCIDR)
+	}
+	if s.NLB[0].AllowCIDR[0] != "203.0.113.0/24" {
+		t.Errorf("AllowCIDR[0]: got %q", s.NLB[0].AllowCIDR[0])
+	}
+	if s.NLB[0].PreserveClientIP == nil || *s.NLB[0].PreserveClientIP != false {
+		t.Errorf("PreserveClientIP: want false, got %v", s.NLB[0].PreserveClientIP)
+	}
+}
+
+func TestManifestLoadNLBNewFieldsDefaultsNil(t *testing.T) {
+	m, err := loadBytes(t, []byte(`services:
+  api:
+    image: x
+    nlb:
+      - port: 8443
+`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	s, _ := m.Service("api")
+	if s.NLB[0].CrossZone != nil {
+		t.Errorf("CrossZone: want nil (inherit), got %v", s.NLB[0].CrossZone)
+	}
+	if len(s.NLB[0].AllowCIDR) != 0 {
+		t.Errorf("AllowCIDR: want empty slice, got %+v", s.NLB[0].AllowCIDR)
+	}
+	if s.NLB[0].PreserveClientIP != nil {
+		t.Errorf("PreserveClientIP: want nil (inherit), got %v", s.NLB[0].PreserveClientIP)
+	}
+}
+
+func TestManifestValidateNLBAllowCIDRMalformed(t *testing.T) {
+	_, err := loadBytes(t, []byte(`services:
+  api:
+    image: x
+    nlb:
+      - port: 8443
+        allow_cidr: ["not-a-cidr"]
+`))
+	requireErrContains(t, err, `allow_cidr entry "not-a-cidr" is not a valid IPv4 CIDR`)
+}
+
+func TestManifestValidateNLBAllowCIDRIPv6Rejected(t *testing.T) {
+	_, err := loadBytes(t, []byte(`services:
+  api:
+    image: x
+    nlb:
+      - port: 8443
+        allow_cidr: ["2001:db8::/32"]
+`))
+	requireErrContains(t, err, `is not a valid IPv4 CIDR`)
+}
+
+func TestManifestValidateNLBAllowCIDRInvalidOctet(t *testing.T) {
+	_, err := loadBytes(t, []byte(`services:
+  api:
+    image: x
+    nlb:
+      - port: 8443
+        allow_cidr: ["256.0.0.0/8"]
+`))
+	requireErrContains(t, err, `is not a valid IPv4 CIDR`)
+}
+
+func TestManifestValidateNLBAllowCIDRInvalidMask(t *testing.T) {
+	_, err := loadBytes(t, []byte(`services:
+  api:
+    image: x
+    nlb:
+      - port: 8443
+        allow_cidr: ["10.0.0.0/33"]
+`))
+	requireErrContains(t, err, `is not a valid IPv4 CIDR`)
+}
+
+func TestManifestValidateNLBAllowCIDRNonCanonical(t *testing.T) {
+	_, err := loadBytes(t, []byte(`services:
+  api:
+    image: x
+    nlb:
+      - port: 8443
+        allow_cidr: ["10.0.0.1/24"]
+`))
+	requireErrContains(t, err, `not canonical`)
+}
+
+func TestManifestValidateNLBAllowCIDRDuplicate(t *testing.T) {
+	_, err := loadBytes(t, []byte(`services:
+  api:
+    image: x
+    nlb:
+      - port: 8443
+        allow_cidr: ["10.0.0.0/24", "10.0.0.0/24"]
+`))
+	requireErrContains(t, err, `allow_cidr contains duplicate entry: 10.0.0.0/24`)
+}
+
+func TestManifestLoadNLBCrossZoneValue(t *testing.T) {
+	tru := true
+	fals := false
+	cases := []struct {
+		name string
+		np   manifest.ServiceNLBPort
+		want string
+	}{
+		{"nil inherits", manifest.ServiceNLBPort{}, ""},
+		{"true", manifest.ServiceNLBPort{CrossZone: &tru}, "true"},
+		{"false", manifest.ServiceNLBPort{CrossZone: &fals}, "false"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := tc.np.CrossZoneValue(); got != tc.want {
+				t.Errorf("got %q want %q", got, tc.want)
+			}
+		})
+	}
+}
+
+func TestManifestLoadNLBPreserveClientIPValue(t *testing.T) {
+	tru := true
+	fals := false
+	cases := []struct {
+		name   string
+		np     manifest.ServiceNLBPort
+		pubDef string
+		intDef string
+		want   string
+	}{
+		{"nil+public default No", manifest.ServiceNLBPort{Scheme: "public"}, "No", "No", "false"},
+		{"nil+public default Yes", manifest.ServiceNLBPort{Scheme: "public"}, "Yes", "No", "true"},
+		{"nil+internal default Yes", manifest.ServiceNLBPort{Scheme: "internal"}, "No", "Yes", "true"},
+		{"nil+internal default No", manifest.ServiceNLBPort{Scheme: "internal"}, "Yes", "No", "false"},
+		{"per-port true wins", manifest.ServiceNLBPort{Scheme: "public", PreserveClientIP: &tru}, "No", "No", "true"},
+		{"per-port false wins", manifest.ServiceNLBPort{Scheme: "public", PreserveClientIP: &fals}, "Yes", "Yes", "false"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := tc.np.PreserveClientIPValue(tc.pubDef, tc.intDef); got != tc.want {
+				t.Errorf("got %q want %q", got, tc.want)
+			}
+		})
+	}
+}

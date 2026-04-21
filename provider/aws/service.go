@@ -278,10 +278,13 @@ func manifestToServiceNlbPorts(ports []manifest.ServiceNLBPort) []structs.Servic
 	var out []structs.ServiceNlbPort
 	for _, p := range ports {
 		out = append(out, structs.ServiceNlbPort{
-			ContainerPort: p.ContainerPort,
-			Port:          p.Port,
-			Protocol:      p.Protocol,
-			Scheme:        p.Scheme,
+			ContainerPort:    p.ContainerPort,
+			Port:             p.Port,
+			Protocol:         p.Protocol,
+			Scheme:           p.Scheme,
+			CrossZone:        p.CrossZone,
+			AllowCIDR:        p.AllowCIDR,
+			PreserveClientIP: p.PreserveClientIP,
 		})
 	}
 	return out

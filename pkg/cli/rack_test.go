@@ -16,6 +16,7 @@ import (
 	"github.com/convox/rack/pkg/options"
 	"github.com/convox/rack/pkg/structs"
 	"github.com/convox/rack/provider"
+	"github.com/convox/stdcli"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
@@ -198,6 +199,10 @@ func TestRackLogsError(t *testing.T) {
 }
 
 func TestRackParams(t *testing.T) {
+	prev := cli.IsTerminalFn
+	cli.IsTerminalFn = func(_ *stdcli.Context) bool { return false }
+	t.Cleanup(func() { cli.IsTerminalFn = prev })
+
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
 		i.On("SystemGet").Return(fxSystem(), nil)
 
@@ -214,6 +219,10 @@ func TestRackParams(t *testing.T) {
 }
 
 func TestRackParamsError(t *testing.T) {
+	prev := cli.IsTerminalFn
+	cli.IsTerminalFn = func(_ *stdcli.Context) bool { return false }
+	t.Cleanup(func() { cli.IsTerminalFn = prev })
+
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
 		i.On("SystemGet").Return(nil, fmt.Errorf("err1"))
 
@@ -226,6 +235,10 @@ func TestRackParamsError(t *testing.T) {
 }
 
 func TestRackParamsSet(t *testing.T) {
+	prev := cli.IsTerminalFn
+	cli.IsTerminalFn = func(_ *stdcli.Context) bool { return false }
+	t.Cleanup(func() { cli.IsTerminalFn = prev })
+
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
 		i.On("SystemGet").Return(fxSystem(), nil)
 		opts := structs.SystemUpdateOptions{
@@ -245,6 +258,10 @@ func TestRackParamsSet(t *testing.T) {
 }
 
 func TestRackParamsSetError(t *testing.T) {
+	prev := cli.IsTerminalFn
+	cli.IsTerminalFn = func(_ *stdcli.Context) bool { return false }
+	t.Cleanup(func() { cli.IsTerminalFn = prev })
+
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
 		i.On("SystemGet").Return(fxSystem(), nil)
 		opts := structs.SystemUpdateOptions{
@@ -264,6 +281,10 @@ func TestRackParamsSetError(t *testing.T) {
 }
 
 func TestRackParamsSetClassic(t *testing.T) {
+	prev := cli.IsTerminalFn
+	cli.IsTerminalFn = func(_ *stdcli.Context) bool { return false }
+	t.Cleanup(func() { cli.IsTerminalFn = prev })
+
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
 		i.On("SystemGet").Return(fxSystemClassic(), nil)
 		i.On("AppParametersSet", "name", map[string]string{"Foo": "bar", "Baz": "qux"}).Return(nil)
@@ -277,6 +298,10 @@ func TestRackParamsSetClassic(t *testing.T) {
 }
 
 func TestRackParamsSetClassicError(t *testing.T) {
+	prev := cli.IsTerminalFn
+	cli.IsTerminalFn = func(_ *stdcli.Context) bool { return false }
+	t.Cleanup(func() { cli.IsTerminalFn = prev })
+
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
 		i.On("SystemGet").Return(fxSystemClassic(), nil)
 		i.On("AppParametersSet", "name", map[string]string{"Foo": "bar", "Baz": "qux"}).Return(fmt.Errorf("err1"))
@@ -286,6 +311,253 @@ func TestRackParamsSetClassicError(t *testing.T) {
 		require.Equal(t, 1, res.Code)
 		res.RequireStderr(t, []string{"ERROR: err1"})
 		res.RequireStdout(t, []string{"Updating parameters... "})
+	})
+}
+
+// --- Integration tests for `rack params` masking and -g/--reveal flags ---
+
+// fxSystemWithSensitive is a system fixture with values for masked params.
+func fxSystemWithSensitive() *structs.System {
+	return &structs.System{
+		Parameters: map[string]string{
+			"Password":     "secret123",
+			"HttpProxy":    "http://user:pass@proxy.corp:8080",
+			"VPCCIDR":      "10.0.0.0/16",
+			"Version":      "3.25.0",
+			"Autoscale":    "Yes",
+			"InstanceType": "t3.medium",
+			"Telemetry":    "Yes",
+		},
+	}
+}
+
+func TestRackParamsMaskOnTTY(t *testing.T) {
+	prev := cli.IsTerminalFn
+	cli.IsTerminalFn = func(_ *stdcli.Context) bool { return true }
+	t.Cleanup(func() { cli.IsTerminalFn = prev })
+
+	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
+		i.On("SystemGet").Return(fxSystemWithSensitive(), nil)
+
+		res, err := testExecute(e, "rack params", nil)
+		require.NoError(t, err)
+		require.Equal(t, 0, res.Code)
+		res.RequireStdout(t, []string{
+			"Autoscale     Yes",
+			"HttpProxy     **********",
+			"InstanceType  t3.medium",
+			"Password      **********",
+			"Telemetry     Yes",
+			"VPCCIDR       10.0.0.0/16",
+			"Version       3.25.0",
+		})
+	})
+}
+
+func TestRackParamsNoMaskOnPipe(t *testing.T) {
+	prev := cli.IsTerminalFn
+	cli.IsTerminalFn = func(_ *stdcli.Context) bool { return false }
+	t.Cleanup(func() { cli.IsTerminalFn = prev })
+
+	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
+		i.On("SystemGet").Return(fxSystemWithSensitive(), nil)
+
+		res, err := testExecute(e, "rack params", nil)
+		require.NoError(t, err)
+		require.Equal(t, 0, res.Code)
+		res.RequireStdout(t, []string{
+			"Autoscale     Yes",
+			"HttpProxy     http://user:pass@proxy.corp:8080",
+			"InstanceType  t3.medium",
+			"Password      secret123",
+			"Telemetry     Yes",
+			"VPCCIDR       10.0.0.0/16",
+			"Version       3.25.0",
+		})
+	})
+}
+
+func TestRackParamsRevealBypassesMaskOnTTY(t *testing.T) {
+	prev := cli.IsTerminalFn
+	cli.IsTerminalFn = func(_ *stdcli.Context) bool { return true }
+	t.Cleanup(func() { cli.IsTerminalFn = prev })
+
+	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
+		i.On("SystemGet").Return(fxSystemWithSensitive(), nil)
+
+		res, err := testExecute(e, "rack params --reveal", nil)
+		require.NoError(t, err)
+		require.Equal(t, 0, res.Code)
+		res.RequireStdout(t, []string{
+			"Autoscale     Yes",
+			"HttpProxy     http://user:pass@proxy.corp:8080",
+			"InstanceType  t3.medium",
+			"Password      secret123",
+			"Telemetry     Yes",
+			"VPCCIDR       10.0.0.0/16",
+			"Version       3.25.0",
+		})
+	})
+}
+
+// TestRackParamsMaskedTTYWithGroupFilter verifies masking applies inside a
+// group filter on TTY. Password is dual-listed in the security group, so
+// `-g security` on TTY must still mask Password.
+func TestRackParamsMaskedTTYWithGroupFilter(t *testing.T) {
+	prev := cli.IsTerminalFn
+	cli.IsTerminalFn = func(_ *stdcli.Context) bool { return true }
+	t.Cleanup(func() { cli.IsTerminalFn = prev })
+
+	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
+		sys := &structs.System{
+			Parameters: map[string]string{
+				"Password":   "secret",
+				"Encryption": "Yes",
+				"WhiteList":  "1.2.3.4/32",
+				"VPCCIDR":    "10.0.0.0/16",
+				"Autoscale":  "Yes",
+			},
+		}
+		i.On("SystemGet").Return(sys, nil)
+
+		res, err := testExecute(e, "rack params -g security", nil)
+		require.NoError(t, err)
+		require.Equal(t, 0, res.Code)
+		res.RequireStdout(t, []string{
+			"Encryption  Yes",
+			"Password    **********",
+			"WhiteList   1.2.3.4/32",
+		})
+	})
+}
+
+// TestRackParamsSensitiveEmptyValueNotMasked verifies the `v != ""` guard:
+// a sensitive param with an empty string value stays empty, not "**********".
+func TestRackParamsSensitiveEmptyValueNotMasked(t *testing.T) {
+	prev := cli.IsTerminalFn
+	cli.IsTerminalFn = func(_ *stdcli.Context) bool { return true }
+	t.Cleanup(func() { cli.IsTerminalFn = prev })
+
+	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
+		sys := &structs.System{
+			Parameters: map[string]string{
+				"Password":  "",
+				"HttpProxy": "",
+				"VPCCIDR":   "10.0.0.0/16",
+				"Autoscale": "Yes",
+			},
+		}
+		i.On("SystemGet").Return(sys, nil)
+
+		res, err := testExecute(e, "rack params", nil)
+		require.NoError(t, err)
+		require.Equal(t, 0, res.Code)
+		require.NotContains(t, res.Stdout, "**********", "empty sensitive values must not render as asterisks")
+		require.Contains(t, res.Stdout, "Password")
+		require.Contains(t, res.Stdout, "HttpProxy")
+	})
+}
+
+func TestRackParamsGroupFilterSecurity(t *testing.T) {
+	prev := cli.IsTerminalFn
+	cli.IsTerminalFn = func(_ *stdcli.Context) bool { return false }
+	t.Cleanup(func() { cli.IsTerminalFn = prev })
+
+	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
+		sys := &structs.System{
+			Parameters: map[string]string{
+				"Password":   "secret",
+				"VPCCIDR":    "10.0.0.0/16",
+				"Autoscale":  "Yes",
+				"Encryption": "Yes",
+				"WhiteList":  "1.2.3.4/32",
+			},
+		}
+		i.On("SystemGet").Return(sys, nil)
+
+		res, err := testExecute(e, "rack params -g security", nil)
+		require.NoError(t, err)
+		require.Equal(t, 0, res.Code)
+		res.RequireStdout(t, []string{
+			"Encryption  Yes",
+			"Password    secret",
+			"WhiteList   1.2.3.4/32",
+		})
+	})
+}
+
+// TestRackParamsGroupFilterEmptyFallthrough: -g "" falls through to full
+// unfiltered dump per V3 parity (caller-side guard prevents resolveGroup
+// from being called with empty input).
+func TestRackParamsGroupFilterEmptyFallthrough(t *testing.T) {
+	prev := cli.IsTerminalFn
+	cli.IsTerminalFn = func(_ *stdcli.Context) bool { return false }
+	t.Cleanup(func() { cli.IsTerminalFn = prev })
+
+	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
+		sys := &structs.System{
+			Parameters: map[string]string{
+				"Password":  "secret",
+				"VPCCIDR":   "10.0.0.0/16",
+				"Autoscale": "Yes",
+			},
+		}
+		i.On("SystemGet").Return(sys, nil)
+
+		res, err := testExecute(e, "rack params -g ''", nil)
+		require.NoError(t, err)
+		require.Equal(t, 0, res.Code)
+		res.RequireStdout(t, []string{
+			"Autoscale  Yes",
+			"Password   secret",
+			"VPCCIDR    10.0.0.0/16",
+		})
+	})
+}
+
+// TestRackParamsGroupFilterWhitespaceOnlyErrors: -g "   " passes the caller-
+// side non-empty guard, reaches resolveGroup, which trims to empty and
+// returns the `group name required` error. Exit non-zero.
+func TestRackParamsGroupFilterWhitespaceOnlyErrors(t *testing.T) {
+	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
+		res, err := testExecute(e, "rack params -g '   '", nil)
+		require.NoError(t, err)
+		require.NotEqual(t, 0, res.Code)
+		require.Contains(t, res.Stderr, "group name required")
+		require.Contains(t, res.Stderr, "available groups")
+	})
+}
+
+func TestRackParamsGroupFilterUnknownErrors(t *testing.T) {
+	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
+		res, err := testExecute(e, "rack params -g notarealgroup", nil)
+		require.NoError(t, err)
+		require.NotEqual(t, 0, res.Code)
+		require.Contains(t, res.Stderr, "not found")
+		require.Contains(t, res.Stderr, "network")
+	})
+}
+
+// TestRackParamsEmptyGroupNotice: group resolves but rack has zero matching
+// params — print stderr NOTICE + exit 0.
+func TestRackParamsEmptyGroupNotice(t *testing.T) {
+	prev := cli.IsTerminalFn
+	cli.IsTerminalFn = func(_ *stdcli.Context) bool { return false }
+	t.Cleanup(func() { cli.IsTerminalFn = prev })
+
+	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
+		sys := &structs.System{
+			Parameters: map[string]string{
+				"Autoscale": "Yes",
+				"VPCCIDR":   "10.0.0.0/16",
+			},
+		}
+		i.On("SystemGet").Return(sys, nil)
+
+		res, err := testExecute(e, "rack params -g nlb", nil)
+		require.NoError(t, err)
+		require.Equal(t, 0, res.Code)
+		require.Contains(t, res.Stderr, "NOTICE: no params in group 'nlb' for this rack")
 	})
 }
 

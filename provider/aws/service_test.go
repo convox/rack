@@ -10,6 +10,7 @@ import (
 	"text/template"
 
 	"github.com/convox/rack/pkg/manifest"
+	"github.com/convox/rack/pkg/options"
 	"github.com/convox/rack/pkg/structs"
 	"github.com/stretchr/testify/require"
 )
@@ -36,17 +37,19 @@ func renderServiceTemplate(t *testing.T, m *manifest.Manifest, serviceName strin
 	require.True(t, found, "service %q not in manifest", serviceName)
 
 	stp := map[string]interface{}{
-		"App":            "testapp",
-		"Autoscale":      false,
-		"Build":          &structs.Build{Id: "B12345", App: "testapp"},
-		"DeploymentMin":  50,
-		"DeploymentMax":  200,
-		"Manifest":       m,
-		"Password":       "testpass",
-		"Release":        &structs.Release{Id: "R12345", App: "testapp", Build: "B12345"},
-		"Service":        svc,
-		"Tags":           svc.Tags,
-		"WildcardDomain": false,
+		"App":                                "testapp",
+		"Autoscale":                          false,
+		"Build":                              &structs.Build{Id: "B12345", App: "testapp"},
+		"DeploymentMin":                      50,
+		"DeploymentMax":                      200,
+		"Manifest":                           m,
+		"Password":                           "testpass",
+		"Release":                            &structs.Release{Id: "R12345", App: "testapp", Build: "B12345"},
+		"Service":                            svc,
+		"Tags":                               svc.Tags,
+		"WildcardDomain":                     false,
+		"NLBPreserveClientIPDefault":         "No",
+		"NLBInternalPreserveClientIPDefault": "No",
 	}
 
 	path := filepath.Join("formation", "service.json.tmpl")
@@ -58,6 +61,56 @@ func renderServiceTemplate(t *testing.T, m *manifest.Manifest, serviceName strin
 
 	// Round-trip through json.Unmarshal/MarshalIndent to mirror formationTemplate's
 	// pretty-printed normalization.
+	var v interface{}
+	require.NoError(t, json.Unmarshal(buf.Bytes(), &v))
+	out, err := json.MarshalIndent(v, "", "  ")
+	require.NoError(t, err)
+	return out
+}
+
+// renderServiceTemplateWithStp is identical to renderServiceTemplate except it
+// merges caller-supplied stp entries into the default map. Use this when a test
+// needs to vary rack-level defaults (e.g., NLBPreserveClientIPDefault="Yes").
+func renderServiceTemplateWithStp(t *testing.T, m *manifest.Manifest, serviceName string, overrides map[string]interface{}) []byte {
+	t.Helper()
+
+	var svc manifest.Service
+	found := false
+	for _, s := range m.Services {
+		if s.Name == serviceName {
+			svc = s
+			found = true
+			break
+		}
+	}
+	require.True(t, found, "service %q not in manifest", serviceName)
+
+	stp := map[string]interface{}{
+		"App":                                "testapp",
+		"Autoscale":                          false,
+		"Build":                              &structs.Build{Id: "B12345", App: "testapp"},
+		"DeploymentMin":                      50,
+		"DeploymentMax":                      200,
+		"Manifest":                           m,
+		"Password":                           "testpass",
+		"Release":                            &structs.Release{Id: "R12345", App: "testapp", Build: "B12345"},
+		"Service":                            svc,
+		"Tags":                               svc.Tags,
+		"WildcardDomain":                     false,
+		"NLBPreserveClientIPDefault":         "No",
+		"NLBInternalPreserveClientIPDefault": "No",
+	}
+	for k, v := range overrides {
+		stp[k] = v
+	}
+
+	path := filepath.Join("formation", "service.json.tmpl")
+	tpl, err := template.New("service.json.tmpl").Funcs(formationHelpers()).ParseFiles(path)
+	require.NoError(t, err)
+
+	var buf bytes.Buffer
+	require.NoError(t, tpl.Execute(&buf, stp))
+
 	var v interface{}
 	require.NoError(t, json.Unmarshal(buf.Bytes(), &v))
 	out, err := json.MarshalIndent(v, "", "  ")
@@ -152,6 +205,57 @@ func TestManifestToServiceNlbPorts(t *testing.T) {
 			want: []structs.ServiceNlbPort{
 				{Port: 9443, Protocol: "tcp", ContainerPort: 8080, Scheme: "internal"},
 				{Port: 8443, Protocol: "tcp", ContainerPort: 8443, Scheme: "public"},
+			},
+		},
+		{
+			name: "all three new fields set",
+			in: []manifest.ServiceNLBPort{
+				{
+					Port: 8443, Protocol: "tcp", ContainerPort: 8443, Scheme: "public",
+					CrossZone:        options.Bool(true),
+					AllowCIDR:        []string{"10.0.0.0/24", "10.1.0.0/24"},
+					PreserveClientIP: options.Bool(false),
+				},
+			},
+			want: []structs.ServiceNlbPort{
+				{
+					Port: 8443, Protocol: "tcp", ContainerPort: 8443, Scheme: "public",
+					CrossZone:        options.Bool(true),
+					AllowCIDR:        []string{"10.0.0.0/24", "10.1.0.0/24"},
+					PreserveClientIP: options.Bool(false),
+				},
+			},
+		},
+		{
+			name: "CrossZone and PreserveClientIP false not nil",
+			in: []manifest.ServiceNLBPort{
+				{
+					Port: 8443, Protocol: "tcp", ContainerPort: 8443, Scheme: "public",
+					CrossZone:        options.Bool(false),
+					PreserveClientIP: options.Bool(false),
+				},
+			},
+			want: []structs.ServiceNlbPort{
+				{
+					Port: 8443, Protocol: "tcp", ContainerPort: 8443, Scheme: "public",
+					CrossZone:        options.Bool(false),
+					PreserveClientIP: options.Bool(false),
+				},
+			},
+		},
+		{
+			name: "AllowCIDR only",
+			in: []manifest.ServiceNLBPort{
+				{
+					Port: 8443, Protocol: "tcp", ContainerPort: 8443, Scheme: "public",
+					AllowCIDR: []string{"192.168.0.0/16"},
+				},
+			},
+			want: []structs.ServiceNlbPort{
+				{
+					Port: 8443, Protocol: "tcp", ContainerPort: 8443, Scheme: "public",
+					AllowCIDR: []string{"192.168.0.0/16"},
+				},
 			},
 		},
 	}
@@ -323,4 +427,109 @@ func TestServiceTemplateNLBMixedTCPAndTLSTargetGroupsBothTCP(t *testing.T) {
 		"TLS-listener target group must still be Protocol=TCP")
 	require.Equal(t, "TCP", parseTG(tcpTG),
 		"TCP-listener target group must be Protocol=TCP (unchanged)")
+}
+
+func TestServiceTemplateRenderNLB_DefaultOff(t *testing.T) {
+	m, err := manifest.Load([]byte(`services:
+  api:
+    image: x
+    nlb:
+      - port: 8443
+`), nil)
+	require.NoError(t, err)
+	out := renderServiceTemplate(t, m, "api")
+	require.Contains(t, string(out), `"preserve_client_ip.enabled"`, "preserve_client_ip attribute must be present")
+	tg := extractResource(t, out, "NLBTargetGroup8443")
+	require.Contains(t, string(tg), `"Value": "false"`, "default preserve_client_ip must be false")
+	require.NotContains(t, string(out), `"load_balancing.cross_zone.enabled"`, "cross_zone must be absent when no per-port override")
+}
+
+func TestServiceTemplateRenderNLB_RackDefaultPreserveYes(t *testing.T) {
+	m, err := manifest.Load([]byte(`services:
+  api:
+    image: x
+    nlb:
+      - port: 8443
+`), nil)
+	require.NoError(t, err)
+	out := renderServiceTemplateWithStp(t, m, "api", map[string]interface{}{
+		"NLBPreserveClientIPDefault": "Yes",
+	})
+	tg := extractResource(t, out, "NLBTargetGroup8443")
+	require.Contains(t, string(tg), `"Key": "preserve_client_ip.enabled"`, "preserve_client_ip attribute must be present")
+	require.Contains(t, string(tg), `"Value": "true"`, "rack default should propagate to target group")
+}
+
+func TestServiceTemplateRenderNLB_PerPortCrossZoneOverride(t *testing.T) {
+	m, err := manifest.Load([]byte(`services:
+  api:
+    image: x
+    nlb:
+      - port: 8443
+        cross_zone: true
+`), nil)
+	require.NoError(t, err)
+	out := renderServiceTemplate(t, m, "api")
+	tg := extractResource(t, out, "NLBTargetGroup8443")
+	require.Contains(t, string(tg), `"Key": "load_balancing.cross_zone.enabled"`, "cross_zone attribute must render when per-port override set")
+	require.Contains(t, string(tg), `"Value": "true"`, "per-port cross_zone=true must render as true")
+}
+
+func TestServiceTemplateRenderNLB_PerPortPreserveOverrideFalse(t *testing.T) {
+	m, err := manifest.Load([]byte(`services:
+  api:
+    image: x
+    nlb:
+      - port: 8443
+        preserve_client_ip: false
+`), nil)
+	require.NoError(t, err)
+	out := renderServiceTemplateWithStp(t, m, "api", map[string]interface{}{
+		"NLBPreserveClientIPDefault": "Yes",
+	})
+	tg := extractResource(t, out, "NLBTargetGroup8443")
+	require.Contains(t, string(tg), `"Value": "false"`, "per-port preserve_client_ip=false must override rack default=Yes")
+}
+
+func TestServiceTemplateRenderNLB_AllowCIDRPerPort(t *testing.T) {
+	m, err := manifest.Load([]byte(`services:
+  api:
+    image: x
+    nlb:
+      - port: 8443
+        allow_cidr: ["10.0.0.0/24"]
+`), nil)
+	require.NoError(t, err)
+	out := renderServiceTemplate(t, m, "api")
+	ing := extractResource(t, out, "NLBPortIngress8443Cidr0")
+	require.Contains(t, string(ing), `"CidrIp": "10.0.0.0/24"`, "CidrIp must match per-port allow_cidr value")
+	require.Contains(t, string(ing), `${Rack}:NLBSecurityGroup`, "public scheme imports NLBSecurityGroup")
+}
+
+func TestServiceTemplateRenderNLB_AllowCIDRInternal(t *testing.T) {
+	m, err := manifest.Load([]byte(`services:
+  api:
+    image: x
+    nlb:
+      - port: 5000
+        scheme: internal
+        allow_cidr: ["192.168.1.0/24"]
+`), nil)
+	require.NoError(t, err)
+	out := renderServiceTemplate(t, m, "api")
+	ing := extractResource(t, out, "NLBPortIngress5000Cidr0")
+	require.Contains(t, string(ing), `${Rack}:NLBInternalSecurityGroup`, "internal scheme imports NLBInternalSecurityGroup")
+}
+
+func TestServiceTemplateRenderNLB_NoNLBPortsNoResources(t *testing.T) {
+	m, err := manifest.Load([]byte(`services:
+  api:
+    image: x
+    port: http:3000
+`), nil)
+	require.NoError(t, err)
+	out := renderServiceTemplate(t, m, "api")
+	require.NotContains(t, string(out), `"NLBTargetGroup`, "no NLB ports should mean no NLBTargetGroup resource")
+	require.NotContains(t, string(out), `"NLBListener`, "no NLB ports should mean no NLBListener resource")
+	require.NotContains(t, string(out), `"NLBPortIngress`, "no NLB ports should mean no per-port allow_cidr ingress")
 }

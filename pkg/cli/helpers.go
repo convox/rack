@@ -444,3 +444,28 @@ func filterString(input string) string {
 	}
 	return builder.String()
 }
+
+// IsTerminalFn reports whether the context's writer is attached to a real
+// terminal, used to gate masking of sensitive output in `convox rack params`.
+// This is a VAR, not a function, so that tests can override it.
+//
+// Not to be confused with stdcli.IsTerminal(*os.File) — that is the
+// underlying syscall helper from the vendored stdcli package. IsTerminalFn
+// wraps the stdcli call at the *stdcli.Context layer so test code can
+// swap the behavior without producing a real PTY.
+//
+// Not public API. Exported only because test files use `package cli_test`
+// (black-box), which cannot reach unexported symbols. External consumers
+// of pkg/cli must not take a dependency on this var — it may be renamed
+// or removed without a deprecation cycle.
+//
+// Callers: pkg/cli/rack.go (RackParams).
+//
+// CONCURRENCY: this var is mutable package state. Tests that override it
+// MUST restore via t.Cleanup AND MUST NOT call t.Parallel anywhere in
+// pkg/cli that executes concurrently with an override — the race will
+// surface under `go test -race`. At patch time no test in pkg/cli
+// calls t.Parallel (verified).
+var IsTerminalFn = func(c *stdcli.Context) bool {
+	return c.Writer().IsTerminal()
+}

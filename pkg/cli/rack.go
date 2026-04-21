@@ -22,6 +22,278 @@ import (
 	cv "github.com/convox/version"
 )
 
+// sensitiveParams enumerates V2 rack params whose values render as
+// "**********" on a TTY when --reveal is not passed. Pipe output and
+// --reveal bypass masking. Empty values are never masked.
+var sensitiveParams = map[string]bool{
+	"Password":  true,
+	"HttpProxy": true,
+}
+
+// paramGroups categorizes V2 rack params into curated logical groups for the
+// `convox rack params -g <group>` filter. A param may belong to multiple
+// groups (5 V2 params are dual-listed). Every V2 rack.json Parameter must
+// land in at least one group — enforced by TestParamGroupsCoverRackJSON.
+//
+// When adding a new rack param to provider/aws/formation/rack.json, add it
+// to the appropriate group(s) below. The drift-detector test will fail
+// otherwise.
+var paramGroups = map[string]map[string]bool{
+	"network": {
+		"AvailabilityZones":    true,
+		"ExistingVpc":          true,
+		"HttpProxy":            true,
+		"Internal":             true,
+		"InternalOnly":         true,
+		"InternetGateway":      true,
+		"MaxAvailabilityZones": true,
+		"PlaceLambdaInVpc":     true,
+		"Private":              true,
+		"Subnet0CIDR":          true,
+		"Subnet1CIDR":          true,
+		"Subnet2CIDR":          true,
+		"SubnetPrivate0CIDR":   true,
+		"SubnetPrivate1CIDR":   true,
+		"SubnetPrivate2CIDR":   true,
+		"VPCCIDR":              true,
+	},
+	"nlb": {
+		"NLB":                           true,
+		"NLBAllowCIDR":                  true,
+		"NLBCrossZone":                  true,
+		"NLBDeletionProtection":         true,
+		"NLBInternal":                   true,
+		"NLBInternalAllowCIDR":          true,
+		"NLBInternalCrossZone":          true,
+		"NLBInternalDeletionProtection": true,
+		"NLBInternalPreserveClientIP":   true,
+		"NLBPreserveClientIP":           true,
+	},
+	"security": {
+		"BuildInstancePolicy":                   true, // dual-listed in build
+		"BuildInstanceSecurityGroup":            true,
+		"EnableContainerReadonlyRootFilesystem": true,
+		"EnableSharedEFSVolumeEncryption":       true, // dual-listed in storage
+		"EncryptEbs":                            true, // dual-listed in storage
+		"Encryption":                            true,
+		"HttpProxy":                             true, // dual-listed in network
+		"IMDSHttpPutResponseHopLimit":           true,
+		"IMDSHttpTokens":                        true,
+		"InstancePolicy":                        true, // dual-listed in instances
+		"InstanceSecurityGroup":                 true,
+		"InstancesIpToIncludInWhiteListing":     true,
+		"Key":                                   true,
+		"Password":                              true,
+		"PrivateApiSecurityGroup":               true,
+		"RouterInternalSecurityGroup":           true,
+		"RouterSecurityGroup":                   true,
+		"SslPolicy":                             true,
+		"WhiteList":                             true,
+	},
+	"scaling": {
+		"Autoscale":                      true,
+		"AutoscaleExtra":                 true,
+		"HighAvailability":               true,
+		"InstanceCount":                  true,
+		"InstanceUpdateBatchSize":        true,
+		"NoHAAutoscaleExtra":             true,
+		"NoHaInstanceCount":              true,
+		"OnDemandMinCount":               true,
+		"ScheduleRackScaleDown":          true,
+		"ScheduleRackScaleUp":            true,
+		"SpotFleetAllocationStrategy":    true,
+		"SpotFleetAllowedInstanceTypes":  true,
+		"SpotFleetExcludedInstanceTypes": true,
+		"SpotFleetMaxPrice":              true,
+		"SpotFleetMinMemoryMiB":          true,
+		"SpotFleetMinOnDemandCount":      true,
+		"SpotFleetMinVcpuCount":          true,
+		"SpotFleetTargetType":            true,
+		"SpotInstanceBid":                true,
+	},
+	"instances": {
+		"Ami":                 true,
+		"CpuCredits":          true,
+		"DefaultAmi":          true,
+		"DefaultAmiArm":       true,
+		"InstanceBootCommand": true,
+		"InstancePolicy":      true, // dual-listed in security
+		"InstanceRunCommand":  true,
+		"InstanceType":        true,
+		"SwapSize":            true,
+		"Tenancy":             true,
+		"VolumeSize":          true,
+	},
+	"build": {
+		"BuildCpu":                    true,
+		"BuildImage":                  true,
+		"BuildInstance":               true,
+		"BuildInstancePolicy":         true, // dual-listed in security
+		"BuildMemory":                 true,
+		"BuildMethod":                 true,
+		"BuildVolumeSize":             true,
+		"FargateBuildCpu":             true,
+		"FargateBuildMemory":          true,
+		"PrivateBuild":                true,
+		"PruneOlderImagesCronRunFreq": true,
+		"PruneOlderImagesInHour":      true,
+	},
+	"api": {
+		"ApiCount":                true,
+		"ApiCpu":                  true,
+		"ApiMonitorMemory":        true,
+		"ApiRouter":               true,
+		"ApiWebMemory":            true,
+		"DisableALBPort80":        true,
+		"InternalRouterSuffix":    true,
+		"LoadBalancerIdleTimeout": true,
+		"PrivateApi":              true,
+		"RouterMitigationMode":    true,
+	},
+	"logging": {
+		"LogBucket":         true,
+		"LogDriver":         true,
+		"LogRetention":      true,
+		"SyslogDestination": true,
+		"SyslogFormat":      true,
+	},
+	"storage": {
+		"DynamoDbTableDeletionProtectionEnabled":  true,
+		"DynamoDbTablePointInTimeRecoveryEnabled": true,
+		"EnableS3Versioning":                      true,
+		"EnableSharedEFSVolumeEncryption":         true, // dual-listed in security
+		"EncryptEbs":                              true, // dual-listed in security
+	},
+	"meta": {
+		"ClientId":                true,
+		"Development":             true,
+		"EcsContainerStopTimeout": true,
+		"EcsPollInterval":         true,
+		"ImagePullBehavior":       true,
+		"MaintainTimerState":      true,
+		"Telemetry":               true,
+		"Version":                 true,
+	},
+}
+
+// groupDescriptions provides the one-line label shown next to each group
+// name in error output (e.g., unknown-group and ambiguous-prefix errors).
+// Keep in sync with paramGroups keys.
+var groupDescriptions = map[string]string{
+	"network":   "VPC, subnets, gateways, connectivity, proxy",
+	"nlb":       "Network Load Balancer: listeners, cross-zone, allow-CIDR, preserve-client-IP",
+	"security":  "Credentials, allowlists, SGs, SSL, IMDS, container hardening",
+	"scaling":   "Autoscaling, spot fleet, instance counts, schedules, HA",
+	"instances": "AMI, instance type, boot/run commands, IAM policy, volumes, tenancy",
+	"build":     "Build method, build instance, Fargate build, image pruning",
+	"api":       "Rack API web process config, router, ingress toggles",
+	"logging":   "Logs destination, retention, syslog format",
+	"storage":   "S3 versioning, DynamoDB protection, EFS encryption",
+	"meta":      "Version, development mode, telemetry, client ID, ECS tuning",
+}
+
+// resolveGroup resolves a possibly-partial group name to an exact group key.
+// Priority: exact match > unique prefix match. Case-insensitive. Whitespace
+// is trimmed. Returns an error listing candidates or all groups on
+// ambiguous / unknown / empty input.
+func resolveGroup(input string) (string, error) {
+	input = strings.ToLower(strings.TrimSpace(input))
+	if input == "" {
+		return "", fmt.Errorf("group name required\n  %s", formatGroupList())
+	}
+
+	if _, ok := paramGroups[input]; ok {
+		return input, nil
+	}
+
+	var matches []string
+	for g := range paramGroups {
+		if strings.HasPrefix(g, input) {
+			matches = append(matches, g)
+		}
+	}
+	sort.Strings(matches)
+
+	switch len(matches) {
+	case 0:
+		return "", fmt.Errorf("group '%s' not found\n  %s", input, formatGroupList())
+	case 1:
+		return matches[0], nil
+	default:
+		return "", fmt.Errorf("group '%s' matches multiple groups: %s %s\n  %s",
+			input, strings.Join(matches, ", "), formatAmbiguousHint(matches), formatGroupList())
+	}
+}
+
+// formatGroupList returns a sorted, padded two-column listing of all
+// available groups for inclusion in error output.
+func formatGroupList() string {
+	names := make([]string, 0, len(groupDescriptions))
+	maxLen := 0
+	for g := range groupDescriptions {
+		names = append(names, g)
+		if len(g) > maxLen {
+			maxLen = len(g)
+		}
+	}
+	sort.Strings(names)
+
+	var b strings.Builder
+	b.WriteString("available groups:\n")
+	for _, g := range names {
+		b.WriteString(fmt.Sprintf("  %-*s    %s\n", maxLen, g, groupDescriptions[g]))
+	}
+	return strings.TrimRight(b.String(), "\n")
+}
+
+// formatAmbiguousHint returns a parenthesized hint showing a short-but-
+// readable disambiguating prefix for each ambiguous candidate, e.g.,
+// "(use 'net' or 'nlb')" for candidates ["network", "nlb"].
+func formatAmbiguousHint(candidates []string) string {
+	if len(candidates) == 0 {
+		return ""
+	}
+	hints := make([]string, 0, len(candidates))
+	for _, c := range candidates {
+		hints = append(hints, "'"+disambiguatingPrefix(c)+"'")
+	}
+	switch len(hints) {
+	case 1:
+		return "(use " + hints[0] + ")"
+	case 2:
+		return "(use " + hints[0] + " or " + hints[1] + ")"
+	default:
+		return "(use " + strings.Join(hints[:len(hints)-1], ", ") + ", or " + hints[len(hints)-1] + ")"
+	}
+}
+
+// disambiguatingPrefix returns a short-but-readable prefix of `group` that
+// resolves uniquely against all paramGroups keys. Uses a 3-character
+// minimum for human readability — a technically-unique 1- or 2-char
+// prefix like "ne" for "network" reads like an abbreviation and is avoided.
+func disambiguatingPrefix(group string) string {
+	const minLen = 3
+	if len(group) <= minLen {
+		return group
+	}
+	for n := minLen; n <= len(group); n++ {
+		prefix := group[:n]
+		hits := 0
+		for g := range paramGroups {
+			if strings.HasPrefix(g, prefix) {
+				hits++
+				if hits > 1 {
+					break
+				}
+			}
+		}
+		if hits == 1 {
+			return prefix
+		}
+	}
+	return group
+}
+
 func init() {
 	register("rack", "get information about the rack", Rack, stdcli.CommandOptions{
 		Flags:    []stdcli.Flag{flagRack},
@@ -54,7 +326,11 @@ func init() {
 	})
 
 	register("rack params", "display rack parameters", RackParams, stdcli.CommandOptions{
-		Flags:    []stdcli.Flag{flagRack},
+		Flags: []stdcli.Flag{
+			flagRack,
+			stdcli.StringFlag("group", "g", "filter to a param group (invalid name lists all)"),
+			stdcli.BoolFlag("reveal", "", "show unmasked param values"),
+		},
 		Validate: stdcli.Args(0),
 	})
 
@@ -307,26 +583,59 @@ func RackLogs(rack sdk.Interface, c *stdcli.Context) error {
 }
 
 func RackParams(rack sdk.Interface, c *stdcli.Context) error {
+	var (
+		groupFilter   map[string]bool
+		resolvedGroup string
+	)
+	if groupInput := c.String("group"); groupInput != "" {
+		resolved, rerr := resolveGroup(groupInput)
+		if rerr != nil {
+			return rerr
+		}
+		resolvedGroup = resolved
+		groupFilter = paramGroups[resolved]
+	}
+
 	s, err := rack.SystemGet()
 	if err != nil {
 		return err
 	}
 
 	keys := []string{}
-
 	for k := range s.Parameters {
 		keys = append(keys, k)
 	}
-
 	sort.Strings(keys)
 
+	shouldMask := !c.Bool("reveal") && IsTerminalFn(c)
+
 	i := c.Info()
+	rowsAdded := 0
 
 	for _, k := range keys {
-		i.Add(k, s.Parameters[k])
+		if groupFilter != nil && !groupFilter[k] {
+			continue
+		}
+		v := s.Parameters[k]
+		if shouldMask && sensitiveParams[k] && v != "" {
+			v = "**********"
+		}
+		i.Add(k, v)
+		rowsAdded++
 	}
 
-	return i.Print()
+	if err := i.Print(); err != nil {
+		return err
+	}
+
+	if groupFilter != nil && rowsAdded == 0 {
+		// Write via stdcli's captured writer so test harnesses observe the
+		// NOTICE. V3 writes to os.Stderr directly; V2 diverges here because
+		// V2's test infrastructure routes stderr through the Writer.
+		fmt.Fprintf(c.Writer().Stderr, "NOTICE: no params in group '%s' for this rack\n", resolvedGroup)
+	}
+
+	return nil
 }
 
 func RackParamsSet(rack sdk.Interface, c *stdcli.Context) error {

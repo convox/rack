@@ -6,6 +6,7 @@ import (
 
 	"github.com/convox/rack/pkg/cli"
 	mocksdk "github.com/convox/rack/pkg/mock/sdk"
+	"github.com/convox/rack/pkg/options"
 	"github.com/convox/rack/pkg/structs"
 	"github.com/stretchr/testify/require"
 )
@@ -212,6 +213,109 @@ func TestServicesWorkerOnlyNLB(t *testing.T) {
 			"SERVICE  DOMAIN  PORTS  NLB PORTS",
 			"worker                  8443:8443",
 			"web      domain  1:2    ",
+		})
+	})
+}
+
+func TestServicesNLBAllDefaults(t *testing.T) {
+	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
+		i.On("SystemGet").Return(fxSystem(), nil)
+		s := fxService()
+		s.Nlb = []structs.ServiceNlbPort{
+			{Port: 8443, Protocol: "tcp", ContainerPort: 8443, Scheme: "public"},
+		}
+		i.On("ServiceList", "app1").Return(structs.Services{*s}, nil)
+
+		res, err := testExecute(e, "services -a app1", nil)
+		require.NoError(t, err)
+		require.Equal(t, 0, res.Code)
+		res.RequireStdout(t, []string{
+			"SERVICE   DOMAIN  PORTS    NLB PORTS",
+			"service1  domain  1:2 1:2  8443:8443",
+		})
+	})
+}
+
+func TestServicesNLBCrossZoneOnly(t *testing.T) {
+	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
+		i.On("SystemGet").Return(fxSystem(), nil)
+		s := fxService()
+		s.Nlb = []structs.ServiceNlbPort{
+			{Port: 8443, Protocol: "tcp", ContainerPort: 8443, Scheme: "public", CrossZone: options.Bool(true)},
+		}
+		i.On("ServiceList", "app1").Return(structs.Services{*s}, nil)
+
+		res, err := testExecute(e, "services -a app1", nil)
+		require.NoError(t, err)
+		require.Equal(t, 0, res.Code)
+		res.RequireStdout(t, []string{
+			"SERVICE   DOMAIN  PORTS    NLB PORTS",
+			"service1  domain  1:2 1:2  8443:8443[cz=true]",
+		})
+	})
+}
+
+func TestServicesNLBCrossZoneFalse(t *testing.T) {
+	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
+		i.On("SystemGet").Return(fxSystem(), nil)
+		s := fxService()
+		s.Nlb = []structs.ServiceNlbPort{
+			{Port: 8443, Protocol: "tcp", ContainerPort: 8443, Scheme: "public", CrossZone: options.Bool(false)},
+		}
+		i.On("ServiceList", "app1").Return(structs.Services{*s}, nil)
+
+		res, err := testExecute(e, "services -a app1", nil)
+		require.NoError(t, err)
+		require.Equal(t, 0, res.Code)
+		res.RequireStdout(t, []string{
+			"SERVICE   DOMAIN  PORTS    NLB PORTS",
+			"service1  domain  1:2 1:2  8443:8443[cz=false]",
+		})
+	})
+}
+
+func TestServicesNLBAllowCIDR(t *testing.T) {
+	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
+		i.On("SystemGet").Return(fxSystem(), nil)
+		s := fxService()
+		s.Nlb = []structs.ServiceNlbPort{
+			{
+				Port: 8443, Protocol: "tcp", ContainerPort: 8443, Scheme: "public",
+				AllowCIDR: []string{"10.0.0.0/24", "10.1.0.0/24"},
+			},
+		}
+		i.On("ServiceList", "app1").Return(structs.Services{*s}, nil)
+
+		res, err := testExecute(e, "services -a app1", nil)
+		require.NoError(t, err)
+		require.Equal(t, 0, res.Code)
+		res.RequireStdout(t, []string{
+			"SERVICE   DOMAIN  PORTS    NLB PORTS",
+			"service1  domain  1:2 1:2  8443:8443[allow=2]",
+		})
+	})
+}
+
+func TestServicesNLBAllThree(t *testing.T) {
+	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
+		i.On("SystemGet").Return(fxSystem(), nil)
+		s := fxService()
+		s.Nlb = []structs.ServiceNlbPort{
+			{
+				Port: 8443, Protocol: "tcp", ContainerPort: 8443, Scheme: "public",
+				CrossZone:        options.Bool(true),
+				AllowCIDR:        []string{"10.0.0.0/24", "10.1.0.0/24"},
+				PreserveClientIP: options.Bool(false),
+			},
+		}
+		i.On("ServiceList", "app1").Return(structs.Services{*s}, nil)
+
+		res, err := testExecute(e, "services -a app1", nil)
+		require.NoError(t, err)
+		require.Equal(t, 0, res.Code)
+		res.RequireStdout(t, []string{
+			"SERVICE   DOMAIN  PORTS    NLB PORTS",
+			"service1  domain  1:2 1:2  8443:8443[cz=true allow=2 pcip=false]",
 		})
 	})
 }

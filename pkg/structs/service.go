@@ -16,11 +16,14 @@ type Services []Service
 // intentionally to match the pkg/structs casing convention (Cpu, Nlb) rather
 // than the manifest package's all-caps initialism style.
 type ServiceNlbPort struct {
-	ContainerPort int    `json:"container-port"`
-	Port          int    `json:"port"`
-	Protocol      string `json:"protocol"`
-	Scheme        string `json:"scheme"`
-	Certificate   string `json:"certificate"`
+	ContainerPort    int      `json:"container-port"`
+	Port             int      `json:"port"`
+	Protocol         string   `json:"protocol"`
+	Scheme           string   `json:"scheme"`
+	Certificate      string   `json:"certificate"`
+	CrossZone        *bool    `json:"cross-zone,omitempty"`
+	AllowCIDR        []string `json:"allow-cidr,omitempty"`
+	PreserveClientIP *bool    `json:"preserve-client-ip,omitempty"`
 }
 
 type ServicePort struct {

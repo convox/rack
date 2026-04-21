@@ -244,7 +244,10 @@
           "HealthCheckPort": "traffic-port",
           "TargetGroupAttributes": [
             { "Key": "deregistration_delay.timeout_seconds", "Value": "{{ $drain }}" },
-            { "Key": "preserve_client_ip.enabled", "Value": "false" }
+            { "Key": "preserve_client_ip.enabled", "Value": "{{ .PreserveClientIPValue $.NLBPreserveClientIPDefault $.NLBInternalPreserveClientIPDefault }}" }
+            {{ with $cz := .CrossZoneValue }},
+            { "Key": "load_balancing.cross_zone.enabled", "Value": "{{ $cz }}" }
+            {{ end }}
           ]
         }
       },
@@ -265,6 +268,20 @@
           {{ end }}
         }
       },
+      {{ end }}
+      {{ range $i, $nlb := .NLB }}
+        {{ range $j, $cidr := $nlb.AllowCIDR }}
+      "NLBPortIngress{{ $nlb.Port }}Cidr{{ $j }}": {
+        "Type": "AWS::EC2::SecurityGroupIngress",
+        "Properties": {
+          "GroupId": { "Fn::ImportValue": { "Fn::Sub": "{{ if eq $nlb.Scheme "internal" }}${Rack}:NLBInternalSecurityGroup{{ else }}${Rack}:NLBSecurityGroup{{ end }}" } },
+          "IpProtocol": "tcp",
+          "FromPort": {{ $nlb.Port }},
+          "ToPort": {{ $nlb.Port }},
+          "CidrIp": "{{ $cidr }}"
+        }
+      },
+        {{ end }}
       {{ end }}
       "MinCount": {
         "Type": "Custom::MathMin",
@@ -741,7 +758,8 @@
               { "IpProtocol": "tcp", "FromPort": "{{.Port.Port}}", "ToPort": "{{.Port.Port}}", "SourceSecurityGroupId": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Router{{ if .Internal }}Internal{{ end }}SecurityGroup" } } }
             {{ end }}
             {{ range $i, $nlb := .NLB }}{{ if or $svcPort (gt $i 0) }},{{ end }}
-              { "IpProtocol": "tcp", "FromPort": {{ $nlb.ContainerPort }}, "ToPort": {{ $nlb.ContainerPort }}, "CidrIp": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:VpcCidr" } } }
+              { "IpProtocol": "tcp", "FromPort": {{ $nlb.ContainerPort }}, "ToPort": {{ $nlb.ContainerPort }}, "CidrIp": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:VpcCidr" } } },
+              { "IpProtocol": "tcp", "FromPort": {{ $nlb.ContainerPort }}, "ToPort": {{ $nlb.ContainerPort }}, "SourceSecurityGroupId": { "Fn::ImportValue": { "Fn::Sub": "{{ if eq $nlb.Scheme "internal" }}${Rack}:NLBInternalSecurityGroup{{ else }}${Rack}:NLBSecurityGroup{{ end }}" } } }
             {{ end }}
           ],
           "Tags": [ { "Key": "Name", "Value": { "Fn::Sub": "${AWS::StackName}-service" } } ],

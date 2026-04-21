@@ -375,17 +375,19 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 		}
 
 		stp := map[string]interface{}{
-			"App":            r.App,
-			"Autoscale":      autoscale,
-			"Build":          tp["Build"],
-			"DeploymentMin":  min,
-			"DeploymentMax":  max,
-			"Manifest":       tp["Manifest"],
-			"Password":       p.Password,
-			"Release":        tp["Release"],
-			"Service":        s,
-			"Tags":           s.Tags,
-			"WildcardDomain": tp["WildcardDomain"],
+			"App":                                r.App,
+			"Autoscale":                          autoscale,
+			"Build":                              tp["Build"],
+			"DeploymentMin":                      min,
+			"DeploymentMax":                      max,
+			"Manifest":                           tp["Manifest"],
+			"Password":                           p.Password,
+			"Release":                            tp["Release"],
+			"Service":                            s,
+			"Tags":                               s.Tags,
+			"WildcardDomain":                     tp["WildcardDomain"],
+			"NLBPreserveClientIPDefault":         yesNo(p.NLBPreserveClientIP),
+			"NLBInternalPreserveClientIPDefault": yesNo(p.NLBInternalPreserveClientIP),
 		}
 
 		data, err := formationTemplate("service", stp)
@@ -1083,9 +1085,13 @@ func (p *Provider) getResourceDBIdentifier(app, resourceName string) (string, er
 }
 
 // validateNLBSchemeMatch rejects releases whose manifest declares NLB ports whose
-// scheme (public/internal) does not have the corresponding rack NLB enabled.
+// scheme (public/internal) does not have the corresponding rack NLB enabled, and
+// releases that request per-port preserve_client_ip=true on a rack with a
+// customer-supplied InstanceSecurityGroup (the NLB-SG-source ingress rule is
+// added to the convox-managed InstancesSecurity SG, not the customer's SG).
 // Called early in release promote, before any CF or DynamoDB writes.
 func (p *Provider) validateNLBSchemeMatch(m *manifest.Manifest) error {
+	customSG := p.InstanceSecurityGroup != ""
 	for _, s := range m.Services {
 		for _, np := range s.NLB {
 			switch np.Scheme {
@@ -1097,6 +1103,9 @@ func (p *Provider) validateNLBSchemeMatch(m *manifest.Manifest) error {
 				if !p.NLBInternal {
 					return fmt.Errorf("service %s declares internal nlb port %d but rack does not have NLBInternal enabled; run 'convox rack params set Internal=Yes NLBInternal=Yes' first", s.Name, np.Port)
 				}
+			}
+			if customSG && np.PreserveClientIP != nil && *np.PreserveClientIP {
+				return fmt.Errorf("service %s nlb port %d: cannot set preserve_client_ip=true on a rack with a customer-supplied InstanceSecurityGroup; your instance SG must add an ingress rule from the NLB security group (exported as ${Rack}:NLBSecurityGroup / ${Rack}:NLBInternalSecurityGroup) for the NLB listener ports before this feature can be enabled safely", s.Name, np.Port)
 			}
 		}
 	}
