@@ -10,6 +10,7 @@ import (
 	"text/template"
 
 	"github.com/convox/rack/pkg/manifest"
+	"github.com/convox/rack/pkg/options"
 	"github.com/convox/rack/pkg/structs"
 	"github.com/stretchr/testify/require"
 )
@@ -204,6 +205,57 @@ func TestManifestToServiceNlbPorts(t *testing.T) {
 			want: []structs.ServiceNlbPort{
 				{Port: 9443, Protocol: "tcp", ContainerPort: 8080, Scheme: "internal"},
 				{Port: 8443, Protocol: "tcp", ContainerPort: 8443, Scheme: "public"},
+			},
+		},
+		{
+			name: "all three new fields set",
+			in: []manifest.ServiceNLBPort{
+				{
+					Port: 8443, Protocol: "tcp", ContainerPort: 8443, Scheme: "public",
+					CrossZone:        options.Bool(true),
+					AllowCIDR:        []string{"10.0.0.0/24", "10.1.0.0/24"},
+					PreserveClientIP: options.Bool(false),
+				},
+			},
+			want: []structs.ServiceNlbPort{
+				{
+					Port: 8443, Protocol: "tcp", ContainerPort: 8443, Scheme: "public",
+					CrossZone:        options.Bool(true),
+					AllowCIDR:        []string{"10.0.0.0/24", "10.1.0.0/24"},
+					PreserveClientIP: options.Bool(false),
+				},
+			},
+		},
+		{
+			name: "CrossZone and PreserveClientIP false not nil",
+			in: []manifest.ServiceNLBPort{
+				{
+					Port: 8443, Protocol: "tcp", ContainerPort: 8443, Scheme: "public",
+					CrossZone:        options.Bool(false),
+					PreserveClientIP: options.Bool(false),
+				},
+			},
+			want: []structs.ServiceNlbPort{
+				{
+					Port: 8443, Protocol: "tcp", ContainerPort: 8443, Scheme: "public",
+					CrossZone:        options.Bool(false),
+					PreserveClientIP: options.Bool(false),
+				},
+			},
+		},
+		{
+			name: "AllowCIDR only",
+			in: []manifest.ServiceNLBPort{
+				{
+					Port: 8443, Protocol: "tcp", ContainerPort: 8443, Scheme: "public",
+					AllowCIDR: []string{"192.168.0.0/16"},
+				},
+			},
+			want: []structs.ServiceNlbPort{
+				{
+					Port: 8443, Protocol: "tcp", ContainerPort: 8443, Scheme: "public",
+					AllowCIDR: []string{"192.168.0.0/16"},
+				},
 			},
 		},
 	}
