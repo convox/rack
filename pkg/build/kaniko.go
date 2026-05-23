@@ -146,7 +146,7 @@ func (bb *Build) buildDaemonless(path, dockerfile, tag string, env map[string]st
 	args := []string{
 		"--dockerfile", dockerfile,
 		"--context", contextDir,
-		"--tarPath", tarPath,
+		"--tar-path", tarPath,
 		"--destination", tag,
 		"--ignore-path=" + path,
 		"--no-push",

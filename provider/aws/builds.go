@@ -960,6 +960,9 @@ func (p *Provider) runBuild(build *structs.Build, burl string, opts structs.Buil
 	if nc != nil && nc.AwsvpcConfiguration != nil {
 		req.NetworkConfiguration = nc
 	}
+	if aws.StringValue(launchType) == "FARGATE" {
+		req.PlatformVersion = aws.String("1.4.0")
+	}
 
 	task, err := p.runTask(req)
 	if err != nil {

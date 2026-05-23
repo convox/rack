@@ -90,6 +90,18 @@
       { "Condition": "RegionHasEFS" },
       { "Fn::Equals": [ { "Ref": "BuildMethod" }, "fargate" ] }
     ]},
+    "FargateBuildCacheEnabled": {
+      "Fn::And": [
+        { "Condition": "UseFargateBuild" },
+        { "Fn::Equals": [{ "Ref": "FargateBuildCache" }, "Yes"] }
+      ]
+    },
+    "FargateBuildCacheEnabledAndThirdAZAndHA": {
+      "Fn::And": [
+        { "Condition": "FargateBuildCacheEnabled" },
+        { "Condition": "ThirdAvailabilityZoneAndHighAvailability" }
+      ]
+    },
     "CreateThirdPrivateSubnet": {"Fn::Or": [
       {"Condition": "PrivateApiAndThirdAvailabilityZoneAndHighAvailability"},
       {"Condition": "PrivateAndThirdAvailabilityZoneAndHighAvailability"}
@@ -895,6 +907,12 @@
       "Description": "This will enable aws kms encryption on shared efs volume. Enabling this will remove exsiting data and recreate the efs volume.",
       "Default": "false",
       "AllowedValues": [ "true", "false" ]
+    },
+    "FargateBuildCache": {
+      "Type": "String",
+      "Default": "No",
+      "AllowedValues": ["Yes", "No"],
+      "Description": "Enable EFS-backed cache for Fargate builds"
     },
     "FargateBuildCpu": {
       "Type": "String",
@@ -3602,6 +3620,67 @@
         "SecurityGroups": [ { "Ref": "VolumeSecurity" } ]
       }
     },
+    "BuildCacheFilesystem": {
+      "Type": "AWS::EFS::FileSystem",
+      "Condition": "FargateBuildCacheEnabled",
+      "Properties": {
+        "Encrypted": true,
+        "FileSystemTags": [
+          { "Key": "Name", "Value": { "Fn::Join": ["-", [{ "Ref": "AWS::StackName" }, "build-cache"]] } }
+        ]
+      }
+    },
+    "BuildCacheSecurity": {
+      "DependsOn": "ApiRole",
+      "Type": "AWS::EC2::SecurityGroup",
+      "Condition": "FargateBuildCacheEnabled",
+      "Properties": {
+        "GroupDescription": { "Fn::Sub": "${AWS::StackName} build-cache" },
+        "SecurityGroupIngress": [{
+          "IpProtocol": "tcp",
+          "FromPort": "2049",
+          "ToPort": "2049",
+          "SourceSecurityGroupId": {
+            "Fn::If": ["BlankBuildInstanceSecurityGroup",
+              { "Fn::If": ["BlankInstanceSecurityGroup",
+                { "Ref": "InstancesSecurity" },
+                { "Ref": "InstanceSecurityGroup" }
+              ]},
+              { "Ref": "BuildInstanceSecurityGroup" }
+            ]
+          }
+        }],
+        "Tags": [{ "Key": "Name", "Value": { "Fn::Sub": "${AWS::StackName}-build-cache" } }],
+        "VpcId": { "Fn::If": ["BlankExistingVpc", { "Ref": "Vpc" }, { "Ref": "ExistingVpc" }] }
+      }
+    },
+    "BuildCacheTarget0": {
+      "Type": "AWS::EFS::MountTarget",
+      "Condition": "FargateBuildCacheEnabled",
+      "Properties": {
+        "FileSystemId": { "Ref": "BuildCacheFilesystem" },
+        "SubnetId": { "Fn::If": ["PrivateInstances", { "Ref": "SubnetPrivate0" }, { "Ref": "Subnet0" }] },
+        "SecurityGroups": [{ "Ref": "BuildCacheSecurity" }]
+      }
+    },
+    "BuildCacheTarget1": {
+      "Type": "AWS::EFS::MountTarget",
+      "Condition": "FargateBuildCacheEnabled",
+      "Properties": {
+        "FileSystemId": { "Ref": "BuildCacheFilesystem" },
+        "SubnetId": { "Fn::If": ["PrivateInstances", { "Ref": "SubnetPrivate1" }, { "Ref": "Subnet1" }] },
+        "SecurityGroups": [{ "Ref": "BuildCacheSecurity" }]
+      }
+    },
+    "BuildCacheTarget2": {
+      "Type": "AWS::EFS::MountTarget",
+      "Condition": "FargateBuildCacheEnabledAndThirdAZAndHA",
+      "Properties": {
+        "FileSystemId": { "Ref": "BuildCacheFilesystem" },
+        "SubnetId": { "Fn::If": ["PrivateInstances", { "Ref": "SubnetPrivate2" }, { "Ref": "Subnet2" }] },
+        "SecurityGroups": [{ "Ref": "BuildCacheSecurity" }]
+      }
+    },
     "AccountEvents": {
       "Type": "AWS::SQS::Queue",
       "Properties": {
@@ -4682,7 +4761,11 @@
             "Secrets": [{
               "Name": "PASSWORD",
               "ValueFrom": { "Fn::Sub": "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}RackApiSecret" }
-            }]
+            }],
+            "MountPoints": { "Fn::If": ["FargateBuildCacheEnabled",
+              [{ "SourceVolume": "build-cache", "ContainerPath": "/kaniko/caches" }],
+              { "Ref": "AWS::NoValue" }
+            ]}
           }
         ],
         "RuntimePlatform": {
@@ -4696,7 +4779,17 @@
         },
         "ExecutionRoleArn": { "Fn::GetAtt": [ "ApiRole", "Arn" ] },
         "Family": { "Fn::Sub": "${AWS::StackName}-build" },
-        "TaskRoleArn": { "Fn::GetAtt": [ "ApiRole", "Arn" ] }
+        "TaskRoleArn": { "Fn::GetAtt": [ "ApiRole", "Arn" ] },
+        "Volumes": { "Fn::If": ["FargateBuildCacheEnabled",
+          [{
+            "Name": "build-cache",
+            "EFSVolumeConfiguration": {
+              "FilesystemId": { "Ref": "BuildCacheFilesystem" },
+              "TransitEncryption": "ENABLED"
+            }
+          }],
+          { "Ref": "AWS::NoValue" }
+        ]}
       }
     },
     "ApiMonitorTasks": {
