@@ -105,6 +105,7 @@
     "EnableALBPort80": {
       "Fn::And": [ { "Condition": "PublicRouter" }, { "Condition": "AllowALBPort80" } ]
     },
+    "ContainerInsightsEnabled": { "Fn::Equals": [ { "Ref": "ContainerInsights" }, "Yes" ] },
     "EnableCloudWatch": { "Fn::Equals": [ { "Ref": "LogDriver" }, "CloudWatch" ] },
     "EnableSyslog": { "Fn::Equals": [ { "Ref": "LogDriver" }, "Syslog" ] },
     "EnableSharedEFSVolumeEncryptionCond": { "Fn::Equals": [ { "Ref": "EnableSharedEFSVolumeEncryption" }, "true" ] },
@@ -817,6 +818,12 @@
       "Type": "String",
       "Description": "Anonymous identifier",
       "Default": ""
+    },
+    "ContainerInsights": {
+      "Type": "String",
+      "Description": "Enable CloudWatch Container Insights on the ECS cluster",
+      "Default": "No",
+      "AllowedValues": ["Yes", "No"]
     },
     "CpuCredits": {
       "Type": "String",
@@ -4219,6 +4226,12 @@
         "CapacityProviders": [
           "FARGATE",
           "FARGATE_SPOT"
+        ],
+        "ClusterSettings": [
+          {
+            "Name": "containerInsights",
+            "Value": { "Fn::If": ["ContainerInsightsEnabled", "enabled", "disabled"] }
+          }
         ]
       }
     },
