@@ -26,6 +26,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/kms"
 	"github.com/aws/aws-sdk-go/service/rds"
 	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go/service/secretsmanager"
 	"github.com/aws/aws-sdk-go/service/sns"
 	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/aws/aws-sdk-go/service/ssm"
@@ -364,6 +365,14 @@ func (p *Provider) dynamodb() *dynamodb.DynamoDB {
 		panic(errors.WithStack(err))
 	}
 	return dynamodb.New(s, p.config())
+}
+
+func (p *Provider) secretsmanager() *secretsmanager.SecretsManager {
+	s, err := helpers.NewSession()
+	if err != nil {
+		panic(errors.WithStack(err))
+	}
+	return secretsmanager.New(s, p.config())
 }
 
 func (p *Provider) ec2() *ec2.EC2 {

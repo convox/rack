@@ -1184,6 +1184,23 @@ func (p *Provider) generateTaskDefinition2(app, service string, opts structs.Pro
 		Privileged:        aws.Bool(s.Privileged),
 	}
 
+	if aps["SecretsManager"] == "Yes" {
+		smARN, descErr := p.secretsManagerGetARN(p.Rack, r.App)
+		if descErr == nil {
+			keys := sortedKeys(env)
+			secrets := make([]*ecs.Secret, 0, len(keys))
+			for _, k := range keys {
+				secrets = append(secrets, &ecs.Secret{
+					Name:      aws.String(k),
+					ValueFrom: aws.String(fmt.Sprintf("%s:%s::", smARN, k)),
+				})
+			}
+			cd.Secrets = secrets
+		} else {
+			fmt.Printf("fn=generateTaskDefinition2 level=warn msg=\"secrets manager lookup failed, skipping: %s\"\n", descErr)
+		}
+	}
+
 	if len(s.Command) > 0 {
 		cd.Command = []*string{}
 
@@ -1225,6 +1242,10 @@ func (p *Provider) generateTaskDefinition2(app, service string, opts structs.Pro
 		Family:               aws.String(fmt.Sprintf("%s-%s-%s", p.Rack, app, service)),
 		TaskRoleArn:          taskRoleArn,
 		Volumes:              vs,
+	}
+
+	if executionRole := aos["ExecutionRole"]; executionRole != "" {
+		req.ExecutionRoleArn = aws.String(executionRole)
 	}
 
 	return req, nil

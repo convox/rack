@@ -1199,6 +1199,12 @@
       "Description": "The recurring schedule for when the rack will start. This format consists of five fields separated by white spaces: [Minute] [Hour] [Day_of_Month] [Month_of_Year] [Day_of_Week]",
       "Default": ""
     },
+    "SecretsManager": {
+      "Type": "String",
+      "Default": "No",
+      "Description": "Use AWS Secrets Manager for env var storage and native ECS injection (gen2 apps only)",
+      "AllowedValues": [ "Yes", "No" ]
+    },
     "SpotFleetAllowedInstanceTypes": {
       "Type": "CommaDelimitedList",
       "Description": "Comma-separated list of allowed instance types in the Spot Fleet. It can not be used with SpotFleetExcludedInstanceTypes, it takes precedent over it. The following are examples: m5.8xlarge, c5*.*, m5a.*, r*, *3*.",
@@ -4395,6 +4401,29 @@
                     "ecr-public:BatchGetImage"
                   ],
                   "Resource": "*"
+                }
+              ]
+            }
+          },
+          {
+            "PolicyName": "SecretsManagerAccess",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "secretsmanager:CreateSecret",
+                    "secretsmanager:PutSecretValue",
+                    "secretsmanager:GetSecretValue",
+                    "secretsmanager:DeleteSecret",
+                    "secretsmanager:DescribeSecret",
+                    "secretsmanager:RestoreSecret",
+                    "secretsmanager:TagResource"
+                  ],
+                  "Resource": {
+                    "Fn::Sub": "arn:${AWS::Partition}:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${AWS::StackName}/*"
+                  }
                 }
               ]
             }

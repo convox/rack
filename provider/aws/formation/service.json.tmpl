@@ -19,7 +19,8 @@
       "EnableContainerReadonlyRootFilesystem": { "Fn::Equals": [ { "Ref": "EnableContainerReadonlyRootFilesystem" }, "Yes" ] },
       "EnableIgnoreManualScaleCount": { "Fn::Equals": [ { "Ref": "IgnoreManualScaleCount" }, "Yes" ] },
       "RouteHttp": { "Fn::Equals": [ { "Ref": "RedirectHttps" }, "No" ] },
-      "TaskTags": { "Fn::Equals": [ { "Ref": "TaskTags" }, "Yes" ] }
+      "TaskTags": { "Fn::Equals": [ { "Ref": "TaskTags" }, "Yes" ] },
+      "SecretsManagerEnabled": { "Fn::Equals": [ { "Ref": "SecretsManager" }, "Yes" ] }
     },
     "Outputs": {
       {{ if .Port.Port }}
@@ -216,6 +217,11 @@
         "Description": "Syslog format to sent to SyslogDestination.",
         "Default": "rfc5424"
       },
+      "SecretsManager": {
+        "Type": "String",
+        "Default": "No",
+        "AllowedValues": [ "Yes", "No" ]
+      },
       "TaskTags": {
         "Type": "String",
         "Default": "No",
@@ -342,6 +348,20 @@
           },
           "ManagedPolicyArns": [ { "Fn::Sub": "arn:${AWS::Partition}:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy" } ],
           "Path": "/convox/"
+          {{ if $.SecretsManagerARN }}
+          ,
+          "Policies": [{
+            "PolicyName": "SecretsManagerAccess",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [{
+                "Effect": "Allow",
+                "Action": ["secretsmanager:GetSecretValue"],
+                "Resource": "{{ $.SecretsManagerARN }}"
+              }]
+            }
+          }]
+          {{ end }}
         }
       },
       {{ if .Port.Port }}
@@ -926,6 +946,14 @@
                 { "Name": "RELEASE", "Value": "{{$.Release.Id}}" },
                 { "Name": "SERVICE", "Value": "{{.Name}}" }
               ],
+              {{ if and $.SecretsManagerARN $.SecretsManagerKeys }}
+              "Secrets": [
+                {{ range $i, $key := $.SecretsManagerKeys }}
+                  {{ if $i }},{{ end }}
+                  { "Name": "{{ $key }}", "ValueFrom": "{{ $.SecretsManagerARN }}:{{ $key }}::" }
+                {{ end }}
+              ],
+              {{ end }}
               "Image": { "Fn::Sub": "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${Registry}:{{.Name}}.{{$.Release.Build}}" },
               "LinuxParameters": {
                 {{ if .Init }}

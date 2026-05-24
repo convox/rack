@@ -236,6 +236,14 @@
                   { "Name": "BUILD_DESCRIPTION", "Value": {{ safe $.Build.Description }} },
                   { "Name": "SERVICE", "Value": "{{.Name}}" }
                 ],
+                {{ if and $.SecretsManagerARN $.SecretsManagerKeys }}
+                "Secrets": [
+                  {{ range $i, $key := $.SecretsManagerKeys }}
+                    {{ if $i }},{{ end }}
+                    { "Name": "{{ $key }}", "ValueFrom": "{{ $.SecretsManagerARN }}:{{ $key }}::" }
+                  {{ end }}
+                ],
+                {{ end }}
                 "Image": { "Fn::Sub": "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${Registry}:{{.Name}}.{{$.Release.Build}}" },
                 "LogConfiguration": {
                   "Fn::If": [

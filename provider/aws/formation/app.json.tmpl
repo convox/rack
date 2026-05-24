@@ -23,7 +23,8 @@
     "PlaceLambdaInVpcCond": { "Fn::Equals": [ { "Ref": "PlaceLambdaInVpc" }, "Yes" ] },
     "PrivateAndPlaceLambdaInVpc": { "Fn::And": [ { "Condition": "Private" }, { "Condition": "PlaceLambdaInVpcCond" } ] },
     "Private": { "Fn::Equals": [ { "Ref": "Private" }, "Yes" ] },
-    "RackUrl": { "Fn::Equals": [ { "Ref": "RackUrl" }, "Yes" ] }
+    "RackUrl": { "Fn::Equals": [ { "Ref": "RackUrl" }, "Yes" ] },
+    "SecretsManagerEnabled": { "Fn::Equals": [ { "Ref": "SecretsManager" }, "Yes" ] }
   },
   "Outputs": {
     {{ template "balancer-outputs" . }}
@@ -51,6 +52,9 @@
     "ServiceRole": {
       "Export": { "Name": { "Fn::Sub": "${AWS::StackName}:ServiceRole" } },
       "Value": { "Fn::GetAtt": [ "ServiceRole", "Arn" ] }
+    },
+    "ExecutionRole": {
+      "Value": { "Fn::GetAtt": [ "ExecutionRole", "Arn" ] }
     }
   },
   "Parameters" : {
@@ -164,6 +168,11 @@
       "Description": "Override the password set for embedded resources",
       "NoEcho": true
     },
+    "SecretsManager": {
+      "Type": "String",
+      "Default": "No",
+      "AllowedValues": [ "Yes", "No" ]
+    },
     "SlowStartDuration": {
       "AllowedPattern": "^(0|[3-8][0-9]|9[0-9]|[1-8][0-9]{2}|900)$",
       "Default": "0",
@@ -207,6 +216,20 @@
           { "Fn::ImportValue": { "Fn::Sub": "${Rack}:CMKPolicy" } }
         ],
         "Path": "/convox/"
+        {{ if $.SecretsManagerEnabled }}
+        ,
+        "Policies": [{
+          "PolicyName": "SecretsManagerAccess",
+          "PolicyDocument": {
+            "Version": "2012-10-17",
+            "Statement": [{
+              "Effect": "Allow",
+              "Action": ["secretsmanager:GetSecretValue"],
+              "Resource": { "Fn::Sub": "arn:${AWS::Partition}:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${Rack}/*" }
+            }]
+          }
+        }]
+        {{ end }}
       }
     },
     "LogGroup": {
@@ -427,7 +450,8 @@
           {{ if .Port.Port }}
           "DependsOn": { "Fn::If": [ "InternalDomains", { "Ref": "RecordSet{{ upper .Name }}Internal" }, "no" ]},
           {{ end }}
-          "TaskTags": { "Ref": "TaskTags" }
+          "TaskTags": { "Ref": "TaskTags" },
+          "SecretsManager": { "Ref": "SecretsManager" }
         },
         "Tags": [
           { "Key": "App", "Value": "{{ $.App }}" },

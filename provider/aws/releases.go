@@ -352,6 +352,54 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 		tp[fmt.Sprintf("ResourceTemplate%s", upperName(r.Name))] = ou.Url
 	}
 
+	private, err := p.stackParameter(p.Rack, "Private")
+	if err != nil {
+		return err
+	}
+
+	lambdaInVpc, err := p.stackParameter(p.Rack, "PlaceLambdaInVpc")
+	if err != nil {
+		return err
+	}
+
+	readonlyRootFilesystem, err := p.stackParameter(p.Rack, "EnableContainerReadonlyRootFilesystem")
+	if err != nil {
+		return err
+	}
+
+	smParam, smParamErr := p.stackParameter(p.Rack, "SecretsManager")
+	smEnabled := smParamErr == nil && smParam == "Yes"
+
+	var smARN string
+	var smKeys []string
+	if smEnabled {
+		arn, keys, smErr := p.secretsManagerWrite(p.Rack, r.App, env)
+		if smErr != nil {
+			return smErr
+		}
+		smARN = arn
+		smKeys = keys
+	}
+
+	updates := map[string]string{
+		"LogBucket":                             p.LogBucket,
+		"LogDriver":                             p.LogDriver,
+		"PlaceLambdaInVpc":                      lambdaInVpc,
+		"Private":                               private,
+		"SyslogDestination":                     p.SyslogDestination,
+		"SyslogFormat":                          p.SyslogFormat,
+		"EnableContainerReadonlyRootFilesystem": readonlyRootFilesystem,
+		"SecretsManager":                        yesNo(smEnabled),
+	}
+
+	if m.Params != nil {
+		for k, v := range m.Params {
+			updates[k] = v
+		}
+	}
+
+	tp["SecretsManagerEnabled"] = smEnabled
+
 	for _, s := range m.Services {
 		min := s.Deployment.Minimum
 		max := s.Deployment.Maximum
@@ -388,6 +436,8 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 			"WildcardDomain":                     tp["WildcardDomain"],
 			"NLBPreserveClientIPDefault":         yesNo(p.NLBPreserveClientIP),
 			"NLBInternalPreserveClientIPDefault": yesNo(p.NLBInternalPreserveClientIP),
+			"SecretsManagerARN":                  smARN,
+			"SecretsManagerKeys":                 smKeys,
 		}
 
 		data, err := formationTemplate("service", stp)
@@ -405,13 +455,15 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 
 	for _, t := range m.Timers {
 		ttp := map[string]interface{}{
-			"App":       r.App,
-			"Build":     tp["Build"],
-			"Manifest":  tp["Manifest"],
-			"Password":  p.Password,
-			"Release":   tp["Release"],
-			"Timer":     t,
-			"TimeState": "",
+			"App":                r.App,
+			"Build":              tp["Build"],
+			"Manifest":           tp["Manifest"],
+			"Password":           p.Password,
+			"Release":            tp["Release"],
+			"Timer":              t,
+			"TimeState":          "",
+			"SecretsManagerARN":  smARN,
+			"SecretsManagerKeys": smKeys,
 		}
 
 		if p.MaintainTimerState {
@@ -437,37 +489,6 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 	data, err := formationTemplate("app", tp)
 	if err != nil {
 		return err
-	}
-
-	private, err := p.stackParameter(p.Rack, "Private")
-	if err != nil {
-		return err
-	}
-
-	lambdaInVpc, err := p.stackParameter(p.Rack, "PlaceLambdaInVpc")
-	if err != nil {
-		return err
-	}
-
-	readonlyRootFilesystem, err := p.stackParameter(p.Rack, "EnableContainerReadonlyRootFilesystem")
-	if err != nil {
-		return err
-	}
-
-	updates := map[string]string{
-		"LogBucket":                             p.LogBucket,
-		"LogDriver":                             p.LogDriver,
-		"PlaceLambdaInVpc":                      lambdaInVpc,
-		"Private":                               private,
-		"SyslogDestination":                     p.SyslogDestination,
-		"SyslogFormat":                          p.SyslogFormat,
-		"EnableContainerReadonlyRootFilesystem": readonlyRootFilesystem,
-	}
-
-	if m.Params != nil {
-		for k, v := range m.Params {
-			updates[k] = v
-		}
 	}
 
 	tags := map[string]string{
