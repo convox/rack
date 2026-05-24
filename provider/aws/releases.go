@@ -454,6 +454,11 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 		return err
 	}
 
+	ecsExec, err := p.stackParameter(p.Rack, "ECSExec")
+	if err != nil {
+		ecsExec = "No"
+	}
+
 	updates := map[string]string{
 		"LogBucket":                             p.LogBucket,
 		"LogDriver":                             p.LogDriver,
@@ -462,6 +467,7 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 		"SyslogDestination":                     p.SyslogDestination,
 		"SyslogFormat":                          p.SyslogFormat,
 		"EnableContainerReadonlyRootFilesystem": readonlyRootFilesystem,
+		"ECSExec":                               ecsExec,
 	}
 
 	if m.Params != nil {

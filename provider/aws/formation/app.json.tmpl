@@ -8,6 +8,7 @@
     "BlankLogRetention": { "Fn::Equals": [ { "Ref": "LogRetention" }, "" ] },
     "BlankResourcePassword": { "Fn::Equals": [ { "Ref": "ResourcePassword" }, "" ] },
     "CircuitBreaker": { "Fn::Equals": [ { "Ref": "CircuitBreaker" }, "Yes" ] },
+    "ECSExecEnabled": { "Fn::Equals": [ { "Ref": "ECSExec" }, "Yes" ] },
     "EC2Services": { "Fn::Not": [ { "Condition": "FargateServicesEither" } ] },
     "EC2Timers": { "Fn::Not": [ { "Condition": "FargateTimersEither" } ] },
     "EnableCloudWatch": { "Fn::Equals": [ { "Ref": "LogDriver" }, "CloudWatch" ] },
@@ -62,6 +63,11 @@
       "AllowedValues" : [ "true", "false" ]
     },
     "CircuitBreaker": {
+      "Type": "String",
+      "Default": "No",
+      "AllowedValues": [ "Yes", "No" ]
+    },
+    "ECSExec": {
       "Type": "String",
       "Default": "No",
       "AllowedValues": [ "Yes", "No" ]
@@ -350,16 +356,40 @@
         { "Fn::ImportValue": { "Fn::Sub": "${Rack}:CMKPolicy" } }
       ],
       "Path": "/convox/",
-      "Policies": [ {
-        "PolicyName": "convox-env",
-        "PolicyDocument": {
-          "Version": "2012-10-17",
-          "Statement": [
-            { "Effect": "Allow", "Action": "s3:GetObject", "Resource": { "Fn::Sub": "arn:${AWS::Partition}:s3:::${Settings}/*" } },
-            { "Effect": "Allow", "Action": "kms:Decrypt", "Resource": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:EncryptionKey" } } }
-          ]
-        }
-      } ]
+      "Policies": [
+        {
+          "PolicyName": "convox-env",
+          "PolicyDocument": {
+            "Version": "2012-10-17",
+            "Statement": [
+              { "Effect": "Allow", "Action": "s3:GetObject", "Resource": { "Fn::Sub": "arn:${AWS::Partition}:s3:::${Settings}/*" } },
+              { "Effect": "Allow", "Action": "kms:Decrypt", "Resource": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:EncryptionKey" } } }
+            ]
+          }
+        },
+        { "Fn::If": [
+          "ECSExecEnabled",
+          {
+            "PolicyName": "ssm-exec",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "ssmmessages:CreateControlChannel",
+                    "ssmmessages:CreateDataChannel",
+                    "ssmmessages:OpenControlChannel",
+                    "ssmmessages:OpenDataChannel"
+                  ],
+                  "Resource": "*"
+                }
+              ]
+            }
+          },
+          { "Ref": "AWS::NoValue" }
+        ] }
+      ]
     }
   },
   {{ range .Manifest.Services }}
@@ -383,6 +413,7 @@
             "Certificate": { "Ref": "Balancer{{ upper .Name }}Certificate" },
           {{ end }}
           "CircuitBreaker": { "Ref": "CircuitBreaker" },
+          "ECSExec": { "Ref": "ECSExec" },
           "EnableContainerReadonlyRootFilesystem": { "Ref": "EnableContainerReadonlyRootFilesystem" },
           "Count": { "Fn::Select": [ 0, { "Ref": "{{ upper .Name }}Formation" } ] },
           "Cpu": { "Fn::Select": [ 1, { "Ref": "{{ upper .Name }}Formation" } ] },

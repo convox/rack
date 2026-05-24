@@ -17,6 +17,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/ecs"
+	"github.com/convox/logger"
 	"github.com/convox/rack/pkg/cache"
 	"github.com/convox/rack/pkg/manifest"
 	"github.com/convox/rack/pkg/manifest1"
@@ -28,6 +29,15 @@ import (
 // StatusCodePrefix is sent to the client to let it know the exit code is coming next
 const StatusCodePrefix = "F1E49A85-0AD7-4AEF-A618-C249C6E6568D:"
 
+const ecsExecSessionByte = '\x00'
+
+type ecsExecSession struct {
+	SessionID  string `json:"sessionId"`
+	StreamURL  string `json:"streamUrl"`
+	TokenValue string `json:"tokenValue"`
+	Region     string `json:"region"`
+}
+
 // ProcessExec runs a command in an existing Process
 func (p *Provider) ProcessExec(app, pid, command string, rw io.ReadWriter, opts structs.ProcessExecOptions) (int, error) {
 	log := Logger.At("ProcessExec").Namespace("app=%q pid=%q command=%q", app, pid, command).Start()
@@ -38,8 +48,8 @@ func (p *Provider) ProcessExec(app, pid, command string, rw io.ReadWriter, opts 
 	}
 
 	pidFound := false
-	for _, p := range pss {
-		if p.Id == pid {
+	for _, ps := range pss {
+		if ps.Id == pid {
 			pidFound = true
 			break
 		}
@@ -49,8 +59,42 @@ func (p *Provider) ProcessExec(app, pid, command string, rw io.ReadWriter, opts 
 		return -1, errorNotFound(fmt.Sprintf("process id not found for %s", app))
 	}
 
+	a, err := p.AppGet(app)
+	if err != nil {
+		return -1, log.Error(err)
+	}
+
+	useECSExec := p.ECSExec && a.Tags["Generation"] == "2"
+
+	if useECSExec {
+		code, err := p.processExecECS(app, pid, command, rw, opts, log)
+		if err != nil {
+			if reqErr, ok := err.(awserr.Error); ok {
+				switch reqErr.Code() {
+				case "InvalidParameterException":
+					log.At("ProcessExec").Logf("audit-gap=true reason=pre-enable-task app=%s pid=%s", app, pid)
+					fmt.Fprintf(rw, "\r\nWARNING: task was started before ECS Exec was enabled, falling back to Docker exec (this session will not appear in CloudTrail). Redeploy the app to enable ECS Exec on all tasks.\r\n")
+					return p.processExecDocker(app, pid, command, rw, opts, a, log)
+				case "AccessDeniedException":
+					return -1, fmt.Errorf("ECS Exec access denied: verify the task role has ssmmessages permissions and the rack has ECSExec=Yes. Raw error: %s", reqErr.Message())
+				case "TargetNotConnectedException":
+					return -1, fmt.Errorf("container SSM agent is not ready; wait a few seconds and retry")
+				}
+			}
+			return -1, log.Error(err)
+		}
+		return code, log.Success()
+	}
+
+	return p.processExecDocker(app, pid, command, rw, opts, a, log)
+}
+
+func (p *Provider) processExecDocker(app, pid, command string, rw io.ReadWriter, opts structs.ProcessExecOptions, a *structs.App, log *logger.Logger) (int, error) {
 	dc, err := p.dockerClientFromPid(pid)
 	if err != nil {
+		if strings.Contains(err.Error(), "could not find instance") {
+			return -1, fmt.Errorf("cannot exec into Fargate task without ECS Exec enabled; set ECSExec=Yes on the rack and redeploy")
+		}
 		return -1, err
 	}
 
@@ -66,11 +110,6 @@ func (p *Provider) ProcessExec(app, pid, command string, rw io.ReadWriter, opts 
 	if opts.Entrypoint != nil && *opts.Entrypoint {
 		cmd = append(c.Config.Entrypoint, cmd...)
 	} else {
-		a, err := p.AppGet(app)
-		if err != nil {
-			return -1, err
-		}
-
 		if a.Tags["Generation"] == "2" {
 			cmd = append([]string{"/convox-env"}, cmd...)
 		}
@@ -118,6 +157,70 @@ func (p *Provider) ProcessExec(app, pid, command string, rw io.ReadWriter, opts 
 	}
 
 	return ires.ExitCode, log.Success()
+}
+
+func (p *Provider) processExecECS(app, pid, command string, rw io.ReadWriter, opts structs.ProcessExecOptions, log *logger.Logger) (int, error) {
+	arn, err := p.taskArnFromAppPid(app, pid)
+	if err != nil {
+		return -1, err
+	}
+
+	task, err := p.describeTask(arn)
+	if err != nil {
+		return -1, err
+	}
+
+	if task.TaskDefinitionArn == nil {
+		return -1, fmt.Errorf("task has no task definition")
+	}
+
+	res, err := p.ecs().DescribeTaskDefinition(&ecs.DescribeTaskDefinitionInput{
+		TaskDefinition: task.TaskDefinitionArn,
+	})
+	if err != nil {
+		return -1, err
+	}
+
+	if len(res.TaskDefinition.ContainerDefinitions) < 1 {
+		return -1, fmt.Errorf("no container definitions in task definition")
+	}
+
+	containerName := aws.StringValue(res.TaskDefinition.ContainerDefinitions[0].Name)
+
+	tty := cb(opts.Tty, true)
+
+	execRes, err := p.ecs().ExecuteCommand(&ecs.ExecuteCommandInput{
+		Cluster:     aws.String(p.Cluster),
+		Task:        aws.String(arn),
+		Container:   aws.String(containerName),
+		Command:     aws.String(command),
+		Interactive: aws.Bool(tty),
+	})
+	if err != nil {
+		return -1, err
+	}
+
+	if execRes.Session == nil || execRes.Session.SessionId == nil || execRes.Session.StreamUrl == nil || execRes.Session.TokenValue == nil {
+		return -1, fmt.Errorf("ECS ExecuteCommand returned incomplete session credentials")
+	}
+
+	session := ecsExecSession{
+		SessionID:  aws.StringValue(execRes.Session.SessionId),
+		StreamURL:  aws.StringValue(execRes.Session.StreamUrl),
+		TokenValue: aws.StringValue(execRes.Session.TokenValue),
+		Region:     p.Region,
+	}
+
+	data, err := json.Marshal(session)
+	if err != nil {
+		return -1, err
+	}
+
+	if _, err := rw.Write(append([]byte{ecsExecSessionByte}, data...)); err != nil {
+		return -1, err
+	}
+
+	return 0, nil
 }
 
 // ProcessGet returns the specified process for an app
@@ -462,6 +565,16 @@ func (p *Provider) ProcessRun(app, service string, opts structs.ProcessRunOption
 		Count:          aws.Int64(1),
 		StartedBy:      aws.String(fmt.Sprintf("convox.%s", app)),
 		TaskDefinition: aws.String(td),
+	}
+
+	if p.ECSExec {
+		a, err := p.AppGet(app)
+		if err != nil {
+			return nil, log.Error(err)
+		}
+		if a.Tags["Generation"] == "2" {
+			req.EnableExecuteCommand = aws.Bool(true)
+		}
 	}
 
 	if opts.Command != nil {
