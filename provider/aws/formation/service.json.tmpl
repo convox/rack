@@ -19,8 +19,7 @@
       "EnableContainerReadonlyRootFilesystem": { "Fn::Equals": [ { "Ref": "EnableContainerReadonlyRootFilesystem" }, "Yes" ] },
       "EnableIgnoreManualScaleCount": { "Fn::Equals": [ { "Ref": "IgnoreManualScaleCount" }, "Yes" ] },
       "RouteHttp": { "Fn::Equals": [ { "Ref": "RedirectHttps" }, "No" ] },
-      "TaskTags": { "Fn::Equals": [ { "Ref": "TaskTags" }, "Yes" ] },
-      "SecretsManagerEnabled": { "Fn::Equals": [ { "Ref": "SecretsManager" }, "Yes" ] }
+      "TaskTags": { "Fn::Equals": [ { "Ref": "TaskTags" }, "Yes" ] }
     },
     "Outputs": {
       {{ if .Port.Port }}
@@ -216,11 +215,6 @@
         "Type": "String",
         "Description": "Syslog format to sent to SyslogDestination.",
         "Default": "rfc5424"
-      },
-      "SecretsManager": {
-        "Type": "String",
-        "Default": "No",
-        "AllowedValues": [ "Yes", "No" ]
       },
       "TaskTags": {
         "Type": "String",
@@ -935,9 +929,11 @@
                 { "Name": "BUILD", "Value": "{{$.Build.Id}}" },
                 { "Name": "BUILD_GIT_SHA", "Value": {{ safe $.Build.GitSha }} },
                 { "Name": "BUILD_DESCRIPTION", "Value": {{ safe $.Build.Description }} },
+                {{ if not $.SecretsManagerARN }}
                 { "Name": "CONVOX_ENV_KEY", "Value": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:EncryptionKey" } } },
                 { "Name": "CONVOX_ENV_URL", "Value": { "Fn::Sub": "s3://${Settings}/releases/{{$.Release.Id}}/env" } },
                 { "Name": "CONVOX_ENV_VARS", "Value": "{{.EnvironmentKeys}}" },
+                {{ end }}
                 { "Name": "RACK", "Value": { "Ref": "Rack" } },
                 { "Fn::If": [ "RackUrl",
                   { "Name": "RACK_URL", "Value": { "Fn::Sub": "https://convox:{{$.Password}}@rack.${Rack}.convox" } },

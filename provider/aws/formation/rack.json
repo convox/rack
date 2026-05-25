@@ -1199,10 +1199,10 @@
       "Description": "The recurring schedule for when the rack will start. This format consists of five fields separated by white spaces: [Minute] [Hour] [Day_of_Month] [Month_of_Year] [Day_of_Week]",
       "Default": ""
     },
-    "SecretsManager": {
+    "SecretsManagerEnv": {
       "Type": "String",
       "Default": "No",
-      "Description": "Use AWS Secrets Manager for env var storage and native ECS injection (gen2 apps only)",
+      "Description": "Use AWS Secrets Manager for env var injection into ECS tasks (gen2 apps only)",
       "AllowedValues": [ "Yes", "No" ]
     },
     "SpotFleetAllowedInstanceTypes": {

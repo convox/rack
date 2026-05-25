@@ -23,8 +23,7 @@
     "PlaceLambdaInVpcCond": { "Fn::Equals": [ { "Ref": "PlaceLambdaInVpc" }, "Yes" ] },
     "PrivateAndPlaceLambdaInVpc": { "Fn::And": [ { "Condition": "Private" }, { "Condition": "PlaceLambdaInVpcCond" } ] },
     "Private": { "Fn::Equals": [ { "Ref": "Private" }, "Yes" ] },
-    "RackUrl": { "Fn::Equals": [ { "Ref": "RackUrl" }, "Yes" ] },
-    "SecretsManagerEnabled": { "Fn::Equals": [ { "Ref": "SecretsManager" }, "Yes" ] }
+    "RackUrl": { "Fn::Equals": [ { "Ref": "RackUrl" }, "Yes" ] }
   },
   "Outputs": {
     {{ template "balancer-outputs" . }}
@@ -168,7 +167,7 @@
       "Description": "Override the password set for embedded resources",
       "NoEcho": true
     },
-    "SecretsManager": {
+    "SecretsManagerEnv": {
       "Type": "String",
       "Default": "No",
       "AllowedValues": [ "Yes", "No" ]
@@ -216,7 +215,7 @@
           { "Fn::ImportValue": { "Fn::Sub": "${Rack}:CMKPolicy" } }
         ],
         "Path": "/convox/"
-        {{ if $.SecretsManagerEnabled }}
+        {{ if $.SecretsManagerARN }}
         ,
         "Policies": [{
           "PolicyName": "SecretsManagerAccess",
@@ -225,7 +224,7 @@
             "Statement": [{
               "Effect": "Allow",
               "Action": ["secretsmanager:GetSecretValue"],
-              "Resource": { "Fn::Sub": "arn:${AWS::Partition}:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${Rack}/*" }
+              "Resource": "{{ $.SecretsManagerARN }}"
             }]
           }
         }]
@@ -450,8 +449,7 @@
           {{ if .Port.Port }}
           "DependsOn": { "Fn::If": [ "InternalDomains", { "Ref": "RecordSet{{ upper .Name }}Internal" }, "no" ]},
           {{ end }}
-          "TaskTags": { "Ref": "TaskTags" },
-          "SecretsManager": { "Ref": "SecretsManager" }
+          "TaskTags": { "Ref": "TaskTags" }
         },
         "Tags": [
           { "Key": "App", "Value": "{{ $.App }}" },

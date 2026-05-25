@@ -1150,6 +1150,26 @@ func (p *Provider) generateTaskDefinition2(app, service string, opts structs.Pro
 		senv["RACK_URL"] = fmt.Sprintf("https://convox:%s@rack.%s.convox", url.QueryEscape(p.Password), p.Rack)
 	}
 
+	var smSecrets []*ecs.Secret
+	if aps["SecretsManagerEnv"] == "Yes" {
+		smARN, descErr := p.secretsManagerGetARN(p.Rack, r.App)
+		if descErr == nil {
+			keys := sortedKeys(env)
+			smSecrets = make([]*ecs.Secret, 0, len(keys))
+			for _, k := range keys {
+				smSecrets = append(smSecrets, &ecs.Secret{
+					Name:      aws.String(k),
+					ValueFrom: aws.String(fmt.Sprintf("%s:%s::", smARN, k)),
+				})
+			}
+			delete(senv, "CONVOX_ENV_KEY")
+			delete(senv, "CONVOX_ENV_URL")
+			delete(senv, "CONVOX_ENV_VARS")
+		} else {
+			fmt.Printf("fn=generateTaskDefinition2 level=warn msg=\"secrets manager lookup failed, falling back to S3: %s\"\n", descErr)
+		}
+	}
+
 	cenv := []*ecs.KeyValuePair{}
 
 	for k, v := range senv {
@@ -1182,23 +1202,7 @@ func (p *Provider) generateTaskDefinition2(app, service string, opts structs.Pro
 		MountPoints:       mps,
 		Name:              aws.String(service),
 		Privileged:        aws.Bool(s.Privileged),
-	}
-
-	if aps["SecretsManager"] == "Yes" {
-		smARN, descErr := p.secretsManagerGetARN(p.Rack, r.App)
-		if descErr == nil {
-			keys := sortedKeys(env)
-			secrets := make([]*ecs.Secret, 0, len(keys))
-			for _, k := range keys {
-				secrets = append(secrets, &ecs.Secret{
-					Name:      aws.String(k),
-					ValueFrom: aws.String(fmt.Sprintf("%s:%s::", smARN, k)),
-				})
-			}
-			cd.Secrets = secrets
-		} else {
-			fmt.Printf("fn=generateTaskDefinition2 level=warn msg=\"secrets manager lookup failed, skipping: %s\"\n", descErr)
-		}
+		Secrets:           smSecrets,
 	}
 
 	if len(s.Command) > 0 {

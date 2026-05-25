@@ -109,7 +109,7 @@ func (p *Provider) secretsManagerPutWithRetry(name, val string) (*secretsmanager
 		}
 		lastErr = err
 		ae, ok := err.(awserr.Error)
-		if !ok || ae.Code() != "ThrottlingException" {
+		if !ok || (ae.Code() != "ThrottlingException" && ae.Code() != "InternalServiceError") {
 			return nil, err
 		}
 		time.Sleep(time.Duration(1<<uint(i)) * time.Second)
@@ -164,7 +164,7 @@ func (p *Provider) smRecordFailure(app string) {
 	if shouldNotify {
 		p.EventSend("rack:warning", structs.EventSendOptions{
 			Data: map[string]string{
-				"message": fmt.Sprintf("Secrets Manager has failed 3 consecutive times for app %s. Consider setting SecretsManager=No or investigating SM availability.", app),
+				"message": fmt.Sprintf("Secrets Manager has failed 3 consecutive times for app %s. Consider setting SecretsManagerEnv=No or investigating SM availability.", app),
 			},
 		})
 	}

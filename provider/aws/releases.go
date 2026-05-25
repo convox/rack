@@ -367,18 +367,15 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 		return err
 	}
 
-	smParam, smParamErr := p.stackParameter(p.Rack, "SecretsManager")
-	smEnabled := smParamErr == nil && smParam == "Yes"
+	rackSMParam, _ := p.stackParameter(p.Rack, "SecretsManagerEnv")
+	if rackSMParam == "" {
+		rackSMParam = "No"
+	}
 
-	var smARN string
-	var smKeys []string
-	if smEnabled {
-		arn, keys, smErr := p.secretsManagerWrite(p.Rack, r.App, env)
-		if smErr != nil {
-			return smErr
-		}
-		smARN = arn
-		smKeys = keys
+	appSMParam, appSMErr := p.stackParameter(p.rackStack(r.App), "SecretsManagerEnv")
+	smValue := rackSMParam
+	if appSMErr == nil && appSMParam == "Yes" {
+		smValue = "Yes"
 	}
 
 	updates := map[string]string{
@@ -389,7 +386,7 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 		"SyslogDestination":                     p.SyslogDestination,
 		"SyslogFormat":                          p.SyslogFormat,
 		"EnableContainerReadonlyRootFilesystem": readonlyRootFilesystem,
-		"SecretsManager":                        yesNo(smEnabled),
+		"SecretsManagerEnv":                     smValue,
 	}
 
 	if m.Params != nil {
@@ -398,7 +395,21 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 		}
 	}
 
-	tp["SecretsManagerEnabled"] = smEnabled
+	smEnabled := updates["SecretsManagerEnv"] == "Yes"
+	tp["SecretsManagerARN"] = ""
+
+	var smARN string
+	var smKeys []string
+	if smEnabled {
+		arn, keys, smErr := p.secretsManagerWrite(p.Rack, r.App, env)
+		if smErr != nil {
+			fmt.Printf("fn=ReleasePromote level=warn msg=\"secrets manager write failed, falling back to S3: %s\"\n", smErr)
+		} else {
+			smARN = arn
+			smKeys = keys
+			tp["SecretsManagerARN"] = smARN
+		}
+	}
 
 	for _, s := range m.Services {
 		min := s.Deployment.Minimum
