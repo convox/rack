@@ -796,6 +796,8 @@ func (p *Provider) runBuild(build *structs.Build, burl string, opts structs.Buil
 		buildTaskName = "ApiBuildFargate"
 	}
 
+	buildCache, _ := p.stackParameter(p.Rack, "BuildCache")
+
 	br, err := p.stackResource(p.Rack, buildTaskName)
 	if err != nil {
 		log.Error(err)
@@ -931,6 +933,19 @@ func (p *Provider) runBuild(build *structs.Build, burl string, opts structs.Buil
 			Value: aws.String(build.Id),
 		},
 	}...)
+
+	if buildCache == "Yes" {
+		env = append(env, &ecs.KeyValuePair{
+			Name:  aws.String("BUILD_CACHE"),
+			Value: aws.String("true"),
+		})
+		if buildMethod == "fargate" && a.Tags["Generation"] == "2" {
+			env = append(env, &ecs.KeyValuePair{
+				Name:  aws.String("BUILD_CACHE_REPO"),
+				Value: aws.String(fmt.Sprintf("%s.dkr.ecr.%s.amazonaws.com/%s", aid, p.Region, reg)),
+			})
+		}
+	}
 
 	if opts.BuildArgs != nil {
 		for _, v := range *opts.BuildArgs {

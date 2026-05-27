@@ -30,6 +30,8 @@ type Options struct {
 	Auth        string
 	BuildArgs   []string
 	Cache       bool
+	BuildCache  bool
+	CacheRepo   string
 	Development bool
 	EnvWrapper  bool
 	Generation  string
