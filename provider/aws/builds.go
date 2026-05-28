@@ -797,10 +797,6 @@ func (p *Provider) runBuild(build *structs.Build, burl string, opts structs.Buil
 	}
 
 	buildCache, _ := p.stackParameter(p.Rack, "BuildCache")
-	cacheRetentionDays, _ := p.stackParameter(p.Rack, "BuildCacheRetentionDays")
-	if cacheRetentionDays == "" {
-		cacheRetentionDays = "14"
-	}
 
 	br, err := p.stackResource(p.Rack, buildTaskName)
 	if err != nil {
@@ -946,9 +942,8 @@ func (p *Provider) runBuild(build *structs.Build, burl string, opts structs.Buil
 		if buildMethod == "fargate" && a.Tags["Generation"] == "2" {
 			env = append(env, &ecs.KeyValuePair{
 				Name:  aws.String("BUILD_CACHE_REPO"),
-				Value: aws.String(fmt.Sprintf("%s.dkr.ecr.%s.amazonaws.com/%s", aid, p.Region, reg)),
+				Value: aws.String(fmt.Sprintf("%s.dkr.ecr.%s.amazonaws.com/%s-build-cache", aid, p.Region, p.Rack)),
 			})
-			p.ensureCacheLifecyclePolicy(reg, cacheRetentionDays)
 		}
 	}
 
@@ -1014,33 +1009,6 @@ func (p *Provider) runBuild(build *structs.Build, burl string, opts structs.Buil
 	}
 
 	return nil
-}
-
-func (p *Provider) ensureCacheLifecyclePolicy(repo, retentionDays string) {
-	days, err := strconv.Atoi(retentionDays)
-	if err != nil || days < 1 {
-		days = 14
-	}
-
-	svc := ecr.New(session.New(), p.config())
-
-	existing, err := svc.GetLifecyclePolicy(&ecr.GetLifecyclePolicyInput{
-		RepositoryName: aws.String(repo),
-	})
-	if err == nil && existing.LifecyclePolicyText != nil {
-		Logger.Logf("overwriting existing ECR lifecycle policy on repo %s", repo)
-	}
-
-	hexPattern := strings.Repeat("?", 64)
-	policy := fmt.Sprintf(`{"rules":[{"rulePriority":100,"description":"Expire Kaniko build cache layers older than %d days","selection":{"tagStatus":"tagged","tagPatternList":["%s"],"countType":"sinceImagePushed","countUnit":"days","countNumber":%d},"action":{"type":"expire"}}]}`, days, hexPattern, days)
-
-	_, err = svc.PutLifecyclePolicy(&ecr.PutLifecyclePolicyInput{
-		RepositoryName:      aws.String(repo),
-		LifecyclePolicyText: aws.String(policy),
-	})
-	if err != nil {
-		Logger.Logf("failed to set ECR cache lifecycle policy on %s: %s", repo, err)
-	}
 }
 
 func (p *Provider) waitForContainer(task *ecs.Task) error {

@@ -3717,6 +3717,17 @@
         "SecurityGroups": [{ "Ref": "BuildCacheSecurity" }]
       }
     },
+    "BuildCacheRepository": {
+      "Type": "AWS::ECR::Repository",
+      "Condition": "BuildCacheEnabled",
+      "Properties": {
+        "EmptyOnDelete": true,
+        "RepositoryName": { "Fn::Sub": "${AWS::StackName}-build-cache" },
+        "LifecyclePolicy": {
+          "LifecyclePolicyText": { "Fn::Sub": "{\"rules\":[{\"rulePriority\":1,\"description\":\"Expire cache images\",\"selection\":{\"tagStatus\":\"any\",\"countType\":\"sinceImagePushed\",\"countUnit\":\"days\",\"countNumber\":${BuildCacheRetentionDays}},\"action\":{\"type\":\"expire\"}}]}" }
+        }
+      }
+    },
     "AccountEvents": {
       "Type": "AWS::SQS::Queue",
       "Properties": {
@@ -4504,9 +4515,7 @@
                     "ecr:InitiateLayerUpload",
                     "ecr:UploadLayerPart",
                     "ecr:CompleteLayerUpload",
-                    "ecr:PutImage",
-                    "ecr:GetLifecyclePolicy",
-                    "ecr:PutLifecyclePolicy"
+                    "ecr:PutImage"
                   ],
                   "Resource": "*"
                 },
@@ -4785,7 +4794,8 @@
               { "Name": "PROVIDER", "Value": "aws" },
               { "Name": "RACK", "Value": { "Ref": "AWS::StackName" } },
               { "Name": "STACK_ID", "Value": { "Ref": "AWS::StackId" } },
-              { "Name": "BUILD_RUNTIME", "Value": "daemonless" }
+              { "Name": "BUILD_RUNTIME", "Value": "daemonless" },
+              { "Name": "BUILD_CACHE_RETENTION_DAYS", "Value": { "Ref": "BuildCacheRetentionDays" } }
             ],
             "Image": {
               "Fn::If": [
