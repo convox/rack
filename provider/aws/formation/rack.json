@@ -930,6 +930,13 @@
       "AllowedValues": ["Yes", "No"],
       "Description": "Enable persistent build caching"
     },
+    "BuildCacheRetentionDays": {
+      "Type": "Number",
+      "Default": "14",
+      "MinValue": 1,
+      "MaxValue": 365,
+      "Description": "Number of days to retain build cache images in ECR before automatic cleanup"
+    },
     "FargateBuildCpu": {
       "Type": "String",
       "Description": "How much cpu should be reserved by the builder. Only used when BuildMethod is set to fargate",
@@ -3653,6 +3660,9 @@
         ]},
         "FileSystemTags": [
           { "Key": "Name", "Value": { "Fn::Join": ["-", [{ "Ref": "AWS::StackName" }, "build-cache"]] } }
+        ],
+        "LifecyclePolicies": [
+          { "TransitionToIA": "AFTER_14_DAYS" }
         ]
       }
     },
@@ -4494,7 +4504,9 @@
                     "ecr:InitiateLayerUpload",
                     "ecr:UploadLayerPart",
                     "ecr:CompleteLayerUpload",
-                    "ecr:PutImage"
+                    "ecr:PutImage",
+                    "ecr:GetLifecyclePolicy",
+                    "ecr:PutLifecyclePolicy"
                   ],
                   "Resource": "*"
                 },
@@ -4629,7 +4641,8 @@
               { "Name": "RACK", "Value": { "Ref": "AWS::StackName" } },
               { "Name": "STACK_ID", "Value": { "Ref": "AWS::StackId" } },
               { "Name": "DOCKER_BUILDKIT", "Value": "1" },
-              { "Name": "BUILD_CACHE", "Value": { "Fn::If": ["BuildCacheEnabled", "true", "false"] } }
+              { "Name": "BUILD_CACHE", "Value": { "Fn::If": ["BuildCacheEnabled", "true", "false"] } },
+              { "Name": "BUILD_CACHE_RETENTION_DAYS", "Value": { "Ref": "BuildCacheRetentionDays" } }
             ],
             "Image": {
               "Fn::If": [

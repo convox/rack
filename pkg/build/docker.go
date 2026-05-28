@@ -9,7 +9,6 @@ import (
 	"path/filepath"
 	"regexp"
 	"sort"
-	"strconv"
 	"strings"
 
 	"github.com/convox/rack/pkg/helpers"
@@ -56,7 +55,7 @@ func (bb *Build) buildGeneration2(dir string) error {
 
 	hostSupportsCache := bb.BuildCache && bb.hostSupportsRegistryCache()
 	if bb.BuildCache && !hostSupportsCache {
-		bb.Printf("WARNING: BuildCache enabled but host Docker does not support registry cache (requires 23.0+ with buildx)\n")
+		bb.Printf("WARNING: BuildCache enabled but Docker buildx plugin not available\n")
 	}
 
 	if hostSupportsCache {
@@ -198,21 +197,7 @@ var (
 )
 
 func (bb *Build) hostSupportsRegistryCache() bool {
-	out, err := bb.Exec.Execute("docker", "info", "--format", "{{.ServerVersion}}")
-	if err != nil {
-		return false
-	}
-	lines := strings.Split(strings.TrimSpace(string(out)), "\n")
-	version := strings.TrimSpace(lines[len(lines)-1])
-	parts := strings.Split(version, ".")
-	if len(parts) == 0 {
-		return false
-	}
-	major, err := strconv.Atoi(parts[0])
-	if err != nil || major < 23 {
-		return false
-	}
-	_, err = bb.Exec.Execute("docker", "buildx", "version")
+	_, err := bb.Exec.Execute("docker", "buildx", "version")
 	return err == nil
 }
 

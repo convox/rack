@@ -134,6 +134,7 @@ var paramGroups = map[string]map[string]bool{
 		"BuildMethod":                 true,
 		"BuildVolumeSize":             true,
 		"BuildCache":                  true,
+		"BuildCacheRetentionDays":     true,
 		"FargateBuildCpu":             true,
 		"FargateBuildMemory":          true,
 		"PrivateBuild":                true,
