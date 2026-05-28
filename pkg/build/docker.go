@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/convox/rack/pkg/helpers"
@@ -53,6 +54,13 @@ func (bb *Build) buildGeneration2(dir string) error {
 	pushes := map[string]string{}
 	tags := map[string][]string{}
 
+	hostSupportsCache := bb.BuildCache && bb.hostSupportsRegistryCache()
+	if bb.BuildCache && !hostSupportsCache {
+		bb.Printf("WARNING: BuildCache enabled but host Docker does not support registry cache (requires 23.0+)\n")
+	}
+
+	cacheRefs := map[string]string{}
+
 	for _, s := range m.Services {
 		hash := s.BuildHash(bb.Id)
 		target := fmt.Sprintf("%s:%s.%s", prefix, s.Name, bb.Id)
@@ -68,12 +76,18 @@ func (bb *Build) buildGeneration2(dir string) error {
 		if bb.Push != "" {
 			pushes[target] = fmt.Sprintf("%s:%s.%s", bb.Push, s.Name, bb.Id)
 		}
+
+		if s.Image == "" && bb.Push != "" && hostSupportsCache {
+			if _, exists := cacheRefs[hash]; !exists {
+				cacheRefs[hash] = fmt.Sprintf("%s:%s.buildcache", bb.Push, s.Name)
+			}
+		}
 	}
 
 	for hash, b := range builds {
 		bb.Printf("Building: %s\n", b.Path)
 
-		if err := bb.build(filepath.Join(dir, b.Path), b.Manifest, hash, env); err != nil {
+		if err := bb.build(filepath.Join(dir, b.Path), b.Manifest, hash, env, cacheRefs[hash]); err != nil {
 			return err
 		}
 	}
@@ -115,7 +129,7 @@ func (bb *Build) buildGeneration2(dir string) error {
 	return nil
 }
 
-func (bb *Build) build(path, dockerfile, tag string, env map[string]string) error {
+func (bb *Build) build(path, dockerfile, tag string, env map[string]string, cacheRef string) error {
 	if path == "" {
 		return fmt.Errorf("build path cannot be empty")
 	}
@@ -125,6 +139,14 @@ func (bb *Build) build(path, dockerfile, tag string, env map[string]string) erro
 	args := []string{"build"}
 	if !bb.Cache {
 		args = append(args, "--no-cache")
+	}
+
+	if cacheRef != "" {
+		args = append(args, "--progress=plain")
+		if bb.Cache {
+			args = append(args, fmt.Sprintf("--cache-from=type=registry,ref=%s,ignore-error=true", cacheRef))
+		}
+		args = append(args, fmt.Sprintf("--cache-to=type=registry,ref=%s,mode=max,image-manifest=true,oci-mediatypes=true,ignore-error=true,compression=estargz", cacheRef))
 	}
 
 	args = append(args, "-t", tag, "-f", df, "--network", "host")
@@ -165,6 +187,21 @@ var (
 	reArg  = regexp.MustCompile(`(?i)^\s*ARG\s+([^=\s]+)`)
 	reFrom = regexp.MustCompile(`(?i)^\s*FROM\s+.*\bAS\s+development\b`)
 )
+
+func (bb *Build) hostSupportsRegistryCache() bool {
+	out, err := bb.Exec.Execute("docker", "info", "--format", "{{.ServerVersion}}")
+	if err != nil {
+		return false
+	}
+	lines := strings.Split(strings.TrimSpace(string(out)), "\n")
+	version := strings.TrimSpace(lines[len(lines)-1])
+	parts := strings.Split(version, ".")
+	if len(parts) == 0 {
+		return false
+	}
+	major, err := strconv.Atoi(parts[0])
+	return err == nil && major >= 23
+}
 
 // buildArgs returns CLI "--build-arg" flags derived from ARG statements that
 // have matches in the supplied env map.  It also adds "--target development"
