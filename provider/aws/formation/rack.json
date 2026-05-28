@@ -4628,7 +4628,8 @@
               { "Name": "PROVIDER", "Value": "aws" },
               { "Name": "RACK", "Value": { "Ref": "AWS::StackName" } },
               { "Name": "STACK_ID", "Value": { "Ref": "AWS::StackId" } },
-              { "Name": "DOCKER_BUILDKIT", "Value": "1" }
+              { "Name": "DOCKER_BUILDKIT", "Value": "1" },
+              { "Name": "BUILD_CACHE", "Value": { "Fn::If": ["BuildCacheEnabled", "true", "false"] } }
             ],
             "Image": {
               "Fn::If": [

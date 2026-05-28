@@ -56,7 +56,14 @@ func (bb *Build) buildGeneration2(dir string) error {
 
 	hostSupportsCache := bb.BuildCache && bb.hostSupportsRegistryCache()
 	if bb.BuildCache && !hostSupportsCache {
-		bb.Printf("WARNING: BuildCache enabled but host Docker does not support registry cache (requires 23.0+)\n")
+		bb.Printf("WARNING: BuildCache enabled but host Docker does not support registry cache (requires 23.0+ with buildx)\n")
+	}
+
+	if hostSupportsCache {
+		if err := bb.ensureBuildxBuilder(); err != nil {
+			bb.Printf("WARNING: could not create buildx builder, builds will proceed without cache: %s\n", err)
+			hostSupportsCache = false
+		}
 	}
 
 	cacheRefs := map[string]string{}
@@ -136,17 +143,19 @@ func (bb *Build) build(path, dockerfile, tag string, env map[string]string, cach
 
 	df := filepath.Join(path, dockerfile)
 
-	args := []string{"build"}
-	if !bb.Cache {
-		args = append(args, "--no-cache")
-	}
-
+	var args []string
 	if cacheRef != "" {
-		args = append(args, "--progress=plain")
+		args = []string{"buildx", "build", "--load", "--progress=plain"}
 		if bb.Cache {
 			args = append(args, fmt.Sprintf("--cache-from=type=registry,ref=%s,ignore-error=true", cacheRef))
 		}
 		args = append(args, fmt.Sprintf("--cache-to=type=registry,ref=%s,mode=max,image-manifest=true,oci-mediatypes=true,ignore-error=true,compression=estargz", cacheRef))
+	} else {
+		args = []string{"build"}
+	}
+
+	if !bb.Cache {
+		args = append(args, "--no-cache")
 	}
 
 	args = append(args, "-t", tag, "-f", df, "--network", "host")
@@ -200,7 +209,26 @@ func (bb *Build) hostSupportsRegistryCache() bool {
 		return false
 	}
 	major, err := strconv.Atoi(parts[0])
-	return err == nil && major >= 23
+	if err != nil || major < 23 {
+		return false
+	}
+	_, err = bb.Exec.Execute("docker", "buildx", "version")
+	return err == nil
+}
+
+func (bb *Build) ensureBuildxBuilder() error {
+	out, err := bb.Exec.Execute("docker", "buildx", "inspect", "convox-cache")
+	if err == nil {
+		if strings.Contains(string(out), "docker-container") {
+			return bb.Exec.Run(bb.writer, "docker", "buildx", "use", "convox-cache")
+		}
+		bb.Exec.Execute("docker", "buildx", "rm", "convox-cache")
+	}
+	return bb.Exec.Run(bb.writer, "docker", "buildx", "create",
+		"--name", "convox-cache",
+		"--driver", "docker-container",
+		"--driver-opt", "network=host",
+		"--use")
 }
 
 // buildArgs returns CLI "--build-arg" flags derived from ARG statements that
