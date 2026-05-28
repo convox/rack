@@ -367,6 +367,11 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 		return err
 	}
 
+	ecsExec, err := p.stackParameter(p.Rack, "ECSExec")
+	if err != nil {
+		ecsExec = "No"
+	}
+
 	rackSMParam, _ := p.stackParameter(p.Rack, "SecretsManagerEnv")
 	if rackSMParam == "" {
 		rackSMParam = "No"
@@ -386,6 +391,7 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 		"SyslogDestination":                     p.SyslogDestination,
 		"SyslogFormat":                          p.SyslogFormat,
 		"EnableContainerReadonlyRootFilesystem": readonlyRootFilesystem,
+		"ECSExec":                               ecsExec,
 		"SecretsManagerEnv":                     smValue,
 	}
 

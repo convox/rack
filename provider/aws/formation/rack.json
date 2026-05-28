@@ -856,6 +856,12 @@
       "Default": "false",
       "AllowedValues": [ "true", "false" ]
     },
+    "ECSExec": {
+      "Type": "String",
+      "Default": "No",
+      "Description": "Enable ECS Exec for interactive shell access to containers",
+      "AllowedValues": [ "Yes", "No" ]
+    },
     "EcsPollInterval": {
       "Type": "Number",
       "Default": "1",
@@ -4470,6 +4476,7 @@
               "rack.Cluster": { "Ref": "Cluster" },
               "rack.DynamoBuilds": { "Ref": "DynamoBuilds" },
               "rack.DynamoReleases": { "Ref": "DynamoReleases" },
+              "rack.ECSExec": { "Ref": "ECSExec" },
               "rack.EcsPollInterval": { "Ref": "EcsPollInterval" },
               "rack.LogDriver": { "Ref": "LogDriver" },
               "rack.EncryptionKey": { "Ref": "EncryptionKey" },
@@ -4611,6 +4618,7 @@
               "rack.Cluster": { "Ref": "Cluster" },
               "rack.DynamoBuilds": { "Ref": "DynamoBuilds" },
               "rack.DynamoReleases": { "Ref": "DynamoReleases" },
+              "rack.ECSExec": { "Ref": "ECSExec" },
               "rack.EcsPollInterval": { "Ref": "EcsPollInterval" },
               "rack.LogDriver": { "Ref": "LogDriver" },
               "rack.EncryptionKey": { "Ref": "EncryptionKey" },
@@ -4744,6 +4752,7 @@
               "rack.Cluster": { "Ref": "Cluster" },
               "rack.DynamoBuilds": { "Ref": "DynamoBuilds" },
               "rack.DynamoReleases": { "Ref": "DynamoReleases" },
+              "rack.ECSExec": { "Ref": "ECSExec" },
               "rack.EcsPollInterval": { "Ref": "EcsPollInterval" },
               "rack.LogDriver": { "Ref": "LogDriver" },
               "rack.EncryptionKey": { "Ref": "EncryptionKey" },
@@ -4898,6 +4907,7 @@
               "rack.DockerTlsCAKey": { "Fn::GetAtt": [ "DockertTLSCAKey", "Value" ] },
               "rack.DockerTlsCert": { "Fn::GetAtt": [ "DockertTLSCert", "Value" ] },
               "rack.DockerTlsKey": { "Fn::GetAtt": [ "DockertTLSKey", "Value" ] },
+              "rack.ECSExec": { "Ref": "ECSExec" },
               "rack.EcsPollInterval": { "Ref": "EcsPollInterval" },
               "rack.LogDriver": { "Ref": "LogDriver" },
               "rack.EncryptionKey": { "Ref": "EncryptionKey" },

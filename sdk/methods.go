@@ -1,8 +1,10 @@
 package sdk
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
+	"strconv"
 	"strings"
 
 	"github.com/convox/rack/pkg/structs"
@@ -504,14 +506,64 @@ func (c *Client) ProcessExec(app string, pid string, command string, rw io.ReadW
 	ro.Headers["command"] = command
 	ro.Body = rw
 
-	var v int
-
-	v, err = c.WebsocketExit(fmt.Sprintf("/apps/%s/processes/%s/exec", app, pid), ro, rw)
+	ws, err := c.Websocket(fmt.Sprintf("/apps/%s/processes/%s/exec", app, pid), ro)
 	if err != nil {
 		return 0, err
 	}
+	defer ws.Close()
 
-	return v, err
+	buf := make([]byte, 10*1024)
+	code := 0
+	var ecsSessionData []byte
+
+	for {
+		n, err := ws.Read(buf)
+		if err == io.EOF {
+			return code, nil
+		}
+		if err != nil {
+			return code, err
+		}
+
+		if ecsSessionData != nil {
+			ecsSessionData = append(ecsSessionData, buf[0:n]...)
+			var session ecsExecSession
+			if err := json.Unmarshal(ecsSessionData, &session); err != nil {
+				continue
+			}
+			return runSessionManagerPlugin(session)
+		}
+
+		if len(buf) > 0 && n > 0 && buf[0] == ecsExecSessionByte {
+			ecsSessionData = make([]byte, 0, n)
+			ecsSessionData = append(ecsSessionData, buf[1:n]...)
+			var session ecsExecSession
+			if err := json.Unmarshal(ecsSessionData, &session); err != nil {
+				continue
+			}
+			return runSessionManagerPlugin(session)
+		}
+
+		data := string(buf[0:n])
+
+		if i := strings.Index(data, statusCodePrefix); i > -1 {
+			if _, err := rw.Write(buf[0:i]); err != nil {
+				return 0, err
+			}
+
+			m := i + len(statusCodePrefix)
+			code, err = strconv.Atoi(strings.TrimSpace(string(buf[m:n])))
+			if err != nil {
+				return 0, fmt.Errorf("unable to read exit code")
+			}
+
+			continue
+		}
+
+		if _, err := rw.Write(buf[0:n]); err != nil {
+			return 0, err
+		}
+	}
 }
 
 func (c *Client) ProcessGet(app string, pid string) (*structs.Process, error) {

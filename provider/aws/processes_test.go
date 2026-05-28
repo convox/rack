@@ -2,6 +2,7 @@ package aws_test
 
 import (
 	"bytes"
+	"encoding/json"
 	"io"
 	"testing"
 
@@ -36,19 +37,19 @@ func TestProcessExec(t *testing.T) {
 		cycleProcessDescribeRackInstances,
 		cycleECSListServices,
 		cycleECSDescribeServices,
-		cycleProcessListTasksRunning,
-		cycleProcessListTasksStopped,
-		cycleProcessDescribeTasks,
-		cycleProcessDescribeContainerInstances,
-		cycleProcessDescribeInstances,
-		cycleProcessListTasksRunning,
-		cycleProcessListTasksStopped,
-		cycleProcessDescribeTasks,
-		cycleProcessDescribeContainerInstances,
-		cycleProcessDescribeInstances,
-		cycleProcessListTasksRunning,
-		cycleProcessListTasksStopped,
 		cycleProcessDescribeStacks,
+		cycleProcessListTasksRunning,
+		cycleProcessListTasksStopped,
+		cycleProcessDescribeTasks,
+		cycleProcessDescribeContainerInstances,
+		cycleProcessDescribeInstances,
+		cycleProcessListTasksRunning,
+		cycleProcessListTasksStopped,
+		cycleProcessDescribeTasks,
+		cycleProcessDescribeContainerInstances,
+		cycleProcessDescribeInstances,
+		cycleProcessListTasksRunning,
+		cycleProcessListTasksStopped,
 		cycleProcessDescribeStackResources,
 	)
 	defer provider.Close()
@@ -74,6 +75,67 @@ func TestProcessExec(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, []byte("foo"), out.Bytes())
 	assert.Equal(t, 0, code)
+}
+
+func TestProcessExecECS(t *testing.T) {
+	provider := StubAwsProvider(
+		// ProcessList
+		cycleProcessListStackResources,
+		cycleProcessDescribeStacks,
+		cycleProcessListTasksByStack,
+		cycleProcessListTasksByService1,
+		cycleProcessListTasksByService2,
+		cycleProcessListTasksByStarted,
+		cycleProcessDescribeTasksAll,
+		cycleProcessDescribeTaskDefinition1,
+		cycleProcessDescribeContainerInstances,
+		cycleProcessDescribeTaskDefinition1,
+		cycleProcessDescribeContainerInstances,
+		cycleProcessDescribeRackInstances,
+		cycleECSListServices,
+		cycleECSDescribeServices,
+		// AppGet (with Generation=2)
+		cycleProcessDescribeStacksGen2,
+		// taskArnFromAppPid -> appTaskARNs -> stackTasks
+		cycleProcessListStackResources,
+		cycleProcessDescribeStacks,
+		cycleProcessListTasksByStack,
+		cycleProcessListTasksByService1,
+		cycleProcessListTasksByService2,
+		cycleProcessListTasksByStarted,
+		// describeTask
+		cycleProcessDescribeTasks,
+		// DescribeTaskDefinition (for container name)
+		cycleProcessDescribeTaskDefinition1,
+		// ExecuteCommand
+		cycleProcessExecuteCommand,
+	)
+	defer provider.Close()
+
+	provider.ECSExec = true
+
+	in := &bytes.Buffer{}
+	out := &bytes.Buffer{}
+
+	code, err := provider.ProcessExec("myapp", "5850760f0845", "ls -la", streamTester{in, out}, structs.ProcessExecOptions{
+		Height: options.Int(10),
+		Width:  options.Int(20),
+	})
+
+	assert.NoError(t, err)
+	assert.Equal(t, 0, code)
+
+	data := out.Bytes()
+	assert.True(t, len(data) > 1, "expected session data in output")
+	assert.Equal(t, byte(0x00), data[0])
+
+	var session map[string]string
+	err = json.Unmarshal(data[1:], &session)
+	assert.NoError(t, err)
+	assert.Equal(t, "ecs-execute-command-abc123", session["sessionId"])
+	assert.Equal(t, "wss://ssmmessages.us-test-1.amazonaws.com/v1/data-channel/ecs-execute-command-abc123", session["streamUrl"])
+	assert.Equal(t, "token-value-xyz", session["tokenValue"])
+	assert.Equal(t, "us-test-1", session["region"])
 }
 
 func TestProcessList(t *testing.T) {
@@ -506,6 +568,77 @@ var cycleProcessDescribeStacks = awsutil.Cycle{
 								<member>
 									<Value>myapp</Value>
 									<Key>Name</Key>
+								</member>
+							</Tags>
+							<LastUpdatedTime>2016-09-10T04:32:19.081Z</LastUpdatedTime>
+							<Parameters>
+							</Parameters>
+						</member>
+					</Stacks>
+				</DescribeStacksResult>
+				<ResponseMetadata>
+					<RequestId>9627285a-7903-11e6-a36d-77452275e1ca</RequestId>
+				</ResponseMetadata>
+			</DescribeStacksResponse>
+		`,
+	},
+}
+
+var cycleProcessDescribeStacksGen2 = awsutil.Cycle{
+	Request: awsutil.Request{
+		RequestURI: "/",
+		Body:       `Action=DescribeStacks&StackName=convox-myapp&Version=2010-05-15`,
+	},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body: `
+			<DescribeStacksResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
+				<DescribeStacksResult>
+					<Stacks>
+						<member>
+							<Outputs>
+								<member>
+									<OutputKey>RegistryId</OutputKey>
+									<OutputValue>778743527532</OutputValue>
+								</member>
+								<member>
+									<OutputKey>RegistryRepository</OutputKey>
+									<OutputValue>convox-myapp-nkdecwppkq</OutputValue>
+								</member>
+								<member>
+									<OutputKey>ServiceWebService</OutputKey>
+									<OutputValue>service-web</OutputValue>
+								</member>
+							</Outputs>
+							<Capabilities>
+								<member>CAPABILITY_IAM</member>
+							</Capabilities>
+							<CreationTime>2016-08-29T17:45:22.396Z</CreationTime>
+							<NotificationARNs/>
+							<StackId>arn:aws:cloudformation:us-east-1:778743527532:stack/convox-myapp/5c05e0c0-6e10-11e6-8a4e-50fae98a10d2</StackId>
+							<StackName>convox-myapp</StackName>
+							<StackStatus>UPDATE_COMPLETE</StackStatus>
+							<DisableRollback>false</DisableRollback>
+							<Tags>
+								<member>
+									<Value>convox</Value>
+									<Key>Rack</Key>
+								</member>
+								<member>
+									<Value>app</Value>
+									<Key>Type</Key>
+								</member>
+								<member>
+									<Value>convox</Value>
+									<Key>System</Key>
+								</member>
+								<member>
+									<Value>myapp</Value>
+									<Key>Name</Key>
+								</member>
+								<member>
+									<Value>2</Value>
+									<Key>Generation</Key>
 								</member>
 							</Tags>
 							<LastUpdatedTime>2016-09-10T04:32:19.081Z</LastUpdatedTime>
@@ -1725,5 +1858,33 @@ var cycleProcessDockerInspectExec = awsutil.Cycle{
 	Response: awsutil.Response{
 		StatusCode: 200,
 		Body:       `{"ExitCode":0}`,
+	},
+}
+
+var cycleProcessExecuteCommand = awsutil.Cycle{
+	Request: awsutil.Request{
+		RequestURI: "/",
+		Operation:  "AmazonEC2ContainerServiceV20141113.ExecuteCommand",
+		Body: `{
+			"cluster": "cluster-test",
+			"command": "ls -la",
+			"container": "web",
+			"interactive": true,
+			"task": "arn:aws:ecs:us-east-1:778743527532:task/cluster-test/50b8de99-f94f-4ecd-a98f-5850760f0845"
+		}`,
+	},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body: `{
+			"session": {
+				"sessionId": "ecs-execute-command-abc123",
+				"streamUrl": "wss://ssmmessages.us-test-1.amazonaws.com/v1/data-channel/ecs-execute-command-abc123",
+				"tokenValue": "token-value-xyz"
+			},
+			"clusterArn": "arn:aws:ecs:us-east-1:778743527532:cluster/cluster-test",
+			"containerName": "web",
+			"interactive": true,
+			"taskArn": "arn:aws:ecs:us-east-1:778743527532:task/cluster-test/50b8de99-f94f-4ecd-a98f-5850760f0845"
+		}`,
 	},
 }

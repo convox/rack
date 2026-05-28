@@ -3,6 +3,7 @@
     "AWSTemplateFormatVersion" : "2010-09-09",
     "Conditions": {
       "CircuitBreaker": { "Fn::Equals": [ { "Ref": "CircuitBreaker" }, "Yes" ] },
+      "ECSExecEnabled": { "Fn::Equals": [ { "Ref": "ECSExec" }, "Yes" ] },
       "DedicatedRole": { "Fn::Not":[{"Fn::Equals":[{"Ref":"Policies"},""]} ] },
       "EC2Launch": { "Fn::Not": [ { "Condition": "FargateEither" } ] },
       "EnableCloudWatch": { "Fn::Equals": [ { "Ref": "LogDriver" }, "CloudWatch" ] },
@@ -66,6 +67,11 @@
         "Type": "String"
       },
       "CircuitBreaker": {
+        "Type": "String",
+        "Default": "No",
+        "AllowedValues": [ "Yes", "No" ]
+      },
+      "ECSExec": {
         "Type": "String",
         "Default": "No",
         "AllowedValues": [ "Yes", "No" ]
@@ -804,6 +810,7 @@
             ] }
           ] },
           "Cluster": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Cluster" } },
+          "EnableExecuteCommand": { "Fn::If": [ "ECSExecEnabled", true, false ] },
           "DeploymentConfiguration": {
             "DeploymentCircuitBreaker" : { "Fn::If": ["CircuitBreaker",
               { "Enable": "true", "Rollback": "true" },
@@ -877,16 +884,40 @@
           },
           "ManagedPolicyArns": {"Fn::Split":[",",{"Fn::Join":[",",[{"Ref":"Policies"},{"Fn::ImportValue":{"Fn::Sub":"${Rack}:CMKPolicy"}}]]}]},
           "Path": "/convox/",
-          "Policies": [ {
-            "PolicyName": "convox-env",
-            "PolicyDocument": {
-              "Version": "2012-10-17",
-              "Statement": [
-                { "Effect": "Allow", "Action": "s3:GetObject", "Resource": { "Fn::Sub": "arn:${AWS::Partition}:s3:::${Settings}/*" } },
-                { "Effect": "Allow", "Action": "kms:Decrypt", "Resource": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:EncryptionKey" } } }
-              ]
-            }
-          } ]
+          "Policies": [
+            {
+              "PolicyName": "convox-env",
+              "PolicyDocument": {
+                "Version": "2012-10-17",
+                "Statement": [
+                  { "Effect": "Allow", "Action": "s3:GetObject", "Resource": { "Fn::Sub": "arn:${AWS::Partition}:s3:::${Settings}/*" } },
+                  { "Effect": "Allow", "Action": "kms:Decrypt", "Resource": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:EncryptionKey" } } }
+                ]
+              }
+            },
+            { "Fn::If": [
+              "ECSExecEnabled",
+              {
+                "PolicyName": "ssm-exec",
+                "PolicyDocument": {
+                  "Version": "2012-10-17",
+                  "Statement": [
+                    {
+                      "Effect": "Allow",
+                      "Action": [
+                        "ssmmessages:CreateControlChannel",
+                        "ssmmessages:CreateDataChannel",
+                        "ssmmessages:OpenControlChannel",
+                        "ssmmessages:OpenDataChannel"
+                      ],
+                      "Resource": "*"
+                    }
+                  ]
+                }
+              },
+              { "Ref": "AWS::NoValue" }
+            ] }
+          ]
         }
       },
       "Tasks": {

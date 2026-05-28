@@ -3,11 +3,13 @@ package sdk
 import (
 	"context"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"io"
 	"math/rand"
 	"net/http"
 	"os"
+	"os/exec"
 	"strconv"
 	"strings"
 	"time"
@@ -17,9 +19,17 @@ import (
 )
 
 const (
-	sortableTime     = "20060102.150405.000000000"
-	statusCodePrefix = "F1E49A85-0AD7-4AEF-A618-C249C6E6568D:"
+	sortableTime        = "20060102.150405.000000000"
+	statusCodePrefix    = "F1E49A85-0AD7-4AEF-A618-C249C6E6568D:"
+	ecsExecSessionByte  = '\x00'
 )
+
+type ecsExecSession struct {
+	SessionID  string `json:"sessionId"`
+	StreamURL  string `json:"streamUrl"`
+	TokenValue string `json:"tokenValue"`
+	Region     string `json:"region"`
+}
 
 var (
 	Version = "dev"
@@ -134,6 +144,53 @@ func (c *Client) WebsocketExit(path string, ro stdsdk.RequestOptions, rw io.Read
 			return 0, err
 		}
 	}
+}
+
+func runSessionManagerPlugin(session ecsExecSession) (int, error) {
+	pluginPath, err := exec.LookPath("session-manager-plugin")
+	if err != nil {
+		return -1, fmt.Errorf("session-manager-plugin not found in PATH. Install it: https://docs.aws.amazon.com/systems-manager/latest/userguide/session-manager-working-with-install-plugin.html")
+	}
+
+	sessionJSON, err := json.Marshal(map[string]string{
+		"SessionId":  session.SessionID,
+		"StreamUrl":  session.StreamURL,
+		"TokenValue": session.TokenValue,
+	})
+	if err != nil {
+		return -1, err
+	}
+
+	endpoint := fmt.Sprintf("https://ssm.%s.amazonaws.com", session.Region)
+
+	targetJSON, err := json.Marshal(map[string]string{
+		"Target": session.SessionID,
+	})
+	if err != nil {
+		return -1, err
+	}
+
+	cmd := exec.Command(pluginPath,
+		string(sessionJSON),
+		session.Region,
+		"StartSession",
+		"",
+		string(targetJSON),
+		endpoint,
+	)
+
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	if err := cmd.Run(); err != nil {
+		if exitErr, ok := err.(*exec.ExitError); ok {
+			return exitErr.ExitCode(), nil
+		}
+		return -1, err
+	}
+
+	return 0, nil
 }
 
 func (c *Client) WithContext(ctx context.Context) structs.Provider {

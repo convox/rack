@@ -72,6 +72,7 @@ var paramGroups = map[string]map[string]bool{
 	"security": {
 		"BuildInstancePolicy":                   true, // dual-listed in build
 		"BuildInstanceSecurityGroup":            true,
+		"ECSExec":                               true,
 		"EnableContainerReadonlyRootFilesystem": true,
 		"EnableSharedEFSVolumeEncryption":       true, // dual-listed in storage
 		"EncryptEbs":                            true, // dual-listed in storage

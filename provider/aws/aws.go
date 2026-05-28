@@ -62,6 +62,7 @@ type Provider struct {
 	DynamoBuilds                      string
 	DynamoReleases                    string
 	DockerTLS                         *structs.TLSPemCertBytes
+	ECSExec                           bool
 	EcsPollInterval                   int
 	EncryptionKey                     string
 	Fargate                           bool
@@ -168,6 +169,7 @@ func (p *Provider) loadParams() error {
 	p.CustomEncryptionKey = labels["rack.CustomEncryptionKey"]
 	p.DynamoBuilds = labels["rack.DynamoBuilds"]
 	p.DynamoReleases = labels["rack.DynamoReleases"]
+	p.ECSExec = labels["rack.ECSExec"] == "Yes"
 	p.EcsPollInterval = intParam(labels["rack.EcsPollInterval"], 1)
 	p.EncryptionKey = labels["rack.EncryptionKey"]
 	p.Fargate = labels["rack.Fargate"] == "Yes"
