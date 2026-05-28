@@ -4923,6 +4923,7 @@
               { "Name": "PASSWORD", "Value": { "Ref": "Password" } },
               { "Name": "PROVIDER", "Value": "aws" },
               { "Name": "RACK", "Value": { "Ref": "AWS::StackName" } },
+              { "Name": "SECRETS_MANAGER_ENV", "Value": { "Ref": "SecretsManagerEnv" } },
               { "Name": "STACK_ID", "Value": { "Ref": "AWS::StackId" } }
             ],
             "Image": {
@@ -5077,6 +5078,7 @@
               { "Name": "HTTPS_PROXY", "Value": { "Ref": "HttpProxy" } },
               { "Name": "PROVIDER", "Value": "aws" },
               { "Name": "RACK", "Value": { "Ref": "AWS::StackName" } },
+              { "Name": "SECRETS_MANAGER_ENV", "Value": { "Ref": "SecretsManagerEnv" } },
               { "Name": "STACK_ID", "Value": { "Ref": "AWS::StackId" } }
             ],
             "Image": {

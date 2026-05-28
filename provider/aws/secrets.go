@@ -128,8 +128,7 @@ func (p *Provider) secretsManagerDelete(rack, app string) error {
 	name := fmt.Sprintf("%s/%s", rack, app)
 
 	_, err := p.secretsmanager().DeleteSecret(&secretsmanager.DeleteSecretInput{
-		SecretId:                   aws.String(name),
-		ForceDeleteWithoutRecovery: aws.Bool(true),
+		SecretId: aws.String(name),
 	})
 	if err != nil {
 		ae, ok := err.(awserr.Error)
