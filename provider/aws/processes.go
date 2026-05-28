@@ -1150,6 +1150,26 @@ func (p *Provider) generateTaskDefinition2(app, service string, opts structs.Pro
 		senv["RACK_URL"] = fmt.Sprintf("https://convox:%s@rack.%s.convox", url.QueryEscape(p.Password), p.Rack)
 	}
 
+	var smSecrets []*ecs.Secret
+	if aps["SecretsManagerEnv"] == "Yes" {
+		smARN, descErr := p.secretsManagerGetARN(p.Rack, r.App)
+		if descErr == nil {
+			keys := sortedKeys(env)
+			smSecrets = make([]*ecs.Secret, 0, len(keys))
+			for _, k := range keys {
+				smSecrets = append(smSecrets, &ecs.Secret{
+					Name:      aws.String(k),
+					ValueFrom: aws.String(fmt.Sprintf("%s:%s::", smARN, k)),
+				})
+			}
+			delete(senv, "CONVOX_ENV_KEY")
+			delete(senv, "CONVOX_ENV_URL")
+			delete(senv, "CONVOX_ENV_VARS")
+		} else {
+			fmt.Printf("fn=generateTaskDefinition2 level=warn msg=\"secrets manager lookup failed, falling back to S3: %s\"\n", descErr)
+		}
+	}
+
 	cenv := []*ecs.KeyValuePair{}
 
 	for k, v := range senv {
@@ -1182,6 +1202,7 @@ func (p *Provider) generateTaskDefinition2(app, service string, opts structs.Pro
 		MountPoints:       mps,
 		Name:              aws.String(service),
 		Privileged:        aws.Bool(s.Privileged),
+		Secrets:           smSecrets,
 	}
 
 	if len(s.Command) > 0 {
@@ -1225,6 +1246,10 @@ func (p *Provider) generateTaskDefinition2(app, service string, opts structs.Pro
 		Family:               aws.String(fmt.Sprintf("%s-%s-%s", p.Rack, app, service)),
 		TaskRoleArn:          taskRoleArn,
 		Volumes:              vs,
+	}
+
+	if executionRole := aos["ExecutionRole"]; executionRole != "" {
+		req.ExecutionRoleArn = aws.String(executionRole)
 	}
 
 	return req, nil

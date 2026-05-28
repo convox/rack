@@ -352,6 +352,65 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 		tp[fmt.Sprintf("ResourceTemplate%s", upperName(r.Name))] = ou.Url
 	}
 
+	private, err := p.stackParameter(p.Rack, "Private")
+	if err != nil {
+		return err
+	}
+
+	lambdaInVpc, err := p.stackParameter(p.Rack, "PlaceLambdaInVpc")
+	if err != nil {
+		return err
+	}
+
+	readonlyRootFilesystem, err := p.stackParameter(p.Rack, "EnableContainerReadonlyRootFilesystem")
+	if err != nil {
+		return err
+	}
+
+	rackSMParam, _ := p.stackParameter(p.Rack, "SecretsManagerEnv")
+	if rackSMParam == "" {
+		rackSMParam = "No"
+	}
+
+	appSMParam, appSMErr := p.stackParameter(p.rackStack(r.App), "SecretsManagerEnv")
+	smValue := rackSMParam
+	if appSMErr == nil && appSMParam == "Yes" {
+		smValue = "Yes"
+	}
+
+	updates := map[string]string{
+		"LogBucket":                             p.LogBucket,
+		"LogDriver":                             p.LogDriver,
+		"PlaceLambdaInVpc":                      lambdaInVpc,
+		"Private":                               private,
+		"SyslogDestination":                     p.SyslogDestination,
+		"SyslogFormat":                          p.SyslogFormat,
+		"EnableContainerReadonlyRootFilesystem": readonlyRootFilesystem,
+		"SecretsManagerEnv":                     smValue,
+	}
+
+	if m.Params != nil {
+		for k, v := range m.Params {
+			updates[k] = v
+		}
+	}
+
+	smEnabled := updates["SecretsManagerEnv"] == "Yes"
+	tp["SecretsManagerARN"] = ""
+
+	var smARN string
+	var smKeys []string
+	if smEnabled {
+		arn, keys, smErr := p.secretsManagerWrite(p.Rack, r.App, env)
+		if smErr != nil {
+			fmt.Printf("fn=ReleasePromote level=warn msg=\"secrets manager write failed, falling back to S3: %s\"\n", smErr)
+		} else {
+			smARN = arn
+			smKeys = keys
+			tp["SecretsManagerARN"] = smARN
+		}
+	}
+
 	for _, s := range m.Services {
 		min := s.Deployment.Minimum
 		max := s.Deployment.Maximum
@@ -388,6 +447,8 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 			"WildcardDomain":                     tp["WildcardDomain"],
 			"NLBPreserveClientIPDefault":         yesNo(p.NLBPreserveClientIP),
 			"NLBInternalPreserveClientIPDefault": yesNo(p.NLBInternalPreserveClientIP),
+			"SecretsManagerARN":                  smARN,
+			"SecretsManagerKeys":                 smKeys,
 		}
 
 		data, err := formationTemplate("service", stp)
@@ -405,13 +466,15 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 
 	for _, t := range m.Timers {
 		ttp := map[string]interface{}{
-			"App":       r.App,
-			"Build":     tp["Build"],
-			"Manifest":  tp["Manifest"],
-			"Password":  p.Password,
-			"Release":   tp["Release"],
-			"Timer":     t,
-			"TimeState": "",
+			"App":                r.App,
+			"Build":              tp["Build"],
+			"Manifest":           tp["Manifest"],
+			"Password":           p.Password,
+			"Release":            tp["Release"],
+			"Timer":              t,
+			"TimeState":          "",
+			"SecretsManagerARN":  smARN,
+			"SecretsManagerKeys": smKeys,
 		}
 
 		if p.MaintainTimerState {
@@ -437,37 +500,6 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 	data, err := formationTemplate("app", tp)
 	if err != nil {
 		return err
-	}
-
-	private, err := p.stackParameter(p.Rack, "Private")
-	if err != nil {
-		return err
-	}
-
-	lambdaInVpc, err := p.stackParameter(p.Rack, "PlaceLambdaInVpc")
-	if err != nil {
-		return err
-	}
-
-	readonlyRootFilesystem, err := p.stackParameter(p.Rack, "EnableContainerReadonlyRootFilesystem")
-	if err != nil {
-		return err
-	}
-
-	updates := map[string]string{
-		"LogBucket":                             p.LogBucket,
-		"LogDriver":                             p.LogDriver,
-		"PlaceLambdaInVpc":                      lambdaInVpc,
-		"Private":                               private,
-		"SyslogDestination":                     p.SyslogDestination,
-		"SyslogFormat":                          p.SyslogFormat,
-		"EnableContainerReadonlyRootFilesystem": readonlyRootFilesystem,
-	}
-
-	if m.Params != nil {
-		for k, v := range m.Params {
-			updates[k] = v
-		}
 	}
 
 	tags := map[string]string{
