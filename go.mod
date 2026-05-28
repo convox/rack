@@ -7,7 +7,6 @@ require (
 	github.com/adhocore/gronx v1.6.5
 	github.com/aws/aws-lambda-go v1.37.0
 	github.com/aws/aws-sdk-go v1.55.8
-	github.com/boltdb/bolt v1.3.1
 	github.com/convox/changes v0.0.0-20250404235107-ec2c7374fea5
 	github.com/convox/exec v0.0.0-20180905012044-cc13d277f897
 	github.com/convox/logger v0.0.0-20180522214415-e39179955b52
@@ -31,7 +30,6 @@ require (
 	github.com/mweagle/Sparta v0.8.1-0.20171126182155-ead2872585dc
 	github.com/pkg/errors v0.9.1
 	github.com/satori/go.uuid v1.2.0
-	github.com/segmentio/analytics-go v2.0.1-0.20160426181448-2d840d861c32+incompatible
 	github.com/stretchr/testify v1.9.0
 	github.com/stvp/rollbar v0.5.1
 	github.com/twmb/algoimpl v0.0.0-20170717182524-076353e90b94
@@ -39,6 +37,8 @@ require (
 	gopkg.in/cheggaaa/pb.v1 v1.0.28
 	gopkg.in/yaml.v2 v2.4.0
 )
+
+require github.com/google/uuid v1.3.0 // indirect
 
 require (
 	github.com/AdaLogics/go-fuzz-headers v0.0.0-20230811130428-ced1acdcaa24 // indirect
@@ -58,7 +58,6 @@ require (
 	github.com/google/go-containerregistry v0.20.3
 	github.com/gorilla/securecookie v1.1.2 // indirect
 	github.com/gorilla/sessions v1.4.0 // indirect
-	github.com/jehiah/go-strftime v0.0.0-20171201141054-1d33003b3869 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/klauspost/compress v1.17.11 // indirect
 	github.com/kr/pretty v0.3.0 // indirect
@@ -73,12 +72,12 @@ require (
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/rogpeppe/go-internal v1.14.1 // indirect
 	github.com/sebest/xff v0.0.0-20160910043805-6c115e0ffa35 // indirect
-	github.com/segmentio/backo-go v0.0.0-20160424052352-204274ad699c // indirect
+	github.com/segmentio/analytics-go/v3 v3.3.0
+	github.com/segmentio/backo-go v1.0.0 // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/stretchr/objx v0.5.2 // indirect
 	github.com/vbatts/tar-split v0.11.6 // indirect
-	github.com/xtgo/uuid v0.0.0-20140804021211-a0b114877d4c // indirect
 	golang.org/x/sync v0.10.0 // indirect
 	golang.org/x/sys v0.39.0 // indirect
 	golang.org/x/term v0.38.0 // indirect
