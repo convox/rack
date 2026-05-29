@@ -70,6 +70,7 @@ var paramGroups = map[string]map[string]bool{
 		"NLBPreserveClientIP":           true,
 	},
 	"security": {
+		"SecretsManagerEnv":                     true,
 		"BuildInstancePolicy":                   true, // dual-listed in build
 		"BuildInstanceSecurityGroup":            true,
 		"ECSExec":                               true,
@@ -155,6 +156,7 @@ var paramGroups = map[string]map[string]bool{
 		"RouterMitigationMode":    true,
 	},
 	"logging": {
+		"ContainerInsights": true,
 		"LogBucket":         true,
 		"LogDriver":         true,
 		"LogRetention":      true,
