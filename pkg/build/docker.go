@@ -2,6 +2,7 @@ package build
 
 import (
 	"bufio"
+	"crypto/sha256"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -85,7 +86,11 @@ func (bb *Build) buildGeneration2(dir string) error {
 
 		if s.Image == "" && bb.Push != "" && hostSupportsCache {
 			if _, exists := cacheRefs[hash]; !exists {
-				cacheRefs[hash] = fmt.Sprintf("%s:%s.buildcache", bb.Push, s.Name)
+				if bb.CacheRepo != "" {
+					cacheRefs[hash] = fmt.Sprintf("%s:%s", bb.CacheRepo, cacheTag(bb.App, s.Name))
+				} else {
+					cacheRefs[hash] = fmt.Sprintf("%s:%s.buildcache", bb.Push, s.Name)
+				}
 			}
 		}
 	}
@@ -199,6 +204,15 @@ var (
 func (bb *Build) hostSupportsRegistryCache() bool {
 	_, err := bb.Exec.Execute("docker", "buildx", "version")
 	return err == nil
+}
+
+func cacheTag(app, service string) string {
+	tag := fmt.Sprintf("%s.%s.buildcache", app, service)
+	if len(tag) <= 128 {
+		return tag
+	}
+	sum := sha256.Sum256([]byte(app + "/" + service))
+	return fmt.Sprintf("%x.buildcache", sum[:12])
 }
 
 func (bb *Build) ensureBuildxBuilder() error {

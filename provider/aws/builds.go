@@ -939,7 +939,7 @@ func (p *Provider) runBuild(build *structs.Build, burl string, opts structs.Buil
 			Name:  aws.String("BUILD_CACHE"),
 			Value: aws.String("true"),
 		})
-		if buildMethod == "fargate" && a.Tags["Generation"] == "2" {
+		if a.Tags["Generation"] == "2" {
 			env = append(env, &ecs.KeyValuePair{
 				Name:  aws.String("BUILD_CACHE_REPO"),
 				Value: aws.String(fmt.Sprintf("%s.dkr.ecr.%s.amazonaws.com/%s-build-cache", aid, p.Region, p.Rack)),

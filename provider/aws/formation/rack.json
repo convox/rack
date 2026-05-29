@@ -93,17 +93,8 @@
     "BuildCacheEnabled": {
       "Fn::Equals": [{ "Ref": "BuildCache" }, "Yes"]
     },
-    "BuildCacheFargateEFS": {
-      "Fn::And": [
-        { "Condition": "BuildCacheEnabled" },
-        { "Condition": "UseFargateBuild" }
-      ]
-    },
-    "BuildCacheFargateEFSThirdAZ": {
-      "Fn::And": [
-        { "Condition": "BuildCacheFargateEFS" },
-        { "Condition": "ThirdAvailabilityZoneAndHighAvailability" }
-      ]
+    "BuildCacheCleanupEnabled": {
+      "Fn::Equals": [{ "Ref": "BuildCacheCleanup" }, "Yes"]
     },
     "CreateThirdPrivateSubnet": {"Fn::Or": [
       {"Condition": "PrivateApiAndThirdAvailabilityZoneAndHighAvailability"},
@@ -930,12 +921,18 @@
       "AllowedValues": ["Yes", "No"],
       "Description": "Enable persistent build caching"
     },
+    "BuildCacheCleanup": {
+      "Type": "String",
+      "Default": "No",
+      "AllowedValues": ["Yes", "No"],
+      "Description": "Automatically expire old build cache images in the dedicated ECR cache repository. When No, cache images are kept indefinitely."
+    },
     "BuildCacheRetentionDays": {
       "Type": "Number",
-      "Default": "14",
+      "Default": "30",
       "MinValue": 1,
       "MaxValue": 365,
-      "Description": "Number of days to retain build cache images in ECR before automatic cleanup"
+      "Description": "Days to retain build cache images before expiry. Only applies when BuildCacheCleanup=Yes."
     },
     "FargateBuildCpu": {
       "Type": "String",
@@ -3649,83 +3646,17 @@
         "SecurityGroups": [ { "Ref": "VolumeSecurity" } ]
       }
     },
-    "BuildCacheFilesystem": {
-      "Type": "AWS::EFS::FileSystem",
-      "Condition": "BuildCacheFargateEFS",
-      "Properties": {
-        "Encrypted": true,
-        "KmsKeyId": { "Fn::If": ["EnableSharedEFSVolumeEncryptionCond",
-          { "Ref": "CustomerManagedKey" },
-          { "Ref": "AWS::NoValue" }
-        ]},
-        "FileSystemTags": [
-          { "Key": "Name", "Value": { "Fn::Join": ["-", [{ "Ref": "AWS::StackName" }, "build-cache"]] } }
-        ],
-        "LifecyclePolicies": [
-          { "TransitionToIA": "AFTER_14_DAYS" }
-        ]
-      }
-    },
-    "BuildCacheSecurity": {
-      "DependsOn": "ApiRole",
-      "Type": "AWS::EC2::SecurityGroup",
-      "Condition": "BuildCacheFargateEFS",
-      "Properties": {
-        "GroupDescription": { "Fn::Sub": "${AWS::StackName} build-cache" },
-        "SecurityGroupIngress": [{
-          "IpProtocol": "tcp",
-          "FromPort": "2049",
-          "ToPort": "2049",
-          "SourceSecurityGroupId": {
-            "Fn::If": ["BlankBuildInstanceSecurityGroup",
-              { "Fn::If": ["BlankInstanceSecurityGroup",
-                { "Ref": "InstancesSecurity" },
-                { "Ref": "InstanceSecurityGroup" }
-              ]},
-              { "Ref": "BuildInstanceSecurityGroup" }
-            ]
-          }
-        }],
-        "Tags": [{ "Key": "Name", "Value": { "Fn::Sub": "${AWS::StackName}-build-cache" } }],
-        "VpcId": { "Fn::If": ["BlankExistingVpc", { "Ref": "Vpc" }, { "Ref": "ExistingVpc" }] }
-      }
-    },
-    "BuildCacheTarget0": {
-      "Type": "AWS::EFS::MountTarget",
-      "Condition": "BuildCacheFargateEFS",
-      "Properties": {
-        "FileSystemId": { "Ref": "BuildCacheFilesystem" },
-        "SubnetId": { "Fn::If": ["PrivateInstances", { "Ref": "SubnetPrivate0" }, { "Ref": "Subnet0" }] },
-        "SecurityGroups": [{ "Ref": "BuildCacheSecurity" }]
-      }
-    },
-    "BuildCacheTarget1": {
-      "Type": "AWS::EFS::MountTarget",
-      "Condition": "BuildCacheFargateEFS",
-      "Properties": {
-        "FileSystemId": { "Ref": "BuildCacheFilesystem" },
-        "SubnetId": { "Fn::If": ["PrivateInstances", { "Ref": "SubnetPrivate1" }, { "Ref": "Subnet1" }] },
-        "SecurityGroups": [{ "Ref": "BuildCacheSecurity" }]
-      }
-    },
-    "BuildCacheTarget2": {
-      "Type": "AWS::EFS::MountTarget",
-      "Condition": "BuildCacheFargateEFSThirdAZ",
-      "Properties": {
-        "FileSystemId": { "Ref": "BuildCacheFilesystem" },
-        "SubnetId": { "Fn::If": ["PrivateInstances", { "Ref": "SubnetPrivate2" }, { "Ref": "Subnet2" }] },
-        "SecurityGroups": [{ "Ref": "BuildCacheSecurity" }]
-      }
-    },
     "BuildCacheRepository": {
       "Type": "AWS::ECR::Repository",
       "Condition": "BuildCacheEnabled",
       "Properties": {
         "EmptyOnDelete": true,
         "RepositoryName": { "Fn::Sub": "${AWS::StackName}-build-cache" },
-        "LifecyclePolicy": {
-          "LifecyclePolicyText": { "Fn::Sub": "{\"rules\":[{\"rulePriority\":1,\"description\":\"Expire cache images\",\"selection\":{\"tagStatus\":\"any\",\"countType\":\"sinceImagePushed\",\"countUnit\":\"days\",\"countNumber\":${BuildCacheRetentionDays}},\"action\":{\"type\":\"expire\"}}]}" }
-        }
+        "LifecyclePolicy": { "Fn::If": [
+          "BuildCacheCleanupEnabled",
+          { "LifecyclePolicyText": { "Fn::Sub": "{\"rules\":[{\"rulePriority\":1,\"description\":\"Expire cache images\",\"selection\":{\"tagStatus\":\"any\",\"countType\":\"sinceImagePushed\",\"countUnit\":\"days\",\"countNumber\":${BuildCacheRetentionDays}},\"action\":{\"type\":\"expire\"}}]}" } },
+          { "Ref": "AWS::NoValue" }
+        ]}
       }
     },
     "AccountEvents": {
@@ -4651,6 +4582,7 @@
               { "Name": "STACK_ID", "Value": { "Ref": "AWS::StackId" } },
               { "Name": "DOCKER_BUILDKIT", "Value": "1" },
               { "Name": "BUILD_CACHE", "Value": { "Fn::If": ["BuildCacheEnabled", "true", "false"] } },
+              { "Name": "BUILD_CACHE_CLEANUP", "Value": { "Ref": "BuildCacheCleanup" } },
               { "Name": "BUILD_CACHE_RETENTION_DAYS", "Value": { "Ref": "BuildCacheRetentionDays" } }
             ],
             "Image": {
@@ -4795,6 +4727,7 @@
               { "Name": "RACK", "Value": { "Ref": "AWS::StackName" } },
               { "Name": "STACK_ID", "Value": { "Ref": "AWS::StackId" } },
               { "Name": "BUILD_RUNTIME", "Value": "daemonless" },
+              { "Name": "BUILD_CACHE_CLEANUP", "Value": { "Ref": "BuildCacheCleanup" } },
               { "Name": "BUILD_CACHE_RETENTION_DAYS", "Value": { "Ref": "BuildCacheRetentionDays" } }
             ],
             "Image": {
@@ -4843,11 +4776,7 @@
             "Secrets": [{
               "Name": "PASSWORD",
               "ValueFrom": { "Fn::Sub": "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}RackApiSecret" }
-            }],
-            "MountPoints": { "Fn::If": ["BuildCacheFargateEFS",
-              [{ "SourceVolume": "build-cache", "ContainerPath": "/kaniko/caches" }],
-              { "Ref": "AWS::NoValue" }
-            ]}
+            }]
           }
         ],
         "RuntimePlatform": {
@@ -4861,17 +4790,7 @@
         },
         "ExecutionRoleArn": { "Fn::GetAtt": [ "ApiRole", "Arn" ] },
         "Family": { "Fn::Sub": "${AWS::StackName}-build" },
-        "TaskRoleArn": { "Fn::GetAtt": [ "ApiRole", "Arn" ] },
-        "Volumes": { "Fn::If": ["BuildCacheFargateEFS",
-          [{
-            "Name": "build-cache",
-            "EFSVolumeConfiguration": {
-              "FilesystemId": { "Ref": "BuildCacheFilesystem" },
-              "TransitEncryption": "ENABLED"
-            }
-          }],
-          { "Ref": "AWS::NoValue" }
-        ]}
+        "TaskRoleArn": { "Fn::GetAtt": [ "ApiRole", "Arn" ] }
       }
     },
     "ApiMonitorTasks": {
