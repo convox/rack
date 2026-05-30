@@ -26,6 +26,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/kms"
 	"github.com/aws/aws-sdk-go/service/rds"
 	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go/service/secretsmanager"
 	"github.com/aws/aws-sdk-go/service/sns"
 	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/aws/aws-sdk-go/service/ssm"
@@ -61,6 +62,7 @@ type Provider struct {
 	DynamoBuilds                      string
 	DynamoReleases                    string
 	DockerTLS                         *structs.TLSPemCertBytes
+	ECSExec                           bool
 	EcsPollInterval                   int
 	EncryptionKey                     string
 	Fargate                           bool
@@ -167,6 +169,7 @@ func (p *Provider) loadParams() error {
 	p.CustomEncryptionKey = labels["rack.CustomEncryptionKey"]
 	p.DynamoBuilds = labels["rack.DynamoBuilds"]
 	p.DynamoReleases = labels["rack.DynamoReleases"]
+	p.ECSExec = labels["rack.ECSExec"] == "Yes"
 	p.EcsPollInterval = intParam(labels["rack.EcsPollInterval"], 1)
 	p.EncryptionKey = labels["rack.EncryptionKey"]
 	p.Fargate = labels["rack.Fargate"] == "Yes"
@@ -364,6 +367,14 @@ func (p *Provider) dynamodb() *dynamodb.DynamoDB {
 		panic(errors.WithStack(err))
 	}
 	return dynamodb.New(s, p.config())
+}
+
+func (p *Provider) secretsmanager() *secretsmanager.SecretsManager {
+	s, err := helpers.NewSession()
+	if err != nil {
+		panic(errors.WithStack(err))
+	}
+	return secretsmanager.New(s, p.config())
 }
 
 func (p *Provider) ec2() *ec2.EC2 {

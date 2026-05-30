@@ -90,6 +90,12 @@
       { "Condition": "RegionHasEFS" },
       { "Fn::Equals": [ { "Ref": "BuildMethod" }, "fargate" ] }
     ]},
+    "BuildCacheEnabled": {
+      "Fn::Equals": [{ "Ref": "BuildCache" }, "Yes"]
+    },
+    "BuildCacheCleanupEnabled": {
+      "Fn::Equals": [{ "Ref": "BuildCacheCleanup" }, "Yes"]
+    },
     "CreateThirdPrivateSubnet": {"Fn::Or": [
       {"Condition": "PrivateApiAndThirdAvailabilityZoneAndHighAvailability"},
       {"Condition": "PrivateAndThirdAvailabilityZoneAndHighAvailability"}
@@ -105,6 +111,7 @@
     "EnableALBPort80": {
       "Fn::And": [ { "Condition": "PublicRouter" }, { "Condition": "AllowALBPort80" } ]
     },
+    "ContainerInsightsEnabled": { "Fn::Equals": [ { "Ref": "ContainerInsights" }, "Yes" ] },
     "EnableCloudWatch": { "Fn::Equals": [ { "Ref": "LogDriver" }, "CloudWatch" ] },
     "EnableSyslog": { "Fn::Equals": [ { "Ref": "LogDriver" }, "Syslog" ] },
     "EnableSharedEFSVolumeEncryptionCond": { "Fn::Equals": [ { "Ref": "EnableSharedEFSVolumeEncryption" }, "true" ] },
@@ -818,6 +825,12 @@
       "Description": "Anonymous identifier",
       "Default": ""
     },
+    "ContainerInsights": {
+      "Type": "String",
+      "Description": "Enable CloudWatch Container Insights on the ECS cluster",
+      "Default": "No",
+      "AllowedValues": ["Yes", "No"]
+    },
     "CpuCredits": {
       "Type": "String",
       "Description": "The credit option for CPU usage of a T instance",
@@ -855,6 +868,12 @@
       "Description": "Indicates whether point in time recovery is enabled or disabled on the dynamodb table.",
       "Default": "false",
       "AllowedValues": [ "true", "false" ]
+    },
+    "ECSExec": {
+      "Type": "String",
+      "Default": "No",
+      "Description": "Enable ECS Exec for interactive shell access to containers",
+      "AllowedValues": [ "Yes", "No" ]
     },
     "EcsPollInterval": {
       "Type": "Number",
@@ -895,6 +914,25 @@
       "Description": "This will enable aws kms encryption on shared efs volume. Enabling this will remove exsiting data and recreate the efs volume.",
       "Default": "false",
       "AllowedValues": [ "true", "false" ]
+    },
+    "BuildCache": {
+      "Type": "String",
+      "Default": "No",
+      "AllowedValues": ["Yes", "No"],
+      "Description": "Enable persistent build caching"
+    },
+    "BuildCacheCleanup": {
+      "Type": "String",
+      "Default": "No",
+      "AllowedValues": ["Yes", "No"],
+      "Description": "Automatically expire old build cache images in the dedicated ECR cache repository. When No, cache images are kept indefinitely."
+    },
+    "BuildCacheRetentionDays": {
+      "Type": "Number",
+      "Default": "30",
+      "MinValue": 1,
+      "MaxValue": 365,
+      "Description": "Days to retain build cache images before expiry. Only applies when BuildCacheCleanup=Yes."
     },
     "FargateBuildCpu": {
       "Type": "String",
@@ -1198,6 +1236,12 @@
       "Type": "String",
       "Description": "The recurring schedule for when the rack will start. This format consists of five fields separated by white spaces: [Minute] [Hour] [Day_of_Month] [Month_of_Year] [Day_of_Week]",
       "Default": ""
+    },
+    "SecretsManagerEnv": {
+      "Type": "String",
+      "Default": "No",
+      "Description": "Use AWS Secrets Manager for env var injection into ECS tasks (gen2 apps only)",
+      "AllowedValues": [ "Yes", "No" ]
     },
     "SpotFleetAllowedInstanceTypes": {
       "Type": "CommaDelimitedList",
@@ -3602,6 +3646,19 @@
         "SecurityGroups": [ { "Ref": "VolumeSecurity" } ]
       }
     },
+    "BuildCacheRepository": {
+      "Type": "AWS::ECR::Repository",
+      "Condition": "BuildCacheEnabled",
+      "Properties": {
+        "EmptyOnDelete": true,
+        "RepositoryName": { "Fn::Sub": "${AWS::StackName}-build-cache" },
+        "LifecyclePolicy": { "Fn::If": [
+          "BuildCacheCleanupEnabled",
+          { "LifecyclePolicyText": { "Fn::Sub": "{\"rules\":[{\"rulePriority\":1,\"description\":\"Expire cache images\",\"selection\":{\"tagStatus\":\"any\",\"countType\":\"sinceImagePushed\",\"countUnit\":\"days\",\"countNumber\":${BuildCacheRetentionDays}},\"action\":{\"type\":\"expire\"}}]}" } },
+          { "Ref": "AWS::NoValue" }
+        ]}
+      }
+    },
     "AccountEvents": {
       "Type": "AWS::SQS::Queue",
       "Properties": {
@@ -4219,6 +4276,12 @@
         "CapacityProviders": [
           "FARGATE",
           "FARGATE_SPOT"
+        ],
+        "ClusterSettings": [
+          {
+            "Name": "containerInsights",
+            "Value": { "Fn::If": ["ContainerInsightsEnabled", "enabled", "disabled"] }
+          }
         ]
       }
     },
@@ -4398,6 +4461,29 @@
                 }
               ]
             }
+          },
+          {
+            "PolicyName": "SecretsManagerAccess",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "secretsmanager:CreateSecret",
+                    "secretsmanager:PutSecretValue",
+                    "secretsmanager:GetSecretValue",
+                    "secretsmanager:DeleteSecret",
+                    "secretsmanager:DescribeSecret",
+                    "secretsmanager:RestoreSecret",
+                    "secretsmanager:TagResource"
+                  ],
+                  "Resource": {
+                    "Fn::Sub": "arn:${AWS::Partition}:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${AWS::StackName}/*"
+                  }
+                }
+              ]
+            }
           }
         ]
       }
@@ -4441,6 +4527,7 @@
               "rack.Cluster": { "Ref": "Cluster" },
               "rack.DynamoBuilds": { "Ref": "DynamoBuilds" },
               "rack.DynamoReleases": { "Ref": "DynamoReleases" },
+              "rack.ECSExec": { "Ref": "ECSExec" },
               "rack.EcsPollInterval": { "Ref": "EcsPollInterval" },
               "rack.LogDriver": { "Ref": "LogDriver" },
               "rack.EncryptionKey": { "Ref": "EncryptionKey" },
@@ -4492,7 +4579,11 @@
               { "Name": "HTTPS_PROXY", "Value": { "Ref": "HttpProxy" } },
               { "Name": "PROVIDER", "Value": "aws" },
               { "Name": "RACK", "Value": { "Ref": "AWS::StackName" } },
-              { "Name": "STACK_ID", "Value": { "Ref": "AWS::StackId" } }
+              { "Name": "STACK_ID", "Value": { "Ref": "AWS::StackId" } },
+              { "Name": "DOCKER_BUILDKIT", "Value": "1" },
+              { "Name": "BUILD_CACHE", "Value": { "Fn::If": ["BuildCacheEnabled", "true", "false"] } },
+              { "Name": "BUILD_CACHE_CLEANUP", "Value": { "Ref": "BuildCacheCleanup" } },
+              { "Name": "BUILD_CACHE_RETENTION_DAYS", "Value": { "Ref": "BuildCacheRetentionDays" } }
             ],
             "Image": {
               "Fn::If": [
@@ -4582,6 +4673,7 @@
               "rack.Cluster": { "Ref": "Cluster" },
               "rack.DynamoBuilds": { "Ref": "DynamoBuilds" },
               "rack.DynamoReleases": { "Ref": "DynamoReleases" },
+              "rack.ECSExec": { "Ref": "ECSExec" },
               "rack.EcsPollInterval": { "Ref": "EcsPollInterval" },
               "rack.LogDriver": { "Ref": "LogDriver" },
               "rack.EncryptionKey": { "Ref": "EncryptionKey" },
@@ -4634,7 +4726,9 @@
               { "Name": "PROVIDER", "Value": "aws" },
               { "Name": "RACK", "Value": { "Ref": "AWS::StackName" } },
               { "Name": "STACK_ID", "Value": { "Ref": "AWS::StackId" } },
-              { "Name": "BUILD_RUNTIME", "Value": "daemonless" }
+              { "Name": "BUILD_RUNTIME", "Value": "daemonless" },
+              { "Name": "BUILD_CACHE_CLEANUP", "Value": { "Ref": "BuildCacheCleanup" } },
+              { "Name": "BUILD_CACHE_RETENTION_DAYS", "Value": { "Ref": "BuildCacheRetentionDays" } }
             ],
             "Image": {
               "Fn::If": [
@@ -4715,6 +4809,7 @@
               "rack.Cluster": { "Ref": "Cluster" },
               "rack.DynamoBuilds": { "Ref": "DynamoBuilds" },
               "rack.DynamoReleases": { "Ref": "DynamoReleases" },
+              "rack.ECSExec": { "Ref": "ECSExec" },
               "rack.EcsPollInterval": { "Ref": "EcsPollInterval" },
               "rack.LogDriver": { "Ref": "LogDriver" },
               "rack.EncryptionKey": { "Ref": "EncryptionKey" },
@@ -4770,6 +4865,7 @@
               { "Name": "PASSWORD", "Value": { "Ref": "Password" } },
               { "Name": "PROVIDER", "Value": "aws" },
               { "Name": "RACK", "Value": { "Ref": "AWS::StackName" } },
+              { "Name": "SECRETS_MANAGER_ENV", "Value": { "Ref": "SecretsManagerEnv" } },
               { "Name": "STACK_ID", "Value": { "Ref": "AWS::StackId" } }
             ],
             "Image": {
@@ -4869,6 +4965,7 @@
               "rack.DockerTlsCAKey": { "Fn::GetAtt": [ "DockertTLSCAKey", "Value" ] },
               "rack.DockerTlsCert": { "Fn::GetAtt": [ "DockertTLSCert", "Value" ] },
               "rack.DockerTlsKey": { "Fn::GetAtt": [ "DockertTLSKey", "Value" ] },
+              "rack.ECSExec": { "Ref": "ECSExec" },
               "rack.EcsPollInterval": { "Ref": "EcsPollInterval" },
               "rack.LogDriver": { "Ref": "LogDriver" },
               "rack.EncryptionKey": { "Ref": "EncryptionKey" },
@@ -4923,6 +5020,7 @@
               { "Name": "HTTPS_PROXY", "Value": { "Ref": "HttpProxy" } },
               { "Name": "PROVIDER", "Value": "aws" },
               { "Name": "RACK", "Value": { "Ref": "AWS::StackName" } },
+              { "Name": "SECRETS_MANAGER_ENV", "Value": { "Ref": "SecretsManagerEnv" } },
               { "Name": "STACK_ID", "Value": { "Ref": "AWS::StackId" } }
             ],
             "Image": {

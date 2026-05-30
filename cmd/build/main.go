@@ -26,7 +26,9 @@ var (
 	flagApp         string
 	flagAuth        string
 	flagBuildArgs   StringSlice
+	flagBuildCache  string
 	flagCache       string
+	flagCacheRepo   string
 	flagDevelopment string
 	flagEnvWrapper  string
 	flagGeneration  string
@@ -58,7 +60,9 @@ func execute() error {
 	fs.StringVar(&flagApp, "app", "example", "app name")
 	fs.StringVar(&flagAuth, "auth", "", "docker auth data (json)")
 	fs.Var(&flagBuildArgs, "build-args", "docker build time args")
+	fs.StringVar(&flagBuildCache, "build-cache", "", "enable build cache")
 	fs.StringVar(&flagCache, "cache", "true", "use docker cache")
+	fs.StringVar(&flagCacheRepo, "cache-repo", "", "ECR repo for cache")
 	fs.StringVar(&flagDevelopment, "development", "false", "create a development build")
 	fs.StringVar(&flagEnvWrapper, "env-wrapper", "false", "wrap with convox-env")
 	fs.StringVar(&flagGeneration, "generation", "", "app generation")
@@ -118,11 +122,20 @@ func execute() error {
 		flagRuntime = v
 	}
 
+	if v := os.Getenv("BUILD_CACHE"); v != "" {
+		flagBuildCache = v
+	}
+	if v := os.Getenv("BUILD_CACHE_REPO"); v != "" {
+		flagCacheRepo = v
+	}
+
 	opts := build.Options{
 		App:         flagApp,
 		Auth:        flagAuth,
 		BuildArgs:   flagBuildArgs,
+		BuildCache:  flagBuildCache == "true",
 		Cache:       flagCache == "true",
+		CacheRepo:   flagCacheRepo,
 		Development: flagDevelopment == "true",
 		EnvWrapper:  flagEnvWrapper == "true",
 		Generation:  flagGeneration,

@@ -2,6 +2,7 @@ package build
 
 import (
 	"bufio"
+	"crypto/sha256"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -53,6 +54,20 @@ func (bb *Build) buildGeneration2(dir string) error {
 	pushes := map[string]string{}
 	tags := map[string][]string{}
 
+	hostSupportsCache := bb.BuildCache && bb.hostSupportsRegistryCache()
+	if bb.BuildCache && !hostSupportsCache {
+		bb.Printf("WARNING: BuildCache enabled but Docker buildx plugin not available\n")
+	}
+
+	if hostSupportsCache {
+		if err := bb.ensureBuildxBuilder(); err != nil {
+			bb.Printf("WARNING: could not create buildx builder, builds will proceed without cache: %s\n", err)
+			hostSupportsCache = false
+		}
+	}
+
+	cacheRefs := map[string]string{}
+
 	for _, s := range m.Services {
 		hash := s.BuildHash(bb.Id)
 		target := fmt.Sprintf("%s:%s.%s", prefix, s.Name, bb.Id)
@@ -68,12 +83,22 @@ func (bb *Build) buildGeneration2(dir string) error {
 		if bb.Push != "" {
 			pushes[target] = fmt.Sprintf("%s:%s.%s", bb.Push, s.Name, bb.Id)
 		}
+
+		if s.Image == "" && bb.Push != "" && hostSupportsCache {
+			if _, exists := cacheRefs[hash]; !exists {
+				if bb.CacheRepo != "" {
+					cacheRefs[hash] = fmt.Sprintf("%s:%s", bb.CacheRepo, cacheTag(bb.App, s.Name))
+				} else {
+					cacheRefs[hash] = fmt.Sprintf("%s:%s.buildcache", bb.Push, s.Name)
+				}
+			}
+		}
 	}
 
 	for hash, b := range builds {
 		bb.Printf("Building: %s\n", b.Path)
 
-		if err := bb.build(filepath.Join(dir, b.Path), b.Manifest, hash, env); err != nil {
+		if err := bb.build(filepath.Join(dir, b.Path), b.Manifest, hash, env, cacheRefs[hash]); err != nil {
 			return err
 		}
 	}
@@ -115,14 +140,24 @@ func (bb *Build) buildGeneration2(dir string) error {
 	return nil
 }
 
-func (bb *Build) build(path, dockerfile, tag string, env map[string]string) error {
+func (bb *Build) build(path, dockerfile, tag string, env map[string]string, cacheRef string) error {
 	if path == "" {
 		return fmt.Errorf("build path cannot be empty")
 	}
 
 	df := filepath.Join(path, dockerfile)
 
-	args := []string{"build"}
+	var args []string
+	if cacheRef != "" {
+		args = []string{"buildx", "build", "--load", "--progress=plain"}
+		if bb.Cache {
+			args = append(args, fmt.Sprintf("--cache-from=type=registry,ref=%s,ignore-error=true", cacheRef))
+		}
+		args = append(args, fmt.Sprintf("--cache-to=type=registry,ref=%s,mode=max,image-manifest=true,oci-mediatypes=true,ignore-error=true,compression=estargz", cacheRef))
+	} else {
+		args = []string{"build"}
+	}
+
 	if !bb.Cache {
 		args = append(args, "--no-cache")
 	}
@@ -165,6 +200,35 @@ var (
 	reArg  = regexp.MustCompile(`(?i)^\s*ARG\s+([^=\s]+)`)
 	reFrom = regexp.MustCompile(`(?i)^\s*FROM\s+.*\bAS\s+development\b`)
 )
+
+func (bb *Build) hostSupportsRegistryCache() bool {
+	_, err := bb.Exec.Execute("docker", "buildx", "version")
+	return err == nil
+}
+
+func cacheTag(app, service string) string {
+	tag := fmt.Sprintf("%s.%s.buildcache", app, service)
+	if len(tag) <= 128 {
+		return tag
+	}
+	sum := sha256.Sum256([]byte(app + "/" + service))
+	return fmt.Sprintf("%x.buildcache", sum[:12])
+}
+
+func (bb *Build) ensureBuildxBuilder() error {
+	out, err := bb.Exec.Execute("docker", "buildx", "inspect", "convox-cache")
+	if err == nil {
+		if strings.Contains(string(out), "docker-container") {
+			return bb.Exec.Run(bb.writer, "docker", "buildx", "use", "convox-cache")
+		}
+		bb.Exec.Execute("docker", "buildx", "rm", "convox-cache")
+	}
+	return bb.Exec.Run(bb.writer, "docker", "buildx", "create",
+		"--name", "convox-cache",
+		"--driver", "docker-container",
+		"--driver-opt", "network=host",
+		"--use")
+}
 
 // buildArgs returns CLI "--build-arg" flags derived from ARG statements that
 // have matches in the supplied env map.  It also adds "--target development"

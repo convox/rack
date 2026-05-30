@@ -350,6 +350,12 @@ func (p *Provider) appRepository2(app string) (*appRepository, error) {
 
 // cleanup deletes AWS resources that aren't handled by the CloudFormation during stack deletion.
 func (p *Provider) cleanup(app *structs.App) error {
+	if err := p.secretsManagerDelete(p.Rack, app.Name); err != nil {
+		fmt.Printf("fn=cleanup level=error msg=\"delete secrets manager secret: %s\"\n", err)
+	} else {
+		fmt.Printf("fn=cleanup msg=\"SM secret %s/%s scheduled for deletion (30-day recovery window)\"\n", p.Rack, app.Name)
+	}
+
 	settings, err := p.appResource(app.Name, "Settings")
 	if err != nil {
 		return err

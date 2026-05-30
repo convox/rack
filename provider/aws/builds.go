@@ -796,6 +796,8 @@ func (p *Provider) runBuild(build *structs.Build, burl string, opts structs.Buil
 		buildTaskName = "ApiBuildFargate"
 	}
 
+	buildCache, _ := p.stackParameter(p.Rack, "BuildCache")
+
 	br, err := p.stackResource(p.Rack, buildTaskName)
 	if err != nil {
 		log.Error(err)
@@ -932,6 +934,19 @@ func (p *Provider) runBuild(build *structs.Build, burl string, opts structs.Buil
 		},
 	}...)
 
+	if buildCache == "Yes" {
+		env = append(env, &ecs.KeyValuePair{
+			Name:  aws.String("BUILD_CACHE"),
+			Value: aws.String("true"),
+		})
+		if a.Tags["Generation"] == "2" {
+			env = append(env, &ecs.KeyValuePair{
+				Name:  aws.String("BUILD_CACHE_REPO"),
+				Value: aws.String(fmt.Sprintf("%s.dkr.ecr.%s.amazonaws.com/%s-build-cache", aid, p.Region, p.Rack)),
+			})
+		}
+	}
+
 	if opts.BuildArgs != nil {
 		for _, v := range *opts.BuildArgs {
 			if len(strings.SplitN(v, "=", 2)) != 2 {
@@ -959,6 +974,9 @@ func (p *Provider) runBuild(build *structs.Build, burl string, opts structs.Buil
 	}
 	if nc != nil && nc.AwsvpcConfiguration != nil {
 		req.NetworkConfiguration = nc
+	}
+	if aws.StringValue(launchType) == "FARGATE" {
+		req.PlatformVersion = aws.String("1.4.0")
 	}
 
 	task, err := p.runTask(req)

@@ -70,8 +70,10 @@ var paramGroups = map[string]map[string]bool{
 		"NLBPreserveClientIP":           true,
 	},
 	"security": {
+		"SecretsManagerEnv":                     true,
 		"BuildInstancePolicy":                   true, // dual-listed in build
 		"BuildInstanceSecurityGroup":            true,
+		"ECSExec":                               true,
 		"EnableContainerReadonlyRootFilesystem": true,
 		"EnableSharedEFSVolumeEncryption":       true, // dual-listed in storage
 		"EncryptEbs":                            true, // dual-listed in storage
@@ -132,6 +134,9 @@ var paramGroups = map[string]map[string]bool{
 		"BuildMemory":                 true,
 		"BuildMethod":                 true,
 		"BuildVolumeSize":             true,
+		"BuildCache":                  true,
+		"BuildCacheCleanup":           true,
+		"BuildCacheRetentionDays":     true,
 		"FargateBuildCpu":             true,
 		"FargateBuildMemory":          true,
 		"PrivateBuild":                true,
@@ -151,6 +156,7 @@ var paramGroups = map[string]map[string]bool{
 		"RouterMitigationMode":    true,
 	},
 	"logging": {
+		"ContainerInsights": true,
 		"LogBucket":         true,
 		"LogDriver":         true,
 		"LogRetention":      true,

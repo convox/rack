@@ -89,6 +89,7 @@ github.com/aws/aws-sdk-go/service/rds
 github.com/aws/aws-sdk-go/service/s3
 github.com/aws/aws-sdk-go/service/s3/s3iface
 github.com/aws/aws-sdk-go/service/s3/s3manager
+github.com/aws/aws-sdk-go/service/secretsmanager
 github.com/aws/aws-sdk-go/service/sns
 github.com/aws/aws-sdk-go/service/sqs
 github.com/aws/aws-sdk-go/service/ssm
@@ -111,9 +112,6 @@ github.com/bearsh/hid/libusb/libusb
 github.com/bearsh/hid/libusb/libusb/os
 # github.com/bmizerany/assert v0.0.0-20160611221934-b7ed37b82869
 ## explicit
-# github.com/boltdb/bolt v1.3.1
-## explicit
-github.com/boltdb/bolt
 # github.com/containerd/log v0.1.0
 ## explicit; go 1.20
 github.com/containerd/log
@@ -248,6 +246,9 @@ github.com/google/go-containerregistry/pkg/v1/remote/transport
 github.com/google/go-containerregistry/pkg/v1/stream
 github.com/google/go-containerregistry/pkg/v1/tarball
 github.com/google/go-containerregistry/pkg/v1/types
+# github.com/google/uuid v1.3.0
+## explicit
+github.com/google/uuid
 # github.com/gorilla/mux v1.8.1
 ## explicit; go 1.20
 github.com/gorilla/mux
@@ -265,9 +266,6 @@ github.com/gorilla/websocket
 github.com/inconshreveable/go-update
 github.com/inconshreveable/go-update/internal/binarydist
 github.com/inconshreveable/go-update/internal/osext
-# github.com/jehiah/go-strftime v0.0.0-20171201141054-1d33003b3869
-## explicit
-github.com/jehiah/go-strftime
 # github.com/jmespath/go-jmespath v0.4.0
 ## explicit; go 1.14
 github.com/jmespath/go-jmespath
@@ -334,10 +332,10 @@ github.com/satori/go.uuid
 # github.com/sebest/xff v0.0.0-20160910043805-6c115e0ffa35
 ## explicit
 github.com/sebest/xff
-# github.com/segmentio/analytics-go v2.0.1-0.20160426181448-2d840d861c32+incompatible
-## explicit
-github.com/segmentio/analytics-go
-# github.com/segmentio/backo-go v0.0.0-20160424052352-204274ad699c
+# github.com/segmentio/analytics-go/v3 v3.3.0
+## explicit; go 1.17
+github.com/segmentio/analytics-go/v3
+# github.com/segmentio/backo-go v1.0.0
 ## explicit
 github.com/segmentio/backo-go
 # github.com/sirupsen/logrus v1.9.3
@@ -364,9 +362,6 @@ github.com/twmb/algoimpl/go/graph/lite
 # github.com/vbatts/tar-split v0.11.6
 ## explicit; go 1.17
 github.com/vbatts/tar-split/archive/tar
-# github.com/xtgo/uuid v0.0.0-20140804021211-a0b114877d4c
-## explicit
-github.com/xtgo/uuid
 # golang.org/x/crypto v0.46.0
 ## explicit; go 1.24.0
 golang.org/x/crypto/blowfish

@@ -146,11 +146,16 @@ func (bb *Build) buildDaemonless(path, dockerfile, tag string, env map[string]st
 	args := []string{
 		"--dockerfile", dockerfile,
 		"--context", contextDir,
-		"--tarPath", tarPath,
+		"--tar-path", tarPath,
 		"--destination", tag,
 		"--ignore-path=" + path,
 		"--no-push",
-		"--cache=false",
+	}
+
+	if bb.BuildCache && bb.CacheRepo != "" && bb.Cache {
+		args = append(args, "--cache=true", "--cache-repo="+bb.CacheRepo)
+	} else {
+		args = append(args, "--cache=false")
 	}
 
 	df := filepath.Join(path, dockerfile)

@@ -2,33 +2,37 @@ package helpers
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"regexp"
 	"strings"
 
 	"github.com/convox/logger"
-	"github.com/segmentio/analytics-go"
+	analytics "github.com/segmentio/analytics-go/v3"
 	"github.com/stvp/rollbar"
 )
 
 var regexpEmail = regexp.MustCompile(`^[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,4}$`)
-var segment *analytics.Client
+var segment analytics.Client
 
 func init() {
 	rollbar.Token = os.Getenv("ROLLBAR_TOKEN")
 	rollbar.Environment = os.Getenv("CLIENT_ID")
 
-	segment = analytics.New(os.Getenv("SEGMENT_WRITE_KEY"))
-	segment.Size = 1
+	var err error
+	segment, err = analytics.NewWithConfig(os.Getenv("SEGMENT_WRITE_KEY"), analytics.Config{
+		BatchSize: 1,
+	})
+	if err != nil {
+		log.Printf("segment analytics init: %s", err)
+	}
 
 	clientId := os.Getenv("CLIENT_ID")
 
-	if regexpEmail.MatchString(clientId) && clientId != "ci@convox.com" {
-		segment.Identify(&analytics.Identify{
+	if segment != nil && regexpEmail.MatchString(clientId) && clientId != "ci@convox.com" {
+		segment.Enqueue(analytics.Identify{
 			UserId: RackId(),
-			Traits: map[string]interface{}{
-				"email": clientId,
-			},
+			Traits: analytics.NewTraits().Set("email", clientId),
 		})
 	}
 }
@@ -52,6 +56,10 @@ func Error(log *logger.Logger, err error) {
 }
 
 func TrackEvent(event string, params map[string]interface{}) {
+	if segment == nil {
+		return
+	}
+
 	if params == nil {
 		params = map[string]interface{}{}
 	}
@@ -62,10 +70,15 @@ func TrackEvent(event string, params map[string]interface{}) {
 
 	userId := RackId()
 
-	segment.Track(&analytics.Track{
+	props := analytics.NewProperties()
+	for k, v := range params {
+		props.Set(k, v)
+	}
+
+	segment.Enqueue(analytics.Track{
 		Event:      event,
 		UserId:     userId,
-		Properties: params,
+		Properties: props,
 	})
 }
 
