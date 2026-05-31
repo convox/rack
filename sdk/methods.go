@@ -514,11 +514,15 @@ func (c *Client) ProcessExec(app string, pid string, command string, rw io.ReadW
 
 	buf := make([]byte, 10*1024)
 	code := 0
+	first := true
 	var ecsSessionData []byte
 
 	for {
 		n, err := ws.Read(buf)
 		if err == io.EOF {
+			if ecsSessionData != nil {
+				return -1, fmt.Errorf("ECS Exec session ended before it was established; please retry")
+			}
 			return code, nil
 		}
 		if err != nil {
@@ -534,14 +538,17 @@ func (c *Client) ProcessExec(app string, pid string, command string, rw io.ReadW
 			return runSessionManagerPlugin(session)
 		}
 
-		if len(buf) > 0 && n > 0 && buf[0] == ecsExecSessionByte {
-			ecsSessionData = make([]byte, 0, n)
-			ecsSessionData = append(ecsSessionData, buf[1:n]...)
-			var session ecsExecSession
-			if err := json.Unmarshal(ecsSessionData, &session); err != nil {
-				continue
+		if first {
+			first = false
+			if n > 0 && buf[0] == ecsExecSessionByte {
+				ecsSessionData = make([]byte, 0, n)
+				ecsSessionData = append(ecsSessionData, buf[1:n]...)
+				var session ecsExecSession
+				if err := json.Unmarshal(ecsSessionData, &session); err != nil {
+					continue
+				}
+				return runSessionManagerPlugin(session)
 			}
-			return runSessionManagerPlugin(session)
 		}
 
 		data := string(buf[0:n])
