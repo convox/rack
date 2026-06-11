@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/ssm"
 )
 
@@ -159,26 +160,17 @@ func UpdateSelfSignedCertsForDocker(req Request) (string, map[string]string, err
 		Name: aws.String(certParameterName(rackKey)),
 	})
 	if err != nil {
+		if isParameterNotFound(err) {
+			return CreateSelfSignedCertsForDocker(req)
+		}
+		return rackKey, nil, err
+	}
+
+	if param.Parameter == nil || param.Parameter.Value == nil {
 		return CreateSelfSignedCertsForDocker(req)
 	}
 
-	pemBytes, err := base64.StdEncoding.DecodeString(*param.Parameter.Value)
-	if err != nil {
-		return CreateSelfSignedCertsForDocker(req)
-	}
-
-	block, _ := pem.Decode(pemBytes)
-	if block == nil {
-		return CreateSelfSignedCertsForDocker(req)
-	}
-
-	cert, err := x509.ParseCertificate(block.Bytes)
-	if err != nil {
-		return CreateSelfSignedCertsForDocker(req)
-	}
-
-	// renew if cert expires in 2 months
-	if cert.NotAfter.Before(time.Now().Add(2 * 30 * 24 * time.Hour)) {
+	if shouldRegenerateCert(*param.Parameter.Value, time.Now()) {
 		return CreateSelfSignedCertsForDocker(req)
 	}
 
@@ -188,6 +180,34 @@ func UpdateSelfSignedCertsForDocker(req Request) (string, map[string]string, err
 		"CertSSMKey":   certParameterName(rackKey),
 		"KeySSMKey":    keyParameterName(rackKey),
 	}, nil
+}
+
+func isParameterNotFound(err error) bool {
+	if aerr, ok := err.(awserr.Error); ok {
+		return aerr.Code() == ssm.ErrCodeParameterNotFound
+	}
+	return false
+}
+
+// shouldRegenerateCert reports whether the stored docker TLS cert is missing,
+// unreadable, or within two months of expiry and must be regenerated.
+func shouldRegenerateCert(b64cert string, now time.Time) bool {
+	pemBytes, err := base64.StdEncoding.DecodeString(b64cert)
+	if err != nil {
+		return true
+	}
+
+	block, _ := pem.Decode(pemBytes)
+	if block == nil {
+		return true
+	}
+
+	cert, err := x509.ParseCertificate(block.Bytes)
+	if err != nil {
+		return true
+	}
+
+	return cert.NotAfter.Before(now.Add(2 * 30 * 24 * time.Hour))
 }
 
 func caCertParameterName(rack string) string {
