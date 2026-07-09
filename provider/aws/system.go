@@ -749,6 +749,8 @@ func (p *Provider) SystemUpdate(opts structs.SystemUpdateOptions) error {
 		changes["version"] = *opts.Version
 	}
 
+	forcedMigration := false
+
 	// if there is a version update then record it
 	if v, ok := changes["version"]; ok {
 		if !hasOtherChange {
@@ -759,7 +761,16 @@ func (p *Provider) SystemUpdate(opts structs.SystemUpdateOptions) error {
 
 			// check rack already in that version or not
 			if rDetails.Version == v {
-				return nil
+				retired, err := p.rackHasRetiredAmi()
+				if err != nil {
+					return err
+				}
+
+				if !retired {
+					return nil
+				}
+
+				forcedMigration = true
 			}
 		}
 		_, err := p.dynamodb().PutItem(&dynamodb.PutItemInput{
@@ -785,6 +796,12 @@ func (p *Provider) SystemUpdate(opts structs.SystemUpdateOptions) error {
 	}
 
 	if err := p.updateStack(p.Rack, template, params, tags, ""); err != nil {
+		// a migration-forced update changes nothing on stacks whose AMI
+		// parameters are unused (custom Ami set)
+		if forcedMigration && isNoUpdatesError(err) {
+			return nil
+		}
+
 		return err
 	}
 

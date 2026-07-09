@@ -1247,6 +1247,54 @@ func (p *Provider) taskDefinitionRelease(arn string) (string, error) {
 	return *release, nil
 }
 
+var retiredAmiPaths = map[string]struct{ old, new string }{
+	"DefaultAmi": {
+		old: "/aws/service/ecs/optimized-ami/amazon-linux-2/recommended/image_id",
+		new: "/aws/service/ecs/optimized-ami/amazon-linux-2023/recommended/image_id",
+	},
+	"DefaultAmiArm": {
+		old: "/aws/service/ecs/optimized-ami/amazon-linux-2/arm64/recommended/image_id",
+		new: "/aws/service/ecs/optimized-ami/amazon-linux-2023/arm64/recommended/image_id",
+	},
+}
+
+// migratedAmiPath returns the replacement SSM path for an AMI parameter still
+// set to a retired Amazon Linux 2 default
+func migratedAmiPath(param, current string) (string, bool) {
+	m, ok := retiredAmiPaths[param]
+	if !ok || current != m.old {
+		return "", false
+	}
+
+	return m.new, true
+}
+
+// isNoUpdatesError reports whether err is CloudFormation rejecting an update
+// that changes no resources
+func isNoUpdatesError(err error) bool {
+	if ae, ok := err.(awserr.Error); ok {
+		return ae.Code() == "ValidationError" && strings.Contains(ae.Message(), "No updates are to be performed")
+	}
+
+	return false
+}
+
+// rackHasRetiredAmi reports whether the rack stack still holds a retired AMI path
+func (p *Provider) rackHasRetiredAmi() (bool, error) {
+	stack, err := p.describeStack(p.Rack)
+	if err != nil {
+		return false, err
+	}
+
+	for _, param := range stack.Parameters {
+		if _, ok := migratedAmiPath(aws.StringValue(param.ParameterKey), aws.StringValue(param.ParameterValue)); ok {
+			return true, nil
+		}
+	}
+
+	return false, nil
+}
+
 // updateStack updates a stack
 //
 //	template is url to a template or empty string to reuse previous
@@ -1267,6 +1315,7 @@ func (p *Provider) updateStack(name string, template []byte, changes map[string]
 
 	params := map[string]bool{}
 	pexisting := map[string]bool{}
+	pvalues := map[string]string{}
 
 	stack, err := p.describeStack(name)
 	if err != nil {
@@ -1275,6 +1324,7 @@ func (p *Provider) updateStack(name string, template []byte, changes map[string]
 
 	for _, p := range stack.Parameters {
 		pexisting[*p.ParameterKey] = true
+		pvalues[*p.ParameterKey] = aws.StringValue(p.ParameterValue)
 	}
 
 	if template != nil {
@@ -1323,6 +1373,11 @@ func (p *Provider) updateStack(name string, template []byte, changes map[string]
 
 	for _, param := range sorted {
 		if value, ok := changes[param]; ok {
+			req.Parameters = append(req.Parameters, &cloudformation.Parameter{
+				ParameterKey:   aws.String(param),
+				ParameterValue: aws.String(value),
+			})
+		} else if value, ok := migratedAmiPath(param, pvalues[param]); ok {
 			req.Parameters = append(req.Parameters, &cloudformation.Parameter{
 				ParameterKey:   aws.String(param),
 				ParameterValue: aws.String(value),
