@@ -798,7 +798,8 @@ func (p *Provider) describeTaskInner(arn string) (*ecs.Task, error) {
 func (p *Provider) describeTask(arn string) (*ecs.Task, error) {
 	var err error
 	for attempt := 0; attempt < 3; attempt++ {
-		task, err := p.describeTaskInner(arn)
+		var task *ecs.Task
+		task, err = p.describeTaskInner(arn)
 		if err != nil {
 			time.Sleep((1 << uint(attempt)) * time.Second)
 		} else {
@@ -1679,7 +1680,8 @@ func (p *Provider) waitForTask(arn string) (string, error) {
 			if err != nil {
 				return "", err
 			}
-			if status := *task.LastStatus; status != "PENDING" {
+			switch status := *task.LastStatus; status {
+			case "RUNNING", "STOPPED":
 				return status, nil
 			}
 		case <-timeout:
