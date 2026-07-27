@@ -2,7 +2,7 @@ package aws
 
 // BuildLogs implementation that supports three transports:
 //   * docker logs (EC2 builder by default)
-//   * CloudWatch Logs (preferred when rack parameter LogDriver=CloudWatch)
+//   * CloudWatch Logs (when the build task definition uses the awslogs driver)
 //   * returns an error if neither is available
 
 import (
@@ -48,15 +48,12 @@ func (p *Provider) BuildLogs(app, id string, opts structs.LogsOptions) (io.ReadC
 	go p.waitTaskStopped(*task.TaskArn, done) // non-blocking
 
 	// Fargate path
-	if p.cloudWatchEnabled() {
-		group, stream, err := p.cwStreamForTask(task, "build")
-		if err != nil {
-			return nil, err
-		}
-		return p.followCW(group, stream, done)
+	group, stream, err := p.cwStreamForTask(task, "build")
+	if err != nil {
+		return nil, err
 	}
 
-	return nil, fmt.Errorf("cloudwatch disabled and ecs-exec not enabled; unable to stream logs for fargate task")
+	return p.followCW(group, stream, done)
 }
 
 // waitTaskStopped waits for the specified task to reach the "STOPPED" status.
@@ -144,13 +141,6 @@ func (p *Provider) historicLogs(b *structs.Build) (io.ReadCloser, error) {
 	default:
 		return io.NopCloser(strings.NewReader(b.Logs)), nil
 	}
-}
-
-// cloudWatchEnabled checks stack parameter EnableCloudWatch == "Yes"
-func (p *Provider) cloudWatchEnabled() bool {
-	v, _ := p.stackParameter(p.Rack, "LogDriver")
-
-	return v == "CloudWatch"
 }
 
 // cwStreamForTask retrieves the CloudWatch log group and log stream name for a given ECS task.
