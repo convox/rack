@@ -32,7 +32,7 @@ var sensitiveParams = map[string]bool{
 
 // paramGroups categorizes V2 rack params into curated logical groups for the
 // `convox rack params -g <group>` filter. A param may belong to multiple
-// groups (5 V2 params are dual-listed). Every V2 rack.json Parameter must
+// groups (6 V2 params are dual-listed). Every V2 rack.json Parameter must
 // land in at least one group — enforced by TestParamGroupsCoverRackJSON.
 //
 // When adding a new rack param to provider/aws/formation/rack.json, add it
@@ -131,6 +131,7 @@ var paramGroups = map[string]map[string]bool{
 		"BuildImage":                  true,
 		"BuildInstance":               true,
 		"BuildInstancePolicy":         true, // dual-listed in security
+		"BuildLogDriver":              true, // dual-listed in logging
 		"BuildMemory":                 true,
 		"BuildMethod":                 true,
 		"BuildVolumeSize":             true,
@@ -156,6 +157,7 @@ var paramGroups = map[string]map[string]bool{
 		"RouterMitigationMode":    true,
 	},
 	"logging": {
+		"BuildLogDriver":    true, // dual-listed in build
 		"ContainerInsights": true,
 		"LogBucket":         true,
 		"LogDriver":         true,

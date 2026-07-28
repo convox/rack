@@ -114,6 +114,9 @@
     "ContainerInsightsEnabled": { "Fn::Equals": [ { "Ref": "ContainerInsights" }, "Yes" ] },
     "EnableCloudWatch": { "Fn::Equals": [ { "Ref": "LogDriver" }, "CloudWatch" ] },
     "EnableSyslog": { "Fn::Equals": [ { "Ref": "LogDriver" }, "Syslog" ] },
+    "BuildLogCloudWatch": { "Fn::Equals": [ { "Ref": "BuildLogDriver" }, "CloudWatch" ] },
+    "BuildLogSyslog": { "Fn::And": [ { "Fn::Equals": [ { "Ref": "BuildLogDriver" }, "" ] }, { "Condition": "EnableSyslog" } ] },
+    "LogGroupEnabled": { "Fn::Or": [ { "Condition": "EnableCloudWatch" }, { "Condition": "BuildLogCloudWatch" } ] },
     "EnableSharedEFSVolumeEncryptionCond": { "Fn::Equals": [ { "Ref": "EnableSharedEFSVolumeEncryption" }, "true" ] },
     "EncryptEbs": { "Fn::Equals": [ { "Ref": "EncryptEbs" }, "Yes" ] },
     "ExistingVpc": { "Fn::Not": [ { "Fn::Equals": [ { "Ref": "ExistingVpc" }, "" ] } ] },
@@ -458,7 +461,7 @@
       "Value": { "Ref": "LogDriver" }
     },
     "LogGroup": {
-      "Condition": "EnableCloudWatch",
+      "Condition": "LogGroupEnabled",
       "Value": { "Ref": "LogGroup" }
     },
     "NatGateways": {
@@ -803,6 +806,12 @@
       "Default": "",
       "Description": "ARN of an additional IAM policy to add to the cluster build instances",
       "Type": "String"
+    },
+    "BuildLogDriver": {
+      "Type": "String",
+      "Description": "Log driver for build tasks only. Blank inherits LogDriver. Set to CloudWatch to keep builds on CloudWatch while services use Syslog.",
+      "Default": "",
+      "AllowedValues": [ "", "CloudWatch" ]
     },
     "BuildMethod": {
       "Type": "String",
@@ -1449,7 +1458,7 @@
     },
     "LogGroup": {
       "Type": "AWS::Logs::LogGroup",
-      "Condition": "EnableCloudWatch",
+      "Condition": "LogGroupEnabled",
       "Properties": {
         "RetentionInDays": { "Fn::If": [ "BlankLogRetention", { "Ref": "AWS::NoValue" }, { "Ref": "LogRetention" } ] }
       }
@@ -4591,7 +4600,8 @@
               { "Name": "DOCKER_BUILDKIT", "Value": "1" },
               { "Name": "BUILD_CACHE", "Value": { "Fn::If": ["BuildCacheEnabled", "true", "false"] } },
               { "Name": "BUILD_CACHE_CLEANUP", "Value": { "Ref": "BuildCacheCleanup" } },
-              { "Name": "BUILD_CACHE_RETENTION_DAYS", "Value": { "Ref": "BuildCacheRetentionDays" } }
+              { "Name": "BUILD_CACHE_RETENTION_DAYS", "Value": { "Ref": "BuildCacheRetentionDays" } },
+              { "Name": "BUILD_LOG_DRIVER", "Value": { "Ref": "BuildLogDriver" } }
             ],
             "Image": {
               "Fn::If": [
@@ -4608,7 +4618,7 @@
             },
             "LogConfiguration": {
               "Fn::If": [
-                "EnableSyslog",
+                "BuildLogSyslog",
                 {
                   "LogDriver": "syslog",
                   "Options": {
@@ -4618,7 +4628,7 @@
                 },
                 {
                   "Fn::If": [
-                    "EnableCloudWatch",
+                    "LogGroupEnabled",
                     {
                       "LogDriver": "awslogs",
                       "Options": {
@@ -4736,7 +4746,8 @@
               { "Name": "STACK_ID", "Value": { "Ref": "AWS::StackId" } },
               { "Name": "BUILD_RUNTIME", "Value": "daemonless" },
               { "Name": "BUILD_CACHE_CLEANUP", "Value": { "Ref": "BuildCacheCleanup" } },
-              { "Name": "BUILD_CACHE_RETENTION_DAYS", "Value": { "Ref": "BuildCacheRetentionDays" } }
+              { "Name": "BUILD_CACHE_RETENTION_DAYS", "Value": { "Ref": "BuildCacheRetentionDays" } },
+              { "Name": "BUILD_LOG_DRIVER", "Value": { "Ref": "BuildLogDriver" } }
             ],
             "Image": {
               "Fn::If": [
@@ -4753,7 +4764,7 @@
             },
             "LogConfiguration": {
               "Fn::If": [
-                "EnableSyslog",
+                "BuildLogSyslog",
                 {
                   "LogDriver": "syslog",
                   "Options": {
@@ -4763,7 +4774,7 @@
                 },
                 {
                   "Fn::If": [
-                    "EnableCloudWatch",
+                    "LogGroupEnabled",
                     {
                       "LogDriver": "awslogs",
                       "Options": {
