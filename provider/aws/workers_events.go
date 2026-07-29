@@ -2,6 +2,7 @@ package aws
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"regexp"
@@ -22,6 +23,8 @@ import (
 var (
 	ecsEvents = map[string]bool{}
 	started   = time.Now().UTC()
+
+	errNoLogGroup = errors.New("stack has no log group")
 )
 
 type queueHandler func(body string) error
@@ -207,6 +210,9 @@ func (p *Provider) pollECSEvents() error {
 
 			group, err := p.getStackLogGroup(stack)
 			if err != nil {
+				if errors.Is(err, errNoLogGroup) {
+					continue
+				}
 				return err
 			}
 
@@ -264,6 +270,10 @@ func (p *Provider) getStackLogGroup(stack string) (string, error) {
 		return group, nil
 	}
 
+	if _, ok := cache.Get("stackNoLogGroup", stack).(bool); ok {
+		return "", errNoLogGroup
+	}
+
 	s, err := p.describeStack(stack)
 	if err != nil {
 		return "", err
@@ -275,10 +285,19 @@ func (p *Provider) getStackLogGroup(stack string) (string, error) {
 
 	r, err := p.stackResource(stack, "LogGroup")
 	if err != nil {
-		if strings.Contains(err.Error(), "resource not found") {
-			return p.getStackLogGroup(p.Rack)
+		if !strings.Contains(err.Error(), "resource not found") {
+			return "", err
 		}
-		return "", err
+
+		if stack != p.Rack {
+			if g, rerr := p.getStackLogGroup(p.Rack); !errors.Is(rerr, errNoLogGroup) {
+				return g, rerr
+			}
+		}
+
+		cache.Set("stackNoLogGroup", stack, true, 5*time.Minute)
+
+		return "", errNoLogGroup
 	}
 
 	g := *r.PhysicalResourceId

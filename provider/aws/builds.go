@@ -75,6 +75,11 @@ func (p *Provider) BuildCreate(app, url string, opts structs.BuildCreateOptions)
 
 	if err := p.runBuild(b, url, opts); err != nil {
 		log.Error(err)
+
+		if b.Tags["task"] == "" {
+			p.failBuildIfNotTerminal(b.App, b.Id, err.Error())
+		}
+
 		return nil, err
 	}
 
@@ -985,6 +990,8 @@ func (p *Provider) runBuild(build *structs.Build, burl string, opts structs.Buil
 		return err
 	}
 
+	build.Tags["task"] = *task.TaskArn
+
 	b, err := p.BuildGet(build.App, build.Id)
 	if err != nil {
 		return err
@@ -998,8 +1005,25 @@ func (p *Provider) runBuild(build *structs.Build, burl string, opts structs.Buil
 		return err
 	}
 
-	if _, err := p.waitForTask(*task.TaskArn); err != nil {
+	status, err := p.waitForTask(*task.TaskArn)
+	if err != nil {
+		if reason, stopped := p.taskStopReason(*task.TaskArn); stopped {
+			p.failBuildIfNotTerminal(build.App, build.Id, reason)
+		}
 		return err
+	}
+
+	if status == "STOPPED" {
+		reason, ok := p.taskStopReason(*task.TaskArn)
+		if !ok || reason == "" {
+			reason = "task stopped"
+		}
+
+		if p.failBuildIfNotTerminal(build.App, build.Id, reason) {
+			return nil
+		}
+
+		return fmt.Errorf("build task stopped before running: %s", reason)
 	}
 
 	if buildMethod == "ec2" {
@@ -1009,6 +1033,52 @@ func (p *Provider) runBuild(build *structs.Build, burl string, opts structs.Buil
 	}
 
 	return nil
+}
+
+// taskStopReason reports why a task stopped, and whether it is stopped at all.
+func (p *Provider) taskStopReason(arn string) (string, bool) {
+	t, err := p.describeTask(arn)
+	if err != nil || t == nil || aws.StringValue(t.LastStatus) != "STOPPED" {
+		return "", false
+	}
+
+	reason := aws.StringValue(t.StoppedReason)
+
+	if len(t.Containers) > 0 {
+		if r := aws.StringValue(t.Containers[0].Reason); r != "" {
+			reason = strings.TrimPrefix(fmt.Sprintf("%s: %s", reason, r), ": ")
+		}
+	}
+
+	return reason, true
+}
+
+// failBuildIfNotTerminal marks a build failed, reporting whether it was already terminal.
+func (p *Provider) failBuildIfNotTerminal(app, id, reason string) bool {
+	log := Logger.At("failBuildIfNotTerminal").Namespace("app=%q id=%q", app, id).Start()
+
+	b, err := p.BuildGet(app, id)
+	if err != nil {
+		log.Error(err)
+		return false
+	}
+
+	if b.Status == "complete" || b.Status == "failed" {
+		return true
+	}
+
+	b.Status = "failed"
+	b.Ended = time.Now().UTC()
+
+	if reason != "" {
+		b.Reason = reason
+	}
+
+	if err := p.buildSave(b); err != nil {
+		log.Error(err)
+	}
+
+	return false
 }
 
 func (p *Provider) waitForContainer(task *ecs.Task) error {
