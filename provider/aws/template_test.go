@@ -42,6 +42,55 @@ func TestAppTemplateParses(t *testing.T) {
 	}
 }
 
+// TestBuildCachePruneWiring pins the ApiBuildTasks environment entry that carries
+// PruneOlderImagesInHour into the build container. A wrong name or ref there leaves
+// the build cache unpruned with no other symptom.
+func TestBuildCachePruneWiring(t *testing.T) {
+	data, err := os.ReadFile(filepath.Join("formation", "rack.json"))
+	if err != nil {
+		t.Fatalf("read rack.json: %v", err)
+	}
+
+	var tmpl struct {
+		Resources map[string]struct {
+			Properties struct {
+				ContainerDefinitions []struct {
+					Environment []struct {
+						Name  string          `json:"Name"`
+						Value json.RawMessage `json:"Value"`
+					} `json:"Environment"`
+				} `json:"ContainerDefinitions"`
+			} `json:"Properties"`
+		} `json:"Resources"`
+	}
+
+	if err := json.Unmarshal(data, &tmpl); err != nil {
+		t.Fatalf("parse rack.json: %v", err)
+	}
+
+	cds := tmpl.Resources["ApiBuildTasks"].Properties.ContainerDefinitions
+	if len(cds) == 0 {
+		t.Fatalf("ApiBuildTasks has no container definitions")
+	}
+
+	found := false
+
+	for _, e := range cds[0].Environment {
+		if e.Name != "BUILD_CACHE_PRUNE_HOURS" {
+			continue
+		}
+
+		var ref map[string]string
+		if err := json.Unmarshal(e.Value, &ref); err == nil && ref["Ref"] == "PruneOlderImagesInHour" {
+			found = true
+		}
+	}
+
+	if !found {
+		t.Errorf("ApiBuildTasks is missing a BUILD_CACHE_PRUNE_HOURS ref to PruneOlderImagesInHour")
+	}
+}
+
 // TestBuildLogDriverWiring pins what BuildLogDriver depends on: LogGroup must
 // exist whenever the build awslogs branch refs it, and the parameter needs an
 // unconditional reference or CloudFormation reports no updates on a change.

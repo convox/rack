@@ -4601,6 +4601,7 @@
               { "Name": "BUILD_CACHE", "Value": { "Fn::If": ["BuildCacheEnabled", "true", "false"] } },
               { "Name": "BUILD_CACHE_CLEANUP", "Value": { "Ref": "BuildCacheCleanup" } },
               { "Name": "BUILD_CACHE_RETENTION_DAYS", "Value": { "Ref": "BuildCacheRetentionDays" } },
+              { "Name": "BUILD_CACHE_PRUNE_HOURS", "Value": { "Ref": "PruneOlderImagesInHour" } },
               { "Name": "BUILD_LOG_DRIVER", "Value": { "Ref": "BuildLogDriver" } }
             ],
             "Image": {

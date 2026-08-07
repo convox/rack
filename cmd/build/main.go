@@ -23,22 +23,23 @@ func (i *StringSlice) Set(value string) error {
 }
 
 var (
-	flagApp         string
-	flagAuth        string
-	flagBuildArgs   StringSlice
-	flagBuildCache  string
-	flagCache       string
-	flagCacheRepo   string
-	flagDevelopment string
-	flagEnvWrapper  string
-	flagGeneration  string
-	flagID          string
-	flagManifest    string
-	flagMethod      string
-	flagPush        string
-	flagRack        string
-	flagUrl         string
-	flagRuntime     string
+	flagApp             string
+	flagAuth            string
+	flagBuildArgs       StringSlice
+	flagBuildCache      string
+	flagCache           string
+	flagCachePruneHours string
+	flagCacheRepo       string
+	flagDevelopment     string
+	flagEnvWrapper      string
+	flagGeneration      string
+	flagID              string
+	flagManifest        string
+	flagMethod          string
+	flagPush            string
+	flagRack            string
+	flagUrl             string
+	flagRuntime         string
 
 	currentBuild    *structs.Build
 	currentLogs     string
@@ -62,6 +63,7 @@ func execute() error {
 	fs.Var(&flagBuildArgs, "build-args", "docker build time args")
 	fs.StringVar(&flagBuildCache, "build-cache", "", "enable build cache")
 	fs.StringVar(&flagCache, "cache", "true", "use docker cache")
+	fs.StringVar(&flagCachePruneHours, "cache-prune-hours", "", "hours to keep unused build cache")
 	fs.StringVar(&flagCacheRepo, "cache-repo", "", "ECR repo for cache")
 	fs.StringVar(&flagDevelopment, "development", "false", "create a development build")
 	fs.StringVar(&flagEnvWrapper, "env-wrapper", "false", "wrap with convox-env")
@@ -128,23 +130,27 @@ func execute() error {
 	if v := os.Getenv("BUILD_CACHE_REPO"); v != "" {
 		flagCacheRepo = v
 	}
+	if v := os.Getenv("BUILD_CACHE_PRUNE_HOURS"); v != "" {
+		flagCachePruneHours = v
+	}
 
 	opts := build.Options{
-		App:         flagApp,
-		Auth:        flagAuth,
-		BuildArgs:   flagBuildArgs,
-		BuildCache:  flagBuildCache == "true",
-		Cache:       flagCache == "true",
-		CacheRepo:   flagCacheRepo,
-		Development: flagDevelopment == "true",
-		EnvWrapper:  flagEnvWrapper == "true",
-		Generation:  flagGeneration,
-		Id:          flagID,
-		Manifest:    flagManifest,
-		Push:        flagPush,
-		Rack:        flagRack,
-		Source:      flagUrl,
-		Runtime:     flagRuntime,
+		App:             flagApp,
+		Auth:            flagAuth,
+		BuildArgs:       flagBuildArgs,
+		BuildCache:      flagBuildCache == "true",
+		Cache:           flagCache == "true",
+		CachePruneHours: flagCachePruneHours,
+		CacheRepo:       flagCacheRepo,
+		Development:     flagDevelopment == "true",
+		EnvWrapper:      flagEnvWrapper == "true",
+		Generation:      flagGeneration,
+		Id:              flagID,
+		Manifest:        flagManifest,
+		Push:            flagPush,
+		Rack:            flagRack,
+		Source:          flagUrl,
+		Runtime:         flagRuntime,
 	}
 
 	b, err := build.New(opts)
