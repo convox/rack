@@ -30,17 +30,20 @@ curl -fLs https://amazon-eks.s3-us-west-2.amazonaws.com/1.12.7/2019-03-27/bin/li
 	sudo mv /tmp/aws-iam-authenticator /usr/bin/aws-iam-authenticator && sudo chmod +x /usr/bin/aws-iam-authenticator
 
 # download appropriate cli version, waiting for the release artifact to finish uploading
-for i in $(seq 1 12); do
-	if curl -fsSL -o ${GOPATH}/bin/convox https://convox.s3.amazonaws.com/release/${VERSION}/cli/linux/convox; then
-		break
-	fi
+# untagged builds skip this and use the binary from go install
+if [ -n "${VERSION}" ]; then
+	for i in $(seq 1 12); do
+		if curl -fsSL -o ${GOPATH}/bin/convox https://convox.s3.amazonaws.com/release/${VERSION}/cli/linux/convox; then
+			break
+		fi
 
-	if [ "${i}" -eq 12 ]; then
-		echo "cli not available at release/${VERSION}/cli/linux/convox after 2m"
-		exit 1
-	fi
+		if [ "${i}" -eq 12 ]; then
+			echo "cli not available at release/${VERSION}/cli/linux/convox after 2m"
+			exit 1
+		fi
 
-	sleep 10
-done
+		sleep 10
+	done
 
-chmod +x ${GOPATH}/bin/convox
+	chmod +x ${GOPATH}/bin/convox
+fi
