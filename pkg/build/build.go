@@ -26,22 +26,23 @@ const (
 
 // Options holds the parameters for a single build execution
 type Options struct {
-	App         string
-	Auth        string
-	BuildArgs   []string
-	Cache       bool
-	BuildCache  bool
-	CacheRepo   string
-	Development bool
-	EnvWrapper  bool
-	Generation  string
-	Id          string
-	Manifest    string
-	Output      io.Writer
-	Push        string
-	Rack        string
-	Source      string
-	Runtime     string
+	App             string
+	Auth            string
+	BuildArgs       []string
+	Cache           bool
+	BuildCache      bool
+	CacheRepo       string
+	CachePruneHours string
+	Development     bool
+	EnvWrapper      bool
+	Generation      string
+	Id              string
+	Manifest        string
+	Output          io.Writer
+	Push            string
+	Rack            string
+	Source          string
+	Runtime         string
 }
 
 // Build represents a build session

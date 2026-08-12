@@ -330,6 +330,120 @@ func TestBuildGeneration2Options(t *testing.T) {
 	})
 }
 
+func TestBuildGeneration2CachePrune(t *testing.T) {
+	testCachedBuild(t, "96", func(e *exec.MockInterface) {
+		e.On("Execute", "docker", "buildx", "inspect", "--bootstrap", "convox-cache").Return([]byte("booted\n"), nil)
+		e.On("Run", mock.Anything, "docker", "buildx", "prune", "--builder", "convox-cache", "--all", "--filter", "until=96h", "--force").Return(nil).Run(func(args mock.Arguments) {
+			fmt.Fprintf(args.Get(0).(io.Writer), "Total:\t1.2GB\n")
+		})
+	}, []string{
+		"convox-cache",
+		"Running: docker buildx prune --builder convox-cache --all --filter until=96h",
+		"Total:\t1.2GB",
+		"Building: .",
+		"build1",
+		"build2",
+		"Running: docker pull httpd",
+		"Running: docker tag 049f26f1b03bfca2e3af367d481a7bf1a94564ba rack1/app1:web2.build1",
+		"Running: docker tag httpd rack1/app1:web.build1",
+	})
+}
+
+func TestBuildGeneration2CachePruneUnset(t *testing.T) {
+	testCachedBuild(t, "", func(e *exec.MockInterface) {}, []string{
+		"convox-cache",
+		"Building: .",
+		"build1",
+		"build2",
+		"Running: docker pull httpd",
+		"Running: docker tag 049f26f1b03bfca2e3af367d481a7bf1a94564ba rack1/app1:web2.build1",
+		"Running: docker tag httpd rack1/app1:web.build1",
+	})
+}
+
+func TestBuildGeneration2CachePruneNoBuilder(t *testing.T) {
+	testCachedBuild(t, "96", func(e *exec.MockInterface) {
+		e.On("Execute", "docker", "buildx", "inspect", "--bootstrap", "convox-cache").Return(nil, fmt.Errorf("no such container"))
+	}, []string{
+		"convox-cache",
+		"Building: .",
+		"build1",
+		"build2",
+		"Running: docker pull httpd",
+		"Running: docker tag 049f26f1b03bfca2e3af367d481a7bf1a94564ba rack1/app1:web2.build1",
+		"Running: docker tag httpd rack1/app1:web.build1",
+	})
+}
+
+func TestBuildGeneration2CachePruneFailure(t *testing.T) {
+	testCachedBuild(t, "48", func(e *exec.MockInterface) {
+		e.On("Execute", "docker", "buildx", "inspect", "--bootstrap", "convox-cache").Return([]byte("booted\n"), nil)
+		e.On("Run", mock.Anything, "docker", "buildx", "prune", "--builder", "convox-cache", "--all", "--filter", "until=48h", "--force").Return(fmt.Errorf("prune failed"))
+	}, []string{
+		"convox-cache",
+		"Running: docker buildx prune --builder convox-cache --all --filter until=48h",
+		"WARNING: could not prune build cache: prune failed",
+		"Building: .",
+		"build1",
+		"build2",
+		"Running: docker pull httpd",
+		"Running: docker tag 049f26f1b03bfca2e3af367d481a7bf1a94564ba rack1/app1:web2.build1",
+		"Running: docker tag httpd rack1/app1:web.build1",
+	})
+}
+
+func testCachedBuild(t *testing.T, pruneHours string, prune func(*exec.MockInterface), logs []string) {
+	opts := build.Options{
+		App:             "app1",
+		Auth:            "{}",
+		BuildCache:      true,
+		Cache:           true,
+		CachePruneHours: pruneHours,
+		Generation:      "2",
+		Id:              "build1",
+		Rack:            "rack1",
+		Source:          "object://app1/object.tgz",
+	}
+
+	testBuild(t, opts, func(b *build.Build, p *structs.MockProvider, e *exec.MockInterface, out *bytes.Buffer) {
+		p.On("BuildGet", "app1", "build1").Return(fxBuildStarted(), nil).Once()
+		bdata, err := os.ReadFile("testdata/httpd.tgz")
+		require.NoError(t, err)
+		p.On("ObjectFetch", "app1", "/object.tgz").Return(io.NopCloser(bytes.NewReader(bdata)), nil)
+		p.On("ReleaseList", "app1", structs.ReleaseListOptions{Limit: options.Int(1)}).Return(structs.Releases{*fxRelease()}, nil)
+		p.On("ReleaseGet", "app1", "release1").Return(fxRelease(), nil)
+
+		e.On("Execute", "docker", "buildx", "version").Return([]byte("github.com/docker/buildx v0.22.0\n"), nil)
+		e.On("Execute", "docker", "buildx", "inspect", "convox-cache").Return(nil, fmt.Errorf("no builder"))
+		e.On("Run", mock.Anything, "docker", "buildx", "create", "--name", "convox-cache", "--driver", "docker-container", "--driver-opt", "network=host", "--use").Return(nil).Run(func(args mock.Arguments) {
+			fmt.Fprintf(args.Get(0).(io.Writer), "convox-cache\n")
+		})
+
+		prune(e)
+
+		e.On("Run", mock.Anything, "docker", "build", "-t", "049f26f1b03bfca2e3af367d481a7bf1a94564ba", "-f", "Dockerfile", "--network", "host", ".").Return(nil).Run(func(args mock.Arguments) {
+			fmt.Fprintf(args.Get(0).(io.Writer), "build1\nbuild2\n")
+		})
+		e.On("Execute", "docker", "inspect", "049f26f1b03bfca2e3af367d481a7bf1a94564ba", "--format", "{{json .Config.Entrypoint}}").Return([]byte("[]"), nil)
+		e.On("Execute", "docker", "pull", "httpd").Return([]byte("pulling\n"), nil)
+		e.On("Execute", "docker", "tag", "httpd", "rack1/app1:web.build1").Return([]byte("tagging\n"), nil)
+		e.On("Execute", "docker", "tag", "049f26f1b03bfca2e3af367d481a7bf1a94564ba", "rack1/app1:web2.build1").Return([]byte("tagging\n"), nil)
+
+		p.On("ObjectStore", "app1", "build/build1/logs", mock.Anything, structs.ObjectStoreOptions{}).Return(fxObject(), nil).Run(func(args mock.Arguments) {
+			data, err := io.ReadAll(args.Get(2).(io.Reader))
+			require.NoError(t, err)
+			require.Equal(t, strings.Join(logs, "\n")+"\n", string(data))
+		})
+		p.On("BuildUpdate", "app1", "build1", mock.Anything).Return(fxBuildStarted(), nil)
+		p.On("ReleaseCreate", "app1", structs.ReleaseCreateOptions{Build: options.String("build1")}).Return(fxRelease2(), nil)
+		p.On("EventSend", "build:create", structs.EventSendOptions{Data: map[string]string{"app": "app1", "id": "build1", "release_id": "release2"}}).Return(nil)
+
+		require.NoError(t, b.Execute())
+
+		require.Equal(t, logs, strings.Split(strings.TrimSuffix(out.String(), "\n"), "\n"))
+	})
+}
+
 func fxBuildStarted() *structs.Build {
 	return &structs.Build{
 		Id:          "build1",

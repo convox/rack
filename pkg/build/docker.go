@@ -63,6 +63,8 @@ func (bb *Build) buildGeneration2(dir string) error {
 		if err := bb.ensureBuildxBuilder(); err != nil {
 			bb.Printf("WARNING: could not create buildx builder, builds will proceed without cache: %s\n", err)
 			hostSupportsCache = false
+		} else {
+			bb.pruneBuildxCache()
 		}
 	}
 
@@ -228,6 +230,26 @@ func (bb *Build) ensureBuildxBuilder() error {
 		"--driver", "docker-container",
 		"--driver-opt", "network=host",
 		"--use")
+}
+
+func (bb *Build) pruneBuildxCache() {
+	if bb.CachePruneHours == "" {
+		return
+	}
+
+	// buildx prune cannot reach a docker-container builder that has never been
+	// booted, so bootstrap it first.
+	if _, err := bb.Exec.Execute("docker", "buildx", "inspect", "--bootstrap", "convox-cache"); err != nil {
+		return
+	}
+
+	filter := fmt.Sprintf("until=%sh", bb.CachePruneHours)
+
+	bb.Printf("Running: docker buildx prune --builder convox-cache --all --filter %s\n", filter)
+
+	if err := bb.Exec.Run(bb.writer, "docker", "buildx", "prune", "--builder", "convox-cache", "--all", "--filter", filter, "--force"); err != nil {
+		bb.Printf("WARNING: could not prune build cache: %s\n", err)
+	}
 }
 
 // buildArgs returns CLI "--build-arg" flags derived from ARG statements that
