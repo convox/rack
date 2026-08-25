@@ -11,6 +11,8 @@
     "BlankExistingVpcAndThirdAvailabilityZone": {
       "Fn::And": [ { "Condition": "BlankExistingVpc" }, { "Condition": "ThirdAvailabilityZone" } ]
     },
+    "BlankFargateBuildCpu": { "Fn::Equals": [ { "Ref": "FargateBuildCpu" }, "" ] },
+    "BlankFargateBuildMemory": { "Fn::Equals": [ { "Ref": "FargateBuildMemory" }, "" ] },
     "HasEcsContainerStopTimeout": { "Fn::Not": [ { "Fn::Equals": [ { "Ref": "EcsContainerStopTimeout" }, "" ] } ] } ,
     "HasNLB": { "Fn::Not": [ { "Fn::Equals": [ { "Ref": "NLB" }, "No" ] } ] },
     "HasNLBInternal": { "Fn::Not": [ { "Fn::Equals": [ { "Ref": "NLBInternal" }, "No" ] } ] },
@@ -815,7 +817,7 @@
     },
     "BuildMethod": {
       "Type": "String",
-      "Description": "Choose the build process: EC2 uses a build instance; Fargate uses a Fargate task. For Fargate, set FargateBuildCpu and FargateBuildMemory.",
+      "Description": "Choose the build process: EC2 uses a build instance; Fargate uses a Fargate task. For Fargate, FargateBuildCpu and FargateBuildMemory override the default builder size.",
       "Default": "ec2",
       "AllowedValues": [ "ec2", "fargate" ]
     },
@@ -945,12 +947,12 @@
     },
     "FargateBuildCpu": {
       "Type": "String",
-      "Description": "How much cpu should be reserved by the builder. Only used when BuildMethod is set to fargate",
+      "Description": "How much cpu should be reserved by the builder. Only used when BuildMethod is set to fargate. Blank uses 1024",
       "Default": ""
     },
     "FargateBuildMemory": {
       "Type": "String",
-      "Description": "How much memory should be reserved by the builder. Only used when BuildMethod is set to fargate",
+      "Description": "How much memory should be reserved by the builder. Only used when BuildMethod is set to fargate. Blank uses 4096",
       "Default": ""
     },
     "NoHaInstanceCount": {
@@ -4680,8 +4682,8 @@
       "Properties": {
         "RequiresCompatibilities": ["FARGATE"],
         "NetworkMode": "awsvpc",
-        "Cpu": { "Ref": "FargateBuildCpu" },
-        "Memory": { "Ref": "FargateBuildMemory" },
+        "Cpu": { "Fn::If": [ "BlankFargateBuildCpu", "1024", { "Ref": "FargateBuildCpu" } ] },
+        "Memory": { "Fn::If": [ "BlankFargateBuildMemory", "4096", { "Ref": "FargateBuildMemory" } ] },
         "ContainerDefinitions": [
           {
             "DockerLabels": {
@@ -4748,7 +4750,9 @@
               { "Name": "BUILD_RUNTIME", "Value": "daemonless" },
               { "Name": "BUILD_CACHE_CLEANUP", "Value": { "Ref": "BuildCacheCleanup" } },
               { "Name": "BUILD_CACHE_RETENTION_DAYS", "Value": { "Ref": "BuildCacheRetentionDays" } },
-              { "Name": "BUILD_LOG_DRIVER", "Value": { "Ref": "BuildLogDriver" } }
+              { "Name": "BUILD_LOG_DRIVER", "Value": { "Ref": "BuildLogDriver" } },
+              { "Name": "FARGATE_BUILD_CPU", "Value": { "Ref": "FargateBuildCpu" } },
+              { "Name": "FARGATE_BUILD_MEMORY", "Value": { "Ref": "FargateBuildMemory" } }
             ],
             "Image": {
               "Fn::If": [
