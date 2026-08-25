@@ -4796,7 +4796,8 @@
             "Secrets": [{
               "Name": "PASSWORD",
               "ValueFrom": { "Fn::Sub": "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}RackApiSecret" }
-            }]
+            }],
+            "Ulimits": [ { "Name": "nofile", "SoftLimit": "1024000", "HardLimit": "1024000" } ]
           }
         ],
         "RuntimePlatform": {
