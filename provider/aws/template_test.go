@@ -194,3 +194,54 @@ func TestBuildLogDriverWiring(t *testing.T) {
 		}
 	}
 }
+
+// TestFargateBuildNofileUlimit pins the descriptor headroom on the Fargate build
+// task, which the EC2 builders get from the docker daemon default instead. A
+// missing or lowered value only shows up as a failed build on a large source tree.
+func TestFargateBuildNofileUlimit(t *testing.T) {
+	data, err := os.ReadFile(filepath.Join("formation", "rack.json"))
+	if err != nil {
+		t.Fatalf("read rack.json: %v", err)
+	}
+
+	var tmpl struct {
+		Resources map[string]struct {
+			Properties struct {
+				ContainerDefinitions []struct {
+					Ulimits []struct {
+						Name      string `json:"Name"`
+						SoftLimit string `json:"SoftLimit"`
+						HardLimit string `json:"HardLimit"`
+					} `json:"Ulimits"`
+				} `json:"ContainerDefinitions"`
+			} `json:"Properties"`
+		} `json:"Resources"`
+	}
+
+	if err := json.Unmarshal(data, &tmpl); err != nil {
+		t.Fatalf("parse rack.json: %v", err)
+	}
+
+	cds := tmpl.Resources["ApiBuildFargate"].Properties.ContainerDefinitions
+	if len(cds) == 0 {
+		t.Fatalf("ApiBuildFargate has no container definitions")
+	}
+
+	found := false
+
+	for _, u := range cds[0].Ulimits {
+		if u.Name != "nofile" {
+			continue
+		}
+
+		found = true
+
+		if u.SoftLimit != "1024000" || u.HardLimit != "1024000" {
+			t.Errorf("ApiBuildFargate nofile ulimit is (%s, %s), want (1024000, 1024000)", u.SoftLimit, u.HardLimit)
+		}
+	}
+
+	if !found {
+		t.Errorf("ApiBuildFargate is missing a nofile ulimit")
+	}
+}
