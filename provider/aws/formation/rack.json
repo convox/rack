@@ -96,6 +96,7 @@
     "BuildCacheCleanupEnabled": {
       "Fn::Equals": [{ "Ref": "BuildCacheCleanup" }, "Yes"]
     },
+    "BlankFargateBuildVolumeSize": { "Fn::Equals": [ { "Ref": "FargateBuildVolumeSize" }, "" ] },
     "CreateThirdPrivateSubnet": {"Fn::Or": [
       {"Condition": "PrivateApiAndThirdAvailabilityZoneAndHighAvailability"},
       {"Condition": "PrivateAndThirdAvailabilityZoneAndHighAvailability"}
@@ -952,6 +953,13 @@
       "Type": "String",
       "Description": "How much memory should be reserved by the builder. Only used when BuildMethod is set to fargate",
       "Default": ""
+    },
+    "FargateBuildVolumeSize": {
+      "Type": "String",
+      "Description": "Build disk size in GiB for the Fargate builder. Only used when BuildMethod is set to fargate. Blank leaves the Fargate default in place",
+      "Default": "",
+      "AllowedPattern": "^$|^(2[1-9]|[3-9][0-9]|1[0-9]{2}|200)$",
+      "ConstraintDescription": "must be blank or a whole number from 21 to 200"
     },
     "NoHaInstanceCount": {
       "Default": "1",
@@ -4602,7 +4610,10 @@
               { "Name": "BUILD_CACHE_CLEANUP", "Value": { "Ref": "BuildCacheCleanup" } },
               { "Name": "BUILD_CACHE_RETENTION_DAYS", "Value": { "Ref": "BuildCacheRetentionDays" } },
               { "Name": "BUILD_CACHE_PRUNE_HOURS", "Value": { "Ref": "PruneOlderImagesInHour" } },
-              { "Name": "BUILD_LOG_DRIVER", "Value": { "Ref": "BuildLogDriver" } }
+              { "Name": "BUILD_LOG_DRIVER", "Value": { "Ref": "BuildLogDriver" } },
+              { "Name": "FARGATE_BUILD_VOLUME_SIZE", "Value": { "Ref": "FargateBuildVolumeSize" } },
+              { "Name": "FARGATE_BUILD_CPU", "Value": { "Ref": "FargateBuildCpu" } },
+              { "Name": "FARGATE_BUILD_MEMORY", "Value": { "Ref": "FargateBuildMemory" } }
             ],
             "Image": {
               "Fn::If": [
@@ -4682,6 +4693,7 @@
         "NetworkMode": "awsvpc",
         "Cpu": { "Ref": "FargateBuildCpu" },
         "Memory": { "Ref": "FargateBuildMemory" },
+        "EphemeralStorage": { "Fn::If": [ "BlankFargateBuildVolumeSize", { "Ref": "AWS::NoValue" }, { "SizeInGiB": { "Ref": "FargateBuildVolumeSize" } } ] },
         "ContainerDefinitions": [
           {
             "DockerLabels": {
