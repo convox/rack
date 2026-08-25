@@ -194,3 +194,126 @@ func TestBuildLogDriverWiring(t *testing.T) {
 		}
 	}
 }
+
+// TestFargateBuildCpuMemoryFallback pins the blank-value fallback on the Fargate
+// build task definition. A wrong literal fails task definition registration, and
+// each parameter needs an unconditional ref or CloudFormation reports no updates.
+func TestFargateBuildCpuMemoryFallback(t *testing.T) {
+	data, err := os.ReadFile(filepath.Join("formation", "rack.json"))
+	if err != nil {
+		t.Fatalf("read rack.json: %v", err)
+	}
+
+	var tmpl struct {
+		Conditions map[string]json.RawMessage `json:"Conditions"`
+		Resources  map[string]struct {
+			Properties map[string]json.RawMessage `json:"Properties"`
+		} `json:"Resources"`
+	}
+
+	if err := json.Unmarshal(data, &tmpl); err != nil {
+		t.Fatalf("parse rack.json: %v", err)
+	}
+
+	props := tmpl.Resources["ApiBuildFargate"].Properties
+
+	var cds []struct {
+		Environment []struct {
+			Name  string          `json:"Name"`
+			Value json.RawMessage `json:"Value"`
+		} `json:"Environment"`
+	}
+
+	if err := json.Unmarshal(props["ContainerDefinitions"], &cds); err != nil {
+		t.Fatalf("ApiBuildFargate container definitions: %v", err)
+	}
+
+	if len(cds) == 0 {
+		t.Fatalf("ApiBuildFargate has no container definitions")
+	}
+
+	fallbacks := []struct {
+		property  string
+		condition string
+		fallback  string
+		parameter string
+		env       string
+	}{
+		{"Cpu", "BlankFargateBuildCpu", "1024", "FargateBuildCpu", "FARGATE_BUILD_CPU"},
+		{"Memory", "BlankFargateBuildMemory", "4096", "FargateBuildMemory", "FARGATE_BUILD_MEMORY"},
+	}
+
+	for _, f := range fallbacks {
+		var fn struct {
+			If []json.RawMessage `json:"Fn::If"`
+		}
+
+		if err := json.Unmarshal(props[f.property], &fn); err != nil {
+			t.Fatalf("ApiBuildFargate %s: %v", f.property, err)
+		}
+
+		if len(fn.If) != 3 {
+			t.Fatalf("ApiBuildFargate %s is not an Fn::If with three elements", f.property)
+		}
+
+		var condition, fallback string
+		var override map[string]string
+
+		if err := json.Unmarshal(fn.If[0], &condition); err != nil {
+			t.Fatalf("%s condition: %v", f.property, err)
+		}
+		if err := json.Unmarshal(fn.If[1], &fallback); err != nil {
+			t.Fatalf("%s fallback: %v", f.property, err)
+		}
+		if err := json.Unmarshal(fn.If[2], &override); err != nil {
+			t.Fatalf("%s override: %v", f.property, err)
+		}
+
+		if condition != f.condition || fallback != f.fallback || override["Ref"] != f.parameter {
+			t.Errorf("%s is (%s, %s, %s), want (%s, %s, %s)", f.property, condition, fallback, override["Ref"], f.condition, f.fallback, f.parameter)
+		}
+
+		var eq struct {
+			Equals []json.RawMessage `json:"Fn::Equals"`
+		}
+
+		if err := json.Unmarshal(tmpl.Conditions[f.condition], &eq); err != nil {
+			t.Fatalf("condition %s: %v", f.condition, err)
+		}
+
+		if len(eq.Equals) != 2 {
+			t.Fatalf("condition %s is not an Fn::Equals with two elements", f.condition)
+		}
+
+		var ref map[string]string
+		var blank string
+
+		if err := json.Unmarshal(eq.Equals[0], &ref); err != nil {
+			t.Fatalf("condition %s ref: %v", f.condition, err)
+		}
+		if err := json.Unmarshal(eq.Equals[1], &blank); err != nil {
+			t.Fatalf("condition %s comparand: %v", f.condition, err)
+		}
+
+		if ref["Ref"] != f.parameter || blank != "" {
+			t.Errorf("condition %s compares %s to %q, want %s to empty", f.condition, ref["Ref"], blank, f.parameter)
+		}
+
+		found := false
+
+		for _, e := range cds[0].Environment {
+			if e.Name != f.env {
+				continue
+			}
+
+			var eref map[string]string
+			if err := json.Unmarshal(e.Value, &eref); err == nil && eref["Ref"] == f.parameter {
+				found = true
+			}
+		}
+
+		if !found {
+			t.Errorf("ApiBuildFargate is missing an unconditional %s ref to %s", f.env, f.parameter)
+		}
+	}
+}
