@@ -140,6 +140,7 @@ var paramGroups = map[string]map[string]bool{
 		"BuildCacheRetentionDays":     true,
 		"FargateBuildCpu":             true,
 		"FargateBuildMemory":          true,
+		"FargateBuildVolumeSize":      true,
 		"PrivateBuild":                true,
 		"PruneOlderImagesCronRunFreq": true,
 		"PruneOlderImagesInHour":      true,
