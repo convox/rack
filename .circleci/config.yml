@@ -61,6 +61,11 @@ workflows:
     jobs:
       - test
   release:
+    # the tag-push pipeline runs before the release artifacts exist, so only the
+    # pipeline triggered by the release github action can pass
+    when:
+      not:
+        equal: [ webhook, << pipeline.trigger_source >> ]
     jobs:
       - ci:
           <<: *filter-releases-any

@@ -40,14 +40,14 @@ if [ "${ACTION}" == "full-convox-yaml" ]; then
   timer_pid=$!
 
   # Wait for all background processes to complete
-  wait $apps_resources_pid
-  apps_resources_exit_code=$?
+  apps_resources_exit_code=0
+  wait $apps_resources_pid || apps_resources_exit_code=$?
 
-  wait $rack_resources_pid
-  rack_resources_exit_code=$?
+  rack_resources_exit_code=0
+  wait $rack_resources_pid || rack_resources_exit_code=$?
 
-  wait $timer_pid
-  timer_exit_code=$?
+  timer_exit_code=0
+  wait $timer_pid || timer_exit_code=$?
 
   echo "apps_resources_exit_code: $apps_resources_exit_code"
   echo "rack_resources_exit_code: $rack_resources_exit_code"
@@ -226,9 +226,9 @@ case $provider in
     cd $root/examples/internal
     # test without internal attribute
     convox apps create internal1 --wait
-    convox deploy -a internal1 --wait
+    $root/ci/retry-transient.sh convox deploy -a internal1 --wait
     convox apps create internal2 --wait
-    convox deploy -a internal2 --wait
+    $root/ci/retry-transient.sh convox deploy -a internal2 --wait
 
     endpoint=$(convox api get /apps/internal1/services | jq -r '.[] | select(.name == "web") | .domain')
     fetch https://$endpoint | grep "It works"
@@ -247,8 +247,8 @@ case $provider in
     # test with internal as true
     mv convox-internal.yml convox.yml
     convox rack params set Internal=Yes --wait
-    convox deploy -a internal1 --wait
-    convox deploy -a internal2 --wait
+    $root/ci/retry-transient.sh convox deploy -a internal1 --wait
+    $root/ci/retry-transient.sh convox deploy -a internal2 --wait
 
     ## external communication should not work
     endpoint=$(convox api get /apps/internal1/services | jq -r '.[] | select(.name == "web") | .domain')
