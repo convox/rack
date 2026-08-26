@@ -221,5 +221,5 @@ func TestParamGroupsCoverRackJSON(t *testing.T) {
 	}
 	require.Empty(t, stale, "paramGroups members not in rack.json Parameters: %v", stale)
 
-	require.Equal(t, 117, len(rack.Parameters), "post-hardening rack.json should have 117 Parameters")
+	require.Equal(t, 118, len(rack.Parameters), "post-hardening rack.json should have 118 Parameters")
 }

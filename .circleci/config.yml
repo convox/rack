@@ -61,6 +61,11 @@ workflows:
     jobs:
       - test
   release:
+    # the tag-push pipeline runs before the release artifacts exist, so only the
+    # pipeline triggered by the release github action can pass
+    when:
+      not:
+        equal: [ webhook, << pipeline.trigger_source >> ]
     jobs:
       - ci:
           <<: *filter-releases-any
@@ -117,7 +122,7 @@ jobs:
         type: string
         default: ""
     docker:
-      - image: cimg/go:1.24.11
+      - image: cimg/go:1.26.6
     environment:
       PROVIDER: <<parameters.provider>>
       ARGS: <<parameters.args>>
@@ -136,14 +141,14 @@ jobs:
           when: always
   cleanup:
     docker:
-      - image: cimg/go:1.24.11
+      - image: cimg/go:1.26.6
     steps:
       - checkout
       - ci-dependencies
       - run: scripts/ci-cleanup
   cleanup_all:
     docker:
-      - image: cimg/go:1.24.11
+      - image: cimg/go:1.26.6
     steps:
       - checkout
       - ci-dependencies
@@ -157,14 +162,14 @@ jobs:
       repo:
         type: string
     docker:
-      - image: cimg/go:1.24.11
+      - image: cimg/go:1.26.6
     steps:
       - checkout
       - ci-dependencies
       - run: ci/deploy.sh <<parameters.repo>> <<parameters.app>> <<parameters.check>>
   test:
     docker:
-      - image: cimg/go:1.24.11
+      - image: cimg/go:1.26.6
     # working_directory: /go/src/github.com/convox/rack
     steps:
       - checkout
@@ -176,7 +181,7 @@ jobs:
       - run: curl -s https://codecov.io/bash | bash
   update:
     docker:
-      - image: cimg/go:1.24.11
+      - image: cimg/go:1.26.6
     steps:
       - checkout
       - ci-dependencies
