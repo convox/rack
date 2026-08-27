@@ -32,6 +32,11 @@ for region in us-east-1; do
     aws logs delete-log-group --log-group-name $group --region $region
   done
 
+  for cert in $(aws acm list-certificates --region $region | jq -r '.CertificateSummaryList[].CertificateArn'); do
+    echo "deleting certificate: $cert ($region)"
+    aws acm delete-certificate --certificate-arn $cert --region $region
+  done
+
   for key in $(aws kms list-keys --region $region | jq -r '.Keys[].KeyId'); do
     data=$(aws kms describe-key --region $region --key-id $key)
     state=$(echo $data | jq -r '.KeyMetadata.KeyState')
