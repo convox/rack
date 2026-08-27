@@ -277,7 +277,9 @@ case $provider in
   aws)
     cd $root/ci/assets
     convox certs
-    cert=$(convox certs generate example.org --id)
+    # domain is per-job: concurrent jobs share one aws account, and acm collapses
+    # identical same-domain requests into a single certificate
+    cert=$(convox certs generate ${RACK_NAME}.example.org --id)
     convox certs | grep -v $cert
     convox certs delete $cert
     cert=$(convox certs import example.org.crt example.org.key --id)
