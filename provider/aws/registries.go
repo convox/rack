@@ -75,9 +75,9 @@ func (p *Provider) RegistryAdd(server, username, password string) (*structs.Regi
 		return nil, log.Error(err)
 	}
 
-	id := fmt.Sprintf("%x", sha256.New().Sum([]byte(server)))
+	id := legacyServerIdentifier(server)
 
-	if err := p.SettingPut(fmt.Sprintf("system/registries/%s", id), string(data)); err != nil {
+	if err := p.SettingPut("system/registries/"+id, string(data)); err != nil {
 		return nil, log.Error(err)
 	}
 
@@ -93,7 +93,8 @@ func (p *Provider) RegistryAdd(server, username, password string) (*structs.Regi
 func (p *Provider) RegistryRemove(server string) error {
 	log := Logger.At("RegistryRemove").Namespace("server=%q", server).Start()
 
-	key := fmt.Sprintf("system/registries/%x", sha256.New().Sum([]byte(server)))
+	id := legacyServerIdentifier(server)
+	key := "system/registries/" + id
 
 	if _, err := p.SettingExists(key); err != nil {
 		return log.Error(errorNotFound(fmt.Sprintf("registry not found: %s", server)))
@@ -134,4 +135,14 @@ func (p *Provider) RegistryList() (structs.Registries, error) {
 	sort.Sort(registries)
 
 	return registries, log.Success()
+}
+
+var hashOfNothing = sha256.New().Sum(nil)
+
+// legacyServerIdentifier generates a hex string from a server.
+// This format is suboptimal, but it must be preserved for compatibility reasons
+// as deviation from this format would orphan registry settings.
+// This function exist to make the behavior more apparent.
+func legacyServerIdentifier(server string) string {
+	return fmt.Sprintf("%x", append([]byte(server), hashOfNothing[:]...))
 }
