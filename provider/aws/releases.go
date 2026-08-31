@@ -698,6 +698,8 @@ func (p *Provider) releasePromoteGeneration1(a *structs.App, r *structs.Release)
 		return err
 	}
 
+	p.clearGen1ServiceMonitoring(a.Name)
+
 	if err := p.updateStack(p.rackStack(a.Name), data, params, map[string]string{}, r.Id); err != nil {
 		return err
 	}
