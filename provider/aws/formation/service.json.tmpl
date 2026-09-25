@@ -312,6 +312,7 @@
             "Statement": [ { "Effect": "Allow", "Principal": { "Service": [ "application-autoscaling.amazonaws.com" ] }, "Action": [ "sts:AssumeRole" ] } ],
             "Version": "2012-10-17"
           },
+          {{ with $.PermissionsBoundary }}"PermissionsBoundary": {{ safe . }},{{ end }}
           "Path": "/convox/",
           "Policies": [ {
             "PolicyName": "autoscaling",
@@ -347,6 +348,7 @@
             "Version": "2012-10-17"
           },
           "ManagedPolicyArns": [ { "Fn::Sub": "arn:${AWS::Partition}:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy" } ],
+          {{ with $.PermissionsBoundary }}"PermissionsBoundary": {{ safe . }},{{ end }}
           "Path": "/convox/"
           {{ if $.SecretsManagerARN }}
           ,
@@ -883,6 +885,7 @@
             "Version": "2012-10-17"
           },
           "ManagedPolicyArns": {"Fn::Split":[",",{"Fn::Join":[",",[{"Ref":"Policies"},{"Fn::ImportValue":{"Fn::Sub":"${Rack}:CMKPolicy"}}]]}]},
+          {{ with $.PermissionsBoundary }}"PermissionsBoundary": {{ safe . }},{{ end }}
           "Path": "/convox/",
           "Policies": [
             {

@@ -220,6 +220,7 @@
           { "Fn::Sub": "arn:${AWS::Partition}:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy" },
           { "Fn::ImportValue": { "Fn::Sub": "${Rack}:CMKPolicy" } }
         ],
+        {{ with $.PermissionsBoundary }}"PermissionsBoundary": {{ safe . }},{{ end }}
         "Path": "/convox/"
         {{ if $.SecretsManagerARN }}
         ,
@@ -377,6 +378,7 @@
         { "Fn::If": [ "BlankIamPolicy", { "Ref": "AWS::NoValue" }, { "Ref": "IamPolicy" } ] },
         { "Fn::ImportValue": { "Fn::Sub": "${Rack}:CMKPolicy" } }
       ],
+      {{ with $.PermissionsBoundary }}"PermissionsBoundary": {{ safe . }},{{ end }}
       "Path": "/convox/",
       "Policies": [
         {
@@ -579,6 +581,7 @@
           { "Fn::Sub": "arn:${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole" },
           { "Fn::ImportValue": { "Fn::Sub": "${Rack}:CMKPolicy" } }
         ],
+        {{ with $.PermissionsBoundary }}"PermissionsBoundary": {{ safe . }},{{ end }}
         "Path": "/convox/",
         "Policies": [
           {

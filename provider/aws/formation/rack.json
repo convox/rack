@@ -237,6 +237,7 @@
     "Internal": { "Fn::Equals": [ { "Ref": "Internal" }, "Yes" ] },
     "InternetGateway": { "Fn::Not": [ { "Fn::Equals": [ { "Ref": "InternetGateway" }, "" ] } ] },
     "NotExistingVpcAndBlankInternetGateway": { "Fn::Not": [ { "Condition": "ExistingVpcAndBlankInternetGateway" } ] },
+    "PermissionsBoundaryEnabled": { "Fn::Not": [ { "Fn::Equals": [ { "Ref": "PermissionsBoundary" }, "" ] } ] },
     "PlaceLambdaInVpcCond": { "Fn::Equals": [ { "Ref": "PlaceLambdaInVpc" }, "Yes" ] },
     "PrivateAndPlaceLambdaInVpc": { "Fn::And": [ { "Condition": "PrivateInstances" }, { "Condition": "PlaceLambdaInVpcCond" } ] },
     "Private": { "Fn::Or": [ { "Condition": "PrivateBuild" }, { "Condition": "PrivateInstances" } ] },
@@ -1189,6 +1190,12 @@
       "MaxLength": "50",
       "NoEcho": true
     },
+    "PermissionsBoundary": {
+      "Type": "String",
+      "Description": "ARN of an IAM managed policy set as the permissions boundary on every IAM role and user the rack creates",
+      "Default": "",
+      "AllowedPattern": "^$|^arn:aws[a-zA-Z-]*:iam::[0-9]{12}:policy/[A-Za-z0-9_.,=@/-]+$"
+    },
     "PlaceLambdaInVpc": {
       "Type": "String",
       "Description": "Place lambda in vpc",
@@ -1490,6 +1497,7 @@
           { "Fn::Sub": "arn:${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole" },
           { "Ref": "CMKPolicy" }
         ],
+        "PermissionsBoundary": { "Fn::If": [ "PermissionsBoundaryEnabled", { "Ref": "PermissionsBoundary" }, { "Ref": "AWS::NoValue" } ] },
         "Path": "/convox/",
         "Policies": [
           {
@@ -1731,6 +1739,7 @@
         "ManagedPolicyArns": [
           { "Ref": "CMKPolicy" }
         ],
+        "PermissionsBoundary": { "Fn::If": [ "PermissionsBoundaryEnabled", { "Ref": "PermissionsBoundary" }, { "Ref": "AWS::NoValue" } ] },
         "Path": "/convox/",
         "Policies": [
           {
@@ -2050,6 +2059,7 @@
           "Statement": [ { "Effect": "Allow", "Principal": { "Service": [ "ec2.amazonaws.com" ] }, "Action": [ "sts:AssumeRole" ] } ],
           "Version": "2012-10-17"
         },
+        "PermissionsBoundary": { "Fn::If": [ "PermissionsBoundaryEnabled", { "Ref": "PermissionsBoundary" }, { "Ref": "AWS::NoValue" } ] },
         "Path": "/convox/",
         "ManagedPolicyArns": [
           { "Fn::Sub": "arn:${AWS::Partition}:iam::aws:policy/service-role/AmazonEC2ContainerServiceforEC2Role" },
@@ -2079,6 +2089,7 @@
           "Statement": [ { "Effect": "Allow", "Principal": { "Service": [ "ec2.amazonaws.com" ] }, "Action": [ "sts:AssumeRole" ] } ],
           "Version": "2012-10-17"
         },
+        "PermissionsBoundary": { "Fn::If": [ "PermissionsBoundaryEnabled", { "Ref": "PermissionsBoundary" }, { "Ref": "AWS::NoValue" } ] },
         "Path": "/convox/",
         "ManagedPolicyArns": [
           { "Fn::Sub": "arn:${AWS::Partition}:iam::aws:policy/service-role/AmazonEC2ContainerServiceforEC2Role" },
@@ -2773,6 +2784,7 @@
         "ManagedPolicyArns": [
           { "Ref": "CMKPolicy" }
         ],
+        "PermissionsBoundary": { "Fn::If": [ "PermissionsBoundaryEnabled", { "Ref": "PermissionsBoundary" }, { "Ref": "AWS::NoValue" } ] },
         "Path": "/convox/",
         "Policies": [
           {
@@ -2874,6 +2886,7 @@
           { "Fn::Sub": "arn:${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole" },
           { "Ref": "CMKPolicy" }
         ],
+        "PermissionsBoundary": { "Fn::If": [ "PermissionsBoundaryEnabled", { "Ref": "PermissionsBoundary" }, { "Ref": "AWS::NoValue" } ] },
         "Path": "/convox/",
         "Policies": [
           {
@@ -3456,6 +3469,7 @@
     "SpotFleetRole": {
       "Type": "AWS::IAM::Role",
       "Properties": {
+        "PermissionsBoundary": { "Fn::If": [ "PermissionsBoundaryEnabled", { "Ref": "PermissionsBoundary" }, { "Ref": "AWS::NoValue" } ] },
         "Path": "/convox/",
         "AssumeRolePolicyDocument": {
           "Version": "2012-10-17",
@@ -4323,6 +4337,7 @@
           { "Fn::Sub": "arn:${AWS::Partition}:iam::aws:policy/service-role/AmazonEC2ContainerServiceRole" },
           { "Ref": "CMKPolicy" }
         ],
+        "PermissionsBoundary": { "Fn::If": [ "PermissionsBoundaryEnabled", { "Ref": "PermissionsBoundary" }, { "Ref": "AWS::NoValue" } ] },
         "Path": "/convox/"
       }
     },
@@ -4350,24 +4365,24 @@
                 "iam:DeletePolicy",
                 "iam:DeletePolicyVersion",
                 "iam:DeleteRole",
+                "iam:DeleteRolePermissionsBoundary",
                 "iam:DeleteRolePolicy",
                 "iam:DetachRolePolicy",
                 "iam:DeleteUser",
+                "iam:DeleteUserPermissionsBoundary",
                 "iam:DeleteUserPolicy",
                 "iam:GetInstance*",
                 "iam:GetPolicy",
                 "iam:GetPolicyVersion",
-                "iam:GetRole",
                 "iam:GetRolePolicy",
                 "iam:GetUser",
                 "iam:GetUserPolicy",
                 "iam:ListAccessKeys",
                 "iam:ListInstance*",
                 "iam:ListPolicyVersions",
-                "iam:ListRoles",
-                "iam:ListUsers",
-                "iam:PassRole",
+                "iam:PutRolePermissionsBoundary",
                 "iam:PutRolePolicy",
+                "iam:PutUserPermissionsBoundary",
                 "iam:PutUserPolicy",
                 "iam:SetDefaultPolicyVersion",
                 "iam:TagPolicy",
@@ -4381,10 +4396,20 @@
                 "iam:UpdateAssumeRolePolicy"
               ],
               "Resource": [
-                { "Fn::Sub": "arn:${AWS::Partition}:iam::*:instance-profile/*" },
-                { "Fn::Sub": "arn:${AWS::Partition}:iam::*:policy/*" },
-                { "Fn::Sub": "arn:${AWS::Partition}:iam::*:role/*" },
-                { "Fn::Sub": "arn:${AWS::Partition}:iam::*:user/convox/*" }
+                { "Fn::Sub": "arn:${AWS::Partition}:iam::${AWS::AccountId}:instance-profile/convox/*" },
+                { "Fn::Sub": "arn:${AWS::Partition}:iam::${AWS::AccountId}:policy/convox/*" },
+                { "Fn::Sub": "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/convox/*" },
+                { "Fn::Sub": "arn:${AWS::Partition}:iam::${AWS::AccountId}:user/convox/*" }
+              ]
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "iam:GetRole",
+                "iam:PassRole"
+              ],
+              "Resource": [
+                { "Fn::Sub": "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/*" }
               ]
             },
             {

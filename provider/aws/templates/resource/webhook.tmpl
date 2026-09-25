@@ -1,7 +1,11 @@
 {{ define "resource" }}
 {
   "AWSTemplateFormatVersion" : "2010-09-09",
+  "Conditions": {
+    "PermissionsBoundaryEnabled": { "Fn::Not": [ { "Fn::Equals": [ { "Ref": "PermissionsBoundary" }, "" ] } ] }
+  },
   "Parameters": {
+    "PermissionsBoundary": { "Type": "String", "Default": "" },
     "NotificationTopic": {
       "Type": "String"
     },
@@ -65,6 +69,7 @@
           "Statement": [ { "Effect": "Allow", "Principal": { "Service": [ "lambda.amazonaws.com" ] }, "Action": "sts:AssumeRole" } ]
         },
         "ManagedPolicyArns": [ { "Fn::Sub": "arn:${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole" } ],
+        "PermissionsBoundary": { "Fn::If": [ "PermissionsBoundaryEnabled", { "Ref": "PermissionsBoundary" }, { "Ref": "AWS::NoValue" } ] },
         "Path": "/convox/"
       }
     },

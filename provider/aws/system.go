@@ -676,6 +676,8 @@ func (p *Provider) Sync(name string) error {
 	return fmt.Errorf("not supported")
 }
 
+var rackTemplateURL = "https://convox.s3.amazonaws.com/release/%s/rack.json"
+
 func (p *Provider) SystemUpdate(opts structs.SystemUpdateOptions) error {
 	if err := p.validateNLBParams(opts); err != nil {
 		return err
@@ -730,7 +732,7 @@ func (p *Provider) SystemUpdate(opts structs.SystemUpdateOptions) error {
 
 			template = data
 		} else {
-			res, err := http.Get(fmt.Sprintf("https://convox.s3.amazonaws.com/release/%s/rack.json", *opts.Version))
+			res, err := http.Get(fmt.Sprintf(rackTemplateURL, *opts.Version))
 			if err != nil {
 				return err
 			}
@@ -747,6 +749,10 @@ func (p *Provider) SystemUpdate(opts structs.SystemUpdateOptions) error {
 		}
 
 		changes["version"] = *opts.Version
+	}
+
+	if err := p.checkPermissionsBoundaryUpdate(opts, template); err != nil {
+		return err
 	}
 
 	forcedMigration := false
@@ -988,4 +994,46 @@ func waitForAvailability(url string) error {
 			return fmt.Errorf("timeout")
 		}
 	}
+}
+
+func (p *Provider) checkPermissionsBoundaryUpdate(opts structs.SystemUpdateOptions, template []byte) error {
+	next, setting := opts.Parameters["PermissionsBoundary"]
+	upgrading := opts.Version != nil && *opts.Version != p.Version
+
+	if !setting && !upgrading {
+		return nil
+	}
+
+	current, err := p.stackParameter(p.Rack, "PermissionsBoundary")
+	if err != nil && !strings.HasPrefix(err.Error(), "parameter not found") {
+		return err
+	}
+
+	if setting && next != current {
+		if upgrading {
+			return fmt.Errorf("set PermissionsBoundary in a separate update")
+		}
+
+		bounded, err := p.apiRoleHasBoundary()
+		if err != nil {
+			return err
+		}
+
+		if bounded {
+			return fmt.Errorf("remove the permissions boundary from ApiRole first")
+		}
+	}
+
+	if upgrading && current != "" && template != nil {
+		fp, err := formationParameters(template)
+		if err != nil {
+			return err
+		}
+
+		if !fp["PermissionsBoundary"] {
+			return fmt.Errorf("clear PermissionsBoundary before moving to a version without it")
+		}
+	}
+
+	return nil
 }

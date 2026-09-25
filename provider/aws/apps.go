@@ -51,7 +51,7 @@ func (p *Provider) AppCreate(name string, opts structs.AppCreateOptions) (*struc
 		return nil, fmt.Errorf("unknown generation")
 	}
 
-	data, err := formationTemplate("app", nil)
+	data, err := formationTemplate("app", map[string]interface{}{"PermissionsBoundary": p.permissionsBoundary()})
 	if err != nil {
 		return nil, err
 	}
@@ -86,7 +86,7 @@ func (p *Provider) AppCreate(name string, opts structs.AppCreateOptions) (*struc
 }
 
 func (p *Provider) appCreateGeneration1(name string) (*structs.App, error) {
-	data, err := formationTemplate("g1/app", map[string]interface{}{"Version": p.Version})
+	data, err := formationTemplate("g1/app", map[string]interface{}{"PermissionsBoundary": p.permissionsBoundary(), "Version": p.Version})
 	if err != nil {
 		return nil, err
 	}
