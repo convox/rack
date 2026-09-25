@@ -2,6 +2,7 @@
   "AWSTemplateFormatVersion": "2010-09-09",
   "Conditions": {
     "AllowALBPort80": { "Fn::Equals": [ { "Ref": "DisableALBPort80" }, "No" ] },
+    "ApiRoleScopedEnabled": { "Fn::Equals": [ { "Ref": "ApiRoleScoped" }, "Yes" ] },
     "Autoscale": { "Fn::Equals": [ { "Ref": "Autoscale" }, "Yes" ] },
     "BlankAmi": { "Fn::Equals": [ { "Ref": "Ami" }, "" ] },
     "BlankAvailabilityZones": { "Fn::Equals": [ { "Fn::Join": [ "", { "Ref": "AvailabilityZones" } ] }, "" ] },
@@ -762,6 +763,12 @@
       "Type": "String",
       "Description": "How much memory should be reserved by the api monitor process",
       "Default": "128"
+    },
+    "ApiRoleScoped": {
+      "Type": "String",
+      "Description": "Replace PowerUserAccess on the rack API role with a policy limited to the AWS services the rack uses",
+      "Default": "No",
+      "AllowedValues": [ "Yes", "No" ]
     },
     "ApiRouter": {
       "Type": "String",
@@ -4409,6 +4416,50 @@
         "Value": { "Ref": "Password" }
       }
     },
+    "ApiPolicyScoped": {
+      "Type": "AWS::IAM::ManagedPolicy",
+      "Condition": "ApiRoleScopedEnabled",
+      "Properties": {
+        "Path": "/convox/",
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Action": [
+                "acm:*",
+                "application-autoscaling:*",
+                "autoscaling:*",
+                "cloudformation:*",
+                "cloudwatch:*",
+                "dynamodb:*",
+                "ec2:*",
+                "ecr:*",
+                "ecs:*",
+                "elasticache:*",
+                "elasticfilesystem:*",
+                "elasticloadbalancing:*",
+                "events:*",
+                "iam:CreateServiceLinkedRole",
+                "iam:ListRoles",
+                "kms:*",
+                "lambda:*",
+                "logs:*",
+                "managed-fleets:*",
+                "rds:*",
+                "route53:*",
+                "s3:*",
+                "sns:*",
+                "sqs:*",
+                "ssm:*",
+                "sts:GetServiceBearerToken"
+              ],
+              "Resource": "*"
+            }
+          ]
+        }
+      }
+    },
     "ApiRole": {
       "Type": "AWS::IAM::Role",
       "Properties": {
@@ -4420,7 +4471,7 @@
           "Version": "2012-10-17"
         },
         "ManagedPolicyArns": [
-          { "Fn::Sub": "arn:${AWS::Partition}:iam::aws:policy/PowerUserAccess" },
+          { "Fn::If": [ "ApiRoleScopedEnabled", { "Ref": "ApiPolicyScoped" }, { "Fn::Sub": "arn:${AWS::Partition}:iam::aws:policy/PowerUserAccess" } ] },
           { "Ref": "ApiPolicyV2" },
           { "Ref": "CMKPolicy" }
         ],
