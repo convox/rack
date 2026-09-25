@@ -331,12 +331,16 @@ func TestBuildLogsRunning(t *testing.T) {
 	provider := StubAwsProvider(
 		cycleBuildGetItemRunning,
 		cycleBuildDescribeTasks,
+		cycleBuildDescribeTasks,
+		cycleBuildDescribeContainerInstances,
+		cycleBuildDescribeInstances,
 		cycleBuildDescribeContainerInstances,
 		cycleBuildDescribeInstances,
 	)
 	defer provider.Close()
 
 	d := stubDocker(
+		cycleBuildDockerListContainers,
 		cycleBuildDockerListContainers,
 		cycleBuildDockerLogs,
 	)
