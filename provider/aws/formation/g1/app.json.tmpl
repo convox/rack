@@ -94,6 +94,7 @@
         "ManagedPolicyArns": [
           { "Fn::ImportValue": { "Fn::Sub": "${Rack}:CMKPolicy" } }
         ],
+        {{ with $.PermissionsBoundary }}"PermissionsBoundary": {{ safe . }},{{ end }}
         "Path": "/convox/",
         "Policies": [
           {
@@ -220,6 +221,7 @@
         "ManagedPolicyArns": [
           { "Fn::ImportValue": { "Fn::Sub": "${Rack}:CMKPolicy" } }
         ],
+        {{ with $.PermissionsBoundary }}"PermissionsBoundary": {{ safe . }},{{ end }}
         "Path": "/convox/",
         "Policies": [
           {
@@ -245,7 +247,7 @@
     {{ template "process-services" . }}
     {{ template "registry-resources" . }}
 
-    {{ template "security" }}
+    {{ template "security" . }}
     {{ template "state" }}
   },
   "Outputs": {
@@ -747,6 +749,7 @@
         "ManagedPolicyArns": [
           { "Fn::ImportValue": { "Fn::Sub": "${Rack}:CMKPolicy" } }
         ],
+        {{ with $.PermissionsBoundary }}"PermissionsBoundary": {{ safe . }},{{ end }}
         "Path": "/convox/",
         "Policies": [
           {
@@ -936,6 +939,7 @@
       "ManagedPolicyArns": [
         { "Fn::ImportValue": { "Fn::Sub": "${Rack}:CMKPolicy" } }
       ],
+      {{ with $.PermissionsBoundary }}"PermissionsBoundary": {{ safe . }},{{ end }}
       "Path": "/convox/",
       "Policies": [
         {

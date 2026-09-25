@@ -377,6 +377,8 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 		rackSMParam = "No"
 	}
 
+	tp["PermissionsBoundary"] = p.permissionsBoundary()
+
 	appSMParam, appSMErr := p.stackParameter(p.rackStack(r.App), "SecretsManagerEnv")
 	smValue := rackSMParam
 	if appSMErr == nil && appSMParam == "Yes" {
@@ -455,6 +457,7 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 			"NLBInternalPreserveClientIPDefault": yesNo(p.NLBInternalPreserveClientIP),
 			"SecretsManagerARN":                  smARN,
 			"SecretsManagerKeys":                 smKeys,
+			"PermissionsBoundary":                tp["PermissionsBoundary"],
 		}
 
 		data, err := formationTemplate("service", stp)
@@ -472,15 +475,16 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 
 	for _, t := range m.Timers {
 		ttp := map[string]interface{}{
-			"App":                r.App,
-			"Build":              tp["Build"],
-			"Manifest":           tp["Manifest"],
-			"Password":           p.Password,
-			"Release":            tp["Release"],
-			"Timer":              t,
-			"TimeState":          "",
-			"SecretsManagerARN":  smARN,
-			"SecretsManagerKeys": smKeys,
+			"App":                 r.App,
+			"Build":               tp["Build"],
+			"Manifest":            tp["Manifest"],
+			"Password":            p.Password,
+			"Release":             tp["Release"],
+			"Timer":               t,
+			"TimeState":           "",
+			"SecretsManagerARN":   smARN,
+			"SecretsManagerKeys":  smKeys,
+			"PermissionsBoundary": tp["PermissionsBoundary"],
 		}
 
 		if p.MaintainTimerState {
@@ -579,12 +583,13 @@ func (p *Provider) releasePromoteGeneration1(a *structs.App, r *structs.Release)
 	}
 
 	tp := map[string]interface{}{
-		"App":         a,
-		"Cluster":     p.Cluster,
-		"Environment": fmt.Sprintf("https://%s.s3.amazonaws.com/releases/%s/env", settings, r.Id),
-		"Manifest":    m,
-		"Region":      p.Region,
-		"Version":     p.Version,
+		"App":                 a,
+		"Cluster":             p.Cluster,
+		"Environment":         fmt.Sprintf("https://%s.s3.amazonaws.com/releases/%s/env", settings, r.Id),
+		"Manifest":            m,
+		"PermissionsBoundary": p.permissionsBoundary(),
+		"Region":              p.Region,
+		"Version":             p.Version,
 	}
 
 	if r.Build != "" {

@@ -2,10 +2,12 @@
   {
     "AWSTemplateFormatVersion" : "2010-09-09",
     "Conditions": {
+      "PermissionsBoundaryEnabled": { "Fn::Not": [ { "Fn::Equals": [ { "Ref": "PermissionsBoundary" }, "" ] } ] },
       "Topic": { "Fn::Not": [ { "Fn::Equals": [ { "Ref": "Topic" }, "" ] } ] },
       "Versioning": { "Fn::Equals": [ { "Ref": "Versioning" }, "true" ] }
     },
     "Parameters": {
+      "PermissionsBoundary": { "Type": "String", "Default": "" },
       "Topic": {
         "Type" : "String",
         "Default": "",
@@ -97,6 +99,7 @@
       "User": {
         "Type": "AWS::IAM::User",
         "Properties": {
+          "PermissionsBoundary": { "Fn::If": [ "PermissionsBoundaryEnabled", { "Ref": "PermissionsBoundary" }, { "Ref": "AWS::NoValue" } ] },
           "Path": "/convox/",
           "Policies": [{
             "PolicyName" : "S3Access",

@@ -2,9 +2,11 @@
   {
     "AWSTemplateFormatVersion" : "2010-09-09",
     "Conditions": {
+      "PermissionsBoundaryEnabled": { "Fn::Not": [ { "Fn::Equals": [ { "Ref": "PermissionsBoundary" }, "" ] } ] },
       "Queue": { "Fn::Not": [ { "Fn::Equals": [ { "Ref": "Queue" }, "" ] } ] }
     },
     "Parameters": {
+      "PermissionsBoundary": { "Type": "String", "Default": "" },
       "Queue": {
         "Type" : "String",
         "Default": "",
@@ -55,6 +57,7 @@
       "User": {
         "Type": "AWS::IAM::User",
         "Properties": {
+          "PermissionsBoundary": { "Fn::If": [ "PermissionsBoundaryEnabled", { "Ref": "PermissionsBoundary" }, { "Ref": "AWS::NoValue" } ] },
           "Path": "/convox/",
           "Policies": [{
             "PolicyName" : "SNSAccess",

@@ -1,10 +1,12 @@
 package aws
 
 import (
+	"bytes"
 	"encoding/json"
 	"html/template"
 	"os"
 	"path/filepath"
+	"reflect"
 	"regexp"
 	"testing"
 )
@@ -563,5 +565,179 @@ func TestFargateBuildEphemeralStorage(t *testing.T) {
 
 	for name, param := range anchors {
 		t.Errorf("ApiBuildTasks is missing an unconditional %s ref to %s", name, param)
+	}
+}
+
+// TestApiPolicyV2Scope pins where the rack's IAM authority applies. A widened
+// resource list lets the rack modify IAM entities it does not own.
+func TestApiPolicyV2Scope(t *testing.T) {
+	data, err := os.ReadFile(filepath.Join("formation", "rack.json"))
+	if err != nil {
+		t.Fatalf("read rack.json: %v", err)
+	}
+
+	var tmpl struct {
+		Resources map[string]json.RawMessage `json:"Resources"`
+	}
+
+	if err := json.Unmarshal(data, &tmpl); err != nil {
+		t.Fatalf("parse rack.json: %v", err)
+	}
+
+	var policy struct {
+		Properties struct {
+			PolicyDocument struct {
+				Statement []struct {
+					Action   []string          `json:"Action"`
+					Resource []json.RawMessage `json:"Resource"`
+				} `json:"Statement"`
+			} `json:"PolicyDocument"`
+		} `json:"Properties"`
+	}
+
+	if err := json.Unmarshal(tmpl.Resources["ApiPolicyV2"], &policy); err != nil {
+		t.Fatalf("parse ApiPolicyV2: %v", err)
+	}
+
+	st := policy.Properties.PolicyDocument.Statement
+	if len(st) != 3 {
+		t.Fatalf("ApiPolicyV2 has %d statements, want 3", len(st))
+	}
+
+	subs := func(rs []json.RawMessage) []string {
+		out := []string{}
+		for _, r := range rs {
+			var s struct {
+				Sub string `json:"Fn::Sub"`
+			}
+			if err := json.Unmarshal(r, &s); err == nil && s.Sub != "" {
+				out = append(out, s.Sub)
+				continue
+			}
+			var lit string
+			if err := json.Unmarshal(r, &lit); err == nil {
+				out = append(out, lit)
+			}
+		}
+		return out
+	}
+
+	scoped := []string{
+		"arn:${AWS::Partition}:iam::${AWS::AccountId}:instance-profile/convox/*",
+		"arn:${AWS::Partition}:iam::${AWS::AccountId}:policy/convox/*",
+		"arn:${AWS::Partition}:iam::${AWS::AccountId}:role/convox/*",
+		"arn:${AWS::Partition}:iam::${AWS::AccountId}:user/convox/*",
+	}
+	for i, want := range []int{4, 1, 1} {
+		if len(st[i].Resource) != want {
+			t.Errorf("statement %d has %d resources, want %d", i, len(st[i].Resource), want)
+		}
+	}
+
+	if got := subs(st[0].Resource); !reflect.DeepEqual(got, scoped) {
+		t.Errorf("statement 0 resources are %v, want %v", got, scoped)
+	}
+
+	actions := map[string]bool{}
+	for _, a := range st[0].Action {
+		actions[a] = true
+	}
+	for _, a := range []string{"iam:GetRole", "iam:PassRole", "iam:ListRoles", "iam:ListUsers"} {
+		if actions[a] {
+			t.Errorf("statement 0 still grants %s", a)
+		}
+	}
+	for _, a := range []string{"iam:PutRolePermissionsBoundary", "iam:DeleteRolePermissionsBoundary", "iam:PutUserPermissionsBoundary", "iam:DeleteUserPermissionsBoundary"} {
+		if !actions[a] {
+			t.Errorf("statement 0 is missing %s", a)
+		}
+	}
+
+	if !reflect.DeepEqual(st[1].Action, []string{"iam:GetRole", "iam:PassRole"}) {
+		t.Errorf("statement 1 actions are %v, want iam:GetRole and iam:PassRole", st[1].Action)
+	}
+	if got, want := subs(st[1].Resource), []string{"arn:${AWS::Partition}:iam::${AWS::AccountId}:role/*"}; !reflect.DeepEqual(got, want) {
+		t.Errorf("statement 1 resources are %v, want %v", got, want)
+	}
+
+	if got := subs(st[2].Resource); !reflect.DeepEqual(got, []string{"*"}) {
+		t.Errorf("statement 2 resources are %v, want *", got)
+	}
+}
+
+// TestPermissionsBoundaryRackWiring pins the boundary on every rack role except
+// ApiRole, which the account admin sets. A role left out stays outside the boundary.
+func TestPermissionsBoundaryRackWiring(t *testing.T) {
+	data, err := os.ReadFile(filepath.Join("formation", "rack.json"))
+	if err != nil {
+		t.Fatalf("read rack.json: %v", err)
+	}
+
+	var tmpl struct {
+		Conditions map[string]json.RawMessage `json:"Conditions"`
+		Parameters map[string]json.RawMessage `json:"Parameters"`
+		Resources  map[string]struct {
+			Type       string                     `json:"Type"`
+			Properties map[string]json.RawMessage `json:"Properties"`
+		} `json:"Resources"`
+	}
+
+	if err := json.Unmarshal(data, &tmpl); err != nil {
+		t.Fatalf("parse rack.json: %v", err)
+	}
+
+	var param struct {
+		Default        *string `json:"Default"`
+		AllowedPattern string  `json:"AllowedPattern"`
+	}
+
+	if err := json.Unmarshal(tmpl.Parameters["PermissionsBoundary"], &param); err != nil || param.Default == nil || *param.Default != "" {
+		t.Fatalf("PermissionsBoundary parameter must exist with an empty default")
+	}
+
+	pattern := regexp.MustCompile(param.AllowedPattern)
+	for value, want := range map[string]bool{
+		"": true,
+		"arn:aws:iam::123456789012:policy/convox-boundary/ceiling": true,
+		"arn:aws-us-gov:iam::123456789012:policy/ceiling":          true,
+		"arn:aws:iam::123456789012:policy/a+b":                     false,
+		"arn:aws:iam::123456789012:role/ceiling":                   false,
+		"ceiling":                                                  false,
+	} {
+		if got := pattern.MatchString(value); got != want {
+			t.Errorf("AllowedPattern match %q = %t, want %t", value, got, want)
+		}
+	}
+
+	var cond bytes.Buffer
+	if err := json.Compact(&cond, tmpl.Conditions["PermissionsBoundaryEnabled"]); err != nil || cond.String() != `{"Fn::Not":[{"Fn::Equals":[{"Ref":"PermissionsBoundary"},""]}]}` {
+		t.Fatalf("PermissionsBoundaryEnabled is %s, want true only when the parameter is set", tmpl.Conditions["PermissionsBoundaryEnabled"])
+	}
+
+	want := `{"Fn::If":["PermissionsBoundaryEnabled",{"Ref":"PermissionsBoundary"},{"Ref":"AWS::NoValue"}]}`
+	roles := 0
+
+	for name, r := range tmpl.Resources {
+		if r.Type != "AWS::IAM::Role" {
+			continue
+		}
+		roles++
+
+		pb, has := r.Properties["PermissionsBoundary"]
+		if name == "ApiRole" {
+			if has {
+				t.Errorf("ApiRole must not declare PermissionsBoundary")
+			}
+			continue
+		}
+
+		var compact bytes.Buffer
+		if !has || json.Compact(&compact, pb) != nil || compact.String() != want {
+			t.Errorf("%s PermissionsBoundary is %s, want %s", name, pb, want)
+		}
+	}
+
+	if roles != 9 {
+		t.Errorf("rack.json has %d roles, want 9; add the boundary to any new role", roles)
 	}
 }

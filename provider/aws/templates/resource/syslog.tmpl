@@ -2,6 +2,7 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
   "Conditions": {
+    "PermissionsBoundaryEnabled": { "Fn::Not": [ { "Fn::Equals": [ { "Ref": "PermissionsBoundary" }, "" ] } ] },
     "Private": { "Fn::Equals": [ { "Ref": "Private" }, "true" ] }
   },
   "Outputs": {
@@ -17,6 +18,7 @@
     }
   },
   "Parameters": {
+    "PermissionsBoundary": { "Type": "String", "Default": "" },
     "Format": {
       "Type": "String",
       "Description": "Syslog format string",
@@ -109,6 +111,7 @@
           ],
           "Version": "2012-10-17"
         },
+        "PermissionsBoundary": { "Fn::If": [ "PermissionsBoundaryEnabled", { "Ref": "PermissionsBoundary" }, { "Ref": "AWS::NoValue" } ] },
         "Path": "/convox/",
         "Policies": [
           {

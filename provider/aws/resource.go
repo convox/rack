@@ -125,16 +125,17 @@ func (p *Provider) ResourceDefaults(app, resource string) (map[string]string, er
 /** system resources ***************************************************************************/
 
 var resourceSystemParameters = map[string]bool{
-	"CustomTopic":       true,
-	"NotificationTopic": true,
-	"Private":           true,
-	"Release":           true,
-	"SecurityGroups":    true,
-	"Subnets":           true,
-	"SubnetsPrivate":    true,
-	"Version":           true,
-	"Vpc":               true,
-	"VpcCidr":           true,
+	"CustomTopic":         true,
+	"NotificationTopic":   true,
+	"PermissionsBoundary": true,
+	"Private":             true,
+	"Release":             true,
+	"SecurityGroups":      true,
+	"Subnets":             true,
+	"SubnetsPrivate":      true,
+	"Version":             true,
+	"Vpc":                 true,
+	"VpcCidr":             true,
 }
 
 // ResourceCreate creates a new resource.
@@ -764,6 +765,7 @@ func (p *Provider) resourceSystemParameters() map[string]string {
 	params := map[string]string{}
 
 	params["NotificationTopic"] = p.NotificationTopic
+	params["PermissionsBoundary"] = p.permissionsBoundary()
 	params["Private"] = fmt.Sprintf("%t", p.SubnetsPrivate != "")
 	params["Release"] = p.Version
 	params["SecurityGroups"] = p.SecurityGroup

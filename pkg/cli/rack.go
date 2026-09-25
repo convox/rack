@@ -86,6 +86,7 @@ var paramGroups = map[string]map[string]bool{
 		"InstancesIpToIncludInWhiteListing":     true,
 		"Key":                                   true,
 		"Password":                              true,
+		"PermissionsBoundary":                   true,
 		"PrivateApiSecurityGroup":               true,
 		"RouterInternalSecurityGroup":           true,
 		"RouterSecurityGroup":                   true,

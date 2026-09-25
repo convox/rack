@@ -173,6 +173,7 @@
             "Version": "2012-10-17"
           },
           "ManagedPolicyArns": {"Fn::Split":[",",{"Fn::Join":[",",[{"Ref":"Policies"},{"Fn::ImportValue":{"Fn::Sub":"${Rack}:CMKPolicy"}}]]}]},
+          {{ with $.PermissionsBoundary }}"PermissionsBoundary": {{ safe . }},{{ end }}
           "Path": "/convox/",
           "Policies": [ {
             "PolicyName": "convox-env",
