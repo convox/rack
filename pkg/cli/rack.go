@@ -71,6 +71,7 @@ var paramGroups = map[string]map[string]bool{
 	},
 	"security": {
 		"SecretsManagerEnv":                     true,
+		"ApiRoleScoped":                         true,
 		"BuildInstancePolicy":                   true, // dual-listed in build
 		"BuildInstanceSecurityGroup":            true,
 		"ECSExec":                               true,
