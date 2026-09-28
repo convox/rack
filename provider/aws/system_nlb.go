@@ -121,7 +121,7 @@ func yesNo(b bool) string {
 //   - Disabling NLB/NLBInternal requires no dependent gen2 apps
 //   - Allowlist CIDR params shape/limit/dedup
 //   - Deletion protection + NLB=No interlock
-//   - Customer-InstanceSecurityGroup incompatible with preserve_client_ip
+//   - User-supplied InstanceSecurityGroup incompatible with preserve_client_ip
 func (p *Provider) validateNLBParams(opts structs.SystemUpdateOptions) error {
 	want := func(key string) (string, bool) {
 		if opts.Parameters == nil {
@@ -210,17 +210,17 @@ func (p *Provider) validateNLBParams(opts structs.SystemUpdateOptions) error {
 
 	if p.InstanceSecurityGroup != "" {
 		if v, ok := want("NLBPreserveClientIP"); ok && v == "Yes" {
-			return fmt.Errorf("cannot enable NLBPreserveClientIP on a rack with a customer-supplied InstanceSecurityGroup; your instance SG must add an ingress rule from the NLB security group (exported as ${Rack}:NLBSecurityGroup) for the NLB listener ports before this feature can be enabled safely")
+			return fmt.Errorf("cannot enable NLBPreserveClientIP on a rack with a user-supplied InstanceSecurityGroup; your instance SG must add an ingress rule from the NLB security group (exported as ${Rack}:NLBSecurityGroup) for the NLB listener ports before this feature can be enabled safely")
 		}
 		if v, ok := want("NLBInternalPreserveClientIP"); ok && v == "Yes" {
-			return fmt.Errorf("cannot enable NLBInternalPreserveClientIP on a rack with a customer-supplied InstanceSecurityGroup; your instance SG must add an ingress rule from the NLB security group (exported as ${Rack}:NLBInternalSecurityGroup) for the NLB listener ports before this feature can be enabled safely")
+			return fmt.Errorf("cannot enable NLBInternalPreserveClientIP on a rack with a user-supplied InstanceSecurityGroup; your instance SG must add an ingress rule from the NLB security group (exported as ${Rack}:NLBInternalSecurityGroup) for the NLB listener ports before this feature can be enabled safely")
 		}
 	}
 
-	// Inverse interlock: setting a customer InstanceSecurityGroup on a rack
+	// Inverse interlock: setting a custom InstanceSecurityGroup on a rack
 	// where preserve_client_ip is already enabled would break NLB traffic
 	// silently (the convox-managed InstancesSecurityNLBIngress no longer
-	// applies — the customer SG replaces InstancesSecurity on hosts). Block
+	// applies, since the custom SG replaces InstancesSecurity on hosts). Block
 	// unless the same call also disables preserve_client_ip.
 	if nextSG, sgSet := want("InstanceSecurityGroup"); sgSet && nextSG != "" && p.InstanceSecurityGroup == "" {
 		preserveWillBeOn := func(paramName string, curOn bool) bool {
@@ -231,10 +231,10 @@ func (p *Provider) validateNLBParams(opts structs.SystemUpdateOptions) error {
 			return curOn
 		}
 		if preserveWillBeOn("NLBPreserveClientIP", p.NLBPreserveClientIP) {
-			return fmt.Errorf("cannot set a customer InstanceSecurityGroup while NLBPreserveClientIP=Yes; set NLBPreserveClientIP=No in this same command (or unset it first), then set the custom SG. After the customer SG is in place, re-enable NLBPreserveClientIP only after adding an ingress rule from ${Rack}:NLBSecurityGroup to your SG")
+			return fmt.Errorf("cannot set a custom InstanceSecurityGroup while NLBPreserveClientIP=Yes; set NLBPreserveClientIP=No in this same command (or unset it first), then set the custom SG. After the custom SG is in place, re-enable NLBPreserveClientIP only after adding an ingress rule from ${Rack}:NLBSecurityGroup to your SG")
 		}
 		if preserveWillBeOn("NLBInternalPreserveClientIP", p.NLBInternalPreserveClientIP) {
-			return fmt.Errorf("cannot set a customer InstanceSecurityGroup while NLBInternalPreserveClientIP=Yes; set NLBInternalPreserveClientIP=No in this same command (or unset it first), then set the custom SG")
+			return fmt.Errorf("cannot set a custom InstanceSecurityGroup while NLBInternalPreserveClientIP=Yes; set NLBInternalPreserveClientIP=No in this same command (or unset it first), then set the custom SG")
 		}
 	}
 
