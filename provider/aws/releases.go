@@ -1125,8 +1125,8 @@ func (p *Provider) getResourceDBIdentifier(app, resourceName string) (string, er
 // validateNLBSchemeMatch rejects releases whose manifest declares NLB ports whose
 // scheme (public/internal) does not have the corresponding rack NLB enabled, and
 // releases that request per-port preserve_client_ip=true on a rack with a
-// customer-supplied InstanceSecurityGroup (the NLB-SG-source ingress rule is
-// added to the convox-managed InstancesSecurity SG, not the customer's SG).
+// user-supplied InstanceSecurityGroup (the NLB-SG-source ingress rule is
+// added to the convox-managed InstancesSecurity SG, not the user's SG).
 // Called early in release promote, before any CF or DynamoDB writes.
 func (p *Provider) validateNLBSchemeMatch(m *manifest.Manifest) error {
 	customSG := p.InstanceSecurityGroup != ""
@@ -1143,7 +1143,7 @@ func (p *Provider) validateNLBSchemeMatch(m *manifest.Manifest) error {
 				}
 			}
 			if customSG && np.PreserveClientIP != nil && *np.PreserveClientIP {
-				return fmt.Errorf("service %s nlb port %d: cannot set preserve_client_ip=true on a rack with a customer-supplied InstanceSecurityGroup; your instance SG must add an ingress rule from the NLB security group (exported as ${Rack}:NLBSecurityGroup / ${Rack}:NLBInternalSecurityGroup) for the NLB listener ports before this feature can be enabled safely", s.Name, np.Port)
+				return fmt.Errorf("service %s nlb port %d: cannot set preserve_client_ip=true on a rack with a user-supplied InstanceSecurityGroup; your instance SG must add an ingress rule from the NLB security group (exported as ${Rack}:NLBSecurityGroup / ${Rack}:NLBInternalSecurityGroup) for the NLB listener ports before this feature can be enabled safely", s.Name, np.Port)
 			}
 		}
 	}
