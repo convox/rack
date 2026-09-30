@@ -123,7 +123,7 @@
     "LoadBalancerGrpcSuccessCodes": {
       "Type": "String",
       "Default": "12",
-      "Description": "Specifies the GRPC codes that healthy targets must use when responding to an GRPC health check.  You can specify values between 200 and 499, and the default value is \"12\". You can specify multiple values (for example, \"12,13\") or a range of values (for example, \"10-99\")."
+      "Description": "Specifies the GRPC codes that healthy targets must use when responding to an GRPC health check.  You can specify values between 0 and 99, and the default value is \"12\". You can specify multiple values (for example, \"12,13\") or a range of values (for example, \"10-99\")."
     },
     "LogBucket": {
       "Type": "String",
@@ -220,6 +220,7 @@
           { "Fn::Sub": "arn:${AWS::Partition}:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy" },
           { "Fn::ImportValue": { "Fn::Sub": "${Rack}:CMKPolicy" } }
         ],
+        {{ with $.PermissionsBoundary }}"PermissionsBoundary": {{ safe . }},{{ end }}
         "Path": "/convox/"
         {{ if $.SecretsManagerARN }}
         ,
@@ -377,6 +378,7 @@
         { "Fn::If": [ "BlankIamPolicy", { "Ref": "AWS::NoValue" }, { "Ref": "IamPolicy" } ] },
         { "Fn::ImportValue": { "Fn::Sub": "${Rack}:CMKPolicy" } }
       ],
+      {{ with $.PermissionsBoundary }}"PermissionsBoundary": {{ safe . }},{{ end }}
       "Path": "/convox/",
       "Policies": [
         {
@@ -579,6 +581,7 @@
           { "Fn::Sub": "arn:${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole" },
           { "Fn::ImportValue": { "Fn::Sub": "${Rack}:CMKPolicy" } }
         ],
+        {{ with $.PermissionsBoundary }}"PermissionsBoundary": {{ safe . }},{{ end }}
         "Path": "/convox/",
         "Policies": [
           {

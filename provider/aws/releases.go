@@ -377,6 +377,8 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 		rackSMParam = "No"
 	}
 
+	tp["PermissionsBoundary"] = p.permissionsBoundary()
+
 	appSMParam, appSMErr := p.stackParameter(p.rackStack(r.App), "SecretsManagerEnv")
 	smValue := rackSMParam
 	if appSMErr == nil && appSMParam == "Yes" {
@@ -455,6 +457,7 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 			"NLBInternalPreserveClientIPDefault": yesNo(p.NLBInternalPreserveClientIP),
 			"SecretsManagerARN":                  smARN,
 			"SecretsManagerKeys":                 smKeys,
+			"PermissionsBoundary":                tp["PermissionsBoundary"],
 		}
 
 		data, err := formationTemplate("service", stp)
@@ -472,15 +475,16 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 
 	for _, t := range m.Timers {
 		ttp := map[string]interface{}{
-			"App":                r.App,
-			"Build":              tp["Build"],
-			"Manifest":           tp["Manifest"],
-			"Password":           p.Password,
-			"Release":            tp["Release"],
-			"Timer":              t,
-			"TimeState":          "",
-			"SecretsManagerARN":  smARN,
-			"SecretsManagerKeys": smKeys,
+			"App":                 r.App,
+			"Build":               tp["Build"],
+			"Manifest":            tp["Manifest"],
+			"Password":            p.Password,
+			"Release":             tp["Release"],
+			"Timer":               t,
+			"TimeState":           "",
+			"SecretsManagerARN":   smARN,
+			"SecretsManagerKeys":  smKeys,
+			"PermissionsBoundary": tp["PermissionsBoundary"],
 		}
 
 		if p.MaintainTimerState {
@@ -579,12 +583,13 @@ func (p *Provider) releasePromoteGeneration1(a *structs.App, r *structs.Release)
 	}
 
 	tp := map[string]interface{}{
-		"App":         a,
-		"Cluster":     p.Cluster,
-		"Environment": fmt.Sprintf("https://%s.s3.amazonaws.com/releases/%s/env", settings, r.Id),
-		"Manifest":    m,
-		"Region":      p.Region,
-		"Version":     p.Version,
+		"App":                 a,
+		"Cluster":             p.Cluster,
+		"Environment":         fmt.Sprintf("https://%s.s3.amazonaws.com/releases/%s/env", settings, r.Id),
+		"Manifest":            m,
+		"PermissionsBoundary": p.permissionsBoundary(),
+		"Region":              p.Region,
+		"Version":             p.Version,
 	}
 
 	if r.Build != "" {
@@ -1125,8 +1130,8 @@ func (p *Provider) getResourceDBIdentifier(app, resourceName string) (string, er
 // validateNLBSchemeMatch rejects releases whose manifest declares NLB ports whose
 // scheme (public/internal) does not have the corresponding rack NLB enabled, and
 // releases that request per-port preserve_client_ip=true on a rack with a
-// customer-supplied InstanceSecurityGroup (the NLB-SG-source ingress rule is
-// added to the convox-managed InstancesSecurity SG, not the customer's SG).
+// user-supplied InstanceSecurityGroup (the NLB-SG-source ingress rule is
+// added to the convox-managed InstancesSecurity SG, not the user's SG).
 // Called early in release promote, before any CF or DynamoDB writes.
 func (p *Provider) validateNLBSchemeMatch(m *manifest.Manifest) error {
 	customSG := p.InstanceSecurityGroup != ""
@@ -1143,7 +1148,7 @@ func (p *Provider) validateNLBSchemeMatch(m *manifest.Manifest) error {
 				}
 			}
 			if customSG && np.PreserveClientIP != nil && *np.PreserveClientIP {
-				return fmt.Errorf("service %s nlb port %d: cannot set preserve_client_ip=true on a rack with a customer-supplied InstanceSecurityGroup; your instance SG must add an ingress rule from the NLB security group (exported as ${Rack}:NLBSecurityGroup / ${Rack}:NLBInternalSecurityGroup) for the NLB listener ports before this feature can be enabled safely", s.Name, np.Port)
+				return fmt.Errorf("service %s nlb port %d: cannot set preserve_client_ip=true on a rack with a user-supplied InstanceSecurityGroup; your instance SG must add an ingress rule from the NLB security group (exported as ${Rack}:NLBSecurityGroup / ${Rack}:NLBInternalSecurityGroup) for the NLB listener ports before this feature can be enabled safely", s.Name, np.Port)
 			}
 		}
 	}

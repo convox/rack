@@ -78,12 +78,8 @@ func (p *Provider) CertificateCreate(pub, key string, opts structs.CertificateCr
 }
 
 func (p *Provider) CertificateDelete(id string) error {
-	if strings.HasPrefix(id, "acm") {
-		ss := strings.Split(id, "-")
-		if len(ss) < 2 {
-			return fmt.Errorf("invalid certificate id")
-		}
-		id = ss[1]
+	if strings.HasPrefix(id, "acm-") {
+		id = strings.Split(id, "-")[1]
 
 		certs, err := p.certificateListACM()
 		if err != nil {
@@ -91,7 +87,7 @@ func (p *Provider) CertificateDelete(id string) error {
 		}
 
 		for _, c := range certs {
-			if strings.HasSuffix(*c.CertificateArn, id) {
+			if strings.HasSuffix(*c.CertificateArn, "-"+id) {
 				_, err = p.acm().DeleteCertificate(&acm.DeleteCertificateInput{
 					CertificateArn: c.CertificateArn,
 				})
@@ -121,7 +117,8 @@ func (p *Provider) CertificateGenerate(domains []string) (*structs.Certificate, 
 	}
 
 	req := &acm.RequestCertificateInput{
-		DomainName: aws.String(domains[0]),
+		DomainName:       aws.String(domains[0]),
+		IdempotencyToken: aws.String(randomString(32)),
 	}
 
 	if len(alts) > 0 {

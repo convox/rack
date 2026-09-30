@@ -2,6 +2,7 @@ package aws
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"math"
@@ -1669,23 +1670,29 @@ func truncate(f float64, precision int) float64 {
 	return float64(int(f*p)) / p
 }
 
-func (p *Provider) waitForTask(arn string) (string, error) {
-	timeout := time.After(300 * time.Second)
+var errTaskStartTimeout = errors.New("timeout starting process")
+
+// taskStartTimeout is a variable so tests can shorten it.
+var taskStartTimeout = 60 * time.Minute
+
+func (p *Provider) waitForTask(arn string, deadline time.Time) (string, error) {
 	tick := time.Tick(1 * time.Second)
 
 	for {
-		select {
-		case <-tick:
-			task, err := p.describeTask(arn)
-			if err != nil {
-				return "", err
-			}
-			switch status := *task.LastStatus; status {
-			case "RUNNING", "STOPPED":
-				return status, nil
-			}
-		case <-timeout:
-			return "", fmt.Errorf("timeout starting process")
+		<-tick
+
+		task, err := p.describeTask(arn)
+		if err != nil {
+			return "", err
+		}
+
+		switch status := *task.LastStatus; status {
+		case "RUNNING", "STOPPED":
+			return status, nil
+		}
+
+		if time.Now().After(deadline) {
+			return "", errTaskStartTimeout
 		}
 	}
 }

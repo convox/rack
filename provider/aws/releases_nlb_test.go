@@ -51,9 +51,9 @@ func TestValidateNLBSchemeMatch_NoNLBPorts(t *testing.T) {
 	}
 }
 
-func TestValidateNLBSchemeMatch_CustomerSGBlocksPreserveClientIP(t *testing.T) {
+func TestValidateNLBSchemeMatch_CustomSGBlocksPreserveClientIP(t *testing.T) {
 	tru := true
-	p := &Provider{NLB: true, NLBInternal: true, InstanceSecurityGroup: "sg-customer"}
+	p := &Provider{NLB: true, NLBInternal: true, InstanceSecurityGroup: "sg-custom"}
 	m := &manifest.Manifest{Services: []manifest.Service{{
 		Name: "api",
 		NLB: []manifest.ServiceNLBPort{
@@ -61,14 +61,14 @@ func TestValidateNLBSchemeMatch_CustomerSGBlocksPreserveClientIP(t *testing.T) {
 		},
 	}}}
 	err := p.validateNLBSchemeMatch(m)
-	if err == nil || !strings.Contains(err.Error(), "customer-supplied InstanceSecurityGroup") {
-		t.Fatalf("expected customer-SG block on release promote, got %v", err)
+	if err == nil || !strings.Contains(err.Error(), "user-supplied InstanceSecurityGroup") {
+		t.Fatalf("expected custom-SG block on release promote, got %v", err)
 	}
 }
 
-func TestValidateNLBSchemeMatch_CustomerSGAllowsPreserveFalse(t *testing.T) {
+func TestValidateNLBSchemeMatch_CustomSGAllowsPreserveFalse(t *testing.T) {
 	fals := false
-	p := &Provider{NLB: true, InstanceSecurityGroup: "sg-customer"}
+	p := &Provider{NLB: true, InstanceSecurityGroup: "sg-custom"}
 	m := &manifest.Manifest{Services: []manifest.Service{{
 		Name: "api",
 		NLB: []manifest.ServiceNLBPort{
@@ -76,12 +76,12 @@ func TestValidateNLBSchemeMatch_CustomerSGAllowsPreserveFalse(t *testing.T) {
 		},
 	}}}
 	if err := p.validateNLBSchemeMatch(m); err != nil {
-		t.Fatalf("customer SG + preserve_client_ip=false should pass: %v", err)
+		t.Fatalf("custom SG + preserve_client_ip=false should pass: %v", err)
 	}
 }
 
-func TestValidateNLBSchemeMatch_CustomerSGAllowsPreserveNil(t *testing.T) {
-	p := &Provider{NLB: true, InstanceSecurityGroup: "sg-customer"}
+func TestValidateNLBSchemeMatch_CustomSGAllowsPreserveNil(t *testing.T) {
+	p := &Provider{NLB: true, InstanceSecurityGroup: "sg-custom"}
 	m := &manifest.Manifest{Services: []manifest.Service{{
 		Name: "api",
 		NLB: []manifest.ServiceNLBPort{
@@ -89,7 +89,7 @@ func TestValidateNLBSchemeMatch_CustomerSGAllowsPreserveNil(t *testing.T) {
 		},
 	}}}
 	if err := p.validateNLBSchemeMatch(m); err != nil {
-		t.Fatalf("customer SG + no per-port override should pass (inherits rack default): %v", err)
+		t.Fatalf("custom SG + no per-port override should pass (inherits rack default): %v", err)
 	}
 }
 

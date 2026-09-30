@@ -2,6 +2,8 @@ package aws_test
 
 import (
 	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
@@ -205,6 +207,7 @@ func TestSystemReleases(t *testing.T) {
 
 func TestSystemUpdate(t *testing.T) {
 	provider := StubAwsProvider(
+		cycleSystemDescribeStacks,
 		cycleSystemReleasePutItem,
 		cycleSystemDescribeStacks,
 		cycleSystemListStackResources,
@@ -225,6 +228,7 @@ func TestSystemUpdate(t *testing.T) {
 
 func TestSystemUpdateNewParameter(t *testing.T) {
 	provider := StubAwsProvider(
+		cycleSystemDescribeStacks,
 		cycleSystemReleasePutItem,
 		cycleSystemDescribeStacksMissingParameters,
 		cycleSystemListStackResources,
@@ -245,6 +249,7 @@ func TestSystemUpdateNewParameter(t *testing.T) {
 
 func TestSystemUpdateDuplicateTags(t *testing.T) {
 	provider := StubAwsProvider(
+		cycleSystemDescribeStacks,
 		cycleSystemReleasePutItem,
 		cycleSystemDescribeStacksWithTags,
 		cycleSystemListStackResources,
@@ -261,6 +266,156 @@ func TestSystemUpdateDuplicateTags(t *testing.T) {
 	})
 
 	assert.NoError(t, err)
+}
+
+func stubRackTemplate(t *testing.T, template string) {
+	t.Helper()
+
+	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = fmt.Fprint(w, template)
+	}))
+	t.Cleanup(s.Close)
+
+	url := *aws.RackTemplateURL
+	*aws.RackTemplateURL = s.URL + "/%s/rack.json"
+	t.Cleanup(func() { *aws.RackTemplateURL = url })
+}
+
+func TestSystemUpdatePermissionsBoundaryWithVersion(t *testing.T) {
+	stubRackTemplate(t, `{"Parameters":{"PermissionsBoundary":{"Type":"String"}}}`)
+
+	provider := StubAwsProvider(
+		cycleSystemDescribeStacks,
+	)
+	defer provider.Close()
+
+	err := provider.SystemUpdate(structs.SystemUpdateOptions{
+		Parameters: map[string]string{"PermissionsBoundary": "arn:aws:iam::123456789012:policy/ceiling"},
+		Version:    options.String("20171214220445"),
+	})
+
+	assert.EqualError(t, err, "set PermissionsBoundary in a separate update")
+}
+
+func TestSystemUpdatePermissionsBoundaryApiRoleBounded(t *testing.T) {
+	provider := StubAwsProvider(
+		cycleSystemDescribeStacksPermissionsBoundary,
+		cycleSystemListStackResourcesApiRole,
+		cycleSystemGetApiRole(`<PermissionsBoundary><PermissionsBoundaryType>Policy</PermissionsBoundaryType><PermissionsBoundaryArn>arn:aws:iam::123456789012:policy/ceiling</PermissionsBoundaryArn></PermissionsBoundary>`),
+	)
+	defer provider.Close()
+
+	err := provider.SystemUpdate(structs.SystemUpdateOptions{
+		Parameters: map[string]string{"PermissionsBoundary": ""},
+	})
+
+	assert.EqualError(t, err, "remove the permissions boundary from ApiRole first")
+}
+
+func TestSystemUpdatePermissionsBoundarySet(t *testing.T) {
+	provider := StubAwsProvider(
+		cycleSystemDescribeStacksPermissionsBoundaryEmpty,
+		cycleSystemListStackResourcesApiRole,
+		cycleSystemGetApiRole(""),
+		cycleSystemDescribeStacksPermissionsBoundaryEmpty,
+		cycleSystemUpdateStackPermissionsBoundary,
+		cycleSystemUpdateParamsNotificationPublish,
+	)
+	defer provider.Close()
+
+	err := provider.SystemUpdate(structs.SystemUpdateOptions{
+		Parameters: map[string]string{"PermissionsBoundary": "arn:aws:iam::123456789012:policy/ceiling"},
+	})
+
+	assert.NoError(t, err)
+}
+
+func TestSystemUpdatePermissionsBoundaryUnchanged(t *testing.T) {
+	provider := StubAwsProvider(
+		cycleSystemDescribeStacksPermissionsBoundary,
+		cycleSystemDescribeStacksPermissionsBoundary,
+		cycleSystemUpdateStackPermissionsBoundary,
+		cycleSystemUpdateParamsNotificationPublish,
+	)
+	defer provider.Close()
+
+	err := provider.SystemUpdate(structs.SystemUpdateOptions{
+		Parameters: map[string]string{"PermissionsBoundary": "arn:aws:iam::123456789012:policy/ceiling"},
+	})
+
+	assert.NoError(t, err)
+}
+
+func TestSystemUpdatePermissionsBoundaryDowngrade(t *testing.T) {
+	stubRackTemplate(t, `{"Parameters":{"Version":{"Type":"String"}}}`)
+
+	provider := StubAwsProvider(
+		cycleSystemDescribeStacksPermissionsBoundary,
+	)
+	defer provider.Close()
+
+	err := provider.SystemUpdate(structs.SystemUpdateOptions{
+		Version: options.String("20171214220445"),
+	})
+
+	assert.EqualError(t, err, "clear PermissionsBoundary before moving to a version without it")
+}
+
+func TestSystemUpdatePermissionsBoundaryReadError(t *testing.T) {
+	stubRackTemplate(t, `{"Parameters":{"Version":{"Type":"String"}}}`)
+
+	provider := StubAwsProvider(
+		awsutil.Cycle{
+			Request: cycleSystemDescribeStacks.Request,
+			Response: awsutil.Response{
+				StatusCode: 400,
+				Body:       `<ErrorResponse><Error><Type>Sender</Type><Code>AccessDenied</Code><Message>not authorized</Message></Error></ErrorResponse>`,
+			},
+		},
+	)
+	defer provider.Close()
+
+	err := provider.SystemUpdate(structs.SystemUpdateOptions{
+		Version: options.String("20171214220445"),
+	})
+
+	require.ErrorContains(t, err, "AccessDenied")
+}
+
+func TestSystemUpdatePermissionsBoundaryUpgrade(t *testing.T) {
+	stubRackTemplate(t, `{"Parameters":{"PermissionsBoundary":{"Type":"String"}}}`)
+
+	provider := StubAwsProvider(
+		cycleSystemDescribeStacksPermissionsBoundary,
+		cycleSystemReleasePutItemRecorded,
+	)
+	defer provider.Close()
+
+	err := provider.SystemUpdate(structs.SystemUpdateOptions{
+		Count:   options.Int(5),
+		Version: options.String("20171214220445"),
+	})
+
+	require.ErrorContains(t, err, "ReleaseRecorded")
+}
+
+func TestSystemUpdatePermissionsBoundarySameVersion(t *testing.T) {
+	stubRackTemplate(t, `{"Parameters":{"PermissionsBoundary":{"Type":"String"}}}`)
+
+	provider := StubAwsProvider(
+		cycleSystemDescribeStacksPermissionsBoundary,
+		cycleSystemListStackResourcesApiRole,
+		cycleSystemGetApiRole(`<PermissionsBoundary><PermissionsBoundaryType>Policy</PermissionsBoundaryType><PermissionsBoundaryArn>arn:aws:iam::123456789012:policy/ceiling</PermissionsBoundaryArn></PermissionsBoundary>`),
+	)
+	defer provider.Close()
+	provider.Version = "20171214220445"
+
+	err := provider.SystemUpdate(structs.SystemUpdateOptions{
+		Parameters: map[string]string{"PermissionsBoundary": ""},
+		Version:    options.String("20171214220445"),
+	})
+
+	assert.EqualError(t, err, "remove the permissions boundary from ApiRole first")
 }
 
 func TestSystemProcessesList(t *testing.T) {
@@ -1472,4 +1627,92 @@ var cycleSystemListTasksByStack = awsutil.Cycle{
 			]
 		}`,
 	},
+}
+
+var cycleSystemDescribeStacksPermissionsBoundary = awsutil.Cycle{
+	Request: cycleSystemDescribeStacks.Request,
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body:       strings.Replace(cycleSystemDescribeStacks.Response.Body, "<Parameters>", "<Parameters><member><ParameterKey>PermissionsBoundary</ParameterKey><ParameterValue>arn:aws:iam::123456789012:policy/ceiling</ParameterValue></member>", 1),
+	},
+}
+
+var cycleSystemDescribeStacksPermissionsBoundaryEmpty = awsutil.Cycle{
+	Request: cycleSystemDescribeStacks.Request,
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body:       strings.Replace(cycleSystemDescribeStacks.Response.Body, "<Parameters>", "<Parameters><member><ParameterKey>PermissionsBoundary</ParameterKey><ParameterValue></ParameterValue></member>", 1),
+	},
+}
+
+var cycleSystemUpdateStackPermissionsBoundary = awsutil.Cycle{
+	Request: awsutil.Request{
+		RequestURI: "/",
+		Body:       `/Action=UpdateStack&.*Parameters\.member\.\d+\.ParameterKey=PermissionsBoundary&Parameters\.member\.\d+\.ParameterValue=arn%3Aaws%3Aiam%3A%3A123456789012%3Apolicy%2Fceiling&.*UsePreviousTemplate=true/`,
+	},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body: `<UpdateStackResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
+			<UpdateStackResult>
+				<StackId>arn:aws:cloudformation:us-east-1:778743527532:stack/convox/eb743e00-7d8e-11e5-8280-50ba0727c06e</StackId>
+			</UpdateStackResult>
+		</UpdateStackResponse>`,
+	},
+}
+
+var cycleSystemReleasePutItemRecorded = awsutil.Cycle{
+	Request: cycleSystemReleasePutItem.Request,
+	Response: awsutil.Response{
+		StatusCode: 400,
+		Body:       `{"__type":"com.amazonaws.dynamodb.v20120810#ReleaseRecorded","message":"release recorded"}`,
+	},
+}
+
+var cycleSystemListStackResourcesApiRole = awsutil.Cycle{
+	Request: awsutil.Request{
+		RequestURI: "/",
+		Body:       `Action=ListStackResources&StackName=convox&Version=2010-05-15`,
+	},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body: `
+			<ListStackResourcesResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
+				<ListStackResourcesResult>
+					<StackResourceSummaries>
+						<member>
+							<PhysicalResourceId>convox-ApiRole-TEST</PhysicalResourceId>
+							<ResourceStatus>UPDATE_COMPLETE</ResourceStatus>
+							<LogicalResourceId>ApiRole</LogicalResourceId>
+							<LastUpdatedTimestamp>2026-09-25T00:00:00.000Z</LastUpdatedTimestamp>
+							<ResourceType>AWS::IAM::Role</ResourceType>
+						</member>
+					</StackResourceSummaries>
+				</ListStackResourcesResult>
+			</ListStackResourcesResponse>
+		`,
+	},
+}
+
+func cycleSystemGetApiRole(boundary string) awsutil.Cycle {
+	return awsutil.Cycle{
+		Request: awsutil.Request{
+			RequestURI: "/",
+			Body:       `Action=GetRole&RoleName=convox-ApiRole-TEST&Version=2010-05-08`,
+		},
+		Response: awsutil.Response{
+			StatusCode: 200,
+			Body: `<GetRoleResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
+				<GetRoleResult>
+					<Role>
+						<Path>/convox/</Path>
+						<Arn>arn:aws:iam::123456789012:role/convox/convox-ApiRole-TEST</Arn>
+						<RoleName>convox-ApiRole-TEST</RoleName>
+						<RoleId>AROATEST</RoleId>
+						<CreateDate>2026-09-25T00:00:00Z</CreateDate>
+						` + boundary + `
+					</Role>
+				</GetRoleResult>
+			</GetRoleResponse>`,
+		},
+	}
 }

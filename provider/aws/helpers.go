@@ -900,6 +900,29 @@ func (p *Provider) stackParameter(stack, param string) (string, error) {
 	return "", fmt.Errorf("parameter not found: %s", param)
 }
 
+func (p *Provider) permissionsBoundary() string {
+	pb, err := p.stackParameter(p.Rack, "PermissionsBoundary")
+	if err != nil {
+		return ""
+	}
+
+	return pb
+}
+
+func (p *Provider) apiRoleHasBoundary() (bool, error) {
+	r, err := p.stackResource(p.Rack, "ApiRole")
+	if err != nil {
+		return false, err
+	}
+
+	res, err := p.iam().GetRole(&iam.GetRoleInput{RoleName: r.PhysicalResourceId})
+	if err != nil {
+		return false, err
+	}
+
+	return res.Role != nil && res.Role.PermissionsBoundary != nil, nil
+}
+
 func (p *Provider) dockerContainerFromPid(pid string) (*docker.Container, error) {
 	dc, err := p.dockerClientFromPid(pid)
 	if err != nil {

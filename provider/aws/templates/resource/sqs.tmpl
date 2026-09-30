@@ -1,7 +1,11 @@
 {{ define "resource" }}
   {
     "AWSTemplateFormatVersion" : "2010-09-09",
+    "Conditions": {
+      "PermissionsBoundaryEnabled": { "Fn::Not": [ { "Fn::Equals": [ { "Ref": "PermissionsBoundary" }, "" ] } ] }
+    },
     "Parameters": {
+      "PermissionsBoundary": { "Type": "String", "Default": "" },
       "MessageRetentionPeriod": {
         "Description": "Number of seconds that a message should be retained on the queue",
         "Type": "Number",
@@ -37,6 +41,7 @@
       "User": {
         "Type": "AWS::IAM::User",
         "Properties": {
+          "PermissionsBoundary": { "Fn::If": [ "PermissionsBoundaryEnabled", { "Ref": "PermissionsBoundary" }, { "Ref": "AWS::NoValue" } ] },
           "Path": "/convox/",
           "Policies": [{
             "PolicyName" : "SQSAccess",

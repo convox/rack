@@ -90,6 +90,8 @@ func TestSystemUpdateSameVersionRunsAmiMigration(t *testing.T) {
 		cycleSameVersionNotificationPublish,
 	)
 
+	provider.Version = "20260530110127"
+
 	err := provider.SystemUpdate(structs.SystemUpdateOptions{
 		Version: options.String("20260530110127"),
 	})
@@ -105,6 +107,8 @@ func TestSystemUpdateSameVersionNoopWhenMigrated(t *testing.T) {
 		cycleDescribeStacksVersioned("20260530110127", migratedAmiStackParams),
 		cycleDescribeStacksVersioned("20260530110127", migratedAmiStackParams),
 	)
+
+	provider.Version = "20260530110127"
 
 	err := provider.SystemUpdate(structs.SystemUpdateOptions{
 		Version: options.String("20260530110127"),
@@ -127,6 +131,8 @@ func TestSystemUpdateSameVersionPinnedAmiNoUpdatesTolerated(t *testing.T) {
 		cyclePinnedAmiUpdateStackNoUpdates,
 	)
 
+	provider.Version = "20260530110127"
+
 	err := provider.SystemUpdate(structs.SystemUpdateOptions{
 		Version: options.String("20260530110127"),
 	})
@@ -147,6 +153,8 @@ func TestSystemUpdateSameVersionRealUpdateErrorPropagates(t *testing.T) {
 		cycleSystemTemplatePut,
 		cycleSameVersionUpdateStackInProgress,
 	)
+
+	provider.Version = "20260530110127"
 
 	err := provider.SystemUpdate(structs.SystemUpdateOptions{
 		Version: options.String("20260530110127"),

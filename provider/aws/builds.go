@@ -15,6 +15,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -23,6 +24,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/ecr"
 	"github.com/aws/aws-sdk-go/service/ecs"
+	"github.com/convox/rack/pkg/helpers"
 	"github.com/convox/rack/pkg/manifest"
 	"github.com/convox/rack/pkg/manifest1"
 	"github.com/convox/rack/pkg/options"
@@ -36,6 +38,9 @@ var regexpECRImage = regexp.MustCompile(`(\d+)\.dkr\.ecr\.([^.]+)\.amazonaws\.co
 
 // StackID is formatted like arn:aws:cloudformation:us-east-1:332653055745:stack/dev/d164aa20-ba89-11e6-b65c-50d5ca632656
 var regexpStackID = regexp.MustCompile(`arn:[^:]+:cloudformation:([^.]+):(\d+):stack/([^.]+)/([^.]+)`)
+
+// buildWatchers lets tests join the goroutines runBuild starts.
+var buildWatchers sync.WaitGroup
 
 func (p *Provider) BuildCreate(app, url string, opts structs.BuildCreateOptions) (*structs.Build, error) {
 	log := Logger.At("BuildCreate").Namespace("app=%q url=%q", app, url).Start()
@@ -1005,34 +1010,50 @@ func (p *Provider) runBuild(build *structs.Build, burl string, opts structs.Buil
 		return err
 	}
 
-	status, err := p.waitForTask(*task.TaskArn)
-	if err != nil {
-		if reason, stopped := p.taskStopReason(*task.TaskArn); stopped {
-			p.failBuildIfNotTerminal(build.App, build.Id, reason)
-		}
-		return err
-	}
-
-	if status == "STOPPED" {
-		reason, ok := p.taskStopReason(*task.TaskArn)
-		if !ok || reason == "" {
-			reason = "task stopped"
-		}
-
-		if p.failBuildIfNotTerminal(build.App, build.Id, reason) {
-			return nil
-		}
-
-		return fmt.Errorf("build task stopped before running: %s", reason)
-	}
-
-	if buildMethod == "ec2" {
-		if err := p.waitForContainer(task); err != nil {
-			return err
-		}
-	}
+	buildWatchers.Add(1)
+	go p.watchBuildStart(build.App, build.Id, *task.TaskArn)
 
 	return nil
+}
+
+// watchBuildStart settles a build whose task stops or never starts, waiting through ECS errors until the deadline.
+func (p *Provider) watchBuildStart(app, id, arn string) {
+	defer buildWatchers.Done()
+
+	defer recoverWith(func(err error) {
+		helpers.Error(Logger.At("watchBuildStart").Namespace("app=%q id=%q", app, id), err)
+	})
+
+	deadline := time.Now().Add(taskStartTimeout)
+
+	for {
+		if _, err := p.waitForBuildTask(app, id, arn, deadline); err == nil || time.Now().After(deadline) {
+			return
+		}
+	}
+}
+
+// waitForBuildTask reports whether a build task started, failing the build if it stops first or never starts.
+// It returns an error, having changed nothing, when ECS cannot be read.
+func (p *Provider) waitForBuildTask(app, id, arn string, deadline time.Time) (bool, error) {
+	log := Logger.At("waitForBuildTask").Namespace("app=%q id=%q", app, id).Start()
+
+	status, err := p.waitForTask(arn, deadline)
+
+	switch {
+	case err == errTaskStartTimeout:
+		_ = log.Error(err)
+		_ = log.Error(p.stopTaskFromCluster(p.BuildCluster, arn))
+		p.failBuildIfNotTerminal(app, id, "task did not start within 60 minutes")
+	case err != nil:
+		return false, log.Error(err)
+	case status == "STOPPED":
+		p.failBuildIfStopped(app, id, arn)
+	default:
+		return true, nil
+	}
+
+	return false, nil
 }
 
 // taskStopReason reports why a task stopped, and whether it is stopped at all.
@@ -1051,6 +1072,20 @@ func (p *Provider) taskStopReason(arn string) (string, bool) {
 	}
 
 	return reason, true
+}
+
+// failBuildIfStopped marks a build failed when its task has stopped.
+func (p *Provider) failBuildIfStopped(app, id, arn string) {
+	reason, stopped := p.taskStopReason(arn)
+	if !stopped {
+		return
+	}
+
+	if reason == "" {
+		reason = "task stopped"
+	}
+
+	p.failBuildIfNotTerminal(app, id, reason)
 }
 
 // failBuildIfNotTerminal marks a build failed, reporting whether it was already terminal.

@@ -38,6 +38,7 @@ var (
 		"InternetGateway",
 		"Key",
 		"LogBucket",
+		"PermissionsBoundary",
 		"RouterInternalSecurityGroup",
 		"RouterSecurityGroup",
 		"SslPolicy",

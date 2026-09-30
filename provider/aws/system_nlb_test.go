@@ -121,25 +121,25 @@ func TestValidateNLBParams_AllowCIDRTrailingCommaOK(t *testing.T) {
 	}
 }
 
-func TestValidateNLBParams_CustomerSGBlocksPreserveClientIP(t *testing.T) {
-	p := &Provider{NLB: true, InstanceSecurityGroup: "sg-customer"}
+func TestValidateNLBParams_CustomSGBlocksPreserveClientIP(t *testing.T) {
+	p := &Provider{NLB: true, InstanceSecurityGroup: "sg-custom"}
 	opts := structs.SystemUpdateOptions{Parameters: map[string]string{
 		"NLBPreserveClientIP": "Yes",
 	}}
 	err := p.validateNLBParams(opts)
-	if err == nil || !strings.Contains(err.Error(), "customer-supplied InstanceSecurityGroup") {
-		t.Fatalf("expected customer-SG block, got %v", err)
+	if err == nil || !strings.Contains(err.Error(), "user-supplied InstanceSecurityGroup") {
+		t.Fatalf("expected custom-SG block, got %v", err)
 	}
 }
 
-func TestValidateNLBParams_CustomerSGBlocksPreserveClientIPInternal(t *testing.T) {
-	p := &Provider{NLB: true, NLBInternal: true, Internal: true, InstanceSecurityGroup: "sg-customer"}
+func TestValidateNLBParams_CustomSGBlocksPreserveClientIPInternal(t *testing.T) {
+	p := &Provider{NLB: true, NLBInternal: true, Internal: true, InstanceSecurityGroup: "sg-custom"}
 	opts := structs.SystemUpdateOptions{Parameters: map[string]string{
 		"NLBInternalPreserveClientIP": "Yes",
 	}}
 	err := p.validateNLBParams(opts)
-	if err == nil || !strings.Contains(err.Error(), "NLBInternalPreserveClientIP on a rack with a customer-supplied") {
-		t.Fatalf("expected customer-SG block (internal), got %v", err)
+	if err == nil || !strings.Contains(err.Error(), "NLBInternalPreserveClientIP on a rack with a user-supplied") {
+		t.Fatalf("expected custom-SG block (internal), got %v", err)
 	}
 }
 
@@ -154,15 +154,15 @@ func TestValidateNLBParams_BlankInstanceSGAllowsPreserve(t *testing.T) {
 }
 
 func TestValidateNLBParams_InverseInterlockBlocksSettingCustomSG(t *testing.T) {
-	// Rack currently has preserve_client_ip=Yes and no customer SG. Operator
-	// tries to set a customer SG — must be blocked because the SG substitution
+	// Rack currently has preserve_client_ip=Yes and no custom SG. Operator
+	// tries to set a custom SG, which must be blocked because the SG substitution
 	// would silently break NLB traffic.
 	p := &Provider{NLB: true, NLBPreserveClientIP: true}
 	opts := structs.SystemUpdateOptions{Parameters: map[string]string{
-		"InstanceSecurityGroup": "sg-customer",
+		"InstanceSecurityGroup": "sg-custom",
 	}}
 	err := p.validateNLBParams(opts)
-	if err == nil || !strings.Contains(err.Error(), "cannot set a customer InstanceSecurityGroup while NLBPreserveClientIP=Yes") {
+	if err == nil || !strings.Contains(err.Error(), "cannot set a custom InstanceSecurityGroup while NLBPreserveClientIP=Yes") {
 		t.Fatalf("expected inverse interlock error, got %v", err)
 	}
 }
@@ -170,21 +170,21 @@ func TestValidateNLBParams_InverseInterlockBlocksSettingCustomSG(t *testing.T) {
 func TestValidateNLBParams_InverseInterlockInternal(t *testing.T) {
 	p := &Provider{NLB: true, NLBInternal: true, Internal: true, NLBInternalPreserveClientIP: true}
 	opts := structs.SystemUpdateOptions{Parameters: map[string]string{
-		"InstanceSecurityGroup": "sg-customer",
+		"InstanceSecurityGroup": "sg-custom",
 	}}
 	err := p.validateNLBParams(opts)
-	if err == nil || !strings.Contains(err.Error(), "cannot set a customer InstanceSecurityGroup while NLBInternalPreserveClientIP=Yes") {
+	if err == nil || !strings.Contains(err.Error(), "cannot set a custom InstanceSecurityGroup while NLBInternalPreserveClientIP=Yes") {
 		t.Fatalf("expected inverse interlock (internal) error, got %v", err)
 	}
 }
 
 func TestValidateNLBParams_InverseInterlockAllowsSimultaneousDisable(t *testing.T) {
 	// Operator flips preserve_client_ip=No AND sets custom SG in the same call.
-	// Must be allowed — at the end of the update, preserve_client_ip is off and
-	// the customer-SG caveat doesn't apply.
+	// Must be allowed. At the end of the update, preserve_client_ip is off and
+	// the custom-SG caveat doesn't apply.
 	p := &Provider{NLB: true, NLBPreserveClientIP: true}
 	opts := structs.SystemUpdateOptions{Parameters: map[string]string{
-		"InstanceSecurityGroup": "sg-customer",
+		"InstanceSecurityGroup": "sg-custom",
 		"NLBPreserveClientIP":   "No",
 	}}
 	if err := p.validateNLBParams(opts); err != nil {
@@ -197,7 +197,7 @@ func TestValidateNLBParams_InverseInterlockAllowsBlankPreserve(t *testing.T) {
 	// Should pass — no preserve_client_ip in force to worry about.
 	p := &Provider{NLB: true}
 	opts := structs.SystemUpdateOptions{Parameters: map[string]string{
-		"InstanceSecurityGroup": "sg-customer",
+		"InstanceSecurityGroup": "sg-custom",
 	}}
 	if err := p.validateNLBParams(opts); err != nil {
 		t.Fatalf("custom SG on rack without preserve_client_ip should pass: %v", err)
