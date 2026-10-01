@@ -236,17 +236,9 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 		return err
 	}
 
-	cs, err := p.CertificateList()
+	ccs, err := p.releaseCertificates()
 	if err != nil {
 		return err
-	}
-
-	ccs := structs.Certificates{}
-
-	for _, c := range cs {
-		if c.Expiration.After(time.Now()) {
-			ccs = append(ccs, c)
-		}
 	}
 
 	tp := map[string]interface{}{
