@@ -1,8 +1,11 @@
 package aws
 
 import (
+	"errors"
 	"fmt"
 	"io"
+	"regexp"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -251,6 +254,26 @@ func (p *Provider) AppUpdate(app string, opts structs.AppUpdateOptions) error {
 		params = map[string]string{}
 	}
 
+	tags := map[string]string{}
+	noop := false
+
+	if raw, ok := params[ParameterNameTags]; ok {
+		changes := map[string]string{}
+
+		for k, v := range params {
+			if k != ParameterNameTags {
+				changes[k] = v
+			}
+		}
+
+		t, unchanged, err := p.appTags(app, raw, changes)
+		if err != nil {
+			return err
+		}
+
+		params, tags, noop = changes, t, unchanged
+	}
+
 	if opts.Lock != nil {
 		_, err := p.cloudformation().UpdateTerminationProtection(&cloudformation.UpdateTerminationProtectionInput{
 			EnableTerminationProtection: opts.Lock,
@@ -261,7 +284,168 @@ func (p *Provider) AppUpdate(app string, opts structs.AppUpdateOptions) error {
 		}
 	}
 
-	return p.updateStack(p.rackStack(app), nil, opts.Parameters, map[string]string{}, "")
+	if noop {
+		return nil
+	}
+
+	return p.updateStack(p.rackStack(app), nil, params, tags, "")
+}
+
+var (
+	errAppTagsEmpty  = errors.New("Tags cannot be empty; removing app tags is not supported")
+	errAppTagsPrefix = errors.New("Tags keys and values cannot use the aws: prefix")
+	tagKeyPattern    = regexp.MustCompile(`^[\p{L}\p{Z}\p{N}_.:/=+\-@]{1,128}$`)
+	tagValuePattern  = regexp.MustCompile(`^[\p{L}\p{Z}\p{N}_.:/=+\-@]{1,256}$`)
+)
+
+func (p *Provider) appTags(app, raw string, changes map[string]string) (map[string]string, bool, error) {
+	keys, tags, err := parseAppTags(raw)
+	if err != nil {
+		return nil, false, err
+	}
+
+	stack, err := p.describeStack(p.rackStack(app))
+	if err != nil {
+		return nil, false, err
+	}
+
+	existing := stackTags(stack)
+
+	if coalesces(existing["Generation"], "1") != "2" {
+		return nil, false, fmt.Errorf("Tags is only supported on generation 2 apps")
+	}
+
+	if err := tagKeyConflict(keys, existing); err != nil {
+		return nil, false, err
+	}
+
+	rack, err := p.getCustomTags(p.Rack)
+	if err != nil {
+		return nil, false, err
+	}
+
+	if err := tagKeyConflict(keys, rack); err != nil {
+		return nil, false, err
+	}
+
+	for k, v := range tags {
+		if existing[k] != v {
+			return tags, false, nil
+		}
+	}
+
+	current := stackParameters(stack)
+
+	for k, v := range changes {
+		if cv, ok := current[k]; ok && cv != v {
+			return tags, false, nil
+		}
+	}
+
+	return tags, true, nil
+}
+
+func parseAppTags(raw string) ([]string, map[string]string, error) {
+	if raw == "" {
+		return nil, nil, errAppTagsEmpty
+	}
+
+	keys := []string{}
+	tags := map[string]string{}
+
+	for _, seg := range strings.Split(raw, ",") {
+		k, v, ok := strings.Cut(seg, "=")
+		if !ok || k == "" {
+			return nil, nil, fmt.Errorf("invalid Tags parameter. expected format: 'key1=val1,key2=val2'")
+		}
+
+		if err := validateAppTag(k, v); err != nil {
+			return nil, nil, err
+		}
+
+		if err := tagKeyConflict([]string{k}, tags); err != nil {
+			return nil, nil, err
+		}
+
+		if _, ok := tags[k]; !ok {
+			tags[k] = v
+			keys = append(keys, k)
+		}
+	}
+
+	return keys, tags, nil
+}
+
+func validateAppTag(k, v string) error {
+	switch {
+	case isReservedTag(k):
+		return fmt.Errorf("Tags cannot set reserved keys: App, Generation, Name, Rack, System, Type, Version")
+	case hasAwsPrefix(k):
+		return errAppTagsPrefix
+	case !tagKeyPattern.MatchString(k):
+		return fmt.Errorf("invalid Tags key: %s (allowed: letters, numbers, spaces and _.:/=+-@, up to 128 characters)", k)
+	case v == "":
+		return errAppTagsEmpty
+	case hasAwsPrefix(v):
+		return errAppTagsPrefix
+	case !tagValuePattern.MatchString(v):
+		return fmt.Errorf("invalid Tags value for %s: %s (allowed: letters, numbers, spaces and _.:/=+-@, up to 256 characters)", k, v)
+	}
+
+	return nil
+}
+
+func tagKeyConflict(keys []string, existing map[string]string) error {
+	for _, k := range keys {
+		for e := range existing {
+			if e != k && strings.EqualFold(e, k) {
+				return fmt.Errorf("Tags key %s conflicts with %s; tag keys are case-insensitive", k, e)
+			}
+		}
+	}
+
+	return nil
+}
+
+func hasAwsPrefix(s string) bool {
+	return strings.HasPrefix(strings.ToLower(s), "aws:")
+}
+
+func (p *Provider) appOwnTags(tags map[string]string) (string, error) {
+	own := map[string]string{}
+
+	for k, v := range tags {
+		if !isReservedTag(k) && !hasAwsPrefix(k) {
+			own[k] = v
+		}
+	}
+
+	if len(own) == 0 {
+		return "", nil
+	}
+
+	rack, err := p.getCustomTags(p.Rack)
+	if err != nil {
+		return "", err
+	}
+
+	keys := []string{}
+
+	for k, v := range own {
+		if rv, ok := rack[k]; !ok || rv != v {
+			keys = append(keys, k)
+		}
+	}
+
+	sort.Strings(keys)
+
+	pairs := make([]string, len(keys))
+
+	for i, k := range keys {
+		pairs[i] = fmt.Sprintf("%s=%s", k, own[k])
+	}
+
+	return strings.Join(pairs, ","), nil
 }
 
 func (p *Provider) appFromStack(stack *cloudformation.Stack) (*structs.App, error) {
@@ -281,6 +465,17 @@ func (p *Provider) appFromStack(stack *cloudformation.Stack) (*structs.App, erro
 		Outputs:    stackOutputs(stack),
 		Parameters: stackParameters(stack),
 		Tags:       stackTags(stack),
+	}
+
+	if a.Generation == "2" {
+		own, err := p.appOwnTags(a.Tags)
+		if err != nil {
+			return nil, err
+		}
+
+		if own != "" {
+			a.Parameters[ParameterNameTags] = own
+		}
 	}
 
 	return a, nil

@@ -46,6 +46,11 @@ func NewHandler(c []Cycle) *Handler {
 	return &Handler{cycles: c}
 }
 
+// Remaining returns the number of cycles not yet played back.
+func (h *Handler) Remaining() int {
+	return len(h.cycles)
+}
+
 func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	b, err := io.ReadAll(r.Body)
 	if err != nil {

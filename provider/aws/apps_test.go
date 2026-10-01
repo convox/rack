@@ -2,8 +2,11 @@ package aws_test
 
 import (
 	"bytes"
+	"fmt"
 	"io"
+	"net/url"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -573,4 +576,315 @@ var cycleDescribeAppStackResources = awsutil.Cycle{
 </DescribeStackResourcesResponse>
 		`,
 	},
+}
+
+func TestAppUpdateTags(t *testing.T) {
+	tests := []struct {
+		name string
+		tags string
+		want []string
+	}{
+		{"set", "CostCenter=abc", []string{"CostCenter=abc", "Generation=2", "Name=web", "Rack=convox", "System=convox", "Type=app", "Version=20260929232050"}},
+		{"first occurrence wins", "CostCenter=abc,CostCenter=def", []string{"CostCenter=abc", "Generation=2", "Name=web", "Rack=convox", "System=convox", "Type=app", "Version=20260929232050"}},
+		{"partial noop", "CostCenter=X,Team=web", []string{"CostCenter=X", "Generation=2", "Name=web", "Rack=convox", "System=convox", "Team=web", "Type=app", "Version=20260929232050"}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			provider := StubAwsProvider(
+				cycleAppTagsDescribeStacks,
+				cycleRackTagsDescribeStacks,
+				cycleAppTagsDescribeStacks,
+				cycleAppTagsUpdateStack([]string{"TaskTags"}, tt.want),
+			)
+			defer provider.Close()
+
+			err := provider.AppUpdate("web", structs.AppUpdateOptions{Parameters: map[string]string{"Tags": tt.tags}})
+
+			assert.NoError(t, err)
+			assert.Equal(t, 0, provider.handler.Remaining())
+		})
+	}
+}
+
+func TestAppUpdateTagsWithParam(t *testing.T) {
+	provider := StubAwsProvider(
+		cycleAppTagsDescribeStacks,
+		cycleRackTagsDescribeStacks,
+		cycleAppTagsDescribeStacks,
+		cycleAppTagsUpdateStack([]string{"TaskTags=Yes"}, []string{"CostCenter=abc", "Generation=2", "Name=web", "Rack=convox", "System=convox", "Type=app", "Version=20260929232050"}),
+	)
+	defer provider.Close()
+
+	err := provider.AppUpdate("web", structs.AppUpdateOptions{Parameters: map[string]string{"Tags": "CostCenter=abc", "TaskTags": "Yes"}})
+
+	assert.NoError(t, err)
+	assert.Equal(t, 0, provider.handler.Remaining())
+}
+
+func TestAppUpdateTagsEqualParamChanged(t *testing.T) {
+	provider := StubAwsProvider(
+		cycleAppTagsDescribeStacks,
+		cycleRackTagsDescribeStacks,
+		cycleAppTagsDescribeStacks,
+		cycleAppTagsUpdateStack([]string{"TaskTags=Yes"}, []string{"CostCenter=X", "Generation=2", "Name=web", "Rack=convox", "System=convox", "Type=app", "Version=20260929232050"}),
+	)
+	defer provider.Close()
+
+	err := provider.AppUpdate("web", structs.AppUpdateOptions{Parameters: map[string]string{"Tags": "CostCenter=X", "TaskTags": "Yes"}})
+
+	assert.NoError(t, err)
+	assert.Equal(t, 0, provider.handler.Remaining())
+}
+
+func TestAppUpdateNoTags(t *testing.T) {
+	provider := StubAwsProvider(
+		cycleAppTagsDescribeStacks,
+		cycleAppTagsUpdateStack([]string{"TaskTags=Yes"}, []string{"CostCenter=X", "Generation=2", "Name=web", "Rack=convox", "System=convox", "Type=app", "Version=20260929232050"}),
+	)
+	defer provider.Close()
+
+	err := provider.AppUpdate("web", structs.AppUpdateOptions{Parameters: map[string]string{"TaskTags": "Yes"}})
+
+	assert.NoError(t, err)
+	assert.Equal(t, 0, provider.handler.Remaining())
+}
+
+func TestAppUpdateTagsNoop(t *testing.T) {
+	tests := []struct {
+		name   string
+		params map[string]string
+	}{
+		{"same value", map[string]string{"Tags": "CostCenter=X"}},
+		{"first occurrence on stack", map[string]string{"Tags": "CostCenter=X,CostCenter=Y"}},
+		{"param at current value", map[string]string{"Tags": "CostCenter=X", "TaskTags": "No"}},
+		{"param not on stack", map[string]string{"Tags": "CostCenter=X", "Foo": "bar"}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			provider := StubAwsProvider(
+				cycleAppTagsDescribeStacks,
+				cycleRackTagsDescribeStacks,
+			)
+			defer provider.Close()
+
+			err := provider.AppUpdate("web", structs.AppUpdateOptions{Parameters: tt.params})
+
+			assert.NoError(t, err)
+			assert.Equal(t, 0, provider.handler.Remaining())
+		})
+	}
+}
+
+func TestAppUpdateTagsNoopLock(t *testing.T) {
+	provider := StubAwsProvider(
+		cycleAppTagsDescribeStacks,
+		cycleRackTagsDescribeStacks,
+		cycleAppTagsUpdateTerminationProtection,
+	)
+	defer provider.Close()
+
+	err := provider.AppUpdate("web", structs.AppUpdateOptions{Lock: options.Bool(true), Parameters: map[string]string{"Tags": "CostCenter=X"}})
+
+	assert.NoError(t, err)
+	assert.Equal(t, 0, provider.handler.Remaining())
+}
+
+func TestAppUpdateTagsRejected(t *testing.T) {
+	reserved := "Tags cannot set reserved keys: App, Generation, Name, Rack, System, Type, Version"
+	empty := "Tags cannot be empty; removing app tags is not supported"
+	format := "invalid Tags parameter. expected format: 'key1=val1,key2=val2'"
+	prefix := "Tags keys and values cannot use the aws: prefix"
+
+	tests := []struct {
+		name   string
+		app    string
+		tags   string
+		lock   bool
+		cycles []awsutil.Cycle
+		err    string
+	}{
+		{name: "empty", tags: "", err: empty},
+		{name: "no equals", tags: "CostCenter", err: format},
+		{name: "empty key", tags: "=x", err: format},
+		{name: "App", tags: "App=x", err: reserved},
+		{name: "app", tags: "app=x", err: reserved},
+		{name: "Generation", tags: "Generation=1", err: reserved},
+		{name: "generation", tags: "generation=1", err: reserved},
+		{name: "Name", tags: "Name=x", err: reserved},
+		{name: "NAME", tags: "NAME=x", err: reserved},
+		{name: "Rack", tags: "Rack=x", err: reserved},
+		{name: "rack", tags: "rack=x", err: reserved},
+		{name: "System", tags: "System=x", err: reserved},
+		{name: "system", tags: "system=x", err: reserved},
+		{name: "Type", tags: "Type=x", err: reserved},
+		{name: "type", tags: "type=x", err: reserved},
+		{name: "Version", tags: "Version=x", err: reserved},
+		{name: "version", tags: "version=x", err: reserved},
+		{name: "reserved with lock", tags: "Rack=x", lock: true, err: reserved},
+		{name: "reserved before later bad segment", tags: "Rack=x,foo", err: reserved},
+		{name: "aws key", tags: "aws:foo=x", err: prefix},
+		{name: "AWS key", tags: "AWS:foo=x", err: prefix},
+		{name: "bad key", tags: "R&D=x", err: "invalid Tags key: R&D (allowed: letters, numbers, spaces and _.:/=+-@, up to 128 characters)"},
+		{name: "empty value", tags: "CostCenter=", err: empty},
+		{name: "aws value", tags: "k=aws:x", err: prefix},
+		{name: "bad value", tags: "CostCenter=R&D", err: "invalid Tags value for CostCenter: R&D (allowed: letters, numbers, spaces and _.:/=+-@, up to 256 characters)"},
+		{name: "bad duplicate", tags: "A=1,A=R&D", err: "invalid Tags value for A: R&D (allowed: letters, numbers, spaces and _.:/=+-@, up to 256 characters)"},
+		{name: "case within input", tags: "CostCenter=a,costcenter=b", err: "Tags key costcenter conflicts with CostCenter; tag keys are case-insensitive"},
+		{name: "gen1", app: "httpd", tags: "CostCenter=g1", cycles: []awsutil.Cycle{cycleAppDescribeStacks}, err: "Tags is only supported on generation 2 apps"},
+		{name: "case against app stack", tags: "costcenter=y", cycles: []awsutil.Cycle{cycleAppTagsDescribeStacks}, err: "Tags key costcenter conflicts with CostCenter; tag keys are case-insensitive"},
+		{name: "case against rack", tags: "env=x", lock: true, cycles: []awsutil.Cycle{cycleAppTagsDescribeStacks, cycleRackTagsDescribeStacks}, err: "Tags key env conflicts with Env; tag keys are case-insensitive"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			provider := StubAwsProvider(tt.cycles...)
+			defer provider.Close()
+
+			opts := structs.AppUpdateOptions{Parameters: map[string]string{"Tags": tt.tags}}
+			if tt.lock {
+				opts.Lock = options.Bool(true)
+			}
+
+			app := tt.app
+			if app == "" {
+				app = "web"
+			}
+
+			err := provider.AppUpdate(app, opts)
+
+			assert.EqualError(t, err, tt.err)
+		})
+	}
+}
+
+func TestAppGetTags(t *testing.T) {
+	provider := StubAwsProvider(
+		cycleDescribeAppStack("api", map[string]string{"Generation": "2", "Name": "api", "Rack": "convox", "System": "convox", "Type": "app", "Version": "20260929232050", "Zeta": "z", "Env": "prod", "CostCenter": "abc", "Alpha": "a", "aws:servicecatalog:x": "1"}, nil),
+		cycleRackTagsDescribeStacks,
+	)
+	defer provider.Close()
+
+	a, err := provider.AppGet("api")
+
+	assert.NoError(t, err)
+	assert.Equal(t, map[string]string{"Tags": "Alpha=a,CostCenter=abc,Zeta=z"}, a.Parameters)
+	assert.Equal(t, 0, provider.handler.Remaining())
+}
+
+func TestAppGetTagsInheritedOnly(t *testing.T) {
+	provider := StubAwsProvider(
+		cycleDescribeAppStack("api", map[string]string{"Generation": "2", "Name": "api", "Rack": "convox", "System": "convox", "Type": "app", "Env": "prod", "aws:servicecatalog:x": "1", "AWS:k": "1", "rack": "x"}, nil),
+		cycleRackTagsDescribeStacks,
+	)
+	defer provider.Close()
+
+	a, err := provider.AppGet("api")
+
+	assert.NoError(t, err)
+	_, ok := a.Parameters["Tags"]
+	assert.False(t, ok)
+	assert.Equal(t, 0, provider.handler.Remaining())
+}
+
+func TestAppGetTagsGen1(t *testing.T) {
+	provider := StubAwsProvider(
+		cycleDescribeAppStack("api", map[string]string{"Name": "api", "Rack": "convox", "System": "convox", "Type": "app", "CostCenter": "X"}, nil),
+	)
+	defer provider.Close()
+
+	a, err := provider.AppGet("api")
+
+	assert.NoError(t, err)
+	_, ok := a.Parameters["Tags"]
+	assert.False(t, ok)
+	assert.Equal(t, 0, provider.handler.Remaining())
+}
+
+func cycleDescribeAppStack(app string, tags, params map[string]string) awsutil.Cycle {
+	return cycleDescribeStack("convox-"+app, tags, params)
+}
+
+func cycleDescribeStack(name string, tags, params map[string]string) awsutil.Cycle {
+	var tx, px strings.Builder
+
+	for k, v := range tags {
+		fmt.Fprintf(&tx, "<member><Key>%s</Key><Value>%s</Value></member>", k, v)
+	}
+
+	for k, v := range params {
+		fmt.Fprintf(&px, "<member><ParameterKey>%s</ParameterKey><ParameterValue>%s</ParameterValue></member>", k, v)
+	}
+
+	return awsutil.Cycle{
+		Request: awsutil.Request{RequestURI: "/", Body: fmt.Sprintf("Action=DescribeStacks&StackName=%s&Version=2010-05-15", name)},
+		Response: awsutil.Response{
+			StatusCode: 200,
+			Body: fmt.Sprintf(`<DescribeStacksResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
+				<DescribeStacksResult><Stacks><member>
+					<StackName>%s</StackName>
+					<StackStatus>UPDATE_COMPLETE</StackStatus>
+					<Tags>%s</Tags>
+					<Parameters>%s</Parameters>
+				</member></Stacks></DescribeStacksResult>
+			</DescribeStacksResponse>`, name, tx.String(), px.String()),
+		},
+	}
+}
+
+var cycleAppTagsDescribeStacks = cycleDescribeAppStack("web",
+	map[string]string{"CostCenter": "X", "Generation": "2", "Name": "web", "Rack": "convox", "System": "convox", "Type": "app", "Version": "20260929232050"},
+	map[string]string{"TaskTags": "No"},
+)
+
+var cycleRackTagsDescribeStacks = cycleDescribeStack("convox",
+	map[string]string{"System": "convox", "Type": "rack", "CostCenter": "R", "Env": "prod"},
+	nil,
+)
+
+var cycleAppTagsUpdateTerminationProtection = awsutil.Cycle{
+	Request: awsutil.Request{RequestURI: "/", Body: "Action=UpdateTerminationProtection&EnableTerminationProtection=true&StackName=convox-web&Version=2010-05-15"},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body: `<UpdateTerminationProtectionResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
+			<UpdateTerminationProtectionResult><StackId>arn:aws:cloudformation:us-test-1:123456789012:stack/convox-web/1</StackId></UpdateTerminationProtectionResult>
+		</UpdateTerminationProtectionResponse>`,
+	},
+}
+
+func cycleAppTagsUpdateStack(params, tags []string) awsutil.Cycle {
+	v := url.Values{}
+	v.Set("Action", "UpdateStack")
+	v.Set("Capabilities.member.1", "CAPABILITY_IAM")
+	v.Set("NotificationARNs.member.1", "")
+	v.Set("StackName", "convox-web")
+	v.Set("UsePreviousTemplate", "true")
+	v.Set("Version", "2010-05-15")
+
+	for i, p := range params {
+		k, val, set := strings.Cut(p, "=")
+		v.Set(fmt.Sprintf("Parameters.member.%d.ParameterKey", i+1), k)
+		if set {
+			v.Set(fmt.Sprintf("Parameters.member.%d.ParameterValue", i+1), val)
+		} else {
+			v.Set(fmt.Sprintf("Parameters.member.%d.UsePreviousValue", i+1), "true")
+		}
+	}
+
+	for i, t := range tags {
+		k, val, _ := strings.Cut(t, "=")
+		v.Set(fmt.Sprintf("Tags.member.%d.Key", i+1), k)
+		v.Set(fmt.Sprintf("Tags.member.%d.Value", i+1), val)
+	}
+
+	return awsutil.Cycle{
+		Request: awsutil.Request{RequestURI: "/", Body: v.Encode()},
+		Response: awsutil.Response{
+			StatusCode: 200,
+			Body: `<UpdateStackResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
+				<UpdateStackResult><StackId>arn:aws:cloudformation:us-test-1:123456789012:stack/convox-web/1</StackId></UpdateStackResult>
+			</UpdateStackResponse>`,
+		},
+	}
 }

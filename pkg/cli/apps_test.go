@@ -584,6 +584,66 @@ func TestAppsParamsSetClassic(t *testing.T) {
 	})
 }
 
+func TestAppsParamsSetTagsWait(t *testing.T) {
+	tests := []struct {
+		name     string
+		args     string
+		params   map[string]string
+		readback map[string]string
+		code     int
+		stdout   []string
+		stderr   string
+	}{
+		{
+			name:     "out of order",
+			args:     "Tags=Team=web,CostCenter=abc",
+			params:   map[string]string{"Tags": "Team=web,CostCenter=abc"},
+			readback: map[string]string{"Tags": "CostCenter=abc,Team=web"},
+			stdout:   []string{"Updating parameters... ", fxLogsSystem()[0], fxLogsSystem()[1], "OK"},
+		},
+		{
+			name:     "wrong value",
+			args:     "Tags=A=1,B=2",
+			params:   map[string]string{"Tags": "A=1,B=2"},
+			readback: map[string]string{"Tags": "A=1,B=3"},
+			code:     1,
+			stdout:   []string{"Updating parameters... ", fxLogsSystem()[0], fxLogsSystem()[1]},
+			stderr:   "ERROR: rollback",
+		},
+		{
+			name:     "other param differs",
+			args:     "Tags=A=1 Foo=bar",
+			params:   map[string]string{"Tags": "A=1", "Foo": "bar"},
+			readback: map[string]string{"Tags": "A=1", "Foo": "baz"},
+			code:     1,
+			stdout:   []string{"Updating parameters... ", fxLogsSystem()[0], fxLogsSystem()[1]},
+			stderr:   "ERROR: rollback",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			testClientWait(t, 100*time.Millisecond, func(e *cli.Engine, i *mocksdk.Interface) {
+				opts := structs.LogsOptions{
+					Prefix: options.Bool(true),
+					Since:  options.Duration(5 * time.Second),
+				}
+				i.On("SystemGet").Return(fxSystem(), nil)
+				i.On("AppUpdate", "app1", structs.AppUpdateOptions{Parameters: tt.params}).Return(nil)
+				i.On("AppGet", "app1").Return(fxAppUpdating(), nil).Twice()
+				i.On("AppGet", "app1").Return(&structs.App{Name: "app1", Status: "running", Parameters: tt.readback}, nil)
+				i.On("AppLogs", "app1", opts).Return(testLogs(fxLogsSystem()), nil).Once()
+
+				res, err := testExecute(e, fmt.Sprintf("apps params set %s -a app1 --wait", tt.args), nil)
+				require.NoError(t, err)
+				require.Equal(t, tt.code, res.Code)
+				res.RequireStderr(t, []string{tt.stderr})
+				res.RequireStdout(t, tt.stdout)
+			})
+		})
+	}
+}
+
 func TestAppsWait(t *testing.T) {
 	testClientWait(t, 100*time.Millisecond, func(e *cli.Engine, i *mocksdk.Interface) {
 		opts := structs.LogsOptions{

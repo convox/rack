@@ -362,6 +362,13 @@ func AppsParamsSet(rack sdk.Interface, c *stdcli.Context) error {
 		}
 
 		for k, v := range opts.Parameters {
+			if k == "Tags" {
+				if !tagsApplied(v, a.Parameters["Tags"], s.Parameters["Tags"], s.Version) {
+					return fmt.Errorf("rollback")
+				}
+				continue
+			}
+
 			if a.Parameters[k] != v {
 				return fmt.Errorf("rollback")
 			}
@@ -412,10 +419,10 @@ func appExport(rack sdk.Interface, c *stdcli.Context, app string, w io.Writer) e
 	}
 
 	// Remove app unique parameters before exporting app
-	uniqueParams := []string{"Rack","LogBucket","ResourcePassword","ParamPassword"}
+	uniqueParams := []string{"Rack", "LogBucket", "ResourcePassword", "ParamPassword"}
 
-	for _,param := range uniqueParams{
-		delete(a.Parameters, param);
+	for _, param := range uniqueParams {
+		delete(a.Parameters, param)
 	}
 
 	data, err := json.Marshal(a)
@@ -578,10 +585,10 @@ func appImport(rack sdk.Interface, c *stdcli.Context, app string, r io.Reader) e
 		change := false
 
 		// Remove app unique parameters from being copied over
-		uniqueParams := []string{"Rack","LogBucket","ResourcePassword"}
+		uniqueParams := []string{"Rack", "LogBucket", "ResourcePassword"}
 
-		for _,param := range uniqueParams{
-			delete(a.Parameters, param);
+		for _, param := range uniqueParams {
+			delete(a.Parameters, param)
 		}
 
 		for k, v := range a.Parameters {
