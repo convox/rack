@@ -6,6 +6,8 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/convox/rack/pkg/manifest"
 	"github.com/convox/rack/pkg/structs"
 )
@@ -60,12 +62,13 @@ func validateNLBAllowCIDRParam(paramName, value string) error {
 }
 
 // appsUsingNLBScheme returns the list of gen2 apps on the rack whose current running release
-// declares at least one service with an NLB port of the given scheme ("public" or "internal").
+// declares at least one service with an NLB port of the given scheme ("public" or "internal"),
+// counting only ports that set preserve_client_ip: true when preserveOnly is set.
 // Returns entries formatted as "app/service".
 //
 // Fails open on per-app errors (logs a warning and continues) so a single broken release does
 // not block rack-wide operations.
-func (p *Provider) appsUsingNLBScheme(scheme string) ([]string, error) {
+func (p *Provider) appsUsingNLBScheme(scheme string, preserveOnly bool) ([]string, error) {
 	log := p.logger("appsUsingNLBScheme")
 
 	apps, err := p.AppList()
@@ -96,7 +99,7 @@ func (p *Provider) appsUsingNLBScheme(scheme string) ([]string, error) {
 		}
 		for _, s := range m.Services {
 			for _, np := range s.NLB {
-				if np.Scheme == scheme {
+				if np.Scheme == scheme && (!preserveOnly || (np.PreserveClientIP != nil && *np.PreserveClientIP)) {
 					blockers = append(blockers, fmt.Sprintf("%s/%s", a.Name, s.Name))
 					break
 				}
@@ -121,7 +124,7 @@ func yesNo(b bool) string {
 //   - Disabling NLB/NLBInternal requires no dependent gen2 apps
 //   - Allowlist CIDR params shape/limit/dedup
 //   - Deletion protection + NLB=No interlock
-//   - User-supplied InstanceSecurityGroup incompatible with preserve_client_ip
+//   - Custom InstanceSecurityGroup must allow all traffic from the NLB SG while preserve_client_ip is in use
 func (p *Provider) validateNLBParams(opts structs.SystemUpdateOptions) error {
 	want := func(key string) (string, bool) {
 		if opts.Parameters == nil {
@@ -173,7 +176,7 @@ func (p *Provider) validateNLBParams(opts structs.SystemUpdateOptions) error {
 	}
 
 	if nlbSet && currentNLB == "Yes" && nextNLB == "No" {
-		blockers, err := p.appsUsingNLBScheme("public")
+		blockers, err := p.appsUsingNLBScheme("public", false)
 		if err != nil {
 			return err
 		}
@@ -191,7 +194,7 @@ func (p *Provider) validateNLBParams(opts structs.SystemUpdateOptions) error {
 	}
 
 	if nlbiSet && currentNLBInternal == "Yes" && nextNLBInternal == "No" {
-		blockers, err := p.appsUsingNLBScheme("internal")
+		blockers, err := p.appsUsingNLBScheme("internal", false)
 		if err != nil {
 			return err
 		}
@@ -208,37 +211,95 @@ func (p *Provider) validateNLBParams(opts structs.SystemUpdateOptions) error {
 		}
 	}
 
-	if p.InstanceSecurityGroup != "" {
-		if v, ok := want("NLBPreserveClientIP"); ok && v == "Yes" {
-			return fmt.Errorf("cannot enable NLBPreserveClientIP on a rack with a user-supplied InstanceSecurityGroup; your instance SG must add an ingress rule from the NLB security group (exported as ${Rack}:NLBSecurityGroup) for the NLB listener ports before this feature can be enabled safely")
-		}
-		if v, ok := want("NLBInternalPreserveClientIP"); ok && v == "Yes" {
-			return fmt.Errorf("cannot enable NLBInternalPreserveClientIP on a rack with a user-supplied InstanceSecurityGroup; your instance SG must add an ingress rule from the NLB security group (exported as ${Rack}:NLBInternalSecurityGroup) for the NLB listener ports before this feature can be enabled safely")
-		}
+	nextSG, sgSet := want("InstanceSecurityGroup")
+	if !sgSet {
+		nextSG = p.InstanceSecurityGroup
 	}
+	if nextSG == "" {
+		return nil
+	}
+	sgChanged := nextSG != p.InstanceSecurityGroup
 
-	// Inverse interlock: setting a custom InstanceSecurityGroup on a rack
-	// where preserve_client_ip is already enabled would break NLB traffic
-	// silently (the convox-managed InstancesSecurityNLBIngress no longer
-	// applies, since the custom SG replaces InstancesSecurity on hosts). Block
-	// unless the same call also disables preserve_client_ip.
-	if nextSG, sgSet := want("InstanceSecurityGroup"); sgSet && nextSG != "" && p.InstanceSecurityGroup == "" {
-		preserveWillBeOn := func(paramName string, curOn bool) bool {
-			v, ok := want(paramName)
-			if ok {
-				return v == "Yes"
+	for _, s := range []struct {
+		scheme, nlbParam, preserveParam string
+		nlbOn, nlbNext, preserveOn      bool
+	}{
+		{"public", "NLB", "NLBPreserveClientIP", p.NLB, nextNLB == "Yes", p.NLBPreserveClientIP},
+		{"internal", "NLBInternal", "NLBInternalPreserveClientIP", p.NLBInternal, nextNLBInternal == "Yes", p.NLBInternalPreserveClientIP},
+	} {
+		if !s.nlbNext {
+			continue
+		}
+		v, set := want(s.preserveParam)
+		preserveNext := s.preserveOn
+		if set {
+			preserveNext = v == "Yes"
+		}
+		if !s.nlbOn {
+			if preserveNext {
+				return fmt.Errorf("cannot enable %s while %s=Yes on a rack with a custom InstanceSecurityGroup; set %s=No in this command, add an ingress rule to %s allowing all traffic from the new %s:%sSecurityGroup, then set %s=Yes", s.nlbParam, s.preserveParam, s.preserveParam, nextSG, p.Rack, s.nlbParam, s.preserveParam)
 			}
-			return curOn
+			continue
 		}
-		if preserveWillBeOn("NLBPreserveClientIP", p.NLBPreserveClientIP) {
-			return fmt.Errorf("cannot set a custom InstanceSecurityGroup while NLBPreserveClientIP=Yes; set NLBPreserveClientIP=No in this same command (or unset it first), then set the custom SG. After the custom SG is in place, re-enable NLBPreserveClientIP only after adding an ingress rule from ${Rack}:NLBSecurityGroup to your SG")
+		check := set && v == "Yes"
+		if !check && sgChanged {
+			check = s.preserveOn
+			if !check {
+				apps, err := p.appsUsingNLBScheme(s.scheme, true)
+				if err != nil {
+					return err
+				}
+				check = len(apps) > 0
+			}
 		}
-		if preserveWillBeOn("NLBInternalPreserveClientIP", p.NLBInternalPreserveClientIP) {
-			return fmt.Errorf("cannot set a custom InstanceSecurityGroup while NLBInternalPreserveClientIP=Yes; set NLBInternalPreserveClientIP=No in this same command (or unset it first), then set the custom SG")
+		if check {
+			if err := p.checkNLBIngressRule(nextSG, s.scheme); err != nil {
+				return err
+			}
 		}
 	}
 
 	return nil
+}
+
+// checkNLBIngressRule returns an error unless sg allows all traffic from the scheme's NLB security group.
+func (p *Provider) checkNLBIngressRule(sg, scheme string) error {
+	output := "NLBSecurityGroup"
+	if scheme == "internal" {
+		output = "NLBInternalSecurityGroup"
+	}
+
+	s, err := p.describeStack(p.Rack)
+	if err != nil {
+		return fmt.Errorf("could not read rack stack %s: %s", p.Rack, err)
+	}
+
+	nlbSG := stackOutputs(s)[output]
+	if nlbSG == "" {
+		return fmt.Errorf("rack stack has no %s output", output)
+	}
+
+	res, err := p.ec2().DescribeSecurityGroups(&ec2.DescribeSecurityGroupsInput{
+		GroupIds: []*string{aws.String(sg)},
+	})
+	if err != nil {
+		return fmt.Errorf("could not read InstanceSecurityGroup %s: %s", sg, err)
+	}
+
+	for _, g := range res.SecurityGroups {
+		for _, perm := range g.IpPermissions {
+			if aws.StringValue(perm.IpProtocol) != "-1" {
+				continue
+			}
+			for _, pair := range perm.UserIdGroupPairs {
+				if aws.StringValue(pair.GroupId) == nlbSG {
+					return nil
+				}
+			}
+		}
+	}
+
+	return fmt.Errorf("preserve client IP on the %s NLB needs an ingress rule on InstanceSecurityGroup %s allowing all traffic from the NLB security group %s (%s:%s); add that rule and retry", scheme, sg, nlbSG, p.Rack, output)
 }
 
 // validateNLBUninstall blocks `convox rack uninstall` when NLB deletion
