@@ -19,10 +19,12 @@ import (
 )
 
 const (
-	sortableTime        = "20060102.150405.000000000"
-	statusCodePrefix    = "F1E49A85-0AD7-4AEF-A618-C249C6E6568D:"
-	ecsExecSessionByte  = '\x00'
+	sortableTime       = "20060102.150405.000000000"
+	statusCodePrefix   = "F1E49A85-0AD7-4AEF-A618-C249C6E6568D:"
+	ecsExecSessionByte = '\x00'
 )
+
+var ecsExecSessionPrefix = append([]byte{ecsExecSessionByte}, `{"sessionId":`...)
 
 type ecsExecSession struct {
 	SessionID  string `json:"sessionId"`

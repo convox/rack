@@ -144,7 +144,7 @@ func (p *Provider) processExecDocker(app, pid, command string, rw io.ReadWriter,
 		InputStream:  io.NopCloser(rw),
 		OutputStream: rw,
 		ErrorStream:  rw,
-		RawTerminal:  true,
+		RawTerminal:  tty,
 		Success:      success,
 	})
 

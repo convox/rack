@@ -1,6 +1,7 @@
 package sdk
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -514,14 +515,19 @@ func (c *Client) ProcessExec(app string, pid string, command string, rw io.ReadW
 
 	buf := make([]byte, 10*1024)
 	code := 0
-	first := true
-	var ecsSessionData []byte
+	deciding := true
+	var head, ecsSessionData []byte
 
 	for {
 		n, err := ws.Read(buf)
 		if err == io.EOF {
 			if ecsSessionData != nil {
 				return -1, fmt.Errorf("ECS Exec session ended before it was established; please retry")
+			}
+			if len(head) > 0 {
+				if _, err := rw.Write(head); err != nil {
+					return 0, err
+				}
 			}
 			return code, nil
 		}
@@ -538,28 +544,34 @@ func (c *Client) ProcessExec(app string, pid string, command string, rw io.ReadW
 			return runSessionManagerPlugin(session)
 		}
 
-		if first {
-			first = false
-			if n > 0 && buf[0] == ecsExecSessionByte {
-				ecsSessionData = make([]byte, 0, n)
-				ecsSessionData = append(ecsSessionData, buf[1:n]...)
+		chunk := buf[0:n]
+
+		if deciding {
+			head = append(head, chunk...)
+			if len(head) < len(ecsExecSessionPrefix) && bytes.HasPrefix(ecsExecSessionPrefix, head) {
+				continue
+			}
+			deciding = false
+			if bytes.HasPrefix(head, ecsExecSessionPrefix) {
+				ecsSessionData, head = head[1:], nil
 				var session ecsExecSession
 				if err := json.Unmarshal(ecsSessionData, &session); err != nil {
 					continue
 				}
 				return runSessionManagerPlugin(session)
 			}
+			chunk, head = head, nil
 		}
 
-		data := string(buf[0:n])
+		data := string(chunk)
 
 		if i := strings.Index(data, statusCodePrefix); i > -1 {
-			if _, err := rw.Write(buf[0:i]); err != nil {
+			if _, err := rw.Write(chunk[0:i]); err != nil {
 				return 0, err
 			}
 
 			m := i + len(statusCodePrefix)
-			code, err = strconv.Atoi(strings.TrimSpace(string(buf[m:n])))
+			code, err = strconv.Atoi(strings.TrimSpace(string(chunk[m:])))
 			if err != nil {
 				return 0, fmt.Errorf("unable to read exit code")
 			}
@@ -567,7 +579,7 @@ func (c *Client) ProcessExec(app string, pid string, command string, rw io.ReadW
 			continue
 		}
 
-		if _, err := rw.Write(buf[0:n]); err != nil {
+		if _, err := rw.Write(chunk); err != nil {
 			return 0, err
 		}
 	}

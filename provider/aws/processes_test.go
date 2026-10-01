@@ -77,6 +77,60 @@ func TestProcessExec(t *testing.T) {
 	assert.Equal(t, 0, code)
 }
 
+func TestProcessExecNoTty(t *testing.T) {
+	provider := StubAwsProvider(
+		cycleProcessListStackResources,
+		cycleProcessDescribeStacks,
+		cycleProcessListTasksByStack,
+		cycleProcessListTasksByService1,
+		cycleProcessListTasksByService2,
+		cycleProcessListTasksByStarted,
+		cycleProcessDescribeTasksAll,
+		cycleProcessDescribeTaskDefinition1,
+		cycleProcessDescribeContainerInstances,
+		cycleProcessDescribeTaskDefinition1,
+		cycleProcessDescribeContainerInstances,
+		cycleProcessDescribeRackInstances,
+		cycleECSListServices,
+		cycleECSDescribeServices,
+		cycleProcessDescribeStacks,
+		cycleProcessListTasksRunning,
+		cycleProcessListTasksStopped,
+		cycleProcessDescribeTasks,
+		cycleProcessDescribeContainerInstances,
+		cycleProcessDescribeInstances,
+		cycleProcessListTasksRunning,
+		cycleProcessListTasksStopped,
+		cycleProcessDescribeTasks,
+		cycleProcessDescribeContainerInstances,
+		cycleProcessDescribeInstances,
+		cycleProcessListTasksRunning,
+		cycleProcessListTasksStopped,
+		cycleProcessDescribeStackResources,
+	)
+	defer provider.Close()
+
+	d := stubDocker(
+		cycleProcessDockerListContainers1,
+		cycleProcessDockerInspect,
+		cycleProcessDockerCreateExecNoTty,
+		cycleProcessDockerStartExecNoTty,
+		cycleProcessDockerInspectExecCode3,
+	)
+	defer d.Close()
+
+	in := &bytes.Buffer{}
+	out := &bytes.Buffer{}
+
+	code, err := provider.ProcessExec("myapp", "5850760f0845", "ls -la", streamTester{in, out}, structs.ProcessExecOptions{
+		Tty: options.Bool(false),
+	})
+
+	assert.NoError(t, err)
+	assert.Equal(t, []byte("out\nerr\n\x00bin"), out.Bytes())
+	assert.Equal(t, 3, code)
+}
+
 func TestProcessExecECS(t *testing.T) {
 	provider := StubAwsProvider(
 		// ProcessList
@@ -128,6 +182,7 @@ func TestProcessExecECS(t *testing.T) {
 	data := out.Bytes()
 	assert.True(t, len(data) > 1, "expected session data in output")
 	assert.Equal(t, byte(0x00), data[0])
+	assert.True(t, bytes.HasPrefix(data, []byte("\x00{\"sessionId\":")))
 
 	var session map[string]string
 	err = json.Unmarshal(data[1:], &session)
@@ -1858,6 +1913,70 @@ var cycleProcessDockerInspectExec = awsutil.Cycle{
 	Response: awsutil.Response{
 		StatusCode: 200,
 		Body:       `{"ExitCode":0}`,
+	},
+}
+
+var cycleProcessDockerCreateExecNoTty = awsutil.Cycle{
+	Request: awsutil.Request{
+		RequestURI: "/containers/8dfafdbc3a40/exec",
+		Body: `{
+			"AttachStderr": true,
+			"AttachStdin": true,
+			"AttachStdout": true,
+			"Cmd": [
+				"sh",
+				"-c",
+				"ls -la"
+			],
+			"Container": "8dfafdbc3a40"
+		}`,
+	},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body: `{
+			"Id": "123456",
+			"Warnings": []
+		}`,
+	},
+}
+
+var cycleProcessDockerStartExecNoTty = awsutil.Cycle{
+	Request: awsutil.Request{
+		RequestURI: "/exec/123456/start",
+		Body: `{
+			"ErrorStream": {
+				"Reader": {},
+				"Writer": {}
+			},
+			"InputStream": {
+				"Reader": {
+					"Reader": {},
+					"Writer": {}
+				}
+			},
+			"OutputStream": {
+				"Reader": {},
+				"Writer": {}
+			},
+			"RawTerminal": false
+		}`,
+	},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body: "\x01\x00\x00\x00\x00\x00\x00\x04out\n" +
+			"\x02\x00\x00\x00\x00\x00\x00\x04err\n" +
+			"\x01\x00\x00\x00\x00\x00\x00\x04\x00bin",
+	},
+}
+
+var cycleProcessDockerInspectExecCode3 = awsutil.Cycle{
+	Request: awsutil.Request{
+		Method:     "GET",
+		RequestURI: "/exec/123456/json",
+	},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body:       `{"ExitCode":3}`,
 	},
 }
 
