@@ -802,3 +802,84 @@ func TestRackWaitError(t *testing.T) {
 		})
 	})
 }
+
+func TestRackInstallDefaultName(t *testing.T) {
+	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
+		opts := structs.SystemInstallOptions{
+			Name:       options.String("convox"),
+			Parameters: map[string]string{},
+			Version:    options.String("bar"),
+		}
+		provider.Mock.On("SystemInstall", mock.Anything, opts).Once().Return("https://convox:password@rack.example.org", nil)
+
+		res, err := testExecute(e, "rack install test -v bar", nil)
+		require.NoError(t, err)
+		require.Equal(t, 0, res.Code)
+		res.RequireStderr(t, []string{""})
+
+		require.Equal(t, map[string]string{"convox": "rack.example.org"}, readSettingsJSON(t, e, "self-managed"))
+	})
+}
+
+func TestRackUninstallClearsSelection(t *testing.T) {
+	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
+		writeSettings(t, e, map[string]interface{}{
+			"racks":        map[string]string{"console.example.org": "v2-scoped-rc", "other.example.org": "test/bar"},
+			"self-managed": map[string]string{"v2-scoped-rc": "rack.example.org"},
+		})
+
+		opts := structs.SystemUninstallOptions{
+			Force: options.Bool(true),
+		}
+		provider.Mock.On("SystemUninstall", "v2-scoped-rc", mock.Anything, opts).Once().Return(nil)
+
+		res, err := testExecute(e, "rack uninstall test v2-scoped-rc --force", nil)
+		require.NoError(t, err)
+		require.Equal(t, 0, res.Code)
+		res.RequireStderr(t, []string{""})
+
+		require.Equal(t, map[string]string{"other.example.org": "test/bar"}, readSettingsJSON(t, e, "racks"))
+		require.Equal(t, map[string]string{}, readSettingsJSON(t, e, "self-managed"))
+	})
+}
+
+func TestRackUninstallErrorClearsSelection(t *testing.T) {
+	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
+		writeSettings(t, e, map[string]interface{}{
+			"racks":        map[string]string{"console.example.org": "v2-aborted"},
+			"self-managed": map[string]string{"v2-aborted": "rack.example.org"},
+		})
+
+		opts := structs.SystemUninstallOptions{
+			Force: options.Bool(true),
+		}
+		provider.Mock.On("SystemUninstall", "v2-aborted", mock.Anything, opts).Once().Return(fmt.Errorf("err1"))
+
+		res, err := testExecute(e, "rack uninstall test v2-aborted --force", nil)
+		require.NoError(t, err)
+		require.Equal(t, 1, res.Code)
+		res.RequireStderr(t, []string{"ERROR: err1"})
+
+		require.Equal(t, map[string]string{}, readSettingsJSON(t, e, "racks"))
+	})
+}
+
+func TestRackUninstallKeepsConsoleSelection(t *testing.T) {
+	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
+		writeSettings(t, e, map[string]interface{}{
+			"racks": map[string]string{"console.example.org": "test/bar"},
+		})
+
+		opts := structs.SystemUninstallOptions{
+			Force: options.Bool(true),
+		}
+		provider.Mock.On("SystemUninstall", "test/bar", mock.Anything, opts).Once().Return(fmt.Errorf("err1"))
+
+		res, err := testExecute(e, "rack uninstall test test/bar --force", nil)
+		require.NoError(t, err)
+		require.Equal(t, 1, res.Code)
+		res.RequireStderr(t, []string{"ERROR: err1"})
+
+		require.Equal(t, map[string]string{"console.example.org": "test/bar"}, readSettingsJSON(t, e, "racks"))
+	})
+}
