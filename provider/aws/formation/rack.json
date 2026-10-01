@@ -4428,7 +4428,41 @@
                 "iam:UploadServerCertificate"
               ],
               "Resource": [ "*" ]
-            }
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "iam:DeleteRole",
+                "iam:DeleteRolePolicy",
+                "iam:DetachRolePolicy"
+              ],
+              "Resource": [
+                { "Fn::Sub": "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/${AWS::StackName}-*-????????????" }
+              ]
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "iam:GetInstanceProfile",
+                "iam:ListAttachedRolePolicies",
+                "iam:ListEntitiesForPolicy",
+                "iam:ListRolePolicies"
+              ],
+              "Resource": [
+                { "Fn::Sub": "arn:${AWS::Partition}:iam::${AWS::AccountId}:instance-profile/${AWS::StackName}-*-????????????" },
+                { "Fn::Sub": "arn:${AWS::Partition}:iam::${AWS::AccountId}:policy/convox/*" },
+                { "Fn::Sub": "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/convox/*" },
+                { "Fn::Sub": "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/${AWS::StackName}-*-????????????" }
+              ]
+            },
+            { "Fn::If": [ "PermissionsBoundaryEnabled",
+              {
+                "Effect": "Allow",
+                "Action": [ "iam:GetPolicy" ],
+                "Resource": [ { "Ref": "PermissionsBoundary" } ]
+              },
+              { "Ref": "AWS::NoValue" }
+            ] }
           ]
         }
       }
