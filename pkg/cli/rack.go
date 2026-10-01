@@ -496,6 +496,10 @@ func RackInstall(rack sdk.Interface, c *stdcli.Context) error {
 		return err
 	}
 
+	if opts.Name == nil {
+		opts.Name = options.String("convox")
+	}
+
 	if opts.Version == nil {
 		v, err := cv.Latest()
 		if err != nil {
@@ -927,6 +931,14 @@ func RackUninstall(rack sdk.Interface, c *stdcli.Context) error {
 	}
 
 	c.SettingDeleteKey("self-managed", name)
+
+	for h, r := range hostRacks(c) {
+		if r == name && !strings.Contains(name, "/") {
+			if err := c.SettingDeleteKey("racks", h); err != nil {
+				return err
+			}
+		}
+	}
 
 	if err := p.SystemUninstall(name, c, opts); err != nil {
 		return err
