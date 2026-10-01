@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"regexp"
+	"strings"
 	"testing"
 )
 
@@ -587,10 +588,7 @@ func TestApiPolicyV2Scope(t *testing.T) {
 	var policy struct {
 		Properties struct {
 			PolicyDocument struct {
-				Statement []struct {
-					Action   []string          `json:"Action"`
-					Resource []json.RawMessage `json:"Resource"`
-				} `json:"Statement"`
+				Statement []json.RawMessage `json:"Statement"`
 			} `json:"PolicyDocument"`
 		} `json:"Properties"`
 	}
@@ -599,9 +597,19 @@ func TestApiPolicyV2Scope(t *testing.T) {
 		t.Fatalf("parse ApiPolicyV2: %v", err)
 	}
 
-	st := policy.Properties.PolicyDocument.Statement
-	if len(st) != 3 {
-		t.Fatalf("ApiPolicyV2 has %d statements, want 3", len(st))
+	entries := policy.Properties.PolicyDocument.Statement
+	if len(entries) != 6 {
+		t.Fatalf("ApiPolicyV2 has %d statements, want 6", len(entries))
+	}
+
+	st := make([]struct {
+		Action   []string          `json:"Action"`
+		Resource []json.RawMessage `json:"Resource"`
+	}, 5)
+	for i := range st {
+		if err := json.Unmarshal(entries[i], &st[i]); err != nil {
+			t.Fatalf("parse statement %d: %v", i, err)
+		}
 	}
 
 	subs := func(rs []json.RawMessage) []string {
@@ -628,7 +636,7 @@ func TestApiPolicyV2Scope(t *testing.T) {
 		"arn:${AWS::Partition}:iam::${AWS::AccountId}:role/convox/*",
 		"arn:${AWS::Partition}:iam::${AWS::AccountId}:user/convox/*",
 	}
-	for i, want := range []int{4, 1, 1} {
+	for i, want := range []int{4, 1, 1, 1, 4} {
 		if len(st[i].Resource) != want {
 			t.Errorf("statement %d has %d resources, want %d", i, len(st[i].Resource), want)
 		}
@@ -660,8 +668,60 @@ func TestApiPolicyV2Scope(t *testing.T) {
 		t.Errorf("statement 1 resources are %v, want %v", got, want)
 	}
 
+	if want := []string{"iam:DeleteServerCertificate", "iam:GetServerCertificate", "iam:ListServerCertificates", "iam:UploadServerCertificate"}; !reflect.DeepEqual(st[2].Action, want) {
+		t.Errorf("statement 2 actions are %v, want %v", st[2].Action, want)
+	}
 	if got := subs(st[2].Resource); !reflect.DeepEqual(got, []string{"*"}) {
 		t.Errorf("statement 2 resources are %v, want *", got)
+	}
+
+	generatedRole := "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/${AWS::StackName}-*-????????????"
+	generatedProfile := "arn:${AWS::Partition}:iam::${AWS::AccountId}:instance-profile/${AWS::StackName}-*-????????????"
+
+	if want := []string{"iam:DeleteRole", "iam:DeleteRolePolicy", "iam:DetachRolePolicy"}; !reflect.DeepEqual(st[3].Action, want) {
+		t.Errorf("statement 3 actions are %v, want %v", st[3].Action, want)
+	}
+	if got, want := subs(st[3].Resource), []string{generatedRole}; !reflect.DeepEqual(got, want) {
+		t.Errorf("statement 3 resources are %v, want %v", got, want)
+	}
+
+	if want := []string{"iam:GetInstanceProfile", "iam:ListAttachedRolePolicies", "iam:ListEntitiesForPolicy", "iam:ListRolePolicies"}; !reflect.DeepEqual(st[4].Action, want) {
+		t.Errorf("statement 4 actions are %v, want %v", st[4].Action, want)
+	}
+	if got, want := subs(st[4].Resource), []string{generatedProfile, scoped[1], scoped[2], generatedRole}; !reflect.DeepEqual(got, want) {
+		t.Errorf("statement 4 resources are %v, want %v", got, want)
+	}
+
+	var boundary bytes.Buffer
+	if err := json.Compact(&boundary, entries[5]); err != nil || boundary.String() != `{"Fn::If":["PermissionsBoundaryEnabled",{"Effect":"Allow","Action":["iam:GetPolicy"],"Resource":[{"Ref":"PermissionsBoundary"}]},{"Ref":"AWS::NoValue"}]}` {
+		t.Errorf("statement 5 is %s, want iam:GetPolicy on PermissionsBoundary only while it is set", entries[5])
+	}
+
+	resolve := strings.NewReplacer("${AWS::Partition}", "aws", "${AWS::AccountId}", "123456789012", "${AWS::StackName}", "myrack")
+	wildcards := strings.NewReplacer(`\*`, ".*", `\?`, ".")
+
+	for name, want := range map[string]bool{
+		"role/myrack-InstancesLifecycleHandlerRole-AbCdEfGhIjKl":       true,
+		"role/myrack-myapp-ServiceWeb-1ABC-ExecutionRole-AbCdEfGhIjKl": true,
+		"role/myrack-mygen1app-SecureEnvironmentRole-AbCdEfGhIjKl":     true,
+		"role/myrack-mywebhook-ForwarderRole-AbCdEfGhIjKl":             true,
+		"instance-profile/myrack-BuildInstancesProfile-AbCdEfGhIjKl":   true,
+		"role/convox/myrack-myapp-ServiceRole-AbCdEfGhIjKl":            false,
+		"role/myrack-admin":                          false,
+		"role/myrackx-ServiceRole-AbCdEfGhIjKl":      false,
+		"role/other/myrack-ServiceRole-AbCdEfGhIjKl": false,
+		"role/myrack-myapp-ServiceRole-AbCdEfGhIjK":  false,
+	} {
+		kind, _, _ := strings.Cut(name, "/")
+		for _, g := range []string{generatedRole, generatedProfile} {
+			if !strings.Contains(g, ":"+kind+"/") {
+				continue
+			}
+			re := regexp.MustCompile("^" + wildcards.Replace(regexp.QuoteMeta(resolve.Replace(g))) + "$")
+			if got := re.MatchString("arn:aws:iam::123456789012:" + name); got != want {
+				t.Errorf("%s match %q = %t, want %t", g, name, got, want)
+			}
+		}
 	}
 }
 
