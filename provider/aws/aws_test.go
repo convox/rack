@@ -20,7 +20,8 @@ func init() {
 
 type AwsStub struct {
 	*aws.Provider
-	server *httptest.Server
+	server  *httptest.Server
+	handler *awsutil.Handler
 }
 
 func (a *AwsStub) Close() {
@@ -57,7 +58,7 @@ func StubAwsProvider(cycles ...awsutil.Cycle) *AwsStub {
 		CloudWatch:     cw,
 	}
 
-	return &AwsStub{p, s}
+	return &AwsStub{p, s, handler}
 }
 
 func testProvider(fn func(p *aws.Provider)) {

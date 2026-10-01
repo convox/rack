@@ -550,13 +550,23 @@ func (p *Provider) getCustomTags(rackName string) (map[string]string, error) {
 
 	tags := stackTags(stack)
 
-	reservedTagNames := []string{"App", "System", "Type", "Version", "Generation", "Name", "Rack"}
-
 	for _, r := range reservedTagNames {
 		delete(tags, r)
 	}
 
 	return tags, nil
+}
+
+var reservedTagNames = []string{"App", "System", "Type", "Version", "Generation", "Name", "Rack"}
+
+func isReservedTag(k string) bool {
+	for _, r := range reservedTagNames {
+		if strings.EqualFold(k, r) {
+			return true
+		}
+	}
+
+	return false
 }
 
 func (p *Provider) releasePromoteGeneration1(a *structs.App, r *structs.Release) error {
