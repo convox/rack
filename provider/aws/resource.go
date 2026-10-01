@@ -101,7 +101,12 @@ func (p *Provider) ResourceList(app string) (structs.Resources, error) {
 func (p *Provider) ResourceDefaults(app, resource string) (map[string]string, error) {
 	ds := map[string]string{}
 
-	stack, _ := p.appResource(app, fmt.Sprintf("Resource%s", upperName(resource)))
+	rs, err := p.appResources(app)
+	if err != nil {
+		return nil, err
+	}
+
+	stack := rs[fmt.Sprintf("Resource%s", upperName(resource))]
 	if stack == "" {
 		ds["Encrypted"] = "false"
 		return ds, nil
@@ -161,7 +166,12 @@ func (p *Provider) SystemResourceCreate(kind string, opts structs.ResourceCreate
 	var req *cloudformation.CreateStackInput
 
 	switch s.Type {
-	case "memcached", "mysql", "postgres", "redis", "valkey", "sqs":
+	case "postgres":
+		if v := s.Parameters["EngineVersion"]; v != "" && s.Parameters["Family"] == "" {
+			s.Parameters["Family"] = "postgres" + strings.SplitN(v, ".", 2)[0]
+		}
+		req, err = p.createResource(s)
+	case "memcached", "mysql", "redis", "valkey", "sqs":
 		req, err = p.createResource(s)
 	case "s3":
 		if s.Parameters["Topic"] != "" {
