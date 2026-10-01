@@ -3,7 +3,6 @@ resources:
     type: postgres
     options:
       class: db.t3.micro
-      version: 14
   mysql:
     type: mysql
     options:
@@ -12,15 +11,12 @@ resources:
     type: mariadb
     options:
       class: db.t3.micro
-      version: 10.6
   memcached:
     type: memcached
-    options:
-      class: cache.t3.micro
   redis:
     type: redis
-    options:
-      class: cache.t3.micro
+  valkey:
+    type: valkey
   sharedvolume:
     type: efs
     options:
@@ -45,6 +41,7 @@ services:
       - mariadb
       - memcached
       - redis
+      - valkey
       - sharedvolume
 timers:
   example:
