@@ -8,6 +8,7 @@ import (
 	"math/rand"
 	"net/url"
 	"os"
+	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -586,29 +587,28 @@ func (p *Provider) createResource(s *structs.Resource) (*cloudformation.CreateSt
 }
 
 func (p *Provider) createResourceURL(s *structs.Resource, allowedProtocols ...string) (*cloudformation.CreateStackInput, error) {
-	if s.Parameters["Url"] == "" {
-		return nil, fmt.Errorf("must specify a URL")
-	}
-
-	u, err := url.Parse(s.Parameters["Url"])
-	if err != nil {
+	if err := validateResourceURL(s.Parameters["Url"], allowedProtocols...); err != nil {
 		return nil, err
 	}
 
-	valid := false
-
-	for _, p := range allowedProtocols {
-		if u.Scheme == p {
-			valid = true
-			break
-		}
-	}
-
-	if !valid {
-		return nil, fmt.Errorf("invalid URL scheme: %s. Allowed schemes are: %s", u.Scheme, strings.Join(allowedProtocols, ", "))
-	}
-
 	return p.createResource(s)
+}
+
+func validateResourceURL(raw string, allowedProtocols ...string) error {
+	if raw == "" {
+		return fmt.Errorf("must specify a URL")
+	}
+
+	u, err := url.Parse(raw)
+	if err != nil {
+		return err
+	}
+
+	if !slices.Contains(allowedProtocols, u.Scheme) {
+		return fmt.Errorf("invalid URL scheme: %s. Allowed schemes are: %s", u.Scheme, strings.Join(allowedProtocols, ", "))
+	}
+
+	return nil
 }
 
 // clean up any ENIs attached to the lambda function as they will block stack deletion
@@ -723,9 +723,18 @@ func (p *Provider) updateResource(s *structs.Resource, params map[string]string)
 		params[k] = v
 	}
 
-	// inject webhook url for backwards-compatibility
+	// keep the stored url (legacy /sns?endpoint= form unwrapped) unless the caller sets one
 	if s.Type == "webhook" {
-		params["Url"] = s.Url
+		if u, ok := params["Url"]; ok {
+			if strings.HasPrefix(s.Name, "console-v1-") {
+				return fmt.Errorf("webhook %s is managed by Console and its Url cannot be changed", s.Name)
+			}
+			if err := validateResourceURL(u, "http", "https"); err != nil {
+				return err
+			}
+		} else {
+			params["Url"] = s.Url
+		}
 	}
 
 	tags := map[string]string{
