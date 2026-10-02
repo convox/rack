@@ -22,6 +22,15 @@ convox rack resources info cilog | grep syslog2.convox.com
 convox rack resources url cilog | grep tcp://syslog2.convox.com
 convox rack resources delete cilog --wait
 
+# webhook resource
+convox rack resources create webhook Url=https://example.com/ci-hook --name cihook --wait
+convox rack resources | grep cihook | grep webhook
+convox rack resources url cihook | grep https://example.com/ci-hook
+convox rack resources update cihook Url=https://example.com/ci-hook2 --wait
+convox rack resources info cihook | grep https://example.com/ci-hook2
+convox rack resources url cihook | grep https://example.com/ci-hook2
+convox rack resources delete cihook --wait
+
 # postgres resource
 convox rack resources create postgres --name pgdb --wait
 convox rack resources | grep pgdb | grep postgres
