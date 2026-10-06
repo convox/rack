@@ -80,6 +80,17 @@ func currentEndpoint(c *stdcli.Context, rack_ string) (string, error) {
 		return "", err
 	}
 
+	if rack_ != "" && os.Getenv("CONVOX_HOST") == "" {
+		if h := selfManagedRackHost(c)[rack_]; h != "" && h != host {
+			pw, err := c.SettingReadKey("auth", h)
+			if err != nil {
+				return "", err
+			}
+
+			return fmt.Sprintf("https://convox:%s@%s", url.QueryEscape(pw), h), nil
+		}
+	}
+
 	if host == "" {
 		if !localRackRunning(c) {
 			return "", fmt.Errorf("no racks found, try `convox login`")

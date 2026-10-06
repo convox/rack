@@ -107,3 +107,17 @@ func TestVersionNoSystemSingleLocal(t *testing.T) {
 		})
 	})
 }
+
+func TestVersionCLIInstalledRack(t *testing.T) {
+	testRouting(t, func(e *cli.Engine, console, rack *fakeHost) {
+		res, err := testExecute(e, "version -r v2-scoped-rc", nil)
+		require.NoError(t, err)
+		require.Equal(t, 0, res.Code)
+		res.RequireStderr(t, []string{""})
+		res.RequireStdout(t, []string{
+			"client: test",
+			fmt.Sprintf("server: 20260929232050 (%s)", rack.Host),
+		})
+		require.Empty(t, console.Requests())
+	})
+}

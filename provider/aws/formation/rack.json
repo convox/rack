@@ -1159,13 +1159,13 @@
       "Type": "String",
       "Default": "No",
       "AllowedValues": [ "Yes", "No" ],
-      "Description": "Forward real client IP to public NLB target tasks. Off by default. Cannot be enabled on a rack with a user-supplied InstanceSecurityGroup"
+      "Description": "Forward real client IP to public NLB target tasks. Off by default. A custom InstanceSecurityGroup needs an all-traffic ingress rule from the NLB security group"
     },
     "NLBInternalPreserveClientIP": {
       "Type": "String",
       "Default": "No",
       "AllowedValues": [ "Yes", "No" ],
-      "Description": "Forward real client IP to internal NLB target tasks. Same InstanceSecurityGroup caveat as NLBPreserveClientIP"
+      "Description": "Forward real client IP to internal NLB target tasks. A custom InstanceSecurityGroup needs an all-traffic ingress rule from the internal NLB security group"
     },
     "NLBDeletionProtection": {
       "Type": "String",
@@ -4428,7 +4428,41 @@
                 "iam:UploadServerCertificate"
               ],
               "Resource": [ "*" ]
-            }
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "iam:DeleteRole",
+                "iam:DeleteRolePolicy",
+                "iam:DetachRolePolicy"
+              ],
+              "Resource": [
+                { "Fn::Sub": "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/${AWS::StackName}-*-????????????" }
+              ]
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "iam:GetInstanceProfile",
+                "iam:ListAttachedRolePolicies",
+                "iam:ListEntitiesForPolicy",
+                "iam:ListRolePolicies"
+              ],
+              "Resource": [
+                { "Fn::Sub": "arn:${AWS::Partition}:iam::${AWS::AccountId}:instance-profile/${AWS::StackName}-*-????????????" },
+                { "Fn::Sub": "arn:${AWS::Partition}:iam::${AWS::AccountId}:policy/convox/*" },
+                { "Fn::Sub": "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/convox/*" },
+                { "Fn::Sub": "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/${AWS::StackName}-*-????????????" }
+              ]
+            },
+            { "Fn::If": [ "PermissionsBoundaryEnabled",
+              {
+                "Effect": "Allow",
+                "Action": [ "iam:GetPolicy" ],
+                "Resource": [ { "Ref": "PermissionsBoundary" } ]
+              },
+              { "Ref": "AWS::NoValue" }
+            ] }
           ]
         }
       }

@@ -37,6 +37,31 @@ func TestResourceDefaults(t *testing.T) {
 	}
 }
 
+func TestResourceDefaultsCarriesParameters(t *testing.T) {
+	provider := StubAwsProvider(
+		resourceDefaultsCycleListStackResources,
+		resourceDefaultsCycleDescribeStackParameters,
+	)
+	defer provider.Close()
+
+	params, err := provider.ResourceDefaults("myapp", "db")
+
+	assert.NoError(t, err)
+	assert.Equal(t, map[string]string{"Class": "cache.t2.micro", "Nodes": "1", "Version": "12"}, params)
+}
+
+func TestResourceDefaultsListError(t *testing.T) {
+	provider := StubAwsProvider(
+		resourceDefaultsCycleListStackResourcesDenied,
+	)
+	defer provider.Close()
+
+	params, err := provider.ResourceDefaults("myapp", "db")
+
+	assert.ErrorContains(t, err, "AccessDenied")
+	assert.Nil(t, params)
+}
+
 func TestSystemResourceList(t *testing.T) {
 	provider := StubAwsProvider(
 		cycleServiceDescribeStacksList,
@@ -362,6 +387,68 @@ var resourceDefaultsCycleDescribeStack = awsutil.Cycle{
 					<member>
 					<ParameterKey>Encrypted</ParameterKey>
 					<ParameterValue></ParameterValue>
+					</member>
+				</Parameters>
+				</member>
+			</Stacks>
+			</DescribeStacksResult>
+			<ResponseMetadata>
+			<RequestId>b9b4b068-3a41-11e5-94eb-example</RequestId>
+			</ResponseMetadata>
+		</DescribeStacksResponse>
+		`,
+	},
+}
+
+var resourceDefaultsCycleListStackResourcesDenied = awsutil.Cycle{
+	Request: awsutil.Request{
+		Method:     "POST",
+		RequestURI: "/",
+		Body:       "Action=ListStackResources&StackName=convox-myapp&Version=2010-05-15",
+	},
+	Response: awsutil.Response{
+		StatusCode: 403,
+		Body:       `<ErrorResponse><Error><Type>Sender</Type><Code>AccessDenied</Code><Message>not authorized</Message></Error></ErrorResponse>`,
+	},
+}
+
+var resourceDefaultsCycleDescribeStackParameters = awsutil.Cycle{
+	Request: awsutil.Request{
+		Method:     "POST",
+		RequestURI: "/",
+		Body:       "Action=DescribeStacks&StackName=arnfake&Version=2010-05-15",
+	},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body: `
+		<DescribeStacksResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
+			<DescribeStacksResult>
+			<Stacks>
+				<member>
+				<StackName>ResourceDb</StackName>
+				<StackId>arnfake</StackId>
+				<CreationTime>2010-07-27T22:28:28Z</CreationTime>
+				<StackStatus>CREATE_COMPLETE</StackStatus>
+				<Parameters>
+					<member>
+					<ParameterKey>Class</ParameterKey>
+					<ParameterValue>cache.t2.micro</ParameterValue>
+					</member>
+					<member>
+					<ParameterKey>Nodes</ParameterKey>
+					<ParameterValue>1</ParameterValue>
+					</member>
+					<member>
+					<ParameterKey>Password</ParameterKey>
+					<ParameterValue>****</ParameterValue>
+					</member>
+					<member>
+					<ParameterKey>Rack</ParameterKey>
+					<ParameterValue>convox</ParameterValue>
+					</member>
+					<member>
+					<ParameterKey>Version</ParameterKey>
+					<ParameterValue>12</ParameterValue>
 					</member>
 				</Parameters>
 				</member>

@@ -715,6 +715,83 @@ func TestProcessExec(t *testing.T) {
 	})
 }
 
+func TestProcessExecLeadingNul(t *testing.T) {
+	zeros := strings.Repeat("\x00", 5000)
+
+	out, code, err := processExecMessages(t, zeros, statusCodePrefix+"3\n")
+	require.NoError(t, err)
+	require.Equal(t, []byte(zeros), out)
+	require.Equal(t, 3, code)
+}
+
+func TestProcessExecShortHead(t *testing.T) {
+	t.Run("exit line", func(t *testing.T) {
+		out, code, err := processExecMessages(t, "\x00", statusCodePrefix+"3\n")
+		require.NoError(t, err)
+		require.Equal(t, []byte("\x00"), out)
+		require.Equal(t, 3, code)
+	})
+
+	t.Run("close", func(t *testing.T) {
+		out, code, err := processExecMessages(t, "\x00")
+		require.NoError(t, err)
+		require.Equal(t, []byte("\x00"), out)
+		require.Equal(t, 0, code)
+	})
+}
+
+func TestProcessExecSession(t *testing.T) {
+	t.Setenv("PATH", t.TempDir())
+
+	session := `{"sessionId":"s1","streamUrl":"wss://example","tokenValue":"tok","region":"us-east-1"}`
+
+	t.Run("one message", func(t *testing.T) {
+		out, _, err := processExecMessages(t, "\x00"+session, statusCodePrefix+"0\n")
+		require.ErrorContains(t, err, "session-manager-plugin not found")
+		require.Empty(t, out)
+	})
+
+	t.Run("cut off", func(t *testing.T) {
+		out, _, err := processExecMessages(t, "\x00"+session[:40])
+		require.ErrorContains(t, err, "ECS Exec session ended before it was established")
+		require.Empty(t, out)
+	})
+}
+
+func TestProcessExecSessionSplit(t *testing.T) {
+	t.Setenv("PATH", t.TempDir())
+
+	out, _, err := processExecMessages(t, "\x00{\"sess", `ionId":"s1","streamUrl":"wss://example",`, `"tokenValue":"tok","region":"us-east-1"}`)
+	require.ErrorContains(t, err, "session-manager-plugin not found")
+	require.Empty(t, out)
+}
+
+func processExecMessages(t *testing.T, messages ...string) ([]byte, int, error) {
+	s := stdapi.New("api", "api")
+	s.Route("SOCKET", "/apps/app1/processes/id1/exec", func(c *stdapi.Context) error {
+		for _, m := range messages {
+			if err := c.Websocket().WriteMessage(websocket.TextMessage, []byte(m)); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+
+	var out bytes.Buffer
+	var code int
+	var err error
+
+	testServer(t, s, func(c *sdk.Client) {
+		rw := struct {
+			io.Reader
+			io.Writer
+		}{bytes.NewReader(nil), &out}
+		code, err = c.ProcessExec("app1", "id1", "cmd", rw, structs.ProcessExecOptions{})
+	})
+
+	return out.Bytes(), code, err
+}
+
 func TestProcessGet(t *testing.T) {
 	app := "app1"
 	pid := "pid"

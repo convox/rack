@@ -35,23 +35,44 @@ func (p *Provider) CertificateApply(app, service string, port int, id string) er
 	return fmt.Errorf("generation 2 apps use the domain: attribute on services in convox.yml")
 }
 
-func (p *Provider) certificateApplyGeneration1(a *structs.App, service string, port int, id string) error {
-	params := map[string]string{}
+var classicBalancerACMKeyAlgorithms = map[string]bool{
+	acm.KeyAlgorithmRsa1024: true,
+	acm.KeyAlgorithmRsa2048: true,
+}
 
+func (p *Provider) certificateApplyGeneration1(a *structs.App, service string, port int, id string) error {
 	cs, err := p.CertificateList()
 	if err != nil {
 		return err
 	}
 
-	for _, c := range cs {
-		if c.Id == id {
-			param := fmt.Sprintf("%sPort%dListener", upperName(service), port)
-			fp := strings.Split(a.Parameters[param], ",")
-			params[param] = fmt.Sprintf("%s,%s", fp[0], c.Arn)
+	var cert *structs.Certificate
+
+	for i := range cs {
+		if cs[i].Id == id {
+			cert = &cs[i]
 		}
 	}
 
-	return p.updateStack(p.rackStack(a.Name), nil, params, map[string]string{}, "")
+	if cert == nil {
+		return fmt.Errorf("certificate not found")
+	}
+
+	if a.Parameters[fmt.Sprintf("Balancer%sType", upperName(service))] != "ALB" && strings.Contains(cert.Arn, ":acm:") {
+		alg, err := p.certificateKeyAlgorithm(cert.Arn)
+		if err != nil {
+			return err
+		}
+
+		if alg != "" && !classicBalancerACMKeyAlgorithms[alg] {
+			return fmt.Errorf("certificate %s is %s, which a Classic Load Balancer does not accept from ACM", id, alg)
+		}
+	}
+
+	param := fmt.Sprintf("%sPort%dListener", upperName(service), port)
+	fp := strings.Split(a.Parameters[param], ",")
+
+	return p.updateStack(p.rackStack(a.Name), nil, map[string]string{param: fmt.Sprintf("%s,%s", fp[0], cert.Arn)}, map[string]string{}, "")
 }
 
 func (p *Provider) CertificateCreate(pub, key string, opts structs.CertificateCreateOptions) (*structs.Certificate, error) {
@@ -74,6 +95,8 @@ func (p *Provider) CertificateCreate(pub, key string, opts structs.CertificateCr
 		return nil, err
 	}
 
+	p.waitForCertificateListed(*res.CertificateArn)
+
 	return c, nil
 }
 
@@ -81,7 +104,7 @@ func (p *Provider) CertificateDelete(id string) error {
 	if strings.HasPrefix(id, "acm-") {
 		id = strings.Split(id, "-")[1]
 
-		certs, err := p.certificateListACM()
+		certs, err := p.certificateListACM(acm.KeyAlgorithm_Values())
 		if err != nil {
 			return err
 		}
@@ -91,6 +114,9 @@ func (p *Provider) CertificateDelete(id string) error {
 				_, err = p.acm().DeleteCertificate(&acm.DeleteCertificateInput{
 					CertificateArn: c.CertificateArn,
 				})
+				if awsError(err) == "ResourceNotFoundException" {
+					return fmt.Errorf("certificate not found")
+				}
 				return err
 			}
 		}
@@ -131,6 +157,8 @@ func (p *Provider) CertificateGenerate(domains []string) (*structs.Certificate, 
 		return nil, err
 	}
 
+	p.waitForCertificateListed(*res.CertificateArn)
+
 	parts := strings.Split(*res.CertificateArn, "-")
 	id := fmt.Sprintf("acm-%s", parts[len(parts)-1])
 
@@ -143,6 +171,10 @@ func (p *Provider) CertificateGenerate(domains []string) (*structs.Certificate, 
 }
 
 func (p *Provider) CertificateList() (structs.Certificates, error) {
+	return p.certificateList(acm.KeyAlgorithm_Values())
+}
+
+func (p *Provider) certificateList(keyTypes []string) (structs.Certificates, error) {
 	certs := structs.Certificates{}
 
 	req := &iam.ListServerCertificatesInput{}
@@ -191,7 +223,7 @@ func (p *Provider) CertificateList() (structs.Certificates, error) {
 		req.Marker = res.Marker
 	}
 
-	ares, err := p.certificateListACM()
+	ares, err := p.certificateListACM(keyTypes)
 	if err != nil {
 		return nil, err
 	}
@@ -210,7 +242,7 @@ func (p *Provider) CertificateList() (structs.Certificates, error) {
 		}
 
 		for _, t := range tres.Tags {
-			tags[*t.Key] = *t.Value
+			tags[aws.StringValue(t.Key)] = aws.StringValue(t.Value)
 		}
 
 		if tags["System"] == "convox" && tags["Type"] == "app" {
@@ -228,6 +260,23 @@ func (p *Provider) CertificateList() (structs.Certificates, error) {
 	}
 
 	return certs, nil
+}
+
+func (p *Provider) releaseCertificates() (structs.Certificates, error) {
+	cs, err := p.certificateList(nil)
+	if err != nil {
+		return nil, err
+	}
+
+	ccs := structs.Certificates{}
+
+	for _, c := range cs {
+		if c.Expiration.After(time.Now()) {
+			ccs = append(ccs, c)
+		}
+	}
+
+	return ccs, nil
 }
 
 type CfsslCertificateBundle struct {
@@ -273,20 +322,39 @@ func (p *Provider) certificateGetACM(arn string) (*structs.Certificate, error) {
 		c.Expiration = *res.Certificate.NotAfter
 	}
 
-	c.Domain = *res.Certificate.DomainName
+	c.Domain = aws.StringValue(res.Certificate.DomainName)
 	c.Domains = make([]string, len(res.Certificate.SubjectAlternativeNames))
 
 	for i, san := range res.Certificate.SubjectAlternativeNames {
-		c.Domains[i] = *san
+		c.Domains[i] = aws.StringValue(san)
 	}
 
 	return c, nil
 }
 
-func (p *Provider) certificateListACM() ([]*acm.CertificateSummary, error) {
+func (p *Provider) certificateKeyAlgorithm(arn string) (string, error) {
+	res, err := p.acm().DescribeCertificate(&acm.DescribeCertificateInput{
+		CertificateArn: aws.String(arn),
+	})
+	if err != nil {
+		return "", err
+	}
+
+	if res.Certificate == nil {
+		return "", nil
+	}
+
+	return strings.ReplaceAll(aws.StringValue(res.Certificate.KeyAlgorithm), "-", "_"), nil
+}
+
+func (p *Provider) certificateListACM(keyTypes []string) ([]*acm.CertificateSummary, error) {
 	certs := []*acm.CertificateSummary{}
 
 	req := &acm.ListCertificatesInput{}
+
+	if len(keyTypes) > 0 {
+		req.Includes = &acm.Filters{KeyTypes: aws.StringSlice(keyTypes)}
+	}
 
 	for {
 		res, err := p.acm().ListCertificates(req)
@@ -304,4 +372,40 @@ func (p *Provider) certificateListACM() ([]*acm.CertificateSummary, error) {
 	}
 
 	return certs, nil
+}
+
+var (
+	certificateListWaitConfirmations = 2
+	certificateListWaitTick          = 2 * time.Second
+	certificateListWaitTimeout       = 10 * time.Second
+)
+
+func (p *Provider) waitForCertificateListed(arn string) {
+	seen := 0
+	done := time.Now().Add(certificateListWaitTimeout)
+
+	for {
+		cs, err := p.certificateListACM(acm.KeyAlgorithm_Values())
+		if err == nil && certificateListed(cs, arn) {
+			seen++
+		} else {
+			seen = 0
+		}
+
+		if seen >= certificateListWaitConfirmations || time.Now().After(done) {
+			return
+		}
+
+		time.Sleep(certificateListWaitTick)
+	}
+}
+
+func certificateListed(cs []*acm.CertificateSummary, arn string) bool {
+	for _, c := range cs {
+		if aws.StringValue(c.CertificateArn) == arn {
+			return true
+		}
+	}
+
+	return false
 }

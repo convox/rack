@@ -20,12 +20,15 @@
       "Properties": {
         "Code": {
           "ZipFile": { "Fn::Join": [ "\n", [
+            "const http = require(\"http\");",
             "const https = require(\"https\");",
             "const url = require(\"url\");",
             "exports.handler = async (event) => {",
+            "  const target = url.parse(process.env.WEBHOOK_URL);",
+            "  const client = target.protocol === \"http:\" ? http : https;",
             "  return new Promise((resolve, reject) => {",
-            "    const req = https.request(",
-            "      Object.assign(url.parse(process.env.WEBHOOK_URL), { method: \"POST\" }),",
+            "    const req = client.request(",
+            "      Object.assign(target, { method: \"POST\" }),",
             "      (res) => {",
             "        let data = '';",
             "        res.on('data', (chunk) => {",

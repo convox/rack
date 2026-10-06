@@ -8,6 +8,7 @@ import (
 	"math/rand"
 	"net/url"
 	"os"
+	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -101,7 +102,12 @@ func (p *Provider) ResourceList(app string) (structs.Resources, error) {
 func (p *Provider) ResourceDefaults(app, resource string) (map[string]string, error) {
 	ds := map[string]string{}
 
-	stack, _ := p.appResource(app, fmt.Sprintf("Resource%s", upperName(resource)))
+	rs, err := p.appResources(app)
+	if err != nil {
+		return nil, err
+	}
+
+	stack := rs[fmt.Sprintf("Resource%s", upperName(resource))]
 	if stack == "" {
 		ds["Encrypted"] = "false"
 		return ds, nil
@@ -161,7 +167,12 @@ func (p *Provider) SystemResourceCreate(kind string, opts structs.ResourceCreate
 	var req *cloudformation.CreateStackInput
 
 	switch s.Type {
-	case "memcached", "mysql", "postgres", "redis", "valkey", "sqs":
+	case "postgres":
+		if v := s.Parameters["EngineVersion"]; v != "" && s.Parameters["Family"] == "" {
+			s.Parameters["Family"] = "postgres" + strings.SplitN(v, ".", 2)[0]
+		}
+		req, err = p.createResource(s)
+	case "memcached", "mysql", "redis", "valkey", "sqs":
 		req, err = p.createResource(s)
 	case "s3":
 		if s.Parameters["Topic"] != "" {
@@ -576,29 +587,28 @@ func (p *Provider) createResource(s *structs.Resource) (*cloudformation.CreateSt
 }
 
 func (p *Provider) createResourceURL(s *structs.Resource, allowedProtocols ...string) (*cloudformation.CreateStackInput, error) {
-	if s.Parameters["Url"] == "" {
-		return nil, fmt.Errorf("must specify a URL")
-	}
-
-	u, err := url.Parse(s.Parameters["Url"])
-	if err != nil {
+	if err := validateResourceURL(s.Parameters["Url"], allowedProtocols...); err != nil {
 		return nil, err
 	}
 
-	valid := false
-
-	for _, p := range allowedProtocols {
-		if u.Scheme == p {
-			valid = true
-			break
-		}
-	}
-
-	if !valid {
-		return nil, fmt.Errorf("invalid URL scheme: %s. Allowed schemes are: %s", u.Scheme, strings.Join(allowedProtocols, ", "))
-	}
-
 	return p.createResource(s)
+}
+
+func validateResourceURL(raw string, allowedProtocols ...string) error {
+	if raw == "" {
+		return fmt.Errorf("must specify a URL")
+	}
+
+	u, err := url.Parse(raw)
+	if err != nil {
+		return err
+	}
+
+	if !slices.Contains(allowedProtocols, u.Scheme) {
+		return fmt.Errorf("invalid URL scheme: %s. Allowed schemes are: %s", u.Scheme, strings.Join(allowedProtocols, ", "))
+	}
+
+	return nil
 }
 
 // clean up any ENIs attached to the lambda function as they will block stack deletion
@@ -713,9 +723,18 @@ func (p *Provider) updateResource(s *structs.Resource, params map[string]string)
 		params[k] = v
 	}
 
-	// inject webhook url for backwards-compatibility
+	// keep the stored url (legacy /sns?endpoint= form unwrapped) unless the caller sets one
 	if s.Type == "webhook" {
-		params["Url"] = s.Url
+		if u, ok := params["Url"]; ok {
+			if strings.HasPrefix(s.Name, "console-v1-") {
+				return fmt.Errorf("webhook %s is managed by Console and its Url cannot be changed", s.Name)
+			}
+			if err := validateResourceURL(u, "http", "https"); err != nil {
+				return err
+			}
+		} else {
+			params["Url"] = s.Url
+		}
 	}
 
 	tags := map[string]string{
