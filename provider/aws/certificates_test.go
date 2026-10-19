@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aws/aws-sdk-go/service/acm"
 	"github.com/convox/rack/pkg/structs"
 	"github.com/convox/rack/pkg/test/awsutil"
 	"github.com/stretchr/testify/assert"
@@ -58,6 +59,10 @@ func acmDescribeCycle(arn, fields string) awsutil.Cycle {
 	return acmCycle("DescribeCertificate", `{"CertificateArn":"`+arn+`"}`, 200, `{"Certificate":{"CertificateArn":"`+arn+`","Status":"ISSUED",`+fields+`}}`)
 }
 
+func acmRecordsCycle(arn string) awsutil.Cycle {
+	return acmDescribeCycle(arn, `"DomainName":"example.org","DomainValidationOptions":[{"DomainName":"example.org","ValidationMethod":"DNS","ResourceRecord":{"Name":"_a.example.org.","Type":"CNAME","Value":"_b.abc.acm-validations.aws."}}]`)
+}
+
 var iamEmptyListCycle = awsutil.Cycle{
 	Request: awsutil.Request{
 		RequestURI: "/",
@@ -89,6 +94,7 @@ func TestCertificateGenerateIdempotencyToken(t *testing.T) {
 			},
 			acmListCycle(acmAllKeyTypes, arn),
 			acmListCycle(acmAllKeyTypes, arn),
+			acmRecordsCycle(arn),
 		}
 	}
 
@@ -112,20 +118,24 @@ func TestCertificateGenerateIdempotencyToken(t *testing.T) {
 		assert.Equal(t, c.id, cert.Id)
 	}
 
-	require.Len(t, *bodies, 9)
+	require.Len(t, *bodies, 12)
 
 	tokens := map[string]bool{}
 
-	for i, pos := range []int{0, 3, 6} {
+	for i, pos := range []int{0, 4, 8} {
 		var req struct {
 			DomainName              string
 			IdempotencyToken        string
 			SubjectAlternativeNames []string
+			Tags                    []map[string]string
+			ValidationMethod        string
 		}
 
 		require.NoError(t, json.Unmarshal([]byte((*bodies)[pos]), &req))
 		assert.Equal(t, "example.org", req.DomainName)
 		assert.Regexp(t, `^[A-Za-z]{32}$`, req.IdempotencyToken)
+		assert.Equal(t, "DNS", req.ValidationMethod)
+		assert.Equal(t, []map[string]string{{"Key": "System", "Value": "convox"}, {"Key": "Rack", "Value": "convox"}}, req.Tags)
 
 		if i == 0 {
 			assert.Equal(t, []string{"www.example.org"}, req.SubjectAlternativeNames)
@@ -150,12 +160,14 @@ func TestCertificateGenerateWaitsForList(t *testing.T) {
 		acmListCycle(acmAllKeyTypes),
 		acmListCycle(acmAllKeyTypes, arn),
 		acmListCycle(acmAllKeyTypes, arn),
+		acmRecordsCycle(arn),
 	)
 
 	cert, err := p.CertificateGenerate([]string{"example.org"})
 	require.NoError(t, err)
 	assert.Equal(t, "acm-96ae0d627214", cert.Id)
-	assert.Len(t, *bodies, 5)
+	assert.Equal(t, "pending", cert.Status)
+	assert.Len(t, *bodies, 6)
 }
 
 func TestCertificateGenerateWaitTimeout(t *testing.T) {
@@ -220,7 +232,7 @@ func TestCertificateListKeyTypes(t *testing.T) {
 		acmDescribeCycle(bare, `"KeyAlgorithm":"RSA-2048"`),
 	)
 
-	cs, err := p.CertificateList()
+	cs, err := p.certificateList(acm.KeyAlgorithm_Values())
 	require.NoError(t, err)
 	assert.Len(t, *bodies, 7)
 

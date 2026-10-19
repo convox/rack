@@ -285,6 +285,18 @@ func (c *Client) CertificateDelete(id string) error {
 	return err
 }
 
+func (c *Client) CertificateDns() (*structs.CertificateDns, error) {
+	var err error
+
+	ro := stdsdk.RequestOptions{Headers: stdsdk.Headers{}, Params: stdsdk.Params{}, Query: stdsdk.Query{}}
+
+	var v *structs.CertificateDns
+
+	err = c.Get("/certificates/dns", ro, &v)
+
+	return v, err
+}
+
 func (c *Client) CertificateGenerate(domains []string) (*structs.Certificate, error) {
 	var err error
 
@@ -307,6 +319,38 @@ func (c *Client) CertificateList() (structs.Certificates, error) {
 	var v structs.Certificates
 
 	err = c.Get(fmt.Sprintf("/certificates"), ro, &v)
+
+	return v, err
+}
+
+func (c *Client) CertificateMigrate(ids []string) (structs.CertificateMigrations, error) {
+	var err error
+
+	ro := stdsdk.RequestOptions{Headers: stdsdk.Headers{}, Params: stdsdk.Params{}, Query: stdsdk.Query{}}
+
+	if len(ids) > 0 {
+		ro.Params["ids"] = strings.Join(ids, ",")
+	}
+
+	var v structs.CertificateMigrations
+
+	err = c.Post("/certificates/migrate", ro, &v)
+
+	return v, err
+}
+
+func (c *Client) CertificateMigrationList(ids []string) (structs.CertificateMigrations, error) {
+	var err error
+
+	ro := stdsdk.RequestOptions{Headers: stdsdk.Headers{}, Params: stdsdk.Params{}, Query: stdsdk.Query{}}
+
+	if len(ids) > 0 {
+		ro.Query["ids"] = strings.Join(ids, ",")
+	}
+
+	var v structs.CertificateMigrations
+
+	err = c.Get("/certificates/migrations", ro, &v)
 
 	return v, err
 }

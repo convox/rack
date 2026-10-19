@@ -397,6 +397,29 @@ func (_m *MockProvider) CertificateDelete(id string) error {
 	return r0
 }
 
+// CertificateDns provides a mock function with given fields:
+func (_m *MockProvider) CertificateDns() (*CertificateDns, error) {
+	ret := _m.Called()
+
+	var r0 *CertificateDns
+	if rf, ok := ret.Get(0).(func() *CertificateDns); ok {
+		r0 = rf()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*CertificateDns)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func() error); ok {
+		r1 = rf()
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // CertificateGenerate provides a mock function with given fields: domains
 func (_m *MockProvider) CertificateGenerate(domains []string) (*Certificate, error) {
 	ret := _m.Called(domains)
@@ -436,6 +459,52 @@ func (_m *MockProvider) CertificateList() (Certificates, error) {
 	var r1 error
 	if rf, ok := ret.Get(1).(func() error); ok {
 		r1 = rf()
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// CertificateMigrate provides a mock function with given fields: ids
+func (_m *MockProvider) CertificateMigrate(ids []string) (CertificateMigrations, error) {
+	ret := _m.Called(ids)
+
+	var r0 CertificateMigrations
+	if rf, ok := ret.Get(0).(func([]string) CertificateMigrations); ok {
+		r0 = rf(ids)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(CertificateMigrations)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func([]string) error); ok {
+		r1 = rf(ids)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// CertificateMigrationList provides a mock function with given fields: ids
+func (_m *MockProvider) CertificateMigrationList(ids []string) (CertificateMigrations, error) {
+	ret := _m.Called(ids)
+
+	var r0 CertificateMigrations
+	if rf, ok := ret.Get(0).(func([]string) CertificateMigrations); ok {
+		r0 = rf(ids)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(CertificateMigrations)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func([]string) error); ok {
+		r1 = rf(ids)
 	} else {
 		r1 = ret.Error(1)
 	}

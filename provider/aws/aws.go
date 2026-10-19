@@ -25,6 +25,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/kms"
 	"github.com/aws/aws-sdk-go/service/rds"
+	"github.com/aws/aws-sdk-go/service/route53"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/secretsmanager"
 	"github.com/aws/aws-sdk-go/service/sns"
@@ -86,6 +87,7 @@ type Provider struct {
 	ApiBalancerSecurity               string
 	Rack                              string
 	RackApiServiceName                string
+	Route53CertificateValidation      bool
 	SecurityGroup                     string
 	SettingsBucket                    string
 	SshKey                            string
@@ -121,6 +123,8 @@ func FromEnv() (*Provider, error) {
 		Metrics:     metrics.New("https://metrics.convox.com/metrics/rack"),
 		ctx:         context.Background(),
 		log:         logger.New("ns=aws"),
+
+		Route53CertificateValidation: os.Getenv("ROUTE53_CERTIFICATE_VALIDATION") == "Yes",
 	}
 
 	if err := p.loadParams(); err != nil {
@@ -431,6 +435,14 @@ func (p *Provider) iam() *iam.IAM {
 		panic(errors.WithStack(err))
 	}
 	return iam.New(s, p.config())
+}
+
+func (p *Provider) route53() *route53.Route53 {
+	s, err := helpers.NewSession()
+	if err != nil {
+		panic(errors.WithStack(err))
+	}
+	return route53.New(s, p.config())
 }
 
 func (p *Provider) s3() *s3.S3 {
