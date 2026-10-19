@@ -458,6 +458,33 @@ func TestCertificateDelete(t *testing.T) {
 	})
 }
 
+func TestCertificateDns(t *testing.T) {
+	dns := &structs.CertificateDns{
+		Errors:    []structs.CertificateDnsError{{Id: "2", Error: "err2"}},
+		Preparing: []string{"3"},
+		Records: []structs.CertificateDnsRecord{{
+			Zone:         "convox.com",
+			Name:         "_a.convox.com.",
+			Type:         "CNAME",
+			Value:        "_b.acm-validations.aws.",
+			Check:        "missing",
+			Route53:      true,
+			Certificates: []string{"1"},
+		}},
+	}
+
+	s := stdapi.New("api", "api")
+	s.Route("GET", "/certificates/dns", func(c *stdapi.Context) error {
+		return c.RenderJSON(dns)
+	})
+
+	testServer(t, s, func(c *sdk.Client) {
+		got, err := c.CertificateDns()
+		require.NoError(t, err)
+		require.Equal(t, dns, got)
+	})
+}
+
 func TestCertificateGenerate(t *testing.T) {
 	certResp := &structs.Certificate{
 		Id:         "1",
@@ -494,6 +521,81 @@ func TestCertificateList(t *testing.T) {
 		got, err := c.CertificateList()
 		require.NoError(t, err)
 		require.Equal(t, certResp, got)
+	})
+}
+
+func TestCertificateMigrate(t *testing.T) {
+	migrations := structs.CertificateMigrations{
+		{Id: "1", Domain: "convox.com", Result: "switching"},
+		{Id: "2", Domain: "convox.net", Result: "error", Detail: "err2"},
+	}
+
+	s := stdapi.New("api", "api")
+	s.Route("POST", "/certificates/migrate", func(c *stdapi.Context) error {
+		require.Equal(t, "1,2", c.Form("ids"))
+		return c.RenderJSON(migrations)
+	})
+
+	testServer(t, s, func(c *sdk.Client) {
+		got, err := c.CertificateMigrate([]string{"1", "2"})
+		require.NoError(t, err)
+		require.Equal(t, migrations, got)
+	})
+}
+
+func TestCertificateMigrateAll(t *testing.T) {
+	migrations := structs.CertificateMigrations{{Id: "1", Domain: "convox.com", Result: "dns"}}
+
+	s := stdapi.New("api", "api")
+	s.Route("POST", "/certificates/migrate", func(c *stdapi.Context) error {
+		require.NoError(t, c.Request().ParseForm())
+		require.NotContains(t, c.Request().Form, "ids")
+		return c.RenderJSON(migrations)
+	})
+
+	testServer(t, s, func(c *sdk.Client) {
+		got, err := c.CertificateMigrate(nil)
+		require.NoError(t, err)
+		require.Equal(t, migrations, got)
+
+		got, err = c.CertificateMigrate([]string{})
+		require.NoError(t, err)
+		require.Equal(t, migrations, got)
+	})
+}
+
+func TestCertificateMigrationList(t *testing.T) {
+	migrations := structs.CertificateMigrations{
+		{Id: "1", Domain: "convox.com", Result: "dns"},
+		{Id: "2", Domain: "convox.net", Result: "publishing"},
+	}
+
+	s := stdapi.New("api", "api")
+	s.Route("GET", "/certificates/migrations", func(c *stdapi.Context) error {
+		require.Equal(t, "1,2", c.Query("ids"))
+		return c.RenderJSON(migrations)
+	})
+
+	testServer(t, s, func(c *sdk.Client) {
+		got, err := c.CertificateMigrationList([]string{"1", "2"})
+		require.NoError(t, err)
+		require.Equal(t, migrations, got)
+	})
+}
+
+func TestCertificateMigrationListAll(t *testing.T) {
+	migrations := structs.CertificateMigrations{{Id: "1", Domain: "convox.com", Result: "dns"}}
+
+	s := stdapi.New("api", "api")
+	s.Route("GET", "/certificates/migrations", func(c *stdapi.Context) error {
+		require.NotContains(t, c.Request().URL.Query(), "ids")
+		return c.RenderJSON(migrations)
+	})
+
+	testServer(t, s, func(c *sdk.Client) {
+		got, err := c.CertificateMigrationList(nil)
+		require.NoError(t, err)
+		require.Equal(t, migrations, got)
 	})
 }
 

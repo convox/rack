@@ -13,8 +13,10 @@ import (
 type HandlerFunc func(sdk.Interface, *stdcli.Context) error
 
 var (
-	Starter      = start.New()
-	WaitDuration = 5 * time.Second
+	CertsWaitInterval = 10 * time.Second
+	CertsWaitTimeout  = 15 * time.Minute
+	Starter           = start.New()
+	WaitDuration      = 5 * time.Second
 )
 
 var (

@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/acm"
 	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/convox/rack/pkg/helpers"
 	"github.com/convox/rack/pkg/manifest"
@@ -46,7 +47,7 @@ func (p *Provider) ServiceList(app string) (structs.Services, error) {
 		return nil, err
 	}
 
-	cs, err := p.CertificateList()
+	cs, err := p.certificateList(acm.KeyAlgorithm_Values())
 	if err != nil {
 		return nil, err
 	}

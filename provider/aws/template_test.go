@@ -801,3 +801,60 @@ func TestPermissionsBoundaryRackWiring(t *testing.T) {
 		t.Errorf("rack.json has %d roles, want 9; add the boundary to any new role", roles)
 	}
 }
+
+// TestRoute53CertificateValidationWiring pins the unconditional environment ref that carries
+// Route53CertificateValidation to the worker and the API, without which a change reports no updates.
+func TestRoute53CertificateValidationWiring(t *testing.T) {
+	data, err := os.ReadFile(filepath.Join("formation", "rack.json"))
+	if err != nil {
+		t.Fatalf("read rack.json: %v", err)
+	}
+
+	var tmpl struct {
+		Parameters map[string]struct {
+			Default json.RawMessage `json:"Default"`
+		} `json:"Parameters"`
+		Resources map[string]struct {
+			Properties struct {
+				ContainerDefinitions []struct {
+					Environment []struct {
+						Name  string          `json:"Name"`
+						Value json.RawMessage `json:"Value"`
+					} `json:"Environment"`
+				} `json:"ContainerDefinitions"`
+			} `json:"Properties"`
+		} `json:"Resources"`
+	}
+
+	if err := json.Unmarshal(data, &tmpl); err != nil {
+		t.Fatalf("parse rack.json: %v", err)
+	}
+
+	if got := string(tmpl.Parameters["Route53CertificateValidation"].Default); got != `"No"` {
+		t.Errorf("Route53CertificateValidation default is %s, want \"No\"", got)
+	}
+
+	for _, name := range []string{"ApiMonitorTasks", "ApiWebTasks"} {
+		cds := tmpl.Resources[name].Properties.ContainerDefinitions
+		if len(cds) == 0 {
+			t.Fatalf("%s has no container definitions", name)
+		}
+
+		found := false
+
+		for _, e := range cds[0].Environment {
+			if e.Name != "ROUTE53_CERTIFICATE_VALIDATION" {
+				continue
+			}
+
+			var ref map[string]string
+			if err := json.Unmarshal(e.Value, &ref); err == nil && ref["Ref"] == "Route53CertificateValidation" {
+				found = true
+			}
+		}
+
+		if !found {
+			t.Errorf("%s is missing an unconditional ROUTE53_CERTIFICATE_VALIDATION ref", name)
+		}
+	}
+}

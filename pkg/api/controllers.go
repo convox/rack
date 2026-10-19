@@ -421,6 +421,19 @@ func (s *Server) CertificateDelete(c *stdapi.Context) error {
 	return c.RenderOK()
 }
 
+func (s *Server) CertificateDns(c *stdapi.Context) error {
+	if err := s.hook("CertificateDnsValidate", c); err != nil {
+		return err
+	}
+
+	v, err := s.provider(c).WithContext(c.Context()).CertificateDns()
+	if err != nil {
+		return err
+	}
+
+	return c.RenderJSON(v)
+}
+
 func (s *Server) CertificateGenerate(c *stdapi.Context) error {
 	if err := s.hook("CertificateGenerateValidate", c); err != nil {
 		return err
@@ -455,6 +468,56 @@ func (s *Server) CertificateList(c *stdapi.Context) error {
 	}
 
 	return c.RenderJSON(v)
+}
+
+func (s *Server) CertificateMigrate(c *stdapi.Context) error {
+	if err := s.hook("CertificateMigrateValidate", c); err != nil {
+		return err
+	}
+
+	ids := certificateIds(c.Value("ids"))
+
+	v, err := s.provider(c).WithContext(c.Context()).CertificateMigrate(ids)
+	if err != nil {
+		return err
+	}
+
+	if vs, ok := interface{}(v).(Sortable); ok {
+		sort.Slice(v, vs.Less)
+	}
+
+	return c.RenderJSON(v)
+}
+
+func (s *Server) CertificateMigrationList(c *stdapi.Context) error {
+	if err := s.hook("CertificateMigrationListValidate", c); err != nil {
+		return err
+	}
+
+	ids := certificateIds(c.Value("ids"))
+
+	v, err := s.provider(c).WithContext(c.Context()).CertificateMigrationList(ids)
+	if err != nil {
+		return err
+	}
+
+	if vs, ok := interface{}(v).(Sortable); ok {
+		sort.Slice(v, vs.Less)
+	}
+
+	return c.RenderJSON(v)
+}
+
+func certificateIds(value string) []string {
+	var ids []string
+
+	for _, id := range strings.Split(value, ",") {
+		if id != "" {
+			ids = append(ids, id)
+		}
+	}
+
+	return ids
 }
 
 func (s *Server) EventSend(c *stdapi.Context) error {
