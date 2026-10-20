@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"reflect"
 
+	"github.com/convox/rack/pkg/helpers"
 	"github.com/convox/rack/pkg/jwt"
 	"github.com/convox/rack/pkg/structs"
 	"github.com/convox/rack/provider"
@@ -18,6 +19,8 @@ type Server struct {
 }
 
 func New() (*Server, error) {
+	helpers.UseRequestPathRetries()
+
 	p, err := provider.FromEnv()
 	if err != nil {
 		return nil, err

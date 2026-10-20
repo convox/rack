@@ -143,8 +143,11 @@ func TestCloudformationUpdate(t *testing.T) {
 }
 
 func TestCloudWatchLogsStream(t *testing.T) {
+	var calls []time.Time
+
 	cf := &mockaws.CloudWatchLogsAPI{}
 	cf.On("FilterLogEvents", mock.Anything).Return(func(in *cloudwatchlogs.FilterLogEventsInput) *cloudwatchlogs.FilterLogEventsOutput {
+		calls = append(calls, time.Now())
 		return &cloudwatchlogs.FilterLogEventsOutput{
 			Events: []*cloudwatchlogs.FilteredLogEvent{
 				{
@@ -161,7 +164,7 @@ func TestCloudWatchLogsStream(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	go func() {
-		time.Sleep(1 * time.Second)
+		time.Sleep(1500 * time.Millisecond)
 		cancel()
 	}()
 
@@ -170,6 +173,9 @@ func TestCloudWatchLogsStream(t *testing.T) {
 	}
 	err := helpers.CloudWatchLogsStream(ctx, cf, wc, "grp", "strm", structs.LogsOptions{})
 	require.NoError(t, err)
+	cf.AssertNumberOfCalls(t, "FilterLogEvents", 2)
+	require.Len(t, calls, 2)
+	require.GreaterOrEqual(t, calls[1].Sub(calls[0]), time.Second)
 }
 
 type myWriteCloser struct {
