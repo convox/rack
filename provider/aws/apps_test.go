@@ -759,6 +759,49 @@ func TestAppUpdateTagsRejected(t *testing.T) {
 	}
 }
 
+func TestAppUpdateBalancerType(t *testing.T) {
+	g1 := map[string]string{"Generation": "1", "Name": "web", "Rack": "convox", "System": "convox", "Type": "app"}
+	tags := []string{"Generation=1", "Name=web", "Rack=convox", "System=convox", "Type=app"}
+	elb := cycleDescribeAppStack("web", g1, map[string]string{"BalancerWebType": "ELB", "WebFormation": "1,128,256"})
+	alb := cycleDescribeAppStack("web", g1, map[string]string{"BalancerWebType": "ALB", "WebFormation": "1,128,256"})
+	two := cycleDescribeAppStack("web", g1, map[string]string{"BalancerWebType": "ELB", "BalancerWorkerType": "ELB", "WebFormation": "1,128,256"})
+	fresh := cycleDescribeAppStack("web", g1, map[string]string{"Private": "No"})
+	msg := "BalancerWebType cannot be changed once the app is deployed"
+
+	tests := []struct {
+		name   string
+		params map[string]string
+		cycles []awsutil.Cycle
+		err    string
+	}{
+		{name: "elb to alb", params: map[string]string{"BalancerWebType": "ALB"}, cycles: []awsutil.Cycle{elb}, err: msg},
+		{name: "alb to elb", params: map[string]string{"BalancerWebType": "ELB"}, cycles: []awsutil.Cycle{alb}, err: msg},
+		{name: "with another param", params: map[string]string{"BalancerWebType": "ALB", "WebFormation": "2,128,256"}, cycles: []awsutil.Cycle{elb}, err: msg},
+		{name: "two processes", params: map[string]string{"BalancerWebType": "ALB", "BalancerWorkerType": "ALB"}, cycles: []awsutil.Cycle{two}, err: msg},
+		{name: "second process", params: map[string]string{"BalancerWebType": "ELB", "BalancerWorkerType": "ALB"}, cycles: []awsutil.Cycle{two}, err: "BalancerWorkerType cannot be changed once the app is deployed"},
+		{name: "same value", params: map[string]string{"BalancerWebType": "ELB"}, cycles: []awsutil.Cycle{elb, elb, cycleAppTagsUpdateStack([]string{"BalancerWebType=ELB", "WebFormation"}, tags)}},
+		{name: "same value with another param", params: map[string]string{"BalancerWebType": "ELB", "WebFormation": "2,128,256"}, cycles: []awsutil.Cycle{elb, elb, cycleAppTagsUpdateStack([]string{"BalancerWebType=ELB", "WebFormation=2,128,256"}, tags)}},
+		{name: "not deployed", params: map[string]string{"BalancerWebType": "ALB", "Private": "Yes"}, cycles: []awsutil.Cycle{fresh, fresh, cycleAppTagsUpdateStack([]string{"Private=Yes"}, tags)}},
+		{name: "gen2", params: map[string]string{"BalancerWebType": "ALB", "TaskTags": "Yes"}, cycles: []awsutil.Cycle{cycleAppTagsDescribeStacks, cycleAppTagsDescribeStacks, cycleAppTagsUpdateStack([]string{"TaskTags=Yes"}, []string{"CostCenter=X", "Generation=2", "Name=web", "Rack=convox", "System=convox", "Type=app", "Version=20260929232050"})}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			provider := StubAwsProvider(tt.cycles...)
+			defer provider.Close()
+
+			err := provider.AppUpdate("web", structs.AppUpdateOptions{Parameters: tt.params})
+
+			if tt.err == "" {
+				assert.NoError(t, err)
+			} else {
+				assert.EqualError(t, err, tt.err)
+			}
+			assert.Equal(t, 0, provider.handler.Remaining())
+		})
+	}
+}
+
 func TestAppGetTags(t *testing.T) {
 	provider := StubAwsProvider(
 		cycleDescribeAppStack("api", map[string]string{"Generation": "2", "Name": "api", "Rack": "convox", "System": "convox", "Type": "app", "Version": "20260929232050", "Zeta": "z", "Env": "prod", "CostCenter": "abc", "Alpha": "a", "aws:servicecatalog:x": "1"}, nil),
