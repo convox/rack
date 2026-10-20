@@ -553,13 +553,13 @@ func (_m *Interface) CertificateDns() (*structs.CertificateDns, error) {
 	return r0, r1
 }
 
-// CertificateGenerate provides a mock function with given fields: domains
-func (_m *Interface) CertificateGenerate(domains []string) (*structs.Certificate, error) {
-	ret := _m.Called(domains)
+// CertificateGenerate provides a mock function with given fields: domains, opts
+func (_m *Interface) CertificateGenerate(domains []string, opts structs.CertificateGenerateOptions) (*structs.Certificate, error) {
+	ret := _m.Called(domains, opts)
 
 	var r0 *structs.Certificate
-	if rf, ok := ret.Get(0).(func([]string) *structs.Certificate); ok {
-		r0 = rf(domains)
+	if rf, ok := ret.Get(0).(func([]string, structs.CertificateGenerateOptions) *structs.Certificate); ok {
+		r0 = rf(domains, opts)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*structs.Certificate)
@@ -567,8 +567,8 @@ func (_m *Interface) CertificateGenerate(domains []string) (*structs.Certificate
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func([]string) error); ok {
-		r1 = rf(domains)
+	if rf, ok := ret.Get(1).(func([]string, structs.CertificateGenerateOptions) error); ok {
+		r1 = rf(domains, opts)
 	} else {
 		r1 = ret.Error(1)
 	}

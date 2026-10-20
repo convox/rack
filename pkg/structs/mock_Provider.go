@@ -420,13 +420,13 @@ func (_m *MockProvider) CertificateDns() (*CertificateDns, error) {
 	return r0, r1
 }
 
-// CertificateGenerate provides a mock function with given fields: domains
-func (_m *MockProvider) CertificateGenerate(domains []string) (*Certificate, error) {
-	ret := _m.Called(domains)
+// CertificateGenerate provides a mock function with given fields: domains, opts
+func (_m *MockProvider) CertificateGenerate(domains []string, opts CertificateGenerateOptions) (*Certificate, error) {
+	ret := _m.Called(domains, opts)
 
 	var r0 *Certificate
-	if rf, ok := ret.Get(0).(func([]string) *Certificate); ok {
-		r0 = rf(domains)
+	if rf, ok := ret.Get(0).(func([]string, CertificateGenerateOptions) *Certificate); ok {
+		r0 = rf(domains, opts)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*Certificate)
@@ -434,8 +434,8 @@ func (_m *MockProvider) CertificateGenerate(domains []string) (*Certificate, err
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func([]string) error); ok {
-		r1 = rf(domains)
+	if rf, ok := ret.Get(1).(func([]string, CertificateGenerateOptions) error); ok {
+		r1 = rf(domains, opts)
 	} else {
 		r1 = ret.Error(1)
 	}

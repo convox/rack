@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/service/acm"
+	"github.com/convox/rack/pkg/options"
 	"github.com/convox/rack/pkg/structs"
 	"github.com/convox/rack/pkg/test/awsutil"
 	"github.com/stretchr/testify/assert"
@@ -113,7 +114,7 @@ func TestCertificateGenerateIdempotencyToken(t *testing.T) {
 		{[]string{"example.org"}, "acm-85fd9c516103"},
 		{[]string{"example.org"}, "acm-96ae0d627214"},
 	} {
-		cert, err := p.CertificateGenerate(c.domains)
+		cert, err := p.CertificateGenerate(c.domains, structs.CertificateGenerateOptions{Validation: options.String("dns")})
 		require.NoError(t, err)
 		assert.Equal(t, c.id, cert.Id)
 	}
@@ -163,7 +164,7 @@ func TestCertificateGenerateWaitsForList(t *testing.T) {
 		acmRecordsCycle(arn),
 	)
 
-	cert, err := p.CertificateGenerate([]string{"example.org"})
+	cert, err := p.CertificateGenerate([]string{"example.org"}, structs.CertificateGenerateOptions{Validation: options.String("dns")})
 	require.NoError(t, err)
 	assert.Equal(t, "acm-96ae0d627214", cert.Id)
 	assert.Equal(t, "pending", cert.Status)
@@ -190,7 +191,7 @@ func TestCertificateGenerateWaitTimeout(t *testing.T) {
 		}
 	}))
 
-	cert, err := p.CertificateGenerate([]string{"example.org"})
+	cert, err := p.CertificateGenerate([]string{"example.org"}, structs.CertificateGenerateOptions{Validation: options.String("dns")})
 	require.NoError(t, err)
 	assert.Equal(t, "acm-96ae0d627214", cert.Id)
 	assert.Equal(t, int32(1), requests.Load())

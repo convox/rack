@@ -22,7 +22,7 @@ func (p *Provider) CertificateDns() (*structs.CertificateDns, error) {
 	return nil, fmt.Errorf("unimplemented")
 }
 
-func (p *Provider) CertificateGenerate(domains []string) (*structs.Certificate, error) {
+func (p *Provider) CertificateGenerate(domains []string, opts structs.CertificateGenerateOptions) (*structs.Certificate, error) {
 	return nil, fmt.Errorf("unimplemented")
 }
 

@@ -31,7 +31,7 @@ type Provider interface {
 	CertificateCreate(pub, key string, opts CertificateCreateOptions) (*Certificate, error)
 	CertificateDelete(id string) error
 	CertificateDns() (*CertificateDns, error)
-	CertificateGenerate(domains []string) (*Certificate, error)
+	CertificateGenerate(domains []string, opts CertificateGenerateOptions) (*Certificate, error)
 	CertificateList() (Certificates, error)
 	CertificateMigrate(ids []string) (CertificateMigrations, error)
 	CertificateMigrationList(ids []string) (CertificateMigrations, error)

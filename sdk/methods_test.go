@@ -492,17 +492,25 @@ func TestCertificateGenerate(t *testing.T) {
 		Expiration: time.Now().UTC(),
 	}
 
-	s := stdapi.New("api", "api")
-	s.Route("POST", fmt.Sprintf("/certificates/generate"), func(c *stdapi.Context) error {
-		require.Equal(t, "convox.xom", c.Form("domains"))
-		return c.RenderJSON(certResp)
-	})
+	for _, validation := range []string{"", "dns"} {
+		s := stdapi.New("api", "api")
+		s.Route("POST", "/certificates/generate", func(c *stdapi.Context) error {
+			require.Equal(t, "convox.xom", c.Form("domains"))
+			require.Equal(t, validation, c.Form("validation"))
+			return c.RenderJSON(certResp)
+		})
 
-	testServer(t, s, func(c *sdk.Client) {
-		got, err := c.CertificateGenerate([]string{"convox.xom"})
-		require.NoError(t, err)
-		require.Equal(t, certResp, got)
-	})
+		var opts structs.CertificateGenerateOptions
+		if validation != "" {
+			opts.Validation = options.String(validation)
+		}
+
+		testServer(t, s, func(c *sdk.Client) {
+			got, err := c.CertificateGenerate([]string{"convox.xom"}, opts)
+			require.NoError(t, err)
+			require.Equal(t, certResp, got)
+		})
+	}
 }
 
 func TestCertificateList(t *testing.T) {

@@ -100,7 +100,24 @@ func TestCertificateGenerate(t *testing.T) {
 				"domains": "domain1,domain2",
 			},
 		}
-		p.On("CertificateGenerate", []string{"domain1", "domain2"}).Return(&c1, nil)
+		p.On("CertificateGenerate", []string{"domain1", "domain2"}, structs.CertificateGenerateOptions{}).Return(&c1, nil)
+		err := c.Post("/certificates/generate", ro, &c2)
+		require.NoError(t, err)
+		require.Equal(t, c1, c2)
+	})
+}
+
+func TestCertificateGenerateValidation(t *testing.T) {
+	testServer(t, func(c *stdsdk.Client, p *structs.MockProvider) {
+		c1 := fxCertificate
+		c2 := structs.Certificate{}
+		ro := stdsdk.RequestOptions{
+			Params: stdsdk.Params{
+				"domains":    "domain1",
+				"validation": "dns",
+			},
+		}
+		p.On("CertificateGenerate", []string{"domain1"}, structs.CertificateGenerateOptions{Validation: options.String("dns")}).Return(&c1, nil)
 		err := c.Post("/certificates/generate", ro, &c2)
 		require.NoError(t, err)
 		require.Equal(t, c1, c2)
@@ -115,7 +132,7 @@ func TestCertificateGenerateError(t *testing.T) {
 				"domains": "domain1,domain2",
 			},
 		}
-		p.On("CertificateGenerate", []string{"domain1", "domain2"}).Return(nil, fmt.Errorf("err1"))
+		p.On("CertificateGenerate", []string{"domain1", "domain2"}, structs.CertificateGenerateOptions{}).Return(nil, fmt.Errorf("err1"))
 		err := c.Post("/certificates/generate", ro, c1)
 		require.EqualError(t, err, "err1")
 		require.Nil(t, c1)

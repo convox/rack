@@ -297,10 +297,13 @@ func (c *Client) CertificateDns() (*structs.CertificateDns, error) {
 	return v, err
 }
 
-func (c *Client) CertificateGenerate(domains []string) (*structs.Certificate, error) {
+func (c *Client) CertificateGenerate(domains []string, opts structs.CertificateGenerateOptions) (*structs.Certificate, error) {
 	var err error
 
-	ro := stdsdk.RequestOptions{Headers: stdsdk.Headers{}, Params: stdsdk.Params{}, Query: stdsdk.Query{}}
+	ro, err := stdsdk.MarshalOptions(opts)
+	if err != nil {
+		return nil, err
+	}
 
 	ro.Params["domains"] = strings.Join(domains, ",")
 
