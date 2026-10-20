@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"io"
 	"testing"
+	"time"
 
 	"github.com/convox/rack/pkg/options"
 	"github.com/convox/rack/pkg/structs"
@@ -348,6 +349,36 @@ func TestProcessListWithBuildCluster(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.EqualValues(t, ps, s)
+}
+
+func TestProcessListFetchError(t *testing.T) {
+	provider := StubAwsProvider(
+		cycleProcessListStackResources,
+		cycleProcessDescribeStacks,
+		cycleProcessListTasksByStack,
+		cycleProcessListTasksByService1,
+		cycleProcessListTasksByService2,
+		cycleProcessListTasksByStarted,
+		cycleProcessDescribeTasksAll,
+		cycleProcessDescribeTaskDefinitionError,
+		cycleProcessDescribeTaskDefinitionError,
+	)
+	defer provider.Close()
+
+	returned := make(chan error, 1)
+	go func() {
+		_, err := provider.ProcessList("myapp", structs.ProcessListOptions{})
+		returned <- err
+	}()
+
+	select {
+	case err := <-returned:
+		assert.EqualError(t, err, "ClientException: Unable to describe task definition.")
+	case <-time.After(5 * time.Second):
+		t.Fatal("ProcessList did not return")
+	}
+
+	assert.Equal(t, 0, provider.handler.Remaining())
 }
 
 func TestProcessRunDetached(t *testing.T) {
@@ -1145,6 +1176,14 @@ var cycleProcessDescribeTaskDefinition2 = awsutil.Cycle{
 				"revision": 34
 			}
 		}`,
+	},
+}
+
+var cycleProcessDescribeTaskDefinitionError = awsutil.Cycle{
+	Request: cycleProcessDescribeTaskDefinition1.Request,
+	Response: awsutil.Response{
+		StatusCode: 400,
+		Body:       `{"__type":"ClientException","message":"Unable to describe task definition."}`,
 	},
 }
 
