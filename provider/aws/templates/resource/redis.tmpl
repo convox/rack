@@ -3,7 +3,8 @@
     "AWSTemplateFormatVersion" : "2010-09-09",
     "Conditions": {
       "Encrypted": { "Fn::Equals": [ { "Ref": "Encrypted" }, "true" ] },
-      "Private": { "Fn::Equals": [ { "Ref": "Private" }, "true" ] }
+      "Private": { "Fn::Equals": [ { "Ref": "Private" }, "true" ] },
+      "Valkey": { "Fn::Equals": [ { "Ref": "Engine" }, "valkey" ] }
     },
     "Parameters": {
       "AutomaticFailoverEnabled": {
@@ -107,7 +108,7 @@
           "Port": "6379",
           "ReplicationGroupDescription": { "Ref": "AWS::StackName" },
           "SecurityGroupIds": [ { "Ref": "SecurityGroup" } ],
-          "TransitEncryptionEnabled": { "Fn::If": [ "Encrypted", "true", { "Ref": "AWS::NoValue" } ] }
+          "TransitEncryptionEnabled": { "Fn::If": [ "Encrypted", "true", { "Fn::If": [ "Valkey", "false", { "Ref": "AWS::NoValue" } ] } ] }
         }
       }
     }
