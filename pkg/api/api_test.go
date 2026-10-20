@@ -3,12 +3,19 @@ package api_test
 import (
 	"context"
 	"io"
+	"net/http"
 	"net/http/httptest"
+	"path/filepath"
 	"testing"
+	"time"
 
+	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/convox/logger"
 	"github.com/convox/rack/pkg/api"
+	"github.com/convox/rack/pkg/helpers"
 	"github.com/convox/rack/pkg/structs"
+	"github.com/convox/rack/provider"
 	"github.com/convox/stdapi"
 	"github.com/convox/stdsdk"
 	"github.com/stretchr/testify/mock"
@@ -41,6 +48,33 @@ func testServer(t *testing.T, fn func(*stdsdk.Client, *structs.MockProvider)) {
 func requestContextMatcher(ctx context.Context) bool {
 	_, ok := ctx.Value("request.id").(string)
 	return ok
+}
+
+func TestNewUsesRequestPathRetries(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("PROVIDER", "test")
+	t.Setenv("AWS_CONFIG_FILE", filepath.Join(dir, "config"))
+	t.Setenv("AWS_SHARED_CREDENTIALS_FILE", filepath.Join(dir, "credentials"))
+	t.Setenv("AWS_WEB_IDENTITY_TOKEN_FILE", "")
+
+	old := logger.Output
+	logger.Output = io.Discard
+	t.Cleanup(func() { logger.Output = old })
+
+	provider.Mock.On("Initialize", mock.Anything).Return(nil)
+	provider.Mock.On("SystemJwtSignKey").Return("", nil)
+
+	_, err := api.New()
+	require.NoError(t, err)
+
+	s, err := helpers.NewSession()
+	require.NoError(t, err)
+
+	r, ok := s.Config.Retryer.(request.Retryer)
+	require.True(t, ok)
+
+	d := r.RetryRules(&request.Request{Error: awserr.New("ThrottlingException", "x", nil), HTTPResponse: &http.Response{StatusCode: 400}})
+	require.Less(t, d, time.Second)
 }
 
 func TestCheck(t *testing.T) {
