@@ -131,6 +131,15 @@ func extractResource(t *testing.T, rendered []byte, logicalID string) json.RawMe
 	return res
 }
 
+func serviceProperties(t *testing.T, rendered []byte) map[string]json.RawMessage {
+	t.Helper()
+	var svc struct {
+		Properties map[string]json.RawMessage `json:"Properties"`
+	}
+	require.NoError(t, json.Unmarshal(extractResource(t, rendered, "Service"), &svc))
+	return svc.Properties
+}
+
 // loadManifestFromTestdata loads pkg/manifest/testdata/<name>.yml. provider/aws
 // cannot reuse the pkg/manifest_test private helpers.
 func loadManifestFromTestdata(t *testing.T, name string) (*manifest.Manifest, error) {
@@ -532,4 +541,55 @@ func TestServiceTemplateRenderNLB_NoNLBPortsNoResources(t *testing.T) {
 	require.NotContains(t, string(out), `"NLBTargetGroup`, "no NLB ports should mean no NLBTargetGroup resource")
 	require.NotContains(t, string(out), `"NLBListener`, "no NLB ports should mean no NLBListener resource")
 	require.NotContains(t, string(out), `"NLBPortIngress`, "no NLB ports should mean no per-port allow_cidr ingress")
+}
+
+func TestServiceTemplateNoPortsEmptyLoadBalancers(t *testing.T) {
+	for name, yml := range map[string]string{
+		"worker": `services:
+  api:
+    image: x
+`,
+		"agent": `services:
+  api:
+    image: x
+    agent: true
+`,
+	} {
+		t.Run(name, func(t *testing.T) {
+			m, err := manifest.Load([]byte(yml), nil)
+			require.NoError(t, err)
+			props := serviceProperties(t, renderServiceTemplate(t, m, "api"))
+			require.Contains(t, props, "LoadBalancers", "LoadBalancers must be present so a removal reaches ECS")
+			require.JSONEq(t, `[]`, string(props["LoadBalancers"]))
+			require.NotContains(t, props, "HealthCheckGracePeriodSeconds")
+			require.NotContains(t, props, "Role")
+		})
+	}
+}
+
+func TestServiceTemplateNLBOnlyLoadBalancers(t *testing.T) {
+	m, err := manifest.Load([]byte(`services:
+  api:
+    image: x
+    nlb:
+      - port: 8443
+`), nil)
+	require.NoError(t, err)
+	props := serviceProperties(t, renderServiceTemplate(t, m, "api"))
+	require.JSONEq(t, `[{"ContainerName":"api","ContainerPort":8443,"TargetGroupArn":{"Ref":"NLBTargetGroup8443"}}]`, string(props["LoadBalancers"]))
+	require.Contains(t, props, "HealthCheckGracePeriodSeconds")
+	require.NotContains(t, props, "Role")
+}
+
+func TestServiceTemplatePortOnlyLoadBalancers(t *testing.T) {
+	m, err := manifest.Load([]byte(`services:
+  api:
+    image: x
+    port: http:3000
+`), nil)
+	require.NoError(t, err)
+	props := serviceProperties(t, renderServiceTemplate(t, m, "api"))
+	require.JSONEq(t, `[{"ContainerName":"api","ContainerPort":"3000","TargetGroupArn":{"Ref":"BalancerTargetGroup"}}]`, string(props["LoadBalancers"]))
+	require.Contains(t, props, "HealthCheckGracePeriodSeconds")
+	require.Contains(t, props, "Role")
 }
