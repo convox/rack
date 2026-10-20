@@ -365,14 +365,9 @@ func CloudWatchLogsStream(ctx context.Context, cw cloudwatchlogsiface.CloudWatch
 
 	follow := DefaultBool(opts.Follow, true)
 
-	var start int64
+	start := TimeNow().UTC().Add(-DefaultDuration(opts.Since, time.Hour)).UnixMilli()
 
-	if opts.Since != nil {
-		start = TimeNow().UTC().Add((*opts.Since) * -1).UnixMilli()
-		req.StartTime = aws.Int64(start)
-	} else {
-		req.StartTime = aws.Int64(TimeNow().UTC().Add(-1 * time.Hour).UnixMilli())
-	}
+	req.StartTime = aws.Int64(start)
 
 	if stream != "" {
 		req.LogStreamNames = []*string{aws.String(stream)}
