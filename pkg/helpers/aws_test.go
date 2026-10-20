@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -170,6 +171,33 @@ func TestCloudWatchLogsStream(t *testing.T) {
 	}
 	err := helpers.CloudWatchLogsStream(ctx, cf, wc, "grp", "strm", structs.LogsOptions{})
 	require.NoError(t, err)
+}
+
+func TestCloudWatchLogsStreamNoSince(t *testing.T) {
+	now := time.Date(2025, 4, 9, 22, 0, 0, 0, time.UTC)
+	oldNow := helpers.TimeNow
+	helpers.TimeNow = func() time.Time { return now }
+	defer func() { helpers.TimeNow = oldNow }()
+
+	var starts []int64
+
+	cw := &mockaws.CloudWatchLogsAPI{}
+	cw.On("FilterLogEvents", mock.Anything).Return(func(in *cloudwatchlogs.FilterLogEventsInput) (*cloudwatchlogs.FilterLogEventsOutput, error) {
+		starts = append(starts, aws.Int64Value(in.StartTime))
+		if len(starts) == 1 {
+			return &cloudwatchlogs.FilterLogEventsOutput{}, nil
+		}
+		return nil, errors.New("stop")
+	})
+
+	wc := &myWriteCloser{
+		bufio.NewWriter(&bytes.Buffer{}),
+	}
+	err := helpers.CloudWatchLogsStream(context.Background(), cw, wc, "grp", "strm", structs.LogsOptions{})
+	require.EqualError(t, err, "stop")
+
+	want := now.Add(-1 * time.Hour).UnixMilli()
+	require.Equal(t, []int64{want, want}, starts)
 }
 
 type myWriteCloser struct {
