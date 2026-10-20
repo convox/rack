@@ -140,7 +140,7 @@ func CertsGenerate(rack sdk.Interface, c *stdcli.Context) error {
 
 	c.Startf("Generating certificate")
 
-	cr, err := rack.CertificateGenerate(c.Args)
+	cr, err := rack.CertificateGenerate(c.Args, structs.CertificateGenerateOptions{Validation: options.String("dns")})
 	if err != nil {
 		return err
 	}

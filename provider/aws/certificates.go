@@ -131,9 +131,20 @@ func (p *Provider) CertificateDelete(id string) error {
 	return err
 }
 
-func (p *Provider) CertificateGenerate(domains []string) (*structs.Certificate, error) {
+func (p *Provider) CertificateGenerate(domains []string, opts structs.CertificateGenerateOptions) (*structs.Certificate, error) {
 	if len(domains) < 1 {
 		return nil, fmt.Errorf("must specify at least one domain")
+	}
+
+	dns := false
+
+	// Email unless the client asks for DNS: an older CLI cannot show the records a DNS certificate waits on.
+	switch strings.ToLower(aws.StringValue(opts.Validation)) {
+	case "", "email":
+	case "dns":
+		dns = true
+	default:
+		return nil, fmt.Errorf("validation must be dns or email")
 	}
 
 	alts := []*string{}
@@ -145,11 +156,14 @@ func (p *Provider) CertificateGenerate(domains []string) (*structs.Certificate, 
 	req := &acm.RequestCertificateInput{
 		DomainName:       aws.String(domains[0]),
 		IdempotencyToken: aws.String(randomString(32)),
-		Tags: []*acm.Tag{
+	}
+
+	if dns {
+		req.Tags = []*acm.Tag{
 			{Key: aws.String("System"), Value: aws.String("convox")},
 			{Key: aws.String("Rack"), Value: aws.String(p.Rack)},
-		},
-		ValidationMethod: aws.String(acm.ValidationMethodDns),
+		}
+		req.ValidationMethod = aws.String(acm.ValidationMethodDns)
 	}
 
 	if len(alts) > 0 {
@@ -164,14 +178,16 @@ func (p *Provider) CertificateGenerate(domains []string) (*structs.Certificate, 
 
 	p.waitForCertificateListed(*res.CertificateArn)
 
-	if _, err := p.certificateRecordsWait(p.Context(), *res.CertificateArn, certificateGenerateWait); err != nil {
-		fmt.Printf("ns=certificates at=generate arn=%s error=%q\n", *res.CertificateArn, err)
+	if dns {
+		if _, err := p.certificateRecordsWait(p.Context(), *res.CertificateArn, certificateGenerateWait); err != nil {
+			fmt.Printf("ns=certificates at=generate arn=%s error=%q\n", *res.CertificateArn, err)
+		}
 	}
 
 	cert := structs.Certificate{
 		Id:     acmCertificateId(*res.CertificateArn),
 		Domain: domains[0],
-		Owned:  true,
+		Owned:  dns,
 		Status: statusPending,
 	}
 

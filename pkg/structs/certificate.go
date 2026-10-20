@@ -53,6 +53,10 @@ type CertificateCreateOptions struct {
 	Chain *string `param:"chain"`
 }
 
+type CertificateGenerateOptions struct {
+	Validation *string `param:"validation"`
+}
+
 func (c Certificates) Less(i, j int) bool { return strings.ToUpper(c[i].Id) < strings.ToUpper(c[j].Id) }
 
 func (c *Certificate) Match(domain string) (bool, error) {

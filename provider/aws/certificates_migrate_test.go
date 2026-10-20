@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/convox/rack/pkg/options"
 	"github.com/convox/rack/pkg/structs"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -706,7 +707,7 @@ func TestCertificateGenerateDNS(t *testing.T) {
 	f := newCertificateFixture(t)
 	fastCertificateListWait(t, 5*time.Second)
 
-	cert, err := f.p.CertificateGenerate([]string{"example.com", "www.example.com"})
+	cert, err := f.p.CertificateGenerate([]string{"example.com", "www.example.com"}, structs.CertificateGenerateOptions{Validation: options.String("dns")})
 	require.NoError(t, err)
 
 	assert.Equal(t, statusPending, cert.Status)
@@ -725,6 +726,33 @@ func TestCertificateGenerateDNS(t *testing.T) {
 	dns, err := f.p.CertificateDns()
 	require.NoError(t, err)
 	assert.Len(t, dns.Records, 2)
+}
+
+func TestCertificateGenerateEmailDefault(t *testing.T) {
+	f := newCertificateFixture(t)
+	fastCertificateListWait(t, 5*time.Second)
+
+	for _, opts := range []structs.CertificateGenerateOptions{{}, {Validation: options.String("email")}} {
+		cert, err := f.p.CertificateGenerate([]string{"example.com", "www.example.com"}, opts)
+		require.NoError(t, err)
+		assert.Equal(t, statusPending, cert.Status)
+		assert.False(t, cert.Owned)
+	}
+
+	reqs := lookups(f.aws)
+	require.Len(t, reqs, 2)
+
+	for _, r := range reqs {
+		assert.Nil(t, r["ValidationMethod"], "an older CLI gets the email request it got before")
+		assert.Nil(t, r["Tags"])
+		assert.Equal(t, []interface{}{"www.example.com"}, r["SubjectAlternativeNames"])
+	}
+
+	assert.Equal(t, 0, f.aws.count("DescribeCertificate"), "no record wait for an email certificate")
+
+	_, err := f.p.CertificateGenerate([]string{"example.com"}, structs.CertificateGenerateOptions{Validation: options.String("http")})
+	assert.EqualError(t, err, "validation must be dns or email")
+	assert.Len(t, lookups(f.aws), 2)
 }
 
 func TestCertificateLogs(t *testing.T) {

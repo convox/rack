@@ -184,7 +184,7 @@ func TestCertsDeleteError(t *testing.T) {
 
 func TestCertsGenerate(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("CertificateGenerate", []string{"test.example.org", "other.example.org"}).Return(fxCertificate(), nil)
+		i.On("CertificateGenerate", []string{"test.example.org", "other.example.org"}, structs.CertificateGenerateOptions{Validation: options.String("dns")}).Return(fxCertificate(), nil)
 		i.On("CertificateDns").Return(&structs.CertificateDns{
 			Records: []structs.CertificateDnsRecord{
 				{Zone: "example.org", Name: "_a.test.example.org.", Type: "CNAME", Value: "_b.acm-validations.aws.", Check: "missing", Certificates: []string{"cert1"}},
@@ -209,7 +209,7 @@ func TestCertsGenerate(t *testing.T) {
 
 func TestCertsGenerateNoRecords(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("CertificateGenerate", []string{"test.example.org"}).Return(fxCertificate(), nil)
+		i.On("CertificateGenerate", []string{"test.example.org"}, structs.CertificateGenerateOptions{Validation: options.String("dns")}).Return(fxCertificate(), nil)
 		i.On("CertificateDns").Return(&structs.CertificateDns{
 			Records: []structs.CertificateDnsRecord{
 				{Zone: "example.net", Name: "_c.example.net.", Type: "CNAME", Value: "_d.acm-validations.aws.", Check: "ok", Certificates: []string{"cert2"}},
@@ -230,7 +230,7 @@ func TestCertsGenerateNoRecords(t *testing.T) {
 
 func TestCertsGenerateDnsError(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("CertificateGenerate", []string{"test.example.org"}).Return(fxCertificate(), nil)
+		i.On("CertificateGenerate", []string{"test.example.org"}, structs.CertificateGenerateOptions{Validation: options.String("dns")}).Return(fxCertificate(), nil)
 		i.On("CertificateDns").Return(nil, fmt.Errorf("response status 404"))
 
 		res, err := testExecute(e, "certs generate test.example.org", nil)
@@ -243,7 +243,7 @@ func TestCertsGenerateDnsError(t *testing.T) {
 
 func TestCertsGenerateId(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("CertificateGenerate", []string{"test.example.org"}).Return(fxCertificate(), nil)
+		i.On("CertificateGenerate", []string{"test.example.org"}, structs.CertificateGenerateOptions{Validation: options.String("dns")}).Return(fxCertificate(), nil)
 		i.On("CertificateDns").Return(&structs.CertificateDns{
 			Records: []structs.CertificateDnsRecord{
 				{Zone: "example.org", Name: "_a.test.example.org.", Type: "CNAME", Value: "_b.acm-validations.aws.", Check: "missing", Certificates: []string{"cert1"}},
@@ -265,7 +265,7 @@ func TestCertsGenerateId(t *testing.T) {
 
 func TestCertsGenerateIdNoRecords(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("CertificateGenerate", []string{"test.example.org"}).Return(fxCertificate(), nil)
+		i.On("CertificateGenerate", []string{"test.example.org"}, structs.CertificateGenerateOptions{Validation: options.String("dns")}).Return(fxCertificate(), nil)
 		i.On("CertificateDns").Return(&structs.CertificateDns{}, nil)
 
 		res, err := testExecute(e, "certs generate test.example.org --id", nil)
@@ -281,7 +281,7 @@ func TestCertsGenerateIdNoRecords(t *testing.T) {
 
 func TestCertsGenerateIdDnsError(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("CertificateGenerate", []string{"test.example.org"}).Return(fxCertificate(), nil)
+		i.On("CertificateGenerate", []string{"test.example.org"}, structs.CertificateGenerateOptions{Validation: options.String("dns")}).Return(fxCertificate(), nil)
 		i.On("CertificateDns").Return(nil, fmt.Errorf("err1"))
 
 		res, err := testExecute(e, "certs generate test.example.org --id", nil)
@@ -294,7 +294,7 @@ func TestCertsGenerateIdDnsError(t *testing.T) {
 
 func TestCertsGenerateError(t *testing.T) {
 	testClient(t, func(e *cli.Engine, i *mocksdk.Interface) {
-		i.On("CertificateGenerate", []string{"test.example.org", "other.example.org"}).Return(nil, fmt.Errorf("err1"))
+		i.On("CertificateGenerate", []string{"test.example.org", "other.example.org"}, structs.CertificateGenerateOptions{Validation: options.String("dns")}).Return(nil, fmt.Errorf("err1"))
 
 		res, err := testExecute(e, "certs generate test.example.org other.example.org", nil)
 		require.NoError(t, err)
