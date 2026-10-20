@@ -181,3 +181,37 @@ func TestSystemResourceCreatePostgresFamily(t *testing.T) {
 		require.Equal(t, tc.family, params["Family"], "%v", tc.params)
 	}
 }
+
+func TestRackCacheTransitEncryption(t *testing.T) {
+	t.Chdir(filepath.Join("..", ".."))
+
+	atRest := `{"Fn::If":["Encrypted","true",{"Ref":"AWS::NoValue"}]}`
+
+	for _, tc := range []struct {
+		kind, transit, valkey string
+	}{
+		{"valkey", `{"Fn::If":["Encrypted","true","false"]}`, ""},
+		{"redis", `{"Fn::If":["Encrypted","true",{"Fn::If":["Valkey","false",{"Ref":"AWS::NoValue"}]}]}`, `{"Fn::Equals":[{"Ref":"Engine"},"valkey"]}`},
+	} {
+		data, err := resourceFormation(tc.kind, nil)
+		require.NoError(t, err, tc.kind)
+
+		var tmpl struct {
+			Conditions map[string]json.RawMessage
+			Resources  struct {
+				ReplicationGroup struct {
+					Properties map[string]json.RawMessage
+				}
+			}
+		}
+		require.NoError(t, json.Unmarshal([]byte(data), &tmpl), tc.kind)
+
+		props := tmpl.Resources.ReplicationGroup.Properties
+		require.JSONEq(t, tc.transit, string(props["TransitEncryptionEnabled"]), tc.kind)
+		require.JSONEq(t, atRest, string(props["AtRestEncryptionEnabled"]), tc.kind)
+
+		if tc.valkey != "" {
+			require.JSONEq(t, tc.valkey, string(tmpl.Conditions["Valkey"]), tc.kind)
+		}
+	}
+}
