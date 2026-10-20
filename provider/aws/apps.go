@@ -254,6 +254,10 @@ func (p *Provider) AppUpdate(app string, opts structs.AppUpdateOptions) error {
 		params = map[string]string{}
 	}
 
+	if err := p.appBalancerTypeChange(app, params); err != nil {
+		return err
+	}
+
 	tags := map[string]string{}
 	noop := false
 
@@ -289,6 +293,37 @@ func (p *Provider) AppUpdate(app string, opts structs.AppUpdateOptions) error {
 	}
 
 	return p.updateStack(p.rackStack(app), nil, params, tags, "")
+}
+
+func (p *Provider) appBalancerTypeChange(app string, params map[string]string) error {
+	keys := []string{}
+
+	for k := range params {
+		if strings.HasPrefix(k, "Balancer") && strings.HasSuffix(k, "Type") {
+			keys = append(keys, k)
+		}
+	}
+
+	if len(keys) == 0 {
+		return nil
+	}
+
+	sort.Strings(keys)
+
+	stack, err := p.describeStack(p.rackStack(app))
+	if err != nil {
+		return err
+	}
+
+	current := stackParameters(stack)
+
+	for _, k := range keys {
+		if cv, ok := current[k]; ok && cv != params[k] {
+			return fmt.Errorf("%s cannot be changed once the app is deployed", k)
+		}
+	}
+
+	return nil
 }
 
 var (
