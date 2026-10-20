@@ -865,6 +865,8 @@
               { "ContainerName": "{{ $svcName }}", "ContainerPort": {{ $nlb.ContainerPort }}, "TargetGroupArn": { "Ref": "NLBTargetGroup{{ $nlb.Port }}" } }
               {{ end }}
             ],
+          {{ else }}
+            "LoadBalancers": [],
           {{ end }}
           {{ if .Port.Port }}
             {{ if not .InternalAndExternal }}
