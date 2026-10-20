@@ -446,8 +446,6 @@ func (p *Provider) taskProcesses(tasks []string) (structs.Processes, error) {
 		}
 
 		psst := structs.Processes{}
-		psch := make(chan structs.Process, len(ptasks))
-		errch := make(chan error)
 
 		if len(ptasks) == 0 {
 			return structs.Processes{}, nil
@@ -484,6 +482,9 @@ func (p *Provider) taskProcesses(tasks []string) (structs.Processes, error) {
 				ecsTasks = append(ecsTasks, task)
 			}
 		}
+
+		psch := make(chan structs.Process, len(ecsTasks))
+		errch := make(chan error, len(ecsTasks))
 
 		for _, task := range ecsTasks {
 			if p.IsTest() {
