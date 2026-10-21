@@ -755,6 +755,26 @@ func TestCertificateGenerateEmailDefault(t *testing.T) {
 	assert.Len(t, lookups(f.aws), 2)
 }
 
+func TestCertificateLogsServiceStack(t *testing.T) {
+	f := newCertificateFixture(t)
+
+	f.add(&fakeCert{arn: arnSvc, domain: "*." + siteRouter, sans: []string{"*.web-api." + siteRouter}, email: true, tags: map[string]string{"System": "convox", "Type": "service", "Rack": "convox", "App": "web", "Name": "api"}})
+	f.aws.s3[certificateCacheKey], _ = json.Marshal(certificateCache{Records: map[string]certificateRecord{
+		siteRouter:              fakeRecord(siteRouter),
+		"web-api." + siteRouter: fakeRecord("web-api." + siteRouter),
+	}})
+	f.publish(siteRouter)
+	f.publish("web-api." + siteRouter)
+
+	ms, err := f.p.certificatePass(nil, time.Now().Add(time.Minute), true)
+	require.NoError(t, err)
+	require.Equal(t, resultSwitching, migrations(ms)[acmCertificateId(arnSvc)].Result)
+
+	require.Len(t, f.aws.logs, 1, "a certificate from a service stack logs to its app, named by the App tag")
+	assert.Contains(t, f.aws.logs[0], `"logGroupName":"convox-web-LogGroup"`)
+	assert.Contains(t, f.aws.logs[0], "certificate "+acmCertificateId(arnSvc)+" (*."+siteRouter+") switched to DNS validation")
+}
+
 func TestCertificateLogs(t *testing.T) {
 	f := newCertificateFixture(t)
 

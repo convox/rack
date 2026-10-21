@@ -703,7 +703,8 @@ func (r *certificateRun) logRack(key, line string) {
 }
 
 func (r *certificateRun) logApp(c *acmCertificate, key, line string) {
-	app := c.tags["Name"]
+	// A service stack tags its certificates with the service as Name and the app as App.
+	app := coalesces(c.tags["App"], c.tags["Name"])
 
 	if !r.worker || app == "" || c.tags["Rack"] != r.p.Rack || (key != "" && !certificateLogDue(key)) {
 		return
