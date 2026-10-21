@@ -1,4 +1,4 @@
-FROM golang:1.26.6-bookworm AS package
+FROM golang:1.26.10-bookworm AS package
 
 ENV PATH=$PATH:/go/bin
 
