@@ -30,8 +30,11 @@ type Provider interface {
 	CertificateApply(app, service string, port int, id string) error
 	CertificateCreate(pub, key string, opts CertificateCreateOptions) (*Certificate, error)
 	CertificateDelete(id string) error
-	CertificateGenerate(domains []string) (*Certificate, error)
+	CertificateDns() (*CertificateDns, error)
+	CertificateGenerate(domains []string, opts CertificateGenerateOptions) (*Certificate, error)
 	CertificateList() (Certificates, error)
+	CertificateMigrate(ids []string) (CertificateMigrations, error)
+	CertificateMigrationList(ids []string) (CertificateMigrations, error)
 
 	EventSend(action string, opts EventSendOptions) error
 

@@ -41,7 +41,7 @@ var classicBalancerACMKeyAlgorithms = map[string]bool{
 }
 
 func (p *Provider) certificateApplyGeneration1(a *structs.App, service string, port int, id string) error {
-	cs, err := p.CertificateList()
+	cs, err := p.certificateList(acm.KeyAlgorithm_Values())
 	if err != nil {
 		return err
 	}
@@ -131,9 +131,20 @@ func (p *Provider) CertificateDelete(id string) error {
 	return err
 }
 
-func (p *Provider) CertificateGenerate(domains []string) (*structs.Certificate, error) {
+func (p *Provider) CertificateGenerate(domains []string, opts structs.CertificateGenerateOptions) (*structs.Certificate, error) {
 	if len(domains) < 1 {
 		return nil, fmt.Errorf("must specify at least one domain")
+	}
+
+	dns := false
+
+	// Email unless the client asks for DNS: an older CLI cannot show the records a DNS certificate waits on.
+	switch strings.ToLower(aws.StringValue(opts.Validation)) {
+	case "", "email":
+	case "dns":
+		dns = true
+	default:
+		return nil, fmt.Errorf("validation must be dns or email")
 	}
 
 	alts := []*string{}
@@ -145,6 +156,14 @@ func (p *Provider) CertificateGenerate(domains []string) (*structs.Certificate, 
 	req := &acm.RequestCertificateInput{
 		DomainName:       aws.String(domains[0]),
 		IdempotencyToken: aws.String(randomString(32)),
+	}
+
+	if dns {
+		req.Tags = []*acm.Tag{
+			{Key: aws.String("System"), Value: aws.String("convox")},
+			{Key: aws.String("Rack"), Value: aws.String(p.Rack)},
+		}
+		req.ValidationMethod = aws.String(acm.ValidationMethodDns)
 	}
 
 	if len(alts) > 0 {
@@ -159,22 +178,69 @@ func (p *Provider) CertificateGenerate(domains []string) (*structs.Certificate, 
 
 	p.waitForCertificateListed(*res.CertificateArn)
 
-	parts := strings.Split(*res.CertificateArn, "-")
-	id := fmt.Sprintf("acm-%s", parts[len(parts)-1])
+	if dns {
+		if _, err := p.certificateRecordsWait(p.Context(), *res.CertificateArn, certificateGenerateWait); err != nil {
+			fmt.Printf("ns=certificates at=generate arn=%s error=%q\n", *res.CertificateArn, err)
+		}
+	}
 
 	cert := structs.Certificate{
-		Id:     id,
+		Id:     acmCertificateId(*res.CertificateArn),
 		Domain: domains[0],
+		Owned:  dns,
+		Status: statusPending,
 	}
 
 	return &cert, nil
 }
 
+var certificateGenerateWait = 20 * time.Second
+
 func (p *Provider) CertificateList() (structs.Certificates, error) {
-	return p.certificateList(acm.KeyAlgorithm_Values())
+	certs, err := p.iamCertificates()
+	if err != nil {
+		return nil, err
+	}
+
+	for i := range certs {
+		certs[i].Status = statusImported
+	}
+
+	own, err := p.certificateOwnership()
+	if err != nil {
+		return nil, err
+	}
+
+	acs, err := p.acmCertificates(p.Context(), acmReadOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	for _, c := range acs {
+		if c.err != nil {
+			fmt.Printf("ns=certificates at=list id=%s error=%q\n", c.id, c.err)
+			continue
+		}
+
+		if c.lookup() {
+			continue
+		}
+
+		certs = append(certs, structs.Certificate{
+			Arn:        c.arn,
+			Id:         c.id,
+			Domain:     c.domain,
+			Domains:    c.sans,
+			Expiration: c.expiration,
+			Owned:      own.owns(c, p.Rack),
+			Status:     c.statusValue(),
+		})
+	}
+
+	return certs, nil
 }
 
-func (p *Provider) certificateList(keyTypes []string) (structs.Certificates, error) {
+func (p *Provider) iamCertificates() (structs.Certificates, error) {
 	certs := structs.Certificates{}
 
 	req := &iam.ListServerCertificatesInput{}
@@ -223,6 +289,17 @@ func (p *Provider) certificateList(keyTypes []string) (structs.Certificates, err
 		req.Marker = res.Marker
 	}
 
+	return certs, nil
+}
+
+// certificateList is the list templates and listeners may use: issued, not created by an app
+// stack, and never a lookup.
+func (p *Provider) certificateList(keyTypes []string) (structs.Certificates, error) {
+	certs, err := p.iamCertificates()
+	if err != nil {
+		return nil, err
+	}
+
 	ares, err := p.certificateListACM(keyTypes)
 	if err != nil {
 		return nil, err
@@ -245,7 +322,7 @@ func (p *Provider) certificateList(keyTypes []string) (structs.Certificates, err
 			tags[aws.StringValue(t.Key)] = aws.StringValue(t.Value)
 		}
 
-		if tags["System"] == "convox" && tags["Type"] == "app" {
+		if (tags["System"] == "convox" && tags["Type"] == "app") || tags["Purpose"] == lookupPurpose {
 			continue
 		}
 

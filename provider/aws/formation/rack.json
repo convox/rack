@@ -1244,6 +1244,12 @@
       "Default": "daily",
       "AllowedValues": [ "hourly", "daily", "weekly" ]
     },
+    "Route53CertificateValidation": {
+      "Type": "String",
+      "Default": "No",
+      "Description": "Write ACM validation records for custom domains whose public Route 53 zone is in this account",
+      "AllowedValues": [ "Yes", "No" ]
+    },
     "RouterInternalSecurityGroup": {
       "Default": "",
       "Description": "The security groups (comma delimited) to assign to the internal rack router.",
@@ -5012,6 +5018,7 @@
               { "Name": "PASSWORD", "Value": { "Ref": "Password" } },
               { "Name": "PROVIDER", "Value": "aws" },
               { "Name": "RACK", "Value": { "Ref": "AWS::StackName" } },
+              { "Name": "ROUTE53_CERTIFICATE_VALIDATION", "Value": { "Ref": "Route53CertificateValidation" } },
               { "Name": "SECRETS_MANAGER_ENV", "Value": { "Ref": "SecretsManagerEnv" } },
               { "Name": "STACK_ID", "Value": { "Ref": "AWS::StackId" } }
             ],
@@ -5167,6 +5174,7 @@
               { "Name": "HTTPS_PROXY", "Value": { "Ref": "HttpProxy" } },
               { "Name": "PROVIDER", "Value": "aws" },
               { "Name": "RACK", "Value": { "Ref": "AWS::StackName" } },
+              { "Name": "ROUTE53_CERTIFICATE_VALIDATION", "Value": { "Ref": "Route53CertificateValidation" } },
               { "Name": "SECRETS_MANAGER_ENV", "Value": { "Ref": "SecretsManagerEnv" } },
               { "Name": "STACK_ID", "Value": { "Ref": "AWS::StackId" } }
             ],

@@ -100,7 +100,24 @@ func TestCertificateGenerate(t *testing.T) {
 				"domains": "domain1,domain2",
 			},
 		}
-		p.On("CertificateGenerate", []string{"domain1", "domain2"}).Return(&c1, nil)
+		p.On("CertificateGenerate", []string{"domain1", "domain2"}, structs.CertificateGenerateOptions{}).Return(&c1, nil)
+		err := c.Post("/certificates/generate", ro, &c2)
+		require.NoError(t, err)
+		require.Equal(t, c1, c2)
+	})
+}
+
+func TestCertificateGenerateValidation(t *testing.T) {
+	testServer(t, func(c *stdsdk.Client, p *structs.MockProvider) {
+		c1 := fxCertificate
+		c2 := structs.Certificate{}
+		ro := stdsdk.RequestOptions{
+			Params: stdsdk.Params{
+				"domains":    "domain1",
+				"validation": "dns",
+			},
+		}
+		p.On("CertificateGenerate", []string{"domain1"}, structs.CertificateGenerateOptions{Validation: options.String("dns")}).Return(&c1, nil)
 		err := c.Post("/certificates/generate", ro, &c2)
 		require.NoError(t, err)
 		require.Equal(t, c1, c2)
@@ -115,7 +132,7 @@ func TestCertificateGenerateError(t *testing.T) {
 				"domains": "domain1,domain2",
 			},
 		}
-		p.On("CertificateGenerate", []string{"domain1", "domain2"}).Return(nil, fmt.Errorf("err1"))
+		p.On("CertificateGenerate", []string{"domain1", "domain2"}, structs.CertificateGenerateOptions{}).Return(nil, fmt.Errorf("err1"))
 		err := c.Post("/certificates/generate", ro, c1)
 		require.EqualError(t, err, "err1")
 		require.Nil(t, c1)
@@ -140,5 +157,144 @@ func TestCertificateListError(t *testing.T) {
 		err := c.Get("/certificates", stdsdk.RequestOptions{}, &c1)
 		require.EqualError(t, err, "err1")
 		require.Nil(t, c1)
+	})
+}
+
+func TestCertificateDns(t *testing.T) {
+	testServer(t, func(c *stdsdk.Client, p *structs.MockProvider) {
+		d1 := &structs.CertificateDns{
+			Errors:    []structs.CertificateDnsError{{Id: "cert2", Error: "err2"}},
+			Preparing: []string{"cert3"},
+			Records: []structs.CertificateDnsRecord{
+				{Zone: "example.com", Name: "_a.example.com.", Type: "CNAME", Value: "_b.acm-validations.aws.", Check: "ok", Route53: true, Certificates: []string{"cert1"}},
+			},
+		}
+		d2 := &structs.CertificateDns{}
+		p.On("CertificateDns").Return(d1, nil)
+		err := c.Get("/certificates/dns", stdsdk.RequestOptions{}, d2)
+		require.NoError(t, err)
+		require.Equal(t, d1, d2)
+	})
+}
+
+func TestCertificateDnsError(t *testing.T) {
+	testServer(t, func(c *stdsdk.Client, p *structs.MockProvider) {
+		var d1 *structs.CertificateDns
+		p.On("CertificateDns").Return(nil, fmt.Errorf("err1"))
+		err := c.Get("/certificates/dns", stdsdk.RequestOptions{}, d1)
+		require.EqualError(t, err, "err1")
+		require.Nil(t, d1)
+	})
+}
+
+func TestCertificateMigrate(t *testing.T) {
+	testServer(t, func(c *stdsdk.Client, p *structs.MockProvider) {
+		m1 := structs.CertificateMigrations{
+			{Id: "cert1", Domain: "example.com", Result: "switching"},
+			{Id: "cert2", Domain: "example.org", Result: "error", Detail: "err2"},
+		}
+		m2 := structs.CertificateMigrations{}
+		ro := stdsdk.RequestOptions{
+			Params: stdsdk.Params{
+				"ids": "cert1,,cert2,",
+			},
+		}
+		p.On("CertificateMigrate", []string{"cert1", "cert2"}).Return(m1, nil)
+		err := c.Post("/certificates/migrate", ro, &m2)
+		require.NoError(t, err)
+		require.Equal(t, m1, m2)
+	})
+}
+
+func TestCertificateMigrateAll(t *testing.T) {
+	testServer(t, func(c *stdsdk.Client, p *structs.MockProvider) {
+		m1 := structs.CertificateMigrations{{Id: "cert1", Domain: "example.com", Result: "dns"}}
+		m2 := structs.CertificateMigrations{}
+		p.On("CertificateMigrate", []string(nil)).Return(m1, nil)
+		err := c.Post("/certificates/migrate", stdsdk.RequestOptions{}, &m2)
+		require.NoError(t, err)
+		require.Equal(t, m1, m2)
+	})
+}
+
+func TestCertificateMigrateEmptyIds(t *testing.T) {
+	testServer(t, func(c *stdsdk.Client, p *structs.MockProvider) {
+		m1 := structs.CertificateMigrations{{Id: "cert1", Domain: "example.com", Result: "dns"}}
+		m2 := structs.CertificateMigrations{}
+		ro := stdsdk.RequestOptions{
+			Params: stdsdk.Params{
+				"ids": "",
+			},
+		}
+		p.On("CertificateMigrate", []string(nil)).Return(m1, nil)
+		err := c.Post("/certificates/migrate", ro, &m2)
+		require.NoError(t, err)
+		require.Equal(t, m1, m2)
+	})
+}
+
+func TestCertificateMigrateError(t *testing.T) {
+	testServer(t, func(c *stdsdk.Client, p *structs.MockProvider) {
+		var m1 structs.CertificateMigrations
+		p.On("CertificateMigrate", []string(nil)).Return(nil, fmt.Errorf("err1"))
+		err := c.Post("/certificates/migrate", stdsdk.RequestOptions{}, &m1)
+		require.EqualError(t, err, "err1")
+		require.Nil(t, m1)
+	})
+}
+
+func TestCertificateMigrationList(t *testing.T) {
+	testServer(t, func(c *stdsdk.Client, p *structs.MockProvider) {
+		m1 := structs.CertificateMigrations{
+			{Id: "cert1", Domain: "example.com", Result: "dns"},
+			{Id: "cert2", Domain: "example.org", Result: "publishing"},
+		}
+		m2 := structs.CertificateMigrations{}
+		ro := stdsdk.RequestOptions{
+			Query: stdsdk.Query{
+				"ids": "cert1,cert2",
+			},
+		}
+		p.On("CertificateMigrationList", []string{"cert1", "cert2"}).Return(m1, nil)
+		err := c.Get("/certificates/migrations", ro, &m2)
+		require.NoError(t, err)
+		require.Equal(t, m1, m2)
+	})
+}
+
+func TestCertificateMigrationListAll(t *testing.T) {
+	testServer(t, func(c *stdsdk.Client, p *structs.MockProvider) {
+		m1 := structs.CertificateMigrations{{Id: "cert1", Domain: "example.com", Result: "dns"}}
+		m2 := structs.CertificateMigrations{}
+		p.On("CertificateMigrationList", []string(nil)).Return(m1, nil)
+		err := c.Get("/certificates/migrations", stdsdk.RequestOptions{}, &m2)
+		require.NoError(t, err)
+		require.Equal(t, m1, m2)
+	})
+}
+
+func TestCertificateMigrationListEmptyIds(t *testing.T) {
+	testServer(t, func(c *stdsdk.Client, p *structs.MockProvider) {
+		m1 := structs.CertificateMigrations{{Id: "cert1", Domain: "example.com", Result: "dns"}}
+		m2 := structs.CertificateMigrations{}
+		ro := stdsdk.RequestOptions{
+			Query: stdsdk.Query{
+				"ids": ",",
+			},
+		}
+		p.On("CertificateMigrationList", []string(nil)).Return(m1, nil)
+		err := c.Get("/certificates/migrations", ro, &m2)
+		require.NoError(t, err)
+		require.Equal(t, m1, m2)
+	})
+}
+
+func TestCertificateMigrationListError(t *testing.T) {
+	testServer(t, func(c *stdsdk.Client, p *structs.MockProvider) {
+		var m1 structs.CertificateMigrations
+		p.On("CertificateMigrationList", []string(nil)).Return(nil, fmt.Errorf("err1"))
+		err := c.Get("/certificates/migrations", stdsdk.RequestOptions{}, &m1)
+		require.EqualError(t, err, "err1")
+		require.Nil(t, m1)
 	})
 }

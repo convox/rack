@@ -15,11 +15,13 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/client"
+	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/cloudformation/cloudformationiface"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs/cloudwatchlogsiface"
+	"github.com/convox/logger"
 	"github.com/convox/rack/pkg/structs"
 	yaml "gopkg.in/yaml.v2"
 )
@@ -363,14 +365,9 @@ func CloudWatchLogsStream(ctx context.Context, cw cloudwatchlogsiface.CloudWatch
 
 	follow := DefaultBool(opts.Follow, true)
 
-	var start int64
+	start := TimeNow().UTC().Add(-DefaultDuration(opts.Since, time.Hour)).UnixMilli()
 
-	if opts.Since != nil {
-		start = TimeNow().UTC().Add((*opts.Since) * -1).UnixMilli()
-		req.StartTime = aws.Int64(start)
-	} else {
-		req.StartTime = aws.Int64(TimeNow().UTC().Add(-1 * time.Hour).UnixMilli())
-	}
+	req.StartTime = aws.Int64(start)
 
 	if stream != "" {
 		req.LogStreamNames = []*string{aws.String(stream)}
@@ -401,14 +398,6 @@ func CloudWatchLogsStream(ctx context.Context, cw cloudwatchlogsiface.CloudWatch
 				}
 			}
 
-			if res != nil {
-				if res.NextToken != nil {
-					time.Sleep(2 * time.Second)
-				} else if len(res.Events) == 0 {
-					time.Sleep(5 * time.Second)
-				}
-			}
-
 			es := []*cloudwatchlogs.FilteredLogEvent{}
 
 			for _, e := range res.Events {
@@ -426,6 +415,15 @@ func CloudWatchLogsStream(ctx context.Context, cw cloudwatchlogsiface.CloudWatch
 
 			if _, err := writeLogEvents(w, es, opts); err != nil {
 				return err
+			}
+
+			switch {
+			case res.NextToken != nil:
+				time.Sleep(2 * time.Second)
+			case len(es) == 0:
+				time.Sleep(5 * time.Second)
+			case follow:
+				time.Sleep(1 * time.Second)
 			}
 
 			req.NextToken = res.NextToken
@@ -551,13 +549,7 @@ func writeLogEvents(w io.Writer, events []*cloudwatchlogs.FilteredLogEvent, opts
 func NewSession() (*session.Session, error) {
 	config := &aws.Config{
 		MaxRetries: aws.Int(MAX_RETRY),
-		Retryer: client.DefaultRetryer{
-			NumMaxRetries:    MAX_RETRY,
-			MinRetryDelay:    1 * time.Second,
-			MaxRetryDelay:    5 * time.Second,
-			MinThrottleDelay: 10 * time.Second,
-			MaxThrottleDelay: 60 * time.Second,
-		},
+		Retryer:    sessionRetryer,
 	}
 	if os.Getenv("AWS_REGION") != "" || os.Getenv("AWS_DEFAULT_REGION") != "" {
 		region := os.Getenv("AWS_DEFAULT_REGION")
@@ -571,4 +563,55 @@ func NewSession() (*session.Session, error) {
 	s, err := session.NewSession(config)
 
 	return s, err
+}
+
+var sessionRetryer request.Retryer = client.DefaultRetryer{
+	NumMaxRetries:    MAX_RETRY,
+	MinRetryDelay:    1 * time.Second,
+	MaxRetryDelay:    5 * time.Second,
+	MinThrottleDelay: 10 * time.Second,
+	MaxThrottleDelay: 60 * time.Second,
+}
+
+type loggedRetryer struct {
+	client.DefaultRetryer
+	log *logger.Logger
+}
+
+func (r loggedRetryer) RetryRules(req *request.Request) time.Duration {
+	delay := r.DefaultRetryer.RetryRules(req)
+
+	code := ""
+	if aerr, ok := req.Error.(awserr.Error); ok {
+		code = aerr.Code()
+	}
+
+	operation := ""
+	if req.Operation != nil {
+		operation = req.Operation.Name
+	}
+
+	status := 0
+	if req.HTTPResponse != nil {
+		status = req.HTTPResponse.StatusCode
+	}
+
+	r.log.Logf("service=%s operation=%s code=%s status=%d attempt=%d delay=%d",
+		req.ClientInfo.ServiceName, operation, code, status, req.RetryCount+1, delay.Milliseconds())
+
+	return delay
+}
+
+// UseRequestPathRetries shortens throttle backoff and logs each retry for sessions from NewSession.
+func UseRequestPathRetries() {
+	sessionRetryer = loggedRetryer{
+		DefaultRetryer: client.DefaultRetryer{
+			NumMaxRetries:    MAX_RETRY,
+			MinRetryDelay:    1 * time.Second,
+			MaxRetryDelay:    5 * time.Second,
+			MinThrottleDelay: 500 * time.Millisecond,
+			MaxThrottleDelay: 5 * time.Second,
+		},
+		log: logger.New("ns=aws").At("retry"),
+	}
 }

@@ -1,6 +1,6 @@
 module github.com/convox/rack
 
-go 1.26.6
+go 1.26.10
 
 require (
 	github.com/RackSec/srslog v0.0.0-20170920152354-4d2c753a4ee1

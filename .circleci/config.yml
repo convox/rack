@@ -122,7 +122,7 @@ jobs:
         type: string
         default: ""
     docker:
-      - image: cimg/go:1.26.6
+      - image: cimg/go:1.26.10
     environment:
       PROVIDER: <<parameters.provider>>
       ARGS: <<parameters.args>>
@@ -141,14 +141,14 @@ jobs:
           when: always
   cleanup:
     docker:
-      - image: cimg/go:1.26.6
+      - image: cimg/go:1.26.10
     steps:
       - checkout
       - ci-dependencies
       - run: scripts/ci-cleanup
   cleanup_all:
     docker:
-      - image: cimg/go:1.26.6
+      - image: cimg/go:1.26.10
     steps:
       - checkout
       - ci-dependencies
@@ -162,14 +162,14 @@ jobs:
       repo:
         type: string
     docker:
-      - image: cimg/go:1.26.6
+      - image: cimg/go:1.26.10
     steps:
       - checkout
       - ci-dependencies
       - run: ci/deploy.sh <<parameters.repo>> <<parameters.app>> <<parameters.check>>
   test:
     docker:
-      - image: cimg/go:1.26.6
+      - image: cimg/go:1.26.10
     # working_directory: /go/src/github.com/convox/rack
     steps:
       - checkout
@@ -181,7 +181,7 @@ jobs:
       - run: curl -s https://codecov.io/bash | bash
   update:
     docker:
-      - image: cimg/go:1.26.6
+      - image: cimg/go:1.26.10
     steps:
       - checkout
       - ci-dependencies

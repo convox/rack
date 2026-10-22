@@ -530,13 +530,36 @@ func (_m *Interface) CertificateDelete(id string) error {
 	return r0
 }
 
-// CertificateGenerate provides a mock function with given fields: domains
-func (_m *Interface) CertificateGenerate(domains []string) (*structs.Certificate, error) {
-	ret := _m.Called(domains)
+// CertificateDns provides a mock function with given fields:
+func (_m *Interface) CertificateDns() (*structs.CertificateDns, error) {
+	ret := _m.Called()
+
+	var r0 *structs.CertificateDns
+	if rf, ok := ret.Get(0).(func() *structs.CertificateDns); ok {
+		r0 = rf()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*structs.CertificateDns)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func() error); ok {
+		r1 = rf()
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// CertificateGenerate provides a mock function with given fields: domains, opts
+func (_m *Interface) CertificateGenerate(domains []string, opts structs.CertificateGenerateOptions) (*structs.Certificate, error) {
+	ret := _m.Called(domains, opts)
 
 	var r0 *structs.Certificate
-	if rf, ok := ret.Get(0).(func([]string) *structs.Certificate); ok {
-		r0 = rf(domains)
+	if rf, ok := ret.Get(0).(func([]string, structs.CertificateGenerateOptions) *structs.Certificate); ok {
+		r0 = rf(domains, opts)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*structs.Certificate)
@@ -544,8 +567,8 @@ func (_m *Interface) CertificateGenerate(domains []string) (*structs.Certificate
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func([]string) error); ok {
-		r1 = rf(domains)
+	if rf, ok := ret.Get(1).(func([]string, structs.CertificateGenerateOptions) error); ok {
+		r1 = rf(domains, opts)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -569,6 +592,52 @@ func (_m *Interface) CertificateList() (structs.Certificates, error) {
 	var r1 error
 	if rf, ok := ret.Get(1).(func() error); ok {
 		r1 = rf()
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// CertificateMigrate provides a mock function with given fields: ids
+func (_m *Interface) CertificateMigrate(ids []string) (structs.CertificateMigrations, error) {
+	ret := _m.Called(ids)
+
+	var r0 structs.CertificateMigrations
+	if rf, ok := ret.Get(0).(func([]string) structs.CertificateMigrations); ok {
+		r0 = rf(ids)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(structs.CertificateMigrations)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func([]string) error); ok {
+		r1 = rf(ids)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// CertificateMigrationList provides a mock function with given fields: ids
+func (_m *Interface) CertificateMigrationList(ids []string) (structs.CertificateMigrations, error) {
+	ret := _m.Called(ids)
+
+	var r0 structs.CertificateMigrations
+	if rf, ok := ret.Get(0).(func([]string) structs.CertificateMigrations); ok {
+		r0 = rf(ids)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(structs.CertificateMigrations)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func([]string) error); ok {
+		r1 = rf(ids)
 	} else {
 		r1 = ret.Error(1)
 	}
