@@ -18,6 +18,7 @@ const (
 
 type Crypt struct {
 	Region string
+	Config *aws.Config
 }
 
 type Instance struct {
@@ -39,7 +40,7 @@ type Envelope struct {
 func KMS(c *Crypt) *kms.KMS {
 	return kms.New(session.New(), &aws.Config{
 		Region: aws.String(c.Region),
-	})
+	}, c.Config)
 }
 
 func New() *Crypt {

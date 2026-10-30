@@ -415,10 +415,12 @@ func (p *Provider) SystemMetrics(opts structs.MetricsOptions) (structs.Metrics, 
 }
 
 func (p *Provider) SystemProcesses(opts structs.SystemProcessesOptions) (structs.Processes, error) {
-	var tasks []string
+	var tasks, ids []string
 	var err error
 
-	if opts.All != nil && *opts.All {
+	all := opts.All != nil && *opts.All
+
+	if all {
 		err := p.ecs().ListTasksPages(&ecs.ListTasksInput{
 			Cluster: aws.String(p.Cluster),
 		}, func(page *ecs.ListTasksOutput, lastPage bool) bool {
@@ -431,7 +433,7 @@ func (p *Provider) SystemProcesses(opts structs.SystemProcessesOptions) (structs
 			return nil, err
 		}
 	} else {
-		tasks, err = p.stackTasks(p.Rack)
+		tasks, ids, err = p.stackTasks(p.Rack)
 		if err != nil {
 			return nil, err
 		}
@@ -442,7 +444,22 @@ func (p *Provider) SystemProcesses(opts structs.SystemProcessesOptions) (structs
 		return nil, err
 	}
 
-	services, err := p.clusterServices()
+	taskDefs := map[string]bool{}
+	for i := range ps {
+		if ps[i].App == "" {
+			ps[i].App = p.Rack
+		}
+
+		taskDefs[ps[i].TaskDefinition] = true
+	}
+
+	var services ECSServices
+
+	if all {
+		services, err = p.clusterServices()
+	} else {
+		services, err = p.describeServicesByID(ids)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -450,10 +467,14 @@ func (p *Provider) SystemProcesses(opts structs.SystemProcessesOptions) (structs
 	serviceNames := []string{}
 	taskToServiceMap := map[string]string{}
 	for _, s := range services {
-		if s.ServiceName != nil && s.TaskDefinition != nil {
+		if s.ServiceName != nil && s.TaskDefinition != nil && taskDefs[*s.TaskDefinition] {
 			serviceNames = append(serviceNames, *s.ServiceName)
 			taskToServiceMap[*s.TaskDefinition] = *s.ServiceName
 		}
+	}
+
+	if len(serviceNames) == 0 {
+		return ps, nil
 	}
 
 	mdqs := p.servicesMetricQueries(serviceNames)
@@ -471,10 +492,6 @@ func (p *Provider) SystemProcesses(opts structs.SystemProcessesOptions) (structs
 	}
 
 	for i := range ps {
-		if ps[i].App == "" {
-			ps[i].App = p.Rack
-		}
-
 		if serviceName, has := taskToServiceMap[ps[i].TaskDefinition]; has {
 			if m, has := mMap[serviceMetricsKey("mem", serviceName)]; has && len(m.Values) > 0 {
 				ps[i].Memory = m.Values[len(m.Values)-1].Average
@@ -732,7 +749,7 @@ func (p *Provider) SystemUpdate(opts structs.SystemUpdateOptions) error {
 
 			template = data
 		} else {
-			res, err := http.Get(fmt.Sprintf(rackTemplateURL, *opts.Version))
+			res, err := (&http.Client{Timeout: 60 * time.Second}).Get(fmt.Sprintf(rackTemplateURL, *opts.Version))
 			if err != nil {
 				return err
 			}

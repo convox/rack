@@ -169,20 +169,19 @@ func (p *Provider) AppDelete(name string) error {
 		return fmt.Errorf("invalid app: %s", name)
 	}
 
-	resources, err := p.SystemResourceList()
+	stacks, err := p.describeStacks(&cloudformation.DescribeStacksInput{})
 	if err != nil {
 		return err
 	}
 
-	for _, s := range resources {
-		apps, err := p.resourceApps(s)
-		if err != nil {
-			return err
+	for _, s := range stacks {
+		if !p.rackResourceStack(s) {
+			continue
 		}
 
-		for _, a := range apps {
-			if a.Name == name {
-				return fmt.Errorf("app is linked to %s resource", s.Name)
+		for _, a := range p.resourceLinkedApps(s) {
+			if a == name {
+				return fmt.Errorf("app is linked to %s resource", stackTags(s)["Name"])
 			}
 		}
 	}

@@ -3,9 +3,13 @@ package aws
 import (
 	"fmt"
 	"math"
+	"slices"
+	"sort"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ecs"
+	"github.com/convox/rack/pkg/cache"
 	"github.com/convox/rack/pkg/structs"
 )
 
@@ -143,36 +147,51 @@ func (p *Provider) CapacityGet() (*structs.Capacity, error) {
 type ECSServices []*ecs.Service
 
 func (p *Provider) clusterServices() (ECSServices, error) {
-	services := ECSServices{}
+	v, err := cache.Fetch("clusterServices", p.Cluster, 5*time.Second, func() (interface{}, bool, error) {
+		arns := []string{}
 
-	lreq := &ecs.ListServicesInput{
-		Cluster:    aws.String(p.Cluster),
-		MaxResults: aws.Int64(10),
-	}
-
-	for {
-		lres, err := p.ecs().ListServices(lreq)
+		err := p.ecs().ListServicesPages(&ecs.ListServicesInput{
+			Cluster:    aws.String(p.Cluster),
+			MaxResults: aws.Int64(100),
+		}, func(page *ecs.ListServicesOutput, lastPage bool) bool {
+			arns = append(arns, aws.StringValueSlice(page.ServiceArns)...)
+			return true
+		})
 		if err != nil {
-			return nil, err
+			return nil, false, err
 		}
 
-		dres, err := p.describeServices(&ecs.DescribeServicesInput{
+		services, err := p.describeServicesByID(arns)
+
+		return services, !p.SkipCache, err
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	services, _ := v.(ECSServices)
+
+	return services, nil
+}
+
+const describeServicesPageSize = 10
+
+func (p *Provider) describeServicesByID(ids []string) (ECSServices, error) {
+	ids = slices.Clone(ids)
+	sort.Strings(ids)
+
+	services := ECSServices{}
+
+	for i := 0; i < len(ids); i += describeServicesPageSize {
+		res, err := p.describeServices(&ecs.DescribeServicesInput{
 			Cluster:  aws.String(p.Cluster),
-			Services: lres.ServiceArns,
+			Services: aws.StringSlice(ids[i:min(i+describeServicesPageSize, len(ids))]),
 		})
 		if err != nil {
 			return nil, err
 		}
 
-		for _, s := range dres.Services {
-			services = append(services, s)
-		}
-
-		if lres.NextToken == nil {
-			break
-		}
-
-		lreq.NextToken = lres.NextToken
+		services = append(services, res.Services...)
 	}
 
 	return services, nil

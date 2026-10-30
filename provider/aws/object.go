@@ -13,6 +13,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
+	"github.com/convox/rack/pkg/helpers"
 	"github.com/convox/rack/pkg/structs"
 )
 
@@ -69,7 +70,7 @@ func (p *Provider) ObjectFetch(app, key string) (io.ReadCloser, error) {
 		return nil, err
 	}
 
-	res, err := p.s3().GetObject(&s3.GetObjectInput{
+	res, err := p.s3Streaming().GetObject(&s3.GetObjectInput{
 		Bucket: aws.String(bucket),
 		Key:    aws.String(key),
 	})
@@ -129,7 +130,7 @@ func (p *Provider) ObjectStore(app, key string, r io.Reader, opts structs.Object
 		return nil, log.Error(err)
 	}
 
-	up := s3manager.NewUploaderWithClient(p.s3())
+	up := s3manager.NewUploaderWithClient(p.s3Streaming())
 
 	req := &s3manager.UploadInput{
 		Bucket: aws.String(bucket),
@@ -150,6 +151,10 @@ func (p *Provider) ObjectStore(app, key string, r io.Reader, opts structs.Object
 			Bucket: aws.String(bucket),
 			Key:    aws.String(key),
 		})
+
+		if helpers.CredentialsExpireWithin(6 * time.Minute) {
+			req.Config.Credentials.Expire()
+		}
 
 		url, err := req.Presign(10 * time.Minute)
 		if err != nil {

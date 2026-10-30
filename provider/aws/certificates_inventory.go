@@ -129,7 +129,7 @@ type acmReadOptions struct {
 // acmCertificates reads every ACM certificate whose state can matter. Failed and timed out
 // certificates are read only for their tags, so lookups among them can be swept and hidden.
 func (p *Provider) acmCertificates(ctx context.Context, opts acmReadOptions) ([]*acmCertificate, error) {
-	summaries, err := p.certificateListACM(acm.KeyAlgorithm_Values())
+	summaries, err := p.certificateListACM(context.Background(), acm.KeyAlgorithm_Values(), nil)
 	if err != nil {
 		return nil, err
 	}

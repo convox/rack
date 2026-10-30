@@ -1,15 +1,18 @@
 package aws
 
 import (
+	"context"
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/acm"
 	"github.com/aws/aws-sdk-go/service/iam"
+	"github.com/convox/rack/pkg/cache"
 	"github.com/convox/rack/pkg/structs"
 )
 
@@ -104,7 +107,7 @@ func (p *Provider) CertificateDelete(id string) error {
 	if strings.HasPrefix(id, "acm-") {
 		id = strings.Split(id, "-")[1]
 
-		certs, err := p.certificateListACM(acm.KeyAlgorithm_Values())
+		certs, err := p.certificateListACM(context.Background(), acm.KeyAlgorithm_Values(), nil)
 		if err != nil {
 			return err
 		}
@@ -252,19 +255,28 @@ func (p *Provider) iamCertificates() (structs.Certificates, error) {
 		}
 
 		for _, cert := range res.ServerCertificateMetadataList {
-			var res *iam.GetServerCertificateOutput
+			v, err := cache.Fetch("iamServerCertificate", aws.StringValue(cert.ServerCertificateId), 24*time.Hour, func() (interface{}, bool, error) {
+				var res *iam.GetServerCertificateOutput
 
-			err = retry(5, 2*time.Second, func() error {
-				res, err = p.iam().GetServerCertificate(&iam.GetServerCertificateInput{
-					ServerCertificateName: cert.ServerCertificateName,
+				err := retry(5, 2*time.Second, func() error {
+					var err error
+
+					res, err = p.iam().GetServerCertificate(&iam.GetServerCertificateInput{
+						ServerCertificateName: cert.ServerCertificateName,
+					})
+
+					return err
 				})
-				return err
+
+				return res, !p.SkipCache, err
 			})
 			if err != nil {
 				return nil, err
 			}
 
-			pem, _ := pem.Decode([]byte(*res.ServerCertificate.CertificateBody))
+			sc, _ := v.(*iam.GetServerCertificateOutput)
+
+			pem, _ := pem.Decode([]byte(*sc.ServerCertificate.CertificateBody))
 			if err != nil {
 				return nil, err
 			}
@@ -300,35 +312,27 @@ func (p *Provider) certificateList(keyTypes []string) (structs.Certificates, err
 		return nil, err
 	}
 
-	ares, err := p.certificateListACM(keyTypes)
+	ares, err := p.certificateListACM(context.Background(), keyTypes, []string{acm.CertificateStatusIssued})
 	if err != nil {
 		return nil, err
 	}
 
 	for _, cert := range ares {
-		tags := map[string]string{}
-
-		tres, err := p.acm().ListTagsForCertificate(&acm.ListTagsForCertificateInput{
-			CertificateArn: cert.CertificateArn,
-		})
-		if awsError(err) == "ResourceNotFoundException" {
-			continue
-		}
+		usable, err := p.certificateUsable(*cert.CertificateArn)
 		if err != nil {
 			return nil, err
 		}
-
-		for _, t := range tres.Tags {
-			tags[aws.StringValue(t.Key)] = aws.StringValue(t.Value)
-		}
-
-		if (tags["System"] == "convox" && tags["Type"] == "app") || tags["Purpose"] == lookupPurpose {
+		if !usable {
 			continue
 		}
 
-		c, err := p.certificateGetACM(*cert.CertificateArn)
-		if err != nil {
-			return nil, err
+		c := certificateFromSummary(cert)
+
+		if c == nil {
+			c, err = p.certificateGetACM(*cert.CertificateArn)
+			if err != nil {
+				return nil, err
+			}
 		}
 
 		if c != nil {
@@ -337,6 +341,111 @@ func (p *Provider) certificateList(keyTypes []string) (structs.Certificates, err
 	}
 
 	return certs, nil
+}
+
+// The tags are set when the certificate is created and never change, so the verdict is cached.
+func (p *Provider) certificateUsable(arn string) (bool, error) {
+	v, err := cache.Fetch("certificateUsable", arn, 24*time.Hour, func() (interface{}, bool, error) {
+		res, err := p.acm().ListTagsForCertificate(&acm.ListTagsForCertificateInput{
+			CertificateArn: aws.String(arn),
+		})
+		if awsError(err) == "ResourceNotFoundException" {
+			return false, false, nil
+		}
+		if err != nil {
+			return nil, false, err
+		}
+
+		tags := map[string]string{}
+
+		for _, t := range res.Tags {
+			tags[aws.StringValue(t.Key)] = aws.StringValue(t.Value)
+		}
+
+		excluded := (tags["System"] == "convox" && tags["Type"] == "app") || tags["Purpose"] == lookupPurpose
+
+		return !excluded, !p.SkipCache, nil
+	})
+	if err != nil {
+		return false, err
+	}
+
+	usable, _ := v.(bool)
+
+	return usable, nil
+}
+
+func certificateFromSummary(s *acm.CertificateSummary) *structs.Certificate {
+	domain := aws.StringValue(s.DomainName)
+	sans := aws.StringValueSlice(s.SubjectAlternativeNameSummaries)
+
+	if aws.BoolValue(s.HasAdditionalSubjectAlternativeNames) || s.NotAfter == nil || !slices.Contains(sans, domain) {
+		return nil
+	}
+
+	return &structs.Certificate{
+		Arn:        *s.CertificateArn,
+		Id:         acmCertificateId(*s.CertificateArn),
+		Domain:     domain,
+		Domains:    sans,
+		Expiration: *s.NotAfter,
+	}
+}
+
+func (p *Provider) certificateID(arn string) (string, error) {
+	parts := strings.SplitN(arn, ":", 6)
+	if len(parts) < 6 {
+		return "", nil
+	}
+
+	switch parts[2] {
+	case "acm":
+		usable, err := p.certificateUsable(arn)
+		if err != nil || !usable {
+			return "", err
+		}
+
+		res, err := p.acm().DescribeCertificate(&acm.DescribeCertificateInput{
+			CertificateArn: aws.String(arn),
+		})
+		if awsError(err) == "ResourceNotFoundException" {
+			return "", nil
+		}
+		if err != nil {
+			return "", err
+		}
+
+		if res.Certificate == nil || aws.StringValue(res.Certificate.Status) != acm.CertificateStatusIssued {
+			return "", nil
+		}
+
+		return acmCertificateId(arn), nil
+	case "iam":
+		name := arn[strings.LastIndex(arn, "/")+1:]
+
+		v, err := cache.Fetch("iamServerCertificateArn", name, 24*time.Hour, func() (interface{}, bool, error) {
+			res, err := p.iam().GetServerCertificate(&iam.GetServerCertificateInput{
+				ServerCertificateName: aws.String(name),
+			})
+			if awsError(err) == "NoSuchEntity" {
+				return "", false, nil
+			}
+			if err != nil {
+				return nil, false, err
+			}
+
+			return aws.StringValue(res.ServerCertificate.ServerCertificateMetadata.Arn), !p.SkipCache, nil
+		})
+		if err != nil {
+			return "", err
+		}
+
+		if found, _ := v.(string); found == arn {
+			return name, nil
+		}
+	}
+
+	return "", nil
 }
 
 func (p *Provider) releaseCertificates() (structs.Certificates, error) {
@@ -424,7 +533,7 @@ func (p *Provider) certificateKeyAlgorithm(arn string) (string, error) {
 	return strings.ReplaceAll(aws.StringValue(res.Certificate.KeyAlgorithm), "-", "_"), nil
 }
 
-func (p *Provider) certificateListACM(keyTypes []string) ([]*acm.CertificateSummary, error) {
+func (p *Provider) certificateListACM(ctx context.Context, keyTypes, statuses []string) ([]*acm.CertificateSummary, error) {
 	certs := []*acm.CertificateSummary{}
 
 	req := &acm.ListCertificatesInput{}
@@ -433,8 +542,12 @@ func (p *Provider) certificateListACM(keyTypes []string) ([]*acm.CertificateSumm
 		req.Includes = &acm.Filters{KeyTypes: aws.StringSlice(keyTypes)}
 	}
 
+	if len(statuses) > 0 {
+		req.CertificateStatuses = aws.StringSlice(statuses)
+	}
+
 	for {
-		res, err := p.acm().ListCertificates(req)
+		res, err := p.acm().ListCertificatesWithContext(ctx, req)
 		if err != nil {
 			return nil, err
 		}
@@ -458,22 +571,28 @@ var (
 )
 
 func (p *Provider) waitForCertificateListed(arn string) {
+	ctx, cancel := context.WithTimeout(p.Context(), certificateListWaitTimeout)
+	defer cancel()
+
 	seen := 0
-	done := time.Now().Add(certificateListWaitTimeout)
 
 	for {
-		cs, err := p.certificateListACM(acm.KeyAlgorithm_Values())
+		cs, err := p.certificateListACM(ctx, acm.KeyAlgorithm_Values(), nil)
 		if err == nil && certificateListed(cs, arn) {
 			seen++
 		} else {
 			seen = 0
 		}
 
-		if seen >= certificateListWaitConfirmations || time.Now().After(done) {
+		if seen >= certificateListWaitConfirmations {
 			return
 		}
 
-		time.Sleep(certificateListWaitTick)
+		select {
+		case <-ctx.Done():
+			return
+		case <-time.After(certificateListWaitTick):
+		}
 	}
 }
 

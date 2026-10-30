@@ -136,6 +136,17 @@ func TestBuildGet(t *testing.T) {
 //   }, b)
 // }
 
+type flushRecorder struct {
+	bytes.Buffer
+	flushes   int
+	flushedAt int
+}
+
+func (f *flushRecorder) Flush() {
+	f.flushes++
+	f.flushedAt = f.Len()
+}
+
 func TestBuildExport(t *testing.T) {
 	provider := StubAwsProvider(
 		cycleBuildGetItem,
@@ -153,10 +164,12 @@ func TestBuildExport(t *testing.T) {
 	)
 	defer d.Close()
 
-	buf := &bytes.Buffer{}
+	buf := &flushRecorder{}
 
 	err := provider.BuildExport("httpd", "B123", buf)
 	assert.NoError(t, err)
+	assert.Equal(t, 1, buf.flushes)
+	assert.Greater(t, buf.flushedAt, 0)
 
 	gz, err := gzip.NewReader(buf)
 	assert.NoError(t, err)

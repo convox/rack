@@ -20,6 +20,7 @@ type Server struct {
 
 func New() (*Server, error) {
 	helpers.UseRequestPathRetries()
+	helpers.UseSharedCredentials()
 
 	p, err := provider.FromEnv()
 	if err != nil {

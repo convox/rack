@@ -18,12 +18,17 @@ func (p *Provider) FilesDownload(app, pid string, file string) (io.Reader, error
 		return nil, log.Error(err)
 	}
 
-	dc, err := p.dockerClientFromPid(pid)
+	arn, err := p.taskArnFromPid(pid)
 	if err != nil {
 		return nil, log.Error(err)
 	}
 
-	c, err := p.dockerContainerFromPid(pid)
+	dc, err := p.dockerClientForTask(arn, pid)
+	if err != nil {
+		return nil, log.Error(err)
+	}
+
+	c, err := p.dockerContainer(dc, arn)
 	if err != nil {
 		return nil, log.Error(err)
 	}
@@ -54,12 +59,17 @@ func (p *Provider) FilesUpload(app, pid string, r io.Reader) error {
 		return log.Error(err)
 	}
 
-	dc, err := p.dockerClientFromPid(pid)
+	arn, err := p.taskArnFromPid(pid)
 	if err != nil {
 		return log.Error(err)
 	}
 
-	c, err := p.dockerContainerFromPid(pid)
+	dc, err := p.dockerClientForTask(arn, pid)
+	if err != nil {
+		return log.Error(err)
+	}
+
+	c, err := p.dockerContainer(dc, arn)
 	if err != nil {
 		return log.Error(err)
 	}

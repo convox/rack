@@ -4,9 +4,11 @@ import (
 	"bytes"
 	"encoding/json"
 	"io"
+	"strings"
 	"testing"
 	"time"
 
+	mockaws "github.com/convox/rack/pkg/mock/aws"
 	"github.com/convox/rack/pkg/options"
 	"github.com/convox/rack/pkg/structs"
 	"github.com/convox/rack/pkg/test/awsutil"
@@ -31,13 +33,11 @@ func TestProcessExec(t *testing.T) {
 		cycleProcessListTasksByService2,
 		cycleProcessListTasksByStarted,
 		cycleProcessDescribeTasksAll,
-		cycleProcessDescribeTaskDefinition1,
 		cycleProcessDescribeContainerInstances,
 		cycleProcessDescribeTaskDefinition1,
-		cycleProcessDescribeContainerInstances,
+		cycleProcessDescribeTaskDefinition1,
 		cycleProcessDescribeRackInstances,
-		cycleECSListServices,
-		cycleECSDescribeServices,
+		cycleProcessDescribeAppServices,
 		cycleProcessDescribeStacks,
 		cycleProcessListTasksRunning,
 		cycleProcessListTasksStopped,
@@ -87,13 +87,11 @@ func TestProcessExecNoTty(t *testing.T) {
 		cycleProcessListTasksByService2,
 		cycleProcessListTasksByStarted,
 		cycleProcessDescribeTasksAll,
-		cycleProcessDescribeTaskDefinition1,
 		cycleProcessDescribeContainerInstances,
 		cycleProcessDescribeTaskDefinition1,
-		cycleProcessDescribeContainerInstances,
+		cycleProcessDescribeTaskDefinition1,
 		cycleProcessDescribeRackInstances,
-		cycleECSListServices,
-		cycleECSDescribeServices,
+		cycleProcessDescribeAppServices,
 		cycleProcessDescribeStacks,
 		cycleProcessListTasksRunning,
 		cycleProcessListTasksStopped,
@@ -142,13 +140,11 @@ func TestProcessExecECS(t *testing.T) {
 		cycleProcessListTasksByService2,
 		cycleProcessListTasksByStarted,
 		cycleProcessDescribeTasksAll,
-		cycleProcessDescribeTaskDefinition1,
 		cycleProcessDescribeContainerInstances,
 		cycleProcessDescribeTaskDefinition1,
-		cycleProcessDescribeContainerInstances,
+		cycleProcessDescribeTaskDefinition1,
 		cycleProcessDescribeRackInstances,
-		cycleECSListServices,
-		cycleECSDescribeServices,
+		cycleProcessDescribeAppServices,
 		// AppGet (with Generation=2)
 		cycleProcessDescribeStacksGen2,
 		// taskArnFromAppPid -> appTaskARNs -> stackTasks
@@ -203,13 +199,11 @@ func TestProcessList(t *testing.T) {
 		cycleProcessListTasksByService2,
 		cycleProcessListTasksByStarted,
 		cycleProcessDescribeTasksAll,
+		cycleProcessDescribeContainerInstances,
 		cycleProcessDescribeTaskDefinition1,
-		cycleProcessDescribeContainerInstances,
 		cycleProcessDescribeTaskDefinition2,
-		cycleProcessDescribeContainerInstances,
 		cycleProcessDescribeRackInstances,
-		cycleECSListServices,
-		cycleECSDescribeServices,
+		cycleProcessDescribeAppServices,
 	)
 	defer provider.Close()
 
@@ -250,6 +244,11 @@ func TestProcessList(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.EqualValues(t, ps, s)
+	assert.Equal(t, 0, provider.handler.Remaining())
+
+	cw, ok := provider.CloudWatch.(*mockaws.CloudWatchAPI)
+	assert.True(t, ok)
+	cw.AssertNumberOfCalls(t, "GetMetricData", 1)
 }
 
 func TestProcessListEmpty(t *testing.T) {
@@ -261,8 +260,6 @@ func TestProcessListEmpty(t *testing.T) {
 		cycleProcessListTasksByService2Empty,
 		cycleProcessListTasksByStartedEmpty,
 		cycleProcessDescribeRackInstances,
-		cycleECSListServices,
-		cycleECSDescribeServices,
 	)
 	defer provider.Close()
 
@@ -270,6 +267,7 @@ func TestProcessListEmpty(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.EqualValues(t, structs.Processes{}, s)
+	assert.Equal(t, 0, provider.handler.Remaining())
 }
 
 func TestProcessListWithBuildCluster(t *testing.T) {
@@ -283,15 +281,13 @@ func TestProcessListWithBuildCluster(t *testing.T) {
 		cycleProcessListTasksBuildCluster,
 		cycleProcessDescribeTasksAllWithBuildCluster,
 		cycleProcessDescribeTasksAllOnBuildCluster,
-		cycleProcessDescribeTaskDefinition1,
 		cycleProcessDescribeContainerInstances,
-		cycleProcessDescribeTaskDefinition2,
-		cycleProcessDescribeContainerInstances,
-		cycleProcessDescribeTaskDefinition2,
 		cycleProcessDescribeContainerInstancesBuild,
+		cycleProcessDescribeTaskDefinition1,
+		cycleProcessDescribeTaskDefinition2,
+		cycleProcessDescribeTaskDefinition2,
 		cycleProcessDescribeRackInstances,
-		cycleECSListServices,
-		cycleECSDescribeServices,
+		cycleProcessDescribeAppServices,
 	)
 	defer provider.Close()
 
@@ -349,6 +345,11 @@ func TestProcessListWithBuildCluster(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.EqualValues(t, ps, s)
+	assert.Equal(t, 0, provider.handler.Remaining())
+
+	cw, ok := provider.CloudWatch.(*mockaws.CloudWatchAPI)
+	assert.True(t, ok)
+	cw.AssertNumberOfCalls(t, "GetMetricData", 1)
 }
 
 func TestProcessListFetchError(t *testing.T) {
@@ -360,6 +361,7 @@ func TestProcessListFetchError(t *testing.T) {
 		cycleProcessListTasksByService2,
 		cycleProcessListTasksByStarted,
 		cycleProcessDescribeTasksAll,
+		cycleProcessDescribeContainerInstances,
 		cycleProcessDescribeTaskDefinitionError,
 		cycleProcessDescribeTaskDefinitionError,
 	)
@@ -399,15 +401,9 @@ func TestProcessRunDetached(t *testing.T) {
 		cycleProcessRegisterTaskDefinitionDetached,
 		cycleProcessReleaseUpdateItem,
 		cycleProcessRunTaskDetached,
-		cycleProcessListStackResources,
-		cycleProcessDescribeStacks,
-		cycleProcessListTasksByStack,
-		cycleProcessListTasksByService1,
-		cycleProcessListTasksByService2,
-		cycleProcessListTasksByStarted,
 		cycleProcessDescribeTasks,
-		cycleProcessDescribeTaskDefinition1,
 		cycleProcessDescribeContainerInstances,
+		cycleProcessDescribeTaskDefinition1,
 		cycleProcessDescribeRackInstances,
 	)
 	defer provider.Close()
@@ -421,6 +417,50 @@ func TestProcessRunDetached(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.Equal(t, pse, psa)
+	assert.Equal(t, 0, provider.handler.Remaining())
+}
+
+func TestProcessGetOneOff(t *testing.T) {
+	provider := StubAwsProvider(
+		cycleProcessListTasksByStarted,
+		cycleProcessDescribeTasks,
+		cycleProcessDescribeContainerInstances,
+		cycleProcessDescribeTaskDefinition1,
+		cycleProcessDescribeRackInstances,
+	)
+	defer provider.Close()
+
+	ps, err := provider.ProcessGet("myapp", "5850760f0845")
+
+	assert.NoError(t, err)
+	assert.Equal(t, "5850760f0845", ps.Id)
+	assert.Equal(t, 0, provider.handler.Remaining())
+}
+
+func TestProcessGetService(t *testing.T) {
+	describe := cycleProcessDescribeTasks
+	describe.Request.Body = strings.ReplaceAll(describe.Request.Body, "0845", "0846")
+	describe.Response.Body = strings.ReplaceAll(describe.Response.Body, "0845", "0846")
+
+	provider := StubAwsProvider(
+		cycleProcessListTasksByStarted,
+		cycleProcessListStackResources,
+		cycleProcessDescribeStacks,
+		cycleProcessListTasksByStack,
+		cycleProcessListTasksByService1,
+		cycleProcessListTasksByService2,
+		describe,
+		cycleProcessDescribeContainerInstances,
+		cycleProcessDescribeTaskDefinition1,
+		cycleProcessDescribeRackInstances,
+	)
+	defer provider.Close()
+
+	ps, err := provider.ProcessGet("myapp", "5850760f0846")
+
+	assert.NoError(t, err)
+	assert.Equal(t, "5850760f0846", ps.Id)
+	assert.Equal(t, 0, provider.handler.Remaining())
 }
 
 func TestProcessStop(t *testing.T) {
@@ -457,6 +497,7 @@ var cycleProcessDescribeContainerInstances = awsutil.Cycle{
 			"failures": [],
 			"containerInstances": [
 				{
+					"containerInstanceArn": "arn:aws:ecs:us-east-1:778743527532:container-instance/cluster-test/e126c67d-fa95-4b09-8b4a-3723932cd2aa",
 					"ec2InstanceId": "i-5bc45dc2"
 				}
 			]
@@ -481,6 +522,7 @@ var cycleProcessDescribeContainerInstancesBuild = awsutil.Cycle{
 			"failures": [],
 			"containerInstances": [
 				{
+					"containerInstanceArn": "arn:aws:ecs:us-east-1:778743527532:container-instance/cluster-build/e126c67d-fa95-4b09-8b4a-3723932cd2aa",
 					"ec2InstanceId": "i-5bc45dc2"
 				}
 			]
@@ -599,6 +641,33 @@ var cycleProcessDescribeServices = awsutil.Cycle{
 				}
 			],
 			"failures": []
+		}`,
+	},
+}
+
+var cycleProcessDescribeAppServices = awsutil.Cycle{
+	Request: awsutil.Request{
+		RequestURI: "/",
+		Operation:  "AmazonEC2ContainerServiceV20141113.DescribeServices",
+		Body: `{
+			"cluster": "cluster-test",
+			"services": [
+				"arn:aws:ecs:us-east-1:778743527532:service/convox-myapp-ServiceDatabase-1I2PTXAZ5ECRD",
+				"arn:aws:ecs:us-east-1:778743527532:service/convox-myapp-ServiceWeb-1I2PTXAZ5ECRD",
+				"service-web"
+			]
+		}`,
+	},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body: `{
+			"failures": [],
+			"services": [
+				{
+					"serviceName": "convox-myapp-ServiceWeb-1I2PTXAZ5ECRD",
+					"taskDefinition": "arn:aws:ecs:us-east-1:778743527532:task-definition/convox-myapp-web:34"
+				}
+			]
 		}`,
 	},
 }
@@ -1624,7 +1693,7 @@ var cycleProcessRunTaskDetached = awsutil.Cycle{
 							"taskArn": "arn:aws:ecs:us-east-1:012345678910:task/d8c67b3c-ac87-4ffe-a847-4785bc3a8b55"
 						}
 					],
-					"taskArn": "arn:aws:ecs:us-east-1:778743527532:task/50b8de99-f94f-4ecd-a98f-5850760f0845"
+					"taskArn": "arn:aws:ecs:us-east-1:778743527532:task/cluster-test/50b8de99-f94f-4ecd-a98f-5850760f0845"
 				}
 			]
 		}`,

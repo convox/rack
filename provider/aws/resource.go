@@ -367,26 +367,18 @@ func (p *Provider) SystemResourceList() (structs.Resources, error) {
 	resources := structs.Resources{}
 
 	for _, stack := range stacks {
-		tags := stackTags(stack)
-
-		// if it's a resource and the Rack tag is either the current rack or blank
-		if tags["System"] == "convox" && (tags["Type"] == "resource" || tags["Type"] == "service") && tags["App"] == "" && tags["Rack"] == p.Rack {
+		if p.rackResourceStack(stack) {
 			resources = append(resources, resourceFromStack(stack))
 		}
 	}
 
-	for _, s := range resources {
-		switch s.Type {
-		case "syslog":
-			apps, err := p.resourceApps(s)
-			if err != nil {
-				return nil, err
-			}
-			s.Apps = apps
-		}
-	}
-
 	return resources, nil
+}
+
+func (p *Provider) rackResourceStack(stack *cloudformation.Stack) bool {
+	tags := stackTags(stack)
+
+	return tags["System"] == "convox" && (tags["Type"] == "resource" || tags["Type"] == "service") && tags["App"] == "" && tags["Rack"] == p.Rack
 }
 
 // ResourceLink creates a link between the provided app and resource.
@@ -611,6 +603,8 @@ func validateResourceURL(raw string, allowedProtocols ...string) error {
 	return nil
 }
 
+var syslogDetachTimeout = 30 * time.Second
+
 // clean up any ENIs attached to the lambda function as they will block stack deletion
 func (p *Provider) deleteSyslogInterfaces(r *structs.Resource) error {
 	fmt.Printf("r = %+v\n", r)
@@ -631,6 +625,8 @@ func (p *Provider) deleteSyslogInterfaces(r *structs.Resource) error {
 	}
 
 	for _, ni := range res.NetworkInterfaces {
+		deadline := time.Now().Add(syslogDetachTimeout)
+
 		if ni.Attachment != nil {
 			_, err := p.ec2().DetachNetworkInterface(&ec2.DetachNetworkInterfaceInput{
 				AttachmentId: ni.Attachment.AttachmentId,
@@ -655,6 +651,10 @@ func (p *Provider) deleteSyslogInterfaces(r *structs.Resource) error {
 
 			if res.NetworkInterfaces[0].Attachment == nil {
 				break
+			}
+
+			if time.Now().After(deadline) {
+				return fmt.Errorf("network interface did not detach: %s", *ni.NetworkInterfaceId)
 			}
 
 			time.Sleep(1 * time.Second)
@@ -683,11 +683,24 @@ func (p *Provider) resourceApps(s structs.Resource) (structs.Apps, error) {
 		return nil, fmt.Errorf("could not load stack for resource: %s", s.Name)
 	}
 
-	outputs := stackOutputs(stacks[0])
-
 	apps := structs.Apps(make([]structs.App, 0))
 
-	for key, value := range outputs {
+	for _, app := range p.resourceLinkedApps(stacks[0]) {
+		a, err := p.AppGet(app)
+		if err != nil {
+			return nil, err
+		}
+
+		apps = append(apps, *a)
+	}
+
+	return apps, nil
+}
+
+func (p *Provider) resourceLinkedApps(stack *cloudformation.Stack) []string {
+	apps := []string{}
+
+	for key, value := range stackOutputs(stack) {
 		if strings.HasSuffix(key, "Link") {
 			if ix := strings.Index(value, "-LogGroup"); ix > -1 {
 				value = value[:ix]
@@ -695,18 +708,12 @@ func (p *Provider) resourceApps(s structs.Resource) (structs.Apps, error) {
 			if prefix := fmt.Sprintf("%s-", p.Rack); strings.HasPrefix(value, prefix) {
 				value = strings.Replace(value, prefix, "", 1)
 			}
-			app := value
 
-			a, err := p.AppGet(app)
-			if err != nil {
-				return nil, err
-			}
-
-			apps = append(apps, *a)
+			apps = append(apps, value)
 		}
 	}
 
-	return apps, nil
+	return apps
 }
 
 func (p *Provider) updateResource(s *structs.Resource, params map[string]string) error {

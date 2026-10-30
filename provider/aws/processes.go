@@ -228,16 +228,41 @@ func (p *Provider) processExecECS(app, pid, command string, rw io.ReadWriter, op
 func (p *Provider) ProcessGet(app, pid string) (*structs.Process, error) {
 	log := Logger.At("ProcessGet").Namespace("app=%q pid=%s", app, pid).Start()
 
-	tasks, err := p.appTaskARNs(app)
+	tasks, err := p.appOneOffTasks(app)
 	if err != nil {
 		return nil, log.Error(err)
 	}
 
+	ps, err := p.processWithPid(tasks, pid)
+	if err != nil {
+		return nil, log.Error(err)
+	}
+
+	if ps == nil {
+		tasks, _, err = p.appServiceTasks(app)
+		if err != nil {
+			return nil, log.Error(err)
+		}
+
+		ps, err = p.processWithPid(tasks, pid)
+		if err != nil {
+			return nil, log.Error(err)
+		}
+	}
+
+	if ps == nil {
+		return nil, log.Error(errorNotFound(fmt.Sprintf("process not found: %s", pid)))
+	}
+
+	return ps, nil
+}
+
+func (p *Provider) processWithPid(tasks []string, pid string) (*structs.Process, error) {
 	for _, t := range tasks {
 		if strings.HasSuffix(t, pid) {
 			pss, err := p.taskProcesses([]string{t})
 			if err != nil {
-				return nil, log.Error(err)
+				return nil, err
 			}
 
 			if len(pss) > 0 {
@@ -246,19 +271,24 @@ func (p *Provider) ProcessGet(app, pid string) (*structs.Process, error) {
 		}
 	}
 
-	return nil, log.Error(errorNotFound(fmt.Sprintf("process not found: %s", pid)))
+	return nil, nil
 }
 
 // ProcessList returns a list of processes for an app
 func (p *Provider) ProcessList(app string, opts structs.ProcessListOptions) (structs.Processes, error) {
 	log := Logger.At("ProcessList").Namespace("app=%q", app).Start()
 
-	tasks, err := p.appTaskARNs(app)
+	tasks, services, err := p.appServiceTasks(app)
 	if err != nil {
 		return nil, log.Error(err)
 	}
 
-	ps, err := p.taskProcesses(tasks)
+	otasks, err := p.appOneOffTasks(app)
+	if err != nil {
+		return nil, log.Error(err)
+	}
+
+	ps, err := p.taskProcesses(append(tasks, otasks...))
 	if err != nil {
 		return nil, log.Error(err)
 	}
@@ -281,14 +311,19 @@ func (p *Provider) ProcessList(app string, opts structs.ProcessListOptions) (str
 		taskDefMap[ps[i].TaskDefinition] = true
 	}
 
-	services, err := p.clusterServices()
+	if len(taskDefMap) == 0 {
+		return ps, nil
+	}
+
+	ss, err := p.describeServicesByID(services)
 	if err != nil {
-		return nil, err
+		log.Logf("error=%q", err)
+		return ps, nil
 	}
 
 	serviceNames := []string{}
 	taskToServiceMap := map[string]string{}
-	for _, s := range services {
+	for _, s := range ss {
 		if s.ServiceName != nil && s.TaskDefinition != nil && taskDefMap[*s.TaskDefinition] {
 			serviceNames = append(serviceNames, *s.ServiceName)
 			taskToServiceMap[*s.TaskDefinition] = *s.ServiceName
@@ -334,20 +369,20 @@ func (p *Provider) ProcessLogs(app, pid string, opts structs.LogsOptions) (io.Re
 	return nil, fmt.Errorf("unimplemented")
 }
 
-func (p *Provider) stackTasks(stack string) ([]string, error) {
+func (p *Provider) stackTasks(stack string) ([]string, []string, error) {
 	log := Logger.At("stackTasks").Namespace("stack=%q", stack).Start()
 
 	srs, err := p.listStackResources(stack)
 	if err != nil {
 		log.Error(err)
-		return nil, err
+		return nil, nil, err
 	}
 
 	services := []string{}
 
 	s, err := p.describeStack(stack)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	for k, v := range stackOutputs(s) {
@@ -379,24 +414,44 @@ func (p *Provider) stackTasks(stack string) ([]string, error) {
 		)
 		if err != nil {
 			log.Error(err)
-			return nil, err
+			return nil, nil, err
 		}
 	}
 
 	log.Success()
-	return tasks, nil
+	return tasks, services, nil
 }
 
 // appTaskARNs retuns a list of ECS Task (aka process) ARNs that correspond to an app
 // This includes one-off processes, build tasks, etc.
 func (p *Provider) appTaskARNs(app string) ([]string, error) {
-	tasks, err := p.stackTasks(fmt.Sprintf("%s-%s", p.Rack, app))
-	if ae, ok := err.(awserr.Error); ok && ae.Code() == "ValidationError" {
-		return nil, errorNotFound(fmt.Sprintf("app not found: %s", app))
-	}
+	tasks, _, err := p.appServiceTasks(app)
 	if err != nil {
 		return nil, err
 	}
+
+	otasks, err := p.appOneOffTasks(app)
+	if err != nil {
+		return nil, err
+	}
+
+	return append(tasks, otasks...), nil
+}
+
+func (p *Provider) appServiceTasks(app string) ([]string, []string, error) {
+	tasks, services, err := p.stackTasks(fmt.Sprintf("%s-%s", p.Rack, app))
+	if ae, ok := err.(awserr.Error); ok && ae.Code() == "ValidationError" {
+		return nil, nil, errorNotFound(fmt.Sprintf("app not found: %s", app))
+	}
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return tasks, services, nil
+}
+
+func (p *Provider) appOneOffTasks(app string) ([]string, error) {
+	tasks := []string{}
 
 	// list one-off processes
 	ores, err := p.ecs().ListTasks(&ecs.ListTasksInput{
@@ -433,6 +488,8 @@ const describeTasksPageSize = 100
 
 func (p *Provider) taskProcesses(tasks []string) (structs.Processes, error) {
 	log := Logger.At("taskProcesses").Namespace("tasks=%q", tasks).Start()
+
+	start := time.Now()
 
 	pss := structs.Processes{}
 
@@ -483,14 +540,19 @@ func (p *Provider) taskProcesses(tasks []string) (structs.Processes, error) {
 			}
 		}
 
+		cis, err := p.containerInstances(ecsTasks)
+		if err != nil {
+			return nil, log.Error(err)
+		}
+
 		psch := make(chan structs.Process, len(ecsTasks))
 		errch := make(chan error, len(ecsTasks))
 
 		for _, task := range ecsTasks {
 			if p.IsTest() {
-				p.fetchProcess(task, psch, errch)
+				p.fetchProcess(task, cis, psch, errch)
 			} else {
-				go p.fetchProcess(task, psch, errch)
+				go p.fetchProcess(task, cis, psch, errch)
 			}
 		}
 
@@ -508,13 +570,24 @@ func (p *Provider) taskProcesses(tasks []string) (structs.Processes, error) {
 		pss = append(pss, psst...)
 	}
 
-	instances, err := p.rackInstances()
+	instances, fetched, err := p.rackInstances()
 	if err != nil {
 		return nil, err
 	}
 
+	if fetched.Before(start) && missingInstance(pss, instances) {
+		if err := cache.Clear("rackInstances", p.Rack); err != nil {
+			return nil, err
+		}
+
+		instances, _, err = p.rackInstances()
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	for i, ps := range pss {
-		if inst, ok := instances[ps.Instance]; ok {
+		if inst, ok := instances[ps.Instance]; ok && inst.PrivateIpAddress != nil {
 			ps.Host = *inst.PrivateIpAddress
 			pss[i] = ps
 		}
@@ -524,6 +597,16 @@ func (p *Provider) taskProcesses(tasks []string) (structs.Processes, error) {
 
 	log.Success()
 	return pss, nil
+}
+
+func missingInstance(pss structs.Processes, instances map[string]ec2.Instance) bool {
+	for _, ps := range pss {
+		if _, ok := instances[ps.Instance]; ps.Instance != "" && !ok {
+			return true
+		}
+	}
+
+	return false
 }
 
 func (p *Provider) fetchTasks(cluster string, tasks []*string) ([]*ecs.Task, error) {
@@ -604,8 +687,17 @@ func (p *Provider) ProcessRun(app, service string, opts structs.ProcessRunOption
 	var ps *structs.Process
 
 	err = retry(5, 1*time.Second, func() error {
-		ps, err = p.ProcessGet(app, pid)
-		return err
+		pss, err := p.taskProcesses([]string{*task.TaskArn})
+		if err != nil {
+			return err
+		}
+		if len(pss) == 0 {
+			return errorNotFound(fmt.Sprintf("process not found: %s", pid))
+		}
+
+		ps = &pss[0]
+
+		return nil
 	})
 	if err != nil {
 		return nil, log.Error(err)
@@ -715,17 +807,82 @@ func (p *Provider) containerDefinitionForTask(arn string) (*ecs.ContainerDefinit
 	return res.TaskDefinition.ContainerDefinitions[0], nil
 }
 
+func (p *Provider) containerInstanceCluster(id string) string {
+	if (p.Cluster != p.BuildCluster) && (strings.Contains(id, p.BuildCluster)) {
+		return p.BuildCluster
+	}
+
+	return p.Cluster
+}
+
+const describeContainerInstancesPageSize = 100
+
+func (p *Provider) containerInstances(tasks []*ecs.Task) (map[string]*ecs.ContainerInstance, error) {
+	cis := map[string]*ecs.ContainerInstance{}
+	misses := map[string][]string{}
+	seen := map[string]bool{}
+
+	for _, task := range tasks {
+		if task.ContainerInstanceArn == nil || seen[*task.ContainerInstanceArn] {
+			continue
+		}
+
+		id := *task.ContainerInstanceArn
+		seen[id] = true
+
+		if ci, ok := cache.Get("containerInstance", id).(*ecs.ContainerInstance); ok {
+			cis[id] = ci
+			continue
+		}
+
+		cluster := p.containerInstanceCluster(id)
+		misses[cluster] = append(misses[cluster], id)
+	}
+
+	clusters := []string{p.Cluster}
+	if p.BuildCluster != p.Cluster {
+		clusters = append(clusters, p.BuildCluster)
+	}
+
+	for _, cluster := range clusters {
+		ids := misses[cluster]
+		sort.Strings(ids)
+
+		for i := 0; i < len(ids); i += describeContainerInstancesPageSize {
+			res, err := p.describeContainerInstances(&ecs.DescribeContainerInstancesInput{
+				Cluster:            aws.String(cluster),
+				ContainerInstances: aws.StringSlice(ids[i:min(i+describeContainerInstancesPageSize, len(ids))]),
+			})
+			if err != nil {
+				return nil, err
+			}
+
+			for _, ci := range res.ContainerInstances {
+				if ci.ContainerInstanceArn == nil {
+					continue
+				}
+
+				cis[*ci.ContainerInstanceArn] = ci
+
+				if !p.SkipCache {
+					if err := cache.Set("containerInstance", *ci.ContainerInstanceArn, ci, 10*time.Second); err != nil {
+						return nil, err
+					}
+				}
+			}
+		}
+	}
+
+	return cis, nil
+}
+
 func (p *Provider) containerInstance(id string) (*ecs.ContainerInstance, error) {
 	ci, ok := cache.Get("containerInstance", id).(*ecs.ContainerInstance)
 	if ok {
 		return ci, nil
 	}
 
-	cluster := p.Cluster
-
-	if (p.Cluster != p.BuildCluster) && (strings.Contains(id, p.BuildCluster)) {
-		cluster = p.BuildCluster
-	}
+	cluster := p.containerInstanceCluster(id)
 
 	res, err := p.describeContainerInstances(&ecs.DescribeContainerInstancesInput{
 		Cluster:            aws.String(cluster),
@@ -749,28 +906,26 @@ func (p *Provider) containerInstance(id string) (*ecs.ContainerInstance, error) 
 }
 
 func (p *Provider) describeInstance(id string) (*ec2.Instance, error) {
-	instance, ok := cache.Get("describeInstance", id).(*ec2.Instance)
-	if ok {
-		return instance, nil
-	}
+	v, err := cache.Fetch("describeInstance", id, 10*time.Second, func() (interface{}, bool, error) {
+		res, err := p.ec2().DescribeInstances(&ec2.DescribeInstancesInput{
+			InstanceIds: []*string{aws.String(id)},
+		})
+		if err != nil {
+			return nil, false, err
+		}
+		if len(res.Reservations) != 1 || len(res.Reservations[0].Instances) != 1 {
+			return nil, false, fmt.Errorf("could not find instance: %s", id)
+		}
 
-	res, err := p.ec2().DescribeInstances(&ec2.DescribeInstancesInput{
-		InstanceIds: []*string{aws.String(id)},
+		return res.Reservations[0].Instances[0], !p.SkipCache, nil
 	})
 	if err != nil {
 		return nil, err
 	}
-	if len(res.Reservations) != 1 || len(res.Reservations[0].Instances) != 1 {
-		return nil, fmt.Errorf("could not find instance: %s", id)
-	}
 
-	if !p.SkipCache {
-		if err := cache.Set("describeInstance", id, res.Reservations[0].Instances[0], 10*time.Second); err != nil {
-			return nil, err
-		}
-	}
+	instance, _ := v.(*ec2.Instance)
 
-	return res.Reservations[0].Instances[0], nil
+	return instance, nil
 }
 
 func (p *Provider) describeTaskInner(arn string) (*ecs.Task, error) {
@@ -811,7 +966,7 @@ func (p *Provider) describeTask(arn string) (*ecs.Task, error) {
 	return nil, err
 }
 
-func (p *Provider) fetchProcess(task *ecs.Task, psch chan structs.Process, errch chan error) {
+func (p *Provider) fetchProcess(task *ecs.Task, cis map[string]*ecs.ContainerInstance, psch chan structs.Process, errch chan error) {
 	if len(task.Containers) < 1 {
 		errch <- fmt.Errorf("invalid task: %s", *task.TaskDefinitionArn)
 		return
@@ -858,9 +1013,9 @@ func (p *Provider) fetchProcess(task *ecs.Task, psch chan structs.Process, errch
 	}
 
 	if task.ContainerInstanceArn != nil {
-		ci, err := p.containerInstance(*task.ContainerInstanceArn)
-		if err != nil {
-			errch <- err
+		ci, ok := cis[*task.ContainerInstanceArn]
+		if !ok {
+			errch <- fmt.Errorf("could not find container instance: %s", *task.ContainerInstanceArn)
 			return
 		}
 
@@ -1401,31 +1556,42 @@ func (p *Provider) ProcessWait(app, pid string) (int, error) {
 	return int(*task.Containers[0].ExitCode), nil
 }
 
-func (p *Provider) rackInstances() (map[string]ec2.Instance, error) {
-	req := &ec2.DescribeInstancesInput{
-		Filters: []*ec2.Filter{
-			&ec2.Filter{
-				Name:   aws.String("tag:Rack"),
-				Values: []*string{aws.String(p.Rack)},
+type rackInstanceSet struct {
+	instances map[string]ec2.Instance
+	started   time.Time
+}
+
+func (p *Provider) rackInstances() (map[string]ec2.Instance, time.Time, error) {
+	v, err := cache.Fetch("rackInstances", p.Rack, 10*time.Second, func() (interface{}, bool, error) {
+		set := rackInstanceSet{instances: map[string]ec2.Instance{}, started: time.Now()}
+
+		req := &ec2.DescribeInstancesInput{
+			Filters: []*ec2.Filter{
+				&ec2.Filter{
+					Name:   aws.String("tag:Rack"),
+					Values: []*string{aws.String(p.Rack)},
+				},
 			},
-		},
-	}
-
-	instances := map[string]ec2.Instance{}
-
-	err := p.ec2().DescribeInstancesPages(req, func(res *ec2.DescribeInstancesOutput, last bool) bool {
-		for _, r := range res.Reservations {
-			for _, i := range r.Instances {
-				instances[*i.InstanceId] = *i
-			}
 		}
-		return true
+
+		err := p.ec2().DescribeInstancesPages(req, func(res *ec2.DescribeInstancesOutput, last bool) bool {
+			for _, r := range res.Reservations {
+				for _, i := range r.Instances {
+					set.instances[*i.InstanceId] = *i
+				}
+			}
+			return true
+		})
+
+		return set, !p.SkipCache, err
 	})
 	if err != nil {
-		return nil, err
+		return nil, time.Time{}, err
 	}
 
-	return instances, nil
+	set, _ := v.(rackInstanceSet)
+
+	return set.instances, set.started, nil
 }
 
 func (p *Provider) resolveRelease(app, release string) (string, error) {
