@@ -829,7 +829,7 @@
             "DesiredCount": { "Fn::If": [ "EnableIgnoreManualScaleCount", { "Ref": "AWS::NoValue" }, { "Ref": "Count" } ] },
             "SchedulingStrategy": "REPLICA",
             "PlacementStrategies": { "Fn::If": [ "FargateEither",
-              { "Ref": "AWS::NoValue" },
+              [],
               [
                 { "Type": "spread", "Field": "attribute:ecs.availability-zone" },
                 { "Type": "spread", "Field": "instanceId" }

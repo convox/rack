@@ -593,3 +593,36 @@ func TestServiceTemplatePortOnlyLoadBalancers(t *testing.T) {
 	require.Contains(t, props, "HealthCheckGracePeriodSeconds")
 	require.Contains(t, props, "Role")
 }
+
+func TestServiceTemplatePlacementStrategies(t *testing.T) {
+	for name, tc := range map[string]struct {
+		yml  string
+		want string
+	}{
+		"worker": {
+			yml: `services:
+  api:
+    image: x
+`,
+			want: `{"Fn::If":["FargateEither",[],[{"Type":"spread","Field":"attribute:ecs.availability-zone"},{"Type":"spread","Field":"instanceId"}]]}`,
+		},
+		"agent": {
+			yml: `services:
+  api:
+    image: x
+    agent: true
+`,
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			m, err := manifest.Load([]byte(tc.yml), nil)
+			require.NoError(t, err)
+			props := serviceProperties(t, renderServiceTemplate(t, m, "api"))
+			if tc.want == "" {
+				require.NotContains(t, props, "PlacementStrategies")
+				return
+			}
+			require.JSONEq(t, tc.want, string(props["PlacementStrategies"]))
+		})
+	}
+}
