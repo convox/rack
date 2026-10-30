@@ -15,6 +15,9 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/client"
+	"github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go/aws/credentials/endpointcreds"
+	"github.com/aws/aws-sdk-go/aws/defaults"
 	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
@@ -547,6 +550,16 @@ func writeLogEvents(w io.Writer, events []*cloudwatchlogs.FilteredLogEvent, opts
 }
 
 func NewSession() (*session.Session, error) {
+	config := baseConfig()
+	config.Credentials = sessionCredentials
+	config.HTTPClient = sessionHTTPClient
+
+	s, err := session.NewSession(config)
+
+	return s, err
+}
+
+func baseConfig() *aws.Config {
 	config := &aws.Config{
 		MaxRetries: aws.Int(MAX_RETRY),
 		Retryer:    sessionRetryer,
@@ -560,9 +573,7 @@ func NewSession() (*session.Session, error) {
 		config.Region = aws.String(region)
 	}
 
-	s, err := session.NewSession(config)
-
-	return s, err
+	return config
 }
 
 var sessionRetryer request.Retryer = client.DefaultRetryer{
@@ -614,4 +625,81 @@ func UseRequestPathRetries() {
 		},
 		log: logger.New("ns=aws").At("retry"),
 	}
+}
+
+var (
+	sessionCredentials  *credentials.Credentials
+	sessionHTTPClient   *http.Client
+	streamingHTTPClient *http.Client
+
+	credentialsMaxAge     = 15 * time.Minute
+	requestTimeout        = 30 * time.Second
+	responseHeaderTimeout = 20 * time.Second
+)
+
+// UseSharedCredentials gives sessions from NewSession HTTP clients with request timeouts and, on ECS, one set of task credentials.
+func UseSharedCredentials() {
+	if t, ok := http.DefaultTransport.(*http.Transport); ok {
+		t = t.Clone()
+		t.ResponseHeaderTimeout = responseHeaderTimeout
+
+		sessionHTTPClient = &http.Client{Transport: t, Timeout: requestTimeout}
+		streamingHTTPClient = &http.Client{Transport: t}
+	}
+
+	sessionCredentials = nil
+
+	if os.Getenv("AWS_ACCESS_KEY_ID") != "" {
+		return
+	}
+
+	cfg := defaults.Config()
+	cfg.MergeIn(baseConfig(), &aws.Config{HTTPClient: sessionHTTPClient})
+
+	if p, ok := defaults.RemoteCredProvider(*cfg, defaults.Handlers()).(*endpointcreds.Provider); ok {
+		sessionCredentials = credentials.NewCredentials(&agedProvider{Provider: p})
+	}
+}
+
+// SessionConfig returns the shared credentials and HTTP client for clients not built from NewSession.
+func SessionConfig() *aws.Config {
+	return &aws.Config{Credentials: sessionCredentials, HTTPClient: sessionHTTPClient}
+}
+
+// StreamingHTTPClient returns the shared HTTP client without a request timeout, or nil.
+func StreamingHTTPClient() *http.Client {
+	return streamingHTTPClient
+}
+
+// CredentialsExpireWithin reports whether the shared credentials are known to expire within d.
+func CredentialsExpireWithin(d time.Duration) bool {
+	if sessionCredentials == nil {
+		return false
+	}
+
+	at, err := sessionCredentials.ExpiresAt()
+
+	return err == nil && !at.IsZero() && time.Until(at) < d
+}
+
+type agedProvider struct {
+	*endpointcreds.Provider
+	retrieved time.Time
+}
+
+func (p *agedProvider) Retrieve() (credentials.Value, error) {
+	return p.RetrieveWithContext(aws.BackgroundContext())
+}
+
+func (p *agedProvider) RetrieveWithContext(ctx credentials.Context) (credentials.Value, error) {
+	v, err := p.Provider.RetrieveWithContext(ctx)
+	if err == nil {
+		p.retrieved = time.Now()
+	}
+
+	return v, err
+}
+
+func (p *agedProvider) IsExpired() bool {
+	return p.Provider.IsExpired() || time.Since(p.retrieved) >= credentialsMaxAge
 }

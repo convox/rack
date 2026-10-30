@@ -19,6 +19,8 @@ import (
 
 const acmAllKeyTypes = `{"Includes":{"keyTypes":["RSA_1024","RSA_2048","RSA_3072","RSA_4096","EC_prime256v1","EC_secp384r1","EC_secp521r1"]}}`
 
+const acmIssuedKeyTypes = `{"CertificateStatuses":["ISSUED"],"Includes":{"keyTypes":["RSA_1024","RSA_2048","RSA_3072","RSA_4096","EC_prime256v1","EC_secp384r1","EC_secp521r1"]}}`
+
 func fastCertificateListWait(t *testing.T, timeout time.Duration) {
 	tick, wait := certificateListWaitTick, certificateListWaitTimeout
 
@@ -221,11 +223,11 @@ func TestCertificateListKeyTypes(t *testing.T) {
 	ec := "arn:aws:acm:us-test-1:123456789012:certificate/3cf796df-00d2-688a-db83-96ae0d627214"
 	bare := "arn:aws:acm:us-test-1:123456789012:certificate/1ad574bd-eeb0-466e-b961-74ec8b405093"
 
-	nextPage := strings.TrimSuffix(acmAllKeyTypes, "}") + `,"NextToken":"page-2"}`
+	nextPage := strings.TrimSuffix(acmIssuedKeyTypes, "}") + `,"NextToken":"page-2"}`
 
 	p, bodies := stubProvider(t,
 		iamEmptyListCycle,
-		acmCycle("ListCertificates", acmAllKeyTypes, 200, `{"CertificateSummaryList":[{"CertificateArn":"`+ec+`","KeyAlgorithm":"EC-prime256v1"}],"NextToken":"page-2"}`),
+		acmCycle("ListCertificates", acmIssuedKeyTypes, 200, `{"CertificateSummaryList":[{"CertificateArn":"`+ec+`","KeyAlgorithm":"EC-prime256v1"}],"NextToken":"page-2"}`),
 		acmListCycle(nextPage, bare),
 		acmTagsCycle(ec, `{"Key":"Owner"}`),
 		acmDescribeCycle(ec, `"KeyAlgorithm":"EC-prime256v1","DomainName":"example.org","SubjectAlternativeNames":["example.org","www.example.org"]`),
@@ -251,7 +253,7 @@ func TestReleaseCertificates(t *testing.T) {
 
 	p, bodies := stubProvider(t,
 		iamEmptyListCycle,
-		acmListCycle(`{}`, current, expired),
+		acmListCycle(`{"CertificateStatuses":["ISSUED"]}`, current, expired),
 		acmTagsCycle(current, ``),
 		acmDescribeCycle(current, `"DomainName":"example.org","NotAfter":4102444800`),
 		acmTagsCycle(expired, ``),
@@ -372,13 +374,13 @@ func TestCertificateApplyGeneration1(t *testing.T) {
 					`</ServerCertificate></GetServerCertificateResult></GetServerCertificateResponse>`,
 			},
 		},
-		acmListCycle(acmAllKeyTypes),
+		acmListCycle(acmIssuedKeyTypes),
 	}
 
 	acmList := func(algorithm string) []awsutil.Cycle {
 		return []awsutil.Cycle{
 			iamEmptyListCycle,
-			acmListCycle(acmAllKeyTypes, acmArn),
+			acmListCycle(acmIssuedKeyTypes, acmArn),
 			acmTagsCycle(acmArn, ``),
 			acmDescribeCycle(acmArn, `"KeyAlgorithm":"`+algorithm+`","DomainName":"example.org"`),
 		}

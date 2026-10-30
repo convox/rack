@@ -14,7 +14,6 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/convox/rack/pkg/structs"
@@ -209,7 +208,7 @@ func (p *Provider) cwStreamForTask(task *ecs.Task, prefix string) (group, stream
 
 // cwlogs returns a CloudWatch Logs client bound to the rack’s AWS config.
 func (p *Provider) cwlogs() *cloudwatchlogs.CloudWatchLogs {
-	return cloudwatchlogs.New(session.New(), p.config())
+	return p.cloudwatchlogs()
 }
 
 // dockerBuildLogs tails an EC2 build container once its task starts, or returns what the build stored.

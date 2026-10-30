@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net/http"
 	"net/url"
 	"os"
 	"os/exec"
@@ -20,7 +21,6 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/ecr"
 	"github.com/aws/aws-sdk-go/service/ecs"
@@ -172,6 +172,18 @@ func (p *Provider) BuildExport(app, id string, w io.Writer) error {
 	if _, err := tw.Write(bjson); err != nil {
 		log.Error(err)
 		return err
+	}
+
+	if err := tw.Flush(); err != nil {
+		return log.Error(err)
+	}
+
+	if err := gz.Flush(); err != nil {
+		return log.Error(err)
+	}
+
+	if f, ok := w.(http.Flusher); ok {
+		f.Flush()
 	}
 
 	repo, err := p.appRepository(build.App)
@@ -703,7 +715,12 @@ func (p *Provider) authECR(host, access, secret string) (string, string, error) 
 
 	config.Region = &registry[2]
 
-	e := ecr.New(session.New(), config)
+	s, err := helpers.NewSession()
+	if err != nil {
+		return "", "", err
+	}
+
+	e := ecr.New(s, config)
 
 	res, err := e.GetAuthorizationToken(&ecr.GetAuthorizationTokenInput{
 		RegistryIds: []*string{aws.String(registry[1])},

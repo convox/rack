@@ -210,7 +210,7 @@ func (s *Server) BuildExport(c *stdapi.Context) error {
 
 	app := c.Var("app")
 	id := c.Var("id")
-	w := c
+	w := c.Response()
 
 	err := s.provider(c).WithContext(c.Context()).BuildExport(app, id, w)
 	if err != nil {

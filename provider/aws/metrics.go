@@ -15,7 +15,8 @@ import (
 )
 
 const (
-	metricPrecision = 5
+	metricDataQueryLimit = 500
+	metricPrecision      = 5
 )
 
 var (
@@ -28,26 +29,50 @@ func (p *Provider) cloudwatchMetrics(mdqs []metricDataQuerier, opts structs.Metr
 	}
 
 	period := ci(opts.Period, 3600)
+	end := aws.Time(ct(opts.End, time.Now()))
+	start := aws.Time(ct(opts.Start, time.Now().Add(-24*time.Hour)))
 
-	req := &cloudwatch.GetMetricDataInput{
-		EndTime:           aws.Time(ct(opts.End, time.Now())),
-		MetricDataQueries: []*cloudwatch.MetricDataQuery{},
-		ScanBy:            aws.String("TimestampAscending"),
-		StartTime:         aws.Time(ct(opts.Start, time.Now().Add(-24*time.Hour))),
-	}
+	chunks := [][]*cloudwatch.MetricDataQuery{{}}
 
 	for i, mdq := range mdqs {
-		req.MetricDataQueries = append(req.MetricDataQueries, mdq.MetricDataQueries(period, fmt.Sprintf("%d", i))...)
+		qs := mdq.MetricDataQueries(period, fmt.Sprintf("%d", i))
+
+		if last := chunks[len(chunks)-1]; len(last) > 0 && len(last)+len(qs) > metricDataQueryLimit {
+			chunks = append(chunks, []*cloudwatch.MetricDataQuery{})
+		}
+
+		chunks[len(chunks)-1] = append(chunks[len(chunks)-1], qs...)
 	}
 
-	res, err := p.CloudWatch.GetMetricData(req)
-	if err != nil {
-		return nil, err
+	results := []*cloudwatch.MetricDataResult{}
+
+	for _, qs := range chunks {
+		req := &cloudwatch.GetMetricDataInput{
+			EndTime:           end,
+			MetricDataQueries: qs,
+			ScanBy:            aws.String("TimestampAscending"),
+			StartTime:         start,
+		}
+
+		for {
+			res, err := p.CloudWatch.GetMetricData(req)
+			if err != nil {
+				return nil, err
+			}
+
+			results = append(results, res.MetricDataResults...)
+
+			if res.NextToken == nil {
+				break
+			}
+
+			req.NextToken = res.NextToken
+		}
 	}
 
 	msh := map[string]map[time.Time]structs.MetricValue{}
 
-	for _, dr := range res.MetricDataResults {
+	for _, dr := range results {
 		if dr.Label == nil {
 			continue
 		}

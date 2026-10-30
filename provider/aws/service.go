@@ -6,11 +6,10 @@ import (
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/acm"
 	"github.com/aws/aws-sdk-go/service/ecs"
-	"github.com/convox/rack/pkg/helpers"
 	"github.com/convox/rack/pkg/manifest"
 	"github.com/convox/rack/pkg/manifest1"
+	"github.com/convox/rack/pkg/options"
 	"github.com/convox/rack/pkg/structs"
 )
 
@@ -37,9 +36,26 @@ func (p *Provider) ServiceList(app string) (structs.Services, error) {
 		return nil, err
 	}
 
-	env, err := helpers.AppEnvironment(p, app)
+	env := structs.Environment{}
+
+	rs, err := p.ReleaseList(app, structs.ReleaseListOptions{Limit: options.Int(1)})
 	if err != nil {
 		return nil, err
+	}
+
+	if len(rs) > 0 {
+		latest := r
+
+		if rs[0].Id != r.Id {
+			latest, err = p.ReleaseGet(app, rs[0].Id)
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		if err := env.Load([]byte(latest.Env)); err != nil {
+			return nil, err
+		}
 	}
 
 	m, err := manifest.Load([]byte(r.Manifest), env)
@@ -47,11 +63,7 @@ func (p *Provider) ServiceList(app string) (structs.Services, error) {
 		return nil, err
 	}
 
-	cs, err := p.certificateList(acm.KeyAlgorithm_Values())
-	if err != nil {
-		return nil, err
-	}
-
+	ids := map[string]string{}
 	ss := structs.Services{}
 
 	for _, ms := range m.Services {
@@ -80,12 +92,14 @@ func (p *Provider) ServiceList(app string) (structs.Services, error) {
 			}
 		}
 
-		cid := ""
-
-		for _, c := range cs {
-			if c.Arn == cert {
-				cid = c.Id
+		cid, ok := ids[cert]
+		if !ok {
+			cid, err = p.certificateID(cert)
+			if err != nil {
+				return nil, err
 			}
+
+			ids[cert] = cid
 		}
 
 		s := structs.Service{

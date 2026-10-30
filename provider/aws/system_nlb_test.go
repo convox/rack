@@ -206,18 +206,6 @@ func cyclesNLBApp(scheme, preserve string) []awsutil.Cycle {
 			Request:  awsutil.Request{Method: "POST", RequestURI: "/", Operation: "DynamoDB_20120810.GetItem", Body: `{"ConsistentRead":true,"Key":{"id":{"S":"RAPP"}},"TableName":"convox-releases"}`},
 			Response: awsutil.Response{StatusCode: 200, Body: `{"Item":{"id":{"S":"RAPP"},"app":{"S":"myapp"},"created":{"S":"20160404.143416.178278576"},"manifest":{"S":"` + m + `"}}}`},
 		},
-		{
-			Request:  awsutil.Request{Method: "POST", RequestURI: "/", Body: `Action=ListStackResources&StackName=convox-myapp&Version=2010-05-15`},
-			Response: awsutil.Response{StatusCode: 200, Body: `<ListStackResourcesResponse><ListStackResourcesResult><StackResourceSummaries><member><LogicalResourceId>Settings</LogicalResourceId><PhysicalResourceId>myapp-settings</PhysicalResourceId><ResourceType>AWS::S3::Bucket</ResourceType><ResourceStatus>CREATE_COMPLETE</ResourceStatus></member></StackResourceSummaries></ListStackResourcesResult></ListStackResourcesResponse>`},
-		},
-		{
-			Request:  awsutil.Request{Method: "GET", RequestURI: "/myapp-settings/releases/RAPP/env"},
-			Response: awsutil.Response{StatusCode: 200, Body: "FOO=bar"},
-		},
-		{
-			Request:  awsutil.Request{Method: "POST", RequestURI: "/", Body: `Action=ListStackResources&StackName=convox&Version=2010-05-15`},
-			Response: awsutil.Response{StatusCode: 200, Body: `<ListStackResourcesResponse><ListStackResourcesResult><StackResourceSummaries><member><LogicalResourceId>EncryptionKey</LogicalResourceId><PhysicalResourceId>arn:aws:kms:us-test-1:123456789012:key/k</PhysicalResourceId><ResourceType>AWS::KMS::Key</ResourceType><ResourceStatus>CREATE_COMPLETE</ResourceStatus></member></StackResourceSummaries></ListStackResourcesResult></ListStackResourcesResponse>`},
-		},
 	}
 }
 
@@ -261,10 +249,10 @@ func TestValidateNLBParams_CustomSGRule(t *testing.T) {
 		{"both schemes checked on sg change", nlbRack{nlb: true, nlbInternal: true, preserve: true, preserveInternal: true}, map[string]string{"InstanceSecurityGroup": "sg-custom"}, []awsutil.Cycle{outputs, rule, outputsInternal, noRule}, refusedInternal, 4},
 		{"internal sg change with preserve on", nlbRack{nlbInternal: true, preserveInternal: true}, map[string]string{"InstanceSecurityGroup": "sg-custom"}, []awsutil.Cycle{outputsInternal, noRule}, refusedInternal, 2},
 		{"sg change without preserve", nlbRack{nlb: true}, map[string]string{"InstanceSecurityGroup": "sg-custom"}, []awsutil.Cycle{cycleNLBNoApps}, "", 1},
-		{"sg change with app preserve true", nlbRack{nlb: true}, map[string]string{"InstanceSecurityGroup": "sg-custom"}, append(cyclesNLBApp("public", "true"), outputs, noRule), refused, 7},
-		{"sg change with internal app preserve true", nlbRack{nlbInternal: true}, map[string]string{"InstanceSecurityGroup": "sg-custom"}, append(cyclesNLBApp("internal", "true"), outputsInternal, noRule), refusedInternal, 7},
-		{"sg change with app preserve false", nlbRack{nlb: true}, map[string]string{"InstanceSecurityGroup": "sg-custom"}, cyclesNLBApp("public", "false"), "", 5},
-		{"sg change with app preserve unset", nlbRack{nlb: true}, map[string]string{"InstanceSecurityGroup": "sg-custom"}, cyclesNLBApp("public", "null"), "", 5},
+		{"sg change with app preserve true", nlbRack{nlb: true}, map[string]string{"InstanceSecurityGroup": "sg-custom"}, append(cyclesNLBApp("public", "true"), outputs, noRule), refused, 4},
+		{"sg change with internal app preserve true", nlbRack{nlbInternal: true}, map[string]string{"InstanceSecurityGroup": "sg-custom"}, append(cyclesNLBApp("internal", "true"), outputsInternal, noRule), refusedInternal, 4},
+		{"sg change with app preserve false", nlbRack{nlb: true}, map[string]string{"InstanceSecurityGroup": "sg-custom"}, cyclesNLBApp("public", "false"), "", 2},
+		{"sg change with app preserve unset", nlbRack{nlb: true}, map[string]string{"InstanceSecurityGroup": "sg-custom"}, cyclesNLBApp("public", "null"), "", 2},
 		{"app scan error", nlbRack{nlb: true}, map[string]string{"InstanceSecurityGroup": "sg-custom"}, []awsutil.Cycle{cycleNLBStackDenied(`Action=DescribeStacks&Version=2010-05-15`)}, "AccessDenied", 1},
 		{"unrelated param", nlbRack{nlb: true, sg: "sg-custom", preserve: true}, map[string]string{"Foo": "bar"}, nil, "", 0},
 	}
@@ -292,8 +280,8 @@ func TestValidateNLBParams_DisableBlockedByApp(t *testing.T) {
 	if err == nil || !strings.Contains(err.Error(), "cannot disable NLB: apps myapp/api still declare public nlb ports") {
 		t.Fatalf("expected disable blocked by app, got %v", err)
 	}
-	if len(*bodies) != 5 {
-		t.Fatalf("expected 5 AWS calls, got %d", len(*bodies))
+	if len(*bodies) != 2 {
+		t.Fatalf("expected 2 AWS calls, got %d", len(*bodies))
 	}
 }
 

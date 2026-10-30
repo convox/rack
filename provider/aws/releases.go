@@ -107,7 +107,10 @@ func (p *Provider) ReleaseGet(app, id string) (*structs.Release, error) {
 	}
 
 	if key != "" {
-		if d, err := crypt.New().Decrypt(key, data); err == nil {
+		c := crypt.New()
+		c.Config = helpers.SessionConfig()
+
+		if d, err := c.Decrypt(key, data); err == nil {
 			data = d
 		}
 	}
@@ -757,7 +760,10 @@ func (p *Provider) releaseSave(r *structs.Release) error {
 	}
 
 	if key != "" {
-		env, err = crypt.New().Encrypt(key, []byte(env))
+		c := crypt.New()
+		c.Config = helpers.SessionConfig()
+
+		env, err = c.Encrypt(key, []byte(env))
 		if err != nil {
 			return err
 		}
