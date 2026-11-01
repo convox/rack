@@ -390,11 +390,13 @@ func CloudWatchLogsStream(ctx context.Context, cw cloudwatchlogsiface.CloudWatch
 				return err
 			}
 
-			res, err := cw.FilterLogEvents(req)
+			res, err := cw.FilterLogEventsWithContext(ctx, req)
 			if err != nil {
 				switch AwsErrorCode(err) {
 				case "ThrottlingException", "ResourceNotFoundException":
-					time.Sleep(3 * time.Second)
+					if aws.SleepWithContext(ctx, 3*time.Second) != nil {
+						return nil
+					}
 					continue
 				default:
 					return err
@@ -422,11 +424,17 @@ func CloudWatchLogsStream(ctx context.Context, cw cloudwatchlogsiface.CloudWatch
 
 			switch {
 			case res.NextToken != nil:
-				time.Sleep(2 * time.Second)
+				if aws.SleepWithContext(ctx, 2*time.Second) != nil {
+					return nil
+				}
 			case len(es) == 0:
-				time.Sleep(5 * time.Second)
+				if aws.SleepWithContext(ctx, 5*time.Second) != nil {
+					return nil
+				}
 			case follow:
-				time.Sleep(1 * time.Second)
+				if aws.SleepWithContext(ctx, 1*time.Second) != nil {
+					return nil
+				}
 			}
 
 			req.NextToken = res.NextToken
