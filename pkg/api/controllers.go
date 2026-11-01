@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"io"
 	"sort"
 	"strconv"
@@ -114,7 +115,10 @@ func (s *Server) AppLogs(c *stdapi.Context) error {
 		return err
 	}
 
-	v, err := s.provider(c).WithContext(c.Context()).AppLogs(name, opts)
+	ctx, cancel := context.WithCancel(c.Context())
+	defer cancel()
+
+	v, err := s.provider(c).WithContext(ctx).AppLogs(name, opts)
 	if err != nil {
 		return err
 	}
@@ -123,7 +127,7 @@ func (s *Server) AppLogs(c *stdapi.Context) error {
 		defer c.Close()
 	}
 
-	if _, err := io.Copy(c, v); err != nil {
+	if err := copyLogs(c, v, cancel); err != nil {
 		return err
 	}
 
@@ -297,7 +301,10 @@ func (s *Server) BuildLogs(c *stdapi.Context) error {
 		return err
 	}
 
-	v, err := s.provider(c).WithContext(c.Context()).BuildLogs(app, id, opts)
+	ctx, cancel := context.WithCancel(c.Context())
+	defer cancel()
+
+	v, err := s.provider(c).WithContext(ctx).BuildLogs(app, id, opts)
 	if err != nil {
 		return err
 	}
@@ -306,7 +313,7 @@ func (s *Server) BuildLogs(c *stdapi.Context) error {
 		defer c.Close()
 	}
 
-	if _, err := io.Copy(c, v); err != nil {
+	if err := copyLogs(c, v, cancel); err != nil {
 		return err
 	}
 
@@ -874,7 +881,10 @@ func (s *Server) ProcessLogs(c *stdapi.Context) error {
 		return err
 	}
 
-	v, err := s.provider(c).WithContext(c.Context()).ProcessLogs(app, pid, opts)
+	ctx, cancel := context.WithCancel(c.Context())
+	defer cancel()
+
+	v, err := s.provider(c).WithContext(ctx).ProcessLogs(app, pid, opts)
 	if err != nil {
 		return err
 	}
@@ -883,7 +893,7 @@ func (s *Server) ProcessLogs(c *stdapi.Context) error {
 		defer c.Close()
 	}
 
-	if _, err := io.Copy(c, v); err != nil {
+	if err := copyLogs(c, v, cancel); err != nil {
 		return err
 	}
 
@@ -1288,7 +1298,10 @@ func (s *Server) SystemLogs(c *stdapi.Context) error {
 		return err
 	}
 
-	v, err := s.provider(c).WithContext(c.Context()).SystemLogs(opts)
+	ctx, cancel := context.WithCancel(c.Context())
+	defer cancel()
+
+	v, err := s.provider(c).WithContext(ctx).SystemLogs(opts)
 	if err != nil {
 		return err
 	}
@@ -1297,7 +1310,7 @@ func (s *Server) SystemLogs(c *stdapi.Context) error {
 		defer c.Close()
 	}
 
-	if _, err := io.Copy(c, v); err != nil {
+	if err := copyLogs(c, v, cancel); err != nil {
 		return err
 	}
 
