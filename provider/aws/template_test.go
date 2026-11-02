@@ -10,6 +10,8 @@ import (
 	"regexp"
 	"strings"
 	"testing"
+
+	"github.com/convox/rack/pkg/structs"
 )
 
 // TestServiceTemplateParses verifies service.json.tmpl parses cleanly with the
@@ -856,5 +858,93 @@ func TestRoute53CertificateValidationWiring(t *testing.T) {
 		if !found {
 			t.Errorf("%s is missing an unconditional ROUTE53_CERTIFICATE_VALIDATION ref", name)
 		}
+	}
+}
+
+// TestTimerLauncherFargateOnly checks that the timer Lambda exists only for Fargate
+// timers. CloudFormation rejects a TimerLauncher reference outside an Fn::If on
+// FargateTimersEither for every app with EC2 timers.
+func TestTimerLauncherFargateOnly(t *testing.T) {
+	m := gen2Fixture(t)
+	release := &structs.Release{Id: "R12345", App: "testapp", Build: "B12345"}
+
+	app := renderFormation(t, "app", map[string]interface{}{
+		"App":      "testapp",
+		"Manifest": m,
+		"Password": "testpass",
+		"Release":  release,
+		"Version":  "test",
+	})
+
+	timer := renderFormation(t, "timer", map[string]interface{}{
+		"App":      "testapp",
+		"Build":    &structs.Build{Id: "B12345", App: "testapp"},
+		"Manifest": m,
+		"Password": "testpass",
+		"Release":  release,
+		"Timer":    m.Timers[0],
+	})
+
+	field := func(v interface{}, keys ...string) interface{} {
+		for _, k := range keys {
+			obj, _ := v.(map[string]interface{})
+			v = obj[k]
+		}
+		return v
+	}
+
+	if c := field(app, "Resources", "TimerLauncher", "Condition"); c != "FargateTimersEither" {
+		t.Errorf("TimerLauncher condition = %v, want FargateTimersEither", c)
+	}
+
+	if c := field(app, "Resources", "TimerRole", "Condition"); c != nil {
+		t.Errorf("TimerRole condition = %v, EC2 timer rules use this role", c)
+	}
+
+	if c := field(timer, "Resources", "LauncherPermission", "Condition"); c != "FargateEither" {
+		t.Errorf("LauncherPermission condition = %v, want FargateEither", c)
+	}
+
+	var want interface{}
+	if err := json.Unmarshal([]byte(`{ "Fn::If": [ "FargateTimersEither", { "Fn::GetAtt": [ "TimerLauncher", "Arn" ] }, "" ] }`), &want); err != nil {
+		t.Fatal(err)
+	}
+
+	if got := field(app, "Resources", "TimerCleanup", "Properties", "Parameters", "Launcher"); !reflect.DeepEqual(got, want) {
+		t.Errorf("TimerCleanup Launcher = %v, want %v", got, want)
+	}
+
+	guarded, unguarded := 0, 0
+
+	var walk func(v interface{}, inIf bool)
+	walk = func(v interface{}, inIf bool) {
+		switch x := v.(type) {
+		case string:
+			if strings.Contains(x, "TimerLauncher") {
+				if inIf {
+					guarded++
+				} else {
+					unguarded++
+				}
+			}
+		case []interface{}:
+			for _, e := range x {
+				walk(e, inIf)
+			}
+		case map[string]interface{}:
+			if args, ok := x["Fn::If"].([]interface{}); ok && len(args) == 3 && args[0] == "FargateTimersEither" {
+				walk(args[1], true)
+				walk(args[2], inIf)
+				return
+			}
+			for _, e := range x {
+				walk(e, inIf)
+			}
+		}
+	}
+	walk(app, false)
+
+	if guarded != len(m.Timers) || unguarded != 0 {
+		t.Errorf("TimerLauncher references: %d guarded, want %d; %d unguarded, want 0", guarded, len(m.Timers), unguarded)
 	}
 }
