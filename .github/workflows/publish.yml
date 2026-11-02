@@ -5,29 +5,39 @@ on:
         version:
           description: "release version"
           required: true
+permissions:
+  contents: read
 jobs:
   publish:
     if: github.repository == 'convox/rack'
     environment: 'Publish'
     runs-on: ubuntu-latest
+    env:
+      VERSION: ${{ github.event.inputs.version }}
     steps:
       - name: checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
         with:
           fetch-depth: 0
+          persist-credentials: false
       - name: golang
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
         with:
           go-version-file: go.mod
-      - name: version
-        run: echo "VERSION=${{ github.event.inputs.version }}" >> $GITHUB_ENV
-      - name: secrets
-        run: ci/secrets.sh
-        env:
-          SECRETS: ${{ toJson(secrets) }}
       - name: publish the artifacts
         run: ci/publish_arifacts.sh
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       - name: publish the release
         run: go run cmd/release/main.go -publish update "${VERSION}"
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          DISCOURSE_API_KEY: ${{ secrets.DISCOURSE_API_KEY }}
       - name: notify slack
         run: TYPE=publish ci/slack.sh
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
