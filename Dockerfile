@@ -31,14 +31,11 @@ RUN mkdir -p /usr/local/lib/docker/cli-plugins && \
       -o /usr/local/lib/docker/cli-plugins/docker-buildx && \
     chmod +x /usr/local/lib/docker/cli-plugins/docker-buildx
 
-FROM ubuntu:24.04
-
-RUN apt-get -qq update && apt-get -qq -y upgrade && \
-    apt-get -qq -y install --no-install-recommends ca-certificates && \
-    rm -rf /var/lib/apt/lists/*
+FROM gcr.io/distroless/static-debian13
 
 ENV DOCKER_BUILDKIT=1
 
+COPY --from=fetch /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 COPY --from=fetch /usr/bin/docker /usr/bin/
 COPY --from=fetch /usr/local/lib/docker/cli-plugins/docker-buildx /usr/local/lib/docker/cli-plugins/
 
