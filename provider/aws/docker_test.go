@@ -1,11 +1,16 @@
 package aws_test
 
 import (
+	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"strings"
+	"sync"
+	"testing"
+	"time"
 
 	"github.com/convox/rack/pkg/test/awsutil"
 )
@@ -41,4 +46,92 @@ func stubDocker(cycles ...awsutil.Cycle) *httptest.Server {
 	os.Setenv("DOCKER_API_VERSION", "1.24")
 
 	return s
+}
+
+type fakeDocker struct {
+	images []string
+	fail   map[string]bool
+	slow   map[string]time.Duration
+
+	mu    sync.Mutex
+	calls []string
+}
+
+func (f *fakeDocker) start(t *testing.T) {
+	s := httptest.NewServer(f)
+
+	t.Cleanup(func() {
+		s.CloseClientConnections()
+		s.Close()
+	})
+
+	t.Setenv("DOCKER_HOST", "tcp://"+s.Listener.Addr().String())
+	t.Setenv("DOCKER_API_VERSION", "1.24")
+	t.Setenv("DOCKER_CONFIG", t.TempDir())
+}
+
+func (f *fakeDocker) Calls() []string {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+
+	return append([]string{}, f.calls...)
+}
+
+func (f *fakeDocker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	_, _ = io.Copy(io.Discard, r.Body)
+
+	path := strings.TrimPrefix(r.URL.Path, "/v1.24")
+	q := r.URL.Query()
+
+	var call string
+
+	switch {
+	case strings.HasSuffix(path, "/_ping"):
+		w.Header().Set("Api-Version", "1.24")
+		w.Header().Set("Ostype", "linux")
+		_, _ = w.Write([]byte("OK"))
+		return
+	case path == "/info":
+		_, _ = w.Write([]byte("{}"))
+		return
+	case path == "/auth":
+		call = "login"
+	case path == "/images/json":
+		call = "images"
+	case path == "/images/create":
+		call = "pull " + q.Get("fromImage") + ":" + q.Get("tag")
+	case path == "/images/get":
+		call = "save"
+	case path == "/images/load":
+		call = "load"
+	case r.Method == http.MethodDelete:
+		call = "rmi " + strings.TrimPrefix(path, "/images/")
+	case strings.HasSuffix(path, "/tag"):
+		call = "tag " + q.Get("repo") + ":" + q.Get("tag")
+	case strings.HasSuffix(path, "/push"):
+		call = "push " + strings.TrimSuffix(strings.TrimPrefix(path, "/images/"), "/push") + ":" + q.Get("tag")
+	default:
+		call = r.Method + " " + path
+	}
+
+	time.Sleep(f.slow[call])
+
+	f.mu.Lock()
+	f.calls = append(f.calls, call)
+	f.mu.Unlock()
+
+	if f.fail[call] || f.fail[strings.Fields(call)[0]] {
+		w.WriteHeader(http.StatusInternalServerError)
+		_, _ = w.Write([]byte(`{"message":"failed"}`))
+		return
+	}
+
+	switch call {
+	case "images":
+		_ = json.NewEncoder(w).Encode([]map[string]interface{}{{"Id": "sha256:1", "RepoTags": f.images}})
+	case "save":
+		_, _ = w.Write([]byte("tar"))
+	default:
+		_, _ = w.Write([]byte("{}"))
+	}
 }

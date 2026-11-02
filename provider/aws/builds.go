@@ -154,26 +154,6 @@ func (p *Provider) BuildExport(app, id string, w io.Writer) error {
 		return err
 	}
 
-	gz := gzip.NewWriter(w)
-	tw := tar.NewWriter(gz)
-
-	dataHeader := &tar.Header{
-		Typeflag: tar.TypeReg,
-		Name:     "build.json",
-		Mode:     0600,
-		Size:     int64(len(bjson)),
-	}
-
-	if err := tw.WriteHeader(dataHeader); err != nil {
-		log.Error(err)
-		return err
-	}
-
-	if _, err := tw.Write(bjson); err != nil {
-		log.Error(err)
-		return err
-	}
-
 	repo, err := p.appRepository(build.App)
 	if err != nil {
 		log.Error(err)
@@ -191,7 +171,7 @@ func (p *Provider) BuildExport(app, id string, w io.Writer) error {
 		return err
 	}
 
-	defer os.Remove(tmp)
+	defer func() { _ = os.RemoveAll(tmp) }()
 
 	images := []string{}
 
@@ -199,11 +179,27 @@ func (p *Provider) BuildExport(app, id string, w io.Writer) error {
 		images = append(images, fmt.Sprintf("%s:%s.%s", repo.URI, service, build.Id))
 	}
 
+	present, err := dockerImages()
+	if err != nil {
+		return log.Error(err)
+	}
+
+	added := []string{}
+
+	for _, image := range images {
+		if !present[image] {
+			added = append(added, image)
+		}
+	}
+
+	defer dockerRemove(added)
+
 	errch := make(chan error, len(images))
 
 	for _, image := range images {
+		log.Step("pull").Logf("image=%q", image)
+
 		go func(img string) {
-			log.Step("pull").Logf("image=%q", img)
 			out, err := exec.Command("docker", "pull", img).CombinedOutput()
 			if err != nil {
 				errch <- fmt.Errorf("%s: %s\n", lastline(out), err.Error())
@@ -214,10 +210,16 @@ func (p *Provider) BuildExport(app, id string, w io.Writer) error {
 		}(image)
 	}
 
-	for i := 0; i < len(images); i++ {
-		if err := <-errch; err != nil {
-			return err
+	var pullErr error
+
+	for range images {
+		if err := <-errch; err != nil && pullErr == nil {
+			pullErr = err
 		}
+	}
+
+	if pullErr != nil {
+		return pullErr
 	}
 
 	name := fmt.Sprintf("%s.%s.tar", app, build.Id)
@@ -231,16 +233,36 @@ func (p *Provider) BuildExport(app, id string, w io.Writer) error {
 		return fmt.Errorf("%s: %s\n", strings.TrimSpace(string(out)), err.Error())
 	}
 
-	defer func() {
-		if err := os.Remove(file); err != nil {
-			log.Error(err)
-		}
-	}()
-
 	stat, err := os.Stat(file)
 	if err != nil {
 		log.Error(err)
 		return err
+	}
+
+	fd, err := os.Open(file)
+	if err != nil {
+		return log.Error(err)
+	}
+
+	defer func() { _ = fd.Close() }()
+
+	gz := gzip.NewWriter(w)
+	tw := tar.NewWriter(gz)
+
+	dataHeader := &tar.Header{
+		Typeflag: tar.TypeReg,
+		Name:     "build.json",
+		Mode:     0600,
+		Size:     int64(len(bjson)),
+	}
+
+	if err := tw.WriteHeader(dataHeader); err != nil {
+		log.Error(err)
+		return err
+	}
+
+	if _, err := tw.Write(bjson); err != nil {
+		return log.Error(err)
 	}
 
 	header := &tar.Header{
@@ -251,12 +273,6 @@ func (p *Provider) BuildExport(app, id string, w io.Writer) error {
 	}
 
 	if err := tw.WriteHeader(header); err != nil {
-		log.Error(err)
-		return err
-	}
-
-	fd, err := os.Open(file)
-	if err != nil {
 		log.Error(err)
 		return err
 	}
@@ -329,6 +345,15 @@ func (p *Provider) BuildImport(app string, r io.Reader) (*structs.Build, error) 
 		return nil, err
 	}
 
+	present, err := dockerImages()
+	if err != nil {
+		return nil, log.Error(err)
+	}
+
+	added := []string{}
+
+	defer func() { dockerRemove(added) }()
+
 	gz, err := gzip.NewReader(r)
 	if err != nil {
 		log.Error(err)
@@ -385,7 +410,17 @@ func (p *Provider) BuildImport(app string, r io.Reader) (*structs.Build, error) 
 			manifest, err = extractImageManifest(tee)
 			if err != nil {
 				log.Error(err)
+				_ = pw.CloseWithError(err)
+				_ = cmd.Wait()
 				return nil, err
+			}
+
+			for _, tags := range manifest {
+				for _, image := range tags.RepoTags {
+					if !present[image] {
+						added = append(added, image)
+					}
+				}
 			}
 
 			if err := pw.Close(); err != nil {
@@ -405,21 +440,28 @@ func (p *Provider) BuildImport(app string, r io.Reader) (*structs.Build, error) 
 		}
 	}
 
+	targets := []string{}
+
 	for _, tags := range manifest {
 		for _, image := range tags.RepoTags {
 			fps := strings.Split(image, ":")[1]
 			ps := strings.Split(fps, ".")[0]
 			target := fmt.Sprintf("%s:%s.%s", repo.URI, ps, targetBuild.Id)
 
+			added = append(added, target)
+			targets = append(targets, target)
+
 			log.Step("tag").Logf("from=%q to=%q", image, target)
 			if out, err := exec.Command("docker", "tag", image, target).CombinedOutput(); err != nil {
-				return nil, log.Error(fmt.Errorf("%s: %s\n", lastline(out), err.Error()))
+				return nil, log.Error(fmt.Errorf("%s: %s", lastline(out), err.Error()))
 			}
+		}
+	}
 
-			log.Step("push").Logf("to=%q", target)
-			if out, err := exec.Command("docker", "push", target).CombinedOutput(); err != nil {
-				return nil, log.Error(fmt.Errorf("%s: %s\n", lastline(out), err.Error()))
-			}
+	for _, target := range targets {
+		log.Step("push").Logf("to=%q", target)
+		if out, err := exec.Command("docker", "push", target).CombinedOutput(); err != nil {
+			return nil, log.Error(fmt.Errorf("%s: %s", lastline(out), err.Error()))
 		}
 	}
 
@@ -1223,6 +1265,37 @@ func (p *Provider) dockerLogin() error {
 
 	log.Success()
 	return nil
+}
+
+func dockerImages() (map[string]bool, error) {
+	out, err := exec.Command("docker", "images", "--format", "{{.Repository}}:{{.Tag}}").CombinedOutput()
+	if err != nil {
+		return nil, fmt.Errorf("%s: %s", lastline(out), err)
+	}
+
+	images := map[string]bool{}
+
+	for _, image := range strings.Fields(string(out)) {
+		images[image] = true
+	}
+
+	return images, nil
+}
+
+func dockerRemove(images []string) {
+	if len(images) == 0 {
+		return
+	}
+
+	log := Logger.At("dockerRemove").Start()
+
+	out, err := exec.Command("docker", append([]string{"rmi"}, images...)...).CombinedOutput()
+	if err != nil {
+		_ = log.Error(fmt.Errorf("%s: %s", lastline(out), err))
+		return
+	}
+
+	_ = log.Successf("images=%d", len(images))
 }
 
 type imageManifest []struct {
