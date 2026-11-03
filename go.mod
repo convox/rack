@@ -51,7 +51,7 @@ require (
 	github.com/convox/go-u2fhost v0.0.0-20220210143516-c133f566e496
 	github.com/convox/inotify v0.0.0-20170313035821-b56f5149b5c6 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/docker/cli v27.5.0+incompatible // indirect
+	github.com/docker/cli v29.2.0+incompatible // indirect
 	github.com/docker/distribution v2.8.3+incompatible // indirect
 	github.com/docker/docker-credential-helpers v0.8.2 // indirect
 	github.com/docker/engine v1.4.2-0.20190717161051-705d9623b7c1 // indirect
