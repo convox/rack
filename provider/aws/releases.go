@@ -372,6 +372,11 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 		rackSMParam = "No"
 	}
 
+	routerSGShared := false
+	if rs, err := p.describeStack(p.Rack); err == nil {
+		routerSGShared = sharedRouterSecurityGroup(stackOutputs(rs))
+	}
+
 	tp["PermissionsBoundary"] = p.permissionsBoundary()
 
 	appSMParam, appSMErr := p.stackParameter(p.rackStack(r.App), "SecretsManagerEnv")
@@ -453,6 +458,7 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 			"SecretsManagerARN":                  smARN,
 			"SecretsManagerKeys":                 smKeys,
 			"PermissionsBoundary":                tp["PermissionsBoundary"],
+			"RouterSecurityGroupShared":          routerSGShared,
 		}
 
 		data, err := formationTemplate("service", stp)
@@ -1163,4 +1169,8 @@ func (p *Provider) validateNLBSchemeMatch(m *manifest.Manifest) error {
 		}
 	}
 	return nil
+}
+
+func sharedRouterSecurityGroup(outputs map[string]string) bool {
+	return outputs["RouterSecurityGroup"] != "" && outputs["RouterSecurityGroup"] == outputs["RouterInternalSecurityGroup"]
 }

@@ -778,6 +778,9 @@
           "SecurityGroupIngress": [
             {{ if .Port.Port }}
               { "IpProtocol": "tcp", "FromPort": "{{.Port.Port}}", "ToPort": "{{.Port.Port}}", "SourceSecurityGroupId": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:Router{{ if .Internal }}Internal{{ end }}SecurityGroup" } } }
+              {{ if and .InternalAndExternal (not $.RouterSecurityGroupShared) }},
+              { "IpProtocol": "tcp", "FromPort": "{{.Port.Port}}", "ToPort": "{{.Port.Port}}", "SourceSecurityGroupId": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:RouterSecurityGroup" } } }
+              {{ end }}
             {{ end }}
             {{ range $i, $nlb := .NLB }}{{ if or $svcPort (gt $i 0) }},{{ end }}
               { "IpProtocol": "tcp", "FromPort": {{ $nlb.ContainerPort }}, "ToPort": {{ $nlb.ContainerPort }}, "CidrIp": { "Fn::ImportValue": { "Fn::Sub": "${Rack}:VpcCidr" } } },
